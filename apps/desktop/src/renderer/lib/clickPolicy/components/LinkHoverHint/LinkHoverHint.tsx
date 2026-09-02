@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { createPortal } from "react-dom";
-import { UNBOUND_HINT } from "../../hint";
+import { unboundHint } from "../../hint";
 
 const TOOLTIP_OFFSET_PX = 14;
 const TOOLTIP_CLASSES =
@@ -62,7 +62,7 @@ export function LinkHoverHint({
 							top: clickHint.clientY + TOOLTIP_OFFSET_PX,
 						}}
 					>
-						{UNBOUND_HINT}
+						{unboundHint()}
 					</motion.div>
 				)}
 			</AnimatePresence>

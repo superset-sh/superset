@@ -1,3 +1,5 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import type {
 	MicrosoftTeamsTriggerEvent,
 	TriggerConfigInput,
@@ -43,11 +45,23 @@ export const TEAMS_SENTENCES: Record<
 };
 
 export const TEAMS_MENU: TriggerMenuEntry<MicrosoftTeamsConfig>[] = [
-	leaf("Message in channel", "message_in_channel"),
-	leaf("Channel created", "channel_created"),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.microsoftTeams.menuMessageInChannel",
+			message: "Message in channel",
+		}),
+		"message_in_channel",
+	),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.microsoftTeams.menuChannelCreated",
+			message: "Channel created",
+		}),
+		"channel_created",
+	),
 ];
 
-function leaf(label: string, event: MicrosoftTeamsTriggerEvent) {
+function leaf(label: MessageDescriptor, event: MicrosoftTeamsTriggerEvent) {
 	return { label, create: () => createTeamsConfig(event) };
 }
 

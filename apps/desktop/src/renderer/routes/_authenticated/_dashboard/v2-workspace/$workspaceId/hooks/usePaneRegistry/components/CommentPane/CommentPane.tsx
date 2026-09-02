@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { RendererContext } from "@superset/panes";
 import {
 	type ReactNode,
@@ -89,10 +90,10 @@ function CopyableTable({ children }: { children?: ReactNode }) {
 				{copied ? (
 					<span className="flex items-center gap-1">
 						<LuCheck className="size-3" />
-						Copied
+						<Trans id="workspace.commentPane.copied">Copied</Trans>
 					</span>
 				) : (
-					"Copy"
+					<Trans id="workspace.commentPane.copy">Copy</Trans>
 				)}
 			</button>
 			<div className="overflow-x-auto">

@@ -1,3 +1,8 @@
+[test]
+# Isolates SUPERSET_HOME_DIR so a test can never write the developer's real
+# ~/.superset. See scripts/test-preload.ts for what went wrong without it.
+preload = ["./scripts/test-preload.ts"]
+
 [install]
 linker = "isolated" # Prevent hoisting from resolving `path-scurry@2` to `lru-cache@6` (missing `LRUCache`), which breaks the `@superset/desktop` postinstall native rebuild.
 exact = true
@@ -9,6 +14,7 @@ minimumReleaseAge = 259200
 # ever covers versions we already chose.
 minimumReleaseAgeExcludes = [
   "@expo/ui",
+  "@pierre/diffs",
   "expo",
   "expo-asset",
   "expo-constants",

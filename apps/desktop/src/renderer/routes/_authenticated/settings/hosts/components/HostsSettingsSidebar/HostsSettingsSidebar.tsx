@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
@@ -24,6 +25,7 @@ interface HostsSettingsSidebarProps {
 export function HostsSettingsSidebar({
 	selectedHostId,
 }: HostsSettingsSidebarProps) {
+	const { t } = useLingui();
 	const { data: hosts = [] } = cloudTrpc.v2Host.list.useQuery(undefined);
 
 	const presence = useHostsPresence(hosts);
@@ -50,21 +52,33 @@ export function HostsSettingsSidebar({
 		return [
 			{
 				id: "online",
-				title: "Online",
+				title: t({
+					id: "settings.hosts.sidebar.groupOnline",
+					message: "Online",
+				}),
 				rows: sorted.filter((h) => h.isOnline),
 			},
 			{
 				id: "offline",
-				title: "Offline",
+				title: t({
+					id: "settings.hosts.sidebar.groupOffline",
+					message: "Offline",
+				}),
 				rows: sorted.filter((h) => !h.isOnline),
 			},
 		];
-	}, [hostsWithPresence]);
+	}, [hostsWithPresence, t]);
 
 	return (
 		<SettingsListSidebar
-			searchPlaceholder="Filter hosts..."
-			searchAriaLabel="Filter hosts"
+			searchPlaceholder={t({
+				id: "settings.hosts.sidebar.filterPlaceholder",
+				message: "Filter hosts...",
+			})}
+			searchAriaLabel={t({
+				id: "settings.hosts.sidebar.filterAriaLabel",
+				message: "Filter hosts",
+			})}
 			listHeader={
 				<Link
 					to="/settings/hosts/new"
@@ -74,14 +88,24 @@ export function HostsSettingsSidebar({
 					)}
 				>
 					<LuPlus className="size-3.5 shrink-0" />
-					<span className="truncate flex-1">Add host…</span>
+					<span className="truncate flex-1">
+						<Trans id="settings.hosts.sidebar.addHost">Add host…</Trans>
+					</span>
 				</Link>
 			}
 			groups={listGroups}
 			filterRow={(row, q) => row.name.toLowerCase().includes(q.toLowerCase())}
 			getRowKey={(row) => row.id}
-			emptyLabel="No hosts yet."
-			noMatchLabel={(q) => `No hosts match "${q}".`}
+			emptyLabel={t({
+				id: "settings.hosts.sidebar.empty",
+				message: "No hosts yet.",
+			})}
+			noMatchLabel={(q) =>
+				t({
+					id: "settings.hosts.sidebar.noMatch",
+					message: `No hosts match "${q}".`,
+				})
+			}
 			renderRow={(row) => (
 				<Link
 					to="/settings/hosts/$hostId"

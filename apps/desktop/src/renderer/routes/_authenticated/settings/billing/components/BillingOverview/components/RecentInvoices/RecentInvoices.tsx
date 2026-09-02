@@ -1,25 +1,17 @@
+import { Trans } from "@lingui/react/macro";
+import {
+	formatDate as formatLocaleDate,
+	formatPrice,
+} from "@superset/i18n/format";
 import { Badge } from "@superset/ui/badge";
 import { cn } from "@superset/ui/utils";
-import { format } from "date-fns";
 import { HiArrowTopRightOnSquare } from "react-icons/hi2";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
-function formatAmount(amount: number, currency: string) {
-	return new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: currency.toUpperCase(),
-	}).format(amount / 100);
-}
-
 function formatDate(timestamp: number) {
-	return format(new Date(timestamp * 1000), "MMM d, yyyy");
+	return formatLocaleDate(new Date(timestamp * 1000));
 }
-
-const UNPAID_LABEL: Record<string, string> = {
-	open: "Unpaid",
-	uncollectible: "Uncollectible",
-};
 
 export function RecentInvoices() {
 	// cloudTrpc, not the imperative client: it sends this window's organization
@@ -33,7 +25,9 @@ export function RecentInvoices() {
 
 	return (
 		<div>
-			<h3 className="text-sm font-medium mb-2">Recent invoices</h3>
+			<h3 className="text-sm font-medium mb-2">
+				<Trans id="settings.billing.invoicesTitle">Recent invoices</Trans>
+			</h3>
 			<div className="divide-y divide-border">
 				{invoices.map((invoice) => (
 					<div
@@ -50,7 +44,7 @@ export function RecentInvoices() {
 									invoice.isUnpaid && "font-medium",
 								)}
 							>
-								{formatAmount(
+								{formatPrice(
 									invoice.isUnpaid ? invoice.amountDue : invoice.amountPaid,
 									invoice.currency,
 								)}
@@ -60,7 +54,13 @@ export function RecentInvoices() {
 									variant="outline"
 									className="border-warning/30 bg-warning/10 text-warning"
 								>
-									{UNPAID_LABEL[invoice.status ?? ""] ?? "Unpaid"}
+									{invoice.status === "uncollectible" ? (
+										<Trans id="settings.billing.invoiceUncollectible">
+											Uncollectible
+										</Trans>
+									) : (
+										<Trans id="settings.billing.invoiceUnpaid">Unpaid</Trans>
+									)}
 								</Badge>
 							)}
 						</div>
@@ -77,7 +77,11 @@ export function RecentInvoices() {
 										: "text-muted-foreground hover:text-foreground",
 								)}
 							>
-								{invoice.isUnpaid ? "Pay now" : "View"}
+								{invoice.isUnpaid ? (
+									<Trans id="settings.billing.invoicePayNow">Pay now</Trans>
+								) : (
+									<Trans id="settings.billing.invoiceView">View</Trans>
+								)}
 								<HiArrowTopRightOnSquare className="h-3 w-3" />
 							</button>
 						) : null}

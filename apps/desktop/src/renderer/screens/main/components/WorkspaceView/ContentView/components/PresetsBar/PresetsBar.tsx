@@ -351,7 +351,7 @@ export function PresetsBar() {
 							</Button>
 						</DropdownMenuTrigger>
 					</TooltipTrigger>
-					<TooltipContent side="bottom">Manage Presets</TooltipContent>
+					<TooltipContent side="bottom">Manage Terminal Scripts</TooltipContent>
 				</Tooltip>
 				<DropdownMenuContent align="start" className="w-56">
 					{managedPresets.map((item) => {
@@ -419,7 +419,7 @@ export function PresetsBar() {
 						}
 						onSelect={(e) => e.preventDefault()}
 					>
-						Show Preset Bar
+						Show Scripts Bar
 					</DropdownMenuCheckboxItem>
 					<DropdownMenuSeparator />
 					<DropdownMenuItem
@@ -427,7 +427,7 @@ export function PresetsBar() {
 						onClick={() => navigate({ to: "/settings/terminal" })}
 					>
 						<HiMiniCog6Tooth className="size-4" />
-						<span>Manage Presets</span>
+						<span>Manage Terminal Scripts</span>
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>

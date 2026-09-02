@@ -1,3 +1,5 @@
+import { errorMessage, rawErrorMessage } from "@superset/i18n/errors";
+
 export interface CloneError {
 	message: string;
 	needsGhAuth: boolean;
@@ -20,23 +22,34 @@ const GH_AUTH_FAILURE_PATTERNS = [
 /**
  * Turns raw git clone stderr into a user-actionable message, flagging the
  * failures that GitHub CLI sign-in fixes.
+ *
+ * Classification matches on `rawErrorMessage`: `errorMessage` output may be
+ * translated, and matching localized text would silently stop classifying.
  */
 export function classifyCloneError(err: unknown): CloneError {
-	const message =
-		err instanceof Error ? err.message : "Failed to clone repository";
-	if (message.includes("Permission denied (publickey)")) {
+	const raw = rawErrorMessage(err);
+	if (raw.includes("Permission denied (publickey)")) {
 		return {
 			message:
 				"SSH authentication failed. Sign in to GitHub CLI and use the HTTPS URL instead.",
 			needsGhAuth: true,
 		};
 	}
-	if (GH_AUTH_FAILURE_PATTERNS.some((pattern) => message.includes(pattern))) {
+	if (GH_AUTH_FAILURE_PATTERNS.some((pattern) => raw.includes(pattern))) {
 		return {
 			message:
 				"Couldn't access this repository. If it's private, sign in to GitHub CLI first.",
 			needsGhAuth: true,
 		};
 	}
-	return { message, needsGhAuth: false };
+	// errorMessage() surfaces a bare thrown string as the message; a clone that
+	// rejected with something that isn't an Error has nothing worth showing, so
+	// keep the generic line the tests pin.
+	return {
+		message:
+			err instanceof Error
+				? errorMessage(err, "Failed to clone repository")
+				: "Failed to clone repository",
+		needsGhAuth: false,
+	};
 }

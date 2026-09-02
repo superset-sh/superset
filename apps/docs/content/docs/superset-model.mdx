@@ -7,11 +7,11 @@ Superset has one mental model: **delegate in workspaces, integrate through branc
 
 ## Projects
 
-A project is a repo you've registered with Superset, from a local folder or a Git URL. Everything else happens inside a project. A project can define [setup, teardown, and run scripts](/setup-teardown-scripts) in `.superset/config.json` so every new workspace comes up ready to work.
+A project is a repo you've registered with Superset, from a local folder or a Git URL. Everything else happens inside a project. A project can define [project lifecycle scripts](/setup-teardown-scripts) for setup, teardown, and Run-button behavior in `.superset/config.json` so every new workspace comes up ready to work.
 
 ## Workspaces
 
-A workspace is an isolated [git worktree](/workspaces) on its own branch: its own directory, its own terminal sessions, its own ports. Only git-tracked files are copied in; setup scripts handle the rest (dependencies, env files).
+A workspace is an isolated [git worktree](/workspaces) on its own branch: its own directory, its own terminal sessions, its own ports. Only git-tracked files are copied in; lifecycle setup scripts handle the rest (dependencies, env files).
 
 Workspaces are cheap and disposable by design. Create one per task with **⌘N**, delete it when the branch merges. The workspace is where you delegate; the branch and PR are how the work comes back.
 
@@ -27,7 +27,7 @@ Any CLI agent runs in any workspace: Claude Code, Codex, Amp, Gemini, and [the r
 
 ## Devices
 
-A workspace lives on the machine that hosts its files, terminals, and ports; that doesn't have to be the machine you're looking at. [Remote workspaces](/remote-workspaces) reach workspaces hosted on another device (a Mac mini under the desk, a shared sandbox), and [Automations](/automations) dispatch scheduled agent runs to whichever device you pick.
+A workspace lives on the machine that hosts its files, terminals, and ports; that doesn't have to be the machine you're looking at. [Remote access](/remote-access) reaches workspaces hosted on another device (a Mac mini under the desk, a shared sandbox), and [Automations](/automations) dispatch scheduled agent runs to whichever device you pick.
 
 ## How They Compose
 

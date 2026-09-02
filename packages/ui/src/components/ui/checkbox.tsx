@@ -23,7 +23,10 @@ function Checkbox({
 				data-slot="checkbox-indicator"
 				className="grid place-content-center text-current transition-none"
 			>
-				<CheckIcon className="size-3.5" />
+				{/* text-current is load-bearing: DropdownMenuItem and CommandItem force
+			    any svg without a text- class to muted-foreground, which washes the
+			    check out against the checked bg-primary fill. */}
+				<CheckIcon className="size-3.5 text-current" />
 			</CheckboxPrimitive.Indicator>
 		</CheckboxPrimitive.Root>
 	);

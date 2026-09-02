@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -9,6 +10,7 @@ export const ACTIVE_ORG_ID_KEY = "active_organization_id";
 const SERVER_REVOKE_TIMEOUT_MS = 5_000;
 
 export function useSignOut() {
+	const { t } = useLingui();
 	const signOutMutation = electronTrpc.auth.signOut.useMutation();
 	const setAnalyticsUserId = electronTrpc.analytics.setUserId.useMutation();
 
@@ -25,10 +27,19 @@ export function useSignOut() {
 		try {
 			await signOutMutation.mutateAsync();
 		} catch (error) {
-			toast.error("Couldn't remove the local sign-in", {
-				description:
-					"Superset may sign you back in after restart. Please try signing out again.",
-			});
+			toast.error(
+				t({
+					id: "hooks.signOut.removeLocalSignInFailed",
+					message: "Couldn't remove the local sign-in",
+				}),
+				{
+					description: t({
+						id: "hooks.signOut.removeLocalSignInFailedDescription",
+						message:
+							"Superset may sign you back in after restart. Please try signing out again.",
+					}),
+				},
+			);
 			throw error;
 		}
 	};

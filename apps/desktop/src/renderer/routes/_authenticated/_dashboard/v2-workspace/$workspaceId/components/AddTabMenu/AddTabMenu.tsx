@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	DropdownMenuCheckboxItem,
 	DropdownMenuItem,
@@ -26,18 +27,24 @@ export function AddTabMenu({
 		<>
 			<DropdownMenuItem className="gap-2" onClick={onAddTerminal}>
 				<BsTerminalPlus className="size-4" />
-				<span>Terminal</span>
+				<span>
+					<Trans id="workspace.addTabMenu.terminal">Terminal</Trans>
+				</span>
 				<HotkeyMenuShortcut hotkeyId="NEW_GROUP" />
 			</DropdownMenuItem>
 			{onAddChatV3 && (
 				<DropdownMenuItem className="gap-2" onClick={onAddChatV3}>
 					<TbMessageCirclePlus className="size-4" />
-					<span>Chat v3</span>
+					<span>
+						<Trans id="workspace.addTabMenu.chatV3">Chat v3</Trans>
+					</span>
 				</DropdownMenuItem>
 			)}
 			<DropdownMenuItem className="gap-2" onClick={onAddBrowser}>
 				<TbWorld className="size-4" />
-				<span>Browser</span>
+				<span>
+					<Trans id="workspace.addTabMenu.browser">Browser</Trans>
+				</span>
 				<HotkeyMenuShortcut hotkeyId="NEW_BROWSER" />
 			</DropdownMenuItem>
 			<DropdownMenuSeparator />
@@ -46,7 +53,7 @@ export function AddTabMenu({
 				onCheckedChange={(checked) => onToggleShowPresetsBar(checked === true)}
 				onSelect={(event) => event.preventDefault()}
 			>
-				Show Preset Bar
+				<Trans id="workspace.addTabMenu.showScriptsBar">Show Scripts Bar</Trans>
 			</DropdownMenuCheckboxItem>
 		</>
 	);

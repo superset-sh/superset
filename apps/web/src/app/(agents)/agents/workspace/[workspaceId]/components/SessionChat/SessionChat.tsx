@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import {
 	Conversation,
 	ConversationContent,
@@ -25,7 +26,9 @@ export function SessionChat({ diffFiles, messages }: SessionChatProps) {
 				{messages.map((msg, index) => (
 					<div key={msg.id} className="flex flex-col gap-3">
 						{msg.role === "assistant" && index > 0 && (
-							<p className="text-xs text-muted-foreground">Worked for 39s</p>
+							<p className="text-xs text-muted-foreground">
+								<Trans id="web.sessionChat.workedFor">Worked for 39s</Trans>
+							</p>
 						)}
 						<Message from={msg.role}>
 							<MessageContent>

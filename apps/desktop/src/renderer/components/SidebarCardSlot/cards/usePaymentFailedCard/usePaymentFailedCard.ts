@@ -1,3 +1,4 @@
+import { formatPrice } from "@superset/i18n/format";
 import { isPaymentFailingStatus } from "@superset/shared/billing";
 import { useNavigate } from "@tanstack/react-router";
 import { track } from "renderer/lib/analytics";
@@ -5,13 +6,6 @@ import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { SidebarCardEntry } from "../../types";
-
-function formatAmount(amount: number, currency: string) {
-	return new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: currency.toUpperCase(),
-	}).format(amount / 100);
-}
 
 /**
  * Stripe keeps retrying for ~14 days before canceling, and access continues
@@ -51,7 +45,7 @@ export function usePaymentFailedCard({
 		members?.find((m) => m.userId === session?.user?.id)?.role === "owner";
 
 	const amount = outstandingInvoice
-		? formatAmount(outstandingInvoice.amountDue, outstandingInvoice.currency)
+		? formatPrice(outstandingInvoice.amountDue, outstandingInvoice.currency)
 		: null;
 	const hostedInvoiceUrl = outstandingInvoice?.hostedInvoiceUrl ?? null;
 

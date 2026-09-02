@@ -1,3 +1,5 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import {
 	GitMerge,
 	GitPullRequest,
@@ -16,39 +18,74 @@ export type PullRequestStatus =
 
 export const PULL_REQUEST_STATUS: Record<
 	PullRequestStatus,
-	{ label: string; ink: string; surface: string; icon: LucideIcon }
+	{
+		label: MessageDescriptor;
+		ink: string;
+		surface: string;
+		icon: LucideIcon;
+	}
 > = {
 	draft: {
-		label: "Draft",
+		label: msg({ id: "mobile.pullRequest.status.draft", message: "Draft" }),
 		ink: "text-muted-foreground",
 		surface: "bg-secondary",
 		icon: GitPullRequestDraft,
 	},
 	open: {
-		label: "Open",
+		label: msg({ id: "mobile.pullRequest.status.open", message: "Open" }),
 		ink: "text-emerald-500",
 		surface: "bg-green-500/15",
 		icon: GitPullRequest,
 	},
 	queued: {
-		label: "Queued",
+		label: msg({ id: "mobile.pullRequest.status.queued", message: "Queued" }),
 		ink: "text-amber-500",
 		surface: "bg-amber-500/15",
 		icon: GitPullRequest,
 	},
 	merged: {
-		label: "Merged",
+		label: msg({ id: "mobile.pullRequest.status.merged", message: "Merged" }),
 		ink: "text-purple-500",
 		surface: "bg-violet-500/15",
 		icon: GitMerge,
 	},
 	closed: {
-		label: "Closed",
+		label: msg({ id: "mobile.pullRequest.status.closed", message: "Closed" }),
 		ink: "text-destructive",
 		surface: "bg-red-500/15",
 		icon: GitPullRequestClosed,
 	},
 };
+
+/**
+ * The same marks as `icon` above, bundled as art for the native surfaces that
+ * cannot render a React component — the composer's leading chip.
+ *
+ * SF Symbols has no pull request: its nearest neighbours are all arrows
+ * (`arrow.triangle.pull`, `arrow.triangle.branch`), and none of them reads as
+ * the glyph GitHub taught everyone. These are lucide's own paths at 96px, so
+ * the chip draws the same mark the sheet and the cards do.
+ */
+export const PULL_REQUEST_ASSET = {
+	draft: require("@/assets/pull-request/draft.png"),
+	open: require("@/assets/pull-request/open.png"),
+	queued: require("@/assets/pull-request/open.png"),
+	merged: require("@/assets/pull-request/merged.png"),
+	closed: require("@/assets/pull-request/closed.png"),
+} as const satisfies Record<PullRequestStatus, number>;
+
+/**
+ * What a native surface draws until the art above has resolved to a file it
+ * can read — the same role the session tab's initial plays behind its brand
+ * mark, so the chip never flashes empty.
+ */
+export const PULL_REQUEST_SYMBOL = {
+	draft: "arrow.triangle.pull",
+	open: "arrow.triangle.pull",
+	queued: "arrow.triangle.pull",
+	merged: "arrow.triangle.merge",
+	closed: "arrow.triangle.pull",
+} as const satisfies Record<PullRequestStatus, string>;
 
 /** Accepts the synced row or the host detail; both carry these three fields. */
 export function pullRequestStatus(

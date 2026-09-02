@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import { cn } from "@superset/ui/utils";
 import { LuArrowUpRight } from "react-icons/lu";
 import { PRIcon } from "renderer/screens/main/components/PRIcon";
@@ -5,17 +7,23 @@ import type { NormalizedPR } from "../../types";
 
 const reviewDecisionConfig = {
 	approved: {
-		label: "Approved",
+		label: msg({ id: "workspace.prHeader.approved", message: "Approved" }),
 		className:
 			"border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
 	},
 	changes_requested: {
-		label: "Changes requested",
+		label: msg({
+			id: "workspace.prHeader.changesRequested",
+			message: "Changes requested",
+		}),
 		className:
 			"border border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
 	},
 	pending: {
-		label: "Review pending",
+		label: msg({
+			id: "workspace.prHeader.reviewPending",
+			message: "Review pending",
+		}),
 		className:
 			"border border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
 	},
@@ -53,7 +61,7 @@ export function PRHeader({ pr }: PRHeaderProps) {
 						reviewDecisionConfig[pr.reviewDecision].className,
 					)}
 				>
-					{reviewDecisionConfig[pr.reviewDecision].label}
+					{i18n._(reviewDecisionConfig[pr.reviewDecision].label)}
 				</span>
 			</div>
 		</div>

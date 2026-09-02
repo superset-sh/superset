@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { ScrollArea } from "@superset/ui/scroll-area";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -26,6 +27,7 @@ export const Route = createFileRoute(
 });
 
 function IssueDetailPage() {
+	const { t } = useLingui();
 	const { issueNumber: issueNumberRaw } = Route.useParams();
 	const issueNumber = parsePositiveIntegerParam(issueNumberRaw);
 	const search = TasksLayoutRoute.useSearch();
@@ -109,8 +111,14 @@ function IssueDetailPage() {
 		<WorkItemDetailHeader
 			itemNumber={data?.number ?? issueNumber}
 			icon={<StateIcon className={`size-4 shrink-0 ${stateIconClass}`} />}
-			backLabel="Back to GitHub issues"
-			externalLabel="Open issue in GitHub"
+			backLabel={t({
+				id: "dashboard.tasks.issueDetail.backToIssues",
+				message: "Back to GitHub issues",
+			})}
+			externalLabel={t({
+				id: "dashboard.tasks.issueDetail.openInGithub",
+				message: "Open issue in GitHub",
+			})}
 			url={data?.url ?? null}
 			onBack={handleBack}
 			onAddToWorkspace={data ? handleAddToWorkspace : null}
@@ -121,7 +129,13 @@ function IssueDetailPage() {
 		return (
 			<div className="flex min-h-0 flex-1 flex-col">
 				{header}
-				<WorkItemDetailState message="This issue link is invalid." isError />
+				<WorkItemDetailState
+					message={t({
+						id: "dashboard.tasks.issueDetail.invalidLink",
+						message: "This issue link is invalid.",
+					})}
+					isError
+				/>
 			</div>
 		);
 	}
@@ -130,7 +144,13 @@ function IssueDetailPage() {
 		return (
 			<div className="flex min-h-0 flex-1 flex-col">
 				{header}
-				<WorkItemDetailState message="Choose a project from GitHub issues before opening an issue." />
+				<WorkItemDetailState
+					message={t({
+						id: "dashboard.tasks.issueDetail.chooseProject",
+						message:
+							"Choose a project from GitHub issues before opening an issue.",
+					})}
+				/>
 			</div>
 		);
 	}
@@ -142,8 +162,15 @@ function IssueDetailPage() {
 				<WorkItemDetailState
 					message={
 						areProjectsReady
-							? "This project is no longer available on your devices."
-							: "Loading project…"
+							? t({
+									id: "dashboard.tasks.issueDetail.projectUnavailable",
+									message:
+										"This project is no longer available on your devices.",
+								})
+							: t({
+									id: "dashboard.tasks.issueDetail.loadingProject",
+									message: "Loading project…",
+								})
 					}
 					isLoading={!areProjectsReady}
 					isError={areProjectsReady}
@@ -157,7 +184,10 @@ function IssueDetailPage() {
 			<div className="flex min-h-0 flex-1 flex-col">
 				{header}
 				<WorkItemDetailState
-					message="The device that hosts this project is unavailable."
+					message={t({
+						id: "dashboard.tasks.issueDetail.hostUnavailable",
+						message: "The device that hosts this project is unavailable.",
+					})}
 					isError
 				/>
 			</div>
@@ -168,7 +198,13 @@ function IssueDetailPage() {
 		return (
 			<div className="flex min-h-0 flex-1 flex-col">
 				{header}
-				<WorkItemDetailState message="Loading issue…" isLoading />
+				<WorkItemDetailState
+					message={t({
+						id: "dashboard.tasks.issueDetail.loadingIssue",
+						message: "Loading issue…",
+					})}
+					isLoading
+				/>
 			</div>
 		);
 	}
@@ -178,7 +214,14 @@ function IssueDetailPage() {
 			<div className="flex min-h-0 flex-1 flex-col">
 				{header}
 				<WorkItemDetailState
-					message={error instanceof Error ? error.message : "Issue not found."}
+					message={
+						error instanceof Error
+							? error.message
+							: t({
+									id: "dashboard.tasks.issueDetail.notFound",
+									message: "Issue not found.",
+								})
+					}
 					isError
 					onRetry={() => void refetch()}
 				/>
@@ -203,7 +246,11 @@ function IssueDetailPage() {
 						{data.author && (
 							<>
 								<span aria-hidden>·</span>
-								<span className="min-w-0 break-words">by {data.author}</span>
+								<span className="min-w-0 break-words">
+									<Trans id="dashboard.tasks.issueDetail.byAuthor">
+										by {data.author}
+									</Trans>
+								</span>
 							</>
 						)}
 					</div>
@@ -212,7 +259,9 @@ function IssueDetailPage() {
 						<MarkdownRenderer content={data.body} />
 					) : (
 						<p className="text-sm italic text-muted-foreground">
-							No description provided.
+							<Trans id="dashboard.tasks.issueDetail.noDescription">
+								No description provided.
+							</Trans>
 						</p>
 					)}
 				</div>

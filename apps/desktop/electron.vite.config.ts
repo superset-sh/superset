@@ -263,7 +263,10 @@ export default defineConfig({
 				hideConsole: true,
 				port: Number(process.env.CODE_INSPECTOR_PORT) || undefined,
 			}),
-			reactPlugin(),
+			reactPlugin({
+				// Compiles @lingui/react/macro (Trans, useLingui) at build time.
+				babel: { plugins: ["@lingui/babel-plugin-lingui-macro"] },
+			}),
 			htmlEnvTransformPlugin(),
 		],
 

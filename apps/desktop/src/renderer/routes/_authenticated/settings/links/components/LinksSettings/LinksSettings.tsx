@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Label } from "@superset/ui/label";
 import {
 	Select,
@@ -32,6 +33,7 @@ interface LinksSettingsProps {
 }
 
 export function LinksSettings({ visibleItems }: LinksSettingsProps) {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const {
 		preferences,
@@ -54,58 +56,79 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 	const handleFileChange = useCallback(
 		(next: LinkTierMap) => {
 			setFileLinks(next);
-			toast.success("Changes saved");
+			toast.success(
+				t({ id: "settings.links.fileSaved", message: "Changes saved" }),
+			);
 		},
-		[setFileLinks],
+		[setFileLinks, t],
 	);
 
 	const handleUrlChange = useCallback(
 		(next: LinkTierMap) => {
 			setUrlLinks(next);
-			toast.success("Changes saved");
+			toast.success(
+				t({ id: "settings.links.urlSaved", message: "Changes saved" }),
+			);
 		},
-		[setUrlLinks],
+		[setUrlLinks, t],
 	);
 
 	const handleFolderChange = useCallback(
 		(next: FolderTierMap) => {
 			setFolderLinks(next);
-			toast.success("Changes saved");
+			toast.success(
+				t({ id: "settings.links.folderSaved", message: "Changes saved" }),
+			);
 		},
-		[setFolderLinks],
+		[setFolderLinks, t],
 	);
 
 	const handleSidebarChange = useCallback(
 		(next: LinkTierMap) => {
 			setSidebarFileLinks(next);
-			toast.success("Changes saved");
+			toast.success(
+				t({ id: "settings.links.sidebarSaved", message: "Changes saved" }),
+			);
 		},
-		[setSidebarFileLinks],
+		[setSidebarFileLinks, t],
 	);
 
 	const handlePortChange = useCallback(
 		(next: LinkAction) => {
 			setPortOpenAction(next);
-			toast.success("Changes saved");
+			toast.success(
+				t({ id: "settings.links.portSaved", message: "Changes saved" }),
+			);
 		},
-		[setPortOpenAction],
+		[setPortOpenAction, t],
 	);
 
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Links</h2>
+				<h2 className="text-xl font-semibold">
+					<Trans id="settings.links.title">Links</Trans>
+				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Control what each click — plain or with a modifier — does to a file or
-					URL. Each row binds one modifier combination to an action.
+					<Trans id="settings.links.subtitle">
+						Control what each click — plain or with a modifier — does to a file
+						or URL. Each row binds one modifier combination to an action.
+					</Trans>
 				</p>
 			</div>
 
 			<div className="space-y-6">
 				{showSidebar && (
 					<LinkTierMapper
-						title="Sidebar file rows"
-						description="Applies to the file tree, changes list, and diff header."
+						title={t({
+							id: "settings.links.sidebarFileTitle",
+							message: "Sidebar file rows",
+						})}
+						description={t({
+							id: "settings.links.sidebarFileDescription",
+							message:
+								"Applies to the file tree, changes list, and diff header.",
+						})}
 						value={preferences.sidebarFileLinks}
 						onChange={handleSidebarChange}
 						idPrefix="links-sidebar-file"
@@ -116,17 +139,22 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 				{showPort && (
 					<div>
 						<h3 className="text-sm font-medium mb-1">
-							<HighlightText text="Ports" query={searchQuery} />
+							<HighlightText
+								text={t({ id: "settings.links.portsTitle", message: "Ports" })}
+								query={searchQuery}
+							/>
 						</h3>
 						<p className="text-xs text-muted-foreground mb-3">
-							Where detected-port badges in the sidebar open when clicked.
+							<Trans id="settings.links.portsHint">
+								Where detected-port badges in the sidebar open when clicked.
+							</Trans>
 						</p>
 						<div className="flex items-center justify-between gap-4">
 							<Label
 								htmlFor="links-port-action"
 								className="text-sm font-medium"
 							>
-								On click
+								<Trans id="settings.links.portsOnClick">On click</Trans>
 							</Label>
 							<Select
 								value={preferences.portOpenAction}
@@ -153,8 +181,15 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 
 				{showFile && (
 					<LinkTierMapper
-						title="File links"
-						description="Applies to file paths in terminals, chat tool calls, and task markdown."
+						title={t({
+							id: "settings.links.fileTitle",
+							message: "File links",
+						})}
+						description={t({
+							id: "settings.links.fileDescription",
+							message:
+								"Applies to file paths in terminals, chat tool calls, and task markdown.",
+						})}
 						value={preferences.fileLinks}
 						onChange={handleFileChange}
 						idPrefix="links-file"
@@ -164,8 +199,15 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 
 				{showFolder && (
 					<FolderLinkTierMapper
-						title="Folder links"
-						description="Applies to folder paths in terminal output. Folders can't open in the file viewer, so clicks reveal in the sidebar, open the external editor, or open Finder."
+						title={t({
+							id: "settings.links.folderTitle",
+							message: "Folder links",
+						})}
+						description={t({
+							id: "settings.links.folderDescription",
+							message:
+								"Applies to folder paths in terminal output. Folders can't open in the file viewer, so clicks reveal in the sidebar, open the external editor, or open Finder.",
+						})}
 						value={preferences.folderLinks}
 						onChange={handleFolderChange}
 						idPrefix="links-folder"
@@ -174,8 +216,15 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 
 				{showUrl && (
 					<LinkTierMapper
-						title="URL links"
-						description="Applies to URLs in terminals, chat messages, and task browsers."
+						title={t({
+							id: "settings.links.urlTitle",
+							message: "URL links",
+						})}
+						description={t({
+							id: "settings.links.urlDescription",
+							message:
+								"Applies to URLs in terminals, chat messages, and task browsers.",
+						})}
 						value={preferences.urlLinks}
 						onChange={handleUrlChange}
 						idPrefix="links-url"

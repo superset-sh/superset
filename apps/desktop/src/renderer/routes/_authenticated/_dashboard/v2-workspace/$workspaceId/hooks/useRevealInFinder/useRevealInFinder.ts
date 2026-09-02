@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
 import { useCallback } from "react";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
@@ -10,6 +11,7 @@ import { useLocalHostService } from "renderer/routes/_authenticated/providers/Lo
  * whose paths don't exist on this machine.
  */
 export function useRevealInFinder(workspaceId: string) {
+	const { t } = useLingui();
 	const { machineId } = useLocalHostService();
 	const { workspaces } = useHostWorkspaces();
 	const workspaceRow = workspaces.find((w) => w.id === workspaceId);
@@ -17,7 +19,12 @@ export function useRevealInFinder(workspaceId: string) {
 	return useCallback(
 		(path: string, options?: { isDirectory?: boolean }) => {
 			if (workspaceRow?.hostId !== machineId) {
-				toast.error("Can't open remote workspace paths in Finder");
+				toast.error(
+					t({
+						id: "workspace.revealInFinder.remotePathsUnsupported",
+						message: "Can't open remote workspace paths in Finder",
+					}),
+				);
 				return;
 			}
 			const procedure = options?.isDirectory
@@ -25,9 +32,14 @@ export function useRevealInFinder(workspaceId: string) {
 				: electronTrpcClient.external.openInFinder;
 			procedure.mutate(path).catch((error) => {
 				console.error("Failed to reveal path in Finder:", path, error);
-				toast.error("Failed to reveal in Finder");
+				toast.error(
+					t({
+						id: "workspace.revealInFinder.revealFailed",
+						message: "Failed to reveal in Finder",
+					}),
+				);
 			});
 		},
-		[workspaceRow, machineId],
+		[workspaceRow, machineId, t],
 	);
 }

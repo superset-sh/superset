@@ -1,3 +1,4 @@
+import { i18n } from "@superset/i18n";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { Alert } from "react-native";
@@ -9,14 +10,17 @@ import {
 } from "@/lib/host-service/client";
 import { posthog } from "@/lib/posthog";
 import { getHostTerminalsQueryKey } from "../../../../hooks/useHostTerminals";
-import type { ChatTarget } from "../../../../stores/chatTargetStore";
+
+export interface WorkspaceTerminalTarget {
+	workspaceId: string;
+	hostId: string;
+}
 
 /**
  * Launch a NEW agent session in an existing workspace (`agents.run` bakes the
  * prompt into the launch command) and land on its tab. Always a fresh session
- * — the composer says "New agent in …", and delivering into an already-running
- * session belongs to explicit flows like the terminal composer or the
- * finish-review target picker, never to this one.
+ * — delivering into an already-running session belongs to explicit flows like
+ * the terminal composer or the finish-review target picker, never to this one.
  */
 export function useStartWorkspaceTerminal(workspaces: HostWorkspaceItem[]) {
 	const router = useRouter();
@@ -28,7 +32,7 @@ export function useStartWorkspaceTerminal(workspaces: HostWorkspaceItem[]) {
 			message,
 			agentId,
 		}: {
-			target: ChatTarget;
+			target: WorkspaceTerminalTarget;
 			message: PromptInputMessage;
 			agentId: string;
 		}) => {
@@ -79,7 +83,10 @@ export function useStartWorkspaceTerminal(workspaces: HostWorkspaceItem[]) {
 				result: "failed",
 			});
 			Alert.alert(
-				"Could not start agent",
+				i18n._({
+					id: "mobile.agent.startFailed",
+					message: "Could not start agent",
+				}),
 				error instanceof Error ? error.message : String(error),
 			);
 		},

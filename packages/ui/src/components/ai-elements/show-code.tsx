@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	CheckIcon,
 	ChevronDownIcon,
@@ -77,6 +78,7 @@ export function ShowCode({
 	onOpen,
 	className,
 }: ShowCodeProps) {
+	const { t } = useLingui();
 	const [isCopied, setIsCopied] = useState(false);
 	const [isExpanded, setIsExpanded] = useState(false);
 
@@ -128,7 +130,11 @@ export function ShowCode({
 							<Tooltip>
 								<TooltipTrigger asChild>
 									<Button
-										aria-label={isExpanded ? "Collapse" : "Expand"}
+										aria-label={
+											isExpanded
+												? t({ id: "ui.showCode.collapse", message: "Collapse" })
+												: t({ id: "ui.showCode.expand", message: "Expand" })
+										}
 										className="h-6 w-6"
 										onClick={() => setIsExpanded((prev) => !prev)}
 										size="icon"
@@ -142,7 +148,11 @@ export function ShowCode({
 									</Button>
 								</TooltipTrigger>
 								<TooltipContent>
-									{isExpanded ? "Collapse" : "Expand"}
+									{isExpanded ? (
+										<Trans id="ui.showCode.collapse">Collapse</Trans>
+									) : (
+										<Trans id="ui.showCode.expand">Expand</Trans>
+									)}
 								</TooltipContent>
 							</Tooltip>
 						</TooltipProvider>
@@ -152,7 +162,7 @@ export function ShowCode({
 							<Tooltip>
 								<TooltipTrigger asChild>
 									<Button
-										aria-label="Open"
+										aria-label={t({ id: "ui.showCode.open", message: "Open" })}
 										className="h-6 w-6"
 										onClick={(e) => {
 											e.stopPropagation();
@@ -164,7 +174,9 @@ export function ShowCode({
 										<ExternalLinkIcon className="h-3.5 w-3.5" />
 									</Button>
 								</TooltipTrigger>
-								<TooltipContent>Open</TooltipContent>
+								<TooltipContent>
+									<Trans id="ui.showCode.open">Open</Trans>
+								</TooltipContent>
 							</Tooltip>
 						</TooltipProvider>
 					)}
@@ -172,7 +184,11 @@ export function ShowCode({
 						<Tooltip>
 							<TooltipTrigger asChild>
 								<Button
-									aria-label={isCopied ? "Copied" : "Copy"}
+									aria-label={
+										isCopied
+											? t({ id: "ui.showCode.copied", message: "Copied" })
+											: t({ id: "ui.showCode.copy", message: "Copy" })
+									}
 									className="h-6 w-6"
 									onClick={handleCopy}
 									size="icon"
@@ -198,7 +214,9 @@ export function ShowCode({
 									</div>
 								</Button>
 							</TooltipTrigger>
-							<TooltipContent>Copy</TooltipContent>
+							<TooltipContent>
+								<Trans id="ui.showCode.copy">Copy</Trans>
+							</TooltipContent>
 						</Tooltip>
 					</TooltipProvider>
 				</div>
@@ -226,7 +244,7 @@ export function ShowCode({
 							onClick={() => setIsExpanded(true)}
 							type="button"
 						>
-							Show more
+							<Trans id="ui.showCode.showMore">Show more</Trans>
 						</button>
 					</div>
 				)}
@@ -239,7 +257,7 @@ export function ShowCode({
 							onClick={() => setIsExpanded(false)}
 							type="button"
 						>
-							Show less
+							<Trans id="ui.showCode.showLess">Show less</Trans>
 						</button>
 					</div>
 				)}

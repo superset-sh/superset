@@ -1,5 +1,6 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	Card,
@@ -35,13 +36,15 @@ export function InsightTileFrame({
 	isLoading,
 	error,
 	empty,
-	emptyLabel = "No data",
+	emptyLabel,
 	headerAction,
 	onRefresh,
 	isRefreshing,
 	href,
 	children,
 }: InsightTileFrameProps) {
+	const { t } = useLingui();
+
 	return (
 		<Card>
 			<CardHeader>
@@ -68,7 +71,7 @@ export function InsightTileFrame({
 								className="size-6 p-0"
 								onClick={onRefresh}
 								disabled={isRefreshing}
-								aria-label="Refresh"
+								aria-label={t({ id: "admin.tile.refresh", message: "Refresh" })}
 							>
 								<LuRefreshCw
 									className={cn("size-3.5", isRefreshing && "animate-spin")}
@@ -104,7 +107,9 @@ export function InsightTileFrame({
 					</div>
 				) : empty ? (
 					<div className="flex h-[200px] items-center justify-center rounded-md border border-dashed">
-						<p className="text-muted-foreground text-sm">{emptyLabel}</p>
+						<p className="text-muted-foreground text-sm">
+							{emptyLabel ?? t({ id: "admin.tile.noData", message: "No data" })}
+						</p>
 					</div>
 				) : (
 					children

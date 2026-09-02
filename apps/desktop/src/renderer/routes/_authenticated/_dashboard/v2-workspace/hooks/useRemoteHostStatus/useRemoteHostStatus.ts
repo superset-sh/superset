@@ -1,3 +1,4 @@
+import { i18n } from "@superset/i18n";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { MIN_HOST_SERVICE_VERSION } from "@superset/shared/host-version";
 import { useQuery } from "@tanstack/react-query";
@@ -66,7 +67,12 @@ export function useRemoteHostStatus(
 		if (!semver.satisfies(hostVersion, `>=${MIN_HOST_SERVICE_VERSION}`)) {
 			return {
 				status: "incompatible",
-				hostName: hostRow?.name ?? "Unknown host",
+				hostName:
+					hostRow?.name ??
+					i18n._({
+						id: "workspace.remoteHostStatus.unknownHost",
+						message: "Unknown host",
+					}),
 				hostVersion,
 				minVersion: MIN_HOST_SERVICE_VERSION,
 			};

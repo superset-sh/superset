@@ -3,11 +3,8 @@ import type { WindowState } from "./window-state";
 
 const MIN_VISIBLE_OVERLAP = 50;
 const MIN_WINDOW_SIZE = 400;
-interface DisplayBoundsLike {
+interface DisplayLike {
 	bounds: Rectangle;
-}
-
-interface PrimaryDisplayLike {
 	workAreaSize: {
 		width: number;
 		height: number;
@@ -15,8 +12,12 @@ interface PrimaryDisplayLike {
 }
 
 interface ScreenLike {
-	getAllDisplays(): DisplayBoundsLike[];
-	getPrimaryDisplay(): PrimaryDisplayLike;
+	getAllDisplays(): DisplayLike[];
+	getPrimaryDisplay(): DisplayLike;
+	/** The display whose bounds most closely match the given rect — used to
+	 *  clamp saved dimensions against the display the window actually last
+	 *  sat on, not always the primary one (see clampToWorkArea). */
+	getDisplayMatching(rect: Rectangle): DisplayLike;
 }
 
 let screenOverride: ScreenLike | null = null;
@@ -54,17 +55,27 @@ export function isVisibleOnAnyDisplay(bounds: Rectangle): boolean {
 }
 
 /**
- * Clamps dimensions to not exceed the primary display work area.
- * Handles DPI/resolution changes since last save.
+ * Clamps saved dimensions to not exceed the work area of the display the
+ * saved position (x/y) actually sits on — not always the primary display.
+ * A window last closed maximized/full-height on a secondary monitor larger
+ * than the primary one would otherwise get its saved width/height shrunk
+ * down to the primary's work area on relaunch, while x/y still point at the
+ * secondary monitor: the window ends up correctly positioned but sized far
+ * smaller than the screen it's on. getDisplayMatching finds the display
+ * nearest the saved rect (falls back sanely if the saved rect covers none),
+ * so this also still handles DPI/resolution changes on that same display.
  */
-function clampToWorkArea(
-	width: number,
-	height: number,
-): { width: number; height: number } {
-	const { workAreaSize } = getScreen().getPrimaryDisplay();
+function clampToWorkArea(bounds: Rectangle): { width: number; height: number } {
+	const { workAreaSize } = getScreen().getDisplayMatching(bounds);
 	return {
-		width: Math.min(Math.max(width, MIN_WINDOW_SIZE), workAreaSize.width),
-		height: Math.min(Math.max(height, MIN_WINDOW_SIZE), workAreaSize.height),
+		width: Math.min(
+			Math.max(bounds.width, MIN_WINDOW_SIZE),
+			workAreaSize.width,
+		),
+		height: Math.min(
+			Math.max(bounds.height, MIN_WINDOW_SIZE),
+			workAreaSize.height,
+		),
 	};
 }
 
@@ -99,10 +110,12 @@ export function getInitialWindowBounds(
 		};
 	}
 
-	const { width, height } = clampToWorkArea(
-		savedState.width,
-		savedState.height,
-	);
+	const { width, height } = clampToWorkArea({
+		x: savedState.x,
+		y: savedState.y,
+		width: savedState.width,
+		height: savedState.height,
+	});
 
 	const savedBounds: Rectangle = {
 		x: savedState.x,

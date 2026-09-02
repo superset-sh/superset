@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useEffect, useState } from "react";
@@ -276,18 +277,28 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 								/>
 							</svg>
 							<span>
-								{version ? `v${displayVersion(version)}` : "downloaded"}
+								{version ? (
+									`v${displayVersion(version)}`
+								) : (
+									<Trans id="components.updatesPill.downloaded">
+										downloaded
+									</Trans>
+								)}
 							</span>
 						</>
 					) : isReady ? (
 						<>
 							<span className="size-1.5 shrink-0 rounded-full bg-emerald-500 animate-pulse" />
-							<span>↑ update</span>
+							<span>
+								<Trans id="components.updatesPill.update">↑ update</Trans>
+							</span>
 						</>
 					) : (
 						<>
 							<span className="size-1.5 shrink-0 rounded-full bg-destructive animate-pulse" />
-							<span>↻ retry</span>
+							<span>
+								<Trans id="components.updatesPill.retry">↻ retry</Trans>
+							</span>
 						</>
 					)}
 				</button>

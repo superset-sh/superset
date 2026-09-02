@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { useCallback, useEffect, useMemo } from "react";
 import { HiCheckCircle } from "react-icons/hi2";
 import { useAutoLoadEmptyPages } from "../../hooks/useAutoLoadEmptyPages";
@@ -71,7 +72,11 @@ export function TableContent({
 			<div className="flex-1 flex items-center justify-center">
 				<div className="flex flex-col items-center gap-2 text-muted-foreground">
 					<HiCheckCircle className="h-8 w-8" />
-					<span className="text-sm">No tasks found</span>
+					<span className="text-sm">
+						<Trans id="dashboard.tasks.tableContent.empty">
+							No tasks found
+						</Trans>
+					</span>
 				</div>
 			</div>
 		);

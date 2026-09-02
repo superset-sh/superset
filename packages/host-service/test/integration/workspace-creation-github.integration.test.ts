@@ -1417,3 +1417,106 @@ describe("GitHub rate-limit errors map to TOO_MANY_REQUESTS", () => {
 		);
 	});
 });
+
+describe("GitHub rejected-credential errors map to actionable UNAUTHORIZED", () => {
+	let host: TestHost;
+	let repoDir: string;
+	const projectId = randomUUID();
+
+	afterEach(async () => {
+		await host.dispose();
+		rmSync(repoDir, { recursive: true, force: true });
+	});
+
+	const badCredentials = () =>
+		Object.assign(new Error("Bad credentials - https://docs.github.com/rest"), {
+			status: 401,
+		});
+
+	const expectRejection = async (
+		promise: Promise<unknown>,
+	): Promise<{ message: string; data?: { code?: string } }> => {
+		const error = await promise.then(
+			() => null,
+			(err: { message: string; data?: { code?: string } }) => err,
+		);
+		expect(error).not.toBeNull();
+		if (!error) throw new Error("unreachable");
+		return error;
+	};
+
+	test("a 401 from both gh and Octokit names the rejected token source", async () => {
+		// Default test execGh rejects, standing in for a gh CLI that 401s too.
+		host = await createTestHost({
+			githubFactory: async () => ({
+				search: {
+					issuesAndPullRequests: async () => {
+						throw badCredentials();
+					},
+				},
+			}),
+			githubToken: "stale-token",
+			githubTokenSource: "gh-cli",
+		});
+		repoDir = await seedRepoFixture(
+			host,
+			projectId,
+			"https://github.com/octocat/hello.git",
+		);
+		const error = await expectRejection(
+			host.trpc.workspaceCreation.searchPullRequests.query({
+				projectId,
+				query: "anything",
+			}),
+		);
+		expect(error.data?.code).toBe("UNAUTHORIZED");
+		expect(error.message).toBe(
+			"GitHub rejected this machine's gh CLI login (not the Superset integration). Run `gh auth login`, then restart Superset.",
+		);
+	});
+
+	test("a 401 with an unknown token source falls back to generic guidance", async () => {
+		host = await createTestHost({
+			githubFactory: async () => ({
+				search: {
+					issuesAndPullRequests: async () => {
+						throw badCredentials();
+					},
+				},
+			}),
+			githubToken: "stale-token",
+		});
+		repoDir = await seedRepoFixture(
+			host,
+			projectId,
+			"https://github.com/octocat/hello.git",
+		);
+		const error = await expectRejection(
+			host.trpc.workspaceCreation.searchGitHubIssues.query({
+				projectId,
+				query: "anything",
+			}),
+		);
+		expect(error.data?.code).toBe("UNAUTHORIZED");
+		expect(error.message).toContain("gh auth login");
+	});
+
+	test("a missing token reports where the login must live", async () => {
+		host = await createTestHost({ githubToken: null });
+		repoDir = await seedRepoFixture(
+			host,
+			projectId,
+			"https://github.com/octocat/hello.git",
+		);
+		const error = await expectRejection(
+			host.trpc.workspaceCreation.searchPullRequests.query({
+				projectId,
+				query: "anything",
+			}),
+		);
+		expect(error.data?.code).toBe("PRECONDITION_FAILED");
+		expect(error.message).toBe(
+			"No GitHub login on this machine (the Superset integration doesn't cover this). Run `gh auth login`.",
+		);
+	});
+});

@@ -243,6 +243,9 @@ export function DashboardSidebarWorkspaceStatusProvider({
 			};
 			cleanups.push(bus.on("agent:lifecycle", workspaceId, invalidateBindings));
 			cleanups.push(
+				bus.on("agent:bindings-changed", workspaceId, invalidateBindings),
+			);
+			cleanups.push(
 				bus.on("terminal:lifecycle", workspaceId, invalidateBindings),
 			);
 			cleanups.push(

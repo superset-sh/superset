@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { useState } from "react";
 import { env } from "@/env";
@@ -13,6 +14,7 @@ export function AcceptInvitationButton({
 	invitationId,
 	token,
 }: AcceptInvitationButtonProps) {
+	const { t } = useLingui();
 	const [isProcessing, setIsProcessing] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -34,14 +36,23 @@ export function AcceptInvitationButton({
 		}
 
 		if (response.status === 409) {
-			return "This invitation has already been accepted.";
+			return t({
+				id: "web.acceptInvitation.alreadyAccepted",
+				message: "This invitation has already been accepted.",
+			});
 		}
 
 		if (response.status === 400 || response.status === 404) {
-			return "This invitation link is invalid or has expired.";
+			return t({
+				id: "web.acceptInvitation.invalidOrExpired",
+				message: "This invitation link is invalid or has expired.",
+			});
 		}
 
-		return "Failed to accept invitation";
+		return t({
+			id: "web.acceptInvitation.failed",
+			message: "Failed to accept invitation",
+		});
 	};
 
 	const handleContinue = async () => {
@@ -73,7 +84,12 @@ export function AcceptInvitationButton({
 			window.location.href = "/";
 		} catch (err) {
 			setError(
-				err instanceof Error ? err.message : "Failed to accept invitation",
+				err instanceof Error
+					? err.message
+					: t({
+							id: "web.acceptInvitation.failed",
+							message: "Failed to accept invitation",
+						}),
 			);
 			setIsProcessing(false);
 		}
@@ -82,7 +98,11 @@ export function AcceptInvitationButton({
 	return (
 		<>
 			<Button onClick={handleContinue} size="lg" disabled={isProcessing}>
-				{isProcessing ? "Processing..." : "Accept invitation"}
+				{isProcessing ? (
+					<Trans id="web.acceptInvitation.processing">Processing...</Trans>
+				) : (
+					<Trans id="web.acceptInvitation.accept">Accept invitation</Trans>
+				)}
 			</Button>
 
 			{error && <p className="text-sm text-destructive">{error}</p>}

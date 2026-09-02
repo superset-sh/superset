@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { SelectUser } from "@superset/db/schema";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import {
@@ -23,6 +24,7 @@ export function CreateTaskAssigneePicker({
 	value,
 	onChange,
 }: CreateTaskAssigneePickerProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const [search, setSearch] = useState("");
 
@@ -75,7 +77,11 @@ export function CreateTaskAssigneePicker({
 					) : (
 						<>
 							<HiOutlineUserCircle className="size-4 text-muted-foreground" />
-							<span className="text-muted-foreground">Assignee</span>
+							<span className="text-muted-foreground">
+								<Trans id="dashboard.tasks.createTaskAssigneePicker.assignee">
+									Assignee
+								</Trans>
+							</span>
 						</>
 					)}
 					<HiChevronDown className="size-3.5 text-muted-foreground" />
@@ -84,7 +90,10 @@ export function CreateTaskAssigneePicker({
 			<PopoverContent align="start" className="w-64 p-0">
 				<Command shouldFilter={false}>
 					<CommandInput
-						placeholder="Search people..."
+						placeholder={t({
+							id: "dashboard.tasks.createTaskAssigneePicker.searchPeople",
+							message: "Search people...",
+						})}
 						value={search}
 						onValueChange={setSearch}
 					/>
@@ -92,13 +101,21 @@ export function CreateTaskAssigneePicker({
 						<CommandGroup>
 							<CommandItem onSelect={() => handleSelect(null)}>
 								<HiOutlineUserCircle className="size-4" />
-								<span className="flex-1 text-sm">No assignee</span>
+								<span className="flex-1 text-sm">
+									<Trans id="dashboard.tasks.createTaskAssigneePicker.noAssignee">
+										No assignee
+									</Trans>
+								</span>
 								{value === null && <HiCheck className="size-3.5" />}
 							</CommandItem>
 						</CommandGroup>
 
 						{filteredUsers.length === 0 ? (
-							<CommandEmpty>No people found.</CommandEmpty>
+							<CommandEmpty>
+								<Trans id="dashboard.tasks.createTaskAssigneePicker.noPeople">
+									No people found.
+								</Trans>
+							</CommandEmpty>
 						) : (
 							<CommandGroup>
 								{filteredUsers.map((user) => (

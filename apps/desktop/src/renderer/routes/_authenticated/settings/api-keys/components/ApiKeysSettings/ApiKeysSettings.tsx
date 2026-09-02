@@ -1,3 +1,6 @@
+import { Trans, useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
+import { formatDate as formatLocaleDate } from "@superset/i18n/format";
 import { COMPANY } from "@superset/shared/constants";
 import { alert } from "@superset/ui/atoms/Alert";
 import { Button } from "@superset/ui/button";
@@ -23,7 +26,6 @@ import {
 } from "react-icons/hi2";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
-import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
@@ -38,6 +40,7 @@ interface ApiKeysSettingsProps {
 }
 
 export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const utils = cloudTrpc.useUtils();
 	const [isGenerating, setIsGenerating] = useState(false);
@@ -76,26 +79,70 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 		} catch (error) {
 			console.error("[api-keys] Failed to generate API key:", error);
 			toast.error(
-				error instanceof Error ? error.message : "Failed to generate API key",
+				errorMessage(
+					error,
+					t({
+						id: "settings.apiKeys.generateFailed",
+						message: "Failed to generate API key",
+					}),
+				),
 			);
 		} finally {
 			setIsGenerating(false);
 		}
 	};
 
+	const revokeMutation = cloudTrpc.apiKey.revoke.useMutation({
+		onMutate: async ({ id }) => {
+			await utils.apiKey.list.cancel();
+			const previousKeys = utils.apiKey.list.getData();
+			utils.apiKey.list.setData(undefined, (keys) =>
+				keys?.filter((key) => key.id !== id),
+			);
+			return { previousKeys };
+		},
+		onError: (error, _input, context) => {
+			utils.apiKey.list.setData(undefined, context?.previousKeys);
+			toast.error(
+				error.message ||
+					t({
+						id: "settings.apiKeys.revokeFailed",
+						message: "Failed to revoke API key",
+					}),
+			);
+		},
+		onSuccess: () => {
+			toast.success(
+				t({ id: "settings.apiKeys.revoked", message: "API key revoked" }),
+			);
+		},
+		onSettled: () => utils.apiKey.list.invalidate(),
+	});
+
 	const handleRevokeKey = (id: string, name: string | null) => {
+		const keyName =
+			name ??
+			t({ id: "settings.apiKeys.revokeUnnamedKey", message: "Unnamed key" });
 		alert({
-			title: "Revoke API key",
-			description: `Are you sure you want to revoke "${name ?? "Unnamed key"}"? This action cannot be undone.`,
+			title: t({
+				id: "settings.apiKeys.revokeDialogTitle",
+				message: "Revoke API key",
+			}),
+			description: t({
+				id: "settings.apiKeys.revokeDialogDescription",
+				message: `Are you sure you want to revoke "${keyName}"? This action cannot be undone.`,
+			}),
 			actions: [
-				{ label: "Cancel", variant: "outline", onClick: () => {} },
 				{
-					label: "Revoke",
+					label: t({ id: "settings.apiKeys.revokeCancel", message: "Cancel" }),
+					variant: "outline",
+					onClick: () => {},
+				},
+				{
+					label: t({ id: "settings.apiKeys.revokeConfirm", message: "Revoke" }),
 					variant: "destructive",
-					onClick: async () => {
-						await authClient.apiKey.delete({ keyId: id });
-						await utils.apiKey.list.invalidate();
-						toast.success("API key revoked");
+					onClick: () => {
+						revokeMutation.mutate({ id });
 					},
 				},
 			],
@@ -108,9 +155,9 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 	};
 
 	const formatDate = (date: Date | string | null) => {
-		if (!date) return "Never";
+		if (!date) return t({ id: "settings.apiKeys.neverUsed", message: "Never" });
 		const d = date instanceof Date ? date : new Date(date);
-		return d.toLocaleDateString("en-US", {
+		return formatLocaleDate(d, {
 			month: "short",
 			day: "numeric",
 			year: "numeric",
@@ -122,20 +169,25 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 			<div className="mb-8 flex items-start justify-between gap-4">
 				<div>
 					<h2 className="text-xl font-semibold">
-						<HighlightText text="API keys" query={searchQuery} />
+						<HighlightText
+							text={t({ id: "settings.apiKeys.title", message: "API keys" })}
+							query={searchQuery}
+						/>
 					</h2>
 					<p className="text-sm text-muted-foreground mt-1">
-						Manage keys for MCP server access and external integrations like
-						Claude Desktop or Claude Code.{" "}
-						<a
-							href={`${COMPANY.DOCS_URL}/mcp`}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="inline-flex items-center gap-1 text-primary hover:underline"
-						>
-							Learn more
-							<HiArrowTopRightOnSquare className="h-3 w-3" />
-						</a>
+						<Trans id="settings.apiKeys.subtitle">
+							Manage keys for MCP server access and external integrations like
+							Claude Desktop or Claude Code.{" "}
+							<a
+								href={`${COMPANY.DOCS_URL}/mcp`}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="inline-flex items-center gap-1 text-primary hover:underline"
+							>
+								Learn more
+								<HiArrowTopRightOnSquare className="h-3 w-3" />
+							</a>
+						</Trans>
 					</p>
 				</div>
 				{showGenerateButton && (
@@ -145,7 +197,7 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 						className="gap-2 shrink-0"
 					>
 						<HiOutlinePlus className="h-4 w-4" />
-						Generate key
+						<Trans id="settings.apiKeys.generateButton">Generate key</Trans>
 					</Button>
 				)}
 			</div>
@@ -166,9 +218,13 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 				) : apiKeys.length === 0 ? (
 					<div className="text-center py-12 text-sm text-muted-foreground">
 						<HiOutlineKey className="h-8 w-8 mx-auto mb-3 opacity-50" />
-						<p>No API keys yet.</p>
+						<p>
+							<Trans id="settings.apiKeys.emptyTitle">No API keys yet.</Trans>
+						</p>
 						<p className="text-xs mt-1">
-							Generate a key to use with MCP servers.
+							<Trans id="settings.apiKeys.emptyHint">
+								Generate a key to use with MCP servers.
+							</Trans>
 						</p>
 					</div>
 				) : (
@@ -182,7 +238,11 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 									<HiOutlineKey className="h-4 w-4 shrink-0 text-muted-foreground" />
 									<div className="min-w-0">
 										<div className="text-sm font-medium truncate">
-											{key.name ?? "Unnamed key"}
+											{key.name ??
+												t({
+													id: "settings.apiKeys.unnamedKey",
+													message: "Unnamed key",
+												})}
 										</div>
 										<div className="text-xs text-muted-foreground mt-0.5 font-mono truncate">
 											{key.start ?? "sk_..."}
@@ -191,15 +251,20 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 								</div>
 								<div className="flex items-center gap-4 shrink-0">
 									<div className="text-xs text-muted-foreground tabular-nums hidden sm:block">
-										Created {formatDate(key.createdAt)} · Last used{" "}
-										{formatDate(key.lastRequest)}
+										<Trans id="settings.apiKeys.keyDates">
+											Created {formatDate(key.createdAt)} · Last used{" "}
+											{formatDate(key.lastRequest)}
+										</Trans>
 									</div>
 									<Button
 										variant="ghost"
 										size="icon"
 										className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
 										onClick={() => handleRevokeKey(key.id, key.name)}
-										aria-label="Revoke key"
+										aria-label={t({
+											id: "settings.apiKeys.revokeKeyAriaLabel",
+											message: "Revoke key",
+										})}
 									>
 										<HiOutlineTrash className="h-4 w-4" />
 									</Button>
@@ -213,18 +278,31 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>
-							<HighlightText text="Generate API key" query={searchQuery} />
+							<HighlightText
+								text={t({
+									id: "settings.apiKeys.generateDialogTitle",
+									message: "Generate API key",
+								})}
+								query={searchQuery}
+							/>
 						</DialogTitle>
 						<DialogDescription>
-							Create a new API key for external integrations like Claude Desktop
-							or Claude Code.
+							<Trans id="settings.apiKeys.generateDialogDescription">
+								Create a new API key for external integrations like Claude
+								Desktop or Claude Code.
+							</Trans>
 						</DialogDescription>
 					</DialogHeader>
 					<div className="space-y-2 py-2">
-						<Label htmlFor="key-name">Key name</Label>
+						<Label htmlFor="key-name">
+							<Trans id="settings.apiKeys.keyNameLabel">Key name</Trans>
+						</Label>
 						<Input
 							id="key-name"
-							placeholder="e.g. Claude Desktop"
+							placeholder={t({
+								id: "settings.apiKeys.keyNamePlaceholder",
+								message: "e.g. Claude Desktop",
+							})}
 							value={newKeyName}
 							onChange={(e) => setNewKeyName(e.target.value)}
 							onKeyDown={(e) => {
@@ -232,7 +310,9 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 							}}
 						/>
 						<p className="text-xs text-muted-foreground">
-							Give your key a descriptive name to remember where it's used.
+							<Trans id="settings.apiKeys.keyNameHint">
+								Give your key a descriptive name to remember where it's used.
+							</Trans>
 						</p>
 					</div>
 					<DialogFooter>
@@ -240,13 +320,21 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 							variant="outline"
 							onClick={() => setShowGenerateDialog(false)}
 						>
-							Cancel
+							<Trans id="settings.apiKeys.generateCancel">Cancel</Trans>
 						</Button>
 						<Button
 							onClick={handleGenerateKey}
 							disabled={!newKeyName.trim() || isGenerating}
 						>
-							{isGenerating ? "Generating..." : "Generate key"}
+							{isGenerating ? (
+								<Trans id="settings.apiKeys.generatingButton">
+									Generating...
+								</Trans>
+							) : (
+								<Trans id="settings.apiKeys.generateConfirm">
+									Generate key
+								</Trans>
+							)}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
@@ -255,9 +343,15 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 			<Dialog open={showNewKeyDialog} onOpenChange={setShowNewKeyDialog}>
 				<DialogContent>
 					<DialogHeader>
-						<DialogTitle>API key generated</DialogTitle>
+						<DialogTitle>
+							<Trans id="settings.apiKeys.createdDialogTitle">
+								API key generated
+							</Trans>
+						</DialogTitle>
 						<DialogDescription>
-							Copy your key now — you won't be able to see it again.
+							<Trans id="settings.apiKeys.createdDialogDescription">
+								Copy your key now — you won't be able to see it again.
+							</Trans>
 						</DialogDescription>
 					</DialogHeader>
 					<div className="space-y-2 py-2">
@@ -268,19 +362,26 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 								size="icon"
 								className="absolute right-1 top-1 h-7 w-7"
 								onClick={handleCopyKey}
-								aria-label="Copy key"
+								aria-label={t({
+									id: "settings.apiKeys.copyKeyAriaLabel",
+									message: "Copy key",
+								})}
 							>
 								<HiOutlineClipboardDocument className="h-4 w-4" />
 							</Button>
 						</div>
 						{copied && (
 							<p className="text-xs text-muted-foreground">
-								Copied to clipboard.
+								<Trans id="settings.apiKeys.copiedNotice">
+									Copied to clipboard.
+								</Trans>
 							</p>
 						)}
 					</div>
 					<DialogFooter>
-						<Button onClick={() => setShowNewKeyDialog(false)}>Done</Button>
+						<Button onClick={() => setShowNewKeyDialog(false)}>
+							<Trans id="settings.apiKeys.doneButton">Done</Trans>
+						</Button>
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>

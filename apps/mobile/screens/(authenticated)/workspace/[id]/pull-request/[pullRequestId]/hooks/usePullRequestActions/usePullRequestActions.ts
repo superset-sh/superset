@@ -1,3 +1,6 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { useLingui } from "@lingui/react/macro";
 import { useMutation } from "@tanstack/react-query";
 import { useRef } from "react";
 import { Alert } from "react-native";
@@ -8,11 +11,23 @@ import {
 } from "@/lib/host-service/client";
 import type { PlainActionId } from "../../utils/pullRequestState";
 
-const REFUSED_TITLE: Record<PlainActionId, string> = {
-	"mark-ready": "Could not mark ready",
-	"update-branch": "Could not update the branch",
-	reopen: "Could not reopen",
-	dequeue: "Could not leave the queue",
+const REFUSED_TITLE: Record<PlainActionId, MessageDescriptor> = {
+	"mark-ready": msg({
+		id: "mobile.pullRequest.refused.markReady",
+		message: "Could not mark ready",
+	}),
+	"update-branch": msg({
+		id: "mobile.pullRequest.refused.updateBranch",
+		message: "Could not update the branch",
+	}),
+	reopen: msg({
+		id: "mobile.pullRequest.refused.reopen",
+		message: "Could not reopen",
+	}),
+	dequeue: msg({
+		id: "mobile.pullRequest.refused.dequeue",
+		message: "Could not leave the queue",
+	}),
 };
 
 /**
@@ -34,6 +49,7 @@ export function usePullRequestActions({
 	pullNumber: number | null;
 	onDone: () => void;
 }) {
+	const { i18n } = useLingui();
 	const { host } = useWorkspaceHost(workspaceId);
 	const hostUrl =
 		host?.isOnline === true
@@ -61,7 +77,7 @@ export function usePullRequestActions({
 		},
 		onSuccess: onDone,
 		onError: (error: Error, action) => {
-			Alert.alert(REFUSED_TITLE[action], error.message);
+			Alert.alert(i18n._(REFUSED_TITLE[action]), error.message);
 		},
 	});
 

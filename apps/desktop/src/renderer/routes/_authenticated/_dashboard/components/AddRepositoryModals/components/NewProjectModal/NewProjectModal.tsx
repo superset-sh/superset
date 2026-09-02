@@ -1,3 +1,5 @@
+import { Trans, useLingui } from "@lingui/react/macro";
+import { errorMessage, rawErrorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -45,6 +47,7 @@ export function NewProjectModal({
 	onSuccess,
 	onError,
 }: NewProjectModalProps) {
+	const { t } = useLingui();
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const hostService = useLocalHostService();
 	const { activeHostUrl } = hostService;
@@ -85,14 +88,17 @@ export function NewProjectModal({
 	const handleBrowse = async () => {
 		try {
 			const result = await selectDirectory.mutateAsync({
-				title: "Select project location",
+				title: t({
+					id: "dashboard.newProjectModal.selectLocationDialogTitle",
+					message: "Select project location",
+				}),
 				defaultPath: parentDir || undefined,
 			});
 			if (!result.canceled && result.path) {
 				setParentDir(result.path);
 			}
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : String(err));
+			toast.error(errorMessage(err));
 		}
 	};
 
@@ -100,11 +106,21 @@ export function NewProjectModal({
 		const trimmedUrl = url.trim();
 		const trimmedParent = parentDir.trim();
 		if (!trimmedUrl) {
-			toast.error("Please enter a repository URL");
+			toast.error(
+				t({
+					id: "dashboard.newProjectModal.enterRepoUrl",
+					message: "Please enter a repository URL",
+				}),
+			);
 			return;
 		}
 		if (!trimmedParent) {
-			toast.error("Please select a project location");
+			toast.error(
+				t({
+					id: "dashboard.newProjectModal.selectProjectLocation",
+					message: "Please select a project location",
+				}),
+			);
 			return;
 		}
 
@@ -123,13 +139,18 @@ export function NewProjectModal({
 			}
 			if (!activeHostUrl) {
 				showHostServiceUnavailableToast(hostService, {
-					action: "clone the repository",
+					action: "cloneRepository",
 				});
 				return;
 			}
 			const trimmedName = name.trim() || deriveProjectNameFromUrl(trimmedUrl);
 			if (!trimmedName) {
-				toast.error("Please enter a project name");
+				toast.error(
+					t({
+						id: "dashboard.newProjectModal.enterProjectName",
+						message: "Please enter a project name",
+					}),
+				);
 				return;
 			}
 			const client = getHostServiceClientByUrl(activeHostUrl);
@@ -142,16 +163,26 @@ export function NewProjectModal({
 			reset();
 			onOpenChange(false);
 		} catch (err) {
-			const raw = err instanceof Error ? err.message : String(err);
+			const raw = rawErrorMessage(err);
 			// Drizzle / pg errors arrive as "Failed query: insert into ..."
 			// which is useless to a user. Hide that envelope in favor of a
 			// short generic message; details land in the console for devs.
 			const isLeakedSql = raw.startsWith("Failed query:");
 			if (isLeakedSql) console.error("[NewProjectModal] create failed", err);
 			const message = isLeakedSql
-				? "Could not create project. Please try a different name or check the logs."
-				: raw;
-			toast.error("Could not create project", { description: message });
+				? t({
+						id: "dashboard.newProjectModal.createFailedGeneric",
+						message:
+							"Could not create project. Please try a different name or check the logs.",
+					})
+				: errorMessage(err);
+			toast.error(
+				t({
+					id: "dashboard.newProjectModal.createFailedTitle",
+					message: "Could not create project",
+				}),
+				{ description: message },
+			);
 			onError?.(message);
 		} finally {
 			setWorking(false);
@@ -162,22 +193,33 @@ export function NewProjectModal({
 		<Dialog open={open} onOpenChange={handleOpenChange} modal>
 			<DialogContent className="max-w-[420px]">
 				<DialogHeader>
-					<DialogTitle>Clone a repository</DialogTitle>
+					<DialogTitle>
+						<Trans id="dashboard.newProjectModal.title">
+							Clone a repository
+						</Trans>
+					</DialogTitle>
 					<DialogDescription className="sr-only">
-						Create a new project by cloning a repository or local path.
+						<Trans id="dashboard.newProjectModal.description">
+							Create a new project by cloning a repository or local path.
+						</Trans>
 					</DialogDescription>
 				</DialogHeader>
 
 				<div className="flex flex-col gap-4">
 					<div className="flex flex-col gap-1.5">
 						<Label htmlFor="clone-url" className="text-xs">
-							Repository URL or path
+							<Trans id="dashboard.newProjectModal.repoUrlLabel">
+								Repository URL or path
+							</Trans>
 						</Label>
 						<Input
 							id="clone-url"
 							value={url}
 							onChange={(e) => setUrl(e.target.value)}
-							placeholder="https://github.com/owner/repo.git or /path/to/repo"
+							placeholder={t({
+								id: "dashboard.newProjectModal.repoUrlPlaceholder",
+								message: "https://github.com/owner/repo.git or /path/to/repo",
+							})}
 							disabled={working}
 							onKeyDown={(e) => {
 								if (e.key === "Enter" && !working) {
@@ -191,7 +233,9 @@ export function NewProjectModal({
 					{isV2CloudEnabled && (
 						<div className="flex flex-col gap-1.5">
 							<Label htmlFor="project-name" className="text-xs">
-								Project name
+								<Trans id="dashboard.newProjectModal.projectNameLabel">
+									Project name
+								</Trans>
 							</Label>
 							<Input
 								id="project-name"
@@ -208,7 +252,9 @@ export function NewProjectModal({
 
 					<div className="flex flex-col gap-1.5">
 						<Label htmlFor="project-path" className="text-xs">
-							Location
+							<Trans id="dashboard.newProjectModal.locationLabel">
+								Location
+							</Trans>
 						</Label>
 						<div className="flex gap-1.5">
 							<Input
@@ -225,7 +271,10 @@ export function NewProjectModal({
 								onClick={handleBrowse}
 								disabled={working || selectDirectory.isPending}
 								className="shrink-0"
-								aria-label="Browse for directory"
+								aria-label={t({
+									id: "dashboard.newProjectModal.browseForDirectory",
+									message: "Browse for directory",
+								})}
 							>
 								<LuFolderOpen className="size-4" />
 							</Button>
@@ -240,16 +289,16 @@ export function NewProjectModal({
 						onClick={() => handleOpenChange(false)}
 						disabled={working}
 					>
-						Cancel
+						<Trans id="dashboard.newProjectModal.cancel">Cancel</Trans>
 					</Button>
 					<Button onClick={() => void createFromClone()} disabled={working}>
 						{working ? (
 							<>
 								<LuLoaderCircle className="size-4 animate-spin" />
-								Cloning…
+								<Trans id="dashboard.newProjectModal.cloning">Cloning…</Trans>
 							</>
 						) : (
-							"Clone"
+							<Trans id="dashboard.newProjectModal.clone">Clone</Trans>
 						)}
 					</Button>
 				</DialogFooter>

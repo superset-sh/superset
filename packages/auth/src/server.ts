@@ -35,6 +35,7 @@ import { env } from "./env";
 import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
 import { jwksAdapter } from "./lib/cached-jwks";
 import { generateMagicTokenForInvite } from "./lib/generate-magic-token";
+import { getActivationVariant } from "./lib/lifecycle";
 import { loadCustomSessionData } from "./lib/load-custom-session-data";
 import { invitationRateLimit } from "./lib/rate-limit";
 import { resend } from "./lib/resend";
@@ -163,6 +164,43 @@ export const auth = betterAuth({
 				});
 			}
 		}),
+		// Remember the switch on the user, not just on the session that made it.
+		// `sessions.active_organization_id` dies with its session, and the next
+		// session would fall back to the newest membership — which is how people
+		// ended up in an organization they never chose. Better-auth has no
+		// set-active hook, so the route is the choke point; every client reaches
+		// it through `organization.setActive`.
+		//
+		// `ctx.context.returned` rather than `newSession`: the dispatcher hands
+		// after-hooks a shallow copy of the context, so the `setNewSession` the
+		// endpoint called is not visible here. `returned` is the organization
+		// the route settled on, or null when the active organization is cleared.
+		after: createAuthMiddleware(async (ctx) => {
+			if (ctx.path !== "/organization/set-active") return;
+			const returned = ctx.context.returned;
+			if (returned instanceof APIError) return;
+
+			const organizationId =
+				returned && typeof returned === "object" && "id" in returned
+					? String(returned.id)
+					: null;
+			const userId = (await getSessionFromCtx(ctx))?.user?.id;
+			if (!userId) return;
+
+			// The switch itself has already been persisted and the cookie set;
+			// throwing here would report a failure for something that worked.
+			try {
+				await db
+					.update(authSchema.users)
+					.set({ lastActiveOrganizationId: organizationId })
+					.where(eq(authSchema.users.id, userId));
+			} catch (error) {
+				console.error(
+					`[organization/set-active] Failed to remember active organization for ${userId}:`,
+					error,
+				);
+			}
+		}),
 	},
 	advanced: {
 		crossSubDomainCookies: {
@@ -259,10 +297,9 @@ export const auth = betterAuth({
 							.where(eq(authSchema.sessions.userId, user.id));
 					}
 
-					// Lifecycle emails ship to every signup. The A/B (experiment
-					// 387868) was retired inconclusive: at ~143 signups/day the
-					// diluted intent-to-treat effect would need years to resolve.
-					// Kill switch for the nudges is the Resend automation toggle.
+					// The welcome email is unconditional in BOTH arms. Gating it is
+					// what invalidated experiment 387868: a6beb048b changed the control
+					// condition mid-flight and the run became unreadable.
 					try {
 						const { error } = await resend.emails.send({
 							from: "Superset <noreply@superset.sh>",
@@ -283,18 +320,35 @@ export const auth = betterAuth({
 						);
 					}
 
-					try {
-						const { error } = await resend.events.send({
-							event: "user.signed_up",
-							email: user.email,
-							payload: { userId: user.id, name: user.name },
-						});
-						if (error) throw new Error(error.message);
-					} catch (error) {
-						console.error(
-							`[lifecycle] Failed to emit signup event for ${user.id}:`,
-							error,
-						);
+					// Only drip enrolment is randomised. Nothing differs between arms
+					// until the first nudge (>=23h after signup), so "not activated at
+					// 22h" stays a pre-treatment covariate and the analysis can restrict
+					// to it without selection bias. Kill switch for the nudges is still
+					// the Resend automation toggle.
+					//
+					// CAUTION: withholding this event withholds it from EVERY consumer,
+					// not just the activation drip. Safe today because activation-drip
+					// is the only automation in sync-automations.ts triggering on
+					// `user.signed_up` — but that script is create-only and Resend can
+					// hold automations it never defined, so check the live account
+					// before trusting that. A second consumer means splitting enrolment
+					// first: emit `user.signed_up` unconditionally and gate an
+					// activation-only event instead, or the control arm silently drops
+					// out of that campaign too.
+					if ((await getActivationVariant(user.id)) === "test") {
+						try {
+							const { error } = await resend.events.send({
+								event: "user.signed_up",
+								email: user.email,
+								payload: { userId: user.id, name: user.name },
+							});
+							if (error) throw new Error(error.message);
+						} catch (error) {
+							console.error(
+								`[lifecycle] Failed to emit signup event for ${user.id}:`,
+								error,
+							);
+						}
 					}
 				},
 			},
@@ -944,7 +998,11 @@ export const auth = betterAuth({
 				const { activeOrganizationId, allMemberships, membership } =
 					await resolveSessionOrganizationState(
 						{ userId, session },
-						{ listMemberships: async () => data.memberships },
+						{
+							listMemberships: async () => data.memberships,
+							getLastActiveOrganization: async () =>
+								data.lastActiveOrganizationId,
+						},
 					);
 
 				const organizationIds = [

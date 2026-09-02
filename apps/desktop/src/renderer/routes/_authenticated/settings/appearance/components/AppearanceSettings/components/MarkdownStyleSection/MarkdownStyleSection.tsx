@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	Select,
 	SelectContent,
@@ -14,29 +15,57 @@ import {
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 
 export function MarkdownStyleSection() {
+	const { t } = useLingui();
 	const markdownStyle = useMarkdownStyle();
 	const setMarkdownStyle = useSetMarkdownStyle();
 	const searchQuery = useSettingsSearchQuery();
 
 	return (
-		<div>
-			<h3 className="text-sm font-medium mb-1">
-				<HighlightText text="Markdown style" query={searchQuery} />
-			</h3>
-			<p className="text-xs text-muted-foreground mb-3">
-				Rendering style for markdown files. Tufte uses elegant serif typography
-				inspired by Edward Tufte's books.
-			</p>
+		<div className="flex items-center justify-between gap-6 p-4">
+			<div className="min-w-0 flex-1">
+				<div className="text-sm font-medium">
+					<HighlightText
+						text={t({
+							id: "settings.appearance.markdownStyle.label",
+							message: "Markdown style",
+						})}
+						query={searchQuery}
+					/>
+				</div>
+				<div className="text-xs text-muted-foreground">
+					<HighlightText
+						text={t({
+							id: "settings.appearance.markdownStyle.hint",
+							message:
+								"Rendering style for markdown files. Tufte uses elegant serif typography inspired by Edward Tufte's books.",
+						})}
+						query={searchQuery}
+					/>
+				</div>
+			</div>
 			<Select
 				value={markdownStyle}
 				onValueChange={(value) => setMarkdownStyle(value as MarkdownStyle)}
 			>
-				<SelectTrigger className="w-[200px]" aria-label="Markdown style">
+				<SelectTrigger
+					size="sm"
+					className="w-auto min-w-44 px-2"
+					aria-label={t({
+						id: "settings.appearance.markdownStyle.ariaLabel",
+						message: "Markdown style",
+					})}
+				>
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent>
-					<SelectItem value="default">Default</SelectItem>
-					<SelectItem value="tufte">Tufte</SelectItem>
+					<SelectItem value="default">
+						<Trans id="settings.appearance.markdownStyle.default">
+							Default
+						</Trans>
+					</SelectItem>
+					<SelectItem value="tufte">
+						<Trans id="settings.appearance.markdownStyle.tufte">Tufte</Trans>
+					</SelectItem>
 				</SelectContent>
 			</Select>
 		</div>

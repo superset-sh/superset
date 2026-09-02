@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { DesktopNotice } from "@superset/shared/desktop-notices";
 import { Button } from "@superset/ui/button";
 import {
@@ -48,7 +49,9 @@ export function NoticeDialog({ notice, onDismiss }: NoticeDialogProps) {
 				onEscapeKeyDown={(e) => !notice.dismissible && e.preventDefault()}
 				onInteractOutside={(e) => !notice.dismissible && e.preventDefault()}
 			>
-				<DialogTitle className="sr-only">Notice</DialogTitle>
+				<DialogTitle className="sr-only">
+					<Trans id="components.noticeDialog.title">Notice</Trans>
+				</DialogTitle>
 				<div className="p-5">
 					<MarkdownRenderer
 						content={notice.body}
@@ -64,7 +67,7 @@ export function NoticeDialog({ notice, onDismiss }: NoticeDialogProps) {
 									size="sm"
 									onClick={() => onDismiss(notice.id)}
 								>
-									Dismiss
+									<Trans id="components.noticeDialog.dismiss">Dismiss</Trans>
 								</Button>
 							)}
 							{notice.cta && (

@@ -1,3 +1,4 @@
+import { Plural, Trans } from "@lingui/react/macro";
 import { HiCheck } from "react-icons/hi2";
 
 const TASKS = [
@@ -70,10 +71,17 @@ export function TasksDemo() {
 							<div className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
 							<div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
 						</div>
-						<span className="text-xs text-muted-foreground ml-1">My Tasks</span>
+						<span className="text-xs text-muted-foreground ml-1">
+							<Trans id="components.tasksDemo.windowTitle">My Tasks</Trans>
+						</span>
 					</div>
 					<span className="text-xs text-muted-foreground/70 bg-foreground/10 px-2 py-0.5 rounded">
-						{TASKS.length} tasks
+						<Plural
+							id="components.tasksDemo.taskCount"
+							value={TASKS.length}
+							one="# task"
+							other="# tasks"
+						/>
 					</span>
 				</div>
 

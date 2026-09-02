@@ -1,3 +1,11 @@
+import { normalizeWorkspaceTags } from "@superset/shared/workspace-tags";
+import {
+	deriveSessionTagFolders,
+	getProjectFolderTagIndex,
+	resolveWorkspaceSectionId,
+	type TagFolderRef,
+	type TagFolderSettingInput,
+} from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import type { WorkspaceTransactionSnapshot } from "renderer/stores/workspace-creates";
 import { getV2WorkspaceDisplayName } from "renderer/utils/getV2WorkspaceDisplayName";
 import type {
@@ -5,6 +13,7 @@ import type {
 	DashboardSidebarProject,
 	DashboardSidebarProjectChild,
 	DashboardSidebarSection,
+	DashboardSidebarSessions,
 	DashboardSidebarWorkspace,
 	DashboardSidebarWorkspaceType,
 } from "../../types";
@@ -32,6 +41,13 @@ export interface SidebarSectionInput {
 	isCollapsed: boolean;
 	tabOrder: number;
 	color: string | null;
+	/**
+	 * Non-null = tag-backed folder: membership comes from workspace tags, and
+	 * `sectionId` pointers at it are ignored. Null/absent = legacy folder that
+	 * owns members via `sectionId`. Callers pass the deriveTagFolders union so
+	 * tag-only folders exist here too.
+	 */
+	tag?: string | null;
 }
 
 export interface SidebarWorkspaceInput {
@@ -48,6 +64,8 @@ export interface SidebarWorkspaceInput {
 	updatedAt: Date;
 	tabOrder: number;
 	sectionId: string | null;
+	/** Host tag set; absent when served by an older host. */
+	tags?: readonly string[] | null;
 	pinnedAt: number | null;
 	pendingTransaction: WorkspaceTransactionSnapshot | null;
 }
@@ -172,22 +190,91 @@ export function buildDashboardSidebarSessionWorkspaces({
 	sessionSidebarWorkspaces,
 	machineId,
 	pullRequestsByWorkspaceId,
+	tagFolderSettings,
 }: {
 	sessionSidebarWorkspaces: SidebarWorkspaceInput[];
 	machineId: string;
 	pullRequestsByWorkspaceId: Map<string, SidebarPullRequest>;
+	tagFolderSettings: readonly TagFolderSettingInput[];
 }): DashboardSidebarWorkspace[] {
-	return sessionSidebarWorkspaces
+	return buildDashboardSidebarSessions({
+		sessionSidebarWorkspaces,
+		machineId,
+		pullRequestsByWorkspaceId,
+		tagFolderSettings,
+	}).orderedWorkspaces;
+}
+
+/**
+ * Builds the project-less Sessions lane without pretending sessions belong to
+ * a synthetic project. A multi-tag session chooses the alphabetically first
+ * normalized tag, giving it one deterministic home just like project folders
+ * choose one winning tag. Untagged sessions
+ * remain at the top and each lane preserves the user's tab order.
+ *
+ * `orderedWorkspaces` deliberately remains flat: Sessions is one persisted
+ * reorder/pin container in the DnD model, while `tagGroups` is presentation
+ * derived from host-owned tags.
+ */
+export function buildDashboardSidebarSessions({
+	sessionSidebarWorkspaces,
+	machineId,
+	pullRequestsByWorkspaceId,
+	tagFolderSettings,
+}: {
+	sessionSidebarWorkspaces: SidebarWorkspaceInput[];
+	machineId: string;
+	pullRequestsByWorkspaceId: Map<string, SidebarPullRequest>;
+	tagFolderSettings: readonly TagFolderSettingInput[];
+}): DashboardSidebarSessions {
+	const presentationByTag = new Map(
+		deriveSessionTagFolders(sessionSidebarWorkspaces, tagFolderSettings).map(
+			(folder) => [folder.tag, folder],
+		),
+	);
+	const sorted = sessionSidebarWorkspaces
 		.slice()
-		.sort((left, right) => left.tabOrder - right.tabOrder)
-		.map((workspace) =>
-			decorateSidebarWorkspace(
-				workspace,
-				{ githubOwner: null, githubRepoName: null },
-				machineId,
-				pullRequestsByWorkspaceId,
-			),
+		.sort(
+			(left, right) =>
+				left.tabOrder - right.tabOrder || left.id.localeCompare(right.id),
 		);
+	const ungroupedWorkspaces: DashboardSidebarWorkspace[] = [];
+	const groupsByTag = new Map<string, DashboardSidebarWorkspace[]>();
+
+	for (const workspace of sorted) {
+		const decorated = decorateSidebarWorkspace(
+			workspace,
+			{ githubOwner: null, githubRepoName: null },
+			machineId,
+			pullRequestsByWorkspaceId,
+		);
+		const tag = normalizeWorkspaceTags(workspace.tags)[0];
+		if (!tag) {
+			ungroupedWorkspaces.push(decorated);
+			continue;
+		}
+		const group = groupsByTag.get(tag) ?? [];
+		group.push(decorated);
+		groupsByTag.set(tag, group);
+	}
+
+	const tagGroups = [...groupsByTag.entries()]
+		.sort(([left], [right]) => left.localeCompare(right))
+		.map(([tag, workspaces]) => {
+			const presentation = presentationByTag.get(tag);
+			return {
+				tag,
+				name: presentation?.name ?? tag,
+				color: presentation?.color ?? null,
+				workspaces,
+			};
+		});
+	const orderedWorkspaces = [
+		...ungroupedWorkspaces,
+		...tagGroups.flatMap((group) => group.workspaces),
+	];
+
+	return { ungroupedWorkspaces, tagGroups, orderedWorkspaces };
 }
 
 export interface BuildDashboardSidebarProjectsParams {
@@ -249,6 +336,24 @@ export function buildDashboardSidebarProjects({
 		});
 	}
 
+	// One membership resolver for every pass (workspaceTagFolders): a tag
+	// places the workspace in its folder; a local sectionId only counts when
+	// it points at a legacy (non-tag-backed) row.
+	const folderIndexByProjectId = new Map<string, Map<string, TagFolderRef>>();
+	const sectionIndexInputs = sidebarSections.map((section) => ({
+		sectionId: section.id,
+		projectId: section.projectId,
+		tabOrder: section.tabOrder,
+		tag: section.tag,
+	}));
+	for (const project of sidebarProjects) {
+		folderIndexByProjectId.set(
+			project.id,
+			getProjectFolderTagIndex(sectionIndexInputs, project.id),
+		);
+	}
+	const emptyFolderIndex = new Map<string, TagFolderRef>();
+
 	for (const workspace of visibleSidebarWorkspaces) {
 		// Sessions render in the top-level Sessions section, never in a
 		// project group (see buildDashboardSidebarSessionWorkspaces).
@@ -263,8 +368,15 @@ export function buildDashboardSidebarProjects({
 			pullRequestsByWorkspaceId,
 		);
 
-		if (workspace.sectionId) {
-			const section = project.sectionMap.get(workspace.sectionId);
+		const effectiveSectionId = resolveWorkspaceSectionId({
+			tags: workspace.tags,
+			localSectionId: workspace.sectionId,
+			index:
+				folderIndexByProjectId.get(workspace.projectId) ?? emptyFolderIndex,
+		});
+
+		if (effectiveSectionId) {
+			const section = project.sectionMap.get(effectiveSectionId);
 			if (section) {
 				section.workspaces.push({
 					...sidebarWorkspace,

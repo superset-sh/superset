@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 import { useEffect } from "react";
 import type { MentionSection } from "../../hooks/useMentionSources";
@@ -44,7 +45,9 @@ export function MentionMenu({
 						</p>
 						{section.isLoading && section.entries.length === 0 && (
 							<p className="px-3 pb-2 text-[15px] text-muted-foreground/60">
-								{section.loadingState ?? "Loading…"}
+								{section.loadingState ?? (
+									<Trans id="chatUi.mentionMenu.loading">Loading…</Trans>
+								)}
 							</p>
 						)}
 						{!section.isLoading &&

@@ -1,3 +1,5 @@
+import { plural } from "@lingui/core/macro";
+import { useLingui } from "@lingui/react/macro";
 import {
 	Command,
 	CommandEmpty,
@@ -24,6 +26,7 @@ export function PromptHistoryCommand({
 	tooltipLabel,
 	onSelect,
 }: PromptHistoryCommandProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const entries = usePromptHistoryStore((state) => state.entries);
@@ -67,7 +70,10 @@ export function PromptHistoryCommand({
 			>
 				<Command shouldFilter={false}>
 					<CommandInput
-						placeholder="Search previous prompts..."
+						placeholder={t({
+							id: "dashboard.newWorkspaceModal.promptHistory.searchPlaceholder",
+							message: "Search previous prompts...",
+						})}
 						value={searchQuery}
 						onValueChange={setSearchQuery}
 					/>
@@ -75,16 +81,31 @@ export function PromptHistoryCommand({
 						{results.length === 0 && (
 							<CommandEmpty>
 								{entries.length === 0
-									? "Prompts you submit will show up here."
-									: "No prompts found."}
+									? t({
+											id: "dashboard.newWorkspaceModal.promptHistory.emptyState",
+											message: "Prompts you submit will show up here.",
+										})
+									: t({
+											id: "dashboard.newWorkspaceModal.promptHistory.noResults",
+											message: "No prompts found.",
+										})}
 							</CommandEmpty>
 						)}
 						{results.length > 0 && (
 							<CommandGroup
 								heading={
 									query
-										? `${results.length} result${results.length === 1 ? "" : "s"}`
-										: "Recent prompts"
+										? t({
+												id: "dashboard.newWorkspaceModal.promptHistory.resultCount",
+												message: plural(results.length, {
+													one: "# result",
+													other: "# results",
+												}),
+											})
+										: t({
+												id: "dashboard.newWorkspaceModal.promptHistory.recentPrompts",
+												message: "Recent prompts",
+											})
 								}
 							>
 								{results.map((entry) => (

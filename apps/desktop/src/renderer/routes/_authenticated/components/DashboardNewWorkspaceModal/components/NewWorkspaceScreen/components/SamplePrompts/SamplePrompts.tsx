@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { SparklesIcon } from "lucide-react";
 import { track } from "renderer/lib/analytics";
 import { DismissSuggestionsButton } from "../DismissSuggestionsButton";
@@ -18,6 +19,7 @@ export function SamplePrompts({
 	canDismiss,
 	tier,
 }: SamplePromptsProps) {
+	const { t } = useLingui();
 	return (
 		<div className="group relative flex flex-col items-start gap-0.5 px-1 pb-2">
 			{canDismiss && <DismissSuggestionsButton onDismiss={onDismiss} />}
@@ -36,7 +38,7 @@ export function SamplePrompts({
 					}}
 				>
 					<SparklesIcon className="size-3.5 shrink-0" />
-					{sample.label}
+					{t(sample.label)}
 				</button>
 			))}
 		</div>

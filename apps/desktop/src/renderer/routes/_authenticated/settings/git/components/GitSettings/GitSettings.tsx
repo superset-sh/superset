@@ -1,3 +1,5 @@
+import { Trans, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import type { BranchPrefixMode } from "@superset/local-db";
 import {
 	resolveBranchPrefix,
@@ -17,7 +19,7 @@ import { useEffect, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
-import { BRANCH_PREFIX_MODE_LABELS } from "../../../utils/branch-prefix";
+import { BRANCH_PREFIX_MODE_MESSAGES } from "../../../utils/branch-prefix";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -30,6 +32,7 @@ interface GitSettingsProps {
 }
 
 export function GitSettings({ visibleItems }: GitSettingsProps) {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const showDeleteLocalBranch = isItemVisible(
 		SETTING_ITEM_ID.GIT_DELETE_LOCAL_BRANCH,
@@ -126,9 +129,13 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Git & worktrees</h2>
+				<h2 className="text-xl font-semibold">
+					<Trans id="settings.git.title">Git & worktrees</Trans>
+				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Configure git branch and worktree behavior
+					<Trans id="settings.git.subtitle">
+						Configure git branch and worktree behavior
+					</Trans>
 				</p>
 			</div>
 
@@ -141,13 +148,20 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 								className="text-sm font-medium"
 							>
 								<HighlightText
-									text="Delete local branch on workspace removal"
+									text={t({
+										id: "settings.git.deleteLocalBranchLabel",
+										message: "Delete local branch on workspace removal",
+									})}
 									query={searchQuery}
 								/>
 							</Label>
 							<p className="text-xs text-muted-foreground">
 								<HighlightText
-									text="Also delete the local git branch when deleting a worktree workspace"
+									text={t({
+										id: "settings.git.deleteLocalBranchHint",
+										message:
+											"Also delete the local git branch when deleting a worktree workspace",
+									})}
 									query={searchQuery}
 								/>
 							</p>
@@ -165,10 +179,18 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 					<div className="flex items-center justify-between">
 						<div className="space-y-0.5">
 							<Label className="text-sm font-medium">
-								<HighlightText text="Branch prefix" query={searchQuery} />
+								<HighlightText
+									text={t({
+										id: "settings.git.branchPrefixLabel",
+										message: "Branch prefix",
+									})}
+									query={searchQuery}
+								/>
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								Group new branches under a folder.{" "}
+								<Trans id="settings.git.branchPrefixHint">
+									Group new branches under a folder.
+								</Trans>{" "}
 								<code className="bg-muted px-1.5 py-0.5 rounded text-foreground">
 									{previewPrefix
 										? `${previewPrefix}/branch-name`
@@ -189,20 +211,22 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 								</SelectTrigger>
 								<SelectContent>
 									{(
-										Object.entries(BRANCH_PREFIX_MODE_LABELS) as [
-											BranchPrefixMode,
-											string,
-										][]
-									).map(([value, label]) => (
+										Object.keys(
+											BRANCH_PREFIX_MODE_MESSAGES,
+										) as BranchPrefixMode[]
+									).map((value) => (
 										<SelectItem key={value} value={value}>
-											{label}
+											{i18n._(BRANCH_PREFIX_MODE_MESSAGES[value])}
 										</SelectItem>
 									))}
 								</SelectContent>
 							</Select>
 							{branchPrefix?.mode === "custom" && (
 								<Input
-									placeholder="Prefix"
+									placeholder={t({
+										id: "settings.git.customPrefixPlaceholder",
+										message: "Prefix",
+									})}
 									value={customPrefixInput}
 									onChange={(e) => setCustomPrefixInput(e.target.value)}
 									onBlur={handleCustomPrefixBlur}

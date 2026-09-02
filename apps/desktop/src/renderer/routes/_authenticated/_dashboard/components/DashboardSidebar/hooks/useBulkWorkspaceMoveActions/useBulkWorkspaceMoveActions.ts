@@ -1,11 +1,20 @@
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
+import {
+	normalizeWorkspaceTags,
+	SESSIONS_TAG_SCOPE,
+} from "@superset/shared/workspace-tags";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
+import {
+	applyFolderTagChange,
+	buildSidebarFolderKey,
+	mintFolderTag,
+} from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import { useDashboardSidebarSectionRename } from "../../components/DashboardSidebarSectionRenameContext";
 import { useDashboardSidebarSelection } from "../../providers/DashboardSidebarSelectionProvider";
 import type { DashboardSidebarWorkspace } from "../../types";
 import { workspaceIdsForSectionMove } from "../../utils/bulkWorkspaceActions";
+import { useProjectTagFolderSections } from "../useProjectTagFolderSections";
 import { resolveBulkWorkspaceSectionMenuState } from "./bulkWorkspaceMoveActions";
 
 interface UseBulkWorkspaceMoveActionsOptions {
@@ -23,26 +32,15 @@ export function useBulkWorkspaceMoveActions({
 	workspacesById,
 	sectionIdByWorkspaceId,
 }: UseBulkWorkspaceMoveActionsOptions) {
-	const collections = useCollections();
 	const { createSection, moveWorkspaceToSection } = useDashboardSidebarState();
+	const { v2Workspaces } = useOptimisticActions();
+	const { workspaces: hostWorkspaces } = useHostWorkspaces();
 	const { requestSectionRename } = useDashboardSidebarSectionRename();
 	const { clearSelection, selectedWorkspaceIds } =
 		useDashboardSidebarSelection();
-	const { data: sections, isReady: areSectionsReady } = useLiveQuery(
-		(q) =>
-			q
-				.from({ sidebarSections: collections.v2SidebarSections })
-				.where(({ sidebarSections }) =>
-					eq(sidebarSections.projectId, projectId ?? ""),
-				)
-				.orderBy(({ sidebarSections }) => sidebarSections.tabOrder, "asc")
-				.select(({ sidebarSections }) => ({
-					id: sidebarSections.sectionId,
-					name: sidebarSections.name,
-					color: sidebarSections.color,
-				})),
-		[collections, projectId],
-	);
+	// The derived union — tag-only folders with no stored row are valid
+	// bulk-move targets too.
+	const { sections, areSectionsReady } = useProjectTagFolderSections(projectId);
 	const sectionMenuState = resolveBulkWorkspaceSectionMenuState(
 		sections,
 		areSectionsReady,
@@ -55,9 +53,32 @@ export function useBulkWorkspaceMoveActions({
 	const groupedWorkspaceIds = selectedIds.filter((workspaceId) =>
 		sectionIdByWorkspaceId.has(workspaceId),
 	);
+	const sessionTags = new Set(sections.map((section) => section.id));
+	const updateSessionWorkspaceGroup = (
+		workspaceId: string,
+		tag: string | null,
+	) => {
+		const workspace = hostWorkspaces.find((item) => item.id === workspaceId);
+		void v2Workspaces.updateWorkspace(workspaceId, {
+			tags: applyFolderTagChange(
+				normalizeWorkspaceTags(workspace?.tags),
+				sessionTags,
+				tag,
+			),
+		});
+	};
 
 	const moveSelectionToSection = (sectionId: string) => {
-		if (!projectId) return;
+		if (projectId === null) {
+			for (const workspaceId of workspaceIdsForSectionMove(
+				selectedIds,
+				sectionIdByWorkspaceId,
+				sectionId,
+			))
+				updateSessionWorkspaceGroup(workspaceId, sectionId);
+			clearSelection();
+			return;
+		}
 		for (const workspaceId of workspaceIdsForSectionMove(
 			selectedIds,
 			sectionIdByWorkspaceId,
@@ -69,7 +90,14 @@ export function useBulkWorkspaceMoveActions({
 	};
 
 	const createGroupFromSelection = () => {
-		if (!projectId) return;
+		if (projectId === null) {
+			const tag = mintFolderTag("New group", sessionTags);
+			for (const workspaceId of selectedIds)
+				updateSessionWorkspaceGroup(workspaceId, tag);
+			clearSelection();
+			requestSectionRename(buildSidebarFolderKey(SESSIONS_TAG_SCOPE, tag));
+			return;
+		}
 		const sectionId = createSection(projectId);
 		for (const workspaceId of selectedIds) {
 			moveWorkspaceToSection(workspaceId, projectId, sectionId);
@@ -79,7 +107,12 @@ export function useBulkWorkspaceMoveActions({
 	};
 
 	const ungroupSelection = () => {
-		if (!projectId) return;
+		if (projectId === null) {
+			for (const workspaceId of [...groupedWorkspaceIds].reverse())
+				updateSessionWorkspaceGroup(workspaceId, null);
+			clearSelection();
+			return;
+		}
 		// Each move inserts directly below the row's former group, so processing
 		// in visual order would stack the rows reversed. Iterate back-to-front to
 		// keep the selection's visual order.

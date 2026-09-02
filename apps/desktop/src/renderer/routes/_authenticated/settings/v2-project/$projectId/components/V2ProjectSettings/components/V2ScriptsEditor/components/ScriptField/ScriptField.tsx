@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Textarea } from "@superset/ui/textarea";
 import { cn } from "@superset/ui/utils";
 import { useCallback, useRef, useState } from "react";
@@ -18,6 +19,7 @@ export function ScriptField({
 	onFocus,
 	onBlur,
 }: ScriptFieldProps) {
+	const { t } = useLingui();
 	const [isDragOver, setIsDragOver] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -41,7 +43,10 @@ export function ScriptField({
 			{/* biome-ignore lint/a11y/useSemanticElements: drop zone wrapper */}
 			<div
 				role="region"
-				aria-label="Script editor with file drop support"
+				aria-label={t({
+					id: "settings.project.scriptField.dropRegionAria",
+					message: "Script editor with file drop support",
+				})}
 				className={cn(
 					"relative rounded-md border transition-colors",
 					isDragOver
@@ -77,17 +82,22 @@ export function ScriptField({
 				<button
 					type="button"
 					onClick={() => fileInputRef.current?.click()}
-					title="Import from file"
+					title={t({
+						id: "settings.project.scriptField.importFromFileTitle",
+						message: "Import from file",
+					})}
 					className="absolute bottom-2 right-2 flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
 				>
 					<HiDocumentArrowUp className="h-3.5 w-3.5" />
-					Import
+					<Trans id="settings.project.scriptField.import">Import</Trans>
 				</button>
 				{isDragOver && (
 					<div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-md bg-primary/10">
 						<div className="flex items-center gap-2 text-primary text-sm font-medium">
 							<HiDocumentArrowUp className="h-5 w-5" />
-							Drop to import
+							<Trans id="settings.project.scriptField.dropToImport">
+								Drop to import
+							</Trans>
 						</div>
 					</div>
 				)}

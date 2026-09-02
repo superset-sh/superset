@@ -8,15 +8,22 @@ import { BRANCH_PREFIX_MODES } from "@superset/shared/workspace-launch";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { projects, workspaces } from "../../../db/schema";
+import { projects, tagFolderSettings, workspaces } from "../../../db/schema";
+import type { TagSettingSnapshot } from "../../../events/types";
 import {
 	emitProjectChanged,
+	getLocalProject,
 	toProjectSnapshot,
 	updateLocalProject,
 } from "../../../projects/local-project-store";
 import { createUserSimpleGit } from "../../../runtime/git/simple-git";
 import { expandTildeAbsolute } from "../../../runtime/paths";
-import { deleteLocalWorkspace } from "../../../workspaces/local-workspace-store";
+import {
+	deleteTagFolderSetting,
+	getAllTagFolderSettings,
+	upsertTagFolderSetting,
+} from "../../../tag-folders";
+import { emitLocalWorkspaceDeleted } from "../../../workspaces/local-workspace-store";
 import { machineOnlyProcedure, protectedProcedure, router } from "../../index";
 import {
 	normalizeSparseCheckoutPaths,
@@ -65,12 +72,21 @@ export interface FindByPathCandidate {
 
 export const projectRouter = router({
 	list: protectedProcedure.query(({ ctx }) => {
+		const tagSettingsByProject = new Map<string, TagSettingSnapshot[]>();
+		for (const { scope, ...setting } of getAllTagFolderSettings(ctx.db)) {
+			const settings = tagSettingsByProject.get(scope) ?? [];
+			settings.push(setting);
+			tagSettingsByProject.set(scope, settings);
+		}
 		return ctx.db
 			.select()
 			.from(projects)
 			.all()
 			.map((row) => ({
 				id: row.id,
+				// Deprecated wire compatibility for desktops that predate the
+				// tagFolders router. Storage still has one canonical table.
+				tagSettings: tagSettingsByProject.get(row.id) ?? [],
 				// Empty until the backfill sweep fills it; folder name is the
 				// honest fallback (same rule as toProjectSnapshot).
 				name: row.name || basename(row.repoPath),
@@ -107,6 +123,74 @@ export const projectRouter = router({
 				});
 			}
 			return toProjectSnapshot(row);
+		}),
+
+	/** @deprecated Use tagFolders.upsert. Kept for mixed desktop/host versions. */
+	setTagSetting: protectedProcedure
+		.input(
+			z.object({
+				projectId: z.string().uuid(),
+				tag: z.string().min(1),
+				displayName: z.string().min(1).max(200).nullish(),
+				color: z.string().max(50).nullish(),
+				tabOrder: z.number().int().nullish(),
+			}),
+		)
+		.mutation(({ ctx, input }) => {
+			const project = getLocalProject(ctx.db, input.projectId);
+			if (!project) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Project is not set up on this host",
+				});
+			}
+			const settings = upsertTagFolderSetting(
+				{ db: ctx.db, eventBus: ctx.eventBus },
+				input.projectId,
+				input.tag,
+				{
+					...(input.displayName !== undefined
+						? { displayName: input.displayName }
+						: {}),
+					...(input.color !== undefined ? { color: input.color } : {}),
+					...(input.tabOrder !== undefined ? { tabOrder: input.tabOrder } : {}),
+				},
+			);
+			if (settings === undefined) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Invalid tag",
+				});
+			}
+			// Old desktops only listen for project:changed.
+			emitProjectChanged(ctx.eventBus, "updated", project, settings);
+			return { tagSettings: settings };
+		}),
+
+	/** @deprecated Use tagFolders.delete. Kept for mixed desktop/host versions. */
+	deleteTagSetting: protectedProcedure
+		.input(z.object({ projectId: z.string().uuid(), tag: z.string().min(1) }))
+		.mutation(({ ctx, input }) => {
+			const project = getLocalProject(ctx.db, input.projectId);
+			if (!project) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Project is not set up on this host",
+				});
+			}
+			const settings = deleteTagFolderSetting(
+				{ db: ctx.db, eventBus: ctx.eventBus },
+				input.projectId,
+				input.tag,
+			);
+			if (settings === undefined) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Invalid tag",
+				});
+			}
+			emitProjectChanged(ctx.eventBus, "updated", project, settings);
+			return { tagSettings: settings };
 		}),
 
 	get: protectedProcedure
@@ -813,11 +897,22 @@ export const projectRouter = router({
 			}
 
 			try {
-				// Per-row so each deletion broadcasts.
-				for (const ws of localWorkspaces) {
-					deleteLocalWorkspace(ctx, ws.id);
-				}
-				ctx.db.delete(projects).where(eq(projects.id, input.projectId)).run();
+				// The project cascade removes its workspaces. Folder settings have no
+				// FK because the same scope column also holds Sessions, so delete both
+				// owners in one transaction: neither can survive a partial failure.
+				ctx.db.transaction((tx) => {
+					tx.delete(projects).where(eq(projects.id, input.projectId)).run();
+					tx.delete(tagFolderSettings)
+						.where(eq(tagFolderSettings.scope, input.projectId))
+						.run();
+				});
+				// Events describe committed state and must not escape the transaction.
+				for (const ws of localWorkspaces) emitLocalWorkspaceDeleted(ctx, ws);
+				ctx.eventBus.broadcastTagFoldersChanged({
+					scope: input.projectId,
+					settings: [],
+					occurredAt: Date.now(),
+				});
 				emitProjectChanged(ctx.eventBus, "deleted", input.projectId);
 			} catch (err) {
 				throw new TRPCError({

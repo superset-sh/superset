@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
@@ -63,6 +64,7 @@ export function WorkspaceSidebar({
 	pendingReveal,
 	workspaceId,
 }: WorkspaceSidebarProps) {
+	const { t } = useLingui();
 	const gitStatus = useWorkspaceGitStatus();
 	const collections = useCollections();
 	const { data: [localState] = [] } = useLiveQuery(
@@ -144,7 +146,7 @@ export function WorkspaceSidebar({
 	const { flowState, onRetry } = usePRFlowState(workspaceId);
 	const filesTab: SidebarTabDefinition = {
 		id: "files",
-		label: "Files",
+		label: t({ id: "workspace.sidebar.filesTab", message: "Files" }),
 		icon: LuFile,
 		content: (
 			<FilesTab

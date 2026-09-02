@@ -3,6 +3,7 @@ import {
 	teardownSingleAgent,
 	writeSharedDisabledAgentIds,
 } from "@superset/agent-setup";
+import { isSupportedLocale } from "@superset/i18n/locales";
 import {
 	type AgentCustomDefinition,
 	type AgentPresetOverrideEnvelope,
@@ -44,6 +45,7 @@ import { env } from "main/env.main";
 import { exitImmediately } from "main/index";
 import { hasCustomRingtone } from "main/lib/custom-ringtones";
 import { getHostServiceCoordinator } from "main/lib/host-service-coordinator";
+import { applyAppLanguage } from "main/lib/language";
 import { localDb } from "main/lib/local-db";
 import {
 	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
@@ -53,6 +55,7 @@ import {
 	DEFAULT_OPEN_LINKS_IN_APP,
 	DEFAULT_SHOW_PRESETS_BAR,
 	DEFAULT_SHOW_RESOURCE_MONITOR,
+	DEFAULT_TERMINAL_COPY_ON_SELECT,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 	DEFAULT_TERMINAL_PARKED_RUNTIME_CAP,
 	DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON,
@@ -78,6 +81,10 @@ import {
 	updateAgentPresetInputSchema,
 	updateCustomAgentInputSchema,
 } from "./agent-preset-router.utils";
+import {
+	clearImportedCliTerminalScripts,
+	isPendingCliTerminalScript,
+} from "./cli-terminal-script-import";
 import {
 	setFontSettingsSchema,
 	transformFontSettings,
@@ -278,6 +285,36 @@ export const createSettingsRouter = () => {
 			}
 			return getNormalizedTerminalPresets();
 		}),
+		getPendingCliTerminalScripts: publicProcedure
+			.input(z.object({ organizationId: z.string().min(1) }))
+			.query(({ input }) =>
+				getNormalizedTerminalPresets().filter((script) =>
+					isPendingCliTerminalScript(script, input.organizationId),
+				),
+			),
+		acknowledgeCliTerminalScripts: publicProcedure
+			.input(
+				z.object({
+					organizationId: z.string().min(1),
+					ids: z.array(z.string()).min(1),
+				}),
+			)
+			.mutation(({ input }) =>
+				// Immediate transaction: a concurrent `superset scripts add` must not
+				// land between this read and write or its row would be dropped.
+				localDb.transaction(
+					() => {
+						const result = clearImportedCliTerminalScripts({
+							scripts: getNormalizedTerminalPresets(),
+							organizationId: input.organizationId,
+							ids: input.ids,
+						});
+						if (result.changed) saveTerminalPresets(result.scripts);
+						return { acknowledged: result.changed };
+					},
+					{ behavior: "immediate" },
+				),
+			),
 		getAgentPresets: publicProcedure.query(() => getResolvedAgentPresets()),
 		createCustomAgent: publicProcedure
 			.input(createCustomAgentInputSchema)
@@ -459,7 +496,7 @@ export const createSettingsRouter = () => {
 				if (!preset) {
 					throw new TRPCError({
 						code: "NOT_FOUND",
-						message: `Terminal preset ${input.id} not found`,
+						message: `Terminal script ${input.id} not found`,
 					});
 				}
 
@@ -578,6 +615,40 @@ export const createSettingsRouter = () => {
 			.query(({ input }) =>
 				getPresetsForTrigger("applyOnNewTab", input?.projectId ?? null),
 			),
+
+		// App display language: "auto"/null = follow the system language.
+		getLanguage: publicProcedure.query(() => {
+			const row = getSettings();
+			const stored = row.language;
+			return stored && isSupportedLocale(stored) ? stored : null;
+		}),
+
+		setLanguage: publicProcedure
+			.input(z.object({ language: z.string().nullable() }))
+			.mutation(async ({ input }) => {
+				const value =
+					input.language === null || input.language === "auto"
+						? null
+						: input.language;
+				if (value !== null && !isSupportedLocale(value)) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: `Unsupported language: ${value}`,
+					});
+				}
+				localDb
+					.insert(settings)
+					.values({ id: 1, language: value })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { language: value },
+					})
+					.run();
+				// The application and tray menus resolve their labels when they are
+				// built, so they need an explicit rebuild on a language change.
+				// Awaited: the catalog for the new locale loads on demand.
+				await applyAppLanguage(value);
+			}),
 
 		getSelectedRingtoneId: publicProcedure.query(() => {
 			const row = getSettings();
@@ -990,6 +1061,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { terminalParkedRuntimeCap: input.cap },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getTerminalCopyOnSelect: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.terminalCopyOnSelect ?? DEFAULT_TERMINAL_COPY_ON_SELECT;
+		}),
+
+		setTerminalCopyOnSelect: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, terminalCopyOnSelect: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { terminalCopyOnSelect: input.enabled },
 					})
 					.run();
 

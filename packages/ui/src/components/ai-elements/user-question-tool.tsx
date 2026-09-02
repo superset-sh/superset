@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import {
 	ChevronDownIcon,
 	ChevronUpIcon,
@@ -220,11 +221,17 @@ export const UserQuestionTool = ({
 			<div className="flex items-center justify-between border-border/60 border-b bg-muted/20 px-3 py-1.5">
 				<div className="flex items-center gap-1.5">
 					<span className="text-xs text-muted-foreground">
-						{current.header ?? "Question"}
+						{current.header ?? (
+							<Trans id="ui.userQuestionTool.header">Question</Trans>
+						)}
 					</span>
 					<span className="text-muted-foreground/50">&middot;</span>
 					<span className="text-xs text-muted-foreground">
-						{isMulti ? "Multi-select" : "Single-select"}
+						{isMulti ? (
+							<Trans id="ui.userQuestionTool.multiSelect">Multi-select</Trans>
+						) : (
+							<Trans id="ui.userQuestionTool.singleSelect">Single-select</Trans>
+						)}
 					</span>
 				</div>
 
@@ -333,7 +340,7 @@ export const UserQuestionTool = ({
 					size="sm"
 					variant="ghost"
 				>
-					Skip All
+					<Trans id="ui.userQuestionTool.skipAll">Skip All</Trans>
 				</Button>
 				<Button
 					className="h-6 rounded-md px-3 text-xs"
@@ -342,10 +349,14 @@ export const UserQuestionTool = ({
 					size="sm"
 				>
 					{isSubmitting ? (
-						"Sending..."
+						<Trans id="ui.userQuestionTool.sending">Sending...</Trans>
 					) : (
 						<>
-							{isLast ? "Submit" : "Continue"}
+							{isLast ? (
+								<Trans id="ui.userQuestionTool.submit">Submit</Trans>
+							) : (
+								<Trans id="ui.userQuestionTool.continue">Continue</Trans>
+							)}
 							<CornerDownLeftIcon className="ml-1 h-3 w-3 opacity-60" />
 						</>
 					)}

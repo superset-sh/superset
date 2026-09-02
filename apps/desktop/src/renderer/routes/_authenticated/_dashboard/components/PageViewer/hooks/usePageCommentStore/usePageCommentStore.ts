@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import type { CommentStore } from "@superset/ui/page-comments";
 import { toast } from "@superset/ui/sonner";
 import { useCallback, useMemo } from "react";
@@ -13,19 +14,19 @@ export function usePageCommentStore({
 }): CommentStore {
 	const utils = cloudTrpc.useUtils();
 	const list = cloudTrpc.pageComment.list.useQuery(
-		{ pageId, version },
+		{ pageId },
 		{ enabled: version > 0 },
 	);
 
 	const invalidate = useCallback(
-		() => utils.pageComment.list.invalidate({ pageId, version }),
-		[utils, pageId, version],
+		() => utils.pageComment.list.invalidate({ pageId }),
+		[utils, pageId],
 	);
 
 	const handlers = useMemo(
 		() => ({
 			onSuccess: invalidate,
-			onError: (error: { message: string }) => toast.error(error.message),
+			onError: (error: { message: string }) => toast.error(errorMessage(error)),
 		}),
 		[invalidate],
 	);

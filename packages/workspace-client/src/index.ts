@@ -1,6 +1,7 @@
 export { useEventBus } from "./hooks/useEventBus";
 export { useGitChangeEvents } from "./hooks/useGitChangeEvents";
 export {
+	type AgentBindingsChangedPayload,
 	type AgentIdentity,
 	type AgentLifecyclePayload,
 	type EventBusHandle,
@@ -8,9 +9,12 @@ export {
 	getEventBus,
 	type HostConnectionState,
 	type HostConnectionStatus,
+	type PageWatchChangedPayload,
 	type PortChangedPayload,
 	type ProjectChangedPayload,
 	type ProjectSnapshotPayload,
+	reconnectEventBusIfDown,
+	type TagFoldersChangedPayload,
 	type TerminalLifecyclePayload,
 	type WorkspaceChangedPayload,
 	type WorkspaceCreateSettledPayload,

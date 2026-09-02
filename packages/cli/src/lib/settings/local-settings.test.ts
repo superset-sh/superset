@@ -1,40 +1,13 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { settings } from "@superset/local-db/schema";
-import { getTableConfig } from "drizzle-orm/sqlite-core";
-import { readSettingsRow, writeSetting } from "./local-settings";
+import { describe, expect, test } from "bun:test";
+import {
+	readSettingsRow,
+	updateSettingsAtomically,
+	writeSetting,
+} from "./local-settings";
+import { createLocalSettingsDb, withTempSupersetHome } from "./test-helpers";
 
-let homeDir: string;
-let previousHome: string | undefined;
-
-/** Create local.db with the real settings columns, like the desktop app would. */
-function createLocalDb() {
-	const { columns } = getTableConfig(settings);
-	const ddl = columns
-		.map(
-			(column) =>
-				`"${column.name}" ${column.getSQLType()}${column.primary ? " PRIMARY KEY" : ""}`,
-		)
-		.join(", ");
-	const sqlite = new Database(join(homeDir, "local.db"));
-	sqlite.exec(`CREATE TABLE settings (${ddl})`);
-	sqlite.close();
-}
-
-beforeEach(() => {
-	previousHome = process.env.SUPERSET_HOME_DIR;
-	homeDir = mkdtempSync(join(tmpdir(), "superset-cli-settings-"));
-	process.env.SUPERSET_HOME_DIR = homeDir;
-});
-
-afterEach(() => {
-	if (previousHome === undefined) delete process.env.SUPERSET_HOME_DIR;
-	else process.env.SUPERSET_HOME_DIR = previousHome;
-	rmSync(homeDir, { recursive: true, force: true });
-});
+const home = withTempSupersetHome("superset-cli-settings-");
+const createLocalDb = () => createLocalSettingsDb(home.dir);
 
 describe("local settings store", () => {
 	test("read returns undefined when the database does not exist", () => {
@@ -73,5 +46,30 @@ describe("local settings store", () => {
 		writeSetting("terminalFontSize", 18);
 		writeSetting("terminalFontSize", null);
 		expect(readSettingsRow()?.terminalFontSize).toBeNull();
+	});
+
+	test("atomic updates derive a patch and result from the locked row", () => {
+		createLocalDb();
+		writeSetting("notificationVolume", 40);
+
+		const result = updateSettingsAtomically((row) => ({
+			patch: { notificationVolume: (row?.notificationVolume ?? 0) + 2 },
+			result: row?.notificationVolume,
+		}));
+
+		expect(result).toBe(40);
+		expect(readSettingsRow()?.notificationVolume).toBe(42);
+	});
+
+	test("atomic updates target a legacy row with a non-1 id", () => {
+		createLocalSettingsDb(home.dir, 7);
+		updateSettingsAtomically(() => ({
+			patch: { notificationVolume: 55 },
+			result: undefined,
+		}));
+		const row = readSettingsRow();
+		expect(row?.id).toBe(7);
+		expect(row?.notificationVolume).toBe(55);
+		expect(row?.confirmOnQuit).toBe(true);
 	});
 });

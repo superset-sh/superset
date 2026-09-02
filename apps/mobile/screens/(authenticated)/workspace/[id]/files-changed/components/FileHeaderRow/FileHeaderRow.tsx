@@ -4,6 +4,7 @@ import {
 	Image as SwiftUIImage,
 	Menu as SwiftUIMenu,
 } from "@expo/ui/swift-ui";
+import { useLingui } from "@lingui/react/macro";
 import * as Haptics from "expo-haptics";
 import {
 	CheckCircle2,
@@ -41,6 +42,7 @@ export const FileHeaderRow = memo(function FileHeaderRow({
 	onDelete: (file: ChangesetFile) => void;
 	onToggleViewed: (path: string) => void;
 }) {
+	const { t } = useLingui();
 	return (
 		<PressableScale
 			className="bg-background border-border/60 flex-row items-center gap-3 border-t border-b px-4"
@@ -65,23 +67,35 @@ export const FileHeaderRow = memo(function FileHeaderRow({
 					}
 				>
 					<SwiftUIButton
-						label="Copy relative path"
+						label={t({
+							id: "mobile.fileViewer.copyRelativePath",
+							message: "Copy relative path",
+						})}
 						systemImage="doc.on.doc"
 						onPress={() => onCopyPath(file)}
 					/>
 					<SwiftUIButton
-						label="View file"
+						label={t({
+							id: "mobile.filesChanged.viewFile",
+							message: "View file",
+						})}
 						systemImage="doc.text"
 						onPress={() => onViewFile(file)}
 					/>
 					<SwiftUIButton
-						label="Add file comment"
+						label={t({
+							id: "mobile.filesChanged.addFileComment",
+							message: "Add file comment",
+						})}
 						systemImage="text.bubble"
 						onPress={() => onAddComment(file)}
 					/>
 					{/* biome-ignore lint/a11y/useValidAriaRole: SwiftUI button role, not ARIA */}
 					<SwiftUIButton
-						label="Delete file"
+						label={t({
+							id: "mobile.filesChanged.deleteFile",
+							message: "Delete file",
+						})}
 						systemImage="trash"
 						role="destructive"
 						onPress={() => onDelete(file)}
@@ -89,7 +103,17 @@ export const FileHeaderRow = memo(function FileHeaderRow({
 				</SwiftUIMenu>
 			</Host>
 			<PressableScale
-				accessibilityLabel={viewed ? "Mark as not viewed" : "Mark as viewed"}
+				accessibilityLabel={
+					viewed
+						? t({
+								id: "mobile.filesChanged.markNotViewed",
+								message: "Mark as not viewed",
+							})
+						: t({
+								id: "mobile.filesChanged.markViewed",
+								message: "Mark as viewed",
+							})
+				}
 				hitSlop={8}
 				onPress={() => {
 					void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

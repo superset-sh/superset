@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -101,34 +102,46 @@ export function AddHostGuide() {
 	return (
 		<div className="flex min-h-full items-center justify-center p-6">
 			<div className="w-full max-w-xl select-text">
-				<h2 className="text-xl font-semibold">Add a host</h2>
+				<h2 className="text-xl font-semibold">
+					<Trans id="settings.hosts.addHost.title">Add a host</Trans>
+				</h2>
 				<p className="mt-2 text-sm text-muted-foreground">
-					A workspace lives on the machine that hosts its files, terminals, and
-					ports. Add a Mac mini, a spare laptop, or a server, and run workspaces
-					on it from here.
+					<Trans id="settings.hosts.addHost.intro">
+						A workspace lives on the machine that hosts its files, terminals,
+						and ports. Add a Mac mini, a spare laptop, or a server, and run
+						workspaces on it from here.
+					</Trans>
 				</p>
 
 				<ol className="mt-6 space-y-5">
 					<li className="space-y-2">
 						<p className="text-sm font-medium">
-							1. Install the Superset CLI on the other machine
+							<Trans id="settings.hosts.addHost.step1">
+								1. Install the Superset CLI on the other machine
+							</Trans>
 						</p>
 						<CopyableCommand command={INSTALL_COMMAND} />
 					</li>
 					<li className="space-y-2">
-						<p className="text-sm font-medium">2. Generate a key for it</p>
+						<p className="text-sm font-medium">
+							<Trans id="settings.hosts.addHost.step2">
+								2. Generate a key for it
+							</Trans>
+						</p>
 						{/* Caption and button both hold their place across the mint so
 						    the steps below don't jump. */}
 						<p className="text-xs text-muted-foreground">
-							Lets the other machine sign in without a browser. Revoke it
-							anytime under{" "}
-							<Link
-								to="/settings/api-keys"
-								className="underline underline-offset-2 hover:text-foreground"
-							>
-								API keys
-							</Link>
-							.
+							<Trans id="settings.hosts.addHost.keyCaption">
+								Lets the other machine sign in without a browser. Revoke it
+								anytime under{" "}
+								<Link
+									to="/settings/api-keys"
+									className="underline underline-offset-2 hover:text-foreground"
+								>
+									API keys
+								</Link>
+								.
+							</Trans>
 						</p>
 						<Button
 							type="button"
@@ -141,17 +154,27 @@ export function AddHostGuide() {
 							{minted && (
 								<LuCircleCheck className="size-3.5 shrink-0 text-emerald-500" />
 							)}
-							{minted ? "Generated" : "Generate key"}
+							{minted ? (
+								<Trans id="settings.hosts.addHost.generated">Generated</Trans>
+							) : (
+								<Trans id="settings.hosts.addHost.generate">Generate key</Trans>
+							)}
 						</Button>
 					</li>
 					<li className="space-y-2">
-						<p className="text-sm font-medium">3. Start the host there</p>
+						<p className="text-sm font-medium">
+							<Trans id="settings.hosts.addHost.step3">
+								3. Start the host there
+							</Trans>
+						</p>
 						{useFallback ? (
 							<>
 								<CopyableCommand command={FALLBACK_START_COMMAND} />
 								<p className="text-xs text-muted-foreground">
-									Couldn&apos;t create a key for this host, so this signs in
-									through the browser on that machine.
+									<Trans id="settings.hosts.addHost.mintFailed">
+										Couldn&apos;t create a key for this host, so this signs in
+										through the browser on that machine.
+									</Trans>
 								</p>
 							</>
 						) : (
@@ -167,13 +190,17 @@ export function AddHostGuide() {
 						)}
 					</li>
 					<li className="space-y-2">
-						<p className="text-sm font-medium">4. Come back here</p>
+						<p className="text-sm font-medium">
+							<Trans id="settings.hosts.addHost.step4">4. Come back here</Trans>
+						</p>
 						{/* Detection is best-effort — a host that registers before this
 						    page's first fetch lands in the baseline and never reads as
 						    new. Say where it shows up so a miss isn't a dead end. */}
 						<p className="text-xs text-muted-foreground">
-							The new host appears under Hosts on the left. This page opens it
-							as soon as it connects.
+							<Trans id="settings.hosts.addHost.step4Body">
+								The new host appears under Hosts on the left. This page opens it
+								as soon as it connects.
+							</Trans>
 						</p>
 					</li>
 				</ol>

@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo } from "react";
@@ -24,6 +25,7 @@ import { SessionList } from "./components/SessionList";
  * horizontal scroller has no room for a drag that doesn't fight the scroll.
  */
 export function SessionsSheet() {
+	const { t } = useLingui();
 	const params = useLocalSearchParams<{ id: string; active?: string }>();
 	const id = params.id;
 	const router = useRouter();
@@ -69,32 +71,49 @@ export function SessionsSheet() {
 
 	const handleClose = useCallback(
 		(row: TerminalRowData) => {
-			Alert.alert("Close session", row.title, [
-				{ text: "Cancel", style: "cancel" },
-				{
-					text: "Close",
-					style: "destructive",
-					onPress: () => {
-						if (!workspace || !hostUrl) return;
-						void getHostServiceClientByUrl(hostUrl)
-							.terminal.killSession.mutate({
-								terminalId: row.terminalId,
-								workspaceId: workspace.id,
-							})
-							// `finally` alone doesn't consume the rejection: a failed kill
-							// would close the alert and leave the session running silently.
-							.catch(() => Alert.alert("Could not close session"))
-							.finally(() => {
-								if (!host) return;
-								void queryClient.invalidateQueries({
-									queryKey: getHostTerminalsQueryKey(host.machineId),
-								});
-							});
+			Alert.alert(
+				t({
+					id: "mobile.terminalTabs.closeSession",
+					message: "Close session",
+				}),
+				row.title,
+				[
+					{
+						text: t({ id: "common.cancel", message: "Cancel" }),
+						style: "cancel",
 					},
-				},
-			]);
+					{
+						text: t({ id: "mobile.common.close", message: "Close" }),
+						style: "destructive",
+						onPress: () => {
+							if (!workspace || !hostUrl) return;
+							void getHostServiceClientByUrl(hostUrl)
+								.terminal.killSession.mutate({
+									terminalId: row.terminalId,
+									workspaceId: workspace.id,
+								})
+								// `finally` alone doesn't consume the rejection: a failed kill
+								// would close the alert and leave the session running silently.
+								.catch(() =>
+									Alert.alert(
+										t({
+											id: "mobile.session.closeFailed",
+											message: "Could not close session",
+										}),
+									),
+								)
+								.finally(() => {
+									if (!host) return;
+									void queryClient.invalidateQueries({
+										queryKey: getHostTerminalsQueryKey(host.machineId),
+									});
+								});
+						},
+					},
+				],
+			);
 		},
-		[workspace, hostUrl, host, queryClient],
+		[workspace, hostUrl, host, queryClient, t],
 	);
 
 	// The list is the sheet's ONLY layout child — the toolbar renders null.
@@ -105,7 +124,10 @@ export function SessionsSheet() {
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.Button
 					icon="xmark"
-					accessibilityLabel="Close"
+					accessibilityLabel={t({
+						id: "mobile.common.close",
+						message: "Close",
+					})}
 					onPress={() => router.back()}
 				/>
 			</Stack.Toolbar>

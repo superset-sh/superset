@@ -121,7 +121,7 @@ export function AddTabButton({
 						onCheckedChange={onToggleShowPresetsBar}
 						onSelect={(e) => e.preventDefault()}
 					>
-						Show Preset Bar
+						Show Scripts Bar
 					</DropdownMenuCheckboxItem>
 					<DropdownMenuCheckboxItem
 						checked={useCompactAddButton}

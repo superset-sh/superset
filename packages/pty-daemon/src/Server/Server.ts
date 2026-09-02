@@ -270,6 +270,10 @@ export class Server {
 					"--handoff",
 					`--snapshot=${snapshotPath}`,
 					`--socket=${this.opts.socketPath}`,
+					// Without this the successor falls back to the store's own
+					// default and a session's replay history silently shrinks on
+					// every daemon update.
+					`--buffer-bytes=${this.store.bufferCapBytes}`,
 				],
 				{
 					stdio,

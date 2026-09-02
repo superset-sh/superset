@@ -37,3 +37,43 @@ export function isPaymentFailingStatus(
 ): boolean {
 	return status === "past_due";
 }
+
+export const PLAN_RANK: Record<PlanTier, number> = {
+	free: 0,
+	pro: 1,
+	enterprise: 2,
+};
+
+/**
+ * The billing tier each trigger kind needs; kinds absent here are free
+ * (schedule). One map for both sides of the product: the desktop Add Trigger
+ * menu locks and badges off it, and the event dispatcher skips triggers above
+ * the org's plan. Editing a saved above-tier trigger is deliberately still
+ * allowed — a downgraded org maintains its automations, they just don't fire.
+ */
+const TRIGGER_KIND_REQUIRED_PLAN: Partial<
+	Record<string, Exclude<PlanTier, "free">>
+> = {
+	github: "pro",
+	slack: "pro",
+	linear: "pro",
+	sentry: "pro",
+	notion: "pro",
+	google_calendar: "pro",
+	gmail: "pro",
+	webhook: "pro",
+	microsoft_teams: "enterprise",
+};
+
+/** The tier a trigger kind needs, or undefined when every plan has it. */
+export function requiredPlanForTriggerKind(
+	kind: string,
+): Exclude<PlanTier, "free"> | undefined {
+	return TRIGGER_KIND_REQUIRED_PLAN[kind];
+}
+
+/** Whether an org on this plan may run triggers of this kind. */
+export function planAllowsTriggerKind(plan: PlanTier, kind: string): boolean {
+	const required = TRIGGER_KIND_REQUIRED_PLAN[kind];
+	return required === undefined || PLAN_RANK[plan] >= PLAN_RANK[required];
+}

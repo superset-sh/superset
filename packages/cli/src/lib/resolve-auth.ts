@@ -1,7 +1,12 @@
 import { CLIError } from "@superset/cli-framework";
 import { type ApiClient, createApiClient } from "./api-client";
 import { refreshAccessToken } from "./auth";
-import { readConfig, type SupersetConfig, writeConfig } from "./config";
+import {
+	readConfig,
+	resolveOrganizationId,
+	type SupersetConfig,
+	writeConfig,
+} from "./config";
 
 export type AuthSource = "override" | "config" | "oauth";
 
@@ -64,12 +69,7 @@ export async function resolveAuth(
 		);
 	}
 
-	// SUPERSET_ORGANIZATION_ID overrides the stored org for this invocation
-	// (headless/CI, and dev where the CLI must target a specific local org),
-	// mirroring how SUPERSET_API_KEY overrides the stored credential. Not
-	// persisted to disk.
-	const organizationId =
-		process.env.SUPERSET_ORGANIZATION_ID?.trim() || config.organizationId;
+	const organizationId = resolveOrganizationId(config);
 	const resolvedConfig: SupersetConfig = { ...config, organizationId };
 
 	const api = createApiClient({ bearer, organizationId });

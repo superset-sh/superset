@@ -1,3 +1,4 @@
+import { i18n } from "@superset/i18n";
 import * as Clipboard from "expo-clipboard";
 import { CheckIcon, CopyIcon, EyeIcon, EyeOffIcon } from "lucide-react-native";
 import {
@@ -104,7 +105,11 @@ export const EnvironmentVariablesTitle = ({
 	...props
 }: EnvironmentVariablesTitleProps) => (
 	<Text className={cn("font-medium text-sm", className)} {...props}>
-		{children ?? "Environment Variables"}
+		{children ??
+			i18n._({
+				id: "mobile.envVars.title",
+				message: "Environment Variables",
+			})}
 	</Text>
 );
 
@@ -131,7 +136,10 @@ export const EnvironmentVariablesToggle = ({
 				className="size-3.5 text-muted-foreground"
 			/>
 			<Switch
-				accessibilityLabel="Toggle value visibility"
+				accessibilityLabel={i18n._({
+					id: "mobile.envVars.toggleVisibility",
+					message: "Toggle value visibility",
+				})}
 				checked={checked ?? showValues}
 				onCheckedChange={onCheckedChange ?? setShowValues}
 				{...props}
@@ -329,7 +337,10 @@ export const EnvironmentVariableRequired = ({
 }: EnvironmentVariableRequiredProps) => (
 	<Badge className={className} variant="secondary" {...props}>
 		{children == null || typeof children === "string" ? (
-			<Text>{children ?? "Required"}</Text>
+			<Text>
+				{children ??
+					i18n._({ id: "mobile.envVars.required", message: "Required" })}
+			</Text>
 		) : (
 			children
 		)}

@@ -1,3 +1,4 @@
+import { i18n } from "@superset/i18n";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { Alert } from "react-native";
@@ -83,7 +84,10 @@ export function useCreateCloudWorkspace() {
 				base_branch: branch,
 			});
 			Alert.alert(
-				"Could not create cloud workspace",
+				i18n._({
+					id: "mobile.cloudWorkspace.createFailed",
+					message: "Could not create cloud workspace",
+				}),
 				error instanceof Error ? error.message : String(error),
 			);
 		},

@@ -4,6 +4,14 @@
 
 ### Run 100+ Coding Agents in Parallel
 
+<details>
+<summary>🌐 Read this in other languages</summary>
+<br />
+
+[English](README.md) | [日本語](readme/README.ja.md) | [简体中文](readme/README.zh-CN.md) | [繁體中文](readme/README.zh-TW.md) | [한국어](readme/README.ko.md) | [Français](readme/README.fr.md) | [Español](readme/README.es.md) | [Deutsch](readme/README.de.md) | [Português](readme/README.pt-BR.md) | [Italiano](readme/README.it.md) | [Русский](readme/README.ru.md) | [Türkçe](readme/README.tr.md) | [Polski](readme/README.pl.md) | [Nederlands](readme/README.nl.md) | [Bahasa Indonesia](readme/README.id.md) | [Čeština](readme/README.cs.md) | [Tiếng Việt](readme/README.vi.md)
+
+</details>
+
 [![GitHub stars](https://img.shields.io/github/stars/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/stargazers)
 [![GitHub release](https://img.shields.io/github/v/release/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/releases)
 [![License](https://img.shields.io/badge/license-Elastic%20License%202.0-blue?style=flat)](LICENSE.md)
@@ -127,15 +135,15 @@ Run agent sessions on a schedule: triage issues overnight, draft the weekly chan
 <tr>
 <td width="50%" valign="middle">
 
-### Remote Workspaces
+### Remote Access
 
 Connect another machine and reach its workspaces from anywhere: the desktop app, the CLI, or your phone. Wake offline hosts with a custom command.
 
-[Docs →](https://docs.superset.sh/remote-workspaces)
+[Docs →](https://docs.superset.sh/remote-access)
 
 </td>
 <td width="50%">
-  <a href="https://docs.superset.sh/remote-workspaces"><img src="apps/docs/public/images/remote-workspaces-hosts-members.png" alt="Hosts and members in organization settings" width="100%" /></a>
+  <a href="https://docs.superset.sh/remote-access"><img src="apps/docs/public/images/remote-workspaces-hosts-members.png" alt="Hosts and members in organization settings" width="100%" /></a>
 </td>
 </tr>
 <tr>

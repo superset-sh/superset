@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { CommentModeButton, PageHeader } from "@superset/ui/page-comments";
 import { Spinner } from "@superset/ui/spinner";
@@ -12,6 +13,7 @@ interface PageDetailViewProps {
 }
 
 export function PageDetailView({ slug }: PageDetailViewProps) {
+	const { t } = useLingui();
 	const navigate = useNavigate();
 	const [commentsEnabled, setCommentsEnabled] = useState(false);
 	const {
@@ -31,7 +33,10 @@ export function PageDetailView({ slug }: PageDetailViewProps) {
 			type="button"
 			variant="ghost"
 			size="icon-sm"
-			aria-label="Back to pages"
+			aria-label={t({
+				id: "dashboard.pages.detail.backToPages",
+				message: "Back to pages",
+			})}
 			onClick={goBack}
 			className="no-drag size-7 shrink-0 text-muted-foreground"
 		>

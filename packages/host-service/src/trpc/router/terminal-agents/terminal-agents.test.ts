@@ -12,12 +12,16 @@ import {
 } from "../../../db/schema";
 import {
 	SqliteTerminalAgentBindingPersistence,
+	type TerminalAgentId,
 	TerminalAgentStore,
 } from "../../../terminal-agents";
 import { findResumeCandidateBinding } from "../../../terminal-agents/persistence";
 import type { AgentRunResult } from "../agents/agents";
 import {
+	listAccountRestartCandidates,
+	type RestartAccountSessionsDeps,
 	type ResumeSessionDeps,
+	restartAccountSessions,
 	resumeTerminalAgentSession,
 } from "./terminal-agents";
 
@@ -235,6 +239,167 @@ describe("resumeTerminalAgentSession", () => {
 		expect(result).toEqual({ resumed: false });
 		expect(runCalls).toEqual([]);
 		// The session id must survive: a config edit could re-enable resume.
+		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeDefined();
+	});
+});
+
+const CODEX_CONFIG_ID = "00000000-0000-0000-0000-000000000002";
+
+function seedAgentConfig(
+	db: HostDb,
+	{
+		id = CLAUDE_CONFIG_ID,
+		presetId = "claude",
+		label = "Claude",
+		command = "claude",
+		resumeArgs = ["--resume"] as string[],
+		displayOrder = 0,
+	} = {},
+) {
+	db.insert(hostAgentConfigs)
+		.values({
+			id,
+			presetId,
+			label,
+			command,
+			promptTransport: "argv",
+			resumeArgsJson: JSON.stringify(resumeArgs),
+			displayOrder,
+		})
+		.run();
+}
+
+function seedLiveBinding(
+	db: HostDb,
+	{
+		terminalId = "t1",
+		agentId = "claude" as TerminalAgentId,
+		agentSessionId = `sess-${terminalId}` as string | null,
+		lastEventType = "Stop",
+	} = {},
+) {
+	db.insert(terminalSessions)
+		.values({
+			id: terminalId,
+			status: "active",
+			originWorkspaceId: "ws-1",
+			createdAt: 1,
+		})
+		.run();
+	db.insert(terminalAgentBindings)
+		.values({
+			terminalId,
+			workspaceId: "ws-1",
+			agentId,
+			agentSessionId,
+			startedAt: 1,
+			lastEventAt: 2,
+			lastEventType,
+		})
+		.run();
+}
+
+function createStore(db: HostDb): TerminalAgentStore {
+	return new TerminalAgentStore(new SqliteTerminalAgentBindingPersistence(db));
+}
+
+describe("listAccountRestartCandidates", () => {
+	it("lists live provider sessions with a resumable conversation, nothing else", () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedAgentConfig(db, {
+			id: CODEX_CONFIG_ID,
+			presetId: "codex",
+			label: "Codex",
+			command: "codex",
+			resumeArgs: ["resume"],
+		});
+		seedLiveBinding(db, { terminalId: "t-claude" });
+		// Other provider — a claude switch must not touch it.
+		seedLiveBinding(db, { terminalId: "t-codex", agentId: "codex" });
+		// No conversation captured yet: nothing to resume into.
+		seedLiveBinding(db, { terminalId: "t-no-session", agentSessionId: null });
+		seedLiveBinding(db, {
+			terminalId: "t-attached",
+			lastEventType: "Attached",
+		});
+
+		const candidates = listAccountRestartCandidates(
+			db,
+			createStore(db),
+			"claude",
+		);
+
+		expect(
+			candidates.map(({ binding, agentLabel }) => ({
+				terminalId: binding.terminalId,
+				agentLabel,
+			})),
+		).toEqual([{ terminalId: "t-claude", agentLabel: "Claude" }]);
+	});
+
+	it("skips sessions whose config cannot resume", () => {
+		const db = createTestDb();
+		seedAgentConfig(db, { resumeArgs: [] });
+		seedLiveBinding(db);
+
+		expect(listAccountRestartCandidates(db, createStore(db), "claude")).toEqual(
+			[],
+		);
+	});
+});
+
+describe("restartAccountSessions", () => {
+	function createRestartDeps(
+		db: HostDb,
+		disposeSession?: RestartAccountSessionsDeps["disposeSession"],
+	) {
+		const disposedTerminals: string[] = [];
+		const deps: RestartAccountSessionsDeps = {
+			db,
+			terminalAgentStore: createStore(db),
+			disposeSession:
+				disposeSession ??
+				((terminalId) => {
+					disposedTerminals.push(terminalId);
+					return Promise.resolve();
+				}),
+		};
+		return { deps, disposedTerminals };
+	}
+
+	it("kills each candidate crash-style, leaving a resume candidate behind", async () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedLiveBinding(db, { terminalId: "t1" });
+		seedLiveBinding(db, { terminalId: "t2" });
+		const { deps, disposedTerminals } = createRestartDeps(db);
+
+		const result = await restartAccountSessions(deps, "claude");
+
+		expect(result.restartedTerminalIds.sort()).toEqual(["t1", "t2"]);
+		expect(disposedTerminals.sort()).toEqual(["t1", "t2"]);
+		// "terminal-exited", not "disposed": auto-resume must pick these up.
+		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeDefined();
+		expect(findResumeCandidateBinding(db, "ws-1", "t2")).toBeDefined();
+		// The bindings left the live view, so a repeat restarts nothing.
+		expect(await restartAccountSessions(deps, "claude")).toEqual({
+			restartedTerminalIds: [],
+		});
+	});
+
+	it("keeps the resume candidate when the dispose fails", async () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedLiveBinding(db, { terminalId: "t1" });
+		const { deps } = createRestartDeps(db, () =>
+			Promise.reject(new Error("daemon unreachable")),
+		);
+
+		const result = await restartAccountSessions(deps, "claude");
+
+		expect(result).toEqual({ restartedTerminalIds: [] });
+		// The reaper finishes the kill; the session id must stay resumable.
 		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeDefined();
 	});
 });

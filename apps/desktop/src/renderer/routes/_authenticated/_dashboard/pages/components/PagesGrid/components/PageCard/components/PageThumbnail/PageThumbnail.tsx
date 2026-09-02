@@ -1,108 +1,45 @@
-import { Spinner } from "@superset/ui/spinner";
-import { useQuery } from "@tanstack/react-query";
 import { FileText } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { cloudTrpc } from "renderer/lib/cloud-trpc";
-import {
-	FRAME_HEIGHT,
-	FRAME_WIDTH,
-	THUMBNAIL_ASPECT_RATIO,
-} from "../../../../constants";
-import {
-	loadThumbnailUrl,
-	thumbnailCacheKey,
-} from "./utils/pageThumbnailCache";
+import { useState } from "react";
+import { THUMBNAIL_ASPECT_RATIO } from "../../../../constants";
 
 interface PageThumbnailProps {
-	slug: string;
-	pageId: string;
+	src: string | null;
 }
 
-export function PageThumbnail({ slug, pageId }: PageThumbnailProps) {
-	const containerRef = useRef<HTMLDivElement>(null);
-	const [isVisible, setIsVisible] = useState(false);
-	const [scale, setScale] = useState(0);
-
-	useEffect(() => {
-		const element = containerRef.current;
-		if (!element) return;
-
-		const observer = new IntersectionObserver(
-			([entry]) => {
-				if (entry?.isIntersecting) setIsVisible(true);
-			},
-			{ rootMargin: "300px" },
-		);
-		observer.observe(element);
-
-		const resize = new ResizeObserver(([entry]) => {
-			const width = entry?.contentRect.width ?? 0;
-			if (width > 0) setScale(width / FRAME_WIDTH);
-		});
-		resize.observe(element);
-
-		return () => {
-			observer.disconnect();
-			resize.disconnect();
-		};
-	}, []);
-
-	const pull = cloudTrpc.page.pull.useQuery(
-		{ id: pageId },
-		{ enabled: isVisible, staleTime: 5 * 60 * 1000 },
+/**
+ * Thumbnails are captured server-side after publish and served by the
+ * usercontent origin; one that has not been captured yet 404s, and the card
+ * shows a placeholder until the next list refetch.
+ */
+export function PageThumbnail({ src }: PageThumbnailProps) {
+	const [failed, setFailed] = useState<{ src: string; at: number } | null>(
+		null,
 	);
-
-	const downloadUrl = pull.data?.downloadUrl;
-	const version = pull.data?.version ?? 0;
-
-	const thumbnailEnabled = Boolean(downloadUrl) && version > 0;
-
-	const thumbnail = useQuery({
-		queryKey: ["page-thumbnail", pageId, version],
-		enabled: thumbnailEnabled,
-		staleTime: Number.POSITIVE_INFINITY,
-		queryFn: () =>
-			loadThumbnailUrl(thumbnailCacheKey(pageId, version), async () => {
-				const response = await fetch(downloadUrl as string, {
-					cache: "force-cache",
-				});
-				if (!response.ok) {
-					throw new Error(`Preview failed to load (${response.status})`);
-				}
-				return response.text();
-			}),
-	});
-
-	const isLoading =
-		isVisible && (pull.isPending || (thumbnailEnabled && thumbnail.isPending));
+	// A capture that has not happened yet 404s; the failure is remembered per
+	// src but expires, so a later list refetch retries instead of showing the
+	// placeholder forever under the same thumbnail URL.
+	const showImage =
+		src !== null &&
+		!(failed && failed.src === src && Date.now() - failed.at < 60_000);
 
 	return (
 		<div
-			ref={containerRef}
 			className="relative w-full overflow-hidden bg-muted/40"
 			style={{ aspectRatio: THUMBNAIL_ASPECT_RATIO }}
 		>
-			{thumbnail.data && scale > 0 ? (
-				<iframe
-					src={thumbnail.data}
-					title={slug}
-					sandbox="allow-scripts"
-					tabIndex={-1}
+			{showImage ? (
+				<img
+					src={src}
+					alt=""
 					aria-hidden="true"
-					className="pointer-events-none absolute top-0 left-0 origin-top-left border-0"
-					style={{
-						width: FRAME_WIDTH,
-						height: FRAME_HEIGHT,
-						transform: `scale(${scale})`,
-					}}
+					loading="lazy"
+					decoding="async"
+					onError={() => setFailed({ src, at: Date.now() })}
+					className="absolute inset-0 h-full w-full object-cover object-top"
 				/>
 			) : (
 				<div className="flex h-full w-full items-center justify-center text-muted-foreground">
-					{isLoading ? (
-						<Spinner className="size-4" />
-					) : (
-						<FileText className="size-5 opacity-40" />
-					)}
+					<FileText className="size-5 opacity-40" />
 				</div>
 			)}
 		</div>

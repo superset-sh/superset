@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
@@ -39,6 +40,7 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 		closeModal,
 	} = args;
 
+	const { t } = useLingui();
 	const navigate = useNavigate();
 	const { machineId } = useLocalHostService();
 	const { submit } = useWorkspaceCreates();
@@ -75,11 +77,21 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 	const onOpenWorkspace = useCallback(
 		(target: OpenWorkspaceTarget) => {
 			if (!projectId) {
-				toast.error("Select a project first");
+				toast.error(
+					t({
+						id: "dashboard.newWorkspaceModal.branchPicker.selectProjectFirst",
+						message: "Select a project first",
+					}),
+				);
 				return;
 			}
 			if (!resolvedHostId) {
-				toast.error("No active host");
+				toast.error(
+					t({
+						id: "dashboard.newWorkspaceModal.branchPicker.noActiveHost",
+						message: "No active host",
+					}),
+				);
 				return;
 			}
 			const branchName = target.branchName;
@@ -117,6 +129,7 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 			submit,
 			closeModal,
 			navigate,
+			t,
 		],
 	);
 

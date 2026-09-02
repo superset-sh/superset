@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	DropdownMenuItem,
 	DropdownMenuSeparator,
@@ -39,11 +40,11 @@ export function FileMenuItems({
 		<>
 			<DropdownMenuItem onSelect={onOpen}>
 				<FileText />
-				Open
+				<Trans id="workspace.fileMenuItems.open">Open</Trans>
 			</DropdownMenuItem>
 			<DropdownMenuItem onSelect={onOpenInNewTab}>
 				<SquarePlus />
-				Open in New Tab
+				<Trans id="workspace.fileMenuItems.openInNewTab">Open in New Tab</Trans>
 				{newTabTier && (
 					<DropdownMenuShortcut>
 						{modifierLabel(newTabTier)}
@@ -52,7 +53,7 @@ export function FileMenuItems({
 			</DropdownMenuItem>
 			<DropdownMenuItem onSelect={onOpenInEditor}>
 				<ExternalLink />
-				Open in Editor
+				<Trans id="workspace.fileMenuItems.openInEditor">Open in Editor</Trans>
 				{externalTier && (
 					<DropdownMenuShortcut>
 						{modifierLabel(externalTier)}
@@ -64,11 +65,11 @@ export function FileMenuItems({
 			<DropdownMenuSeparator />
 			<DropdownMenuItem onSelect={() => setTimeout(onRename, 0)}>
 				<Pencil />
-				Rename...
+				<Trans id="workspace.fileMenuItems.rename">Rename...</Trans>
 			</DropdownMenuItem>
 			<DropdownMenuItem variant="destructive" onSelect={onDelete}>
 				<Trash2 />
-				Delete
+				<Trans id="workspace.fileMenuItems.delete">Delete</Trans>
 			</DropdownMenuItem>
 		</>
 	);

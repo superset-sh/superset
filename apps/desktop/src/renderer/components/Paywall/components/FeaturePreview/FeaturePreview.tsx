@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Badge } from "@superset/ui/badge";
 import { cn } from "@superset/ui/utils";
 import type { ComponentType } from "react";
@@ -5,7 +6,7 @@ import type { ProFeature } from "../../constants";
 import { PRO_FEATURES } from "../../constants";
 import { DitheredBackground } from "./components/DitheredBackground";
 import { MobileAppDemo } from "./components/MobileAppDemo";
-import { RemoteWorkspacesDemo } from "./components/RemoteWorkspacesDemo";
+import { RemoteAccessDemo } from "./components/RemoteAccessDemo";
 import { SlackIntegrationDemo } from "./components/SlackIntegrationDemo";
 import { TasksDemo } from "./components/TasksDemo";
 import { TeamCollaborationDemo } from "./components/TeamCollaborationDemo";
@@ -14,7 +15,7 @@ const DEMO_COMPONENTS: Record<string, ComponentType> = {
 	"team-collaboration": TeamCollaborationDemo,
 	tasks: TasksDemo,
 	"slack-integration": SlackIntegrationDemo,
-	"remote-workspaces": RemoteWorkspacesDemo,
+	"remote-access": RemoteAccessDemo,
 	"mobile-app": MobileAppDemo,
 };
 
@@ -23,6 +24,7 @@ interface FeaturePreviewProps {
 }
 
 export function FeaturePreview({ selectedFeature }: FeaturePreviewProps) {
+	const { i18n } = useLingui();
 	const DemoComponent = DEMO_COMPONENTS[selectedFeature.id];
 
 	return (
@@ -53,17 +55,21 @@ export function FeaturePreview({ selectedFeature }: FeaturePreviewProps) {
 			<div className="flex w-full flex-col border-t bg-background px-6 py-4 items-center justify-center">
 				<div className="mb-2 flex w-full items-center justify-center gap-2">
 					<span className="text-lg font-semibold text-foreground">
-						{selectedFeature.title}
+						{i18n._(selectedFeature.title)}
 					</span>
-					<Badge variant="default">PRO</Badge>
+					<Badge variant="default">
+						<Trans id="components.featurePreview.proBadge">PRO</Trans>
+					</Badge>
 					{selectedFeature.comingSoon && (
 						<Badge variant="secondary" className="text-[10px]">
-							(Coming Soon)
+							<Trans id="components.featurePreview.comingSoon">
+								(Coming Soon)
+							</Trans>
 						</Badge>
 					)}
 				</div>
 				<span className="text-center text-sm font-normal text-muted-foreground">
-					{selectedFeature.description}
+					{i18n._(selectedFeature.description)}
 				</span>
 			</div>
 		</div>

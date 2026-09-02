@@ -18,6 +18,11 @@ import {
 	scanForShellReady,
 } from "@superset/shared/shell-ready-scanner";
 import {
+	boundTranscriptText,
+	buildBoundedTerminalSessionTranscript,
+	TERMINAL_HANDOFF_MAX_CHARS,
+} from "@superset/shared/terminal-session-handoff";
+import {
 	createTerminalTitleScanState,
 	scanForTerminalTitle,
 	type TerminalTitleScanState,
@@ -27,12 +32,21 @@ import type { Hono } from "hono";
 import { getSupervisor } from "../daemon/index.ts";
 import { isProcessAlive, readPtyDaemonManifest } from "../daemon/manifest.ts";
 import type { HostDb } from "../db/index.ts";
-import { projects, terminalSessions, workspaces } from "../db/schema.ts";
+import {
+	hostAgentConfigs,
+	projects,
+	terminalAgentBindings,
+	terminalSessions,
+	workspaces,
+} from "../db/schema.ts";
 import type { EventBus } from "../events/index.ts";
 import { portManager } from "../ports/port-manager.ts";
 import { sweepAgentBindingsAfterDaemonLoss } from "../terminal-agents/daemon-loss-sweep.ts";
 import { markTerminalAgentBindingEnded } from "../terminal-agents/persistence.ts";
-import { resolveDefaultAccountTerminalEnv } from "../trpc/router/usage/default-account.ts";
+import {
+	resolveDefaultAccountEnv,
+	resolveDefaultAccountTerminalEnv,
+} from "../trpc/router/usage/default-account.ts";
 import {
 	DaemonClient,
 	type Signal as DaemonSignal,
@@ -50,6 +64,7 @@ import {
 	shellLaunchExpectsReadyMarker,
 	waitForTerminalBaseEnv,
 } from "./env.ts";
+import { readHarnessTranscript } from "./harness-transcript.ts";
 import { listTerminalResourceSessions } from "./resource-sessions.ts";
 import {
 	getShellReadyMarkerEvidence,
@@ -60,6 +75,7 @@ import {
 	type ModeTracker,
 	type TerminalSnapshot,
 } from "./terminal-mode-tracker.ts";
+import { reconstructTerminalTranscript } from "./terminal-transcript.ts";
 import { toWsCloseReason } from "./ws-close-reason.ts";
 
 /**
@@ -180,6 +196,12 @@ type TerminalClientMessage =
 	// The host forwards it as \x1b[I / \x1b[O only when the program actually
 	// enabled focus reporting (mode 1004), which the tracker knows.
 	| { type: "focus"; focused: boolean }
+	// Whether this client is actually showing the terminal right now — its pane
+	// is on screen and its app is foregrounded. Distinct from keyboard focus: a
+	// visible unfocused pane still has to render at the right size. Only visible
+	// clients constrain the PTY size. A client that never sends this counts as
+	// visible, so builds predating the message keep their existing sizing.
+	| { type: "visible"; visible: boolean }
 	| { type: "dispose" };
 
 // PTY output bytes travel as binary WebSocket frames — the renderer pipes
@@ -579,6 +601,21 @@ interface TerminalSession {
 	 * client-focus ownership model).
 	 */
 	focusedSockets: Set<TerminalSocket>;
+	/**
+	 * Last dims each attached client reported. The PTY runs at the smallest box
+	 * across the visible ones (tmux's rule) rather than at whatever client
+	 * resized last — last-writer-wins left every other client rendering output
+	 * laid out for a width it doesn't have, and the wide-into-narrow direction
+	 * (desktop's 120 columns replayed into a phone's 45) is unreadable.
+	 */
+	clientDims: Map<TerminalSocket, { cols: number; rows: number }>;
+	/**
+	 * Sockets whose client said it is off screen. Absence means visible, so a
+	 * client that never sends the message keeps constraining the size as it
+	 * always has. Hidden clients are excluded from the minimum: a backgrounded
+	 * phone must not hold the PTY narrow for whoever is actually looking.
+	 */
+	hiddenSockets: Set<TerminalSocket>;
 
 	/**
 	 * Tail of the in-flight follow-up send (writeFramedInputToSession).
@@ -1098,6 +1135,153 @@ export async function snapshotSession({
 	return { success: true, ...session.modeTracker.snapshot(maxLines) };
 }
 
+/**
+ * The env a bound agent was launched with, so its session store is read from
+ * the provider account it is pinned to rather than the default directory.
+ * Best effort: an unknown binding just means the default.
+ */
+function agentLaunchEnv(
+	db: HostDb,
+	definitionId: string | null | undefined,
+): Record<string, string> | undefined {
+	if (!definitionId) return undefined;
+	const row = db
+		.select({
+			envJson: hostAgentConfigs.envJson,
+			presetId: hostAgentConfigs.presetId,
+		})
+		.from(hostAgentConfigs)
+		.where(eq(hostAgentConfigs.id, definitionId))
+		.get();
+	if (!row) return undefined;
+	// Overlaid the same way the launch does it: the Usage tab's default
+	// account injects CLAUDE_CONFIG_DIR without touching per-agent env, and
+	// reading only the latter would look in the wrong account's directory.
+	const accountEnv = resolveDefaultAccountEnv(db, row.presetId);
+	try {
+		const parsed = JSON.parse(row.envJson) as Record<string, string>;
+		const agentEnv =
+			typeof parsed === "object" && parsed !== null ? parsed : {};
+		return { ...accountEnv, ...agentEnv };
+	} catch {
+		return { ...accountEnv };
+	}
+}
+
+export interface TerminalTranscript {
+	text: string;
+	/**
+	 * `harness` is the agent's own conversation store, `stream` the retained
+	 * PTY output, and `screen` the visible screen standing in when the ring
+	 * was empty (an adopted session that has not written since).
+	 */
+	source: "harness" | "stream" | "screen";
+	/** Raw retained bytes considered, before sanitizing and bounding. */
+	streamBytes: number;
+}
+
+/**
+ * Recent output as readable text, for handing a session's context to another
+ * agent. Reads the retained PTY stream rather than the headless screen: an
+ * alt-screen TUI keeps no scrollback, so its screen holds one frame and loses
+ * everything it has already drawn over, while the stream still carries it.
+ */
+export async function transcriptSession({
+	terminalId,
+	workspaceId,
+	maxChars,
+	db,
+	eventBus,
+}: {
+	terminalId: string;
+	workspaceId: string;
+	maxChars?: number;
+	db: HostDb;
+	eventBus?: EventBus;
+}): Promise<({ success: true } & TerminalTranscript) | TerminalSessionError> {
+	const session = await getOrAdoptSession({
+		terminalId,
+		workspaceId,
+		db,
+		eventBus,
+	});
+	if ("error" in session) return session;
+
+	// The harness's own store first when it keeps one: same conversation,
+	// already structured, without redraw artefacts or a retention ceiling.
+	// Only while the agent still owns the terminal, though — once its session
+	// ends the terminal is a shell again, and its old conversation would
+	// describe work the terminal is no longer doing.
+	const binding = db
+		.select({
+			agentId: terminalAgentBindings.agentId,
+			agentSessionId: terminalAgentBindings.agentSessionId,
+			definitionId: terminalAgentBindings.definitionId,
+			endedAt: terminalAgentBindings.endedAt,
+		})
+		.from(terminalAgentBindings)
+		.where(eq(terminalAgentBindings.terminalId, terminalId))
+		.get();
+	const worktreePath = db
+		.select({ path: workspaces.worktreePath })
+		.from(workspaces)
+		.where(eq(workspaces.id, workspaceId))
+		.get()?.path;
+	const harness = binding?.endedAt
+		? null
+		: readHarnessTranscript({
+				agentId: binding?.agentId,
+				agentSessionId: binding?.agentSessionId,
+				worktreePath,
+				env: agentLaunchEnv(db, binding?.definitionId),
+			});
+	if (harness) {
+		return {
+			success: true,
+			text: boundTranscriptText(
+				harness.text,
+				maxChars ?? TERMINAL_HANDOFF_MAX_CHARS,
+			),
+			source: "harness",
+			streamBytes: 0,
+		};
+	}
+
+	const raw = readRetainedFrom(session, session.retainedStartSeq);
+	if (raw.byteLength > 0) {
+		const screen = session.modeTracker.snapshot();
+		const reconstructed = reconstructTerminalTranscript(
+			new TextDecoder().decode(raw),
+			{ cols: screen.cols, rows: screen.rows },
+		);
+		const text = boundTranscriptText(
+			reconstructed,
+			maxChars ?? TERMINAL_HANDOFF_MAX_CHARS,
+		);
+		if (text.trim()) {
+			return {
+				success: true,
+				text,
+				source: "stream",
+				streamBytes: raw.byteLength,
+			};
+		}
+	}
+
+	// Nothing retained (adopted session that has not written since): the
+	// visible screen is all we have, and it beats handing over nothing.
+	const fallback = buildBoundedTerminalSessionTranscript(
+		session.modeTracker.snapshot().text,
+		maxChars,
+	);
+	return {
+		success: true,
+		text: fallback ?? "",
+		source: "screen",
+		streamBytes: raw.byteLength,
+	};
+}
+
 function sendMessage(
 	socket: { send: (data: string) => void; readyState: number },
 	message: TerminalServerMessage,
@@ -1295,6 +1479,60 @@ function syncPtyFocus(session: TerminalSession) {
 	if (!session.modeTracker.isFocusReportingActive()) return;
 	const aggregate = session.focusedSockets.size > 0;
 	session.pty.write(aggregate ? "\x1b[I" : "\x1b[O");
+}
+
+/**
+ * Smallest box across the clients currently showing this terminal. Null when
+ * no visible client has reported dims — nothing attached, or everything
+ * attached is off screen — in which case the PTY keeps the size it has rather
+ * than being reshaped for an audience of nobody.
+ */
+function effectiveDims(
+	session: TerminalSession,
+): { cols: number; rows: number } | null {
+	let cols = Number.POSITIVE_INFINITY;
+	let rows = Number.POSITIVE_INFINITY;
+	for (const [socket, dims] of session.clientDims) {
+		if (session.hiddenSockets.has(socket)) continue;
+		if (dims.cols < cols) cols = dims.cols;
+		if (dims.rows < rows) rows = dims.rows;
+	}
+	if (!Number.isFinite(cols) || !Number.isFinite(rows)) return null;
+	return { cols, rows };
+}
+
+/**
+ * Push the visible clients' smallest box to the PTY. `force` re-sends dims the
+ * session already holds, which the resize path wants so a same-dims client
+ * resize still reaches the kernel; the visibility and detach paths resize only
+ * when the minimum actually moved.
+ */
+function applyEffectiveDims(
+	session: TerminalSession,
+	options: { force?: boolean } = {},
+) {
+	if (session.exited) return;
+	const next = effectiveDims(session);
+	if (!next) return;
+	const changed = next.cols !== session.cols || next.rows !== session.rows;
+	if (!changed && !options.force) return;
+	session.resizeGeneration += 1;
+	session.pty.resize(next.cols, next.rows);
+	session.modeTracker.resize(next.cols, next.rows);
+	session.cols = next.cols;
+	session.rows = next.rows;
+}
+
+/**
+ * Drop a departing client's size constraint. The PTY grows back to whatever
+ * the remaining viewers can show — closing the phone hands the desktop its
+ * full width back without anyone touching a pane.
+ */
+function releaseSocketDims(session: TerminalSession, ws: TerminalSocket) {
+	const hadDims = session.clientDims.delete(ws);
+	const wasHidden = session.hiddenSockets.delete(ws);
+	// A hidden client was already outside the minimum, so nothing moved.
+	if (hadDims && !wasHidden) applyEffectiveDims(session);
 }
 
 /**
@@ -2670,6 +2908,8 @@ export async function createTerminalSessionInternal({
 		pendingRepaintNudge: null,
 		resizeGeneration: 0,
 		focusedSockets: new Set(),
+		clientDims: new Map(),
+		hiddenSockets: new Set(),
 	};
 	reclaimSession = session;
 	sessions.set(terminalId, session);
@@ -3165,6 +3405,18 @@ export function registerWorkspaceTerminalRoute({
 						return;
 					}
 
+					if (message.type === "visible") {
+						if (message.visible) {
+							session.hiddenSockets.delete(ws);
+						} else {
+							session.hiddenSockets.add(ws);
+						}
+						// Going hidden releases this client's size constraint;
+						// coming back re-imposes it.
+						applyEffectiveDims(session);
+						return;
+					}
+
 					if (message.type === "resize") {
 						const cols = normalizeTerminalDimension(
 							message.cols,
@@ -3176,19 +3428,20 @@ export function registerWorkspaceTerminalRoute({
 							MIN_TERMINAL_ROWS,
 							DEFAULT_TERMINAL_ROWS,
 						);
-						session.resizeGeneration += 1;
+						session.clientDims.set(ws, { cols, rows });
 						// A reanchor attach waits for this first client resize:
 						// changed dims deliver the repaint SIGWINCH naturally;
-						// unchanged dims need the forced nudge.
+						// unchanged dims need the forced nudge. What matters is
+						// the size the PTY ends up at, which is the minimum across
+						// visible clients — not the dims this one asked for.
+						const next = effectiveDims(session);
+						const dimsUnchanged =
+							next === null ||
+							(next.cols === session.cols && next.rows === session.rows);
 						const needsForcedNudge =
-							session.pendingRepaintNudge !== null &&
-							cols === session.cols &&
-							rows === session.rows;
+							session.pendingRepaintNudge !== null && dimsUnchanged;
 						clearPendingRepaintNudge(session);
-						session.pty.resize(cols, rows);
-						session.modeTracker.resize(cols, rows);
-						session.cols = cols;
-						session.rows = rows;
+						applyEffectiveDims(session, { force: true });
 						if (needsForcedNudge) nudgeRepaint(session);
 					}
 				},
@@ -3200,6 +3453,7 @@ export function registerWorkspaceTerminalRoute({
 					// A departing focused client may hand focus-out to the program
 					// (unless another attached client still holds focus).
 					if (session.focusedSockets.delete(ws)) syncPtyFocus(session);
+					releaseSocketDims(session, ws);
 				},
 
 				onError: (_event, ws) => {
@@ -3207,6 +3461,7 @@ export function registerWorkspaceTerminalRoute({
 					if (!session) return;
 					session.sockets.delete(ws);
 					if (session.focusedSockets.delete(ws)) syncPtyFocus(session);
+					releaseSocketDims(session, ws);
 				},
 			};
 		}),

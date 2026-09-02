@@ -292,7 +292,9 @@ export function Tab<TData>({
 	}
 
 	return (
-		<div className="flex h-full w-full min-h-0 min-w-0 flex-1 overflow-auto">
+		// isolate contains the resize handles' z-indexes so they never paint
+		// above body-portalled overlays (dialogs, menus).
+		<div className="isolate flex h-full w-full min-h-0 min-w-0 flex-1 overflow-auto">
 			<LayoutNodeView
 				store={store}
 				tab={tab}

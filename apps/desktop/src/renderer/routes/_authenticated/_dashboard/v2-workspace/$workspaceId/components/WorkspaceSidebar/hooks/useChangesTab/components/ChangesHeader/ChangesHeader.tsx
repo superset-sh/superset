@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { GitBranch, Pencil } from "lucide-react";
 import { useState } from "react";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
@@ -72,12 +73,17 @@ export function ChangesHeader({
 							{currentBranch.name}
 						</span>
 					)}
-					<span className="shrink-0 text-muted-foreground/60">from</span>
-					<BaseBranchSelector
-						branches={branches}
-						currentValue={baseBranch ?? defaultBranchName}
-						onChange={onBaseBranchChange}
-					/>
+					{/* Selector as a placeholder in the message: a bare "from"
+					    cannot precede the branch in every language — Korean puts
+					    the postposition after it. */}
+					<Trans id="workspace.changesHeader.fromBase">
+						<span className="shrink-0 text-muted-foreground/60">from</span>{" "}
+						<BaseBranchSelector
+							branches={branches}
+							currentValue={baseBranch ?? defaultBranchName}
+							onChange={onBaseBranchChange}
+						/>
+					</Trans>
 				</>
 			)}
 		</div>

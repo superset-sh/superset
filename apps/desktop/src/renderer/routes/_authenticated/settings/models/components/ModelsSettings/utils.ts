@@ -1,3 +1,6 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import {
 	type AuthStatusLike,
 	deriveModelProviderStatus,
@@ -71,9 +74,15 @@ export function buildAnthropicEnvText(values: AnthropicFormValues): string {
 	return lines.join("\n");
 }
 
-const EXTERNAL_OAUTH_LABELS: Record<ProviderId, string> = {
-	anthropic: "Connected via Claude",
-	openai: "Connected via ChatGPT",
+const EXTERNAL_OAUTH_LABELS: Record<ProviderId, MessageDescriptor> = {
+	anthropic: msg({
+		id: "settings.models.status.connectedViaClaude",
+		message: "Connected via Claude",
+	}),
+	openai: msg({
+		id: "settings.models.status.connectedViaChatGpt",
+		message: "Connected via ChatGPT",
+	}),
 };
 
 export function getProviderSubtitle(
@@ -87,31 +96,72 @@ export function getProviderSubtitle(
 		return "";
 	}
 	if (status.source === "external" && status.authMethod === "oauth") {
-		return EXTERNAL_OAUTH_LABELS[providerId];
+		return i18n._(EXTERNAL_OAUTH_LABELS[providerId]);
 	}
 	if (status.authMethod === "oauth") {
-		return "Connected in Superset";
+		return i18n._(
+			msg({
+				id: "settings.models.status.connectedInSuperset",
+				message: "Connected in Superset",
+			}),
+		);
 	}
 	if (status.authMethod === "api_key" || status.authMethod === "env") {
-		return "Connected with API key";
+		return i18n._(
+			msg({
+				id: "settings.models.status.connectedWithApiKey",
+				message: "Connected with API key",
+			}),
+		);
 	}
-	return "Connected";
+	return i18n._(
+		msg({
+			id: "settings.models.status.connected",
+			message: "Connected",
+		}),
+	);
 }
 
 export function getStatusBadge(
 	status: ModelProviderStatus | undefined,
 ): { label: string; variant: "secondary" | "outline" | "destructive" } | null {
 	if (!status || status.connectionState === "disconnected") {
-		return { label: "Not connected", variant: "outline" };
+		return {
+			label: i18n._(
+				msg({
+					id: "settings.models.badge.notConnected",
+					message: "Not connected",
+				}),
+			),
+			variant: "outline",
+		};
 	}
 	if (status.issue?.code === "expired") {
-		return { label: "Expired", variant: "destructive" };
+		return {
+			label: i18n._(
+				msg({ id: "settings.models.badge.expired", message: "Expired" }),
+			),
+			variant: "destructive",
+		};
 	}
 	if (status.issue) {
-		return { label: "Needs attention", variant: "outline" };
+		return {
+			label: i18n._(
+				msg({
+					id: "settings.models.badge.needsAttention",
+					message: "Needs attention",
+				}),
+			),
+			variant: "outline",
+		};
 	}
 	if (status.connectionState === "connected") {
-		return { label: "Active", variant: "secondary" };
+		return {
+			label: i18n._(
+				msg({ id: "settings.models.badge.active", message: "Active" }),
+			),
+			variant: "secondary",
+		};
 	}
 	return null;
 }

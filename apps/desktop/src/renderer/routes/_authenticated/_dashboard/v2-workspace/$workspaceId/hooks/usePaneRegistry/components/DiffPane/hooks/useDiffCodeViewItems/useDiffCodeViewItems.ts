@@ -4,23 +4,27 @@ import {
 	type FileDiffMetadata,
 	type LineAnnotation,
 	parseDiffFromFile,
+	parsePatchFiles,
 } from "@pierre/diffs";
 import type { AppRouter } from "@superset/host-service";
 import { useWorkspaceClient, workspaceTrpc } from "@superset/workspace-client";
 import { useQueries } from "@tanstack/react-query";
 import { getQueryKey } from "@trpc/react-query";
-import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
-import { useMemo, useRef } from "react";
+import type { inferRouterInputs } from "@trpc/server";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { isMissingProcedureError } from "renderer/lib/isMissingProcedureError";
 import {
 	type ChangesetFile,
 	getChangesetFileKey,
 } from "../../../../../useChangeset";
-import type { DiffAnnotationMetadata } from "../useDiffAnnotations";
+import { createGetDiffInput } from "../../utils/createGetDiffInput";
+import { isGeneratedDiffFile } from "../../utils/diffLoadingGuards";
+import type {
+	DeferredDiffReason,
+	DiffAnnotationMetadata,
+} from "../useDiffAnnotations";
 
-type GetDiffInput = inferRouterInputs<AppRouter>["git"]["getDiff"];
-type GetDiffBulkInput = inferRouterInputs<AppRouter>["git"]["getDiffBulk"];
-type GetDiffBulkOutput = inferRouterOutputs<AppRouter>["git"]["getDiffBulk"];
-type DiffContent = Omit<GetDiffBulkOutput["diffs"][number], "path">;
+type GetDiffPatchInput = inferRouterInputs<AppRouter>["git"]["getDiffPatch"];
 
 interface UseDiffCodeViewItemsOptions {
 	workspaceId: string;
@@ -32,8 +36,6 @@ interface UseDiffCodeViewItemsOptions {
 		string,
 		DiffLineAnnotation<DiffAnnotationMetadata>[]
 	>;
-	/** Extra in-memory annotations keyed by CodeView item id (e.g. the live
-	 *  agent-comment composer). Merged on top of `annotationsByPath`. */
 	extraAnnotationsByItemId?: ReadonlyMap<
 		string,
 		DiffLineAnnotation<DiffAnnotationMetadata>[]
@@ -43,22 +45,38 @@ interface UseDiffCodeViewItemsOptions {
 interface UseDiffCodeViewItemsResult {
 	items: CodeViewItem<DiffAnnotationMetadata>[];
 	fileByItemId: Map<string, ChangesetFile>;
-	hasPendingDiff: boolean;
-	hasDiffError: boolean;
+	requestDiff: (itemId: string) => void;
 }
 
-/** A file's diff request, grouped with every other file that shares the same
- * (category, baseBranch, commitHash, fromHash) — i.e. the same `getDiffBulk`
- * call. A DiffPane's file list can mix categories (e.g. staged + unstaged +
- * against-base all in one "changes" view), so this is usually 1-3 groups,
- * never one per file. */
-interface DiffGroup {
+/** A patch request: every file sharing a (category, baseBranch, commitHash,
+ * fromHash) resolves to one `git diff`. A DiffPane's file list can mix
+ * categories (staged + unstaged + against-base in one "changes" view), so
+ * this is usually 1-3 groups, never one per file. */
+interface PatchGroup {
 	key: string;
-	bulkInput: Omit<GetDiffBulkInput, "workspaceId" | "paths">;
-	members: { file: ChangesetFile; itemId: string; path: string }[];
+	input: GetDiffPatchInput;
+	members: { file: ChangesetFile; itemId: string }[];
 }
 
-function groupKeyFor(input: GetDiffInput): string {
+/** What a group resolves to. `patch` is the normal path; `files` is what an
+ * older host-service without `git.getDiffPatch` can still give us — the full
+ * contents per file, which parse into complete (non-partial) metadata. */
+type PatchGroupResult =
+	| { kind: "patch"; patch: string }
+	| {
+			kind: "files";
+			files: {
+				path: string;
+				oldPath?: string;
+				oldFile: { name: string; contents: string };
+				newFile: { name: string; contents: string };
+			}[];
+	  };
+
+/** How many per-file `getDiff` calls the fallback runs at once. */
+const FALLBACK_CONCURRENCY = 6;
+
+function groupKeyFor(input: GetDiffPatchInput): string {
 	return [
 		input.category,
 		input.baseBranch ?? "",
@@ -77,109 +95,16 @@ export function useDiffCodeViewItems({
 	extraAnnotationsByItemId,
 }: UseDiffCodeViewItemsOptions): UseDiffCodeViewItemsResult {
 	const { trpcClient } = useWorkspaceClient();
-
-	const diffRequests = useMemo(
-		() =>
-			files
-				.filter((file) => !file.isBinary)
-				.map((file) => ({
-					file,
-					input: createGetDiffInput(workspaceId, file),
-				})),
-		[files, workspaceId],
+	// Generated artifacts (lockfiles, compiled catalogs) stay collapsed behind
+	// a button: their patches are tens of thousands of hunk lines of noise,
+	// and the compiled ones are single multi-megabyte lines, which
+	// @pierre/diffs documents as its own unsolved case.
+	const [requestedItemIds, setRequestedItemIds] = useState<ReadonlySet<string>>(
+		new Set(),
 	);
-
-	const diffGroups = useMemo<DiffGroup[]>(() => {
-		const groups = new Map<string, DiffGroup>();
-		for (const { file, input } of diffRequests) {
-			const key = groupKeyFor(input);
-			let group = groups.get(key);
-			if (!group) {
-				group = {
-					key,
-					bulkInput: {
-						category: input.category,
-						baseBranch: input.baseBranch,
-						commitHash: input.commitHash,
-						fromHash: input.fromHash,
-					},
-					members: [],
-				};
-				groups.set(key, group);
-			}
-			group.members.push({
-				file,
-				itemId: getDiffItemId(file),
-				path: input.path,
-			});
-		}
-		return [...groups.values()];
-	}, [diffRequests]);
-
-	const diffGroupQueries = useQueries({
-		queries: diffGroups.map((group) => {
-			const input: GetDiffBulkInput = {
-				workspaceId,
-				paths: group.members.map((member) => member.path),
-				...group.bulkInput,
-			};
-			return {
-				queryKey: getQueryKey(workspaceTrpc.git.getDiffBulk, input, "query"),
-				queryFn: () => trpcClient.git.getDiffBulk.query(input),
-				staleTime: Number.POSITIVE_INFINITY,
-			};
-		}),
-	});
-
-	// The query key includes each group's full `paths` array, so an ordinary
-	// worktree change (a file added/removed) rotates the key and drops
-	// `query.data` to undefined until the refetch lands. `useQueries` matches
-	// observers to `diffGroups` by array *position*, not by `group.key` — and
-	// a category going from zero files to some (or vice versa) inserts/removes
-	// a whole group, shifting every later group's index. `placeholderData:
-	// keepPreviousData` would then hand back the wrong group's stale data at
-	// that shifted position. Cache the last successful response per
-	// `group.key` instead, so a rotated/shifted query still finds the right
-	// group's prior content — its items stay visible while it refetches.
-	const groupDataCacheRef = useRef(new Map<string, GetDiffBulkOutput>());
-
-	// One lookup per group resolution (not per file, not per render) — keeps
-	// the per-file work below linear in file count instead of the quadratic
-	// rebuild the old per-file `useQueries` produced. `revision` is a hash of
-	// this file's own contents, not the group's fetch timestamp — a group
-	// query covers every file sharing a category, so keying off
-	// `dataUpdatedAt` would invalidate every other file's parsed-diff and
-	// highlight caches whenever any one file in the group changed.
-	const diffContentByItemId = useMemo(() => {
-		const map = new Map<string, DiffContent & { revision: number }>();
-		const cache = groupDataCacheRef.current;
-		const liveGroupKeys = new Set<string>();
-		diffGroups.forEach((group, index) => {
-			liveGroupKeys.add(group.key);
-			const query = diffGroupQueries[index];
-			if (query?.data) cache.set(group.key, query.data);
-			const data = query?.data ?? cache.get(group.key);
-			if (!data) return;
-			const byPath = new Map(data.diffs.map((d) => [d.path, d]));
-			for (const member of group.members) {
-				const entry = byPath.get(member.path);
-				if (!entry) continue;
-				map.set(member.itemId, {
-					oldFile: entry.oldFile,
-					newFile: entry.newFile,
-					revision: hashString(
-						`${entry.oldFile.contents}\0${entry.newFile.contents}`,
-					),
-				});
-			}
-		});
-		// Drop cached groups that no longer exist so this doesn't grow
-		// unbounded as the user changes base branch or navigates diffs.
-		for (const key of cache.keys()) {
-			if (!liveGroupKeys.has(key)) cache.delete(key);
-		}
-		return map;
-	}, [diffGroups, diffGroupQueries]);
+	const requestedItemIdsRef = useRef(requestedItemIds);
+	requestedItemIdsRef.current = requestedItemIds;
+	const retryByItemIdRef = useRef(new Map<string, () => void>());
 
 	const fileByItemId = useMemo(() => {
 		const map = new Map<string, ChangesetFile>();
@@ -189,108 +114,243 @@ export function useDiffCodeViewItems({
 		return map;
 	}, [files]);
 
-	// Parsing a file's diff (parseDiffFromFile) is the expensive part of
-	// building an item — cache it per item id, keyed by the file's content
-	// revision, so a render triggered by something unrelated (collapsed
-	// state, an annotation on a different file, another file in the same
-	// group refetching) doesn't re-parse every file.
-	const fileDiffCacheRef = useRef(
-		new Map<string, { revision: number; fileDiff: FileDiffMetadata }>(),
+	useEffect(() => {
+		setRequestedItemIds((current) => {
+			let changed = false;
+			const next = new Set<string>();
+			for (const itemId of current) {
+				if (fileByItemId.has(itemId)) next.add(itemId);
+				else changed = true;
+			}
+			return changed ? next : current;
+		});
+	}, [fileByItemId]);
+
+	const requestDiff = useCallback((itemId: string) => {
+		// A file already covered by a patch request has nothing to opt into —
+		// the only useful action is refetching its group. Held-back generated
+		// files have no group yet, so they get added to one instead.
+		const retry = retryByItemIdRef.current.get(itemId);
+		if (retry) {
+			retry();
+			return;
+		}
+		setRequestedItemIds((current) => {
+			if (current.has(itemId)) return current;
+			const next = new Set(current);
+			next.add(itemId);
+			return next;
+		});
+	}, []);
+
+	const patchGroups = useMemo<PatchGroup[]>(() => {
+		const groups = new Map<string, PatchGroup>();
+		for (const file of files) {
+			if (file.isBinary) continue;
+			const itemId = getDiffItemId(file);
+			if (isGeneratedDiffFile(file.path) && !requestedItemIds.has(itemId)) {
+				continue;
+			}
+			const input = createGetDiffPatchInput(workspaceId, file);
+			const key = groupKeyFor(input);
+			let group = groups.get(key);
+			if (!group) {
+				group = {
+					key,
+					input: { ...input, paths: [], untrackedPaths: [] },
+					members: [],
+				};
+				groups.set(key, group);
+			}
+			// `git diff` doesn't report untracked files; those need their own
+			// --no-index section, which the host builds.
+			const bucket =
+				file.status === "untracked"
+					? group.input.untrackedPaths
+					: group.input.paths;
+			bucket?.push(file.path);
+			group.members.push({ file, itemId });
+		}
+		return [...groups.values()];
+	}, [files, requestedItemIds, workspaceId]);
+
+	const patchQueries = useQueries({
+		queries: patchGroups.map((group) => ({
+			queryKey: getQueryKey(
+				workspaceTrpc.git.getDiffPatch,
+				group.input,
+				"query",
+			),
+			queryFn: async (): Promise<PatchGroupResult> => {
+				try {
+					const { patch } = await trpcClient.git.getDiffPatch.query(
+						group.input,
+					);
+					return { kind: "patch", patch };
+				} catch (error) {
+					if (!isMissingProcedureError(error)) throw error;
+					// Older host-service (a remote host or cloud sandbox that
+					// hasn't been updated): fetch each file's contents the way
+					// the pane used to, so the changeset still renders.
+					const members = [...group.members];
+					const files: Extract<PatchGroupResult, { kind: "files" }>["files"] =
+						[];
+					const workers = Array.from(
+						{ length: Math.min(FALLBACK_CONCURRENCY, members.length) },
+						async () => {
+							for (;;) {
+								const member = members.shift();
+								if (!member) return;
+								const { oldFile, newFile } = await trpcClient.git.getDiff.query(
+									createGetDiffInput(workspaceId, member.file),
+								);
+								files.push({
+									path: member.file.path,
+									oldPath: member.file.oldPath,
+									oldFile,
+									newFile,
+								});
+							}
+						},
+					);
+					await Promise.all(workers);
+					return { kind: "files", files };
+				}
+			},
+			staleTime: Number.POSITIVE_INFINITY,
+		})),
+	});
+
+	// @pierre/diffs hydrates a partial diff by upgrading the metadata object in
+	// place, so the same object has to survive re-renders or every expansion
+	// is thrown away. Cache per group, keyed by when the patch last resolved.
+	const parsedPatchCacheRef = useRef(
+		new Map<
+			string,
+			{ updatedAt: number; byPath: Map<string, FileDiffMetadata> }
+		>(),
 	);
+	retryByItemIdRef.current = new Map(
+		patchGroups.flatMap((group, index) =>
+			group.members.map(
+				(member) =>
+					[member.itemId, () => void patchQueries[index]?.refetch()] as const,
+			),
+		),
+	);
+
+	const diffByItemId = useMemo(() => {
+		const map = new Map<string, FileDiffMetadata>();
+		const cache = parsedPatchCacheRef.current;
+		const liveGroupKeys = new Set<string>();
+		patchGroups.forEach((group, index) => {
+			liveGroupKeys.add(group.key);
+			const query = patchQueries[index];
+			const data = query?.data;
+			const updatedAt = query?.dataUpdatedAt ?? 0;
+			let parsed = cache.get(group.key);
+			if (data && parsed?.updatedAt !== updatedAt) {
+				const byPath = new Map<string, FileDiffMetadata>();
+				if (data.kind === "patch") {
+					for (const section of parsePatchFiles(
+						data.patch,
+						`${group.key}:${updatedAt}`,
+					)) {
+						for (const fileDiff of section.files) {
+							byPath.set(fileDiff.name, fileDiff);
+							if (fileDiff.prevName) byPath.set(fileDiff.prevName, fileDiff);
+						}
+					}
+				} else {
+					for (const file of data.files) {
+						byPath.set(
+							file.path,
+							parseDiffFromFile(
+								{
+									...file.oldFile,
+									name: file.oldPath ?? file.path,
+									cacheKey: `${group.key}:${updatedAt}:${file.path}:old`,
+								},
+								{
+									...file.newFile,
+									name: file.path,
+									cacheKey: `${group.key}:${updatedAt}:${file.path}:new`,
+								},
+							),
+						);
+					}
+				}
+				parsed = { updatedAt, byPath };
+				cache.set(group.key, parsed);
+			}
+			if (!parsed) return;
+			for (const member of group.members) {
+				const fileDiff =
+					parsed.byPath.get(member.file.path) ??
+					(member.file.oldPath
+						? parsed.byPath.get(member.file.oldPath)
+						: undefined);
+				if (fileDiff) map.set(member.itemId, fileDiff);
+			}
+		});
+		for (const key of cache.keys()) {
+			if (!liveGroupKeys.has(key)) cache.delete(key);
+		}
+		return map;
+	}, [patchGroups, patchQueries]);
+
+	const reasonByItemId = useMemo(() => {
+		const map = new Map<string, DeferredDiffReason>();
+		patchGroups.forEach((group, index) => {
+			const query = patchQueries[index];
+			const reason: DeferredDiffReason = query?.isError
+				? "error"
+				: query?.data
+					? "deferred"
+					: "loading";
+			for (const member of group.members) map.set(member.itemId, reason);
+		});
+		return map;
+	}, [patchGroups, patchQueries]);
 
 	const items = useMemo<CodeViewItem<DiffAnnotationMetadata>[]>(() => {
 		const nextItems: CodeViewItem<DiffAnnotationMetadata>[] = [];
-		const cache = fileDiffCacheRef.current;
-		const liveItemIds = new Set<string>();
 
 		for (const file of files) {
 			const itemId = getDiffItemId(file);
-			liveItemIds.add(itemId);
 			const collapsed = collapsedSet.has(getChangesetFileKey(file));
 			const editing = editingSet.has(getChangesetFileKey(file));
 
 			if (file.isBinary) {
-				// The placeholder item only has a single line, so re-anchor any
-				// existing review threads onto line 1 — otherwise they'd point at
-				// diff lines that don't exist here and silently disappear.
-				const threadAnnotations = (
-					getAnnotationsForFile(annotationsByPath, file) ?? []
-				).map((annotation): LineAnnotation<DiffAnnotationMetadata> => {
-					const metadata = annotation.metadata;
-					if (metadata.kind === "thread") {
-						return {
-							lineNumber: 1,
-							metadata: {
-								...metadata,
-								sourceLine: annotation.lineNumber,
-							},
-						};
-					}
-					if (metadata.kind === "composer") {
-						return { lineNumber: 1, metadata };
-					}
-					return { lineNumber: 1, metadata };
-				});
-				const annotations: LineAnnotation<DiffAnnotationMetadata>[] = [
-					{
-						lineNumber: 1,
-						metadata: { kind: "binary-placeholder" },
-					},
-					...threadAnnotations,
-				];
-				nextItems.push({
-					id: itemId,
-					type: "file",
-					file: {
-						name: file.path,
-						contents: " ",
-					},
-					annotations,
-					collapsed,
-					version: hashString(
-						[
-							file.path,
-							file.oldPath ?? "",
-							file.status,
-							file.additions,
-							file.deletions,
-							"binary",
-							collapsed ? "1" : "0",
-							getAnnotationsVersion(annotations),
-						].join("\0"),
-					),
-				});
+				nextItems.push(
+					buildPlaceholderItem(annotationsByPath, file, itemId, collapsed, {
+						kind: "binary-placeholder",
+					}),
+				);
 				continue;
 			}
 
-			const content = diffContentByItemId.get(itemId);
-			if (!content) continue;
-
-			const cached = cache.get(itemId);
-			const fileDiff =
-				cached && cached.revision === content.revision
-					? cached.fileDiff
-					: parseDiffFromFile(
-							{
-								...content.oldFile,
-								name: file.oldPath ?? file.path,
-								// Lets @pierre/diffs' WorkerPoolManager reuse an
-								// already-highlighted AST across remounts (e.g.
-								// navigating away from a workspace and back), which
-								// this hook's own fileDiffCacheRef can't cover since
-								// it's wiped on unmount. revision changes only when
-								// this file's own contents change, not when a
-								// sibling in the same bulk group refetches.
-								cacheKey: `${itemId}:${content.revision}:old`,
-							},
-							{
-								...content.newFile,
-								name: file.path,
-								cacheKey: `${itemId}:${content.revision}:new`,
-							},
-						);
-			if (!cached || cached.revision !== content.revision) {
-				cache.set(itemId, { revision: content.revision, fileDiff });
+			const fileDiff = diffByItemId.get(itemId);
+			if (!fileDiff) {
+				const heldBack =
+					isGeneratedDiffFile(file.path) && !requestedItemIds.has(itemId);
+				const groupReason = reasonByItemId.get(itemId) ?? "loading";
+				// The group resolved but carries no section for this path (an
+				// empty patch, or a change git expresses without hunks such as
+				// a mode-only edit). That is a failure to show the diff, not a
+				// file we chose to hold back — offer Retry, not "Load diff".
+				const reason: DeferredDiffReason = heldBack
+					? "deferred"
+					: groupReason === "deferred"
+						? "error"
+						: groupReason;
+				nextItems.push(
+					buildPlaceholderItem(annotationsByPath, file, itemId, collapsed, {
+						kind: "deferred-placeholder",
+						reason,
+					}),
+				);
+				continue;
 			}
 
 			const baseAnnotations = getAnnotationsForFile(annotationsByPath, file);
@@ -301,7 +361,7 @@ export function useDiffCodeViewItems({
 					: (extra ?? baseAnnotations);
 			const version = hashString(
 				[
-					content.revision,
+					fileDiff.cacheKey ?? "",
 					file.path,
 					file.oldPath ?? "",
 					file.status,
@@ -325,16 +385,12 @@ export function useDiffCodeViewItems({
 			});
 		}
 
-		// Drop cache entries for files no longer in the changeset so the map
-		// doesn't grow unbounded as the user navigates between diffs.
-		for (const key of cache.keys()) {
-			if (!liveItemIds.has(key)) cache.delete(key);
-		}
-
 		return nextItems;
 	}, [
 		files,
-		diffContentByItemId,
+		diffByItemId,
+		reasonByItemId,
+		requestedItemIds,
 		annotationsByPath,
 		collapsedSet,
 		editingSet,
@@ -345,20 +401,58 @@ export function useDiffCodeViewItems({
 	return {
 		items,
 		fileByItemId,
-		hasPendingDiff: diffGroupQueries.some((query) => query.isPending),
-		hasDiffError: diffGroupQueries.some((query) => query.isError),
+		requestDiff,
 	};
 }
 
-function createGetDiffInput(
+/** A file rendered as a single-line placeholder: binary, generated, or a
+ * patch that hasn't arrived. */
+function buildPlaceholderItem(
+	annotationsByPath: ReadonlyMap<
+		string,
+		DiffLineAnnotation<DiffAnnotationMetadata>[]
+	>,
+	file: ChangesetFile,
+	itemId: string,
+	collapsed: boolean,
+	placeholder: DiffAnnotationMetadata,
+): CodeViewItem<DiffAnnotationMetadata> {
+	const annotations = getPlaceholderAnnotations(
+		annotationsByPath,
+		file,
+		placeholder,
+	);
+	return {
+		id: itemId,
+		type: "file",
+		file: { name: file.path, contents: " " },
+		annotations,
+		collapsed,
+		version: hashString(
+			[
+				file.path,
+				file.oldPath ?? "",
+				file.status,
+				file.additions,
+				file.deletions,
+				placeholder.kind === "deferred-placeholder"
+					? placeholder.reason
+					: placeholder.kind,
+				collapsed ? "1" : "0",
+				getAnnotationsVersion(annotations),
+			].join("\0"),
+		),
+	};
+}
+
+function createGetDiffPatchInput(
 	workspaceId: string,
 	file: ChangesetFile,
-): GetDiffInput {
+): GetDiffPatchInput {
 	const { source } = file;
 	if (source.kind === "against-base") {
 		return {
 			workspaceId,
-			path: file.path,
 			category: "against-base",
 			baseBranch: source.baseBranch ?? undefined,
 		};
@@ -366,17 +460,12 @@ function createGetDiffInput(
 	if (source.kind === "commit") {
 		return {
 			workspaceId,
-			path: file.path,
 			category: "commit",
 			commitHash: source.commitHash,
 			fromHash: source.fromHash,
 		};
 	}
-	return {
-		workspaceId,
-		path: file.path,
-		category: source.kind,
-	};
+	return { workspaceId, category: source.kind };
 }
 
 function getDiffItemId(file: ChangesetFile): string {
@@ -397,6 +486,40 @@ function getAnnotationsForFile(
 			: undefined;
 	if (current && previous) return [...previous, ...current];
 	return current ?? previous;
+}
+
+/** `LineAnnotation<M>` distributes over `M`, so an annotation whose metadata is
+ * still the whole union isn't assignable to it. Everything here lands on line 1
+ * regardless of which member it holds, so the pairing can't go wrong — keep the
+ * assertion in one place rather than at every construction site. */
+function toLineOneAnnotation(
+	metadata: DiffAnnotationMetadata,
+): LineAnnotation<DiffAnnotationMetadata> {
+	return { lineNumber: 1, metadata } as LineAnnotation<DiffAnnotationMetadata>;
+}
+
+/** Annotations for a file rendered as a single-line placeholder (binary, or a
+ * diff we haven't loaded). Existing review threads are re-anchored onto line 1
+ * — otherwise they'd point at diff lines that don't exist here and silently
+ * disappear — keeping their original line in `sourceLine`. */
+function getPlaceholderAnnotations(
+	annotationsByPath: ReadonlyMap<
+		string,
+		DiffLineAnnotation<DiffAnnotationMetadata>[]
+	>,
+	file: ChangesetFile,
+	placeholder: DiffAnnotationMetadata,
+): LineAnnotation<DiffAnnotationMetadata>[] {
+	const threadAnnotations = (
+		getAnnotationsForFile(annotationsByPath, file) ?? []
+	).map((annotation) =>
+		toLineOneAnnotation(
+			annotation.metadata.kind === "thread"
+				? { ...annotation.metadata, sourceLine: annotation.lineNumber }
+				: annotation.metadata,
+		),
+	);
+	return [toLineOneAnnotation(placeholder), ...threadAnnotations];
 }
 
 function getAnnotationsVersion(

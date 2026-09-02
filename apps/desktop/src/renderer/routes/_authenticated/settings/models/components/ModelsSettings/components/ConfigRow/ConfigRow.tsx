@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
 import { cn } from "@superset/ui/utils";
@@ -28,15 +29,21 @@ export function ConfigRow({
 	field,
 	onSave,
 	onClear,
-	saveLabel = "Save",
-	clearLabel = "Clear",
+	saveLabel,
+	clearLabel,
 	showSave = true,
 	showClear = true,
 	disableSave,
 	disableClear,
 	className,
 }: ConfigRowProps) {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
+	const resolvedSaveLabel =
+		saveLabel ?? t({ id: "settings.models.configRow.save", message: "Save" });
+	const resolvedClearLabel =
+		clearLabel ??
+		t({ id: "settings.models.configRow.clear", message: "Clear" });
 
 	return (
 		<div className={cn("space-y-1.5", className)}>
@@ -57,12 +64,12 @@ export function ConfigRow({
 						onClick={onClear}
 						disabled={disableClear}
 					>
-						{clearLabel}
+						{resolvedClearLabel}
 					</Button>
 				) : null}
 				{onSave && showSave ? (
 					<Button size="sm" onClick={onSave} disabled={disableSave}>
-						{saveLabel}
+						{resolvedSaveLabel}
 					</Button>
 				) : null}
 			</div>

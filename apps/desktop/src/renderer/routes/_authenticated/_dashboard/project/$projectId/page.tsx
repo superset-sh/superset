@@ -1,3 +1,5 @@
+import { Trans, useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import { sanitizeSegment } from "@superset/shared/workspace-launch";
 import { Button } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
@@ -113,6 +115,7 @@ function parseConfigContent(content: string | null): {
 }
 
 function ProjectPage() {
+	const { t } = useLingui();
 	const { projectId } = Route.useParams();
 
 	const { data: project } = electronTrpc.projects.get.useQuery({
@@ -239,12 +242,27 @@ function ProjectPage() {
 				compareBaseBranch: compareBaseBranch || undefined,
 			});
 
-			toast.success("Workspace created", {
-				description: "Setting up in the background...",
-			});
+			toast.success(
+				t({
+					id: "dashboard.project.onboarding.workspaceCreated",
+					message: "Workspace created",
+				}),
+				{
+					description: t({
+						id: "dashboard.project.onboarding.settingUpInBackground",
+						message: "Setting up in the background...",
+					}),
+				},
+			);
 		} catch (error) {
 			toast.error(
-				error instanceof Error ? error.message : "Failed to create workspace",
+				errorMessage(
+					error,
+					t({
+						id: "dashboard.project.onboarding.createWorkspaceFailed",
+						message: "Failed to create workspace",
+					}),
+				),
 			);
 		}
 	};
@@ -275,7 +293,13 @@ function ProjectPage() {
 			await handleCreateWorkspace();
 		} catch (error) {
 			toast.error(
-				error instanceof Error ? error.message : "Failed to save setup config",
+				errorMessage(
+					error,
+					t({
+						id: "dashboard.project.onboarding.saveSetupConfigFailed",
+						message: "Failed to save setup config",
+					}),
+				),
 			);
 		}
 	};
@@ -314,17 +338,31 @@ function ProjectPage() {
 					<div className="w-full max-w-3xl space-y-6">
 						<div className="space-y-1.5">
 							<p className="text-xs uppercase tracking-wide text-muted-foreground">
-								Step {step === "workspace" ? 1 : 2} of 2
+								<Trans id="dashboard.project.onboarding.stepIndicator">
+									Step {step === "workspace" ? 1 : 2} of 2
+								</Trans>
 							</p>
 							<h1 className="text-2xl font-semibold text-foreground">
-								{step === "workspace" && "Create your first workspace"}
-								{step === "setup" && "Setup script"}
+								{step === "workspace" && (
+									<Trans id="dashboard.project.onboarding.workspaceTitle">
+										Create your first workspace
+									</Trans>
+								)}
+								{step === "setup" && (
+									<Trans id="dashboard.project.onboarding.setupTitle">
+										Setup script
+									</Trans>
+								)}
 							</h1>
 							<p className="text-sm text-muted-foreground">
-								{step === "workspace" &&
-									"Workspaces are isolated task environments backed by git worktrees."}
+								{step === "workspace" && (
+									<Trans id="dashboard.project.onboarding.workspaceDescription">
+										Workspaces are isolated task environments backed by git
+										worktrees.
+									</Trans>
+								)}
 								{step === "setup" && (
-									<>
+									<Trans id="dashboard.project.onboarding.setupDescription">
 										These commands run automatically when a workspace is
 										created.{" "}
 										<a
@@ -336,7 +374,7 @@ function ProjectPage() {
 											Read our docs
 											<HiChevronRight className="size-3 transition-transform duration-150 group-hover:translate-x-0.5" />
 										</a>
-									</>
+									</Trans>
 								)}
 							</p>
 						</div>
@@ -352,12 +390,19 @@ function ProjectPage() {
 									className="space-y-4"
 								>
 									<div className="space-y-2">
-										<Label htmlFor="task-title">Task</Label>
+										<Label htmlFor="task-title">
+											<Trans id="dashboard.project.onboarding.taskLabel">
+												Task
+											</Trans>
+										</Label>
 										<Input
 											id="task-title"
 											ref={titleInputRef}
 											className="h-11"
-											placeholder="e.g. Add dark mode, Fix checkout bug"
+											placeholder={t({
+												id: "dashboard.project.onboarding.titlePlaceholder",
+												message: "e.g. Add dark mode, Fix checkout bug",
+											})}
 											value={title}
 											onChange={(e) => setTitle(e.target.value)}
 											onKeyDown={(e) => {
@@ -379,7 +424,9 @@ function ProjectPage() {
 												{generatedBranchName || "branch-name"}
 											</span>
 											<span className="shrink-0 text-muted-foreground/50">
-												from
+												<Trans id="dashboard.project.onboarding.branchFrom">
+													from
+												</Trans>
 											</span>
 											<span
 												className="min-w-0 truncate font-mono"
@@ -398,7 +445,9 @@ function ProjectPage() {
 											<HiChevronDown
 												className={`size-3 transition-transform duration-200 ${showAdvanced ? "" : "-rotate-90"}`}
 											/>
-											Advanced options
+											<Trans id="dashboard.project.onboarding.advancedOptions">
+												Advanced options
+											</Trans>
 										</CollapsibleTrigger>
 										<AnimatePresence initial={false}>
 											{showAdvanced && (
@@ -411,11 +460,15 @@ function ProjectPage() {
 												>
 													<div className="pt-3 space-y-2">
 														<span className="text-xs font-medium text-muted-foreground">
-															Base branch
+															<Trans id="dashboard.project.onboarding.baseBranch">
+																Base branch
+															</Trans>
 														</span>
 														{isBranchesError ? (
 															<div className="flex items-center gap-2 h-10 px-3 rounded-md border border-destructive/50 bg-destructive/10 text-destructive text-sm">
-																Failed to load branches
+																<Trans id="dashboard.project.onboarding.branchesError">
+																	Failed to load branches
+																</Trans>
 															</div>
 														) : (
 															<Popover
@@ -432,13 +485,18 @@ function ProjectPage() {
 																		<span className="flex items-center gap-2 truncate">
 																			<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
 																			<span className="truncate font-mono text-sm">
-																				{effectiveCompareBaseBranch ||
-																					"Select branch..."}
+																				{effectiveCompareBaseBranch || (
+																					<Trans id="dashboard.project.onboarding.selectBranch">
+																						Select branch...
+																					</Trans>
+																				)}
 																			</span>
 																			{effectiveCompareBaseBranch ===
 																				branchData?.defaultBranch && (
 																				<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-																					default
+																					<Trans id="dashboard.project.onboarding.defaultBranchBadge">
+																						default
+																					</Trans>
 																				</span>
 																			)}
 																		</span>
@@ -452,13 +510,18 @@ function ProjectPage() {
 																>
 																	<Command shouldFilter={false}>
 																		<CommandInput
-																			placeholder="Search branches..."
+																			placeholder={t({
+																				id: "dashboard.project.onboarding.searchBranches",
+																				message: "Search branches...",
+																			})}
 																			value={branchSearch}
 																			onValueChange={setBranchSearch}
 																		/>
 																		<CommandList className="max-h-[200px]">
 																			<CommandEmpty>
-																				No branches found
+																				<Trans id="dashboard.project.onboarding.noBranchesFound">
+																					No branches found
+																				</Trans>
 																			</CommandEmpty>
 																			{filteredBranches.map((branch) => (
 																				<CommandItem
@@ -479,7 +542,9 @@ function ProjectPage() {
 																						{branch.name ===
 																							branchData?.defaultBranch && (
 																							<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-																								default
+																								<Trans id="dashboard.project.onboarding.defaultBranchOptionBadge">
+																									default
+																								</Trans>
 																							</span>
 																						)}
 																					</span>
@@ -514,7 +579,9 @@ function ProjectPage() {
 											onClick={handleContinueToSetup}
 											disabled={!canContinueFromWorkspace}
 										>
-											Continue
+											<Trans id="dashboard.project.onboarding.continue">
+												Continue
+											</Trans>
 											<HiChevronRight className="size-4" />
 										</Button>
 									</div>
@@ -565,7 +632,9 @@ function ProjectPage() {
 												onClick={switchToCustom}
 												className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
 											>
-												Customize commands
+												<Trans id="dashboard.project.onboarding.customizeCommands">
+													Customize commands
+												</Trans>
 											</button>
 										</div>
 									)}
@@ -573,8 +642,10 @@ function ProjectPage() {
 									{setupMode === "checklist" && actions.length === 0 && (
 										<div className="overflow-hidden rounded-lg border bg-card/40 p-6 text-center space-y-3">
 											<p className="text-sm text-muted-foreground">
-												We couldn't detect a package manager or environment
-												config.
+												<Trans id="dashboard.project.onboarding.noSetupDetected">
+													We couldn't detect a package manager or environment
+													config.
+												</Trans>
 											</p>
 											<div className="flex items-center justify-center gap-2">
 												<Button
@@ -582,7 +653,9 @@ function ProjectPage() {
 													size="sm"
 													onClick={() => setSetupMode("custom")}
 												>
-													Add commands
+													<Trans id="dashboard.project.onboarding.addCommands">
+														Add commands
+													</Trans>
 												</Button>
 												<Button
 													variant="ghost"
@@ -593,7 +666,9 @@ function ProjectPage() {
 														createWorkspace.isPending
 													}
 												>
-													Skip
+													<Trans id="dashboard.project.onboarding.skip">
+														Skip
+													</Trans>
 												</Button>
 											</div>
 										</div>
@@ -607,7 +682,9 @@ function ProjectPage() {
 													onClick={() => setSetupMode("checklist")}
 													className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
 												>
-													Back to checklist
+													<Trans id="dashboard.project.onboarding.backToChecklist">
+														Back to checklist
+													</Trans>
 												</button>
 											)}
 											<div className="overflow-hidden rounded-lg border bg-card/40">
@@ -616,20 +693,27 @@ function ProjectPage() {
 														id="setup-script"
 														wrap="off"
 														className="h-full min-h-[220px] resize-none overflow-x-auto whitespace-pre font-mono text-xs"
-														placeholder="Add setup commands, one per line..."
+														placeholder={t({
+															id: "dashboard.project.onboarding.setupCommandsPlaceholder",
+															message: "Add setup commands, one per line...",
+														})}
 														value={setupContent}
 														onChange={(e) => setSetupContent(e.target.value)}
 													/>
 													<div className="flex flex-wrap items-center gap-1.5 border-t px-1 pt-2 text-[11px] text-muted-foreground">
-														<span className="mr-1">Variables</span>
-														<span className="rounded bg-muted px-1.5 py-0.5 font-mono">
-															$SUPERSET_ROOT_PATH
+														<span className="mr-1">
+															<Trans id="dashboard.project.onboarding.variables">
+																Variables
+															</Trans>
 														</span>
 														<span className="rounded bg-muted px-1.5 py-0.5 font-mono">
-															$SUPERSET_WORKSPACE_PATH
+															{"$SUPERSET_ROOT_PATH"}
 														</span>
 														<span className="rounded bg-muted px-1.5 py-0.5 font-mono">
-															$SUPERSET_WORKSPACE_NAME
+															{"$SUPERSET_WORKSPACE_PATH"}
+														</span>
+														<span className="rounded bg-muted px-1.5 py-0.5 font-mono">
+															{"$SUPERSET_WORKSPACE_NAME"}
 														</span>
 													</div>
 												</div>
@@ -645,7 +729,9 @@ function ProjectPage() {
 											<HiChevronDown
 												className={`size-3 transition-transform duration-200 ${teardownOpen ? "" : "-rotate-90"}`}
 											/>
-											Teardown commands (optional)
+											<Trans id="dashboard.project.onboarding.teardownCommands">
+												Teardown commands (optional)
+											</Trans>
 										</CollapsibleTrigger>
 										<CollapsibleContent className="pt-2">
 											<Textarea
@@ -664,7 +750,7 @@ function ProjectPage() {
 											onClick={() => setStep("workspace")}
 										>
 											<HiChevronLeft className="size-4" />
-											Back
+											<Trans id="dashboard.project.onboarding.back">Back</Trans>
 										</Button>
 										<div className="flex items-center gap-2">
 											<Button
@@ -675,7 +761,9 @@ function ProjectPage() {
 													createWorkspace.isPending
 												}
 											>
-												Skip for now
+												<Trans id="dashboard.project.onboarding.skipForNow">
+													Skip for now
+												</Trans>
 											</Button>
 											<Button
 												onClick={handleSaveAndCreateWorkspace}
@@ -685,11 +773,19 @@ function ProjectPage() {
 												}
 											>
 												{updateConfigMutation.isPending ||
-												createWorkspace.isPending
-													? "Creating..."
-													: setupMode === "checklist"
-														? "Create workspace"
-														: "Save & create workspace"}
+												createWorkspace.isPending ? (
+													<Trans id="dashboard.project.onboarding.creating">
+														Creating...
+													</Trans>
+												) : setupMode === "checklist" ? (
+													<Trans id="dashboard.project.onboarding.createWorkspace">
+														Create workspace
+													</Trans>
+												) : (
+													<Trans id="dashboard.project.onboarding.saveAndCreateWorkspace">
+														Save & create workspace
+													</Trans>
+												)}
 												<HiChevronRight className="size-4" />
 											</Button>
 										</div>

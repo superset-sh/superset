@@ -1,3 +1,4 @@
+import { i18n } from "@superset/i18n";
 import {
 	type EffectiveCheck,
 	effectiveCheckStatus,
@@ -12,21 +13,50 @@ export type ChecksFilterValue =
 	| "passed"
 	| "skipped";
 
-const GROUPS: {
-	filter: Exclude<ChecksFilterValue, "all">;
-	title: string;
-	segment: string;
-}[] = [
-	{ filter: "running", title: "In Progress", segment: "Running" },
-	{ filter: "failed", title: "Failed", segment: "Failed" },
-	{ filter: "passed", title: "Passed", segment: "Passed" },
-	{ filter: "skipped", title: "Skipped", segment: "Skipped" },
-];
+type GroupFilter = Exclude<ChecksFilterValue, "all">;
 
-const CHECK_FILTER: Record<
-	EffectiveCheck,
-	Exclude<ChecksFilterValue, "all">
-> = {
+const GROUP_ORDER: GroupFilter[] = ["running", "failed", "passed", "skipped"];
+
+// Plain `i18n._` descriptors rather than `msg()`: this module is covered by
+// bun tests, which run uncompiled source where the Lingui macros need babel.
+function groupTitle(filter: GroupFilter): string {
+	switch (filter) {
+		case "running":
+			return i18n._({
+				id: "mobile.checks.group.running",
+				message: "In Progress",
+			});
+		case "failed":
+			return i18n._({ id: "mobile.checks.group.failed", message: "Failed" });
+		case "passed":
+			return i18n._({ id: "mobile.checks.group.passed", message: "Passed" });
+		case "skipped":
+			return i18n._({ id: "mobile.checks.group.skipped", message: "Skipped" });
+	}
+}
+
+function segmentLabel(filter: ChecksFilterValue): string {
+	switch (filter) {
+		case "all":
+			return i18n._({ id: "mobile.checks.segment.all", message: "All" });
+		case "running":
+			return i18n._({
+				id: "mobile.checks.segment.running",
+				message: "Running",
+			});
+		case "failed":
+			return i18n._({ id: "mobile.checks.segment.failed", message: "Failed" });
+		case "passed":
+			return i18n._({ id: "mobile.checks.segment.passed", message: "Passed" });
+		case "skipped":
+			return i18n._({
+				id: "mobile.checks.segment.skipped",
+				message: "Skipped",
+			});
+	}
+}
+
+const CHECK_FILTER: Record<EffectiveCheck, GroupFilter> = {
 	failed: "failed",
 	"needs-action": "failed",
 	running: "running",
@@ -49,11 +79,15 @@ export function checksFilterState(
 	};
 
 	const options = [
-		{ value: "all" as ChecksFilterValue, label: "All", count: counts.all },
-		...GROUPS.map((group) => ({
-			value: group.filter as ChecksFilterValue,
-			label: group.segment,
-			count: counts[group.filter],
+		{
+			value: "all" as ChecksFilterValue,
+			label: segmentLabel("all"),
+			count: counts.all,
+		},
+		...GROUP_ORDER.map((group) => ({
+			value: group as ChecksFilterValue,
+			label: segmentLabel(group),
+			count: counts[group],
 		})),
 	].filter((option) => option.value === "all" || counts[option.value] > 0);
 
@@ -62,10 +96,12 @@ export function checksFilterState(
 		? filter
 		: ("all" as ChecksFilterValue);
 
-	const groups = GROUPS.map((group) => ({
-		...group,
+	const groups = GROUP_ORDER.map((group) => ({
+		filter: group,
+		title: groupTitle(group),
+		segment: segmentLabel(group),
 		members: checks.filter(
-			(check) => CHECK_FILTER[effectiveCheckStatus(check)] === group.filter,
+			(check) => CHECK_FILTER[effectiveCheckStatus(check)] === group,
 		),
 	})).filter(
 		(group) =>

@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { LuTriangleAlert } from "react-icons/lu";
@@ -22,15 +23,30 @@ export function PaymentFailedBanner({
 	onPayInvoice,
 	className,
 }: PaymentFailedBannerProps) {
+	const { t } = useLingui();
 	// Same split as the sidebar card: only owners can act, so only owners are
 	// told to. Non-owners get the amount without a dead-end button.
 	const message = isOwner
 		? amountDue
-			? `We couldn't charge ${amountDue}. Update your payment method to keep this plan.`
-			: "We couldn't charge your payment method. Update it to keep this plan."
+			? t({
+					id: "settings.billing.paymentFailed.ownerAmount",
+					message: `We couldn't charge ${amountDue}. Update your payment method to keep this plan.`,
+				})
+			: t({
+					id: "settings.billing.paymentFailed.owner",
+					message:
+						"We couldn't charge your payment method. Update it to keep this plan.",
+				})
 		: amountDue
-			? `We couldn't charge this organization's payment method for ${amountDue}. Ask an owner to update it.`
-			: "We couldn't charge this organization's payment method. Ask an owner to update it.";
+			? t({
+					id: "settings.billing.paymentFailed.memberAmount",
+					message: `We couldn't charge this organization's payment method for ${amountDue}. Ask an owner to update it.`,
+				})
+			: t({
+					id: "settings.billing.paymentFailed.member",
+					message:
+						"We couldn't charge this organization's payment method. Ask an owner to update it.",
+				});
 	return (
 		<div
 			className={cn(
@@ -44,7 +60,12 @@ export function PaymentFailedBanner({
 					aria-hidden="true"
 				/>
 				<span>
-					<span className="font-medium">Payment failed.</span> {message}
+					<span className="font-medium">
+						<Trans id="settings.billing.paymentFailed.label">
+							Payment failed.
+						</Trans>
+					</span>{" "}
+					{message}
 				</span>
 			</div>
 			{isOwner && hostedInvoiceUrl && onPayInvoice && (
@@ -54,7 +75,7 @@ export function PaymentFailedBanner({
 					className="ml-auto h-7 shrink-0 border-warning/40 bg-warning/10 px-2.5 text-xs text-warning hover:bg-warning/20"
 					onClick={() => onPayInvoice(hostedInvoiceUrl)}
 				>
-					Pay now
+					<Trans id="settings.billing.paymentFailed.payNow">Pay now</Trans>
 				</Button>
 			)}
 		</div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	Card,
 	CardContent,
@@ -57,7 +58,9 @@ function TooltipHeader({ step, name }: { step: number; name: string }) {
 				className="size-2 shrink-0 rounded-full"
 				style={{ background: "var(--chart-1)" }}
 			/>
-			Step {step}: {name}
+			<Trans id="admin.funnel.stepHeader">
+				Step {step}: {name}
+			</Trans>
 		</div>
 	);
 }
@@ -73,6 +76,7 @@ export function FunnelChart({
 	error,
 	headerAction,
 }: FunnelChartProps) {
+	const { t } = useLingui();
 	const firstCount = steps?.[0]?.count ?? 0;
 
 	return (
@@ -95,13 +99,17 @@ export function FunnelChart({
 				) : error ? (
 					<div className="flex h-[220px] items-center justify-center">
 						<p className="text-destructive select-text cursor-text text-sm">
-							Failed to load funnel data
+							<Trans id="admin.funnel.failedToLoad">
+								Failed to load funnel data
+							</Trans>
 						</p>
 					</div>
 				) : !steps || steps.length === 0 ? (
 					<div className="flex h-[220px] items-center justify-center rounded-md border border-dashed">
 						<p className="text-muted-foreground text-sm">
-							No funnel data available for this period
+							<Trans id="admin.funnel.empty">
+								No funnel data available for this period
+							</Trans>
 						</p>
 					</div>
 				) : (
@@ -149,19 +157,28 @@ export function FunnelChart({
 														<TooltipHeader step={index + 1} name={step.name} />
 														{dropped !== null ? (
 															<TooltipRow
-																label="Dropped off"
+																label={t({
+																	id: "admin.funnel.droppedOff",
+																	message: "Dropped off",
+																})}
 																value={dropped.toLocaleString()}
 															/>
 														) : null}
 														{pctOfPrevious !== null ? (
 															<TooltipRow
-																label="Drop-off from previous"
+																label={t({
+																	id: "admin.funnel.dropOffFromPrevious",
+																	message: "Drop-off from previous",
+																})}
 																value={`${(100 - pctOfPrevious).toFixed(2)}%`}
 															/>
 														) : null}
 														{droppedPctOfStart !== null ? (
 															<TooltipRow
-																label="Drop-off from start"
+																label={t({
+																	id: "admin.funnel.dropOffFromStart",
+																	message: "Drop-off from start",
+																})}
 																value={`${droppedPctOfStart.toFixed(2)}%`}
 															/>
 														) : null}
@@ -184,28 +201,43 @@ export function FunnelChart({
 												>
 													<TooltipHeader step={index + 1} name={step.name} />
 													<TooltipRow
-														label="Converted"
+														label={t({
+															id: "admin.funnel.converted",
+															message: "Converted",
+														})}
 														value={step.count.toLocaleString()}
 													/>
 													{pctOfPrevious !== null ? (
 														<TooltipRow
-															label="Conversion from previous"
+															label={t({
+																id: "admin.funnel.conversionFromPrevious",
+																message: "Conversion from previous",
+															})}
 															value={`${pctOfPrevious.toFixed(2)}%`}
 														/>
 													) : null}
 													<TooltipRow
-														label="Conversion so far"
+														label={t({
+															id: "admin.funnel.conversionSoFar",
+															message: "Conversion so far",
+														})}
 														value={`${pctOfFirst.toFixed(2)}%`}
 													/>
 													{step.medianSeconds !== null && index > 0 ? (
 														<TooltipRow
-															label="Median time from previous"
+															label={t({
+																id: "admin.funnel.medianTimeFromPrevious",
+																message: "Median time from previous",
+															})}
 															value={formatDuration(step.medianSeconds)}
 														/>
 													) : null}
 													{step.averageSeconds !== null && index > 0 ? (
 														<TooltipRow
-															label="Average time from previous"
+															label={t({
+																id: "admin.funnel.averageTimeFromPrevious",
+																message: "Average time from previous",
+															})}
 															value={formatDuration(step.averageSeconds)}
 														/>
 													) : null}
@@ -224,7 +256,10 @@ export function FunnelChart({
 											<div className="flex items-center gap-1 tabular-nums">
 												<LuMoveRight className="size-3 shrink-0 text-green-500" />
 												<span>
-													{step.count.toLocaleString()} persons
+													{t({
+														id: "admin.funnel.persons",
+														message: `${step.count.toLocaleString()} persons`,
+													})}
 													{pctOfPrevious !== null
 														? ` (${pctOfPrevious.toFixed(1)}%)`
 														: ""}
@@ -234,8 +269,11 @@ export function FunnelChart({
 												<div className="text-muted-foreground flex items-center gap-1 tabular-nums">
 													<LuMoveDownRight className="size-3 shrink-0 text-red-500" />
 													<span>
-														{dropped.toLocaleString()} persons (
-														{(100 - pctOfPrevious).toFixed(1)}%)
+														{t({
+															id: "admin.funnel.persons",
+															message: `${dropped.toLocaleString()} persons`,
+														})}{" "}
+														({(100 - pctOfPrevious).toFixed(1)}%)
 													</span>
 												</div>
 											) : null}

@@ -11,6 +11,8 @@ export interface ApplyWorkspaceSelectionOptions {
 	projectId: string;
 	orderedWorkspaceIds: string[];
 	mode: WorkspaceSelectionMode;
+	/** Active route workspace, used as the implicit first selection/anchor. */
+	activeWorkspaceId?: string | null;
 }
 
 export const EMPTY_WORKSPACE_SELECTION: WorkspaceSelectionState = {
@@ -50,13 +52,27 @@ export function applyWorkspaceSelection(
 		projectId,
 		orderedWorkspaceIds,
 		mode,
+		activeWorkspaceId,
 	}: ApplyWorkspaceSelectionOptions,
 ): WorkspaceSelectionState {
 	if (
 		state.projectId !== projectId ||
 		!orderedWorkspaceIds.includes(workspaceId)
 	) {
-		return singleWorkspaceSelection(workspaceId, projectId);
+		const activeIsInScope =
+			activeWorkspaceId != null &&
+			orderedWorkspaceIds.includes(activeWorkspaceId);
+		if (!activeIsInScope || activeWorkspaceId === workspaceId) {
+			return singleWorkspaceSelection(workspaceId, projectId);
+		}
+		return applyWorkspaceSelection(
+			{
+				projectId,
+				selectedIds: [activeWorkspaceId],
+				anchorId: activeWorkspaceId,
+			},
+			{ workspaceId, projectId, orderedWorkspaceIds, mode },
+		);
 	}
 
 	if (mode === "toggle") {

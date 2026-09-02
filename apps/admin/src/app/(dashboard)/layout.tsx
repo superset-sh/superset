@@ -1,4 +1,5 @@
 import { auth } from "@superset/auth/server";
+import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
 import {
 	Breadcrumb,
@@ -58,7 +59,9 @@ export default async function DashboardLayout({
 							</BreadcrumbItem>
 							<BreadcrumbSeparator className="hidden md:block" />
 							<BreadcrumbItem>
-								<BreadcrumbPage>Home</BreadcrumbPage>
+								<BreadcrumbPage>
+									{i18n._({ id: "admin.breadcrumb.home", message: "Home" })}
+								</BreadcrumbPage>
 							</BreadcrumbItem>
 						</BreadcrumbList>
 					</Breadcrumb>

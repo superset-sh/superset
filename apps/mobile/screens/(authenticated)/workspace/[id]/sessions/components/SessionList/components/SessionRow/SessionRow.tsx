@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import * as Haptics from "expo-haptics";
 import { GripVertical, X } from "lucide-react-native";
 import { memo } from "react";
@@ -29,6 +30,7 @@ function SessionRowComponent({
 	onSelect,
 	onClose,
 }: SessionRowProps) {
+	const { t } = useLingui();
 	const theme = useTheme();
 	const drag = useReorderableDrag();
 	const lift = () => {
@@ -84,7 +86,10 @@ function SessionRowComponent({
 			{/* The ✕ sits outside the row pressable: nesting it would both merge
 			    the row into one VoiceOver element and fire select on every close. */}
 			<Pressable
-				accessibilityLabel={`Close ${row.title}`}
+				accessibilityLabel={t({
+					id: "mobile.session.closeLabel",
+					message: `Close ${row.title}`,
+				})}
 				onPress={() => onClose(row)}
 				hitSlop={8}
 				className="size-9 items-center justify-center active:opacity-60"

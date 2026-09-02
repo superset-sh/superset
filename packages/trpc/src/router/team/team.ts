@@ -1,9 +1,9 @@
 import { db } from "@superset/db/client";
 import { teams } from "@superset/db/schema";
-import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
+import type { TRPCRouterRecord } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { protectedProcedure } from "../../trpc";
+import { protectedProcedure, userError } from "../../trpc";
 import { verifyOrgAdmin } from "../integration/utils";
 import { requireActiveOrgId } from "../utils/active-org";
 
@@ -13,9 +13,10 @@ async function requireTeamInActiveOrg(teamId: string, organizationId: string) {
 		columns: { id: true },
 	});
 	if (!team) {
-		throw new TRPCError({
+		throw userError({
 			code: "NOT_FOUND",
 			message: "Team not found in this organization",
+			i18nKey: "serverError.team.teamNotFoundInThisOrganization",
 		});
 	}
 }

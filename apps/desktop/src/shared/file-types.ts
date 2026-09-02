@@ -73,6 +73,13 @@ const IMAGE_MIME_TYPE_EXTENSIONS: Record<string, string> = {
 const MARKDOWN_EXTENSIONS = new Set(["md", "markdown", "mdx"]);
 
 /**
+ * Checks if a file is a PDF based on extension
+ */
+export function isPdfFile(filePath: string): boolean {
+	return getFileExtension(filePath) === "pdf";
+}
+
+/**
  * Checks if a file is an image based on extension
  */
 export function isImageFile(filePath: string): boolean {

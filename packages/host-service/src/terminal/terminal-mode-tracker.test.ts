@@ -273,3 +273,32 @@ describe("host-side leaked-input-mode reclaim", () => {
 		t.dispose();
 	});
 });
+
+describe("snapshot behind an alt screen", () => {
+	// Why the handoff reads the retained PTY stream instead of this snapshot:
+	// the alternate screen keeps no scrollback, so whatever a TUI has already
+	// drawn over is unrecoverable from the emulator, however high maxLines is.
+	test("cannot see output the alt screen drew over", () => {
+		const t = createModeTracker(80, 4);
+		t.feed(enc.encode("before-alt-screen\r\n"));
+		t.feed(enc.encode("\x1b[?1049h")); // enter alt screen, as a TUI does
+		for (let i = 1; i <= 40; i += 1) t.feed(enc.encode(`frame-line-${i}\r\n`));
+
+		const text = t.snapshot(800).text;
+		expect(text).not.toContain("before-alt-screen");
+		expect(text).not.toContain("frame-line-1\n");
+		expect(text).toContain("frame-line-40");
+		expect(text.split("\n").length).toBeLessThanOrEqual(4);
+		t.dispose();
+	});
+
+	test("keeps scrollback while the program stays on the normal screen", () => {
+		const t = createModeTracker(80, 4);
+		for (let i = 1; i <= 40; i += 1) t.feed(enc.encode(`line-${i}\r\n`));
+
+		const text = t.snapshot(800).text;
+		expect(text).toContain("line-1\n");
+		expect(text).toContain("line-40");
+		t.dispose();
+	});
+});

@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
 import { AnimatePresence, motion } from "framer-motion";
 import { DownloadIcon, XIcon } from "lucide-react";
@@ -38,6 +39,7 @@ export function ImagePreviewOverlay({
 	open,
 	onClose,
 }: ImagePreviewOverlayProps) {
+	const { t } = useLingui();
 	const saveToDownloads = electronTrpc.external.saveToDownloads.useMutation();
 	const [isSaving, setIsSaving] = useState(false);
 
@@ -58,9 +60,19 @@ export function ImagePreviewOverlay({
 			const blob = await (await fetch(src)).blob();
 			const dataBase64 = await toBase64(blob);
 			await saveToDownloads.mutateAsync({ filename, dataBase64 });
-			toast.success("Saved to Downloads");
+			toast.success(
+				t({
+					id: "dashboard.newWorkspaceModal.imagePreview.savedToDownloads",
+					message: "Saved to Downloads",
+				}),
+			);
 		} catch {
-			toast.error("Download failed");
+			toast.error(
+				t({
+					id: "dashboard.newWorkspaceModal.imagePreview.downloadFailed",
+					message: "Download failed",
+				}),
+			);
 		} finally {
 			setIsSaving(false);
 		}
@@ -88,7 +100,10 @@ export function ImagePreviewOverlay({
 					<div className="absolute top-4 right-4 flex items-center gap-2">
 						<button
 							type="button"
-							aria-label="Download image"
+							aria-label={t({
+								id: "dashboard.newWorkspaceModal.imagePreview.downloadImage",
+								message: "Download image",
+							})}
 							disabled={isSaving}
 							onClick={() => void handleDownload()}
 							className={CORNER_BUTTON_CLASS}
@@ -97,7 +112,10 @@ export function ImagePreviewOverlay({
 						</button>
 						<button
 							type="button"
-							aria-label="Close preview"
+							aria-label={t({
+								id: "dashboard.newWorkspaceModal.imagePreview.closePreview",
+								message: "Close preview",
+							})}
 							onClick={onClose}
 							className={CORNER_BUTTON_CLASS}
 						>

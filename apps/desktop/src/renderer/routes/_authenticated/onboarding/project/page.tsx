@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import { Card } from "@superset/ui/card";
 import { Input } from "@superset/ui/input";
@@ -116,7 +117,7 @@ function OnboardingProjectPage() {
 			const project = await openProject.openFromPath(picked.path);
 			if (project) await finish(project.id);
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : "Failed to open folder");
+			toast.error(errorMessage(err, "Failed to open folder"));
 		} finally {
 			setBusy(false);
 		}

@@ -4,7 +4,7 @@ import { SUPERSET_MANAGED_BINARIES } from "./agent-setup-targets";
 import { NOTIFY_SCRIPT_NAME } from "./notify-hook";
 import { getBinDir } from "./paths";
 
-export const WRAPPER_MARKER = "# Superset agent-wrapper v3";
+export const WRAPPER_MARKER = "# Superset agent-wrapper v4";
 export { SUPERSET_MANAGED_BINARIES };
 
 /** Path (under SUPERSET_HOME_DIR) of the runtime notify hook script. */
@@ -117,16 +117,28 @@ function buildRealBinaryResolver(): string {
 export function buildDefaultAccountResolver(
 	envVar: string,
 	pointerName: string,
+	ambientEnvVar?: string,
 ): string {
 	const pointer = `"$SUPERSET_HOME_DIR/state/${pointerName}"`;
+	const restoreSystemDefault = ambientEnvVar
+		? `if [ -n "\${${ambientEnvVar}}" ]; then
+    export ${envVar}="\${${ambientEnvVar}}"
+    export SUPERSET_DEFAULT_${envVar}="\${${ambientEnvVar}}"
+  else
+    unset ${envVar}
+    unset SUPERSET_DEFAULT_${envVar}
+  fi`
+		: `unset ${envVar}
+  unset SUPERSET_DEFAULT_${envVar}`;
 	return `if [ -n "$SUPERSET_TERMINAL_ID" ] && [ -n "$SUPERSET_HOME_DIR" ] \\
   && { [ -z "\${${envVar}}" ] || [ "\${${envVar}}" = "\${SUPERSET_DEFAULT_${envVar}}" ]; } \\
   && [ -f ${pointer} ]; then
   superset_default_account="$(cat ${pointer} 2>/dev/null)"
   if [ -n "$superset_default_account" ] && [ -d "$superset_default_account" ]; then
     export ${envVar}="$superset_default_account"
+    export SUPERSET_DEFAULT_${envVar}="$superset_default_account"
   else
-    unset ${envVar}
+    ${restoreSystemDefault}
   fi
 fi
 
@@ -151,6 +163,43 @@ export interface BuildWrapperScriptOptions {
 	agentId?: string;
 }
 
+/**
+ * Shell block that reports the agent launch to the host so the terminal gets
+ * an agent binding the moment a harness starts — not on its first native hook.
+ * Some harnesses defer their SessionStart hook until the first turn (Codex
+ * creates its rollout lazily, so an idle or resumed TUI fires nothing) and
+ * some have no session hooks at all (vibe); the wrapper is the one launch-time
+ * signal every harness shares. The report is delayed and liveness-gated so
+ * `--help`-style probes that exit right away never bind a pane, and the
+ * subshell survives `exec` — after it, the captured pid IS the agent process.
+ * Harnesses with working native SessionStart hooks fire too; the host upsert
+ * makes the duplicate harmless and lets them attach the real session id.
+ */
+function buildLaunchReportBlock(): string {
+	return `_superset_skip_launch_report=""
+for _superset_arg in "$@"; do
+  # Tokens past \`--\` are prompt text, never flags.
+  [ "$_superset_arg" = "--" ] && break
+  case "$_superset_arg" in
+    --help|-h|--version|-V|-v)
+      _superset_skip_launch_report="1"
+      break
+      ;;
+  esac
+done
+if [ -z "$_superset_skip_launch_report" ] && [ -n "$SUPERSET_TERMINAL_ID" ] \\
+  && [ -n "$SUPERSET_HOME_DIR" ] && [ -x "$SUPERSET_HOME_DIR/${MANAGED_NOTIFY_RELATIVE_PATH}" ]; then
+  _superset_launch_pid=$$
+  (
+    sleep 2
+    kill -0 "$_superset_launch_pid" 2>/dev/null || exit 0
+    exec "$SUPERSET_HOME_DIR/${MANAGED_NOTIFY_RELATIVE_PATH}" '{"hook_event_name":"SessionStart"}'
+  ) >/dev/null 2>&1 </dev/null &
+fi
+
+`;
+}
+
 export function buildWrapperScript(
 	binaryName: string,
 	execLine: string,
@@ -159,6 +208,7 @@ export function buildWrapperScript(
 	const exportAgentId = options.agentId
 		? `export SUPERSET_AGENT_ID="${options.agentId}"\n\n`
 		: "";
+	const launchReport = options.agentId ? buildLaunchReportBlock() : "";
 	return `#!/bin/bash
 ${WRAPPER_MARKER}
 # Superset wrapper for ${binaryName}
@@ -170,7 +220,7 @@ if [ -z "$REAL_BIN" ]; then
   exit 127
 fi
 
-${exportAgentId}${execLine}
+${exportAgentId}${launchReport}${execLine}
 `;
 }
 

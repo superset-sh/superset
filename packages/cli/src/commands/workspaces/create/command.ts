@@ -40,6 +40,11 @@ export default command({
 			.desc(
 				"Local file path to upload as an attachment to the host. Repeatable. Only used when --agent is set",
 			),
+		tag: string()
+			.variadic()
+			.desc(
+				"Workspace tag. Repeatable. Each tag files the workspace into a sidebar folder of the same name",
+			),
 	},
 	run: async ({ ctx, options }) => {
 		const organizationId = ctx.config.organizationId;
@@ -56,6 +61,7 @@ export default command({
 				["--base-branch", options.baseBranch],
 				["--task", options.task],
 				["--skip-branch-prefix", options.skipBranchPrefix || undefined],
+				["--tag", options.tag?.length ? options.tag : undefined],
 			] as const) {
 				if (value !== undefined) {
 					throw new CLIError(
@@ -161,6 +167,7 @@ export default command({
 			skipBranchPrefix: options.skipBranchPrefix ?? undefined,
 			agents,
 			command: options.command ?? undefined,
+			...(options.tag?.length ? { tags: options.tag } : {}),
 		});
 
 		return {

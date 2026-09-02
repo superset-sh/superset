@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
@@ -13,8 +14,17 @@ import { HiExclamationTriangle } from "react-icons/hi2";
  * Go-home link both recover it.
  */
 export function DashboardContentError({ error }: ErrorComponentProps) {
+	const { t } = useLingui();
 	const message =
-		error instanceof Error ? error.message : String(error ?? "Unknown error");
+		error instanceof Error
+			? error.message
+			: String(
+					error ??
+						t({
+							id: "dashboard.contentError.unknownError",
+							message: "Unknown error",
+						}),
+				);
 
 	useEffect(() => {
 		console.error("[dashboard] Content route error caught:", error);
@@ -36,17 +46,23 @@ export function DashboardContentError({ error }: ErrorComponentProps) {
 				<HiExclamationTriangle className="h-6 w-6 text-destructive" />
 			</div>
 			<div className="flex flex-col items-center gap-1 text-center">
-				<h2 className="text-base font-semibold">This view hit an error</h2>
+				<h2 className="text-base font-semibold">
+					<Trans id="dashboard.contentError.title">
+						This view hit an error
+					</Trans>
+				</h2>
 				<p className="max-w-md text-sm text-muted-foreground select-text cursor-text break-words">
 					{message}
 				</p>
 			</div>
 			<div className="flex items-center gap-2">
 				<Button variant="outline" size="sm" asChild>
-					<Link to="/">Go home</Link>
+					<Link to="/">
+						<Trans id="dashboard.contentError.goHome">Go home</Trans>
+					</Link>
 				</Button>
 				<Button size="sm" onClick={() => window.location.reload()}>
-					Reload app
+					<Trans id="dashboard.contentError.reloadApp">Reload app</Trans>
 				</Button>
 			</div>
 		</div>

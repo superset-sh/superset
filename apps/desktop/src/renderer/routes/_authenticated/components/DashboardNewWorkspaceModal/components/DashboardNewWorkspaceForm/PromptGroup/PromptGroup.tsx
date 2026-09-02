@@ -1,5 +1,7 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	getAgentEffortSupport,
+	getAgentEfforts,
 	getAgentModelSupport,
 	getAgentModeSupport,
 } from "@superset/shared/agent-models";
@@ -97,6 +99,7 @@ export function PromptGroup({
 	isSessionSelected = false,
 	onSelectProject,
 }: PromptGroupProps) {
+	const { t } = useLingui();
 	const modKey = PLATFORM === "mac" ? "⌘" : "Ctrl";
 	// The markdown editor is uncontrolled after mount, so inserting a history
 	// prompt bumps this seed to remount it with the new content (same pattern
@@ -244,6 +247,21 @@ export function PromptGroup({
 		EFFORT_STORAGE_KEY,
 		effortSupport ? selectedPresetId : null,
 	);
+	// Codex's top two efforts only exist on its GPT-5.6 models, so the offered
+	// list follows the model picker. A remembered effort the current model
+	// rejects stays stored but shows (and launches) as the agent default.
+	const effortOptions = useMemo(
+		() =>
+			selectedPresetId
+				? getAgentEfforts(selectedPresetId, selectedModel ?? undefined)
+				: [],
+		[selectedPresetId, selectedModel],
+	);
+	const effortForLaunch = effortOptions.some(
+		(option) => option.id === selectedEffort,
+	)
+		? selectedEffort
+		: null;
 	const modeSupport = selectedPresetId
 		? getAgentModeSupport(selectedPresetId)
 		: undefined;
@@ -353,17 +371,32 @@ export function PromptGroup({
 	// fall into a toast.
 	const { otherHosts } = useWorkspaceHostOptions();
 	const submitBlocker = useMemo<string | null>(() => {
-		if (!projectId && !draft.isSession) return "Select a project";
+		if (!projectId && !draft.isSession)
+			return t({
+				id: "dashboard.newWorkspaceModal.promptGroup.blockerSelectProject",
+				message: "Select a project",
+			});
 		const selectedHostId = draft.hostId ?? machineId;
 		// A cloud workspace is provisioned on submit, so there is no host whose
 		// readiness could block it.
 		if (selectedHostId === CLOUD_HOST_ID) return null;
-		if (!selectedHostId) return "No active host";
+		if (!selectedHostId)
+			return t({
+				id: "dashboard.newWorkspaceModal.promptGroup.blockerNoActiveHost",
+				message: "No active host",
+			});
 		if (selectedHostId !== machineId) {
 			const remote = otherHosts.find((h) => h.id === selectedHostId);
-			if (!remote?.isOnline) return "Host is offline";
+			if (!remote?.isOnline)
+				return t({
+					id: "dashboard.newWorkspaceModal.promptGroup.blockerHostOffline",
+					message: "Host is offline",
+				});
 		} else if (!activeHostUrl) {
-			return "Host service is not running";
+			return t({
+				id: "dashboard.newWorkspaceModal.promptGroup.blockerHostServiceNotRunning",
+				message: "Host service is not running",
+			});
 		}
 		return null;
 	}, [
@@ -373,6 +406,7 @@ export function PromptGroup({
 		machineId,
 		activeHostUrl,
 		otherHosts,
+		t,
 	]);
 
 	// ── Linked-context prefetch ──────────────────────────────────────
@@ -388,7 +422,7 @@ export function PromptGroup({
 		projectId,
 		selectedAgent,
 		modelSupport ? selectedModel : null,
-		effortSupport ? selectedEffort : null,
+		effortForLaunch,
 		modeSupport ? selectedMode : null,
 		uploadAttachments,
 		promptContext,
@@ -402,7 +436,7 @@ export function PromptGroup({
 		if (submitBlocker) {
 			if ((draft.hostId ?? machineId) === machineId && !activeHostUrl) {
 				showHostServiceUnavailableToast(hostService, {
-					action: "create the workspace",
+					action: "createWorkspace",
 				});
 			} else {
 				toast.error(submitBlocker);
@@ -450,7 +484,10 @@ export function PromptGroup({
 			<div className="flex items-center">
 				<Input
 					className="border-none bg-transparent dark:bg-transparent shadow-none text-base font-medium px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/40 min-w-0 flex-1"
-					placeholder="Workspace name (optional)"
+					placeholder={t({
+						id: "dashboard.newWorkspaceModal.promptGroup.workspaceNamePlaceholder",
+						message: "Workspace name (optional)",
+					})}
 					value={workspaceName}
 					onChange={(e) =>
 						updateDraft({
@@ -468,7 +505,13 @@ export function PromptGroup({
 						className={cn(
 							"border-none bg-transparent dark:bg-transparent shadow-none text-xs font-mono text-muted-foreground/60 px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/30 focus:text-muted-foreground text-right placeholder:text-right overflow-hidden text-ellipsis",
 						)}
-						placeholder={branchPreview || "branch name"}
+						placeholder={
+							branchPreview ||
+							t({
+								id: "dashboard.newWorkspaceModal.promptGroup.branchNamePlaceholder",
+								message: "branch name",
+							})
+						}
 						value={branchName}
 						onChange={(e) =>
 							updateDraft({
@@ -496,7 +539,10 @@ export function PromptGroup({
 								type="button"
 								variant="ghost"
 								size="icon"
-								aria-label="Update naming instructions"
+								aria-label={t({
+									id: "dashboard.newWorkspaceModal.promptGroup.updateNamingInstructionsAria",
+									message: "Update naming instructions",
+								})}
 								className="ml-2 size-6 shrink-0 text-muted-foreground"
 								onClick={handleGoToNamingInstructions}
 							>
@@ -504,19 +550,27 @@ export function PromptGroup({
 							</Button>
 						</TooltipTrigger>
 						<TooltipContent>
-							Update naming instructions for {selectedProject.name}
+							<Trans id="dashboard.newWorkspaceModal.promptGroup.updateNamingInstructions">
+								Update naming instructions for {selectedProject.name}
+							</Trans>
 						</TooltipContent>
 					</Tooltip>
 				)}
 				<PromptHistoryCommand
 					onSelect={applyPrompt}
-					tooltipLabel="Previous prompts"
+					tooltipLabel={t({
+						id: "dashboard.newWorkspaceModal.promptGroup.previousPrompts",
+						message: "Previous prompts",
+					})}
 				>
 					<Button
 						type="button"
 						variant="ghost"
 						size="icon"
-						aria-label="Previous prompts"
+						aria-label={t({
+							id: "dashboard.newWorkspaceModal.promptGroup.previousPrompts",
+							message: "Previous prompts",
+						})}
 						className="ml-2 size-6 shrink-0 text-muted-foreground"
 					>
 						<HistoryIcon className="size-3.5" />
@@ -530,6 +584,7 @@ export function PromptGroup({
 				multiple
 				maxFiles={5}
 				maxFileSize={10 * 1024 * 1024}
+				onError={(error) => toast.error(error.message)}
 				className="[&>[data-slot=input-group]]:rounded-[13px] [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
 			>
 				{(linkedPR || linkedIssues.length > 0 || visibleFiles.length > 0) && (
@@ -597,7 +652,10 @@ export function PromptGroup({
 					onChange={(markdown) => updateDraft({ prompt: markdown })}
 					onPasteFiles={(files) => attachments.add(files)}
 					autoFocus={promptSeed > 0 || prompt ? "end" : "start"}
-					placeholder="What do you want to do?"
+					placeholder={t({
+						id: "dashboard.newWorkspaceModal.promptGroup.promptPlaceholder",
+						message: "What do you want to do?",
+					})}
 					className="flex flex-col min-h-[100px] max-h-[200px] px-3 pt-3"
 					editorClassName="overflow-y-auto text-sm"
 					features={{
@@ -612,13 +670,19 @@ export function PromptGroup({
 						<AgentSelect<WorkspaceCreateAgent>
 							agents={v2Agents}
 							value={selectedAgent}
-							placeholder="No agent"
+							placeholder={t({
+								id: "dashboard.newWorkspaceModal.promptGroup.noAgent",
+								message: "No agent",
+							})}
 							onValueChange={setSelectedAgent}
 							onBeforeConfigureAgents={closeModal}
 							triggerClassName={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[160px]`}
 							iconClassName="size-3 object-contain"
 							allowNone
-							noneLabel="No agent"
+							noneLabel={t({
+								id: "dashboard.newWorkspaceModal.promptGroup.noAgent",
+								message: "No agent",
+							})}
 							noneValue="none"
 						/>
 						{modelSupport && (
@@ -626,16 +690,22 @@ export function PromptGroup({
 								models={modelSupport.models}
 								value={selectedModel}
 								onValueChange={setSelectedModel}
-								defaultLabel="Default model"
+								defaultLabel={t({
+									id: "dashboard.newWorkspaceModal.promptGroup.defaultModel",
+									message: "Default model",
+								})}
 								triggerClassName={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[160px]`}
 							/>
 						)}
 						{effortSupport && (
 							<AgentModelSelect
-								models={effortSupport.efforts}
+								models={effortOptions}
 								value={selectedEffort}
 								onValueChange={setSelectedEffort}
-								defaultLabel="Default effort"
+								defaultLabel={t({
+									id: "dashboard.newWorkspaceModal.promptGroup.defaultEffort",
+									message: "Default effort",
+								})}
 								triggerClassName={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[160px]`}
 							/>
 						)}
@@ -644,7 +714,10 @@ export function PromptGroup({
 								models={modeSupport.modes}
 								value={selectedMode}
 								onValueChange={setSelectedMode}
-								defaultLabel="Direct mode"
+								defaultLabel={t({
+									id: "dashboard.newWorkspaceModal.promptGroup.directMode",
+									message: "Direct mode",
+								})}
 								triggerClassName={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[160px]`}
 							/>
 						)}
@@ -654,10 +727,16 @@ export function PromptGroup({
 							linearIssueTrigger={
 								<IssueLinkCommand
 									onSelect={addLinkedIssue}
-									tooltipLabel="Link issue"
+									tooltipLabel={t({
+										id: "dashboard.newWorkspaceModal.promptGroup.linkIssue",
+										message: "Link issue",
+									})}
 								>
 									<PromptInputButton
-										aria-label="Link issue"
+										aria-label={t({
+											id: "dashboard.newWorkspaceModal.promptGroup.linkIssue",
+											message: "Link issue",
+										})}
 										className={`${PILL_BUTTON_CLASS} w-[22px]`}
 									>
 										<SiLinear className="size-3.5" />
@@ -676,10 +755,16 @@ export function PromptGroup({
 									}
 									projectId={projectId}
 									hostId={hostId}
-									tooltipLabel="Link GitHub issue"
+									tooltipLabel={t({
+										id: "dashboard.newWorkspaceModal.promptGroup.linkGitHubIssue",
+										message: "Link GitHub issue",
+									})}
 								>
 									<PromptInputButton
-										aria-label="Link GitHub issue"
+										aria-label={t({
+											id: "dashboard.newWorkspaceModal.promptGroup.linkGitHubIssue",
+											message: "Link GitHub issue",
+										})}
 										className={`${PILL_BUTTON_CLASS} w-[22px]`}
 									>
 										<GoIssueOpened className="size-3.5" />
@@ -691,10 +776,16 @@ export function PromptGroup({
 									onSelect={setLinkedPR}
 									projectId={projectId}
 									hostId={hostId}
-									tooltipLabel="Link pull request"
+									tooltipLabel={t({
+										id: "dashboard.newWorkspaceModal.promptGroup.linkPullRequest",
+										message: "Link pull request",
+									})}
 								>
 									<PromptInputButton
-										aria-label="Link pull request"
+										aria-label={t({
+											id: "dashboard.newWorkspaceModal.promptGroup.linkPullRequest",
+											message: "Link pull request",
+										})}
 										className={`${PILL_BUTTON_CLASS} w-[22px]`}
 									>
 										<LuGitPullRequest className="size-3.5" />
@@ -747,7 +838,9 @@ export function PromptGroup({
 								className="flex items-center gap-1 text-xs text-muted-foreground"
 							>
 								<LuGitPullRequest className="size-3 shrink-0" />
-								based off PR #{linkedPR.prNumber}
+								<Trans id="dashboard.newWorkspaceModal.promptGroup.basedOffPr">
+									based off PR #{linkedPR.prNumber}
+								</Trans>
 							</motion.span>
 						) : (
 							<motion.div
@@ -786,7 +879,9 @@ export function PromptGroup({
 							className="h-6 px-2 text-[11px] text-amber-500 hover:text-amber-500"
 							onClick={handleGoToSetup}
 						>
-							Set up project…
+							<Trans id="dashboard.newWorkspaceModal.promptGroup.setUpProject">
+								Set up project…
+							</Trans>
 						</Button>
 					) : (
 						<span className="text-[11px] text-muted-foreground/50">

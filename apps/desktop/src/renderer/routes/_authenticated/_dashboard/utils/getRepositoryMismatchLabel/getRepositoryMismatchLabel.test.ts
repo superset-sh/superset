@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
+import { initI18n } from "@superset/i18n";
 import { getRepositoryMismatchLabel } from "./getRepositoryMismatchLabel";
+
+initI18n();
 
 describe("getRepositoryMismatchLabel", () => {
 	test("hides mismatches when another repository returned a result", () => {

@@ -1,5 +1,6 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import {
 	type ChartConfig,
 	ChartContainer,
@@ -14,12 +15,18 @@ import { useTRPC } from "@/trpc/react";
 import { formatMonth } from "../../utils/chartAxis";
 import { InsightTileFrame } from "../InsightTileFrame";
 
-const chartConfig = {
-	retention_pct: { label: "logo retention", color: "var(--chart-1)" },
-} satisfies ChartConfig;
-
 export function LogoRetentionTile() {
+	const { t } = useLingui();
 	const trpc = useTRPC();
+	const chartConfig = {
+		retention_pct: {
+			label: t({
+				id: "admin.logoRetention.series",
+				message: "logo retention",
+			}),
+			color: "var(--chart-1)",
+		},
+	} satisfies ChartConfig;
 	const query = useQuery(
 		trpc.business.getLogoRetention.queryOptions({ months: 8 }),
 	);
@@ -27,8 +34,15 @@ export function LogoRetentionTile() {
 
 	return (
 		<InsightTileFrame
-			title="Logo retention — monthly"
-			description="% of subscribed orgs at month end still subscribed one month later (count-based; $ NRR needs a Sigma query)"
+			title={t({
+				id: "admin.logoRetention.title",
+				message: "Logo retention — monthly",
+			})}
+			description={t({
+				id: "admin.logoRetention.description",
+				message:
+					"% of subscribed orgs at month end still subscribed one month later (count-based; $ NRR needs a Sigma query)",
+			})}
 			isLoading={query.isLoading}
 			error={query.error}
 			empty={data.length === 0}

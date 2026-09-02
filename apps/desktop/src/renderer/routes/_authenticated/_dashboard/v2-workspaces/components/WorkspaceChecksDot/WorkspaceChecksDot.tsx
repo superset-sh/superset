@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import type { CheckItem } from "@superset/local-db";
 import { LuCircleCheck, LuCircleX } from "react-icons/lu";
 import type { V2WorkspacePrSummary } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
@@ -19,12 +20,16 @@ export function WorkspaceChecksDot({
 	status,
 	checks,
 }: WorkspaceChecksDotProps) {
+	const { t } = useLingui();
 	if (status === "none") return null;
 	if (status === "success") {
 		return (
 			<LuCircleCheck
 				role="img"
-				aria-label="Checks passed"
+				aria-label={t({
+					id: "dashboard.workspaces.checksDot.checksPassed",
+					message: "Checks passed",
+				})}
 				className="size-3 text-emerald-500"
 			/>
 		);
@@ -33,7 +38,10 @@ export function WorkspaceChecksDot({
 		return (
 			<LuCircleX
 				role="img"
-				aria-label="Checks failed"
+				aria-label={t({
+					id: "dashboard.workspaces.checksDot.checksFailed",
+					message: "Checks failed",
+				})}
 				className="size-3 text-red-500"
 			/>
 		);
@@ -52,13 +60,19 @@ export function WorkspaceChecksDot({
 	return (
 		<span
 			className="flex size-3 items-center justify-center"
-			title={`${completed} of ${relevant.length} checks complete`}
+			title={t({
+				id: "dashboard.workspaces.checksDot.checksComplete",
+				message: `${completed} of ${relevant.length} checks complete`,
+			})}
 		>
 			<svg
 				viewBox="0 0 12 12"
 				className="size-3 -rotate-90"
 				role="img"
-				aria-label={`${completed} of ${relevant.length} checks complete`}
+				aria-label={t({
+					id: "dashboard.workspaces.checksDot.checksComplete",
+					message: `${completed} of ${relevant.length} checks complete`,
+				})}
 			>
 				<circle
 					cx="6"

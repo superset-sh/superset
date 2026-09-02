@@ -1,6 +1,6 @@
 import { cn } from "@superset/ui/utils";
 import { createFileRoute, Outlet, useParams } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { resolveProjectFilterParams } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter/project-filter-utils";
 import { parsePositiveIntegerParam } from "renderer/routes/_authenticated/_dashboard/utils/parsePositiveIntegerParam";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
@@ -13,6 +13,15 @@ import {
 	MIN_PULL_REQUESTS_LIST_WIDTH,
 	usePullRequestsSplitViewStore,
 } from "./stores/pullRequestsSplitViewStore";
+
+// The list panel keeps its own persisted width regardless of window size, so
+// on a narrower window it can eat a disproportionate share and leave the
+// detail pane too cramped to render its own header row (title, GitHub link,
+// Start Workspace, Merge) without truncating or clipping. Below this, the
+// list gets clamped down (display only — the user's stored preference is
+// left untouched, so it's back at its real width the moment the window
+// grows again).
+const MIN_DETAIL_PANE_WIDTH = 420;
 
 export type PullRequestsSearch = {
 	search?: string;
@@ -76,6 +85,30 @@ function PullRequestsLayout() {
 		[projects, project],
 	);
 
+	const rootRef = useRef<HTMLDivElement>(null);
+	const [containerWidth, setContainerWidth] = useState<number | null>(null);
+	useEffect(() => {
+		const el = rootRef.current;
+		if (!el) return;
+		const update = () => setContainerWidth(el.getBoundingClientRect().width);
+		update();
+		const observer = new ResizeObserver(update);
+		observer.observe(el);
+		return () => observer.disconnect();
+	}, []);
+	// Display-only clamp: never call setListWidth here, or a narrow window
+	// would permanently overwrite the user's actual preferred width.
+	const displayListWidth =
+		containerWidth == null
+			? listWidth
+			: Math.min(
+					listWidth,
+					Math.max(
+						MIN_PULL_REQUESTS_LIST_WIDTH,
+						containerWidth - MIN_DETAIL_PANE_WIDTH,
+					),
+				);
+
 	const listContent = (
 		<PullRequestsView
 			initialSearch={search}
@@ -90,6 +123,7 @@ function PullRequestsLayout() {
 
 	return (
 		<div
+			ref={rootRef}
 			className={cn(
 				"flex h-full min-h-0 min-w-0 flex-1 overflow-hidden",
 				isAppSidebarCollapsed && "rounded-tl-[8px] bg-sidebar dark:bg-muted/35",
@@ -98,7 +132,7 @@ function PullRequestsLayout() {
 			{!isListCollapsed && (
 				<ResizablePanel
 					disabled={isDetailCollapsed}
-					width={listWidth}
+					width={displayListWidth}
 					onWidthChange={setListWidth}
 					isResizing={isResizingList}
 					onResizingChange={setIsResizingList}

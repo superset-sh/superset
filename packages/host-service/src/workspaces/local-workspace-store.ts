@@ -3,9 +3,10 @@ import hostServicePackageJson from "@superset/host-service/package.json" with {
 	type: "json",
 };
 import { getHostId } from "@superset/shared/host-info";
-import { eq } from "drizzle-orm";
+import { normalizeWorkspaceTags } from "@superset/shared/workspace-tags";
+import { eq, inArray } from "drizzle-orm";
 import type { HostDb } from "../db";
-import { workspaces } from "../db/schema";
+import { workspaces, workspaceTags } from "../db/schema";
 import type { EventBus } from "../events";
 import type { WorkspaceSnapshot } from "../events/types";
 import type { ApiClient } from "../types";
@@ -79,7 +80,10 @@ export interface CloudShapedWorkspace {
 	updatedAt: Date;
 }
 
-export function toWorkspaceSnapshot(row: HostWorkspaceRow): WorkspaceSnapshot {
+export function toWorkspaceSnapshot(
+	row: HostWorkspaceRow,
+	tags: string[],
+): WorkspaceSnapshot {
 	return {
 		id: row.id,
 		projectId: row.projectId,
@@ -91,7 +95,43 @@ export function toWorkspaceSnapshot(row: HostWorkspaceRow): WorkspaceSnapshot {
 		createdByUserId: row.createdByUserId,
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt || row.createdAt,
+		tags,
 	};
+}
+
+/** A workspace's tags, already-normalized in storage, read back sorted. */
+export function getWorkspaceTags(db: HostDb, workspaceId: string): string[] {
+	return db
+		.select({ tag: workspaceTags.tag })
+		.from(workspaceTags)
+		.where(eq(workspaceTags.workspaceId, workspaceId))
+		.all()
+		.map((row) => row.tag)
+		.sort();
+}
+
+/** Batch tag lookup for list responses; ids absent from the map have none. */
+export function getWorkspaceTagsByWorkspaceId(
+	db: HostDb,
+	workspaceIds: string[],
+): Map<string, string[]> {
+	const byWorkspace = new Map<string, string[]>();
+	if (workspaceIds.length === 0) return byWorkspace;
+	const rows = db
+		.select({ workspaceId: workspaceTags.workspaceId, tag: workspaceTags.tag })
+		.from(workspaceTags)
+		.where(inArray(workspaceTags.workspaceId, workspaceIds))
+		.all();
+	for (const row of rows) {
+		const tags = byWorkspace.get(row.workspaceId);
+		if (tags) {
+			tags.push(row.tag);
+		} else {
+			byWorkspace.set(row.workspaceId, [row.tag]);
+		}
+	}
+	for (const tags of byWorkspace.values()) tags.sort();
+	return byWorkspace;
 }
 
 export function toCloudShape(
@@ -132,6 +172,7 @@ export interface InsertLocalWorkspaceValues {
 	type?: "main" | "worktree" | "session";
 	taskId?: string | null;
 	createdByUserId?: string | null;
+	tags?: string[];
 }
 
 /**
@@ -144,24 +185,31 @@ export function insertLocalWorkspace(
 ): HostWorkspaceRow {
 	const now = Date.now();
 	const id = values.id ?? randomUUID();
-	ctx.db
-		.insert(workspaces)
-		.values({
-			id,
-			projectId: values.projectId,
-			worktreePath: values.worktreePath,
-			branch: values.branch,
-			name: values.name,
-			type: values.type ?? "worktree",
-			taskId: values.taskId ?? null,
-			createdByUserId: values.createdByUserId ?? null,
-			createdAt: now,
-			updatedAt: now,
-		})
-		.run();
+	const tags = normalizeWorkspaceTags(values.tags);
+	ctx.db.transaction((tx) => {
+		tx.insert(workspaces)
+			.values({
+				id,
+				projectId: values.projectId,
+				worktreePath: values.worktreePath,
+				branch: values.branch,
+				name: values.name,
+				type: values.type ?? "worktree",
+				taskId: values.taskId ?? null,
+				createdByUserId: values.createdByUserId ?? null,
+				createdAt: now,
+				updatedAt: now,
+			})
+			.run();
+		if (tags.length > 0) {
+			tx.insert(workspaceTags)
+				.values(tags.map((tag) => ({ workspaceId: id, tag, createdAt: now })))
+				.run();
+		}
+	});
 	const row = getLocalWorkspace(ctx.db, id);
 	if (!row) throw new Error(`Workspace insert readback failed: ${id}`);
-	emitWorkspaceChanged(ctx.eventBus, "created", row);
+	emitWorkspaceChanged(ctx, "created", row);
 	trackWorkspaceEvent(ctx, "workspace_created", row);
 	return row;
 }
@@ -172,6 +220,8 @@ export interface UpdateLocalWorkspacePatch {
 	worktreePath?: string;
 	taskId?: string | null;
 	projectId?: string;
+	/** Full replacement of the tag set; already-normalized by the caller. */
+	tags?: string[];
 }
 
 /** Patch a local row, bump `updatedAt`, and broadcast. */
@@ -182,16 +232,37 @@ export function updateLocalWorkspace(
 ): HostWorkspaceRow | undefined {
 	const existing = getLocalWorkspace(ctx.db, id);
 	if (!existing) return undefined;
-	ctx.db
-		.update(workspaces)
-		.set({
-			...patch,
-			updatedAt: Date.now(),
-		})
-		.where(eq(workspaces.id, id))
-		.run();
+	const { tags, ...columns } = patch;
+	const normalizedTags =
+		tags === undefined ? undefined : normalizeWorkspaceTags(tags);
+	// Tag replacement is delete-then-insert; the transaction keeps a throw
+	// between them from losing the whole set.
+	ctx.db.transaction((tx) => {
+		tx.update(workspaces)
+			.set({
+				...columns,
+				updatedAt: Date.now(),
+			})
+			.where(eq(workspaces.id, id))
+			.run();
+		if (normalizedTags !== undefined) {
+			tx.delete(workspaceTags).where(eq(workspaceTags.workspaceId, id)).run();
+			if (normalizedTags.length > 0) {
+				const now = Date.now();
+				tx.insert(workspaceTags)
+					.values(
+						normalizedTags.map((tag) => ({
+							workspaceId: id,
+							tag,
+							createdAt: now,
+						})),
+					)
+					.run();
+			}
+		}
+	});
 	const row = getLocalWorkspace(ctx.db, id);
-	if (row) emitWorkspaceChanged(ctx.eventBus, "updated", row);
+	if (row) emitWorkspaceChanged(ctx, "updated", row);
 	return row;
 }
 
@@ -204,15 +275,21 @@ export function deleteLocalWorkspace(
 ): void {
 	const existing = getLocalWorkspace(ctx.db, id);
 	ctx.db.delete(workspaces).where(eq(workspaces.id, id)).run();
-	if (existing) {
-		ctx.eventBus.broadcastWorkspaceChanged({
-			workspaceId: id,
-			eventType: "deleted",
-			workspace: null,
-			occurredAt: Date.now(),
-		});
-		trackWorkspaceEvent(ctx, "workspace_deleted", existing);
-	}
+	if (existing) emitLocalWorkspaceDeleted(ctx, existing);
+}
+
+/** Broadcast/track a row deleted by a larger transaction (for example project removal). */
+export function emitLocalWorkspaceDeleted(
+	ctx: WorkspaceStoreContext,
+	row: HostWorkspaceRow,
+): void {
+	ctx.eventBus.broadcastWorkspaceChanged({
+		workspaceId: row.id,
+		eventType: "deleted",
+		workspace: null,
+		occurredAt: Date.now(),
+	});
+	trackWorkspaceEvent(ctx, "workspace_deleted", row);
 }
 
 /**
@@ -280,18 +357,18 @@ export function unarchiveLocalWorkspace(
 			.run();
 	}
 	const row = getLocalWorkspace(ctx.db, id);
-	if (row) emitWorkspaceChanged(ctx.eventBus, "created", row);
+	if (row) emitWorkspaceChanged(ctx, "created", row);
 }
 
 function emitWorkspaceChanged(
-	eventBus: EventBus,
+	ctx: Pick<WorkspaceStoreContext, "db" | "eventBus">,
 	eventType: "created" | "updated",
 	row: HostWorkspaceRow,
 ): void {
-	eventBus.broadcastWorkspaceChanged({
+	ctx.eventBus.broadcastWorkspaceChanged({
 		workspaceId: row.id,
 		eventType,
-		workspace: toWorkspaceSnapshot(row),
+		workspace: toWorkspaceSnapshot(row, getWorkspaceTags(ctx.db, row.id)),
 		occurredAt: Date.now(),
 	});
 }

@@ -1,3 +1,5 @@
+import { plural } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Checkbox } from "@superset/ui/checkbox";
 import {
 	Command,
@@ -48,6 +50,7 @@ export function PRLinkCommand({
 	projectId,
 	hostId,
 }: PRLinkCommandProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [showClosed, setShowClosed] = useState(false);
@@ -92,8 +95,13 @@ export function PRLinkCommand({
 		}
 		if (lastToastedError.current === msg) return;
 		lastToastedError.current = msg;
-		toast.error(`Couldn't load pull requests: ${msg}`);
-	}, [error]);
+		toast.error(
+			t({
+				id: "dashboard.newWorkspaceModal.prLink.loadFailed",
+				message: `Couldn't load pull requests: ${msg}`,
+			}),
+		);
+	}, [error, t]);
 
 	const pullRequests = data?.pullRequests ?? [];
 	const repoMismatch =
@@ -137,7 +145,10 @@ export function PRLinkCommand({
 			>
 				<Command shouldFilter={false}>
 					<CommandInput
-						placeholder="Search pull requests..."
+						placeholder={t({
+							id: "dashboard.newWorkspaceModal.prLink.searchPlaceholder",
+							message: "Search pull requests...",
+						})}
 						value={searchQuery}
 						onValueChange={setSearchQuery}
 					/>
@@ -151,7 +162,9 @@ export function PRLinkCommand({
 							htmlFor={showClosedId}
 							className="cursor-pointer select-none text-xs text-muted-foreground"
 						>
-							Show closed
+							<Trans id="dashboard.newWorkspaceModal.prLink.showClosed">
+								Show closed
+							</Trans>
 						</label>
 					</div>
 					<CommandList className="max-h-[420px]">
@@ -159,26 +172,40 @@ export function PRLinkCommand({
 							<CommandEmpty>
 								{isLoading ? (
 									debouncedTrimmed ? (
-										"Searching..."
+										<Trans id="dashboard.newWorkspaceModal.prLink.searching">
+											Searching...
+										</Trans>
 									) : (
-										"Loading..."
+										<Trans id="dashboard.newWorkspaceModal.prLink.loading">
+											Loading...
+										</Trans>
 									)
 								) : error instanceof Error ? (
 									<span className="select-text cursor-text text-destructive">
 										{error.message}
 									</span>
 								) : repoMismatch ? (
-									`PR URL must match ${repoMismatch}.`
+									<Trans id="dashboard.newWorkspaceModal.prLink.repoMismatch">
+										PR URL must match {repoMismatch}.
+									</Trans>
 								) : debouncedTrimmed ? (
 									showClosed ? (
-										"No pull requests found."
+										<Trans id="dashboard.newWorkspaceModal.prLink.noResultsAll">
+											No pull requests found.
+										</Trans>
 									) : (
-										"No open pull requests found."
+										<Trans id="dashboard.newWorkspaceModal.prLink.noResultsOpen">
+											No open pull requests found.
+										</Trans>
 									)
 								) : showClosed ? (
-									"No pull requests found."
+									<Trans id="dashboard.newWorkspaceModal.prLink.emptyAll">
+										No pull requests found.
+									</Trans>
 								) : (
-									"No open pull requests."
+									<Trans id="dashboard.newWorkspaceModal.prLink.emptyOpen">
+										No open pull requests.
+									</Trans>
 								)}
 							</CommandEmpty>
 						)}
@@ -186,10 +213,22 @@ export function PRLinkCommand({
 							<CommandGroup
 								heading={
 									debouncedTrimmed
-										? `${pullRequests.length} result${pullRequests.length === 1 ? "" : "s"}`
+										? t({
+												id: "dashboard.newWorkspaceModal.prLink.resultCount",
+												message: plural(pullRequests.length, {
+													one: "# result",
+													other: "# results",
+												}),
+											})
 										: showClosed
-											? "Recent PRs"
-											: "Open PRs"
+											? t({
+													id: "dashboard.newWorkspaceModal.prLink.recentPrs",
+													message: "Recent PRs",
+												})
+											: t({
+													id: "dashboard.newWorkspaceModal.prLink.openPrs",
+													message: "Open PRs",
+												})
 								}
 							>
 								{pullRequests.map((pr) => {

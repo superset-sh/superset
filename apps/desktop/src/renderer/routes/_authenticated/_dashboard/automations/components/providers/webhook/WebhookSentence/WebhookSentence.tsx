@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
@@ -44,14 +45,21 @@ export function WebhookSentence({ triggerId, disabled }: WebhookSentenceProps) {
 			}
 		},
 		onError: (error) =>
-			toast.error(
-				error instanceof Error ? error.message : "Failed to generate token",
-			),
+			toast.error(errorMessage(error, "Failed to generate token")),
 	});
 
 	const copyHeader = () =>
 		navigator.clipboard.writeText(`Authorization: Bearer ${token}`).then(
 			() => toast.success("Auth header copied"),
+			() => toast.error("Copy failed"),
+		);
+
+	// Most webhook settings pages accept nothing but a URL, so the URL that
+	// carries the token is the copy that makes those work; the header stays for
+	// producers that can send one, since URLs end up in intermediary logs.
+	const copyTokenUrl = () =>
+		navigator.clipboard.writeText(`${url}?token=${token}`).then(
+			() => toast.success("Webhook URL copied"),
 			() => toast.error("Copy failed"),
 		);
 
@@ -75,11 +83,11 @@ export function WebhookSentence({ triggerId, disabled }: WebhookSentenceProps) {
 		});
 	};
 
-	const headerLabel = token
-		? "Copy auth header"
+	const keyLabel = token
+		? "Copy URL with token"
 		: secretPrefix
-			? "Regenerate auth header"
-			: "Generate auth header";
+			? "Regenerate token"
+			: "Generate token";
 
 	return (
 		<>
@@ -93,12 +101,12 @@ export function WebhookSentence({ triggerId, disabled }: WebhookSentenceProps) {
 						<button
 							type="button"
 							disabled={disabled || !triggerId || rotate.isPending}
-							onClick={() => (token ? copyHeader() : generate())}
+							onClick={() => (token ? copyTokenUrl() : generate())}
 							className={cn(CHIP, !token && !secretPrefix && CHIP_EMPTY)}
 						>
 							<LuKeyRound className="size-3 shrink-0 opacity-50" />
 							<span className="truncate">
-								{rotate.isPending ? "Generating..." : headerLabel}
+								{rotate.isPending ? "Generating..." : keyLabel}
 							</span>
 						</button>
 					</span>
@@ -107,12 +115,30 @@ export function WebhookSentence({ triggerId, disabled }: WebhookSentenceProps) {
 					{!triggerId
 						? "Save triggers first"
 						: token
-							? "Copies the Authorization header. It is only shown now."
+							? "The URL alone triggers the run — paste it where only a URL fits. Shown once."
 							: secretPrefix
 								? `Token ${secretPrefix}… is set. Regenerating replaces it.`
-								: "Issues a bearer token for this trigger."}
+								: "Issues the token this URL authenticates with."}
 				</TooltipContent>
 			</Tooltip>
+			{token && (
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							disabled={disabled}
+							onClick={copyHeader}
+							className={cn(CHIP)}
+						>
+							<span className="truncate">Copy auth header</span>
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom">
+						The same token as an Authorization header, for senders that can set
+						one — headers stay out of URL logs.
+					</TooltipContent>
+				</Tooltip>
+			)}
 		</>
 	);
 }

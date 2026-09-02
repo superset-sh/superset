@@ -1,0 +1,1 @@
+export { useCheckResourcesHotkey } from "./useCheckResourcesHotkey";

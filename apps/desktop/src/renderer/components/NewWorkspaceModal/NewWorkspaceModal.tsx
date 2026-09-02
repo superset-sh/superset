@@ -1,3 +1,5 @@
+import { Trans, useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	PromptInputProvider,
 	usePromptInputController,
@@ -45,6 +47,7 @@ function PromptInputResetSync() {
 
 export function NewWorkspaceModal() {
 	const isOpen = useNewWorkspaceModalOpen();
+	const { t } = useLingui();
 	const closeModal = useCloseNewWorkspaceModal();
 	const { openNew } = useOpenProject();
 	const openEmptyProject = useOpenEmptyProjectModal();
@@ -59,10 +62,13 @@ export function NewWorkspaceModal() {
 		try {
 			await openNew();
 		} catch (error) {
-			toast.error("Failed to open project", {
-				description:
-					error instanceof Error ? error.message : "An unknown error occurred",
-			});
+			toast.error(
+				t({
+					id: "components.newWorkspaceModal.openProjectFailed",
+					message: "Failed to open project",
+				}),
+				{ description: errorMessage(error, "An unknown error occurred") },
+			);
 		}
 	};
 
@@ -82,8 +88,16 @@ export function NewWorkspaceModal() {
 					onOpenChange={(open) => !open && closeModal()}
 				>
 					<DialogHeader className="sr-only">
-						<DialogTitle>New Workspace</DialogTitle>
-						<DialogDescription>Create a new workspace</DialogDescription>
+						<DialogTitle>
+							<Trans id="components.newWorkspaceModal.title">
+								New Workspace
+							</Trans>
+						</DialogTitle>
+						<DialogDescription>
+							<Trans id="components.newWorkspaceModal.description">
+								Create a new workspace
+							</Trans>
+						</DialogDescription>
 					</DialogHeader>
 					<DialogContent
 						showCloseButton={false}

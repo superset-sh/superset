@@ -41,6 +41,16 @@ const relayBackupHttpOrigin = process.env.RELAY_BACKUP_URL
 const relayBackupWsOrigin = relayBackupHttpOrigin
 	? relayBackupHttpOrigin.replace(/^http/, "ws")
 	: null;
+// Published pages are framed from their own origin, one subdomain per page.
+// An unset GitHub Actions var arrives as an empty string, which `??`
+// does not catch — and `new URL("")` throws before Next even loads.
+const usercontentUrl = new URL(
+	process.env.USERCONTENT_URL ||
+		(isProduction
+			? "https://frame.supersetusercontent.com"
+			: "http://frame.usercontent.localhost:8787"),
+);
+const usercontentFrameSource = `${usercontentUrl.protocol}//*.${usercontentUrl.host}`;
 
 const contentSecurityPolicy = [
 	"default-src 'self'",
@@ -71,6 +81,7 @@ const contentSecurityPolicy = [
 	"font-src 'self' data: https://fonts.gstatic.com",
 	"form-action 'self'",
 	"frame-ancestors 'none'",
+	`frame-src ${usercontentFrameSource}`,
 	"img-src 'self' data: blob: https:",
 	"object-src 'none'",
 	[
@@ -120,13 +131,10 @@ const config: NextConfig = {
 	reactCompiler: true,
 	typescript: { ignoreBuildErrors: true },
 
-	images: {
-		remotePatterns: [
-			{
-				protocol: "https",
-				hostname: "*.public.blob.vercel-storage.com",
-			},
-		],
+	// Compiles @lingui/react/macro at build time. Version must stay in
+	// lockstep with Next's swc_core ABI — see plans/20260826-i18n-strategy.md.
+	experimental: {
+		swcPlugins: [["@lingui/swc-plugin", {}]],
 	},
 
 	async rewrites() {

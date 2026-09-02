@@ -14,6 +14,12 @@ public final class ComposerModule: Module {
         "onModelPress",
         "onChipPress",
         "onQuickKeyPress",
+        "onSessionTabPress",
+        "onSessionTabClose",
+        "onSessionTabCopyId",
+        "onSessionActionPress",
+        "onNewSessionPress",
+        "onAllSessionsPress",
         "onPaste",
         "onDraftChange",
         "onHeightChange",
@@ -66,6 +72,49 @@ public final class ComposerModule: Module {
       Prop("quickKeys") { (view: ComposerAnchorView, keys: [ComposerQuickKey]) in
         withAnimation(ComposerMetrics.growth) {
           view.overlay.model.quickKeys = keys
+        }
+      }
+
+      /// The workspace's sessions, above the keys. Same transaction rule: a
+      /// tab arriving or leaving resizes the cluster, and the terminal insets
+      /// by that height.
+      ///
+      /// Guarded on equality, unlike the props above it: the terminals query
+      /// refetches every few seconds and hands back a fresh array of the same
+      /// sessions, and an unguarded assignment would open a layout transaction
+      /// on a strip that has not changed — every five seconds, forever.
+      Prop("sessionTabs") { (view: ComposerAnchorView, tabs: [ComposerSessionTab]) in
+        guard view.overlay.model.sessionTabs != tabs else { return }
+        withAnimation(ComposerMetrics.growth) {
+          view.overlay.model.sessionTabs = tabs
+        }
+      }
+
+      /// The strip's leading control, or nothing. Guarded for the reason
+      /// `sessionTabs` is: the caller rebuilds this object every render, and an
+      /// unguarded assignment would open a layout transaction on a chip that
+      /// has not changed.
+      Prop("sessionAction") { (view: ComposerAnchorView, action: ComposerSessionAction?) in
+        guard view.overlay.model.sessionAction != action else { return }
+        withAnimation(ComposerMetrics.growth) {
+          view.overlay.model.sessionAction = action
+        }
+      }
+
+      /// Translated in React Native — the composer has no catalog. Unanimated:
+      /// these are the same strings for the life of a locale, and rebuilt as a
+      /// fresh object on every render, so this is guarded too.
+      Prop("sessionTabLabels") { (view: ComposerAnchorView, labels: ComposerSessionTabLabels) in
+        guard view.overlay.model.sessionTabLabels != labels else { return }
+        view.overlay.model.sessionTabLabels = labels
+      }
+
+      /// The active agent's slash commands, as data. The list arriving can
+      /// open the panel mid-draft, which resizes the cluster — same
+      /// transaction rule as the strip above.
+      Prop("slashCommands") { (view: ComposerAnchorView, commands: [ComposerSlashCommand]) in
+        withAnimation(ComposerMetrics.growth) {
+          view.overlay.model.slashCommands = commands
         }
       }
 
@@ -128,6 +177,12 @@ final class ComposerAnchorView: ExpoView {
   private let onModelPress = EventDispatcher()
   private let onChipPress = EventDispatcher()
   private let onQuickKeyPress = EventDispatcher()
+  private let onSessionTabPress = EventDispatcher()
+  private let onSessionTabClose = EventDispatcher()
+  private let onSessionTabCopyId = EventDispatcher()
+  private let onSessionActionPress = EventDispatcher()
+  private let onNewSessionPress = EventDispatcher()
+  private let onAllSessionsPress = EventDispatcher()
   private let onPaste = EventDispatcher()
   private let onDraftChange = EventDispatcher()
   private let onHeightChange = EventDispatcher()
@@ -147,6 +202,20 @@ final class ComposerAnchorView: ExpoView {
     overlay.model.onQuickKeyPress = { [weak self] id in
       self?.onQuickKeyPress(["id": id])
     }
+    overlay.model.onSessionTabPress = { [weak self] id in
+      self?.onSessionTabPress(["id": id])
+    }
+    overlay.model.onSessionTabClose = { [weak self] id in
+      self?.onSessionTabClose(["id": id])
+    }
+    overlay.model.onSessionTabCopyId = { [weak self] id in
+      self?.onSessionTabCopyId(["id": id])
+    }
+    overlay.model.onSessionActionPress = { [weak self] in
+      self?.onSessionActionPress([:])
+    }
+    overlay.model.onNewSessionPress = { [weak self] in self?.onNewSessionPress([:]) }
+    overlay.model.onAllSessionsPress = { [weak self] in self?.onAllSessionsPress([:]) }
     overlay.model.onPaste = { [weak self] items in
       self?.onPaste([
         "items": items.map { item in

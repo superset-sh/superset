@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
@@ -79,7 +80,9 @@ export function ClonePlanPill({
 						<span className="truncate">{failure}</span>
 					) : (
 						<span className="truncate">
-							Clone to <span className="font-mono">{parentDir}</span>
+							<Trans id="dashboard.newWorkspaceModal.clonePlan.cloneTo">
+								Clone to <span className="font-mono">{parentDir}</span>
+							</Trans>
 						</span>
 					)}
 					{plan.isCheckingAccess ? (
@@ -101,7 +104,11 @@ export function ClonePlanPill({
 				onOpenAutoFocus={(e) => e.preventDefault()}
 			>
 				<label htmlFor={pathInputId} className="block space-y-1">
-					<span className="text-muted-foreground">Clone location</span>
+					<span className="text-muted-foreground">
+						<Trans id="dashboard.newWorkspaceModal.clonePlan.location">
+							Clone location
+						</Trans>
+					</span>
 					<Input
 						id={pathInputId}
 						value={plan.parentDir}
@@ -126,7 +133,9 @@ export function ClonePlanPill({
 					className="h-auto p-0 text-xs text-muted-foreground"
 					onClick={onOpenSettings}
 				>
-					Set up manually
+					<Trans id="dashboard.newWorkspaceModal.clonePlan.setUpManually">
+						Set up manually
+					</Trans>
 				</Button>
 			</PopoverContent>
 		</Popover>

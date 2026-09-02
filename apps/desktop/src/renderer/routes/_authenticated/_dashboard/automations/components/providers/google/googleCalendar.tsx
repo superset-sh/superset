@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import { SiGooglecalendar } from "react-icons/si";
 import { ScopeChip } from "../../TriggerSentence/components/ScopeChip";
 import { SelectChip } from "../../TriggerSentence/components/SelectChip";
@@ -17,7 +19,7 @@ function renderSlot(
 	config: GoogleCalendarConfig,
 	slot: CalendarSlot,
 	index: number,
-	{ set, mark, options, disabled }: SentenceContext,
+	{ set, mark, options, state, disabled }: SentenceContext,
 ) {
 	// The slot list is derived from this event, so the fields it names are
 	// present on this config member even where the union type cannot say so.
@@ -31,8 +33,19 @@ function renderSlot(
 					onChange={(v) => set({ calendars: v })}
 					className={mark("calendars")}
 					options={options.google?.calendars ?? []}
-					emptyLabel="Select calendars"
-					anyLabel="Any calendar"
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.googleCalendar.selectCalendars",
+							message: "Select calendars",
+						}),
+					)}
+					anyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.googleCalendar.anyCalendar",
+							message: "Any calendar",
+						}),
+					)}
+					state={state}
 					disabled={disabled}
 				/>
 			);
@@ -44,9 +57,27 @@ function renderSlot(
 					onChange={(v) => set({ attendee: v })}
 					className={mark("attendee")}
 					options={options.google?.people ?? []}
-					emptyLabel="Select people"
-					anyLabel="Anyone"
-					allowCustom={{ placeholder: "Type an email, press Enter" }}
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.googleCalendar.selectPeople",
+							message: "Select people",
+						}),
+					)}
+					anyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.googleCalendar.anyone",
+							message: "Anyone",
+						}),
+					)}
+					allowCustom={{
+						placeholder: i18n._(
+							msg({
+								id: "dashboard.automations.providers.googleCalendar.emailPlaceholder",
+								message: "Type an email, press Enter",
+							}),
+						),
+					}}
+					state={state}
 					disabled={disabled}
 				/>
 			);
@@ -56,8 +87,18 @@ function renderSlot(
 					key={index}
 					value={c.titleFilter}
 					onChange={(v) => set({ titleFilter: v })}
-					emptyLabel="anything"
-					placeholder="Title contains..."
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.googleCalendar.titleAnything",
+							message: "anything",
+						}),
+					)}
+					placeholder={i18n._(
+						msg({
+							id: "dashboard.automations.providers.googleCalendar.titleFilterPlaceholder",
+							message: "Title contains...",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);
@@ -67,7 +108,10 @@ function renderSlot(
 					key={index}
 					value={c.hasExternalAttendee ? "external" : "any"}
 					onChange={(v) => set({ hasExternalAttendee: v === "external" })}
-					options={EXTERNAL_ATTENDEE_OPTIONS}
+					options={EXTERNAL_ATTENDEE_OPTIONS.map((option) => ({
+						value: option.value,
+						label: i18n._(option.label),
+					}))}
 					disabled={disabled}
 				/>
 			);
@@ -77,7 +121,10 @@ function renderSlot(
 					key={index}
 					value={String(c.minutesBefore)}
 					onChange={(v) => set({ minutesBefore: Number(v) })}
-					options={MINUTES_BEFORE_OPTIONS}
+					options={MINUTES_BEFORE_OPTIONS.map((option) => ({
+						value: option.value,
+						label: i18n._(option.label),
+					}))}
 					disabled={disabled}
 				/>
 			);

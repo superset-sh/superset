@@ -1,3 +1,4 @@
+import { i18n } from "@superset/i18n";
 import { toast } from "@superset/ui/sonner";
 import { useCallback, useSyncExternalStore } from "react";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
@@ -106,7 +107,12 @@ class DesignModeStoreImpl {
 		}
 		if (superseded()) return;
 		if (!setResult.ok) {
-			toast.error("Couldn't start design mode on this page");
+			toast.error(
+				i18n._({
+					id: "workspace.browserPane.designModeStartFailed",
+					message: "Couldn't start design mode on this page",
+				}),
+			);
 			this.setState(paneId, IDLE_STATE);
 			return;
 		}
@@ -126,9 +132,15 @@ class DesignModeStoreImpl {
 			);
 		} catch (error) {
 			if (superseded()) return;
-			toast.error("Design mode failed", {
-				description: error instanceof Error ? error.message : undefined,
-			});
+			toast.error(
+				i18n._({
+					id: "workspace.browserPane.designModeFailed",
+					message: "Design mode failed",
+				}),
+				{
+					description: error instanceof Error ? error.message : undefined,
+				},
+			);
 			this.exit(paneId);
 			return;
 		}
@@ -155,7 +167,13 @@ class DesignModeStoreImpl {
 		}
 
 		if (result.kind === "error") {
-			toast.error("Design mode failed", { description: result.reason });
+			toast.error(
+				i18n._({
+					id: "workspace.browserPane.designModeFailed",
+					message: "Design mode failed",
+				}),
+				{ description: result.reason },
+			);
 		}
 		this.setState(paneId, IDLE_STATE);
 	}

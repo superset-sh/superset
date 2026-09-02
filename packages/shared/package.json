@@ -4,6 +4,14 @@
 	"private": true,
 	"type": "module",
 	"exports": {
+		"./usercontent": {
+			"types": "./src/usercontent/index.ts",
+			"default": "./src/usercontent/index.ts"
+		},
+		"./page-comments-runtime": {
+			"types": "./src/page-comments-runtime.ts",
+			"default": "./src/page-comments-runtime.ts"
+		},
 		"./automation-matching": {
 			"types": "./src/automation-matching/index.ts",
 			"default": "./src/automation-matching/index.ts"
@@ -15,6 +23,14 @@
 		"./constants": {
 			"types": "./src/constants.ts",
 			"default": "./src/constants.ts"
+		},
+		"./format-scaled": {
+			"types": "./src/format-scaled.ts",
+			"default": "./src/format-scaled.ts"
+		},
+		"./format-tokens": {
+			"types": "./src/format-tokens.ts",
+			"default": "./src/format-tokens.ts"
 		},
 		"./git-hook-tolerance": {
 			"types": "./src/git-hook-tolerance.ts",
@@ -31,6 +47,10 @@
 		"./sentry": {
 			"types": "./src/sentry.ts",
 			"default": "./src/sentry.ts"
+		},
+		"./slash-commands": {
+			"types": "./src/slash-commands.ts",
+			"default": "./src/slash-commands.ts"
 		},
 		"./terminal-wheel-handler": {
 			"types": "./src/terminal-wheel-handler/index.ts",
@@ -140,6 +160,10 @@
 			"types": "./src/agent-launch-request.ts",
 			"default": "./src/agent-launch-request.ts"
 		},
+		"./workspace-tags": {
+			"types": "./src/workspace-tags.ts",
+			"default": "./src/workspace-tags.ts"
+		},
 		"./workspace-attachments": {
 			"types": "./src/workspace-attachments.ts",
 			"default": "./src/workspace-attachments.ts"
@@ -175,6 +199,10 @@
 		"./tunnel-v2-protocol": {
 			"types": "./src/tunnel-v2-protocol.ts",
 			"default": "./src/tunnel-v2-protocol.ts"
+		},
+		"./port-forward-mux": {
+			"types": "./src/port-forward-mux.ts",
+			"default": "./src/port-forward-mux.ts"
 		},
 		"./host-info": {
 			"types": "./src/host-info.ts",
@@ -215,6 +243,10 @@
 		"./rrule": {
 			"types": "./src/rrule.ts",
 			"default": "./src/rrule.ts"
+		},
+		"./terminal-session-handoff": {
+			"types": "./src/terminal-session-handoff.ts",
+			"default": "./src/terminal-session-handoff.ts"
 		}
 	},
 	"scripts": {
@@ -224,6 +256,7 @@
 	},
 	"dependencies": {
 		"@date-fns/tz": "1.4.1",
+		"@superset/i18n": "workspace:*",
 		"culori": "4.0.2",
 		"friendly-words": "1.3.1",
 		"rrule": "2.8.1",
@@ -235,7 +268,7 @@
 		"@types/culori": "4.0.1",
 		"@types/friendly-words": "1.2.2",
 		"@types/semver": "7.7.1",
-		"@xterm/xterm": "6.1.0-beta.289",
+		"@xterm/xterm": "6.1.0-beta.302",
 		"bun-types": "1.3.14",
 		"typescript": "6.0.3"
 	}

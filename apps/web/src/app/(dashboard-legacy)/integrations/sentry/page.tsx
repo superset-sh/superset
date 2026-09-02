@@ -11,22 +11,39 @@ import Link from "next/link";
 import { SiSentry } from "react-icons/si";
 import { api } from "@/trpc/server";
 import { IntegrationErrorHandler } from "../components/IntegrationErrorHandler";
+import { requireOfferedIntegration } from "../utils/requireOfferedIntegration";
 import { ConnectionControls } from "./components/ConnectionControls";
+
+/**
+ * Sentry records the installation the moment the admin accepts it, and refuses
+ * to install it twice — so every failure after that point leaves the app
+ * installed in Sentry but unlinked here, and the install page's button greyed
+ * out. Superset cannot clear it (an installation token is refused a DELETE on
+ * its own installation), so the messages for those failures have to say what
+ * the only way back is.
+ */
+const RECONNECT = "Uninstall Superset in Sentry, then connect again.";
 
 const CALLBACK_MESSAGES = {
 	not_configured:
 		"Sentry isn't available yet — the Superset app hasn't been registered with Sentry.",
 	oauth_denied: "The install was cancelled. Please try again.",
-	missing_params: "Invalid response from Sentry. Please try again.",
-	invalid_state: "Your session expired. Start the connection again.",
+	missing_params: `Invalid response from Sentry. ${RECONNECT}`,
+	invalid_state: `Your session expired. ${RECONNECT}`,
 	unauthorized: "You are not authorized to perform this action.",
-	token_exchange_failed:
-		"Failed to complete the Sentry install. Please try again.",
-	organization_lookup_failed:
-		"Connected, but couldn't read your Sentry organization. Please reconnect.",
+	token_exchange_failed: `Couldn't finish the Sentry install. ${RECONNECT}`,
+	organization_lookup_failed: `Couldn't read your Sentry organization. ${RECONNECT}`,
+	organization_already_linked: {
+		param: "owner",
+		withParam:
+			"This Sentry organization is already connected by {owner}. Ask them to disconnect first.",
+		withoutParam:
+			"This Sentry organization is already connected by another Superset organization.",
+	},
 };
 
 export default async function SentryIntegrationPage() {
+	await requireOfferedIntegration("sentry");
 	const trpc = await api();
 	const organization = await trpc.user.myOrganization.query();
 

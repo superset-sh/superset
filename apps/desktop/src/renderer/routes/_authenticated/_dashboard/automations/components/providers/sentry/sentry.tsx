@@ -10,11 +10,24 @@ import {
 	type Slot,
 } from "./grammar";
 
+/**
+ * Sentry's severity levels. A fixed enum on Sentry's side, so it is listed here
+ * rather than fetched — there is no per-organization variation to discover, and
+ * a round trip would make the chip depend on a live connection to offer them.
+ */
+const SENTRY_LEVELS = [
+	{ id: "fatal", label: "Fatal" },
+	{ id: "error", label: "Error" },
+	{ id: "warning", label: "Warning" },
+	{ id: "info", label: "Info" },
+	{ id: "debug", label: "Debug" },
+];
+
 function renderSlot(
 	config: SentryConfig,
 	slot: Slot,
 	index: number,
-	{ set, mark, options, disabled }: SentenceContext,
+	{ set, mark, options, state, disabled }: SentenceContext,
 ) {
 	switch (slot) {
 		case "projects":
@@ -27,6 +40,7 @@ function renderSlot(
 					options={options.sentry?.projects ?? []}
 					emptyLabel="Select projects"
 					anyLabel="Any project"
+					state={state}
 					disabled={disabled}
 				/>
 			);
@@ -41,7 +55,7 @@ function renderSlot(
 					onChange={(v) =>
 						set({ level: isEmptyScope(v) ? { mode: "any" } : v })
 					}
-					options={options.sentry?.levels ?? []}
+					options={SENTRY_LEVELS}
 					emptyLabel="Any level"
 					anyLabel="Any level"
 					disabled={disabled}
@@ -52,6 +66,7 @@ function renderSlot(
 
 export const sentryProvider: TriggerProvider<SentryConfig> = {
 	kind: "sentry",
+	connectionProvider: "sentry",
 	optionGroup: "sentry",
 	label: "Sentry",
 	icon: SiSentry,

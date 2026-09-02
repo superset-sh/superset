@@ -1,3 +1,4 @@
+import { Plural, Trans } from "@lingui/react/macro";
 import type { SessionSnapshot, TurnGroup } from "@superset/chat/core";
 import type { Decision, Item } from "@superset/chat/protocol";
 import { isKnownItem } from "@superset/chat/protocol";
@@ -113,7 +114,12 @@ export function TurnGroupSection({
 											: "size-3 rotate-90 transition-transform"
 									}
 								/>
-								{entry.items.length} tool calls
+								<Plural
+									id="workspace.chat.toolCallCount"
+									value={entry.items.length}
+									one="# tool call"
+									other="# tool calls"
+								/>
 							</CollapsibleTrigger>
 							<CollapsibleContent className="flex flex-col gap-2 pt-1">
 								{entry.items.map((tool) => (
@@ -126,11 +132,16 @@ export function TurnGroupSection({
 			})}
 			{group.turn?.status === "failed" && (
 				<div className="text-xs text-destructive">
-					Turn failed{group.turn.error ? `: ${group.turn.error.message}` : ""}
+					<Trans id="workspace.chat.turnFailed">
+						Turn failed
+						{group.turn.error ? `: ${group.turn.error.message}` : ""}
+					</Trans>
 				</div>
 			)}
 			{group.turn?.status === "interrupted" && (
-				<div className="text-xs text-muted-foreground">Interrupted</div>
+				<div className="text-xs text-muted-foreground">
+					<Trans id="workspace.chat.turnInterrupted">Interrupted</Trans>
+				</div>
 			)}
 		</div>
 	);

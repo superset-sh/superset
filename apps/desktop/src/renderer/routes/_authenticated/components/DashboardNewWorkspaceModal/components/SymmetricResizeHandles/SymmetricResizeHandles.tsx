@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 import { useCallback, useRef } from "react";
 
@@ -29,6 +30,7 @@ export function SymmetricResizeHandles({
 	onWidthCommit,
 	onReset,
 }: SymmetricResizeHandlesProps) {
+	const { t } = useLingui();
 	const dragRef = useRef<{ startX: number; startWidth: number } | null>(null);
 	const lastWidthRef = useRef<number | null>(null);
 
@@ -88,7 +90,17 @@ export function SymmetricResizeHandles({
 					key={side}
 					role="separator"
 					aria-orientation="vertical"
-					aria-label={`Resize ${side} edge`}
+					aria-label={
+						side === "left"
+							? t({
+									id: "dashboard.newWorkspaceModal.resizeHandles.resizeLeftEdge",
+									message: "Resize left edge",
+								})
+							: t({
+									id: "dashboard.newWorkspaceModal.resizeHandles.resizeRightEdge",
+									message: "Resize right edge",
+								})
+					}
 					aria-valuenow={Math.round(currentWidth)}
 					aria-valuemin={minWidth}
 					aria-valuemax={maxWidth}

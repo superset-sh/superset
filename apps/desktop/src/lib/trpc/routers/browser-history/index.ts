@@ -32,7 +32,14 @@ export const createBrowserHistoryRouter = () => {
 		}),
 
 		search: publicProcedure
-			.input(z.object({ query: z.string() }))
+			.input(
+				z.object({
+					query: z.string(),
+					// Autocomplete callers keep the default; the History dialog asks
+					// for more since it searches the whole table, not just recents.
+					limit: z.number().int().min(1).max(200).optional(),
+				}),
+			)
 			.query(({ input }) => {
 				const pattern = `%${input.query}%`;
 				return localDb
@@ -45,7 +52,7 @@ export const createBrowserHistoryRouter = () => {
 						),
 					)
 					.orderBy(sql`${browserHistory.lastVisitedAt} desc`)
-					.limit(10)
+					.limit(input.limit ?? 10)
 					.all();
 			}),
 

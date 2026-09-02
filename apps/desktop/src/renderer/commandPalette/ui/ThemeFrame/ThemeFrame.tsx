@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	CommandEmpty,
 	CommandGroup,
@@ -29,6 +30,7 @@ function matchesQuery(haystack: string, query: string): boolean {
 }
 
 export function ThemeFrame() {
+	const { i18n } = useLingui();
 	const activeThemeId = useThemeId();
 	const setTheme = useSetTheme();
 	const customThemes = useThemeStore((state) => state.customThemes);
@@ -57,21 +59,38 @@ export function ThemeFrame() {
 		setOpen(false);
 	};
 
-	const showSystem = matchesQuery(`System ${SYSTEM_THEME_ID}`, query);
+	const systemLabel = i18n._({
+		id: "commandPalette.themes.system",
+		message: "System",
+	});
+	const lightHeading = i18n._({
+		id: "commandPalette.themes.light",
+		message: "Light",
+	});
+	const darkHeading = i18n._({
+		id: "commandPalette.themes.dark",
+		message: "Dark",
+	});
+	const customHeading = i18n._({
+		id: "commandPalette.themes.custom",
+		message: "Custom",
+	});
+
+	const showSystem = matchesQuery(`${systemLabel} ${SYSTEM_THEME_ID}`, query);
 
 	const visibleLight = filterThemes(
 		lightThemes.filter((t) => !t.isCustom),
-		"Light",
+		lightHeading,
 		query,
 	);
 	const visibleDark = filterThemes(
 		darkThemes.filter((t) => !t.isCustom),
-		"Dark",
+		darkHeading,
 		query,
 	);
 	const visibleCustom = filterThemes(
 		[...customLight, ...customDark],
-		"Custom",
+		customHeading,
 		query,
 	);
 	const hasThemeGroup =
@@ -81,7 +100,9 @@ export function ThemeFrame() {
 
 	return (
 		<CommandList>
-			<CommandEmpty>No themes found.</CommandEmpty>
+			<CommandEmpty>
+				<Trans id="commandPalette.themes.empty">No themes found.</Trans>
+			</CommandEmpty>
 
 			{showSystem && (
 				<CommandGroup>
@@ -93,7 +114,7 @@ export function ThemeFrame() {
 							<ThemeSwatch theme={systemLightTheme} />
 							<ThemeSwatch theme={systemDarkTheme} />
 						</div>
-						<span>System</span>
+						<span>{systemLabel}</span>
 						{activeThemeId === SYSTEM_THEME_ID ? (
 							<span className="ml-auto text-xs text-muted-foreground">✓</span>
 						) : null}
@@ -104,21 +125,21 @@ export function ThemeFrame() {
 			{showSystem && hasThemeGroup && <CommandSeparator />}
 
 			<ThemeGroup
-				heading="Light"
+				heading={lightHeading}
 				themes={visibleLight}
 				activeId={activeThemeId}
 				onSelect={pickTheme}
 			/>
 
 			<ThemeGroup
-				heading="Dark"
+				heading={darkHeading}
 				themes={visibleDark}
 				activeId={activeThemeId}
 				onSelect={pickTheme}
 			/>
 
 			<ThemeGroup
-				heading="Custom"
+				heading={customHeading}
 				themes={visibleCustom}
 				activeId={activeThemeId}
 				onSelect={pickTheme}

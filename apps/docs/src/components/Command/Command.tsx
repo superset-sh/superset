@@ -1,3 +1,4 @@
+import { i18n } from "@superset/i18n";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
@@ -63,7 +64,8 @@ export function Command({
 				</a>
 				{alias ? (
 					<span className="rounded-md border border-border px-2 py-0.5 text-xs font-normal text-muted-foreground">
-						alias: <span className="font-mono">{alias}</span>
+						{i18n._({ id: "docs.command.alias", message: "alias:" })}{" "}
+						<span className="font-mono">{alias}</span>
 					</span>
 				) : null}
 			</h3>
@@ -73,13 +75,20 @@ export function Command({
 			{args && args.length > 0 ? (
 				<div className="mt-6 not-prose">
 					<h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-						Arguments
+						{i18n._({ id: "docs.command.arguments", message: "Arguments" })}
 					</h4>
 					<table className="w-full text-sm border-collapse">
 						<thead>
 							<tr className="border-b border-border">
-								<th className="text-left py-2 pr-4 font-medium w-1/3">Name</th>
-								<th className="text-left py-2 font-medium">Description</th>
+								<th className="text-left py-2 pr-4 font-medium w-1/3">
+									{i18n._({ id: "docs.command.argumentName", message: "Name" })}
+								</th>
+								<th className="text-left py-2 font-medium">
+									{i18n._({
+										id: "docs.command.description",
+										message: "Description",
+									})}
+								</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -96,7 +105,10 @@ export function Command({
 											</code>
 											{arg.required ? (
 												<span className="ml-2 text-xs text-muted-foreground">
-													required
+													{i18n._({
+														id: "docs.command.required",
+														message: "required",
+													})}
 												</span>
 											) : null}
 										</td>
@@ -114,13 +126,20 @@ export function Command({
 			{options && options.length > 0 ? (
 				<div className="mt-6 not-prose">
 					<h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-						Options
+						{i18n._({ id: "docs.command.options", message: "Options" })}
 					</h4>
 					<table className="w-full text-sm border-collapse">
 						<thead>
 							<tr className="border-b border-border">
-								<th className="text-left py-2 pr-4 font-medium w-1/3">Flag</th>
-								<th className="text-left py-2 font-medium">Description</th>
+								<th className="text-left py-2 pr-4 font-medium w-1/3">
+									{i18n._({ id: "docs.command.flag", message: "Flag" })}
+								</th>
+								<th className="text-left py-2 font-medium">
+									{i18n._({
+										id: "docs.command.description",
+										message: "Description",
+									})}
+								</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -133,7 +152,10 @@ export function Command({
 										<code className="font-mono text-sm">{opt.flag}</code>
 										{opt.required ? (
 											<span className="ml-2 text-xs text-muted-foreground">
-												required
+												{i18n._({
+													id: "docs.command.required",
+													message: "required",
+												})}
 											</span>
 										) : null}
 									</td>
@@ -149,7 +171,13 @@ export function Command({
 
 			{humanColumns && humanColumns.length > 0 ? (
 				<p className="mt-4 text-sm text-muted-foreground">
-					<span className="font-semibold">Human mode:</span> table with{" "}
+					<span className="font-semibold">
+						{i18n._({ id: "docs.command.humanMode", message: "Human mode:" })}
+					</span>{" "}
+					{i18n._({
+						id: "docs.command.humanModeColumns",
+						message: "table with",
+					})}{" "}
 					{humanColumns.map((col, i) => (
 						<span key={col}>
 							<code className="font-mono text-xs">{col}</code>
@@ -177,7 +205,7 @@ export function CommandReturns({ children }: CommandReturnsProps) {
 	return (
 		<div className="mt-6">
 			<h4 className="not-prose text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-				Returns
+				{i18n._({ id: "docs.command.returns", message: "Returns" })}
 			</h4>
 			<div className="space-y-3">{children}</div>
 		</div>

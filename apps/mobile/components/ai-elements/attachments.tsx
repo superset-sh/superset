@@ -1,3 +1,5 @@
+import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { Image as ExpoImage } from "expo-image";
 import type { LucideIcon } from "lucide-react-native";
 import {
@@ -99,11 +101,20 @@ export const getMediaCategory = (
 
 export const getAttachmentLabel = (data: AttachmentData): string => {
 	if (data.type === "source-document") {
-		return data.title || data.filename || "Source";
+		return (
+			data.title ||
+			data.filename ||
+			i18n._({ id: "mobile.attachment.source", message: "Source" })
+		);
 	}
 
 	const category = getMediaCategory(data);
-	return data.filename || (category === "image" ? "Image" : "Attachment");
+	return (
+		data.filename ||
+		(category === "image"
+			? i18n._({ id: "mobile.attachment.image", message: "Image" })
+			: i18n._({ id: "mobile.attachment.file", message: "Attachment" }))
+	);
 };
 
 // ============================================================================
@@ -414,7 +425,9 @@ export const AttachmentEmpty = ({
 }: AttachmentEmptyProps) => (
 	<View className={cn("items-center justify-center p-4", className)} {...props}>
 		{children ?? (
-			<Text className="text-muted-foreground text-sm">No attachments</Text>
+			<Text className="text-muted-foreground text-sm">
+				<Trans id="mobile.attachment.empty">No attachments</Trans>
+			</Text>
 		)}
 	</View>
 );

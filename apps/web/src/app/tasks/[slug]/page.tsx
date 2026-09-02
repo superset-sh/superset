@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -29,13 +30,17 @@ export default function TaskDeepLinkPage() {
 					priority
 				/>
 				<p className="text-xl text-muted-foreground">
-					Redirecting to desktop app...
+					<Trans id="web.taskDeepLink.redirecting">
+						Redirecting to desktop app...
+					</Trans>
 				</p>
 				<Link
 					href={deepLink}
 					className="text-sm text-muted-foreground/70 underline decoration-muted-foreground/40 underline-offset-4 transition-colors hover:text-muted-foreground"
 				>
-					Click here if not redirected
+					<Trans id="web.taskDeepLink.manualLink">
+						Click here if not redirected
+					</Trans>
 				</Link>
 			</div>
 		</div>

@@ -1,4 +1,4 @@
-import type { UsageProvider } from "../types";
+import type { UsageAgent } from "../types";
 
 /**
  * API list prices in USD per million tokens. Used to price subscription
@@ -6,13 +6,14 @@ import type { UsageProvider } from "../types";
  * always labeled as an estimate in the UI, never as money spent.
  *
  * Longest-prefix match on the lowercased model id; unknown models fall back
- * to the provider's cheapest rate and mark the result approximate.
+ * to the agent's cheapest rate and mark the result approximate.
  */
 export const PRICING_TABLE_UPDATED = "2026-08-16";
 
 export interface ModelRate {
 	inputPerM: number;
 	outputPerM: number;
+	longContext?: ModelRate;
 }
 
 /** Cache multipliers applied against the model's input rate. */
@@ -49,16 +50,66 @@ const CODEX_RATES: Record<string, ModelRate> = {
 	"gpt-4o": { inputPerM: 2.5, outputPerM: 10 },
 };
 
-const RATES_BY_PROVIDER: Record<UsageProvider, Record<string, ModelRate>> = {
-	claude: CLAUDE_RATES,
-	codex: CODEX_RATES,
+const GROK_RATES: Record<string, ModelRate> = {
+	"grok-4.6": { inputPerM: 2, outputPerM: 6 },
+	"grok-4.5": { inputPerM: 2, outputPerM: 6 },
+	"grok-4-fast": { inputPerM: 0.2, outputPerM: 0.5 },
+	"grok-4": { inputPerM: 3, outputPerM: 15 },
+	"grok-code": { inputPerM: 0.2, outputPerM: 1.5 },
+	"grok-3-mini": { inputPerM: 0.3, outputPerM: 0.5 },
+	"grok-3": { inputPerM: 3, outputPerM: 15 },
 };
 
-const cheapestByProvider = new Map<UsageProvider, ModelRate>();
-function cheapestRate(provider: UsageProvider): ModelRate {
-	let cheapest = cheapestByProvider.get(provider);
+const AGY_RATES: Record<string, ModelRate> = {
+	...CLAUDE_RATES,
+	...CODEX_RATES,
+	"gemini-3.1-pro": {
+		inputPerM: 2,
+		outputPerM: 12,
+		longContext: { inputPerM: 4, outputPerM: 18 },
+	},
+	"gemini-3-flash": { inputPerM: 0.5, outputPerM: 3 },
+	"gemini-2.5-pro": {
+		inputPerM: 1.25,
+		outputPerM: 10,
+		longContext: { inputPerM: 2.5, outputPerM: 15 },
+	},
+	"gemini-2.5-flash": { inputPerM: 0.3, outputPerM: 2.5 },
+};
+
+// Cursor prices per request server-side; its usage events carry the real
+// cost, so this table is only the fallback for events without one.
+const CURSOR_RATES: Record<string, ModelRate> = {
+	composer: { inputPerM: 1.25, outputPerM: 10 },
+};
+
+/** Multi-model harnesses (opencode, pi, omp, copilot, fx) route to many
+ * upstream providers — match against every table we know. Harness-reported
+ * costs, when present, take precedence over these rates anyway. */
+const MULTI_AGENT_RATES: Record<string, ModelRate> = {
+	...CLAUDE_RATES,
+	...CODEX_RATES,
+	...GROK_RATES,
+};
+
+const RATES_BY_AGENT: Record<UsageAgent, Record<string, ModelRate>> = {
+	claude: CLAUDE_RATES,
+	codex: CODEX_RATES,
+	grok: GROK_RATES,
+	agy: AGY_RATES,
+	cursor: CURSOR_RATES,
+	opencode: MULTI_AGENT_RATES,
+	copilot: MULTI_AGENT_RATES,
+	pi: MULTI_AGENT_RATES,
+	omp: MULTI_AGENT_RATES,
+	fx: MULTI_AGENT_RATES,
+};
+
+const cheapestByAgent = new Map<UsageAgent, ModelRate>();
+function cheapestRate(agent: UsageAgent): ModelRate {
+	let cheapest = cheapestByAgent.get(agent);
 	if (!cheapest) {
-		for (const rate of Object.values(RATES_BY_PROVIDER[provider])) {
+		for (const rate of Object.values(RATES_BY_AGENT[agent])) {
 			if (
 				!cheapest ||
 				rate.inputPerM + rate.outputPerM <
@@ -67,7 +118,7 @@ function cheapestRate(provider: UsageProvider): ModelRate {
 				cheapest = rate;
 			}
 		}
-		cheapestByProvider.set(provider, cheapest as ModelRate);
+		cheapestByAgent.set(agent, cheapest as ModelRate);
 	}
 	return cheapest as ModelRate;
 }
@@ -78,22 +129,39 @@ export interface MatchedRate extends ModelRate {
 }
 
 export function matchModelRate(
-	provider: UsageProvider,
+	agent: UsageAgent,
 	model: string,
+	promptTokens = 0,
 ): MatchedRate {
-	const rates = RATES_BY_PROVIDER[provider];
+	const rates = RATES_BY_AGENT[agent];
 	const normalized = model.toLowerCase();
+	// Multi-model harnesses vendor-qualify ids ("anthropic/claude-sonnet-4");
+	// also match on the segment after the last slash so those don't fall
+	// through to the cheapest rate.
+	const candidates = [normalized];
+	const slash = normalized.lastIndexOf("/");
+	if (slash >= 0 && slash < normalized.length - 1) {
+		candidates.push(normalized.slice(slash + 1));
+	}
 	let best: { prefix: string; rate: ModelRate } | null = null;
-	for (const [prefix, rate] of Object.entries(rates)) {
-		if (
-			normalized.startsWith(prefix) &&
-			(!best || prefix.length > best.prefix.length)
-		) {
-			best = { prefix, rate };
+	for (const candidate of candidates) {
+		for (const [prefix, rate] of Object.entries(rates)) {
+			if (
+				candidate.startsWith(prefix) &&
+				(!best || prefix.length > best.prefix.length)
+			) {
+				best = { prefix, rate };
+			}
 		}
 	}
-	if (best) return { ...best.rate, approximate: false };
-	return { ...cheapestRate(provider), approximate: true };
+	if (best) {
+		const rate =
+			promptTokens > 200_000 && best.rate.longContext
+				? best.rate.longContext
+				: best.rate;
+		return { ...rate, approximate: false };
+	}
+	return { ...cheapestRate(agent), approximate: true };
 }
 
 export interface TokenCounts {

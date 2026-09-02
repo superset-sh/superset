@@ -1,5 +1,9 @@
 "use client";
 
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import {
 	ADMIN_INSIGHTS,
 	POSTHOG_PROJECT_URL,
@@ -22,27 +26,44 @@ interface PostHogFunnelStep {
 // The OR-group step's API name is the mush of its member events
 // ("$pageview, $pageview, …"); the saved definition's group name isn't
 // echoed in results, so label it here by position.
-const STEP_NAME_OVERRIDES: Record<number, string> = {
-	4: "Reached a dashboard page",
+const STEP_NAME_OVERRIDES: Record<number, MessageDescriptor> = {
+	4: msg({
+		id: "admin.activationFunnel.stepDashboardPage",
+		message: "Reached a dashboard page",
+	}),
 };
 
 export function PostHogFunnelTile() {
+	const { t } = useLingui();
 	const insight = useInsightResults("activationFunnel");
 
 	const steps = Array.isArray(insight.data?.result)
 		? (insight.data.result as PostHogFunnelStep[])
 		: [];
-	const data = steps.map((step, index) => ({
-		name: step.custom_name ?? STEP_NAME_OVERRIDES[index] ?? step.name,
-		count: step.count,
-		medianSeconds: step.median_conversion_time ?? null,
-		averageSeconds: step.average_conversion_time ?? null,
-	}));
+	const data = steps.map((step, index) => {
+		const override = STEP_NAME_OVERRIDES[index];
+		return {
+			name: step.custom_name ?? (override ? i18n._(override) : step.name),
+			count: step.count,
+			medianSeconds: step.median_conversion_time ?? null,
+			averageSeconds: step.average_conversion_time ?? null,
+		};
+	});
 
 	return (
 		<FunnelChart
-			title={insight.data?.name ?? "New-user activation"}
-			description="First sign-in view → auth → onboarding → real workspace (last 7d, 2d window)"
+			title={
+				insight.data?.name ??
+				t({
+					id: "admin.activationFunnel.title",
+					message: "New-user activation",
+				})
+			}
+			description={t({
+				id: "admin.activationFunnel.description",
+				message:
+					"First sign-in view → auth → onboarding → real workspace (last 7d, 2d window)",
+			})}
 			steps={data}
 			isLoading={insight.isLoading || insight.data?.result == null}
 			error={insight.error}
@@ -53,7 +74,10 @@ export function PostHogFunnelTile() {
 							href={`${POSTHOG_PROJECT_URL}/insights/${ADMIN_INSIGHTS.activationFunnel}`}
 							target="_blank"
 							rel="noreferrer"
-							aria-label="Open in PostHog"
+							aria-label={t({
+								id: "admin.tile.openInPostHog",
+								message: "Open in PostHog",
+							})}
 						>
 							<LuExternalLink className="size-3.5" />
 						</a>
@@ -64,7 +88,7 @@ export function PostHogFunnelTile() {
 						className="size-6 p-0"
 						onClick={() => insight.refetch()}
 						disabled={insight.isFetching}
-						aria-label="Refresh"
+						aria-label={t({ id: "admin.tile.refresh", message: "Refresh" })}
 					>
 						<LuRefreshCw
 							className={cn("size-3.5", insight.isFetching && "animate-spin")}

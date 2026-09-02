@@ -1,5 +1,6 @@
 "use client";
 
+import { i18n } from "@superset/i18n";
 import { type RefObject, useEffect, useRef, useState } from "react";
 import type { PromptInputDictationError } from "../../types";
 
@@ -33,7 +34,10 @@ function describeStartError(error: unknown): PromptInputDictationError {
 	const name = error instanceof Error ? error.name : null;
 	if (name === "NotAllowedError" || name === "SecurityError")
 		return {
-			message: "Allow microphone access to use dictation",
+			message: i18n._({
+				id: "chatUi.dictation.micPermission",
+				message: "Allow microphone access to use dictation",
+			}),
 			canRetry: false,
 		};
 	if (
@@ -42,20 +46,35 @@ function describeStartError(error: unknown): PromptInputDictationError {
 		name === "OverconstrainedError"
 	)
 		return {
-			message: "Connect a microphone to use dictation",
+			message: i18n._({
+				id: "chatUi.dictation.micMissing",
+				message: "Connect a microphone to use dictation",
+			}),
 			canRetry: false,
 		};
 	if (name === "NotReadableError" || name === "TrackStartError")
 		return {
-			message: "Close other apps using the microphone",
+			message: i18n._({
+				id: "chatUi.dictation.micBusy",
+				message: "Close other apps using the microphone",
+			}),
 			canRetry: false,
 		};
 	if (name === "NotSupportedError" || name === "TypeError")
 		return {
-			message: "Dictation is not available on this device",
+			message: i18n._({
+				id: "chatUi.dictation.unsupported",
+				message: "Dictation is not available on this device",
+			}),
 			canRetry: false,
 		};
-	return { message: "Unable to start dictation", canRetry: false };
+	return {
+		message: i18n._({
+			id: "chatUi.dictation.startFailed",
+			message: "Unable to start dictation",
+		}),
+		canRetry: false,
+	};
 }
 
 function describeTranscribeError(error: unknown): PromptInputDictationError {
@@ -65,8 +84,20 @@ function describeTranscribeError(error: unknown): PromptInputDictationError {
 		text.includes("failed to fetch") ||
 		text.includes("network")
 	)
-		return { message: "Check your connection and try again", canRetry: true };
-	return { message: "Unable to transcribe audio", canRetry: true };
+		return {
+			message: i18n._({
+				id: "chatUi.dictation.network",
+				message: "Check your connection and try again",
+			}),
+			canRetry: true,
+		};
+	return {
+		message: i18n._({
+			id: "chatUi.dictation.transcribeFailed",
+			message: "Unable to transcribe audio",
+		}),
+		canRetry: true,
+	};
 }
 
 export function useDictation({

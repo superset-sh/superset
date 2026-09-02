@@ -1,5 +1,6 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import { ChevronDown, GitFork } from "lucide-react";
 import type { MockRepo } from "../../../../mock-data";
 import { ResponsiveDropdown } from "../../../ResponsiveDropdown";
@@ -17,9 +18,14 @@ export function RepoSelector({
 	onRepoChange,
 	disabled = false,
 }: RepoSelectorProps) {
+	const { t } = useLingui();
+
 	return (
 		<ResponsiveDropdown
-			title="Select repository"
+			title={t({
+				id: "web.repoSelector.title",
+				message: "Select repository",
+			})}
 			items={repos.map((repo) => ({
 				label: repo.fullName,
 				icon: <GitFork className="size-3" />,

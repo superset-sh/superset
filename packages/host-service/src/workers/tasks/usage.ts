@@ -7,6 +7,8 @@ import type {
 	UsageHistory,
 } from "../../trpc/router/usage/history/aggregate.ts";
 import { computeUsageHistory } from "../../trpc/router/usage/history/aggregate.ts";
+import type { LeaderboardPayload } from "../../trpc/router/usage/history/leaderboard-days.ts";
+import { computeLeaderboardPayload } from "../../trpc/router/usage/history/leaderboard-days.ts";
 import { defineWorkerTask } from "../define-worker-task.ts";
 
 export const usageHistoryTask = defineWorkerTask<
@@ -17,4 +19,13 @@ export const usageHistoryTask = defineWorkerTask<
 	handler: ({ days, cwdLabels }) => computeUsageHistory(days, cwdLabels),
 });
 
-export const usageTasks = [usageHistoryTask];
+export const leaderboardPayloadTask = defineWorkerTask<
+	{ days: number; nowMs: number; agentPrsByDay: Record<string, number> },
+	LeaderboardPayload
+>({
+	type: "usage/leaderboard-payload",
+	handler: ({ days, nowMs, agentPrsByDay }) =>
+		computeLeaderboardPayload(days, agentPrsByDay, new Date(nowMs)),
+});
+
+export const usageTasks = [usageHistoryTask, leaderboardPayloadTask];

@@ -48,7 +48,7 @@ export function useFileContent({
 	commitHash,
 	oldPath,
 }: UseFileContentParams) {
-	// For remote URLs (e.g. Vercel Blob), skip all IPC queries
+	// For remote URLs, skip all IPC queries
 	const isRemote =
 		filePath.startsWith("https://") || filePath.startsWith("http://");
 

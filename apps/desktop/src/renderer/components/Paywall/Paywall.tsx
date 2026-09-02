@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Dialog, DialogContent } from "@superset/ui/dialog";
 import { useNavigate } from "@tanstack/react-router";
@@ -54,7 +55,7 @@ export const Paywall = () => {
 			track("paywall_opened", {
 				trigger_source: paywallOptions.feature,
 				feature_id: initialFeatureId,
-				feature_title: feature?.title,
+				feature_title: feature?.title.message,
 			});
 		}
 	}, [isOpen, paywallOptions, initialFeatureId]);
@@ -75,7 +76,7 @@ export const Paywall = () => {
 			track("paywall_feature_clicked", {
 				trigger_source: triggerSource,
 				feature_id: featureId,
-				feature_title: feature?.title,
+				feature_title: feature?.title.message,
 				previous_feature_id: selectedFeatureId,
 			});
 			featuresViewedRef.current.add(featureId);
@@ -112,7 +113,7 @@ export const Paywall = () => {
 		track("paywall_upgrade_clicked", {
 			trigger_source: triggerSource,
 			feature_id: selectedFeatureId,
-			feature_title: selectedFeature.title,
+			feature_title: selectedFeature.title.message,
 			features_viewed_count: featuresViewedRef.current.size,
 			time_spent_ms: timeSpent,
 		});
@@ -137,9 +138,11 @@ export const Paywall = () => {
 
 				<div className="box-border flex items-center justify-between border-t bg-background px-5 py-4">
 					<Button variant="outline" onClick={() => handleOpenChange(false)}>
-						Cancel
+						<Trans id="components.paywall.cancel">Cancel</Trans>
 					</Button>
-					<Button onClick={handleUpgrade}>Get Superset Pro</Button>
+					<Button onClick={handleUpgrade}>
+						<Trans id="components.paywall.upgradeCta">Get Superset Pro</Trans>
+					</Button>
 				</div>
 			</DialogContent>
 		</Dialog>

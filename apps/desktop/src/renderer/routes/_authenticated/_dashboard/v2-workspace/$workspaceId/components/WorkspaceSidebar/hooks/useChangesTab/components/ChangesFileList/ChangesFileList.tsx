@@ -1,3 +1,7 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { OverflowFadeContainer } from "@superset/ui/overflow-fade-container";
 import { memo, useMemo } from "react";
 import type { ChangesetFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
@@ -38,11 +42,20 @@ const GROUP_ORDER: GroupKey[] = [
 	"commit",
 ];
 
-const GROUP_TITLES: Record<GroupKey, string> = {
-	unstaged: "Unstaged",
-	staged: "Staged",
-	"against-base": "Against base",
-	commit: "Committed",
+const GROUP_TITLES: Record<GroupKey, MessageDescriptor> = {
+	unstaged: msg({
+		id: "workspace.changesList.groupUnstaged",
+		message: "Unstaged",
+	}),
+	staged: msg({ id: "workspace.changesList.groupStaged", message: "Staged" }),
+	"against-base": msg({
+		id: "workspace.changesList.groupAgainstBase",
+		message: "Against base",
+	}),
+	commit: msg({
+		id: "workspace.changesList.groupCommitted",
+		message: "Committed",
+	}),
 };
 
 export const ChangesFileList = memo(function ChangesFileList({
@@ -73,7 +86,7 @@ export const ChangesFileList = memo(function ChangesFileList({
 	if (isLoading) {
 		return (
 			<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-				Loading...
+				<Trans id="workspace.changesFileList.loading">Loading...</Trans>
 			</div>
 		);
 	}
@@ -81,7 +94,7 @@ export const ChangesFileList = memo(function ChangesFileList({
 	if (files.length === 0) {
 		return (
 			<div className="px-3 py-6 text-center text-sm text-muted-foreground">
-				No changes
+				<Trans id="workspace.changesFileList.empty">No changes</Trans>
 			</div>
 		);
 	}
@@ -100,7 +113,7 @@ export const ChangesFileList = memo(function ChangesFileList({
 					<ChangesSection
 						key={key}
 						sectionKey={key}
-						title={GROUP_TITLES[key]}
+						title={i18n._(GROUP_TITLES[key])}
 						count={groupFiles.length}
 						stagingActions={
 							hasStagingActions

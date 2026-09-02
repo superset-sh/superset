@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { PopoverContent } from "@superset/ui/popover";
 import { useEffect, useRef } from "react";
 import type { SlashCommand } from "../../slash-commands";
@@ -57,7 +58,9 @@ export function SlashCommandMenu({
 							</span>
 							{cmd.kind === "builtin" && (
 								<span className="rounded-sm border border-border/70 bg-muted/40 px-1 py-0.5 font-mono text-[10px] text-muted-foreground uppercase leading-none">
-									builtin
+									<Trans id="components.slashCommandMenu.builtinBadge">
+										builtin
+									</Trans>
 								</span>
 							)}
 							{cmd.argumentHint && (
@@ -73,7 +76,9 @@ export function SlashCommandMenu({
 						)}
 						{cmd.aliases.length > 0 && (
 							<span className="text-muted-foreground pl-4 font-mono">
-								aliases: {cmd.aliases.map((alias) => `/${alias}`).join(", ")}
+								<Trans id="components.slashCommandMenu.aliases">
+									aliases: {cmd.aliases.map((alias) => `/${alias}`).join(", ")}
+								</Trans>
 							</span>
 						)}
 					</button>

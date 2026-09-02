@@ -1,4 +1,5 @@
 import type { TriggerConfigInput } from "@superset/shared/automation-triggers";
+import { Badge } from "@superset/ui/badge";
 import {
 	DropdownMenuItem,
 	DropdownMenuPortal,
@@ -7,6 +8,7 @@ import {
 	DropdownMenuSubTrigger,
 } from "@superset/ui/dropdown-menu";
 import type { TriggerMenuEntry, TriggerProvider } from "../../providers";
+import { providerLabelText } from "../triggerMenu";
 
 /**
  * The top level of the Add Trigger menu: one row per provider.
@@ -23,14 +25,29 @@ import type { TriggerMenuEntry, TriggerProvider } from "../../providers";
 export function TriggerMenuItems({
 	providers,
 	onPick,
+	lockedLabel,
 }: {
 	providers: TriggerProvider[];
 	onPick: (config: TriggerConfigInput) => void;
+	/** Tier badge ("Pro", "Enterprise") for a provider the plan can't add. */
+	lockedLabel?: (provider: TriggerProvider) => string | null;
 }) {
 	return (
 		<>
 			{providers.map((provider) => {
 				const Icon = provider.icon;
+				const badge = lockedLabel?.(provider);
+				if (badge) {
+					return (
+						<DropdownMenuItem key={provider.kind} disabled>
+							<Icon className="size-3.5 text-current" />
+							{providerLabelText(provider.label)}
+							<Badge variant="box" className="ml-auto">
+								{badge}
+							</Badge>
+						</DropdownMenuItem>
+					);
+				}
 				const only = provider.menu.length === 1 ? provider.menu[0] : undefined;
 
 				if (only && "create" in only) {
@@ -40,7 +57,7 @@ export function TriggerMenuItems({
 							onSelect={() => onPick(only.create())}
 						>
 							<Icon className="size-3.5 text-current" />
-							{provider.label}
+							{providerLabelText(provider.label)}
 						</DropdownMenuItem>
 					);
 				}
@@ -49,7 +66,7 @@ export function TriggerMenuItems({
 					<DropdownMenuSub key={provider.kind}>
 						<DropdownMenuSubTrigger>
 							<Icon className="size-3.5 text-current" />
-							{provider.label}
+							{providerLabelText(provider.label)}
 						</DropdownMenuSubTrigger>
 						<DropdownMenuPortal>
 							<DropdownMenuSubContent className="max-h-96 overflow-y-auto">
@@ -79,8 +96,10 @@ function MenuEntries({
 		<>
 			{entries.map((entry) =>
 				"children" in entry ? (
-					<DropdownMenuSub key={entry.label}>
-						<DropdownMenuSubTrigger>{entry.label}</DropdownMenuSubTrigger>
+					<DropdownMenuSub key={providerLabelText(entry.label)}>
+						<DropdownMenuSubTrigger>
+							{providerLabelText(entry.label)}
+						</DropdownMenuSubTrigger>
 						<DropdownMenuPortal>
 							<DropdownMenuSubContent>
 								<MenuEntries entries={entry.children} onPick={onPick} />
@@ -89,10 +108,10 @@ function MenuEntries({
 					</DropdownMenuSub>
 				) : (
 					<DropdownMenuItem
-						key={entry.label}
+						key={providerLabelText(entry.label)}
 						onSelect={() => onPick(entry.create())}
 					>
-						{entry.label}
+						{providerLabelText(entry.label)}
 					</DropdownMenuItem>
 				),
 			)}

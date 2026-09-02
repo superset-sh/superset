@@ -1,3 +1,5 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import type { IconType } from "react-icons";
 import { FaSlack } from "react-icons/fa";
 import {
@@ -10,7 +12,7 @@ import {
 export const GATED_FEATURES = {
 	INVITE_MEMBERS: "invite-members",
 	TASKS: "tasks",
-	REMOTE_WORKSPACES: "remote-workspaces",
+	REMOTE_ACCESS: "remote-access",
 	MOBILE_APP: "mobile-app",
 } as const;
 
@@ -18,8 +20,8 @@ export type GatedFeature = (typeof GATED_FEATURES)[keyof typeof GATED_FEATURES];
 
 export interface ProFeature {
 	id: string;
-	title: string;
-	description: string;
+	title: MessageDescriptor;
+	description: MessageDescriptor;
 	icon: IconType;
 	iconColor: string;
 	gradientColors: readonly [string, string, string, string];
@@ -28,46 +30,76 @@ export interface ProFeature {
 
 export const PRO_FEATURES: ProFeature[] = [
 	{
-		id: "remote-workspaces",
-		title: "Remote Workspaces",
-		description:
-			"Reach this Mac from anywhere via the Superset relay, or spin up cloud workspaces. Connect from any client.",
+		id: "remote-access",
+		title: msg({
+			id: "components.paywall.remoteAccess.title",
+			message: "Remote Access",
+		}),
+		description: msg({
+			id: "components.paywall.remoteAccess.description",
+			message:
+				"Reach this Mac from anywhere via the Superset relay, or spin up cloud workspaces. Connect from any client.",
+		}),
 		icon: HiOutlineSignal,
 		iconColor: "text-pink-500",
 		gradientColors: ["#be185d", "#9d174d", "#831843", "#1a1a2e"],
 	},
 	{
 		id: "team-collaboration",
-		title: "Team Collaboration",
-		description:
-			"Invite your team to shared workspaces. See real-time updates, sync configurations, and manage team access across agents.",
+		title: msg({
+			id: "components.paywall.teamCollaboration.title",
+			message: "Team Collaboration",
+		}),
+		description: msg({
+			id: "components.paywall.teamCollaboration.description",
+			message:
+				"Invite your team to shared workspaces. See real-time updates, sync configurations, and manage team access across agents.",
+		}),
 		icon: HiUsers,
 		iconColor: "text-blue-500",
 		gradientColors: ["#1e40af", "#1e3a8a", "#172554", "#1a1a2e"],
 	},
 	{
 		id: "tasks",
-		title: "Tasks",
-		description:
-			"Track and manage tasks synced from Linear. Stay on top of your work without leaving Superset.",
+		title: msg({
+			id: "components.paywall.tasks.title",
+			message: "Tasks",
+		}),
+		description: msg({
+			id: "components.paywall.tasks.description",
+			message:
+				"Track and manage tasks synced from Linear. Stay on top of your work without leaving Superset.",
+		}),
 		icon: HiOutlineClipboardDocumentList,
 		iconColor: "text-emerald-500",
 		gradientColors: ["#047857", "#065f46", "#064e3b", "#1a1a2e"],
 	},
 	{
 		id: "slack-integration",
-		title: "Slack Integration",
-		description:
-			"Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts.",
+		title: msg({
+			id: "components.paywall.slackIntegration.title",
+			message: "Slack Integration",
+		}),
+		description: msg({
+			id: "components.paywall.slackIntegration.description",
+			message:
+				"Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts.",
+		}),
 		icon: FaSlack,
 		iconColor: "text-violet-500",
 		gradientColors: ["#7c3aed", "#4f46e5", "#0f766e", "#1a1a2e"],
 	},
 	{
 		id: "mobile-app",
-		title: "Mobile App",
-		description:
-			"Monitor workspaces and manage tasks on the go. Continue conversations from anywhere.",
+		title: msg({
+			id: "components.paywall.mobileApp.title",
+			message: "Mobile App",
+		}),
+		description: msg({
+			id: "components.paywall.mobileApp.description",
+			message:
+				"Monitor workspaces and manage tasks on the go. Continue conversations from anywhere.",
+		}),
 		icon: HiDevicePhoneMobile,
 		iconColor: "text-red-500",
 		gradientColors: ["#7f1d1d", "#991b1b", "#450a0a", "#1a1a2e"],
@@ -79,6 +111,6 @@ export const PRO_FEATURES: ProFeature[] = [
 export const FEATURE_ID_MAP: Record<GatedFeature, string> = {
 	[GATED_FEATURES.INVITE_MEMBERS]: "team-collaboration",
 	[GATED_FEATURES.TASKS]: "tasks",
-	[GATED_FEATURES.REMOTE_WORKSPACES]: "remote-workspaces",
+	[GATED_FEATURES.REMOTE_ACCESS]: "remote-access",
 	[GATED_FEATURES.MOBILE_APP]: "mobile-app",
 };

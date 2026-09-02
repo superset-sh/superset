@@ -1,3 +1,5 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import type {
 	SlackTriggerEvent,
 	TriggerConfigInput,
@@ -17,42 +19,64 @@ export type Slot =
 	| "emoji"
 	| "actor"
 	| "messageFilter"
-	| "topLevelOnly"
 	| "completionReaction";
 
 export type SentencePart = { text: string } | { slot: Slot };
 
 export const SLACK_SENTENCES: Record<SlackTriggerEvent, SentencePart[]> = {
+	// The filter chip is the subject — "[Any message] from [Anyone] in [#x]" —
+	// rather than trailing a "Message" label it would collide with.
 	message_in_channel: [
-		{ text: "Message" },
 		{ slot: "messageFilter" },
+		{ text: "from" },
+		{ slot: "actor" },
 		{ text: "in" },
 		{ slot: "channels" },
-		{ text: "by" },
-		{ slot: "actor" },
-		{ slot: "topLevelOnly" },
 		{ text: "; react with" },
 		{ slot: "completionReaction" },
 		{ text: "upon completion" },
 	],
+	// Actor beside its verb: "added by" — at the end it read as the message's
+	// author rather than the reactor's.
 	reaction_added: [
 		{ text: "Reaction" },
 		{ slot: "emoji" },
-		{ text: "on a message in" },
-		{ slot: "channels" },
-		{ text: "by" },
+		{ text: "added by" },
 		{ slot: "actor" },
+		{ text: "to a message in" },
+		{ slot: "channels" },
 	],
-	channel_created: [{ text: "Channel created" }, { slot: "messageFilter" }],
+	channel_created: [
+		{ text: "Channel created matching" },
+		{ slot: "messageFilter" },
+	],
 };
 
 export const SLACK_MENU: TriggerMenuEntry<SlackConfig>[] = [
-	leaf("Message in channel", "message_in_channel"),
-	leaf("Reaction added", "reaction_added"),
-	leaf("Channel created", "channel_created"),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.slack.menuMessageInChannel",
+			message: "Message in channel",
+		}),
+		"message_in_channel",
+	),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.slack.menuReactionAdded",
+			message: "Reaction added",
+		}),
+		"reaction_added",
+	),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.slack.menuChannelCreated",
+			message: "Channel created",
+		}),
+		"channel_created",
+	),
 ];
 
-function leaf(label: string, event: SlackTriggerEvent) {
+function leaf(label: MessageDescriptor, event: SlackTriggerEvent) {
 	return { label, create: () => createSlackConfig(event) };
 }
 
@@ -70,13 +94,13 @@ export function createSlackConfig(event: SlackTriggerEvent): SlackConfig {
 		// "in" one, so that event has no channel to choose and stays wide open.
 		channels:
 			event === "channel_created" ? { mode: "any" } : { mode: "list", ids: [] },
-		// The reaction is an optional narrowing, so it starts at "any" — an
-		// empty list would render as "Any reaction" while matching nothing.
-		emoji: { mode: "any" },
+		// A reaction trigger names its reaction — the empty list refuses to save
+		// until one is typed, same as channels. Elsewhere the field is unused
+		// and stays wide open.
+		emoji:
+			event === "reaction_added" ? { mode: "list", ids: [] } : { mode: "any" },
 		actor: { mode: "any" },
 		messageFilter: null,
-		// A busy thread would otherwise fire once per reply.
-		topLevelOnly: true,
 		// The message trigger acknowledges the post it ran for; the others have
 		// no single message to react to.
 		completionReaction:

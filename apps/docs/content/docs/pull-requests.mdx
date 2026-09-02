@@ -1,0 +1,66 @@
+---
+title: Pull Requests
+description: Review, check, and merge PRs from your projects without leaving the app
+---
+
+The **Pull requests** view brings the PRs from your projects' GitHub repositories into Superset, so the loop of reviewing, fixing, and merging agent work never leaves the app. It's a destination in the dashboard sidebar with a resizable split view: the PR list on the left, and a full detail view — rendered description, CI checks, and the complete diff — on the right.
+
+![The Pull requests split view: filterable list on the left, detail with rendered markdown on the right](/images/pull-requests-view.png)
+
+## Browse and Filter
+
+The list shows every PR from the repositories behind your projects. Each row carries the repo, PR number, title, author, a compact CI check summary (passed/total), age, and the +added/−deleted line counts.
+
+- **State tabs**: **All**, **Open**, or **Merged**
+- **Repository**: multi-select across your projects' repos
+- **Author**: filter to a specific GitHub author
+- **Reviews**: review-status filter — *No reviews*, *Review required*, *Approved review*, *Changes requested*, *Reviewed by you*, *Not reviewed by you*, *Awaiting review from you*, or *Awaiting review from you or your team*
+- **Search**: find PRs by title or number
+
+Filters persist, so the view comes back the way you left it. Active filters show a count badge next to the search box.
+
+## The Detail View
+
+Selecting a PR opens it in the right pane, with **Summary** and **Code** tabs. Toggles at either end of the header collapse the list or the detail pane when you want more room; on narrow windows the panes stack automatically.
+
+### Summary
+
+The PR description renders as full markdown — headings, lists, code spans, and links. Alongside it:
+
+- **Checks**: every CI check with its status and a link to the run on GitHub. The header summarizes the state at a glance ("All 12 passed"). Cancelled checks count as failures, not successes.
+- Review status and reviewers for the PR
+- The comment thread, with a composer for replying
+
+![PR checks alongside the summary, with Start Workspace and Merge actions in the header](/images/pr-checks.png)
+
+### Code
+
+The **Code** tab is a complete diff viewer: a file tree with per-file added/deleted counts and modified/renamed markers, syntax-highlighted diffs, collapsed unmodified regions, and unified or side-by-side layouts. A **Files** dropdown jumps to any file in the changeset.
+
+![The Code tab: file tree plus syntax-highlighted diffs](/images/pr-code-view.png)
+
+### Comment Straight to an Agent
+
+Select lines in the Code tab and write a comment — then send it to an agent instead of (or as well as) leaving it on GitHub. The comment goes out with the file, line range, and side baked in:
+
+- If a workspace is already linked to the PR, send it to one of its **running agent terminals**, or start a **new agent session** there
+- If no workspace exists yet, Superset **creates a PR-checkout workspace** and launches the agent with your comment as its first prompt
+
+That turns "this function should handle the empty case" from a review comment into a running fix.
+
+## Actions
+
+From the detail header:
+
+- **Start Workspace** - check out the PR into a new workspace to run, test, or continue it. See [Workspaces](/workspaces)
+- **Merge** - choose **Squash and merge** (combine all commits), **Merge commit** (preserve commit history), or **Rebase and merge** (reapply all commits)
+- **Close** / reopen the PR
+- Open the PR on GitHub
+
+<Callout type="info">
+Merging, closing, and commenting act on the real PR through your GitHub connection - same permissions, same effects as doing it on github.com.
+</Callout>
+
+## Where PRs Come From
+
+PRs sync from the GitHub repositories of your connected projects; connect GitHub under project settings and the list stays fresh automatically. PR-based workspaces also surface review status and checks on their sidebar entries — see [PR Status](/workspaces#pr-status) — and the [PR feedback recipe](/recipes/pr-feedback) shows the full loop of turning review comments into agent runs.

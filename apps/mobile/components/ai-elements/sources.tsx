@@ -1,3 +1,4 @@
+import { Plural } from "@lingui/react/macro";
 import { useControllableState } from "@rn-primitives/hooks";
 import * as Linking from "expo-linking";
 import { BookIcon, ChevronDownIcon } from "lucide-react-native";
@@ -79,7 +80,14 @@ export const SourcesTrigger = ({
 		>
 			{children ?? (
 				<>
-					<Text className="font-medium">Used {count} sources</Text>
+					<Text className="font-medium">
+						<Plural
+							id="mobile.sources.usedCount"
+							value={count}
+							one="Used # source"
+							other="Used # sources"
+						/>
+					</Text>
 					<View
 						style={isOpen ? { transform: [{ rotate: "180deg" }] } : undefined}
 					>

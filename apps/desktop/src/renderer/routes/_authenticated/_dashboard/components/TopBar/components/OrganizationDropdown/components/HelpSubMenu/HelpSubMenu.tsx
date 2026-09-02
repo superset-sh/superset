@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import {
 	DropdownMenuItem,
@@ -36,22 +37,30 @@ export function HelpSubMenu({ onSubmitPrompt }: HelpSubMenuProps) {
 		<DropdownMenuSub>
 			<DropdownMenuSubTrigger>
 				<HiOutlineQuestionMarkCircle className="h-4 w-4" />
-				<span>Help</span>
+				<span>
+					<Trans id="dashboard.topBar.helpMenu.help">Help</Trans>
+				</span>
 			</DropdownMenuSubTrigger>
 			<DropdownMenuSubContent className="w-56">
 				<DropdownMenuItem onSelect={onSubmitPrompt}>
 					<LuMegaphone className="h-4 w-4" />
-					Submit a prompt
+					<Trans id="dashboard.topBar.helpMenu.submitPrompt">
+						Submit a prompt
+					</Trans>
 				</DropdownMenuItem>
 				<DropdownMenuItem onSelect={() => openExternal(COMPANY.DOCS_URL)}>
 					<HiOutlineBookOpen className="h-4 w-4" />
-					Documentation
+					<Trans id="dashboard.topBar.helpMenu.documentation">
+						Documentation
+					</Trans>
 				</DropdownMenuItem>
 				<DropdownMenuItem
 					onSelect={() => navigate({ to: "/settings/keyboard" })}
 				>
 					<LuKeyboard className="h-4 w-4" />
-					Keyboard Shortcuts
+					<Trans id="dashboard.topBar.helpMenu.keyboardShortcuts">
+						Keyboard Shortcuts
+					</Trans>
 					{shortcutsHotkey !== "Unassigned" && (
 						<DropdownMenuShortcut>{shortcutsHotkey}</DropdownMenuShortcut>
 					)}
@@ -60,30 +69,34 @@ export function HelpSubMenu({ onSubmitPrompt }: HelpSubMenuProps) {
 					onSelect={() => openExternal(COMPANY.REPORT_ISSUE_URL)}
 				>
 					<IoBugOutline className="h-4 w-4" />
-					Report Issue
+					<Trans id="dashboard.topBar.helpMenu.reportIssue">Report Issue</Trans>
 				</DropdownMenuItem>
 				<DropdownMenuSub>
 					<DropdownMenuSubTrigger>
 						<HiOutlineChatBubbleLeftRight className="h-4 w-4" />
-						Contact Us
+						<Trans id="dashboard.topBar.helpMenu.contactUs">Contact Us</Trans>
 					</DropdownMenuSubTrigger>
 					<DropdownMenuSubContent sideOffset={8} className="w-56">
 						<DropdownMenuItem onSelect={() => openExternal(COMPANY.GITHUB_URL)}>
 							<FaGithub className="h-4 w-4" />
-							GitHub
+							<Trans id="dashboard.topBar.helpMenu.github">GitHub</Trans>
 						</DropdownMenuItem>
 						<DropdownMenuItem
 							onSelect={() => openExternal(COMPANY.DISCORD_URL)}
 						>
 							<FaDiscord className="h-4 w-4" />
-							Discord
+							<Trans id="dashboard.topBar.helpMenu.discord">Discord</Trans>
 						</DropdownMenuItem>
 						<DropdownMenuItem onSelect={() => openExternal(COMPANY.X_URL)}>
-							<FaXTwitter className="h-4 w-4" />X
+							<FaXTwitter className="h-4 w-4" />
+							{/* Brand name — never translated (glossary). */}
+							{"X"}
 						</DropdownMenuItem>
 						<DropdownMenuItem onSelect={() => openExternal(COMPANY.MAIL_TO)}>
 							<HiOutlineEnvelope className="h-4 w-4" />
-							Email Support
+							<Trans id="dashboard.topBar.helpMenu.emailSupport">
+								Email Support
+							</Trans>
 						</DropdownMenuItem>
 					</DropdownMenuSubContent>
 				</DropdownMenuSub>

@@ -33,11 +33,16 @@ export function TextFilterChip({
 		<Popover open={open} onOpenChange={(next) => !disabled && setOpen(next)}>
 			<PopoverTrigger asChild>
 				<span>
+					{/* No `empty` styling: a null filter IS the value — "Any message"
+					    is a deliberate wide-open match, not a blank to fill in, and
+					    muting it made a configured chip read as disabled. */}
+					{/* "Matching" carries the verb the sentence around it does not:
+					    a bare quoted string beside "Comment added" reads as the
+					    comment, not as the filter applied to it. */}
 					<ChipButton
-						label={value?.pattern || emptyLabel}
-						empty={!value?.pattern}
+						label={value?.pattern ? `Matching "${value.pattern}"` : emptyLabel}
 						disabled={disabled}
-						className="max-w-52"
+						className="max-w-64"
 					/>
 				</span>
 			</PopoverTrigger>

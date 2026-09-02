@@ -24,7 +24,7 @@ Set up this project for Superset. Read docs.superset.sh/setup-teardown-scripts
 and docs.superset.sh/ports, then author a .superset/config.json for this repo.
 ```
 
-Future workspaces will then install dependencies and copy env files automatically via [setup scripts](/setup-teardown-scripts).
+Future workspaces will then install dependencies and copy env files automatically via [project lifecycle scripts](/setup-teardown-scripts).
 
 ![Creating a workspace from a prompt](/images/prompt-first.png)
 
@@ -63,7 +63,7 @@ If a losing attempt had one good idea, select those lines in its diff and copy t
 
 ## 7. Clean Up
 
-Delete the other workspaces. [Teardown scripts](/setup-teardown-scripts) run automatically, and the worktrees are removed. Deleting a workspace after merging is the normal rhythm, not an edge case.
+Delete the other workspaces. [Lifecycle teardown scripts](/setup-teardown-scripts) run automatically, and the worktrees are removed. Deleting a workspace after merging is the normal rhythm, not an edge case.
 
 ## You Now Know the Core Loop
 

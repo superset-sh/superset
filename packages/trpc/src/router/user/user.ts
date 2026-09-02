@@ -13,7 +13,7 @@ import { z } from "zod";
 
 import { emitAppFirstOpened } from "../../lib/activation-events";
 import { generateImagePathname, uploadImage } from "../../lib/upload";
-import { protectedProcedure } from "../../trpc";
+import { protectedProcedure, userError } from "../../trpc";
 
 export const userRouter = {
 	me: protectedProcedure.query(({ ctx }) => ctx.session.user),
@@ -93,10 +93,11 @@ export const userRouter = {
 					),
 				);
 			if ((otherOwners?.value ?? 0) === 0) {
-				throw new TRPCError({
+				throw userError({
 					code: "PRECONDITION_FAILED",
 					message:
 						"You are the only owner of an organization that has other members. Transfer ownership or delete the organization first.",
+					i18nKey: "serverError.user.youAreTheOnlyOwner",
 				});
 			}
 		}
@@ -115,6 +116,25 @@ export const userRouter = {
 		return { success: true };
 	}),
 
+	// Preferred UI language, written through from clients so async surfaces
+	// (web SSR, email) can render in it; null = auto-detect on each device.
+	updateLocale: protectedProcedure
+		.input(
+			z.object({
+				locale: z
+					.string()
+					.regex(/^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$/, "Invalid locale tag")
+					.nullable(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			await db
+				.update(users)
+				.set({ locale: input.locale })
+				.where(eq(users.id, ctx.session.user.id));
+			return { success: true };
+		}),
+
 	reactivateAccount: protectedProcedure.mutation(async ({ ctx }) => {
 		const userId = ctx.session.user.id;
 
@@ -126,9 +146,10 @@ export const userRouter = {
 
 		const graceMs = ACCOUNT_DELETION_GRACE_DAYS * 24 * 60 * 60 * 1000;
 		if (Date.now() - user.deletionRequestedAt.getTime() > graceMs) {
-			throw new TRPCError({
+			throw userError({
 				code: "FORBIDDEN",
 				message: "The recovery period has ended. Contact support@superset.sh.",
+				i18nKey: "serverError.user.theRecoveryPeriodHasEndedContact",
 			});
 		}
 
@@ -175,21 +196,20 @@ export const userRouter = {
 			});
 
 			if (!user) {
-				throw new TRPCError({
+				throw userError({
 					code: "NOT_FOUND",
 					message: "User not found",
+					i18nKey: "serverError.user.userNotFound",
 				});
 			}
 
 			const pathname = generateImagePathname({
 				prefix: `user/${userId}/avatar`,
-				mimeType: input.mimeType,
 			});
 
 			try {
 				const url = await uploadImage({
 					fileData: input.fileData,
-					mimeType: input.mimeType,
 					pathname,
 					existingUrl: user.image,
 				});
@@ -204,9 +224,10 @@ export const userRouter = {
 			} catch (error) {
 				if (error instanceof TRPCError) throw error;
 				console.error("[user/uploadAvatar] Upload failed:", error);
-				throw new TRPCError({
+				throw userError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to upload avatar",
+					i18nKey: "serverError.user.failedToUploadAvatar",
 				});
 			}
 		}),

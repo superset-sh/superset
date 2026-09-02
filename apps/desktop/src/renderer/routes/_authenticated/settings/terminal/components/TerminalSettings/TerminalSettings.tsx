@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { ReactNode } from "react";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import {
@@ -6,6 +7,7 @@ import {
 	type SettingItemId,
 } from "../../../utils/settings-search";
 import { BackgroundTerminalsSetting } from "./components/BackgroundTerminalsSetting";
+import { CopyOnSelectSetting } from "./components/CopyOnSelectSetting";
 import { LinkBehaviorSetting } from "./components/LinkBehaviorSetting";
 import { PresetsSection } from "./components/PresetsSection";
 import { SessionsSection } from "./components/SessionsSection";
@@ -69,13 +71,21 @@ export function TerminalSettings({
 		SETTING_ITEM_ID.TERMINAL_BACKGROUND_LIMIT,
 		visibleItems,
 	);
+	const showCopyOnSelect = isItemVisible(
+		SETTING_ITEM_ID.TERMINAL_COPY_ON_SELECT,
+		visibleItems,
+	);
 
 	return (
 		<div className="p-6 max-w-6xl w-full">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Terminal</h2>
+				<h2 className="text-xl font-semibold">
+					<Trans id="settings.terminal.title">Terminal</Trans>
+				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Configure terminal behavior and presets
+					<Trans id="settings.terminal.subtitle">
+						Configure terminal behavior and reusable terminal scripts
+					</Trans>
 				</p>
 			</div>
 
@@ -106,6 +116,7 @@ export function TerminalSettings({
 				{showBackgroundLimit && (
 					<BackgroundTerminalsSetting key="background-limit" />
 				)}
+				{showCopyOnSelect && <CopyOnSelectSetting key="copy-on-select" />}
 				{showSessions &&
 					(isV2CloudEnabled ? (
 						<V2SessionsSection key="sessions" />

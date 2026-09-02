@@ -105,10 +105,10 @@ export function SettingsListSidebar<T>({
 
 export function settingsListItemClass(isActive: boolean, extra?: string) {
 	return cn(
-		"flex items-center px-2 py-1.5 text-sm rounded-md transition-colors",
+		"flex h-7 items-center px-2 text-[13px] rounded-md transition-colors",
 		isActive
-			? "bg-accent text-accent-foreground"
-			: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+			? "bg-fill-selected"
+			: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
 		extra,
 	);
 }

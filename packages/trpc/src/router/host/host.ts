@@ -14,13 +14,13 @@ import {
 	buildHostRoutingKey,
 	parseHostRoutingKey,
 } from "@superset/shared/host-routing";
-import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
+import type { TRPCRouterRecord } from "@trpc/server";
 import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { emitAppFirstOpened } from "../../lib/activation-events";
 import { fetchRelayPresence } from "../../lib/relay-presence";
 import { resolveUserRelayUrl } from "../../lib/relay-url";
-import { jwtProcedure } from "../../trpc";
+import { jwtProcedure, userError } from "../../trpc";
 
 // Registering a first host means the app is installed and running, so it
 // also marks the user as first-opened for the activation automation.
@@ -61,9 +61,10 @@ export const hostRouter = {
 		.input(z.object({ organizationId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
 			if (!ctx.organizationIds.includes(input.organizationId)) {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "Not a member of this organization",
+					i18nKey: "serverError.host.notAMemberOfThisOrganization",
 				});
 			}
 
@@ -125,9 +126,10 @@ export const hostRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			if (!ctx.organizationIds.includes(input.organizationId)) {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "Not a member of this organization",
+					i18nKey: "serverError.host.notAMemberOfThisOrganization",
 				});
 			}
 
@@ -154,9 +156,10 @@ export const hostRouter = {
 				}));
 
 			if (!host) {
-				throw new TRPCError({
+				throw userError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to ensure host",
+					i18nKey: "serverError.host.failedToEnsureHost",
 				});
 			}
 
@@ -230,12 +233,17 @@ export const hostRouter = {
 		.mutation(async ({ ctx, input }) => {
 			const parsed = parseHostRoutingKey(input.hostId);
 			if (!parsed) {
-				throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid hostId" });
+				throw userError({
+					code: "BAD_REQUEST",
+					message: "Invalid hostId",
+					i18nKey: "serverError.host.invalidHostid",
+				});
 			}
 			if (!ctx.organizationIds.includes(parsed.organizationId)) {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "No access to this host",
+					i18nKey: "serverError.host.noAccessToThisHost",
 				});
 			}
 
@@ -248,9 +256,10 @@ export const hostRouter = {
 				columns: { hostId: true },
 			});
 			if (!access) {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "No access to this host",
+					i18nKey: "serverError.host.noAccessToThisHost",
 				});
 			}
 
@@ -277,9 +286,10 @@ export const hostRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			if (!ctx.organizationIds.includes(input.organizationId)) {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "No access to this host",
+					i18nKey: "serverError.host.noAccessToThisHost",
 				});
 			}
 
@@ -294,9 +304,10 @@ export const hostRouter = {
 				columns: { role: true },
 			});
 			if (!access || access.role !== "owner") {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "Only the host owner can set its wake command",
+					i18nKey: "serverError.host.onlyTheHostOwnerCanSet",
 				});
 			}
 

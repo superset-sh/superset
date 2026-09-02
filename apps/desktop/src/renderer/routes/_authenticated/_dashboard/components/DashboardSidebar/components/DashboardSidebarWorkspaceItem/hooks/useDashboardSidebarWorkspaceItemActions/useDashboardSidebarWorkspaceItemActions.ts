@@ -1,3 +1,9 @@
+import { useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
+import {
+	normalizeWorkspaceTags,
+	SESSIONS_TAG_SCOPE,
+} from "@superset/shared/workspace-tags";
 import { toast } from "@superset/ui/sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
@@ -16,7 +22,13 @@ import {
 } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/DashboardSidebarWorkspaceStatusProvider";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import {
+	applyFolderTagChange,
+	buildSidebarFolderKey,
+	mintFolderTag,
+} from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 import { useRemoveFromSidebarIntent } from "renderer/stores/remove-workspace-from-sidebar-intent";
 import { useV2NotificationStore } from "renderer/stores/v2-notifications";
@@ -25,6 +37,11 @@ interface UseDashboardSidebarWorkspaceItemActionsOptions {
 	workspaceId: string;
 	/** Null for project-less "session" workspaces. */
 	projectId: string | null;
+	/**
+	 * Cloud rows are also project-less, so a null `projectId` alone does not
+	 * mean "session". Only sessions may be grouped by tag.
+	 */
+	isSessionWorkspace?: boolean;
 	workspaceName: string;
 	branch: string;
 	isMainWorkspace?: boolean;
@@ -34,11 +51,13 @@ interface UseDashboardSidebarWorkspaceItemActionsOptions {
 export function useDashboardSidebarWorkspaceItemActions({
 	workspaceId,
 	projectId,
+	isSessionWorkspace = false,
 	workspaceName,
 	branch,
 	isMainWorkspace = false,
 	isPinned = false,
 }: UseDashboardSidebarWorkspaceItemActionsOptions) {
+	const { t } = useLingui();
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
 	const hostService = useLocalHostService();
@@ -53,6 +72,17 @@ export function useDashboardSidebarWorkspaceItemActions({
 	const { isUnread } = useSidebarWorkspaceStatus(workspaceId);
 	const workspaceHostUrl = useWorkspaceHostUrl(workspaceId);
 	const queryClient = useQueryClient();
+	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+	const sessionGroupTags = new Set(
+		hostWorkspaces.flatMap((workspace) =>
+			workspace.projectId === null
+				? normalizeWorkspaceTags(workspace.tags)
+				: [],
+		),
+	);
+	const currentWorkspaceTags = normalizeWorkspaceTags(
+		hostWorkspaces.find((workspace) => workspace.id === workspaceId)?.tags,
+	);
 
 	const clearWorkspaceAttention = () => {
 		clearManualUnread(workspaceId);
@@ -129,17 +159,39 @@ export function useDashboardSidebarWorkspaceItemActions({
 	};
 
 	const handleCreateSection = () => {
-		// Sessions get groups in the stacked nesting PR.
-		if (projectId === null) return;
+		if (projectId === null) {
+			if (!isSessionWorkspace) return;
+			const tag = mintFolderTag("New group", sessionGroupTags);
+			void workspaceActions.updateWorkspace(workspaceId, {
+				tags: applyFolderTagChange(currentWorkspaceTags, sessionGroupTags, tag),
+			});
+			requestSectionRename(buildSidebarFolderKey(SESSIONS_TAG_SCOPE, tag));
+			return;
+		}
 		const sectionId = createSection(projectId);
 		moveWorkspaceToSection(workspaceId, projectId, sectionId);
 		requestSectionRename(sectionId);
 	};
 
+	const handleMoveToSection = (sectionId: string | null) => {
+		if (projectId !== null) {
+			moveWorkspaceToSection(workspaceId, projectId, sectionId);
+			return;
+		}
+		if (!isSessionWorkspace) return;
+		void workspaceActions.updateWorkspace(workspaceId, {
+			tags: applyFolderTagChange(
+				currentWorkspaceTags,
+				sessionGroupTags,
+				sectionId,
+			),
+		});
+	};
+
 	const resolveWorktreePath = async (): Promise<string | null> => {
 		if (!activeHostUrl) {
 			showHostServiceUnavailableToast(hostService, {
-				action: "resolve the workspace path",
+				action: "resolveWorkspacePath",
 			});
 			return null;
 		}
@@ -147,7 +199,12 @@ export function useDashboardSidebarWorkspaceItemActions({
 			activeHostUrl,
 		).workspace.get.query({ id: workspaceId });
 		if (!workspace?.worktreePath) {
-			toast.error("Workspace path is not available");
+			toast.error(
+				t({
+					id: "dashboard.sidebar.workspaceActions.pathUnavailable",
+					message: "Workspace path is not available",
+				}),
+			);
 			return null;
 		}
 		return workspace.worktreePath;
@@ -160,7 +217,10 @@ export function useDashboardSidebarWorkspaceItemActions({
 			await electronTrpcClient.external.openInFinder.mutate(path);
 		} catch (error) {
 			toast.error(
-				`Failed to open in Finder: ${error instanceof Error ? error.message : "Unknown error"}`,
+				t({
+					id: "dashboard.sidebar.workspaceActions.openInFinderFailed",
+					message: `Failed to open in Finder: ${errorMessage(error, "Unknown error")}`,
+				}),
 			);
 		}
 	};
@@ -170,10 +230,18 @@ export function useDashboardSidebarWorkspaceItemActions({
 			const path = await resolveWorktreePath();
 			if (!path) return;
 			await copyToClipboard(path);
-			toast.success("Path copied");
+			toast.success(
+				t({
+					id: "dashboard.sidebar.workspaceActions.pathCopied",
+					message: "Path copied",
+				}),
+			);
 		} catch (error) {
 			toast.error(
-				`Failed to copy path: ${error instanceof Error ? error.message : "Unknown error"}`,
+				t({
+					id: "dashboard.sidebar.workspaceActions.copyPathFailed",
+					message: `Failed to copy path: ${errorMessage(error, "Unknown error")}`,
+				}),
 			);
 		}
 	};
@@ -206,7 +274,10 @@ export function useDashboardSidebarWorkspaceItemActions({
 			});
 		} catch (error) {
 			toast.error(
-				`Failed to clear agent status: ${error instanceof Error ? error.message : "Unknown error"}`,
+				t({
+					id: "dashboard.sidebar.workspaceActions.clearStatusFailed",
+					message: `Failed to clear agent status: ${errorMessage(error, "Unknown error")}`,
+				}),
 			);
 		}
 	};
@@ -214,7 +285,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 	const handleRemovePullRequest = async () => {
 		if (!workspaceHostUrl) {
 			showHostServiceUnavailableToast(hostService, {
-				action: "remove the PR link",
+				action: "removePrLink",
 			});
 			return;
 		}
@@ -227,22 +298,38 @@ export function useDashboardSidebarWorkspaceItemActions({
 			});
 		} catch (error) {
 			toast.error(
-				`Failed to remove PR link: ${error instanceof Error ? error.message : "Unknown error"}`,
+				t({
+					id: "dashboard.sidebar.workspaceActions.removePrLinkFailed",
+					message: `Failed to remove PR link: ${errorMessage(error, "Unknown error")}`,
+				}),
 			);
 		}
 	};
 
 	const handleCopyBranchName = async () => {
 		if (!branch) {
-			toast.error("Branch name is not available");
+			toast.error(
+				t({
+					id: "dashboard.sidebar.workspaceActions.branchUnavailable",
+					message: "Branch name is not available",
+				}),
+			);
 			return;
 		}
 		try {
 			await copyToClipboard(branch);
-			toast.success("Branch name copied");
+			toast.success(
+				t({
+					id: "dashboard.sidebar.workspaceActions.branchCopied",
+					message: "Branch name copied",
+				}),
+			);
 		} catch (error) {
 			toast.error(
-				`Failed to copy branch name: ${error instanceof Error ? error.message : "Unknown error"}`,
+				t({
+					id: "dashboard.sidebar.workspaceActions.copyBranchFailed",
+					message: `Failed to copy branch name: ${errorMessage(error, "Unknown error")}`,
+				}),
 			);
 		}
 	};
@@ -254,6 +341,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 		handleCopyPath,
 		handleCopyBranchName,
 		handleCreateSection,
+		handleMoveToSection,
 		handleOpenInFinder,
 		handleRemoveFromSidebar,
 		handleRemovePullRequest,
@@ -262,7 +350,6 @@ export function useDashboardSidebarWorkspaceItemActions({
 		isActive,
 		isRenaming,
 		isUnread,
-		moveWorkspaceToSection,
 		pendingName,
 		renameValue,
 		requestDelete,

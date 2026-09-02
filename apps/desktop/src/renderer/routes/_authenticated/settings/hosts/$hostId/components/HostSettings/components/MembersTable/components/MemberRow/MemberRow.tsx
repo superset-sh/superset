@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	Select,
@@ -30,6 +31,7 @@ export function MemberRow({
 	onSetRole,
 	onRemove,
 }: MemberRowProps) {
+	const { t } = useLingui();
 	return (
 		<TableRow>
 			<TableCell className="font-medium">{member.name}</TableCell>
@@ -46,12 +48,22 @@ export function MemberRow({
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
-							<SelectItem value="owner">Owner</SelectItem>
-							<SelectItem value="member">Member</SelectItem>
+							<SelectItem value="owner">
+								<Trans id="settings.hosts.memberRow.roleOwner">Owner</Trans>
+							</SelectItem>
+							<SelectItem value="member">
+								<Trans id="settings.hosts.memberRow.roleMember">Member</Trans>
+							</SelectItem>
 						</SelectContent>
 					</Select>
 				) : (
-					<span className="text-sm capitalize">{member.role}</span>
+					<span className="text-sm capitalize">
+						{member.role === "owner" ? (
+							<Trans id="settings.hosts.memberRow.roleOwnerText">Owner</Trans>
+						) : (
+							<Trans id="settings.hosts.memberRow.roleMemberText">Member</Trans>
+						)}
+					</span>
 				)}
 			</TableCell>
 			{isOwner && (
@@ -60,7 +72,10 @@ export function MemberRow({
 						variant="ghost"
 						size="sm"
 						onClick={() => onRemove(member)}
-						aria-label={`Remove ${member.name}`}
+						aria-label={t({
+							id: "settings.hosts.memberRow.removeAriaLabel",
+							message: `Remove ${member.name}`,
+						})}
 					>
 						<HiOutlineTrash className="h-4 w-4" />
 					</Button>

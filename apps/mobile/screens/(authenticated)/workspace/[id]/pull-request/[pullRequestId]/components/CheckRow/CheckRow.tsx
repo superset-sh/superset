@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { Pressable, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
@@ -17,12 +18,16 @@ export function CheckRow({
 	check: PullRequestCheck;
 	onPress?: () => void;
 }) {
+	const { t } = useLingui();
 	const outcome = CHECK_OUTCOME[effectiveCheckStatus(check)];
 	const style = CHECK_STYLE[outcome];
 	const took = checkDuration(check);
 	return (
 		<Pressable
-			accessibilityLabel={`${check.name}, ${outcome}${took ? `, ${took}` : ""}`}
+			accessibilityLabel={t({
+				id: "mobile.checks.rowLabel",
+				message: `${check.name}, ${outcome}${took ? `, ${took}` : ""}`,
+			})}
 			accessibilityRole={onPress ? "button" : undefined}
 			className="flex-row items-center gap-2.5 active:opacity-60"
 			disabled={onPress === undefined}

@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView, View } from "react-native";
@@ -23,6 +24,7 @@ export function ChecksSheet({
 	onOpenCheck?: (check: PullRequestCheck) => void;
 	onFixAll?: () => void;
 }) {
+	const { t } = useLingui();
 	const router = useRouter();
 	const [filter, setFilter] = useState<ChecksFilterValue>("all");
 	const {
@@ -34,10 +36,17 @@ export function ChecksSheet({
 
 	return (
 		<>
-			<Stack.Screen options={{ headerTitle: "Checks" }} />
+			<Stack.Screen
+				options={{
+					headerTitle: t({ id: "mobile.checks.title", message: "Checks" }),
+				}}
+			/>
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.Button
-					accessibilityLabel="Close"
+					accessibilityLabel={t({
+						id: "mobile.common.close",
+						message: "Close",
+					})}
 					icon="xmark"
 					onPress={() => router.back()}
 				/>
@@ -45,7 +54,10 @@ export function ChecksSheet({
 			{counts.failed > 0 && onFixAll ? (
 				<Stack.Toolbar placement="right">
 					<Stack.Toolbar.Button
-						accessibilityLabel="Fix all failing checks"
+						accessibilityLabel={t({
+							id: "mobile.checks.fixAll",
+							message: "Fix all failing checks",
+						})}
 						icon="wrench.and.screwdriver"
 						onPress={onFixAll}
 					/>

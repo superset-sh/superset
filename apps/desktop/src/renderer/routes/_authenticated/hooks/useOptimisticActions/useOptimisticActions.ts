@@ -29,6 +29,8 @@ interface V2WorkspacePatch {
 	name?: string;
 	branch?: string;
 	taskId?: string | null;
+	/** Full replacement of the workspace's tag set (sidebar folder membership). */
+	tags?: string[];
 }
 
 type TaskListRow = RouterOutputs["task"]["list"][number];
@@ -322,6 +324,7 @@ export function useOptimisticActions() {
 						name: patch.name,
 						branch: patch.branch,
 						taskId: patch.taskId,
+						tags: patch.tags,
 					})
 					.catch((error: unknown) => {
 						hostWorkspacesCache.invalidateHost(workspace.hostId);

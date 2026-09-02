@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { ExposeViaRelaySection } from "renderer/routes/_authenticated/settings/components/ExposeViaRelaySection";
 import {
 	isItemVisible,
@@ -18,9 +19,13 @@ export function SecuritySettings({ visibleItems }: SecuritySettingsProps) {
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Remote Workspaces</h2>
+				<h2 className="text-xl font-semibold">
+					<Trans id="settings.security.title">Remote Access</Trans>
+				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Control how your local machine is reachable from remote workspaces
+					<Trans id="settings.security.subtitle">
+						Control how your local machine is reachable from elsewhere
+					</Trans>
 				</p>
 			</div>
 

@@ -2,7 +2,7 @@ import {
 	findOrgMembership,
 	findOrgMembershipWithSubscription,
 } from "@superset/db/utils";
-import { TRPCError } from "@trpc/server";
+import { userError } from "../../i18n-error";
 
 export async function verifyOrgMembership(
 	userId: string,
@@ -11,9 +11,10 @@ export async function verifyOrgMembership(
 	const membership = await findOrgMembership({ userId, organizationId });
 
 	if (!membership) {
-		throw new TRPCError({
+		throw userError({
 			code: "FORBIDDEN",
 			message: "Not a member of this organization",
+			i18nKey: "serverError.integration.notAMemberOfThisOrganization",
 		});
 	}
 
@@ -24,9 +25,10 @@ export async function verifyOrgAdmin(userId: string, organizationId: string) {
 	const { membership } = await verifyOrgMembership(userId, organizationId);
 
 	if (membership.role !== "admin" && membership.role !== "owner") {
-		throw new TRPCError({
+		throw userError({
 			code: "FORBIDDEN",
 			message: "Admin access required",
+			i18nKey: "serverError.integration.adminAccessRequired",
 		});
 	}
 
@@ -37,9 +39,10 @@ export async function verifyOrgOwner(userId: string, organizationId: string) {
 	const { membership } = await verifyOrgMembership(userId, organizationId);
 
 	if (membership.role !== "owner") {
-		throw new TRPCError({
+		throw userError({
 			code: "FORBIDDEN",
 			message: "Only owners can delete projects",
+			i18nKey: "serverError.integration.onlyOwnersCanDeleteProjects",
 		});
 	}
 
@@ -61,9 +64,10 @@ export async function verifyOrgMembershipWithSubscription(
 	});
 
 	if (!result) {
-		throw new TRPCError({
+		throw userError({
 			code: "FORBIDDEN",
 			message: "Not a member of this organization",
+			i18nKey: "serverError.integration.notAMemberOfThisOrganization",
 		});
 	}
 

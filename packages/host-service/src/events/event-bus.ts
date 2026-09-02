@@ -37,6 +37,10 @@ type WorkspaceChangedListener = (
 	message: Omit<Extract<ServerMessage, { type: "workspace:changed" }>, "type">,
 ) => void;
 
+type TerminalLifecycleListener = (
+	message: Omit<Extract<ServerMessage, { type: "terminal:lifecycle" }>, "type">,
+) => void;
+
 function sendMessage(socket: WsSocket, message: ServerMessage): void {
 	if (socket.readyState !== 1) return;
 	socket.send(JSON.stringify(message));
@@ -87,6 +91,8 @@ export class EventBus {
 	private readonly clients = new Map<WsSocket, ClientState>();
 	private readonly workspaceChangedListeners =
 		new Set<WorkspaceChangedListener>();
+	private readonly terminalLifecycleListeners =
+		new Set<TerminalLifecycleListener>();
 	private readonly gitWatcher: GitWatcher;
 	private readonly filesystem: WorkspaceFilesystemManager;
 	private removeGitListener: (() => void) | null = null;
@@ -203,6 +209,20 @@ export class EventBus {
 	}
 
 	/**
+	 * Fan out binding mutations that are not lifecycle hooks. Renderers refetch
+	 * status from the host, but notification controllers do not treat this as an
+	 * agent completion event.
+	 */
+	broadcastAgentBindingsChanged(
+		message: Omit<
+			Extract<ServerMessage, { type: "agent:bindings-changed" }>,
+			"type"
+		>,
+	): void {
+		this.broadcast({ type: "agent:bindings-changed", ...message });
+	}
+
+	/**
 	 * Fan out terminal process lifecycle events to renderer clients. Agent hook
 	 * status can otherwise get stuck when a terminal exits while its pane is not
 	 * mounted and therefore cannot observe the terminal websocket `exit` packet.
@@ -213,7 +233,30 @@ export class EventBus {
 			"type"
 		>,
 	): void {
+		for (const listener of this.terminalLifecycleListeners) {
+			try {
+				listener(message);
+			} catch (error) {
+				console.error("[event-bus] terminal-lifecycle listener failed", {
+					error,
+				});
+			}
+		}
 		this.broadcast({ type: "terminal:lifecycle", ...message });
+	}
+
+	onTerminalLifecycle(listener: TerminalLifecycleListener): () => void {
+		this.terminalLifecycleListeners.add(listener);
+		return () => this.terminalLifecycleListeners.delete(listener);
+	}
+
+	broadcastPageWatchChanged(
+		message: Omit<
+			Extract<ServerMessage, { type: "page-watch:changed" }>,
+			"type"
+		>,
+	): void {
+		this.broadcast({ type: "page-watch:changed", ...message });
 	}
 
 	/**
@@ -275,6 +318,20 @@ export class EventBus {
 		message: Omit<Extract<ServerMessage, { type: "project:changed" }>, "type">,
 	): void {
 		this.broadcast({ type: "project:changed", ...message });
+	}
+
+	/**
+	 * Fan out tag-folder presentation changes for one scope (a project id, or
+	 * the Sessions lane). Its own channel rather than a field on the project
+	 * snapshot: the Sessions lane has no project to carry it.
+	 */
+	broadcastTagFoldersChanged(
+		message: Omit<
+			Extract<ServerMessage, { type: "tag-folders:changed" }>,
+			"type"
+		>,
+	): void {
+		this.broadcast({ type: "tag-folders:changed", ...message });
 	}
 
 	/**

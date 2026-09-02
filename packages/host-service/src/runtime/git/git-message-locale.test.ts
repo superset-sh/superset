@@ -58,6 +58,7 @@ function providerWithEnv(env: Record<string, string>): GitCredentialProvider {
 	return {
 		getCredentials: async () => ({ env: { ...env } }),
 		getToken: async () => null,
+		credentialRemedy: () => "no credentials",
 	};
 }
 

@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import {
 	LuPanelRight,
 	LuPanelRightClose,
@@ -11,6 +12,7 @@ import { usePullRequestsSplitViewStore } from "../../stores/pullRequestsSplitVie
  * reachable even when the detail pane is fully hidden.
  */
 export function PullRequestDetailToggle() {
+	const { t } = useLingui();
 	const isDetailCollapsed = usePullRequestsSplitViewStore(
 		(s) => s.isDetailCollapsed,
 	);
@@ -24,8 +26,14 @@ export function PullRequestDetailToggle() {
 			onClick={toggleDetailCollapsed}
 			aria-label={
 				isDetailCollapsed
-					? "Show pull request preview"
-					: "Hide pull request preview"
+					? t({
+							id: "dashboard.pullRequests.detailToggle.show",
+							message: "Show pull request preview",
+						})
+					: t({
+							id: "dashboard.pullRequests.detailToggle.hide",
+							message: "Hide pull request preview",
+						})
 			}
 			className="group flex size-6 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
 		>

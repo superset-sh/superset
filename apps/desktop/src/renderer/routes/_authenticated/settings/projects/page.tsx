@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
@@ -57,7 +58,7 @@ function ProjectsIndexPage() {
 		if (isV2CloudEnabled ? !isReady : groupsLoading) return null;
 		return (
 			<div className="flex items-center justify-center h-full p-6 text-sm text-muted-foreground">
-				No projects yet.
+				<Trans id="settings.projects.empty">No projects yet.</Trans>
 			</div>
 		);
 	}

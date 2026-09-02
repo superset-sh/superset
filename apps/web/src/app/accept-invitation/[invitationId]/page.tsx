@@ -3,6 +3,7 @@ import { TRPCClientError } from "@trpc/client";
 import { Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { i18n } from "@/lib/i18n-server";
 import { api } from "../../../trpc/server";
 import { AcceptInvitationButton } from "./AcceptInvitationButton";
 
@@ -66,16 +67,26 @@ export default async function AcceptInvitationPage({
 					</div>
 					<div className="space-y-4">
 						<h1 className="text-2xl font-semibold">
-							Invitation link does not exist
+							{i18n._({
+								id: "web.acceptInvitation.invalidTitle",
+								message: "Invitation link does not exist",
+							})}
 						</h1>
 						<p className="text-muted-foreground">
-							The team invitation has either expired or doesn't exist. Request a
-							new link from the team owner or check the URL to make sure it is
-							entered correctly.
+							{i18n._({
+								id: "web.acceptInvitation.invalidBody",
+								message:
+									"The team invitation has either expired or doesn't exist. Request a new link from the team owner or check the URL to make sure it is entered correctly.",
+							})}
 						</p>
 					</div>
 					<Button asChild variant="outline">
-						<Link href="/">Return to dashboard</Link>
+						<Link href="/">
+							{i18n._({
+								id: "web.acceptInvitation.returnToDashboard",
+								message: "Return to dashboard",
+							})}
+						</Link>
 					</Button>
 				</div>
 			</div>
@@ -87,10 +98,15 @@ export default async function AcceptInvitationPage({
 			<div className="max-w-lg space-y-6 text-center">
 				{invitation.organization.logo && (
 					<div className="relative mx-auto h-16 w-16">
+						{/* unoptimized: the URL is already a 256px square, resized and
+						    re-encoded by Cloudflare and cached at its edge. Without
+						    this, Vercel's optimizer fetches that and re-encodes it a
+						    second time, for a logo rendered at 64px. */}
 						<Image
 							src={invitation.organization.logo}
 							alt={invitation.organization.name}
 							fill
+							unoptimized
 							className="rounded-lg object-contain"
 						/>
 					</div>
@@ -98,11 +114,21 @@ export default async function AcceptInvitationPage({
 
 				<div className="space-y-4">
 					<h1 className="text-2xl font-semibold">
-						You've been invited to join {invitation.organization.name}
+						{i18n._({
+							id: "web.acceptInvitation.title",
+							message: "You've been invited to join {organization}",
+							values: { organization: invitation.organization.name },
+						})}
 					</h1>
 					<p className="text-muted-foreground">
-						{invitation.inviter.name} invited you to join as a {invitation.role}
-						.
+						{i18n._({
+							id: "web.acceptInvitation.body",
+							message: "{inviter} invited you to join as a {role}.",
+							values: {
+								inviter: invitation.inviter.name,
+								role: invitation.role,
+							},
+						})}
 					</p>
 				</div>
 

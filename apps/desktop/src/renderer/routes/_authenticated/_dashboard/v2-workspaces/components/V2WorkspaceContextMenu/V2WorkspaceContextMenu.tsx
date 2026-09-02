@@ -1,3 +1,5 @@
+import { Trans, useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -8,8 +10,13 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useCallback } from "react";
-import { LuArrowUpRight, LuGitBranch, LuTrash2 } from "react-icons/lu";
-import { RiPushpinFill, RiPushpinLine } from "react-icons/ri";
+import {
+	LuArrowUpRight,
+	LuGitBranch,
+	LuPanelLeftClose,
+	LuPanelLeftOpen,
+	LuTrash2,
+} from "react-icons/lu";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
@@ -27,7 +34,7 @@ export interface V2WorkspaceActions {
 
 interface V2WorkspaceContextMenuProps {
 	workspace: AccessibleV2Workspace;
-	/** Unpinning the current route's workspace is blocked. */
+	/** Hiding the current route's workspace from the sidebar is blocked. */
 	isCurrentRoute?: boolean;
 	/** Rendered as the context-menu trigger; receives the shared actions so
 	 * inline affordances (pin cell, trash button, card click) reuse them. */
@@ -43,6 +50,7 @@ export function V2WorkspaceContextMenu({
 	isCurrentRoute = false,
 	children,
 }: V2WorkspaceContextMenuProps) {
+	const { t } = useLingui();
 	const navigate = useNavigate();
 	const { gateFeature } = usePaywall();
 	const { ensureWorkspaceInSidebar, hideWorkspaceInSidebar } =
@@ -56,7 +64,7 @@ export function V2WorkspaceContextMenu({
 			go();
 			return;
 		}
-		gateFeature(GATED_FEATURES.REMOTE_WORKSPACES, go);
+		gateFeature(GATED_FEATURES.REMOTE_ACCESS, go);
 	}, [gateFeature, navigate, workspace.hostType, workspace.id]);
 
 	const addToSidebar = useCallback(() => {
@@ -66,7 +74,7 @@ export function V2WorkspaceContextMenu({
 			add();
 			return;
 		}
-		gateFeature(GATED_FEATURES.REMOTE_WORKSPACES, add);
+		gateFeature(GATED_FEATURES.REMOTE_ACCESS, add);
 	}, [
 		ensureWorkspaceInSidebar,
 		gateFeature,
@@ -77,15 +85,15 @@ export function V2WorkspaceContextMenu({
 
 	const removeFromSidebar = useCallback(() => {
 		if (isCurrentRoute) return;
-		// Unpin directly (synchronous optimistic write) rather than routing
+		// Hide directly (synchronous optimistic write) rather than routing
 		// through the intent store + RemoveFromSidebarMount effect, which adds
 		// an extra render cycle of latency. The list view is never a workspace
 		// route, so there's no active workspace to navigate away from.
 		//
 		// Always hide (keep the row with isHidden) rather than delete: the
 		// auto-add-local-workspaces hook treats a missing v2WorkspaceLocalState
-		// row as never-seen and would re-pin it. The tombstone row preserves the
-		// unpin intent.
+		// row as never-seen and would show it again. The tombstone row preserves
+		// the hidden state.
 		hideWorkspaceInSidebar(workspace.id, workspace.projectId);
 	}, [
 		isCurrentRoute,
@@ -97,13 +105,27 @@ export function V2WorkspaceContextMenu({
 	const handleCopyBranchName = useCallback(async () => {
 		try {
 			await copyToClipboard(workspace.branch);
-			toast.success("Branch name copied");
+			toast.success(
+				t({
+					id: "dashboard.workspaces.contextMenu.branchNameCopied",
+					message: "Branch name copied",
+				}),
+			);
 		} catch (error) {
 			toast.error(
-				`Failed to copy branch name: ${error instanceof Error ? error.message : "Unknown error"}`,
+				t({
+					id: "dashboard.workspaces.contextMenu.copyBranchNameFailed",
+					message: `Failed to copy branch name: ${errorMessage(
+						error,
+						t({
+							id: "dashboard.workspaces.contextMenu.unknownError",
+							message: "Unknown error",
+						}),
+					)}`,
+				}),
 			);
 		}
-	}, [copyToClipboard, workspace.branch]);
+	}, [copyToClipboard, workspace.branch, t]);
 
 	// Globally-mounted dialog (DeleteWorkspaceMount): archive-first
 	// tombstoning drops this row the moment the destroy starts, which
@@ -128,11 +150,13 @@ export function V2WorkspaceContextMenu({
 			<ContextMenuContent onCloseAutoFocus={(event) => event.preventDefault()}>
 				<ContextMenuItem onSelect={open}>
 					<LuArrowUpRight className="size-4" />
-					Open
+					<Trans id="dashboard.workspaces.contextMenu.open">Open</Trans>
 				</ContextMenuItem>
 				<ContextMenuItem onSelect={handleCopyBranchName}>
 					<LuGitBranch className="size-4" />
-					Copy Branch Name
+					<Trans id="dashboard.workspaces.contextMenu.copyBranchName">
+						Copy Branch Name
+					</Trans>
 				</ContextMenuItem>
 				<ContextMenuSeparator />
 				{workspace.isInSidebar ? (
@@ -140,13 +164,17 @@ export function V2WorkspaceContextMenu({
 						onSelect={removeFromSidebar}
 						disabled={isCurrentRoute}
 					>
-						<RiPushpinLine className="size-4" />
-						Unpin from Sidebar
+						<LuPanelLeftClose className="size-4" />
+						<Trans id="dashboard.workspaces.contextMenu.unpinFromSidebar">
+							Hide from Sidebar
+						</Trans>
 					</ContextMenuItem>
 				) : (
 					<ContextMenuItem onSelect={addToSidebar}>
-						<RiPushpinFill className="size-4" />
-						Pin to Sidebar
+						<LuPanelLeftOpen className="size-4" />
+						<Trans id="dashboard.workspaces.contextMenu.pinToSidebar">
+							Show on Sidebar
+						</Trans>
 					</ContextMenuItem>
 				)}
 				{!isMainWorkspace ? (
@@ -157,7 +185,7 @@ export function V2WorkspaceContextMenu({
 							className="text-destructive focus:text-destructive"
 						>
 							<LuTrash2 className="size-4 text-destructive" />
-							Delete
+							<Trans id="dashboard.workspaces.contextMenu.delete">Delete</Trans>
 						</ContextMenuItem>
 					</>
 				) : null}

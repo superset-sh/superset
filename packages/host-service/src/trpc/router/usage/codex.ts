@@ -135,7 +135,7 @@ async function fetchCodexAccountForHome(
 	if (!accessToken) return [];
 
 	const base = {
-		provider: "codex" as const,
+		agent: "codex" as const,
 		accountKey: authPath,
 		sourceLabel: codexHome.replace(homedir(), "~"),
 		extraUsage: null,

@@ -4,6 +4,8 @@ import { workspaceTrpc } from "@superset/workspace-client";
 import { useMemo } from "react";
 import { useSettings } from "renderer/stores/settings";
 
+export type DeferredDiffReason = "deferred" | "loading" | "error";
+
 export interface DiffThreadComment {
 	id: string;
 	authorLogin: string;
@@ -33,7 +35,8 @@ export interface DiffAgentComposer {
 export type DiffAnnotationMetadata =
 	| ({ kind: "thread" } & DiffCommentThread)
 	| ({ kind: "composer" } & DiffAgentComposer)
-	| { kind: "binary-placeholder" };
+	| { kind: "binary-placeholder" }
+	| { kind: "deferred-placeholder"; reason: DeferredDiffReason };
 
 interface UseDiffAnnotationsByPathOptions {
 	workspaceId: string;

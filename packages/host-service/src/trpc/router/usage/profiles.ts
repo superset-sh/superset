@@ -21,6 +21,7 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import { homedir, platform } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
+import { resolveAmbientCodexHome } from "@superset/agent-setup";
 
 const execFileAsync = promisify(execFile);
 
@@ -162,13 +163,19 @@ interface CodexAuthShape {
 }
 
 /**
- * Codex homes: `$CODEX_HOME` (default `~/.codex`) plus any `~/.codex*`
- * dot-dir carrying an `auth.json` with a token — the common multi-account
- * convention is one CODEX_HOME dir per account.
+ * Codex homes: the ambient home (`~/.codex`, or a `CODEX_HOME` the user set
+ * themselves — see resolveAmbientCodexHome for why Superset's own injected
+ * value is ignored) plus any `~/.codex*` dot-dir carrying an `auth.json` with
+ * a token. The common multi-account convention is one CODEX_HOME dir per
+ * account.
+ *
+ * The first entry is the system default, and `fetchCodexAccounts` gives it
+ * `selection: null`. It is listed even without an `auth.json` so the
+ * add-account poller has a baseline to compare a fresh `codex login` against.
  */
 export async function discoverCodexHomes(): Promise<CodexHome[]> {
 	const home = homedir();
-	const defaultHome = process.env.CODEX_HOME ?? join(home, ".codex");
+	const defaultHome = resolveAmbientCodexHome(home);
 	const homes = new Map<string, CodexHome>([
 		[defaultHome, { home: defaultHome, sourceLabel: tildeLabel(defaultHome) }],
 	]);

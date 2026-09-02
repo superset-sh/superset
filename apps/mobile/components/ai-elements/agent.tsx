@@ -1,3 +1,5 @@
+import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { BotIcon } from "lucide-react-native";
 import { memo } from "react";
 import { View } from "react-native";
@@ -71,7 +73,7 @@ export const AgentInstructions = memo(
 	({ className, children, ...props }: AgentInstructionsProps) => (
 		<View className={cn("gap-2", className)} {...props}>
 			<Text className="font-medium text-muted-foreground text-sm">
-				Instructions
+				<Trans id="mobile.agentCard.instructions">Instructions</Trans>
 			</Text>
 			<View className="rounded-md bg-muted/50 p-3">
 				<Text className="text-muted-foreground text-sm">{children}</Text>
@@ -84,7 +86,9 @@ export type AgentToolsProps = React.ComponentProps<typeof Accordion>;
 
 export const AgentTools = memo(({ className, ...props }: AgentToolsProps) => (
 	<View className={cn("gap-2", className)}>
-		<Text className="font-medium text-muted-foreground text-sm">Tools</Text>
+		<Text className="font-medium text-muted-foreground text-sm">
+			<Trans id="mobile.agentCard.tools">Tools</Trans>
+		</Text>
 		<Accordion className="rounded-md border border-border" {...props} />
 	</View>
 ));
@@ -101,7 +105,11 @@ export const AgentTool = memo(
 			<AccordionItem className={className} value={value} {...props}>
 				<AccordionTrigger className="px-3 py-2">
 					<Text className="flex-1 text-sm">
-						{tool.description ?? "No description"}
+						{tool.description ??
+							i18n._({
+								id: "mobile.agentCard.noDescription",
+								message: "No description",
+							})}
 					</Text>
 				</AccordionTrigger>
 				<AccordionContent className="px-3 pb-3">
@@ -122,7 +130,7 @@ export const AgentOutput = memo(
 	({ className, schema, ...props }: AgentOutputProps) => (
 		<View className={cn("gap-2", className)} {...props}>
 			<Text className="font-medium text-muted-foreground text-sm">
-				Output Schema
+				<Trans id="mobile.agentCard.outputSchema">Output Schema</Trans>
 			</Text>
 			<View className="rounded-md bg-muted/50">
 				<CodeBlock code={schema} language="typescript" />

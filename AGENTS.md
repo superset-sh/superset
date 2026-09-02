@@ -109,14 +109,62 @@ superset ws delete WORKSPACE_ID
 In order: an isolated workspace with an agent already working in it, another agent in an existing
 workspace, what's running, what an agent is doing right now, and cleanup when you're done.
 
+Spawning several related workspaces? Add `--tag SOME_TAG` (repeatable) to `ws create` — tagged
+workspaces group into a sidebar folder of that name automatically, so a batch files itself instead
+of scattering across the project. `ws list --tag SOME_TAG` filters to them, and
+`ws update WORKSPACE_ID --tag ...` retags (`--clear-tags` ungroups). Automation-created workspaces
+are tagged `automation` by default and collect in an "automation" folder.
+
 `superset <command> --help` covers the rest (tasks, automations, hosts, settings). Pass `--json` for
 parsable output; it's on by default under agent environments.
+
+## Internationalization
+
+User-facing strings use Lingui with explicit IDs — `<Trans id="area.name">Text</Trans>`
+or `useLingui()`'s `t({ id, message })` in React, `i18n._({ id, message })` outside React
+(Electron main). Numbers, currencies, and dates go through `@superset/i18n/format`
+helpers, never `new Intl.*("en-US")` or `toLocale*` with a hardcoded locale. After adding
+or changing strings, run `bun run --cwd packages/i18n check` (CI enforces it). Conventions
+and ID scheme: `packages/i18n/README.md`; terms that never translate:
+`packages/i18n/glossary.md`; strategy and phasing: `plans/20260826-i18n-strategy.md`.
+Directories listed in `packages/i18n/test/enforced-dirs.ts` must not contain hardcoded
+JSX text — add a directory there once it is fully converted. `errorMessage()` output is potentially
+translated and is display-only: logs, Sentry/PostHog, and error classification use
+`rawErrorMessage()` or the error object (enforced by `packages/i18n/test/display-only.test.ts`).
+
+**Shipping locales.** `SUPPORTED_LOCALES` in `packages/i18n/src/locales.ts` is the single
+source of truth — adding a locale there is what makes it appear in the Settings picker and
+the optional onboarding step, and what `lingui.config.ts` must list. Every enabled locale
+must be **fully translated**: `compile --strict` fails the build on a missing message, so
+finish a translation before adding its locale. Native language names live in `LOCALE_LABELS`
+and are never translated — someone stuck in the wrong language has to recognize their own.
+Relative times use `formatRelativeTime`/`formatCompactRelativeTime`, not hand-rolled
+"3d ago" helpers; `Intl` already knows every locale's wording.
+
+Three traps worth knowing before you touch catalogs:
+
+- **Editing English copy is not enough.** IDs are stable, so Lingui keeps the text loosely
+  coupled to them: `locales/en/messages.po` is what actually renders, and translations are
+  never invalidated when the English moves. `extract` runs `--overwrite` so the source locale
+  is always regenerated, and the `check` script fails on translations the edit stranded.
+  Details and the exemption file: `packages/i18n/README.md`.
+- **Regenerate from a clean tree.** `messages.po` is environment-sensitive. Entry order and
+  `#:` reference order both used to vary between macOS and Linux; `orderBy: "messageId"` and
+  `scripts/sort-po-references.ts` pin them, but a catalog regenerated on top of local
+  experiments will still commit noise.
+- **`bun test` runs uncompiled source.** The Lingui macro rewrites `` message: `${n} items` ``
+  into a placeholder message plus values at build time, so the catalog stores `{n} items`.
+  Tests see neither, which is why `apps/desktop/test-setup.ts` shims the macros and `i18n._`.
+  Mock that module with a Proxy, never a spread — `i18n` is a class instance and a spread
+  drops `load`/`activate`.
 
 ## Further reading
 
 - `.agents/skills/`: CDP UI verification, DB migrations, ticket format, and more. Read the matching
   `SKILL.md` when a task fits its description.
 - `docs/agent-tooling.md`: where commands, skills, and per-agent-CLI config live.
+- `docs/environment-variables.md`: read before adding an environment variable. Five places,
+  and missing one fails silently.
 - `apps/desktop/AGENTS.md`: desktop specifics (notices, persisted renderer state).
 - `apps/mobile/AGENTS.md`: mobile structure and iOS-only scope.
 - `docs/cloud-sandbox-mismatches.md`: where cloud workspace sandboxes don't fit assumptions the

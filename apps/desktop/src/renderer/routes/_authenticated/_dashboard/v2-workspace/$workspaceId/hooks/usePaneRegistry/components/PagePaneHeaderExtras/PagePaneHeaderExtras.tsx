@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	CommentModeButton,
@@ -8,7 +9,7 @@ import { usePageHeaderData } from "renderer/routes/_authenticated/_dashboard/hoo
 import type { PagePaneData } from "../../../../types";
 import { usePagePaneUi } from "../../hooks/usePagePaneUi";
 import { pagePaneLabel } from "../../utils/pagePaneLabel";
-import { PageHandoffMenu } from "./components/PageHandoffMenu";
+import { PageWatcherMenu } from "./components/PageWatcherMenu";
 
 interface PagePaneHeaderExtrasProps {
 	data: PagePaneData;
@@ -21,6 +22,7 @@ export function PagePaneHeaderExtras({
 	paneId,
 	workspaceId,
 }: PagePaneHeaderExtrasProps) {
+	const { t } = useLingui();
 	const {
 		page,
 		versions,
@@ -32,14 +34,19 @@ export function PagePaneHeaderExtras({
 	const { commentsEnabled, setCommentsEnabled, shareOpen, setShareOpen } =
 		usePagePaneUi(paneId);
 
+	const owned =
+		currentUserId !== undefined && currentUserId === page?.createdByUserId;
+
 	return (
 		<>
-			<PageHandoffMenu
-				workspaceId={workspaceId}
-				pageTitle={page?.title?.trim() || pagePaneLabel(data)}
-				pageSlug={data.slug}
-				threads={threads}
-			/>
+			{owned ? (
+				<PageWatcherMenu
+					workspaceId={workspaceId}
+					pageId={page?.id}
+					pageTitle={page?.title?.trim() || pagePaneLabel(data)}
+					pageSlug={data.slug}
+				/>
+			) : null}
 			<CommentModeButton
 				compact
 				enabled={commentsEnabled}
@@ -63,8 +70,14 @@ export function PagePaneHeaderExtras({
 						variant="ghost"
 						size="icon"
 						className="size-6 p-0 text-muted-foreground/60 hover:text-muted-foreground"
-						aria-label="Share page"
-						title="Share page"
+						aria-label={t({
+							id: "workspace.pagePane.sharePageAria",
+							message: "Share page",
+						})}
+						title={t({
+							id: "workspace.pagePane.sharePageTitle",
+							message: "Share page",
+						})}
 					>
 						<Share2 className="size-3.5" />
 					</Button>

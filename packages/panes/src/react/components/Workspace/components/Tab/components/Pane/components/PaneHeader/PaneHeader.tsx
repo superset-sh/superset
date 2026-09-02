@@ -57,8 +57,10 @@ export function PaneHeader({
 		<div
 			ref={setRef}
 			className={cn(
-				"flex h-7 shrink-0 items-center transition-opacity duration-150 cursor-grab",
-				!isActive && "opacity-60",
+				"flex h-7 shrink-0 cursor-grab items-center transition-opacity duration-150",
+				!isActive &&
+					!isDragging &&
+					"opacity-60 hover:opacity-100 focus-within:opacity-100",
 				isDragging && "opacity-30",
 			)}
 			onClick={onClick}

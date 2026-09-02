@@ -61,6 +61,7 @@ export const THEME_STORAGE_KEY = "superset-theme";
 // Download URLs
 export const DOWNLOAD_URL_MAC_ARM64 = `${COMPANY.GITHUB_URL}/releases/latest/download/Superset-arm64.dmg`;
 export const DOWNLOAD_URL_MAC_X64 = `${COMPANY.GITHUB_URL}/releases/latest/download/Superset-x64.dmg`;
+export const DOWNLOAD_URL_LINUX_X64 = `${COMPANY.GITHUB_URL}/releases/latest/download/Superset-x86_64.AppImage`;
 
 // Auth token configuration
 export const TOKEN_CONFIG = {
@@ -106,8 +107,6 @@ export const FEATURE_FLAGS = {
 	ELECTRIC_TASKS_ACCESS: "electric-tasks-access",
 	/** Gates access to the experimental mobile-first agents UI on web. */
 	WEB_AGENTS_UI_ACCESS: "web-agents-ui-access",
-	/** Gates access to GitHub integration (currently buggy, internal only). */
-	GITHUB_INTEGRATION_ACCESS: "github-integration-access",
 	/** Gates access to Cloud features (environment variables, sandboxes). */
 	CLOUD_ACCESS: "cloud-access",
 	/** When enabled, blocks remote agent execution on the desktop (e.g., for enterprise orgs). */
@@ -145,6 +144,12 @@ export const FEATURE_FLAGS = {
 	 * offered. Off, unloaded, offline, or a payload that isn't an array all
 	 * mean Scheduled only — the event providers exist on main ahead of their
 	 * credentials being provisioned, and each is exposed by adding its kind.
+	 *
+	 * The same payload decides which integrations the settings and web
+	 * integrations pages offer: one that only feeds automations is shown when
+	 * one of its kinds is enabled (`offeredIntegrations` in
+	 * `@superset/shared/integrations`), so a provider is connectable exactly
+	 * when its triggers are.
 	 */
 	AUTOMATION_EVENT_TRIGGERS: "automation-event-triggers",
 	/**
@@ -225,7 +230,6 @@ export const LAUNCHED_TRIGGER_KINDS = [
 	"linear",
 	"sentry",
 	"notion",
-	"circleback",
 	"microsoft_teams",
 	"google_calendar",
 	"gmail",

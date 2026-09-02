@@ -86,6 +86,12 @@ superset automations create --name "Nightly audit" --rrule "FREQ=DAILY;BYHOUR=3;
 # Omit --project and --workspace for session mode (a session workspace per run)
 superset automations create --name "Scratch triage" --rrule "FREQ=DAILY;BYHOUR=8;BYMINUTE=0" --prompt "…"
 
+# Each run's workspace carries the automation's tags and groups into the matching
+# sidebar folders. Default tag: "automation" — runs collect in an "automation"
+# folder per project. --tag (repeatable) files them elsewhere; clearing the tags
+# in the editor opts out of grouping.
+superset automations create --name "Nightly audit" --rrule "FREQ=DAILY;BYHOUR=3;BYMINUTE=0" --project <projectId> --prompt "…" --tag audits
+
 superset automations update <id> --session   # switch an existing automation to session mode
 superset automations get <id>
 superset automations run <id>

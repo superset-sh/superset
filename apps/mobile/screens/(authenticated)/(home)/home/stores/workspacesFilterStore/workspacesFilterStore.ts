@@ -1,3 +1,5 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -7,9 +9,18 @@ export type WorkspaceSort = "updatedAt" | "createdAt";
 /** Cloud is a place you scope to, not a machine you own. */
 export type WorkspaceScope = "cloud" | "host";
 
-export const SORT_OPTIONS: { value: WorkspaceSort; label: string }[] = [
-	{ label: "Last updated", value: "updatedAt" },
-	{ label: "Date created", value: "createdAt" },
+export const SORT_OPTIONS: {
+	value: WorkspaceSort;
+	label: MessageDescriptor;
+}[] = [
+	{
+		label: msg({ id: "mobile.home.sort.updatedAt", message: "Last updated" }),
+		value: "updatedAt",
+	},
+	{
+		label: msg({ id: "mobile.home.sort.createdAt", message: "Date created" }),
+		value: "createdAt",
+	},
 ];
 
 interface WorkspacesFilterStore {

@@ -136,7 +136,9 @@ export const workspaceLocalStateSchema = z.object({
 		// project workspace into Sessions).
 		projectId: z.string().uuid().nullable(),
 		tabOrder: z.number().int().default(0),
-		sectionId: z.string().uuid().nullable().default(null),
+		// Widened from uuid: may point at a tag-backed folder's composite
+		// `${projectId}:${tag}` key (written by move-into-derived-folder).
+		sectionId: z.string().min(1).nullable().default(null),
 		changesFilter: changesFilterSchema.default({ kind: "all" }),
 		changesViewMode: z.enum(["folders", "tree"]).default("folders"),
 		activeTab: WORKSPACE_SIDEBAR_TAB_SCHEMA.default("changes"),
@@ -212,13 +214,22 @@ const WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS = {
  * project-scoped: one level of grouping inside a project.
  */
 export const dashboardSidebarSectionSchema = z.object({
-	sectionId: z.string().uuid(),
+	// Widened from uuid: tag-backed folders use the composite key
+	// `${projectId}:${tag}` (see utils/workspaceTagFolders). Widening only —
+	// withReadHeal DELETES rows that fail parse, so this schema must keep
+	// accepting every previously persisted shape.
+	sectionId: z.string().min(1),
 	projectId: z.string().uuid(),
 	name: z.string().trim().min(1),
 	createdAt: persistedDateSchema,
 	tabOrder: z.number().int().default(0),
 	isCollapsed: z.boolean().default(false),
 	color: z.string().nullable().default(null),
+	// Null = legacy folder that owns members via sidebarState.sectionId; a
+	// non-null tag makes the folder tag-backed (membership from host tags,
+	// sectionId pointers at it are ignored). Default covers rows persisted
+	// before the field existed.
+	tag: z.string().nullable().default(null),
 });
 
 const v2ExecutionModeSchema = z.enum([
@@ -398,6 +409,10 @@ export const v2UserPreferencesSchema = z.object({
 	// KNOWN_BUILTIN_PRESET_IDS at heal time so retired ids can't persist.
 	hiddenBuiltinPresetIds: z.array(z.string()).default([]),
 	favoritePageIds: z.array(z.string()).default([]),
+	// Per-project tags whose folders the user hid ("Hide folder" — hides the
+	// grouping without untagging anyone). Bounded by tags a user has ever
+	// hidden; entries for tags no longer in use are harmless and cheap.
+	hiddenTagFolders: z.record(z.string(), z.array(z.string())).default({}),
 });
 
 // The fixed set of built-in preset ids. Consumers derive their id constants
@@ -426,6 +441,7 @@ export const DEFAULT_V2_USER_PREFERENCES: V2UserPreferencesRow = {
 	showPresetsBar: true,
 	hiddenBuiltinPresetIds: [],
 	favoritePageIds: [],
+	hiddenTagFolders: {},
 };
 
 /**

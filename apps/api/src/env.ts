@@ -10,7 +10,6 @@ export const env = createEnv({
 	server: {
 		DATABASE_URL: z.string(),
 		DATABASE_URL_UNPOOLED: z.string(),
-		BLOB_READ_WRITE_TOKEN: z.string(),
 		GOOGLE_CLIENT_ID: z.string().min(1),
 		GOOGLE_CLIENT_SECRET: z.string().min(1),
 		GH_CLIENT_ID: z.string().min(1),
@@ -82,6 +81,7 @@ export const env = createEnv({
 		NEXT_PUBLIC_API_URL: z.string().url(),
 		NEXT_PUBLIC_WEB_URL: z.string().url(),
 		NEXT_PUBLIC_ADMIN_URL: z.string().url(),
+		NEXT_PUBLIC_MARKETING_URL: z.string().url(),
 		NEXT_PUBLIC_DESKTOP_URL: z.string().url().optional(),
 		NEXT_PUBLIC_POSTHOG_KEY: z.string().min(1),
 		NEXT_PUBLIC_POSTHOG_HOST: z.string().url(),
@@ -95,6 +95,7 @@ export const env = createEnv({
 		NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
 		NEXT_PUBLIC_WEB_URL: process.env.NEXT_PUBLIC_WEB_URL,
 		NEXT_PUBLIC_ADMIN_URL: process.env.NEXT_PUBLIC_ADMIN_URL,
+		NEXT_PUBLIC_MARKETING_URL: process.env.NEXT_PUBLIC_MARKETING_URL,
 		NEXT_PUBLIC_DESKTOP_URL: process.env.NEXT_PUBLIC_DESKTOP_URL,
 		NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
 		NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,

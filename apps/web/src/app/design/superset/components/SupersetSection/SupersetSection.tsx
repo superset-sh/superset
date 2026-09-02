@@ -1,5 +1,7 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { Alerter, alert } from "@superset/ui/atoms/Alert";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Button } from "@superset/ui/button";
@@ -31,15 +33,27 @@ export function SupersetSection() {
 		<ShowcaseSection
 			id="superset"
 			index="01"
-			title="Superset originals"
-			description="Custom components beyond the shadcn set"
+			title={i18n._({
+				id: "web.design.supersetSection.supersetOriginals",
+				message: "Superset originals",
+			})}
+			description={i18n._({
+				id: "web.design.supersetSection.customComponentsBeyondTheShadcn",
+				message: "Custom components beyond the shadcn set",
+			})}
 		>
 			<Alerter />
 
 			<ComponentCard
-				title="Mesh Gradient"
+				title={i18n._({
+					id: "web.design.supersetSection.meshGradient",
+					message: "Mesh Gradient",
+				})}
 				importPath="@superset/ui/mesh-gradient"
-				description="Animated WebGL gradient (stripe-gradient)"
+				description={i18n._({
+					id: "web.design.supersetSection.animatedWebglGradientStripeGradient",
+					message: "Animated WebGL gradient (stripe-gradient)",
+				})}
 				bleed
 			>
 				<MeshGradient
@@ -49,12 +63,18 @@ export function SupersetSection() {
 			</ComponentCard>
 
 			<ComponentCard
-				title="Theme Preview Card"
+				title={i18n._({
+					id: "web.design.supersetSection.themePreviewCard",
+					message: "Theme Preview Card",
+				})}
 				importPath="@superset/ui/theme-preview-card"
 			>
 				<ThemePreviewCard
 					name="Superset Dark"
-					subtitle="Default terminal theme"
+					subtitle={i18n._({
+						id: "web.design.supersetSection.themeSubtitle",
+						message: "Default terminal theme",
+					})}
 					backgroundColor="#16161e"
 					foregroundColor="#c0caf5"
 					promptColor="#7aa2f7"
@@ -73,43 +93,99 @@ export function SupersetSection() {
 			</ComponentCard>
 
 			<ComponentCard
-				title="Sidebar Card"
+				title={i18n._({
+					id: "web.design.supersetSection.sidebarCard",
+					message: "Sidebar Card",
+				})}
 				importPath="@superset/ui/sidebar-card"
 			>
 				<SidebarCard
 					badge="Beta"
-					title="Mobile app"
-					description="Monitor agents from your phone."
+					title={i18n._({
+						id: "web.design.supersetSection.mobileApp",
+						message: "Mobile app",
+					})}
+					description={i18n._({
+						id: "web.design.supersetSection.monitorAgentsFromYourPhone",
+						message: "Monitor agents from your phone.",
+					})}
 					actionLabel="Join TestFlight"
-					onAction={() => toast("Opening TestFlight…")}
-					onDismiss={() => toast("Dismissed")}
+					onAction={() =>
+						toast(
+							i18n._({
+								id: "web.design.supersetSection.toastOpeningTestflight",
+								message: "Opening TestFlight…",
+							}),
+						)
+					}
+					onDismiss={() =>
+						toast(
+							i18n._({
+								id: "web.design.supersetSection.toastDismissed",
+								message: "Dismissed",
+							}),
+						)
+					}
 					className="w-full max-w-64"
 				/>
 			</ComponentCard>
 
 			<ComponentCard
-				title="Alert (imperative)"
+				title={i18n._({
+					id: "web.design.supersetSection.alertImperative",
+					message: "Alert (imperative)",
+				})}
 				importPath="@superset/ui/atoms/Alert"
-				description="alert() opens a promise-friendly dialog via the mounted Alerter"
+				description={i18n._({
+					id: "web.design.supersetSection.alertOpensAPromiseFriendly",
+					message:
+						"alert() opens a promise-friendly dialog via the mounted Alerter",
+				})}
 			>
 				<Button
 					variant="outline"
 					onClick={() =>
 						alert({
-							title: "Discard changes?",
-							description:
-								"The worktree has uncommitted edits from the agent session.",
-							checkbox: { label: "Don't ask me again" },
+							title: i18n._({
+								id: "web.design.supersetSection.alertTitle",
+								message: "Discard changes?",
+							}),
+							description: i18n._({
+								id: "web.design.supersetSection.alertDescription",
+								message:
+									"The worktree has uncommitted edits from the agent session.",
+							}),
+							checkbox: {
+								label: i18n._({
+									id: "web.design.supersetSection.alertCheckbox",
+									message: "Don't ask me again",
+								}),
+							},
 							actions: [
-								{ label: "Keep working", variant: "ghost" },
 								{
-									label: "Discard",
+									label: i18n._({
+										id: "web.design.supersetSection.alertKeepWorking",
+										message: "Keep working",
+									}),
+									variant: "ghost",
+								},
+								{
+									label: i18n._({
+										id: "web.design.supersetSection.alertDiscard",
+										message: "Discard",
+									}),
 									variant: "destructive",
 									onClick: ({ checkboxChecked }) => {
 										toast(
 											checkboxChecked
-												? "Discarded — won't ask again"
-												: "Discarded",
+												? i18n._({
+														id: "web.design.supersetSection.toastDiscardedNoAsk",
+														message: "Discarded — won't ask again",
+													})
+												: i18n._({
+														id: "web.design.supersetSection.toastDiscarded",
+														message: "Discarded",
+													}),
 										);
 									},
 								},
@@ -117,14 +193,22 @@ export function SupersetSection() {
 						})
 					}
 				>
-					Trigger alert()
+					<Trans id="web.design.supersetSection.triggerAlert">
+						Trigger alert()
+					</Trans>
 				</Button>
 			</ComponentCard>
 
 			<ComponentCard
-				title="Avatar (atom)"
+				title={i18n._({
+					id: "web.design.supersetSection.avatarAtom",
+					message: "Avatar (atom)",
+				})}
 				importPath="@superset/ui/atoms/Avatar"
-				description="Initials fallback via getInitials, sizes xs → xl"
+				description={i18n._({
+					id: "web.design.supersetSection.initialsFallbackViaGetinitialsSizes",
+					message: "Initials fallback via getInitials, sizes xs → xl",
+				})}
 			>
 				<Avatar size="xs" fullName="Avi Peltz" />
 				<Avatar size="sm" fullName="Avi Peltz" />
@@ -134,10 +218,16 @@ export function SupersetSection() {
 			</ComponentCard>
 
 			<ComponentCard
-				title="Referenced, not demoed"
+				title={i18n._({
+					id: "web.design.supersetSection.referencedNotDemoed",
+					message: "Referenced, not demoed",
+				})}
 				importPath="@superset/ui/*"
 				copyable={false}
-				description="Need app-level wiring (form state, chart data, app shell)"
+				description={i18n._({
+					id: "web.design.supersetSection.needAppLevelWiringForm",
+					message: "Need app-level wiring (form state, chart data, app shell)",
+				})}
 				span
 			>
 				<div className="w-full space-y-2">

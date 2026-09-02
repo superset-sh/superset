@@ -1,0 +1,4 @@
+export {
+	CLAUDE_BUILTIN_SLASH_COMMANDS,
+	CODEX_BUILTIN_SLASH_COMMANDS,
+} from "./builtins";

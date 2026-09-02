@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { UserMessage } from "@superset/chat/protocol";
 import { Message, MessageContent } from "@superset/ui/ai-elements/message";
 import { Badge } from "@superset/ui/badge";
@@ -25,7 +26,7 @@ export function UserMessageRow({ item }: { item: UserMessage }) {
 				)}
 				{item.queued && (
 					<Badge className="mt-1 w-fit" variant="outline">
-						Queued
+						<Trans id="workspace.chat.queued">Queued</Trans>
 					</Badge>
 				)}
 			</MessageContent>

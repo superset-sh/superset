@@ -19,7 +19,13 @@ export const pageFields = {
 	description: z.string().max(2000),
 	label: z.string().max(200),
 	visibility: z.enum(OFFERED_VISIBILITIES),
+	agentId: z.string().min(1).max(200),
 } as const;
+
+export const publishAssetSchema = z.object({
+	path: z.string().min(1).max(512),
+	fileId: pageFields.id,
+});
 
 const publishPageFieldsSchema = z.object({
 	content: z.string().min(1),
@@ -32,6 +38,7 @@ const publishPageFieldsSchema = z.object({
 	description: pageFields.description.optional(),
 	label: pageFields.label.optional(),
 	visibility: pageFields.visibility.optional(),
+	assets: z.array(publishAssetSchema).max(200).optional(),
 });
 
 /**
@@ -70,11 +77,37 @@ export const ANCHOR_MESSAGE = {
 	path: ["workspaceId"],
 };
 
+/**
+ * Strict on purpose. Zod strips unknown keys by default, so a newer client
+ * against an older server has its extra fields silently discarded — a CLI
+ * that uploaded assets and sent them here would get a successful publish
+ * whose page is missing every one of them, with no error anywhere. Refusing
+ * the key is how a version mismatch becomes visible.
+ */
 export const publishPageSchema = publishPageFieldsSchema
+	.strict()
 	.refine(hasCompleteWorkspaceLink, WORKSPACE_LINK_MESSAGE)
 	.refine(isAnchoredPublish, ANCHOR_MESSAGE);
 
 export type PublishPageInput = z.infer<typeof publishPageSchema>;
+
+/**
+ * A page can exist with no versions. Assets stage against a page id, so a
+ * first publish that carries assets creates the page up front and publishes
+ * into it, rather than letting `publish` mint the id it would have needed
+ * before the upload.
+ */
+export const createPageSchema = z
+	.object({
+		title: pageFields.title.optional(),
+		description: pageFields.description.optional(),
+		visibility: pageFields.visibility.optional(),
+		entryPath: pageFields.entryPath.optional(),
+		workspaceId: pageFields.workspaceId.optional(),
+	})
+	.refine(hasCompleteWorkspaceLink, WORKSPACE_LINK_MESSAGE);
+
+export type CreatePageInput = z.infer<typeof createPageSchema>;
 
 export const listPagesSchema = z
 	.object({ workspaceId: pageFields.workspaceId.optional() })
@@ -116,3 +149,10 @@ export const deletePageSchema = z.object({ id: pageFields.id });
 export const pullPageSchema = pageRefFieldsSchema
 	.extend({ version: pageFields.version.optional() })
 	.refine(hasPageRef, PAGE_REF_MESSAGE);
+
+export const setPageWatchSchema = z.object({
+	id: pageFields.id,
+	agentId: pageFields.agentId.nullable().default(null),
+});
+
+export const clearPageWatchSchema = z.object({ id: pageFields.id });

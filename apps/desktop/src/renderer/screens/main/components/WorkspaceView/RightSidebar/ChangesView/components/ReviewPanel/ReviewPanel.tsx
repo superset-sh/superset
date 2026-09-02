@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import type { GitHubStatus, PullRequestComment } from "@superset/local-db";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import {
@@ -117,7 +118,7 @@ export function ReviewPanel({
 			await copyToClipboardMutation.mutateAsync(text);
 			markCopiedAction(actionKey);
 		} catch (error) {
-			const message = error instanceof Error ? error.message : "Unknown error";
+			const message = errorMessage(error, "Unknown error");
 			toast.error(`${errorLabel}: ${message}`);
 		}
 	};
@@ -146,8 +147,7 @@ export function ReviewPanel({
 					onCommentsChange?.();
 				},
 				onError: (error) => {
-					const message =
-						error instanceof Error ? error.message : "Unknown error";
+					const message = errorMessage(error, "Unknown error");
 					toast.error(
 						`Failed to ${comment.isResolved ? "undo" : "mark as done"}: ${message}`,
 					);

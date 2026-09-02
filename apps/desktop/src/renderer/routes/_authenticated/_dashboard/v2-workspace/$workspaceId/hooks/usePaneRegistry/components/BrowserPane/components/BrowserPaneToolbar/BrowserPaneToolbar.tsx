@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { RendererContext } from "@superset/panes";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
@@ -8,6 +9,11 @@ import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { PaneViewerData } from "../../../../../../types";
 import { browserRuntimeRegistry } from "../../browserRuntimeRegistry";
 import { designModeStore, useDesignModeState } from "../../designModeStore";
+import {
+	deviceToolbarStore,
+	useDeviceToolbarState,
+} from "../../deviceToolbarStore";
+import { findBarStore } from "../../findBarStore";
 import { useBrowserState } from "../../hooks/useBrowserState";
 import { BrowserOverflowMenu } from "../BrowserOverflowMenu";
 import { BrowserToolbar } from "../BrowserToolbar";
@@ -20,6 +26,7 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 	const paneId = ctx.pane.id;
 	const state = useBrowserState(paneId);
 	const designMode = useDesignModeState(paneId);
+	const deviceToolbar = useDeviceToolbarState(paneId);
 
 	const handleToggleDesignMode = useCallback(() => {
 		designModeStore.toggle(paneId);
@@ -82,13 +89,20 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 							)}
 						>
 							<SquareDashedMousePointer className="size-3" />
-							Design
+							<Trans id="workspace.browserPane.designButton">Design</Trans>
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom">
-						{designMode.phase !== "idle"
-							? "Exit design mode (esc)"
-							: "Design mode — click any element in the page to send it to an agent"}
+						{designMode.phase !== "idle" ? (
+							<Trans id="workspace.browserPane.designTooltipExit">
+								Exit design mode (esc)
+							</Trans>
+						) : (
+							<Trans id="workspace.browserPane.designTooltipEnter">
+								Design mode — click any element in the page to send it to an
+								agent
+							</Trans>
+						)}
 					</TooltipContent>
 				</Tooltip>
 				<Tooltip disableHoverableContent>
@@ -101,12 +115,19 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 							<TbDeviceDesktop className="size-3.5" />
 						</button>
 					</TooltipTrigger>
-					<TooltipContent side="bottom">Open DevTools</TooltipContent>
+					<TooltipContent side="bottom">
+						<Trans id="workspace.browserPane.openDevTools">Open DevTools</Trans>
+					</TooltipContent>
 				</Tooltip>
 				<BrowserOverflowMenu
 					paneId={paneId}
 					currentUrl={state.currentUrl}
 					hasPage={!isBlankPage}
+					zoomFactor={state.zoomFactor}
+					isDeviceToolbarOpen={deviceToolbar.isOpen}
+					onToggleDeviceToolbar={() => deviceToolbarStore.toggle(paneId)}
+					onOpenFindBar={() => findBarStore.open(paneId)}
+					onNavigateToUrl={handleNavigate}
 				/>
 				<PaneHeaderActions />
 			</div>

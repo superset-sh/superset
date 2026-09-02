@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 
 type SessionTabsProps = {
@@ -18,10 +19,15 @@ const panelIds = {
 } as const;
 
 export function SessionTabs({ activeTab, onTabChange }: SessionTabsProps) {
+	const { t } = useLingui();
+
 	return (
 		<div
 			role="tablist"
-			aria-label="Session view"
+			aria-label={t({
+				id: "web.sessionTabs.tablistLabel",
+				message: "Session view",
+			})}
 			className="flex shrink-0 border-b border-border px-4"
 		>
 			<button
@@ -39,7 +45,7 @@ export function SessionTabs({ activeTab, onTabChange }: SessionTabsProps) {
 						: "text-muted-foreground hover:text-foreground",
 				)}
 			>
-				Chat
+				<Trans id="web.sessionTabs.chat">Chat</Trans>
 				{activeTab === "chat" && (
 					<div className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />
 				)}
@@ -59,7 +65,7 @@ export function SessionTabs({ activeTab, onTabChange }: SessionTabsProps) {
 						: "text-muted-foreground hover:text-foreground",
 				)}
 			>
-				Diff
+				<Trans id="web.sessionTabs.diff">Diff</Trans>
 				{activeTab === "diff" && (
 					<div className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />
 				)}

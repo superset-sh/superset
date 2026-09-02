@@ -30,6 +30,17 @@ import semver from "semver";
 import { DaemonClient } from "../terminal/DaemonClient/index.ts";
 import { EXPECTED_DAEMON_VERSION } from "./expected-version.ts";
 import { MAX_DAEMON_LOG_BYTES, openRotatingLogFd } from "./log-fd.ts";
+
+/**
+ * Replay buffer the daemon retains per session. Its own default is 64 KB,
+ * which is enough to repaint a screen on reattach but not to answer "what
+ * happened in this session" after a host-service restart: adoption refills
+ * the host's 2 MB catch-up ring from this buffer alone, so it is the real
+ * ceiling on a post-restart session handoff. Sized to leave a useful
+ * transcript without holding megabytes per session across many worktrees.
+ */
+const DAEMON_REPLAY_BUFFER_BYTES = 512 * 1024;
+
 import {
 	assertIsolatedDaemonNamespaceInTests,
 	isProcessAlive,
@@ -97,6 +108,23 @@ const HANDOFF_PREDECESSOR_EXIT_TIMEOUT_MS = 3_000;
 const HANDOFF_PROBE_TOTAL_TIMEOUT_MS = 3_000;
 const DAEMON_TERMINATE_TIMEOUT_MS = 1_000;
 const ADOPTION_PROBE_TOTAL_TIMEOUT_MS = 3_000;
+/**
+ * Escalated budget for a socket whose listener keeps accepting but whose
+ * hello never came back within the ordinary budget. Spawning instead would
+ * unlink that listener's path and orphan its PTYs forever, so it is worth
+ * waiting longer — a daemon starved of CPU (the exact condition in GH #6822)
+ * can miss a 3s budget and still be perfectly healthy. The per-attempt cap
+ * matters as much as the total: retrying a 1.5s attempt can never adopt a
+ * daemon that uniformly needs longer than 1.5s per connection.
+ *
+ * The budget bounds how long terminal readiness can stall behind a daemon
+ * that is wedged-but-accepting (the one case where waiting is wasted): the
+ * ordinary 3s probe plus this escalation is the worst case, and the
+ * escalated retry loop stops early the moment connects are refused — so a
+ * daemon that dies mid-probe costs ~one attempt, not the whole budget.
+ */
+const ADOPTION_PROBE_LIVE_SOCKET_TIMEOUT_MS = 8_000;
+const ADOPTION_PROBE_LIVE_SOCKET_ATTEMPT_TIMEOUT_MS = 4_000;
 
 /**
  * Crash supervision parameters. If the daemon for an organization crashes
@@ -447,15 +475,19 @@ export class DaemonSupervisor {
 		this.stopping.delete(organizationId);
 		this.lastUpdatePendingPair.delete(organizationId);
 
-		if (existingManifest) {
-			writePtyDaemonManifest({
-				pid: result.successorPid,
-				socketPath: instance.socketPath,
-				protocolVersions: existingManifest.protocolVersions,
-				startedAt: successorStartedAt,
-				organizationId,
-			});
-		}
+		// Always write, even when the predecessor had no manifest (it was
+		// adopted from its socket). Skipping it left the successor invisible to
+		// the next boot's `tryAdopt`, forcing the socket-adopt path whose
+		// probe failure orphans a live daemon (GH #6822).
+		writePtyDaemonManifest({
+			pid: result.successorPid,
+			socketPath: instance.socketPath,
+			protocolVersions: existingManifest?.protocolVersions ?? [
+				CURRENT_PROTOCOL_VERSION,
+			],
+			startedAt: successorStartedAt,
+			organizationId,
+		});
 
 		// Successor wasn't spawned as our child — start liveness polling.
 		this.startAdoptedLivenessCheck(organizationId, result.successorPid);
@@ -1050,10 +1082,40 @@ export class DaemonSupervisor {
 		const reachable = await isSocketConnectable(socketPath, 1000);
 		if (!reachable) return null;
 
-		const probe = await probeDaemonHelloWithRetry(
+		let probe = await probeDaemonHelloWithRetry(
 			socketPath,
 			ADOPTION_PROBE_TOTAL_TIMEOUT_MS,
 		);
+		if (!probe) {
+			// The listener was accepting a moment ago, so a silent probe most
+			// likely means a live daemon too busy to answer — not a stale
+			// socket file. Conceding now sends us to `spawn`, whose
+			// `Server.listen` unlinks this path unconditionally: POSIX leaves
+			// the old listener bound to an unreachable inode, so it keeps
+			// every PTY (agents, dev servers, watchers) running and burning
+			// CPU with no way back (GH #6822). No EADDRINUSE is raised, so
+			// nothing downstream notices.
+			logEvent("pty_daemon_socket_adopt_escalated", {
+				organizationId,
+				socketPath,
+				sourceReason: context.reason,
+				timeoutMs: ADOPTION_PROBE_LIVE_SOCKET_TIMEOUT_MS,
+			});
+			// Raise the PER-ATTEMPT cap too, not just the total: retrying a
+			// 1.5s attempt can never adopt a daemon that uniformly needs
+			// longer than 1.5s to answer, which is the starved daemon we are
+			// trying not to orphan. stopWhenNoListener bounds the wasted wait:
+			// if the daemon died since the probe above, the first refused
+			// connect ends the escalation instead of spinning out the budget.
+			probe = await probeDaemonHelloWithRetry(
+				socketPath,
+				ADOPTION_PROBE_LIVE_SOCKET_TIMEOUT_MS,
+				{
+					perAttemptTimeoutMs: ADOPTION_PROBE_LIVE_SOCKET_ATTEMPT_TIMEOUT_MS,
+					stopWhenNoListener: true,
+				},
+			);
+		}
 		if (!probe) {
 			logEvent("pty_daemon_socket_adopt_rejected", {
 				organizationId,
@@ -1138,6 +1200,23 @@ export class DaemonSupervisor {
 		const socketPath = ptyDaemonSocketPath(organizationId);
 		const logPath = path.join(dir, "pty-daemon.log");
 
+		// Adoption has already given up by the time we get here, yet a listener
+		// is STILL accepting on this path. Today the spawned daemon unlinks it
+		// and takes the name — the incumbent stays alive, bound to an
+		// unreachable inode, holding its whole PTY tree, visible only in `ps`
+		// days later (GH #6822). The event names the hazardous *condition*
+		// (spawning over a live socket), not that outcome: once the daemon-side
+		// bind refusal lands, the same condition ends with the child standing
+		// down instead of orphaning, and the event keeps marking the residual
+		// adopt-then-spawn disagreement worth investigating.
+		if (await isSocketConnectable(socketPath, 1000)) {
+			logEvent("pty_daemon_spawn_over_live_socket", {
+				organizationId,
+				socketPath,
+				reason: "adoption conceded but the socket is still accepting",
+			});
+		}
+
 		if (!fs.existsSync(this.opts.scriptPath)) {
 			throw new Error(
 				`[pty-daemon:${organizationId}] script not found at ${this.opts.scriptPath} — has the daemon binary been bundled?`,
@@ -1181,7 +1260,11 @@ export class DaemonSupervisor {
 			const isWindows = process.platform === "win32";
 			const command = isWindows ? process.execPath : "/bin/sh";
 			const commandArgs = isWindows
-				? [this.opts.scriptPath, `--socket=${socketPath}`]
+				? [
+						this.opts.scriptPath,
+						`--socket=${socketPath}`,
+						`--buffer-bytes=${DAEMON_REPLAY_BUFFER_BYTES}`,
+					]
 				: [
 						"-c",
 						'ulimit -n 1048576 2>/dev/null || ulimit -n "$(ulimit -Hn)" 2>/dev/null || true; exec "$@"',
@@ -1189,6 +1272,7 @@ export class DaemonSupervisor {
 						process.execPath,
 						this.opts.scriptPath,
 						`--socket=${socketPath}`,
+						`--buffer-bytes=${DAEMON_REPLAY_BUFFER_BYTES}`,
 					];
 			child = childProcess.spawn(command, commandArgs, {
 				detached: !isDev,
@@ -1477,16 +1561,34 @@ export async function listDaemonSessions(
  * `probeDaemonVersion` resolves to null on the first connect-error;
  * we have to actively retry.
  */
-async function probeDaemonHelloWithRetry(
+export async function probeDaemonHelloWithRetry(
 	socketPath: string,
 	totalTimeoutMs: number,
+	options: {
+		perAttemptTimeoutMs?: number;
+		/**
+		 * End the retry loop as soon as an attempt is DEFINITIVELY refused —
+		 * ECONNREFUSED/ENOENT prove no listener holds the path. The default
+		 * keeps retrying through refused connects because the handoff path
+		 * needs it (brief predecessor-exit → successor-bind gap); the
+		 * adoption-escalation path sets this so a daemon that dies mid-probe
+		 * costs one attempt, not the whole budget. An attempt that times out
+		 * with the connect still pending is NOT treated as no-listener: a
+		 * flooded daemon whose accept backlog is full hangs connects, and it
+		 * is exactly the live daemon the escalation exists to protect.
+		 */
+		stopWhenNoListener?: boolean;
+	} = {},
 ): Promise<DaemonProbeResult | null> {
+	const perAttemptCap = options.perAttemptTimeoutMs ?? VERSION_PROBE_TIMEOUT_MS;
 	const deadline = Date.now() + totalTimeoutMs;
 	while (Date.now() < deadline) {
 		const remaining = deadline - Date.now();
-		const perAttempt = Math.min(remaining, VERSION_PROBE_TIMEOUT_MS);
-		const probe = await probeDaemonHello(socketPath, perAttempt);
+		const perAttempt = Math.min(remaining, perAttemptCap);
+		const outcome: ProbeAttemptOutcome = {};
+		const probe = await probeDaemonHello(socketPath, perAttempt, outcome);
 		if (probe !== null) return probe;
+		if (options.stopWhenNoListener && outcome.noListener) return null;
 		await new Promise((r) => setTimeout(r, 50));
 	}
 	return null;
@@ -1563,9 +1665,22 @@ export async function probeDaemonVersion(
 	return (await probeDaemonHello(socketPath, timeoutMs))?.daemonVersion ?? null;
 }
 
+/**
+ * How a failed probe attempt failed, for the retry wrapper's stop decision.
+ * `connected` = the connect succeeded (a silent listener holds the path).
+ * `noListener` = the connect was definitively refused (ECONNREFUSED/ENOENT).
+ * Neither set = indeterminate — most notably a timeout with the connect still
+ * pending, which is how a flooded listener with a full accept backlog looks.
+ */
+interface ProbeAttemptOutcome {
+	connected?: boolean;
+	noListener?: boolean;
+}
+
 function probeDaemonHello(
 	socketPath: string,
 	timeoutMs: number,
+	outcome?: ProbeAttemptOutcome,
 ): Promise<DaemonProbeResult | null> {
 	return new Promise<DaemonProbeResult | null>((resolve) => {
 		const sock = net.createConnection({ path: socketPath });
@@ -1592,10 +1707,20 @@ function probeDaemonHello(
 
 		const timer = setTimeout(() => cleanup(null), timeoutMs);
 
-		sock.once("error", () => cleanup(null));
+		sock.once("error", (err: NodeJS.ErrnoException) => {
+			if (
+				outcome &&
+				!outcome.connected &&
+				(err.code === "ECONNREFUSED" || err.code === "ENOENT")
+			) {
+				outcome.noListener = true;
+			}
+			cleanup(null);
+		});
 		sock.once("close", () => cleanup(null));
 
 		sock.once("connect", () => {
+			if (outcome) outcome.connected = true;
 			try {
 				sock.write(
 					encodeFrame({

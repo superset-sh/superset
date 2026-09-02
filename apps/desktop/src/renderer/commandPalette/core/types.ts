@@ -1,3 +1,4 @@
+import type { MessageDescriptor } from "@lingui/core";
 import type { ExternalApp } from "@superset/local-db";
 import type { ElementType } from "react";
 import type { HotkeyId } from "renderer/hotkeys/registry";
@@ -36,7 +37,7 @@ export interface CommandContext {
 
 export interface Command {
 	id: string;
-	title: string;
+	title: MessageDescriptor;
 	section: SectionId;
 	icon?: ElementType<{ className?: string }>;
 	iconUrl?: string;
@@ -55,6 +56,6 @@ export interface CommandProvider {
 
 export interface CommandSection {
 	id: SectionId;
-	label: string;
+	label: MessageDescriptor;
 	commands: Command[];
 }

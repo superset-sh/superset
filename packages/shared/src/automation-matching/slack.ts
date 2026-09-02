@@ -27,10 +27,11 @@ export type SlackMatchableEvent = BaseMatchableEvent & {
 /**
  * One spelling of an emoji name for both sides of an emoji filter: `bug`,
  * `:bug:` and `bug::skin-tone-2` (how a skin-toned reaction arrives) all read
- * as `bug`. Slack emoji names are case-insensitive.
+ * as `bug`. Only the single wrapping pair comes off — a colon that is part of
+ * the name itself stays. Slack emoji names are case-insensitive.
  */
 export function slackEmojiName(raw: string): string {
-	const bare = raw.trim().replace(/^:+|:+$/g, "");
+	const bare = raw.trim().replace(/^:/, "").replace(/:$/, "");
 	return (bare.split("::")[0] ?? bare).toLowerCase();
 }
 
@@ -60,7 +61,6 @@ export function slackTriggerMatches(
 		emoji: TriggerScope;
 		actor: TriggerScope;
 		messageFilter?: { pattern: string; isRegex: boolean } | null;
-		topLevelOnly?: boolean;
 	},
 	event: SlackMatchableEvent,
 ): MatchResult {
@@ -86,12 +86,9 @@ export function slackTriggerMatches(
 	) {
 		return no("emoji");
 	}
-	// Absent on older configs; the default has always been top-level only.
-	if (
-		config.event === "message_in_channel" &&
-		config.topLevelOnly !== false &&
-		event.isThreadReply
-	) {
+	// Thread replies never fire message triggers — a busy thread would
+	// otherwise fire once per reply.
+	if (config.event === "message_in_channel" && event.isThreadReply) {
 		return no("threadReply");
 	}
 	if (!scopeAllows(config.actor, event.actorId)) {

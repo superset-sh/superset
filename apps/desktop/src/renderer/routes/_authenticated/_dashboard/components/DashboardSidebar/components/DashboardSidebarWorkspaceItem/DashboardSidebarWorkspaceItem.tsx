@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import {
 	type KeyboardEvent,
 	type MouseEvent,
@@ -15,7 +16,10 @@ import {
 } from "../../providers/DashboardSidebarHoverProvider";
 import type { WorkspaceSelectionEvent } from "../../providers/DashboardSidebarSelectionProvider";
 import { useSidebarWorkspaceStatus } from "../../providers/DashboardSidebarWorkspaceStatusProvider";
-import type { DashboardSidebarWorkspace } from "../../types";
+import type {
+	DashboardSidebarWorkspace,
+	DashboardSidebarWorkspaceIndentation,
+} from "../../types";
 import { DashboardSidebarCollapsedWorkspaceButton } from "./components/DashboardSidebarCollapsedWorkspaceButton";
 import { DashboardSidebarExpandedWorkspaceRow } from "./components/DashboardSidebarExpandedWorkspaceRow";
 import {
@@ -31,6 +35,7 @@ interface DashboardSidebarWorkspaceItemProps {
 	shortcutLabel?: string;
 	isCollapsed?: boolean;
 	isInSection?: boolean;
+	indentation?: DashboardSidebarWorkspaceIndentation;
 	isSelected?: boolean;
 	onSelectionClick?: (event: WorkspaceSelectionEvent) => boolean;
 	/**
@@ -47,10 +52,12 @@ export function DashboardSidebarWorkspaceItem({
 	shortcutLabel,
 	isCollapsed = false,
 	isInSection = false,
+	indentation,
 	isSelected = false,
 	onSelectionClick,
 	pinnedContext,
 }: DashboardSidebarWorkspaceItemProps) {
+	const { t } = useLingui();
 	const {
 		id,
 		projectId,
@@ -63,6 +70,7 @@ export function DashboardSidebarWorkspaceItem({
 		pullRequest,
 	} = workspace;
 	const isMainWorkspace = workspace.type === "main";
+	const isSessionWorkspace = workspace.type === "session";
 	const { status: workspaceStatus, diffStats } = useSidebarWorkspaceStatus(id);
 	const {
 		cancelRename,
@@ -72,6 +80,7 @@ export function DashboardSidebarWorkspaceItem({
 		handleCopyPath,
 		handleCopyBranchName,
 		handleCreateSection,
+		handleMoveToSection,
 		handleOpenInFinder,
 		handleRemoveFromSidebar,
 		handleRemovePullRequest,
@@ -80,7 +89,6 @@ export function DashboardSidebarWorkspaceItem({
 		isActive,
 		isUnread,
 		isRenaming,
-		moveWorkspaceToSection,
 		renameValue,
 		requestDelete,
 		setRenameValue,
@@ -89,6 +97,7 @@ export function DashboardSidebarWorkspaceItem({
 	} = useDashboardSidebarWorkspaceItemActions({
 		workspaceId: id,
 		projectId,
+		isSessionWorkspace,
 		workspaceName: name,
 		branch,
 		isMainWorkspace,
@@ -226,7 +235,15 @@ export function DashboardSidebarWorkspaceItem({
 					pullRequestState={pullRequest?.state ?? null}
 					aria-label={
 						isPending
-							? `Creating ${workspace.type === "session" ? "session" : "workspace"}: ${name}`
+							? workspace.type === "session"
+								? t({
+										id: "dashboard.sidebar.workspaceItem.creatingSession",
+										message: `Creating session: ${name}`,
+									})
+								: t({
+										id: "dashboard.sidebar.workspaceItem.creatingWorkspace",
+										message: `Creating workspace: ${name}`,
+									})
 							: undefined
 					}
 				/>
@@ -242,6 +259,7 @@ export function DashboardSidebarWorkspaceItem({
 						<DashboardSidebarWorkspaceContextMenu
 							workspaceId={id}
 							projectId={projectId}
+							isSessionWorkspace={isSessionWorkspace}
 							isInSection={isInSection}
 							isUnread={isUnread}
 							hasStatus={!!workspaceStatus}
@@ -254,9 +272,7 @@ export function DashboardSidebarWorkspaceItem({
 							onTogglePin={handleTogglePin}
 							onCreateSection={handleCreateSection}
 							showDeleteHotkey={isActive}
-							onMoveToSection={(targetSectionId) =>
-								moveWorkspaceToSection(id, projectId, targetSectionId)
-							}
+							onMoveToSection={handleMoveToSection}
 							onOpenInFinder={handleOpenInFinder}
 							onCopyPath={handleCopyPath}
 							onCopyBranchName={handleCopyBranchName}
@@ -304,6 +320,7 @@ export function DashboardSidebarWorkspaceItem({
 				diffStats={isPending ? null : diffStats}
 				workspaceStatus={workspaceStatus}
 				isInSection={isInSection}
+				indentation={indentation}
 				isBulkSelectable={onSelectionClick != null}
 				isSelected={isSelected}
 				onClick={handleExpandedClick}
@@ -334,14 +351,13 @@ export function DashboardSidebarWorkspaceItem({
 					<DashboardSidebarWorkspaceContextMenu
 						workspaceId={id}
 						projectId={projectId}
+						isSessionWorkspace={isSessionWorkspace}
 						isInSection={isInSection}
 						isUnread={isUnread}
 						hasStatus={!!workspaceStatus}
 						hasPullRequest={!!pullRequest}
 						onCreateSection={handleCreateSection}
-						onMoveToSection={(targetSectionId) =>
-							moveWorkspaceToSection(id, projectId, targetSectionId)
-						}
+						onMoveToSection={handleMoveToSection}
 						isLocalWorkspace={hostType === "local-device"}
 						isLocalMainWorkspace={
 							isMainWorkspace && hostType === "local-device"

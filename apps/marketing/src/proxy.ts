@@ -1,103 +1,48 @@
-import { type NextRequest, NextResponse } from "next/server";
-import { markdownNotFoundBody } from "@/lib/markdown-not-found";
+import { isSupportedLocale } from "@superset/i18n";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
-const MD_TWIN_PATTERN = /^\/(blog|compare|changelog)\/([^/]+)\.md$/;
-const CONTENT_PAGE_PATTERN = /^\/(blog|compare|changelog)\/[^/.]+$/;
+/**
+ * Locale routing. The whole route tree lives under app/[lang], but English
+ * keeps the bare URLs it has always had — every inbound link and its
+ * accumulated search equity stays valid:
+ *
+ * - /pricing        -> rewritten internally to /en/pricing (URL bar unchanged)
+ * - /ja/pricing     -> passes through, renders Japanese
+ * - /en/pricing     -> 308 to /pricing, so English has exactly one URL
+ *
+ * Deliberately no Accept-Language redirect: locale auto-redirects hide the
+ * localized pages from crawlers (which send en or nothing) and break shared
+ * links. Discovery is hreflang, the sitemap, and the visible switcher.
+ */
+export function proxy(request: NextRequest) {
+	const { pathname } = request.nextUrl;
+	const [, first = "", ...rest] = pathname.split("/");
 
-// Top-level category guide pages (content/category/*.mdx). Proxy runs on the
-// edge without fs access, so the slugs are duplicated here; keep in sync.
-const CATEGORY_SLUGS = ["parallel-coding-agents", "agent-orchestration"];
-
-// Static pages with a hand-built markdown twin in app/md/[...path]/route.ts.
-const PAGE_SLUGS = ["pricing", "mcp-install", "team", "enterprise"];
-
-// Markdown documents served by their own route handlers; never 404 these here.
-const MARKDOWN_ROUTES = new Set([
-	"/index.md",
-	"/agents.md",
-	"/auth.md",
-	"/llms.md",
-]);
-
-// AI assistants and AI search crawlers that prefer markdown. Search-engine
-// indexers (Googlebot, Bingbot) are deliberately absent: they get the HTML.
-const MARKDOWN_BOT_UA =
-	/GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-User|Claude-SearchBot|anthropic-ai|PerplexityBot|Perplexity-User|DeepSeekBot|DuckAssistBot|Meta-ExternalAgent|ora-agent/i;
-
-function acceptsMarkdown(request: NextRequest): boolean {
-	const accept = request.headers.get("accept") ?? "";
-	return accept.includes("text/markdown");
-}
-
-function prefersMarkdown(request: NextRequest): boolean {
-	if (acceptsMarkdown(request)) return true;
-	const userAgent = request.headers.get("user-agent") ?? "";
-	return MARKDOWN_BOT_UA.test(userAgent);
-}
-
-function rewriteTo(request: NextRequest, pathname: string): NextResponse {
+	if (first === "en") {
+		const url = request.nextUrl.clone();
+		url.pathname = `/${rest.join("/")}`;
+		return NextResponse.redirect(url, 308);
+	}
+	if (isSupportedLocale(first)) {
+		return;
+	}
 	const url = request.nextUrl.clone();
-	url.pathname = pathname;
-	url.search = "";
-	const response = NextResponse.rewrite(url);
-	response.headers.set("Vary", "Accept, User-Agent");
-	return response;
-}
-
-// Path of the markdown twin for a page path, or undefined if there is none.
-function markdownTwinFor(pathname: string): string | undefined {
-	if (pathname === "/") return "/index.md";
-	const bare = pathname.replace(/^\//, "");
-	if (CATEGORY_SLUGS.includes(bare)) return `/md/category/${bare}`;
-	if (PAGE_SLUGS.includes(bare)) return `/md/page/${bare}`;
-	if (CONTENT_PAGE_PATTERN.test(pathname)) return `/md${pathname}`;
-	return undefined;
-}
-
-function markdownNotFound(): NextResponse {
-	return new NextResponse(markdownNotFoundBody(), {
-		status: 404,
-		headers: {
-			"Content-Type": "text/markdown; charset=utf-8",
-			"Cache-Control": "public, max-age=300, s-maxage=300",
-		},
-	});
-}
-
-export default function proxy(request: NextRequest) {
-	const { pathname, searchParams } = request.nextUrl;
-
-	// Machine-readable homepage view for agents.
-	if (pathname === "/" && searchParams.get("mode") === "agent") {
-		return rewriteTo(request, "/agents.md");
-	}
-
-	// Explicit .md URLs: /pricing.md, /blog/foo.md, /parallel-coding-agents.md.
-	if (pathname.endsWith(".md")) {
-		if (MARKDOWN_ROUTES.has(pathname)) return NextResponse.next();
-		const twinMatch = pathname.match(MD_TWIN_PATTERN);
-		if (twinMatch) {
-			return rewriteTo(request, `/md/${twinMatch[1]}/${twinMatch[2]}`);
-		}
-		const twin = markdownTwinFor(pathname.slice(0, -3));
-		if (twin) return rewriteTo(request, twin);
-		// Unknown .md path: a real 404 with a markdown body agents can follow.
-		return markdownNotFound();
-	}
-
-	// Content negotiation (acceptmarkdown.com) and AI-bot UAs: serve the
-	// markdown twin of any page that has one.
-	if (prefersMarkdown(request)) {
-		const twin = markdownTwinFor(pathname);
-		if (twin) return rewriteTo(request, twin);
-	}
-
-	return NextResponse.next();
+	url.pathname = `/en${pathname}`;
+	return NextResponse.rewrite(url);
 }
 
 export const config = {
-	matcher: [
-		// Everything except Next internals and static assets.
-		"/((?!_next/|api/|favicon\\.ico|.*\\.(?:png|jpe?g|gif|svg|webp|ico|woff2?|ttf|css|js|map|xml|txt|json)$).*)",
-	],
+	// Skip Next internals, API routes, the two same-origin analytics proxies,
+	// and anything with a file extension (feeds, llms.txt, images, favicon) —
+	// those live at the root on purpose.
+	//
+	// `ingest` (PostHog, via next.config rewrites) and `monitoring` (Sentry's
+	// tunnelRoute) are extensionless, so without naming them here they get
+	// rewritten to /en/... and 404. That is silent: posthog-js still loads,
+	// because /ingest/static/*.js has a dot and slips through this matcher,
+	// and then every capture request dies. It cost four days of marketing
+	// analytics and Sentry reporting in 2026-08. apps/web and apps/api
+	// exclude both for the same reason.
+	matcher: ["/((?!_next|api|ingest|monitoring|.*\\..*).*)"],
 };

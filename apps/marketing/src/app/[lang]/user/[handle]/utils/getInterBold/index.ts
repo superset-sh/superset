@@ -1,0 +1,1 @@
+export { getInterBold } from "./getInterBold";

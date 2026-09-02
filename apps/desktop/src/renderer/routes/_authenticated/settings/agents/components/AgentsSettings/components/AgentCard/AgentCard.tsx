@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import type {
 	AgentPresetPatch,
 	ResolvedAgentConfig,
@@ -26,6 +27,7 @@ export function AgentCard({
 	showCommands,
 	showTaskPrompts,
 }: AgentCardProps) {
+	const { t } = useLingui();
 	const utils = electronTrpc.useUtils();
 	const isCustomTerminalAgent =
 		preset.source === "user" && preset.kind === "terminal";
@@ -157,7 +159,10 @@ export function AgentCard({
 			toast.error(
 				error instanceof Error
 					? error.message
-					: "Failed to update agent settings",
+					: t({
+							id: "settings.agents.card.updateFailed",
+							message: "Failed to update agent settings",
+						}),
 			);
 		}
 	};
@@ -196,12 +201,21 @@ export function AgentCard({
 			resetFieldInputs();
 			setShowPreview(false);
 			setValidationMessage(null);
-			toast.success(`${preset.label} reset to defaults`);
+			const presetLabel = preset.label;
+			toast.success(
+				t({
+					id: "settings.agents.card.resetSuccess",
+					message: `${presetLabel} reset to defaults`,
+				}),
+			);
 		} catch (error) {
 			toast.error(
 				error instanceof Error
 					? error.message
-					: "Failed to reset agent settings",
+					: t({
+							id: "settings.agents.card.resetFailed",
+							message: "Failed to reset agent settings",
+						}),
 			);
 		}
 	};

@@ -5,8 +5,11 @@ import { COMPANY, ORGANIZATION_HEADER } from "@superset/shared/constants";
 import { initTRPC, TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import superjson from "superjson";
-import { ZodError } from "zod";
+import { formatError, userError } from "./i18n-error";
 import { posthog } from "./lib/analytics";
+
+export type { I18nErrorCause } from "./i18n-error";
+export { isI18nErrorCause, userError } from "./i18n-error";
 
 export interface ApiClientInfo {
 	product: "desktop" | "mobile" | "cli";
@@ -66,14 +69,7 @@ export const createTRPCContext = (
 const t = initTRPC.context<TRPCContext>().create({
 	transformer: superjson,
 	errorFormatter({ shape, error }) {
-		return {
-			...shape,
-			data: {
-				...shape.data,
-				zodError:
-					error.cause instanceof ZodError ? error.cause.flatten() : null,
-			},
-		};
+		return formatError({ shape, error });
 	},
 });
 
@@ -124,9 +120,10 @@ export const protectedProcedure = t.procedure
 	.use(clientTelemetry)
 	.use(async ({ ctx, next }) => {
 		if (!ctx.session) {
-			throw new TRPCError({
+			throw userError({
 				code: "UNAUTHORIZED",
 				message: "Not authenticated. Please sign in.",
+				i18nKey: "serverError.common.notAuthenticatedPleaseSignIn",
 			});
 		}
 
@@ -137,9 +134,10 @@ export const protectedProcedure = t.procedure
 			ctx.session.user.deletionRequestedAt &&
 			!PENDING_DELETION_ALLOWED_PROCEDURES.has(path)
 		) {
-			throw new TRPCError({
+			throw userError({
 				code: "FORBIDDEN",
 				message: "Account is pending deletion.",
+				i18nKey: "serverError.common.accountIsPendingDeletion",
 			});
 		}
 		return next();
@@ -247,10 +245,11 @@ export const jwtProcedure = t.procedure
 			});
 		}
 
-		throw new TRPCError({
+		throw userError({
 			code: "UNAUTHORIZED",
 			message:
 				"Not authenticated. Provide a bearer JWT, x-api-key, or session.",
+			i18nKey: "serverError.common.notAuthenticatedProvideABearerJwt",
 		});
 	})
 	.use(async ({ ctx, path, next }) => {

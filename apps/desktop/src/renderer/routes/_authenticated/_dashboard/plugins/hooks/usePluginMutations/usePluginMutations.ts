@@ -1,3 +1,5 @@
+import { useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	getPluginByName,
 	isPluginExternallyConfigured,
@@ -11,6 +13,7 @@ const displayName = (name: string) =>
 
 /** Install/uninstall/toggle with shared toasts, analytics, and invalidation. */
 export function usePluginMutations() {
+	const { t } = useLingui();
 	const utils = electronTrpc.useUtils();
 	const invalidate = () => {
 		void utils.plugins.listInstalled.invalidate();
@@ -30,12 +33,27 @@ export function usePluginMutations() {
 		onSuccess: (_data, variables) => {
 			invalidate();
 			posthog.capture("plugin_installed", { plugin: variables.name });
-			toast.success(`${displayName(variables.name)} installed`, {
-				description: "Takes effect in new agent sessions.",
-			});
+			toast.success(
+				t({
+					id: "dashboard.plugins.mutations.installed",
+					message: `${displayName(variables.name)} installed`,
+				}),
+				{
+					description: t({
+						id: "dashboard.plugins.mutations.takesEffectNewSessions",
+						message: "Takes effect in new agent sessions.",
+					}),
+				},
+			);
 		},
 		onError: (error) => {
-			toast.error("Install failed", { description: error.message });
+			toast.error(
+				t({
+					id: "dashboard.plugins.mutations.installFailed",
+					message: "Install failed",
+				}),
+				{ description: errorMessage(error) },
+			);
 		},
 	});
 	const uninstallMutation = electronTrpc.plugins.uninstall.useMutation({
@@ -44,17 +62,29 @@ export function usePluginMutations() {
 			invalidate();
 			posthog.capture("plugin_uninstalled", { plugin: variables.name });
 			toast.success(
-				`${displayName(variables.name)} uninstalled`,
+				t({
+					id: "dashboard.plugins.mutations.uninstalled",
+					message: `${displayName(variables.name)} uninstalled`,
+				}),
 				remains
 					? {
-							description:
-								"Entries you added yourself stay in your agent config.",
+							description: t({
+								id: "dashboard.plugins.mutations.handWrittenEntriesStay",
+								message:
+									"Entries you added yourself stay in your agent config.",
+							}),
 						}
 					: undefined,
 			);
 		},
 		onError: (error) => {
-			toast.error("Uninstall failed", { description: error.message });
+			toast.error(
+				t({
+					id: "dashboard.plugins.mutations.uninstallFailed",
+					message: "Uninstall failed",
+				}),
+				{ description: errorMessage(error) },
+			);
 		},
 	});
 	const setEnabledMutation = electronTrpc.plugins.setEnabled.useMutation({
@@ -66,16 +96,39 @@ export function usePluginMutations() {
 				{ plugin: variables.name },
 			);
 			toast.success(
-				`${displayName(variables.name)} ${variables.enabled ? "enabled" : "disabled"}`,
+				variables.enabled
+					? t({
+							id: "dashboard.plugins.mutations.enabled",
+							message: `${displayName(variables.name)} enabled`,
+						})
+					: t({
+							id: "dashboard.plugins.mutations.disabled",
+							message: `${displayName(variables.name)} disabled`,
+						}),
 				{
 					description: remains
-						? "Entries you added yourself stay active in your agent config."
-						: "Takes effect in new agent sessions.",
+						? t({
+								id: "dashboard.plugins.mutations.handWrittenEntriesStayActive",
+								message:
+									"Entries you added yourself stay active in your agent config.",
+							})
+						: t({
+								id: "dashboard.plugins.mutations.takesEffectNewSessions",
+								message: "Takes effect in new agent sessions.",
+							}),
 				},
 			);
 		},
 		onError: (error) => {
-			toast.error("Could not update plugin", { description: error.message });
+			toast.error(
+				t({
+					id: "dashboard.plugins.mutations.updateFailed",
+					message: "Could not update plugin",
+				}),
+				{
+					description: errorMessage(error),
+				},
+			);
 		},
 	});
 

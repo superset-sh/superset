@@ -68,5 +68,10 @@
 		"brightMagenta": "#785588",
 		"brightCyan": "#578799",
 		"brightWhite": "#fcf8ee"
+	},
+	"editor": {
+		"syntax": {
+			"comment": "#5b6a85"
+		}
 	}
 }

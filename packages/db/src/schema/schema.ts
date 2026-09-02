@@ -1,5 +1,6 @@
 import { desc, sql } from "drizzle-orm";
 import {
+	bigint,
 	boolean,
 	check,
 	foreignKey,
@@ -793,34 +794,6 @@ export const chatSessions = pgTable(
 export type InsertChatSession = typeof chatSessions.$inferInsert;
 export type SelectChatSession = typeof chatSessions.$inferSelect;
 
-export const chatAttachments = pgTable(
-	"chat_attachments",
-	{
-		id: uuid().primaryKey().defaultRandom(),
-		chatSessionId: uuid("chat_session_id")
-			.notNull()
-			.references(() => chatSessions.id, { onDelete: "cascade" }),
-		createdBy: uuid("created_by")
-			.notNull()
-			.references(() => users.id, { onDelete: "cascade" }),
-		organizationId: uuid("organization_id")
-			.notNull()
-			.references(() => organizations.id, { onDelete: "cascade" }),
-		blobPathname: text("blob_pathname").notNull(),
-		mediaType: text("media_type").notNull(),
-		filename: text().notNull(),
-		sizeBytes: integer("size_bytes").notNull(),
-		createdAt: timestamp("created_at").notNull().defaultNow(),
-	},
-	(table) => [
-		index("chat_attachments_session_idx").on(table.chatSessionId),
-		index("chat_attachments_created_by_idx").on(table.createdBy),
-	],
-);
-
-export type InsertChatAttachment = typeof chatAttachments.$inferInsert;
-export type SelectChatAttachment = typeof chatAttachments.$inferSelect;
-
 export const automationRunStatus = pgEnum(
 	"automation_run_status",
 	automationRunStatusValues,
@@ -862,6 +835,13 @@ export const automations = pgTable(
 		// workspace (or the pinned v2WorkspaceId is itself a session).
 		v2ProjectId: uuid("v2_project_id"),
 		v2WorkspaceId: uuid("v2_workspace_id"),
+
+		// Workspace tags applied to each run's created workspace, so scheduled
+		// runs file themselves into the matching sidebar folders. Stored
+		// normalized (see @superset/shared/workspace-tags). Defaults to
+		// ["automation"] so every automation groups its runs out of the box;
+		// clearing the set in the editor is the opt-out.
+		tags: jsonb().$type<string[]>().notNull().default(["automation"]),
 
 		// The schedule lives in the automation's `schedule` trigger.
 		enabled: boolean().notNull().default(true),
@@ -1227,6 +1207,8 @@ export const pages = pgTable(
 		description: text(),
 		visibility: pageVisibility().notNull().default("just_me"),
 		sharedVersion: integer("shared_version"),
+		watchedByAgent: text("watched_by_agent"),
+		watchHeartbeatAt: timestamp("watch_heartbeat_at", { withTimezone: true }),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()
 			.defaultNow(),
@@ -1257,7 +1239,7 @@ export const pageVersions = pgTable(
 			.references(() => pages.id, { onDelete: "cascade" }),
 		version: integer().notNull(),
 		label: text(),
-		blobPathname: text("blob_pathname").notNull(),
+		storageKey: text("storage_key").notNull(),
 		contentType: text("content_type").notNull(),
 		sizeBytes: integer("size_bytes").notNull(),
 		sha256: text().notNull(),
@@ -1304,6 +1286,100 @@ export const workspacePages = pgTable(
 
 export type InsertWorkspacePage = typeof workspacePages.$inferInsert;
 export type SelectWorkspacePage = typeof workspacePages.$inferSelect;
+
+export const fileStatus = pgEnum("file_status", ["pending", "ready"]);
+
+export const attachmentParentKind = pgEnum("attachment_parent_kind", [
+	"page_version",
+	"issue",
+	"doc",
+	"chat_session",
+	"comment",
+	// Staging. Assets upload against the page before the version they will
+	// belong to exists; publish snapshots them onto that version and clears
+	// the staged rows, so a version is never served missing its own assets.
+	"page",
+]);
+
+/**
+ * The library: one row per uploaded object, bytes at
+ * `files/<id>/original` in the private bucket. `contentType` holds the
+ * client's declaration while `pending` and the server-sniffed type once
+ * `ready` — the serve-time policy keys on it, so it is never trusted from
+ * the client. A file with no attachments left is deleted; `pending` rows
+ * older than a day are swept.
+ */
+export const files = pgTable(
+	"files",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		name: text().notNull(),
+		contentType: text("content_type").notNull(),
+		sizeBytes: bigint("size_bytes", { mode: "number" }).notNull(),
+		sha256: text().notNull(),
+		status: fileStatus().notNull().default("pending"),
+		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("files_organization_id_created_at_idx").on(
+			table.organizationId,
+			desc(table.createdAt),
+		),
+		index("files_status_created_at_idx").on(table.status, table.createdAt),
+	],
+);
+
+export type InsertFile = typeof files.$inferInsert;
+export type SelectFile = typeof files.$inferSelect;
+
+/**
+ * Places a file on a parent — a page version, an issue, a doc, a chat
+ * session, a comment. Access to the bytes always derives from access to the
+ * parent; no foreign key on the parent because the kinds live in different
+ * tables (and some don't exist yet). `path` is the relative path a page
+ * asset was published at, unique within its version; null for everything
+ * else.
+ */
+export const attachments = pgTable(
+	"attachments",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		fileId: uuid("file_id")
+			.notNull()
+			.references(() => files.id, { onDelete: "cascade" }),
+		parentKind: attachmentParentKind("parent_kind").notNull(),
+		parentId: uuid("parent_id").notNull(),
+		path: text(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [
+		index("attachments_file_id_idx").on(table.fileId),
+		index("attachments_parent_kind_parent_id_idx").on(
+			table.parentKind,
+			table.parentId,
+		),
+		uniqueIndex("attachments_parent_path_unique")
+			.on(table.parentKind, table.parentId, table.path)
+			.where(sql`${table.path} is not null`),
+	],
+);
+
+export type InsertAttachment = typeof attachments.$inferInsert;
+export type SelectAttachment = typeof attachments.$inferSelect;
 
 export const pageCommentThreads = pgTable(
 	"page_comment_threads",

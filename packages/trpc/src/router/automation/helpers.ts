@@ -9,8 +9,8 @@ import {
 	type TriggerConfig,
 } from "@superset/db/schema";
 import { nextOccurrenceAfter } from "@superset/shared/rrule";
-import { TRPCError } from "@trpc/server";
 import { and, eq, inArray, sql } from "drizzle-orm";
+import { userError } from "../../i18n-error";
 
 const PROMPT_VERSION_BUCKET_SECONDS = 600;
 
@@ -306,6 +306,7 @@ export const automationBaseColumns = {
 	targetHostId: automations.targetHostId,
 	v2ProjectId: automations.v2ProjectId,
 	v2WorkspaceId: automations.v2WorkspaceId,
+	tags: automations.tags,
 	enabled: automations.enabled,
 	createdAt: automations.createdAt,
 	updatedAt: automations.updatedAt,
@@ -328,9 +329,10 @@ export async function getAutomationForUser(
 		.limit(1);
 
 	if (!automation || automation.ownerUserId !== userId) {
-		throw new TRPCError({
+		throw userError({
 			code: "NOT_FOUND",
 			message: "Automation not found",
+			i18nKey: "serverError.automation.automationNotFound",
 		});
 	}
 

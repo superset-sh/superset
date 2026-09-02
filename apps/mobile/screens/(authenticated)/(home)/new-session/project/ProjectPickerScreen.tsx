@@ -1,9 +1,8 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { Trans } from "@lingui/react/macro";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { Cloud } from "lucide-react-native";
-import { useMemo } from "react";
-import { Pressable, ScrollView, View } from "react-native";
-import { Icon } from "@/components/ui/icon";
+import { Pressable, ScrollView } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
 import { posthog } from "@/lib/posthog";
@@ -15,14 +14,15 @@ import {
 import { useNewSessionPreferencesStore } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/stores/newSessionPreferencesStore";
 
 /**
- * One sheet, sectioned by where the workspace would run: Cloud first — it is
- * never offline — then each online machine. A tap picks both the place and
- * the project.
+ * One flat list of the selected machine's projects. Where the workspace runs
+ * is picked at the top of Home, never here — and under Cloud the composer
+ * doesn't open this at all.
  */
 export function ProjectPickerScreen() {
 	const router = useRouter();
 	const routeParams = useLocalSearchParams<{ selectedKey?: string }>();
 	const theme = useTheme();
+	const insets = useSafeAreaInsets();
 	const { targets, defaultTarget } = useNewChatTargets();
 	const targetKey = useNewSessionPreferencesStore((state) => state.targetKey);
 	const setTargetKey = useNewSessionPreferencesStore(
@@ -34,22 +34,6 @@ export function ProjectPickerScreen() {
 		(targets.find((target) => target.key === targetKey)?.key ??
 			defaultTarget?.key ??
 			null);
-
-	const sections = useMemo(() => {
-		const cloud = targets.filter((target) => target.kind === "cloud");
-		const byHost = new Map<string, { name: string; rows: NewChatTarget[] }>();
-		for (const target of targets) {
-			if (target.kind !== "host") continue;
-			const group = byHost.get(target.machineId);
-			if (group) group.rows.push(target);
-			else
-				byHost.set(target.machineId, {
-					name: target.hostName,
-					rows: [target],
-				});
-		}
-		return { cloud, hosts: [...byHost.values()] };
-	}, [targets]);
 
 	const select = (key: string) => {
 		const picked = targets.find((target) => target.key === key);
@@ -88,7 +72,11 @@ export function ProjectPickerScreen() {
 	return (
 		<ScrollView
 			className="bg-background flex-1 px-6"
-			contentContainerStyle={{ flexGrow: 1, paddingVertical: 8 }}
+			contentContainerStyle={{
+				flexGrow: 1,
+				paddingTop: 8,
+				paddingBottom: insets.bottom + 8,
+			}}
 		>
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.Button icon="xmark" onPress={() => router.back()} />
@@ -98,39 +86,10 @@ export function ProjectPickerScreen() {
 					className="py-6 text-center text-sm"
 					style={{ color: theme.mutedForeground }}
 				>
-					No projects available
+					<Trans id="mobile.projectPicker.empty">No projects available</Trans>
 				</Text>
 			) : null}
-			{sections.cloud.length > 0 ? (
-				<>
-					<View className="flex-row items-center gap-2 pb-1 pt-2">
-						<Icon
-							as={Cloud}
-							className="text-muted-foreground size-4"
-							strokeWidth={1.75}
-						/>
-						<Text className="text-muted-foreground text-xs font-semibold uppercase tracking-wide">
-							Cloud
-						</Text>
-					</View>
-					{sections.cloud.map(renderRow)}
-				</>
-			) : null}
-			{sections.hosts.map((host, index) => (
-				<View
-					key={host.name + String(index)}
-					className={
-						sections.cloud.length > 0 || index > 0
-							? "border-border/60 mt-3 border-t pt-3"
-							: undefined
-					}
-				>
-					<Text className="text-muted-foreground pb-1 text-xs font-semibold uppercase tracking-wide">
-						{host.name}
-					</Text>
-					{host.rows.map(renderRow)}
-				</View>
-			))}
+			{targets.map(renderRow)}
 		</ScrollView>
 	);
 }

@@ -1,6 +1,7 @@
 import { existsSync, statSync } from "node:fs";
 import { access, mkdir, rm } from "node:fs/promises";
 import { basename, join } from "node:path";
+import { i18n } from "@superset/i18n";
 import {
 	BRANCH_PREFIX_MODES,
 	EXTERNAL_APPS,
@@ -564,7 +565,10 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				}
 				const result = await dialog.showOpenDialog(window, {
 					properties: ["openDirectory", "createDirectory"],
-					title: "Select Directory",
+					title: i18n._({
+						id: "desktop.lib.dialog.selectDirectory.title",
+						message: "Select Directory",
+					}),
 					defaultPath: input.defaultPath,
 				});
 				if (result.canceled || result.filePaths.length === 0) {
@@ -1085,7 +1089,10 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 			}
 			const result = await dialog.showOpenDialog(window, {
 				properties: ["openDirectory", "multiSelections"],
-				title: "Open Project",
+				title: i18n._({
+					id: "desktop.lib.dialog.openProject.title",
+					message: "Open Project",
+				}),
 			});
 
 			if (result.canceled || result.filePaths.length === 0) {
@@ -1247,7 +1254,10 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						}
 						const result = await dialog.showOpenDialog(window, {
 							properties: ["openDirectory", "createDirectory"],
-							title: "Select Clone Destination",
+							title: i18n._({
+								id: "desktop.lib.dialog.selectCloneDestination.title",
+								message: "Select Clone Destination",
+							}),
 						});
 
 						// User canceled - return canceled state (not an error)

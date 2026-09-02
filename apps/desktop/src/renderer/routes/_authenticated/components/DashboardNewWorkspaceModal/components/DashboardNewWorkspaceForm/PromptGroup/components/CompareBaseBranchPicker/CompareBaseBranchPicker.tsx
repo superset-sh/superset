@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	Command,
 	CommandEmpty,
@@ -61,6 +62,7 @@ export function CompareBaseBranchPicker({
 	onSelectCompareBaseBranch,
 	onOpenWorkspace,
 }: CompareBaseBranchPickerProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	// Mirror cmdk's selected row so Mod+Enter can resolve it without DOM lookup.
 	const [selectedValue, setSelectedValue] = useState("");
@@ -92,7 +94,11 @@ export function CompareBaseBranchPicker({
 
 	if (isBranchesError) {
 		return (
-			<span className="text-xs text-destructive">Failed to load branches</span>
+			<span className="text-xs text-destructive">
+				<Trans id="dashboard.newWorkspaceModal.compareBaseBranchPicker.loadFailed">
+					Failed to load branches
+				</Trans>
+			</span>
 		);
 	}
 
@@ -118,7 +124,9 @@ export function CompareBaseBranchPicker({
 						</span>
 					) : (
 						<span className="truncate text-muted-foreground/80">
-							Select base branch…
+							<Trans id="dashboard.newWorkspaceModal.compareBaseBranchPicker.selectPlaceholder">
+								Select base branch…
+							</Trans>
 						</span>
 					)}
 					<HiChevronUpDown className="size-3 shrink-0" />
@@ -149,7 +157,10 @@ export function CompareBaseBranchPicker({
 					}}
 				>
 					<CommandInput
-						placeholder="Search branches..."
+						placeholder={t({
+							id: "dashboard.newWorkspaceModal.compareBaseBranchPicker.searchPlaceholder",
+							message: "Search branches...",
+						})}
 						value={branchSearch}
 						onValueChange={onBranchSearchChange}
 					/>
@@ -160,16 +171,24 @@ export function CompareBaseBranchPicker({
 					>
 						<TabsList className="grid w-full grid-cols-2 h-7 bg-transparent">
 							<TabsTrigger value="all" className="text-[11px]">
-								All
+								<Trans id="dashboard.newWorkspaceModal.compareBaseBranchPicker.filterAll">
+									All
+								</Trans>
 							</TabsTrigger>
 							<TabsTrigger value="worktree" className="text-[11px]">
-								Worktree
+								<Trans id="dashboard.newWorkspaceModal.compareBaseBranchPicker.filterWorktree">
+									Worktree
+								</Trans>
 							</TabsTrigger>
 						</TabsList>
 					</Tabs>
 					<CommandList className="max-h-[420px]">
 						{!isBranchesLoading && branches.length === 0 && (
-							<CommandEmpty>No branches found</CommandEmpty>
+							<CommandEmpty>
+								<Trans id="dashboard.newWorkspaceModal.compareBaseBranchPicker.empty">
+									No branches found
+								</Trans>
+							</CommandEmpty>
 						)}
 						{branches.map((branch) => {
 							const isRemoteOnly = branch.isRemote && !branch.isLocal;
@@ -209,19 +228,31 @@ export function CompareBaseBranchPicker({
 											{branch.name === defaultBranch && (
 												<>
 													<span aria-hidden>·</span>
-													<span>default</span>
+													<span>
+														<Trans id="dashboard.newWorkspaceModal.compareBaseBranchPicker.defaultBadge">
+															default
+														</Trans>
+													</span>
 												</>
 											)}
 											{isRemoteOnly && (
 												<>
 													<span aria-hidden>·</span>
-													<span>remote</span>
+													<span>
+														<Trans id="dashboard.newWorkspaceModal.compareBaseBranchPicker.remoteBadge">
+															remote
+														</Trans>
+													</span>
 												</>
 											)}
 											{isWorktree && (
 												<>
 													<span aria-hidden>·</span>
-													<span className="text-primary/80">worktree</span>
+													<span className="text-primary/80">
+														<Trans id="dashboard.newWorkspaceModal.compareBaseBranchPicker.worktreeBadge">
+															worktree
+														</Trans>
+													</span>
 												</>
 											)}
 										</span>
@@ -236,7 +267,9 @@ export function CompareBaseBranchPicker({
 												setOpen(false);
 											}}
 										>
-											Open workspace
+											<Trans id="dashboard.newWorkspaceModal.compareBaseBranchPicker.openWorkspace">
+												Open workspace
+											</Trans>
 											<span className="ml-1.5 text-[10px] opacity-70">
 												{MOD_KEY}↵
 											</span>
@@ -253,7 +286,13 @@ export function CompareBaseBranchPicker({
 								ref={sentinelRef}
 								className="py-2 text-center text-[11px] text-muted-foreground/60"
 							>
-								{isFetchingNextPage ? "Loading more..." : ""}
+								{isFetchingNextPage ? (
+									<Trans id="dashboard.newWorkspaceModal.compareBaseBranchPicker.loadingMore">
+										Loading more...
+									</Trans>
+								) : (
+									""
+								)}
 							</div>
 						)}
 					</CommandList>

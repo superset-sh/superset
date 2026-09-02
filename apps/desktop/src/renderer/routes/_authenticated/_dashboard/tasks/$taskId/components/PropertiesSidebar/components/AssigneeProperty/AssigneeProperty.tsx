@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import {
 	DropdownMenu,
@@ -16,6 +17,7 @@ interface AssigneePropertyProps {
 }
 
 export function AssigneeProperty({ task }: AssigneePropertyProps) {
+	const { t } = useLingui();
 	const { tasks: taskActions } = useOptimisticActions();
 	const [open, setOpen] = useState(false);
 
@@ -77,14 +79,26 @@ export function AssigneeProperty({ task }: AssigneePropertyProps) {
 								</div>
 							)}
 							<span className="text-sm">
-								{task.assigneeDisplayName || "External"}{" "}
-								<span className="text-muted-foreground">(external)</span>
+								{task.assigneeDisplayName ||
+									t({
+										id: "dashboard.tasks.assigneeProperty.externalFallback",
+										message: "External",
+									})}{" "}
+								<span className="text-muted-foreground">
+									<Trans id="dashboard.tasks.assigneeProperty.externalSuffix">
+										(external)
+									</Trans>
+								</span>
 							</span>
 						</>
 					) : (
 						<>
 							<HiOutlineUserCircle className="w-5 h-5 text-muted-foreground" />
-							<span className="text-sm text-muted-foreground">Unassigned</span>
+							<span className="text-sm text-muted-foreground">
+								<Trans id="dashboard.tasks.assigneeProperty.unassigned">
+									Unassigned
+								</Trans>
+							</span>
 						</>
 					)}
 				</button>
@@ -96,7 +110,11 @@ export function AssigneeProperty({ task }: AssigneePropertyProps) {
 						className="flex items-center gap-2"
 					>
 						<HiOutlineUserCircle className="w-5 h-5 text-muted-foreground shrink-0" />
-						<span className="text-sm">No assignee</span>
+						<span className="text-sm">
+							<Trans id="dashboard.tasks.assigneeProperty.noAssignee">
+								No assignee
+							</Trans>
+						</span>
 						{!task.assigneeId && !task.assigneeExternalId && (
 							<span className="ml-auto text-xs text-muted-foreground">✓</span>
 						)}

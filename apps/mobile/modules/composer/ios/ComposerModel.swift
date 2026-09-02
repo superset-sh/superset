@@ -52,6 +52,37 @@ final class ComposerModel {
   /// The terminal's quick keys, above the card. Empty on every other surface.
   var quickKeys: [ComposerQuickKey] = []
 
+  /// The workspace's sessions, above the quick keys. Empty on every other
+  /// surface, which is also how the strip stays off the home composer.
+  var sessionTabs: [ComposerSessionTab] = []
+
+  /// Every string the strip draws, translated in React Native — the composer
+  /// has no catalog. See `ComposerSessionTabLabels`.
+  var sessionTabLabels = ComposerSessionTabLabels()
+
+  /// The strip's leading control. Nil on every surface with nothing to link
+  /// to, which is all of them but the workspace terminal.
+  var sessionAction: ComposerSessionAction?
+
+  /// What the active agent can run behind `/` (or `$`). Empty hides the
+  /// suggestion panel entirely — a plain shell, an agent without discovery,
+  /// or a host too old to answer all land here the same way.
+  var slashCommands: [ComposerSlashCommand] = []
+
+  /// The panel's contents, derived from the draft. Nil while the draft is
+  /// anything other than a bare trigger token.
+  var slashSuggestions: ComposerSlashSuggestionState? {
+    ComposerSlashMatching.suggestions(draft: draft, commands: slashCommands)
+  }
+
+  /// Selection is textual: the draft becomes the committed token and the
+  /// caller hears about it through `onDraftChange` like any keystroke. The
+  /// trailing space is what lets an argument-taking command close the panel
+  /// and start its arguments in one motion.
+  func commitSlashCommand(_ command: ComposerSlashCommand) {
+    setDraft(command.trigger + command.name + " ")
+  }
+
   /// Whether the `+` button is offered. A plain shell would try to *execute* an
   /// attachment path, so only agent sessions get it.
   var showsAttachments = true
@@ -83,6 +114,17 @@ final class ComposerModel {
   @ObservationIgnored var onModelPress: (() -> Void)?
   @ObservationIgnored var onChipPress: ((String) -> Void)?
   @ObservationIgnored var onQuickKeyPress: ((String) -> Void)?
+  /// The session strip reports by id and knows nothing else. Selecting swaps
+  /// which terminal is attached, closing raises React Native's confirm before
+  /// anything is killed, and copying puts the terminal id on the pasteboard
+  /// there — where the "Copied" notice already lives.
+  @ObservationIgnored var onSessionTabPress: ((String) -> Void)?
+  @ObservationIgnored var onSessionTabClose: ((String) -> Void)?
+  @ObservationIgnored var onSessionTabCopyId: ((String) -> Void)?
+  @ObservationIgnored var onNewSessionPress: (() -> Void)?
+  @ObservationIgnored var onAllSessionsPress: (() -> Void)?
+  /// The leading control was pressed. Where it goes is React Native's to know.
+  @ObservationIgnored var onSessionActionPress: (() -> Void)?
   /// Files and images pasted into the field, already written to disk. The tray
   /// lives in React Native, so the composer hands over URIs and lets it add
   /// them the same way the pickers do.

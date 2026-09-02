@@ -1,3 +1,5 @@
+import { useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { useWorkspaceHostUrl } from "@superset/workspace-client";
 import type { ReactNode } from "react";
 import type { HostShapedWorkspace } from "renderer/hooks/host-workspaces/useHostWorkspaces";
@@ -6,6 +8,7 @@ import { useLocalHostService } from "renderer/routes/_authenticated/providers/Lo
 import { StateScreenShell } from "../../../../components/StateScreenShell";
 import { WorkspaceHostUnreachableState } from "../../../../components/WorkspaceHostUnreachableState";
 import { useHostReachability } from "../../../../hooks/useHostReachability";
+import { LOCAL_HOST_SERVICE_DETAIL } from "../../utils/localHostServiceDetail";
 
 const HOST_LIST_STALE_MS = 30_000;
 
@@ -22,10 +25,19 @@ export function WorkspaceHostGate({
 	workspace: HostShapedWorkspace;
 	children: ReactNode;
 }) {
+	const { t } = useLingui();
 	const hostUrl = useWorkspaceHostUrl();
 	const { isUnreachable, isReconnecting, detail, retry } =
 		useHostReachability(hostUrl);
-	const { machineId } = useLocalHostService();
+	const { machineId, hostServiceStatus } = useLocalHostService();
+
+	// A local host that dropped because the coordinator is mid-restart is not
+	// "unreachable, go restart it from the tray" — that advises the user to do
+	// what is already happening. Only "starting" is overridden: a service the
+	// coordinator believes is running yet stays unreachable is a real wedge,
+	// and for that the default advice stands.
+	const isLocalRestartInFlight =
+		workspace.hostId === machineId && hostServiceStatus === "starting";
 	const { data: hostRows = [] } = cloudTrpc.v2Host.list.useQuery(undefined, {
 		staleTime: HOST_LIST_STALE_MS,
 	});
@@ -38,7 +50,12 @@ export function WorkspaceHostGate({
 		) ?? null;
 	const hostName =
 		hostRow?.name ??
-		(workspace.hostId === machineId ? "This device" : "Unknown host");
+		(workspace.hostId === machineId
+			? t({ id: "workspace.states.hostGateThisDevice", message: "This device" })
+			: t({
+					id: "workspace.states.hostGateUnknownHost",
+					message: "Unknown host",
+				}));
 
 	// The wrapper renders unconditionally — dropping it when the host is
 	// reachable would move `children` in the tree and remount the whole
@@ -56,8 +73,12 @@ export function WorkspaceHostGate({
 						<WorkspaceHostUnreachableState
 							hostId={workspace.hostId}
 							hostName={hostName}
-							detail={detail}
-							isReconnecting={isReconnecting}
+							detail={
+								isLocalRestartInFlight
+									? i18n._(LOCAL_HOST_SERVICE_DETAIL.starting)
+									: detail
+							}
+							isReconnecting={isReconnecting || isLocalRestartInFlight}
 							onRetry={retry}
 						/>
 					</StateScreenShell>

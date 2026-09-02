@@ -47,7 +47,7 @@ function normalizePort(port: number): number | null {
 	return port;
 }
 
-function canBindPort(port: number): Promise<boolean> {
+export function canBindPort(port: number): Promise<boolean> {
 	return new Promise((resolve) => {
 		const server = createServer();
 		const finish = (available: boolean) => {

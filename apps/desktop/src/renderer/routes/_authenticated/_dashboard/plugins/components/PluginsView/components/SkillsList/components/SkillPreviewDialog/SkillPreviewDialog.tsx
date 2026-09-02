@@ -1,3 +1,5 @@
+import { Trans, useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import {
@@ -41,6 +43,7 @@ export function SkillPreviewDialog({
 	skill,
 	onClose,
 }: SkillPreviewDialogProps) {
+	const { t } = useLingui();
 	const { document, path } = useSkillDocument({ name: skill?.name ?? "" });
 	const { disabledSkills, setEnabled, isBusy } = useSkillMutations();
 	const isEnabled = skill !== null && !disabledSkills.has(skill.name);
@@ -53,7 +56,16 @@ export function SkillPreviewDialog({
 			await electronTrpcClient.external.openFileInEditor.mutate({ path });
 		} catch (error) {
 			toast.error(
-				`Failed to open file: ${error instanceof Error ? error.message : "Unknown error"}`,
+				t({
+					id: "dashboard.plugins.skillPreview.openFileFailed",
+					message: `Failed to open file: ${errorMessage(
+						error,
+						t({
+							id: "dashboard.plugins.skillPreview.unknownError",
+							message: "Unknown error",
+						}),
+					)}`,
+				}),
 			);
 		}
 	};
@@ -64,7 +76,16 @@ export function SkillPreviewDialog({
 			await electronTrpcClient.external.openInFinder.mutate(path);
 		} catch (error) {
 			toast.error(
-				`Failed to reveal in Finder: ${error instanceof Error ? error.message : "Unknown error"}`,
+				t({
+					id: "dashboard.plugins.skillPreview.revealInFinderFailed",
+					message: `Failed to reveal in Finder: ${errorMessage(
+						error,
+						t({
+							id: "dashboard.plugins.skillPreview.unknownError",
+							message: "Unknown error",
+						}),
+					)}`,
+				}),
 			);
 		}
 	};
@@ -72,9 +93,21 @@ export function SkillPreviewDialog({
 	const handleCopyMarkdown = () => {
 		if (document.content.kind !== "text") return;
 		toast.promise(copyToClipboard(document.content.value), {
-			success: "Markdown copied",
+			success: t({
+				id: "dashboard.plugins.skillPreview.markdownCopied",
+				message: "Markdown copied",
+			}),
 			error: (err: unknown) =>
-				`Failed to copy markdown: ${err instanceof Error ? err.message : "Unknown error"}`,
+				t({
+					id: "dashboard.plugins.skillPreview.copyMarkdownFailed",
+					message: `Failed to copy markdown: ${errorMessage(
+						err,
+						t({
+							id: "dashboard.plugins.skillPreview.unknownError",
+							message: "Unknown error",
+						}),
+					)}`,
+				}),
 		});
 	};
 
@@ -122,9 +155,15 @@ export function SkillPreviewDialog({
 								variant="outline"
 								className="h-4 rounded px-1 text-[9px] font-medium tracking-wide text-muted-foreground uppercase"
 							>
-								Skill
+								<Trans id="dashboard.plugins.skillPreview.skillBadge">
+									Skill
+								</Trans>
 							</Badge>
-							<Badge variant="secondary">Managed</Badge>
+							<Badge variant="secondary">
+								<Trans id="dashboard.plugins.skillPreview.managedBadge">
+									Managed
+								</Trans>
+							</Badge>
 						</DialogTitle>
 						<DialogDescription>{skill?.description}</DialogDescription>
 					</DialogHeader>
@@ -140,7 +179,10 @@ export function SkillPreviewDialog({
 										<Switch
 											checked={isEnabled}
 											disabled={isBusy}
-											aria-label={`${skill.name} enabled`}
+											aria-label={t({
+												id: "dashboard.plugins.skillPreview.skillEnabledLabel",
+												message: `${skill.name} enabled`,
+											})}
 											onCheckedChange={(checked) =>
 												setEnabled(skill.name, checked)
 											}
@@ -148,7 +190,15 @@ export function SkillPreviewDialog({
 									</span>
 								</TooltipTrigger>
 								<TooltipContent side="bottom">
-									{isEnabled ? "Disable skill" : "Enable skill"}
+									{isEnabled ? (
+										<Trans id="dashboard.plugins.skillPreview.disableSkill">
+											Disable skill
+										</Trans>
+									) : (
+										<Trans id="dashboard.plugins.skillPreview.enableSkill">
+											Enable skill
+										</Trans>
+									)}
 								</TooltipContent>
 							</Tooltip>
 						)}
@@ -159,7 +209,10 @@ export function SkillPreviewDialog({
 										variant="ghost"
 										size="icon-xs"
 										className="text-muted-foreground"
-										aria-label={`${skill.name} actions`}
+										aria-label={t({
+											id: "dashboard.plugins.skillPreview.skillActionsLabel",
+											message: `${skill.name} actions`,
+										})}
 									>
 										<LuEllipsis className="size-4" />
 									</Button>
@@ -167,28 +220,34 @@ export function SkillPreviewDialog({
 								<DropdownMenuContent align="end">
 									<DropdownMenuItem onSelect={handleOpen} disabled={!path}>
 										<LuExternalLink className="size-4" />
-										Open
+										<Trans id="dashboard.plugins.skillPreview.open">Open</Trans>
 									</DropdownMenuItem>
 									<DropdownMenuItem
 										onSelect={handleRevealInFinder}
 										disabled={!path}
 									>
 										<LuFolderOpen className="size-4" />
-										Reveal in Finder
+										<Trans id="dashboard.plugins.skillPreview.revealInFinder">
+											Reveal in Finder
+										</Trans>
 									</DropdownMenuItem>
 									<DropdownMenuItem
 										onSelect={handleCopyMarkdown}
 										disabled={document.content.kind !== "text"}
 									>
 										<LuCopy className="size-4" />
-										Copy Markdown
+										<Trans id="dashboard.plugins.skillPreview.copyMarkdown">
+											Copy Markdown
+										</Trans>
 									</DropdownMenuItem>
 								</DropdownMenuContent>
 							</DropdownMenu>
 						)}
 						<DialogClose className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
 							<XIcon />
-							<span className="sr-only">Close</span>
+							<span className="sr-only">
+								<Trans id="dashboard.plugins.skillPreview.close">Close</Trans>
+							</span>
 						</DialogClose>
 					</div>
 				</div>

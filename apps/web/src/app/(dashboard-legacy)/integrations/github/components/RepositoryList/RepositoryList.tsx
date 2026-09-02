@@ -1,5 +1,7 @@
 "use client";
 
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
@@ -12,6 +14,7 @@ interface RepositoryListProps {
 }
 
 export function RepositoryList({ organizationId }: RepositoryListProps) {
+	const { t } = useLingui();
 	const trpc = useTRPC();
 
 	const {
@@ -28,16 +31,23 @@ export function RepositoryList({ organizationId }: RepositoryListProps) {
 	const syncMutation = useMutation(
 		trpc.integration.github.triggerSync.mutationOptions({
 			onSuccess: () => {
-				toast.success("Sync started", {
-					description: "Repositories will be updated shortly.",
-				});
+				toast.success(
+					t({ id: "web.repositoryList.syncStarted", message: "Sync started" }),
+					{
+						description: t({
+							id: "web.repositoryList.syncStartedDescription",
+							message: "Repositories will be updated shortly.",
+						}),
+					},
+				);
 				// Refetch after a short delay to allow sync to complete
 				setTimeout(() => refetch(), 3000);
 			},
 			onError: (error) => {
-				toast.error("Sync failed", {
-					description: error.message,
-				});
+				toast.error(
+					t({ id: "web.repositoryList.syncFailed", message: "Sync failed" }),
+					{ description: errorMessage(error) },
+				);
 			},
 		}),
 	);
@@ -51,7 +61,7 @@ export function RepositoryList({ organizationId }: RepositoryListProps) {
 	if (isLoading) {
 		return (
 			<div className="py-8 text-center text-muted-foreground">
-				Loading repositories...
+				<Trans id="web.repositoryList.loading">Loading repositories...</Trans>
 			</div>
 		);
 	}
@@ -60,11 +70,13 @@ export function RepositoryList({ organizationId }: RepositoryListProps) {
 		return (
 			<div className="flex flex-col items-center gap-4 py-8">
 				<p className="text-center text-muted-foreground">
-					Failed to load repositories. Please try again.
+					<Trans id="web.repositoryList.loadFailed">
+						Failed to load repositories. Please try again.
+					</Trans>
 				</p>
 				<Button onClick={() => refetch()} variant="outline">
 					<RefreshCw className="mr-2 size-4" />
-					Retry
+					<Trans id="web.repositoryList.retry">Retry</Trans>
 				</Button>
 			</div>
 		);
@@ -74,14 +86,20 @@ export function RepositoryList({ organizationId }: RepositoryListProps) {
 		return (
 			<div className="flex flex-col items-center gap-4 py-8">
 				<p className="text-center text-muted-foreground">
-					No repositories found. Make sure your GitHub App has access to
-					repositories.
+					<Trans id="web.repositoryList.empty">
+						No repositories found. Make sure your GitHub App has access to
+						repositories.
+					</Trans>
 				</p>
 				<Button onClick={handleSync} disabled={isSyncing} variant="outline">
 					<RefreshCw
 						className={`mr-2 size-4 ${isSyncing ? "animate-spin" : ""}`}
 					/>
-					{isSyncing ? "Syncing..." : "Sync Repositories"}
+					{isSyncing ? (
+						<Trans id="web.repositoryList.syncing">Syncing...</Trans>
+					) : (
+						<Trans id="web.repositoryList.syncAll">Sync Repositories</Trans>
+					)}
 				</Button>
 			</div>
 		);
@@ -91,8 +109,12 @@ export function RepositoryList({ organizationId }: RepositoryListProps) {
 		<div className="space-y-4">
 			<div className="flex items-center justify-between">
 				<p className="text-sm text-muted-foreground">
-					{repositories.length}{" "}
-					{repositories.length === 1 ? "repository" : "repositories"}
+					<Plural
+						id="web.repositoryList.count"
+						value={repositories.length}
+						one="# repository"
+						other="# repositories"
+					/>
 				</p>
 				<Button
 					onClick={handleSync}
@@ -103,7 +125,11 @@ export function RepositoryList({ organizationId }: RepositoryListProps) {
 					<RefreshCw
 						className={`mr-2 size-3 ${isSyncing ? "animate-spin" : ""}`}
 					/>
-					{isSyncing ? "Syncing..." : "Sync"}
+					{isSyncing ? (
+						<Trans id="web.repositoryList.syncing">Syncing...</Trans>
+					) : (
+						<Trans id="web.repositoryList.sync">Sync</Trans>
+					)}
 				</Button>
 			</div>
 			<div className="space-y-2">
@@ -127,7 +153,11 @@ export function RepositoryList({ organizationId }: RepositoryListProps) {
 							</div>
 						</div>
 						<Badge variant={repo.isPrivate ? "secondary" : "outline"}>
-							{repo.isPrivate ? "Private" : "Public"}
+							{repo.isPrivate ? (
+								<Trans id="web.repositoryList.private">Private</Trans>
+							) : (
+								<Trans id="web.repositoryList.public">Public</Trans>
+							)}
 						</Badge>
 					</div>
 				))}

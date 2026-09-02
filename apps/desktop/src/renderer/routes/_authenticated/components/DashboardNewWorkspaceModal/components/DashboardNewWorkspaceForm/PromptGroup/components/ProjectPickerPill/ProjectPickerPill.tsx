@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	Command,
 	CommandEmpty,
@@ -44,22 +45,40 @@ export function ProjectPickerPill({
 	isSessionSelected = false,
 	onSelectProject,
 }: ProjectPickerPillProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const openEmptyProject = useOpenEmptyProjectModal();
 	const openNewProject = useOpenNewProjectModal();
 	const navigate = useNavigate();
 	const folderImport = useFolderFirstImport({
 		onError: (message) => {
-			toast.error(`Import failed: ${message}`);
+			toast.error(
+				t({
+					id: "dashboard.newWorkspaceModal.projectPicker.importFailedWithReason",
+					message: `Import failed: ${message}`,
+				}),
+			);
 		},
 		onMultipleProjects: ({ candidates }) => {
-			toast.error("Import failed", {
-				description: `Multiple projects use this repository (${candidates.length}). Choose the project in settings to set it up on this device.`,
-				action: {
-					label: "Open Projects",
-					onClick: () => navigate({ to: "/settings/projects" }),
+			toast.error(
+				t({
+					id: "dashboard.newWorkspaceModal.projectPicker.importFailed",
+					message: "Import failed",
+				}),
+				{
+					description: t({
+						id: "dashboard.newWorkspaceModal.projectPicker.importFailedMultipleProjects",
+						message: `Multiple projects use this repository (${candidates.length}). Choose the project in settings to set it up on this device.`,
+					}),
+					action: {
+						label: t({
+							id: "dashboard.newWorkspaceModal.projectPicker.openProjects",
+							message: "Open Projects",
+						}),
+						onClick: () => navigate({ to: "/settings/projects" }),
+					},
 				},
-			});
+			);
 		},
 	});
 
@@ -79,7 +98,12 @@ export function ProjectPickerPill({
 		setOpen(false);
 		const result = await folderImport.start();
 		if (result) {
-			toast.success("Project imported and selected.");
+			toast.success(
+				t({
+					id: "dashboard.newWorkspaceModal.projectPicker.importSucceeded",
+					message: "Project imported and selected.",
+				}),
+			);
 			onSelectProject(result.projectId);
 		}
 	};
@@ -100,7 +124,15 @@ export function ProjectPickerPill({
 					)}
 					<span className="truncate">
 						{selectedProject?.name ??
-							(isSessionSelected ? "No project" : "Select project")}
+							(isSessionSelected
+								? t({
+										id: "dashboard.newWorkspaceModal.projectPicker.noProjectSelected",
+										message: "No project",
+									})
+								: t({
+										id: "dashboard.newWorkspaceModal.projectPicker.selectProject",
+										message: "Select project",
+									}))}
 					</span>
 					<HiChevronUpDown className="size-3 shrink-0" />
 				</FormPickerTrigger>
@@ -111,9 +143,18 @@ export function ProjectPickerPill({
 				onWheel={(event) => event.stopPropagation()}
 			>
 				<Command>
-					<CommandInput placeholder="Search projects..." />
+					<CommandInput
+						placeholder={t({
+							id: "dashboard.newWorkspaceModal.projectPicker.searchPlaceholder",
+							message: "Search projects...",
+						})}
+					/>
 					<CommandList className="max-h-[min(280px,var(--radix-popover-content-available-height))]">
-						<CommandEmpty>No projects found.</CommandEmpty>
+						<CommandEmpty>
+							<Trans id="dashboard.newWorkspaceModal.projectPicker.empty">
+								No projects found.
+							</Trans>
+						</CommandEmpty>
 						<CommandGroup>
 							<CommandItem
 								value="no-project-session"
@@ -123,9 +164,15 @@ export function ProjectPickerPill({
 								}}
 							>
 								<LuBox className="size-4 text-muted-foreground" />
-								<span className="flex-1 truncate">No project</span>
+								<span className="flex-1 truncate">
+									<Trans id="dashboard.newWorkspaceModal.projectPicker.noProjectOption">
+										No project
+									</Trans>
+								</span>
 								<span className="text-[10px] text-muted-foreground">
-									Session
+									<Trans id="dashboard.newWorkspaceModal.projectPicker.sessionBadge">
+										Session
+									</Trans>
 								</span>
 								{isSessionSelected && <HiCheck className="size-4 shrink-0" />}
 							</CommandItem>
@@ -152,7 +199,9 @@ export function ProjectPickerPill({
 													<LuFolderDown className="size-3.5 shrink-0 text-muted-foreground" />
 												</TooltipTrigger>
 												<TooltipContent>
-													Will be cloned to this host
+													<Trans id="dashboard.newWorkspaceModal.projectPicker.willClone">
+														Will be cloned to this host
+													</Trans>
 												</TooltipContent>
 											</Tooltip>
 										) : (
@@ -163,7 +212,9 @@ export function ProjectPickerPill({
 													<LuTriangleAlert className="size-3.5 shrink-0 text-amber-500" />
 												</TooltipTrigger>
 												<TooltipContent>
-													Not on this host and has no remote to clone from
+													<Trans id="dashboard.newWorkspaceModal.projectPicker.needsSetupNoRemote">
+														Not on this host and has no remote to clone from
+													</Trans>
 												</TooltipContent>
 											</Tooltip>
 										))}
@@ -178,15 +229,21 @@ export function ProjectPickerPill({
 					<CommandGroup forceMount>
 						<CommandItem forceMount onSelect={handleCreateNewProject}>
 							<LuFolderPlus className="size-4" />
-							Create new project
+							<Trans id="dashboard.newWorkspaceModal.projectPicker.createNewProject">
+								Create new project
+							</Trans>
 						</CommandItem>
 						<CommandItem forceMount onSelect={handleCloneProject}>
 							<HiMiniPlus className="size-4" />
-							Clone from URL
+							<Trans id="dashboard.newWorkspaceModal.projectPicker.cloneFromUrl">
+								Clone from URL
+							</Trans>
 						</CommandItem>
 						<CommandItem forceMount onSelect={handleImportProject}>
 							<LuFolderInput className="size-4" />
-							Open from folder
+							<Trans id="dashboard.newWorkspaceModal.projectPicker.openFromFolder">
+								Open from folder
+							</Trans>
 						</CommandItem>
 					</CommandGroup>
 				</Command>

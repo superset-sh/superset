@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { cn } from "@superset/ui/lib/utils";
 import { HiOutlineChevronDown, HiOutlineChevronRight } from "react-icons/hi2";
 import type { SortOption, WorkspaceMetrics } from "../../types";
@@ -52,6 +53,7 @@ export function WorkspaceResourceSection({
 	navigateToPane,
 	getPaneName,
 }: WorkspaceResourceSectionProps) {
+	const { t } = useLingui();
 	const rawProjectGroups = groupWorkspacesByProject(workspaces);
 	const sortedProjectGroups = sortProjectGroups(
 		rawProjectGroups,
@@ -82,7 +84,15 @@ export function WorkspaceResourceSection({
 					onClick={() => toggleProject(project.projectId)}
 					className="group w-full flex items-center justify-between px-2 py-1.5 hover:bg-foreground/[0.04] transition-colors"
 					aria-label={
-						isProjectCollapsed ? "Expand project" : "Collapse project"
+						isProjectCollapsed
+							? t({
+									id: "dashboard.topBar.workspaceResources.expandProject",
+									message: "Expand project",
+								})
+							: t({
+									id: "dashboard.topBar.workspaceResources.collapseProject",
+									message: "Collapse project",
+								})
 					}
 				>
 					<div className="flex items-center gap-1 min-w-0 mr-2">
@@ -119,7 +129,15 @@ export function WorkspaceResourceSection({
 											onClick={() => toggleWorkspace(workspace.workspaceId)}
 											className="flex items-center justify-center h-7 w-5 ml-3.5 shrink-0 text-muted-foreground/60 hover:text-muted-foreground transition-colors"
 											aria-label={
-												isCollapsed ? "Expand workspace" : "Collapse workspace"
+												isCollapsed
+													? t({
+															id: "dashboard.topBar.workspaceResources.expandWorkspace",
+															message: "Expand workspace",
+														})
+													: t({
+															id: "dashboard.topBar.workspaceResources.collapseWorkspace",
+															message: "Collapse workspace",
+														})
 											}
 										>
 											{isCollapsed ? (

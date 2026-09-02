@@ -1,3 +1,5 @@
+import { Trans, useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -31,6 +33,7 @@ export function DeleteProjectSection({
 	projectName,
 	hostIds,
 }: DeleteProjectSectionProps) {
+	const { t } = useLingui();
 	const navigate = useNavigate();
 	const hostUrls = useHostUrls(hostIds);
 	const reachableHosts = hostUrls.filter(
@@ -52,7 +55,12 @@ export function DeleteProjectSection({
 
 	const handleDelete = async () => {
 		if (reachableHosts.length === 0) {
-			toast.error("No host serving this project is reachable right now");
+			toast.error(
+				t({
+					id: "settings.project.delete.noReachableHostToast",
+					message: "No host serving this project is reachable right now",
+				}),
+			);
 			return;
 		}
 		setIsDeleting(true);
@@ -75,15 +83,31 @@ export function DeleteProjectSection({
 			const skipped = hostIds.length - reachableHosts.length;
 			if (failed.length > 0 || skipped > 0) {
 				toast.warning(
-					`Deleted "${projectName}" from ${results.length - failed.length} of ${hostIds.length} devices — unreachable devices keep their copy`,
+					t({
+						id: "settings.project.delete.partialToast",
+						message: `Deleted "${projectName}" from ${results.length - failed.length} of ${hostIds.length} devices — unreachable devices keep their copy`,
+					}),
 				);
 			} else {
-				toast.success(`Deleted "${projectName}"`);
+				toast.success(
+					t({
+						id: "settings.project.delete.successToast",
+						message: `Deleted "${projectName}"`,
+					}),
+				);
 			}
 			setIsOpen(false);
 			navigate({ to: "/settings/projects" });
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : "Failed to delete");
+			toast.error(
+				errorMessage(
+					err,
+					t({
+						id: "settings.project.delete.failedToast",
+						message: "Failed to delete",
+					}),
+				),
+			);
 		} finally {
 			setIsDeleting(false);
 		}
@@ -92,7 +116,9 @@ export function DeleteProjectSection({
 	return (
 		<div className="flex items-center justify-between gap-8 py-2.5">
 			<div className="min-w-0 flex-1">
-				<div className="text-sm font-medium">Delete project</div>
+				<div className="text-sm font-medium">
+					<Trans id="settings.project.delete.label">Delete project</Trans>
+				</div>
 			</div>
 			{!isOwner ? (
 				<Tooltip>
@@ -105,12 +131,16 @@ export function DeleteProjectSection({
 								className="pointer-events-none shrink-0"
 								disabled
 							>
-								Delete project
+								<Trans id="settings.project.delete.buttonDisabled">
+									Delete project
+								</Trans>
 							</Button>
 						</span>
 					</TooltipTrigger>
 					<TooltipContent side="left">
-						Only organization owners can delete this project.
+						<Trans id="settings.project.delete.ownerOnly">
+							Only organization owners can delete this project.
+						</Trans>
 					</TooltipContent>
 				</Tooltip>
 			) : (
@@ -122,23 +152,29 @@ export function DeleteProjectSection({
 							size="sm"
 							className="shrink-0"
 						>
-							Delete project
+							<Trans id="settings.project.delete.button">Delete project</Trans>
 						</Button>
 					</AlertDialogTrigger>
 					<AlertDialogContent>
 						<AlertDialogHeader>
-							<AlertDialogTitle>Delete "{projectName}"?</AlertDialogTitle>
+							<AlertDialogTitle>
+								<Trans id="settings.project.delete.confirmTitle">
+									Delete "{projectName}"?
+								</Trans>
+							</AlertDialogTitle>
 							<AlertDialogDescription>
-								This deletes the project and all of its workspaces from{" "}
-								<span className="font-medium text-foreground">
-									every reachable device
-								</span>{" "}
-								where it is set up. This cannot be undone.
+								<Trans id="settings.project.delete.confirmDescription">
+									This deletes the project and all of its workspaces from{" "}
+									<span className="font-medium text-foreground">
+										every reachable device
+									</span>{" "}
+									where it is set up. This cannot be undone.
+								</Trans>
 							</AlertDialogDescription>
 						</AlertDialogHeader>
 						<AlertDialogFooter>
 							<AlertDialogCancel disabled={isDeleting}>
-								Cancel
+								<Trans id="settings.project.delete.cancel">Cancel</Trans>
 							</AlertDialogCancel>
 							<AlertDialogAction
 								onClick={(e) => {
@@ -148,7 +184,11 @@ export function DeleteProjectSection({
 								disabled={isDeleting || reachableHosts.length === 0}
 								className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 							>
-								{isDeleting ? "Deleting…" : "Delete"}
+								{isDeleting ? (
+									<Trans id="settings.project.delete.deleting">Deleting…</Trans>
+								) : (
+									<Trans id="settings.project.delete.confirm">Delete</Trans>
+								)}
 							</AlertDialogAction>
 						</AlertDialogFooter>
 					</AlertDialogContent>

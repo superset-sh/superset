@@ -1,5 +1,6 @@
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import * as Clipboard from "expo-clipboard";
+import { useFocusEffect } from "expo-router";
 import {
 	forwardRef,
 	useCallback,
@@ -7,6 +8,7 @@ import {
 	useImperativeHandle,
 	useMemo,
 	useRef,
+	useState,
 } from "react";
 import { AppState, Linking } from "react-native";
 import { WebView, type WebViewMessageEvent } from "react-native-webview";
@@ -67,6 +69,10 @@ interface TerminalWebViewProps {
 	onSelectChange?: (select: TerminalSelectState) => void;
 	/** Select-mode text landed on the clipboard (either copy path). */
 	onCopied?: () => void;
+	/** A plain tap on the terminal — not a link, not a long-press. The screen
+	 *  uses it to dismiss the keyboard, since no overlay sits above the
+	 *  WebView any more (an overlay would eat scroll drags). */
+	onTap?: () => void;
 	/** The viewport reached or left the bottom of the scrollback — drives the
 	 *  scroll-to-bottom button, which lives outside the WebView. */
 	onScrollChange?: (atBottom: boolean) => void;
@@ -80,6 +86,7 @@ type PageMessage =
 	| { type: "openUrl"; url: string }
 	| { type: "copy"; text: string }
 	| { type: "select"; active: boolean; hasSelection: boolean }
+	| { type: "tap" }
 	| { type: "scroll"; atBottom: boolean };
 
 /**
@@ -102,6 +109,7 @@ export const TerminalWebView = forwardRef<
 		onControl,
 		onSelectChange,
 		onCopied,
+		onTap,
 		onScrollChange,
 	},
 	ref,
@@ -117,6 +125,8 @@ export const TerminalWebView = forwardRef<
 	onSelectChangeRef.current = onSelectChange;
 	const onCopiedRef = useRef(onCopied);
 	onCopiedRef.current = onCopied;
+	const onTapRef = useRef(onTap);
+	onTapRef.current = onTap;
 	const onScrollChangeRef = useRef(onScrollChange);
 	onScrollChangeRef.current = onScrollChange;
 
@@ -166,12 +176,52 @@ export const TerminalWebView = forwardRef<
 		[host.machineId, host.organizationId, terminalId, workspaceId],
 	);
 
+	// The host runs the PTY at the smallest box across the clients that are
+	// actually showing the terminal, so this screen has to say when it stops
+	// being one of them — a phone left attached in a pocket would otherwise hold
+	// every desktop pane at phone width. Neither unmount nor socket state can
+	// stand in for it: expo-router keeps a pushed-over screen mounted and its
+	// socket alive, so screen focus and app foreground are both required.
+	const [screenFocused, setScreenFocused] = useState(true);
+	useFocusEffect(
+		useCallback(() => {
+			setScreenFocused(true);
+			return () => setScreenFocused(false);
+		}, []),
+	);
+
+	const [appActive, setAppActive] = useState(
+		() => AppState.currentState === "active",
+	);
+	useEffect(() => {
+		const subscription = AppState.addEventListener("change", (state) => {
+			setAppActive(state === "active");
+			if (state === "active") postToPage({ type: "resume" });
+		});
+		return () => subscription.remove();
+	}, [postToPage]);
+
+	// Seeded from the values above rather than a bare `true`, so the `ready`
+	// handshake reports the truth even if it somehow beats the effect below.
+	// Held in a ref so the handshake doesn't re-run on every change.
+	const visibleRef = useRef(screenFocused && appActive);
+
 	const handleMessage = useCallback(
 		(event: WebViewMessageEvent) => {
 			let message: PageMessage;
 			try {
 				message = JSON.parse(event.nativeEvent.data) as PageMessage;
 			} catch {
+				return;
+			}
+			if (message.type === "ready") {
+				// The page boots believing it is visible, so a visibility change
+				// that landed before it booted was dropped on the floor — and a
+				// phone that was already backgrounded would then attach declaring
+				// itself visible, holding the PTY at phone width for everyone
+				// else. `ready` precedes the page's first connect, so re-asserting
+				// here lands before it attaches.
+				postToPage({ type: "visible", visible: visibleRef.current });
 				return;
 			}
 			if (message.type === "dial") {
@@ -202,6 +252,8 @@ export const TerminalWebView = forwardRef<
 					active: message.active,
 					hasSelection: message.hasSelection,
 				});
+			} else if (message.type === "tap") {
+				onTapRef.current?.();
 			} else if (message.type === "scroll") {
 				onScrollChangeRef.current?.(message.atBottom);
 			}
@@ -210,11 +262,10 @@ export const TerminalWebView = forwardRef<
 	);
 
 	useEffect(() => {
-		const subscription = AppState.addEventListener("change", (state) => {
-			if (state === "active") postToPage({ type: "resume" });
-		});
-		return () => subscription.remove();
-	}, [postToPage]);
+		const visible = screenFocused && appActive;
+		visibleRef.current = visible;
+		postToPage({ type: "visible", visible });
+	}, [screenFocused, appActive, postToPage]);
 
 	// Tab switches swap sessions inside the live page instead of remounting
 	// the WebView — a remount pays the 400KB xterm parse and two cold TLS

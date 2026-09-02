@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { cn } from "@superset/ui/utils";
@@ -26,15 +27,6 @@ interface PullRequestsTopBarProps {
 	onStateFilterChange: (state: PullRequestsStateFilter) => void;
 }
 
-const STATE_TABS: ReadonlyArray<{
-	value: PullRequestsStateFilter;
-	label: string;
-}> = [
-	{ value: "all", label: "All" },
-	{ value: "open", label: "Open" },
-	{ value: "merged", label: "Merged" },
-];
-
 export function PullRequestsTopBar({
 	searchQuery,
 	onSearchChange,
@@ -48,6 +40,33 @@ export function PullRequestsTopBar({
 	stateFilter,
 	onStateFilterChange,
 }: PullRequestsTopBarProps) {
+	const { t } = useLingui();
+	const stateTabs: ReadonlyArray<{
+		value: PullRequestsStateFilter;
+		label: string;
+	}> = [
+		{
+			value: "all",
+			label: t({
+				id: "dashboard.pullRequests.stateFilter.all",
+				message: "All",
+			}),
+		},
+		{
+			value: "open",
+			label: t({
+				id: "dashboard.pullRequests.stateFilter.open",
+				message: "Open",
+			}),
+		},
+		{
+			value: "merged",
+			label: t({
+				id: "dashboard.pullRequests.stateFilter.merged",
+				message: "Merged",
+			}),
+		},
+	];
 	const activeFilterCount = [
 		projectFilters.length > 0,
 		!!authorFilter,
@@ -61,10 +80,13 @@ export function PullRequestsTopBar({
 		>
 			<div
 				role="radiogroup"
-				aria-label="Filter by state"
+				aria-label={t({
+					id: "dashboard.pullRequests.stateFilter.groupAria",
+					message: "Filter by state",
+				})}
 				className="flex items-center gap-1"
 			>
-				{STATE_TABS.map((tab) => (
+				{stateTabs.map((tab) => (
 					// biome-ignore lint/a11y/useSemanticElements: styled as a pill button, not a native radio input
 					<button
 						key={tab.value}
@@ -93,8 +115,14 @@ export function PullRequestsTopBar({
 					<WorkItemsSearch
 						value={searchQuery}
 						onChange={onSearchChange}
-						placeholder="Search pull requests…"
-						label="Search pull requests"
+						placeholder={t({
+							id: "dashboard.pullRequests.search.placeholder",
+							message: "Search pull requests…",
+						})}
+						label={t({
+							id: "dashboard.pullRequests.search.label",
+							message: "Search pull requests",
+						})}
 						className="bg-muted"
 					/>
 				</div>
@@ -106,10 +134,19 @@ export function PullRequestsTopBar({
 							className="relative shrink-0"
 							aria-label={
 								activeFilterCount > 0
-									? `Filters, ${activeFilterCount} active`
-									: "Filters"
+									? t({
+											id: "dashboard.pullRequests.filters.triggerAriaActive",
+											message: `Filters, ${activeFilterCount} active`,
+										})
+									: t({
+											id: "dashboard.pullRequests.filters.trigger",
+											message: "Filters",
+										})
 							}
-							title="Filters"
+							title={t({
+								id: "dashboard.pullRequests.filters.trigger",
+								message: "Filters",
+							})}
 						>
 							<LuListFilter className="size-3.5" />
 							{activeFilterCount > 0 && (
@@ -124,7 +161,11 @@ export function PullRequestsTopBar({
 					</PopoverTrigger>
 					<PopoverContent align="end" className="w-80 space-y-1">
 						<div className="flex items-center justify-between gap-2">
-							<span className="text-xs text-muted-foreground">Repository</span>
+							<span className="text-xs text-muted-foreground">
+								<Trans id="dashboard.pullRequests.filters.repository">
+									Repository
+								</Trans>
+							</span>
 							<ProjectFilter
 								value={projectFilters}
 								onChange={onProjectFiltersChange}
@@ -132,7 +173,9 @@ export function PullRequestsTopBar({
 							/>
 						</div>
 						<div className="flex items-center justify-between gap-2">
-							<span className="text-xs text-muted-foreground">Author</span>
+							<span className="text-xs text-muted-foreground">
+								<Trans id="dashboard.pullRequests.filters.author">Author</Trans>
+							</span>
 							<AuthorFilter
 								value={authorFilter}
 								onChange={onAuthorFilterChange}
@@ -140,7 +183,11 @@ export function PullRequestsTopBar({
 							/>
 						</div>
 						<div className="flex items-center justify-between gap-2">
-							<span className="text-xs text-muted-foreground">Reviews</span>
+							<span className="text-xs text-muted-foreground">
+								<Trans id="dashboard.pullRequests.filters.reviews">
+									Reviews
+								</Trans>
+							</span>
 							<ReviewFilter
 								value={reviewFilter}
 								onChange={onReviewFilterChange}

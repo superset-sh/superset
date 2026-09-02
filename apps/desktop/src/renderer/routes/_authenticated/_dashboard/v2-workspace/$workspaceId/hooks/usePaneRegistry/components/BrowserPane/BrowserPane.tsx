@@ -1,17 +1,29 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { RendererContext, Tab } from "@superset/panes";
-import { Button } from "@superset/ui/button";
 import { useParams } from "@tanstack/react-router";
 import { GlobeIcon, SquareDashedMousePointer, XIcon } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { TbDownload } from "react-icons/tb";
 import { ImportHistoryDialog } from "renderer/components/ImportHistoryDialog";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
+import {
+	BROWSER_IMPORT_BANNER_ID,
+	useBrowserImportBannerDismissalsStore,
+} from "renderer/stores/browser-import-banner-dismissals";
 import type { BrowserPaneData, PaneViewerData } from "../../../../types";
 
 import { BrowserErrorOverlay } from "./components/BrowserErrorOverlay";
+import { BrowserFindBar } from "./components/BrowserFindBar";
 import { BrowserTabFavicon } from "./components/BrowserTabFavicon";
+import { ChromeImportBanner } from "./components/ChromeImportBanner";
 import { DesignModePopover } from "./components/DesignModePopover";
+import { DeviceToolbar } from "./components/DeviceToolbar";
+import { DEFAULT_DEVICE_PRESET, DEVICE_PRESETS } from "./constants";
 import { designModeStore, useDesignModeState } from "./designModeStore";
+import {
+	deviceToolbarStore,
+	useDeviceToolbarState,
+} from "./deviceToolbarStore";
+import { findBarStore, useFindBarOpen } from "./findBarStore";
 import { useBrowserState } from "./hooks/useBrowserState";
 import { usePersistentWebview } from "./hooks/usePersistentWebview";
 
@@ -59,11 +71,14 @@ export function BrowserPane({
 	onCreateNewAgentSession,
 	onFocusAgentTerminal,
 }: BrowserPaneProps) {
+	const { t } = useLingui();
 	const paneId = ctx.pane.id;
 	const state = useBrowserState(paneId);
 	const { placeholderRef, reload } = usePersistentWebview({ paneId, ctx });
 	const { workspaceId } = useParams({ strict: false });
 	const designMode = useDesignModeState(paneId);
+	const isFindBarOpen = useFindBarOpen(paneId);
+	const deviceToolbar = useDeviceToolbarState(paneId);
 	const rootRef = useRef<HTMLDivElement | null>(null);
 
 	// A pane switch or unmount must not leave a stale picker overlay armed in
@@ -73,6 +88,8 @@ export function BrowserPane({
 			if (designModeStore.getState(paneId).phase !== "idle") {
 				designModeStore.exit(paneId);
 			}
+			findBarStore.close(paneId);
+			deviceToolbarStore.reset(paneId);
 		};
 	}, [paneId]);
 
@@ -124,6 +141,13 @@ export function BrowserPane({
 
 	const isBlankPage = !state.currentUrl || state.currentUrl === "about:blank";
 
+	const deviceForToolbar =
+		DEVICE_PRESETS.find((d) => d.id === deviceToolbar.deviceId) ??
+		DEFAULT_DEVICE_PRESET;
+	const deviceToolbarSize = deviceToolbar.isRotated
+		? { width: deviceForToolbar.height, height: deviceForToolbar.width }
+		: { width: deviceForToolbar.width, height: deviceForToolbar.height };
+
 	// Anchor the composer under the clicked element: the capture's viewport
 	// rect is in guest CSS pixels, which map 1:1 onto the placeholder's box
 	// (the webview mirrors the placeholder rect, and the pane root is the
@@ -168,23 +192,41 @@ export function BrowserPane({
 		return () => observer.disconnect();
 	}, [confirmingRect, placeholderRef]);
 
-	// Offer importing from another browser on the empty page, but only when one
-	// is actually detected, so the CTA is never a dead end.
-	const [canImport, setCanImport] = useState(false);
+	// Offer importing from another browser — as a banner above the page, not
+	// just on the empty new-tab state — but only when one is actually
+	// detected, so the CTA is never a dead end. Dismissal is persisted and
+	// app-wide (see the store): local state here would reset on every remount
+	// and bleed between panes through the unkeyed pane-component reuse.
+	const [importSource, setImportSource] = useState<{
+		browserKey: string;
+		browserName: string;
+	} | null>(null);
 	const [isImportOpen, setIsImportOpen] = useState(false);
+	const isBannerDismissed = useBrowserImportBannerDismissalsStore((s) =>
+		s.isDismissed(BROWSER_IMPORT_BANNER_ID),
+	);
+	const dismissBanner = useBrowserImportBannerDismissalsStore((s) => s.dismiss);
 	useEffect(() => {
-		if (!isBlankPage) return;
 		let cancelled = false;
 		electronTrpcClient.browserHistory.getImportSources
 			.query()
 			.then((result) => {
-				if (!cancelled) setCanImport(result.sources.length > 0);
+				if (cancelled) return;
+				const source = result.sources[0];
+				setImportSource(
+					source
+						? {
+								browserKey: source.browserKey,
+								browserName: source.browserName,
+							}
+						: null,
+				);
 			})
 			.catch(() => {});
 		return () => {
 			cancelled = true;
 		};
-	}, [isBlankPage]);
+	}, []);
 
 	return (
 		// min-w-0: without it the banner row's intrinsic width becomes the pane
@@ -197,26 +239,84 @@ export function BrowserPane({
 				<div className="relative z-20 flex shrink-0 items-center gap-2 border-b border-border/60 bg-[#0d99ff]/10 px-3 py-1.5 text-xs text-foreground/90">
 					<SquareDashedMousePointer className="size-3.5 shrink-0 text-[#0d99ff]" />
 					<span className="min-w-0 flex-1 truncate">
-						{designMode.phase === "selecting"
-							? "Design mode — click any element in the page to send it to an agent."
-							: "Element captured — describe the change, or press esc to pick again."}
+						{designMode.phase === "selecting" ? (
+							<Trans id="workspace.browserPane.designModeSelecting">
+								Design mode — click any element in the page to send it to an
+								agent.
+							</Trans>
+						) : (
+							<Trans id="workspace.browserPane.designModeCaptured">
+								Element captured — describe the change, or press esc to pick
+								again.
+							</Trans>
+						)}
 					</span>
 					{designMode.phase === "selecting" && (
 						<span className="shrink-0 text-muted-foreground/70">
-							esc to exit
+							<Trans id="workspace.browserPane.designModeEscToExit">
+								esc to exit
+							</Trans>
 						</span>
 					)}
 					<button
 						type="button"
 						onClick={() => designModeStore.exit(paneId)}
-						aria-label="Exit design mode"
+						aria-label={t({
+							id: "workspace.browserPane.exitDesignMode",
+							message: "Exit design mode",
+						})}
 						className="shrink-0 rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
 					>
 						<XIcon className="size-3.5" />
 					</button>
 				</div>
 			)}
-			<div ref={placeholderRef} className="w-full min-h-0 flex-1" />
+			{importSource && !isBannerDismissed && (
+				<ChromeImportBanner
+					browserKey={importSource.browserKey}
+					browserName={importSource.browserName}
+					onImport={() => setIsImportOpen(true)}
+					onDismiss={() => dismissBanner(BROWSER_IMPORT_BANNER_ID)}
+				/>
+			)}
+			{deviceToolbar.isOpen && (
+				<DeviceToolbar
+					state={deviceToolbar}
+					onSetDevice={(deviceId) =>
+						deviceToolbarStore.setDevice(paneId, deviceId)
+					}
+					onToggleRotate={() => deviceToolbarStore.toggleRotate(paneId)}
+					onClose={() => deviceToolbarStore.close(paneId)}
+				/>
+			)}
+			<div
+				className={
+					deviceToolbar.isOpen
+						? "flex min-h-0 w-full flex-1 items-center justify-center overflow-auto bg-muted/20"
+						: "min-h-0 w-full flex-1"
+				}
+			>
+				<div
+					ref={placeholderRef}
+					style={
+						deviceToolbar.isOpen
+							? {
+									width: deviceToolbarSize.width,
+									height: deviceToolbarSize.height,
+								}
+							: undefined
+					}
+					className={
+						deviceToolbar.isOpen ? "shrink-0 shadow-lg" : "h-full w-full"
+					}
+				/>
+			</div>
+			{isFindBarOpen && (
+				<BrowserFindBar
+					paneId={paneId}
+					onClose={() => findBarStore.close(paneId)}
+				/>
+			)}
 			{designMode.phase === "confirming" &&
 				designMode.payload &&
 				workspaceId && (
@@ -226,7 +326,10 @@ export function BrowserPane({
 						    navigate out from under the open composer. */}
 						<button
 							type="button"
-							aria-label="Discard captured element"
+							aria-label={t({
+								id: "workspace.browserPane.discardCapturedElement",
+								message: "Discard captured element",
+							})}
 							onClick={() => designModeStore.rearm(paneId)}
 							className="absolute inset-0 z-10 cursor-default"
 						/>
@@ -253,24 +356,16 @@ export function BrowserPane({
 						</div>
 						<div className="text-center">
 							<p className="text-base font-medium text-foreground">
-								Start browsing
+								<Trans id="workspace.browserPane.startBrowsing">
+									Start browsing
+								</Trans>
 							</p>
 							<p className="mt-1.5 text-sm text-muted-foreground">
-								Type a web address in the bar above, or ask an agent to browse
-								for you.
+								<Trans id="workspace.browserPane.startBrowsingHint">
+									Enter a URL into the search bar above.
+								</Trans>
 							</p>
 						</div>
-						{canImport && (
-							<Button
-								variant="outline"
-								size="sm"
-								className="gap-2"
-								onClick={() => setIsImportOpen(true)}
-							>
-								<TbDownload className="size-4" />
-								Import settings from another browser
-							</Button>
-						)}
 					</div>
 				</div>
 			)}

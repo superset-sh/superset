@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Command, CommandInput } from "@superset/ui/command";
 import {
 	Dialog,
@@ -28,6 +29,7 @@ export function useCommandPaletteQuery(): string {
 }
 
 export function CommandPalette() {
+	const { t, i18n } = useLingui();
 	const open = useFrameStackStore((s) => s.open);
 	const setOpen = useFrameStackStore((s) => s.setOpen);
 	const frames = useFrameStackStore((s) => s.frames);
@@ -102,15 +104,22 @@ export function CommandPalette() {
 		if (!open) setQuery("");
 	}, [open]);
 
-	const placeholder = currentFrame
-		? `Search in ${currentFrame.command.title}…`
-		: "Type a command or search…";
+	const frameTitle = currentFrame ? i18n._(currentFrame.command.title) : null;
+	const placeholder = frameTitle
+		? t({
+				id: "commandPalette.input.searchIn",
+				message: `Search in ${frameTitle}…`,
+			})
+		: t({
+				id: "commandPalette.input.placeholder",
+				message: "Type a command or search…",
+			});
 
 	const backButton = (
 		<button
 			type="button"
 			onClick={handleBack}
-			aria-label="Back"
+			aria-label={t({ id: "commandPalette.input.back", message: "Back" })}
 			className="text-muted-foreground hover:text-foreground"
 		>
 			<ArrowLeftIcon className="size-4 shrink-0" />
@@ -125,14 +134,18 @@ export function CommandPalette() {
 				style={{ top: "max(16px, calc(50% - 278px))" }}
 			>
 				<DialogHeader className="sr-only">
-					<DialogTitle>Command Palette</DialogTitle>
+					<DialogTitle>
+						<Trans id="commandPalette.dialog.title">Command Palette</Trans>
+					</DialogTitle>
 					<DialogDescription>
-						Run commands and navigate the application.
+						<Trans id="commandPalette.dialog.description">
+							Run commands and navigate the application.
+						</Trans>
 					</DialogDescription>
 				</DialogHeader>
 				<Command
 					onKeyDown={handleRootKeyDown}
-					shouldFilter={!currentFrame || !currentFrame.command.renderFrame}
+					shouldFilter={false}
 					className="[&_[cmdk-group-heading]]:text-muted-foreground **:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5 [&_[cmdk-list]]:max-h-[min(500px,calc(80vh-3rem))]"
 				>
 					<CommandInput
@@ -147,10 +160,11 @@ export function CommandPalette() {
 						{currentFrame ? (
 							<SubPaletteView
 								parent={currentFrame.command}
+								query={query}
 								onSelect={handleSelect}
 							/>
 						) : (
-							<CommandListView onSelect={handleSelect} />
+							<CommandListView query={query} onSelect={handleSelect} />
 						)}
 					</QueryContext.Provider>
 				</Command>

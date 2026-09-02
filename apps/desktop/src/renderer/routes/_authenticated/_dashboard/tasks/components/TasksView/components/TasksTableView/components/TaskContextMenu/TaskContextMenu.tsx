@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { SelectTaskStatus } from "@superset/db/schema";
 import {
 	ContextMenu,
@@ -96,7 +97,9 @@ export function TaskContextMenu({
 				<ContextMenuSub>
 					<ContextMenuSubTrigger>
 						<ActiveIcon className="mr-2" />
-						<span>Status</span>
+						<span>
+							<Trans id="dashboard.tasks.taskContextMenu.status">Status</Trans>
+						</span>
 					</ContextMenuSubTrigger>
 					<ContextMenuSubContent className="w-48">
 						<div className="max-h-64 overflow-y-auto">
@@ -114,7 +117,11 @@ export function TaskContextMenu({
 				<ContextMenuSub>
 					<ContextMenuSubTrigger>
 						<HiOutlineUserCircle className="mr-2 size-4" />
-						<span>Assignee</span>
+						<span>
+							<Trans id="dashboard.tasks.taskContextMenu.assignee">
+								Assignee
+							</Trans>
+						</span>
 					</ContextMenuSubTrigger>
 					<ContextMenuSubContent className="w-56">
 						<div className="max-h-64 overflow-y-auto">
@@ -133,7 +140,11 @@ export function TaskContextMenu({
 				<ContextMenuSub>
 					<ContextMenuSubTrigger>
 						<PriorityMenuIcon className="mr-1" />
-						<span>Priority</span>
+						<span>
+							<Trans id="dashboard.tasks.taskContextMenu.priority">
+								Priority
+							</Trans>
+						</span>
 					</ContextMenuSubTrigger>
 					<ContextMenuSubContent className="w-52">
 						<PriorityMenuItems
@@ -151,14 +162,24 @@ export function TaskContextMenu({
 				<ContextMenuSub>
 					<ContextMenuSubTrigger>
 						<HiOutlineDocumentDuplicate className="mr-2 size-4" />
-						<span>Copy</span>
+						<span>
+							<Trans id="dashboard.tasks.taskContextMenu.copy">Copy</Trans>
+						</span>
 					</ContextMenuSubTrigger>
 					<ContextMenuSubContent className="w-48">
 						<ContextMenuItem onClick={handleCopyId}>
-							<span>Copy ID</span>
+							<span>
+								<Trans id="dashboard.tasks.taskContextMenu.copyId">
+									Copy ID
+								</Trans>
+							</span>
 						</ContextMenuItem>
 						<ContextMenuItem onClick={handleCopyTitle}>
-							<span>Copy Title</span>
+							<span>
+								<Trans id="dashboard.tasks.taskContextMenu.copyTitle">
+									Copy Title
+								</Trans>
+							</span>
 						</ContextMenuItem>
 					</ContextMenuSubContent>
 				</ContextMenuSub>
@@ -170,7 +191,9 @@ export function TaskContextMenu({
 					className="text-destructive focus:text-destructive"
 				>
 					<HiOutlineTrash className="text-destructive size-4" />
-					<span>Delete</span>
+					<span>
+						<Trans id="dashboard.tasks.taskContextMenu.delete">Delete</Trans>
+					</span>
 				</ContextMenuItem>
 			</ContextMenuContent>
 		</ContextMenu>

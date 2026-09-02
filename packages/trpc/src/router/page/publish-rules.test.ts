@@ -5,6 +5,7 @@ import {
 	MAX_PAGE_BYTES,
 	PAGE_CONTENT_TYPES,
 	titleFromFilename,
+	validateAssetPaths,
 	validatePublishContent,
 } from "./publish-rules";
 
@@ -97,5 +98,38 @@ describe("validatePublishContent", () => {
 				contentType: "text/html",
 			}),
 		).toThrow(/too large/i);
+	});
+});
+
+describe("validateAssetPaths", () => {
+	const ok = (path: string) =>
+		expect(() => validateAssetPaths([{ path }])).not.toThrow();
+	const bad = (path: string) =>
+		expect(() => validateAssetPaths([{ path }])).toThrow();
+
+	test("accepts ordinary relative paths", () => {
+		ok("demo.mp4");
+		ok("img/chart.png");
+		ok("styles/site.css");
+		ok("versions.png");
+	});
+
+	test("refuses escapes, reserved shapes, and shadows", () => {
+		bad("/abs.png");
+		bad("../up.png");
+		bad("a/../b.png");
+		bad("a//b.png");
+		bad("versions/1/x.png");
+		bad("files/abc");
+		bad("_superset/runtime.js");
+		bad("~ticket/x.png");
+		bad("index.html");
+		bad("thumbnail.jpg");
+	});
+
+	test("refuses duplicates", () => {
+		expect(() =>
+			validateAssetPaths([{ path: "a.png" }, { path: "a.png" }]),
+		).toThrow();
 	});
 });

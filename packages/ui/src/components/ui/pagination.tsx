@@ -1,9 +1,11 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	ChevronLeftIcon,
 	ChevronRightIcon,
 	MoreHorizontalIcon,
 } from "lucide-react";
 import type * as React from "react";
+import { i18n } from "../../lib/i18n";
 
 import { cn } from "../../lib/utils";
 import { type Button, buttonVariants } from "./button";
@@ -11,7 +13,7 @@ import { type Button, buttonVariants } from "./button";
 function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
 	return (
 		<nav
-			aria-label="pagination"
+			aria-label={i18n._({ id: "ui.pagination.label", message: "pagination" })}
 			data-slot="pagination"
 			className={cn("mx-auto flex w-full justify-center", className)}
 			{...props}
@@ -70,13 +72,18 @@ function PaginationPrevious({
 }: React.ComponentProps<typeof PaginationLink>) {
 	return (
 		<PaginationLink
-			aria-label="Go to previous page"
+			aria-label={i18n._({
+				id: "ui.pagination.previousLabel",
+				message: "Go to previous page",
+			})}
 			size="default"
 			className={cn("gap-1 px-2.5 sm:pl-2.5", className)}
 			{...props}
 		>
 			<ChevronLeftIcon />
-			<span className="hidden sm:block">Previous</span>
+			<span className="hidden sm:block">
+				<Trans id="ui.pagination.previous">Previous</Trans>
+			</span>
 		</PaginationLink>
 	);
 }
@@ -87,12 +94,17 @@ function PaginationNext({
 }: React.ComponentProps<typeof PaginationLink>) {
 	return (
 		<PaginationLink
-			aria-label="Go to next page"
+			aria-label={i18n._({
+				id: "ui.pagination.nextLabel",
+				message: "Go to next page",
+			})}
 			size="default"
 			className={cn("gap-1 px-2.5 sm:pr-2.5", className)}
 			{...props}
 		>
-			<span className="hidden sm:block">Next</span>
+			<span className="hidden sm:block">
+				<Trans id="ui.pagination.next">Next</Trans>
+			</span>
 			<ChevronRightIcon />
 		</PaginationLink>
 	);
@@ -110,7 +122,9 @@ function PaginationEllipsis({
 			{...props}
 		>
 			<MoreHorizontalIcon className="size-4" />
-			<span className="sr-only">More pages</span>
+			<span className="sr-only">
+				<Trans id="ui.pagination.morePages">More pages</Trans>
+			</span>
 		</span>
 	);
 }

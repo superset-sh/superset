@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	Command,
@@ -34,6 +35,7 @@ export function FontFamilyCombobox({
 	fonts,
 	fontsLoading,
 }: FontFamilyComboboxProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const [search, setSearch] = useState("");
 
@@ -111,7 +113,13 @@ export function FontFamilyCombobox({
 						className="truncate"
 						style={{ fontFamily: `"${displayLabel}"` }}
 					>
-						{fontsLoading ? "Loading fonts..." : displayLabel}
+						{fontsLoading ? (
+							<Trans id="settings.appearance.fontCombobox.loadingFonts">
+								Loading fonts...
+							</Trans>
+						) : (
+							displayLabel
+						)}
 					</span>
 					<ChevronsUpDownIcon className="size-4 shrink-0 opacity-50" />
 				</Button>
@@ -119,7 +127,10 @@ export function FontFamilyCombobox({
 			<PopoverContent className="w-[320px] p-0" align="start" side="top">
 				<Command shouldFilter={true}>
 					<CommandInput
-						placeholder="Search fonts..."
+						placeholder={t({
+							id: "settings.appearance.fontCombobox.searchPlaceholder",
+							message: "Search fonts...",
+						})}
 						value={search}
 						onValueChange={setSearch}
 					/>
@@ -131,27 +142,57 @@ export function FontFamilyCombobox({
 									className="w-full text-center cursor-pointer hover:underline"
 									onClick={() => selectFont(search.trim())}
 								>
-									Use &ldquo;{search.trim()}&rdquo;
+									<Trans id="settings.appearance.fontCombobox.useCustomEmpty">
+										Use &ldquo;{search.trim()}&rdquo;
+									</Trans>
 								</button>
 							) : (
-								"No fonts found."
+								<Trans id="settings.appearance.fontCombobox.noFontsFound">
+									No fonts found.
+								</Trans>
 							)}
 						</CommandEmpty>
 						{allowCustomEntry && !hasExactMatch && search.trim() && (
-							<CommandGroup heading="Custom">
+							<CommandGroup
+								heading={t({
+									id: "settings.appearance.fontCombobox.groupCustom",
+									message: "Custom",
+								})}
+							>
 								<CommandItem
 									value={`__custom__${search.trim()}`}
 									onSelect={() => selectFont(search.trim())}
 								>
 									<span className="truncate flex-1">
-										Use &ldquo;{search.trim()}&rdquo;
+										<Trans id="settings.appearance.fontCombobox.useCustomOption">
+											Use &ldquo;{search.trim()}&rdquo;
+										</Trans>
 									</span>
 								</CommandItem>
 							</CommandGroup>
 						)}
-						{renderGroup("Nerd Fonts", nerdFonts)}
-						{renderGroup("Monospace", monoFonts)}
-						{variant !== "terminal" && renderGroup("Other", otherFonts)}
+						{renderGroup(
+							t({
+								id: "settings.appearance.fontCombobox.groupNerdFonts",
+								message: "Nerd Fonts",
+							}),
+							nerdFonts,
+						)}
+						{renderGroup(
+							t({
+								id: "settings.appearance.fontCombobox.groupMonospace",
+								message: "Monospace",
+							}),
+							monoFonts,
+						)}
+						{variant !== "terminal" &&
+							renderGroup(
+								t({
+									id: "settings.appearance.fontCombobox.groupOther",
+									message: "Other",
+								}),
+								otherFonts,
+							)}
 					</CommandList>
 				</Command>
 			</PopoverContent>

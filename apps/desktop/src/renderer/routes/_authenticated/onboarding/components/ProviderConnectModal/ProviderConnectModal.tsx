@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { chatServiceTrpc } from "@superset/provider-auth/client";
 import { Button } from "@superset/ui/button";
 import {
@@ -195,9 +196,7 @@ function ConnectDialogShell({
 		try {
 			await onApiKeySubmit(trimmed);
 		} catch (err) {
-			toast.error(
-				err instanceof Error ? err.message : "Failed to save the API key.",
-			);
+			toast.error(errorMessage(err, "Failed to save the API key."));
 		} finally {
 			setSubmitting(false);
 		}

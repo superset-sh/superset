@@ -34,6 +34,18 @@ export interface AgentLifecycleMessage {
 	occurredAt: number;
 }
 
+/**
+ * Invalidation-only signal for host-owned agent bindings changed outside a
+ * lifecycle hook (for example, the sidebar's Clear Status action). This is
+ * intentionally separate from `agent:lifecycle`: consumers should refetch
+ * binding state without playing completion sounds or showing notifications.
+ */
+export interface AgentBindingsChangedMessage {
+	type: "agent:bindings-changed";
+	workspaceId: string;
+	occurredAt: number;
+}
+
 export interface TerminalLifecycleMessage {
 	type: "terminal:lifecycle";
 	workspaceId: string;
@@ -70,6 +82,8 @@ export interface WorkspaceSnapshot {
 	createdByUserId: string | null;
 	createdAt: number;
 	updatedAt: number;
+	/** Normalized, sorted tag set; sidebar folders derive from it. */
+	tags: string[];
 }
 
 export interface WorkspaceChangedMessage {
@@ -78,6 +92,33 @@ export interface WorkspaceChangedMessage {
 	eventType: "created" | "updated" | "deleted";
 	/** Null for `deleted` — the row is already gone. */
 	workspace: WorkspaceSnapshot | null;
+	occurredAt: number;
+}
+
+/** One tag folder's host-side presentation (see tag_folder_settings). */
+export interface TagSettingSnapshot {
+	tag: string;
+	displayName: string | null;
+	color: string | null;
+	tabOrder: number | null;
+}
+
+/**
+ * A tag folder's presentation plus the scope it lives under — a project id,
+ * or `SESSIONS_TAG_SCOPE` for the project-less Sessions lane. Folders travel
+ * on their own channel rather than riding project snapshots, because the
+ * Sessions lane has no project to ride on.
+ */
+export interface TagFolderSettingSnapshot extends TagSettingSnapshot {
+	scope: string;
+}
+
+export interface TagFoldersChangedMessage {
+	type: "tag-folders:changed";
+	/** The scope whose folders changed. */
+	scope: string;
+	/** The scope's full set after the change — empty when all were removed. */
+	settings: TagFolderSettingSnapshot[];
 	occurredAt: number;
 }
 
@@ -100,6 +141,11 @@ export interface ProjectSnapshot {
 	color: string | null;
 	createdAt: number;
 	updatedAt: number;
+	/**
+	 * @deprecated Compatibility for desktops that predate the tagFolders
+	 * router. New consumers read tag-folder presentation from that router.
+	 */
+	tagSettings?: TagSettingSnapshot[];
 }
 
 export interface ProjectChangedMessage {
@@ -146,15 +192,24 @@ export interface EventBusErrorMessage {
 	message: string;
 }
 
+export interface PageWatchChangedMessage {
+	type: "page-watch:changed";
+	workspaceId: string;
+	occurredAt: number;
+}
+
 export type ServerMessage =
 	| FsEventsMessage
 	| GitChangedMessage
 	| AgentLifecycleMessage
+	| AgentBindingsChangedMessage
 	| TerminalLifecycleMessage
 	| PortChangedMessage
 	| WorkspaceChangedMessage
 	| WorkspaceCreateSettledMessage
 	| ProjectChangedMessage
+	| TagFoldersChangedMessage
+	| PageWatchChangedMessage
 	| EventBusErrorMessage;
 
 // ── Client → Server ────────────────────────────────────────────────

@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import { ChevronsUpDownIcon } from "lucide-react";
 import type { ComponentProps } from "react";
 import { createContext, useContext } from "react";
@@ -136,7 +137,9 @@ export const PlanTrigger = ({ className, ...props }: PlanTriggerProps) => (
 			{...props}
 		>
 			<ChevronsUpDownIcon className="size-4" />
-			<span className="sr-only">Toggle plan</span>
+			<span className="sr-only">
+				<Trans id="ui.plan.toggle">Toggle plan</Trans>
+			</span>
 		</Button>
 	</CollapsibleTrigger>
 );

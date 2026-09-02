@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -160,7 +161,9 @@ export function HostReadinessBanner({
 								variant="outline"
 								onClick={() => signIn("install")}
 							>
-								Install GitHub CLI…
+								<Trans id="settings.hosts.readiness.installGh">
+									Install GitHub CLI…
+								</Trans>
 							</Button>
 						) : null
 					}
@@ -185,7 +188,9 @@ export function HostReadinessBanner({
 								variant="outline"
 								onClick={() => signIn("auth")}
 							>
-								Sign in to GitHub…
+								<Trans id="settings.hosts.readiness.signInGh">
+									Sign in to GitHub…
+								</Trans>
 							</Button>
 						) : null
 					}

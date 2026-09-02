@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Check } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
@@ -31,12 +32,22 @@ export function WorkspaceCreatingState({
 	workspaceResolved: boolean;
 	onBackHome: () => void;
 }) {
+	const { t } = useLingui();
 	const elapsedSeconds = useElapsedSeconds(startedAt);
 	const steps: Array<{ label: string; state: StepState }> = [
-		"Preparing",
-		"Fetching latest changes",
-		"Creating worktree",
-		`Starting ${agentLabel}`,
+		t({ id: "mobile.workspaceCreate.step.preparing", message: "Preparing" }),
+		t({
+			id: "mobile.workspaceCreate.step.fetching",
+			message: "Fetching latest changes",
+		}),
+		t({
+			id: "mobile.workspaceCreate.step.worktree",
+			message: "Creating worktree",
+		}),
+		t({
+			id: "mobile.workspaceCreate.step.startingAgent",
+			message: `Starting ${agentLabel}`,
+		}),
 	].map((label, index) => ({
 		label,
 		state: stepState(index, elapsedSeconds, workspaceResolved),
@@ -45,7 +56,11 @@ export function WorkspaceCreatingState({
 	return (
 		<View className="flex-1 items-center justify-center px-8">
 			<AsciiSpinner />
-			<Text className="mt-3 font-semibold text-[17px]">Creating workspace</Text>
+			<Text className="mt-3 font-semibold text-[17px]">
+				<Trans id="mobile.workspaceCreate.creatingTitle">
+					Creating workspace
+				</Trans>
+			</Text>
 			<Text className="text-muted-foreground mt-1.5 font-mono text-xs">
 				{subtitle}
 			</Text>
@@ -59,14 +74,19 @@ export function WorkspaceCreatingState({
 					{formatElapsed(elapsedSeconds)}
 				</Text>
 				<Text className="text-muted-foreground font-mono text-[11px]">
-					~{TYPICAL_SECONDS}s typical
+					{t({
+						id: "mobile.workspaceCreate.typical",
+						message: `~${TYPICAL_SECONDS}s typical`,
+					})}
 				</Text>
 			</View>
 			{elapsedSeconds >= SLOW_HINT_AT_S ? (
 				<View className="border-border mt-5 gap-3 self-stretch border-t px-3 pt-4">
 					<Text className="text-muted-foreground text-[13px] leading-5">
-						Still working — large repos can take a few minutes. You can leave;
-						the workspace will appear on Home when it's ready.
+						<Trans id="mobile.workspaceCreate.slowHint">
+							Still working — large repos can take a few minutes. You can leave;
+							the workspace will appear on Home when it's ready.
+						</Trans>
 					</Text>
 					<Button
 						variant="secondary"
@@ -74,7 +94,9 @@ export function WorkspaceCreatingState({
 						className="self-start"
 						onPress={onBackHome}
 					>
-						<Text>Back to Home</Text>
+						<Text>
+							<Trans id="mobile.common.backToHome">Back to Home</Trans>
+						</Text>
 					</Button>
 				</View>
 			) : null}

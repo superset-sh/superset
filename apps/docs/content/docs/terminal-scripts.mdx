@@ -1,0 +1,118 @@
+---
+title: Terminal Scripts
+description: Save and reuse commands that launch in terminals
+---
+
+<YouTubeVideo id="jT8AoqYTwRU" title="Superset terminal scripts" thumbnail="/images/preset.png" />
+
+## Overview
+
+Terminal scripts are reusable terminal launches. Give a script a name, one or
+more shell commands, an optional working directory, and a launch mode; then run
+it from any matching workspace with one click or a keyboard shortcut.
+
+Terminal scripts are different from [project lifecycle scripts](/setup-teardown-scripts):
+
+| Type | Purpose | Stored in |
+| --- | --- | --- |
+| **Terminal script** | A reusable command or group of commands you launch from the app | Superset user settings |
+| **Project lifecycle script** | Repository setup, teardown, or Run-button behavior | `.superset/config.json` or `.superset/*.sh` |
+
+Older versions of Superset called terminal scripts **presets**. You may still
+see `preset` in old links, CLI aliases, or compatibility-oriented API and
+storage fields, but the product term is **terminal script**.
+
+## What Terminal Scripts Do
+
+- **Launch reusable commands**: start a dev server, agent, test watcher, or any shell command
+- **Choose a working directory**: run from the workspace root or a path such as `apps/web`
+- **Group commands**: open several commands as panes, tabs, or a sequential workflow
+- **Target projects**: make a script available everywhere or only in selected projects
+- **Integrate with workspace actions**: use a script for workspace creation, new tabs, or the Run button
+- **Import agents**: create terminal scripts linked to configured Claude, Codex, and other agents
+
+## Create a Terminal Script
+
+Go to **Settings → Terminal → Terminal Scripts**, then click **Add Script**.
+
+| Field | Description |
+| --- | --- |
+| **Name** | The label shown in Settings and the Scripts bar |
+| **Description** | Optional context about what the script launches |
+| **Commands** | One or more shell commands, one command per row |
+| **Applies to** | Every project or selected projects |
+| **Directory** | A workspace-relative path or absolute directory |
+| **Launch mode** | Where one or more commands open |
+
+You can also add one from a terminal:
+
+```bash
+superset scripts add --name dev --command "bun run dev"
+```
+
+Repeat `--command` for a grouped script and use `--execution-mode` to control
+its layout:
+
+```bash
+superset scripts add \
+  --name services \
+  --command "docker compose up" \
+  --command "bun run dev" \
+  --execution-mode split-pane
+```
+
+`superset presets add` remains an alias for compatibility. See the
+[CLI reference](/cli/cli-reference#scripts) for every option.
+
+## Launch Modes
+
+- **New tab**: open the command in a new terminal tab
+- **Split pane**: open grouped commands as parallel panes in the current tab
+- **New tab with split panes**: create a new tab containing parallel panes
+- **Sequential**: run grouped commands in order in one terminal
+
+## Import an Agent
+
+Use **Import agent** in Terminal settings to create a terminal script linked to
+an agent configuration. The script uses the agent's current command and icon;
+edit the underlying launch command in **Settings → Agents**.
+
+The bundled Claude and Codex configurations default to their most permissive
+bypass flags (for example `claude --dangerously-skip-permissions`). Review the
+launch command in **Settings → Agents** if you want a stricter permission mode
+before importing.
+
+## Scripts Bar
+
+The Scripts bar appears above terminal tabs and shows visible terminal scripts
+for one-click access.
+
+- **Show or hide a script**: use its visibility control in Terminal settings or the gear menu
+- **Launch**: click a script to open it in the current workspace
+- **Choose a target**: right-click to use the current terminal, current tab, or a new tab
+- **Reorder**: drag scripts to change their order
+- **Manage**: use the gear menu to browse scripts or open Terminal settings
+- **Keyboard shortcuts**: press Control+1 through Control+9 to open visible scripts 1 through 9
+
+The bar includes a built-in **Superset CLI** script that runs `superset --help`.
+Built-in scripts can be hidden and restored, but not edited or reordered.
+
+## Workspace Actions
+
+A terminal script can participate in three workspace actions:
+
+- **Workspace Run**: the Run button launches this script for matching projects
+- **Workspace creation**: launch the script when a new workspace is created
+- **New terminal tab**: launch the script when a terminal tab opens
+
+These are explicit per-script controls. Launching a script directly from the
+bar, menu, or keyboard shortcut always works regardless of its workspace-action
+settings. On v1 desktop builds, the global auto-apply settings (such as
+`autoApplyDefaultPreset`, visible in `superset settings list`) also gate
+auto-run behavior.
+
+If more than one Run source matches a workspace, Superset uses the first
+project-targeted terminal script marked **Use as workspace run**, then the
+project lifecycle Run command, then the first matching global terminal script.
+Keep only one matching script enabled for Run when you want the choice to be
+unambiguous.

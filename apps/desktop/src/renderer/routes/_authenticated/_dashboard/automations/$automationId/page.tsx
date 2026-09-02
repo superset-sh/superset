@@ -1,3 +1,6 @@
+import { Trans, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
+import { errorMessage } from "@superset/i18n/errors";
 import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
 import { useMutation } from "@tanstack/react-query";
@@ -32,6 +35,7 @@ export const Route = createFileRoute(
 const RECENT_RUNS_LIMIT = 10;
 
 function AutomationDetailPage() {
+	const { t } = useLingui();
 	const { automationId } = Route.useParams();
 	const { history } = Route.useSearch();
 	const navigate = useNavigate();
@@ -80,14 +84,26 @@ function AutomationDetailPage() {
 		},
 		onError: (error) =>
 			toast.error(
-				error instanceof Error ? error.message : "Failed to update automation",
+				errorMessage(
+					error,
+					t({
+						id: "dashboard.automations.detail.updateFailedToast",
+						message: "Failed to update automation",
+					}),
+				),
 			),
 	});
 
 	const runNowMutation = useMutation({
 		mutationFn: () =>
 			apiTrpcClient.automation.runNow.mutate({ id: automationId }),
-		onSuccess: () => toast.success("Running now"),
+		onSuccess: () =>
+			toast.success(
+				t({
+					id: "dashboard.automations.detail.runningNowToast",
+					message: "Running now",
+				}),
+			),
 		onError: (error) => {
 			const message = error instanceof Error ? error.message : null;
 			if (isHostOfflineError(message)) {
@@ -95,10 +111,16 @@ function AutomationDetailPage() {
 				return;
 			}
 			if (isStaleAgentError(message)) {
-				toast.error(STALE_AGENT_HELP);
+				toast.error(i18n._(STALE_AGENT_HELP));
 				return;
 			}
-			toast.error(message ?? "Failed to trigger run");
+			toast.error(
+				message ??
+					t({
+						id: "dashboard.automations.detail.runFailedToast",
+						message: "Failed to trigger run",
+					}),
+			);
 		},
 	});
 
@@ -121,9 +143,15 @@ function AutomationDetailPage() {
 			loadError.data?.code === "NOT_FOUND";
 		return (
 			<div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground select-text cursor-text">
-				{loadError && !isMissing
-					? `Couldn't load automation: ${loadError.message}`
-					: "Automation not found."}
+				{loadError && !isMissing ? (
+					<Trans id="dashboard.automations.detail.loadError">
+						Couldn't load automation: {loadError.message}
+					</Trans>
+				) : (
+					<Trans id="dashboard.automations.detail.notFound">
+						Automation not found.
+					</Trans>
+				)}
 			</div>
 		);
 	}
@@ -141,21 +169,46 @@ function AutomationDetailPage() {
 					name={automation.name}
 					onDelete={() => {
 						alert({
-							title: "Delete automation?",
-							description: `"${automation.name}" will stop firing and its run history will be removed. This can't be undone.`,
+							title: t({
+								id: "dashboard.automations.detail.deleteDialogTitle",
+								message: "Delete automation?",
+							}),
+							description: t({
+								id: "dashboard.automations.detail.deleteDialogDescription",
+								message: `"${automation.name}" will stop firing and its run history will be removed. This can't be undone.`,
+							}),
 							actions: [
-								{ label: "Cancel", variant: "outline", onClick: () => {} },
 								{
-									label: "Delete",
+									label: t({
+										id: "dashboard.automations.detail.deleteDialogCancel",
+										message: "Cancel",
+									}),
+									variant: "outline",
+									onClick: () => {},
+								},
+								{
+									label: t({
+										id: "dashboard.automations.detail.deleteDialogConfirm",
+										message: "Delete",
+									}),
 									variant: "destructive",
 									onClick: () => {
 										toast.promise(deleteMutation.mutateAsync(), {
-											loading: "Deleting automation...",
-											success: `"${automation.name}" deleted`,
+											loading: t({
+												id: "dashboard.automations.detail.deletingToast",
+												message: "Deleting automation...",
+											}),
+											success: t({
+												id: "dashboard.automations.detail.deletedToast",
+												message: `"${automation.name}" deleted`,
+											}),
 											error: (err) =>
 												err instanceof Error
 													? err.message
-													: "Failed to delete automation",
+													: t({
+															id: "dashboard.automations.detail.deleteFailedToast",
+															message: "Failed to delete automation",
+														}),
 										});
 									},
 								},

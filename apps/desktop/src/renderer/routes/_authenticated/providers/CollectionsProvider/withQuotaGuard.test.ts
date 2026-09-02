@@ -221,3 +221,94 @@ describe("withQuotaGuard", () => {
 		expect(collection.get("row-1")).toBeDefined();
 	});
 });
+
+describe("cross-window storage events", () => {
+	type Listener = (event: { key: string | null; storageArea: unknown }) => void;
+
+	function withWindowShim<T>(
+		run: (
+			fire: (key: string, area: unknown) => void,
+			shimLocalStorage: unknown,
+		) => T,
+	): T {
+		const listeners = new Set<Listener>();
+		const shimLocalStorage = {
+			getItem: () => null,
+			setItem: () => {},
+			removeItem: () => {},
+		};
+		const shimWindow = {
+			localStorage: shimLocalStorage,
+			addEventListener: (type: string, listener: Listener) => {
+				if (type === "storage") listeners.add(listener);
+			},
+			removeEventListener: (_type: string, listener: Listener) => {
+				listeners.delete(listener);
+			},
+		};
+		const hadWindow = "window" in globalThis;
+		const previous = (globalThis as { window?: unknown }).window;
+		(globalThis as { window?: unknown }).window = shimWindow;
+		try {
+			return run((key, area) => {
+				for (const listener of [...listeners])
+					listener({ key, storageArea: area });
+			}, shimLocalStorage);
+		} finally {
+			if (hadWindow) (globalThis as { window?: unknown }).window = previous;
+			else delete (globalThis as { window?: unknown }).window;
+		}
+	}
+
+	it("re-targets another window's localStorage event at the guarded storage", () => {
+		// The library's handler drops events whose storageArea is not the
+		// collection's own storage object; without this re-targeting no
+		// cross-window write is ever seen (the rename ghost-folder bug).
+		withWindowShim((fire, shimLocalStorage) => {
+			const options = withQuotaGuard(
+				{ storageKey: "sync-test-key" },
+				{ reclaim: () => 0, onPersistFailed: () => {} },
+			) as unknown as {
+				storage: unknown;
+				storageEventApi?: {
+					addEventListener(t: string, l: Listener): void;
+					removeEventListener(t: string, l: Listener): void;
+				};
+			};
+			expect(options.storageEventApi).toBeDefined();
+			const seen: Array<{ key: string | null; storageArea: unknown }> = [];
+			const listener: Listener = (event) => seen.push(event);
+			options.storageEventApi?.addEventListener("storage", listener);
+
+			fire("sync-test-key", shimLocalStorage);
+			expect(seen).toHaveLength(1);
+			expect(seen[0]?.storageArea).toBe(options.storage);
+			expect(seen[0]?.key).toBe("sync-test-key");
+
+			// A different storage area (another adapter) is not ours.
+			fire("sync-test-key", {});
+			expect(seen).toHaveLength(1);
+
+			options.storageEventApi?.removeEventListener("storage", listener);
+			fire("sync-test-key", shimLocalStorage);
+			expect(seen).toHaveLength(1);
+		});
+	});
+
+	it("does not install an event api over a custom (test) storage", () => {
+		withWindowShim(() => {
+			const custom = withQuotaGuard(
+				{
+					storageKey: "k",
+					storage: {
+						getItem: () => null,
+						setItem: () => {},
+						removeItem: () => {},
+					},
+				},
+				{ reclaim: () => 0, onPersistFailed: () => {} },
+			) as { storageEventApi?: unknown };
+			expect(custom.storageEventApi).toBeUndefined();
+		});
+	});
+});

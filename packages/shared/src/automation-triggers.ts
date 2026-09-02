@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { i18n } from "./i18n";
 import { hasFiniteRecurrence, rruleProblem } from "./rrule";
 
 /**
@@ -32,6 +33,11 @@ export const triggerScopeSchema = z
 			mode: z.literal("list"),
 			ids: z.array(z.string().min(1)).max(200),
 		}),
+		// The automation owner's own identity at the provider, resolved when the
+		// event arrives rather than when the trigger was written — reconnecting
+		// a different account moves the trigger with it. People pickers offer it;
+		// on any other scope it resolves to the same id and matches nothing.
+		z.object({ mode: z.literal("me") }),
 	])
 	.default({ mode: "any" });
 export type TriggerScope = z.infer<typeof triggerScopeSchema>;
@@ -181,9 +187,6 @@ export const slackTriggerConfigSchema = z.object({
 	// A pattern over the message text, or over the channel name for
 	// channel_created.
 	messageFilter: textFilterSchema.nullable().default(null),
-	// message_in_channel only: whether a reply inside a thread counts. Defaults
-	// to top-level posts, since a busy thread would otherwise fire once a reply.
-	topLevelOnly: z.boolean().default(true),
 	// message_in_channel only: the reaction to add to the triggering message
 	// when the run completes; null for none.
 	completionReaction: slackEmojiName.nullable().default("white_check_mark"),
@@ -231,22 +234,6 @@ export const sentryTriggerConfigSchema = z.object({
 	projects: triggerScopeSchema,
 	// Optional narrowing over fatal/error/warning/info/debug; "any" by default.
 	level: triggerScopeSchema,
-});
-
-export const circlebackTriggerEventValues = ["meeting.completed"] as const;
-
-/**
- * Circleback has no connection: it posts to a per-trigger URL and signs the
- * body with a secret it generates and shows in its own UI. That secret is
- * pasted into the trigger row and lives on the trigger row's secret column,
- * never in this config — the config is returned to every member of the org.
- */
-export const circlebackTriggerConfigSchema = z.object({
-	kind: z.literal("circleback"),
-	event: z.enum(circlebackTriggerEventValues),
-	tags: triggerScopeSchema,
-	attendees: triggerScopeSchema,
-	nameFilter: textFilterSchema.nullable().default(null),
 });
 
 /**
@@ -403,7 +390,6 @@ export const draftTriggerSchema = z.object({
 		linearTriggerConfigSchema,
 		sentryTriggerConfigSchema,
 		notionTriggerConfigSchema,
-		circlebackTriggerConfigSchema,
 		microsoftTeamsTriggerConfigSchema,
 		googleCalendarTriggerConfigSchema,
 		gmailTriggerConfigSchema,
@@ -411,6 +397,21 @@ export const draftTriggerSchema = z.object({
 });
 export type DraftTrigger = z.infer<typeof draftTriggerSchema>;
 export type TriggerConfigInput = DraftTrigger["config"];
+
+/**
+ * The trigger kinds the AUTOMATION_EVENT_TRIGGERS flag payload enables. Off,
+ * unloaded, offline, or a payload that isn't an array all mean none — Scheduled
+ * is offered regardless and is then the only kind. Strings, not kinds: the
+ * payload is edited by hand in PostHog, and an unknown entry simply enables
+ * nothing.
+ */
+export function enabledTriggerKinds(payload: unknown): Set<string> {
+	return new Set(
+		Array.isArray(payload)
+			? payload.filter((kind): kind is string => typeof kind === "string")
+			: [],
+	);
+}
 
 /** One problem, addressed to a specific trigger so the form can mark that row. */
 export type TriggerProblem = {
@@ -426,17 +427,45 @@ export type TriggerProblem = {
  * to the events whose sentence shows the chip; a rule for a field the config
  * member does not carry skips itself.
  */
+type ScopeNoun =
+	| "repository"
+	| "person"
+	| "channel"
+	| "reaction"
+	| "dataSource"
+	| "team"
+	| "project"
+	| "calendar"
+	| "sender";
+
+type ScopeChoice = "anyone" | "anySender";
+
 type ScopeRequirement = {
 	field: string;
-	noun: string;
-	orChoose?: string;
+	noun: ScopeNoun;
+	orChoose?: ScopeChoice;
 	when?: (config: TriggerConfigInput) => boolean;
 };
+
+function scopeChoiceLabel(choice: ScopeChoice): string {
+	switch (choice) {
+		case "anyone":
+			return i18n._({
+				id: "shared.automationTriggers.choice.anyone",
+				message: "Anyone",
+			});
+		case "anySender":
+			return i18n._({
+				id: "shared.automationTriggers.choice.anySender",
+				message: "Any sender",
+			});
+	}
+}
 
 const person = (
 	field: string,
 	when?: (config: TriggerConfigInput) => boolean,
-): ScopeRequirement => ({ field, noun: "person", orChoose: "Anyone", when });
+): ScopeRequirement => ({ field, noun: "person", orChoose: "anyone", when });
 
 const REQUIREMENTS: Partial<
 	Record<TriggerConfigInput["kind"], ScopeRequirement[]>
@@ -462,7 +491,7 @@ const REQUIREMENTS: Partial<
 		person("actor"),
 	],
 	notion: [
-		{ field: "dataSources", noun: "data source" },
+		{ field: "dataSources", noun: "dataSource" },
 		person("actor"),
 		person("mentionedUser"),
 	],
@@ -497,7 +526,7 @@ const REQUIREMENTS: Partial<
 	// The sender is the primary scope, as the repository is for GitHub: a
 	// mailbox-wide trigger has to be chosen ("Any sender"), never arrived at by
 	// leaving the chip empty.
-	gmail: [{ field: "from", noun: "sender", orChoose: "Any sender" }],
+	gmail: [{ field: "from", noun: "sender", orChoose: "anySender" }],
 };
 
 /**
@@ -524,9 +553,26 @@ export function describeTriggerProblems(
 			problems.push({
 				index,
 				field: rule.field,
+				// The noun travels as a select key, not an interpolated label:
+				// "at least one {noun}" needs an article and case that agree with
+				// the noun, which no language with grammatical gender can produce
+				// from a placeholder. Each locale inflects every branch itself.
 				message: rule.orChoose
-					? `Specify at least one ${rule.noun}, or choose ${rule.orChoose}.`
-					: `Specify at least one ${rule.noun}.`,
+					? i18n._({
+							id: "shared.automationTriggers.scopeRequiredOrChoose",
+							message:
+								"{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}",
+							values: {
+								noun: rule.noun,
+								choice: scopeChoiceLabel(rule.orChoose),
+							},
+						})
+					: i18n._({
+							id: "shared.automationTriggers.scopeRequired",
+							message:
+								"{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}",
+							values: { noun: rule.noun },
+						}),
 			});
 		}
 
@@ -536,13 +582,19 @@ export function describeTriggerProblems(
 				problems.push({
 					index,
 					field: "rrule",
-					message: "Enter a valid recurrence rule.",
+					message: i18n._({
+						id: "shared.automationTriggers.invalidRrule",
+						message: "Enter a valid recurrence rule.",
+					}),
 				});
 			} else if (hasFiniteRecurrence(config.rrule)) {
 				problems.push({
 					index,
 					field: "rrule",
-					message: "Schedules repeat — remove COUNT or UNTIL.",
+					message: i18n._({
+						id: "shared.automationTriggers.finiteRrule",
+						message: "Schedules repeat — remove COUNT or UNTIL.",
+					}),
 				});
 			}
 		}
@@ -556,5 +608,8 @@ export function summarizeTriggerProblems(
 	problems: TriggerProblem[],
 ): string | null {
 	if (problems.length === 0) return null;
-	return "Some triggers need additional configuration";
+	return i18n._({
+		id: "shared.automationTriggers.needConfiguration",
+		message: "Some triggers need additional configuration",
+	});
 }

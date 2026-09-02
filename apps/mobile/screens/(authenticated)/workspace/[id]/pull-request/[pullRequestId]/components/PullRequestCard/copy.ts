@@ -1,8 +1,6 @@
+import { i18n } from "@superset/i18n";
 import type { ChecksTally, MergeMethod } from "../../../../utils/pullRequest";
 import type { ActionId, PullRequestState } from "../../utils/pullRequestState";
-
-const plural = (count: number, word: string) =>
-	`${count} ${word}${count === 1 ? "" : "s"}`;
 
 /**
  * The headline names what the pull request is waiting on. Wording follows the
@@ -15,37 +13,96 @@ export function headlineFor(
 ): string {
 	switch (state) {
 		case "merged":
-			return "PR Merged and Closed";
+			return i18n._({
+				id: "mobile.pullRequest.headline.merged",
+				message: "PR Merged and Closed",
+			});
 		case "closed":
-			return "PR Closed";
+			return i18n._({
+				id: "mobile.pullRequest.headline.closed",
+				message: "PR Closed",
+			});
 		case "queued":
-			return "Queued to Merge";
+			return i18n._({
+				id: "mobile.pullRequest.headline.queued",
+				message: "Queued to Merge",
+			});
 		case "conflicts":
-			return "Resolve Conflicts to Merge";
+			return i18n._({
+				id: "mobile.pullRequest.headline.conflicts",
+				message: "Resolve Conflicts to Merge",
+			});
 		case "checks-failed":
-			return `${plural(tally.failed, "Check")} Failed`;
+			return i18n._({
+				id: "mobile.pullRequest.headline.checksFailed",
+				message:
+					"{count, plural, one {# Check Failed} other {# Checks Failed}}",
+				values: { count: tally.failed },
+			});
 		case "check-needs-action":
-			return `${plural(tally.needsAction, "Check")} Need${tally.needsAction === 1 ? "s" : ""} Action`;
+			return i18n._({
+				id: "mobile.pullRequest.headline.checksNeedAction",
+				message:
+					"{count, plural, one {# Check Needs Action} other {# Checks Need Action}}",
+				values: { count: tally.needsAction },
+			});
 		case "waiting-for-checks":
-			return "Waiting for Checks";
+			return i18n._({
+				id: "mobile.pullRequest.headline.waitingForChecks",
+				message: "Waiting for Checks",
+			});
 		case "changes-requested":
-			return "Changes Requested";
+			return i18n._({
+				id: "mobile.pullRequest.headline.changesRequested",
+				message: "Changes Requested",
+			});
 		case "waiting-for-review":
-			return "Waiting for Review";
+			return i18n._({
+				id: "mobile.pullRequest.headline.waitingForReview",
+				message: "Waiting for Review",
+			});
 		case "unresolved-conversations":
-			return "Resolve Conversations to Merge";
+			return i18n._({
+				id: "mobile.pullRequest.headline.unresolvedConversations",
+				message: "Resolve Conversations to Merge",
+			});
 		case "blocked":
-			return "Blocked by Branch Rules";
+			return i18n._({
+				id: "mobile.pullRequest.headline.blocked",
+				message: "Blocked by Branch Rules",
+			});
 		case "ready":
-			return isDraft ? "Ready for Review" : "Ready to Merge";
+			return isDraft
+				? i18n._({
+						id: "mobile.pullRequest.headline.readyForReview",
+						message: "Ready for Review",
+					})
+				: i18n._({
+						id: "mobile.pullRequest.headline.readyToMerge",
+						message: "Ready to Merge",
+					});
 	}
 }
 
-const MERGE_LABEL: Record<MergeMethod, string> = {
-	squash: "Squash & Merge",
-	merge: "Create Merge Commit",
-	rebase: "Rebase & Merge",
-};
+function mergeLabel(method: MergeMethod): string {
+	switch (method) {
+		case "squash":
+			return i18n._({
+				id: "mobile.pullRequest.action.squashAndMerge",
+				message: "Squash & Merge",
+			});
+		case "merge":
+			return i18n._({
+				id: "mobile.pullRequest.action.createMergeCommit",
+				message: "Create Merge Commit",
+			});
+		case "rebase":
+			return i18n._({
+				id: "mobile.pullRequest.action.rebaseAndMerge",
+				message: "Rebase & Merge",
+			});
+	}
+}
 
 /**
  * Labels follow the designs verbatim. Conflicts deliberately reuse the checks
@@ -58,19 +115,37 @@ export function actionLabelFor(
 ): string {
 	switch (action) {
 		case "merge":
-			return MERGE_LABEL[mergeMethod];
+			return mergeLabel(mergeMethod);
 		case "mark-ready":
-			return "Mark Ready";
+			return i18n._({
+				id: "mobile.pullRequest.action.markReady",
+				message: "Mark Ready",
+			});
 		case "update-branch":
-			return "Update Branch";
+			return i18n._({
+				id: "mobile.pullRequest.action.updateBranch",
+				message: "Update Branch",
+			});
 		case "reopen":
-			return "Reopen PR";
+			return i18n._({
+				id: "mobile.pullRequest.action.reopen",
+				message: "Reopen PR",
+			});
 		case "dequeue":
-			return "Remove from Queue";
+			return i18n._({
+				id: "mobile.pullRequest.action.dequeue",
+				message: "Remove from Queue",
+			});
 		case "ask-resolve-conflicts":
 		case "ask-fix-checks":
-			return "Fix Checks with Agent";
+			return i18n._({
+				id: "mobile.pullRequest.action.fixChecksWithAgent",
+				message: "Fix Checks with Agent",
+			});
 		case "ask-address-comments":
-			return "Address Comments with Agent";
+			return i18n._({
+				id: "mobile.pullRequest.action.addressCommentsWithAgent",
+				message: "Address Comments with Agent",
+			});
 	}
 }

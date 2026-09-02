@@ -1,5 +1,6 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import { AnimatePresence, motion } from "motion/react";
 import { useLayoutEffect, useRef, useState } from "react";
 import { cn } from "../../lib/utils";
@@ -50,6 +51,7 @@ export function ChatHistorySidebar({
 	onMessageSelect,
 	className,
 }: ChatHistorySidebarProps) {
+	const { t } = useLingui();
 	const wrapperRef = useRef<HTMLElement>(null);
 	const listRef = useRef<HTMLDivElement>(null);
 	const [hovered, setHovered] = useState<HoveredRow | null>(null);
@@ -114,7 +116,10 @@ export function ChatHistorySidebar({
 	return (
 		<nav
 			ref={wrapperRef}
-			aria-label="User messages"
+			aria-label={t({
+				id: "ui.chatHistorySidebar.label",
+				message: "User messages",
+			})}
 			className={cn("chat-history-rail relative", className)}
 			onPointerMove={(event) =>
 				safeTriangle.containerPointerMove({
@@ -133,36 +138,42 @@ export function ChatHistorySidebar({
 				ref={listRef}
 				className="chat-history-rail-list relative flex max-h-[min(70vh,40rem)] flex-col overflow-y-auto overscroll-contain [scrollbar-width:none]"
 			>
-				{items.map((item, index) => (
-					<button
-						key={item.message.id}
-						type="button"
-						data-rail-item-id={item.message.id}
-						aria-current={
-							activeMessageIds?.includes(item.message.id) ? "true" : undefined
-						}
-						aria-label={`Jump to user message ${index + 1}`}
-						className="chat-history-rail-row group flex h-2.5 w-9 shrink-0 cursor-pointer items-center outline-none"
-						onClick={() => onMessageSelect?.(item.message)}
-						onPointerEnter={(event) =>
-							handleRowEnter(event.currentTarget, item, {
-								x: event.clientX,
-								y: event.clientY,
-							})
-						}
-						onPointerLeave={(event) =>
-							safeTriangle.rowPointerLeave(item.message.id, {
-								x: event.clientX,
-								y: event.clientY,
-							})
-						}
-						onFocus={(event) => handleRowEnter(event.currentTarget, item)}
-					>
-						<span className="flex h-0.5 w-[30px] items-center">
-							<span className="chat-history-rail-marker" />
-						</span>
-					</button>
-				))}
+				{items.map((item, index) => {
+					const position = index + 1;
+					return (
+						<button
+							key={item.message.id}
+							type="button"
+							data-rail-item-id={item.message.id}
+							aria-current={
+								activeMessageIds?.includes(item.message.id) ? "true" : undefined
+							}
+							aria-label={t({
+								id: "ui.chatHistorySidebar.jumpToMessage",
+								message: `Jump to user message ${position}`,
+							})}
+							className="chat-history-rail-row group flex h-2.5 w-9 shrink-0 cursor-pointer items-center outline-none"
+							onClick={() => onMessageSelect?.(item.message)}
+							onPointerEnter={(event) =>
+								handleRowEnter(event.currentTarget, item, {
+									x: event.clientX,
+									y: event.clientY,
+								})
+							}
+							onPointerLeave={(event) =>
+								safeTriangle.rowPointerLeave(item.message.id, {
+									x: event.clientX,
+									y: event.clientY,
+								})
+							}
+							onFocus={(event) => handleRowEnter(event.currentTarget, item)}
+						>
+							<span className="flex h-0.5 w-[30px] items-center">
+								<span className="chat-history-rail-marker" />
+							</span>
+						</button>
+					);
+				})}
 			</div>
 			<AnimatePresence>
 				{hovered && (

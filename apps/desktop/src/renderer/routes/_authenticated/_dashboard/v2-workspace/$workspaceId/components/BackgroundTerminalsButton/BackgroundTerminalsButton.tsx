@@ -1,3 +1,5 @@
+import { plural } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { WorkspaceStore } from "@superset/panes";
 import { Button } from "@superset/ui/button";
 import {
@@ -60,6 +62,7 @@ export const BackgroundTerminalsButton = memo(
 		workspaceId,
 		store,
 	}: BackgroundTerminalsButtonProps) {
+		const { t } = useLingui();
 		const [isOpen, setIsOpen] = useState(false);
 		const attachedTerminalIdsKey = useStore(store, (s) =>
 			getAttachedTerminalIdsKey(s.tabs),
@@ -181,9 +184,13 @@ export const BackgroundTerminalsButton = memo(
 
 		if (!isOpen && backgroundCount === 0) return null;
 
-		const label = `${backgroundCount} background terminal session${
-			backgroundCount === 1 ? "" : "s"
-		}`;
+		const label = t({
+			id: "workspace.backgroundTerminals.countLabel",
+			message: plural(backgroundCount, {
+				one: "# background terminal session",
+				other: "# background terminal sessions",
+			}),
+		});
 
 		const handleAdopt = (terminalId: string) => {
 			clearTerminalBackgroundMarker(workspaceId, terminalId);
@@ -202,7 +209,12 @@ export const BackgroundTerminalsButton = memo(
 					"[BackgroundTerminalsButton] Failed to kill session:",
 					error,
 				);
-				toast.error("Failed to close terminal session");
+				toast.error(
+					t({
+						id: "workspace.backgroundTerminals.closeFailed",
+						message: "Failed to close terminal session",
+					}),
+				);
 			} finally {
 				void utils.terminal.list.invalidate({ workspaceId });
 			}
@@ -224,18 +236,24 @@ export const BackgroundTerminalsButton = memo(
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="end" className="w-80">
 					<DropdownMenuLabel className="text-xs">
-						Background terminal sessions
+						<Trans id="workspace.backgroundTerminals.menuTitle">
+							Background terminal sessions
+						</Trans>
 					</DropdownMenuLabel>
 					<DropdownMenuSeparator />
 					<div className="max-h-80 overflow-y-auto">
 						{sessionsQuery.isLoading && (
 							<div className="px-2 py-3 text-xs text-muted-foreground">
-								Loading sessions…
+								<Trans id="workspace.backgroundTerminals.loading">
+									Loading sessions…
+								</Trans>
 							</div>
 						)}
 						{!sessionsQuery.isLoading && backgroundSessions.length === 0 && (
 							<div className="px-2 py-3 text-xs text-muted-foreground">
-								No background terminal sessions
+								<Trans id="workspace.backgroundTerminals.empty">
+									No background terminal sessions
+								</Trans>
 							</div>
 						)}
 						{backgroundSessions.map((session) => (
@@ -246,7 +264,11 @@ export const BackgroundTerminalsButton = memo(
 							>
 								<Archive className="size-3.5 shrink-0 text-muted-foreground" />
 								<span className="min-w-0 flex-1 truncate text-xs">
-									{session.title ?? "Terminal"}
+									{session.title ??
+										t({
+											id: "workspace.backgroundTerminals.untitledSession",
+											message: "Terminal",
+										})}
 								</span>
 								{session.createdAt > 0 && (
 									<span className="shrink-0 text-xs text-muted-foreground/70">
@@ -255,8 +277,14 @@ export const BackgroundTerminalsButton = memo(
 								)}
 								<button
 									type="button"
-									aria-label="Close terminal session"
-									title="Close terminal session"
+									aria-label={t({
+										id: "workspace.backgroundTerminals.closeSessionAria",
+										message: "Close terminal session",
+									})}
+									title={t({
+										id: "workspace.backgroundTerminals.closeSessionTitle",
+										message: "Close terminal session",
+									})}
 									disabled={
 										killSession.isPending &&
 										killSession.variables?.terminalId === session.terminalId

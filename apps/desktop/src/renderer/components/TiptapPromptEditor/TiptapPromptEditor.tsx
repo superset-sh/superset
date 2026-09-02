@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	usePromptInputAttachments,
 	usePromptInputController,
@@ -10,6 +11,7 @@ import {
 	CommandItem,
 	CommandList,
 } from "@superset/ui/command";
+import { getClipboardFiles } from "@superset/ui/lib/clipboard-files";
 import { Popover, PopoverAnchor, PopoverContent } from "@superset/ui/popover";
 import { cn } from "@superset/ui/utils";
 import { type Editor, Extension } from "@tiptap/core";
@@ -86,10 +88,17 @@ export function TiptapPromptEditor({
 	previewSlashCommand,
 	slashCommands,
 	availableModels,
-	placeholder = "Ask to make changes, @mention files, run /commands",
+	placeholder,
 	className,
 	focusShortcutText,
 }: TiptapPromptEditorProps) {
+	const { t } = useLingui();
+	const resolvedPlaceholder =
+		placeholder ??
+		t({
+			id: "components.tiptapPromptEditor.placeholder",
+			message: "Ask to make changes, @mention files, run /commands",
+		});
 	const controller = usePromptInputController();
 	const attachments = usePromptInputAttachments();
 
@@ -194,7 +203,7 @@ export function TiptapPromptEditor({
 			HardBreak,
 			History,
 
-			Placeholder.configure({ placeholder }),
+			Placeholder.configure({ placeholder: resolvedPlaceholder }),
 
 			FileMentionNode,
 			SlashCommandNode,
@@ -572,18 +581,16 @@ export function TiptapPromptEditor({
 			},
 
 			handlePaste: (_view, event) => {
-				const clipItems = event.clipboardData?.items;
-				if (!clipItems) return false;
-				const files = Array.from(clipItems)
-					.filter((i) => i.kind === "file")
-					.map((i) => i.getAsFile())
-					.filter((f): f is File => f !== null);
-				if (files.length > 0) {
-					event.preventDefault();
-					attachmentsRef.current.add(files);
-					return true;
-				}
-				return false;
+				const files = getClipboardFiles(event.clipboardData);
+				if (files.length === 0) return false;
+				attachmentsRef.current.add(files);
+				// A clipboard can carry both (an image copied from a page brings
+				// its alt text along). Attaching the files must not cost the user
+				// the text, so leave the paste unhandled and let the editor insert
+				// it; claim the event only when there is nothing else to insert.
+				if (event.clipboardData?.getData("text/plain")) return false;
+				event.preventDefault();
+				return true;
 			},
 		},
 
@@ -708,7 +715,9 @@ export function TiptapPromptEditor({
 					>
 						{focusShortcutText && !isFocused && (
 							<span className="pointer-events-none absolute top-0 right-3 flex h-full items-center text-xs text-muted-foreground/50">
-								{focusShortcutText} to focus
+								<Trans id="components.tiptapPromptEditor.toFocus">
+									{focusShortcutText} to focus
+								</Trans>
 							</span>
 						)}
 						<EditorContent editor={editor} />
@@ -749,7 +758,10 @@ export function TiptapPromptEditor({
 					>
 						<Command shouldFilter={false}>
 							<CommandInput
-								placeholder="Search files..."
+								placeholder={t({
+									id: "components.tiptapPromptEditor.searchFilesPlaceholder",
+									message: "Search files...",
+								})}
 								value={mentionState?.query ?? ""}
 								onValueChange={(q) =>
 									setMentionState((prev) =>
@@ -760,13 +772,24 @@ export function TiptapPromptEditor({
 							<CommandList className="max-h-[200px] [&::-webkit-scrollbar]:hidden">
 								{mentionFiles.length === 0 && (
 									<CommandEmpty className="px-2 py-3 text-left text-xs text-muted-foreground">
-										{!mentionState?.query
-											? "Type to search files..."
-											: "No results found."}
+										{!mentionState?.query ? (
+											<Trans id="components.tiptapPromptEditor.typeToSearchFiles">
+												Type to search files...
+											</Trans>
+										) : (
+											<Trans id="components.tiptapPromptEditor.noFileResults">
+												No results found.
+											</Trans>
+										)}
 									</CommandEmpty>
 								)}
 								{mentionFiles.length > 0 && (
-									<CommandGroup heading="Files">
+									<CommandGroup
+										heading={t({
+											id: "components.tiptapPromptEditor.filesHeading",
+											message: "Files",
+										})}
+									>
 										{mentionFiles.map((file, idx) => {
 											const dirPath = getDirectoryPath(file.relativePath);
 											return (

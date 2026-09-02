@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -58,21 +59,35 @@ export function ConnectionControls({
 				<AlertDialogTrigger asChild>
 					<Button variant="outline" disabled={disconnectMutation.isPending}>
 						<Unplug className="mr-2 size-4" />
-						{disconnectMutation.isPending ? "Disconnecting..." : "Disconnect"}
+						{disconnectMutation.isPending ? (
+							<Trans id="web.integrations.disconnecting">
+								Disconnecting...
+							</Trans>
+						) : (
+							<Trans id="web.integrations.disconnect">Disconnect</Trans>
+						)}
 					</Button>
 				</AlertDialogTrigger>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Disconnect Slack?</AlertDialogTitle>
+						<AlertDialogTitle>
+							<Trans id="web.integrations.slack.disconnectTitle">
+								Disconnect Slack?
+							</Trans>
+						</AlertDialogTitle>
 						<AlertDialogDescription>
-							This will remove the connection between your organization and
-							Slack. You can reconnect at any time.
+							<Trans id="web.integrations.slack.disconnectDescription">
+								This will remove the connection between your organization and
+								Slack. You can reconnect at any time.
+							</Trans>
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
-						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogCancel>
+							<Trans id="web.integrations.cancel">Cancel</Trans>
+						</AlertDialogCancel>
 						<AlertDialogAction onClick={handleDisconnect}>
-							Disconnect
+							<Trans id="web.integrations.disconnect">Disconnect</Trans>
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
@@ -80,5 +95,9 @@ export function ConnectionControls({
 		);
 	}
 
-	return <Button onClick={handleConnect}>Connect Slack</Button>;
+	return (
+		<Button onClick={handleConnect}>
+			<Trans id="web.integrations.slack.connect">Connect Slack</Trans>
+		</Button>
+	);
 }

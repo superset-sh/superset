@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import { useCallback } from "react";
@@ -40,6 +41,7 @@ const composerName = (key: string) =>
  * `readText` is the one-shot read instead.
  */
 export function useComposerDraft(key: string) {
+	const { t } = useLingui();
 	const attachments = useComposerDraftsStore(
 		(state) => (state.draftsByKey[key] ?? EMPTY_DRAFT).attachments,
 	);
@@ -108,10 +110,15 @@ export function useComposerDraft(key: string) {
 			);
 			return true;
 		} catch {
-			Alert.alert("Could not open Photos");
+			Alert.alert(
+				t({
+					id: "mobile.attachments.photosFailed",
+					message: "Could not open Photos",
+				}),
+			);
 			return false;
 		}
-	}, [add]);
+	}, [add, t]);
 
 	const openFilePicker = useCallback(async () => {
 		try {
@@ -123,10 +130,15 @@ export function useComposerDraft(key: string) {
 			);
 			return true;
 		} catch {
-			Alert.alert("Could not open Files");
+			Alert.alert(
+				t({
+					id: "mobile.attachments.filesFailed",
+					message: "Could not open Files",
+				}),
+			);
 			return false;
 		}
-	}, [add]);
+	}, [add, t]);
 
 	return {
 		add,

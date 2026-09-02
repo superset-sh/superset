@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	Dialog,
 	DialogContent,
@@ -65,7 +66,7 @@ export function TemplateGalleryModal({
 			if (isV2CloudEnabled) {
 				if (!activeHostUrl) {
 					showHostServiceUnavailableToast(hostService, {
-						action: "create the project",
+						action: "createProject",
 					});
 					return;
 				}
@@ -83,7 +84,7 @@ export function TemplateGalleryModal({
 				});
 			}
 		} catch (err) {
-			const message = err instanceof Error ? err.message : String(err);
+			const message = errorMessage(err);
 			if (onError) onError(message);
 			else toast.error("Could not create project", { description: message });
 		} finally {

@@ -1,3 +1,5 @@
+import { i18n } from "@superset/i18n";
+
 export const TERMINAL_SESSION_LIST_REFETCH_INTERVAL_MS = 2_000;
 export const TERMINAL_SESSION_LIST_STALE_MS = 5_000;
 
@@ -22,5 +24,13 @@ export function getTerminalDisplayTitle({
 }): string {
 	// Explicit pane titles come from user/preset labels, so they should not be
 	// hidden by transient shell-reported titles such as "zsh" or "Terminal".
-	return titleOverride ?? runtimeTitle ?? sessionTitle ?? "Terminal";
+	return (
+		titleOverride ??
+		runtimeTitle ??
+		sessionTitle ??
+		i18n._({
+			id: "workspace.terminalPane.defaultTitle",
+			message: "Terminal",
+		})
+	);
 }

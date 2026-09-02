@@ -11,6 +11,7 @@ import { getHostWorkerPool } from "../../../workers/host-worker-pool";
 import {
 	gitCommitFilesTask,
 	gitDiffBulkTask,
+	gitDiffPatchTask,
 	gitFetchBaseRefTask,
 	gitStatusSnapshotTask,
 } from "../../../workers/tasks/git";
@@ -611,6 +612,45 @@ export const gitRouter = router({
 					worktreePath,
 					paths: input.paths,
 					category: input.category,
+					baseBranch: input.baseBranch,
+					commitHash: input.commitHash,
+					fromHash: input.fromHash,
+					gitEnv,
+				},
+				{ timeoutMs: 60_000 },
+			);
+		}),
+
+	// Patch-shaped sibling of `getDiff`: one `git diff` for a whole category
+	// instead of two `git show` blobs per file. The renderer parses it into
+	// per-file metadata and calls `getDiff` later, only for the files somebody
+	// expands or edits — so an untouched changeset never moves whole files.
+	getDiffPatch: queryProcedure
+		.meta({ timeoutMs: 60_000 })
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				category: z.enum(["against-base", "staged", "unstaged", "commit"]),
+				paths: z.array(z.string()).max(MAX_DIFF_BULK_PATHS).optional(),
+				untrackedPaths: z.array(z.string()).max(MAX_DIFF_BULK_PATHS).optional(),
+				baseBranch: z.string().optional(),
+				commitHash: z.string().optional(),
+				fromHash: z.string().optional(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			for (const path of input.paths ?? []) assertSafeRelativePath(path);
+			for (const path of input.untrackedPaths ?? [])
+				assertSafeRelativePath(path);
+			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
+			return getHostWorkerPool().run(
+				gitDiffPatchTask,
+				{
+					worktreePath,
+					category: input.category,
+					paths: input.paths,
+					untrackedPaths: input.untrackedPaths,
 					baseBranch: input.baseBranch,
 					commitHash: input.commitHash,
 					fromHash: input.fromHash,

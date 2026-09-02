@@ -1,3 +1,4 @@
+import { i18n } from "@superset/i18n";
 import type { TriggerConfigInput } from "@superset/shared/automation-triggers";
 import type { IconType } from "react-icons";
 import {
@@ -5,6 +6,11 @@ import {
 	type TriggerMenuEntry,
 	type TriggerProvider,
 } from "../providers";
+
+/** A provider label is a raw brand string or a msg() descriptor — render both. */
+export function providerLabelText(label: TriggerProvider["label"]): string {
+	return typeof label === "string" ? label : i18n._(label);
+}
 
 /**
  * A leaf of the Add Trigger menu, carrying the trail that leads to it so search
@@ -33,7 +39,7 @@ export function flattenTriggerMenu(
 			provider.menu.length === 1 && "create" in (provider.menu[0] ?? {});
 		return flattenEntries(
 			provider.menu,
-			single ? [] : [provider.label],
+			single ? [] : [providerLabelText(provider.label)],
 			provider.icon,
 		);
 	});
@@ -45,7 +51,7 @@ function flattenEntries(
 	icon: IconType,
 ): TriggerMenuLeaf[] {
 	return entries.flatMap((entry) => {
-		const path = [...trail, entry.label.replace(/…$/, "")];
+		const path = [...trail, providerLabelText(entry.label).replace(/…$/, "")];
 		if ("children" in entry) return flattenEntries(entry.children, path, icon);
 		return [{ path, icon, create: entry.create }];
 	});

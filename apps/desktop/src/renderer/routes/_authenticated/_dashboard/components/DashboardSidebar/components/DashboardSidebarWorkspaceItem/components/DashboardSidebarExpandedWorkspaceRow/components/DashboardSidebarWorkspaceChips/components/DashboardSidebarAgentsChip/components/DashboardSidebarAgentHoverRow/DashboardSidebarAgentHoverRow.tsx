@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
@@ -25,6 +26,7 @@ export function DashboardSidebarAgentHoverRow({
 	workspaceId,
 	agent,
 }: DashboardSidebarAgentHoverRowProps) {
+	const { t } = useLingui();
 	const navigate = useNavigate();
 
 	const handleOpen = () => {
@@ -37,7 +39,9 @@ export function DashboardSidebarAgentHoverRow({
 	};
 
 	const statusLabel =
-		agent.status === "idle" ? "Idle" : getStatusTooltip(agent.status);
+		agent.status === "idle"
+			? t({ id: "dashboard.sidebar.agentHoverRow.idle", message: "Idle" })
+			: getStatusTooltip(agent.status);
 
 	return (
 		<div className="flex items-center gap-1.5 rounded-sm px-2 py-1 hover:bg-muted">

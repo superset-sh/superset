@@ -1,5 +1,7 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -70,126 +72,234 @@ export function OverlaysSection() {
 		<ShowcaseSection
 			id="overlays"
 			index="03"
-			title="Overlays"
-			description="Dialogs, sheets, popovers, and hover surfaces"
+			title={i18n._({
+				id: "web.design.overlaysSection.overlays",
+				message: "Overlays",
+			})}
+			description={i18n._({
+				id: "web.design.overlaysSection.dialogsSheetsPopoversAndHover",
+				message: "Dialogs, sheets, popovers, and hover surfaces",
+			})}
 		>
-			<ComponentCard title="Dialog" importPath="@superset/ui/dialog">
+			<ComponentCard
+				title={i18n._({
+					id: "web.design.overlaysSection.dialog",
+					message: "Dialog",
+				})}
+				importPath="@superset/ui/dialog"
+			>
 				<Dialog>
 					<DialogTrigger asChild>
-						<Button variant="outline">Open dialog</Button>
+						<Button variant="outline">
+							<Trans id="web.design.overlaysSection.openDialog">
+								Open dialog
+							</Trans>
+						</Button>
 					</DialogTrigger>
 					<DialogContent className="sm:max-w-md">
 						<DialogHeader>
-							<DialogTitle>Rename workspace</DialogTitle>
+							<DialogTitle>
+								<Trans id="web.design.overlaysSection.renameWorkspace">
+									Rename workspace
+								</Trans>
+							</DialogTitle>
 							<DialogDescription>
-								This only changes the display name, not the branch.
+								<Trans id="web.design.overlaysSection.thisOnlyChangesTheDisplay">
+									This only changes the display name, not the branch.
+								</Trans>
 							</DialogDescription>
 						</DialogHeader>
 						<div className="space-y-2">
-							<Label htmlFor="dsg-rename">Name</Label>
+							<Label htmlFor="dsg-rename">
+								<Trans id="web.design.overlaysSection.name">Name</Trans>
+							</Label>
 							<Input id="dsg-rename" defaultValue="component-showcase" />
 						</div>
 						<DialogFooter>
 							<DialogClose asChild>
-								<Button variant="ghost">Cancel</Button>
+								<Button variant="ghost">
+									<Trans id="web.design.overlaysSection.cancel">Cancel</Trans>
+								</Button>
 							</DialogClose>
-							<Button>Save</Button>
+							<Button>
+								<Trans id="web.design.overlaysSection.save">Save</Trans>
+							</Button>
 						</DialogFooter>
 					</DialogContent>
 				</Dialog>
 			</ComponentCard>
 
 			<ComponentCard
-				title="Alert Dialog"
+				title={i18n._({
+					id: "web.design.overlaysSection.alertDialog",
+					message: "Alert Dialog",
+				})}
 				importPath="@superset/ui/alert-dialog"
 			>
 				<AlertDialog>
 					<AlertDialogTrigger asChild>
-						<Button variant="destructive">Delete workspace</Button>
+						<Button variant="destructive">
+							<Trans id="web.design.overlaysSection.deleteWorkspace">
+								Delete workspace
+							</Trans>
+						</Button>
 					</AlertDialogTrigger>
 					<AlertDialogContent>
 						<AlertDialogHeader>
-							<AlertDialogTitle>Delete this workspace?</AlertDialogTitle>
+							<AlertDialogTitle>
+								<Trans id="web.design.overlaysSection.deleteThisWorkspace">
+									Delete this workspace?
+								</Trans>
+							</AlertDialogTitle>
 							<AlertDialogDescription>
-								The worktree and any uncommitted changes will be removed. This
-								cannot be undone.
+								<Trans id="web.design.overlaysSection.theWorktreeAndAnyUncommitted">
+									The worktree and any uncommitted changes will be removed. This
+									cannot be undone.
+								</Trans>
 							</AlertDialogDescription>
 						</AlertDialogHeader>
 						<AlertDialogFooter>
-							<AlertDialogCancel>Cancel</AlertDialogCancel>
-							<AlertDialogAction>Delete</AlertDialogAction>
+							<AlertDialogCancel>
+								<Trans id="web.design.overlaysSection.cancel">Cancel</Trans>
+							</AlertDialogCancel>
+							<AlertDialogAction>
+								<Trans id="web.design.overlaysSection.delete">Delete</Trans>
+							</AlertDialogAction>
 						</AlertDialogFooter>
 					</AlertDialogContent>
 				</AlertDialog>
 			</ComponentCard>
 
-			<ComponentCard title="Sheet" importPath="@superset/ui/sheet">
+			<ComponentCard
+				title={i18n._({
+					id: "web.design.overlaysSection.sheet",
+					message: "Sheet",
+				})}
+				importPath="@superset/ui/sheet"
+			>
 				<Sheet>
 					<SheetTrigger asChild>
-						<Button variant="outline">Open sheet</Button>
+						<Button variant="outline">
+							<Trans id="web.design.overlaysSection.openSheet">
+								Open sheet
+							</Trans>
+						</Button>
 					</SheetTrigger>
 					<SheetContent>
 						<SheetHeader>
-							<SheetTitle>Workspace settings</SheetTitle>
+							<SheetTitle>
+								<Trans id="web.design.overlaysSection.workspaceSettings">
+									Workspace settings
+								</Trans>
+							</SheetTitle>
 							<SheetDescription>
-								Slides in from the edge of the viewport.
+								<Trans id="web.design.overlaysSection.slidesInFromTheEdge">
+									Slides in from the edge of the viewport.
+								</Trans>
 							</SheetDescription>
 						</SheetHeader>
 					</SheetContent>
 				</Sheet>
 			</ComponentCard>
 
-			<ComponentCard title="Drawer" importPath="@superset/ui/drawer">
+			<ComponentCard
+				title={i18n._({
+					id: "web.design.overlaysSection.drawer",
+					message: "Drawer",
+				})}
+				importPath="@superset/ui/drawer"
+			>
 				<Drawer>
 					<DrawerTrigger asChild>
-						<Button variant="outline">Open drawer</Button>
+						<Button variant="outline">
+							<Trans id="web.design.overlaysSection.openDrawer">
+								Open drawer
+							</Trans>
+						</Button>
 					</DrawerTrigger>
 					<DrawerContent>
 						<DrawerHeader>
-							<DrawerTitle>Session details</DrawerTitle>
+							<DrawerTitle>
+								<Trans id="web.design.overlaysSection.sessionDetails">
+									Session details
+								</Trans>
+							</DrawerTitle>
 							<DrawerDescription>
-								Bottom drawer, swipe-friendly on touch devices.
+								<Trans id="web.design.overlaysSection.bottomDrawerSwipeFriendlyOn">
+									Bottom drawer, swipe-friendly on touch devices.
+								</Trans>
 							</DrawerDescription>
 						</DrawerHeader>
 						<DrawerFooter>
 							<DrawerClose asChild>
-								<Button variant="outline">Close</Button>
+								<Button variant="outline">
+									<Trans id="web.design.overlaysSection.close">Close</Trans>
+								</Button>
 							</DrawerClose>
 						</DrawerFooter>
 					</DrawerContent>
 				</Drawer>
 			</ComponentCard>
 
-			<ComponentCard title="Popover" importPath="@superset/ui/popover">
+			<ComponentCard
+				title={i18n._({
+					id: "web.design.overlaysSection.popover",
+					message: "Popover",
+				})}
+				importPath="@superset/ui/popover"
+			>
 				<Popover>
 					<PopoverTrigger asChild>
 						<Button variant="outline">
 							<SettingsIcon />
-							Preferences
+							<Trans id="web.design.overlaysSection.preferences">
+								Preferences
+							</Trans>
 						</Button>
 					</PopoverTrigger>
 					<PopoverContent className="w-64 space-y-2">
-						<p className="text-sm font-medium">Terminal font size</p>
+						<p className="text-sm font-medium">
+							<Trans id="web.design.overlaysSection.terminalFontSize">
+								Terminal font size
+							</Trans>
+						</p>
 						<Input type="number" defaultValue={13} />
 					</PopoverContent>
 				</Popover>
 			</ComponentCard>
 
-			<ComponentCard title="Hover Card" importPath="@superset/ui/hover-card">
+			<ComponentCard
+				title={i18n._({
+					id: "web.design.overlaysSection.hoverCard",
+					message: "Hover Card",
+				})}
+				importPath="@superset/ui/hover-card"
+			>
 				<HoverCard>
 					<HoverCardTrigger asChild>
-						<Button variant="link">@superset</Button>
+						<Button variant="link">
+							<Trans id="web.design.overlaysSection.superset">@superset</Trans>
+						</Button>
 					</HoverCardTrigger>
 					<HoverCardContent className="w-72">
 						<div className="flex gap-3">
 							<RocketIcon className="mt-1 size-4 shrink-0" />
 							<div className="space-y-1">
-								<p className="text-sm font-medium">Superset</p>
+								<p className="text-sm font-medium">
+									<Trans id="web.design.overlaysSection.superset2">
+										Superset
+									</Trans>
+								</p>
 								<p className="text-sm text-muted-foreground">
-									Run 10+ parallel coding agents on your machine.
+									<Trans id="web.design.overlaysSection.run10ParallelCodingAgents">
+										Run 10+ parallel coding agents on your machine.
+									</Trans>
 								</p>
 								<div className="flex items-center gap-1 pt-1 text-xs text-muted-foreground">
-									<CalendarIcon className="size-3" /> Since 2025
+									<CalendarIcon className="size-3" />{" "}
+									<Trans id="web.design.overlaysSection.since2025">
+										Since 2025
+									</Trans>
 								</div>
 							</div>
 						</div>
@@ -198,9 +308,16 @@ export function OverlaysSection() {
 			</ComponentCard>
 
 			<ComponentCard
-				title="Tooltip"
+				title={i18n._({
+					id: "web.design.overlaysSection.tooltip",
+					message: "Tooltip",
+				})}
 				importPath="@superset/ui/tooltip"
-				description="Bordered chip is the default (the preset/HotkeyTooltip style); arrow is opt-in via showArrow"
+				description={i18n._({
+					id: "web.design.overlaysSection.borderedChipIsTheDefault",
+					message:
+						"Bordered chip is the default (the preset/HotkeyTooltip style); arrow is opt-in via showArrow",
+				})}
 			>
 				{(["top", "right", "bottom", "left"] as const).map((side) => (
 					<Tooltip key={side}>
@@ -209,13 +326,20 @@ export function OverlaysSection() {
 								{side}
 							</Button>
 						</TooltipTrigger>
-						<TooltipContent side={side}>Tooltip on {side}</TooltipContent>
+						<TooltipContent side={side}>
+							<Trans id="web.design.overlaysSection.tooltipOn">
+								Tooltip on
+							</Trans>{" "}
+							{side}
+						</TooltipContent>
 					</Tooltip>
 				))}
 				<Tooltip delayDuration={1000}>
 					<TooltipTrigger asChild>
 						<Button variant="outline" size="sm">
-							Hotkey chip
+							<Trans id="web.design.overlaysSection.hotkeyChip">
+								Hotkey chip
+							</Trans>
 						</Button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom">
@@ -229,42 +353,67 @@ export function OverlaysSection() {
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<Button variant="outline" size="sm">
-							With arrow
+							<Trans id="web.design.overlaysSection.withArrow">
+								With arrow
+							</Trans>
 						</Button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom" showArrow>
-						showArrow opt-in
+						<Trans id="web.design.overlaysSection.showarrowOptIn">
+							showArrow opt-in
+						</Trans>
 					</TooltipContent>
 				</Tooltip>
 			</ComponentCard>
 
 			<ComponentCard
-				title="Command"
+				title={i18n._({
+					id: "web.design.overlaysSection.command",
+					message: "Command",
+				})}
 				importPath="@superset/ui/command"
-				description="Also available as CommandDialog for ⌘K palettes"
+				description={i18n._({
+					id: "web.design.overlaysSection.alsoAvailableAsCommanddialogFor",
+					message: "Also available as CommandDialog for ⌘K palettes",
+				})}
 				span
 				bleed
 			>
 				<Command className="max-h-64 rounded-none border-0">
-					<CommandInput placeholder="Type a command or search…" />
+					<CommandInput
+						placeholder={i18n._({
+							id: "web.design.overlaysSection.typeACommandOrSearch",
+							message: "Type a command or search…",
+						})}
+					/>
 					<CommandList>
-						<CommandEmpty>No results found.</CommandEmpty>
+						<CommandEmpty>
+							<Trans id="web.design.overlaysSection.noResultsFound">
+								No results found.
+							</Trans>
+						</CommandEmpty>
 						<CommandGroup heading="Workspaces">
 							<CommandItem>
 								<RocketIcon />
-								New workspace
+								<Trans id="web.design.overlaysSection.newWorkspace">
+									New workspace
+								</Trans>
 								<CommandShortcut>⌘N</CommandShortcut>
 							</CommandItem>
 							<CommandItem>
 								<UserIcon />
-								Invite teammate
+								<Trans id="web.design.overlaysSection.inviteTeammate">
+									Invite teammate
+								</Trans>
 							</CommandItem>
 						</CommandGroup>
 						<CommandSeparator />
 						<CommandGroup heading="Settings">
 							<CommandItem>
 								<SettingsIcon />
-								Open settings
+								<Trans id="web.design.overlaysSection.openSettings">
+									Open settings
+								</Trans>
 								<CommandShortcut>⌘,</CommandShortcut>
 							</CommandItem>
 						</CommandGroup>

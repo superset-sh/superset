@@ -1,6 +1,6 @@
 {
 	"name": "@superset/cli",
-	"version": "1.24.2",
+	"version": "1.25.1",
 	"private": true,
 	"type": "module",
 	"scripts": {
@@ -17,6 +17,7 @@
 		"@clack/prompts": "0.10.1",
 		"@superset/cli-framework": "workspace:*",
 		"@superset/host-service": "workspace:*",
+		"@superset/i18n": "workspace:*",
 		"@superset/local-db": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",

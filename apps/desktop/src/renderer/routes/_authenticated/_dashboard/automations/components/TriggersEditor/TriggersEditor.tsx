@@ -1,7 +1,6 @@
 import {
 	type DraftTrigger,
-	describeTriggerProblems,
-	summarizeTriggerProblems,
+	enabledTriggerKinds,
 } from "@superset/shared/automation-triggers";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
@@ -14,13 +13,31 @@ import {
 import { Input } from "@superset/ui/input";
 import { Separator } from "@superset/ui/separator";
 import { useFeatureFlagPayload } from "posthog-js/react";
-import { type ReactNode, useMemo, useState } from "react";
-import { LuCirclePlus, LuTriangleAlert } from "react-icons/lu";
-import { TRIGGER_PROVIDERS } from "../providers";
+import {
+	type ReactNode,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
+import { LuPlus, LuTriangleAlert } from "react-icons/lu";
+import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
+import { providerFor, TRIGGER_PROVIDERS } from "../providers";
+import type { OptionGroupState } from "../providers/types";
+import { useProviderConnections } from "../providers/useProviderConnections";
 import { useProviderOptions } from "../providers/useProviderOptions";
 import { TriggerSentence } from "../TriggerSentence";
+import { RuntimeWarnings } from "./components/RuntimeWarnings";
+import { useTriggerDrafts } from "./hooks/useTriggerDrafts";
+import { collectRuntimeWarnings, lockedTierFor } from "./runtimeWarnings";
 import { TriggerMenuItems } from "./TriggerMenuItems";
 import { flattenTriggerMenu, matchesQuery } from "./triggerMenu";
+
+type ScheduleTriggerConfig = Extract<
+	DraftTrigger["config"],
+	{ kind: "schedule" }
+>;
 
 interface TriggersEditorProps {
 	triggers: DraftTrigger[];
@@ -28,9 +45,18 @@ interface TriggersEditorProps {
 	onChange: (next: DraftTrigger[]) => undefined | Promise<unknown>;
 	/** Whose integrations the pickable lists come from. */
 	organizationId: string;
-	/** Trailing "Next run ..." text for one schedule row, by trigger id. */
-	renderNextRun?: (triggerId?: string) => ReactNode;
+	/**
+	 * Trailing "Next run ..." text for a schedule row, computed from the draft
+	 * config on screen — so unsaved rows have one too, and edits move it.
+	 */
+	renderNextRun?: (config: ScheduleTriggerConfig) => ReactNode;
 	readOnly?: boolean;
+	/**
+	 * Rendered between the trigger surface and the runtime warnings — the scope
+	 * line ("in X on Y using Z"), so warnings read as footnotes to the whole
+	 * setup rather than wedging into the middle of it.
+	 */
+	children?: ReactNode;
 }
 
 /**
@@ -47,6 +73,7 @@ export function TriggersEditor({
 	organizationId,
 	renderNextRun,
 	readOnly,
+	children,
 }: TriggersEditorProps) {
 	// Edited locally and saved on request, unlike the rest of this page.
 	//
@@ -55,82 +82,83 @@ export function TriggersEditor({
 	// meant a new row was saved, refused, and dropped on the next render. Saving
 	// silently once it happened to become valid is no better: nothing tells you
 	// which edit crossed the line, or that anything was written at all.
-	const [drafts, setDrafts] = useState(triggers);
-	const options = useProviderOptions(organizationId, drafts);
-	const [dirty, setDirty] = useState(false);
-	const savedKey = JSON.stringify(triggers);
-	const [prevSavedKey, setPrevSavedKey] = useState(savedKey);
-	if (savedKey !== prevSavedKey) {
-		setPrevSavedKey(savedKey);
-		// Adopt what was saved — it carries the ids the server assigned — unless
-		// there are edits here, which by definition were never sent.
-		if (!dirty) setDrafts(triggers);
-	}
+	const optionStateRef = useRef<Record<string, OptionGroupState>>({});
+	// Saving joins the bot to the public channels a Slack trigger watches, which
+	// flips `botMember` on the cached channel list. Without a refetch the
+	// membership warning outlives the save that fixed it.
+	const saveTriggers = useCallback(
+		async (next: DraftTrigger[]) => {
+			const result = await onChange(next);
+			optionStateRef.current.slack?.refetch();
+			return result;
+		},
+		[onChange],
+	);
 
-	const problems = useMemo(() => describeTriggerProblems(drafts), [drafts]);
+	const {
+		drafts,
+		dirty,
+		saving,
+		shownProblems,
+		banner,
+		edit,
+		add,
+		save,
+		discard,
+	} = useTriggerDrafts(triggers, saveTriggers);
+	const { options, state: optionState } = useProviderOptions(
+		organizationId,
+		drafts,
+	);
+	// Read through a ref: the save handler is defined before this hook runs, and
+	// it only needs whichever refetch exists by the time a save resolves.
+	useEffect(() => {
+		optionStateRef.current = optionState;
+	}, [optionState]);
 
-	// Nothing is wrong until someone says they are done. Every trigger is
-	// incomplete the instant it is added, so validating as you type marks a row
-	// before anyone has had the chance to fill it in — the complaint lands
-	// before the work. After a rejected save the problems stay live, so they
-	// clear as each one is fixed rather than only on the next attempt.
-	const [submitted, setSubmitted] = useState(false);
-	const shownProblems = submitted ? problems : [];
-	const banner = submitted ? summarizeTriggerProblems(problems) : null;
+	// Unlike problems, these show without waiting for a save attempt: they
+	// describe the world (a channel the bot is not in), not an unfinished edit,
+	// and the person who can fix them may not be the one editing.
+	const { plan } = useCurrentPlan();
+	const { connected, isPending: connectionsPending } =
+		useProviderConnections(organizationId);
+
+	// Unknown is not disconnected: until the first answer lands, a row must not
+	// accuse a perfectly good integration of being missing.
+	const missingConnection = (config: DraftTrigger["config"]) => {
+		if (connectionsPending) return false;
+		const required = providerFor(config).connectionProvider;
+		return required !== undefined && !connected[required];
+	};
+
+	const runtimeWarnings = useMemo(
+		() => collectRuntimeWarnings(drafts, options, plan),
+		[drafts, options, plan],
+	);
 
 	const enabledKinds = useFeatureFlagPayload(
 		FEATURE_FLAGS.AUTOMATION_EVENT_TRIGGERS,
 	);
 	const providers = useMemo(() => {
-		const kinds = new Set(
-			Array.isArray(enabledKinds)
-				? enabledKinds.filter((kind) => typeof kind === "string")
-				: [],
-		);
+		const kinds = enabledTriggerKinds(enabledKinds);
 		return TRIGGER_PROVIDERS.filter(
 			(provider) => provider.kind === "schedule" || kinds.has(provider.kind),
 		);
 	}, [enabledKinds]);
 
 	const [query, setQuery] = useState("");
-	const leaves = useMemo(() => flattenTriggerMenu(providers), [providers]);
+	// Locked providers stay in the menu — the tier badge answers "where's
+	// Slack?" — but can't be added, so search doesn't index them.
+	const leaves = useMemo(
+		() =>
+			flattenTriggerMenu(
+				providers.filter((provider) => !lockedTierFor(provider, plan)),
+			),
+		[providers, plan],
+	);
 	const results = query
 		? leaves.filter((leaf) => matchesQuery(leaf, query))
 		: [];
-
-	const edit = (next: DraftTrigger[]) => {
-		setDrafts(next);
-		setDirty(true);
-	};
-
-	const [saving, setSaving] = useState(false);
-
-	const save = async () => {
-		// Always clickable: the button is what asks for validation, so disabling
-		// it while the set is invalid would leave no way to find out why.
-		setSubmitted(true);
-		if (problems.length > 0) return;
-
-		setSaving(true);
-		try {
-			await onChange(drafts);
-			setDirty(false);
-			setSubmitted(false);
-		} catch {
-			// Stay dirty and keep the edits: this editor holds the only copy of
-			// them, and the mutation has already reported why it failed.
-		} finally {
-			setSaving(false);
-		}
-	};
-
-	const discard = () => {
-		setDrafts(triggers);
-		setDirty(false);
-		setSubmitted(false);
-	};
-
-	const add = (config: DraftTrigger["config"]) => edit([...drafts, { config }]);
 
 	return (
 		<div className="flex flex-col gap-1">
@@ -185,12 +213,14 @@ export function TriggersEditor({
 						}
 						onRemove={() => edit(drafts.filter((_, i) => i !== index))}
 						options={options}
+						optionState={optionState}
 						problems={shownProblems.filter((p) => p.index === index)}
 						nextRun={
 							trigger.config.kind === "schedule"
-								? renderNextRun?.(trigger.id)
+								? renderNextRun?.(trigger.config)
 								: undefined
 						}
+						requiresConnection={missingConnection(trigger.config)}
 						disabled={readOnly}
 					/>
 				))}
@@ -209,9 +239,9 @@ export function TriggersEditor({
 							type="button"
 							variant="ghost"
 							size="sm"
-							className="mb-1.5 h-10 w-full justify-start gap-2 rounded-[8px] px-2 font-normal text-[13px] text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground"
+							className="h-10 w-full justify-start gap-1.5 rounded-[8px] px-2 font-normal text-[13px] text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground"
 						>
-							<LuCirclePlus className="size-4" />
+							<LuPlus className="size-4" />
 							Add Trigger
 						</Button>
 					</DropdownMenuTrigger>
@@ -264,11 +294,22 @@ export function TriggersEditor({
 								)}
 							</>
 						) : (
-							<TriggerMenuItems providers={providers} onPick={add} />
+							<TriggerMenuItems
+								providers={providers}
+								onPick={add}
+								lockedLabel={(provider) => lockedTierFor(provider, plan)}
+							/>
 						)}
 					</DropdownMenuContent>
 				</DropdownMenu>
 			</div>
+
+			{children}
+
+			{/* Below the surface and the scope line, like the save banner is above
+			    them: these outlive any save, so they cannot live in the
+			    submit-gated banner. */}
+			<RuntimeWarnings warnings={runtimeWarnings} />
 		</div>
 	);
 }

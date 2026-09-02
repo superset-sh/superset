@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useEffect, useReducer } from "react";
@@ -20,6 +21,7 @@ export function useStarNagCard({
 }: {
 	isCollapsed?: boolean;
 }): SidebarCardEntry | null {
+	const { t } = useLingui();
 	const isEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.STAR_NAG_CARD);
 	const shouldShow = useStarNagStore((s) => s.shouldShowThresholdCard());
 	const deferredUntil = useStarNagStore((s) => s.deferredUntil);
@@ -60,9 +62,15 @@ export function useStarNagCard({
 
 	return {
 		id: "star-nag",
-		title: "Enjoying Superset?",
-		description:
-			"Superset is open source. If it's helped you today, a GitHub star helps other developers find it.",
+		title: t({
+			id: "components.starNagCard.title",
+			message: "Enjoying Superset?",
+		}),
+		description: t({
+			id: "components.starNagCard.description",
+			message:
+				"Superset is open source. If it's helped you today, a GitHub star helps other developers find it.",
+		}),
 		onDismiss: () => {
 			track("star_nag_dismissed", { surface: "card" });
 			dismiss();

@@ -1,6 +1,6 @@
 {
 	"name": "@superset/host-service",
-	"version": "1.24.2",
+	"version": "1.25.1",
 	"private": true,
 	"type": "module",
 	"exports": {
@@ -59,6 +59,7 @@
 		"test:integration": "bun test --pass-with-no-tests test/integration",
 		"test:integration:daemon": "node --experimental-strip-types --test src/terminal/DaemonClient/DaemonClient.node-test.ts src/daemon/DaemonSupervisor.node-test.ts",
 		"test:integration:terminal": "node --experimental-strip-types --test src/terminal/terminal.initial-command.node-test.ts src/terminal/terminal.ungated-launch.node-test.ts src/terminal/terminal.shell-ready-learning.node-test.ts src/terminal/terminal.fish-prompt-transport.node-test.ts",
+		"test:integration:ports": "node --experimental-strip-types --test src/ports/forward-mux-route.node-test.ts",
 		"test:integration:workers": "node --experimental-strip-types --test src/workers/worker-termination.node-test.ts",
 		"test:e2e": "bun run scripts/test-e2e.ts",
 		"bench": "bun test test/integration/pull-requests-scaling.bench.ts",
@@ -84,7 +85,7 @@
 		"@t3-oss/env-core": "0.13.11",
 		"@trpc/client": "11.16.0",
 		"@trpc/server": "11.16.0",
-		"@xterm/headless": "6.1.0-beta.289",
+		"@xterm/headless": "6.1.0-beta.302",
 		"better-sqlite3": "12.11.1",
 		"drizzle-orm": "0.45.2",
 		"hono": "4.12.34",

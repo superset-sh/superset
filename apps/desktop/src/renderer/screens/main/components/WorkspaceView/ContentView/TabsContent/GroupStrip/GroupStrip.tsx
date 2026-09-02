@@ -133,7 +133,7 @@ export function GroupStrip() {
 	);
 
 	const handleOpenPresetsSettings = useCallback(() => {
-		navigate({ to: "/settings/presets" });
+		navigate({ to: "/settings/terminal" });
 	}, [navigate]);
 
 	const handleSelectGroup = (tabId: string) => {

@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { DestroyConfirmPane } from "./components/DestroyConfirmPane";
 import { TeardownFailedPane } from "./components/TeardownFailedPane";
@@ -25,6 +26,7 @@ export function DashboardSidebarDeleteDialog({
 	onOpenChange,
 	onDeleted,
 }: DashboardSidebarDeleteDialogProps) {
+	const { t } = useLingui();
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
 	const isSession =
 		hostWorkspaces.find((workspace) => workspace.id === workspaceId)?.type ===
@@ -59,7 +61,12 @@ export function DashboardSidebarDeleteDialog({
 	}
 
 	const hasWarnings = hasChanges || hasUnpushedCommits;
-	const confirmLabel = hasWarnings ? "Delete anyway" : "Delete";
+	const confirmLabel = hasWarnings
+		? t({
+				id: "dashboard.sidebar.deleteDialog.deleteAnyway",
+				message: "Delete anyway",
+			})
+		: t({ id: "dashboard.sidebar.deleteDialog.delete", message: "Delete" });
 
 	return (
 		<DestroyConfirmPane

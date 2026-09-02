@@ -64,15 +64,17 @@ export function buildV2TerminalPresetRow(
 	preset: TerminalPreset,
 	tabOrder: number,
 	resolved: Pick<ResolvedPresetImport, "v2Name" | "linkedAgentId">,
+	overrides?: { id?: string; useAsWorkspaceRun?: boolean },
 ): V2TerminalPresetRow {
 	return {
-		id: crypto.randomUUID(),
+		id: overrides?.id ?? crypto.randomUUID(),
 		name: resolved.v2Name,
 		description: preset.description,
 		cwd: preset.cwd,
 		commands: preset.commands,
 		projectIds: preset.projectIds ?? null,
 		pinnedToBar: preset.pinnedToBar,
+		useAsWorkspaceRun: overrides?.useAsWorkspaceRun,
 		applyOnWorkspaceCreated: preset.applyOnWorkspaceCreated,
 		applyOnNewTab: preset.applyOnNewTab,
 		executionMode: preset.executionMode ?? "new-tab",

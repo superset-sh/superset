@@ -22,6 +22,7 @@ import {
 	collectChunkResults,
 	formatRepoList,
 	githubRateLimitError,
+	githubRequestError,
 	isGithubNotFoundError,
 	isGithubRateLimitError,
 	mergeByUpdatedAtDesc,
@@ -1230,13 +1231,12 @@ export const searchPullRequests = protectedProcedure
 				page,
 			};
 		} catch (err) {
-			if (isGithubRateLimitError(err)) throw githubRateLimitError(err);
 			// Both gh and Octokit failed — rethrow so the renderer's toast
 			// fires instead of the dropdown silently rendering "no results".
 			console.warn(
 				"[workspaceCreation.searchPullRequests] octokit fallback failed",
 				err,
 			);
-			throw err;
+			throw githubRequestError(err, ctx.credentials);
 		}
 	});

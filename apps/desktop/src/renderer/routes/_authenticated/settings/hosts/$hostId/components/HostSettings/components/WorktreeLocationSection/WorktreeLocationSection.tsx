@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
@@ -21,6 +22,7 @@ export function WorktreeLocationSection({
 	isOnline,
 	canEdit,
 }: WorktreeLocationSectionProps) {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const settingsQuery = useV2WorktreeLocationSettings(hostUrl, {
 		enabled: isOnline,
@@ -38,10 +40,18 @@ export function WorktreeLocationSection({
 		<section className="space-y-3">
 			<div>
 				<h3 className="text-sm font-medium">
-					<HighlightText text="Worktrees" query={searchQuery} />
+					<HighlightText
+						text={t({
+							id: "settings.hosts.worktrees.label",
+							message: "Worktrees",
+						})}
+						query={searchQuery}
+					/>
 				</h3>
 				<p className="mt-0.5 text-sm text-muted-foreground">
-					Default location for new worktree workspaces on this host.
+					<Trans id="settings.hosts.worktrees.hint">
+						Default location for new worktree workspaces on this host.
+					</Trans>
 				</p>
 			</div>
 			<V2WorktreeLocationPicker
@@ -51,13 +61,18 @@ export function WorktreeLocationSection({
 				hostName={hostName}
 				isRemoteTarget={isRemoteTarget}
 				disabled={disabled}
-				browseTitle="Select default worktree location"
+				browseTitle={t({
+					id: "settings.hosts.worktrees.browseTitle",
+					message: "Select default worktree location",
+				})}
 				onSelect={(path) => setLocation.mutate(path)}
 				onReset={() => setLocation.mutate(null)}
 			/>
 			{!canEdit ? (
 				<p className="text-xs text-muted-foreground">
-					Only host owners can change this location.
+					<Trans id="settings.hosts.worktrees.ownerOnly">
+						Only host owners can change this location.
+					</Trans>
 				</p>
 			) : null}
 		</section>

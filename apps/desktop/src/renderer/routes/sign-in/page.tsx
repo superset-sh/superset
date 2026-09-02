@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { type AuthProvider, COMPANY } from "@superset/shared/constants";
 import {
 	DEV_EMAIL,
@@ -146,7 +147,11 @@ function SignInPage() {
 		}
 	};
 
-	const lastUsedBadge = <Badge variant="secondary">Last used</Badge>;
+	const lastUsedBadge = (
+		<Badge variant="secondary">
+			<Trans id="auth.signIn.lastUsed">Last used</Trans>
+		</Badge>
+	);
 
 	return (
 		<div className="flex flex-col h-full w-full bg-background">
@@ -160,12 +165,16 @@ function SignInPage() {
 
 					<div className="text-center mb-8">
 						<h1 className="text-xl font-semibold text-foreground mb-2">
-							Welcome to Superset
+							<Trans id="auth.signIn.welcomeTitle">Welcome to Superset</Trans>
 						</h1>
 						<p className="text-sm text-muted-foreground">
-							{hasLocalToken
-								? "Restoring your session"
-								: "Sign in to get started"}
+							{hasLocalToken ? (
+								<Trans id="auth.signIn.restoringSession">
+									Restoring your session
+								</Trans>
+							) : (
+								<Trans id="auth.signIn.subtitle">Sign in to get started</Trans>
+							)}
 						</p>
 					</div>
 
@@ -197,7 +206,9 @@ function SignInPage() {
 							disabled={signInMutation.isPending}
 						>
 							<FaGithub className="size-5" />
-							Continue with GitHub
+							<Trans id="auth.signIn.continueWithGitHub">
+								Continue with GitHub
+							</Trans>
 							{lastUsedMethod === "github" && lastUsedBadge}
 						</Button>
 
@@ -209,30 +220,34 @@ function SignInPage() {
 							disabled={signInMutation.isPending}
 						>
 							<FcGoogle className="size-5" />
-							Continue with Google
+							<Trans id="auth.signIn.continueWithGoogle">
+								Continue with Google
+							</Trans>
 							{lastUsedMethod === "google" && lastUsedBadge}
 						</Button>
 					</div>
 
 					<p className="mt-8 text-xs text-muted-foreground/70 text-center max-w-xs">
-						By signing in, you agree to our{" "}
-						<a
-							href={COMPANY.TERMS_URL}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="underline hover:text-muted-foreground transition-colors"
-						>
-							Terms of Service
-						</a>{" "}
-						and{" "}
-						<a
-							href={COMPANY.PRIVACY_URL}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="underline hover:text-muted-foreground transition-colors"
-						>
-							Privacy Policy
-						</a>
+						<Trans id="auth.signIn.termsAgreement">
+							By signing in, you agree to our{" "}
+							<a
+								href={COMPANY.TERMS_URL}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="underline hover:text-muted-foreground transition-colors"
+							>
+								Terms of Service
+							</a>{" "}
+							and{" "}
+							<a
+								href={COMPANY.PRIVACY_URL}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="underline hover:text-muted-foreground transition-colors"
+							>
+								Privacy Policy
+							</a>
+						</Trans>
 					</p>
 				</div>
 			</div>

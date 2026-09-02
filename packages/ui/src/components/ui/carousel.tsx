@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import useEmblaCarousel, {
 	type UseEmblaCarouselType,
 } from "embla-carousel-react";
@@ -197,7 +198,9 @@ function CarouselPrevious({
 			{...props}
 		>
 			<ArrowLeftIcon />
-			<span className="sr-only">Previous slide</span>
+			<span className="sr-only">
+				<Trans id="ui.carousel.previousSlide">Previous slide</Trans>
+			</span>
 		</Button>
 	);
 }
@@ -227,7 +230,9 @@ function CarouselNext({
 			{...props}
 		>
 			<ArrowRightIcon />
-			<span className="sr-only">Next slide</span>
+			<span className="sr-only">
+				<Trans id="ui.carousel.nextSlide">Next slide</Trans>
+			</span>
 		</Button>
 	);
 }

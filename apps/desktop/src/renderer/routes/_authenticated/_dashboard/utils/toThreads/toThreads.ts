@@ -17,11 +17,13 @@ export function toThreads(rows: ServerThread[]): CommentThread[] {
 							offsetY: row.anchor.offsetY,
 						},
 						resolved: row.resolved,
+						version: row.version,
 						comments: row.comments.map((comment) => ({
 							id: comment.id,
 							body: comment.body,
 							authorName: comment.authorName,
 							authorImage: comment.authorImage,
+							authorKind: comment.authorKind,
 							createdAt: comment.createdAt.getTime(),
 						})),
 					},

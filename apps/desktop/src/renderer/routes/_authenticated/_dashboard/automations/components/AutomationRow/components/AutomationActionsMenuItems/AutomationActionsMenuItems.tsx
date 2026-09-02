@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	ContextMenuItem,
 	ContextMenuSeparator,
@@ -57,7 +58,11 @@ export function AutomationActionsMenuItems({
 				children: (
 					<>
 						<LuPencil className="size-4" />
-						{isOwner ? "Edit" : "View"}
+						{isOwner ? (
+							<Trans id="dashboard.automations.actionsMenu.edit">Edit</Trans>
+						) : (
+							<Trans id="dashboard.automations.actionsMenu.view">View</Trans>
+						)}
 					</>
 				),
 			})}
@@ -68,7 +73,9 @@ export function AutomationActionsMenuItems({
 						children: (
 							<>
 								<LuPlay className="size-4" />
-								Run now
+								<Trans id="dashboard.automations.actionsMenu.runNow">
+									Run now
+								</Trans>
 							</>
 						),
 					})}
@@ -77,12 +84,16 @@ export function AutomationActionsMenuItems({
 						children: enabled ? (
 							<>
 								<LuPause className="size-4" />
-								Pause
+								<Trans id="dashboard.automations.actionsMenu.pause">
+									Pause
+								</Trans>
 							</>
 						) : (
 							<>
 								<LuPlay className="size-4" />
-								Resume
+								<Trans id="dashboard.automations.actionsMenu.resume">
+									Resume
+								</Trans>
 							</>
 						),
 					})}
@@ -91,7 +102,9 @@ export function AutomationActionsMenuItems({
 						children: (
 							<>
 								<LuClock className="size-4" />
-								Prompt history
+								<Trans id="dashboard.automations.actionsMenu.promptHistory">
+									Prompt history
+								</Trans>
 							</>
 						),
 					})}
@@ -106,7 +119,9 @@ export function AutomationActionsMenuItems({
 						children: (
 							<>
 								<LuTrash2 className="size-4" />
-								Delete
+								<Trans id="dashboard.automations.actionsMenu.delete">
+									Delete
+								</Trans>
 							</>
 						),
 					})}

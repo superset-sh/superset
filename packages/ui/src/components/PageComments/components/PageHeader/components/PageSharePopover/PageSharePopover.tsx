@@ -1,7 +1,8 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Building2, Check, Link2, Lock } from "lucide-react";
-import { type ReactNode, useCallback, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "../../../../../ui/avatar";
 import { Button } from "../../../../../ui/button";
 import { Label } from "../../../../../ui/label";
@@ -60,8 +61,21 @@ export function PageSharePopover({
 	onSetSharedVersion,
 	children,
 }: PageSharePopoverProps) {
+	const { t } = useLingui();
 	const [busy, setBusy] = useState(false);
 	const [copied, setCopied] = useState(false);
+	const [pending, setPending] = useState<{
+		pageId: string;
+		value: PageVisibility;
+	} | null>(null);
+	const pendingValue = pending?.pageId === page.id ? pending.value : null;
+	const visibility = pendingValue ?? page.visibility;
+
+	useEffect(() => {
+		if (pendingValue !== null && page.visibility === pendingValue) {
+			setPending(null);
+		}
+	}, [page.visibility, pendingValue]);
 
 	useFramePointerDown(useCallback(() => onOpenChange(false), [onOpenChange]));
 
@@ -71,7 +85,34 @@ export function PageSharePopover({
 			setCopied(true);
 			setTimeout(() => setCopied(false), 1500);
 		} catch {
-			toast.error("Could not copy the link");
+			toast.error(
+				t({
+					id: "ui.pageShare.copyFailed",
+					message: "Could not copy the link",
+				}),
+			);
+		}
+	};
+
+	const changeVisibility = async (next: PageVisibility) => {
+		if (next === visibility) return;
+		setPending({ pageId: page.id, value: next });
+		if (next !== "just_me") void copyLink();
+		setBusy(true);
+		try {
+			await onSetVisibility(next);
+		} catch (error) {
+			setPending(null);
+			toast.error(
+				error instanceof Error
+					? error.message
+					: t({
+							id: "ui.pageShare.visibilityFailed",
+							message: "Could not change who can see this page",
+						}),
+			);
+		} finally {
+			setBusy(false);
 		}
 	};
 
@@ -87,6 +128,8 @@ export function PageSharePopover({
 	};
 
 	const owner = page.owner;
+	const sharedVersion = page.sharedVersion;
+	const latestVersion = page.latestVersion;
 	const pinnable = versions.filter(
 		(entry) => entry.version !== page.latestVersion,
 	);
@@ -96,21 +139,29 @@ export function PageSharePopover({
 			<PopoverTrigger asChild>{children}</PopoverTrigger>
 			<PopoverContent align="end" className="w-80 p-0">
 				<div className="flex items-center justify-between gap-2 px-3 py-2.5">
-					<span className="font-medium text-sm">Share page</span>
+					<span className="font-medium text-sm">
+						<Trans id="ui.pageShare.title">Share page</Trans>
+					</span>
 					<Button size="xs" variant="ghost" onClick={() => void copyLink()}>
 						{copied ? (
 							<Check className="size-3.5 text-primary" />
 						) : (
 							<Link2 className="size-3.5" />
 						)}
-						{copied ? "Copied" : "Copy link"}
+						{copied ? (
+							<Trans id="ui.pageShare.copied">Copied</Trans>
+						) : (
+							<Trans id="ui.pageShare.copyLink">Copy link</Trans>
+						)}
 					</Button>
 				</div>
 
 				<Separator />
 
 				<div className="space-y-2 px-3 py-2.5">
-					<Label className="font-medium text-sm">People with access</Label>
+					<Label className="font-medium text-sm">
+						<Trans id="ui.pageShare.peopleWithAccess">People with access</Trans>
+					</Label>
 					{owner ? (
 						<div className="flex items-center gap-2">
 							<Avatar className="size-6">
@@ -126,12 +177,14 @@ export function PageSharePopover({
 								</p>
 							</div>
 							<span className="shrink-0 text-muted-foreground text-xs">
-								Owner
+								<Trans id="ui.pageShare.owner">Owner</Trans>
 							</span>
 						</div>
 					) : (
 						<p className="text-muted-foreground text-xs">
-							The owner's account no longer exists.
+							<Trans id="ui.pageShare.ownerMissing">
+								The owner's account no longer exists.
+							</Trans>
 						</p>
 					)}
 				</div>
@@ -140,19 +193,20 @@ export function PageSharePopover({
 
 				<div className="space-y-2 px-3 py-2.5">
 					<div className="space-y-0.5">
-						<Label className="font-medium text-sm">General access</Label>
+						<Label className="font-medium text-sm">
+							<Trans id="ui.pageShare.generalAccess">General access</Trans>
+						</Label>
 						<p className="text-muted-foreground text-xs">
-							Who can open this page from its link
+							<Trans id="ui.pageShare.generalAccessHint">
+								Who can open this page from its link
+							</Trans>
 						</p>
 					</div>
 					<Select
-						value={page.visibility}
+						value={visibility}
 						disabled={!editable || busy}
 						onValueChange={(value) =>
-							void run(
-								() => onSetVisibility(value as PageVisibility),
-								"Could not change who can see this page",
-							)
+							void changeVisibility(value as PageVisibility)
 						}
 					>
 						<SelectTrigger size="sm" className="w-full">
@@ -161,11 +215,13 @@ export function PageSharePopover({
 						<SelectContent>
 							<SelectItem value="just_me">
 								<Lock className="size-3.5 text-muted-foreground" />
-								Only you
+								<Trans id="ui.pageShare.visibilityJustMe">Only you</Trans>
 							</SelectItem>
 							<SelectItem value="org">
 								<Building2 className="size-3.5 text-muted-foreground" />
-								Anyone in your organization
+								<Trans id="ui.pageShare.visibilityOrg">
+									Anyone in your organization
+								</Trans>
 							</SelectItem>
 						</SelectContent>
 					</Select>
@@ -175,11 +231,19 @@ export function PageSharePopover({
 
 				<div className="space-y-2 px-3 py-2.5">
 					<div className="space-y-0.5">
-						<Label className="font-medium text-sm">Shared version</Label>
+						<Label className="font-medium text-sm">
+							<Trans id="ui.pageShare.sharedVersion">Shared version</Trans>
+						</Label>
 						<p className="text-muted-foreground text-xs">
-							{page.sharedVersion === null
-								? "Everyone sees new versions as they are published"
-								: `Everyone stays on v${page.sharedVersion} until you change this`}
+							{sharedVersion === null ? (
+								<Trans id="ui.pageShare.sharedVersionLatestHint">
+									Everyone sees new versions as they are published
+								</Trans>
+							) : (
+								<Trans id="ui.pageShare.sharedVersionPinnedHint">
+									Everyone stays on v{sharedVersion} until you change this
+								</Trans>
+							)}
 						</p>
 					</div>
 					<Select
@@ -191,7 +255,10 @@ export function PageSharePopover({
 							void run(
 								() =>
 									onSetSharedVersion(value === LATEST ? null : Number(value)),
-								"Could not change the shared version",
+								t({
+									id: "ui.pageShare.sharedVersionFailed",
+									message: "Could not change the shared version",
+								}),
 							)
 						}
 					>
@@ -200,16 +267,24 @@ export function PageSharePopover({
 						</SelectTrigger>
 						<SelectContent>
 							<SelectItem value={LATEST}>
-								{page.latestVersion === null
-									? "Latest"
-									: `Latest (v${page.latestVersion})`}
+								{latestVersion === null
+									? t({ id: "ui.pageShare.latest", message: "Latest" })
+									: t({
+											id: "ui.pageShare.latestWithVersion",
+											message: `Latest (v${latestVersion})`,
+										})}
 							</SelectItem>
-							{pinnable.map((entry) => (
-								<SelectItem key={entry.version} value={String(entry.version)}>
-									Version {entry.version} ·{" "}
-									{entry.label ?? relativeTime(entry.createdAt)}
-								</SelectItem>
-							))}
+							{pinnable.map((entry) => {
+								const version = entry.version;
+								return (
+									<SelectItem key={version} value={String(version)}>
+										<Trans id="ui.pageShare.versionOption">
+											Version {version}
+										</Trans>{" "}
+										· {entry.label ?? relativeTime(entry.createdAt)}
+									</SelectItem>
+								);
+							})}
 						</SelectContent>
 					</Select>
 				</div>

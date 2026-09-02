@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { ActivityItem } from "./components/ActivityItem";
 
 interface ActivitySectionProps {
@@ -11,13 +12,17 @@ export function ActivitySection({
 	creatorName,
 	creatorAvatarUrl,
 }: ActivitySectionProps) {
+	const { t } = useLingui();
 	return (
 		<div className="space-y-3">
 			<ActivityItem
 				avatarUrl={creatorAvatarUrl}
 				avatarFallback={creatorName.charAt(0).toUpperCase()}
 				actorName={creatorName}
-				action="created the issue"
+				action={t({
+					id: "dashboard.tasks.activity.createdIssue",
+					message: "created the issue",
+				})}
 				timestamp={createdAt}
 			/>
 		</div>

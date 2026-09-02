@@ -1,3 +1,4 @@
+import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
 import { app, BrowserWindow, Menu, shell } from "electron";
 import { env } from "main/env.main";
@@ -23,10 +24,13 @@ export function createApplicationMenu() {
 
 	const template: Electron.MenuItemConstructorOptions[] = [
 		{
-			label: "File",
+			label: i18n._({ id: "main.menu.file", message: "File" }),
 			submenu: [
 				{
-					label: "New Window",
+					label: i18n._({
+						id: "main.menu.file.newWindow",
+						message: "New Window",
+					}),
 					accelerator: newWindowAccelerator,
 					click: () => {
 						menuEmitter.emit("new-window");
@@ -34,7 +38,10 @@ export function createApplicationMenu() {
 				},
 				{ type: "separator" },
 				{
-					label: "Open Repo...",
+					label: i18n._({
+						id: "main.menu.file.openRepo",
+						message: "Open Repo...",
+					}),
 					accelerator: "CmdOrCtrl+O",
 					click: () => {
 						menuEmitter.emit("open-project");
@@ -46,7 +53,10 @@ export function createApplicationMenu() {
 				// `before-input-event` interception and closes the window instead of
 				// the focused pane.
 				{
-					label: "Close Window",
+					label: i18n._({
+						id: "main.menu.file.closeWindow",
+						message: "Close Window",
+					}),
 					click: () => {
 						BrowserWindow.getFocusedWindow()?.close();
 					},
@@ -54,7 +64,7 @@ export function createApplicationMenu() {
 			],
 		},
 		{
-			label: "Edit",
+			label: i18n._({ id: "main.menu.edit", message: "Edit" }),
 			submenu: [
 				{ role: "undo" },
 				{ role: "redo" },
@@ -66,10 +76,10 @@ export function createApplicationMenu() {
 			],
 		},
 		{
-			label: "View",
+			label: i18n._({ id: "main.menu.view", message: "View" }),
 			submenu: [
 				{
-					label: "Reload",
+					label: i18n._({ id: "main.menu.view.reload", message: "Reload" }),
 					accelerator: reloadAccelerator,
 					click: () => {
 						BrowserWindow.getFocusedWindow()?.reload();
@@ -79,7 +89,10 @@ export function createApplicationMenu() {
 				// an implicit CmdOrCtrl+Shift+R accelerator that prevents the renderer's
 				// Reopen Closed Tab shortcut from receiving the event.
 				{
-					label: "Force Reload",
+					label: i18n._({
+						id: "main.menu.view.forceReload",
+						message: "Force Reload",
+					}),
 					click: () => {
 						BrowserWindow.getFocusedWindow()?.webContents.reloadIgnoringCache();
 					},
@@ -91,7 +104,10 @@ export function createApplicationMenu() {
 				{ role: "zoomOut" },
 				{ type: "separator" },
 				{
-					label: "Toggle Presets Bar",
+					label: i18n._({
+						id: "main.menu.view.toggleScriptsBar",
+						message: "Toggle Scripts Bar",
+					}),
 					click: () => {
 						menuEmitter.emit("toggle-presets-bar");
 					},
@@ -101,7 +117,7 @@ export function createApplicationMenu() {
 			],
 		},
 		{
-			label: "Window",
+			label: i18n._({ id: "main.menu.window", message: "Window" }),
 			// macOS appends the list of open windows to a windowMenu-role menu,
 			// which is how you switch between platform windows. Without the role
 			// the list never appears, so multi-window has no switcher.
@@ -114,7 +130,7 @@ export function createApplicationMenu() {
 			],
 		},
 		{
-			label: "Resources",
+			label: i18n._({ id: "main.menu.resources", message: "Resources" }),
 			submenu: [
 				// No accelerator here: on macOS, a menu accelerator is always live
 				// and would bypass the renderer's user-customizable CHECK_RESOURCES
@@ -122,7 +138,10 @@ export function createApplicationMenu() {
 				// discoverable via the command palette and keyboard settings, both
 				// of which reflect the user's actual current/overridden binding.
 				{
-					label: "Check Resources",
+					label: i18n._({
+						id: "main.menu.resources.check",
+						message: "Check Resources",
+					}),
 					click: () => {
 						menuEmitter.emit("check-resources");
 					},
@@ -130,36 +149,51 @@ export function createApplicationMenu() {
 			],
 		},
 		{
-			label: "Help",
+			label: i18n._({ id: "main.menu.help", message: "Help" }),
 			submenu: [
 				{
-					label: "Documentation",
+					label: i18n._({
+						id: "main.menu.help.documentation",
+						message: "Documentation",
+					}),
 					click: () => {
 						shell.openExternal(COMPANY.DOCS_URL);
 					},
 				},
 				{ type: "separator" },
 				{
-					label: "Contact Us",
+					label: i18n._({
+						id: "main.menu.help.contactUs",
+						message: "Contact Us",
+					}),
 					click: () => {
 						shell.openExternal(COMPANY.MAIL_TO);
 					},
 				},
 				{
-					label: "Report Issue",
+					label: i18n._({
+						id: "main.menu.help.reportIssue",
+						message: "Report Issue",
+					}),
 					click: () => {
 						shell.openExternal(COMPANY.REPORT_ISSUE_URL);
 					},
 				},
 				{
-					label: "Join Discord",
+					label: i18n._({
+						id: "main.menu.help.joinDiscord",
+						message: "Join Discord",
+					}),
 					click: () => {
 						shell.openExternal(COMPANY.DISCORD_URL);
 					},
 				},
 				{ type: "separator" },
 				{
-					label: "Keyboard Shortcuts",
+					label: i18n._({
+						id: "main.menu.help.keyboardShortcuts",
+						message: "Keyboard Shortcuts",
+					}),
 					accelerator: showHotkeysAccelerator,
 					click: () => {
 						menuEmitter.emit("open-settings", "keyboard");
@@ -212,14 +246,20 @@ export function createApplicationMenu() {
 				{ role: "about" },
 				{ type: "separator" },
 				{
-					label: "Settings...",
+					label: i18n._({
+						id: "main.menu.app.settings",
+						message: "Settings...",
+					}),
 					accelerator: openSettingsAccelerator,
 					click: () => {
 						menuEmitter.emit("open-settings");
 					},
 				},
 				{
-					label: "Check for Updates...",
+					label: i18n._({
+						id: "main.menu.app.checkForUpdates",
+						message: "Check for Updates...",
+					}),
 					click: () => {
 						checkForUpdatesInteractive();
 					},
@@ -233,7 +273,10 @@ export function createApplicationMenu() {
 				{ type: "separator" },
 				{ role: "quit" },
 				{
-					label: "Quit Superset Completely",
+					label: i18n._({
+						id: "main.menu.app.quitCompletely",
+						message: "Quit Superset Completely",
+					}),
 					click: () => {
 						void confirmAndQuitCompletely();
 					},

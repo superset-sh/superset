@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { useNavigate } from "@tanstack/react-router";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -24,7 +25,11 @@ export function ProjectSetupNotice({
 	const { machineId } = useLocalHostService();
 	return (
 		<div className="mb-2 flex items-center justify-between gap-2">
-			<p className="text-xs text-muted-foreground">Not set up on this host.</p>
+			<p className="text-xs text-muted-foreground">
+				<Trans id="tasks.projectSetupNotice.notSetUp">
+					Not set up on this host.
+				</Trans>
+			</p>
 			<Button
 				type="button"
 				variant="link"
@@ -42,7 +47,7 @@ export function ProjectSetupNotice({
 					});
 				}}
 			>
-				Set up project…
+				<Trans id="tasks.projectSetupNotice.setUp">Set up project…</Trans>
 			</Button>
 		</div>
 	);

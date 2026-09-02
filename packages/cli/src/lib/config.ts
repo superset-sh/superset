@@ -46,6 +46,18 @@ export function readConfig(): SupersetConfig {
 	return JSON.parse(readFileSync(SUPERSET_CONFIG_PATH, "utf-8"));
 }
 
+/**
+ * SUPERSET_ORGANIZATION_ID overrides the stored org for this invocation
+ * (headless/CI, and dev where the CLI must target a specific local org),
+ * mirroring how SUPERSET_API_KEY overrides the stored credential. Not
+ * persisted to disk.
+ */
+export function resolveOrganizationId(
+	config: SupersetConfig,
+): string | undefined {
+	return process.env.SUPERSET_ORGANIZATION_ID?.trim() || config.organizationId;
+}
+
 export function writeConfig(config: SupersetConfig): void {
 	ensureDir();
 	const tempPath = join(

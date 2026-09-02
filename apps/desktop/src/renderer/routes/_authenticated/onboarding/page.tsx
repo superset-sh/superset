@@ -1,3 +1,4 @@
+import { SUPPORTED_LOCALES } from "@superset/i18n";
 import { chatServiceTrpc } from "@superset/provider-auth/client";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
@@ -12,6 +13,7 @@ import {
 	GhAuthDialog,
 	type GhAuthDialogMode,
 } from "../components/GhAuthDialog";
+import { OnboardingLanguageRow } from "./components/OnboardingLanguageRow";
 import {
 	type Provider,
 	ProviderConnectModal,
@@ -80,6 +82,7 @@ function OnboardingDashboardPage() {
 					Detecting automatically · statuses update as you install or sign in
 				</p>
 				<div className="divide-y divide-border">
+					{SUPPORTED_LOCALES.length > 1 && <OnboardingLanguageRow />}
 					<OnboardingRow
 						icon={<SiGithub className="size-4.5" />}
 						chipClassName="bg-foreground text-background"

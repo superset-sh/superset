@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { LucideIcon } from "lucide-react-native";
 import { ChevronDownIcon, ChevronRightIcon } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
@@ -89,7 +90,9 @@ export const ExploringGroup = ({
 				<View className="mt-1 gap-1.5">
 					{hiddenCount > 0 ? (
 						<Text className="text-muted-foreground/60 text-xs">
-							+{hiddenCount} earlier
+							<Trans id="mobile.exploring.earlierCount">
+								+{hiddenCount} earlier
+							</Trans>
 						</Text>
 					) : null}
 					{visibleItems.map((item, i) => (

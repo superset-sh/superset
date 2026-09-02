@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { HiCheckCircle } from "react-icons/hi2";
 import { LuRefreshCw } from "react-icons/lu";
 import { useAutoLoadEmptyPages } from "../../hooks/useAutoLoadEmptyPages";
@@ -49,7 +50,11 @@ export function BoardContent({
 			<div className="flex-1 flex items-center justify-center">
 				<div className="flex flex-col items-center gap-2 text-muted-foreground">
 					<HiCheckCircle className="h-8 w-8" />
-					<span className="text-sm">No tasks found</span>
+					<span className="text-sm">
+						<Trans id="dashboard.tasks.boardContent.empty">
+							No tasks found
+						</Trans>
+					</span>
 				</div>
 			</div>
 		);
@@ -68,7 +73,11 @@ export function BoardContent({
 			{isFetchingNextTasksPage && (
 				<div className="flex items-center justify-center gap-2 py-2 text-xs text-muted-foreground">
 					<LuRefreshCw className="size-3.5 animate-spin motion-reduce:animate-none" />
-					<span>Loading more…</span>
+					<span>
+						<Trans id="dashboard.tasks.boardContent.loadingMore">
+							Loading more…
+						</Trans>
+					</span>
 				</div>
 			)}
 		</>

@@ -1,7 +1,7 @@
 import type { db } from "@superset/db/client";
 import { cloudWorkspaces } from "@superset/db/schema";
-import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { userError } from "../../i18n-error";
 
 type Executor = Pick<typeof db, "select">;
 
@@ -23,6 +23,10 @@ export async function assertWorkspaceAccess({
 	if (!cloud) return;
 
 	if (cloud.organizationId !== organizationId) {
-		throw new TRPCError({ code: "NOT_FOUND", message: "Workspace not found" });
+		throw userError({
+			code: "NOT_FOUND",
+			message: "Workspace not found",
+			i18nKey: "serverError.page.workspaceNotFound",
+		});
 	}
 }

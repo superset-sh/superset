@@ -1,3 +1,6 @@
+import { plural } from "@lingui/core/macro";
+import { useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { toast } from "@superset/ui/sonner";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -36,10 +39,18 @@ export function bulkWorkspaceDestroyErrorMessage(
 ): string {
 	const workspaceName = workspace.name || workspace.branch;
 	if (error.kind === "teardown-failed") {
-		return `${workspaceName}: teardown failed`;
+		return i18n._({
+			id: "dashboard.sidebar.bulkDelete.teardownFailed",
+			message: "{workspaceName}: teardown failed",
+			values: { workspaceName },
+		});
 	}
 	if (error.kind === "host-unavailable") {
-		return `${workspaceName}: host is unavailable`;
+		return i18n._({
+			id: "dashboard.sidebar.bulkDelete.hostUnavailable",
+			message: "{workspaceName}: host is unavailable",
+			values: { workspaceName },
+		});
 	}
 	return `${workspaceName}: ${error.message}`;
 }
@@ -50,6 +61,7 @@ export function useBulkWorkspaceDelete({
 	onOpenChange,
 	onDeleted,
 }: UseBulkWorkspaceDeleteOptions) {
+	const { t } = useLingui();
 	const { cache: hostWorkspacesCache } = useHostWorkspaces();
 	const { navigateAwayFromWorkspace } = useNavigateAwayFromWorkspace();
 	const { removeWorkspaceFromSidebar } = useDashboardSidebarState();
@@ -196,12 +208,24 @@ export function useBulkWorkspaceDelete({
 					onDeleted(deletedIds);
 					selectionReconciled = true;
 					toast.success(
-						`Deleted ${deletedIds.length} ${deletedIds.length === 1 ? "workspace" : "workspaces"}`,
+						t({
+							id: "dashboard.sidebar.bulkDelete.deletedToast",
+							message: plural(deletedIds.length, {
+								one: "Deleted # workspace",
+								other: "Deleted # workspaces",
+							}),
+						}),
 					);
 				}
 				if (nextFailures.length > 0) {
 					toast.error(
-						`Couldn’t delete ${nextFailures.length} ${nextFailures.length === 1 ? "workspace" : "workspaces"}`,
+						t({
+							id: "dashboard.sidebar.bulkDelete.deleteFailedToast",
+							message: plural(nextFailures.length, {
+								one: "Couldn’t delete # workspace",
+								other: "Couldn’t delete # workspaces",
+							}),
+						}),
 						{
 							description: nextFailures
 								.map(({ workspace, error }) =>
@@ -231,13 +255,27 @@ export function useBulkWorkspaceDelete({
 				);
 				toast.error(
 					deletedIds.length > 0
-						? "Deleted workspaces, but couldn’t finish updating the sidebar"
-						: "Couldn’t finish deleting workspaces",
+						? t({
+								id: "dashboard.sidebar.bulkDelete.partialFailureToast",
+								message:
+									"Deleted workspaces, but couldn’t finish updating the sidebar",
+							})
+						: t({
+								id: "dashboard.sidebar.bulkDelete.unexpectedFailureToast",
+								message: "Couldn’t finish deleting workspaces",
+							}),
 					{
 						description:
 							deletedIds.length > 0
-								? "Reload Superset to refresh the workspace list."
-								: "Try again. If the problem continues, reload Superset.",
+								? t({
+										id: "dashboard.sidebar.bulkDelete.partialFailureDescription",
+										message: "Reload Superset to refresh the workspace list.",
+									})
+								: t({
+										id: "dashboard.sidebar.bulkDelete.unexpectedFailureDescription",
+										message:
+											"Try again. If the problem continues, reload Superset.",
+									}),
 					},
 				);
 			} finally {
@@ -256,6 +294,7 @@ export function useBulkWorkspaceDelete({
 			onOpenChange,
 			preferences.deleteLocalBranch,
 			removeWorkspaceFromSidebar,
+			t,
 			targetFor,
 		],
 	);

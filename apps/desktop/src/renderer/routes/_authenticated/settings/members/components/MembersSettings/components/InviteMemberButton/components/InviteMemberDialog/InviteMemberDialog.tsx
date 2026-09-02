@@ -1,7 +1,9 @@
+import { Trans, useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	canInvite,
-	ORGANIZATION_ROLES,
 	type OrganizationRole,
+	organizationRoleName,
 } from "@superset/shared/auth";
 import { Button } from "@superset/ui/button";
 import {
@@ -43,6 +45,7 @@ export function InviteMemberDialog({
 	invitableRoles,
 	currentUserRole,
 }: InviteMemberDialogProps) {
+	const { t } = useLingui();
 	const [email, setEmail] = useState("");
 	const [role, setRole] = useState<OrganizationRole>("member");
 	const [isInviting, setIsInviting] = useState(false);
@@ -50,7 +53,13 @@ export function InviteMemberDialog({
 
 	const handleInvite = async () => {
 		if (!canInvite(currentUserRole, role)) {
-			toast.error(`Cannot invite users as ${ORGANIZATION_ROLES[role].name}`);
+			const roleName = organizationRoleName(role);
+			toast.error(
+				t({
+					id: "settings.members.cannotInviteAsRoleToast",
+					message: `Cannot invite users as ${roleName}`,
+				}),
+			);
 			return;
 		}
 
@@ -63,13 +72,24 @@ export function InviteMemberDialog({
 			});
 
 			await utils.organization.listInvitations.invalidate();
-			toast.success(`Invitation sent to ${email}`);
+			toast.success(
+				t({
+					id: "settings.members.invitationSentToast",
+					message: `Invitation sent to ${email}`,
+				}),
+			);
 			setEmail("");
 			setRole("member");
 			onOpenChange(false);
 		} catch (error) {
 			toast.error(
-				error instanceof Error ? error.message : "Failed to send invitation",
+				errorMessage(
+					error,
+					t({
+						id: "settings.members.inviteFailedToast",
+						message: "Failed to send invitation",
+					}),
+				),
 			);
 		} finally {
 			setIsInviting(false);
@@ -80,19 +100,29 @@ export function InviteMemberDialog({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>Invite Member</DialogTitle>
+					<DialogTitle>
+						<Trans id="settings.members.inviteDialogTitle">Invite Member</Trans>
+					</DialogTitle>
 					<DialogDescription>
-						Send an invitation to join {organizationName}. Expires in 48 hours.
+						<Trans id="settings.members.inviteDialogDescription">
+							Send an invitation to join {organizationName}. Expires in 48
+							hours.
+						</Trans>
 					</DialogDescription>
 				</DialogHeader>
 
 				<div className="space-y-4 py-4">
 					<div className="space-y-2">
-						<Label htmlFor="email">Email</Label>
+						<Label htmlFor="email">
+							<Trans id="settings.members.emailLabel">Email</Trans>
+						</Label>
 						<Input
 							id="email"
 							type="email"
-							placeholder="user@example.com"
+							placeholder={t({
+								id: "settings.members.emailPlaceholder",
+								message: "user@example.com",
+							})}
 							value={email}
 							onChange={(e) => setEmail(e.target.value)}
 							onKeyDown={(e) => {
@@ -105,7 +135,9 @@ export function InviteMemberDialog({
 					</div>
 
 					<div className="space-y-2">
-						<Label htmlFor="role">Role</Label>
+						<Label htmlFor="role">
+							<Trans id="settings.members.roleLabel">Role</Trans>
+						</Label>
 						<Select
 							value={role}
 							onValueChange={(val) => setRole(val as OrganizationRole)}
@@ -116,7 +148,7 @@ export function InviteMemberDialog({
 							<SelectContent>
 								{invitableRoles.map((r) => (
 									<SelectItem key={r} value={r}>
-										{ORGANIZATION_ROLES[r].name}
+										{organizationRoleName(r)}
 									</SelectItem>
 								))}
 							</SelectContent>
@@ -130,10 +162,14 @@ export function InviteMemberDialog({
 						onClick={() => onOpenChange(false)}
 						disabled={isInviting}
 					>
-						Cancel
+						<Trans id="settings.members.inviteCancel">Cancel</Trans>
 					</Button>
 					<Button onClick={handleInvite} disabled={isInviting || !email}>
-						{isInviting ? "Sending..." : "Send Invitation"}
+						{isInviting ? (
+							<Trans id="settings.members.sendingButton">Sending...</Trans>
+						) : (
+							<Trans id="settings.members.sendButton">Send Invitation</Trans>
+						)}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

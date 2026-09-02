@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { db } from "@superset/db/client";
 import { automations, automationTriggers } from "@superset/db/schema";
 import {
-	bearerToken,
+	presentedWebhookToken,
 	WEBHOOK_TOKEN_PREFIX,
 	webhookTokenMatches,
 } from "@superset/trpc/automation-webhook-secret";
@@ -37,8 +37,9 @@ function parseBody(body: string): Record<string, unknown> | unknown[] {
 }
 
 /**
- * Inbound raw webhook: `POST /api/automations/webhook/{automationId}` with
- * `Authorization: Bearer <token>`. Every authenticated delivery is one event
+ * Inbound raw webhook: `POST /api/automations/webhook/{automationId}`, the
+ * token in `Authorization: Bearer <token>` or — for producers whose settings
+ * accept only a URL — in `?token=`. Every authenticated delivery is one event
  * and fires every enabled webhook trigger on the automation; there are no
  * filters and no dedupe.
  */
@@ -51,12 +52,15 @@ export async function POST(
 		return Response.json({ error: "Not found" }, { status: 404 });
 	}
 
-	const token = bearerToken(request.headers.get("authorization"));
+	const token = presentedWebhookToken(
+		request.headers.get("authorization"),
+		request.url,
+	);
 	if (!token) {
-		return Response.json({ error: "Missing bearer token" }, { status: 401 });
+		return Response.json({ error: "Missing token" }, { status: 401 });
 	}
 	if (!token.startsWith(WEBHOOK_TOKEN_PREFIX)) {
-		return Response.json({ error: "Invalid bearer token" }, { status: 401 });
+		return Response.json({ error: "Invalid token" }, { status: 401 });
 	}
 
 	// Keyed on the presented token, not the public automation id, so someone
@@ -87,7 +91,7 @@ export async function POST(
 		webhookTokenMatches(token, t.secretHash),
 	);
 	if (!authenticating) {
-		return Response.json({ error: "Invalid bearer token" }, { status: 401 });
+		return Response.json({ error: "Invalid token" }, { status: 401 });
 	}
 	const { organizationId } = authenticating;
 	if (!authenticating.automationEnabled) {

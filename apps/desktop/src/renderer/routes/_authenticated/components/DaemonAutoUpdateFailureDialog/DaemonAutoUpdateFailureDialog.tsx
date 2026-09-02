@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	AlertDialog,
 	AlertDialogContent,
@@ -101,7 +102,9 @@ function DaemonAutoUpdateFailureDialogInner({
 			void updateStatusQuery.refetch();
 		},
 		onError: (error) => {
-			toast.error("Failed to restart daemon", { description: error.message });
+			toast.error("Failed to restart daemon", {
+				description: errorMessage(error),
+			});
 		},
 	});
 

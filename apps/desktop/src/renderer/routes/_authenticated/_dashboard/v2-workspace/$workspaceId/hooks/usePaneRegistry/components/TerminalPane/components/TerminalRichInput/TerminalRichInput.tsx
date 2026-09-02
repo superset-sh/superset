@@ -1,21 +1,45 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	PromptInput,
+	PromptInputAttachment,
+	PromptInputAttachments,
 	PromptInputFooter,
 	type PromptInputMessage,
 	PromptInputProvider,
 	PromptInputSubmit,
 	usePromptInputController,
 } from "@superset/ui/ai-elements/prompt-input";
+import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
+import type { FileUIPart } from "ai";
 import { ArrowUpIcon } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
 import { TiptapPromptEditor } from "renderer/components/TiptapPromptEditor";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { track } from "renderer/lib/analytics";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
+import {
+	PasteUploadLimitError,
+	uploadPastedFiles,
+} from "../../uploadPastedFiles";
 import { TerminalPaneIcon } from "../TerminalPaneIcon";
 import { prepareTerminalSubmission } from "./prepareTerminalSubmission";
+
+/**
+ * The composer holds attachments as FileUIParts whose url is a data URL by the
+ * time onSubmit runs; the uploader wants the bytes back as Files.
+ */
+async function toFiles(parts: readonly FileUIPart[]): Promise<File[]> {
+	return Promise.all(
+		parts.map(async (part, index) => {
+			const blob = await (await fetch(part.url)).blob();
+			return new File([blob], part.filename ?? `attachment_${index + 1}`, {
+				type: part.mediaType || blob.type,
+			});
+		}),
+	);
+}
 
 interface TerminalRichInputProps {
 	workspaceId: string;
@@ -68,6 +92,7 @@ function TerminalRichInputInner({
 	isOpen,
 	onClose,
 }: TerminalRichInputProps) {
+	const { t } = useLingui();
 	const controller = usePromptInputController();
 	const hotkeyText = useHotkeyDisplay("TOGGLE_TERMINAL_RICH_INPUT").text;
 
@@ -97,9 +122,53 @@ function TerminalRichInputInner({
 		[trpcUtils, workspaceId],
 	);
 
+	const writeFileMutation = workspaceTrpc.filesystem.writeFile.useMutation();
+	const createDirectoryMutation =
+		workspaceTrpc.filesystem.createDirectory.useMutation();
+	const writeFileRef = useRef(writeFileMutation.mutateAsync);
+	writeFileRef.current = writeFileMutation.mutateAsync;
+	const createDirectoryRef = useRef(createDirectoryMutation.mutateAsync);
+	createDirectoryRef.current = createDirectoryMutation.mutateAsync;
+
 	const handleSubmit = useCallback(
-		(message: PromptInputMessage) => {
-			const text = prepareTerminalSubmission(message.text);
+		async (message: PromptInputMessage) => {
+			// Write attachments into the worktree first: the prompt references
+			// them by path, so it must not reach the PTY before they exist. A
+			// rejection here restores the composer (PromptInput does that for an
+			// async onSubmit), so the user does not lose the draft or the files.
+			let attachmentPaths: string[] = [];
+			if (message.files.length > 0) {
+				if (!cwd) {
+					toast.error("Workspace path is not available yet");
+					throw new Error("no worktree path");
+				}
+				try {
+					attachmentPaths = await uploadPastedFiles({
+						deps: {
+							createDirectory: (input) => createDirectoryRef.current(input),
+							writeFile: (input) => writeFileRef.current(input),
+						},
+						workspaceId,
+						worktreePath: cwd,
+						files: await toFiles(message.files),
+					});
+				} catch (error) {
+					console.error(
+						"[v2 TerminalRichInput] attachment upload failed",
+						error,
+					);
+					toast.error(
+						error instanceof PasteUploadLimitError
+							? error.message
+							: message.files.length === 1
+								? "Failed to attach the file"
+								: "Failed to attach the files",
+					);
+					throw error;
+				}
+			}
+
+			const text = prepareTerminalSubmission(message.text, attachmentPaths);
 			if (text === null) return;
 			// Bracketed paste keeps the multiline block literal (CLI agents enable
 			// the mode); the trailing "\r" then submits it as one prompt.
@@ -111,9 +180,10 @@ function TerminalRichInputInner({
 				workspace_id: workspaceId,
 				message_length: text.length,
 				line_count: text.split("\n").length,
+				attachment_count: attachmentPaths.length,
 			});
 		},
-		[terminalId, terminalInstanceId, controller, workspaceId],
+		[terminalId, terminalInstanceId, controller, workspaceId, cwd],
 	);
 
 	// Persist the draft as it changes. terminalId is stable for this provider
@@ -174,10 +244,16 @@ function TerminalRichInputInner({
 				<div className="relative mx-auto w-full max-w-[680px] pt-2">
 					{hotkeyText !== "Unassigned" && (
 						<span className="pointer-events-none absolute top-5 right-3 z-10 text-xs text-muted-foreground/50">
-							{hotkeyText} to hide
+							<Trans id="workspace.terminalPane.richInputHotkeyHide">
+								{hotkeyText} to hide
+							</Trans>
 						</span>
 					)}
 					<PromptInput
+						multiple
+						maxFiles={10}
+						maxFileSize={50 * 1024 * 1024}
+						onError={(error) => toast.error(error.message)}
 						className="rounded-[13px] bg-background [&>[data-slot=input-group]]:rounded-[13px] [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
 						onSubmit={handleSubmit}
 						onKeyDown={(e) => {
@@ -187,11 +263,17 @@ function TerminalRichInputInner({
 							}
 						}}
 					>
+						<PromptInputAttachments>
+							{(file) => <PromptInputAttachment data={file} />}
+						</PromptInputAttachments>
 						<TiptapPromptEditor
 							cwd={cwd}
 							searchFiles={searchFiles}
 							slashCommands={[]}
-							placeholder="Ask to make changes"
+							placeholder={t({
+								id: "workspace.terminalPane.richInputPlaceholder",
+								message: "Ask to make changes",
+							})}
 						/>
 						<PromptInputFooter>
 							<span className="flex items-center pl-1">

@@ -26,6 +26,9 @@ export interface CustomSessionData {
 	 */
 	planOrganizationId: string | null;
 	plan: string | null;
+	/** The organization the user last switched to; the fallback a new session
+	 * resumes from before any membership guess is considered. */
+	lastActiveOrganizationId: string | null;
 	onboardedAt: Date | null;
 	deletionRequestedAt: Date | null;
 }
@@ -40,6 +43,7 @@ interface CustomSessionRow extends Record<string, unknown> {
 	}> | null;
 	active_organization_id: string | null;
 	plan: string | null;
+	last_active_organization_id: string | null;
 	onboarded_at: string | Date | null;
 	deletion_requested_at: string | Date | null;
 }
@@ -77,12 +81,22 @@ export async function loadCustomSessionData({
 			FROM auth.members
 			WHERE user_id = ${userId}::uuid
 		),
+		last_active AS (
+			SELECT last_active_organization_id AS organization_id
+			FROM auth.users WHERE id = ${userId}::uuid
+		),
 		active AS (
 			SELECT COALESCE(
 				(SELECT organization_id FROM memberships
 				 WHERE organization_id = ${activeOrganizationId}::uuid LIMIT 1),
+				(SELECT m.organization_id FROM memberships m, last_active l
+				 WHERE m.organization_id = l.organization_id LIMIT 1),
+				-- Oldest membership, not newest: the last resort has to be an
+				-- answer that does not move as the user joins more
+				-- organizations. Keep it in step with findFallbackMembership in
+				-- resolve-session-organization-state, id tie-break included.
 				(SELECT organization_id FROM memberships
-				 ORDER BY created_at DESC LIMIT 1)
+				 ORDER BY created_at ASC, id ASC LIMIT 1)
 			) AS organization_id
 		)
 		SELECT
@@ -99,6 +113,7 @@ export async function loadCustomSessionData({
 			 WHERE s.reference_id = a.organization_id
 			   AND s.status IN (${statuses})
 			 LIMIT 1) AS plan,
+			u.last_active_organization_id,
 			u.onboarded_at,
 			u.deletion_requested_at
 		FROM auth.users u
@@ -111,6 +126,7 @@ export async function loadCustomSessionData({
 			memberships: [],
 			planOrganizationId: null,
 			plan: null,
+			lastActiveOrganizationId: null,
 			onboardedAt: null,
 			deletionRequestedAt: null,
 		};
@@ -126,6 +142,7 @@ export async function loadCustomSessionData({
 		})),
 		planOrganizationId: row.active_organization_id,
 		plan: row.plan,
+		lastActiveOrganizationId: row.last_active_organization_id,
 		onboardedAt: toDate(row.onboarded_at),
 		deletionRequestedAt: toDate(row.deletion_requested_at),
 	};

@@ -1,3 +1,4 @@
+import { Plural, Trans } from "@lingui/react/macro";
 import { useControllableState } from "@rn-primitives/hooks";
 import type { LucideIcon } from "lucide-react-native";
 import {
@@ -106,7 +107,12 @@ export const TestResultsSummary = ({
 							className="size-3 text-green-700 dark:text-green-400"
 						/>
 						<Text className="text-green-700 dark:text-green-400">
-							{summary.passed} passed
+							<Plural
+								id="mobile.testResults.summary.passedCount"
+								value={summary.passed}
+								one="# passed"
+								other="# passed"
+							/>
 						</Text>
 					</Badge>
 					{summary.failed > 0 && (
@@ -119,7 +125,12 @@ export const TestResultsSummary = ({
 								className="size-3 text-red-700 dark:text-red-400"
 							/>
 							<Text className="text-red-700 dark:text-red-400">
-								{summary.failed} failed
+								<Plural
+									id="mobile.testResults.summary.failedCount"
+									value={summary.failed}
+									one="# failed"
+									other="# failed"
+								/>
 							</Text>
 						</Badge>
 					)}
@@ -133,7 +144,12 @@ export const TestResultsSummary = ({
 								className="size-3 text-yellow-700 dark:text-yellow-400"
 							/>
 							<Text className="text-yellow-700 dark:text-yellow-400">
-								{summary.skipped} skipped
+								<Plural
+									id="mobile.testResults.summary.skippedCount"
+									value={summary.skipped}
+									one="# skipped"
+									other="# skipped"
+								/>
 							</Text>
 						</Badge>
 					)}
@@ -208,7 +224,9 @@ export const TestResultsProgress = ({
 					</View>
 					<View className="flex-row justify-between">
 						<Text className="text-muted-foreground text-xs">
-							{summary.passed}/{summary.total} tests passed
+							<Trans id="mobile.testResults.passedOfTotal">
+								{summary.passed}/{summary.total} tests passed
+							</Trans>
 						</Text>
 						<Text className="text-muted-foreground text-xs">
 							{passedPercent.toFixed(0)}%
@@ -359,17 +377,32 @@ export const TestSuiteStats = ({
 			<>
 				{passed > 0 && (
 					<Text className="text-green-600 text-xs dark:text-green-400">
-						{passed} passed
+						<Plural
+							id="mobile.testResults.passedCount"
+							value={passed}
+							one="# passed"
+							other="# passed"
+						/>
 					</Text>
 				)}
 				{failed > 0 && (
 					<Text className="text-red-600 text-xs dark:text-red-400">
-						{failed} failed
+						<Plural
+							id="mobile.testResults.failedCount"
+							value={failed}
+							one="# failed"
+							other="# failed"
+						/>
 					</Text>
 				)}
 				{skipped > 0 && (
 					<Text className="text-xs text-yellow-600 dark:text-yellow-400">
-						{skipped} skipped
+						<Plural
+							id="mobile.testResults.skippedCount"
+							value={skipped}
+							one="# skipped"
+							other="# skipped"
+						/>
 					</Text>
 				)}
 			</>

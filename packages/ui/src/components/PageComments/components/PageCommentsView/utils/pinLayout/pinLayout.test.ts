@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type {
 	CommentAnchor,
 	FrameRect,
-} from "../../../../utils/commentRuntime";
+} from "@superset/shared/page-comments-runtime";
 import { pinPointOf, stackPins } from "./pinLayout";
 
 const rect: FrameRect = { top: 100, left: 200, width: 400, height: 80 };

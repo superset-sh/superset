@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	AlertDialog,
 	AlertDialogContent,
@@ -63,12 +64,28 @@ export function DestroyConfirmPane({
 			<AlertDialogContent className="max-w-[340px] gap-0 p-0">
 				<AlertDialogHeader className="px-4 pt-4 pb-2">
 					<AlertDialogTitle className="font-medium">
-						Delete {isSession ? "session" : "workspace"} "{workspaceName}"?
+						{isSession ? (
+							<Trans id="dashboard.sidebar.destroyConfirm.titleSession">
+								Delete session "{workspaceName}"?
+							</Trans>
+						) : (
+							<Trans id="dashboard.sidebar.destroyConfirm.titleWorkspace">
+								Delete workspace "{workspaceName}"?
+							</Trans>
+						)}
 					</AlertDialogTitle>
 					<AlertDialogDescription>
-						{isSession
-							? "This deletes the session's folder and everything in it from disk."
-							: "This removes the worktree from disk. The cloud workspace record will also be removed."}
+						{isSession ? (
+							<Trans id="dashboard.sidebar.destroyConfirm.descriptionSession">
+								This deletes the session's folder and everything in it from
+								disk.
+							</Trans>
+						) : (
+							<Trans id="dashboard.sidebar.destroyConfirm.descriptionWorkspace">
+								This removes the worktree from disk. The cloud workspace record
+								will also be removed.
+							</Trans>
+						)}
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<div className="px-4 pb-2">
@@ -80,13 +97,23 @@ export function DestroyConfirmPane({
 						}
 						aria-hidden={hasWarnings ? undefined : true}
 					>
-						{hasWarnings
-							? hasChanges && hasUnpushedCommits
-								? "Has uncommitted changes and unpushed commits"
-								: hasChanges
-									? "Has uncommitted changes"
-									: "Has unpushed commits"
-							: " "}
+						{hasWarnings ? (
+							hasChanges && hasUnpushedCommits ? (
+								<Trans id="dashboard.sidebar.destroyConfirm.warnChangesAndCommits">
+									Has uncommitted changes and unpushed commits
+								</Trans>
+							) : hasChanges ? (
+								<Trans id="dashboard.sidebar.destroyConfirm.warnChanges">
+									Has uncommitted changes
+								</Trans>
+							) : (
+								<Trans id="dashboard.sidebar.destroyConfirm.warnCommits">
+									Has unpushed commits
+								</Trans>
+							)
+						) : (
+							" "
+						)}
 					</div>
 				</div>
 				{blockingReason && (
@@ -110,7 +137,9 @@ export function DestroyConfirmPane({
 								htmlFor={checkboxId}
 								className="text-xs text-muted-foreground cursor-pointer select-none"
 							>
-								Also delete local branch
+								<Trans id="dashboard.sidebar.destroyConfirm.alsoDeleteBranch">
+									Also delete local branch
+								</Trans>
 							</Label>
 						</div>
 					</div>
@@ -122,7 +151,7 @@ export function DestroyConfirmPane({
 						className="h-7 px-3 text-xs"
 						onClick={() => onOpenChange(false)}
 					>
-						Cancel
+						<Trans id="dashboard.sidebar.destroyConfirm.cancel">Cancel</Trans>
 					</Button>
 					<Button
 						variant="destructive"

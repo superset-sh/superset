@@ -1,3 +1,4 @@
+import { Plural, Trans } from "@lingui/react/macro";
 import {
 	AlertDialog,
 	AlertDialogContent,
@@ -46,7 +47,6 @@ export function DashboardSidebarBulkDeleteDialog({
 	const { canConfirm, changedCount, items, uncheckedCount, unpushedCount } =
 		inspectionSummary;
 	const hasWarnings = changedCount > 0 || unpushedCount > 0;
-	const workspaceLabel = workspaces.length === 1 ? "workspace" : "workspaces";
 
 	if (failures.length > 0) {
 		return (
@@ -70,11 +70,18 @@ export function DashboardSidebarBulkDeleteDialog({
 			<AlertDialogContent className="max-w-[440px] gap-0 p-0">
 				<AlertDialogHeader className="px-4 pt-4 pb-2">
 					<AlertDialogTitle className="font-medium">
-						Delete {workspaces.length} {workspaceLabel}?
+						<Plural
+							id="dashboard.sidebar.bulkDelete.title"
+							value={workspaces.length}
+							one="Delete # workspace?"
+							other="Delete # workspaces?"
+						/>
 					</AlertDialogTitle>
 					<AlertDialogDescription>
-						This removes every selected worktree from disk and deletes its
-						workspace record.
+						<Trans id="dashboard.sidebar.bulkDelete.description">
+							This removes every selected worktree from disk and deletes its
+							workspace record.
+						</Trans>
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 
@@ -88,12 +95,16 @@ export function DashboardSidebarBulkDeleteDialog({
 								<span className="min-w-0 truncate">{item.workspaceName}</span>
 								{item.status === "loading" && (
 									<span className="shrink-0 text-muted-foreground">
-										Checking…
+										<Trans id="dashboard.sidebar.bulkDelete.checking">
+											Checking…
+										</Trans>
 									</span>
 								)}
 								{item.status === "error" && (
 									<span className="select-text cursor-text shrink-0 text-destructive">
-										Couldn’t verify
+										<Trans id="dashboard.sidebar.bulkDelete.couldntVerify">
+											Couldn’t verify
+										</Trans>
 									</span>
 								)}
 								{item.status === "blocked" && (
@@ -104,11 +115,19 @@ export function DashboardSidebarBulkDeleteDialog({
 								{item.status === "ready" &&
 									(item.hasChanges || item.hasUnpushedCommits) && (
 										<span className="shrink-0 text-right text-yellow-700 dark:text-yellow-400">
-											{item.hasChanges && item.hasUnpushedCommits
-												? "Uncommitted · Unpushed"
-												: item.hasChanges
-													? "Uncommitted"
-													: "Unpushed"}
+											{item.hasChanges && item.hasUnpushedCommits ? (
+												<Trans id="dashboard.sidebar.bulkDelete.uncommittedAndUnpushed">
+													Uncommitted · Unpushed
+												</Trans>
+											) : item.hasChanges ? (
+												<Trans id="dashboard.sidebar.bulkDelete.uncommitted">
+													Uncommitted
+												</Trans>
+											) : (
+												<Trans id="dashboard.sidebar.bulkDelete.unpushed">
+													Unpushed
+												</Trans>
+											)}
 										</span>
 									)}
 							</li>
@@ -128,7 +147,9 @@ export function DashboardSidebarBulkDeleteDialog({
 							htmlFor={checkboxId}
 							className="cursor-pointer select-none text-xs text-muted-foreground"
 						>
-							Also delete local branches
+							<Trans id="dashboard.sidebar.bulkDelete.alsoDeleteBranches">
+								Also delete local branches
+							</Trans>
 						</Label>
 					</div>
 				</div>
@@ -141,7 +162,7 @@ export function DashboardSidebarBulkDeleteDialog({
 						disabled={isDeleting}
 						onClick={() => onOpenChange(false)}
 					>
-						Cancel
+						<Trans id="dashboard.sidebar.bulkDelete.cancel">Cancel</Trans>
 					</Button>
 					<Button
 						variant="destructive"
@@ -150,13 +171,22 @@ export function DashboardSidebarBulkDeleteDialog({
 						disabled={!canConfirm || isDeleting}
 						onClick={run}
 					>
-						{isDeleting
-							? `Deleting ${Math.min(completedCount + 1, workspaces.length)} of ${workspaces.length}…`
-							: uncheckedCount > 0
-								? "Delete without checking"
-								: hasWarnings
-									? "Delete anyway"
-									: "Delete"}
+						{isDeleting ? (
+							<Trans id="dashboard.sidebar.bulkDelete.deletingProgress">
+								Deleting {Math.min(completedCount + 1, workspaces.length)} of{" "}
+								{workspaces.length}…
+							</Trans>
+						) : uncheckedCount > 0 ? (
+							<Trans id="dashboard.sidebar.bulkDelete.deleteWithoutChecking">
+								Delete without checking
+							</Trans>
+						) : hasWarnings ? (
+							<Trans id="dashboard.sidebar.bulkDelete.deleteAnyway">
+								Delete anyway
+							</Trans>
+						) : (
+							<Trans id="dashboard.sidebar.bulkDelete.delete">Delete</Trans>
+						)}
 					</Button>
 				</AlertDialogFooter>
 			</AlertDialogContent>

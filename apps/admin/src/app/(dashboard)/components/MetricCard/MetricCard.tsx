@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import {
 	Card,
 	CardContent,
@@ -45,11 +46,15 @@ export function MetricCard({
 				{isLoading ? (
 					<Skeleton className="h-9 w-24" />
 				) : error ? (
-					<p className="text-destructive text-sm">Failed to load</p>
+					<p className="text-destructive text-sm">
+						<Trans id="admin.metricCard.failedToLoad">Failed to load</Trans>
+					</p>
 				) : value !== null && value !== undefined ? (
 					<p className="text-3xl font-bold">{formatter(value)}</p>
 				) : (
-					<p className="text-muted-foreground text-sm">No data</p>
+					<p className="text-muted-foreground text-sm">
+						<Trans id="admin.metricCard.noData">No data</Trans>
+					</p>
 				)}
 			</CardContent>
 		</Card>

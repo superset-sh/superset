@@ -10,6 +10,7 @@ import {
 } from "node:fs";
 import * as realOs from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 const TEST_ROOT = path.join(
 	realOs.tmpdir(),
@@ -78,6 +79,7 @@ const {
 	getAmpPluginContent,
 	getGeminiSettingsJsonContent,
 	getMastraHooksJsonContent,
+	getOpenCodePluginContent,
 	getOmpExtensionContent,
 	getOmpExtensionPath,
 	OMP_EXTENSION_MARKER,
@@ -97,6 +99,103 @@ const managedClaudeHookCommand = getClaudeManagedHookCommand();
 const managedDroidHookCommand = getManagedNotifyHookCommand("droid");
 const managedCodexHookCommand = getManagedNotifyHookCommand("codex");
 const managedMastraHookCommand = getManagedNotifyHookCommand("mastracode");
+
+describe("agent-wrappers opencode", () => {
+	const originalTerminalId = process.env.SUPERSET_TERMINAL_ID;
+	// Written and imported once. A fresh file per test used to be the way to get
+	// a fresh module, but only the first dynamic import out of this directory
+	// ever resolved — the rest died on "Cannot find module" for a file that was
+	// definitely on disk. Nothing here needs a fresh module anyway: the plugin's
+	// re-entry guard lives on `globalThis`, not in module scope, and `beforeEach`
+	// clears it, so one cached import gives every test its own hooks.
+	/** The plugin hands back a map of OpenCode hooks, keyed by event name. */
+	type OpenCodeHooks = Record<
+		string,
+		(...args: unknown[]) => Promise<unknown> | unknown
+	>;
+	let pluginModule: Promise<{
+		SupersetNotifyPlugin: (input: unknown) => Promise<OpenCodeHooks>;
+	}>;
+
+	const loadOpenCodePlugin = async () => {
+		if (!pluginModule) {
+			mkdirSync(TEST_ROOT, { recursive: true });
+			const pluginPath = path.join(TEST_ROOT, "opencode-notify.mjs");
+			writeFileSync(pluginPath, getOpenCodePluginContent("/tmp/notify.sh"));
+			pluginModule = import(pathToFileURL(pluginPath).href);
+		}
+		return pluginModule;
+	};
+
+	beforeEach(() => {
+		delete (
+			globalThis as typeof globalThis & {
+				__supersetOpencodeNotifyPluginV9?: boolean;
+			}
+		).__supersetOpencodeNotifyPluginV9;
+	});
+
+	afterEach(() => {
+		if (originalTerminalId === undefined) {
+			delete process.env.SUPERSET_TERMINAL_ID;
+		} else {
+			process.env.SUPERSET_TERMINAL_ID = originalTerminalId;
+		}
+	});
+
+	it.each([
+		"permission.asked",
+		"question.asked",
+	])("notifies for the current %s event", async (eventType) => {
+		process.env.SUPERSET_TERMINAL_ID = "terminal-1";
+		const { SupersetNotifyPlugin } = await loadOpenCodePlugin();
+		const notifications: string[] = [];
+		const hooks = await SupersetNotifyPlugin({
+			$: (
+				_parts: TemplateStringsArray,
+				_notifyPath: string,
+				payload: string,
+			) => {
+				notifications.push(JSON.parse(payload).hook_event_name);
+			},
+			client: {
+				session: {
+					list: async () => ({
+						data: [{ id: "root-session" }],
+					}),
+				},
+			},
+		});
+
+		await hooks.event({
+			event: {
+				type: eventType,
+				properties: { sessionID: "root-session" },
+			},
+		});
+
+		expect(notifications).toEqual(["PermissionRequest"]);
+	});
+
+	it("retains the legacy permission.ask notification hook", async () => {
+		process.env.SUPERSET_TERMINAL_ID = "terminal-1";
+		const { SupersetNotifyPlugin } = await loadOpenCodePlugin();
+		const notifications: string[] = [];
+		const hooks = await SupersetNotifyPlugin({
+			$: (
+				_parts: TemplateStringsArray,
+				_notifyPath: string,
+				payload: string,
+			) => {
+				notifications.push(JSON.parse(payload).hook_event_name);
+			},
+		});
+
+		await hooks["permission.ask"]({}, { status: "ask" });
+
+		expect(notifications).toEqual(["PermissionRequest"]);
+	});
+});
 
 describe("agent-wrappers copilot", () => {
 	beforeEach(() => {
@@ -165,7 +264,7 @@ describe("agent-wrappers copilot", () => {
 		expect(wrapper).not.toContain("-c 'notify=");
 		expect(wrapper).toContain('export SUPERSET_AGENT_ID="codex"');
 
-		expect(wrapper).toContain("# Superset agent-wrapper v3");
+		expect(wrapper).toContain("# Superset agent-wrapper v4");
 
 		// Native hooks remain enabled, but the process-scoped TUI session log is
 		// the reliable Start signal for installed Codex TUI builds.
@@ -1329,8 +1428,10 @@ describe("agent-wrappers codex hooks.json", () => {
 		const expectedCommand = managedCodexHookCommand;
 		for (const eventName of [
 			"SessionStart",
+			"SessionEnd",
 			"UserPromptSubmit",
 			"Stop",
+			"Interrupt",
 		] as const) {
 			const hooks = parsed.hooks[eventName];
 			expect(Array.isArray(hooks)).toBe(true);
@@ -1442,8 +1543,14 @@ describe("agent-wrappers codex hooks.json", () => {
 		).toBe(true);
 
 		const expectedManagedCommand = managedCodexHookCommand;
-		// Adds managed hooks for SessionStart, UserPromptSubmit, Stop
-		for (const eventName of ["SessionStart", "UserPromptSubmit", "Stop"]) {
+		// Adds managed hooks for session, prompt, completion, and interruption lifecycle events.
+		for (const eventName of [
+			"SessionStart",
+			"SessionEnd",
+			"UserPromptSubmit",
+			"Stop",
+			"Interrupt",
+		]) {
 			expect(
 				parsed.hooks[eventName].some(
 					(def: { hooks: Array<{ command: string }> }) =>
@@ -1528,8 +1635,10 @@ describe("agent-wrappers codex hooks.json", () => {
 		const expectedManagedCommand = managedCodexHookCommand;
 		for (const eventName of [
 			"SessionStart",
+			"SessionEnd",
 			"UserPromptSubmit",
 			"Stop",
+			"Interrupt",
 		] as const) {
 			const hooks = parsed.hooks[eventName];
 			expect(Array.isArray(hooks)).toBe(true);

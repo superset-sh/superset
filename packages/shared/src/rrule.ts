@@ -14,6 +14,7 @@
 
 import { TZDate } from "@date-fns/tz";
 import { RRule } from "rrule";
+import { i18n } from "./i18n";
 
 const WEEKDAYS = ["MO", "TU", "WE", "TH", "FR"] as const;
 const WEEKENDS = ["SA", "SU"] as const;
@@ -37,6 +38,32 @@ const DAY_LONG: Record<string, string> = {
 	SU: "Sunday",
 };
 
+/** 2024-01-01 was a Monday: the reference week for locale weekday names. */
+const WEEKDAY_REFERENCE_DATE: Record<string, number> = {
+	MO: 1,
+	TU: 2,
+	WE: 3,
+	TH: 4,
+	FR: 5,
+	SA: 6,
+	SU: 7,
+};
+
+function formatWeekday(
+	day: string,
+	width: "long" | "short",
+	locale: string | undefined,
+): string {
+	const reference = WEEKDAY_REFERENCE_DATE[day];
+	if (reference === undefined) {
+		return width === "long" ? (DAY_LONG[day] ?? day) : (DAY_SHORT[day] ?? day);
+	}
+	return new Intl.DateTimeFormat(locale, {
+		timeZone: "UTC",
+		weekday: width,
+	}).format(new Date(Date.UTC(2024, 0, reference)));
+}
+
 type RruleParts = Record<string, string>;
 
 function parseRruleParts(rrule: string): RruleParts | null {
@@ -58,22 +85,6 @@ function parseIntOrNull(value: string | undefined): number | null {
 	if (value === undefined) return null;
 	const n = Number.parseInt(value, 10);
 	return Number.isFinite(n) ? n : null;
-}
-
-function ordinal(n: number): string {
-	const absolute = Math.abs(n);
-	const lastTwo = absolute % 100;
-	if (lastTwo >= 11 && lastTwo <= 13) return `${n}th`;
-	switch (absolute % 10) {
-		case 1:
-			return `${n}st`;
-		case 2:
-			return `${n}nd`;
-		case 3:
-			return `${n}rd`;
-		default:
-			return `${n}th`;
-	}
 }
 
 function sortDays(days: string[]): string[] {
@@ -115,15 +126,13 @@ function formatMonth(month: number, locale?: string): string {
 export type Weekday = "MO" | "TU" | "WE" | "TH" | "FR" | "SA" | "SU";
 
 /**
- * Strict preset match — only the five shapes the SchedulePicker can author.
- * Anything else (intervals, MONTHLY/YEARLY, multi-day BYDAY outside
- * weekdays/weekends, etc.) collapses to `{ kind: "custom" }` so the picker
- * falls back to raw-RRULE editing.
+ * Strict preset match — only the four shapes the SchedulePicker can author.
+ * Anything else (intervals, MONTHLY/YEARLY, multi-day BYDAY, etc.) collapses
+ * to `{ kind: "custom" }` so the picker falls back to raw-RRULE editing.
  */
 export type PresetMatch =
 	| { kind: "hourly" }
 	| { kind: "daily"; hour: number; minute: number }
-	| { kind: "weekdays"; hour: number; minute: number }
 	| { kind: "weekly"; day: Weekday; hour: number; minute: number }
 	| { kind: "custom"; rrule: string };
 
@@ -157,9 +166,6 @@ export function matchPreset(rrule: string): PresetMatch {
 	}
 
 	if (freq === "WEEKLY" && byHour !== null) {
-		if (sameSet(byDay, WEEKDAYS)) {
-			return { kind: "weekdays", hour: byHour, minute: byMinute };
-		}
 		if (byDay.length === 1) {
 			return {
 				kind: "weekly",
@@ -179,8 +185,6 @@ export function buildRrule(match: PresetMatch): string {
 			return "FREQ=HOURLY";
 		case "daily":
 			return `FREQ=DAILY;BYHOUR=${match.hour};BYMINUTE=${match.minute}`;
-		case "weekdays":
-			return `FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=${match.hour};BYMINUTE=${match.minute}`;
 		case "weekly":
 			return `FREQ=WEEKLY;BYDAY=${match.day};BYHOUR=${match.hour};BYMINUTE=${match.minute}`;
 		case "custom":
@@ -201,10 +205,15 @@ export function describeSchedule(
 	rrule: string,
 	options: DescribeScheduleOptions = {},
 ): string {
+	const custom = () =>
+		i18n._({ id: "shared.schedule.custom", message: "Custom" });
 	const parts = parseRruleParts(rrule);
-	if (!parts) return "Custom";
+	if (!parts) return custom();
 
-	const { locale } = options;
+	// Falls back to the active app locale, not the system default: the sentence
+	// around these values is already translated, so "every Sunday" must not
+	// render its weekday in the OS language.
+	const locale = options.locale ?? i18n.locale;
 	const freq = parts.FREQ;
 	const interval = parseIntOrNull(parts.INTERVAL) ?? 1;
 	const byHour = parseIntOrNull(parts.BYHOUR);
@@ -218,70 +227,221 @@ export function describeSchedule(
 	const byMonthDay = parseIntOrNull(parts.BYMONTHDAY);
 
 	// Anything that references sub-patterns we don't generate → Custom.
-	if (parts.BYSETPOS || parts.BYYEARDAY || parts.BYWEEKNO) return "Custom";
+	if (parts.BYSETPOS || parts.BYYEARDAY || parts.BYWEEKNO) return custom();
 	if (parts.COUNT || parts.UNTIL) {
 		// Still describable, but prefer Custom so the bounded nature isn't hidden.
-		return "Custom";
+		return custom();
 	}
 
-	const atTime =
-		byHour !== null ? ` at ${formatTimeOfDay(byHour, byMinute, locale)}` : "";
+	const hasTime = byHour !== null;
+	const time = hasTime ? formatTimeOfDay(byHour, byMinute, locale) : "";
 
 	switch (freq) {
 		case "MINUTELY":
-			if (interval === 1) return "Every minute";
-			return `Every ${interval} minutes`;
+			if (interval === 1) {
+				return i18n._({
+					id: "shared.schedule.everyMinute",
+					message: "Every minute",
+				});
+			}
+			return i18n._({
+				id: "shared.schedule.everyNMinutes",
+				message:
+					"{count, plural, one {Every # minute} other {Every # minutes}}",
+				values: { count: interval },
+			});
 
 		case "HOURLY":
-			if (interval === 1) return "Hourly";
-			return `Every ${interval} hours`;
+			if (interval === 1) {
+				return i18n._({ id: "shared.schedule.hourly", message: "Hourly" });
+			}
+			return i18n._({
+				id: "shared.schedule.everyNHours",
+				message: "{count, plural, one {Every # hour} other {Every # hours}}",
+				values: { count: interval },
+			});
 
 		case "DAILY":
-			if (interval === 1) return `Daily${atTime}`;
-			return `Every ${interval} days${atTime}`;
+			if (interval === 1) {
+				return hasTime
+					? i18n._({
+							id: "shared.schedule.dailyAt",
+							message: "Daily at {time}",
+							values: { time },
+						})
+					: i18n._({ id: "shared.schedule.daily", message: "Daily" });
+			}
+			return hasTime
+				? i18n._({
+						id: "shared.schedule.everyNDaysAt",
+						message:
+							"{count, plural, one {Every # day at {time}} other {Every # days at {time}}}",
+						values: { count: interval, time },
+					})
+				: i18n._({
+						id: "shared.schedule.everyNDays",
+						message: "{count, plural, one {Every # day} other {Every # days}}",
+						values: { count: interval },
+					});
 
 		case "WEEKLY": {
 			if (interval !== 1) {
 				// "Every 2 weeks on Monday" — still cleaner than raw rrule.
 				if (byDay.length === 1) {
-					return `Every ${interval} weeks on ${DAY_LONG[byDay[0] as keyof typeof DAY_LONG]}${atTime}`;
+					const day = formatWeekday(byDay[0] as string, "long", locale);
+					return hasTime
+						? i18n._({
+								id: "shared.schedule.everyNWeeksOnDayAt",
+								message:
+									"{count, plural, one {Every # week on {day} at {time}} other {Every # weeks on {day} at {time}}}",
+								values: { count: interval, day, time },
+							})
+						: i18n._({
+								id: "shared.schedule.everyNWeeksOnDay",
+								message:
+									"{count, plural, one {Every # week on {day}} other {Every # weeks on {day}}}",
+								values: { count: interval, day },
+							});
 				}
-				return "Custom";
+				return custom();
 			}
-			if (byDay.length === 0) return `Weekly${atTime}`;
-			if (sameSet(byDay, WEEKDAYS)) return `Weekdays${atTime}`;
-			if (sameSet(byDay, WEEKENDS)) return `Weekends${atTime}`;
+			if (byDay.length === 0) {
+				return hasTime
+					? i18n._({
+							id: "shared.schedule.weeklyAt",
+							message: "Weekly at {time}",
+							values: { time },
+						})
+					: i18n._({ id: "shared.schedule.weekly", message: "Weekly" });
+			}
+			if (sameSet(byDay, WEEKDAYS)) {
+				return hasTime
+					? i18n._({
+							id: "shared.schedule.weekdaysAt",
+							message: "Weekdays at {time}",
+							values: { time },
+						})
+					: i18n._({ id: "shared.schedule.weekdays", message: "Weekdays" });
+			}
+			if (sameSet(byDay, WEEKENDS)) {
+				return hasTime
+					? i18n._({
+							id: "shared.schedule.weekendsAt",
+							message: "Weekends at {time}",
+							values: { time },
+						})
+					: i18n._({ id: "shared.schedule.weekends", message: "Weekends" });
+			}
 			if (byDay.length === 1) {
-				return `${DAY_LONG[byDay[0] as keyof typeof DAY_LONG]}s${atTime}`;
+				const day = formatWeekday(byDay[0] as string, "long", locale);
+				// "{day}s" pluralized a weekday by appending an s, which no other
+				// language can do; the full sentence translates everywhere.
+				return hasTime
+					? i18n._({
+							id: "shared.schedule.eachDayOfWeekAt",
+							message: "Every {day} at {time}",
+							values: { day, time },
+						})
+					: i18n._({
+							id: "shared.schedule.eachDayOfWeek",
+							message: "Every {day}",
+							values: { day },
+						});
 			}
 			const list = sortDays(byDay)
-				.map((d) => DAY_SHORT[d as keyof typeof DAY_SHORT])
+				.map((d) => formatWeekday(d, "short", locale))
 				.join(", ");
-			return `${list}${atTime}`;
+			return hasTime
+				? i18n._({
+						id: "shared.schedule.dayListAt",
+						message: "{days} at {time}",
+						values: { days: list, time },
+					})
+				: list;
 		}
 
 		case "MONTHLY": {
-			if (interval !== 1) return "Custom";
-			if (byMonthDay === -1) return `Last day of each month${atTime}`;
+			if (interval !== 1) return custom();
+			if (byMonthDay === -1) {
+				return hasTime
+					? i18n._({
+							id: "shared.schedule.lastDayOfMonthAt",
+							message: "Last day of each month at {time}",
+							values: { time },
+						})
+					: i18n._({
+							id: "shared.schedule.lastDayOfMonth",
+							message: "Last day of each month",
+						});
+			}
 			if (byMonthDay !== null && byMonthDay >= 1 && byMonthDay <= 31) {
-				return `Monthly on the ${ordinal(byMonthDay)}${atTime}`;
+				// The ordinal suffix is part of the message, not computed in code:
+				// a hardcoded st/nd/rd/th leaked English into every locale
+				// ("毎月1st"). ICU selectordinal gives each language its own system.
+				return hasTime
+					? i18n._({
+							id: "shared.schedule.monthlyOnDayOfMonthAt",
+							message:
+								"Monthly on the {day, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} at {time}",
+							values: { day: byMonthDay, time },
+						})
+					: i18n._({
+							id: "shared.schedule.monthlyOnDayOfMonth",
+							message:
+								"Monthly on the {day, selectordinal, one {#st} two {#nd} few {#rd} other {#th}}",
+							values: { day: byMonthDay },
+						});
 			}
 			if (byDay.length === 1) {
-				return `Monthly on ${DAY_LONG[byDay[0] as keyof typeof DAY_LONG]}${atTime}`;
+				const day = formatWeekday(byDay[0] as string, "long", locale);
+				return hasTime
+					? i18n._({
+							id: "shared.schedule.monthlyOnDayAt",
+							message: "Monthly on {day} at {time}",
+							values: { day, time },
+						})
+					: i18n._({
+							id: "shared.schedule.monthlyOnDay",
+							message: "Monthly on {day}",
+							values: { day },
+						});
 			}
-			return `Monthly${atTime}`;
+			return hasTime
+				? i18n._({
+						id: "shared.schedule.monthlyAt",
+						message: "Monthly at {time}",
+						values: { time },
+					})
+				: i18n._({ id: "shared.schedule.monthly", message: "Monthly" });
 		}
 
 		case "YEARLY": {
-			if (interval !== 1) return "Custom";
+			if (interval !== 1) return custom();
 			if (byMonth !== null && byMonthDay !== null) {
-				return `Annually on ${formatMonth(byMonth, locale)} ${byMonthDay}${atTime}`;
+				const date = `${formatMonth(byMonth, locale)} ${byMonthDay}`;
+				return hasTime
+					? i18n._({
+							id: "shared.schedule.annuallyOnAt",
+							message: "Annually on {date} at {time}",
+							values: { date, time },
+						})
+					: i18n._({
+							id: "shared.schedule.annuallyOn",
+							message: "Annually on {date}",
+							values: { date },
+						});
 			}
-			return `Annually${atTime}`;
+			return hasTime
+				? i18n._({
+						id: "shared.schedule.annuallyAt",
+						message: "Annually at {time}",
+						values: { time },
+					})
+				: i18n._({ id: "shared.schedule.annually", message: "Annually" });
 		}
 
 		default:
-			return "Custom";
+			return custom();
 	}
 }
 
@@ -500,13 +660,15 @@ export function formatDateTimeInTimezone(
 	timezone: string,
 	options: FormatDateTimeInTimezoneOptions = {},
 ): string {
+	// Same reasoning as describeSchedule: follow the app locale, not the OS.
+	const locale = options.locale ?? i18n.locale;
 	try {
-		return new Intl.DateTimeFormat(options.locale, {
+		return new Intl.DateTimeFormat(locale, {
 			...DATE_TIME_IN_TIMEZONE_FORMAT_OPTIONS,
 			timeZone: timezone,
 		}).format(date);
 	} catch {
-		return new Intl.DateTimeFormat(options.locale, {
+		return new Intl.DateTimeFormat(locale, {
 			...DATE_TIME_IN_TIMEZONE_FORMAT_OPTIONS,
 			timeZone: "UTC",
 		}).format(date);

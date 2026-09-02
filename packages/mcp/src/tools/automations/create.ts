@@ -1,4 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { workspaceTagsInputSchema } from "@superset/shared/workspace-tags";
 import { z } from "zod";
 import { createMcpCaller } from "../../caller";
 import { defineTool } from "../../define-tool";
@@ -64,6 +65,11 @@ export function register(server: McpServer): void {
 				.string()
 				.min(1)
 				.describe("IANA timezone (e.g. America/New_York)."),
+			tags: workspaceTagsInputSchema
+				.optional()
+				.describe(
+					"Workspace tags applied to each run's created workspace; each tag files it into a sidebar folder of the same name. Defaults to ['automation'] so runs group out of the box.",
+				),
 		},
 		handler: async (input, ctx) => {
 			const caller = createMcpCaller(ctx);

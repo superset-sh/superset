@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import type { CreatePaneInput, Pane, WorkspaceStore } from "@superset/panes";
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
@@ -107,6 +108,7 @@ export function useV2PresetExecution({
 	store,
 	launcher,
 }: UseV2PresetExecutionArgs) {
+	const { t } = useLingui();
 	const { workspace } = useWorkspace();
 	const workspaceId = workspace.id;
 	const projectId = workspace.projectId;
@@ -290,18 +292,28 @@ export function useV2PresetExecution({
 				}
 			} catch (err) {
 				console.error("[useV2PresetExecution] Failed to execute preset:", err);
-				toast.error("Failed to run preset", {
-					description:
-						err instanceof Error
-							? err.message
-							: "Terminal session creation failed.",
-				});
+				toast.error(
+					t({
+						id: "workspace.presetExecution.runScriptFailed",
+						message: "Failed to run terminal script",
+					}),
+					{
+						description:
+							err instanceof Error
+								? err.message
+								: t({
+										id: "workspace.presetExecution.sessionCreationFailed",
+										message: "Terminal session creation failed.",
+									}),
+					},
+				);
 			}
 		},
 		[
 			store,
 			launcher,
 			resolvePresetCommands,
+			t,
 			workspaceId,
 			workspaceQuery.data?.worktreePath,
 			writeInput,

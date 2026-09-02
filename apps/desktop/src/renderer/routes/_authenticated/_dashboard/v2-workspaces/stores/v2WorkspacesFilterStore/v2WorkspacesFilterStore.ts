@@ -1,3 +1,5 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import { create } from "zustand";
 
 export const DEVICE_FILTER_THIS_DEVICE = "this-device";
@@ -33,13 +35,25 @@ export type V2WorkspacesAgentStatusFilter =
 /** Shared by the Agent filter dropdown and the list rows' Agent cell. */
 export const V2_WORKSPACES_AGENT_STATUS_LABELS: Record<
 	V2WorkspacesAgentStatusFilter,
-	string
+	MessageDescriptor
 > = {
-	idle: "Idle",
-	working: "Working",
-	permission: "Needs permission",
-	review: "Ready for review",
-	failed: "Failed",
+	idle: msg({ id: "dashboard.v2Workspaces.agentStatusIdle", message: "Idle" }),
+	working: msg({
+		id: "dashboard.v2Workspaces.agentStatusWorking",
+		message: "Working",
+	}),
+	permission: msg({
+		id: "dashboard.v2Workspaces.agentStatusPermission",
+		message: "Needs permission",
+	}),
+	review: msg({
+		id: "dashboard.v2Workspaces.agentStatusReview",
+		message: "Ready for review",
+	}),
+	failed: msg({
+		id: "dashboard.v2Workspaces.agentStatusFailed",
+		message: "Failed",
+	}),
 };
 
 export const V2_WORKSPACES_PIN_FILTERS = ["all", "pinned", "unpinned"] as const;
@@ -47,11 +61,20 @@ export type V2WorkspacesPinFilter = (typeof V2_WORKSPACES_PIN_FILTERS)[number];
 
 export const V2_WORKSPACES_PIN_FILTER_LABELS: Record<
 	V2WorkspacesPinFilter,
-	string
+	MessageDescriptor
 > = {
-	all: "All workspaces",
-	pinned: "Pinned",
-	unpinned: "Unpinned",
+	all: msg({
+		id: "dashboard.v2Workspaces.pinFilterAll",
+		message: "All workspaces",
+	}),
+	pinned: msg({
+		id: "dashboard.v2Workspaces.pinFilterPinned",
+		message: "Shown",
+	}),
+	unpinned: msg({
+		id: "dashboard.v2Workspaces.pinFilterUnpinned",
+		message: "Hidden",
+	}),
 };
 
 export type V2WorkspacesViewMode = "list" | "board";
@@ -64,11 +87,23 @@ export const V2_WORKSPACES_SORT_MODES = [
 ] as const;
 export type V2WorkspacesSortMode = (typeof V2_WORKSPACES_SORT_MODES)[number];
 
-export const V2_WORKSPACES_SORT_LABELS: Record<V2WorkspacesSortMode, string> = {
-	activity: "Last activity",
-	created: "Created",
-	churn: "Diff size",
-	name: "Name",
+export const V2_WORKSPACES_SORT_LABELS: Record<
+	V2WorkspacesSortMode,
+	MessageDescriptor
+> = {
+	activity: msg({
+		id: "dashboard.v2Workspaces.sortLastActivity",
+		message: "Last activity",
+	}),
+	created: msg({
+		id: "dashboard.v2Workspaces.sortCreated",
+		message: "Created",
+	}),
+	churn: msg({
+		id: "dashboard.v2Workspaces.sortDiffSize",
+		message: "Diff size",
+	}),
+	name: msg({ id: "dashboard.v2Workspaces.sortName", message: "Name" }),
 };
 
 export const V2_WORKSPACES_ARCHIVED_WINDOWS = [
@@ -101,7 +136,7 @@ interface V2WorkspacesFilterState {
 	prStateFilters: V2WorkspacesPrStateFilter[];
 	/** Empty = any agent status. */
 	agentStatusFilters: V2WorkspacesAgentStatusFilter[];
-	/** Sidebar visibility: pinned, unpinned, or both ("all"). */
+	/** Sidebar visibility: shown, hidden, or both ("all"). */
 	pinFilter: V2WorkspacesPinFilter;
 	viewMode: V2WorkspacesViewMode;
 	/** Row order inside status groups (both views). */

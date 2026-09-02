@@ -4,6 +4,12 @@ import {
 	DEFAULT_CONTEXT_PROMPT_TEMPLATE_USER,
 } from "./agent-prompt-template";
 
+/**
+ * Marks where a provider's own session id goes inside fork args. Shared so the
+ * settings hint, the builtin presets, and the host's argv builder cannot drift.
+ */
+export const FORK_SESSION_ID_TOKEN = "{sessionId}";
+
 export type AgentDefinitionSource = "builtin" | "user";
 export type AgentKind = "terminal";
 
@@ -42,6 +48,12 @@ export interface TerminalAgentDefinition extends BaseAgentDefinition {
 	 * id-based resume.
 	 */
 	resumeCommand?: string;
+	/**
+	 * Command that forks a previous session. Use `FORK_SESSION_ID_TOKEN` where
+	 * the source id belongs; when omitted, the id is appended. The provider
+	 * must create a new session id and leave the source session unchanged.
+	 */
+	forkCommand?: string;
 	/**
 	 * Command for one-shot headless runs: the CLI executes the prompt and
 	 * exits without a TUI. The prompt is appended as the final argument.

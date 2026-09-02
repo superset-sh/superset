@@ -22,6 +22,16 @@ import { adminProcedure } from "../../trpc";
 // chart), executed on demand via the Query Run API — no dashboard scheduled
 // query involved. Requires an active Sigma subscription; a full secret key or
 // a restricted key with reporting_write + sigma_api_write.
+//
+// Deviates from the template in one place. The template's date spine is
+// exchange_rates_from_usd, which lands a day late and is then shifted back
+// another day, so the series stopped two days short of today even though the
+// subscription events behind it were current — the tile read as stuck. The
+// spine now runs to whichever of the two sources is newer, carrying the last
+// known rates forward across the days FX has not landed yet. It starts at the
+// first subscription change rather than at the first FX rate: SEQUENCE caps at
+// 10k elements and the FX table reaches back to 2010, which would have walked
+// the query into a hard failure some years out for rows that are all zero MRR.
 const STRIPE_QUERY_RUN_VERSION = "2026-04-22.preview";
 
 const MRR_SQL = `-- This template returns total monthly recurring revenue
@@ -42,11 +52,28 @@ sparse_mrrs AS (
   FROM sparse_mrr_changes
   ORDER BY currency, date DESC
 ),
-fx AS (
+sparse_fx AS (
   SELECT
     date - INTERVAL '1' DAY AS date,
     cast(JSON_PARSE(buy_currency_exchange_rates) AS MAP(VARCHAR, DOUBLE)) AS rate_per_usd
   FROM exchange_rates_from_usd
+),
+fx AS (
+  SELECT
+    spine.date,
+    LAST_VALUE(sparse_fx.rate_per_usd) IGNORE NULLS OVER (
+      ORDER BY spine.date ASC
+      ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS rate_per_usd
+  FROM UNNEST(SEQUENCE(
+    (SELECT MIN(date) FROM sparse_mrr_changes),
+    (SELECT GREATEST(
+      (SELECT MAX(date) FROM sparse_fx),
+      (SELECT CAST(MAX(date) AS TIMESTAMP) FROM sparse_mrr_changes)
+    )),
+    INTERVAL '1' DAY
+  )) AS spine(date)
+  LEFT JOIN sparse_fx ON sparse_fx.date = spine.date
 ),
 currencies AS (
   SELECT DISTINCT(currency) FROM subscription_item_change_events_v2_beta
@@ -91,8 +118,13 @@ daily_mrr_series AS (
   FROM daily_mrrs
   WHERE date >= CURRENT_DATE - INTERVAL '180' DAY
   ORDER BY date
+),
+data_freshness AS (
+  SELECT TO_ISO8601(MAX(event_timestamp)) AS data_through
+  FROM subscription_item_change_events_v2_beta
 )
-SELECT * FROM daily_mrr_series`;
+SELECT daily_mrr_series.*, data_freshness.data_through
+FROM daily_mrr_series CROSS JOIN data_freshness`;
 
 interface MrrPoint {
 	date: string;
@@ -100,7 +132,14 @@ interface MrrPoint {
 }
 
 type MrrResult =
-	| { available: true; dataLoadTime: string | null; points: MrrPoint[] }
+	| {
+			available: true;
+			/** When we ran the query. */
+			dataLoadTime: string | null;
+			/** When Sigma's data actually ends — hours behind dataLoadTime. */
+			dataThrough: string | null;
+			points: MrrPoint[];
+	  }
 	| { available: false; reason: string };
 
 interface QueryRun {
@@ -117,13 +156,23 @@ function stripeHeaders() {
 	};
 }
 
-function parseMrrCsv(csv: string): MrrPoint[] {
+function parseMrrCsv(csv: string): {
+	points: MrrPoint[];
+	dataThrough: string | null;
+} {
 	const [header, ...rows] = csv.trim().split("\n");
 	const columns = (header ?? "").split(",").map((c) => c.replaceAll('"', ""));
 	const dayIndex = columns.indexOf("day");
 	const mrrIndex = columns.indexOf("total_mrr_in_usd");
-	if (dayIndex === -1 || mrrIndex === -1) return [];
-	return rows
+	const throughIndex = columns.indexOf("data_through");
+	if (dayIndex === -1 || mrrIndex === -1) {
+		return { points: [], dataThrough: null };
+	}
+	// One value for the whole run, repeated on every row by the CROSS JOIN.
+	// event_timestamp is UTC and TO_ISO8601 leaves the offset off, so pin it
+	// rather than let the reader guess a zone.
+	const through = (rows[0]?.split(",")[throughIndex] ?? "").replaceAll('"', "");
+	const points = rows
 		.map((row) => {
 			const cells = row.split(",").map((c) => c.replaceAll('"', ""));
 			return {
@@ -134,6 +183,7 @@ function parseMrrCsv(csv: string): MrrPoint[] {
 		})
 		.filter((p) => p.date && Number.isFinite(p.mrrUsd))
 		.sort((a, b) => a.date.localeCompare(b.date));
+	return { points, dataThrough: through ? `${through}Z` : null };
 }
 
 // Sigma data refreshes ~daily and the query takes ~30-60s, so results are
@@ -188,11 +238,16 @@ async function collectMrrRun(runId: string): Promise<MrrResult | null> {
 		return { available: false, reason: `Sigma query ${run.status}` };
 	}
 	const csv = await (await fetch(downloadUrl)).text();
-	const points = parseMrrCsv(csv);
+	const { points, dataThrough } = parseMrrCsv(csv);
 	if (!points.length) {
 		return { available: false, reason: "unexpected Sigma CSV columns" };
 	}
-	return { available: true, dataLoadTime: new Date().toISOString(), points };
+	return {
+		available: true,
+		dataLoadTime: new Date().toISOString(),
+		dataThrough,
+		points,
+	};
 }
 
 /**
@@ -270,10 +325,11 @@ export async function refreshSigmaMrr({
 	pollIntervalMs?: number;
 } = {}): Promise<MrrResult> {
 	const startedAt = Date.now();
-	// Ignore the cache on the first step only. Otherwise a scheduled refresh
-	// that runs more often than the entry expires would read its own previous
-	// result and never actually refresh. Subsequent steps must consult the
-	// cache, since that is where the finished run lands.
+	// Ignore the cache on every step. The job runs more often than the entry
+	// expires, so honouring it would hand back the previous result before the
+	// pending run is ever collected — the tile would then only move when the
+	// entry lapsed, with a Sigma run burnt every hour for nothing. The finished
+	// run is returned straight from the pending branch, not via the cache.
 	let last = await advanceSigmaMrr({ ignoreCache: true });
 	while (
 		!last.available &&
@@ -281,7 +337,7 @@ export async function refreshSigmaMrr({
 		Date.now() - startedAt < timeBudgetMs
 	) {
 		await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-		last = await advanceSigmaMrr();
+		last = await advanceSigmaMrr({ ignoreCache: true });
 	}
 	return last;
 }
@@ -553,6 +609,27 @@ async function fetchMercuryCashFlow(): Promise<CashFlowResult> {
 
 export const businessRouter = {
 	getMrr: adminProcedure.query(() => fetchLatestSigmaMrr()),
+
+	// The tile's refresh button. The hourly job already keeps the entry warm,
+	// so the only reason to press this is to get past the cached figure —
+	// hence dropping the entry rather than just re-reading it. Dropping it is
+	// also what makes the tile's poll follow the new run: getMrr serves the
+	// cache before it ever looks at a pending run, so an entry left in place
+	// would leave this run uncollected until the next hourly job.
+	//
+	// Kicking the run is all this does. Sigma takes 30-60s and the tRPC route
+	// caps at 60s, so driving it to completion here would be a coin flip
+	// against the function timeout; the tile polls it down instead.
+	refreshMrr: adminProcedure.mutation(async () => {
+		const result = await advanceSigmaMrr({ ignoreCache: true });
+		// Only drop the cached figure once there is a run to replace it with,
+		// so a Stripe blip leaves the last good number on screen rather than
+		// trading it for an error.
+		if (!result.available && result.reason === MRR_COMPUTING_REASON) {
+			await clearMetricCache(MRR_CACHE_KEY);
+		}
+		return result;
+	}),
 
 	// Cohort survival: % of subscriptions started in a month still active k
 	// months later. Neon is authoritative for subscription state (D-10).

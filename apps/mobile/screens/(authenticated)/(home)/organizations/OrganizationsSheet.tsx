@@ -1,4 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Stack, useRouter } from "expo-router";
 import { Pressable, ScrollView, View } from "react-native";
 import { Text } from "@/components/ui/text";
@@ -10,6 +11,7 @@ import { useOrganizations } from "@/screens/(authenticated)/hooks/useOrganizatio
 
 /** Which organization the app is in, plus the two account-level ways out. */
 export function OrganizationsSheet() {
+	const { t } = useLingui();
 	const router = useRouter();
 	const theme = useTheme();
 	const { signOut, isSigningOut } = useSignOut();
@@ -24,7 +26,10 @@ export function OrganizationsSheet() {
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.Button
 					icon="xmark"
-					accessibilityLabel="Close"
+					accessibilityLabel={t({
+						id: "mobile.common.close",
+						message: "Close",
+					})}
 					onPress={() => router.back()}
 				/>
 			</Stack.Toolbar>
@@ -69,7 +74,10 @@ export function OrganizationsSheet() {
 				<View className="bg-border my-3 h-px" />
 
 				<Pressable
-					accessibilityLabel="Settings"
+					accessibilityLabel={t({
+						id: "mobile.organizations.settings",
+						message: "Settings",
+					})}
 					onPress={() => {
 						router.back();
 						router.push("/(authenticated)/settings");
@@ -81,10 +89,15 @@ export function OrganizationsSheet() {
 						size={28}
 						color={theme.mutedForeground}
 					/>
-					<Text className="text-sm font-medium">Settings</Text>
+					<Text className="text-sm font-medium">
+						<Trans id="mobile.organizations.settings">Settings</Trans>
+					</Text>
 				</Pressable>
 				<Pressable
-					accessibilityLabel="Log out"
+					accessibilityLabel={t({
+						id: "mobile.settings.logOut.confirm",
+						message: "Log out",
+					})}
 					onPress={() => {
 						router.back();
 						void signOut();
@@ -97,7 +110,9 @@ export function OrganizationsSheet() {
 						size={28}
 						color={theme.destructive}
 					/>
-					<Text className="text-destructive text-sm font-medium">Log out</Text>
+					<Text className="text-destructive text-sm font-medium">
+						<Trans id="mobile.settings.logOut.confirm">Log out</Trans>
+					</Text>
 				</Pressable>
 			</ScrollView>
 		</>

@@ -1,3 +1,4 @@
+import { i18n } from "@superset/i18n";
 import type { ReactNode } from "react";
 import { Component } from "react";
 
@@ -46,11 +47,21 @@ export class BootErrorBoundary extends Component<
 				}}
 			>
 				<div className="select-text" style={{ maxWidth: "520px" }}>
+					{/* This boundary mounts outside I18nProvider, so it uses the
+					    non-React i18n._ path; descriptors fall back to the English
+					    message when no catalog is active. */}
 					<h1 style={{ fontSize: "18px", marginBottom: "8px" }}>
-						Superset failed to start
+						{i18n._({
+							id: "components.bootError.title",
+							message: "Superset failed to start",
+						})}
 					</h1>
 					<p style={{ fontSize: "14px", opacity: 0.8 }}>
-						The renderer crashed during startup. Please check logs for details.
+						{i18n._({
+							id: "components.bootError.description",
+							message:
+								"The renderer crashed during startup. Please check logs for details.",
+						})}
 					</p>
 					{this.state.error?.message && (
 						<pre
@@ -88,7 +99,7 @@ export class BootErrorBoundary extends Component<
 							cursor: "pointer",
 						}}
 					>
-						Reload
+						{i18n._({ id: "components.bootError.reload", message: "Reload" })}
 					</button>
 				</div>
 			</div>

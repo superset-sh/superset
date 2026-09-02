@@ -1,4 +1,7 @@
+import { msg } from "@lingui/core/macro";
+import { Trans } from "@lingui/react/macro";
 import type { SelectAutomationRun } from "@superset/db/schema";
+import { i18n } from "@superset/i18n";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { formatDistanceStrict } from "date-fns";
@@ -13,9 +16,11 @@ import {
 } from "../../../utils/staleAgentError";
 
 function describeRunError(error: string): string {
-	if (isHostOfflineError(error)) return `${error}. ${HOST_OFFLINE_HELP}`;
+	if (isHostOfflineError(error))
+		return `${error}. ${i18n._(HOST_OFFLINE_HELP)}`;
 	// Lead with the plain-language fix; keep the raw host error for reports.
-	if (isStaleAgentError(error)) return `${STALE_AGENT_HELP}\n\n(${error})`;
+	if (isStaleAgentError(error))
+		return `${i18n._(STALE_AGENT_HELP)}\n\n(${error})`;
 	return error;
 }
 
@@ -34,8 +39,20 @@ interface PreviousRunsListProps {
 
 function formatAgo(date: Date, now: Date): string {
 	const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-	if (seconds < 60) return "less than a minute ago";
-	return `${formatDistanceStrict(date, now)} ago`;
+	if (seconds < 60)
+		return i18n._(
+			msg({
+				id: "dashboard.automations.previousRuns.lessThanMinuteAgo",
+				message: "less than a minute ago",
+			}),
+		);
+	const distance = formatDistanceStrict(date, now);
+	return i18n._(
+		msg({
+			id: "dashboard.automations.previousRuns.distanceAgo",
+			message: `${distance} ago`,
+		}),
+	);
 }
 
 export function PreviousRunsList({ runs }: PreviousRunsListProps) {
@@ -43,7 +60,13 @@ export function PreviousRunsList({ runs }: PreviousRunsListProps) {
 	const now = useNow();
 
 	if (runs.length === 0) {
-		return <p className="text-sm italic text-muted-foreground">No runs yet</p>;
+		return (
+			<p className="text-sm italic text-muted-foreground">
+				<Trans id="dashboard.automations.previousRuns.noRunsYet">
+					No runs yet
+				</Trans>
+			</p>
+		);
 	}
 
 	const handleOpenRun = (run: SelectAutomationRun) => {
@@ -82,7 +105,13 @@ export function PreviousRunsList({ runs }: PreviousRunsListProps) {
 								STATUS_DOT[run.status],
 							)}
 						/>
-						<span className="truncate">{run.title || "Automation"}</span>
+						<span className="truncate">
+							{run.title || (
+								<Trans id="dashboard.automations.previousRuns.untitledRun">
+									Automation
+								</Trans>
+							)}
+						</span>
 						<span className="ml-auto shrink-0 truncate text-muted-foreground">
 							{run.scheduledFor
 								? formatAgo(new Date(run.scheduledFor), now)

@@ -20,6 +20,7 @@ function createAgent(
 		env: {},
 		order: 0,
 		...rest,
+		forkArgs: rest.forkArgs ?? [],
 	};
 }
 

@@ -4,6 +4,7 @@ import {
 	getImageMimeType,
 	getVideoMimeType,
 	isImageFile,
+	isPdfFile,
 	isPreviewableVideoFile,
 	isVideoFile,
 	parseBase64DataUrl,
@@ -55,6 +56,13 @@ describe("file-types", () => {
 		expect(getVideoMimeType("demo.webm")).toBe("video/webm");
 		expect(getVideoMimeType("demo.mov")).toBe("video/quicktime");
 		expect(getVideoMimeType("demo.avi")).toBeNull();
+	});
+
+	test("detects PDF file paths", () => {
+		expect(isPdfFile("report.pdf")).toBe(true);
+		expect(isPdfFile("docs/REPORT.PDF")).toBe(true);
+		expect(isPdfFile("report.pdf.txt")).toBe(false);
+		expect(isPdfFile("report")).toBe(false);
 	});
 
 	test("parses base64 data URLs with extra MIME parameters", () => {

@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
@@ -14,7 +15,7 @@ import { useOrganizations } from "@/screens/(authenticated)/hooks/useOrganizatio
 import { OrganizationHeaderButton } from "../home/components/OrganizationHeaderButton";
 import { SetupStep } from "./components/SetupStep";
 
-const SETUP_DOCS_URL = `${COMPANY.DOCS_URL}/remote-workspaces`;
+const SETUP_DOCS_URL = `${COMPANY.DOCS_URL}/remote-access`;
 
 /**
  * Home for an organization with no device of yours in it. Every list on this
@@ -31,6 +32,7 @@ const SETUP_DOCS_URL = `${COMPANY.DOCS_URL}/remote-workspaces`;
  * lands.
  */
 export function HomeConnectHostScreen() {
+	const { t } = useLingui();
 	const router = useRouter();
 	const { isLoadingOrganizations, activeOrganization } = useOrganizations();
 	const hosts = useOrgHostsQuery();
@@ -70,29 +72,56 @@ export function HomeConnectHostScreen() {
 					</View>
 					<View className="items-center gap-2">
 						<Text className="text-2xl font-semibold text-foreground">
-							Connect a device
+							<Trans id="mobile.connectHost.title">Connect a device</Trans>
 						</Text>
 						<Text className="text-muted-foreground text-center text-base">
-							Superset Mobile runs agents on the computers you connect.
+							<Trans id="mobile.connectHost.subtitle">
+								Superset Mobile runs agents on the computers you connect.
+							</Trans>
 						</Text>
 					</View>
 				</View>
 
 				<View className="gap-4">
-					<SetupStep step={1} title="Install the desktop app">
-						Download Superset at{" "}
-						<Text className="text-foreground text-sm font-medium">
-							{COMPANY.DOMAIN}/download
-						</Text>
-						.
+					<SetupStep
+						step={1}
+						title={t({
+							id: "mobile.connectHost.step1.title",
+							message: "Install the desktop app",
+						})}
+					>
+						<Trans id="mobile.connectHost.step1.body">
+							Download Superset at{" "}
+							<Text className="text-foreground text-sm font-medium">
+								{COMPANY.DOMAIN}/download
+							</Text>
+							.
+						</Trans>
 					</SetupStep>
 					<SetupStep
 						step={2}
-						title={`Sign in to ${activeOrganization?.name ?? "this organization"}`}
+						title={t({
+							id: "mobile.connectHost.step2.title",
+							message: `Sign in to ${
+								activeOrganization?.name ??
+								t({
+									id: "mobile.connectHost.thisOrganization",
+									message: "this organization",
+								})
+							}`,
+						})}
 					/>
-					<SetupStep step={3} title="Allow access through the relay">
-						Settings → Security → “Allow remote workspaces to access this device
-						via relay”.
+					<SetupStep
+						step={3}
+						title={t({
+							id: "mobile.connectHost.step3.title",
+							message: "Allow access through the relay",
+						})}
+					>
+						<Trans id="mobile.connectHost.step3.body">
+							Settings → Remote Access → “Allow remote access to this device via
+							relay”.
+						</Trans>
 					</SetupStep>
 				</View>
 
@@ -106,14 +135,25 @@ export function HomeConnectHostScreen() {
 							void hosts.refetch().finally(() => setChecking(false));
 						}}
 					>
-						<Text>{checking ? "Checking…" : "Check again"}</Text>
+						<Text>
+							{checking
+								? t({ id: "mobile.connectHost.checking", message: "Checking…" })
+								: t({
+										id: "mobile.connectHost.checkAgain",
+										message: "Check again",
+									})}
+						</Text>
 					</Button>
 					<Button
 						size="lg"
 						variant="outline"
 						onPress={() => openUrl(SETUP_DOCS_URL)}
 					>
-						<Text>Read the setup guide</Text>
+						<Text>
+							<Trans id="mobile.connectHost.readSetupGuide">
+								Read the setup guide
+							</Trans>
+						</Text>
 					</Button>
 				</View>
 			</ScrollView>

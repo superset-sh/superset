@@ -1,11 +1,13 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import {
 	BeakerIcon,
 	BellIcon,
 	BookmarkIcon,
 	BuildingIcon,
+	ChartBarIcon,
 	CpuIcon,
 	CreditCardIcon,
-	FileTextIcon,
 	FolderIcon,
 	GitBranchIcon,
 	KeyboardIcon,
@@ -25,7 +27,7 @@ import type { Command } from "../../core/types";
 
 interface SettingsTab {
 	id: string;
-	title: string;
+	title: MessageDescriptor;
 	path: string;
 	icon: LucideIcon;
 	keywords?: string[];
@@ -34,106 +36,175 @@ interface SettingsTab {
 const TABS: SettingsTab[] = [
 	{
 		id: "account",
-		title: "Account",
+		title: msg({
+			id: "commandPalette.settingsTab.account",
+			message: "Account",
+		}),
 		path: "/settings/account",
 		icon: UserIcon,
 	},
 	{
 		id: "appearance",
-		title: "Appearance",
+		title: msg({
+			id: "commandPalette.settingsTab.appearance",
+			message: "Appearance",
+		}),
 		path: "/settings/appearance",
 		icon: PaletteIcon,
 		keywords: ["theme", "color"],
 	},
 	{
 		id: "behavior",
-		title: "Behavior",
+		title: msg({
+			id: "commandPalette.settingsTab.behavior",
+			message: "Behavior",
+		}),
 		path: "/settings/behavior",
 		icon: SlidersIcon,
 	},
 	{
 		id: "models",
-		title: "Models",
+		title: msg({ id: "commandPalette.settingsTab.models", message: "Models" }),
 		path: "/settings/models",
 		icon: CpuIcon,
 		keywords: ["ai", "llm"],
 	},
 	{
 		id: "terminal",
-		title: "Terminal",
+		title: msg({
+			id: "commandPalette.settingsTab.terminal",
+			message: "Terminal",
+		}),
 		path: "/settings/terminal",
 		icon: TerminalIcon,
+		keywords: ["terminal scripts", "scripts", "presets", "commands"],
 	},
-	{ id: "git", title: "Git", path: "/settings/git", icon: GitBranchIcon },
+	{
+		id: "git",
+		title: msg({ id: "commandPalette.settingsTab.git", message: "Git" }),
+		path: "/settings/git",
+		icon: GitBranchIcon,
+	},
 	{
 		id: "experimental",
-		title: "Experimental",
+		title: msg({
+			id: "commandPalette.settingsTab.experimental",
+			message: "Experimental",
+		}),
 		path: "/settings/experimental",
 		icon: BeakerIcon,
 	},
 	{
 		id: "integrations",
-		title: "Integrations",
+		title: msg({
+			id: "commandPalette.settingsTab.integrations",
+			message: "Integrations",
+		}),
 		path: "/settings/integrations",
 		icon: LinkIcon,
 	},
 	{
 		id: "organization",
-		title: "Organization",
+		title: msg({
+			id: "commandPalette.settingsTab.organization",
+			message: "Organization",
+		}),
 		path: "/settings/organization",
 		icon: BuildingIcon,
 	},
-	{ id: "teams", title: "Teams", path: "/settings/teams", icon: UsersIcon },
+	{
+		id: "teams",
+		title: msg({ id: "commandPalette.settingsTab.teams", message: "Teams" }),
+		path: "/settings/teams",
+		icon: UsersIcon,
+	},
 	{
 		id: "keyboard",
-		title: "Keyboard shortcuts",
+		title: msg({
+			id: "commandPalette.settingsTab.keyboard",
+			message: "Keyboard shortcuts",
+		}),
 		path: "/settings/keyboard",
 		icon: KeyboardIcon,
 		keywords: ["hotkeys", "shortcuts"],
 	},
-	{ id: "links", title: "Links", path: "/settings/links", icon: BookmarkIcon },
+	{
+		id: "links",
+		title: msg({ id: "commandPalette.settingsTab.links", message: "Links" }),
+		path: "/settings/links",
+		icon: BookmarkIcon,
+	},
 	{
 		id: "permissions",
-		title: "Permissions",
+		title: msg({
+			id: "commandPalette.settingsTab.permissions",
+			message: "Permissions",
+		}),
 		path: "/settings/permissions",
 		icon: ShieldIcon,
 	},
-	{ id: "hosts", title: "Hosts", path: "/settings/hosts", icon: ServerIcon },
+	{
+		id: "hosts",
+		title: msg({ id: "commandPalette.settingsTab.hosts", message: "Hosts" }),
+		path: "/settings/hosts",
+		icon: ServerIcon,
+	},
 	{
 		id: "projects",
-		title: "Projects",
+		title: msg({
+			id: "commandPalette.settingsTab.projects",
+			message: "Projects",
+		}),
 		path: "/settings/projects",
 		icon: FolderIcon,
 	},
 	{
 		id: "ringtones",
-		title: "Ringtones",
+		title: msg({
+			id: "commandPalette.settingsTab.ringtones",
+			message: "Ringtones",
+		}),
 		path: "/settings/ringtones",
 		icon: BellIcon,
 	},
 	{
+		id: "usage",
+		title: msg({ id: "commandPalette.settingsTab.usage", message: "Usage" }),
+		path: "/settings/usage",
+		icon: ChartBarIcon,
+		keywords: ["tokens", "cost", "quota", "cpu", "memory", "resources"],
+	},
+	{
 		id: "billing",
-		title: "Billing",
+		title: msg({
+			id: "commandPalette.settingsTab.billing",
+			message: "Billing",
+		}),
 		path: "/settings/billing",
 		icon: CreditCardIcon,
 	},
 	{
 		id: "security",
-		title: "Remote Workspaces",
+		title: msg({
+			id: "commandPalette.settingsTab.security",
+			message: "Remote Access",
+		}),
 		path: "/settings/security",
 		icon: KeyRoundIcon,
 		keywords: ["security", "relay"],
 	},
-	{ id: "agents", title: "Agents", path: "/settings/agents", icon: WrenchIcon },
 	{
-		id: "presets",
-		title: "Presets",
-		path: "/settings/presets",
-		icon: FileTextIcon,
+		id: "agents",
+		title: msg({ id: "commandPalette.settingsTab.agents", message: "Agents" }),
+		path: "/settings/agents",
+		icon: WrenchIcon,
 	},
 	{
 		id: "api-keys",
-		title: "API keys",
+		title: msg({
+			id: "commandPalette.settingsTab.apiKeys",
+			message: "API keys",
+		}),
 		path: "/settings/api-keys",
 		icon: KeyRoundIcon,
 		keywords: ["token"],

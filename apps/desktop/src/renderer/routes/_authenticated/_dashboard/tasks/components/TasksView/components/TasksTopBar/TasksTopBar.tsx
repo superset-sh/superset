@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { cn } from "@superset/ui/utils";
@@ -59,8 +60,8 @@ interface TasksTopBarProps {
 }
 
 const TASK_SOURCES = [
-	{ value: "tasks" as const, label: "Linear", Icon: SiLinear },
-	{ value: "issues" as const, label: "GitHub issues", Icon: GoIssueOpened },
+	{ value: "tasks" as const, Icon: SiLinear },
+	{ value: "issues" as const, Icon: GoIssueOpened },
 ] as const;
 
 export function TasksTopBar({
@@ -85,6 +86,17 @@ export function TasksTopBar({
 	includeClosedIssues,
 	onIncludeClosedIssuesChange,
 }: TasksTopBarProps) {
+	const { t } = useLingui();
+	const taskSourceLabels: Record<TaskSource, string> = {
+		tasks: t({
+			id: "dashboard.tasks.topBar.sourceLinear",
+			message: "Linear",
+		}),
+		issues: t({
+			id: "dashboard.tasks.topBar.sourceGithubIssues",
+			message: "GitHub issues",
+		}),
+	};
 	const showTaskOnlyControls = taskSource === "tasks";
 	const showIssues = taskSource === "issues";
 	const taskSelectedCount = selectedTasks.length;
@@ -118,12 +130,17 @@ export function TasksTopBar({
 									onClick={
 										showIssues ? onClearIssueSelection : onClearSelection
 									}
-									aria-label="Clear selection"
+									aria-label={t({
+										id: "dashboard.tasks.topBar.clearSelection",
+										message: "Clear selection",
+									})}
 								>
 									<HiXMark />
 								</Button>
 								<span className="text-sm font-medium">
-									{selectedCount} selected
+									<Trans id="dashboard.tasks.topBar.selectedCount">
+										{selectedCount} selected
+									</Trans>
 								</span>
 								<div className="h-4 w-px shrink-0 bg-border" />
 								{showIssues ? (
@@ -163,7 +180,7 @@ export function TasksTopBar({
 													className="h-7 rounded-sm px-2 text-xs shadow-none data-[state=active]:shadow-none"
 												>
 													<Icon className="size-3.5" />
-													<span>{source.label}</span>
+													<span>{taskSourceLabels[source.value]}</span>
 												</TabsTrigger>
 											);
 										})}
@@ -190,7 +207,9 @@ export function TasksTopBar({
 									<>
 										<div className="flex items-center gap-2">
 											<span className="text-xs text-muted-foreground">
-												Repository
+												<Trans id="dashboard.tasks.topBar.repository">
+													Repository
+												</Trans>
 											</span>
 											<ProjectFilter
 												value={projectFilters}
@@ -221,17 +240,28 @@ export function TasksTopBar({
 									onClick={() => setIsCreateTaskOpen(true)}
 								>
 									<HiOutlinePencilSquare className="size-4" />
-									<span className="hidden @4xl:inline">New task</span>
+									<span className="hidden @4xl:inline">
+										<Trans id="dashboard.tasks.topBar.newTask">New task</Trans>
+									</span>
 								</Button>
 
 								<fieldset
 									className="flex items-center rounded-md border bg-muted/30 p-0.5"
-									aria-label="Task layout"
+									aria-label={t({
+										id: "dashboard.tasks.topBar.taskLayout",
+										message: "Task layout",
+									})}
 								>
 									<button
 										type="button"
-										title="Table view"
-										aria-label="Table view"
+										title={t({
+											id: "dashboard.tasks.topBar.tableView",
+											message: "Table view",
+										})}
+										aria-label={t({
+											id: "dashboard.tasks.topBar.tableView",
+											message: "Table view",
+										})}
 										aria-pressed={viewMode === "table"}
 										className={cn(
 											"flex size-6 items-center justify-center rounded-sm transition-colors",
@@ -245,8 +275,14 @@ export function TasksTopBar({
 									</button>
 									<button
 										type="button"
-										title="Board view"
-										aria-label="Board view"
+										title={t({
+											id: "dashboard.tasks.topBar.boardView",
+											message: "Board view",
+										})}
+										aria-label={t({
+											id: "dashboard.tasks.topBar.boardView",
+											message: "Board view",
+										})}
 										aria-pressed={viewMode === "board"}
 										className={cn(
 											"flex size-6 items-center justify-center rounded-sm transition-colors",
@@ -266,9 +302,27 @@ export function TasksTopBar({
 							value={searchQuery}
 							onChange={onSearchChange}
 							placeholder={
-								showIssues ? "Search GitHub issues…" : "Search tasks…"
+								showIssues
+									? t({
+											id: "dashboard.tasks.topBar.searchIssuesPlaceholder",
+											message: "Search GitHub issues…",
+										})
+									: t({
+											id: "dashboard.tasks.topBar.searchTasksPlaceholder",
+											message: "Search tasks…",
+										})
 							}
-							label={showIssues ? "Search GitHub issues" : "Search tasks"}
+							label={
+								showIssues
+									? t({
+											id: "dashboard.tasks.topBar.searchIssuesLabel",
+											message: "Search GitHub issues",
+										})
+									: t({
+											id: "dashboard.tasks.topBar.searchTasksLabel",
+											message: "Search tasks",
+										})
+							}
 						/>
 					</div>
 				</div>

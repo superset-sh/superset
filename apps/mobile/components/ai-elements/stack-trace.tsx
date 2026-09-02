@@ -1,3 +1,4 @@
+import { Plural, Trans } from "@lingui/react/macro";
 import { useControllableState } from "@rn-primitives/hooks";
 import * as Clipboard from "expo-clipboard";
 import {
@@ -470,7 +471,9 @@ export const StackTraceFrames = memo(
 						)}
 						key={frame.raw}
 					>
-						<Text className="text-muted-foreground text-xs">at </Text>
+						<Text className="text-muted-foreground text-xs">
+							<Trans id="mobile.stackTrace.at">at</Trans>{" "}
+						</Text>
 						{frame.functionName && (
 							<Text
 								className={cn(
@@ -501,12 +504,19 @@ export const StackTraceFrames = memo(
 				{hiddenCount > 0 && (
 					<Pressable onPress={() => setShowAll(true)}>
 						<Text className="text-muted-foreground text-xs underline">
-							Show {hiddenCount} more frames
+							<Plural
+								id="mobile.stackTrace.showMoreFrames"
+								value={hiddenCount}
+								one="Show # more frame"
+								other="Show # more frames"
+							/>
 						</Text>
 					</Pressable>
 				)}
 				{framesToShow.length === 0 && (
-					<Text className="text-muted-foreground text-xs">No stack frames</Text>
+					<Text className="text-muted-foreground text-xs">
+						<Trans id="mobile.stackTrace.empty">No stack frames</Trans>
+					</Text>
 				)}
 			</View>
 		);

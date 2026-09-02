@@ -1,0 +1,61 @@
+{
+	"name": "@superset/i18n",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./src/index.ts",
+			"default": "./src/index.ts"
+		},
+		"./errors": {
+			"types": "./src/errors.ts",
+			"default": "./src/errors.ts"
+		},
+		"./format": {
+			"types": "./src/format/index.ts",
+			"default": "./src/format/index.ts"
+		},
+		"./locales": {
+			"types": "./src/locales.ts",
+			"default": "./src/locales.ts"
+		},
+		"./messages/*": {
+			"types": "./locales/*/messages.ts",
+			"default": "./locales/*/messages.ts"
+		},
+		"./react": {
+			"types": "./src/react.tsx",
+			"default": "./src/react.tsx"
+		},
+		"./server": {
+			"types": "./src/server.ts",
+			"default": "./src/server.ts"
+		}
+	},
+	"scripts": {
+		"extract": "lingui extract --overwrite && bun scripts/sort-po-references.ts",
+		"compile": "lingui compile --strict",
+		"check": "lingui extract --clean --overwrite && bun scripts/sort-po-references.ts && lingui compile --strict && bun scripts/check-stale-translations.ts && git diff --exit-code -- locales && test -z \"$(git status --porcelain locales)\"",
+		"pretypecheck": "lingui extract --clean --overwrite && bun scripts/sort-po-references.ts && lingui compile --strict",
+		"test": "bun test",
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
+		"clean": "git clean -xdf .cache .turbo node_modules",
+		"translate": "bun scripts/translate-missing.ts && bun scripts/sort-po-references.ts && lingui compile --strict"
+	},
+	"dependencies": {
+		"@lingui/core": "6.6.0",
+		"@lingui/react": "6.6.0"
+	},
+	"devDependencies": {
+		"@anthropic-ai/sdk": "0.78.0",
+		"@ast-grep/napi": "0.41.1",
+		"@lingui/cli": "6.6.0",
+		"@lingui/format-po": "6.6.0",
+		"@superset/typescript": "workspace:*",
+		"@types/react": "19.2.14",
+		"bun-types": "1.3.14",
+		"react": "19.2.3",
+		"typescript": "6.0.3"
+	}
+}

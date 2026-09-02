@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Label } from "@superset/ui/label";
 import {
 	Select,
@@ -84,7 +85,11 @@ export function FolderLinkTierMapper({
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="none">Do nothing</SelectItem>
+									<SelectItem value="none">
+										<Trans id="settings.links.folderTierMapper.doNothing">
+											Do nothing
+										</Trans>
+									</SelectItem>
 									{ACTIONS.map((action) => (
 										<SelectItem key={action} value={action}>
 											{folderIntentLabel(action)}

@@ -1,3 +1,4 @@
+import { i18n } from "@superset/i18n";
 import type { WorkspaceCreateSettledPayload } from "@superset/workspace-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { TRPCClientError } from "@trpc/client";
@@ -296,9 +297,12 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 
 			if (!organizationId || !hostUrl) {
 				const error = !organizationId
-					? "No active organization"
+					? i18n._({
+							id: "stores.workspaceCreates.noActiveOrganization",
+							message: "No active organization",
+						})
 					: getHostServiceUnavailableMessage(hostService, {
-							action: "create the workspace",
+							action: "createWorkspace",
 						});
 				recordFailure(error);
 				return {
@@ -323,11 +327,17 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 				name:
 					snapshot.name ??
 					("branch" in snapshot ? snapshot.branch : undefined) ??
-					"New workspace",
+					i18n._({
+						id: "stores.workspaceCreates.defaultName",
+						message: "New workspace",
+					}),
 				branch:
 					("branch" in snapshot ? snapshot.branch : undefined) ??
 					snapshot.name ??
-					"New workspace",
+					i18n._({
+						id: "stores.workspaceCreates.defaultName",
+						message: "New workspace",
+					}),
 				type: isSession ? "session" : "worktree",
 				createdByUserId: userId,
 				taskId: ("taskId" in snapshot ? snapshot.taskId : undefined) ?? null,

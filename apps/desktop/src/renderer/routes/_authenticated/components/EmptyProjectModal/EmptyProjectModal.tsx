@@ -1,3 +1,4 @@
+import { errorMessage, rawErrorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -72,7 +73,7 @@ export function EmptyProjectModal({
 				setParentDir(result.path);
 			}
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : String(err));
+			toast.error(errorMessage(err));
 		}
 	};
 
@@ -106,7 +107,7 @@ export function EmptyProjectModal({
 			const activeHostUrl = await hostService.waitForHostReady();
 			if (!activeHostUrl) {
 				showHostServiceUnavailableToast(hostService, {
-					action: "create the project",
+					action: "createProject",
 				});
 				return;
 			}
@@ -121,12 +122,12 @@ export function EmptyProjectModal({
 			reset();
 			onOpenChange(false);
 		} catch (err) {
-			const raw = err instanceof Error ? err.message : String(err);
+			const raw = rawErrorMessage(err);
 			const isLeakedSql = raw.startsWith("Failed query:");
 			if (isLeakedSql) console.error("[EmptyProjectModal] create failed", err);
 			const message = isLeakedSql
 				? "Could not create project. Please try a different name or check the logs."
-				: raw;
+				: errorMessage(err);
 			if (onError) {
 				onError(message);
 			} else {

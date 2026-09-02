@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import {
 	type ContextMenuActionConfig,
 	type PaneRegistry,
@@ -30,6 +31,7 @@ export function useDefaultContextMenuActions({
 	paneRegistry: PaneRegistry<PaneViewerData>;
 	launcher: TerminalLauncher;
 }): ContextMenuActionConfig<PaneViewerData>[] {
+	const { t } = useLingui();
 	const splitDownShortcut = useHotkeyDisplay("SPLIT_DOWN").text;
 	const splitRightShortcut = useHotkeyDisplay("SPLIT_RIGHT").text;
 	const splitWithBrowserShortcut = useHotkeyDisplay("SPLIT_WITH_BROWSER").text;
@@ -43,7 +45,10 @@ export function useDefaultContextMenuActions({
 		() => [
 			{
 				key: "split-horizontal",
-				label: "Split Horizontally",
+				label: t({
+					id: "workspace.paneContextMenu.splitHorizontally",
+					message: "Split Horizontally",
+				}),
 				icon: <LuRows2 />,
 				shortcut:
 					splitDownShortcut !== "Unassigned" ? splitDownShortcut : undefined,
@@ -59,7 +64,10 @@ export function useDefaultContextMenuActions({
 			},
 			{
 				key: "split-vertical",
-				label: "Split Vertically",
+				label: t({
+					id: "workspace.paneContextMenu.splitVertically",
+					message: "Split Vertically",
+				}),
 				icon: <LuColumns2 />,
 				shortcut:
 					splitRightShortcut !== "Unassigned" ? splitRightShortcut : undefined,
@@ -75,7 +83,10 @@ export function useDefaultContextMenuActions({
 			},
 			{
 				key: "split-with-browser",
-				label: "Split with New Browser",
+				label: t({
+					id: "workspace.paneContextMenu.splitWithNewBrowser",
+					message: "Split with New Browser",
+				}),
 				icon: <LuGlobe />,
 				shortcut:
 					splitWithBrowserShortcut !== "Unassigned"
@@ -92,7 +103,10 @@ export function useDefaultContextMenuActions({
 			},
 			{
 				key: "equalize-splits",
-				label: "Equalize Pane Splits",
+				label: t({
+					id: "workspace.paneContextMenu.equalizePaneSplits",
+					message: "Equalize Pane Splits",
+				}),
 				icon: <LuEqual />,
 				shortcut:
 					equalizePaneSplitsShortcut !== "Unassigned"
@@ -105,7 +119,10 @@ export function useDefaultContextMenuActions({
 			{ key: "sep-move", type: "separator" },
 			{
 				key: "move-to-tab",
-				label: "Move to Tab",
+				label: t({
+					id: "workspace.paneContextMenu.moveToTab",
+					message: "Move to Tab",
+				}),
 				icon: <LuMoveRight />,
 				children: (ctx: RendererContext<PaneViewerData>) => {
 					const tabs = ctx.store.getState().tabs;
@@ -125,7 +142,10 @@ export function useDefaultContextMenuActions({
 					}
 					items.push({
 						key: "move-to-new-tab",
-						label: "New Tab",
+						label: t({
+							id: "workspace.paneContextMenu.newTab",
+							message: "New Tab",
+						}),
 						icon: <LuPlus />,
 						onSelect: () => {
 							ctx.store.getState().movePaneToNewTab({ paneId: ctx.pane.id });
@@ -137,7 +157,10 @@ export function useDefaultContextMenuActions({
 			{ key: "sep-close", type: "separator" },
 			{
 				key: "close-pane",
-				label: "Close Pane",
+				label: t({
+					id: "workspace.paneContextMenu.closePane",
+					message: "Close Pane",
+				}),
 				icon: <LuX />,
 				variant: "destructive",
 				shortcut:
@@ -154,6 +177,7 @@ export function useDefaultContextMenuActions({
 			paneRegistry,
 			launcher,
 			defaultBrowserUrl,
+			t,
 		],
 	);
 }

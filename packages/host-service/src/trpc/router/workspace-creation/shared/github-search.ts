@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import type { GitCredentialProvider } from "../../../../runtime/git/types";
 import type { ResolvedGithubRepo } from "./project-helpers";
 
 /** A requested project paired with the repo its local remote points at. */
@@ -220,6 +221,37 @@ export function githubRateLimitError(error: unknown): TRPCError {
 		message: `GitHub API rate limit exceeded. Try again in a few minutes.${resetSuffix}`,
 		cause: error,
 	});
+}
+
+/**
+ * Rejected-credential failures: Octokit throws a 401 RequestError ("Bad
+ * credentials"); the gh CLI prints the same text (or "HTTP 401") with no
+ * status field.
+ */
+export function isGithubAuthError(error: unknown): boolean {
+	if (isRecord(error) && error.status === 401) return true;
+	return /bad credentials|\bHTTP 401\b/i.test(errorText(error));
+}
+
+/**
+ * Classify a search failure for the client. A raw "Bad credentials" reads
+ * like a broken GitHub App integration, so a 401 has to say which
+ * credential GitHub refused and where that credential lives (#6832).
+ * Anything unrecognized passes through untouched.
+ */
+export function githubRequestError(
+	error: unknown,
+	credentials: GitCredentialProvider,
+): unknown {
+	if (isGithubRateLimitError(error)) return githubRateLimitError(error);
+	if (isGithubAuthError(error)) {
+		return new TRPCError({
+			code: "UNAUTHORIZED",
+			message: credentials.credentialRemedy("github.com", "rejected"),
+			cause: error,
+		});
+	}
+	return error;
 }
 
 /**

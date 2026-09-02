@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import {
 	ArchiveIcon,
 	FileIcon,
@@ -19,39 +20,47 @@ export const workspaceProvider: CommandProvider = {
 	provide: (context) => {
 		// Not gated on context.workspace — quick-create should work from any
 		// v2 dashboard view (e.g. the workspaces list), not just an open one.
-		const commands: Command[] = [
-			{
-				id: "workspace.quickCreate",
-				title: "Quick create workspace",
-				section: "workspace",
-				icon: ZapIcon,
-				hotkeyId: "QUICK_CREATE_WORKSPACE",
-				keywords: ["new", "fast"],
-				when: (ctx) => ctx.isV2CloudEnabled,
-				run: (ctx) =>
-					useQuickCreateWorkspaceIntent
-						.getState()
-						.request(ctx.workspace?.projectId ?? null),
-			},
-		];
+		const quickCreate: Command = {
+			id: "workspace.quickCreate",
+			title: msg({
+				id: "commandPalette.workspace.quickCreate",
+				message: "Quick create workspace",
+			}),
+			section: "workspace",
+			icon: ZapIcon,
+			hotkeyId: "QUICK_CREATE_WORKSPACE",
+			keywords: ["new", "fast"],
+			when: (ctx) => ctx.isV2CloudEnabled,
+			run: (ctx) =>
+				useQuickCreateWorkspaceIntent
+					.getState()
+					.request(ctx.workspace?.projectId ?? null),
+		};
 
-		if (!context.workspace) return commands;
+		if (!context.workspace) return [quickCreate];
 		const workspace = context.workspace;
 		const isMain = workspace.workspaceType === "main";
 
-		commands.push(
+		const commands: Command[] = [
 			{
 				id: "workspace.new",
-				title: "New workspace",
+				title: msg({
+					id: "commandPalette.workspace.new",
+					message: "New workspace",
+				}),
 				section: "workspace",
 				icon: PlusIcon,
 				hotkeyId: "NEW_WORKSPACE",
 				run: () =>
 					useNewWorkspaceModalStore.getState().openModal(workspace.projectId),
 			},
+			quickCreate,
 			{
 				id: "files.quickOpen",
-				title: "Search files",
+				title: msg({
+					id: "commandPalette.workspace.searchFiles",
+					message: "Search files",
+				}),
 				section: "workspace",
 				icon: FileIcon,
 				keywords: ["file picker", "quick open"],
@@ -63,18 +72,24 @@ export const workspaceProvider: CommandProvider = {
 			},
 			{
 				id: "workspace.linkTask",
-				title: "Link task",
+				title: msg({
+					id: "commandPalette.workspace.linkTask",
+					message: "Link task",
+				}),
 				section: "workspace",
 				icon: LinkIcon,
 				keywords: ["issue", "linear"],
 				renderFrame: () => <LinkTaskFrame workspaceId={workspace.id} />,
 			},
-		);
+		];
 
 		if (workspace.projectId) {
 			commands.push({
 				id: `workspace.removeFromSidebar:${workspace.id}`,
-				title: "Remove from sidebar",
+				title: msg({
+					id: "commandPalette.workspace.removeFromSidebar",
+					message: "Remove from sidebar",
+				}),
 				section: "workspace",
 				icon: ArchiveIcon,
 				keywords: ["hide"],
@@ -91,7 +106,10 @@ export const workspaceProvider: CommandProvider = {
 		if (!isMain) {
 			commands.push({
 				id: `workspace.delete:${workspace.id}`,
-				title: `Delete ${workspace.name}`,
+				title: msg({
+					id: "commandPalette.workspace.delete",
+					message: "Delete workspace",
+				}),
 				section: "workspace",
 				icon: Trash2Icon,
 				keywords: ["archive", "remove", "close"],

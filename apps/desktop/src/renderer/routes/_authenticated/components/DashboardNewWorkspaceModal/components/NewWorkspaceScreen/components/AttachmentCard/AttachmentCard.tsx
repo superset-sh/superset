@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import type { FileUIPart } from "ai";
@@ -16,10 +17,14 @@ interface AttachmentCardProps {
 }
 
 function RemoveButton({ onClick }: { onClick: () => void }) {
+	const { t } = useLingui();
 	return (
 		<button
 			type="button"
-			aria-label="Remove attachment"
+			aria-label={t({
+				id: "dashboard.newWorkspaceModal.attachmentCard.removeAttachment",
+				message: "Remove attachment",
+			})}
 			className="absolute top-1 right-1 z-10 flex size-5 cursor-pointer items-center justify-center rounded-full bg-background/80 text-muted-foreground shadow-sm transition-colors hover:text-foreground"
 			onClick={onClick}
 		>
@@ -41,6 +46,7 @@ export function AttachmentCard({
 	onRemove,
 	onOpenFile,
 }: AttachmentCardProps) {
+	const { t } = useLingui();
 	const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 	const state = useUploadStateFor(file.id, hostUrl);
 	const isPending = !state || state.kind === "pending";
@@ -71,7 +77,10 @@ export function AttachmentCard({
 		<div className="group relative shrink-0">
 			<button
 				type="button"
-				aria-label={`Preview ${filename}`}
+				aria-label={t({
+					id: "dashboard.newWorkspaceModal.attachmentCard.previewFile",
+					message: `Preview ${filename}`,
+				})}
 				className="relative block size-16 cursor-pointer overflow-hidden rounded-xl border-[0.5px] border-border bg-foreground/[0.04]"
 				onClick={() => setIsPreviewOpen(true)}
 			>

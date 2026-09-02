@@ -1,5 +1,12 @@
 import type { AppCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
 import { getVisibleSidebarWorkspaces } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import {
+	deriveTagFolders,
+	getProjectFolderTagIndex,
+	resolveWorkspaceSectionId,
+	type TagFolderContext,
+	type TagFolderWorkspaceInput,
+} from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 
 type TopLevelItem =
 	| { kind: "workspace"; tabOrder: number; workspaceId: string }
@@ -10,15 +17,27 @@ export function getFlattenedV2WorkspaceIds(
 		AppCollections,
 		"v2SidebarProjects" | "v2SidebarSections" | "v2WorkspaceLocalState"
 	>,
+	// Host rows carry the tags that decide folder existence and membership —
+	// required so this pass can never fall out of sync with the sidebar
+	// builder's resolver (workspaceTagFolders).
+	hostWorkspaces: readonly TagFolderWorkspaceInput[],
+	tagFolderContext: TagFolderContext,
 ): string[] {
 	const projects = Array.from(
 		collections.v2SidebarProjects.state.values(),
 	).sort((left, right) => left.tabOrder - right.tabOrder);
-	const allSections = Array.from(collections.v2SidebarSections.state.values());
+	const allSections = deriveTagFolders(
+		Array.from(collections.v2SidebarSections.state.values()),
+		hostWorkspaces,
+		tagFolderContext,
+	);
 	const allWorkspaces = Array.from(
 		collections.v2WorkspaceLocalState.state.values(),
 	);
 	const visibleWorkspaces = getVisibleSidebarWorkspaces(allWorkspaces);
+	const hostTagsByWorkspaceId = new Map(
+		hostWorkspaces.map((workspace) => [workspace.id, workspace.tags]),
+	);
 
 	const result: string[] = [];
 
@@ -40,10 +59,24 @@ export function getFlattenedV2WorkspaceIds(
 		const projectSections = allSections.filter(
 			(section) => section.projectId === project.projectId,
 		);
+		const folderIndex = getProjectFolderTagIndex(
+			projectSections,
+			project.projectId,
+		);
+		const effectiveSectionIds = new Map(
+			projectWorkspaces.map((workspace) => [
+				workspace.workspaceId,
+				resolveWorkspaceSectionId({
+					tags: hostTagsByWorkspaceId.get(workspace.workspaceId),
+					localSectionId: workspace.sidebarState.sectionId,
+					index: folderIndex,
+				}),
+			]),
+		);
 
 		const topLevelItems: TopLevelItem[] = [];
 		for (const workspace of projectWorkspaces) {
-			if (workspace.sidebarState.sectionId == null) {
+			if (effectiveSectionIds.get(workspace.workspaceId) == null) {
 				topLevelItems.push({
 					kind: "workspace",
 					tabOrder: workspace.sidebarState.tabOrder,
@@ -73,7 +106,8 @@ export function getFlattenedV2WorkspaceIds(
 			}
 			const sectionWorkspaces = projectWorkspaces
 				.filter(
-					(workspace) => workspace.sidebarState.sectionId === item.sectionId,
+					(workspace) =>
+						effectiveSectionIds.get(workspace.workspaceId) === item.sectionId,
 				)
 				.sort(
 					(left, right) =>

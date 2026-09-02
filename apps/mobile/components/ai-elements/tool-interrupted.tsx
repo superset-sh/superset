@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
@@ -17,7 +18,7 @@ export const ToolInterrupted = ({
 		className={cn("flex-row items-center gap-1.5 rounded-md py-0.5", className)}
 	>
 		<Text className="shrink-0 text-muted-foreground text-xs">
-			{toolName} interrupted
+			<Trans id="mobile.tool.interrupted">{toolName} interrupted</Trans>
 		</Text>
 		{subtitle ? (
 			<Text

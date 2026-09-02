@@ -1,5 +1,5 @@
 /**
- * Streaming parsers for the providers' own transcript files — the same
+ * Streaming parsers for the agents' own transcript files — the same
  * source ccusage and T3 Code read, so usage is complete even for turns not
  * driven through Superset.
  *
@@ -17,11 +17,11 @@
 import { createReadStream } from "node:fs";
 import { basename } from "node:path";
 import { createInterface } from "node:readline";
-import type { UsageProvider } from "../types";
+import type { UsageAgent } from "../types";
 import type { LogFile } from "./logs";
 
 export interface UsageLogEntry {
-	provider: UsageProvider;
+	agent: UsageAgent;
 	model: string;
 	timestampMs: number;
 	cwd: string | null;
@@ -33,6 +33,9 @@ export interface UsageLogEntry {
 	cacheWrite1h: number;
 	output: number;
 	reasoningOutput: number;
+	/** Agent-reported real cost in USD (opencode/pi/fx/cursor record one).
+	 * When present it replaces the API-list-rate estimate. */
+	costUsd?: number;
 }
 
 export function sessionIdForFile(path: string): string {
@@ -43,7 +46,7 @@ const SESSION_LABEL_MAX = 80;
 
 /** First real user prompt of a session, trimmed to one short line. Command
  * invocations, caveats, and system-reminder wrappers don't count. */
-function toSessionLabel(text: unknown): string | null {
+export function toSessionLabel(text: unknown): string | null {
 	if (typeof text !== "string") return null;
 	const trimmed = text.trim();
 	if (
@@ -61,7 +64,7 @@ function toSessionLabel(text: unknown): string | null {
 		: line;
 }
 
-async function forEachLine(
+export async function forEachLine(
 	path: string,
 	onLine: (line: string) => void,
 ): Promise<void> {
@@ -76,7 +79,7 @@ async function forEachLine(
 	}
 }
 
-function num(value: unknown): number {
+export function num(value: unknown): number {
 	// Clamp negatives — a corrupt count must not subtract from totals.
 	return typeof value === "number" && Number.isFinite(value) && value > 0
 		? value
@@ -85,7 +88,10 @@ function num(value: unknown): number {
 
 /** Entry timestamp: parseable and not in the future (26h clock-skew
  * tolerance) wins; otherwise the file's mtime; never NaN. */
-function entryTimestamp(raw: string | undefined, mtimeMs: number): number {
+export function entryTimestamp(
+	raw: string | undefined,
+	mtimeMs: number,
+): number {
 	const parsed = raw ? Date.parse(raw) : Number.NaN;
 	if (Number.isFinite(parsed) && parsed <= Date.now() + 26 * 60 * 60 * 1000) {
 		return parsed;
@@ -171,7 +177,7 @@ export async function parseClaudeLogFile(
 		const write5m = num(usage.cache_creation?.ephemeral_5m_input_tokens);
 		const write1h = num(usage.cache_creation?.ephemeral_1h_input_tokens);
 		const entry: UsageLogEntry = {
-			provider: "claude",
+			agent: "claude",
 			model,
 			timestampMs,
 			cwd: typeof parsed.cwd === "string" ? parsed.cwd : null,
@@ -278,7 +284,7 @@ export async function parseCodexLogFile(
 		const input = num(usage.input_tokens);
 		const cached = num(usage.cached_input_tokens);
 		out.push({
-			provider: "codex",
+			agent: "codex",
 			model: currentModel ?? "unknown",
 			timestampMs,
 			cwd: currentCwd,

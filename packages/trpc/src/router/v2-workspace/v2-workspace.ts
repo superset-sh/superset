@@ -5,13 +5,12 @@ import { db } from "@superset/db/client";
 import { v2WorkspaceTypeValues } from "@superset/db/enums";
 import { type SelectV2Workspace, users } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
-import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { Resend } from "resend";
 import { z } from "zod";
 import { env } from "../../env";
 import { posthog } from "../../lib/analytics";
-import { jwtProcedure, protectedProcedure } from "../../trpc";
+import { jwtProcedure, protectedProcedure, userError } from "../../trpc";
 
 const resend = new Resend(env.RESEND_API_KEY);
 const ACTIVATION_EVENT_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
@@ -115,9 +114,10 @@ export const v2WorkspaceRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			if (!ctx.organizationIds.includes(input.organizationId)) {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "Not a member of this organization",
+					i18nKey: "serverError.v2Workspace.notAMemberOfThisOrganization",
 				});
 			}
 

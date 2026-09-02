@@ -5,7 +5,7 @@ import "./default.css";
 
 export const defaultConfig: MarkdownStyleConfig = {
 	wrapperClass: "default-markdown",
-	articleClass: "px-8 py-6 max-w-none",
+	articleClass: "px-8 pt-2 pb-6",
 	components: {
 		code: ({ className, children, node }) => (
 			<CodeBlock className={className} node={node}>

@@ -1,3 +1,5 @@
+import { useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
 import { useCallback } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -18,6 +20,7 @@ type CreateProjectMutationResult =
 	| { success: false; error?: string };
 
 export function useCreateV1Project() {
+	const { t } = useLingui();
 	const cloneRepo = electronTrpc.projects.cloneRepo.useMutation();
 	const createEmptyRepo = electronTrpc.projects.createEmptyRepo.useMutation();
 	const utils = electronTrpc.useUtils();
@@ -32,23 +35,35 @@ export function useCreateV1Project() {
 					onError(message);
 					return;
 				}
-				toast.error("Could not create project", { description: message });
+				toast.error(
+					t({
+						id: "reactQuery.createProject.failed",
+						message: "Could not create project",
+					}),
+					{ description: message },
+				);
 			};
 
 			try {
 				const result = await create();
 				if (!result.success) {
-					reportError(result.error ?? "An unknown error occurred");
+					reportError(
+						result.error ??
+							t({
+								id: "reactQuery.createProject.unknownError",
+								message: "An unknown error occurred",
+							}),
+					);
 					return null;
 				}
 				await utils.projects.getRecents.invalidate();
 				return result.project.id;
 			} catch (err) {
-				reportError(err instanceof Error ? err.message : String(err));
+				reportError(errorMessage(err));
 				return null;
 			}
 		},
-		[utils],
+		[utils, t],
 	);
 
 	const cloneFromUrl = useCallback(

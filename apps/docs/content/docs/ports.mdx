@@ -48,7 +48,7 @@ Create `.superset/ports.json` in your repository:
 - Label entries for ports that are not currently listening are ignored
 - Each workspace reads labels from its own worktree's file
 - Changes are detected automatically
-- Ports can be opened at `localhost:PORT` from the browser action ([local workspaces only](#remote-workspaces))
+- Ports can be opened at `localhost:PORT` from the browser action (remote workspace ports are [forwarded to your machine](#remote-access) first)
 
 **Error Handling:**
 
@@ -58,11 +58,15 @@ If `ports.json` is malformed:
 
 **Tips:**
 - Commit `.superset/ports.json` to share port labels with your team
-- **Pro tip:** If you want deterministic per-workspace port ranges, implement it in setup/teardown scripts by reserving a range in a shared file (for example `~/.superset/port-allocations.json`) during setup and releasing it during teardown. See this repo's examples: [`.superset/setup.sh`](https://github.com/superset-sh/superset/blob/main/.superset/setup.sh) and [`.superset/teardown.sh`](https://github.com/superset-sh/superset/blob/main/.superset/teardown.sh).
+- **Pro tip:** If you want deterministic per-workspace port ranges, implement it in project lifecycle setup/teardown scripts by reserving a range in a shared file (for example `~/.superset/port-allocations.json`) during setup and releasing it during teardown. See this repo's examples: [`.superset/setup.sh`](https://github.com/superset-sh/superset/blob/main/.superset/setup.sh) and [`.superset/teardown.sh`](https://github.com/superset-sh/superset/blob/main/.superset/teardown.sh).
 
-## Remote Workspaces
+## Remote Access
 
-For [remote workspaces](/remote-workspaces), the sidebar lists ports listening **on the remote host**. Superset doesn't forward them to your machine yet (it's on the roadmap), so `localhost:PORT` only works on the host itself.
+When a workspace lives on a [remote host](/remote-access), the sidebar lists ports listening **on that host**. When you select a remote workspace, the desktop app forwards each of its ports to the same port number on your machine, so `localhost:PORT` reaches the host. Only ports that the workspace started are forwarded. When you select another workspace, the forwards move to that workspace.
+
+If a local process already uses the port, the row shows **local port busy**. Stop the local process from the row (when a Superset workspace started it), or pick **Use another port** to map the remote port to a free local port. The row then shows the mapping, for example `3000 → localhost:54321`.
+
+Forwarding needs a host on the current relay running host-service 1.26 or newer. For other hosts, forward the port yourself.
 
 ### Forward a port yourself
 

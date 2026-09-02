@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
 import { Pressable, ScrollView } from "react-native";
@@ -22,6 +23,7 @@ const DIFFSTAT_ROW_LIMIT = 20;
  * competing for the row.
  */
 export function PullRequestsSheet() {
+	const { t } = useLingui();
 	const { id } = useLocalSearchParams<{ id: string }>();
 	const router = useRouter();
 	const { host } = useWorkspaceHost(id ?? null);
@@ -29,16 +31,26 @@ export function PullRequestsSheet() {
 		host?.isOnline === true
 			? hostServiceUrl(host.organizationId, host.machineId)
 			: null;
-	// The hook hands back current-then-newest, which is what the chip colours
-	// itself from; only the list wants the other direction.
+	// The hook hands back current-then-newest, which is what the strip's chip
+	// colours itself from; only the list wants the other direction.
 	const pullRequests = useWorkspacePullRequests(id ?? null).toReversed();
 
 	return (
 		<>
-			<Stack.Screen options={{ title: "Pull Requests" }} />
+			<Stack.Screen
+				options={{
+					title: t({
+						id: "mobile.nav.pullRequests.title",
+						message: "Pull Requests",
+					}),
+				}}
+			/>
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.Button
-					accessibilityLabel="Close"
+					accessibilityLabel={t({
+						id: "mobile.common.close",
+						message: "Close",
+					})}
 					icon="xmark"
 					onPress={() => router.back()}
 				/>
@@ -52,7 +64,10 @@ export function PullRequestsSheet() {
 					const status = PULL_REQUEST_STATUS[pullRequestStatus(pullRequest)];
 					return (
 						<Pressable
-							accessibilityLabel={`Pull request #${pullRequest.prNumber}`}
+							accessibilityLabel={t({
+								id: "mobile.workspaceRow.pullRequestLabel",
+								message: `Pull request #${pullRequest.prNumber}`,
+							})}
 							accessibilityRole="button"
 							className="flex-row items-center gap-3 py-3 active:opacity-60"
 							key={pullRequest.key}

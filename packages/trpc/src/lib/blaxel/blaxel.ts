@@ -7,10 +7,11 @@
  * before they reach host-service. Clients connect directly with a brokered
  * token — no relay hop, so websockets work and the sandbox can still sleep.
  */
+
 import { SandboxInstance, settings } from "@blaxel/core";
 import { SANDBOX_CREDENTIAL_PLACEHOLDER } from "@superset/shared/constants";
-import { TRPCError } from "@trpc/server";
 import { env } from "../../env";
+import { userError } from "../../i18n-error";
 
 /** Short enough that a leaked token is bounded; minted per access. */
 const PREVIEW_TOKEN_TTL_MS = 10 * 60 * 1000;
@@ -128,9 +129,10 @@ export async function provisionSandbox(args: {
 
 	const sandboxUrl = preview.spec?.url;
 	if (!sandboxUrl) {
-		throw new TRPCError({
+		throw userError({
 			code: "INTERNAL_SERVER_ERROR",
 			message: "Sandbox preview has no URL",
+			i18nKey: "serverError.blaxel.sandboxPreviewHasNoUrl",
 		});
 	}
 
@@ -164,9 +166,10 @@ export async function mintPreviewAccess(
 	const value = (token as { value?: string }).value;
 	const url = preview.spec?.url;
 	if (!value || !url) {
-		throw new TRPCError({
+		throw userError({
 			code: "INTERNAL_SERVER_ERROR",
 			message: "Could not mint sandbox access token",
+			i18nKey: "serverError.blaxel.couldNotMintSandboxAccessToken",
 		});
 	}
 	return { url, token: value, expiresAt };

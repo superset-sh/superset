@@ -1,27 +1,48 @@
 "use client";
 
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import { MeshGradient } from "@superset/ui/mesh-gradient";
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 
-const DEMO_OPTIONS = [
+const DEMO_OPTIONS: {
+	id: string;
+	label: MessageDescriptor;
+	videoPath: string;
+	colors: readonly [string, string, string, string];
+}[] = [
 	{
-		label: "Use Any Agents",
+		id: "agents",
+		label: msg({
+			id: "web.productDemo.useAnyAgents",
+			message: "Use Any Agents",
+		}),
 		videoPath: "/hero/agents.mp4",
 		colors: ["#7f1d1d", "#991b1b", "#450a0a", "#1a1a2e"] as const,
 	},
 	{
-		label: "Create Parallel Branches",
+		id: "worktrees",
+		label: msg({
+			id: "web.productDemo.createParallelBranches",
+			message: "Create Parallel Branches",
+		}),
 		videoPath: "/hero/worktrees.mp4",
 		colors: ["#1e40af", "#1e3a8a", "#172554", "#1a1a2e"] as const,
 	},
 	{
-		label: "See Changes",
+		id: "changes",
+		label: msg({ id: "web.productDemo.seeChanges", message: "See Changes" }),
 		videoPath: "/hero/changes.mp4",
 		colors: ["#b45309", "#92400e", "#78350f", "#1a1a2e"] as const,
 	},
 	{
-		label: "Open in Any IDE",
+		id: "open-in",
+		label: msg({
+			id: "web.productDemo.openInAnyIde",
+			message: "Open in Any IDE",
+		}),
 		videoPath: "/hero/open-in.mp4",
 		colors: ["#047857", "#065f46", "#064e3b", "#1a1a2e"] as const,
 	},
@@ -84,18 +105,16 @@ function SelectorPill({
 }
 
 export function ProductDemo() {
-	const [activeOption, setActiveOption] = useState(
-		DEMO_OPTIONS[0]?.label ?? "",
-	);
+	const [activeOption, setActiveOption] = useState(DEMO_OPTIONS[0]?.id ?? "");
 
 	return (
 		<div className="relative w-full overflow-hidden rounded-lg">
 			{DEMO_OPTIONS.map((option) => (
 				<motion.div
-					key={`gradient-${option.label}`}
+					key={`gradient-${option.id}`}
 					className="absolute inset-0"
 					initial={false}
-					animate={{ opacity: activeOption === option.label ? 1 : 0 }}
+					animate={{ opacity: activeOption === option.id ? 1 : 0 }}
 					transition={{ duration: 0.5, ease: "easeInOut" }}
 				>
 					<MeshGradient
@@ -112,15 +131,15 @@ export function ProductDemo() {
 				>
 					{DEMO_OPTIONS.map((option) => (
 						<motion.div
-							key={option.label}
+							key={option.id}
 							className="absolute -inset-px"
 							initial={false}
-							animate={{ opacity: activeOption === option.label ? 1 : 0 }}
+							animate={{ opacity: activeOption === option.id ? 1 : 0 }}
 							transition={{ duration: 0.5, ease: "easeInOut" }}
 						>
 							<DemoVideo
 								src={option.videoPath}
-								isActive={activeOption === option.label}
+								isActive={activeOption === option.id}
 							/>
 						</motion.div>
 					))}
@@ -129,10 +148,10 @@ export function ProductDemo() {
 				<div className="flex items-center gap-2 overflow-x-auto">
 					{DEMO_OPTIONS.map((option) => (
 						<SelectorPill
-							key={option.label}
-							label={option.label}
-							active={activeOption === option.label}
-							onClick={() => setActiveOption(option.label)}
+							key={option.id}
+							label={i18n._(option.label)}
+							active={activeOption === option.id}
+							onClick={() => setActiveOption(option.id)}
 						/>
 					))}
 				</div>

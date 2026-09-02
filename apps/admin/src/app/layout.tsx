@@ -1,3 +1,4 @@
+import { initI18n } from "@superset/i18n";
 import { Toaster } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import type { Metadata, Viewport } from "next";
@@ -18,6 +19,11 @@ const inter = Inter({
 	subsets: ["latin"],
 	variable: "--font-inter",
 });
+
+// Server components render outside I18nProvider (which is client-only), and
+// `i18n._` throws on an unactivated instance. Activating at module scope means
+// the server module graph is ready before any RSC in this tree renders.
+initI18n();
 
 export const metadata: Metadata = {
 	title: "Superset | Company Dashboard",

@@ -1,0 +1,23 @@
+{
+	"name": "@superset/usercontent",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "bun scripts/dev.ts",
+		"deploy": "wrangler deploy",
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
+	},
+	"dependencies": {
+		"@sentry/cloudflare": "10.68.0",
+		"@superset/shared": "workspace:*",
+		"hono": "4.12.34",
+		"zod": "4.4.3"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "5.20260801.1",
+		"@superset/typescript": "workspace:*",
+		"typescript": "6.0.3",
+		"wrangler": "4.118.0"
+	}
+}

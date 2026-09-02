@@ -14,6 +14,7 @@ import {
 } from "../../runtime/pull-requests/utils/workspace-refs.ts";
 import type { ChangedFile } from "../../trpc/router/git/types.ts";
 import type { BaseRefFetchTarget } from "../../trpc/router/git/utils/base-ref-freshness.ts";
+import { buildDiffPatch } from "../../trpc/router/git/utils/diff-patch.ts";
 import {
 	type DiffCategory,
 	getChangedFilesForDiff,
@@ -139,6 +140,50 @@ export const gitDiffBulkTask = defineWorkerTask<
 	},
 });
 
+// Whole-category patch for the Changes pane. `git diff` runs here rather
+// than on the host-service event loop, and the patch is a fraction of the
+// bytes `getDiffBulk` moves — hunks with three lines of context instead of
+// two complete copies of every changed file.
+export const gitDiffPatchTask = defineWorkerTask<
+	{
+		worktreePath: string;
+		category: DiffCategory;
+		paths?: string[];
+		untrackedPaths?: string[];
+		baseBranch?: string;
+		commitHash?: string;
+		fromHash?: string;
+		gitEnv: GitTaskEnv;
+	},
+	{ patch: string }
+>({
+	type: "git/getDiffPatch",
+	handler: async ({
+		worktreePath,
+		category,
+		paths,
+		untrackedPaths,
+		baseBranch,
+		commitHash,
+		fromHash,
+		gitEnv,
+	}) => {
+		const git = createUserSimpleGit(worktreePath).env(gitEnv);
+		const refs = await resolveDiffCategoryRefs(git, category, {
+			baseBranch,
+			commitHash,
+			fromHash,
+		});
+		const patch = await buildDiffPatch(git, {
+			category,
+			refs,
+			paths,
+			untrackedPaths,
+		});
+		return { patch };
+	},
+});
+
 export const gitWorkspaceRefsTask = defineWorkerTask<
 	{ worktreePath: string; gitEnv: GitTaskEnv },
 	WorkspaceRefsSnapshot
@@ -258,6 +303,7 @@ export const gitTasks = [
 	gitFetchBaseRefTask,
 	gitCommitFilesTask,
 	gitDiffBulkTask,
+	gitDiffPatchTask,
 	gitWorkspaceRefsTask,
 	gitIdentityTask,
 	gitWorktreeStateTask,

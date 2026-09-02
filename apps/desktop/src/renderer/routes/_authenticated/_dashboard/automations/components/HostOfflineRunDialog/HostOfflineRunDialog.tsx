@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -25,13 +26,14 @@ interface HostOfflineRunDialogProps {
 /**
  * Shown when "Run now" is skipped because the target host isn't connected to
  * the relay. For the local device it offers enabling relay access in place
- * (same typed confirmation as Settings > Remote Workspaces).
+ * (same typed confirmation as Settings > Remote Access).
  */
 export function HostOfflineRunDialog({
 	hostId,
 	open,
 	onOpenChange,
 }: HostOfflineRunDialogProps) {
+	const { t } = useLingui();
 	const { isLocal, remoteHost } = useRelayHostTarget(hostId);
 	const { gateFeature } = usePaywall();
 	const [confirmOpen, setConfirmOpen] = useState(false);
@@ -52,26 +54,36 @@ export function HostOfflineRunDialog({
 							className="size-4 shrink-0 text-warning"
 							aria-hidden="true"
 						/>
-						Target host is offline
+						<Trans id="dashboard.automations.hostOfflineDialog.title">
+							Target host is offline
+						</Trans>
 					</DialogTitle>
 					<DialogDescription asChild>
 						<div className="select-text cursor-text space-y-2 pt-1 text-sm leading-relaxed">
 							{isLocal ? (
 								<p>
-									The run was skipped because this device isn't connected to the
-									Superset relay. Automations go through the relay even when
-									they run on this device. Enable relay access, then run it
-									again.
+									<Trans id="dashboard.automations.hostOfflineDialog.localBody">
+										The run was skipped because this device isn't connected to
+										the Superset relay. Automations go through the relay even
+										when they run on this device. Enable relay access, then run
+										it again.
+									</Trans>
 								</p>
 							) : (
 								<p>
-									The run was skipped because{" "}
-									<span className="font-medium text-foreground">
-										{remoteHost?.name ?? "the target host"}
-									</span>{" "}
-									isn't connected to the Superset relay. Make sure relay access
-									is on in Settings &gt; Remote Workspaces on that device, then
-									run it again.
+									<Trans id="dashboard.automations.hostOfflineDialog.remoteBody">
+										The run was skipped because{" "}
+										<span className="font-medium text-foreground">
+											{remoteHost?.name ??
+												t({
+													id: "dashboard.automations.hostOfflineDialog.targetHostFallback",
+													message: "the target host",
+												})}
+										</span>{" "}
+										isn't connected to the Superset relay. Make sure relay
+										access is on in Settings &gt; Remote Access on that device,
+										then run it again.
+									</Trans>
 								</p>
 							)}
 						</div>
@@ -80,18 +92,30 @@ export function HostOfflineRunDialog({
 
 				<DialogFooter>
 					<DialogClose asChild>
-						<Button variant="ghost">{isLocal ? "Cancel" : "Close"}</Button>
+						<Button variant="ghost">
+							{isLocal ? (
+								<Trans id="dashboard.automations.hostOfflineDialog.cancel">
+									Cancel
+								</Trans>
+							) : (
+								<Trans id="dashboard.automations.hostOfflineDialog.close">
+									Close
+								</Trans>
+							)}
+						</Button>
 					</DialogClose>
 					{isLocal ? (
 						<Button
 							disabled={isPending}
 							onClick={() =>
-								gateFeature(GATED_FEATURES.REMOTE_WORKSPACES, () =>
+								gateFeature(GATED_FEATURES.REMOTE_ACCESS, () =>
 									setConfirmOpen(true),
 								)
 							}
 						>
-							Enable relay access…
+							<Trans id="dashboard.automations.hostOfflineDialog.enableRelay">
+								Enable relay access…
+							</Trans>
 						</Button>
 					) : (
 						hostId && (
@@ -101,7 +125,9 @@ export function HostOfflineRunDialog({
 									params={{ hostId }}
 									onClick={() => onOpenChange(false)}
 								>
-									Host settings
+									<Trans id="dashboard.automations.hostOfflineDialog.hostSettings">
+										Host settings
+									</Trans>
 								</Link>
 							</Button>
 						)

@@ -2,12 +2,12 @@ import { stripeClient } from "@superset/auth/stripe";
 import { db } from "@superset/db/client";
 import { members, organizations, subscriptions } from "@superset/db/schema";
 import { ACTIVE_SUBSCRIPTION_STATUSES } from "@superset/shared/billing";
-import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
+import type { TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import type Stripe from "stripe";
 import { z } from "zod";
 import { env } from "../../env";
-import { protectedProcedure } from "../../trpc";
+import { protectedProcedure, userError } from "../../trpc";
 
 function subtractMonthsClamped(date: Date, months: number) {
 	const result = new Date(date);
@@ -33,9 +33,10 @@ async function requireOwnerWithCustomer(ctx: {
 }) {
 	const activeOrgId = ctx.activeOrganizationId;
 	if (!activeOrgId) {
-		throw new TRPCError({
+		throw userError({
 			code: "BAD_REQUEST",
 			message: "No active organization",
+			i18nKey: "serverError.billing.noActiveOrganization",
 		});
 	}
 
@@ -53,9 +54,10 @@ async function requireOwnerWithCustomer(ctx: {
 	]);
 
 	if (!member || member.role !== "owner") {
-		throw new TRPCError({
+		throw userError({
 			code: "FORBIDDEN",
 			message: "Only owners can manage billing",
+			i18nKey: "serverError.billing.onlyOwnersCanManageBilling",
 		});
 	}
 
@@ -143,9 +145,10 @@ export const billingRouter = {
 	invoices: protectedProcedure.query(async ({ ctx }) => {
 		const activeOrgId = ctx.activeOrganizationId;
 		if (!activeOrgId) {
-			throw new TRPCError({
+			throw userError({
 				code: "BAD_REQUEST",
 				message: "No active organization",
+				i18nKey: "serverError.billing.noActiveOrganization",
 			});
 		}
 
@@ -180,9 +183,10 @@ export const billingRouter = {
 	outstandingInvoice: protectedProcedure.query(async ({ ctx }) => {
 		const activeOrgId = ctx.activeOrganizationId;
 		if (!activeOrgId) {
-			throw new TRPCError({
+			throw userError({
 				code: "BAD_REQUEST",
 				message: "No active organization",
+				i18nKey: "serverError.billing.noActiveOrganization",
 			});
 		}
 
@@ -281,9 +285,10 @@ export const billingRouter = {
 		.mutation(async ({ ctx, input }) => {
 			const stripeCustomerId = await requireOwnerWithCustomer(ctx);
 			if (!stripeCustomerId) {
-				throw new TRPCError({
+				throw userError({
 					code: "BAD_REQUEST",
 					message: "No Stripe customer found",
+					i18nKey: "serverError.billing.noStripeCustomerFound",
 				});
 			}
 

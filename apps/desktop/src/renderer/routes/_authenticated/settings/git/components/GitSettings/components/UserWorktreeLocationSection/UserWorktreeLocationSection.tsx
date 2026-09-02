@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Label } from "@superset/ui/label";
 import { useMemo, useState } from "react";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
@@ -27,6 +28,7 @@ export function UserWorktreeLocationSection() {
 }
 
 function V1Body() {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const utils = electronTrpc.useUtils();
 	const defaultWorktreePath = useDefaultWorktreePath();
@@ -57,17 +59,29 @@ function V1Body() {
 	return (
 		<div className="space-y-0.5">
 			<Label className="text-sm font-medium">
-				<HighlightText text="Worktree location" query={searchQuery} />
+				<HighlightText
+					text={t({
+						id: "settings.git.worktreeLocation.label",
+						message: "Worktree location",
+					})}
+					query={searchQuery}
+				/>
 			</Label>
 			<p className="text-xs text-muted-foreground">
 				<HighlightText
-					text="Base directory for new worktrees"
+					text={t({
+						id: "settings.git.worktreeLocation.baseDirHint",
+						message: "Base directory for new worktrees",
+					})}
 					query={searchQuery}
 				/>
 			</p>
 			<WorktreeLocationPicker
 				currentPath={worktreeBaseDir}
-				defaultPathLabel={`Default (${defaultWorktreePath})`}
+				defaultPathLabel={t({
+					id: "settings.git.worktreeLocation.defaultPathLabel",
+					message: `Default (${defaultWorktreePath})`,
+				})}
 				defaultBrowsePath={worktreeBaseDir}
 				disabled={isLoading || setWorktreeBaseDir.isPending}
 				onSelect={(path) => setWorktreeBaseDir.mutate({ path })}
@@ -78,6 +92,7 @@ function V1Body() {
 }
 
 function V2Body() {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const { machineId } = useLocalHostService();
 	const { currentDeviceName, localHostId, otherHosts } =
@@ -89,7 +104,12 @@ function V2Body() {
 		if (localHostId) {
 			opts.push({
 				id: localHostId,
-				name: currentDeviceName ?? "This device",
+				name:
+					currentDeviceName ??
+					t({
+						id: "settings.git.worktreeLocation.thisDeviceOption",
+						message: "This device",
+					}),
 				isLocal: true,
 				isOnline: true,
 			});
@@ -103,7 +123,7 @@ function V2Body() {
 			});
 		}
 		return opts;
-	}, [currentDeviceName, localHostId, otherHosts]);
+	}, [currentDeviceName, localHostId, otherHosts, t]);
 
 	const [selectedHostId, setSelectedHostId] = useState<string | null>(
 		() => localHostId ?? machineId ?? null,
@@ -119,6 +139,14 @@ function V2Body() {
 	const isLocal = selectedHost?.isLocal ?? true;
 	const isOnline = selectedHost?.isOnline ?? false;
 	const hasMultipleHosts = hostOptions.length > 1;
+
+	const thisDeviceLabel = t({
+		id: "settings.git.worktreeLocation.thisDevice",
+		message: "this device",
+	});
+	const selectedHostLabel = selectedHost?.isLocal
+		? thisDeviceLabel
+		: (selectedHost?.name ?? thisDeviceLabel);
 
 	const settingsQuery = useV2WorktreeLocationSettings(targetHostUrl, {
 		enabled: isOnline,
@@ -136,18 +164,26 @@ function V2Body() {
 			<div className="flex items-start justify-between gap-3">
 				<div className="space-y-0.5">
 					<Label className="text-sm font-medium">
-						<HighlightText text="Worktree location" query={searchQuery} />
+						<HighlightText
+							text={t({
+								id: "settings.git.worktreeLocation.v2Label",
+								message: "Worktree location",
+							})}
+							query={searchQuery}
+						/>
 					</Label>
 					<p className="text-xs text-muted-foreground">
 						{hasMultipleHosts ? (
-							`Base directory for new worktrees on ${
-								selectedHost?.isLocal
-									? "this device"
-									: (selectedHost?.name ?? "this device")
-							}`
+							t({
+								id: "settings.git.worktreeLocation.baseDirOnHost",
+								message: `Base directory for new worktrees on ${selectedHostLabel}`,
+							})
 						) : (
 							<HighlightText
-								text="Base directory for new worktrees"
+								text={t({
+									id: "settings.git.worktreeLocation.v2BaseDirHint",
+									message: "Base directory for new worktrees",
+								})}
 								query={searchQuery}
 							/>
 						)}
@@ -167,20 +203,26 @@ function V2Body() {
 					settingsQuery.data?.defaultWorktreeBaseDir ?? defaultWorktreePath
 				}
 				hostUrl={targetHostUrl}
-				hostName={
-					selectedHost?.isLocal
-						? "this device"
-						: (selectedHost?.name ?? "this device")
-				}
+				hostName={selectedHostLabel}
 				isRemoteTarget={!isLocal}
 				disabled={disabled}
-				browseTitle="Select default worktree location"
+				browseTitle={t({
+					id: "settings.git.worktreeLocation.browseTitle",
+					message: "Select default worktree location",
+				})}
 				onSelect={(path) => setLocation.mutate(path)}
 				onReset={() => setLocation.mutate(null)}
 			/>
 			{hasMultipleHosts && !isOnline ? (
 				<p className="text-xs text-muted-foreground">
-					{selectedHost?.name ?? "This device"} is offline.
+					<Trans id="settings.git.worktreeLocation.hostOffline">
+						{selectedHost?.name ??
+							t({
+								id: "settings.git.worktreeLocation.thisDeviceOffline",
+								message: "This device",
+							})}{" "}
+						is offline.
+					</Trans>
 				</p>
 			) : null}
 		</div>

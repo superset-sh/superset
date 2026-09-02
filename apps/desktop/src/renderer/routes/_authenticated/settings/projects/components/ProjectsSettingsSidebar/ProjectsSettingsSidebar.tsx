@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { resolveProjectIconUrl } from "renderer/hooks/host-projects/resolveProjectIconUrl";
@@ -27,6 +28,7 @@ interface ProjectsSettingsSidebarProps {
 export function ProjectsSettingsSidebar({
 	selectedProjectId,
 }: ProjectsSettingsSidebarProps) {
+	const { t } = useLingui();
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const { data: groups = [] } =
 		electronTrpc.workspaces.getAllGrouped.useQuery();
@@ -68,14 +70,28 @@ export function ProjectsSettingsSidebar({
 
 	return (
 		<SettingsListSidebar
-			searchPlaceholder="Filter projects..."
-			searchAriaLabel="Filter projects"
+			searchPlaceholder={t({
+				id: "settings.projects.filterPlaceholder",
+				message: "Filter projects...",
+			})}
+			searchAriaLabel={t({
+				id: "settings.projects.filterAria",
+				message: "Filter projects",
+			})}
 			hideFilterWhenEmpty
 			groups={listGroups}
 			filterRow={(row, q) => row.name.toLowerCase().includes(q.toLowerCase())}
 			getRowKey={(row) => `${row.kind}:${row.id}`}
-			emptyLabel="No projects yet."
-			noMatchLabel={(q) => `No projects match "${q}".`}
+			emptyLabel={t({
+				id: "settings.projects.emptyLabel",
+				message: "No projects yet.",
+			})}
+			noMatchLabel={(q) =>
+				t({
+					id: "settings.projects.noMatchLabel",
+					message: `No projects match "${q}".`,
+				})
+			}
 			renderRow={(row) => (
 				<Link
 					to="/settings/projects/$projectId"

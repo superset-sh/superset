@@ -1,5 +1,6 @@
 "use client";
 
+import { errorMessage } from "@superset/i18n/errors";
 import type { RouterOutputs } from "@superset/trpc";
 import type { CommentStore, CommentThread } from "@superset/ui/page-comments";
 import { toast } from "@superset/ui/sonner";
@@ -23,11 +24,13 @@ function toThreads(rows: ServerThread[]): CommentThread[] {
 							offsetY: row.anchor.offsetY,
 						},
 						resolved: row.resolved,
+						version: row.version,
 						comments: row.comments.map((comment) => ({
 							id: comment.id,
 							body: comment.body,
 							authorName: comment.authorName,
 							authorImage: comment.authorImage,
+							authorKind: comment.authorKind,
 							createdAt: comment.createdAt.getTime(),
 						})),
 					},
@@ -45,7 +48,7 @@ export function usePageCommentStore({
 }): CommentStore {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
-	const listOptions = trpc.pageComment.list.queryOptions({ pageId, version });
+	const listOptions = trpc.pageComment.list.queryOptions({ pageId });
 	const list = useQuery(listOptions);
 
 	const invalidate = useCallback(
@@ -56,7 +59,7 @@ export function usePageCommentStore({
 	const onSettled = useMemo(
 		() => ({
 			onSuccess: invalidate,
-			onError: (error: { message: string }) => toast.error(error.message),
+			onError: (error: { message: string }) => toast.error(errorMessage(error)),
 		}),
 		[invalidate],
 	);

@@ -1,4 +1,5 @@
 import type { ComponentProps, ReactNode } from "react";
+import { i18n } from "../../lib/i18n";
 import { cn } from "../../lib/utils";
 import {
 	Command,
@@ -37,7 +38,10 @@ export type ModelSelectorContentProps = ComponentProps<typeof DialogContent> & {
 export const ModelSelectorContent = ({
 	className,
 	children,
-	title = "Model Selector",
+	title = i18n._({
+		id: "ui.modelSelector.title",
+		message: "Model Selector",
+	}),
 	...props
 }: ModelSelectorContentProps) => (
 	<DialogContent className={cn("p-0", className)} {...props}>
@@ -172,7 +176,11 @@ export const ModelSelectorLogo = ({
 }: ModelSelectorLogoProps) => (
 	<img
 		{...props}
-		alt={`${provider} logo`}
+		alt={i18n._({
+			id: "ui.modelSelector.logoAlt",
+			message: "{provider} logo",
+			values: { provider },
+		})}
 		className={cn("size-3 dark:invert", className)}
 		height={12}
 		src={`https://models.dev/logos/${provider}.svg`}

@@ -118,7 +118,6 @@ export const automationTriggerKindValues = [
 	"google_calendar",
 	"gmail",
 	"notion",
-	"circleback",
 ] as const satisfies readonly TriggerConfigInput["kind"][];
 
 export type _EveryKindHasEnumValue = [
@@ -161,3 +160,7 @@ export type PageCommentAnchorKind = z.infer<typeof pageCommentAnchorKindEnum>;
 export const pageCommentAuthorKindValues = ["human", "agent"] as const;
 export const pageCommentAuthorKindEnum = z.enum(pageCommentAuthorKindValues);
 export type PageCommentAuthorKind = z.infer<typeof pageCommentAuthorKindEnum>;
+
+export const leaderboardVisibilityValues = ["public", "hidden"] as const;
+export const leaderboardVisibilityEnum = z.enum(leaderboardVisibilityValues);
+export type LeaderboardVisibility = z.infer<typeof leaderboardVisibilityEnum>;

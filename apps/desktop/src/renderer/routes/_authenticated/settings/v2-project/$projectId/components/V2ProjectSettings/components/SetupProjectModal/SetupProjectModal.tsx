@@ -1,3 +1,5 @@
+import { Trans, useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -53,6 +55,7 @@ export function SetupProjectModal({
 	isRemoteTarget,
 	onChanged,
 }: SetupProjectModalProps) {
+	const { t } = useLingui();
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const { ensureProjectInSidebar, ensureWorkspaceInSidebar } =
 		useDashboardSidebarState();
@@ -109,21 +112,32 @@ export function SetupProjectModal({
 			if (target === "parentDir") setParentDir(result.path);
 			else setImportPath(result.path);
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : String(err));
+			toast.error(errorMessage(err));
 		}
 	};
 
 	const runClone = async () => {
 		if (!hostUrl) {
-			toast.error(`Host unavailable: ${hostName}`);
+			toast.error(
+				t({
+					id: "settings.project.setup.hostUnavailableCloneToast",
+					message: `Host unavailable: ${hostName}`,
+				}),
+			);
 			return;
 		}
 		const trimmed = parentDir.trim();
 		if (!trimmed) {
 			toast.error(
 				isRemoteTarget
-					? `Enter a parent directory on ${hostName}`
-					: "Pick a parent directory",
+					? t({
+							id: "settings.project.setup.enterParentDirToast",
+							message: `Enter a parent directory on ${hostName}`,
+						})
+					: t({
+							id: "settings.project.setup.pickParentDirToast",
+							message: "Pick a parent directory",
+						}),
 			);
 			return;
 		}
@@ -138,7 +152,12 @@ export function SetupProjectModal({
 				origin: { repoCloneUrl, name: projectName },
 				mode: { kind: "clone", parentDir: trimmed },
 			});
-			toast.success(`Cloned to ${result.repoPath}`);
+			toast.success(
+				t({
+					id: "settings.project.setup.clonedToast",
+					message: `Cloned to ${result.repoPath}`,
+				}),
+			);
 			if (result.mainWorkspaceId) {
 				ensureWorkspaceInSidebar(result.mainWorkspaceId, projectId);
 			} else {
@@ -159,15 +178,26 @@ export function SetupProjectModal({
 
 	const runImport = async () => {
 		if (!hostUrl) {
-			toast.error(`Host unavailable: ${hostName}`);
+			toast.error(
+				t({
+					id: "settings.project.setup.hostUnavailableImportToast",
+					message: `Host unavailable: ${hostName}`,
+				}),
+			);
 			return;
 		}
 		const trimmed = importPath.trim();
 		if (!trimmed) {
 			toast.error(
 				isRemoteTarget
-					? `Enter a path on ${hostName}`
-					: "Pick a project location",
+					? t({
+							id: "settings.project.setup.enterImportPathToast",
+							message: `Enter a path on ${hostName}`,
+						})
+					: t({
+							id: "settings.project.setup.pickImportPathToast",
+							message: "Pick a project location",
+						}),
 			);
 			return;
 		}
@@ -180,7 +210,12 @@ export function SetupProjectModal({
 				origin: { repoCloneUrl, name: projectName },
 				mode: { kind: "import", repoPath: trimmed, allowRelocate: false },
 			});
-			toast.success(`Project set up at ${result.repoPath}`);
+			toast.success(
+				t({
+					id: "settings.project.setup.importedToast",
+					message: `Project set up at ${result.repoPath}`,
+				}),
+			);
 			if (result.mainWorkspaceId) {
 				ensureWorkspaceInSidebar(result.mainWorkspaceId, projectId);
 			} else {
@@ -190,17 +225,19 @@ export function SetupProjectModal({
 			reset();
 			onOpenChange(false);
 		} catch (err) {
-			setSetupError({
-				message: err instanceof Error ? err.message : String(err),
-				needsGhAuth: false,
-			});
+			setSetupError({ message: errorMessage(err), needsGhAuth: false });
 		} finally {
 			setWorking(false);
 		}
 	};
 
 	const submit = mode === "clone" ? runClone : runImport;
-	const submitLabel = mode === "clone" ? "Clone" : "Import";
+	const submitLabel =
+		mode === "clone" ? (
+			<Trans id="settings.project.setup.submitClone">Clone</Trans>
+		) : (
+			<Trans id="settings.project.setup.submitImport">Import</Trans>
+		);
 	const cloneDisabled = !repoCloneUrl;
 	// The access panel already explains gh-auth failures with remediation;
 	// only show the raw error when it adds information.
@@ -213,9 +250,15 @@ export function SetupProjectModal({
 			<Dialog open={open} onOpenChange={handleOpenChange} modal>
 				<DialogContent className="max-w-[480px]">
 					<DialogHeader>
-						<DialogTitle>Set up project on {hostName}</DialogTitle>
+						<DialogTitle>
+							<Trans id="settings.project.setup.title">
+								Set up project on {hostName}
+							</Trans>
+						</DialogTitle>
 						<DialogDescription>
-							Clone the repository, or import an existing folder on the host.
+							<Trans id="settings.project.setup.description">
+								Clone the repository, or import an existing folder on the host.
+							</Trans>
 						</DialogDescription>
 					</DialogHeader>
 
@@ -232,24 +275,32 @@ export function SetupProjectModal({
 								disabled={cloneDisabled}
 								className="flex-1"
 							>
-								Clone
+								<Trans id="settings.project.setup.cloneTab">Clone</Trans>
 							</TabsTrigger>
 							<TabsTrigger value="import" className="flex-1">
-								Import existing
+								<Trans id="settings.project.setup.importTab">
+									Import existing
+								</Trans>
 							</TabsTrigger>
 						</TabsList>
 
 						<TabsContent value="clone" className="mt-4 space-y-3">
 							{cloneDisabled ? (
 								<p className="text-sm text-muted-foreground">
-									Link a GitHub repository on the project first to enable
-									cloning.
+									<Trans id="settings.project.setup.linkRepoFirst">
+										Link a GitHub repository on the project first to enable
+										cloning.
+									</Trans>
 								</p>
 							) : (
 								<>
 									{repoCloneUrl && (
 										<div className="flex flex-col gap-1">
-											<Label className="text-xs">Repository</Label>
+											<Label className="text-xs">
+												<Trans id="settings.project.setup.repository">
+													Repository
+												</Trans>
+											</Label>
 											<p className="font-mono text-xs text-muted-foreground select-text cursor-text break-all">
 												{repoCloneUrl}
 											</p>
@@ -267,7 +318,15 @@ export function SetupProjectModal({
 									/>
 									<div className="flex flex-col gap-1.5">
 										<Label htmlFor="setup-parent-dir" className="text-xs">
-											Parent directory{isRemoteTarget ? ` on ${hostName}` : ""}
+											{isRemoteTarget ? (
+												<Trans id="settings.project.setup.parentDirOnHost">
+													Parent directory on {hostName}
+												</Trans>
+											) : (
+												<Trans id="settings.project.setup.parentDir">
+													Parent directory
+												</Trans>
+											)}
 										</Label>
 										<div className="flex gap-1.5">
 											<Input
@@ -277,7 +336,10 @@ export function SetupProjectModal({
 												placeholder={
 													isRemoteTarget
 														? "/home/user/projects"
-														: "Pick a folder…"
+														: t({
+																id: "settings.project.setup.pickFolderParentPlaceholder",
+																message: "Pick a folder…",
+															})
 												}
 												disabled={working}
 												className="flex-1 font-mono text-sm"
@@ -294,21 +356,30 @@ export function SetupProjectModal({
 														setBrowseTarget("parentDir");
 													} else {
 														void browseFor(
-															"Select parent directory to clone into",
+															t({
+																id: "settings.project.setup.browseParentDirTitle",
+																message:
+																	"Select parent directory to clone into",
+															}),
 															"parentDir",
 														);
 													}
 												}}
 												disabled={working || selectDirectory.isPending}
 												className="shrink-0"
-												aria-label="Browse for directory"
+												aria-label={t({
+													id: "settings.project.setup.browseParentDirAria",
+													message: "Browse for directory",
+												})}
 											>
 												<LuFolderOpen className="size-4" />
 											</Button>
 										</div>
 										<p className="text-xs text-muted-foreground">
-											The repository is cloned into a new folder inside this
-											directory.
+											<Trans id="settings.v2Project.setupModal.parentDirHint">
+												The repository is cloned into a new folder inside this
+												directory.
+											</Trans>
 										</p>
 									</div>
 								</>
@@ -318,7 +389,15 @@ export function SetupProjectModal({
 						<TabsContent value="import" className="mt-4 space-y-3">
 							<div className="flex flex-col gap-1.5">
 								<Label htmlFor="setup-import-path" className="text-xs">
-									Existing repo path{isRemoteTarget ? ` on ${hostName}` : ""}
+									{isRemoteTarget ? (
+										<Trans id="settings.project.setup.importPathOnHost">
+											Existing repo path on {hostName}
+										</Trans>
+									) : (
+										<Trans id="settings.project.setup.importPath">
+											Existing repo path
+										</Trans>
+									)}
 								</Label>
 								<div className="flex gap-1.5">
 									<Input
@@ -328,7 +407,10 @@ export function SetupProjectModal({
 										placeholder={
 											isRemoteTarget
 												? "/home/user/projects/my-repo"
-												: "Pick a folder…"
+												: t({
+														id: "settings.project.setup.pickFolderImportPlaceholder",
+														message: "Pick a folder…",
+													})
 										}
 										disabled={working}
 										className="flex-1 font-mono text-sm"
@@ -344,12 +426,21 @@ export function SetupProjectModal({
 											if (isRemoteTarget) {
 												setBrowseTarget("importPath");
 											} else {
-												void browseFor("Select project location", "importPath");
+												void browseFor(
+													t({
+														id: "settings.project.setup.browseImportPathTitle",
+														message: "Select project location",
+													}),
+													"importPath",
+												);
 											}
 										}}
 										disabled={working || selectDirectory.isPending}
 										className="shrink-0"
-										aria-label="Browse for directory"
+										aria-label={t({
+											id: "settings.project.setup.browseImportPathAria",
+											message: "Browse for directory",
+										})}
 									>
 										<LuFolderOpen className="size-4" />
 									</Button>
@@ -374,7 +465,7 @@ export function SetupProjectModal({
 							onClick={() => handleOpenChange(false)}
 							disabled={working}
 						>
-							Cancel
+							<Trans id="settings.project.setup.cancel">Cancel</Trans>
 						</Button>
 						<Button
 							type="button"
@@ -423,11 +514,25 @@ export function SetupProjectModal({
 				}
 				title={
 					browseTarget === "parentDir"
-						? "Choose a parent directory"
-						: "Choose an existing repo folder"
+						? t({
+								id: "settings.project.setup.remotePickerParentTitle",
+								message: "Choose a parent directory",
+							})
+						: t({
+								id: "settings.project.setup.remotePickerImportTitle",
+								message: "Choose an existing repo folder",
+							})
 				}
 				confirmLabel={
-					browseTarget === "parentDir" ? "Use this folder" : "Use this repo"
+					browseTarget === "parentDir"
+						? t({
+								id: "settings.project.setup.remotePickerParentConfirm",
+								message: "Use this folder",
+							})
+						: t({
+								id: "settings.project.setup.remotePickerImportConfirm",
+								message: "Use this repo",
+							})
 				}
 				onPick={(path) => {
 					if (browseTarget === "parentDir") setParentDir(path);

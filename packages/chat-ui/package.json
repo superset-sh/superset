@@ -12,8 +12,11 @@
 	},
 	"dependencies": {
 		"@lexical/react": "0.41.0",
+		"@lingui/core": "6.6.0",
+		"@lingui/react": "6.6.0",
 		"@shadcn/react": "0.2.1",
 		"@superset/chat": "workspace:*",
+		"@superset/i18n": "workspace:*",
 		"@superset/ui": "workspace:*",
 		"lexical": "0.41.0",
 		"lucide-react": "0.563.0"

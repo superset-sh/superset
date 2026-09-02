@@ -1,34 +1,51 @@
 .default-markdown {
 	color: var(--foreground);
 	background: var(--background);
+	font-size: 0.875rem;
 }
 
 .default-markdown article {
 	width: 100%;
+	max-width: 56rem;
 	margin: 0 auto;
+	overflow-wrap: break-word;
+}
+
+/* Headings carry their own margin-top for spacing between blocks, but that
+ * still applies to the very first block too, stacking on top of the
+ * article's own padding for a much bigger gap than intended. Two levels
+ * deep: react-markdown (MarkdownRenderer) puts the first block directly
+ * under <article>, but TipTapMarkdownRenderer wraps its editor content in
+ * its own root div (EditorContent's ProseMirror mount point) between
+ * <article> and the first real block — both share this stylesheet. */
+.default-markdown article > *:first-child,
+.default-markdown article > *:first-child > *:first-child {
+	margin-top: 0;
 }
 
 .default-markdown h1 {
-	font-size: 2.25rem;
+	font-size: 1.875rem;
 	font-weight: 700;
 	line-height: 1.2;
 	margin-top: 0;
 	margin-bottom: 1rem;
 	letter-spacing: -0.025em;
+	padding-bottom: 0.3rem;
+	border-bottom: 1px solid var(--border);
 }
 
 .default-markdown h2 {
-	font-size: 1.5rem;
+	font-size: 1.25rem;
 	font-weight: 600;
 	line-height: 1.3;
 	margin-top: 2rem;
 	margin-bottom: 0.75rem;
-	padding-bottom: 0.5rem;
+	padding-bottom: 0.3rem;
 	border-bottom: 1px solid var(--border);
 }
 
 .default-markdown h3 {
-	font-size: 1.25rem;
+	font-size: 1.125rem;
 	font-weight: 600;
 	line-height: 1.4;
 	margin-top: 1.5rem;
@@ -38,7 +55,7 @@
 .default-markdown h4,
 .default-markdown h5,
 .default-markdown h6 {
-	font-size: 1rem;
+	font-size: 0.875rem;
 	font-weight: 600;
 	line-height: 1.5;
 	margin-top: 1.25rem;
@@ -86,7 +103,6 @@
 .default-markdown table {
 	width: 100%;
 	border-collapse: collapse;
-	font-size: 0.95rem;
 	margin: 1rem 0;
 }
 

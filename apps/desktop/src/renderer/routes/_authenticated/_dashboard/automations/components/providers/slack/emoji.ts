@@ -42,10 +42,9 @@ const SLACK_EMOJI_GLYPHS: Record<string, string> = {
 	ship: "🚢",
 };
 
-/** How one emoji name reads in a chip: "🐛 bug", or ":deployparrot:" for a custom one. */
+/** How one emoji name reads in a chip: "🐛", or ":deployparrot:" for a custom one. */
 export function emojiLabel(name: string): string {
-	const glyph = SLACK_EMOJI_GLYPHS[name];
-	return glyph ? `${glyph} ${name}` : `:${name}:`;
+	return SLACK_EMOJI_GLYPHS[name] ?? `:${name}:`;
 }
 
 /**

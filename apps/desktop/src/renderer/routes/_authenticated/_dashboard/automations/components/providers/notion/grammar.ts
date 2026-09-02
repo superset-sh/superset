@@ -1,3 +1,5 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import type {
 	NotionTriggerEvent,
 	TriggerConfigInput,
@@ -39,12 +41,30 @@ export const NOTION_SENTENCES: Record<NotionTriggerEvent, SentencePart[]> = {
 };
 
 export const NOTION_MENU: TriggerMenuEntry<NotionConfig>[] = [
-	leaf("Rows changed", "data_source.content_updated"),
-	leaf("Comment added", "comment.created"),
-	leaf("Comment mentions user", "comment.mentioned"),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.notion.menuRowsChanged",
+			message: "Rows changed",
+		}),
+		"data_source.content_updated",
+	),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.notion.menuCommentAdded",
+			message: "Comment added",
+		}),
+		"comment.created",
+	),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.notion.menuCommentMentions",
+			message: "Comment mentions user",
+		}),
+		"comment.mentioned",
+	),
 ];
 
-function leaf(label: string, event: NotionTriggerEvent) {
+function leaf(label: MessageDescriptor, event: NotionTriggerEvent) {
 	return { label, create: () => createNotionConfig(event) };
 }
 

@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { getStrictShellEnvironment } from "../../../../terminal/clean-shell-env";
+import { getToolEnvironment } from "../../../../terminal/clean-shell-env";
 
 const execFileAsync = promisify(execFile);
 
@@ -21,9 +21,7 @@ export type ExecGh = (
 ) => Promise<unknown>;
 
 export const execGh: ExecGh = async (args, options) => {
-	const env = await getStrictShellEnvironment().catch(
-		() => process.env as Record<string, string>,
-	);
+	const env = await getToolEnvironment();
 	const { stdout } = await execFileAsync("gh", args, {
 		encoding: "utf8",
 		timeout: options?.timeout ?? 10_000,

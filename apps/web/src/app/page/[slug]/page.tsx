@@ -1,13 +1,13 @@
-import { PageCommentsView } from "@superset/ui/page-comments";
+import { CommentsSidebar, PageCommentsView } from "@superset/ui/page-comments";
 import { TRPCClientError } from "@trpc/client";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import { i18n } from "@/lib/i18n-server";
 import { api } from "../../../trpc/server";
 import { PageCommentsShell } from "./components/PageCommentsShell";
 import { PageHeaderBar } from "./components/PageHeaderBar";
 import { WrongOrganization } from "./components/WrongOrganization";
-import { getPageContent } from "./utils/getPageContent";
 import { getPagesAccess } from "./utils/getPagesAccess";
 import { isForbidden, isNotFound } from "./utils/trpcErrors";
 
@@ -63,12 +63,7 @@ export default async function PublishedPage({ params }: PageProps) {
 		throw error;
 	}
 
-	const [html, versions, access] = await Promise.all([
-		getPageContent({
-			downloadUrl: page.downloadUrl,
-			slug,
-			version: page.version,
-		}),
+	const [versions, access] = await Promise.all([
 		pullVersions(slug),
 		pullAccess(slug),
 	]);
@@ -79,7 +74,9 @@ export default async function PublishedPage({ params }: PageProps) {
 			version={page.version}
 			user={{
 				id: session?.user.id ?? "",
-				name: session?.user.name ?? "You",
+				name:
+					session?.user.name ??
+					i18n._({ id: "web.page.anonymousUser", message: "You" }),
 				image: session?.user.image ?? null,
 			}}
 		>
@@ -99,11 +96,17 @@ export default async function PublishedPage({ params }: PageProps) {
 					}}
 					versions={versions}
 					currentUserId={session?.user.id}
+					slug={slug}
+					watching={page.watch.watching}
+					watchAgentId={page.watch.agentId}
 				/>
 
-				<main className="min-h-0 flex-1">
-					<PageCommentsView html={html} title={page.title} />
-				</main>
+				<div className="flex min-h-0 flex-1">
+					<main className="min-h-0 flex-1">
+						<PageCommentsView src={page.viewUrl} title={page.title} />
+					</main>
+					<CommentsSidebar servedVersion={page.version} />
+				</div>
 			</div>
 		</PageCommentsShell>
 	);

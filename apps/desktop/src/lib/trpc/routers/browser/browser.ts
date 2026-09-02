@@ -5,6 +5,7 @@ import {
 	browserManager,
 	type ForwardedKey,
 } from "main/lib/browser/browser-manager";
+import { screenshotManager } from "main/lib/browser/screenshot-manager";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
@@ -75,8 +76,9 @@ export const createBrowserRouter = () => {
 		screenshot: publicProcedure
 			.input(z.object({ paneId: z.string() }))
 			.mutation(async ({ input }) => {
-				const base64 = await browserManager.screenshot(input.paneId);
-				return { base64 };
+				const { image, url } = await browserManager.screenshot(input.paneId);
+				const saved = screenshotManager.save(image, url);
+				return { base64: saved.base64, id: saved.id };
 			}),
 
 		evaluateJS: publicProcedure
@@ -326,6 +328,56 @@ export const createBrowserRouter = () => {
 						await ses.clearCache();
 						break;
 				}
+				return { success: true };
+			}),
+
+		// Chrome's "device toolbar" — a fixed viewport size for responsive
+		// testing. null clears the emulation and returns to the real window size.
+		setDeviceEmulation: publicProcedure
+			.input(
+				z.object({
+					paneId: z.string(),
+					params: z
+						.object({ width: z.number(), height: z.number() })
+						.nullable(),
+				}),
+			)
+			.mutation(({ input }) => {
+				browserManager.setDeviceEmulation(input.paneId, input.params);
+				return { success: true };
+			}),
+
+		// Sites the browser session has cookies for — the closest thing to
+		// "signed-in sites" this app can show without a real credential vault
+		// (imported "logins" are cookies, not stored passwords).
+		getCookieDomains: publicProcedure.query(async () => {
+			const cookies = await session
+				.fromPartition("persist:superset")
+				.cookies.get({});
+			const domains = new Map<string, number>();
+			for (const cookie of cookies) {
+				if (!cookie.domain) continue;
+				const domain = cookie.domain.replace(/^\./, "");
+				domains.set(domain, (domains.get(domain) ?? 0) + 1);
+			}
+			return [...domains.entries()]
+				.map(([domain, cookieCount]) => ({ domain, cookieCount }))
+				.sort((a, b) => a.domain.localeCompare(b.domain));
+		}),
+
+		clearCookiesForDomain: publicProcedure
+			.input(z.object({ domain: z.string() }))
+			.mutation(async ({ input }) => {
+				const ses = session.fromPartition("persist:superset");
+				const cookies = await ses.cookies.get({ domain: input.domain });
+				await Promise.all(
+					cookies.map((cookie) => {
+						const scheme = cookie.secure ? "https" : "http";
+						const domain = (cookie.domain ?? input.domain).replace(/^\./, "");
+						const url = `${scheme}://${domain}${cookie.path}`;
+						return ses.cookies.remove(url, cookie.name);
+					}),
+				);
 				return { success: true };
 			}),
 	});

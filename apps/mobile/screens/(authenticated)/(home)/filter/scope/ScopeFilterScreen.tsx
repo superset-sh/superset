@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { useRouter } from "expo-router";
 import { Cloud } from "lucide-react-native";
 import { useMemo } from "react";
@@ -22,6 +23,7 @@ import { ListRowCheck } from "@/screens/(authenticated)/components/ListRowCheck"
  * place, not a computer that sleeps.
  */
 export function ScopeFilterScreen() {
+	const { t } = useLingui();
 	const router = useRouter();
 	const hosts = useOrgHosts();
 	const selectedHost = useSelectedHost();
@@ -73,7 +75,7 @@ export function ScopeFilterScreen() {
 							strokeWidth={2}
 						/>
 					}
-					label="Cloud"
+					label={t({ id: "mobile.filter.cloud", message: "Cloud" })}
 					trailing={<ListRowCheck visible={scope === "cloud"} />}
 					onPress={selectCloud}
 					isLast={sortedHosts.length === 0}

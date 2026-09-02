@@ -17,12 +17,16 @@ const config: NextConfig = {
 	reactCompiler: true,
 	typescript: { ignoreBuildErrors: true },
 
+	// Compiles @lingui/react/macro at build time. Version must stay in
+	// lockstep with Next's swc_core ABI — see plans/20260826-i18n-strategy.md.
+	experimental: {
+		// next/root-params powers the [lang] locale resolution in i18n-server.ts.
+		rootParams: true,
+		swcPlugins: [["@lingui/swc-plugin", {}]],
+	},
+
 	images: {
 		remotePatterns: [
-			{
-				protocol: "https",
-				hostname: "*.public.blob.vercel-storage.com",
-			},
 			{
 				protocol: "https",
 				hostname: "unavatar.io",

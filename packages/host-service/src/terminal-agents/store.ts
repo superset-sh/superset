@@ -146,6 +146,16 @@ export class TerminalAgentStore extends EventEmitter {
 			agentSessionId !== undefined &&
 			prior.agentSessionId !== agentSessionId;
 
+		// "Attached" is a session-liveness signal, not lifecycle progress. The
+		// wrapper's launch report is delayed and can land after the session
+		// already advanced past it (working, a Stop that makes the row a
+		// resume candidate, a surfaced Failed) — keep the prior state unless
+		// the event belongs to a different session.
+		const preservedLifecycleState =
+			eventType === "Attached" && prior !== undefined && !sessionChanged
+				? prior.lastEventType
+				: undefined;
+
 		const next: TerminalAgentBinding = {
 			terminalId,
 			workspaceId,
@@ -155,7 +165,7 @@ export class TerminalAgentStore extends EventEmitter {
 			startedAt:
 				prior !== undefined && !sessionChanged ? prior.startedAt : occurredAt,
 			lastEventAt: occurredAt,
-			lastEventType: eventType,
+			lastEventType: preservedLifecycleState ?? eventType,
 		};
 
 		this.byTerminal.set(terminalId, next);

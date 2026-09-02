@@ -7,7 +7,7 @@ Show a popup or forced-update page in the desktop app **without shipping a relea
 A notice is **one markdown body** plus behavioral fields. There is no title field — put the title in the markdown (`### Heads up: …`).
 
 - Markdown supports headings, bold, links, lists, and images. Raw HTML is stripped.
-- A leading image (`![alt](https://…)`) renders edge-to-edge at the top of the dialog, card-cover style (capped height, `object-cover`). Host images at any public URL (e.g. Vercel Blob).
+- A leading image (`![alt](https://…)`) renders edge-to-edge at the top of the dialog, card-cover style (capped height, `object-cover`). Host images at any public URL (e.g. `static.supersetusercontent.com`).
 - Exception: `blocking` notices render on the full-screen forced-update page, where the body is shown as **plain text** — keep it to a sentence or two, no markdown.
 
 ## Creating one

@@ -1,3 +1,4 @@
+import { i18n } from "@superset/i18n";
 import type { AutomationTemplate } from "../../templates";
 
 interface TemplateCardProps {
@@ -14,10 +15,10 @@ export function TemplateCard({ template, onSelect }: TemplateCardProps) {
 		>
 			<span className="flex items-center gap-2 text-sm font-medium">
 				<span className="text-base leading-none">{template.emoji}</span>
-				{template.name}
+				{i18n._(template.name)}
 			</span>
 			<span className="line-clamp-3 text-xs text-muted-foreground">
-				{template.description}
+				{i18n._(template.description)}
 			</span>
 		</button>
 	);

@@ -1,3 +1,5 @@
+import { i18n } from "../../i18n";
+
 // Role hierarchy from lowest to highest permission
 export const ROLE_HIERARCHY = ["member", "admin", "owner"] as const;
 
@@ -11,6 +13,22 @@ export const ORGANIZATION_ROLES: Record<
 	admin: { id: "admin", name: "Admin" },
 	owner: { id: "owner", name: "Owner" },
 };
+
+/**
+ * The role's display name in the active locale. `ORGANIZATION_ROLES[x].name`
+ * stays plain English: it is stable data (logs, server payloads), so display
+ * code renders this instead.
+ */
+export function organizationRoleName(role: OrganizationRole): string {
+	switch (role) {
+		case "owner":
+			return i18n._({ id: "shared.roles.owner", message: "Owner" });
+		case "admin":
+			return i18n._({ id: "shared.roles.admin", message: "Admin" });
+		case "member":
+			return i18n._({ id: "shared.roles.member", message: "Member" });
+	}
+}
 
 export function getRoleLevel(role: OrganizationRole): number {
 	return ROLE_HIERARCHY.indexOf(role);

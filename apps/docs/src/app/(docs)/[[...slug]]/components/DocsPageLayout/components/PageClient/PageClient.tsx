@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import { cva } from "class-variance-authority";
 import type { BreadcrumbOptions } from "fumadocs-core/breadcrumb";
 import { getBreadcrumbItemsFromPath } from "fumadocs-core/breadcrumb";
@@ -105,7 +106,9 @@ export function LastUpdate(props: { date: Date }) {
 	}, [props.date]);
 
 	return (
-		<p className="text-sm text-fd-muted-foreground">Last updated on {date}</p>
+		<p className="text-sm text-fd-muted-foreground">
+			<Trans id="docs.page.lastUpdated">Last updated on {date}</Trans>
+		</p>
 	);
 }
 
@@ -176,7 +179,9 @@ export function Footer({ items }: FooterProps) {
 				<Link href={previous.url} className={cn(itemVariants())}>
 					<div className={cn(itemLabel())}>
 						<ChevronLeft className="-ms-1 size-4 shrink-0 rtl:rotate-180" />
-						<p>Previous</p>
+						<p>
+							<Trans id="docs.page.previous">Previous</Trans>
+						</p>
 					</div>
 					<p className="font-medium md:text-[15px]">{previous.name}</p>
 				</Link>
@@ -188,7 +193,9 @@ export function Footer({ items }: FooterProps) {
 				>
 					<div className={cn(itemLabel({ className: "flex-row-reverse" }))}>
 						<ChevronRight className="-me-1 size-4 shrink-0 rtl:rotate-180" />
-						<p>Next</p>
+						<p>
+							<Trans id="docs.page.next">Next</Trans>
+						</p>
 					</div>
 					<p className="font-medium md:text-[15px]">{next.name}</p>
 				</Link>

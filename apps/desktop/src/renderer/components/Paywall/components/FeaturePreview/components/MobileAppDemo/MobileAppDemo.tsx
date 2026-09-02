@@ -1,3 +1,5 @@
+import { Trans } from "@lingui/react/macro";
+
 function SupersetIcon({ className }: { className?: string }) {
 	return (
 		<svg
@@ -76,9 +78,13 @@ export function MobileAppDemo() {
 							</div>
 							<div>
 								<div className="text-sm font-semibold text-foreground">
-									Superset Agent
+									<Trans id="components.mobileAppDemo.agentName">
+										Superset Agent
+									</Trans>
 								</div>
-								<div className="text-[10px] text-emerald-400">● Online</div>
+								<div className="text-[10px] text-emerald-400">
+									<Trans id="components.mobileAppDemo.online">● Online</Trans>
+								</div>
 							</div>
 						</div>
 					</div>
@@ -109,7 +115,9 @@ export function MobileAppDemo() {
 					<div className="absolute bottom-6 left-4 right-4">
 						<div className="flex items-center gap-2 px-4 py-3 bg-foreground/10 rounded-full border border-border">
 							<span className="text-sm text-muted-foreground/70 flex-1">
-								Message...
+								<Trans id="components.mobileAppDemo.messagePlaceholder">
+									Message...
+								</Trans>
 							</span>
 							<div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
 								<svg

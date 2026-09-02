@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import type { WorkspaceProps } from "@superset/panes";
 import { alert } from "@superset/ui/atoms/Alert";
 import { useCallback } from "react";
@@ -11,6 +12,7 @@ type OnBeforeCloseTab = NonNullable<
 >;
 
 export function useDirtyTabCloseGuard(): OnBeforeCloseTab {
+	const { t } = useLingui();
 	const { workspace } = useWorkspace();
 	const workspaceId = workspace.id;
 	return useCallback<OnBeforeCloseTab>(
@@ -26,15 +28,27 @@ export function useDirtyTabCloseGuard(): OnBeforeCloseTab {
 			if (dirtyPanes.length === 0) return true;
 			const title =
 				dirtyPanes.length === 1
-					? `Do you want to save the changes you made to ${dirtyFileNames[0]}?`
-					: `Do you want to save changes to ${dirtyPanes.length} files?`;
+					? t({
+							id: "workspace.dirtyTabCloseGuard.saveSingleTitle",
+							message: `Do you want to save the changes you made to ${dirtyFileNames[0]}?`,
+						})
+					: t({
+							id: "workspace.dirtyTabCloseGuard.saveMultipleTitle",
+							message: `Do you want to save changes to ${dirtyPanes.length} files?`,
+						});
 			return new Promise<boolean>((resolve) => {
 				alert({
 					title,
-					description: "Your changes will be lost if you don't save them.",
+					description: t({
+						id: "workspace.dirtyTabCloseGuard.description",
+						message: "Your changes will be lost if you don't save them.",
+					}),
 					actions: [
 						{
-							label: "Save All",
+							label: t({
+								id: "workspace.dirtyTabCloseGuard.saveAll",
+								message: "Save All",
+							}),
 							onClick: async () => {
 								for (const pane of dirtyPanes) {
 									const filePath = (pane.data as FilePaneData).filePath;
@@ -50,7 +64,10 @@ export function useDirtyTabCloseGuard(): OnBeforeCloseTab {
 							},
 						},
 						{
-							label: "Don't Save",
+							label: t({
+								id: "workspace.dirtyTabCloseGuard.dontSave",
+								message: "Don't Save",
+							}),
 							variant: "secondary",
 							onClick: async () => {
 								for (const pane of dirtyPanes) {
@@ -62,7 +79,10 @@ export function useDirtyTabCloseGuard(): OnBeforeCloseTab {
 							},
 						},
 						{
-							label: "Cancel",
+							label: t({
+								id: "workspace.dirtyTabCloseGuard.cancel",
+								message: "Cancel",
+							}),
 							variant: "ghost",
 							onClick: () => resolve(false),
 						},
@@ -70,6 +90,6 @@ export function useDirtyTabCloseGuard(): OnBeforeCloseTab {
 				});
 			});
 		},
-		[workspaceId],
+		[t, workspaceId],
 	);
 }

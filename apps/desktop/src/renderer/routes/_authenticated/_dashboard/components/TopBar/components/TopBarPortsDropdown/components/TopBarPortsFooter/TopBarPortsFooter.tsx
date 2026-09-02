@@ -1,3 +1,5 @@
+import { plural } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
 import { LuLoaderCircle, LuX } from "react-icons/lu";
 import { useDashboardSidebarPortKill } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useDashboardSidebarPortKill";
@@ -14,6 +16,7 @@ export function TopBarPortsFooter({
 	groups,
 	totalPortCount,
 }: TopBarPortsFooterProps) {
+	const { t } = useLingui();
 	const { isPending, killPorts } = useDashboardSidebarPortKill();
 
 	const handleCloseAll = async () => {
@@ -22,7 +25,13 @@ export function TopBarPortsFooter({
 		const closedCount = results.filter((result) => result.success).length;
 		if (closedCount > 0) {
 			toast.success(
-				closedCount === 1 ? "Closed 1 port" : `Closed ${closedCount} ports`,
+				t({
+					id: "dashboard.topBar.ports.closedPortsToast",
+					message: plural(closedCount, {
+						one: "Closed # port",
+						other: "Closed # ports",
+					}),
+				}),
 			);
 		}
 	};
@@ -30,7 +39,13 @@ export function TopBarPortsFooter({
 	return (
 		<div className="flex items-center justify-between border-border border-t px-3 py-1.5">
 			<span className="text-[11px] text-muted-foreground">
-				{totalPortCount === 1 ? "1 live port" : `${totalPortCount} live ports`}
+				{t({
+					id: "dashboard.topBar.ports.livePortCount",
+					message: plural(totalPortCount, {
+						one: "# live port",
+						other: "# live ports",
+					}),
+				})}
 			</span>
 			<button
 				type="button"
@@ -47,7 +62,7 @@ export function TopBarPortsFooter({
 				) : (
 					<LuX className="size-3" strokeWidth={STROKE_WIDTH} />
 				)}
-				Close all
+				<Trans id="dashboard.topBar.ports.closeAll">Close all</Trans>
 			</button>
 		</div>
 	);

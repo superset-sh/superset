@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
@@ -19,6 +20,7 @@ export function LinkedIssuePill({
 	taskId,
 	onRemove,
 }: LinkedIssuePillProps) {
+	const { t } = useLingui();
 	const navigate = useNavigate();
 
 	const handleClick = () => {
@@ -26,7 +28,12 @@ export function LinkedIssuePill({
 		if (taskId?.trim()) {
 			navigate({ to: "/tasks/$taskId", params: { taskId } }).catch((error) => {
 				console.error("Failed to navigate to task:", error);
-				toast.error("Failed to open task");
+				toast.error(
+					t({
+						id: "components.linkedIssuePill.openTaskFailed",
+						message: "Failed to open task",
+					}),
+				);
 				// Fallback to external URL if available
 				if (url) {
 					window.open(url, "_blank");
@@ -56,7 +63,10 @@ export function LinkedIssuePill({
 				onKeyDown: handleKeyDown,
 				role: "button",
 				tabIndex: 0,
-				"aria-label": `Open task ${title}`,
+				"aria-label": t({
+					id: "components.linkedIssuePill.openTask",
+					message: `Open task ${title}`,
+				}),
 			})}
 			className="group flex items-center gap-2.5 rounded-md border border-border/50 bg-muted/60 px-3 py-2 text-sm transition-all select-none hover:bg-accent hover:ring-1 hover:ring-border dark:hover:bg-accent/50"
 			style={{ cursor: taskId || url ? "pointer" : "default" }}
@@ -64,7 +74,10 @@ export function LinkedIssuePill({
 			<div className="relative flex size-7 shrink-0 items-center justify-center rounded-md bg-foreground/10 p-0.5">
 				<LinearIcon className="size-5 rounded-sm transition-opacity group-hover:opacity-0" />
 				<Button
-					aria-label="Remove linked issue"
+					aria-label={t({
+						id: "components.linkedIssuePill.removeLinkedIssue",
+						message: "Remove linked issue",
+					})}
 					className="pointer-events-none absolute inset-0 size-7 cursor-pointer rounded-md p-0 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 [&>svg]:size-3"
 					onClick={(e) => {
 						e.stopPropagation();
@@ -74,7 +87,9 @@ export function LinkedIssuePill({
 					variant="ghost"
 				>
 					<XIcon />
-					<span className="sr-only">Remove</span>
+					<span className="sr-only">
+						<Trans id="components.linkedIssuePill.remove">Remove</Trans>
+					</span>
 				</Button>
 			</div>
 			<div className="flex flex-col items-start leading-tight">
@@ -84,7 +99,9 @@ export function LinkedIssuePill({
 				<div className="flex items-center gap-1.5 text-muted-foreground text-[10px] uppercase tracking-widest">
 					<span className="max-w-[80px] truncate">{slug}</span>
 					<span>·</span>
-					<span>Linear</span>
+					<span>
+						<Trans id="components.linkedIssuePill.linearSource">Linear</Trans>
+					</span>
 				</div>
 			</div>
 		</div>

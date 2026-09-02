@@ -6,6 +6,7 @@ import {
 	writeSharedDisabledAgentIds,
 	writeSharedDisabledSkillIds,
 } from "@superset/agent-setup";
+import { i18n, initI18nAsync } from "@superset/i18n";
 import { settings } from "@superset/local-db";
 import { app, dialog, Notification, net, protocol, session } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
@@ -26,19 +27,22 @@ import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
 import { isUpdateReadyToInstall, setupAutoUpdater } from "./lib/auto-updater";
 import { startBrowserBridge } from "./lib/browser/browser-bridge";
+import { downloadManager } from "./lib/browser/download-manager";
 import { installBundledCliShim } from "./lib/bundled-cli";
 import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
 import { getHostServiceCoordinator } from "./lib/host-service-coordinator";
+import { resolveAppLocale } from "./lib/language";
 import { localDb } from "./lib/local-db";
 import { requestLocalNetworkAccess } from "./lib/local-network-permission";
-import { PAGE_SCHEME, pageProtocolHandler } from "./lib/pageContent";
+import { menuEmitter } from "./lib/menu-events";
 import {
 	initTanstackDbPersistence,
 	shutdownTanstackDbPersistence,
 } from "./lib/persistence/persistence";
 import { syncInstalledPluginMcpServers } from "./lib/plugin-installs";
+import { portForwardManager } from "./lib/port-forward";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
 import { runQuitCleanup } from "./lib/quit-sequence";
 import { initSentry } from "./lib/sentry";
@@ -92,12 +96,14 @@ async function processDeepLink(url: string): Promise<void> {
 	if (authLink.type !== "not-auth") {
 		// Never log the auth URL: it contains the desktop session token.
 		console.log("[main] Processing auth deep link");
+		// `error` stays English: it is the log line. What the user reads is
+		// resolved separately below so it can be translated.
 		const result =
 			authLink.type === "valid"
 				? await handleAuthCallback(authLink.params)
 				: {
 						success: false as const,
-						error: "The sign-in link was incomplete. Please try again.",
+						error: "sign-in link was missing required parameters",
 					};
 		if (result.success) {
 			focusMainWindow();
@@ -105,9 +111,18 @@ async function processDeepLink(url: string): Promise<void> {
 			console.error("[main] Auth deep link failed:", result.error);
 			focusMainWindow();
 			dialog.showErrorBox(
-				"Sign-in failed",
-				result.error ??
-					"Superset could not complete sign-in. Please try again.",
+				i18n._({ id: "main.auth.failed.title", message: "Sign-in failed" }),
+				authLink.type === "valid"
+					? (result.error ??
+							i18n._({
+								id: "main.auth.failed.detail",
+								message:
+									"Superset could not complete sign-in. Please try again.",
+							}))
+					: i18n._({
+							id: "main.auth.failed.incompleteLink",
+							message: "The sign-in link was incomplete. Please try again.",
+						}),
 			);
 		}
 		return;
@@ -208,6 +223,15 @@ export function exitImmediately(): void {
 	app.exit(0);
 }
 
+function getLanguageSetting(): string | null {
+	try {
+		const row = localDb.select().from(settings).get();
+		return row?.language ?? null;
+	} catch {
+		return null;
+	}
+}
+
 function getConfirmOnQuitSetting(): boolean {
 	try {
 		const row = localDb.select().from(settings).get();
@@ -227,11 +251,17 @@ app.on("before-quit", async (event) => {
 		try {
 			const { response } = await dialog.showMessageBox({
 				type: "question",
-				buttons: ["Quit", "Cancel"],
+				buttons: [
+					i18n._({ id: "main.quit.confirm", message: "Quit" }),
+					i18n._({ id: "main.dialog.cancel", message: "Cancel" }),
+				],
 				defaultId: 0,
 				cancelId: 1,
-				title: "Quit Superset",
-				message: "Are you sure you want to quit?",
+				title: i18n._({ id: "main.quit.title", message: "Quit Superset" }),
+				message: i18n._({
+					id: "main.quit.message",
+					message: "Are you sure you want to quit?",
+				}),
 			});
 
 			if (response === 1) {
@@ -243,6 +273,9 @@ app.on("before-quit", async (event) => {
 	}
 
 	isQuitting = true;
+	// Local port-forward listeners hold no state worth draining; drop them so
+	// nothing keeps 127.0.0.1:<port> bound after the app is gone.
+	portForwardManager.stopAll();
 	// Snapshot all open windows (bounds + org) before they close, so relaunch
 	// restores them. markAppQuitting() stops per-window close handlers from
 	// shrinking the set as windows close one-by-one.
@@ -322,6 +355,12 @@ if (process.env.NODE_ENV === "development") {
 	parentCheckInterval.unref();
 }
 
+// Chromium refuses to cache any single entry larger than about an eighth
+// of the disk cache, and the default cache is a few hundred MB — too
+// small for a video inside a page. 1 GiB lifts the per-entry cap to
+// roughly 128 MB.
+app.commandLine.appendSwitch("disk-cache-size", String(1024 * 1024 * 1024));
+
 protocol.registerSchemesAsPrivileged([
 	{
 		scheme: "superset-icon",
@@ -341,13 +380,6 @@ protocol.registerSchemesAsPrivileged([
 			supportFetchAPI: true,
 		},
 	},
-	{
-		scheme: PAGE_SCHEME,
-		privileges: {
-			standard: true,
-			secure: true,
-		},
-	},
 ]);
 
 const gotTheLock = app.requestSingleInstanceLock();
@@ -357,15 +389,40 @@ if (!gotTheLock) {
 } else {
 	// Windows/Linux: protocol URL arrives as argv on the second instance
 	app.on("second-instance", async (_event, argv) => {
-		focusMainWindow();
+		// An auto-update restart spawns the replacement while this process
+		// still holds the single-instance lock; don't build windows mid-quit.
+		if (isQuitting) return;
 		const url = findDeepLinkInArgv(argv);
 		if (url) {
+			// processDeepLink focuses the window on every one of its paths.
 			await processDeepLink(url);
+			return;
 		}
+		// The desktop entry's "New Window" action (GNOME top-bar/dock app
+		// menus) relaunches the executable with --new-window, and the
+		// single-instance lock lands it here. A plain relaunch keeps the
+		// Electron-standard behavior of focusing the running app, so a
+		// Start-menu or launcher re-click never stacks extra windows. The
+		// listener-count check covers the boot window before initAppServices
+		// registers the handler; falling back to focus matches pre-ready
+		// behavior instead of dropping the event silently.
+		if (
+			argv.includes("--new-window") &&
+			menuEmitter.listenerCount("new-window") > 0
+		) {
+			console.log("[main] Second instance requested a new window");
+			menuEmitter.emit("new-window");
+			return;
+		}
+		focusMainWindow();
 	});
 
 	(async () => {
 		await app.whenReady();
+		// Persisted language setting wins; otherwise infer from OS preferences
+		// (plans/20260826-i18n-strategy.md). Menus are built later in
+		// initAppServices/initTray, so a plain activate is enough here.
+		await initI18nAsync(resolveAppLocale(getLanguageSetting()));
 		registerWithMacOSNotificationCenter();
 		requestAppleEventsAccess();
 		requestLocalNetworkAccess();
@@ -384,11 +441,6 @@ if (!gotTheLock) {
 		session
 			.fromPartition("persist:superset")
 			.protocol.handle("superset-icon", iconProtocolHandler);
-
-		protocol.handle(PAGE_SCHEME, pageProtocolHandler);
-		session
-			.fromPartition("persist:superset")
-			.protocol.handle(PAGE_SCHEME, pageProtocolHandler);
 
 		// Serve system fonts (e.g. SF Mono on macOS) via custom protocol
 		// so the renderer can use @font-face with font-src 'self' CSP
@@ -442,6 +494,7 @@ if (!gotTheLock) {
 		} catch (error) {
 			console.error("[main] Failed to start browser bridge:", error);
 		}
+		downloadManager.start();
 
 		const hostServiceCoordinator = getHostServiceCoordinator();
 		hostServiceCoordinator.setConfigProvider(async () => {

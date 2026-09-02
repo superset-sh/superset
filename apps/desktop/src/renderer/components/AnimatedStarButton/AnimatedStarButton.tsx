@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Star } from "lucide-react";
@@ -68,6 +69,7 @@ export function AnimatedStarButton({
 	className,
 	compact,
 }: AnimatedStarButtonProps) {
+	const { t } = useLingui();
 	const [particles, setParticles] = useState<Particle[]>([]);
 	const [justStarred, setJustStarred] = useState(false);
 	const prevStateRef = useRef(state);
@@ -95,7 +97,17 @@ export function AnimatedStarButton({
 	}, [state, prefersReducedMotion]);
 
 	const isStarred = state === "starred";
-	const label = isStarred ? "Starred" : busy ? "Starring…" : "Star on GitHub";
+	const label = isStarred
+		? t({ id: "components.animatedStarButton.starred", message: "Starred" })
+		: busy
+			? t({
+					id: "components.animatedStarButton.starring",
+					message: "Starring…",
+				})
+			: t({
+					id: "components.animatedStarButton.starOnGithub",
+					message: "Star on GitHub",
+				});
 
 	return (
 		<button

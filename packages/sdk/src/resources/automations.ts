@@ -187,6 +187,8 @@ export interface AutomationSummary {
 	/** Null = session automation: runs use project-less session workspaces. */
 	v2ProjectId: string | null;
 	v2WorkspaceId: string | null;
+	/** Workspace tags applied to each run's created workspace. */
+	tags: string[];
 	rrule: string;
 	dtstart: string;
 	timezone: string;
@@ -241,6 +243,12 @@ export interface AutomationCreateParams {
 	targetHostId?: string | null;
 	/** ISO timestamp; defaults to now if omitted. */
 	dtstart?: string;
+	/**
+	 * Workspace tags applied to each run's created workspace; each tag files
+	 * it into a sidebar folder of the same name. Defaults to ["automation"]
+	 * so runs group out of the box; pass [] to opt out.
+	 */
+	tags?: string[];
 }
 
 export interface AutomationUpdateParams {
@@ -270,6 +278,8 @@ export interface AutomationUpdateParams {
 	rrule?: string;
 	dtstart?: string;
 	timezone?: string;
+	/** Full replacement of the automation's tag set. */
+	tags?: string[];
 }
 
 export interface AutomationRun {

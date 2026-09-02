@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import type { TaskPriority } from "@superset/db/enums";
 import {
 	DropdownMenu,
@@ -10,14 +11,6 @@ import { HiChevronDown } from "react-icons/hi2";
 import { PriorityIcon } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/components/shared/PriorityIcon";
 import { PriorityMenuItems } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/components/shared/PriorityMenuItems";
 
-const PRIORITY_LABELS: Record<TaskPriority, string> = {
-	none: "No priority",
-	urgent: "Urgent",
-	high: "High",
-	medium: "Medium",
-	low: "Low",
-};
-
 interface CreateTaskPriorityPickerProps {
 	value: TaskPriority;
 	statusType?: string;
@@ -29,6 +22,29 @@ export function CreateTaskPriorityPicker({
 	statusType,
 	onChange,
 }: CreateTaskPriorityPickerProps) {
+	const { t } = useLingui();
+	const priorityLabels: Record<TaskPriority, string> = {
+		none: t({
+			id: "dashboard.tasks.createTaskPriorityPicker.priorityNone",
+			message: "No priority",
+		}),
+		urgent: t({
+			id: "dashboard.tasks.createTaskPriorityPicker.priorityUrgent",
+			message: "Urgent",
+		}),
+		high: t({
+			id: "dashboard.tasks.createTaskPriorityPicker.priorityHigh",
+			message: "High",
+		}),
+		medium: t({
+			id: "dashboard.tasks.createTaskPriorityPicker.priorityMedium",
+			message: "Medium",
+		}),
+		low: t({
+			id: "dashboard.tasks.createTaskPriorityPicker.priorityLow",
+			message: "Low",
+		}),
+	};
 	const [open, setOpen] = useState(false);
 
 	return (
@@ -39,7 +55,7 @@ export function CreateTaskPriorityPicker({
 					className="flex h-9 items-center gap-2 rounded-full border border-border/60 bg-muted/30 px-3 text-sm transition-colors hover:bg-muted/60"
 				>
 					<PriorityIcon priority={value} statusType={statusType} />
-					<span>{PRIORITY_LABELS[value]}</span>
+					<span>{priorityLabels[value]}</span>
 					<HiChevronDown className="size-3.5 text-muted-foreground" />
 				</button>
 			</DropdownMenuTrigger>

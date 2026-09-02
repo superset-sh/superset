@@ -49,12 +49,95 @@ enum ComposerMetrics {
   /// The quick-key strip, matching the gap the React Native composer used
   /// between its `above` cluster and the pill.
   static let quickKeyGap: CGFloat = 10
-  static let quickKeySpacing: CGFloat = 8
-  /// Only the glyph and a floor for single-character keys are set; `.glass`
-  /// owns the padding and the height.
+  /// Air between the slash panel and the top of the overlay. The overlay is a
+  /// child of the screen's own view controller, so its top edge already sits
+  /// below the navigation header — this is a breathing gap, not a header
+  /// allowance. The panel fills everything from here to the quick keys.
+  static let composerTopReserve: CGFloat = 8
+  static let slashPanelRadius: CGFloat = 20
+  static let slashPanelInset: CGFloat = 6
+  static let slashRowVerticalPadding: CGFloat = 10
+  static let slashDescriptionFontSize: CGFloat = 12
+  /// Keys sit inside one surface now, so they are packed tighter than nine
+  /// separate chips could be — the spacing here is between keys, not between
+  /// backdrops.
+  static let quickKeySpacing: CGFloat = 1
   static let quickKeyGlyphSize: CGFloat = 13
   static let quickKeyMinWidth: CGFloat = 22
-  static let quickKeyRadius: CGFloat = 10
+  /// The shared surface: its corner and the inset holding the keys off its edge.
+  /// The bar hugs whatever the keys need plus that inset on every side — it is
+  /// no longer pinned to the key height, which left a pressed key exactly as
+  /// tall as its container with nowhere to sit.
+  static let quickKeyBarRadius: CGFloat = 11
+  static let quickKeyBarInset: CGFloat = 4
+  /// Concentric with the bar: a rounded rect inset by *n* inside another only
+  /// looks nested if its radius is smaller by the same *n*. Derived rather than
+  /// written down, so the two corners cannot drift apart.
+  static let quickKeyRadius: CGFloat = quickKeyBarRadius - quickKeyBarInset
+  static let quickKeyHeight: CGFloat = 28
+  static let quickKeyPaddingH: CGFloat = 7
+  static let quickKeyDividerHeight: CGFloat = 15
+  /// Air either side of a group divider. The keys sit a hair apart from each
+  /// other, so without this the hairline is as close to its neighbours as they
+  /// are to each other and stops reading as a break between groups.
+  static let quickKeyDividerGap: CGFloat = 4
+  /// The edge fade, in unit space rather than points: the mask is a gradient
+  /// laid out across the surface, and it has no geometry to read from.
+  static let quickKeyFadeFraction: CGFloat = 0.07
+  /// Slack before a scroll offset counts as "there is more that way", so a
+  /// rubber-band overshoot does not flicker the fades.
+  static let quickKeyScrollThreshold: CGFloat = 4
+
+  /// The session tab strip, above the quick keys.
+  ///
+  /// One gap for the whole row: tab-to-tab, tab-to-`+`, `+`-to-grid, and the
+  /// air the chevron leaves in front of the first tab are all this. The strip
+  /// reads as one rhythm rather than as tabs with controls bolted on.
+  static let sessionTabGap: CGFloat = 8
+  static let sessionTabRadius: CGFloat = 8
+  static let sessionTabPaddingH: CGFloat = 10
+  static let sessionTabPaddingV: CGFloat = 5
+  static let sessionTabIconGap: CGFloat = 6
+  static let sessionTabFontSize: CGFloat = 12
+  static let sessionTabMarkSize: CGFloat = 13
+  /// A long branch name has to truncate rather than push the trailing controls
+  /// off the row.
+  static let sessionTabMaxLabelWidth: CGFloat = 128
+  static let sessionTabDotSize: CGFloat = 6
+  static let sessionTabCloseSize: CGFloat = 15
+  /// The width the close disc occupies over the end of a selected tab: the
+  /// glyph plus the air after it. It is overlaid, so it costs the pill no
+  /// layout at all — this is only how far the title is faded out beneath it.
+  static let sessionTabCloseSlot: CGFloat = sessionTabCloseSize + sessionTabPaddingV
+  /// Softens the tail of a title too short to have truncated, where the disc
+  /// necessarily sits over it.
+  static let sessionTabCloseFade: CGFloat = 12
+  static let sessionTabControlSize: CGFloat = 28
+  static let sessionTabControlGlyph: CGFloat = 13
+  /// A drawn mark needs more box than an SF Symbol at the same nominal size —
+  /// the symbol's own bounds already carry optical padding, a 24-unit lucide
+  /// path does not.
+  static let sessionTabControlMark: CGFloat = 16
+  static let sessionTabControlGap: CGFloat = sessionTabGap
+  /// How far the strip scrolls before the scroll-home chevron is fully in.
+  /// The reveal is a ratio of this, not a threshold crossing, so the control
+  /// arrives with the content rather than popping once it has gone far enough.
+  static let sessionTabChevronReveal: CGFloat = 32
+  /// `.white.opacity(0.12)` composited over the app background, as an opaque
+  /// colour. The scroll-home chevron overlays tabs that slide underneath it, so
+  /// it cannot be translucent — but it still has to match the `+` and the grid
+  /// beside it, which sit on the background and can be.
+  static let sessionTabControlOpaque = Color(white: 0.155)
+  static let sessionTabControlOpaquePressed = Color(white: 0.22)
+  /// Where the scroll-home chevron stops covering the tabs, measured from the
+  /// scroll view's own leading edge — the row margin is outside it now, so this
+  /// is just the control plus one `sessionTabGap`. The air it leaves in front
+  /// of the first tab is the same air between any two tabs.
+  static let sessionTabChevronZone: CGFloat =
+    sessionTabControlSize + sessionTabGap
+  /// How far past that the tabs take to reach full opacity. The fade is what
+  /// makes a tab sliding under the chevron look like it is going somewhere.
+  static let sessionTabFadeWidth: CGFloat = 18
   /// Measured off frames 6 and 9. The badge sits *inside* the thumbnail, inset
   /// by roughly its own radius — an earlier pass had it bleeding outside the
   /// corner, and the thumbnails were a third too small and proportionally
@@ -143,6 +226,11 @@ struct ComposerRootView: View {
   /// view underneath cannot resign a SwiftUI first responder.
   @State private var surfaceFrame: CGRect = .zero
   @State private var rootFrame: CGRect = .zero
+  /// Global top of the quick-keys+card cluster, for sizing the slash panel:
+  /// its height is computed from real geometry rather than negotiated with
+  /// the stack — a Spacer and a ScrollView are both greedy, and every
+  /// priority arrangement still split the leftover between them.
+  @State private var clusterTopY: CGFloat = 0
   /// The attachment open full screen, if any.
   @State private var viewing: ComposerAttachment?
 
@@ -164,27 +252,78 @@ struct ComposerRootView: View {
     ZStack {
       backdrop
       VStack(spacing: 0) {
-        Spacer(minLength: 0)
+        // A floor, not a gap: the suggestion panel is the only thing that can
+        // grow the cluster toward the top, and this is what stops it there.
+        Spacer(minLength: ComposerMetrics.composerTopReserve)
         // The quick keys ride with the card rather than sitting beside it: one
         // stack, one spacing, one transaction. As a sibling laid out by React
         // Native the gap had to guess the card's height and drifted every time
         // it grew — see `ComposerQuickKeys`.
+        //
+        // Two stacks on purpose. The outer one reports the interactive frame
+        // and holds the slash panel, so taps on it pass the hit test; the
+        // inner one reports the height the terminal insets by. Folding them
+        // together would grow the terminal's margin every time the panel
+        // opens, reflowing the scrollback under a transient menu.
         VStack(spacing: ComposerMetrics.quickKeyGap) {
-          if !model.quickKeys.isEmpty {
-            ComposerQuickKeys(keys: model.quickKeys) { model.onQuickKeyPress?($0) }
-          }
-          surface
+          if isExpanded, let suggestions = model.slashSuggestions {
+            ComposerSlashSuggestions(
+              state: suggestions,
+              // Everything between the header reserve and the cluster,
+              // measured off real frames. dragOffset is subtracted so the
+              // panel does not inflate while the card is being dragged away.
+              availableHeight: max(
+                0,
+                (clusterTopY - dragOffset) - rootFrame.minY
+                  - ComposerMetrics.composerTopReserve
+                  - ComposerMetrics.quickKeyGap
+              )
+            ) { command in
+              model.commitSlashCommand(command)
+            }
             .padding(.horizontal, ComposerMetrics.horizontalMargin)
+            .transition(.composerContent)
+          }
+          VStack(spacing: ComposerMetrics.quickKeyGap) {
+            // Above the keys, inside the same stack, so the whole cluster —
+            // tabs, keys, card — is one layout the keyboard moves as one. It
+            // is also what keeps the terminal's inset honest: the height
+            // reported below is measured off this stack, so a tab strip
+            // appearing is already in the number the caller insets by.
+            // Or a leading action with no sessions yet: the strip is still
+            // the row that control belongs to, and drawing it is cheaper than
+            // a second place for the caller to put one.
+            if !model.sessionTabs.isEmpty || model.sessionAction != nil {
+              ComposerSessionTabs(
+                tabs: model.sessionTabs,
+                labels: model.sessionTabLabels,
+                action: model.sessionAction,
+                onSelect: { model.onSessionTabPress?($0) },
+                onClose: { model.onSessionTabClose?($0) },
+                onCopyId: { model.onSessionTabCopyId?($0) },
+                onAction: { model.onSessionActionPress?() },
+                onNewSession: { model.onNewSessionPress?() },
+                onAllSessions: { model.onAllSessionsPress?() }
+              )
+            }
+            if !model.quickKeys.isEmpty {
+              ComposerQuickKeys(keys: model.quickKeys) { model.onQuickKeyPress?($0) }
+            }
+            surface
+              .padding(.horizontal, ComposerMetrics.horizontalMargin)
+          }
+          .padding(.bottom, ComposerMetrics.bottomGap)
+          // Its own size, not its position — the keyboard moves this cluster
+          // but does not resize it, so the caller gets a value that only
+          // changes when the composer genuinely grows.
+          .onGeometryChange(for: CGFloat.self) { $0.size.height }
+            action: { model.onHeightChange?($0) }
+          .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY }
+            action: { clusterTopY = $0 }
         }
-        .padding(.bottom, ComposerMetrics.bottomGap)
         .offset(y: dragOffset)
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) }
           action: { surfaceFrame = $0 }
-        // Its own size, not its position — the keyboard moves this cluster but
-        // does not resize it, so the caller gets a value that only changes when
-        // the composer genuinely grows.
-        .onGeometryChange(for: CGFloat.self) { $0.size.height }
-          action: { model.onHeightChange?($0) }
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)

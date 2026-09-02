@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { getTerminalColors, type Theme } from "shared/themes";
 
 export function ThemeSwatch({ theme }: { theme: Theme }) {
@@ -19,7 +20,7 @@ export function ThemeSwatch({ theme }: { theme: Theme }) {
 				className="text-[9px] leading-none"
 				style={{ color: isDark ? "#fff" : "#000", opacity: 0.9 }}
 			>
-				Aa
+				<Trans id="components.themeSwatch.fontSample">Aa</Trans>
 			</span>
 		</div>
 	);

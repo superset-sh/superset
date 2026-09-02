@@ -1,3 +1,5 @@
+import { Trans, useLingui } from "@lingui/react/macro";
+import { formatPrice } from "@superset/i18n/format";
 import { isPaymentFailingStatus } from "@superset/shared/billing";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
@@ -29,6 +31,7 @@ interface BillingOverviewProps {
 }
 
 export function BillingOverview({ visibleItems }: BillingOverviewProps) {
+	const { t } = useLingui();
 	const { data: session } = authClient.useSession();
 	const utils = cloudTrpc.useUtils();
 	const searchQuery = useSettingsSearchQuery();
@@ -77,10 +80,7 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 		});
 	const openUrl = electronTrpc.external.openUrl.useMutation();
 	const amountDue = outstandingInvoice
-		? new Intl.NumberFormat("en-US", {
-				style: "currency",
-				currency: outstandingInvoice.currency.toUpperCase(),
-			}).format(outstandingInvoice.amountDue / 100)
+		? formatPrice(outstandingInvoice.amountDue, outstandingInvoice.currency)
 		: null;
 
 	const showOverview = isItemVisible(
@@ -149,7 +149,12 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 			await authClient.subscription.restore({
 				referenceId: activeOrgId,
 			});
-			toast.success("Plan restored");
+			toast.success(
+				t({
+					id: "settings.billing.planRestoredToast",
+					message: "Plan restored",
+				}),
+			);
 		} finally {
 			setIsRestoring(false);
 			await utils.billing.activePlan.invalidate();
@@ -160,21 +165,31 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8 flex items-start justify-between gap-4">
 				<div>
-					<h2 className="text-xl font-semibold">Billing</h2>
+					<h2 className="text-xl font-semibold">
+						<Trans id="settings.billing.title">Billing</Trans>
+					</h2>
 					<p className="text-sm text-muted-foreground mt-1">
-						For questions about billing,{" "}
-						<a
-							href="mailto:support@superset.sh"
-							className="text-primary hover:underline"
-						>
-							contact us
-						</a>
-						.
+						<Trans id="settings.billing.subtitle">
+							For questions about billing,{" "}
+							<a
+								href="mailto:support@superset.sh"
+								className="text-primary hover:underline"
+							>
+								contact us
+							</a>
+							.
+						</Trans>
 					</p>
 				</div>
 				<Button variant="ghost" size="sm" asChild>
 					<Link to="/settings/billing/plans">
-						<HighlightText text="All plans" query={searchQuery} />
+						<HighlightText
+							text={t({
+								id: "settings.billing.allPlansLink",
+								message: "All plans",
+							})}
+							query={searchQuery}
+						/>
 						<HiArrowRight className="h-3 w-3" />
 					</Link>
 				</Button>
@@ -191,7 +206,9 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 				)}
 				{showOverview && (
 					<div>
-						<h3 className="text-sm font-medium mb-2">Plan</h3>
+						<h3 className="text-sm font-medium mb-2">
+							<Trans id="settings.billing.planSectionTitle">Plan</Trans>
+						</h3>
 						<div className="divide-y divide-border">
 							<CurrentPlanCard
 								currentPlan={plan}

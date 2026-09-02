@@ -1,3 +1,5 @@
+import { plural } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { formatDistanceToNow } from "date-fns";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -75,6 +77,7 @@ function InfoRow({
  * Delete at the bottom.
  */
 export function WorkspaceActionsSheet() {
+	const { t } = useLingui();
 	const { id } = useLocalSearchParams<{ id: string }>();
 	const router = useRouter();
 	const theme = useTheme();
@@ -104,7 +107,10 @@ export function WorkspaceActionsSheet() {
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.Button
 					icon="xmark"
-					accessibilityLabel="Close"
+					accessibilityLabel={t({
+						id: "mobile.common.close",
+						message: "Close",
+					})}
 					onPress={() => router.back()}
 				/>
 			</Stack.Toolbar>
@@ -122,12 +128,19 @@ export function WorkspaceActionsSheet() {
 
 				<View className="mt-5 flex-row justify-center gap-4">
 					<CircleAction
-						label="Edit name"
+						label={t({
+							id: "mobile.workspaceActions.editName",
+							message: "Edit name",
+						})}
 						icon={<PencilIcon size={19} color={theme.foreground} />}
 						onPress={() => void renameWorkspace()}
 					/>
 					<CircleAction
-						label={pinned ? "Unpin" : "Pin"}
+						label={
+							pinned
+								? t({ id: "mobile.workspaceActions.unpin", message: "Unpin" })
+								: t({ id: "mobile.workspaceActions.pin", message: "Pin" })
+						}
 						active={pinned}
 						icon={
 							<PinIcon
@@ -138,14 +151,14 @@ export function WorkspaceActionsSheet() {
 						onPress={() => id && togglePin(id)}
 					/>
 					<CircleAction
-						label="Share"
+						label={t({ id: "mobile.common.share", message: "Share" })}
 						icon={<ShareIcon size={19} color={theme.foreground} />}
 						onPress={shareWorkspace}
 					/>
 				</View>
 
 				<Text className="text-muted-foreground mt-9 pb-1 text-[15px]">
-					Info
+					<Trans id="mobile.workspaceActions.info">Info</Trans>
 				</Text>
 				{workspace ? (
 					<View className="border-border/60 flex-row items-center gap-3 border-b py-3.5">
@@ -173,16 +186,33 @@ export function WorkspaceActionsSheet() {
 				) : null}
 				{/* A sandbox isn't one of your machines; naming it as the host says
 			    nothing the Cloud section didn't. */}
-				{host && !isCloud ? <InfoRow label="Host" value={host.name} /> : null}
+				{host && !isCloud ? (
+					<InfoRow
+						label={t({ id: "mobile.workspaceActions.host", message: "Host" })}
+						value={host.name}
+					/>
+				) : null}
 				{changeset.files.length > 0 ? (
 					<InfoRow
-						label="Changes"
-						value={`+${changeset.additions} −${changeset.deletions} · ${changeset.files.length} ${changeset.files.length === 1 ? "file" : "files"}`}
+						label={t({
+							id: "mobile.workspaceActions.changes",
+							message: "Changes",
+						})}
+						value={t({
+							id: "mobile.workspaceActions.changesValue",
+							message: `+${changeset.additions} −${changeset.deletions} · ${plural(
+								changeset.files.length,
+								{ one: "# file", other: "# files" },
+							)}`,
+						})}
 					/>
 				) : null}
 				{workspace ? (
 					<InfoRow
-						label="Created"
+						label={t({
+							id: "mobile.workspaceActions.created",
+							message: "Created",
+						})}
 						value={formatDistanceToNow(new Date(workspace.createdAt), {
 							addSuffix: true,
 						})}
@@ -200,7 +230,7 @@ export function WorkspaceActionsSheet() {
 					>
 						<Trash2Icon size={18} color={theme.destructive} />
 						<Text className="text-destructive text-[15px] font-medium">
-							Delete workspace
+							<Trans id="mobile.deleteWorkspace.title">Delete workspace</Trans>
 						</Text>
 					</Pressable>
 				) : null}

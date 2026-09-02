@@ -2,6 +2,7 @@ export * from "./config";
 export * from "./database";
 export * from "./electron";
 export * from "./mosaic";
+export * from "./port-forwards";
 export * from "./ports";
 export * from "./tab";
 export * from "./workspace";

@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { TRPCError } from "@trpc/server";
+import { userError } from "../i18n-error";
 
 const DATA_URL_PREFIX_SLACK = 256;
 
@@ -41,7 +42,11 @@ export function validateUploadBytes({
 
 	const buffer = decodeBase64Content(content);
 	if (buffer.length === 0) {
-		throw new TRPCError({ code: "BAD_REQUEST", message: "File is empty" });
+		throw userError({
+			code: "BAD_REQUEST",
+			message: "File is empty",
+			i18nKey: "serverError.uploadBytes.fileIsEmpty",
+		});
 	}
 	if (buffer.length > maxBytes) {
 		throw new TRPCError({

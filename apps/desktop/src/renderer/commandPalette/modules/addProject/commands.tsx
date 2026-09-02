@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import {
 	FolderInputIcon,
 	FolderPlusIcon,
@@ -14,7 +15,10 @@ export const addProjectProvider: CommandProvider = {
 		const commands: Command[] = [
 			{
 				id: "addProject.createNew",
-				title: "Create new project",
+				title: msg({
+					id: "commandPalette.addProject.createNew",
+					message: "Create new project",
+				}),
 				section: "add-project",
 				icon: FolderPlusIcon,
 				keywords: ["add project", "new", "blank", "empty", "folder", "init"],
@@ -24,7 +28,10 @@ export const addProjectProvider: CommandProvider = {
 			},
 			{
 				id: "addProject.cloneFromUrl",
-				title: "Clone from URL",
+				title: msg({
+					id: "commandPalette.addProject.cloneFromUrl",
+					message: "Clone from URL",
+				}),
 				section: "add-project",
 				icon: PlusIcon,
 				keywords: ["add project", "repository", "repo", "git", "clone"],
@@ -34,7 +41,10 @@ export const addProjectProvider: CommandProvider = {
 			},
 			{
 				id: "addProject.openFromFolder",
-				title: "Open from folder",
+				title: msg({
+					id: "commandPalette.addProject.openFromFolder",
+					message: "Open from folder",
+				}),
 				section: "add-project",
 				icon: FolderInputIcon,
 				keywords: ["add project", "import", "local", "directory"],
@@ -42,7 +52,10 @@ export const addProjectProvider: CommandProvider = {
 			},
 			{
 				id: "addProject.startFromTemplate",
-				title: "Start from a template",
+				title: msg({
+					id: "commandPalette.addProject.startFromTemplate",
+					message: "Start from a template",
+				}),
 				section: "add-project",
 				icon: LayoutTemplateIcon,
 				keywords: ["add project", "new", "gallery", "starter"],

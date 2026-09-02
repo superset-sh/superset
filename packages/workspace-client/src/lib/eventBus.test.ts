@@ -1,14 +1,14 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { getEventBus } from "./eventBus";
+import { getEventBus, reconnectEventBusIfDown } from "./eventBus";
 
 // Real WS server standing in for a host-service event bus. Records upgrades
 // and client commands; `push` broadcasts a server event to connected clients.
-function makeHostServer() {
+function makeHostServer(port = 0) {
 	const upgrades: string[] = [];
 	const commands: Array<Record<string, unknown>> = [];
 	const clients = new Set<Bun.ServerWebSocket<unknown>>();
 	const server = Bun.serve({
-		port: 0,
+		port,
 		fetch(req, srv) {
 			upgrades.push(new URL(req.url).pathname);
 			if (srv.upgrade(req)) return;
@@ -133,6 +133,43 @@ describe("eventBus", () => {
 		// every active watch from state.
 		await waitFor(() => host.commands.length === 2, 8_000);
 		expect(host.commands[1]).toEqual({ type: "fs:watch", workspaceId: "ws-1" });
+	});
+
+	it("reconnectEventBusIfDown dials a downed connection without waiting out the backoff", async () => {
+		const host = makeHostServer();
+		const port = host.server.port;
+		const bus = getEventBus(host.hostUrl, () => "tok");
+		cleanups.push(bus.on("git:changed", "*", () => {}));
+		// stop() is idempotent, so registering it up front keeps a mid-test
+		// failure from leaking the server into later tests.
+		cleanups.push(() => host.server.stop(true));
+		await waitFor(() => host.clientCount() === 1);
+
+		host.server.stop(true);
+		await waitFor(() => bus.getConnectionStatus().state !== "open");
+		// Let the first automatic redial fail so the socket is sitting out a
+		// grown backoff when the "service is back" signal arrives.
+		await Bun.sleep(1_200);
+
+		const revived = makeHostServer(port);
+		cleanups.push(() => revived.server.stop(true));
+
+		reconnectEventBusIfDown(host.hostUrl);
+		await waitFor(() => revived.clientCount() === 1, 2_000);
+		expect(bus.getConnectionStatus().state).toBe("open");
+	});
+
+	it("reconnectEventBusIfDown leaves an open connection alone", async () => {
+		const host = makeHostServer();
+		const bus = getEventBus(host.hostUrl, () => "tok");
+		cleanups.push(bus.on("git:changed", "*", () => {}));
+		cleanups.push(() => host.server.stop(true));
+		await waitFor(() => host.clientCount() === 1);
+
+		reconnectEventBusIfDown(host.hostUrl);
+		await Bun.sleep(200);
+		expect(host.upgrades.length).toBe(1);
+		expect(bus.getConnectionStatus().state).toBe("open");
 	});
 
 	it("closes the connection when the last listener unsubscribes", async () => {
