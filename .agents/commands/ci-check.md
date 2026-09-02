@@ -7,13 +7,16 @@ Run all CI checks locally to validate the project.
 
 ## Checks
 
-Run these five commands **in parallel** and report all results:
+Run the two fixers first, since they rewrite files the other checks read:
 
 1. `bun run lint:fix` — Biome formatting + linting (auto-fixes)
-2. `bun run typecheck` — TypeScript type checking across all packages
-3. `bun test` — Run all tests
-4. `bun run check:i18n` — Regenerates the translation catalogs and fails on missing or stale translations
-5. `bunx sherif --fix` — Monorepo dependency linting (auto-fixes)
+2. `bunx sherif --fix` — Monorepo dependency linting (auto-fixes)
+
+Then run these three **in parallel** and report all results:
+
+3. `bun run typecheck` — TypeScript type checking across all packages
+4. `bun test` — Run all tests
+5. `bun run check:i18n` — Regenerates the translation catalogs and fails on missing or stale translations
 
 ## Output
 

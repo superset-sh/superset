@@ -151,10 +151,10 @@ Three traps worth knowing before you touch catalogs:
   never invalidated when the English moves. `extract` runs `--overwrite` so the source locale
   is always regenerated, and the `check` script fails on translations the edit stranded.
   Details and the exemption file: `packages/i18n/README.md`.
-- **Regenerate from a clean tree.** `messages.po` is environment-sensitive. Entry order and
-  `#:` reference order both vary between macOS and Linux; `orderBy: "messageId"` and
-  `origins: false` in `lingui.config.ts` keep both out of the catalog, but a catalog
-  regenerated on top of local experiments will still commit noise.
+- **Regenerate from a clean tree.** `lingui.config.ts` keeps `messages.po` deterministic:
+  `orderBy: "messageId"` fixes entry order, and `origins: false` drops the `#:` file
+  references, whose order follows filesystem traversal and differs between macOS and
+  Linux. A catalog regenerated on top of local experiments will still commit noise.
 - **`bun test` runs uncompiled source.** The Lingui macro rewrites `` message: `${n} items` ``
   into a placeholder message plus values at build time, so the catalog stores `{n} items`.
   Tests see neither, which is why `apps/desktop/test-setup.ts` shims the macros and `i18n._`.

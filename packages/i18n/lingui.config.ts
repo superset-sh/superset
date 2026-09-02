@@ -22,8 +22,8 @@ export default defineConfig({
 		"cs",
 		"vi",
 	],
-	// Origins and text-order tie-breaks follow filesystem order, which differs
-	// between macOS and Linux and would dirty the CI diff.
+	// `#:` origin lines list files in filesystem order, which differs between
+	// macOS and Linux and would dirty the CI diff; ids give a total order.
 	format: formatter({ origins: false }),
 	orderBy: "messageId",
 	compileNamespace: "ts",

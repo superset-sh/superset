@@ -32,7 +32,7 @@ on either of:
   `{placeholders}` and `<0>…</0>` tag markers intact, match the terminology the
   catalog already uses, and expand ICU plurals to the branches the language
   needs: Russian, Polish, and Czech take one/few/many/other; Japanese, Chinese,
-  Korean, Thai, Indonesian, Vietnamese, and Turkish have no plural inflection,
+  Korean, Indonesian, Vietnamese, and Turkish have no plural inflection,
   so every branch carries the same text.
 - **A stale translation.** IDs are stable, so Lingui never notices when the
   English under one changes; `scripts/check-stale-translations.ts` compares the
