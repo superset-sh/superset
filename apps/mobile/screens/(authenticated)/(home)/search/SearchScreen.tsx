@@ -173,7 +173,6 @@ export function SearchScreen() {
 				<Stack.Toolbar.Button
 					icon="xmark"
 					accessibilityLabel={t({
-						id: "mobile.common.close",
 						message: "Close",
 					})}
 					onPress={() => router.back()}
@@ -182,7 +181,6 @@ export function SearchScreen() {
 			<Stack.SearchBar
 				ref={searchBarRef}
 				placeholder={t({
-					id: "mobile.home.searchWorkspaces",
 					message: "Search workspaces",
 				})}
 				placement="stacked"
@@ -208,14 +206,12 @@ export function SearchScreen() {
 						<Text className="text-muted-foreground px-4 pb-1 pt-2 font-semibold text-xs">
 							{cloudScope ? (
 								<Plural
-									id="mobile.search.resultsInCloud"
 									value={results.length}
 									one="# result in Cloud"
 									other="# results in Cloud"
 								/>
 							) : (
 								<Plural
-									id="mobile.search.resultsOnHost"
 									value={results.length}
 									one="# result on this host"
 									other="# results on this host"
@@ -262,16 +258,13 @@ export function SearchScreen() {
 						<Text className="text-muted-foreground text-sm">
 							{searching
 								? t({
-										id: "mobile.search.noMatches",
 										message: "No workspaces match your search",
 									})
 								: cloudScope
 									? t({
-											id: "mobile.home.emptyCloud",
 											message: "No cloud workspaces yet",
 										})
 									: t({
-											id: "mobile.search.emptyHost",
 											message: "No workspaces on this host yet",
 										})}
 						</Text>

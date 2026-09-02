@@ -52,7 +52,6 @@ export function BaseBranchSelector({
 				<div className="border-b px-3 py-2">
 					<input
 						placeholder={t({
-							id: "workspace.baseBranchSelector.searchPlaceholder",
 							message: "Search branches...",
 						})}
 						value={search}
@@ -81,9 +80,7 @@ export function BaseBranchSelector({
 						))}
 						{filtered.length === 0 && (
 							<div className="px-2 py-3 text-center text-sm text-muted-foreground">
-								<Trans id="workspace.baseBranchSelector.empty">
-									No branches found
-								</Trans>
+								<Trans>No branches found</Trans>
 							</div>
 						)}
 					</div>

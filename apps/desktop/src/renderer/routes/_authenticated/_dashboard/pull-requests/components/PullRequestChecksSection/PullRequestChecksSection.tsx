@@ -19,23 +19,18 @@ export function PullRequestChecksSection({
 	// external-link icon, not just an icon color — matches that.
 	const checkStatusLabels: Record<PullRequestCheck["status"], string> = {
 		success: t({
-			id: "dashboard.pullRequests.checkStatus.passed",
 			message: "Passed",
 		}),
 		failure: t({
-			id: "dashboard.pullRequests.checkStatus.failed",
 			message: "Failed",
 		}),
 		pending: t({
-			id: "dashboard.pullRequests.checkStatus.running",
 			message: "Running",
 		}),
 		skipped: t({
-			id: "dashboard.pullRequests.checkStatus.skipped",
 			message: "Skipped",
 		}),
 		cancelled: t({
-			id: "dashboard.pullRequests.checkStatus.cancelled",
 			message: "Cancelled",
 		}),
 	};
@@ -45,31 +40,21 @@ export function PullRequestChecksSection({
 		<section aria-labelledby="pull-request-checks-heading">
 			<div className="mb-3 flex items-center justify-between gap-3">
 				<h2 id="pull-request-checks-heading" className="text-sm font-semibold">
-					<Trans id="dashboard.pullRequests.checks.heading">Checks</Trans>
+					<Trans>Checks</Trans>
 				</h2>
 				<span className="text-xs text-muted-foreground">
 					{summary.status === "none" ? (
 						checks.length === 0 ? (
-							<Trans id="dashboard.pullRequests.checks.noneReported">
-								No checks reported
-							</Trans>
+							<Trans>No checks reported</Trans>
 						) : (
-							<Trans id="dashboard.pullRequests.checks.allSkipped">
-								All checks skipped or cancelled
-							</Trans>
+							<Trans>All checks skipped or cancelled</Trans>
 						)
 					) : summary.status === "success" ? (
-						<Trans id="dashboard.pullRequests.checks.allPassed">
-							All {summary.relevantChecks.length} passed
-						</Trans>
+						<Trans>All {summary.relevantChecks.length} passed</Trans>
 					) : summary.status === "failure" ? (
-						<Trans id="dashboard.pullRequests.checks.failingCount">
-							{summary.failing} failing
-						</Trans>
+						<Trans>{summary.failing} failing</Trans>
 					) : (
-						<Trans id="dashboard.pullRequests.checks.runningCount">
-							{summary.pending} running
-						</Trans>
+						<Trans>{summary.pending} running</Trans>
 					)}
 				</span>
 			</div>
@@ -77,9 +62,7 @@ export function PullRequestChecksSection({
 				{checks.length === 0 ? (
 					<div className="flex items-center gap-2 py-3 text-xs text-muted-foreground">
 						<LuCircleMinus className="size-3.5" />
-						<Trans id="dashboard.pullRequests.checks.noneForLatestCommit">
-							No checks reported for the latest commit.
-						</Trans>
+						<Trans>No checks reported for the latest commit.</Trans>
 					</div>
 				) : (
 					checks.map((check, index) => {

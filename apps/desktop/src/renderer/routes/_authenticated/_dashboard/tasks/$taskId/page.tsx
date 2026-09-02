@@ -122,9 +122,7 @@ function TaskDetailPage() {
 			return (
 				<div className="flex-1 flex items-center justify-center">
 					<span className="text-muted-foreground">
-						<Trans id="dashboard.tasks.taskDetail.loading">
-							Loading task...
-						</Trans>
+						<Trans>Loading task...</Trans>
 					</span>
 				</div>
 			);
@@ -133,7 +131,7 @@ function TaskDetailPage() {
 		return (
 			<div className="flex-1 flex items-center justify-center">
 				<span className="text-muted-foreground">
-					<Trans id="dashboard.tasks.taskDetail.notFound">Task not found</Trans>
+					<Trans>Task not found</Trans>
 				</span>
 			</div>
 		);
@@ -162,9 +160,7 @@ function TaskDetailPage() {
 								<Separator className="my-8" />
 
 								<h2 className="text-lg font-semibold mb-4">
-									<Trans id="dashboard.tasks.taskDetail.activityHeading">
-										Activity
-									</Trans>
+									<Trans>Activity</Trans>
 								</h2>
 
 								<ActivitySection

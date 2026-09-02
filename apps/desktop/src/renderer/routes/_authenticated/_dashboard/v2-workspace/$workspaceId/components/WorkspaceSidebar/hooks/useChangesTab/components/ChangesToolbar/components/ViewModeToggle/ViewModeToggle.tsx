@@ -18,9 +18,8 @@ export function ViewModeToggle({ viewMode, onChange }: ViewModeToggleProps) {
 	const next: ChangesViewMode = viewMode === "folders" ? "tree" : "folders";
 	const label =
 		next === "tree"
-			? t({ id: "workspace.viewModeToggle.treeView", message: "Tree view" })
+			? t({ message: "Tree view" })
 			: t({
-					id: "workspace.viewModeToggle.folderView",
 					message: "Folder view",
 				});
 	const Icon = next === "tree" ? ListTree : Folder;

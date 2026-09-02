@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { EventEmitter } from "node:events";
 import * as fs from "node:fs";
 import path from "node:path";
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { organizations, settings } from "@superset/local-db";
 import { getHostId, getHostName } from "@superset/shared/host-info";
@@ -1174,28 +1175,32 @@ export class HostServiceCoordinator extends EventEmitter {
 		const orgName = this.getOrganizationName(organizationId);
 		void dialog.showMessageBox({
 			type: "error",
-			title: i18n._({
-				id: "main.hostService.crashed.title",
-				message: "Host service crashed",
-			}),
+			title: i18n._(
+				msg({
+					message: "Host service crashed",
+				}),
+			),
 			message: orgName
 				? i18n._({
-						id: "main.hostService.crashed.messageForOrganization",
-						message:
-							"The Superset host service for {organization} stopped unexpectedly ({cause}) and could not be restarted automatically.",
+						...msg({
+							message:
+								"The Superset host service for {organization} stopped unexpectedly ({cause}) and could not be restarted automatically.",
+						}),
 						values: { organization: orgName, cause },
 					})
 				: i18n._({
-						id: "main.hostService.crashed.message",
-						message:
-							"The Superset host service stopped unexpectedly ({cause}) and could not be restarted automatically.",
+						...msg({
+							message:
+								"The Superset host service stopped unexpectedly ({cause}) and could not be restarted automatically.",
+						}),
 						values: { cause },
 					}),
-			detail: i18n._({
-				id: "main.hostService.crashed.detail",
-				message:
-					"Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart.",
-			}),
+			detail: i18n._(
+				msg({
+					message:
+						"Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart.",
+				}),
+			),
 		});
 	}
 

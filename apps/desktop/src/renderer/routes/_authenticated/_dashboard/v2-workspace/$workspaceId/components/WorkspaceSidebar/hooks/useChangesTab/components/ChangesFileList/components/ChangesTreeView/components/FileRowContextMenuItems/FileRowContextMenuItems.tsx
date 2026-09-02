@@ -76,15 +76,13 @@ export function FileRowContextMenuItems({
 				onSelect={() => onSelectFile?.(file.path, false, changeKey)}
 			>
 				<GitCompare />
-				<Trans id="workspace.fileRowMenuItems.openDiff">Open Diff</Trans>
+				<Trans>Open Diff</Trans>
 			</DropdownMenuItem>
 			<DropdownMenuItem
 				onSelect={() => onSelectFile?.(file.path, true, changeKey)}
 			>
 				<SquarePlus />
-				<Trans id="workspace.fileRowMenuItems.openDiffNewTab">
-					Open Diff in New Tab
-				</Trans>
+				<Trans>Open Diff in New Tab</Trans>
 				{diffNewTabTier && (
 					<DropdownMenuShortcut>
 						{modifierLabel(diffNewTabTier)}
@@ -96,7 +94,7 @@ export function FileRowContextMenuItems({
 				disabled={!onOpenFile || !absolutePath}
 			>
 				<FileText />
-				<Trans id="workspace.fileRowMenuItems.openFile">Open File</Trans>
+				<Trans>Open File</Trans>
 				{fileTier && (
 					<DropdownMenuShortcut>{modifierLabel(fileTier)}</DropdownMenuShortcut>
 				)}
@@ -106,18 +104,14 @@ export function FileRowContextMenuItems({
 				disabled={!onOpenFile || !absolutePath}
 			>
 				<SquarePlus />
-				<Trans id="workspace.fileRowMenuItems.openFileNewTab">
-					Open File in New Tab
-				</Trans>
+				<Trans>Open File in New Tab</Trans>
 			</DropdownMenuItem>
 			<DropdownMenuItem
 				onSelect={() => onOpenInEditor?.(file.path)}
 				disabled={!onOpenInEditor}
 			>
 				<ExternalLink />
-				<Trans id="workspace.fileRowMenuItems.openInEditor">
-					Open in Editor
-				</Trans>
+				<Trans>Open in Editor</Trans>
 				{externalTier && (
 					<DropdownMenuShortcut>
 						{modifierLabel(externalTier)}
@@ -144,11 +138,9 @@ export function FileRowContextMenuItems({
 						{isDeleteAction ? <Trash2 /> : <Undo2 />}
 						{isDeleteAction
 							? t({
-									id: "workspace.fileRowContextMenuItems.delete",
 									message: "Delete",
 								})
 							: t({
-									id: "workspace.fileRowContextMenuItems.discardChanges",
 									message: "Discard changes",
 								})}
 					</DropdownMenuItem>

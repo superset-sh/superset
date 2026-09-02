@@ -94,11 +94,9 @@ export function AddMemberButton({
 					? error.message
 					: isCurrentlyMember
 						? t({
-								id: "settings.teams.addMember.removeFailedToast",
 								message: "Failed to remove member",
 							})
 						: t({
-								id: "settings.teams.addMember.addFailedToast",
 								message: "Failed to add member",
 							}),
 			);
@@ -112,7 +110,7 @@ export function AddMemberButton({
 			<PopoverTrigger asChild>
 				<Button size="sm">
 					<HiOutlinePlus className="h-4 w-4 mr-1" />
-					<Trans id="settings.teams.addMember.button">Add member</Trans>
+					<Trans>Add member</Trans>
 				</Button>
 			</PopoverTrigger>
 			<PopoverContent align="end" className="w-72 p-0">
@@ -121,7 +119,6 @@ export function AddMemberButton({
 						value={query}
 						onChange={(event) => setQuery(event.target.value)}
 						placeholder={t({
-							id: "settings.teams.addMember.searchPlaceholder",
 							message: "Add team member...",
 						})}
 						className="h-8"
@@ -131,9 +128,7 @@ export function AddMemberButton({
 				<div className="max-h-64 overflow-auto p-1">
 					{sortedUsers.length === 0 ? (
 						<div className="text-center py-6 text-xs text-muted-foreground">
-							<Trans id="settings.teams.addMember.emptyState">
-								No matching org members.
-							</Trans>
+							<Trans>No matching org members.</Trans>
 						</div>
 					) : (
 						sortedUsers.map((user) => {
@@ -168,9 +163,7 @@ export function AddMemberButton({
 						className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
 					>
 						<HiOutlinePaperAirplane className="h-4 w-4" />
-						<Trans id="settings.teams.addMember.invitePeople">
-							Invite people...
-						</Trans>
+						<Trans>Invite people...</Trans>
 					</Link>
 				</div>
 			</PopoverContent>

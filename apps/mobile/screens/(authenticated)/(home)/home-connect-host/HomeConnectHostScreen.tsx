@@ -72,10 +72,10 @@ export function HomeConnectHostScreen() {
 					</View>
 					<View className="items-center gap-2">
 						<Text className="text-2xl font-semibold text-foreground">
-							<Trans id="mobile.connectHost.title">Connect a device</Trans>
+							<Trans>Connect a device</Trans>
 						</Text>
 						<Text className="text-muted-foreground text-center text-base">
-							<Trans id="mobile.connectHost.subtitle">
+							<Trans>
 								Superset Mobile runs agents on the computers you connect.
 							</Trans>
 						</Text>
@@ -86,11 +86,10 @@ export function HomeConnectHostScreen() {
 					<SetupStep
 						step={1}
 						title={t({
-							id: "mobile.connectHost.step1.title",
 							message: "Install the desktop app",
 						})}
 					>
-						<Trans id="mobile.connectHost.step1.body">
+						<Trans>
 							Download Superset at{" "}
 							<Text className="text-foreground text-sm font-medium">
 								{COMPANY.DOMAIN}/download
@@ -101,11 +100,9 @@ export function HomeConnectHostScreen() {
 					<SetupStep
 						step={2}
 						title={t({
-							id: "mobile.connectHost.step2.title",
 							message: `Sign in to ${
 								activeOrganization?.name ??
 								t({
-									id: "mobile.connectHost.thisOrganization",
 									message: "this organization",
 								})
 							}`,
@@ -114,11 +111,10 @@ export function HomeConnectHostScreen() {
 					<SetupStep
 						step={3}
 						title={t({
-							id: "mobile.connectHost.step3.title",
 							message: "Allow access through the relay",
 						})}
 					>
-						<Trans id="mobile.connectHost.step3.body">
+						<Trans>
 							Settings → Remote Access → “Allow remote access to this device via
 							relay”.
 						</Trans>
@@ -137,9 +133,8 @@ export function HomeConnectHostScreen() {
 					>
 						<Text>
 							{checking
-								? t({ id: "mobile.connectHost.checking", message: "Checking…" })
+								? t({ message: "Checking…" })
 								: t({
-										id: "mobile.connectHost.checkAgain",
 										message: "Check again",
 									})}
 						</Text>
@@ -150,9 +145,7 @@ export function HomeConnectHostScreen() {
 						onPress={() => openUrl(SETUP_DOCS_URL)}
 					>
 						<Text>
-							<Trans id="mobile.connectHost.readSetupGuide">
-								Read the setup guide
-							</Trans>
+							<Trans>Read the setup guide</Trans>
 						</Text>
 					</Button>
 				</View>

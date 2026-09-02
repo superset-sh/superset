@@ -26,31 +26,31 @@ export const PULL_REQUEST_STATUS: Record<
 	}
 > = {
 	draft: {
-		label: msg({ id: "mobile.pullRequest.status.draft", message: "Draft" }),
+		label: msg({ message: "Draft" }),
 		ink: "text-muted-foreground",
 		surface: "bg-secondary",
 		icon: GitPullRequestDraft,
 	},
 	open: {
-		label: msg({ id: "mobile.pullRequest.status.open", message: "Open" }),
+		label: msg({ message: "Open", context: "status" }),
 		ink: "text-emerald-500",
 		surface: "bg-green-500/15",
 		icon: GitPullRequest,
 	},
 	queued: {
-		label: msg({ id: "mobile.pullRequest.status.queued", message: "Queued" }),
+		label: msg({ message: "Queued" }),
 		ink: "text-amber-500",
 		surface: "bg-amber-500/15",
 		icon: GitPullRequest,
 	},
 	merged: {
-		label: msg({ id: "mobile.pullRequest.status.merged", message: "Merged" }),
+		label: msg({ message: "Merged" }),
 		ink: "text-purple-500",
 		surface: "bg-violet-500/15",
 		icon: GitMerge,
 	},
 	closed: {
-		label: msg({ id: "mobile.pullRequest.status.closed", message: "Closed" }),
+		label: msg({ message: "Closed" }),
 		ink: "text-destructive",
 		surface: "bg-red-500/15",
 		icon: GitPullRequestClosed,

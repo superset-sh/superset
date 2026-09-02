@@ -29,11 +29,9 @@ export function DiffFileCollapseButton({
 			aria-label={
 				collapsed
 					? t({
-							id: "dashboard.pullRequests.codeTab.expandFile",
 							message: "Expand file",
 						})
 					: t({
-							id: "dashboard.pullRequests.codeTab.collapseFile",
 							message: "Collapse file",
 						})
 			}

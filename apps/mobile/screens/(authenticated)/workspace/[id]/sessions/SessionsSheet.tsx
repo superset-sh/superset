@@ -73,17 +73,16 @@ export function SessionsSheet() {
 		(row: TerminalRowData) => {
 			Alert.alert(
 				t({
-					id: "mobile.terminalTabs.closeSession",
 					message: "Close session",
 				}),
 				row.title,
 				[
 					{
-						text: t({ id: "common.cancel", message: "Cancel" }),
+						text: t({ message: "Cancel" }),
 						style: "cancel",
 					},
 					{
-						text: t({ id: "mobile.common.close", message: "Close" }),
+						text: t({ message: "Close" }),
 						style: "destructive",
 						onPress: () => {
 							if (!workspace || !hostUrl) return;
@@ -97,7 +96,6 @@ export function SessionsSheet() {
 								.catch(() =>
 									Alert.alert(
 										t({
-											id: "mobile.session.closeFailed",
 											message: "Could not close session",
 										}),
 									),
@@ -125,7 +123,6 @@ export function SessionsSheet() {
 				<Stack.Toolbar.Button
 					icon="xmark"
 					accessibilityLabel={t({
-						id: "mobile.common.close",
 						message: "Close",
 					})}
 					onPress={() => router.back()}

@@ -20,7 +20,7 @@ export function JoinWaitlistButton({
 			onClick={onClick}
 			className={`bg-foreground text-background ${sizeClasses} rounded-[5px] font-medium hover:bg-foreground/90 transition-colors duration-150 ${className}`}
 		>
-			<Trans id="marketing.waitlist.joinButton">Join waitlist</Trans>
+			<Trans>Join waitlist</Trans>
 		</button>
 	);
 }

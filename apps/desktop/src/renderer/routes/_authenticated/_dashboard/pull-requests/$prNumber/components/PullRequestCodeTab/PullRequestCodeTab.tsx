@@ -330,12 +330,10 @@ export function PullRequestCodeTab({
 		lastWarnedThreadsFetchedAt.current = threadsUpdatedAt;
 		toast.error(
 			t({
-				id: "dashboard.pullRequests.codeTab.loadCommentsFailed",
 				message: "Couldn't load review comments",
 			}),
 			{
 				description: t({
-					id: "dashboard.pullRequests.codeTab.loadCommentsFailedHint",
 					message:
 						"The diff is still up to date — only comments failed to load.",
 				}),
@@ -374,7 +372,6 @@ export function PullRequestCodeTab({
 		onError: (mutationError) => {
 			toast.error(
 				t({
-					id: "dashboard.pullRequests.codeTab.updateThreadFailed",
 					message: "Couldn't update thread",
 				}),
 				{
@@ -411,7 +408,6 @@ export function PullRequestCodeTab({
 		onError: (mutationError) => {
 			toast.error(
 				t({
-					id: "dashboard.pullRequests.codeTab.postReplyFailed",
 					message: "Couldn't post reply",
 				}),
 				{
@@ -509,7 +505,6 @@ export function PullRequestCodeTab({
 			void queryClient.invalidateQueries({ queryKey: linkedWorkspaceQueryKey });
 			toast.success(
 				t({
-					id: "dashboard.pullRequests.codeTab.sentToAgent",
 					message: "Sent to agent",
 				}),
 			);
@@ -518,7 +513,6 @@ export function PullRequestCodeTab({
 		onError: (mutationError) => {
 			toast.error(
 				t({
-					id: "dashboard.pullRequests.codeTab.sendCommentFailed",
 					message: "Couldn't send comment",
 				}),
 				{
@@ -821,7 +815,6 @@ export function PullRequestCodeTab({
 				<div className="flex flex-1 items-center justify-center">
 					<WorkItemDetailState
 						message={t({
-							id: "dashboard.pullRequests.codeTab.loadingDiff",
 							message: "Loading diff…",
 						})}
 						isLoading
@@ -851,7 +844,6 @@ export function PullRequestCodeTab({
 				<div className="flex flex-1 items-center justify-center">
 					<WorkItemDetailState
 						message={t({
-							id: "dashboard.pullRequests.codeTab.parseDiffFailed",
 							message: `Couldn't parse this diff: ${patchParseError}`,
 						})}
 						isError
@@ -866,9 +858,7 @@ export function PullRequestCodeTab({
 		return (
 			<div ref={rootRef} className="flex min-h-0 flex-1 flex-col">
 				<div className="flex flex-1 items-center justify-center px-6 py-10 text-center text-sm text-muted-foreground">
-					<Trans id="dashboard.pullRequests.codeTab.noChanges">
-						No changes to display.
-					</Trans>
+					<Trans>No changes to display.</Trans>
 				</div>
 			</div>
 		);
@@ -951,11 +941,9 @@ export function PullRequestCodeTab({
 										contextLabel={
 											metadata.startLine === metadata.endLine
 												? t({
-														id: "dashboard.pullRequests.codeTab.lineContext",
 														message: `Line ${metadata.startLine}`,
 													})
 												: t({
-														id: "dashboard.pullRequests.codeTab.linesContext",
 														message: `Lines ${metadata.startLine}–${metadata.endLine}`,
 													})
 										}

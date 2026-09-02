@@ -132,8 +132,8 @@ export function ShowCode({
 									<Button
 										aria-label={
 											isExpanded
-												? t({ id: "ui.showCode.collapse", message: "Collapse" })
-												: t({ id: "ui.showCode.expand", message: "Expand" })
+												? t({ message: "Collapse" })
+												: t({ message: "Expand" })
 										}
 										className="h-6 w-6"
 										onClick={() => setIsExpanded((prev) => !prev)}
@@ -148,11 +148,7 @@ export function ShowCode({
 									</Button>
 								</TooltipTrigger>
 								<TooltipContent>
-									{isExpanded ? (
-										<Trans id="ui.showCode.collapse">Collapse</Trans>
-									) : (
-										<Trans id="ui.showCode.expand">Expand</Trans>
-									)}
+									{isExpanded ? <Trans>Collapse</Trans> : <Trans>Expand</Trans>}
 								</TooltipContent>
 							</Tooltip>
 						</TooltipProvider>
@@ -162,7 +158,7 @@ export function ShowCode({
 							<Tooltip>
 								<TooltipTrigger asChild>
 									<Button
-										aria-label={t({ id: "ui.showCode.open", message: "Open" })}
+										aria-label={t({ message: "Open" })}
 										className="h-6 w-6"
 										onClick={(e) => {
 											e.stopPropagation();
@@ -175,7 +171,7 @@ export function ShowCode({
 									</Button>
 								</TooltipTrigger>
 								<TooltipContent>
-									<Trans id="ui.showCode.open">Open</Trans>
+									<Trans>Open</Trans>
 								</TooltipContent>
 							</Tooltip>
 						</TooltipProvider>
@@ -185,9 +181,7 @@ export function ShowCode({
 							<TooltipTrigger asChild>
 								<Button
 									aria-label={
-										isCopied
-											? t({ id: "ui.showCode.copied", message: "Copied" })
-											: t({ id: "ui.showCode.copy", message: "Copy" })
+										isCopied ? t({ message: "Copied" }) : t({ message: "Copy" })
 									}
 									className="h-6 w-6"
 									onClick={handleCopy}
@@ -215,7 +209,7 @@ export function ShowCode({
 								</Button>
 							</TooltipTrigger>
 							<TooltipContent>
-								<Trans id="ui.showCode.copy">Copy</Trans>
+								<Trans>Copy</Trans>
 							</TooltipContent>
 						</Tooltip>
 					</TooltipProvider>
@@ -244,7 +238,7 @@ export function ShowCode({
 							onClick={() => setIsExpanded(true)}
 							type="button"
 						>
-							<Trans id="ui.showCode.showMore">Show more</Trans>
+							<Trans>Show more</Trans>
 						</button>
 					</div>
 				)}
@@ -257,7 +251,7 @@ export function ShowCode({
 							onClick={() => setIsExpanded(false)}
 							type="button"
 						>
-							<Trans id="ui.showCode.showLess">Show less</Trans>
+							<Trans>Show less</Trans>
 						</button>
 					</div>
 				)}

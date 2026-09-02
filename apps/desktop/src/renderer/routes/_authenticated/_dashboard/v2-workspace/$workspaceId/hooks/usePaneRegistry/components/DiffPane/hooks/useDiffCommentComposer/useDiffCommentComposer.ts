@@ -171,7 +171,6 @@ export function useDiffCommentComposer({
 				if (!onCreateNewAgentSession) {
 					toast.error(
 						t({
-							id: "workspace.diffPane.newAgentSessionFailedToast",
 							message: "Couldn't start a new agent session",
 						}),
 					);

@@ -20,7 +20,6 @@ export function OrganizationLogo({
 			<img
 				src={logo}
 				alt={t({
-					id: "settings.organization.logoAlt",
 					message: "Organization logo",
 				})}
 				className={`${sizeClasses} rounded object-cover`}

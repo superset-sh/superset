@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { Plural, Trans } from "@lingui/react/macro";
 import type { AppRouter } from "@superset/host-service";
 import { i18n } from "@superset/i18n";
@@ -28,15 +29,17 @@ type Commit =
 
 function getFilterLabel(filter: ChangesFilter, commits: Commit[]): string {
 	if (filter.kind === "all")
-		return i18n._({
-			id: "workspace.commitFilter.allChanges",
-			message: "All commits",
-		});
+		return i18n._(
+			msg({
+				message: "All commits",
+			}),
+		);
 	if (filter.kind === "uncommitted")
-		return i18n._({
-			id: "workspace.commitFilter.uncommitted",
-			message: "Uncommitted",
-		});
+		return i18n._(
+			msg({
+				message: "Uncommitted",
+			}),
+		);
 	if (filter.kind === "range") {
 		const from = commits.find((c) => c.hash === filter.fromHash);
 		const to = commits.find((c) => c.hash === filter.toHash);
@@ -107,9 +110,7 @@ export function CommitFilterDropdown({
 								{filter.kind === "all" ? (
 									<>
 										<span className="truncate">
-											<Trans id="workspace.commitFilter.commitsLabel">
-												Commits
-											</Trans>
+											<Trans>Commits</Trans>
 										</span>
 										<span className="shrink-0 font-normal text-muted-foreground tabular-nums">
 											{commits.length}
@@ -139,9 +140,7 @@ export function CommitFilterDropdown({
 						<DropdownMenuItem onSelect={() => onFilterChange({ kind: "all" })}>
 							<div className="flex flex-1 items-center justify-between">
 								<span>
-									<Trans id="workspace.commitFilter.allChanges">
-										All commits
-									</Trans>
+									<Trans>All commits</Trans>
 								</span>
 								{filter.kind === "all" && <Check className="size-3.5" />}
 							</div>
@@ -153,14 +152,11 @@ export function CommitFilterDropdown({
 							<div className="flex flex-1 items-center justify-between">
 								<div>
 									<div>
-										<Trans id="workspace.commitFilter.uncommittedChanges">
-											Uncommitted changes
-										</Trans>
+										<Trans>Uncommitted changes</Trans>
 									</div>
 									{uncommittedCount != null && (
 										<div className="text-[10px] text-muted-foreground">
 											<Plural
-												id="workspace.commitFilter.filesChangedCount"
 												value={uncommittedCount}
 												one="# file changed"
 												other="# files changed"
@@ -180,9 +176,7 @@ export function CommitFilterDropdown({
 									<div className="flex items-center gap-2">
 										<ListFilter className="size-3.5 text-muted-foreground" />
 										<span>
-											<Trans id="workspace.commitFilter.selectRange">
-												Select range...
-											</Trans>
+											<Trans>Select range...</Trans>
 										</span>
 									</div>
 									{filter.kind === "range" && <Check className="size-3.5" />}
@@ -252,9 +246,7 @@ export function CommitFilterDropdown({
 				<PopoverContent align="start" sideOffset={6} className="w-72 p-2">
 					<div className="flex flex-col gap-1.5">
 						<span className="text-[11px] text-muted-foreground">
-							<Trans id="workspace.commitFilter.renameBranchLabel">
-								Rename branch
-							</Trans>
+							<Trans>Rename branch</Trans>
 						</span>
 						<RenameInput
 							value={renameValue}

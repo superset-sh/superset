@@ -36,13 +36,12 @@ export function GateMeter({ level }: GateMeterProps) {
 							key={score.gateId}
 							targetId={`gate-${score.gateId}`}
 							title={t({
-								id: "marketing.factory.gateMeter.jumpTitle",
 								message: `${gate} · ${statusLabel}`,
 							})}
 							className={`h-2.5 w-2.5 hover:outline hover:outline-1 hover:outline-brand ${CELL_CLASSES[score.status]}`}
 						>
 							<span className="sr-only">
-								<Trans id="marketing.factory.gateMeter.jumpLabel">
+								<Trans>
 									{gate}: {statusLabel}
 								</Trans>
 							</span>

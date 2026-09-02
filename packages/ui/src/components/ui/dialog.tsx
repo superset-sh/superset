@@ -75,7 +75,7 @@ function DialogContent({
 					>
 						<XIcon />
 						<span className="sr-only">
-							<Trans id="ui.dialog.close">Close</Trans>
+							<Trans>Close</Trans>
 						</span>
 					</DialogPrimitive.Close>
 				)}

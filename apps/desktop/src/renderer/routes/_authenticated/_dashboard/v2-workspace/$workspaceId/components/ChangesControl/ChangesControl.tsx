@@ -46,11 +46,9 @@ export const ChangesControl = memo(function ChangesControl({
 
 	const label = isChangesOpen
 		? t({
-				id: "workspace.changesPill.closeChanges",
 				message: "Close changes",
 			})
 		: t({
-				id: "workspace.changesPill.openChanges",
 				message: "Open changes",
 			});
 

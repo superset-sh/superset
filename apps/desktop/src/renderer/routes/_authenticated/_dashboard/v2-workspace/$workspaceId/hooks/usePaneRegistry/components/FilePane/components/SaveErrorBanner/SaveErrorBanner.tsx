@@ -14,7 +14,7 @@ export function SaveErrorBanner({
 	return (
 		<div className="flex items-center gap-2 border-b border-border bg-destructive/10 px-3 py-1.5 text-xs text-destructive">
 			<span className="flex-1 truncate select-text cursor-text">
-				<Trans id="workspace.filePane.saveFailed">Save failed: {message}</Trans>
+				<Trans>Save failed: {message}</Trans>
 			</span>
 			{onRetry && (
 				<button
@@ -22,7 +22,7 @@ export function SaveErrorBanner({
 					className="underline hover:no-underline"
 					onClick={onRetry}
 				>
-					<Trans id="workspace.filePane.retrySave">Retry</Trans>
+					<Trans>Retry</Trans>
 				</button>
 			)}
 			{onDismiss && (
@@ -31,7 +31,7 @@ export function SaveErrorBanner({
 					className="underline hover:no-underline"
 					onClick={onDismiss}
 				>
-					<Trans id="workspace.filePane.dismissSaveError">Dismiss</Trans>
+					<Trans>Dismiss</Trans>
 				</button>
 			)}
 		</div>

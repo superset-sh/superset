@@ -10,13 +10,11 @@ export function OrphanedBanner({ dirty, onDiscard }: OrphanedBannerProps) {
 		<div className="flex items-center gap-2 border-b border-border bg-destructive/10 px-3 py-1.5 text-xs text-destructive">
 			<span>
 				{dirty ? (
-					<Trans id="workspace.filePane.deletedOnDiskDirty">
+					<Trans>
 						File was deleted on disk. You still have unsaved changes.
 					</Trans>
 				) : (
-					<Trans id="workspace.filePane.deletedOnDisk">
-						File was deleted on disk.
-					</Trans>
+					<Trans>File was deleted on disk.</Trans>
 				)}
 			</span>
 			{dirty && onDiscard && (
@@ -25,7 +23,7 @@ export function OrphanedBanner({ dirty, onDiscard }: OrphanedBannerProps) {
 					className="underline hover:no-underline"
 					onClick={onDiscard}
 				>
-					<Trans id="workspace.filePane.discardOrphaned">Discard</Trans>
+					<Trans>Discard</Trans>
 				</button>
 			)}
 		</div>

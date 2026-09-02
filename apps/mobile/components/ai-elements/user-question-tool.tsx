@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import {
@@ -135,20 +136,21 @@ export const UserQuestionTool = ({
 			<View className="flex-row items-center justify-between border-border/60 border-b bg-muted/20 px-3 py-1.5">
 				<View className="flex-row items-center gap-1.5">
 					<Text className="text-muted-foreground text-xs">
-						{current.header ??
-							i18n._({ id: "mobile.userQuestion.header", message: "Question" })}
+						{current.header ?? i18n._(msg({ message: "Question" }))}
 					</Text>
 					<Text className="text-muted-foreground/50 text-xs">·</Text>
 					<Text className="text-muted-foreground text-xs">
 						{isMulti
-							? i18n._({
-									id: "mobile.userQuestion.multiSelect",
-									message: "Multi-select",
-								})
-							: i18n._({
-									id: "mobile.userQuestion.singleSelect",
-									message: "Single-select",
-								})}
+							? i18n._(
+									msg({
+										message: "Multi-select",
+									}),
+								)
+							: i18n._(
+									msg({
+										message: "Single-select",
+									}),
+								)}
 					</Text>
 				</View>
 
@@ -269,7 +271,7 @@ export const UserQuestionTool = ({
 					variant="ghost"
 				>
 					<Text className="text-muted-foreground text-xs">
-						<Trans id="mobile.userQuestion.skipAll">Skip All</Trans>
+						<Trans>Skip All</Trans>
 					</Text>
 				</Button>
 				<Button
@@ -280,19 +282,22 @@ export const UserQuestionTool = ({
 				>
 					<Text className="text-xs">
 						{isSubmitting
-							? i18n._({
-									id: "mobile.userQuestion.sending",
-									message: "Sending...",
-								})
+							? i18n._(
+									msg({
+										message: "Sending...",
+									}),
+								)
 							: isLast
-								? i18n._({
-										id: "mobile.userQuestion.submit",
-										message: "Submit",
-									})
-								: i18n._({
-										id: "mobile.userQuestion.continue",
-										message: "Continue",
-									})}
+								? i18n._(
+										msg({
+											message: "Submit",
+										}),
+									)
+								: i18n._(
+										msg({
+											message: "Continue",
+										}),
+									)}
 					</Text>
 					{isSubmitting ? null : (
 						<Icon as={CornerDownLeftIcon} className="size-3 opacity-60" />

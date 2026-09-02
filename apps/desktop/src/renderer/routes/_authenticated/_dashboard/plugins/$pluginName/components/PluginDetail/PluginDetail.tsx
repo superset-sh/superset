@@ -50,7 +50,7 @@ export function PluginDetail({ plugin }: { plugin: PluginCatalogEntry }) {
 				onClick={() => navigate({ to: "/plugins" })}
 			>
 				<LuArrowLeft className="size-4" />
-				<Trans id="dashboard.plugins.detail.backToPlugins">Plugins</Trans>
+				<Trans>Plugins</Trans>
 			</Button>
 
 			<div className="flex items-start gap-4">
@@ -70,9 +70,7 @@ export function PluginDetail({ plugin }: { plugin: PluginCatalogEntry }) {
 						{record ? (
 							<>
 								{" · "}
-								<Trans id="dashboard.plugins.detail.installedDate">
-									installed {record.installedAt.slice(0, 10)}
-								</Trans>
+								<Trans>installed {record.installedAt.slice(0, 10)}</Trans>
 							</>
 						) : (
 							""
@@ -86,7 +84,6 @@ export function PluginDetail({ plugin }: { plugin: PluginCatalogEntry }) {
 								checked={isPluginEnabled}
 								disabled={isBusy}
 								aria-label={t({
-									id: "dashboard.plugins.detail.pluginEnabledLabel",
 									message: `${plugin.interface.displayName} enabled`,
 								})}
 								onCheckedChange={(checked) => setEnabled(plugin.name, checked)}
@@ -99,7 +96,7 @@ export function PluginDetail({ plugin }: { plugin: PluginCatalogEntry }) {
 								onClick={() => uninstall(plugin.name)}
 							>
 								<LuTrash2 className="size-4" />
-								<Trans id="dashboard.plugins.detail.uninstall">Uninstall</Trans>
+								<Trans>Uninstall</Trans>
 							</Button>
 						</>
 					) : (
@@ -109,7 +106,7 @@ export function PluginDetail({ plugin }: { plugin: PluginCatalogEntry }) {
 							disabled={isBusy}
 							onClick={() => install(plugin.name)}
 						>
-							<Trans id="dashboard.plugins.detail.install">Install</Trans>
+							<Trans>Install</Trans>
 						</Button>
 					)}
 				</div>
@@ -118,30 +115,24 @@ export function PluginDetail({ plugin }: { plugin: PluginCatalogEntry }) {
 			{isInstalled && (
 				<p className="mt-3 text-xs text-muted-foreground">
 					{!isPluginEnabled ? (
-						<Trans id="dashboard.plugins.detail.statusDisabled">
+						<Trans>
 							Disabled — kept installed, but Superset writes nothing into your
 							agent configs.
 						</Trans>
 					) : record ? (
-						<Trans id="dashboard.plugins.detail.statusEnabled">
+						<Trans>
 							Enabled — servers are written into your agent configs.
 						</Trans>
 					) : (
-						<Trans id="dashboard.plugins.detail.statusExternal">
-							Provided by entries in your own agent config.
-						</Trans>
+						<Trans>Provided by entries in your own agent config.</Trans>
 					)}{" "}
-					<Trans id="dashboard.plugins.detail.takesEffect">
-						Changes take effect in new agent sessions.
-					</Trans>
+					<Trans>Changes take effect in new agent sessions.</Trans>
 				</p>
 			)}
 			{detectedServers.length > 0 && (
 				<section className="mt-8 flex flex-col gap-3">
 					<h2 className="text-sm font-semibold text-foreground">
-						<Trans id="dashboard.plugins.detail.detectedHeading">
-							Detected in your agent configs
-						</Trans>
+						<Trans>Detected in your agent configs</Trans>
 					</h2>
 					<div className="flex flex-col divide-y divide-border/60 rounded-lg border border-border/60">
 						{detectedServers.map((server) => (
@@ -164,7 +155,7 @@ export function PluginDetail({ plugin }: { plugin: PluginCatalogEntry }) {
 						))}
 					</div>
 					<p className="text-xs text-muted-foreground">
-						<Trans id="dashboard.plugins.detail.detectedHint">
+						<Trans>
 							You added these yourself — Superset never touches them, and never
 							writes duplicates of servers you already have.
 						</Trans>
@@ -174,9 +165,7 @@ export function PluginDetail({ plugin }: { plugin: PluginCatalogEntry }) {
 
 			<section className="mt-8 flex flex-col gap-3">
 				<h2 className="text-sm font-semibold text-foreground">
-					<Trans id="dashboard.plugins.detail.mcpServersHeading">
-						MCP servers
-					</Trans>
+					<Trans>MCP servers</Trans>
 				</h2>
 				<div className="flex flex-col divide-y divide-border/60 rounded-lg border border-border/60">
 					{Object.entries(plugin.mcpServers).map(([name, config]) => (
@@ -188,15 +177,7 @@ export function PluginDetail({ plugin }: { plugin: PluginCatalogEntry }) {
 										variant="outline"
 										className="h-4 shrink-0 rounded px-1 text-[9px] font-medium tracking-wide text-muted-foreground uppercase"
 									>
-										{"url" in config ? (
-											<Trans id="dashboard.plugins.detail.serverKindMcp">
-												MCP
-											</Trans>
-										) : (
-											<Trans id="dashboard.plugins.detail.serverKindCli">
-												CLI
-											</Trans>
-										)}
+										{"url" in config ? <Trans>MCP</Trans> : <Trans>CLI</Trans>}
 									</Badge>
 								</div>
 								<p className="truncate font-mono text-xs text-muted-foreground">
@@ -209,7 +190,7 @@ export function PluginDetail({ plugin }: { plugin: PluginCatalogEntry }) {
 					))}
 				</div>
 				<p className="text-xs text-muted-foreground">
-					<Trans id="dashboard.plugins.detail.remoteServersHint">
+					<Trans>
 						Remote servers sign you in the first time an agent uses them.
 					</Trans>
 				</p>
@@ -218,7 +199,7 @@ export function PluginDetail({ plugin }: { plugin: PluginCatalogEntry }) {
 			{plugin.skills && plugin.skills.length > 0 && (
 				<section className="mt-8 flex flex-col gap-3">
 					<h2 className="text-sm font-semibold text-foreground">
-						<Trans id="dashboard.plugins.detail.skillsHeading">Skills</Trans>
+						<Trans>Skills</Trans>
 					</h2>
 					<div className="flex flex-col divide-y divide-border/60 rounded-lg border border-border/60">
 						{plugin.skills.map((name) => (

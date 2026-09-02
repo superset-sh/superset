@@ -62,7 +62,6 @@ export function AutomationBody({
 				errorMessage(
 					error,
 					t({
-						id: "dashboard.automations.body.updateFailedToast",
 						message: "Failed to update automation",
 					}),
 				),
@@ -100,7 +99,6 @@ export function AutomationBody({
 		await updateMutation.mutateAsync(next);
 		toast.success(
 			t({
-				id: "dashboard.automations.body.savedToast",
 				message: "Automation saved",
 			}),
 		);
@@ -147,7 +145,6 @@ export function AutomationBody({
 							edit({ name: next.trim() || automation.name });
 						}}
 						placeholder={t({
-							id: "dashboard.automations.body.titlePlaceholder",
 							message: "Automation title",
 						})}
 						className="min-w-0 flex-1 text-2xl font-semibold"
@@ -162,7 +159,7 @@ export function AutomationBody({
 								disabled={saving}
 								className="h-7 text-[13px]"
 							>
-								<Trans id="dashboard.automations.body.discard">Discard</Trans>
+								<Trans>Discard</Trans>
 							</Button>
 							<Button
 								type="button"
@@ -171,13 +168,7 @@ export function AutomationBody({
 								disabled={saving}
 								className="h-7 text-[13px]"
 							>
-								{saving ? (
-									<Trans id="dashboard.automations.body.saving">
-										Saving...
-									</Trans>
-								) : (
-									<Trans id="dashboard.automations.body.save">Save</Trans>
-								)}
+								{saving ? <Trans>Saving...</Trans> : <Trans>Save</Trans>}
 							</Button>
 						</div>
 					)}
@@ -190,21 +181,15 @@ export function AutomationBody({
 						aria-label={
 							automation.enabled
 								? t({
-										id: "dashboard.automations.body.pauseAriaLabel",
 										message: "Pause automation",
 									})
 								: t({
-										id: "dashboard.automations.body.resumeAriaLabel",
 										message: "Resume automation",
 									})
 						}
 					/>
 					<span className="text-muted-foreground">
-						{automation.enabled ? (
-							<Trans id="dashboard.automations.body.statusActive">Active</Trans>
-						) : (
-							<Trans id="dashboard.automations.body.statusPaused">Paused</Trans>
-						)}
+						{automation.enabled ? <Trans>Active</Trans> : <Trans>Paused</Trans>}
 					</span>
 					{ownerName && (
 						<>
@@ -222,11 +207,10 @@ export function AutomationBody({
 				</div>
 				{readOnly && (
 					<p className="select-text cursor-text mt-2 text-xs text-muted-foreground">
-						<Trans id="dashboard.automations.body.ownedByNotice">
+						<Trans>
 							Owned by{" "}
 							{ownerName ??
 								t({
-									id: "dashboard.automations.body.teammateFallback",
 									message: "a teammate",
 								})}{" "}
 							— only they can edit this automation.
@@ -240,14 +224,12 @@ export function AutomationBody({
 							{
 								value: "settings",
 								label: t({
-									id: "dashboard.automations.body.tabSettings",
 									message: "Settings",
 								}),
 							},
 							{
 								value: "runs",
 								label: t({
-									id: "dashboard.automations.body.tabRunHistory",
 									message: "Run History",
 								}),
 							},
@@ -290,9 +272,7 @@ export function AutomationBody({
 						/>
 
 						<span className="mt-8 mb-2 text-sm text-muted-foreground">
-							<Trans id="dashboard.automations.body.instructions">
-								Instructions
-							</Trans>
+							<Trans>Instructions</Trans>
 						</span>
 						<div className="flex flex-col rounded-xl border border-border bg-card/40">
 							<div className="min-h-[240px] px-4 py-3">
@@ -302,7 +282,6 @@ export function AutomationBody({
 									onChange={(next: string) => edit({ prompt: next })}
 									editable={!readOnly}
 									placeholder={t({
-										id: "dashboard.automations.body.promptPlaceholder",
 										message: "Add prompt e.g. look for crashes in $sentry",
 									})}
 									searchFiles={searchFiles}
@@ -332,7 +311,7 @@ export function AutomationBody({
 						</div>
 						{agentMissing && (
 							<p className="select-text cursor-text mt-2 text-xs text-amber-600 dark:text-amber-500">
-								<Trans id="dashboard.automations.body.agentMissingWarning">
+								<Trans>
 									This agent no longer exists on the selected device (its agents
 									may have been reset). Runs will fail until you pick a new one.
 								</Trans>

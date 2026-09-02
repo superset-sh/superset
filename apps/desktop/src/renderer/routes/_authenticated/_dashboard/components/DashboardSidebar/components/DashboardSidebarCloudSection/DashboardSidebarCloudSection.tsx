@@ -140,7 +140,7 @@ export function DashboardSidebarCloudSection({
 	return (
 		<div className="mt-3 pb-1 first:mt-0">
 			<DashboardSidebarSectionHeader
-				label={t({ id: "dashboard.sidebar.sectionCloud", message: "Cloud" })}
+				label={t({ message: "Cloud" })}
 				section="cloud"
 			/>
 			{!isSectionCollapsed &&

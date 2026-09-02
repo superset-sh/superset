@@ -1,5 +1,6 @@
 import { EventEmitter } from "node:events";
 import { statfsSync } from "node:fs";
+import { msg } from "@lingui/core/macro";
 import * as Sentry from "@sentry/electron/main";
 import { i18n } from "@superset/i18n";
 import { app, dialog } from "electron";
@@ -212,22 +213,24 @@ export function checkForUpdatesInteractive(): void {
 	if (env.NODE_ENV === "development") {
 		dialog.showMessageBox({
 			type: "info",
-			title: i18n._({ id: "main.update.dialog.title", message: "Updates" }),
-			message: i18n._({
-				id: "main.update.disabledInDev",
-				message: "Auto-updates are disabled in development mode.",
-			}),
+			title: i18n._(msg({ message: "Updates" })),
+			message: i18n._(
+				msg({
+					message: "Auto-updates are disabled in development mode.",
+				}),
+			),
 		});
 		return;
 	}
 	if (!IS_AUTO_UPDATE_PLATFORM) {
 		dialog.showMessageBox({
 			type: "info",
-			title: i18n._({ id: "main.update.dialog.title", message: "Updates" }),
-			message: i18n._({
-				id: "main.update.unsupportedPlatform",
-				message: "Auto-updates are only available on macOS and Linux.",
-			}),
+			title: i18n._(msg({ message: "Updates" })),
+			message: i18n._(
+				msg({
+					message: "Auto-updates are only available on macOS and Linux.",
+				}),
+			),
 		});
 		return;
 	}
@@ -246,17 +249,20 @@ export function checkForUpdatesInteractive(): void {
 				emitStatus(AUTO_UPDATE_STATUS.IDLE);
 				dialog.showMessageBox({
 					type: "info",
-					title: i18n._({
-						id: "main.update.upToDate.title",
-						message: "No Updates",
-					}),
-					message: i18n._({
-						id: "main.update.upToDate.message",
-						message: "You're up to date!",
-					}),
+					title: i18n._(
+						msg({
+							message: "No Updates",
+						}),
+					),
+					message: i18n._(
+						msg({
+							message: "You're up to date!",
+						}),
+					),
 					detail: i18n._({
-						id: "main.update.upToDate.detail",
-						message: "Version {version} is the latest version.",
+						...msg({
+							message: "Version {version} is the latest version.",
+						}),
 						values: { version: app.getVersion() },
 					}),
 				});
@@ -268,15 +274,17 @@ export function checkForUpdatesInteractive(): void {
 				emitStatus(AUTO_UPDATE_STATUS.IDLE);
 				dialog.showMessageBox({
 					type: "info",
-					title: i18n._({
-						id: "main.update.offline.title",
-						message: "No Internet Connection",
-					}),
-					message: i18n._({
-						id: "main.update.offline.message",
-						message:
-							"Unable to check for updates. Please check your internet connection.",
-					}),
+					title: i18n._(
+						msg({
+							message: "No Internet Connection",
+						}),
+					),
+					message: i18n._(
+						msg({
+							message:
+								"Unable to check for updates. Please check your internet connection.",
+						}),
+					),
 				});
 				return;
 			}
@@ -284,14 +292,16 @@ export function checkForUpdatesInteractive(): void {
 			emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
 			dialog.showMessageBox({
 				type: "error",
-				title: i18n._({
-					id: "main.update.error.title",
-					message: "Update Error",
-				}),
-				message: i18n._({
-					id: "main.update.error.message",
-					message: "Failed to check for updates. Please try again later.",
-				}),
+				title: i18n._(
+					msg({
+						message: "Update Error",
+					}),
+				),
+				message: i18n._(
+					msg({
+						message: "Failed to check for updates. Please try again later.",
+					}),
+				),
 			});
 		});
 }

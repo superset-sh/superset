@@ -58,7 +58,7 @@ function TooltipHeader({ step, name }: { step: number; name: string }) {
 				className="size-2 shrink-0 rounded-full"
 				style={{ background: "var(--chart-1)" }}
 			/>
-			<Trans id="admin.funnel.stepHeader">
+			<Trans>
 				Step {step}: {name}
 			</Trans>
 		</div>
@@ -99,17 +99,13 @@ export function FunnelChart({
 				) : error ? (
 					<div className="flex h-[220px] items-center justify-center">
 						<p className="text-destructive select-text cursor-text text-sm">
-							<Trans id="admin.funnel.failedToLoad">
-								Failed to load funnel data
-							</Trans>
+							<Trans>Failed to load funnel data</Trans>
 						</p>
 					</div>
 				) : !steps || steps.length === 0 ? (
 					<div className="flex h-[220px] items-center justify-center rounded-md border border-dashed">
 						<p className="text-muted-foreground text-sm">
-							<Trans id="admin.funnel.empty">
-								No funnel data available for this period
-							</Trans>
+							<Trans>No funnel data available for this period</Trans>
 						</p>
 					</div>
 				) : (
@@ -158,7 +154,6 @@ export function FunnelChart({
 														{dropped !== null ? (
 															<TooltipRow
 																label={t({
-																	id: "admin.funnel.droppedOff",
 																	message: "Dropped off",
 																})}
 																value={dropped.toLocaleString()}
@@ -167,7 +162,6 @@ export function FunnelChart({
 														{pctOfPrevious !== null ? (
 															<TooltipRow
 																label={t({
-																	id: "admin.funnel.dropOffFromPrevious",
 																	message: "Drop-off from previous",
 																})}
 																value={`${(100 - pctOfPrevious).toFixed(2)}%`}
@@ -176,7 +170,6 @@ export function FunnelChart({
 														{droppedPctOfStart !== null ? (
 															<TooltipRow
 																label={t({
-																	id: "admin.funnel.dropOffFromStart",
 																	message: "Drop-off from start",
 																})}
 																value={`${droppedPctOfStart.toFixed(2)}%`}
@@ -202,7 +195,6 @@ export function FunnelChart({
 													<TooltipHeader step={index + 1} name={step.name} />
 													<TooltipRow
 														label={t({
-															id: "admin.funnel.converted",
 															message: "Converted",
 														})}
 														value={step.count.toLocaleString()}
@@ -210,7 +202,6 @@ export function FunnelChart({
 													{pctOfPrevious !== null ? (
 														<TooltipRow
 															label={t({
-																id: "admin.funnel.conversionFromPrevious",
 																message: "Conversion from previous",
 															})}
 															value={`${pctOfPrevious.toFixed(2)}%`}
@@ -218,7 +209,6 @@ export function FunnelChart({
 													) : null}
 													<TooltipRow
 														label={t({
-															id: "admin.funnel.conversionSoFar",
 															message: "Conversion so far",
 														})}
 														value={`${pctOfFirst.toFixed(2)}%`}
@@ -226,7 +216,6 @@ export function FunnelChart({
 													{step.medianSeconds !== null && index > 0 ? (
 														<TooltipRow
 															label={t({
-																id: "admin.funnel.medianTimeFromPrevious",
 																message: "Median time from previous",
 															})}
 															value={formatDuration(step.medianSeconds)}
@@ -235,7 +224,6 @@ export function FunnelChart({
 													{step.averageSeconds !== null && index > 0 ? (
 														<TooltipRow
 															label={t({
-																id: "admin.funnel.averageTimeFromPrevious",
 																message: "Average time from previous",
 															})}
 															value={formatDuration(step.averageSeconds)}
@@ -257,7 +245,6 @@ export function FunnelChart({
 												<LuMoveRight className="size-3 shrink-0 text-green-500" />
 												<span>
 													{t({
-														id: "admin.funnel.persons",
 														message: `${step.count.toLocaleString()} persons`,
 													})}
 													{pctOfPrevious !== null
@@ -270,7 +257,6 @@ export function FunnelChart({
 													<LuMoveDownRight className="size-3 shrink-0 text-red-500" />
 													<span>
 														{t({
-															id: "admin.funnel.persons",
 															message: `${dropped.toLocaleString()} persons`,
 														})}{" "}
 														({(100 - pctOfPrevious).toFixed(1)}%)

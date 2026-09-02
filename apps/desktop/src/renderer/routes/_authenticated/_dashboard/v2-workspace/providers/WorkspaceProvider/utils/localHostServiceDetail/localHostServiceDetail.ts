@@ -13,12 +13,10 @@ export const LOCAL_HOST_SERVICE_DETAIL: Record<
 	MessageDescriptor
 > = {
 	starting: msg({
-		id: "workspace.states.localHostDetailStarting",
 		message:
 			"The local host service is still starting up. It should be ready in a few seconds.",
 	}),
 	stopped: msg({
-		id: "workspace.states.localHostDetailStopped",
 		message:
 			"The local host service isn't running, so nothing on this device can serve the workspace. Restarting it reattaches your terminals and files — nothing on disk is lost.",
 	}),
@@ -26,11 +24,9 @@ export const LOCAL_HOST_SERVICE_DETAIL: Record<
 	// polls every second, the connection every five. Never advise a restart
 	// here — the service is healthy and this clears itself.
 	running: msg({
-		id: "workspace.states.localHostDetailRunning",
 		message: "The local host service just came up. Reconnecting to it now.",
 	}),
 	unknown: msg({
-		id: "workspace.states.localHostDetailUnknown",
 		message:
 			"The local host service isn't responding. Restarting it usually clears this; if it keeps happening, restart Superset.",
 	}),

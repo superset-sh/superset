@@ -66,7 +66,7 @@ describe("i18n hardcoded-string ratchet", () => {
 			const offenders = await findHardcodedText(dir);
 			expect(
 				offenders,
-				`Hardcoded JSX text in an i18n-enforced directory. Wrap it in <Trans id="...">, or use useLingui()'s t(). Offenders:\n${offenders.join("\n")}`,
+				`Hardcoded JSX text in an i18n-enforced directory. Wrap it in <Trans>, or use useLingui()'s t(). Offenders:\n${offenders.join("\n")}`,
 			).toEqual([]);
 		});
 	}

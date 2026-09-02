@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { i18n } from "@/lib/i18n-server";
@@ -11,27 +12,30 @@ export default function SlackLinkedPage() {
 				</div>
 				<div className="flex flex-col items-center gap-2 text-center">
 					<h1 className="text-2xl font-semibold">
-						{i18n._({
-							id: "web.slackLinked.title",
-							message: "Slack Account Linked",
-						})}
+						{i18n._(
+							msg({
+								message: "Slack Account Linked",
+							}),
+						)}
 					</h1>
 					<p className="max-w-sm text-muted-foreground">
-						{i18n._({
-							id: "web.slackLinked.description",
-							message:
-								"Your Slack account has been linked to Superset. You can close this tab and return to Slack.",
-						})}
+						{i18n._(
+							msg({
+								message:
+									"Your Slack account has been linked to Superset. You can close this tab and return to Slack.",
+							}),
+						)}
 					</p>
 				</div>
 				<Link
 					href="/integrations/slack"
 					className="text-sm text-muted-foreground/70 underline decoration-muted-foreground/40 underline-offset-4 transition-colors hover:text-muted-foreground"
 				>
-					{i18n._({
-						id: "web.slackLinked.settingsLink",
-						message: "Go to Slack integration settings",
-					})}
+					{i18n._(
+						msg({
+							message: "Go to Slack integration settings",
+						}),
+					)}
 				</Link>
 			</div>
 		</div>

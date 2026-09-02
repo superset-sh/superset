@@ -38,13 +38,11 @@ export function EnvironmentPickerScreen() {
 	if (environments.length === 0) {
 		if (environmentsQuery.isError) {
 			notice = t({
-				id: "mobile.environmentPicker.loadFailed",
 				message: "Could not load environments",
 			});
 			retry = () => void environmentsQuery.refetch();
 		} else if (!environmentsQuery.isPending) {
 			notice = t({
-				id: "mobile.environmentPicker.empty",
 				message: "No environments available",
 			});
 		}
@@ -78,7 +76,7 @@ export function EnvironmentPickerScreen() {
 					{retry ? (
 						<Button size="sm" variant="secondary" onPress={retry}>
 							<Text>
-								<Trans id="mobile.common.tryAgain">Try again</Trans>
+								<Trans>Try again</Trans>
 							</Text>
 						</Button>
 					) : null}

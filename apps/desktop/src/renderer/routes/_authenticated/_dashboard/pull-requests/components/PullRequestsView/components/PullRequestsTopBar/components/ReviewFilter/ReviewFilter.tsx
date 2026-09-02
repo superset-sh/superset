@@ -27,7 +27,6 @@ export function ReviewFilter({ value, onChange }: ReviewFilterProps) {
 		{
 			value: null,
 			label: t({
-				id: "dashboard.pullRequests.reviewFilter.allReviews",
 				message: "All reviews",
 			}),
 		},
@@ -45,7 +44,6 @@ export function ReviewFilter({ value, onChange }: ReviewFilterProps) {
 					size="sm"
 					title={label}
 					aria-label={t({
-						id: "dashboard.pullRequests.reviewFilter.triggerAria",
 						message: `Reviews: ${label}`,
 					})}
 					className="h-8 max-w-52 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
@@ -58,15 +56,12 @@ export function ReviewFilter({ value, onChange }: ReviewFilterProps) {
 			<PopoverContent align="start" className="w-80 p-1">
 				<div className="flex items-center gap-2 border-b border-border px-2 py-1.5">
 					<span className="min-w-0 flex-1 text-sm font-medium">
-						<Trans id="dashboard.pullRequests.reviewFilter.heading">
-							Filter by reviews
-						</Trans>
+						<Trans>Filter by reviews</Trans>
 					</span>
 					<Button
 						variant="ghost"
 						size="icon-xs"
 						aria-label={t({
-							id: "dashboard.pullRequests.reviewFilter.close",
 							message: "Close review filter",
 						})}
 						onClick={() => setOpen(false)}
@@ -77,7 +72,6 @@ export function ReviewFilter({ value, onChange }: ReviewFilterProps) {
 				<div
 					role="radiogroup"
 					aria-label={t({
-						id: "dashboard.pullRequests.reviewFilter.groupAria",
 						message: "Filter by reviews",
 					})}
 					className="py-1"

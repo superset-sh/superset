@@ -100,7 +100,7 @@ export function useReviewTab({
 
 	return {
 		id: "review",
-		label: t({ id: "workspace.reviewTab.label", message: "Review" }),
+		label: t({ message: "Review" }),
 		icon: LuMessageSquare,
 		badge: openReviewCount > 0 ? openReviewCount : undefined,
 		content,

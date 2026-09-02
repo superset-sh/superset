@@ -21,7 +21,6 @@ export function useRevealInFinder(workspaceId: string) {
 			if (workspaceRow?.hostId !== machineId) {
 				toast.error(
 					t({
-						id: "workspace.revealInFinder.remotePathsUnsupported",
 						message: "Can't open remote workspace paths in Finder",
 					}),
 				);
@@ -34,7 +33,6 @@ export function useRevealInFinder(workspaceId: string) {
 				console.error("Failed to reveal path in Finder:", path, error);
 				toast.error(
 					t({
-						id: "workspace.revealInFinder.revealFailed",
 						message: "Failed to reveal in Finder",
 					}),
 				);

@@ -37,7 +37,6 @@ export function useHandleOpenedWorktree() {
 			if (bootstrapError === "create_or_attach_failed") {
 				toast.error(
 					t({
-						id: "reactQuery.openedWorktree.terminalStartFailed",
 						message: "Workspace opened, but terminal failed to start.",
 					}),
 				);
@@ -45,7 +44,6 @@ export function useHandleOpenedWorktree() {
 			if (bootstrapError === "write_initial_commands_failed") {
 				toast.error(
 					t({
-						id: "reactQuery.openedWorktree.setupCommandFailed",
 						message: "Workspace opened, but setup command failed.",
 					}),
 				);

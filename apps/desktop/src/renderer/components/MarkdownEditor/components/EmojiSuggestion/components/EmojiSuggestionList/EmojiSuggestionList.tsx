@@ -59,9 +59,7 @@ export const EmojiSuggestionList = forwardRef<
 		return (
 			<div className="bg-popover text-popover-foreground rounded-md border p-1 shadow-md">
 				<div className="px-2 py-1.5 text-sm text-muted-foreground">
-					<Trans id="components.emojiSuggestionList.noEmojiFound">
-						No emoji found
-					</Trans>
+					<Trans>No emoji found</Trans>
 				</div>
 			</div>
 		);

@@ -28,7 +28,6 @@ export function RepositorySection({ repoUrl }: RepositorySectionProps) {
 				readOnly
 				disabled
 				placeholder={t({
-					id: "settings.project.repository.noRemotePlaceholder",
 					message: "No git remote detected",
 				})}
 				className="w-full font-mono text-sm pr-9"
@@ -43,7 +42,6 @@ export function RepositorySection({ repoUrl }: RepositorySectionProps) {
 							className="absolute right-1 top-1 size-7 text-muted-foreground hover:text-foreground"
 							onClick={() => openUrl.mutate(parsed.url)}
 							aria-label={t({
-								id: "settings.project.repository.openInGitHub",
 								message: "Open in GitHub",
 							})}
 						>
@@ -51,9 +49,7 @@ export function RepositorySection({ repoUrl }: RepositorySectionProps) {
 						</Button>
 					</TooltipTrigger>
 					<TooltipContent>
-						<Trans id="settings.project.repository.openInGitHub">
-							Open in GitHub
-						</Trans>
+						<Trans>Open in GitHub</Trans>
 					</TooltipContent>
 				</Tooltip>
 			)}

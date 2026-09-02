@@ -59,7 +59,6 @@ export function ColorSelector({
 			? [
 					{
 						name: t({
-							id: "components.colorSelector.defaultColor",
 							message: "Default",
 						}),
 						value: PROJECT_COLOR_DEFAULT,
@@ -108,7 +107,6 @@ export function ColorSelector({
 						type="button"
 						title={color.name}
 						aria-label={t({
-							id: "components.colorSelector.setColor",
 							message: `Set color to ${color.name}`,
 						})}
 						aria-pressed={isSelected}

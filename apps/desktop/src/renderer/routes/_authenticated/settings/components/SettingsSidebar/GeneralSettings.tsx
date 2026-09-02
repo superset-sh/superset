@@ -80,7 +80,6 @@ interface SectionGroup {
 const SECTION_GROUPS: SectionGroup[] = [
 	{
 		label: msg({
-			id: "settings.components.generalSettings.groupPersonal",
 			message: "Personal",
 		}),
 		items: [
@@ -88,7 +87,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/account",
 				section: "account",
 				label: msg({
-					id: "settings.components.generalSettings.account",
 					message: "Account",
 				}),
 				icon: <HiOutlineUser className="h-4 w-4" />,
@@ -97,7 +95,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/appearance",
 				section: "appearance",
 				label: msg({
-					id: "settings.components.generalSettings.appearance",
 					message: "Appearance",
 				}),
 				icon: <HiOutlinePaintBrush className="h-4 w-4" />,
@@ -106,7 +103,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/ringtones",
 				section: "ringtones",
 				label: msg({
-					id: "settings.components.generalSettings.notifications",
 					message: "Notifications",
 				}),
 				icon: <HiOutlineBell className="h-4 w-4" />,
@@ -115,7 +111,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/usage",
 				section: "usage",
 				label: msg({
-					id: "settings.components.generalSettings.usage",
 					message: "Usage",
 				}),
 				icon: <HiOutlineChartBar className="h-4 w-4" />,
@@ -125,7 +120,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 	},
 	{
 		label: msg({
-			id: "settings.components.generalSettings.groupEditorWorkflow",
 			message: "Editor & Workflow",
 		}),
 		items: [
@@ -133,7 +127,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/behavior",
 				section: "behavior",
 				label: msg({
-					id: "settings.components.generalSettings.general",
 					message: "General",
 				}),
 				icon: <HiOutlineSparkles className="h-4 w-4" />,
@@ -142,7 +135,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/keyboard",
 				section: "keyboard",
 				label: msg({
-					id: "settings.components.generalSettings.keyboard",
 					message: "Keyboard",
 				}),
 				icon: <LuKeyboard className="h-4 w-4" />,
@@ -151,7 +143,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/git",
 				section: "git",
 				label: msg({
-					id: "settings.components.generalSettings.gitWorktrees",
 					message: "Git & Worktrees",
 				}),
 				icon: <LuGitBranch className="h-4 w-4" />,
@@ -160,7 +151,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/agents",
 				section: "agents",
 				label: msg({
-					id: "settings.components.generalSettings.agents",
 					message: "Agents",
 				}),
 				icon: <HiOutlineCpuChip className="h-4 w-4" />,
@@ -170,7 +160,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/terminal",
 				section: "terminal",
 				label: msg({
-					id: "settings.components.generalSettings.terminal",
 					message: "Terminal",
 				}),
 				icon: <HiOutlineCommandLine className="h-4 w-4" />,
@@ -179,7 +168,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/links",
 				section: "links",
 				label: msg({
-					id: "settings.components.generalSettings.links",
 					message: "Links",
 				}),
 				icon: <HiOutlineLink className="h-4 w-4" />,
@@ -188,7 +176,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/browser",
 				section: "browser",
 				label: msg({
-					id: "settings.components.generalSettings.browser",
 					message: "Browser",
 				}),
 				icon: <HiOutlineGlobeAlt className="h-4 w-4" />,
@@ -197,7 +184,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/models",
 				section: "models",
 				label: msg({
-					id: "settings.components.generalSettings.models",
 					message: "Models",
 				}),
 				icon: <LuBrain className="h-4 w-4" />,
@@ -206,7 +192,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 	},
 	{
 		label: msg({
-			id: "settings.components.generalSettings.groupOrganization",
 			message: "Organization",
 		}),
 		items: [
@@ -214,7 +199,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/organization",
 				section: "organization",
 				label: msg({
-					id: "settings.components.generalSettings.organization",
 					message: "Organization",
 				}),
 				icon: <HiOutlineBuildingOffice2 className="h-4 w-4" />,
@@ -223,7 +207,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/teams",
 				section: "teams",
 				label: msg({
-					id: "settings.components.generalSettings.teams",
 					message: "Teams",
 				}),
 				icon: <HiOutlineUserGroup className="h-4 w-4" />,
@@ -232,7 +215,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/projects",
 				section: "project",
 				label: msg({
-					id: "settings.components.generalSettings.projects",
 					message: "Projects",
 				}),
 				icon: <HiOutlineFolder className="h-4 w-4" />,
@@ -242,7 +224,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/hosts",
 				section: "hosts",
 				label: msg({
-					id: "settings.components.generalSettings.hosts",
 					message: "Hosts",
 				}),
 				icon: <HiOutlineComputerDesktop className="h-4 w-4" />,
@@ -252,7 +233,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/environments",
 				section: "environments",
 				label: msg({
-					id: "settings.components.generalSettings.environments",
 					message: "Environments",
 				}),
 				icon: <HiOutlineCube className="h-4 w-4" />,
@@ -261,7 +241,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/integrations",
 				section: "integrations",
 				label: msg({
-					id: "settings.components.generalSettings.integrations",
 					message: "Integrations",
 				}),
 				icon: <HiOutlinePuzzlePiece className="h-4 w-4" />,
@@ -270,7 +249,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/billing",
 				section: "billing",
 				label: msg({
-					id: "settings.components.generalSettings.billing",
 					message: "Billing",
 				}),
 				icon: <HiOutlineCreditCard className="h-4 w-4" />,
@@ -279,7 +257,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/api-keys",
 				section: "apikeys",
 				label: msg({
-					id: "settings.components.generalSettings.apiKeys",
 					message: "API Keys",
 				}),
 				icon: <HiOutlineKey className="h-4 w-4" />,
@@ -288,7 +265,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 	},
 	{
 		label: msg({
-			id: "settings.components.generalSettings.groupSystem",
 			message: "System",
 		}),
 		items: [
@@ -296,7 +272,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/security",
 				section: "security",
 				label: msg({
-					id: "settings.components.generalSettings.remoteAccess",
 					message: "Remote Access",
 				}),
 				icon: <HiOutlineLockClosed className="h-4 w-4" />,
@@ -305,7 +280,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/permissions",
 				section: "permissions",
 				label: msg({
-					id: "settings.components.generalSettings.permissions",
 					message: "Permissions",
 				}),
 				icon: <HiOutlineShieldCheck className="h-4 w-4" />,
@@ -315,7 +289,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/experimental",
 				section: "experimental",
 				label: msg({
-					id: "settings.components.generalSettings.experimental",
 					message: "Experimental",
 				}),
 				icon: <HiOutlineBeaker className="h-4 w-4" />,

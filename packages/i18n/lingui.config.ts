@@ -22,10 +22,10 @@ export default defineConfig({
 		"cs",
 		"vi",
 	],
-	// `#:` origin lines list files in filesystem order, which differs between
-	// macOS and Linux and would dirty the CI diff; ids give a total order.
+	// Origins follow filesystem order, which differs between macOS and Linux
+	// and would dirty the CI diff.
 	format: formatter({ origins: false }),
-	orderBy: "messageId",
+	orderBy: "message",
 	compileNamespace: "ts",
 	catalogs: [
 		{

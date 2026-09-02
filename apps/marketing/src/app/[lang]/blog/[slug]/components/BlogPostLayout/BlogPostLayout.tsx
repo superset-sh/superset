@@ -122,7 +122,7 @@ export function BlogPostLayout({
 						className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
 					>
 						<ArrowLeft className="h-4 w-4" />
-						<Trans id="marketing.blog.post.backToBlog">Back to Blog</Trans>
+						<Trans>Back to Blog</Trans>
 					</Link>
 				</div>
 			</div>
@@ -137,7 +137,7 @@ export function BlogPostLayout({
 				<section className="relative border-t border-border">
 					<div className="max-w-3xl mx-auto px-6 py-12">
 						<h2 className="text-xl font-medium text-foreground mb-6">
-							<Trans id="marketing.blog.post.relatedPosts">Related Posts</Trans>
+							<Trans>Related Posts</Trans>
 						</h2>
 						<div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(200px,1fr))]">
 							{relatedPosts.map((relatedPost) => (
@@ -160,7 +160,7 @@ export function BlogPostLayout({
 						className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
 					>
 						<ArrowLeft className="h-4 w-4" />
-						<Trans id="marketing.blog.post.allPosts">All posts</Trans>
+						<Trans>All posts</Trans>
 					</Link>
 				</div>
 			</footer>

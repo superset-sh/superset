@@ -314,12 +314,11 @@ export function FilesTab({
 					<>
 						<Loader2 className="size-3.5 animate-spin" />
 						<span>
-							<Trans id="workspace.filesTab.loading">Loading files...</Trans>
+							<Trans>Loading files...</Trans>
 						</span>
 					</>
 				) : (
 					t({
-						id: "workspace.filesTab.worktreeUnavailable",
 						message: "Workspace worktree not available",
 					})
 				)}
@@ -357,9 +356,7 @@ export function FilesTab({
 								>
 									<Search className="size-3.5 shrink-0" />
 									<span className="truncate">
-										<Trans id="workspace.filesTab.searchFiles">
-											Search files
-										</Trans>
+										<Trans>Search files</Trans>
 									</span>
 								</button>
 							)}
@@ -367,7 +364,6 @@ export function FilesTab({
 								<FilesTabHeaderButton
 									icon={FilePlus}
 									label={t({
-										id: "workspace.filesTab.newFile",
 										message: "New File",
 									})}
 									onClick={() => void startCreating("file")}
@@ -375,7 +371,6 @@ export function FilesTab({
 								<FilesTabHeaderButton
 									icon={FolderPlus}
 									label={t({
-										id: "workspace.filesTab.newFolder",
 										message: "New Folder",
 									})}
 									onClick={() => void startCreating("folder")}
@@ -383,7 +378,6 @@ export function FilesTab({
 								<FilesTabHeaderButton
 									icon={RefreshCw}
 									label={t({
-										id: "workspace.filesTab.refresh",
 										message: "Refresh",
 									})}
 									loading={bridge.isRefreshing}
@@ -392,7 +386,6 @@ export function FilesTab({
 								<FilesTabHeaderButton
 									icon={FoldVertical}
 									label={t({
-										id: "workspace.filesTab.collapseAll",
 										message: "Collapse All",
 									})}
 									onClick={collapseAll}

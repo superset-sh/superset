@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import { formatNumber } from "@superset/i18n/format";
@@ -28,15 +29,17 @@ const pixel = Silkscreen({
 
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
-	const title = i18n._({
-		id: "marketing.meta.leaderboard.title",
-		message: "Leaderboard",
-	});
-	const description = i18n._({
-		id: "marketing.meta.leaderboard.description",
-		message:
-			"How much agent work engineers are actually running — tokens, cost, models and sessions, published by people who opted in.",
-	});
+	const title = i18n._(
+		msg({
+			message: "Leaderboard",
+		}),
+	);
+	const description = i18n._(
+		msg({
+			message:
+				"How much agent work engineers are actually running — tokens, cost, models and sessions, published by people who opted in.",
+		}),
+	);
 	return {
 		title,
 		description,
@@ -85,20 +88,16 @@ export default async function LeaderboardPage() {
 					<h1
 						className={`${pixel.className} text-3xl md:text-4xl text-foreground`}
 					>
-						<Trans id="marketing.leaderboard.title">Leaderboard</Trans>
+						<Trans>Leaderboard</Trans>
 					</h1>
 					<p className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted-foreground mt-5">
-						<Trans id="marketing.leaderboard.tagline">
-							Agent usage, ranked
-						</Trans>
+						<Trans>Agent usage, ranked</Trans>
 					</p>
 					<Link
 						href="/stats"
 						className="inline-block font-mono text-[0.68rem] uppercase tracking-[0.14em] text-brand hover:text-brand-light transition-colors mt-4"
 					>
-						<Trans id="marketing.leaderboard.seeAllStats">
-							See all stats →
-						</Trans>
+						<Trans>See all stats →</Trans>
 					</Link>
 
 					{run && (
@@ -142,7 +141,6 @@ export default async function LeaderboardPage() {
 								<svg className="run-trail" aria-hidden="true">
 									<title>
 										{t({
-											id: "marketing.leaderboard.run.trailTitle",
 											message: "Production run status",
 										})}
 									</title>
@@ -156,13 +154,11 @@ export default async function LeaderboardPage() {
 								</svg>
 								<span style={{ color: `rgb(${tierRgb(2)})` }}>
 									{t({
-										id: "marketing.leaderboard.run.name",
 										message: `Run ${runNumber}`,
 									})}
 								</span>
 								<span className="text-muted-foreground">
 									{t({
-										id: "marketing.leaderboard.run.callout",
 										message: `${runLabel} · everybody to ${operatorTier}`,
 									})}
 								</span>

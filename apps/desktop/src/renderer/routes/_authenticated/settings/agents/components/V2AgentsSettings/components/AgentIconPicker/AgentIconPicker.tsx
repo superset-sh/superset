@@ -50,7 +50,6 @@ export function AgentIconPicker({
 		} catch {
 			toast.error(
 				t({
-					id: "settings.agents.iconPicker.loadImageFailed",
 					message: "Failed to load image",
 				}),
 			);
@@ -60,11 +59,9 @@ export function AgentIconPicker({
 	};
 
 	const triggerLabel = uploaded ? (
-		<Trans id="settings.agents.iconPicker.customImage">Custom image</Trans>
+		<Trans>Custom image</Trans>
 	) : (
-		(selected?.label ?? (
-			<Trans id="settings.agents.iconPicker.noIcon">No icon</Trans>
-		))
+		(selected?.label ?? <Trans>No icon</Trans>)
 	);
 
 	return (
@@ -94,9 +91,7 @@ export function AgentIconPicker({
 				>
 					<ImagePlus className="size-4 shrink-0 text-muted-foreground" />
 					<span className="flex-1">
-						<Trans id="settings.agents.iconPicker.uploadImage">
-							Upload image…
-						</Trans>
+						<Trans>Upload image…</Trans>
 					</span>
 					{uploaded ? <Check className="size-3.5 shrink-0" /> : null}
 				</DropdownMenuItem>
@@ -104,7 +99,7 @@ export function AgentIconPicker({
 				<DropdownMenuItem className="gap-2" onSelect={() => onChange(null)}>
 					<AgentIcon iconId={null} presetId="custom" className="size-4" />
 					<span className="flex-1">
-						<Trans id="settings.agents.iconPicker.noIconOption">No icon</Trans>
+						<Trans>No icon</Trans>
 					</span>
 					{value === null ? <Check className="size-3.5 shrink-0" /> : null}
 				</DropdownMenuItem>

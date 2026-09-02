@@ -81,12 +81,7 @@ export const SourcesTrigger = ({
 			{children ?? (
 				<>
 					<Text className="font-medium">
-						<Plural
-							id="mobile.sources.usedCount"
-							value={count}
-							one="Used # source"
-							other="Used # sources"
-						/>
+						<Plural value={count} one="Used # source" other="Used # sources" />
 					</Text>
 					<View
 						style={isOpen ? { transform: [{ rotate: "180deg" }] } : undefined}

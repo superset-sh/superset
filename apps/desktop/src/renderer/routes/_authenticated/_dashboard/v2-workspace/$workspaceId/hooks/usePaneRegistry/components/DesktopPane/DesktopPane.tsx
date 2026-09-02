@@ -73,20 +73,12 @@ export function DesktopPane({ hostUrl }: DesktopPaneProps) {
 				<div className="absolute inset-0 flex items-center justify-center bg-background/95">
 					<div className="max-w-sm px-6 text-center text-sm text-muted-foreground">
 						{status === "connecting" && (
-							<Trans id="workspace.desktopPane.connecting">
-								Connecting to the desktop…
-							</Trans>
+							<Trans>Connecting to the desktop…</Trans>
 						)}
 						{status === "unavailable" && (
-							<Trans id="workspace.desktopPane.unavailable">
-								No desktop session is running in this sandbox.
-							</Trans>
+							<Trans>No desktop session is running in this sandbox.</Trans>
 						)}
-						{status === "error" && (
-							<Trans id="workspace.desktopPane.error">
-								Could not reach the desktop.
-							</Trans>
-						)}
+						{status === "error" && <Trans>Could not reach the desktop.</Trans>}
 						{detail && <div className="mt-2 text-xs opacity-70">{detail}</div>}
 					</div>
 				</div>

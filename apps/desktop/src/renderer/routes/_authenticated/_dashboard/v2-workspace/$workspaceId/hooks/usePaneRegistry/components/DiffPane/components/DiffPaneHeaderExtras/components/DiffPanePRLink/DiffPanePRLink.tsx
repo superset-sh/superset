@@ -60,7 +60,6 @@ export function DiffPanePRLink({ workspaceId }: DiffPanePRLinkProps) {
 							});
 						}}
 						aria-label={t({
-							id: "workspace.diffPane.openPullRequestAria",
 							message: `Open pull request #${pr.number}`,
 						})}
 						className="group flex h-5 items-center gap-1.5 rounded-md border border-border/60 bg-muted/30 px-1.5 transition-colors hover:bg-accent/60"
@@ -70,7 +69,6 @@ export function DiffPanePRLink({ workspaceId }: DiffPanePRLinkProps) {
 						    navigation into the expanded PR view. */}
 						<span className="font-medium text-[11px] text-foreground tabular-nums">
 							{t({
-								id: "workspace.diffPane.openPrChip",
 								message: `Open PR #${pr.number}`,
 							})}
 						</span>
@@ -78,9 +76,7 @@ export function DiffPanePRLink({ workspaceId }: DiffPanePRLinkProps) {
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
-					<Trans id="workspace.diffPane.openPullRequest">
-						Open pull request
-					</Trans>
+					<Trans>Open pull request</Trans>
 				</TooltipContent>
 			</Tooltip>
 			{/* Rendered here, not by the parent, so no stray divider shows when

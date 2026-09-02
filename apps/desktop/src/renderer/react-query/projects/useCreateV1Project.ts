@@ -37,7 +37,6 @@ export function useCreateV1Project() {
 				}
 				toast.error(
 					t({
-						id: "reactQuery.createProject.failed",
 						message: "Could not create project",
 					}),
 					{ description: message },
@@ -50,7 +49,6 @@ export function useCreateV1Project() {
 					reportError(
 						result.error ??
 							t({
-								id: "reactQuery.createProject.unknownError",
 								message: "An unknown error occurred",
 							}),
 					);

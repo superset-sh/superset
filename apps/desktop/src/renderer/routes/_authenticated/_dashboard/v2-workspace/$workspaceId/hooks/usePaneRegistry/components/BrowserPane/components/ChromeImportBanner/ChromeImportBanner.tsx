@@ -35,7 +35,7 @@ export function ChromeImportBanner({
 				<TbDownload className="size-3.5 shrink-0 text-muted-foreground" />
 			)}
 			<span className="min-w-0 flex-1 truncate">
-				<Trans id="workspace.browserPane.importBannerPrompt">
+				<Trans>
 					Import your browsing history and logins from {browserName}
 				</Trans>
 			</span>
@@ -45,13 +45,12 @@ export function ChromeImportBanner({
 				className="h-6 shrink-0 px-2 text-xs"
 				onClick={onImport}
 			>
-				<Trans id="workspace.browserPane.importBannerAction">Import</Trans>
+				<Trans>Import</Trans>
 			</Button>
 			<button
 				type="button"
 				onClick={onDismiss}
 				aria-label={t({
-					id: "workspace.browserPane.importBannerDismiss",
 					message: "Dismiss",
 				})}
 				className="shrink-0 rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"

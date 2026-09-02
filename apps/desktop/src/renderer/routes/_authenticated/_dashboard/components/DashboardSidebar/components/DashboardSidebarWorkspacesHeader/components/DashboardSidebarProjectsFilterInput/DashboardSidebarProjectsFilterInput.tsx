@@ -34,7 +34,6 @@ export function DashboardSidebarProjectsFilterInput({
 	}, [isExpanded]);
 
 	const filterLabel = t({
-		id: "dashboard.sidebar.workspacesHeader.filterProjects",
 		message: "Filter projects",
 	});
 
@@ -84,7 +83,6 @@ export function DashboardSidebarProjectsFilterInput({
 					if (query.trim() === "") collapse();
 				}}
 				placeholder={t({
-					id: "dashboard.sidebar.workspacesHeader.filterPlaceholder",
 					message: "Filter projects…",
 				})}
 				aria-label={filterLabel}
@@ -94,7 +92,6 @@ export function DashboardSidebarProjectsFilterInput({
 				<button
 					type="button"
 					aria-label={t({
-						id: "dashboard.sidebar.workspacesHeader.clearFilter",
 						message: "Clear filter",
 					})}
 					// preventDefault on mousedown so the input never blurs; the

@@ -201,7 +201,6 @@ export function useDashboardSidebarWorkspaceItemActions({
 		if (!workspace?.worktreePath) {
 			toast.error(
 				t({
-					id: "dashboard.sidebar.workspaceActions.pathUnavailable",
 					message: "Workspace path is not available",
 				}),
 			);
@@ -218,7 +217,6 @@ export function useDashboardSidebarWorkspaceItemActions({
 		} catch (error) {
 			toast.error(
 				t({
-					id: "dashboard.sidebar.workspaceActions.openInFinderFailed",
 					message: `Failed to open in Finder: ${errorMessage(error, "Unknown error")}`,
 				}),
 			);
@@ -232,14 +230,12 @@ export function useDashboardSidebarWorkspaceItemActions({
 			await copyToClipboard(path);
 			toast.success(
 				t({
-					id: "dashboard.sidebar.workspaceActions.pathCopied",
 					message: "Path copied",
 				}),
 			);
 		} catch (error) {
 			toast.error(
 				t({
-					id: "dashboard.sidebar.workspaceActions.copyPathFailed",
 					message: `Failed to copy path: ${errorMessage(error, "Unknown error")}`,
 				}),
 			);
@@ -275,7 +271,6 @@ export function useDashboardSidebarWorkspaceItemActions({
 		} catch (error) {
 			toast.error(
 				t({
-					id: "dashboard.sidebar.workspaceActions.clearStatusFailed",
 					message: `Failed to clear agent status: ${errorMessage(error, "Unknown error")}`,
 				}),
 			);
@@ -299,7 +294,6 @@ export function useDashboardSidebarWorkspaceItemActions({
 		} catch (error) {
 			toast.error(
 				t({
-					id: "dashboard.sidebar.workspaceActions.removePrLinkFailed",
 					message: `Failed to remove PR link: ${errorMessage(error, "Unknown error")}`,
 				}),
 			);
@@ -310,7 +304,6 @@ export function useDashboardSidebarWorkspaceItemActions({
 		if (!branch) {
 			toast.error(
 				t({
-					id: "dashboard.sidebar.workspaceActions.branchUnavailable",
 					message: "Branch name is not available",
 				}),
 			);
@@ -320,14 +313,12 @@ export function useDashboardSidebarWorkspaceItemActions({
 			await copyToClipboard(branch);
 			toast.success(
 				t({
-					id: "dashboard.sidebar.workspaceActions.branchCopied",
 					message: "Branch name copied",
 				}),
 			);
 		} catch (error) {
 			toast.error(
 				t({
-					id: "dashboard.sidebar.workspaceActions.copyBranchFailed",
 					message: `Failed to copy branch name: ${errorMessage(error, "Unknown error")}`,
 				}),
 			);
@@ -337,12 +328,10 @@ export function useDashboardSidebarWorkspaceItemActions({
 	const handleCopyWorkspaceId = () => {
 		toast.promise(copyToClipboard(workspaceId), {
 			success: t({
-				id: "dashboard.sidebar.workspaceActions.workspaceIdCopied",
 				message: "Workspace ID copied",
 			}),
 			error: (error) =>
 				t({
-					id: "dashboard.sidebar.workspaceActions.copyWorkspaceIdFailed",
 					message: `Failed to copy workspace ID: ${errorMessage(error, "Unknown error")}`,
 				}),
 		});

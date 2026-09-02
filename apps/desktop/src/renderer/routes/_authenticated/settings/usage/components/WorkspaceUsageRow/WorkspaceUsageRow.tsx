@@ -32,7 +32,7 @@ export function WorkspaceUsageRow({
 					{row.project}
 					{row.kind === "project" && (
 						<span className="text-[9px] uppercase text-muted-foreground">
-							<Trans id="settings.usage.workspaceRow.repoBadge">repo</Trans>
+							<Trans>repo</Trans>
 						</span>
 					)}
 				</span>

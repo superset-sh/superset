@@ -11,129 +11,99 @@ import type { BrowserLoadError } from "shared/tabs-types";
 
 const ERROR_LABELS: Record<number, MessageDescriptor> = {
 	[-2]: msg({
-		id: "workspace.browserPane.errorNetworkChanged",
 		message: "Network Changed",
 	}),
 	[-6]: msg({
-		id: "workspace.browserPane.errorConnectionRefused",
 		message: "Connection Refused",
 	}),
 	[-7]: msg({
-		id: "workspace.browserPane.errorConnectionTimedOut",
 		message: "Connection Timed Out",
 	}),
 	[-21]: msg({
-		id: "workspace.browserPane.errorNetworkChangedIp",
 		message: "Network Changed",
 	}),
 	[-100]: msg({
-		id: "workspace.browserPane.errorConnectionClosed",
 		message: "Connection Closed",
 	}),
 	[-102]: msg({
-		id: "workspace.browserPane.errorConnectionRefusedRemote",
 		message: "Connection Refused",
 	}),
 	[-105]: msg({
-		id: "workspace.browserPane.errorNameNotResolved",
 		message: "Name Not Resolved",
 	}),
 	[-106]: msg({
-		id: "workspace.browserPane.errorInternetDisconnected",
 		message: "Internet Disconnected",
 	}),
 	[-109]: msg({
-		id: "workspace.browserPane.errorAddressUnreachable",
 		message: "Address Unreachable",
 	}),
 	[-118]: msg({
-		id: "workspace.browserPane.errorConnectionTimedOutSlow",
 		message: "Connection Timed Out",
 	}),
 	[-137]: msg({
-		id: "workspace.browserPane.errorNameNotResolvedDns",
 		message: "Name Not Resolved",
 	}),
 	[-200]: msg({
-		id: "workspace.browserPane.errorCertificate",
 		message: "Certificate Error",
 	}),
 	[-201]: msg({
-		id: "workspace.browserPane.errorCertificateDateInvalid",
 		message: "Certificate Date Invalid",
 	}),
 	[-202]: msg({
-		id: "workspace.browserPane.errorCertificateAuthorityInvalid",
 		message: "Certificate Authority Invalid",
 	}),
 };
 
 const FRIENDLY_MESSAGES: Record<number, MessageDescriptor> = {
 	[-2]: msg({
-		id: "workspace.browserPane.friendlyNetworkChanged",
 		message: "The network connection changed",
 	}),
 	[-6]: msg({
-		id: "workspace.browserPane.friendlyConnectionRefused",
 		message: "Browser Connection was refused",
 	}),
 	[-7]: msg({
-		id: "workspace.browserPane.friendlyConnectionTimedOut",
 		message: "The connection timed out",
 	}),
 	[-21]: msg({
-		id: "workspace.browserPane.friendlyNetworkChangedIp",
 		message: "The network connection changed",
 	}),
 	[-100]: msg({
-		id: "workspace.browserPane.friendlyConnectionClosed",
 		message: "The connection was closed",
 	}),
 	[-102]: msg({
-		id: "workspace.browserPane.friendlyConnectionRefusedRemote",
 		message: "Browser Connection was refused",
 	}),
 	[-105]: msg({
-		id: "workspace.browserPane.friendlyNameNotResolved",
 		message: "The server could not be found",
 	}),
 	[-106]: msg({
-		id: "workspace.browserPane.friendlyInternetDisconnected",
 		message: "You appear to be offline",
 	}),
 	[-109]: msg({
-		id: "workspace.browserPane.friendlyAddressUnreachable",
 		message: "The address is unreachable",
 	}),
 	[-118]: msg({
-		id: "workspace.browserPane.friendlyConnectionTimedOutSlow",
 		message: "The connection timed out",
 	}),
 	[-137]: msg({
-		id: "workspace.browserPane.friendlyNameNotResolvedDns",
 		message: "The server could not be found",
 	}),
 	[-200]: msg({
-		id: "workspace.browserPane.friendlyCertificate",
 		message: "The site's certificate is invalid",
 	}),
 	[-201]: msg({
-		id: "workspace.browserPane.friendlyCertificateExpired",
 		message: "The site's certificate has expired",
 	}),
 	[-202]: msg({
-		id: "workspace.browserPane.friendlyCertificateAuthorityInvalid",
 		message: "The site's certificate authority is not trusted",
 	}),
 };
 
 const FALLBACK_LABEL = msg({
-	id: "workspace.browserPane.errorPageLoadFailed",
 	message: "Page Load Failed",
 });
 
 const FALLBACK_FRIENDLY_MESSAGE = msg({
-	id: "workspace.browserPane.friendlyPageLoadFailed",
 	message: "The page could not be loaded",
 });
 
@@ -182,13 +152,9 @@ export function BrowserErrorOverlay({
 							className="hover:text-muted-foreground/70 transition-colors"
 						>
 							{showDetails ? (
-								<Trans id="workspace.browserPane.hideErrorDetails">
-									Hide Details
-								</Trans>
+								<Trans>Hide Details</Trans>
 							) : (
-								<Trans id="workspace.browserPane.showErrorDetails">
-									Show Details
-								</Trans>
+								<Trans>Show Details</Trans>
 							)}
 						</button>
 					</p>
@@ -208,9 +174,7 @@ export function BrowserErrorOverlay({
 					</div>
 				)}
 				<Button variant="outline" size="sm" onClick={onRetry}>
-					<Trans id="workspace.browserPane.restartBrowser">
-						Restart Browser
-					</Trans>
+					<Trans>Restart Browser</Trans>
 				</Button>
 			</div>
 		</div>

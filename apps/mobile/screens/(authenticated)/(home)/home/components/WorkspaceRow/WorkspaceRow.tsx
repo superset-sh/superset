@@ -118,7 +118,6 @@ export function WorkspaceRow({
 						{prIcon && pullRequest ? (
 							<Button
 								accessibilityLabel={t({
-									id: "mobile.workspaceRow.pullRequestLabel",
 									message: `Pull request #${pullRequest.prNumber}`,
 								})}
 								ph-label="workspace-row-pull-request"

@@ -53,7 +53,6 @@ export function useDefaultContextMenuActions({
 			{
 				key: "split-horizontal",
 				label: t({
-					id: "workspace.paneContextMenu.splitHorizontally",
 					message: "Split Horizontally",
 				}),
 				icon: <LuRows2 />,
@@ -72,7 +71,6 @@ export function useDefaultContextMenuActions({
 			{
 				key: "split-vertical",
 				label: t({
-					id: "workspace.paneContextMenu.splitVertically",
 					message: "Split Vertically",
 				}),
 				icon: <LuColumns2 />,
@@ -91,7 +89,6 @@ export function useDefaultContextMenuActions({
 			{
 				key: "split-with-browser",
 				label: t({
-					id: "workspace.paneContextMenu.splitWithNewBrowser",
 					message: "Split with New Browser",
 				}),
 				icon: <LuGlobe />,
@@ -113,7 +110,6 @@ export function useDefaultContextMenuActions({
 						{
 							key: "split-with-desktop",
 							label: t({
-								id: "workspace.paneContextMenu.splitWithDesktop",
 								message: "Split with Desktop",
 							}),
 							icon: <LuMonitor />,
@@ -129,7 +125,6 @@ export function useDefaultContextMenuActions({
 			{
 				key: "equalize-splits",
 				label: t({
-					id: "workspace.paneContextMenu.equalizePaneSplits",
 					message: "Equalize Pane Splits",
 				}),
 				icon: <LuEqual />,
@@ -145,7 +140,6 @@ export function useDefaultContextMenuActions({
 			{
 				key: "move-to-tab",
 				label: t({
-					id: "workspace.paneContextMenu.moveToTab",
 					message: "Move to Tab",
 				}),
 				icon: <LuMoveRight />,
@@ -168,7 +162,6 @@ export function useDefaultContextMenuActions({
 					items.push({
 						key: "move-to-new-tab",
 						label: t({
-							id: "workspace.paneContextMenu.newTab",
 							message: "New Tab",
 						}),
 						icon: <LuPlus />,
@@ -183,7 +176,6 @@ export function useDefaultContextMenuActions({
 			{
 				key: "close-pane",
 				label: t({
-					id: "workspace.paneContextMenu.closePane",
 					message: "Close Pane",
 				}),
 				icon: <LuX />,

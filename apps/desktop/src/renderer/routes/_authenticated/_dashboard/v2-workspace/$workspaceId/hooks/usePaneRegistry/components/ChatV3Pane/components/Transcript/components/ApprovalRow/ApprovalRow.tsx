@@ -7,7 +7,6 @@ import { Button } from "@superset/ui/button";
 import { ToolContentList } from "../ToolContentList";
 
 const DECISION_ANSWERED = msg({
-	id: "workspace.chat.decisionAnswered",
 	message: "Answered",
 });
 
@@ -15,24 +14,17 @@ function decisionLabel(decision: Decision | undefined): string {
 	if (!decision) return i18n._(DECISION_ANSWERED);
 	switch (decision.type) {
 		case "accept":
-			return i18n._(
-				msg({ id: "workspace.chat.decisionAllowed", message: "Allowed" }),
-			);
+			return i18n._(msg({ message: "Allowed" }));
 		case "accept_for_session":
 			return i18n._(
 				msg({
-					id: "workspace.chat.decisionAllowedForSession",
 					message: "Allowed for session",
 				}),
 			);
 		case "decline":
-			return i18n._(
-				msg({ id: "workspace.chat.decisionDenied", message: "Denied" }),
-			);
+			return i18n._(msg({ message: "Denied" }));
 		case "cancel":
-			return i18n._(
-				msg({ id: "workspace.chat.decisionCanceled", message: "Canceled" }),
-			);
+			return i18n._(msg({ message: "Canceled" }));
 		case "option":
 			return decision.optionId;
 		default:
@@ -60,7 +52,7 @@ export function ApprovalRow({
 				<span className="text-sm font-medium">{item.title}</span>
 				{item.status === "stale" && (
 					<Badge variant="outline">
-						<Trans id="workspace.chat.approvalExpired">Expired</Trans>
+						<Trans>Expired</Trans>
 					</Badge>
 				)}
 				{item.status === "answered" && (
@@ -93,23 +85,21 @@ export function ApprovalRow({
 							onClick={() => onRespond(item.id, { type: "accept" })}
 							size="sm"
 						>
-							<Trans id="workspace.chat.approvalAllow">Allow</Trans>
+							<Trans>Allow</Trans>
 						</Button>
 						<Button
 							onClick={() => onRespond(item.id, { type: "accept_for_session" })}
 							size="sm"
 							variant="outline"
 						>
-							<Trans id="workspace.chat.approvalAllowForSession">
-								Allow for session
-							</Trans>
+							<Trans>Allow for session</Trans>
 						</Button>
 						<Button
 							onClick={() => onRespond(item.id, { type: "decline" })}
 							size="sm"
 							variant="outline"
 						>
-							<Trans id="workspace.chat.approvalDeny">Deny</Trans>
+							<Trans>Deny</Trans>
 						</Button>
 					</div>
 				))}

@@ -47,7 +47,6 @@ export function WaitForSetupBeforeAgentSetting() {
 				>
 					<HighlightText
 						text={t({
-							id: "settings.experimental.waitForSetup.label",
 							message: "Wait for workspace setup before starting agents",
 						})}
 						query={searchQuery}
@@ -56,7 +55,6 @@ export function WaitForSetupBeforeAgentSetting() {
 				<p className="text-xs text-muted-foreground">
 					<HighlightText
 						text={t({
-							id: "settings.experimental.waitForSetup.hint",
 							message:
 								"Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it",
 						})}

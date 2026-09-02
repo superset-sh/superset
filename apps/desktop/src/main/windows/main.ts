@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
+import { msg } from "@lingui/core/macro";
 import * as Sentry from "@sentry/electron/main";
 import { i18n } from "@superset/i18n";
 import { workspaces, worktrees } from "@superset/local-db";
@@ -69,10 +70,11 @@ let ipcHandler: ReturnType<typeof createIPCHandler> | null = null;
 const getWindow = (): BrowserWindow | null => getFocusedOrLastWindow();
 
 function fallbackWorkspaceName(): string {
-	return i18n._({
-		id: "main.notification.fallbackWorkspace",
-		message: "Workspace",
-	});
+	return i18n._(
+		msg({
+			message: "Workspace",
+		}),
+	);
 }
 
 function getWorkspaceNameFromDb(workspaceId: string | undefined): string {

@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import {
 	assignAttachmentFileName,
@@ -71,10 +72,11 @@ export function useWriteTerminalAttachments() {
 		},
 		onError: (error) => {
 			Alert.alert(
-				i18n._({
-					id: "mobile.terminal.attachFailed",
-					message: "Could not attach files",
-				}),
+				i18n._(
+					msg({
+						message: "Could not attach files",
+					}),
+				),
 				error instanceof Error ? error.message : String(error),
 			);
 		},

@@ -53,9 +53,7 @@ export function ReleaseList({ releases }: ReleaseListProps) {
 					href={`${COMPANY.GITHUB_URL}/releases`}
 					className="inline-flex items-center gap-1 text-brand text-sm transition-colors hover:text-brand-light"
 				>
-					<Trans id="marketing.download.allReleases">
-						All releases on GitHub
-					</Trans>
+					<Trans>All releases on GitHub</Trans>
 					<HiMiniArrowRight className="size-3.5" />
 				</a>
 			</section>
@@ -65,7 +63,7 @@ export function ReleaseList({ releases }: ReleaseListProps) {
 	return (
 		<section id="all-downloads" className="border-border border-t pt-12">
 			<p className="max-w-2xl font-light text-foreground text-xl sm:text-2xl">
-				<Trans id="marketing.download.availability">
+				<Trans>
 					The Superset desktop app is available for macOS and Linux.
 				</Trans>
 			</p>
@@ -84,7 +82,7 @@ export function ReleaseList({ releases }: ReleaseListProps) {
 								</span>
 								{index === 0 ? (
 									<span className="rounded-[2px] border border-brand/40 bg-brand/10 px-2 py-0.5 font-mono text-brand text-xs">
-										<Trans id="marketing.download.latestTag">Latest</Trans>
+										<Trans>Latest</Trans>
 									</span>
 								) : null}
 								<span className="font-mono text-muted-foreground text-xs">
@@ -145,9 +143,7 @@ export function ReleaseList({ releases }: ReleaseListProps) {
 								href={release.notesUrl}
 								className="mt-4 inline-flex items-center gap-1 text-brand text-sm transition-colors hover:text-brand-light"
 							>
-								<Trans id="marketing.download.releaseNotes">
-									View release notes
-								</Trans>
+								<Trans>View release notes</Trans>
 								<HiMiniArrowRight className="size-3.5" />
 							</a>
 						</div>
@@ -159,9 +155,7 @@ export function ReleaseList({ releases }: ReleaseListProps) {
 				href={`${COMPANY.GITHUB_URL}/releases`}
 				className="mt-6 inline-flex items-center gap-1 text-muted-foreground text-sm transition-colors hover:text-foreground"
 			>
-				<Trans id="marketing.download.allReleases">
-					All releases on GitHub
-				</Trans>
+				<Trans>All releases on GitHub</Trans>
 				<HiMiniArrowRight className="size-3.5" />
 			</a>
 		</section>

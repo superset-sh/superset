@@ -25,7 +25,6 @@ export function CheckRow({
 	return (
 		<Pressable
 			accessibilityLabel={t({
-				id: "mobile.checks.rowLabel",
 				message: `${check.name}, ${outcome}${took ? `, ${took}` : ""}`,
 			})}
 			accessibilityRole={onPress ? "button" : undefined}

@@ -1,8 +1,8 @@
+import { msg } from "@lingui/core/macro";
 import { auth } from "@superset/auth/server";
 import { db } from "@superset/db/client";
 import { headers } from "next/headers";
 import Image from "next/image";
-
 import { env } from "@/env";
 import { i18n } from "@/lib/i18n-server";
 import { api } from "@/trpc/server";
@@ -44,16 +44,18 @@ export default async function ConsentPage({ searchParams }: ConsentPageProps) {
 					<div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[400px]">
 						<div className="flex flex-col space-y-2 text-center">
 							<h1 className="text-2xl font-semibold tracking-tight text-red-600">
-								{i18n._({
-									id: "web.consent.invalidRequest",
-									message: "Invalid Request",
-								})}
+								{i18n._(
+									msg({
+										message: "Invalid Request",
+									}),
+								)}
 							</h1>
 							<p className="text-muted-foreground text-sm">
-								{i18n._({
-									id: "web.consent.missingParams",
-									message: "Missing required authorization parameters.",
-								})}
+								{i18n._(
+									msg({
+										message: "Missing required authorization parameters.",
+									}),
+								)}
 							</p>
 						</div>
 					</div>

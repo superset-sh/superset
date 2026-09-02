@@ -71,10 +71,10 @@ export function CliAuthCodeDisplay({ code, state }: CliAuthCodeDisplayProps) {
 	return (
 		<div className="flex w-full flex-col items-center space-y-6 px-6 text-center">
 			<h1 className="text-3xl font-semibold tracking-tight">
-				<Trans id="web.cliAuth.codeTitle">Authentication Code</Trans>
+				<Trans>Authentication Code</Trans>
 			</h1>
 			<p className="text-muted-foreground">
-				<Trans id="web.cliAuth.codeHint">Paste this into Superset CLI:</Trans>
+				<Trans>Paste this into Superset CLI:</Trans>
 			</p>
 
 			{/* biome-ignore lint/a11y/useSemanticElements: keep as div so the inner <code> stays selectable as a ctrl+c fallback if clipboard write fails — wrapping in a button disrupts selection focus */}
@@ -98,11 +98,11 @@ export function CliAuthCodeDisplay({ code, state }: CliAuthCodeDisplayProps) {
 			<Button variant="ghost" onClick={handleCopy}>
 				{copied ? (
 					<>
-						<LuCheck /> <Trans id="web.cliAuth.copied">Copied!</Trans>
+						<LuCheck /> <Trans>Copied!</Trans>
 					</>
 				) : (
 					<>
-						<LuClipboard /> <Trans id="web.cliAuth.copy">Copy Code</Trans>
+						<LuClipboard /> <Trans>Copy Code</Trans>
 					</>
 				)}
 			</Button>

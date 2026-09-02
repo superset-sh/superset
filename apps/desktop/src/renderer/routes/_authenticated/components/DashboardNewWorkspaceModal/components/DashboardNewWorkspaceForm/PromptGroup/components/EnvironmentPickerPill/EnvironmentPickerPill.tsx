@@ -40,7 +40,6 @@ export function EnvironmentPickerPill({
 					<span className="truncate">
 						{selectedEnvironment?.name ??
 							t({
-								id: "dashboard.newWorkspaceModal.environmentPicker.selectEnvironment",
 								message: "Select environment",
 							})}
 					</span>
@@ -55,15 +54,12 @@ export function EnvironmentPickerPill({
 				<Command>
 					<CommandInput
 						placeholder={t({
-							id: "dashboard.newWorkspaceModal.environmentPicker.searchPlaceholder",
 							message: "Search environments...",
 						})}
 					/>
 					<CommandList className="max-h-[min(280px,var(--radix-popover-content-available-height))]">
 						<CommandEmpty>
-							<Trans id="dashboard.newWorkspaceModal.environmentPicker.empty">
-								No environments found.
-							</Trans>
+							<Trans>No environments found.</Trans>
 						</CommandEmpty>
 						<CommandGroup>
 							{environments.map((environment) => (

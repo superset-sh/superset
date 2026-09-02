@@ -52,30 +52,24 @@ export function LeaderboardOptInPrompt({
 			<CardFrame
 				collapsed={collapsed}
 				onToggleCollapsed={onToggleCollapsed}
-				title={
-					<Trans id="settings.usage.leaderboardPrompt.headline">
-						Where do you rank?
-					</Trans>
-				}
+				title={<Trans>Where do you rank?</Trans>}
 				actions={
 					<Button size="sm" onClick={openJoin}>
-						<Trans id="settings.usage.leaderboardPrompt.reveal">
-							Reveal my rank
-						</Trans>
+						<Trans>Reveal my rank</Trans>
 					</Button>
 				}
 			>
 				<div className="mt-2 flex items-center justify-between gap-6 pl-7">
 					<p className="text-xs text-muted-foreground">
 						{participants !== null ? (
-							<Trans id="settings.usage.leaderboardPrompt.bodyWithCount">
+							<Trans>
 								{formatNumber(participants)} developers are ranked by agent
 								usage. Your last 30 days are already counted, just hidden. Token
 								counts and model names only, no repo names, file paths or
 								prompts.
 							</Trans>
 						) : (
-							<Trans id="settings.usage.leaderboardPrompt.bodyGeneric">
+							<Trans>
 								See where your last 30 days land on the public leaderboard.
 								Token counts and model names only, no repo names, file paths or
 								prompts.
@@ -84,42 +78,26 @@ export function LeaderboardOptInPrompt({
 					</p>
 					<div className="flex shrink-0 gap-8">
 						<StatTile
-							label={
-								<Trans id="settings.usage.leaderboardPrompt.tokensLabel">
-									Your tokens
-								</Trans>
-							}
+							label={<Trans>Your tokens</Trans>}
 							value={localTokens === null ? "—" : formatTokens(localTokens)}
-							hint={
-								<Trans id="settings.usage.leaderboardPrompt.tokensHint">
-									last 30 days
-								</Trans>
-							}
+							hint={<Trans>last 30 days</Trans>}
 							loading={localTokensLoading}
 						/>
 						<StatTile
-							label={
-								<Trans id="settings.usage.leaderboardPrompt.rankLabel">
-									Your rank
-								</Trans>
-							}
+							label={<Trans>Your rank</Trans>}
 							value={
 								<>
 									<span aria-hidden className="select-none blur-[5px]">
 										{hiddenRank}
 									</span>
 									<span className="sr-only">
-										<Trans id="settings.usage.leaderboardPrompt.rankHidden">
-											Hidden until you join
-										</Trans>
+										<Trans>Hidden until you join</Trans>
 									</span>
 								</>
 							}
 							hint={
 								participants !== null ? (
-									<Trans id="settings.usage.leaderboardPrompt.rankHint">
-										of {formatNumber(participants)}
-									</Trans>
+									<Trans>of {formatNumber(participants)}</Trans>
 								) : (
 									" "
 								)

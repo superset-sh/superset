@@ -50,28 +50,25 @@ export function FilePane({ context, workspaceId }: FilePaneProps) {
 		const name = getBaseName(filePath);
 		alert({
 			title: t({
-				id: "workspace.filePane.saveChangesTitle",
 				message: `Do you want to save the changes you made to ${name}?`,
 			}),
 			description: t({
-				id: "workspace.filePane.saveChangesBody",
 				message: "Your changes will be lost if you don't save them.",
 			}),
 			actions: [
 				{
-					label: t({ id: "workspace.filePane.save", message: "Save" }),
+					label: t({ message: "Save" }),
 					onClick: () => document.resolveConflict("overwrite"),
 				},
 				{
 					label: t({
-						id: "workspace.filePane.dontSave",
 						message: "Don't Save",
 					}),
 					variant: "secondary",
 					onClick: () => document.resolveConflict("reload"),
 				},
 				{
-					label: t({ id: "workspace.filePane.cancel", message: "Cancel" }),
+					label: t({ message: "Cancel" }),
 					variant: "ghost",
 					onClick: () => document.resolveConflict("keep"),
 				},

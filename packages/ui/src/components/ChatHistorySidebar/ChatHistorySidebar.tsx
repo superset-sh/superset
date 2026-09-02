@@ -117,7 +117,6 @@ export function ChatHistorySidebar({
 		<nav
 			ref={wrapperRef}
 			aria-label={t({
-				id: "ui.chatHistorySidebar.label",
 				message: "User messages",
 			})}
 			className={cn("chat-history-rail relative", className)}
@@ -149,7 +148,6 @@ export function ChatHistorySidebar({
 								activeMessageIds?.includes(item.message.id) ? "true" : undefined
 							}
 							aria-label={t({
-								id: "ui.chatHistorySidebar.jumpToMessage",
 								message: `Jump to user message ${position}`,
 							})}
 							className="chat-history-rail-row group flex h-2.5 w-9 shrink-0 cursor-pointer items-center outline-none"

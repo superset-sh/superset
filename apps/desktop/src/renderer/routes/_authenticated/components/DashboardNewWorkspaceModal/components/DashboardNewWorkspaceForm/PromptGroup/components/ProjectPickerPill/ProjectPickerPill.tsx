@@ -53,7 +53,6 @@ export function ProjectPickerPill({
 		onError: (message) => {
 			toast.error(
 				t({
-					id: "dashboard.newWorkspaceModal.projectPicker.importFailedWithReason",
 					message: `Import failed: ${message}`,
 				}),
 			);
@@ -61,17 +60,14 @@ export function ProjectPickerPill({
 		onMultipleProjects: ({ candidates }) => {
 			toast.error(
 				t({
-					id: "dashboard.newWorkspaceModal.projectPicker.importFailed",
 					message: "Import failed",
 				}),
 				{
 					description: t({
-						id: "dashboard.newWorkspaceModal.projectPicker.importFailedMultipleProjects",
 						message: `Multiple projects use this repository (${candidates.length}). Choose the project in settings to set it up on this device.`,
 					}),
 					action: {
 						label: t({
-							id: "dashboard.newWorkspaceModal.projectPicker.openProjects",
 							message: "Open Projects",
 						}),
 						onClick: () => navigate({ to: "/settings/projects" }),
@@ -99,7 +95,6 @@ export function ProjectPickerPill({
 		if (result) {
 			toast.success(
 				t({
-					id: "dashboard.newWorkspaceModal.projectPicker.importSucceeded",
 					message: "Project imported and selected.",
 				}),
 			);
@@ -125,11 +120,9 @@ export function ProjectPickerPill({
 						{selectedProject?.name ??
 							(isSessionSelected
 								? t({
-										id: "dashboard.newWorkspaceModal.projectPicker.noProjectSelected",
 										message: "No project",
 									})
 								: t({
-										id: "dashboard.newWorkspaceModal.projectPicker.selectProject",
 										message: "Select project",
 									}))}
 					</span>
@@ -144,15 +137,12 @@ export function ProjectPickerPill({
 				<Command>
 					<CommandInput
 						placeholder={t({
-							id: "dashboard.newWorkspaceModal.projectPicker.searchPlaceholder",
 							message: "Search projects...",
 						})}
 					/>
 					<CommandList className="max-h-[min(280px,var(--radix-popover-content-available-height))]">
 						<CommandEmpty>
-							<Trans id="dashboard.newWorkspaceModal.projectPicker.empty">
-								No projects found.
-							</Trans>
+							<Trans>No projects found.</Trans>
 						</CommandEmpty>
 						<CommandGroup>
 							<CommandItem
@@ -164,14 +154,10 @@ export function ProjectPickerPill({
 							>
 								<LuBox className="size-4 text-muted-foreground" />
 								<span className="flex-1 truncate">
-									<Trans id="dashboard.newWorkspaceModal.projectPicker.noProjectOption">
-										No project
-									</Trans>
+									<Trans>No project</Trans>
 								</span>
 								<span className="text-[10px] text-muted-foreground">
-									<Trans id="dashboard.newWorkspaceModal.projectPicker.sessionBadge">
-										Session
-									</Trans>
+									<Trans>Session</Trans>
 								</span>
 								{isSessionSelected && <HiCheck className="size-4 shrink-0" />}
 							</CommandItem>
@@ -195,9 +181,7 @@ export function ProjectPickerPill({
 												<LuTriangleAlert className="size-3.5 shrink-0 text-amber-500" />
 											</TooltipTrigger>
 											<TooltipContent>
-												<Trans id="dashboard.newWorkspaceModal.projectPicker.needsSetup">
-													Not set up on this host
-												</Trans>
+												<Trans>Not set up on this host</Trans>
 											</TooltipContent>
 										</Tooltip>
 									)}
@@ -212,21 +196,15 @@ export function ProjectPickerPill({
 					<CommandGroup forceMount>
 						<CommandItem forceMount onSelect={handleCreateNewProject}>
 							<LuFolderPlus className="size-4" />
-							<Trans id="dashboard.newWorkspaceModal.projectPicker.createNewProject">
-								Create new project
-							</Trans>
+							<Trans>Create new project</Trans>
 						</CommandItem>
 						<CommandItem forceMount onSelect={handleCloneProject}>
 							<HiMiniPlus className="size-4" />
-							<Trans id="dashboard.newWorkspaceModal.projectPicker.cloneFromUrl">
-								Clone from URL
-							</Trans>
+							<Trans>Clone from URL</Trans>
 						</CommandItem>
 						<CommandItem forceMount onSelect={handleImportProject}>
 							<LuFolderInput className="size-4" />
-							<Trans id="dashboard.newWorkspaceModal.projectPicker.openFromFolder">
-								Open from folder
-							</Trans>
+							<Trans>Open from folder</Trans>
 						</CommandItem>
 					</CommandGroup>
 				</Command>

@@ -150,7 +150,6 @@ export const TerminalComposer = forwardRef<
 					{
 						id: COPY_SELECTION_KEY,
 						label: t({
-							id: "mobile.terminal.copySelection",
 							message: "Copy Selection",
 						}),
 					},
@@ -173,7 +172,6 @@ export const TerminalComposer = forwardRef<
 			if (!attachmentTarget) {
 				Alert.alert(
 					t({
-						id: "mobile.terminal.attachmentsNeedHost",
 						message: "Attachments need an online host",
 					}),
 				);
@@ -208,7 +206,7 @@ export const TerminalComposer = forwardRef<
 			else draft.setText("");
 		} catch (cause) {
 			Alert.alert(
-				t({ id: "mobile.terminal.sendFailed", message: "Could not send" }),
+				t({ message: "Could not send" }),
 				cause instanceof Error ? cause.message : String(cause),
 			);
 		} finally {
@@ -223,7 +221,6 @@ export const TerminalComposer = forwardRef<
 				placeholder={
 					placeholder ??
 					t({
-						id: "mobile.terminal.placeholder",
 						message: "Type a message...",
 					})
 				}
@@ -238,23 +235,18 @@ export const TerminalComposer = forwardRef<
 				// Translated here because the composer has no catalog of its own.
 				sessionTabLabels={{
 					copyId: t({
-						id: "mobile.terminalTabs.copySessionId",
 						message: "Copy session ID",
 					}),
 					close: t({
-						id: "mobile.terminalTabs.closeSession",
 						message: "Close session",
 					}),
 					newSession: t({
-						id: "mobile.nav.newSession.title",
 						message: "New session",
 					}),
 					allSessions: t({
-						id: "mobile.terminalTabs.manageSessions",
 						message: "Manage sessions",
 					}),
 					scrollToStart: t({
-						id: "mobile.terminalTabs.scrollToStart",
 						message: "Scroll to the first session",
 					}),
 				}}

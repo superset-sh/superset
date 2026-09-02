@@ -47,7 +47,6 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 		onError: (error) =>
 			toast.error(
 				t({
-					id: "dashboard.topBar.openInMenu.openFailed",
 					message: `Failed to open: ${error.message}`,
 				}),
 			),
@@ -56,14 +55,12 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 		onSuccess: () =>
 			toast.success(
 				t({
-					id: "dashboard.topBar.openInMenu.pathCopied",
 					message: "Path copied to clipboard",
 				}),
 			),
 		onError: (error) =>
 			toast.error(
 				t({
-					id: "dashboard.topBar.openInMenu.copyPathFailed",
 					message: `Failed to copy path: ${error.message}`,
 				}),
 			),
@@ -113,11 +110,9 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 						aria-label={
 							currentApp
 								? t({
-										id: "dashboard.topBar.openInMenu.openInApp",
 										message: `Open in ${currentApp.displayLabel ?? currentApp.label}`,
 									})
 								: t({
-										id: "dashboard.topBar.openInMenu.openInEditor",
 										message: "Open in editor",
 									})
 						}
@@ -143,7 +138,7 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 							</span>
 						)}
 						<span className="hidden sm:inline text-foreground font-medium">
-							<Trans id="dashboard.topBar.openInMenu.open">Open</Trans>
+							<Trans>Open</Trans>
 						</span>
 					</button>
 				</TooltipTrigger>
@@ -151,15 +146,12 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 					{currentApp ? (
 						<HotkeyLabel
 							label={t({
-								id: "dashboard.topBar.openInMenu.openInAppTooltip",
 								message: `Open in ${currentApp.displayLabel ?? currentApp.label}`,
 							})}
 							id="OPEN_IN_APP"
 						/>
 					) : (
-						<Trans id="dashboard.topBar.openInMenu.selectEditor">
-							Select an editor from the dropdown
-						</Trans>
+						<Trans>Select an editor from the dropdown</Trans>
 					)}
 				</TooltipContent>
 			</Tooltip>

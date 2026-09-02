@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { Slot } from "@radix-ui/react-slot";
 import { ChevronRightIcon, EllipsisIcon } from "lucide-react";
@@ -8,7 +9,7 @@ import { cn } from "../../lib/utils";
 function Breadcrumb({ ...props }: React.ComponentProps<"nav">) {
 	return (
 		<nav
-			aria-label={i18n._({ id: "ui.breadcrumb.label", message: "breadcrumb" })}
+			aria-label={i18n._(msg({ message: "breadcrumb" }))}
 			data-slot="breadcrumb"
 			{...props}
 		/>
@@ -103,7 +104,7 @@ function BreadcrumbEllipsis({
 		>
 			<EllipsisIcon className="size-4" />
 			<span className="sr-only">
-				<Trans id="ui.breadcrumb.more">More</Trans>
+				<Trans>More</Trans>
 			</span>
 		</span>
 	);

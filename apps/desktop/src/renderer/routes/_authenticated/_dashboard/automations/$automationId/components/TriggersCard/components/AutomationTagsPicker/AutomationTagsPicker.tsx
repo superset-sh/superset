@@ -60,7 +60,6 @@ export function AutomationTagsPicker({
 			? tags.join(", ")
 			: i18n._(
 					msg({
-						id: "dashboard.automations.tagsPicker.empty",
 						message: "no tags",
 					}),
 				);
@@ -108,7 +107,6 @@ export function AutomationTagsPicker({
 						value={draft}
 						placeholder={i18n._(
 							msg({
-								id: "dashboard.automations.tagsPicker.placeholder",
 								message: "Add tag…",
 							}),
 						)}

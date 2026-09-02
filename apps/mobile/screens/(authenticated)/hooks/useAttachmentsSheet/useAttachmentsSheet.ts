@@ -36,7 +36,6 @@ export function useAttachmentsSheet(draftKey: string) {
 				if (!permission.granted) {
 					Alert.alert(
 						t({
-							id: "mobile.attachments.cameraDenied",
 							message: "Camera access is not allowed",
 						}),
 					);
@@ -49,7 +48,6 @@ export function useAttachmentsSheet(draftKey: string) {
 					// Rejects where there is no camera (simulator).
 					Alert.alert(
 						t({
-							id: "mobile.attachments.cameraUnavailable",
 							message: "Camera is not available",
 						}),
 					);

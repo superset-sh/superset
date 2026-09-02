@@ -101,9 +101,7 @@ function V1WorkspaceList({ query }: { query: string }) {
 	return (
 		<CommandList>
 			<CommandEmpty>
-				<Trans id="commandPalette.workspaceList.empty">
-					No workspaces found.
-				</Trans>
+				<Trans>No workspaces found.</Trans>
 			</CommandEmpty>
 			{projectGroups.map((group) => (
 				<CommandGroup key={group.projectId} heading={group.projectName}>
@@ -162,7 +160,6 @@ function V2WorkspaceList({ query }: { query: string }) {
 					projectName:
 						workspace.projectName ??
 						t({
-							id: "commandPalette.workspaceList.sessionsGroup",
 							message: "Sessions",
 						}),
 					workspaces: [workspace],
@@ -184,9 +181,7 @@ function V2WorkspaceList({ query }: { query: string }) {
 	return (
 		<CommandList>
 			<CommandEmpty>
-				<Trans id="commandPalette.workspaceList.emptyV2">
-					No workspaces found.
-				</Trans>
+				<Trans>No workspaces found.</Trans>
 			</CommandEmpty>
 			{projectGroups.map((group) => (
 				<CommandGroup key={group.projectId} heading={group.projectName}>

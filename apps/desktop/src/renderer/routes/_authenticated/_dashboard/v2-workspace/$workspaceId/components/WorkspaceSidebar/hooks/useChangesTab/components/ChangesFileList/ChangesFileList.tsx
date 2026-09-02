@@ -45,16 +45,13 @@ const GROUP_ORDER: GroupKey[] = [
 
 const GROUP_TITLES: Record<GroupKey, MessageDescriptor> = {
 	unstaged: msg({
-		id: "workspace.changesList.groupUnstaged",
 		message: "Unstaged",
 	}),
-	staged: msg({ id: "workspace.changesList.groupStaged", message: "Staged" }),
+	staged: msg({ message: "Staged" }),
 	"against-base": msg({
-		id: "workspace.changesList.groupAgainstBase",
 		message: "Against base",
 	}),
 	commit: msg({
-		id: "workspace.changesList.groupCommitted",
 		message: "Committed",
 	}),
 };
@@ -88,7 +85,7 @@ export const ChangesFileList = memo(function ChangesFileList({
 	if (isLoading) {
 		return (
 			<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-				<Trans id="workspace.changesFileList.loading">Loading...</Trans>
+				<Trans>Loading...</Trans>
 			</div>
 		);
 	}
@@ -96,7 +93,7 @@ export const ChangesFileList = memo(function ChangesFileList({
 	if (files.length === 0) {
 		return (
 			<div className="px-3 py-6 text-center text-sm text-muted-foreground">
-				<Trans id="workspace.changesFileList.empty">No changes</Trans>
+				<Trans>No changes</Trans>
 			</div>
 		);
 	}

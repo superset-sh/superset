@@ -33,9 +33,7 @@ export function MobileNav({ ctaButtons, starCounter }: MobileNavProps) {
 				className="p-2 text-muted-foreground hover:text-foreground transition-colors"
 				onClick={() => setIsOpen((prev) => !prev)}
 				aria-label={
-					isOpen
-						? t({ id: "marketing.nav.closeMenu", message: "Close menu" })
-						: t({ id: "marketing.nav.openMenu", message: "Open menu" })
+					isOpen ? t({ message: "Close menu" }) : t({ message: "Open menu" })
 				}
 				aria-expanded={isOpen}
 			>
@@ -53,14 +51,12 @@ export function MobileNav({ ctaButtons, starCounter }: MobileNavProps) {
 					>
 						<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col gap-6">
 							<MobileSection
-								title={<Trans id="marketing.nav.productMenu">Product</Trans>}
+								title={<Trans>Product</Trans>}
 								links={PRODUCT_LINKS}
 								onNavigate={close}
 							/>
 							<MobileSection
-								title={
-									<Trans id="marketing.nav.resourcesMenu">Resources</Trans>
-								}
+								title={<Trans>Resources</Trans>}
 								links={RESOURCE_LINKS}
 								onNavigate={close}
 							/>

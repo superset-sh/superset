@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import {
@@ -85,10 +86,11 @@ const ContextIcon = () => {
 
 	return (
 		<Svg
-			accessibilityLabel={i18n._({
-				id: "mobile.context.usageLabel",
-				message: "Model context usage",
-			})}
+			accessibilityLabel={i18n._(
+				msg({
+					message: "Model context usage",
+				}),
+			)}
 			height={20}
 			viewBox={`0 0 ${ICON_VIEWBOX} ${ICON_VIEWBOX}`}
 			width={20}
@@ -231,7 +233,7 @@ export const ContextContentFooter = ({
 				{children ?? (
 					<>
 						<Text className="text-muted-foreground">
-							<Trans id="mobile.context.totalCost">Total cost</Trans>
+							<Trans>Total cost</Trans>
 						</Text>
 						<Text>{totalCost}</Text>
 					</>
@@ -288,7 +290,7 @@ export const ContextInputUsage = ({
 			{...props}
 		>
 			<Text className="text-muted-foreground text-xs">
-				<Trans id="mobile.context.input">Input</Trans>
+				<Trans>Input</Trans>
 			</Text>
 			<TokensWithCost costText={inputCostText} tokens={inputTokens} />
 		</View>
@@ -327,7 +329,7 @@ export const ContextOutputUsage = ({
 			{...props}
 		>
 			<Text className="text-muted-foreground text-xs">
-				<Trans id="mobile.context.output">Output</Trans>
+				<Trans>Output</Trans>
 			</Text>
 			<TokensWithCost costText={outputCostText} tokens={outputTokens} />
 		</View>
@@ -366,7 +368,7 @@ export const ContextReasoningUsage = ({
 			{...props}
 		>
 			<Text className="text-muted-foreground text-xs">
-				<Trans id="mobile.context.reasoning">Reasoning</Trans>
+				<Trans>Reasoning</Trans>
 			</Text>
 			<TokensWithCost costText={reasoningCostText} tokens={reasoningTokens} />
 		</View>
@@ -405,7 +407,7 @@ export const ContextCacheUsage = ({
 			{...props}
 		>
 			<Text className="text-muted-foreground text-xs">
-				<Trans id="mobile.context.cache">Cache</Trans>
+				<Trans>Cache</Trans>
 			</Text>
 			<TokensWithCost costText={cacheCostText} tokens={cacheTokens} />
 		</View>

@@ -60,23 +60,19 @@ export function ConnectionControls({
 					<Button variant="outline" disabled={disconnectMutation.isPending}>
 						<Unplug className="mr-2 size-4" />
 						{disconnectMutation.isPending ? (
-							<Trans id="web.integrations.disconnecting">
-								Disconnecting...
-							</Trans>
+							<Trans>Disconnecting...</Trans>
 						) : (
-							<Trans id="web.integrations.disconnect">Disconnect</Trans>
+							<Trans>Disconnect</Trans>
 						)}
 					</Button>
 				</AlertDialogTrigger>
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>
-							<Trans id="web.integrations.notion.disconnectTitle">
-								Disconnect Notion?
-							</Trans>
+							<Trans>Disconnect Notion?</Trans>
 						</AlertDialogTitle>
 						<AlertDialogDescription>
-							<Trans id="web.integrations.notion.disconnectDescription">
+							<Trans>
 								This will remove the connection between your organization and
 								Notion. You can reconnect at any time.
 							</Trans>
@@ -84,10 +80,10 @@ export function ConnectionControls({
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel>
-							<Trans id="web.integrations.cancel">Cancel</Trans>
+							<Trans>Cancel</Trans>
 						</AlertDialogCancel>
 						<AlertDialogAction onClick={handleDisconnect}>
-							<Trans id="web.integrations.disconnect">Disconnect</Trans>
+							<Trans>Disconnect</Trans>
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
@@ -97,7 +93,7 @@ export function ConnectionControls({
 
 	return (
 		<Button onClick={handleConnect}>
-			<Trans id="web.integrations.notion.connect">Connect Notion</Trans>
+			<Trans>Connect Notion</Trans>
 		</Button>
 	);
 }

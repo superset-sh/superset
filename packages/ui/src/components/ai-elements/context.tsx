@@ -1,5 +1,6 @@
 "use client";
 
+import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import {
 	formatCompactNumber,
@@ -75,10 +76,11 @@ const ContextIcon = () => {
 
 	return (
 		<svg
-			aria-label={i18n._({
-				id: "ui.context.iconLabel",
-				message: "Model context usage",
-			})}
+			aria-label={i18n._(
+				msg({
+					message: "Model context usage",
+				}),
+			)}
 			height="20"
 			role="img"
 			style={{ color: "currentcolor" }}
@@ -218,7 +220,7 @@ export const ContextContentFooter = ({
 			{children ?? (
 				<>
 					<span className="text-muted-foreground">
-						<Trans id="ui.context.totalCost">Total cost</Trans>
+						<Trans>Total cost</Trans>
 					</span>
 					<span>{totalCost}</span>
 				</>
@@ -259,7 +261,7 @@ export const ContextInputUsage = ({
 			{...props}
 		>
 			<span className="text-muted-foreground">
-				<Trans id="ui.context.input">Input</Trans>
+				<Trans>Input</Trans>
 			</span>
 			<TokensWithCost costText={inputCostText} tokens={inputTokens} />
 		</div>
@@ -298,7 +300,7 @@ export const ContextOutputUsage = ({
 			{...props}
 		>
 			<span className="text-muted-foreground">
-				<Trans id="ui.context.output">Output</Trans>
+				<Trans>Output</Trans>
 			</span>
 			<TokensWithCost costText={outputCostText} tokens={outputTokens} />
 		</div>
@@ -337,7 +339,7 @@ export const ContextReasoningUsage = ({
 			{...props}
 		>
 			<span className="text-muted-foreground">
-				<Trans id="ui.context.reasoning">Reasoning</Trans>
+				<Trans>Reasoning</Trans>
 			</span>
 			<TokensWithCost costText={reasoningCostText} tokens={reasoningTokens} />
 		</div>
@@ -376,7 +378,7 @@ export const ContextCacheUsage = ({
 			{...props}
 		>
 			<span className="text-muted-foreground">
-				<Trans id="ui.context.cache">Cache</Trans>
+				<Trans>Cache</Trans>
 			</span>
 			<TokensWithCost costText={cacheCostText} tokens={cacheTokens} />
 		</div>

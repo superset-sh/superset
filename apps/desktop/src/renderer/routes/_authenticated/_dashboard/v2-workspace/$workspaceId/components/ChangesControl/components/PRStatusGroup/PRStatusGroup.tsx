@@ -87,23 +87,17 @@ export function PRStatusGroup({
 
 	const mergePRMutation = workspaceTrpc.github.mergePR.useMutation({
 		onMutate: () => {
-			const toastId = toast.loading(
-				t({ id: "workspace.prStatusGroup.merging", message: "Merging PR..." }),
-			);
+			const toastId = toast.loading(t({ message: "Merging PR..." }));
 			return { toastId };
 		},
 		onSuccess: async (_data, _variables, context) => {
-			toast.success(
-				t({ id: "workspace.prStatusGroup.merged", message: "PR merged" }),
-				{ id: context?.toastId },
-			);
+			toast.success(t({ message: "PR merged" }), { id: context?.toastId });
 			try {
 				await refreshPRMutation.mutateAsync({ workspaceIds: [workspaceId] });
 			} catch (error) {
 				console.warn("Failed to refresh PR state after merge", error);
 				toast.warning(
 					t({
-						id: "workspace.prStatusGroup.mergedRefreshFailed",
 						message:
 							"Merged, but couldn't refresh PR state — try again in a moment",
 					}),
@@ -115,7 +109,6 @@ export function PRStatusGroup({
 		onError: (error, _variables, context) => {
 			toast.error(
 				t({
-					id: "workspace.prStatusGroup.mergeFailed",
 					message: `Merge failed: ${error.message}`,
 				}),
 				{ id: context?.toastId },
@@ -128,7 +121,6 @@ export function PRStatusGroup({
 			onMutate: () => {
 				const toastId = toast.loading(
 					t({
-						id: "workspace.prStatusGroup.markingReady",
 						message: "Marking ready for review...",
 					}),
 				);
@@ -137,7 +129,6 @@ export function PRStatusGroup({
 			onSuccess: async (_data, _variables, context) => {
 				toast.success(
 					t({
-						id: "workspace.prStatusGroup.markedReady",
 						message: "PR ready for review",
 					}),
 					{ id: context?.toastId },
@@ -148,7 +139,6 @@ export function PRStatusGroup({
 					console.warn("Failed to refresh PR state after marking ready", error);
 					toast.warning(
 						t({
-							id: "workspace.prStatusGroup.markedReadyRefreshFailed",
 							message:
 								"Marked ready, but couldn't refresh PR state — try again in a moment",
 						}),
@@ -160,7 +150,6 @@ export function PRStatusGroup({
 			onError: (error, _variables, context) => {
 				toast.error(
 					t({
-						id: "workspace.prStatusGroup.markReadyFailed",
 						message: `Ready for review failed: ${error.message}`,
 					}),
 					{ id: context?.toastId },
@@ -283,11 +272,9 @@ export function PRStatusGroup({
 						aria-label={
 							mergePRMutation.isPending
 								? t({
-										id: "workspace.prStatusGroup.mergingAria",
 										message: "Merging pull request",
 									})
 								: t({
-										id: "workspace.prStatusGroup.openPrOptionsAria",
 										message: "Open pull request options",
 									})
 						}
@@ -314,9 +301,7 @@ export function PRStatusGroup({
 								}
 							>
 								<VscGitPullRequest className="size-3.5" />
-								<Trans id="workspace.prStatusGroup.readyForReview">
-									Ready for review
-								</Trans>
+								<Trans>Ready for review</Trans>
 							</DropdownMenuItem>
 							<DropdownMenuSeparator />
 						</>
@@ -324,7 +309,7 @@ export function PRStatusGroup({
 					{canMerge && (
 						<>
 							<DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-								<Trans id="workspace.prStatusGroup.mergeMenuLabel">Merge</Trans>
+								<Trans>Merge</Trans>
 							</DropdownMenuLabel>
 							<DropdownMenuItem
 								onClick={() => handleMerge("squash")}
@@ -332,9 +317,7 @@ export function PRStatusGroup({
 								disabled={mergePRMutation.isPending}
 							>
 								<VscGitMerge className="size-3.5" />
-								<Trans id="workspace.prStatusGroup.squashAndMerge">
-									Squash and merge
-								</Trans>
+								<Trans>Squash and merge</Trans>
 							</DropdownMenuItem>
 							<DropdownMenuItem
 								onClick={() => handleMerge("merge")}
@@ -342,9 +325,7 @@ export function PRStatusGroup({
 								disabled={mergePRMutation.isPending}
 							>
 								<VscGitMerge className="size-3.5" />
-								<Trans id="workspace.prStatusGroup.createMergeCommit">
-									Create merge commit
-								</Trans>
+								<Trans>Create merge commit</Trans>
 							</DropdownMenuItem>
 							<DropdownMenuItem
 								onClick={() => handleMerge("rebase")}
@@ -352,9 +333,7 @@ export function PRStatusGroup({
 								disabled={mergePRMutation.isPending}
 							>
 								<VscGitMerge className="size-3.5" />
-								<Trans id="workspace.prStatusGroup.rebaseAndMerge">
-									Rebase and merge
-								</Trans>
+								<Trans>Rebase and merge</Trans>
 							</DropdownMenuItem>
 							<DropdownMenuSeparator />
 						</>
@@ -374,17 +353,13 @@ export function PRStatusGroup({
 							}}
 						>
 							<VscGitPullRequest className="size-3.5" />
-							<Trans id="workspace.prStatusGroup.openPullRequest">
-								Open pull request
-							</Trans>
+							<Trans>Open pull request</Trans>
 						</DropdownMenuItem>
 					)}
 					<DropdownMenuItem asChild className="text-xs">
 						<a href={pr.url} target="_blank" rel="noopener noreferrer">
 							<LuArrowUpRight className="size-3.5" />
-							<Trans id="workspace.prStatusGroup.viewOnGitHub">
-								View on GitHub
-							</Trans>
+							<Trans>View on GitHub</Trans>
 						</a>
 					</DropdownMenuItem>
 				</DropdownMenuContent>

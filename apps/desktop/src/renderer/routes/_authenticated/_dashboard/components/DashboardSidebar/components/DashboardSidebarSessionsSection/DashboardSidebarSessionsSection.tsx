@@ -81,7 +81,6 @@ export function DashboardSidebarSessionsSection({
 		<div className="mt-3 pb-1 first:mt-0">
 			<DashboardSidebarSectionHeader
 				label={t({
-					id: "dashboard.sidebar.sectionSessions",
 					message: "Sessions",
 				})}
 				section="sessions"
@@ -91,7 +90,6 @@ export function DashboardSidebarSessionsSection({
 						<button
 							type="button"
 							aria-label={t({
-								id: "dashboard.sidebar.sessionsSection.newSessionAriaLabel",
 								message: "New session",
 							})}
 							onClick={(event) => {
@@ -105,9 +103,7 @@ export function DashboardSidebarSessionsSection({
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom">
-						<Trans id="dashboard.sidebar.sessionsSection.newSession">
-							New session
-						</Trans>
+						<Trans>New session</Trans>
 					</TooltipContent>
 				</Tooltip>
 			</DashboardSidebarSectionHeader>
@@ -127,7 +123,6 @@ export function DashboardSidebarSessionsSection({
 				<SidebarDropZone
 					dropZoneId={dropZoneId(SESSIONS_CONTAINER)}
 					label={t({
-						id: "dashboard.sidebar.sessionsSection.dropToUnpin",
 						message: "Drop to unpin",
 					})}
 				/>

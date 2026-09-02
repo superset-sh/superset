@@ -1,4 +1,4 @@
-import { plural } from "@lingui/core/macro";
+import { msg, plural } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import { toast } from "@superset/ui/sonner";
@@ -40,15 +40,17 @@ export function bulkWorkspaceDestroyErrorMessage(
 	const workspaceName = workspace.name || workspace.branch;
 	if (error.kind === "teardown-failed") {
 		return i18n._({
-			id: "dashboard.sidebar.bulkDelete.teardownFailed",
-			message: "{workspaceName}: teardown failed",
+			...msg({
+				message: "{workspaceName}: teardown failed",
+			}),
 			values: { workspaceName },
 		});
 	}
 	if (error.kind === "host-unavailable") {
 		return i18n._({
-			id: "dashboard.sidebar.bulkDelete.hostUnavailable",
-			message: "{workspaceName}: host is unavailable",
+			...msg({
+				message: "{workspaceName}: host is unavailable",
+			}),
 			values: { workspaceName },
 		});
 	}
@@ -173,7 +175,6 @@ export function useBulkWorkspaceDelete({
 			// the dialog-era "{0} of {1}" shape and its translations.
 			const progressMessage = (completed: number) =>
 				t({
-					id: "dashboard.sidebar.bulkDelete.deletingProgress",
 					message: `Deleting ${Math.min(completed + 1, total)} of ${targets.length}…`,
 				});
 			const progressToastId = toast.loading(progressMessage(0));
@@ -245,7 +246,6 @@ export function useBulkWorkspaceDelete({
 					selectionReconciled = true;
 					toast.success(
 						t({
-							id: "dashboard.sidebar.bulkDelete.deletedToast",
 							message: plural(deletedIds.length, {
 								one: "Deleted # workspace",
 								other: "Deleted # workspaces",
@@ -260,7 +260,6 @@ export function useBulkWorkspaceDelete({
 				if (nextFailures.length > 0) {
 					toast.error(
 						t({
-							id: "dashboard.sidebar.bulkDelete.deleteFailedToast",
 							message: plural(nextFailures.length, {
 								one: "Couldn’t delete # workspace",
 								other: "Couldn’t delete # workspaces",
@@ -297,23 +296,19 @@ export function useBulkWorkspaceDelete({
 				toast.error(
 					deletedIds.length > 0
 						? t({
-								id: "dashboard.sidebar.bulkDelete.partialFailureToast",
 								message:
 									"Deleted workspaces, but couldn’t finish updating the sidebar",
 							})
 						: t({
-								id: "dashboard.sidebar.bulkDelete.unexpectedFailureToast",
 								message: "Couldn’t finish deleting workspaces",
 							}),
 					{
 						description:
 							deletedIds.length > 0
 								? t({
-										id: "dashboard.sidebar.bulkDelete.partialFailureDescription",
 										message: "Reload Superset to refresh the workspace list.",
 									})
 								: t({
-										id: "dashboard.sidebar.bulkDelete.unexpectedFailureDescription",
 										message:
 											"Try again. If the problem continues, reload Superset.",
 									}),

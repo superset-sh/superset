@@ -70,7 +70,6 @@ export function useWorkspaceRowActions(
 		if (!isCloud && !hostUrl) {
 			Alert.alert(
 				t({
-					id: "mobile.workspace.hostNotOnline",
 					message: "Host is not online",
 				}),
 			);
@@ -78,11 +77,10 @@ export function useWorkspaceRowActions(
 		}
 		const name = await prompt({
 			title: t({
-				id: "mobile.workspaceRow.renameTitle",
 				message: "Rename workspace",
 			}),
 			defaultValue: workspace.name,
-			confirmText: t({ id: "mobile.workspaceRow.rename", message: "Rename" }),
+			confirmText: t({ message: "Rename" }),
 			selectText: true,
 		});
 		const trimmed = name?.trim();
@@ -100,9 +98,7 @@ export function useWorkspaceRowActions(
 				});
 			}
 		} catch {
-			Alert.alert(
-				t({ id: "mobile.workspaceRow.renameFailed", message: "Rename failed" }),
-			);
+			Alert.alert(t({ message: "Rename failed" }));
 		}
 		cache.invalidateHost(workspace.hostId);
 	};

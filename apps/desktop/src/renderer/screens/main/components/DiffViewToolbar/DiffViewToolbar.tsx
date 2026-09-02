@@ -83,11 +83,9 @@ export function DiffViewToolbar({
 						aria-label={
 							tree.isCollapsed
 								? t({
-										id: "dashboard.pullRequests.codeTab.showFileTree",
 										message: "Show file tree",
 									})
 								: t({
-										id: "dashboard.pullRequests.codeTab.hideFileTree",
 										message: "Hide file tree",
 									})
 						}
@@ -100,7 +98,7 @@ export function DiffViewToolbar({
 					>
 						<LuFiles className="size-3.5 shrink-0" strokeWidth={1.5} />
 						<span className="text-[11px] font-medium">
-							<Trans id="dashboard.pullRequests.codeTab.files">Files</Trans>
+							<Trans>Files</Trans>
 						</span>
 						<span
 							className={cn(
@@ -122,11 +120,9 @@ export function DiffViewToolbar({
 							aria-label={
 								areAllFilesCollapsed
 									? t({
-											id: "dashboard.pullRequests.codeTab.expandAllFiles",
 											message: "Expand all files",
 										})
 									: t({
-											id: "dashboard.pullRequests.codeTab.collapseAllFiles",
 											message: "Collapse all files",
 										})
 							}
@@ -141,13 +137,9 @@ export function DiffViewToolbar({
 					</TooltipTrigger>
 					<TooltipContent side="bottom">
 						{areAllFilesCollapsed ? (
-							<Trans id="dashboard.pullRequests.codeTab.expandAllFiles">
-								Expand all files
-							</Trans>
+							<Trans>Expand all files</Trans>
 						) : (
-							<Trans id="dashboard.pullRequests.codeTab.collapseAllFiles">
-								Collapse all files
-							</Trans>
+							<Trans>Collapse all files</Trans>
 						)}
 					</TooltipContent>
 				</Tooltip>
@@ -170,9 +162,7 @@ export function DiffViewToolbar({
 								strokeWidth={1.5}
 							/>
 							<span className="mr-0.5 ml-1 text-[11px] font-medium text-muted-foreground">
-								<Trans id="dashboard.pullRequests.codeTab.commentsLabel">
-									Comments
-								</Trans>
+								<Trans>Comments</Trans>
 							</span>
 							<span className="min-w-[3ch] text-center text-[11px] tabular-nums text-muted-foreground">
 								{commentNav.focusedIndex != null
@@ -186,7 +176,6 @@ export function DiffViewToolbar({
 										type="button"
 										onClick={commentNav.onPrev}
 										aria-label={t({
-											id: "dashboard.pullRequests.codeTab.previousComment",
 											message: "Previous comment",
 										})}
 										className="flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
@@ -195,9 +184,7 @@ export function DiffViewToolbar({
 									</button>
 								</TooltipTrigger>
 								<TooltipContent side="bottom">
-									<Trans id="dashboard.pullRequests.codeTab.previousComment">
-										Previous comment
-									</Trans>
+									<Trans>Previous comment</Trans>
 								</TooltipContent>
 							</Tooltip>
 							<Tooltip>
@@ -206,7 +193,6 @@ export function DiffViewToolbar({
 										type="button"
 										onClick={commentNav.onNext}
 										aria-label={t({
-											id: "dashboard.pullRequests.codeTab.nextComment",
 											message: "Next comment",
 										})}
 										className="flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
@@ -215,9 +201,7 @@ export function DiffViewToolbar({
 									</button>
 								</TooltipTrigger>
 								<TooltipContent side="bottom">
-									<Trans id="dashboard.pullRequests.codeTab.nextComment">
-										Next comment
-									</Trans>
+									<Trans>Next comment</Trans>
 								</TooltipContent>
 							</Tooltip>
 						</div>
@@ -230,7 +214,6 @@ export function DiffViewToolbar({
 							type="button"
 							onClick={() => updateSetting("diffStyle", "unified")}
 							aria-label={t({
-								id: "dashboard.pullRequests.codeTab.unifiedView",
 								message: "Unified view",
 							})}
 							aria-pressed={diffStyle === "unified"}
@@ -240,9 +223,7 @@ export function DiffViewToolbar({
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom">
-						<Trans id="dashboard.pullRequests.codeTab.unifiedView">
-							Unified view
-						</Trans>
+						<Trans>Unified view</Trans>
 					</TooltipContent>
 				</Tooltip>
 				<Tooltip>
@@ -251,7 +232,6 @@ export function DiffViewToolbar({
 							type="button"
 							onClick={() => updateSetting("diffStyle", "split")}
 							aria-label={t({
-								id: "dashboard.pullRequests.codeTab.splitView",
 								message: "Split view",
 							})}
 							aria-pressed={diffStyle === "split"}
@@ -261,9 +241,7 @@ export function DiffViewToolbar({
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom">
-						<Trans id="dashboard.pullRequests.codeTab.splitView">
-							Split view
-						</Trans>
+						<Trans>Split view</Trans>
 					</TooltipContent>
 				</Tooltip>
 			</div>

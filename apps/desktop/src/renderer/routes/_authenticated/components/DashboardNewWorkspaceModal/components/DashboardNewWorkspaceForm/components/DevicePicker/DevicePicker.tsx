@@ -32,11 +32,9 @@ function OnlineDot({ online }: { online: boolean }) {
 			aria-label={
 				online
 					? t({
-							id: "dashboard.newWorkspaceModal.devicePicker.online",
 							message: "online",
 						})
 					: t({
-							id: "dashboard.newWorkspaceModal.devicePicker.offline",
 							message: "offline",
 						})
 			}
@@ -105,18 +103,15 @@ export function DevicePicker({
 	const selectedLabel =
 		hostId === CLOUD_HOST_ID
 			? t({
-					id: "dashboard.newWorkspaceModal.devicePicker.cloudSelected",
 					message: "Cloud",
 				})
 			: isLocal
 				? (currentDeviceName ??
 					t({
-						id: "dashboard.newWorkspaceModal.devicePicker.localDeviceSelected",
 						message: "Local Device",
 					}))
 				: (otherHosts.find((host) => host.id === hostId)?.name ??
 					t({
-						id: "dashboard.newWorkspaceModal.devicePicker.unknownHost",
 						message: "Unknown Host",
 					}));
 	// For direct (local) use the app itself is the host, so it's tautologically
@@ -136,7 +131,6 @@ export function DevicePicker({
 				<FormPickerTrigger
 					className={cn("max-w-[140px]", className)}
 					aria-label={t({
-						id: "dashboard.newWorkspaceModal.devicePicker.triggerAria",
 						message: `Device: ${selectedLabel}`,
 					})}
 					title={selectedLabel}
@@ -151,9 +145,7 @@ export function DevicePicker({
 				<DropdownMenuItem onSelect={() => onSelectHostId(machineId)}>
 					<HiOutlineComputerDesktop className="size-4" />
 					<span className="flex-1">
-						<Trans id="dashboard.newWorkspaceModal.devicePicker.localDevice">
-							Local Device
-						</Trans>
+						<Trans>Local Device</Trans>
 					</span>
 					{localOnline !== null && <OnlineDot online={localOnline} />}
 					{isLocal && <HiCheck className="size-4" />}
@@ -162,9 +154,7 @@ export function DevicePicker({
 					<DropdownMenuItem onSelect={() => onSelectHostId(CLOUD_HOST_ID)}>
 						<HiOutlineCloud className="size-4" />
 						<span className="flex-1">
-							<Trans id="dashboard.newWorkspaceModal.devicePicker.cloud">
-								Cloud
-							</Trans>
+							<Trans>Cloud</Trans>
 						</span>
 						{hostId === CLOUD_HOST_ID && <HiCheck className="size-4" />}
 					</DropdownMenuItem>
@@ -175,9 +165,7 @@ export function DevicePicker({
 						<DropdownMenuSub>
 							<DropdownMenuSubTrigger>
 								<HiOutlineServer className="size-4" />
-								<Trans id="dashboard.newWorkspaceModal.devicePicker.otherHosts">
-									Other Hosts
-								</Trans>
+								<Trans>Other Hosts</Trans>
 							</DropdownMenuSubTrigger>
 							<DropdownMenuSubContent className="w-72">
 								{otherHosts.map((host) => {

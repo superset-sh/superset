@@ -39,11 +39,9 @@ export function CardFrame({
 					aria-label={
 						collapsed
 							? t({
-									id: "settings.usage.leaderboardCard.expand",
 									message: "Expand",
 								})
 							: t({
-									id: "settings.usage.leaderboardCard.collapse",
 									message: "Collapse",
 								})
 					}

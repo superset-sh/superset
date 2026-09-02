@@ -244,9 +244,7 @@ function TerminalRichInputInner({
 				<div className="relative mx-auto w-full max-w-[680px] pt-2">
 					{hotkeyText !== "Unassigned" && (
 						<span className="pointer-events-none absolute top-5 right-3 z-10 text-xs text-muted-foreground/50">
-							<Trans id="workspace.terminalPane.richInputHotkeyHide">
-								{hotkeyText} to hide
-							</Trans>
+							<Trans>{hotkeyText} to hide</Trans>
 						</span>
 					)}
 					<PromptInput
@@ -271,7 +269,6 @@ function TerminalRichInputInner({
 							searchFiles={searchFiles}
 							slashCommands={[]}
 							placeholder={t({
-								id: "workspace.terminalPane.richInputPlaceholder",
 								message: "Ask to make changes",
 							})}
 						/>

@@ -169,7 +169,6 @@ export function V2AgentsSettings({
 				errorMessage(
 					err,
 					t({
-						id: "settings.agents.v2.addFailed",
 						message: "Failed to add agent",
 					}),
 				),
@@ -202,7 +201,6 @@ export function V2AgentsSettings({
 				errorMessage(
 					err,
 					t({
-						id: "settings.agents.v2.addFailed",
 						message: "Failed to add agent",
 					}),
 				),
@@ -247,7 +245,6 @@ export function V2AgentsSettings({
 				errorMessage(
 					err,
 					t({
-						id: "settings.agents.v2.reorderFailed",
 						message: "Failed to reorder",
 					}),
 				),
@@ -280,7 +277,6 @@ export function V2AgentsSettings({
 				errorMessage(
 					err,
 					t({
-						id: "settings.agents.v2.resetFailed",
 						message: "Failed to reset",
 					}),
 				),
@@ -332,7 +328,7 @@ export function V2AgentsSettings({
 	if (configsQuery.isError) {
 		return (
 			<div className="p-6 text-sm text-destructive">
-				<Trans id="settings.agents.loadError">
+				<Trans>
 					Couldn't load agent settings:{" "}
 					{configsQuery.error instanceof Error
 						? configsQuery.error.message
@@ -381,7 +377,6 @@ export function V2AgentsSettings({
 						description={
 							DESCRIPTION_BY_PRESET_ID.get(selectedAgent.presetId) ??
 							t({
-								id: "settings.agents.v2.defaultDescription",
 								message: "Terminal agent launch configuration",
 							})
 						}
@@ -424,12 +419,10 @@ function EmptyState() {
 					className="mx-auto size-10 text-muted-foreground/60"
 				/>
 				<h3 className="mt-3 text-sm font-medium">
-					<Trans id="settings.agents.empty.title">No agents yet</Trans>
+					<Trans>No agents yet</Trans>
 				</h3>
 				<p className="mt-1 text-xs text-muted-foreground">
-					<Trans id="settings.agents.empty.hint">
-						Add one from the menu in the sidebar to get started.
-					</Trans>
+					<Trans>Add one from the menu in the sidebar to get started.</Trans>
 				</p>
 			</div>
 		</div>

@@ -130,12 +130,10 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
 				<h2 className="text-xl font-semibold">
-					<Trans id="settings.git.title">Git & worktrees</Trans>
+					<Trans>Git & worktrees</Trans>
 				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					<Trans id="settings.git.subtitle">
-						Configure git branch and worktree behavior
-					</Trans>
+					<Trans>Configure git branch and worktree behavior</Trans>
 				</p>
 			</div>
 
@@ -149,7 +147,6 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 							>
 								<HighlightText
 									text={t({
-										id: "settings.git.deleteLocalBranchLabel",
 										message: "Delete local branch on workspace removal",
 									})}
 									query={searchQuery}
@@ -158,7 +155,6 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 							<p className="text-xs text-muted-foreground">
 								<HighlightText
 									text={t({
-										id: "settings.git.deleteLocalBranchHint",
 										message:
 											"Also delete the local git branch when deleting a worktree workspace",
 									})}
@@ -181,16 +177,13 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 							<Label className="text-sm font-medium">
 								<HighlightText
 									text={t({
-										id: "settings.git.branchPrefixLabel",
 										message: "Branch prefix",
 									})}
 									query={searchQuery}
 								/>
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								<Trans id="settings.git.branchPrefixHint">
-									Group new branches under a folder.
-								</Trans>{" "}
+								<Trans>Group new branches under a folder.</Trans>{" "}
 								<code className="bg-muted px-1.5 py-0.5 rounded text-foreground">
 									{previewPrefix
 										? `${previewPrefix}/branch-name`
@@ -224,7 +217,6 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 							{branchPrefix?.mode === "custom" && (
 								<Input
 									placeholder={t({
-										id: "settings.git.customPrefixPlaceholder",
 										message: "Prefix",
 									})}
 									value={customPrefixInput}

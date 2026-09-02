@@ -28,7 +28,6 @@ interface PostHogFunnelStep {
 // echoed in results, so label it here by position.
 const STEP_NAME_OVERRIDES: Record<number, MessageDescriptor> = {
 	4: msg({
-		id: "admin.activationFunnel.stepDashboardPage",
 		message: "Reached a dashboard page",
 	}),
 };
@@ -55,12 +54,10 @@ export function PostHogFunnelTile() {
 			title={
 				insight.data?.name ??
 				t({
-					id: "admin.activationFunnel.title",
 					message: "New-user activation",
 				})
 			}
 			description={t({
-				id: "admin.activationFunnel.description",
 				message:
 					"First sign-in view → auth → onboarding → real workspace (last 7d, 2d window)",
 			})}
@@ -75,7 +72,6 @@ export function PostHogFunnelTile() {
 							target="_blank"
 							rel="noreferrer"
 							aria-label={t({
-								id: "admin.tile.openInPostHog",
 								message: "Open in PostHog",
 							})}
 						>
@@ -88,7 +84,7 @@ export function PostHogFunnelTile() {
 						className="size-6 p-0"
 						onClick={() => insight.refetch()}
 						disabled={insight.isFetching}
-						aria-label={t({ id: "admin.tile.refresh", message: "Refresh" })}
+						aria-label={t({ message: "Refresh" })}
 					>
 						<LuRefreshCw
 							className={cn("size-3.5", insight.isFetching && "animate-spin")}

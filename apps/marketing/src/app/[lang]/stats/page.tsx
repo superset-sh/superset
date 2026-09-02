@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
@@ -20,15 +21,17 @@ const pixel = Silkscreen({
 
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
-	const title = i18n._({
-		id: "marketing.meta.stats.title",
-		message: "Stats",
-	});
-	const description = i18n._({
-		id: "marketing.meta.stats.description",
-		message:
-			"Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for.",
-	});
+	const title = i18n._(
+		msg({
+			message: "Stats",
+		}),
+	);
+	const description = i18n._(
+		msg({
+			message:
+				"Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for.",
+		}),
+	);
 	return {
 		title,
 		description,
@@ -65,26 +68,20 @@ export default async function StatsPage() {
 					<h1
 						className={`${pixel.className} text-3xl md:text-4xl text-foreground`}
 					>
-						<Trans id="marketing.stats.title">Stats</Trans>
+						<Trans>Stats</Trans>
 					</h1>
 					<p className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted-foreground mt-5">
 						{range ? (
-							<Trans id="marketing.stats.telemetryRange">
-								Site-wide telemetry · {range}
-							</Trans>
+							<Trans>Site-wide telemetry · {range}</Trans>
 						) : (
-							<Trans id="marketing.stats.telemetryAllTime">
-								Site-wide telemetry · all time
-							</Trans>
+							<Trans>Site-wide telemetry · all time</Trans>
 						)}
 					</p>
 					<Link
 						href="/leaderboard"
 						className="inline-block font-mono text-[0.68rem] uppercase tracking-[0.14em] text-brand hover:text-brand-light transition-colors mt-4"
 					>
-						<Trans id="marketing.stats.backToLeaderboard">
-							← Back to leaderboard
-						</Trans>
+						<Trans>← Back to leaderboard</Trans>
 					</Link>
 				</header>
 

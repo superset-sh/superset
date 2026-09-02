@@ -32,13 +32,11 @@ function renderSlot(
 					options={options.notion?.dataSources ?? []}
 					emptyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.notion.selectDataSources",
 							message: "Select data sources",
 						}),
 					)}
 					anyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.notion.anyDataSource",
 							message: "Any data source",
 						}),
 					)}
@@ -58,13 +56,11 @@ function renderSlot(
 					options={[]}
 					emptyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.notion.anyPageEmpty",
 							message: "Any page",
 						}),
 					)}
 					anyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.notion.anyPage",
 							message: "Any page",
 						}),
 					)}
@@ -81,13 +77,11 @@ function renderSlot(
 					options={options.notion?.people ?? []}
 					emptyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.notion.actorSelectPeople",
 							message: "Select people",
 						}),
 					)}
 					anyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.notion.actorAnyone",
 							message: "Anyone",
 						}),
 					)}
@@ -105,13 +99,11 @@ function renderSlot(
 					options={options.notion?.people ?? []}
 					emptyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.notion.mentionedSelectPeople",
 							message: "Select people",
 						}),
 					)}
 					anyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.notion.mentionedAnyone",
 							message: "Anyone",
 						}),
 					)}

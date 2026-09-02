@@ -38,7 +38,6 @@ export function BranchPrefixSection({
 				errorMessage(
 					err,
 					t({
-						id: "settings.project.branchPrefixFailedToast",
 						message: "Failed to update branch prefix",
 					}),
 				),

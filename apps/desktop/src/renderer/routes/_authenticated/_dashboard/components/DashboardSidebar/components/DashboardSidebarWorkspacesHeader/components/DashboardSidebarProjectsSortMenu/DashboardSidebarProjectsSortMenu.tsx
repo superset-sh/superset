@@ -31,15 +31,12 @@ export function DashboardSidebarProjectsSortMenu({
 	const { t } = useLingui();
 	const labels: Record<SidebarProjectSortMode, string> = {
 		manual: t({
-			id: "dashboard.sidebar.workspacesHeader.sortManual",
 			message: "Manual order",
 		}),
 		active: t({
-			id: "dashboard.sidebar.workspacesHeader.sortLastActive",
 			message: "Last active",
 		}),
 		created: t({
-			id: "dashboard.sidebar.workspacesHeader.sortDateCreated",
 			message: "Date created",
 		}),
 	};
@@ -53,7 +50,6 @@ export function DashboardSidebarProjectsSortMenu({
 						<button
 							type="button"
 							aria-label={t({
-								id: "dashboard.sidebar.workspacesHeader.sortProjectsAriaLabel",
 								message: "Sort projects",
 							})}
 							onClick={(event) => event.stopPropagation()}
@@ -72,7 +68,6 @@ export function DashboardSidebarProjectsSortMenu({
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
 					{t({
-						id: "dashboard.sidebar.workspacesHeader.sortProjects",
 						message: `Sort projects (${currentLabel})`,
 					})}
 				</TooltipContent>
@@ -85,7 +80,6 @@ export function DashboardSidebarProjectsSortMenu({
 			>
 				<DropdownMenuLabel className="text-xs font-normal text-muted-foreground/70">
 					{t({
-						id: "dashboard.sidebar.workspacesHeader.sortBy",
 						message: "Sort by",
 					})}
 				</DropdownMenuLabel>
@@ -104,7 +98,6 @@ export function DashboardSidebarProjectsSortMenu({
 				{sortMode !== "manual" && (
 					<div className="px-2 pb-1 pt-1.5 text-[11px] text-muted-foreground/70">
 						{t({
-							id: "dashboard.sidebar.workspacesHeader.sortDragHint",
 							message: "Drag to reorder in Manual order",
 						})}
 					</div>

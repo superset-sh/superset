@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { type AlertOptions, alert } from "@superset/ui/atoms/Alert";
 import { useTerminalCloseConfirmStore } from "renderer/stores/terminal-close-confirm/store";
@@ -22,41 +23,48 @@ export function confirmClosePorts(
 	return new Promise<boolean>((resolve) => {
 		const shown = showAlert({
 			title: isSinglePort
-				? i18n._({
-						id: "hooks.confirmClosePorts.titleSingle",
-						message: "This port is still in use",
-					})
-				: i18n._({
-						id: "hooks.confirmClosePorts.titleMultiple",
-						message: "These ports are still in use",
-					}),
+				? i18n._(
+						msg({
+							message: "This port is still in use",
+						}),
+					)
+				: i18n._(
+						msg({
+							message: "These ports are still in use",
+						}),
+					),
 			description: isSinglePort
-				? i18n._({
-						id: "hooks.confirmClosePorts.descriptionSingle",
-						message: "Closing this port will end the process using it.",
-					})
-				: i18n._({
-						id: "hooks.confirmClosePorts.descriptionMultiple",
-						message: "Closing these ports will end the processes using them.",
-					}),
+				? i18n._(
+						msg({
+							message: "Closing this port will end the process using it.",
+						}),
+					)
+				: i18n._(
+						msg({
+							message: "Closing these ports will end the processes using them.",
+						}),
+					),
 			checkbox: {
-				label: i18n._({
-					id: "hooks.confirmClosePorts.dontAskAgain",
-					message: "Don't ask again",
-				}),
+				label: i18n._(
+					msg({
+						message: "Don't ask again",
+					}),
+				),
 			},
 			onDismiss: () => resolve(false),
 			actions: [
 				{
 					label: isSinglePort
-						? i18n._({
-								id: "hooks.confirmClosePorts.closePort",
-								message: "Close port",
-							})
-						: i18n._({
-								id: "hooks.confirmClosePorts.closePorts",
-								message: "Close ports",
-							}),
+						? i18n._(
+								msg({
+									message: "Close port",
+								}),
+							)
+						: i18n._(
+								msg({
+									message: "Close ports",
+								}),
+							),
 					variant: "destructive",
 					onClick: ({ checkboxChecked }) => {
 						if (checkboxChecked) {
@@ -66,10 +74,11 @@ export function confirmClosePorts(
 					},
 				},
 				{
-					label: i18n._({
-						id: "hooks.confirmClosePorts.cancel",
-						message: "Cancel",
-					}),
+					label: i18n._(
+						msg({
+							message: "Cancel",
+						}),
+					),
 					variant: "ghost",
 					onClick: () => resolve(false),
 				},

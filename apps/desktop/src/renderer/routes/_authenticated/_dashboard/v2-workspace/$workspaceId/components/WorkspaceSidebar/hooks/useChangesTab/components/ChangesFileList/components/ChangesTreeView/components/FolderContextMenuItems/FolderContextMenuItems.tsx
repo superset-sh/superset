@@ -35,9 +35,7 @@ export function FolderContextMenuItems({
 				disabled={!onOpenInEditor}
 			>
 				<ExternalLink />
-				<Trans id="workspace.folderMenuItems.openInEditor">
-					Open in Editor
-				</Trans>
+				<Trans>Open in Editor</Trans>
 			</DropdownMenuItem>
 			{absolutePath && (
 				<>

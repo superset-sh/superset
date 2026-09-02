@@ -34,12 +34,10 @@ export function PathActionsMenuItems({
 				const reason = errorMessage(
 					err,
 					t({
-						id: "workspace.pathActionsMenuItems.unknownError",
 						message: "Unknown error",
 					}),
 				);
 				return t({
-					id: "workspace.pathActionsMenuItems.copyPathFailed",
 					message: `Failed to copy path: ${reason}`,
 				});
 			},
@@ -53,13 +51,11 @@ export function PathActionsMenuItems({
 			const reason = errorMessage(
 				error,
 				t({
-					id: "workspace.pathActionsMenuItems.unknownError",
 					message: "Unknown error",
 				}),
 			);
 			toast.error(
 				t({
-					id: "workspace.pathActionsMenuItems.revealInFinderFailed",
 					message: `Failed to reveal in Finder: ${reason}`,
 				}),
 			);
@@ -71,9 +67,7 @@ export function PathActionsMenuItems({
 			<>
 				<DropdownMenuItem onSelect={handleRevealInFinder}>
 					<FolderOpen />
-					<Trans id="workspace.pathActionsMenuItems.dropdownRevealInFinder">
-						Reveal in Finder
-					</Trans>
+					<Trans>Reveal in Finder</Trans>
 				</DropdownMenuItem>
 				<DropdownMenuSeparator />
 				<DropdownMenuItem
@@ -81,16 +75,13 @@ export function PathActionsMenuItems({
 						handleCopy(
 							absolutePath,
 							t({
-								id: "workspace.pathActionsMenuItems.pathCopied",
 								message: "Path copied",
 							}),
 						)
 					}
 				>
 					<Clipboard />
-					<Trans id="workspace.pathActionsMenuItems.dropdownCopyPath">
-						Copy Path
-					</Trans>
+					<Trans>Copy Path</Trans>
 				</DropdownMenuItem>
 				{relativePath && (
 					<DropdownMenuItem
@@ -98,16 +89,13 @@ export function PathActionsMenuItems({
 							handleCopy(
 								relativePath,
 								t({
-									id: "workspace.pathActionsMenuItems.relativePathCopied",
 									message: "Relative path copied",
 								}),
 							)
 						}
 					>
 						<Copy />
-						<Trans id="workspace.pathActionsMenuItems.dropdownCopyRelativePath">
-							Copy Relative Path
-						</Trans>
+						<Trans>Copy Relative Path</Trans>
 					</DropdownMenuItem>
 				)}
 			</>
@@ -118,9 +106,7 @@ export function PathActionsMenuItems({
 		<>
 			<ContextMenuItem onSelect={handleRevealInFinder}>
 				<FolderOpen />
-				<Trans id="workspace.pathActionsMenuItems.contextRevealInFinder">
-					Reveal in Finder
-				</Trans>
+				<Trans>Reveal in Finder</Trans>
 			</ContextMenuItem>
 			<ContextMenuSeparator />
 			<ContextMenuItem
@@ -128,16 +114,13 @@ export function PathActionsMenuItems({
 					handleCopy(
 						absolutePath,
 						t({
-							id: "workspace.pathActionsMenuItems.pathCopied",
 							message: "Path copied",
 						}),
 					)
 				}
 			>
 				<Clipboard />
-				<Trans id="workspace.pathActionsMenuItems.contextCopyPath">
-					Copy Path
-				</Trans>
+				<Trans>Copy Path</Trans>
 			</ContextMenuItem>
 			{relativePath && (
 				<ContextMenuItem
@@ -145,16 +128,13 @@ export function PathActionsMenuItems({
 						handleCopy(
 							relativePath,
 							t({
-								id: "workspace.pathActionsMenuItems.relativePathCopied",
 								message: "Relative path copied",
 							}),
 						)
 					}
 				>
 					<Copy />
-					<Trans id="workspace.pathActionsMenuItems.contextCopyRelativePath">
-						Copy Relative Path
-					</Trans>
+					<Trans>Copy Relative Path</Trans>
 				</ContextMenuItem>
 			)}
 		</>

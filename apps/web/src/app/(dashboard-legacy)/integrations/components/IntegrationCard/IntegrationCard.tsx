@@ -74,7 +74,7 @@ export function IntegrationCard({
 				<Badge variant="secondary">{category}</Badge>
 				{disabled && (
 					<Badge variant="outline">
-						<Trans id="web.integrationCard.comingSoon">Coming Soon</Trans>
+						<Trans>Coming Soon</Trans>
 					</Badge>
 				)}
 			</div>

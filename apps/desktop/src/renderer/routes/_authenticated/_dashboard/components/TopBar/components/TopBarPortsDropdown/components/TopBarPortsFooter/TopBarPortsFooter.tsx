@@ -26,7 +26,6 @@ export function TopBarPortsFooter({
 		if (closedCount > 0) {
 			toast.success(
 				t({
-					id: "dashboard.topBar.ports.closedPortsToast",
 					message: plural(closedCount, {
 						one: "Closed # port",
 						other: "Closed # ports",
@@ -40,7 +39,6 @@ export function TopBarPortsFooter({
 		<div className="flex items-center justify-between border-border border-t px-3 py-1.5">
 			<span className="text-[11px] text-muted-foreground">
 				{t({
-					id: "dashboard.topBar.ports.livePortCount",
 					message: plural(totalPortCount, {
 						one: "# live port",
 						other: "# live ports",
@@ -62,7 +60,7 @@ export function TopBarPortsFooter({
 				) : (
 					<LuX className="size-3" strokeWidth={STROKE_WIDTH} />
 				)}
-				<Trans id="dashboard.topBar.ports.closeAll">Close all</Trans>
+				<Trans>Close all</Trans>
 			</button>
 		</div>
 	);

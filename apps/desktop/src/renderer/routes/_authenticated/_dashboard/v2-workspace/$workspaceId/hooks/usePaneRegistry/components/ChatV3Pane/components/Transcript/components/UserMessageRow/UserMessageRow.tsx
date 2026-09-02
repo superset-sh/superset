@@ -26,7 +26,7 @@ export function UserMessageRow({ item }: { item: UserMessage }) {
 				)}
 				{item.queued && (
 					<Badge className="mt-1 w-fit" variant="outline">
-						<Trans id="workspace.chat.queued">Queued</Trans>
+						<Trans>Queued</Trans>
 					</Badge>
 				)}
 			</MessageContent>

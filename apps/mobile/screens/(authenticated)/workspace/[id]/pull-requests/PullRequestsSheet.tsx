@@ -40,7 +40,6 @@ export function PullRequestsSheet() {
 			<Stack.Screen
 				options={{
 					title: t({
-						id: "mobile.nav.pullRequests.title",
 						message: "Pull Requests",
 					}),
 				}}
@@ -48,7 +47,6 @@ export function PullRequestsSheet() {
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.Button
 					accessibilityLabel={t({
-						id: "mobile.common.close",
 						message: "Close",
 					})}
 					icon="xmark"
@@ -65,7 +63,6 @@ export function PullRequestsSheet() {
 					return (
 						<Pressable
 							accessibilityLabel={t({
-								id: "mobile.workspaceRow.pullRequestLabel",
 								message: `Pull request #${pullRequest.prNumber}`,
 							})}
 							accessibilityRole="button"

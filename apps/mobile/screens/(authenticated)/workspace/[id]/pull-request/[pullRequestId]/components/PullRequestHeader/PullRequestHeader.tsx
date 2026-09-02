@@ -42,7 +42,6 @@ export function PullRequestHeader({
 				</Text>
 				<Pressable
 					accessibilityLabel={t({
-						id: "mobile.pullRequest.viewFilesChanged",
 						message: "View files changed",
 					})}
 					accessibilityRole={onOpenFiles ? "button" : undefined}
@@ -59,7 +58,6 @@ export function PullRequestHeader({
 					<Text className="text-muted-foreground text-[13px]">
 						·{" "}
 						<Plural
-							id="mobile.pullRequest.fileCount"
 							value={pullRequest.changedFiles}
 							one="# File"
 							other="# Files"

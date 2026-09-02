@@ -8,19 +8,15 @@ import { cn } from "@superset/ui/utils";
 // marketing app; keep the two lists in step.
 const TIER_NAMES: readonly MessageDescriptor[] = [
 	msg({
-		id: "settings.usage.leaderboardRank.tier.buttonPusher",
 		message: "Button pusher",
 	}),
 	msg({
-		id: "settings.usage.leaderboardRank.tier.operator",
 		message: "Operator",
 	}),
 	msg({
-		id: "settings.usage.leaderboardRank.tier.plantManager",
 		message: "Plant Manager",
 	}),
 	msg({
-		id: "settings.usage.leaderboardRank.tier.henryFord",
 		message: "Henry Ford",
 	}),
 ];

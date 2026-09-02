@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
@@ -9,15 +10,17 @@ import { RoadmapBoard } from "./components/RoadmapBoard";
 
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
-	const title = i18n._({
-		id: "marketing.meta.roadmap.title",
-		message: "Roadmap",
-	});
-	const description = i18n._({
-		id: "marketing.meta.roadmap.description",
-		message:
-			"See what we're building now, what's coming next, and where Superset is headed.",
-	});
+	const title = i18n._(
+		msg({
+			message: "Roadmap",
+		}),
+	);
+	const description = i18n._(
+		msg({
+			message:
+				"See what we're building now, what's coming next, and where Superset is headed.",
+		}),
+	);
 	return {
 		title,
 		description,
@@ -64,20 +67,20 @@ export default async function RoadmapPage() {
 					<GridCross className="top-0 right-0" />
 
 					<span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
-						<Trans id="marketing.roadmap.eyebrow">Roadmap</Trans>
+						<Trans>Roadmap</Trans>
 					</span>
 					<h1 className="text-3xl md:text-4xl font-medium tracking-tight text-foreground mt-4">
-						<Trans id="marketing.roadmap.headline">What We're Building</Trans>
+						<Trans>What We're Building</Trans>
 					</h1>
 					<p className="text-muted-foreground mt-3 max-w-lg">
-						<Trans id="marketing.roadmap.intro">
+						<Trans>
 							A look at what's in progress, what's coming next, and where{" "}
 							{company} is headed. Plans further out stay intentionally flexible
 							so we can respond to what you tell us.
 						</Trans>
 					</p>
 					<p className="text-sm text-muted-foreground mt-3">
-						<Trans id="marketing.roadmap.requestPrompt">
+						<Trans>
 							Want something sooner?{" "}
 							<a
 								href={COMPANY.DISCORD_URL}

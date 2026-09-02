@@ -66,7 +66,6 @@ export function EnvironmentsSettings({
 			setName("");
 			toast.success(
 				t({
-					id: "settings.environments.created",
 					message: "Environment created",
 				}),
 			);
@@ -98,10 +97,10 @@ export function EnvironmentsSettings({
 			<div className="mb-8 flex items-center justify-between gap-6">
 				<div>
 					<h2 className="text-xl font-semibold">
-						<Trans id="settings.environments.title">Environments</Trans>
+						<Trans>Environments</Trans>
 					</h2>
 					<p className="text-sm text-muted-foreground mt-1 max-w-prose">
-						<Trans id="settings.environments.description">
+						<Trans>
 							The starting point a cloud workspace boots from. Variables set
 							here reach every sandbox started from it.
 						</Trans>
@@ -109,15 +108,13 @@ export function EnvironmentsSettings({
 				</div>
 				<Button onClick={() => setShowCreate(true)} size="sm">
 					<HiOutlinePlus className="h-4 w-4" />
-					<Trans id="settings.environments.new">New environment</Trans>
+					<Trans>New environment</Trans>
 				</Button>
 			</div>
 
 			{isError ? (
 				<div className="text-center py-12 text-sm text-destructive">
-					<Trans id="settings.environments.loadFailed">
-						Could not load environments.
-					</Trans>
+					<Trans>Could not load environments.</Trans>
 					<p className="text-xs text-muted-foreground mt-1">
 						{errorMessage(error)}
 					</p>
@@ -166,11 +163,9 @@ export function EnvironmentsSettings({
 				</div>
 			) : (
 				<div className="text-center py-12 text-sm text-muted-foreground">
-					<Trans id="settings.environments.empty">No environments yet.</Trans>
+					<Trans>No environments yet.</Trans>
 					<p className="text-xs mt-1">
-						<Trans id="settings.environments.emptyHint">
-							Create one to start a cloud workspace from it.
-						</Trans>
+						<Trans>Create one to start a cloud workspace from it.</Trans>
 					</p>
 				</div>
 			)}
@@ -179,21 +174,18 @@ export function EnvironmentsSettings({
 				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>
-							<Trans id="settings.environments.createTitle">
-								New environment
-							</Trans>
+							<Trans>New environment</Trans>
 						</DialogTitle>
 					</DialogHeader>
 					<div className="flex flex-col gap-4">
 						<div className="flex flex-col gap-2">
 							<Label htmlFor="environment-name">
-								<Trans id="settings.environments.nameLabel">Name</Trans>
+								<Trans>Name</Trans>
 							</Label>
 							<Input
 								id="environment-name"
 								onChange={(event) => setName(event.target.value)}
 								placeholder={t({
-									id: "settings.environments.namePlaceholder",
 									message: "monorepo-warm",
 								})}
 								value={name}
@@ -202,7 +194,7 @@ export function EnvironmentsSettings({
 					</div>
 					<DialogFooter>
 						<Button onClick={() => setShowCreate(false)} variant="outline">
-							<Trans id="settings.environments.cancel">Cancel</Trans>
+							<Trans>Cancel</Trans>
 						</Button>
 						<Button
 							disabled={!name.trim() || !organizationId}
@@ -211,7 +203,7 @@ export function EnvironmentsSettings({
 								create.mutate({ organizationId, name: name.trim() });
 							}}
 						>
-							<Trans id="settings.environments.create">Create</Trans>
+							<Trans>Create</Trans>
 						</Button>
 					</DialogFooter>
 				</DialogContent>

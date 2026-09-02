@@ -73,12 +73,10 @@ export function CohortGrid({
 				}}
 			>
 				<span className="text-muted-foreground">
-					{labelHeader ??
-						t({ id: "admin.cohortGrid.cohortHeader", message: "Cohort" })}
+					{labelHeader ?? t({ message: "Cohort" })}
 				</span>
 				<span className="text-muted-foreground pr-3 text-right">
-					{sizeHeader ??
-						t({ id: "admin.cohortGrid.sizeHeader", message: "Size" })}
+					{sizeHeader ?? t({ message: "Size" })}
 				</span>
 				{columnLabels.map((label) => (
 					<span key={label} className="text-muted-foreground text-center">

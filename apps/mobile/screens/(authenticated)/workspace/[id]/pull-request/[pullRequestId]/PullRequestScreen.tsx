@@ -81,9 +81,7 @@ export function PullRequestScreen() {
 		if (!detail) return;
 		await Clipboard.setStringAsync(detail.pullRequest.url);
 		void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-		setNotice(
-			t({ id: "mobile.pullRequest.copiedLink", message: "Copied Link" }),
-		);
+		setNotice(t({ message: "Copied Link" }));
 	};
 
 	const [pulling, setPulling] = useState(false);
@@ -110,11 +108,9 @@ export function PullRequestScreen() {
 				<Text className="text-muted-foreground text-center text-[15px] leading-[21px]">
 					{error
 						? t({
-								id: "mobile.pullRequest.hostUnreachable",
 								message: "Could not reach the host to load this pull request.",
 							})
 						: t({
-								id: "mobile.pullRequest.unavailable",
 								message: "This pull request is no longer available.",
 							})}
 				</Text>
@@ -127,8 +123,8 @@ export function PullRequestScreen() {
 				>
 					<Text className="font-medium text-[15px]">
 						{router.canGoBack()
-							? t({ id: "mobile.common.goBack", message: "Go back" })
-							: t({ id: "mobile.notFound.goHome", message: "Go home" })}
+							? t({ message: "Go back" })
+							: t({ message: "Go home" })}
 					</Text>
 				</Pressable>
 			</View>
@@ -168,7 +164,6 @@ export function PullRequestScreen() {
 			<Stack.Toolbar placement="right">
 				<Stack.Toolbar.Button
 					accessibilityLabel={t({
-						id: "mobile.pullRequest.copyLinkLabel",
 						message: "Copy link to pull request",
 					})}
 					icon="link"
@@ -177,7 +172,6 @@ export function PullRequestScreen() {
 				/>
 				<Stack.Toolbar.Menu
 					accessibilityLabel={t({
-						id: "mobile.pullRequest.actionsLabel",
 						message: "Pull request actions",
 					})}
 					icon="ellipsis"
@@ -187,14 +181,13 @@ export function PullRequestScreen() {
 						icon="doc.on.doc"
 						onPress={() => void copyLink()}
 					>
-						{t({ id: "mobile.pullRequest.copyLink", message: "Copy link" })}
+						{t({ message: "Copy link" })}
 					</Stack.Toolbar.MenuAction>
 					<Stack.Toolbar.MenuAction
 						icon="arrow.up.right"
 						onPress={() => void Linking.openURL(detail.pullRequest.url)}
 					>
 						{t({
-							id: "mobile.pullRequest.openInGitHub",
 							message: "Open in GitHub",
 						})}
 					</Stack.Toolbar.MenuAction>
@@ -202,7 +195,7 @@ export function PullRequestScreen() {
 						icon="square.and.arrow.up"
 						onPress={() => void Share.share({ url: detail.pullRequest.url })}
 					>
-						{t({ id: "mobile.common.share", message: "Share" })}
+						{t({ message: "Share" })}
 					</Stack.Toolbar.MenuAction>
 				</Stack.Toolbar.Menu>
 			</Stack.Toolbar>
@@ -262,7 +255,7 @@ export function PullRequestScreen() {
 				<View className="bg-border mx-4 h-px" />
 				<View className="mx-4 gap-3">
 					<Text className="text-muted-foreground text-[15px]">
-						<Trans id="mobile.pullRequest.files">Files</Trans>
+						<Trans>Files</Trans>
 					</Text>
 					<Pressable
 						accessibilityRole="button"
@@ -276,7 +269,6 @@ export function PullRequestScreen() {
 					>
 						<Text className="text-[15px]">
 							<Plural
-								id="mobile.pullRequest.filesChangedCount"
 								value={detail.pullRequest.changedFiles}
 								one="# file changed"
 								other="# files changed"

@@ -21,35 +21,27 @@ interface RankNeighborsProps {
 // between renders.
 const ALIASES = [
 	msg({
-		id: "settings.usage.leaderboardRank.alias.0",
 		message: "Anonymous Assembler",
 	}),
 	msg({
-		id: "settings.usage.leaderboardRank.alias.1",
 		message: "Mystery Machinist",
 	}),
 	msg({
-		id: "settings.usage.leaderboardRank.alias.2",
 		message: "Nameless Foreman",
 	}),
 	msg({
-		id: "settings.usage.leaderboardRank.alias.3",
 		message: "Incognito Operator",
 	}),
 	msg({
-		id: "settings.usage.leaderboardRank.alias.4",
 		message: "Redacted Riveter",
 	}),
 	msg({
-		id: "settings.usage.leaderboardRank.alias.5",
 		message: "Phantom Forklift",
 	}),
 	msg({
-		id: "settings.usage.leaderboardRank.alias.6",
 		message: "Unknown Welder",
 	}),
 	msg({
-		id: "settings.usage.leaderboardRank.alias.7",
 		message: "Secret Shift Lead",
 	}),
 ];
@@ -77,9 +69,9 @@ export function RankNeighbors({ me, rows }: RankNeighborsProps) {
 		{
 			rank: me.rank,
 			tokens: me.tokens,
-			label: <Trans id="settings.usage.leaderboardRank.you">You</Trans>,
+			label: <Trans>You</Trans>,
 			detail: above ? (
-				<Trans id="settings.usage.leaderboardRank.toPass">
+				<Trans>
 					{formatTokens(above.tokens - me.tokens)} to pass #
 					{formatNumber(above.rank)}
 				</Trans>
@@ -91,9 +83,7 @@ export function RankNeighbors({ me, rows }: RankNeighborsProps) {
 			tokens: below.tokens,
 			label: aliasFor(below.rank),
 			detail: (
-				<Trans id="settings.usage.leaderboardRank.behindYou">
-					{formatTokens(me.tokens - below.tokens)} behind you
-				</Trans>
+				<Trans>{formatTokens(me.tokens - below.tokens)} behind you</Trans>
 			),
 			isMe: false,
 		},

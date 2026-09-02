@@ -168,7 +168,6 @@ export function NewChatWidget({
 		if (!selectedTarget) {
 			Alert.alert(
 				t({
-					id: "mobile.newChat.noProjectAvailable",
 					message: "No project available",
 				}),
 			);
@@ -212,13 +211,11 @@ export function NewChatWidget({
 		cloudScope
 			? {
 					id: "project",
-					label: t({ id: "mobile.filter.cloud", message: "Cloud" }),
+					label: t({ message: "Cloud" }),
 				}
 			: {
 					id: "project",
-					label:
-						selectedTarget?.projectName ??
-						t({ id: "mobile.home.noProject", message: "No project" }),
+					label: selectedTarget?.projectName ?? t({ message: "No project" }),
 					avatar: true,
 					iconUri: selectedTarget?.projectIconUrl ?? undefined,
 				},
@@ -229,7 +226,6 @@ export function NewChatWidget({
 						label:
 							selectedEnvironment?.name ??
 							t({
-								id: "mobile.newChat.environmentChip",
 								message: "Environment",
 							}),
 					},
@@ -250,7 +246,6 @@ export function NewChatWidget({
 		<Composer
 			ref={composerRef}
 			placeholder={t({
-				id: "mobile.newChat.placeholder",
 				message: "Plan, ask, build...",
 			})}
 			initialDraft={initialDraft}

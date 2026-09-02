@@ -54,7 +54,6 @@ export function CloudWorkspaceProvisioningState({
 		<Frame icon={Cloud} iconClassName="text-muted-foreground">
 			<Heading
 				title={t({
-					id: "mobile.cloudWorkspace.startingTitle",
 					message: "Starting workspace",
 				})}
 				name={cloud.name}
@@ -65,14 +64,12 @@ export function CloudWorkspaceProvisioningState({
 			<View className="gap-2.5">
 				<StepRow
 					label={t({
-						id: "mobile.cloudWorkspace.step.creatingSandbox",
 						message: "Creating sandbox",
 					})}
 					state={sandboxReady ? "done" : "active"}
 				/>
 				<StepRow
 					label={t({
-						id: "mobile.cloudWorkspace.step.connecting",
 						message: "Connecting to the workspace",
 					})}
 					state={sandboxReady ? "active" : "pending"}
@@ -83,9 +80,7 @@ export function CloudWorkspaceProvisioningState({
 			</Text>
 			{elapsed >= STUCK_AFTER_SECONDS ? (
 				<Text className="text-muted-foreground max-w-[280px] text-center text-xs leading-relaxed">
-					<Trans id="mobile.cloudWorkspace.slowHint">
-						Taking longer than usual. It keeps going if you leave.
-					</Trans>
+					<Trans>Taking longer than usual. It keeps going if you leave.</Trans>
 				</Text>
 			) : null}
 		</Frame>
@@ -109,9 +104,7 @@ function CloudWorkspaceFailedState({ cloud }: { cloud: CloudWorkspaceRow }) {
 			await removeCloudWorkspace(cloud.id);
 			router.back();
 		} catch {
-			Alert.alert(
-				t({ id: "mobile.deleteWorkspace.failed", message: "Delete failed" }),
-			);
+			Alert.alert(t({ message: "Delete failed" }));
 			setIsDeleting(false);
 		}
 	};
@@ -120,23 +113,19 @@ function CloudWorkspaceFailedState({ cloud }: { cloud: CloudWorkspaceRow }) {
 		<Frame icon={AlertCircle} iconClassName="text-destructive">
 			<Heading
 				title={t({
-					id: "mobile.cloudWorkspace.failedTitle",
 					message: "Couldn't start workspace",
 				})}
 				name={cloud.name}
 			/>
 			<BranchLine branch={cloud.branch} />
 			<Text className="text-muted-foreground max-w-[300px] text-center text-[13px] leading-relaxed">
-				<Trans id="mobile.cloudWorkspace.failedBody">
-					Nothing is running. Remove it and create a new one.
-				</Trans>
+				<Trans>Nothing is running. Remove it and create a new one.</Trans>
 			</Text>
 			<Button variant="secondary" disabled={isDeleting} onPress={remove}>
 				<Text>
 					{isDeleting
-						? t({ id: "mobile.cloudWorkspace.removing", message: "Removing…" })
+						? t({ message: "Removing…" })
 						: t({
-								id: "mobile.cloudWorkspace.remove",
 								message: "Remove workspace",
 							})}
 				</Text>
@@ -179,7 +168,6 @@ function Heading({ title, name }: { title: string; name: string }) {
 			>
 				{name ||
 					t({
-						id: "mobile.cloudWorkspace.untitled",
 						message: "Untitled workspace",
 					})}
 			</Text>

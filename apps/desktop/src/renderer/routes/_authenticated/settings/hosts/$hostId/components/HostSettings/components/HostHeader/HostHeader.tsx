@@ -76,7 +76,6 @@ export function HostHeader({
 						<input
 							ref={inputRef}
 							aria-label={t({
-								id: "settings.hosts.header.nameAriaLabel",
 								message: "Host name",
 							})}
 							size={1}
@@ -102,7 +101,6 @@ export function HostHeader({
 						onClick={() => setIsEditing(true)}
 						className="flex items-center gap-2 text-left hover:text-foreground"
 						title={t({
-							id: "settings.hosts.header.renameTitle",
 							message: "Rename host",
 						})}
 					>
@@ -114,12 +112,8 @@ export function HostHeader({
 				)}
 			</div>
 			<p className="text-sm text-muted-foreground mt-1">
-				{isOnline ? (
-					<Trans id="settings.hosts.header.online">Online</Trans>
-				) : (
-					<Trans id="settings.hosts.header.offline">Offline</Trans>
-				)}{" "}
-				· <span className="font-mono">{machineId}</span>
+				{isOnline ? <Trans>Online</Trans> : <Trans>Offline</Trans>} ·{" "}
+				<span className="font-mono">{machineId}</span>
 			</p>
 		</div>
 	);

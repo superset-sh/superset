@@ -103,7 +103,6 @@ export function BranchPrefixControl({
 			{selectValue === "custom" && (
 				<Input
 					placeholder={t({
-						id: "settings.components.branchPrefixControl.prefixPlaceholder",
 						message: "Prefix",
 					})}
 					value={customPrefixInput}

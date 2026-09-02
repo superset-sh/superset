@@ -33,7 +33,7 @@ export function AddTabMenu({
 			<DropdownMenuItem className="gap-2" onClick={onAddTerminal}>
 				<BsTerminalPlus className="size-4" />
 				<span>
-					<Trans id="workspace.addTabMenu.terminal">Terminal</Trans>
+					<Trans>Terminal</Trans>
 				</span>
 				<HotkeyMenuShortcut hotkeyId="NEW_GROUP" />
 			</DropdownMenuItem>
@@ -41,21 +41,21 @@ export function AddTabMenu({
 				<DropdownMenuItem className="gap-2" onClick={onAddChatV3}>
 					<TbMessageCirclePlus className="size-4" />
 					<span>
-						<Trans id="workspace.addTabMenu.chatV3">Chat v3</Trans>
+						<Trans>Chat v3</Trans>
 					</span>
 				</DropdownMenuItem>
 			)}
 			<DropdownMenuItem className="gap-2" onClick={onAddBrowser}>
 				<TbWorld className="size-4" />
 				<span>
-					<Trans id="workspace.addTabMenu.browser">Browser</Trans>
+					<Trans>Browser</Trans>
 				</span>
 				<HotkeyMenuShortcut hotkeyId="NEW_BROWSER" />
 			</DropdownMenuItem>
 			<DropdownMenuItem className="gap-2" onClick={onAddChanges}>
 				<LuGitCompareArrows className="size-4" />
 				<span>
-					<Trans id="workspace.addTabMenu.changes">Changes</Trans>
+					<Trans>Changes</Trans>
 				</span>
 				<HotkeyMenuShortcut hotkeyId="OPEN_DIFF_VIEWER" />
 			</DropdownMenuItem>
@@ -63,7 +63,7 @@ export function AddTabMenu({
 				<DropdownMenuItem className="gap-2" onClick={onAddDesktop}>
 					<TbDeviceDesktop className="size-4" />
 					<span>
-						<Trans id="workspace.addTabMenu.desktop">Desktop</Trans>
+						<Trans>Desktop</Trans>
 					</span>
 					<HotkeyMenuShortcut hotkeyId="SPLIT_WITH_DESKTOP" />
 				</DropdownMenuItem>
@@ -74,7 +74,7 @@ export function AddTabMenu({
 				onCheckedChange={(checked) => onToggleShowPresetsBar(checked === true)}
 				onSelect={(event) => event.preventDefault()}
 			>
-				<Trans id="workspace.addTabMenu.showScriptsBar">Show Scripts Bar</Trans>
+				<Trans>Show Scripts Bar</Trans>
 			</DropdownMenuCheckboxItem>
 		</>
 	);

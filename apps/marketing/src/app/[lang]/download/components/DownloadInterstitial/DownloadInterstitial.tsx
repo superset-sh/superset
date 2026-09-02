@@ -90,12 +90,10 @@ export function DownloadInterstitial({
 				{showEmailLink ? (
 					<div className="max-w-2xl">
 						<h1 className={HEADING_CLASS}>
-							<Trans id="marketing.download.mobileTitle">
-								Get Superset on your Mac
-							</Trans>
+							<Trans>Get Superset on your Mac</Trans>
 						</h1>
 						<p className="mt-3 text-muted-foreground sm:text-lg">
-							<Trans id="marketing.download.mobileBody">
+							<Trans>
 								Superset is a desktop app. Enter your email and we&apos;ll send
 								you a download link to open on your Mac.
 							</Trans>
@@ -107,12 +105,10 @@ export function DownloadInterstitial({
 				) : showWaitlist ? (
 					<div className="max-w-2xl">
 						<h1 className={HEADING_CLASS}>
-							<Trans id="marketing.download.waitlistTitle">
-								Superset isn't on Windows yet
-							</Trans>
+							<Trans>Superset isn't on Windows yet</Trans>
 						</h1>
 						<p className="mt-3 text-muted-foreground sm:text-lg">
-							<Trans id="marketing.download.waitlistBody">
+							<Trans>
 								The desktop app runs on macOS and Linux today. Drop your email
 								and we'll let you know the moment the Windows build ships.
 							</Trans>
@@ -124,12 +120,10 @@ export function DownloadInterstitial({
 				) : (
 					<div className="max-w-2xl">
 						<h1 className={HEADING_CLASS}>
-							<Trans id="marketing.download.autoTitle">
-								You're about to get Superset
-							</Trans>
+							<Trans>You're about to get Superset</Trans>
 						</h1>
 						<p className="mt-3 text-muted-foreground sm:text-lg">
-							<Trans id="marketing.download.autoBodyShort">
+							<Trans>
 								Your download starts automatically. If it didn't, grab it here.
 							</Trans>
 						</p>
@@ -146,13 +140,13 @@ export function DownloadInterstitial({
 				<dl className="divide-y divide-border border border-border font-mono text-xs md:min-w-[260px]">
 					<div className="flex items-center justify-between gap-8 px-4 py-2.5">
 						<dt className="text-muted-foreground">
-							<Trans id="marketing.download.specVersion">Version</Trans>
+							<Trans>Version</Trans>
 						</dt>
 						<dd className="text-foreground">{latestRelease.version}</dd>
 					</div>
 					<div className="flex items-center justify-between gap-8 px-4 py-2.5">
 						<dt className="text-muted-foreground">
-							<Trans id="marketing.download.specSize">Size</Trans>
+							<Trans>Size</Trans>
 						</dt>
 						<dd className="text-foreground">
 							{formatNumber(asset.sizeBytes / BYTES_PER_MB, {
@@ -163,7 +157,7 @@ export function DownloadInterstitial({
 					</div>
 					<div className="flex items-center justify-between gap-8 px-4 py-2.5">
 						<dt className="text-muted-foreground">
-							<Trans id="marketing.download.specPublished">Published</Trans>
+							<Trans>Published</Trans>
 						</dt>
 						<dd className="text-foreground">
 							{formatReleaseDate(latestRelease.publishedAt)}

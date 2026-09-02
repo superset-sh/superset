@@ -24,12 +24,10 @@ export function WorkspaceLocalHostPendingState({ hostId }: { hostId: string }) {
 		onError: (error) => {
 			toast.error(
 				t({
-					id: "workspace.states.localHostPendingRestartFailed",
 					message: "Couldn't restart the host service",
 				}),
 				{
 					description: t({
-						id: "workspace.states.localHostPendingRestartFailedDescription",
 						message: `${error.message} — try the Superset tray menu > Host Service > Restart.`,
 					}),
 				},
@@ -52,17 +50,14 @@ export function WorkspaceLocalHostPendingState({ hostId }: { hostId: string }) {
 			<WorkspaceHostUnreachableState
 				hostId={hostId}
 				hostName={t({
-					id: "workspace.states.localHostPendingThisDevice",
 					message: "This device",
 				})}
 				detail={i18n._(LOCAL_HOST_SERVICE_DETAIL[hostServiceStatus])}
 				isReconnecting={isStarting}
 				retryLabel={t({
-					id: "workspace.states.localHostPendingRestartService",
 					message: "Restart host service",
 				})}
 				retryBusyLabel={t({
-					id: "workspace.states.localHostPendingStarting",
 					message: "Starting…",
 				})}
 				onRetry={() => {
@@ -72,12 +67,10 @@ export function WorkspaceLocalHostPendingState({ hostId }: { hostId: string }) {
 					if (!activeOrganizationId) {
 						toast.error(
 							t({
-								id: "workspace.states.localHostPendingNoOrg",
 								message: "No active organization",
 							}),
 							{
 								description: t({
-									id: "workspace.states.localHostPendingNoOrgDescription",
 									message:
 										"Switch organization or sign in again to restart the host service.",
 								}),

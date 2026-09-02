@@ -15,11 +15,9 @@ export function ContextButton({ onClick, disabled }: ContextButtonProps) {
 		<button
 			type="button"
 			aria-label={t({
-				id: "chatUi.contextButton.label",
 				message: "Add files, apps, and more",
 			})}
 			title={t({
-				id: "chatUi.contextButton.title",
 				message: "Add files, apps, and more (@)",
 			})}
 			disabled={disabled}

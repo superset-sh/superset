@@ -39,11 +39,9 @@ export function DiffPaneHeaderExtras({
 						aria-label={
 							showDiffComments
 								? t({
-										id: "workspace.diffPane.hideReviewCommentsAria",
 										message: "Hide PR review comments",
 									})
 								: t({
-										id: "workspace.diffPane.showReviewCommentsAria",
 										message: "Show PR review comments",
 									})
 						}
@@ -59,13 +57,9 @@ export function DiffPaneHeaderExtras({
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
 					{showDiffComments ? (
-						<Trans id="workspace.diffPane.hideReviewComments">
-							Hide review comments
-						</Trans>
+						<Trans>Hide review comments</Trans>
 					) : (
-						<Trans id="workspace.diffPane.showReviewComments">
-							Show review comments
-						</Trans>
+						<Trans>Show review comments</Trans>
 					)}
 				</TooltipContent>
 			</Tooltip>
@@ -77,11 +71,9 @@ export function DiffPaneHeaderExtras({
 						aria-label={
 							expandUnchanged
 								? t({
-										id: "workspace.diffPane.hideUnchangedRegionsAria",
 										message: "Hide unchanged regions",
 									})
 								: t({
-										id: "workspace.diffPane.showAllLinesAria",
 										message: "Show all lines",
 									})
 						}
@@ -97,11 +89,9 @@ export function DiffPaneHeaderExtras({
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
 					{expandUnchanged ? (
-						<Trans id="workspace.diffPane.hideUnchangedRegions">
-							Hide unchanged regions
-						</Trans>
+						<Trans>Hide unchanged regions</Trans>
 					) : (
-						<Trans id="workspace.diffPane.showAllLines">Show all lines</Trans>
+						<Trans>Show all lines</Trans>
 					)}
 				</TooltipContent>
 			</Tooltip>

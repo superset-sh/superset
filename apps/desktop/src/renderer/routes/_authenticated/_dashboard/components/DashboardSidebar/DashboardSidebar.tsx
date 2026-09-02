@@ -393,7 +393,6 @@ export function DashboardSidebar({
 											displayedGroups.length === 0 && (
 												<div className="select-text cursor-text px-4 py-2 text-xs text-muted-foreground">
 													{t({
-														id: "dashboard.sidebar.workspacesHeader.noProjectsMatch",
 														message: `No projects match "${trimmedFilterQuery}"`,
 													})}
 												</div>
@@ -429,7 +428,6 @@ export function DashboardSidebar({
 												<button
 													type="button"
 													aria-label={t({
-														id: "dashboard.sidebar.settingsAriaLabel",
 														message: "Settings",
 													})}
 													onClick={() => navigate({ to: "/settings/account" })}
@@ -446,11 +444,9 @@ export function DashboardSidebar({
 											<TooltipContent side={isCollapsed ? "right" : "top"}>
 												{settingsHotkey !== "Unassigned"
 													? t({
-															id: "dashboard.sidebar.settingsTooltipWithHotkey",
 															message: `Settings (${settingsHotkey})`,
 														})
 													: t({
-															id: "dashboard.sidebar.settingsTooltip",
 															message: "Settings",
 														})}
 											</TooltipContent>

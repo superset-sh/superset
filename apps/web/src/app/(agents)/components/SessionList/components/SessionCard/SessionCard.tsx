@@ -1,5 +1,6 @@
 "use client";
 
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import Link from "next/link";
@@ -14,29 +15,32 @@ function formatTimeAgo(date: Date): string {
 	const days = Math.floor(diff / MS_PER_DAY);
 	const months = Math.floor(days / 30);
 
-	if (minutes < 1)
-		return i18n._({ id: "web.sessionCard.timeNow", message: "now" });
+	if (minutes < 1) return i18n._(msg({ message: "now" }));
 	if (minutes < 60)
 		return i18n._({
-			id: "web.sessionCard.timeMinutes",
-			message: "{minutes}m",
+			...msg({
+				message: "{minutes}m",
+			}),
 			values: { minutes },
 		});
 	if (hours < 24)
 		return i18n._({
-			id: "web.sessionCard.timeHours",
-			message: "{hours}h",
+			...msg({
+				message: "{hours}h",
+			}),
 			values: { hours },
 		});
 	if (days < 30)
 		return i18n._({
-			id: "web.sessionCard.timeDays",
-			message: "{days}d",
+			...msg({
+				message: "{days}d",
+			}),
 			values: { days },
 		});
 	return i18n._({
-		id: "web.sessionCard.timeMonths",
-		message: "{months}mo",
+		...msg({
+			message: "{months}mo",
+		}),
 		values: { months },
 	});
 }

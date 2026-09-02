@@ -94,7 +94,6 @@ export function BrowserOverflowMenu({
 			.then(({ base64 }) => {
 				toast.success(
 					t({
-						id: "workspace.browserPane.screenshotCopied",
 						message: "Screenshot copied to clipboard",
 					}),
 					{
@@ -102,7 +101,6 @@ export function BrowserOverflowMenu({
 							<img
 								src={`data:image/png;base64,${base64}`}
 								alt={t({
-									id: "workspace.browserPane.screenshotPreviewAlt",
 									message: "Screenshot preview",
 								})}
 								className="mt-1 max-h-32 w-full rounded border border-border object-contain"
@@ -110,7 +108,6 @@ export function BrowserOverflowMenu({
 						),
 						action: {
 							label: t({
-								id: "workspace.browserPane.screenshotViewAll",
 								message: "View all",
 							}),
 							// Same Radix dismissable-layer race as the menu items below:
@@ -125,7 +122,6 @@ export function BrowserOverflowMenu({
 			.catch(() => {
 				toast.error(
 					t({
-						id: "workspace.browserPane.screenshotFailed",
 						message: "Could not take a screenshot",
 					}),
 				);
@@ -165,10 +161,10 @@ export function BrowserOverflowMenu({
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="end" className="w-64">
 					<DropdownMenuItem onClick={onOpenFindBar} disabled={!hasPage}>
-						<Trans id="workspace.browserPane.findInPage">Find in page</Trans>
+						<Trans>Find in page</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuItem onClick={handlePrint} disabled={!hasPage}>
-						<Trans id="workspace.browserPane.print">Print</Trans>
+						<Trans>Print</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuSeparator />
 					{/* A plain row of buttons here would be unreachable by arrow-key menu
@@ -193,7 +189,7 @@ export function BrowserOverflowMenu({
 						className="justify-between gap-2"
 					>
 						<span>
-							<Trans id="workspace.browserPane.zoom">Zoom</Trans>
+							<Trans>Zoom</Trans>
 						</span>
 						<div className="flex items-center gap-0.5">
 							<button
@@ -202,7 +198,6 @@ export function BrowserOverflowMenu({
 								onClick={handleZoomOut}
 								disabled={!hasPage || zoomFactor <= MIN_ZOOM}
 								aria-label={t({
-									id: "workspace.browserPane.zoomOut",
 									message: "Zoom out",
 								})}
 								className="rounded p-1 text-muted-foreground/70 transition-colors hover:bg-muted/50 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
@@ -218,7 +213,6 @@ export function BrowserOverflowMenu({
 								onClick={handleZoomIn}
 								disabled={!hasPage || zoomFactor >= MAX_ZOOM}
 								aria-label={t({
-									id: "workspace.browserPane.zoomIn",
 									message: "Zoom in",
 								})}
 								className="rounded p-1 text-muted-foreground/70 transition-colors hover:bg-muted/50 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
@@ -231,7 +225,6 @@ export function BrowserOverflowMenu({
 								onClick={handleZoomReset}
 								disabled={!hasPage || zoomFactor === 1}
 								aria-label={t({
-									id: "workspace.browserPane.resetZoom",
 									message: "Reset zoom",
 								})}
 								className="rounded p-1 text-muted-foreground/70 transition-colors hover:bg-muted/50 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
@@ -246,58 +239,42 @@ export function BrowserOverflowMenu({
 						disabled={!hasPage}
 						className="justify-between"
 					>
-						<Trans id="workspace.browserPane.showDeviceToolbar">
-							Show device toolbar
-						</Trans>
+						<Trans>Show device toolbar</Trans>
 						{isDeviceToolbarOpen && <CheckIcon className="size-3.5" />}
 					</DropdownMenuItem>
 					<DropdownMenuItem onClick={handleScreenshot} disabled={!hasPage}>
-						<Trans id="workspace.browserPane.takeScreenshot">
-							Take a screenshot
-						</Trans>
+						<Trans>Take a screenshot</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuSeparator />
 					<DropdownMenuItem onClick={handleHardReload} disabled={!hasPage}>
-						<Trans id="workspace.browserPane.hardReload">Hard reload</Trans>
+						<Trans>Hard reload</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuItem onClick={handleCopyUrl} disabled={!hasPage}>
-						<Trans id="workspace.browserPane.copyUrl">Copy URL</Trans>
+						<Trans>Copy URL</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuItem onClick={handleOpenExternal} disabled={!hasPage}>
-						<Trans id="workspace.browserPane.openInBrowser">
-							Open in Browser
-						</Trans>
+						<Trans>Open in Browser</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuSeparator />
 					<DropdownMenuItem onSelect={openAfterClose(setIsImportOpen)}>
-						<Trans id="workspace.browserPane.importCookiesPasswords">
-							Import cookies and passwords…
-						</Trans>
+						<Trans>Import cookies and passwords…</Trans>
 					</DropdownMenuItem>
 					<SignedInSitesSubmenu />
 					<DropdownMenuItem onSelect={openAfterClose(setIsDownloadsOpen)}>
-						<Trans id="workspace.browserPane.downloadsMenuItem">
-							Downloads
-						</Trans>
+						<Trans>Downloads</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuItem onSelect={openAfterClose(setIsScreenshotsOpen)}>
-						<Trans id="workspace.browserPane.screenshotsMenuItem">
-							Screenshots
-						</Trans>
+						<Trans>Screenshots</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuItem onSelect={openAfterClose(setIsHistoryOpen)}>
-						<Trans id="workspace.browserPane.historyMenuItem">History</Trans>
+						<Trans>History</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuItem onSelect={openAfterClose(setIsClearDataOpen)}>
-						<Trans id="workspace.browserPane.clearBrowsingData">
-							Clear browsing data
-						</Trans>
+						<Trans>Clear browsing data</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuSeparator />
 					<DropdownMenuItem onClick={handleOpenSettings}>
-						<Trans id="workspace.browserPane.browserSettings">
-							Browser settings
-						</Trans>
+						<Trans>Browser settings</Trans>
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>

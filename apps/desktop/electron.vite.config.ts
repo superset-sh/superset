@@ -15,6 +15,7 @@ import {
 	defineEnv,
 	devPath,
 	htmlEnvTransformPlugin,
+	linguiMacroPlugin,
 } from "./vite/helpers";
 
 // override: true ensures .env values take precedence over inherited env vars
@@ -61,7 +62,7 @@ const hostServiceSentryPlugin = process.env.SENTRY_AUTH_TOKEN
 
 export default defineConfig({
 	main: {
-		plugins: [tsconfigPaths, copyResourcesPlugin()],
+		plugins: [tsconfigPaths, linguiMacroPlugin(), copyResourcesPlugin()],
 
 		define: {
 			"process.env.NODE_ENV": defineEnv(process.env.NODE_ENV, "production"),

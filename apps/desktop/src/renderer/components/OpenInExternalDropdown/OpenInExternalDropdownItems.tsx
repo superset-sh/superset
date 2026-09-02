@@ -127,7 +127,7 @@ export function OpenInExternalDropdownItems({
 							className={cn("size-4 object-contain", subTriggerIconClassName)}
 						/>
 						<span>
-							<Trans id="components.openInExternalDropdown.ide">IDE</Trans>
+							<Trans>IDE</Trans>
 						</span>
 					</div>
 				</DropdownMenuSubTrigger>
@@ -150,9 +150,7 @@ export function OpenInExternalDropdownItems({
 									)}
 								/>
 								<span>
-									<Trans id="components.openInExternalDropdown.vscode">
-										VS Code
-									</Trans>
+									<Trans>VS Code</Trans>
 								</span>
 							</div>
 						</DropdownMenuSubTrigger>
@@ -177,9 +175,7 @@ export function OpenInExternalDropdownItems({
 									)}
 								/>
 								<span>
-									<Trans id="components.openInExternalDropdown.jetbrains">
-										JetBrains
-									</Trans>
+									<Trans>JetBrains</Trans>
 								</span>
 							</div>
 						</DropdownMenuSubTrigger>
@@ -209,9 +205,7 @@ export function OpenInExternalDropdownItems({
 							className={cn("size-4 object-contain", subTriggerIconClassName)}
 						/>
 						<span>
-							<Trans id="components.openInExternalDropdown.terminal">
-								Terminal
-							</Trans>
+							<Trans>Terminal</Trans>
 						</span>
 					</div>
 				</DropdownMenuSubTrigger>
@@ -226,9 +220,7 @@ export function OpenInExternalDropdownItems({
 				>
 					<LuCopy className={cn("size-4", copyPathIconClassName)} />
 					<span className={copyPathLabelClassName}>
-						<Trans id="components.openInExternalDropdown.copyPath">
-							Copy path
-						</Trans>
+						<Trans>Copy path</Trans>
 					</span>
 				</div>
 				{copyPathTrailing}

@@ -28,14 +28,14 @@ interface PRDetailCardProps {
 export function PRDetailCard({ pr, checks, linkState }: PRDetailCardProps) {
 	const { t } = useLingui();
 	const stateLabel = pr.isDraft
-		? t({ id: "workspace.prDetailCard.stateDraft", message: "Draft" })
+		? t({ message: "Draft" })
 		: pr.state === "merged"
-			? t({ id: "workspace.prDetailCard.stateMerged", message: "Merged" })
+			? t({ message: "Merged" })
 			: pr.state === "closed"
-				? t({ id: "workspace.prDetailCard.stateClosed", message: "Closed" })
+				? t({ message: "Closed" })
 				: pr.state === "queued"
-					? t({ id: "workspace.prDetailCard.stateQueued", message: "Queued" })
-					: t({ id: "workspace.prDetailCard.stateOpen", message: "Open" });
+					? t({ message: "Queued" })
+					: t({ message: "Open", context: "status" });
 	const statePillClass = stateLabelToPillClass(linkState);
 
 	const updatedRelative = pr.updatedAt
@@ -83,9 +83,7 @@ export function PRDetailCard({ pr, checks, linkState }: PRDetailCardProps) {
 
 			{updatedRelative && (
 				<div className="border-t border-border/60 px-3 py-2 text-[11px] text-muted-foreground">
-					<Trans id="workspace.prDetailCard.updatedAt">
-						Updated {updatedRelative}
-					</Trans>
+					<Trans>Updated {updatedRelative}</Trans>
 				</div>
 			)}
 
@@ -96,7 +94,7 @@ export function PRDetailCard({ pr, checks, linkState }: PRDetailCardProps) {
 				className="group flex items-center justify-between border-t border-border/60 px-3 py-2 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 			>
 				<span>
-					<Trans id="workspace.prDetailCard.viewOnGitHub">View on GitHub</Trans>
+					<Trans>View on GitHub</Trans>
 				</span>
 				<LuArrowUpRight
 					aria-hidden="true"
@@ -115,7 +113,6 @@ function ChecksLine({ checks }: { checks: ChecksRollup }) {
 				icon={null}
 				muted
 				text={t({
-					id: "workspace.prDetailCard.noChecksReported",
 					message: "No checks reported",
 				})}
 			/>
@@ -132,7 +129,6 @@ function ChecksLine({ checks }: { checks: ChecksRollup }) {
 					/>
 				}
 				text={t({
-					id: "workspace.prDetailCard.allChecksPassed",
 					// One ICU plural instead of a hand-split pair: "All 1 check
 					// passed" forced every language into awkward singular shapes.
 					message: plural(total, {
@@ -156,11 +152,9 @@ function ChecksLine({ checks }: { checks: ChecksRollup }) {
 				text={
 					total === 1
 						? t({
-								id: "workspace.prDetailCard.checksFailingOne",
 								message: `${failing} of ${total} check failing`,
 							})
 						: t({
-								id: "workspace.prDetailCard.checksFailingMany",
 								message: `${failing} of ${total} checks failing`,
 							})
 				}
@@ -180,11 +174,9 @@ function ChecksLine({ checks }: { checks: ChecksRollup }) {
 			text={
 				total === 1
 					? t({
-							id: "workspace.prDetailCard.checksRunningOne",
 							message: `${pending} of ${total} check running`,
 						})
 					: t({
-							id: "workspace.prDetailCard.checksRunningMany",
 							message: `${pending} of ${total} checks running`,
 						})
 			}

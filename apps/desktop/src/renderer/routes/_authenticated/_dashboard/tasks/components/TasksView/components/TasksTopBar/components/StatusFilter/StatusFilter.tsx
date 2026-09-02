@@ -43,26 +43,21 @@ const OPTIONS: ReadonlyArray<{
 export function StatusFilter({ value, onChange }: StatusFilterProps) {
 	const { t } = useLingui();
 	const optionLabels: Record<TabValue, string> = {
-		all: t({ id: "dashboard.tasks.statusFilter.all", message: "All tasks" }),
-		active: t({ id: "dashboard.tasks.statusFilter.active", message: "Active" }),
+		all: t({ message: "All tasks" }),
+		active: t({ message: "Active" }),
 		backlog: t({
-			id: "dashboard.tasks.statusFilter.backlog",
 			message: "Backlog",
 		}),
 		unstarted: t({
-			id: "dashboard.tasks.statusFilter.unstarted",
 			message: "Todo",
 		}),
 		started: t({
-			id: "dashboard.tasks.statusFilter.started",
 			message: "In progress",
 		}),
 		completed: t({
-			id: "dashboard.tasks.statusFilter.completed",
 			message: "Done",
 		}),
 		canceled: t({
-			id: "dashboard.tasks.statusFilter.canceled",
 			message: "Canceled",
 		}),
 	};

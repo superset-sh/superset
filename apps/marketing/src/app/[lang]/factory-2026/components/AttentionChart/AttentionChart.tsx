@@ -42,14 +42,12 @@ export function AttentionChart() {
 		<figure className="border border-border p-4 md:p-6">
 			<figcaption>
 				<span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
-					<Trans id="marketing.factory.attentionChart.caption">
+					<Trans>
 						Fig. 1 · Human share of the effort behind a merged change
 					</Trans>
 				</span>
 				<span className="block text-xs text-muted-foreground mt-1">
-					<Trans id="marketing.factory.attentionChart.subcaption">
-						Schematic, by autonomy level. Hover for values.
-					</Trans>
+					<Trans>Schematic, by autonomy level. Hover for values.</Trans>
 				</span>
 			</figcaption>
 			<div className="relative mt-4">
@@ -58,7 +56,6 @@ export function AttentionChart() {
 					className="w-full h-auto touch-none"
 					role="img"
 					aria-label={t({
-						id: "marketing.factory.attentionChart.ariaLabel",
 						message:
 							"Line chart: the human share of effort per merged change falls from 100 percent at F0 to about 2 percent at F5",
 					})}
@@ -145,15 +142,13 @@ export function AttentionChart() {
 					>
 						<span className="text-muted-foreground">{hoveredPoint.level}</span>{" "}
 						<span className="text-foreground">
-							<Trans id="marketing.factory.attentionChart.tooltipHuman">
-								{share}% human
-							</Trans>
+							<Trans>{share}% human</Trans>
 						</span>
 					</div>
 				)}
 			</div>
 			<p className="text-xs font-mono text-muted-foreground mt-2">
-				<Trans id="marketing.factory.attentionChart.youAreHere">
+				<Trans>
 					<span className="text-foreground">F3</span> · you are here
 				</Trans>
 			</p>

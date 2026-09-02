@@ -53,47 +53,47 @@ interface FooterLink {
 const PRODUCT_LINKS: FooterLink[] = [
 	{
 		href: "/download",
-		label: <Trans id="marketing.footer.product.download">Download</Trans>,
+		label: <Trans>Download</Trans>,
 	},
 	{
 		href: "/#how-it-works",
-		label: <Trans id="marketing.footer.product.howItWorks">How it works</Trans>,
+		label: <Trans>How it works</Trans>,
 	},
 	{
 		href: "/#features",
-		label: <Trans id="marketing.footer.product.features">Features</Trans>,
+		label: <Trans>Features</Trans>,
 	},
 	{
 		href: "/#security",
-		label: <Trans id="marketing.footer.product.security">Security</Trans>,
+		label: <Trans>Security</Trans>,
 	},
 	{ href: "/mcp-install", label: "MCP" },
 	{
 		href: "/marketplace",
-		label: <Trans id="marketing.footer.product.marketplace">Marketplace</Trans>,
+		label: <Trans>Marketplace</Trans>,
 	},
 	{
 		href: "/compare",
-		label: <Trans id="marketing.footer.product.compare">Compare</Trans>,
+		label: <Trans>Compare</Trans>,
 	},
 ];
 
 const COMPANY_LINKS: FooterLink[] = [
 	{
 		href: "/team",
-		label: <Trans id="marketing.footer.company.about">About</Trans>,
+		label: <Trans>About</Trans>,
 	},
 	{
 		href: "/contact",
-		label: <Trans id="marketing.footer.company.contact">Contact</Trans>,
+		label: <Trans>Contact</Trans>,
 	},
 	{
 		href: "/join-us",
-		label: <Trans id="marketing.footer.company.careers">Careers</Trans>,
+		label: <Trans>Careers</Trans>,
 	},
 	{
 		href: COMPANY.STATUS_URL,
-		label: <Trans id="marketing.footer.company.status">Status</Trans>,
+		label: <Trans>Status</Trans>,
 		external: true,
 	},
 ];
@@ -101,63 +101,55 @@ const COMPANY_LINKS: FooterLink[] = [
 const RESOURCE_LINKS: FooterLink[] = [
 	{
 		href: COMPANY.DOCS_URL,
-		label: <Trans id="marketing.footer.resources.docs">Documentation</Trans>,
+		label: <Trans>Documentation</Trans>,
 		external: true,
 	},
 	{
 		href: "/pricing",
-		label: <Trans id="marketing.footer.resources.pricing">Pricing</Trans>,
+		label: <Trans>Pricing</Trans>,
 	},
 	{
 		href: "/blog",
-		label: <Trans id="marketing.footer.resources.blog">Blog</Trans>,
+		label: <Trans>Blog</Trans>,
 	},
 	{
 		href: "/parallel-coding-agents",
-		label: (
-			<Trans id="marketing.footer.resources.parallelAgentsGuide">
-				Parallel agents guide
-			</Trans>
-		),
+		label: <Trans>Parallel agents guide</Trans>,
 	},
 	{
 		href: "/agent-orchestration",
-		label: (
-			<Trans id="marketing.footer.resources.orchestrationGuide">
-				Orchestration guide
-			</Trans>
-		),
+		label: <Trans>Orchestration guide</Trans>,
 	},
 	{
 		href: "/community",
-		label: <Trans id="marketing.footer.resources.community">Community</Trans>,
+		label: <Trans>Community</Trans>,
 	},
 	{
 		href: "/enterprise",
-		label: <Trans id="marketing.footer.resources.enterprise">Enterprise</Trans>,
+		label: <Trans>Enterprise</Trans>,
 	},
 	{
 		href: "/changelog",
-		label: <Trans id="marketing.footer.resources.changelog">Changelog</Trans>,
+		label: <Trans>Changelog</Trans>,
 	},
 	{
 		href: "/roadmap",
-		label: <Trans id="marketing.footer.resources.roadmap">Roadmap</Trans>,
+		label: <Trans>Roadmap</Trans>,
 	},
 ];
 
 const LEGAL_LINKS: FooterLink[] = [
 	{
 		href: "/security",
-		label: <Trans id="marketing.footer.legal.security">Security</Trans>,
+		label: <Trans>Security</Trans>,
 	},
 	{
 		href: "/terms",
-		label: <Trans id="marketing.footer.legal.terms">Terms</Trans>,
+		label: <Trans>Terms</Trans>,
 	},
 	{
 		href: "/privacy",
-		label: <Trans id="marketing.footer.legal.privacy">Privacy</Trans>,
+		label: <Trans>Privacy</Trans>,
 	},
 ];
 
@@ -194,31 +186,18 @@ export function Footer({ locale }: { locale?: SupportedLocale }) {
 							<Soc2Badge size={80} />
 						</a>
 						<p className="text-sm text-muted-foreground">
-							<Trans id="marketing.footer.copyright">
-								© {year} Superset Inc.
-							</Trans>
+							<Trans>© {year} Superset Inc.</Trans>
 						</p>
 						<FooterLanguageSwitcher locale={locale} />
 					</div>
 
+					<FooterColumn title={<Trans>Product</Trans>} links={PRODUCT_LINKS} />
+					<FooterColumn title={<Trans>Company</Trans>} links={COMPANY_LINKS} />
 					<FooterColumn
-						title={<Trans id="marketing.footer.column.product">Product</Trans>}
-						links={PRODUCT_LINKS}
-					/>
-					<FooterColumn
-						title={<Trans id="marketing.footer.column.company">Company</Trans>}
-						links={COMPANY_LINKS}
-					/>
-					<FooterColumn
-						title={
-							<Trans id="marketing.footer.column.resources">Resources</Trans>
-						}
+						title={<Trans>Resources</Trans>}
 						links={RESOURCE_LINKS}
 					/>
-					<FooterColumn
-						title={<Trans id="marketing.footer.column.legal">Legal</Trans>}
-						links={LEGAL_LINKS}
-					/>
+					<FooterColumn title={<Trans>Legal</Trans>} links={LEGAL_LINKS} />
 				</div>
 			</m.div>
 		</footer>
@@ -298,7 +277,6 @@ function FooterLanguageSwitcher({ locale }: { locale?: SupportedLocale }) {
 		<DropdownMenu modal={false}>
 			<DropdownMenuTrigger
 				aria-label={`${t({
-					id: "marketing.footer.languageLabel",
 					message: "Language",
 				})}: ${LOCALE_LABELS[current]}`}
 				className="group flex w-max cursor-pointer items-center gap-2 text-sm text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:text-foreground"

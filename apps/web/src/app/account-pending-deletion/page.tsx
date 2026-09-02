@@ -50,14 +50,11 @@ export default function AccountPendingDeletionPage() {
 			<AlertTriangle className="size-12 text-destructive" />
 			<div className="max-w-md text-center">
 				<h1 className="text-lg font-medium">
-					<Trans id="account.pendingDeletion.title">
-						Account pending deletion
-					</Trans>
+					<Trans>Account pending deletion</Trans>
 				</h1>
 				<p className="text-sm text-muted-foreground">
 					{daysRemaining !== null && daysRemaining > 0
 						? t({
-								id: "account.pendingDeletion.bodyInDays",
 								message: plural(daysRemaining, {
 									one: "Your account is deactivated and will be permanently deleted in # day. Reactivate to restore it exactly as you left it.",
 									other:
@@ -65,7 +62,6 @@ export default function AccountPendingDeletionPage() {
 								}),
 							})
 						: t({
-								id: "account.pendingDeletion.bodySoon",
 								message:
 									"Your account is deactivated and will be permanently deleted soon. Reactivate to restore it exactly as you left it.",
 							})}
@@ -81,20 +77,14 @@ export default function AccountPendingDeletionPage() {
 					onClick={() => reactivate.mutate()}
 				>
 					{reactivate.isPending ? (
-						<Trans id="account.pendingDeletion.reactivating">
-							Reactivating…
-						</Trans>
+						<Trans>Reactivating…</Trans>
 					) : (
-						<Trans id="account.pendingDeletion.reactivate">
-							Reactivate my account
-						</Trans>
+						<Trans>Reactivate my account</Trans>
 					)}
 				</Button>
 				<Button variant="outline" size="sm" asChild>
 					<a href={COMPANY.MAIL_TO}>
-						<Trans id="account.pendingDeletion.contactSupport">
-							Contact support
-						</Trans>
+						<Trans>Contact support</Trans>
 					</a>
 				</Button>
 				<Button
@@ -110,7 +100,7 @@ export default function AccountPendingDeletionPage() {
 						}
 					}}
 				>
-					<Trans id="account.pendingDeletion.signOut">Sign out</Trans>
+					<Trans>Sign out</Trans>
 				</Button>
 			</div>
 		</div>

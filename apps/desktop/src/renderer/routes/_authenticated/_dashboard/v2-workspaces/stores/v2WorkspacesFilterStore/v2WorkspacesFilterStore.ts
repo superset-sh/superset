@@ -37,21 +37,17 @@ export const V2_WORKSPACES_AGENT_STATUS_LABELS: Record<
 	V2WorkspacesAgentStatusFilter,
 	MessageDescriptor
 > = {
-	idle: msg({ id: "dashboard.v2Workspaces.agentStatusIdle", message: "Idle" }),
+	idle: msg({ message: "Idle" }),
 	working: msg({
-		id: "dashboard.v2Workspaces.agentStatusWorking",
 		message: "Working",
 	}),
 	permission: msg({
-		id: "dashboard.v2Workspaces.agentStatusPermission",
 		message: "Needs permission",
 	}),
 	review: msg({
-		id: "dashboard.v2Workspaces.agentStatusReview",
 		message: "Ready for review",
 	}),
 	failed: msg({
-		id: "dashboard.v2Workspaces.agentStatusFailed",
 		message: "Failed",
 	}),
 };
@@ -64,15 +60,12 @@ export const V2_WORKSPACES_PIN_FILTER_LABELS: Record<
 	MessageDescriptor
 > = {
 	all: msg({
-		id: "dashboard.v2Workspaces.pinFilterAll",
 		message: "All workspaces",
 	}),
 	pinned: msg({
-		id: "dashboard.v2Workspaces.pinFilterPinned",
 		message: "Shown",
 	}),
 	unpinned: msg({
-		id: "dashboard.v2Workspaces.pinFilterUnpinned",
 		message: "Hidden",
 	}),
 };
@@ -92,18 +85,15 @@ export const V2_WORKSPACES_SORT_LABELS: Record<
 	MessageDescriptor
 > = {
 	activity: msg({
-		id: "dashboard.v2Workspaces.sortLastActivity",
 		message: "Last activity",
 	}),
 	created: msg({
-		id: "dashboard.v2Workspaces.sortCreated",
 		message: "Created",
 	}),
 	churn: msg({
-		id: "dashboard.v2Workspaces.sortDiffSize",
 		message: "Diff size",
 	}),
-	name: msg({ id: "dashboard.v2Workspaces.sortName", message: "Name" }),
+	name: msg({ message: "Name" }),
 };
 
 export const V2_WORKSPACES_ARCHIVED_WINDOWS = [

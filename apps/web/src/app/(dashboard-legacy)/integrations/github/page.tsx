@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { Badge } from "@superset/ui/badge";
 import {
 	Card,
@@ -16,54 +17,64 @@ import { ConnectionControls } from "./components/ConnectionControls";
 import { RepositoryList } from "./components/RepositoryList";
 
 const CALLBACK_MESSAGES = {
-	installation_cancelled: i18n._({
-		id: "web.integrations.github.callback.installationCancelled",
-		message: "GitHub App installation was cancelled.",
-	}),
-	missing_params: i18n._({
-		id: "web.integrations.github.callback.missingParams",
-		message: "Invalid installation response. Please try again.",
-	}),
-	invalid_state: i18n._({
-		id: "web.integrations.callback.invalidState",
-		message: "Invalid state parameter. Please try again.",
-	}),
-	installation_fetch_failed: i18n._({
-		id: "web.integrations.github.callback.installationFetchFailed",
-		message: "Failed to fetch installation details. Please try again.",
-	}),
-	save_failed: i18n._({
-		id: "web.integrations.github.callback.saveFailed",
-		message: "Failed to save installation. Please try again.",
-	}),
-	already_connected: i18n._({
-		id: "web.integrations.github.callback.alreadyConnected",
-		message:
-			"This GitHub installation is already connected to another Superset organization. Disconnect it there, or uninstall the Superset GitHub App, then try again.",
-	}),
-	unauthorized: i18n._({
-		id: "web.integrations.callback.unauthorized",
-		message: "You are not authorized to perform this action.",
-	}),
-	unexpected: i18n._({
-		id: "web.integrations.callback.unexpected",
-		message: "Something went wrong. Please try again.",
-	}),
+	installation_cancelled: i18n._(
+		msg({
+			message: "GitHub App installation was cancelled.",
+		}),
+	),
+	missing_params: i18n._(
+		msg({
+			message: "Invalid installation response. Please try again.",
+		}),
+	),
+	invalid_state: i18n._(
+		msg({
+			message: "Invalid state parameter. Please try again.",
+		}),
+	),
+	installation_fetch_failed: i18n._(
+		msg({
+			message: "Failed to fetch installation details. Please try again.",
+		}),
+	),
+	save_failed: i18n._(
+		msg({
+			message: "Failed to save installation. Please try again.",
+		}),
+	),
+	already_connected: i18n._(
+		msg({
+			message:
+				"This GitHub installation is already connected to another Superset organization. Disconnect it there, or uninstall the Superset GitHub App, then try again.",
+		}),
+	),
+	unauthorized: i18n._(
+		msg({
+			message: "You are not authorized to perform this action.",
+		}),
+	),
+	unexpected: i18n._(
+		msg({
+			message: "Something went wrong. Please try again.",
+		}),
+	),
 };
 
 const CALLBACK_WARNINGS = {
-	sync_queue_failed: i18n._({
-		id: "web.integrations.github.callback.syncQueueFailed",
-		message:
-			"GitHub connected, but initial sync failed to start. Please try reconnecting.",
-	}),
+	sync_queue_failed: i18n._(
+		msg({
+			message:
+				"GitHub connected, but initial sync failed to start. Please try reconnecting.",
+		}),
+	),
 };
 
 const CALLBACK_SUCCESSES = {
-	github_installed: i18n._({
-		id: "web.integrations.github.callback.installed",
-		message: "GitHub App installed successfully!",
-	}),
+	github_installed: i18n._(
+		msg({
+			message: "GitHub App installed successfully!",
+		}),
+	),
 };
 
 export default async function GitHubIntegrationPage() {
@@ -74,11 +85,12 @@ export default async function GitHubIntegrationPage() {
 		return (
 			<div className="flex flex-col items-center justify-center py-16">
 				<p className="text-muted-foreground">
-					{i18n._({
-						id: "web.integrations.needOrganization",
-						message:
-							"You need to be part of an organization to use integrations.",
-					})}
+					{i18n._(
+						msg({
+							message:
+								"You need to be part of an organization to use integrations.",
+						}),
+					)}
 				</p>
 			</div>
 		);
@@ -103,10 +115,11 @@ export default async function GitHubIntegrationPage() {
 				className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
 			>
 				<ArrowLeft className="size-4" />
-				{i18n._({
-					id: "web.integrations.back",
-					message: "Back to Integrations",
-				})}
+				{i18n._(
+					msg({
+						message: "Back to Integrations",
+					}),
+				)}
 			</Link>
 
 			<div className="flex items-start gap-6">
@@ -119,26 +132,29 @@ export default async function GitHubIntegrationPage() {
 						{isConnected ? (
 							<Badge variant="default" className="gap-1">
 								<CheckCircle2 className="size-3" />
-								{i18n._({
-									id: "web.integrations.connected",
-									message: "Connected",
-								})}
+								{i18n._(
+									msg({
+										message: "Connected",
+									}),
+								)}
 							</Badge>
 						) : (
 							<Badge variant="secondary">
-								{i18n._({
-									id: "web.integrations.notConnected",
-									message: "Not Connected",
-								})}
+								{i18n._(
+									msg({
+										message: "Not Connected",
+									}),
+								)}
 							</Badge>
 						)}
 					</div>
 					<p className="mt-1 text-muted-foreground">
-						{i18n._({
-							id: "web.integrations.github.blurb",
-							message:
-								"Connect your GitHub repositories and sync pull requests. Track CI status and reviews across your team.",
-						})}
+						{i18n._(
+							msg({
+								message:
+									"Connect your GitHub repositories and sync pull requests. Track CI status and reviews across your team.",
+							}),
+						)}
 					</p>
 				</div>
 			</div>
@@ -146,17 +162,19 @@ export default async function GitHubIntegrationPage() {
 			<Card>
 				<CardHeader>
 					<CardTitle>
-						{i18n._({
-							id: "web.integrations.connectionCard",
-							message: "Connection",
-						})}
+						{i18n._(
+							msg({
+								message: "Connection",
+							}),
+						)}
 					</CardTitle>
 					<CardDescription>
-						{i18n._({
-							id: "web.integrations.github.connectionDescription",
-							message:
-								"Install the Superset GitHub App to connect your repositories.",
-						})}
+						{i18n._(
+							msg({
+								message:
+									"Install the Superset GitHub App to connect your repositories.",
+							}),
+						)}
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
@@ -166,18 +184,20 @@ export default async function GitHubIntegrationPage() {
 					/>
 					{installation && (
 						<div className="mt-4 text-sm text-muted-foreground">
-							{i18n._({
-								id: "web.integrations.connectedTo",
-								message: "Connected to",
-							})}{" "}
+							{i18n._(
+								msg({
+									message: "Connected to",
+								}),
+							)}{" "}
 							<strong>{installation.accountLogin}</strong> (
 							{installation.accountType})
 							{installation.suspended && (
 								<Badge variant="destructive" className="ml-2">
-									{i18n._({
-										id: "web.integrations.github.suspended",
-										message: "Suspended",
-									})}
+									{i18n._(
+										msg({
+											message: "Suspended",
+										}),
+									)}
 								</Badge>
 							)}
 						</div>
@@ -189,17 +209,19 @@ export default async function GitHubIntegrationPage() {
 				<Card>
 					<CardHeader>
 						<CardTitle>
-							{i18n._({
-								id: "web.integrations.github.repositoriesCard",
-								message: "Repositories",
-							})}
+							{i18n._(
+								msg({
+									message: "Repositories",
+								}),
+							)}
 						</CardTitle>
 						<CardDescription>
-							{i18n._({
-								id: "web.integrations.github.repositoriesDescription",
-								message:
-									"Repositories accessible through the GitHub App installation.",
-							})}
+							{i18n._(
+								msg({
+									message:
+										"Repositories accessible through the GitHub App installation.",
+								}),
+							)}
 						</CardDescription>
 					</CardHeader>
 					<CardContent>

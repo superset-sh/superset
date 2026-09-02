@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import type { WorkspaceCreateSettledPayload } from "@superset/workspace-client";
 import { TRPCClientError } from "@trpc/client";
@@ -283,10 +284,11 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 
 			if (!organizationId || !hostUrl) {
 				const error = !organizationId
-					? i18n._({
-							id: "stores.workspaceCreates.noActiveOrganization",
-							message: "No active organization",
-						})
+					? i18n._(
+							msg({
+								message: "No active organization",
+							}),
+						)
 					: getHostServiceUnavailableMessage(hostService, {
 							action: "createWorkspace",
 						});
@@ -313,17 +315,19 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 				name:
 					snapshot.name ??
 					("branch" in snapshot ? snapshot.branch : undefined) ??
-					i18n._({
-						id: "stores.workspaceCreates.defaultName",
-						message: "New workspace",
-					}),
+					i18n._(
+						msg({
+							message: "New workspace",
+						}),
+					),
 				branch:
 					("branch" in snapshot ? snapshot.branch : undefined) ??
 					snapshot.name ??
-					i18n._({
-						id: "stores.workspaceCreates.defaultName",
-						message: "New workspace",
-					}),
+					i18n._(
+						msg({
+							message: "New workspace",
+						}),
+					),
 				type: isSession ? "session" : "worktree",
 				createdByUserId: userId,
 				taskId: ("taskId" in snapshot ? snapshot.taskId : undefined) ?? null,

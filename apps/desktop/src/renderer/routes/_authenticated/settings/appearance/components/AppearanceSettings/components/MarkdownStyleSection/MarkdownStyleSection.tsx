@@ -26,7 +26,6 @@ export function MarkdownStyleSection() {
 				<div className="text-sm font-medium">
 					<HighlightText
 						text={t({
-							id: "settings.appearance.markdownStyle.label",
 							message: "Markdown style",
 						})}
 						query={searchQuery}
@@ -35,7 +34,6 @@ export function MarkdownStyleSection() {
 				<div className="text-xs text-muted-foreground">
 					<HighlightText
 						text={t({
-							id: "settings.appearance.markdownStyle.hint",
 							message:
 								"Rendering style for markdown files. Tufte uses elegant serif typography inspired by Edward Tufte's books.",
 						})}
@@ -51,7 +49,6 @@ export function MarkdownStyleSection() {
 					size="sm"
 					className="w-auto min-w-44 px-2"
 					aria-label={t({
-						id: "settings.appearance.markdownStyle.ariaLabel",
 						message: "Markdown style",
 					})}
 				>
@@ -59,12 +56,10 @@ export function MarkdownStyleSection() {
 				</SelectTrigger>
 				<SelectContent>
 					<SelectItem value="default">
-						<Trans id="settings.appearance.markdownStyle.default">
-							Default
-						</Trans>
+						<Trans>Default</Trans>
 					</SelectItem>
 					<SelectItem value="tufte">
-						<Trans id="settings.appearance.markdownStyle.tufte">Tufte</Trans>
+						<Trans>Tufte</Trans>
 					</SelectItem>
 				</SelectContent>
 			</Select>

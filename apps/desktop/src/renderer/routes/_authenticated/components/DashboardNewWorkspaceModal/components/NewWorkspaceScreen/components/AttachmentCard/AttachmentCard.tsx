@@ -22,7 +22,6 @@ function RemoveButton({ onClick }: { onClick: () => void }) {
 		<button
 			type="button"
 			aria-label={t({
-				id: "dashboard.newWorkspaceModal.attachmentCard.removeAttachment",
 				message: "Remove attachment",
 			})}
 			className="absolute top-1 right-1 z-10 flex size-5 cursor-pointer items-center justify-center rounded-full bg-background/80 text-muted-foreground shadow-sm transition-colors hover:text-foreground"
@@ -78,7 +77,6 @@ export function AttachmentCard({
 			<button
 				type="button"
 				aria-label={t({
-					id: "dashboard.newWorkspaceModal.attachmentCard.previewFile",
 					message: `Preview ${filename}`,
 				})}
 				className="relative block size-16 cursor-pointer overflow-hidden rounded-xl border-[0.5px] border-border bg-foreground/[0.04]"

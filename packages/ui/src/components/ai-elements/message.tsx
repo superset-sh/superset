@@ -259,7 +259,6 @@ export const MessageBranchPrevious = ({
 	return (
 		<Button
 			aria-label={t({
-				id: "ui.message.previousBranch",
 				message: "Previous branch",
 			})}
 			disabled={totalBranches <= 1}
@@ -285,7 +284,7 @@ export const MessageBranchNext = ({
 
 	return (
 		<Button
-			aria-label={t({ id: "ui.message.nextBranch", message: "Next branch" })}
+			aria-label={t({ message: "Next branch" })}
 			disabled={totalBranches <= 1}
 			onClick={goToNext}
 			size="icon-sm"
@@ -315,7 +314,7 @@ export const MessageBranchPage = ({
 			)}
 			{...props}
 		>
-			<Trans id="ui.message.branchPage">
+			<Trans>
 				{currentPage} of {totalBranches}
 			</Trans>
 		</ButtonGroupText>
@@ -385,9 +384,7 @@ export function MessageAttachment({
 	const isImage = mediaType === "image";
 	const attachmentLabel =
 		filename ||
-		(isImage
-			? t({ id: "ui.message.attachmentImage", message: "Image" })
-			: t({ id: "ui.message.attachmentFile", message: "Attachment" }));
+		(isImage ? t({ message: "Image" }) : t({ message: "Attachment" }));
 
 	return (
 		<div
@@ -400,10 +397,7 @@ export function MessageAttachment({
 			{isImage ? (
 				<>
 					<img
-						alt={
-							filename ||
-							t({ id: "ui.message.attachmentAlt", message: "attachment" })
-						}
+						alt={filename || t({ message: "attachment" })}
 						className="size-full object-cover"
 						height={100}
 						src={data.url}
@@ -412,7 +406,6 @@ export function MessageAttachment({
 					{onRemove && (
 						<Button
 							aria-label={t({
-								id: "ui.message.removeAttachment",
 								message: "Remove attachment",
 							})}
 							className="absolute top-2 right-2 size-6 rounded-full bg-background/80 p-0 opacity-0 backdrop-blur-sm transition-opacity hover:bg-background group-hover:opacity-100 [&>svg]:size-3"
@@ -425,7 +418,7 @@ export function MessageAttachment({
 						>
 							<XIcon />
 							<span className="sr-only">
-								<Trans id="ui.message.remove">Remove</Trans>
+								<Trans>Remove</Trans>
 							</span>
 						</Button>
 					)}
@@ -445,7 +438,6 @@ export function MessageAttachment({
 					{onRemove && (
 						<Button
 							aria-label={t({
-								id: "ui.message.removeAttachment",
 								message: "Remove attachment",
 							})}
 							className="size-6 shrink-0 rounded-full p-0 opacity-0 transition-opacity hover:bg-accent group-hover:opacity-100 [&>svg]:size-3"
@@ -458,7 +450,7 @@ export function MessageAttachment({
 						>
 							<XIcon />
 							<span className="sr-only">
-								<Trans id="ui.message.remove">Remove</Trans>
+								<Trans>Remove</Trans>
 							</span>
 						</Button>
 					)}

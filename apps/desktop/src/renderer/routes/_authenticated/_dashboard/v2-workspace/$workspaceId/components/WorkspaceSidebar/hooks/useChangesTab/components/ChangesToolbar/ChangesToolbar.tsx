@@ -56,9 +56,8 @@ export function ChangesToolbar({
 }: ChangesToolbarProps) {
 	const { t } = useLingui();
 	const label = collapsed
-		? t({ id: "workspace.changesToolbar.expandAll", message: "Expand all" })
+		? t({ message: "Expand all" })
 		: t({
-				id: "workspace.changesToolbar.collapseAll",
 				message: "Collapse all",
 			});
 	const Icon = collapsed ? UnfoldVertical : FoldVertical;
@@ -77,7 +76,7 @@ export function ChangesToolbar({
 				// Selector as a placeholder in the message: a bare "vs" cannot
 				// precede the branch in every language.
 				<span className="flex min-w-0 items-center gap-1 whitespace-nowrap">
-					<Trans id="workspace.changesToolbar.vsBase">
+					<Trans>
 						<span className="shrink-0 text-muted-foreground/60">vs</span>{" "}
 						<BaseBranchSelector
 							branches={branches}

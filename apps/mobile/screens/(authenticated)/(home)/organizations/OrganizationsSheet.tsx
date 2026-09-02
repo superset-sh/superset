@@ -27,7 +27,6 @@ export function OrganizationsSheet() {
 				<Stack.Toolbar.Button
 					icon="xmark"
 					accessibilityLabel={t({
-						id: "mobile.common.close",
 						message: "Close",
 					})}
 					onPress={() => router.back()}
@@ -75,7 +74,6 @@ export function OrganizationsSheet() {
 
 				<Pressable
 					accessibilityLabel={t({
-						id: "mobile.organizations.settings",
 						message: "Settings",
 					})}
 					onPress={() => {
@@ -90,12 +88,11 @@ export function OrganizationsSheet() {
 						color={theme.mutedForeground}
 					/>
 					<Text className="text-sm font-medium">
-						<Trans id="mobile.organizations.settings">Settings</Trans>
+						<Trans>Settings</Trans>
 					</Text>
 				</Pressable>
 				<Pressable
 					accessibilityLabel={t({
-						id: "mobile.settings.logOut.confirm",
 						message: "Log out",
 					})}
 					onPress={() => {
@@ -111,7 +108,7 @@ export function OrganizationsSheet() {
 						color={theme.destructive}
 					/>
 					<Text className="text-destructive text-sm font-medium">
-						<Trans id="mobile.settings.logOut.confirm">Log out</Trans>
+						<Trans>Log out</Trans>
 					</Text>
 				</Pressable>
 			</ScrollView>

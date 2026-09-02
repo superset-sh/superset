@@ -37,7 +37,6 @@ export function V2WorktreeLocationPicker({
 	const resolvedBrowseTitle =
 		browseTitle ??
 		t({
-			id: "settings.components.v2WorktreeLocationPicker.browseTitle",
 			message: "Select worktree location",
 		});
 
@@ -45,7 +44,6 @@ export function V2WorktreeLocationPicker({
 		currentPath ??
 		fallbackPath ??
 		t({
-			id: "settings.components.v2WorktreeLocationPicker.hostUnavailable",
 			message: "Host unavailable",
 		});
 	const isBusy = disabled || selectDirectory.isPending;
@@ -86,7 +84,6 @@ export function V2WorktreeLocationPicker({
 							onClick={handleBrowse}
 							disabled={isBusy || !hostUrl}
 							aria-label={t({
-								id: "settings.components.v2WorktreeLocationPicker.changeAriaLabel",
 								message: "Change worktree location",
 							})}
 						>
@@ -94,9 +91,7 @@ export function V2WorktreeLocationPicker({
 						</Button>
 					</TooltipTrigger>
 					<TooltipContent>
-						<Trans id="settings.components.v2WorktreeLocationPicker.changeLocation">
-							Change location
-						</Trans>
+						<Trans>Change location</Trans>
 					</TooltipContent>
 				</Tooltip>
 				{currentPath ? (
@@ -110,7 +105,6 @@ export function V2WorktreeLocationPicker({
 								onClick={onReset}
 								disabled={disabled}
 								aria-label={t({
-									id: "settings.components.v2WorktreeLocationPicker.resetAriaLabel",
 									message: "Reset worktree location",
 								})}
 							>
@@ -118,9 +112,7 @@ export function V2WorktreeLocationPicker({
 							</Button>
 						</TooltipTrigger>
 						<TooltipContent>
-							<Trans id="settings.components.v2WorktreeLocationPicker.resetLocation">
-								Reset location
-							</Trans>
+							<Trans>Reset location</Trans>
 						</TooltipContent>
 					</Tooltip>
 				) : null}
@@ -136,12 +128,10 @@ export function V2WorktreeLocationPicker({
 				description={
 					browseDescription ??
 					t({
-						id: "settings.components.v2WorktreeLocationPicker.browseDescription",
 						message: `Pick the worktree folder on ${hostName}.`,
 					})
 				}
 				confirmLabel={t({
-					id: "settings.components.v2WorktreeLocationPicker.confirmLabel",
 					message: "Use this folder",
 				})}
 				onPick={(path) => {

@@ -6,13 +6,12 @@ import type { ChangesetFile } from "../../../../../useChangeset";
 type GroupKey = ChangesetFile["source"]["kind"];
 
 const GROUP_TITLES: Record<GroupKey, MessageDescriptor> = {
-	unstaged: msg({ id: "workspace.changes.groupUnstaged", message: "Unstaged" }),
-	staged: msg({ id: "workspace.changes.groupStaged", message: "Staged" }),
+	unstaged: msg({ message: "Unstaged" }),
+	staged: msg({ message: "Staged" }),
 	"against-base": msg({
-		id: "workspace.changes.groupAgainstBase",
 		message: "Against base",
 	}),
-	commit: msg({ id: "workspace.changes.groupCommitted", message: "Committed" }),
+	commit: msg({ message: "Committed" }),
 };
 
 interface DiffSectionLabelProps {

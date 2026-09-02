@@ -294,7 +294,6 @@ export function useV2PresetExecution({
 				console.error("[useV2PresetExecution] Failed to execute preset:", err);
 				toast.error(
 					t({
-						id: "workspace.presetExecution.runScriptFailed",
 						message: "Failed to run terminal script",
 					}),
 					{
@@ -302,7 +301,6 @@ export function useV2PresetExecution({
 							err instanceof Error
 								? err.message
 								: t({
-										id: "workspace.presetExecution.sessionCreationFailed",
 										message: "Terminal session creation failed.",
 									}),
 					},

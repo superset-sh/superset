@@ -79,7 +79,6 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 			if (!projectId) {
 				toast.error(
 					t({
-						id: "dashboard.newWorkspaceModal.branchPicker.selectProjectFirst",
 						message: "Select a project first",
 					}),
 				);
@@ -88,7 +87,6 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 			if (!resolvedHostId) {
 				toast.error(
 					t({
-						id: "dashboard.newWorkspaceModal.branchPicker.noActiveHost",
 						message: "No active host",
 					}),
 				);

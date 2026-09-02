@@ -158,7 +158,7 @@ export function WorkspaceSidebar({
 
 	const filesTab: SidebarTabDefinition = {
 		id: "files",
-		label: t({ id: "workspace.sidebar.filesTab", message: "Files" }),
+		label: t({ message: "Files" }),
 		icon: LuFile,
 		content: (
 			<FilesTab

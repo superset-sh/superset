@@ -45,7 +45,6 @@ export function WorkspaceEmptyState({
 			{
 				id: "terminal",
 				label: t({
-					id: "workspace.emptyState.openTerminal",
 					message: "Open Terminal",
 				}),
 				display: newGroupDisplay,
@@ -57,7 +56,6 @@ export function WorkspaceEmptyState({
 						{
 							id: "chat-v3",
 							label: t({
-								id: "workspace.emptyState.openChatV3",
 								message: "Open Chat v3",
 							}),
 							display: [],
@@ -69,7 +67,6 @@ export function WorkspaceEmptyState({
 			{
 				id: "browser",
 				label: t({
-					id: "workspace.emptyState.openBrowser",
 					message: "Open Browser",
 				}),
 				display: newBrowserDisplay,
@@ -79,7 +76,6 @@ export function WorkspaceEmptyState({
 			{
 				id: "changes",
 				label: t({
-					id: "workspace.emptyState.openChanges",
 					message: "Open Changes",
 				}),
 				display: openChangesDisplay,
@@ -89,7 +85,6 @@ export function WorkspaceEmptyState({
 			{
 				id: "search-files",
 				label: t({
-					id: "workspace.emptyState.searchFiles",
 					message: "Search Files",
 				}),
 				display: quickOpenDisplay,

@@ -45,7 +45,6 @@ export function useSubmitWorkspace(
 		if (!projectId && !isSession) {
 			toast.error(
 				t({
-					id: "dashboard.newWorkspaceModal.submit.selectProjectFirst",
 					message: "Select a project first",
 				}),
 			);
@@ -54,7 +53,6 @@ export function useSubmitWorkspace(
 		if (isSession && draft.linkedPR !== null) {
 			toast.error(
 				t({
-					id: "dashboard.newWorkspaceModal.submit.prRequiresProject",
 					message: "Checking out a PR requires a project",
 				}),
 			);
@@ -63,7 +61,6 @@ export function useSubmitWorkspace(
 		if (!activeOrganizationId) {
 			toast.error(
 				t({
-					id: "dashboard.newWorkspaceModal.submit.noActiveOrganization",
 					message: "No active organization",
 				}),
 			);
@@ -74,7 +71,6 @@ export function useSubmitWorkspace(
 		if (!hostId) {
 			toast.error(
 				t({
-					id: "dashboard.newWorkspaceModal.submit.noActiveHost",
 					message: "No active host",
 				}),
 			);
@@ -88,11 +84,9 @@ export function useSubmitWorkspace(
 			toast.error(
 				first.filename
 					? t({
-							id: "dashboard.newWorkspaceModal.submit.attachmentUploadFailedNamed",
 							message: `Attachment upload failed (${first.filename}): ${first.message}`,
 						})
 					: t({
-							id: "dashboard.newWorkspaceModal.submit.attachmentUploadFailed",
 							message: `Attachment upload failed: ${first.message}`,
 						}),
 			);
@@ -113,7 +107,6 @@ export function useSubmitWorkspace(
 			if (!environment) {
 				toast.error(
 					t({
-						id: "dashboard.newWorkspaceModal.submit.cloudRequiresEnvironment",
 						message:
 							"Add an environment in Settings before creating a cloud workspace",
 					}),
@@ -190,7 +183,6 @@ export function useSubmitWorkspace(
 					error instanceof Error
 						? error.message
 						: t({
-								id: "dashboard.newWorkspaceModal.submit.cloudCreateFailed",
 								message: "Could not create cloud workspace",
 							}),
 				);

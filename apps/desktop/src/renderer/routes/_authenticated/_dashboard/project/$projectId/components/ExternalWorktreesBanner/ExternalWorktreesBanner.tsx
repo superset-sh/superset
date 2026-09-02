@@ -40,7 +40,6 @@ export function ExternalWorktreesBanner({ projectId }: { projectId: string }) {
 			const result = await importAllWorktrees.mutateAsync({ projectId });
 			toast.success(
 				t({
-					id: "dashboard.project.worktreesBanner.importedCount",
 					message: plural(result.imported, {
 						one: "Imported # workspace",
 						other: "Imported # workspaces",
@@ -52,7 +51,6 @@ export function ExternalWorktreesBanner({ projectId }: { projectId: string }) {
 				errorMessage(
 					err,
 					t({
-						id: "dashboard.project.worktreesBanner.importFailed",
 						message: "Failed to import worktrees",
 					}),
 				),
@@ -75,7 +73,6 @@ export function ExternalWorktreesBanner({ projectId }: { projectId: string }) {
 				<div className="space-y-2 min-w-0">
 					<p className="text-sm font-medium text-foreground">
 						<Plural
-							id="dashboard.project.worktreesBanner.foundCount"
 							value={importableWorktrees.length}
 							one="# existing worktree found"
 							other="# existing worktrees found"
@@ -93,9 +90,7 @@ export function ExternalWorktreesBanner({ projectId }: { projectId: string }) {
 						))}
 						{remainingCount > 0 && (
 							<span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-								<Trans id="dashboard.project.worktreesBanner.moreCount">
-									+{remainingCount} more
-								</Trans>
+								<Trans>+{remainingCount} more</Trans>
 							</span>
 						)}
 					</div>
@@ -110,26 +105,19 @@ export function ExternalWorktreesBanner({ projectId }: { projectId: string }) {
 							disabled={importAllWorktrees.isPending}
 						>
 							{importAllWorktrees.isPending ? (
-								<Trans id="dashboard.project.worktreesBanner.importing">
-									Importing...
-								</Trans>
+								<Trans>Importing...</Trans>
 							) : (
-								<Trans id="dashboard.project.worktreesBanner.importAll">
-									Import all
-								</Trans>
+								<Trans>Import all</Trans>
 							)}
 						</Button>
 					</AlertDialogTrigger>
 					<AlertDialogContent>
 						<AlertDialogHeader>
 							<AlertDialogTitle>
-								<Trans id="dashboard.project.worktreesBanner.importDialogTitle">
-									Import all worktrees
-								</Trans>
+								<Trans>Import all worktrees</Trans>
 							</AlertDialogTitle>
 							<AlertDialogDescription>
 								<Plural
-									id="dashboard.project.worktreesBanner.importDialogDescription"
 									value={importableWorktrees.length}
 									one="This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified."
 									other="This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified."
@@ -138,14 +126,10 @@ export function ExternalWorktreesBanner({ projectId }: { projectId: string }) {
 						</AlertDialogHeader>
 						<AlertDialogFooter>
 							<AlertDialogCancel>
-								<Trans id="dashboard.project.worktreesBanner.cancel">
-									Cancel
-								</Trans>
+								<Trans>Cancel</Trans>
 							</AlertDialogCancel>
 							<AlertDialogAction onClick={handleImportAll}>
-								<Trans id="dashboard.project.worktreesBanner.importAllConfirm">
-									Import all
-								</Trans>
+								<Trans>Import all</Trans>
 							</AlertDialogAction>
 						</AlertDialogFooter>
 					</AlertDialogContent>

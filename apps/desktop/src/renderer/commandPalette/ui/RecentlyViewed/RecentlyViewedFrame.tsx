@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	CommandEmpty,
@@ -118,15 +119,14 @@ export function RecentlyViewedFrame() {
 	return (
 		<CommandList>
 			<CommandEmpty>
-				<Trans id="commandPalette.recentlyViewed.empty">
-					Nothing here yet.
-				</Trans>
+				<Trans>Nothing here yet.</Trans>
 			</CommandEmpty>
 			<CommandGroup
-				heading={i18n._({
-					id: "commandPalette.recentlyViewed.heading",
-					message: "Recently Viewed",
-				})}
+				heading={i18n._(
+					msg({
+						message: "Recently Viewed",
+					}),
+				)}
 			>
 				{filteredEntries.map((entry) => {
 					const isCurrent = entry.path === currentPath;
@@ -207,10 +207,11 @@ function WorkspaceRow({
 		>
 			<span className="text-muted-foreground text-xs shrink-0 w-24 text-left line-clamp-1">
 				{ws?.projectName ??
-					i18n._({
-						id: "commandPalette.recentlyViewed.workspaceFallback",
-						message: "Workspace",
-					})}
+					i18n._(
+						msg({
+							message: "Workspace",
+						}),
+					)}
 			</span>
 			<span className="flex items-center justify-center w-4 shrink-0">
 				{ws ? (
@@ -227,10 +228,11 @@ function WorkspaceRow({
 				)}
 			>
 				{ws?.branch ??
-					i18n._({
-						id: "commandPalette.recentlyViewed.branchUnknown",
-						message: "Unknown",
-					})}
+					i18n._(
+						msg({
+							message: "Unknown",
+						}),
+					)}
 			</span>
 		</CommandItem>
 	);
@@ -254,10 +256,11 @@ function V2WorkspaceRow({
 		>
 			<span className="text-muted-foreground text-xs shrink-0 w-24 text-left line-clamp-1">
 				{ws?.projectName ??
-					i18n._({
-						id: "commandPalette.recentlyViewed.v2WorkspaceFallback",
-						message: "Workspace",
-					})}
+					i18n._(
+						msg({
+							message: "Workspace",
+						}),
+					)}
 			</span>
 			<span className="flex items-center justify-center w-4 shrink-0">
 				<LuGitBranch
@@ -272,10 +275,11 @@ function V2WorkspaceRow({
 				)}
 			>
 				{ws?.branch ??
-					i18n._({
-						id: "commandPalette.recentlyViewed.v2BranchUnknown",
-						message: "Unknown",
-					})}
+					i18n._(
+						msg({
+							message: "Unknown",
+						}),
+					)}
 			</span>
 		</CommandItem>
 	);
@@ -298,9 +302,7 @@ function AutomationRow({
 			className={cn("gap-2.5", isCurrent && "bg-accent/50")}
 		>
 			<span className="text-muted-foreground text-xs shrink-0 w-24 text-left line-clamp-1">
-				<Trans id="commandPalette.recentlyViewed.automationType">
-					Automation
-				</Trans>
+				<Trans>Automation</Trans>
 			</span>
 			<span className="flex items-center justify-center w-4 shrink-0">
 				<LuCpu className="size-3 text-muted-foreground" strokeWidth={1.5} />
@@ -312,10 +314,11 @@ function AutomationRow({
 				)}
 			>
 				{automation?.name ??
-					i18n._({
-						id: "commandPalette.recentlyViewed.automationUnknown",
-						message: "Unknown",
-					})}
+					i18n._(
+						msg({
+							message: "Unknown",
+						}),
+					)}
 			</span>
 		</CommandItem>
 	);
@@ -348,10 +351,11 @@ function TaskRow({
 		>
 			<span className="text-muted-foreground text-xs shrink-0 w-24 text-left line-clamp-1">
 				{task?.slug ??
-					i18n._({
-						id: "commandPalette.recentlyViewed.taskFallback",
-						message: "Task",
-					})}
+					i18n._(
+						msg({
+							message: "Task",
+						}),
+					)}
 			</span>
 			<span className="flex items-center justify-center w-4 shrink-0">
 				{task ? (
@@ -370,10 +374,11 @@ function TaskRow({
 				)}
 			>
 				{task?.title ??
-					i18n._({
-						id: "commandPalette.recentlyViewed.taskUnknown",
-						message: "Unknown",
-					})}
+					i18n._(
+						msg({
+							message: "Unknown",
+						}),
+					)}
 			</span>
 		</CommandItem>
 	);

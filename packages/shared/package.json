@@ -264,6 +264,7 @@
 	},
 	"dependencies": {
 		"@date-fns/tz": "1.4.1",
+		"@lingui/core": "6.6.0",
 		"@superset/i18n": "workspace:*",
 		"culori": "4.0.2",
 		"friendly-words": "1.3.1",

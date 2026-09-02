@@ -33,7 +33,7 @@ export function LinkedTaskSection({ taskId }: LinkedTaskSectionProps) {
 	return (
 		<div className="pt-2 border-t border-border space-y-0.5">
 			<span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-				<Trans id="dashboard.sidebar.linkedTask.taskLabel">Task</Trans>
+				<Trans>Task</Trans>
 			</span>
 			<div className="flex items-center gap-1.5">
 				<Link
@@ -65,7 +65,6 @@ export function LinkedTaskSection({ taskId }: LinkedTaskSectionProps) {
 						rel="noopener noreferrer"
 						className="shrink-0 text-muted-foreground hover:text-foreground"
 						title={t({
-							id: "dashboard.sidebar.linkedTask.openExternally",
 							message: "Open task externally",
 						})}
 						onClick={(e) => e.stopPropagation()}

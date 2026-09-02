@@ -31,7 +31,7 @@ export function FeatureSidebar({
 		<div className="flex flex-col border-r bg-card">
 			<div className="px-5 pt-5 pb-2.5">
 				<h1 className="mb-0 text-lg font-bold text-foreground">
-					<Trans id="components.featureSidebar.title">Pro Features</Trans>
+					<Trans>Pro Features</Trans>
 				</h1>
 			</div>
 
@@ -90,9 +90,7 @@ function FeatureButton({ feature, isSelected, onSelect }: FeatureButtonProps) {
 				</span>
 				{feature.comingSoon && (
 					<span className="text-[11px] text-muted-foreground font-normal">
-						<Trans id="components.featureSidebar.comingSoon">
-							(Coming Soon)
-						</Trans>
+						<Trans>(Coming Soon)</Trans>
 					</span>
 				)}
 			</span>

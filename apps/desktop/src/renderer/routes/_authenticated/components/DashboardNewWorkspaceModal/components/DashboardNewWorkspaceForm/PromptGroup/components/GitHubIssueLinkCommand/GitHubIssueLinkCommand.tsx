@@ -95,7 +95,6 @@ export function GitHubIssueLinkCommand({
 		lastToastedError.current = msg;
 		toast.error(
 			t({
-				id: "dashboard.newWorkspaceModal.githubIssueLink.loadFailed",
 				message: `Couldn't load issues: ${msg}`,
 			}),
 		);
@@ -144,7 +143,6 @@ export function GitHubIssueLinkCommand({
 				<Command shouldFilter={false}>
 					<CommandInput
 						placeholder={t({
-							id: "dashboard.newWorkspaceModal.githubIssueLink.searchPlaceholder",
 							message: "Search issues...",
 						})}
 						value={searchQuery}
@@ -160,9 +158,7 @@ export function GitHubIssueLinkCommand({
 							htmlFor={showClosedId}
 							className="cursor-pointer select-none text-xs text-muted-foreground"
 						>
-							<Trans id="dashboard.newWorkspaceModal.githubIssueLink.showClosed">
-								Show closed
-							</Trans>
+							<Trans>Show closed</Trans>
 						</label>
 					</div>
 					<CommandList className="max-h-[420px]">
@@ -170,40 +166,26 @@ export function GitHubIssueLinkCommand({
 							<CommandEmpty>
 								{isLoading ? (
 									debouncedTrimmed ? (
-										<Trans id="dashboard.newWorkspaceModal.githubIssueLink.searching">
-											Searching...
-										</Trans>
+										<Trans>Searching...</Trans>
 									) : (
-										<Trans id="dashboard.newWorkspaceModal.githubIssueLink.loading">
-											Loading...
-										</Trans>
+										<Trans>Loading...</Trans>
 									)
 								) : error instanceof Error ? (
 									<span className="select-text cursor-text text-destructive">
 										{error.message}
 									</span>
 								) : repoMismatch ? (
-									<Trans id="dashboard.newWorkspaceModal.githubIssueLink.repoMismatch">
-										Issue URL must match {repoMismatch}.
-									</Trans>
+									<Trans>Issue URL must match {repoMismatch}.</Trans>
 								) : debouncedTrimmed ? (
 									showClosed ? (
-										<Trans id="dashboard.newWorkspaceModal.githubIssueLink.noResultsAll">
-											No issues found.
-										</Trans>
+										<Trans>No issues found.</Trans>
 									) : (
-										<Trans id="dashboard.newWorkspaceModal.githubIssueLink.noResultsOpen">
-											No open issues found.
-										</Trans>
+										<Trans>No open issues found.</Trans>
 									)
 								) : showClosed ? (
-									<Trans id="dashboard.newWorkspaceModal.githubIssueLink.emptyAll">
-										No issues found.
-									</Trans>
+									<Trans>No issues found.</Trans>
 								) : (
-									<Trans id="dashboard.newWorkspaceModal.githubIssueLink.emptyOpen">
-										No open issues found.
-									</Trans>
+									<Trans>No open issues found.</Trans>
 								)}
 							</CommandEmpty>
 						)}
@@ -212,7 +194,6 @@ export function GitHubIssueLinkCommand({
 								heading={
 									debouncedTrimmed
 										? t({
-												id: "dashboard.newWorkspaceModal.githubIssueLink.resultCount",
 												message: plural(searchResults.length, {
 													one: "# result",
 													other: "# results",
@@ -220,11 +201,9 @@ export function GitHubIssueLinkCommand({
 											})
 										: showClosed
 											? t({
-													id: "dashboard.newWorkspaceModal.githubIssueLink.recentIssues",
 													message: "Recent issues",
 												})
 											: t({
-													id: "dashboard.newWorkspaceModal.githubIssueLink.openIssues",
 													message: "Open issues",
 												})
 								}

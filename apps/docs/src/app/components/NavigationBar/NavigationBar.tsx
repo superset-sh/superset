@@ -38,7 +38,6 @@ function SidebarTrigger() {
 		<button
 			type="button"
 			aria-label={t({
-				id: "docs.nav.toggleSidebar",
 				message: "Toggle sidebar",
 			})}
 			className="navbar:hidden flex items-center justify-center p-2"
@@ -70,16 +69,15 @@ export default function NavigationBar() {
 					<SidebarTrigger />
 					<ul className="navbar:flex items-center gap-2 hidden shrink-0">
 						<NavLink href={COMPANY.CHANGELOG_URL} external>
-							<Trans id="docs.nav.changelog">Changelog</Trans>
+							<Trans>Changelog</Trans>
 						</NavLink>
 						<NavLink href={COMPANY.MARKETING_URL} external>
-							<Trans id="docs.nav.website">Website</Trans>
+							<Trans>Website</Trans>
 						</NavLink>
 						<NavLink
 							href="https://github.com/superset-sh/superset"
 							external
 							aria-label={t({
-								id: "docs.nav.githubRepo",
 								message: "View Superset repository on GitHub",
 							})}
 						>
@@ -102,7 +100,7 @@ export default function NavigationBar() {
 						<li className="relative flex items-center px-1 text-muted-foreground transition-colors focus-within:text-foreground hover:text-foreground">
 							<Languages aria-hidden className="size-[1.35em]" />
 							<LanguageSwitcher
-								label={t({ id: "docs.nav.languageLabel", message: "Language" })}
+								label={t({ message: "Language" })}
 								className="absolute inset-0 cursor-pointer opacity-0"
 								onChange={(next, current) =>
 									posthog.capture("language_switched", {
@@ -117,7 +115,7 @@ export default function NavigationBar() {
 							href={`${COMPANY.MARKETING_URL}/download`}
 							className="ml-2 rounded-md bg-primary px-3.5 py-1.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-85"
 						>
-							<Trans id="docs.nav.download">Download</Trans>
+							<Trans>Download</Trans>
 						</a>
 					</ul>
 				</div>

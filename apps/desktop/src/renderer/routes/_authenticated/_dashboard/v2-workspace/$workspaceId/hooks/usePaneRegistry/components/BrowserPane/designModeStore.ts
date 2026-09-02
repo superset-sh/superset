@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { toast } from "@superset/ui/sonner";
 import { useCallback, useSyncExternalStore } from "react";
@@ -108,10 +109,11 @@ class DesignModeStoreImpl {
 		if (superseded()) return;
 		if (!setResult.ok) {
 			toast.error(
-				i18n._({
-					id: "workspace.browserPane.designModeStartFailed",
-					message: "Couldn't start design mode on this page",
-				}),
+				i18n._(
+					msg({
+						message: "Couldn't start design mode on this page",
+					}),
+				),
 			);
 			this.setState(paneId, IDLE_STATE);
 			return;
@@ -133,10 +135,11 @@ class DesignModeStoreImpl {
 		} catch (error) {
 			if (superseded()) return;
 			toast.error(
-				i18n._({
-					id: "workspace.browserPane.designModeFailed",
-					message: "Design mode failed",
-				}),
+				i18n._(
+					msg({
+						message: "Design mode failed",
+					}),
+				),
 				{
 					description: error instanceof Error ? error.message : undefined,
 				},
@@ -168,10 +171,11 @@ class DesignModeStoreImpl {
 
 		if (result.kind === "error") {
 			toast.error(
-				i18n._({
-					id: "workspace.browserPane.designModeFailed",
-					message: "Design mode failed",
-				}),
+				i18n._(
+					msg({
+						message: "Design mode failed",
+					}),
+				),
 				{ description: result.reason },
 			);
 		}

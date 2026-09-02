@@ -65,13 +65,11 @@ export function LevelCard({ level }: LevelCardProps) {
 			<div className="mt-5">
 				<div className="flex items-baseline gap-3">
 					<span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
-						<Trans id="marketing.factory.level.gatesLabel">Gates</Trans>
+						<Trans>Gates</Trans>
 					</span>
 					{tally && (
 						<span className="text-xs font-mono text-brand">
-							<Trans id="marketing.factory.level.gatesOpenTally">
-								{tallyText} open
-							</Trans>
+							<Trans>{tallyText} open</Trans>
 						</span>
 					)}
 				</div>
@@ -85,7 +83,6 @@ export function LevelCard({ level }: LevelCardProps) {
 									<GateJumpLink
 										targetId={`gate-${gate.id}`}
 										title={t({
-											id: "marketing.factory.level.gateJumpTitle",
 											message: "See this gate on the scorecard",
 										})}
 										className="group flex gap-2.5 text-sm text-muted-foreground leading-relaxed hover:text-foreground transition-colors"

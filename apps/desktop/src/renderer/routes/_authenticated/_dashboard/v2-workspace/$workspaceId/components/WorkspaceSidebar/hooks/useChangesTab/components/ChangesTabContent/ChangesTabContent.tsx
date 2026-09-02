@@ -91,7 +91,7 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 			<div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
 				<Spinner className="size-3.5" />
 				<span>
-					<Trans id="workspace.changesTab.loading">Loading changes...</Trans>
+					<Trans>Loading changes...</Trans>
 				</span>
 			</div>
 		);
@@ -100,9 +100,7 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 	if (!status.data) {
 		return (
 			<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-				<Trans id="workspace.changesTab.statusError">
-					Unable to load git status
-				</Trans>
+				<Trans>Unable to load git status</Trans>
 			</div>
 		);
 	}

@@ -67,7 +67,6 @@ function BoardCardBody({
 						projectName={
 							workspace.projectName ??
 							t({
-								id: "dashboard.workspaces.boardCard.sessionName",
 								message: "Session",
 							})
 						}
@@ -75,9 +74,7 @@ function BoardCardBody({
 						size="sm"
 					/>
 					<span className="min-w-0 truncate">
-						{workspace.projectName ?? (
-							<Trans id="dashboard.workspaces.boardCard.session">Session</Trans>
-						)}
+						{workspace.projectName ?? <Trans>Session</Trans>}
 					</span>
 				</span>
 				<span className="flex shrink-0 items-center gap-1 text-[10px] text-muted-foreground">
@@ -114,9 +111,9 @@ function BoardCardBody({
 						className="h-4 px-1.5 py-0 text-[10px] leading-none text-muted-foreground"
 					>
 						{workspace.archiveReason === "merged" ? (
-							<Trans id="dashboard.workspaces.boardCard.merged">Merged</Trans>
+							<Trans>Merged</Trans>
 						) : (
-							<Trans id="dashboard.workspaces.boardCard.deleted">Deleted</Trans>
+							<Trans>Deleted</Trans>
 						)}
 					</Badge>
 				) : null}

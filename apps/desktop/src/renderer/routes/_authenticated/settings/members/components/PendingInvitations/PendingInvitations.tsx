@@ -73,7 +73,6 @@ export function PendingInvitations({
 					<h3 className="text-lg font-semibold">
 						<HighlightText
 							text={t({
-								id: "settings.members.pendingInvitationsTitle",
 								message: "Pending Invitations",
 							})}
 							query={searchQuery}
@@ -109,7 +108,6 @@ export function PendingInvitations({
 				<h3 className="text-lg font-semibold">
 					<HighlightText
 						text={t({
-							id: "settings.members.pendingInvitationsTitle",
 							message: "Pending Invitations",
 						})}
 						query={searchQuery}
@@ -125,9 +123,7 @@ export function PendingInvitations({
 			</div>
 			{invitations.length === 0 ? (
 				<div className="text-center py-12 text-muted-foreground border rounded-lg">
-					<Trans id="settings.members.noPendingInvitations">
-						No pending invitations
-					</Trans>
+					<Trans>No pending invitations</Trans>
 				</div>
 			) : (
 				<div className="border rounded-lg">
@@ -135,20 +131,16 @@ export function PendingInvitations({
 						<TableHeader>
 							<TableRow>
 								<TableHead>
-									<Trans id="settings.members.invitationColumnEmail">
-										Email
-									</Trans>
+									<Trans>Email</Trans>
 								</TableHead>
 								<TableHead>
-									<Trans id="settings.members.invitationColumnInvitedBy">
-										Invited By
-									</Trans>
+									<Trans>Invited By</Trans>
 								</TableHead>
 								<TableHead>
-									<Trans id="settings.members.invitationColumnRole">Role</Trans>
+									<Trans>Role</Trans>
 								</TableHead>
 								<TableHead>
-									<Trans id="settings.members.invitationColumnSent">Sent</Trans>
+									<Trans>Sent</Trans>
 								</TableHead>
 								<TableHead className="w-[50px]" />
 							</TableRow>
@@ -162,8 +154,8 @@ export function PendingInvitations({
 									<TableCell className="text-muted-foreground">
 										{invitation.inviter?.name ||
 											t({
-												id: "settings.members.unknownInviter",
 												message: "Unknown",
+												context: "person",
 											})}
 									</TableCell>
 									<TableCell>

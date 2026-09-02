@@ -12,7 +12,6 @@ export function useMoveWorkspaceToSection() {
 		onError: (error) =>
 			toast.error(
 				t({
-					id: "reactQuery.moveWorkspaceToSection.failed",
 					message: `Failed to move workspace: ${error.message}`,
 				}),
 			),

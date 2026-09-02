@@ -342,7 +342,6 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 		onError: (err) => {
 			toast.error(
 				t({
-					id: "workspace.changesTreeView.discardFailed",
 					message: "Couldn't discard changes",
 				}),
 				{
@@ -403,7 +402,6 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 					<button
 						type="button"
 						aria-label={t({
-							id: "workspace.changesTreeView.discardChangesAria",
 							message: "Discard changes",
 						})}
 						className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-destructive"
@@ -416,9 +414,7 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="top">
-					<Trans id="workspace.changesTreeView.discardChangesTooltip">
-						Discard changes
-					</Trans>
+					<Trans>Discard changes</Trans>
 				</TooltipContent>
 			</Tooltip>
 		);
@@ -463,23 +459,19 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 					title={
 						discardIsDelete
 							? t({
-									id: "workspace.changesTreeView.deleteConfirmTitle",
 									message: `Delete "${discardBasename}"?`,
 								})
 							: t({
-									id: "workspace.changesTreeView.discardConfirmTitle",
 									message: `Discard changes to "${discardBasename}"?`,
 								})
 					}
 					description={
 						discardIsDelete
 							? t({
-									id: "workspace.changesTreeView.deleteConfirmBody",
 									message:
 										"This will permanently delete this file. This action cannot be undone.",
 								})
 							: t({
-									id: "workspace.changesTreeView.discardConfirmBody",
 									message:
 										"This will revert all changes to this file. This action cannot be undone.",
 								})
@@ -487,11 +479,9 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 					confirmLabel={
 						discardIsDelete
 							? t({
-									id: "workspace.changesTreeView.deleteConfirmAction",
 									message: "Delete",
 								})
 							: t({
-									id: "workspace.changesTreeView.discardConfirmAction",
 									message: "Discard",
 								})
 					}

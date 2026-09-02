@@ -62,7 +62,7 @@ export function Toc(props: HTMLAttributes<HTMLDivElement>) {
 export function TocItemsEmpty() {
 	return (
 		<div className="rounded-lg border bg-fd-card p-3 text-xs text-fd-muted-foreground">
-			<Trans id="docs.toc.empty">No Headings</Trans>
+			<Trans>No Headings</Trans>
 		</div>
 	);
 }
@@ -358,7 +358,7 @@ export function TocPopoverTrigger({
 			)}
 		>
 			<Text className="size-4 shrink-0" />
-			<Trans id="docs.toc.title">On this page</Trans>
+			<Trans>On this page</Trans>
 			<ChevronRight
 				className={cn(
 					"size-4 shrink-0 text-fd-muted-foreground transition-all",

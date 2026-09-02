@@ -1,5 +1,6 @@
 "use client";
 
+import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { ChatStatus, FileUIPart } from "ai";
 import {
@@ -510,9 +511,7 @@ export function PromptInputAttachment({
 
 	const attachmentLabel =
 		filename ||
-		(isImage
-			? t({ id: "ui.promptInput.attachmentImage", message: "Image" })
-			: t({ id: "ui.promptInput.attachmentFile", message: "Attachment" }));
+		(isImage ? t({ message: "Image" }) : t({ message: "Attachment" }));
 
 	return (
 		<PromptInputHoverCard>
@@ -532,7 +531,6 @@ export function PromptInputAttachment({
 									alt={
 										filename ||
 										t({
-											id: "ui.promptInput.attachmentAlt",
 											message: "attachment",
 										})
 									}
@@ -549,7 +547,6 @@ export function PromptInputAttachment({
 						</div>
 						<Button
 							aria-label={t({
-								id: "ui.promptInput.removeAttachment",
 								message: "Remove attachment",
 							})}
 							className="absolute inset-0 size-5 cursor-pointer rounded p-0 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 [&>svg]:size-2.5"
@@ -562,7 +559,7 @@ export function PromptInputAttachment({
 						>
 							<XIcon />
 							<span className="sr-only">
-								<Trans id="ui.promptInput.remove">Remove</Trans>
+								<Trans>Remove</Trans>
 							</span>
 						</Button>
 					</div>
@@ -578,7 +575,6 @@ export function PromptInputAttachment({
 								alt={
 									filename ||
 									t({
-										id: "ui.promptInput.attachmentPreviewAlt",
 										message: "attachment preview",
 									})
 								}
@@ -652,10 +648,11 @@ export type PromptInputActionAddAttachmentsProps = ComponentProps<
 };
 
 export const PromptInputActionAddAttachments = ({
-	label = i18n._({
-		id: "ui.promptInput.addAttachments",
-		message: "Add photos or files",
-	}),
+	label = i18n._(
+		msg({
+			message: "Add photos or files",
+		}),
+	),
 	...props
 }: PromptInputActionAddAttachmentsProps) => {
 	const attachments = usePromptInputAttachments();
@@ -1061,14 +1058,13 @@ export const PromptInput = ({
 			<input
 				accept={accept}
 				aria-label={t({
-					id: "ui.promptInput.uploadFiles",
 					message: "Upload files",
 				})}
 				className="hidden"
 				multiple={multiple}
 				onChange={handleChange}
 				ref={inputRef}
-				title={t({ id: "ui.promptInput.uploadFiles", message: "Upload files" })}
+				title={t({ message: "Upload files" })}
 				type="file"
 			/>
 			<form
@@ -1107,10 +1103,11 @@ export type PromptInputTextareaProps = ComponentProps<
 export const PromptInputTextarea = ({
 	onChange,
 	className,
-	placeholder = i18n._({
-		id: "ui.promptInput.textareaPlaceholder",
-		message: "What would you like to know?",
-	}),
+	placeholder = i18n._(
+		msg({
+			message: "What would you like to know?",
+		}),
+	),
 	...props
 }: PromptInputTextareaProps) => {
 	const controller = useOptionalPromptInputController();
@@ -1328,7 +1325,7 @@ export const PromptInputSubmit = ({
 
 	return (
 		<InputGroupButton
-			aria-label={t({ id: "ui.promptInput.submit", message: "Submit" })}
+			aria-label={t({ message: "Submit" })}
 			className={cn(className)}
 			size={size}
 			type="submit"

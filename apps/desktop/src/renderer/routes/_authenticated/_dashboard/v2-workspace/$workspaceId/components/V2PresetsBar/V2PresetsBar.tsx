@@ -247,9 +247,7 @@ export function V2PresetsBar({
 						</DropdownMenuTrigger>
 					</TooltipTrigger>
 					<TooltipContent side="bottom">
-						<Trans id="workspace.presetsBar.manageScriptsTooltip">
-							Manage Terminal Scripts
-						</Trans>
+						<Trans>Manage Terminal Scripts</Trans>
 					</TooltipContent>
 				</Tooltip>
 				<DropdownMenuContent align="end" className="w-56">
@@ -330,9 +328,7 @@ export function V2PresetsBar({
 						}
 						onSelect={(event) => event.preventDefault()}
 					>
-						<Trans id="workspace.presetsBar.showScriptsBar">
-							Show Scripts Bar
-						</Trans>
+						<Trans>Show Scripts Bar</Trans>
 					</DropdownMenuCheckboxItem>
 					<DropdownMenuSeparator />
 					<DropdownMenuItem
@@ -341,9 +337,7 @@ export function V2PresetsBar({
 					>
 						<Settings className="size-4" />
 						<span>
-							<Trans id="workspace.presetsBar.manageScriptsMenuItem">
-								Manage Terminal Scripts
-							</Trans>
+							<Trans>Manage Terminal Scripts</Trans>
 						</span>
 					</DropdownMenuItem>
 				</DropdownMenuContent>

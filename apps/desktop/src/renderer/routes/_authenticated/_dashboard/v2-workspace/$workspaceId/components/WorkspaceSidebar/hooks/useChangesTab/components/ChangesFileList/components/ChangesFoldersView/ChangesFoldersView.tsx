@@ -13,7 +13,6 @@ import { FolderHeader } from "./components/FolderHeader";
 
 const ROOT_FOLDER_KEY = "";
 const ROOT_FOLDER_LABEL = msg({
-	id: "workspace.changesFoldersView.rootFolder",
 	message: "./",
 });
 // FolderHeader and FileRow are single-line rows (`py-1`, `text-xs`); the

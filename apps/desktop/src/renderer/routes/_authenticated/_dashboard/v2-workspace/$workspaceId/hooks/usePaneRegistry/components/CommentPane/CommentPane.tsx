@@ -90,10 +90,10 @@ function CopyableTable({ children }: { children?: ReactNode }) {
 				{copied ? (
 					<span className="flex items-center gap-1">
 						<LuCheck className="size-3" />
-						<Trans id="workspace.commentPane.copied">Copied</Trans>
+						<Trans>Copied</Trans>
 					</span>
 				) : (
-					<Trans id="workspace.commentPane.copy">Copy</Trans>
+					<Trans>Copy</Trans>
 				)}
 			</button>
 			<div className="overflow-x-auto">

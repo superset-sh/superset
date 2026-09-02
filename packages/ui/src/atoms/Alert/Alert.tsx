@@ -121,11 +121,7 @@ const Alerter = () => {
 							onClick={() => handleAction(action, i)}
 							disabled={loadingIndex !== null}
 						>
-							{loadingIndex === i ? (
-								<Trans id="ui.alert.loading">Loading...</Trans>
-							) : (
-								action.label
-							)}
+							{loadingIndex === i ? <Trans>Loading...</Trans> : action.label}
 						</Button>
 					))}
 				</DialogFooter>

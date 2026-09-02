@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { toast } from "@superset/ui/sonner";
 import type { ElectronRouterOutputs } from "renderer/lib/electron-trpc";
@@ -37,8 +38,9 @@ export function processOpenNewResults({
 	for (const err of errors) {
 		toast.error(
 			i18n._({
-				id: "reactQuery.openNew.openFailed",
-				message: "Failed to open {name}",
+				...msg({
+					message: "Failed to open {name}",
+				}),
 				values: { name: err.selectedPath.split("/").pop() },
 			}),
 			{ description: err.error },
@@ -48,9 +50,10 @@ export function processOpenNewResults({
 	if (showSuccessToast && successes.length > 0) {
 		toast.success(
 			i18n._({
-				id: "reactQuery.openNew.opened",
-				message:
-					"{count, plural, one {Project opened} other {# projects opened}}",
+				...msg({
+					message:
+						"{count, plural, one {Project opened} other {# projects opened}}",
+				}),
 				values: { count: successes.length },
 			}),
 		);

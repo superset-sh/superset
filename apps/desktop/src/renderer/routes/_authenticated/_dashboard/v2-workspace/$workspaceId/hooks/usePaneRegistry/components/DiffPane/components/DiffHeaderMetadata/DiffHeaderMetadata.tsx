@@ -56,12 +56,10 @@ export function DiffHeaderMetadata({
 	const showDeletedFileToast = useCallback(() => {
 		toast.error(
 			t({
-				id: "workspace.diffPane.fileGoneToast",
 				message: "File no longer exists",
 			}),
 			{
 				description: t({
-					id: "workspace.diffPane.fileGoneBody",
 					message: `${file.path} was deleted in this change.`,
 				}),
 			},
@@ -98,7 +96,6 @@ export function DiffHeaderMetadata({
 		onError: (err) => {
 			toast.error(
 				t({
-					id: "workspace.diffPane.discardFailedToast",
 					message: "Couldn't discard changes",
 				}),
 				{
@@ -141,11 +138,9 @@ export function DiffHeaderMetadata({
 							aria-label={
 								isDirty
 									? t({
-											id: "workspace.diffPane.unsavedChangesAria",
 											message: "Unsaved changes",
 										})
 									: t({
-											id: "workspace.diffPane.allChangesSavedAria",
 											message: "All changes saved",
 										})
 							}
@@ -156,7 +151,6 @@ export function DiffHeaderMetadata({
 									type="button"
 									onClick={onSaveEditing}
 									aria-label={t({
-										id: "workspace.diffPane.saveEditsAria",
 										message: "Save edits",
 									})}
 									disabled={!isDirty || isSaving}
@@ -166,7 +160,7 @@ export function DiffHeaderMetadata({
 								</button>
 							</TooltipTrigger>
 							<TooltipContent side="bottom">
-								<Trans id="workspace.diffPane.saveEdits">Save edits (⌘S)</Trans>
+								<Trans>Save edits (⌘S)</Trans>
 							</TooltipContent>
 						</Tooltip>
 						<Tooltip>
@@ -175,7 +169,6 @@ export function DiffHeaderMetadata({
 									type="button"
 									onClick={onCancelEditing}
 									aria-label={t({
-										id: "workspace.diffPane.cancelEditsAria",
 										message: "Cancel edits",
 									})}
 									className="rounded p-1 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-muted-foreground"
@@ -184,7 +177,7 @@ export function DiffHeaderMetadata({
 								</button>
 							</TooltipTrigger>
 							<TooltipContent side="bottom">
-								<Trans id="workspace.diffPane.cancelEdits">Cancel edits</Trans>
+								<Trans>Cancel edits</Trans>
 							</TooltipContent>
 						</Tooltip>
 					</>
@@ -196,7 +189,6 @@ export function DiffHeaderMetadata({
 									type="button"
 									onClick={() => void copyToClipboard(file.path)}
 									aria-label={t({
-										id: "workspace.diffPane.copyPathAria",
 										message: "Copy path",
 									})}
 									className="rounded p-1 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-muted-foreground"
@@ -209,11 +201,7 @@ export function DiffHeaderMetadata({
 								</button>
 							</TooltipTrigger>
 							<TooltipContent side="bottom">
-								{copied ? (
-									<Trans id="workspace.diffPane.pathCopied">Copied</Trans>
-								) : (
-									<Trans id="workspace.diffPane.copyPath">Copy path</Trans>
-								)}
+								{copied ? <Trans>Copied</Trans> : <Trans>Copy path</Trans>}
 							</TooltipContent>
 						</Tooltip>
 						<Tooltip>
@@ -222,7 +210,6 @@ export function DiffHeaderMetadata({
 									type="button"
 									onClick={handleOpenClick}
 									aria-label={t({
-										id: "workspace.diffPane.openInFileViewerAria",
 										message: "Open in file viewer",
 									})}
 									className="rounded p-1 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-muted-foreground"
@@ -239,7 +226,6 @@ export function DiffHeaderMetadata({
 										type="button"
 										onClick={requestDiscard}
 										aria-label={t({
-											id: "workspace.diffPane.discardChangesAria",
 											message: "Discard changes",
 										})}
 										data-discard-button
@@ -249,9 +235,7 @@ export function DiffHeaderMetadata({
 									</button>
 								</TooltipTrigger>
 								<TooltipContent side="bottom">
-									<Trans id="workspace.diffPane.discardChanges">
-										Discard changes
-									</Trans>
+									<Trans>Discard changes</Trans>
 								</TooltipContent>
 							</Tooltip>
 						) : null}
@@ -263,13 +247,9 @@ export function DiffHeaderMetadata({
 						>
 							{viewed ? <LuCheck className="size-3.5" /> : null}
 							{viewed ? (
-								<Trans id="workspace.diffPane.markedAsViewed">
-									Marked as viewed
-								</Trans>
+								<Trans>Marked as viewed</Trans>
 							) : (
-								<Trans id="workspace.diffPane.markAsViewed">
-									Mark as viewed
-								</Trans>
+								<Trans>Mark as viewed</Trans>
 							)}
 						</button>
 					</>
@@ -282,32 +262,27 @@ export function DiffHeaderMetadata({
 					title={
 						isDeleteAction
 							? t({
-									id: "workspace.diffPane.deleteFileTitle",
 									message: `Delete "${basename}"?`,
 								})
 							: t({
-									id: "workspace.diffPane.discardFileTitle",
 									message: `Discard changes to "${basename}"?`,
 								})
 					}
 					description={
 						isDeleteAction
 							? t({
-									id: "workspace.diffPane.deleteFileBody",
 									message:
 										"This will permanently delete this file. This action cannot be undone.",
 								})
 							: t({
-									id: "workspace.diffPane.discardFileBody",
 									message:
 										"This will revert all changes to this file. This action cannot be undone.",
 								})
 					}
 					confirmLabel={
 						isDeleteAction
-							? t({ id: "workspace.diffPane.deleteConfirm", message: "Delete" })
+							? t({ message: "Delete" })
 							: t({
-									id: "workspace.diffPane.discardConfirm",
 									message: "Discard",
 								})
 					}

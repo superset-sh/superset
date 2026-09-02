@@ -93,11 +93,6 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-        with:
-          # The i18n audit compares this branch against its merge base to catch
-          # translations left behind by an English edit; a shallow clone has no
-          # merge base to find.
-          fetch-depth: 0
 
       - name: Setup Bun
         id: setup-bun

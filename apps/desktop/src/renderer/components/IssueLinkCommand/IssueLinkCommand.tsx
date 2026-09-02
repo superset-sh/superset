@@ -171,7 +171,6 @@ export function IssueLinkCommand({
 				<Command shouldFilter={false}>
 					<CommandInput
 						placeholder={t({
-							id: "components.issueLinkCommand.searchPlaceholder",
 							message: "Search issues...",
 						})}
 						value={searchQuery}
@@ -187,22 +186,16 @@ export function IssueLinkCommand({
 							htmlFor={showClosedId}
 							className="cursor-pointer select-none text-xs text-muted-foreground"
 						>
-							<Trans id="components.issueLinkCommand.showClosed">
-								Show closed
-							</Trans>
+							<Trans>Show closed</Trans>
 						</label>
 					</div>
 					<CommandList className="max-h-[420px]">
 						{filteredTasks.length === 0 && (
 							<CommandEmpty>
 								{showClosed ? (
-									<Trans id="components.issueLinkCommand.noIssues">
-										No issues found.
-									</Trans>
+									<Trans>No issues found.</Trans>
 								) : (
-									<Trans id="components.issueLinkCommand.noOpenIssues">
-										No open issues found.
-									</Trans>
+									<Trans>No open issues found.</Trans>
 								)}
 							</CommandEmpty>
 						)}
@@ -211,16 +204,13 @@ export function IssueLinkCommand({
 								heading={
 									searchQuery
 										? t({
-												id: "components.issueLinkCommand.results",
 												message: "Results",
 											})
 										: showClosed
 											? t({
-													id: "components.issueLinkCommand.recentIssues",
 													message: "Recent issues",
 												})
 											: t({
-													id: "components.issueLinkCommand.openIssues",
 													message: "Open issues",
 												})
 								}

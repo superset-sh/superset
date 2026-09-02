@@ -39,42 +39,36 @@ export const SENTRY_SENTENCES: Record<SentryTriggerEvent, SentencePart[]> = {
 export const SENTRY_MENU: TriggerMenuEntry<SentryConfig>[] = [
 	leaf(
 		msg({
-			id: "dashboard.automations.providers.sentry.menuIssueCreated",
 			message: "Issue created",
 		}),
 		"issue.created",
 	),
 	leaf(
 		msg({
-			id: "dashboard.automations.providers.sentry.menuIssueResolved",
 			message: "Issue resolved",
 		}),
 		"issue.resolved",
 	),
 	leaf(
 		msg({
-			id: "dashboard.automations.providers.sentry.menuIssueAssigned",
 			message: "Issue assigned",
 		}),
 		"issue.assigned",
 	),
 	leaf(
 		msg({
-			id: "dashboard.automations.providers.sentry.menuIssueArchived",
 			message: "Issue archived",
 		}),
 		"issue.archived",
 	),
 	leaf(
 		msg({
-			id: "dashboard.automations.providers.sentry.menuIssueUnresolved",
 			message: "Issue unresolved",
 		}),
 		"issue.unresolved",
 	),
 	leaf(
 		msg({
-			id: "dashboard.automations.providers.sentry.menuIssueAny",
 			message: "Any issue event",
 		}),
 		"issue.any",
@@ -90,35 +84,30 @@ export const SENTRY_LEVELS: { id: string; label: MessageDescriptor }[] = [
 	{
 		id: "fatal",
 		label: msg({
-			id: "dashboard.automations.providers.sentry.levelFatal",
 			message: "Fatal",
 		}),
 	},
 	{
 		id: "error",
 		label: msg({
-			id: "dashboard.automations.providers.sentry.levelError",
 			message: "Error",
 		}),
 	},
 	{
 		id: "warning",
 		label: msg({
-			id: "dashboard.automations.providers.sentry.levelWarning",
 			message: "Warning",
 		}),
 	},
 	{
 		id: "info",
 		label: msg({
-			id: "dashboard.automations.providers.sentry.levelInfo",
 			message: "Info",
 		}),
 	},
 	{
 		id: "debug",
 		label: msg({
-			id: "dashboard.automations.providers.sentry.levelDebug",
 			message: "Debug",
 		}),
 	},

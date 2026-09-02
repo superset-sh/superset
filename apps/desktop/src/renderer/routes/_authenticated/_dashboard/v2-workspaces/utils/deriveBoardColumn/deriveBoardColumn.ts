@@ -24,25 +24,20 @@ export const BOARD_COLUMN_ORDER: BoardColumnKey[] = [
 ];
 
 export const BOARD_COLUMN_LABELS: Record<BoardColumnKey, MessageDescriptor> = {
-	idle: msg({ id: "dashboard.v2Workspaces.boardColumnIdle", message: "Idle" }),
+	idle: msg({ message: "Idle" }),
 	working: msg({
-		id: "dashboard.v2Workspaces.boardColumnWorking",
 		message: "Working",
 	}),
 	attention: msg({
-		id: "dashboard.v2Workspaces.boardColumnAttention",
 		message: "Needs attention",
 	}),
 	review: msg({
-		id: "dashboard.v2Workspaces.boardColumnReview",
 		message: "Needs review",
 	}),
 	merged: msg({
-		id: "dashboard.v2Workspaces.boardColumnMerged",
 		message: "Merged",
 	}),
 	deleted: msg({
-		id: "dashboard.v2Workspaces.boardColumnDeleted",
 		message: "Deleted",
 	}),
 };

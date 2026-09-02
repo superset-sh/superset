@@ -14,6 +14,11 @@ if (process.env.NODE_ENV !== "production") {
 const config: NextConfig = {
 	reactCompiler: true,
 	typescript: { ignoreBuildErrors: true },
+	// Compiles @lingui/core/macro, reached through @superset/shared, at build
+	// time. Version must stay in lockstep with @lingui/core.
+	experimental: {
+		swcPlugins: [["@lingui/swc-plugin", {}]],
+	},
 };
 
 export default withSentryConfig(config, {

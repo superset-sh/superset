@@ -58,9 +58,7 @@ export function AgentSelect<T extends string>({
 }: AgentSelectProps<T>) {
 	const { t } = useLingui();
 	const navigate = useNavigate();
-	const resolvedNoneLabel =
-		noneLabel ??
-		t({ id: "components.agentSelect.noAgent", message: "No agent" });
+	const resolvedNoneLabel = noneLabel ?? t({ message: "No agent" });
 	const isDark = useIsDarkTheme();
 	const selectableIds = new Set<string>(agents.map((agent) => agent.id));
 	const selectedValue =

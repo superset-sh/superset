@@ -1,5 +1,6 @@
 "use client";
 
+import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import {
@@ -38,7 +39,6 @@ import {
 } from "@superset/ui/ai-elements/sources";
 import { Button } from "@superset/ui/button";
 import { DownloadIcon } from "lucide-react";
-
 import { ComponentCard } from "../../../components/ComponentCard";
 import { ShowcaseSection } from "../../../components/ShowcaseSection";
 
@@ -84,25 +84,29 @@ export function AiContentSection() {
 		<ShowcaseSection
 			id="ai-content"
 			index="05"
-			title={i18n._({
-				id: "web.design.aiContentSection.aiContent",
-				message: "AI · Content",
-			})}
-			description={i18n._({
-				id: "web.design.aiContentSection.renderedOutputCodeSourcesCitations",
-				message: "Rendered output: code, sources, citations, context",
-			})}
+			title={i18n._(
+				msg({
+					message: "AI · Content",
+				}),
+			)}
+			description={i18n._(
+				msg({
+					message: "Rendered output: code, sources, citations, context",
+				}),
+			)}
 		>
 			<ComponentCard
-				title={i18n._({
-					id: "web.design.aiContentSection.codeBlock",
-					message: "Code Block",
-				})}
+				title={i18n._(
+					msg({
+						message: "Code Block",
+					}),
+				)}
 				importPath="@superset/ui/ai-elements/code-block"
-				description={i18n._({
-					id: "web.design.aiContentSection.shikiHighlightedWithOptionalLine",
-					message: "Shiki-highlighted, with optional line numbers",
-				})}
+				description={i18n._(
+					msg({
+						message: "Shiki-highlighted, with optional line numbers",
+					}),
+				)}
 				span
 				bleed
 			>
@@ -115,10 +119,11 @@ export function AiContentSection() {
 			</ComponentCard>
 
 			<ComponentCard
-				title={i18n._({
-					id: "web.design.aiContentSection.sources",
-					message: "Sources",
-				})}
+				title={i18n._(
+					msg({
+						message: "Sources",
+					}),
+				)}
 				importPath="@superset/ui/ai-elements/sources"
 			>
 				<Sources className="w-full">
@@ -126,42 +131,44 @@ export function AiContentSection() {
 					<SourcesContent>
 						<Source
 							href="#ai-content"
-							title={i18n._({
-								id: "web.design.aiContentSection.radixTooltipDocs",
-								message: "Radix Tooltip docs",
-							})}
+							title={i18n._(
+								msg({
+									message: "Radix Tooltip docs",
+								}),
+							)}
 						/>
 						<Source
 							href="#ai-content"
-							title={i18n._({
-								id: "web.design.aiContentSection.tailwindV4ThemeReference",
-								message: "Tailwind v4 theme reference",
-							})}
+							title={i18n._(
+								msg({
+									message: "Tailwind v4 theme reference",
+								}),
+							)}
 						/>
 						<Source
 							href="#ai-content"
-							title={i18n._({
-								id: "web.design.aiContentSection.shadcnUiTooltipRecipe",
-								message: "shadcn/ui tooltip recipe",
-							})}
+							title={i18n._(
+								msg({
+									message: "shadcn/ui tooltip recipe",
+								}),
+							)}
 						/>
 					</SourcesContent>
 				</Sources>
 			</ComponentCard>
 
 			<ComponentCard
-				title={i18n._({
-					id: "web.design.aiContentSection.inlineCitation",
-					message: "Inline Citation",
-				})}
+				title={i18n._(
+					msg({
+						message: "Inline Citation",
+					}),
+				)}
 				importPath="@superset/ui/ai-elements/inline-citation"
 			>
 				<p className="max-w-sm text-sm text-muted-foreground">
 					<InlineCitation>
 						<InlineCitationText>
-							<Trans id="web.design.aiContentSection.radixRotatesTheTooltipArrow">
-								Radix rotates the tooltip arrow wrapper per side,
-							</Trans>
+							<Trans>Radix rotates the tooltip arrow wrapper per side,</Trans>
 						</InlineCitationText>
 						<InlineCitationCard>
 							<InlineCitationCardTrigger
@@ -170,12 +177,10 @@ export function AiContentSection() {
 							<InlineCitationCardBody>
 								<div className="p-3 text-sm">
 									<p className="font-medium">
-										<Trans id="web.design.aiContentSection.radixPrimitives">
-											Radix Primitives
-										</Trans>
+										<Trans>Radix Primitives</Trans>
 									</p>
 									<p className="mt-1 text-muted-foreground">
-										<Trans id="web.design.aiContentSection.popperBasedPositioningPlacesAnd">
+										<Trans>
 											Popper-based positioning places and rotates arrow elements
 											automatically.
 										</Trans>
@@ -184,22 +189,24 @@ export function AiContentSection() {
 							</InlineCitationCardBody>
 						</InlineCitationCard>
 					</InlineCitation>{" "}
-					<Trans id="web.design.aiContentSection.soABorderOnTwo">
+					<Trans>
 						so a border on two edges of the rotated square always faces outward.
 					</Trans>
 				</p>
 			</ComponentCard>
 
 			<ComponentCard
-				title={i18n._({
-					id: "web.design.aiContentSection.context",
-					message: "Context",
-				})}
+				title={i18n._(
+					msg({
+						message: "Context",
+					}),
+				)}
 				importPath="@superset/ui/ai-elements/context"
-				description={i18n._({
-					id: "web.design.aiContentSection.tokenBudgetIndicatorHoverThe",
-					message: "Token budget indicator — hover the percentage",
-				})}
+				description={i18n._(
+					msg({
+						message: "Token budget indicator — hover the percentage",
+					}),
+				)}
 			>
 				<Context usedTokens={87_400} maxTokens={200_000}>
 					<ContextTrigger />
@@ -207,9 +214,7 @@ export function AiContentSection() {
 						<ContextContentHeader />
 						<ContextContentBody>
 							<p className="text-xs text-muted-foreground">
-								<Trans id="web.design.aiContentSection.874kOf200kTokens">
-									87.4K of 200K tokens used in this session.
-								</Trans>
+								<Trans>87.4K of 200K tokens used in this session.</Trans>
 							</p>
 						</ContextContentBody>
 					</ContextContent>
@@ -217,27 +222,27 @@ export function AiContentSection() {
 			</ComponentCard>
 
 			<ComponentCard
-				title={i18n._({
-					id: "web.design.aiContentSection.checkpoint",
-					message: "Checkpoint",
-				})}
+				title={i18n._(
+					msg({
+						message: "Checkpoint",
+					}),
+				)}
 				importPath="@superset/ui/ai-elements/checkpoint"
 			>
 				<Checkpoint className="w-full">
 					<CheckpointIcon />
 					<CheckpointTrigger tooltip="Restore the conversation to this point">
-						<Trans id="web.design.aiContentSection.checkpointBeforeTooltipRefactor">
-							Checkpoint · before tooltip refactor
-						</Trans>
+						<Trans>Checkpoint · before tooltip refactor</Trans>
 					</CheckpointTrigger>
 				</Checkpoint>
 			</ComponentCard>
 
 			<ComponentCard
-				title={i18n._({
-					id: "web.design.aiContentSection.artifact",
-					message: "Artifact",
-				})}
+				title={i18n._(
+					msg({
+						message: "Artifact",
+					}),
+				)}
 				importPath="@superset/ui/ai-elements/artifact"
 				span
 				bleed
@@ -246,24 +251,21 @@ export function AiContentSection() {
 					<ArtifactHeader>
 						<div>
 							<ArtifactTitle>
-								<Trans id="web.design.aiContentSection.tooltipRefactorDiff">
-									tooltip-refactor.diff
-								</Trans>
+								<Trans>tooltip-refactor.diff</Trans>
 							</ArtifactTitle>
 							<ArtifactDescription>
-								<Trans id="web.design.aiContentSection.45Files82172">
-									45 files · +82 −172
-								</Trans>
+								<Trans>45 files · +82 −172</Trans>
 							</ArtifactDescription>
 						</div>
 						<ArtifactActions>
 							<Button
 								variant="ghost"
 								size="icon-sm"
-								aria-label={i18n._({
-									id: "web.design.aiContentSection.download",
-									message: "Download",
-								})}
+								aria-label={i18n._(
+									msg({
+										message: "Download",
+									}),
+								)}
 							>
 								<DownloadIcon />
 							</Button>
@@ -271,7 +273,7 @@ export function AiContentSection() {
 						</ArtifactActions>
 					</ArtifactHeader>
 					<div className="p-4 font-mono text-xs text-muted-foreground">
-						<Trans id="web.design.aiContentSection.classnameRoundedSmBorderBorder">
+						<Trans>
 							- className="rounded-sm border border-border bg-background …"
 						</Trans>
 						<br />+ {`<TooltipContent side="bottom">`}
@@ -280,17 +282,19 @@ export function AiContentSection() {
 			</ComponentCard>
 
 			<ComponentCard
-				title={i18n._({
-					id: "web.design.aiContentSection.notDemoedHere",
-					message: "Not demoed here",
-				})}
+				title={i18n._(
+					msg({
+						message: "Not demoed here",
+					}),
+				)}
 				importPath="@superset/ui/ai-elements/*"
 				copyable={false}
-				description={i18n._({
-					id: "web.design.aiContentSection.needLiveChatToolCall",
-					message:
-						"Need live chat/tool-call state (ToolUIPart, streams) or an app shell",
-				})}
+				description={i18n._(
+					msg({
+						message:
+							"Need live chat/tool-call state (ToolUIPart, streams) or an app shell",
+					}),
+				)}
 				span
 			>
 				<div className="flex flex-wrap gap-1.5">

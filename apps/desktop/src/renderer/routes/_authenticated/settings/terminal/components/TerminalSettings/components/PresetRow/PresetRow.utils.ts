@@ -12,13 +12,11 @@ export function getPresetModeLabel(
 		return hasMultipleCommands
 			? i18n._(
 					msg({
-						id: "settings.terminal.presetMode.tabPerCommand",
 						message: "Tab per command",
 					}),
 				)
 			: i18n._(
 					msg({
-						id: "settings.terminal.presetMode.newTab",
 						message: "New tab",
 					}),
 				);
@@ -28,13 +26,11 @@ export function getPresetModeLabel(
 		return hasMultipleCommands
 			? i18n._(
 					msg({
-						id: "settings.terminal.presetMode.newTabPanes",
 						message: "New tab + panes",
 					}),
 				)
 			: i18n._(
 					msg({
-						id: "settings.terminal.presetMode.newTabSplit",
 						message: "New tab",
 					}),
 				);
@@ -44,13 +40,11 @@ export function getPresetModeLabel(
 		return hasMultipleCommands
 			? i18n._(
 					msg({
-						id: "settings.terminal.presetMode.allInCurrentTab",
 						message: "All in current tab",
 					}),
 				)
 			: i18n._(
 					msg({
-						id: "settings.terminal.presetMode.currentTab",
 						message: "Current tab",
 					}),
 				);
@@ -59,13 +53,11 @@ export function getPresetModeLabel(
 	return hasMultipleCommands
 		? i18n._(
 				msg({
-					id: "settings.terminal.presetMode.singleTabPanes",
 					message: "Single tab + panes",
 				}),
 			)
 		: i18n._(
 				msg({
-					id: "settings.terminal.presetMode.splitPane",
 					message: "Split pane",
 				}),
 			);
