@@ -40,6 +40,7 @@ export interface TestHostOptions {
 	 */
 	githubFactory?: () => Promise<unknown>;
 	execGh?: (args: string[], options?: unknown) => Promise<unknown>;
+	execGlab?: (args: string[], options?: unknown) => Promise<unknown>;
 	chatService?: unknown;
 }
 
@@ -130,6 +131,11 @@ export async function createTestHost(
 				// fallback rather than shelling to a real `gh` on the host.
 				async () => {
 					throw new Error("execGh not configured in test");
+				},
+		execGlab: options.execGlab
+			? (options.execGlab as CreateAppOptions["execGlab"])
+			: async () => {
+					throw new Error("execGlab not configured in test");
 				},
 		chatService: options.chatService as CreateAppOptions["chatService"],
 	};

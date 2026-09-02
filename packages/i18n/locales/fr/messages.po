@@ -32432,13 +32432,13 @@ msgstr "Ouvrir dans le diff dans un nouvel onglet"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useReviewTab/components/CommentsSection/CommentsSection.tsx
-msgid "workspace.commentsSection.openOnGitHub"
-msgstr "Ouvrir sur GitHub"
+msgid "workspace.commentsSection.openOnProvider"
+msgstr "Ouvrir sur {providerName}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useReviewTab/components/CommentsSection/CommentsSection.tsx
-msgid "workspace.commentsSection.openOnGitHubAria"
-msgstr "Ouvrir le commentaire sur GitHub"
+msgid "workspace.commentsSection.openOnProviderAria"
+msgstr "Ouvrir le commentaire sur {providerName}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useReviewTab/components/CommentsSection/CommentsSection.tsx
@@ -34119,8 +34119,8 @@ msgstr "Mis à jour {updatedRelative}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PRActionHeader/components/PRStatusGroup/components/PRDetailCard/PRDetailCard.tsx
-msgid "workspace.prDetailCard.viewOnGitHub"
-msgstr "Voir sur GitHub"
+msgid "workspace.prDetailCard.viewOnProvider"
+msgstr "Voir sur {providerName}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/V2PresetsBar/components/V2PresetBarItem/V2PresetBarItem.tsx
@@ -34276,7 +34276,7 @@ msgstr "Chargement de la revue..."
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useReviewTab/components/ReviewTabContent/ReviewTabContent.tsx
 msgid "workspace.reviewTab.noPr"
-msgstr "Ouvrez une pull request pour voir l'état de la revue, les vérifications et les commentaires."
+msgstr "Ouvrez une pull request ou une merge request pour voir l'état de la revue, les vérifications et les commentaires."
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/V2WorkspaceRunButton/V2WorkspaceRunButton.tsx

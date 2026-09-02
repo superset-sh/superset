@@ -32433,13 +32433,13 @@ msgstr "在新分頁的差異檢視中開啟"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useReviewTab/components/CommentsSection/CommentsSection.tsx
-msgid "workspace.commentsSection.openOnGitHub"
-msgstr "在GitHub上開啟"
+msgid "workspace.commentsSection.openOnProvider"
+msgstr "在{providerName}上開啟"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useReviewTab/components/CommentsSection/CommentsSection.tsx
-msgid "workspace.commentsSection.openOnGitHubAria"
-msgstr "在GitHub上開啟評論"
+msgid "workspace.commentsSection.openOnProviderAria"
+msgstr "在{providerName}上開啟評論"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useReviewTab/components/CommentsSection/CommentsSection.tsx
@@ -34120,8 +34120,8 @@ msgstr "更新於{updatedRelative}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PRActionHeader/components/PRStatusGroup/components/PRDetailCard/PRDetailCard.tsx
-msgid "workspace.prDetailCard.viewOnGitHub"
-msgstr "在GitHub上檢視"
+msgid "workspace.prDetailCard.viewOnProvider"
+msgstr "在{providerName}上檢視"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/V2PresetsBar/components/V2PresetBarItem/V2PresetBarItem.tsx
@@ -34277,7 +34277,7 @@ msgstr "正在載入評審..."
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useReviewTab/components/ReviewTabContent/ReviewTabContent.tsx
 msgid "workspace.reviewTab.noPr"
-msgstr "建立拉取請求後即可檢視評審狀態、檢查和評論。"
+msgstr "建立拉取請求或合併請求後即可檢視評審狀態、檢查和評論。"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/V2WorkspaceRunButton/V2WorkspaceRunButton.tsx

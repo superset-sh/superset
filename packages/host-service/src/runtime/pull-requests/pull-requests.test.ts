@@ -30,16 +30,16 @@ function createRealDb(): HostDb {
 	return db as unknown as HostDb;
 }
 
-function seedProject(db: HostDb) {
+function seedProject(db: HostDb, provider: "github" | "gitlab" = "github") {
 	db.insert(schema.projects)
 		.values({
 			id: PROJECT_ID,
 			repoPath: "/repo",
 			createdAt: Date.now(),
-			repoProvider: "github",
+			repoProvider: provider,
 			repoOwner: REPO.owner,
 			repoName: REPO.name,
-			repoUrl: `https://github.com/${REPO.owner}/${REPO.name}.git`,
+			repoUrl: `https://${provider}.com/${REPO.owner}/${REPO.name}.git`,
 			remoteName: "origin",
 		})
 		.run();
@@ -146,6 +146,7 @@ function createManager(
 	db: HostDb,
 	overrides: {
 		execGh?: (args: string[]) => Promise<unknown>;
+		execGlab?: (args: string[]) => Promise<unknown>;
 		github?: () => Promise<never>;
 		git?: unknown;
 		readWorkspaceRefs?: (
@@ -161,6 +162,7 @@ function createManager(
 			((async () => {
 				throw new Error("gh should not be used for direct PR linking");
 			}) as never),
+		execGlab: overrides.execGlab as never,
 		git:
 			(overrides.git as never) ??
 			((async () => {
@@ -444,6 +446,79 @@ describe("PullRequestRuntimeManager unlink", () => {
 });
 
 describe("PullRequestRuntimeManager refresh", () => {
+	test("links and refreshes a GitLab merge request through glab", async () => {
+		const db = createRealDb();
+		seedProject(db, "gitlab");
+		seedWorkspace(db, {
+			id: "ws-gitlab",
+			branch: "feat/gitlab-review",
+			headSha: "abc123",
+			upstreamOwner: REPO.owner,
+			upstreamRepo: REPO.name,
+			upstreamBranch: "feat/gitlab-review",
+		});
+		let isDraft = true;
+		const manager = createManager(db, {
+			execGlab: async (args) => {
+				const endpoint = args.find((arg) => arg.startsWith("projects/"));
+				if (endpoint === "projects/base-owner%2Fbase-repo/merge_requests") {
+					return [
+						{
+							iid: 42,
+							title: "Add GitLab review support",
+							web_url:
+								"https://gitlab.com/base-owner/base-repo/-/merge_requests/42",
+							state: "opened",
+							draft: isDraft,
+							source_branch: "feat/gitlab-review",
+							sha: "abc123",
+							updated_at: "2026-08-21T10:00:00Z",
+						},
+					];
+				}
+				if (endpoint?.endsWith("/approvals")) {
+					return {
+						approved: true,
+						approved_by: [{ user: { username: "reviewer" } }],
+					};
+				}
+				if (endpoint?.endsWith("/statuses")) {
+					return [
+						{
+							name: "test",
+							status: "success",
+							target_url: "https://gitlab.com/job/1",
+						},
+					];
+				}
+				throw new Error(`unexpected glab call: ${args.join(" ")}`);
+			},
+		});
+
+		await manager.refreshPullRequestsByWorkspaces(["ws-gitlab"]);
+
+		const mr = getPrByNumber(db, 42);
+		expect(mr).toMatchObject({
+			repoProvider: "gitlab",
+			title: "Add GitLab review support",
+			state: "draft",
+			isDraft: true,
+			reviewDecision: "approved",
+			checksStatus: "success",
+		});
+		expect(JSON.parse(mr?.checksJson ?? "[]")).toEqual([
+			{ name: "test", status: "success", url: "https://gitlab.com/job/1" },
+		]);
+		expect(getWorkspace(db, "ws-gitlab")?.pullRequestId).toBe(mr?.id);
+
+		isDraft = false;
+		await manager.refreshPullRequestsByWorkspaces(["ws-gitlab"]);
+		expect(getPrByNumber(db, 42)).toMatchObject({
+			state: "open",
+			isDraft: false,
+		});
+	});
+
 	test("preserves last-known review and checks when detail refresh fails", async () => {
 		const db = createRealDb();
 		seedProject(db);
@@ -989,6 +1064,101 @@ describe("default-branch guard", () => {
 	});
 });
 
+describe("project repository resolution", () => {
+	test("resolves an authenticated self-hosted GitLab remote for a legacy project", async () => {
+		const db = createRealDb();
+		db.insert(schema.projects)
+			.values({
+				id: PROJECT_ID,
+				repoPath: "/repo",
+				repoProvider: "github",
+				repoOwner: "stale-owner",
+				repoName: "stale-repo",
+				repoUrl: "https://github.com/stale-owner/stale-repo",
+				remoteName: "origin",
+				createdAt: Date.now(),
+			})
+			.run();
+		const execGlab = async (args: string[]) => {
+			expect(args).toEqual([
+				"auth",
+				"status",
+				"--hostname",
+				"gitlab.example.com",
+			]);
+			return {};
+		};
+		const manager = createManager(db, {
+			execGlab,
+			git: (async () => ({
+				raw: async (args: string[]) => {
+					if (args[0] === "config" && args[1] === "--get-regexp") {
+						return "remote.origin.url git@gitlab.example.com:acme/example.git\n";
+					}
+					if (args[0] === "symbolic-ref") return "origin/main\n";
+					throw new Error(`unexpected git raw: ${args.join(" ")}`);
+				},
+			})) as never,
+		});
+
+		const repo = await (
+			manager as unknown as {
+				getProjectRepository: (id: string) => Promise<{
+					provider: string;
+					owner: string;
+					name: string;
+				}>;
+			}
+		).getProjectRepository(PROJECT_ID);
+
+		expect(repo).toMatchObject({
+			provider: "gitlab",
+			owner: "acme",
+			name: "example",
+		});
+		expect(db.select().from(schema.projects).get()).toMatchObject({
+			repoProvider: "gitlab",
+			repoOwner: "acme",
+			repoName: "example",
+		});
+	});
+
+	test("does not fall back to stale metadata when a GitLab remote is unavailable", async () => {
+		const db = createRealDb();
+		db.insert(schema.projects)
+			.values({
+				id: PROJECT_ID,
+				repoPath: "/repo",
+				repoProvider: "gitlab",
+				repoOwner: "stale-owner",
+				repoName: "stale-repo",
+				repoUrl: "https://gitlab.example.com/stale-owner/stale-repo",
+				remoteName: "origin",
+				createdAt: Date.now(),
+			})
+			.run();
+		const manager = createManager(db, {
+			git: (async () => ({
+				raw: async (args: string[]) => {
+					if (args[0] === "config" && args[1] === "--get-regexp") {
+						return "remote.github.url https://github.com/acme/example.git\n";
+					}
+					if (args[0] === "symbolic-ref") return "main\n";
+					throw new Error(`unexpected git raw: ${args.join(" ")}`);
+				},
+			})) as never,
+		});
+
+		const repo = await (
+			manager as unknown as {
+				getProjectRepository: (id: string) => Promise<unknown>;
+			}
+		).getProjectRepository(PROJECT_ID);
+
+		expect(repo).toBeNull();
+	});
+});
+
 type WorkspaceChangedEvent = Omit<WorkspaceChangedMessage, "type">;
 
 // Minimal in-process stand-in for EventBus.onWorkspaceChanged.
@@ -1077,6 +1247,69 @@ describe("workspace-created event trigger", () => {
 
 		manager.stop();
 		expect(bus.listeners.size).toBe(0);
+	});
+
+	test("does not link an upstream from a different provider", async () => {
+		const db = createRealDb();
+		seedProject(db, "github");
+		seedWorkspace(db, { id: "ws-new", branch: "feat/new-thing" });
+		const manager = createManager(db, {
+			readWorkspaceRefs: async () => ({
+				branch: "feat/new-thing",
+				headSha: "sha-foreign",
+				upstream: {
+					provider: "gitlab",
+					owner: REPO.owner,
+					name: REPO.name,
+					branch: "feat/new-thing",
+				},
+			}),
+		});
+		const bus = createFakeWorkspaceEventBus();
+		manager.subscribeToWorkspaceEvents(bus);
+
+		bus.emit(createdEvent);
+		await waitFor(() => getWorkspace(db, "ws-new")?.headSha === "sha-foreign");
+
+		const ws = getWorkspace(db, "ws-new");
+		expect(ws?.upstreamOwner).toBeNull();
+		expect(ws?.upstreamRepo).toBeNull();
+		expect(ws?.upstreamBranch).toBeNull();
+		expect(ws?.pullRequestId).toBeNull();
+
+		manager.stop();
+	});
+
+	test("does not link an upstream from a different GitLab host", async () => {
+		const db = createRealDb();
+		seedProject(db, "gitlab");
+		seedWorkspace(db, { id: "ws-new", branch: "feat/new-thing" });
+		const manager = createManager(db, {
+			readWorkspaceRefs: async () => ({
+				branch: "feat/new-thing",
+				headSha: "sha-foreign",
+				upstream: {
+					provider: "gitlab",
+					host: "gitlab.example.com",
+					owner: REPO.owner,
+					name: REPO.name,
+					branch: "feat/new-thing",
+				},
+			}),
+		});
+		const bus = createFakeWorkspaceEventBus();
+		manager.subscribeToWorkspaceEvents(bus);
+
+		bus.emit(createdEvent);
+		await waitFor(() => getWorkspace(db, "ws-new")?.headSha === "sha-foreign");
+
+		const ws = getWorkspace(db, "ws-new");
+		expect(ws?.upstreamOwner).toBeNull();
+		expect(ws?.upstreamRepo).toBeNull();
+		expect(ws?.upstreamBranch).toBeNull();
+		expect(ws?.pullRequestId).toBeNull();
+
+		manager.stop();
 	});
 
 	test("ignores updated and deleted events", async () => {

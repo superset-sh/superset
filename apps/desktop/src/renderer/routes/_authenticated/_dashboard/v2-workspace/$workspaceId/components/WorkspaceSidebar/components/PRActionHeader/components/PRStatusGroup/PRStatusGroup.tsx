@@ -52,14 +52,14 @@ export function PRStatusGroup({
 				? state.pr
 				: null;
 
-	// Triggers a GitHub→host-service-DB sync for this workspace's PR. Without
+	// Triggers a provider→host-service-DB sync for this workspace's PR. Without
 	// this, post-merge UI state lags by up to ~30s waiting for the next
 	// background sync tick. Called after a successful merge before refetching
 	// the local query.
 	const refreshPRMutation =
 		workspaceTrpc.pullRequests.refreshByWorkspaces.useMutation();
 
-	const mergePRMutation = workspaceTrpc.github.mergePR.useMutation({
+	const mergePRMutation = workspaceTrpc.pullRequests.mergePR.useMutation({
 		onMutate: () => {
 			const toastId = toast.loading(
 				t({ id: "workspace.prStatusGroup.merging", message: "Merging PR..." }),
@@ -119,9 +119,8 @@ export function PRStatusGroup({
 
 	const handleMerge = (mergeMethod: "merge" | "squash" | "rebase") => {
 		mergePRMutation.mutate({
-			owner: pr.repoOwner,
-			repo: pr.repoName,
-			pullNumber: pr.number,
+			workspaceId,
+			prNumber: pr.number,
 			mergeMethod,
 		});
 	};

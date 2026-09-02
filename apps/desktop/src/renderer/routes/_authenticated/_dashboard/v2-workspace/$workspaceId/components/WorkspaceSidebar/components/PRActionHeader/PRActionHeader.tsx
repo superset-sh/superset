@@ -24,9 +24,9 @@ export function PRActionHeader({
 	const action = selectActionButton(state);
 
 	return (
-		<div className="@container flex h-10 shrink-0 items-center gap-2 bg-muted/45 px-2 dark:bg-muted/35">
+		<div className="@container flex h-10 shrink-0 items-center gap-2 bg-muted/45 pl-2 pr-4 dark:bg-muted/35">
 			<div className="drag h-full min-w-0 flex-1" />
-			<div className="flex items-center gap-2">
+			<div className="ml-auto flex items-center gap-2">
 				<V2WorkspaceOpenInButton workspaceId={workspaceId} />
 				<ActionSlot
 					variant={action}

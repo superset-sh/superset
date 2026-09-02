@@ -37,6 +37,7 @@ import type { NormalizedComment } from "../../types";
 
 interface CommentsSectionProps {
 	workspaceId: string;
+	provider: "github" | "gitlab";
 	comments: NormalizedComment[];
 	isLoading: boolean;
 	onOpenComment?: (comment: CommentPaneData) => void;
@@ -50,6 +51,7 @@ interface CommentsSectionProps {
 
 export function CommentsSection({
 	workspaceId,
+	provider,
 	comments,
 	isLoading,
 	onOpenComment,
@@ -274,6 +276,7 @@ export function CommentsSection({
 						conversationComments.map((comment) => (
 							<CommentRow
 								key={comment.id}
+								provider={provider}
 								comment={comment}
 								copiedActionKey={copiedActionKey}
 								onCopy={handleCopySingle}
@@ -359,6 +362,7 @@ export function CommentsSection({
 						openReviewComments.map((comment) => (
 							<CommentRow
 								key={comment.id}
+								provider={provider}
 								comment={comment}
 								copiedActionKey={copiedActionKey}
 								onCopy={handleCopySingle}
@@ -401,6 +405,7 @@ export function CommentsSection({
 						{resolvedComments.map((comment) => (
 							<CommentRow
 								key={comment.id}
+								provider={provider}
 								comment={comment}
 								copiedActionKey={copiedActionKey}
 								onCopy={handleCopySingle}
@@ -490,6 +495,7 @@ function formatShortAge(isoDate?: string): string | null {
 
 interface CommentRowProps {
 	comment: NormalizedComment;
+	provider: "github" | "gitlab";
 	copiedActionKey: string | null;
 	onCopy: (comment: NormalizedComment) => void;
 	onOpen?: (comment: CommentPaneData) => void;
@@ -503,12 +509,14 @@ interface CommentRowProps {
 
 function CommentRow({
 	comment,
+	provider,
 	copiedActionKey,
 	onCopy,
 	onOpen,
 	onOpenInDiff,
 }: CommentRowProps) {
 	const { t } = useLingui();
+	const providerName = provider === "gitlab" ? "GitLab" : "GitHub";
 	const age = formatShortAge(comment.createdAt);
 	const isCopied = copiedActionKey === `comment:${comment.id}`;
 
@@ -594,8 +602,8 @@ function CommentRow({
 						onClick={(e) => e.stopPropagation()}
 						className="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 						aria-label={t({
-							id: "workspace.commentsSection.openOnGitHubAria",
-							message: "Open comment on GitHub",
+							id: "workspace.commentsSection.openOnProviderAria",
+							message: `Open comment on ${providerName}`,
 						})}
 					>
 						<LuArrowUpRight className="size-3" />
@@ -688,8 +696,8 @@ function CommentRow({
 								onSelect={() => window.open(comment.url, "_blank", "noopener")}
 							>
 								<ExternalLink />
-								<Trans id="workspace.commentsSection.openOnGitHub">
-									Open on GitHub
+								<Trans id="workspace.commentsSection.openOnProvider">
+									Open on {providerName}
 								</Trans>
 							</DropdownMenuItem>
 						) : null}

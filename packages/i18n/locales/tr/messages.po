@@ -32433,13 +32433,13 @@ msgstr "Farkı yeni sekmede aç"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useReviewTab/components/CommentsSection/CommentsSection.tsx
-msgid "workspace.commentsSection.openOnGitHub"
-msgstr "GitHub'da aç"
+msgid "workspace.commentsSection.openOnProvider"
+msgstr "{providerName}'da aç"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useReviewTab/components/CommentsSection/CommentsSection.tsx
-msgid "workspace.commentsSection.openOnGitHubAria"
-msgstr "Yorumu GitHub'da aç"
+msgid "workspace.commentsSection.openOnProviderAria"
+msgstr "Yorumu {providerName}'da aç"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useReviewTab/components/CommentsSection/CommentsSection.tsx
@@ -34120,8 +34120,8 @@ msgstr "Güncelleme {updatedRelative}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PRActionHeader/components/PRStatusGroup/components/PRDetailCard/PRDetailCard.tsx
-msgid "workspace.prDetailCard.viewOnGitHub"
-msgstr "GitHub'da görüntüle"
+msgid "workspace.prDetailCard.viewOnProvider"
+msgstr "{providerName}'da görüntüle"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/V2PresetsBar/components/V2PresetBarItem/V2PresetBarItem.tsx
@@ -34277,7 +34277,7 @@ msgstr "İnceleme yükleniyor..."
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useReviewTab/components/ReviewTabContent/ReviewTabContent.tsx
 msgid "workspace.reviewTab.noPr"
-msgstr "İnceleme durumunu, kontrolleri ve yorumları görmek için bir pull request açın."
+msgstr "İnceleme durumunu, kontrolleri ve yorumları görmek için bir pull request veya merge request açın."
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/V2WorkspaceRunButton/V2WorkspaceRunButton.tsx
