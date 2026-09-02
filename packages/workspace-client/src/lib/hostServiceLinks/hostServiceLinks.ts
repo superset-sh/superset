@@ -10,10 +10,22 @@ import superjson from "superjson";
 
 /**
  * tRPC endpoints that rejected a POSTed query with METHOD_NOT_SUPPORTED.
- * Module-level so every client pointed at the same host learns once, and a
- * host that has fallen back stays on GET until reload.
+ * Module-level so every client pointed at the same host learns once. An
+ * entry is dropped on the next transport-level failure to that endpoint: the
+ * desktop respawns a replaced host-service on the same port, so a connection
+ * error is the signal that a newer process may now be answering there, and
+ * the next query re-probes POST instead of staying on GET for good.
  */
 const legacyGetEndpoints = new Set<string>();
+
+/**
+ * A failure that never got a server response — connection refused during a
+ * restart, a dropped stream. tRPC only populates `data` from a parsed error
+ * envelope, so its absence means the transport failed, not the server.
+ */
+function isConnectionError(error: unknown): boolean {
+	return error instanceof TRPCClientError && error.data == null;
+}
 
 export interface HostServiceLinkOptions {
 	/** The host's tRPC endpoint, e.g. `http://127.0.0.1:PORT/trpc`. */
@@ -60,6 +72,10 @@ export function createHostServiceLinks(
 	return [
 		retryLink({
 			retry: ({ op, error, attempts }) => {
+				if (isConnectionError(error)) {
+					legacyGetEndpoints.delete(url);
+					return false;
+				}
 				if (attempts > 1 || op.type !== "query") return false;
 				if (!isMethodOverrideRejection(error)) return false;
 				legacyGetEndpoints.add(url);

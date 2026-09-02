@@ -151,9 +151,51 @@ describe("createHostServiceLinks", () => {
 		);
 		expect(methods).toEqual(["POST"]);
 	});
+
+	test("re-probes POST after the host restarts on the same endpoint", async () => {
+		const legacy = fakeHost("http://restarted.test", {
+			allowMethodOverride: false,
+		});
+		await legacy.client.settings.agentConfigs.list.query();
+		expect(legacy.methods).toEqual(["POST", "GET"]);
+
+		// The old process dies: the next request never reaches a server.
+		hosts.set("http://restarted.test", async () => {
+			throw new TypeError("Failed to fetch");
+		});
+		await expect(
+			legacy.client.settings.agentConfigs.list.query(),
+		).rejects.toThrow("Failed to fetch");
+
+		// The desktop respawns a current host-service on the same port; the
+		// client that fell back must not stay on GET for it.
+		const modern = fakeHost("http://restarted.test", {
+			allowMethodOverride: true,
+		});
+		expect(await legacy.client.settings.agentConfigs.list.query()).toEqual([
+			{ id: "claude" },
+		]);
+		expect(modern.methods).toEqual(["POST"]);
+	});
 });
 
 describe("isMethodOverrideRejection", () => {
+	test("matches tRPC's method-check rejection", () => {
+		const rejection = TRPCClientError.from({
+			error: {
+				message:
+					'Unsupported POST-request to query procedure at path "settings.agentConfigs.list"',
+				code: -32005,
+				data: {
+					code: "METHOD_NOT_SUPPORTED",
+					httpStatus: 405,
+					path: "settings.agentConfigs.list",
+				},
+			},
+		});
+		expect(isMethodOverrideRejection(rejection)).toBe(true);
+	});
+
 	test("ignores errors without the tRPC method-check code", () => {
 		expect(isMethodOverrideRejection(new Error("Failed to fetch"))).toBe(false);
 		expect(
