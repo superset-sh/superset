@@ -332,7 +332,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		trpcServer({
 			router: appRouter,
 			// Renderer clients send every request (including queries) as POST —
-			// see WorkspaceClientProvider/host-service-client's methodOverride —
+			// see createHostServiceLinks in @superset/workspace-client —
 			// so a query with a large input (e.g. git.getDiffBulk's file-path
 			// list, or a same-tick batch across many workspaces) doesn't produce
 			// a GET URL long enough to blow past the header-size limit. Without
