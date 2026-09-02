@@ -3,7 +3,7 @@ import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import type {
 	ComposerHandle,
-	ComposerSessionAction,
+	ComposerQuickKeysAction,
 	ComposerSessionTab,
 } from "@superset/composer";
 import { i18n } from "@superset/i18n";
@@ -107,8 +107,8 @@ const STATE_BANNERS: Partial<
  * The workspace IS the terminal: sessions render as tabs (agent mark + name),
  * the active tab is the one live attached stream, and the + menu launches a
  * new session from the host's agent presets (or a plain shell). Chrome: the
- * compact header (name → action sheet) and the terminal composer, whose tab
- * strip also carries this workspace's pull requests.
+ * compact header (name → action sheet) and the terminal composer, whose
+ * quick-key row also carries this workspace's pull requests.
  *
  * The tab strip is drawn by the composer rather than here. It sits directly
  * above the quick keys, inside the composer's own view tree, because its
@@ -567,13 +567,13 @@ export function WorkspaceScreen() {
 		[id, hostUrl, workspace],
 	);
 
-	// The strip's leading chip, or nothing. Mark and colour both come off the
-	// newest pull request, the way the pill this replaced did.
+	// The chip beside the quick keys, or nothing. Mark and colour both come off
+	// the newest pull request, the way the pill this replaced did.
 	const pullRequestStatusNow = pullRequests[0]
 		? pullRequestStatus(pullRequests[0])
 		: null;
 	const pullRequestIconUri = usePullRequestIconUri(pullRequestStatusNow);
-	const pullRequestAction = useMemo((): ComposerSessionAction | undefined => {
+	const pullRequestAction = useMemo((): ComposerQuickKeysAction | undefined => {
 		const latest = pullRequests[0];
 		if (!latest) return undefined;
 		const status = pullRequestStatus(latest);
@@ -861,8 +861,8 @@ export function WorkspaceScreen() {
 					onSessionTabCopyId={copyTerminalId}
 					onNewSessionPress={openAddMenu}
 					onAllSessionsPress={openSessions}
-					sessionAction={pullRequestAction}
-					onSessionActionPress={openPullRequests}
+					quickKeysAction={pullRequestAction}
+					onQuickKeysActionPress={openPullRequests}
 					attachmentTarget={attachmentTarget}
 					onActiveChange={setComposerActive}
 					onHeightChange={setComposerHeight}
