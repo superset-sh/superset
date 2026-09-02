@@ -17,6 +17,7 @@ import { useLocalHostService } from "renderer/routes/_authenticated/providers/Lo
 import { WorkspaceTrpcProvider } from "../WorkspaceTrpcProvider";
 import { WorkspaceHostGate } from "./components/WorkspaceHostGate";
 import { WorkspaceLocalHostPendingState } from "./components/WorkspaceLocalHostPendingState";
+import { getWorkspaceTrpcProviderKey } from "./getWorkspaceTrpcProviderKey";
 
 interface WorkspaceContextValue {
 	workspace: HostShapedWorkspace;
@@ -51,9 +52,10 @@ export function WorkspaceProvider({
 	// nor a relay routing key. Recomputing it here is how a cloud workspace
 	// ended up pointed at the relay.
 	const { cache } = useHostWorkspaces();
+	const isLocalWorkspace = workspace.hostId === machineId;
 	const hostUrl =
 		cache.resolveHostUrl(workspace.hostId) ??
-		(workspace.hostId === machineId
+		(isLocalWorkspace
 			? localHostUrl
 			: `${relayUrl}/hosts/${buildHostRoutingKey(
 					workspace.organizationId,
@@ -65,16 +67,21 @@ export function WorkspaceProvider({
 	if (!hostUrl) {
 		return <WorkspaceLocalHostPendingState hostId={workspace.hostId} />;
 	}
+	const providerKey = getWorkspaceTrpcProviderKey({
+		workspaceId: workspace.id,
+		hostUrl,
+		isLocalWorkspace,
+	});
 
 	return (
 		<WorkspaceContext.Provider value={{ workspace, hostUrl }}>
-			{/* Keyed on the workspace alone: the host service can come back on a
-			    different port, and keying on the URL too would remount every pane
-			    for what is only a transport swap. WorkspaceClientProvider already
-			    rebuilds its clients when hostUrl changes. */}
+			{/* Mounted tRPC observers retain the client and query function they were
+			    created with, so a remote relay/failover change must remount this
+			    subtree. Keep local workspaces keyed only by workspace, though: a
+			    host-service port restart should not remount every pane. */}
 			<WorkspaceTrpcProvider
 				cacheKey={workspace.id}
-				key={workspace.id}
+				key={providerKey}
 				hostUrl={hostUrl}
 				headers={() => getHostServiceHeaders(hostUrl)}
 				wsToken={() => getHostServiceWsToken(hostUrl)}
