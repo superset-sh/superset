@@ -34,7 +34,6 @@
 		"@upstash/qstash": "2.10.1",
 		"@upstash/ratelimit": "2.0.8",
 		"@upstash/redis": "1.37.0",
-		"@vercel/blob": "2.3.2",
 		"better-auth": "1.6.22",
 		"date-fns": "4.1.0",
 		"drizzle-orm": "0.45.2",

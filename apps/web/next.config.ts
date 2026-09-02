@@ -137,15 +137,6 @@ const config: NextConfig = {
 		swcPlugins: [["@lingui/swc-plugin", {}]],
 	},
 
-	images: {
-		remotePatterns: [
-			{
-				protocol: "https",
-				hostname: "*.public.blob.vercel-storage.com",
-			},
-		],
-	},
-
 	async rewrites() {
 		return [
 			{

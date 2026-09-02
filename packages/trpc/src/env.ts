@@ -6,7 +6,6 @@ export const env = createEnv({
 		NODE_ENV: z
 			.enum(["development", "production", "test"])
 			.default("development"),
-		BLOB_READ_WRITE_TOKEN: z.string().min(1),
 		// Cloudflare: R2 holds page bytes, chat attachments, avatars and
 		// organization logos, and the usercontent origin serves them. Required,
 		// so a deployment missing one fails at boot rather than at the first

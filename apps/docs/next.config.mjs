@@ -22,14 +22,6 @@ const config = {
 	experimental: {
 		swcPlugins: [["@lingui/swc-plugin", {}]],
 	},
-	images: {
-		remotePatterns: [
-			{
-				protocol: "https",
-				hostname: "*.public.blob.vercel-storage.com",
-			},
-		],
-	},
 	async redirects() {
 		return [
 			{
