@@ -62,13 +62,15 @@ type BoardColumnInputs = Pick<
  *   4. agent permission/failed           → Needs attention
  *   5. agent working                     → Working
  *   6. PR open/draft/queued              → Needs review
- *   7. agent review on a worktree        → Needs review
+ *   7. agent review on a main/worktree   → Needs review
  *   8. otherwise                         → Idle
  *
- * A finished agent alone only counts as review-worthy on worktree
- * workspaces: session runs (automations, chats) and main checkouts have no
- * branch to review, and they arrive in volume — routing them to "review"
- * buries the real candidates (the bucket answers "what needs me").
+ * A finished agent alone counts as review-worthy on main and worktree
+ * workspaces: both are project checkouts a person is driving, and the
+ * sidebar, dock badge and "Ready for review" filter already treat them that
+ * way. Only session workspaces (automation and chat runs with no project
+ * checkout) are excluded: they arrive in volume, and routing them to
+ * "review" buries the real candidates (the bucket answers "what needs me").
  */
 export function deriveBoardColumn(
 	workspace: BoardColumnInputs,
@@ -91,7 +93,7 @@ export function deriveBoardColumn(
 	) {
 		return "review";
 	}
-	if (workspace.agentStatus === "review" && workspace.type === "worktree") {
+	if (workspace.agentStatus === "review" && workspace.type !== "session") {
 		return "review";
 	}
 	return "idle";

@@ -69,12 +69,18 @@ describe("deriveBoardColumn", () => {
 		expect(deriveBoardColumn(make({ prState: "queued" }))).toBe("review");
 	});
 
-	test("a finished agent on a session or main workspace is Idle, not review", () => {
-		expect(
-			deriveBoardColumn(make({ agentStatus: "review", type: "session" })),
-		).toBe("idle");
+	test("a finished agent on a main or worktree checkout is review-worthy", () => {
 		expect(
 			deriveBoardColumn(make({ agentStatus: "review", type: "main" })),
+		).toBe("review");
+		expect(
+			deriveBoardColumn(make({ agentStatus: "review", type: "worktree" })),
+		).toBe("review");
+	});
+
+	test("a finished agent on a session workspace is Idle, not review", () => {
+		expect(
+			deriveBoardColumn(make({ agentStatus: "review", type: "session" })),
 		).toBe("idle");
 	});
 
