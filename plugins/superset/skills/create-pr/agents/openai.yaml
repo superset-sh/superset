@@ -1,0 +1,4 @@
+interface:
+  display_name: "Superset Create PR"
+  short_description: "Name, describe, and open a pull request for the current branch"
+  default_prompt: "Use $superset-create-pr to open a pull request for this branch."

@@ -213,6 +213,11 @@ export const SUPERSET_MANAGED_SKILLS = [
 		name: "contribute",
 		description: "Set up an open-source contribution to Superset",
 	},
+	{
+		name: "create-pr",
+		description:
+			"Name, describe, and open a pull request for the current branch",
+	},
 	{ name: "doctor", description: "Diagnose and fix Superset problems" },
 	{ name: "feedback", description: "Report bugs and request features" },
 	{

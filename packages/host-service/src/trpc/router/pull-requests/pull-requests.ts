@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../../index";
 import { createForWorkspace } from "./procedures/create-for-workspace";
+import {
+	agentCreateStatus,
+	createWithAgent,
+} from "./procedures/create-with-agent";
 import { getContent } from "./procedures/get-content";
 import { getDiff } from "./procedures/get-diff";
 import { getLinkedWorkspace } from "./procedures/get-linked-workspace";
@@ -65,6 +69,8 @@ export const pullRequestsRouter = router({
 			return { ok: true };
 		}),
 	createForWorkspace,
+	createWithAgent,
+	agentCreateStatus,
 	getContent,
 	getDiff,
 	getLinkedWorkspace,

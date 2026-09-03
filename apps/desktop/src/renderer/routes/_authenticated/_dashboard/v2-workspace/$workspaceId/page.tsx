@@ -58,6 +58,7 @@ import { useWorkspacePaneOpeners } from "./hooks/useWorkspacePaneOpeners";
 import { WorkspaceGitStatusProvider } from "./providers/WorkspaceGitStatusProvider";
 import { FileDocumentStoreProvider } from "./state/fileDocumentStore";
 import type { PaneViewerData } from "./types";
+import { focusOrAddTerminalPane } from "./utils/focusTerminalPane";
 import type { V2WorkspaceUrlOpenTarget } from "./utils/openUrlInV2Workspace";
 
 interface WorkspaceSearch {
@@ -204,6 +205,14 @@ function V2WorkspaceContent() {
 			openDiffPane(path, true, undefined, undefined, changeKey);
 		},
 		[openDiffPane],
+	);
+	// The Changes control's "Show agent terminal": same focus-or-open the
+	// pane registry uses for agent chips.
+	const focusTerminalPane = useCallback(
+		(terminalId: string) => {
+			focusOrAddTerminalPane(store, terminalId);
+		},
+		[store],
 	);
 	const paneRegistry = usePaneRegistry({
 		onOpenFile: openFilePaneFromTreeClick,
@@ -399,6 +408,7 @@ function V2WorkspaceContent() {
 										<ChangesControl
 											workspaceId={workspaceId}
 											onOpenChanges={openChangesPane}
+											onFocusTerminal={focusTerminalPane}
 										/>
 									)}
 									{workspaceRunButton}

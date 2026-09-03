@@ -21,10 +21,19 @@ import {
 	getDefaultBranchName,
 	loadFileDiffContent,
 	mapWithConcurrency,
+	resolveBaseComparison,
 	resolveDiffCategoryRefs,
 } from "../../trpc/router/git/utils/git-helpers.ts";
 import type { GitStatusSnapshotComputation } from "../../trpc/router/git/utils/git-status.ts";
 import { getGitStatusSnapshot } from "../../trpc/router/git/utils/git-status.ts";
+import {
+	type PrContext,
+	type PrContextPatch,
+	parseCommitLog,
+	parseNumstat,
+	selectPatchPathspec,
+	slicePatch,
+} from "../../trpc/router/pull-requests/utils/pr-context.ts";
 import {
 	normalizeWorktreePath,
 	parseWorktreeList,
@@ -431,6 +440,127 @@ export const gitPrHeadBaseTask = defineWorkerTask<
 	},
 });
 
+export type GitPrContextResult =
+	| { ok: true; context: PrContext }
+	| { ok: false; reason: "detached-head" | "no-base" | "on-base" };
+
+// Everything the create-PR agent prompt needs about the branch, read in one
+// worker pass: the commits ahead of the configured base (falling back to the
+// repo default), a per-file numstat, and a byte-budgeted patch with generated
+// files left out. Base resolution mirrors gitPrHeadBaseTask/createForWorkspace
+// so the prompt describes the same range the PR will open against, and the
+// range starts at the merge base so work that landed on the base after the
+// fork doesn't read as part of this branch.
+export const gitPrContextTask = defineWorkerTask<
+	{ worktreePath: string; gitEnv: GitTaskEnv; patchByteBudget?: number },
+	GitPrContextResult
+>({
+	type: "git/prContext",
+	handler: async ({ worktreePath, gitEnv, patchByteBudget }) => {
+		const git = createUserSimpleGit(worktreePath).env(gitEnv);
+		const head = (
+			await git.revparse(["--abbrev-ref", "HEAD"]).catch(() => "")
+		).trim();
+		if (!head || head === "HEAD") return { ok: false, reason: "detached-head" };
+
+		const configuredBase = (
+			await git.raw(["config", `branch.${head}.base`]).catch(() => "")
+		).trim();
+		const baseName = (configuredBase || (await getDefaultBranchName(git)) || "")
+			.replace(/^origin\//, "")
+			.trim();
+		if (!baseName) return { ok: false, reason: "no-base" };
+		if (baseName === head) return { ok: false, reason: "on-base" };
+
+		// Prefer the base's upstream ref (what a fetch keeps current); a repo
+		// with no remote for it still has the local branch.
+		const comparison = await resolveBaseComparison(git, baseName);
+		let baseRef: string | null = null;
+		for (const candidate of [comparison?.baseRef, baseName]) {
+			if (!candidate) continue;
+			// No `--quiet`: simple-git reads a non-zero exit with empty stderr
+			// as success, so the failure must keep its message.
+			const ok = await git
+				.raw(["rev-parse", "--verify", `${candidate}^{commit}`])
+				.then(() => true)
+				.catch(() => false);
+			if (ok) {
+				baseRef = candidate;
+				break;
+			}
+		}
+		if (!baseRef) return { ok: false, reason: "no-base" };
+		const mergeBase = (
+			await git.raw(["merge-base", baseRef, "HEAD"]).catch(() => baseRef)
+		).trim();
+
+		const commits = parseCommitLog(
+			await git.raw([
+				"log",
+				`${mergeBase}..HEAD`,
+				"--format=%H%x1f%h%x1f%s%x1f%b%x1e",
+			]),
+		);
+		const files = parseNumstat(
+			await git.raw([
+				"diff",
+				"--numstat",
+				"-z",
+				"--find-renames",
+				mergeBase,
+				"HEAD",
+			]),
+		);
+
+		const pathspec = selectPatchPathspec(files);
+		let patch: PrContextPatch;
+		if (pathspec === null) {
+			const sourceFiles = files.filter((file) => !file.generated).length;
+			patch = {
+				text: "",
+				includedFiles: 0,
+				omittedFiles: sourceFiles,
+				truncated: sourceFiles > 0,
+			};
+		} else {
+			patch = slicePatch(
+				await git.raw([
+					"diff",
+					"--no-color",
+					"--no-ext-diff",
+					"--find-renames",
+					"--unified=3",
+					mergeBase,
+					"HEAD",
+					"--",
+					...pathspec,
+				]),
+				patchByteBudget,
+			);
+		}
+
+		const status = await git.raw(["status", "--porcelain"]).catch(() => "");
+		const unpushed = await git
+			.raw(["rev-list", "--count", "@{upstream}..HEAD"])
+			.then((raw) => Number.parseInt(raw.trim(), 10))
+			.catch(() => null);
+
+		return {
+			ok: true,
+			context: {
+				head,
+				base: { name: baseName, ref: baseRef },
+				commits,
+				files,
+				patch,
+				hasUncommitted: status.trim().length > 0,
+				unpushedCommits:
+					unpushed !== null && Number.isFinite(unpushed) ? unpushed : null,
+			},
+		};
+	},
+});
+
 export const gitTasks = [
 	gitStatusSnapshotTask,
 	gitFetchBaseRefTask,
@@ -445,4 +575,5 @@ export const gitTasks = [
 	gitCommitTask,
 	gitPushTask,
 	gitPrHeadBaseTask,
+	gitPrContextTask,
 ];

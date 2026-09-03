@@ -16,15 +16,19 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	VscChevronDown,
+	VscDebugStop,
+	VscEdit,
 	VscGitCommit,
 	VscGitPullRequestCreate,
 	VscLoading,
 	VscRepoPush,
+	VscTerminal,
 } from "react-icons/vsc";
 import { usePullRequestsSplitViewStore } from "renderer/routes/_authenticated/_dashboard/pull-requests/stores/pullRequestsSplitViewStore";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useWorkspaceGitStatus } from "../../../../providers/WorkspaceGitStatusProvider";
 import type { BranchSyncStatus } from "../../utils/getPRFlowState";
+import { useCreatePrWithAgent } from "./hooks/useCreatePrWithAgent";
 
 interface ShipControlProps {
 	workspaceId: string;
@@ -35,14 +39,23 @@ interface ShipControlProps {
 	 * actions collapse into the chevron menu so the control keeps one face.
 	 */
 	compact?: boolean;
+	/** Brings the terminal an agent is creating the PR in into view. */
+	onFocusTerminal?: (terminalId: string) => void;
 }
 
 /**
  * The no-PR half of the top-bar Changes control: walks the branch to a pull
  * request. Full mode shows one progressive face — Commit (message popover)
- * while the tree is dirty, then Create PR (title/description popover; pushes
- * first when the branch is unpublished or ahead), then Push. Compact mode
- * (diff stats own the face) folds the same actions into the chevron menu.
+ * while the tree is dirty, then Create PR, then Push. Compact mode (diff
+ * stats own the face) folds the same actions into the chevron menu.
+ *
+ * Create PR hands the branch to an agent (`useCreatePrWithAgent`): a live
+ * agent terminal in the workspace, else the default agent run headlessly by
+ * the host. The face shows "Creating PR…" until the PR link lands (the
+ * control then flips to its PR badge), the agent finishes without one, or
+ * the wait times out. "Create PR manually…" in the chevron keeps the old
+ * title/description popover — which pushes first when the branch is
+ * unpublished or ahead — as the by-hand path.
  *
  * Session workspaces (null projectId) can't create PRs — the PR route and
  * repo resolution are project-scoped — so they only ever see Commit/Push.
@@ -52,6 +65,7 @@ export function ShipControl({
 	sync,
 	onRefresh,
 	compact = false,
+	onFocusTerminal,
 }: ShipControlProps) {
 	const { t } = useLingui();
 	const navigate = useNavigate();
@@ -186,6 +200,28 @@ export function ShipControl({
 		flowPushMutation.isPending ||
 		createPrMutation.isPending;
 
+	const noCommitsTooltip = t({
+		id: "workspace.shipControl.noCommitsTooltip",
+		message: "No commits to open a pull request from",
+	});
+
+	const agentPr = useCreatePrWithAgent({
+		workspaceId,
+		projectId,
+		onPrCreated: onRefresh,
+	});
+	const agentBusy = agentPr.status !== null || agentPr.isDispatching;
+	// Plain identifiers so Lingui names the placeholders for translators.
+	const workingLabel = agentPr.status?.agentLabel;
+	const targetLabel = agentPr.targetLabel;
+	const handleCreatePrWithAgent = () => {
+		if (!hasCommitsAhead) {
+			toast.info(noCommitsTooltip);
+			return;
+		}
+		void agentPr.dispatch();
+	};
+
 	const changedPaths = useMemo(() => {
 		const data = status.data;
 		if (!data) return [];
@@ -299,11 +335,6 @@ export function ShipControl({
 	const showCreatePr = !needsCommit && canCreatePr;
 	if (!needsCommit && !showCreatePr && !needsPush) return null;
 
-	const noCommitsTooltip = t({
-		id: "workspace.shipControl.noCommitsTooltip",
-		message: "No commits to open a pull request from",
-	});
-
 	// enabled: on the hover so a disabled button stays hoverable (pointer
 	// events are kept alive for the native title tooltip) without lighting up.
 	const mainButtonClass =
@@ -317,12 +348,61 @@ export function ShipControl({
 				message: "Open ship options",
 			})}
 		>
-			{isShipping || commitMutation.isPending ? (
+			{isShipping || commitMutation.isPending || agentBusy ? (
 				<VscLoading className="size-3 animate-spin text-muted-foreground" />
 			) : (
 				<VscChevronDown className="size-3 text-muted-foreground" />
 			)}
 		</button>
+	);
+
+	// Menu entries while an agent has the PR: bring its terminal into view
+	// (terminal mode) or drop the wait. Shared by both modes' chevrons.
+	const agentWaitItems = agentPr.status ? (
+		<>
+			{agentPr.status.terminalId && onFocusTerminal && (
+				<DropdownMenuItem
+					className="text-xs"
+					onClick={() => {
+						const terminalId = agentPr.status?.terminalId;
+						if (terminalId) onFocusTerminal(terminalId);
+					}}
+				>
+					<VscTerminal className="size-3.5" />
+					<Trans id="workspace.shipControl.showAgentTerminal">
+						Show agent terminal
+					</Trans>
+				</DropdownMenuItem>
+			)}
+			<DropdownMenuItem className="text-xs" onClick={agentPr.stopWaiting}>
+				<VscDebugStop className="size-3.5" />
+				<Trans id="workspace.shipControl.stopWaiting">Stop waiting</Trans>
+			</DropdownMenuItem>
+		</>
+	) : null;
+	// The by-hand path: today's title/description popover, kept one menu
+	// level down so the default click stays the agent dispatch.
+	const manualCreatePrItem = (
+		<DropdownMenuItem
+			className={
+				hasCommitsAhead
+					? "text-xs"
+					: "text-xs text-muted-foreground focus:text-muted-foreground"
+			}
+			disabled={isShipping}
+			onClick={() => {
+				if (!hasCommitsAhead) {
+					toast.info(noCommitsTooltip);
+					return;
+				}
+				pendingViewRef.current = "pr";
+			}}
+		>
+			<VscEdit className="size-3.5" />
+			<Trans id="workspace.shipControl.createPrManually">
+				Create PR manually…
+			</Trans>
+		</DropdownMenuItem>
 	);
 
 	return (
@@ -341,7 +421,7 @@ export function ShipControl({
 							<DropdownMenuTrigger asChild>{chevronButton}</DropdownMenuTrigger>
 							<DropdownMenuContent
 								align="end"
-								className="w-44"
+								className="w-48"
 								onCloseAutoFocus={(event) => {
 									const pending = pendingViewRef.current;
 									if (pending) {
@@ -374,30 +454,39 @@ export function ShipControl({
 										<Trans id="workspace.shipControl.push">Push</Trans>
 									</DropdownMenuItem>
 								)}
-								{canCreatePr && (
-									// Not `disabled` when there are no commits ahead: a disabled
-									// menu item is pointer-events-none, so its title tooltip can
-									// never show — instead the greyed item stays clickable and
-									// explains itself with a toast.
-									<DropdownMenuItem
-										className={
-											hasCommitsAhead
-												? "text-xs"
-												: "text-xs text-muted-foreground focus:text-muted-foreground"
-										}
-										disabled={isShipping}
-										onClick={() => {
-											if (!hasCommitsAhead) {
-												toast.info(noCommitsTooltip);
-												return;
+								{canCreatePr && agentBusy ? (
+									<>
+										<DropdownMenuItem className="text-xs" disabled>
+											<VscLoading className="size-3.5 animate-spin" />
+											<Trans id="workspace.shipControl.agentCreatingPrFace">
+												Creating PR…
+											</Trans>
+										</DropdownMenuItem>
+										{agentWaitItems}
+									</>
+								) : canCreatePr ? (
+									<>
+										{/* Not `disabled` when there are no commits ahead: a
+										    disabled menu item is pointer-events-none, so its title
+										    tooltip can never show — instead the greyed item stays
+										    clickable and explains itself with a toast. */}
+										<DropdownMenuItem
+											className={
+												hasCommitsAhead
+													? "text-xs"
+													: "text-xs text-muted-foreground focus:text-muted-foreground"
 											}
-											pendingViewRef.current = "pr";
-										}}
-									>
-										<VscGitPullRequestCreate className="size-3.5" />
-										<Trans id="workspace.shipControl.createPr">Create PR</Trans>
-									</DropdownMenuItem>
-								)}
+											disabled={isShipping}
+											onClick={handleCreatePrWithAgent}
+										>
+											<VscGitPullRequestCreate className="size-3.5" />
+											<Trans id="workspace.shipControl.createPr">
+												Create PR
+											</Trans>
+										</DropdownMenuItem>
+										{manualCreatePrItem}
+									</>
+								) : null}
 							</DropdownMenuContent>
 						</DropdownMenu>
 					) : (
@@ -419,16 +508,36 @@ export function ShipControl({
 								<button
 									type="button"
 									className={mainButtonClass}
-									disabled={!hasCommitsAhead}
-									title={hasCommitsAhead ? undefined : noCommitsTooltip}
-									onClick={openPrView}
+									disabled={!hasCommitsAhead || agentBusy}
+									title={
+										workingLabel
+											? t({
+													id: "workspace.shipControl.creatingPrWithAgentTitle",
+													message: `${workingLabel} is creating the pull request`,
+												})
+											: hasCommitsAhead
+												? targetLabel
+													? t({
+															id: "workspace.shipControl.createPrWithAgentTitle",
+															message: `Have ${targetLabel} name, describe, and open the pull request`,
+														})
+													: undefined
+												: noCommitsTooltip
+									}
+									onClick={handleCreatePrWithAgent}
 								>
-									{isShipping ? (
+									{isShipping || agentBusy ? (
 										<VscLoading className="size-3.5 animate-spin" />
 									) : (
 										<VscGitPullRequestCreate className="size-3.5" />
 									)}
-									<Trans id="workspace.shipControl.createPr">Create PR</Trans>
+									{agentBusy ? (
+										<Trans id="workspace.shipControl.agentCreatingPrFace">
+											Creating PR…
+										</Trans>
+									) : (
+										<Trans id="workspace.shipControl.createPr">Create PR</Trans>
+									)}
 								</button>
 							) : (
 								<button
@@ -445,22 +554,38 @@ export function ShipControl({
 									<Trans id="workspace.shipControl.push">Push</Trans>
 								</button>
 							)}
-							{needsPush && (needsCommit || showCreatePr) && (
+							{((needsPush && needsCommit) || showCreatePr) && (
 								<>
 									<div className="h-full w-px bg-border/60" />
 									<DropdownMenu>
 										<DropdownMenuTrigger asChild>
 											{chevronButton}
 										</DropdownMenuTrigger>
-										<DropdownMenuContent align="end" className="w-40">
-											<DropdownMenuItem
-												className="text-xs"
-												disabled={pushMutation.isPending}
-												onClick={() => pushMutation.mutate({ workspaceId })}
-											>
-												<VscRepoPush className="size-3.5" />
-												<Trans id="workspace.shipControl.push">Push</Trans>
-											</DropdownMenuItem>
+										<DropdownMenuContent
+											align="end"
+											className="w-48"
+											onCloseAutoFocus={(event) => {
+												const pending = pendingViewRef.current;
+												if (pending) {
+													pendingViewRef.current = null;
+													event.preventDefault();
+													if (pending === "pr") openPrView();
+													else setView(pending);
+												}
+											}}
+										>
+											{needsPush && (
+												<DropdownMenuItem
+													className="text-xs"
+													disabled={pushMutation.isPending}
+													onClick={() => pushMutation.mutate({ workspaceId })}
+												>
+													<VscRepoPush className="size-3.5" />
+													<Trans id="workspace.shipControl.push">Push</Trans>
+												</DropdownMenuItem>
+											)}
+											{showCreatePr &&
+												(agentBusy ? agentWaitItems : manualCreatePrItem)}
 										</DropdownMenuContent>
 									</DropdownMenu>
 								</>

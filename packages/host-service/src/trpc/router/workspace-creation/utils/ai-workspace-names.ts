@@ -7,19 +7,16 @@ import {
 	isBuiltinAgentId,
 	isTerminalAgentDefinition,
 } from "@superset/shared/agent-catalog";
-import {
-	buildAgentModelArgs,
-	buildAgentModelEnv,
-} from "@superset/shared/agent-models";
-import {
-	envOverlayPrefix,
-	quoteSingleShell,
-} from "@superset/shared/agent-prompt-launch";
+import { quoteSingleShell } from "@superset/shared/agent-prompt-launch";
 import { z } from "zod";
 import type { HostDb } from "../../../../db";
 import type { HostServiceContext } from "../../../../types";
 import { updateLocalWorkspace } from "../../../../workspaces/local-workspace-store";
 import { resolveHostAgentConfig } from "../../agents/agents";
+import {
+	buildHeadlessAgentCommand,
+	HEADLESS_SMALL_MODELS,
+} from "../../agents/headless-command";
 import { listBranchNames } from "./list-branch-names";
 import { deduplicateBranchName } from "./sanitize-branch";
 
@@ -150,19 +147,6 @@ export interface WorkspaceNamingAgentContext {
 	agent: string;
 }
 
-// Small/fast model per agent for the naming call, validated against the
-// curated catalog in agent-models.ts. Only presets with an unambiguous
-// cheap tier are listed — the rest run their default model (opencode's
-// model ids are provider-scoped, copilot's catalog has no small tier,
-// and cursor-agent rejects ids outside the account's live model list,
-// so forcing one could break naming for those users).
-const NAMING_SMALL_MODELS: Record<string, string> = {
-	claude: "haiku",
-	codex: "gpt-5.6-luna",
-	gemini: "gemini-2.5-flash",
-	vibe: "devstral-small",
-};
-
 function resolveNonInteractiveCommand(
 	db: HostDb,
 	agent: string,
@@ -173,14 +157,11 @@ function resolveNonInteractiveCommand(
 	if (!isTerminalAgentDefinition(definition)) return null;
 	const base = definition.nonInteractiveCommand;
 	if (!base) return null;
-
-	const smallModel = NAMING_SMALL_MODELS[presetId];
-	// Model args go right after the binary: trailing flags like gemini's
-	// `-p` consume the next token, so appending would swallow the prompt.
-	const modelArgs = buildAgentModelArgs(presetId, smallModel);
-	const [bin, ...flags] = base.split(" ");
-	const command = [bin, ...modelArgs.map(quoteSingleShell), ...flags].join(" ");
-	return `${envOverlayPrefix(buildAgentModelEnv(presetId, smallModel))}${command}`;
+	return buildHeadlessAgentCommand(
+		presetId,
+		base,
+		HEADLESS_SMALL_MODELS[presetId],
+	);
 }
 
 function extractNamesJson(

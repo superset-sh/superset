@@ -2,6 +2,7 @@ import { cn } from "@superset/ui/utils";
 import type { IconType } from "react-icons";
 import {
 	LuGitPullRequest,
+	LuGitPullRequestCreate,
 	LuGlobe,
 	LuListChecks,
 	LuMessageSquare,
@@ -26,6 +27,7 @@ const DEFAULT_SKILL_ICONS: Record<string, IconType> = {
 	browser: LuGlobe,
 	computer: LuMonitor,
 	contribute: LuGitPullRequest,
+	"create-pr": LuGitPullRequestCreate,
 	doctor: LuStethoscope,
 	feedback: LuMessageSquare,
 	orchestrate: LuNetwork,

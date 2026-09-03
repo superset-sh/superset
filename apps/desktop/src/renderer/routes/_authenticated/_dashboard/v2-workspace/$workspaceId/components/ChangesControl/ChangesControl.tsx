@@ -10,6 +10,8 @@ import { usePRFlowState } from "./hooks/usePRFlowState";
 interface ChangesControlProps {
 	workspaceId: string;
 	onOpenChanges: () => void;
+	/** Brings a terminal pane into view — used to show the agent creating a PR. */
+	onFocusTerminal?: (terminalId: string) => void;
 }
 
 /**
@@ -29,6 +31,7 @@ interface ChangesControlProps {
 export const ChangesControl = memo(function ChangesControl({
 	workspaceId,
 	onOpenChanges,
+	onFocusTerminal,
 }: ChangesControlProps) {
 	const { t } = useLingui();
 	const status = useWorkspaceGitStatus();
@@ -75,6 +78,7 @@ export const ChangesControl = memo(function ChangesControl({
 					sync={flowState.sync}
 					onRefresh={onRetry}
 					compact={visibleStats != null}
+					onFocusTerminal={onFocusTerminal}
 				/>
 			) : (
 				<PRStatusGroup

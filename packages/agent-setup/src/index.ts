@@ -93,5 +93,8 @@ export {
 	type SyncManagedMcpServersOptions,
 	syncManagedMcpServers,
 } from "./managed-mcp-servers";
-export { createManagedSkills } from "./managed-skills";
+export {
+	createManagedSkills,
+	MANAGED_SKILL_MARKER,
+} from "./managed-skills";
 export { getBinDir, resolveSupersetHomeDir } from "./paths";

@@ -34,6 +34,28 @@ Everything else links to those:
 Agents other than Claude Code should read the relevant `.agents/skills/*/SKILL.md` when its
 description matches the task.
 
+## The `create-pr` skill (top-bar Create PR)
+
+The Changes control's Create PR button hands the branch to an agent instead of a form: the host
+gathers the commits ahead of the configured base (`branch.<name>.base`, else the repo default), a
+per-file diffstat, and a ~30 KB patch with generated files left out, and sends that together with
+the `create-pr` skill to the workspace's live agent terminal — or, with no agent running, to the
+default agent's headless CLI in the worktree (`packages/host-service/src/trpc/router/pull-requests/
+procedures/create-with-agent.ts`). The skill body is inlined in the prompt, so agents that can't
+slash-invoke a skill still follow it.
+
+The skill ships in `plugins/superset/skills/create-pr/SKILL.md` and is provisioned like every other
+managed skill. It resolves most-specific first, so teams encode their PR conventions once:
+
+1. `<repo>/.agents/skills/create-pr/SKILL.md` (or `.claude/skills/create-pr/SKILL.md`) — per project
+2. `~/.agents/skills/superset-create-pr/SKILL.md` — per user; editing it makes it user-owned, and the
+   provisioner stops overwriting it
+3. the bundled default
+
+Headless runs need a permission bypass the catalog's read-only `nonInteractiveCommand` doesn't
+carry; the per-preset commands live in `HEADLESS_TOOL_COMMANDS` (`utils/headless-create-pr.ts`).
+Presets without one report "open an agent terminal" instead of failing silently.
+
 ## Provider accounts (multi-login)
 
 The Usage tab can hold several Claude Code / Codex logins and pick which one agents use. A login
