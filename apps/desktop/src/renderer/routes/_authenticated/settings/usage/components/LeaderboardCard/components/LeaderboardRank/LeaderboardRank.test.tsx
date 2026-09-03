@@ -39,6 +39,9 @@ describe("LeaderboardRank", () => {
 		const { container, getByText } = render(
 			React.createElement(LeaderboardRank, {
 				membership: membership(1_500_000),
+				collapsed: false,
+				onToggleCollapsed: () => {},
+				onManage: () => {},
 			}),
 		);
 
