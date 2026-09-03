@@ -7,7 +7,7 @@ Sidebar rows are built only from per-device `v2WorkspaceLocalState` records join
 - `components/AgentHooks/hooks/usePlaceWorktreesInSidebar/` (renamed from `usePlaceLocalWorktreesInSidebar/`): hook now maps every host's rows with `hostId` + `hostReachable`, derives `onlineHostIds` from `useKnownHosts`, and passes both to the selector.
 - `.../selectWorktreesToPlace.ts`: pure host gate added (`{ machineId, onlineHostIds }`), type renamed `WorkspaceForPlacement`.
 - `components/AgentHooks/AgentHooks.tsx`: import/call renamed.
-- `hooks/useDashboardSidebarState/sidebarMutations.ts`: `removeProjectFromSidebarState` drops its `machineId` param and tombstones row-less worktrees on every host; `SidebarWorkspaceRow` no longer carries `hostId`.
+- `hooks/useDashboardSidebarState/sidebarMutations.ts`: `removeProjectFromSidebarState` takes a `SidebarPlacementScope` (machineId + currentUserId) and tombstones row-less worktrees on every host the reconciler could place from: local host, or remote worktrees this user created. Teammates' rows get no tombstone.
 - `hooks/useDashboardSidebarState/useDashboardSidebarState.ts`: call site updated, `machineId` no longer destructured.
 
 ## 3. Gating and lifecycle
@@ -32,8 +32,8 @@ Unchanged on purpose. `isAutoIncludedLocalMainWorkspace` stays local-only: auto-
 
 ## 7. Follow-up decided 2026-09-02: gate remote placement on the workspace creator
 Placing every online accessible host's worktrees pins teammates' work on shared hosts. Owner (a `v2_users_hosts` role on a host) is the wrong key; creator (`created_by_user_id` on the workspace) is right, but no create path recorded it: the host's request context had no user (this host.db: 324 worktrees + 87 sessions since July, 0 with a creator). Step 1, done here, records it via one header, `x-superset-user-id` (`SUPERSET_USER_ID_HEADER` in `@superset/shared/host-routing`):
-- `apps/relay/src/upstream-headers.ts` (+test): relay sets it from the verified JWT `sub`, overwrites any client value, still strips host/authorization. Covers CLI-remote, MCP, SDK, automations (`mintUserJwt` = owner).
+- `buildUpstreamHeaders` in `@superset/shared/host-routing` (+test), used by both `apps/relay` and `apps/relay2`: sets it from the verified JWT `sub`, overwrites any client value, still strips host/authorization. Covers CLI-remote, MCP, SDK, automations (`mintUserJwt` = owner).
 - `packages/host-service`: `HostServiceContext.userId` from the header (`app.ts`, CORS allow-list); stamped as `createdByUserId` in `workspaces.create` and `createSession`. Adopt/main paths stay null. No migration (column existed).
 - Desktop: `setClientUserId` in `host-service-auth.ts`, wired from the session in `LocalHostServiceProvider`. CLI: local target reads `sub` from its JWT (`readJwtSubject.ts`, +test); API-key callers send none.
-- Tests: `cd apps/relay && bun test src/upstream-headers.test.ts` → 2 pass; `cd packages/cli && bun test src/lib/host-target/readJwtSubject.test.ts` → 2 pass.
+- Tests: `cd packages/shared && bun test src/host-routing.test.ts` → 2 pass; `cd packages/cli && bun test src/lib/host-target/readJwtSubject.test.ts` → 2 pass.
 Step 2, done: `selectWorktreesToPlace` takes `currentUserId` (session via `authClient.useSession` in the hook) and places a remote worktree only when `createdByUserId === currentUserId`; null creator (older host) or unknown session → not placed, opt-in via Pin. Local host still places regardless of creator. Tests: teammate skipped, null creator skipped, session-unknown skipped, local-any-creator placed → 66 pass across the 4 sidebar files. Remote auto-placement therefore works only once both machines run the new version; before that, behaviour equals today.
