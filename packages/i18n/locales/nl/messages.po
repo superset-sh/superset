@@ -26044,14 +26044,6 @@ msgid "settings.usage.leaderboardRank.bodyWithTokens"
 msgstr "{0} tokens in de laatste 30 dagen. Wordt gepubliceerd als <0>{handle}</0>, alleen tokenaantallen en modelnamen."
 
 #. js-lingui-explicit-id
-#. placeholder {0}: formatNumber(rank)
-#. placeholder {1}: tier !== null && <TierBadge tier={tier} />
-#. placeholder {2}: formatNumber(total)
-#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
-msgid "settings.usage.leaderboardRank.headline"
-msgstr "<0><1>#{0}</1>{1}</0> <2>van {2} op de ranglijst</2>"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.manage"
 msgstr "Ranglijstinstellingen"
@@ -26060,6 +26052,13 @@ msgstr "Ranglijstinstellingen"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.open"
 msgstr "Ranglijst openen"
+
+#. js-lingui-explicit-id
+#. placeholder {0}: formatNumber(rank)
+#. placeholder {1}: formatNumber(total)
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
+msgid "settings.usage.leaderboardRank.rankHeadline"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/TierBadge/TierBadge.tsx

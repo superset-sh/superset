@@ -26044,14 +26044,6 @@ msgid "settings.usage.leaderboardRank.bodyWithTokens"
 msgstr "{0} Tokens in den letzten 30 Tagen. Veröffentlichung als <0>{handle}</0>, nur Token-Zahlen und Modellnamen."
 
 #. js-lingui-explicit-id
-#. placeholder {0}: formatNumber(rank)
-#. placeholder {1}: tier !== null && <TierBadge tier={tier} />
-#. placeholder {2}: formatNumber(total)
-#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
-msgid "settings.usage.leaderboardRank.headline"
-msgstr "<0><1>#{0}</1>{1}</0> <2>von {2} in der Bestenliste</2>"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.manage"
 msgstr "Bestenlisten-Einstellungen"
@@ -26060,6 +26052,13 @@ msgstr "Bestenlisten-Einstellungen"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.open"
 msgstr "Bestenliste öffnen"
+
+#. js-lingui-explicit-id
+#. placeholder {0}: formatNumber(rank)
+#. placeholder {1}: formatNumber(total)
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
+msgid "settings.usage.leaderboardRank.rankHeadline"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/TierBadge/TierBadge.tsx

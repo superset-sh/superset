@@ -26043,14 +26043,6 @@ msgid "settings.usage.leaderboardRank.bodyWithTokens"
 msgstr "直近30日で{0}トークン。<0>{handle}</0>として公開中で、トークン数とモデル名のみを公開します。"
 
 #. js-lingui-explicit-id
-#. placeholder {0}: formatNumber(rank)
-#. placeholder {1}: tier !== null && <TierBadge tier={tier} />
-#. placeholder {2}: formatNumber(total)
-#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
-msgid "settings.usage.leaderboardRank.headline"
-msgstr "<0><1>#{0}</1>{1}</0> <2>リーダーボード{2}人中</2>"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.manage"
 msgstr "リーダーボード設定"
@@ -26059,6 +26051,13 @@ msgstr "リーダーボード設定"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.open"
 msgstr "リーダーボードを開く"
+
+#. js-lingui-explicit-id
+#. placeholder {0}: formatNumber(rank)
+#. placeholder {1}: formatNumber(total)
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
+msgid "settings.usage.leaderboardRank.rankHeadline"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/TierBadge/TierBadge.tsx

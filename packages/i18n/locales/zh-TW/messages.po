@@ -26044,14 +26044,6 @@ msgid "settings.usage.leaderboardRank.bodyWithTokens"
 msgstr "最近 30 天 {0} 個 token。以 <0>{handle}</0> 發佈，僅包含 token 數量與模型名稱。"
 
 #. js-lingui-explicit-id
-#. placeholder {0}: formatNumber(rank)
-#. placeholder {1}: tier !== null && <TierBadge tier={tier} />
-#. placeholder {2}: formatNumber(total)
-#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
-msgid "settings.usage.leaderboardRank.headline"
-msgstr "<0><1>#{0}</1>{1}</0> <2>，排行榜共 {2} 人</2>"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.manage"
 msgstr "排行榜設定"
@@ -26060,6 +26052,13 @@ msgstr "排行榜設定"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.open"
 msgstr "開啟排行榜"
+
+#. js-lingui-explicit-id
+#. placeholder {0}: formatNumber(rank)
+#. placeholder {1}: formatNumber(total)
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
+msgid "settings.usage.leaderboardRank.rankHeadline"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/TierBadge/TierBadge.tsx

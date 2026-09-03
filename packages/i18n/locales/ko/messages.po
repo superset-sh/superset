@@ -26044,14 +26044,6 @@ msgid "settings.usage.leaderboardRank.bodyWithTokens"
 msgstr "최근 30일 동안 {0} 토큰. <0>{handle}</0>(으)로 게시되며 토큰 수와 모델 이름만 공개됩니다."
 
 #. js-lingui-explicit-id
-#. placeholder {0}: formatNumber(rank)
-#. placeholder {1}: tier !== null && <TierBadge tier={tier} />
-#. placeholder {2}: formatNumber(total)
-#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
-msgid "settings.usage.leaderboardRank.headline"
-msgstr "<0><1>#{0}</1>{1}</0> <2>리더보드 {2} 중</2>"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.manage"
 msgstr "리더보드 설정"
@@ -26060,6 +26052,13 @@ msgstr "리더보드 설정"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.open"
 msgstr "리더보드 열기"
+
+#. js-lingui-explicit-id
+#. placeholder {0}: formatNumber(rank)
+#. placeholder {1}: formatNumber(total)
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
+msgid "settings.usage.leaderboardRank.rankHeadline"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/TierBadge/TierBadge.tsx

@@ -95,7 +95,7 @@ describe("LeaderboardRank", () => {
 		expect(container.querySelectorAll("li [class*=uppercase]")).toHaveLength(0);
 		expect(container.querySelectorAll("[class*=uppercase]")).toHaveLength(1);
 		expect(container.querySelector("section > div")?.textContent).toContain(
-			"#12Button pusher of 340 on the leaderboard",
+			"#12 of 340 on the leaderboardButton pusher",
 		);
 	});
 

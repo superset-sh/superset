@@ -40,17 +40,15 @@ export function LeaderboardRank({
 			onToggleCollapsed={onToggleCollapsed}
 			title={
 				ranked ? (
-					<Trans id="settings.usage.leaderboardRank.headline">
-						<span className="inline-flex items-center gap-2 align-middle">
+					<span className="inline-flex items-center gap-2">
+						<Trans id="settings.usage.leaderboardRank.rankHeadline">
 							<span className="text-2xl font-bold tabular-nums tracking-tight text-foreground">
 								#{formatNumber(rank)}
-							</span>
-							{tier !== null && <TierBadge tier={tier} />}
-						</span>{" "}
-						<span className="align-middle">
-							of {formatNumber(total)} on the leaderboard
-						</span>
-					</Trans>
+							</span>{" "}
+							<span>of {formatNumber(total)} on the leaderboard</span>
+						</Trans>
+						{tier !== null && <TierBadge tier={tier} />}
+					</span>
 				) : (
 					<Trans id="settings.usage.leaderboardRank.unrankedTitle">
 						You're on the leaderboard, but not ranked yet
