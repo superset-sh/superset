@@ -1,6 +1,7 @@
 import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 import {
 	existsSync,
+	lstatSync,
 	mkdirSync,
 	mkdtempSync,
 	rmSync,
@@ -461,6 +462,85 @@ describe("workspaceCleanup.destroy cleanup ordering", () => {
 		} finally {
 			rmSync(base, { recursive: true, force: true });
 			rmSync(repo, { recursive: true, force: true });
+		}
+	});
+
+	test("git unregisters the worktree and leaves a dangling symlink: destroy removes the link", async () => {
+		// A dangling link is not an absence: a stat-based recheck follows the
+		// link, sees nothing, and reports the worktree removed while the entry
+		// is still in the managed root.
+		const base = mkdtempSync(join(tmpdir(), "worktrees-base-"));
+		const repo = mkdtempSync(join(tmpdir(), "workspace-delete-repo-"));
+		const worktree = join(base, "p-1", "wt-dangling");
+		mkdirSync(join(base, "p-1"), { recursive: true });
+		symlinkSync(join(base, "gone-target"), worktree);
+		try {
+			expect(existsSync(worktree)).toBe(false);
+			expect(lstatSync(worktree, { throwIfNoEntry: false })).toBeDefined();
+			const ctx = makeCtx({
+				workspace: {
+					id: "ws-1",
+					projectId: "p-1",
+					worktreePath: worktree,
+					branch: "feature",
+				},
+				project: { id: "p-1", repoPath: repo, worktreeBaseDir: base },
+				removeWorktree: async () => ({ stillRegistered: false }),
+			});
+			const caller = workspaceCleanupRouter.createCaller(ctx);
+
+			const result = await caller.destroy({
+				workspaceId: "ws-1",
+				deleteBranch: false,
+				force: true,
+			});
+			expect(result.success).toBe(true);
+			expect(result.worktreeRemoved).toBe(true);
+			expect(lstatSync(worktree, { throwIfNoEntry: false })).toBeUndefined();
+		} finally {
+			rmSync(base, { recursive: true, force: true });
+			rmSync(repo, { recursive: true, force: true });
+		}
+	});
+
+	test("worktree path is a symlink into the managed root: destroy removes the link, not through it", async () => {
+		const base = mkdtempSync(join(tmpdir(), "worktrees-base-"));
+		const repo = mkdtempSync(join(tmpdir(), "workspace-delete-repo-"));
+		const outside = mkdtempSync(join(tmpdir(), "workspace-delete-outside-"));
+		const worktree = join(base, "p-1", "wt-link");
+		mkdirSync(join(base, "p-1"), { recursive: true });
+		writeFileSync(join(outside, "user-data.txt"), "keep me");
+		symlinkSync(outside, worktree);
+		try {
+			const ctx = makeCtx({
+				workspace: {
+					id: "ws-1",
+					projectId: "p-1",
+					worktreePath: worktree,
+					branch: "feature",
+				},
+				project: { id: "p-1", repoPath: repo, worktreeBaseDir: base },
+				removeWorktree: async () => ({ stillRegistered: false }),
+			});
+			const caller = workspaceCleanupRouter.createCaller(ctx);
+
+			const result = await caller.destroy({
+				workspaceId: "ws-1",
+				deleteBranch: false,
+				force: true,
+			});
+			expect(result.success).toBe(true);
+			// The link resolves outside the managed root, so the root guard
+			// refuses it and the target's contents are untouched.
+			expect(result.worktreeRemoved).toBe(false);
+			expect(existsSync(join(outside, "user-data.txt"))).toBe(true);
+			expect(
+				result.warnings.some((warning) => warning.includes("left on disk")),
+			).toBe(true);
+		} finally {
+			rmSync(base, { recursive: true, force: true });
+			rmSync(repo, { recursive: true, force: true });
+			rmSync(outside, { recursive: true, force: true });
 		}
 	});
 

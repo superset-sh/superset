@@ -1,4 +1,4 @@
-import { existsSync, statSync } from "node:fs";
+import { existsSync, lstatSync, statSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { sanitizePromptForPty } from "@superset/shared/agent-prompt-launch";
 import { TRPCError } from "@trpc/server";
@@ -365,6 +365,16 @@ function isMissingDirectory(path: string): boolean {
 	}
 }
 
+/** Like isMissingDirectory, but does not follow a final symlink: a dangling
+ * link at the worktree path is still an entry to remove, not an absence. */
+function isMissingPath(path: string): boolean {
+	try {
+		return lstatSync(path, { throwIfNoEntry: false }) === undefined;
+	} catch {
+		return false;
+	}
+}
+
 function archiveReasonFor(
 	ctx: HostServiceContext,
 	local: { pullRequestId: string | null },
@@ -539,7 +549,7 @@ async function runDestroyPhases(
 					}`,
 				});
 			}
-			if (!isMissingDirectory(local.worktreePath)) {
+			if (!isMissingPath(local.worktreePath)) {
 				// Unregistered is not removed: git's unregistration and its
 				// recursive delete are not atomic, so `remove --force --force`
 				// can drop the registration and still fail partway through
@@ -576,10 +586,11 @@ async function runDestroyPhases(
 			}
 			// The outside-root branch above leaves the folder in place, so
 			// report removal from the final disk state rather than assuming
-			// this path always cleared it (#6785 review). `isMissingDirectory`
-			// rather than `existsSync`: a leftover this process cannot read
-			// still exists, and must not be reported as removed.
-			worktreeRemoved = isMissingDirectory(local.worktreePath);
+			// this path always cleared it (#6785 review). `isMissingPath`
+			// rather than `existsSync`: a leftover this process cannot read,
+			// or a dangling symlink, still exists and must not be reported
+			// as removed.
+			worktreeRemoved = isMissingPath(local.worktreePath);
 		}
 	}
 
