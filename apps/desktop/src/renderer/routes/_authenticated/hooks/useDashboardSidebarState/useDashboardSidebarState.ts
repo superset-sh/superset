@@ -3,6 +3,7 @@ import {
 	normalizeWorkspaceTag,
 	normalizeWorkspaceTags,
 	SESSIONS_TAG_SCOPE,
+	tagFolderScope,
 } from "@superset/shared/workspace-tags";
 import { useCallback } from "react";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
@@ -29,6 +30,7 @@ import {
 	buildSidebarFolderKey,
 	deriveTagFolders,
 	getProjectFolderTagIndex,
+	laneProjectIdForScope,
 	mintFolderTag,
 	parseSidebarFolderKey,
 	resolveWorkspaceSectionId,
@@ -77,17 +79,15 @@ function getProjectTopLevelItems(
 	projectId: string | null,
 	options: { excludeWorkspaceId?: string; excludeSectionId?: string } = {},
 ): ProjectTopLevelItem[] {
-	const folderIndex: ReadonlyMap<string, TagFolderRef> =
-		projectId === null
-			? new Map()
-			: getProjectFolderTagIndex(
-					deriveTagFolders(
-						Array.from(collections.v2SidebarSections.state.values()),
-						hostWorkspaces,
-						tagFolderContext,
-					),
-					projectId,
-				);
+	const scope = tagFolderScope(projectId);
+	const folderIndex = getProjectFolderTagIndex(
+		deriveTagFolders(
+			Array.from(collections.v2SidebarSections.state.values()),
+			hostWorkspaces,
+			tagFolderContext,
+		),
+		scope,
+	);
 	const hostTagsByWorkspaceId = new Map(
 		hostWorkspaces.map((workspace) => [workspace.id, workspace.tags]),
 	);
@@ -114,7 +114,7 @@ function getProjectTopLevelItems(
 		...Array.from(collections.v2SidebarSections.state.values())
 			.filter(
 				(item) =>
-					item.projectId === projectId &&
+					item.projectId === scope &&
 					item.sectionId !== options.excludeSectionId,
 			)
 			.map((item) => ({
@@ -131,14 +131,13 @@ function getProjectFolderIndex(
 	tagFolderContext: TagFolderContext,
 	projectId: string | null,
 ): ReadonlyMap<string, TagFolderRef> {
-	if (projectId === null) return new Map();
 	return getProjectFolderTagIndex(
 		deriveTagFolders(
 			Array.from(collections.v2SidebarSections.state.values()),
 			hostWorkspaces,
 			tagFolderContext,
 		),
-		projectId,
+		tagFolderScope(projectId),
 	);
 }
 
@@ -423,7 +422,7 @@ export function useDashboardSidebarState() {
 						collections,
 						hostWorkspaces,
 						tagFolderContext,
-						parsed.projectId,
+						laneProjectIdForScope(parsed.projectId),
 					),
 				),
 				isCollapsed: false,
@@ -837,24 +836,14 @@ export function useDashboardSidebarState() {
 			// A derived folder has no row but is still deletable — deleting it
 			// means untagging its members.
 			if (!section && !parsed) return;
-			const projectId = section?.projectId ?? parsed?.projectId;
-			if (!projectId) return;
+			// `scope` keys the folder (project id, or the Sessions tag scope);
+			// `projectId` is what the lane's workspace rows carry (null for
+			// sessions).
+			const scope = section?.projectId ?? parsed?.projectId;
+			if (!scope) return;
+			const projectId = laneProjectIdForScope(scope);
 			const folderTag =
 				normalizeWorkspaceTag(section?.tag) ?? parsed?.tag ?? null;
-			if (projectId === SESSIONS_TAG_SCOPE) {
-				if (folderTag === null) return;
-				for (const workspace of hostWorkspaces) {
-					if (workspace.projectId !== null) continue;
-					const tags = normalizeWorkspaceTags(workspace.tags);
-					if (!tags.includes(folderTag)) continue;
-					writeWorkspaceTags(
-						workspace.id,
-						tags.filter((tag) => tag !== folderTag),
-					);
-				}
-				removeTagSetting(projectId, folderTag);
-				return;
-			}
 
 			// Groups interleave with ungrouped rows, so replace the deleted
 			// section's own slot with its members instead of dumping them
@@ -923,7 +912,7 @@ export function useDashboardSidebarState() {
 				}
 			}
 
-			if (folderTag !== null) removeTagSetting(projectId, folderTag);
+			if (folderTag !== null) removeTagSetting(scope, folderTag);
 			if (section) collections.v2SidebarSections.delete(sectionId);
 		},
 		[

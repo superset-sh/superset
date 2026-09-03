@@ -7,6 +7,7 @@ export {
 	deriveTagFolders,
 	EMPTY_TAG_FOLDER_CONTEXT,
 	getProjectFolderTagIndex,
+	laneProjectIdForScope,
 	mintFolderTag,
 	parseSidebarFolderKey,
 	resolveWorkspaceFolder,

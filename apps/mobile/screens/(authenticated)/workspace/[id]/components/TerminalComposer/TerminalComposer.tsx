@@ -3,7 +3,7 @@ import {
 	Composer,
 	type ComposerHandle,
 	type ComposerQuickKey,
-	type ComposerSessionAction,
+	type ComposerQuickKeysAction,
 	type ComposerSessionTab,
 	type ComposerSlashCommand,
 } from "@superset/composer";
@@ -65,12 +65,12 @@ interface TerminalComposerProps {
 	onNewSessionPress: () => void;
 	onAllSessionsPress: () => void;
 	/**
-	 * The static chip leading the tab strip — this workspace's pull requests.
+	 * The static chip beside the quick keys — this workspace's pull requests.
 	 * Omitted when it has none, which is also how a workspace that never
 	 * produced one never grows the control.
 	 */
-	sessionAction?: ComposerSessionAction;
-	onSessionActionPress: () => void;
+	quickKeysAction?: ComposerQuickKeysAction;
+	onQuickKeysActionPress: () => void;
 	/** Focused, or the keyboard is up — the screen covers the terminal with a
 	 *  tap-to-dismiss target while this is true. */
 	onActiveChange?: (active: boolean) => void;
@@ -110,8 +110,8 @@ export const TerminalComposer = forwardRef<
 		onSessionTabCopyId,
 		onNewSessionPress,
 		onAllSessionsPress,
-		sessionAction,
-		onSessionActionPress,
+		quickKeysAction,
+		onQuickKeysActionPress,
 		onActiveChange,
 		onHeightChange,
 		selectActive,
@@ -263,8 +263,8 @@ export const TerminalComposer = forwardRef<
 				onSessionTabCopyId={onSessionTabCopyId}
 				onNewSessionPress={onNewSessionPress}
 				onAllSessionsPress={onAllSessionsPress}
-				sessionAction={sessionAction}
-				onSessionActionPress={onSessionActionPress}
+				quickKeysAction={quickKeysAction}
+				onQuickKeysActionPress={onQuickKeysActionPress}
 				slashCommands={slashCommands.map(
 					(command): ComposerSlashCommand => ({
 						id: `${command.trigger}${command.name}`,

@@ -19,20 +19,17 @@ interface SortableWorkspaceItemProps {
 	shortcutLabel?: string;
 	disabled?: boolean;
 	/**
-	 * Collapse the row to zero height (collapsed group / active section drag)
-	 * while keeping it mounted. Lives here — inside the sortable wrapper — so
-	 * the clip box moves WITH the dnd translate; an outer overflow-hidden
-	 * wrapper would clip displaced rows out of view mid-drag.
+	 * Collapse the row to zero height (collapsed group) while keeping it
+	 * mounted. Lives here — inside the sortable wrapper — so the clip box
+	 * moves WITH the dnd translate; an outer overflow-hidden wrapper would
+	 * clip displaced rows out of view mid-drag.
 	 */
 	collapsed?: boolean;
 	/**
-	 * Skip the collapse transition. Required while a section drag is active:
-	 * dnd-kit re-measures droppables when the hidden members unregister, and
-	 * an animated collapse means that measure runs mid-transition — every row
-	 * below the group then keeps a stale rect for the rest of the drag, so
-	 * downward drops target the wrong slot.
+	 * The row belongs to the section being dragged: dim it like the dragged
+	 * row itself, so the whole group reads as the in-list drop slot.
 	 */
-	collapseInstantly?: boolean;
+	isDragPlaceholder?: boolean;
 	isSelected?: boolean;
 	onSelectionClick?: (event: WorkspaceSelectionEvent) => boolean;
 	/** Set for rows rendered inside the top-level Pinned section. */
@@ -49,7 +46,7 @@ export function SortableWorkspaceItem({
 	shortcutLabel,
 	disabled,
 	collapsed = false,
-	collapseInstantly = false,
+	isDragPlaceholder = false,
 	isSelected = false,
 	onSelectionClick,
 	pinnedContext,
@@ -97,7 +94,7 @@ export function SortableWorkspaceItem({
 			style={{
 				transform: CSS.Translate.toString(transform),
 				transition,
-				opacity: isDragging ? 0.5 : undefined,
+				opacity: isDragging || isDragPlaceholder ? 0.5 : undefined,
 				borderLeft: accentColor ? `2px solid ${accentColor}` : undefined,
 			}}
 			{...attributes}
@@ -110,9 +107,7 @@ export function SortableWorkspaceItem({
 			    droppable, matching the old unmount behavior for DnD. */}
 			<div
 				className={cn(
-					"grid",
-					!collapseInstantly &&
-						"transition-[grid-template-rows,opacity] duration-150 ease-out",
+					"grid transition-[grid-template-rows,opacity] duration-150 ease-out",
 					collapsed
 						? "grid-rows-[0fr] opacity-0"
 						: "grid-rows-[1fr] opacity-100",

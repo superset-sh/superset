@@ -543,19 +543,14 @@ export function useDashboardSidebarData() {
 		() =>
 			buildDashboardSidebarSessions({
 				sessionSidebarWorkspaces: sessionRows,
+				sidebarSections,
 				machineId,
 				pullRequestsByWorkspaceId,
-				tagFolderSettings: tagFolderContext.tagSettings,
 			}),
-		[
-			machineId,
-			pullRequestsByWorkspaceId,
-			sessionRows,
-			tagFolderContext.tagSettings,
-		],
+		[machineId, pullRequestsByWorkspaceId, sessionRows, sidebarSections],
 	);
 	const sessions = useJsonStable(computedSessions);
-	const sessionWorkspaces = sessions.orderedWorkspaces;
+	const sessionWorkspaces = sessions.workspaces;
 
 	const computedPinnedWorkspaces = useMemo<DashboardSidebarPinnedWorkspace[]>(
 		() =>
@@ -573,8 +568,7 @@ export function useDashboardSidebarData() {
 		groups,
 		pinnedWorkspaces,
 		sessionWorkspaces,
-		sessionTagGroups: sessions.tagGroups,
-		ungroupedSessionWorkspaces: sessions.ungroupedWorkspaces,
+		sessionChildren: sessions.children,
 		refreshWorkspacePullRequest,
 		toggleProjectCollapsed,
 	};

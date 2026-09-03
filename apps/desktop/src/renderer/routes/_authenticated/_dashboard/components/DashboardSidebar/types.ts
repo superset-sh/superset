@@ -75,19 +75,15 @@ export interface DashboardSidebarSection {
 	workspaces: DashboardSidebarWorkspace[];
 }
 
-/** A derived Sessions lane. The normalized tag is its stable identity. */
-export interface DashboardSidebarSessionTagGroup {
-	tag: string;
-	name: string;
-	color: string | null;
-	workspaces: DashboardSidebarWorkspace[];
-}
-
+/**
+ * The Sessions lane: project-less workspaces and their tag folders, shaped
+ * exactly like a project's children so the same list rendering and DnD
+ * apply. Folder ids are keyed by the Sessions tag scope.
+ */
 export interface DashboardSidebarSessions {
-	ungroupedWorkspaces: DashboardSidebarWorkspace[];
-	tagGroups: DashboardSidebarSessionTagGroup[];
-	/** Flat render order consumed by the existing single Sessions DnD lane. */
-	orderedWorkspaces: DashboardSidebarWorkspace[];
+	children: DashboardSidebarProjectChild[];
+	/** Every session in render order (ungrouped and grouped), for flat consumers. */
+	workspaces: DashboardSidebarWorkspace[];
 }
 
 export type DashboardSidebarProjectChild =

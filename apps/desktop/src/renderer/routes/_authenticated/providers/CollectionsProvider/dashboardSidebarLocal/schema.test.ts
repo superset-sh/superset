@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { WorkspaceState } from "@superset/panes";
+import { SESSIONS_TAG_SCOPE } from "@superset/shared/workspace-tags";
 import {
 	DEFAULT_V2_USER_PREFERENCES,
 	dashboardSidebarSectionSchema,
@@ -483,5 +484,29 @@ describe("workspaceLocalStateSchema sectionId widening", () => {
 		expect(
 			workspaceLocalStateSchema.parse(row(undefined)).sidebarState.sectionId,
 		).toBeNull();
+	});
+});
+
+describe("dashboardSidebarSectionSchema (Sessions scope)", () => {
+	it("accepts a folder row stored under the Sessions tag scope", () => {
+		const parsed = dashboardSidebarSectionSchema.parse({
+			sectionId: `${SESSIONS_TAG_SCOPE}:automation`,
+			projectId: SESSIONS_TAG_SCOPE,
+			name: "automation",
+			tag: "automation",
+			createdAt: new Date().toISOString(),
+		});
+		expect(parsed.projectId).toBe(SESSIONS_TAG_SCOPE);
+	});
+
+	it("still rejects an arbitrary non-uuid project id", () => {
+		expect(() =>
+			dashboardSidebarSectionSchema.parse({
+				sectionId: "x:tag",
+				projectId: "x",
+				name: "x",
+				createdAt: new Date().toISOString(),
+			}),
+		).toThrow();
 	});
 });

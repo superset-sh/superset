@@ -6,6 +6,7 @@ import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import type {
 	DashboardSidebarProject,
+	DashboardSidebarProjectChild,
 	DashboardSidebarWorkspace,
 } from "../../types";
 import { getProjectChildrenWorkspaces } from "../../utils/projectChildren";
@@ -55,6 +56,7 @@ function useStableWorkspaceShortcutLabels(
 export function useDashboardSidebarShortcuts(
 	groups: DashboardSidebarProject[],
 	sessionWorkspaces: DashboardSidebarWorkspace[] = [],
+	sessionChildren: DashboardSidebarProjectChild[] = [],
 ) {
 	const navigate = useNavigate();
 	const { toggleProjectCollapsed, toggleSectionCollapsed } =
@@ -107,8 +109,19 @@ export function useDashboardSidebarShortcuts(
 				sectionIsCollapsed: false,
 			});
 		}
+		for (const child of sessionChildren) {
+			if (child.type !== "section") continue;
+			for (const workspace of child.section.workspaces) {
+				map.set(workspace.id, {
+					projectId: null,
+					projectIsCollapsed: false,
+					sectionId: child.section.id,
+					sectionIsCollapsed: child.section.isCollapsed,
+				});
+			}
+		}
 		return map;
-	}, [groups, sessionWorkspaces]);
+	}, [groups, sessionWorkspaces, sessionChildren]);
 
 	const revealWorkspace = useCallback(
 		(workspaceId: string) => {

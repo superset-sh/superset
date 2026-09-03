@@ -10,13 +10,13 @@ import { TableCell } from "@tiptap/extension-table-cell";
 import { TableHeader } from "@tiptap/extension-table-header";
 import { TableRow } from "@tiptap/extension-table-row";
 import { Text } from "@tiptap/extension-text";
-import {
-	defaultMarkdownSerializer,
-	MarkdownSerializer,
-} from "@tiptap/pm/markdown";
 import type { Fragment, Node as ProseMirrorNode } from "@tiptap/pm/model";
 import { TextSelection } from "@tiptap/pm/state";
 import { CellSelection } from "@tiptap/pm/tables";
+import {
+	defaultMarkdownSerializer,
+	MarkdownSerializer,
+} from "prosemirror-markdown";
 import {
 	serializeMarkdownTable,
 	serializeSelectionForClipboard,

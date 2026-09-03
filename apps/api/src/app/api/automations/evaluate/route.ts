@@ -9,6 +9,7 @@ import { Client } from "@upstash/qstash";
 import { and, eq, lte } from "drizzle-orm";
 import { env } from "@/env";
 import { redispatchUndispatched } from "@/lib/automations/redispatchUndispatched";
+import { singleFlight } from "@/lib/singleFlight";
 import { verifyQstashRequest } from "@/lib/verifyQstash";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +38,17 @@ function scheduleFromConfig(
 	const dtstart = new Date(config.dtstart);
 	if (Number.isNaN(dtstart.getTime())) return null;
 	return { rrule: config.rrule, dtstart, timezone: config.timezone };
+}
+
+/**
+ * One sweep at a time. Ticks arrive every minute whether or not the previous
+ * sweep finished, and a sweep that is still going is not worth joining.
+ */
+async function sweepUndispatched() {
+	const sweep = await singleFlight("automations.redispatch", () =>
+		redispatchUndispatched(),
+	);
+	return sweep.ran ? sweep.result : { skipped: true };
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -118,7 +130,7 @@ export async function POST(request: Request): Promise<Response> {
 
 	if (planned.length === 0) {
 		// The event-handoff sweep still runs on a tick with no due schedules.
-		const redispatched = await redispatchUndispatched();
+		const redispatched = await sweepUndispatched();
 		return Response.json({
 			enqueued: 0,
 			unusable: unusable.length,
@@ -173,7 +185,7 @@ export async function POST(request: Request): Promise<Response> {
 	}
 
 	// The same tick retries event handoffs that never reached QStash.
-	const redispatched = await redispatchUndispatched();
+	const redispatched = await sweepUndispatched();
 
 	return Response.json({
 		enqueued: planned.length,
