@@ -124,7 +124,8 @@ User-facing strings use Lingui with explicit IDs — `<Trans id="area.name">Text
 or `useLingui()`'s `t({ id, message })` in React, `i18n._({ id, message })` outside React
 (Electron main). Numbers, currencies, and dates go through `@superset/i18n/format`
 helpers, never `new Intl.*("en-US")` or `toLocale*` with a hardcoded locale. After adding
-or changing strings, run `bun run --cwd packages/i18n check` (CI enforces it). Conventions
+or changing strings, run `bun run --cwd packages/i18n check` (CI enforces it). Commit only the
+`.po` catalogs; `locales/*/messages.ts` is gitignored and compiled at install and build. Conventions
 and ID scheme: `packages/i18n/README.md`; terms that never translate:
 `packages/i18n/glossary.md`; strategy and phasing: `plans/20260826-i18n-strategy.md`.
 Directories listed in `packages/i18n/test/enforced-dirs.ts` must not contain hardcoded

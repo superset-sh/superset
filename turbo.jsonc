@@ -44,6 +44,9 @@
 			]
 		},
 		"dev": {
+			// Compiled message catalogs are gitignored; every dev surface imports
+			// them from @superset/i18n, so they must exist and match the .po files.
+			"dependsOn": ["@superset/i18n#build"],
 			"cache": false,
 			"persistent": true
 		},
@@ -52,6 +55,9 @@
 			"outputs": ["coverage/**"]
 		},
 		"build:types": {
+			// tsc walks into @superset/i18n through @superset/shared, and its
+			// compiled catalogs only exist once @superset/i18n#build has run.
+			"dependsOn": ["^build"],
 			"outputs": ["dist-types/**"]
 		},
 		"typecheck": {

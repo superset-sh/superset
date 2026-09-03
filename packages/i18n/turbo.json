@@ -1,0 +1,18 @@
+{
+	"$schema": "https://turbo.build/schema.json",
+	"extends": ["//"],
+	"tasks": {
+		"build": {
+			"inputs": ["lingui.config.ts", "locales/*/messages.po"],
+			"outputs": ["locales/*/messages.ts"]
+		},
+		"typecheck": {
+			"dependsOn": ["build", "^build", "^build:types"],
+			"outputs": [".cache/tsbuildinfo.json"]
+		},
+		"test": {
+			"dependsOn": ["build", "^build"],
+			"outputs": ["coverage/**"]
+		}
+	}
+}

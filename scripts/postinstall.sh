@@ -12,6 +12,12 @@ export SUPERSET_POSTINSTALL_RUNNING=1
 # Run sherif for workspace validation
 sherif
 
+# Compile the Lingui message catalogs. locales/*/messages.ts is gitignored
+# (a committed one-line-per-locale file conflicted on every pair of PRs that
+# each added a string), so it has to exist before anything imports
+# @superset/i18n: dev servers, Vercel and EAS builds, bun test outside turbo.
+bun run --cwd packages/i18n build
+
 # GitHub CI runs multiple Bun install jobs that do not need desktop native rebuilds.
 # Running electron-builder here can trigger nested Bun installs while the main
 # install is still materializing packages, which has been flaky with native deps.

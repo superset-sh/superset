@@ -4,6 +4,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
+		"prebuild": "bun run --cwd ../../packages/i18n build",
 		"build": "next build",
 		"clean": "git clean -xdf .cache .next .turbo node_modules",
 		"dev": "dotenv -e ../../.env -- sh -c 'exec next dev --port ${ADMIN_PORT:-3003}'",

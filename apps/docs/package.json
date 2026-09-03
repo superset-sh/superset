@@ -4,6 +4,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
+		"prebuild": "bun run --cwd ../../packages/i18n build",
 		"build": "fumadocs-mdx && next build",
 		"dev": "dotenv -e ../../.env -- sh -c 'exec next dev --port ${DOCS_PORT:-3004}'",
 		"start": "next start",

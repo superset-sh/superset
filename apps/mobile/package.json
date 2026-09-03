@@ -3,7 +3,12 @@
 	"version": "1.0.0",
 	"main": "expo-router/entry",
 	"scripts": {
+		"generate:i18n": "bun run --cwd ../../packages/i18n build",
+		"eas-build-post-install": "bun run generate:i18n",
+		"predev": "bun run generate:i18n",
 		"dev": "EXPO_UNSTABLE_MCP_SERVER=1 expo start",
+		"preandroid": "bun run generate:i18n",
+		"preios": "bun run generate:i18n",
 		"android": "expo run:android",
 		"ios": "expo run:ios",
 		"web": "expo start --web",
