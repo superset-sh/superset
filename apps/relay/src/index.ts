@@ -1,5 +1,6 @@
 import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
+import { buildUpstreamHeaders } from "@superset/shared/host-routing";
 import type { Context, MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -12,7 +13,6 @@ import { createProxyBridge, internalProxyUrl, PROXY_HOP_PARAM } from "./proxy";
 import { startSyntheticCheck } from "./synthetic";
 import { isTrpcPath, trpcErrorResponse } from "./trpc-error";
 import { TunnelManager } from "./tunnel";
-import { buildUpstreamHeaders } from "./upstream-headers";
 
 // Bearer tokens we never want in stdout. Hosts put their JWT on the WS
 // upgrade URL because browser WebSockets can't send custom headers, and

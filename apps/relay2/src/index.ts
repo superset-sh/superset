@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/cloudflare";
+import { buildUpstreamHeaders } from "@superset/shared/host-routing";
 import { RELAY_CLOSE } from "@superset/shared/tunnel-v2-protocol";
 import type { Context, MiddlewareHandler } from "hono";
 import { Hono } from "hono";
@@ -214,10 +215,7 @@ app.all("/hosts/:hostId/trpc/*", async (c) => {
 	const path = pathAfterHost(c) || "/";
 	const query = url.search.slice(1);
 
-	const headers: Record<string, string> = {};
-	for (const [key, value] of c.req.raw.headers.entries()) {
-		if (key !== "host" && key !== "authorization") headers[key] = value;
-	}
+	const headers = buildUpstreamHeaders(c.req.raw.headers, c.get("auth").sub);
 
 	const stub = await tunnelStub(c, hostId);
 	const result = await stub.proxyHttp({

@@ -7,6 +7,7 @@ import {
 } from "@superset/shared/workspace-tags";
 import { useCallback } from "react";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
+import { authClient } from "renderer/lib/auth-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { isMissingProcedureError } from "renderer/lib/isMissingProcedureError";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
@@ -296,7 +297,9 @@ export function useDashboardSidebarState() {
 	const collections = useCollections();
 	const { workspaces: hostWorkspaces, cache: hostWorkspacesCache } =
 		useHostWorkspaces();
-	const { activeHostUrl } = useLocalHostService();
+	const { activeHostUrl, machineId } = useLocalHostService();
+	const { data: session } = authClient.useSession();
+	const currentUserId = session?.user.id ?? null;
 	const { v2Workspaces } = useOptimisticActions();
 	const tagFolderContext = useTagFolderContext();
 
@@ -1041,10 +1044,11 @@ export function useDashboardSidebarState() {
 				collections,
 				hostWorkspaces,
 				projectId,
+				{ machineId, currentUserId },
 				cleanupWorkspacePaneRuntimes,
 			);
 		},
-		[collections, hostWorkspaces],
+		[collections, hostWorkspaces, machineId, currentUserId],
 	);
 
 	return {

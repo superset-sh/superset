@@ -161,6 +161,7 @@ export function LocalHostServiceProvider({
 	const sessionUserId = session?.user.id ?? null;
 	useEffect(() => {
 		setClientUserId(sessionUserId);
+		return () => setClientUserId(null);
 	}, [sessionUserId]);
 
 	const { data: activeConnection } =

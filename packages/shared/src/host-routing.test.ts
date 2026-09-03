@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { buildUpstreamHeaders } from "./upstream-headers";
+import { buildUpstreamHeaders } from "./host-routing";
 
 describe("buildUpstreamHeaders", () => {
 	test("stamps the verified user id and drops host/authorization", () => {

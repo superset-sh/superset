@@ -98,6 +98,10 @@ function asTombstoneArg(collections: Collections) {
 
 const noopCleanup = () => {};
 
+const LOCAL_HOST = "host-local";
+const ME = "user-me";
+const PLACEMENT = { machineId: LOCAL_HOST, currentUserId: ME };
+
 describe("removeProjectFromSidebarState", () => {
 	it("tombstones the project's worktrees — existing rows and row-less ones — and deletes sections and the project record", () => {
 		const collections = makeCollections();
@@ -110,12 +114,16 @@ describe("removeProjectFromSidebarState", () => {
 				id: "ws-placed",
 				projectId: "proj-1",
 				type: "worktree",
+				hostId: LOCAL_HOST,
+				createdByUserId: null,
 			},
 			// Worktree with no row yet — the reconciler would re-pin it.
 			{
 				id: "ws-rowless",
 				projectId: "proj-1",
 				type: "worktree",
+				hostId: LOCAL_HOST,
+				createdByUserId: null,
 			},
 		];
 		collections.v2SidebarSections.insert({
@@ -129,6 +137,7 @@ describe("removeProjectFromSidebarState", () => {
 			asRemoveArg(collections),
 			workspaces,
 			"proj-1",
+			PLACEMENT,
 			(rows) => {
 				for (const row of rows) cleaned.push(String(row.workspaceId));
 			},
@@ -154,11 +163,19 @@ describe("removeProjectFromSidebarState", () => {
 			localStateRow("ws-main", "proj-1"),
 		);
 		const workspaces: SidebarWorkspaceRow[] = [
-			{ id: "ws-main", projectId: "proj-1", type: "main" },
+			{
+				id: "ws-main",
+				projectId: "proj-1",
+				type: "main",
+				hostId: LOCAL_HOST,
+				createdByUserId: null,
+			},
 			{
 				id: "ws-main-rowless",
 				projectId: "proj-1",
 				type: "main",
+				hostId: LOCAL_HOST,
+				createdByUserId: null,
 			},
 		];
 		collections.v2SidebarProjects.insert({ projectId: "proj-1" });
@@ -167,6 +184,7 @@ describe("removeProjectFromSidebarState", () => {
 			asRemoveArg(collections),
 			workspaces,
 			"proj-1",
+			PLACEMENT,
 			noopCleanup,
 		);
 
@@ -189,7 +207,13 @@ describe("removeProjectFromSidebarState", () => {
 			localStateRow("ws-main", "proj-1", { pinnedAt: 1753000000000 }),
 		);
 		const workspaces: SidebarWorkspaceRow[] = [
-			{ id: "ws-main", projectId: "proj-1", type: "main" },
+			{
+				id: "ws-main",
+				projectId: "proj-1",
+				type: "main",
+				hostId: LOCAL_HOST,
+				createdByUserId: null,
+			},
 		];
 		collections.v2SidebarProjects.insert({ projectId: "proj-1" });
 
@@ -197,6 +221,7 @@ describe("removeProjectFromSidebarState", () => {
 			asRemoveArg(collections),
 			workspaces,
 			"proj-1",
+			PLACEMENT,
 			noopCleanup,
 		);
 
@@ -216,6 +241,8 @@ describe("removeProjectFromSidebarState", () => {
 				id: "ws-other",
 				projectId: "proj-2",
 				type: "worktree",
+				hostId: LOCAL_HOST,
+				createdByUserId: null,
 			},
 		];
 		collections.v2SidebarProjects.insert({ projectId: "proj-1" });
@@ -224,6 +251,7 @@ describe("removeProjectFromSidebarState", () => {
 			asRemoveArg(collections),
 			workspaces,
 			"proj-1",
+			PLACEMENT,
 			noopCleanup,
 		);
 
@@ -232,17 +260,18 @@ describe("removeProjectFromSidebarState", () => {
 		).toBe(false);
 	});
 
-	it("tombstones a row-less worktree whatever host owns it — the reconciler places from every online host (#7100)", () => {
+	it("tombstones a row-less remote worktree this user created, even if its host is offline (#7100)", () => {
 		const collections = makeCollections();
-		// No local-state row, and the host is deliberately not part of the row
-		// contract: the reconciler places worktrees from every online host, so
-		// without a tombstone this one would recreate the project row the moment
-		// its host answers — even if that host is offline at removal time.
+		// No local-state row: the reconciler would re-place it (recreating the
+		// project row) the moment its host answers — even a host that is offline
+		// at removal time — so the tombstone must be written regardless of host.
 		const workspaces: SidebarWorkspaceRow[] = [
 			{
-				id: "ws-remote",
+				id: "ws-remote-mine",
 				projectId: "proj-1",
 				type: "worktree",
+				hostId: "host-remote",
+				createdByUserId: ME,
 			},
 		];
 		collections.v2SidebarProjects.insert({ projectId: "proj-1" });
@@ -252,16 +281,66 @@ describe("removeProjectFromSidebarState", () => {
 			asRemoveArg(collections),
 			workspaces,
 			"proj-1",
+			PLACEMENT,
 			(rows) => {
 				for (const row of rows) cleaned.push(String(row.workspaceId));
 			},
 		);
 
 		expect(
-			collections.v2WorkspaceLocalState.get("ws-remote")?.sidebarState.isHidden,
+			collections.v2WorkspaceLocalState.get("ws-remote-mine")?.sidebarState
+				.isHidden,
 		).toBe(true);
 		// A row-less remote worktree had no pane runtimes on this device.
 		expect(cleaned).toEqual([]);
+	});
+
+	it("writes no tombstone for a teammate's or creator-less remote worktree — placement never brings those back", () => {
+		const collections = makeCollections();
+		const workspaces: SidebarWorkspaceRow[] = [
+			{
+				id: "ws-remote-theirs",
+				projectId: "proj-1",
+				type: "worktree",
+				hostId: "host-remote",
+				createdByUserId: "user-teammate",
+			},
+			{
+				id: "ws-remote-unknown",
+				projectId: "proj-1",
+				type: "worktree",
+				hostId: "host-remote",
+				createdByUserId: null,
+			},
+			// Local host: placed whoever created it, so still tombstoned.
+			{
+				id: "ws-local-theirs",
+				projectId: "proj-1",
+				type: "worktree",
+				hostId: LOCAL_HOST,
+				createdByUserId: "user-teammate",
+			},
+		];
+		collections.v2SidebarProjects.insert({ projectId: "proj-1" });
+
+		removeProjectFromSidebarState(
+			asRemoveArg(collections),
+			workspaces,
+			"proj-1",
+			PLACEMENT,
+			noopCleanup,
+		);
+
+		expect(collections.v2WorkspaceLocalState.get("ws-remote-theirs")).toBe(
+			undefined,
+		);
+		expect(collections.v2WorkspaceLocalState.get("ws-remote-unknown")).toBe(
+			undefined,
+		);
+		expect(
+			collections.v2WorkspaceLocalState.get("ws-local-theirs")?.sidebarState
+				.isHidden,
+		).toBe(true);
 	});
 });
 
