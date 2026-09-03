@@ -676,6 +676,7 @@ export function usePaneRegistry({
 								const data = ctx.pane.data as ChatV3PaneData;
 								return (
 									<ChatV3Pane
+										onOpenFile={onOpenFile}
 										workspaceId={workspaceId}
 										sessionId={data.sessionId}
 										onSessionIdChange={(id) =>

@@ -5,14 +5,17 @@ import { NewSessionView } from "./components/NewSessionView";
 import { SessionPicker } from "./components/SessionPicker";
 import { SessionView } from "./components/SessionView";
 import { useSessionClient } from "./hooks/useSessionClient";
+import { MarkdownFileLinkProvider } from "./providers/MarkdownFileLinkProvider";
 
 export function ChatV3Pane({
+	onOpenFile,
 	onSessionIdChange,
 	sessionId,
 	workspaceId,
 }: {
 	workspaceId: string;
 	sessionId: string | null;
+	onOpenFile: (path: string, openInNewTab?: boolean) => void;
 	onSessionIdChange: (sessionId: string | null) => void;
 }) {
 	const { client, wiring } = useSessionClient(sessionId);
@@ -57,13 +60,15 @@ export function ChatV3Pane({
 	}
 
 	return (
-		<SessionView
-			client={client}
-			headerLeft={picker}
-			key={sessionId}
-			onFirstPromptSent={() => setPendingFirstPrompt(null)}
-			pendingFirstPrompt={pendingFirstPrompt}
-			sessionId={sessionId}
-		/>
+		<MarkdownFileLinkProvider onOpenFile={onOpenFile} workspaceId={workspaceId}>
+			<SessionView
+				client={client}
+				headerLeft={picker}
+				key={sessionId}
+				onFirstPromptSent={() => setPendingFirstPrompt(null)}
+				pendingFirstPrompt={pendingFirstPrompt}
+				sessionId={sessionId}
+			/>
+		</MarkdownFileLinkProvider>
 	);
 }

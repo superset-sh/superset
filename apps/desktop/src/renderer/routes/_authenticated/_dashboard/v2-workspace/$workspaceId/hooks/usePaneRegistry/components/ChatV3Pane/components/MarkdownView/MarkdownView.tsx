@@ -1,7 +1,11 @@
 import { cn } from "@superset/ui/utils";
 import { memo, useMemo } from "react";
+import type { Components } from "streamdown";
 import { Streamdown } from "streamdown";
+import { MarkdownLink } from "./components/MarkdownLink";
 import { planMarkdown } from "./utils/planMarkdown";
+
+const MARKDOWN_COMPONENTS: Components = { a: MarkdownLink };
 
 const MarkdownBlock = memo(function MarkdownBlock({
 	block,
@@ -11,6 +15,7 @@ const MarkdownBlock = memo(function MarkdownBlock({
 	return (
 		<Streamdown
 			className="[&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+			components={MARKDOWN_COMPONENTS}
 			linkSafety={{ enabled: false }}
 			mode="streaming"
 		>

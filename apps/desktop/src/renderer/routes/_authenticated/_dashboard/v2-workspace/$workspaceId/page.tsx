@@ -174,6 +174,7 @@ function V2WorkspaceContent() {
 	});
 
 	const {
+		openFilePane,
 		openFilePaneFromTreeClick,
 		revealPath,
 		selectedFilePath,
@@ -206,7 +207,7 @@ function V2WorkspaceContent() {
 		[openDiffPane],
 	);
 	const paneRegistry = usePaneRegistry({
-		onOpenFile: openFilePaneFromTreeClick,
+		onOpenFile: openFilePane,
 		onOpenDiffInNewTab: openDiffInNewTab,
 		onRevealPath: revealPath,
 		launcher,
