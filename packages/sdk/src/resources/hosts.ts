@@ -18,6 +18,27 @@ export class Hosts extends APIResource {
 		);
 	}
 
+	/**
+	 * Set, or clear with `null`, the shell command that wakes a host. Owner
+	 * only: any member can run it locally with `superset hosts wake`.
+	 *
+	 * Mirrors `superset hosts set-wake <host> <command…>` / `--clear`.
+	 */
+	setWakeCommand(
+		params: HostSetWakeCommandParams,
+		options?: RequestOptions,
+	): APIPromise<HostSetWakeCommandResult> {
+		return this._client.mutation<HostSetWakeCommandResult>(
+			{ method: "hosts.setWakeCommand", procedure: "host.setWakeCommand" },
+			{
+				organizationId: this._requireOrgId(),
+				machineId: params.hostId,
+				wakeCommand: params.wakeCommand,
+			},
+			options,
+		);
+	}
+
 	private _requireOrgId(): string {
 		if (!this._client.organizationId) {
 			throw new SupersetError(
@@ -33,11 +54,29 @@ export interface Host {
 	id: string;
 	name: string;
 	online: boolean;
+	/** Shell command members run locally to wake the host; null when unset. */
+	wakeCommand: string | null;
 	organizationId: string;
 }
 
 export type HostListResponse = Array<Host>;
 
+export interface HostSetWakeCommandParams {
+	/** The host machineId (see `hosts.list()`). */
+	hostId: string;
+	/** Command to run to wake the host, or `null` to clear it. */
+	wakeCommand: string | null;
+}
+
+export interface HostSetWakeCommandResult {
+	success: boolean;
+}
+
 export declare namespace Hosts {
-	export type { Host, HostListResponse };
+	export type {
+		Host,
+		HostListResponse,
+		HostSetWakeCommandParams,
+		HostSetWakeCommandResult,
+	};
 }

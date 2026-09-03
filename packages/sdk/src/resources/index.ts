@@ -19,7 +19,13 @@ export {
 	type AutomationSummary,
 	type AutomationUpdateParams,
 } from "./automations";
-export { type Host, type HostListResponse, Hosts } from "./hosts";
+export {
+	type Host,
+	type HostListResponse,
+	type HostSetWakeCommandParams,
+	type HostSetWakeCommandResult,
+	Hosts,
+} from "./hosts";
 export {
 	type Member,
 	type MemberListParams,
@@ -28,7 +34,41 @@ export {
 	Organization,
 	type OrganizationRole,
 } from "./organization";
-export { type Project, type ProjectListResponse, Projects } from "./projects";
+export {
+	type Page,
+	type PageComment,
+	type PageCommentAnchor,
+	type PageCommentListParams,
+	type PageCommentListResponse,
+	type PageCommentReplyParams,
+	type PageCommentReplyResult,
+	type PageCommentResolveParams,
+	type PageCommentResolveResult,
+	PageComments,
+	type PageCommentThread,
+	type PageListParams,
+	type PageListResponse,
+	type PagePublishParams,
+	type PagePublishResult,
+	type PagePullParams,
+	type PagePullResult,
+	Pages,
+	type PageSummary,
+	type PageVersion,
+	type PageVersionListResponse,
+	type PageVisibility,
+	type PageWatchState,
+} from "./pages";
+export {
+	type Project,
+	type ProjectCreateParams,
+	type ProjectCreateResult,
+	type ProjectListParams,
+	type ProjectListResponse,
+	Projects,
+	type ProjectSetupParams,
+	type ProjectSetupResult,
+} from "./projects";
 export {
 	type TerminalCloseParams,
 	type TerminalCloseResult,
@@ -49,6 +89,9 @@ export {
 	type TaskListItem,
 	type TaskListParams,
 	type TaskListResponse,
+	type TaskListSortBy,
+	type TaskListSortOrder,
+	type TaskPriority,
 	Tasks,
 	type TaskStatus,
 	type TaskStatusListResponse,
@@ -68,4 +111,6 @@ export {
 	type WorkspaceListParams,
 	type WorkspaceListResponse,
 	Workspaces,
+	type WorkspaceUpdateParams,
+	type WorkspaceUpdateResult,
 } from "./workspaces";

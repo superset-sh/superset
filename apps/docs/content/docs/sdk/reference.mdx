@@ -62,7 +62,14 @@ const tasks = await client.tasks.list({
   priority: 'high',
   statusId: '<uuid>',
   assigneeId: '<uuid>',      // someone else's tasks
-  search: 'auth',            // substring of title
+  search: 'auth',            // substring of title or description
+  externalProjectId: '…',    // external (e.g. Linear) project id
+  externalProjectName: 'Auth', // external project name, case-insensitive prefix
+  externalCycleId: '…',      // external cycle id
+  dueDateFrom: '2026-09-01T00:00:00Z', // due on or after (ISO 8601 with offset)
+  dueDateTo: '2026-09-30T00:00:00Z',   // due on or before
+  sortBy: 'dueDate',         // 'createdAt' | 'updatedAt' | 'dueDate' | 'priority'
+  sortOrder: 'asc',          // 'asc' | 'desc'
   limit: 50,                 // max 500
   offset: 0,
 });
@@ -119,23 +126,36 @@ Returns `Array<TaskStatus>`. Each entry is `{ id, name, color, type, position }`
 
 ## workspaces
 
-### `workspaces.list({ hostId, projectId?, search? })`
+### `workspaces.list({ hostId, projectId?, projectName?, search?, tag? })`
 
 List workspaces on a host. Workspaces are host-owned. There is no org-wide
 listing; enumerate hosts with [`hosts.list()`](#hostslist) and query each one
-you care about.
+you care about. `projectId` filters by project UUID, `projectName` by the
+host-served project name (case-insensitive), `search` is a substring match on
+name or branch, and `tag` keeps only workspaces carrying that tag.
 
 ```ts
-const workspaces = await client.workspaces.list({ hostId: '<machineId>' });
+const workspaces = await client.workspaces.list({ hostId: '<machineId>', tag: 'nightly' });
 ```
 
 Returns `Array<Workspace>`. Rows include the host-served `projectName`
 (`string | null`; null when the workspace's project row is missing on that
-host, so don't assume it's always present).
+host, so don't assume it's always present) and `tags: string[]`.
 
-### `workspaces.create({ hostId, projectId, name, branch?, pr?, baseBranch?, taskId?, agents?, command? })`
+### `workspaces.retrieve(id, { hostId })`
 
-Create a worktree on a specific host. Provide exactly one of `branch` or `pr` (a pull request number; the host checks out the verified PR head and derives the branch). `baseBranch` picks the fork point when `branch` doesn't exist yet, and `taskId` links the new workspace to a task. Optionally spawn one or more agents inside it as soon as the worktree is ready, and/or run a one-off shell `command` in the worktree. Goes through the relay tunnel: the host must be online.
+Look up one workspace by id on a host. Returns the same row shape as `list`
+(including `worktreePath`, `worktreeExists`, `projectName`, and `tags`), or
+`null` when the host has no workspace with that id.
+
+```ts
+const workspace = await client.workspaces.retrieve('<workspaceId>', { hostId: '<machineId>' });
+if (!workspace) throw new Error('not found');
+```
+
+### `workspaces.create({ hostId, projectId, name, branch?, pr?, baseBranch?, skipBranchPrefix?, taskId?, agents?, command?, tags? })`
+
+Create a worktree on a specific host. Provide exactly one of `branch` or `pr` (a pull request number; the host checks out the verified PR head and derives the branch). `baseBranch` picks the fork point when `branch` doesn't exist yet, `skipBranchPrefix` uses `branch` exactly as given instead of namespacing it under the project's branch prefix, and `taskId` links the new workspace to a task. `tags` files the workspace into a sidebar folder per tag. Optionally spawn one or more agents inside it as soon as the worktree is ready, and/or run a one-off shell `command` in the worktree. Goes through the relay tunnel: the host must be online.
 
 Each entry in `agents` takes a preset id (e.g. `"claude"`) or a `HostAgentConfig` instance UUID: the host service resolves it against its configured rows and copies their stored `command`, `args`, and `env`. Set `effort` to override the agent's reasoning effort for that launch, or omit it to use the agent's own default. Use [`agents.list({ hostId })`](#agentslist-hostid-) to enumerate what's installed. `command` is independent of `agents`. Pass either or both.
 
@@ -145,6 +165,7 @@ const result = await client.workspaces.create({
   projectId: '<uuid>',       // see projects.list()
   name: 'wire-up-auth',
   branch: 'feat/auth',
+  tags: ['auth'],            // optional: sidebar folder per tag
   agents: [                  // optional: spawn agents on creation
     { agent: 'claude', effort: 'high', prompt: 'Implement the auth flow described in SUPER-100.' },
     { agent: 'claude', prompt: 'Write integration tests for the new auth flow.' },
@@ -165,15 +186,25 @@ Returns a `WorkspaceCreateResult`:
 - `agents`: one entry per agent in the request (empty if `agents` was omitted). Each entry is either `{ ok: true, kind: 'terminal' | 'chat', sessionId, label }` or `{ ok: false, error }`.
 - `alreadyExists`: true when a workspace for that branch already existed and was reused instead of created.
 
-### `workspaces.update(id, params, { hostId })`
+### `workspaces.createSession({ hostId, name?, agents?, command? })`
 
-Update fields on an existing workspace on its host. Moving a workspace to a different branch or host requires host-side orchestration and is not safe to drive directly.
+Create a project-less session workspace: a managed scratch folder with its own
+git repo and no branch or PR semantics. Same `agents` and `command` sugar as
+`create`. Mirrors `superset workspaces create` without `--project`.
 
 ```ts
-await client.workspaces.update('<workspaceId>', { name: 'wire-up-auth-v2' }, { hostId: '<machineId>' });
+const { workspace } = await client.workspaces.createSession({ hostId: '<machineId>', name: 'scratch' });
 ```
 
-Returns the updated workspace row (`id`, `name`, `branch`, `hostId`, `projectId`, `type`, `taskId`, …).
+### `workspaces.update(id, params, { hostId })`
+
+Update fields on an existing workspace on its host: `name`, `taskId` (pass `null` to unlink), and `tags` (a full replacement of the tag set; `[]` clears it). Moving a workspace to a different branch or host requires host-side orchestration and is not safe to drive directly.
+
+```ts
+await client.workspaces.update('<workspaceId>', { name: 'wire-up-auth-v2', tags: ['auth'] }, { hostId: '<machineId>' });
+```
+
+Returns the updated workspace row (`id`, `name`, `branch`, `hostId`, `projectId`, `type`, `taskId`, `tags`, …).
 
 ### `workspaces.delete(id, { hostId })`
 
@@ -198,17 +229,66 @@ const projects = await client.projects.list({ hostId: '<machineId>' });
 
 Returns `Array<Project>` (`id`, `name`, `repoPath`, `repoUrl`, …).
 
+### `projects.create({ hostId, name, clone?, parentDir?, import? })`
+
+Create a project on a host. Pass exactly one of `clone` (a git remote URL,
+cloned into `parentDir`) or `import` (an existing local checkout on the host).
+
+```ts
+const project = await client.projects.create({
+  hostId: '<machineId>',
+  name: 'superset',
+  clone: 'git@github.com:acme/superset.git',
+  parentDir: '/Users/me/code',
+});
+// or register a checkout that already exists on the host:
+await client.projects.create({ hostId: '<machineId>', name: 'superset', import: '/Users/me/code/superset' });
+```
+
+Returns `{ projectId, repoPath, mainWorkspaceId, created }`; `created` is false
+when the host already had a project at that path and reused it.
+
+### `projects.setup({ hostId, projectId, parentDir? | path?, allowRelocate?, repoUrl?, name? })`
+
+Adopt a project that already exists in the organization onto another host:
+clone its repo into `parentDir`, or register an existing checkout at `path`
+(`allowRelocate` permits re-importing at a different path when the project is
+already set up there). A host that has never seen the project needs `repoUrl`,
+and optionally `name`, so it knows what to clone.
+
+```ts
+await client.projects.setup({
+  hostId: '<machineId>',
+  projectId: '<uuid>',
+  parentDir: '/Users/me/code',
+  repoUrl: 'git@github.com:acme/superset.git',
+});
+```
+
+Returns `{ repoPath, mainWorkspaceId }`.
+
 ---
 
 ## hosts
 
 ### `hosts.list()`
 
-List developer machines registered in the org. Returns `Array<Host>` with `id` (machineId), `name`, `online`, and `organizationId`.
+List developer machines registered in the org. Returns `Array<Host>` with `id` (machineId), `name`, `online`, `wakeCommand`, and `organizationId`.
 
 ```ts
 const hosts = await client.hosts.list();
 const online = hosts.filter((h) => h.online);
+```
+
+### `hosts.setWakeCommand({ hostId, wakeCommand })`
+
+Set the shell command members run locally to wake a host (for example a
+sandbox resume command), or clear it with `wakeCommand: null`. Owner-only.
+Mirrors `superset hosts set-wake`; running the command is what `superset hosts wake` does on the caller's machine and has no SDK equivalent.
+
+```ts
+await client.hosts.setWakeCommand({ hostId: '<machineId>', wakeCommand: 'my-cloud resume my-box' });
+await client.hosts.setWakeCommand({ hostId: '<machineId>', wakeCommand: null });
 ```
 
 ---
@@ -230,14 +310,16 @@ prompt-transport fields used to launch the agent.
 const agents = await client.agents.list({ hostId: '<machineId>' });
 ```
 
-### `agents.create({ hostId, workspaceId, agent, prompt, effort?, attachmentIds? })`
+### `agents.create({ hostId, workspaceId, agent, prompt?, resumeSessionId?, forkSessionId?, effort?, attachmentIds? })`
 
 Create (launch) an agent session in an existing workspace on its host.
 
 `agent` accepts either a preset id (e.g. `"claude"`) or a `HostAgentConfig`
 instance UUID. `effort` is an agent-specific reasoning override; omit it to
 use the agent's own configured default. Unsupported values fail before launch.
-Returns `{ kind, sessionId, label }`.
+`prompt` is optional when restoring a previous run with `resumeSessionId`, or
+cloning one into a new provider session with `forkSessionId` (pass one or the
+other, not both). Returns `{ kind, sessionId, label }`.
 
 ```ts
 const { sessionId } = await client.agents.create({
@@ -306,12 +388,12 @@ const a = await client.automations.create({
   agent: 'claude', // host agent presetId, instance UUID, or 'superset' for built-in chat
   rrule: 'FREQ=DAILY;BYHOUR=6;BYMINUTE=0',
   timezone: 'America/Los_Angeles',
-  v2ProjectId: '<uuid>',     // one of v2ProjectId or v2WorkspaceId required
+  v2ProjectId: '<uuid>',     // omit (with no v2WorkspaceId) for session mode
   // optional:
   v2WorkspaceId: '<uuid>',   // pin to a specific workspace
   targetHostId: '<machineId>', // pin to a specific host
   dtstart: new Date().toISOString(),
-  mcpScope: ['linear', 'notion'],
+  tags: ['automation'],      // sidebar folder per tag on each run's workspace
 });
 ```
 
@@ -361,3 +443,79 @@ List members of the active organization.
 ```ts
 const members = await client.organization.members.list();
 ```
+
+---
+
+## pages
+
+A page is one self-contained HTML document published to a shareable URL. Every
+publish creates a new version; nothing is overwritten. Mirrors `superset pages …`.
+
+### `pages.list({ workspaceId? })`
+
+List pages in the organization, most recently updated first, optionally only
+those published from one workspace. Returns `Array<PageSummary>` with the
+latest version folded in (`latestVersion`, `sizeBytes`, `publishedAt`, `url`, …).
+
+```ts
+const pages = await client.pages.list({ workspaceId: '<uuid>' });
+```
+
+### `pages.retrieve(idOrSlug)`
+
+Get one page's metadata by id or slug: title, visibility, `url`, `latestVersion`,
+`servedVersion`, and `watch` (whether an agent session is watching it).
+
+```ts
+const page = await client.pages.retrieve('q3-pipeline-k2f9a1');
+```
+
+### `pages.versions(idOrSlug)`
+
+List a page's versions, newest first (`version`, `label`, `sizeBytes`, `sha256`, `createdAt`).
+
+### `pages.pull(idOrSlug, { version? })`
+
+Resolve a version (default: the one currently served) to its metadata plus a
+short-lived `downloadUrl`. Fetch that URL for the HTML body.
+
+```ts
+const pulled = await client.pages.pull('<pageId>', { version: 1 });
+const html = await (await fetch(pulled.downloadUrl)).text();
+```
+
+### `pages.publish({ html, filename?, pageId?, workspaceId?, entryPath?, title?, description?, label?, visibility? })`
+
+Publish an HTML document and get its public URL. Pass `pageId` to add a version
+to an existing page; otherwise pass `workspaceId` and `entryPath` (where the page
+lives relative to the workspace root), which together key the page so a later
+publish with the same pair versions it instead of minting a second one.
+`visibility` is `'org'` (the default for new pages) or `'just_me'`.
+
+```ts
+const page = await client.pages.publish({
+  html: '<!doctype html><title>Q3 pipeline</title>…',
+  workspaceId: '<uuid>',
+  entryPath: 'reports/q3-pipeline.html',
+  title: 'Q3 pipeline',
+  label: 'first cut',
+});
+console.log(page.url, page.version);
+```
+
+The CLI's directory publish (assets staged next to the page) has no SDK
+equivalent yet; publish a single self-contained file.
+
+### `pages.comments.list({ pageId, activatedOnly? })`
+
+Comment threads on a page, oldest first, each with its replies and `resolved`
+state. `activatedOnly` narrows to threads a person has sent to an agent.
+
+### `pages.comments.reply({ threadId, body, agentSessionId? })`
+
+Post a reply into a thread. `agentSessionId` names the replying agent session
+for readers; it is descriptive only.
+
+### `pages.comments.resolve({ threadId, resolved? })`
+
+Mark a thread resolved (the default) or reopen it with `resolved: false`.

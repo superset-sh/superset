@@ -70,7 +70,13 @@ import {
 	AutomationSummary,
 	AutomationUpdateParams,
 } from "./resources/automations";
-import { Host, HostListResponse, Hosts } from "./resources/hosts";
+import {
+	Host,
+	HostListResponse,
+	Hosts,
+	HostSetWakeCommandParams,
+	HostSetWakeCommandResult,
+} from "./resources/hosts";
 import * as API from "./resources/index";
 import {
 	Member,
@@ -80,13 +86,50 @@ import {
 	Organization,
 	OrganizationRole,
 } from "./resources/organization";
-import { Project, ProjectListResponse, Projects } from "./resources/projects";
+import {
+	Page,
+	PageComment,
+	PageCommentAnchor,
+	PageCommentListParams,
+	PageCommentListResponse,
+	PageCommentReplyParams,
+	PageCommentReplyResult,
+	PageCommentResolveParams,
+	PageCommentResolveResult,
+	PageComments,
+	PageCommentThread,
+	PageListParams,
+	PageListResponse,
+	PagePublishParams,
+	PagePublishResult,
+	PagePullParams,
+	PagePullResult,
+	Pages,
+	PageSummary,
+	PageVersion,
+	PageVersionListResponse,
+	PageVisibility,
+	PageWatchState,
+} from "./resources/pages";
+import {
+	Project,
+	ProjectCreateParams,
+	ProjectCreateResult,
+	ProjectListParams,
+	ProjectListResponse,
+	Projects,
+	ProjectSetupParams,
+	ProjectSetupResult,
+} from "./resources/projects";
 import {
 	Task,
 	TaskCreateParams,
 	TaskListItem,
 	TaskListParams,
 	TaskListResponse,
+	TaskListSortBy,
+	TaskListSortOrder,
+	TaskPriority,
 	Tasks,
 	TaskStatus,
 	TaskStatuses,
@@ -120,6 +163,8 @@ import {
 	WorkspaceListParams,
 	WorkspaceListResponse,
 	Workspaces,
+	WorkspaceUpdateParams,
+	WorkspaceUpdateResult,
 } from "./resources/workspaces";
 import {
 	buildMethodCalledEvent,
@@ -1275,6 +1320,8 @@ export class Superset {
 	terminals: API.Terminals = new API.Terminals(this);
 	/** Active-organization config: nested `organization.members.list`. */
 	organization: API.Organization = new API.Organization(this);
+	/** Published pages: list, retrieve, versions, pull, publish, and nested `pages.comments`. */
+	pages: API.Pages = new API.Pages(this);
 }
 
 Superset.Tasks = Tasks;
@@ -1285,6 +1332,7 @@ Superset.Automations = Automations;
 Superset.Agents = Agents;
 Superset.Terminals = Terminals;
 Superset.Organization = Organization;
+Superset.Pages = Pages;
 
 export declare namespace Superset {
 	export type RequestOptions = Opts.RequestOptions;
@@ -1297,6 +1345,9 @@ export declare namespace Superset {
 		TaskCreateParams,
 		TaskUpdateParams,
 		TaskListParams,
+		TaskListSortBy,
+		TaskListSortOrder,
+		TaskPriority,
 		TaskStatuses,
 		TaskStatus,
 		TaskStatusListResponse,
@@ -1323,12 +1374,55 @@ export declare namespace Superset {
 		WorkspaceListResponse,
 		WorkspaceListParams,
 		WorkspaceCreateParams,
+		WorkspaceUpdateParams,
+		WorkspaceUpdateResult,
 		WorkspaceDeleteResult,
 	};
 
-	export { Projects, Project, ProjectListResponse };
+	export {
+		Projects,
+		Project,
+		ProjectListParams,
+		ProjectListResponse,
+		ProjectCreateParams,
+		ProjectCreateResult,
+		ProjectSetupParams,
+		ProjectSetupResult,
+	};
 
-	export { Hosts, Host, HostListResponse };
+	export {
+		Hosts,
+		Host,
+		HostListResponse,
+		HostSetWakeCommandParams,
+		HostSetWakeCommandResult,
+	};
+
+	export {
+		Pages,
+		PageComments,
+		Page,
+		PageSummary,
+		PageVisibility,
+		PageWatchState,
+		PageListParams,
+		PageListResponse,
+		PageVersion,
+		PageVersionListResponse,
+		PagePullParams,
+		PagePullResult,
+		PagePublishParams,
+		PagePublishResult,
+		PageComment,
+		PageCommentAnchor,
+		PageCommentThread,
+		PageCommentListParams,
+		PageCommentListResponse,
+		PageCommentReplyParams,
+		PageCommentReplyResult,
+		PageCommentResolveParams,
+		PageCommentResolveResult,
+	};
 
 	export {
 		Automations,

@@ -46,6 +46,7 @@ export class Agents extends APIResource {
 				agent: params.agent,
 				prompt: params.prompt,
 				resumeSessionId: params.resumeSessionId,
+				forkSessionId: params.forkSessionId,
 				effort: params.effort,
 				attachmentIds: params.attachmentIds,
 			},
@@ -93,10 +94,12 @@ export interface AgentCreateParams {
 	workspaceId: string;
 	/** Agent preset id (e.g. `"claude"`) or HostAgentConfig instance UUID. */
 	agent: string;
-	/** Prompt sent to the agent. Optional when `resumeSessionId` is provided. */
+	/** Prompt sent to the agent. Optional when `resumeSessionId` or `forkSessionId` is provided. */
 	prompt?: string;
 	/** Session id of a previous run of this agent to restore instead of starting fresh (e.g. `claude --resume <id>`). */
 	resumeSessionId?: string;
+	/** Session id of a previous run to clone into a new provider session. Exclusive with `resumeSessionId`. */
+	forkSessionId?: string;
 	/** Reasoning effort for this launch. Supported values depend on the agent; omit to use its default. */
 	effort?: string;
 	/** Host-scoped attachment ids; host resolves to absolute paths in the prompt. */

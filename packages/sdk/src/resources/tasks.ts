@@ -121,6 +121,8 @@ export class Tasks extends APIResource {
 }
 
 export type TaskPriority = "urgent" | "high" | "medium" | "low" | "none";
+export type TaskListSortBy = "createdAt" | "updatedAt" | "dueDate" | "priority";
+export type TaskListSortOrder = "asc" | "desc";
 
 export interface Task {
 	id: string;
@@ -143,6 +145,12 @@ export interface Task {
 	externalUrl: string | null;
 	lastSyncedAt: string | null;
 	syncError: string | null;
+	externalUpdatedAt: string | null;
+	/** External project/cycle snapshot from the provider (e.g. Linear). */
+	externalProjectId: string | null;
+	externalProjectName: string | null;
+	externalCycleId: string | null;
+	externalCycleName: string | null;
 	assigneeExternalId: string | null;
 	assigneeDisplayName: string | null;
 	assigneeAvatarUrl: string | null;
@@ -194,7 +202,23 @@ export interface TaskListParams {
 	assigneeId?: string | null;
 	assigneeMe?: boolean | null;
 	creatorMe?: boolean | null;
+	/** Substring match on title or description. */
 	search?: string | null;
+	/** External (e.g. Linear) project id. */
+	externalProjectId?: string | null;
+	/** External project name, case-insensitive prefix match. */
+	externalProjectName?: string | null;
+	/** External (e.g. Linear) cycle id. */
+	externalCycleId?: string | null;
+	/** ISO 8601 datetime with offset; tasks due on or after it. */
+	dueDateFrom?: string | null;
+	/** ISO 8601 datetime with offset; tasks due on or before it. */
+	dueDateTo?: string | null;
+	/** Sort field (default `createdAt`). */
+	sortBy?: TaskListSortBy | null;
+	/** Sort direction. */
+	sortOrder?: TaskListSortOrder | null;
+	/** Max results (1-500, default 50). */
 	limit?: number;
 	offset?: number;
 }
@@ -217,6 +241,9 @@ export declare namespace Tasks {
 		TaskCreateParams,
 		TaskUpdateParams,
 		TaskListParams,
+		TaskListSortBy,
+		TaskListSortOrder,
+		TaskPriority,
 		TaskStatus,
 		TaskStatusListResponse,
 	};

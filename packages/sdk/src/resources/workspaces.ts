@@ -22,6 +22,17 @@ export interface HostWorkspaceRow {
 	/** Absolute worktree path on the host filesystem. */
 	worktreePath: string;
 	worktreeExists: boolean;
+	/** Tags that file the workspace into sidebar folders. Empty on hosts that predate tags. */
+	tags: string[];
+	archivedAt: Date | null;
+	archiveReason: string | null;
+}
+
+/** Tags compare trimmed and lower-cased, the way the host stores them. */
+function normalizeTag(tag: string | undefined): string | null {
+	if (tag === undefined) return null;
+	const normalized = tag.trim().toLowerCase();
+	return normalized.length === 0 || normalized.length > 64 ? null : normalized;
 }
 
 /**
@@ -39,22 +50,47 @@ export class Workspaces extends APIResource {
 	 */
 	async list(params: WorkspaceListParams): Promise<WorkspaceListResponse> {
 		this._requireOrgId();
-		const workspaces = await this._client.hostQuery<HostWorkspaceRow[]>(
-			params.hostId,
-			{ method: "workspaces.list", procedure: "workspace.list" },
-		);
+		const rows = await this._client.hostQuery<
+			Array<Omit<HostWorkspaceRow, "tags"> & { tags?: string[] }>
+		>(params.hostId, { method: "workspaces.list", procedure: "workspace.list" });
 		const search = params.search?.toLowerCase();
-		return workspaces
+		const projectName = params.projectName?.toLowerCase();
+		const tag = normalizeTag(params.tag);
+		if (params.tag !== undefined && tag === null) {
+			throw new SupersetError("tag must be 1-64 characters after trimming");
+		}
+		return rows
+			.map((row) => ({ ...row, tags: row.tags ?? [] }))
 			.filter(
 				(workspace) =>
 					!params.projectId || workspace.projectId === params.projectId,
 			)
 			.filter(
 				(workspace) =>
+					!projectName ||
+					workspace.projectName?.toLowerCase() === projectName,
+			)
+			.filter(
+				(workspace) =>
 					!search ||
 					workspace.name.toLowerCase().includes(search) ||
 					workspace.branch.toLowerCase().includes(search),
-			);
+			)
+			.filter((workspace) => tag === null || workspace.tags.includes(tag));
+	}
+
+	/**
+	 * Look up one workspace by id on a host. Returns `null` when the host has
+	 * no workspace with that id, like `tasks.retrieve`.
+	 *
+	 * Mirrors `superset workspaces get <id> --host <id>`.
+	 */
+	async retrieve(
+		id: string,
+		options: { hostId: string },
+	): Promise<Workspace | null> {
+		const workspaces = await this.list({ hostId: options.hostId });
+		return workspaces.find((workspace) => workspace.id === id) ?? null;
 	}
 
 	/**
@@ -79,9 +115,11 @@ export class Workspaces extends APIResource {
 				branch: params.branch,
 				pr: params.pr,
 				baseBranch: params.baseBranch,
+				skipBranchPrefix: params.skipBranchPrefix,
 				taskId: params.taskId,
 				agents: params.agents,
 				command: params.command,
+				tags: params.tags,
 			},
 			options,
 		);
@@ -110,10 +148,11 @@ export class Workspaces extends APIResource {
 	}
 
 	/**
-	 * Update fields on a workspace. At least one field is required. Currently
-	 * exposes `name` and `taskId`; branch and host moves require host-side
+	 * Update fields on a workspace. At least one field is required. Exposes
+	 * `name`, `taskId`, and `tags`; branch and host moves require host-side
 	 * orchestration and aren't safe to set directly. Pass `taskId: null` to
-	 * unlink the workspace from its current task.
+	 * unlink the workspace from its current task. `tags` replaces the whole
+	 * set; pass `[]` to clear every tag.
 	 *
 	 * Mirrors `superset workspaces update --host <id>`.
 	 */
@@ -178,8 +217,12 @@ export interface WorkspaceListParams {
 	hostId: string;
 	/** Restrict the listing to a single project by UUID. */
 	projectId?: string;
+	/** Restrict the listing to a single project by its host-served name (case-insensitive). */
+	projectName?: string;
 	/** Substring match against workspace name or branch. */
 	search?: string;
+	/** Only workspaces carrying this tag (case-insensitive). */
+	tag?: string;
 }
 
 export interface WorkspaceCreateParams {
@@ -195,12 +238,16 @@ export interface WorkspaceCreateParams {
 	pr?: number;
 	/** Branch to fork from when `branch` does not exist. Ignored with `pr`. */
 	baseBranch?: string;
+	/** Use `branch` exactly as given instead of namespacing it under the project's branch prefix. */
+	skipBranchPrefix?: boolean;
 	/** Optional Superset task id to link to the new workspace. */
 	taskId?: string;
 	/** Spawn one or more agents in the workspace immediately after creation. */
 	agents?: WorkspaceAgentLaunch[];
 	/** Shell command to run in the new worktree after creation. */
 	command?: string;
+	/** Tags to file the workspace under; each tag becomes a sidebar folder of the same name. */
+	tags?: string[];
 }
 
 export interface WorkspaceAgentLaunch {
@@ -259,6 +306,8 @@ export interface WorkspaceUpdateParams {
 	name?: string;
 	/** Link the workspace to a task by id, or pass `null` to unlink. */
 	taskId?: string | null;
+	/** Full replacement of the workspace's tag set; `[]` clears every tag. */
+	tags?: string[];
 }
 
 export interface WorkspaceUpdateResult {
@@ -266,11 +315,13 @@ export interface WorkspaceUpdateResult {
 	name: string;
 	branch: string;
 	organizationId: string;
-	projectId: string;
+	/** Null for project-less "session" workspaces. */
+	projectId: string | null;
 	hostId: string;
-	type: "main" | "worktree";
+	type: "main" | "worktree" | "session";
 	createdByUserId: string | null;
 	taskId: string | null;
+	tags: string[];
 	createdAt: Date;
 	updatedAt: Date;
 }
