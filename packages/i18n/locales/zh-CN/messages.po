@@ -26056,7 +26056,7 @@ msgstr "落后你{0}"
 #. placeholder {0}: formatTokens(tokens)
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.bodyPublishing"
-msgstr ""
+msgstr "最近30天 {0} 个 token。以 <0>{handle}</0> 身份发布。"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
@@ -26073,7 +26073,7 @@ msgstr "打开排行榜"
 #. placeholder {1}: formatNumber(total)
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.rankHeadline"
-msgstr ""
+msgstr "<0>#{0}</0> <1>／排行榜共 {1} 人</1>"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/TierBadge/TierBadge.tsx

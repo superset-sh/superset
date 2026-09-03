@@ -26056,7 +26056,7 @@ msgstr "{0}差で後続"
 #. placeholder {0}: formatTokens(tokens)
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.bodyPublishing"
-msgstr ""
+msgstr "直近30日間で{0}トークン。<0>{handle}</0>として公開中。"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
@@ -26073,7 +26073,7 @@ msgstr "リーダーボードを開く"
 #. placeholder {1}: formatNumber(total)
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.rankHeadline"
-msgstr ""
+msgstr "<0>#{0}</0> <1>リーダーボード{1}人中</1>"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/TierBadge/TierBadge.tsx

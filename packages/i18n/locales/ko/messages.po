@@ -26057,7 +26057,7 @@ msgstr "{0} 차이로 뒤"
 #. placeholder {0}: formatTokens(tokens)
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.bodyPublishing"
-msgstr ""
+msgstr "최근 30일간 토큰 {0}개. <0>{handle}</0>(으)로 게시 중."
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
@@ -26074,7 +26074,7 @@ msgstr "리더보드 열기"
 #. placeholder {1}: formatNumber(total)
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.rankHeadline"
-msgstr ""
+msgstr "<0>#{0}</0> <1>· 리더보드 {1}명 중</1>"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/TierBadge/TierBadge.tsx
