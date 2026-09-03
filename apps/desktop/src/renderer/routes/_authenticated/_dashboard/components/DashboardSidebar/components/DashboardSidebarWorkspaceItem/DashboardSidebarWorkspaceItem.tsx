@@ -107,6 +107,7 @@ export function DashboardSidebarWorkspaceItem({
 		handleClick,
 		handleCopyPath,
 		handleCopyBranchName,
+		handleCopyWorkspaceId,
 		handleCreateSection,
 		handleMoveToSection,
 		handleOpenInFinder,
@@ -307,6 +308,7 @@ export function DashboardSidebarWorkspaceItem({
 							onOpenInFinder={handleOpenInFinder}
 							onCopyPath={handleCopyPath}
 							onCopyBranchName={handleCopyBranchName}
+							onCopyWorkspaceId={handleCopyWorkspaceId}
 							onRemoveFromSidebar={handleRemoveFromSidebar}
 							onRemovePullRequest={handleRemovePullRequest}
 							onRename={isMainWorkspace ? undefined : startRename}
@@ -399,6 +401,7 @@ export function DashboardSidebarWorkspaceItem({
 						showDeleteHotkey={isActive}
 						onCopyPath={handleCopyPath}
 						onCopyBranchName={handleCopyBranchName}
+						onCopyWorkspaceId={handleCopyWorkspaceId}
 						onRemoveFromSidebar={handleRemoveFromSidebar}
 						onRemovePullRequest={handleRemovePullRequest}
 						onRename={isMainWorkspace ? undefined : startRename}

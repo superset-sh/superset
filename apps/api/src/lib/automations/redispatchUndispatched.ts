@@ -1,10 +1,24 @@
 import { dbWs } from "@superset/db/client";
 import { automationEvents } from "@superset/db/schema";
-import { and, asc, isNotNull, isNull, lt } from "drizzle-orm";
+import { and, asc, gt, isNotNull, isNull, lt } from "drizzle-orm";
 import { dispatchMatchingTriggers } from "./dispatchMatchingTriggers";
 
 /** Long enough that an in-flight delivery is not mistaken for a stuck one. */
 const GRACE_MS = 60_000;
+/**
+ * How far back the sweep looks. Two reasons it is bounded.
+ *
+ * Rows recorded before #6635 (2026-08-18) with nothing to dispatch were never
+ * marked, so about 1.2M of them sit at the left edge of the undispatched
+ * index forever. An unbounded sweep walks all of them, cold, on every tick
+ * before it reaches a row it can act on; in production that took four minutes
+ * a run and stacked two dozen runs deep. The bound turns the scan into a
+ * range that starts after them.
+ *
+ * It is also the retry ceiling. The sweep exists to retry a handoff that
+ * failed minutes ago; a run fired for a day-old event is worse than no run.
+ */
+const LOOKBACK_MS = 24 * 60 * 60 * 1000;
 const BATCH_SIZE = 200;
 
 /**
@@ -18,6 +32,7 @@ export async function redispatchUndispatched(): Promise<{
 	attempted: number;
 	failed: number;
 }> {
+	const now = Date.now();
 	const stuck = await dbWs
 		.select({
 			id: automationEvents.id,
@@ -29,7 +44,8 @@ export async function redispatchUndispatched(): Promise<{
 			and(
 				isNull(automationEvents.dispatchedAt),
 				isNotNull(automationEvents.dispatchInput),
-				lt(automationEvents.receivedAt, new Date(Date.now() - GRACE_MS)),
+				gt(automationEvents.receivedAt, new Date(now - LOOKBACK_MS)),
+				lt(automationEvents.receivedAt, new Date(now - GRACE_MS)),
 			),
 		)
 		.orderBy(asc(automationEvents.receivedAt))

@@ -12,13 +12,14 @@
  * - Credentials come from the dir's `.credentials.json` or its per-profile
  *   Keychain item: Claude Code hashes the literal CLAUDE_CONFIG_DIR string,
  *   so the service is `Claude Code-credentials-<sha256(literal)[0..8)>` and
- *   several path spellings must be probed (`~/x` vs absolute differ).
+ *   several path spellings must be probed (`~/x` vs absolute differ). Items
+ *   are keyed on the login user's account too — see readKeychainSecrets.
  */
 
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readdir, readFile, stat } from "node:fs/promises";
-import { homedir, platform } from "node:os";
+import { homedir, platform, userInfo } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { resolveAmbientCodexHome } from "@superset/agent-setup";
@@ -141,21 +142,67 @@ export async function discoverClaudeProfiles(): Promise<ClaudeProfile[]> {
 	return profiles;
 }
 
-/** Reads one keychain service's secret; null when absent or non-darwin. */
-export async function readKeychainSecret(
-	service: string,
-): Promise<string | null> {
-	if (platform() !== "darwin") return null;
+const KEYCHAIN_ACCOUNT_PATTERN = /^[a-zA-Z0-9._-]+$/;
+const KEYCHAIN_ACCOUNT_FALLBACK = "claude-code-user";
+/** What Bun's os.userInfo() reports as the user name when USER is unset. */
+const BUN_USERINFO_FALLBACK = "unknown";
+
+/**
+ * The `-a` accounts Claude Code may file its Keychain items under, likeliest
+ * first. The CLI uses `$USER`, else `os.userInfo().username`, and swaps a
+ * name outside its pattern for a fixed fallback. Its native build runs on
+ * Bun, whose userInfo() reports "unknown" instead of the passwd name, so a
+ * CLI launched without USER (hand-built harness envs do this) keeps a
+ * separate "unknown" identity, while the npm build on Node uses the real
+ * name — without USER, both are probed.
+ */
+export function claudeKeychainAccounts(
+	env: NodeJS.ProcessEnv = process.env,
+	passwdName: () => string = () => userInfo().username,
+): string[] {
+	const validated = (name: string) =>
+		KEYCHAIN_ACCOUNT_PATTERN.test(name) ? name : KEYCHAIN_ACCOUNT_FALLBACK;
+	if (env.USER) return [validated(env.USER)];
+	let fromPasswd: string;
 	try {
-		const { stdout } = await execFileAsync(
-			"security",
-			["find-generic-password", "-s", service, "-w"],
-			{ timeout: 5_000 },
-		);
-		return stdout.trim() || null;
+		fromPasswd = validated(passwdName());
 	} catch {
-		return null;
+		fromPasswd = KEYCHAIN_ACCOUNT_FALLBACK;
 	}
+	return [...new Set([fromPasswd, BUN_USERINFO_FALLBACK])];
+}
+
+/**
+ * Every distinct secret filed under a Keychain service; empty off macOS.
+ * `security` returns one item per lookup, and a service can hold several:
+ * Claude Code keys each on an account name (see claudeKeychainAccounts),
+ * and a sibling identity — a CLI run without USER left an "unknown" item
+ * holding only MCP OAuth tokens — is what an unscoped lookup returns first,
+ * which made the real login vanish from the quota panel. The CLI's own
+ * accounts are probed first; the unscoped lookup then covers items an older
+ * client filed under a different name.
+ */
+export async function readKeychainSecrets(service: string): Promise<string[]> {
+	if (platform() !== "darwin") return [];
+	const secrets: string[] = [];
+	const scopes = [
+		...claudeKeychainAccounts().map((account) => ["-a", account]),
+		[],
+	];
+	for (const scope of scopes) {
+		try {
+			const { stdout } = await execFileAsync(
+				"security",
+				["find-generic-password", ...scope, "-s", service, "-w"],
+				{ timeout: 5_000 },
+			);
+			const secret = stdout.trim();
+			if (secret && !secrets.includes(secret)) secrets.push(secret);
+		} catch {
+			// No item under this scope.
+		}
+	}
+	return secrets;
 }
 
 interface CodexAuthShape {
