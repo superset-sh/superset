@@ -26040,8 +26040,8 @@ msgstr "{0} 차이로 뒤"
 #. js-lingui-explicit-id
 #. placeholder {0}: formatTokens(tokens)
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
-msgid "settings.usage.leaderboardRank.bodyWithTokens"
-msgstr "최근 30일 동안 {0} 토큰. <0>{handle}</0>(으)로 게시되며 토큰 수와 모델 이름만 공개됩니다."
+msgid "settings.usage.leaderboardRank.bodyPublishing"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx

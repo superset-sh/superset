@@ -26040,8 +26040,8 @@ msgstr "{0} atrás de você"
 #. js-lingui-explicit-id
 #. placeholder {0}: formatTokens(tokens)
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
-msgid "settings.usage.leaderboardRank.bodyWithTokens"
-msgstr "{0} tokens nos últimos 30 dias. Publicando como <0>{handle}</0>, apenas contagens de tokens e nomes de modelos."
+msgid "settings.usage.leaderboardRank.bodyPublishing"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx

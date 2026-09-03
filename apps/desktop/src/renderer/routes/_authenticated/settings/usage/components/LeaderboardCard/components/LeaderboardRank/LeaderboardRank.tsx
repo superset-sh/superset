@@ -86,7 +86,7 @@ export function LeaderboardRank({
 		>
 			<p className="mt-1 pl-7 text-xs text-muted-foreground">
 				{ranked ? (
-					<Trans id="settings.usage.leaderboardRank.bodyWithTokens">
+					<Trans id="settings.usage.leaderboardRank.bodyPublishing">
 						{formatTokens(tokens)} tokens in the last 30 days. Publishing as{" "}
 						<a
 							href={profileUrl}
@@ -96,7 +96,7 @@ export function LeaderboardRank({
 						>
 							{handle}
 						</a>
-						, token counts and model names only.
+						.
 					</Trans>
 				) : (
 					<Trans id="settings.usage.leaderboardRank.unrankedBody">
