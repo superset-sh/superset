@@ -7397,9 +7397,9 @@ msgid "dashboard.sidebar.bulkDelete.deleteWithoutChecking"
 msgstr "Excluir sem verificar"
 
 #. js-lingui-explicit-id
-#. placeholder {0}: Math.min(completedCount + 1, workspaces.length)
-#. placeholder {1}: workspaces.length
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkDeleteDialog/DashboardSidebarBulkDeleteDialog.tsx
+#. placeholder {0}: Math.min(completed + 1, total)
+#. placeholder {1}: targets.length
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkDeleteDialog/hooks/useBulkWorkspaceDelete/useBulkWorkspaceDelete.ts
 msgid "dashboard.sidebar.bulkDelete.deletingProgress"
 msgstr "Excluindo {0} de {1}…"
 
@@ -7468,11 +7468,6 @@ msgstr "Fechar"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkDeleteDialog/components/DashboardSidebarBulkDeleteFailures/DashboardSidebarBulkDeleteFailures.tsx
 msgid "dashboard.sidebar.bulkDeleteFailures.deleteAnyway"
 msgstr "{teardownFailureCount, plural, one {Excluir mesmo assim} other {Excluir # mesmo assim}}"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkDeleteDialog/components/DashboardSidebarBulkDeleteFailures/DashboardSidebarBulkDeleteFailures.tsx
-msgid "dashboard.sidebar.bulkDeleteFailures.deleting"
-msgstr "Excluindo…"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkDeleteDialog/components/DashboardSidebarBulkDeleteFailures/DashboardSidebarBulkDeleteFailures.tsx
