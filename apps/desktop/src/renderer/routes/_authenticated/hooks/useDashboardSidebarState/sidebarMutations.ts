@@ -5,7 +5,7 @@ import type { AppCollections } from "renderer/routes/_authenticated/providers/Co
 
 export type SidebarWorkspaceRow = Pick<
 	HostShapedWorkspace,
-	"id" | "projectId" | "type" | "hostId"
+	"id" | "projectId" | "type"
 >;
 
 /**
@@ -71,12 +71,15 @@ export function tombstoneSidebarWorkspaceRecord(
  * (`buildDashboardSidebarProjects` drops any workspace whose project is absent).
  *
  * Worktrees are tombstoned so "removed" stays removed. A worktree with no
- * local-state row would be re-placed by `usePlaceLocalWorktreesInSidebar`
+ * local-state row would be re-placed by `usePlaceWorktreesInSidebar`
  * (recreating the project), and a kept-but-visible row would flood back the
  * moment anything recreates the project row — e.g. a later automation-created
- * worktree. Hiding each one (existing rows, plus this device's row-less
- * worktrees the reconciler could re-pin) means a resurrected project shows only
- * the genuinely-new worktree, not these dismissed ones.
+ * worktree. Hiding each one (existing rows, plus every known row-less worktree
+ * the reconciler could re-pin) means a resurrected project shows only the
+ * genuinely-new worktree, not these dismissed ones. Row-less worktrees are
+ * tombstoned on every host, not just online ones: the reconciler places from
+ * any online host, so a host that is offline now would re-place the project
+ * the moment it comes back.
  *
  * `main` workspaces are intentionally left alone: they surface via the gated
  * auto-include path (never re-pinned, never create a project record), so
@@ -91,7 +94,6 @@ export function removeProjectFromSidebarState(
 	>,
 	workspaces: SidebarWorkspaceRow[],
 	projectId: string,
-	machineId: string,
 	cleanupPaneRuntimes: CleanupPaneRuntimes,
 ): void {
 	const mainWorkspaceIds = new Set(
@@ -110,11 +112,7 @@ export function removeProjectFromSidebarState(
 		}
 	}
 	for (const ws of workspaces) {
-		if (
-			ws.projectId === projectId &&
-			ws.type === "worktree" &&
-			ws.hostId === machineId
-		) {
+		if (ws.projectId === projectId && ws.type === "worktree") {
 			worktreeIds.add(ws.id);
 		}
 	}

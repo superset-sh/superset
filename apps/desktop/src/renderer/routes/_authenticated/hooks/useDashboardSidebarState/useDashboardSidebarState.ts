@@ -296,7 +296,7 @@ export function useDashboardSidebarState() {
 	const collections = useCollections();
 	const { workspaces: hostWorkspaces, cache: hostWorkspacesCache } =
 		useHostWorkspaces();
-	const { machineId, activeHostUrl } = useLocalHostService();
+	const { activeHostUrl } = useLocalHostService();
 	const { v2Workspaces } = useOptimisticActions();
 	const tagFolderContext = useTagFolderContext();
 
@@ -1041,11 +1041,10 @@ export function useDashboardSidebarState() {
 				collections,
 				hostWorkspaces,
 				projectId,
-				machineId,
 				cleanupWorkspacePaneRuntimes,
 			);
 		},
-		[collections, hostWorkspaces, machineId],
+		[collections, hostWorkspaces],
 	);
 
 	return {

@@ -1,1 +1,1 @@
-export { usePlaceLocalWorktreesInSidebar } from "./usePlaceLocalWorktreesInSidebar";
+export { usePlaceWorktreesInSidebar } from "./usePlaceWorktreesInSidebar";
