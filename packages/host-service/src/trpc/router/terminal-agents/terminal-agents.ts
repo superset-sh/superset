@@ -107,11 +107,12 @@ function bindingHasHarnessSession(
  * launch; a failed launch un-claims the candidate so it can be retried.
  *
  * A session still at "Attached" started but was never prompted, and agents
- * only persist a conversation once it has a message — unless the harness
- * store proves one exists (a resumed session idle since its restore), the
- * agent is launched fresh instead of `--resume`-ing into "no conversation
- * found". Nothing is lost either way: the pane comes back as the same agent
- * on the current default account.
+ * only persist a conversation once it has a message — when the harness store
+ * shows none, the agent is launched fresh instead of `--resume`-ing into "no
+ * conversation found". A store that does hold one (a resumed session idle
+ * since its restore) or cannot be read resumes as usual. Nothing is lost
+ * either way: the pane comes back as the same agent on the current default
+ * account.
  */
 export async function resumeTerminalAgentSession(
 	deps: ResumeSessionDeps,
@@ -141,8 +142,11 @@ export async function resumeTerminalAgentSession(
 			return { resumed: false };
 		}
 
+		// Only a definite "no transcript" launches fresh: an unreadable or
+		// unsurveyed store must not cost a restored conversation its history.
 		const resumable =
-			claimed.lastEventType !== "Attached" || deps.hasSession(claimed) === true;
+			claimed.lastEventType !== "Attached" ||
+			deps.hasSession(claimed) !== false;
 
 		let result: AgentRunResult;
 		try {

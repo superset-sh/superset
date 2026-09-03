@@ -148,8 +148,8 @@ describe("resumeTerminalAgentSession", () => {
 	it("launches a never-prompted session fresh instead of resuming into nothing", async () => {
 		const db = createTestDb();
 		seedResumableBinding(db, { lastEventType: "Attached" });
-		// Idle since SessionStart, no transcript on disk (or unknowable): a
-		// `--resume` would exit with "no conversation found".
+		// Idle since SessionStart with no transcript on disk: a `--resume`
+		// would exit with "no conversation found".
 		const { deps, runCalls, disposedTerminals } = createDeps(
 			db,
 			undefined,
@@ -180,6 +180,21 @@ describe("resumeTerminalAgentSession", () => {
 		const { deps, runCalls } = createDeps(db, undefined, (binding) =>
 			binding.agentSessionId === "sess-t1" ? true : null,
 		);
+
+		await resumeTerminalAgentSession(deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+
+		expect(runCalls.map((call) => call.resumeSessionId)).toEqual(["sess-t1"]);
+	});
+
+	it("resumes an idle session when the harness store cannot be read", async () => {
+		const db = createTestDb();
+		// Unreadable or unsurveyed store: not evidence the conversation is
+		// gone, so the saved session id is kept rather than discarded.
+		seedResumableBinding(db, { lastEventType: "Attached" });
+		const { deps, runCalls } = createDeps(db, undefined, () => null);
 
 		await resumeTerminalAgentSession(deps, {
 			workspaceId: "ws-1",
