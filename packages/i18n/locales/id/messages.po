@@ -25937,111 +25937,111 @@ msgstr "token input, cache, dan output"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/CardFrame/CardFrame.tsx
 msgid "settings.usage.leaderboardCard.collapse"
-msgstr ""
+msgstr "Ciutkan"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/CardFrame/CardFrame.tsx
 msgid "settings.usage.leaderboardCard.expand"
-msgstr ""
+msgstr "Perluas"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardOptInPrompt/LeaderboardOptInPrompt.tsx
 msgid "settings.usage.leaderboardPrompt.bodyGeneric"
-msgstr ""
+msgstr "Lihat posisi 30 hari terakhir Anda di papan peringkat publik. Hanya jumlah token dan nama model, tanpa nama repo, path file, atau prompt."
 
 #. js-lingui-explicit-id
 #. placeholder {0}: formatNumber(participants)
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardOptInPrompt/LeaderboardOptInPrompt.tsx
 msgid "settings.usage.leaderboardPrompt.bodyWithCount"
-msgstr ""
+msgstr "{0} developer diperingkat berdasarkan penggunaan agen. 30 hari terakhir Anda sudah dihitung, hanya disembunyikan. Hanya jumlah token dan nama model, tanpa nama repo, path file, atau prompt."
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardOptInPrompt/LeaderboardOptInPrompt.tsx
 msgid "settings.usage.leaderboardPrompt.headline"
-msgstr ""
+msgstr "Di peringkat berapa Anda?"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardOptInPrompt/LeaderboardOptInPrompt.tsx
 msgid "settings.usage.leaderboardPrompt.rankHidden"
-msgstr ""
+msgstr "Tersembunyi sampai Anda bergabung"
 
 #. js-lingui-explicit-id
 #. placeholder {0}: formatNumber(participants)
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardOptInPrompt/LeaderboardOptInPrompt.tsx
 msgid "settings.usage.leaderboardPrompt.rankHint"
-msgstr ""
+msgstr "dari {0}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardOptInPrompt/LeaderboardOptInPrompt.tsx
 msgid "settings.usage.leaderboardPrompt.rankLabel"
-msgstr ""
+msgstr "Peringkat Anda"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardOptInPrompt/LeaderboardOptInPrompt.tsx
 msgid "settings.usage.leaderboardPrompt.reveal"
-msgstr ""
+msgstr "Tampilkan peringkat saya"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardOptInPrompt/LeaderboardOptInPrompt.tsx
 msgid "settings.usage.leaderboardPrompt.tokensHint"
-msgstr ""
+msgstr "30 hari terakhir"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardOptInPrompt/LeaderboardOptInPrompt.tsx
 msgid "settings.usage.leaderboardPrompt.tokensLabel"
-msgstr ""
+msgstr "Token Anda"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.alias.0"
-msgstr ""
+msgstr "Perakit Anonim"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.alias.1"
-msgstr ""
+msgstr "Masinis Misterius"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.alias.2"
-msgstr ""
+msgstr "Mandor Tanpa Nama"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.alias.3"
-msgstr ""
+msgstr "Operator Samaran"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.alias.4"
-msgstr ""
+msgstr "Tukang Keling Tersensor"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.alias.5"
-msgstr ""
+msgstr "Forklift Hantu"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.alias.6"
-msgstr ""
+msgstr "Tukang Las Tak Dikenal"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.alias.7"
-msgstr ""
+msgstr "Ketua Shift Rahasia"
 
 #. js-lingui-explicit-id
 #. placeholder {0}: formatTokens(me.tokens - below.tokens)
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.behindYou"
-msgstr ""
+msgstr "{0} di belakang Anda"
 
 #. js-lingui-explicit-id
 #. placeholder {0}: formatTokens(tokens)
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.bodyWithTokens"
-msgstr ""
+msgstr "{0} token dalam 30 hari terakhir. Dipublikasikan sebagai <0>{handle}</0>, hanya jumlah token dan nama model."
 
 #. js-lingui-explicit-id
 #. placeholder {0}: formatNumber(rank)
@@ -26049,59 +26049,59 @@ msgstr ""
 #. placeholder {2}: formatNumber(total)
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.headline"
-msgstr ""
+msgstr "<0><1>#{0}</1>{1}</0> <2>dari {2} di papan peringkat</2>"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.manage"
-msgstr ""
+msgstr "Pengaturan papan peringkat"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.open"
-msgstr ""
+msgstr "Buka papan peringkat"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/TierBadge/TierBadge.tsx
 msgid "settings.usage.leaderboardRank.tier.buttonPusher"
-msgstr ""
+msgstr "Penekan Tombol"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/TierBadge/TierBadge.tsx
 msgid "settings.usage.leaderboardRank.tier.henryFord"
-msgstr ""
+msgstr "Henry Ford"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/TierBadge/TierBadge.tsx
 msgid "settings.usage.leaderboardRank.tier.operator"
-msgstr ""
+msgstr "Operator"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/TierBadge/TierBadge.tsx
 msgid "settings.usage.leaderboardRank.tier.plantManager"
-msgstr ""
+msgstr "Manajer Pabrik"
 
 #. js-lingui-explicit-id
 #. placeholder {0}: formatTokens(above.tokens - me.tokens)
 #. placeholder {1}: formatNumber(above.rank)
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.toPass"
-msgstr ""
+msgstr "{0} lagi untuk melewati #{1}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.unrankedBody"
-msgstr ""
+msgstr "Belum ada yang dipublikasikan dalam 30 hari terakhir. Peringkat Anda muncul setelah penggunaan dari mesin ini tersinkron, dipublikasikan sebagai <0>{handle}</0>."
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.unrankedTitle"
-msgstr ""
+msgstr "Anda ada di papan peringkat, tetapi belum diperingkat"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.you"
-msgstr ""
+msgstr "Anda"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageHistorySection/components/UsageMetricTiles/UsageMetricTiles.tsx

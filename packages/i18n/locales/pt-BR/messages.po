@@ -25937,111 +25937,111 @@ msgstr "tokens de entrada, cache e saída"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/CardFrame/CardFrame.tsx
 msgid "settings.usage.leaderboardCard.collapse"
-msgstr ""
+msgstr "Recolher"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/CardFrame/CardFrame.tsx
 msgid "settings.usage.leaderboardCard.expand"
-msgstr ""
+msgstr "Expandir"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardOptInPrompt/LeaderboardOptInPrompt.tsx
 msgid "settings.usage.leaderboardPrompt.bodyGeneric"
-msgstr ""
+msgstr "Veja em que posição seus últimos 30 dias ficam no ranking público. Apenas contagens de tokens e nomes de modelos, sem nomes de repositórios, caminhos de arquivos ou prompts."
 
 #. js-lingui-explicit-id
 #. placeholder {0}: formatNumber(participants)
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardOptInPrompt/LeaderboardOptInPrompt.tsx
 msgid "settings.usage.leaderboardPrompt.bodyWithCount"
-msgstr ""
+msgstr "{0} desenvolvedores estão classificados por uso de agentes. Seus últimos 30 dias já estão contabilizados, apenas ocultos. Apenas contagens de tokens e nomes de modelos, sem nomes de repositórios, caminhos de arquivos ou prompts."
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardOptInPrompt/LeaderboardOptInPrompt.tsx
 msgid "settings.usage.leaderboardPrompt.headline"
-msgstr ""
+msgstr "Qual é a sua posição?"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardOptInPrompt/LeaderboardOptInPrompt.tsx
 msgid "settings.usage.leaderboardPrompt.rankHidden"
-msgstr ""
+msgstr "Oculta até você entrar"
 
 #. js-lingui-explicit-id
 #. placeholder {0}: formatNumber(participants)
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardOptInPrompt/LeaderboardOptInPrompt.tsx
 msgid "settings.usage.leaderboardPrompt.rankHint"
-msgstr ""
+msgstr "de {0}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardOptInPrompt/LeaderboardOptInPrompt.tsx
 msgid "settings.usage.leaderboardPrompt.rankLabel"
-msgstr ""
+msgstr "Sua posição"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardOptInPrompt/LeaderboardOptInPrompt.tsx
 msgid "settings.usage.leaderboardPrompt.reveal"
-msgstr ""
+msgstr "Revelar minha posição"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardOptInPrompt/LeaderboardOptInPrompt.tsx
 msgid "settings.usage.leaderboardPrompt.tokensHint"
-msgstr ""
+msgstr "últimos 30 dias"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardOptInPrompt/LeaderboardOptInPrompt.tsx
 msgid "settings.usage.leaderboardPrompt.tokensLabel"
-msgstr ""
+msgstr "Seus tokens"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.alias.0"
-msgstr ""
+msgstr "Montador Anônimo"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.alias.1"
-msgstr ""
+msgstr "Maquinista Misterioso"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.alias.2"
-msgstr ""
+msgstr "Contramestre Sem Nome"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.alias.3"
-msgstr ""
+msgstr "Operador Incógnito"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.alias.4"
-msgstr ""
+msgstr "Rebitador Reservado"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.alias.5"
-msgstr ""
+msgstr "Empilhadeira Fantasma"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.alias.6"
-msgstr ""
+msgstr "Soldador Desconhecido"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.alias.7"
-msgstr ""
+msgstr "Líder de Turno Secreto"
 
 #. js-lingui-explicit-id
 #. placeholder {0}: formatTokens(me.tokens - below.tokens)
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.behindYou"
-msgstr ""
+msgstr "{0} atrás de você"
 
 #. js-lingui-explicit-id
 #. placeholder {0}: formatTokens(tokens)
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.bodyWithTokens"
-msgstr ""
+msgstr "{0} tokens nos últimos 30 dias. Publicando como <0>{handle}</0>, apenas contagens de tokens e nomes de modelos."
 
 #. js-lingui-explicit-id
 #. placeholder {0}: formatNumber(rank)
@@ -26049,59 +26049,59 @@ msgstr ""
 #. placeholder {2}: formatNumber(total)
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.headline"
-msgstr ""
+msgstr "<0><1>#{0}</1>{1}</0> <2>de {2} no ranking</2>"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.manage"
-msgstr ""
+msgstr "Configurações do ranking"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.open"
-msgstr ""
+msgstr "Abrir ranking"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/TierBadge/TierBadge.tsx
 msgid "settings.usage.leaderboardRank.tier.buttonPusher"
-msgstr ""
+msgstr "Apertador de botão"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/TierBadge/TierBadge.tsx
 msgid "settings.usage.leaderboardRank.tier.henryFord"
-msgstr ""
+msgstr "Henry Ford"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/TierBadge/TierBadge.tsx
 msgid "settings.usage.leaderboardRank.tier.operator"
-msgstr ""
+msgstr "Operador"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/TierBadge/TierBadge.tsx
 msgid "settings.usage.leaderboardRank.tier.plantManager"
-msgstr ""
+msgstr "Gerente de fábrica"
 
 #. js-lingui-explicit-id
 #. placeholder {0}: formatTokens(above.tokens - me.tokens)
 #. placeholder {1}: formatNumber(above.rank)
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.toPass"
-msgstr ""
+msgstr "{0} para ultrapassar #{1}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.unrankedBody"
-msgstr ""
+msgstr "Nada publicado nos últimos 30 dias ainda. Sua posição aparece assim que o uso desta máquina sincronizar, publicando como <0>{handle}</0>."
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.unrankedTitle"
-msgstr ""
+msgstr "Você está no ranking, mas ainda sem posição"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.you"
-msgstr ""
+msgstr "Você"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageHistorySection/components/UsageMetricTiles/UsageMetricTiles.tsx

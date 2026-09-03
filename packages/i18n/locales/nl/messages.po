@@ -25937,111 +25937,111 @@ msgstr "input-, cache- en outputtokens"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/CardFrame/CardFrame.tsx
 msgid "settings.usage.leaderboardCard.collapse"
-msgstr ""
+msgstr "Inklappen"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/CardFrame/CardFrame.tsx
 msgid "settings.usage.leaderboardCard.expand"
-msgstr ""
+msgstr "Uitklappen"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardOptInPrompt/LeaderboardOptInPrompt.tsx
 msgid "settings.usage.leaderboardPrompt.bodyGeneric"
-msgstr ""
+msgstr "Bekijk waar je laatste 30 dagen staan op de publieke ranglijst. Alleen tokenaantallen en modelnamen, geen repo-namen, bestandspaden of prompts."
 
 #. js-lingui-explicit-id
 #. placeholder {0}: formatNumber(participants)
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardOptInPrompt/LeaderboardOptInPrompt.tsx
 msgid "settings.usage.leaderboardPrompt.bodyWithCount"
-msgstr ""
+msgstr "{0} developers zijn gerangschikt op agentgebruik. Je laatste 30 dagen zijn al meegeteld, alleen verborgen. Alleen tokenaantallen en modelnamen, geen repo-namen, bestandspaden of prompts."
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardOptInPrompt/LeaderboardOptInPrompt.tsx
 msgid "settings.usage.leaderboardPrompt.headline"
-msgstr ""
+msgstr "Waar sta jij?"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardOptInPrompt/LeaderboardOptInPrompt.tsx
 msgid "settings.usage.leaderboardPrompt.rankHidden"
-msgstr ""
+msgstr "Verborgen tot je meedoet"
 
 #. js-lingui-explicit-id
 #. placeholder {0}: formatNumber(participants)
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardOptInPrompt/LeaderboardOptInPrompt.tsx
 msgid "settings.usage.leaderboardPrompt.rankHint"
-msgstr ""
+msgstr "van {0}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardOptInPrompt/LeaderboardOptInPrompt.tsx
 msgid "settings.usage.leaderboardPrompt.rankLabel"
-msgstr ""
+msgstr "Je positie"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardOptInPrompt/LeaderboardOptInPrompt.tsx
 msgid "settings.usage.leaderboardPrompt.reveal"
-msgstr ""
+msgstr "Mijn positie tonen"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardOptInPrompt/LeaderboardOptInPrompt.tsx
 msgid "settings.usage.leaderboardPrompt.tokensHint"
-msgstr ""
+msgstr "laatste 30 dagen"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardOptInPrompt/LeaderboardOptInPrompt.tsx
 msgid "settings.usage.leaderboardPrompt.tokensLabel"
-msgstr ""
+msgstr "Je tokens"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.alias.0"
-msgstr ""
+msgstr "Anonieme Assembleur"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.alias.1"
-msgstr ""
+msgstr "Mysterieuze Machinist"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.alias.2"
-msgstr ""
+msgstr "Naamloze Voorman"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.alias.3"
-msgstr ""
+msgstr "Incognito Operator"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.alias.4"
-msgstr ""
+msgstr "Gecensureerde Klinker"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.alias.5"
-msgstr ""
+msgstr "Fantoomheftruck"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.alias.6"
-msgstr ""
+msgstr "Onbekende Lasser"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.alias.7"
-msgstr ""
+msgstr "Geheime Ploegleider"
 
 #. js-lingui-explicit-id
 #. placeholder {0}: formatTokens(me.tokens - below.tokens)
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.behindYou"
-msgstr ""
+msgstr "{0} achter je"
 
 #. js-lingui-explicit-id
 #. placeholder {0}: formatTokens(tokens)
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.bodyWithTokens"
-msgstr ""
+msgstr "{0} tokens in de laatste 30 dagen. Wordt gepubliceerd als <0>{handle}</0>, alleen tokenaantallen en modelnamen."
 
 #. js-lingui-explicit-id
 #. placeholder {0}: formatNumber(rank)
@@ -26049,59 +26049,59 @@ msgstr ""
 #. placeholder {2}: formatNumber(total)
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.headline"
-msgstr ""
+msgstr "<0><1>#{0}</1>{1}</0> <2>van {2} op de ranglijst</2>"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.manage"
-msgstr ""
+msgstr "Ranglijstinstellingen"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.open"
-msgstr ""
+msgstr "Ranglijst openen"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/TierBadge/TierBadge.tsx
 msgid "settings.usage.leaderboardRank.tier.buttonPusher"
-msgstr ""
+msgstr "Knoppendrukker"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/TierBadge/TierBadge.tsx
 msgid "settings.usage.leaderboardRank.tier.henryFord"
-msgstr ""
+msgstr "Henry Ford"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/TierBadge/TierBadge.tsx
 msgid "settings.usage.leaderboardRank.tier.operator"
-msgstr ""
+msgstr "Operator"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/TierBadge/TierBadge.tsx
 msgid "settings.usage.leaderboardRank.tier.plantManager"
-msgstr ""
+msgstr "Fabrieksmanager"
 
 #. js-lingui-explicit-id
 #. placeholder {0}: formatTokens(above.tokens - me.tokens)
 #. placeholder {1}: formatNumber(above.rank)
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.toPass"
-msgstr ""
+msgstr "{0} om #{1} voorbij te gaan"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.unrankedBody"
-msgstr ""
+msgstr "Nog niets gepubliceerd in de laatste 30 dagen. Je positie verschijnt zodra het gebruik van deze machine is gesynchroniseerd, gepubliceerd als <0>{handle}</0>."
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/LeaderboardRank.tsx
 msgid "settings.usage.leaderboardRank.unrankedTitle"
-msgstr ""
+msgstr "Je staat op de ranglijst, maar hebt nog geen positie"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/components/LeaderboardRank/components/RankNeighbors/RankNeighbors.tsx
 msgid "settings.usage.leaderboardRank.you"
-msgstr ""
+msgstr "Jij"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageHistorySection/components/UsageMetricTiles/UsageMetricTiles.tsx
