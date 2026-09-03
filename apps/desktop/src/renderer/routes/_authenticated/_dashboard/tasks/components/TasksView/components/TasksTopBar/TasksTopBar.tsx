@@ -11,6 +11,7 @@ import {
 	HiXMark,
 } from "react-icons/hi2";
 import { SiLinear } from "react-icons/si";
+import { PlainIcon } from "renderer/components/icons/PlainIcon";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { OpenClosedFilter } from "renderer/routes/_authenticated/_dashboard/components/OpenClosedFilter";
 import { ProjectFilter } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter";
@@ -34,7 +35,7 @@ export type TabValue =
 	| "started"
 	| "completed"
 	| "canceled";
-export type TaskSource = "tasks" | "issues";
+export type TaskSource = "tasks" | "issues" | "plain";
 
 interface TasksTopBarProps {
 	currentTab: TabValue;
@@ -62,6 +63,7 @@ interface TasksTopBarProps {
 const TASK_SOURCES = [
 	{ value: "tasks" as const, Icon: SiLinear },
 	{ value: "issues" as const, Icon: GoIssueOpened },
+	{ value: "plain" as const, Icon: PlainIcon },
 ] as const;
 
 export function TasksTopBar({
@@ -96,8 +98,15 @@ export function TasksTopBar({
 			id: "dashboard.tasks.topBar.sourceGithubIssues",
 			message: "GitHub issues",
 		}),
+		plain: t({
+			id: "dashboard.tasks.topBar.sourcePlain",
+			message: "Plain",
+		}),
 	};
-	const showTaskOnlyControls = taskSource === "tasks";
+	// Plain threads share the task views but not the Linear-only controls.
+	const showTaskOnlyControls = taskSource !== "issues";
+	const showLinearProjectFilter = taskSource === "tasks";
+	const showCreateTask = taskSource === "tasks";
 	const showIssues = taskSource === "issues";
 	const taskSelectedCount = selectedTasks.length;
 	const issueSelectedCount = selectedIssues.length;
@@ -191,11 +200,15 @@ export function TasksTopBar({
 
 								{showTaskOnlyControls ? (
 									<>
-										<LinearProjectFilter
-											value={linearProjectFilter}
-											onChange={onLinearProjectFilterChange}
-										/>
-										<div className="h-4 w-px shrink-0 bg-border" />
+										{showLinearProjectFilter && (
+											<>
+												<LinearProjectFilter
+													value={linearProjectFilter}
+													onChange={onLinearProjectFilterChange}
+												/>
+												<div className="h-4 w-px shrink-0 bg-border" />
+											</>
+										)}
 										<StatusFilter value={currentTab} onChange={onTabChange} />
 										<div className="h-4 w-px shrink-0 bg-border" />
 										<AssigneeFilter
@@ -233,17 +246,21 @@ export function TasksTopBar({
 					<div className="flex shrink-0 items-center gap-2">
 						{showTaskOnlyControls && (
 							<>
-								<Button
-									variant="outline"
-									size="sm"
-									className="h-8 gap-1.5 px-3"
-									onClick={() => setIsCreateTaskOpen(true)}
-								>
-									<HiOutlinePencilSquare className="size-4" />
-									<span className="hidden @4xl:inline">
-										<Trans id="dashboard.tasks.topBar.newTask">New task</Trans>
-									</span>
-								</Button>
+								{showCreateTask && (
+									<Button
+										variant="outline"
+										size="sm"
+										className="h-8 gap-1.5 px-3"
+										onClick={() => setIsCreateTaskOpen(true)}
+									>
+										<HiOutlinePencilSquare className="size-4" />
+										<span className="hidden @4xl:inline">
+											<Trans id="dashboard.tasks.topBar.newTask">
+												New task
+											</Trans>
+										</span>
+									</Button>
+								)}
 
 								<fieldset
 									className="flex items-center rounded-md border bg-muted/30 p-0.5"
