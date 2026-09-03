@@ -20953,6 +20953,16 @@ msgid "settings.appearance.typography.title"
 msgstr "Typography"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/appearance/components/AppearanceSettings/components/WorkspaceBranchLabelSection/WorkspaceBranchLabelSection.tsx
+msgid "settings.appearance.workspaceBranchLabel.hint"
+msgstr "Show each workspace's branch or worktree name under its title in the sidebar."
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/appearance/components/AppearanceSettings/components/WorkspaceBranchLabelSection/WorkspaceBranchLabelSection.tsx
+msgid "settings.appearance.workspaceBranchLabel.label"
+msgstr "Workspace branch names"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/behavior/components/BehaviorSettings/BehaviorSettings.tsx
 msgid "settings.behavior.changesOpenTarget.hint"
 msgstr "Choose how the Changes view opens from the top bar"

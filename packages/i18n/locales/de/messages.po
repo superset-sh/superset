@@ -20953,6 +20953,16 @@ msgid "settings.appearance.typography.title"
 msgstr "Typografie"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/appearance/components/AppearanceSettings/components/WorkspaceBranchLabelSection/WorkspaceBranchLabelSection.tsx
+msgid "settings.appearance.workspaceBranchLabel.hint"
+msgstr "Den Branch- oder Worktree-Namen jedes Arbeitsbereichs unter seinem Titel in der Seitenleiste anzeigen."
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/appearance/components/AppearanceSettings/components/WorkspaceBranchLabelSection/WorkspaceBranchLabelSection.tsx
+msgid "settings.appearance.workspaceBranchLabel.label"
+msgstr "Branch-Namen der Arbeitsbereiche"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/behavior/components/BehaviorSettings/BehaviorSettings.tsx
 msgid "settings.behavior.changesOpenTarget.hint"
 msgstr "Wähle, wie sich die Änderungsansicht aus der Titelleiste öffnet"

@@ -9,6 +9,7 @@ import { FontSettingSection } from "./components/FontSettingSection";
 import { LanguageSection } from "./components/LanguageSection";
 import { MarkdownStyleSection } from "./components/MarkdownStyleSection";
 import { ThemeSection } from "./components/ThemeSection";
+import { WorkspaceBranchLabelSection } from "./components/WorkspaceBranchLabelSection";
 
 /**
  * Renders a list of visible sections with automatic border separators.
@@ -55,6 +56,10 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 		SETTING_ITEM_ID.APPEARANCE_LANGUAGE,
 		visibleItems,
 	);
+	const showWorkspaceBranch = isItemVisible(
+		SETTING_ITEM_ID.APPEARANCE_WORKSPACE_BRANCH,
+		visibleItems,
+	);
 	const showThemeSection = showTheme || showCustomThemes;
 
 	return (
@@ -71,7 +76,10 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 			</div>
 
 			<SectionList>
-				{(showThemeSection || showLanguage || showMarkdown) && (
+				{(showThemeSection ||
+					showLanguage ||
+					showMarkdown ||
+					showWorkspaceBranch) && (
 					<div
 						key="appearance-card"
 						className="rounded-lg border border-border overflow-hidden divide-y divide-border"
@@ -79,6 +87,7 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 						{showThemeSection && <ThemeSection />}
 						{showLanguage && <LanguageSection />}
 						{showMarkdown && <MarkdownStyleSection />}
+						{showWorkspaceBranch && <WorkspaceBranchLabelSection />}
 					</div>
 				)}
 				{(showEditorFont || showTerminalFont) && (

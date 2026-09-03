@@ -152,6 +152,16 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 		// minus would remove the project's anchor row. Removal stays available via
 		// the context menu.
 		const isLocalMainWorkspace = isMainWorkspace && hostType === "local-device";
+		// Mirrors the v1 sidebar: main workspaces always carry their checked-out
+		// branch; worktrees only when the title isn't already the branch. Sessions
+		// have no repository, so their placeholder branch says nothing.
+		const isSessionWorkspace = workspace.type === "session";
+		const branchLabel =
+			!isSessionWorkspace &&
+			branch &&
+			(isMainWorkspace || (name && name !== branch))
+				? branch
+				: null;
 		const workspaceKindTitle = isMainWorkspace
 			? "Main workspace"
 			: "Worktree workspace";
@@ -493,6 +503,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 				{!isPending && (
 					<DashboardSidebarWorkspaceChips
 						workspaceId={workspace.id}
+						branchLabel={branchLabel}
 						isInSection={isInSection}
 						indentation={resolvedIndentation}
 						onClick={onWorkspaceChipsClick}

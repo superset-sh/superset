@@ -28,6 +28,7 @@ export const SETTING_ITEM_ID = {
 	APPEARANCE_CUSTOM_THEMES: "appearance-custom-themes",
 	APPEARANCE_EDITOR_FONT: "appearance-editor-font",
 	APPEARANCE_TERMINAL_FONT: "appearance-terminal-font",
+	APPEARANCE_WORKSPACE_BRANCH: "appearance-workspace-branch",
 
 	RINGTONES_NOTIFICATION: "ringtones-notification",
 
@@ -173,6 +174,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES]: "shared",
 	[SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT]: "v2",
 	[SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT]: "v2",
+	[SETTING_ITEM_ID.APPEARANCE_WORKSPACE_BRANCH]: "v2",
 
 	[SETTING_ITEM_ID.RINGTONES_NOTIFICATION]: "shared",
 
@@ -593,6 +595,26 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"display",
 			"md",
 			"readme",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.APPEARANCE_WORKSPACE_BRANCH,
+		section: "appearance",
+		title: "Workspace branch names",
+		description:
+			"Show each workspace's branch or worktree name under its title in the sidebar",
+		keywords: [
+			"appearance",
+			"branch",
+			"branches",
+			"worktree",
+			"name",
+			"label",
+			"sidebar",
+			"workspace",
+			"workspaces",
+			"toggle",
+			"switch",
 		],
 	},
 	{

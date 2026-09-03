@@ -3,6 +3,7 @@ import type { MouseEventHandler } from "react";
 import { useDashboardSidebarWorkspacePorts } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/DashboardSidebarPortsProvider";
 import { useInlineWorkspacePortsEnabled } from "renderer/stores/inline-workspace-ports";
 import { useWorkspaceAgentsRowEnabled } from "renderer/stores/workspace-agents-row";
+import { useWorkspaceBranchLabelEnabled } from "renderer/stores/workspace-branch-label";
 import type { DashboardSidebarWorkspaceIndentation } from "../../../../../../types";
 import { DashboardSidebarAgentsChip } from "./components/DashboardSidebarAgentsChip";
 import { DashboardSidebarPortsChip } from "./components/DashboardSidebarPortsChip";
@@ -10,6 +11,11 @@ import { useDashboardSidebarWorkspaceRunningAgents } from "./hooks/useDashboardS
 
 interface DashboardSidebarWorkspaceChipsProps {
 	workspaceId: string;
+	/**
+	 * Branch or worktree name to show ahead of the chips. Null when the
+	 * workspace title already reads as the branch.
+	 */
+	branchLabel?: string | null;
 	isInSection?: boolean;
 	indentation?: DashboardSidebarWorkspaceIndentation;
 	/** Invoked when the strip itself (not one of its chips) is clicked. */
@@ -17,19 +23,22 @@ interface DashboardSidebarWorkspaceChipsProps {
 }
 
 /**
- * Activity line beneath a workspace row, left-aligned with the title: an
- * agents chip and a ports chip. Agent chips appear only when more than one
- * agent is running — a lone agent is the norm for a workspace and showing it
- * adds no signal.
+ * Activity line beneath a workspace row, left-aligned with the title: the
+ * branch label, an agents chip, and a ports chip. Agent chips appear only
+ * when more than one agent is running — a lone agent is the norm for a
+ * workspace and showing it adds no signal. The branch label follows the
+ * branch-label setting alone.
  */
 export function DashboardSidebarWorkspaceChips({
 	workspaceId,
+	branchLabel = null,
 	isInSection = false,
 	indentation,
 	onClick,
 }: DashboardSidebarWorkspaceChipsProps) {
 	const inlineWorkspacePortsEnabled = useInlineWorkspacePortsEnabled();
 	const workspaceAgentsRowEnabled = useWorkspaceAgentsRowEnabled();
+	const workspaceBranchLabelEnabled = useWorkspaceBranchLabelEnabled();
 
 	const portGroup = useDashboardSidebarWorkspacePorts(workspaceId);
 	const ports = inlineWorkspacePortsEnabled ? (portGroup?.ports ?? []) : [];
@@ -37,7 +46,9 @@ export function DashboardSidebarWorkspaceChips({
 	const agents =
 		workspaceAgentsRowEnabled && runningAgents.length > 1 ? runningAgents : [];
 
-	if (ports.length === 0 && agents.length === 0) {
+	const branch = workspaceBranchLabelEnabled ? branchLabel : null;
+
+	if (!branch && agents.length === 0 && ports.length === 0) {
 		return null;
 	}
 
@@ -75,6 +86,14 @@ export function DashboardSidebarWorkspaceChips({
 				onClick(event);
 			}}
 		>
+			{branch && (
+				<span
+					title={branch}
+					className="min-w-0 truncate font-mono text-[11px] leading-tight text-muted-foreground/60"
+				>
+					{branch}
+				</span>
+			)}
 			{agents.length > 0 && (
 				<DashboardSidebarAgentsChip workspaceId={workspaceId} agents={agents} />
 			)}
