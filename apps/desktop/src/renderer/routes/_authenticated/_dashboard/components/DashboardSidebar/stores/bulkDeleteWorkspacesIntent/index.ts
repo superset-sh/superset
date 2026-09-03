@@ -1,0 +1,1 @@
+export { useBulkDeleteWorkspacesIntent } from "./bulkDeleteWorkspacesIntent";

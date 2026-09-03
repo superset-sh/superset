@@ -17,14 +17,12 @@ import {
 
 interface DashboardSidebarBulkDeleteFailuresProps {
 	failures: BulkWorkspaceDeleteFailure[];
-	isDeleting: boolean;
 	onClose: () => void;
 	onForceTeardownFailures: () => void;
 }
 
 export function DashboardSidebarBulkDeleteFailures({
 	failures,
-	isDeleting,
 	onClose,
 	onForceTeardownFailures,
 }: DashboardSidebarBulkDeleteFailuresProps) {
@@ -36,7 +34,7 @@ export function DashboardSidebarBulkDeleteFailures({
 		<AlertDialog
 			open
 			onOpenChange={(open) => {
-				if (!open && !isDeleting) onClose();
+				if (!open) onClose();
 			}}
 		>
 			<AlertDialogContent className="max-w-[500px] gap-0 p-0">
@@ -105,7 +103,6 @@ export function DashboardSidebarBulkDeleteFailures({
 						variant="ghost"
 						size="sm"
 						className="h-7 px-3 text-xs"
-						disabled={isDeleting}
 						onClick={onClose}
 					>
 						<Trans id="dashboard.sidebar.bulkDeleteFailures.close">Close</Trans>
@@ -115,21 +112,14 @@ export function DashboardSidebarBulkDeleteFailures({
 							variant="destructive"
 							size="sm"
 							className="h-7 px-3 text-xs"
-							disabled={isDeleting}
 							onClick={onForceTeardownFailures}
 						>
-							{isDeleting ? (
-								<Trans id="dashboard.sidebar.bulkDeleteFailures.deleting">
-									Deleting…
-								</Trans>
-							) : (
-								<Plural
-									id="dashboard.sidebar.bulkDeleteFailures.deleteAnyway"
-									value={teardownFailureCount}
-									one="Delete anyway"
-									other="Delete # anyway"
-								/>
-							)}
+							<Plural
+								id="dashboard.sidebar.bulkDeleteFailures.deleteAnyway"
+								value={teardownFailureCount}
+								one="Delete anyway"
+								other="Delete # anyway"
+							/>
 						</Button>
 					)}
 				</AlertDialogFooter>

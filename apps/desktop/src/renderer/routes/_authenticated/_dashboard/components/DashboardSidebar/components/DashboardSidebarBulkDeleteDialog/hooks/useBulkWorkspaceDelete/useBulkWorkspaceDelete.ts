@@ -23,8 +23,8 @@ import {
 
 interface UseBulkWorkspaceDeleteOptions {
 	workspaces: DashboardSidebarWorkspace[];
-	open: boolean;
-	onOpenChange: (open: boolean) => void;
+	/** Ends the request: the dialog (confirm or failures pane) goes away. */
+	onClose: () => void;
 	onDeleted: (workspaceIds: string[]) => void;
 }
 
@@ -55,10 +55,20 @@ export function bulkWorkspaceDestroyErrorMessage(
 	return `${workspaceName}: ${error.message}`;
 }
 
+/**
+ * Confirm-pane state plus the destroy run for one bulk delete request.
+ *
+ * Confirming hides the dialog at once and runs the destroys in the
+ * background behind a progress toast, the same shape as the single delete:
+ * a bulk delete runs every teardown script serially and can take minutes,
+ * and a modal open that long blocks the whole app. The hook instance is
+ * mounted per request (see DashboardSidebarBulkDeleteMount), so the run
+ * survives the rows tombstoning out of the sidebar and can still raise the
+ * failures pane afterwards.
+ */
 export function useBulkWorkspaceDelete({
 	workspaces,
-	open,
-	onOpenChange,
+	onClose,
 	onDeleted,
 }: UseBulkWorkspaceDeleteOptions) {
 	const { t } = useLingui();
@@ -66,11 +76,10 @@ export function useBulkWorkspaceDelete({
 	const { navigateAwayFromWorkspace } = useNavigateAwayFromWorkspace();
 	const { removeWorkspaceFromSidebar } = useDashboardSidebarState();
 	const { preferences, setDeleteLocalBranch } = useV2UserPreferences();
+	const [open, setOpen] = useState(true);
 	const [inspections, setInspections] = useState<
 		ReadonlyMap<string, BulkWorkspaceInspectionState>
 	>(() => new Map());
-	const [isDeleting, setIsDeleting] = useState(false);
-	const [completedCount, setCompletedCount] = useState(0);
 	const [failures, setFailures] = useState<BulkWorkspaceDeleteFailure[]>([]);
 	const inspectGeneration = useRef(0);
 	const inFlight = useRef(false);
@@ -88,14 +97,6 @@ export function useBulkWorkspaceDelete({
 	);
 
 	useEffect(() => {
-		if (!open) {
-			inspectGeneration.current += 1;
-			setInspections(new Map());
-			setCompletedCount(0);
-			setFailures([]);
-			return;
-		}
-
 		const generation = inspectGeneration.current + 1;
 		inspectGeneration.current = generation;
 		setInspections(
@@ -123,11 +124,22 @@ export function useBulkWorkspaceDelete({
 					});
 				});
 		}
-	}, [open, targetFor, workspaces]);
+
+		return () => {
+			inspectGeneration.current += 1;
+		};
+	}, [targetFor, workspaces]);
 
 	const inspectionSummary = useMemo(
 		() => buildBulkWorkspaceInspectionSummary(workspaces, inspections),
 		[inspections, workspaces],
+	);
+
+	const handleOpenChange = useCallback(
+		(next: boolean) => {
+			if (!next) onClose();
+		},
+		[onClose],
 	);
 
 	const execute = useCallback(
@@ -146,8 +158,21 @@ export function useBulkWorkspaceDelete({
 		}) => {
 			if (inFlight.current || targets.length === 0) return;
 			inFlight.current = true;
-			setIsDeleting(true);
-			setCompletedCount(0);
+			// Hide whichever pane confirmed (confirm or failures): the run
+			// continues in the background and re-raises the failures pane if
+			// anything is left over.
+			setFailures([]);
+			setOpen(false);
+
+			const total = targets.length;
+			// Both placeholders stay positional expressions so the catalog keeps
+			// the dialog-era "{0} of {1}" shape and its translations.
+			const progressMessage = (completed: number) =>
+				t({
+					id: "dashboard.sidebar.bulkDelete.deletingProgress",
+					message: `Deleting ${Math.min(completed + 1, total)} of ${targets.length}…`,
+				});
+			const progressToastId = toast.loading(progressMessage(0));
 
 			const targetIds = new Set(targets.map((workspace) => workspace.id));
 			let deletedIds: string[] = [];
@@ -162,6 +187,7 @@ export function useBulkWorkspaceDelete({
 
 				const nextFailures = [...retainedFailures];
 				const warnings: string[] = [];
+				let completedCount = 0;
 				const execution = await executeBulkWorkspaceDeleteTargets<
 					DashboardSidebarWorkspace,
 					DestroyWorkspaceSuccess,
@@ -192,7 +218,14 @@ export function useBulkWorkspaceDelete({
 							force,
 							skipTeardown,
 						}),
-					onSettled: () => setCompletedCount((count) => count + 1),
+					onSettled: () => {
+						completedCount += 1;
+						if (completedCount < total) {
+							toast.loading(progressMessage(completedCount), {
+								id: progressToastId,
+							});
+						}
+					},
 				});
 				deletedIds = execution.successes.map(({ workspace }) => workspace.id);
 
@@ -203,7 +236,6 @@ export function useBulkWorkspaceDelete({
 				}
 				nextFailures.push(...execution.failures);
 
-				for (const warning of warnings) toast.warning(warning);
 				if (deletedIds.length > 0) {
 					onDeleted(deletedIds);
 					selectionReconciled = true;
@@ -215,8 +247,12 @@ export function useBulkWorkspaceDelete({
 								other: "Deleted # workspaces",
 							}),
 						}),
+						{ id: progressToastId },
 					);
+				} else {
+					toast.dismiss(progressToastId);
 				}
+				for (const warning of warnings) toast.warning(warning);
 				if (nextFailures.length > 0) {
 					toast.error(
 						t({
@@ -234,11 +270,12 @@ export function useBulkWorkspaceDelete({
 								.join("\n"),
 						},
 					);
+					setFailures(nextFailures);
+				} else {
+					onClose();
 				}
-
-				setFailures(nextFailures);
-				if (nextFailures.length === 0) onOpenChange(false);
 			} catch (error) {
+				toast.dismiss(progressToastId);
 				if (deletedIds.length > 0 && !selectionReconciled) {
 					try {
 						onDeleted(deletedIds);
@@ -278,11 +315,11 @@ export function useBulkWorkspaceDelete({
 									}),
 					},
 				);
+				onClose();
 			} finally {
 				for (const workspace of targets) {
 					useDeletingWorkspacesStore.getState().clearDeleting(workspace.id);
 				}
-				setIsDeleting(false);
 				inFlight.current = false;
 			}
 		},
@@ -290,8 +327,8 @@ export function useBulkWorkspaceDelete({
 			hostWorkspacesCache,
 			inspections,
 			navigateAwayFromWorkspace,
+			onClose,
 			onDeleted,
-			onOpenChange,
 			preferences.deleteLocalBranch,
 			removeWorkspaceFromSidebar,
 			t,
@@ -301,7 +338,6 @@ export function useBulkWorkspaceDelete({
 
 	const run = useCallback(async () => {
 		if (!inspectionSummary.canConfirm) return;
-		setFailures([]);
 		await execute({
 			targets: workspaces,
 			forceAll: false,
@@ -329,12 +365,12 @@ export function useBulkWorkspaceDelete({
 	}, [execute, failures]);
 
 	return {
-		completedCount,
+		open,
+		handleOpenChange,
 		deleteBranch: preferences.deleteLocalBranch,
 		failures,
 		forceTeardownFailures,
 		inspectionSummary,
-		isDeleting,
 		run,
 		setDeleteBranch: setDeleteLocalBranch,
 	};
