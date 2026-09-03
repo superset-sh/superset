@@ -77,7 +77,7 @@ function BoardCardBody({
 			onClick={onOpen}
 			disabled={isArchived}
 			className={cn(
-				"w-full rounded-lg border border-border/50 bg-card px-3 py-2.5 text-left shadow-xs transition-colors",
+				"w-full rounded-lg border border-border/50 bg-card px-3.5 py-3 text-left shadow-xs transition-colors",
 				isArchived
 					? "cursor-default opacity-60"
 					: "cursor-pointer hover:border-border hover:bg-accent/30",
@@ -122,30 +122,28 @@ function BoardCardBody({
 					</Tooltip>
 				) : null}
 				{workspace.hostType !== "local-device" ? (
-					<span className="ml-auto flex min-w-0 shrink items-center gap-1">
+					<span className="flex min-w-0 shrink items-center gap-1">
 						<LuMonitor className="size-3 shrink-0" />
 						<span className="truncate">{workspace.hostName}</span>
 					</span>
 				) : null}
+				<span className="ml-auto whitespace-nowrap tabular-nums">
+					{timeLabel}
+				</span>
 			</div>
 
-			<div className="flex items-start gap-1.5">
-				<span className="flex h-[18px] shrink-0 items-center">
-					<WorkspaceStateGlyph workspace={workspace} />
-				</span>
-				<p
-					className={cn(
-						"line-clamp-2 min-w-0 text-[13px] font-medium leading-[18px]",
-						// Done states recede so live work owns the contrast.
-						isDone ? "text-muted-foreground" : "text-foreground",
-					)}
-				>
-					{workspace.name || workspace.branch}
-				</p>
-			</div>
+			<p
+				className={cn(
+					"line-clamp-2 min-w-0 text-[13px] font-medium leading-[18px]",
+					// Done states recede so live work owns the contrast.
+					isDone ? "text-muted-foreground" : "text-foreground",
+				)}
+			>
+				{workspace.name || workspace.branch}
+			</p>
 
 			{showBranch ? (
-				<div className="mt-1 flex items-center gap-1 pl-[22px] text-[11px] text-muted-foreground">
+				<div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
 					<LuGitBranch className="size-3 shrink-0" />
 					<code className="min-w-0 truncate font-mono">{workspace.branch}</code>
 				</div>
@@ -190,8 +188,8 @@ function BoardCardBody({
 						)}
 					</span>
 				) : null}
-				<span className="ml-auto whitespace-nowrap text-[11px] tabular-nums text-muted-foreground">
-					{timeLabel}
+				<span className="ml-auto flex shrink-0 items-center">
+					<WorkspaceStateGlyph workspace={workspace} />
 				</span>
 			</div>
 		</button>
