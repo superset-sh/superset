@@ -16,25 +16,25 @@ import { DashboardSidebarBulkDeleteFailures } from "./components/DashboardSideba
 import { useBulkWorkspaceDelete } from "./hooks/useBulkWorkspaceDelete";
 
 interface DashboardSidebarBulkDeleteDialogProps {
+	requestId: number;
 	workspaces: DashboardSidebarWorkspace[];
-	/** Ends the request (cancel, escape, or the failures pane closing). */
-	onClose: () => void;
 	onDeleted: (workspaceIds: string[]) => void;
 }
 
 /**
- * One bulk delete request: opens on mount, closes itself the moment the
- * user confirms (the destroys run behind a progress toast), and comes back
- * as the failures pane if any workspace could not be deleted.
+ * One bulk delete request: the confirm pane while the request awaits
+ * confirmation, nothing while the destroys run behind a progress toast, and
+ * the failures pane if any workspace could not be deleted.
  */
 export function DashboardSidebarBulkDeleteDialog({
+	requestId,
 	workspaces,
-	onClose,
 	onDeleted,
 }: DashboardSidebarBulkDeleteDialogProps) {
 	const checkboxId = useId();
 	const {
-		open,
+		phase,
+		close,
 		handleOpenChange,
 		deleteBranch,
 		failures,
@@ -42,23 +42,23 @@ export function DashboardSidebarBulkDeleteDialog({
 		inspectionSummary,
 		run,
 		setDeleteBranch,
-	} = useBulkWorkspaceDelete({ workspaces, onClose, onDeleted });
+	} = useBulkWorkspaceDelete({ requestId, workspaces, onDeleted });
 	const { canConfirm, changedCount, items, uncheckedCount, unpushedCount } =
 		inspectionSummary;
 	const hasWarnings = changedCount > 0 || unpushedCount > 0;
 
-	if (failures.length > 0) {
+	if (phase === "failed") {
 		return (
 			<DashboardSidebarBulkDeleteFailures
 				failures={failures}
-				onClose={onClose}
+				onClose={close}
 				onForceTeardownFailures={forceTeardownFailures}
 			/>
 		);
 	}
 
 	return (
-		<AlertDialog open={open} onOpenChange={handleOpenChange}>
+		<AlertDialog open={phase === "confirm"} onOpenChange={handleOpenChange}>
 			<AlertDialogContent className="max-w-[440px] gap-0 p-0">
 				<AlertDialogHeader className="px-4 pt-4 pb-2">
 					<AlertDialogTitle className="font-medium">
@@ -150,7 +150,7 @@ export function DashboardSidebarBulkDeleteDialog({
 						variant="ghost"
 						size="sm"
 						className="h-7 px-3 text-xs"
-						onClick={onClose}
+						onClick={close}
 					>
 						<Trans id="dashboard.sidebar.bulkDelete.cancel">Cancel</Trans>
 					</Button>

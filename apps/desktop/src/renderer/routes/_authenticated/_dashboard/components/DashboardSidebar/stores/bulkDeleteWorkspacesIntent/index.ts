@@ -1,1 +1,5 @@
-export { useBulkDeleteWorkspacesIntent } from "./bulkDeleteWorkspacesIntent";
+export {
+	type BulkDeleteWorkspacesPhase,
+	type BulkWorkspaceDeleteFailure,
+	useBulkDeleteWorkspacesIntent,
+} from "./bulkDeleteWorkspacesIntent";

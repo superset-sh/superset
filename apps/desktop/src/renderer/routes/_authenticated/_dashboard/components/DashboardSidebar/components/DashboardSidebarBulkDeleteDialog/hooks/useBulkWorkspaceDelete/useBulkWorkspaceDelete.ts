@@ -11,6 +11,10 @@ import {
 } from "renderer/hooks/host-service/useDestroyWorkspace";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences/useV2UserPreferences";
 import { useNavigateAwayFromWorkspace } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useNavigateAwayFromWorkspace";
+import {
+	type BulkWorkspaceDeleteFailure,
+	useBulkDeleteWorkspacesIntent,
+} from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/stores/bulkDeleteWorkspacesIntent";
 import type { DashboardSidebarWorkspace } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/types";
 import { useDeletingWorkspacesStore } from "renderer/routes/_authenticated/_dashboard/stores/deletingWorkspacesStore";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
@@ -22,16 +26,12 @@ import {
 } from "./bulkWorkspaceDelete";
 
 interface UseBulkWorkspaceDeleteOptions {
+	requestId: number;
 	workspaces: DashboardSidebarWorkspace[];
-	/** Ends the request: the dialog (confirm or failures pane) goes away. */
-	onClose: () => void;
 	onDeleted: (workspaceIds: string[]) => void;
 }
 
-export interface BulkWorkspaceDeleteFailure {
-	workspace: DashboardSidebarWorkspace;
-	error: DestroyWorkspaceError;
-}
+export type { BulkWorkspaceDeleteFailure };
 
 export function bulkWorkspaceDestroyErrorMessage(
 	workspace: DashboardSidebarWorkspace,
@@ -61,14 +61,14 @@ export function bulkWorkspaceDestroyErrorMessage(
  * Confirming hides the dialog at once and runs the destroys in the
  * background behind a progress toast, the same shape as the single delete:
  * a bulk delete runs every teardown script serially and can take minutes,
- * and a modal open that long blocks the whole app. The hook instance is
- * mounted per request (see DashboardSidebarBulkDeleteMount), so the run
- * survives the rows tombstoning out of the sidebar and can still raise the
- * failures pane afterwards.
+ * and a modal open that long blocks the whole app. The request's phase and
+ * failures live in the intent store, not here: the sidebar (and with it this
+ * hook) unmounts when toggled closed, and the run must still surface its
+ * failures pane once it is back instead of asking for confirmation again.
  */
 export function useBulkWorkspaceDelete({
+	requestId,
 	workspaces,
-	onClose,
 	onDeleted,
 }: UseBulkWorkspaceDeleteOptions) {
 	const { t } = useLingui();
@@ -76,11 +76,11 @@ export function useBulkWorkspaceDelete({
 	const { navigateAwayFromWorkspace } = useNavigateAwayFromWorkspace();
 	const { removeWorkspaceFromSidebar } = useDashboardSidebarState();
 	const { preferences, setDeleteLocalBranch } = useV2UserPreferences();
-	const [open, setOpen] = useState(true);
+	const phase = useBulkDeleteWorkspacesIntent((s) => s.phase);
+	const failures = useBulkDeleteWorkspacesIntent((s) => s.failures);
 	const [inspections, setInspections] = useState<
 		ReadonlyMap<string, BulkWorkspaceInspectionState>
 	>(() => new Map());
-	const [failures, setFailures] = useState<BulkWorkspaceDeleteFailure[]>([]);
 	const inspectGeneration = useRef(0);
 	const inFlight = useRef(false);
 
@@ -135,11 +135,15 @@ export function useBulkWorkspaceDelete({
 		[inspections, workspaces],
 	);
 
+	const close = useCallback(
+		() => useBulkDeleteWorkspacesIntent.getState().close(requestId),
+		[requestId],
+	);
 	const handleOpenChange = useCallback(
 		(next: boolean) => {
-			if (!next) onClose();
+			if (!next) close();
 		},
-		[onClose],
+		[close],
 	);
 
 	const execute = useCallback(
@@ -161,8 +165,8 @@ export function useBulkWorkspaceDelete({
 			// Hide whichever pane confirmed (confirm or failures): the run
 			// continues in the background and re-raises the failures pane if
 			// anything is left over.
-			setFailures([]);
-			setOpen(false);
+			const intent = useBulkDeleteWorkspacesIntent.getState();
+			intent.markRunning(requestId);
 
 			const total = targets.length;
 			// Both placeholders stay positional expressions so the catalog keeps
@@ -270,9 +274,9 @@ export function useBulkWorkspaceDelete({
 								.join("\n"),
 						},
 					);
-					setFailures(nextFailures);
+					intent.markFailed(requestId, nextFailures);
 				} else {
-					onClose();
+					intent.close(requestId);
 				}
 			} catch (error) {
 				toast.dismiss(progressToastId);
@@ -315,7 +319,7 @@ export function useBulkWorkspaceDelete({
 									}),
 					},
 				);
-				onClose();
+				intent.close(requestId);
 			} finally {
 				for (const workspace of targets) {
 					useDeletingWorkspacesStore.getState().clearDeleting(workspace.id);
@@ -327,10 +331,10 @@ export function useBulkWorkspaceDelete({
 			hostWorkspacesCache,
 			inspections,
 			navigateAwayFromWorkspace,
-			onClose,
 			onDeleted,
 			preferences.deleteLocalBranch,
 			removeWorkspaceFromSidebar,
+			requestId,
 			t,
 			targetFor,
 		],
@@ -365,7 +369,8 @@ export function useBulkWorkspaceDelete({
 	}, [execute, failures]);
 
 	return {
-		open,
+		phase,
+		close,
 		handleOpenChange,
 		deleteBranch: preferences.deleteLocalBranch,
 		failures,
