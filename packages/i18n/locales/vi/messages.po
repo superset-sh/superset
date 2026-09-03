@@ -15190,6 +15190,9 @@ msgstr "Tài khoản của bạn do tổ chức quản lý. Hãy liên hệ admi
 msgid "Your Agents, Your Accounts"
 msgstr "Agent của bạn, tài khoản của bạn"
 
+msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
+msgstr "Trình duyệt của bạn không cho biết bạn đang dùng chip nào, nên đây là bản build Apple Silicon. Nếu dùng máy Mac Intel, hãy <0>tải bản build Intel</0> thay thế."
+
 msgid "Your changes will be lost if you don't save them."
 msgstr "Thay đổi của bạn sẽ mất nếu không lưu."
 

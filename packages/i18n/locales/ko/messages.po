@@ -15190,6 +15190,9 @@ msgstr "계정이 조직에서 관리됩니다. 새 조직을 만들려면 관�
 msgid "Your Agents, Your Accounts"
 msgstr "당신의 에이전트, 당신의 계정"
 
+msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
+msgstr "브라우저가 사용 중인 칩 정보를 제공하지 않아 Apple Silicon 빌드로 표시됩니다. Intel Mac이라면 대신 <0>Intel 빌드를 받으세요</0>."
+
 msgid "Your changes will be lost if you don't save them."
 msgstr "저장하지 않으면 변경 사항이 사라집니다."
 

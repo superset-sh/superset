@@ -15190,6 +15190,9 @@ msgstr "你的帳戶由你所在的組織管理。請聯絡管理員來建立新
 msgid "Your Agents, Your Accounts"
 msgstr "你的代理程式，你的帳號"
 
+msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
+msgstr "您的瀏覽器未回報裝置使用的晶片，因此這是Apple Silicon版本。若使用Intel的Mac，請改為<0>取得Intel版本</0>。"
+
 msgid "Your changes will be lost if you don't save them."
 msgstr "如果不儲存，你的更改將會丟失。"
 

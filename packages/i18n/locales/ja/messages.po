@@ -15190,6 +15190,9 @@ msgstr "アカウントは組織によって管理されています。新しい
 msgid "Your Agents, Your Accounts"
 msgstr "エージェントもアカウントも、あなたのもの"
 
+msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
+msgstr "お使いのブラウザはチップの種類を報告しないため、これはApple Silicon版です。IntelのMacをお使いの場合は、代わりに<0>Intel版を入手</0>してください。"
+
 msgid "Your changes will be lost if you don't save them."
 msgstr "保存しないと変更は失われます。"
 

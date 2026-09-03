@@ -15190,6 +15190,9 @@ msgstr "Sua conta é gerenciada pela sua organização. Fale com o administrador
 msgid "Your Agents, Your Accounts"
 msgstr "Seus agentes, suas contas"
 
+msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
+msgstr "Seu navegador não informa qual chip você tem, então esta é a build para Apple Silicon. Em um Mac com Intel, prefira <0>baixar a build para Intel</0>."
+
 msgid "Your changes will be lost if you don't save them."
 msgstr "Suas alterações serão perdidas se você não salvar."
 

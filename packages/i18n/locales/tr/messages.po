@@ -15190,6 +15190,9 @@ msgstr "Hesabınız kuruluşunuz tarafından yönetiliyor. Yeni bir kuruluş olu
 msgid "Your Agents, Your Accounts"
 msgstr "Sizin ajanlarınız, sizin hesaplarınız"
 
+msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
+msgstr "Tarayıcınız hangi yongaya sahip olduğunuzu bildirmediğinden bu, Apple Silicon derlemesidir. Intel Mac kullanıyorsanız bunun yerine <0>Intel derlemesini indirin</0>."
+
 msgid "Your changes will be lost if you don't save them."
 msgstr "Kaydetmezseniz değişiklikleriniz kaybolur."
 

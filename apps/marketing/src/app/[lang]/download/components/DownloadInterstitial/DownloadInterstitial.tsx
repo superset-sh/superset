@@ -2,9 +2,10 @@
 
 import { Trans } from "@lingui/react/macro";
 import { formatNumber } from "@superset/i18n/format";
+import { DOWNLOAD_URL_MAC_X64 } from "@superset/shared/constants";
 import { useEffect, useRef } from "react";
 import { WaitlistForm } from "@/app/[lang]/components/WaitlistForm";
-import { Platform, usePlatform } from "@/app/[lang]/hooks/useOS";
+import { ArchSource, Platform, usePlatform } from "@/app/[lang]/hooks/useOS";
 import { track } from "@/lib/analytics";
 import { desktopUrlFor, shouldAutoDownload } from "../../utils/desktopUrlFor";
 import { formatReleaseDate } from "../../utils/formatReleaseDate";
@@ -46,8 +47,13 @@ interface DownloadInterstitialProps {
 export function DownloadInterstitial({
 	latestRelease,
 }: DownloadInterstitialProps) {
-	const { platform } = usePlatform();
+	const { platform, archSource } = usePlatform();
 	const firedRef = useRef(false);
+
+	// The browser told us nothing about the chip, so Apple Silicon was assumed
+	// rather than detected. Say that instead of labelling the guess as a
+	// detection, and give Intel Macs a one-click way out.
+	const archUnconfirmed = archSource === ArchSource.Default;
 
 	// A phone can't run the app, so mobile visitors get a link to open on their
 	// desktop. Windows has no published build and falls through to the waitlist.
@@ -60,7 +66,7 @@ export function DownloadInterstitial({
 		if (!canAutoDownload) return;
 
 		const url = desktopUrlFor(platform);
-		track("download_started", { platform });
+		track("download_started", { platform, archSource });
 
 		// Latched in the callback, not here: if `platform` resolved again before
 		// the timer fired, latching early would strand the pending redirect on
@@ -70,7 +76,7 @@ export function DownloadInterstitial({
 			window.location.href = url;
 		}, AUTO_DOWNLOAD_DELAY_MS);
 		return () => window.clearTimeout(timer);
-	}, [canAutoDownload, platform]);
+	}, [canAutoDownload, platform, archSource]);
 
 	const assetKey = PLATFORM_ASSET_KEY[platform];
 	const asset = assetKey
@@ -84,7 +90,11 @@ export function DownloadInterstitial({
 			<div>
 				<div className="mb-6 inline-flex w-max items-center gap-2 whitespace-nowrap rounded-[2px] border border-border bg-background/80 px-3 py-1.5 font-mono text-muted-foreground text-xs">
 					<span className="shrink-0 text-brand">●</span>
-					<span>{PLATFORM_LABELS[platform]}</span>
+					<span>
+						{archUnconfirmed
+							? PLATFORM_LABELS[Platform.Unknown]
+							: PLATFORM_LABELS[platform]}
+					</span>
 				</div>
 
 				{showEmailLink ? (
@@ -130,6 +140,24 @@ export function DownloadInterstitial({
 						<div className="mt-6">
 							<DesktopDownloadButton />
 						</div>
+						{archUnconfirmed ? (
+							<p className="mt-4 text-muted-foreground text-sm">
+								<Trans>
+									Your browser doesn't report which chip you have, so this is
+									the Apple Silicon build. On an Intel Mac,{" "}
+									<a
+										href={DOWNLOAD_URL_MAC_X64}
+										onClick={() =>
+											track("download_arch_switched", { platform, archSource })
+										}
+										className="text-foreground underline underline-offset-4"
+									>
+										get the Intel build
+									</a>{" "}
+									instead.
+								</Trans>
+							</p>
+						) : null}
 					</div>
 				)}
 			</div>

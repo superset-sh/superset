@@ -15190,6 +15190,9 @@ msgstr "你的账户由你所在的组织管理。请联系管理员来创建新
 msgid "Your Agents, Your Accounts"
 msgstr "你的智能体，你的账号"
 
+msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
+msgstr "你的浏览器未报告芯片类型，因此这是 Apple Silicon 版本。如果你使用 Intel Mac，请改为<0>获取 Intel 版本</0>。"
+
 msgid "Your changes will be lost if you don't save them."
 msgstr "如果不保存，你的更改将会丢失。"
 

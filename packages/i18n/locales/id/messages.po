@@ -15190,6 +15190,9 @@ msgstr "Akun Anda dikelola oleh organisasi Anda. Hubungi admin Anda untuk membua
 msgid "Your Agents, Your Accounts"
 msgstr "Agen Anda, Akun Anda"
 
+msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
+msgstr "Browser Anda tidak melaporkan chip yang Anda gunakan, jadi ini adalah build Apple Silicon. Pada Mac dengan Intel, <0>ambil build Intel</0> sebagai gantinya."
+
 msgid "Your changes will be lost if you don't save them."
 msgstr "Perubahan Anda akan hilang kalau tidak disimpan."
 
