@@ -16,57 +16,49 @@ import { DashboardSidebarBulkDeleteFailures } from "./components/DashboardSideba
 import { useBulkWorkspaceDelete } from "./hooks/useBulkWorkspaceDelete";
 
 interface DashboardSidebarBulkDeleteDialogProps {
+	requestId: number;
 	workspaces: DashboardSidebarWorkspace[];
-	open: boolean;
-	onOpenChange: (open: boolean) => void;
 	onDeleted: (workspaceIds: string[]) => void;
 }
 
+/**
+ * One bulk delete request: the confirm pane while the request awaits
+ * confirmation, nothing while the destroys run behind a progress toast, and
+ * the failures pane if any workspace could not be deleted.
+ */
 export function DashboardSidebarBulkDeleteDialog({
+	requestId,
 	workspaces,
-	open,
-	onOpenChange,
 	onDeleted,
 }: DashboardSidebarBulkDeleteDialogProps) {
 	const checkboxId = useId();
 	const {
-		completedCount,
+		phase,
+		close,
+		handleOpenChange,
 		deleteBranch,
 		failures,
 		forceTeardownFailures,
 		inspectionSummary,
-		isDeleting,
 		run,
 		setDeleteBranch,
-	} = useBulkWorkspaceDelete({
-		workspaces,
-		open,
-		onOpenChange,
-		onDeleted,
-	});
+	} = useBulkWorkspaceDelete({ requestId, workspaces, onDeleted });
 	const { canConfirm, changedCount, items, uncheckedCount, unpushedCount } =
 		inspectionSummary;
 	const hasWarnings = changedCount > 0 || unpushedCount > 0;
 
-	if (failures.length > 0) {
+	if (phase === "failed") {
 		return (
 			<DashboardSidebarBulkDeleteFailures
 				failures={failures}
-				isDeleting={isDeleting}
-				onClose={() => onOpenChange(false)}
+				onClose={close}
 				onForceTeardownFailures={forceTeardownFailures}
 			/>
 		);
 	}
 
 	return (
-		<AlertDialog
-			open={open}
-			onOpenChange={(next) => {
-				if (isDeleting) return;
-				onOpenChange(next);
-			}}
-		>
+		<AlertDialog open={phase === "confirm"} onOpenChange={handleOpenChange}>
 			<AlertDialogContent className="max-w-[440px] gap-0 p-0">
 				<AlertDialogHeader className="px-4 pt-4 pb-2">
 					<AlertDialogTitle className="font-medium">
@@ -140,7 +132,6 @@ export function DashboardSidebarBulkDeleteDialog({
 						<Checkbox
 							id={checkboxId}
 							checked={deleteBranch}
-							disabled={isDeleting}
 							onCheckedChange={(checked) => setDeleteBranch(checked === true)}
 						/>
 						<Label
@@ -159,8 +150,7 @@ export function DashboardSidebarBulkDeleteDialog({
 						variant="ghost"
 						size="sm"
 						className="h-7 px-3 text-xs"
-						disabled={isDeleting}
-						onClick={() => onOpenChange(false)}
+						onClick={close}
 					>
 						<Trans id="dashboard.sidebar.bulkDelete.cancel">Cancel</Trans>
 					</Button>
@@ -168,15 +158,10 @@ export function DashboardSidebarBulkDeleteDialog({
 						variant="destructive"
 						size="sm"
 						className="h-7 px-3 text-xs"
-						disabled={!canConfirm || isDeleting}
+						disabled={!canConfirm}
 						onClick={run}
 					>
-						{isDeleting ? (
-							<Trans id="dashboard.sidebar.bulkDelete.deletingProgress">
-								Deleting {Math.min(completedCount + 1, workspaces.length)} of{" "}
-								{workspaces.length}…
-							</Trans>
-						) : uncheckedCount > 0 ? (
+						{uncheckedCount > 0 ? (
 							<Trans id="dashboard.sidebar.bulkDelete.deleteWithoutChecking">
 								Delete without checking
 							</Trans>

@@ -16,14 +16,13 @@ import {
 	LuUngroup,
 	LuX,
 } from "react-icons/lu";
-import { useBulkWorkspaceDeleteDialog } from "../../hooks/useBulkWorkspaceDeleteDialog";
 import { useBulkWorkspaceMoveActions } from "../../hooks/useBulkWorkspaceMoveActions";
 import { useDashboardSidebarSelection } from "../../providers/DashboardSidebarSelectionProvider";
+import { useBulkDeleteWorkspacesIntent } from "../../stores/bulkDeleteWorkspacesIntent";
 import type {
 	DashboardSidebarProject,
 	DashboardSidebarWorkspace,
 } from "../../types";
-import { DashboardSidebarBulkDeleteDialog } from "../DashboardSidebarBulkDeleteDialog";
 
 interface DashboardSidebarBulkActionsProps {
 	projects: DashboardSidebarProject[];
@@ -35,8 +34,7 @@ export function DashboardSidebarBulkActions({
 	children,
 }: DashboardSidebarBulkActionsProps) {
 	const { t } = useLingui();
-	const { clearSelection, removeSelectedWorkspaces, selectedProjectId } =
-		useDashboardSidebarSelection();
+	const { clearSelection, selectedProjectId } = useDashboardSidebarSelection();
 	const selectedProject = useMemo(
 		() => projects.find((project) => project.id === selectedProjectId) ?? null,
 		[projects, selectedProjectId],
@@ -76,10 +74,8 @@ export function DashboardSidebarBulkActions({
 		sectionIdByWorkspaceId,
 	});
 
-	const { deleteDialogProps, openDeleteDialog } = useBulkWorkspaceDeleteDialog({
-		selectedWorkspaces,
-		onDeleted: removeSelectedWorkspaces,
-	});
+	const openDeleteDialog = () =>
+		useBulkDeleteWorkspacesIntent.getState().request(selectedWorkspaces);
 
 	return (
 		<>
@@ -235,8 +231,6 @@ export function DashboardSidebarBulkActions({
 					</Tooltip>
 				</div>
 			)}
-
-			<DashboardSidebarBulkDeleteDialog {...deleteDialogProps} />
 		</>
 	);
 }
