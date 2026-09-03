@@ -539,7 +539,7 @@ async function runDestroyPhases(
 					}`,
 				});
 			}
-			if (existsSync(local.worktreePath)) {
+			if (!isMissingDirectory(local.worktreePath)) {
 				// Unregistered is not removed: git's unregistration and its
 				// recursive delete are not atomic, so `remove --force --force`
 				// can drop the registration and still fail partway through
@@ -576,8 +576,10 @@ async function runDestroyPhases(
 			}
 			// The outside-root branch above leaves the folder in place, so
 			// report removal from the final disk state rather than assuming
-			// this path always cleared it (#6785 review).
-			worktreeRemoved = !existsSync(local.worktreePath);
+			// this path always cleared it (#6785 review). `isMissingDirectory`
+			// rather than `existsSync`: a leftover this process cannot read
+			// still exists, and must not be reported as removed.
+			worktreeRemoved = isMissingDirectory(local.worktreePath);
 		}
 	}
 

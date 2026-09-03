@@ -227,7 +227,11 @@ export const gitWorktreeRemoveTask = defineWorkerTask<
 		await git
 			.raw(["worktree", "remove", "--force", "--force", target])
 			.catch((err: unknown) => {
-				removeError = err instanceof Error ? err.message : String(err);
+				removeError = (err instanceof Error ? err.message : String(err)).trim();
+				console.warn("[git/removeWorktree] git worktree remove failed", {
+					target,
+					error: removeError,
+				});
 			});
 		// A `worktree list` failure throws out of the task: the post-remove
 		// state is unknown and the caller must not treat it as removed.
