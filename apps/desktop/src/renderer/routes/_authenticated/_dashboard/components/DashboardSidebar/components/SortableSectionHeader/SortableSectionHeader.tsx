@@ -8,7 +8,10 @@ import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/u
 import { parseSidebarFolderKey } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
 import { PROJECT_COLOR_DEFAULT } from "shared/constants/project-colors";
-import type { DashboardSidebarSection } from "../../types";
+import type {
+	DashboardSidebarSection,
+	DashboardSidebarWorkspaceIndentation,
+} from "../../types";
 import { DashboardSidebarGroupHeader } from "../DashboardSidebarGroupHeader";
 import {
 	DashboardSidebarSectionActionsDropdown,
@@ -18,6 +21,8 @@ import {
 interface SortableSectionHeaderProps {
 	sortableId: string;
 	section: DashboardSidebarSection;
+	/** Column of the lane's ungrouped rows; the header lines up with them. */
+	indentation?: Exclude<DashboardSidebarWorkspaceIndentation, "grouped">;
 	onDelete: (sectionId: string) => void;
 	onRename: (sectionId: string, name: string) => void;
 	onToggleCollapse: (sectionId: string) => void;
@@ -26,6 +31,7 @@ interface SortableSectionHeaderProps {
 export function SortableSectionHeader({
 	sortableId,
 	section,
+	indentation,
 	onDelete,
 	onRename,
 	onToggleCollapse,
@@ -116,6 +122,7 @@ export function SortableSectionHeader({
 					isCollapsed={section.isCollapsed}
 					isEditing={isRenaming}
 					isDraggable
+					indentation={indentation}
 					onToggleCollapse={() => onToggleCollapse(section.id)}
 					actions={
 						<DashboardSidebarSectionActionsDropdown

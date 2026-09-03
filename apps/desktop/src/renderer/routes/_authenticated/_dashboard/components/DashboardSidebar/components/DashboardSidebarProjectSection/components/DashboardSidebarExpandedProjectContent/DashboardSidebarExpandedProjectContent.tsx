@@ -28,8 +28,15 @@ interface DashboardSidebarExpandedProjectContentProps {
 	/** Lane the rows are filed under: the project id, or null for sessions. */
 	projectId: string | null;
 	isCollapsed: boolean;
-	/** Row indentation overrides; the Sessions lane sits flush with its header. */
-	topLevelIndentation?: DashboardSidebarWorkspaceIndentation;
+	/**
+	 * Row indentation overrides; the Sessions lane sits flush with its header.
+	 * Folder headers share the top-level column so they read as siblings of
+	 * the ungrouped rows.
+	 */
+	topLevelIndentation?: Exclude<
+		DashboardSidebarWorkspaceIndentation,
+		"grouped"
+	>;
 	groupedIndentation?: DashboardSidebarWorkspaceIndentation;
 	workspaceShortcutLabels: Map<string, string>;
 	onWorkspaceHover: (workspaceId: string) => void | Promise<void>;
@@ -128,6 +135,7 @@ export function DashboardSidebarExpandedProjectContent({
 												key={String(id)}
 												sortableId={String(id)}
 												section={section}
+												indentation={topLevelIndentation}
 												onDelete={onDeleteSection}
 												onRename={onRenameSection}
 												onToggleCollapse={onToggleSectionCollapse}

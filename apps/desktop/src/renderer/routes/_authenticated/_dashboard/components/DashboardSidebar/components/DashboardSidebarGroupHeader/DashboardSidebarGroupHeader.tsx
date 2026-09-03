@@ -5,6 +5,7 @@ import {
 	type ReactNode,
 } from "react";
 import { HiChevronRight } from "react-icons/hi2";
+import type { DashboardSidebarWorkspaceIndentation } from "../../types";
 
 interface DashboardSidebarGroupHeaderProps
 	extends ComponentPropsWithoutRef<"div"> {
@@ -14,6 +15,11 @@ interface DashboardSidebarGroupHeaderProps
 	actions?: ReactNode;
 	isEditing?: boolean;
 	isDraggable?: boolean;
+	/**
+	 * Column the header's chevron sits in: the same one the lane's ungrouped
+	 * rows use, so a folder reads as a sibling of the rows around it.
+	 */
+	indentation?: Exclude<DashboardSidebarWorkspaceIndentation, "grouped">;
 }
 
 /** Shared visual and interaction shell for every nested sidebar group. */
@@ -29,6 +35,7 @@ export const DashboardSidebarGroupHeader = forwardRef<
 			actions,
 			isEditing = false,
 			isDraggable = false,
+			indentation = "workspace",
 			className,
 			...props
 		},
@@ -53,7 +60,9 @@ export const DashboardSidebarGroupHeader = forwardRef<
 			className={cn(
 				// Group containers have a 2px left accent border. Use a 6px left
 				// margin so their content aligns with borderless top-level rows.
-				"group ml-1.5 mr-2 flex min-h-7 items-center rounded-md py-1 pl-2 pr-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-fill-hover",
+				"group ml-1.5 mr-2 flex min-h-7 items-center rounded-md py-1 pr-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-fill-hover",
+				// Mirrors DashboardSidebarExpandedWorkspaceRow's per-lane padding.
+				indentation === "top-level" ? "pl-2" : "pl-6",
 				className,
 			)}
 			{...props}
