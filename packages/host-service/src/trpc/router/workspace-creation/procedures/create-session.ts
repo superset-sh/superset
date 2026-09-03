@@ -150,6 +150,7 @@ export const createSession = protectedProcedure
 				branch: "main",
 				name: typedName || folderName,
 				type: "session",
+				createdByUserId: ctx.userId ?? null,
 				tags: input.tags,
 			});
 		} catch (err) {

@@ -23,3 +23,12 @@ export function parseHostRoutingKey(
 		machineId: key.slice(idx + 1),
 	};
 }
+
+/**
+ * Request header carrying the id of the user behind a host-service call, so a
+ * host can stamp `createdByUserId` on the workspaces it creates. The relay
+ * sets it from the verified JWT subject and overwrites anything the client
+ * sent; local callers (desktop, CLI) set it themselves and are trusted because
+ * they already hold the host's pre-shared secret.
+ */
+export const SUPERSET_USER_ID_HEADER = "x-superset-user-id";

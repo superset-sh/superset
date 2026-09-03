@@ -12,6 +12,7 @@ import { createProxyBridge, internalProxyUrl, PROXY_HOP_PARAM } from "./proxy";
 import { startSyntheticCheck } from "./synthetic";
 import { isTrpcPath, trpcErrorResponse } from "./trpc-error";
 import { TunnelManager } from "./tunnel";
+import { buildUpstreamHeaders } from "./upstream-headers";
 
 // Bearer tokens we never want in stdout. Hosts put their JWT on the WS
 // upgrade URL because browser WebSockets can't send custom headers, and
@@ -330,10 +331,7 @@ app.all("/hosts/:hostId/trpc/*", async (c) => {
 	const path = `${url.pathname.slice(prefix.length) || "/"}${url.search}`;
 	const body = (await c.req.text().catch(() => "")) || undefined;
 
-	const headers: Record<string, string> = {};
-	for (const [key, value] of c.req.raw.headers.entries()) {
-		if (key !== "host" && key !== "authorization") headers[key] = value;
-	}
+	const headers = buildUpstreamHeaders(c.req.raw.headers, c.get("auth").sub);
 
 	try {
 		const res = await tunnelManager.sendHttpRequest(hostId, {
