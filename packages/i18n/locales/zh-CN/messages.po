@@ -11240,7 +11240,7 @@ msgid "Review pull requests inside Superset: diff pane, agent-assisted review, a
 msgstr "在Superset里审查拉取请求：差异面板、智能体辅助审查、直接处理评论。"
 
 msgid "Review requested"
-msgstr "要求审查"
+msgstr "已请求审查"
 
 msgid "Review required"
 msgstr "需要审查"
