@@ -446,16 +446,16 @@ async function pullRequestToCheckOut(
 
 	const payload = event.payload as {
 		pull_request?: { number?: number; head?: { repo?: { fork?: boolean } } };
-		issue?: { number?: number; pull_request?: unknown };
 	} | null;
-	// An `issue` is a pull request only where GitHub marks it as one.
-	const number =
-		payload?.pull_request?.number ??
-		(payload?.issue?.pull_request !== undefined
-			? payload?.issue?.number
-			: undefined);
+	// Only a PR-shaped payload carries the head repository, and its absence is
+	// not evidence of absence: an `issue_comment` on a fork PR is
+	// indistinguishable from one on a local PR, which is why the matcher's
+	// `isFork` is false for both. So require a positive "not a fork" rather
+	// than refusing only an explicit one — a comment event names a PR number
+	// it cannot prove is safe, and must not check one out.
+	if (payload?.pull_request?.head?.repo?.fork !== false) return null;
+	const number = payload.pull_request.number;
 	if (number === undefined) return null;
-	if (payload?.pull_request?.head?.repo?.fork === true) return null;
 
 	const [project] = await db
 		.select({ repoCloneUrl: v2Projects.repoCloneUrl })
@@ -578,6 +578,14 @@ async function createWorkspaceOnHost(args: {
 			const result = await create({ pr: args.pullRequest });
 			return { workspaceId: result.workspace.id };
 		} catch (err) {
+			// Fall back only when the host itself answered and refused, which
+			// is what a missing or expired `gh auth login` looks like. A
+			// timeout or transport failure is not a RelayDispatchError and
+			// leaves the workspace's existence unknown: branching fresh there
+			// would orphan a PR workspace the host may have finished creating
+			// and run the automation against the wrong target. Rethrow, so the
+			// retry meets the host's own per-PR dedupe instead.
+			if (!(err instanceof RelayDispatchError)) throw err;
 			// Resolving a PR shells out to `gh`, which runs on the user's own
 			// `gh auth login` and may be missing or expired on this host. A PR
 			// we cannot check out must not turn a run that would otherwise have
