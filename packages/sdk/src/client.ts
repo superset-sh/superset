@@ -94,6 +94,8 @@ import {
 	TaskUpdateParams,
 } from "./resources/tasks";
 import {
+	TerminalAgentLifecycleEventType,
+	TerminalAgentStatus,
 	TerminalCloseParams,
 	TerminalCloseResult,
 	TerminalCreateParams,
@@ -1355,6 +1357,8 @@ export declare namespace Superset {
 
 	export {
 		Terminals,
+		TerminalAgentLifecycleEventType,
+		TerminalAgentStatus,
 		TerminalCreateParams,
 		TerminalCreateResult,
 		TerminalListParams,
