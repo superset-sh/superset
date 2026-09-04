@@ -180,6 +180,9 @@ export function DashboardSidebarCloudSection({
 
 	if (rows.length === 0) return null;
 
+	// Only the sidebar rail collapsing forces cloud workspaces into the
+	// compact icon form; the section's own chevron hides them entirely, same
+	// as every other collapsible section (Pinned, Sessions).
 	if (isCollapsed) {
 		return (
 			<div className="flex flex-col gap-0.5 py-1">
