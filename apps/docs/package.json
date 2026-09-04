@@ -5,6 +5,7 @@
 	"type": "module",
 	"scripts": {
 		"build": "fumadocs-mdx && next build",
+		"predev": "bun run --filter=@superset/i18n build",
 		"dev": "dotenv -e ../../.env -- sh -c 'exec next dev --port ${DOCS_PORT:-3004}'",
 		"start": "next start",
 		"typecheck": "next typegen && fumadocs-mdx && tsc --noEmit",

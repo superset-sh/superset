@@ -6,6 +6,7 @@
 	"scripts": {
 		"build": "next build",
 		"clean": "git clean -xdf .cache .next .turbo node_modules",
+		"predev": "bun run --filter=@superset/i18n build",
 		"dev": "dotenv -e ../../.env -- sh -c 'exec next dev --port ${MARKETING_PORT:-3002}'",
 		"lint:prose": "vale --config=vale.ini content \"src/app/[lang]/layout.tsx\" src/components/JsonLd/JsonLd.tsx src/lib/product-facts.ts src/lib/llms.ts \"src/app/[lang]/components/Header/constants.tsx\" \"src/app/[lang]/components/HeroSection/HeroSection.tsx\" \"src/app/[lang]/components/HowItWorksSection\" \"src/app/[lang]/components/FeaturesSection/constants.ts\" \"src/app/[lang]/components/FAQSection/constants.ts\" \"src/app/[lang]/components/CTASection/CTASection.tsx\" \"src/app/[lang]/components/SecuritySection/SecuritySection.tsx\"",
 		"start": "next start",
