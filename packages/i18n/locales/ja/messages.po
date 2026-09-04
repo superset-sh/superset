@@ -8533,6 +8533,9 @@ msgstr "ファイルが見つかりません"
 msgid "No files match the accepted types."
 msgstr "対応している形式のファイルがありません。"
 
+msgid "No files match your search"
+msgstr "検索に一致するファイルがありません"
+
 msgid "No fonts found."
 msgstr "フォントが見つかりません。"
 
@@ -11603,6 +11606,9 @@ msgstr "オートメーションを検索"
 msgid "Search branches..."
 msgstr "ブランチを検索..."
 
+msgid "Search changed files"
+msgstr "変更されたファイルを検索"
+
 msgid "Search docs..."
 msgstr "ドキュメントを検索..."
 
@@ -11617,6 +11623,9 @@ msgstr "ファイルを検索"
 
 msgid "Search files..."
 msgstr "ファイルを検索..."
+
+msgid "Search files…"
+msgstr "ファイルを検索…"
 
 msgid "Search fonts..."
 msgstr "フォントを検索..."

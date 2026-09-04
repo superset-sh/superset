@@ -8533,6 +8533,9 @@ msgstr "未找到文件"
 msgid "No files match the accepted types."
 msgstr "没有文件符合允许的类型。"
 
+msgid "No files match your search"
+msgstr "没有与搜索匹配的文件"
+
 msgid "No fonts found."
 msgstr "未找到字体。"
 
@@ -11603,6 +11606,9 @@ msgstr "搜索自动化"
 msgid "Search branches..."
 msgstr "搜索分支..."
 
+msgid "Search changed files"
+msgstr "搜索更改的文件"
+
 msgid "Search docs..."
 msgstr "搜索文档..."
 
@@ -11617,6 +11623,9 @@ msgstr "搜索文件"
 
 msgid "Search files..."
 msgstr "搜索文件..."
+
+msgid "Search files…"
+msgstr "搜索文件…"
 
 msgid "Search fonts..."
 msgstr "搜索字体..."

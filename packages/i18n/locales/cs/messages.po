@@ -8533,6 +8533,9 @@ msgstr "Nenalezeny žádné soubory"
 msgid "No files match the accepted types."
 msgstr "Žádný soubor neodpovídá povoleným typům."
 
+msgid "No files match your search"
+msgstr "Žádné soubory neodpovídají hledání"
+
 msgid "No fonts found."
 msgstr "Nenalezeny žádné fonty."
 
@@ -11603,6 +11606,9 @@ msgstr "Hledat automatizace"
 msgid "Search branches..."
 msgstr "Hledat větve..."
 
+msgid "Search changed files"
+msgstr "Hledat změněné soubory"
+
 msgid "Search docs..."
 msgstr "Hledat v dokumentaci..."
 
@@ -11617,6 +11623,9 @@ msgstr "Hledat soubory"
 
 msgid "Search files..."
 msgstr "Hledat soubory..."
+
+msgid "Search files…"
+msgstr "Hledat soubory…"
 
 msgid "Search fonts..."
 msgstr "Hledat fonty..."

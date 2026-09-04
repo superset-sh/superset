@@ -8533,6 +8533,9 @@ msgstr "Файлы не найдены"
 msgid "No files match the accepted types."
 msgstr "Ни один файл не подходит по типу."
 
+msgid "No files match your search"
+msgstr "Нет файлов, соответствующих поиску"
+
 msgid "No fonts found."
 msgstr "Шрифты не найдены."
 
@@ -11603,6 +11606,9 @@ msgstr "Поиск автоматизаций"
 msgid "Search branches..."
 msgstr "Поиск веток..."
 
+msgid "Search changed files"
+msgstr "Поиск изменённых файлов"
+
 msgid "Search docs..."
 msgstr "Поиск по документации..."
 
@@ -11617,6 +11623,9 @@ msgstr "Поиск по файлам"
 
 msgid "Search files..."
 msgstr "Поиск файлов..."
+
+msgid "Search files…"
+msgstr "Поиск файлов…"
 
 msgid "Search fonts..."
 msgstr "Поиск шрифтов..."

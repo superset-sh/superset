@@ -8533,6 +8533,9 @@ msgstr "Geen bestanden gevonden"
 msgid "No files match the accepted types."
 msgstr "Geen bestanden komen overeen met de toegestane typen."
 
+msgid "No files match your search"
+msgstr "Geen bestanden komen overeen met je zoekopdracht"
+
 msgid "No fonts found."
 msgstr "Geen lettertypen gevonden."
 
@@ -11603,6 +11606,9 @@ msgstr "Automatiseringen zoeken"
 msgid "Search branches..."
 msgstr "Branches zoeken..."
 
+msgid "Search changed files"
+msgstr "Gewijzigde bestanden zoeken"
+
 msgid "Search docs..."
 msgstr "Docs zoeken..."
 
@@ -11617,6 +11623,9 @@ msgstr "Bestanden zoeken"
 
 msgid "Search files..."
 msgstr "Bestanden zoeken..."
+
+msgid "Search files…"
+msgstr "Bestanden zoeken…"
 
 msgid "Search fonts..."
 msgstr "Lettertypen zoeken..."

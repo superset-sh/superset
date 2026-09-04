@@ -8533,6 +8533,9 @@ msgstr "Nenhum arquivo encontrado"
 msgid "No files match the accepted types."
 msgstr "Nenhum arquivo é de um tipo aceito."
 
+msgid "No files match your search"
+msgstr "Nenhum arquivo corresponde à sua busca"
+
 msgid "No fonts found."
 msgstr "Nenhuma fonte encontrada."
 
@@ -11603,6 +11606,9 @@ msgstr "Buscar automações"
 msgid "Search branches..."
 msgstr "Buscar branches..."
 
+msgid "Search changed files"
+msgstr "Buscar arquivos alterados"
+
 msgid "Search docs..."
 msgstr "Buscar na documentação..."
 
@@ -11617,6 +11623,9 @@ msgstr "Buscar arquivos"
 
 msgid "Search files..."
 msgstr "Buscar arquivos..."
+
+msgid "Search files…"
+msgstr "Buscar arquivos…"
 
 msgid "Search fonts..."
 msgstr "Buscar fontes..."

@@ -8533,6 +8533,9 @@ msgstr "Không tìm thấy tệp nào"
 msgid "No files match the accepted types."
 msgstr "Không có tệp nào thuộc loại được chấp nhận."
 
+msgid "No files match your search"
+msgstr "Không có tệp nào khớp với tìm kiếm của bạn"
+
 msgid "No fonts found."
 msgstr "Không tìm thấy font nào."
 
@@ -11603,6 +11606,9 @@ msgstr "Tìm tự động hóa"
 msgid "Search branches..."
 msgstr "Tìm nhánh..."
 
+msgid "Search changed files"
+msgstr "Tìm tệp đã thay đổi"
+
 msgid "Search docs..."
 msgstr "Tìm trong tài liệu..."
 
@@ -11617,6 +11623,9 @@ msgstr "Tìm tệp"
 
 msgid "Search files..."
 msgstr "Tìm tệp..."
+
+msgid "Search files…"
+msgstr "Tìm tệp…"
 
 msgid "Search fonts..."
 msgstr "Tìm font..."

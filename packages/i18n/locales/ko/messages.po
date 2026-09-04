@@ -8533,6 +8533,9 @@ msgstr "파일을 찾을 수 없음"
 msgid "No files match the accepted types."
 msgstr "허용된 형식과 일치하는 파일이 없습니다."
 
+msgid "No files match your search"
+msgstr "검색과 일치하는 파일이 없습니다"
+
 msgid "No fonts found."
 msgstr "글꼴을 찾을 수 없습니다."
 
@@ -11603,6 +11606,9 @@ msgstr "자동화 검색"
 msgid "Search branches..."
 msgstr "브랜치 검색..."
 
+msgid "Search changed files"
+msgstr "변경된 파일 검색"
+
 msgid "Search docs..."
 msgstr "문서 검색..."
 
@@ -11617,6 +11623,9 @@ msgstr "파일 검색"
 
 msgid "Search files..."
 msgstr "파일 검색..."
+
+msgid "Search files…"
+msgstr "파일 검색…"
 
 msgid "Search fonts..."
 msgstr "글꼴 검색..."

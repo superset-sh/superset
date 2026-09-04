@@ -8533,6 +8533,9 @@ msgstr "Dosya bulunamadı"
 msgid "No files match the accepted types."
 msgstr "Hiçbir dosya kabul edilen türlerle eşleşmiyor."
 
+msgid "No files match your search"
+msgstr "Aramanızla eşleşen dosya yok"
+
 msgid "No fonts found."
 msgstr "Yazı tipi bulunamadı."
 
@@ -11603,6 +11606,9 @@ msgstr "Otomasyonlarda ara"
 msgid "Search branches..."
 msgstr "Dal ara..."
 
+msgid "Search changed files"
+msgstr "Değişen dosyaları ara"
+
 msgid "Search docs..."
 msgstr "Belgelerde ara..."
 
@@ -11617,6 +11623,9 @@ msgstr "Dosyalarda ara"
 
 msgid "Search files..."
 msgstr "Dosya ara..."
+
+msgid "Search files…"
+msgstr "Dosya ara…"
 
 msgid "Search fonts..."
 msgstr "Yazı tipi ara..."

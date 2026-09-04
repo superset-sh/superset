@@ -39,7 +39,7 @@ interface UseChangesTabParams {
 
 /**
  * The sidebar's Changes tab: one scope row (commit filter, "vs <base>",
- * view-mode and fold utilities) over the sectioned changed-files list with
+ * search, view-mode and fold utilities) over the sectioned changed-files list with
  * per-section diffstats, staging, hover discard, context menus, and
  * drag-to-terminal. Rows navigate the workspace's diff pane through
  * onSelectFile, and the pane's target comes back as selectedDiffTarget so the

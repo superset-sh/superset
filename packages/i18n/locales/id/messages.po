@@ -8533,6 +8533,9 @@ msgstr "File tidak ditemukan"
 msgid "No files match the accepted types."
 msgstr "Tidak ada file yang cocok dengan tipe yang diterima."
 
+msgid "No files match your search"
+msgstr "Tidak ada file yang cocok dengan pencarian Anda"
+
 msgid "No fonts found."
 msgstr "Font tidak ditemukan."
 
@@ -11603,6 +11606,9 @@ msgstr "Cari otomatisasi"
 msgid "Search branches..."
 msgstr "Cari branch..."
 
+msgid "Search changed files"
+msgstr "Cari file yang berubah"
+
 msgid "Search docs..."
 msgstr "Cari dokumentasi..."
 
@@ -11617,6 +11623,9 @@ msgstr "Cari File"
 
 msgid "Search files..."
 msgstr "Cari file..."
+
+msgid "Search files…"
+msgstr "Cari file…"
 
 msgid "Search fonts..."
 msgstr "Cari font..."
