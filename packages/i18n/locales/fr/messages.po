@@ -10685,6 +10685,9 @@ msgstr "Actualiser les métriques"
 msgid "Refresh pull requests"
 msgstr "Actualiser les pull requests"
 
+msgid "Refreshes when Claude Code next runs."
+msgstr "Actualisé au prochain lancement de Claude Code."
+
 msgid "Register any CLI agent alongside the built-ins, each with its own name, icon, and launch command."
 msgstr "Enregistrez n'importe quel agent en ligne de commande aux côtés de ceux fournis, chacun avec son nom, son icône et sa commande de lancement."
 

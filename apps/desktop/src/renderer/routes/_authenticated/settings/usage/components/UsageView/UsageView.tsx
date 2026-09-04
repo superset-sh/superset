@@ -198,7 +198,7 @@ function AccountCard({
 						{account.plan}
 					</span>
 				)}
-				{account.status !== "ok" && (
+				{account.status !== "ok" && account.status !== "token_stale" && (
 					<span className="rounded bg-amber-500/15 px-1 text-[9px] font-medium uppercase tracking-wide text-amber-500">
 						{account.status === "token_expired" ? (
 							<Trans>Sign-in expired</Trans>
@@ -245,6 +245,10 @@ function AccountCard({
 					{account.windows.map((window) => (
 						<QuotaWindowRow key={window.id} window={window} />
 					))}
+				</div>
+			) : account.status === "token_stale" ? (
+				<div className="mt-1.5 text-[11px] text-muted-foreground">
+					<Trans>Refreshes when Claude Code next runs.</Trans>
 				</div>
 			) : expiredCommand !== null ? (
 				<div className="mt-1.5 flex flex-wrap items-center gap-x-1 gap-y-1 text-[11px] text-muted-foreground">

@@ -37,6 +37,10 @@ export type UsageAccountStatus =
 	 * tokens ourselves — refreshing from a second client can trip provider
 	 * token-reuse protection and sign the user's CLI out. */
 	| "token_expired"
+	/** The access token is past its expiry but the refresh token is not: the
+	 * CLI is still signed in and mints a fresh access token the next time it
+	 * runs. Quota is unreadable until then, but no re-login is needed. */
+	| "token_stale"
 	/** Credentials exist but the provider returned no usable quota data
 	 * (org-managed/education plans, endpoint changes, transient errors). */
 	| "unavailable"

@@ -10685,6 +10685,9 @@ msgstr "刷新指标"
 msgid "Refresh pull requests"
 msgstr "刷新拉取请求"
 
+msgid "Refreshes when Claude Code next runs."
+msgstr "下次运行 Claude Code 时刷新。"
+
 msgid "Register any CLI agent alongside the built-ins, each with its own name, icon, and launch command."
 msgstr "在内置智能体之外注册任意CLI智能体，各自拥有名称、图标和启动命令。"
 

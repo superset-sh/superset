@@ -10685,6 +10685,9 @@ msgstr "Làm mới số liệu"
 msgid "Refresh pull requests"
 msgstr "Làm mới pull request"
 
+msgid "Refreshes when Claude Code next runs."
+msgstr "Làm mới khi Claude Code chạy lần tiếp theo."
+
 msgid "Register any CLI agent alongside the built-ins, each with its own name, icon, and launch command."
 msgstr "Đăng ký bất kỳ agent CLI nào bên cạnh các agent có sẵn, mỗi agent có tên, biểu tượng và lệnh khởi chạy riêng."
 

@@ -10685,6 +10685,9 @@ msgstr "重新整理指標"
 msgid "Refresh pull requests"
 msgstr "重新整理拉取請求"
 
+msgid "Refreshes when Claude Code next runs."
+msgstr "下次執行 Claude Code 時重新整理。"
+
 msgid "Register any CLI agent alongside the built-ins, each with its own name, icon, and launch command."
 msgstr "在內建代理程式之外註冊任意CLI代理程式，各自擁有名稱、圖示和啟動命令。"
 

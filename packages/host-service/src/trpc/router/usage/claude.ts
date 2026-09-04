@@ -4,8 +4,10 @@
  * undocumented `api.anthropic.com/api/oauth/usage` endpoint.
  *
  * Hard rule: tokens are read-only. If one is expired we report
- * `token_expired` instead of refreshing — a second client refreshing the
- * token can trip Anthropic's token-reuse protection and sign the CLI out.
+ * `token_stale` (refresh token still good — the CLI refreshes on its next
+ * run) or `token_expired` instead of refreshing — a second client
+ * refreshing the token can trip Anthropic's token-reuse protection and sign
+ * the CLI out.
  */
 
 import { readFile } from "node:fs/promises";
@@ -23,6 +25,7 @@ const FETCH_TIMEOUT_MS = 10_000;
 interface ClaudeOauthCredential {
 	accessToken: string;
 	expiresAt: number | null;
+	refreshTokenExpiresAt: number | null;
 	subscriptionType: string | null;
 	accountKey: string;
 	sourceLabel: string;
@@ -37,6 +40,8 @@ interface ClaudeCredentialFile {
 	claudeAiOauth?: {
 		accessToken?: string;
 		expiresAt?: number;
+		refreshToken?: string;
+		refreshTokenExpiresAt?: number;
 		subscriptionType?: string;
 	};
 }
@@ -54,6 +59,10 @@ function parseCredential(
 		return {
 			accessToken: oauth.accessToken,
 			expiresAt: typeof oauth.expiresAt === "number" ? oauth.expiresAt : null,
+			refreshTokenExpiresAt:
+				oauth.refreshToken && typeof oauth.refreshTokenExpiresAt === "number"
+					? oauth.refreshTokenExpiresAt
+					: null,
 			subscriptionType:
 				typeof oauth.subscriptionType === "string"
 					? oauth.subscriptionType
@@ -98,6 +107,35 @@ async function readKeychainCredential(): Promise<ClaudeOauthCredential | null> {
 
 function isLive(credential: ClaudeOauthCredential): boolean {
 	return credential.expiresAt === null || credential.expiresAt > Date.now();
+}
+
+export const STALE_TOKEN_DETAIL = "Refreshes when Claude Code next runs.";
+export const EXPIRED_TOKEN_DETAIL =
+	"Sign-in expired — run /login in Claude Code.";
+
+/**
+ * Claude Code access tokens live about eight hours and the CLI renews them
+ * silently from the refresh token on its next run, so a lapsed access token
+ * alone does not mean the login is gone. Only a lapsed (or absent) refresh
+ * token does.
+ */
+export function classifyLapsedToken(
+	credential: Pick<
+		ClaudeOauthCredential,
+		"expiresAt" | "refreshTokenExpiresAt"
+	>,
+	now = Date.now(),
+): "live" | "token_stale" | "token_expired" {
+	if (credential.expiresAt === null || credential.expiresAt > now) {
+		return "live";
+	}
+	if (
+		credential.refreshTokenExpiresAt !== null &&
+		credential.refreshTokenExpiresAt > now
+	) {
+		return "token_stale";
+	}
+	return "token_expired";
 }
 
 /** Live beats expired; among equals the latest expiry wins. */
@@ -344,12 +382,14 @@ async function fetchClaudeAccount(
 		fetchedAt: new Date(),
 	};
 
-	if (credential.expiresAt !== null && Date.now() >= credential.expiresAt) {
+	const lapsed = classifyLapsedToken(credential);
+	if (lapsed !== "live") {
 		return {
 			...base,
 			email: credential.email ?? null,
-			status: "token_expired",
-			statusDetail: "Sign-in expired — run /login in Claude Code.",
+			status: lapsed,
+			statusDetail:
+				lapsed === "token_stale" ? STALE_TOKEN_DETAIL : EXPIRED_TOKEN_DETAIL,
 			windows: [],
 			extraUsage: null,
 		};
@@ -372,7 +412,7 @@ async function fetchClaudeAccount(
 				...base,
 				email: apiEmail ?? credential.email ?? null,
 				status: "token_expired",
-				statusDetail: "Sign-in expired — run /login in Claude Code.",
+				statusDetail: EXPIRED_TOKEN_DETAIL,
 				windows: [],
 				extraUsage: null,
 			};

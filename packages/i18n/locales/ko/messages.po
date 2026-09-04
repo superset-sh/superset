@@ -10685,6 +10685,9 @@ msgstr "지표 새로 고침"
 msgid "Refresh pull requests"
 msgstr "풀 리퀘스트 새로 고침"
 
+msgid "Refreshes when Claude Code next runs."
+msgstr "다음에 Claude Code를 실행하면 갱신됩니다."
+
 msgid "Register any CLI agent alongside the built-ins, each with its own name, icon, and launch command."
 msgstr "기본 제공 에이전트 옆에 어떤 CLI 에이전트든 이름, 아이콘, 실행 명령과 함께 등록하세요."
 

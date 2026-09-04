@@ -10685,6 +10685,9 @@ msgstr "Segarkan metrik"
 msgid "Refresh pull requests"
 msgstr "Segarkan pull request"
 
+msgid "Refreshes when Claude Code next runs."
+msgstr "Diperbarui saat Claude Code berikutnya dijalankan."
+
 msgid "Register any CLI agent alongside the built-ins, each with its own name, icon, and launch command."
 msgstr "Daftarkan agen CLI apa pun bersama agen bawaan, masing-masing dengan nama, ikon, dan perintah peluncurannya sendiri."
 
