@@ -39,13 +39,15 @@ export function useDeleteProject({
 	// The main workspace is the repository checkout itself and survives;
 	// only worktrees are removed from disk. Count only hosts the delete will
 	// actually reach — an offline device keeps its worktrees, and the dialog
-	// says so separately.
+	// says so separately. A remote host keeps a relay URL while offline, so
+	// the workspace's own reachability flag is the second gate.
 	const worktreeCount = useMemo(() => {
 		const reachableHostIds = new Set(reachableHosts.map((host) => host.hostId));
 		return workspaces.filter(
 			(workspace) =>
 				workspace.projectId === projectId &&
 				workspace.type === "worktree" &&
+				workspace.hostReachable &&
 				reachableHostIds.has(workspace.hostId),
 		).length;
 	}, [workspaces, projectId, reachableHosts]);

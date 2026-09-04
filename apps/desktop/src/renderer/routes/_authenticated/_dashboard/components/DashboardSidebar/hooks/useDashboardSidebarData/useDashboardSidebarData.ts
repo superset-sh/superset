@@ -451,9 +451,17 @@ export function useDashboardSidebarData() {
 		sidebarWorkspaces,
 	]);
 
+	// From the placement rows, not the host-joined list: a hidden project
+	// whose host is offline has no host metadata yet still has cached
+	// workspace rows that must not poll.
 	const hiddenProjectIds = useMemo(
-		() => new Set(hiddenProjects.map((project) => project.id)),
-		[hiddenProjects],
+		() =>
+			new Set(
+				orderedSidebarProjectRows
+					.filter((row) => row.isHidden)
+					.map((row) => row.projectId),
+			),
+		[orderedSidebarProjectRows],
 	);
 	const pullRequestQueryTargets = useMemo<PullRequestQueryTarget[]>(
 		() =>

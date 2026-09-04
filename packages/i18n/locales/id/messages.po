@@ -782,7 +782,7 @@ msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}: teardown gagal"
 
 msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
-msgstr "{worktreeCount, plural, one {Ini menghapus proyek beserta # workspace-nya dari setiap perangkat yang dapat dijangkau, dan menghapus worktree tersebut dari disk.} other {Ini menghapus proyek beserta # workspace-nya dari setiap perangkat yang dapat dijangkau, dan menghapus worktree tersebut dari disk.}}"
+msgstr "{worktreeCount, plural, one {Ini menghapus proyek beserta # workspace-nya dari setiap perangkat yang dapat dijangkau, dan menghapus worktree tersebut dari disk.} other {Ini menghapus proyek beserta # workspace-nya dari setiap perangkat yang dapat dijangkau, dan menghapus semua worktree tersebut dari disk.}}"
 
 msgid "{years}y ago"
 msgstr "{years}thn lalu"

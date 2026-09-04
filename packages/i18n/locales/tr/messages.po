@@ -655,7 +655,7 @@ msgid "{noun, select, repository {Specify at least one repository.} channel {Spe
 msgstr "{noun, select, repository {En az bir depo belirtin.} channel {En az bir kanal belirtin.} reaction {En az bir tepki belirtin.} dataSource {En az bir veri kaynağı belirtin.} team {En az bir takım belirtin.} project {En az bir proje belirtin.} calendar {En az bir takvim belirtin.} other {En az bir öğe belirtin.}}"
 
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
-msgstr "{offlineHostCount, plural, one {# cihaz çevrimdışı ve kopyasını koruyor.} other {# cihaz çevrimdışı ve kopyasını koruyor.}}"
+msgstr "{offlineHostCount, plural, one {# cihaz çevrimdışı ve kopyasını koruyor.} other {# cihaz çevrimdışı ve kopyalarını koruyor.}}"
 
 msgid "{openCount} open"
 msgstr "{openCount} açık"
@@ -782,7 +782,7 @@ msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}: kapatma başarısız"
 
 msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
-msgstr "{worktreeCount, plural, one {Bu, projeyi ve # çalışma alanını erişilebilir tüm cihazlardan kaldırır ve worktree'sini diskten siler.} other {Bu, projeyi ve # çalışma alanını erişilebilir tüm cihazlardan kaldırır ve worktree'lerini diskten siler.}}"
+msgstr "{worktreeCount, plural, one {Bu, projeyi ve # çalışma alanını erişilebilir tüm cihazlardan kaldırır ve worktree'sini diskten siler.} other {Bu, projeyi ve # çalışma alanlarını erişilebilir tüm cihazlardan kaldırır ve worktree'lerini diskten siler.}}"
 
 msgid "{years}y ago"
 msgstr "{years}y önce"
