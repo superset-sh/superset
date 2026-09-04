@@ -230,20 +230,34 @@ export const customAppIdSchema = z.custom<CustomAppId>(
  * required — both feed macOS `open` (`-a <appName>` / `-b <bundleId>`), and
  * `appName` doubles as the binary to spawn on Linux.
  */
-export const customAppSchema = z
-	.object({
-		id: customAppIdSchema,
-		/** Menu label. */
-		label: z.string().trim().min(1).max(60),
-		/** macOS `.app` display name, e.g. "Xcode-26.5.0". Linux: binary name. */
-		appName: z.string().trim().min(1).max(200).optional(),
-		/** macOS bundle id, e.g. "com.apple.dt.Xcode". Preferred over appName. */
-		bundleId: z.string().trim().min(1).max(200).optional(),
-	})
-	.refine((app) => Boolean(app.appName || app.bundleId), {
-		message: "Provide an app name or a bundle id",
-		path: ["appName"],
-	});
+const customAppFieldsSchema = z.object({
+	id: customAppIdSchema,
+	/** Menu label. */
+	label: z.string().trim().min(1).max(60),
+	/** macOS `.app` display name, e.g. "Xcode-26.5.0". Linux: binary name. */
+	appName: z.string().trim().min(1).max(200).optional(),
+	/** macOS bundle id, e.g. "com.apple.dt.Xcode". Preferred over appName. */
+	bundleId: z.string().trim().min(1).max(200).optional(),
+});
+
+const requireIdentifier = [
+	(app: { appName?: string; bundleId?: string }) =>
+		Boolean(app.appName || app.bundleId),
+	{ message: "Provide an app name or a bundle id", path: ["appName"] },
+] as const;
+
+export const customAppSchema = customAppFieldsSchema.refine(
+	...requireIdentifier,
+);
+
+/**
+ * Create/update payload: everything but the server-assigned id. Derived from
+ * the unrefined object because zod 4 rejects `.omit()` on a refined schema at
+ * construction time, which would take the whole settings router down.
+ */
+export const customAppInputSchema = customAppFieldsSchema
+	.omit({ id: true })
+	.refine(...requireIdentifier);
 
 export type CustomApp = z.infer<typeof customAppSchema>;
 

@@ -273,6 +273,14 @@ const customAppSchema = z
 	})
 	.refine((app) => Boolean(app.appName || app.bundleId));
 
+const customAppInputSchema = z
+	.object({
+		label: z.string().trim().min(1).max(60),
+		appName: z.string().trim().min(1).max(200).optional(),
+		bundleId: z.string().trim().min(1).max(200).optional(),
+	})
+	.refine((app) => Boolean(app.appName || app.bundleId));
+
 const localDbMock = () => ({
 	projects: mockTable("projects"),
 	workspaces: mockTable("workspaces"),
@@ -293,6 +301,7 @@ const localDbMock = () => ({
 	isCustomAppId: (id: string) => id.startsWith("custom:"),
 	customAppIdSchema,
 	customAppSchema,
+	customAppInputSchema,
 	// `EXTERNAL_APPS` is mocked empty, so `z.enum([])` would reject everything —
 	// accept any non-custom string here and let the real schema police prod.
 	appRefSchema: z.union([z.string(), customAppIdSchema]),

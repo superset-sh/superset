@@ -12,7 +12,7 @@ import {
 	CUSTOM_APP_ID_PREFIX,
 	type CustomApp,
 	customAppIdSchema,
-	customAppSchema,
+	customAppInputSchema,
 	EXECUTION_MODES,
 	FILE_OPEN_MODES,
 	isCustomAppId,
@@ -1197,7 +1197,7 @@ export const createSettingsRouter = () => {
 		}),
 
 		createCustomApp: publicProcedure
-			.input(customAppSchema.omit({ id: true }))
+			.input(customAppInputSchema)
 			.mutation(({ input }): CustomApp => {
 				const app: CustomApp = {
 					id: `${CUSTOM_APP_ID_PREFIX}${crypto.randomUUID()}`,
@@ -1211,7 +1211,7 @@ export const createSettingsRouter = () => {
 			.input(
 				z.object({
 					id: customAppIdSchema,
-					patch: customAppSchema.omit({ id: true }),
+					patch: customAppInputSchema,
 				}),
 			)
 			.mutation(({ input }): CustomApp => {
