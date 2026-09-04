@@ -15,7 +15,7 @@ import { VscChevronDown } from "react-icons/vsc";
 import {
 	AppOptionIcon,
 	OpenInExternalDropdownItems,
-	useAppOption,
+	useAppOptionWithFallback,
 } from "renderer/components/OpenInExternalDropdown";
 import { HotkeyLabel, useHotkey, useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -39,7 +39,10 @@ export function V2OpenInMenuButton({
 
 	const { app: persistedApp, setApp: persistDefaultApp } =
 		useV2ProjectDefaultApp(projectId ?? undefined);
-	const resolvedApp: AppRef = persistedApp ?? "finder";
+	// A persisted default can outlive its custom app; fall back to Finder so
+	// the primary button never goes dead. Null only while custom apps load.
+	const currentApp = useAppOptionWithFallback(persistedApp, "finder");
+	const resolvedApp: AppRef = currentApp?.id ?? "finder";
 
 	const openInApp = electronTrpc.external.openInApp.useMutation({
 		onSuccess: (_data, variables) => {
@@ -67,7 +70,6 @@ export function V2OpenInMenuButton({
 			),
 	});
 
-	const currentApp = useAppOption(resolvedApp) ?? null;
 	const openInDisplay = useHotkeyDisplay("OPEN_IN_APP");
 	const copyPathDisplay = useHotkeyDisplay("COPY_PATH");
 	const showOpenInShortcut = openInDisplay.text !== "Unassigned";

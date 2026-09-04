@@ -1,4 +1,4 @@
-import type { AppRef } from "@superset/local-db";
+import type { AppRef, ExternalApp } from "@superset/local-db";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	customAppToOption,
@@ -28,4 +28,25 @@ export function useAppOption(
 	const customApps = useCustomApps();
 	if (!id) return undefined;
 	return getAppOption(id) ?? customApps.find((app) => app.id === id);
+}
+
+/**
+ * `useAppOption` with a built-in fallback for refs that no longer resolve —
+ * a per-project default pointing at a custom app the user has since deleted.
+ * Returns `null` only while custom apps are still loading, so a trigger never
+ * fires the fallback for a ref that is merely not fetched yet.
+ */
+export function useAppOptionWithFallback(
+	id: AppRef | null | undefined,
+	fallback: ExternalApp,
+): OpenInExternalAppOption | null {
+	const { data, isSuccess, isError } =
+		electronTrpc.settings.getCustomApps.useQuery();
+	const customApps = (data ?? []).map(customAppToOption);
+	const resolved = id
+		? (getAppOption(id) ?? customApps.find((app) => app.id === id))
+		: undefined;
+	if (resolved) return resolved;
+	if (!isSuccess && !isError) return null;
+	return getAppOption(fallback) ?? null;
 }
