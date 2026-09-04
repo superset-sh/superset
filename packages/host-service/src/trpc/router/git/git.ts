@@ -13,6 +13,7 @@ import {
 	gitCommitTask,
 	gitDiffBulkTask,
 	gitDiffPatchTask,
+	gitDiffSideBlobTask,
 	gitFetchBaseRefTask,
 	gitPushTask,
 	gitStatusSnapshotTask,
@@ -34,7 +35,6 @@ import type {
 import { scheduleBaseRefFetch } from "./utils/base-ref-freshness";
 import { rethrowEnvironmentalGitError } from "./utils/classify-git-error";
 import { gitConfigWrite } from "./utils/config-write";
-import { diffSideObjectSpec, readDiffSideBlob } from "./utils/diff-side-blob";
 import {
 	assertSafeRelativePath,
 	getDefaultBranchName,
@@ -674,34 +674,30 @@ export const gitRouter = router({
 		)
 		.query(async ({ ctx, input }) => {
 			assertSafeRelativePath(input.path);
-			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
-			const git = await ctx.git(worktreePath);
-			const refs = await resolveDiffCategoryRefs(git, input.category, input);
-			const spec = diffSideObjectSpec(
-				input.category,
-				input.side,
-				input.path,
-				refs,
-			);
-			if (!spec) {
+			if (input.category === "unstaged" && input.side === "new") {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message:
 						"The unstaged new side is the working tree, not a git object",
 				});
 			}
-			const blob = await readDiffSideBlob(
-				git,
-				spec,
-				input.maxBytes ?? DIFF_SIDE_FILE_MAX_BYTES,
+			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
+			return getHostWorkerPool().run(
+				gitDiffSideBlobTask,
+				{
+					worktreePath,
+					category: input.category,
+					side: input.side,
+					path: input.path,
+					maxBytes: input.maxBytes ?? DIFF_SIDE_FILE_MAX_BYTES,
+					baseBranch: input.baseBranch,
+					commitHash: input.commitHash,
+					fromHash: input.fromHash,
+					gitEnv,
+				},
+				{ timeoutMs: 30_000 },
 			);
-			if (blob.kind === "missing") return { kind: "missing" as const };
-			return {
-				kind: "bytes" as const,
-				content: blob.content?.toString("base64") ?? null,
-				byteLength: blob.byteLength,
-				exceededLimit: blob.exceededLimit,
-			};
 		}),
 
 	// Bulk sibling of `getDiff` for callers (the Changes pane) that need every

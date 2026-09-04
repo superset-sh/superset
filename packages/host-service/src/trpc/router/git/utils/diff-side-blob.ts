@@ -35,25 +35,26 @@ export function diffSideObjectSpec(
 	return side === "old" ? `:0:${path}` : null;
 }
 
-/** Reads one blob by object spec, capped by size before the bytes are
- * fetched so a huge asset costs a `cat-file -s` and nothing else. A spec that
- * doesn't resolve (added file's old side, deleted file's new side, untracked
- * path in the index) reports `missing` rather than throwing. */
+/** Reads one blob by object spec. The spec is resolved to its object id
+ * first, so the size check and the read describe the same blob even if HEAD
+ * or the index moves between the two commands. Size is checked before the
+ * bytes are fetched, so a huge asset costs a `cat-file -s` and nothing else.
+ * A spec that doesn't resolve (added file's old side, deleted file's new
+ * side, untracked path in the index) reports `missing` rather than throwing. */
 export async function readDiffSideBlob(
 	git: SimpleGit,
 	spec: string,
 	maxBytes: number,
 ): Promise<DiffSideBlob> {
+	let oid: string;
 	let size: number;
 	try {
-		size = Number.parseInt(
-			(await git.raw(["cat-file", "-s", spec])).trim(),
-			10,
-		);
+		oid = (await git.raw(["rev-parse", "--verify", "--quiet", spec])).trim();
+		size = Number.parseInt((await git.raw(["cat-file", "-s", oid])).trim(), 10);
 	} catch {
 		return { kind: "missing" };
 	}
-	if (!Number.isFinite(size)) return { kind: "missing" };
+	if (!oid || !Number.isFinite(size)) return { kind: "missing" };
 	if (size > maxBytes) {
 		return {
 			kind: "bytes",
@@ -62,7 +63,7 @@ export async function readDiffSideBlob(
 			exceededLimit: true,
 		};
 	}
-	const content = (await git.binaryCatFile(["-p", spec])) as Buffer;
+	const content = (await git.binaryCatFile(["-p", oid])) as Buffer;
 	return {
 		kind: "bytes",
 		content,

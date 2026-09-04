@@ -16,6 +16,11 @@ import type { ChangedFile } from "../../trpc/router/git/types.ts";
 import type { BaseRefFetchTarget } from "../../trpc/router/git/utils/base-ref-freshness.ts";
 import { buildDiffPatch } from "../../trpc/router/git/utils/diff-patch.ts";
 import {
+	type DiffSide,
+	diffSideObjectSpec,
+	readDiffSideBlob,
+} from "../../trpc/router/git/utils/diff-side-blob.ts";
+import {
 	type DiffCategory,
 	getChangedFilesForDiff,
 	getDefaultBranchName,
@@ -182,6 +187,61 @@ export const gitDiffPatchTask = defineWorkerTask<
 			untrackedPaths,
 		});
 		return { patch };
+	},
+});
+
+export type DiffSideBlobResult =
+	| { kind: "missing" }
+	| {
+			kind: "bytes";
+			/** base64; null when the blob is over the cap */
+			content: string | null;
+			byteLength: number;
+			exceededLimit: boolean;
+	  };
+
+export const gitDiffSideBlobTask = defineWorkerTask<
+	{
+		worktreePath: string;
+		category: DiffCategory;
+		side: DiffSide;
+		path: string;
+		maxBytes: number;
+		baseBranch?: string;
+		commitHash?: string;
+		fromHash?: string;
+		gitEnv: GitTaskEnv;
+	},
+	DiffSideBlobResult
+>({
+	type: "git/readDiffSideBlob",
+	handler: async ({
+		worktreePath,
+		category,
+		side,
+		path,
+		maxBytes,
+		baseBranch,
+		commitHash,
+		fromHash,
+		gitEnv,
+	}) => {
+		const git = createUserSimpleGit(worktreePath).env(gitEnv);
+		const refs = await resolveDiffCategoryRefs(git, category, {
+			baseBranch,
+			commitHash,
+			fromHash,
+		});
+		const spec = diffSideObjectSpec(category, side, path, refs);
+		if (!spec) return { kind: "missing" };
+		const blob = await readDiffSideBlob(git, spec, maxBytes);
+		if (blob.kind === "missing") return { kind: "missing" };
+		return {
+			kind: "bytes",
+			content: blob.content?.toString("base64") ?? null,
+			byteLength: blob.byteLength,
+			exceededLimit: blob.exceededLimit,
+		};
 	},
 });
 
@@ -448,6 +508,7 @@ export const gitTasks = [
 	gitCommitFilesTask,
 	gitDiffBulkTask,
 	gitDiffPatchTask,
+	gitDiffSideBlobTask,
 	gitWorkspaceRefsTask,
 	gitIdentityTask,
 	gitWorktreeStateTask,
