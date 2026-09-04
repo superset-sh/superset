@@ -1396,6 +1396,9 @@ msgstr "고급"
 msgid "Advanced options"
 msgstr "고급 옵션"
 
+msgid "After"
+msgstr "변경 후"
+
 msgid "Against base"
 msgstr "기준 대비"
 
@@ -2236,6 +2239,9 @@ msgstr "PR #{0} 기반"
 #. placeholder {1}: preview.providers.join(" and ")
 msgid "Based on {0} tokens in the last 30 days, counting {1}."
 msgstr "최근 30일간 토큰 {0}개 기준이며, {1}을(를) 집계했습니다."
+
+msgid "Before"
+msgstr "변경 전"
 
 msgid "Behavior"
 msgstr "동작 방식"
@@ -7610,9 +7616,6 @@ msgstr "글꼴 불러오는 중..."
 
 msgid "Loading groups…"
 msgstr "그룹 불러오는 중…"
-
-msgid "Loading image…"
-msgstr "이미지 불러오는 중…"
 
 msgid "Loading issue…"
 msgstr "이슈 불러오는 중…"

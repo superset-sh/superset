@@ -1396,6 +1396,9 @@ msgstr "進階"
 msgid "Advanced options"
 msgstr "進階選項"
 
+msgid "After"
+msgstr "變更後"
+
 msgid "Against base"
 msgstr "對比基準分支"
 
@@ -2236,6 +2239,9 @@ msgstr "基於PR #{0}"
 #. placeholder {1}: preview.providers.join(" and ")
 msgid "Based on {0} tokens in the last 30 days, counting {1}."
 msgstr "基於最近30天的{0}個token，統計{1}。"
+
+msgid "Before"
+msgstr "變更前"
 
 msgid "Behavior"
 msgstr "行為"
@@ -7610,9 +7616,6 @@ msgstr "正在載入字型..."
 
 msgid "Loading groups…"
 msgstr "正在載入群組…"
-
-msgid "Loading image…"
-msgstr "正在載入圖片…"
 
 msgid "Loading issue…"
 msgstr "正在載入議題…"

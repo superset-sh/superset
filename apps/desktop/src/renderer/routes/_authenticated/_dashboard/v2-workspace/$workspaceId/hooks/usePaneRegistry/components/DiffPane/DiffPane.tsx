@@ -1,4 +1,4 @@
-import { Trans, useLingui } from "@lingui/react/macro";
+import { useLingui } from "@lingui/react/macro";
 import type {
 	CodeViewItem,
 	DiffLineAnnotation,
@@ -16,11 +16,9 @@ import { errorMessage } from "@superset/i18n/errors";
 
 import type { RendererContext } from "@superset/panes";
 import { alert } from "@superset/ui/atoms/Alert";
-import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { useWorkspaceClient, workspaceTrpc } from "@superset/workspace-client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { LuFileCode, LuLoader } from "react-icons/lu";
 import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
 import {
 	createPaneScrollStateKey,
@@ -32,7 +30,6 @@ import { DiffFileHeaderName } from "renderer/screens/main/components/DiffFileHea
 import { DiffViewToolbar } from "renderer/screens/main/components/DiffViewToolbar";
 import { MarkdownSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/FileViewerPane/components/MarkdownSearch";
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
-import { getImageMimeType } from "shared/file-types";
 import type { DiffPaneData, PaneViewerData } from "../../../../types";
 import {
 	type ChangesetFile,
@@ -43,6 +40,7 @@ import { useOpenInExternalEditor } from "../../../useOpenInExternalEditor";
 import { useSidebarDiffRef } from "../../../useSidebarDiffRef";
 import { useViewedFiles } from "../../../useViewedFiles";
 import { AgentCommentComposer } from "../AgentCommentComposer";
+import { BinaryDiffPreview } from "./components/BinaryDiffPreview";
 import { CommentThread } from "./components/CommentThread";
 import { DeferredDiffPlaceholder } from "./components/DeferredDiffPlaceholder";
 import { DiffHeaderMetadata } from "./components/DiffHeaderMetadata";
@@ -125,22 +123,21 @@ export function DiffPane({
 	const writeFile = workspaceTrpc.filesystem.writeFile.useMutation();
 	const utils = workspaceTrpc.useUtils();
 	const { trpcClient } = useWorkspaceClient();
-	// Image previews read the working tree, so a replaced image has to refetch
-	// when git reports it changed. Scope to the reported paths when we have
-	// them so an unrelated edit doesn't refetch every preview on screen.
+	// Binary previews of the index or HEAD side don't change their query key
+	// when git state moves, so refetch them on git events. Scope to the
+	// reported paths when we have them so an unrelated edit doesn't refetch
+	// every preview on screen. The working-tree side follows the shared
+	// document store's fs watch and needs nothing here.
 	useWorkspaceEvent(
 		"git:changed",
 		workspaceId,
 		({ paths }) => {
-			if (!worktreePath || !paths) {
-				void utils.filesystem.readFile.invalidate({ workspaceId });
+			if (!paths) {
+				void utils.git.readDiffSideFile.invalidate({ workspaceId });
 				return;
 			}
 			for (const path of paths) {
-				void utils.filesystem.readFile.invalidate({
-					workspaceId,
-					absolutePath: toAbsoluteWorkspacePath(worktreePath, path),
-				});
+				void utils.git.readDiffSideFile.invalidate({ workspaceId, path });
 			}
 		},
 		!!worktreePath,
@@ -696,7 +693,7 @@ export function DiffPane({
 				const file = fileByItemId.get(item.id);
 				if (!file) return null;
 				return (
-					<BinaryDiffPlaceholder
+					<BinaryDiffPreview
 						file={file}
 						workspaceId={workspaceId}
 						worktreePath={worktreePath}
@@ -844,93 +841,6 @@ export function DiffPane({
 					</EditProvider>
 				</div>
 			)}
-		</div>
-	);
-}
-
-const IMAGE_PREVIEW_MAX_BYTES = 10 * 1024 * 1024;
-
-function BinaryDiffPlaceholder({
-	file,
-	workspaceId,
-	worktreePath,
-	onOpenFile,
-}: {
-	file: ChangesetFile;
-	workspaceId: string;
-	worktreePath?: string;
-	onOpenFile: (path: string, openInNewTab?: boolean) => void;
-}) {
-	const canOpen = file.status !== "deleted";
-	// The preview reads the working tree, which is only the "new" side of a
-	// working-tree diff. A commit's image may since have changed or gone.
-	const mimeType =
-		file.source.kind === "commit" ? null : getImageMimeType(file.path);
-	const canPreview = canOpen && !!worktreePath && mimeType !== null;
-	const imageQuery = workspaceTrpc.filesystem.readFile.useQuery(
-		{
-			workspaceId,
-			absolutePath: toAbsoluteWorkspacePath(worktreePath ?? "", file.path),
-			maxBytes: IMAGE_PREVIEW_MAX_BYTES,
-		},
-		{
-			enabled: canPreview,
-			retry: false,
-			staleTime: 30_000,
-		},
-	);
-	const image =
-		canPreview && !imageQuery.isError && imageQuery.data?.kind === "bytes"
-			? imageQuery.data
-			: null;
-	const isLoading = canPreview && imageQuery.isLoading;
-
-	if (image && !image.exceededLimit) {
-		return (
-			<div className="flex flex-col items-center justify-center gap-3 bg-muted/30 p-4">
-				<div className="max-w-full bg-[conic-gradient(color-mix(in_srgb,var(--color-foreground)_10%,transparent)_25%,transparent_0_50%,color-mix(in_srgb,var(--color-foreground)_10%,transparent)_0_75%,transparent_0)] bg-[length:16px_16px]">
-					<img
-						src={`data:${mimeType};base64,${image.content}`}
-						alt={file.path}
-						className="block max-h-96 max-w-full object-contain"
-					/>
-				</div>
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={() => onOpenFile(file.path)}
-				>
-					<Trans>Open file</Trans>
-				</Button>
-			</div>
-		);
-	}
-
-	return (
-		<div className="flex flex-col items-center justify-center gap-3 bg-muted/30 py-8 text-muted-foreground">
-			{isLoading ? (
-				<LuLoader className="size-6 animate-spin" />
-			) : (
-				<LuFileCode className="size-8" />
-			)}
-			<p className="cursor-text select-text text-sm">
-				{isLoading ? (
-					<Trans>Loading image…</Trans>
-				) : image?.exceededLimit ? (
-					<Trans>File is too large to preview</Trans>
-				) : (
-					<Trans>Binary file hidden</Trans>
-				)}
-			</p>
-			{canOpen ? (
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={() => onOpenFile(file.path)}
-				>
-					<Trans>Open file</Trans>
-				</Button>
-			) : null}
 		</div>
 	);
 }

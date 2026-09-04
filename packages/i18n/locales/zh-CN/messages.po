@@ -1396,6 +1396,9 @@ msgstr "高级"
 msgid "Advanced options"
 msgstr "高级选项"
 
+msgid "After"
+msgstr "变更后"
+
 msgid "Against base"
 msgstr "对比基准分支"
 
@@ -2236,6 +2239,9 @@ msgstr "基于PR #{0}"
 #. placeholder {1}: preview.providers.join(" and ")
 msgid "Based on {0} tokens in the last 30 days, counting {1}."
 msgstr "基于最近30天的{0}个token，统计{1}。"
+
+msgid "Before"
+msgstr "变更前"
 
 msgid "Behavior"
 msgstr "行为"
@@ -7610,9 +7616,6 @@ msgstr "正在加载字体..."
 
 msgid "Loading groups…"
 msgstr "正在加载分组…"
-
-msgid "Loading image…"
-msgstr "正在加载图片…"
 
 msgid "Loading issue…"
 msgstr "正在加载议题…"

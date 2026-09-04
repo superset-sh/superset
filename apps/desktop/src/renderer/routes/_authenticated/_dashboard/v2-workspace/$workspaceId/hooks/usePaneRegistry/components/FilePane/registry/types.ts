@@ -50,6 +50,12 @@ export interface ViewProps {
 	 * ignore this.
 	 */
 	showFrontMatterNote?: boolean;
+	/**
+	 * Rendered inside another surface (the Changes pane's binary preview)
+	 * rather than filling its own pane: views drop pane-level chrome and
+	 * gestures that would fight the host's scrolling. Defaults to false.
+	 */
+	embedded?: boolean;
 }
 
 export function resolveViewLabel(view: FileView, filePath: string): string {

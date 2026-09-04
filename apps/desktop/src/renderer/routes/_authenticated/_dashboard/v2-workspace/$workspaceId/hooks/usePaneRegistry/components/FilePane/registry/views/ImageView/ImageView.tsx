@@ -5,7 +5,10 @@ import { getImageMimeType } from "shared/file-types";
 import type { ViewProps } from "../../types";
 import { usePanZoom } from "./hooks/usePanZoom";
 
-export function ImageView({ document, filePath }: ViewProps) {
+const CHECKERBOARD =
+	"conic-gradient(color-mix(in srgb, var(--color-foreground) 10%, transparent) 25%, transparent 0 50%, color-mix(in srgb, var(--color-foreground) 10%, transparent) 0 75%, transparent 0)";
+
+export function ImageView({ document, filePath, embedded }: ViewProps) {
 	const { t } = useLingui();
 	const [objectUrl, setObjectUrl] = useState<string | null>(null);
 	const {
@@ -31,6 +34,29 @@ export function ImageView({ document, filePath }: ViewProps) {
 		return () => URL.revokeObjectURL(url);
 	}, [document.content, filePath, reset]);
 
+	if (embedded) {
+		return (
+			<div className="flex h-full items-center justify-center bg-background p-4">
+				{objectUrl && (
+					<div
+						className="inline-block max-h-full max-w-full"
+						style={{
+							backgroundImage: CHECKERBOARD,
+							backgroundSize: "16px 16px",
+						}}
+					>
+						<img
+							src={objectUrl}
+							alt={getBaseName(filePath)}
+							className="block max-h-full max-w-full object-contain"
+							draggable={false}
+						/>
+					</div>
+				)}
+			</div>
+		);
+	}
+
 	return (
 		<div
 			ref={containerRef}
@@ -50,8 +76,7 @@ export function ImageView({ document, filePath }: ViewProps) {
 					className="inline-block max-h-full max-w-full"
 					style={{
 						transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
-						backgroundImage:
-							"conic-gradient(color-mix(in srgb, var(--color-foreground) 10%, transparent) 25%, transparent 0 50%, color-mix(in srgb, var(--color-foreground) 10%, transparent) 0 75%, transparent 0)",
+						backgroundImage: CHECKERBOARD,
 						backgroundSize: "16px 16px",
 					}}
 				>

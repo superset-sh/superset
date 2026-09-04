@@ -1396,6 +1396,9 @@ msgstr "Gelişmiş"
 msgid "Advanced options"
 msgstr "Gelişmiş seçenekler"
 
+msgid "After"
+msgstr "Sonra"
+
 msgid "Against base"
 msgstr "Temele göre"
 
@@ -2236,6 +2239,9 @@ msgstr "PR #{0} temel alınarak"
 #. placeholder {1}: preview.providers.join(" and ")
 msgid "Based on {0} tokens in the last 30 days, counting {1}."
 msgstr "Son 30 gündeki {0} token temel alınmıştır; {1} sayılıyor."
+
+msgid "Before"
+msgstr "Önce"
 
 msgid "Behavior"
 msgstr "Davranış"
@@ -7610,9 +7616,6 @@ msgstr "Yazı tipleri yükleniyor..."
 
 msgid "Loading groups…"
 msgstr "Gruplar yükleniyor…"
-
-msgid "Loading image…"
-msgstr "Görsel yükleniyor…"
 
 msgid "Loading issue…"
 msgstr "Issue yükleniyor…"

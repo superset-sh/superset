@@ -1396,6 +1396,9 @@ msgstr "詳細設定"
 msgid "Advanced options"
 msgstr "詳細オプション"
 
+msgid "After"
+msgstr "変更後"
+
 msgid "Against base"
 msgstr "ベースとの差分"
 
@@ -2236,6 +2239,9 @@ msgstr "PR #{0} をベースに"
 #. placeholder {1}: preview.providers.join(" and ")
 msgid "Based on {0} tokens in the last 30 days, counting {1}."
 msgstr "過去30日間の{0}トークンに基づく({1}を集計)。"
+
+msgid "Before"
+msgstr "変更前"
 
 msgid "Behavior"
 msgstr "全般"
@@ -7610,9 +7616,6 @@ msgstr "フォントを読み込み中..."
 
 msgid "Loading groups…"
 msgstr "グループを読み込み中…"
-
-msgid "Loading image…"
-msgstr "画像を読み込み中…"
 
 msgid "Loading issue…"
 msgstr "Issueを読み込み中…"

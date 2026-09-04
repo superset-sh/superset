@@ -1396,6 +1396,9 @@ msgstr "Avanzate"
 msgid "Advanced options"
 msgstr "Opzioni avanzate"
 
+msgid "After"
+msgstr "Dopo"
+
 msgid "Against base"
 msgstr "Rispetto alla base"
 
@@ -2236,6 +2239,9 @@ msgstr "basato sulla PR #{0}"
 #. placeholder {1}: preview.providers.join(" and ")
 msgid "Based on {0} tokens in the last 30 days, counting {1}."
 msgstr "In base a {0} token negli ultimi 30 giorni, contando {1}."
+
+msgid "Before"
+msgstr "Prima"
 
 msgid "Behavior"
 msgstr "Comportamento"
@@ -7610,9 +7616,6 @@ msgstr "Caricamento dei font..."
 
 msgid "Loading groups…"
 msgstr "Caricamento dei gruppi…"
-
-msgid "Loading image…"
-msgstr "Caricamento dell’immagine…"
 
 msgid "Loading issue…"
 msgstr "Caricamento della issue…"

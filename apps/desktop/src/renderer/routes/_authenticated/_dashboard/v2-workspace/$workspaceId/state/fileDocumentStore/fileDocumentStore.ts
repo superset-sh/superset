@@ -70,7 +70,7 @@ function isBinaryText(content: string): boolean {
 	return false;
 }
 
-function decodeBase64(value: string): Uint8Array {
+export function decodeBase64(value: string): Uint8Array {
 	if (typeof Buffer !== "undefined") {
 		return new Uint8Array(Buffer.from(value, "base64"));
 	}

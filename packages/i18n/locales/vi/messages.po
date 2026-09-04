@@ -1396,6 +1396,9 @@ msgstr "Nâng cao"
 msgid "Advanced options"
 msgstr "Tùy chọn nâng cao"
 
+msgid "After"
+msgstr "Sau"
+
 msgid "Against base"
 msgstr "So với nhánh gốc"
 
@@ -2236,6 +2239,9 @@ msgstr "dựa trên PR #{0}"
 #. placeholder {1}: preview.providers.join(" and ")
 msgid "Based on {0} tokens in the last 30 days, counting {1}."
 msgstr "Dựa trên {0} token trong 30 ngày qua, tính cả {1}."
+
+msgid "Before"
+msgstr "Trước"
 
 msgid "Behavior"
 msgstr "Hành vi"
@@ -7610,9 +7616,6 @@ msgstr "Đang tải font..."
 
 msgid "Loading groups…"
 msgstr "Đang tải nhóm…"
-
-msgid "Loading image…"
-msgstr "Đang tải hình ảnh…"
 
 msgid "Loading issue…"
 msgstr "Đang tải issue…"

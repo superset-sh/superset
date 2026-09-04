@@ -1396,6 +1396,9 @@ msgstr "Pokročilé"
 msgid "Advanced options"
 msgstr "Pokročilé možnosti"
 
+msgid "After"
+msgstr "Po"
+
 msgid "Against base"
 msgstr "Proti základní větvi"
 
@@ -2236,6 +2239,9 @@ msgstr "na základě PR #{0}"
 #. placeholder {1}: preview.providers.join(" and ")
 msgid "Based on {0} tokens in the last 30 days, counting {1}."
 msgstr "Na základě {0} tokenů za posledních 30 dní, počítáno z {1}."
+
+msgid "Before"
+msgstr "Před"
 
 msgid "Behavior"
 msgstr "Chování"
@@ -7610,9 +7616,6 @@ msgstr "Načítám fonty..."
 
 msgid "Loading groups…"
 msgstr "Načítám skupiny…"
-
-msgid "Loading image…"
-msgstr "Načítám obrázek…"
 
 msgid "Loading issue…"
 msgstr "Načítám issue…"

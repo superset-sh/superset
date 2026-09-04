@@ -1396,6 +1396,9 @@ msgstr "Lanjutan"
 msgid "Advanced options"
 msgstr "Opsi lanjutan"
 
+msgid "After"
+msgstr "Sesudah"
+
 msgid "Against base"
 msgstr "Terhadap base"
 
@@ -2236,6 +2239,9 @@ msgstr "berdasarkan PR #{0}"
 #. placeholder {1}: preview.providers.join(" and ")
 msgid "Based on {0} tokens in the last 30 days, counting {1}."
 msgstr "Berdasarkan {0} token dalam 30 hari terakhir, menghitung {1}."
+
+msgid "Before"
+msgstr "Sebelum"
 
 msgid "Behavior"
 msgstr "Perilaku"
@@ -7610,9 +7616,6 @@ msgstr "Memuat font..."
 
 msgid "Loading groups…"
 msgstr "Memuat grup…"
-
-msgid "Loading image…"
-msgstr "Memuat gambar…"
 
 msgid "Loading issue…"
 msgstr "Memuat issue…"

@@ -1396,6 +1396,9 @@ msgstr "Erweitert"
 msgid "Advanced options"
 msgstr "Erweiterte Optionen"
 
+msgid "After"
+msgstr "Nachher"
+
 msgid "Against base"
 msgstr "Gegen Basis"
 
@@ -2236,6 +2239,9 @@ msgstr "basierend auf PR #{0}"
 #. placeholder {1}: preview.providers.join(" and ")
 msgid "Based on {0} tokens in the last 30 days, counting {1}."
 msgstr "Basierend auf {0} Tokens in den letzten 30 Tagen, gezählt {1}."
+
+msgid "Before"
+msgstr "Vorher"
 
 msgid "Behavior"
 msgstr "Verhalten"
@@ -7610,9 +7616,6 @@ msgstr "Schriften werden geladen..."
 
 msgid "Loading groups…"
 msgstr "Gruppen werden geladen…"
-
-msgid "Loading image…"
-msgstr "Bild wird geladen…"
 
 msgid "Loading issue…"
 msgstr "Issue wird geladen…"
