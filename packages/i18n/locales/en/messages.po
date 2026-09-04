@@ -140,6 +140,10 @@ msgstr "{0, plural, one {# file} other {# files}}"
 msgid "{0, plural, one {# File} other {# Files}}"
 msgstr "{0, plural, one {# File} other {# Files}}"
 
+#. placeholder {0}: projects.length
+msgid "{0, plural, one {# hidden project} other {# hidden projects}}"
+msgstr "{0, plural, one {# hidden project} other {# hidden projects}}"
+
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
 msgstr "{0, plural, one {# history item} other {# history items}}"
@@ -650,6 +654,9 @@ msgstr "{noun, select, person {Specify at least one person, or choose {choice}.}
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 
+msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
+msgstr "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
+
 msgid "{openCount} open"
 msgstr "{openCount} open"
 
@@ -773,6 +780,9 @@ msgstr "{workspaceName}: host is unavailable"
 
 msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}: teardown failed"
+
+msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
+msgstr "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
 
 msgid "{years}y ago"
 msgstr "{years}y ago"
@@ -4412,6 +4422,9 @@ msgstr "Delete page"
 msgid "Delete project"
 msgstr "Delete project"
 
+msgid "Delete Project…"
+msgstr "Delete Project…"
+
 msgid "Delete script"
 msgstr "Delete script"
 
@@ -6391,6 +6404,10 @@ msgstr "Help & Docs"
 
 msgid "Henry Ford"
 msgstr "Henry Ford"
+
+#. placeholder {0}: project.name
+msgid "Hid \"{0}\" from the sidebar"
+msgstr "Hid \"{0}\" from the sidebar"
 
 msgid "Hidden"
 msgstr "Hidden"
@@ -10810,9 +10827,6 @@ msgstr "Remove mention {path}"
 msgid "Remove PR Link"
 msgstr "Remove PR Link"
 
-msgid "Remove project from sidebar?"
-msgstr "Remove project from sidebar?"
-
 msgid "Remove script"
 msgstr "Remove script"
 
@@ -13581,6 +13595,9 @@ msgstr "The remote branch has diverged. Pull before continuing."
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "The renderer crashed during startup. Please check logs for details."
 
+msgid "The repository folder itself is kept."
+msgstr "The repository folder itself is kept."
+
 msgid "The request failed."
 msgstr "The request failed."
 
@@ -13698,9 +13715,6 @@ msgstr "This closes every terminal session — in this workspace and any others 
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
-
-msgid "This deletes the project and all of its workspaces from <0>every reachable device</0> where it is set up. This cannot be undone."
-msgstr "This deletes the project and all of its workspaces from <0>every reachable device</0> where it is set up. This cannot be undone."
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "This deletes the saved scrollback used for reboot/crash recovery."
@@ -13825,6 +13839,9 @@ msgstr "This removes every selected worktree from disk and deletes its workspace
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 
+msgid "This removes the project from every reachable device."
+msgstr "This removes the project from every reachable device."
+
 msgid "This removes the worktree from disk. The cloud workspace record will also be removed."
 msgstr "This removes the worktree from disk. The cloud workspace record will also be removed."
 
@@ -13897,9 +13914,6 @@ msgstr "This will remove the connection between your organization and Notion. Yo
 
 msgid "This will remove the connection between your organization and Slack. You can reconnect at any time."
 msgstr "This will remove the connection between your organization and Slack. You can reconnect at any time."
-
-msgid "This will remove workspaces from the sidebar and delete all project sections. The workspaces or projects won't be deleted."
-msgstr "This will remove workspaces from the sidebar and delete all project sections. The workspaces or projects won't be deleted."
 
 msgid "This will revert all changes to this file. This action cannot be undone."
 msgstr "This will revert all changes to this file. This action cannot be undone."
@@ -15071,6 +15085,9 @@ msgstr "Worktree out of sync"
 
 msgid "Worktrees"
 msgstr "Worktrees"
+
+msgid "Worktrees with uncommitted changes are left on disk."
+msgstr "Worktrees with uncommitted changes are left on disk."
 
 msgid "Would you like to reassign it?"
 msgstr "Would you like to reassign it?"

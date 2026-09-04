@@ -140,6 +140,10 @@ msgstr "{0, plural, one {# файл} few {# файла} many {# файлов} ot
 msgid "{0, plural, one {# File} other {# Files}}"
 msgstr "{0, plural, one {# файл} few {# файла} many {# файлов} other {# файла}}"
 
+#. placeholder {0}: projects.length
+msgid "{0, plural, one {# hidden project} other {# hidden projects}}"
+msgstr "{0, plural, one {# скрытый проект} few {# скрытых проекта} many {# скрытых проектов} other {# скрытого проекта}}"
+
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
 msgstr "{0, plural, one {# запись истории} few {# записи истории} many {# записей истории} other {# записи истории}}"
@@ -650,6 +654,9 @@ msgstr "{noun, select, person {Укажите хотя бы одного чел�
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {Укажите хотя бы один репозиторий.} channel {Укажите хотя бы один канал.} reaction {Укажите хотя бы одну реакцию.} dataSource {Укажите хотя бы один источник данных.} team {Укажите хотя бы одну команду.} project {Укажите хотя бы один проект.} calendar {Укажите хотя бы один календарь.} other {Укажите хотя бы одно значение.}}"
 
+msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
+msgstr "{offlineHostCount, plural, one {# устройство офлайн и сохранит свою копию.} few {# устройства офлайн и сохранят свои копии.} many {# устройств офлайн и сохранят свои копии.} other {# устройства офлайн и сохранят свои копии.}}"
+
 msgid "{openCount} open"
 msgstr "{openCount} открыто"
 
@@ -773,6 +780,9 @@ msgstr "{workspaceName}: хост недоступен"
 
 msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}: не удалось выполнить очистку"
+
+msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
+msgstr "{worktreeCount, plural, one {Проект и его # рабочая область будут удалены со всех доступных устройств, а этот worktree — с диска.} few {Проект и его # рабочие области будут удалены со всех доступных устройств, а их worktree — с диска.} many {Проект и его # рабочих областей будут удалены со всех доступных устройств, а их worktree — с диска.} other {Проект и его # рабочей области будут удалены со всех доступных устройств, а их worktree — с диска.}}"
 
 msgid "{years}y ago"
 msgstr "{years} г. назад"
@@ -4412,6 +4422,9 @@ msgstr "Удалить страницу"
 msgid "Delete project"
 msgstr "Удалить проект"
 
+msgid "Delete Project…"
+msgstr "Удалить проект…"
+
 msgid "Delete script"
 msgstr "Удалить скрипт"
 
@@ -6391,6 +6404,10 @@ msgstr "Помощь и документация"
 
 msgid "Henry Ford"
 msgstr "Генри Форд"
+
+#. placeholder {0}: project.name
+msgid "Hid \"{0}\" from the sidebar"
+msgstr "«{0}» скрыт с боковой панели"
 
 msgid "Hidden"
 msgstr "Скрытые"
@@ -10810,9 +10827,6 @@ msgstr "Удалить упоминание {path}"
 msgid "Remove PR Link"
 msgstr "Отвязать PR"
 
-msgid "Remove project from sidebar?"
-msgstr "Убрать проект из боковой панели?"
-
 msgid "Remove script"
 msgstr "Удалить скрипт"
 
@@ -13581,6 +13595,9 @@ msgstr "Удалённая ветка разошлась. Получите из�
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "Рендерер аварийно завершился при запуске. Подробности — в логах."
 
+msgid "The repository folder itself is kept."
+msgstr "Сама папка репозитория сохраняется."
+
 msgid "The request failed."
 msgstr "Запрос завершился ошибкой."
 
@@ -13698,9 +13715,6 @@ msgstr "Это закроет все сессии терминала — в эт
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "Это закроет все сессии терминала вашей организации{runningCountSuffix} и запустит новый демон."
-
-msgid "This deletes the project and all of its workspaces from <0>every reachable device</0> where it is set up. This cannot be undone."
-msgstr "Это удалит проект и все его рабочие области со <0>всех доступных устройств</0>, где он настроен. Отменить нельзя."
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Это удалит сохранённую прокрутку, используемую для восстановления после перезагрузки или сбоя."
@@ -13825,6 +13839,9 @@ msgstr "Это удалит каждый выбранный worktree с диск
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "Это удалит хост, доступ к нему и его рабочие области. Файлы на машине останутся. Работающий хост может появиться снова. Отменить нельзя."
 
+msgid "This removes the project from every reachable device."
+msgstr "Проект будет удалён со всех доступных устройств."
+
 msgid "This removes the worktree from disk. The cloud workspace record will also be removed."
 msgstr "Это удалит worktree с диска. Запись об облачной рабочей области также будет удалена."
 
@@ -13897,9 +13914,6 @@ msgstr "Это удалит связь между вашей организац�
 
 msgid "This will remove the connection between your organization and Slack. You can reconnect at any time."
 msgstr "Это удалит связь между вашей организацией и Slack. Переподключиться можно в любой момент."
-
-msgid "This will remove workspaces from the sidebar and delete all project sections. The workspaces or projects won't be deleted."
-msgstr "Это уберёт рабочие области из боковой панели и удалит все разделы проекта. Сами рабочие области и проекты удалены не будут."
 
 msgid "This will revert all changes to this file. This action cannot be undone."
 msgstr "Это откатит все изменения в этом файле. Действие нельзя отменить."
@@ -15071,6 +15085,9 @@ msgstr "Worktree рассинхронизирован"
 
 msgid "Worktrees"
 msgstr "Worktree"
+
+msgid "Worktrees with uncommitted changes are left on disk."
+msgstr "Worktree с незакоммиченными изменениями остаются на диске."
 
 msgid "Would you like to reassign it?"
 msgstr "Переназначить?"

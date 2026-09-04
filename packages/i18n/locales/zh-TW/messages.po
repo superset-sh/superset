@@ -140,6 +140,10 @@ msgstr "{0, plural, one {#個檔案} other {#個檔案}}"
 msgid "{0, plural, one {# File} other {# Files}}"
 msgstr "{0, plural, one {#個檔案} other {#個檔案}}"
 
+#. placeholder {0}: projects.length
+msgid "{0, plural, one {# hidden project} other {# hidden projects}}"
+msgstr "{0, plural, other {# 個已隱藏的專案}}"
+
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
 msgstr "{0, plural, one {#條歷史記錄} other {#條歷史記錄}}"
@@ -650,6 +654,9 @@ msgstr "{noun, select, person {請至少指定一個人員，或選擇{choice}�
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {請至少指定一個倉庫。} channel {請至少指定一個頻道。} reaction {請至少指定一個回應。} dataSource {請至少指定一個資料來源。} team {請至少指定一個團隊。} project {請至少指定一個專案。} calendar {請至少指定一個日曆。} other {請至少指定一個項目。}}"
 
+msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
+msgstr "{offlineHostCount, plural, other {# 台裝置處於離線狀態，將保留其副本。}}"
+
 msgid "{openCount} open"
 msgstr "{openCount}項已開啟"
 
@@ -773,6 +780,9 @@ msgstr "{workspaceName}：主機不可用"
 
 msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}：清理失敗"
+
+msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
+msgstr "{worktreeCount, plural, other {這會從所有可連線的裝置中移除該專案及其 # 個工作區，並從磁碟刪除它們的worktree。}}"
 
 msgid "{years}y ago"
 msgstr "{years}年前"
@@ -4412,6 +4422,9 @@ msgstr "刪除頁面"
 msgid "Delete project"
 msgstr "刪除專案"
 
+msgid "Delete Project…"
+msgstr "刪除專案…"
+
 msgid "Delete script"
 msgstr "刪除指令碼"
 
@@ -6391,6 +6404,10 @@ msgstr "幫助與文件"
 
 msgid "Henry Ford"
 msgstr "Henry Ford"
+
+#. placeholder {0}: project.name
+msgid "Hid \"{0}\" from the sidebar"
+msgstr "已從側邊欄隱藏「{0}」"
 
 msgid "Hidden"
 msgstr "已隱藏"
@@ -10810,9 +10827,6 @@ msgstr "移除提及{path}"
 msgid "Remove PR Link"
 msgstr "移除PR連結"
 
-msgid "Remove project from sidebar?"
-msgstr "從側邊欄移除專案？"
-
 msgid "Remove script"
 msgstr "移除指令碼"
 
@@ -13581,6 +13595,9 @@ msgstr "遠端分支已分叉。請先拉取再繼續。"
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "渲染處理程序在啟動時崩潰。請檢視日誌瞭解詳情。"
 
+msgid "The repository folder itself is kept."
+msgstr "儲存庫資料夾本身會保留。"
+
 msgid "The request failed."
 msgstr "請求失敗。"
 
@@ -13698,9 +13715,6 @@ msgstr "這會關閉所有終端會話 — 包括此工作區和其他工作區�
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "這會關閉你組織的所有終端會話{runningCountSuffix}並啟動全新的守護程式。"
-
-msgid "This deletes the project and all of its workspaces from <0>every reachable device</0> where it is set up. This cannot be undone."
-msgstr "這將從設定過該專案的<0>每一臺可存取裝置</0>上刪除該專案及其所有工作區。此操作無法復原。"
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "這將刪除用於重啟/崩潰恢復的已儲存回滾緩衝。"
@@ -13825,6 +13839,9 @@ msgstr "這會把每個選中的worktree從磁碟上移除，並刪除它的工�
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "這將移除該主機、其存取權限及其工作區。機器上的檔案會保留。執行中的主機可能會重新出現。此操作無法復原。"
 
+msgid "This removes the project from every reachable device."
+msgstr "這會從所有可連線的裝置中移除該專案。"
+
 msgid "This removes the worktree from disk. The cloud workspace record will also be removed."
 msgstr "這會把worktree從磁碟上移除。雲端的工作區記錄也會一併移除。"
 
@@ -13897,9 +13914,6 @@ msgstr "這會移除你的組織與Notion之間的連線。你可以隨時重新
 
 msgid "This will remove the connection between your organization and Slack. You can reconnect at any time."
 msgstr "這會移除你的組織與Slack之間的連線。你可以隨時重新連線。"
-
-msgid "This will remove workspaces from the sidebar and delete all project sections. The workspaces or projects won't be deleted."
-msgstr "這會從側邊欄移除工作區，並刪除所有專案分區。工作區和專案本身不會被刪除。"
 
 msgid "This will revert all changes to this file. This action cannot be undone."
 msgstr "這將還原對此檔案的所有更改。此操作無法復原。"
@@ -15071,6 +15085,9 @@ msgstr "worktree不同步"
 
 msgid "Worktrees"
 msgstr "Worktree"
+
+msgid "Worktrees with uncommitted changes are left on disk."
+msgstr "有未提交變更的worktree會保留在磁碟上。"
 
 msgid "Would you like to reassign it?"
 msgstr "要重新分配嗎？"

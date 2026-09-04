@@ -140,6 +140,10 @@ msgstr "{0, plural, one {# tệp} other {# tệp}}"
 msgid "{0, plural, one {# File} other {# Files}}"
 msgstr "{0, plural, one {# tệp} other {# tệp}}"
 
+#. placeholder {0}: projects.length
+msgid "{0, plural, one {# hidden project} other {# hidden projects}}"
+msgstr "{0, plural, other {# dự án đã ẩn}}"
+
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
 msgstr "{0, plural, one {# mục lịch sử} other {# mục lịch sử}}"
@@ -650,6 +654,9 @@ msgstr "{noun, select, person {Hãy chỉ định ít nhất một người, ho�
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {Hãy chỉ định ít nhất một repo.} channel {Hãy chỉ định ít nhất một kênh.} reaction {Hãy chỉ định ít nhất một reaction.} dataSource {Hãy chỉ định ít nhất một nguồn dữ liệu.} team {Hãy chỉ định ít nhất một nhóm.} project {Hãy chỉ định ít nhất một dự án.} calendar {Hãy chỉ định ít nhất một lịch.} other {Hãy chỉ định ít nhất một mục.}}"
 
+msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
+msgstr "{offlineHostCount, plural, other {# thiết bị đang ngoại tuyến và sẽ giữ lại bản sao của mình.}}"
+
 msgid "{openCount} open"
 msgstr "{openCount} còn mở"
 
@@ -773,6 +780,9 @@ msgstr "{workspaceName}: host không khả dụng"
 
 msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}: teardown thất bại"
+
+msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
+msgstr "{worktreeCount, plural, other {Thao tác này sẽ gỡ dự án và # workspace của nó khỏi mọi thiết bị có thể kết nối, đồng thời xóa các worktree đó khỏi ổ đĩa.}}"
 
 msgid "{years}y ago"
 msgstr "{years} năm trước"
@@ -4412,6 +4422,9 @@ msgstr "Xóa trang"
 msgid "Delete project"
 msgstr "Xóa dự án"
 
+msgid "Delete Project…"
+msgstr "Xóa dự án…"
+
 msgid "Delete script"
 msgstr "Xóa script"
 
@@ -6391,6 +6404,10 @@ msgstr "Trợ giúp & Tài liệu"
 
 msgid "Henry Ford"
 msgstr "Henry Ford"
+
+#. placeholder {0}: project.name
+msgid "Hid \"{0}\" from the sidebar"
+msgstr "Đã ẩn \"{0}\" khỏi thanh bên"
 
 msgid "Hidden"
 msgstr "Đã ẩn"
@@ -10810,9 +10827,6 @@ msgstr "Xóa nhắc đến {path}"
 msgid "Remove PR Link"
 msgstr "Gỡ liên kết PR"
 
-msgid "Remove project from sidebar?"
-msgstr "Gỡ dự án khỏi thanh bên?"
-
 msgid "Remove script"
 msgstr "Gỡ script"
 
@@ -13581,6 +13595,9 @@ msgstr "Nhánh remote đã rẽ nhánh khác. Hãy pull trước khi tiếp tụ
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "Renderer đã crash khi khởi động. Vui lòng xem log để biết chi tiết."
 
+msgid "The repository folder itself is kept."
+msgstr "Thư mục kho lưu trữ vẫn được giữ nguyên."
+
 msgid "The request failed."
 msgstr "Yêu cầu thất bại."
 
@@ -13698,9 +13715,6 @@ msgstr "Thao tác này đóng mọi phiên terminal — trong workspace này và
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "Thao tác này đóng mọi phiên terminal của tổ chức bạn{runningCountSuffix} và khởi động một daemon mới."
-
-msgid "This deletes the project and all of its workspaces from <0>every reachable device</0> where it is set up. This cannot be undone."
-msgstr "Thao tác này xóa dự án và toàn bộ workspace của nó trên <0>mọi thiết bị kết nối được</0> nơi dự án đã được thiết lập. Không thể hoàn tác."
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Thao tác này xóa phần scrollback đã lưu dùng để khôi phục sau khi khởi động lại hoặc crash."
@@ -13825,6 +13839,9 @@ msgstr "Thao tác này xóa mọi worktree đã chọn khỏi đĩa và xóa b�
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "Thao tác này gỡ host, quyền truy cập và các workspace của nó. Tệp trên máy vẫn giữ nguyên. Host đang chạy có thể xuất hiện lại. Không thể hoàn tác."
 
+msgid "This removes the project from every reachable device."
+msgstr "Thao tác này sẽ gỡ dự án khỏi mọi thiết bị có thể kết nối."
+
 msgid "This removes the worktree from disk. The cloud workspace record will also be removed."
 msgstr "Thao tác này xóa worktree khỏi đĩa. Bản ghi workspace trên cloud cũng sẽ bị xóa."
 
@@ -13897,9 +13914,6 @@ msgstr "Thao tác này sẽ gỡ kết nối giữa tổ chức của bạn và 
 
 msgid "This will remove the connection between your organization and Slack. You can reconnect at any time."
 msgstr "Thao tác này sẽ gỡ kết nối giữa tổ chức của bạn và Slack. Bạn có thể kết nối lại bất cứ lúc nào."
-
-msgid "This will remove workspaces from the sidebar and delete all project sections. The workspaces or projects won't be deleted."
-msgstr "Thao tác này sẽ gỡ các workspace khỏi thanh bên và xóa mọi mục của dự án. Các workspace hay dự án sẽ không bị xóa."
 
 msgid "This will revert all changes to this file. This action cannot be undone."
 msgstr "Thao tác này sẽ hoàn nguyên mọi thay đổi với tệp này. Không thể hoàn tác."
@@ -15071,6 +15085,9 @@ msgstr "Worktree không còn đồng bộ"
 
 msgid "Worktrees"
 msgstr "Worktree"
+
+msgid "Worktrees with uncommitted changes are left on disk."
+msgstr "Các worktree có thay đổi chưa commit sẽ được giữ lại trên ổ đĩa."
 
 msgid "Would you like to reassign it?"
 msgstr "Bạn có muốn gán lại không?"

@@ -140,6 +140,10 @@ msgstr "{0, plural, one {# soubor} few {# soubory} many {# souboru} other {# sou
 msgid "{0, plural, one {# File} other {# Files}}"
 msgstr "{0, plural, one {# soubor} few {# soubory} many {# souboru} other {# souborů}}"
 
+#. placeholder {0}: projects.length
+msgid "{0, plural, one {# hidden project} other {# hidden projects}}"
+msgstr "{0, plural, one {# skrytý projekt} few {# skryté projekty} many {# skrytého projektu} other {# skrytých projektů}}"
+
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
 msgstr "{0, plural, one {# položka historie} few {# položky historie} many {# položky historie} other {# položek historie}}"
@@ -650,6 +654,9 @@ msgstr "{noun, select, person {Zadejte alespoň jednu osobu, nebo zvolte {choice
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {Zadejte alespoň jeden repozitář.} channel {Zadejte alespoň jeden kanál.} reaction {Zadejte alespoň jednu reakci.} dataSource {Zadejte alespoň jeden zdroj dat.} team {Zadejte alespoň jeden tým.} project {Zadejte alespoň jeden projekt.} calendar {Zadejte alespoň jeden kalendář.} other {Zadejte alespoň jednu položku.}}"
 
+msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
+msgstr "{offlineHostCount, plural, one {# zařízení je offline a ponechá si svou kopii.} few {# zařízení jsou offline a ponechají si svou kopii.} many {# zařízení je offline a ponechá si svou kopii.} other {# zařízení je offline a ponechá si svou kopii.}}"
+
 msgid "{openCount} open"
 msgstr "{openCount} otevřených"
 
@@ -773,6 +780,9 @@ msgstr "{workspaceName}: host není dostupný"
 
 msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}: teardown selhal"
+
+msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
+msgstr "{worktreeCount, plural, one {Tím se projekt a jeho # pracovní prostor odstraní ze všech dostupných zařízení a tento worktree se smaže z disku.} few {Tím se projekt a jeho # pracovní prostory odstraní ze všech dostupných zařízení a jejich worktree se smažou z disku.} many {Tím se projekt a jeho # pracovního prostoru odstraní ze všech dostupných zařízení a jejich worktree se smažou z disku.} other {Tím se projekt a jeho # pracovních prostorů odstraní ze všech dostupných zařízení a jejich worktree se smažou z disku.}}"
 
 msgid "{years}y ago"
 msgstr "před {years} r."
@@ -4412,6 +4422,9 @@ msgstr "Smazat stránku"
 msgid "Delete project"
 msgstr "Smazat projekt"
 
+msgid "Delete Project…"
+msgstr "Smazat projekt…"
+
 msgid "Delete script"
 msgstr "Smazat skript"
 
@@ -6391,6 +6404,10 @@ msgstr "Nápověda a dokumentace"
 
 msgid "Henry Ford"
 msgstr "Henry Ford"
+
+#. placeholder {0}: project.name
+msgid "Hid \"{0}\" from the sidebar"
+msgstr "„{0}“ skryto z postranního panelu"
 
 msgid "Hidden"
 msgstr "Skryté"
@@ -10810,9 +10827,6 @@ msgstr "Odebrat zmínku {path}"
 msgid "Remove PR Link"
 msgstr "Odebrat propojení s PR"
 
-msgid "Remove project from sidebar?"
-msgstr "Odebrat projekt z postranního panelu?"
-
 msgid "Remove script"
 msgstr "Odebrat skript"
 
@@ -13581,6 +13595,9 @@ msgstr "Vzdálená větev se rozešla. Před pokračováním udělejte pull."
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "Renderer spadl při startu. Podrobnosti najdete v logu."
 
+msgid "The repository folder itself is kept."
+msgstr "Samotná složka repozitáře zůstane zachována."
+
 msgid "The request failed."
 msgstr "Požadavek selhal."
 
@@ -13698,9 +13715,6 @@ msgstr "Tímto se zavřou všechny relace terminálu — v tomto pracovním pros
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "Tímto se zavře každá relace terminálu vaší organizace{runningCountSuffix} a spustí se čerstvý démon."
-
-msgid "This deletes the project and all of its workspaces from <0>every reachable device</0> where it is set up. This cannot be undone."
-msgstr "Tímto se projekt i všechny jeho pracovní prostory smažou ze <0>všech dostupných zařízení</0>, kde je nastavený. Nelze vrátit zpět."
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Tímto se smaže uložený scrollback používaný k obnovení po restartu nebo pádu."
@@ -13825,6 +13839,9 @@ msgstr "Tímto se z disku odstraní každý vybraný worktree a smaže se zázna
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "Tímto se odstraní host, přístup k němu i jeho pracovní prostory. Soubory na počítači zůstanou. Běžící host se může znovu objevit. Nelze vrátit zpět."
 
+msgid "This removes the project from every reachable device."
+msgstr "Tím se projekt odstraní ze všech dostupných zařízení."
+
 msgid "This removes the worktree from disk. The cloud workspace record will also be removed."
 msgstr "Tímto se z disku odstraní worktree. Odstraní se také záznam cloudového pracovního prostoru."
 
@@ -13897,9 +13914,6 @@ msgstr "Tímto odstraníte propojení mezi vaší organizací a Notionem. Kdykol
 
 msgid "This will remove the connection between your organization and Slack. You can reconnect at any time."
 msgstr "Tímto odstraníte propojení mezi vaší organizací a Slackem. Kdykoli se můžete připojit znovu."
-
-msgid "This will remove workspaces from the sidebar and delete all project sections. The workspaces or projects won't be deleted."
-msgstr "Tímto se z postranního panelu odeberou pracovní prostory a smažou se všechny sekce projektu. Pracovní prostory ani projekty se nesmažou."
 
 msgid "This will revert all changes to this file. This action cannot be undone."
 msgstr "Tímto se vrátí všechny změny v tomto souboru. Tuto akci nelze vrátit zpět."
@@ -15071,6 +15085,9 @@ msgstr "Worktree není synchronizovaný"
 
 msgid "Worktrees"
 msgstr "Worktrees"
+
+msgid "Worktrees with uncommitted changes are left on disk."
+msgstr "Worktree s neodevzdanými změnami zůstanou na disku."
 
 msgid "Would you like to reassign it?"
 msgstr "Chcete zkratku přiřadit znovu?"

@@ -140,6 +140,10 @@ msgstr "{0, plural, one {# file} other {# file}}"
 msgid "{0, plural, one {# File} other {# Files}}"
 msgstr "{0, plural, one {# file} other {# file}}"
 
+#. placeholder {0}: projects.length
+msgid "{0, plural, one {# hidden project} other {# hidden projects}}"
+msgstr "{0, plural, one {# progetto nascosto} other {# progetti nascosti}}"
+
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
 msgstr "{0, plural, one {# elemento della cronologia} other {# elementi della cronologia}}"
@@ -650,6 +654,9 @@ msgstr "{noun, select, person {Specifica almeno una persona, oppure scegli {choi
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {Specifica almeno un repository.} channel {Specifica almeno un canale.} reaction {Specifica almeno una reazione.} dataSource {Specifica almeno una origine dati.} team {Specifica almeno un team.} project {Specifica almeno un progetto.} calendar {Specifica almeno un calendario.} other {Specifica almeno una voce.}}"
 
+msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
+msgstr "{offlineHostCount, plural, one {# dispositivo è offline e conserva la sua copia.} other {# dispositivi sono offline e conservano la loro copia.}}"
+
 msgid "{openCount} open"
 msgstr "{openCount} aperti"
 
@@ -773,6 +780,9 @@ msgstr "{workspaceName}: host non disponibile"
 
 msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}: teardown non riuscito"
+
+msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
+msgstr "{worktreeCount, plural, one {Questo rimuove il progetto e il suo # workspace da ogni dispositivo raggiungibile ed elimina quel worktree dal disco.} other {Questo rimuove il progetto e i suoi # workspace da ogni dispositivo raggiungibile ed elimina i loro worktree dal disco.}}"
 
 msgid "{years}y ago"
 msgstr "{years}a fa"
@@ -4412,6 +4422,9 @@ msgstr "Elimina la pagina"
 msgid "Delete project"
 msgstr "Elimina il progetto"
 
+msgid "Delete Project…"
+msgstr "Elimina il progetto…"
+
 msgid "Delete script"
 msgstr "Elimina lo script"
 
@@ -6391,6 +6404,10 @@ msgstr "Aiuto e documentazione"
 
 msgid "Henry Ford"
 msgstr "Henry Ford"
+
+#. placeholder {0}: project.name
+msgid "Hid \"{0}\" from the sidebar"
+msgstr "\"{0}\" nascosto dalla barra laterale"
 
 msgid "Hidden"
 msgstr "Nascosti"
@@ -10810,9 +10827,6 @@ msgstr "Rimuovi la menzione {path}"
 msgid "Remove PR Link"
 msgstr "Rimuovi il link alla PR"
 
-msgid "Remove project from sidebar?"
-msgstr "Rimuovere il progetto dalla barra laterale?"
-
 msgid "Remove script"
 msgstr "Rimuovi lo script"
 
@@ -13581,6 +13595,9 @@ msgstr "Il branch remoto è divergente. Fai pull prima di continuare."
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "Il renderer è andato in crash durante l'avvio. Controlla i log per i dettagli."
 
+msgid "The repository folder itself is kept."
+msgstr "La cartella del repository viene mantenuta."
+
 msgid "The request failed."
 msgstr "La richiesta non è riuscita."
 
@@ -13698,9 +13715,6 @@ msgstr "Questo chiude tutte le sessioni del terminale — in questo workspace e 
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "Questo chiude tutte le sessioni del terminale della tua organizzazione{runningCountSuffix} e avvia un daemon nuovo."
-
-msgid "This deletes the project and all of its workspaces from <0>every reachable device</0> where it is set up. This cannot be undone."
-msgstr "Questo elimina il progetto e tutti i suoi workspace da <0>ogni dispositivo raggiungibile</0> in cui è configurato. L'operazione non può essere annullata."
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Questo elimina lo scrollback salvato usato per il ripristino dopo riavvio o crash."
@@ -13825,6 +13839,9 @@ msgstr "Rimuove dal disco ogni worktree selezionato ed elimina il record del suo
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "Questo rimuove l'host, i suoi accessi e i suoi workspace. I file sulla macchina restano. Un host in esecuzione può ricomparire. L'operazione non può essere annullata."
 
+msgid "This removes the project from every reachable device."
+msgstr "Questo rimuove il progetto da ogni dispositivo raggiungibile."
+
 msgid "This removes the worktree from disk. The cloud workspace record will also be removed."
 msgstr "Questo rimuove il worktree dal disco. Verrà rimosso anche il record del workspace nel cloud."
 
@@ -13897,9 +13914,6 @@ msgstr "Questo rimuoverà la connessione tra la tua organizzazione e Notion. Puo
 
 msgid "This will remove the connection between your organization and Slack. You can reconnect at any time."
 msgstr "Questo rimuoverà la connessione tra la tua organizzazione e Slack. Puoi ricollegarla in qualsiasi momento."
-
-msgid "This will remove workspaces from the sidebar and delete all project sections. The workspaces or projects won't be deleted."
-msgstr "Questo rimuoverà i workspace dalla barra laterale ed eliminerà tutte le sezioni del progetto. I workspace o i progetti non verranno eliminati."
 
 msgid "This will revert all changes to this file. This action cannot be undone."
 msgstr "Questo annullerà tutte le modifiche a questo file. L'operazione non può essere annullata."
@@ -15071,6 +15085,9 @@ msgstr "Worktree non sincronizzato"
 
 msgid "Worktrees"
 msgstr "Worktree"
+
+msgid "Worktrees with uncommitted changes are left on disk."
+msgstr "I worktree con modifiche non committate restano sul disco."
 
 msgid "Would you like to reassign it?"
 msgstr "Vuoi riassegnarla?"

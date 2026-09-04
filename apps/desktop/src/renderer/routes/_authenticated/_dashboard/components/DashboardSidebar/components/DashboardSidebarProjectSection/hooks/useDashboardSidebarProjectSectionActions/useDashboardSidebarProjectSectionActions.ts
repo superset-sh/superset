@@ -1,9 +1,8 @@
 import { plural } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
-import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
-import { useNavigate } from "@tanstack/react-router";
+import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
@@ -11,6 +10,8 @@ import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useDashboardSidebarSectionRename } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSectionRenameContext";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import { useIsOrganizationOwner } from "renderer/routes/_authenticated/hooks/useIsOrganizationOwner";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
@@ -32,13 +33,16 @@ export function useDashboardSidebarProjectSectionActions({
 	// hostIds order is arbitrary and may lead with an offline remote.
 	const { projects: hostProjects } = useHostProjects();
 	const { machineId } = useLocalHostService();
-	const servingHostId = useMemo(() => {
-		const hostIds =
+	const projectHostIds = useMemo(
+		() =>
 			hostProjects.find((item) => item.projectKey === project.id)?.hostIds ??
-			[];
-		if (machineId && hostIds.includes(machineId)) return machineId;
-		return hostIds[0] ?? null;
-	}, [hostProjects, machineId, project.id]);
+			[],
+		[hostProjects, project.id],
+	);
+	const servingHostId = useMemo(() => {
+		if (machineId && projectHostIds.includes(machineId)) return machineId;
+		return projectHostIds[0] ?? null;
+	}, [projectHostIds, machineId]);
 	// undefined (not null) when no host serves it — null would resolve to
 	// the local host and rename the wrong replica.
 	const servingHostUrl = useHostUrl(servingHostId ?? undefined);
@@ -53,11 +57,31 @@ export function useDashboardSidebarProjectSectionActions({
 	const {
 		createSection,
 		deleteSection,
-		removeProjectFromSidebar,
 		renameSection,
+		setProjectHidden,
 		toggleProjectCollapsed,
 		toggleSectionCollapsed,
 	} = useDashboardSidebarState();
+	const canDeleteProject = useIsOrganizationOwner();
+	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+	// Hiding or deleting the project you are inside would leave the view
+	// pointing at a workspace the sidebar no longer shows (or that no longer
+	// exists), so both land on the workspaces list first.
+	const matchRoute = useMatchRoute();
+	const activeWorkspaceMatch = matchRoute({ to: "/v2-workspace/$workspaceId" });
+	const activeWorkspaceId = activeWorkspaceMatch
+		? activeWorkspaceMatch.workspaceId
+		: null;
+	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+	const leaveProjectIfActive = () => {
+		if (!activeWorkspaceId) return;
+		const active = hostWorkspaces.find(
+			(workspace) => workspace.id === activeWorkspaceId,
+		);
+		if (active?.projectId === project.id) {
+			navigate({ to: "/v2-workspaces" });
+		}
+	};
 
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState(project.name);
@@ -129,33 +153,27 @@ export function useDashboardSidebarProjectSectionActions({
 		});
 	};
 
-	const confirmRemoveFromSidebar = () => {
-		alert({
-			title: t({
-				message: "Remove project from sidebar?",
+	// Hiding is reversible and local, so no confirmation — an undo on the
+	// toast covers a slip, and the sidebar's hidden-projects row covers later.
+	const hideProject = () => {
+		leaveProjectIfActive();
+		setProjectHidden(project.id, true);
+		toast(
+			t({
+				message: `Hid "${project.name}" from the sidebar`,
 			}),
-			description: t({
-				message:
-					"This will remove workspaces from the sidebar and delete all project sections. The workspaces or projects won't be deleted.",
-			}),
-			actions: [
-				{
+			{
+				action: {
 					label: t({
-						message: "Cancel",
+						message: "Undo",
 					}),
-					variant: "outline",
-					onClick: () => {},
+					onClick: () => setProjectHidden(project.id, false),
 				},
-				{
-					label: t({
-						message: "Remove",
-					}),
-					variant: "destructive",
-					onClick: () => removeProjectFromSidebar(project.id),
-				},
-			],
-		});
+			},
+		);
 	};
+
+	const openDeleteDialog = () => setIsDeleteDialogOpen(true);
 
 	const handleNewWorkspace = () => {
 		openModal(project.id);
@@ -275,11 +293,17 @@ export function useDashboardSidebarProjectSectionActions({
 	};
 
 	return {
+		canDeleteProject,
 		cancelRename,
 		confirmImportWorktrees,
-		confirmRemoveFromSidebar,
 		deleteSection,
 		handleImportWorktrees,
+		hideProject,
+		isDeleteDialogOpen,
+		leaveProjectIfActive,
+		openDeleteDialog,
+		projectHostIds,
+		setIsDeleteDialogOpen,
 		handleNewSection,
 		handleNewWorkspace,
 		handleOpenInFinder,

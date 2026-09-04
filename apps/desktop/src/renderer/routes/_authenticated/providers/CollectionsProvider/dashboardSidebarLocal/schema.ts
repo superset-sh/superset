@@ -12,6 +12,9 @@ export const dashboardSidebarProjectSchema = z.object({
 	projectId: z.string().uuid(),
 	createdAt: persistedDateSchema,
 	isCollapsed: z.boolean().default(false),
+	// Hidden keeps every placement row (sections, pins, order) so unhiding
+	// restores the project exactly as it was — unlike a deleted row.
+	isHidden: z.boolean().default(false),
 	tabOrder: z.number().int().default(0),
 	defaultOpenInApp: z.string().nullable().default(null),
 });

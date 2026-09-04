@@ -140,6 +140,10 @@ msgstr "{0, plural, one {# plik} few {# pliki} many {# plików} other {# pliku}}
 msgid "{0, plural, one {# File} other {# Files}}"
 msgstr "{0, plural, one {# plik} few {# pliki} many {# plików} other {# pliku}}"
 
+#. placeholder {0}: projects.length
+msgid "{0, plural, one {# hidden project} other {# hidden projects}}"
+msgstr "{0, plural, one {# ukryty projekt} few {# ukryte projekty} many {# ukrytych projektów} other {# ukrytego projektu}}"
+
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
 msgstr "{0, plural, one {# element historii} few {# elementy historii} many {# elementów historii} other {# elementu historii}}"
@@ -650,6 +654,9 @@ msgstr "{noun, select, person {Podaj co najmniej jedną osobę lub wybierz {choi
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {Podaj co najmniej jedno repozytorium.} channel {Podaj co najmniej jeden kanał.} reaction {Podaj co najmniej jedną reakcję.} dataSource {Podaj co najmniej jedno źródło danych.} team {Podaj co najmniej jeden zespół.} project {Podaj co najmniej jeden projekt.} calendar {Podaj co najmniej jeden kalendarz.} other {Podaj co najmniej jedną pozycję.}}"
 
+msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
+msgstr "{offlineHostCount, plural, one {# urządzenie jest offline i zachowa swoją kopię.} few {# urządzenia są offline i zachowają swoje kopie.} many {# urządzeń jest offline i zachowa swoje kopie.} other {# urządzenia jest offline i zachowa swoje kopie.}}"
+
 msgid "{openCount} open"
 msgstr "{openCount} otwartych"
 
@@ -773,6 +780,9 @@ msgstr "{workspaceName}: host jest niedostępny"
 
 msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}: sprzątanie nie powiodło się"
+
+msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
+msgstr "{worktreeCount, plural, one {Spowoduje to usunięcie projektu i jego # obszaru roboczego z każdego dostępnego urządzenia oraz skasowanie tego worktree z dysku.} few {Spowoduje to usunięcie projektu i jego # obszarów roboczych z każdego dostępnego urządzenia oraz skasowanie ich worktree z dysku.} many {Spowoduje to usunięcie projektu i jego # obszarów roboczych z każdego dostępnego urządzenia oraz skasowanie ich worktree z dysku.} other {Spowoduje to usunięcie projektu i jego # obszaru roboczego z każdego dostępnego urządzenia oraz skasowanie ich worktree z dysku.}}"
 
 msgid "{years}y ago"
 msgstr "{years} lat temu"
@@ -4412,6 +4422,9 @@ msgstr "Usuń stronę"
 msgid "Delete project"
 msgstr "Usuń projekt"
 
+msgid "Delete Project…"
+msgstr "Usuń projekt…"
+
 msgid "Delete script"
 msgstr "Usuń skrypt"
 
@@ -6391,6 +6404,10 @@ msgstr "Pomoc i dokumentacja"
 
 msgid "Henry Ford"
 msgstr "Henry Ford"
+
+#. placeholder {0}: project.name
+msgid "Hid \"{0}\" from the sidebar"
+msgstr "Ukryto „{0}” z paska bocznego"
 
 msgid "Hidden"
 msgstr "Ukryte"
@@ -10810,9 +10827,6 @@ msgstr "Usuń wzmiankę {path}"
 msgid "Remove PR Link"
 msgstr "Usuń powiązanie z PR"
 
-msgid "Remove project from sidebar?"
-msgstr "Usunąć projekt z paska bocznego?"
-
 msgid "Remove script"
 msgstr "Usuń skrypt"
 
@@ -13581,6 +13595,9 @@ msgstr "Zdalna gałąź się rozjechała. Pobierz zmiany przed kontynuowaniem."
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "Renderer uległ awarii podczas uruchamiania. Sprawdź logi, aby poznać szczegóły."
 
+msgid "The repository folder itself is kept."
+msgstr "Sam folder repozytorium zostaje zachowany."
+
 msgid "The request failed."
 msgstr "Żądanie nie powiodło się."
 
@@ -13698,9 +13715,6 @@ msgstr "Zamknie to każdą sesję terminala — w tym obszarze roboczym i we wsz
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "Zamknie to każdą sesję terminala w Twojej organizacji{runningCountSuffix} i uruchomi świeżego demona."
-
-msgid "This deletes the project and all of its workspaces from <0>every reachable device</0> where it is set up. This cannot be undone."
-msgstr "Usuwa to projekt i wszystkie jego obszary robocze z <0>każdego osiągalnego urządzenia</0>, na którym jest skonfigurowany. Tej operacji nie można cofnąć."
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Usuwa to zapisany bufor przewijania używany do odzyskiwania po restarcie lub awarii."
@@ -13825,6 +13839,9 @@ msgstr "Usuwa z dysku każdy zaznaczony worktree i kasuje jego wpis obszaru robo
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "Usuwa hosta, dostęp do niego i jego obszary robocze. Pliki na maszynie zostają. Działający host może pojawić się ponownie. Tej operacji nie można cofnąć."
 
+msgid "This removes the project from every reachable device."
+msgstr "Spowoduje to usunięcie projektu z każdego dostępnego urządzenia."
+
 msgid "This removes the worktree from disk. The cloud workspace record will also be removed."
 msgstr "Usuwa worktree z dysku. Wpis obszaru roboczego w chmurze też zostanie usunięty."
 
@@ -13897,9 +13914,6 @@ msgstr "Usunie to połączenie między Twoją organizacją a Notion. Możesz po�
 
 msgid "This will remove the connection between your organization and Slack. You can reconnect at any time."
 msgstr "Usunie to połączenie między Twoją organizacją a Slackiem. Możesz połączyć ponownie w dowolnej chwili."
-
-msgid "This will remove workspaces from the sidebar and delete all project sections. The workspaces or projects won't be deleted."
-msgstr "Usunie to obszary robocze z paska bocznego i skasuje wszystkie sekcje projektu. Same obszary robocze i projekty nie zostaną usunięte."
 
 msgid "This will revert all changes to this file. This action cannot be undone."
 msgstr "Cofnie to wszystkie zmiany w tym pliku. Tej operacji nie można cofnąć."
@@ -15071,6 +15085,9 @@ msgstr "Worktree niezsynchronizowany"
 
 msgid "Worktrees"
 msgstr "Worktrees"
+
+msgid "Worktrees with uncommitted changes are left on disk."
+msgstr "Worktree z niezatwierdzonymi zmianami pozostają na dysku."
 
 msgid "Would you like to reassign it?"
 msgstr "Czy przypisać ponownie?"
