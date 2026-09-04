@@ -225,26 +225,104 @@ export function DashboardSidebarWorkspaceStatusProvider({
 		combine: (results) => results.map((result) => result.data),
 	});
 
-	// One lifecycle/git subscription pass for the whole sidebar (the per-row
-	// hooks used to register these per workspace, several times over). The
-	// git:changed invalidation keeps diff-stats caches fresh for rows that
-	// aren't currently displaying them (staleTime is Infinity there, so a
-	// missed invalidation would freeze counts on the next activation).
-	//
-	// GitWatcher only watches a workspace while someone holds interest
-	// (#6729) — this call site talks to the bus directly rather than through
-	// useWorkspaceEvent, so it must drive watchGit/unwatchGit itself. This
-	// registers every workspace row shown in the sidebar, which for a heavy
-	// user is most/all of their non-archived workspaces — preserves today's
-	// "every row's diff count stays live" behavior exactly, but means this
-	// provider alone can keep a large fraction of the workspace population
-	// watched whenever the dashboard is open. Worth revisiting (e.g.
-	// staleTime-based refetch for non-active rows instead of a live watch)
-	// as a follow-up.
+	// Only the active row renders diff stats, so one query serves the sidebar.
+	const activeDiffStats = useDiffStats(activeWorkspaceId ?? "", {
+		enabled: activeWorkspaceId !== null,
+	});
+
+	const manualUnread = useV2NotificationStore((state) => state.manualUnread);
+	const terminalSeenAt = useV2NotificationStore(
+		(state) => state.terminalSeenAt,
+	);
+
+	// Per-target terminal statuses — shared by the git-watch gating below and
+	// the entries memo further down, so the two never drift.
+	const statusesByIndex = useMemo(
+		() =>
+			targets.map((_target, index) => {
+				const bindingRows = bindingRowsByIndex[index] ?? [];
+				const statuses = new Map<string, PaneStatus>();
+				for (const binding of bindingRows) {
+					statuses.set(
+						binding.terminalId,
+						deriveTerminalAgentStatus({
+							lastEventType: binding.lastEventType,
+							lastEventAt: binding.lastEventAt,
+							lastSeenAt: terminalSeenAt[binding.terminalId],
+						}),
+					);
+				}
+				return statuses;
+			}),
+		[targets, bindingRowsByIndex, terminalSeenAt],
+	);
+
+	// Only workspaces with a currently running/blocked/attention-needing
+	// agent (or the active workspace) are worth a live git:changed watch —
+	// see #6729/#6848. An idle workspace's diff count can't change without
+	// user interaction, so it's fine for it to refresh only when actually
+	// opened (useDiffStats' normal query fetch) instead of paying for a live
+	// host-side watcher (DB lookup + git subprocess + fs.watch attach) on
+	// the chance the user clicks into it next. Non-active rows never render
+	// a diff count today anyway (see `entries` below) — losing liveness here
+	// only means a first-open loading flash instead of an instant number.
+	const computedGitWatchTargets = useMemo(() => {
+		const result: Array<{ workspaceId: string; hostUrl: string }> = [];
+		targets.forEach((target, index) => {
+			if (!target.hostUrl) return;
+			const isActive = target.workspaceId === activeWorkspaceId;
+			const statuses = statusesByIndex[index];
+			// Reuses the same canonical "does this need an attention indicator"
+			// predicate the UI itself uses (see the entries memo below), rather
+			// than a parallel `!== "idle"` check — so a future PaneStatus value
+			// can't silently start (or stop) granting a live watcher without
+			// this decision being revisited too.
+			const hasActiveTerminal = statuses
+				? getHighestPriorityStatus(statuses.values()) !== null
+				: false;
+			if (isActive || hasActiveTerminal) {
+				result.push({
+					workspaceId: target.workspaceId,
+					hostUrl: target.hostUrl,
+				});
+			}
+		});
+		// Sorted so a pure reorder of `workspaces` (no membership change) can't
+		// change the fingerprint below and trigger a needless watchGit/
+		// unwatchGit diffing pass — the resulting Map is keyed by workspaceId
+		// either way, so order was never semantically meaningful here.
+		result.sort((a, b) => a.workspaceId.localeCompare(b.workspaceId));
+		return result;
+	}, [targets, statusesByIndex, activeWorkspaceId]);
+	// Fingerprint-stabilized for the same reason `targets` is above: this
+	// must only change identity when the watch set actually changes, not on
+	// every unrelated bindingRows refetch.
+	const previousGitWatchTargetsRef = useRef<{
+		fingerprint: string;
+		targets: Array<{ workspaceId: string; hostUrl: string }>;
+	} | null>(null);
+	const gitWatchTargets = useMemo(() => {
+		const fingerprint = JSON.stringify(computedGitWatchTargets);
+		const previous = previousGitWatchTargetsRef.current;
+		if (previous?.fingerprint === fingerprint) return previous.targets;
+		previousGitWatchTargetsRef.current = {
+			fingerprint,
+			targets: computedGitWatchTargets,
+		};
+		return computedGitWatchTargets;
+	}, [computedGitWatchTargets]);
+
+	// One lifecycle/git-listener subscription pass for the whole sidebar
+	// (the per-row hooks used to register these per workspace, several
+	// times over). Covers every row, not just `gitWatchTargets` — this is
+	// what detects a row transitioning into activity in the first place
+	// (agent:lifecycle/terminal:lifecycle), and a git:changed listener for a
+	// workspace nobody's watching simply never fires. Cheap to tear down
+	// and redo every render, unlike the watchGit/unwatchGit calls in the
+	// effect below.
 	useEffect(() => {
 		const cleanups: Array<() => void> = [];
 		const retainedHostUrls = new Set<string>();
-		const nextGitWatched = new Map<string, string>();
 		for (const { workspaceId, hostUrl } of targets) {
 			if (!hostUrl) continue;
 			const bus = getHostEventBus(hostUrl);
@@ -271,17 +349,25 @@ export function DashboardSidebarWorkspaceStatusProvider({
 					});
 				}),
 			);
-			nextGitWatched.set(workspaceId, hostUrl);
 		}
+		return () => {
+			for (const cleanup of cleanups) cleanup();
+		};
+	}, [targets, queryClient]);
 
-		// Diff against the previous run's watched set: only call
-		// watchGit/unwatchGit for rows that actually changed. Unlike the
-		// on() listener registrations above (cheap to tear down and redo
-		// every render), watchGit/unwatchGit carry real host-side cost — a
-		// DB lookup, a git subprocess, and a live fs.watch attach/teardown.
-		// Blindly unwatching then rewatching every row whenever a single
-		// unrelated workspace is created, renamed, or reassigned a host
-		// would reintroduce exactly the fan-out storm #6729 set out to fix.
+	// GitWatcher only watches a workspace while someone holds interest
+	// (#6729) — this call site talks to the bus directly rather than
+	// through useWorkspaceEvent, so it must drive watchGit/unwatchGit
+	// itself. Diffs against the previous run's watched set: only calls
+	// watchGit/unwatchGit for rows that actually entered or left
+	// `gitWatchTargets`, since — unlike the listener registrations above —
+	// these carry real host-side cost (a DB lookup, a git subprocess, and a
+	// live fs.watch attach/teardown). Blindly unwatching then rewatching
+	// everything on every change would reintroduce a fan-out storm.
+	useEffect(() => {
+		const nextGitWatched = new Map(
+			gitWatchTargets.map(({ workspaceId, hostUrl }) => [workspaceId, hostUrl]),
+		);
 		const prevGitWatched = gitWatchedRef.current;
 		for (const [workspaceId, hostUrl] of prevGitWatched) {
 			if (nextGitWatched.get(workspaceId) !== hostUrl) {
@@ -294,16 +380,12 @@ export function DashboardSidebarWorkspaceStatusProvider({
 			}
 		}
 		gitWatchedRef.current = nextGitWatched;
-
-		return () => {
-			for (const cleanup of cleanups) cleanup();
-		};
-	}, [targets, queryClient]);
+	}, [gitWatchTargets]);
 
 	// Release git-watch interest for every currently-watched row on final
 	// unmount. Deliberately a separate, dep-less effect: its cleanup only
-	// runs once, at unmount, so an intermediate targets change (handled by
-	// the diffing above) can't trip this and undo it.
+	// runs once, at unmount, so an intermediate gitWatchTargets change
+	// (handled by the diffing above) can't trip this and undo it.
 	useEffect(() => {
 		return () => {
 			for (const [workspaceId, hostUrl] of gitWatchedRef.current) {
@@ -312,16 +394,6 @@ export function DashboardSidebarWorkspaceStatusProvider({
 			gitWatchedRef.current = new Map();
 		};
 	}, []);
-
-	// Only the active row renders diff stats, so one query serves the sidebar.
-	const activeDiffStats = useDiffStats(activeWorkspaceId ?? "", {
-		enabled: activeWorkspaceId !== null,
-	});
-
-	const manualUnread = useV2NotificationStore((state) => state.manualUnread);
-	const terminalSeenAt = useV2NotificationStore(
-		(state) => state.terminalSeenAt,
-	);
 
 	const previousEntriesRef = useRef(
 		new Map<string, SidebarWorkspaceStatusEntry>(),
@@ -332,18 +404,10 @@ export function DashboardSidebarWorkspaceStatusProvider({
 		targets.forEach((target, index) => {
 			const bindingRows = bindingRowsByIndex[index] ?? [];
 			const bindings = new Map<string, TerminalAgentBinding>();
-			const statuses = new Map<string, PaneStatus>();
 			for (const binding of bindingRows) {
 				bindings.set(binding.terminalId, binding);
-				statuses.set(
-					binding.terminalId,
-					deriveTerminalAgentStatus({
-						lastEventType: binding.lastEventType,
-						lastEventAt: binding.lastEventAt,
-						lastSeenAt: terminalSeenAt[binding.terminalId],
-					}),
-				);
 			}
+			const statuses = statusesByIndex[index] ?? new Map<string, PaneStatus>();
 			const hasManualUnread = Boolean(manualUnread[target.workspaceId]);
 			let hasAttentionTerminal = false;
 			for (const status of statuses.values()) {
@@ -376,8 +440,8 @@ export function DashboardSidebarWorkspaceStatusProvider({
 	}, [
 		targets,
 		bindingRowsByIndex,
+		statusesByIndex,
 		manualUnread,
-		terminalSeenAt,
 		activeWorkspaceId,
 		activeDiffStats,
 	]);
