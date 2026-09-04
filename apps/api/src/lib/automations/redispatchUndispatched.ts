@@ -1,4 +1,4 @@
-import { dbWs } from "@superset/db/client";
+import { db } from "@superset/db/client";
 import { automationEvents } from "@superset/db/schema";
 import { and, asc, gt, isNotNull, isNull, lt } from "drizzle-orm";
 import { dispatchMatchingTriggers } from "./dispatchMatchingTriggers";
@@ -33,7 +33,7 @@ export async function redispatchUndispatched(): Promise<{
 	failed: number;
 }> {
 	const now = Date.now();
-	const stuck = await dbWs
+	const stuck = await db
 		.select({
 			id: automationEvents.id,
 			organizationId: automationEvents.organizationId,

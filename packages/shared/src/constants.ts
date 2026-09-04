@@ -112,15 +112,6 @@ export const FEATURE_FLAGS = {
 	/** When enabled, blocks remote agent execution on the desktop (e.g., for enterprise orgs). */
 	DISABLE_REMOTE_AGENT: "disable-remote-agent",
 	/**
-	 * Per-user override for the relay base URL. Payload shape:
-	 * `{ "url": "https://..." }`. When set, both the host-service tunnel and
-	 * the desktop renderer's client-side WS opens route through this URL
-	 * instead of `env.RELAY_URL`. Lets us A/B-test alternative relay
-	 * implementations (e.g. Cloudflare Durable Objects) without changing
-	 * defaults for other users.
-	 */
-	RELAY_URL_OVERRIDE: "relay-url-override",
-	/**
 	 * Paces the v1→v2 auto-migration rollout (percentage ramp + high-profile
 	 * org exclusions). Gates only NEW migrations on the v1 surface — post-flip
 	 * catch-up passes are ungated so flipped machines always finish. Off,

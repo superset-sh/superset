@@ -208,6 +208,8 @@ export interface WorkspaceAgentLaunch {
 	agent: string;
 	/** What to tell the agent. */
 	prompt: string;
+	/** Model for this launch. Supported values depend on the agent; omit to use its default. */
+	model?: string;
 	/** Reasoning effort for this launch. Supported values depend on the agent; omit to use its default. */
 	effort?: string;
 	/** Host-scoped attachment ids; host resolves to absolute paths in the prompt. */

@@ -79,7 +79,7 @@
 		"@aws-sdk/client-s3": "3.899.0",
 		"@aws-sdk/s3-request-presigner": "3.899.0",
 		"@azure/msal-node": "5.5.0",
-		"@blaxel/core": "0.3.11",
+		"@blaxel/core": "0.3.19",
 		"@googleapis/calendar": "16.0.0",
 		"@googleapis/gmail": "18.0.0",
 		"@linear/sdk": "68.1.1",

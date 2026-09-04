@@ -5820,9 +5820,6 @@ msgstr "티켓을 등록하면 검증된 머지 가능한 PR이 돌아옵니다.
 msgid "File actions"
 msgstr "파일 작업"
 
-msgid "File is empty"
-msgstr "파일이 비어 있습니다"
-
 msgid "File is too large to preview"
 msgstr "파일이 너무 커서 미리 볼 수 없습니다"
 
@@ -10708,6 +10705,9 @@ msgstr "지표 새로 고침"
 msgid "Refresh pull requests"
 msgstr "풀 리퀘스트 새로 고침"
 
+msgid "Refreshes when Claude Code next runs."
+msgstr "다음에 Claude Code를 실행하면 갱신됩니다."
+
 msgid "Register any CLI agent alongside the built-ins, each with its own name, icon, and launch command."
 msgstr "기본 제공 에이전트 옆에 어떤 CLI 에이전트든 이름, 아이콘, 실행 명령과 함께 등록하세요."
 
@@ -11258,6 +11258,9 @@ msgstr "대기 중인 변경 사항을 검토합니다."
 
 msgid "Review pull requests inside Superset: diff pane, agent-assisted review, act on comments directly."
 msgstr "Superset 안에서 풀 리퀘스트를 리뷰하세요. 차이 창, 에이전트 보조 리뷰, 댓글에 대한 직접 처리까지."
+
+msgid "Review requested"
+msgstr "리뷰 요청됨"
 
 msgid "Review required"
 msgstr "리뷰 필요"
@@ -13362,9 +13365,6 @@ msgstr "텍스트 영역"
 
 msgid "Thanks for reaching out"
 msgstr "연락해 주셔서 감사합니다"
-
-msgid "That device is online (region {region}) but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
-msgstr "해당 기기는 온라인({region} 리전)이지만 연결을 맺지 못했습니다. 보통 기기 자체보다는 릴레이 라우팅 문제입니다. 다시 시도하고, 계속되면 해당 기기에서 Superset을 다시 시작하세요."
 
 msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
 msgstr "해당 기기는 온라인이지만 연결을 맺지 못했습니다. 보통 기기 자체보다는 릴레이 라우팅 문제입니다. 다시 시도하고, 계속되면 해당 기기에서 Superset을 다시 시작하세요."

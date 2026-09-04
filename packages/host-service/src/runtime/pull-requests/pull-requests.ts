@@ -25,6 +25,7 @@ import {
 	fetchPullRequestMergeQueueStateFromGh,
 	fetchPullRequestReviewDecision,
 	fetchPullRequestReviewDecisionFromGh,
+	parseMergedAt,
 } from "./utils/github-query";
 import type {
 	GitHubPullRequestHeadRef,
@@ -94,7 +95,7 @@ export interface PullRequestStateSnapshot {
 	reviewDecision: ReviewDecision;
 	checksStatus: ChecksStatus;
 	checks: PullRequestCheck[];
-	/** First observed merged, epoch ms. Never cleared once set. */
+	/** GitHub merge time when available, observation time only as fallback; epoch ms. Never cleared once set. */
 	mergedAt: number | null;
 }
 
@@ -116,7 +117,7 @@ export interface WorkspacePullRequestHistoryEntry {
 	headBranch: string;
 	reviewDecision: ReviewDecision;
 	checksStatus: ChecksStatus;
-	/** First observed merged, epoch ms. Never cleared once set. */
+	/** GitHub merge time when available, observation time only as fallback; epoch ms. Never cleared once set. */
 	mergedAt: number | null;
 	/** Row refresh time, epoch ms — ordering, not GitHub's own clock. */
 	updatedAt: number;
@@ -163,6 +164,8 @@ export interface CheckoutPullRequestMetadata {
 	title: string;
 	state: "open" | "closed" | "merged";
 	isDraft?: boolean;
+	/** GitHub's `merged_at` (ISO 8601) when the caller has it. */
+	mergedAt?: string | null;
 	headRefName: string;
 	headRefOid: string;
 	headRepositoryOwner?: string | null;
@@ -268,11 +271,25 @@ export class PullRequestRuntimeManager {
 		// are deduplicated by `inFlightProjects`. We additionally serialize per
 		// workspace so two debounce-separated bursts can't race their git reads
 		// and have the slower one overwrite the newer snapshot.
+		//
+		// Deliberately never calls `gitWatcher.watchWorkspace()` here: this
+		// manager cares about every non-session workspace (see
+		// `syncWorkspaceBranches`'s scan below), the same scope `GitWatcher`
+		// used to watch unconditionally before #6729/#6848. Establishing that
+		// same interest here would put every workspace back under a live
+		// fs.watch permanently, regardless of whether any renderer is looking
+		// at it — reintroducing the exact watcher/subprocess fan-out #6848
+		// fixed, just from a different caller. So for a workspace no renderer
+		// currently watches, branch/HEAD/upstream sync degrades to the
+		// `SAFETY_NET_INTERVAL_MS` sweep below instead of firing instantly —
+		// an accepted staleness tradeoff, not a gap to close by watching more.
 		this.unsubscribeFromGitWatcher = this.gitWatcher.onChanged((event) => {
 			void this.enqueueWorkspaceSync(event.workspaceId);
 		});
 
-		// Long-cadence safety net for `GitWatcher` overflow / error paths.
+		// Long-cadence safety net for `GitWatcher` overflow / error paths, and —
+		// per the comment above — the primary (not just backup) sync path for
+		// any workspace nobody currently holds a live git-watch on.
 		this.safetyNetTimer = setInterval(() => {
 			void this.syncWorkspaceBranches();
 		}, SAFETY_NET_INTERVAL_MS);
@@ -533,6 +550,7 @@ export class PullRequestRuntimeManager {
 			isDraft,
 			headBranch: pullRequest.headRefName,
 			headSha: pullRequest.headRefOid,
+			mergedAt: parseMergedAt(pullRequest.mergedAt ?? null),
 			reviewDecision: coerceReviewDecision(existing?.reviewDecision ?? null),
 			checksStatus: coerceChecksStatus(existing?.checksStatus ?? null),
 			checksJson: JSON.stringify(existingChecks),
@@ -1050,6 +1068,7 @@ export class PullRequestRuntimeManager {
 		isDraft,
 		headBranch,
 		headSha,
+		mergedAt,
 		reviewDecision,
 		checksStatus,
 		checksJson,
@@ -1067,6 +1086,8 @@ export class PullRequestRuntimeManager {
 		isDraft: boolean;
 		headBranch: string;
 		headSha: string;
+		/** GitHub's merged_at as epoch ms; null when the source has none. */
+		mergedAt: number | null;
 		reviewDecision: ReviewDecision;
 		checksStatus: ChecksStatus;
 		checksJson: string;
@@ -1090,9 +1111,16 @@ export class PullRequestRuntimeManager {
 			reviewDecision,
 			checksStatus,
 			checksJson,
-			// Stamped at first merged observation (GitHub's node payload has no
-			// merge timestamp on this path); sticky thereafter.
-			mergedAt: existing?.mergedAt ?? (state === "merged" ? now : null),
+			// GitHub's merged_at wins, so a PR merged on day D but first seen on
+			// D+3 is attributed to D. A row stamped at observation time heals
+			// when that PR head is fetched again; fetches cover heads of
+			// unarchived active workspaces, so other rows keep what they have.
+			// The stored value is the fallback for a source with no usable
+			// timestamp; a merged row with neither takes the observation time,
+			// keeping every merged row visible to "merged in the last N days"
+			// windows.
+			mergedAt:
+				mergedAt ?? existing?.mergedAt ?? (state === "merged" ? now : null),
 			lastFetchedAt,
 			error,
 			updatedAt: now,
@@ -1452,6 +1480,7 @@ export class PullRequestRuntimeManager {
 				isDraft: node.isDraft,
 				headBranch: node.headRefName,
 				headSha: node.headRefOid,
+				mergedAt: node.mergedAt,
 				reviewDecision,
 				checksStatus: computeChecksStatus(checks),
 				checksJson: JSON.stringify(checks),

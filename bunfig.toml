@@ -12,7 +12,10 @@ minimumReleaseAge = 259200
 # every one of these. Excluding them keeps the repo installable from scratch.
 # Remove once the pins age past the window — they are exact, so this list only
 # ever covers versions we already chose.
+# @blaxel/core: the sandbox SDK ships fixes we depend on within hours, and the
+# pin is exact, so the guard would only ever delay a version we already chose.
 minimumReleaseAgeExcludes = [
+  "@blaxel/core",
   "@expo/ui",
   "@pierre/diffs",
   "expo",

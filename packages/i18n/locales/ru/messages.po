@@ -5820,9 +5820,6 @@ msgstr "Заведите тикет — получите проверенный 
 msgid "File actions"
 msgstr "Действия с файлом"
 
-msgid "File is empty"
-msgstr "Файл пуст"
-
 msgid "File is too large to preview"
 msgstr "Файл слишком большой для предпросмотра"
 
@@ -10708,6 +10705,9 @@ msgstr "Обновить метрики"
 msgid "Refresh pull requests"
 msgstr "Обновить пул-реквесты"
 
+msgid "Refreshes when Claude Code next runs."
+msgstr "Обновится при следующем запуске Claude Code."
+
 msgid "Register any CLI agent alongside the built-ins, each with its own name, icon, and launch command."
 msgstr "Регистрируйте любого CLI-агента рядом со встроенными — со своим именем, иконкой и командой запуска."
 
@@ -11258,6 +11258,9 @@ msgstr "Проверьте ожидающие изменения."
 
 msgid "Review pull requests inside Superset: diff pane, agent-assisted review, act on comments directly."
 msgstr "Проверяйте пул-реквесты внутри Superset: панель diff, ревью с помощью агента, действия по комментариям прямо на месте."
+
+msgid "Review requested"
+msgstr "Запрошено ревью"
 
 msgid "Review required"
 msgstr "Требуется ревью"
@@ -13362,9 +13365,6 @@ msgstr "Текстовое поле"
 
 msgid "Thanks for reaching out"
 msgstr "Спасибо, что написали"
-
-msgid "That device is online (region {region}) but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
-msgstr "Это устройство в сети (регион {region}), но соединение установить не удалось — обычно дело в маршрутизации реле, а не в самом устройстве. Повторите, а если не помогает — перезапустите Superset на том устройстве."
 
 msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
 msgstr "Это устройство в сети, но соединение установить не удалось — обычно дело в маршрутизации реле, а не в самом устройстве. Повторите, а если не помогает — перезапустите Superset на том устройстве."

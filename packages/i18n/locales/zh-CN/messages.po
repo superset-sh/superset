@@ -5820,9 +5820,6 @@ msgstr "提一个工单，拿回一个已验证、可直接合并的PR，并附�
 msgid "File actions"
 msgstr "文件操作"
 
-msgid "File is empty"
-msgstr "文件为空"
-
 msgid "File is too large to preview"
 msgstr "文件过大，无法预览"
 
@@ -10708,6 +10705,9 @@ msgstr "刷新指标"
 msgid "Refresh pull requests"
 msgstr "刷新拉取请求"
 
+msgid "Refreshes when Claude Code next runs."
+msgstr "下次运行 Claude Code 时刷新。"
+
 msgid "Register any CLI agent alongside the built-ins, each with its own name, icon, and launch command."
 msgstr "在内置智能体之外注册任意CLI智能体，各自拥有名称、图标和启动命令。"
 
@@ -11258,6 +11258,9 @@ msgstr "审查待处理的更改。"
 
 msgid "Review pull requests inside Superset: diff pane, agent-assisted review, act on comments directly."
 msgstr "在Superset里审查拉取请求：差异面板、智能体辅助审查、直接处理评论。"
+
+msgid "Review requested"
+msgstr "已请求审查"
 
 msgid "Review required"
 msgstr "需要审查"
@@ -13362,9 +13365,6 @@ msgstr "多行文本框"
 
 msgid "Thanks for reaching out"
 msgstr "感谢联系"
-
-msgid "That device is online (region {region}) but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
-msgstr "该设备在线（区域{region}），但无法建立连接 — 通常是中继路由问题，而非设备本身。请重试；若持续如此，请在该设备上重启Superset。"
 
 msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
 msgstr "该设备在线，但无法建立连接 — 通常是中继路由问题，而非设备本身。请重试；若持续如此，请在该设备上重启Superset。"

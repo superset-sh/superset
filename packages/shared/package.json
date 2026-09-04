@@ -204,10 +204,6 @@
 			"types": "./src/tunnel-protocol.ts",
 			"default": "./src/tunnel-protocol.ts"
 		},
-		"./tunnel-v2-protocol": {
-			"types": "./src/tunnel-v2-protocol.ts",
-			"default": "./src/tunnel-v2-protocol.ts"
-		},
 		"./port-forward-mux": {
 			"types": "./src/port-forward-mux.ts",
 			"default": "./src/port-forward-mux.ts"

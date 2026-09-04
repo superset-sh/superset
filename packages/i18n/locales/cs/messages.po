@@ -5820,9 +5820,6 @@ msgstr "Založte ticket a dostanete zpět ověřený PR připravený ke sloučen
 msgid "File actions"
 msgstr "Akce souboru"
 
-msgid "File is empty"
-msgstr "Soubor je prázdný"
-
 msgid "File is too large to preview"
 msgstr "Soubor je pro náhled příliš velký"
 
@@ -10708,6 +10705,9 @@ msgstr "Obnovit metriky"
 msgid "Refresh pull requests"
 msgstr "Obnovit pull requesty"
 
+msgid "Refreshes when Claude Code next runs."
+msgstr "Obnoví se při příštím spuštění Claude Code."
+
 msgid "Register any CLI agent alongside the built-ins, each with its own name, icon, and launch command."
 msgstr "Zaregistrujte vedle vestavěných libovolného CLI agenta, každého s vlastním jménem, ikonou a spouštěcím příkazem."
 
@@ -11258,6 +11258,9 @@ msgstr "Zkontrolujte čekající změny."
 
 msgid "Review pull requests inside Superset: diff pane, agent-assisted review, act on comments directly."
 msgstr "Revidujte pull requesty přímo v Superset: panel rozdílů, revize s pomocí agenta, práce s komentáři na místě."
+
+msgid "Review requested"
+msgstr "Vyžádána revize"
 
 msgid "Review required"
 msgstr "Vyžadována revize"
@@ -13362,9 +13365,6 @@ msgstr "Textové pole"
 
 msgid "Thanks for reaching out"
 msgstr "Díky, že jste se ozvali"
-
-msgid "That device is online (region {region}) but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
-msgstr "To zařízení je online (region {region}), ale spojení se nepodařilo navázat — obvykle jde o směrování relay, ne o zařízení samotné. Zkuste to znovu, a pokud potíže přetrvávají, restartujte na něm Superset."
 
 msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
 msgstr "To zařízení je online, ale spojení se nepodařilo navázat — obvykle jde o směrování relay, ne o zařízení samotné. Zkuste to znovu, a pokud potíže přetrvávají, restartujte na něm Superset."

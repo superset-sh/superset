@@ -8,7 +8,7 @@
  * token — no relay hop, so websockets work and the sandbox can still sleep.
  */
 
-import { SandboxInstance, settings, updateSandbox } from "@blaxel/core";
+import { SandboxInstance, settings } from "@blaxel/core";
 import { CLOUD_AGENT_LAUNCH_ENV_NAMES } from "@superset/shared/cloud-agent-launch";
 import { SANDBOX_CREDENTIAL_PLACEHOLDER } from "@superset/shared/constants";
 import { env } from "../../env";
@@ -81,33 +81,16 @@ async function forkSandbox(
 	workspaceEnv: Record<string, string>,
 ): Promise<SandboxInstance> {
 	const source = await SandboxInstance.get(sourceSandbox);
-	await source.fork(name);
-	const forked = await SandboxInstance.get(name);
-
-	const spec = structuredClone(forked.spec) as {
-		runtime?: { envs?: Array<{ name: string; value: string }> };
-	};
-	const inherited = spec.runtime?.envs ?? [];
-	const replaced = new Set<string>();
-	const envs = inherited.map((entry) => {
-		const override = workspaceEnv[entry.name];
-		if (override === undefined) return entry;
-		replaced.add(entry.name);
-		return { name: entry.name, value: override };
-	});
-	for (const [key, value] of Object.entries(workspaceEnv)) {
-		if (!replaced.has(key)) envs.push({ name: key, value });
-	}
-	if (!spec.runtime) spec.runtime = {};
-	spec.runtime.envs = envs;
-
-	await updateSandbox({
-		path: { sandboxName: name },
-		body: {
-			...(forked as never as { sandbox: object }).sandbox,
-			spec,
-		} as never,
-		throwOnError: true,
+	// The fork request carries the workspace's env, so no spec update and no
+	// restart follow it. The values also ride on the boot script's own exec
+	// (see provisionSandbox): a golden whose sandbox runtime predates fork
+	// envs hands its children the source's env instead, and the script is
+	// what everything the workspace runs descends from.
+	await source.fork(name, {
+		envs: Object.entries(workspaceEnv).map(([envName, value]) => ({
+			name: envName,
+			value,
+		})),
 	});
 	return await SandboxInstance.get(name);
 }
@@ -188,10 +171,15 @@ export async function provisionSandbox(args: {
 	// Start host-service and return — the only thing provisioning runs inside a
 	// sandbox, and it is not awaited. The script needs a second or two; the
 	// client discovers the result by polling the health endpoint it already
-	// polls, so there is nothing to wait for here.
+	// polls, so there is nothing to wait for here. A fork gets its env on this
+	// exec as well as on the fork request, which covers goldens whose sandbox
+	// runtime predates fork envs (docs/cloud-sandbox-mismatches.md).
 	await sandbox.process.exec({
 		name: "host-service",
 		command: "/app/start.sh",
+		...(args.environment.sourceKind === "fork"
+			? { env: args.workspaceEnv }
+			: {}),
 		waitForCompletion: false,
 	} as never);
 
@@ -226,7 +214,13 @@ export async function promoteSandboxToEnvironment(args: {
 }): Promise<string> {
 	configureBlaxel();
 	const source = await SandboxInstance.get(args.sourceSandbox);
-	await source.fork(args.goldenName);
+	// A fork inherits the source's env and can only set or add variables, never
+	// drop one, so the promoting workspace's identity is blanked on the fork
+	// request: every later workspace forked from this environment would
+	// otherwise carry the promoter's git token and launch the promoter's agent.
+	await source.fork(args.goldenName, {
+		envs: [...INHERITED_IDENTITY_ENVS].map((name) => ({ name, value: "" })),
+	});
 
 	const golden = await SandboxInstance.get(args.goldenName);
 
@@ -247,29 +241,6 @@ export async function promoteSandboxToEnvironment(args: {
 		command: "pkill -f pty-daemon.js || true",
 		waitForCompletion: true,
 	} as never);
-
-	// Blaxel copies the source's env into the fork and env is immutable after
-	// creation, so the promoting workspace's credentials would otherwise ride
-	// into a shared environment every later workspace forks from. The git token
-	// is the dangerous one: provisioning only sets it when the clone needs it,
-	// so a public-repo workspace would inherit the promoter's instead.
-	const current = await SandboxInstance.get(args.goldenName);
-	const spec = structuredClone(current.spec) as {
-		runtime?: { envs?: Array<{ name: string; value: string }> };
-	};
-	if (spec.runtime?.envs) {
-		spec.runtime.envs = spec.runtime.envs.filter(
-			(entry) => !INHERITED_IDENTITY_ENVS.has(entry.name),
-		);
-		await updateSandbox({
-			path: { sandboxName: args.goldenName },
-			body: {
-				...(current as never as { sandbox: object }).sandbox,
-				spec,
-			} as never,
-			throwOnError: true,
-		});
-	}
 
 	return args.goldenName;
 }

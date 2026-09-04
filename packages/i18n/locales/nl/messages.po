@@ -5820,9 +5820,6 @@ msgstr "Dien een ticket in en krijg een geverifieerde, merge-klare PR terug, met
 msgid "File actions"
 msgstr "Bestandsacties"
 
-msgid "File is empty"
-msgstr "Bestand is leeg"
-
 msgid "File is too large to preview"
 msgstr "Bestand is te groot voor een voorbeeld"
 
@@ -10708,6 +10705,9 @@ msgstr "Statistieken vernieuwen"
 msgid "Refresh pull requests"
 msgstr "Pull requests vernieuwen"
 
+msgid "Refreshes when Claude Code next runs."
+msgstr "Wordt vernieuwd zodra Claude Code opnieuw draait."
+
 msgid "Register any CLI agent alongside the built-ins, each with its own name, icon, and launch command."
 msgstr "Registreer elke CLI-agent naast de ingebouwde, elk met een eigen naam, icoon en startcommando."
 
@@ -11258,6 +11258,9 @@ msgstr "Openstaande wijzigingen reviewen."
 
 msgid "Review pull requests inside Superset: diff pane, agent-assisted review, act on comments directly."
 msgstr "Review pull requests in Superset: diff-paneel, review met hulp van een agent, direct reageren op opmerkingen."
+
+msgid "Review requested"
+msgstr "Review gevraagd"
 
 msgid "Review required"
 msgstr "Review vereist"
@@ -13362,9 +13365,6 @@ msgstr "Textarea"
 
 msgid "Thanks for reaching out"
 msgstr "Bedankt voor je bericht"
-
-msgid "That device is online (region {region}) but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
-msgstr "Dat apparaat is online (regio {region}), maar de verbinding kon niet tot stand komen — meestal ligt dat aan de relayrouting en niet aan het apparaat zelf. Probeer het opnieuw; blijft het misgaan, herstart Superset dan op dat apparaat."
 
 msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
 msgstr "Dat apparaat is online, maar de verbinding kon niet tot stand komen — meestal ligt dat aan de relayrouting en niet aan het apparaat zelf. Probeer het opnieuw; blijft het misgaan, herstart Superset dan op dat apparaat."

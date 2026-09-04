@@ -144,6 +144,10 @@ export function useWorkspaceEvent(
 			);
 			cleanups.push(removeListener);
 		} else {
+			// GitWatcher only watches a workspace while someone holds interest
+			// (see #6729) — watchGit/unwatchGit drive that refcount so this
+			// listener actually receives events instead of silently never firing.
+			bus.watchGit(workspaceId);
 			const removeListener = bus.on(
 				"git:changed",
 				workspaceId,
@@ -151,7 +155,7 @@ export function useWorkspaceEvent(
 					(handler as (payload: GitChangedPayload) => void)(payload);
 				},
 			);
-			cleanups.push(removeListener);
+			cleanups.push(removeListener, () => bus.unwatchGit(workspaceId));
 		}
 
 		cleanups.push(bus.retain());

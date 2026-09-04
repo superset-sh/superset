@@ -5820,9 +5820,6 @@ msgstr "Buat tiket, dapatkan PR terverifikasi yang siap di-merge, lengkap dengan
 msgid "File actions"
 msgstr "Aksi file"
 
-msgid "File is empty"
-msgstr "File kosong"
-
 msgid "File is too large to preview"
 msgstr "File terlalu besar untuk dipratinjau"
 
@@ -10708,6 +10705,9 @@ msgstr "Segarkan metrik"
 msgid "Refresh pull requests"
 msgstr "Segarkan pull request"
 
+msgid "Refreshes when Claude Code next runs."
+msgstr "Diperbarui saat Claude Code berikutnya dijalankan."
+
 msgid "Register any CLI agent alongside the built-ins, each with its own name, icon, and launch command."
 msgstr "Daftarkan agen CLI apa pun bersama agen bawaan, masing-masing dengan nama, ikon, dan perintah peluncurannya sendiri."
 
@@ -11258,6 +11258,9 @@ msgstr "Review perubahan yang tertunda."
 
 msgid "Review pull requests inside Superset: diff pane, agent-assisted review, act on comments directly."
 msgstr "Review pull request di dalam Superset: panel diff, review dibantu agen, tindak lanjuti komentar langsung."
+
+msgid "Review requested"
+msgstr "Review diminta"
 
 msgid "Review required"
 msgstr "Review diperlukan"
@@ -13362,9 +13365,6 @@ msgstr "Textarea"
 
 msgid "Thanks for reaching out"
 msgstr "Terima kasih sudah menghubungi"
-
-msgid "That device is online (region {region}) but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
-msgstr "Perangkat itu online (region {region}) tapi koneksinya tidak bisa dibangun — biasanya soal perutean relay, bukan perangkatnya. Coba lagi, dan kalau terus terjadi mulai ulang Superset di perangkat itu."
 
 msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
 msgstr "Perangkat itu online tapi koneksinya tidak bisa dibangun — biasanya soal perutean relay, bukan perangkatnya. Coba lagi, dan kalau terus terjadi mulai ulang Superset di perangkat itu."

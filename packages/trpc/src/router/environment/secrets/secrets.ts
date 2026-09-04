@@ -1,4 +1,4 @@
-import { db, dbWs } from "@superset/db/client";
+import { db } from "@superset/db/client";
 import { environmentSecrets, users } from "@superset/db/schema";
 import {
 	MAX_TOTAL_SIZE,
@@ -159,7 +159,7 @@ export const secretsRouter = {
 				});
 			}
 
-			await dbWs
+			await db
 				.insert(environmentSecrets)
 				.values({
 					organizationId,
@@ -205,7 +205,7 @@ export const secretsRouter = {
 				environment,
 				ctx.activeOrganizationId,
 			);
-			await dbWs
+			await db
 				.delete(environmentSecrets)
 				.where(
 					and(

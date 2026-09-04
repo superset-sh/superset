@@ -1108,6 +1108,43 @@ export const themeListings: ThemeListing[] = [
 			cyan: "oklch(0.76 0.15 205)",
 		},
 	},
+	{
+		slug: "darker",
+		name: "Darker",
+		type: "dark",
+		author: "0x962",
+		submittedBy: "0x962",
+		description:
+			"A near-black theme with cool greys and Superset's ember accent.",
+		addedOn: "August 22, 2026",
+		source: {
+			label: "Download",
+			href: "/marketplace/themes/darker.json",
+		},
+		tags: ["Dark", "Near-black", "Cool", "Superset"],
+		ui: {
+			background: "#08090a",
+			foreground: "#f7f8f8",
+			card: "#141516",
+			cardForeground: "#f7f8f8",
+			primary: "#f7f8f8",
+			accent: "#1c1d1f",
+			border: "#23252a",
+			sidebar: "#0f1011",
+			sidebarForeground: "#f7f8f8",
+		},
+		terminal: {
+			background: "#08090a",
+			foreground: "#f7f8f8",
+			cursor: "#e07850",
+			red: "#dc6b6b",
+			green: "#7ec699",
+			yellow: "#e5c07b",
+			blue: "#61afef",
+			magenta: "#c678dd",
+			cyan: "#56b6c2",
+		},
+	},
 ];
 
 function buildIssueUrl(title: string) {

@@ -1,4 +1,4 @@
-import { db, dbWs } from "@superset/db/client";
+import { db } from "@superset/db/client";
 import { cloudWorkspaces, environments } from "@superset/db/schema";
 import { isCloudAgentId } from "@superset/shared/cloud-agent-launch";
 import { SHARED_ENVIRONMENT_ORGANIZATION_ID } from "@superset/shared/constants";
@@ -154,7 +154,7 @@ export const cloudWorkspaceRouter = {
 			// rejects whenever two creates overlap.
 			const id = crypto.randomUUID();
 			const providerSandboxId = sandboxNameFor(id);
-			const [row] = await dbWs
+			const [row] = await db
 				.insert(cloudWorkspaces)
 				.values({
 					id,
@@ -217,7 +217,7 @@ export const cloudWorkspaceRouter = {
 			} catch (error) {
 				// Nothing was provisioned, so there is no sandbox to tear down —
 				// but the row must not sit in `provisioning` with no job coming.
-				await dbWs
+				await db
 					.update(cloudWorkspaces)
 					.set({ status: "failed" })
 					.where(eq(cloudWorkspaces.id, row.id));
@@ -258,7 +258,7 @@ export const cloudWorkspaceRouter = {
 			}
 			assertInternal(ctx.email);
 			assertMember(ctx.organizationIds, row.organizationId);
-			const [renamed] = await dbWs
+			const [renamed] = await db
 				.update(cloudWorkspaces)
 				.set({ name: input.name })
 				.where(eq(cloudWorkspaces.id, input.id))
@@ -319,7 +319,7 @@ export const cloudWorkspaceRouter = {
 			if (row.providerSandboxId) {
 				await deleteSandbox(row.providerSandboxId);
 			}
-			await dbWs
+			await db
 				.update(cloudWorkspaces)
 				.set({ status: "deleted", sandboxUrl: null })
 				.where(eq(cloudWorkspaces.id, row.id));

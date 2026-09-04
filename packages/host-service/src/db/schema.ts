@@ -146,8 +146,9 @@ export const pullRequests = sqliteTable(
 		reviewDecision: text("review_decision"),
 		checksStatus: text("checks_status").notNull().default("none"),
 		checksJson: text("checks_json").notNull().default("[]"),
-		// Set when the PR is first observed merged; never cleared. Anchors
-		// "merged in the last N days" windows on the workspaces board.
+		// GitHub's own merge time once a fetch has carried one, otherwise the
+		// time the merge was first observed; never cleared. Anchors "merged in
+		// the last N days" windows on the workspaces board.
 		mergedAt: integer("merged_at"),
 		lastFetchedAt: integer("last_fetched_at"),
 		error: text(),

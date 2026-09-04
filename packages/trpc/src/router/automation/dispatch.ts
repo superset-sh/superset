@@ -1,14 +1,17 @@
 import { mintUserJwt } from "@superset/auth/server";
-import { dbWs } from "@superset/db/client";
+import { db } from "@superset/db/client";
 import {
 	automationEvents,
 	automationRuns,
 	automations,
+	githubRepositories,
 	type SelectAutomation,
 	users,
 	v2Hosts,
+	v2Projects,
 	v2UsersHosts,
 } from "@superset/db/schema";
+import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import {
 	deduplicateBranchName,
@@ -62,6 +65,17 @@ export type DispatchOptions = {
 	automation: DispatchableAutomation;
 	relayUrl: string;
 } & DispatchCause;
+
+type HostCandidate = Pick<
+	typeof v2Hosts.$inferSelect,
+	| "organizationId"
+	| "machineId"
+	| "name"
+	| "wakeCommand"
+	| "createdByUserId"
+	| "createdAt"
+	| "updatedAt"
+>;
 
 /**
  * Run one automation: resolve host, (maybe) create a workspace, start the
@@ -117,7 +131,7 @@ export async function dispatchAutomation(
 		return { status: "skipped_offline", runId: inserted?.id ?? null, error };
 	}
 
-	const [run] = await dbWs
+	const [run] = await db
 		.insert(automationRuns)
 		.values({
 			automationId: automation.id,
@@ -134,7 +148,7 @@ export async function dispatchAutomation(
 
 	let workspaceId: string | null = null;
 	try {
-		const [owner] = await dbWs
+		const [owner] = await db
 			.select({ email: users.email })
 			.from(users)
 			.where(eq(users.id, automation.ownerUserId))
@@ -154,20 +168,8 @@ export async function dispatchAutomation(
 			host.machineId,
 		);
 
-		const createFreshWorkspace = async () => {
-			const created = await createWorkspaceOnHost({
-				relayUrl,
-				hostId: routingKey,
-				jwt,
-				projectId: automation.v2ProjectId,
-				automation,
-				runId: run.id,
-			});
-			return created.workspaceId;
-		};
-
 		const event = cause.eventId
-			? ((await dbWs.query.automationEvents.findFirst({
+			? ((await db.query.automationEvents.findFirst({
 					where: eq(automationEvents.id, cause.eventId),
 					columns: {
 						provider: true,
@@ -182,6 +184,23 @@ export async function dispatchAutomation(
 					},
 				})) ?? null)
 			: null;
+		const pullRequest = event
+			? await pullRequestToCheckOut(event, automation.v2ProjectId)
+			: null;
+
+		const createFreshWorkspace = async () => {
+			const created = await createWorkspaceOnHost({
+				relayUrl,
+				hostId: routingKey,
+				jwt,
+				projectId: automation.v2ProjectId,
+				automation,
+				runId: run.id,
+				pullRequest,
+			});
+			return created.workspaceId;
+		};
+
 		const prompt = promptWithTriggerContext(
 			automation.prompt,
 			{
@@ -221,7 +240,7 @@ export async function dispatchAutomation(
 			if (!pinGone) throw err;
 			// Clear the pin (CAS so a concurrent repin is never erased) and use
 			// a fresh workspace from here on.
-			await dbWs
+			await db
 				.update(automations)
 				.set({ v2WorkspaceId: null })
 				.where(
@@ -236,7 +255,7 @@ export async function dispatchAutomation(
 			result = await runAgent(workspaceId);
 		}
 
-		await dbWs
+		await db
 			.update(automationRuns)
 			.set({
 				status: "dispatched",
@@ -249,7 +268,7 @@ export async function dispatchAutomation(
 			.where(eq(automationRuns.id, run.id));
 	} catch (err) {
 		const error = describeError(err, "dispatch");
-		await dbWs
+		await db
 			.update(automationRuns)
 			.set({
 				status: "dispatch_failed",
@@ -265,9 +284,9 @@ export async function dispatchAutomation(
 
 async function resolveCandidateHosts(
 	automation: DispatchableAutomation,
-): Promise<Array<typeof v2Hosts.$inferSelect>> {
+): Promise<HostCandidate[]> {
 	if (automation.targetHostId) {
-		const [host] = await dbWs
+		const [host] = await db
 			.select()
 			.from(v2Hosts)
 			.where(
@@ -281,12 +300,11 @@ async function resolveCandidateHosts(
 		return host ? [host] : [];
 	}
 
-	return dbWs
+	return db
 		.select({
 			organizationId: v2Hosts.organizationId,
 			machineId: v2Hosts.machineId,
 			name: v2Hosts.name,
-			isOnline: v2Hosts.isOnline,
 			wakeCommand: v2Hosts.wakeCommand,
 			createdByUserId: v2Hosts.createdByUserId,
 			createdAt: v2Hosts.createdAt,
@@ -310,15 +328,14 @@ async function resolveCandidateHosts(
 }
 
 /**
- * The relay's DOs are the presence authority; the DB flag only decides for
- * hosts still on the v1 relay (which keeps writing it). First online
+ * The relay's Durable Objects are the presence authority. First online
  * candidate wins, preserving the updatedAt ordering.
  */
 async function pickOnlineHost(
 	automation: DispatchableAutomation,
 	relayUrl: string,
-	candidates: Array<typeof v2Hosts.$inferSelect>,
-): Promise<typeof v2Hosts.$inferSelect | null> {
+	candidates: HostCandidate[],
+): Promise<HostCandidate | null> {
 	const jwt = await mintUserJwt({
 		userId: automation.ownerUserId,
 		organizationIds: [automation.organizationId],
@@ -336,7 +353,7 @@ async function pickOnlineHost(
 		candidates.find((host) => {
 			const info =
 				presence?.[buildHostRoutingKey(host.organizationId, host.machineId)];
-			return info ? info.online : host.isOnline;
+			return info?.online ?? false;
 		}) ?? null
 	);
 }
@@ -390,7 +407,7 @@ async function recordUndispatched(
 	status: "skipped_offline" | "dispatch_failed",
 	error: string,
 ): Promise<{ id: string } | undefined> {
-	const [row] = await dbWs
+	const [row] = await db
 		.insert(automationRuns)
 		.values({
 			automationId: automation.id,
@@ -406,6 +423,64 @@ async function recordUndispatched(
 	return row;
 }
 
+/**
+ * The pull request a run should be checked out on, or null to branch fresh.
+ *
+ * Only for a GitHub event that names one, and only when the automation's
+ * project really is that repository: a trigger watching one repo can dispatch
+ * into a project pointed at another, and PR numbers are per-repository, so an
+ * unchecked number would check out an unrelated pull request. Fork pull
+ * requests are refused for the same reason `includeForks` is a literal false —
+ * their head is attacker-controlled content the agent would then run in.
+ *
+ * `pr` has been on `workspaces.create` since 0.1.0, well under the host floor,
+ * so there is no version to gate on.
+ */
+async function pullRequestToCheckOut(
+	event: { provider: string; repositoryId: string | null; payload: unknown },
+	projectId: string | null,
+): Promise<number | null> {
+	if (event.provider !== "github") return null;
+	// A session automation has no project, and so no repository to check out in.
+	if (projectId === null || event.repositoryId === null) return null;
+
+	const payload = event.payload as {
+		pull_request?: { number?: number; head?: { repo?: { fork?: boolean } } };
+	} | null;
+	// Only a PR-shaped payload carries the head repository, and its absence is
+	// not evidence of absence: an `issue_comment` on a fork PR is
+	// indistinguishable from one on a local PR, which is why the matcher's
+	// `isFork` is false for both. So require a positive "not a fork" rather
+	// than refusing only an explicit one — a comment event names a PR number
+	// it cannot prove is safe, and must not check one out.
+	if (payload?.pull_request?.head?.repo?.fork !== false) return null;
+	const number = payload.pull_request.number;
+	if (number === undefined) return null;
+
+	const [project] = await db
+		.select({ repoCloneUrl: v2Projects.repoCloneUrl })
+		.from(v2Projects)
+		.where(eq(v2Projects.id, projectId))
+		.limit(1);
+	const parsed = project?.repoCloneUrl
+		? parseGitHubRemote(project.repoCloneUrl)
+		: null;
+	if (!parsed) return null;
+
+	const [repository] = await db
+		.select({ fullName: githubRepositories.fullName })
+		.from(githubRepositories)
+		.where(eq(githubRepositories.repoId, event.repositoryId))
+		.limit(1);
+	if (!repository) return null;
+
+	// GitHub slugs are case-insensitive, on both sides of the comparison.
+	return repository.fullName.toLowerCase() ===
+		`${parsed.owner}/${parsed.name}`.toLowerCase()
+		? number
+		: null;
+}
+
 async function createWorkspaceOnHost(args: {
 	relayUrl: string;
 	hostId: string;
@@ -413,6 +488,8 @@ async function createWorkspaceOnHost(args: {
 	projectId: string | null;
 	automation: DispatchableAutomation;
 	runId: string;
+	/** The event's pull request, checked out instead of a fresh branch. */
+	pullRequest: number | null;
 }): Promise<{ workspaceId: string }> {
 	// Session automation: no project, no branch. The host allocates a managed
 	// folder under ~/.superset/sessions and dedupes the name per run.
@@ -449,46 +526,79 @@ async function createWorkspaceOnHost(args: {
 	);
 	const branchName = deduplicateBranchName(candidateBranch, []);
 	const workspaceName = args.automation.name.slice(0, 100);
+	// Captured: the null check above does not narrow a property read inside
+	// the closure below.
+	const projectId = args.projectId;
 
-	const result = await relayMutation<
-		{
-			projectId: string;
-			name: string;
-			branch: string;
-			tags?: string[];
-		},
-		{
-			workspace: {
-				id: string;
+	const create = (target: { branch: string } | { pr: number }) =>
+		relayMutation<
+			{
 				projectId: string;
 				name: string;
-				branch: string;
-			};
-			terminals: Array<{ terminalId: string; label?: string }>;
-			agents: Array<unknown>;
-			alreadyExists: boolean;
-		}
-	>(
-		{
-			relayUrl: args.relayUrl,
-			hostId: args.hostId,
-			jwt: args.jwt,
-			// Workspace creation does git clone + worktree setup — bigger repos
-			// can comfortably take >25s. Give it real room.
-			timeoutMs: 90_000,
-		},
-		"workspaces.create",
-		{
-			projectId: args.projectId,
-			name: workspaceName,
-			branch: branchName,
-			// An older host's create schema simply strips the unknown key.
-			...(args.automation.tags.length > 0
-				? { tags: args.automation.tags }
-				: {}),
-		},
-	);
+				branch?: string;
+				pr?: number;
+				tags?: string[];
+			},
+			{
+				workspace: {
+					id: string;
+					projectId: string;
+					name: string;
+					branch: string;
+				};
+				terminals: Array<{ terminalId: string; label?: string }>;
+				agents: Array<unknown>;
+				alreadyExists: boolean;
+			}
+		>(
+			{
+				relayUrl: args.relayUrl,
+				hostId: args.hostId,
+				jwt: args.jwt,
+				// Workspace creation does git clone + worktree setup — bigger repos
+				// can comfortably take >25s. Give it real room.
+				timeoutMs: 90_000,
+			},
+			"workspaces.create",
+			{
+				projectId,
+				name: workspaceName,
+				...target,
+				// An older host's create schema simply strips the unknown key.
+				...(args.automation.tags.length > 0
+					? { tags: args.automation.tags }
+					: {}),
+			},
+		);
 
+	if (args.pullRequest !== null) {
+		try {
+			// The host fetches the PR's verified head and reuses the workspace
+			// already on that branch, so repeated events on one PR share it.
+			const result = await create({ pr: args.pullRequest });
+			return { workspaceId: result.workspace.id };
+		} catch (err) {
+			// Fall back only when the host itself answered and refused, which
+			// is what a missing or expired `gh auth login` looks like. A
+			// timeout or transport failure is not a RelayDispatchError and
+			// leaves the workspace's existence unknown: branching fresh there
+			// would orphan a PR workspace the host may have finished creating
+			// and run the automation against the wrong target. Rethrow, so the
+			// retry meets the host's own per-PR dedupe instead.
+			if (!(err instanceof RelayDispatchError)) throw err;
+			// Resolving a PR shells out to `gh`, which runs on the user's own
+			// `gh auth login` and may be missing or expired on this host. A PR
+			// we cannot check out must not turn a run that would otherwise have
+			// worked into a failure: branch fresh instead, and let the agent
+			// work from the PR its prompt already names.
+			console.warn(
+				`[automations] PR #${args.pullRequest} checkout failed for ${args.automation.id}; branching fresh:`,
+				describeError(err, "pr checkout"),
+			);
+		}
+	}
+
+	const result = await create({ branch: branchName });
 	return { workspaceId: result.workspace.id };
 }
 

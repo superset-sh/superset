@@ -5820,9 +5820,6 @@ msgstr "Bir bilet açın, değişikliğin çalıştığının kanıtı olarak ek
 msgid "File actions"
 msgstr "Dosya eylemleri"
 
-msgid "File is empty"
-msgstr "Dosya boş"
-
 msgid "File is too large to preview"
 msgstr "Dosya önizlenemeyecek kadar büyük"
 
@@ -10708,6 +10705,9 @@ msgstr "Metrikleri yenile"
 msgid "Refresh pull requests"
 msgstr "Pull request'leri yenile"
 
+msgid "Refreshes when Claude Code next runs."
+msgstr "Claude Code bir sonraki çalıştığında yenilenir."
+
 msgid "Register any CLI agent alongside the built-ins, each with its own name, icon, and launch command."
 msgstr "Herhangi bir CLI ajanını, kendi adı, simgesi ve başlatma komutuyla yerleşiklerin yanına kaydedin."
 
@@ -11258,6 +11258,9 @@ msgstr "Bekleyen değişiklikleri inceleyin."
 
 msgid "Review pull requests inside Superset: diff pane, agent-assisted review, act on comments directly."
 msgstr "Pull request'leri Superset içinde inceleyin: fark bölmesi, ajan destekli inceleme, yorumlara doğrudan müdahale."
+
+msgid "Review requested"
+msgstr "İnceleme istendi"
 
 msgid "Review required"
 msgstr "İnceleme gerekli"
@@ -13362,9 +13365,6 @@ msgstr "Metin alanı"
 
 msgid "Thanks for reaching out"
 msgstr "Bize ulaştığınız için teşekkürler"
-
-msgid "That device is online (region {region}) but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
-msgstr "O cihaz çevrimiçi ({region} bölgesi) ancak bağlantı kurulamadı — bu genellikle cihazdan değil, röle yönlendirmesinden kaynaklanır. Yeniden deneyin; sorun sürerse o cihazda Superset'i yeniden başlatın."
 
 msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
 msgstr "O cihaz çevrimiçi ancak bağlantı kurulamadı — bu genellikle cihazdan değil, röle yönlendirmesinden kaynaklanır. Yeniden deneyin; sorun sürerse o cihazda Superset'i yeniden başlatın."

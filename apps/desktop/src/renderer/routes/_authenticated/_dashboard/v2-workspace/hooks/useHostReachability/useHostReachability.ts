@@ -81,20 +81,12 @@ function describeFailure(
 		);
 	}
 	if (probe.status === 200) {
-		return probe.region
-			? i18n._({
-					...msg({
-						message:
-							"That device is online (region {region}) but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device.",
-					}),
-					values: { region: probe.region },
-				})
-			: i18n._(
-					msg({
-						message:
-							"That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device.",
-					}),
-				);
+		return i18n._(
+			msg({
+				message:
+					"That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device.",
+			}),
+		);
 	}
 	return i18n._({
 		...msg({

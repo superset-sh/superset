@@ -5820,9 +5820,6 @@ msgstr "チケットを起票すれば、検証済みでマージ可能なPRが�
 msgid "File actions"
 msgstr "ファイルの操作"
 
-msgid "File is empty"
-msgstr "ファイルが空です"
-
 msgid "File is too large to preview"
 msgstr "ファイルが大きすぎてプレビューできません"
 
@@ -10708,6 +10705,9 @@ msgstr "メトリクスを更新"
 msgid "Refresh pull requests"
 msgstr "プルリクエストを更新"
 
+msgid "Refreshes when Claude Code next runs."
+msgstr "次に Claude Code を実行すると更新されます。"
+
 msgid "Register any CLI agent alongside the built-ins, each with its own name, icon, and launch command."
 msgstr "組み込みのエージェントと並べて、任意のCLIエージェントを登録できます。名前、アイコン、起動コマンドはそれぞれ設定できます。"
 
@@ -11258,6 +11258,9 @@ msgstr "未反映の変更をレビューします。"
 
 msgid "Review pull requests inside Superset: diff pane, agent-assisted review, act on comments directly."
 msgstr "Supersetの中でプルリクエストをレビューできます。差分ペイン、エージェント支援のレビュー、コメントへの直接対応。"
+
+msgid "Review requested"
+msgstr "レビューリクエスト"
 
 msgid "Review required"
 msgstr "レビュー必須"
@@ -13362,9 +13365,6 @@ msgstr "Textarea"
 
 msgid "Thanks for reaching out"
 msgstr "お問い合わせありがとうございます"
-
-msgid "That device is online (region {region}) but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
-msgstr "そのデバイスはオンライン(リージョン{region})ですが、接続を確立できませんでした — 通常はデバイス自体ではなくリレーのルーティングが原因です。再試行し、解消しない場合はそのデバイスでSupersetを再起動してください。"
 
 msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
 msgstr "そのデバイスはオンラインですが、接続を確立できませんでした — 通常はデバイス自体ではなくリレーのルーティングが原因です。再試行し、解消しない場合はそのデバイスでSupersetを再起動してください。"

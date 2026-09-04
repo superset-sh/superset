@@ -148,6 +148,9 @@ export const workspaceLocalStateSchema = z.object({
 		// Epoch ms when the user pinned this workspace to the sidebar's Pinned
 		// section; null = not pinned. Ordering is pinnedAt ascending.
 		pinnedAt: z.number().int().nullable().default(null),
+		// "Remove PR link" for cloud-sourced chips: that PR stays hidden, a
+		// different PR still shows.
+		suppressedPullRequestUrl: z.string().nullable().default(null),
 	}),
 	paneLayout: paneWorkspaceStateSchema,
 	viewedFiles: z.array(z.string()).default([]),
@@ -177,6 +180,12 @@ export const workspaceLocalStateSchema = z.object({
 			}),
 		)
 		.default([]),
+	// Terminal presets tagged "auto-run on workspace creation" that matched
+	// this workspace's project when the create resolved. Presets live in
+	// renderer localStorage, so the host can't run them; the v2 workspace
+	// page drains this queue once on first open (see
+	// useRunWorkspaceCreationPresets) and clears it before running.
+	pendingCreationPresetIds: z.array(z.string()).default([]),
 });
 
 // Defaults for fields heal can synthesize. Identity fields (workspaceId,
@@ -190,6 +199,7 @@ const SIDEBAR_STATE_DEFAULTS = {
 	activeTab: "changes",
 	isHidden: false,
 	pinnedAt: null,
+	suppressedPullRequestUrl: null,
 } as const;
 
 const WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS = {
@@ -208,6 +218,7 @@ const WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS = {
 		cwd: string | null;
 		v1PaneId: string | null;
 	}>,
+	pendingCreationPresetIds: [] as string[],
 };
 
 /**
@@ -494,6 +505,9 @@ export function healWorkspaceLocalState(raw: unknown): WorkspaceLocalStateRow {
 		pendingMigratedTerminals:
 			r.pendingMigratedTerminals ??
 			WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS.pendingMigratedTerminals,
+		pendingCreationPresetIds:
+			r.pendingCreationPresetIds ??
+			WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS.pendingCreationPresetIds,
 		sidebarState: {
 			...SIDEBAR_STATE_DEFAULTS,
 			...sidebar,

@@ -1,4 +1,5 @@
 import { useQueries, useQueryClient } from "@tanstack/react-query";
+import { useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
@@ -109,6 +110,19 @@ export function useHostWorkspacesSource(
 	} = useKnownHosts();
 	const { targets: sandboxes, isReady: sandboxesReady } = useSandboxAccess();
 
+	// Only the open workspace's sandbox is a host here. The provider suspends a
+	// sandbox after ~15s without an inbound request and this poll counts as
+	// one, so every sandbox in the fan-out is one kept awake (and billed) for
+	// as long as the app is open. The sidebar renders cloud rows from the cloud
+	// row, so nothing else needs a sandbox's served rows.
+	const { workspaceId: openWorkspaceId } = useParams({ strict: false });
+	const openSandbox = useMemo(
+		() =>
+			sandboxes.find((sandbox) => sandbox.workspaceId === openWorkspaceId) ??
+			null,
+		[sandboxes, openWorkspaceId],
+	);
+
 	const targets = useMemo(() => {
 		const all = deriveHostWorkspacesQueryTargets({
 			activeHostUrl,
@@ -116,7 +130,7 @@ export function useHostWorkspacesSource(
 			machineId,
 			relayUrl,
 			fallbackOrganizationId: knownHostsOrgId,
-			sandboxes,
+			openSandbox,
 		});
 		return scopedHostId === undefined
 			? all
@@ -127,7 +141,7 @@ export function useHostWorkspacesSource(
 		knownHostsOrgId,
 		machineId,
 		relayUrl,
-		sandboxes,
+		openSandbox,
 		scopedHostId,
 	]);
 
@@ -226,15 +240,8 @@ export function useHostWorkspacesSource(
 	// Live updates: each reachable host's workspace:changed patches its own
 	// cached list without a refetch.
 	//
-	// Not for sandboxes. The provider counts a held connection as activity, so
-	// subscribing here would keep every cloud workspace's VM awake for as long
-	// as the app is open — ten in the sidebar, ten warm machines, whether or not
-	// anyone is looking at them. And there is nothing to be gained: a sandbox
-	// holds exactly one workspace whose identity the cloud row owns; the only
-	// field read off its served row is the branch, which has a fallback and can
-	// only change while someone is inside it — when the open workspace's own
-	// subscribers hold a socket anyway. Sandboxes are polled, and connected to
-	// only while open.
+	// Not for the sandbox: while its workspace is open, the workspace's own
+	// subscribers already hold a socket to it, and the poll covers its one row.
 	useEffect(() => {
 		const cleanups: Array<() => void> = [];
 		for (const target of targets) {

@@ -26,9 +26,9 @@ export {
 	isMethodOverrideRejection,
 } from "./lib/hostServiceLinks";
 export {
-	primeRelayAffinity,
-	type RelayAffinityProbe,
-} from "./lib/primeRelayAffinity";
+	probeRelayHost,
+	type RelayHostProbe,
+} from "./lib/probeRelayHost";
 export {
 	createRelaySocket,
 	type RelaySocket,

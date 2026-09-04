@@ -1,4 +1,4 @@
-import { dbWs } from "@superset/db/client";
+import { db } from "@superset/db/client";
 import {
 	automationEvents,
 	automations,
@@ -76,7 +76,7 @@ export async function dispatchMatchingTriggers(params: {
 		}
 	}
 
-	const candidates = await dbWs
+	const candidates = await db
 		.select({
 			triggerId: automationTriggers.id,
 			config: automationTriggers.config,
@@ -173,7 +173,7 @@ export async function dispatchMatchingTriggers(params: {
  * gate must fail closed on a plan string this build doesn't know.
  */
 async function organizationPlan(organizationId: string): Promise<PlanTier> {
-	const [subscription] = await dbWs
+	const [subscription] = await db
 		.select({ plan: subscriptions.plan })
 		.from(subscriptions)
 		.where(
@@ -194,7 +194,7 @@ async function organizationPlan(organizationId: string): Promise<PlanTier> {
  * unmarked are picked up by the re-dispatch sweep.
  */
 async function markDispatched(eventId: string) {
-	await dbWs
+	await db
 		.update(automationEvents)
 		.set({ dispatchedAt: new Date() })
 		.where(eq(automationEvents.id, eventId));

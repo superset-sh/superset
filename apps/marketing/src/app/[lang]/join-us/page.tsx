@@ -64,7 +64,7 @@ export default async function JoinUsPage() {
 		<main className="relative min-h-screen bg-background">
 			<div className="max-w-[90rem] mx-auto px-6 pt-24 md:pt-32">
 				<section className="grid gap-10 md:grid-cols-[2fr_3fr] md:gap-24 lg:gap-32">
-					<h1 className="text-4xl md:text-5xl font-normal leading-tight text-foreground m-0">
+					<h1 className="text-4xl md:text-6xl font-normal leading-tight tracking-[-0.02em] text-foreground m-0">
 						<Trans>Building the last piece of software</Trans>
 					</h1>
 
@@ -109,7 +109,7 @@ export default async function JoinUsPage() {
 
 			<div className="max-w-[90rem] mx-auto px-6 pb-24 md:pb-32">
 				<section id="open-roles" className="mt-24 md:mt-32 scroll-mt-24">
-					<h2 className="text-2xl md:text-3xl font-normal text-foreground mb-6">
+					<h2 className="text-2xl md:text-3xl font-normal tracking-[-0.02em] text-foreground mb-6">
 						<Trans>Open roles</Trans>
 					</h2>
 
@@ -171,6 +171,13 @@ export default async function JoinUsPage() {
 								".back-link{" + mono + ";font-size:12px !important}",
 								".sidebar-label{" + mono + ";font-size:11px !important}",
 								".sidebar-item{border-bottom:1px solid var(--_border) !important}", // default rgba(0,0,0,.06) vanishes on dark bg
+								// regular-weight title and section headings (WaaS wraps section titles in <h3><strong>), 16px body
+								".job-title{font-size:36px !important;font-weight:400 !important;letter-spacing:-0.02em !important;line-height:1.2 !important}",
+								".description{font-size:16px !important;line-height:1.5 !important;color:var(--_text) !important}",
+								".description :is(h1,h2,h3){font-size:var(--_font-size-md) !important;font-weight:400 !important;margin:40px 0 12px !important}",
+								".description :is(h1,h2,h3) strong{font-weight:400 !important}",
+								".description :is(p,ul,ol){margin:16px 0 !important}",
+								".description li{margin-bottom:8px !important}",
 							].join("");
 							const formCss = [
 								".primary-button{" + mono + ";font-size:13px !important;font-weight:400 !important;background:var(--foreground) !important;color:var(--background) !important;transition:background-color .15s ease,color .15s ease !important}",

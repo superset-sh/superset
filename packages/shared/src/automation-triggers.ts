@@ -78,6 +78,8 @@ export const githubTriggerEventValues = [
 	"pull_request.opened",
 	"pull_request.pushed",
 	"pull_request.merged",
+	"pull_request.assigned",
+	"pull_request.review_requested",
 	"comment_added",
 	"push_to_branch",
 	"label_change",
@@ -148,9 +150,22 @@ const githubCommentEvent = z.object({
 	commentFilter: textFilterSchema.nullable().default(null),
 });
 
+/**
+ * Someone was put on a pull request. The actor is whoever assigned them or
+ * asked for the review; the assignee is who ended up on it. "Me" on the
+ * assignee is how a person gets a run when a PR lands on them.
+ */
+const githubAssignmentEvent = z.object({
+	...githubCommon,
+	event: z.enum(["pull_request.assigned", "pull_request.review_requested"]),
+	actor: triggerScopeSchema,
+	assignee: triggerScopeSchema,
+});
+
 export const githubTriggerConfigSchema = z.union([
 	githubSimpleEvent,
 	githubCommentEvent,
+	githubAssignmentEvent,
 ]);
 
 export const scheduleTriggerConfigSchema = z.object({
@@ -477,6 +492,7 @@ const REQUIREMENTS: Partial<
 		{ field: "repositories", noun: "repository" },
 		person("actor"),
 		person("subjectAuthor"),
+		person("assignee"),
 	],
 	slack: [
 		{

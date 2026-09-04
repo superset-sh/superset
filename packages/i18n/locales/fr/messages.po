@@ -5820,9 +5820,6 @@ msgstr "Déposez un ticket, recevez une pull request vérifiée et prête à fus
 msgid "File actions"
 msgstr "Actions sur le fichier"
 
-msgid "File is empty"
-msgstr "Le fichier est vide"
-
 msgid "File is too large to preview"
 msgstr "Le fichier est trop volumineux pour être prévisualisé"
 
@@ -10708,6 +10705,9 @@ msgstr "Actualiser les métriques"
 msgid "Refresh pull requests"
 msgstr "Actualiser les pull requests"
 
+msgid "Refreshes when Claude Code next runs."
+msgstr "Actualisé au prochain lancement de Claude Code."
+
 msgid "Register any CLI agent alongside the built-ins, each with its own name, icon, and launch command."
 msgstr "Enregistrez n'importe quel agent en ligne de commande aux côtés de ceux fournis, chacun avec son nom, son icône et sa commande de lancement."
 
@@ -11258,6 +11258,9 @@ msgstr "Passer en revue les modifications en attente."
 
 msgid "Review pull requests inside Superset: diff pane, agent-assisted review, act on comments directly."
 msgstr "Passez vos pull requests en revue dans Superset : volet de diff, revue assistée par agent, action directe sur les commentaires."
+
+msgid "Review requested"
+msgstr "Revue demandée"
 
 msgid "Review required"
 msgstr "Revue requise"
@@ -13362,9 +13365,6 @@ msgstr "Zone de texte"
 
 msgid "Thanks for reaching out"
 msgstr "Merci de nous avoir écrit"
-
-msgid "That device is online (region {region}) but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
-msgstr "Cet appareil est en ligne (région {region}), mais la connexion n'a pas pu être établie — il s'agit généralement du routage du relais plutôt que de l'appareil lui-même. Réessayez, et si le problème persiste, redémarrez Superset sur cet appareil."
 
 msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
 msgstr "Cet appareil est en ligne, mais la connexion n'a pas pu être établie — il s'agit généralement du routage du relais plutôt que de l'appareil lui-même. Réessayez, et si le problème persiste, redémarrez Superset sur cet appareil."

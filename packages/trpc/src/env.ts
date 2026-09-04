@@ -61,7 +61,7 @@ export const env = createEnv({
 		GH_WEBHOOK_SECRET: z.string().min(1),
 		ANTHROPIC_API_KEY: z.string(),
 		OPENAI_API_KEY: z.string().min(1),
-		RELAY_URL: z.string().url(),
+		RELAY_URL: z.string().url().default("https://relay.superset.sh"),
 		LINEAR_CLIENT_ID: z.string().min(1),
 		LINEAR_CLIENT_SECRET: z.string().min(1),
 		GOOGLE_CLIENT_ID: z.string().min(1),

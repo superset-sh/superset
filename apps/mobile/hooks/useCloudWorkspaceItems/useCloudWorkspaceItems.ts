@@ -1,4 +1,4 @@
-import { useQueries, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import {
 	type CloudWorkspaceRow,
@@ -11,10 +11,7 @@ import {
 	type HostWorkspacesCacheOps,
 } from "@/hooks/useHostWorkspaces";
 import { type SandboxTarget, useSandboxAccess } from "@/hooks/useSandboxAccess";
-import { getHostServiceClientByUrl } from "@/lib/host-service/client";
 import { getSandboxAccess } from "@/lib/sandbox-access";
-
-const SERVED_REFETCH_INTERVAL_MS = 30_000;
 
 export type CloudWorkspaceStatus = CloudWorkspaceRow["status"];
 
@@ -23,46 +20,17 @@ export interface CloudWorkspaceItem extends HostWorkspaceItem {
 }
 
 /**
- * The row a sandbox serves for its own workspace, restated under the cloud
- * workspace's id: the sandbox reports the machine id of the container it
- * happens to run in, which addresses nothing from here.
- */
-export function sandboxWorkspacesQuery(target: SandboxTarget) {
-	return {
-		queryKey: getHostWorkspacesQueryKey(target.workspaceId, target.url),
-		refetchInterval: SERVED_REFETCH_INTERVAL_MS,
-		retry: 1,
-		networkMode: "always" as const,
-		queryFn: async (): Promise<HostWorkspaceRow[]> => {
-			const rows = await getHostServiceClientByUrl(
-				target.url,
-			).workspace.list.query();
-			return rows.map((row) => ({ ...row, hostId: target.workspaceId }));
-		},
-	};
-}
-
-/**
- * A cloud row rendered as a list item before its sandbox serves anything —
- * while it provisions, after it failed, or in the beat between `ready` and
- * host-service answering. The cloud row is the workspace's identity (it is
- * what created, named and lists it); the sandbox's own row only adds live git
- * state once it exists.
+ * A cloud row as a list item, without asking its sandbox (a request per
+ * sandbox kept every one of them awake while Home was on screen); the served
+ * row is read only by the workspace screen (useWorkspaceHost).
  *
- * Two fields are invented while the sandbox isn't serving, and both are load
- * bearing only in what they prevent: `worktreeExists: true` keeps the list
- * from filtering the row as a stale shell, and `worktreePath: ""` satisfies
- * the shape — nothing reads a path off a list row (the workspace screen's
- * attachment target uses the served row, which has the real one). `type` is
- * not invented: the sandbox self-seeds its workspace as `main`. Anything new
- * that reads more than that off a home-list row has to decide what an
- * unserved sandbox should answer.
+ * Two fields are invented: `worktreeExists: true` keeps the list from
+ * filtering the row as a stale shell, and `worktreePath: ""` satisfies the
+ * shape — nothing reads a path off a list row. `type` is not invented: the
+ * sandbox self-seeds its workspace as `main`. `hostReachable` is false so
+ * decoration that needs the host (diff stats) waits for the workspace to open.
  */
-function itemFromCloudRow(
-	cloud: CloudWorkspaceRow,
-	served: HostWorkspaceRow | undefined,
-	hostReachable: boolean,
-): CloudWorkspaceItem {
+function itemFromCloudRow(cloud: CloudWorkspaceRow): CloudWorkspaceItem {
 	return {
 		id: cloud.id,
 		organizationId: cloud.organizationId,
@@ -70,21 +38,21 @@ function itemFromCloudRow(
 		projectId: "",
 		hostId: cloud.id,
 		name: cloud.name,
-		branch: served?.branch ?? cloud.branch,
+		branch: cloud.branch,
 		type: "main",
 		createdByUserId: cloud.createdByUserId ?? null,
 		taskId: null,
-		tags: served?.tags ?? [],
+		tags: [],
 		createdAt: cloud.createdAt,
-		updatedAt: served?.updatedAt ?? cloud.updatedAt,
-		// Agent activity is stamped by the sandbox host; unknown until it serves.
-		lastActivityAt: served?.lastActivityAt ?? null,
-		worktreePath: served?.worktreePath ?? "",
-		worktreeExists: served ? served.worktreeExists : true,
-		projectName: served?.projectName ?? null,
+		updatedAt: cloud.updatedAt,
+		// Agent activity is stamped by the sandbox host; unknown until opened.
+		lastActivityAt: null,
+		worktreePath: "",
+		worktreeExists: true,
+		projectName: null,
 		archivedAt: null,
 		archiveReason: null,
-		hostReachable,
+		hostReachable: false,
 		cloud: { status: cloud.status },
 	};
 }
@@ -97,38 +65,16 @@ export interface CloudWorkspaceItemsValue {
 	isReady: boolean;
 }
 
-/**
- * Cloud workspaces as home-list rows: the cloud list for identity and status,
- * plus each ready sandbox's own `workspace.list` for live branch and worktree
- * state. Query keys match `useHostWorkspaces`, so opening a row resolves
- * straight from cache.
- */
+/** Cloud workspaces as home-list rows. Addresses are brokered via the API, never the sandbox. */
 export function useCloudWorkspaceItems(): CloudWorkspaceItemsValue {
 	const queryClient = useQueryClient();
 	const { workspaces: cloudRows, isReady: listReady } = useCloudWorkspaces();
 	const { targets, isReady: accessReady } = useSandboxAccess(cloudRows);
 
-	const served = useQueries({
-		queries: targets.map((target) => sandboxWorkspacesQuery(target)),
-	});
-
-	const items = useMemo<CloudWorkspaceItem[]>(() => {
-		const servedById = new Map<
-			string,
-			{ row: HostWorkspaceRow | undefined; reachable: boolean }
-		>();
-		targets.forEach((target, index) => {
-			const query = served[index];
-			servedById.set(target.workspaceId, {
-				row: query?.data?.find((row) => row.id === target.workspaceId),
-				reachable: Boolean(query?.data) && !query?.isError,
-			});
-		});
-		return cloudRows.map((cloud) => {
-			const entry = servedById.get(cloud.id);
-			return itemFromCloudRow(cloud, entry?.row, entry?.reachable ?? false);
-		});
-	}, [cloudRows, targets, served]);
+	const items = useMemo<CloudWorkspaceItem[]>(
+		() => cloudRows.map((cloud) => itemFromCloudRow(cloud)),
+		[cloudRows],
+	);
 
 	const cache = useMemo<HostWorkspacesCacheOps>(() => {
 		const keyFor = (hostId: string) => {

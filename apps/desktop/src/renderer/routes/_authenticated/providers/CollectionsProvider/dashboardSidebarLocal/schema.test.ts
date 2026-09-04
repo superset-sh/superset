@@ -237,6 +237,7 @@ describe("healWorkspaceLocalState", () => {
 		expect(healed.viewedFiles).toEqual([]);
 		expect(healed.recentlyViewedFiles).toEqual([]);
 		expect(healed.workspaceRunTerminals).toEqual({});
+		expect(healed.pendingCreationPresetIds).toEqual([]);
 	});
 
 	it("fills missing nested sidebarState fields while preserving projectId", () => {

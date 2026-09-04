@@ -36,7 +36,6 @@ import {
 	pollHealthCheck,
 } from "./host-service-utils";
 import { localDb } from "./local-db";
-import { getRelayUrl } from "./relay-url";
 import { HOOK_PROTOCOL_VERSION } from "./terminal/env";
 
 export type HostServiceStatus = "starting" | "running" | "stopped";
@@ -1000,11 +999,10 @@ export class HostServiceCoordinator extends EventEmitter {
 
 		// `getProcessEnvWithShellPath` merges in the user's interactive shell env,
 		// which in dev has `RELAY_URL` set. Enforce the toggle *after* that merge
-		// so the child definitely doesn't see a relay URL when disabled. The
-		// effective URL comes from the PostHog `relay-url-override` flag with
-		// `env.RELAY_URL` as fallback (see main/lib/relay-url) so we can A/B-test
-		// alternate relay deployments per-user.
-		const effectiveRelayUrl = getRelayUrl();
+		// so the child definitely doesn't see a relay URL when disabled. This is
+		// only the child's fallback; it asks the API for the relay once
+		// authenticated.
+		const effectiveRelayUrl = mainEnv.RELAY_URL;
 		if (exposeViaRelay && effectiveRelayUrl) {
 			childEnv.RELAY_URL = effectiveRelayUrl;
 		} else {

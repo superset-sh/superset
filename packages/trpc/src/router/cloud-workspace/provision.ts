@@ -1,4 +1,4 @@
-import { db, dbWs } from "@superset/db/client";
+import { db } from "@superset/db/client";
 import { cloudWorkspaces } from "@superset/db/schema";
 import {
 	type CloudAgentLaunch,
@@ -93,7 +93,7 @@ export async function provisionCloudWorkspace(
 		const nameWrite =
 			resolvedName === row.name
 				? Promise.resolve()
-				: dbWs
+				: db
 						.update(cloudWorkspaces)
 						.set({ name: resolvedName })
 						.where(eq(cloudWorkspaces.id, row.id));
@@ -136,7 +136,7 @@ export async function provisionCloudWorkspace(
 			nameWrite,
 		]);
 
-		await dbWs
+		await db
 			.update(cloudWorkspaces)
 			.set({
 				providerSandboxId: sandbox.providerSandboxId,
@@ -158,7 +158,7 @@ export async function provisionCloudWorkspace(
 				teardownError,
 			);
 		});
-		await dbWs
+		await db
 			.update(cloudWorkspaces)
 			.set({ status: "failed" })
 			.where(eq(cloudWorkspaces.id, row.id));

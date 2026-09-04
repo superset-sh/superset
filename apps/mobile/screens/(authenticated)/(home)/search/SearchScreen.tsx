@@ -51,25 +51,15 @@ export function SearchScreen() {
 	const selectedHost = useSelectedHost();
 	const cloudScope = useWorkspaceScope() === "cloud";
 	const { workspaces } = useHostWorkspaces(selectedHost);
-	const { items: cloudItems, targets: sandboxes } = useCloudWorkspaceItems();
+	const { items: cloudItems } = useCloudWorkspaceItems();
 	const { projects } = useHostProjects(selectedHost);
 	const pinnedAt = usePinnedWorkspacesStore((state) => state.pinnedAt);
 
 	// Same hosts the home list polls, so the query keys are shared and the
 	// sheet decorates from cache instead of paying its own fan-out.
 	const terminalHosts = useMemo<TerminalsHost[]>(
-		() =>
-			cloudScope
-				? sandboxes.map((sandbox) => ({
-						organizationId: sandbox.organizationId,
-						machineId: sandbox.workspaceId,
-						isOnline: true,
-						refetchIntervalMs: 30_000,
-					}))
-				: selectedHost
-					? [selectedHost]
-					: [],
-		[selectedHost, sandboxes, cloudScope],
+		() => (cloudScope || !selectedHost ? [] : [selectedHost]),
+		[selectedHost, cloudScope],
 	);
 	const { terminalsByWorkspace } = useHostsTerminals(terminalHosts);
 

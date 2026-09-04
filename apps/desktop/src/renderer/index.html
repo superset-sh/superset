@@ -11,14 +11,14 @@
       - default-src 'self': Only allow resources from same origin
       - script-src 'self' 'wasm-unsafe-eval' https://*.posthog.com: Allow scripts from same origin + WebAssembly (for xterm ImageAddon) + PostHog
       - style-src 'self' 'unsafe-inline': Allow styles from same origin + inline (needed for CSS-in-JS)
-      - connect-src 'self' data: blob: ws: wss: http://127.0.0.1:* %RELAY_URL% https://relay-backup.superset.sh https://relay2.superset.sh https://superset-relay2.avi-6ac.workers.dev %NEXT_PUBLIC_API_URL% https://*.posthog.com https://*.sentry.io sentry-ipc: https://*.preview.bl.run: Allow WebSocket + API + PostHog + Sentry + data URIs (file attachment upload via data URL) + blob URIs + local host-service (127.0.0.1) + relay + relay override target (for staging/failover via PostHog flag) + cloud workspace sandboxes, which a browser reaches directly at the provider's preview domain (this entry goes away once that traffic moves behind the relay)
+      - connect-src 'self' data: blob: ws: wss: http://127.0.0.1:* %RELAY_URL% https://relay-backup.superset.sh %NEXT_PUBLIC_API_URL% https://*.posthog.com https://*.sentry.io sentry-ipc: https://*.preview.bl.run: Allow WebSocket + API + PostHog + Sentry + data URIs (file attachment upload via data URL) + blob URIs + local host-service (127.0.0.1) + relay + cloud workspace sandboxes, which a browser reaches directly at the provider's preview domain (this entry goes away once that traffic moves behind the relay)
       - img-src 'self' data: blob: https: http:: Allow images from any source (needed for favicons, browser pane webview content, page thumbnails, and file attachment previews)
       - media-src 'self' data: blob:: Allow <video>/<audio> from blob + data URIs (file preview); without this, media falls back to default-src 'self' and blob video won't play
       - font-src 'self': Allow fonts from same origin
       - frame-src https: http: data: blob:: Allow webview browser pane to load any URL + the page pane's frame, served by the usercontent origin under the page's own CSP
       - child-src 'self' blob:: Allow workers from same origin + blob workers
     -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://*.posthog.com; style-src 'self' 'unsafe-inline'; connect-src 'self' data: blob: ws: wss: http://127.0.0.1:* %RELAY_URL% https://relay-backup.superset.sh https://relay2.superset.sh https://superset-relay2.avi-6ac.workers.dev %NEXT_PUBLIC_API_URL% https://*.posthog.com https://*.sentry.io sentry-ipc: https://*.preview.bl.run; img-src 'self' data: blob: https: http:; media-src 'self' data: blob:; font-src 'self'; frame-src https: http: data: blob:; child-src 'self' blob:;" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://*.posthog.com; style-src 'self' 'unsafe-inline'; connect-src 'self' data: blob: ws: wss: http://127.0.0.1:* %RELAY_URL% https://relay-backup.superset.sh %NEXT_PUBLIC_API_URL% https://*.posthog.com https://*.sentry.io sentry-ipc: https://*.preview.bl.run; img-src 'self' data: blob: https: http:; media-src 'self' data: blob:; font-src 'self'; frame-src https: http: data: blob:; child-src 'self' blob:;" />
   </head>
 
   <body>

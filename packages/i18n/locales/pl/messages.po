@@ -5820,9 +5820,6 @@ msgstr "Zgłoś ticket, odbierz zweryfikowany PR gotowy do scalenia, ze zrzutami
 msgid "File actions"
 msgstr "Akcje pliku"
 
-msgid "File is empty"
-msgstr "Plik jest pusty"
-
 msgid "File is too large to preview"
 msgstr "Plik jest za duży, aby go podejrzeć"
 
@@ -10708,6 +10705,9 @@ msgstr "Odśwież metryki"
 msgid "Refresh pull requests"
 msgstr "Odśwież pull requesty"
 
+msgid "Refreshes when Claude Code next runs."
+msgstr "Odświeży się przy następnym uruchomieniu Claude Code."
+
 msgid "Register any CLI agent alongside the built-ins, each with its own name, icon, and launch command."
 msgstr "Zarejestruj dowolnego agenta CLI obok wbudowanych, każdego z własną nazwą, ikoną i poleceniem uruchamiania."
 
@@ -11258,6 +11258,9 @@ msgstr "Przejrzyj oczekujące zmiany."
 
 msgid "Review pull requests inside Superset: diff pane, agent-assisted review, act on comments directly."
 msgstr "Przeglądaj pull requesty wewnątrz Superset: panel różnic, przegląd wspierany przez agenta, reakcja na komentarze na miejscu."
+
+msgid "Review requested"
+msgstr "Zażądano przeglądu"
 
 msgid "Review required"
 msgstr "Wymagany przegląd"
@@ -13362,9 +13365,6 @@ msgstr "Textarea"
 
 msgid "Thanks for reaching out"
 msgstr "Dziękujemy za kontakt"
-
-msgid "That device is online (region {region}) but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
-msgstr "To urządzenie jest online (region {region}), ale nie udało się nawiązać połączenia — zwykle to kwestia routingu przekaźnika, a nie samego urządzenia. Ponów, a jeśli problem się utrzymuje, uruchom ponownie Superset na tamtym urządzeniu."
 
 msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
 msgstr "To urządzenie jest online, ale nie udało się nawiązać połączenia — zwykle to kwestia routingu przekaźnika, a nie samego urządzenia. Ponów, a jeśli problem się utrzymuje, uruchom ponownie Superset na tamtym urządzeniu."

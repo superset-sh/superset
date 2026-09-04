@@ -109,11 +109,10 @@ const runtimeJs = /* js */ `
 		});
 	}
 
-	// Same job as web's primeRelayAffinity: browsers follow fly-replay on HTTP
-	// but not on a WS upgrade, so a GET to _whoowns pins edge affinity first.
-	// Also the only place the upgrade's real HTTP status is observable: 403 is
-	// a definitive access denial (the relay only 403s a verified token).
-	function primeAffinity(wsUrl) {
+	// Same job as workspace-client's probeRelayHost: a GET to _whoowns is the
+	// only place the upgrade's real HTTP status is observable. 403 is a
+	// definitive access denial (the relay only 403s a verified token).
+	function probeHost(wsUrl) {
 		try {
 			var url = new URL(wsUrl);
 			var match = url.pathname.match(/^\\/hosts\\/[^/]+/);
@@ -149,7 +148,7 @@ const runtimeJs = /* js */ `
 		requestDialUrl()
 			.then(function (url) {
 				if (gen !== generation || terminated) return;
-				return primeAffinity(url).then(function (status) {
+				return probeHost(url).then(function (status) {
 					if (gen !== generation || terminated) return;
 					if (status === 403) {
 						terminated = true;

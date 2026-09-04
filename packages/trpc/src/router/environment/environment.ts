@@ -1,4 +1,4 @@
-import { db, dbWs } from "@superset/db/client";
+import { db } from "@superset/db/client";
 import { cloudWorkspaces, environments } from "@superset/db/schema";
 import {
 	SANDBOX_IMAGE_NAME,
@@ -98,7 +98,7 @@ export const environmentRouter = {
 		.mutation(async ({ ctx, input }) => {
 			assertInternal(ctx.email);
 			assertMember(ctx.organizationIds, input.organizationId);
-			const [row] = await dbWs
+			const [row] = await db
 				.insert(environments)
 				.values({
 					organizationId: input.organizationId,
@@ -146,7 +146,7 @@ export const environmentRouter = {
 				goldenName,
 			});
 
-			const [row] = await dbWs
+			const [row] = await db
 				.insert(environments)
 				.values({
 					id: environmentId,
@@ -171,7 +171,7 @@ export const environmentRouter = {
 		.mutation(async ({ ctx, input }) => {
 			assertInternal(ctx.email);
 			assertOwned(await loadEnvironment(input.id, ctx.organizationIds));
-			const [row] = await dbWs
+			const [row] = await db
 				.update(environments)
 				.set({
 					...(input.name ? { name: input.name } : {}),
@@ -187,7 +187,7 @@ export const environmentRouter = {
 		.mutation(async ({ ctx, input }) => {
 			assertInternal(ctx.email);
 			assertOwned(await loadEnvironment(input.id, ctx.organizationIds));
-			await dbWs
+			await db
 				.update(environments)
 				.set({ archivedAt: new Date() })
 				.where(eq(environments.id, input.id));

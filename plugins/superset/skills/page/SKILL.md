@@ -88,7 +88,7 @@ they need is already in the file.
    video: iPhone `.mov` recordings may not play in every browser. Remote
    CDN links and external stylesheets are still blocked; for a single-file
    page, inline all CSS and JS and embed images as `data:` URIs.
-3. **3 MB maximum for the HTML document itself**, and base64 `data:` URIs
+3. **16 MB maximum for the HTML document itself**, and base64 `data:` URIs
    count toward it at ~1.37× their
    raw size. A few small SVGs or PNGs are fine; a photo gallery is not.
 4. **Full-bleed frame with a white default background.** Set your own `body`
@@ -97,7 +97,7 @@ they need is already in the file.
 Check before publishing: no `<script src>` or `<link rel="stylesheet">` pointing
 at a remote host, no `fetch` of any kind including of a `data:` URI, no `eval`
 or `new Function` anywhere in the file or in anything you inlined, page fits in
-3 MB, opens correctly from `file://` with the network disabled. Remote images
+16 MB, opens correctly from `file://` with the network disabled. Remote images
 are the one permitted exception: they go blank offline, which is the price of
 not inlining them.
 
@@ -231,7 +231,7 @@ Reopen with `superset pages comments resolve --thread <id> --reopen`.
 | Symptom | Cause |
 | --- | --- |
 | `Only .html files can be published as a page` | Wrong extension, or you pointed at a directory |
-| Publish rejected on size | Over 3 MB; the `data:` URIs are almost always why |
+| Publish rejected on size | Over 16 MB; the `data:` URIs are almost always why |
 | A new page appeared instead of a version | Published from outside the workspace, or the path changed; use `--page <id>` |
 | Reader gets a 404 | Page is `just_me`, either set that way or created before `org` became the default; widen it with `--visibility org` |
 | Page is blank once published, fine locally | A script threw, or the page loads a script or stylesheet from a remote host |

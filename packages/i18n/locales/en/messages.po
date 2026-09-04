@@ -5820,9 +5820,6 @@ msgstr "File a ticket, get back a verified, merge-ready PR, with screenshots or 
 msgid "File actions"
 msgstr "File actions"
 
-msgid "File is empty"
-msgstr "File is empty"
-
 msgid "File is too large to preview"
 msgstr "File is too large to preview"
 
@@ -10708,6 +10705,9 @@ msgstr "Refresh metrics"
 msgid "Refresh pull requests"
 msgstr "Refresh pull requests"
 
+msgid "Refreshes when Claude Code next runs."
+msgstr "Refreshes when Claude Code next runs."
+
 msgid "Register any CLI agent alongside the built-ins, each with its own name, icon, and launch command."
 msgstr "Register any CLI agent alongside the built-ins, each with its own name, icon, and launch command."
 
@@ -11258,6 +11258,9 @@ msgstr "Review pending changes."
 
 msgid "Review pull requests inside Superset: diff pane, agent-assisted review, act on comments directly."
 msgstr "Review pull requests inside Superset: diff pane, agent-assisted review, act on comments directly."
+
+msgid "Review requested"
+msgstr "Review requested"
 
 msgid "Review required"
 msgstr "Review required"
@@ -13362,9 +13365,6 @@ msgstr "Textarea"
 
 msgid "Thanks for reaching out"
 msgstr "Thanks for reaching out"
-
-msgid "That device is online (region {region}) but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
-msgstr "That device is online (region {region}) but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
 
 msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
 msgstr "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."

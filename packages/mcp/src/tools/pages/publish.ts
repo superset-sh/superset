@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
 	ANCHOR_MESSAGE,
@@ -16,7 +17,7 @@ export function register(server: McpServer): void {
 		name: "pages_publish",
 		annotations: { destructiveHint: false },
 		description:
-			"Publish an HTML document as a page and return its public URL. ALWAYS read the `superset:page` skill before calling this, whenever that skill is available to you — pages are served from their own origin under a strict content policy, and a document that ignores it looks correct locally and breaks silently once published: no network from script (fetch, XHR, and WebSockets are blocked — bake data into the document as a literal), no `eval` or `new Function` (several chart libraries rely on them and render nothing), and no external scripts or stylesheets (inline all CSS and JS). Images, video, and audio may load from remote hosts, though data: URIs keep the page whole offline. Storage (localStorage, cookies) works and is scoped to the page. A page is ONE self-contained file: pass the document itself in `html`, not a file path. Every call creates a new version; pass `pageId` to add a version to an existing page instead of creating a new one. Every page belongs to a workspace: pass `workspaceId` (from `$SUPERSET_WORKSPACE_ID`, or `superset workspaces list`) plus an `entryPath` naming where the page lives in it.",
+			"Publish an HTML document as a page and return its public URL. ALWAYS read the `superset:page` skill before calling this, whenever that skill is available to you — pages are served from their own origin under a strict content policy, and a document that ignores it looks correct locally and breaks silently once published: no network from script (fetch, XHR, and WebSockets are blocked — bake data into the document as a literal), no `eval` or `new Function` (several chart libraries rely on them and render nothing), and no external scripts or stylesheets (inline all CSS and JS). Images, video, and audio may load from remote hosts, though data: URIs keep the page whole offline. Storage (localStorage, cookies) works and is scoped to the page. A page is ONE self-contained file: pass the document itself in `html`, not a file path. A document over about 4 MB does not fit in a tool call: publish it with the CLI instead (`superset pages publish <path>`), which takes pages up to 16 MB. Every call creates a new version; pass `pageId` to add a version to an existing page instead of creating a new one. Every page belongs to a workspace: pass `workspaceId` (from `$SUPERSET_WORKSPACE_ID`, or `superset workspaces list`) plus an `entryPath` naming where the page lives in it.",
 		inputSchema: z
 			.object({
 				html: z
@@ -55,12 +56,35 @@ export function register(server: McpServer): void {
 		handler: async (input, ctx) => {
 			const caller = createMcpCaller(ctx);
 			const { html, filename, description, label, ...rest } = input;
+			const bytes = Buffer.from(html, "utf8");
+			const name = filename ?? "page.html";
+
+			// The same path every client takes: the document goes to storage on
+			// the URL the upload presigns, and publish records the version from
+			// it. Only a repeated asset comes back already stored, never a
+			// document — the check below is what narrows the shared result.
+			const staged = await caller.page.assets.upload({
+				kind: "document",
+				name,
+				contentType: "text/html",
+				sizeBytes: bytes.length,
+				sha256: createHash("sha256").update(bytes).digest("hex"),
+			});
+			if (staged.upload) {
+				const response = await fetch(staged.upload.url, {
+					method: "PUT",
+					headers: staged.upload.headers,
+					body: bytes,
+				});
+				if (!response.ok) {
+					throw new Error(`Uploading ${name} failed (${response.status})`);
+				}
+			}
 
 			return caller.page.publish({
 				...rest,
-				content: Buffer.from(html, "utf8").toString("base64"),
-				contentType: "text/html",
-				filename: filename ?? "page.html",
+				fileId: staged.fileId,
+				filename: name,
 				// These two are the only fields where "" passes validation, and
 				// republish patches on `!== undefined` — so forwarding an empty
 				// string would silently wipe an existing value. Treat it as unset.

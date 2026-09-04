@@ -544,12 +544,6 @@ export const serverErrorMessages: Record<
 				message: "Invalid image type. Only PNG, JPEG, and WebP are allowed",
 			}),
 		),
-	"serverError.uploadBytes.fileIsEmpty": () =>
-		i18n._(
-			msg({
-				message: "File is empty",
-			}),
-		),
 	"serverError.user.failedToUploadAvatar": () =>
 		i18n._(
 			msg({

@@ -967,6 +967,33 @@ export function useDashboardSidebarState() {
 		[collections, hostWorkspaces, tagFolderContext],
 	);
 
+	// A row without local state (an auto-included main) gets one, as pinning does.
+	const setWorkspaceSuppressedPullRequest = useCallback(
+		(
+			workspaceId: string,
+			projectId: string | null,
+			pullRequestUrl: string | null,
+		) => {
+			if (!collections.v2WorkspaceLocalState.get(workspaceId)) {
+				if (pullRequestUrl === null) return;
+				if (projectId !== null) {
+					ensureSidebarProjectRecord(collections, projectId);
+				}
+				ensureSidebarWorkspaceRecord(
+					collections,
+					hostWorkspaces,
+					tagFolderContext,
+					workspaceId,
+					projectId,
+				);
+			}
+			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
+				draft.sidebarState.suppressedPullRequestUrl = pullRequestUrl;
+			});
+		},
+		[collections, hostWorkspaces, tagFolderContext],
+	);
+
 	const reorderPinnedWorkspaces = useCallback(
 		(
 			orderedPins: Array<{ workspaceId: string; projectId: string | null }>,
@@ -1068,6 +1095,7 @@ export function useDashboardSidebarState() {
 		renameSection,
 		setSectionColor,
 		setWorkspacePinned,
+		setWorkspaceSuppressedPullRequest,
 		toggleProjectCollapsed,
 		toggleSectionCollapsed,
 	};

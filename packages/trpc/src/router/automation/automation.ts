@@ -17,7 +17,7 @@ import {
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, asc, desc, eq, ilike } from "drizzle-orm";
 import { z } from "zod";
-import { resolveUserRelayUrl } from "../../lib/relay-url";
+import { env } from "../../env";
 import { protectedProcedure, userError } from "../../trpc";
 import { joinSlackTriggerChannels } from "../integration/slack/joinChannels";
 import { requireActiveOrgMembership } from "../utils/active-org";
@@ -699,7 +699,7 @@ export const automationRouter = {
 			const organizationId = await requireActiveOrgMembership(ctx);
 			await getAutomationForUser(ctx.session.user.id, organizationId, input.id);
 
-			await dbWs.delete(automations).where(eq(automations.id, input.id));
+			await db.delete(automations).where(eq(automations.id, input.id));
 
 			return { ok: true };
 		}),
@@ -773,7 +773,7 @@ export const automationRouter = {
 			const outcome = await dispatchAutomation({
 				automation,
 				scheduledFor: new Date(),
-				relayUrl: await resolveUserRelayUrl(automation.ownerUserId),
+				relayUrl: env.RELAY_URL,
 			});
 
 			if (outcome.status === "conflict") {

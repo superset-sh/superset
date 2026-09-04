@@ -247,17 +247,30 @@ space are volumes (one per sandbox, attached at creation, not forkable) and
 Agent Drive; neither fits the golden-and-fork model, which is why memory is the
 lever.
 
+**A fork takes its env on the fork request, and again on the boot script.**
+`@blaxel/core` 0.3.19 accepts `envs` on `fork()`, which replaced the spec
+update (and the restart it caused) that used to hand a fork its identity. The
+values reach processes only when the sandbox runtime baked into the image is
+current: on a golden built 2026-09-02 they landed in the spec and no process
+saw them, PID 1 included; on one rebuilt 2026-09-03 every process did, and
+fork plus get took under half a second. The `/app/start.sh` exec carries the
+same env for goldens from before that rebuild, since everything the workspace
+runs descends from it. A fork can only set or add variables, never drop one,
+so promoting a workspace blanks its identity with empty values instead; an
+empty value does override an inherited one (verified 2026-09-03: a golden's
+`NODE_ENV=production` came back empty on a fork that set it to `""`).
+
 **A fork can never have the egress proxy.** The proxy routing that injects
 the org's model keys (`network.proxy.routing`) exists only on sandboxes created
 with it: Blaxel's docs say enabling the proxy on a sandbox created without it
 requires a new sandbox, and a fork is created without it (its `spec.network`
 is null, and a source that carries routing hands its forks unresolved
 `{{file(/var/run/secrets/…)}}` proxy templates, so every outbound request
-fails with "Unsupported proxy syntax"). Applying routing to a fork with
-`updateSandbox` is worse than useless: the platform builds a new instance from
-the image, and the fork comes back without `node_modules`, the tools, or
-anything else the environment carried (verified 2026-09-02 on a release
-probe). So a workspace forked from an environment gets its model keys the
+fails with "Unsupported proxy syntax"). Applying routing to a fork afterwards with a
+spec update (the SDK's `updateSandbox`, which nothing in this codebase calls
+any more) is worse than useless: the platform builds a new instance from the
+image, and the fork comes back without `node_modules`, the tools, or anything
+else the environment carried (verified 2026-09-02 on a release probe). So a workspace forked from an environment gets its model keys the
 plain way, as `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` in the environment's
 variables, and host-service approves that key for Claude Code before an
 unattended launch so it does not stop on the "use this custom API key?"

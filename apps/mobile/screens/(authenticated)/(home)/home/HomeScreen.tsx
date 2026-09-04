@@ -136,33 +136,15 @@ export function HomeScreen() {
 	const { workspaces, isReady, cache } = useHostWorkspaces(selectedHost);
 	const {
 		items: cloudItems,
-		targets: sandboxes,
 		cache: cloudCache,
 		isReady: cloudReady,
 	} = useCloudWorkspaceItems();
 	const cloudScope = useWorkspaceScope() === "cloud";
-	// Every addressed sandbox is a host of its own for the terminal fan-out,
-	// so cloud rows get session marks and attention like any other row. Lazier
-	// than the machine host on purpose: each sandbox is its own request, and a
-	// phone paying N requests every 5s for list decoration is the mistake
-	// desktop just walked back (#6570). Opening a workspace speeds up its own
-	// host via the shared query key.
-	// Only the scope on screen is polled: a sandbox costs its own request, and
-	// paying for every one of them to decorate rows the list isn't showing is
-	// the mistake desktop just walked back (#6570).
+	// No session marks for cloud rows: a request per sandbox keeps each one
+	// awake for as long as Home is on screen.
 	const terminalHosts = useMemo<TerminalsHost[]>(
-		() =>
-			cloudScope
-				? sandboxes.map((sandbox) => ({
-						organizationId: sandbox.organizationId,
-						machineId: sandbox.workspaceId,
-						isOnline: true,
-						refetchIntervalMs: 30_000,
-					}))
-				: selectedHost
-					? [selectedHost]
-					: [],
-		[selectedHost, sandboxes, cloudScope],
+		() => (cloudScope || !selectedHost ? [] : [selectedHost]),
+		[selectedHost, cloudScope],
 	);
 	const { terminalsByWorkspace, attentionByWorkspace } =
 		useHostsTerminals(terminalHosts);

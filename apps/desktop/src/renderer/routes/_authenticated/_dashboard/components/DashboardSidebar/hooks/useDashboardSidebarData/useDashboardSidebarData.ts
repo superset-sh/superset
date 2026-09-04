@@ -14,7 +14,6 @@ import {
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { useSandboxAccess } from "renderer/routes/_authenticated/providers/SandboxAccessProvider";
 import {
 	deriveTagFolders,
 	useTagFolderContext,
@@ -256,8 +255,17 @@ export function useDashboardSidebarData() {
 		[collections],
 	);
 
-	const { workspaces: hostWorkspaces } = useHostWorkspaces();
-	const { targets: sandboxes } = useSandboxAccess();
+	const { workspaces: allHostWorkspaces, cache: hostWorkspacesCache } =
+		useHostWorkspaces();
+	// Cloud workspaces render in the Cloud section only, whatever placement
+	// their local-state row carries.
+	const hostWorkspaces = useMemo(
+		() =>
+			allHostWorkspaces.filter(
+				(workspace) => !hostWorkspacesCache.isSandboxHost(workspace.hostId),
+			),
+		[allHostWorkspaces, hostWorkspacesCache],
+	);
 	const hostWorkspacesById = useMemo(
 		() => new Map(hostWorkspaces.map((workspace) => [workspace.id, workspace])),
 		[hostWorkspaces],
@@ -430,7 +438,6 @@ export function useDashboardSidebarData() {
 					(workspace) => workspace.projectId !== null,
 				),
 				fallbackOrganizationId: knownHostsOrgId,
-				sandboxes,
 			}),
 		[
 			activeHostUrl,
@@ -438,7 +445,6 @@ export function useDashboardSidebarData() {
 			knownHostsOrgId,
 			machineId,
 			relayUrl,
-			sandboxes,
 			visibleSidebarWorkspaces,
 		],
 	);

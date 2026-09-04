@@ -5820,9 +5820,6 @@ msgstr "Abre un ticket y recibe una PR verificada y lista para fusionar, con cap
 msgid "File actions"
 msgstr "Acciones de archivo"
 
-msgid "File is empty"
-msgstr "El archivo está vacío"
-
 msgid "File is too large to preview"
 msgstr "El archivo es demasiado grande para previsualizarlo"
 
@@ -10708,6 +10705,9 @@ msgstr "Actualizar métricas"
 msgid "Refresh pull requests"
 msgstr "Actualizar las pull requests"
 
+msgid "Refreshes when Claude Code next runs."
+msgstr "Se actualiza la próxima vez que se ejecute Claude Code."
+
 msgid "Register any CLI agent alongside the built-ins, each with its own name, icon, and launch command."
 msgstr "Registra cualquier agente de CLI junto a los integrados, cada uno con su nombre, icono y comando de arranque."
 
@@ -11258,6 +11258,9 @@ msgstr "Revisa los cambios pendientes."
 
 msgid "Review pull requests inside Superset: diff pane, agent-assisted review, act on comments directly."
 msgstr "Revisa pull requests dentro de Superset: panel de diff, revisión asistida por agentes y respuesta directa a los comentarios."
+
+msgid "Review requested"
+msgstr "Revisión solicitada"
 
 msgid "Review required"
 msgstr "Revisión obligatoria"
@@ -13362,9 +13365,6 @@ msgstr "Área de texto"
 
 msgid "Thanks for reaching out"
 msgstr "Gracias por escribirnos"
-
-msgid "That device is online (region {region}) but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
-msgstr "Ese dispositivo está en línea (región {region}), pero no se pudo establecer la conexión: suele ser cosa del enrutado del relay, no del dispositivo. Reinténtalo y, si persiste, reinicia Superset en ese dispositivo."
 
 msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
 msgstr "Ese dispositivo está en línea, pero no se pudo establecer la conexión: suele ser cosa del enrutado del relay, no del dispositivo. Reinténtalo y, si persiste, reinicia Superset en ese dispositivo."

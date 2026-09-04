@@ -60,21 +60,7 @@ export function useHostsPresence(
 		},
 	});
 
-	const { data: relayIsProto2 } = useQuery({
-		queryKey: ["relay-proto", relayUrl],
-		enabled: relayUrl !== undefined,
-		staleTime: Number.POSITIVE_INFINITY,
-		retry: 1,
-		queryFn: async () => {
-			const response = await fetch(`${relayUrl}/health`);
-			if (!response.ok) throw new Error(`relay health: ${response.status}`);
-			const body = (await response.json()) as { proto?: number };
-			return body.proto === 2;
-		},
-	});
-
-	const enabled =
-		routingKeys.length > 0 && relayUrl !== undefined && relayIsProto2 === true;
+	const enabled = routingKeys.length > 0 && relayUrl !== undefined;
 
 	const { data } = useQuery({
 		queryKey: ["hosts-presence", relayUrl, routingKeys.join(",")],
@@ -106,7 +92,7 @@ export function useHostsPresence(
 		},
 	});
 
-	// Null = presence unavailable (v1 relay, probe/fetch failed, empty target
-	// set): callers must keep the Electric-synced isOnline value.
+	// Null = presence unavailable (fetch failed, empty target set): callers
+	// must keep the isOnline value they already hold.
 	return enabled ? (data ?? null) : null;
 }

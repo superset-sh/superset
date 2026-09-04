@@ -137,7 +137,7 @@ host, so don't assume it's always present).
 
 Create a worktree on a specific host. Provide exactly one of `branch` or `pr` (a pull request number; the host checks out the verified PR head and derives the branch). `baseBranch` picks the fork point when `branch` doesn't exist yet, and `taskId` links the new workspace to a task. Optionally spawn one or more agents inside it as soon as the worktree is ready, and/or run a one-off shell `command` in the worktree. Goes through the relay tunnel: the host must be online.
 
-Each entry in `agents` takes a preset id (e.g. `"claude"`) or a `HostAgentConfig` instance UUID: the host service resolves it against its configured rows and copies their stored `command`, `args`, and `env`. Set `effort` to override the agent's reasoning effort for that launch, or omit it to use the agent's own default. Use [`agents.list({ hostId })`](#agentslist-hostid-) to enumerate what's installed. `command` is independent of `agents`. Pass either or both.
+Each entry in `agents` takes a preset id (e.g. `"claude"`) or a `HostAgentConfig` instance UUID: the host service resolves it against its configured rows and copies their stored `command`, `args`, and `env`. Set `model` or `effort` to override the agent's model or reasoning effort for that launch, or omit them to use the agent's own defaults. Use [`agents.list({ hostId })`](#agentslist-hostid-) to enumerate what's installed. `command` is independent of `agents`. Pass either or both.
 
 ```ts
 const result = await client.workspaces.create({
@@ -146,7 +146,7 @@ const result = await client.workspaces.create({
   name: 'wire-up-auth',
   branch: 'feat/auth',
   agents: [                  // optional: spawn agents on creation
-    { agent: 'claude', effort: 'high', prompt: 'Implement the auth flow described in SUPER-100.' },
+    { agent: 'claude', model: 'sonnet', effort: 'high', prompt: 'Implement the auth flow described in SUPER-100.' },
     { agent: 'claude', prompt: 'Write integration tests for the new auth flow.' },
   ],
 });
@@ -230,13 +230,14 @@ prompt-transport fields used to launch the agent.
 const agents = await client.agents.list({ hostId: '<machineId>' });
 ```
 
-### `agents.create({ hostId, workspaceId, agent, prompt, effort?, attachmentIds? })`
+### `agents.create({ hostId, workspaceId, agent, prompt, model?, effort?, attachmentIds? })`
 
 Create (launch) an agent session in an existing workspace on its host.
 
 `agent` accepts either a preset id (e.g. `"claude"`) or a `HostAgentConfig`
-instance UUID. `effort` is an agent-specific reasoning override; omit it to
-use the agent's own configured default. Unsupported values fail before launch.
+instance UUID. `model` and `effort` are agent-specific launch overrides; omit
+them to use the agent's own configured defaults. Unsupported values for either
+fail before launch with a message naming the supported ids.
 Returns `{ kind, sessionId, label }`.
 
 ```ts
@@ -244,6 +245,7 @@ const { sessionId } = await client.agents.create({
   hostId: '<machineId>',
   workspaceId: '<uuid>',
   agent: 'claude',
+  model: 'sonnet',
   effort: 'high',
   prompt: 'Audit the login flow for race conditions.',
 });

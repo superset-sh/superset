@@ -4,8 +4,9 @@ import type {
 	ServerMessage,
 } from "@superset/host-service/events";
 import type { AgentIdentity } from "@superset/shared/agent-identity";
+import { DIAL_TIMEOUT_MS } from "@superset/shared/tunnel-protocol";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
-import type { RelayAffinityProbe } from "./primeRelayAffinity";
+import type { RelayHostProbe } from "./probeRelayHost";
 import { createRelaySocket, type RelaySocket } from "./relaySocket";
 
 export type { AgentIdentity };
@@ -179,7 +180,7 @@ export interface HostConnectionStatus {
 	 * 401/403 unauthorized, null for a direct (non-relay) host URL or when the
 	 * relay itself couldn't be reached. Names *why* the socket is down.
 	 */
-	probe: RelayAffinityProbe | null;
+	probe: RelayHostProbe | null;
 }
 
 type ConnectionStatusListener = (status: HostConnectionStatus) => void;
@@ -191,6 +192,8 @@ interface ConnectionState {
 	fsWatchedWorkspaces: Map<string, number>;
 	/** Refcounted per-file watches, keyed `${workspaceId}\0${absolutePath}`. */
 	fsWatchedFiles: Map<string, number>;
+	/** Refcounted `git:watch` interest — drives GitWatcher's registration (#6729). */
+	gitWatchedWorkspaces: Map<string, number>;
 	/** Replaced, never mutated, so `useSyncExternalStore` snapshots stay stable. */
 	status: HostConnectionStatus;
 	statusListeners: Set<ConnectionStatusListener>;
@@ -201,17 +204,17 @@ function fileWatchKey(workspaceId: string, absolutePath: string): string {
 }
 
 function probesEqual(
-	left: RelayAffinityProbe | null,
-	right: RelayAffinityProbe | null,
+	left: RelayHostProbe | null,
+	right: RelayHostProbe | null,
 ): boolean {
 	if (left === right) return true;
 	if (left === null || right === null) return false;
-	return left.status === right.status && left.region === right.region;
+	return left.status === right.status;
 }
 
 function setConnectionStatus(
 	state: ConnectionState,
-	next: { state?: HostConnectionState; probe?: RelayAffinityProbe | null },
+	next: { state?: HostConnectionState; probe?: RelayHostProbe | null },
 ): void {
 	const current = state.status;
 	const nextState = next.state ?? current.state;
@@ -251,9 +254,17 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 	}
 
 	if (message.type === "error") {
-		// Server-side bus errors aren't actionable from the client; the
-		// reconnect loop already handles transient failures, and logging
-		// here just floods the console when a host bounces offline.
+		// A git:watch the host capped never took effect: drop the local
+		// interest entry so the next watchGit() re-sends instead of treating
+		// the watch as live forever. Other bus errors aren't actionable here —
+		// the reconnect loop covers transient failures, and logging them
+		// floods the console when a host bounces offline.
+		if (message.code === "git-watch-cap" && message.workspaceId) {
+			state.gitWatchedWorkspaces.delete(message.workspaceId);
+			console.warn("[eventBus] git:watch rejected by the host's cap", {
+				workspaceId: message.workspaceId,
+			});
+		}
 		return;
 	}
 
@@ -372,7 +383,7 @@ function getOrCreateConnection(
 	const existing = connections.get(key);
 	if (existing) return existing;
 
-	// createRelaySocket runs the fly-affinity preflight and re-signs the URL
+	// createRelaySocket runs the host probe and re-signs the URL
 	// with a fresh token before every attempt; backoff and reconnection live
 	// inside partysocket. Buffering is disabled so command semantics stay
 	// "send only while open" — watches are replayed from state on each open.
@@ -390,6 +401,9 @@ function getOrCreateConnection(
 		accessDeniedRetryMs: ACCESS_DENIED_RETRY_MS,
 		minReconnectionDelay: RECONNECT_BASE_MS,
 		maxReconnectionDelay: RECONNECT_MAX_MS,
+		// Relay upgrades wait for the host's dial-back (DIAL_TIMEOUT_MS);
+		// partysocket's 4s default gave up on attempts the host was answering.
+		connectionTimeout: DIAL_TIMEOUT_MS + 2_000,
 		maxEnqueuedMessages: 0,
 		onProbe: (probe) => {
 			setConnectionStatus(state, { probe });
@@ -402,6 +416,7 @@ function getOrCreateConnection(
 		listeners: new Set(),
 		fsWatchedWorkspaces: new Map(),
 		fsWatchedFiles: new Map(),
+		gitWatchedWorkspaces: new Map(),
 		status: { state: "connecting", since: Date.now(), probe: null },
 		statusListeners: new Set(),
 	};
@@ -430,6 +445,12 @@ function getOrCreateConnection(
 					absolutePath,
 				});
 			}
+		}
+		// Re-send all active git:watch commands — a fresh connection means the
+		// server-side GitWatcher interest count from the old socket is gone
+		// (event-bus.ts's cleanupClient unwatches on close).
+		for (const workspaceId of state.gitWatchedWorkspaces.keys()) {
+			sendCommand(state, { type: "git:watch", workspaceId });
 		}
 	});
 	socket.addEventListener("message", (event) => {
@@ -465,7 +486,10 @@ function maybeCleanupConnection(hostUrl: string): void {
 	if (
 		state.refCount > 0 ||
 		state.listeners.size > 0 ||
-		state.statusListeners.size > 0
+		state.statusListeners.size > 0 ||
+		state.fsWatchedWorkspaces.size > 0 ||
+		state.fsWatchedFiles.size > 0 ||
+		state.gitWatchedWorkspaces.size > 0
 	) {
 		return;
 	}
@@ -491,6 +515,14 @@ export interface EventBusHandle {
 	 */
 	watchFsFile(workspaceId: string, absolutePath: string): void;
 	unwatchFsFile(workspaceId: string, absolutePath: string): void;
+	/**
+	 * Register interest in a workspace's `git:changed` events. The host's
+	 * `GitWatcher` only watches a workspace while at least one client holds
+	 * interest via this call (see #6729) — a `git:changed` listener added via
+	 * `on()` without a matching `watchGit()` will never fire.
+	 */
+	watchGit(workspaceId: string): void;
+	unwatchGit(workspaceId: string): void;
 	retain(): () => void;
 	/** Live reachability of this host, as observed on the real data path. */
 	getConnectionStatus(): HostConnectionStatus;
@@ -547,8 +579,37 @@ export function getEventBus(
 			if (count <= 1) {
 				state.fsWatchedWorkspaces.delete(workspaceId);
 				sendCommand(state, { type: "fs:unwatch", workspaceId });
+				// getEventBus() above always creates the connection if it didn't
+				// already exist — a caller that only ever intends to release
+				// interest (a cleanup effect running after this connection's
+				// last retainer already tore it down) would otherwise mint a
+				// fresh, unretained, unlistened-to connection here and leave it
+				// dangling forever, since nothing else will ever call this again
+				// for it. Mirrors on()'s and retain()'s cleanup.
+				maybeCleanupConnection(hostUrl);
 			} else {
 				state.fsWatchedWorkspaces.set(workspaceId, count - 1);
+			}
+		},
+
+		watchGit(workspaceId: string): void {
+			const count = state.gitWatchedWorkspaces.get(workspaceId) ?? 0;
+			state.gitWatchedWorkspaces.set(workspaceId, count + 1);
+			if (count === 0) {
+				sendCommand(state, { type: "git:watch", workspaceId });
+			}
+		},
+
+		unwatchGit(workspaceId: string): void {
+			const count = state.gitWatchedWorkspaces.get(workspaceId) ?? 0;
+			if (count <= 1) {
+				state.gitWatchedWorkspaces.delete(workspaceId);
+				sendCommand(state, { type: "git:unwatch", workspaceId });
+				// See unwatchFs's comment: a release-only call can otherwise mint
+				// and permanently strand a fresh, never-retained connection.
+				maybeCleanupConnection(hostUrl);
+			} else {
+				state.gitWatchedWorkspaces.set(workspaceId, count - 1);
 			}
 		},
 
@@ -575,6 +636,9 @@ export function getEventBus(
 					workspaceId,
 					absolutePath,
 				});
+				// See unwatchFs's comment: a release-only call can otherwise mint
+				// and permanently strand a fresh, never-retained connection.
+				maybeCleanupConnection(hostUrl);
 			} else {
 				state.fsWatchedFiles.set(key, count - 1);
 			}
