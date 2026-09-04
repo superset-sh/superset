@@ -9,6 +9,7 @@ import {
 	getAgentEfforts,
 	getAgentModelSupport,
 	getAgentModeSupport,
+	isCuratedAgentModel,
 	resolveAgentLaunchPresetId,
 } from "@superset/shared/agent-models";
 import {
@@ -248,7 +249,7 @@ export function validateAgentModelSelection(
 		});
 	}
 
-	if (!support.models.some((option) => option.id === model)) {
+	if (!isCuratedAgentModel(presetId, model)) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: `Unsupported model "${model}" for ${label}. Choose one of: ${support.models.map((option) => option.id).join(", ")}.`,

@@ -662,6 +662,24 @@ export function buildAgentModeArgs(
 }
 
 /**
+ * Whether `model` is an id the preset's launch accepts: a curated picker entry
+ * or, for presets whose effort is a sibling model id, any of those siblings.
+ * That keeps a preference saved before a sibling was folded into its family
+ * (cursor-agent's old "Fable 5 xHigh" entry) launching, and lets CLI callers
+ * pass any level id directly.
+ */
+export function isCuratedAgentModel(presetId: string, model: string): boolean {
+	const support = getAgentModelSupport(presetId);
+	if (!support) return false;
+	if (support.models.some((option) => option.id === model)) return true;
+	const variants = getAgentEffortSupport(presetId)?.modelVariants;
+	if (!variants) return false;
+	return Object.values(variants).some((ladder) =>
+		Object.values(ladder).includes(model),
+	);
+}
+
+/**
  * Argv tokens that select `model` for the given preset, e.g.
  * `["--model", "sonnet"]`. Returns `[]` for unknown presets, presets without
  * a CLI flag (superset chat), an unset model, or a model id that isn't in
@@ -679,7 +697,7 @@ export function buildAgentModelArgs(
 	if (!model) return [];
 	const support = getAgentModelSupport(presetId);
 	if (!support?.modelFlag) return [];
-	if (!support.models.some((option) => option.id === model)) return [];
+	if (!isCuratedAgentModel(presetId, model)) return [];
 	const variant = effort
 		? getAgentEffortSupport(presetId)?.modelVariants?.[model]?.[effort]
 		: undefined;

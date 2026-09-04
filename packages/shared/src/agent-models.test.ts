@@ -11,6 +11,7 @@ import {
 	getAgentEfforts,
 	getAgentModelSupport,
 	getAgentModeSupport,
+	isCuratedAgentModel,
 	resolveAgentLaunchPresetId,
 	SUPERSET_CHAT_MODELS,
 } from "./agent-models";
@@ -487,6 +488,24 @@ describe("buildAgentModelArgs with effort", () => {
 			"--model",
 			"auto",
 		]);
+	});
+
+	it("still launches a sibling id saved before it was folded into its family", () => {
+		expect(
+			buildAgentModelArgs("cursor-agent", "claude-fable-5-thinking-xhigh"),
+		).toEqual(["--model", "claude-fable-5-thinking-xhigh"]);
+		expect(buildAgentModelArgs("cursor-agent", "claude-opus-4-8-low")).toEqual([
+			"--model",
+			"claude-opus-4-8-low",
+		]);
+		expect(
+			buildAgentModelArgs("cursor-agent", "claude-opus-4-8-bogus"),
+		).toEqual([]);
+		expect(isCuratedAgentModel("cursor-agent", "gpt-5.5-extra-high")).toBe(
+			true,
+		);
+		expect(isCuratedAgentModel("claude", "claude-opus-5")).toBe(true);
+		expect(isCuratedAgentModel("claude", "opus-9")).toBe(false);
 	});
 
 	it("ignores effort for flag-based presets", () => {

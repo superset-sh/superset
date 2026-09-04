@@ -747,6 +747,16 @@ describe("validateAgentEffortSelection", () => {
 		}
 	});
 
+	it("accepts a cursor-agent effort sibling passed as the model itself", () => {
+		expect(() =>
+			validateAgentModelSelection(
+				"cursor-agent",
+				"Cursor Agent",
+				"claude-fable-5-thinking-xhigh",
+			),
+		).not.toThrow();
+	});
+
 	it("accepts cursor-agent efforts only on models with a ladder", () => {
 		expect(() =>
 			validateAgentEffortSelection(
