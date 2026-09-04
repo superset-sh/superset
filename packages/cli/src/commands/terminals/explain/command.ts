@@ -19,7 +19,7 @@ const END_REASON_GLOSS: Record<string, string> = {
 	disposed: "the session was deliberately killed",
 };
 
-function formatExplanation(
+export function formatExplanation(
 	terminalId: string,
 	result: TerminalAgentExplanation,
 ): string {
@@ -30,7 +30,7 @@ function formatExplanation(
 		].join("\n");
 	}
 
-	const { binding, derivedStatus, sinceMs } = result;
+	const { binding, derivedStatus, sinceMs, msSincePtyOutput } = result;
 	// sinceMs is host-clock relative, so anchor every "ago" to the host's now.
 	const hostNow = binding.lastEventAt + sinceMs;
 	const ago = (ts: number) =>
@@ -60,6 +60,15 @@ function formatExplanation(
 		lines.push(
 			"note: status is hook self-reporting with no liveness check — an agent interrupted with Esc/Ctrl+C fires no hook, so a stale last event can mean the status is stuck, not that the agent is busy.",
 		);
+		if (msSincePtyOutput !== null) {
+			const silence = formatDistanceStrict(
+				new Date(0),
+				new Date(msSincePtyOutput),
+			);
+			lines.push(
+				`evidence: terminal has produced no output for ${silence} — this can mean the agent is thinking silently, or that the status above is stale; it is not by itself proof of either.`,
+			);
+		}
 	}
 
 	return lines.join("\n");

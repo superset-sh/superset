@@ -1,6 +1,7 @@
 import type { CommandConfig } from "./command";
 import { CLIError } from "./errors";
 import {
+	type CommandNode,
 	generateCommandHelp,
 	generateGroupHelp,
 	generateRootHelp,
@@ -32,7 +33,31 @@ export interface RunOptions {
 	help?: HelpBranding;
 }
 
+let activeRun: RunOptions | undefined;
+
+/**
+ * The running CLI's whole command tree — every leaf's options and args
+ * populated, the global options on the root node — for commands that
+ * introspect the CLI itself (shell completions).
+ */
+export function introspectCli(): { name: string; root: CommandNode } {
+	if (!activeRun) {
+		throw new CLIError("introspectCli() is only available while the CLI runs");
+	}
+	const { root, commandMap } = buildTree(
+		activeRun.tree.groups,
+		activeRun.tree.commands,
+	);
+	root.options = processGlobals(activeRun.globals);
+	for (const [key, cmd] of commandMap) {
+		const node = getNode(root, key.split("/"));
+		if (node) populateNodeForHelp(node, cmd);
+	}
+	return { name: activeRun.name, root };
+}
+
 export async function run(opts: RunOptions): Promise<void> {
+	activeRun = opts;
 	const ac = new AbortController();
 	const onSignal = () => ac.abort();
 	process.on("SIGINT", onSignal);

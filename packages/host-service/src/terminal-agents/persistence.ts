@@ -152,14 +152,20 @@ export function getTerminalAgentBindingSessionId(
  * persist a conversation once it has a message, so resuming a never-prompted
  * session fails with "no conversation found".
  */
-function resumeCandidatePredicate(workspaceId: string, terminalId: string) {
+function workspaceResumeCandidatePredicate(workspaceId: string) {
 	return and(
-		eq(terminalAgentBindings.terminalId, terminalId),
 		eq(terminalAgentBindings.workspaceId, workspaceId),
 		isNotNull(terminalAgentBindings.endedAt),
 		eq(terminalAgentBindings.endReason, "terminal-exited"),
 		isNotNull(terminalAgentBindings.agentSessionId),
 		ne(terminalAgentBindings.lastEventType, "Attached"),
+	);
+}
+
+function resumeCandidatePredicate(workspaceId: string, terminalId: string) {
+	return and(
+		eq(terminalAgentBindings.terminalId, terminalId),
+		workspaceResumeCandidatePredicate(workspaceId),
 	);
 }
 
@@ -175,6 +181,23 @@ export function findResumeCandidateBinding(
 		.where(resumeCandidatePredicate(workspaceId, terminalId))
 		.get();
 	return row ? rowToBinding(row) : undefined;
+}
+
+/**
+ * Every resumable dead session in a workspace — the fleet-wide counterpart to
+ * `findResumeCandidateBinding`, for a bulk "resume everything" sweep instead
+ * of a per-terminal check.
+ */
+export function listResumeCandidateBindings(
+	db: HostDb,
+	workspaceId: string,
+): TerminalAgentBinding[] {
+	const rows = db
+		.select(bindingColumns)
+		.from(terminalAgentBindings)
+		.where(workspaceResumeCandidatePredicate(workspaceId))
+		.all();
+	return rows.map(rowToBinding);
 }
 
 /**

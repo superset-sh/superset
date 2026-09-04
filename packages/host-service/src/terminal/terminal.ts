@@ -494,6 +494,11 @@ interface TerminalSession {
 	 */
 	restoredNoticePending: boolean;
 	createdAt: number;
+	/** Wall-clock time of the most recent `deliverOutput` call — a liveness
+	 * signal independent of agent-hook self-reporting. Starts at `createdAt`
+	 * so a freshly-created, silent session doesn't read as silent since the
+	 * epoch. */
+	lastOutputAt: number;
 	exited: boolean;
 	exitCode: number;
 	exitSignal: number;
@@ -747,6 +752,23 @@ export function sessionHasRunningProcess(
 	// Ownership gate: don't let one workspace probe another's terminals.
 	if (session.workspaceId !== workspaceId) return false;
 	return hasRunningForegroundProcess(session.pty.pid);
+}
+
+/**
+ * Wall-clock time of the terminal's most recent PTY output, independent of
+ * any agent hook self-report — a fact worth surfacing as evidence (see
+ * `terminals explain`), not a verdict on whether a stored status is right.
+ * Unknown terminals and cross-workspace lookups both return `undefined`,
+ * mirroring `sessionHasRunningProcess`'s ownership gate.
+ */
+export function getSessionLastOutputAt(
+	terminalId: string,
+	workspaceId: string,
+): number | undefined {
+	const session = sessions.get(terminalId);
+	if (!session) return undefined;
+	if (session.workspaceId !== workspaceId) return undefined;
+	return session.lastOutputAt;
 }
 
 function pruneAndCountOpenSockets(session: TerminalSession): number {
@@ -1432,6 +1454,7 @@ function answerDsrCursorQueries(session: TerminalSession, count: number) {
 }
 
 function deliverOutput(session: TerminalSession, bytes: Uint8Array) {
+	session.lastOutputAt = Date.now();
 	session.modeTracker.feed(bytes);
 	retainOutput(session, bytes);
 	if (broadcastBytes(session, bytes) === 0) {
@@ -2873,6 +2896,7 @@ export async function createTerminalSessionInternal({
 		// Adopted sessions kept a live shell — nothing was restored.
 		restoredNoticePending: restoredNotice && !isAdopted,
 		createdAt,
+		lastOutputAt: createdAt,
 		exited: false,
 		exitCode: 0,
 		exitSignal: 0,

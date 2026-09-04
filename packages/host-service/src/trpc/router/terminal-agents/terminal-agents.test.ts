@@ -15,7 +15,10 @@ import {
 	type TerminalAgentId,
 	TerminalAgentStore,
 } from "../../../terminal-agents";
-import { findResumeCandidateBinding } from "../../../terminal-agents/persistence";
+import {
+	findResumeCandidateBinding,
+	listResumeCandidateBindings,
+} from "../../../terminal-agents/persistence";
 import type { AgentRunResult } from "../agents/agents";
 import {
 	explainTerminalAgentBinding,
@@ -23,7 +26,9 @@ import {
 	type RestartAccountSessionsDeps,
 	type ResumeSessionDeps,
 	restartAccountSessions,
+	resumeAllTerminalAgentSessions,
 	resumeTerminalAgentSession,
+	waitForTerminalAgentStatus,
 } from "./terminal-agents";
 
 const MIGRATIONS_FOLDER = resolve(import.meta.dir, "../../../../drizzle");
@@ -54,6 +59,36 @@ function seedResumableBinding(
 			displayOrder: 0,
 		})
 		.run();
+	db.insert(terminalSessions)
+		.values({
+			id: terminalId,
+			status: "exited",
+			originWorkspaceId: "ws-1",
+			createdAt: 1,
+		})
+		.run();
+	db.insert(terminalAgentBindings)
+		.values({
+			terminalId,
+			workspaceId: "ws-1",
+			agentId: "claude",
+			agentSessionId: `sess-${terminalId}`,
+			startedAt: 1,
+			lastEventAt: 2,
+			lastEventType: "Stop",
+			endedAt: 3,
+			endReason: "terminal-exited",
+		})
+		.run();
+}
+
+/**
+ * A second (or third) resumable terminal sharing an already-seeded agent
+ * config — `seedResumableBinding` inserts its config row unconditionally, so
+ * calling it twice for the same config id in one test violates the primary
+ * key; this covers every additional terminal after the first.
+ */
+function seedResumableTerminal(db: HostDb, terminalId: string) {
 	db.insert(terminalSessions)
 		.values({
 			id: terminalId,
@@ -244,6 +279,121 @@ describe("resumeTerminalAgentSession", () => {
 	});
 });
 
+describe("resumeAllTerminalAgentSessions", () => {
+	it("answers an empty sweep when the workspace has no dead-but-resumable sessions", async () => {
+		const db = createTestDb();
+		const { deps, runCalls } = createDeps(db);
+
+		const { results } = await resumeAllTerminalAgentSessions(deps, {
+			workspaceId: "ws-1",
+		});
+
+		expect(results).toEqual([]);
+		expect(runCalls).toEqual([]);
+	});
+
+	it("resumes every candidate in the workspace", async () => {
+		const db = createTestDb();
+		seedResumableBinding(db, { terminalId: "t1" });
+		seedResumableTerminal(db, "t2");
+		const { deps, runCalls } = createDeps(db);
+
+		const { results } = await resumeAllTerminalAgentSessions(deps, {
+			workspaceId: "ws-1",
+		});
+
+		expect(results).toHaveLength(2);
+		expect(results.every((r) => r.resumed)).toBe(true);
+		expect(runCalls).toHaveLength(2);
+		expect(runCalls.map((call) => call.resumeSessionId).sort()).toEqual([
+			"sess-t1",
+			"sess-t2",
+		]);
+		// Every candidate is consumed, same as the single-terminal path.
+		expect(listResumeCandidateBindings(db, "ws-1")).toEqual([]);
+	});
+
+	it("does not let one candidate's launch failure stop the rest", async () => {
+		const db = createTestDb();
+		seedResumableBinding(db, { terminalId: "t-bad" });
+		seedResumableTerminal(db, "t-good");
+		const { deps, runCalls } = createDeps(db, (input) => {
+			if (input.resumeSessionId === "sess-t-bad") {
+				return Promise.reject(new Error("spawn failed"));
+			}
+			return Promise.resolve({
+				kind: "terminal",
+				sessionId: "t-new",
+				label: "Claude",
+			});
+		});
+
+		const { results } = await resumeAllTerminalAgentSessions(deps, {
+			workspaceId: "ws-1",
+		});
+
+		expect(runCalls).toHaveLength(2);
+		const bad = results.find((r) => r.terminalId === "t-bad");
+		const good = results.find((r) => r.terminalId === "t-good");
+		expect(bad).toEqual({
+			terminalId: "t-bad",
+			resumed: false,
+			error: "spawn failed",
+		});
+		expect(good?.resumed).toBe(true);
+		// The failed candidate must survive so a retry can pick it up.
+		expect(findResumeCandidateBinding(db, "ws-1", "t-bad")).toBeDefined();
+	});
+
+	it("only sweeps the requested workspace", async () => {
+		const db = createTestDb();
+		seedResumableBinding(db, { terminalId: "t1" });
+		db.insert(hostAgentConfigs)
+			.values({
+				id: "00000000-0000-0000-0000-0000000000ff",
+				presetId: "claude",
+				label: "Claude",
+				command: "claude",
+				promptTransport: "argv",
+				resumeArgsJson: JSON.stringify(["--resume"]),
+				displayOrder: 0,
+			})
+			.run();
+		db.insert(terminalSessions)
+			.values({
+				id: "t-other-ws",
+				status: "exited",
+				originWorkspaceId: "ws-2",
+				createdAt: 1,
+			})
+			.run();
+		db.insert(terminalAgentBindings)
+			.values({
+				terminalId: "t-other-ws",
+				workspaceId: "ws-2",
+				agentId: "claude",
+				agentSessionId: "sess-other-ws",
+				startedAt: 1,
+				lastEventAt: 2,
+				lastEventType: "Stop",
+				endedAt: 3,
+				endReason: "terminal-exited",
+			})
+			.run();
+		const { deps, runCalls } = createDeps(db);
+
+		const { results } = await resumeAllTerminalAgentSessions(deps, {
+			workspaceId: "ws-1",
+		});
+
+		expect(results).toHaveLength(1);
+		expect(results[0]?.terminalId).toBe("t1");
+		expect(runCalls).toHaveLength(1);
+		// ws-2's candidate is untouched.
+		expect(findResumeCandidateBinding(db, "ws-2", "t-other-ws")).toBeDefined();
+	});
+});
+
 const CODEX_CONFIG_ID = "00000000-0000-0000-0000-000000000002";
 
 function seedAgentConfig(
@@ -405,18 +555,18 @@ describe("restartAccountSessions", () => {
 	});
 });
 
-describe("explainTerminalAgentBinding", () => {
-	function seedTerminalSession(db: HostDb, terminalId: string) {
-		db.insert(terminalSessions)
-			.values({
-				id: terminalId,
-				status: "active",
-				originWorkspaceId: "ws-1",
-				createdAt: 1,
-			})
-			.run();
-	}
+function seedTerminalSession(db: HostDb, terminalId: string) {
+	db.insert(terminalSessions)
+		.values({
+			id: terminalId,
+			status: "active",
+			originWorkspaceId: "ws-1",
+			createdAt: 1,
+		})
+		.run();
+}
 
+describe("explainTerminalAgentBinding", () => {
 	it("answers { binding: null } when no agent has ever reported", () => {
 		const db = createTestDb();
 
@@ -462,7 +612,64 @@ describe("explainTerminalAgentBinding", () => {
 			},
 			derivedStatus: "working",
 			sinceMs: 4_000,
+			msSincePtyOutput: null,
 		});
+	});
+
+	it("computes msSincePtyOutput from an injected liveness source, against the same clock as sinceMs", () => {
+		const db = createTestDb();
+		seedTerminalSession(db, "t1");
+		const store = createStore(db);
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: "ws-1",
+			eventType: "Start",
+			agentId: "claude",
+			occurredAt: 1_000,
+		});
+
+		const result = explainTerminalAgentBinding(
+			{
+				db,
+				terminalAgentStore: store,
+				getPtyLastOutputAt: (terminalId, workspaceId) => {
+					expect(terminalId).toBe("t1");
+					expect(workspaceId).toBe("ws-1");
+					return 3_000;
+				},
+			},
+			{ workspaceId: "ws-1", terminalId: "t1" },
+			5_000,
+		);
+
+		if (result.binding === null) throw new Error("expected a binding");
+		expect(result.msSincePtyOutput).toBe(2_000);
+	});
+
+	it("answers null msSincePtyOutput when the liveness source has nothing for this terminal", () => {
+		const db = createTestDb();
+		seedTerminalSession(db, "t1");
+		const store = createStore(db);
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: "ws-1",
+			eventType: "Start",
+			agentId: "claude",
+			occurredAt: 1_000,
+		});
+
+		const result = explainTerminalAgentBinding(
+			{
+				db,
+				terminalAgentStore: store,
+				getPtyLastOutputAt: () => undefined,
+			},
+			{ workspaceId: "ws-1", terminalId: "t1" },
+			5_000,
+		);
+
+		if (result.binding === null) throw new Error("expected a binding");
+		expect(result.msSincePtyOutput).toBeNull();
 	});
 
 	it("derives each lifecycle event to the status the desktop would show", () => {
@@ -538,6 +745,7 @@ describe("explainTerminalAgentBinding", () => {
 			},
 			derivedStatus: "ended",
 			sinceMs: 8_000,
+			msSincePtyOutput: null,
 		});
 	});
 
@@ -559,5 +767,199 @@ describe("explainTerminalAgentBinding", () => {
 		);
 
 		expect(result).toEqual({ binding: null });
+	});
+});
+
+describe("waitForTerminalAgentStatus", () => {
+	function startAgent(store: TerminalAgentStore, terminalId = "t1") {
+		store.recordEvent({
+			terminalId,
+			workspaceId: "ws-1",
+			eventType: "Start",
+			agentId: "claude",
+			agentSessionId: `sess-${terminalId}`,
+			occurredAt: 1_000,
+		});
+	}
+
+	it("rejects with NOT_FOUND instead of waiting when no agent has ever reported", async () => {
+		const db = createTestDb();
+		const store = createStore(db);
+
+		await expect(
+			waitForTerminalAgentStatus(
+				{ db, terminalAgentStore: store },
+				{
+					workspaceId: "ws-1",
+					terminalId: "t-plain-shell",
+					until: ["idle"],
+					timeoutMs: 10_000,
+				},
+			),
+		).rejects.toMatchObject({ code: "NOT_FOUND" });
+		expect(store.listenerCount("change")).toBe(0);
+	});
+
+	it("resolves at once when the status already matches", async () => {
+		const db = createTestDb();
+		seedTerminalSession(db, "t1");
+		const store = createStore(db);
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: "ws-1",
+			eventType: "Stop",
+			agentId: "claude",
+			occurredAt: 1_000,
+		});
+
+		const startedAt = performance.now();
+		const result = await waitForTerminalAgentStatus(
+			{ db, terminalAgentStore: store },
+			{
+				workspaceId: "ws-1",
+				terminalId: "t1",
+				until: ["idle", "ended"],
+				timeoutMs: 10_000,
+			},
+		);
+
+		expect(performance.now() - startedAt).toBeLessThan(50);
+		expect(result.derivedStatus).toBe("idle");
+		expect(result.binding.terminalId).toBe("t1");
+		expect(store.listenerCount("change")).toBe(0);
+	});
+
+	it("threads the getPtyLastOutputAt dep through to the resolved explanation", async () => {
+		const db = createTestDb();
+		seedTerminalSession(db, "t1");
+		const store = createStore(db);
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: "ws-1",
+			eventType: "Stop",
+			agentId: "claude",
+			occurredAt: 1_000,
+		});
+
+		const result = await waitForTerminalAgentStatus(
+			{
+				db,
+				terminalAgentStore: store,
+				getPtyLastOutputAt: () => 1_500,
+			},
+			{
+				workspaceId: "ws-1",
+				terminalId: "t1",
+				until: ["idle"],
+				timeoutMs: 10_000,
+			},
+		);
+
+		expect(result.msSincePtyOutput).not.toBeNull();
+	});
+
+	it("resolves once a later hook event moves the status into the target set", async () => {
+		const db = createTestDb();
+		seedTerminalSession(db, "t1");
+		const store = createStore(db);
+		startAgent(store);
+
+		const pending = waitForTerminalAgentStatus(
+			{ db, terminalAgentStore: store },
+			{
+				workspaceId: "ws-1",
+				terminalId: "t1",
+				until: ["idle", "permission"],
+				timeoutMs: 10_000,
+			},
+		);
+		// A change that leaves the status outside the target set keeps waiting.
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: "ws-1",
+			eventType: "Start",
+			occurredAt: 1_500,
+		});
+		setTimeout(() => {
+			store.recordEvent({
+				terminalId: "t1",
+				workspaceId: "ws-1",
+				eventType: "PermissionRequest",
+				occurredAt: 2_000,
+			});
+		}, 5);
+
+		const result = await pending;
+
+		expect(result.derivedStatus).toBe("permission");
+		expect(result.binding.lastEventType).toBe("PermissionRequest");
+		expect(result.binding.lastEventAt).toBe(2_000);
+		expect(store.listenerCount("change")).toBe(0);
+	});
+
+	it("rejects with TIMEOUT once the deadline passes without a match", async () => {
+		const db = createTestDb();
+		seedTerminalSession(db, "t1");
+		const store = createStore(db);
+		startAgent(store);
+
+		const startedAt = performance.now();
+		await expect(
+			waitForTerminalAgentStatus(
+				{ db, terminalAgentStore: store },
+				{
+					workspaceId: "ws-1",
+					terminalId: "t1",
+					until: ["idle"],
+					timeoutMs: 50,
+				},
+			),
+		).rejects.toMatchObject({
+			code: "TIMEOUT",
+			message:
+				"Timed out after 50ms waiting for terminal t1 to reach one of: idle",
+		});
+		const elapsed = performance.now() - startedAt;
+
+		expect(elapsed).toBeGreaterThanOrEqual(40);
+		expect(elapsed).toBeLessThan(1_000);
+		expect(store.listenerCount("change")).toBe(0);
+	});
+
+	it("resolves a wait for ended once the terminal dies under the agent", async () => {
+		const db = createTestDb();
+		seedTerminalSession(db, "t1");
+		const store = createStore(db);
+		startAgent(store);
+
+		const pending = waitForTerminalAgentStatus(
+			{ db, terminalAgentStore: store },
+			{
+				workspaceId: "ws-1",
+				terminalId: "t1",
+				until: ["ended"],
+				timeoutMs: 10_000,
+			},
+		);
+		setTimeout(() => {
+			store.recordEvent({
+				terminalId: "t1",
+				workspaceId: "ws-1",
+				eventType: "exit",
+				occurredAt: 5_000,
+			});
+		}, 5);
+
+		const result = await pending;
+
+		// The live entry is gone; the answer came from the persisted ended row.
+		expect(store.get("t1")).toBeUndefined();
+		expect(result.derivedStatus).toBe("ended");
+		expect(result.binding).toMatchObject({
+			agentSessionId: "sess-t1",
+			endedAt: 5_000,
+			endReason: "terminal-exited",
+		});
+		expect(store.listenerCount("change")).toBe(0);
 	});
 });
