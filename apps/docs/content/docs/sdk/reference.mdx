@@ -236,8 +236,8 @@ Create (launch) an agent session in an existing workspace on its host.
 
 `agent` accepts either a preset id (e.g. `"claude"`) or a `HostAgentConfig`
 instance UUID. `model` and `effort` are agent-specific launch overrides; omit
-them to use the agent's own configured defaults. Unsupported effort values fail
-before launch.
+them to use the agent's own configured defaults. Unsupported values for either
+fail before launch with a message naming the supported ids.
 Returns `{ kind, sessionId, label }`.
 
 ```ts

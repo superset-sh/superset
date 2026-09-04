@@ -895,6 +895,16 @@ superset agents create --workspace ws_… --agent codex --prompt "Review this di
 superset agents create --workspace ws_… --agent claude --resume-session 0b7c…
 ```
 
+#### Agent models
+
+Model is an explicit override for one launch. If you omit `--model`, Superset
+passes no model flag and the agent uses its own configured default. Ids match
+the desktop model picker: Claude takes a family alias (`fable`, `opus`,
+`sonnet`, `haiku`) that tracks the newest release, or a pinned id such as
+`claude-opus-4-8`. The host rejects an unknown id before launching the agent,
+and the error names every id that agent accepts. Agents without a model
+picker, including Superset chat, reject an explicit model override.
+
 #### Agent effort levels
 
 Effort is an explicit override for one launch. If you omit `--effort`,
