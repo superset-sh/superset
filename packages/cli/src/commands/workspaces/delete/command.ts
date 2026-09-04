@@ -9,6 +9,9 @@ export default command({
 	options: {
 		host: string().desc("Host the workspaces live on"),
 		local: boolean().desc("Target this machine (the default)"),
+		"delete-branch": boolean().desc(
+			"Delete the workspace's git branch after delete (default: the branch is kept, matching the desktop UI)",
+		),
 	},
 	run: async ({ ctx, args, options }) => {
 		const ids = args.ids as string[];
@@ -32,7 +35,10 @@ export default command({
 		const deleted: string[] = [];
 		const warnings: string[] = [];
 		for (const id of ids) {
-			const result = await target.client.workspace.delete.mutate({ id });
+			const result = await target.client.workspace.delete.mutate({
+				id,
+				deleteBranch: options["delete-branch"] === true,
+			});
 			deleted.push(id);
 			for (const warning of result.warnings ?? []) {
 				warnings.push(`${id}: ${warning}`);

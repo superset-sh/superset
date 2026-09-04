@@ -160,7 +160,10 @@ function extractCreateTxid(row: CloudWorkspace): number | null {
 
 /**
  * Idempotency lookup — the local table is authoritative, so an existing
- * (project, branch) row answers without a cloud round-trip.
+ * (project, branch) row answers without a cloud round-trip. Tombstones are
+ * excluded: a deleted workspace that kept its branch (default) must not be
+ * returned for a same-name recreation — the caller would end up on a stale,
+ * archived workspace instead of a fresh one (#6381 review).
  */
 function findExistingWorkspaceByBranch(
 	ctx: HostServiceContext,
@@ -172,13 +175,6 @@ function findExistingWorkspaceByBranch(
 			where: and(
 				eq(workspaces.projectId, projectId),
 				eq(workspaces.branch, branch),
-				// Deletes tombstone the row instead of removing it, so a
-				// tombstone must not satisfy idempotency: matching one returns
-				// the archived row with `alreadyExists: true` and silently
-				// skips the create — no worktree, nothing in the sidebar. Its
-				// worktree is gone, so re-creating on the same branch inserts a
-				// fresh live row alongside it. The adopt path already filters
-				// these (#6383).
 				isNull(workspaces.archivedAt),
 			),
 		})

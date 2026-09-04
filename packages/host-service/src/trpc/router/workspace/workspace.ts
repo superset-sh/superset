@@ -188,7 +188,18 @@ export const workspaceRouter = router({
 		}),
 
 	delete: protectedProcedure
-		.input(z.object({ id: z.string() }))
+		.input(
+			z.object({
+				id: z.string(),
+				// Match the desktop UI: a deleted workspace keeps its branch by
+				// default (the checkbox is unchecked, deleteLocalBranch
+				// defaults false). Non-interactive CLI/SDK/MCP callers that want
+				// the branch released pass deleteBranch: true explicitly, so a
+				// silent caller never loses unpushed commits (#6380, review
+				// feedback on #6381).
+				deleteBranch: z.boolean().optional(),
+			}),
+		)
 		.mutation(async ({ ctx, input }) => {
 			// Legacy external surface used by CLI/SDK/MCP. Preserve its
 			// non-interactive contract while reusing the v2 cleanup path:
@@ -197,7 +208,7 @@ export const workspaceRouter = router({
 			// is nobody to prompt for a force-retry (#6174).
 			return destroyWorkspace(ctx, {
 				workspaceId: input.id,
-				deleteBranch: false,
+				deleteBranch: input.deleteBranch ?? false,
 				force: true,
 				teardownMode: "best-effort",
 			});
