@@ -13284,7 +13284,7 @@ msgid "Terminal font size"
 msgstr "Cỡ chữ terminal"
 
 msgid "Terminal font size when a terminal is focused, page zoom in a browser pane, otherwise the whole app"
-msgstr "Cỡ chữ terminal khi terminal đang được chọn, thu phóng trang trong khung trình duyệt, nếu không thì toàn bộ ứng dụng"
+msgstr "Cỡ chữ terminal khi terminal đang được focus, thu phóng trang trong khung trình duyệt, nếu không thì toàn bộ ứng dụng"
 
 msgid "terminal ID"
 msgstr "ID terminal"

@@ -9,10 +9,10 @@ import { getImageMimeType } from "shared/file-types";
 import { z } from "zod";
 import { publicProcedure, router } from "..";
 
-// Chromium renders zoom factors 0.25–5 (levels ≈ -7.6…8.8); stepping past
-// that would only bank presses that do nothing until the level walks back.
-const MIN_ZOOM_LEVEL = -7.5;
-const MAX_ZOOM_LEVEL = 8.5;
+// Chromium renders zoom factors 0.25–5 (level = log1.2(factor)); stepping
+// past that would only bank presses that do nothing until the level walks back.
+const MIN_ZOOM_LEVEL = Math.log(0.25) / Math.log(1.2);
+const MAX_ZOOM_LEVEL = Math.log(5) / Math.log(1.2);
 
 export const createWindowRouter = () => {
 	return router({

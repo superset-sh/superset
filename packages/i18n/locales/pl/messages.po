@@ -13284,7 +13284,7 @@ msgid "Terminal font size"
 msgstr "Rozmiar czcionki terminala"
 
 msgid "Terminal font size when a terminal is focused, page zoom in a browser pane, otherwise the whole app"
-msgstr "Rozmiar czcionki terminala, gdy terminal ma fokus, powiększenie strony w panelu przeglądarki, w przeciwnym razie cała aplikacja"
+msgstr "Rozmiar czcionki terminala, gdy terminal ma fokus, powiększenie strony w panelu przeglądarki, w przeciwnym razie powiększenie całej aplikacji"
 
 msgid "terminal ID"
 msgstr "ID terminala"

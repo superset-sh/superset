@@ -22,8 +22,11 @@ export function useZoomHotkeys() {
 	// write lands a tick later (after query cancellation), so key-repeat
 	// presses in that window would all read the same stale size.
 	const requestedSizeRef = useRef<number | null | undefined>(undefined);
+	// A press that had to fetch a cold cache must not apply after a later press.
+	const opIdRef = useRef(0);
 
 	const zoomTerminalFont = async (direction: ZoomDirection) => {
+		const opId = ++opIdRef.current;
 		const current =
 			requestedSizeRef.current !== undefined
 				? requestedSizeRef.current
@@ -31,6 +34,7 @@ export function useZoomHotkeys() {
 						utils.settings.getFontSettings.getData() ??
 						(await utils.settings.getFontSettings.fetch())
 					).terminalFontSize;
+		if (opId !== opIdRef.current) return;
 		const next = stepTerminalFontSize(current, direction);
 		if (next === undefined) return;
 		requestedSizeRef.current = next;

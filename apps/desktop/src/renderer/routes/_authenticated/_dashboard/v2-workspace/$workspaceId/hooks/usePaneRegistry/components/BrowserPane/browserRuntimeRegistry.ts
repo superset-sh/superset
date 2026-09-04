@@ -686,6 +686,9 @@ class BrowserRuntimeRegistryImpl {
 			this.setZoomFactor(paneId, 1);
 			return;
 		}
+		// Zoom is per-origin, so another pane on the same origin may have moved
+		// it since we last read it; step from what the page renders at now.
+		this.refreshZoomState(paneId);
 		const delta = direction === "in" ? BROWSER_ZOOM.step : -BROWSER_ZOOM.step;
 		// Round to the step grid so repeated steps don't drift (1.2000000000000002).
 		const next = Math.round((entry.state.zoomFactor + delta) * 100) / 100;
