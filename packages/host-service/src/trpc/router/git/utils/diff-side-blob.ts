@@ -47,14 +47,19 @@ export async function readDiffSideBlob(
 	maxBytes: number,
 ): Promise<DiffSideBlob> {
 	let oid: string;
-	let size: number;
 	try {
 		oid = (await git.raw(["rev-parse", "--verify", "--quiet", spec])).trim();
-		size = Number.parseInt((await git.raw(["cat-file", "-s", oid])).trim(), 10);
 	} catch {
 		return { kind: "missing" };
 	}
-	if (!oid || !Number.isFinite(size)) return { kind: "missing" };
+	if (!oid) return { kind: "missing" };
+	const size = Number.parseInt(
+		(await git.raw(["cat-file", "-s", oid])).trim(),
+		10,
+	);
+	if (!Number.isFinite(size)) {
+		throw new Error(`git cat-file -s ${oid} returned no size`);
+	}
 	if (size > maxBytes) {
 		return {
 			kind: "bytes",

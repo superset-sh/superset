@@ -1,5 +1,5 @@
 import { useLingui } from "@lingui/react/macro";
-import { useEffect, useState } from "react";
+import { type CSSProperties, useEffect, useState } from "react";
 import { getBaseName } from "renderer/lib/pathBasename";
 import { getImageMimeType } from "shared/file-types";
 import type { ViewProps } from "../../types";
@@ -37,22 +37,7 @@ export function ImageView({ document, filePath, embedded }: ViewProps) {
 	if (embedded) {
 		return (
 			<div className="flex h-full items-center justify-center bg-background p-4">
-				{objectUrl && (
-					<div
-						className="inline-block max-h-full max-w-full"
-						style={{
-							backgroundImage: CHECKERBOARD,
-							backgroundSize: "16px 16px",
-						}}
-					>
-						<img
-							src={objectUrl}
-							alt={getBaseName(filePath)}
-							className="block max-h-full max-w-full object-contain"
-							draggable={false}
-						/>
-					</div>
-				)}
+				{objectUrl && <CheckerboardImage src={objectUrl} filePath={filePath} />}
 			</div>
 		);
 	}
@@ -72,21 +57,13 @@ export function ImageView({ document, filePath, embedded }: ViewProps) {
 			{...handlers}
 		>
 			{objectUrl && (
-				<div
-					className="inline-block max-h-full max-w-full"
+				<CheckerboardImage
+					src={objectUrl}
+					filePath={filePath}
 					style={{
 						transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
-						backgroundImage: CHECKERBOARD,
-						backgroundSize: "16px 16px",
 					}}
-				>
-					<img
-						src={objectUrl}
-						alt={getBaseName(filePath)}
-						className="block max-h-full max-w-full select-none object-contain"
-						draggable={false}
-					/>
-				</div>
+				/>
 			)}
 			{isTransformed && (
 				<button
@@ -101,6 +78,34 @@ export function ImageView({ document, filePath, embedded }: ViewProps) {
 					{Math.round(transform.scale * 100)}%
 				</button>
 			)}
+		</div>
+	);
+}
+
+function CheckerboardImage({
+	src,
+	filePath,
+	style,
+}: {
+	src: string;
+	filePath: string;
+	style?: CSSProperties;
+}) {
+	return (
+		<div
+			className="inline-block max-h-full max-w-full"
+			style={{
+				...style,
+				backgroundImage: CHECKERBOARD,
+				backgroundSize: "16px 16px",
+			}}
+		>
+			<img
+				src={src}
+				alt={getBaseName(filePath)}
+				className="block max-h-full max-w-full select-none object-contain"
+				draggable={false}
+			/>
 		</div>
 	);
 }

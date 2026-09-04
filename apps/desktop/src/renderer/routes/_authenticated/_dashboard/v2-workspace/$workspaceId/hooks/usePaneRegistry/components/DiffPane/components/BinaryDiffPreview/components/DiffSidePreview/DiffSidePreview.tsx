@@ -80,12 +80,15 @@ function GitObjectSide({
 		if (query.data.exceededLimit || query.data.content === null) {
 			return { kind: "too-large" };
 		}
+		// react-query keeps the same `data` reference when a refetch returns
+		// identical JSON, so keying the revision on the payload (not the fetch
+		// time) means an unchanged blob never remounts the view.
 		return {
 			kind: "bytes",
 			value: decodeBase64(query.data.content),
-			revision: `${side}:${query.dataUpdatedAt}`,
+			revision: `${side}:${query.data.byteLength}:${query.data.content.length}`,
 		};
-	}, [query.data, query.isError, query.error, query.dataUpdatedAt, side]);
+	}, [query.data, query.isError, query.error, side]);
 	const document = useMemo(
 		() => createSnapshotDocument({ workspaceId, absolutePath, content }),
 		[workspaceId, absolutePath, content],

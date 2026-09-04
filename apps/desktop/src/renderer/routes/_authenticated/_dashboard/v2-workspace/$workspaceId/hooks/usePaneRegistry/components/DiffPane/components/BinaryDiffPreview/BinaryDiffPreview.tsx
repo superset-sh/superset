@@ -38,6 +38,8 @@ export function BinaryDiffPreview({
 	const [requested, setRequested] = useState(false);
 	const canOpen = file.status !== "deleted";
 	const view = worktreePath ? pickBytesView(file.path) : null;
+	// A rename can change the extension, so the old side gets its own view.
+	const oldView = file.oldPath ? pickBytesView(file.oldPath) : view;
 	const hasOld = file.status !== "added" && file.status !== "untracked";
 	const hasNew = file.status !== "deleted";
 	const openButton = canOpen ? (
@@ -77,9 +79,10 @@ export function BinaryDiffPreview({
 		);
 	}
 
-	const sides = [hasOld ? "old" : null, hasNew ? "new" : null].filter(
-		(side): side is "old" | "new" => side !== null,
-	);
+	const sides = [
+		hasOld && oldView ? { side: "old" as const, view: oldView } : null,
+		hasNew ? { side: "new" as const, view } : null,
+	].filter((entry) => entry !== null);
 	return (
 		<div className="flex flex-col items-center gap-3 bg-muted/30 p-4">
 			<div
@@ -89,7 +92,7 @@ export function BinaryDiffPreview({
 						: "grid w-full max-w-3xl grid-cols-1 gap-3"
 				}
 			>
-				{sides.map((side) => (
+				{sides.map(({ side, view: sideView }) => (
 					<figure
 						key={side}
 						className="flex min-w-0 flex-col overflow-hidden rounded-md border border-border"
@@ -103,7 +106,7 @@ export function BinaryDiffPreview({
 							<DiffSidePreview
 								file={file}
 								side={side}
-								view={view}
+								view={sideView}
 								workspaceId={workspaceId}
 								worktreePath={worktreePath}
 							/>
