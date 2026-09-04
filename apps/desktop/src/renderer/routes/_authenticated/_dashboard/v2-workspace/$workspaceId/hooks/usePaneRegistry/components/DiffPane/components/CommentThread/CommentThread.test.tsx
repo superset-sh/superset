@@ -53,6 +53,14 @@ mock.module("@superset/workspace-client", () => ({
 	},
 }));
 
+// Comment bodies are irrelevant here, and the real renderer pulls in
+// react-syntax-highlighter, whose CommonJS build extends React.PureComponent
+// at load time. Two earlier suites replace `react` with a hooks-only stub
+// for the rest of the process, so loading it from here crashes on CI.
+mock.module("renderer/components/CommentMarkdown", () => ({
+	CommentMarkdown: ({ body }: { body: string }) => body,
+}));
+
 const { act, cleanup, fireEvent, render, within } = await import(
 	"@testing-library/react"
 );

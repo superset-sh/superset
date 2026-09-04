@@ -9,7 +9,6 @@ import {
 	CollapsibleTrigger,
 } from "@superset/ui/collapsible";
 import { toast } from "@superset/ui/sonner";
-import { Textarea } from "@superset/ui/textarea";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useEffect, useState } from "react";
@@ -21,6 +20,7 @@ import {
 	LuLoaderCircle,
 } from "react-icons/lu";
 import { CommentMarkdown } from "renderer/components/CommentMarkdown";
+import { ReviewThreadReplyComposer } from "renderer/routes/_authenticated/_dashboard/components/ReviewThreadReplyComposer";
 import "./comment-thread.css";
 import { msg } from "@lingui/core/macro";
 
@@ -131,25 +131,6 @@ export function CommentThread({
 			);
 		},
 	});
-	const handleReplySubmit = () => {
-		const body = replyText.trim();
-		if (!body || replyToThread.isPending) return;
-		if (replyToCommentId == null) {
-			toast.error(
-				t({
-					message: "Couldn't send reply",
-				}),
-				{
-					description: t({
-						message: "This thread has no comment to reply to.",
-					}),
-				},
-			);
-			return;
-		}
-		replyToThread.mutate({ workspaceId, commentId: replyToCommentId, body });
-		setReplyText("");
-	};
 
 	return (
 		<Collapsible
@@ -240,23 +221,21 @@ export function CommentThread({
 						<CommentRow key={comment.id} comment={comment} />
 					))}
 				</ul>
-				<div className="flex flex-col gap-2 border-t border-border bg-muted/30 px-2.5 py-2">
-					<Textarea
-						value={replyText}
-						onChange={(e) => setReplyText(e.target.value)}
-						onKeyDown={(e) => {
-							if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-								e.preventDefault();
-								handleReplySubmit();
-							}
-						}}
-						placeholder={t({
-							message: "Write a reply…",
-						})}
-						rows={2}
-						className="resize-none bg-background text-xs"
-					/>
-					<div className="flex items-center justify-end gap-2">
+				<ReviewThreadReplyComposer
+					value={replyText}
+					onChange={setReplyText}
+					onReply={(body) => {
+						if (replyToCommentId == null) return false;
+						replyToThread.mutate({
+							workspaceId,
+							commentId: replyToCommentId,
+							body,
+						});
+						return true;
+					}}
+					isPending={replyToThread.isPending}
+					className="border-border bg-muted/30 px-2.5"
+					actions={
 						<Button
 							type="button"
 							size="xs"
@@ -279,19 +258,8 @@ export function CommentThread({
 								<Trans>Resolve conversation</Trans>
 							)}
 						</Button>
-						<Button
-							type="button"
-							size="xs"
-							disabled={!replyText.trim() || replyToThread.isPending}
-							onClick={handleReplySubmit}
-						>
-							{replyToThread.isPending && (
-								<LuLoaderCircle className="size-3 animate-spin" />
-							)}
-							<Trans>Reply</Trans>
-						</Button>
-					</div>
-				</div>
+					}
+				/>
 			</CollapsibleContent>
 		</Collapsible>
 	);

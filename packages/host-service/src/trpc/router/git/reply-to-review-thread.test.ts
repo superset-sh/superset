@@ -113,6 +113,22 @@ describe("gitRouter.replyToReviewThread", () => {
 		expect(replyCalls).toHaveLength(0);
 	});
 
+	it("reports a linked pull request missing from the database as a server error", async () => {
+		const { caller, replyCalls } = createCaller({
+			workspace: { pullRequestId: "pr-1" },
+		});
+
+		await expectTrpcError(
+			caller.replyToReviewThread({
+				workspaceId: "ws-1",
+				commentId: 555,
+				body: "Looks good",
+			}),
+			"INTERNAL_SERVER_ERROR",
+		);
+		expect(replyCalls).toHaveLength(0);
+	});
+
 	it("maps GitHub's rejection onto the matching tRPC code", async () => {
 		const { caller } = createCaller({
 			...LINKED,
