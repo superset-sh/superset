@@ -79,6 +79,9 @@ export const SUPERSET_CHAT_MODELS: readonly SupersetChatModel[] = [
 
 const LATEST_GROUP = "Latest";
 const PINNED_GROUP = "Pinned releases";
+const CURSOR_ANTHROPIC_GROUP = "Anthropic";
+const CURSOR_OPENAI_GROUP = "OpenAI";
+const CURSOR_OTHER_GROUP = "Other";
 const CURRENT_GROUP = "Current";
 const CODEX_RETIRING_GROUP = "Retiring 2026-08-31";
 
@@ -161,16 +164,72 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 			// with "Named models unavailable", so keep an explicit working
 			// choice in the picker.
 			{ id: "auto", label: "Auto" },
-			{ id: "claude-fable-5-1-thinking-high", label: "Fable 5.1" },
-			{ id: "claude-fable-5-thinking-high", label: "Fable 5" },
-			{ id: "claude-opus-5-high", label: "Opus 5" },
-			{ id: "claude-opus-4-8-high", label: "Opus 4.8" },
-			{ id: "claude-4.6-sonnet-medium", label: "Sonnet 4.6" },
-			{ id: "gpt-5.6-sol-medium", label: "GPT-5.6 Sol" },
-			{ id: "gpt-5.6-terra-medium", label: "GPT-5.6 Terra" },
-			{ id: "gpt-5.6-luna-medium", label: "GPT-5.6 Luna" },
-			{ id: "gpt-5.3-codex", label: "Codex 5.3" },
 			{ id: "composer-2.5", label: "Composer 2.5" },
+			{
+				id: "claude-fable-5-1-thinking-high",
+				label: "Fable 5.1",
+				group: CURSOR_ANTHROPIC_GROUP,
+			},
+			{
+				id: "claude-fable-5-thinking-high",
+				label: "Fable 5",
+				group: CURSOR_ANTHROPIC_GROUP,
+			},
+			{
+				id: "claude-opus-5-high",
+				label: "Opus 5",
+				group: CURSOR_ANTHROPIC_GROUP,
+			},
+			{
+				id: "claude-sonnet-5-thinking-high",
+				label: "Sonnet 5",
+				group: CURSOR_ANTHROPIC_GROUP,
+			},
+			{
+				id: "claude-opus-4-8-high",
+				label: "Opus 4.8",
+				group: CURSOR_ANTHROPIC_GROUP,
+			},
+			{
+				id: "claude-opus-4-7-xhigh",
+				label: "Opus 4.7",
+				group: CURSOR_ANTHROPIC_GROUP,
+			},
+			{
+				id: "claude-4.6-sonnet-medium",
+				label: "Sonnet 4.6",
+				group: CURSOR_ANTHROPIC_GROUP,
+			},
+			{
+				id: "gpt-5.6-sol-medium",
+				label: "GPT-5.6 Sol",
+				group: CURSOR_OPENAI_GROUP,
+			},
+			{
+				id: "gpt-5.6-terra-medium",
+				label: "GPT-5.6 Terra",
+				group: CURSOR_OPENAI_GROUP,
+			},
+			{
+				id: "gpt-5.6-luna-medium",
+				label: "GPT-5.6 Luna",
+				group: CURSOR_OPENAI_GROUP,
+			},
+			{ id: "gpt-5.5-medium", label: "GPT-5.5", group: CURSOR_OPENAI_GROUP },
+			{ id: "gpt-5.4-medium", label: "GPT-5.4", group: CURSOR_OPENAI_GROUP },
+			{ id: "gpt-5.3-codex", label: "Codex 5.3", group: CURSOR_OPENAI_GROUP },
+			{
+				id: "gemini-3.8-flash-high",
+				label: "Gemini 3.8 Flash",
+				group: CURSOR_OTHER_GROUP,
+			},
+			{
+				id: "cursor-grok-4.6-high",
+				label: "Grok 4.6",
+				group: CURSOR_OTHER_GROUP,
+			},
+			{ id: "kimi-k3-max", label: "Kimi K3", group: CURSOR_OTHER_GROUP },
+			{ id: "glm-5.2-high", label: "GLM 5.2", group: CURSOR_OTHER_GROUP },
 		],
 	},
 	{
@@ -328,8 +387,16 @@ const CURSOR_EFFORT_VARIANTS: Readonly<
 		"medium",
 		"high",
 	]),
+	"claude-sonnet-5-thinking-high": cursorEffortVariants(
+		"claude-sonnet-5-thinking",
+		CURSOR_CLAUDE_LEVELS,
+	),
 	"claude-opus-4-8-high": cursorEffortVariants(
 		"claude-opus-4-8",
+		CURSOR_CLAUDE_LEVELS,
+	),
+	"claude-opus-4-7-xhigh": cursorEffortVariants(
+		"claude-opus-4-7",
 		CURSOR_CLAUDE_LEVELS,
 	),
 	"gpt-5.6-sol-medium": cursorEffortVariants("gpt-5.6-sol", CURSOR_GPT_LEVELS),
@@ -341,11 +408,37 @@ const CURSOR_EFFORT_VARIANTS: Readonly<
 		"gpt-5.6-luna",
 		CURSOR_GPT_LEVELS,
 	),
+	// GPT-5.5 spells its top level out ("extra-high") where every other
+	// family uses "xhigh".
+	"gpt-5.5-medium": cursorEffortVariants(
+		"gpt-5.5",
+		["none", "low", "medium", "high", "xhigh"],
+		{ xhigh: "gpt-5.5-extra-high" },
+	),
+	"gpt-5.4-medium": cursorEffortVariants("gpt-5.4", [
+		"low",
+		"medium",
+		"high",
+		"xhigh",
+	]),
 	"gpt-5.3-codex": cursorEffortVariants(
 		"gpt-5.3-codex",
 		["low", "medium", "high", "xhigh"],
 		{ medium: "gpt-5.3-codex" },
 	),
+	"gemini-3.8-flash-high": cursorEffortVariants("gemini-3.8-flash", [
+		"low",
+		"medium",
+		"high",
+	]),
+	"cursor-grok-4.6-high": cursorEffortVariants("cursor-grok-4.6", [
+		"low",
+		"medium",
+		"high",
+		"xhigh",
+	]),
+	"kimi-k3-max": cursorEffortVariants("kimi-k3", ["low", "high", "max"]),
+	"glm-5.2-high": cursorEffortVariants("glm-5.2", ["high", "max"]),
 };
 
 const PI_THINKING_LEVELS: AgentModelOption[] = [

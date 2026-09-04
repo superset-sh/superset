@@ -443,6 +443,9 @@ describe("getAgentEfforts", () => {
 		expect(
 			getAgentEfforts("cursor-agent", "gpt-5.6-sol-medium").map((e) => e.id),
 		).toEqual(["none", "low", "medium", "high", "xhigh", "max"]);
+		expect(
+			getAgentEfforts("cursor-agent", "kimi-k3-max").map((e) => e.id),
+		).toEqual(["low", "high", "max"]);
 		expect(getAgentEfforts("cursor-agent", "auto")).toEqual([]);
 		expect(getAgentEfforts("cursor-agent", "composer-2.5")).toEqual([]);
 		expect(getAgentEfforts("cursor-agent")).toEqual([]);
@@ -464,6 +467,12 @@ describe("buildAgentModelArgs with effort", () => {
 		expect(
 			buildAgentModelArgs("cursor-agent", "gpt-5.6-luna-medium", "none"),
 		).toEqual(["--model", "gpt-5.6-luna-none"]);
+		expect(
+			buildAgentModelArgs("cursor-agent", "gpt-5.5-medium", "xhigh"),
+		).toEqual(["--model", "gpt-5.5-extra-high"]);
+		expect(
+			buildAgentModelArgs("cursor-agent", "claude-opus-4-7-xhigh", "low"),
+		).toEqual(["--model", "claude-opus-4-7-low"]);
 	});
 
 	it("keeps the default level when the model has no such effort", () => {
