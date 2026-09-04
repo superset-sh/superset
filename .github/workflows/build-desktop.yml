@@ -147,10 +147,10 @@ jobs:
         run: |
           APP_DIR=$(find release -maxdepth 2 -name "*.app" -type d | head -1)
           UNPACKED="$APP_DIR/Contents/Resources/app.asar.unpacked/node_modules"
-          BINDING="$UNPACKED/@duckdb/node-bindings-darwin-${{ matrix.arch }}/duckdb.node"
+          BINDING="$UNPACKED/@parcel/watcher-darwin-${{ matrix.arch }}/watcher.node"
           test -f "$BINDING" || {
-            echo "::error::DuckDB native binding missing from packaged app — Intel/arm launch will crash. Expected: $BINDING"
-            ls -la "$UNPACKED/@duckdb" 2>/dev/null || echo "  (no @duckdb directory in app.asar.unpacked)"
+            echo "::error::@parcel/watcher native binding missing from packaged app — Intel/arm launch will crash. Expected: $BINDING"
+            ls -la "$UNPACKED/@parcel" 2>/dev/null || echo "  (no @parcel directory in app.asar.unpacked)"
             exit 1
           }
           echo "OK: bundled $BINDING ($(du -h "$BINDING" | cut -f1))"

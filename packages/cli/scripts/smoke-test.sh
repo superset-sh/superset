@@ -9,7 +9,7 @@
 #   <target>    darwin-arm64 | darwin-x64 | linux-x64 | linux-arm64
 #
 # The decisive check is "boot the host service": a missing or unshippable
-# module (@mastra/core, @xterm/headless, anything reached via createRequire)
+# module (@xterm/headless, anything reached via createRequire)
 # crashes the boot, so reaching a healthy listening state proves the whole
 # host-service module graph is satisfiable. The require() probes above it
 # only load individual native addons — they never load host-service.js.
@@ -33,7 +33,7 @@ fi
 # Native addon require() probes. Run from /tmp so Node's module resolution
 # doesn't walk up into a host repo's node_modules and shadow the bundle.
 ( cd /tmp && NODE_PATH="$DIST/lib/node_modules" "$DIST/lib/node" -e '
-	for (const m of ["better-sqlite3", "node-pty", "@parcel/watcher", "libsql"]) {
+	for (const m of ["better-sqlite3", "node-pty", "@parcel/watcher"]) {
 		require(m);
 		console.log("[smoke]", m, "OK");
 	}
