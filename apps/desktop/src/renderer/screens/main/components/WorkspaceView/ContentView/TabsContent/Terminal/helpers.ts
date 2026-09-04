@@ -206,9 +206,11 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 				});
 		},
 		onUrlClick: (event, uri) => {
-			if (!event.metaKey && !event.ctrlKey) return;
 			event.preventDefault();
-			const handler = urlClickRef?.current;
+			// Shift-click always opens the system browser. Any other click uses
+			// the in-app browser handler when one is installed (openLinksInApp
+			// setting), falling back to the system browser.
+			const handler = event.shiftKey ? undefined : urlClickRef?.current;
 			if (handler) {
 				handler(uri);
 				return;

@@ -336,10 +336,19 @@ const DEFAULT_LINK_TIER_MAP: LinkTierMap = {
 	metaShift: "external",
 };
 
-const DEFAULT_URL_LINKS: LinkTierMap = {
+// Retired urlLinks default (plain unbound, shift → new tab). Kept so heal can
+// migrate never-customized stored rows to the current default.
+const LEGACY_URL_LINKS: LinkTierMap = {
 	plain: null,
 	shift: "newTab",
 	meta: "pane",
+	metaShift: "external",
+};
+
+const DEFAULT_URL_LINKS: LinkTierMap = {
+	plain: "pane",
+	shift: "external",
+	meta: "newTab",
 	metaShift: "external",
 };
 
@@ -542,12 +551,15 @@ export function healV2UserPreferences(raw: unknown): V2UserPreferencesRow {
 		r.sidebarFileLinks &&
 		isCompleteLinkTierMap(r.sidebarFileLinks) &&
 		isSameLinkTierMap(r.sidebarFileLinks, LEGACY_SIDEBAR_FILE_LINKS);
-	// A stored map identical to the retired default was never customized —
-	// swap it for the current default (shift gained "newTab").
+	// A stored map identical to a retired default was never customized — swap
+	// it for the current default (plain-click now opens the in-app browser,
+	// shift-click the system browser). Two retired generations: the original
+	// shared map, then LEGACY_URL_LINKS.
 	const shouldMigrateLegacyUrlLinks =
 		r.urlLinks &&
 		isCompleteLinkTierMap(r.urlLinks) &&
-		isSameLinkTierMap(r.urlLinks, DEFAULT_LINK_TIER_MAP);
+		(isSameLinkTierMap(r.urlLinks, DEFAULT_LINK_TIER_MAP) ||
+			isSameLinkTierMap(r.urlLinks, LEGACY_URL_LINKS));
 	return {
 		...DEFAULT_V2_USER_PREFERENCES,
 		...r,
