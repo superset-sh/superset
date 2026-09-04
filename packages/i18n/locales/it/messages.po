@@ -11240,7 +11240,7 @@ msgid "Review pull requests inside Superset: diff pane, agent-assisted review, a
 msgstr "Rivedi le pull request dentro Superset: pannello diff, revisione assistita dagli agenti, azioni dirette sui commenti."
 
 msgid "Review requested"
-msgstr "Revisione richiesta"
+msgstr "Richiesta di revisione"
 
 msgid "Review required"
 msgstr "Revisione richiesta"

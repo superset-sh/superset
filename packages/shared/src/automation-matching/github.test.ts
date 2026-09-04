@@ -227,4 +227,29 @@ describe("githubTriggerMatches assignee scope", () => {
 			githubTriggerMatches(assignment({ mode: "any" }), requested()).matches,
 		).toBe(true);
 	});
+
+	// The two halves of the team rule, together, because the difference is the
+	// whole design: "Anyone" means every review request here and a team one is
+	// one of those; a named person cannot match a request that names no person.
+	it("lets Anyone match a team request that a named person cannot", () => {
+		const team = requested({ assigneeId: null, assigneeLogin: null });
+		expect(
+			githubTriggerMatches(assignment({ mode: "any" }), team).matches,
+		).toBe(true);
+		expect(
+			githubTriggerMatches(assignment({ mode: "list", ids: ["77"] }), team),
+		).toEqual({ matches: false, reason: "assignee" });
+	});
+
+	// "Me" is resolved to a list before it reaches a matcher, and resolves to an
+	// empty one when no GitHub account is connected. Neither may match a team.
+	it("stays silent on a team request for a resolved Me, connected or not", () => {
+		const team = requested({ assigneeId: null, assigneeLogin: null });
+		expect(
+			githubTriggerMatches(assignment({ mode: "list", ids: ["77"] }), team),
+		).toEqual({ matches: false, reason: "assignee" });
+		expect(
+			githubTriggerMatches(assignment({ mode: "list", ids: [] }), team),
+		).toEqual({ matches: false, reason: "assignee" });
+	});
 });

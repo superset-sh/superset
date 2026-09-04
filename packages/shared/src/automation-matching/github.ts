@@ -149,6 +149,12 @@ export function githubTriggerMatches(
 	) {
 		return no("subjectAuthor");
 	}
+	// A team review request names the team and nobody in it, so this list is
+	// empty for one. That is deliberately not the same as refusing it outright:
+	// `{mode:"any"}` reads as "every review request in this repository" and a
+	// team request is one, while a named person — which is what "Me" resolves
+	// to before it reaches here — cannot match an empty list, so a request
+	// aimed at a whole team never fires as though it named an individual.
 	if (
 		config.assignee !== undefined &&
 		!scopeAllowsAny(
