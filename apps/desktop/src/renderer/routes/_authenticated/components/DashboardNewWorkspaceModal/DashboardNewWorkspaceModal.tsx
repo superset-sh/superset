@@ -88,14 +88,10 @@ export function DashboardNewWorkspaceModal() {
 				>
 					<DialogHeader className="sr-only">
 						<DialogTitle>
-							<Trans id="dashboard.newWorkspaceModal.title">
-								New Workspace
-							</Trans>
+							<Trans>New Workspace</Trans>
 						</DialogTitle>
 						<DialogDescription>
-							<Trans id="dashboard.newWorkspaceModal.description">
-								Create a new workspace
-							</Trans>
+							<Trans>Create a new workspace</Trans>
 						</DialogDescription>
 					</DialogHeader>
 					<DialogContent

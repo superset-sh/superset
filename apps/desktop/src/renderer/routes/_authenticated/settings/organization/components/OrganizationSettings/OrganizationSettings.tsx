@@ -216,7 +216,6 @@ export function OrganizationSettings({
 			await utils.organization.list.invalidate();
 			toast.success(
 				t({
-					id: "settings.organization.logoUpdatedToast",
 					message: "Logo updated",
 				}),
 			);
@@ -224,7 +223,6 @@ export function OrganizationSettings({
 			console.error("[organization-settings] Logo upload failed:", error);
 			toast.error(
 				t({
-					id: "settings.organization.logoUpdateFailedToast",
 					message: "Failed to update logo",
 				}),
 			);
@@ -261,18 +259,15 @@ export function OrganizationSettings({
 			}),
 			{
 				loading: t({
-					id: "settings.organization.deletingToast",
 					message: "Deleting organization...",
 				}),
 				success: t({
-					id: "settings.organization.deletedToast",
 					message: "Organization deleted",
 				}),
 				error: (err) =>
 					errorMessage(
 						err,
 						t({
-							id: "settings.organization.deleteFailedToast",
 							message: "Failed to delete organization",
 						}),
 					),
@@ -296,7 +291,6 @@ export function OrganizationSettings({
 			await utils.organization.list.invalidate();
 			toast.success(
 				t({
-					id: "settings.organization.nameUpdatedToast",
 					message: "Organization name updated",
 				}),
 			);
@@ -304,7 +298,6 @@ export function OrganizationSettings({
 			console.error("[organization-settings] Name update failed:", error);
 			toast.error(
 				t({
-					id: "settings.organization.nameUpdateFailedToast",
 					message: "Failed to update name",
 				}),
 			);
@@ -316,9 +309,7 @@ export function OrganizationSettings({
 		return (
 			<div className="p-6 max-w-4xl w-full">
 				<p className="text-sm text-muted-foreground">
-					<Trans id="settings.organization.noneSelected">
-						No organization selected
-					</Trans>
+					<Trans>No organization selected</Trans>
 				</p>
 			</div>
 		);
@@ -347,9 +338,7 @@ export function OrganizationSettings({
 		return (
 			<div className="p-6 max-w-4xl w-full">
 				<p className="text-sm text-muted-foreground select-text cursor-text">
-					<Trans id="settings.organization.notFound">
-						Organization not found.
-					</Trans>
+					<Trans>Organization not found.</Trans>
 				</p>
 			</div>
 		);
@@ -369,12 +358,10 @@ export function OrganizationSettings({
 			<div className="p-6 max-w-4xl w-full">
 				<div className="mb-8">
 					<h2 className="text-xl font-semibold">
-						<Trans id="settings.organization.title">Organization</Trans>
+						<Trans>Organization</Trans>
 					</h2>
 					<p className="text-sm text-muted-foreground mt-1">
-						<Trans id="settings.organization.subtitle">
-							Manage your organization's branding and members.
-						</Trans>
+						<Trans>Manage your organization's branding and members.</Trans>
 					</p>
 				</div>
 
@@ -385,11 +372,9 @@ export function OrganizationSettings({
 								{showLogo && (
 									<SettingsRow
 										label={t({
-											id: "settings.organization.logoLabel",
 											message: "Logo",
 										})}
 										hint={t({
-											id: "settings.organization.logoHint",
 											message: "Recommended size 256×256.",
 										})}
 									>
@@ -399,7 +384,6 @@ export function OrganizationSettings({
 											disabled={!isOwner}
 											className="rounded-md transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-100"
 											aria-label={t({
-												id: "settings.organization.changeLogoAriaLabel",
 												message: "Change organization logo",
 											})}
 										>
@@ -414,7 +398,6 @@ export function OrganizationSettings({
 								{showName && (
 									<SettingsRow
 										label={t({
-											id: "settings.organization.nameLabel",
 											message: "Name",
 										})}
 										htmlFor="org-name"
@@ -425,7 +408,6 @@ export function OrganizationSettings({
 											onChange={(e) => setNameValue(e.target.value)}
 											onBlur={handleNameBlur}
 											placeholder={t({
-												id: "settings.organization.namePlaceholder",
 												message: "Acme Inc.",
 											})}
 											className="w-72"
@@ -437,11 +419,9 @@ export function OrganizationSettings({
 								{showSlug && (
 									<SettingsRow
 										label={t({
-											id: "settings.organization.slugRowLabel",
 											message: "Slug",
 										})}
 										hint={t({
-											id: "settings.organization.slugHint",
 											message: "Used in URLs and APIs.",
 										})}
 										htmlFor="org-slug"
@@ -474,11 +454,9 @@ export function OrganizationSettings({
 								{showId && (
 									<SettingsRow
 										label={t({
-											id: "settings.organization.idLabel",
 											message: "ID",
 										})}
 										hint={t({
-											id: "settings.organization.idHint",
 											message: "Use this when calling the Superset API.",
 										})}
 										htmlFor="org-id"
@@ -488,7 +466,6 @@ export function OrganizationSettings({
 											id="org-id"
 											onClick={() => copyToClipboard(organization.id)}
 											aria-label={t({
-												id: "settings.organization.copyIdAriaLabel",
 												message: "Copy organization ID",
 											})}
 											className="group relative block w-72 cursor-pointer rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -511,13 +488,9 @@ export function OrganizationSettings({
 												</TooltipTrigger>
 												<TooltipContent>
 													{copied ? (
-														<Trans id="settings.organization.copiedTooltip">
-															Copied!
-														</Trans>
+														<Trans>Copied!</Trans>
 													) : (
-														<Trans id="settings.organization.copyTooltip">
-															Copy
-														</Trans>
+														<Trans>Copy</Trans>
 													)}
 												</TooltipContent>
 											</Tooltip>
@@ -528,7 +501,7 @@ export function OrganizationSettings({
 
 							{!isOwner && (
 								<p className="text-xs text-muted-foreground mt-3">
-									<Trans id="settings.organization.ownerOnlyNotice">
+									<Trans>
 										Only organization owners can modify these settings.
 									</Trans>
 								</p>
@@ -555,16 +528,13 @@ export function OrganizationSettings({
 										<h3 className="text-sm font-medium">
 											<HighlightText
 												text={t({
-													id: "settings.organization.membersTitle",
 													message: "Members",
 												})}
 												query={searchQuery}
 											/>
 										</h3>
 										<p className="text-xs text-muted-foreground mt-0.5">
-											<Trans id="settings.organization.membersHint">
-												Everyone with access to this organization.
-											</Trans>
+											<Trans>Everyone with access to this organization.</Trans>
 										</p>
 									</div>
 
@@ -584,9 +554,7 @@ export function OrganizationSettings({
 										</div>
 									) : members.length === 0 ? (
 										<div className="text-center py-12 text-sm text-muted-foreground border rounded-lg">
-											<Trans id="settings.organization.membersEmpty">
-												No members yet.
-											</Trans>
+											<Trans>No members yet.</Trans>
 										</div>
 									) : (
 										<div className="border rounded-lg overflow-hidden">
@@ -594,24 +562,16 @@ export function OrganizationSettings({
 												<TableHeader>
 													<TableRow>
 														<TableHead>
-															<Trans id="settings.organization.columnName">
-																Name
-															</Trans>
+															<Trans>Name</Trans>
 														</TableHead>
 														<TableHead>
-															<Trans id="settings.organization.columnEmail">
-																Email
-															</Trans>
+															<Trans>Email</Trans>
 														</TableHead>
 														<TableHead>
-															<Trans id="settings.organization.columnRole">
-																Role
-															</Trans>
+															<Trans>Role</Trans>
 														</TableHead>
 														<TableHead>
-															<Trans id="settings.organization.columnJoined">
-																Joined
-															</Trans>
+															<Trans>Joined</Trans>
 														</TableHead>
 														<TableHead className="w-[50px]" />
 													</TableRow>
@@ -640,8 +600,8 @@ export function OrganizationSettings({
 																			>
 																				{member.name ||
 																					t({
-																						id: "settings.organization.unknownMemberName",
 																						message: "Unknown",
+																						context: "person",
 																					})}
 																			</span>
 																			{isCurrentUserRow && (
@@ -649,9 +609,7 @@ export function OrganizationSettings({
 																					variant="secondary"
 																					className="text-[10px] h-4 px-1.5"
 																				>
-																					<Trans id="settings.organization.youBadge">
-																						You
-																					</Trans>
+																					<Trans>You</Trans>
 																				</Badge>
 																			)}
 																			{member.deletionRequestedAt && (
@@ -659,9 +617,7 @@ export function OrganizationSettings({
 																					variant="outline"
 																					className="text-[10px] h-4 px-1.5 text-muted-foreground"
 																				>
-																					<Trans id="settings.organization.deactivatedBadge">
-																						Deactivated
-																					</Trans>
+																					<Trans>Deactivated</Trans>
 																				</Badge>
 																			)}
 																		</div>
@@ -717,7 +673,6 @@ export function OrganizationSettings({
 						<section>
 							<SettingsRow
 								label={t({
-									id: "settings.organization.deleteRowLabel",
 									message: "Delete organization",
 								})}
 							>
@@ -729,38 +684,30 @@ export function OrganizationSettings({
 									<AlertDialogTrigger asChild>
 										<Button variant="destructive" disabled={isDeletingOrg}>
 											{isDeletingOrg ? (
-												<Trans id="settings.organization.deletingButton">
-													Deleting…
-												</Trans>
+												<Trans>Deleting…</Trans>
 											) : (
-												<Trans id="settings.organization.deleteButton">
-													Delete organization
-												</Trans>
+												<Trans>Delete organization</Trans>
 											)}
 										</Button>
 									</AlertDialogTrigger>
 									<AlertDialogContent>
 										<AlertDialogHeader>
 											<AlertDialogTitle>
-												<Trans id="settings.organization.deleteConfirmTitle">
-													Delete {organization.name}?
-												</Trans>
+												<Trans>Delete {organization.name}?</Trans>
 											</AlertDialogTitle>
 											<AlertDialogDescription>
 												{members.length > 1 ? (
-													<Trans id="settings.organization.deleteConfirmDescriptionMulti">
+													<Trans>
 														All data will be permanently deleted for all{" "}
 														{members.length} members — this cannot be undone.
 													</Trans>
 												) : (
-													<Trans id="settings.organization.deleteConfirmDescriptionSingle">
+													<Trans>
 														All of the organization's data will be permanently
 														deleted — this cannot be undone.
 													</Trans>
 												)}{" "}
-												<Trans id="settings.organization.deleteConfirmTypeName">
-													Type the organization name to confirm.
-												</Trans>
+												<Trans>Type the organization name to confirm.</Trans>
 											</AlertDialogDescription>
 										</AlertDialogHeader>
 										<Input
@@ -770,18 +717,14 @@ export function OrganizationSettings({
 										/>
 										<AlertDialogFooter>
 											<AlertDialogCancel>
-												<Trans id="settings.organization.deleteCancel">
-													Cancel
-												</Trans>
+												<Trans>Cancel</Trans>
 											</AlertDialogCancel>
 											<AlertDialogAction
 												variant="destructive"
 												disabled={deleteConfirmValue !== organization.name}
 												onClick={handleDeleteOrganization}
 											>
-												<Trans id="settings.organization.deleteConfirmAction">
-													Delete organization
-												</Trans>
+												<Trans>Delete organization</Trans>
 											</AlertDialogAction>
 										</AlertDialogFooter>
 									</AlertDialogContent>

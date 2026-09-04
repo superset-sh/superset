@@ -26,7 +26,6 @@ export function useDefaultPaneActions({
 				tooltip: (
 					<HotkeyLabel
 						label={t({
-							id: "workspace.paneActions.splitPane",
 							message: "Split pane",
 						})}
 						id="SPLIT_AUTO"

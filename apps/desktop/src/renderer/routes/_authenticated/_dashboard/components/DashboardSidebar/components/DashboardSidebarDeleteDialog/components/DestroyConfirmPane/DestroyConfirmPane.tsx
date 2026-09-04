@@ -65,23 +65,19 @@ export function DestroyConfirmPane({
 				<AlertDialogHeader className="px-4 pt-4 pb-2">
 					<AlertDialogTitle className="font-medium">
 						{isSession ? (
-							<Trans id="dashboard.sidebar.destroyConfirm.titleSession">
-								Delete session "{workspaceName}"?
-							</Trans>
+							<Trans>Delete session "{workspaceName}"?</Trans>
 						) : (
-							<Trans id="dashboard.sidebar.destroyConfirm.titleWorkspace">
-								Delete workspace "{workspaceName}"?
-							</Trans>
+							<Trans>Delete workspace "{workspaceName}"?</Trans>
 						)}
 					</AlertDialogTitle>
 					<AlertDialogDescription>
 						{isSession ? (
-							<Trans id="dashboard.sidebar.destroyConfirm.descriptionSession">
+							<Trans>
 								This deletes the session's folder and everything in it from
 								disk.
 							</Trans>
 						) : (
-							<Trans id="dashboard.sidebar.destroyConfirm.descriptionWorkspace">
+							<Trans>
 								This removes the worktree from disk. The cloud workspace record
 								will also be removed.
 							</Trans>
@@ -99,17 +95,11 @@ export function DestroyConfirmPane({
 					>
 						{hasWarnings ? (
 							hasChanges && hasUnpushedCommits ? (
-								<Trans id="dashboard.sidebar.destroyConfirm.warnChangesAndCommits">
-									Has uncommitted changes and unpushed commits
-								</Trans>
+								<Trans>Has uncommitted changes and unpushed commits</Trans>
 							) : hasChanges ? (
-								<Trans id="dashboard.sidebar.destroyConfirm.warnChanges">
-									Has uncommitted changes
-								</Trans>
+								<Trans>Has uncommitted changes</Trans>
 							) : (
-								<Trans id="dashboard.sidebar.destroyConfirm.warnCommits">
-									Has unpushed commits
-								</Trans>
+								<Trans>Has unpushed commits</Trans>
 							)
 						) : (
 							" "
@@ -137,9 +127,7 @@ export function DestroyConfirmPane({
 								htmlFor={checkboxId}
 								className="text-xs text-muted-foreground cursor-pointer select-none"
 							>
-								<Trans id="dashboard.sidebar.destroyConfirm.alsoDeleteBranch">
-									Also delete local branch
-								</Trans>
+								<Trans>Also delete local branch</Trans>
 							</Label>
 						</div>
 					</div>
@@ -151,7 +139,7 @@ export function DestroyConfirmPane({
 						className="h-7 px-3 text-xs"
 						onClick={() => onOpenChange(false)}
 					>
-						<Trans id="dashboard.sidebar.destroyConfirm.cancel">Cancel</Trans>
+						<Trans>Cancel</Trans>
 					</Button>
 					<Button
 						variant="destructive"

@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { Badge } from "@superset/ui/badge";
 import {
 	Card,
@@ -25,59 +26,70 @@ function withDetail(text: string): CallbackMessage {
 }
 
 const CALLBACK_MESSAGES = {
-	oauth_denied: i18n._({
-		id: "web.integrations.teams.callback.oauthDenied",
-		message: "Consent was not granted. A tenant administrator has to approve.",
-	}),
-	missing_params: i18n._({
-		id: "web.integrations.teams.callback.missingParams",
-		message: "Invalid consent response. Please try again.",
-	}),
-	invalid_state: i18n._({
-		id: "web.integrations.callback.invalidState",
-		message: "Invalid state parameter. Please try again.",
-	}),
-	token_exchange_failed: withDetail(
-		i18n._({
-			id: "web.integrations.teams.callback.tokenExchangeFailed",
+	oauth_denied: i18n._(
+		msg({
 			message:
-				"Consent finished but Microsoft did not issue a token for the tenant.",
+				"Consent was not granted. A tenant administrator has to approve.",
 		}),
 	),
-	subscription_failed: withDetail(
-		i18n._({
-			id: "web.integrations.teams.callback.subscriptionFailed",
-			message:
-				"Connected, but Microsoft Graph refused the notification subscriptions.",
+	missing_params: i18n._(
+		msg({
+			message: "Invalid consent response. Please try again.",
 		}),
+	),
+	invalid_state: i18n._(
+		msg({
+			message: "Invalid state parameter. Please try again.",
+		}),
+	),
+	token_exchange_failed: withDetail(
+		i18n._(
+			msg({
+				message:
+					"Consent finished but Microsoft did not issue a token for the tenant.",
+			}),
+		),
+	),
+	subscription_failed: withDetail(
+		i18n._(
+			msg({
+				message:
+					"Connected, but Microsoft Graph refused the notification subscriptions.",
+			}),
+		),
 	),
 	tenant_already_linked: {
 		param: "detail",
-		withParam: i18n._({
-			id: "web.integrations.teams.callback.tenantLinkedByOwner",
-			message:
-				"This Microsoft tenant is already connected by {detail}. Ask them to disconnect first.",
-		}),
-		withoutParam: i18n._({
-			id: "web.integrations.teams.callback.tenantLinked",
-			message:
-				"This Microsoft tenant is already connected by another Superset organization.",
-		}),
+		withParam: i18n._(
+			msg({
+				message:
+					"This Microsoft tenant is already connected by {detail}. Ask them to disconnect first.",
+			}),
+		),
+		withoutParam: i18n._(
+			msg({
+				message:
+					"This Microsoft tenant is already connected by another Superset organization.",
+			}),
+		),
 	},
-	identity_denied: i18n._({
-		id: "web.integrations.teams.callback.identityDenied",
-		message:
-			'Connected. Sign-in was cancelled, so triggers by "Me" will not match your Teams account until you reconnect.',
-	}),
-	identity_failed: i18n._({
-		id: "web.integrations.teams.callback.identityFailed",
-		message:
-			'Connected, but your Microsoft account could not be linked. Triggers by "Me" will not match until you reconnect.',
-	}),
-	unauthorized: i18n._({
-		id: "web.integrations.callback.unauthorized",
-		message: "You are not authorized to perform this action.",
-	}),
+	identity_denied: i18n._(
+		msg({
+			message:
+				'Connected. Sign-in was cancelled, so triggers by "Me" will not match your Teams account until you reconnect.',
+		}),
+	),
+	identity_failed: i18n._(
+		msg({
+			message:
+				'Connected, but your Microsoft account could not be linked. Triggers by "Me" will not match until you reconnect.',
+		}),
+	),
+	unauthorized: i18n._(
+		msg({
+			message: "You are not authorized to perform this action.",
+		}),
+	),
 };
 
 export default async function MicrosoftTeamsIntegrationPage() {
@@ -89,11 +101,12 @@ export default async function MicrosoftTeamsIntegrationPage() {
 		return (
 			<div className="flex flex-col items-center justify-center py-16">
 				<p className="text-muted-foreground">
-					{i18n._({
-						id: "web.integrations.needOrganization",
-						message:
-							"You need to be part of an organization to use integrations.",
-					})}
+					{i18n._(
+						msg({
+							message:
+								"You need to be part of an organization to use integrations.",
+						}),
+					)}
 				</p>
 			</div>
 		);
@@ -119,10 +132,11 @@ export default async function MicrosoftTeamsIntegrationPage() {
 				className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
 			>
 				<ArrowLeft className="size-4" />
-				{i18n._({
-					id: "web.integrations.back",
-					message: "Back to Integrations",
-				})}
+				{i18n._(
+					msg({
+						message: "Back to Integrations",
+					}),
+				)}
 			</Link>
 
 			<div className="flex items-start gap-6">
@@ -135,26 +149,29 @@ export default async function MicrosoftTeamsIntegrationPage() {
 						{isConnected ? (
 							<Badge variant="default" className="gap-1">
 								<CheckCircle2 className="size-3" />
-								{i18n._({
-									id: "web.integrations.connected",
-									message: "Connected",
-								})}
+								{i18n._(
+									msg({
+										message: "Connected",
+									}),
+								)}
 							</Badge>
 						) : (
 							<Badge variant="secondary">
-								{i18n._({
-									id: "web.integrations.notConnected",
-									message: "Not Connected",
-								})}
+								{i18n._(
+									msg({
+										message: "Not Connected",
+									}),
+								)}
 							</Badge>
 						)}
 					</div>
 					<p className="mt-1 text-muted-foreground">
-						{i18n._({
-							id: "web.integrations.teams.blurb",
-							message:
-								"Run automations when messages are posted or channels are created in your Microsoft Teams tenant. Connecting requires a tenant administrator, who grants the app permission to read channel messages and channels across the tenant.",
-						})}
+						{i18n._(
+							msg({
+								message:
+									"Run automations when messages are posted or channels are created in your Microsoft Teams tenant. Connecting requires a tenant administrator, who grants the app permission to read channel messages and channels across the tenant.",
+							}),
+						)}
 					</p>
 				</div>
 			</div>
@@ -162,17 +179,19 @@ export default async function MicrosoftTeamsIntegrationPage() {
 			<Card>
 				<CardHeader>
 					<CardTitle>
-						{i18n._({
-							id: "web.integrations.connectionCard",
-							message: "Connection",
-						})}
+						{i18n._(
+							msg({
+								message: "Connection",
+							}),
+						)}
 					</CardTitle>
 					<CardDescription>
-						{i18n._({
-							id: "web.integrations.teams.connectionDescription",
-							message:
-								"Connect your Microsoft Teams tenant. A tenant admin signs in and grants consent once for the whole tenant.",
-						})}
+						{i18n._(
+							msg({
+								message:
+									"Connect your Microsoft Teams tenant. A tenant admin signs in and grants consent once for the whole tenant.",
+							}),
+						)}
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
@@ -183,26 +202,29 @@ export default async function MicrosoftTeamsIntegrationPage() {
 					{connection && (
 						<div className="mt-4 space-y-1 text-sm text-muted-foreground">
 							<p>
-								{i18n._({
-									id: "web.integrations.connectedTo",
-									message: "Connected to",
-								})}{" "}
+								{i18n._(
+									msg({
+										message: "Connected to",
+									}),
+								)}{" "}
 								<span className="font-medium">
 									{connection.externalOrgName ?? connection.tenantId}
 								</span>
 							</p>
 							<p>
 								{listening
-									? i18n._({
-											id: "web.integrations.teams.listening",
-											message:
-												"Listening for channel messages and new channels.",
-										})
-									: i18n._({
-											id: "web.integrations.teams.notListening",
-											message:
-												"Not receiving events yet: Microsoft Graph refused the notification subscriptions. Check the app's admin consent and protected API approval, then reconnect.",
-										})}
+									? i18n._(
+											msg({
+												message:
+													"Listening for channel messages and new channels.",
+											}),
+										)
+									: i18n._(
+											msg({
+												message:
+													"Not receiving events yet: Microsoft Graph refused the notification subscriptions. Check the app's admin consent and protected API approval, then reconnect.",
+											}),
+										)}
 							</p>
 						</div>
 					)}

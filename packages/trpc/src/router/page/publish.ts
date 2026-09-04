@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { dbWs } from "@superset/db/client";
+import { db, dbWs } from "@superset/db/client";
 import {
 	attachments,
 	files,
@@ -97,7 +97,7 @@ async function runPublish({
 	// name it. A concurrent publish of the same page collides on the unique
 	// (page, version) index and retries under the next number.
 	const target = await resolveTargetPage({
-		executor: dbWs,
+		executor: db,
 		input,
 		organizationId,
 		userId,
@@ -108,7 +108,7 @@ async function runPublish({
 	// version number.
 	const staged = target ? await verifyStagedAssets(target.id) : [];
 	const pageId = target?.id ?? randomUUID();
-	const version = (target ? await latestVersionNumber(dbWs, target.id) : 0) + 1;
+	const version = (target ? await latestVersionNumber(db, target.id) : 0) + 1;
 	const key = pageVersionKey(pageId, version);
 
 	const published: PublishedVersion = await dbWs.transaction(async (tx) => {
@@ -255,7 +255,7 @@ async function runPublish({
 async function verifyStagedAssets(
 	pageId: string,
 ): Promise<{ id: string; fileId: string; path: string }[]> {
-	const rows = await dbWs
+	const rows = await db
 		.select({ file: files, path: attachments.path, id: attachments.id })
 		.from(attachments)
 		.innerJoin(files, eq(files.id, attachments.fileId))
@@ -295,7 +295,7 @@ async function verifyStagedAssets(
 
 			// Guarded on `pending`: if the sweep claimed this row mid-publish, the
 			// update matches nothing and the asset has to be uploaded again.
-			const [updated] = await dbWs
+			const [updated] = await db
 				.update(files)
 				.set({
 					contentType: sniffContentType(bytes, file.contentType),

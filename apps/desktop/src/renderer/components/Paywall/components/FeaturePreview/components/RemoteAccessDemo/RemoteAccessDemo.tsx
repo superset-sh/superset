@@ -13,9 +13,7 @@ export function RemoteAccessDemo() {
 							<div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
 						</div>
 						<span className="text-xs text-muted-foreground ml-1">
-							<Trans id="components.remoteAccessDemo.windowTitle">
-								Remote Access
-							</Trans>
+							<Trans>Remote Access</Trans>
 						</span>
 					</div>
 				</div>
@@ -27,7 +25,7 @@ export function RemoteAccessDemo() {
 								<HiOutlineComputerDesktop className="size-5 text-foreground/80" />
 							</div>
 							<span className="text-[10px] text-muted-foreground">
-								<Trans id="components.remoteAccessDemo.thisMac">This Mac</Trans>
+								<Trans>This Mac</Trans>
 							</span>
 						</div>
 						<div className="flex items-center gap-1">
@@ -40,7 +38,7 @@ export function RemoteAccessDemo() {
 								<HiOutlineComputerDesktop className="size-5 text-foreground/80" />
 							</div>
 							<span className="text-[10px] text-muted-foreground">
-								<Trans id="components.remoteAccessDemo.remote">Remote</Trans>
+								<Trans>Remote</Trans>
 							</span>
 						</div>
 					</div>
@@ -48,22 +46,18 @@ export function RemoteAccessDemo() {
 					<div className="mt-2 space-y-1.5">
 						<div className="flex items-center justify-between px-2 py-1.5 rounded bg-foreground/5 text-xs">
 							<span className="text-foreground/80">
-								<Trans id="components.remoteAccessDemo.tunnelEstablished">
-									Tunnel established
-								</Trans>
+								<Trans>Tunnel established</Trans>
 							</span>
 							<span className="text-emerald-400 text-[10px]">
-								<Trans id="components.remoteAccessDemo.live">live</Trans>
+								<Trans>live</Trans>
 							</span>
 						</div>
 						<div className="flex items-center justify-between px-2 py-1.5 rounded bg-foreground/5 text-xs">
 							<span className="text-foreground/80">
-								<Trans id="components.remoteAccessDemo.latency">Latency</Trans>
+								<Trans>Latency</Trans>
 							</span>
 							<span className="text-foreground/60 text-[10px]">
-								<Trans id="components.remoteAccessDemo.latencyValue">
-									42ms
-								</Trans>
+								<Trans>42ms</Trans>
 							</span>
 						</div>
 					</div>

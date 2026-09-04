@@ -150,33 +150,23 @@ export function V2WorkspacesList({
 					</EmptyMedia>
 					<EmptyTitle>
 						{hasActiveFilters ? (
-							<Trans id="dashboard.workspaces.empty.noFilterMatches">
-								No workspaces match your filters
-							</Trans>
+							<Trans>No workspaces match your filters</Trans>
 						) : (
-							<Trans id="dashboard.workspaces.empty.noWorkspaces">
-								No workspaces yet
-							</Trans>
+							<Trans>No workspaces yet</Trans>
 						)}
 					</EmptyTitle>
 					<EmptyDescription>
 						{hasActiveFilters ? (
-							<Trans id="dashboard.workspaces.empty.noFilterMatchesHint">
-								Try a different search term or another device.
-							</Trans>
+							<Trans>Try a different search term or another device.</Trans>
 						) : (
-							<Trans id="dashboard.workspaces.empty.noWorkspacesHint">
-								Workspaces on this device will show up here.
-							</Trans>
+							<Trans>Workspaces on this device will show up here.</Trans>
 						)}
 					</EmptyDescription>
 				</EmptyHeader>
 				{hasActiveFilters ? (
 					<EmptyContent>
 						<Button variant="outline" size="sm" onClick={() => resetFilters()}>
-							<Trans id="dashboard.workspaces.empty.clearFilters">
-								Clear filters
-							</Trans>
+							<Trans>Clear filters</Trans>
 						</Button>
 					</EmptyContent>
 				) : null}

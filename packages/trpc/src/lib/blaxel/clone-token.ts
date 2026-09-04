@@ -11,7 +11,7 @@ import { db } from "@superset/db/client";
 import { githubInstallations, githubRepositories } from "@superset/db/schema";
 import { eq } from "drizzle-orm";
 import { env } from "../../env";
-import { repoForProject } from "./repo-for-project";
+import type { CloudRepo } from "./cloud-repo";
 
 /** Shared by the clone and branch-listing paths. */
 export async function installationOctokit(installationId: string) {
@@ -36,11 +36,8 @@ export interface CloneTarget {
  * back to an unauthenticated clone, which works for public repos.
  */
 export async function resolveCloneTarget(
-	projectId: string,
+	repo: CloudRepo,
 ): Promise<CloneTarget | null> {
-	const repo = await repoForProject(projectId);
-	if (!repo) return null;
-
 	const cloneUrl = `https://github.com/${repo.owner}/${repo.name}.git`;
 	if (!repo.repositoryId || !env.GH_APP_ID || !env.GH_APP_PRIVATE_KEY) {
 		return { cloneUrl, token: null, defaultBranch: repo.defaultBranch };
@@ -58,9 +55,21 @@ export async function resolveCloneTarget(
 		return { cloneUrl, token: null, defaultBranch: repo.defaultBranch };
 	}
 
-	const octokit = await installationOctokit(installation.installationId);
-	const { token } = (await octokit.auth({ type: "installation" })) as {
-		token: string;
-	};
-	return { cloneUrl, token, defaultBranch: repo.defaultBranch };
+	try {
+		const octokit = await installationOctokit(installation.installationId);
+		const { token } = (await octokit.auth({ type: "installation" })) as {
+			token: string;
+		};
+		return { cloneUrl, token, defaultBranch: repo.defaultBranch };
+	} catch (error) {
+		// A public repo clones without a token, so a mint that fails (an App
+		// that isn't installed here, a stale installation) shouldn't fail the
+		// workspace. Private repos still need the token, so they still throw.
+		if (row.isPrivate) throw error;
+		console.warn(
+			`[cloud-workspace] GitHub App token mint failed for public ${repo.owner}/${repo.name}; cloning without one`,
+			error instanceof Error ? error.message : error,
+		);
+		return { cloneUrl, token: null, defaultBranch: repo.defaultBranch };
+	}
 }

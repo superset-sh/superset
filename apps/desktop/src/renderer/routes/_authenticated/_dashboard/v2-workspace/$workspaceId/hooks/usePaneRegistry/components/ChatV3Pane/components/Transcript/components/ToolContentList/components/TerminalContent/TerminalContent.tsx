@@ -18,7 +18,7 @@ export function TerminalContent({ content }: { content: TerminalToolContent }) {
 				<span className="truncate">$ {content.command}</span>
 				{content.exitCode !== undefined && content.exitCode !== 0 && (
 					<Badge variant="destructive">
-						<Trans id="workspace.chat.exitCode">exit {content.exitCode}</Trans>
+						<Trans>exit {content.exitCode}</Trans>
 					</Badge>
 				)}
 			</div>
@@ -27,7 +27,7 @@ export function TerminalContent({ content }: { content: TerminalToolContent }) {
 			</pre>
 			{clipped && (
 				<span className="text-muted-foreground">
-					<Trans id="workspace.chat.outputTruncated">Output truncated</Trans>
+					<Trans>Output truncated</Trans>
 				</span>
 			)}
 		</div>

@@ -69,7 +69,6 @@ export function CreateTeamButton({ organizationId }: CreateTeamButtonProps) {
 				toast.error(
 					result.error.message ??
 						t({
-							id: "settings.teams.createFailedToast",
 							message: "Failed to create team",
 						}),
 				);
@@ -78,7 +77,6 @@ export function CreateTeamButton({ organizationId }: CreateTeamButtonProps) {
 			await utils.organization.listTeams.invalidate();
 			toast.success(
 				t({
-					id: "settings.teams.createdToast",
 					message: `Created team "${trimmedName}"`,
 				}),
 			);
@@ -89,7 +87,6 @@ export function CreateTeamButton({ organizationId }: CreateTeamButtonProps) {
 				errorMessage(
 					error,
 					t({
-						id: "settings.teams.createFailedToast",
 						message: "Failed to create team",
 					}),
 				),
@@ -102,7 +99,7 @@ export function CreateTeamButton({ organizationId }: CreateTeamButtonProps) {
 	return (
 		<>
 			<Button onClick={() => setIsOpen(true)}>
-				<Trans id="settings.teams.createButton">Create team</Trans>
+				<Trans>Create team</Trans>
 			</Button>
 			<Dialog
 				open={isOpen}
@@ -115,12 +112,10 @@ export function CreateTeamButton({ organizationId }: CreateTeamButtonProps) {
 					<form onSubmit={handleSubmit}>
 						<DialogHeader>
 							<DialogTitle>
-								<Trans id="settings.teams.createDialogTitle">
-									Create a team
-								</Trans>
+								<Trans>Create a team</Trans>
 							</DialogTitle>
 							<DialogDescription>
-								<Trans id="settings.teams.createDialogDescription">
+								<Trans>
 									Name and a URL-friendly slug. Both can be changed later.
 								</Trans>
 							</DialogDescription>
@@ -128,14 +123,13 @@ export function CreateTeamButton({ organizationId }: CreateTeamButtonProps) {
 						<div className="my-4 space-y-4">
 							<div className="space-y-1.5">
 								<Label htmlFor="team-name">
-									<Trans id="settings.teams.nameLabel">Name</Trans>
+									<Trans>Name</Trans>
 								</Label>
 								<Input
 									id="team-name"
 									value={name}
 									onChange={(event) => handleNameChange(event.target.value)}
 									placeholder={t({
-										id: "settings.teams.namePlaceholder",
 										message: "e.g. Engineering",
 									})}
 									autoFocus
@@ -144,14 +138,13 @@ export function CreateTeamButton({ organizationId }: CreateTeamButtonProps) {
 							</div>
 							<div className="space-y-1.5">
 								<Label htmlFor="team-slug">
-									<Trans id="settings.teams.slugLabel">Slug</Trans>
+									<Trans>Slug</Trans>
 								</Label>
 								<Input
 									id="team-slug"
 									value={slug}
 									onChange={(event) => handleSlugChange(event.target.value)}
 									placeholder={t({
-										id: "settings.teams.slugPlaceholder",
 										message: "e.g. engineering",
 									})}
 									required
@@ -165,16 +158,16 @@ export function CreateTeamButton({ organizationId }: CreateTeamButtonProps) {
 								onClick={() => setIsOpen(false)}
 								disabled={isSubmitting}
 							>
-								<Trans id="settings.teams.createCancel">Cancel</Trans>
+								<Trans>Cancel</Trans>
 							</Button>
 							<Button
 								type="submit"
 								disabled={!name.trim() || !slug.trim() || isSubmitting}
 							>
 								{isSubmitting ? (
-									<Trans id="settings.teams.creatingButton">Creating...</Trans>
+									<Trans>Creating...</Trans>
 								) : (
-									<Trans id="settings.teams.createConfirm">Create</Trans>
+									<Trans>Create</Trans>
 								)}
 							</Button>
 						</DialogFooter>

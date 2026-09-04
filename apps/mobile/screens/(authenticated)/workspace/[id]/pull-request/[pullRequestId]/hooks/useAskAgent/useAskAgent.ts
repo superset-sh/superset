@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -54,10 +55,11 @@ export function useAskAgent({ workspaceId }: { workspaceId: string | null }) {
 		},
 		onError: (error: Error) => {
 			Alert.alert(
-				i18n._({
-					id: "mobile.agent.startFailed",
-					message: "Could not start agent",
-				}),
+				i18n._(
+					msg({
+						message: "Could not start agent",
+					}),
+				),
 				error.message,
 			);
 		},

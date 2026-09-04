@@ -74,7 +74,7 @@ const SectionChevron = ({ isOpen }: { isOpen: boolean }) => (
 const RequiredBadge = () => (
 	<Badge className="bg-red-100 dark:bg-red-900/30" variant="secondary">
 		<Text className="text-red-700 dark:text-red-400">
-			<Trans id="mobile.schema.required">required</Trans>
+			<Trans>required</Trans>
 		</Text>
 	</Badge>
 );
@@ -258,7 +258,7 @@ export const SchemaDisplayParameters = ({
 			<CollapsibleTrigger className="w-full flex-row items-center gap-2 px-4 py-3">
 				<SectionChevron isOpen={isOpen} />
 				<Text className="font-medium text-sm">
-					<Trans id="mobile.tool.parameters">Parameters</Trans>
+					<Trans>Parameters</Trans>
 				</Text>
 				<Badge className="ml-auto" variant="secondary">
 					<Text>{parameters?.length}</Text>
@@ -393,7 +393,7 @@ export const SchemaDisplayRequest = ({
 			<CollapsibleTrigger className="w-full flex-row items-center gap-2 px-4 py-3">
 				<SectionChevron isOpen={isOpen} />
 				<Text className="font-medium text-sm">
-					<Trans id="mobile.schema.requestBody">Request Body</Trans>
+					<Trans>Request Body</Trans>
 				</Text>
 			</CollapsibleTrigger>
 			<CollapsibleContent>
@@ -438,7 +438,7 @@ export const SchemaDisplayResponse = ({
 			<CollapsibleTrigger className="w-full flex-row items-center gap-2 px-4 py-3">
 				<SectionChevron isOpen={isOpen} />
 				<Text className="font-medium text-sm">
-					<Trans id="mobile.schema.response">Response</Trans>
+					<Trans>Response</Trans>
 				</Text>
 			</CollapsibleTrigger>
 			<CollapsibleContent>

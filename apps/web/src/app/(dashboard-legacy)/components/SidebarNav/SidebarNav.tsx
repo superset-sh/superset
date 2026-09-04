@@ -8,14 +8,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navItems: { href: string; label: MessageDescriptor }[] = [
-	{ href: "/", label: msg({ id: "web.sidebarNav.home", message: "Home" }) },
+	{ href: "/", label: msg({ message: "Home" }) },
 	{
 		href: "/integrations",
-		label: msg({ id: "web.sidebarNav.integrations", message: "Integrations" }),
+		label: msg({ message: "Integrations" }),
 	},
 	{
 		href: "/settings/account",
-		label: msg({ id: "web.sidebarNav.account", message: "Account" }),
+		label: msg({ message: "Account" }),
 	},
 ];
 

@@ -41,13 +41,12 @@ function StarNagToastContent({ toastId }: { toastId: string | number }) {
 		<div className="w-[356px] rounded-lg border border-border bg-popover p-4 shadow-lg select-text">
 			<div className="flex items-start justify-between gap-2">
 				<p className="text-sm font-semibold text-popover-foreground">
-					<Trans id="components.starNagToast.title">You're all set!</Trans>
+					<Trans>You're all set!</Trans>
 				</p>
 				<button
 					type="button"
 					onClick={handleClose}
 					aria-label={t({
-						id: "components.starNagToast.dismiss",
 						message: "Dismiss",
 					})}
 					className="text-muted-foreground transition-colors hover:text-foreground"
@@ -56,7 +55,7 @@ function StarNagToastContent({ toastId }: { toastId: string | number }) {
 				</button>
 			</div>
 			<p className="mt-1 text-xs text-muted-foreground">
-				<Trans id="components.starNagToast.body">
+				<Trans>
 					If you're enjoying Superset so far, a GitHub star helps other
 					developers discover it.
 				</Trans>

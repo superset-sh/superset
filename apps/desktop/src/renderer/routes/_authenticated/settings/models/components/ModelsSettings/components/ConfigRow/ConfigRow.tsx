@@ -39,11 +39,8 @@ export function ConfigRow({
 }: ConfigRowProps) {
 	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
-	const resolvedSaveLabel =
-		saveLabel ?? t({ id: "settings.models.configRow.save", message: "Save" });
-	const resolvedClearLabel =
-		clearLabel ??
-		t({ id: "settings.models.configRow.clear", message: "Clear" });
+	const resolvedSaveLabel = saveLabel ?? t({ message: "Save" });
+	const resolvedClearLabel = clearLabel ?? t({ message: "Clear" });
 
 	return (
 		<div className={cn("space-y-1.5", className)}>

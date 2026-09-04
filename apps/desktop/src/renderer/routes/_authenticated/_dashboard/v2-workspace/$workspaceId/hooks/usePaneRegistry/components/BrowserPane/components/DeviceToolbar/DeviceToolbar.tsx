@@ -54,7 +54,6 @@ export function DeviceToolbar({
 				type="button"
 				onClick={onToggleRotate}
 				aria-label={t({
-					id: "workspace.browserPane.rotateDevice",
 					message: "Rotate device",
 				})}
 				className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-foreground"
@@ -68,7 +67,6 @@ export function DeviceToolbar({
 				type="button"
 				onClick={onClose}
 				aria-label={t({
-					id: "workspace.browserPane.exitDeviceToolbar",
 					message: "Exit device toolbar",
 				})}
 				className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-foreground"

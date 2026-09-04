@@ -729,6 +729,20 @@
       "when": 1788209866856,
       "tag": "0103_stage_page_assets",
       "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1788310273488,
+      "tag": "0104_environments",
+      "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1788319505909,
+      "tag": "0105_drop_cloud_workspace_project",
+      "breakpoints": true
     }
   ]
 }

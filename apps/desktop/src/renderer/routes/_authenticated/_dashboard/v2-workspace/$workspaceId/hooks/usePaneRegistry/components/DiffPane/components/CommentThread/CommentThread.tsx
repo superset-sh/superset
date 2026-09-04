@@ -21,6 +21,7 @@ import {
 } from "react-icons/lu";
 import { CommentMarkdown } from "renderer/components/CommentMarkdown";
 import "./comment-thread.css";
+import { msg } from "@lingui/core/macro";
 
 interface Comment {
 	id: string;
@@ -72,7 +73,6 @@ export function CommentThread({
 				console.error("[CommentThread/copy] Failed to copy:", err);
 				toast.error(
 					t({
-						id: "workspace.diffPane.copyCommentFailedToast",
 						message: "Couldn't copy comment",
 					}),
 				);
@@ -96,7 +96,6 @@ export function CommentThread({
 			onError: (error) => {
 				toast.error(
 					t({
-						id: "workspace.diffPane.updateThreadFailedToast",
 						message: "Couldn't update thread",
 					}),
 					{
@@ -122,11 +121,9 @@ export function CommentThread({
 					aria-label={
 						open
 							? t({
-									id: "workspace.diffPane.collapseThreadAria",
 									message: "Collapse thread",
 								})
 							: t({
-									id: "workspace.diffPane.expandThreadAria",
 									message: "Expand thread",
 								})
 					}
@@ -139,7 +136,6 @@ export function CommentThread({
 					/>
 					<span className="shrink-0">
 						<Plural
-							id="workspace.diffPane.commentCount"
 							value={comments.length}
 							one="# comment"
 							other="# comments"
@@ -147,12 +143,12 @@ export function CommentThread({
 					</span>
 					{isOutdated && (
 						<span className="shrink-0 rounded-sm border border-border px-1 py-px text-[10px] font-medium uppercase tracking-wide">
-							<Trans id="workspace.diffPane.threadOutdated">Outdated</Trans>
+							<Trans>Outdated</Trans>
 						</span>
 					)}
 					{isResolved && (
 						<span className="shrink-0 rounded-sm border border-border px-1 py-px text-[10px] font-medium uppercase tracking-wide">
-							<Trans id="workspace.diffPane.threadResolved">Resolved</Trans>
+							<Trans>Resolved</Trans>
 						</span>
 					)}
 				</CollapsibleTrigger>
@@ -162,14 +158,12 @@ export function CommentThread({
 					className="shrink-0 text-muted-foreground hover:text-foreground"
 					aria-label={
 						isCopied
-							? t({ id: "workspace.diffPane.copiedAria", message: "Copied" })
+							? t({ message: "Copied" })
 							: comments.length === 1
 								? t({
-										id: "workspace.diffPane.copyCommentAria",
 										message: "Copy comment",
 									})
 								: t({
-										id: "workspace.diffPane.copyCommentsAria",
 										message: "Copy comments",
 									})
 					}
@@ -188,7 +182,6 @@ export function CommentThread({
 						onClick={(e) => e.stopPropagation()}
 						className="shrink-0 text-muted-foreground hover:text-foreground"
 						aria-label={t({
-							id: "workspace.diffPane.openOnGithubAria",
 							message: "Open on GitHub",
 						})}
 					>
@@ -220,11 +213,9 @@ export function CommentThread({
 							<LuLoaderCircle className="size-3 animate-spin" />
 						)}
 						{isResolved ? (
-							<Trans id="workspace.diffPane.unresolve">Unresolve</Trans>
+							<Trans>Unresolve</Trans>
 						) : (
-							<Trans id="workspace.diffPane.resolveConversation">
-								Resolve conversation
-							</Trans>
+							<Trans>Resolve conversation</Trans>
 						)}
 					</Button>
 				</div>
@@ -273,42 +264,48 @@ function formatRelative(ms: number): string {
 	const seconds = Math.floor(delta / 1000);
 	if (seconds < 60)
 		return i18n._({
-			id: "workspace.diffPane.relSecondsAgo",
-			message: "{seconds}s ago",
+			...msg({
+				message: "{seconds}s ago",
+			}),
 			values: { seconds },
 		});
 	const minutes = Math.floor(seconds / 60);
 	if (minutes < 60)
 		return i18n._({
-			id: "workspace.diffPane.relMinutesAgo",
-			message: "{minutes}m ago",
+			...msg({
+				message: "{minutes}m ago",
+			}),
 			values: { minutes },
 		});
 	const hours = Math.floor(minutes / 60);
 	if (hours < 24)
 		return i18n._({
-			id: "workspace.diffPane.relHoursAgo",
-			message: "{hours}h ago",
+			...msg({
+				message: "{hours}h ago",
+			}),
 			values: { hours },
 		});
 	const days = Math.floor(hours / 24);
 	if (days < 30)
 		return i18n._({
-			id: "workspace.diffPane.relDaysAgo",
-			message: "{days}d ago",
+			...msg({
+				message: "{days}d ago",
+			}),
 			values: { days },
 		});
 	const months = Math.floor(days / 30);
 	if (months < 12)
 		return i18n._({
-			id: "workspace.diffPane.relMonthsAgo",
-			message: "{months}mo ago",
+			...msg({
+				message: "{months}mo ago",
+			}),
 			values: { months },
 		});
 	const years = Math.floor(days / 365);
 	return i18n._({
-		id: "workspace.diffPane.relYearsAgo",
-		message: "{years}y ago",
+		...msg({
+			message: "{years}y ago",
+		}),
 		values: { years },
 	});
 }

@@ -55,7 +55,6 @@ export function CommentPaneHeaderExtras({
 							target="_blank"
 							rel="noopener noreferrer"
 							aria-label={t({
-								id: "workspace.commentPane.openOnGitHubAria",
 								message: "Open on GitHub",
 							})}
 							className="rounded p-1 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
@@ -64,9 +63,7 @@ export function CommentPaneHeaderExtras({
 						</a>
 					</TooltipTrigger>
 					<TooltipContent side="bottom">
-						<Trans id="workspace.commentPane.openOnGitHub">
-							Open on GitHub
-						</Trans>
+						<Trans>Open on GitHub</Trans>
 					</TooltipContent>
 				</Tooltip>
 			)}
@@ -75,7 +72,6 @@ export function CommentPaneHeaderExtras({
 					<button
 						type="button"
 						aria-label={t({
-							id: "workspace.commentPane.copyCommentAria",
 							message: "Copy comment",
 						})}
 						onClick={handleCopyAll}
@@ -89,11 +85,7 @@ export function CommentPaneHeaderExtras({
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
-					{copied ? (
-						<Trans id="workspace.commentPane.headerCopied">Copied</Trans>
-					) : (
-						<Trans id="workspace.commentPane.copyComment">Copy comment</Trans>
-					)}
+					{copied ? <Trans>Copied</Trans> : <Trans>Copy comment</Trans>}
 				</TooltipContent>
 			</Tooltip>
 		</>

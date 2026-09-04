@@ -24,7 +24,7 @@ export function MrrTooltip({ active, payload }: MrrTooltipProps) {
 		<div className="border-border/50 bg-background min-w-[11rem] rounded-lg border px-3 py-2 text-xs shadow-xl">
 			<div className="flex items-center justify-between gap-4 pb-1">
 				<span className="font-medium">
-					<Trans id="admin.mrr.label">MRR</Trans>
+					<Trans>MRR</Trans>
 				</span>
 				{datum.changePct !== null ? (
 					<span

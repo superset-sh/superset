@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
@@ -64,7 +65,7 @@ export function Command({
 				</a>
 				{alias ? (
 					<span className="rounded-md border border-border px-2 py-0.5 text-xs font-normal text-muted-foreground">
-						{i18n._({ id: "docs.command.alias", message: "alias:" })}{" "}
+						{i18n._(msg({ message: "alias:" }))}{" "}
 						<span className="font-mono">{alias}</span>
 					</span>
 				) : null}
@@ -75,19 +76,20 @@ export function Command({
 			{args && args.length > 0 ? (
 				<div className="mt-6 not-prose">
 					<h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-						{i18n._({ id: "docs.command.arguments", message: "Arguments" })}
+						{i18n._(msg({ message: "Arguments" }))}
 					</h4>
 					<table className="w-full text-sm border-collapse">
 						<thead>
 							<tr className="border-b border-border">
 								<th className="text-left py-2 pr-4 font-medium w-1/3">
-									{i18n._({ id: "docs.command.argumentName", message: "Name" })}
+									{i18n._(msg({ message: "Name" }))}
 								</th>
 								<th className="text-left py-2 font-medium">
-									{i18n._({
-										id: "docs.command.description",
-										message: "Description",
-									})}
+									{i18n._(
+										msg({
+											message: "Description",
+										}),
+									)}
 								</th>
 							</tr>
 						</thead>
@@ -105,10 +107,11 @@ export function Command({
 											</code>
 											{arg.required ? (
 												<span className="ml-2 text-xs text-muted-foreground">
-													{i18n._({
-														id: "docs.command.required",
-														message: "required",
-													})}
+													{i18n._(
+														msg({
+															message: "required",
+														}),
+													)}
 												</span>
 											) : null}
 										</td>
@@ -126,19 +129,20 @@ export function Command({
 			{options && options.length > 0 ? (
 				<div className="mt-6 not-prose">
 					<h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-						{i18n._({ id: "docs.command.options", message: "Options" })}
+						{i18n._(msg({ message: "Options" }))}
 					</h4>
 					<table className="w-full text-sm border-collapse">
 						<thead>
 							<tr className="border-b border-border">
 								<th className="text-left py-2 pr-4 font-medium w-1/3">
-									{i18n._({ id: "docs.command.flag", message: "Flag" })}
+									{i18n._(msg({ message: "Flag" }))}
 								</th>
 								<th className="text-left py-2 font-medium">
-									{i18n._({
-										id: "docs.command.description",
-										message: "Description",
-									})}
+									{i18n._(
+										msg({
+											message: "Description",
+										}),
+									)}
 								</th>
 							</tr>
 						</thead>
@@ -152,10 +156,11 @@ export function Command({
 										<code className="font-mono text-sm">{opt.flag}</code>
 										{opt.required ? (
 											<span className="ml-2 text-xs text-muted-foreground">
-												{i18n._({
-													id: "docs.command.required",
-													message: "required",
-												})}
+												{i18n._(
+													msg({
+														message: "required",
+													}),
+												)}
 											</span>
 										) : null}
 									</td>
@@ -172,12 +177,13 @@ export function Command({
 			{humanColumns && humanColumns.length > 0 ? (
 				<p className="mt-4 text-sm text-muted-foreground">
 					<span className="font-semibold">
-						{i18n._({ id: "docs.command.humanMode", message: "Human mode:" })}
+						{i18n._(msg({ message: "Human mode:" }))}
 					</span>{" "}
-					{i18n._({
-						id: "docs.command.humanModeColumns",
-						message: "table with",
-					})}{" "}
+					{i18n._(
+						msg({
+							message: "table with",
+						}),
+					)}{" "}
 					{humanColumns.map((col, i) => (
 						<span key={col}>
 							<code className="font-mono text-xs">{col}</code>
@@ -205,7 +211,7 @@ export function CommandReturns({ children }: CommandReturnsProps) {
 	return (
 		<div className="mt-6">
 			<h4 className="not-prose text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-				{i18n._({ id: "docs.command.returns", message: "Returns" })}
+				{i18n._(msg({ message: "Returns" }))}
 			</h4>
 			<div className="space-y-3">{children}</div>
 		</div>

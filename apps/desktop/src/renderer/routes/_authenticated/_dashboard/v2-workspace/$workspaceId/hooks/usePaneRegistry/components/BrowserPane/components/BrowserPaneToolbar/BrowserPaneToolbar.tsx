@@ -89,16 +89,14 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 							)}
 						>
 							<SquareDashedMousePointer className="size-3" />
-							<Trans id="workspace.browserPane.designButton">Design</Trans>
+							<Trans>Design</Trans>
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom">
 						{designMode.phase !== "idle" ? (
-							<Trans id="workspace.browserPane.designTooltipExit">
-								Exit design mode (esc)
-							</Trans>
+							<Trans>Exit design mode (esc)</Trans>
 						) : (
-							<Trans id="workspace.browserPane.designTooltipEnter">
+							<Trans>
 								Design mode — click any element in the page to send it to an
 								agent
 							</Trans>
@@ -116,7 +114,7 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom">
-						<Trans id="workspace.browserPane.openDevTools">Open DevTools</Trans>
+						<Trans>Open DevTools</Trans>
 					</TooltipContent>
 				</Tooltip>
 				<BrowserOverflowMenu

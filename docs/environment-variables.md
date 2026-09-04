@@ -62,6 +62,10 @@ MY_VAR: ${{ secrets.MY_VAR }}     # the job's env: block
 
 Both reference `${{ secrets.MY_VAR }}`; the environment picks the value.
 
+A reusable workflow (`on: workflow_call`, e.g. `build-cli.yml`) inherits `vars`
+automatically but **not** `secrets` — the caller must pass `secrets: inherit`,
+or the value arrives empty.
+
 ## Checklist
 
 - [ ] `gh secret set`

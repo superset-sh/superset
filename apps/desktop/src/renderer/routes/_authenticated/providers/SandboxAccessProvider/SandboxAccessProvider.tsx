@@ -27,11 +27,9 @@ const SandboxAccessContext = createContext<SandboxAccessValue | null>(null);
  * Keeps a live address for every ready cloud workspace.
  *
  * A sandbox has no `v2_hosts` row and no stable URL — it is reachable only
- * through a token this brokers, and that token expires. Minting for all of
- * them (rather than only the open one) is what lets the rest of the app treat
- * a sandbox as just another host: the workspace, pull-request, agent-status
- * and diff-stat fan-outs are all keyed by host address, so once a sandbox has
- * one they light up with no cloud-specific code.
+ * through a token this brokers, and that token expires. Minting talks to the
+ * Superset API, not the sandbox, so addressing every ready workspace wakes
+ * nothing; the fan-out only uses the open one's address.
  */
 export function SandboxAccessProvider({ children }: { children: ReactNode }) {
 	const { workspaces: cloudWorkspaces, organizationId } = useCloudWorkspaces();

@@ -151,7 +151,7 @@ export const ToolInput = ({ className, input, ...props }: ToolInputProps) => {
 	return (
 		<div className={cn("space-y-1 overflow-hidden", className)} {...props}>
 			<h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-				<Trans id="ui.tool.input">Input</Trans>
+				<Trans>Input</Trans>
 			</h4>
 			<pre className="overflow-x-auto rounded-sm bg-muted/30 px-2 py-1.5 font-mono text-xs text-muted-foreground whitespace-pre-wrap break-all">
 				{displayCode}

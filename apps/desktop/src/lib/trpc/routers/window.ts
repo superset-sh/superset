@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import { homedir } from "node:os";
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { dialog } from "electron";
 import { menuEmitter } from "main/lib/menu-events";
@@ -124,10 +125,11 @@ export const createWindowRouter = () => {
 					properties: ["openDirectory", "createDirectory"],
 					title:
 						input?.title ??
-						i18n._({
-							id: "desktop.lib.dialog.selectDirectory.title",
-							message: "Select Directory",
-						}),
+						i18n._(
+							msg({
+								message: "Select Directory",
+							}),
+						),
 					defaultPath: input?.defaultPath ?? undefined,
 				});
 
@@ -146,16 +148,18 @@ export const createWindowRouter = () => {
 
 			const result = await dialog.showOpenDialog(window, {
 				properties: ["openFile"],
-				title: i18n._({
-					id: "desktop.lib.dialog.selectOrganizationLogo.title",
-					message: "Select Organization Logo",
-				}),
+				title: i18n._(
+					msg({
+						message: "Select Organization Logo",
+					}),
+				),
 				filters: [
 					{
-						name: i18n._({
-							id: "desktop.lib.dialog.filter.images",
-							message: "Images",
-						}),
+						name: i18n._(
+							msg({
+								message: "Images",
+							}),
+						),
 						extensions: ["png", "jpg", "jpeg", "webp"],
 					},
 				],

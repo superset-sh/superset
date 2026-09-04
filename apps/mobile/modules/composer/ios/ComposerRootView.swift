@@ -87,6 +87,16 @@ enum ComposerMetrics {
   /// Slack before a scroll offset counts as "there is more that way", so a
   /// rubber-band overshoot does not flicker the fades.
   static let quickKeyScrollThreshold: CGFloat = 4
+  /// The bar's outer height — a key plus the inset either side of it — which
+  /// is also the side of the square control ahead of it.
+  static let quickKeyBarHeight: CGFloat = quickKeyHeight + quickKeyBarInset * 2
+  /// Air between that control and the bar. Wider than the keys' own spacing:
+  /// the break is what says the control is not one of them.
+  static let quickKeyActionGap: CGFloat = 8
+  /// A drawn mark needs more box than an SF Symbol at the same nominal size —
+  /// the symbol's own bounds already carry optical padding, a 24-unit lucide
+  /// path does not.
+  static let quickKeyActionMark: CGFloat = 16
 
   /// The session tab strip, above the quick keys.
   ///
@@ -114,10 +124,6 @@ enum ComposerMetrics {
   static let sessionTabCloseFade: CGFloat = 12
   static let sessionTabControlSize: CGFloat = 28
   static let sessionTabControlGlyph: CGFloat = 13
-  /// A drawn mark needs more box than an SF Symbol at the same nominal size —
-  /// the symbol's own bounds already carry optical padding, a 24-unit lucide
-  /// path does not.
-  static let sessionTabControlMark: CGFloat = 16
   static let sessionTabControlGap: CGFloat = sessionTabGap
   /// How far the strip scrolls before the scroll-home chevron is fully in.
   /// The reveal is a ratio of this, not a threshold crossing, so the control
@@ -290,24 +296,27 @@ struct ComposerRootView: View {
             // is also what keeps the terminal's inset honest: the height
             // reported below is measured off this stack, so a tab strip
             // appearing is already in the number the caller insets by.
-            // Or a leading action with no sessions yet: the strip is still
-            // the row that control belongs to, and drawing it is cheaper than
-            // a second place for the caller to put one.
-            if !model.sessionTabs.isEmpty || model.sessionAction != nil {
+            if !model.sessionTabs.isEmpty {
               ComposerSessionTabs(
                 tabs: model.sessionTabs,
                 labels: model.sessionTabLabels,
-                action: model.sessionAction,
                 onSelect: { model.onSessionTabPress?($0) },
                 onClose: { model.onSessionTabClose?($0) },
                 onCopyId: { model.onSessionTabCopyId?($0) },
-                onAction: { model.onSessionActionPress?() },
                 onNewSession: { model.onNewSessionPress?() },
                 onAllSessions: { model.onAllSessionsPress?() }
               )
             }
-            if !model.quickKeys.isEmpty {
-              ComposerQuickKeys(keys: model.quickKeys) { model.onQuickKeyPress?($0) }
+            // The keys, or the control beside them: select mode empties the
+            // keys, and a workspace with a pull request keeps its row through
+            // that, so the cluster's height holds and the link stays put.
+            if !model.quickKeys.isEmpty || model.quickKeysAction != nil {
+              ComposerQuickKeys(
+                keys: model.quickKeys,
+                action: model.quickKeysAction,
+                onPress: { model.onQuickKeyPress?($0) },
+                onAction: { model.onQuickKeysActionPress?() }
+              )
             }
             surface
               .padding(.horizontal, ComposerMetrics.horizontalMargin)

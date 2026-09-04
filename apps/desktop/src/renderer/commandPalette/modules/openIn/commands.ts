@@ -38,10 +38,11 @@ async function resolvePath(context: CommandContext): Promise<string | null> {
 		).workspace.get.query({ id: context.workspace.id });
 		if (!workspace?.worktreePath) {
 			toast.error(
-				i18n._({
-					id: "commandPalette.openIn.pathUnavailable",
-					message: "Workspace path is not available",
-				}),
+				i18n._(
+					msg({
+						message: "Workspace path is not available",
+					}),
+				),
 			);
 			return null;
 		}
@@ -50,8 +51,9 @@ async function resolvePath(context: CommandContext): Promise<string | null> {
 		const message = errorMessage(error);
 		toast.error(
 			i18n._({
-				id: "commandPalette.openIn.resolvePathFailed",
-				message: "Failed to resolve workspace path: {message}",
+				...msg({
+					message: "Failed to resolve workspace path: {message}",
+				}),
 				values: { message },
 			}),
 		);
@@ -80,8 +82,9 @@ async function openIn(
 		const message = errorMessage(error);
 		toast.error(
 			i18n._({
-				id: "commandPalette.openIn.openFailed",
-				message: "Failed to open in {app}: {message}",
+				...msg({
+					message: "Failed to open in {app}: {message}",
+				}),
 				values: { app, message },
 			}),
 		);
@@ -133,7 +136,6 @@ export const openInProvider: CommandProvider = {
 				id: `openIn.preferred:${preferredOption.id}`,
 				title: {
 					...msg({
-						id: "commandPalette.openIn.preferred",
 						message: "Open in {app}",
 					}),
 					values: { app: preferredOption.label },
@@ -148,7 +150,7 @@ export const openInProvider: CommandProvider = {
 
 		commands.push({
 			id: "openIn.menu",
-			title: msg({ id: "commandPalette.openIn.menu", message: "Open in…" }),
+			title: msg({ message: "Open in…" }),
 			section: "workspace",
 			icon: ArrowUpRightIcon,
 			keywords: ["editor", "finder", "cursor", "vscode"],

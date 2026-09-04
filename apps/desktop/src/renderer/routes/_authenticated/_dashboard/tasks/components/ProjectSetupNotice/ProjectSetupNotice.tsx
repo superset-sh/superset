@@ -26,9 +26,7 @@ export function ProjectSetupNotice({
 	return (
 		<div className="mb-2 flex items-center justify-between gap-2">
 			<p className="text-xs text-muted-foreground">
-				<Trans id="tasks.projectSetupNotice.notSetUp">
-					Not set up on this host.
-				</Trans>
+				<Trans>Not set up on this host.</Trans>
 			</p>
 			<Button
 				type="button"
@@ -47,7 +45,7 @@ export function ProjectSetupNotice({
 					});
 				}}
 			>
-				<Trans id="tasks.projectSetupNotice.setUp">Set up project…</Trans>
+				<Trans>Set up project…</Trans>
 			</Button>
 		</div>
 	);

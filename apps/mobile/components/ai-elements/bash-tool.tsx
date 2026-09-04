@@ -64,10 +64,9 @@ const ClampedOutput = ({
 				>
 					<Text className="mt-1 text-muted-foreground text-xs underline">
 						{isExpanded ? (
-							<Trans id="mobile.common.showLess">Show less</Trans>
+							<Trans>Show less</Trans>
 						) : (
 							<Plural
-								id="mobile.common.showMoreLines"
 								value={lineCount - MAX_OUTPUT_LINES}
 								one="Show # more line"
 								other="Show # more lines"

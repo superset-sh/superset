@@ -71,7 +71,6 @@ export function PromptHistoryCommand({
 				<Command shouldFilter={false}>
 					<CommandInput
 						placeholder={t({
-							id: "dashboard.newWorkspaceModal.promptHistory.searchPlaceholder",
 							message: "Search previous prompts...",
 						})}
 						value={searchQuery}
@@ -82,11 +81,9 @@ export function PromptHistoryCommand({
 							<CommandEmpty>
 								{entries.length === 0
 									? t({
-											id: "dashboard.newWorkspaceModal.promptHistory.emptyState",
 											message: "Prompts you submit will show up here.",
 										})
 									: t({
-											id: "dashboard.newWorkspaceModal.promptHistory.noResults",
 											message: "No prompts found.",
 										})}
 							</CommandEmpty>
@@ -96,14 +93,12 @@ export function PromptHistoryCommand({
 								heading={
 									query
 										? t({
-												id: "dashboard.newWorkspaceModal.promptHistory.resultCount",
 												message: plural(results.length, {
 													one: "# result",
 													other: "# results",
 												}),
 											})
 										: t({
-												id: "dashboard.newWorkspaceModal.promptHistory.recentPrompts",
 												message: "Recent prompts",
 											})
 								}

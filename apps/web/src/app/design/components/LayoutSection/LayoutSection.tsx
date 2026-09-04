@@ -1,5 +1,6 @@
 "use client";
 
+import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import { AspectRatio } from "@superset/ui/aspect-ratio";
@@ -12,7 +13,6 @@ import {
 } from "@superset/ui/resizable";
 import { ScrollArea } from "@superset/ui/scroll-area";
 import { Separator } from "@superset/ui/separator";
-
 import { ComponentCard } from "../ComponentCard";
 import { ShowcaseSection } from "../ShowcaseSection";
 
@@ -27,53 +27,55 @@ export function LayoutSection() {
 		<ShowcaseSection
 			id="layout"
 			index="08"
-			title={i18n._({
-				id: "web.design.layoutSection.layout",
-				message: "Layout",
-			})}
-			description={i18n._({
-				id: "web.design.layoutSection.structureScrollingAndOverflowHandling",
-				message: "Structure, scrolling, and overflow handling",
-			})}
+			title={i18n._(
+				msg({
+					message: "Layout",
+				}),
+			)}
+			description={i18n._(
+				msg({
+					message: "Structure, scrolling, and overflow handling",
+				}),
+			)}
 		>
 			<ComponentCard
-				title={i18n._({
-					id: "web.design.layoutSection.separator",
-					message: "Separator",
-				})}
+				title={i18n._(
+					msg({
+						message: "Separator",
+					}),
+				)}
 				importPath="@superset/ui/separator"
 			>
 				<div className="w-full max-w-64">
 					<p className="text-sm font-medium">
-						<Trans id="web.design.layoutSection.supersetUi">Superset UI</Trans>
+						<Trans>Superset UI</Trans>
 					</p>
 					<p className="text-sm text-muted-foreground">
-						<Trans id="web.design.layoutSection.sharedComponentLibrary">
-							Shared component library.
-						</Trans>
+						<Trans>Shared component library.</Trans>
 					</p>
 					<Separator className="my-3" />
 					<div className="flex h-5 items-center gap-3 text-sm">
 						<span>
-							<Trans id="web.design.layoutSection.docs">Docs</Trans>
+							<Trans>Docs</Trans>
 						</span>
 						<Separator orientation="vertical" />
 						<span>
-							<Trans id="web.design.layoutSection.source">Source</Trans>
+							<Trans>Source</Trans>
 						</span>
 						<Separator orientation="vertical" />
 						<span>
-							<Trans id="web.design.layoutSection.changelog">Changelog</Trans>
+							<Trans>Changelog</Trans>
 						</span>
 					</div>
 				</div>
 			</ComponentCard>
 
 			<ComponentCard
-				title={i18n._({
-					id: "web.design.layoutSection.aspectRatio",
-					message: "Aspect Ratio",
-				})}
+				title={i18n._(
+					msg({
+						message: "Aspect Ratio",
+					}),
+				)}
 				importPath="@superset/ui/aspect-ratio"
 			>
 				<div className="w-full max-w-64">
@@ -87,10 +89,11 @@ export function LayoutSection() {
 			</ComponentCard>
 
 			<ComponentCard
-				title={i18n._({
-					id: "web.design.layoutSection.scrollArea",
-					message: "Scroll Area",
-				})}
+				title={i18n._(
+					msg({
+						message: "Scroll Area",
+					}),
+				)}
 				importPath="@superset/ui/scroll-area"
 			>
 				<ScrollArea className="h-40 w-full max-w-72 rounded-md border">
@@ -103,15 +106,17 @@ export function LayoutSection() {
 			</ComponentCard>
 
 			<ComponentCard
-				title={i18n._({
-					id: "web.design.layoutSection.overflowFade",
-					message: "Overflow Fade",
-				})}
+				title={i18n._(
+					msg({
+						message: "Overflow Fade",
+					}),
+				)}
 				importPath="@superset/ui/overflow-fade-container"
-				description={i18n._({
-					id: "web.design.layoutSection.alsoSupersetUiOverflowFade",
-					message: "Also: @superset/ui/overflow-fade-text",
-				})}
+				description={i18n._(
+					msg({
+						message: "Also: @superset/ui/overflow-fade-text",
+					}),
+				)}
 			>
 				<div className="w-full max-w-64 space-y-4">
 					<OverflowFadeContainer className="flex gap-2 overflow-x-auto pb-1">
@@ -127,7 +132,7 @@ export function LayoutSection() {
 						)}
 					</OverflowFadeContainer>
 					<OverflowFadeText className="block w-full font-mono text-xs text-muted-foreground">
-						<Trans id="web.design.layoutSection.appsWebSrcAppDesign">
+						<Trans>
 							apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx
 						</Trans>
 					</OverflowFadeText>
@@ -135,10 +140,11 @@ export function LayoutSection() {
 			</ComponentCard>
 
 			<ComponentCard
-				title={i18n._({
-					id: "web.design.layoutSection.resizable",
-					message: "Resizable",
-				})}
+				title={i18n._(
+					msg({
+						message: "Resizable",
+					}),
+				)}
 				importPath="@superset/ui/resizable"
 				span
 				bleed
@@ -149,7 +155,7 @@ export function LayoutSection() {
 				>
 					<ResizablePanel defaultSize={30}>
 						<div className="flex h-full items-center justify-center font-mono text-xs text-muted-foreground">
-							<Trans id="web.design.layoutSection.sidebar">sidebar</Trans>
+							<Trans>sidebar</Trans>
 						</div>
 					</ResizablePanel>
 					<ResizableHandle withHandle />
@@ -157,13 +163,13 @@ export function LayoutSection() {
 						<ResizablePanelGroup direction="vertical">
 							<ResizablePanel defaultSize={60}>
 								<div className="flex h-full items-center justify-center font-mono text-xs text-muted-foreground">
-									<Trans id="web.design.layoutSection.editor">editor</Trans>
+									<Trans>editor</Trans>
 								</div>
 							</ResizablePanel>
 							<ResizableHandle withHandle />
 							<ResizablePanel defaultSize={40}>
 								<div className="flex h-full items-center justify-center font-mono text-xs text-muted-foreground">
-									<Trans id="web.design.layoutSection.terminal">terminal</Trans>
+									<Trans>terminal</Trans>
 								</div>
 							</ResizablePanel>
 						</ResizablePanelGroup>

@@ -58,13 +58,11 @@ export function FeaturePreview({ selectedFeature }: FeaturePreviewProps) {
 						{i18n._(selectedFeature.title)}
 					</span>
 					<Badge variant="default">
-						<Trans id="components.featurePreview.proBadge">PRO</Trans>
+						<Trans>PRO</Trans>
 					</Badge>
 					{selectedFeature.comingSoon && (
 						<Badge variant="secondary" className="text-[10px]">
-							<Trans id="components.featurePreview.comingSoon">
-								(Coming Soon)
-							</Trans>
+							<Trans>(Coming Soon)</Trans>
 						</Badge>
 					)}
 				</div>

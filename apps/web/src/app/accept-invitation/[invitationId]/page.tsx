@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { Button } from "@superset/ui/button";
 import { TRPCClientError } from "@trpc/client";
 import { Users } from "lucide-react";
@@ -67,25 +68,28 @@ export default async function AcceptInvitationPage({
 					</div>
 					<div className="space-y-4">
 						<h1 className="text-2xl font-semibold">
-							{i18n._({
-								id: "web.acceptInvitation.invalidTitle",
-								message: "Invitation link does not exist",
-							})}
+							{i18n._(
+								msg({
+									message: "Invitation link does not exist",
+								}),
+							)}
 						</h1>
 						<p className="text-muted-foreground">
-							{i18n._({
-								id: "web.acceptInvitation.invalidBody",
-								message:
-									"The team invitation has either expired or doesn't exist. Request a new link from the team owner or check the URL to make sure it is entered correctly.",
-							})}
+							{i18n._(
+								msg({
+									message:
+										"The team invitation has either expired or doesn't exist. Request a new link from the team owner or check the URL to make sure it is entered correctly.",
+								}),
+							)}
 						</p>
 					</div>
 					<Button asChild variant="outline">
 						<Link href="/">
-							{i18n._({
-								id: "web.acceptInvitation.returnToDashboard",
-								message: "Return to dashboard",
-							})}
+							{i18n._(
+								msg({
+									message: "Return to dashboard",
+								}),
+							)}
 						</Link>
 					</Button>
 				</div>
@@ -115,15 +119,17 @@ export default async function AcceptInvitationPage({
 				<div className="space-y-4">
 					<h1 className="text-2xl font-semibold">
 						{i18n._({
-							id: "web.acceptInvitation.title",
-							message: "You've been invited to join {organization}",
+							...msg({
+								message: "You've been invited to join {organization}",
+							}),
 							values: { organization: invitation.organization.name },
 						})}
 					</h1>
 					<p className="text-muted-foreground">
 						{i18n._({
-							id: "web.acceptInvitation.body",
-							message: "{inviter} invited you to join as a {role}.",
+							...msg({
+								message: "{inviter} invited you to join as a {role}.",
+							}),
 							values: {
 								inviter: invitation.inviter.name,
 								role: invitation.role,

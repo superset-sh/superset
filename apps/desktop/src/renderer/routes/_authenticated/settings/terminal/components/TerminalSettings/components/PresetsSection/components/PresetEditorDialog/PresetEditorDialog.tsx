@@ -274,7 +274,6 @@ export function PresetEditorDialog({
 				errorMessage(
 					err,
 					t({
-						id: "settings.terminal.presetEditor.saveFailed",
 						message: "Failed to save",
 					}),
 				),
@@ -287,7 +286,6 @@ export function PresetEditorDialog({
 		if (patch.command.length === 0) {
 			toast.error(
 				t({
-					id: "settings.terminal.presetEditor.commandEmpty",
 					message: "Command cannot be empty",
 				}),
 			);
@@ -327,7 +325,6 @@ export function PresetEditorDialog({
 	const handleBrowseDirectory = async () => {
 		const result = await selectDirectory.mutateAsync({
 			title: t({
-				id: "settings.terminal.presetEditor.browseTitle",
 				message: "Select terminal script directory",
 			}),
 			defaultPath: browseDefaultPath,
@@ -348,28 +345,24 @@ export function PresetEditorDialog({
 				{
 					value: "sequential",
 					label: t({
-						id: "settings.terminal.presetEditor.launchMode.allInCurrentTab",
 						message: "All in current tab",
 					}),
 				},
 				{
 					value: "split-pane",
 					label: t({
-						id: "settings.terminal.presetEditor.launchMode.allInCurrentTabSplit",
 						message: "All in current tab (split panes)",
 					}),
 				},
 				{
 					value: "new-tab",
 					label: t({
-						id: "settings.terminal.presetEditor.launchMode.eachInNewTab",
 						message: "Each in its own new tab",
 					}),
 				},
 				{
 					value: "new-tab-split-pane",
 					label: t({
-						id: "settings.terminal.presetEditor.launchMode.allInNewTabSplit",
 						message: "All in a new tab (split panes)",
 					}),
 				},
@@ -378,14 +371,12 @@ export function PresetEditorDialog({
 				{
 					value: "split-pane",
 					label: t({
-						id: "settings.terminal.presetEditor.launchMode.openInCurrentTab",
 						message: "Open in current tab",
 					}),
 				},
 				{
 					value: "new-tab",
 					label: t({
-						id: "settings.terminal.presetEditor.launchMode.openInNewTab",
 						message: "Open in new tab",
 					}),
 				},
@@ -401,7 +392,7 @@ export function PresetEditorDialog({
 			<Alert variant="destructive">
 				<HiExclamationTriangle />
 				<AlertDescription>
-					<Trans id="settings.terminal.presetEditor.directoryMissing">
+					<Trans>
 						This directory does not exist. The terminal script will fall back to
 						the workspace root.
 					</Trans>
@@ -414,9 +405,7 @@ export function PresetEditorDialog({
 			<Alert variant="destructive">
 				<HiExclamationTriangle />
 				<AlertDescription>
-					<Trans id="settings.terminal.presetEditor.pathNotDirectory">
-						This path exists, but it is not a directory.
-					</Trans>
+					<Trans>This path exists, but it is not a directory.</Trans>
 				</AlertDescription>
 			</Alert>
 		) : null;
@@ -430,12 +419,11 @@ export function PresetEditorDialog({
 							<DialogTitle>
 								{(linkedAgent?.label ?? preset.name).trim() ||
 									t({
-										id: "settings.terminal.presetEditor.fallbackTitle",
 										message: "Edit script",
 									})}
 							</DialogTitle>
 							<DialogDescription className="sr-only">
-								<Trans id="settings.terminal.presetEditor.description">
+								<Trans>
 									Configure commands, availability, and launch behavior for this
 									terminal script.
 								</Trans>
@@ -454,9 +442,7 @@ export function PresetEditorDialog({
 											}
 											className="text-sm font-medium"
 										>
-											<Trans id="settings.terminal.presetEditor.commandLabel">
-												Command
-											</Trans>
+											<Trans>Command</Trans>
 										</Label>
 										<Link
 											to="/settings/agents/$agentId"
@@ -464,11 +450,10 @@ export function PresetEditorDialog({
 											onClick={() => onOpenChange(false)}
 											className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
 										>
-											<Trans id="settings.terminal.presetEditor.openLinkedAgent">
+											<Trans>
 												Open{" "}
 												{linkedAgent?.label ??
 													t({
-														id: "settings.terminal.presetEditor.agentSettingsFallback",
 														message: "agent settings",
 													})}
 											</Trans>
@@ -504,7 +489,7 @@ export function PresetEditorDialog({
 									)}
 									{!linkedAgent && (
 										<p className="text-xs text-muted-foreground">
-											<Trans id="settings.terminal.presetEditor.linkedAgentMissing">
+											<Trans>
 												The linked agent is missing or disabled. Showing the
 												snapshot.
 											</Trans>
@@ -515,7 +500,6 @@ export function PresetEditorDialog({
 								<>
 									<DialogRow
 										label={t({
-											id: "settings.terminal.presetEditor.nameLabel",
 											message: "Name",
 										})}
 										htmlFor="preset-name"
@@ -526,7 +510,6 @@ export function PresetEditorDialog({
 											onChange={(e) => onFieldChange("name", e.target.value)}
 											onBlur={() => onFieldBlur("name")}
 											placeholder={t({
-												id: "settings.terminal.presetEditor.namePlaceholder",
 												message: "e.g. Dev server",
 											})}
 										/>
@@ -534,12 +517,10 @@ export function PresetEditorDialog({
 
 									<DialogRow
 										label={t({
-											id: "settings.terminal.presetEditor.descriptionLabel",
 											message: "Description",
 										})}
 										htmlFor="preset-description"
 										hint={t({
-											id: "settings.terminal.presetEditor.descriptionHint",
 											message:
 												"Optional context shown in the terminal scripts list.",
 										})}
@@ -552,7 +533,6 @@ export function PresetEditorDialog({
 											}
 											onBlur={() => onFieldBlur("description")}
 											placeholder={t({
-												id: "settings.terminal.presetEditor.descriptionPlaceholder",
 												message: "Optional",
 											})}
 										/>
@@ -560,11 +540,9 @@ export function PresetEditorDialog({
 
 									<DialogRow
 										label={t({
-											id: "settings.terminal.presetEditor.commandsLabel",
 											message: "Commands",
 										})}
 										hint={t({
-											id: "settings.terminal.presetEditor.commandsHint",
 											message:
 												"One command per row. Add multiple to launch a grouped terminal script.",
 										})}
@@ -575,7 +553,6 @@ export function PresetEditorDialog({
 											onChange={onCommandsChange}
 											onBlur={onCommandsBlur}
 											placeholder={t({
-												id: "settings.terminal.presetEditor.commandsPlaceholder",
 												message: "e.g. bun run dev",
 											})}
 										/>
@@ -585,11 +562,9 @@ export function PresetEditorDialog({
 
 							<DialogRow
 								label={t({
-									id: "settings.terminal.presetEditor.appliesToLabel",
 									message: "Applies to",
 								})}
 								hint={t({
-									id: "settings.terminal.presetEditor.appliesToHint",
 									message: "Where this terminal script is available.",
 								})}
 							>
@@ -603,12 +578,10 @@ export function PresetEditorDialog({
 
 							<DialogRow
 								label={t({
-									id: "settings.terminal.presetEditor.directoryLabel",
 									message: "Directory",
 								})}
 								htmlFor="preset-directory"
 								hint={t({
-									id: "settings.terminal.presetEditor.directoryHint",
 									message:
 										"Use a workspace-relative path or an absolute folder.",
 								})}
@@ -629,7 +602,6 @@ export function PresetEditorDialog({
 										onClick={handleBrowseDirectory}
 										disabled={selectDirectory.isPending}
 										aria-label={t({
-											id: "settings.terminal.presetEditor.browseAriaLabel",
 											message: "Browse for directory",
 										})}
 									>
@@ -644,17 +616,14 @@ export function PresetEditorDialog({
 
 							<DialogRow
 								label={t({
-									id: "settings.terminal.presetEditor.launchModeLabel",
 									message: "Launch mode",
 								})}
 								hint={
 									hasMultipleCommands
 										? t({
-												id: "settings.terminal.presetEditor.launchModeHintGrouped",
 												message: "How grouped commands open.",
 											})
 										: t({
-												id: "settings.terminal.presetEditor.launchModeHintSingle",
 												message: "How the command opens.",
 											})
 								}
@@ -685,14 +654,12 @@ export function PresetEditorDialog({
 											{
 												value: "split-pane",
 												label: t({
-													id: "settings.terminal.presetEditor.segmentCurrentTab",
 													message: "Current tab",
 												}),
 											},
 											{
 												value: "new-tab",
 												label: t({
-													id: "settings.terminal.presetEditor.segmentNewTab",
 													message: "New tab",
 												}),
 											},
@@ -703,12 +670,10 @@ export function PresetEditorDialog({
 
 							<DialogRow
 								label={t({
-									id: "settings.terminal.presetEditor.workspaceRunLabel",
 									message: "Use as workspace run",
 								})}
 								htmlFor="preset-workspace-run"
 								hint={t({
-									id: "settings.terminal.presetEditor.workspaceRunHint",
 									message:
 										"Makes the Run button launch this terminal script for matching projects.",
 								})}
@@ -724,12 +689,10 @@ export function PresetEditorDialog({
 
 							<DialogRow
 								label={t({
-									id: "settings.terminal.presetEditor.autoRunWorkspaceLabel",
 									message: "Auto-run on workspace creation",
 								})}
 								htmlFor="preset-workspace-autostart"
 								hint={t({
-									id: "settings.terminal.presetEditor.autoRunWorkspaceHint",
 									message:
 										"Launch this terminal script when a new workspace is created.",
 								})}
@@ -747,12 +710,10 @@ export function PresetEditorDialog({
 
 							<DialogRow
 								label={t({
-									id: "settings.terminal.presetEditor.autoRunTabLabel",
 									message: "Auto-run on new tab",
 								})}
 								htmlFor="preset-tab-autostart"
 								hint={t({
-									id: "settings.terminal.presetEditor.autoRunTabHint",
 									message:
 										"Launch this terminal script whenever a new terminal tab opens.",
 								})}
@@ -778,16 +739,14 @@ export function PresetEditorDialog({
 								className="text-destructive hover:bg-destructive/10 hover:text-destructive"
 							>
 								<Trash2 className="size-4" />
-								<Trans id="settings.terminal.presetEditor.deleteScript">
-									Delete script
-								</Trans>
+								<Trans>Delete script</Trans>
 							</Button>
 							<Button
 								type="button"
 								size="sm"
 								onClick={() => onOpenChange(false)}
 							>
-								<Trans id="settings.terminal.presetEditor.done">Done</Trans>
+								<Trans>Done</Trans>
 							</Button>
 						</DialogFooter>
 					</>

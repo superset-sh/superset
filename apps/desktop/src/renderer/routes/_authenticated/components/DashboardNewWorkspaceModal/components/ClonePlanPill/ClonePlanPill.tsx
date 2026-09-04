@@ -80,7 +80,7 @@ export function ClonePlanPill({
 						<span className="truncate">{failure}</span>
 					) : (
 						<span className="truncate">
-							<Trans id="dashboard.newWorkspaceModal.clonePlan.cloneTo">
+							<Trans>
 								Clone to <span className="font-mono">{parentDir}</span>
 							</Trans>
 						</span>
@@ -105,9 +105,7 @@ export function ClonePlanPill({
 			>
 				<label htmlFor={pathInputId} className="block space-y-1">
 					<span className="text-muted-foreground">
-						<Trans id="dashboard.newWorkspaceModal.clonePlan.location">
-							Clone location
-						</Trans>
+						<Trans>Clone location</Trans>
 					</span>
 					<Input
 						id={pathInputId}
@@ -133,9 +131,7 @@ export function ClonePlanPill({
 					className="h-auto p-0 text-xs text-muted-foreground"
 					onClick={onOpenSettings}
 				>
-					<Trans id="dashboard.newWorkspaceModal.clonePlan.setUpManually">
-						Set up manually
-					</Trans>
+					<Trans>Set up manually</Trans>
 				</Button>
 			</PopoverContent>
 		</Popover>

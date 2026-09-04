@@ -1,5 +1,6 @@
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { msg } from "@lingui/core/macro";
 import {
 	setAgentSetupTemplatesDir,
 	setupAgentIntegrations,
@@ -111,18 +112,20 @@ async function processDeepLink(url: string): Promise<void> {
 			console.error("[main] Auth deep link failed:", result.error);
 			focusMainWindow();
 			dialog.showErrorBox(
-				i18n._({ id: "main.auth.failed.title", message: "Sign-in failed" }),
+				i18n._(msg({ message: "Sign-in failed" })),
 				authLink.type === "valid"
 					? (result.error ??
-							i18n._({
-								id: "main.auth.failed.detail",
-								message:
-									"Superset could not complete sign-in. Please try again.",
-							}))
-					: i18n._({
-							id: "main.auth.failed.incompleteLink",
-							message: "The sign-in link was incomplete. Please try again.",
-						}),
+							i18n._(
+								msg({
+									message:
+										"Superset could not complete sign-in. Please try again.",
+								}),
+							))
+					: i18n._(
+							msg({
+								message: "The sign-in link was incomplete. Please try again.",
+							}),
+						),
 			);
 		}
 		return;
@@ -252,16 +255,17 @@ app.on("before-quit", async (event) => {
 			const { response } = await dialog.showMessageBox({
 				type: "question",
 				buttons: [
-					i18n._({ id: "main.quit.confirm", message: "Quit" }),
-					i18n._({ id: "main.dialog.cancel", message: "Cancel" }),
+					i18n._(msg({ message: "Quit" })),
+					i18n._(msg({ message: "Cancel" })),
 				],
 				defaultId: 0,
 				cancelId: 1,
-				title: i18n._({ id: "main.quit.title", message: "Quit Superset" }),
-				message: i18n._({
-					id: "main.quit.message",
-					message: "Are you sure you want to quit?",
-				}),
+				title: i18n._(msg({ message: "Quit Superset" })),
+				message: i18n._(
+					msg({
+						message: "Are you sure you want to quit?",
+					}),
+				),
 			});
 
 			if (response === 1) {

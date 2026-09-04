@@ -55,11 +55,9 @@ export function EditableTitle({ value, onSave }: EditableTitleProps) {
 			onKeyDown={handleKeyDown}
 			className="mb-6 block w-full resize-none overflow-hidden border-none bg-transparent p-0 text-2xl font-semibold leading-tight outline-none placeholder:text-muted-foreground focus:outline-none"
 			placeholder={t({
-				id: "dashboard.tasks.editableTitle.placeholder",
 				message: "Task title...",
 			})}
 			aria-label={t({
-				id: "dashboard.tasks.editableTitle.title",
 				message: "Task title",
 			})}
 		/>

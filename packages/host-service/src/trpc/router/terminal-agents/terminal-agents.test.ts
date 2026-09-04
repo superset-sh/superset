@@ -40,7 +40,11 @@ function createTestDb(): HostDb {
 
 function seedResumableBinding(
 	db: HostDb,
-	{ terminalId = "t1", resumeArgs = ["--resume"] } = {},
+	{
+		terminalId = "t1",
+		resumeArgs = ["--resume"],
+		lastEventType = "Stop" as "Stop" | "Attached",
+	} = {},
 ) {
 	db.insert(hostAgentConfigs)
 		.values({
@@ -69,7 +73,7 @@ function seedResumableBinding(
 			agentSessionId: `sess-${terminalId}`,
 			startedAt: 1,
 			lastEventAt: 2,
-			lastEventType: "Stop",
+			lastEventType,
 			endedAt: 3,
 			endReason: "terminal-exited",
 		})
@@ -85,6 +89,7 @@ interface DepsHarness {
 function createDeps(
 	db: HostDb,
 	runAgent?: ResumeSessionDeps["runAgent"],
+	hasSession: ResumeSessionDeps["hasSession"] = () => null,
 ): DepsHarness {
 	const runCalls: DepsHarness["runCalls"] = [];
 	const disposedTerminals: string[] = [];
@@ -106,6 +111,7 @@ function createDeps(
 			disposedTerminals.push(terminalId);
 			return Promise.resolve();
 		},
+		hasSession,
 	};
 	return { deps, runCalls, disposedTerminals };
 }
@@ -137,6 +143,78 @@ describe("resumeTerminalAgentSession", () => {
 		expect(disposedTerminals).toEqual(["t1"]);
 		// The candidate is consumed for good.
 		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeUndefined();
+	});
+
+	it("launches a never-prompted session fresh instead of resuming into nothing", async () => {
+		const db = createTestDb();
+		seedResumableBinding(db, { lastEventType: "Attached" });
+		// Idle since SessionStart with no transcript on disk: a `--resume`
+		// would exit with "no conversation found".
+		const { deps, runCalls, disposedTerminals } = createDeps(
+			db,
+			undefined,
+			() => false,
+		);
+
+		const result = await resumeTerminalAgentSession(deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+
+		expect(result).toEqual({
+			resumed: true,
+			terminalId: "t-new",
+			label: "Claude",
+		});
+		expect(runCalls).toEqual([
+			{ workspaceId: "ws-1", agent: CLAUDE_CONFIG_ID, prompt: "" },
+		]);
+		expect(disposedTerminals).toEqual(["t1"]);
+	});
+
+	it("resumes an idle session when the harness still holds its conversation", async () => {
+		const db = createTestDb();
+		// A session restored earlier and left idle is "Attached" too, but its
+		// transcript exists — relaunching fresh would drop that conversation.
+		seedResumableBinding(db, { lastEventType: "Attached" });
+		const { deps, runCalls } = createDeps(db, undefined, (binding) =>
+			binding.agentSessionId === "sess-t1" ? true : null,
+		);
+
+		await resumeTerminalAgentSession(deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+
+		expect(runCalls.map((call) => call.resumeSessionId)).toEqual(["sess-t1"]);
+	});
+
+	it("resumes an idle session when the harness store cannot be read", async () => {
+		const db = createTestDb();
+		// Unreadable or unsurveyed store: not evidence the conversation is
+		// gone, so the saved session id is kept rather than discarded.
+		seedResumableBinding(db, { lastEventType: "Attached" });
+		const { deps, runCalls } = createDeps(db, undefined, () => null);
+
+		await resumeTerminalAgentSession(deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+
+		expect(runCalls.map((call) => call.resumeSessionId)).toEqual(["sess-t1"]);
+	});
+
+	it("never consults the harness store for a session past its first prompt", async () => {
+		const db = createTestDb();
+		seedResumableBinding(db);
+		const { deps, runCalls } = createDeps(db, undefined, () => false);
+
+		await resumeTerminalAgentSession(deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+
+		expect(runCalls.map((call) => call.resumeSessionId)).toEqual(["sess-t1"]);
 	});
 
 	it("is idempotent: a repeat call after success launches nothing", async () => {
@@ -317,8 +395,9 @@ describe("listAccountRestartCandidates", () => {
 		seedLiveBinding(db, { terminalId: "t-claude" });
 		// Other provider — a claude switch must not touch it.
 		seedLiveBinding(db, { terminalId: "t-codex", agentId: "codex" });
-		// No conversation captured yet: nothing to resume into.
+		// No session id captured: no way to name what to relaunch.
 		seedLiveBinding(db, { terminalId: "t-no-session", agentSessionId: null });
+		// Idle since launch — still on the old account, still restarted.
 		seedLiveBinding(db, {
 			terminalId: "t-attached",
 			lastEventType: "Attached",
@@ -331,11 +410,16 @@ describe("listAccountRestartCandidates", () => {
 		);
 
 		expect(
-			candidates.map(({ binding, agentLabel }) => ({
-				terminalId: binding.terminalId,
-				agentLabel,
-			})),
-		).toEqual([{ terminalId: "t-claude", agentLabel: "Claude" }]);
+			candidates
+				.map(({ binding, agentLabel }) => ({
+					terminalId: binding.terminalId,
+					agentLabel,
+				}))
+				.sort((a, b) => a.terminalId.localeCompare(b.terminalId)),
+		).toEqual([
+			{ terminalId: "t-attached", agentLabel: "Claude" },
+			{ terminalId: "t-claude", agentLabel: "Claude" },
+		]);
 	});
 
 	it("skips sessions whose config cannot resume", () => {

@@ -39,9 +39,7 @@ export default async function LegalPage({ params }: PageProps) {
 						{page.title}
 					</h1>
 					<p className="mt-4 text-sm text-muted-foreground">
-						<Trans id="marketing.legal.lastUpdated">
-							Last updated: {lastUpdated}
-						</Trans>
+						<Trans>Last updated: {lastUpdated}</Trans>
 					</p>
 				</header>
 

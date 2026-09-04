@@ -42,14 +42,12 @@ function formatAgo(date: Date, now: Date): string {
 	if (seconds < 60)
 		return i18n._(
 			msg({
-				id: "dashboard.automations.previousRuns.lessThanMinuteAgo",
 				message: "less than a minute ago",
 			}),
 		);
 	const distance = formatDistanceStrict(date, now);
 	return i18n._(
 		msg({
-			id: "dashboard.automations.previousRuns.distanceAgo",
 			message: `${distance} ago`,
 		}),
 	);
@@ -62,9 +60,7 @@ export function PreviousRunsList({ runs }: PreviousRunsListProps) {
 	if (runs.length === 0) {
 		return (
 			<p className="text-sm italic text-muted-foreground">
-				<Trans id="dashboard.automations.previousRuns.noRunsYet">
-					No runs yet
-				</Trans>
+				<Trans>No runs yet</Trans>
 			</p>
 		);
 	}
@@ -106,11 +102,7 @@ export function PreviousRunsList({ runs }: PreviousRunsListProps) {
 							)}
 						/>
 						<span className="truncate">
-							{run.title || (
-								<Trans id="dashboard.automations.previousRuns.untitledRun">
-									Automation
-								</Trans>
-							)}
+							{run.title || <Trans>Automation</Trans>}
 						</span>
 						<span className="ml-auto shrink-0 truncate text-muted-foreground">
 							{run.scheduledFor

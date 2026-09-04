@@ -33,7 +33,6 @@ export function SignInScreen() {
 				err instanceof Error
 					? err.message
 					: t({
-							id: "mobile.common.somethingWentWrong",
 							message: "Something went wrong",
 						});
 			console.error("[sign-in] Error:", err);
@@ -89,7 +88,6 @@ export function SignInScreen() {
 				err instanceof Error
 					? err.message
 					: t({
-							id: "mobile.common.somethingWentWrong",
 							message: "Something went wrong",
 						});
 			console.error("[sign-in] Apple error:", err);
@@ -106,10 +104,10 @@ export function SignInScreen() {
 
 			<View className="items-center gap-2">
 				<Text className="text-2xl font-semibold text-foreground">
-					<Trans id="mobile.signIn.title">Welcome to Superset</Trans>
+					<Trans>Welcome to Superset</Trans>
 				</Text>
 				<Text className="text-base text-muted-foreground">
-					<Trans id="mobile.signIn.subtitle">Sign in to get started</Trans>
+					<Trans>Sign in to get started</Trans>
 				</Text>
 			</View>
 
@@ -138,7 +136,7 @@ export function SignInScreen() {
 			)}
 
 			<Text className="text-center text-xs text-muted-foreground/70">
-				<Trans id="mobile.signIn.legal">
+				<Trans>
 					By signing in, you agree to our{"\n"}
 					<Text
 						className="text-xs text-muted-foreground underline"

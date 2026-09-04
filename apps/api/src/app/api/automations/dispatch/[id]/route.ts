@@ -1,4 +1,4 @@
-import { dbWs } from "@superset/db/client";
+import { db } from "@superset/db/client";
 import { automations } from "@superset/db/schema";
 import { dispatchAutomation } from "@superset/trpc/automation-dispatch";
 import { eq } from "drizzle-orm";
@@ -28,7 +28,7 @@ export async function POST(
 		return Response.json({ error: "Invalid payload" }, { status: 400 });
 	}
 
-	const [automation] = await dbWs
+	const [automation] = await db
 		.select()
 		.from(automations)
 		.where(eq(automations.id, parsed.data.automationId))

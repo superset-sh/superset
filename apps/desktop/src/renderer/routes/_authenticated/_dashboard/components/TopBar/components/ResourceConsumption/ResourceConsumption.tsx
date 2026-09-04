@@ -30,16 +30,13 @@ import type { SortOption, UsageValues } from "./types";
 
 const SORT_LABELS: Record<SortOption, MessageDescriptor> = {
 	memory: msg({
-		id: "dashboard.topBar.resources.sortLabelMemory",
 		message: "Memory",
 	}),
-	cpu: msg({ id: "dashboard.topBar.resources.sortLabelCpu", message: "CPU" }),
+	cpu: msg({ message: "CPU" }),
 	name: msg({
-		id: "dashboard.topBar.resources.sortLabelName",
 		message: "Name",
 	}),
 	sidebar: msg({
-		id: "dashboard.topBar.resources.sortLabelSidebarOrder",
 		message: "Sidebar order",
 	}),
 };
@@ -84,7 +81,6 @@ export function ResourceConsumption({
 							variant="ghost"
 							size="icon-xs"
 							aria-label={t({
-								id: "dashboard.topBar.resources.triggerAriaLabel",
 								message: "Resource consumption",
 							})}
 							className={cn(
@@ -97,7 +93,7 @@ export function ResourceConsumption({
 					</PopoverTrigger>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" sideOffset={6}>
-					<Trans id="dashboard.topBar.resources.tooltip">Resources</Trans>
+					<Trans>Resources</Trans>
 				</TooltipContent>
 			</Tooltip>
 
@@ -179,7 +175,7 @@ function ResourceConsumptionContent({
 			<div className="px-3.5 pt-3 pb-3 border-b border-border/60">
 				<div className="flex items-center justify-between">
 					<h4 className="text-[13px] font-medium tracking-tight text-foreground">
-						<Trans id="dashboard.topBar.resources.title">Resources</Trans>
+						<Trans>Resources</Trans>
 					</h4>
 					<div className="flex items-center gap-0.5">
 						<DropdownMenu>
@@ -188,7 +184,6 @@ function ResourceConsumptionContent({
 									type="button"
 									className="flex items-center gap-1 h-6 px-1.5 rounded text-[11px] text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-colors"
 									aria-label={t({
-										id: "dashboard.topBar.resources.sortWorkspaces",
 										message: "Sort workspaces",
 									})}
 								>
@@ -202,20 +197,16 @@ function ResourceConsumptionContent({
 									onValueChange={(value) => setSortOption(value as SortOption)}
 								>
 									<DropdownMenuRadioItem value="memory">
-										<Trans id="dashboard.topBar.resources.sortMemory">
-											Memory
-										</Trans>
+										<Trans>Memory</Trans>
 									</DropdownMenuRadioItem>
 									<DropdownMenuRadioItem value="cpu">
-										<Trans id="dashboard.topBar.resources.sortCpu">CPU</Trans>
+										<Trans>CPU</Trans>
 									</DropdownMenuRadioItem>
 									<DropdownMenuRadioItem value="name">
-										<Trans id="dashboard.topBar.resources.sortName">Name</Trans>
+										<Trans>Name</Trans>
 									</DropdownMenuRadioItem>
 									<DropdownMenuRadioItem value="sidebar">
-										<Trans id="dashboard.topBar.resources.sortSidebarOrder">
-											Sidebar order
-										</Trans>
+										<Trans>Sidebar order</Trans>
 									</DropdownMenuRadioItem>
 								</DropdownMenuRadioGroup>
 							</DropdownMenuContent>
@@ -225,7 +216,6 @@ function ResourceConsumptionContent({
 							onClick={() => refetch()}
 							className="h-6 w-6 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-colors"
 							aria-label={t({
-								id: "dashboard.topBar.resources.refreshMetrics",
 								message: "Refresh metrics",
 							})}
 						>
@@ -269,15 +259,13 @@ function ResourceConsumptionContent({
 
 				{normalizedSnapshot && normalizedSnapshot.workspaces.length === 0 && (
 					<div className="px-3.5 py-6 text-center text-[11px] text-muted-foreground">
-						<Trans id="dashboard.topBar.resources.noActiveSessions">
-							No active terminal sessions
-						</Trans>
+						<Trans>No active terminal sessions</Trans>
 					</div>
 				)}
 
 				{!normalizedSnapshot && (
 					<div className="px-3.5 py-6 text-center text-[11px] text-muted-foreground">
-						<Trans id="dashboard.topBar.resources.loading">Loading…</Trans>
+						<Trans>Loading…</Trans>
 					</div>
 				)}
 			</div>

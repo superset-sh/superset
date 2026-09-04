@@ -154,7 +154,6 @@ export function BrowserToolbar({
 							onBlur={exitEditMode}
 							onKeyDown={handleKeyDown}
 							placeholder={t({
-								id: "workspace.browserPane.urlInputPlaceholder",
 								message: "Enter URL or search...",
 							})}
 							className="h-[22px] w-full rounded-md border border-ring/60 bg-muted/30 px-2 text-xs text-foreground outline-none placeholder:text-muted-foreground/40"
@@ -172,9 +171,7 @@ export function BrowserToolbar({
 					>
 						{isBlank ? (
 							<span className="min-w-0 truncate text-muted-foreground/40">
-								<Trans id="workspace.browserPane.urlPlaceholder">
-									Enter URL or search...
-								</Trans>
+								<Trans>Enter URL or search...</Trans>
 							</span>
 						) : (
 							<>

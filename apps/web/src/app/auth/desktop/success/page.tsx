@@ -1,8 +1,8 @@
+import { msg } from "@lingui/core/macro";
 import { auth } from "@superset/auth/server";
 import { db } from "@superset/db/client";
 import { sessions } from "@superset/db/schema/auth";
 import { headers } from "next/headers";
-
 import { i18n } from "@/lib/i18n-server";
 import { DesktopRedirect } from "./components/DesktopRedirect";
 
@@ -25,16 +25,18 @@ export default async function DesktopSuccessPage({
 		return (
 			<div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
 				<p className="text-xl text-muted-foreground">
-					{i18n._({
-						id: "web.desktopAuth.missingState",
-						message: "Missing auth state",
-					})}
+					{i18n._(
+						msg({
+							message: "Missing auth state",
+						}),
+					)}
 				</p>
 				<p className="text-muted-foreground/70">
-					{i18n._({
-						id: "web.desktopAuth.retryHint",
-						message: "Please try signing in again from the desktop app.",
-					})}
+					{i18n._(
+						msg({
+							message: "Please try signing in again from the desktop app.",
+						}),
+					)}
 				</p>
 			</div>
 		);
@@ -48,16 +50,18 @@ export default async function DesktopSuccessPage({
 		return (
 			<div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
 				<p className="text-xl text-muted-foreground">
-					{i18n._({
-						id: "web.desktopAuth.failed",
-						message: "Authentication failed",
-					})}
+					{i18n._(
+						msg({
+							message: "Authentication failed",
+						}),
+					)}
 				</p>
 				<p className="text-muted-foreground/70">
-					{i18n._({
-						id: "web.desktopAuth.retryHint",
-						message: "Please try signing in again from the desktop app.",
-					})}
+					{i18n._(
+						msg({
+							message: "Please try signing in again from the desktop app.",
+						}),
+					)}
 				</p>
 			</div>
 		);
@@ -67,16 +71,18 @@ export default async function DesktopSuccessPage({
 		return (
 			<div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
 				<p className="text-xl text-muted-foreground">
-					{i18n._({
-						id: "web.desktopAuth.failed",
-						message: "Authentication failed",
-					})}
+					{i18n._(
+						msg({
+							message: "Authentication failed",
+						}),
+					)}
 				</p>
 				<p className="text-muted-foreground/70">
-					{i18n._({
-						id: "web.desktopAuth.retryHint",
-						message: "Please try signing in again from the desktop app.",
-					})}
+					{i18n._(
+						msg({
+							message: "Please try signing in again from the desktop app.",
+						}),
+					)}
 				</p>
 			</div>
 		);

@@ -135,9 +135,7 @@ function AttachmentButtons({
 					</PromptInputButton>
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
-					<Trans id="components.promptGroup.addAttachment">
-						Add attachment
-					</Trans>
+					<Trans>Add attachment</Trans>
 				</TooltipContent>
 			</Tooltip>
 			<Tooltip>
@@ -150,9 +148,7 @@ function AttachmentButtons({
 					</PromptInputButton>
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
-					<Trans id="components.promptGroup.linkGithubIssue">
-						Link GitHub issue
-					</Trans>
+					<Trans>Link GitHub issue</Trans>
 				</TooltipContent>
 			</Tooltip>
 			<Tooltip>
@@ -165,9 +161,7 @@ function AttachmentButtons({
 					</PromptInputButton>
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
-					<Trans id="components.promptGroup.linkPullRequest">
-						Link pull request
-					</Trans>
+					<Trans>Link pull request</Trans>
 				</TooltipContent>
 			</Tooltip>
 		</div>
@@ -208,11 +202,7 @@ function ProjectPickerPill({
 						/>
 					)}
 					<span className="truncate">
-						{selectedProject?.name ?? (
-							<Trans id="components.promptGroup.selectProject">
-								Select project
-							</Trans>
-						)}
+						{selectedProject?.name ?? <Trans>Select project</Trans>}
 					</span>
 					<HiChevronUpDown className="size-3 shrink-0 text-muted-foreground" />
 				</PromptInputButton>
@@ -225,15 +215,12 @@ function ProjectPickerPill({
 				<Command>
 					<CommandInput
 						placeholder={t({
-							id: "components.promptGroup.searchProjectsPlaceholder",
 							message: "Search projects...",
 						})}
 					/>
 					<CommandList>
 						<CommandEmpty>
-							<Trans id="components.promptGroup.noProjectsFound">
-								No projects found.
-							</Trans>
+							<Trans>No projects found.</Trans>
 						</CommandEmpty>
 						<CommandGroup>
 							{recentProjects.map((project) => (
@@ -270,9 +257,7 @@ function ProjectPickerPill({
 								}}
 							>
 								<LuFolderOpen className="size-4" />
-								<Trans id="components.promptGroup.openProject">
-									Open project
-								</Trans>
+								<Trans>Open project</Trans>
 							</CommandItem>
 							<CommandItem
 								forceMount
@@ -282,9 +267,7 @@ function ProjectPickerPill({
 								}}
 							>
 								<LuFolderGit className="size-4" />
-								<Trans id="components.promptGroup.newProject">
-									New project
-								</Trans>
+								<Trans>New project</Trans>
 							</CommandItem>
 						</CommandGroup>
 					</CommandList>
@@ -345,9 +328,7 @@ function CompareBaseBranchPickerInline({
 	if (isBranchesError) {
 		return (
 			<span className="text-xs text-destructive">
-				<Trans id="components.promptGroup.branchesLoadFailed">
-					Failed to load branches
-				</Trans>
+				<Trans>Failed to load branches</Trans>
 			</span>
 		);
 	}
@@ -405,13 +386,9 @@ function CompareBaseBranchPickerInline({
 									)}
 								>
 									{value === "all" ? (
-										<Trans id="components.promptGroup.branchFilterAll">
-											All
-										</Trans>
+										<Trans>All</Trans>
 									) : (
-										<Trans id="components.promptGroup.branchFilterWorktrees">
-											Worktrees
-										</Trans>
+										<Trans>Worktrees</Trans>
 									)}
 									<span className="ml-1 text-foreground/40">{count}</span>
 								</button>
@@ -420,7 +397,6 @@ function CompareBaseBranchPickerInline({
 					</div>
 					<CommandInput
 						placeholder={t({
-							id: "components.promptGroup.searchBranchesPlaceholder",
 							message: "Search branches...",
 						})}
 						value={branchSearch}
@@ -428,9 +404,7 @@ function CompareBaseBranchPickerInline({
 					/>
 					<CommandList className="max-h-[400px]">
 						<CommandEmpty>
-							<Trans id="components.promptGroup.noBranchesFound">
-								No branches found
-							</Trans>
+							<Trans>No branches found</Trans>
 						</CommandEmpty>
 						{displayBranches.map((branch) => {
 							const openAction = openableWorktrees.get(branch.name);
@@ -486,16 +460,12 @@ function CompareBaseBranchPickerInline({
 										<span className="flex items-center gap-1.5 shrink-0">
 											{branch.name === defaultBranch && (
 												<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-													<Trans id="components.promptGroup.defaultBranchBadge">
-														default
-													</Trans>
+													<Trans>default</Trans>
 												</span>
 											)}
 											{isExternal && !activeWorkspaceId && (
 												<span className="text-[10px] text-muted-foreground/60 bg-muted/60 px-1.5 py-0.5 rounded">
-													<Trans id="components.promptGroup.externalBranchBadge">
-														external
-													</Trans>
+													<Trans>external</Trans>
 												</span>
 											)}
 										</span>
@@ -533,9 +503,7 @@ function CompareBaseBranchPickerInline({
 													}}
 												>
 													<GoArrowUpRight className="size-3.5 mr-1" />
-													<Trans id="components.promptGroup.openWorkspace">
-														Open
-													</Trans>
+													<Trans>Open</Trans>
 													<span className="ml-1 text-[10px] opacity-60">↵</span>
 												</Button>
 											)}
@@ -551,18 +519,14 @@ function CompareBaseBranchPickerInline({
 												{hasExistingWorkspace ? (
 													<>
 														<PlusIcon className="size-3.5 mr-1" />
-														<Trans id="components.promptGroup.createAlongsideExisting">
-															Create
-														</Trans>
+														<Trans>Create</Trans>
 														<span className="ml-1 text-[10px] opacity-70">
 															{modKey}↵
 														</span>
 													</>
 												) : (
 													<>
-														<Trans id="components.promptGroup.createWorkspace">
-															Create
-														</Trans>
+														<Trans>Create</Trans>
 														<span className="ml-1 text-[10px] opacity-70">
 															↵
 														</span>
@@ -782,7 +746,6 @@ function PromptGroupInner({
 			if (!projectId) {
 				toast.error(
 					t({
-						id: "components.promptGroup.selectProjectFirst",
 						message: "Select a project first",
 					}),
 				);
@@ -844,7 +807,6 @@ function PromptGroupInner({
 							console.warn("[PromptGroup] AI generation timeout");
 							toast.info(
 								t({
-									id: "components.promptGroup.branchNameTimeout",
 									message: "Using random branch name (AI generation timed out)",
 								}),
 							);
@@ -856,7 +818,6 @@ function PromptGroupInner({
 							console.error("[PromptGroup] AI auth error:", error);
 							toast.error(
 								t({
-									id: "components.promptGroup.aiAuthFailed",
 									message:
 										"AI authentication failed. Please check your AI settings.",
 								}),
@@ -867,7 +828,6 @@ function PromptGroupInner({
 							console.warn("[PromptGroup] AI generation failed:", error);
 							toast.info(
 								t({
-									id: "components.promptGroup.branchNameUnavailable",
 									message:
 										"Using random branch name (AI generation unavailable)",
 								}),
@@ -894,7 +854,6 @@ function PromptGroupInner({
 							err instanceof Error
 								? err.message
 								: t({
-										id: "components.promptGroup.processAttachmentsFailed",
 										message: "Failed to process attachments",
 									}),
 						);
@@ -1027,7 +986,6 @@ ${sanitizeText(truncatedBody)}`;
 						error instanceof Error
 							? error.message
 							: t({
-									id: "components.promptGroup.prepareLaunchFailed",
 									message: "Failed to prepare agent launch",
 								}),
 					);
@@ -1044,18 +1002,15 @@ ${sanitizeText(truncatedBody)}`;
 						),
 						{
 							loading: t({
-								id: "components.promptGroup.creatingFromPr",
 								message: `Creating workspace from PR #${linkedPR.prNumber}...`,
 							}),
 							success: t({
-								id: "components.promptGroup.createdFromPr",
 								message: "Workspace created from PR",
 							}),
 							error: (err) =>
 								err instanceof Error
 									? err.message
 									: t({
-											id: "components.promptGroup.createFromPrFailed",
 											message: "Failed to create workspace from PR",
 										}),
 						},
@@ -1096,18 +1051,15 @@ ${sanitizeText(truncatedBody)}`;
 					),
 					{
 						loading: t({
-							id: "components.promptGroup.creatingWorkspace",
 							message: "Creating workspace...",
 						}),
 						success: t({
-							id: "components.promptGroup.workspaceCreated",
 							message: "Workspace created",
 						}),
 						error: (err) =>
 							errorMessage(
 								err,
 								t({
-									id: "components.promptGroup.createWorkspaceFailed",
 									message: "Failed to create workspace",
 								}),
 							),
@@ -1193,18 +1145,15 @@ ${sanitizeText(truncatedBody)}`;
 					}),
 					{
 						loading: t({
-							id: "components.promptGroup.openingWorktree",
 							message: "Opening worktree...",
 						}),
 						success: t({
-							id: "components.promptGroup.worktreeOpened",
 							message: "Worktree opened",
 						}),
 						error: (err) =>
 							errorMessage(
 								err,
 								t({
-									id: "components.promptGroup.openWorktreeFailed",
 									message: "Failed to open worktree",
 								}),
 							),
@@ -1218,18 +1167,15 @@ ${sanitizeText(truncatedBody)}`;
 					}),
 					{
 						loading: t({
-							id: "components.promptGroup.openingWorktree",
 							message: "Opening worktree...",
 						}),
 						success: t({
-							id: "components.promptGroup.worktreeOpened",
 							message: "Worktree opened",
 						}),
 						error: (err) =>
 							errorMessage(
 								err,
 								t({
-									id: "components.promptGroup.openWorktreeFailed",
 									message: "Failed to open worktree",
 								}),
 							),
@@ -1297,7 +1243,6 @@ ${sanitizeText(truncatedBody)}`;
 				<Input
 					className="border-none bg-transparent dark:bg-transparent shadow-none text-base font-medium px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/40 min-w-0 flex-1"
 					placeholder={t({
-						id: "components.promptGroup.workspaceNamePlaceholder",
 						message: "Workspace name (optional)",
 					})}
 					value={workspaceName}
@@ -1319,7 +1264,6 @@ ${sanitizeText(truncatedBody)}`;
 							"border-none bg-transparent dark:bg-transparent shadow-none text-xs font-mono text-muted-foreground/60 px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/30 focus:text-muted-foreground text-right placeholder:text-right overflow-hidden text-ellipsis",
 						)}
 						placeholder={t({
-							id: "components.promptGroup.branchNamePlaceholder",
 							message: "branch name",
 						})}
 						value={branchName}
@@ -1409,7 +1353,6 @@ ${sanitizeText(truncatedBody)}`;
 				<PromptInputTextarea
 					autoFocus
 					placeholder={t({
-						id: "components.promptGroup.promptPlaceholder",
 						message: "What do you want to do?",
 					})}
 					className="min-h-10"
@@ -1422,7 +1365,6 @@ ${sanitizeText(truncatedBody)}`;
 							agents={enabledAgentPresets}
 							value={selectedAgent}
 							placeholder={t({
-								id: "components.promptGroup.noAgentPlaceholder",
 								message: "No agent",
 							})}
 							onValueChange={setSelectedAgent}
@@ -1431,7 +1373,6 @@ ${sanitizeText(truncatedBody)}`;
 							iconClassName="size-3 object-contain"
 							allowNone
 							noneLabel={t({
-								id: "components.promptGroup.noAgentLabel",
 								message: "No agent",
 							})}
 							noneValue="none"
@@ -1503,9 +1444,7 @@ ${sanitizeText(truncatedBody)}`;
 								className="flex items-center gap-1 text-xs text-muted-foreground"
 							>
 								<LuGitPullRequest className="size-3 shrink-0" />
-								<Trans id="components.promptGroup.basedOffPr">
-									based off PR #{linkedPR.prNumber}
-								</Trans>
+								<Trans>based off PR #{linkedPR.prNumber}</Trans>
 							</motion.span>
 						) : (
 							<motion.div
@@ -1536,9 +1475,7 @@ ${sanitizeText(truncatedBody)}`;
 					</AnimatePresence>
 				</div>
 				<span className="text-[11px] text-muted-foreground/50">
-					<Trans id="components.promptGroup.pressToCreate">
-						{modKey}↵ to create
-					</Trans>
+					<Trans>{modKey}↵ to create</Trans>
 				</span>
 			</div>
 		</div>

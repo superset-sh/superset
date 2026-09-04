@@ -41,7 +41,7 @@ export class Workspaces extends APIResource {
 		this._requireOrgId();
 		const workspaces = await this._client.hostQuery<HostWorkspaceRow[]>(
 			params.hostId,
-			"workspace.list",
+			{ method: "workspaces.list", procedure: "workspace.list" },
 		);
 		const search = params.search?.toLowerCase();
 		return workspaces
@@ -72,7 +72,7 @@ export class Workspaces extends APIResource {
 	): APIPromise<WorkspaceCreateResult> {
 		return this._client.hostMutation<WorkspaceCreateResult>(
 			params.hostId,
-			"workspaces.create",
+			{ method: "workspaces.create", procedure: "workspaces.create" },
 			{
 				projectId: params.projectId,
 				name: params.name,
@@ -99,7 +99,7 @@ export class Workspaces extends APIResource {
 	): APIPromise<WorkspaceCreateSessionResult> {
 		return this._client.hostMutation<WorkspaceCreateSessionResult>(
 			params.hostId,
-			"workspaces.createSession",
+			{ method: "workspaces.createSession", procedure: "workspaces.createSession" },
 			{
 				name: params.name,
 				agents: params.agents,
@@ -125,7 +125,7 @@ export class Workspaces extends APIResource {
 		this._requireOrgId();
 		return this._client.hostMutation<WorkspaceUpdateResult>(
 			options.hostId,
-			"workspace.update",
+			{ method: "workspaces.update", procedure: "workspace.update" },
 			{ id, ...params },
 		);
 	}
@@ -142,7 +142,7 @@ export class Workspaces extends APIResource {
 		this._requireOrgId();
 		return this._client.hostMutation<WorkspaceDeleteResult>(
 			options.hostId,
-			"workspace.delete",
+			{ method: "workspaces.delete", procedure: "workspace.delete" },
 			{ id },
 		);
 	}

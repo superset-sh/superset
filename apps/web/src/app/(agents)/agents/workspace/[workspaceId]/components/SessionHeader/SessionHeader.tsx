@@ -18,10 +18,7 @@ export function SessionHeader({ backHref, session }: SessionHeaderProps) {
 	return (
 		<div className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-4">
 			<Button variant="ghost" size="icon-sm" asChild>
-				<Link
-					href={backHref}
-					aria-label={t({ id: "web.sessionHeader.back", message: "Back" })}
-				>
+				<Link href={backHref} aria-label={t({ message: "Back" })}>
 					<ArrowLeft className="size-4" />
 				</Link>
 			</Button>
@@ -29,7 +26,7 @@ export function SessionHeader({ backHref, session }: SessionHeaderProps) {
 				{session.title}
 			</h1>
 			<Badge variant="secondary">
-				<Trans id="web.sessionHeader.previewBadge">Preview</Trans>
+				<Trans>Preview</Trans>
 			</Badge>
 		</div>
 	);

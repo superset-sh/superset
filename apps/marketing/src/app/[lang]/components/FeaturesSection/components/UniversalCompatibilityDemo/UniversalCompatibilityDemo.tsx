@@ -53,9 +53,7 @@ export function UniversalCompatibilityDemo() {
 				<div className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-[12px] text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground/90">
 					<HiPlus className="size-3.5" />
 					<span>
-						<Trans id="marketing.features.compatibility.newTerminal">
-							New Terminal
-						</Trans>
+						<Trans>New Terminal</Trans>
 					</span>
 					<HiOutlineTerminal className="ml-auto size-3.5 text-muted-foreground/45" />
 				</div>
@@ -88,9 +86,7 @@ export function UniversalCompatibilityDemo() {
 				<div className="flex items-center gap-2 text-muted-foreground/55">
 					<HiOutlineTerminal className="size-3.5" />
 					<span className="text-[11px]">
-						<Trans id="marketing.features.compatibility.terminalCount">
-							Terminals ({TERMINAL_COUNT})
-						</Trans>
+						<Trans>Terminals ({TERMINAL_COUNT})</Trans>
 					</span>
 				</div>
 			</div>

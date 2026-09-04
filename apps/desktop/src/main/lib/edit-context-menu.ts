@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { Menu } from "electron";
 
@@ -26,10 +27,11 @@ export function attachEditContextMenu(wc: Electron.WebContents): void {
 		if (params.misspelledWord) {
 			menuItems.push(
 				{
-					label: i18n._({
-						id: "main.contextMenu.addToDictionary",
-						message: "Add to Dictionary",
-					}),
+					label: i18n._(
+						msg({
+							message: "Add to Dictionary",
+						}),
+					),
 					click: () =>
 						wc.session.addWordToSpellCheckerDictionary(params.misspelledWord),
 				},

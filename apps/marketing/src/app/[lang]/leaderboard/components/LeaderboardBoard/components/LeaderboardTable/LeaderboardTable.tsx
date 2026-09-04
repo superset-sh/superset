@@ -45,14 +45,10 @@ export function LeaderboardTable({
 		return (
 			<div className="border border-border p-12 text-center">
 				<p className="text-sm text-muted-foreground">
-					<Trans id="marketing.leaderboard.empty.title">
-						Nobody has joined the board yet.
-					</Trans>
+					<Trans>Nobody has joined the board yet.</Trans>
 				</p>
 				<p className="text-xs text-muted-foreground mt-2">
-					<Trans id="marketing.leaderboard.empty.optIn">
-						Opt in from Superset under Settings → Account.
-					</Trans>
+					<Trans>Opt in from Superset under Settings → Account.</Trans>
 				</p>
 			</div>
 		);
@@ -67,22 +63,16 @@ export function LeaderboardTable({
 							#
 						</th>
 						<th className="text-left font-normal font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground px-4 py-3">
-							<Trans id="marketing.leaderboard.column.developer">
-								Developer
-							</Trans>
+							<Trans>Developer</Trans>
 						</th>
 						<th className="text-left font-normal font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground px-4 py-3 hidden md:table-cell">
-							<Trans id="marketing.leaderboard.column.tier">Tier</Trans>
+							<Trans>Tier</Trans>
 						</th>
 						<th className="text-right font-normal font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground px-4 py-3 hidden sm:table-cell">
-							<Trans id="marketing.leaderboard.column.sessions">Sessions</Trans>
+							<Trans>Sessions</Trans>
 						</th>
 						<th className="text-right font-normal font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground px-4 py-3">
-							{metric === "cost" ? (
-								<Trans id="marketing.leaderboard.column.cost">Cost</Trans>
-							) : (
-								<Trans id="marketing.leaderboard.column.tokens">Tokens</Trans>
-							)}
+							{metric === "cost" ? <Trans>Cost</Trans> : <Trans>Tokens</Trans>}
 						</th>
 					</tr>
 				</thead>
@@ -137,7 +127,6 @@ export function LeaderboardTable({
 									<span
 										className="text-muted-foreground ml-1"
 										title={t({
-											id: "marketing.leaderboard.approximateHint",
 											message: "Some models were priced with a fallback rate",
 										})}
 									>

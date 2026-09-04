@@ -199,7 +199,7 @@ function CarouselPrevious({
 		>
 			<ArrowLeftIcon />
 			<span className="sr-only">
-				<Trans id="ui.carousel.previousSlide">Previous slide</Trans>
+				<Trans>Previous slide</Trans>
 			</span>
 		</Button>
 	);
@@ -231,7 +231,7 @@ function CarouselNext({
 		>
 			<ArrowRightIcon />
 			<span className="sr-only">
-				<Trans id="ui.carousel.nextSlide">Next slide</Trans>
+				<Trans>Next slide</Trans>
 			</span>
 		</Button>
 	);

@@ -58,11 +58,7 @@ export function AutomationActionsMenuItems({
 				children: (
 					<>
 						<LuPencil className="size-4" />
-						{isOwner ? (
-							<Trans id="dashboard.automations.actionsMenu.edit">Edit</Trans>
-						) : (
-							<Trans id="dashboard.automations.actionsMenu.view">View</Trans>
-						)}
+						{isOwner ? <Trans>Edit</Trans> : <Trans>View</Trans>}
 					</>
 				),
 			})}
@@ -73,9 +69,7 @@ export function AutomationActionsMenuItems({
 						children: (
 							<>
 								<LuPlay className="size-4" />
-								<Trans id="dashboard.automations.actionsMenu.runNow">
-									Run now
-								</Trans>
+								<Trans>Run now</Trans>
 							</>
 						),
 					})}
@@ -84,16 +78,12 @@ export function AutomationActionsMenuItems({
 						children: enabled ? (
 							<>
 								<LuPause className="size-4" />
-								<Trans id="dashboard.automations.actionsMenu.pause">
-									Pause
-								</Trans>
+								<Trans>Pause</Trans>
 							</>
 						) : (
 							<>
 								<LuPlay className="size-4" />
-								<Trans id="dashboard.automations.actionsMenu.resume">
-									Resume
-								</Trans>
+								<Trans>Resume</Trans>
 							</>
 						),
 					})}
@@ -102,9 +92,7 @@ export function AutomationActionsMenuItems({
 						children: (
 							<>
 								<LuClock className="size-4" />
-								<Trans id="dashboard.automations.actionsMenu.promptHistory">
-									Prompt history
-								</Trans>
+								<Trans>Prompt history</Trans>
 							</>
 						),
 					})}
@@ -119,9 +107,7 @@ export function AutomationActionsMenuItems({
 						children: (
 							<>
 								<LuTrash2 className="size-4" />
-								<Trans id="dashboard.automations.actionsMenu.delete">
-									Delete
-								</Trans>
+								<Trans>Delete</Trans>
 							</>
 						),
 					})}

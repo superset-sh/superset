@@ -41,15 +41,12 @@ export function GatesSummary({ scores }: GatesSummaryProps) {
 	const total = scores.length;
 	const countLabels: Record<GateStatus, string> = {
 		open: t({
-			id: "marketing.factory.gates.countOpen",
 			message: `${openCount} open`,
 		}),
 		partial: t({
-			id: "marketing.factory.gates.countPartial",
 			message: `${partialCount} partial`,
 		}),
 		closed: t({
-			id: "marketing.factory.gates.countClosed",
 			message: `${closedCount} closed`,
 		}),
 	};
@@ -66,13 +63,12 @@ export function GatesSummary({ scores }: GatesSummaryProps) {
 							key={score.gateId}
 							targetId={`gate-${score.gateId}`}
 							title={t({
-								id: "marketing.factory.gates.jumpTitle",
 								message: `${level} · ${gate} · ${statusLabel}`,
 							})}
 							className={`h-3 flex-1 hover:outline hover:outline-1 hover:outline-brand ${SEGMENT_CLASSES[score.status]}`}
 						>
 							<span className="sr-only">
-								<Trans id="marketing.factory.gates.jumpLabel">
+								<Trans>
 									{level} {gate}: {statusLabel}
 								</Trans>
 							</span>
@@ -93,9 +89,7 @@ export function GatesSummary({ scores }: GatesSummaryProps) {
 					</span>
 				))}
 				<span className="text-muted-foreground">
-					<Trans id="marketing.factory.gates.total">
-						of {total} F3 and F4 gates
-					</Trans>
+					<Trans>of {total} F3 and F4 gates</Trans>
 				</span>
 			</p>
 		</div>

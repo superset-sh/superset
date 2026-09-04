@@ -24,7 +24,6 @@ export function McpInstall() {
 		} catch {
 			setCopyError(
 				t({
-					id: "marketing.mcpInstall.copyFailed",
 					message: "Copy failed. Select the text and copy it manually.",
 				}),
 			);
@@ -59,7 +58,6 @@ export function McpInstall() {
 					onClick={handleCopy}
 					className="p-2 text-muted-foreground hover:text-foreground transition-colors shrink-0"
 					aria-label={t({
-						id: "marketing.mcpInstall.copyToClipboard",
 						message: "Copy to clipboard",
 					})}
 				>

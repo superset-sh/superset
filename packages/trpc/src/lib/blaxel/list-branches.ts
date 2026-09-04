@@ -8,7 +8,7 @@ import { db } from "@superset/db/client";
 import { githubInstallations, githubRepositories } from "@superset/db/schema";
 import { eq } from "drizzle-orm";
 import { installationOctokit } from "./clone-token";
-import { repoForProject } from "./repo-for-project";
+import type { CloudRepo } from "./cloud-repo";
 
 export interface RemoteBranch {
 	name: string;
@@ -25,11 +25,9 @@ const PER_PAGE = 100;
 const MAX_PAGES = 10;
 
 export async function listRemoteBranches(
-	projectId: string,
+	repo: CloudRepo,
 	query?: string,
 ): Promise<RemoteBranchPage> {
-	const repo = await repoForProject(projectId);
-	if (!repo) return { defaultBranch: null, items: [] };
 	// No installation to authenticate with — the default branch alone still
 	// lets a picker offer something create will accept.
 	if (!repo.repositoryId) {

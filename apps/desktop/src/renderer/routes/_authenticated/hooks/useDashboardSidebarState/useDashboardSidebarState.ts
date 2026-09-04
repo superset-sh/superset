@@ -3,9 +3,11 @@ import {
 	normalizeWorkspaceTag,
 	normalizeWorkspaceTags,
 	SESSIONS_TAG_SCOPE,
+	tagFolderScope,
 } from "@superset/shared/workspace-tags";
 import { useCallback } from "react";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
+import { authClient } from "renderer/lib/auth-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { isMissingProcedureError } from "renderer/lib/isMissingProcedureError";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
@@ -29,6 +31,7 @@ import {
 	buildSidebarFolderKey,
 	deriveTagFolders,
 	getProjectFolderTagIndex,
+	laneProjectIdForScope,
 	mintFolderTag,
 	parseSidebarFolderKey,
 	resolveWorkspaceSectionId,
@@ -77,17 +80,15 @@ function getProjectTopLevelItems(
 	projectId: string | null,
 	options: { excludeWorkspaceId?: string; excludeSectionId?: string } = {},
 ): ProjectTopLevelItem[] {
-	const folderIndex: ReadonlyMap<string, TagFolderRef> =
-		projectId === null
-			? new Map()
-			: getProjectFolderTagIndex(
-					deriveTagFolders(
-						Array.from(collections.v2SidebarSections.state.values()),
-						hostWorkspaces,
-						tagFolderContext,
-					),
-					projectId,
-				);
+	const scope = tagFolderScope(projectId);
+	const folderIndex = getProjectFolderTagIndex(
+		deriveTagFolders(
+			Array.from(collections.v2SidebarSections.state.values()),
+			hostWorkspaces,
+			tagFolderContext,
+		),
+		scope,
+	);
 	const hostTagsByWorkspaceId = new Map(
 		hostWorkspaces.map((workspace) => [workspace.id, workspace.tags]),
 	);
@@ -114,7 +115,7 @@ function getProjectTopLevelItems(
 		...Array.from(collections.v2SidebarSections.state.values())
 			.filter(
 				(item) =>
-					item.projectId === projectId &&
+					item.projectId === scope &&
 					item.sectionId !== options.excludeSectionId,
 			)
 			.map((item) => ({
@@ -131,14 +132,13 @@ function getProjectFolderIndex(
 	tagFolderContext: TagFolderContext,
 	projectId: string | null,
 ): ReadonlyMap<string, TagFolderRef> {
-	if (projectId === null) return new Map();
 	return getProjectFolderTagIndex(
 		deriveTagFolders(
 			Array.from(collections.v2SidebarSections.state.values()),
 			hostWorkspaces,
 			tagFolderContext,
 		),
-		projectId,
+		tagFolderScope(projectId),
 	);
 }
 
@@ -297,7 +297,9 @@ export function useDashboardSidebarState() {
 	const collections = useCollections();
 	const { workspaces: hostWorkspaces, cache: hostWorkspacesCache } =
 		useHostWorkspaces();
-	const { machineId, activeHostUrl } = useLocalHostService();
+	const { activeHostUrl, machineId } = useLocalHostService();
+	const { data: session } = authClient.useSession();
+	const currentUserId = session?.user.id ?? null;
 	const { v2Workspaces } = useOptimisticActions();
 	const tagFolderContext = useTagFolderContext();
 
@@ -423,7 +425,7 @@ export function useDashboardSidebarState() {
 						collections,
 						hostWorkspaces,
 						tagFolderContext,
-						parsed.projectId,
+						laneProjectIdForScope(parsed.projectId),
 					),
 				),
 				isCollapsed: false,
@@ -837,24 +839,14 @@ export function useDashboardSidebarState() {
 			// A derived folder has no row but is still deletable — deleting it
 			// means untagging its members.
 			if (!section && !parsed) return;
-			const projectId = section?.projectId ?? parsed?.projectId;
-			if (!projectId) return;
+			// `scope` keys the folder (project id, or the Sessions tag scope);
+			// `projectId` is what the lane's workspace rows carry (null for
+			// sessions).
+			const scope = section?.projectId ?? parsed?.projectId;
+			if (!scope) return;
+			const projectId = laneProjectIdForScope(scope);
 			const folderTag =
 				normalizeWorkspaceTag(section?.tag) ?? parsed?.tag ?? null;
-			if (projectId === SESSIONS_TAG_SCOPE) {
-				if (folderTag === null) return;
-				for (const workspace of hostWorkspaces) {
-					if (workspace.projectId !== null) continue;
-					const tags = normalizeWorkspaceTags(workspace.tags);
-					if (!tags.includes(folderTag)) continue;
-					writeWorkspaceTags(
-						workspace.id,
-						tags.filter((tag) => tag !== folderTag),
-					);
-				}
-				removeTagSetting(projectId, folderTag);
-				return;
-			}
 
 			// Groups interleave with ungrouped rows, so replace the deleted
 			// section's own slot with its members instead of dumping them
@@ -923,7 +915,7 @@ export function useDashboardSidebarState() {
 				}
 			}
 
-			if (folderTag !== null) removeTagSetting(projectId, folderTag);
+			if (folderTag !== null) removeTagSetting(scope, folderTag);
 			if (section) collections.v2SidebarSections.delete(sectionId);
 		},
 		[
@@ -970,6 +962,33 @@ export function useDashboardSidebarState() {
 					// untouched so the row returns to its previous spot.
 					draft.sidebarState.pinnedAt = null;
 				}
+			});
+		},
+		[collections, hostWorkspaces, tagFolderContext],
+	);
+
+	// A row without local state (an auto-included main) gets one, as pinning does.
+	const setWorkspaceSuppressedPullRequest = useCallback(
+		(
+			workspaceId: string,
+			projectId: string | null,
+			pullRequestUrl: string | null,
+		) => {
+			if (!collections.v2WorkspaceLocalState.get(workspaceId)) {
+				if (pullRequestUrl === null) return;
+				if (projectId !== null) {
+					ensureSidebarProjectRecord(collections, projectId);
+				}
+				ensureSidebarWorkspaceRecord(
+					collections,
+					hostWorkspaces,
+					tagFolderContext,
+					workspaceId,
+					projectId,
+				);
+			}
+			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
+				draft.sidebarState.suppressedPullRequestUrl = pullRequestUrl;
 			});
 		},
 		[collections, hostWorkspaces, tagFolderContext],
@@ -1052,11 +1071,11 @@ export function useDashboardSidebarState() {
 				collections,
 				hostWorkspaces,
 				projectId,
-				machineId,
+				{ machineId, currentUserId },
 				cleanupWorkspacePaneRuntimes,
 			);
 		},
-		[collections, hostWorkspaces, machineId],
+		[collections, hostWorkspaces, machineId, currentUserId],
 	);
 
 	return {
@@ -1076,6 +1095,7 @@ export function useDashboardSidebarState() {
 		renameSection,
 		setSectionColor,
 		setWorkspacePinned,
+		setWorkspaceSuppressedPullRequest,
 		toggleProjectCollapsed,
 		toggleSectionCollapsed,
 	};

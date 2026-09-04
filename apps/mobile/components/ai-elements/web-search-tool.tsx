@@ -38,7 +38,7 @@ export const WebSearchTool = ({
 		</View>
 	) : isError ? (
 		<Text className="text-destructive text-xs">
-			<Trans id="mobile.tool.failed">Failed</Trans>
+			<Trans>Failed</Trans>
 		</Text>
 	) : null;
 

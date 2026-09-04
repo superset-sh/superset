@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { COMPANY, DOWNLOAD_URL_MAC_ARM64 } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { Download } from "lucide-react";
@@ -32,10 +33,11 @@ export default async function AgentsPage() {
 				<div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6">
 					<div className="flex flex-col gap-1 px-1">
 						<p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-							{i18n._({
-								id: "web.agents.workspaceEyebrow",
-								message: "Workspace",
-							})}
+							{i18n._(
+								msg({
+									message: "Workspace",
+								}),
+							)}
 						</p>
 						<h1 className="text-lg font-medium">{workspace.name}</h1>
 						<p className="text-sm text-muted-foreground">
@@ -54,27 +56,30 @@ export default async function AgentsPage() {
 			<div className="flex flex-col items-center gap-6 text-center">
 				<div>
 					<h1 className="mb-3 text-3xl font-medium">
-						{i18n._({
-							id: "web.agents.downloadTitle",
-							message: "Download Superset",
-						})}
+						{i18n._(
+							msg({
+								message: "Download Superset",
+							}),
+						)}
 					</h1>
 					<p className="text-muted-foreground">
-						{i18n._({
-							id: "web.agents.downloadSubtitle",
-							message:
-								"Use the desktop app to start running parallel coding agents.",
-						})}
+						{i18n._(
+							msg({
+								message:
+									"Use the desktop app to start running parallel coding agents.",
+							}),
+						)}
 					</p>
 				</div>
 
 				<div className="flex flex-wrap justify-center gap-3">
 					<Button size="lg" className="gap-2" asChild>
 						<a href={DOWNLOAD_URL_MAC_ARM64}>
-							{i18n._({
-								id: "web.agents.downloadForMac",
-								message: "Download for Mac",
-							})}
+							{i18n._(
+								msg({
+									message: "Download for Mac",
+								}),
+							)}
 							<Download className="size-5" />
 						</a>
 					</Button>
@@ -84,10 +89,11 @@ export default async function AgentsPage() {
 							target="_blank"
 							rel="noopener noreferrer"
 						>
-							{i18n._({
-								id: "web.agents.viewOnGithub",
-								message: "View on GitHub",
-							})}
+							{i18n._(
+								msg({
+									message: "View on GitHub",
+								}),
+							)}
 							<FaGithub className="size-5" />
 						</a>
 					</Button>

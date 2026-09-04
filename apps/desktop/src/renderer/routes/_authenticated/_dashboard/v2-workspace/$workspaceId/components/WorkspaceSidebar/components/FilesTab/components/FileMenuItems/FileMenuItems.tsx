@@ -40,11 +40,11 @@ export function FileMenuItems({
 		<>
 			<DropdownMenuItem onSelect={onOpen}>
 				<FileText />
-				<Trans id="workspace.fileMenuItems.open">Open</Trans>
+				<Trans>Open</Trans>
 			</DropdownMenuItem>
 			<DropdownMenuItem onSelect={onOpenInNewTab}>
 				<SquarePlus />
-				<Trans id="workspace.fileMenuItems.openInNewTab">Open in New Tab</Trans>
+				<Trans>Open in New Tab</Trans>
 				{newTabTier && (
 					<DropdownMenuShortcut>
 						{modifierLabel(newTabTier)}
@@ -53,7 +53,7 @@ export function FileMenuItems({
 			</DropdownMenuItem>
 			<DropdownMenuItem onSelect={onOpenInEditor}>
 				<ExternalLink />
-				<Trans id="workspace.fileMenuItems.openInEditor">Open in Editor</Trans>
+				<Trans>Open in Editor</Trans>
 				{externalTier && (
 					<DropdownMenuShortcut>
 						{modifierLabel(externalTier)}
@@ -65,11 +65,11 @@ export function FileMenuItems({
 			<DropdownMenuSeparator />
 			<DropdownMenuItem onSelect={() => setTimeout(onRename, 0)}>
 				<Pencil />
-				<Trans id="workspace.fileMenuItems.rename">Rename...</Trans>
+				<Trans>Rename...</Trans>
 			</DropdownMenuItem>
 			<DropdownMenuItem variant="destructive" onSelect={onDelete}>
 				<Trash2 />
-				<Trans id="workspace.fileMenuItems.delete">Delete</Trans>
+				<Trans>Delete</Trans>
 			</DropdownMenuItem>
 		</>
 	);

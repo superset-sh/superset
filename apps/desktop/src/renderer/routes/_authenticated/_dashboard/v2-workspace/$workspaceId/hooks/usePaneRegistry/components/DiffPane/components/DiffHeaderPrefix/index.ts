@@ -1,1 +1,0 @@
-export { DiffHeaderPrefix } from "./DiffHeaderPrefix";

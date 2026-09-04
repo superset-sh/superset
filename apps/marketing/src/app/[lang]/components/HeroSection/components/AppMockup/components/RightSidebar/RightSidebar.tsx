@@ -18,9 +18,9 @@ export function RightSidebar({ activeDemo }: RightSidebarProps) {
 	const isDiff = activeDemo === "See Changes";
 
 	const tabLabels: Record<(typeof TABS)[number], string> = {
-		Files: t({ id: "marketing.hero.mockup.tab.files", message: "Files" }),
-		Changes: t({ id: "marketing.hero.mockup.tab.changes", message: "Changes" }),
-		Review: t({ id: "marketing.hero.mockup.tab.review", message: "Review" }),
+		Files: t({ message: "Files" }),
+		Changes: t({ message: "Changes" }),
+		Review: t({ message: "Review" }),
 	};
 
 	return (
@@ -37,7 +37,7 @@ export function RightSidebar({ activeDemo }: RightSidebarProps) {
 				>
 					<LuPlay className="size-2.5 fill-current text-muted-foreground/65" />
 					<span>
-						<Trans id="marketing.hero.mockup.run">Run</Trans>
+						<Trans>Run</Trans>
 					</span>
 				</button>
 				<button
@@ -46,7 +46,7 @@ export function RightSidebar({ activeDemo }: RightSidebarProps) {
 				>
 					<LuGitPullRequest className="size-2.5 text-brand-light/80" />
 					<span>
-						<Trans id="marketing.hero.mockup.pr">PR</Trans>
+						<Trans>PR</Trans>
 					</span>
 					<span className="font-mono tabular-nums text-muted-foreground/55">
 						#827
@@ -78,12 +78,7 @@ export function RightSidebar({ activeDemo }: RightSidebarProps) {
 					<span className="tabular-nums text-rose-400/75">−42</span>
 					<span className="text-muted-foreground/45">·</span>
 					<span>
-						<Plural
-							id="marketing.hero.mockup.changedFileCount"
-							value={5}
-							one="# file"
-							other="# files"
-						/>
+						<Plural value={5} one="# file" other="# files" />
 					</span>
 					<span className="text-muted-foreground/45">·</span>
 					<span className="flex items-center gap-1">
@@ -166,13 +161,13 @@ export function RightSidebar({ activeDemo }: RightSidebarProps) {
 							type="button"
 							className="h-7 rounded-sm bg-emerald-500/15 px-2.5 text-[11px] font-medium text-emerald-300 hover:bg-emerald-500/25"
 						>
-							<Trans id="marketing.hero.mockup.approve">Approve</Trans>
+							<Trans>Approve</Trans>
 						</button>
 						<button
 							type="button"
 							className="h-7 rounded-sm px-2.5 text-[11px] font-medium text-muted-foreground/75 hover:bg-foreground/[0.04] hover:text-foreground/90"
 						>
-							<Trans id="marketing.hero.mockup.comment">Comment</Trans>
+							<Trans>Comment</Trans>
 						</button>
 					</div>
 				</m.div>

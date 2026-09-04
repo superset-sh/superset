@@ -51,12 +51,10 @@ export function LeaderboardJoinDialog({
 			<DialogContent className="max-w-md">
 				<DialogHeader>
 					<DialogTitle>
-						<Trans id="components.leaderboardJoinDialog.title">
-							Join the leaderboard
-						</Trans>
+						<Trans>Join the leaderboard</Trans>
 					</DialogTitle>
 					<DialogDescription>
-						<Trans id="components.leaderboardJoinDialog.description">
+						<Trans>
 							Publishes your token counts and model names, never repo names,
 							file paths or prompts. You can leave at any time, which deletes
 							everything you've published.
@@ -67,9 +65,7 @@ export function LeaderboardJoinDialog({
 				<div className="space-y-4">
 					{isLoading ? (
 						<p className="text-sm text-muted-foreground">
-							<Trans id="components.leaderboardJoinDialog.readingUsage">
-								Reading your local usage…
-							</Trans>
+							<Trans>Reading your local usage…</Trans>
 						</p>
 					) : preview ? (
 						<RankTeaser preview={preview} />
@@ -77,9 +73,7 @@ export function LeaderboardJoinDialog({
 
 					<div className="space-y-1.5">
 						<Label htmlFor="leaderboard-handle">
-							<Trans id="components.leaderboardJoinDialog.handleLabel">
-								Handle
-							</Trans>
+							<Trans>Handle</Trans>
 						</Label>
 						<Input
 							id="leaderboard-handle"
@@ -89,16 +83,13 @@ export function LeaderboardJoinDialog({
 								setHandle(event.target.value);
 							}}
 							placeholder={t({
-								id: "components.leaderboardJoinDialog.handlePlaceholder",
 								message: "pick a name for the board",
 							})}
 							autoComplete="off"
 							spellCheck={false}
 						/>
 						<p className="text-xs text-muted-foreground">
-							<Trans id="components.leaderboardJoinDialog.handleHint">
-								Shown publicly alongside your name.
-							</Trans>
+							<Trans>Shown publicly alongside your name.</Trans>
 						</p>
 					</div>
 				</div>
@@ -110,20 +101,14 @@ export function LeaderboardJoinDialog({
 						onClick={() => onOpenChange(false)}
 						disabled={isJoining}
 					>
-						<Trans id="components.leaderboardJoinDialog.cancel">Cancel</Trans>
+						<Trans>Cancel</Trans>
 					</Button>
 					<Button
 						size="sm"
 						disabled={!valid || isJoining}
 						onClick={() => onConfirm(trimmed)}
 					>
-						{isJoining ? (
-							<Trans id="components.leaderboardJoinDialog.joining">
-								Joining…
-							</Trans>
-						) : (
-							<Trans id="components.leaderboardJoinDialog.join">Join</Trans>
-						)}
+						{isJoining ? <Trans>Joining…</Trans> : <Trans>Join</Trans>}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

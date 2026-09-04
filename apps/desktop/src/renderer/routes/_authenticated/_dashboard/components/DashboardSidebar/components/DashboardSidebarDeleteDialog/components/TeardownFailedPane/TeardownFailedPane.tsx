@@ -52,9 +52,7 @@ export function TeardownFailedPane({
 				<AlertDialogHeader className="px-4 pt-4 pb-2">
 					<AlertDialogTitle className="font-medium">{reason}</AlertDialogTitle>
 					<AlertDialogDescription>
-						<Trans id="dashboard.sidebar.teardownFailed.description">
-							Delete anyway will skip the teardown script entirely.
-						</Trans>
+						<Trans>Delete anyway will skip the teardown script entirely.</Trans>
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				{cleanTail && (
@@ -69,7 +67,7 @@ export function TeardownFailedPane({
 						className="h-7 px-3 text-xs"
 						onClick={() => onOpenChange(false)}
 					>
-						<Trans id="dashboard.sidebar.teardownFailed.cancel">Cancel</Trans>
+						<Trans>Cancel</Trans>
 					</Button>
 					<Button
 						variant="destructive"
@@ -77,9 +75,7 @@ export function TeardownFailedPane({
 						className="h-7 px-3 text-xs"
 						onClick={onForceDelete}
 					>
-						<Trans id="dashboard.sidebar.teardownFailed.deleteAnyway">
-							Delete anyway
-						</Trans>
+						<Trans>Delete anyway</Trans>
 					</Button>
 				</AlertDialogFooter>
 			</AlertDialogContent>

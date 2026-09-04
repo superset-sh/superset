@@ -50,7 +50,11 @@ export const env = createEnv({
 		BLAXEL_API_KEY: z.string().min(1),
 		BLAXEL_WORKSPACE: z.string().min(1),
 		BLAXEL_REGION: z.string().min(1),
-		BLAXEL_SANDBOX_IMAGE: z.string().min(1),
+		SENTRY_DSN_SANDBOX: z.string().optional(),
+		NEXT_PUBLIC_SENTRY_ENVIRONMENT: z
+			.enum(["development", "preview", "production"])
+			.optional(),
+		SECRETS_ENCRYPTION_KEY: z.string().optional(),
 		// GitHub App credentials
 		GH_APP_ID: z.string().min(1),
 		GH_APP_PRIVATE_KEY: z.string().min(1),

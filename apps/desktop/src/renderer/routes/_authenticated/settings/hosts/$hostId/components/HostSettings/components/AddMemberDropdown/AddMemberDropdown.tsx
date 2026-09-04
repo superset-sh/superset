@@ -27,7 +27,7 @@ export function AddMemberDropdown({
 		return (
 			<Button size="sm" variant="outline" disabled>
 				<HiOutlinePlus className="h-4 w-4 mr-1" />
-				<Trans id="settings.hosts.addMemberDisabled">Add member</Trans>
+				<Trans>Add member</Trans>
 			</Button>
 		);
 	}
@@ -37,7 +37,7 @@ export function AddMemberDropdown({
 			<DropdownMenuTrigger asChild>
 				<Button size="sm" variant="outline">
 					<HiOutlinePlus className="h-4 w-4 mr-1" />
-					<Trans id="settings.hosts.addMember">Add member</Trans>
+					<Trans>Add member</Trans>
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end" className="w-64">

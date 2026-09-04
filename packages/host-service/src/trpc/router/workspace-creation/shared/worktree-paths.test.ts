@@ -37,6 +37,28 @@ describe("isInsideProjectWorktreesRoot", () => {
 		).toBe(false);
 	});
 
+	test("accepts a dangling symlink leaf under a base that itself sits behind a symlink", () => {
+		// tmpdir() on macOS is /var/..., a symlink to /private/var/...: the
+		// base canonicalises to /private/var while an unresolvable leaf used
+		// to fall back to its /var/... spelling and never share the prefix.
+		const base = tmp("wt-base-");
+		mkdirSync(join(base, "proj"), { recursive: true });
+		symlinkSync(join(base, "gone"), join(base, "proj", "feature"));
+		expect(
+			isInsideProjectWorktreesRoot(join(base, "proj", "feature"), "proj", base),
+		).toBe(true);
+	});
+
+	test("rejects a leaf symlink that points out of the base", () => {
+		const base = tmp("wt-base-");
+		const outside = tmp("wt-outside-");
+		mkdirSync(join(base, "proj"), { recursive: true });
+		symlinkSync(outside, join(base, "proj", "feature"));
+		expect(
+			isInsideProjectWorktreesRoot(join(base, "proj", "feature"), "proj", base),
+		).toBe(false);
+	});
+
 	test("rejects a worktree under a project root that is a symlink out of the base", () => {
 		const base = tmp("wt-base-");
 		const outside = tmp("wt-outside-");

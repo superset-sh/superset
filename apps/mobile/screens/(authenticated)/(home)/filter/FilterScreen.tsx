@@ -40,14 +40,10 @@ export function FilterScreen() {
 						color={theme.mutedForeground}
 					/>
 				}
-				label={t({ id: "mobile.filter.scope", message: "Scope" })}
+				label={t({ message: "Scope" })}
 				trailing={
 					<ListRowValue
-						value={
-							cloud
-								? t({ id: "mobile.filter.cloud", message: "Cloud" })
-								: (selectedHost?.name ?? "")
-						}
+						value={cloud ? t({ message: "Cloud" }) : (selectedHost?.name ?? "")}
 						accessory={
 							cloud ? (
 								<Icon
@@ -71,7 +67,7 @@ export function FilterScreen() {
 						color={theme.mutedForeground}
 					/>
 				}
-				label={t({ id: "mobile.filter.sort", message: "Sort" })}
+				label={t({ message: "Sort" })}
 				trailing={<ListRowValue value={sortLabel} />}
 				onPress={() => router.push("/(authenticated)/(home)/filter/sort")}
 				isLast

@@ -55,7 +55,7 @@ export function CompareLayout({ page, children }: CompareLayoutProps) {
 
 						<div className="flex items-center justify-center gap-3 text-sm text-muted-foreground">
 							<span>
-								<Trans id="marketing.compare.lastUpdated">Last updated</Trans>
+								<Trans>Last updated</Trans>
 							</span>
 							<span className="text-muted-foreground/50">·</span>
 							<time dateTime={page.lastUpdated ?? page.date}>
@@ -85,15 +85,13 @@ export function CompareLayout({ page, children }: CompareLayoutProps) {
 				</div>
 				<div className="max-w-3xl mx-auto px-6 py-10 text-center">
 					<p className="text-muted-foreground mb-4">
-						<Trans id="marketing.compare.cta.title">
-							Ready to try Superset?
-						</Trans>
+						<Trans>Ready to try Superset?</Trans>
 					</p>
 					<Link
 						href="/"
 						className="inline-flex items-center gap-2 text-sm font-medium text-foreground hover:text-foreground/80 transition-colors border border-border rounded-md px-4 py-2"
 					>
-						<Trans id="marketing.compare.cta.getStarted">Get started</Trans>
+						<Trans>Get started</Trans>
 					</Link>
 				</div>
 			</footer>

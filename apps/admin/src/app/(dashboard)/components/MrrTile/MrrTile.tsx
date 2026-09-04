@@ -71,7 +71,7 @@ export function MrrTile() {
 	const trpc = useTRPC();
 	const chartConfig = {
 		mrrUsd: {
-			label: t({ id: "admin.mrr.label", message: "MRR" }),
+			label: t({ message: "MRR" }),
 			color: "var(--chart-1)",
 		},
 	} satisfies ChartConfig;
@@ -134,9 +134,8 @@ export function MrrTile() {
 
 	return (
 		<InsightTileFrame
-			title={t({ id: "admin.mrr.title", message: "MRR — daily (Stripe)" })}
+			title={t({ message: "MRR — daily (Stripe)" })}
 			description={t({
-				id: "admin.mrr.description",
 				message:
 					"Stripe's own Sigma MRR report, computed on demand via the Query Run API",
 			})}
@@ -149,12 +148,10 @@ export function MrrTile() {
 			emptyLabel={
 				isComputing
 					? t({
-							id: "admin.mrr.computing",
 							message: "Computing in Stripe — up to a minute on first load",
 						})
 					: unavailableReason
 						? t({
-								id: "admin.tile.unavailableReason",
 								message: `Unavailable: ${unavailableReason}`,
 							})
 						: undefined
@@ -196,7 +193,6 @@ export function MrrTile() {
 						{latest?.prevUsd !== null && latest?.prevUsd !== undefined ? (
 							<p className="text-muted-foreground text-sm">
 								{t({
-									id: "admin.mrr.previousPeriod",
 									message: `$${latest.prevUsd.toLocaleString()} previous period (${latest.prevDate})`,
 								})}
 							</p>
@@ -207,7 +203,6 @@ export function MrrTile() {
 							// data actually ends, or a correct number reads as a stale one.
 							<p className="text-muted-foreground text-xs">
 								{t({
-									id: "admin.mrr.dataThrough",
 									message: `Stripe data through ${formatDateTime(new Date(series.dataThrough), TIMESTAMP_FORMAT)}`,
 								})}
 							</p>

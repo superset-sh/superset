@@ -26,20 +26,19 @@ export function TokenSplitBar({
 	const segments: Segment[] = [
 		{
 			id: "input",
-			label: msg({ id: "marketing.models.split.input", message: "Input" }),
+			label: msg({ message: "Input" }),
 			tokens: split.uncachedInput,
 			color: "#d25611",
 		},
 		{
 			id: "output",
-			label: msg({ id: "marketing.models.split.output", message: "Output" }),
+			label: msg({ message: "Output" }),
 			tokens: split.output,
 			color: "#c19a5b",
 		},
 		{
 			id: "cacheRead",
 			label: msg({
-				id: "marketing.models.split.cacheRead",
 				message: "Cache read",
 			}),
 			tokens: split.cachedInput,
@@ -48,7 +47,6 @@ export function TokenSplitBar({
 		{
 			id: "cacheWrite",
 			label: msg({
-				id: "marketing.models.split.cacheWrite",
 				message: "Cache write",
 			}),
 			tokens: split.cacheWrite5m + split.cacheWrite1h,
@@ -60,7 +58,7 @@ export function TokenSplitBar({
 	if (total === 0) {
 		return (
 			<p className="text-sm text-muted-foreground">
-				<Trans id="marketing.usage.noneInRange">No usage in this range.</Trans>
+				<Trans>No usage in this range.</Trans>
 			</p>
 		);
 	}

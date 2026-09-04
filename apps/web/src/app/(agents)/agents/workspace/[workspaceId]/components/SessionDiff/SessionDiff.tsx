@@ -35,7 +35,6 @@ export function SessionDiff({ diffFiles }: SessionDiffProps) {
 			<div className="mb-4 flex items-center gap-2 text-sm">
 				<span className="font-medium">
 					<Plural
-						id="web.sessionDiff.filesChanged"
 						value={diffFiles.length}
 						one="# file changed"
 						other="# files changed"

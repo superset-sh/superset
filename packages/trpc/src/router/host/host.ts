@@ -1,4 +1,4 @@
-import { db, dbWs } from "@superset/db/client";
+import { db } from "@superset/db/client";
 import {
 	subscriptions,
 	users,
@@ -133,7 +133,7 @@ export const hostRouter = {
 				});
 			}
 
-			const [inserted] = await dbWs
+			const [inserted] = await db
 				.insert(v2Hosts)
 				.values({
 					organizationId: input.organizationId,
@@ -164,7 +164,7 @@ export const hostRouter = {
 			}
 
 			if (host.createdByUserId === ctx.userId) {
-				await dbWs
+				await db
 					.insert(v2UsersHosts)
 					.values({
 						organizationId: input.organizationId,
@@ -311,7 +311,7 @@ export const hostRouter = {
 				});
 			}
 
-			await dbWs
+			await db
 				.update(v2Hosts)
 				.set({ wakeCommand: input.wakeCommand })
 				.where(

@@ -103,7 +103,6 @@ function findSignInChange(
 		? {
 				label: i18n._(
 					msg({
-						id: "settings.usage.addAccount.codexSignInLabel",
 						message: "The Codex sign-in",
 					}),
 				),
@@ -229,11 +228,9 @@ export function AddAccountDialog({
 	const switchDescription = switchTarget
 		? switchTarget.selection === null
 			? t({
-					id: "settings.usage.addAccount.switchDefaultDescription",
 					message: `Sign the system-default ${AGENT_LABELS[switchTarget.agent]} login into a different account. It replaces the current default sign-in on this machine; profiles and running agents are unaffected.`,
 				})
 			: t({
-					id: "settings.usage.addAccount.switchProfileDescription",
 					message: `Sign the ${switchTarget.label} profile into a different account. Other profiles, the system default, and running agents are unaffected.`,
 				})
 		: null;
@@ -244,18 +241,14 @@ export function AddAccountDialog({
 				<DialogHeader>
 					<DialogTitle>
 						{switchTarget ? (
-							<Trans id="settings.usage.addAccount.switchTitle">
-								Switch sign-in
-							</Trans>
+							<Trans>Switch sign-in</Trans>
 						) : (
-							<Trans id="settings.usage.addAccount.addTitle">
-								Add {AGENT_LABELS[agent]} account
-							</Trans>
+							<Trans>Add {AGENT_LABELS[agent]} account</Trans>
 						)}
 					</DialogTitle>
 					<DialogDescription>
 						{switchDescription ?? (
-							<Trans id="settings.usage.addAccount.addDescription">
+							<Trans>
 								Sign in to a second subscription as a separate profile. Your
 								current login is untouched, and the new profile shares your
 								skills, plugins, MCP servers, and settings.
@@ -269,18 +262,14 @@ export function AddAccountDialog({
 						<div className="rounded-md border bg-card/40 p-3 text-sm">
 							<span className="font-medium">{found.label}</span>{" "}
 							{switchTarget ? (
-								<Trans id="settings.usage.addAccount.switchedSuffix">
-									is now signed in here.
-								</Trans>
+								<Trans>is now signed in here.</Trans>
 							) : (
-								<Trans id="settings.usage.addAccount.addedSuffix">
-									is signed in and will show its quota here.
-								</Trans>
+								<Trans>is signed in and will show its quota here.</Trans>
 							)}
 						</div>
 						<div className="flex justify-end gap-2">
 							<Button variant="ghost" onClick={() => onOpenChange(false)}>
-								<Trans id="settings.usage.addAccount.done">Done</Trans>
+								<Trans>Done</Trans>
 							</Button>
 							{!switchTarget && found.selection !== null && (
 								<Button
@@ -298,9 +287,7 @@ export function AddAccountDialog({
 										);
 									}}
 								>
-									<Trans id="settings.usage.addAccount.useForNewAgents">
-										Use for new agents
-									</Trans>
+									<Trans>Use for new agents</Trans>
 								</Button>
 							)}
 						</div>
@@ -310,9 +297,7 @@ export function AddAccountDialog({
 						{!switchTarget && (
 							<div className="flex items-center gap-2">
 								<span className="text-xs text-muted-foreground">
-									<Trans id="settings.usage.addAccount.profileName">
-										Profile name
-									</Trans>
+									<Trans>Profile name</Trans>
 								</span>
 								<Input
 									value={name}
@@ -325,7 +310,7 @@ export function AddAccountDialog({
 
 						<div className="flex flex-col gap-1">
 							<span className="text-xs text-muted-foreground">
-								<Trans id="settings.usage.addAccount.runCommandHint">
+								<Trans>
 									Run this in any terminal on this host, then finish the sign-in
 									in your browser:
 								</Trans>
@@ -351,7 +336,7 @@ export function AddAccountDialog({
 
 						<div className="flex items-center gap-1.5 text-xs text-muted-foreground">
 							<LuLoaderCircle className="size-3 animate-spin" />
-							<Trans id="settings.usage.addAccount.waitingForSignIn">
+							<Trans>
 								Waiting for the sign-in to complete — this updates
 								automatically.
 							</Trans>

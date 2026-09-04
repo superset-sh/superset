@@ -42,19 +42,15 @@ export function useV2SetupScriptCard({
 	return {
 		id: `setup-script:${projectId}`,
 		badge: t({
-			id: "dashboard.sidebar.setupScriptCard.badge",
 			message: "Setup",
 		}),
 		title: t({
-			id: "dashboard.sidebar.setupScriptCard.title",
 			message: "Lifecycle scripts",
 		}),
 		description: t({
-			id: "dashboard.sidebar.setupScriptCard.description",
 			message: `Automate workspace setup for ${projectName}`,
 		}),
 		actionLabel: t({
-			id: "dashboard.sidebar.setupScriptCard.configure",
 			message: "Configure",
 		}),
 		// Configure → open the new-workspace modal seeded with a prompt that walks

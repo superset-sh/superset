@@ -83,7 +83,6 @@ export function PullRequestCommentThread({
 				console.error("[PullRequestCommentThread/copy] Failed to copy:", err);
 				toast.error(
 					t({
-						id: "dashboard.pullRequests.commentThread.copyFailed",
 						message: "Couldn't copy comment",
 					}),
 				);
@@ -107,12 +106,10 @@ export function PullRequestCommentThread({
 		if (!dispatched) {
 			toast.error(
 				t({
-					id: "dashboard.pullRequests.commentThread.sendReplyFailed",
 					message: "Couldn't send reply",
 				}),
 				{
 					description: t({
-						id: "dashboard.pullRequests.commentThread.sendReplyFailedHint",
 						message: "This thread has no comment to reply to.",
 					}),
 				},
@@ -150,11 +147,9 @@ export function PullRequestCommentThread({
 					aria-label={
 						open
 							? t({
-									id: "dashboard.pullRequests.commentThread.collapseThread",
 									message: "Collapse thread",
 								})
 							: t({
-									id: "dashboard.pullRequests.commentThread.expandThread",
 									message: "Expand thread",
 								})
 					}
@@ -180,7 +175,6 @@ export function PullRequestCommentThread({
 					)}
 					<span className="shrink-0 font-medium text-foreground/90">
 						<Plural
-							id="dashboard.pullRequests.commentThread.commentCount"
 							value={comments.length}
 							one="# comment"
 							other="# comments"
@@ -190,16 +184,12 @@ export function PullRequestCommentThread({
 				<div className="flex shrink-0 items-center gap-1.5">
 					{isOutdated && (
 						<span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-							<Trans id="dashboard.pullRequests.commentThread.outdated">
-								Outdated
-							</Trans>
+							<Trans>Outdated</Trans>
 						</span>
 					)}
 					{isResolved && (
 						<span className="rounded-full bg-[#dcfae8] px-1.5 py-0.5 text-[10px] font-medium text-[#00a558] [.dark_&]:bg-[#064e3b] [.dark_&]:text-[#34d399]">
-							<Trans id="dashboard.pullRequests.commentThread.resolved">
-								Resolved
-							</Trans>
+							<Trans>Resolved</Trans>
 						</span>
 					)}
 					<button
@@ -209,16 +199,13 @@ export function PullRequestCommentThread({
 						aria-label={
 							isCopied
 								? t({
-										id: "dashboard.pullRequests.commentThread.copied",
 										message: "Copied",
 									})
 								: comments.length === 1
 									? t({
-											id: "dashboard.pullRequests.commentThread.copyComment",
 											message: "Copy comment",
 										})
 									: t({
-											id: "dashboard.pullRequests.commentThread.copyComments",
 											message: "Copy comments",
 										})
 						}
@@ -237,7 +224,6 @@ export function PullRequestCommentThread({
 							onClick={(e) => e.stopPropagation()}
 							className="shrink-0 text-muted-foreground hover:text-foreground"
 							aria-label={t({
-								id: "dashboard.pullRequests.commentThread.openOnGitHub",
 								message: "Open on GitHub",
 							})}
 						>
@@ -263,7 +249,6 @@ export function PullRequestCommentThread({
 							}
 						}}
 						placeholder={t({
-							id: "dashboard.pullRequests.commentThread.replyPlaceholder",
 							message: "Write a reply…",
 						})}
 						rows={2}
@@ -281,13 +266,9 @@ export function PullRequestCommentThread({
 								<LuLoaderCircle className="size-3 animate-spin" />
 							)}
 							{isResolved ? (
-								<Trans id="dashboard.pullRequests.commentThread.unresolve">
-									Unresolve
-								</Trans>
+								<Trans>Unresolve</Trans>
 							) : (
-								<Trans id="dashboard.pullRequests.commentThread.resolveConversation">
-									Resolve conversation
-								</Trans>
+								<Trans>Resolve conversation</Trans>
 							)}
 						</Button>
 						<Button
@@ -299,9 +280,7 @@ export function PullRequestCommentThread({
 							{isReplyPending && (
 								<LuLoaderCircle className="size-3 animate-spin" />
 							)}
-							<Trans id="dashboard.pullRequests.commentThread.reply">
-								Reply
-							</Trans>
+							<Trans>Reply</Trans>
 						</Button>
 					</div>
 				</div>

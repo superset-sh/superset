@@ -246,6 +246,12 @@ export const workspaces = sqliteTable(
 			.$defaultFn(() => Date.now()),
 		// 0 means "predates local ownership"; write paths always set it.
 		updatedAt: integer("updated_at").notNull().default(0),
+		// Epoch ms of the newest agent lifecycle event in this workspace (see
+		// touchLocalWorkspaceActivity). Distinct from updatedAt, which only
+		// moves on metadata writes. Inserts stamp creation as the first
+		// activity; rows that predate the column stay null and consumers fall
+		// back to updatedAt.
+		lastActivityAt: integer("last_activity_at").$defaultFn(() => Date.now()),
 		// Null = local changes not yet pushed to the cloud mirror (dual-write
 		// era only; the column and reconciler go away in R3).
 		// Tombstone: null = live. Set at the destroy commit point; rows are

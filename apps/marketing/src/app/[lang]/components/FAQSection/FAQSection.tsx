@@ -78,7 +78,7 @@ export function FAQSection() {
 					{/* Left Column - Title */}
 					<div className="xl:sticky xl:top-24 xl:self-start">
 						<h2 className="text-3xl sm:text-4xl lg:text-5xl font-medium tracking-tight text-foreground leading-[1.1]">
-							<Trans id="marketing.faq.heading">
+							<Trans>
 								Frequently
 								<br />
 								asked questions

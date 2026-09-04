@@ -1,11 +1,18 @@
 import { formatDateTime } from "@superset/i18n/format";
-import type { DraftTrigger } from "@superset/shared/automation-triggers";
+import type {
+	DraftTrigger,
+	TriggerProblem,
+} from "@superset/shared/automation-triggers";
 import { nextOccurrenceAfter } from "@superset/shared/rrule";
 import type { RouterOutputs } from "@superset/trpc";
 import { useRecentProjects } from "renderer/hooks/host-projects/useRecentProjects";
 import type { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { DevicePicker } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 import { ProjectPicker } from "../../../components/ProjectPicker";
+import type {
+	OptionGroupState,
+	ProviderOptions,
+} from "../../../components/providers/types";
 import { RelayOfflineNotice } from "../../../components/RelayOfflineNotice";
 import { TriggersEditor } from "../../../components/TriggersEditor";
 import { WorkspacePicker } from "../../../components/WorkspacePicker";
@@ -17,42 +24,47 @@ export type AutomationUpdatePatch = Partial<
 
 type AutomationDetail = RouterOutputs["automation"]["get"];
 
+export interface ScopeDraft {
+	v2ProjectId: string | null;
+	targetHostId: string | null;
+	v2WorkspaceId: string | null;
+	tags: string[];
+}
+
 interface TriggersCardProps {
 	automation: AutomationDetail;
 	hostId: string | null;
 	readOnly?: boolean;
-	onUpdate: (patch: AutomationUpdatePatch) => void;
-	/** Resolves once the write lands, so the editor knows the set is saved. */
-	onSaveTriggers: (triggers: DraftTrigger[]) => Promise<unknown>;
+	scope: ScopeDraft;
+	onScopeChange: (patch: Partial<ScopeDraft>) => void;
+	drafts: DraftTrigger[];
+	onEditTriggers: (next: DraftTrigger[]) => void;
+	problems: TriggerProblem[];
+	options: ProviderOptions;
+	optionState: Record<string, OptionGroupState>;
 }
 
-/**
- * Sentence-shaped trigger: "[Daily at 8:00 AM] [America/LA]" with an
- * indented scope line "in [project] on [device] · [workspace]".
- */
 export function TriggersCard({
 	automation,
 	hostId,
 	readOnly,
-	onUpdate,
-	onSaveTriggers,
+	scope,
+	onScopeChange,
+	drafts,
+	onEditTriggers,
+	problems,
+	options,
+	optionState,
 }: TriggersCardProps) {
 	const recentProjects = useRecentProjects();
 	const selectedProject = recentProjects.find(
-		(p) => p.id === automation.v2ProjectId,
+		(p) => p.id === scope.v2ProjectId,
 	);
 
-	// The scope line is the same grammar as a trigger sentence — "in X on Y using
-	// Z" — so it uses the same chips. Left alone, the three pickers render at
-	// 36px/12px, 22px/11px and 36px/12px, none of which match the 24px/13px chips
-	// directly above them. Passed per call site, so the pickers keep their own
-	// look everywhere else they are used.
+	// Sized to match the sentence chips above, which the pickers don't match by default.
 	const SCOPE_CHIP =
 		"h-6 gap-1 rounded-[6px] bg-foreground/[0.06] px-2 text-[13px] font-normal hover:bg-foreground/10";
 
-	// Computed from the rule on screen, never the dispatcher's persisted
-	// nextRunAt: that value lags behind edits, goes stale while paused, and
-	// doesn't exist for a row that hasn't been saved yet.
 	const renderNextRun = (
 		config: Extract<DraftTrigger["config"], { kind: "schedule" }>,
 	) => {
@@ -86,11 +98,11 @@ export function TriggersCard({
 	return (
 		<div className="flex flex-col gap-1">
 			<TriggersEditor
-				triggers={automation.triggers.map((t) => ({
-					id: t.id,
-					config: t.config as DraftTrigger["config"],
-				}))}
-				onChange={onSaveTriggers}
+				drafts={drafts}
+				onEdit={onEditTriggers}
+				problems={problems}
+				options={options}
+				optionState={optionState}
 				organizationId={automation.organizationId}
 				renderNextRun={renderNextRun}
 				readOnly={readOnly}
@@ -100,10 +112,16 @@ export function TriggersCard({
 					<ProjectPicker
 						className={SCOPE_CHIP}
 						selectedProject={selectedProject}
-						sessionSelected={automation.v2ProjectId === null}
+						sessionSelected={scope.v2ProjectId === null}
 						recentProjects={recentProjects}
 						disabled={readOnly}
-						onSelectProject={(v2ProjectId) => onUpdate({ v2ProjectId })}
+						onSelectProject={(v2ProjectId) =>
+							onScopeChange(
+								v2ProjectId === scope.v2ProjectId
+									? { v2ProjectId }
+									: { v2ProjectId, v2WorkspaceId: null },
+							)
+						}
 					/>
 					<span>on</span>
 					<DevicePicker
@@ -112,27 +130,28 @@ export function TriggersCard({
 						showLocalOnlineState
 						disabled={readOnly}
 						onSelectHostId={(nextHostId) =>
-							onUpdate({ targetHostId: nextHostId })
+							onScopeChange(
+								nextHostId === scope.targetHostId
+									? { targetHostId: nextHostId }
+									: { targetHostId: nextHostId, v2WorkspaceId: null },
+							)
 						}
 					/>
 					<span>using</span>
 					<WorkspacePicker
 						className={SCOPE_CHIP}
 						hostId={hostId}
-						projectId={automation.v2ProjectId}
-						value={automation.v2WorkspaceId}
+						projectId={scope.v2ProjectId}
+						value={scope.v2WorkspaceId}
 						disabled={readOnly}
 						onChange={(v2WorkspaceId) =>
-							onUpdate({
+							onScopeChange({
 								v2WorkspaceId,
-								// Denormalized pin: the picker is scoped to this host/project,
-								// so send both — the cloud stores them without a
-								// workspace-registry lookup. A null project means the pin is a
-								// session workspace.
+								// Denormalized pin: the cloud stores both without a registry lookup.
 								...(v2WorkspaceId && hostId
 									? {
 											targetHostId: hostId,
-											v2ProjectId: automation.v2ProjectId,
+											v2ProjectId: scope.v2ProjectId,
 										}
 									: {}),
 							})
@@ -141,10 +160,10 @@ export function TriggersCard({
 					<span>tagged</span>
 					<AutomationTagsPicker
 						className={SCOPE_CHIP}
-						tags={automation.tags}
-						projectId={automation.v2ProjectId}
+						tags={scope.tags}
+						projectId={scope.v2ProjectId}
 						disabled={readOnly}
-						onChange={(tags) => onUpdate({ tags })}
+						onChange={(tags) => onScopeChange({ tags })}
 					/>
 				</div>
 			</TriggersEditor>

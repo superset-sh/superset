@@ -8,16 +8,13 @@
  * token can trip Anthropic's token-reuse protection and sign the CLI out.
  */
 
-import { execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
-import { homedir, platform } from "node:os";
+import { homedir } from "node:os";
 import { join } from "node:path";
-import { promisify } from "node:util";
-import { discoverClaudeProfiles, readKeychainSecret } from "./profiles";
+import { discoverClaudeProfiles, readKeychainSecrets } from "./profiles";
 import type { UsageAccount, UsageQuotaWindow } from "./types";
 
-const execFileAsync = promisify(execFile);
-
+const CLAUDE_KEYCHAIN_SERVICE = "Claude Code-credentials";
 const CLAUDE_USAGE_URL = "https://api.anthropic.com/api/oauth/usage";
 const CLAUDE_PROFILE_URL = "https://api.anthropic.com/api/oauth/profile";
 const CLAUDE_OAUTH_BETA_HEADER = "oauth-2025-04-20";
@@ -83,23 +80,20 @@ async function readCredentialFile(
 	}
 }
 
+/** The default login's Keychain item: the freshest of the items sharing its
+ * service, since a sibling without a Claude login can sit beside it. */
 async function readKeychainCredential(): Promise<ClaudeOauthCredential | null> {
-	if (platform() !== "darwin") return null;
-	try {
-		const { stdout } = await execFileAsync(
-			"security",
-			["find-generic-password", "-s", "Claude Code-credentials", "-w"],
-			{ timeout: 5_000 },
-		);
-		return parseCredential(
-			stdout.trim(),
-			"keychain:Claude Code-credentials",
-			"Keychain",
-			null,
-		);
-	} catch {
-		return null;
-	}
+	const secrets = await readKeychainSecrets(CLAUDE_KEYCHAIN_SERVICE);
+	return pickFreshest(
+		secrets.map((secret) =>
+			parseCredential(
+				secret,
+				`keychain:${CLAUDE_KEYCHAIN_SERVICE}`,
+				"Keychain",
+				null,
+			),
+		),
+	);
 }
 
 function isLive(credential: ClaudeOauthCredential): boolean {
@@ -188,19 +182,21 @@ async function discoverClaudeCredentials(): Promise<{
 			profile.sourceLabel,
 			profile.configDir,
 		);
-		if (fromFile) return { ...fromFile, email: profile.email };
+		const candidates: Array<ClaudeOauthCredential | null> = [fromFile];
 		for (const service of profile.keychainServices) {
-			const secret = await readKeychainSecret(service);
-			if (!secret) continue;
-			const parsed = parseCredential(
-				secret,
-				profile.configDir,
-				profile.sourceLabel,
-				profile.configDir,
-			);
-			if (parsed) return { ...parsed, email: profile.email };
+			for (const secret of await readKeychainSecrets(service)) {
+				candidates.push(
+					parseCredential(
+						secret,
+						profile.configDir,
+						profile.sourceLabel,
+						profile.configDir,
+					),
+				);
+			}
 		}
-		return null;
+		const freshest = pickFreshest(candidates);
+		return freshest ? { ...freshest, email: profile.email } : null;
 	};
 
 	const profiles = await discoverClaudeProfiles();

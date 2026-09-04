@@ -76,12 +76,10 @@ export function RangeModal({
 			<DialogContent className="overflow-hidden sm:max-w-md">
 				<DialogHeader>
 					<DialogTitle>
-						<Trans id="workspace.rangeModal.title">Select commit range</Trans>
+						<Trans>Select commit range</Trans>
 					</DialogTitle>
 					<DialogDescription>
-						<Trans id="workspace.rangeModal.description">
-							Click two commits to define the range.
-						</Trans>
+						<Trans>Click two commits to define the range.</Trans>
 					</DialogDescription>
 				</DialogHeader>
 
@@ -109,10 +107,10 @@ export function RangeModal({
 
 				<DialogFooter>
 					<Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
-						<Trans id="workspace.rangeModal.cancel">Cancel</Trans>
+						<Trans>Cancel</Trans>
 					</Button>
 					<Button size="sm" disabled={!hasRange} onClick={handleApply}>
-						<Trans id="workspace.rangeModal.apply">Apply</Trans>
+						<Trans>Apply</Trans>
 					</Button>
 				</DialogFooter>
 			</DialogContent>

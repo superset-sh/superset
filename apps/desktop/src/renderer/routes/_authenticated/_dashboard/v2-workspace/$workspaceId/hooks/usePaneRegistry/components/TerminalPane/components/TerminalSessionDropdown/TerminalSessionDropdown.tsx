@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import type { RendererContext } from "@superset/panes";
@@ -59,10 +60,11 @@ const EMPTY_TERMINAL_PANE_LOCATIONS = new Map<string, TerminalPaneLocation[]>();
 
 function formatCreatedAt(createdAt: number | undefined): string {
 	if (!createdAt)
-		return i18n._({
-			id: "workspace.terminalPane.sessionCreating",
-			message: "Creating",
-		});
+		return i18n._(
+			msg({
+				message: "Creating",
+			}),
+		);
 
 	return getRelativeTime(createdAt, { format: "compact" });
 }
@@ -241,15 +243,12 @@ export function TerminalSessionDropdown({
 	const handleRemoveTerminal = (session: VisibleTerminalSession) => {
 		toast.promise(removeTerminalSession(session), {
 			loading: t({
-				id: "workspace.terminalPane.removingTerminal",
 				message: "Removing terminal...",
 			}),
 			success: t({
-				id: "workspace.terminalPane.terminalRemoved",
 				message: "Terminal removed",
 			}),
 			error: t({
-				id: "workspace.terminalPane.removeTerminalFailed",
 				message: "Failed to remove terminal",
 			}),
 		});
@@ -291,7 +290,6 @@ export function TerminalSessionDropdown({
 				<button
 					type="button"
 					aria-label={t({
-						id: "workspace.terminalPane.sessionsAria",
 						message: "Terminal sessions",
 					})}
 					title={triggerTitle}
@@ -310,7 +308,6 @@ export function TerminalSessionDropdown({
 										: "size-1.5 shrink-0 rounded-full bg-red-500"
 							}
 							title={t({
-								id: "workspace.terminalPane.workspaceRunState",
 								message: `Workspace run: ${workspaceRunState}`,
 							})}
 						/>
@@ -326,18 +323,14 @@ export function TerminalSessionDropdown({
 			<DropdownMenuContent align="start" className="w-96">
 				<DropdownMenuLabel className="flex items-center gap-2 text-xs">
 					<span className="min-w-0 flex-1 truncate">
-						<Trans id="workspace.terminalPane.sessionsLabel">
-							Terminal Sessions
-						</Trans>
+						<Trans>Terminal Sessions</Trans>
 					</span>
 					<button
 						type="button"
 						aria-label={t({
-							id: "workspace.terminalPane.newTerminalAria",
 							message: "New terminal",
 						})}
 						title={t({
-							id: "workspace.terminalPane.newTerminalTitle",
 							message: "New terminal",
 						})}
 						className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -361,26 +354,21 @@ export function TerminalSessionDropdown({
 							const createdAtLabel = formatCreatedAt(session.createdAt);
 							const status = isCurrent
 								? t({
-										id: "workspace.terminalPane.sessionStatusCurrent",
 										message: "Current",
 									})
 								: workspaceRunTerminals[session.terminalId]
 									? t({
-											id: "workspace.terminalPane.sessionStatusRun",
 											message: "Run",
 										})
 									: session.pending
 										? t({
-												id: "workspace.terminalPane.sessionStatusStarting",
 												message: "Starting",
 											})
 										: session.attached
 											? t({
-													id: "workspace.terminalPane.sessionStatusAttached",
 													message: "Attached",
 												})
 											: t({
-													id: "workspace.terminalPane.sessionStatusDetached",
 													message: "Detached",
 												});
 							const title = isCurrent
@@ -415,11 +403,9 @@ export function TerminalSessionDropdown({
 										aria-label={
 											session.createdAt
 												? t({
-														id: "workspace.terminalPane.removeTerminalCreatedAria",
 														message: `Remove terminal ${createdAtLabel}`,
 													})
 												: t({
-														id: "workspace.terminalPane.removeTerminalSessionAria",
 														message: "Remove terminal session",
 													})
 										}
@@ -438,9 +424,7 @@ export function TerminalSessionDropdown({
 						})
 					) : (
 						<div className="px-2 py-1.5 text-xs text-muted-foreground">
-							<Trans id="workspace.terminalPane.noLiveSessions">
-								No live sessions
-							</Trans>
+							<Trans>No live sessions</Trans>
 						</div>
 					)}
 				</div>

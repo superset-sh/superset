@@ -46,7 +46,6 @@ export function TeamSelector({ organizationId }: TeamSelectorProps) {
 			onError: () => {
 				toast.error(
 					t({
-						id: "web.teamSelector.updateError",
 						message: "Failed to update team. Please try again.",
 					}),
 				);
@@ -75,9 +74,7 @@ export function TeamSelector({ organizationId }: TeamSelectorProps) {
 	if (teams.length === 0) {
 		return (
 			<p className="text-sm text-muted-foreground">
-				<Trans id="web.teamSelector.empty">
-					No teams found in your Linear workspace.
-				</Trans>
+				<Trans>No teams found in your Linear workspace.</Trans>
 			</p>
 		);
 	}
@@ -92,7 +89,6 @@ export function TeamSelector({ organizationId }: TeamSelectorProps) {
 				<SelectTrigger className="w-48">
 					<SelectValue
 						placeholder={t({
-							id: "web.teamSelector.placeholder",
 							message: "Select a team",
 						})}
 					/>

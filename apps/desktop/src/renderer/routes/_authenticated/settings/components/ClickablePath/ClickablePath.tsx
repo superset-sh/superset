@@ -40,7 +40,6 @@ export function ClickablePath({
 		onError: (error) =>
 			toast.error(
 				t({
-					id: "settings.components.clickablePath.openFailed",
 					message: `Failed to open: ${error.message}`,
 				}),
 			),
@@ -50,14 +49,12 @@ export function ClickablePath({
 		onSuccess: () =>
 			toast.success(
 				t({
-					id: "settings.components.clickablePath.pathCopied",
 					message: "Path copied to clipboard",
 				}),
 			),
 		onError: (error) =>
 			toast.error(
 				t({
-					id: "settings.components.clickablePath.copyFailed",
 					message: `Failed to copy path: ${error.message}`,
 				}),
 			),
@@ -104,9 +101,7 @@ export function ClickablePath({
 					renderAppTrailing={(appId) =>
 						appId === defaultApp ? (
 							<span className="ml-auto text-xs text-muted-foreground">
-								<Trans id="settings.components.clickablePath.defaultApp">
-									Default
-								</Trans>
+								<Trans>Default</Trans>
 							</span>
 						) : null
 					}

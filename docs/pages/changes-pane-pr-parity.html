@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Changes pane · PR-view parity</title>
+<style>
+  :root {
+    --bg: #131312;
+    --bg-raise: #1b1b19;
+    --bg-card: #181817;
+    --line: #2b2b28;
+    --line-soft: #232321;
+    --ink: #e8e6e1;
+    --ink-mute: #a3a19a;
+    --ink-faint: #706e68;
+    --add: #34d399;
+    --del: #f87171;
+    --chip: #22221f;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.65 var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 72px 28px 96px; }
+
+  .eyebrow {
+    font: 600 11px/1 var(--mono);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--add);
+  }
+  h1 {
+    font-size: clamp(30px, 5.4vw, 46px);
+    line-height: 1.08;
+    letter-spacing: -0.022em;
+    font-weight: 700;
+    margin: 14px 0 18px;
+  }
+  .standfirst {
+    font-size: 19px;
+    line-height: 1.55;
+    color: var(--ink-mute);
+    max-width: 62ch;
+    margin: 0 0 28px;
+  }
+  .meta {
+    display: flex; flex-wrap: wrap; gap: 8px 10px;
+    font: 12px/1 var(--mono);
+    color: var(--ink-mute);
+    padding-bottom: 40px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .meta span {
+    background: var(--chip);
+    border: 1px solid var(--line-soft);
+    border-radius: 5px;
+    padding: 7px 10px;
+    white-space: nowrap;
+  }
+  .meta .add { color: var(--add); }
+  .meta .del { color: var(--del); }
+
+  section { margin-top: 64px; }
+  .sec-head { display: baseline; margin-bottom: 6px; }
+  .sec-num {
+    font: 600 12px/1 var(--mono);
+    color: var(--ink-faint);
+    letter-spacing: 0.1em;
+    display: block;
+    margin-bottom: 10px;
+  }
+  h2 {
+    font-size: 25px;
+    letter-spacing: -0.015em;
+    margin: 0 0 14px;
+  }
+  p { max-width: 68ch; margin: 0 0 16px; color: var(--ink); }
+  p.mute, li.mute { color: var(--ink-mute); }
+  code {
+    font: 0.86em var(--mono);
+    background: var(--chip);
+    border: 1px solid var(--line-soft);
+    border-radius: 4px;
+    padding: 1px 5px;
+    white-space: nowrap;
+  }
+  a { color: var(--add); text-decoration: none; border-bottom: 1px solid rgba(52,211,153,.35); }
+
+  .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 22px; }
+  @media (max-width: 640px) { .feature-grid { grid-template-columns: 1fr; } }
+  .feature {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 20px 22px;
+  }
+  .feature h3 { margin: 0 0 8px; font-size: 16px; }
+  .feature p { font-size: 14.5px; color: var(--ink-mute); margin: 0; }
+
+  figure { margin: 26px 0 0; }
+  figure svg { width: 100%; height: auto; display: block; }
+  figcaption {
+    font: 12px/1.6 var(--mono);
+    color: var(--ink-faint);
+    margin-top: 10px;
+  }
+
+  .map { margin-top: 24px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .map-row { display: grid; grid-template-columns: 1.2fr 1fr; border-top: 1px solid var(--line-soft); }
+  .map-row:first-child { border-top: 0; background: var(--bg-raise); }
+  .map-row > div { padding: 12px 18px; font-size: 13.5px; }
+  .map-row > div:first-child { font-family: var(--mono); font-size: 12.5px; border-right: 1px solid var(--line-soft); }
+  .map-row:first-child > div { font: 600 11px/1.4 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); border-right-color: var(--line-soft); }
+  .map .from { color: var(--ink-faint); }
+  .map .name { color: var(--ink); }
+  .map-row > div:last-child { color: var(--ink-mute); }
+  @media (max-width: 640px) {
+    .map-row { grid-template-columns: 1fr; }
+    .map-row > div:first-child { border-right: 0; padding-bottom: 2px; }
+    .map-row > div:last-child { padding-top: 2px; }
+  }
+
+  .finding { border-left: 2px solid var(--line); padding: 2px 0 2px 20px; margin-top: 26px; }
+  .finding h3 { margin: 0 0 8px; font-size: 16.5px; }
+  .finding h3 .k { color: var(--ink-faint); font: 600 12px var(--mono); margin-right: 10px; }
+  .finding p { font-size: 14.5px; color: var(--ink-mute); margin-bottom: 8px; }
+  .finding .fix { color: var(--ink); font-size: 14.5px; }
+  .finding .fix::before { content: "fix "; font: 600 10px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--add); margin-right: 6px; }
+
+  ul { padding-left: 20px; margin: 0 0 16px; }
+  li { margin-bottom: 8px; max-width: 66ch; }
+
+  table { border-collapse: collapse; width: 100%; margin-top: 20px; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  th { font: 600 11px/1.4 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
+  td:first-child { white-space: nowrap; font-family: var(--mono); font-size: 12.5px; }
+  .pass { color: var(--add); font: 600 12px var(--mono); }
+  .table-scroll { overflow-x: auto; }
+
+  footer {
+    margin-top: 80px;
+    padding-top: 26px;
+    border-top: 1px solid var(--line-soft);
+    font: 12px/1.8 var(--mono);
+    color: var(--ink-faint);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Superset · Engineering note</div>
+    <h1>The Changes pane learns from the&nbsp;PR&nbsp;view</h1>
+    <p class="standfirst">
+      The v2 workspace Changes pane now renders like the PR view's Code tab — card-per-file
+      diffs, a resizable file tree, a real toolbar — and links straight to the in-app PR view
+      when the branch has one. Built by extracting the PR tab into shared components, not by
+      copying it.
+    </p>
+    <div class="meta">
+      <span>branch <b>changes-pane-pr-view</b></span>
+      <span>feat <b>92fa049</b> · merge <b>6244f3a</b></span>
+      <span>37 files · <b class="add">+1387</b> <b class="del">−503</b></span>
+      <span>then merged main (131 commits)</span>
+      <span>2026-09-01</span>
+    </div>
+  </header>
+
+  <section>
+    <span class="sec-num">01</span>
+    <h2>What shipped</h2>
+    <div class="feature-grid">
+      <div class="feature">
+        <h3>Full visual &amp; structural parity</h3>
+        <p>Bordered, rounded card per file with a 16px gap; filename-first headers with the
+        directory trailing off muted; emerald/red ± counts; always-visible collapse chevrons;
+        a resizable in-pane file tree with ± row decorations and click-to-navigate; a toolbar
+        with the Files pill, collapse/expand-all, prev/next comment navigation, and the
+        unified/split toggles. Everything workspace-specific survived: section bar, inline
+        editing, per-file actions, viewed-files, ⌘F search, scroll persistence.</p>
+      </div>
+      <div class="feature">
+        <h3>A link into the in-app PR view</h3>
+        <p>When the workspace's branch has a linked pull request, the pane header shows a
+        state-tinted PR icon and <code>#number</code>. Clicking it opens
+        <code>/pull-requests/$prNumber</code> inside the app — until now, every PR affordance
+        in the product linked out to github.com. Hidden when there is no PR, and for session
+        workspaces that have no project scope.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="sec-num">02</span>
+    <h2>The pane, after</h2>
+    <figure aria-label="Schematic of the redesigned Changes pane">
+      <svg viewBox="0 0 880 470" role="img" aria-label="Schematic of the redesigned Changes pane" font-family="ui-monospace, SF Mono, Menlo, monospace">
+        <!-- pane frame -->
+        <rect x="1" y="1" width="878" height="468" rx="10" fill="#161615" stroke="#2b2b28"/>
+        <!-- pane header -->
+        <rect x="1" y="1" width="878" height="40" rx="10" fill="#1b1b19"/>
+        <rect x="1" y="21" width="878" height="20" fill="#1b1b19"/>
+        <line x1="1" y1="41" x2="879" y2="41" stroke="#2b2b28"/>
+        <text x="20" y="26" font-size="12" fill="#e8e6e1">Changes</text>
+        <!-- PR chip -->
+        <rect x="672" y="10" width="74" height="22" rx="5" fill="#22221f" stroke="#2b2b28"/>
+        <circle cx="686" cy="21" r="4.5" fill="none" stroke="#34d399" stroke-width="1.5"/>
+        <circle cx="686" cy="21" r="1.5" fill="#34d399"/>
+        <text x="696" y="25" font-size="11" fill="#a3a19a">#6882</text>
+        <text x="757" y="25" font-size="11" fill="#706e68">💬  👁  ⫽  ✕</text>
+        <!-- annotation: PR chip -->
+        <text x="560" y="26" font-size="10" fill="#5f7d70" text-anchor="end">opens the in-app PR view →</text>
+
+        <!-- toolbar -->
+        <rect x="221" y="42" width="658" height="34" fill="#161615"/>
+        <line x1="221" y1="76" x2="879" y2="76" stroke="#232321"/>
+        <rect x="234" y="49" width="70" height="20" rx="5" fill="#22221f"/>
+        <text x="244" y="63" font-size="11" fill="#a3a19a">Files 39</text>
+        <text x="316" y="63" font-size="11" fill="#706e68">⌵⌵</text>
+        <rect x="676" y="49" width="88" height="20" rx="5" fill="#1e1e1c"/>
+        <text x="686" y="63" font-size="11" fill="#a3a19a">↑ 1/7 ↓</text>
+        <line x1="774" y1="52" x2="774" y2="66" stroke="#2b2b28"/>
+        <rect x="782" y="49" width="20" height="20" rx="4" fill="#262623"/>
+        <text x="787" y="63" font-size="11" fill="#e8e6e1">▤</text>
+        <text x="810" y="63" font-size="11" fill="#706e68">▥</text>
+
+        <!-- file tree column -->
+        <line x1="221" y1="42" x2="221" y2="469" stroke="#2b2b28"/>
+        <g font-size="11">
+          <text x="18" y="62" fill="#a3a19a">▾ lib/pierreTree</text>
+          <text x="30" y="82" fill="#e8e6e1">formatDiffStats.ts</text>
+          <text x="206" y="82" fill="#34d399" text-anchor="end">+11</text>
+          <text x="30" y="102" fill="#e8e6e1">formatDiffStats.test.ts</text>
+          <text x="206" y="102" fill="#34d399" text-anchor="end">+20</text>
+          <text x="18" y="126" fill="#a3a19a">▾ …/DiffPane</text>
+          <rect x="10" y="134" width="204" height="20" rx="4" fill="#242422"/>
+          <text x="30" y="148" fill="#e8e6e1">DiffPane.tsx</text>
+          <text x="206" y="148" fill="#a3a19a" text-anchor="end"><tspan fill="#34d399">+229</tspan> <tspan fill="#f87171">−45</tspan></text>
+          <text x="30" y="172" fill="#e8e6e1">DiffFileTree.tsx</text>
+          <text x="206" y="172" fill="#34d399" text-anchor="end">+89</text>
+          <text x="30" y="192" fill="#e8e6e1">DiffPanePRLink.tsx</text>
+          <text x="206" y="192" fill="#34d399" text-anchor="end">+76</text>
+          <text x="18" y="216" fill="#a3a19a">▾ …/PullRequestCodeTab</text>
+          <text x="30" y="236" fill="#e8e6e1">PullRequestCodeTab.tsx</text>
+          <text x="206" y="236" fill="#f87171" text-anchor="end">−346</text>
+          <text x="30" y="256" fill="#e8e6e1">ChangesTreeView.tsx</text>
+          <text x="206" y="256" fill="#a3a19a" text-anchor="end"><tspan fill="#34d399">+2</tspan> <tspan fill="#f87171">−8</tspan></text>
+        </g>
+        <text x="18" y="452" font-size="10" fill="#5f7d70">resizable · auto-hides under 700px</text>
+
+        <!-- section bar -->
+        <rect x="222" y="77" width="657" height="24" fill="#1d1d1b"/>
+        <text x="240" y="93" font-size="10" letter-spacing="1.5" fill="#a3a19a">UNSTAGED 37</text>
+        <line x1="221" y1="101" x2="879" y2="101" stroke="#232321"/>
+
+        <!-- card 1: expanded -->
+        <g>
+          <rect x="240" y="116" width="620" height="120" rx="10" fill="#181817" stroke="#2b2b28"/>
+          <line x1="240" y1="146" x2="860" y2="146" stroke="#2b2b28"/>
+          <rect x="240" y="116" width="620" height="30" rx="10" fill="#1e1e1c"/>
+          <rect x="240" y="132" width="620" height="14" fill="#1e1e1c"/>
+          <line x1="240" y1="146" x2="860" y2="146" stroke="#2b2b28"/>
+          <text x="256" y="136" font-size="11" fill="#a3a19a">▾</text>
+          <text x="274" y="136" font-size="11.5" fill="#e8e6e1">formatDiffStats.ts</text>
+          <text x="396" y="136" font-size="11" fill="#706e68">apps/desktop/src/renderer/lib/pierreTree/</text>
+          <text x="844" y="136" font-size="11.5" fill="#34d399" text-anchor="end">+11</text>
+          <g font-size="10.5">
+            <text x="258" y="168" fill="#5a5852">1</text>
+            <text x="280" y="168" fill="#a3a19a">/** `+N −M` summary for a file's diff stats … */</text>
+            <rect x="248" y="176" width="604" height="16" fill="#12251d"/>
+            <text x="258" y="188" fill="#5a5852">6</text>
+            <text x="280" y="188" fill="#c9e8da">export function formatDiffStats(additions, deletions) {</text>
+            <rect x="248" y="196" width="604" height="16" fill="#12251d"/>
+            <text x="258" y="208" fill="#5a5852">7</text>
+            <text x="280" y="208" fill="#c9e8da">  if (additions === 0 &amp;&amp; deletions === 0) return "";</text>
+            <text x="258" y="226" fill="#5a5852">8</text>
+            <text x="280" y="226" fill="#a3a19a">  …</text>
+          </g>
+        </g>
+
+        <!-- gap annotation -->
+        <text x="868" y="253" font-size="10" fill="#5f7d70" text-anchor="end">16px gap</text>
+
+        <!-- card 2: collapsed -->
+        <g>
+          <rect x="240" y="262" width="620" height="30" rx="10" fill="#1e1e1c" stroke="#2b2b28"/>
+          <text x="256" y="282" font-size="11" fill="#a3a19a">▸</text>
+          <text x="274" y="282" font-size="11.5" fill="#e8e6e1">DiffFileTree.tsx</text>
+          <text x="384" y="282" font-size="11" fill="#706e68">…/DiffPane/components/DiffFileTree/</text>
+          <text x="844" y="282" font-size="11.5" fill="#34d399" text-anchor="end">+89</text>
+        </g>
+
+        <!-- card 3: expanded with comment thread -->
+        <g>
+          <rect x="240" y="308" width="620" height="140" rx="10" fill="#181817" stroke="#2b2b28"/>
+          <rect x="240" y="308" width="620" height="30" rx="10" fill="#1e1e1c"/>
+          <rect x="240" y="324" width="620" height="14" fill="#1e1e1c"/>
+          <line x1="240" y1="338" x2="860" y2="338" stroke="#2b2b28"/>
+          <text x="256" y="328" font-size="11" fill="#a3a19a">▾</text>
+          <text x="274" y="328" font-size="11.5" fill="#e8e6e1">reference.md</text>
+          <text x="368" y="328" font-size="11" fill="#706e68">.agents/skills/design-system/</text>
+          <text x="844" y="328" font-size="11.5" fill="#34d399" text-anchor="end">+88</text>
+          <g font-size="10.5">
+            <rect x="248" y="348" width="604" height="16" fill="#12251d"/>
+            <text x="258" y="360" fill="#5a5852">52</text>
+            <text x="280" y="360" fill="#c9e8da">## Known deviations (documented, not yet fixed)</text>
+          </g>
+          <!-- inline review thread -->
+          <rect x="262" y="372" width="576" height="62" rx="8" fill="#1d1d1b" stroke="#2b2b28"/>
+          <circle cx="284" cy="392" r="8" fill="#3a3a36"/>
+          <text x="300" y="390" font-size="10.5" fill="#e8e6e1">coderabbitai</text>
+          <text x="376" y="390" font-size="10" fill="#706e68">1h ago</text>
+          <text x="300" y="406" font-size="10.5" fill="#a3a19a">Update the sidebar showcase-gap statement…</text>
+          <rect x="726" y="410" width="100" height="17" rx="4" fill="#262623"/>
+          <text x="736" y="422" font-size="9.5" fill="#a3a19a">Resolve conversation</text>
+          <text x="868" y="392" font-size="10" fill="#5f7d70" text-anchor="end">↑↓ walks these</text>
+        </g>
+      </svg>
+      <figcaption>Schematic of the redesigned pane, drawn from the verified build (the session's live
+      screenshots were session-local and expired; every element here was exercised over CDP against
+      the running app — including that exact CodeRabbit thread on PR #6882).</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <span class="sec-num">03</span>
+    <h2>One diff surface, shared</h2>
+    <p class="mute">The PR Code tab was the styling source, so its pieces were promoted into shared
+    code and both surfaces now consume them. <code>PullRequestCodeTab.tsx</code> dropped ~300 lines
+    in the process. When main's i18n sweep landed mid-branch, the components adopted the exact
+    message ids of the strings they replaced, so every existing translation carried over.</p>
+    <div class="map">
+      <div class="map-row"><div>Extracted / created</div><div>What it is</div></div>
+      <div class="map-row"><div><span class="name">useDiffCardCodeViewTheme</span> <span class="from">+ diffCardUnsafeCss</span></div><div>The card look: bordered rounded header/body pairs, 16px gaps, PR-row ± colors, app background instead of the terminal theme's.</div></div>
+      <div class="map-row"><div><span class="name">DiffViewToolbar</span></div><div>Files pill, collapse/expand-all, comment prev/next, unified/split — writing the same persisted setting on both surfaces.</div></div>
+      <div class="map-row"><div><span class="name">DiffFileHeaderName</span> <span class="from">+ splitPath</span></div><div>Filename-first header title with the truncating muted directory.</div></div>
+      <div class="map-row"><div><span class="name">DiffFileCollapseButton</span></div><div>The per-file chevron; replaces DiffPane's old FileIcon-on-hover prefix (DiffHeaderPrefix deleted).</div></div>
+      <div class="map-row"><div><span class="name">lib/pierreTree</span> <span class="from">← formatDiffStats, buildCollisionSafeTreePaths</span></div><div>Promoted from two single-use homes into the shared Pierre-tree library.</div></div>
+      <div class="map-row"><div><span class="name">DiffFileTree</span> <span class="from">+ buildDiffTreeData</span></div><div>New: the in-pane tree. Dedupes a path listed in two sections (staged + unstaged) into one row — summed ± counts, first occurrence wins the click target.</div></div>
+      <div class="map-row"><div><span class="name">useDiffCommentNavigation</span> <span class="from">+ buildOrderedThreads</span></div><div>New: prev/next over review threads in diff order, tracked by thread id so background refetches can't desync the cursor.</div></div>
+      <div class="map-row"><div><span class="name">DiffPanePRLink</span></div><div>New: the pane-header chip into the in-app PR view. Its two strings are the only new i18n messages — translated across all 16 locales.</div></div>
+    </div>
+  </section>
+
+  <section>
+    <span class="sec-num">04</span>
+    <h2>Found live, fixed live</h2>
+    <p class="mute">Verification ran against the real app over CDP — real clicks, screenshots, and DOM
+    measurement, using this very worktree's own 39-file diff as the test changeset. Four real bugs
+    surfaced that code review alone would have missed; zero console errors across the whole session.</p>
+
+    <div class="finding">
+      <h3><span class="k">4.1</span>Long paths painted under the ± counts</h3>
+      <p>Pierre slots the filename suffix through an unstyled light-DOM wrapper div. As a flex item it
+      defaults to <code>min-width: auto</code> and refuses to shrink — measured 893px inside a 513px
+      header — so the directory text overflowed beneath the diff-stat counts. Latent in the PR tab
+      too; its pane was just always wide enough to hide it.</p>
+      <p class="fix"><code>slot[name='header-filename-suffix']::slotted(*) { min-width: 0 }</code> in the shared card CSS, letting the truncate chain ellipsize.</p>
+    </div>
+
+    <div class="finding">
+      <h3><span class="k">4.2</span>A see-through strip above sticky headers</h3>
+      <p>Padding-top on the scroll container let file content show through an 8px band above every
+      pinned card header.</p>
+      <p class="fix">Horizontal inset only on the scroller; sticky headers pin flush.</p>
+    </div>
+
+    <div class="finding">
+      <h3><span class="k">4.3</span>Collapse-all lost a fight with the scroll hook</h3>
+      <p>The scroll hook keeps its navigation target expanded while sticky tracking is armed, so
+      collapse-all left the last-clicked file open and the toggle never flipped.</p>
+      <p class="fix">Collapsing the sticky target now releases the target in the same pane-data write.</p>
+    </div>
+
+    <div class="finding">
+      <h3><span class="k">4.4</span>Tree state bled between pane instances</h3>
+      <p>Same-kind panes render through one unkeyed component instance, so a recreated Changes pane
+      inherited the previous pane's manual tree override — a closed pane's "show tree" choice kept
+      the tree open in a fresh 330px pane where it should have auto-hidden.</p>
+      <p class="fix">Render-phase state reset keyed on the pane id (and biome-proof, after the linter quietly gutted the effect version).</p>
+    </div>
+  </section>
+
+  <section>
+    <span class="sec-num">05</span>
+    <h2>Then main moved 131 commits</h2>
+    <p class="mute">Merging <code>origin/main</code> brought a repo-wide Lingui i18n sweep and a
+    deferred-diff-loading feature straight through the restructured files.</p>
+    <ul>
+      <li class="mute">Four conflicts resolved by combining both sides — main's
+        <code>DeferredDiffPlaceholder</code> and i18n live alongside the tree and comment navigation.</li>
+      <li class="mute">Moved strings kept main's explicit message ids, so translations in all 16
+        locales carried over untouched; the PR link's two new strings were extracted and translated
+        by hand (the machine-translate script needs an API key the environment doesn't have).</li>
+      <li class="mute"><code>bun.lock</code> was taken from main verbatim — the text-merged lockfile
+        had resolved two conflicting CodeMirror versions.</li>
+      <li class="mute">The dev database drifted behind main's nine new migrations
+        (0095–0103) and broke sign-in; <code>db:migrate</code> brought the workspace's Neon branch
+        current.</li>
+    </ul>
+  </section>
+
+  <section>
+    <span class="sec-num">06</span>
+    <h2>Verification</h2>
+    <div class="table-scroll">
+      <table>
+        <tr><th>Check</th><th>Result</th></tr>
+        <tr><td>unit tests (touched areas)</td><td><span class="pass">49 pass</span> — 5 new co-located test files: tree data dedupe, thread ordering, path splitting, diff-stat formatting, collision-safe paths</td></tr>
+        <tr><td>tsc --noEmit (desktop)</td><td><span class="pass">pass</span> — verified on the exact merged tree in a fresh worktree; this workspace's local env has a phantom-type quirk that misreports, the code is clean</td></tr>
+        <tr><td>lingui compile --strict</td><td><span class="pass">pass</span> — every locale complete</td></tr>
+        <tr><td>lint / sherif</td><td><span class="pass">pass</span></td></tr>
+        <tr><td>CDP end-to-end</td><td><span class="pass">pass</span> — tree click-to-navigate, collapse/expand-all, tree toggle + 700px auto-hide with manual override, unified/split sync across surfaces, comment nav force-expanding threads, PR chip → in-app <code>/pull-requests/6882</code>, PR Code tab pixel-unchanged</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    changes-pane-pr-view · 92fa049 + 6244f3a (not pushed) ·
+    <a href="https://claude.ai/code/session_0185mve7uXCJud6RUoYZHzCG">claude.ai/code session</a>
+  </footer>
+
+</div>
+</body>
+</html>

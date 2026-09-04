@@ -34,23 +34,18 @@ export function GithubStarRow({ searchQuery }: GithubStarRowProps) {
 				<Label className="text-sm font-medium">
 					<HighlightText
 						text={t({
-							id: "settings.behavior.githubStar.label",
 							message: "Star Superset on GitHub",
 						})}
 						query={searchQuery}
 					/>
 				</Label>
 				<p className="text-xs text-muted-foreground">
-					<Trans id="settings.behavior.githubStar.hint">
-						Support the project with a GitHub star
-					</Trans>
+					<Trans>Support the project with a GitHub star</Trans>
 				</p>
 			</div>
 			{state === "starred" ? (
 				<span className="text-xs text-muted-foreground">
-					<Trans id="settings.behavior.githubStar.starred">
-						Starred — thank you!
-					</Trans>
+					<Trans>Starred — thank you!</Trans>
 				</span>
 			) : state === "unknown" ? (
 				// A disabled shadcn Button has pointer-events-none baked into its
@@ -63,14 +58,12 @@ export function GithubStarRow({ searchQuery }: GithubStarRowProps) {
 						<span>
 							<Button variant="outline" size="sm" disabled>
 								<Star className="size-3.5" />
-								<Trans id="settings.behavior.githubStar.starUnknown">
-									Star
-								</Trans>
+								<Trans>Star</Trans>
 							</Button>
 						</span>
 					</TooltipTrigger>
 					<TooltipContent side="left">
-						<Trans id="settings.behavior.githubStar.unknownTooltip">
+						<Trans>
 							Couldn't confirm star status — check that the GitHub CLI (`gh`) is
 							installed, signed in, and that you have a network connection
 						</Trans>
@@ -84,7 +77,7 @@ export function GithubStarRow({ searchQuery }: GithubStarRowProps) {
 					disabled={!canActivateStarAction(state) || isBusy}
 				>
 					<Star className="size-3.5" />
-					<Trans id="settings.behavior.githubStar.star">Star</Trans>
+					<Trans>Star</Trans>
 				</Button>
 			)}
 		</div>

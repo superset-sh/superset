@@ -13,19 +13,15 @@ import type { PlainActionId } from "../../utils/pullRequestState";
 
 const REFUSED_TITLE: Record<PlainActionId, MessageDescriptor> = {
 	"mark-ready": msg({
-		id: "mobile.pullRequest.refused.markReady",
 		message: "Could not mark ready",
 	}),
 	"update-branch": msg({
-		id: "mobile.pullRequest.refused.updateBranch",
 		message: "Could not update the branch",
 	}),
 	reopen: msg({
-		id: "mobile.pullRequest.refused.reopen",
 		message: "Could not reopen",
 	}),
 	dequeue: msg({
-		id: "mobile.pullRequest.refused.dequeue",
 		message: "Could not leave the queue",
 	}),
 };

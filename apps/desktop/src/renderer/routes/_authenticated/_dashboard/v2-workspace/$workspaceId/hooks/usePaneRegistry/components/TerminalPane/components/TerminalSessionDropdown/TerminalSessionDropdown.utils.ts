@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 
 export const TERMINAL_SESSION_LIST_REFETCH_INTERVAL_MS = 2_000;
@@ -28,9 +29,10 @@ export function getTerminalDisplayTitle({
 		titleOverride ??
 		runtimeTitle ??
 		sessionTitle ??
-		i18n._({
-			id: "workspace.terminalPane.defaultTitle",
-			message: "Terminal",
-		})
+		i18n._(
+			msg({
+				message: "Terminal",
+			}),
+		)
 	);
 }

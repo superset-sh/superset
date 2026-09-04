@@ -188,15 +188,19 @@ describe("deriveTagFolders", () => {
 		).toEqual(["alpha"]);
 	});
 
-	it("session workspaces (null projectId) never derive folders", () => {
-		expect(
-			deriveTagFolders(
-				[],
-				[makeWorkspace({ id: "w1", projectId: null, tags: ["perf"] })],
-
-				EMPTY_TAG_FOLDER_CONTEXT,
-			),
-		).toEqual([]);
+	it("session workspaces (null projectId) derive folders under the Sessions scope", () => {
+		const folders = deriveTagFolders(
+			[],
+			[makeWorkspace({ id: "w1", projectId: null, tags: ["perf"] })],
+			EMPTY_TAG_FOLDER_CONTEXT,
+		);
+		expect(folders).toHaveLength(1);
+		expect(folders[0]).toMatchObject({
+			sectionId: `${SESSIONS_TAG_SCOPE}:perf`,
+			projectId: SESSIONS_TAG_SCOPE,
+			tag: "perf",
+			isDerived: true,
+		});
 	});
 
 	it("a workspace row with the tags field ABSENT derives nothing and does not crash", () => {

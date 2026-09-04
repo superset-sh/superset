@@ -1,7 +1,7 @@
+import { msg } from "@lingui/core/macro";
 import type * as React from "react";
 import { LuX } from "react-icons/lu";
 import { i18n } from "../../lib/i18n";
-
 import { cn } from "../../lib/utils";
 import { Badge } from "./badge";
 import { Button } from "./button";
@@ -41,10 +41,11 @@ function SidebarCard({
 				<button
 					type="button"
 					onClick={onDismiss}
-					aria-label={i18n._({
-						id: "ui.sidebarCard.dismiss",
-						message: "Dismiss",
-					})}
+					aria-label={i18n._(
+						msg({
+							message: "Dismiss",
+						}),
+					)}
 					className="absolute top-2.5 right-2.5 text-muted-foreground hover:text-foreground transition-colors"
 				>
 					<LuX className="size-3.5" />

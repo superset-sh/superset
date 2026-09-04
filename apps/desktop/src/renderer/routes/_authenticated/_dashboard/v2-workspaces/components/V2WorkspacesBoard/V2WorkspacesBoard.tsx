@@ -59,7 +59,7 @@ export function V2WorkspacesBoard({
 
 	return (
 		<div className="flex-1 overflow-x-auto overflow-y-hidden">
-			<div className="flex h-full min-w-max gap-2 px-6 py-4">
+			<div className="flex h-full min-w-max gap-3 px-6 py-4">
 				{visibleColumns.map((column) => (
 					<V2WorkspacesBoardColumn
 						key={column}

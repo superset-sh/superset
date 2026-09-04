@@ -25,7 +25,6 @@ export function SessionTabs({ activeTab, onTabChange }: SessionTabsProps) {
 		<div
 			role="tablist"
 			aria-label={t({
-				id: "web.sessionTabs.tablistLabel",
 				message: "Session view",
 			})}
 			className="flex shrink-0 border-b border-border px-4"
@@ -45,7 +44,7 @@ export function SessionTabs({ activeTab, onTabChange }: SessionTabsProps) {
 						: "text-muted-foreground hover:text-foreground",
 				)}
 			>
-				<Trans id="web.sessionTabs.chat">Chat</Trans>
+				<Trans>Chat</Trans>
 				{activeTab === "chat" && (
 					<div className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />
 				)}
@@ -65,7 +64,7 @@ export function SessionTabs({ activeTab, onTabChange }: SessionTabsProps) {
 						: "text-muted-foreground hover:text-foreground",
 				)}
 			>
-				<Trans id="web.sessionTabs.diff">Diff</Trans>
+				<Trans>Diff</Trans>
 				{activeTab === "diff" && (
 					<div className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />
 				)}

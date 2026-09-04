@@ -64,21 +64,17 @@ import { V2WorkspaceProjectIcon } from "../V2WorkspaceProjectIcon";
 import { DeviceOptionLabel } from "./components/DeviceOptionLabel";
 
 const PR_STATE_LABELS: Record<V2WorkspacesPrStateFilter, MessageDescriptor> = {
-	open: msg({ id: "dashboard.workspaces.header.prStateOpen", message: "Open" }),
+	open: msg({ message: "Open", context: "status" }),
 	draft: msg({
-		id: "dashboard.workspaces.header.prStateDraft",
 		message: "Draft",
 	}),
 	queued: msg({
-		id: "dashboard.workspaces.header.prStateQueued",
 		message: "Queued",
 	}),
 	merged: msg({
-		id: "dashboard.workspaces.header.prStateMerged",
 		message: "Merged",
 	}),
 	closed: msg({
-		id: "dashboard.workspaces.header.prStateClosed",
 		message: "Closed",
 	}),
 };
@@ -88,18 +84,15 @@ const ARCHIVED_WINDOW_LABELS: Record<
 	MessageDescriptor
 > = {
 	none: msg({
-		id: "dashboard.workspaces.header.archivedHidden",
 		message: "Hidden",
 	}),
 	week: msg({
-		id: "dashboard.workspaces.header.archivedPastWeek",
 		message: "Past week",
 	}),
 	month: msg({
-		id: "dashboard.workspaces.header.archivedPastMonth",
 		message: "Past month",
 	}),
-	all: msg({ id: "dashboard.workspaces.header.archivedAll", message: "All" }),
+	all: msg({ message: "All" }),
 };
 
 interface V2WorkspacesHeaderProps {
@@ -176,18 +169,15 @@ export function V2WorkspacesHeader({
 	const deviceLabel =
 		deviceFilter === DEVICE_FILTER_THIS_DEVICE
 			? t({
-					id: "dashboard.workspaces.header.thisDevice",
 					message: "This device",
 				})
 			: deviceFilter === DEVICE_FILTER_ALL_DEVICES
 				? t({
-						id: "dashboard.workspaces.header.allDevices",
 						message: "All devices",
 					})
 				: (remoteHosts.find((host) => host.hostId === deviceFilter)?.hostName ??
 					hostsById.get(deviceFilter)?.hostName ??
 					t({
-						id: "dashboard.workspaces.header.unknownDevice",
 						message: "Unknown device",
 					}));
 
@@ -206,7 +196,6 @@ export function V2WorkspacesHeader({
 		{
 			value: PROJECT_FILTER_SESSIONS,
 			label: t({
-				id: "dashboard.workspaces.header.sessions",
 				message: "Sessions",
 			}),
 			icon: <LuTerminal className="size-3.5" />,
@@ -251,7 +240,7 @@ export function V2WorkspacesHeader({
 								)}
 							>
 								<LuListFilter className="size-3.5" />
-								<Trans id="dashboard.workspaces.header.filter">Filter</Trans>
+								<Trans>Filter</Trans>
 								{activeFilterCount > 0 ? (
 									<span className="flex size-4 items-center justify-center rounded-full bg-accent text-[10px] font-medium text-accent-foreground">
 										{activeFilterCount}
@@ -264,9 +253,7 @@ export function V2WorkspacesHeader({
 								<DropdownMenuSubTrigger>
 									<span className="flex items-center gap-2">
 										<LuFolder className="size-3.5" />
-										<Trans id="dashboard.workspaces.header.projectFilter">
-											Project
-										</Trans>
+										<Trans>Project</Trans>
 									</span>
 									{projectFilters.length > 0 ? (
 										<SubmenuValue>{projectFilters.length}</SubmenuValue>
@@ -299,9 +286,7 @@ export function V2WorkspacesHeader({
 								<DropdownMenuSubTrigger>
 									<span className="flex items-center gap-2">
 										<LuGitPullRequest className="size-3.5" />
-										<Trans id="dashboard.workspaces.header.prStateFilter">
-											PR state
-										</Trans>
+										<Trans>PR state</Trans>
 									</span>
 									{prStateFilters.length > 0 ? (
 										<SubmenuValue>
@@ -339,9 +324,7 @@ export function V2WorkspacesHeader({
 								<DropdownMenuSubTrigger>
 									<span className="flex items-center gap-2">
 										<LuBot className="size-3.5" />
-										<Trans id="dashboard.workspaces.header.agentFilter">
-											Agent
-										</Trans>
+										<Trans>Agent</Trans>
 									</span>
 									{agentStatusFilters.length > 0 ? (
 										<SubmenuValue>
@@ -378,9 +361,7 @@ export function V2WorkspacesHeader({
 								<DropdownMenuSubTrigger>
 									<span className="flex items-center gap-2">
 										<LuPanelLeft className="size-3.5" />
-										<Trans id="dashboard.workspaces.header.pinnedFilter">
-											Sidebar
-										</Trans>
+										<Trans>Sidebar</Trans>
 									</span>
 									{pinFilter !== "all" ? (
 										<SubmenuValue>
@@ -408,9 +389,7 @@ export function V2WorkspacesHeader({
 								<DropdownMenuSubTrigger>
 									<span className="flex items-center gap-2">
 										<LuMonitorSmartphone className="size-3.5" />
-										<Trans id="dashboard.workspaces.header.deviceFilter">
-											Device
-										</Trans>
+										<Trans>Device</Trans>
 									</span>
 									{deviceFilter !== DEVICE_FILTER_THIS_DEVICE ? (
 										<SubmenuValue>{deviceLabel}</SubmenuValue>
@@ -425,7 +404,6 @@ export function V2WorkspacesHeader({
 											<DeviceOptionLabel
 												icon={<LuMonitorSmartphone className="size-3.5" />}
 												label={t({
-													id: "dashboard.workspaces.header.allDevices",
 													message: "All devices",
 												})}
 											/>
@@ -434,7 +412,6 @@ export function V2WorkspacesHeader({
 											<DeviceOptionLabel
 												icon={<LuLaptop className="size-3.5" />}
 												label={t({
-													id: "dashboard.workspaces.header.thisDevice",
 													message: "This device",
 												})}
 											/>
@@ -443,9 +420,7 @@ export function V2WorkspacesHeader({
 											<>
 												<DropdownMenuSeparator />
 												<DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-													<Trans id="dashboard.workspaces.header.otherDevices">
-														Other devices
-													</Trans>
+													<Trans>Other devices</Trans>
 												</DropdownMenuLabel>
 												{remoteHosts.map((host) => (
 													<DropdownMenuRadioItem
@@ -472,9 +447,7 @@ export function V2WorkspacesHeader({
 										className="justify-center text-xs text-muted-foreground"
 										onSelect={clearFilters}
 									>
-										<Trans id="dashboard.workspaces.header.clearFilters">
-											Clear filters
-										</Trans>
+										<Trans>Clear filters</Trans>
 									</DropdownMenuItem>
 								</>
 							) : null}
@@ -491,12 +464,12 @@ export function V2WorkspacesHeader({
 								className="h-8 gap-1.5 font-normal text-muted-foreground"
 							>
 								<LuArrowDownUp className="size-3.5" />
-								<Trans id="dashboard.workspaces.header.display">Display</Trans>
+								<Trans>Display</Trans>
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="start" className="min-w-[12rem]">
 							<DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-								<Trans id="dashboard.workspaces.header.sortBy">Sort by</Trans>
+								<Trans>Sort by</Trans>
 							</DropdownMenuLabel>
 							<DropdownMenuRadioGroup
 								value={sortMode}
@@ -514,9 +487,7 @@ export function V2WorkspacesHeader({
 							<DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
 								<span className="flex items-center gap-1.5">
 									<LuArchive className="size-3" />
-									<Trans id="dashboard.workspaces.header.archived">
-										Archived
-									</Trans>
+									<Trans>Archived</Trans>
 								</span>
 							</DropdownMenuLabel>
 							<DropdownMenuRadioGroup
@@ -539,7 +510,7 @@ export function V2WorkspacesHeader({
 								<>
 									<DropdownMenuSeparator />
 									<DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-										<Trans id="dashboard.workspaces.header.lanes">Lanes</Trans>
+										<Trans>Lanes</Trans>
 									</DropdownMenuLabel>
 									{V2_WORKSPACES_BOARD_LANES.map((lane) => (
 										<DropdownMenuCheckboxItem
@@ -567,7 +538,6 @@ export function V2WorkspacesHeader({
 					<fieldset
 						className="flex items-center rounded-md border bg-muted/30 p-0.5"
 						aria-label={t({
-							id: "dashboard.workspaces.header.workspaceLayout",
 							message: "Workspace layout",
 						})}
 					>
@@ -583,7 +553,7 @@ export function V2WorkspacesHeader({
 							onClick={() => setViewMode("list")}
 						>
 							<LuList className="size-3.5" />
-							<Trans id="dashboard.workspaces.header.listView">List</Trans>
+							<Trans>List</Trans>
 						</button>
 						<button
 							type="button"
@@ -597,7 +567,7 @@ export function V2WorkspacesHeader({
 							onClick={() => setViewMode("board")}
 						>
 							<LuSquareKanban className="size-3.5" />
-							<Trans id="dashboard.workspaces.header.boardView">Board</Trans>
+							<Trans>Board</Trans>
 						</button>
 					</fieldset>
 
@@ -605,11 +575,9 @@ export function V2WorkspacesHeader({
 						value={searchQuery}
 						onChange={setSearchQuery}
 						placeholder={t({
-							id: "dashboard.workspaces.header.searchPlaceholder",
 							message: "Search workspaces…",
 						})}
 						label={t({
-							id: "dashboard.workspaces.header.searchLabel",
 							message: "Search workspaces",
 						})}
 					/>

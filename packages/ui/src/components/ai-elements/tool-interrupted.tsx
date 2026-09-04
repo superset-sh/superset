@@ -17,7 +17,7 @@ export const ToolInterrupted = ({
 }: ToolInterruptedProps) => (
 	<div className={cn("flex items-center gap-1.5 rounded-md py-0.5", className)}>
 		<span className="text-xs text-muted-foreground">
-			<Trans id="ui.toolInterrupted.label">{toolName} interrupted</Trans>
+			<Trans>{toolName} interrupted</Trans>
 		</span>
 		{subtitle && (
 			<span className="truncate text-xs text-muted-foreground/60">

@@ -82,6 +82,12 @@ export interface WorkspaceSnapshot {
 	createdByUserId: string | null;
 	createdAt: number;
 	updatedAt: number;
+	/**
+	 * Epoch ms of the newest agent lifecycle event, or null for rows that
+	 * predate the column. Unlike `updatedAt` it never moves on metadata
+	 * writes (rename, tags, PR link).
+	 */
+	lastActivityAt: number | null;
 	/** Normalized, sorted tag set; sidebar folders derive from it. */
 	tags: string[];
 }

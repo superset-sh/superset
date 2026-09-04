@@ -74,18 +74,15 @@ export function ProjectFilter({
 	const isLoadingWithoutProjects = !isReady && projects.length === 0;
 	const label = isLoadingWithoutProjects
 		? t({
-				id: "dashboard.projectFilter.loadingRepositories",
 				message: "Loading repositories",
 			})
 		: isAllSelected
 			? t({
-					id: "dashboard.projectFilter.allRepositoriesLabel",
 					message: "All repositories",
 				})
 			: selectedProjects.length === 1
 				? selectedProjects[0]?.name
 				: t({
-						id: "dashboard.projectFilter.repositoriesCount",
 						message: plural(selectedProjects.length, {
 							one: "# repository",
 							other: "# repositories",
@@ -108,7 +105,6 @@ export function ProjectFilter({
 					size="sm"
 					title={label}
 					aria-label={t({
-						id: "dashboard.projectFilter.repositoriesAriaLabel",
 						message: `Repositories: ${label}`,
 					})}
 					className="h-8 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
@@ -139,7 +135,6 @@ export function ProjectFilter({
 				<Command shouldFilter={false}>
 					<CommandInput
 						placeholder={t({
-							id: "dashboard.projectFilter.searchPlaceholder",
 							message: "Search projects...",
 						})}
 						value={search}
@@ -150,18 +145,12 @@ export function ProjectFilter({
 							<CommandEmpty>
 								{isReady || projects.length > 0 ? (
 									search ? (
-										<Trans id="dashboard.projectFilter.noProjectsFound">
-											No projects found.
-										</Trans>
+										<Trans>No projects found.</Trans>
 									) : (
-										<Trans id="dashboard.projectFilter.noProjectsAvailable">
-											No projects available.
-										</Trans>
+										<Trans>No projects available.</Trans>
 									)
 								) : (
-									<Trans id="dashboard.projectFilter.loadingProjects">
-										Loading projects…
-									</Trans>
+									<Trans>Loading projects…</Trans>
 								)}
 							</CommandEmpty>
 						)}
@@ -171,9 +160,7 @@ export function ProjectFilter({
 									<CommandItem onSelect={() => onChange([])}>
 										<HiOutlineSquares2X2 className="size-4 shrink-0" />
 										<span className="text-sm">
-											<Trans id="dashboard.projectFilter.allRepositories">
-												All repositories
-											</Trans>
+											<Trans>All repositories</Trans>
 										</span>
 										{isAllSelected && (
 											<HiCheck className="ml-auto size-3.5 shrink-0" />

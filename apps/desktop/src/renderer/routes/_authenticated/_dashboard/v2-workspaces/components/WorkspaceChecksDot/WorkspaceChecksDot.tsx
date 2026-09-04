@@ -27,7 +27,6 @@ export function WorkspaceChecksDot({
 			<LuCircleCheck
 				role="img"
 				aria-label={t({
-					id: "dashboard.workspaces.checksDot.checksPassed",
 					message: "Checks passed",
 				})}
 				className="size-3 text-emerald-500"
@@ -39,7 +38,6 @@ export function WorkspaceChecksDot({
 			<LuCircleX
 				role="img"
 				aria-label={t({
-					id: "dashboard.workspaces.checksDot.checksFailed",
 					message: "Checks failed",
 				})}
 				className="size-3 text-red-500"
@@ -61,7 +59,6 @@ export function WorkspaceChecksDot({
 		<span
 			className="flex size-3 items-center justify-center"
 			title={t({
-				id: "dashboard.workspaces.checksDot.checksComplete",
 				message: `${completed} of ${relevant.length} checks complete`,
 			})}
 		>
@@ -70,7 +67,6 @@ export function WorkspaceChecksDot({
 				className="size-3 -rotate-90"
 				role="img"
 				aria-label={t({
-					id: "dashboard.workspaces.checksDot.checksComplete",
 					message: `${completed} of ${relevant.length} checks complete`,
 				})}
 			>

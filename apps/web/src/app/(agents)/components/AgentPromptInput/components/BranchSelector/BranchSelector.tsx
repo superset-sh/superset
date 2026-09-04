@@ -21,7 +21,7 @@ export function BranchSelector({
 
 	return (
 		<ResponsiveDropdown
-			title={t({ id: "web.branchSelector.title", message: "Select branch" })}
+			title={t({ message: "Select branch" })}
 			items={branches.map((branch) => ({
 				label: branch,
 				icon: <GitBranch className="size-3" />,

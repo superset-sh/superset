@@ -45,28 +45,24 @@ const SCOPE_DESCRIPTIONS: Record<
 > = {
 	openid: {
 		label: msg({
-			id: "web.consent.scope.openid",
 			message: "Verify your identity",
 		}),
 		icon: <LuShieldCheck className="size-4" />,
 	},
 	profile: {
 		label: msg({
-			id: "web.consent.scope.profile",
 			message: "Access your profile information (name, picture)",
 		}),
 		icon: <LuUser className="size-4" />,
 	},
 	email: {
 		label: msg({
-			id: "web.consent.scope.email",
 			message: "Access your email address",
 		}),
 		icon: <LuMail className="size-4" />,
 	},
 	offline_access: {
 		label: msg({
-			id: "web.consent.scope.offlineAccess",
 			message: "Stay connected (refresh tokens)",
 		}),
 		icon: <LuKey className="size-4" />,
@@ -95,7 +91,6 @@ export function ConsentForm({
 		if (accept && !selectedOrgId) {
 			setError(
 				t({
-					id: "web.consent.selectOrganizationError",
 					message: "Please select an organization",
 				}),
 			);
@@ -142,7 +137,7 @@ export function ConsentForm({
 			setError(
 				err instanceof Error
 					? err.message
-					: t({ id: "web.consent.genericError", message: "An error occurred" }),
+					: t({ message: "An error occurred" }),
 			);
 			setIsLoading(false);
 		}
@@ -154,10 +149,10 @@ export function ConsentForm({
 		<div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[400px]">
 			<div className="flex flex-col space-y-2 text-center">
 				<h1 className="text-2xl font-semibold tracking-tight">
-					<Trans id="web.consent.title">Authorize {displayName}</Trans>
+					<Trans>Authorize {displayName}</Trans>
 				</h1>
 				<p className="text-muted-foreground text-sm">
-					<Trans id="web.consent.subtitle">
+					<Trans>
 						<span className="font-medium text-foreground">{displayName}</span>{" "}
 						is requesting access to your Superset account
 					</Trans>
@@ -166,7 +161,7 @@ export function ConsentForm({
 
 			<div className="bg-muted/50 rounded-lg border p-4">
 				<p className="text-muted-foreground mb-3 text-sm">
-					<Trans id="web.consent.signedInAs">
+					<Trans>
 						Signed in as{" "}
 						<span className="font-medium text-foreground">{userName}</span>
 					</Trans>
@@ -178,15 +173,12 @@ export function ConsentForm({
 							htmlFor="org-select"
 							className="mb-2 block text-sm font-medium"
 						>
-							<Trans id="web.consent.selectOrganization">
-								Select organization
-							</Trans>
+							<Trans>Select organization</Trans>
 						</label>
 						<Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
 							<SelectTrigger id="org-select" className="w-full">
 								<SelectValue
 									placeholder={t({
-										id: "web.consent.selectOrganizationPlaceholder",
 										message: "Select an organization",
 									})}
 								/>
@@ -203,7 +195,7 @@ export function ConsentForm({
 							</SelectContent>
 						</Select>
 						<p className="text-muted-foreground mt-1.5 text-xs">
-							<Trans id="web.consent.organizationHint">
+							<Trans>
 								This application will have access to data in the selected
 								organization.
 							</Trans>
@@ -211,7 +203,7 @@ export function ConsentForm({
 					</div>
 				) : selectedOrg ? (
 					<p className="text-muted-foreground mb-3 text-sm">
-						<Trans id="web.consent.organizationLabel">
+						<Trans>
 							Organization:{" "}
 							<span className="font-medium text-foreground">
 								{selectedOrg.name}
@@ -221,9 +213,7 @@ export function ConsentForm({
 				) : null}
 
 				<p className="mb-2 text-sm font-medium">
-					<Trans id="web.consent.permissionsIntro">
-						This application will be able to:
-					</Trans>
+					<Trans>This application will be able to:</Trans>
 				</p>
 				<ul className="space-y-2">
 					{scopes.map((scope) => {
@@ -242,9 +232,7 @@ export function ConsentForm({
 							<LuBuilding2 className="size-4" />
 						</span>
 						<span>
-							<Trans id="web.consent.scope.organizationData">
-								Access your organization data
-							</Trans>
+							<Trans>Access your organization data</Trans>
 						</span>
 					</li>
 				</ul>
@@ -259,23 +247,19 @@ export function ConsentForm({
 					disabled={isLoading}
 					onClick={() => handleConsent(false)}
 				>
-					<Trans id="web.consent.deny">Deny</Trans>
+					<Trans>Deny</Trans>
 				</Button>
 				<Button
 					className="flex-1"
 					disabled={isLoading || !selectedOrgId}
 					onClick={() => handleConsent(true)}
 				>
-					{isLoading ? (
-						<Trans id="web.consent.authorizing">Authorizing...</Trans>
-					) : (
-						<Trans id="web.consent.authorize">Authorize</Trans>
-					)}
+					{isLoading ? <Trans>Authorizing...</Trans> : <Trans>Authorize</Trans>}
 				</Button>
 			</div>
 
 			<p className="text-muted-foreground px-8 text-center text-xs">
-				<Trans id="web.consent.legal">
+				<Trans>
 					By authorizing, you allow this application to access your data
 					according to its terms of service and privacy policy.
 				</Trans>
@@ -293,10 +277,11 @@ function getClientDisplayName(clientId: string): string {
 		return knownClients[clientId];
 	}
 	if (clientId.length > 20) {
-		return i18n._({
-			id: "web.consent.externalApplication",
-			message: "External Application",
-		});
+		return i18n._(
+			msg({
+				message: "External Application",
+			}),
+		);
 	}
 	return clientId;
 }

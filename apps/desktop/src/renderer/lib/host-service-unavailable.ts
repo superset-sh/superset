@@ -45,83 +45,63 @@ export type HostServiceAction =
 
 const ACTION_MESSAGES: Record<HostServiceAction, MessageDescriptor> = {
 	addAgent: msg({
-		id: "hostServiceUnavailable.action.addAgent",
 		message: "add an agent",
 	}),
 	cloneRepository: msg({
-		id: "hostServiceUnavailable.action.cloneRepository",
 		message: "clone the repository",
 	}),
 	createProject: msg({
-		id: "hostServiceUnavailable.action.createProject",
 		message: "create the project",
 	}),
 	createWorkspace: msg({
-		id: "hostServiceUnavailable.action.createWorkspace",
 		message: "create the workspace",
 	}),
 	importFolder: msg({
-		id: "hostServiceUnavailable.action.importFolder",
 		message: "import a folder",
 	}),
 	importProject: msg({
-		id: "hostServiceUnavailable.action.importProject",
 		message: "import the project",
 	}),
 	loadAgentSettings: msg({
-		id: "hostServiceUnavailable.action.loadAgentSettings",
 		message: "load agent settings",
 	}),
 	openTaskInWorkspace: msg({
-		id: "hostServiceUnavailable.action.openTaskInWorkspace",
 		message: "open the task in a workspace",
 	}),
 	removeAgent: msg({
-		id: "hostServiceUnavailable.action.removeAgent",
 		message: "remove the agent",
 	}),
 	removePrLink: msg({
-		id: "hostServiceUnavailable.action.removePrLink",
 		message: "remove the PR link",
 	}),
 	renameBranch: msg({
-		id: "hostServiceUnavailable.action.renameBranch",
 		message: "rename the branch",
 	}),
 	reorderAgents: msg({
-		id: "hostServiceUnavailable.action.reorderAgents",
 		message: "reorder agents",
 	}),
 	resetAgents: msg({
-		id: "hostServiceUnavailable.action.resetAgents",
 		message: "reset agents",
 	}),
 	resolveWorkspacePath: msg({
-		id: "hostServiceUnavailable.action.resolveWorkspacePath",
 		message: "resolve the workspace path",
 	}),
 	restoreAgentDefaults: msg({
-		id: "hostServiceUnavailable.action.restoreAgentDefaults",
 		message: "restore the agent defaults",
 	}),
 	runIssuesInWorkspaces: msg({
-		id: "hostServiceUnavailable.action.runIssuesInWorkspaces",
 		message: "run issues in workspaces",
 	}),
 	runTasksInWorkspaces: msg({
-		id: "hostServiceUnavailable.action.runTasksInWorkspaces",
 		message: "run tasks in workspaces",
 	}),
 	saveAgent: msg({
-		id: "hostServiceUnavailable.action.saveAgent",
 		message: "save the agent",
 	}),
 	saveAgentCommand: msg({
-		id: "hostServiceUnavailable.action.saveAgentCommand",
 		message: "save the agent command",
 	}),
 	updateBranchPrefix: msg({
-		id: "hostServiceUnavailable.action.updateBranchPrefix",
 		message: "update the branch prefix",
 	}),
 };
@@ -140,78 +120,90 @@ function formatOrganization(context: HostServiceUnavailableContext): string {
 	}
 	if (context.activeOrganizationId) {
 		return i18n._({
-			id: "hostServiceUnavailable.organizationById",
-			message: "organization {id}",
+			...msg({
+				message: "organization {id}",
+			}),
 			values: { id: shortId(context.activeOrganizationId) },
 		});
 	}
-	return i18n._({
-		id: "hostServiceUnavailable.activeOrganization",
-		message: "the active organization",
-	});
+	return i18n._(
+		msg({
+			message: "the active organization",
+		}),
+	);
 }
 
 function formatDevice(context: HostServiceUnavailableContext): string {
 	return context.machineId
 		? i18n._({
-				id: "hostServiceUnavailable.deviceWithId",
-				message: "this device ({id})",
+				...msg({
+					message: "this device ({id})",
+				}),
 				values: { id: shortId(context.machineId) },
 			})
-		: i18n._({
-				id: "hostServiceUnavailable.device",
-				message: "this device",
-			});
+		: i18n._(
+				msg({
+					message: "this device",
+				}),
+			);
 }
 
 function statusLabel(status: HostServiceAvailabilityStatus): string {
 	switch (status) {
 		case "starting":
-			return i18n._({
-				id: "hostServiceUnavailable.status.starting",
-				message: "starting",
-			});
+			return i18n._(
+				msg({
+					message: "starting",
+				}),
+			);
 		case "running":
-			return i18n._({
-				id: "hostServiceUnavailable.status.running",
-				message: "running",
-			});
+			return i18n._(
+				msg({
+					message: "running",
+				}),
+			);
 		case "stopped":
-			return i18n._({
-				id: "hostServiceUnavailable.status.stopped",
-				message: "stopped",
-			});
+			return i18n._(
+				msg({
+					message: "stopped",
+				}),
+			);
 		case "unknown":
-			return i18n._({
-				id: "hostServiceUnavailable.status.unknown",
-				message: "unknown",
-			});
+			return i18n._(
+				msg({
+					message: "unknown",
+				}),
+			);
 	}
 }
 
 function getRecoveryText(status: HostServiceAvailabilityStatus): string {
 	switch (status) {
 		case "starting":
-			return i18n._({
-				id: "hostServiceUnavailable.recovery.starting",
-				message: "Retry in a few seconds.",
-			});
+			return i18n._(
+				msg({
+					message: "Retry in a few seconds.",
+				}),
+			);
 		case "stopped":
-			return i18n._({
-				id: "hostServiceUnavailable.recovery.stopped",
-				message:
-					"Use the Superset tray menu > Host Service > Restart, then retry.",
-			});
+			return i18n._(
+				msg({
+					message:
+						"Use the Superset tray menu > Host Service > Restart, then retry.",
+				}),
+			);
 		case "running":
-			return i18n._({
-				id: "hostServiceUnavailable.recovery.running",
-				message: "Retry after the connection refreshes.",
-			});
+			return i18n._(
+				msg({
+					message: "Retry after the connection refreshes.",
+				}),
+			);
 		case "unknown":
-			return i18n._({
-				id: "hostServiceUnavailable.recovery.unknown",
-				message: "Retry in a few seconds; if it persists, restart Superset.",
-			});
+			return i18n._(
+				msg({
+					message: "Retry in a few seconds; if it persists, restart Superset.",
+				}),
+			);
 	}
 }
 
@@ -226,16 +218,18 @@ export function getHostServiceUnavailableMessage(
 	if (!context.activeOrganizationId) {
 		return action
 			? i18n._({
-					id: "hostServiceUnavailable.noOrganization.withAction",
-					message:
-						"Cannot {action}: no active organization is selected. Select an organization or sign in again.",
+					...msg({
+						message:
+							"Cannot {action}: no active organization is selected. Select an organization or sign in again.",
+					}),
 					values: { action },
 				})
-			: i18n._({
-					id: "hostServiceUnavailable.noOrganization",
-					message:
-						"No active organization is selected. Select an organization or sign in again.",
-				});
+			: i18n._(
+					msg({
+						message:
+							"No active organization is selected. Select an organization or sign in again.",
+					}),
+				);
 	}
 
 	const status = context.hostServiceStatus ?? "unknown";
@@ -249,15 +243,23 @@ export function getHostServiceUnavailableMessage(
 	// the message unextractable.
 	return action
 		? i18n._({
-				id: "hostServiceUnavailable.message.withAction",
-				message:
-					"Cannot {action}: the local host service is unavailable for {organization} on {device}. Status: {status}. {recovery}",
-				values: { action, organization, device, status: statusText, recovery },
+				...msg({
+					message:
+						"Cannot {action}: the local host service is unavailable for {organization} on {device}. Status: {status}. {recovery}",
+				}),
+				values: {
+					action,
+					organization,
+					device,
+					status: statusText,
+					recovery,
+				},
 			})
 		: i18n._({
-				id: "hostServiceUnavailable.message",
-				message:
-					"The local host service is unavailable for {organization} on {device}. Status: {status}. {recovery}",
+				...msg({
+					message:
+						"The local host service is unavailable for {organization} on {device}. Status: {status}. {recovery}",
+				}),
 				values: { organization, device, status: statusText, recovery },
 			});
 }
@@ -267,10 +269,11 @@ export function showHostServiceUnavailableToast(
 	options: HostServiceUnavailableMessageOptions = {},
 ): void {
 	toast.error(
-		i18n._({
-			id: "hostServiceUnavailable.toastTitle",
-			message: "Host service unavailable",
-		}),
+		i18n._(
+			msg({
+				message: "Host service unavailable",
+			}),
+		),
 		{
 			description: getHostServiceUnavailableMessage(context, options),
 		},

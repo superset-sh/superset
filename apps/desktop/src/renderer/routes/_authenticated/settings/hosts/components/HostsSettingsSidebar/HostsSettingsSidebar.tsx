@@ -53,7 +53,6 @@ export function HostsSettingsSidebar({
 			{
 				id: "online",
 				title: t({
-					id: "settings.hosts.sidebar.groupOnline",
 					message: "Online",
 				}),
 				rows: sorted.filter((h) => h.isOnline),
@@ -61,7 +60,6 @@ export function HostsSettingsSidebar({
 			{
 				id: "offline",
 				title: t({
-					id: "settings.hosts.sidebar.groupOffline",
 					message: "Offline",
 				}),
 				rows: sorted.filter((h) => !h.isOnline),
@@ -72,11 +70,9 @@ export function HostsSettingsSidebar({
 	return (
 		<SettingsListSidebar
 			searchPlaceholder={t({
-				id: "settings.hosts.sidebar.filterPlaceholder",
 				message: "Filter hosts...",
 			})}
 			searchAriaLabel={t({
-				id: "settings.hosts.sidebar.filterAriaLabel",
 				message: "Filter hosts",
 			})}
 			listHeader={
@@ -89,7 +85,7 @@ export function HostsSettingsSidebar({
 				>
 					<LuPlus className="size-3.5 shrink-0" />
 					<span className="truncate flex-1">
-						<Trans id="settings.hosts.sidebar.addHost">Add host…</Trans>
+						<Trans>Add host…</Trans>
 					</span>
 				</Link>
 			}
@@ -97,12 +93,10 @@ export function HostsSettingsSidebar({
 			filterRow={(row, q) => row.name.toLowerCase().includes(q.toLowerCase())}
 			getRowKey={(row) => row.id}
 			emptyLabel={t({
-				id: "settings.hosts.sidebar.empty",
 				message: "No hosts yet.",
 			})}
 			noMatchLabel={(q) =>
 				t({
-					id: "settings.hosts.sidebar.noMatch",
 					message: `No hosts match "${q}".`,
 				})
 			}

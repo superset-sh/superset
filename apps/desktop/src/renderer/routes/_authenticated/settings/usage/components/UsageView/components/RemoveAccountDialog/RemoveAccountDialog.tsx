@@ -31,26 +31,22 @@ export function RemoveAccountDialog({
 			<EnterEnabledAlertDialogContent className="max-w-[380px] gap-0 p-0">
 				<AlertDialogHeader className="px-4 pt-4 pb-2">
 					<AlertDialogTitle className="font-medium">
-						<Trans id="settings.usage.removeAccount.title">
-							Remove {label}?
-						</Trans>
+						<Trans>Remove {label}?</Trans>
 					</AlertDialogTitle>
 					<AlertDialogDescription>
 						{account?.agent === "codex" ? (
-							<Trans id="settings.usage.removeAccount.bodyCodex">
+							<Trans>
 								Deletes the {account.sourceLabel} profile, its saved sign-in on
 								this machine, and its local Codex session history. The account
 								itself is unaffected.
 							</Trans>
 						) : (
-							<Trans id="settings.usage.removeAccount.body">
+							<Trans>
 								Deletes the {account?.sourceLabel} profile and its saved sign-in
 								on this machine. The account itself is unaffected.
 							</Trans>
 						)}{" "}
-						<Trans id="settings.usage.removeAccount.agentsLoseAccess">
-							Running agents on this profile lose access.
-						</Trans>
+						<Trans>Running agents on this profile lose access.</Trans>
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter className="flex-row justify-end gap-2 px-4 pt-2 pb-4">
@@ -60,7 +56,7 @@ export function RemoveAccountDialog({
 						className="h-7 px-3 text-xs"
 						onClick={() => onOpenChange(false)}
 					>
-						<Trans id="settings.usage.removeAccount.cancel">Cancel</Trans>
+						<Trans>Cancel</Trans>
 					</Button>
 					<AlertDialogAction
 						variant="destructive"
@@ -69,7 +65,7 @@ export function RemoveAccountDialog({
 						disabled={isRemoving}
 						onClick={onConfirm}
 					>
-						<Trans id="settings.usage.removeAccount.confirm">Remove</Trans>
+						<Trans>Remove</Trans>
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</EnterEnabledAlertDialogContent>

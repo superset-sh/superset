@@ -47,10 +47,10 @@ function V1AgentsSettings({ visibleItems }: AgentsSettingsProps) {
 		<div className="p-6 max-w-5xl w-full mx-auto">
 			<div className="mb-8">
 				<h2 className="text-xl font-semibold">
-					<Trans id="settings.agents.title">Agents</Trans>
+					<Trans>Agents</Trans>
 				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					<Trans id="settings.agents.subtitle">
+					<Trans>
 						Configure which agents appear in launchers and how their launches
 						are built.
 					</Trans>
@@ -59,7 +59,7 @@ function V1AgentsSettings({ visibleItems }: AgentsSettingsProps) {
 
 			{isLoading ? (
 				<p className="text-sm text-muted-foreground">
-					<Trans id="settings.agents.loading">Loading agent settings...</Trans>
+					<Trans>Loading agent settings...</Trans>
 				</p>
 			) : (
 				<div className="space-y-4">

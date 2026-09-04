@@ -45,7 +45,7 @@ export function RelayOfflineNotice({
 				<div className="flex min-w-[240px] flex-1 items-start gap-2">
 					{ICON}
 					<span>
-						<Trans id="dashboard.automations.relayOfflineNotice.localBody">
+						<Trans>
 							This device isn't connected to the Superset relay, so automation
 							runs will be skipped.
 						</Trans>
@@ -62,9 +62,7 @@ export function RelayOfflineNotice({
 						)
 					}
 				>
-					<Trans id="dashboard.automations.relayOfflineNotice.enableRelay">
-						Enable relay access…
-					</Trans>
+					<Trans>Enable relay access…</Trans>
 				</Button>
 				<ExposeViaRelayConfirmDialog
 					open={confirmOpen}
@@ -85,7 +83,7 @@ export function RelayOfflineNotice({
 			<div className="flex min-w-[240px] flex-1 items-start gap-2">
 				{ICON}
 				<span>
-					<Trans id="dashboard.automations.relayOfflineNotice.remoteBody">
+					<Trans>
 						<span className="font-medium">{remoteHost.name}</span> isn't
 						connected to the Superset relay, so its runs will be skipped. Check
 						its{" "}

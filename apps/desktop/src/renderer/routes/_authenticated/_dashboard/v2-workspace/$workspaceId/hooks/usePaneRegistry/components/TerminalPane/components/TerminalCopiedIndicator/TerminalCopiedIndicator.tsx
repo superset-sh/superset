@@ -27,7 +27,7 @@ export function TerminalCopiedIndicator({
 			)}
 		>
 			<LuCheck className="size-3" />
-			<Trans id="workspace.terminal.copiedIndicator">Copied</Trans>
+			<Trans>Copied</Trans>
 		</div>
 	);
 }

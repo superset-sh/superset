@@ -107,11 +107,9 @@ export function CommandPalette() {
 	const frameTitle = currentFrame ? i18n._(currentFrame.command.title) : null;
 	const placeholder = frameTitle
 		? t({
-				id: "commandPalette.input.searchIn",
 				message: `Search in ${frameTitle}…`,
 			})
 		: t({
-				id: "commandPalette.input.placeholder",
 				message: "Type a command or search…",
 			});
 
@@ -119,7 +117,7 @@ export function CommandPalette() {
 		<button
 			type="button"
 			onClick={handleBack}
-			aria-label={t({ id: "commandPalette.input.back", message: "Back" })}
+			aria-label={t({ message: "Back" })}
 			className="text-muted-foreground hover:text-foreground"
 		>
 			<ArrowLeftIcon className="size-4 shrink-0" />
@@ -135,12 +133,10 @@ export function CommandPalette() {
 			>
 				<DialogHeader className="sr-only">
 					<DialogTitle>
-						<Trans id="commandPalette.dialog.title">Command Palette</Trans>
+						<Trans>Command Palette</Trans>
 					</DialogTitle>
 					<DialogDescription>
-						<Trans id="commandPalette.dialog.description">
-							Run commands and navigate the application.
-						</Trans>
+						<Trans>Run commands and navigate the application.</Trans>
 					</DialogDescription>
 				</DialogHeader>
 				<Command

@@ -48,7 +48,7 @@ jobs:
         id: create-branch
         uses: neondatabase/create-branch-action@fb620d43d4c565abaf088b848a4e28e5c4ea4d9c # 6.3.1
         with:
-          project_id: ${{ vars.NEON_PROJECT_ID }}
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
           branch_name: ${{ github.head_ref }}
           api_key: ${{ secrets.NEON_API_KEY }}
 
@@ -65,7 +65,7 @@ jobs:
         run: |
           cat > database-status.env << EOF
           DATABASE_STATUS="✅"
-          DATABASE_LINK="<a href=\"https://console.neon.tech/app/projects/${{ vars.NEON_PROJECT_ID }}/branches/${{ steps.create-branch.outputs.branch_id }}/tables\">View Branch</a>"
+          DATABASE_LINK="<a href=\"https://console.neon.tech/app/projects/${{ secrets.NEON_PROJECT_ID }}/branches/${{ steps.create-branch.outputs.branch_id }}/tables\">View Branch</a>"
           DATABASE_URL="${{ steps.create-branch.outputs.db_url_pooled }}"
           DATABASE_URL_UNPOOLED="${{ steps.create-branch.outputs.db_url }}"
           BRANCH_ID="${{ steps.create-branch.outputs.branch_id }}"
@@ -181,9 +181,9 @@ jobs:
           BLAXEL_API_KEY: ${{ secrets.BLAXEL_API_KEY }}
           BLAXEL_WORKSPACE: ${{ secrets.BLAXEL_WORKSPACE }}
           BLAXEL_REGION: ${{ secrets.BLAXEL_REGION }}
-          BLAXEL_SANDBOX_IMAGE: ${{ secrets.BLAXEL_SANDBOX_IMAGE }}
+          SENTRY_DSN_SANDBOX: ${{ secrets.SENTRY_DSN_SANDBOX }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GH_APP_SLUG: ${{ vars.GH_APP_SLUG }}
+          GH_APP_SLUG: ${{ secrets.GH_APP_SLUG }}
         run: |
           vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
           vercel build --token=$VERCEL_TOKEN
@@ -246,7 +246,7 @@ jobs:
             --env BLAXEL_API_KEY=$BLAXEL_API_KEY \
             --env BLAXEL_WORKSPACE=$BLAXEL_WORKSPACE \
             --env BLAXEL_REGION=$BLAXEL_REGION \
-            --env BLAXEL_SANDBOX_IMAGE=$BLAXEL_SANDBOX_IMAGE \
+            --env SENTRY_DSN_SANDBOX=$SENTRY_DSN_SANDBOX \
             --env OPENAI_API_KEY=$OPENAI_API_KEY \
             --env GH_APP_SLUG=$GH_APP_SLUG)
           vercel alias $VERCEL_URL ${{ env.API_ALIAS }} --scope=$VERCEL_ORG_ID --token=$VERCEL_TOKEN

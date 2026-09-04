@@ -48,21 +48,19 @@ export function PullRequestsTopBar({
 		{
 			value: "all",
 			label: t({
-				id: "dashboard.pullRequests.stateFilter.all",
 				message: "All",
 			}),
 		},
 		{
 			value: "open",
 			label: t({
-				id: "dashboard.pullRequests.stateFilter.open",
 				message: "Open",
+				context: "status",
 			}),
 		},
 		{
 			value: "merged",
 			label: t({
-				id: "dashboard.pullRequests.stateFilter.merged",
 				message: "Merged",
 			}),
 		},
@@ -81,7 +79,6 @@ export function PullRequestsTopBar({
 			<div
 				role="radiogroup"
 				aria-label={t({
-					id: "dashboard.pullRequests.stateFilter.groupAria",
 					message: "Filter by state",
 				})}
 				className="flex items-center gap-1"
@@ -116,11 +113,9 @@ export function PullRequestsTopBar({
 						value={searchQuery}
 						onChange={onSearchChange}
 						placeholder={t({
-							id: "dashboard.pullRequests.search.placeholder",
 							message: "Search pull requests…",
 						})}
 						label={t({
-							id: "dashboard.pullRequests.search.label",
 							message: "Search pull requests",
 						})}
 						className="bg-muted"
@@ -135,16 +130,13 @@ export function PullRequestsTopBar({
 							aria-label={
 								activeFilterCount > 0
 									? t({
-											id: "dashboard.pullRequests.filters.triggerAriaActive",
 											message: `Filters, ${activeFilterCount} active`,
 										})
 									: t({
-											id: "dashboard.pullRequests.filters.trigger",
 											message: "Filters",
 										})
 							}
 							title={t({
-								id: "dashboard.pullRequests.filters.trigger",
 								message: "Filters",
 							})}
 						>
@@ -162,9 +154,7 @@ export function PullRequestsTopBar({
 					<PopoverContent align="end" className="w-80 space-y-1">
 						<div className="flex items-center justify-between gap-2">
 							<span className="text-xs text-muted-foreground">
-								<Trans id="dashboard.pullRequests.filters.repository">
-									Repository
-								</Trans>
+								<Trans>Repository</Trans>
 							</span>
 							<ProjectFilter
 								value={projectFilters}
@@ -174,7 +164,7 @@ export function PullRequestsTopBar({
 						</div>
 						<div className="flex items-center justify-between gap-2">
 							<span className="text-xs text-muted-foreground">
-								<Trans id="dashboard.pullRequests.filters.author">Author</Trans>
+								<Trans>Author</Trans>
 							</span>
 							<AuthorFilter
 								value={authorFilter}
@@ -184,9 +174,7 @@ export function PullRequestsTopBar({
 						</div>
 						<div className="flex items-center justify-between gap-2">
 							<span className="text-xs text-muted-foreground">
-								<Trans id="dashboard.pullRequests.filters.reviews">
-									Reviews
-								</Trans>
+								<Trans>Reviews</Trans>
 							</span>
 							<ReviewFilter
 								value={reviewFilter}

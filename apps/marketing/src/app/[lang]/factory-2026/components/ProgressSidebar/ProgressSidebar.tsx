@@ -46,7 +46,6 @@ export function ProgressSidebar() {
 			{
 				id: "rubric",
 				label: t({
-					id: "marketing.factory.rubric.eyebrow",
 					message: "The rubric",
 				}),
 				group: true,
@@ -59,7 +58,6 @@ export function ProgressSidebar() {
 			{
 				id: "forecast",
 				label: t({
-					id: "marketing.factory.forecast.eyebrow",
 					message: "The forecast",
 				}),
 				group: true,
@@ -72,7 +70,6 @@ export function ProgressSidebar() {
 			{
 				id: "scorecard",
 				label: t({
-					id: "marketing.factory.scorecard.eyebrow",
 					message: "The scorecard",
 				}),
 				group: true,
@@ -131,7 +128,6 @@ export function ProgressSidebar() {
 	return (
 		<nav
 			aria-label={t({
-				id: "marketing.factory.sidebar.ariaLabel",
 				message: "Prediction progress",
 			})}
 			className="hidden xl:block fixed right-6 top-1/2 -translate-y-1/2 z-40 w-56"
@@ -142,18 +138,14 @@ export function ProgressSidebar() {
 						Factory 2026
 					</span>
 					<span className="text-[10px] font-mono text-muted-foreground tabular-nums">
-						<Trans id="marketing.factory.sidebar.readPercent">
-							{readPercent}% read
-						</Trans>
+						<Trans>{readPercent}% read</Trans>
 					</span>
 				</div>
 				<p className="text-xs font-mono text-foreground mt-1.5 leading-snug min-h-8">
 					{active ? (
 						active.label
 					) : (
-						<Trans id="marketing.factory.hero.title">
-							The self-driving software factory
-						</Trans>
+						<Trans>The self-driving software factory</Trans>
 					)}
 				</p>
 
@@ -182,20 +174,20 @@ export function ProgressSidebar() {
 						className="absolute top-[-3px] -translate-x-1/2 text-[9px] font-mono text-brand/80"
 						style={{ left: `${todayLeft}%` }}
 					>
-						<Trans id="marketing.factory.sidebar.now">now</Trans>
+						<Trans>now</Trans>
 					</span>
 				</div>
 
 				{/* Gate meters: the prediction's actual progress */}
 				<div className="mt-2 flex flex-col gap-1.5 border-t border-border pt-2.5">
 					<span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
-						<Trans id="marketing.factory.hero.gatesOpen">Gates open</Trans>
+						<Trans>Gates open</Trans>
 					</span>
 					<GateMeter level="F3" />
 					<GateMeter level="F4" />
 					{NEXT_GATE && (
 						<p className="text-[10px] font-mono text-muted-foreground leading-snug mt-0.5">
-							<Trans id="marketing.factory.sidebar.nextLabel">Next:</Trans>{" "}
+							<Trans>Next:</Trans>{" "}
 							<GateJumpLink
 								targetId={`gate-${NEXT_GATE.gateId}`}
 								className="text-foreground/80 hover:text-brand transition-colors"

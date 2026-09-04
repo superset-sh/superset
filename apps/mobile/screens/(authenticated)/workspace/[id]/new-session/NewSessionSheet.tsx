@@ -49,13 +49,11 @@ export function NewSessionSheet() {
 		if (isResolving) isLoading = true;
 		else
 			notice = t({
-				id: "mobile.newSession.hostUnreachable",
 				message: "Could not reach this workspace's machine",
 			});
 	} else if (presets.length === 0) {
 		if (presetsQuery.isError) {
 			notice = t({
-				id: "mobile.newSession.presetsLoadFailed",
 				message: "Could not load presets from the host",
 			});
 			canRetry = true;
@@ -63,7 +61,6 @@ export function NewSessionSheet() {
 			isLoading = true;
 		} else {
 			notice = t({
-				id: "mobile.newSession.noAgents",
 				message: "No agents configured on this machine",
 			});
 		}
@@ -103,7 +100,6 @@ export function NewSessionSheet() {
 			setLaunchingKey(null);
 			Alert.alert(
 				t({
-					id: "mobile.newSession.startFailed",
 					message: "Could not start session",
 				}),
 				error instanceof Error ? error.message : String(error),
@@ -123,7 +119,6 @@ export function NewSessionSheet() {
 				<Stack.Toolbar.Button
 					icon="xmark"
 					accessibilityLabel={t({
-						id: "mobile.common.close",
 						message: "Close",
 					})}
 					onPress={() => router.back()}
@@ -140,7 +135,7 @@ export function NewSessionSheet() {
 							onPress={() => void presetsQuery.refetch()}
 						>
 							<Text>
-								<Trans id="mobile.common.tryAgain">Try again</Trans>
+								<Trans>Try again</Trans>
 							</Text>
 						</Button>
 					) : null}
@@ -164,7 +159,7 @@ export function NewSessionSheet() {
 			{presets.length > 0 ? (
 				<ListRow
 					icon={<SquareTerminal size={19} color={theme.mutedForeground} />}
-					label={t({ id: "mobile.newSession.shell", message: "Shell" })}
+					label={t({ message: "Shell" })}
 					trailing={launchingKey === "shell" ? spinner : undefined}
 					onPress={() => void launch(null)}
 					isLast

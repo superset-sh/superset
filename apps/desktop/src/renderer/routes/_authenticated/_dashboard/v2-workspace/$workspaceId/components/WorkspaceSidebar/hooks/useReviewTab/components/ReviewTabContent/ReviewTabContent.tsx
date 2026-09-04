@@ -35,9 +35,7 @@ export const ReviewTabContent = memo(function ReviewTabContent({
 	if (isError) {
 		return (
 			<div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
-				<Trans id="workspace.reviewTab.loadError">
-					Unable to load review status
-				</Trans>
+				<Trans>Unable to load review status</Trans>
 			</div>
 		);
 	}
@@ -45,7 +43,7 @@ export const ReviewTabContent = memo(function ReviewTabContent({
 	if (isLoading && !pr) {
 		return (
 			<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-				<Trans id="workspace.reviewTab.loading">Loading review...</Trans>
+				<Trans>Loading review...</Trans>
 			</div>
 		);
 	}
@@ -53,7 +51,7 @@ export const ReviewTabContent = memo(function ReviewTabContent({
 	if (!pr) {
 		return (
 			<div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
-				<Trans id="workspace.reviewTab.noPr">
+				<Trans>
 					Open a pull request to view review status, checks, and comments.
 				</Trans>
 			</div>

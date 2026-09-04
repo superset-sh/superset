@@ -1,5 +1,6 @@
 "use server";
 
+import { msg } from "@lingui/core/macro";
 import { ContactInquiryEmail } from "@superset/email/emails/internal/contact-inquiry";
 import { i18n } from "@superset/i18n";
 import { Resend } from "resend";
@@ -27,10 +28,11 @@ export async function submitContactInquiry(data: unknown) {
 	if (!parsedData.success) {
 		return {
 			success: false,
-			error: i18n._({
-				id: "marketing.form.error.invalidInput",
-				message: "Invalid input detected.",
-			}),
+			error: i18n._(
+				msg({
+					message: "Invalid input detected.",
+				}),
+			),
 		};
 	}
 
@@ -39,20 +41,22 @@ export async function submitContactInquiry(data: unknown) {
 	if (honeypot && honeypot.length > 0) {
 		return {
 			success: false,
-			error: i18n._({
-				id: "marketing.form.error.generic",
-				message: "Something went wrong. Please try again.",
-			}),
+			error: i18n._(
+				msg({
+					message: "Something went wrong. Please try again.",
+				}),
+			),
 		};
 	}
 
 	if (!name || !email || !message) {
 		return {
 			success: false,
-			error: i18n._({
-				id: "marketing.form.error.missingFields",
-				message: "Missing required fields.",
-			}),
+			error: i18n._(
+				msg({
+					message: "Missing required fields.",
+				}),
+			),
 		};
 	}
 
@@ -64,20 +68,22 @@ export async function submitContactInquiry(data: unknown) {
 	if (!sanitizedName || !sanitizedEmail || !sanitizedMessage) {
 		return {
 			success: false,
-			error: i18n._({
-				id: "marketing.form.error.invalidInput",
-				message: "Invalid input detected.",
-			}),
+			error: i18n._(
+				msg({
+					message: "Invalid input detected.",
+				}),
+			),
 		};
 	}
 
 	if (!validateEmail(sanitizedEmail)) {
 		return {
 			success: false,
-			error: i18n._({
-				id: "marketing.form.error.invalidEmail",
-				message: "Invalid email address.",
-			}),
+			error: i18n._(
+				msg({
+					message: "Invalid email address.",
+				}),
+			),
 		};
 	}
 
@@ -85,10 +91,11 @@ export async function submitContactInquiry(data: unknown) {
 		if (!(await checkEmailFormRateLimit(sanitizedEmail))) {
 			return {
 				success: false,
-				error: i18n._({
-					id: "marketing.form.error.rateLimited",
-					message: "Too many messages. Please try again later.",
-				}),
+				error: i18n._(
+					msg({
+						message: "Too many messages. Please try again later.",
+					}),
+				),
 			};
 		}
 
@@ -111,10 +118,11 @@ export async function submitContactInquiry(data: unknown) {
 			console.error("Failed to send contact inquiry email:", error);
 			return {
 				success: false,
-				error: i18n._({
-					id: "marketing.form.error.generic",
-					message: "Something went wrong. Please try again.",
-				}),
+				error: i18n._(
+					msg({
+						message: "Something went wrong. Please try again.",
+					}),
+				),
 			};
 		}
 
@@ -123,10 +131,11 @@ export async function submitContactInquiry(data: unknown) {
 		console.error("Failed to send contact inquiry email:", error);
 		return {
 			success: false,
-			error: i18n._({
-				id: "marketing.form.error.generic",
-				message: "Something went wrong. Please try again.",
-			}),
+			error: i18n._(
+				msg({
+					message: "Something went wrong. Please try again.",
+				}),
+			),
 		};
 	}
 }

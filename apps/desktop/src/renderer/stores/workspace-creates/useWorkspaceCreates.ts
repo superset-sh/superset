@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import type { WorkspaceCreateSettledPayload } from "@superset/workspace-client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -26,6 +27,7 @@ import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/Host
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useStarNagStore } from "renderer/stores/star-nag";
 import { classifyCloneError } from "renderer/utils/classifyCloneError";
+import { queueWorkspaceCreationPresets } from "./queueWorkspaceCreationPresets";
 import { useWorkspaceTransactionsStore } from "./workspaceTransactions";
 import { writeWorkspacePaneLayout } from "./writeWorkspacePaneLayout";
 
@@ -297,10 +299,11 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 
 			if (!organizationId || !hostUrl) {
 				const error = !organizationId
-					? i18n._({
-							id: "stores.workspaceCreates.noActiveOrganization",
-							message: "No active organization",
-						})
+					? i18n._(
+							msg({
+								message: "No active organization",
+							}),
+						)
 					: getHostServiceUnavailableMessage(hostService, {
 							action: "createWorkspace",
 						});
@@ -327,17 +330,19 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 				name:
 					snapshot.name ??
 					("branch" in snapshot ? snapshot.branch : undefined) ??
-					i18n._({
-						id: "stores.workspaceCreates.defaultName",
-						message: "New workspace",
-					}),
+					i18n._(
+						msg({
+							message: "New workspace",
+						}),
+					),
 				branch:
 					("branch" in snapshot ? snapshot.branch : undefined) ??
 					snapshot.name ??
-					i18n._({
-						id: "stores.workspaceCreates.defaultName",
-						message: "New workspace",
-					}),
+					i18n._(
+						msg({
+							message: "New workspace",
+						}),
+					),
 				type: isSession ? "session" : "worktree",
 				createdByUserId: userId,
 				taskId: ("taskId" in snapshot ? snapshot.taskId : undefined) ?? null,
@@ -445,14 +450,29 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 						deleteWorkspaceLocalState(workspaceId);
 						hostWorkspacesCache.removeWorkspace(args.hostId, workspaceId);
 					}
-					// Only count genuinely new worktrees, never reopened ones or
-					// project-less sessions (createSession has no alreadyExists signal,
-					// so an undefined value here is treated as "don't count").
+					// Only genuinely new worktrees count as created — never reopened
+					// ones or project-less sessions (createSession has no
+					// alreadyExists signal, so an undefined value here is treated as
+					// "not new").
 					if (
 						result.workspace.projectId !== null &&
 						result.alreadyExists === false
 					) {
 						useStarNagStore.getState().recordWorkspaceCreated();
+						// Creation presets follow the same rule, and additionally skip
+						// adopting an existing worktree (the host reports that as new)
+						// and creates that opted out of setup, e.g. "Import worktrees"
+						// with "Run setup" off.
+						const adoptsWorktree =
+							"worktreePath" in snapshot && !!snapshot.worktreePath;
+						const skipsSetup =
+							"runSetup" in snapshot && snapshot.runSetup === false;
+						if (!adoptsWorktree && !skipsSetup) {
+							queueWorkspaceCreationPresets(collections, {
+								id: result.workspace.id,
+								projectId: result.workspace.projectId,
+							});
+						}
 					}
 					return {
 						ok: true,

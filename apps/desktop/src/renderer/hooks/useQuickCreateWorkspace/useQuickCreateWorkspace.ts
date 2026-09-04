@@ -53,18 +53,15 @@ export function useQuickCreateWorkspace() {
 				}),
 				{
 					loading: t({
-						id: "hooks.quickCreateWorkspace.creating",
 						message: "Creating workspace...",
 					}),
 					success: t({
-						id: "hooks.quickCreateWorkspace.created",
 						message: "Workspace created",
 					}),
 					error: (error) =>
 						error instanceof Error
 							? error.message
 							: t({
-									id: "hooks.quickCreateWorkspace.createFailed",
 									message: "Failed to create workspace",
 								}),
 				},

@@ -26,15 +26,13 @@ export function ReviewOverlay({
 			>
 				{draftCount > 1
 					? t({
-							id: "mobile.review.sendToChatCount",
 							message: `Send to chat (${draftCount})`,
 						})
-					: t({ id: "mobile.review.sendToChat", message: "Send to chat" })}
+					: t({ message: "Send to chat" })}
 			</Stack.Toolbar.Button>
 			<Stack.Toolbar.Button
 				icon="text.line.first.and.arrowtriangle.forward"
 				accessibilityLabel={t({
-					id: "mobile.nav.jumpToFile.title",
 					message: "Jump to file",
 				})}
 				onPress={onJumpToFile}

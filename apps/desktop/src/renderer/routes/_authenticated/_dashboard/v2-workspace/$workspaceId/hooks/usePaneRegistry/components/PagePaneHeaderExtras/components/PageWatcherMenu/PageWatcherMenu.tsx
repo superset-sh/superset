@@ -68,7 +68,6 @@ export function PageWatcherMenu({
 				onError: (error) =>
 					toast.error(
 						t({
-							id: "workspace.pagePane.watchFailedToast",
 							message: "Could not watch this page",
 						}),
 						{ description: errorMessage(error) },
@@ -84,7 +83,6 @@ export function PageWatcherMenu({
 				onError: (error) =>
 					toast.error(
 						t({
-							id: "workspace.pagePane.stopWatchFailedToast",
 							message: "Could not stop watching",
 						}),
 						{ description: errorMessage(error) },
@@ -101,7 +99,6 @@ export function PageWatcherMenu({
 					size="sm"
 					className="h-6 gap-1 px-1.5 text-muted-foreground/60 text-xs hover:text-muted-foreground"
 					aria-label={t({
-						id: "workspace.pagePane.watcherAria",
 						message: "Choose which agent watches this page for comments",
 					})}
 					disabled={assign.isPending || unwatch.isPending}
@@ -121,21 +118,15 @@ export function PageWatcherMenu({
 			<DropdownMenuContent align="end" className="w-64">
 				<DropdownMenuLabel className="font-normal text-muted-foreground text-xs">
 					{watcher ? (
-						<Trans id="workspace.pagePane.watchingLabel">
-							Comments go to this agent
-						</Trans>
+						<Trans>Comments go to this agent</Trans>
 					) : (
-						<Trans id="workspace.pagePane.notWatchingLabel">
-							Nothing is watching this page
-						</Trans>
+						<Trans>Nothing is watching this page</Trans>
 					)}
 				</DropdownMenuLabel>
 				<DropdownMenuSeparator />
 				{running.length === 0 ? (
 					<DropdownMenuItem disabled>
-						<Trans id="workspace.pagePane.noAgentsRunningWatch">
-							No agents running here
-						</Trans>
+						<Trans>No agents running here</Trans>
 					</DropdownMenuItem>
 				) : (
 					running.map((binding) => {
@@ -158,7 +149,7 @@ export function PageWatcherMenu({
 										{binding.definitionId ?? binding.agentId}
 									</span>
 									<span className="text-muted-foreground text-xs">
-										<Trans id="workspace.pagePane.agentActiveSinceWatch">
+										<Trans>
 											active{" "}
 											{formatDistanceToNowStrict(binding.lastEventAt, {
 												addSuffix: true,
@@ -175,7 +166,7 @@ export function PageWatcherMenu({
 						<DropdownMenuSeparator />
 						<DropdownMenuItem onSelect={stop} className="gap-2">
 							<EyeOff className="size-4 text-muted-foreground" />
-							<Trans id="workspace.pagePane.stopWatching">Stop watching</Trans>
+							<Trans>Stop watching</Trans>
 						</DropdownMenuItem>
 					</>
 				) : null}

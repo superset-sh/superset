@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { z } from "zod";
 import { i18n } from "./i18n";
 import { hasFiniteRecurrence, rruleProblem } from "./rrule";
@@ -450,15 +451,17 @@ type ScopeRequirement = {
 function scopeChoiceLabel(choice: ScopeChoice): string {
 	switch (choice) {
 		case "anyone":
-			return i18n._({
-				id: "shared.automationTriggers.choice.anyone",
-				message: "Anyone",
-			});
+			return i18n._(
+				msg({
+					message: "Anyone",
+				}),
+			);
 		case "anySender":
-			return i18n._({
-				id: "shared.automationTriggers.choice.anySender",
-				message: "Any sender",
-			});
+			return i18n._(
+				msg({
+					message: "Any sender",
+				}),
+			);
 	}
 }
 
@@ -559,18 +562,20 @@ export function describeTriggerProblems(
 				// from a placeholder. Each locale inflects every branch itself.
 				message: rule.orChoose
 					? i18n._({
-							id: "shared.automationTriggers.scopeRequiredOrChoose",
-							message:
-								"{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}",
+							...msg({
+								message:
+									"{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}",
+							}),
 							values: {
 								noun: rule.noun,
 								choice: scopeChoiceLabel(rule.orChoose),
 							},
 						})
 					: i18n._({
-							id: "shared.automationTriggers.scopeRequired",
-							message:
-								"{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}",
+							...msg({
+								message:
+									"{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}",
+							}),
 							values: { noun: rule.noun },
 						}),
 			});
@@ -582,19 +587,21 @@ export function describeTriggerProblems(
 				problems.push({
 					index,
 					field: "rrule",
-					message: i18n._({
-						id: "shared.automationTriggers.invalidRrule",
-						message: "Enter a valid recurrence rule.",
-					}),
+					message: i18n._(
+						msg({
+							message: "Enter a valid recurrence rule.",
+						}),
+					),
 				});
 			} else if (hasFiniteRecurrence(config.rrule)) {
 				problems.push({
 					index,
 					field: "rrule",
-					message: i18n._({
-						id: "shared.automationTriggers.finiteRrule",
-						message: "Schedules repeat — remove COUNT or UNTIL.",
-					}),
+					message: i18n._(
+						msg({
+							message: "Schedules repeat — remove COUNT or UNTIL.",
+						}),
+					),
 				});
 			}
 		}
@@ -608,8 +615,9 @@ export function summarizeTriggerProblems(
 	problems: TriggerProblem[],
 ): string | null {
 	if (problems.length === 0) return null;
-	return i18n._({
-		id: "shared.automationTriggers.needConfiguration",
-		message: "Some triggers need additional configuration",
-	});
+	return i18n._(
+		msg({
+			message: "Some triggers need additional configuration",
+		}),
+	);
 }

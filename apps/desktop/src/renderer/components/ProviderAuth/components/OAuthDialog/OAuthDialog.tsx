@@ -94,9 +94,7 @@ export function OAuthDialog({
 									onClick={onOpenAuthUrl}
 									disabled={!authUrl || isPending}
 								>
-									<Trans id="components.oauthDialog.openBrowserAgain">
-										Open browser again
-									</Trans>
+									<Trans>Open browser again</Trans>
 								</Button>
 								<Button
 									type="button"
@@ -104,11 +102,7 @@ export function OAuthDialog({
 									onClick={handleCopy}
 									disabled={!authUrl || isPending}
 								>
-									{copied ? (
-										<Trans id="components.oauthDialog.copied">Copied!</Trans>
-									) : (
-										<Trans id="components.oauthDialog.copyUrl">Copy URL</Trans>
-									)}
+									{copied ? <Trans>Copied!</Trans> : <Trans>Copy URL</Trans>}
 								</Button>
 							</div>
 
@@ -156,13 +150,11 @@ export function OAuthDialog({
 							disabled={!canSubmit}
 						>
 							{isPending ? (
-								<Trans id="components.oauthDialog.connecting">
-									Connecting...
-								</Trans>
+								<Trans>Connecting...</Trans>
 							) : hasAuthUrl ? (
-								<Trans id="components.oauthDialog.continue">Continue</Trans>
+								<Trans>Continue</Trans>
 							) : (
-								<Trans id="components.oauthDialog.tryAgain">Try again</Trans>
+								<Trans>Try again</Trans>
 							)}
 						</Button>
 						<div className="flex items-center justify-between gap-2">
@@ -172,7 +164,7 @@ export function OAuthDialog({
 								onClick={() => onOpenChange(false)}
 								disabled={isPending}
 							>
-								<Trans id="components.oauthDialog.cancel">Cancel</Trans>
+								<Trans>Cancel</Trans>
 							</Button>
 							{canDisconnect ? (
 								<Button
@@ -181,9 +173,7 @@ export function OAuthDialog({
 									onClick={onDisconnect}
 									disabled={isPending}
 								>
-									<Trans id="components.oauthDialog.disconnect">
-										Disconnect
-									</Trans>
+									<Trans>Disconnect</Trans>
 								</Button>
 							) : null}
 						</div>

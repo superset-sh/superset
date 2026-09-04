@@ -56,23 +56,19 @@ export function ConnectionControls({
 					<Button variant="outline" disabled={disconnectMutation.isPending}>
 						<Unplug className="mr-2 size-4" />
 						{disconnectMutation.isPending ? (
-							<Trans id="web.integrations.disconnecting">
-								Disconnecting...
-							</Trans>
+							<Trans>Disconnecting...</Trans>
 						) : (
-							<Trans id="web.integrations.disconnect">Disconnect</Trans>
+							<Trans>Disconnect</Trans>
 						)}
 					</Button>
 				</AlertDialogTrigger>
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>
-							<Trans id="web.integrations.teams.disconnectTitle">
-								Disconnect Microsoft Teams?
-							</Trans>
+							<Trans>Disconnect Microsoft Teams?</Trans>
 						</AlertDialogTitle>
 						<AlertDialogDescription>
-							<Trans id="web.integrations.teams.disconnectDescription">
+							<Trans>
 								This stops every Teams trigger in your organization and removes
 								the notification subscriptions from your tenant. You can
 								reconnect at any time.
@@ -81,12 +77,12 @@ export function ConnectionControls({
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel>
-							<Trans id="web.integrations.cancel">Cancel</Trans>
+							<Trans>Cancel</Trans>
 						</AlertDialogCancel>
 						<AlertDialogAction
 							onClick={() => disconnectMutation.mutate({ organizationId })}
 						>
-							<Trans id="web.integrations.disconnect">Disconnect</Trans>
+							<Trans>Disconnect</Trans>
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
@@ -96,7 +92,7 @@ export function ConnectionControls({
 
 	return (
 		<Button onClick={handleConnect}>
-			<Trans id="web.integrations.teams.connect">Connect Microsoft Teams</Trans>
+			<Trans>Connect Microsoft Teams</Trans>
 		</Button>
 	);
 }

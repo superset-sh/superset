@@ -1,5 +1,5 @@
 import { mintUserJwt } from "@superset/auth/server";
-import { dbWs } from "@superset/db/client";
+import { db } from "@superset/db/client";
 import {
 	automationEvents,
 	automationRuns,
@@ -117,7 +117,7 @@ export async function dispatchAutomation(
 		return { status: "skipped_offline", runId: inserted?.id ?? null, error };
 	}
 
-	const [run] = await dbWs
+	const [run] = await db
 		.insert(automationRuns)
 		.values({
 			automationId: automation.id,
@@ -134,7 +134,7 @@ export async function dispatchAutomation(
 
 	let workspaceId: string | null = null;
 	try {
-		const [owner] = await dbWs
+		const [owner] = await db
 			.select({ email: users.email })
 			.from(users)
 			.where(eq(users.id, automation.ownerUserId))
@@ -167,7 +167,7 @@ export async function dispatchAutomation(
 		};
 
 		const event = cause.eventId
-			? ((await dbWs.query.automationEvents.findFirst({
+			? ((await db.query.automationEvents.findFirst({
 					where: eq(automationEvents.id, cause.eventId),
 					columns: {
 						provider: true,
@@ -221,7 +221,7 @@ export async function dispatchAutomation(
 			if (!pinGone) throw err;
 			// Clear the pin (CAS so a concurrent repin is never erased) and use
 			// a fresh workspace from here on.
-			await dbWs
+			await db
 				.update(automations)
 				.set({ v2WorkspaceId: null })
 				.where(
@@ -236,7 +236,7 @@ export async function dispatchAutomation(
 			result = await runAgent(workspaceId);
 		}
 
-		await dbWs
+		await db
 			.update(automationRuns)
 			.set({
 				status: "dispatched",
@@ -249,7 +249,7 @@ export async function dispatchAutomation(
 			.where(eq(automationRuns.id, run.id));
 	} catch (err) {
 		const error = describeError(err, "dispatch");
-		await dbWs
+		await db
 			.update(automationRuns)
 			.set({
 				status: "dispatch_failed",
@@ -267,7 +267,7 @@ async function resolveCandidateHosts(
 	automation: DispatchableAutomation,
 ): Promise<Array<typeof v2Hosts.$inferSelect>> {
 	if (automation.targetHostId) {
-		const [host] = await dbWs
+		const [host] = await db
 			.select()
 			.from(v2Hosts)
 			.where(
@@ -281,7 +281,7 @@ async function resolveCandidateHosts(
 		return host ? [host] : [];
 	}
 
-	return dbWs
+	return db
 		.select({
 			organizationId: v2Hosts.organizationId,
 			machineId: v2Hosts.machineId,
@@ -390,7 +390,7 @@ async function recordUndispatched(
 	status: "skipped_offline" | "dispatch_failed",
 	error: string,
 ): Promise<{ id: string } | undefined> {
-	const [row] = await dbWs
+	const [row] = await db
 		.insert(automationRuns)
 		.values({
 			automationId: automation.id,

@@ -17,16 +17,16 @@ export function UsageModelTable({ history }: { history: UsageHistory }) {
 			<thead>
 				<tr className="border-b text-left text-muted-foreground">
 					<th className="py-1 pr-2 font-medium">
-						<Trans id="settings.usage.modelTable.columnModel">Model</Trans>
+						<Trans>Model</Trans>
 					</th>
 					<th className="py-1 pr-2 text-right font-medium">
-						<Trans id="settings.usage.modelTable.columnCost">Cost</Trans>
+						<Trans>Cost</Trans>
 					</th>
 					<th className="py-1 pr-2 text-right font-medium">
-						<Trans id="settings.usage.modelTable.columnShare">Share</Trans>
+						<Trans>Share</Trans>
 					</th>
 					<th className="py-1 text-right font-medium">
-						<Trans id="settings.usage.modelTable.columnTokens">Tokens</Trans>
+						<Trans>Tokens</Trans>
 					</th>
 				</tr>
 			</thead>
@@ -69,7 +69,7 @@ export function UsageModelTable({ history }: { history: UsageHistory }) {
 			<tfoot>
 				<tr className="border-t font-medium">
 					<td className="py-1 pr-2">
-						<Trans id="settings.usage.modelTable.total">Total</Trans>
+						<Trans>Total</Trans>
 					</td>
 					<td className="py-1 pr-2 text-right tabular-nums">
 						{history.totals.approximate ? "~" : ""}

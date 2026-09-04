@@ -52,7 +52,6 @@ export function SubmitPromptDialog({
 			});
 			toast.success(
 				t({
-					id: "dashboard.topBar.submitPromptDialog.submitted",
 					message: "Prompt submitted — thanks!",
 				}),
 			);
@@ -61,7 +60,6 @@ export function SubmitPromptDialog({
 			console.error("[submit-prompt] failed", error);
 			toast.error(
 				t({
-					id: "dashboard.topBar.submitPromptDialog.submitFailed",
 					message: "Could not submit prompt. Try again.",
 				}),
 			);
@@ -81,12 +79,10 @@ export function SubmitPromptDialog({
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>
-						<Trans id="dashboard.topBar.submitPromptDialog.title">
-							Submit a prompt
-						</Trans>
+						<Trans>Submit a prompt</Trans>
 					</DialogTitle>
 					<DialogDescription>
-						<Trans id="dashboard.topBar.submitPromptDialog.description">
+						<Trans>
 							Prompt a coding agent to build what you want to see in Superset.
 							If we like your prompt, we'll run it and merge the result.
 						</Trans>
@@ -95,9 +91,7 @@ export function SubmitPromptDialog({
 				<div className="flex flex-col gap-4 py-2">
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="submit-prompt-text">
-							<Trans id="dashboard.topBar.submitPromptDialog.promptLabel">
-								Prompt
-							</Trans>
+							<Trans>Prompt</Trans>
 						</Label>
 						<Textarea
 							id="submit-prompt-text"
@@ -105,7 +99,6 @@ export function SubmitPromptDialog({
 							onChange={(e) => setPromptText(e.target.value)}
 							onKeyDown={handleKeyDown}
 							placeholder={t({
-								id: "dashboard.topBar.submitPromptDialog.promptPlaceholder",
 								message: "Describe what you'd like to see built…",
 							})}
 							rows={6}
@@ -115,7 +108,7 @@ export function SubmitPromptDialog({
 					</div>
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="submit-prompt-name">
-							<Trans id="dashboard.topBar.submitPromptDialog.nameLabel">
+							<Trans>
 								Your name{" "}
 								<span className="font-normal text-muted-foreground">
 									(if we use your prompt, we'll credit you in the changelog)
@@ -127,7 +120,6 @@ export function SubmitPromptDialog({
 							value={submitterName}
 							onChange={(e) => setSubmitterName(e.target.value)}
 							placeholder={t({
-								id: "dashboard.topBar.submitPromptDialog.namePlaceholder",
 								message: "Jane Doe",
 							})}
 							disabled={isSubmitting}
@@ -137,13 +129,9 @@ export function SubmitPromptDialog({
 				<DialogFooter>
 					<Button type="button" onClick={handleSubmit} disabled={!canSubmit}>
 						{isSubmitting ? (
-							<Trans id="dashboard.topBar.submitPromptDialog.submitting">
-								Submitting…
-							</Trans>
+							<Trans>Submitting…</Trans>
 						) : (
-							<Trans id="dashboard.topBar.submitPromptDialog.submit">
-								Submit prompt
-							</Trans>
+							<Trans>Submit prompt</Trans>
 						)}
 						<span className="ml-2 inline-flex items-center gap-1 text-base font-mono tabular-nums opacity-80">
 							<span>⌘</span>

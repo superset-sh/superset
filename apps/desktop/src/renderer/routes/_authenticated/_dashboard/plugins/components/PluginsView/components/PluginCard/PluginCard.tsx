@@ -62,7 +62,7 @@ export function PluginCard({
 					)}
 					{isDisabled && (
 						<span className="shrink-0 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
-							<Trans id="dashboard.plugins.card.disabled">Disabled</Trans>
+							<Trans>Disabled</Trans>
 						</span>
 					)}
 				</div>
@@ -78,7 +78,6 @@ export function PluginCard({
 							size="icon-xs"
 							className="shrink-0 text-muted-foreground"
 							aria-label={t({
-								id: "dashboard.plugins.card.pluginOptionsLabel",
 								message: `${plugin.interface.displayName} options`,
 							})}
 							onClick={(event) => event.stopPropagation()}
@@ -96,11 +95,7 @@ export function PluginCard({
 							) : (
 								<LuPause className="size-4" />
 							)}
-							{isDisabled ? (
-								<Trans id="dashboard.plugins.card.enable">Enable</Trans>
-							) : (
-								<Trans id="dashboard.plugins.card.disable">Disable</Trans>
-							)}
+							{isDisabled ? <Trans>Enable</Trans> : <Trans>Disable</Trans>}
 						</DropdownMenuItem>
 						<DropdownMenuItem
 							variant="destructive"
@@ -108,7 +103,7 @@ export function PluginCard({
 							onSelect={() => onUninstall(plugin)}
 						>
 							<LuTrash2 className="size-4" />
-							<Trans id="dashboard.plugins.card.uninstall">Uninstall</Trans>
+							<Trans>Uninstall</Trans>
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>
@@ -123,7 +118,7 @@ export function PluginCard({
 						onInstall(plugin);
 					}}
 				>
-					<Trans id="dashboard.plugins.card.install">Install</Trans>
+					<Trans>Install</Trans>
 				</Button>
 			)}
 		</div>

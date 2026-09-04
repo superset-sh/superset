@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import {
 	enabledTriggerKinds,
 	type TriggerConfigInput,
@@ -39,15 +40,17 @@ export const INTEGRATIONS = [
 		provider: "linear",
 		label: "Linear",
 		description: () =>
-			i18n._({
-				id: "shared.integrations.linear.description",
-				message: "Sync issues bidirectionally with Linear.",
-			}),
+			i18n._(
+				msg({
+					message: "Sync issues bidirectionally with Linear.",
+				}),
+			),
 		category: () =>
-			i18n._({
-				id: "shared.integrations.category.taskManagement",
-				message: "Task Management",
-			}),
+			i18n._(
+				msg({
+					message: "Task Management",
+				}),
+			),
 		webPath: "/integrations/linear",
 		triggerKinds: ["linear"],
 		standalone: true,
@@ -56,15 +59,17 @@ export const INTEGRATIONS = [
 		provider: "github",
 		label: "GitHub",
 		description: () =>
-			i18n._({
-				id: "shared.integrations.github.description",
-				message: "Connect repos and sync pull requests.",
-			}),
+			i18n._(
+				msg({
+					message: "Connect repos and sync pull requests.",
+				}),
+			),
 		category: () =>
-			i18n._({
-				id: "shared.integrations.category.versionControl",
-				message: "Version Control",
-			}),
+			i18n._(
+				msg({
+					message: "Version Control",
+				}),
+			),
 		webPath: "/integrations/github",
 		triggerKinds: ["github"],
 		standalone: true,
@@ -73,15 +78,17 @@ export const INTEGRATIONS = [
 		provider: "slack",
 		label: "Slack",
 		description: () =>
-			i18n._({
-				id: "shared.integrations.slack.description",
-				message: "Manage tasks from Slack conversations.",
-			}),
+			i18n._(
+				msg({
+					message: "Manage tasks from Slack conversations.",
+				}),
+			),
 		category: () =>
-			i18n._({
-				id: "shared.integrations.category.communication",
-				message: "Communication",
-			}),
+			i18n._(
+				msg({
+					message: "Communication",
+				}),
+			),
 		webPath: "/integrations/slack",
 		triggerKinds: ["slack"],
 		standalone: true,
@@ -90,15 +97,17 @@ export const INTEGRATIONS = [
 		provider: "notion",
 		label: "Notion",
 		description: () =>
-			i18n._({
-				id: "shared.integrations.notion.description",
-				message: "Run automations on data source and comment activity.",
-			}),
+			i18n._(
+				msg({
+					message: "Run automations on data source and comment activity.",
+				}),
+			),
 		category: () =>
-			i18n._({
-				id: "shared.integrations.category.knowledge",
-				message: "Knowledge",
-			}),
+			i18n._(
+				msg({
+					message: "Knowledge",
+				}),
+			),
 		webPath: "/integrations/notion",
 		triggerKinds: ["notion"],
 	},
@@ -106,15 +115,17 @@ export const INTEGRATIONS = [
 		provider: "microsoft_teams",
 		label: "Microsoft Teams",
 		description: () =>
-			i18n._({
-				id: "shared.integrations.microsoft_teams.description",
-				message: "Trigger automations from Teams channel messages.",
-			}),
+			i18n._(
+				msg({
+					message: "Trigger automations from Teams channel messages.",
+				}),
+			),
 		category: () =>
-			i18n._({
-				id: "shared.integrations.category.communication",
-				message: "Communication",
-			}),
+			i18n._(
+				msg({
+					message: "Communication",
+				}),
+			),
 		webPath: "/integrations/microsoft-teams",
 		triggerKinds: ["microsoft_teams"],
 	},
@@ -122,15 +133,17 @@ export const INTEGRATIONS = [
 		provider: "sentry",
 		label: "Sentry",
 		description: () =>
-			i18n._({
-				id: "shared.integrations.sentry.description",
-				message: "Run automations when Sentry issues change.",
-			}),
+			i18n._(
+				msg({
+					message: "Run automations when Sentry issues change.",
+				}),
+			),
 		category: () =>
-			i18n._({
-				id: "shared.integrations.category.monitoring",
-				message: "Monitoring",
-			}),
+			i18n._(
+				msg({
+					message: "Monitoring",
+				}),
+			),
 		webPath: "/integrations/sentry",
 		triggerKinds: ["sentry"],
 	},
@@ -138,15 +151,17 @@ export const INTEGRATIONS = [
 		provider: "google",
 		label: "Google",
 		description: () =>
-			i18n._({
-				id: "shared.integrations.google.description",
-				message: "Trigger automations from Google Calendar and Gmail.",
-			}),
+			i18n._(
+				msg({
+					message: "Trigger automations from Google Calendar and Gmail.",
+				}),
+			),
 		category: () =>
-			i18n._({
-				id: "shared.integrations.category.productivity",
-				message: "Productivity",
-			}),
+			i18n._(
+				msg({
+					message: "Productivity",
+				}),
+			),
 		webPath: "/integrations/google",
 		triggerKinds: ["google_calendar", "gmail"],
 	},

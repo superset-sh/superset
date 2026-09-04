@@ -10,9 +10,11 @@ import type { HostServiceContext } from "../../../types";
 import { getHostWorkerPool } from "../../../workers/host-worker-pool";
 import {
 	gitCommitFilesTask,
+	gitCommitTask,
 	gitDiffBulkTask,
 	gitDiffPatchTask,
 	gitFetchBaseRefTask,
+	gitPushTask,
 	gitStatusSnapshotTask,
 } from "../../../workers/tasks/git";
 import { protectedProcedure, queryProcedure, router } from "../../index";
@@ -561,6 +563,75 @@ export const gitRouter = router({
 			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
 			const git = await ctx.git(worktreePath);
 			await git.raw(["reset", "HEAD"]);
+			return { success: true };
+		}),
+
+	commit: protectedProcedure
+		// Commit hooks (lint-staged etc.) run here and can be slow.
+		.meta({ timeoutMs: 60_000 })
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				message: z.string().trim().min(1),
+				stageAll: z.boolean().default(true),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
+			const result = await getHostWorkerPool().run(
+				gitCommitTask,
+				{
+					worktreePath,
+					message: input.message,
+					stageAll: input.stageAll,
+					gitEnv,
+				},
+				{ timeoutMs: 60_000 },
+			);
+			if (!result.ok) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Nothing to commit",
+				});
+			}
+			return { success: true, hash: result.hash };
+		}),
+
+	push: protectedProcedure
+		.meta({ timeoutMs: 120_000 })
+		.input(z.object({ workspaceId: z.string() }))
+		.mutation(async ({ ctx, input }) => {
+			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			// The linked PR lookup stays on-loop (sync db reads); the git work
+			// itself — upstream resolution and the push — runs in the pool.
+			const workspace = ctx.db.query.workspaces
+				.findFirst({ where: eq(workspaces.id, input.workspaceId) })
+				.sync();
+			const linkedPr = workspace?.pullRequestId
+				? ctx.db.query.pullRequests
+						.findFirst({ where: eq(pullRequests.id, workspace.pullRequestId) })
+						.sync()
+				: null;
+			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
+			const result = await getHostWorkerPool().run(
+				gitPushTask,
+				{
+					worktreePath,
+					linkedPrHeadBranch: linkedPr?.headBranch ?? null,
+					gitEnv,
+				},
+				{ timeoutMs: 120_000 },
+			);
+			if (!result.ok) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						result.reason === "detached-head"
+							? "Cannot push with a detached HEAD"
+							: "No git remote to push to",
+				});
+			}
 			return { success: true };
 		}),
 

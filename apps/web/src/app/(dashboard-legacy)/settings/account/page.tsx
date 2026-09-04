@@ -40,7 +40,7 @@ export default function AccountSettingsPage() {
 		<div className="max-w-2xl space-y-8">
 			<div>
 				<h2 className="text-xl font-medium">
-					<Trans id="web.accountSettings.title">Account</Trans>
+					<Trans>Account</Trans>
 				</h2>
 				{user && (
 					<p className="mt-1 text-sm text-muted-foreground">
@@ -52,7 +52,7 @@ export default function AccountSettingsPage() {
 			<div className="flex items-center justify-between gap-8 border-t pt-6">
 				<div>
 					<div className="text-sm font-medium">
-						<Trans id="web.accountSettings.signOutLabel">Sign out</Trans>
+						<Trans>Sign out</Trans>
 					</div>
 				</div>
 				<Button
@@ -67,14 +67,14 @@ export default function AccountSettingsPage() {
 						}
 					}}
 				>
-					<Trans id="web.accountSettings.signOut">Sign out</Trans>
+					<Trans>Sign out</Trans>
 				</Button>
 			</div>
 
 			<div className="flex items-center justify-between gap-8 border-t pt-6">
 				<div>
 					<div className="text-sm font-medium">
-						<Trans id="web.accountSettings.deleteLabel">Delete account</Trans>
+						<Trans>Delete account</Trans>
 					</div>
 					{deleteAccount.error && (
 						<div className="mt-1 text-sm text-destructive">
@@ -86,21 +86,19 @@ export default function AccountSettingsPage() {
 					<AlertDialogTrigger asChild>
 						<Button variant="destructive" disabled={deleteAccount.isPending}>
 							{deleteAccount.isPending ? (
-								<Trans id="web.accountSettings.deleting">Deleting…</Trans>
+								<Trans>Deleting…</Trans>
 							) : (
-								<Trans id="web.accountSettings.delete">Delete account</Trans>
+								<Trans>Delete account</Trans>
 							)}
 						</Button>
 					</AlertDialogTrigger>
 					<AlertDialogContent>
 						<AlertDialogHeader>
 							<AlertDialogTitle>
-								<Trans id="web.accountSettings.deleteConfirmTitle">
-									Delete account?
-								</Trans>
+								<Trans>Delete account?</Trans>
 							</AlertDialogTitle>
 							<AlertDialogDescription>
-								<Trans id="web.accountSettings.deleteConfirmDescription">
+								<Trans>
 									All of your data will be permanently deleted after{" "}
 									{ACCOUNT_DELETION_GRACE_DAYS} days — sign back in before then
 									to restore your account.
@@ -109,13 +107,13 @@ export default function AccountSettingsPage() {
 						</AlertDialogHeader>
 						<AlertDialogFooter>
 							<AlertDialogCancel>
-								<Trans id="web.accountSettings.cancel">Cancel</Trans>
+								<Trans>Cancel</Trans>
 							</AlertDialogCancel>
 							<AlertDialogAction
 								variant="destructive"
 								onClick={() => deleteAccount.mutate()}
 							>
-								<Trans id="web.accountSettings.delete">Delete account</Trans>
+								<Trans>Delete account</Trans>
 							</AlertDialogAction>
 						</AlertDialogFooter>
 					</AlertDialogContent>

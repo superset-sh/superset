@@ -135,10 +135,10 @@ export function FontSettingSection({
 		<section aria-labelledby="typography-title">
 			<div className="mb-3">
 				<h3 id="typography-title" className="text-sm font-medium mb-1">
-					<Trans id="settings.appearance.typography.title">Typography</Trans>
+					<Trans>Typography</Trans>
 				</h3>
 				<p className="text-xs text-muted-foreground">
-					<Trans id="settings.appearance.typography.subtitle">
+					<Trans>
 						Each surface has its own typography. Changes appear immediately in
 						the live previews.
 					</Trans>

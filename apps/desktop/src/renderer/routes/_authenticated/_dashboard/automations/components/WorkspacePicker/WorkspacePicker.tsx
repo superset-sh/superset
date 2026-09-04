@@ -78,7 +78,6 @@ export function WorkspacePicker({
 	const offScopeHostName = offScope
 		? (hostRows.find((h) => h.machineId === selected.hostId)?.name ??
 			t({
-				id: "dashboard.automations.workspacePicker.anotherDevice",
 				message: "another device",
 			}))
 		: null;
@@ -93,21 +92,17 @@ export function WorkspacePicker({
 		? selected.name
 		: resolving
 			? t({
-					id: "dashboard.automations.workspacePicker.loading",
 					message: "Loading…",
 				})
 			: missing
 				? t({
-						id: "dashboard.automations.workspacePicker.notFoundLabel",
 						message: "Workspace not found",
 					})
 				: projectId === null
 					? t({
-							id: "dashboard.automations.workspacePicker.newSessionLabel",
 							message: "New session",
 						})
 					: t({
-							id: "dashboard.automations.workspacePicker.newWorkspaceLabel",
 							message: "New workspace",
 						});
 
@@ -140,7 +135,6 @@ export function WorkspacePicker({
 				<Command>
 					<CommandInput
 						placeholder={t({
-							id: "dashboard.automations.workspacePicker.searchPlaceholder",
 							message: "Search workspaces...",
 						})}
 					/>
@@ -156,13 +150,9 @@ export function WorkspacePicker({
 								<LuSparkles className="size-4" />
 								<span>
 									{projectId === null ? (
-										<Trans id="dashboard.automations.workspacePicker.newSession">
-											New session
-										</Trans>
+										<Trans>New session</Trans>
 									) : (
-										<Trans id="dashboard.automations.workspacePicker.newWorkspace">
-											New workspace
-										</Trans>
+										<Trans>New workspace</Trans>
 									)}
 								</span>
 								{!selected && !resolving && !missing && (
@@ -178,14 +168,10 @@ export function WorkspacePicker({
 									<LuTriangleAlert className="size-4" />
 									<span className="flex min-w-0 flex-col select-text cursor-text">
 										<span className="truncate">
-											<Trans id="dashboard.automations.workspacePicker.workspaceNotFound">
-												Workspace not found
-											</Trans>
+											<Trans>Workspace not found</Trans>
 										</span>
 										<span className="truncate text-[10px] text-amber-500/70">
-											<Trans id="dashboard.automations.workspacePicker.workspaceNotFoundHint">
-												deleted or unavailable — pick another
-											</Trans>
+											<Trans>deleted or unavailable — pick another</Trans>
 										</span>
 									</span>
 									<HiCheck className="ml-auto size-4" />
@@ -202,9 +188,7 @@ export function WorkspacePicker({
 									<span className="flex min-w-0 flex-col">
 										<span className="truncate">{selected.name}</span>
 										<span className="truncate text-[10px] text-amber-500/70">
-											<Trans id="dashboard.automations.workspacePicker.offScopeHint">
-												on {offScopeHostName} — won't run here
-											</Trans>
+											<Trans>on {offScopeHostName} — won't run here</Trans>
 										</span>
 									</span>
 									<HiCheck className="ml-auto size-4" />

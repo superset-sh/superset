@@ -67,16 +67,13 @@ export function NavUser({ user }: NavUserProps) {
 	const setPasswordMutation = useMutation(
 		trpc.admin.setMyPassword.mutationOptions({
 			onSuccess: () => {
-				toast.success(
-					t({ id: "admin.navUser.passwordSet", message: "Password set" }),
-				);
+				toast.success(t({ message: "Password set" }));
 				setPasswordDialogOpen(false);
 				setNewPassword("");
 			},
 			onError: (error) => {
 				toast.error(
 					t({
-						id: "admin.navUser.passwordSetFailed",
 						message: `Failed to set password: ${error.message}`,
 					}),
 				);
@@ -150,25 +147,25 @@ export function NavUser({ user }: NavUserProps) {
 						<DropdownMenuGroup>
 							<DropdownMenuItem>
 								<LuBadgeCheck />
-								<Trans id="admin.navUser.account">Account</Trans>
+								<Trans>Account</Trans>
 							</DropdownMenuItem>
 							<DropdownMenuItem onClick={() => setPasswordDialogOpen(true)}>
 								<LuKeyRound />
-								<Trans id="admin.navUser.setPassword">Set password</Trans>
+								<Trans>Set password</Trans>
 							</DropdownMenuItem>
 							<DropdownMenuItem>
 								<LuSettings />
-								<Trans id="admin.navUser.settings">Settings</Trans>
+								<Trans>Settings</Trans>
 							</DropdownMenuItem>
 							<DropdownMenuItem>
 								<LuBell />
-								<Trans id="admin.navUser.notifications">Notifications</Trans>
+								<Trans>Notifications</Trans>
 							</DropdownMenuItem>
 						</DropdownMenuGroup>
 						<DropdownMenuSeparator />
 						<DropdownMenuItem onClick={handleSignOut}>
 							<LuLogOut />
-							<Trans id="admin.navUser.logOut">Log out</Trans>
+							<Trans>Log out</Trans>
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>
@@ -183,10 +180,10 @@ export function NavUser({ user }: NavUserProps) {
 					<DialogContent>
 						<DialogHeader>
 							<DialogTitle>
-								<Trans id="admin.navUser.setPasswordTitle">Set password</Trans>
+								<Trans>Set password</Trans>
 							</DialogTitle>
 							<DialogDescription>
-								<Trans id="admin.navUser.setPasswordDescription">
+								<Trans>
 									Sets an email+password credential for{" "}
 									<strong>{user.email}</strong> via Better Auth (hashed with
 									scrypt). Existing sign-in methods keep working.
@@ -197,7 +194,6 @@ export function NavUser({ user }: NavUserProps) {
 							type="password"
 							autoComplete="new-password"
 							placeholder={t({
-								id: "admin.navUser.newPasswordPlaceholder",
 								message: "New password (min 8 characters)",
 							})}
 							value={newPassword}
@@ -216,9 +212,7 @@ export function NavUser({ user }: NavUserProps) {
 								{setPasswordMutation.isPending ? (
 									<LuLoaderCircle className="mr-2 h-4 w-4 animate-spin" />
 								) : null}
-								<Trans id="admin.navUser.setPasswordConfirm">
-									Set Password
-								</Trans>
+								<Trans>Set Password</Trans>
 							</Button>
 						</DialogFooter>
 					</DialogContent>

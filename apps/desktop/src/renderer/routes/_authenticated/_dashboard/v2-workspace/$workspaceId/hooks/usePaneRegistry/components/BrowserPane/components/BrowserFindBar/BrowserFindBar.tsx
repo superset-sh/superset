@@ -78,7 +78,6 @@ export function BrowserFindBar({ paneId, onClose }: BrowserFindBarProps) {
 				onChange={handleChange}
 				onKeyDown={handleKeyDown}
 				placeholder={t({
-					id: "workspace.browserPane.findInPagePlaceholder",
 					message: "Find in page",
 				})}
 				className="h-6 w-40 bg-transparent text-foreground outline-none placeholder:text-muted-foreground/50"
@@ -98,7 +97,6 @@ export function BrowserFindBar({ paneId, onClose }: BrowserFindBarProps) {
 				onClick={goPrev}
 				disabled={!query}
 				aria-label={t({
-					id: "workspace.browserPane.findPreviousMatch",
 					message: "Previous match",
 				})}
 				className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
@@ -110,7 +108,6 @@ export function BrowserFindBar({ paneId, onClose }: BrowserFindBarProps) {
 				onClick={goNext}
 				disabled={!query}
 				aria-label={t({
-					id: "workspace.browserPane.findNextMatch",
 					message: "Next match",
 				})}
 				className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
@@ -121,7 +118,6 @@ export function BrowserFindBar({ paneId, onClose }: BrowserFindBarProps) {
 				type="button"
 				onClick={onClose}
 				aria-label={t({
-					id: "workspace.browserPane.closeFindBar",
 					message: "Close find bar",
 				})}
 				className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-foreground"

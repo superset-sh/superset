@@ -31,23 +31,18 @@ export function RepositoryList({ organizationId }: RepositoryListProps) {
 	const syncMutation = useMutation(
 		trpc.integration.github.triggerSync.mutationOptions({
 			onSuccess: () => {
-				toast.success(
-					t({ id: "web.repositoryList.syncStarted", message: "Sync started" }),
-					{
-						description: t({
-							id: "web.repositoryList.syncStartedDescription",
-							message: "Repositories will be updated shortly.",
-						}),
-					},
-				);
+				toast.success(t({ message: "Sync started" }), {
+					description: t({
+						message: "Repositories will be updated shortly.",
+					}),
+				});
 				// Refetch after a short delay to allow sync to complete
 				setTimeout(() => refetch(), 3000);
 			},
 			onError: (error) => {
-				toast.error(
-					t({ id: "web.repositoryList.syncFailed", message: "Sync failed" }),
-					{ description: errorMessage(error) },
-				);
+				toast.error(t({ message: "Sync failed" }), {
+					description: errorMessage(error),
+				});
 			},
 		}),
 	);
@@ -61,7 +56,7 @@ export function RepositoryList({ organizationId }: RepositoryListProps) {
 	if (isLoading) {
 		return (
 			<div className="py-8 text-center text-muted-foreground">
-				<Trans id="web.repositoryList.loading">Loading repositories...</Trans>
+				<Trans>Loading repositories...</Trans>
 			</div>
 		);
 	}
@@ -70,13 +65,11 @@ export function RepositoryList({ organizationId }: RepositoryListProps) {
 		return (
 			<div className="flex flex-col items-center gap-4 py-8">
 				<p className="text-center text-muted-foreground">
-					<Trans id="web.repositoryList.loadFailed">
-						Failed to load repositories. Please try again.
-					</Trans>
+					<Trans>Failed to load repositories. Please try again.</Trans>
 				</p>
 				<Button onClick={() => refetch()} variant="outline">
 					<RefreshCw className="mr-2 size-4" />
-					<Trans id="web.repositoryList.retry">Retry</Trans>
+					<Trans>Retry</Trans>
 				</Button>
 			</div>
 		);
@@ -86,7 +79,7 @@ export function RepositoryList({ organizationId }: RepositoryListProps) {
 		return (
 			<div className="flex flex-col items-center gap-4 py-8">
 				<p className="text-center text-muted-foreground">
-					<Trans id="web.repositoryList.empty">
+					<Trans>
 						No repositories found. Make sure your GitHub App has access to
 						repositories.
 					</Trans>
@@ -96,9 +89,9 @@ export function RepositoryList({ organizationId }: RepositoryListProps) {
 						className={`mr-2 size-4 ${isSyncing ? "animate-spin" : ""}`}
 					/>
 					{isSyncing ? (
-						<Trans id="web.repositoryList.syncing">Syncing...</Trans>
+						<Trans>Syncing...</Trans>
 					) : (
-						<Trans id="web.repositoryList.syncAll">Sync Repositories</Trans>
+						<Trans>Sync Repositories</Trans>
 					)}
 				</Button>
 			</div>
@@ -110,7 +103,6 @@ export function RepositoryList({ organizationId }: RepositoryListProps) {
 			<div className="flex items-center justify-between">
 				<p className="text-sm text-muted-foreground">
 					<Plural
-						id="web.repositoryList.count"
 						value={repositories.length}
 						one="# repository"
 						other="# repositories"
@@ -125,11 +117,7 @@ export function RepositoryList({ organizationId }: RepositoryListProps) {
 					<RefreshCw
 						className={`mr-2 size-3 ${isSyncing ? "animate-spin" : ""}`}
 					/>
-					{isSyncing ? (
-						<Trans id="web.repositoryList.syncing">Syncing...</Trans>
-					) : (
-						<Trans id="web.repositoryList.sync">Sync</Trans>
-					)}
+					{isSyncing ? <Trans>Syncing...</Trans> : <Trans>Sync</Trans>}
 				</Button>
 			</div>
 			<div className="space-y-2">
@@ -153,11 +141,7 @@ export function RepositoryList({ organizationId }: RepositoryListProps) {
 							</div>
 						</div>
 						<Badge variant={repo.isPrivate ? "secondary" : "outline"}>
-							{repo.isPrivate ? (
-								<Trans id="web.repositoryList.private">Private</Trans>
-							) : (
-								<Trans id="web.repositoryList.public">Public</Trans>
-							)}
+							{repo.isPrivate ? <Trans>Private</Trans> : <Trans>Public</Trans>}
 						</Badge>
 					</div>
 				))}

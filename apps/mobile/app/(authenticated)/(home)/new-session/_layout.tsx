@@ -14,19 +14,27 @@ export default function NewSessionLayout() {
 			<Stack.Screen
 				name="branch"
 				options={{
-					title: t({ id: "mobile.nav.branch.title", message: "Branch" }),
+					title: t({ message: "Branch" }),
 				}}
 			/>
 			<Stack.Screen
 				name="agent"
 				options={{
-					title: t({ id: "mobile.nav.agent.title", message: "Agent" }),
+					title: t({ message: "Agent" }),
 				}}
 			/>
 			<Stack.Screen
 				name="project"
 				options={{
-					title: t({ id: "mobile.nav.project.title", message: "Project" }),
+					title: t({ message: "Project" }),
+				}}
+			/>
+			<Stack.Screen
+				name="environment"
+				options={{
+					title: t({
+						message: "Environment",
+					}),
 				}}
 			/>
 		</Stack>

@@ -34,7 +34,6 @@ export function PageDetailView({ slug }: PageDetailViewProps) {
 			variant="ghost"
 			size="icon-sm"
 			aria-label={t({
-				id: "dashboard.pages.detail.backToPages",
 				message: "Back to pages",
 			})}
 			onClick={goBack}

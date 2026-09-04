@@ -84,7 +84,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          R2_PRIVATE_BUCKET: ${{ vars.R2_PRIVATE_BUCKET }}
+          R2_PRIVATE_BUCKET: ${{ secrets.R2_PRIVATE_BUCKET }}
           R2_PUBLIC_BUCKET: ${{ secrets.R2_PUBLIC_BUCKET }}
           R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
           USERCONTENT_URL: ${{ secrets.USERCONTENT_URL }}
@@ -144,9 +144,9 @@ jobs:
           BLAXEL_API_KEY: ${{ secrets.BLAXEL_API_KEY }}
           BLAXEL_WORKSPACE: ${{ secrets.BLAXEL_WORKSPACE }}
           BLAXEL_REGION: ${{ secrets.BLAXEL_REGION }}
-          BLAXEL_SANDBOX_IMAGE: ${{ secrets.BLAXEL_SANDBOX_IMAGE }}
+          SENTRY_DSN_SANDBOX: ${{ secrets.SENTRY_DSN_SANDBOX }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GH_APP_SLUG: ${{ vars.GH_APP_SLUG }}
+          GH_APP_SLUG: ${{ secrets.GH_APP_SLUG }}
         run: |
           vercel pull --yes --environment=production --token=$VERCEL_TOKEN
           vercel build --prod --token=$VERCEL_TOKEN
@@ -221,7 +221,7 @@ jobs:
             --env BLAXEL_API_KEY=$BLAXEL_API_KEY \
             --env BLAXEL_WORKSPACE=$BLAXEL_WORKSPACE \
             --env BLAXEL_REGION=$BLAXEL_REGION \
-            --env BLAXEL_SANDBOX_IMAGE=$BLAXEL_SANDBOX_IMAGE \
+            --env SENTRY_DSN_SANDBOX=$SENTRY_DSN_SANDBOX \
             --env OPENAI_API_KEY=$OPENAI_API_KEY \
             --env GH_APP_SLUG=$GH_APP_SLUG
 

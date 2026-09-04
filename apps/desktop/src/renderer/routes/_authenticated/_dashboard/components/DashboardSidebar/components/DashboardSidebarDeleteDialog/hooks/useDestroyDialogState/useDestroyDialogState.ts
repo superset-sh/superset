@@ -161,14 +161,12 @@ export function useDestroyDialogState({
 				} else if (e.kind === "in-progress") {
 					toast.error(
 						t({
-							id: "dashboard.sidebar.deleteDialog.deleteInProgress",
 							message: `A delete is already in progress for ${workspaceName}.`,
 						}),
 					);
 				} else {
 					toast.error(
 						t({
-							id: "dashboard.sidebar.deleteDialog.deleteFailed",
 							message: `Failed to delete ${workspaceName}: ${"message" in e ? e.message : String(e.kind)}`,
 						}),
 					);

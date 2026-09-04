@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import type { HostConnectionStatus } from "@superset/workspace-client";
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
@@ -38,60 +39,68 @@ function describeFailure(
 	isRelayHost: boolean,
 ): string {
 	if (!isRelayHost) {
-		return i18n._({
-			id: "workspace.hostReachability.localStopped",
-			message:
-				"The local host service stopped answering. Retry first; if that doesn't take, restart it from the Superset tray menu > Host Service > Restart.",
-		});
+		return i18n._(
+			msg({
+				message:
+					"The local host service stopped answering. Retry first; if that doesn't take, restart it from the Superset tray menu > Host Service > Restart.",
+			}),
+		);
 	}
 	const probe = status.probe;
 	// No probe result at all: the relay itself never answered.
 	if (!probe) {
-		return i18n._({
-			id: "workspace.hostReachability.relayUnreachable",
-			message:
-				"Couldn't reach the relay service. Check this machine's network connection — the other device is probably fine.",
-		});
+		return i18n._(
+			msg({
+				message:
+					"Couldn't reach the relay service. Check this machine's network connection — the other device is probably fine.",
+			}),
+		);
 	}
 	if (probe.status === 503) {
-		return i18n._({
-			id: "workspace.hostReachability.deviceNotConnected",
-			message:
-				"That device isn't connected to the relay. Check it's awake, online, and running Superset — it reconnects on its own once it is.",
-		});
+		return i18n._(
+			msg({
+				message:
+					"That device isn't connected to the relay. Check it's awake, online, and running Superset — it reconnects on its own once it is.",
+			}),
+		);
 	}
 	if (probe.status === 401 || probe.status === 403) {
-		return i18n._({
-			id: "workspace.hostReachability.noAccess",
-			message:
-				"You don't have access to this host. If it's your own device, turn on relay access there under Settings > Security.",
-		});
+		return i18n._(
+			msg({
+				message:
+					"You don't have access to this host. If it's your own device, turn on relay access there under Settings > Security.",
+			}),
+		);
 	}
 	if (probe.status === 502 || probe.status === 504) {
-		return i18n._({
-			id: "workspace.hostReachability.relayCouldNotReach",
-			message:
-				"The relay couldn't reach that device right now. This is usually temporary — retrying in a moment normally works.",
-		});
+		return i18n._(
+			msg({
+				message:
+					"The relay couldn't reach that device right now. This is usually temporary — retrying in a moment normally works.",
+			}),
+		);
 	}
 	if (probe.status === 200) {
 		return probe.region
 			? i18n._({
-					id: "workspace.hostReachability.onlineButFailedRegion",
-					message:
-						"That device is online (region {region}) but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device.",
+					...msg({
+						message:
+							"That device is online (region {region}) but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device.",
+					}),
 					values: { region: probe.region },
 				})
-			: i18n._({
-					id: "workspace.hostReachability.onlineButFailed",
-					message:
-						"That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device.",
-				});
+			: i18n._(
+					msg({
+						message:
+							"That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device.",
+					}),
+				);
 	}
 	return i18n._({
-		id: "workspace.hostReachability.connectionFailed",
-		message:
-			"The connection failed (relay status {status}). Retry, and if it persists restart Superset on that device.",
+		...msg({
+			message:
+				"The connection failed (relay status {status}). Retry, and if it persists restart Superset on that device.",
+		}),
 		values: { status: probe.status },
 	});
 }

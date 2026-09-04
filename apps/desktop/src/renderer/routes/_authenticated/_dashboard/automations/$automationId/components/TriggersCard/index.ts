@@ -1,1 +1,5 @@
-export { type AutomationUpdatePatch, TriggersCard } from "./TriggersCard";
+export {
+	type AutomationUpdatePatch,
+	type ScopeDraft,
+	TriggersCard,
+} from "./TriggersCard";

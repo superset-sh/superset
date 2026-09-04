@@ -240,12 +240,12 @@ export function BrowserPane({
 					<SquareDashedMousePointer className="size-3.5 shrink-0 text-[#0d99ff]" />
 					<span className="min-w-0 flex-1 truncate">
 						{designMode.phase === "selecting" ? (
-							<Trans id="workspace.browserPane.designModeSelecting">
+							<Trans>
 								Design mode — click any element in the page to send it to an
 								agent.
 							</Trans>
 						) : (
-							<Trans id="workspace.browserPane.designModeCaptured">
+							<Trans>
 								Element captured — describe the change, or press esc to pick
 								again.
 							</Trans>
@@ -253,16 +253,13 @@ export function BrowserPane({
 					</span>
 					{designMode.phase === "selecting" && (
 						<span className="shrink-0 text-muted-foreground/70">
-							<Trans id="workspace.browserPane.designModeEscToExit">
-								esc to exit
-							</Trans>
+							<Trans>esc to exit</Trans>
 						</span>
 					)}
 					<button
 						type="button"
 						onClick={() => designModeStore.exit(paneId)}
 						aria-label={t({
-							id: "workspace.browserPane.exitDesignMode",
 							message: "Exit design mode",
 						})}
 						className="shrink-0 rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
@@ -327,7 +324,6 @@ export function BrowserPane({
 						<button
 							type="button"
 							aria-label={t({
-								id: "workspace.browserPane.discardCapturedElement",
 								message: "Discard captured element",
 							})}
 							onClick={() => designModeStore.rearm(paneId)}
@@ -356,14 +352,10 @@ export function BrowserPane({
 						</div>
 						<div className="text-center">
 							<p className="text-base font-medium text-foreground">
-								<Trans id="workspace.browserPane.startBrowsing">
-									Start browsing
-								</Trans>
+								<Trans>Start browsing</Trans>
 							</p>
 							<p className="mt-1.5 text-sm text-muted-foreground">
-								<Trans id="workspace.browserPane.startBrowsingHint">
-									Enter a URL into the search bar above.
-								</Trans>
+								<Trans>Enter a URL into the search bar above.</Trans>
 							</p>
 						</div>
 					</div>

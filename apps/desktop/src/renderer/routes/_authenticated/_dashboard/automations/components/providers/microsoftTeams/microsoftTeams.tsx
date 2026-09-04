@@ -29,13 +29,11 @@ function renderSlot(
 					options={options.microsoftTeams?.teams ?? []}
 					emptyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.microsoftTeams.selectTeams",
 							message: "Select teams",
 						}),
 					)}
 					anyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.microsoftTeams.anyTeam",
 							message: "Any team",
 						}),
 					)}
@@ -53,13 +51,11 @@ function renderSlot(
 					options={options.microsoftTeams?.channels ?? []}
 					emptyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.microsoftTeams.selectChannels",
 							message: "Select channels",
 						}),
 					)}
 					anyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.microsoftTeams.anyChannel",
 							message: "Any channel",
 						}),
 					)}
@@ -77,13 +73,11 @@ function renderSlot(
 					options={options.microsoftTeams?.people ?? []}
 					emptyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.microsoftTeams.selectPeople",
 							message: "Select people",
 						}),
 					)}
 					anyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.microsoftTeams.anyone",
 							message: "Anyone",
 						}),
 					)}
@@ -99,13 +93,11 @@ function renderSlot(
 					onChange={(v) => set({ messageFilter: v })}
 					emptyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.microsoftTeams.anyMessage",
 							message: "Any message",
 						}),
 					)}
 					placeholder={i18n._(
 						msg({
-							id: "dashboard.automations.providers.microsoftTeams.messageFilterPlaceholder",
 							message: "Contains this text...",
 						}),
 					)}
@@ -120,13 +112,11 @@ function renderSlot(
 					onChange={(v) => set({ messageFilter: v })}
 					emptyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.microsoftTeams.anyName",
 							message: "Any name",
 						}),
 					)}
 					placeholder={i18n._(
 						msg({
-							id: "dashboard.automations.providers.microsoftTeams.nameFilterPlaceholder",
 							message: "Name contains...",
 						}),
 					)}

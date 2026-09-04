@@ -86,9 +86,7 @@ export function FolderLinkTierMapper({
 								</SelectTrigger>
 								<SelectContent>
 									<SelectItem value="none">
-										<Trans id="settings.links.folderTierMapper.doNothing">
-											Do nothing
-										</Trans>
+										<Trans>Do nothing</Trans>
 									</SelectItem>
 									{ACTIONS.map((action) => (
 										<SelectItem key={action} value={action}>

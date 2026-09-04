@@ -90,9 +90,7 @@ export const ExploringGroup = ({
 				<View className="mt-1 gap-1.5">
 					{hiddenCount > 0 ? (
 						<Text className="text-muted-foreground/60 text-xs">
-							<Trans id="mobile.exploring.earlierCount">
-								+{hiddenCount} earlier
-							</Trans>
+							<Trans>+{hiddenCount} earlier</Trans>
 						</Text>
 					) : null}
 					{visibleItems.map((item, i) => (

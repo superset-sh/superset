@@ -4,6 +4,7 @@ import type { TRPCClient } from "@trpc/client";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import SuperJSON from "superjson";
 import { getApiUrl } from "./config";
+import { env } from "./env";
 
 export type ApiClient = TRPCClient<AppRouter>;
 
@@ -29,6 +30,7 @@ export function createApiClient(opts: {
 					if (opts.organizationId) {
 						headers[ORGANIZATION_HEADER] = opts.organizationId;
 					}
+					headers["x-superset-client"] = `cli/${env.VERSION}`;
 					return headers;
 				},
 			}),

@@ -112,7 +112,6 @@ export function useComposerDraft(key: string) {
 		} catch {
 			Alert.alert(
 				t({
-					id: "mobile.attachments.photosFailed",
 					message: "Could not open Photos",
 				}),
 			);
@@ -132,7 +131,6 @@ export function useComposerDraft(key: string) {
 		} catch {
 			Alert.alert(
 				t({
-					id: "mobile.attachments.filesFailed",
 					message: "Could not open Files",
 				}),
 			);

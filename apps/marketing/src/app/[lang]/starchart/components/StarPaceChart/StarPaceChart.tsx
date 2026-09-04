@@ -25,7 +25,6 @@ export function StarPaceChart({ deltas, granularity }: StarPaceChartProps) {
 	const chartConfig = {
 		displayValue: {
 			label: t({
-				id: "marketing.starchart.chart.newStars",
 				message: "New stars",
 			}),
 			color: "var(--chart-1)",
@@ -106,7 +105,6 @@ export function StarPaceChart({ deltas, granularity }: StarPaceChartProps) {
 								});
 								return granularity === "week"
 									? t({
-											id: "marketing.starchart.chart.weekOf",
 											message: `Week of ${formatted}`,
 										})
 									: formatted;
@@ -119,7 +117,6 @@ export function StarPaceChart({ deltas, granularity }: StarPaceChartProps) {
 									<span className="text-foreground font-mono font-medium tabular-nums">
 										{isPartial
 											? t({
-													id: "marketing.starchart.chart.partialTooltip",
 													message: `${actual} so far · ~${projected} projected`,
 												})
 											: actual}

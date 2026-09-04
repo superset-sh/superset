@@ -27,16 +27,15 @@ export function CommentCardRow({
 				<Text className="text-muted-foreground text-[11px]">
 					{comment.line > 0
 						? t({
-								id: "mobile.review.draftOnLine",
 								message: `Draft · line ${comment.line}`,
 							})
-						: t({ id: "mobile.review.draftOnFile", message: "Draft · file" })}
+						: t({ message: "Draft · file" })}
 					{orphaned ? ` · ${comment.path}` : ""}
 				</Text>
 				{stale ? (
 					<View className="bg-amber-500/15 rounded-full px-2 py-0.5">
 						<Text className="text-amber-500 text-[10px] font-semibold">
-							<Trans id="mobile.review.lineChanged">line changed</Trans>
+							<Trans>line changed</Trans>
 						</Text>
 					</View>
 				) : null}

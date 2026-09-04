@@ -18,7 +18,7 @@ export const ToolInterrupted = ({
 		className={cn("flex-row items-center gap-1.5 rounded-md py-0.5", className)}
 	>
 		<Text className="shrink-0 text-muted-foreground text-xs">
-			<Trans id="mobile.tool.interrupted">{toolName} interrupted</Trans>
+			<Trans>{toolName} interrupted</Trans>
 		</Text>
 		{subtitle ? (
 			<Text

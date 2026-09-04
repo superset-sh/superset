@@ -34,12 +34,10 @@ export const ONBOARDING_SUGGESTIONS: AutomationTemplate[] = [
 		id: "onboard-fix-ci",
 		emoji: "🔧",
 		description: msg({
-			id: "dashboard.automations.templates.fixCi.description",
 			message:
 				"Each morning at 8am, look at yesterday's failed CI runs, diagnose the most common failure, and open a fix PR.",
 		}),
 		name: msg({
-			id: "dashboard.automations.templates.fixCi.name",
 			message: "Fix CI failures",
 		}),
 		prompt:
@@ -50,12 +48,10 @@ export const ONBOARDING_SUGGESTIONS: AutomationTemplate[] = [
 		id: "onboard-triage-issues",
 		emoji: "🏷️",
 		description: msg({
-			id: "dashboard.automations.templates.triageIssues.description",
 			message:
 				"Every weekday at 9am, read new GitHub issues, apply labels, and draft a first reply for my review.",
 		}),
 		name: msg({
-			id: "dashboard.automations.templates.triageIssues.name",
 			message: "Triage new issues",
 		}),
 		prompt:
@@ -66,12 +62,10 @@ export const ONBOARDING_SUGGESTIONS: AutomationTemplate[] = [
 		id: "onboard-docs-fresh",
 		emoji: "📚",
 		description: msg({
-			id: "dashboard.automations.templates.docsFresh.description",
 			message:
 				"Every Wednesday at 9am, review this week's merged PRs and update any docs they made stale.",
 		}),
 		name: msg({
-			id: "dashboard.automations.templates.docsFresh.name",
 			message: "Keep docs fresh",
 		}),
 		prompt:
@@ -82,12 +76,10 @@ export const ONBOARDING_SUGGESTIONS: AutomationTemplate[] = [
 		id: "onboard-release-notes",
 		emoji: "🗒️",
 		description: msg({
-			id: "dashboard.automations.templates.releaseNotes.description",
 			message:
 				"Every Friday at 4pm, draft release notes from this week's merged PRs.",
 		}),
 		name: msg({
-			id: "dashboard.automations.templates.releaseNotes.name",
 			message: "Weekly release notes",
 		}),
 		prompt:

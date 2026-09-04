@@ -1,6 +1,6 @@
-import { dbWs } from "@superset/db/client";
 import { type SQL, sql } from "drizzle-orm";
 
+import { singleFlight } from "@/lib/singleFlight";
 import { verifyQstashRequest } from "@/lib/verifyQstash";
 
 export const dynamic = "force-dynamic";
@@ -75,10 +75,13 @@ const TARGETS: RetentionTarget[] = [
 async function deleteAgedRows(
 	target: RetentionTarget,
 	deadline: number,
-): Promise<{ deleted: number; more: boolean }> {
+): Promise<{ deleted: number; more: boolean; skipped: boolean }> {
 	let deleted = 0;
 	while (Date.now() < deadline && deleted < MAX_ROWS_PER_TABLE) {
-		const result = await dbWs.execute(sql`
+		const attempt = await singleFlight(
+			`ingest.enforce-retention.${target.label}`,
+			(tx) =>
+				tx.execute(sql`
 			WITH batch AS (
 				SELECT ctid FROM ${target.relation}
 				WHERE ${target.receivedAt} < now() - ${`${RETAIN_DAYS} days`}::interval
@@ -89,12 +92,15 @@ async function deleteAgedRows(
 			DELETE FROM ${target.relation} t
 			USING batch WHERE t.ctid = batch.ctid
 			RETURNING 1
-		`);
-		const rows = result.rows.length;
+		`),
+		);
+		// Another run holds this table; its batches count for this tick.
+		if (!attempt.ran) return { deleted, more: true, skipped: true };
+		const rows = attempt.result.rows.length;
 		deleted += rows;
-		if (rows < BATCH_SIZE) return { deleted, more: false };
+		if (rows < BATCH_SIZE) return { deleted, more: false, skipped: false };
 	}
-	return { deleted, more: true };
+	return { deleted, more: true, skipped: false };
 }
 
 /**
@@ -129,7 +135,10 @@ export async function POST(request: Request): Promise<Response> {
 	// whole budget and leave the rest untouched. Moot at one target; not once a
 	// second joins, which is when it would be easy to miss.
 	const perTarget = Math.floor(TIME_BUDGET_MS / TARGETS.length);
-	const results: Record<string, { deleted: number; more: boolean }> = {};
+	const results: Record<
+		string,
+		{ deleted: number; more: boolean; skipped: boolean }
+	> = {};
 
 	for (const target of TARGETS) {
 		try {

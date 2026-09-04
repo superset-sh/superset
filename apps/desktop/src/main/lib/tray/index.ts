@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import {
 	app,
@@ -125,20 +126,23 @@ async function fetchHostInfo(organizationId: string): Promise<HostInfo | null> {
 function statusLabel(status: HostServiceStatus): string {
 	switch (status) {
 		case "starting":
-			return i18n._({
-				id: "tray.hostService.status.starting",
-				message: "starting",
-			});
+			return i18n._(
+				msg({
+					message: "starting",
+				}),
+			);
 		case "running":
-			return i18n._({
-				id: "tray.hostService.status.running",
-				message: "running",
-			});
+			return i18n._(
+				msg({
+					message: "running",
+				}),
+			);
 		case "stopped":
-			return i18n._({
-				id: "tray.hostService.status.stopped",
-				message: "stopped",
-			});
+			return i18n._(
+				msg({
+					message: "stopped",
+				}),
+			);
 	}
 }
 
@@ -151,10 +155,11 @@ function buildHostServiceSubmenu(
 
 	if (orgIds.length === 0) {
 		menuItems.push({
-			label: i18n._({
-				id: "tray.noActiveServices",
-				message: "No active services",
-			}),
+			label: i18n._(
+				msg({
+					message: "No active services",
+				}),
+			),
 			enabled: false,
 		});
 		return menuItems;
@@ -173,8 +178,9 @@ function buildHostServiceSubmenu(
 		const label =
 			info?.organizationName ??
 			i18n._({
-				id: "tray.hostService.unnamedOrganization",
-				message: "Organization {id}",
+				...msg({
+					message: "Organization {id}",
+				}),
 				values: { id: orgId.slice(0, 8) },
 			});
 		const versionSuffix = info?.version ? ` (v${info.version})` : "";
@@ -188,7 +194,7 @@ function buildHostServiceSubmenu(
 			// Enabled in "stopped" too — that's the state where users most need
 			// restart to work (host-service crashed or never came up). Disabled
 			// only while a start is in flight, to avoid racing the pending start.
-			label: `  ${i18n._({ id: "tray.hostService.restart", message: "Restart" })}`,
+			label: `  ${i18n._(msg({ message: "Restart" }))}`,
 			enabled: status !== "starting",
 			click: () => {
 				void (async () => {
@@ -210,7 +216,7 @@ function buildHostServiceSubmenu(
 			},
 		});
 		menuItems.push({
-			label: `  ${i18n._({ id: "tray.hostService.stop", message: "Stop" })}`,
+			label: `  ${i18n._(msg({ message: "Stop" }))}`,
 			enabled: isRunning,
 			click: () => {
 				coordinator.stop(orgId);
@@ -241,11 +247,12 @@ async function updateTrayMenu(): Promise<void> {
 	const hasActive = orgIds.length > 0;
 	const hostServiceLabel = hasActive
 		? i18n._({
-				id: "tray.hostService.withCount",
-				message: "Host Service ({count})",
+				...msg({
+					message: "Host Service ({count})",
+				}),
 				values: { count: orgIds.length },
 			})
-		: i18n._({ id: "tray.hostService", message: "Host Service" });
+		: i18n._(msg({ message: "Host Service" }));
 
 	const hostServiceSubmenu = buildHostServiceSubmenu(orgIds, infos);
 
@@ -256,33 +263,35 @@ async function updateTrayMenu(): Promise<void> {
 		},
 		{ type: "separator" },
 		{
-			label: i18n._({ id: "tray.openApp", message: "Open Superset" }),
+			label: i18n._(msg({ message: "Open Superset" })),
 			click: focusMainWindow,
 		},
 		{
-			label: i18n._({ id: "tray.settings", message: "Settings" }),
+			label: i18n._(msg({ message: "Settings" })),
 			click: openSettings,
 		},
 		{
-			label: i18n._({
-				id: "tray.checkForUpdates",
-				message: "Check for Updates",
-			}),
+			label: i18n._(
+				msg({
+					message: "Check for Updates",
+				}),
+			),
 			click: () => {
 				checkForUpdatesInteractive();
 			},
 		},
 		{ type: "separator" },
 		{
-			label: i18n._({ id: "tray.closeApp", message: "Close Superset" }),
+			label: i18n._(msg({ message: "Close Superset" })),
 			click: () => quitApp(),
 		},
 		{ type: "separator" },
 		{
-			label: i18n._({
-				id: "tray.quitCompletely",
-				message: "Quit Superset Completely",
-			}),
+			label: i18n._(
+				msg({
+					message: "Quit Superset Completely",
+				}),
+			),
 			click: () => {
 				void confirmAndQuitCompletely();
 			},

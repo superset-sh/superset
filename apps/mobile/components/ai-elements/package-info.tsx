@@ -243,7 +243,7 @@ export const PackageInfoDependencies = ({
 }: PackageInfoDependenciesProps) => (
 	<View className={cn("gap-2", className)} {...props}>
 		<Text className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-			<Trans id="mobile.packageInfo.dependencies">Dependencies</Trans>
+			<Trans>Dependencies</Trans>
 		</Text>
 		<View className="gap-1">{children}</View>
 	</View>

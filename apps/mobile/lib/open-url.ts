@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { Alert, Linking } from "react-native";
 
@@ -8,9 +9,6 @@ import { Alert, Linking } from "react-native";
  */
 export function openUrl(url: string) {
 	Linking.openURL(url).catch(() => {
-		Alert.alert(
-			i18n._({ id: "mobile.openUrl.failed", message: "Could not open link" }),
-			url,
-		);
+		Alert.alert(i18n._(msg({ message: "Could not open link" })), url);
 	});
 }

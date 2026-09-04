@@ -167,9 +167,7 @@ export function WorkspaceHoverCardContent({
 						</div>
 						<div className="flex items-center gap-1.5 text-xs font-mono shrink-0">
 							<span className="text-emerald-500">+{pr.additions}</span>
-							<span className="text-destructive-foreground">
-								-{pr.deletions}
-							</span>
+							<span className="text-destructive">-{pr.deletions}</span>
 						</div>
 					</div>
 

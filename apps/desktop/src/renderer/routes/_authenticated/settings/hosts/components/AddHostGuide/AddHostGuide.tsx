@@ -103,10 +103,10 @@ export function AddHostGuide() {
 		<div className="flex min-h-full items-center justify-center p-6">
 			<div className="w-full max-w-xl select-text">
 				<h2 className="text-xl font-semibold">
-					<Trans id="settings.hosts.addHost.title">Add a host</Trans>
+					<Trans>Add a host</Trans>
 				</h2>
 				<p className="mt-2 text-sm text-muted-foreground">
-					<Trans id="settings.hosts.addHost.intro">
+					<Trans>
 						A workspace lives on the machine that hosts its files, terminals,
 						and ports. Add a Mac mini, a spare laptop, or a server, and run
 						workspaces on it from here.
@@ -116,22 +116,18 @@ export function AddHostGuide() {
 				<ol className="mt-6 space-y-5">
 					<li className="space-y-2">
 						<p className="text-sm font-medium">
-							<Trans id="settings.hosts.addHost.step1">
-								1. Install the Superset CLI on the other machine
-							</Trans>
+							<Trans>1. Install the Superset CLI on the other machine</Trans>
 						</p>
 						<CopyableCommand command={INSTALL_COMMAND} />
 					</li>
 					<li className="space-y-2">
 						<p className="text-sm font-medium">
-							<Trans id="settings.hosts.addHost.step2">
-								2. Generate a key for it
-							</Trans>
+							<Trans>2. Generate a key for it</Trans>
 						</p>
 						{/* Caption and button both hold their place across the mint so
 						    the steps below don't jump. */}
 						<p className="text-xs text-muted-foreground">
-							<Trans id="settings.hosts.addHost.keyCaption">
+							<Trans>
 								Lets the other machine sign in without a browser. Revoke it
 								anytime under{" "}
 								<Link
@@ -154,24 +150,18 @@ export function AddHostGuide() {
 							{minted && (
 								<LuCircleCheck className="size-3.5 shrink-0 text-emerald-500" />
 							)}
-							{minted ? (
-								<Trans id="settings.hosts.addHost.generated">Generated</Trans>
-							) : (
-								<Trans id="settings.hosts.addHost.generate">Generate key</Trans>
-							)}
+							{minted ? <Trans>Generated</Trans> : <Trans>Generate key</Trans>}
 						</Button>
 					</li>
 					<li className="space-y-2">
 						<p className="text-sm font-medium">
-							<Trans id="settings.hosts.addHost.step3">
-								3. Start the host there
-							</Trans>
+							<Trans>3. Start the host there</Trans>
 						</p>
 						{useFallback ? (
 							<>
 								<CopyableCommand command={FALLBACK_START_COMMAND} />
 								<p className="text-xs text-muted-foreground">
-									<Trans id="settings.hosts.addHost.mintFailed">
+									<Trans>
 										Couldn&apos;t create a key for this host, so this signs in
 										through the browser on that machine.
 									</Trans>
@@ -191,13 +181,13 @@ export function AddHostGuide() {
 					</li>
 					<li className="space-y-2">
 						<p className="text-sm font-medium">
-							<Trans id="settings.hosts.addHost.step4">4. Come back here</Trans>
+							<Trans>4. Come back here</Trans>
 						</p>
 						{/* Detection is best-effort — a host that registers before this
 						    page's first fetch lands in the baseline and never reads as
 						    new. Say where it shows up so a miss isn't a dead end. */}
 						<p className="text-xs text-muted-foreground">
-							<Trans id="settings.hosts.addHost.step4Body">
+							<Trans>
 								The new host appears under Hosts on the left. This page opens it
 								as soon as it connects.
 							</Trans>

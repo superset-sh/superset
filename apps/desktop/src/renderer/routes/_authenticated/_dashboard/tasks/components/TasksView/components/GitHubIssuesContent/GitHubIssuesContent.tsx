@@ -182,18 +182,12 @@ export function GitHubIssuesContent({
 					<span className="max-w-prose text-sm text-wrap-pretty">
 						{areProjectsReady ? (
 							hasProjects ? (
-								<Trans id="dashboard.tasks.githubIssues.selectProjectPrompt">
-									Select a project to see GitHub issues.
-								</Trans>
+								<Trans>Select a project to see GitHub issues.</Trans>
 							) : (
-								<Trans id="dashboard.tasks.githubIssues.addProjectPrompt">
-									Add a project to see GitHub issues.
-								</Trans>
+								<Trans>Add a project to see GitHub issues.</Trans>
 							)
 						) : (
-							<Trans id="dashboard.tasks.githubIssues.loadingProjects">
-								Loading projects…
-							</Trans>
+							<Trans>Loading projects…</Trans>
 						)}
 					</span>
 				</div>
@@ -207,9 +201,7 @@ export function GitHubIssuesContent({
 				<div className="flex max-w-prose flex-col items-center gap-2 text-center text-muted-foreground">
 					<GoIssueOpened className="size-8" />
 					<span className="text-sm text-wrap-pretty">
-						<Trans id="dashboard.tasks.githubIssues.hostUnavailable">
-							The device that hosts this project is unavailable.
-						</Trans>
+						<Trans>The device that hosts this project is unavailable.</Trans>
 					</span>
 				</div>
 			</div>
@@ -228,34 +220,25 @@ export function GitHubIssuesContent({
 				<span className="text-xs text-muted-foreground" aria-live="polite">
 					<span className="tabular-nums">
 						{isInitialLoad ? (
-							<Trans id="dashboard.tasks.githubIssues.countLoading">
-								Loading…
-							</Trans>
+							<Trans>Loading…</Trans>
 						) : totalCount === 0 ? (
 							"0"
 						) : (
-							<Trans id="dashboard.tasks.githubIssues.countShown">
+							<Trans>
 								{issues.length} of {totalCount}
 							</Trans>
 						)}
 					</span>{" "}
-					<Plural
-						id="dashboard.tasks.githubIssues.issueNoun"
-						value={totalCount}
-						one="GitHub issue"
-						other="GitHub issues"
-					/>
+					<Plural value={totalCount} one="GitHub issue" other="GitHub issues" />
 				</span>
 				<Button
 					variant="ghost"
 					size="icon-xs"
 					className="ml-auto"
 					title={t({
-						id: "dashboard.tasks.githubIssues.refresh",
 						message: "Refresh",
 					})}
 					aria-label={t({
-						id: "dashboard.tasks.githubIssues.refreshIssues",
 						message: "Refresh GitHub issues",
 					})}
 					disabled={isFetching}
@@ -274,11 +257,9 @@ export function GitHubIssuesContent({
 						variant="ghost"
 						size="icon-xs"
 						title={t({
-							id: "dashboard.tasks.githubIssues.minimize",
 							message: "Minimize",
 						})}
 						aria-label={t({
-							id: "dashboard.tasks.githubIssues.minimizeIssues",
 							message: "Minimize GitHub issues",
 						})}
 						onClick={onCollapse}
@@ -293,37 +274,27 @@ export function GitHubIssuesContent({
 					<div className="flex flex-col items-start gap-3 px-4 py-4 text-sm text-destructive select-text cursor-text">
 						<span>{error.message}</span>
 						<Button variant="outline" size="sm" onClick={() => refetch()}>
-							<Trans id="dashboard.tasks.githubIssues.tryAgain">
-								Try again
-							</Trans>
+							<Trans>Try again</Trans>
 						</Button>
 					</div>
 				) : repoMismatch ? (
 					<div className="px-4 py-3 text-sm text-muted-foreground select-text cursor-text">
-						<Trans id="dashboard.tasks.githubIssues.repoMismatch">
-							Issue URL must match {repoMismatch}.
-						</Trans>
+						<Trans>Issue URL must match {repoMismatch}.</Trans>
 					</div>
 				) : isInitialLoad ? (
 					<div className="flex h-full items-center justify-center gap-2 p-8 text-muted-foreground">
 						<LuRefreshCw className="size-4 animate-spin motion-reduce:animate-none" />
 						<span className="text-sm">
-							<Trans id="dashboard.tasks.githubIssues.loadingIssues">
-								Loading issues…
-							</Trans>
+							<Trans>Loading issues…</Trans>
 						</span>
 					</div>
 				) : totalCount === 0 && !isFetching ? (
 					<div className="flex h-full items-center justify-center p-8">
 						<span className="text-sm text-muted-foreground">
 							{includeClosed ? (
-								<Trans id="dashboard.tasks.githubIssues.emptyAll">
-									No issues found.
-								</Trans>
+								<Trans>No issues found.</Trans>
 							) : (
-								<Trans id="dashboard.tasks.githubIssues.emptyOpen">
-									No open issues.
-								</Trans>
+								<Trans>No open issues.</Trans>
 							)}
 						</span>
 					</div>
@@ -332,12 +303,12 @@ export function GitHubIssuesContent({
 						{error instanceof Error && (
 							<div className="flex items-center gap-2 border-b border-border/50 bg-destructive/5 px-4 py-2 text-xs text-destructive">
 								<span className="min-w-0 flex-1 truncate select-text cursor-text">
-									<Trans id="dashboard.tasks.githubIssues.partialLoadError">
+									<Trans>
 										Some repositories could not be loaded: {error.message}
 									</Trans>
 								</span>
 								<Button variant="outline" size="xs" onClick={() => refetch()}>
-									<Trans id="dashboard.tasks.githubIssues.retry">Retry</Trans>
+									<Trans>Retry</Trans>
 								</Button>
 							</div>
 						)}
@@ -378,7 +349,6 @@ export function GitHubIssuesContent({
 										}
 										onClick={(e) => e.stopPropagation()}
 										aria-label={t({
-											id: "dashboard.tasks.githubIssues.selectIssue",
 											message: "Select issue",
 										})}
 										className="cursor-pointer shrink-0"
@@ -411,11 +381,9 @@ export function GitHubIssuesContent({
 											variant="ghost"
 											size="icon-xs"
 											title={t({
-												id: "dashboard.tasks.githubIssues.openInBrowser",
 												message: "Open in browser",
 											})}
 											aria-label={t({
-												id: "dashboard.tasks.githubIssues.openIssueInBrowser",
 												message: `Open issue #${issue.issueNumber} in browser`,
 											})}
 											onClick={(e) => {
@@ -429,11 +397,9 @@ export function GitHubIssuesContent({
 											variant="outline"
 											size="sm"
 											title={t({
-												id: "dashboard.tasks.githubIssues.addToWorkspaceTitle",
 												message: "Add to workspace",
 											})}
 											aria-label={t({
-												id: "dashboard.tasks.githubIssues.addIssueToWorkspace",
 												message: `Add issue #${issue.issueNumber} to workspace`,
 											})}
 											className="h-7 gap-1.5 px-2 text-xs"
@@ -444,9 +410,7 @@ export function GitHubIssuesContent({
 										>
 											<LuPlus className="size-3.5" />
 											<span className="hidden @lg:inline">
-												<Trans id="dashboard.tasks.githubIssues.addToWorkspace">
-													Add to workspace
-												</Trans>
+												<Trans>Add to workspace</Trans>
 											</span>
 										</Button>
 									</div>

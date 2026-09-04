@@ -48,7 +48,6 @@ export function LeaderboardSection() {
 					<Label htmlFor="leaderboard-opt-in" className="text-sm font-medium">
 						<HighlightText
 							text={t({
-								id: "settings.account.leaderboard.title",
 								message: "Public leaderboard",
 							})}
 							query={searchQuery}
@@ -56,13 +55,13 @@ export function LeaderboardSection() {
 					</Label>
 					<p className="text-xs text-muted-foreground">
 						{optedIn && handle ? (
-							<Trans id="settings.account.leaderboard.publishingAs">
+							<Trans>
 								Publishing as <span className="text-foreground">{handle}</span>.
 								Token counts and model names only, no repo names, file paths or
 								prompts.
 							</Trans>
 						) : (
-							<Trans id="settings.account.leaderboard.optInHint">
+							<Trans>
 								Rank your agent usage against other engineers. Token counts and
 								model names only, no repo names, file paths or prompts.
 							</Trans>
@@ -96,12 +95,10 @@ export function LeaderboardSection() {
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>
-							<Trans id="settings.account.leaderboard.leaveTitle">
-								Leave the leaderboard?
-							</Trans>
+							<Trans>Leave the leaderboard?</Trans>
 						</AlertDialogTitle>
 						<AlertDialogDescription>
-							<Trans id="settings.account.leaderboard.leaveDescription">
+							<Trans>
 								Everything you've published is deleted, not hidden. You can
 								rejoin later and it will rebuild from the transcripts still on
 								this machine — only your past ranking is lost.
@@ -110,18 +107,14 @@ export function LeaderboardSection() {
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel>
-							<Trans id="settings.account.leaderboard.leaveCancel">
-								Cancel
-							</Trans>
+							<Trans>Cancel</Trans>
 						</AlertDialogCancel>
 						<AlertDialogAction
 							onClick={async () => {
 								if (await leave()) setLeaveOpen(false);
 							}}
 						>
-							<Trans id="settings.account.leaderboard.leaveConfirm">
-								Leave and delete
-							</Trans>
+							<Trans>Leave and delete</Trans>
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

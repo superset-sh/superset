@@ -120,7 +120,6 @@ export function SetupProjectModal({
 		if (!hostUrl) {
 			toast.error(
 				t({
-					id: "settings.project.setup.hostUnavailableCloneToast",
 					message: `Host unavailable: ${hostName}`,
 				}),
 			);
@@ -131,11 +130,9 @@ export function SetupProjectModal({
 			toast.error(
 				isRemoteTarget
 					? t({
-							id: "settings.project.setup.enterParentDirToast",
 							message: `Enter a parent directory on ${hostName}`,
 						})
 					: t({
-							id: "settings.project.setup.pickParentDirToast",
 							message: "Pick a parent directory",
 						}),
 			);
@@ -154,7 +151,6 @@ export function SetupProjectModal({
 			});
 			toast.success(
 				t({
-					id: "settings.project.setup.clonedToast",
 					message: `Cloned to ${result.repoPath}`,
 				}),
 			);
@@ -180,7 +176,6 @@ export function SetupProjectModal({
 		if (!hostUrl) {
 			toast.error(
 				t({
-					id: "settings.project.setup.hostUnavailableImportToast",
 					message: `Host unavailable: ${hostName}`,
 				}),
 			);
@@ -191,11 +186,9 @@ export function SetupProjectModal({
 			toast.error(
 				isRemoteTarget
 					? t({
-							id: "settings.project.setup.enterImportPathToast",
 							message: `Enter a path on ${hostName}`,
 						})
 					: t({
-							id: "settings.project.setup.pickImportPathToast",
 							message: "Pick a project location",
 						}),
 			);
@@ -212,7 +205,6 @@ export function SetupProjectModal({
 			});
 			toast.success(
 				t({
-					id: "settings.project.setup.importedToast",
 					message: `Project set up at ${result.repoPath}`,
 				}),
 			);
@@ -233,11 +225,7 @@ export function SetupProjectModal({
 
 	const submit = mode === "clone" ? runClone : runImport;
 	const submitLabel =
-		mode === "clone" ? (
-			<Trans id="settings.project.setup.submitClone">Clone</Trans>
-		) : (
-			<Trans id="settings.project.setup.submitImport">Import</Trans>
-		);
+		mode === "clone" ? <Trans>Clone</Trans> : <Trans>Import</Trans>;
 	const cloneDisabled = !repoCloneUrl;
 	// The access panel already explains gh-auth failures with remediation;
 	// only show the raw error when it adds information.
@@ -251,12 +239,10 @@ export function SetupProjectModal({
 				<DialogContent className="max-w-[480px]">
 					<DialogHeader>
 						<DialogTitle>
-							<Trans id="settings.project.setup.title">
-								Set up project on {hostName}
-							</Trans>
+							<Trans>Set up project on {hostName}</Trans>
 						</DialogTitle>
 						<DialogDescription>
-							<Trans id="settings.project.setup.description">
+							<Trans>
 								Clone the repository, or import an existing folder on the host.
 							</Trans>
 						</DialogDescription>
@@ -275,19 +261,17 @@ export function SetupProjectModal({
 								disabled={cloneDisabled}
 								className="flex-1"
 							>
-								<Trans id="settings.project.setup.cloneTab">Clone</Trans>
+								<Trans>Clone</Trans>
 							</TabsTrigger>
 							<TabsTrigger value="import" className="flex-1">
-								<Trans id="settings.project.setup.importTab">
-									Import existing
-								</Trans>
+								<Trans>Import existing</Trans>
 							</TabsTrigger>
 						</TabsList>
 
 						<TabsContent value="clone" className="mt-4 space-y-3">
 							{cloneDisabled ? (
 								<p className="text-sm text-muted-foreground">
-									<Trans id="settings.project.setup.linkRepoFirst">
+									<Trans>
 										Link a GitHub repository on the project first to enable
 										cloning.
 									</Trans>
@@ -297,9 +281,7 @@ export function SetupProjectModal({
 									{repoCloneUrl && (
 										<div className="flex flex-col gap-1">
 											<Label className="text-xs">
-												<Trans id="settings.project.setup.repository">
-													Repository
-												</Trans>
+												<Trans>Repository</Trans>
 											</Label>
 											<p className="font-mono text-xs text-muted-foreground select-text cursor-text break-all">
 												{repoCloneUrl}
@@ -319,13 +301,9 @@ export function SetupProjectModal({
 									<div className="flex flex-col gap-1.5">
 										<Label htmlFor="setup-parent-dir" className="text-xs">
 											{isRemoteTarget ? (
-												<Trans id="settings.project.setup.parentDirOnHost">
-													Parent directory on {hostName}
-												</Trans>
+												<Trans>Parent directory on {hostName}</Trans>
 											) : (
-												<Trans id="settings.project.setup.parentDir">
-													Parent directory
-												</Trans>
+												<Trans>Parent directory</Trans>
 											)}
 										</Label>
 										<div className="flex gap-1.5">
@@ -337,7 +315,6 @@ export function SetupProjectModal({
 													isRemoteTarget
 														? "/home/user/projects"
 														: t({
-																id: "settings.project.setup.pickFolderParentPlaceholder",
 																message: "Pick a folder…",
 															})
 												}
@@ -357,7 +334,6 @@ export function SetupProjectModal({
 													} else {
 														void browseFor(
 															t({
-																id: "settings.project.setup.browseParentDirTitle",
 																message:
 																	"Select parent directory to clone into",
 															}),
@@ -368,7 +344,6 @@ export function SetupProjectModal({
 												disabled={working || selectDirectory.isPending}
 												className="shrink-0"
 												aria-label={t({
-													id: "settings.project.setup.browseParentDirAria",
 													message: "Browse for directory",
 												})}
 											>
@@ -376,7 +351,7 @@ export function SetupProjectModal({
 											</Button>
 										</div>
 										<p className="text-xs text-muted-foreground">
-											<Trans id="settings.v2Project.setupModal.parentDirHint">
+											<Trans>
 												The repository is cloned into a new folder inside this
 												directory.
 											</Trans>
@@ -390,13 +365,9 @@ export function SetupProjectModal({
 							<div className="flex flex-col gap-1.5">
 								<Label htmlFor="setup-import-path" className="text-xs">
 									{isRemoteTarget ? (
-										<Trans id="settings.project.setup.importPathOnHost">
-											Existing repo path on {hostName}
-										</Trans>
+										<Trans>Existing repo path on {hostName}</Trans>
 									) : (
-										<Trans id="settings.project.setup.importPath">
-											Existing repo path
-										</Trans>
+										<Trans>Existing repo path</Trans>
 									)}
 								</Label>
 								<div className="flex gap-1.5">
@@ -408,7 +379,6 @@ export function SetupProjectModal({
 											isRemoteTarget
 												? "/home/user/projects/my-repo"
 												: t({
-														id: "settings.project.setup.pickFolderImportPlaceholder",
 														message: "Pick a folder…",
 													})
 										}
@@ -428,7 +398,6 @@ export function SetupProjectModal({
 											} else {
 												void browseFor(
 													t({
-														id: "settings.project.setup.browseImportPathTitle",
 														message: "Select project location",
 													}),
 													"importPath",
@@ -438,7 +407,6 @@ export function SetupProjectModal({
 										disabled={working || selectDirectory.isPending}
 										className="shrink-0"
 										aria-label={t({
-											id: "settings.project.setup.browseImportPathAria",
 											message: "Browse for directory",
 										})}
 									>
@@ -465,7 +433,7 @@ export function SetupProjectModal({
 							onClick={() => handleOpenChange(false)}
 							disabled={working}
 						>
-							<Trans id="settings.project.setup.cancel">Cancel</Trans>
+							<Trans>Cancel</Trans>
 						</Button>
 						<Button
 							type="button"
@@ -515,22 +483,18 @@ export function SetupProjectModal({
 				title={
 					browseTarget === "parentDir"
 						? t({
-								id: "settings.project.setup.remotePickerParentTitle",
 								message: "Choose a parent directory",
 							})
 						: t({
-								id: "settings.project.setup.remotePickerImportTitle",
 								message: "Choose an existing repo folder",
 							})
 				}
 				confirmLabel={
 					browseTarget === "parentDir"
 						? t({
-								id: "settings.project.setup.remotePickerParentConfirm",
 								message: "Use this folder",
 							})
 						: t({
-								id: "settings.project.setup.remotePickerImportConfirm",
 								message: "Use this repo",
 							})
 				}

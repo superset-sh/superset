@@ -28,6 +28,7 @@ import {
 	desktopNoticeCtaActionValues,
 	desktopNoticeSeverityValues,
 	desktopNoticeTriggerValues,
+	environmentSourceKindValues,
 	integrationProviderValues,
 	pageCommentAnchorKindValues,
 	pageCommentAuthorKindValues,
@@ -58,6 +59,10 @@ export const commandStatus = pgEnum("command_status", commandStatusValues);
 export const cloudWorkspaceStatus = pgEnum(
 	"cloud_workspace_status",
 	cloudWorkspaceStatusValues,
+);
+export const environmentSourceKind = pgEnum(
+	"environment_source_kind",
+	environmentSourceKindValues,
 );
 export const v2ClientType = pgEnum("v2_client_type", v2ClientTypeValues);
 export const v2UsersHostRole = pgEnum(
@@ -538,6 +543,70 @@ export type SelectV2Project = typeof v2Projects.$inferSelect;
  * provider's wake-on-inbound sleep. Clients reach it directly at `sandbox_url`
  * with a token brokered by the cloud.
  */
+export const environments = pgTable(
+	"environments",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		name: text().notNull(),
+		provider: text().notNull().default("blaxel"),
+		sourceKind: environmentSourceKind("source_kind").notNull(),
+		sourceRef: text("source_ref").notNull(),
+		archivedAt: timestamp("archived_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("environments_organization_id_idx").on(table.organizationId),
+		unique("environments_organization_id_name_unique").on(
+			table.organizationId,
+			table.name,
+		),
+	],
+);
+
+export const environmentSecrets = pgTable(
+	"environment_secrets",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		environmentId: uuid("environment_id")
+			.notNull()
+			.references(() => environments.id, { onDelete: "cascade" }),
+		key: text().notNull(),
+		encryptedValue: text("encrypted_value").notNull(),
+		sensitive: boolean().notNull(),
+		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		unique("environment_secrets_environment_id_organization_id_key_unique").on(
+			table.environmentId,
+			table.organizationId,
+			table.key,
+		),
+		index("environment_secrets_environment_id_idx").on(table.environmentId),
+		index("environment_secrets_organization_id_idx").on(table.organizationId),
+	],
+);
+
 export const cloudWorkspaces = pgTable(
 	"cloud_workspaces",
 	{
@@ -545,9 +614,6 @@ export const cloudWorkspaces = pgTable(
 		organizationId: uuid("organization_id")
 			.notNull()
 			.references(() => organizations.id, { onDelete: "cascade" }),
-		projectId: uuid("project_id")
-			.notNull()
-			.references(() => v2Projects.id, { onDelete: "cascade" }),
 		// Creation inputs, not the workspace's identity: the sandbox's own
 		// host.db owns the workspace row (name, branch) once it is seeded, the
 		// same way every other host does. Read these to provision a sandbox,
@@ -559,6 +625,11 @@ export const cloudWorkspaces = pgTable(
 		providerSandboxId: text("provider_sandbox_id").notNull(),
 		sandboxUrl: text("sandbox_url"),
 		status: cloudWorkspaceStatus().notNull().default("provisioning"),
+		environmentId: uuid("environment_id")
+			.notNull()
+			.references(() => environments.id),
+		hostVersion: text("host_version"),
+		deletedAt: timestamp("deleted_at", { withTimezone: true }),
 		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
 			onDelete: "set null",
 		}),
@@ -572,7 +643,6 @@ export const cloudWorkspaces = pgTable(
 	},
 	(table) => [
 		index("cloud_workspaces_organization_id_idx").on(table.organizationId),
-		index("cloud_workspaces_project_id_idx").on(table.projectId),
 		unique("cloud_workspaces_provider_sandbox_id_unique").on(
 			table.provider,
 			table.providerSandboxId,

@@ -261,6 +261,22 @@ export const SANDBOX_WORKSPACE_PATH = "/workspace";
  */
 export const SANDBOX_HOST_DB_PATH = "/data/host.db";
 
+export const SANDBOX_IMAGE_NAME = "superset-hostsvc";
+
+export const SHARED_ENVIRONMENT_ORGANIZATION_ID =
+	"00000000-0000-0000-0000-000000000000";
+
+export const SHARED_ENVIRONMENT_NAME = "Default";
+
+/**
+ * Every cloud workspace clones this. Environments cannot carry repositories yet,
+ * so there is nothing per-workspace to resolve and no project to pick.
+ */
+export const CLOUD_WORKSPACE_REPO = {
+	owner: "superset-sh",
+	name: "superset",
+} as const;
+
 // Terminal identity presented to shell programs via TERM_PROGRAM. kitty:
 // agent TUIs (claude-code especially) tune wheel-scroll compensation per
 // TERM_PROGRAM, and our terminals install the full-fidelity wheel handler

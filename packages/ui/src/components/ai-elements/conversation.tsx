@@ -84,13 +84,10 @@ export const ConversationEmptyState = ({
 	...props
 }: ConversationEmptyStateProps) => {
 	const { t } = useLingui();
-	const resolvedTitle =
-		title ??
-		t({ id: "ui.conversation.emptyTitle", message: "No messages yet" });
+	const resolvedTitle = title ?? t({ message: "No messages yet" });
 	const resolvedDescription =
 		description ??
 		t({
-			id: "ui.conversation.emptyDescription",
 			message: "Start a conversation to see messages here",
 		});
 
@@ -129,7 +126,6 @@ export const ConversationLoadingState = ({
 	const resolvedLabel =
 		label ??
 		t({
-			id: "ui.conversation.loading",
 			message: "Loading conversation...",
 		});
 

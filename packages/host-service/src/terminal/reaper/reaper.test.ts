@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
 	PORT_SCAN_WARMUP_DELAYS_MS,
 	planPortScanSync,
+	planStaleActiveRows,
 	REAP_INTERVAL_MS,
 	shouldReapRow,
 } from "./reaper.ts";
@@ -150,5 +151,125 @@ describe("shouldReapRow", () => {
 		expect(shouldReapRow({ status: "active", originWorkspaceId: null })).toBe(
 			true,
 		);
+	});
+});
+
+describe("planStaleActiveRows", () => {
+	const NOW = 1_000_000;
+	const OLD = NOW - 120_000;
+
+	function rows(entries: [string, TerminalRowLike][]) {
+		return new Map(entries);
+	}
+	interface TerminalRowLike {
+		status: string;
+		originWorkspaceId: string | null;
+		createdAt?: number;
+		disposeRequestedAt?: number | null;
+	}
+
+	it("marks active rows the daemon no longer owns", () => {
+		const stale = planStaleActiveRows({
+			aliveIds: new Set(["t-alive"]),
+			rowsById: rows([
+				[
+					"t-alive",
+					{ status: "active", originWorkspaceId: "ws", createdAt: OLD },
+				],
+				[
+					"t-dead",
+					{ status: "active", originWorkspaceId: "ws", createdAt: OLD },
+				],
+			]),
+			isLive: () => false,
+			now: NOW,
+		});
+		expect(stale).toEqual({ exited: ["t-dead"], disposed: [] });
+	});
+
+	it("skips rows that are not active", () => {
+		const stale = planStaleActiveRows({
+			aliveIds: new Set(),
+			rowsById: rows([
+				["t-1", { status: "exited", originWorkspaceId: "ws", createdAt: OLD }],
+				[
+					"t-2",
+					{ status: "disposed", originWorkspaceId: "ws", createdAt: OLD },
+				],
+			]),
+			isLive: () => false,
+			now: NOW,
+		});
+		expect(stale).toEqual({ exited: [], disposed: [] });
+	});
+
+	it("respects the in-memory live guard against a racy daemon list", () => {
+		const stale = planStaleActiveRows({
+			aliveIds: new Set(),
+			rowsById: rows([
+				[
+					"t-attached",
+					{ status: "active", originWorkspaceId: "ws", createdAt: OLD },
+				],
+			]),
+			isLive: (id) => id === "t-attached",
+			now: NOW,
+		});
+		expect(stale).toEqual({ exited: [], disposed: [] });
+	});
+
+	it("leaves freshly created rows alone during the spawn grace window", () => {
+		const stale = planStaleActiveRows({
+			aliveIds: new Set(),
+			rowsById: rows([
+				[
+					"t-new",
+					{ status: "active", originWorkspaceId: "ws", createdAt: NOW - 5_000 },
+				],
+				[
+					"t-old",
+					{ status: "active", originWorkspaceId: "ws", createdAt: OLD },
+				],
+			]),
+			isLive: () => false,
+			now: NOW,
+		});
+		expect(stale).toEqual({ exited: ["t-old"], disposed: [] });
+	});
+
+	it("marks everything stale when the daemon answers with zero sessions", () => {
+		const stale = planStaleActiveRows({
+			aliveIds: new Set(),
+			rowsById: rows([
+				["t-1", { status: "active", originWorkspaceId: "ws", createdAt: OLD }],
+			]),
+			isLive: () => false,
+			now: NOW,
+		});
+		expect(stale).toEqual({ exited: ["t-1"], disposed: [] });
+	});
+
+	it("preserves dispose intent: daemon-lost rows with a pending dispose become disposed", () => {
+		const stale = planStaleActiveRows({
+			aliveIds: new Set(),
+			rowsById: rows([
+				[
+					"t-disposing",
+					{
+						status: "active",
+						originWorkspaceId: "ws",
+						createdAt: OLD,
+						disposeRequestedAt: NOW - 30_000,
+					},
+				],
+				[
+					"t-crashed",
+					{ status: "active", originWorkspaceId: "ws", createdAt: OLD },
+				],
+			]),
+			isLive: () => false,
+			now: NOW,
+		});
+		expect(stale).toEqual({ exited: ["t-crashed"], disposed: ["t-disposing"] });
 	});
 });

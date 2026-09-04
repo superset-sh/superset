@@ -17,12 +17,11 @@ export function SearchForm({ ...props }: React.ComponentProps<"form">) {
 			<SidebarGroup className="py-0">
 				<SidebarGroupContent className="relative">
 					<Label htmlFor="search" className="sr-only">
-						<Trans id="admin.search.label">Search</Trans>
+						<Trans>Search</Trans>
 					</Label>
 					<SidebarInput
 						id="search"
 						placeholder={t({
-							id: "admin.search.placeholder",
 							message: "Search...",
 						})}
 						className="pl-8"

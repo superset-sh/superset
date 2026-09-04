@@ -443,22 +443,33 @@ export class PullRequestRuntimeManager {
 		if (workspaceIds.length === 0) return;
 
 		const rows = this.db
-			.select({
-				projectId: workspaces.projectId,
-				archivedAt: workspaces.archivedAt,
-			})
+			.select()
 			.from(workspaces)
 			.where(inArray(workspaces.id, workspaceIds))
 			.all();
 
 		// Session workspaces (null projectId) have no remote to sync; archived
 		// workspaces keep their PR state frozen at destroy time.
+		const active = rows.filter(
+			(row) => row.archivedAt == null && row.projectId != null,
+		);
+
+		// Re-read each workspace's git refs before matching: callers hit this
+		// right after changing git state (first push, PR create, merge), and
+		// the project refresh matches PRs by the row's recorded upstream — a
+		// stale row (e.g. still tracking the base branch it forked from) would
+		// miss the freshly created PR entirely until the next watcher sweep.
+		// Through the per-workspace queue, so an overlapping watcher sync can't
+		// interleave with this read+write and clobber the newer snapshot.
+		await Promise.all(
+			active.map((workspace) =>
+				this.enqueueWorkspaceSync(workspace.id).catch(() => null),
+			),
+		);
+
 		const projectIds = [
 			...new Set(
-				rows
-					.filter((row) => row.archivedAt == null)
-					.map((row) => row.projectId)
-					.filter((id) => id !== null),
+				active.map((row) => row.projectId).filter((id) => id !== null),
 			),
 		];
 		await Promise.all(

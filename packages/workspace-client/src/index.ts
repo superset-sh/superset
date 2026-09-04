@@ -21,6 +21,11 @@ export {
 	type WorkspaceSnapshotPayload,
 } from "./lib/eventBus";
 export {
+	createHostServiceLinks,
+	type HostServiceLinkOptions,
+	isMethodOverrideRejection,
+} from "./lib/hostServiceLinks";
+export {
 	primeRelayAffinity,
 	type RelayAffinityProbe,
 } from "./lib/primeRelayAffinity";

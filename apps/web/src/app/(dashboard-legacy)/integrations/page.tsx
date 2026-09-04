@@ -42,12 +42,10 @@ export default function IntegrationsPage() {
 		<div className="space-y-8">
 			<section>
 				<h2 className="text-xl font-semibold">
-					<Trans id="web.integrations.featuredTitle">Featured</Trans>
+					<Trans>Featured</Trans>
 				</h2>
 				<p className="text-muted-foreground">
-					<Trans id="web.integrations.featuredSubtitle">
-						A selection of integrations curated by our team.
-					</Trans>
+					<Trans>A selection of integrations curated by our team.</Trans>
 				</p>
 
 				<div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

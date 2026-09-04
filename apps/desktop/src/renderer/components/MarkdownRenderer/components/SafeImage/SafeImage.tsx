@@ -52,13 +52,12 @@ export function SafeImage({ src, alt, className }: SafeImageProps) {
 			<div
 				className={`inline-flex items-center gap-2 px-3 py-2 rounded-md bg-muted text-muted-foreground text-sm ${className ?? ""}`}
 				title={t({
-					id: "components.safeImage.blockedTitle",
 					message: `Image blocked: ${src ?? "(empty)"}`,
 				})}
 			>
 				<LuImageOff className="w-4 h-4 flex-shrink-0" />
 				<span className="truncate max-w-[300px]">
-					<Trans id="components.safeImage.blocked">Image blocked</Trans>
+					<Trans>Image blocked</Trans>
 				</span>
 			</div>
 		);

@@ -47,7 +47,6 @@ export function V2OpenInMenuButton({
 		onError: (error) =>
 			toast.error(
 				t({
-					id: "dashboard.topBar.v2OpenInMenu.openFailed",
 					message: `Failed to open: ${error.message}`,
 				}),
 			),
@@ -56,14 +55,12 @@ export function V2OpenInMenuButton({
 		onSuccess: () =>
 			toast.success(
 				t({
-					id: "dashboard.topBar.v2OpenInMenu.pathCopied",
 					message: "Path copied to clipboard",
 				}),
 			),
 		onError: (error) =>
 			toast.error(
 				t({
-					id: "dashboard.topBar.v2OpenInMenu.copyPathFailed",
 					message: `Failed to copy path: ${error.message}`,
 				}),
 			),
@@ -111,11 +108,9 @@ export function V2OpenInMenuButton({
 						aria-label={
 							currentApp
 								? t({
-										id: "dashboard.topBar.v2OpenInMenu.openInApp",
 										message: `Open in ${currentApp.displayLabel ?? currentApp.label}`,
 									})
 								: t({
-										id: "dashboard.topBar.v2OpenInMenu.openInEditor",
 										message: "Open in editor",
 									})
 						}
@@ -155,15 +150,12 @@ export function V2OpenInMenuButton({
 					{currentApp ? (
 						<HotkeyLabel
 							label={t({
-								id: "dashboard.topBar.v2OpenInMenu.openInAppTooltip",
 								message: `Open in ${currentApp.displayLabel ?? currentApp.label}`,
 							})}
 							id="OPEN_IN_APP"
 						/>
 					) : (
-						<Trans id="dashboard.topBar.v2OpenInMenu.selectEditor">
-							Select an editor from the dropdown
-						</Trans>
+						<Trans>Select an editor from the dropdown</Trans>
 					)}
 				</TooltipContent>
 			</Tooltip>

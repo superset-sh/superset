@@ -24,25 +24,20 @@ export const BOARD_COLUMN_ORDER: BoardColumnKey[] = [
 ];
 
 export const BOARD_COLUMN_LABELS: Record<BoardColumnKey, MessageDescriptor> = {
-	idle: msg({ id: "dashboard.v2Workspaces.boardColumnIdle", message: "Idle" }),
+	idle: msg({ message: "Idle" }),
 	working: msg({
-		id: "dashboard.v2Workspaces.boardColumnWorking",
 		message: "Working",
 	}),
 	attention: msg({
-		id: "dashboard.v2Workspaces.boardColumnAttention",
 		message: "Needs attention",
 	}),
 	review: msg({
-		id: "dashboard.v2Workspaces.boardColumnReview",
 		message: "Needs review",
 	}),
 	merged: msg({
-		id: "dashboard.v2Workspaces.boardColumnMerged",
 		message: "Merged",
 	}),
 	deleted: msg({
-		id: "dashboard.v2Workspaces.boardColumnDeleted",
 		message: "Deleted",
 	}),
 };
@@ -62,13 +57,15 @@ type BoardColumnInputs = Pick<
  *   4. agent permission/failed           → Needs attention
  *   5. agent working                     → Working
  *   6. PR open/draft/queued              → Needs review
- *   7. agent review on a worktree        → Needs review
+ *   7. agent review on a main/worktree   → Needs review
  *   8. otherwise                         → Idle
  *
- * A finished agent alone only counts as review-worthy on worktree
- * workspaces: session runs (automations, chats) and main checkouts have no
- * branch to review, and they arrive in volume — routing them to "review"
- * buries the real candidates (the bucket answers "what needs me").
+ * A finished agent alone counts as review-worthy on main and worktree
+ * workspaces: both are project checkouts a person is driving, and the
+ * sidebar, dock badge and "Ready for review" filter already treat them that
+ * way. Only session workspaces (automation and chat runs with no project
+ * checkout) are excluded: they arrive in volume, and routing them to
+ * "review" buries the real candidates (the bucket answers "what needs me").
  */
 export function deriveBoardColumn(
 	workspace: BoardColumnInputs,
@@ -91,7 +88,7 @@ export function deriveBoardColumn(
 	) {
 		return "review";
 	}
-	if (workspace.agentStatus === "review" && workspace.type === "worktree") {
+	if (workspace.agentStatus === "review" && workspace.type !== "session") {
 		return "review";
 	}
 	return "idle";

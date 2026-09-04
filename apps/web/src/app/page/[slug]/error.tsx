@@ -21,18 +21,17 @@ export default function PageViewerError({
 	return (
 		<MessageScreen
 			title={t({
-				id: "web.pageError.title",
 				message: "This page could not be loaded",
 			})}
 			description={
-				<Trans id="web.pageError.description">
+				<Trans>
 					The page exists, but its content could not be fetched. This is usually
 					temporary.
 				</Trans>
 			}
 			action={
 				<Button size="sm" variant="outline" onClick={reset}>
-					<Trans id="web.pageError.retry">Try again</Trans>
+					<Trans>Try again</Trans>
 				</Button>
 			}
 		/>

@@ -23,7 +23,7 @@ export class Agents extends APIResource {
 		this._requireOrgId();
 		return this._client.hostQuery<AgentListResponse>(
 			params.hostId,
-			"settings.agentConfigs.list",
+			{ method: "agents.list", procedure: "settings.agentConfigs.list" },
 			undefined,
 			options,
 		);
@@ -40,7 +40,7 @@ export class Agents extends APIResource {
 		this._requireOrgId();
 		return this._client.hostMutation<AgentCreateResult>(
 			params.hostId,
-			"agents.run",
+			{ method: "agents.create", procedure: "agents.run" },
 			{
 				workspaceId: params.workspaceId,
 				agent: params.agent,

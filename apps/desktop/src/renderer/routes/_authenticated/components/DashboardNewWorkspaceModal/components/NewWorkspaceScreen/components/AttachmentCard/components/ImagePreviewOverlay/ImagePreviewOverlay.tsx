@@ -62,14 +62,12 @@ export function ImagePreviewOverlay({
 			await saveToDownloads.mutateAsync({ filename, dataBase64 });
 			toast.success(
 				t({
-					id: "dashboard.newWorkspaceModal.imagePreview.savedToDownloads",
 					message: "Saved to Downloads",
 				}),
 			);
 		} catch {
 			toast.error(
 				t({
-					id: "dashboard.newWorkspaceModal.imagePreview.downloadFailed",
 					message: "Download failed",
 				}),
 			);
@@ -101,7 +99,6 @@ export function ImagePreviewOverlay({
 						<button
 							type="button"
 							aria-label={t({
-								id: "dashboard.newWorkspaceModal.imagePreview.downloadImage",
 								message: "Download image",
 							})}
 							disabled={isSaving}
@@ -113,7 +110,6 @@ export function ImagePreviewOverlay({
 						<button
 							type="button"
 							aria-label={t({
-								id: "dashboard.newWorkspaceModal.imagePreview.closePreview",
 								message: "Close preview",
 							})}
 							onClick={onClose}

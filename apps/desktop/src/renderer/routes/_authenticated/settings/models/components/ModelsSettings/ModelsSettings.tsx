@@ -146,7 +146,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 			]);
 			toast.success(
 				t({
-					id: "settings.models.anthropicSettingsUpdated",
 					message: "Anthropic settings updated",
 				}),
 			);
@@ -156,7 +155,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 				errorMessage(
 					error,
 					t({
-						id: "settings.models.anthropicConfigSaveFailed",
 						message: "Failed to save",
 					}),
 				),
@@ -197,7 +195,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 			await refetchAnthropicAuthStatus();
 			toast.success(
 				t({
-					id: "settings.models.anthropicApiKeyUpdated",
 					message: "Anthropic API key updated",
 				}),
 			);
@@ -206,7 +203,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 				errorMessage(
 					error,
 					t({
-						id: "settings.models.anthropicApiKeySaveFailed",
 						message: "Failed to save",
 					}),
 				),
@@ -223,7 +219,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 			await refetchOpenAIAuthStatus();
 			toast.success(
 				t({
-					id: "settings.models.openAiApiKeyUpdated",
 					message: "OpenAI API key updated",
 				}),
 			);
@@ -232,7 +227,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 				errorMessage(
 					error,
 					t({
-						id: "settings.models.openAiApiKeySaveFailed",
 						message: "Failed to save",
 					}),
 				),
@@ -256,7 +250,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 		if (action.kind === "logout") {
 			return (
 				<Button variant="outline" size="sm" onClick={onDisconnect}>
-					<Trans id="settings.models.signOut">Sign out</Trans>
+					<Trans>Sign out</Trans>
 				</Button>
 			);
 		}
@@ -267,9 +261,9 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 				disabled={isStartingOAuth}
 			>
 				{action.kind === "reconnect" ? (
-					<Trans id="settings.models.reconnect">Reconnect</Trans>
+					<Trans>Reconnect</Trans>
 				) : (
-					<Trans id="settings.models.signIn">Sign in</Trans>
+					<Trans>Sign in</Trans>
 				)}
 			</Button>
 		);
@@ -280,10 +274,10 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 			<div className="w-full max-w-4xl p-6">
 				<div className="mb-8">
 					<h2 className="text-xl font-semibold">
-						<Trans id="settings.models.title">Models</Trans>
+						<Trans>Models</Trans>
 					</h2>
 					<p className="mt-1 text-sm text-muted-foreground">
-						<Trans id="settings.models.subtitle">
+						<Trans>
 							Manage provider accounts, API keys, and overrides. Connecting
 							Anthropic or OpenAI below is also what powers automatic workspace
 							naming — without one connected, new workspaces fall back to a name
@@ -298,7 +292,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 							title="Anthropic"
 							icon={<img alt="" className="size-4" src={claudeIcon} />}
 							description={t({
-								id: "settings.models.anthropicDescription",
 								message: "Sign in with Claude or use an API key.",
 							})}
 							action={
@@ -327,7 +320,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 						>
 							<ConfigRow
 								title={t({
-									id: "settings.models.anthropicApiKeyLabel",
 									message: "API key",
 								})}
 								htmlFor="anthropic-api-key"
@@ -342,7 +334,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 										placeholder={
 											anthropicStatus?.authMethod === "api_key"
 												? t({
-														id: "settings.models.anthropicApiKeySavedPlaceholder",
 														message: "Saved Anthropic API key",
 													})
 												: "sk-ant-..."
@@ -364,7 +355,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 											await refetchAnthropicAuthStatus();
 											toast.success(
 												t({
-													id: "settings.models.anthropicApiKeyCleared",
 													message: "Anthropic API key cleared",
 												}),
 											);
@@ -373,7 +363,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 												error instanceof Error
 													? error.message
 													: t({
-															id: "settings.models.anthropicApiKeyClearFailed",
 															message: "Failed to clear",
 														}),
 											);
@@ -396,7 +385,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 											<HiChevronDown
 												className={`size-3.5 transition-transform ${advancedOpen ? "" : "-rotate-90"}`}
 											/>
-											<Trans id="settings.models.advanced">Advanced</Trans>
+											<Trans>Advanced</Trans>
 										</button>
 									</CollapsibleTrigger>
 									{advancedOpen && hasAdvancedContent ? (
@@ -406,7 +395,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 											disabled={isSavingAnthropicConfig}
 											className="text-xs text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
 										>
-											<Trans id="settings.models.advancedReset">Reset</Trans>
+											<Trans>Reset</Trans>
 										</button>
 									) : null}
 								</div>
@@ -416,7 +405,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 											htmlFor="anthropic-auth-token"
 											className="text-sm font-medium"
 										>
-											<Trans id="settings.models.authToken">Auth token</Trans>
+											<Trans>Auth token</Trans>
 										</Label>
 										<Input
 											id="anthropic-auth-token"
@@ -439,7 +428,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 											htmlFor="anthropic-base-url"
 											className="text-sm font-medium"
 										>
-											<Trans id="settings.models.baseUrl">Base URL</Trans>
+											<Trans>Base URL</Trans>
 										</Label>
 										<Input
 											id="anthropic-base-url"
@@ -461,9 +450,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 											htmlFor="anthropic-extra-env"
 											className="text-sm font-medium"
 										>
-											<Trans id="settings.models.extraEnv">
-												Additional env vars
-											</Trans>
+											<Trans>Additional env vars</Trans>
 										</Label>
 										<Textarea
 											id="anthropic-extra-env"
@@ -483,9 +470,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 										/>
 									</div>
 									<p className="text-xs text-muted-foreground">
-										<Trans id="settings.models.savedOnBlur">
-											Saved on blur.
-										</Trans>
+										<Trans>Saved on blur.</Trans>
 									</p>
 								</CollapsibleContent>
 							</Collapsible>
@@ -503,7 +488,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 								/>
 							}
 							description={t({
-								id: "settings.models.openAiDescription",
 								message: "Sign in with ChatGPT or use an API key.",
 							})}
 							action={
@@ -532,7 +516,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 						>
 							<ConfigRow
 								title={t({
-									id: "settings.models.openAiApiKeyLabel",
 									message: "API key",
 								})}
 								htmlFor="openai-api-key"
@@ -547,7 +530,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 										placeholder={
 											openAIStatus?.authMethod === "api_key"
 												? t({
-														id: "settings.models.openAiApiKeySavedPlaceholder",
 														message: "Saved OpenAI API key",
 													})
 												: "sk-..."
@@ -567,7 +549,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 											await refetchOpenAIAuthStatus();
 											toast.success(
 												t({
-													id: "settings.models.openAiApiKeyCleared",
 													message: "OpenAI API key cleared",
 												}),
 											);
@@ -576,7 +557,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 												error instanceof Error
 													? error.message
 													: t({
-															id: "settings.models.openAiApiKeyClearFailed",
 															message: "Failed to clear",
 														}),
 											);

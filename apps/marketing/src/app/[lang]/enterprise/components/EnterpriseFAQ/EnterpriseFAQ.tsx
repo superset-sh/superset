@@ -72,10 +72,10 @@ export function EnterpriseFAQ() {
 	return (
 		<div>
 			<span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
-				<Trans id="marketing.enterprise.faq.eyebrow">FAQ</Trans>
+				<Trans>FAQ</Trans>
 			</span>
 			<h2 className="text-2xl md:text-3xl font-medium tracking-tight text-foreground mt-4 mb-8">
-				<Trans id="marketing.enterprise.faq.title">Common questions</Trans>
+				<Trans>Common questions</Trans>
 			</h2>
 			<div>
 				{ENTERPRISE_FAQ_ITEMS.map((item, index) => (

@@ -102,26 +102,17 @@ export function MainPanel({ activeDemo }: MainPanelProps) {
 								claude
 							</span>
 							<span className="text-[10px] text-muted-foreground/55">
-								<Trans id="marketing.hero.mockup.agentCard.status">
-									finished · worked for 7s
-								</Trans>
+								<Trans>finished · worked for 7s</Trans>
 							</span>
 						</div>
 						<div className="px-3 pt-1.5 pb-2.5 text-[11px] leading-relaxed text-muted-foreground">
-							<Trans id="marketing.hero.mockup.agentCard.summary">
-								Pushed and opened a draft PR.
-							</Trans>
+							<Trans>Pushed and opened a draft PR.</Trans>
 						</div>
 						<div className="flex items-center justify-between border-t border-border/60 px-3 py-2">
 							<div className="flex items-center gap-1.5 font-mono text-[10px] tabular-nums">
 								<LuGitPullRequest className="size-2.5 text-muted-foreground/55" />
 								<span className="text-muted-foreground/75">
-									<Plural
-										id="marketing.hero.mockup.agentCard.fileCount"
-										value={2}
-										one="# file"
-										other="# files"
-									/>
+									<Plural value={2} one="# file" other="# files" />
 								</span>
 								<span className="text-emerald-400/85">+46</span>
 								<span className="text-rose-400/75">−1</span>
@@ -130,9 +121,7 @@ export function MainPanel({ activeDemo }: MainPanelProps) {
 								type="button"
 								className="rounded-full border border-white/[0.08] px-2.5 py-0.5 text-[10px] text-foreground/90 hover:bg-foreground/[0.05]"
 							>
-								<Trans id="marketing.hero.mockup.agentCard.preview">
-									Preview
-								</Trans>
+								<Trans>Preview</Trans>
 							</button>
 						</div>
 					</div>
@@ -142,9 +131,7 @@ export function MainPanel({ activeDemo }: MainPanelProps) {
 							<span className="text-muted-foreground/55">❯</span>
 							<span className="h-3.5 w-[7px] bg-foreground/60" />
 							<span className="flex-1 text-[11px] text-muted-foreground/40">
-								<Trans id="marketing.hero.mockup.promptPlaceholder">
-									Type a task for Claude…
-								</Trans>
+								<Trans>Type a task for Claude…</Trans>
 							</span>
 						</div>
 					</div>
@@ -166,17 +153,13 @@ export function MainPanel({ activeDemo }: MainPanelProps) {
 					</div>
 					<div className="grid max-w-[380px] grid-cols-[1fr_auto_auto] gap-x-8 gap-y-2">
 						<div className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/65">
-							<Trans id="marketing.hero.mockup.automations.name">Name</Trans>
+							<Trans>Name</Trans>
 						</div>
 						<div className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/65">
-							<Trans id="marketing.hero.mockup.automations.schedule">
-								Schedule
-							</Trans>
+							<Trans>Schedule</Trans>
 						</div>
 						<div className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/65">
-							<Trans id="marketing.hero.mockup.automations.lastRun">
-								Last run
-							</Trans>
+							<Trans>Last run</Trans>
 						</div>
 						{AUTOMATIONS.map((automation) => (
 							<div key={automation.name} className="contents">
@@ -191,9 +174,7 @@ export function MainPanel({ activeDemo }: MainPanelProps) {
 											toneClassName="text-brand-light"
 										/>
 										<span className="text-brand-light">
-											<Trans id="marketing.hero.mockup.automations.running">
-												running
-											</Trans>
+											<Trans>running</Trans>
 										</span>
 									</div>
 								) : (

@@ -47,66 +47,64 @@ const GLYPHS: Array<{
 }> = [
 	{
 		name: "Folder",
-		label: msg({ id: "settings.project.icon.glyphFolder", message: "Folder" }),
+		label: msg({ message: "Folder" }),
 		icon: LuFolder,
 	},
 	{
 		name: "Rocket",
-		label: msg({ id: "settings.project.icon.glyphRocket", message: "Rocket" }),
+		label: msg({ message: "Rocket" }),
 		icon: LuRocket,
 	},
 	{
 		name: "Star",
-		label: msg({ id: "settings.project.icon.glyphStar", message: "Star" }),
+		label: msg({ message: "Star" }),
 		icon: LuStar,
 	},
 	{
 		name: "Heart",
-		label: msg({ id: "settings.project.icon.glyphHeart", message: "Heart" }),
+		label: msg({ message: "Heart" }),
 		icon: LuHeart,
 	},
 	{
 		name: "Zap",
-		label: msg({ id: "settings.project.icon.glyphZap", message: "Zap" }),
+		label: msg({ message: "Zap" }),
 		icon: LuZap,
 	},
 	{
 		name: "Flame",
-		label: msg({ id: "settings.project.icon.glyphFlame", message: "Flame" }),
+		label: msg({ message: "Flame" }),
 		icon: LuFlame,
 	},
 	{
 		name: "Leaf",
-		label: msg({ id: "settings.project.icon.glyphLeaf", message: "Leaf" }),
+		label: msg({ message: "Leaf" }),
 		icon: LuLeaf,
 	},
 	{
 		name: "Globe",
-		label: msg({ id: "settings.project.icon.glyphGlobe", message: "Globe" }),
+		label: msg({ message: "Globe" }),
 		icon: LuGlobe,
 	},
 	{
 		name: "Code",
-		label: msg({ id: "settings.project.icon.glyphCode", message: "Code" }),
+		label: msg({ message: "Code" }),
 		icon: LuCode,
 	},
 	{
 		name: "Terminal",
 		label: msg({
-			id: "settings.project.icon.glyphTerminal",
 			message: "Terminal",
 		}),
 		icon: LuTerminal,
 	},
 	{
 		name: "Bug",
-		label: msg({ id: "settings.project.icon.glyphBug", message: "Bug" }),
+		label: msg({ message: "Bug" }),
 		icon: LuBug,
 	},
 	{
 		name: "Package",
 		label: msg({
-			id: "settings.project.icon.glyphPackage",
 			message: "Package",
 		}),
 		icon: LuPackage,
@@ -218,7 +216,6 @@ export function IconUploadField({
 			if (!hostUrl) {
 				toast.error(
 					t({
-						id: "settings.project.icon.hostOfflineSetIconToast",
 						message: "This project's host is offline",
 					}),
 				);
@@ -236,7 +233,6 @@ export function IconUploadField({
 					errorMessage(
 						err,
 						t({
-							id: "settings.project.icon.setIconFailedToast",
 							message: "Failed to set icon",
 						}),
 					),
@@ -254,7 +250,6 @@ export function IconUploadField({
 			if (!hostUrl) {
 				toast.error(
 					t({
-						id: "settings.project.icon.hostOfflineSetColorToast",
 						message: "This project's host is offline",
 					}),
 				);
@@ -272,7 +267,6 @@ export function IconUploadField({
 					errorMessage(
 						err,
 						t({
-							id: "settings.project.icon.setColorFailedToast",
 							message: "Failed to set color",
 						}),
 					),
@@ -295,7 +289,6 @@ export function IconUploadField({
 					errorMessage(
 						err,
 						t({
-							id: "settings.project.icon.glyphRenderFailedToast",
 							message: "Could not set icon",
 						}),
 					),
@@ -341,7 +334,6 @@ export function IconUploadField({
 			if (file.size > MAX_SOURCE_BYTES) {
 				toast.error(
 					t({
-						id: "settings.project.icon.imageTooLargeToast",
 						message: "Image is too large (max 10MB)",
 					}),
 				);
@@ -355,7 +347,6 @@ export function IconUploadField({
 					errorMessage(
 						err,
 						t({
-							id: "settings.project.icon.readFileFailedToast",
 							message: "Could not read selected file",
 						}),
 					),
@@ -376,7 +367,6 @@ export function IconUploadField({
 						type="button"
 						disabled={disabled}
 						aria-label={t({
-							id: "settings.project.icon.changeIconColorAria",
 							message: "Change project icon and color",
 						})}
 						className="rounded-md transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
@@ -392,7 +382,7 @@ export function IconUploadField({
 				<PopoverContent align="start" className="w-66 space-y-3">
 					<div>
 						<p className="mb-1.5 text-xs font-medium text-muted-foreground">
-							<Trans id="settings.project.icon.colorLabel">Color</Trans>
+							<Trans>Color</Trans>
 						</p>
 						<ColorSelector
 							includeDefault
@@ -405,7 +395,7 @@ export function IconUploadField({
 					</div>
 					<div>
 						<p className="mb-1.5 text-xs font-medium text-muted-foreground">
-							<Trans id="settings.project.icon.iconLabel">Icon</Trans>
+							<Trans>Icon</Trans>
 						</p>
 						<div className="grid grid-cols-6 gap-1">
 							{GLYPHS.map((glyph) => (
@@ -414,7 +404,6 @@ export function IconUploadField({
 									type="button"
 									title={i18n._(glyph.label)}
 									aria-label={t({
-										id: "settings.project.icon.setIconToAria",
 										message: `Set icon to ${i18n._(glyph.label)}`,
 									})}
 									disabled={disabled}
@@ -442,9 +431,7 @@ export function IconUploadField({
 							onClick={handleClickUpload}
 						>
 							<LuUpload className="size-3.5" />
-							<Trans id="settings.project.icon.uploadImage">
-								Upload image…
-							</Trans>
+							<Trans>Upload image…</Trans>
 						</Button>
 						{iconUrl && (
 							<Button
@@ -456,7 +443,7 @@ export function IconUploadField({
 									void setIcon(PROJECT_ICON_NONE);
 								}}
 							>
-								<Trans id="settings.project.icon.removeIcon">Remove icon</Trans>
+								<Trans>Remove icon</Trans>
 							</Button>
 						)}
 						{(hasCustomIcon || isIconRemoved) && (
@@ -469,9 +456,7 @@ export function IconUploadField({
 									void setIcon(null);
 								}}
 							>
-								<Trans id="settings.project.icon.resetToDefault">
-									Reset to default
-								</Trans>
+								<Trans>Reset to default</Trans>
 							</Button>
 						)}
 					</div>

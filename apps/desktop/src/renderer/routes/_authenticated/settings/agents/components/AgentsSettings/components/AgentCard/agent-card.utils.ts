@@ -28,7 +28,6 @@ export function getPreviewNoPromptCommand(preset: ResolvedAgentConfig): string {
 		preset.command.trim() ||
 		i18n._(
 			msg({
-				id: "settings.agents.card.noCommandConfigured",
 				message: "No command configured.",
 			}),
 		)
@@ -43,7 +42,6 @@ export function getPreviewTaskCommand(preset: ResolvedAgentConfig): string {
 		}) ??
 		i18n._(
 			msg({
-				id: "settings.agents.card.noPromptCommandConfigured",
 				message: "No prompt-capable command configured.",
 			}),
 		)
@@ -87,7 +85,6 @@ export function buildAgentFieldPatch({
 				return {
 					error: i18n._(
 						msg({
-							id: "settings.agents.card.labelRequired",
 							message: "Label is required.",
 						}),
 					),
@@ -101,7 +98,6 @@ export function buildAgentFieldPatch({
 				return {
 					error: i18n._(
 						msg({
-							id: "settings.agents.card.commandTerminalOnly",
 							message: "Command is only available for terminal agents.",
 						}),
 					),
@@ -111,7 +107,6 @@ export function buildAgentFieldPatch({
 				return {
 					error: i18n._(
 						msg({
-							id: "settings.agents.card.commandRequired",
 							message: "Command is required for terminal agents.",
 						}),
 					),
@@ -123,7 +118,6 @@ export function buildAgentFieldPatch({
 				return {
 					error: i18n._(
 						msg({
-							id: "settings.agents.card.promptCommandTerminalOnly",
 							message: "Prompt command is only available for terminal agents.",
 						}),
 					),
@@ -135,7 +129,6 @@ export function buildAgentFieldPatch({
 					: {
 							error: i18n._(
 								msg({
-									id: "settings.agents.card.promptCommandRequired",
 									message: "Prompt command is required for terminal agents.",
 								}),
 							),
@@ -147,7 +140,6 @@ export function buildAgentFieldPatch({
 				return {
 					error: i18n._(
 						msg({
-							id: "settings.agents.card.promptCommandSuffixTerminalOnly",
 							message:
 								"Prompt command suffix is only available for terminal agents.",
 						}),
@@ -160,7 +152,6 @@ export function buildAgentFieldPatch({
 				return {
 					error: i18n._(
 						msg({
-							id: "settings.agents.card.taskPromptTemplateRequired",
 							message: "Task prompt template is required.",
 						}),
 					),
@@ -172,7 +163,6 @@ export function buildAgentFieldPatch({
 				return {
 					error: i18n._(
 						msg({
-							id: "settings.agents.card.unknownVariables",
 							message: `Unknown variables: ${unknownVariables}`,
 						}),
 					),

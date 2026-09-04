@@ -64,15 +64,11 @@ export function BuiltinPresetBarItem({
 			</ContextMenuTrigger>
 			<ContextMenuContent>
 				<ContextMenuItem onSelect={() => onExecutePreset(preset)}>
-					<Trans id="workspace.builtinPresetBarItem.runScript">
-						Run script
-					</Trans>
+					<Trans>Run script</Trans>
 				</ContextMenuItem>
 				<ContextMenuSeparator />
 				<ContextMenuItem onSelect={() => onHide(preset.id)}>
-					<Trans id="workspace.builtinPresetBarItem.removeScript">
-						Remove script
-					</Trans>
+					<Trans>Remove script</Trans>
 				</ContextMenuItem>
 			</ContextMenuContent>
 		</ContextMenu>

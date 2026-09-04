@@ -12,7 +12,7 @@ export class Hosts extends APIResource {
 	 */
 	list(options?: RequestOptions): APIPromise<HostListResponse> {
 		return this._client.query<HostListResponse>(
-			"host.list",
+			{ method: "hosts.list", procedure: "host.list" },
 			{ organizationId: this._requireOrgId() },
 			options,
 		);

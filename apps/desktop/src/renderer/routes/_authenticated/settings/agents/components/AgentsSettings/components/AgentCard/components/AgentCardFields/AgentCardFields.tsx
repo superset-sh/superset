@@ -28,7 +28,7 @@ export function AgentCardFields({
 			<div className="grid gap-4 md:grid-cols-2">
 				<div className="space-y-2">
 					<Label htmlFor={`${preset.id}-label`}>
-						<Trans id="settings.agents.card.label">Label</Trans>
+						<Trans>Label</Trans>
 					</Label>
 					<Input
 						key={`${preset.id}-${inputVersion}-label-${preset.label}`}
@@ -39,7 +39,7 @@ export function AgentCardFields({
 				</div>
 				<div className="space-y-2">
 					<Label htmlFor={`${preset.id}-description`}>
-						<Trans id="settings.agents.card.description">Description</Trans>
+						<Trans>Description</Trans>
 					</Label>
 					<Input
 						key={`${preset.id}-${inputVersion}-description-${preset.description ?? ""}`}
@@ -54,9 +54,7 @@ export function AgentCardFields({
 				<div className="grid gap-4 md:grid-cols-2">
 					<div className="space-y-2">
 						<Label htmlFor={`${preset.id}-command`}>
-							<Trans id="settings.agents.card.commandNoPrompt">
-								Command (No Prompt)
-							</Trans>
+							<Trans>Command (No Prompt)</Trans>
 						</Label>
 						<Input
 							key={`${preset.id}-${inputVersion}-command-${preset.command}`}
@@ -67,9 +65,7 @@ export function AgentCardFields({
 					</div>
 					<div className="space-y-2">
 						<Label htmlFor={`${preset.id}-prompt-command`}>
-							<Trans id="settings.agents.card.commandWithPrompt">
-								Command (With Prompt)
-							</Trans>
+							<Trans>Command (With Prompt)</Trans>
 						</Label>
 						<Input
 							key={`${preset.id}-${inputVersion}-prompt-command-${preset.promptCommand}`}
@@ -82,9 +78,7 @@ export function AgentCardFields({
 					</div>
 					<div className="space-y-2 md:col-span-2">
 						<Label htmlFor={`${preset.id}-prompt-command-suffix`}>
-							<Trans id="settings.agents.card.promptCommandSuffix">
-								Prompt Command Suffix
-							</Trans>
+							<Trans>Prompt Command Suffix</Trans>
 						</Label>
 						<Input
 							key={`${preset.id}-${inputVersion}-prompt-command-suffix-${preset.promptCommandSuffix ?? ""}`}
@@ -94,7 +88,6 @@ export function AgentCardFields({
 								onFieldBlur("promptCommandSuffix", event.target.value)
 							}
 							placeholder={t({
-								id: "settings.agents.card.promptCommandSuffixPlaceholder",
 								message: "Optional flags appended after the prompt payload",
 							})}
 						/>
@@ -105,9 +98,7 @@ export function AgentCardFields({
 			{showTaskPrompts && (
 				<div className="space-y-2">
 					<Label htmlFor={`${preset.id}-task-template`}>
-						<Trans id="settings.agents.card.taskPromptTemplate">
-							Task Prompt Template
-						</Trans>
+						<Trans>Task Prompt Template</Trans>
 					</Label>
 					<Textarea
 						key={`${preset.id}-${inputVersion}-task-template-${preset.taskPromptTemplate}`}

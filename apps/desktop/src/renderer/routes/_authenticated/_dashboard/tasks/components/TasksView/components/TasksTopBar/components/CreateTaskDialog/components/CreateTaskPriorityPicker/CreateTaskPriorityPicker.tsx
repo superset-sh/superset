@@ -25,23 +25,18 @@ export function CreateTaskPriorityPicker({
 	const { t } = useLingui();
 	const priorityLabels: Record<TaskPriority, string> = {
 		none: t({
-			id: "dashboard.tasks.createTaskPriorityPicker.priorityNone",
 			message: "No priority",
 		}),
 		urgent: t({
-			id: "dashboard.tasks.createTaskPriorityPicker.priorityUrgent",
 			message: "Urgent",
 		}),
 		high: t({
-			id: "dashboard.tasks.createTaskPriorityPicker.priorityHigh",
 			message: "High",
 		}),
 		medium: t({
-			id: "dashboard.tasks.createTaskPriorityPicker.priorityMedium",
 			message: "Medium",
 		}),
 		low: t({
-			id: "dashboard.tasks.createTaskPriorityPicker.priorityLow",
 			message: "Low",
 		}),
 	};

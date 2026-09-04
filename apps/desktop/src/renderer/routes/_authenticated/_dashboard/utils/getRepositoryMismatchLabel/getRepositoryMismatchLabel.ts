@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 
 interface RepositorySearchPage {
@@ -28,8 +29,9 @@ export function getRepositoryMismatchLabel(
 	);
 	return repositories.size === 1
 		? (repositories.values().next().value ?? null)
-		: i18n._({
-				id: "dashboard.workItems.anySelectedRepository",
-				message: "one of the selected repositories",
-			});
+		: i18n._(
+				msg({
+					message: "one of the selected repositories",
+				}),
+			);
 }

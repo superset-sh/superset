@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react-native";
 import type { RefObject } from "react";
@@ -302,10 +303,11 @@ export const InlineCitationCarouselPrev = ({
 
 	return (
 		<Pressable
-			accessibilityLabel={i18n._({
-				id: "mobile.common.previous",
-				message: "Previous",
-			})}
+			accessibilityLabel={i18n._(
+				msg({
+					message: "Previous",
+				}),
+			)}
 			className={cn("shrink-0", className)}
 			onPress={handlePress}
 			{...props}
@@ -331,7 +333,7 @@ export const InlineCitationCarouselNext = ({
 
 	return (
 		<Pressable
-			accessibilityLabel={i18n._({ id: "mobile.common.next", message: "Next" })}
+			accessibilityLabel={i18n._(msg({ message: "Next" }))}
 			className={cn("shrink-0", className)}
 			onPress={handlePress}
 			{...props}

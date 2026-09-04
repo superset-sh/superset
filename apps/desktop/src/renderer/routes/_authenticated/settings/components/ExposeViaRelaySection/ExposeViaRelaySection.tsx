@@ -46,30 +46,25 @@ export function ExposeViaRelaySection() {
 	const runToggle = (enabled: boolean) => {
 		toast.promise(setExpose.mutateAsync({ enabled }), {
 			loading: t({
-				id: "settings.components.exposeViaRelay.restartingToast",
 				message: "Restarting host services…",
 			}),
 			success: ({ restartedOrgCount }) => {
 				if (restartedOrgCount === 0) {
 					return t({
-						id: "settings.components.exposeViaRelay.savedToast",
 						message: "Setting saved",
 					});
 				}
 				return restartedOrgCount === 1
 					? t({
-							id: "settings.components.exposeViaRelay.restartedOneToast",
 							message: "Restarted 1 host service",
 						})
 					: t({
-							id: "settings.components.exposeViaRelay.restartedManyToast",
 							message: `Restarted ${restartedOrgCount} host services`,
 						});
 			},
 			error: (err: Error) =>
 				err.message ??
 				t({
-					id: "settings.components.exposeViaRelay.updateFailedToast",
 					message: "Failed to update setting",
 				}),
 		});
@@ -98,14 +93,13 @@ export function ExposeViaRelaySection() {
 					>
 						<HighlightText
 							text={t({
-								id: "settings.components.exposeViaRelay.label",
 								message: "Allow remote access to this device via relay",
 							})}
 							query={searchQuery}
 						/>
 					</Label>
 					<p className="text-xs text-muted-foreground">
-						<Trans id="settings.components.exposeViaRelay.hint">
+						<Trans>
 							When off, nothing else can reach the files and tools on this
 							device. You can still connect out to remote sandboxes from here.{" "}
 							<a

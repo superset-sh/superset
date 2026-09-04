@@ -18,7 +18,6 @@ export function ScrollToBottomButton({ className }: ScrollToBottomButtonProps) {
 			direction="end"
 			behavior="smooth"
 			aria-label={t({
-				id: "chatUi.scrollToBottom.label",
 				message: "Scroll to bottom",
 			})}
 			className={cn(

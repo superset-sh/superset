@@ -25,24 +25,20 @@ export function DeferredDiffPlaceholder({
 			)}
 			<p className="cursor-text select-text text-sm">
 				{isLoading ? (
-					<Trans id="workspace.diffPane.fileLoading">Loading diff…</Trans>
+					<Trans>Loading diff…</Trans>
 				) : reason === "error" ? (
-					<Trans id="workspace.diffPane.diffLoadFailed">
-						Unable to load diff
-					</Trans>
+					<Trans>Unable to load diff</Trans>
 				) : (
-					<Trans id="workspace.diffPane.generatedFileHidden">
-						Generated file hidden
-					</Trans>
+					<Trans>Generated file hidden</Trans>
 				)}
 			</p>
 			{reason === "deferred" ? (
 				<Button variant="outline" size="sm" onClick={onRequest}>
-					<Trans id="workspace.diffPane.loadDiff">Load diff</Trans>
+					<Trans>Load diff</Trans>
 				</Button>
 			) : reason === "error" ? (
 				<Button variant="outline" size="sm" onClick={onRequest}>
-					<Trans id="workspace.diffPane.retryDiff">Retry</Trans>
+					<Trans>Retry</Trans>
 				</Button>
 			) : null}
 		</div>

@@ -73,9 +73,7 @@ function ShippedHighlightCard({ item }: { item: ShippedItem }) {
 				</p>
 				{item.href ? (
 					<span className="text-[11px] font-mono text-muted-foreground mt-2 block uppercase tracking-wider group-hover:text-foreground transition-colors">
-						<Trans id="marketing.roadmap.readChangelog">
-							Read the changelog →
-						</Trans>
+						<Trans>Read the changelog →</Trans>
 					</span>
 				) : (
 					item.pr && (
@@ -173,7 +171,7 @@ export function RoadmapBoard() {
 							: "text-muted-foreground hover:text-foreground"
 					}`}
 				>
-					<Trans id="marketing.roadmap.filter.all">All</Trans>
+					<Trans>All</Trans>
 				</button>
 				<div className="h-4 w-px bg-border" />
 				{CATEGORIES.map((cat) => (
@@ -225,7 +223,7 @@ export function RoadmapBoard() {
 								))}
 								{items.length === 0 && (
 									<p className="text-xs text-muted-foreground/40 px-4 py-8 text-center">
-										<Trans id="marketing.roadmap.column.empty">No items</Trans>
+										<Trans>No items</Trans>
 									</p>
 								)}
 							</div>
@@ -252,9 +250,7 @@ export function RoadmapBoard() {
 							href="/changelog"
 							className="text-xs text-muted-foreground hover:text-foreground transition-colors"
 						>
-							<Trans id="marketing.roadmap.fullChangelog">
-								Full changelog →
-							</Trans>
+							<Trans>Full changelog →</Trans>
 						</a>
 					</div>
 					{shippedHighlights.length > 0 && (

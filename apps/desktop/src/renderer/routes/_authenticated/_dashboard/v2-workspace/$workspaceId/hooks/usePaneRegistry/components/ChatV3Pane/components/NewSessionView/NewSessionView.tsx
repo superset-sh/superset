@@ -40,12 +40,10 @@ export function NewSessionView({
 			</div>
 			<div className="flex flex-1 flex-col items-center justify-center gap-1 text-center">
 				<span className="text-sm font-medium">
-					<Trans id="workspace.chat.newChat">New chat</Trans>
+					<Trans>New chat</Trans>
 				</span>
 				<span className="text-xs text-muted-foreground">
-					<Trans id="workspace.chat.newChatHint">
-						Send a message to start a {harness} session
-					</Trans>
+					<Trans>Send a message to start a {harness} session</Trans>
 				</span>
 			</div>
 			<Composer
@@ -56,7 +54,6 @@ export function NewSessionView({
 				}}
 				outbox={[]}
 				placeholder={t({
-					id: "workspace.chat.newSessionPlaceholder",
 					message: `Start a ${harness} session`,
 				})}
 			/>

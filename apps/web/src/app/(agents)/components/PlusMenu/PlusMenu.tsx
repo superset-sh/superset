@@ -32,12 +32,11 @@ export function PlusMenu({ disabled = false }: PlusMenuProps) {
 			side="top"
 			align="end"
 			contentClassName="w-52"
-			title={t({ id: "web.plusMenu.title", message: "Add to prompt" })}
+			title={t({ message: "Add to prompt" })}
 			onCloseAutoFocus={(e) => e.preventDefault()}
 			items={[
 				{
 					label: t({
-						id: "web.plusMenu.addAttachment",
 						message: "Add attachment",
 					}),
 					icon: <PaperclipIcon className="size-4" />,

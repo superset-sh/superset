@@ -30,7 +30,6 @@ export function LinkedIssuePill({
 				console.error("Failed to navigate to task:", error);
 				toast.error(
 					t({
-						id: "components.linkedIssuePill.openTaskFailed",
 						message: "Failed to open task",
 					}),
 				);
@@ -64,7 +63,6 @@ export function LinkedIssuePill({
 				role: "button",
 				tabIndex: 0,
 				"aria-label": t({
-					id: "components.linkedIssuePill.openTask",
 					message: `Open task ${title}`,
 				}),
 			})}
@@ -75,7 +73,6 @@ export function LinkedIssuePill({
 				<LinearIcon className="size-5 rounded-sm transition-opacity group-hover:opacity-0" />
 				<Button
 					aria-label={t({
-						id: "components.linkedIssuePill.removeLinkedIssue",
 						message: "Remove linked issue",
 					})}
 					className="pointer-events-none absolute inset-0 size-7 cursor-pointer rounded-md p-0 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 [&>svg]:size-3"
@@ -88,7 +85,7 @@ export function LinkedIssuePill({
 				>
 					<XIcon />
 					<span className="sr-only">
-						<Trans id="components.linkedIssuePill.remove">Remove</Trans>
+						<Trans>Remove</Trans>
 					</span>
 				</Button>
 			</div>
@@ -100,7 +97,7 @@ export function LinkedIssuePill({
 					<span className="max-w-[80px] truncate">{slug}</span>
 					<span>·</span>
 					<span>
-						<Trans id="components.linkedIssuePill.linearSource">Linear</Trans>
+						<Trans>Linear</Trans>
 					</span>
 				</div>
 			</div>

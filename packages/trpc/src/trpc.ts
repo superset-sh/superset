@@ -12,14 +12,14 @@ export type { I18nErrorCause } from "./i18n-error";
 export { isI18nErrorCause, userError } from "./i18n-error";
 
 export interface ApiClientInfo {
-	product: "desktop" | "mobile" | "cli";
+	product: "desktop" | "mobile" | "cli" | "sdk";
 	version: string;
 }
 
 export const CLIENT_VERSION_HEADER = "x-superset-client";
 
 const CLIENT_HEADER_PATTERN =
-	/^(desktop|mobile|cli)\/(\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?)$/;
+	/^(desktop|mobile|cli|sdk)\/(\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?)$/;
 
 // Absent or unparseable header = web or a pre-header build, both treated as
 // always-current.

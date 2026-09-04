@@ -54,9 +54,7 @@ export function AppResourceSection({
 			<div className="flex items-center justify-between px-3.5 py-1.5">
 				<div className="flex items-center gap-1.5 min-w-0 mr-2">
 					<span className="text-[12px] font-medium text-foreground truncate min-w-0">
-						<Trans id="dashboard.topBar.appResources.appName">
-							Superset App
-						</Trans>
+						<Trans>Superset App</Trans>
 					</span>
 					<UsageSeverityBadge severity={appSeverity} />
 				</div>
@@ -68,7 +66,6 @@ export function AppResourceSection({
 
 			<SubRow
 				label={t({
-					id: "dashboard.topBar.appResources.mainProcess",
 					message: "Main",
 				})}
 				cpu={app.main.cpu}
@@ -77,7 +74,6 @@ export function AppResourceSection({
 			/>
 			<SubRow
 				label={t({
-					id: "dashboard.topBar.appResources.rendererProcess",
 					message: "Renderer",
 				})}
 				cpu={app.renderer.cpu}
@@ -87,7 +83,6 @@ export function AppResourceSection({
 			{showOther && (
 				<SubRow
 					label={t({
-						id: "dashboard.topBar.appResources.otherProcesses",
 						message: "Other",
 					})}
 					cpu={app.other.cpu}

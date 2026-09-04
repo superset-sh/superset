@@ -19,7 +19,6 @@ export function DismissSuggestionsButton({
 		<button
 			type="button"
 			aria-label={t({
-				id: "dashboard.newWorkspaceModal.dismissSuggestions",
 				message: "Dismiss suggestions",
 			})}
 			onClick={onDismiss}

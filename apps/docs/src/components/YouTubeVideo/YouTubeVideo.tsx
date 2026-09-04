@@ -13,8 +13,7 @@ interface YouTubeVideoProps {
 export function YouTubeVideo({ id, title, thumbnail }: YouTubeVideoProps) {
 	const [isPlaying, setIsPlaying] = useState(false);
 	const { t } = useLingui();
-	const label =
-		title ?? t({ id: "docs.youtubeVideo.defaultTitle", message: "Video" });
+	const label = title ?? t({ message: "Video" });
 
 	if (isPlaying) {
 		return (
@@ -39,7 +38,6 @@ export function YouTubeVideo({ id, title, thumbnail }: YouTubeVideoProps) {
 				onClick={() => setIsPlaying(true)}
 				className="group relative w-full cursor-pointer rounded-xl overflow-hidden shadow-lg ring-1 ring-white/10"
 				aria-label={t({
-					id: "docs.youtubeVideo.play",
 					message: `Play ${label}`,
 				})}
 			>

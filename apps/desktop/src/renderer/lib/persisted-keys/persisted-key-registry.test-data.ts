@@ -124,6 +124,10 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		"src/renderer/routes/_authenticated/settings/usage/utils/usageLastSection/usageLastSection.ts",
 		["usage-last-section-v1"],
 	],
+	[
+		"src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/utils/leaderboardCardCollapsed/leaderboardCardCollapsed.ts",
+		["leaderboard-card-collapsed-v1"],
+	],
 	["src/renderer/stores/inline-workspace-ports.ts", ["inline-workspace-ports"]],
 	["src/renderer/hotkeys/stores/hotkeyOverridesStore.ts", ["hotkey-overrides"]],
 	[

@@ -193,11 +193,9 @@ export function useFilesTabActions({
 					toast.info(
 						entry.mode === "folder"
 							? t({
-									id: "workspace.filesTab.keptNewFolder",
 									message: "Kept the new folder — it is no longer empty",
 								})
 							: t({
-									id: "workspace.filesTab.keptNewFile",
 									message:
 										"Kept the new file — it changed after it was created",
 								}),
@@ -208,7 +206,6 @@ export function useFilesTabActions({
 					bridge.addPath(entry.key);
 					toast.error(
 						t({
-							id: "workspace.filesTab.discardNewItemFailed",
 							message: "Failed to discard the new item",
 						}),
 						{
@@ -262,7 +259,6 @@ export function useFilesTabActions({
 				if (!bridge.isCurrent(versionToken)) return;
 				toast.error(
 					t({
-						id: "workspace.filesTab.createItemFailed",
 						message: "Failed to create item",
 					}),
 					{
@@ -276,18 +272,15 @@ export function useFilesTabActions({
 				if (!bridge.isCurrent(versionToken)) return;
 				toast.error(
 					t({
-						id: "workspace.filesTab.createItemFailed",
 						message: "Failed to create item",
 					}),
 					{
 						description:
 							created.reason === "exhausted"
 								? t({
-										id: "workspace.filesTab.createItemExhausted",
 										message: "Too many untitled items here already.",
 									})
 								: t({
-										id: "workspace.filesTab.createItemBadName",
 										message: "That name isn't allowed.",
 									}),
 					},
@@ -318,7 +311,6 @@ export function useFilesTabActions({
 				void discardProvisional(entry).catch(() => {});
 				toast.error(
 					t({
-						id: "workspace.filesTab.createItemFailed",
 						message: "Failed to create item",
 					}),
 				);
@@ -330,7 +322,6 @@ export function useFilesTabActions({
 				bridge.removePath(entry.key);
 				toast.error(
 					t({
-						id: "workspace.filesTab.createItemFailed",
 						message: "Failed to create item",
 					}),
 				);
@@ -447,7 +438,6 @@ export function useFilesTabActions({
 				}
 				toast.error(
 					t({
-						id: "workspace.filesTab.renameFailed",
 						message: "Failed to rename",
 					}),
 					{
@@ -474,24 +464,20 @@ export function useFilesTabActions({
 		(absolutePath: string, name: string, isDirectory: boolean): void => {
 			alert({
 				title: t({
-					id: "workspace.filesTab.deleteConfirmTitle",
 					message: `Delete ${name}?`,
 				}),
 				description: isDirectory
 					? t({
-							id: "workspace.filesTab.deleteConfirmFolderBody",
 							message:
 								"Are you sure you want to delete this folder? This action cannot be undone.",
 						})
 					: t({
-							id: "workspace.filesTab.deleteConfirmFileBody",
 							message:
 								"Are you sure you want to delete this file? This action cannot be undone.",
 						}),
 				actions: [
 					{
 						label: t({
-							id: "workspace.filesTab.deleteConfirmAction",
 							message: "Delete",
 						}),
 						variant: "destructive",
@@ -500,15 +486,12 @@ export function useFilesTabActions({
 								deletePath.mutateAsync({ workspaceId, absolutePath }),
 								{
 									loading: t({
-										id: "workspace.filesTab.deleteLoading",
 										message: `Deleting ${name}...`,
 									}),
 									success: t({
-										id: "workspace.filesTab.deleteSuccess",
 										message: `Deleted ${name}`,
 									}),
 									error: t({
-										id: "workspace.filesTab.deleteFailed",
 										message: `Failed to delete ${name}`,
 									}),
 								},
@@ -517,7 +500,6 @@ export function useFilesTabActions({
 					},
 					{
 						label: t({
-							id: "workspace.filesTab.deleteConfirmCancel",
 							message: "Cancel",
 						}),
 						variant: "ghost",

@@ -62,11 +62,9 @@ export function ProjectPicker({
 						selectedProject?.name ??
 						(sessionSelected
 							? t({
-									id: "dashboard.automations.projectPicker.noProjectLabel",
 									message: "No project",
 								})
 							: t({
-									id: "dashboard.automations.projectPicker.selectProjectLabel",
 									message: "Select project",
 								}))
 					}
@@ -76,15 +74,12 @@ export function ProjectPicker({
 				<Command>
 					<CommandInput
 						placeholder={t({
-							id: "dashboard.automations.projectPicker.searchPlaceholder",
 							message: "Search projects...",
 						})}
 					/>
 					<CommandList>
 						<CommandEmpty>
-							<Trans id="dashboard.automations.projectPicker.noProjectsFound">
-								No projects found.
-							</Trans>
+							<Trans>No projects found.</Trans>
 						</CommandEmpty>
 						<CommandGroup>
 							<CommandItem
@@ -95,7 +90,7 @@ export function ProjectPicker({
 								}}
 							>
 								<LuBox className="size-4 shrink-0" />
-								<Trans id="dashboard.automations.projectPicker.noProjectItem">
+								<Trans>
 									No project
 									<span className="ml-1 text-muted-foreground">session</span>
 								</Trans>

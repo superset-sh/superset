@@ -82,7 +82,6 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 				errorMessage(
 					error,
 					t({
-						id: "settings.apiKeys.generateFailed",
 						message: "Failed to generate API key",
 					}),
 				),
@@ -106,40 +105,33 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 			toast.error(
 				error.message ||
 					t({
-						id: "settings.apiKeys.revokeFailed",
 						message: "Failed to revoke API key",
 					}),
 			);
 		},
 		onSuccess: () => {
-			toast.success(
-				t({ id: "settings.apiKeys.revoked", message: "API key revoked" }),
-			);
+			toast.success(t({ message: "API key revoked" }));
 		},
 		onSettled: () => utils.apiKey.list.invalidate(),
 	});
 
 	const handleRevokeKey = (id: string, name: string | null) => {
-		const keyName =
-			name ??
-			t({ id: "settings.apiKeys.revokeUnnamedKey", message: "Unnamed key" });
+		const keyName = name ?? t({ message: "Unnamed key" });
 		alert({
 			title: t({
-				id: "settings.apiKeys.revokeDialogTitle",
 				message: "Revoke API key",
 			}),
 			description: t({
-				id: "settings.apiKeys.revokeDialogDescription",
 				message: `Are you sure you want to revoke "${keyName}"? This action cannot be undone.`,
 			}),
 			actions: [
 				{
-					label: t({ id: "settings.apiKeys.revokeCancel", message: "Cancel" }),
+					label: t({ message: "Cancel" }),
 					variant: "outline",
 					onClick: () => {},
 				},
 				{
-					label: t({ id: "settings.apiKeys.revokeConfirm", message: "Revoke" }),
+					label: t({ message: "Revoke" }),
 					variant: "destructive",
 					onClick: () => {
 						revokeMutation.mutate({ id });
@@ -155,7 +147,7 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 	};
 
 	const formatDate = (date: Date | string | null) => {
-		if (!date) return t({ id: "settings.apiKeys.neverUsed", message: "Never" });
+		if (!date) return t({ message: "Never" });
 		const d = date instanceof Date ? date : new Date(date);
 		return formatLocaleDate(d, {
 			month: "short",
@@ -170,12 +162,12 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 				<div>
 					<h2 className="text-xl font-semibold">
 						<HighlightText
-							text={t({ id: "settings.apiKeys.title", message: "API keys" })}
+							text={t({ message: "API keys" })}
 							query={searchQuery}
 						/>
 					</h2>
 					<p className="text-sm text-muted-foreground mt-1">
-						<Trans id="settings.apiKeys.subtitle">
+						<Trans>
 							Manage keys for MCP server access and external integrations like
 							Claude Desktop or Claude Code.{" "}
 							<a
@@ -197,7 +189,7 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 						className="gap-2 shrink-0"
 					>
 						<HiOutlinePlus className="h-4 w-4" />
-						<Trans id="settings.apiKeys.generateButton">Generate key</Trans>
+						<Trans>Generate key</Trans>
 					</Button>
 				)}
 			</div>
@@ -219,12 +211,10 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 					<div className="text-center py-12 text-sm text-muted-foreground">
 						<HiOutlineKey className="h-8 w-8 mx-auto mb-3 opacity-50" />
 						<p>
-							<Trans id="settings.apiKeys.emptyTitle">No API keys yet.</Trans>
+							<Trans>No API keys yet.</Trans>
 						</p>
 						<p className="text-xs mt-1">
-							<Trans id="settings.apiKeys.emptyHint">
-								Generate a key to use with MCP servers.
-							</Trans>
+							<Trans>Generate a key to use with MCP servers.</Trans>
 						</p>
 					</div>
 				) : (
@@ -240,7 +230,6 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 										<div className="text-sm font-medium truncate">
 											{key.name ??
 												t({
-													id: "settings.apiKeys.unnamedKey",
 													message: "Unnamed key",
 												})}
 										</div>
@@ -251,7 +240,7 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 								</div>
 								<div className="flex items-center gap-4 shrink-0">
 									<div className="text-xs text-muted-foreground tabular-nums hidden sm:block">
-										<Trans id="settings.apiKeys.keyDates">
+										<Trans>
 											Created {formatDate(key.createdAt)} · Last used{" "}
 											{formatDate(key.lastRequest)}
 										</Trans>
@@ -262,7 +251,6 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 										className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
 										onClick={() => handleRevokeKey(key.id, key.name)}
 										aria-label={t({
-											id: "settings.apiKeys.revokeKeyAriaLabel",
 											message: "Revoke key",
 										})}
 									>
@@ -280,14 +268,13 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 						<DialogTitle>
 							<HighlightText
 								text={t({
-									id: "settings.apiKeys.generateDialogTitle",
 									message: "Generate API key",
 								})}
 								query={searchQuery}
 							/>
 						</DialogTitle>
 						<DialogDescription>
-							<Trans id="settings.apiKeys.generateDialogDescription">
+							<Trans>
 								Create a new API key for external integrations like Claude
 								Desktop or Claude Code.
 							</Trans>
@@ -295,12 +282,11 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 					</DialogHeader>
 					<div className="space-y-2 py-2">
 						<Label htmlFor="key-name">
-							<Trans id="settings.apiKeys.keyNameLabel">Key name</Trans>
+							<Trans>Key name</Trans>
 						</Label>
 						<Input
 							id="key-name"
 							placeholder={t({
-								id: "settings.apiKeys.keyNamePlaceholder",
 								message: "e.g. Claude Desktop",
 							})}
 							value={newKeyName}
@@ -310,7 +296,7 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 							}}
 						/>
 						<p className="text-xs text-muted-foreground">
-							<Trans id="settings.apiKeys.keyNameHint">
+							<Trans>
 								Give your key a descriptive name to remember where it's used.
 							</Trans>
 						</p>
@@ -320,20 +306,16 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 							variant="outline"
 							onClick={() => setShowGenerateDialog(false)}
 						>
-							<Trans id="settings.apiKeys.generateCancel">Cancel</Trans>
+							<Trans>Cancel</Trans>
 						</Button>
 						<Button
 							onClick={handleGenerateKey}
 							disabled={!newKeyName.trim() || isGenerating}
 						>
 							{isGenerating ? (
-								<Trans id="settings.apiKeys.generatingButton">
-									Generating...
-								</Trans>
+								<Trans>Generating...</Trans>
 							) : (
-								<Trans id="settings.apiKeys.generateConfirm">
-									Generate key
-								</Trans>
+								<Trans>Generate key</Trans>
 							)}
 						</Button>
 					</DialogFooter>
@@ -344,12 +326,10 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>
-							<Trans id="settings.apiKeys.createdDialogTitle">
-								API key generated
-							</Trans>
+							<Trans>API key generated</Trans>
 						</DialogTitle>
 						<DialogDescription>
-							<Trans id="settings.apiKeys.createdDialogDescription">
+							<Trans>
 								Copy your key now — you won't be able to see it again.
 							</Trans>
 						</DialogDescription>
@@ -363,7 +343,6 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 								className="absolute right-1 top-1 h-7 w-7"
 								onClick={handleCopyKey}
 								aria-label={t({
-									id: "settings.apiKeys.copyKeyAriaLabel",
 									message: "Copy key",
 								})}
 							>
@@ -372,15 +351,13 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 						</div>
 						{copied && (
 							<p className="text-xs text-muted-foreground">
-								<Trans id="settings.apiKeys.copiedNotice">
-									Copied to clipboard.
-								</Trans>
+								<Trans>Copied to clipboard.</Trans>
 							</p>
 						)}
 					</div>
 					<DialogFooter>
 						<Button onClick={() => setShowNewKeyDialog(false)}>
-							<Trans id="settings.apiKeys.doneButton">Done</Trans>
+							<Trans>Done</Trans>
 						</Button>
 					</DialogFooter>
 				</DialogContent>

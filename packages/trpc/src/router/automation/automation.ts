@@ -556,6 +556,7 @@ export const automationRouter = {
 						v2ProjectId: nextProjectId,
 						v2WorkspaceId: nextWorkspaceId,
 						tags: input.tags ?? existing.tags,
+						prompt: input.prompt ?? existing.prompt,
 					})
 					.where(eq(automations.id, input.id))
 					.returning();
@@ -568,6 +569,16 @@ export const automationRouter = {
 					});
 				}
 
+				// Only on a real change, so saving a scope tweak doesn't mint a
+				// version identical to the last one.
+				if (input.prompt !== undefined && input.prompt !== existing.prompt) {
+					await recordPromptVersion(tx, {
+						automationId: row.id,
+						authorUserId: ctx.session.user.id,
+						content: input.prompt,
+						source: promptSourceFromSession(ctx.session),
+					});
+				}
 				if (input.triggers) {
 					await saveTriggerSet(tx, {
 						automationId: row.id,
@@ -688,7 +699,7 @@ export const automationRouter = {
 			const organizationId = await requireActiveOrgMembership(ctx);
 			await getAutomationForUser(ctx.session.user.id, organizationId, input.id);
 
-			await dbWs.delete(automations).where(eq(automations.id, input.id));
+			await db.delete(automations).where(eq(automations.id, input.id));
 
 			return { ok: true };
 		}),

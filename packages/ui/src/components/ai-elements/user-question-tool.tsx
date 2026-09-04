@@ -221,16 +221,14 @@ export const UserQuestionTool = ({
 			<div className="flex items-center justify-between border-border/60 border-b bg-muted/20 px-3 py-1.5">
 				<div className="flex items-center gap-1.5">
 					<span className="text-xs text-muted-foreground">
-						{current.header ?? (
-							<Trans id="ui.userQuestionTool.header">Question</Trans>
-						)}
+						{current.header ?? <Trans>Question</Trans>}
 					</span>
 					<span className="text-muted-foreground/50">&middot;</span>
 					<span className="text-xs text-muted-foreground">
 						{isMulti ? (
-							<Trans id="ui.userQuestionTool.multiSelect">Multi-select</Trans>
+							<Trans>Multi-select</Trans>
 						) : (
-							<Trans id="ui.userQuestionTool.singleSelect">Single-select</Trans>
+							<Trans>Single-select</Trans>
 						)}
 					</span>
 				</div>
@@ -340,7 +338,7 @@ export const UserQuestionTool = ({
 					size="sm"
 					variant="ghost"
 				>
-					<Trans id="ui.userQuestionTool.skipAll">Skip All</Trans>
+					<Trans>Skip All</Trans>
 				</Button>
 				<Button
 					className="h-6 rounded-md px-3 text-xs"
@@ -349,14 +347,10 @@ export const UserQuestionTool = ({
 					size="sm"
 				>
 					{isSubmitting ? (
-						<Trans id="ui.userQuestionTool.sending">Sending...</Trans>
+						<Trans>Sending...</Trans>
 					) : (
 						<>
-							{isLast ? (
-								<Trans id="ui.userQuestionTool.submit">Submit</Trans>
-							) : (
-								<Trans id="ui.userQuestionTool.continue">Continue</Trans>
-							)}
+							{isLast ? <Trans>Submit</Trans> : <Trans>Continue</Trans>}
 							<CornerDownLeftIcon className="ml-1 h-3 w-3 opacity-60" />
 						</>
 					)}

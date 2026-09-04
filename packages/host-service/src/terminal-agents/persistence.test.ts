@@ -263,7 +263,7 @@ describe("binding end marking and resume candidates", () => {
 		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeUndefined();
 	});
 
-	it("does not offer never-prompted sessions (nothing persisted to resume)", () => {
+	it("offers never-prompted sessions too (the relaunch decides resume vs fresh)", () => {
 		const db = createTestDb();
 		db.insert(terminalSessions)
 			.values({
@@ -281,13 +281,16 @@ describe("binding end marking and resume candidates", () => {
 				agentSessionId: "sess-empty",
 				startedAt: 1,
 				lastEventAt: 2,
-				// SessionStart only — the agent never received a prompt, so the
-				// CLI has no conversation on disk to restore.
+				// SessionStart only — the agent never received a prompt. Still a
+				// candidate: resumeTerminalAgentSession checks the harness store
+				// and launches fresh when there is no conversation to restore.
 				lastEventType: "Attached",
 			})
 			.run();
 		markTerminalAgentBindingEnded(db, "t1", "terminal-exited");
-		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeUndefined();
+		expect(findResumeCandidateBinding(db, "ws-1", "t1")?.lastEventType).toBe(
+			"Attached",
+		);
 	});
 
 	it("getEnded reports end state only for ended rows", () => {

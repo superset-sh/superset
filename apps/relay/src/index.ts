@@ -1,5 +1,6 @@
 import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
+import { buildUpstreamHeaders } from "@superset/shared/host-routing";
 import type { Context, MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -330,10 +331,7 @@ app.all("/hosts/:hostId/trpc/*", async (c) => {
 	const path = `${url.pathname.slice(prefix.length) || "/"}${url.search}`;
 	const body = (await c.req.text().catch(() => "")) || undefined;
 
-	const headers: Record<string, string> = {};
-	for (const [key, value] of c.req.raw.headers.entries()) {
-		if (key !== "host" && key !== "authorization") headers[key] = value;
-	}
+	const headers = buildUpstreamHeaders(c.req.raw.headers, c.get("auth").sub);
 
 	try {
 		const res = await tunnelManager.sendHttpRequest(hostId, {

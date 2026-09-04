@@ -32,7 +32,6 @@ export function getPresetProjectTargetLabel(
 	if (normalizedProjectIds === null) {
 		return i18n._(
 			msg({
-				id: "settings.terminal.presetTarget.allProjects",
 				message: "All projects",
 			}),
 		);
@@ -47,7 +46,6 @@ export function getPresetProjectTargetLabel(
 			selectedProjects[0]?.name ??
 			i18n._(
 				msg({
-					id: "settings.terminal.presetTarget.unknownProject",
 					message: "Unknown project",
 				}),
 			)
@@ -56,7 +54,6 @@ export function getPresetProjectTargetLabel(
 
 	return i18n._(
 		msg({
-			id: "settings.terminal.presetTarget.projectCount",
 			message: `${normalizedProjectIds.length} projects`,
 		}),
 	);

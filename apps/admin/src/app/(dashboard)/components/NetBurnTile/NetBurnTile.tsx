@@ -23,12 +23,11 @@ export function NetBurnTile() {
 	const trpc = useTRPC();
 	const chartConfig = {
 		netBurnUsd: {
-			label: t({ id: "admin.netBurn.seriesNetBurn", message: "net burn" }),
+			label: t({ message: "net burn" }),
 			color: "var(--chart-1)",
 		},
 		stripeInUsd: {
 			label: t({
-				id: "admin.netBurn.seriesStripeRevenue",
 				message: "Stripe revenue",
 			}),
 			color: "var(--chart-2)",
@@ -47,11 +46,9 @@ export function NetBurnTile() {
 	return (
 		<InsightTileFrame
 			title={t({
-				id: "admin.netBurn.title",
 				message: "Net burn — monthly (Mercury)",
 			})}
 			description={t({
-				id: "admin.netBurn.description",
 				message:
 					"Outflows less Stripe payouts per month (treasury sweeps excluded); current month partial",
 			})}
@@ -62,7 +59,6 @@ export function NetBurnTile() {
 			emptyLabel={
 				unavailableReason
 					? t({
-							id: "admin.tile.unavailableReason",
 							message: `Unavailable: ${unavailableReason}`,
 						})
 					: undefined

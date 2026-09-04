@@ -161,9 +161,7 @@ export function HostReadinessBanner({
 								variant="outline"
 								onClick={() => signIn("install")}
 							>
-								<Trans id="settings.hosts.readiness.installGh">
-									Install GitHub CLI…
-								</Trans>
+								<Trans>Install GitHub CLI…</Trans>
 							</Button>
 						) : null
 					}
@@ -188,9 +186,7 @@ export function HostReadinessBanner({
 								variant="outline"
 								onClick={() => signIn("auth")}
 							>
-								<Trans id="settings.hosts.readiness.signInGh">
-									Sign in to GitHub…
-								</Trans>
+								<Trans>Sign in to GitHub…</Trans>
 							</Button>
 						) : null
 					}

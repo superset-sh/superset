@@ -1,11 +1,23 @@
+import { SUPERSET_USER_ID_HEADER } from "@superset/shared/host-routing";
 import { getJwt } from "./auth-client";
 
 const secrets = new Map<string, string>();
 
 let clientMachineId: string | null = null;
+let clientUserId: string | null = null;
 
 export function setClientMachineId(machineId: string): void {
 	clientMachineId = machineId;
+}
+
+/**
+ * The signed-in user, sent on every host-service call so the host can stamp
+ * `createdByUserId` on what this client creates. A local host trusts it
+ * because the caller holds its secret; the relay replaces it with the JWT
+ * subject before a remote host ever sees it.
+ */
+export function setClientUserId(userId: string | null): void {
+	clientUserId = userId;
 }
 
 export function setHostServiceSecret(hostUrl: string, secret: string): void {
@@ -35,6 +47,7 @@ export function getHostServiceHeaders(hostUrl: string): Record<string, string> {
 	const headers: Record<string, string> = clientMachineId
 		? { "x-superset-client-machine-id": clientMachineId }
 		: {};
+	if (clientUserId) headers[SUPERSET_USER_ID_HEADER] = clientUserId;
 	const previewToken = previewTokens.get(hostUrl);
 	if (previewToken) headers["X-Blaxel-Preview-Token"] = previewToken;
 	const secret = secrets.get(hostUrl);

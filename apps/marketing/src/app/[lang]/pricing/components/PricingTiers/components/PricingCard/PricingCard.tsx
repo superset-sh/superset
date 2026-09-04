@@ -34,7 +34,7 @@ export function PricingCard({ tier, isYearly }: PricingCardProps) {
 					</h3>
 					{tier.highlight && (
 						<span className="rounded-sm bg-foreground px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-background">
-							<Trans id="marketing.pricing.card.popularBadge">Popular</Trans>
+							<Trans>Popular</Trans>
 						</span>
 					)}
 				</div>

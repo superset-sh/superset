@@ -71,11 +71,9 @@ export function PagePaneHeaderExtras({
 						size="icon"
 						className="size-6 p-0 text-muted-foreground/60 hover:text-muted-foreground"
 						aria-label={t({
-							id: "workspace.pagePane.sharePageAria",
 							message: "Share page",
 						})}
 						title={t({
-							id: "workspace.pagePane.sharePageTitle",
 							message: "Share page",
 						})}
 					>

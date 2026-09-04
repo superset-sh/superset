@@ -103,22 +103,20 @@ export function PluginsView() {
 			<Tabs defaultValue="plugins">
 				<TabsList className="mb-6">
 					<TabsTrigger value="plugins">
-						<Trans id="dashboard.plugins.tabs.plugins">Plugins</Trans>
+						<Trans>Plugins</Trans>
 					</TabsTrigger>
 					<TabsTrigger value="skills">
-						<Trans id="dashboard.plugins.tabs.skills">Skills</Trans>
+						<Trans>Skills</Trans>
 					</TabsTrigger>
 				</TabsList>
 
 				<TabsContent value="plugins" className="flex flex-col gap-6">
 					<div>
 						<h1 className="text-2xl font-semibold text-foreground">
-							<Trans id="dashboard.plugins.title">Plugins</Trans>
+							<Trans>Plugins</Trans>
 						</h1>
 						<p className="mt-1 text-sm text-muted-foreground">
-							<Trans id="dashboard.plugins.subtitle">
-								Work with your agents across your favorite tools
-							</Trans>
+							<Trans>Work with your agents across your favorite tools</Trans>
 						</p>
 					</div>
 
@@ -128,7 +126,6 @@ export function PluginsView() {
 							value={search}
 							onChange={(event) => setSearch(event.target.value)}
 							placeholder={t({
-								id: "dashboard.plugins.searchPlaceholder",
 								message: "Search plugins",
 							})}
 							className="rounded-full pl-9"
@@ -139,9 +136,7 @@ export function PluginsView() {
 						<section className="flex flex-col gap-3">
 							<div className="flex items-center justify-between">
 								<h2 className="text-sm font-semibold text-foreground">
-									<Trans id="dashboard.plugins.installedHeading">
-										Installed
-									</Trans>
+									<Trans>Installed</Trans>
 								</h2>
 								<Tooltip delayDuration={300}>
 									<TooltipTrigger asChild>
@@ -150,7 +145,6 @@ export function PluginsView() {
 											size="icon-xs"
 											className="text-muted-foreground"
 											aria-label={t({
-												id: "dashboard.plugins.managePlugins",
 												message: "Manage plugins",
 											})}
 											onClick={() => setIsManageOpen(true)}
@@ -159,9 +153,7 @@ export function PluginsView() {
 										</Button>
 									</TooltipTrigger>
 									<TooltipContent>
-										<Trans id="dashboard.plugins.managePlugins">
-											Manage plugins
-										</Trans>
+										<Trans>Manage plugins</Trans>
 									</TooltipContent>
 								</Tooltip>
 							</div>
@@ -188,9 +180,7 @@ export function PluginsView() {
 											{disabledNames.has(plugin.name) ? (
 												<>
 													{" "}
-													<Trans id="dashboard.plugins.disabledSuffix">
-														(disabled)
-													</Trans>
+													<Trans>(disabled)</Trans>
 												</>
 											) : (
 												""
@@ -205,7 +195,7 @@ export function PluginsView() {
 					{featured.length > 0 && (
 						<section className="flex flex-col gap-3">
 							<h2 className="text-sm font-semibold text-foreground">
-								<Trans id="dashboard.plugins.featuredHeading">Featured</Trans>
+								<Trans>Featured</Trans>
 							</h2>
 							<div className="grid grid-cols-1 gap-2 md:grid-cols-2">
 								{featured.map(renderCard)}
@@ -226,9 +216,7 @@ export function PluginsView() {
 
 					{visiblePlugins.length === 0 && (
 						<p className="py-8 text-center text-sm text-muted-foreground">
-							<Trans id="dashboard.plugins.noSearchMatches">
-								No plugins match "{search.trim()}"
-							</Trans>
+							<Trans>No plugins match "{search.trim()}"</Trans>
 						</p>
 					)}
 
@@ -245,10 +233,10 @@ export function PluginsView() {
 				<TabsContent value="skills" className="flex flex-col gap-6">
 					<div>
 						<h1 className="text-2xl font-semibold text-foreground">
-							<Trans id="dashboard.plugins.skillsTitle">Skills</Trans>
+							<Trans>Skills</Trans>
 						</h1>
 						<p className="mt-1 text-sm text-muted-foreground">
-							<Trans id="dashboard.plugins.skillsSubtitle">
+							<Trans>
 								Reusable instructions your agents pick up automatically
 							</Trans>
 						</p>

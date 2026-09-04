@@ -100,7 +100,7 @@ function ThemeRow({
 									<ThemeSwatch theme={includeSystem.darkTheme} />
 								</div>
 								<span className="truncate text-xs">
-									<Trans id="settings.appearance.theme.system">System</Trans>
+									<Trans>System</Trans>
 								</span>
 							</div>
 						) : (
@@ -121,9 +121,7 @@ function ThemeRow({
 										<ThemeSwatch theme={includeSystem.darkTheme} />
 									</div>
 									<span className="truncate">
-										<Trans id="settings.appearance.theme.systemOption">
-											System
-										</Trans>
+										<Trans>System</Trans>
 									</span>
 								</div>
 							</SelectItem>
@@ -172,15 +170,12 @@ export function ThemeSection() {
 	const customDarkThemes = darkThemes.filter((t) => t.isCustom);
 
 	const lightGroupLabel = t({
-		id: "settings.appearance.themeGroup.light",
 		message: "Light",
 	});
 	const darkGroupLabel = t({
-		id: "settings.appearance.themeGroup.dark",
 		message: "Dark",
 	});
 	const customGroupLabel = t({
-		id: "settings.appearance.themeGroup.custom",
 		message: "Custom",
 	});
 
@@ -231,12 +226,10 @@ export function ThemeSection() {
 		if (file.size > MAX_THEME_FILE_SIZE) {
 			toast.error(
 				t({
-					id: "settings.appearance.themeImport.tooLarge",
 					message: "Theme file too large",
 				}),
 				{
 					description: t({
-						id: "settings.appearance.themeImport.tooLargeHint",
 						message: "Maximum size is 256 KB.",
 					}),
 				},
@@ -252,7 +245,6 @@ export function ThemeSection() {
 			if (!parsed.ok) {
 				toast.error(
 					t({
-						id: "settings.appearance.themeImport.parseFailed",
 						message: "Failed to import theme file",
 					}),
 					{
@@ -268,19 +260,16 @@ export function ThemeSection() {
 			if (totalImported === 0) {
 				toast.error(
 					t({
-						id: "settings.appearance.themeImport.noneImported",
 						message: "No themes were imported",
 					}),
 					{
 						description:
 							summary.skipped > 0
 								? t({
-										id: "settings.appearance.themeImport.reservedIds",
 										message:
 											"All themes used reserved IDs (built-in or system).",
 									})
 								: t({
-										id: "settings.appearance.themeImport.nothingImportable",
 										message: "The file did not contain any importable themes.",
 									}),
 					},
@@ -290,7 +279,6 @@ export function ThemeSection() {
 
 			toast.success(
 				t({
-					id: "settings.appearance.themeImport.success",
 					message: plural(totalImported, {
 						one: "Imported # custom theme",
 						other: "Imported # custom themes",
@@ -300,7 +288,6 @@ export function ThemeSection() {
 					description:
 						summary.updated > 0
 							? t({
-									id: "settings.appearance.themeImport.updatedCount",
 									message: plural(summary.updated, {
 										one: "# existing theme updated",
 										other: "# existing themes updated",
@@ -313,7 +300,6 @@ export function ThemeSection() {
 			if (parsed.issues.length > 0) {
 				toast.warning(
 					t({
-						id: "settings.appearance.themeImport.someSkipped",
 						message: "Some themes were skipped",
 					}),
 					{
@@ -324,14 +310,12 @@ export function ThemeSection() {
 		} catch (error) {
 			toast.error(
 				t({
-					id: "settings.appearance.themeImport.readFailed",
 					message: "Failed to import theme file",
 				}),
 				{
 					description: errorMessage(
 						error,
 						t({
-							id: "settings.appearance.themeImport.unableToRead",
 							message: "Unable to read file",
 						}),
 					),
@@ -371,11 +355,10 @@ export function ThemeSection() {
 		<>
 			<ThemeRow
 				label={t({
-					id: "settings.appearance.theme.label",
 					message: "Theme",
 				})}
 				hint={
-					<Trans id="settings.appearance.theme.hint">
+					<Trans>
 						Pick a theme or follow your system appearance. Browse the{" "}
 						<a
 							href={`${COMPANY.MARKETING_URL}/marketplace/themes`}
@@ -412,11 +395,9 @@ export function ThemeSection() {
 				<>
 					<ThemeRow
 						label={t({
-							id: "settings.appearance.theme.lightLabel",
 							message: "Light theme",
 						})}
 						hint={t({
-							id: "settings.appearance.theme.lightHint",
 							message: "Used when your system is in light mode.",
 						})}
 						value={systemLightThemeId}
@@ -426,11 +407,9 @@ export function ThemeSection() {
 					/>
 					<ThemeRow
 						label={t({
-							id: "settings.appearance.theme.darkLabel",
 							message: "Dark theme",
 						})}
 						hint={t({
-							id: "settings.appearance.theme.darkHint",
 							message: "Used when your system is in dark mode.",
 						})}
 						value={systemDarkThemeId}
@@ -445,7 +424,6 @@ export function ThemeSection() {
 					<div className="text-sm font-medium">
 						<HighlightText
 							text={t({
-								id: "settings.appearance.customThemes.label",
 								message: "Custom themes",
 							})}
 							query={searchQuery}
@@ -454,7 +432,6 @@ export function ThemeSection() {
 					<div className="text-xs text-muted-foreground">
 						<HighlightText
 							text={t({
-								id: "settings.appearance.customThemes.hint",
 								message: "Import a theme file or grab a starter to edit.",
 							})}
 							query={searchQuery}
@@ -476,9 +453,7 @@ export function ThemeSection() {
 						onClick={handleDownloadBaseTheme}
 					>
 						<HiOutlineArrowDownTray className="mr-1.5 h-4 w-4" />
-						<Trans id="settings.appearance.customThemes.downloadStarter">
-							Download starter
-						</Trans>
+						<Trans>Download starter</Trans>
 					</Button>
 					<Button
 						type="button"
@@ -488,13 +463,7 @@ export function ThemeSection() {
 						disabled={isImporting}
 					>
 						<HiOutlineArrowUpTray className="mr-1.5 h-4 w-4" />
-						{isImporting ? (
-							<Trans id="settings.appearance.customThemes.importing">
-								Importing...
-							</Trans>
-						) : (
-							<Trans id="settings.appearance.customThemes.import">Import</Trans>
-						)}
+						{isImporting ? <Trans>Importing...</Trans> : <Trans>Import</Trans>}
 					</Button>
 				</div>
 			</div>

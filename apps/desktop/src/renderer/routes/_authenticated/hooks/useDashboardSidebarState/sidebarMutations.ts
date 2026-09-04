@@ -5,8 +5,19 @@ import type { AppCollections } from "renderer/routes/_authenticated/providers/Co
 
 export type SidebarWorkspaceRow = Pick<
 	HostShapedWorkspace,
-	"id" | "projectId" | "type" | "hostId"
+	"id" | "projectId" | "type" | "hostId" | "createdByUserId"
 >;
+
+/**
+ * Who the sidebar reconciler places for: the local host unconditionally, a
+ * remote host only for worktrees this user created. Mirrors
+ * `selectWorktreesToPlace` so removal tombstones exactly what placement could
+ * bring back.
+ */
+export type SidebarPlacementScope = {
+	machineId: string | null;
+	currentUserId: string | null;
+};
 
 /**
  * Pure sidebar local-state mutations, kept free of React/Electron imports so
@@ -71,12 +82,18 @@ export function tombstoneSidebarWorkspaceRecord(
  * (`buildDashboardSidebarProjects` drops any workspace whose project is absent).
  *
  * Worktrees are tombstoned so "removed" stays removed. A worktree with no
- * local-state row would be re-placed by `usePlaceLocalWorktreesInSidebar`
+ * local-state row would be re-placed by `usePlaceWorktreesInSidebar`
  * (recreating the project), and a kept-but-visible row would flood back the
  * moment anything recreates the project row — e.g. a later automation-created
- * worktree. Hiding each one (existing rows, plus this device's row-less
- * worktrees the reconciler could re-pin) means a resurrected project shows only
- * the genuinely-new worktree, not these dismissed ones.
+ * worktree. Hiding each one (existing rows, plus every known row-less worktree
+ * the reconciler could re-pin) means a resurrected project shows only the
+ * genuinely-new worktree, not these dismissed ones. Row-less worktrees are
+ * tombstoned on every host the reconciler could place from — the local host,
+ * plus any remote host for worktrees this user created — not just online
+ * ones: a host that is offline now would re-place the project the moment it
+ * comes back. Teammates' worktrees on a shared host never qualify for
+ * placement, so they get no tombstone; on a busy host that would be hundreds
+ * of localStorage rows per removal for nothing.
  *
  * `main` workspaces are intentionally left alone: they surface via the gated
  * auto-include path (never re-pinned, never create a project record), so
@@ -91,7 +108,7 @@ export function removeProjectFromSidebarState(
 	>,
 	workspaces: SidebarWorkspaceRow[],
 	projectId: string,
-	machineId: string,
+	placement: SidebarPlacementScope,
 	cleanupPaneRuntimes: CleanupPaneRuntimes,
 ): void {
 	const mainWorkspaceIds = new Set(
@@ -110,13 +127,13 @@ export function removeProjectFromSidebarState(
 		}
 	}
 	for (const ws of workspaces) {
-		if (
-			ws.projectId === projectId &&
-			ws.type === "worktree" &&
-			ws.hostId === machineId
-		) {
-			worktreeIds.add(ws.id);
-		}
+		if (ws.projectId !== projectId || ws.type !== "worktree") continue;
+		const isLocal =
+			placement.machineId !== null && ws.hostId === placement.machineId;
+		const isMine =
+			placement.currentUserId !== null &&
+			ws.createdByUserId === placement.currentUserId;
+		if (isLocal || isMine) worktreeIds.add(ws.id);
 	}
 
 	for (const workspaceId of worktreeIds) {

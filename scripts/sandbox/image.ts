@@ -15,6 +15,7 @@ import { join } from "node:path";
 import { ImageInstance } from "@blaxel/core";
 import {
 	SANDBOX_CREDENTIAL_PLACEHOLDER,
+	SANDBOX_IMAGE_NAME,
 	SANDBOX_WORKSPACE_PATH,
 } from "../../packages/shared/src/constants.ts";
 
@@ -28,16 +29,7 @@ const HOST_SERVICE_PKG = join(
 
 /** Blaxel reserves 80, 443 and 8080; host-service's default is 4879. */
 const HOST_SERVICE_PORT = 4879;
-const IMAGE_NAME = process.env.SANDBOX_IMAGE_NAME ?? "superset-hostsvc";
-
-/**
- * Baked into the image so a workspace never clones. Public URL on purpose: the
- * build needs no credential, and the runtime supplies one per fetch.
- */
-const SANDBOX_REPO_URL =
-	process.env.SANDBOX_REPO_URL ?? "https://github.com/superset-sh/superset.git";
-const SANDBOX_REPO_DEFAULT_BRANCH =
-	process.env.SANDBOX_REPO_DEFAULT_BRANCH ?? "main";
+const IMAGE_NAME = process.env.SANDBOX_IMAGE_NAME ?? SANDBOX_IMAGE_NAME;
 
 /**
  * Read from host-service rather than hardcoded: a sandbox running a
@@ -56,6 +48,18 @@ function pinnedVersion(dep: string): string {
 	}
 	return version;
 }
+
+// The repo pins bun once, in .bun-version; a sandbox on any other version
+// rejects the frozen lockfile and every dependency install fails.
+const BUN_VERSION = readFileSync(
+	join(import.meta.dir, "..", "..", ".bun-version"),
+	"utf8",
+).trim();
+
+const AGENT_CLI_VERSIONS = {
+	claudeCode: "2.1.257",
+	codex: "0.152.0",
+} as const;
 
 const natives = [
 	`better-sqlite3@${pinnedVersion("better-sqlite3")}`,
@@ -95,7 +99,37 @@ function assertBuilt(): void {
 export const sandboxImage = ImageInstance.fromRegistry("node:24-bookworm-slim")
 	// git for the workspace checkout, openssh-client for SSH remotes, ca-certificates
 	// for HTTPS clones. Deliberately no build-essential/python3 — see the header.
-	.aptInstall("git", "ca-certificates", "openssh-client", "curl")
+	.aptInstall(
+		"git",
+		"git-lfs",
+		"ca-certificates",
+		"openssh-client",
+		"curl",
+		"wget",
+		"procps",
+		"rsync",
+		"zip",
+		"unzip",
+		"tzdata",
+		"locales",
+		"less",
+		"jq",
+		"ripgrep",
+		"sqlite3",
+		"inotify-tools",
+		"dnsutils",
+		"iputils-ping",
+		"netcat-openbsd",
+		"vim",
+		"xvfb",
+		"xauth",
+		"x11vnc",
+		"openbox",
+		"iproute2",
+	)
+	.runCommands(
+		`npm install -g bun@${BUN_VERSION} --no-audit --no-fund && bun --version`,
+	)
 	.workdir("/app")
 	.runCommands("npm init -y")
 	// The bundle is ESM; without this Node parses /app/*.js as CommonJS and
@@ -115,7 +149,7 @@ export const sandboxImage = ImageInstance.fromRegistry("node:24-bookworm-slim")
 	// user's locally-installed agents. Both read their key from the
 	// environment, which is how the sandbox is handed credentials.
 	.runCommands(
-		"npm install -g @anthropic-ai/claude-code @openai/codex --no-audit --no-fund && claude --version && codex --version",
+		`npm install -g @anthropic-ai/claude-code@${AGENT_CLI_VERSIONS.claudeCode} @openai/codex@${AGENT_CLI_VERSIONS.codex} --no-audit --no-fund && claude --version && codex --version`,
 	)
 	// Every first run of the Claude TUI otherwise opens with a theme picker, an
 	// "approve this API key?" prompt and a workspace trust dialog — three
@@ -154,6 +188,11 @@ export const sandboxImage = ImageInstance.fromRegistry("node:24-bookworm-slim")
 		"/app/drizzle",
 		"hostsvc-drizzle",
 	)
+	.addLocalDir(
+		"packages/agent-setup/templates",
+		"/app/agent-templates",
+		"agent-templates",
+	)
 	// The supervisor resolves the daemon as ../../../pty-daemon/dist relative
 	// to its own source path, which from /app/host-service.js lands at /.
 	.addLocalDir("packages/pty-daemon/dist", "/pty-daemon/dist", "ptyd-dist")
@@ -161,18 +200,6 @@ export const sandboxImage = ImageInstance.fromRegistry("node:24-bookworm-slim")
 	// upward from /pty-daemon. Linked rather than installed twice so the two
 	// can never diverge on the native addon's version.
 	.runCommands("ln -s /app/node_modules /pty-daemon/node_modules")
-	// The repo, baked. This is the difference between a sandbox and a VM someone
-	// configures over SSH: a clone of 280 MiB of history at request time cost
-	// ~40s and put the slowest step of provisioning on the critical path. Built
-	// in, a workspace only has to move to its branch — a one-ref fetch against
-	// an object store that is already warm.
-	//
-	// SANDBOX_REPO_URL is baked without credentials; the token is supplied per
-	// fetch from the environment at runtime, so nothing durable in the image or
-	// in .git/config can read it.
-	.runCommands(
-		`git clone --filter=blob:none --no-checkout ${SANDBOX_REPO_URL} ${SANDBOX_WORKSPACE_PATH} && cd ${SANDBOX_WORKSPACE_PATH} && git checkout ${SANDBOX_REPO_DEFAULT_BRANCH} && git remote set-url origin ${SANDBOX_REPO_URL}`,
-	)
 	// The schema, baked. host-service creates it on first boot, which used to
 	// mean provisioning ran host-service once just to initialise the database
 	// and then killed it. Running that at build time instead removes the entire

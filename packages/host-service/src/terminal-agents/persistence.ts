@@ -123,11 +123,12 @@ export function getTerminalAgentBindingSessionId(
 }
 
 /**
- * A dead terminal's binding is resumable when: agent session id captured, the
- * terminal died under the agent ("terminal-exited") rather than the agent
- * detaching cleanly, and the session progressed past its start — agents only
- * persist a conversation once it has a message, so resuming a never-prompted
- * session fails with "no conversation found".
+ * A dead terminal's binding is resumable when: agent session id captured and
+ * the terminal died under the agent ("terminal-exited") rather than the agent
+ * detaching cleanly. A session still at "Attached" (started, never prompted)
+ * qualifies too: the relaunch checks the harness's store and starts the agent
+ * fresh when there is no conversation to resume — see
+ * resumeTerminalAgentSession.
  */
 function resumeCandidatePredicate(workspaceId: string, terminalId: string) {
 	return and(
@@ -136,7 +137,6 @@ function resumeCandidatePredicate(workspaceId: string, terminalId: string) {
 		isNotNull(terminalAgentBindings.endedAt),
 		eq(terminalAgentBindings.endReason, "terminal-exited"),
 		isNotNull(terminalAgentBindings.agentSessionId),
-		ne(terminalAgentBindings.lastEventType, "Attached"),
 	);
 }
 

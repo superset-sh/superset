@@ -72,17 +72,13 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
 					className="group mt-2 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
 				>
 					<span className="group-hover:hidden">
-						<Trans id="marketing.wallOfLove.translated">Translated</Trans>
+						<Trans>Translated</Trans>
 					</span>
 					<span className="hidden group-hover:inline">
 						{showOriginal ? (
-							<Trans id="marketing.wallOfLove.showTranslation">
-								Show translation
-							</Trans>
+							<Trans>Show translation</Trans>
 						) : (
-							<Trans id="marketing.wallOfLove.showOriginal">
-								Show original
-							</Trans>
+							<Trans>Show original</Trans>
 						)}
 					</span>
 				</button>
@@ -100,9 +96,7 @@ export function WallOfLoveSection() {
 			<div className="max-w-7xl mx-auto px-6 sm:px-8">
 				<div className="max-w-2xl mb-12 sm:mb-16">
 					<h2 className="text-3xl sm:text-4xl lg:text-5xl font-medium tracking-tight leading-[1.1] text-foreground">
-						<Trans id="marketing.wallOfLove.heading">
-							What builders say about Superset
-						</Trans>
+						<Trans>What builders say about Superset</Trans>
 					</h2>
 				</div>
 
@@ -123,7 +117,7 @@ export function WallOfLoveSection() {
 						onClick={() => setShowAll(true)}
 						className="mt-2 w-full border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition-colors hover:border-muted-foreground/50 md:hidden"
 					>
-						<Trans id="marketing.wallOfLove.showAll">Show all {count}</Trans>
+						<Trans>Show all {count}</Trans>
 					</button>
 				)}
 			</div>

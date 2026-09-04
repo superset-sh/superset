@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import {
 	type EffectiveCheck,
@@ -22,37 +23,40 @@ const GROUP_ORDER: GroupFilter[] = ["running", "failed", "passed", "skipped"];
 function groupTitle(filter: GroupFilter): string {
 	switch (filter) {
 		case "running":
-			return i18n._({
-				id: "mobile.checks.group.running",
-				message: "In Progress",
-			});
+			return i18n._(
+				msg({
+					message: "In Progress",
+				}),
+			);
 		case "failed":
-			return i18n._({ id: "mobile.checks.group.failed", message: "Failed" });
+			return i18n._(msg({ message: "Failed" }));
 		case "passed":
-			return i18n._({ id: "mobile.checks.group.passed", message: "Passed" });
+			return i18n._(msg({ message: "Passed" }));
 		case "skipped":
-			return i18n._({ id: "mobile.checks.group.skipped", message: "Skipped" });
+			return i18n._(msg({ message: "Skipped" }));
 	}
 }
 
 function segmentLabel(filter: ChecksFilterValue): string {
 	switch (filter) {
 		case "all":
-			return i18n._({ id: "mobile.checks.segment.all", message: "All" });
+			return i18n._(msg({ message: "All" }));
 		case "running":
-			return i18n._({
-				id: "mobile.checks.segment.running",
-				message: "Running",
-			});
+			return i18n._(
+				msg({
+					message: "Running",
+				}),
+			);
 		case "failed":
-			return i18n._({ id: "mobile.checks.segment.failed", message: "Failed" });
+			return i18n._(msg({ message: "Failed" }));
 		case "passed":
-			return i18n._({ id: "mobile.checks.segment.passed", message: "Passed" });
+			return i18n._(msg({ message: "Passed" }));
 		case "skipped":
-			return i18n._({
-				id: "mobile.checks.segment.skipped",
-				message: "Skipped",
-			});
+			return i18n._(
+				msg({
+					message: "Skipped",
+				}),
+			);
 	}
 }
 

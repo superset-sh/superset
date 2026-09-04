@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
@@ -16,8 +17,9 @@ export async function executeCommand(
 		const message = errorMessage(error);
 		toast.error(
 			i18n._({
-				id: "commandPalette.execute.failed",
-				message: 'Command "{title}" failed: {message}',
+				...msg({
+					message: 'Command "{title}" failed: {message}',
+				}),
 				values: { title: i18n._(command.title), message },
 			}),
 		);

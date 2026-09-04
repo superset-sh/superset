@@ -106,14 +106,12 @@ export function OpenInButton({
 						{showOpenInShortcut ? (
 							<HotkeyLabel
 								label={t({
-									id: "components.openInButton.openInApp",
 									message: `Open in ${currentApp.displayLabel ?? currentApp.label}`,
 								})}
 								id="OPEN_IN_APP"
 							/>
 						) : (
 							t({
-								id: "components.openInButton.openInApp",
 								message: `Open in ${currentApp.displayLabel ?? currentApp.label}`,
 							})
 						)}
@@ -129,7 +127,7 @@ export function OpenInButton({
 						disabled={!path}
 					>
 						<span>
-							<Trans id="components.openInButton.open">Open</Trans>
+							<Trans>Open</Trans>
 						</span>
 						<HiChevronDown className="size-3" />
 					</Button>

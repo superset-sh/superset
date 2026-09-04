@@ -5,6 +5,7 @@
  * lib/native/ in the distribution bundle.
  */
 import { existsSync, mkdirSync } from "node:fs";
+import { linguiMacroPlugin } from "@superset/i18n/bun-plugin";
 
 const outdir = "dist";
 if (!existsSync(outdir)) {
@@ -13,6 +14,7 @@ if (!existsSync(outdir)) {
 
 const result = await Bun.build({
 	entrypoints: ["src/serve.ts"],
+	plugins: [linguiMacroPlugin],
 	target: "node",
 	outdir,
 	naming: "host-service.js",
@@ -59,6 +61,7 @@ if (!result.success) {
 // resolution finds it next to host-service.js (see host-worker-pool.ts).
 const workerResult = await Bun.build({
 	entrypoints: ["src/workers/host-worker.ts"],
+	plugins: [linguiMacroPlugin],
 	target: "node",
 	outdir,
 	naming: "host-worker.js",

@@ -1,5 +1,8 @@
 export {
+	ArchSource,
+	detectPlatform,
 	isMacPlatform,
+	normalizeArch,
 	Platform,
 	type PlatformInfo,
 	usePlatform,

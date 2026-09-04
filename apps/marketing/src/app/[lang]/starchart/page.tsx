@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
@@ -18,13 +19,15 @@ import {
 
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
-	const title = i18n._({
-		id: "marketing.meta.starchart.title",
-		message: "Star History",
-	});
+	const title = i18n._(
+		msg({
+			message: "Star History",
+		}),
+	);
 	const description = i18n._({
-		id: "marketing.meta.starchart.description",
-		message: "See how {companyName}'s GitHub stars have grown over time.",
+		...msg({
+			message: "See how {companyName}'s GitHub stars have grown over time.",
+		}),
 		values: { companyName: COMPANY.NAME },
 	});
 	return {
@@ -69,18 +72,17 @@ export default async function StarChartPage() {
 
 	const weekOf = (date: string) => {
 		const week = formatWeekDate(date);
-		return t({ id: "marketing.starchart.weekOf", message: `week of ${week}` });
+		return t({ message: `week of ${week}` });
 	};
 
 	const perDay = (value: number) => {
 		const count = Math.round(value);
-		return t({ id: "marketing.starchart.perDay", message: `${count}/day` });
+		return t({ message: `${count}/day` });
 	};
 
 	const projectedThisWeek = (value: number) => {
 		const stars = formatStarCount(value);
 		return t({
-			id: "marketing.starchart.projectedThisWeek",
 			message: `~${stars} projected this week`,
 		});
 	};
@@ -104,21 +106,17 @@ export default async function StarChartPage() {
 					<GridCross className="top-0 right-0" />
 
 					<span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
-						<Trans id="marketing.starchart.eyebrow">Star History</Trans>
+						<Trans>Star History</Trans>
 					</span>
 					<h1 className="text-3xl md:text-4xl font-medium tracking-tight text-foreground mt-4">
 						{totalStars !== null ? (
-							<Trans id="marketing.starchart.headline">
-								{starCount} stars and counting
-							</Trans>
+							<Trans>{starCount} stars and counting</Trans>
 						) : (
-							<Trans id="marketing.starchart.headlineFallback">
-								Star History
-							</Trans>
+							<Trans>Star History</Trans>
 						)}
 					</h1>
 					<p className="text-muted-foreground mt-3 max-w-lg">
-						<Trans id="marketing.starchart.subtitle">
+						<Trans>
 							Every star on{" "}
 							<span className="font-mono text-foreground">{repoSlug}</span>,
 							plotted since launch.
@@ -130,7 +128,7 @@ export default async function StarChartPage() {
 							{pace.peak && (
 								<div>
 									<div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-										<Trans id="marketing.starchart.peakPace">Peak pace</Trans>
+										<Trans>Peak pace</Trans>
 									</div>
 									<div className="mt-1 text-lg font-medium text-foreground tabular-nums">
 										{perDay(pace.peak.perDay)}
@@ -143,9 +141,7 @@ export default async function StarChartPage() {
 							{pace.current && (
 								<div>
 									<div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-										<Trans id="marketing.starchart.currentPace">
-											Current pace
-										</Trans>
+										<Trans>Current pace</Trans>
 									</div>
 									<div className="mt-1 text-lg font-medium text-foreground tabular-nums">
 										{perDay(pace.current.perDay)}
@@ -166,9 +162,7 @@ export default async function StarChartPage() {
 							target="_blank"
 							rel="noopener noreferrer"
 						>
-							<Trans id="marketing.starchart.starOnGitHub">
-								Star on GitHub
-							</Trans>
+							<Trans>Star on GitHub</Trans>
 						</a>
 					</Button>
 
@@ -183,7 +177,7 @@ export default async function StarChartPage() {
 					<StarChartSection points={points} />
 				) : (
 					<div className="rounded-lg border border-dashed border-border p-12 text-center text-muted-foreground">
-						<Trans id="marketing.starchart.unavailable">
+						<Trans>
 							Star history isn't available right now. Check back soon.
 						</Trans>
 					</div>

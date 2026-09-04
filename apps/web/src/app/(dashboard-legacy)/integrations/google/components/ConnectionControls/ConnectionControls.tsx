@@ -56,7 +56,7 @@ export function ConnectionControls({
 			<div className="flex gap-2">
 				<Button onClick={handleConnect}>
 					<RefreshCw className="mr-2 size-4" />
-					<Trans id="web.integrations.google.reconnect">Reconnect Google</Trans>
+					<Trans>Reconnect Google</Trans>
 				</Button>
 				<Button
 					variant="outline"
@@ -64,7 +64,7 @@ export function ConnectionControls({
 					disabled={disconnectMutation.isPending}
 				>
 					<Unplug className="mr-2 size-4" />
-					<Trans id="web.integrations.remove">Remove</Trans>
+					<Trans>Remove</Trans>
 				</Button>
 			</div>
 		);
@@ -77,23 +77,19 @@ export function ConnectionControls({
 					<Button variant="outline" disabled={disconnectMutation.isPending}>
 						<Unplug className="mr-2 size-4" />
 						{disconnectMutation.isPending ? (
-							<Trans id="web.integrations.disconnecting">
-								Disconnecting...
-							</Trans>
+							<Trans>Disconnecting...</Trans>
 						) : (
-							<Trans id="web.integrations.disconnect">Disconnect</Trans>
+							<Trans>Disconnect</Trans>
 						)}
 					</Button>
 				</AlertDialogTrigger>
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>
-							<Trans id="web.integrations.google.disconnectTitle">
-								Disconnect Google?
-							</Trans>
+							<Trans>Disconnect Google?</Trans>
 						</AlertDialogTitle>
 						<AlertDialogDescription>
-							<Trans id="web.integrations.google.disconnectDescription">
+							<Trans>
 								Calendar and Gmail triggers in this organization will stop
 								firing until an account is connected again.
 							</Trans>
@@ -101,12 +97,12 @@ export function ConnectionControls({
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel>
-							<Trans id="web.integrations.cancel">Cancel</Trans>
+							<Trans>Cancel</Trans>
 						</AlertDialogCancel>
 						<AlertDialogAction
 							onClick={() => disconnectMutation.mutate({ organizationId })}
 						>
-							<Trans id="web.integrations.disconnect">Disconnect</Trans>
+							<Trans>Disconnect</Trans>
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
@@ -116,7 +112,7 @@ export function ConnectionControls({
 
 	return (
 		<Button onClick={handleConnect}>
-			<Trans id="web.integrations.google.connect">Connect Google</Trans>
+			<Trans>Connect Google</Trans>
 		</Button>
 	);
 }

@@ -52,7 +52,6 @@ type NumericSettingKey =
 const VARIANT_CONFIG = {
 	editor: {
 		title: msg({
-			id: "settings.appearance.typography.editorTitle",
 			message: "Editor typography",
 		}),
 		defaultFamily: DEFAULT_CODE_EDITOR_FONT_FAMILY,
@@ -75,7 +74,6 @@ const VARIANT_CONFIG = {
 	},
 	terminal: {
 		title: msg({
-			id: "settings.appearance.typography.terminalTitle",
 			message: "Terminal typography",
 		}),
 		defaultFamily: DEFAULT_TERMINAL_FONT_FAMILY,
@@ -198,18 +196,16 @@ export function TypographySurfaceCard({
 					</div>
 					<p className="mt-1 text-xs text-muted-foreground">
 						{variant === "editor" ? (
-							<Trans id="settings.appearance.typography.editorDescription">
-								Typography used in V2 editors and diff views.
-							</Trans>
+							<Trans>Typography used in V2 editors and diff views.</Trans>
 						) : (
-							<Trans id="settings.appearance.typography.terminalDescription">
+							<Trans>
 								Typography and cursor behavior used in V2 terminal panels.
 							</Trans>
 						)}
 						{variant === "terminal" && (
 							<>
 								{" "}
-								<Trans id="settings.appearance.typography.nerdFontsRecommended">
+								<Trans>
 									<a
 										href="https://www.nerdfonts.com"
 										target="_blank"
@@ -238,13 +234,9 @@ export function TypographySurfaceCard({
 					>
 						<RotateCcw className="size-3.5" />
 						{variant === "editor" ? (
-							<Trans id="settings.appearance.typography.resetEditor">
-								Reset editor
-							</Trans>
+							<Trans>Reset editor</Trans>
 						) : (
-							<Trans id="settings.appearance.typography.resetTerminal">
-								Reset terminal
-							</Trans>
+							<Trans>Reset terminal</Trans>
 						)}
 					</Button>
 				)}
@@ -253,9 +245,7 @@ export function TypographySurfaceCard({
 			<div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-3">
 				<div className="space-y-1.5">
 					<Label className="text-xs">
-						<Trans id="settings.appearance.typography.fontFamily">
-							Font family
-						</Trans>
+						<Trans>Font family</Trans>
 					</Label>
 					<FontFamilyCombobox
 						value={currentFamily}
@@ -269,9 +259,7 @@ export function TypographySurfaceCard({
 				</div>
 				<div className="space-y-1.5">
 					<Label htmlFor={`${variant}-font-size`} className="text-xs">
-						<Trans id="settings.appearance.typography.fontSize">
-							Font size
-						</Trans>
+						<Trans>Font size</Trans>
 					</Label>
 					<div className="relative">
 						<Input
@@ -294,12 +282,11 @@ export function TypographySurfaceCard({
 							disabled={isLoading}
 							className="pr-7"
 							aria-label={t({
-								id: "settings.appearance.typography.fontSizeAriaLabel",
 								message: `${configTitle} font size`,
 							})}
 						/>
 						<span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">
-							<Trans id="settings.appearance.typography.pxUnit">px</Trans>
+							<Trans>px</Trans>
 						</span>
 					</div>
 				</div>
@@ -308,9 +295,7 @@ export function TypographySurfaceCard({
 			<div className="mt-4 grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
 				<div className="space-y-1.5">
 					<Label htmlFor={`${variant}-line-height`} className="text-xs">
-						<Trans id="settings.appearance.typography.lineHeight">
-							Line height
-						</Trans>
+						<Trans>Line height</Trans>
 					</Label>
 					<Input
 						id={`${variant}-line-height`}
@@ -333,9 +318,7 @@ export function TypographySurfaceCard({
 				</div>
 				<div className="space-y-1.5">
 					<Label htmlFor={`${variant}-letter-spacing`} className="text-xs">
-						<Trans id="settings.appearance.typography.letterSpacing">
-							Letter spacing (px)
-						</Trans>
+						<Trans>Letter spacing (px)</Trans>
 					</Label>
 					<Input
 						id={`${variant}-letter-spacing`}
@@ -358,9 +341,7 @@ export function TypographySurfaceCard({
 				</div>
 				<div className="space-y-1.5">
 					<Label className="text-xs">
-						<Trans id="settings.appearance.typography.fontWeight">
-							Font weight
-						</Trans>
+						<Trans>Font weight</Trans>
 					</Label>
 					<Select
 						value={String(settings[config.fontWeightKey] ?? 400)}
@@ -383,14 +364,10 @@ export function TypographySurfaceCard({
 				<div className="flex items-center justify-between gap-3 min-h-14">
 					<div>
 						<Label htmlFor={`${variant}-ligatures`} className="text-xs">
-							<Trans id="settings.appearance.typography.ligatures">
-								Ligatures
-							</Trans>
+							<Trans>Ligatures</Trans>
 						</Label>
 						<p className="text-[11px] text-muted-foreground">
-							<Trans id="settings.appearance.typography.ligaturesHint">
-								Combine sequences such as =&gt; and !==.
-							</Trans>
+							<Trans>Combine sequences such as =&gt; and !==.</Trans>
 						</p>
 					</div>
 					<Switch
@@ -409,9 +386,7 @@ export function TypographySurfaceCard({
 					<>
 						<div className="space-y-1.5">
 							<Label className="text-xs">
-								<Trans id="settings.appearance.typography.minimumContrast">
-									Minimum contrast
-								</Trans>
+								<Trans>Minimum contrast</Trans>
 							</Label>
 							<Select
 								value={String(settings.terminalMinimumContrast ?? "default")}
@@ -427,29 +402,21 @@ export function TypographySurfaceCard({
 								</SelectTrigger>
 								<SelectContent>
 									<SelectItem value="default">
-										<Trans id="settings.appearance.typography.contrastThemeDefault">
-											Theme default
-										</Trans>
+										<Trans>Theme default</Trans>
 									</SelectItem>
 									<SelectItem value="3">3:1</SelectItem>
 									<SelectItem value="4.5">
-										<Trans id="settings.appearance.typography.contrastAA">
-											4.5:1 (AA)
-										</Trans>
+										<Trans>4.5:1 (AA)</Trans>
 									</SelectItem>
 									<SelectItem value="7">
-										<Trans id="settings.appearance.typography.contrastAAA">
-											7:1 (AAA)
-										</Trans>
+										<Trans>7:1 (AAA)</Trans>
 									</SelectItem>
 								</SelectContent>
 							</Select>
 						</div>
 						<div className="space-y-1.5">
 							<Label className="text-xs">
-								<Trans id="settings.appearance.typography.cursorStyle">
-									Cursor style
-								</Trans>
+								<Trans>Cursor style</Trans>
 							</Label>
 							<Select
 								value={
@@ -467,19 +434,13 @@ export function TypographySurfaceCard({
 								</SelectTrigger>
 								<SelectContent>
 									<SelectItem value="block">
-										<Trans id="settings.appearance.typography.cursorBlock">
-											Block
-										</Trans>
+										<Trans>Block</Trans>
 									</SelectItem>
 									<SelectItem value="bar">
-										<Trans id="settings.appearance.typography.cursorBar">
-											Bar
-										</Trans>
+										<Trans>Bar</Trans>
 									</SelectItem>
 									<SelectItem value="underline">
-										<Trans id="settings.appearance.typography.cursorUnderline">
-											Underline
-										</Trans>
+										<Trans>Underline</Trans>
 									</SelectItem>
 								</SelectContent>
 							</Select>
@@ -487,14 +448,10 @@ export function TypographySurfaceCard({
 						<div className="flex items-center justify-between gap-3 min-h-14 sm:col-span-2">
 							<div>
 								<Label htmlFor="terminal-cursor-blink" className="text-xs">
-									<Trans id="settings.appearance.typography.cursorBlink">
-										Cursor blinking
-									</Trans>
+									<Trans>Cursor blinking</Trans>
 								</Label>
 								<p className="text-[11px] text-muted-foreground">
-									<Trans id="settings.appearance.typography.cursorBlinkHint">
-										Animate the active terminal cursor.
-									</Trans>
+									<Trans>Animate the active terminal cursor.</Trans>
 								</p>
 							</div>
 							<Switch
@@ -515,12 +472,10 @@ export function TypographySurfaceCard({
 			<div className="mt-4 min-w-0">
 				<div className="mb-2 flex items-center justify-between gap-3">
 					<span className="text-xs text-muted-foreground">
-						<Trans id="settings.appearance.typography.livePreview">
-							Live preview
-						</Trans>
+						<Trans>Live preview</Trans>
 					</span>
 					<span className="text-[10px] tabular-nums text-muted-foreground">
-						<Trans id="settings.appearance.typography.previewMetrics">
+						<Trans>
 							{previewSize}px · {Number(previewLineHeight.toFixed(2))} line
 							height
 						</Trans>

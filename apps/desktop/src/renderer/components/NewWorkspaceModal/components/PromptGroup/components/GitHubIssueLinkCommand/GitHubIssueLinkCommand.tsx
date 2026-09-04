@@ -124,7 +124,6 @@ export function GitHubIssueLinkCommand({
 				<Command shouldFilter={false}>
 					<CommandInput
 						placeholder={t({
-							id: "components.githubIssueLinkCommand.searchPlaceholder",
 							message: "Search issues...",
 						})}
 						value={searchQuery}
@@ -140,26 +139,18 @@ export function GitHubIssueLinkCommand({
 							htmlFor={showClosedId}
 							className="cursor-pointer select-none text-xs text-muted-foreground"
 						>
-							<Trans id="components.githubIssueLinkCommand.showClosed">
-								Show closed
-							</Trans>
+							<Trans>Show closed</Trans>
 						</label>
 					</div>
 					<CommandList className="max-h-[280px]">
 						{searchResults.length === 0 && (
 							<CommandEmpty>
 								{isLoading ? (
-									<Trans id="components.githubIssueLinkCommand.loadingIssues">
-										Loading issues...
-									</Trans>
+									<Trans>Loading issues...</Trans>
 								) : showClosed ? (
-									<Trans id="components.githubIssueLinkCommand.noIssues">
-										No issues found.
-									</Trans>
+									<Trans>No issues found.</Trans>
 								) : (
-									<Trans id="components.githubIssueLinkCommand.noOpenIssues">
-										No open issues found.
-									</Trans>
+									<Trans>No open issues found.</Trans>
 								)}
 							</CommandEmpty>
 						)}
@@ -191,9 +182,7 @@ export function GitHubIssueLinkCommand({
 											{issue.title}
 										</span>
 										<span className="shrink-0 hidden text-xs text-muted-foreground group-data-[selected=true]:inline">
-											<Trans id="components.githubIssueLinkCommand.linkHint">
-												Link ↵
-											</Trans>
+											<Trans>Link ↵</Trans>
 										</span>
 									</CommandItem>
 								))}

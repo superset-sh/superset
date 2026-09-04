@@ -10,6 +10,7 @@ import { ComposerBody } from "./components/ComposerBody";
 import { MentionChipNode } from "./nodes/mentionChipNode";
 import type { PromptInputProps } from "./types";
 import "./prompt-input.css";
+import { msg } from "@lingui/core/macro";
 
 export type {
 	ComposerActionContext,
@@ -26,10 +27,11 @@ export type {
 } from "./types";
 
 export function PromptInput({
-	placeholder = i18n._({
-		id: "chatUi.promptInput.placeholder",
-		message: "Do anything",
-	}),
+	placeholder = i18n._(
+		msg({
+			message: "Do anything",
+		}),
+	),
 	mentionProviders,
 	commands,
 	dictation,

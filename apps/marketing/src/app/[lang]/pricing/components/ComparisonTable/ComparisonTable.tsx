@@ -16,12 +16,10 @@ export function ComparisonTable() {
 		<div className="flex flex-col gap-8">
 			<div className="flex flex-col gap-3 text-center">
 				<span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
-					<Trans id="marketing.pricing.comparison.eyebrow">Compare plans</Trans>
+					<Trans>Compare plans</Trans>
 				</span>
 				<h2 className="text-2xl md:text-3xl font-medium tracking-tight text-foreground">
-					<Trans id="marketing.pricing.comparison.title">
-						All features, side by side
-					</Trans>
+					<Trans>All features, side by side</Trans>
 				</h2>
 			</div>
 
@@ -40,9 +38,7 @@ function DesktopTable() {
 				<thead>
 					<tr>
 						<th className="sticky top-16 z-10 w-2/5 border-b border-border bg-background py-4 pr-4 text-left text-sm font-medium text-muted-foreground">
-							<Trans id="marketing.pricing.comparison.featuresColumn">
-								Features
-							</Trans>
+							<Trans>Features</Trans>
 						</th>
 						{PRICING_TIERS.map((tier) => (
 							<th
@@ -77,13 +73,9 @@ function TierPriceLabel({ tier }: { tier: PricingTier }) {
 	}
 	if (tier.price.kind === "variable") {
 		const price = tier.price.yearly.display;
-		return (
-			<Trans id="marketing.pricing.comparison.fromPerUserMonth">
-				from {price}/user/mo
-			</Trans>
-		);
+		return <Trans>from {price}/user/mo</Trans>;
 	}
-	return <Trans id="marketing.pricing.comparison.customPrice">Custom</Trans>;
+	return <Trans>Custom</Trans>;
 }
 
 function DesktopSectionGroup({
@@ -195,7 +187,6 @@ function Cell({ value }: { value: ComparisonRow["values"][number] }) {
 			<Check
 				className="size-4 text-foreground"
 				aria-label={t({
-					id: "marketing.pricing.comparison.included",
 					message: "Included",
 				})}
 			/>
@@ -206,7 +197,6 @@ function Cell({ value }: { value: ComparisonRow["values"][number] }) {
 			<Minus
 				className="size-4 text-muted-foreground"
 				aria-label={t({
-					id: "marketing.pricing.comparison.notIncluded",
 					message: "Not included",
 				})}
 			/>

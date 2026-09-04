@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
@@ -37,14 +38,16 @@ export function useSetV2WorktreeBaseDir(hostUrl: string | null) {
 			queryClient.setQueryData(v2WorktreeLocationQueryKey(hostUrl), data);
 			toast.success(
 				path
-					? i18n._({
-							id: "settings.components.v2WorktreeLocationPicker.updatedToast",
-							message: "Worktree location updated",
-						})
-					: i18n._({
-							id: "settings.components.v2WorktreeLocationPicker.resetToast",
-							message: "Worktree location reset",
-						}),
+					? i18n._(
+							msg({
+								message: "Worktree location updated",
+							}),
+						)
+					: i18n._(
+							msg({
+								message: "Worktree location reset",
+							}),
+						),
 			);
 		},
 		onError: (err) => {

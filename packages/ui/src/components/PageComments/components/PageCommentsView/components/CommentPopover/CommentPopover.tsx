@@ -177,7 +177,6 @@ export function CommentPopover({
 								<div className="ml-auto flex items-center gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover/comment:opacity-100">
 									<IconButton
 										label={t({
-											id: "ui.comments.editComment",
 											message: "Edit comment",
 										})}
 										onClick={() => {
@@ -192,11 +191,9 @@ export function CommentPopover({
 											label={
 												thread.resolved
 													? t({
-															id: "ui.comments.reopenThread",
 															message: "Reopen thread",
 														})
 													: t({
-															id: "ui.comments.resolveThread",
 															message: "Resolve thread",
 														})
 											}
@@ -213,7 +210,6 @@ export function CommentPopover({
 									{onDelete ? (
 										<IconButton
 											label={t({
-												id: "ui.comments.deleteThread",
 												message: "Delete thread",
 											})}
 											onClick={onDelete}
@@ -244,10 +240,10 @@ export function CommentPopover({
 											{submitting ? (
 												<>
 													<Loader2 className="size-3.5 animate-spin" />
-													<Trans id="ui.comments.saving">Saving…</Trans>
+													<Trans>Saving…</Trans>
 												</>
 											) : (
-												<Trans id="ui.comments.save">Save</Trans>
+												<Trans>Save</Trans>
 											)}
 										</Button>
 										<Button
@@ -256,7 +252,7 @@ export function CommentPopover({
 											onClick={() => setEditingId(null)}
 											disabled={submitting}
 										>
-											<Trans id="ui.comments.cancel">Cancel</Trans>
+											<Trans>Cancel</Trans>
 										</Button>
 									</div>
 								</div>
@@ -286,11 +282,9 @@ export function CommentPopover({
 					placeholder={
 						thread
 							? t({
-									id: "ui.comments.replyPlaceholder",
 									message: "Reply to thread…",
 								})
 							: t({
-									id: "ui.comments.composePlaceholder",
 									message: "Write a comment…",
 								})
 					}
@@ -302,7 +296,7 @@ export function CommentPopover({
 				{composerOpen ? (
 					<div className="flex items-center gap-2.5 px-3.5 pb-3.5">
 						<span className="text-muted-foreground text-xs">
-							<Trans id="ui.comments.sendHint">⌘↵ to send</Trans>
+							<Trans>⌘↵ to send</Trans>
 						</span>
 						<Button
 							size="icon"
@@ -310,9 +304,8 @@ export function CommentPopover({
 							onClick={submit}
 							aria-label={
 								thread
-									? t({ id: "ui.comments.sendReply", message: "Send reply" })
+									? t({ message: "Send reply" })
 									: t({
-											id: "ui.comments.postComment",
 											message: "Post comment",
 										})
 							}

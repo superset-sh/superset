@@ -211,6 +211,13 @@
       "when": 1788222966323,
       "tag": "0029_confused_mongu",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "6",
+      "when": 1788418423316,
+      "tag": "0030_workspace_last_activity_at",
+      "breakpoints": true
     }
   ]
 }

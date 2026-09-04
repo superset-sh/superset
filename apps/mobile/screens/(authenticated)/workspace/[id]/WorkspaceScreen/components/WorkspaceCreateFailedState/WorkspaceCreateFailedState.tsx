@@ -25,9 +25,7 @@ export function WorkspaceCreateFailedState({
 				<CircleAlert size={18} color="#ef4444" strokeWidth={2} />
 			</View>
 			<Text className="mt-3.5 font-semibold text-[17px]">
-				<Trans id="mobile.workspaceCreate.failedTitle">
-					Couldn't create workspace
-				</Trans>
+				<Trans>Couldn't create workspace</Trans>
 			</Text>
 			<Text className="text-muted-foreground mt-1.5 font-mono text-xs">
 				{subtitle}
@@ -43,7 +41,7 @@ export function WorkspaceCreateFailedState({
 			{prompt ? (
 				<View className="bg-secondary/40 border-border mt-3.5 flex-row items-center gap-2 self-stretch rounded-lg border px-3 py-2.5">
 					<Text className="text-muted-foreground/70 font-mono text-[9px] uppercase tracking-widest">
-						<Trans id="mobile.workspaceCreate.promptLabel">Prompt</Trans>
+						<Trans>Prompt</Trans>
 					</Text>
 					<Text
 						className="text-muted-foreground flex-1 text-xs"
@@ -56,12 +54,12 @@ export function WorkspaceCreateFailedState({
 			<View className="mt-6 flex-row gap-2.5">
 				<Button size="sm" onPress={onRetry}>
 					<Text>
-						<Trans id="mobile.common.tryAgain">Try again</Trans>
+						<Trans>Try again</Trans>
 					</Text>
 				</Button>
 				<Button variant="secondary" size="sm" onPress={onDismiss}>
 					<Text>
-						<Trans id="mobile.common.backToHome">Back to Home</Trans>
+						<Trans>Back to Home</Trans>
 					</Text>
 				</Button>
 			</View>

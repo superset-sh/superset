@@ -47,14 +47,12 @@ export const TEAMS_SENTENCES: Record<
 export const TEAMS_MENU: TriggerMenuEntry<MicrosoftTeamsConfig>[] = [
 	leaf(
 		msg({
-			id: "dashboard.automations.providers.microsoftTeams.menuMessageInChannel",
 			message: "Message in channel",
 		}),
 		"message_in_channel",
 	),
 	leaf(
 		msg({
-			id: "dashboard.automations.providers.microsoftTeams.menuChannelCreated",
 			message: "Channel created",
 		}),
 		"channel_created",

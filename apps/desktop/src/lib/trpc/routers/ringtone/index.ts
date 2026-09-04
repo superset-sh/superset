@@ -1,4 +1,5 @@
 import type { ChildProcess } from "node:child_process";
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { TRPCError } from "@trpc/server";
 import type { BrowserWindow, OpenDialogOptions } from "electron";
@@ -171,16 +172,18 @@ export const createRingtoneRouter = (getWindow: () => BrowserWindow | null) => {
 			const window = getWindow();
 			const openDialogOptions: OpenDialogOptions = {
 				properties: ["openFile"],
-				title: i18n._({
-					id: "desktop.lib.dialog.selectNotificationSound.title",
-					message: "Select Notification Sound",
-				}),
+				title: i18n._(
+					msg({
+						message: "Select Notification Sound",
+					}),
+				),
 				filters: [
 					{
-						name: i18n._({
-							id: "desktop.lib.dialog.filter.audio",
-							message: "Audio",
-						}),
+						name: i18n._(
+							msg({
+								message: "Audio",
+							}),
+						),
 						extensions: ["mp3", "wav", "ogg"],
 					},
 				],

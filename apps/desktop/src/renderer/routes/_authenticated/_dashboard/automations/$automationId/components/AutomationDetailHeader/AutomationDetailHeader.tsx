@@ -46,9 +46,7 @@ export function AutomationDetailHeader({
 					<BreadcrumbItem>
 						<BreadcrumbLink asChild>
 							<Link to="/automations">
-								<Trans id="dashboard.automations.detailHeader.breadcrumbAutomations">
-									Automations
-								</Trans>
+								<Trans>Automations</Trans>
 							</Link>
 						</BreadcrumbLink>
 					</BreadcrumbItem>
@@ -74,7 +72,6 @@ export function AutomationDetailHeader({
 								onClick={onOpenHistory}
 								disabled={readOnly}
 								aria-label={t({
-									id: "dashboard.automations.detailHeader.promptHistoryAriaLabel",
 									message: "Prompt history",
 								})}
 							>
@@ -84,13 +81,9 @@ export function AutomationDetailHeader({
 					</TooltipTrigger>
 					<TooltipContent>
 						{readOnly ? (
-							<Trans id="dashboard.automations.detailHeader.historyOwnerOnly">
-								Only the owner can view prompt history
-							</Trans>
+							<Trans>Only the owner can view prompt history</Trans>
 						) : (
-							<Trans id="dashboard.automations.detailHeader.promptHistory">
-								Prompt history
-							</Trans>
+							<Trans>Prompt history</Trans>
 						)}
 					</TooltipContent>
 				</Tooltip>
@@ -101,7 +94,6 @@ export function AutomationDetailHeader({
 							size="icon-sm"
 							disabled={readOnly}
 							aria-label={t({
-								id: "dashboard.automations.detailHeader.moreActionsAriaLabel",
 								message: "More actions",
 							})}
 						>
@@ -115,9 +107,7 @@ export function AutomationDetailHeader({
 							onSelect={onDelete}
 						>
 							<LuTrash2 className="size-4" />
-							<Trans id="dashboard.automations.detailHeader.deleteAutomation">
-								Delete automation
-							</Trans>
+							<Trans>Delete automation</Trans>
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>
@@ -134,18 +124,14 @@ export function AutomationDetailHeader({
 							>
 								<LuPlay className="size-4" />
 								<span>
-									<Trans id="dashboard.automations.detailHeader.runNow">
-										Run now
-									</Trans>
+									<Trans>Run now</Trans>
 								</span>
 							</Button>
 						</span>
 					</TooltipTrigger>
 					{readOnly && (
 						<TooltipContent>
-							<Trans id="dashboard.automations.detailHeader.runOwnerOnly">
-								Only the owner can run this automation
-							</Trans>
+							<Trans>Only the owner can run this automation</Trans>
 						</TooltipContent>
 					)}
 				</Tooltip>

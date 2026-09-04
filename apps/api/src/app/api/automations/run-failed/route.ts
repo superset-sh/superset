@@ -1,5 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
-import { dbWs } from "@superset/db/client";
+import { db } from "@superset/db/client";
 import { automationRuns, automations } from "@superset/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -56,7 +56,7 @@ export async function POST(request: Request): Promise<Response> {
 
 	const { automationId } = source.data;
 
-	const [automation] = await dbWs
+	const [automation] = await db
 		.select({
 			organizationId: automations.organizationId,
 			name: automations.name,
@@ -73,7 +73,7 @@ export async function POST(request: Request): Promise<Response> {
 	const failed = { status: "dispatch_failed", error: errorText } as const;
 
 	if ("scheduledFor" in source.data) {
-		await dbWs
+		await db
 			.insert(automationRuns)
 			.values({
 				automationId,
@@ -89,7 +89,7 @@ export async function POST(request: Request): Promise<Response> {
 				set: failed,
 			});
 	} else {
-		await dbWs
+		await db
 			.insert(automationRuns)
 			.values({
 				automationId,

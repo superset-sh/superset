@@ -5,7 +5,7 @@ import { MarkdownPreviewView } from "./MarkdownPreviewView";
 
 export const markdownPreviewView: FileView = {
 	id: "markdown-preview",
-	label: msg({ id: "workspace.filePane.viewPreview", message: "Preview" }),
+	label: msg({ message: "Preview" }),
 	match: (filePath) => isMarkdownFile(filePath),
 	priority: "default",
 	documentKind: "text",

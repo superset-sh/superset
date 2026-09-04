@@ -12,6 +12,7 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { HiOutlineLanguage } from "react-icons/hi2";
+import { track } from "renderer/lib/analytics";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
@@ -45,11 +46,10 @@ export function OnboardingLanguageRow() {
 			</div>
 			<div className="min-w-0 flex-1">
 				<p className="text-sm font-medium text-foreground">
-					{t({ id: "onboarding.language.name", message: "Language" })}
+					{t({ message: "Language" })}
 				</p>
 				<p className="text-xs text-muted-foreground">
 					{t({
-						id: "onboarding.language.description",
 						message:
 							"Auto follows your system language. You can change it later in Settings.",
 					})}
@@ -57,18 +57,22 @@ export function OnboardingLanguageRow() {
 			</div>
 			<Select
 				value={language ?? AUTO}
-				onValueChange={(value) =>
+				onValueChange={(value) => {
+					track("language_changed", {
+						from: language ?? AUTO,
+						to: value,
+						surface: "onboarding",
+					});
 					setLanguage.mutate({
 						language:
 							value === AUTO || !isSupportedLocale(value) ? null : value,
-					})
-				}
+					});
+				}}
 			>
 				<SelectTrigger
 					size="sm"
 					className="w-auto min-w-44 px-2"
 					aria-label={t({
-						id: "onboarding.language.selectAria",
 						message: "App display language",
 					})}
 				>
@@ -76,7 +80,7 @@ export function OnboardingLanguageRow() {
 				</SelectTrigger>
 				<SelectContent>
 					<SelectItem value={AUTO}>
-						{t({ id: "onboarding.language.auto", message: "Auto (system)" })}
+						{t({ message: "Auto (system)" })}
 					</SelectItem>
 					{SUPPORTED_LOCALES.map((locale) => (
 						<SelectItem key={locale} value={locale}>

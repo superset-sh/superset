@@ -38,13 +38,12 @@ export function ChecksSheet({
 		<>
 			<Stack.Screen
 				options={{
-					headerTitle: t({ id: "mobile.checks.title", message: "Checks" }),
+					headerTitle: t({ message: "Checks" }),
 				}}
 			/>
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.Button
 					accessibilityLabel={t({
-						id: "mobile.common.close",
 						message: "Close",
 					})}
 					icon="xmark"
@@ -55,7 +54,6 @@ export function ChecksSheet({
 				<Stack.Toolbar placement="right">
 					<Stack.Toolbar.Button
 						accessibilityLabel={t({
-							id: "mobile.checks.fixAll",
 							message: "Fix all failing checks",
 						})}
 						icon="wrench.and.screwdriver"

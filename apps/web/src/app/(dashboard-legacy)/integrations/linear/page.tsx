@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { Badge } from "@superset/ui/badge";
 import {
 	Card,
@@ -16,34 +17,40 @@ import { ConnectionControls } from "./components/ConnectionControls";
 import { TeamSelector } from "./components/TeamSelector";
 
 const CALLBACK_MESSAGES = {
-	oauth_denied: i18n._({
-		id: "web.integrations.callback.oauthDenied",
-		message: "Authorization was denied. Please try again.",
-	}),
-	missing_params: i18n._({
-		id: "web.integrations.callback.missingParams",
-		message: "Invalid OAuth response. Please try again.",
-	}),
-	invalid_state: i18n._({
-		id: "web.integrations.callback.invalidState",
-		message: "Invalid state parameter. Please try again.",
-	}),
-	token_exchange_failed: i18n._({
-		id: "web.integrations.linear.callback.tokenExchangeFailed",
-		message: "Failed to connect to Linear. Please try again.",
-	}),
-	unauthorized: i18n._({
-		id: "web.integrations.callback.unauthorized",
-		message: "You are not authorized to perform this action.",
-	}),
+	oauth_denied: i18n._(
+		msg({
+			message: "Authorization was denied. Please try again.",
+		}),
+	),
+	missing_params: i18n._(
+		msg({
+			message: "Invalid OAuth response. Please try again.",
+		}),
+	),
+	invalid_state: i18n._(
+		msg({
+			message: "Invalid state parameter. Please try again.",
+		}),
+	),
+	token_exchange_failed: i18n._(
+		msg({
+			message: "Failed to connect to Linear. Please try again.",
+		}),
+	),
+	unauthorized: i18n._(
+		msg({
+			message: "You are not authorized to perform this action.",
+		}),
+	),
 };
 
 const CALLBACK_WARNINGS = {
-	sync_queued_failed: i18n._({
-		id: "web.integrations.linear.callback.syncQueuedFailed",
-		message:
-			"Linear connected, but initial sync failed to start. Please try reconnecting.",
-	}),
+	sync_queued_failed: i18n._(
+		msg({
+			message:
+				"Linear connected, but initial sync failed to start. Please try reconnecting.",
+		}),
+	),
 };
 
 export default async function LinearIntegrationPage() {
@@ -54,11 +61,12 @@ export default async function LinearIntegrationPage() {
 		return (
 			<div className="flex flex-col items-center justify-center py-16">
 				<p className="text-muted-foreground">
-					{i18n._({
-						id: "web.integrations.needOrganization",
-						message:
-							"You need to be part of an organization to use integrations.",
-					})}
+					{i18n._(
+						msg({
+							message:
+								"You need to be part of an organization to use integrations.",
+						}),
+					)}
 				</p>
 			</div>
 		);
@@ -83,10 +91,11 @@ export default async function LinearIntegrationPage() {
 				className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
 			>
 				<ArrowLeft className="size-4" />
-				{i18n._({
-					id: "web.integrations.back",
-					message: "Back to Integrations",
-				})}
+				{i18n._(
+					msg({
+						message: "Back to Integrations",
+					}),
+				)}
 			</Link>
 
 			<div className="flex items-start gap-6">
@@ -99,34 +108,38 @@ export default async function LinearIntegrationPage() {
 						{needsReconnect ? (
 							<Badge variant="destructive" className="gap-1">
 								<AlertTriangle className="size-3" />
-								{i18n._({
-									id: "web.integrations.reconnectRequired",
-									message: "Reconnect required",
-								})}
+								{i18n._(
+									msg({
+										message: "Reconnect required",
+									}),
+								)}
 							</Badge>
 						) : isConnected ? (
 							<Badge variant="default" className="gap-1">
 								<CheckCircle2 className="size-3" />
-								{i18n._({
-									id: "web.integrations.connected",
-									message: "Connected",
-								})}
+								{i18n._(
+									msg({
+										message: "Connected",
+									}),
+								)}
 							</Badge>
 						) : (
 							<Badge variant="secondary">
-								{i18n._({
-									id: "web.integrations.notConnected",
-									message: "Not Connected",
-								})}
+								{i18n._(
+									msg({
+										message: "Not Connected",
+									}),
+								)}
 							</Badge>
 						)}
 					</div>
 					<p className="mt-1 text-muted-foreground">
-						{i18n._({
-							id: "web.integrations.linear.blurb",
-							message:
-								"Sync issues bidirectionally with Linear. Create tasks in Superset and have them appear in Linear, or import existing Linear issues.",
-						})}
+						{i18n._(
+							msg({
+								message:
+									"Sync issues bidirectionally with Linear. Create tasks in Superset and have them appear in Linear, or import existing Linear issues.",
+							}),
+						)}
 					</p>
 				</div>
 			</div>
@@ -134,17 +147,19 @@ export default async function LinearIntegrationPage() {
 			<Card>
 				<CardHeader>
 					<CardTitle>
-						{i18n._({
-							id: "web.integrations.connectionCard",
-							message: "Connection",
-						})}
+						{i18n._(
+							msg({
+								message: "Connection",
+							}),
+						)}
 					</CardTitle>
 					<CardDescription>
-						{i18n._({
-							id: "web.integrations.linear.connectionDescription",
-							message:
-								"Connect your Linear workspace to sync issues bidirectionally.",
-						})}
+						{i18n._(
+							msg({
+								message:
+									"Connect your Linear workspace to sync issues bidirectionally.",
+							}),
+						)}
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
@@ -160,34 +175,38 @@ export default async function LinearIntegrationPage() {
 				<Card>
 					<CardHeader>
 						<CardTitle>
-							{i18n._({
-								id: "web.integrations.linear.settingsCard",
-								message: "Settings",
-							})}
+							{i18n._(
+								msg({
+									message: "Settings",
+								}),
+							)}
 						</CardTitle>
 						<CardDescription>
-							{i18n._({
-								id: "web.integrations.linear.settingsDescription",
-								message:
-									"Configure how tasks sync between Superset and Linear.",
-							})}
+							{i18n._(
+								msg({
+									message:
+										"Configure how tasks sync between Superset and Linear.",
+								}),
+							)}
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-4">
 						<div className="space-y-2">
 							<p className="text-sm font-medium">
-								{i18n._({
-									id: "web.integrations.linear.defaultTeam",
-									message: "Default team for new tasks",
-								})}
+								{i18n._(
+									msg({
+										message: "Default team for new tasks",
+									}),
+								)}
 							</p>
 							<TeamSelector organizationId={organization.id} />
 							<p className="text-sm text-muted-foreground">
-								{i18n._({
-									id: "web.integrations.linear.defaultTeamHint",
-									message:
-										"Tasks created in Superset will be synced to this Linear team.",
-								})}
+								{i18n._(
+									msg({
+										message:
+											"Tasks created in Superset will be synced to this Linear team.",
+									}),
+								)}
 							</p>
 						</div>
 					</CardContent>

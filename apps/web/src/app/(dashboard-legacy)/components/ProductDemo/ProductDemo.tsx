@@ -16,7 +16,6 @@ const DEMO_OPTIONS: {
 	{
 		id: "agents",
 		label: msg({
-			id: "web.productDemo.useAnyAgents",
 			message: "Use Any Agents",
 		}),
 		videoPath: "/hero/agents.mp4",
@@ -25,7 +24,6 @@ const DEMO_OPTIONS: {
 	{
 		id: "worktrees",
 		label: msg({
-			id: "web.productDemo.createParallelBranches",
 			message: "Create Parallel Branches",
 		}),
 		videoPath: "/hero/worktrees.mp4",
@@ -33,14 +31,13 @@ const DEMO_OPTIONS: {
 	},
 	{
 		id: "changes",
-		label: msg({ id: "web.productDemo.seeChanges", message: "See Changes" }),
+		label: msg({ message: "See Changes" }),
 		videoPath: "/hero/changes.mp4",
 		colors: ["#b45309", "#92400e", "#78350f", "#1a1a2e"] as const,
 	},
 	{
 		id: "open-in",
 		label: msg({
-			id: "web.productDemo.openInAnyIde",
 			message: "Open in Any IDE",
 		}),
 		videoPath: "/hero/open-in.mp4",

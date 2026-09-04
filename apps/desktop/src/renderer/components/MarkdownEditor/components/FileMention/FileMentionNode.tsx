@@ -41,7 +41,6 @@ function FileMentionChip({ node, selected, deleteNode }: NodeViewProps) {
 						<button
 							type="button"
 							aria-label={t({
-								id: "components.fileMention.removeMention",
 								message: `Remove mention ${path}`,
 							})}
 							onMouseDown={(event) => {
@@ -57,9 +56,7 @@ function FileMentionChip({ node, selected, deleteNode }: NodeViewProps) {
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="top">
-						<Trans id="components.fileMentionNode.removeMention">
-							Remove mention
-						</Trans>
+						<Trans>Remove mention</Trans>
 					</TooltipContent>
 				</Tooltip>
 			</span>

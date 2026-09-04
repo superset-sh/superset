@@ -82,20 +82,16 @@ export function PagesGrid({
 					</EmptyMedia>
 					<EmptyTitle>
 						{hasFilters ? (
-							<Trans id="dashboard.pages.grid.emptyFilteredTitle">
-								No pages match
-							</Trans>
+							<Trans>No pages match</Trans>
 						) : (
-							<Trans id="dashboard.pages.grid.emptyTitle">No pages yet</Trans>
+							<Trans>No pages yet</Trans>
 						)}
 					</EmptyTitle>
 					<EmptyDescription>
 						{hasFilters ? (
-							<Trans id="dashboard.pages.grid.emptyFilteredDescription">
-								Try a different search or filter.
-							</Trans>
+							<Trans>Try a different search or filter.</Trans>
 						) : (
-							<Trans id="dashboard.pages.grid.emptyDescription">
+							<Trans>
 								Publish a page from an agent or the CLI and it will show up
 								here.
 							</Trans>

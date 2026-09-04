@@ -19,14 +19,11 @@ export function HostOfflineView({ hostName }: { hostName: string }) {
 			<View className="items-center gap-1">
 				<Text className="text-lg font-semibold">
 					{t({
-						id: "mobile.home.hostOffline.title",
 						message: `${hostName} is offline`,
 					})}
 				</Text>
 				<Text className="text-center text-muted-foreground">
-					<Trans id="mobile.home.hostOffline.description">
-						Its workspaces will appear when it reconnects.
-					</Trans>
+					<Trans>Its workspaces will appear when it reconnects.</Trans>
 				</Text>
 			</View>
 			<Button
@@ -34,7 +31,7 @@ export function HostOfflineView({ hostName }: { hostName: string }) {
 				onPress={() => router.push("/(authenticated)/(home)/filter/scope")}
 			>
 				<Text>
-					<Trans id="mobile.home.hostOffline.switchHost">Switch host</Trans>
+					<Trans>Switch host</Trans>
 				</Text>
 			</Button>
 		</View>

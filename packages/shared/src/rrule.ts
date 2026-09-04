@@ -13,6 +13,7 @@
  */
 
 import { TZDate } from "@date-fns/tz";
+import { msg } from "@lingui/core/macro";
 import { RRule } from "rrule";
 import { i18n } from "./i18n";
 
@@ -205,8 +206,7 @@ export function describeSchedule(
 	rrule: string,
 	options: DescribeScheduleOptions = {},
 ): string {
-	const custom = () =>
-		i18n._({ id: "shared.schedule.custom", message: "Custom" });
+	const custom = () => i18n._(msg({ message: "Custom" }));
 	const parts = parseRruleParts(rrule);
 	if (!parts) return custom();
 
@@ -239,25 +239,28 @@ export function describeSchedule(
 	switch (freq) {
 		case "MINUTELY":
 			if (interval === 1) {
-				return i18n._({
-					id: "shared.schedule.everyMinute",
-					message: "Every minute",
-				});
+				return i18n._(
+					msg({
+						message: "Every minute",
+					}),
+				);
 			}
 			return i18n._({
-				id: "shared.schedule.everyNMinutes",
-				message:
-					"{count, plural, one {Every # minute} other {Every # minutes}}",
+				...msg({
+					message:
+						"{count, plural, one {Every # minute} other {Every # minutes}}",
+				}),
 				values: { count: interval },
 			});
 
 		case "HOURLY":
 			if (interval === 1) {
-				return i18n._({ id: "shared.schedule.hourly", message: "Hourly" });
+				return i18n._(msg({ message: "Hourly" }));
 			}
 			return i18n._({
-				id: "shared.schedule.everyNHours",
-				message: "{count, plural, one {Every # hour} other {Every # hours}}",
+				...msg({
+					message: "{count, plural, one {Every # hour} other {Every # hours}}",
+				}),
 				values: { count: interval },
 			});
 
@@ -265,22 +268,26 @@ export function describeSchedule(
 			if (interval === 1) {
 				return hasTime
 					? i18n._({
-							id: "shared.schedule.dailyAt",
-							message: "Daily at {time}",
+							...msg({
+								message: "Daily at {time}",
+							}),
 							values: { time },
 						})
-					: i18n._({ id: "shared.schedule.daily", message: "Daily" });
+					: i18n._(msg({ message: "Daily" }));
 			}
 			return hasTime
 				? i18n._({
-						id: "shared.schedule.everyNDaysAt",
-						message:
-							"{count, plural, one {Every # day at {time}} other {Every # days at {time}}}",
+						...msg({
+							message:
+								"{count, plural, one {Every # day at {time}} other {Every # days at {time}}}",
+						}),
 						values: { count: interval, time },
 					})
 				: i18n._({
-						id: "shared.schedule.everyNDays",
-						message: "{count, plural, one {Every # day} other {Every # days}}",
+						...msg({
+							message:
+								"{count, plural, one {Every # day} other {Every # days}}",
+						}),
 						values: { count: interval },
 					});
 
@@ -291,15 +298,17 @@ export function describeSchedule(
 					const day = formatWeekday(byDay[0] as string, "long", locale);
 					return hasTime
 						? i18n._({
-								id: "shared.schedule.everyNWeeksOnDayAt",
-								message:
-									"{count, plural, one {Every # week on {day} at {time}} other {Every # weeks on {day} at {time}}}",
+								...msg({
+									message:
+										"{count, plural, one {Every # week on {day} at {time}} other {Every # weeks on {day} at {time}}}",
+								}),
 								values: { count: interval, day, time },
 							})
 						: i18n._({
-								id: "shared.schedule.everyNWeeksOnDay",
-								message:
-									"{count, plural, one {Every # week on {day}} other {Every # weeks on {day}}}",
+								...msg({
+									message:
+										"{count, plural, one {Every # week on {day}} other {Every # weeks on {day}}}",
+								}),
 								values: { count: interval, day },
 							});
 				}
@@ -308,29 +317,32 @@ export function describeSchedule(
 			if (byDay.length === 0) {
 				return hasTime
 					? i18n._({
-							id: "shared.schedule.weeklyAt",
-							message: "Weekly at {time}",
+							...msg({
+								message: "Weekly at {time}",
+							}),
 							values: { time },
 						})
-					: i18n._({ id: "shared.schedule.weekly", message: "Weekly" });
+					: i18n._(msg({ message: "Weekly" }));
 			}
 			if (sameSet(byDay, WEEKDAYS)) {
 				return hasTime
 					? i18n._({
-							id: "shared.schedule.weekdaysAt",
-							message: "Weekdays at {time}",
+							...msg({
+								message: "Weekdays at {time}",
+							}),
 							values: { time },
 						})
-					: i18n._({ id: "shared.schedule.weekdays", message: "Weekdays" });
+					: i18n._(msg({ message: "Weekdays" }));
 			}
 			if (sameSet(byDay, WEEKENDS)) {
 				return hasTime
 					? i18n._({
-							id: "shared.schedule.weekendsAt",
-							message: "Weekends at {time}",
+							...msg({
+								message: "Weekends at {time}",
+							}),
 							values: { time },
 						})
-					: i18n._({ id: "shared.schedule.weekends", message: "Weekends" });
+					: i18n._(msg({ message: "Weekends" }));
 			}
 			if (byDay.length === 1) {
 				const day = formatWeekday(byDay[0] as string, "long", locale);
@@ -338,13 +350,15 @@ export function describeSchedule(
 				// language can do; the full sentence translates everywhere.
 				return hasTime
 					? i18n._({
-							id: "shared.schedule.eachDayOfWeekAt",
-							message: "Every {day} at {time}",
+							...msg({
+								message: "Every {day} at {time}",
+							}),
 							values: { day, time },
 						})
 					: i18n._({
-							id: "shared.schedule.eachDayOfWeek",
-							message: "Every {day}",
+							...msg({
+								message: "Every {day}",
+							}),
 							values: { day },
 						});
 			}
@@ -353,8 +367,9 @@ export function describeSchedule(
 				.join(", ");
 			return hasTime
 				? i18n._({
-						id: "shared.schedule.dayListAt",
-						message: "{days} at {time}",
+						...msg({
+							message: "{days} at {time}",
+						}),
 						values: { days: list, time },
 					})
 				: list;
@@ -365,14 +380,16 @@ export function describeSchedule(
 			if (byMonthDay === -1) {
 				return hasTime
 					? i18n._({
-							id: "shared.schedule.lastDayOfMonthAt",
-							message: "Last day of each month at {time}",
+							...msg({
+								message: "Last day of each month at {time}",
+							}),
 							values: { time },
 						})
-					: i18n._({
-							id: "shared.schedule.lastDayOfMonth",
-							message: "Last day of each month",
-						});
+					: i18n._(
+							msg({
+								message: "Last day of each month",
+							}),
+						);
 			}
 			if (byMonthDay !== null && byMonthDay >= 1 && byMonthDay <= 31) {
 				// The ordinal suffix is part of the message, not computed in code:
@@ -380,15 +397,17 @@ export function describeSchedule(
 				// ("毎月1st"). ICU selectordinal gives each language its own system.
 				return hasTime
 					? i18n._({
-							id: "shared.schedule.monthlyOnDayOfMonthAt",
-							message:
-								"Monthly on the {day, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} at {time}",
+							...msg({
+								message:
+									"Monthly on the {day, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} at {time}",
+							}),
 							values: { day: byMonthDay, time },
 						})
 					: i18n._({
-							id: "shared.schedule.monthlyOnDayOfMonth",
-							message:
-								"Monthly on the {day, selectordinal, one {#st} two {#nd} few {#rd} other {#th}}",
+							...msg({
+								message:
+									"Monthly on the {day, selectordinal, one {#st} two {#nd} few {#rd} other {#th}}",
+							}),
 							values: { day: byMonthDay },
 						});
 			}
@@ -396,23 +415,26 @@ export function describeSchedule(
 				const day = formatWeekday(byDay[0] as string, "long", locale);
 				return hasTime
 					? i18n._({
-							id: "shared.schedule.monthlyOnDayAt",
-							message: "Monthly on {day} at {time}",
+							...msg({
+								message: "Monthly on {day} at {time}",
+							}),
 							values: { day, time },
 						})
 					: i18n._({
-							id: "shared.schedule.monthlyOnDay",
-							message: "Monthly on {day}",
+							...msg({
+								message: "Monthly on {day}",
+							}),
 							values: { day },
 						});
 			}
 			return hasTime
 				? i18n._({
-						id: "shared.schedule.monthlyAt",
-						message: "Monthly at {time}",
+						...msg({
+							message: "Monthly at {time}",
+						}),
 						values: { time },
 					})
-				: i18n._({ id: "shared.schedule.monthly", message: "Monthly" });
+				: i18n._(msg({ message: "Monthly" }));
 		}
 
 		case "YEARLY": {
@@ -421,23 +443,26 @@ export function describeSchedule(
 				const date = `${formatMonth(byMonth, locale)} ${byMonthDay}`;
 				return hasTime
 					? i18n._({
-							id: "shared.schedule.annuallyOnAt",
-							message: "Annually on {date} at {time}",
+							...msg({
+								message: "Annually on {date} at {time}",
+							}),
 							values: { date, time },
 						})
 					: i18n._({
-							id: "shared.schedule.annuallyOn",
-							message: "Annually on {date}",
+							...msg({
+								message: "Annually on {date}",
+							}),
 							values: { date },
 						});
 			}
 			return hasTime
 				? i18n._({
-						id: "shared.schedule.annuallyAt",
-						message: "Annually at {time}",
+						...msg({
+							message: "Annually at {time}",
+						}),
 						values: { time },
 					})
-				: i18n._({ id: "shared.schedule.annually", message: "Annually" });
+				: i18n._(msg({ message: "Annually" }));
 		}
 
 		default:

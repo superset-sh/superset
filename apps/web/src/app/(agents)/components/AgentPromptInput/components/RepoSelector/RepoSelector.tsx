@@ -23,7 +23,6 @@ export function RepoSelector({
 	return (
 		<ResponsiveDropdown
 			title={t({
-				id: "web.repoSelector.title",
 				message: "Select repository",
 			})}
 			items={repos.map((repo) => ({

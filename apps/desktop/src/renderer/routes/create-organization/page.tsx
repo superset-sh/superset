@@ -112,21 +112,21 @@ export function CreateOrganization() {
 		if (isCheckingSlug) {
 			return (
 				<span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-					<Trans id="auth.createOrganization.slugChecking">Checking...</Trans>
+					<Trans>Checking...</Trans>
 				</span>
 			);
 		}
 		if (slugAvailable === true) {
 			return (
 				<span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-600">
-					<Trans id="auth.createOrganization.slugAvailable">Available</Trans>
+					<Trans>Available</Trans>
 				</span>
 			);
 		}
 		if (slugAvailable === false) {
 			return (
 				<span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-destructive">
-					<Trans id="auth.createOrganization.slugTaken">Taken</Trans>
+					<Trans>Taken</Trans>
 				</span>
 			);
 		}
@@ -154,7 +154,6 @@ export function CreateOrganization() {
 
 			toast.success(
 				t({
-					id: "auth.createOrganization.created",
 					message: "Organization created successfully!",
 				}),
 			);
@@ -164,7 +163,6 @@ export function CreateOrganization() {
 				error instanceof Error
 					? error.message
 					: t({
-							id: "auth.createOrganization.createFailed",
 							message: "Failed to create organization",
 						}),
 			);
@@ -190,11 +188,11 @@ export function CreateOrganization() {
 						onClick={() => navigate({ to: "/" })}
 						type="button"
 					>
-						<Trans id="auth.createOrganization.cancel">Cancel</Trans>
+						<Trans>Cancel</Trans>
 					</Button>
 				) : (
 					<Button variant="ghost" onClick={handleSignOut} type="button">
-						<Trans id="auth.createOrganization.signOut">Sign Out</Trans>
+						<Trans>Sign Out</Trans>
 					</Button>
 				)}
 			</div>
@@ -202,14 +200,10 @@ export function CreateOrganization() {
 			<Card className="w-full max-w-md">
 				<CardHeader>
 					<h1 className="text-2xl font-bold">
-						<Trans id="auth.createOrganization.title">
-							Create Organization
-						</Trans>
+						<Trans>Create Organization</Trans>
 					</h1>
 					<p className="text-sm text-muted-foreground">
-						<Trans id="auth.createOrganization.subtitle">
-							Set up your organization to get started
-						</Trans>
+						<Trans>Set up your organization to get started</Trans>
 					</p>
 				</CardHeader>
 				<CardContent>
@@ -222,24 +216,19 @@ export function CreateOrganization() {
 								render={({ field }) => (
 									<FormItem>
 										<FormLabel>
-											<Trans id="auth.createOrganization.nameLabel">
-												Organization Name
-											</Trans>
+											<Trans>Organization Name</Trans>
 										</FormLabel>
 										<FormControl>
 											<Input
 												{...field}
 												placeholder={t({
-													id: "auth.createOrganization.namePlaceholder",
 													message: "Acme Inc.",
 												})}
 												disabled={isSubmitting}
 											/>
 										</FormControl>
 										<FormDescription>
-											<Trans id="auth.createOrganization.nameDescription">
-												The name of your organization or team
-											</Trans>
+											<Trans>The name of your organization or team</Trans>
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
@@ -252,7 +241,7 @@ export function CreateOrganization() {
 								render={({ field }) => (
 									<FormItem>
 										<FormLabel>
-											<Trans id="auth.createOrganization.slugLabel">Slug</Trans>
+											<Trans>Slug</Trans>
 										</FormLabel>
 										<FormControl>
 											<div className="relative">
@@ -265,7 +254,7 @@ export function CreateOrganization() {
 											</div>
 										</FormControl>
 										<FormDescription>
-											<Trans id="auth.createOrganization.slugDescription">
+											<Trans>
 												A unique identifier for your organization
 												(auto-generated from name)
 											</Trans>
@@ -283,13 +272,9 @@ export function CreateOrganization() {
 								}
 							>
 								{isSubmitting ? (
-									<Trans id="auth.createOrganization.submitPending">
-										Creating...
-									</Trans>
+									<Trans>Creating...</Trans>
 								) : (
-									<Trans id="auth.createOrganization.submit">
-										Create Organization
-									</Trans>
+									<Trans>Create Organization</Trans>
 								)}
 							</Button>
 						</form>

@@ -203,7 +203,6 @@ export function MarkdownEditor({
 	const resolvedPlaceholder =
 		placeholder ??
 		t({
-			id: "components.markdownEditor.placeholder",
 			message: "Add description...",
 		});
 	const showSlashCommand = features?.slashCommand ?? true;

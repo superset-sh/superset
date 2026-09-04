@@ -22,20 +22,19 @@ function groupSessionsByRecency(sessions: MockSession[]) {
 	}[] = [
 		{
 			id: "today",
-			label: msg({ id: "web.sessionList.groupToday", message: "Today" }),
+			label: msg({ message: "Today" }),
 			sessions: [],
 		},
 		{
 			id: "yesterday",
 			label: msg({
-				id: "web.sessionList.groupYesterday",
 				message: "Yesterday",
 			}),
 			sessions: [],
 		},
 		{
 			id: "older",
-			label: msg({ id: "web.sessionList.groupOlder", message: "Older" }),
+			label: msg({ message: "Older" }),
 			sessions: [],
 		},
 	];
@@ -80,11 +79,9 @@ export function SessionList({ sessions, workspaceId }: SessionListProps) {
 				<input
 					type="text"
 					placeholder={t({
-						id: "web.sessionList.searchPlaceholder",
 						message: "Search sessions...",
 					})}
 					aria-label={t({
-						id: "web.sessionList.searchLabel",
 						message: "Search sessions",
 					})}
 					value={search}
@@ -96,7 +93,7 @@ export function SessionList({ sessions, workspaceId }: SessionListProps) {
 			{/* Grouped sessions */}
 			{groups.length === 0 ? (
 				<p className="py-8 text-center text-sm text-muted-foreground">
-					<Trans id="web.sessionList.empty">No sessions found</Trans>
+					<Trans>No sessions found</Trans>
 				</p>
 			) : (
 				groups.map((group) => (

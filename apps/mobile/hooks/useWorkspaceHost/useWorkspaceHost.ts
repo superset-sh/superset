@@ -1,6 +1,5 @@
 import { useQueries } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { sandboxWorkspacesQuery } from "@/hooks/useCloudWorkspaceItems";
 import {
 	type CloudWorkspaceRow,
 	useCloudWorkspaces,
@@ -11,11 +10,33 @@ import {
 	type HostWorkspaceRow,
 } from "@/hooks/useHostWorkspaces";
 import { NO_HOSTS, type OrgHost, useOrgHostsQuery } from "@/hooks/useOrgHosts";
-import { useSandboxAccess } from "@/hooks/useSandboxAccess";
+import { type SandboxTarget, useSandboxAccess } from "@/hooks/useSandboxAccess";
 import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
 } from "@/lib/host-service/client";
+
+const SANDBOX_REFETCH_INTERVAL_MS = 30_000;
+
+/**
+ * The row a sandbox serves for its own workspace, restated under the cloud
+ * workspace's id: the sandbox reports the machine id of the container it
+ * happens to run in, which addresses nothing from here.
+ */
+function sandboxWorkspacesQuery(target: SandboxTarget) {
+	return {
+		queryKey: getHostWorkspacesQueryKey(target.workspaceId, target.url),
+		refetchInterval: SANDBOX_REFETCH_INTERVAL_MS,
+		retry: 1,
+		networkMode: "always" as const,
+		queryFn: async (): Promise<HostWorkspaceRow[]> => {
+			const rows = await getHostServiceClientByUrl(
+				target.url,
+			).workspace.list.query();
+			return rows.map((row) => ({ ...row, hostId: target.workspaceId }));
+		},
+	};
+}
 
 export interface WorkspaceHostResult {
 	workspace: HostWorkspaceRow | null;

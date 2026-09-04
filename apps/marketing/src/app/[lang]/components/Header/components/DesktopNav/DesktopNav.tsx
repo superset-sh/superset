@@ -46,7 +46,7 @@ export function DesktopNav() {
 						className={triggerClass}
 						onClick={ignoreCloseClick("product")}
 					>
-						<Trans id="marketing.nav.productMenu">Product</Trans>
+						<Trans>Product</Trans>
 					</NavigationMenuTrigger>
 					<NavigationMenuContent>
 						<ul className="flex w-[320px] flex-col gap-1 p-2">
@@ -62,7 +62,7 @@ export function DesktopNav() {
 						className={triggerClass}
 						onClick={ignoreCloseClick("resources")}
 					>
-						<Trans id="marketing.nav.resourcesMenu">Resources</Trans>
+						<Trans>Resources</Trans>
 					</NavigationMenuTrigger>
 					<NavigationMenuContent>
 						<ul className="grid w-[400px] grid-cols-1 gap-1 p-2 sm:w-[460px] sm:grid-cols-2">
