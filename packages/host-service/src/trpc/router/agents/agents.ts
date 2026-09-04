@@ -277,8 +277,15 @@ export function validateAgentEffortSelection(
 	}
 
 	// Some efforts only exist on some of the agent's models (Codex's max and
-	// ultra need GPT-5.6), so the accepted set follows the selected model.
+	// ultra need GPT-5.6; cursor-agent only has a ladder for some models),
+	// so the accepted set follows the selected model.
 	const efforts = getAgentEfforts(presetId, model);
+	if (efforts.length === 0) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `${label} does not support a reasoning effort override${model ? ` with model ${model}` : " without a model"}. Omit effort to use the agent default.`,
+		});
+	}
 	if (!efforts.some((option) => option.id === effort)) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
@@ -493,7 +500,11 @@ export function buildTerminalAgentLaunch(
 	}
 
 	const prompt = buildAttachmentBlock(input.prompt, resolvedAttachments);
-	const modelArgs = buildAgentModelArgs(launchPresetId, input.model);
+	const modelArgs = buildAgentModelArgs(
+		launchPresetId,
+		input.model,
+		input.effort,
+	);
 	const effortArgs = buildAgentEffortArgs(
 		launchPresetId,
 		input.effort,

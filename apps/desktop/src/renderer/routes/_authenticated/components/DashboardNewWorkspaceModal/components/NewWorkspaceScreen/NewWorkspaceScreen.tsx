@@ -504,9 +504,11 @@ export function NewWorkspaceScreen({
 		EFFORT_STORAGE_KEY,
 		effortSupport ? selectedPresetId : null,
 	);
-	// Codex's top two efforts only exist on its GPT-5.6 models, so the offered
-	// list follows the model picker. A remembered effort the current model
-	// rejects stays stored but shows (and launches) as the agent default.
+	// Codex's top two efforts only exist on its GPT-5.6 models and cursor-agent
+	// has a ladder for only some models, so the offered list follows the model
+	// picker and the control disappears when there is nothing to offer. A
+	// remembered effort the current model rejects stays stored but shows (and
+	// launches) as the agent default.
 	const effortOptions = useMemo(
 		() =>
 			selectedPresetId
@@ -903,7 +905,7 @@ export function NewWorkspaceScreen({
 										triggerClassName={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[160px]`}
 									/>
 								)}
-								{effortSupport && (
+								{effortSupport && effortOptions.length > 0 && (
 									<AgentModelSelect
 										models={effortOptions}
 										value={selectedEffort}
