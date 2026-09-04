@@ -20,8 +20,14 @@ const RETIRED_PATH_PREFIXES = [
 ];
 
 function isRetiredPath(path: string): boolean {
+	// A stored entry can carry a search string or hash, so the prefix has to
+	// end on a route boundary rather than just matching the bare path.
 	return RETIRED_PATH_PREFIXES.some(
-		(prefix) => path === prefix || path.startsWith(`${prefix}/`),
+		(prefix) =>
+			path === prefix ||
+			["/", "?", "#"].some((boundary) =>
+				path.startsWith(`${prefix}${boundary}`),
+			),
 	);
 }
 
