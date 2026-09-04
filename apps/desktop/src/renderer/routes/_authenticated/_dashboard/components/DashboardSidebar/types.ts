@@ -102,6 +102,14 @@ export type DashboardSidebarProjectChild =
 			section: DashboardSidebarSection;
 	  };
 
+/** A project hidden from the sidebar on this device; shown only in the restore list. */
+export interface DashboardSidebarHiddenProject {
+	id: string;
+	name: string;
+	iconUrl: string | null;
+	color: string | null;
+}
+
 export interface DashboardSidebarProject {
 	id: string;
 	name: string;

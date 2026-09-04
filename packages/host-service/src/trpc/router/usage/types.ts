@@ -19,6 +19,11 @@ export type UsageAgent =
 /** The subset of agents with quota accounts and switchable logins. */
 export type QuotaCapableAgent = "claude" | "codex" | "grok" | "agy";
 
+/** How the provider bills work launched from this login: a subscription
+ * plan with quota windows, or pay-per-token API billing (Anthropic Console,
+ * OpenAI Platform) that exposes no quota. */
+export type UsageAccountCredentialKind = "subscription" | "api_key";
+
 /** The upstream company/service serving a model. This is deliberately
  * separate from UsageAgent: multi-model agents can route to several of these. */
 export type ModelProvider =
@@ -60,6 +65,7 @@ export interface UsageQuotaWindow {
 
 export interface UsageAccount {
 	agent: QuotaCapableAgent;
+	credentialKind: UsageAccountCredentialKind;
 	/** Stable key for the credential source (config path or keychain item),
 	 * used to dedupe and as a React key. */
 	accountKey: string;

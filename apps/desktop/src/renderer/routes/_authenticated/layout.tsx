@@ -41,6 +41,7 @@ import {
 	V2FlipWelcome,
 } from "renderer/routes/_authenticated/components/V1FlipNotice";
 import { V1ImportModal } from "renderer/routes/_authenticated/components/V1ImportModal";
+import { useZoomHotkeys } from "renderer/routes/_authenticated/hooks/useZoomHotkeys";
 import { WorkspaceInitEffects } from "renderer/screens/main/components/WorkspaceInitEffects";
 import { useSettingsStore } from "renderer/stores/settings-state";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -187,6 +188,8 @@ function AuthenticatedLayout() {
 			console.error("[workspace-init-subscription] Subscription error:", error);
 		},
 	});
+
+	useZoomHotkeys();
 
 	// Menu navigation subscription
 	electronTrpc.menu.subscribe.useSubscription(undefined, {

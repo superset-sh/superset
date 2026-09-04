@@ -5,10 +5,15 @@
  *
  * - Candidates are dot-dirs at `~` plus dirs under `~/.config` — bounded,
  *   never temp dirs or project trees.
- * - A Claude candidate counts only when its own `.claude.json` names an
- *   OAuth account ("identity-extraction-is-validation" — keeps forks and
- *   sandbox homes out). Custom config dirs keep state INSIDE the dir; only
+ * - A Claude candidate counts when its own `.claude.json` names an OAuth
+ *   account ("identity-extraction-is-validation" — keeps forks and sandbox
+ *   homes out), or when Superset's API-billing login command finished and
+ *   left its marker file. Custom config dirs keep state INSIDE the dir; only
  *   the default `~/.claude` keeps it next door at `~/.claude.json`.
+ * - API-billed profiles (Anthropic Console, `codex login --with-api-key`)
+ *   are recognised by the marker alone. Their credential files are never
+ *   opened: there is no quota to fetch, and the key should not pass through
+ *   Superset.
  * - Credentials come from the dir's `.credentials.json` or its per-profile
  *   Keychain item: Claude Code hashes the literal CLAUDE_CONFIG_DIR string,
  *   so the service is `Claude Code-credentials-<sha256(literal)[0..8)>` and
@@ -29,12 +34,27 @@ const execFileAsync = promisify(execFile);
 const SCAN_TIME_BUDGET_MS = 1_500;
 const MAX_STATE_FILE_BYTES = 50 * 1024 * 1024;
 
+/**
+ * Written inside a profile dir by the add-account command once the
+ * provider's API-billing login succeeds (the renderer's addAccountCommand
+ * appends it). It holds the agent id, so a marked `~/.codex-*` home is never
+ * mistaken for a Claude profile by the broader Claude dot-dir scan. Its
+ * mtime is the login fingerprint, since a re-login rewrites it.
+ */
+export const API_BILLING_MARKER = ".superset-api-billing";
+const MAX_MARKER_BYTES = 64;
+
+export type ProfileCredentialKind = "subscription" | "api_key";
+
 export interface ClaudeProfile {
 	/** Absolute config dir path (the CLAUDE_CONFIG_DIR value's expansion). */
 	configDir: string;
 	/** `~`-relative label for display. */
 	sourceLabel: string;
 	email: string | null;
+	credentialKind: ProfileCredentialKind;
+	/** API profiles only: changes when the login command completes again. */
+	loginFingerprint: string | null;
 	credentialsPath: string;
 	/** Keychain service names to probe when the file has no token. */
 	keychainServices: string[];
@@ -43,6 +63,9 @@ export interface ClaudeProfile {
 export interface CodexHome {
 	home: string;
 	sourceLabel: string;
+	credentialKind: ProfileCredentialKind;
+	/** API profiles only; derived from the marker, never from auth.json. */
+	loginFingerprint: string | null;
 }
 
 function tildeLabel(path: string): string {
@@ -113,11 +136,30 @@ async function readClaudeIdentity(
 	}
 }
 
+/** The marker's mtime, or null when the dir is not API-billed for `agent`. */
+export async function readApiBillingFingerprint(
+	profileDir: string,
+	agent: "claude" | "codex",
+): Promise<string | null> {
+	const markerPath = join(profileDir, API_BILLING_MARKER);
+	try {
+		const info = await stat(markerPath);
+		if (!info.isFile() || info.size > MAX_MARKER_BYTES) return null;
+		const content = (await readFile(markerPath, "utf-8")).trim();
+		return content === agent ? `${info.mtimeMs}` : null;
+	} catch {
+		return null;
+	}
+}
+
 /**
  * Extra Claude profile dirs beyond the defaults. Default homes are excluded —
- * callers already cover `~/.claude` and `~/.config/claude`.
+ * callers already cover `~/.claude` and `~/.config/claude`. `candidates`
+ * overrides the home-dir scan for tests.
  */
-export async function discoverClaudeProfiles(): Promise<ClaudeProfile[]> {
+export async function discoverClaudeProfiles(
+	candidates?: string[],
+): Promise<ClaudeProfile[]> {
 	const home = homedir();
 	const excluded = new Set([
 		join(home, ".claude"),
@@ -126,15 +168,20 @@ export async function discoverClaudeProfiles(): Promise<ClaudeProfile[]> {
 	const started = Date.now();
 	const profiles: ClaudeProfile[] = [];
 
-	for (const candidate of await candidateDirectories()) {
+	for (const candidate of candidates ?? (await candidateDirectories())) {
 		if (Date.now() - started > SCAN_TIME_BUDGET_MS) break;
 		if (excluded.has(candidate)) continue;
-		const identity = await readClaudeIdentity(candidate);
-		if (!identity) continue;
+		const [identity, apiFingerprint] = await Promise.all([
+			readClaudeIdentity(candidate),
+			readApiBillingFingerprint(candidate, "claude"),
+		]);
+		if (!identity && !apiFingerprint) continue;
 		profiles.push({
 			configDir: candidate,
 			sourceLabel: tildeLabel(candidate),
-			email: identity.email,
+			email: identity?.email ?? null,
+			credentialKind: apiFingerprint ? "api_key" : "subscription",
+			loginFingerprint: apiFingerprint,
 			credentialsPath: join(candidate, ".credentials.json"),
 			keychainServices: keychainServicesForConfigDir(candidate),
 		});
@@ -210,11 +257,36 @@ interface CodexAuthShape {
 }
 
 /**
+ * How a Codex home is billed, or null when it holds no usable login. The
+ * marker is checked first so an API-billed home's auth.json (which holds
+ * the raw key) is never opened.
+ */
+export async function readCodexProfileKind(
+	codexHome: string,
+): Promise<Pick<CodexHome, "credentialKind" | "loginFingerprint"> | null> {
+	const apiFingerprint = await readApiBillingFingerprint(codexHome, "codex");
+	if (apiFingerprint) {
+		return { credentialKind: "api_key", loginFingerprint: apiFingerprint };
+	}
+	try {
+		const parsed: CodexAuthShape = JSON.parse(
+			await readFile(join(codexHome, "auth.json"), "utf-8"),
+		);
+		return parsed.tokens?.access_token
+			? { credentialKind: "subscription", loginFingerprint: null }
+			: null;
+	} catch {
+		// No parsable auth.json — not a Codex home.
+		return null;
+	}
+}
+
+/**
  * Codex homes: the ambient home (`~/.codex`, or a `CODEX_HOME` the user set
  * themselves — see resolveAmbientCodexHome for why Superset's own injected
  * value is ignored) plus any `~/.codex*` dot-dir carrying an `auth.json` with
- * a token. The common multi-account convention is one CODEX_HOME dir per
- * account.
+ * a token or the API-billing marker. The common multi-account convention is
+ * one CODEX_HOME dir per account.
  *
  * The first entry is the system default, and `fetchCodexAccounts` gives it
  * `selection: null`. It is listed even without an `auth.json` so the
@@ -223,8 +295,19 @@ interface CodexAuthShape {
 export async function discoverCodexHomes(): Promise<CodexHome[]> {
 	const home = homedir();
 	const defaultHome = resolveAmbientCodexHome(home);
+	const defaultKind = (await readCodexProfileKind(defaultHome)) ?? {
+		credentialKind: "subscription" as const,
+		loginFingerprint: null,
+	};
 	const homes = new Map<string, CodexHome>([
-		[defaultHome, { home: defaultHome, sourceLabel: tildeLabel(defaultHome) }],
+		[
+			defaultHome,
+			{
+				home: defaultHome,
+				sourceLabel: tildeLabel(defaultHome),
+				...defaultKind,
+			},
+		],
 	]);
 
 	const candidates = (await listSubdirectories(home)).filter((path) =>
@@ -232,18 +315,13 @@ export async function discoverCodexHomes(): Promise<CodexHome[]> {
 	);
 	for (const candidate of candidates) {
 		if (homes.has(candidate)) continue;
-		try {
-			const parsed: CodexAuthShape = JSON.parse(
-				await readFile(join(candidate, "auth.json"), "utf-8"),
-			);
-			if (!parsed.tokens?.access_token) continue;
-			homes.set(candidate, {
-				home: candidate,
-				sourceLabel: tildeLabel(candidate),
-			});
-		} catch {
-			// No parsable auth.json — not a Codex home.
-		}
+		const kind = await readCodexProfileKind(candidate);
+		if (!kind) continue;
+		homes.set(candidate, {
+			home: candidate,
+			sourceLabel: tildeLabel(candidate),
+			...kind,
+		});
 	}
 	return [...homes.values()];
 }

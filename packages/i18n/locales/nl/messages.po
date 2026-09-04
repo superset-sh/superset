@@ -140,6 +140,10 @@ msgstr "{0, plural, one {# bestand} other {# bestanden}}"
 msgid "{0, plural, one {# File} other {# Files}}"
 msgstr "{0, plural, one {# bestand} other {# bestanden}}"
 
+#. placeholder {0}: projects.length
+msgid "{0, plural, one {# hidden project} other {# hidden projects}}"
+msgstr "{0, plural, one {# verborgen project} other {# verborgen projecten}}"
+
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
 msgstr "{0, plural, one {# item uit de geschiedenis} other {# items uit de geschiedenis}}"
@@ -661,6 +665,9 @@ msgstr "{noun, select, person {Geef minstens één persoon op, of kies {choice}.
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {Geef minstens één repository op.} channel {Geef minstens één kanaal op.} reaction {Geef minstens één reactie op.} dataSource {Geef minstens één gegevensbron op.} team {Geef minstens één team op.} project {Geef minstens één project op.} calendar {Geef minstens één agenda op.} other {Geef minstens één item op.}}"
 
+msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
+msgstr "{offlineHostCount, plural, one {# apparaat is offline en behoudt zijn kopie.} other {# apparaten zijn offline en behouden hun kopie.}}"
+
 msgid "{openCount} open"
 msgstr "{openCount} open"
 
@@ -784,6 +791,9 @@ msgstr "{workspaceName}: host is niet beschikbaar"
 
 msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}: teardown mislukt"
+
+msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
+msgstr "{worktreeCount, plural, one {Dit verwijdert het project en zijn # werkruimte van elk bereikbaar apparaat en wist die worktree van de schijf.} other {Dit verwijdert het project en zijn # werkruimten van elk bereikbaar apparaat en wist hun worktrees van de schijf.}}"
 
 msgid "{years}y ago"
 msgstr "{years}j geleden"
@@ -1080,6 +1090,13 @@ msgstr "Er loopt al een run voor deze automatisering."
 
 msgid "A selection of integrations curated by our team."
 msgstr "Een selectie van integraties die ons team heeft samengesteld."
+
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "A separate pay-per-token profile. The key stays in the {0} CLI."
+msgstr "Een apart profiel dat per token wordt afgerekend. De sleutel blijft in de {0}-CLI."
+
+msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
+msgstr "Een apart profiel dat je skills, plugins, MCP-servers en instellingen deelt."
 
 msgid "a teammate"
 msgstr "een teamgenoot"
@@ -1762,6 +1779,9 @@ msgstr "wat dan ook"
 msgid "AP"
 msgstr "AP"
 
+msgid "API"
+msgstr "API"
+
 msgid "API key"
 msgstr "API-sleutel"
 
@@ -2195,6 +2215,9 @@ msgstr "Verder: F5 is geen claim voor de korte termijn"
 
 msgid "Billed monthly"
 msgstr "Maandelijks gefactureerd"
+
+msgid "Billed per token."
+msgstr "Afgerekend per token."
 
 msgid "Billed yearly"
 msgstr "Jaarlijks gefactureerd"
@@ -4413,6 +4436,9 @@ msgstr "Pagina verwijderen"
 msgid "Delete project"
 msgstr "Project verwijderen"
 
+msgid "Delete Project…"
+msgstr "Project verwijderen…"
+
 msgid "Delete script"
 msgstr "Script verwijderen"
 
@@ -6393,6 +6419,10 @@ msgstr "Help en docs"
 msgid "Henry Ford"
 msgstr "Henry Ford"
 
+#. placeholder {0}: project.name
+msgid "Hid \"{0}\" from the sidebar"
+msgstr "\"{0}\" uit de zijbalk verborgen"
+
 msgid "Hidden"
 msgstr "Verborgen"
 
@@ -6973,8 +7003,8 @@ msgstr "Zijn mijn gegevens veilig?"
 msgid "is now signed in here."
 msgstr "is nu hier ingelogd."
 
-msgid "is signed in and will show its quota here."
-msgstr "is ingelogd en toont hier zijn quotum."
+msgid "is signed in."
+msgstr "is ingelogd."
 
 msgid "Is Superset free to use?"
 msgstr "Is Superset gratis te gebruiken?"
@@ -10581,8 +10611,8 @@ msgstr "Lees de gids over parallelle coding agents"
 msgid "Read the setup guide"
 msgstr "Lees de installatiegids"
 
-msgid "Reading subscription usage…"
-msgstr "Abonnementsgebruik lezen…"
+msgid "Reading usage…"
+msgstr "Gebruik wordt gelezen…"
 
 msgid "Reading your local usage…"
 msgstr "Je lokale gebruik wordt gelezen…"
@@ -10817,9 +10847,6 @@ msgstr "Vermelding {path} verwijderen"
 msgid "Remove PR Link"
 msgstr "PR-koppeling verwijderen"
 
-msgid "Remove project from sidebar?"
-msgstr "Project uit de zijbalk verwijderen?"
-
 msgid "Remove script"
 msgstr "Script verwijderen"
 
@@ -11033,6 +11060,9 @@ msgid "Reset worktree location"
 msgstr "Worktree-locatie resetten"
 
 msgid "Reset zoom"
+msgstr "Zoom resetten"
+
+msgid "Reset Zoom"
 msgstr "Zoom resetten"
 
 msgid "Resets in {countdown} · {absolute}"
@@ -11368,6 +11398,12 @@ msgstr "Opdrachten uitvoeren en door de app navigeren."
 msgid "Run History"
 msgstr "Runs"
 
+msgid "Run in a terminal on this host; paste your key when asked:"
+msgstr "Voer dit uit in een terminal op deze host en plak je sleutel wanneer daarom wordt gevraagd:"
+
+msgid "Run in a terminal on this host:"
+msgstr "Voer dit uit in een terminal op deze host:"
+
 msgid "Run in Workspace"
 msgstr "Uitvoeren in werkruimte"
 
@@ -11394,9 +11430,6 @@ msgstr "Terminalcommando's uitvoeren en met andere applicaties werken."
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Draai de agent in de terminal van de werkruimte-setup zodra die klaar is, in plaats van er een tweede terminal naast te starten"
-
-msgid "Run this in any terminal on this host, then finish the sign-in in your browser:"
-msgstr "Voer dit uit in een terminal op deze host en rond de login daarna af in je browser:"
 
 msgid "Run workspace command"
 msgstr "Werkruimtecommando uitvoeren"
@@ -12283,9 +12316,6 @@ msgstr "Inloggen als lokale beheerder (dev)"
 msgid "Sign in to {0}"
 msgstr "Log in bij {0}"
 
-msgid "Sign in to a second subscription as a separate profile. Your current login is untouched, and the new profile shares your skills, plugins, MCP servers, and settings."
-msgstr "Log in op een tweede abonnement als apart profiel. Je huidige login blijft ongemoeid, en het nieuwe profiel deelt je skills, plugins, MCP-servers en instellingen."
-
 msgid "Sign in to continue to Superset"
 msgstr "Log in om verder te gaan naar Superset"
 
@@ -12861,6 +12891,9 @@ msgstr "ABONNEER"
 msgid "Subscribe on YouTube"
 msgstr "Abonneer op YouTube"
 
+msgid "Subscription"
+msgstr "Abonnement"
+
 msgid "Success"
 msgstr "Geslaagd"
 
@@ -13300,6 +13333,9 @@ msgstr "Bestandslinks in de terminal"
 msgid "Terminal font size"
 msgstr "Tekengrootte terminal"
 
+msgid "Terminal font size when a terminal is focused, page zoom in a browser pane, otherwise the whole app"
+msgstr "Tekengrootte van een terminal met focus, paginazoom in een browserpaneel, anders de hele app"
+
 msgid "terminal ID"
 msgstr "terminal-ID"
 
@@ -13579,6 +13615,9 @@ msgstr "De remote branch is uiteengelopen. Pull voordat je verdergaat."
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "De renderer is tijdens het opstarten gecrasht. Bekijk de logs voor details."
 
+msgid "The repository folder itself is kept."
+msgstr "De repositorymap zelf blijft behouden."
+
 msgid "The request failed."
 msgstr "Het verzoek is mislukt."
 
@@ -13696,9 +13735,6 @@ msgstr "Hiermee worden alle terminalsessies gesloten — in deze werkruimte en i
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "Hiermee wordt elke terminalsessie van je organisatie{runningCountSuffix} gesloten en start een verse daemon."
-
-msgid "This deletes the project and all of its workspaces from <0>every reachable device</0> where it is set up. This cannot be undone."
-msgstr "Hiermee worden het project en al zijn werkruimtes verwijderd van <0>elk bereikbaar apparaat</0> waarop het is ingesteld. Dit kan niet ongedaan worden gemaakt."
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Hiermee wordt de opgeslagen scrollback voor herstel na herstart of crash verwijderd."
@@ -13823,6 +13859,9 @@ msgstr "Hiermee wordt elke geselecteerde worktree van schijf gehaald en het bijb
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "Hiermee worden de host, de toegang en de werkruimtes verwijderd. Bestanden op de machine blijven staan. Een draaiende host kan weer verschijnen. Dit kan niet ongedaan worden gemaakt."
 
+msgid "This removes the project from every reachable device."
+msgstr "Dit verwijdert het project van elk bereikbaar apparaat."
+
 msgid "This removes the worktree from disk. The cloud workspace record will also be removed."
 msgstr "Hiermee wordt de worktree van schijf gehaald. Ook het cloudrecord van de werkruimte wordt verwijderd."
 
@@ -13895,9 +13934,6 @@ msgstr "Hiermee wordt de verbinding tussen je organisatie en Notion verwijderd. 
 
 msgid "This will remove the connection between your organization and Slack. You can reconnect at any time."
 msgstr "Hiermee wordt de verbinding tussen je organisatie en Slack verwijderd. Je kunt op elk moment opnieuw verbinden."
-
-msgid "This will remove workspaces from the sidebar and delete all project sections. The workspaces or projects won't be deleted."
-msgstr "Hiermee worden werkruimtes uit de zijbalk gehaald en alle projectsecties verwijderd. De werkruimtes of projecten zelf worden niet verwijderd."
 
 msgid "This will revert all changes to this file. This action cannot be undone."
 msgstr "Hiermee worden alle wijzigingen in dit bestand teruggedraaid. Dit kan niet ongedaan worden gemaakt."
@@ -14683,6 +14719,9 @@ msgstr "Releases bekijken op GitHub"
 msgid "View Superset repository on GitHub"
 msgstr "Superset-repository bekijken op GitHub"
 
+msgid "View usage"
+msgstr "Gebruik bekijken"
+
 msgid "Volume"
 msgstr "Volume"
 
@@ -14698,8 +14737,8 @@ msgstr "Wachten op checks"
 msgid "Waiting for Review"
 msgstr "Wachten op review"
 
-msgid "Waiting for the sign-in to complete — this updates automatically."
-msgstr "Wachten tot de login is afgerond — dit werkt automatisch bij."
+msgid "Waiting for sign-in…"
+msgstr "Wachten op login…"
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Wil je iets eerder zien? <0>Laat het weten in Discord</0>. Veel van wat hier staat begon als gebruikersverzoek."
@@ -15067,6 +15106,9 @@ msgstr "Worktree niet in sync"
 msgid "Worktrees"
 msgstr "Worktrees"
 
+msgid "Worktrees with uncommitted changes are left on disk."
+msgstr "Worktrees met niet-gecommitte wijzigingen blijven op de schijf staan."
+
 msgid "Would you like to reassign it?"
 msgstr "Wil je hem opnieuw toewijzen?"
 
@@ -15268,7 +15310,13 @@ msgstr "Zoom"
 msgid "Zoom in"
 msgstr "Inzoomen"
 
+msgid "Zoom In"
+msgstr "Inzoomen"
+
 msgid "Zoom out"
+msgstr "Uitzoomen"
+
+msgid "Zoom Out"
 msgstr "Uitzoomen"
 
 msgid "zsh"

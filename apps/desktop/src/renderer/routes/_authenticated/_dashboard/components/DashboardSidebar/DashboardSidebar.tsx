@@ -28,6 +28,7 @@ import { DashboardSidebarBulkActions } from "./components/DashboardSidebarBulkAc
 import { DashboardSidebarBulkDeleteMount } from "./components/DashboardSidebarBulkDeleteMount";
 import { DashboardSidebarCloudSection } from "./components/DashboardSidebarCloudSection";
 import { DashboardSidebarHeader } from "./components/DashboardSidebarHeader";
+import { DashboardSidebarHiddenProjects } from "./components/DashboardSidebarHiddenProjects";
 import { DashboardSidebarHoverCardOverlay } from "./components/DashboardSidebarHoverCardOverlay";
 import { DashboardSidebarPinnedSection } from "./components/DashboardSidebarPinnedSection";
 import { DashboardSidebarProjectSection } from "./components/DashboardSidebarProjectSection";
@@ -132,6 +133,7 @@ export function DashboardSidebar({
 	const { t } = useLingui();
 	const {
 		groups,
+		hiddenProjects,
 		pinnedWorkspaces,
 		sessionWorkspaces,
 		sessionChildren,
@@ -142,8 +144,13 @@ export function DashboardSidebar({
 		deleteSection,
 		reorderProjects,
 		renameSection,
+		setProjectHidden,
 		toggleSectionCollapsed,
 	} = useDashboardSidebarState();
+	const showHiddenProject = useCallback(
+		(projectId: string) => setProjectHidden(projectId, false),
+		[setProjectHidden],
+	);
 	// Converts legacy uuid-keyed folders to tag-backed folders in the
 	// background; retries whenever the workspace cache changes.
 	useMigrateLegacySidebarFolders();
@@ -387,6 +394,12 @@ export function DashboardSidebar({
 													/>
 												))}
 											</SortableContext>
+										)}
+										{!isCollapsed && !workspacesListCollapsed && (
+											<DashboardSidebarHiddenProjects
+												projects={hiddenProjects}
+												onShow={showHiddenProject}
+											/>
 										)}
 										{!isCollapsed &&
 											isFilterActive &&

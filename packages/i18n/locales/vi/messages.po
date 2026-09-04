@@ -140,6 +140,10 @@ msgstr "{0, plural, one {# tệp} other {# tệp}}"
 msgid "{0, plural, one {# File} other {# Files}}"
 msgstr "{0, plural, one {# tệp} other {# tệp}}"
 
+#. placeholder {0}: projects.length
+msgid "{0, plural, one {# hidden project} other {# hidden projects}}"
+msgstr "{0, plural, one {# dự án đã ẩn} other {# dự án đã ẩn}}"
+
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
 msgstr "{0, plural, one {# mục lịch sử} other {# mục lịch sử}}"
@@ -661,6 +665,9 @@ msgstr "{noun, select, person {Hãy chỉ định ít nhất một người, ho�
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {Hãy chỉ định ít nhất một repo.} channel {Hãy chỉ định ít nhất một kênh.} reaction {Hãy chỉ định ít nhất một reaction.} dataSource {Hãy chỉ định ít nhất một nguồn dữ liệu.} team {Hãy chỉ định ít nhất một nhóm.} project {Hãy chỉ định ít nhất một dự án.} calendar {Hãy chỉ định ít nhất một lịch.} other {Hãy chỉ định ít nhất một mục.}}"
 
+msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
+msgstr "{offlineHostCount, plural, one {# thiết bị đang ngoại tuyến và sẽ giữ lại bản sao của mình.} other {# thiết bị đang ngoại tuyến và sẽ giữ lại bản sao của mình.}}"
+
 msgid "{openCount} open"
 msgstr "{openCount} còn mở"
 
@@ -784,6 +791,9 @@ msgstr "{workspaceName}: host không khả dụng"
 
 msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}: teardown thất bại"
+
+msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
+msgstr "{worktreeCount, plural, one {Thao tác này sẽ gỡ dự án và # workspace của nó khỏi mọi thiết bị có thể kết nối, đồng thời xóa worktree đó khỏi ổ đĩa.} other {Thao tác này sẽ gỡ dự án và # workspace của nó khỏi mọi thiết bị có thể kết nối, đồng thời xóa các worktree đó khỏi ổ đĩa.}}"
 
 msgid "{years}y ago"
 msgstr "{years} năm trước"
@@ -1080,6 +1090,13 @@ msgstr "Một lần chạy của tự động hóa này đang diễn ra."
 
 msgid "A selection of integrations curated by our team."
 msgstr "Một số tích hợp do đội ngũ của chúng tôi tuyển chọn."
+
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "A separate pay-per-token profile. The key stays in the {0} CLI."
+msgstr "Một hồ sơ riêng tính phí theo token. Khóa nằm trong CLI {0}."
+
+msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
+msgstr "Một hồ sơ riêng dùng chung skill, plugin, server MCP và cài đặt của bạn."
 
 msgid "a teammate"
 msgstr "một đồng đội"
@@ -1762,6 +1779,9 @@ msgstr "bất kỳ điều gì"
 msgid "AP"
 msgstr "AP"
 
+msgid "API"
+msgstr "API"
+
 msgid "API key"
 msgstr "Khóa API"
 
@@ -2195,6 +2215,9 @@ msgstr "Xa hơn: F5 không phải tuyên bố cho tương lai gần"
 
 msgid "Billed monthly"
 msgstr "Thanh toán theo tháng"
+
+msgid "Billed per token."
+msgstr "Tính phí theo token."
 
 msgid "Billed yearly"
 msgstr "Thanh toán theo năm"
@@ -4413,6 +4436,9 @@ msgstr "Xóa trang"
 msgid "Delete project"
 msgstr "Xóa dự án"
 
+msgid "Delete Project…"
+msgstr "Xóa dự án…"
+
 msgid "Delete script"
 msgstr "Xóa script"
 
@@ -6393,6 +6419,10 @@ msgstr "Trợ giúp & Tài liệu"
 msgid "Henry Ford"
 msgstr "Henry Ford"
 
+#. placeholder {0}: project.name
+msgid "Hid \"{0}\" from the sidebar"
+msgstr "Đã ẩn \"{0}\" khỏi thanh bên"
+
 msgid "Hidden"
 msgstr "Đã ẩn"
 
@@ -6973,8 +7003,8 @@ msgstr "Dữ liệu của tôi có an toàn không?"
 msgid "is now signed in here."
 msgstr "hiện đã đăng nhập ở đây."
 
-msgid "is signed in and will show its quota here."
-msgstr "đã đăng nhập và sẽ hiện hạn mức ở đây."
+msgid "is signed in."
+msgstr "đã đăng nhập."
 
 msgid "Is Superset free to use?"
 msgstr "Superset có miễn phí không?"
@@ -10581,8 +10611,8 @@ msgstr "Đọc hướng dẫn về coding agent chạy song song"
 msgid "Read the setup guide"
 msgstr "Đọc hướng dẫn thiết lập"
 
-msgid "Reading subscription usage…"
-msgstr "Đang đọc mức dùng của gói đăng ký…"
+msgid "Reading usage…"
+msgstr "Đang đọc mức sử dụng…"
 
 msgid "Reading your local usage…"
 msgstr "Đang đọc mức sử dụng cục bộ của bạn…"
@@ -10817,9 +10847,6 @@ msgstr "Xóa nhắc đến {path}"
 msgid "Remove PR Link"
 msgstr "Gỡ liên kết PR"
 
-msgid "Remove project from sidebar?"
-msgstr "Gỡ dự án khỏi thanh bên?"
-
 msgid "Remove script"
 msgstr "Gỡ script"
 
@@ -11033,6 +11060,9 @@ msgid "Reset worktree location"
 msgstr "Đặt lại vị trí worktree"
 
 msgid "Reset zoom"
+msgstr "Đặt lại thu phóng"
+
+msgid "Reset Zoom"
 msgstr "Đặt lại thu phóng"
 
 msgid "Resets in {countdown} · {absolute}"
@@ -11368,6 +11398,12 @@ msgstr "Chạy lệnh và điều hướng trong ứng dụng."
 msgid "Run History"
 msgstr "Lịch sử chạy"
 
+msgid "Run in a terminal on this host; paste your key when asked:"
+msgstr "Chạy lệnh này trong terminal trên host này và dán khóa khi được yêu cầu:"
+
+msgid "Run in a terminal on this host:"
+msgstr "Chạy lệnh này trong terminal trên host này:"
+
 msgid "Run in Workspace"
 msgstr "Chạy trong workspace"
 
@@ -11394,9 +11430,6 @@ msgstr "Chạy lệnh terminal và tương tác với ứng dụng khác."
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Chạy agent trong terminal Workspace Setup sau khi setup xong thay vì mở thêm một terminal thứ hai bên cạnh"
-
-msgid "Run this in any terminal on this host, then finish the sign-in in your browser:"
-msgstr "Chạy lệnh này trong bất kỳ terminal nào trên host này, rồi hoàn tất đăng nhập trong trình duyệt:"
 
 msgid "Run workspace command"
 msgstr "Chạy lệnh của workspace"
@@ -12283,9 +12316,6 @@ msgstr "Đăng nhập với quyền Local Admin (dev)"
 msgid "Sign in to {0}"
 msgstr "Đăng nhập vào {0}"
 
-msgid "Sign in to a second subscription as a separate profile. Your current login is untouched, and the new profile shares your skills, plugins, MCP servers, and settings."
-msgstr "Đăng nhập vào một gói đăng ký thứ hai dưới dạng hồ sơ riêng. Lần đăng nhập hiện tại của bạn không bị ảnh hưởng, và hồ sơ mới dùng chung skill, plugin, server MCP và cài đặt của bạn."
-
 msgid "Sign in to continue to Superset"
 msgstr "Đăng nhập để tiếp tục vào Superset"
 
@@ -12861,6 +12891,9 @@ msgstr "ĐĂNG KÝ"
 msgid "Subscribe on YouTube"
 msgstr "Đăng ký trên YouTube"
 
+msgid "Subscription"
+msgstr "Gói đăng ký"
+
 msgid "Success"
 msgstr "Thành công"
 
@@ -13300,6 +13333,9 @@ msgstr "Liên kết tệp trong terminal"
 msgid "Terminal font size"
 msgstr "Cỡ chữ terminal"
 
+msgid "Terminal font size when a terminal is focused, page zoom in a browser pane, otherwise the whole app"
+msgstr "Cỡ chữ terminal khi terminal đang được focus, thu phóng trang trong khung trình duyệt, nếu không thì toàn bộ ứng dụng"
+
 msgid "terminal ID"
 msgstr "ID terminal"
 
@@ -13579,6 +13615,9 @@ msgstr "Nhánh remote đã rẽ nhánh khác. Hãy pull trước khi tiếp tụ
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "Renderer đã crash khi khởi động. Vui lòng xem log để biết chi tiết."
 
+msgid "The repository folder itself is kept."
+msgstr "Thư mục kho lưu trữ vẫn được giữ nguyên."
+
 msgid "The request failed."
 msgstr "Yêu cầu thất bại."
 
@@ -13696,9 +13735,6 @@ msgstr "Thao tác này đóng mọi phiên terminal — trong workspace này và
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "Thao tác này đóng mọi phiên terminal của tổ chức bạn{runningCountSuffix} và khởi động một daemon mới."
-
-msgid "This deletes the project and all of its workspaces from <0>every reachable device</0> where it is set up. This cannot be undone."
-msgstr "Thao tác này xóa dự án và toàn bộ workspace của nó trên <0>mọi thiết bị kết nối được</0> nơi dự án đã được thiết lập. Không thể hoàn tác."
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Thao tác này xóa phần scrollback đã lưu dùng để khôi phục sau khi khởi động lại hoặc crash."
@@ -13823,6 +13859,9 @@ msgstr "Thao tác này xóa mọi worktree đã chọn khỏi đĩa và xóa b�
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "Thao tác này gỡ host, quyền truy cập và các workspace của nó. Tệp trên máy vẫn giữ nguyên. Host đang chạy có thể xuất hiện lại. Không thể hoàn tác."
 
+msgid "This removes the project from every reachable device."
+msgstr "Thao tác này sẽ gỡ dự án khỏi mọi thiết bị có thể kết nối."
+
 msgid "This removes the worktree from disk. The cloud workspace record will also be removed."
 msgstr "Thao tác này xóa worktree khỏi đĩa. Bản ghi workspace trên cloud cũng sẽ bị xóa."
 
@@ -13895,9 +13934,6 @@ msgstr "Thao tác này sẽ gỡ kết nối giữa tổ chức của bạn và 
 
 msgid "This will remove the connection between your organization and Slack. You can reconnect at any time."
 msgstr "Thao tác này sẽ gỡ kết nối giữa tổ chức của bạn và Slack. Bạn có thể kết nối lại bất cứ lúc nào."
-
-msgid "This will remove workspaces from the sidebar and delete all project sections. The workspaces or projects won't be deleted."
-msgstr "Thao tác này sẽ gỡ các workspace khỏi thanh bên và xóa mọi mục của dự án. Các workspace hay dự án sẽ không bị xóa."
 
 msgid "This will revert all changes to this file. This action cannot be undone."
 msgstr "Thao tác này sẽ hoàn nguyên mọi thay đổi với tệp này. Không thể hoàn tác."
@@ -14683,6 +14719,9 @@ msgstr "Xem bản phát hành trên GitHub"
 msgid "View Superset repository on GitHub"
 msgstr "Xem repository Superset trên GitHub"
 
+msgid "View usage"
+msgstr "Xem mức sử dụng"
+
 msgid "Volume"
 msgstr "Âm lượng"
 
@@ -14698,8 +14737,8 @@ msgstr "Đang chờ check"
 msgid "Waiting for Review"
 msgstr "Đang chờ review"
 
-msgid "Waiting for the sign-in to complete — this updates automatically."
-msgstr "Đang chờ hoàn tất đăng nhập — phần này tự cập nhật."
+msgid "Waiting for sign-in…"
+msgstr "Đang chờ đăng nhập…"
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Muốn có sớm hơn? <0>Hãy nói với chúng tôi trên Discord</0>. Phần lớn những gì ở đây bắt đầu từ yêu cầu của người dùng."
@@ -15067,6 +15106,9 @@ msgstr "Worktree không còn đồng bộ"
 msgid "Worktrees"
 msgstr "Worktree"
 
+msgid "Worktrees with uncommitted changes are left on disk."
+msgstr "Các worktree có thay đổi chưa commit sẽ được giữ lại trên ổ đĩa."
+
 msgid "Would you like to reassign it?"
 msgstr "Bạn có muốn gán lại không?"
 
@@ -15268,7 +15310,13 @@ msgstr "Thu phóng"
 msgid "Zoom in"
 msgstr "Phóng to"
 
+msgid "Zoom In"
+msgstr "Phóng to"
+
 msgid "Zoom out"
+msgstr "Thu nhỏ"
+
+msgid "Zoom Out"
 msgstr "Thu nhỏ"
 
 msgid "zsh"

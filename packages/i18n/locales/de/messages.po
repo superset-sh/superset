@@ -140,6 +140,10 @@ msgstr "{0, plural, one {# Datei} other {# Dateien}}"
 msgid "{0, plural, one {# File} other {# Files}}"
 msgstr "{0, plural, one {# Datei} other {# Dateien}}"
 
+#. placeholder {0}: projects.length
+msgid "{0, plural, one {# hidden project} other {# hidden projects}}"
+msgstr "{0, plural, one {# ausgeblendetes Projekt} other {# ausgeblendete Projekte}}"
+
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
 msgstr "{0, plural, one {# Verlaufseintrag} other {# Verlaufseinträge}}"
@@ -661,6 +665,9 @@ msgstr "{noun, select, person {Gib mindestens eine Person an, oder wähle {choic
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {Gib mindestens ein Repository an.} channel {Gib mindestens einen Kanal an.} reaction {Gib mindestens eine Reaktion an.} dataSource {Gib mindestens eine Datenquelle an.} team {Gib mindestens ein Team an.} project {Gib mindestens ein Projekt an.} calendar {Gib mindestens einen Kalender an.} other {Gib mindestens einen Eintrag an.}}"
 
+msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
+msgstr "{offlineHostCount, plural, one {# Gerät ist offline und behält seine Kopie.} other {# Geräte sind offline und behalten ihre Kopie.}}"
+
 msgid "{openCount} open"
 msgstr "{openCount} offen"
 
@@ -784,6 +791,9 @@ msgstr "{workspaceName}: Host ist nicht verfügbar"
 
 msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}: Teardown fehlgeschlagen"
+
+msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
+msgstr "{worktreeCount, plural, one {Das entfernt das Projekt und seinen # Arbeitsbereich von jedem erreichbaren Gerät und löscht diesen Worktree von der Festplatte.} other {Das entfernt das Projekt und seine # Arbeitsbereiche von jedem erreichbaren Gerät und löscht ihre Worktrees von der Festplatte.}}"
 
 msgid "{years}y ago"
 msgstr "vor {years} J."
@@ -1080,6 +1090,13 @@ msgstr "Für diese Automatisierung läuft bereits ein Durchlauf."
 
 msgid "A selection of integrations curated by our team."
 msgstr "Eine von unserem Team kuratierte Auswahl an Integrationen."
+
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "A separate pay-per-token profile. The key stays in the {0} CLI."
+msgstr "Ein eigenes Profil mit Abrechnung pro Token. Der Schlüssel bleibt in der {0}-CLI."
+
+msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
+msgstr "Ein eigenes Profil, das deine Skills, Plugins, MCP-Server und Einstellungen teilt."
 
 msgid "a teammate"
 msgstr "ein Teammitglied"
@@ -1762,6 +1779,9 @@ msgstr "beliebig"
 msgid "AP"
 msgstr "AP"
 
+msgid "API"
+msgstr "API"
+
 msgid "API key"
 msgstr "API-Schlüssel"
 
@@ -2195,6 +2215,9 @@ msgstr "Ausblick: F5 ist keine kurzfristige Behauptung"
 
 msgid "Billed monthly"
 msgstr "Monatlich abgerechnet"
+
+msgid "Billed per token."
+msgstr "Abrechnung pro Token."
 
 msgid "Billed yearly"
 msgstr "Jährlich abgerechnet"
@@ -4413,6 +4436,9 @@ msgstr "Seite löschen"
 msgid "Delete project"
 msgstr "Projekt löschen"
 
+msgid "Delete Project…"
+msgstr "Projekt löschen…"
+
 msgid "Delete script"
 msgstr "Skript löschen"
 
@@ -6393,6 +6419,10 @@ msgstr "Hilfe & Doku"
 msgid "Henry Ford"
 msgstr "Henry Ford"
 
+#. placeholder {0}: project.name
+msgid "Hid \"{0}\" from the sidebar"
+msgstr "\"{0}\" aus der Seitenleiste ausgeblendet"
+
 msgid "Hidden"
 msgstr "Ausgeblendet"
 
@@ -6973,8 +7003,8 @@ msgstr "Sind meine Daten sicher?"
 msgid "is now signed in here."
 msgstr "ist hier jetzt angemeldet."
 
-msgid "is signed in and will show its quota here."
-msgstr "ist angemeldet und zeigt sein Kontingent hier an."
+msgid "is signed in."
+msgstr "ist angemeldet."
 
 msgid "Is Superset free to use?"
 msgstr "Ist Superset kostenlos nutzbar?"
@@ -10581,8 +10611,8 @@ msgstr "Zum Leitfaden für parallele Coding-Agenten"
 msgid "Read the setup guide"
 msgstr "Zur Einrichtungsanleitung"
 
-msgid "Reading subscription usage…"
-msgstr "Abo-Nutzung wird gelesen…"
+msgid "Reading usage…"
+msgstr "Nutzung wird gelesen …"
 
 msgid "Reading your local usage…"
 msgstr "Lokale Nutzungsdaten werden gelesen…"
@@ -10817,9 +10847,6 @@ msgstr "Erwähnung {path} entfernen"
 msgid "Remove PR Link"
 msgstr "PR-Link entfernen"
 
-msgid "Remove project from sidebar?"
-msgstr "Projekt aus der Seitenleiste entfernen?"
-
 msgid "Remove script"
 msgstr "Skript entfernen"
 
@@ -11033,6 +11060,9 @@ msgid "Reset worktree location"
 msgstr "Worktree-Speicherort zurücksetzen"
 
 msgid "Reset zoom"
+msgstr "Zoom zurücksetzen"
+
+msgid "Reset Zoom"
 msgstr "Zoom zurücksetzen"
 
 msgid "Resets in {countdown} · {absolute}"
@@ -11368,6 +11398,12 @@ msgstr "Befehle ausführen und durch die Anwendung navigieren."
 msgid "Run History"
 msgstr "Ausführungsverlauf"
 
+msgid "Run in a terminal on this host; paste your key when asked:"
+msgstr "Führe das in einem Terminal auf diesem Host aus und füge deinen Schlüssel ein, wenn du gefragt wirst:"
+
+msgid "Run in a terminal on this host:"
+msgstr "Führe das in einem Terminal auf diesem Host aus:"
+
 msgid "Run in Workspace"
 msgstr "Im Arbeitsbereich ausführen"
 
@@ -11394,9 +11430,6 @@ msgstr "Terminal-Befehle ausführen und mit anderen Anwendungen interagieren."
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Den Agenten im Terminal „Workspace Setup“ ausführen, sobald das Setup fertig ist, statt daneben ein zweites Terminal zu starten"
-
-msgid "Run this in any terminal on this host, then finish the sign-in in your browser:"
-msgstr "Führe das in einem beliebigen Terminal auf diesem Host aus und schließe die Anmeldung dann im Browser ab:"
 
 msgid "Run workspace command"
 msgstr "Befehl des Arbeitsbereichs ausführen"
@@ -12283,9 +12316,6 @@ msgstr "Als lokaler Admin anmelden (Dev)"
 msgid "Sign in to {0}"
 msgstr "Bei {0} anmelden"
 
-msgid "Sign in to a second subscription as a separate profile. Your current login is untouched, and the new profile shares your skills, plugins, MCP servers, and settings."
-msgstr "Melde dich mit einem zweiten Abo als eigenes Profil an. Deine aktuelle Anmeldung bleibt unberührt, und das neue Profil teilt sich deine Skills, Plugins, MCP-Server und Einstellungen."
-
 msgid "Sign in to continue to Superset"
 msgstr "Melde dich an, um zu Superset zu gelangen"
 
@@ -12861,6 +12891,9 @@ msgstr "ABONNIEREN"
 msgid "Subscribe on YouTube"
 msgstr "Auf YouTube abonnieren"
 
+msgid "Subscription"
+msgstr "Abo"
+
 msgid "Success"
 msgstr "Erfolgreich"
 
@@ -13300,6 +13333,9 @@ msgstr "Datei-Links im Terminal"
 msgid "Terminal font size"
 msgstr "Terminal-Schriftgröße"
 
+msgid "Terminal font size when a terminal is focused, page zoom in a browser pane, otherwise the whole app"
+msgstr "Schriftgröße des Terminals, wenn ein Terminal fokussiert ist, Seitenzoom in einem Browser-Bereich, sonst die ganze App"
+
 msgid "terminal ID"
 msgstr "Terminal-ID"
 
@@ -13579,6 +13615,9 @@ msgstr "Der Remote-Branch ist auseinandergelaufen. Pull erst, bevor du weitermac
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "Der Renderer ist beim Start abgestürzt. Details findest du in den Logs."
 
+msgid "The repository folder itself is kept."
+msgstr "Der Repository-Ordner selbst bleibt erhalten."
+
 msgid "The request failed."
 msgstr "Die Anfrage ist fehlgeschlagen."
 
@@ -13696,9 +13735,6 @@ msgstr "Damit wird jede Terminal-Sitzung geschlossen — in diesem Arbeitsbereic
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "Damit wird jede Terminal-Sitzung deiner Organisation geschlossen{runningCountSuffix} und ein frischer Daemon gestartet."
-
-msgid "This deletes the project and all of its workspaces from <0>every reachable device</0> where it is set up. This cannot be undone."
-msgstr "Damit werden das Projekt und alle seine Arbeitsbereiche von <0>jedem erreichbaren Gerät</0> gelöscht, auf dem es eingerichtet ist. Das lässt sich nicht rückgängig machen."
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Damit wird der gespeicherte Scrollback gelöscht, der für Neustart- und Absturzwiederherstellung genutzt wird."
@@ -13823,6 +13859,9 @@ msgstr "Damit wird jeder ausgewählte Worktree von der Festplatte entfernt und s
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "Damit werden der Host, seine Zugriffsrechte und seine Arbeitsbereiche entfernt. Dateien auf dem Rechner bleiben erhalten. Ein laufender Host kann wieder auftauchen. Das lässt sich nicht rückgängig machen."
 
+msgid "This removes the project from every reachable device."
+msgstr "Das entfernt das Projekt von jedem erreichbaren Gerät."
+
 msgid "This removes the worktree from disk. The cloud workspace record will also be removed."
 msgstr "Damit wird der Worktree von der Festplatte entfernt. Auch der Cloud-Eintrag des Arbeitsbereichs wird entfernt."
 
@@ -13895,9 +13934,6 @@ msgstr "Damit wird die Verbindung zwischen deiner Organisation und Notion entfer
 
 msgid "This will remove the connection between your organization and Slack. You can reconnect at any time."
 msgstr "Damit wird die Verbindung zwischen deiner Organisation und Slack entfernt. Du kannst sie jederzeit wiederherstellen."
-
-msgid "This will remove workspaces from the sidebar and delete all project sections. The workspaces or projects won't be deleted."
-msgstr "Damit werden Arbeitsbereiche aus der Seitenleiste entfernt und alle Projektabschnitte gelöscht. Die Arbeitsbereiche oder Projekte selbst werden nicht gelöscht."
 
 msgid "This will revert all changes to this file. This action cannot be undone."
 msgstr "Damit werden alle Änderungen an dieser Datei zurückgesetzt. Das lässt sich nicht rückgängig machen."
@@ -14683,6 +14719,9 @@ msgstr "Releases auf GitHub ansehen"
 msgid "View Superset repository on GitHub"
 msgstr "Superset-Repository auf GitHub ansehen"
 
+msgid "View usage"
+msgstr "Nutzung ansehen"
+
 msgid "Volume"
 msgstr "Lautstärke"
 
@@ -14698,8 +14737,8 @@ msgstr "Wartet auf Prüfungen"
 msgid "Waiting for Review"
 msgstr "Wartet auf Review"
 
-msgid "Waiting for the sign-in to complete — this updates automatically."
-msgstr "Warte auf den Abschluss der Anmeldung — das aktualisiert sich automatisch."
+msgid "Waiting for sign-in…"
+msgstr "Warte auf die Anmeldung …"
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Du hättest etwas gern früher? <0>Sag es uns auf Discord</0>. Vieles hier hat als Nutzerwunsch angefangen."
@@ -15067,6 +15106,9 @@ msgstr "Worktree nicht synchron"
 msgid "Worktrees"
 msgstr "Worktrees"
 
+msgid "Worktrees with uncommitted changes are left on disk."
+msgstr "Worktrees mit nicht committeten Änderungen bleiben auf der Festplatte."
+
 msgid "Would you like to reassign it?"
 msgstr "Möchtest du es neu zuweisen?"
 
@@ -15268,7 +15310,13 @@ msgstr "Zoom"
 msgid "Zoom in"
 msgstr "Vergrößern"
 
+msgid "Zoom In"
+msgstr "Vergrößern"
+
 msgid "Zoom out"
+msgstr "Verkleinern"
+
+msgid "Zoom Out"
 msgstr "Verkleinern"
 
 msgid "zsh"

@@ -140,6 +140,10 @@ msgstr "{0, plural, one {#個檔案} other {#個檔案}}"
 msgid "{0, plural, one {# File} other {# Files}}"
 msgstr "{0, plural, one {#個檔案} other {#個檔案}}"
 
+#. placeholder {0}: projects.length
+msgid "{0, plural, one {# hidden project} other {# hidden projects}}"
+msgstr "{0, plural, one {# 個已隱藏的專案} other {# 個已隱藏的專案}}"
+
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
 msgstr "{0, plural, one {#條歷史記錄} other {#條歷史記錄}}"
@@ -661,6 +665,9 @@ msgstr "{noun, select, person {請至少指定一個人員，或選擇{choice}�
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {請至少指定一個倉庫。} channel {請至少指定一個頻道。} reaction {請至少指定一個回應。} dataSource {請至少指定一個資料來源。} team {請至少指定一個團隊。} project {請至少指定一個專案。} calendar {請至少指定一個日曆。} other {請至少指定一個項目。}}"
 
+msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
+msgstr "{offlineHostCount, plural, one {# 台裝置處於離線狀態，將保留其副本。} other {# 台裝置處於離線狀態，將保留其副本。}}"
+
 msgid "{openCount} open"
 msgstr "{openCount}項已開啟"
 
@@ -784,6 +791,9 @@ msgstr "{workspaceName}：主機不可用"
 
 msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}：清理失敗"
+
+msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
+msgstr "{worktreeCount, plural, one {這會從所有可連線的裝置中移除該專案及其 # 個工作區，並從磁碟刪除它們的worktree。} other {這會從所有可連線的裝置中移除該專案及其 # 個工作區，並從磁碟刪除它們的worktree。}}"
 
 msgid "{years}y ago"
 msgstr "{years}年前"
@@ -1080,6 +1090,13 @@ msgstr "此自動化已有一次執行正在進行中。"
 
 msgid "A selection of integrations curated by our team."
 msgstr "我們團隊精選的一組整合。"
+
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "A separate pay-per-token profile. The key stays in the {0} CLI."
+msgstr "按 token 計費的獨立配置檔案。金鑰保存在 {0} CLI 中。"
+
+msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
+msgstr "共享你的技能、外掛、MCP伺服器和設定的獨立配置檔案。"
 
 msgid "a teammate"
 msgstr "某位隊友"
@@ -1762,6 +1779,9 @@ msgstr "任意內容"
 msgid "AP"
 msgstr "AP"
 
+msgid "API"
+msgstr "API"
+
 msgid "API key"
 msgstr "API金鑰"
 
@@ -2195,6 +2215,9 @@ msgstr "再往後：F5不是近期的主張"
 
 msgid "Billed monthly"
 msgstr "按月計費"
+
+msgid "Billed per token."
+msgstr "按 token 計費。"
 
 msgid "Billed yearly"
 msgstr "按年計費"
@@ -4413,6 +4436,9 @@ msgstr "刪除頁面"
 msgid "Delete project"
 msgstr "刪除專案"
 
+msgid "Delete Project…"
+msgstr "刪除專案…"
+
 msgid "Delete script"
 msgstr "刪除指令碼"
 
@@ -6393,6 +6419,10 @@ msgstr "幫助與文件"
 msgid "Henry Ford"
 msgstr "Henry Ford"
 
+#. placeholder {0}: project.name
+msgid "Hid \"{0}\" from the sidebar"
+msgstr "已從側邊欄隱藏「{0}」"
+
 msgid "Hidden"
 msgstr "已隱藏"
 
@@ -6973,8 +7003,8 @@ msgstr "我的資料安全嗎？"
 msgid "is now signed in here."
 msgstr "現已在此登入。"
 
-msgid "is signed in and will show its quota here."
-msgstr "已登入，其配額會顯示在這裡。"
+msgid "is signed in."
+msgstr "已登入。"
 
 msgid "Is Superset free to use?"
 msgstr "Superset免費嗎？"
@@ -10581,8 +10611,8 @@ msgstr "閱讀並行編碼代理程式指南"
 msgid "Read the setup guide"
 msgstr "閱讀設定指南"
 
-msgid "Reading subscription usage…"
-msgstr "正在讀取訂閱用量…"
+msgid "Reading usage…"
+msgstr "正在讀取用量…"
 
 msgid "Reading your local usage…"
 msgstr "正在讀取本地用量…"
@@ -10817,9 +10847,6 @@ msgstr "移除提及{path}"
 msgid "Remove PR Link"
 msgstr "移除PR連結"
 
-msgid "Remove project from sidebar?"
-msgstr "從側邊欄移除專案？"
-
 msgid "Remove script"
 msgstr "移除指令碼"
 
@@ -11033,6 +11060,9 @@ msgid "Reset worktree location"
 msgstr "重置worktree位置"
 
 msgid "Reset zoom"
+msgstr "重置縮放"
+
+msgid "Reset Zoom"
 msgstr "重置縮放"
 
 msgid "Resets in {countdown} · {absolute}"
@@ -11368,6 +11398,12 @@ msgstr "執行命令並在應用中導航。"
 msgid "Run History"
 msgstr "執行歷史"
 
+msgid "Run in a terminal on this host; paste your key when asked:"
+msgstr "在此主機的終端中執行，出現提示時貼上你的金鑰："
+
+msgid "Run in a terminal on this host:"
+msgstr "在此主機的終端中執行："
+
 msgid "Run in Workspace"
 msgstr "在工作區中執行"
 
@@ -11394,9 +11430,6 @@ msgstr "執行終端命令並與其他應用程式程式互動。"
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "設定完成後在「工作區設定」終端中執行代理程式，而不是另外啟動第二個終端"
-
-msgid "Run this in any terminal on this host, then finish the sign-in in your browser:"
-msgstr "在此主機的任意終端中執行以下命令，然後在瀏覽器中完成登入："
 
 msgid "Run workspace command"
 msgstr "執行工作區命令"
@@ -12283,9 +12316,6 @@ msgstr "以本地管理員身份登入（開發）"
 msgid "Sign in to {0}"
 msgstr "登入{0}"
 
-msgid "Sign in to a second subscription as a separate profile. Your current login is untouched, and the new profile shares your skills, plugins, MCP servers, and settings."
-msgstr "以獨立配置檔案登入第二個訂閱。你目前的登入不受影響，新配置檔案共享你的技能、外掛、MCP伺服器和設定。"
-
 msgid "Sign in to continue to Superset"
 msgstr "登入以繼續使用Superset"
 
@@ -12861,6 +12891,9 @@ msgstr "訂閱"
 msgid "Subscribe on YouTube"
 msgstr "在YouTube上訂閱"
 
+msgid "Subscription"
+msgstr "訂閱"
+
 msgid "Success"
 msgstr "成功"
 
@@ -13300,6 +13333,9 @@ msgstr "終端檔案連結"
 msgid "Terminal font size"
 msgstr "終端字型大小"
 
+msgid "Terminal font size when a terminal is focused, page zoom in a browser pane, otherwise the whole app"
+msgstr "終端取得焦點時調整終端字型大小，瀏覽器窗格中調整頁面縮放，其他情況下縮放整個應用程式"
+
 msgid "terminal ID"
 msgstr "終端ID"
 
@@ -13579,6 +13615,9 @@ msgstr "遠端分支已分叉。請先拉取再繼續。"
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "渲染處理程序在啟動時崩潰。請檢視日誌瞭解詳情。"
 
+msgid "The repository folder itself is kept."
+msgstr "儲存庫資料夾本身會保留。"
+
 msgid "The request failed."
 msgstr "請求失敗。"
 
@@ -13696,9 +13735,6 @@ msgstr "這會關閉所有終端會話 — 包括此工作區和其他工作區�
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "這會關閉你組織的所有終端會話{runningCountSuffix}並啟動全新的守護程式。"
-
-msgid "This deletes the project and all of its workspaces from <0>every reachable device</0> where it is set up. This cannot be undone."
-msgstr "這將從設定過該專案的<0>每一臺可存取裝置</0>上刪除該專案及其所有工作區。此操作無法復原。"
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "這將刪除用於重啟/崩潰恢復的已儲存回滾緩衝。"
@@ -13823,6 +13859,9 @@ msgstr "這會把每個選中的worktree從磁碟上移除，並刪除它的工�
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "這將移除該主機、其存取權限及其工作區。機器上的檔案會保留。執行中的主機可能會重新出現。此操作無法復原。"
 
+msgid "This removes the project from every reachable device."
+msgstr "這會從所有可連線的裝置中移除該專案。"
+
 msgid "This removes the worktree from disk. The cloud workspace record will also be removed."
 msgstr "這會把worktree從磁碟上移除。雲端的工作區記錄也會一併移除。"
 
@@ -13895,9 +13934,6 @@ msgstr "這會移除你的組織與Notion之間的連線。你可以隨時重新
 
 msgid "This will remove the connection between your organization and Slack. You can reconnect at any time."
 msgstr "這會移除你的組織與Slack之間的連線。你可以隨時重新連線。"
-
-msgid "This will remove workspaces from the sidebar and delete all project sections. The workspaces or projects won't be deleted."
-msgstr "這會從側邊欄移除工作區，並刪除所有專案分區。工作區和專案本身不會被刪除。"
 
 msgid "This will revert all changes to this file. This action cannot be undone."
 msgstr "這將還原對此檔案的所有更改。此操作無法復原。"
@@ -14683,6 +14719,9 @@ msgstr "在GitHub上檢視釋出"
 msgid "View Superset repository on GitHub"
 msgstr "在GitHub上檢視Superset儲存庫"
 
+msgid "View usage"
+msgstr "檢視用量"
+
 msgid "Volume"
 msgstr "音量"
 
@@ -14698,8 +14737,8 @@ msgstr "等待檢查"
 msgid "Waiting for Review"
 msgstr "等待審查"
 
-msgid "Waiting for the sign-in to complete — this updates automatically."
-msgstr "正在等待登入完成——此處會自動更新。"
+msgid "Waiting for sign-in…"
+msgstr "等待登入…"
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "想讓某件事早點做？<0>在Discord上告訴我們</0>。這裡的很多條目最初都來自使用者的請求。"
@@ -15067,6 +15106,9 @@ msgstr "worktree不同步"
 msgid "Worktrees"
 msgstr "Worktree"
 
+msgid "Worktrees with uncommitted changes are left on disk."
+msgstr "有未提交變更的worktree會保留在磁碟上。"
+
 msgid "Would you like to reassign it?"
 msgstr "要重新分配嗎？"
 
@@ -15268,7 +15310,13 @@ msgstr "縮放"
 msgid "Zoom in"
 msgstr "放大"
 
+msgid "Zoom In"
+msgstr "放大"
+
 msgid "Zoom out"
+msgstr "縮小"
+
+msgid "Zoom Out"
 msgstr "縮小"
 
 msgid "zsh"

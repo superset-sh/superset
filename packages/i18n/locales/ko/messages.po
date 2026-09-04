@@ -140,6 +140,10 @@ msgstr "{0, plural, one {파일 #개} other {파일 #개}}"
 msgid "{0, plural, one {# File} other {# Files}}"
 msgstr "{0, plural, one {파일 #개} other {파일 #개}}"
 
+#. placeholder {0}: projects.length
+msgid "{0, plural, one {# hidden project} other {# hidden projects}}"
+msgstr "{0, plural, one {숨긴 프로젝트 #개} other {숨긴 프로젝트 #개}}"
+
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
 msgstr "{0, plural, one {기록 #개} other {기록 #개}}"
@@ -661,6 +665,9 @@ msgstr "{noun, select, person {사람을 한 명 이상 지정하거나 {choice}
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {리포지토리를 하나 이상 지정하세요.} channel {채널을 하나 이상 지정하세요.} reaction {리액션을 하나 이상 지정하세요.} dataSource {데이터 소스를 하나 이상 지정하세요.} team {팀을 하나 이상 지정하세요.} project {프로젝트를 하나 이상 지정하세요.} calendar {캘린더를 하나 이상 지정하세요.} other {항목을 하나 이상 지정하세요.}}"
 
+msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
+msgstr "{offlineHostCount, plural, one {기기 #대가 오프라인 상태이며 사본을 그대로 유지합니다.} other {기기 #대가 오프라인 상태이며 사본을 그대로 유지합니다.}}"
+
 msgid "{openCount} open"
 msgstr "{openCount}개 열림"
 
@@ -784,6 +791,9 @@ msgstr "{workspaceName}: 호스트를 사용할 수 없습니다"
 
 msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}: 정리에 실패했습니다"
+
+msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
+msgstr "{worktreeCount, plural, one {연결 가능한 모든 기기에서 프로젝트와 워크스페이스 #개를 제거하고, 해당 worktree를 디스크에서 삭제합니다.} other {연결 가능한 모든 기기에서 프로젝트와 워크스페이스 #개를 제거하고, 해당 worktree를 디스크에서 삭제합니다.}}"
 
 msgid "{years}y ago"
 msgstr "{years}년 전"
@@ -1080,6 +1090,13 @@ msgstr "이 자동화의 실행이 이미 진행 중입니다."
 
 msgid "A selection of integrations curated by our team."
 msgstr "저희 팀이 엄선한 연동 모음입니다."
+
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "A separate pay-per-token profile. The key stays in the {0} CLI."
+msgstr "토큰 단위로 과금되는 별도 프로필입니다. 키는 {0} CLI 안에 남습니다."
+
+msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
+msgstr "스킬, 플러그인, MCP 서버, 설정을 공유하는 별도 프로필입니다."
 
 msgid "a teammate"
 msgstr "팀원"
@@ -1762,6 +1779,9 @@ msgstr "모든 내용"
 msgid "AP"
 msgstr "AP"
 
+msgid "API"
+msgstr "API"
+
 msgid "API key"
 msgstr "API 키"
 
@@ -2195,6 +2215,9 @@ msgstr "그 너머: F5는 단기 전망이 아닙니다"
 
 msgid "Billed monthly"
 msgstr "월간 결제"
+
+msgid "Billed per token."
+msgstr "토큰 단위 과금."
 
 msgid "Billed yearly"
 msgstr "연간 결제"
@@ -4413,6 +4436,9 @@ msgstr "페이지 삭제"
 msgid "Delete project"
 msgstr "프로젝트 삭제"
 
+msgid "Delete Project…"
+msgstr "프로젝트 삭제…"
+
 msgid "Delete script"
 msgstr "스크립트 삭제"
 
@@ -6393,6 +6419,10 @@ msgstr "도움말 및 문서"
 msgid "Henry Ford"
 msgstr "Henry Ford"
 
+#. placeholder {0}: project.name
+msgid "Hid \"{0}\" from the sidebar"
+msgstr "\"{0}\"을(를) 사이드바에서 숨겼습니다"
+
 msgid "Hidden"
 msgstr "숨김"
 
@@ -6973,8 +7003,8 @@ msgstr "데이터는 안전한가요?"
 msgid "is now signed in here."
 msgstr "이(가) 여기에 로그인되었습니다."
 
-msgid "is signed in and will show its quota here."
-msgstr "이(가) 로그인되었으며 여기에 할당량이 표시됩니다."
+msgid "is signed in."
+msgstr "이(가) 로그인되었습니다."
 
 msgid "Is Superset free to use?"
 msgstr "Superset은 무료로 쓸 수 있나요?"
@@ -10581,8 +10611,8 @@ msgstr "병렬 코딩 에이전트 가이드 읽기"
 msgid "Read the setup guide"
 msgstr "설정 가이드 읽기"
 
-msgid "Reading subscription usage…"
-msgstr "구독 사용량을 읽는 중…"
+msgid "Reading usage…"
+msgstr "사용량 읽는 중…"
 
 msgid "Reading your local usage…"
 msgstr "로컬 사용량을 읽는 중…"
@@ -10817,9 +10847,6 @@ msgstr "{path} 멘션 제거"
 msgid "Remove PR Link"
 msgstr "PR 링크 제거"
 
-msgid "Remove project from sidebar?"
-msgstr "사이드바에서 프로젝트를 제거할까요?"
-
 msgid "Remove script"
 msgstr "스크립트 제거"
 
@@ -11033,6 +11060,9 @@ msgid "Reset worktree location"
 msgstr "worktree 위치 초기화"
 
 msgid "Reset zoom"
+msgstr "확대/축소 초기화"
+
+msgid "Reset Zoom"
 msgstr "확대/축소 초기화"
 
 msgid "Resets in {countdown} · {absolute}"
@@ -11368,6 +11398,12 @@ msgstr "명령을 실행하고 앱을 탐색합니다."
 msgid "Run History"
 msgstr "실행 기록"
 
+msgid "Run in a terminal on this host; paste your key when asked:"
+msgstr "이 호스트의 터미널에서 실행하고, 요청되면 키를 붙여 넣으세요:"
+
+msgid "Run in a terminal on this host:"
+msgstr "이 호스트의 터미널에서 실행하세요:"
+
 msgid "Run in Workspace"
 msgstr "워크스페이스에서 실행"
 
@@ -11394,9 +11430,6 @@ msgstr "터미널 명령을 실행하고 다른 애플리케이션과 상호작�
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "터미널을 하나 더 띄우는 대신, 설정이 끝난 뒤 워크스페이스 설정 터미널에서 에이전트를 실행합니다"
-
-msgid "Run this in any terminal on this host, then finish the sign-in in your browser:"
-msgstr "이 호스트의 아무 터미널에서 다음을 실행한 뒤 브라우저에서 로그인을 마치세요:"
 
 msgid "Run workspace command"
 msgstr "워크스페이스 명령 실행"
@@ -12283,9 +12316,6 @@ msgstr "로컬 관리자로 로그인 (dev)"
 msgid "Sign in to {0}"
 msgstr "{0}에 로그인"
 
-msgid "Sign in to a second subscription as a separate profile. Your current login is untouched, and the new profile shares your skills, plugins, MCP servers, and settings."
-msgstr "두 번째 구독에 별도 프로필로 로그인하세요. 현재 로그인은 그대로 유지되며, 새 프로필은 스킬, 플러그인, MCP 서버, 설정을 공유합니다."
-
 msgid "Sign in to continue to Superset"
 msgstr "Superset을 계속 사용하려면 로그인하세요"
 
@@ -12861,6 +12891,9 @@ msgstr "구독하기"
 msgid "Subscribe on YouTube"
 msgstr "YouTube에서 구독하기"
 
+msgid "Subscription"
+msgstr "구독"
+
 msgid "Success"
 msgstr "성공"
 
@@ -13300,6 +13333,9 @@ msgstr "터미널 파일 링크"
 msgid "Terminal font size"
 msgstr "터미널 글꼴 크기"
 
+msgid "Terminal font size when a terminal is focused, page zoom in a browser pane, otherwise the whole app"
+msgstr "터미널에 포커스가 있으면 터미널 글꼴 크기, 브라우저 패널에서는 페이지 확대/축소, 그 외에는 앱 전체"
+
 msgid "terminal ID"
 msgstr "터미널 ID"
 
@@ -13579,6 +13615,9 @@ msgstr "원격 브랜치가 갈라졌습니다. 계속하기 전에 pull하세�
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "시작 중에 렌더러가 충돌했습니다. 자세한 내용은 로그를 확인하세요."
 
+msgid "The repository folder itself is kept."
+msgstr "저장소 폴더 자체는 유지됩니다."
+
 msgid "The request failed."
 msgstr "요청이 실패했습니다."
 
@@ -13696,9 +13735,6 @@ msgstr "이 워크스페이스를 포함한 모든 워크스페이스의 터미�
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "조직의 모든 터미널 세션{runningCountSuffix}이 닫히고 새 데몬이 시작됩니다."
-
-msgid "This deletes the project and all of its workspaces from <0>every reachable device</0> where it is set up. This cannot be undone."
-msgstr "프로젝트가 설정된 <0>연결 가능한 모든 기기</0>에서 이 프로젝트와 모든 워크스페이스를 삭제합니다. 되돌릴 수 없습니다."
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "재부팅/충돌 복구에 사용하는 저장된 스크롤백을 삭제합니다."
@@ -13823,6 +13859,9 @@ msgstr "선택한 worktree를 디스크에서 모두 제거하고 해당 워크�
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "호스트와 그 접근 권한, 워크스페이스가 제거됩니다. 컴퓨터의 파일은 그대로 남습니다. 호스트가 실행 중이면 다시 나타날 수 있습니다. 이 작업은 되돌릴 수 없습니다."
 
+msgid "This removes the project from every reachable device."
+msgstr "연결 가능한 모든 기기에서 프로젝트를 제거합니다."
+
 msgid "This removes the worktree from disk. The cloud workspace record will also be removed."
 msgstr "worktree를 디스크에서 제거합니다. 클라우드 워크스페이스 기록도 함께 제거됩니다."
 
@@ -13895,9 +13934,6 @@ msgstr "조직과 Notion 사이의 연결이 제거됩니다. 언제든지 다�
 
 msgid "This will remove the connection between your organization and Slack. You can reconnect at any time."
 msgstr "조직과 Slack 사이의 연결이 제거됩니다. 언제든지 다시 연결할 수 있습니다."
-
-msgid "This will remove workspaces from the sidebar and delete all project sections. The workspaces or projects won't be deleted."
-msgstr "사이드바에서 워크스페이스를 제거하고 모든 프로젝트 섹션을 삭제합니다. 워크스페이스나 프로젝트 자체는 삭제되지 않습니다."
 
 msgid "This will revert all changes to this file. This action cannot be undone."
 msgstr "이 파일의 모든 변경 사항을 되돌립니다. 되돌릴 수 없습니다."
@@ -14683,6 +14719,9 @@ msgstr "GitHub에서 릴리스 보기"
 msgid "View Superset repository on GitHub"
 msgstr "GitHub에서 Superset 리포지토리 보기"
 
+msgid "View usage"
+msgstr "사용량 보기"
+
 msgid "Volume"
 msgstr "볼륨"
 
@@ -14698,8 +14737,8 @@ msgstr "검사 대기 중"
 msgid "Waiting for Review"
 msgstr "리뷰 대기 중"
 
-msgid "Waiting for the sign-in to complete — this updates automatically."
-msgstr "로그인이 완료되기를 기다리는 중입니다 — 자동으로 갱신됩니다."
+msgid "Waiting for sign-in…"
+msgstr "로그인 대기 중…"
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "더 빨리 필요한 기능이 있나요? <0>Discord에서 알려 주세요</0>. 여기 있는 항목 상당수가 사용자 요청에서 시작했습니다."
@@ -15067,6 +15106,9 @@ msgstr "worktree가 동기화되지 않음"
 msgid "Worktrees"
 msgstr "worktree"
 
+msgid "Worktrees with uncommitted changes are left on disk."
+msgstr "커밋되지 않은 변경 사항이 있는 worktree는 디스크에 남습니다."
+
 msgid "Would you like to reassign it?"
 msgstr "다시 지정할까요?"
 
@@ -15268,7 +15310,13 @@ msgstr "확대/축소"
 msgid "Zoom in"
 msgstr "확대"
 
+msgid "Zoom In"
+msgstr "확대"
+
 msgid "Zoom out"
+msgstr "축소"
+
+msgid "Zoom Out"
 msgstr "축소"
 
 msgid "zsh"

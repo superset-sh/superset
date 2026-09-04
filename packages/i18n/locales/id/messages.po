@@ -140,6 +140,10 @@ msgstr "{0, plural, one {# file} other {# file}}"
 msgid "{0, plural, one {# File} other {# Files}}"
 msgstr "{0, plural, one {# File} other {# File}}"
 
+#. placeholder {0}: projects.length
+msgid "{0, plural, one {# hidden project} other {# hidden projects}}"
+msgstr "{0, plural, one {# proyek tersembunyi} other {# proyek tersembunyi}}"
+
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
 msgstr "{0, plural, one {# item riwayat} other {# item riwayat}}"
@@ -661,6 +665,9 @@ msgstr "{noun, select, person {Tentukan minimal satu orang, atau pilih {choice}.
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {Tentukan minimal satu repositori.} channel {Tentukan minimal satu kanal.} reaction {Tentukan minimal satu reaksi.} dataSource {Tentukan minimal satu sumber data.} team {Tentukan minimal satu tim.} project {Tentukan minimal satu proyek.} calendar {Tentukan minimal satu kalender.} other {Tentukan minimal satu entri.}}"
 
+msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
+msgstr "{offlineHostCount, plural, one {# perangkat sedang offline dan tetap menyimpan salinannya.} other {# perangkat sedang offline dan tetap menyimpan salinannya.}}"
+
 msgid "{openCount} open"
 msgstr "{openCount} terbuka"
 
@@ -784,6 +791,9 @@ msgstr "{workspaceName}: host tidak tersedia"
 
 msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}: teardown gagal"
+
+msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
+msgstr "{worktreeCount, plural, one {Ini menghapus proyek beserta # workspace-nya dari setiap perangkat yang dapat dijangkau, dan menghapus worktree tersebut dari disk.} other {Ini menghapus proyek beserta # workspace-nya dari setiap perangkat yang dapat dijangkau, dan menghapus semua worktree tersebut dari disk.}}"
 
 msgid "{years}y ago"
 msgstr "{years}thn lalu"
@@ -1080,6 +1090,13 @@ msgstr "Sebuah run untuk otomatisasi ini sedang berjalan."
 
 msgid "A selection of integrations curated by our team."
 msgstr "Pilihan integrasi yang dikurasi tim kami."
+
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "A separate pay-per-token profile. The key stays in the {0} CLI."
+msgstr "Profil terpisah yang ditagih per token. Kunci tetap berada di CLI {0}."
+
+msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
+msgstr "Profil terpisah yang berbagi skill, plugin, server MCP, dan pengaturan Anda."
 
 msgid "a teammate"
 msgstr "rekan tim"
@@ -1762,6 +1779,9 @@ msgstr "apa saja"
 msgid "AP"
 msgstr "AP"
 
+msgid "API"
+msgstr "API"
+
 msgid "API key"
 msgstr "Kunci API"
 
@@ -2195,6 +2215,9 @@ msgstr "Di luar itu: F5 bukan klaim jangka dekat"
 
 msgid "Billed monthly"
 msgstr "Ditagih bulanan"
+
+msgid "Billed per token."
+msgstr "Ditagih per token."
 
 msgid "Billed yearly"
 msgstr "Ditagih tahunan"
@@ -4413,6 +4436,9 @@ msgstr "Hapus halaman"
 msgid "Delete project"
 msgstr "Hapus proyek"
 
+msgid "Delete Project…"
+msgstr "Hapus proyek…"
+
 msgid "Delete script"
 msgstr "Hapus skrip"
 
@@ -6393,6 +6419,10 @@ msgstr "Bantuan & Dokumentasi"
 msgid "Henry Ford"
 msgstr "Henry Ford"
 
+#. placeholder {0}: project.name
+msgid "Hid \"{0}\" from the sidebar"
+msgstr "\"{0}\" disembunyikan dari sidebar"
+
 msgid "Hidden"
 msgstr "Disembunyikan"
 
@@ -6973,8 +7003,8 @@ msgstr "Apakah data saya aman?"
 msgid "is now signed in here."
 msgstr "kini sudah masuk di sini."
 
-msgid "is signed in and will show its quota here."
-msgstr "sudah masuk dan akan menampilkan kuotanya di sini."
+msgid "is signed in."
+msgstr "sudah masuk."
 
 msgid "Is Superset free to use?"
 msgstr "Apakah Superset gratis dipakai?"
@@ -10581,8 +10611,8 @@ msgstr "Baca panduan agen coding paralel"
 msgid "Read the setup guide"
 msgstr "Baca panduan penyiapan"
 
-msgid "Reading subscription usage…"
-msgstr "Membaca penggunaan langganan…"
+msgid "Reading usage…"
+msgstr "Membaca penggunaan…"
 
 msgid "Reading your local usage…"
 msgstr "Membaca penggunaan lokal Anda…"
@@ -10817,9 +10847,6 @@ msgstr "Hapus mention {path}"
 msgid "Remove PR Link"
 msgstr "Hapus Tautan PR"
 
-msgid "Remove project from sidebar?"
-msgstr "Hapus proyek dari sidebar?"
-
 msgid "Remove script"
 msgstr "Hapus skrip"
 
@@ -11033,6 +11060,9 @@ msgid "Reset worktree location"
 msgstr "Reset lokasi worktree"
 
 msgid "Reset zoom"
+msgstr "Reset zoom"
+
+msgid "Reset Zoom"
 msgstr "Reset zoom"
 
 msgid "Resets in {countdown} · {absolute}"
@@ -11368,6 +11398,12 @@ msgstr "Jalankan perintah dan navigasi aplikasi."
 msgid "Run History"
 msgstr "Riwayat Run"
 
+msgid "Run in a terminal on this host; paste your key when asked:"
+msgstr "Jalankan ini di terminal pada host ini dan tempel kunci Anda saat diminta:"
+
+msgid "Run in a terminal on this host:"
+msgstr "Jalankan ini di terminal pada host ini:"
+
 msgid "Run in Workspace"
 msgstr "Jalankan di Workspace"
 
@@ -11394,9 +11430,6 @@ msgstr "Menjalankan perintah terminal dan berinteraksi dengan aplikasi lain."
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Jalankan agen di terminal Workspace Setup setelah setup selesai, bukan membuka terminal kedua di sampingnya"
-
-msgid "Run this in any terminal on this host, then finish the sign-in in your browser:"
-msgstr "Jalankan ini di terminal mana pun pada host ini, lalu selesaikan proses masuk di browser Anda:"
 
 msgid "Run workspace command"
 msgstr "Jalankan perintah workspace"
@@ -12283,9 +12316,6 @@ msgstr "Masuk sebagai Local Admin (dev)"
 msgid "Sign in to {0}"
 msgstr "Masuk ke {0}"
 
-msgid "Sign in to a second subscription as a separate profile. Your current login is untouched, and the new profile shares your skills, plugins, MCP servers, and settings."
-msgstr "Masuk ke langganan kedua sebagai profil terpisah. Login Anda saat ini tidak tersentuh, dan profil baru berbagi skill, plugin, server MCP, dan pengaturan Anda."
-
 msgid "Sign in to continue to Superset"
 msgstr "Masuk untuk melanjutkan ke Superset"
 
@@ -12861,6 +12891,9 @@ msgstr "BERLANGGANAN"
 msgid "Subscribe on YouTube"
 msgstr "Berlangganan di YouTube"
 
+msgid "Subscription"
+msgstr "Langganan"
+
 msgid "Success"
 msgstr "Berhasil"
 
@@ -13300,6 +13333,9 @@ msgstr "Tautan file terminal"
 msgid "Terminal font size"
 msgstr "Ukuran font terminal"
 
+msgid "Terminal font size when a terminal is focused, page zoom in a browser pane, otherwise the whole app"
+msgstr "Ukuran font terminal saat terminal difokuskan, zoom halaman di panel browser, selain itu seluruh aplikasi"
+
 msgid "terminal ID"
 msgstr "ID terminal"
 
@@ -13579,6 +13615,9 @@ msgstr "Branch remote sudah menyimpang. Lakukan pull sebelum melanjutkan."
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "Renderer crash saat startup. Silakan periksa log untuk detailnya."
 
+msgid "The repository folder itself is kept."
+msgstr "Folder repositori itu sendiri tetap dipertahankan."
+
 msgid "The request failed."
 msgstr "Permintaan gagal."
 
@@ -13696,9 +13735,6 @@ msgstr "Ini menutup setiap sesi terminal — di workspace ini maupun yang lain �
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "Ini menutup setiap sesi terminal untuk organisasi Anda{runningCountSuffix} dan menjalankan daemon yang baru."
-
-msgid "This deletes the project and all of its workspaces from <0>every reachable device</0> where it is set up. This cannot be undone."
-msgstr "Ini menghapus proyek dan semua workspace-nya dari <0>setiap perangkat yang bisa dijangkau</0> tempat proyek ini disiapkan. Ini tidak bisa dibatalkan."
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Ini menghapus scrollback tersimpan yang dipakai untuk pemulihan setelah reboot/crash."
@@ -13823,6 +13859,9 @@ msgstr "Ini menghapus setiap worktree terpilih dari disk dan menghapus catatan w
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "Ini menghapus host, aksesnya, dan workspace-nya. File di mesin itu tetap ada. Host yang berjalan bisa muncul lagi. Ini tidak bisa dibatalkan."
 
+msgid "This removes the project from every reachable device."
+msgstr "Ini menghapus proyek dari setiap perangkat yang dapat dijangkau."
+
 msgid "This removes the worktree from disk. The cloud workspace record will also be removed."
 msgstr "Ini menghapus worktree dari disk. Catatan workspace di cloud juga akan dihapus."
 
@@ -13895,9 +13934,6 @@ msgstr "Ini akan menghapus koneksi antara organisasi Anda dan Notion. Anda bisa 
 
 msgid "This will remove the connection between your organization and Slack. You can reconnect at any time."
 msgstr "Ini akan menghapus koneksi antara organisasi Anda dan Slack. Anda bisa menghubungkan ulang kapan saja."
-
-msgid "This will remove workspaces from the sidebar and delete all project sections. The workspaces or projects won't be deleted."
-msgstr "Ini akan menghapus workspace dari sidebar dan menghapus semua bagian proyek. Workspace atau proyeknya sendiri tidak dihapus."
 
 msgid "This will revert all changes to this file. This action cannot be undone."
 msgstr "Ini akan mengembalikan semua perubahan pada file ini. Tindakan ini tidak bisa dibatalkan."
@@ -14683,6 +14719,9 @@ msgstr "Lihat rilis di GitHub"
 msgid "View Superset repository on GitHub"
 msgstr "Lihat repositori Superset di GitHub"
 
+msgid "View usage"
+msgstr "Lihat penggunaan"
+
 msgid "Volume"
 msgstr "Volume"
 
@@ -14698,8 +14737,8 @@ msgstr "Menunggu Check"
 msgid "Waiting for Review"
 msgstr "Menunggu Review"
 
-msgid "Waiting for the sign-in to complete — this updates automatically."
-msgstr "Menunggu proses masuk selesai — ini diperbarui otomatis."
+msgid "Waiting for sign-in…"
+msgstr "Menunggu proses masuk…"
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Ingin sesuatu lebih cepat? <0>Beri tahu kami di Discord</0>. Banyak yang ada di sini bermula dari permintaan pengguna."
@@ -15067,6 +15106,9 @@ msgstr "Worktree tidak sinkron"
 msgid "Worktrees"
 msgstr "Worktree"
 
+msgid "Worktrees with uncommitted changes are left on disk."
+msgstr "Worktree dengan perubahan yang belum di-commit tetap berada di disk."
+
 msgid "Would you like to reassign it?"
 msgstr "Ingin menetapkannya ulang?"
 
@@ -15268,7 +15310,13 @@ msgstr "Zoom"
 msgid "Zoom in"
 msgstr "Perbesar"
 
+msgid "Zoom In"
+msgstr "Perbesar"
+
 msgid "Zoom out"
+msgstr "Perkecil"
+
+msgid "Zoom Out"
 msgstr "Perkecil"
 
 msgid "zsh"

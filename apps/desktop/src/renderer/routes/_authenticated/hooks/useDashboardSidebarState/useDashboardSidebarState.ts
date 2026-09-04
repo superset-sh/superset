@@ -7,7 +7,6 @@ import {
 } from "@superset/shared/workspace-tags";
 import { useCallback } from "react";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
-import { authClient } from "renderer/lib/auth-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { isMissingProcedureError } from "renderer/lib/isMissingProcedureError";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
@@ -43,7 +42,8 @@ import {
 import { PROJECT_CUSTOM_COLORS } from "shared/constants/project-colors";
 import {
 	createEmptyPaneLayout,
-	removeProjectFromSidebarState,
+	ensureSidebarProjectRecord,
+	setSidebarProjectHidden,
 	tombstoneSidebarWorkspaceRecord,
 } from "./sidebarMutations";
 
@@ -207,26 +207,6 @@ function writeProjectTopLevelOrder(
 	});
 }
 
-function ensureSidebarProjectRecord(
-	collections: Pick<AppCollections, "v2SidebarProjects">,
-	projectId: string,
-): void {
-	if (collections.v2SidebarProjects.get(projectId)) {
-		return;
-	}
-
-	collections.v2SidebarProjects.insert({
-		projectId,
-		createdAt: new Date(),
-		// Prepend, matching new workspaces: the project you just added is
-		// the one you're about to work in.
-		tabOrder: getPrependTabOrder([
-			...collections.v2SidebarProjects.state.values(),
-		]),
-		isCollapsed: false,
-	});
-}
-
 function ensureSidebarWorkspaceRecord(
 	collections: Pick<
 		AppCollections,
@@ -297,9 +277,7 @@ export function useDashboardSidebarState() {
 	const collections = useCollections();
 	const { workspaces: hostWorkspaces, cache: hostWorkspacesCache } =
 		useHostWorkspaces();
-	const { activeHostUrl, machineId } = useLocalHostService();
-	const { data: session } = authClient.useSession();
-	const currentUserId = session?.user.id ?? null;
+	const { activeHostUrl } = useLocalHostService();
 	const { v2Workspaces } = useOptimisticActions();
 	const tagFolderContext = useTagFolderContext();
 
@@ -1065,17 +1043,11 @@ export function useDashboardSidebarState() {
 		[collections],
 	);
 
-	const removeProjectFromSidebar = useCallback(
-		(projectId: string) => {
-			removeProjectFromSidebarState(
-				collections,
-				hostWorkspaces,
-				projectId,
-				{ machineId, currentUserId },
-				cleanupWorkspacePaneRuntimes,
-			);
+	const setProjectHidden = useCallback(
+		(projectId: string, hidden: boolean) => {
+			setSidebarProjectHidden(collections, projectId, hidden);
 		},
-		[collections, hostWorkspaces, machineId, currentUserId],
+		[collections],
 	);
 
 	return {
@@ -1086,7 +1058,7 @@ export function useDashboardSidebarState() {
 		hideWorkspaceInSidebar,
 		moveWorkspaceToSection,
 		moveWorkspaceToSectionAtIndex,
-		removeProjectFromSidebar,
+		setProjectHidden,
 		reorderPinnedWorkspaces,
 		reorderProjectChildren,
 		removeWorkspaceFromSidebar,

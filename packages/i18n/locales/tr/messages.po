@@ -140,6 +140,10 @@ msgstr "{0, plural, one {# dosya} other {# dosya}}"
 msgid "{0, plural, one {# File} other {# Files}}"
 msgstr "{0, plural, one {# dosya} other {# dosya}}"
 
+#. placeholder {0}: projects.length
+msgid "{0, plural, one {# hidden project} other {# hidden projects}}"
+msgstr "{0, plural, one {# gizli proje} other {# gizli proje}}"
+
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
 msgstr "{0, plural, one {# geçmiş öğesi} other {# geçmiş öğesi}}"
@@ -661,6 +665,9 @@ msgstr "{noun, select, person {En az bir kişi belirtin veya {choice} seçeneği
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {En az bir depo belirtin.} channel {En az bir kanal belirtin.} reaction {En az bir tepki belirtin.} dataSource {En az bir veri kaynağı belirtin.} team {En az bir takım belirtin.} project {En az bir proje belirtin.} calendar {En az bir takvim belirtin.} other {En az bir öğe belirtin.}}"
 
+msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
+msgstr "{offlineHostCount, plural, one {# cihaz çevrimdışı ve kopyasını koruyor.} other {# cihaz çevrimdışı ve kopyalarını koruyor.}}"
+
 msgid "{openCount} open"
 msgstr "{openCount} açık"
 
@@ -784,6 +791,9 @@ msgstr "{workspaceName}: host kullanılamıyor"
 
 msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}: kapatma başarısız"
+
+msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
+msgstr "{worktreeCount, plural, one {Bu, projeyi ve # çalışma alanını erişilebilir tüm cihazlardan kaldırır ve worktree'sini diskten siler.} other {Bu, projeyi ve # çalışma alanlarını erişilebilir tüm cihazlardan kaldırır ve worktree'lerini diskten siler.}}"
 
 msgid "{years}y ago"
 msgstr "{years}y önce"
@@ -1080,6 +1090,13 @@ msgstr "Bu otomasyon için bir çalıştırma zaten sürüyor."
 
 msgid "A selection of integrations curated by our team."
 msgstr "Ekibimizin seçtiği entegrasyonlardan bir derleme."
+
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "A separate pay-per-token profile. The key stays in the {0} CLI."
+msgstr "Token başına faturalandırılan ayrı bir profil. Anahtar {0} CLI içinde kalır."
+
+msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
+msgstr "Becerilerinizi, eklentilerinizi, MCP sunucularınızı ve ayarlarınızı paylaşan ayrı bir profil."
 
 msgid "a teammate"
 msgstr "bir takım arkadaşı"
@@ -1762,6 +1779,9 @@ msgstr "herhangi bir şey"
 msgid "AP"
 msgstr "AP"
 
+msgid "API"
+msgstr "API"
+
 msgid "API key"
 msgstr "API anahtarı"
 
@@ -2195,6 +2215,9 @@ msgstr "Ötesi: F5 yakın vadeli bir iddia değil"
 
 msgid "Billed monthly"
 msgstr "Aylık faturalandırılır"
+
+msgid "Billed per token."
+msgstr "Token başına faturalandırılır."
 
 msgid "Billed yearly"
 msgstr "Yıllık faturalandırılır"
@@ -4413,6 +4436,9 @@ msgstr "Sayfayı sil"
 msgid "Delete project"
 msgstr "Projeyi sil"
 
+msgid "Delete Project…"
+msgstr "Projeyi sil…"
+
 msgid "Delete script"
 msgstr "Betiği sil"
 
@@ -6393,6 +6419,10 @@ msgstr "Yardım ve belgeler"
 msgid "Henry Ford"
 msgstr "Henry Ford"
 
+#. placeholder {0}: project.name
+msgid "Hid \"{0}\" from the sidebar"
+msgstr "\"{0}\" kenar çubuğundan gizlendi"
+
 msgid "Hidden"
 msgstr "Gizlenen"
 
@@ -6973,8 +7003,8 @@ msgstr "Verilerim güvende mi?"
 msgid "is now signed in here."
 msgstr "artık burada oturum açtı."
 
-msgid "is signed in and will show its quota here."
-msgstr "oturum açtı ve kotasını burada gösterecek."
+msgid "is signed in."
+msgstr "oturum açtı."
 
 msgid "Is Superset free to use?"
 msgstr "Superset ücretsiz mi?"
@@ -10581,8 +10611,8 @@ msgstr "Paralel kodlama ajanları rehberini okuyun"
 msgid "Read the setup guide"
 msgstr "Kurulum rehberini okuyun"
 
-msgid "Reading subscription usage…"
-msgstr "Abonelik kullanımı okunuyor…"
+msgid "Reading usage…"
+msgstr "Kullanım okunuyor…"
 
 msgid "Reading your local usage…"
 msgstr "Yerel kullanımınız okunuyor…"
@@ -10817,9 +10847,6 @@ msgstr "{path} bahsini kaldır"
 msgid "Remove PR Link"
 msgstr "PR bağlantısını kaldır"
 
-msgid "Remove project from sidebar?"
-msgstr "Proje kenar çubuğundan kaldırılsın mı?"
-
 msgid "Remove script"
 msgstr "Betiği kaldır"
 
@@ -11033,6 +11060,9 @@ msgid "Reset worktree location"
 msgstr "Worktree konumunu sıfırla"
 
 msgid "Reset zoom"
+msgstr "Yakınlaştırmayı sıfırla"
+
+msgid "Reset Zoom"
 msgstr "Yakınlaştırmayı sıfırla"
 
 msgid "Resets in {countdown} · {absolute}"
@@ -11368,6 +11398,12 @@ msgstr "Komutları çalıştırın ve uygulamada gezinin."
 msgid "Run History"
 msgstr "Çalıştırma geçmişi"
 
+msgid "Run in a terminal on this host; paste your key when asked:"
+msgstr "Bunu bu host'taki bir terminalde çalıştırın ve istendiğinde anahtarınızı yapıştırın:"
+
+msgid "Run in a terminal on this host:"
+msgstr "Bunu bu host'taki bir terminalde çalıştırın:"
+
 msgid "Run in Workspace"
 msgstr "Çalışma alanında çalıştır"
 
@@ -11394,9 +11430,6 @@ msgstr "Terminal komutları çalıştırın ve diğer uygulamalarla etkileşin."
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Yanında ikinci bir terminal başlatmak yerine, kurulum bittikten sonra ajanı Çalışma Alanı Kurulumu terminalinde çalıştır"
-
-msgid "Run this in any terminal on this host, then finish the sign-in in your browser:"
-msgstr "Bunu bu host'taki herhangi bir terminalde çalıştırın, sonra oturum açmayı tarayıcınızda tamamlayın:"
 
 msgid "Run workspace command"
 msgstr "Çalışma alanı komutunu çalıştır"
@@ -12283,9 +12316,6 @@ msgstr "Yerel yönetici olarak oturum aç (dev)"
 msgid "Sign in to {0}"
 msgstr "{0} kuruluşunda oturum açın"
 
-msgid "Sign in to a second subscription as a separate profile. Your current login is untouched, and the new profile shares your skills, plugins, MCP servers, and settings."
-msgstr "İkinci bir aboneliğe ayrı bir profil olarak giriş yapın. Mevcut oturumunuza dokunulmaz ve yeni profil becerilerinizi, eklentilerinizi, MCP sunucularınızı ve ayarlarınızı paylaşır."
-
 msgid "Sign in to continue to Superset"
 msgstr "Superset'e devam etmek için oturum açın"
 
@@ -12861,6 +12891,9 @@ msgstr "ABONE OL"
 msgid "Subscribe on YouTube"
 msgstr "YouTube'da abone olun"
 
+msgid "Subscription"
+msgstr "Abonelik"
+
 msgid "Success"
 msgstr "Başarılı"
 
@@ -13300,6 +13333,9 @@ msgstr "Terminal dosya bağlantıları"
 msgid "Terminal font size"
 msgstr "Terminal yazı tipi boyutu"
 
+msgid "Terminal font size when a terminal is focused, page zoom in a browser pane, otherwise the whole app"
+msgstr "Bir terminal odaktayken terminal yazı tipi boyutu, tarayıcı bölmesinde sayfa yakınlaştırma, aksi halde tüm uygulama"
+
 msgid "terminal ID"
 msgstr "terminal kimliği"
 
@@ -13579,6 +13615,9 @@ msgstr "Uzak dal ayrıştı. Devam etmeden önce pull yapın."
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "Başlangıç sırasında renderer çöktü. Ayrıntılar için günlükleri kontrol edin."
 
+msgid "The repository folder itself is kept."
+msgstr "Depo klasörünün kendisi korunur."
+
 msgid "The request failed."
 msgstr "İstek başarısız oldu."
 
@@ -13696,9 +13735,6 @@ msgstr "Bu işlem, bu çalışma alanındaki ve diğerlerindeki her terminal otu
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "Bu işlem kuruluşunuzdaki her terminal oturumunu kapatır{runningCountSuffix} ve yeni bir daemon başlatır."
-
-msgid "This deletes the project and all of its workspaces from <0>every reachable device</0> where it is set up. This cannot be undone."
-msgstr "Bu işlem, projeyi ve tüm çalışma alanlarını kurulu olduğu <0>erişilebilir her cihazdan</0> siler. Bu geri alınamaz."
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Bu işlem, yeniden başlatma/çökme kurtarma için saklanan kaydırma geçmişini siler."
@@ -13823,6 +13859,9 @@ msgstr "Bu işlem, seçili her worktree'yi diskten kaldırır ve çalışma alan
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "Bu işlem host'u, erişimini ve çalışma alanlarını kaldırır. Makinedeki dosyalar kalır. Çalışan bir host yeniden görünebilir. Bu geri alınamaz."
 
+msgid "This removes the project from every reachable device."
+msgstr "Bu, projeyi erişilebilir tüm cihazlardan kaldırır."
+
 msgid "This removes the worktree from disk. The cloud workspace record will also be removed."
 msgstr "Bu işlem worktree'yi diskten kaldırır. Bulut çalışma alanı kaydı da kaldırılır."
 
@@ -13895,9 +13934,6 @@ msgstr "Bu işlem, kuruluşunuz ile Notion arasındaki bağlantıyı kaldırır.
 
 msgid "This will remove the connection between your organization and Slack. You can reconnect at any time."
 msgstr "Bu işlem, kuruluşunuz ile Slack arasındaki bağlantıyı kaldırır. İstediğiniz zaman yeniden bağlanabilirsiniz."
-
-msgid "This will remove workspaces from the sidebar and delete all project sections. The workspaces or projects won't be deleted."
-msgstr "Bu işlem çalışma alanlarını kenar çubuğundan kaldırır ve tüm proje bölümlerini siler. Çalışma alanları veya projeler silinmez."
 
 msgid "This will revert all changes to this file. This action cannot be undone."
 msgstr "Bu işlem, bu dosyadaki tüm değişiklikleri geri alır. Bu işlem geri alınamaz."
@@ -14683,6 +14719,9 @@ msgstr "Sürümleri GitHub'da görüntüle"
 msgid "View Superset repository on GitHub"
 msgstr "Superset deposunu GitHub'da görüntüle"
 
+msgid "View usage"
+msgstr "Kullanımı görüntüle"
+
 msgid "Volume"
 msgstr "Ses düzeyi"
 
@@ -14698,8 +14737,8 @@ msgstr "Kontroller bekleniyor"
 msgid "Waiting for Review"
 msgstr "İnceleme bekleniyor"
 
-msgid "Waiting for the sign-in to complete — this updates automatically."
-msgstr "Oturum açmanın tamamlanması bekleniyor — bu otomatik olarak güncellenir."
+msgid "Waiting for sign-in…"
+msgstr "Oturum açma bekleniyor…"
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Bir şeyi daha erken mi istiyorsunuz? <0>Discord'da bize söyleyin</0>. Buradakilerin çoğu bir kullanıcı isteği olarak başladı."
@@ -15067,6 +15106,9 @@ msgstr "Worktree eşitlenmemiş"
 msgid "Worktrees"
 msgstr "Worktree'ler"
 
+msgid "Worktrees with uncommitted changes are left on disk."
+msgstr "Commit edilmemiş değişiklikleri olan worktree'ler diskte bırakılır."
+
 msgid "Would you like to reassign it?"
 msgstr "Yeniden atamak ister misiniz?"
 
@@ -15268,7 +15310,13 @@ msgstr "Yakınlaştırma"
 msgid "Zoom in"
 msgstr "Yakınlaştır"
 
+msgid "Zoom In"
+msgstr "Yakınlaştır"
+
 msgid "Zoom out"
+msgstr "Uzaklaştır"
+
+msgid "Zoom Out"
 msgstr "Uzaklaştır"
 
 msgid "zsh"

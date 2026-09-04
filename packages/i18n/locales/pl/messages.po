@@ -140,6 +140,10 @@ msgstr "{0, plural, one {# plik} few {# pliki} many {# plików} other {# pliku}}
 msgid "{0, plural, one {# File} other {# Files}}"
 msgstr "{0, plural, one {# plik} few {# pliki} many {# plików} other {# pliku}}"
 
+#. placeholder {0}: projects.length
+msgid "{0, plural, one {# hidden project} other {# hidden projects}}"
+msgstr "{0, plural, one {# ukryty projekt} few {# ukryte projekty} many {# ukrytych projektów} other {# ukrytego projektu}}"
+
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
 msgstr "{0, plural, one {# element historii} few {# elementy historii} many {# elementów historii} other {# elementu historii}}"
@@ -661,6 +665,9 @@ msgstr "{noun, select, person {Podaj co najmniej jedną osobę lub wybierz {choi
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {Podaj co najmniej jedno repozytorium.} channel {Podaj co najmniej jeden kanał.} reaction {Podaj co najmniej jedną reakcję.} dataSource {Podaj co najmniej jedno źródło danych.} team {Podaj co najmniej jeden zespół.} project {Podaj co najmniej jeden projekt.} calendar {Podaj co najmniej jeden kalendarz.} other {Podaj co najmniej jedną pozycję.}}"
 
+msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
+msgstr "{offlineHostCount, plural, one {# urządzenie jest offline i zachowa swoją kopię.} few {# urządzenia są offline i zachowają swoje kopie.} many {# urządzeń jest offline i zachowa swoje kopie.} other {# urządzenia jest offline i zachowa swoje kopie.}}"
+
 msgid "{openCount} open"
 msgstr "{openCount} otwartych"
 
@@ -784,6 +791,9 @@ msgstr "{workspaceName}: host jest niedostępny"
 
 msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}: sprzątanie nie powiodło się"
+
+msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
+msgstr "{worktreeCount, plural, one {Spowoduje to usunięcie projektu i jego # obszaru roboczego z każdego dostępnego urządzenia oraz skasowanie tego worktree z dysku.} few {Spowoduje to usunięcie projektu i jego # obszarów roboczych z każdego dostępnego urządzenia oraz skasowanie ich worktree z dysku.} many {Spowoduje to usunięcie projektu i jego # obszarów roboczych z każdego dostępnego urządzenia oraz skasowanie ich worktree z dysku.} other {Spowoduje to usunięcie projektu i jego # obszaru roboczego z każdego dostępnego urządzenia oraz skasowanie ich worktree z dysku.}}"
 
 msgid "{years}y ago"
 msgstr "{years} lat temu"
@@ -1080,6 +1090,13 @@ msgstr "Uruchomienie tej automatyzacji jest już w toku."
 
 msgid "A selection of integrations curated by our team."
 msgstr "Wybór integracji przygotowany przez nasz zespół."
+
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "A separate pay-per-token profile. The key stays in the {0} CLI."
+msgstr "Osobny profil rozliczany za tokeny. Klucz pozostaje w CLI {0}."
+
+msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
+msgstr "Osobny profil dzielący Twoje umiejętności, wtyczki, serwery MCP i ustawienia."
 
 msgid "a teammate"
 msgstr "członek zespołu"
@@ -1762,6 +1779,9 @@ msgstr "cokolwiek"
 msgid "AP"
 msgstr "AP"
 
+msgid "API"
+msgstr "API"
+
 msgid "API key"
 msgstr "Klucz API"
 
@@ -2195,6 +2215,9 @@ msgstr "Dalej: F5 to nie zapowiedź na najbliższy czas"
 
 msgid "Billed monthly"
 msgstr "Rozliczenie miesięczne"
+
+msgid "Billed per token."
+msgstr "Rozliczane za tokeny."
 
 msgid "Billed yearly"
 msgstr "Rozliczenie roczne"
@@ -4413,6 +4436,9 @@ msgstr "Usuń stronę"
 msgid "Delete project"
 msgstr "Usuń projekt"
 
+msgid "Delete Project…"
+msgstr "Usuń projekt…"
+
 msgid "Delete script"
 msgstr "Usuń skrypt"
 
@@ -6393,6 +6419,10 @@ msgstr "Pomoc i dokumentacja"
 msgid "Henry Ford"
 msgstr "Henry Ford"
 
+#. placeholder {0}: project.name
+msgid "Hid \"{0}\" from the sidebar"
+msgstr "Ukryto „{0}” z paska bocznego"
+
 msgid "Hidden"
 msgstr "Ukryte"
 
@@ -6973,8 +7003,8 @@ msgstr "Czy moje dane są bezpieczne?"
 msgid "is now signed in here."
 msgstr "jest teraz tutaj zalogowane."
 
-msgid "is signed in and will show its quota here."
-msgstr "jest zalogowane i pokaże tu swój limit."
+msgid "is signed in."
+msgstr "jest zalogowane."
 
 msgid "Is Superset free to use?"
 msgstr "Czy Superset jest darmowy?"
@@ -10581,8 +10611,8 @@ msgstr "Przeczytaj przewodnik po równoległych agentach kodujących"
 msgid "Read the setup guide"
 msgstr "Przeczytaj przewodnik konfiguracji"
 
-msgid "Reading subscription usage…"
-msgstr "Odczytywanie zużycia subskrypcji…"
+msgid "Reading usage…"
+msgstr "Odczyt zużycia…"
 
 msgid "Reading your local usage…"
 msgstr "Odczytywanie lokalnego zużycia…"
@@ -10817,9 +10847,6 @@ msgstr "Usuń wzmiankę {path}"
 msgid "Remove PR Link"
 msgstr "Usuń powiązanie z PR"
 
-msgid "Remove project from sidebar?"
-msgstr "Usunąć projekt z paska bocznego?"
-
 msgid "Remove script"
 msgstr "Usuń skrypt"
 
@@ -11033,6 +11060,9 @@ msgid "Reset worktree location"
 msgstr "Zresetuj lokalizację worktree"
 
 msgid "Reset zoom"
+msgstr "Zresetuj powiększenie"
+
+msgid "Reset Zoom"
 msgstr "Zresetuj powiększenie"
 
 msgid "Resets in {countdown} · {absolute}"
@@ -11368,6 +11398,12 @@ msgstr "Uruchamiaj polecenia i nawiguj po aplikacji."
 msgid "Run History"
 msgstr "Historia uruchomień"
 
+msgid "Run in a terminal on this host; paste your key when asked:"
+msgstr "Uruchom to w terminalu na tym hoście i wklej klucz, gdy pojawi się prośba:"
+
+msgid "Run in a terminal on this host:"
+msgstr "Uruchom to w terminalu na tym hoście:"
+
 msgid "Run in Workspace"
 msgstr "Uruchom w obszarze roboczym"
 
@@ -11394,9 +11430,6 @@ msgstr "Uruchamianie poleceń terminala i interakcja z innymi aplikacjami."
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Uruchamiaj agenta w terminalu Konfiguracja obszaru roboczego po zakończeniu konfiguracji zamiast startować obok drugi terminal"
-
-msgid "Run this in any terminal on this host, then finish the sign-in in your browser:"
-msgstr "Uruchom to w dowolnym terminalu na tym hoście, a potem dokończ logowanie w przeglądarce:"
 
 msgid "Run workspace command"
 msgstr "Uruchom polecenie obszaru roboczego"
@@ -12283,9 +12316,6 @@ msgstr "Zaloguj się jako Local Admin (dev)"
 msgid "Sign in to {0}"
 msgstr "Zaloguj się do {0}"
 
-msgid "Sign in to a second subscription as a separate profile. Your current login is untouched, and the new profile shares your skills, plugins, MCP servers, and settings."
-msgstr "Zaloguj się do drugiej subskrypcji jako osobny profil. Bieżące logowanie zostaje nietknięte, a nowy profil dzieli Twoje umiejętności, wtyczki, serwery MCP i ustawienia."
-
 msgid "Sign in to continue to Superset"
 msgstr "Zaloguj się, aby przejść do Superset"
 
@@ -12861,6 +12891,9 @@ msgstr "SUBSKRYBUJ"
 msgid "Subscribe on YouTube"
 msgstr "Subskrybuj na YouTube"
 
+msgid "Subscription"
+msgstr "Subskrypcja"
+
 msgid "Success"
 msgstr "Sukces"
 
@@ -13300,6 +13333,9 @@ msgstr "Linki do plików w terminalu"
 msgid "Terminal font size"
 msgstr "Rozmiar czcionki terminala"
 
+msgid "Terminal font size when a terminal is focused, page zoom in a browser pane, otherwise the whole app"
+msgstr "Rozmiar czcionki terminala, gdy terminal ma fokus, powiększenie strony w panelu przeglądarki, w przeciwnym razie powiększenie całej aplikacji"
+
 msgid "terminal ID"
 msgstr "ID terminala"
 
@@ -13579,6 +13615,9 @@ msgstr "Zdalna gałąź się rozjechała. Pobierz zmiany przed kontynuowaniem."
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "Renderer uległ awarii podczas uruchamiania. Sprawdź logi, aby poznać szczegóły."
 
+msgid "The repository folder itself is kept."
+msgstr "Sam folder repozytorium zostaje zachowany."
+
 msgid "The request failed."
 msgstr "Żądanie nie powiodło się."
 
@@ -13696,9 +13735,6 @@ msgstr "Zamknie to każdą sesję terminala — w tym obszarze roboczym i we wsz
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "Zamknie to każdą sesję terminala w Twojej organizacji{runningCountSuffix} i uruchomi świeżego demona."
-
-msgid "This deletes the project and all of its workspaces from <0>every reachable device</0> where it is set up. This cannot be undone."
-msgstr "Usuwa to projekt i wszystkie jego obszary robocze z <0>każdego osiągalnego urządzenia</0>, na którym jest skonfigurowany. Tej operacji nie można cofnąć."
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Usuwa to zapisany bufor przewijania używany do odzyskiwania po restarcie lub awarii."
@@ -13823,6 +13859,9 @@ msgstr "Usuwa z dysku każdy zaznaczony worktree i kasuje jego wpis obszaru robo
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "Usuwa hosta, dostęp do niego i jego obszary robocze. Pliki na maszynie zostają. Działający host może pojawić się ponownie. Tej operacji nie można cofnąć."
 
+msgid "This removes the project from every reachable device."
+msgstr "Spowoduje to usunięcie projektu z każdego dostępnego urządzenia."
+
 msgid "This removes the worktree from disk. The cloud workspace record will also be removed."
 msgstr "Usuwa worktree z dysku. Wpis obszaru roboczego w chmurze też zostanie usunięty."
 
@@ -13895,9 +13934,6 @@ msgstr "Usunie to połączenie między Twoją organizacją a Notion. Możesz po�
 
 msgid "This will remove the connection between your organization and Slack. You can reconnect at any time."
 msgstr "Usunie to połączenie między Twoją organizacją a Slackiem. Możesz połączyć ponownie w dowolnej chwili."
-
-msgid "This will remove workspaces from the sidebar and delete all project sections. The workspaces or projects won't be deleted."
-msgstr "Usunie to obszary robocze z paska bocznego i skasuje wszystkie sekcje projektu. Same obszary robocze i projekty nie zostaną usunięte."
 
 msgid "This will revert all changes to this file. This action cannot be undone."
 msgstr "Cofnie to wszystkie zmiany w tym pliku. Tej operacji nie można cofnąć."
@@ -14683,6 +14719,9 @@ msgstr "Zobacz wydania na GitHub"
 msgid "View Superset repository on GitHub"
 msgstr "Zobacz repozytorium Superset na GitHub"
 
+msgid "View usage"
+msgstr "Zobacz zużycie"
+
 msgid "Volume"
 msgstr "Głośność"
 
@@ -14698,8 +14737,8 @@ msgstr "Oczekiwanie na kontrole"
 msgid "Waiting for Review"
 msgstr "Oczekiwanie na przegląd"
 
-msgid "Waiting for the sign-in to complete — this updates automatically."
-msgstr "Oczekiwanie na zakończenie logowania — zaktualizuje się automatycznie."
+msgid "Waiting for sign-in…"
+msgstr "Oczekiwanie na logowanie…"
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Chcesz coś szybciej? <0>Napisz na Discordzie</0>. Wiele z tego, co tu jest, zaczęło się od prośby użytkownika."
@@ -15067,6 +15106,9 @@ msgstr "Worktree niezsynchronizowany"
 msgid "Worktrees"
 msgstr "Worktrees"
 
+msgid "Worktrees with uncommitted changes are left on disk."
+msgstr "Worktree z niezatwierdzonymi zmianami pozostają na dysku."
+
 msgid "Would you like to reassign it?"
 msgstr "Czy przypisać ponownie?"
 
@@ -15268,7 +15310,13 @@ msgstr "Powiększenie"
 msgid "Zoom in"
 msgstr "Powiększ"
 
+msgid "Zoom In"
+msgstr "Powiększ"
+
 msgid "Zoom out"
+msgstr "Pomniejsz"
+
+msgid "Zoom Out"
 msgstr "Pomniejsz"
 
 msgid "zsh"

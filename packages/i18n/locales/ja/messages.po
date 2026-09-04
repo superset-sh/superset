@@ -140,6 +140,10 @@ msgstr "{0, plural, one {#ファイル} other {#ファイル}}"
 msgid "{0, plural, one {# File} other {# Files}}"
 msgstr "{0, plural, one {#ファイル} other {#ファイル}}"
 
+#. placeholder {0}: projects.length
+msgid "{0, plural, one {# hidden project} other {# hidden projects}}"
+msgstr "{0, plural, one {非表示のプロジェクト #件} other {非表示のプロジェクト #件}}"
+
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
 msgstr "{0, plural, one {#件の履歴} other {#件の履歴}}"
@@ -661,6 +665,9 @@ msgstr "{noun, select, person {人を1人以上指定するか、{choice}を選�
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {リポジトリを1つ以上指定してください。} channel {チャンネルを1つ以上指定してください。} reaction {リアクションを1つ以上指定してください。} dataSource {データソースを1つ以上指定してください。} team {チームを1つ以上指定してください。} project {プロジェクトを1つ以上指定してください。} calendar {カレンダーを1つ以上指定してください。} other {項目を1つ以上指定してください。}}"
 
+msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
+msgstr "{offlineHostCount, plural, one {#台のデバイスがオフラインのため、そのコピーは残ります。} other {#台のデバイスがオフラインのため、そのコピーは残ります。}}"
+
 msgid "{openCount} open"
 msgstr "{openCount}件通過"
 
@@ -784,6 +791,9 @@ msgstr "{workspaceName}: ホストが利用できません"
 
 msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}: ティアダウンに失敗しました"
+
+msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
+msgstr "{worktreeCount, plural, one {到達可能なすべてのデバイスからプロジェクトと#件のワークスペースを削除し、それらのワークツリーをディスクから削除します。} other {到達可能なすべてのデバイスからプロジェクトと#件のワークスペースを削除し、それらのワークツリーをディスクから削除します。}}"
 
 msgid "{years}y ago"
 msgstr "{years}年前"
@@ -1080,6 +1090,13 @@ msgstr "このオートメーションの実行はすでに進行中です。"
 
 msgid "A selection of integrations curated by our team."
 msgstr "チームが厳選した連携です。"
+
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "A separate pay-per-token profile. The key stays in the {0} CLI."
+msgstr "トークン単位で課金される別プロファイルです。キーは{0} CLI内に保持されます。"
+
+msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
+msgstr "スキル、プラグイン、MCPサーバー、設定を共有する別プロファイルです。"
 
 msgid "a teammate"
 msgstr "チームメンバー"
@@ -1762,6 +1779,9 @@ msgstr "何でも"
 msgid "AP"
 msgstr "AP"
 
+msgid "API"
+msgstr "API"
+
 msgid "API key"
 msgstr "APIキー"
 
@@ -2195,6 +2215,9 @@ msgstr "その先:F5は近い将来の主張ではない"
 
 msgid "Billed monthly"
 msgstr "月払い"
+
+msgid "Billed per token."
+msgstr "トークン単位で課金。"
 
 msgid "Billed yearly"
 msgstr "年払い"
@@ -4413,6 +4436,9 @@ msgstr "ページを削除"
 msgid "Delete project"
 msgstr "プロジェクトを削除"
 
+msgid "Delete Project…"
+msgstr "プロジェクトを削除…"
+
 msgid "Delete script"
 msgstr "スクリプトを削除"
 
@@ -6393,6 +6419,10 @@ msgstr "ヘルプとドキュメント"
 msgid "Henry Ford"
 msgstr "Henry Ford"
 
+#. placeholder {0}: project.name
+msgid "Hid \"{0}\" from the sidebar"
+msgstr "「{0}」をサイドバーから非表示にしました"
+
 msgid "Hidden"
 msgstr "非表示"
 
@@ -6973,8 +7003,8 @@ msgstr "データは安全ですか?"
 msgid "is now signed in here."
 msgstr "がここにサインインしました。"
 
-msgid "is signed in and will show its quota here."
-msgstr "がサインインしており、クォータがここに表示されます。"
+msgid "is signed in."
+msgstr "がサインインしました。"
 
 msgid "Is Superset free to use?"
 msgstr "Supersetは無料で使えますか?"
@@ -10581,8 +10611,8 @@ msgstr "並列コーディングエージェントのガイドを読む"
 msgid "Read the setup guide"
 msgstr "セットアップガイドを読む"
 
-msgid "Reading subscription usage…"
-msgstr "サブスクリプション使用量を読み取り中…"
+msgid "Reading usage…"
+msgstr "使用量を取得中…"
 
 msgid "Reading your local usage…"
 msgstr "ローカルの使用量を読み取り中…"
@@ -10817,9 +10847,6 @@ msgstr "メンション{path}を削除"
 msgid "Remove PR Link"
 msgstr "PRリンクを解除"
 
-msgid "Remove project from sidebar?"
-msgstr "プロジェクトをサイドバーから削除しますか?"
-
 msgid "Remove script"
 msgstr "スクリプトを削除"
 
@@ -11033,6 +11060,9 @@ msgid "Reset worktree location"
 msgstr "ワークツリーの場所をリセット"
 
 msgid "Reset zoom"
+msgstr "ズームをリセット"
+
+msgid "Reset Zoom"
 msgstr "ズームをリセット"
 
 msgid "Resets in {countdown} · {absolute}"
@@ -11368,6 +11398,12 @@ msgstr "コマンドを実行し、アプリ内を移動します。"
 msgid "Run History"
 msgstr "実行履歴"
 
+msgid "Run in a terminal on this host; paste your key when asked:"
+msgstr "このホストのターミナルで実行し、求められたらキーを貼り付けてください:"
+
+msgid "Run in a terminal on this host:"
+msgstr "このホストのターミナルで実行してください:"
+
 msgid "Run in Workspace"
 msgstr "ワークスペースで実行"
 
@@ -11394,9 +11430,6 @@ msgstr "ターミナルコマンドの実行や他のアプリケーションと
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "2つ目のターミナルを並行して起動する代わりに、セットアップ完了後にワークスペースセットアップのターミナルでエージェントを実行します"
-
-msgid "Run this in any terminal on this host, then finish the sign-in in your browser:"
-msgstr "このホストの任意のターミナルで実行し、ブラウザでサインインを完了してください:"
 
 msgid "Run workspace command"
 msgstr "ワークスペースのコマンドを実行"
@@ -12283,9 +12316,6 @@ msgstr "ローカル管理者としてサインイン(開発用)"
 msgid "Sign in to {0}"
 msgstr "{0}にサインイン"
 
-msgid "Sign in to a second subscription as a separate profile. Your current login is untouched, and the new profile shares your skills, plugins, MCP servers, and settings."
-msgstr "別のプロファイルとして2つ目のサブスクリプションにサインインします。現在のログインはそのまま、新しいプロファイルはスキル、プラグイン、MCPサーバー、設定を共有します。"
-
 msgid "Sign in to continue to Superset"
 msgstr "サインインしてSupersetに進む"
 
@@ -12861,6 +12891,9 @@ msgstr "登録する"
 msgid "Subscribe on YouTube"
 msgstr "YouTubeで登録"
 
+msgid "Subscription"
+msgstr "サブスクリプション"
+
 msgid "Success"
 msgstr "成功"
 
@@ -13300,6 +13333,9 @@ msgstr "ターミナルのファイルリンク"
 msgid "Terminal font size"
 msgstr "ターミナルのフォントサイズ"
 
+msgid "Terminal font size when a terminal is focused, page zoom in a browser pane, otherwise the whole app"
+msgstr "ターミナルにフォーカスがあるときはターミナルのフォントサイズ、ブラウザペインではページのズーム、それ以外はアプリ全体"
+
 msgid "terminal ID"
 msgstr "ターミナルID"
 
@@ -13579,6 +13615,9 @@ msgstr "リモートブランチが分岐しています。続ける前にpull�
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "起動中にレンダラーがクラッシュしました。詳細はログを確認してください。"
 
+msgid "The repository folder itself is kept."
+msgstr "リポジトリのフォルダ自体は残ります。"
+
 msgid "The request failed."
 msgstr "リクエストに失敗しました。"
 
@@ -13696,9 +13735,6 @@ msgstr "このワークスペースと他のワークスペースのすべての
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "組織のすべてのターミナルセッション{runningCountSuffix}を閉じ、新しいデーモンを起動します。"
-
-msgid "This deletes the project and all of its workspaces from <0>every reachable device</0> where it is set up. This cannot be undone."
-msgstr "このプロジェクトとそのすべてのワークスペースを、セットアップ済みの<0>到達可能なすべてのデバイス</0>から削除します。この操作は元に戻せません。"
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "再起動やクラッシュからの復旧に使う保存済みスクロールバックを削除します。"
@@ -13823,6 +13859,9 @@ msgstr "選択したすべてのワークツリーをディスクから削除し
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "ホストとそのアクセス権、ワークスペースを削除します。マシン上のファイルは残ります。稼働中のホストは再表示されることがあります。この操作は元に戻せません。"
 
+msgid "This removes the project from every reachable device."
+msgstr "到達可能なすべてのデバイスからプロジェクトを削除します。"
+
 msgid "This removes the worktree from disk. The cloud workspace record will also be removed."
 msgstr "ワークツリーをディスクから削除します。クラウドワークスペースの記録も削除されます。"
 
@@ -13895,9 +13934,6 @@ msgstr "組織とNotionの接続を解除します。いつでも再接続でき
 
 msgid "This will remove the connection between your organization and Slack. You can reconnect at any time."
 msgstr "組織とSlackの接続を解除します。いつでも再接続できます。"
-
-msgid "This will remove workspaces from the sidebar and delete all project sections. The workspaces or projects won't be deleted."
-msgstr "サイドバーからワークスペースを削除し、プロジェクトのセクションをすべて削除します。ワークスペースやプロジェクト自体は削除されません。"
 
 msgid "This will revert all changes to this file. This action cannot be undone."
 msgstr "このファイルへの変更をすべて元に戻します。この操作は元に戻せません。"
@@ -14683,6 +14719,9 @@ msgstr "GitHubでリリースを見る"
 msgid "View Superset repository on GitHub"
 msgstr "GitHubでSupersetのリポジトリを見る"
 
+msgid "View usage"
+msgstr "使用量を表示"
+
 msgid "Volume"
 msgstr "音量"
 
@@ -14698,8 +14737,8 @@ msgstr "チェックを待機中"
 msgid "Waiting for Review"
 msgstr "レビューを待機中"
 
-msgid "Waiting for the sign-in to complete — this updates automatically."
-msgstr "サインイン完了を待っています — 自動的に更新されます。"
+msgid "Waiting for sign-in…"
+msgstr "サインインを待機中…"
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "もっと早く欲しいものがありますか?<0>Discordで教えてください</0>。ここにあるものの多くは、ユーザーの要望から始まりました。"
@@ -15067,6 +15106,9 @@ msgstr "ワークツリーが同期していません"
 msgid "Worktrees"
 msgstr "ワークツリー"
 
+msgid "Worktrees with uncommitted changes are left on disk."
+msgstr "未コミットの変更があるワークツリーはディスクに残ります。"
+
 msgid "Would you like to reassign it?"
 msgstr "割り当て直しますか?"
 
@@ -15268,7 +15310,13 @@ msgstr "ズーム"
 msgid "Zoom in"
 msgstr "拡大"
 
+msgid "Zoom In"
+msgstr "拡大"
+
 msgid "Zoom out"
+msgstr "縮小"
+
+msgid "Zoom Out"
 msgstr "縮小"
 
 msgid "zsh"
