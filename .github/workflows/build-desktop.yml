@@ -109,16 +109,67 @@ jobs:
           TARGET_ARCH: ${{ matrix.arch }}
         run: bun run compile:app
 
+      # electron-builder manages its own signing keychain when CSC_LINK is set,
+      # and that path is broken: createKeychain makes the keychain with a random
+      # password, then importCerts calls
+      #   security set-key-partition-list ... -k <cscKeyPassword>
+      # passing the .p12 password where the *keychain* password belongs
+      # (app-builder-lib/out/codeSign/macCodeSign.js, still wrong in 26.15.3).
+      # It only works while the keychain happens to still be unlocked, so it
+      # fails intermittently with "SecKeychainUnlock: The user name or
+      # passphrase you entered is not correct" — roughly a third of macOS jobs.
+      # Owning the keychain ourselves keeps the two passwords straight, and
+      # electron-builder uses CSC_KEYCHAIN as-is when CSC_LINK is absent
+      # (app-builder-lib/out/macPackager.js).
+      - name: Set up signing keychain
+        env:
+          MAC_CERTIFICATE: ${{ secrets.MAC_CERTIFICATE }}
+          MAC_CERTIFICATE_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN="$RUNNER_TEMP/superset-signing.keychain-db"
+          CERT_PATH="$RUNNER_TEMP/certificate.p12"
+          KEYCHAIN_PASSWORD="$(openssl rand -base64 24)"
+
+          printf '%s' "$MAC_CERTIFICATE" | base64 --decode > "$CERT_PATH"
+          test -s "$CERT_PATH" || {
+            echo "::error::MAC_CERTIFICATE did not decode to a .p12 — expected base64"
+            exit 1
+          }
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          # No -l and no -u: never lock on sleep or on a timeout. The default
+          # 300s timeout is what makes the keychain lock mid-build.
+          security set-keychain-settings "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$CERT_PATH" -k "$KEYCHAIN" -P "$MAC_CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign -T /usr/bin/productbuild
+          # -k here is the keychain password, not the .p12 password.
+          security set-key-partition-list -S apple-tool:,apple: -s \
+            -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" > /dev/null
+          # Keep the login keychain in the search list so everything else still resolves.
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          rm -f "$CERT_PATH"
+
+          security find-identity -v -p codesigning "$KEYCHAIN" | grep -q "Developer ID Application" || {
+            echo "::error::No Developer ID Application identity in the signing keychain"
+            exit 1
+          }
+          echo "CSC_KEYCHAIN=$KEYCHAIN" >> "$GITHUB_ENV"
+
       - name: Build Electron app
         working-directory: apps/desktop
         env:
-          CSC_LINK: ${{ secrets.MAC_CERTIFICATE }}
-          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+          # No CSC_LINK on purpose — see the keychain step above.
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           TARGET_ARCH: ${{ matrix.arch }}
         run: bun run package -- --publish never --config ${{ inputs.electron_builder_config }} --${{ matrix.arch }}
+
+      - name: Delete signing keychain
+        if: always()
+        run: security delete-keychain "$RUNNER_TEMP/superset-signing.keychain-db" || true
 
       - name: Verify app-update.yml exists
         working-directory: apps/desktop
