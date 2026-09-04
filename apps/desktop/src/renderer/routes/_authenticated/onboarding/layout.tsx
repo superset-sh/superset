@@ -1,16 +1,12 @@
-import { ChatServiceProvider } from "@superset/provider-auth/client";
 import {
 	createFileRoute,
 	Outlet,
 	useLocation,
 	useNavigate,
 } from "@tanstack/react-router";
-import { useMemo } from "react";
-import { createChatServiceIpcClient } from "renderer/components/ProviderAuth/provider-auth-client";
 import { Redirect } from "renderer/components/Redirect";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { electronQueryClient } from "renderer/providers/ElectronTRPCProvider";
 import { OnboardingNavigation } from "./components/OnboardingNavigation";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
@@ -24,7 +20,7 @@ const STEPS = [
 		path: "/onboarding",
 		match: (p: string) => p === "/onboarding",
 		title: "Setup Superset",
-		subtitle: "Connect your agents and tools to get started.",
+		subtitle: "Connect the tools Superset needs to get started.",
 	},
 	{
 		path: "/onboarding/project",
@@ -38,7 +34,6 @@ function OnboardingFlowLayout() {
 	const { data: session, isPending } = authClient.useSession();
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const isMac = platform === undefined || platform === "darwin";
-	const chatClient = useMemo(() => createChatServiceIpcClient(), []);
 	const location = useLocation();
 	const navigate = useNavigate();
 
@@ -66,39 +61,37 @@ function OnboardingFlowLayout() {
 		: null;
 
 	return (
-		<ChatServiceProvider client={chatClient} queryClient={electronQueryClient}>
-			<div className="flex h-full w-full flex-col bg-background">
-				<div
-					className="drag h-12 w-full shrink-0"
-					style={{ paddingLeft: isMac ? "88px" : "16px" }}
-				/>
-				<div className="flex-1 overflow-auto">
-					{currentStep ? (
-						<div className="mx-auto flex w-full max-w-2xl flex-col gap-10 px-8 pt-16 pb-6">
-							<div className="space-y-2">
-								<h1 className="text-2xl font-semibold text-foreground">
-									{currentStep.title}
-								</h1>
-								<p className="text-sm text-muted-foreground">
-									{currentStep.subtitle}
-								</p>
-							</div>
-							<Outlet />
+		<div className="flex h-full w-full flex-col bg-background">
+			<div
+				className="drag h-12 w-full shrink-0"
+				style={{ paddingLeft: isMac ? "88px" : "16px" }}
+			/>
+			<div className="flex-1 overflow-auto">
+				{currentStep ? (
+					<div className="mx-auto flex w-full max-w-2xl flex-col gap-10 px-8 pt-16 pb-6">
+						<div className="space-y-2">
+							<h1 className="text-2xl font-semibold text-foreground">
+								{currentStep.title}
+							</h1>
+							<p className="text-sm text-muted-foreground">
+								{currentStep.subtitle}
+							</p>
 						</div>
-					) : (
 						<Outlet />
-					)}
-				</div>
-				{isOnMainStep && (
-					<OnboardingNavigation
-						currentStep={currentStepIdx}
-						totalSteps={STEPS.length}
-						onBack={isFirstStep ? null : handleBack}
-						onContinue={handleContinue}
-						continueLabel="Continue"
-					/>
+					</div>
+				) : (
+					<Outlet />
 				)}
 			</div>
-		</ChatServiceProvider>
+			{isOnMainStep && (
+				<OnboardingNavigation
+					currentStep={currentStepIdx}
+					totalSteps={STEPS.length}
+					onBack={isFirstStep ? null : handleBack}
+					onContinue={handleContinue}
+					continueLabel="Continue"
+				/>
+			)}
+		</div>
 	);
 }

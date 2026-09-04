@@ -1,7 +1,5 @@
 import { spawn } from "node:child_process";
 import { tmpdir } from "node:os";
-import { Agent } from "@mastra/core/agent";
-import { getSmallModel } from "@superset/provider-auth/server/shared";
 import {
 	getBuiltinAgentDefinition,
 	isBuiltinAgentId,
@@ -15,6 +13,10 @@ import {
 	envOverlayPrefix,
 	quoteSingleShell,
 } from "@superset/shared/agent-prompt-launch";
+import {
+	deriveWorkspaceBranchFromPrompt,
+	deriveWorkspaceTitleFromPrompt,
+} from "@superset/shared/workspace-launch";
 import { z } from "zod";
 import type { HostDb } from "../../../../db";
 import type { HostServiceContext } from "../../../../types";
@@ -28,7 +30,6 @@ const BRANCH_NAME_MAX = 25;
 // Custom naming instructions often mandate ticket ids or type prefixes
 // that don't fit the default budget, so they get more room and "/".
 const CUSTOM_BRANCH_NAME_MAX = 60;
-const GENERATE_TIMEOUT_MS = 5_000;
 
 export function sanitizeBranchCandidate(raw: string): string {
 	return raw
@@ -62,39 +63,19 @@ function trimTitle(raw: string): string {
 		.slice(0, WORKSPACE_TITLE_MAX);
 }
 
-function buildWorkspaceNamesOutputSchema(namingInstructions?: string | null) {
-	const custom = !!namingInstructions?.trim();
-	return z.object({
-		title: z
-			.string()
-			.describe(
-				`Short human-readable workspace title. Up to ${WORKSPACE_TITLE_MAX} characters. No trailing punctuation. Prefer whole words; never truncate mid-word.`,
-			),
-		branchName: z
-			.string()
-			.describe(
-				custom
-					? `Git branch name in kebab-case (lowercase, dashes). Up to ${CUSTOM_BRANCH_NAME_MAX} characters. Only [a-z0-9-], plus "/" when the project's naming instructions ask for a prefix. No leading/trailing dashes.`
-					: `Git branch name in kebab-case (lowercase, dashes). 2-4 words, up to ${BRANCH_NAME_MAX} characters. Only [a-z0-9-]. No leading/trailing dashes. No prefixes.`,
-			),
-	});
-}
-
-// Keep transforms out of the provider-facing schema: transformed Zod fields
-// lose their JSON Schema type in the current converter, which Anthropic's
-// native structured-output endpoint rejects. Coerce the validated response
-// locally instead. Empty fields still fall through to the caller, which skips
-// the respective rename step.
+// The agent CLI returns free-form JSON, so the shape is validated and then
+// coerced locally. Empty fields still fall through to the caller, which
+// skips the respective rename step.
 function buildWorkspaceNamesSchema(namingInstructions?: string | null) {
 	const custom = !!namingInstructions?.trim();
-	return buildWorkspaceNamesOutputSchema(namingInstructions).transform(
-		({ title, branchName }) => ({
+	return z
+		.object({ title: z.string(), branchName: z.string() })
+		.transform(({ title, branchName }) => ({
 			title: trimTitle(title),
 			branchName: custom
 				? sanitizeCustomBranchCandidate(branchName)
 				: sanitizeBranchCandidate(branchName),
-		}),
-	);
+		}));
 }
 
 export type GeneratedWorkspaceNames = z.infer<
@@ -123,9 +104,9 @@ function buildInstructions(namingInstructions?: string | null): string {
 	return lines.join("\n");
 }
 
-// Agent CLIs cold-start (~2-4s) before the model call, so they get a much
-// longer budget than the direct small-model path. Workspace creation blocks
-// on naming, so this is also the worst-case added create latency.
+// Agent CLIs cold-start (~2-4s) before the model call. Workspace creation
+// blocks on naming, so this is also the worst-case added create latency;
+// past it we fall back to names derived from the prompt itself.
 const AGENT_GENERATE_TIMEOUT_MS = 20_000;
 
 function buildAgentJsonInstructions(
@@ -225,11 +206,10 @@ async function generateNamesViaAgentCli(
 	// agent must not pick up repo context or act on files.
 	const shellCommand = `${command} ${quoteSingleShell(namingPrompt)}`;
 
-	// This fallback only runs after the small-model path failed, so any
-	// provider keys in our env are absent or invalid — but the CLIs prefer
-	// them over their own stored auth (claude disables its claude.ai login
-	// when ANTHROPIC_API_KEY is set). Strip them so the agent uses the
-	// credentials the user actually signed the CLI in with.
+	// The CLIs prefer provider keys in the environment over their own stored
+	// auth (claude disables its claude.ai login when ANTHROPIC_API_KEY is
+	// set). Strip them so the agent names with the credentials the user
+	// actually signed the CLI in with.
 	const env = { ...process.env };
 	delete env.ANTHROPIC_API_KEY;
 	delete env.OPENAI_API_KEY;
@@ -289,47 +269,25 @@ async function generateNamesViaAgentCli(
 	return parsed;
 }
 
-async function generateNamesViaSmallModel(
-	prompt: string,
-	namingInstructions?: string | null,
-): Promise<GeneratedWorkspaceNames | null> {
-	const model = await getSmallModel();
-	if (!model) return null;
-
-	const agent = new Agent({
-		id: "workspace-namer",
-		name: "Workspace Namer",
-		instructions: buildInstructions(namingInstructions),
-		model,
-	});
-
-	try {
-		const { object } = await Promise.race([
-			agent.generate(prompt, {
-				structuredOutput: {
-					schema: buildWorkspaceNamesOutputSchema(namingInstructions),
-				},
-			}),
-			new Promise<never>((_, reject) =>
-				setTimeout(
-					() => reject(new Error(`timed out after ${GENERATE_TIMEOUT_MS}ms`)),
-					GENERATE_TIMEOUT_MS,
-				),
-			),
-		]);
-		return buildWorkspaceNamesSchema(namingInstructions).parse(object);
-	} catch (error) {
-		console.warn("[generateNamesViaSmallModel] generation failed:", error);
-		return null;
-	}
+/**
+ * Names derived from the prompt text itself — no model, no network, always
+ * available. Per-project naming instructions cannot be honoured here, so a
+ * project that sets them gets the plain slug when the agent CLI can't run.
+ */
+function deriveNamesFromPrompt(prompt: string): GeneratedWorkspaceNames | null {
+	const title = trimTitle(deriveWorkspaceTitleFromPrompt(prompt));
+	const branchName = deriveWorkspaceBranchFromPrompt(prompt);
+	if (title === "" && branchName === "") return null;
+	return { title, branchName };
 }
 
 /**
  * Generates both a workspace title and a git branch name from a prompt.
- * The direct small-model call (`getSmallModel`, ~1s) is the primary path.
- * When it can't run — no Anthropic/OpenAI credentials — or fails, and the
- * caller supplied the launch's agent context, the agent's headless CLI
- * does the naming with the agent's own credentials instead.
+ * The launch agent's own headless CLI is the primary path: it names with
+ * the credentials the user already signed that CLI in with, so the prompt
+ * never leaves the providers they chose. When there is no agent context, or
+ * the CLI can't run or fails, names are derived from the prompt text
+ * locally.
  */
 export async function generateWorkspaceNamesFromPrompt(
 	prompt: string,
@@ -339,44 +297,38 @@ export async function generateWorkspaceNamesFromPrompt(
 	const cleaned = prompt.trim();
 	if (!cleaned) return null;
 
-	const fromSmallModel = await generateNamesViaSmallModel(
-		cleaned,
-		namingInstructions,
-	);
-	if (fromSmallModel) {
-		console.log("[generateWorkspaceNamesFromPrompt] named via small model");
-		return fromSmallModel;
-	}
-
-	if (!agentContext) return null;
-	const command = resolveNonInteractiveCommand(
-		agentContext.db,
-		agentContext.agent,
-	);
-	if (!command) return null;
-
-	console.warn(
-		`[generateWorkspaceNamesFromPrompt] small model unavailable; falling back to agent CLI (${agentContext.agent})`,
-	);
-	try {
-		const names = await generateNamesViaAgentCli(
-			command,
-			cleaned,
-			namingInstructions,
+	if (agentContext) {
+		const command = resolveNonInteractiveCommand(
+			agentContext.db,
+			agentContext.agent,
 		);
-		if (names) {
-			console.log(
-				`[generateWorkspaceNamesFromPrompt] named via agent CLI (${agentContext.agent})`,
-			);
-			return names;
+		if (command) {
+			try {
+				const names = await generateNamesViaAgentCli(
+					command,
+					cleaned,
+					namingInstructions,
+				);
+				if (names) {
+					console.log(
+						`[generateWorkspaceNamesFromPrompt] named via agent CLI (${agentContext.agent})`,
+					);
+					return names;
+				}
+			} catch (error) {
+				console.warn(
+					"[generateWorkspaceNamesFromPrompt] agent CLI naming failed:",
+					error,
+				);
+			}
 		}
-	} catch (error) {
-		console.warn(
-			"[generateWorkspaceNamesFromPrompt] agent CLI naming failed:",
-			error,
-		);
 	}
-	return null;
+
+	const derived = deriveNamesFromPrompt(cleaned);
+	if (derived) {
+		console.log("[generateWorkspaceNamesFromPrompt] named from the prompt");
+	}
+	return derived;
 }
 
 interface ApplyGeneratedNamesArgs {

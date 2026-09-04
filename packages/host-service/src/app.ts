@@ -1,7 +1,6 @@
 import { createNodeWebSocket } from "@hono/node-ws";
 import { trpcServer } from "@hono/trpc-server";
 import { Octokit } from "@octokit/rest";
-import { ChatService } from "@superset/provider-auth/server";
 import { SUPERSET_USER_ID_HEADER } from "@superset/shared/host-routing";
 import { TRPCError } from "@trpc/server";
 import type { MiddlewareHandler } from "hono";
@@ -72,14 +71,13 @@ export interface CreateAppOptions {
 	 * Test-harness override hooks. Production never sets these — `createApp`
 	 * builds each subsystem itself when omitted. `db` is overridden so tests
 	 * can swap in `bun:sqlite` (better-sqlite3 isn't loadable under Bun;
-	 * prod uses it on bundled Node). `api`, `github`, and `chatService` are
-	 * overridden to keep tests off the network and out of provider-auth storage.
+	 * prod uses it on bundled Node). `api` and `github` are overridden to
+	 * keep tests off the network.
 	 */
 	db?: HostDb;
 	api?: ApiClient;
 	github?: () => Promise<Octokit>;
 	execGh?: ExecGh;
-	chatService?: ChatService;
 }
 
 export interface CreateAppResult {
@@ -161,10 +159,6 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		},
 	});
 	pullRequestRuntime.start();
-	// Provider auth (Anthropic / OpenAI OAuth + API keys) is per-machine, not
-	// per-workspace. ChatService is a long-lived singleton wrapping the
-	// provider auth storage; the `host.auth.*` router proxies to it.
-	const chatService = options.chatService ?? new ChatService();
 
 	// Chat v3 runtime (plans/chat-v3-pane-mount.md). Registered unconditionally:
 	// the routes sit behind the same auth as every other host route, and the
@@ -244,7 +238,6 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	pageWatch.subscribeToTerminalEvents(eventBus);
 
 	const runtime = {
-		auth: chatService,
 		filesystem,
 		pullRequests: pullRequestRuntime,
 		pageWatch,

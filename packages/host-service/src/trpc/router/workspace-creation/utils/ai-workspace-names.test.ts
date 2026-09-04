@@ -1,148 +1,49 @@
-import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
-import { z } from "zod";
-
-const model = { id: "small-model" };
-const rawGeneratedNames = {
-	title: "Project Overview!!! ",
-	branchName: " Project Overview?! ",
-};
-const sanitizedNames = {
-	title: "Project Overview",
-	branchName: "project-overview",
-};
-
-interface GenerateOptions {
-	structuredOutput: {
-		schema: z.ZodType;
-		jsonPromptInjection?: boolean;
-	};
-}
-
-interface AgentOptions {
-	instructions: string;
-}
-
-const generateMock = mock(
-	async (_prompt: string, _options: GenerateOptions) => ({
-		object: rawGeneratedNames,
-	}),
-);
-const agentConstructorMock = mock((_options: AgentOptions) => ({
-	generate: generateMock,
-}));
-const getSmallModelMock = mock(async () => model);
-
-mock.module("@mastra/core/agent", () => ({
-	Agent: agentConstructorMock,
-}));
-
-mock.module("@superset/provider-auth/server/shared", () => ({
-	getSmallModel: getSmallModelMock,
-}));
-
-const { generateWorkspaceNamesFromPrompt } = await import(
-	"./ai-workspace-names"
-);
+import { describe, expect, test } from "bun:test";
+import { generateWorkspaceNamesFromPrompt } from "./ai-workspace-names";
 
 describe("generateWorkspaceNamesFromPrompt", () => {
-	beforeEach(() => {
-		agentConstructorMock.mockClear();
-		generateMock.mockClear();
-		getSmallModelMock.mockClear();
-	});
-
-	test("uses native structured output and tells the model to name vague tasks", async () => {
+	test("derives names from the prompt when no agent context is supplied", async () => {
 		await expect(
-			generateWorkspaceNamesFromPrompt("whats this projec about"),
-		).resolves.toEqual(sanitizedNames);
-
-		expect(agentConstructorMock).toHaveBeenCalledTimes(1);
-		const agentCall = agentConstructorMock.mock.calls[0];
-		if (!agentCall) throw new Error("Agent constructor was not called");
-		const [agentOptions] = agentCall;
-		expect(agentOptions.instructions).toContain(
-			"do not answer the prompt, ask questions, or request more context",
-		);
-
-		expect(generateMock).toHaveBeenCalledTimes(1);
-		const generateCall = generateMock.mock.calls[0];
-		if (!generateCall) throw new Error("Agent generate was not called");
-		const [, generateOptions] = generateCall;
-		const { schema } = generateOptions.structuredOutput;
-		expect(schema).toBeDefined();
-		expect(generateOptions.structuredOutput).not.toHaveProperty(
-			"jsonPromptInjection",
-		);
-		expect(z.toJSONSchema(schema)).toMatchObject({
-			type: "object",
-			properties: {
-				title: { type: "string" },
-				branchName: { type: "string" },
-			},
+			generateWorkspaceNamesFromPrompt("  Fix the login   redirect loop! "),
+		).resolves.toEqual({
+			title: "Fix the login redirect loop",
+			branchName: "fix-the-login-redirect-loop",
 		});
 	});
 
-	test("omits the naming-instructions block by default", async () => {
-		await generateWorkspaceNamesFromPrompt("fix the login redirect");
-
-		const agentCall = agentConstructorMock.mock.calls[0];
-		if (!agentCall) throw new Error("Agent constructor was not called");
-		expect(agentCall[0].instructions).not.toContain("<naming-instructions>");
+	test("returns null for a blank prompt", async () => {
+		await expect(generateWorkspaceNamesFromPrompt("   ")).resolves.toBeNull();
 	});
 
-	test("injects per-project naming instructions into the system prompt", async () => {
-		await generateWorkspaceNamesFromPrompt(
-			"fix the login redirect",
-			undefined,
-			"Always include the Linear ticket id (e.g. bin-344) in the branch name.",
+	test("caps the derived branch slug at 30 characters", async () => {
+		const names = await generateWorkspaceNamesFromPrompt(
+			"rewrite the entire authentication and authorization subsystem",
 		);
+		expect(names?.branchName).toBe("rewrite-the-entire-authenticat");
+		expect(names?.branchName.length).toBeLessThanOrEqual(30);
+	});
 
-		const agentCall = agentConstructorMock.mock.calls[0];
-		if (!agentCall) throw new Error("Agent constructor was not called");
-		const { instructions } = agentCall[0];
-		expect(instructions).toContain("<naming-instructions>");
-		expect(instructions).toContain(
-			"Always include the Linear ticket id (e.g. bin-344) in the branch name.",
+	test("keeps the full title when the branch slug truncates it", async () => {
+		const names = await generateWorkspaceNamesFromPrompt(
+			"rewrite the entire authentication and authorization subsystem",
+		);
+		expect(names?.title).toBe(
+			"rewrite the entire authentication and authorization subsystem",
 		);
 	});
 
-	test("allows slash prefixes and longer branches under custom instructions", async () => {
-		generateMock.mockImplementationOnce(async () => ({
-			object: {
-				title: "Fix login redirect",
-				branchName: "Fix/BIN-344 login redirect loop",
-			},
-		}));
-
+	// Naming instructions are a prompt for the agent CLI; the derived
+	// fallback has no model to give them to and ignores them.
+	test("still derives names when the project sets naming instructions", async () => {
 		await expect(
 			generateWorkspaceNamesFromPrompt(
 				"fix the login redirect",
 				undefined,
-				"Prefix branches with fix/ or feat/ and include the ticket id.",
+				"Prefix branches with fix/ and include the ticket id.",
 			),
 		).resolves.toEqual({
-			title: "Fix login redirect",
-			branchName: "fix/bin-344-login-redirect-loop",
+			title: "fix the login redirect",
+			branchName: "fix-the-login-redirect",
 		});
 	});
-
-	test("still strips slashes when no instructions are set", async () => {
-		generateMock.mockImplementationOnce(async () => ({
-			object: {
-				title: "Fix login redirect",
-				branchName: "fix/login redirect",
-			},
-		}));
-
-		await expect(
-			generateWorkspaceNamesFromPrompt("fix the login redirect"),
-		).resolves.toEqual({
-			title: "Fix login redirect",
-			branchName: "fixlogin-redirect",
-		});
-	});
-});
-
-afterAll(() => {
-	mock.restore();
 });

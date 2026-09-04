@@ -1,11 +1,27 @@
+import { Database } from "bun:sqlite";
 import { describe, expect, it } from "bun:test";
+import { resolve } from "node:path";
+import { eq, sql } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/bun-sqlite";
+import { migrate } from "drizzle-orm/bun-sqlite/migrator";
+import type { HostDb } from "../../db/index.ts";
+import * as schema from "../../db/schema.ts";
+import { terminalAgentBindings, terminalSessions } from "../../db/schema.ts";
 import {
+	claimResumeCandidateBinding,
+	findResumeCandidateBinding,
+	markTerminalAgentBindingEnded,
+} from "../../terminal-agents/persistence.ts";
+import {
+	markStaleActiveRows,
 	PORT_SCAN_WARMUP_DELAYS_MS,
 	planPortScanSync,
 	planStaleActiveRows,
 	REAP_INTERVAL_MS,
 	shouldReapRow,
 } from "./reaper.ts";
+
+const MIGRATIONS_FOLDER = resolve(import.meta.dir, "../../../drizzle");
 
 const noneLive = () => false;
 
@@ -271,5 +287,268 @@ describe("planStaleActiveRows", () => {
 			now: NOW,
 		});
 		expect(stale).toEqual({ exited: ["t-crashed"], disposed: ["t-disposing"] });
+	});
+});
+
+describe("markStaleActiveRows agent bindings", () => {
+	const OLD = Date.now() - 10 * 60_000;
+
+	function createTestDb(): HostDb {
+		const sqlite = new Database(":memory:");
+		const db = drizzle(sqlite, { schema });
+		migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
+		// bun:sqlite's drizzle type differs from the better-sqlite3-based
+		// HostDb; the query surface used here is identical (same cast as
+		// terminal-agents/persistence.test.ts).
+		return db as unknown as HostDb;
+	}
+
+	function seed(
+		db: HostDb,
+		row: {
+			id: string;
+			status?: string;
+			workspaceId?: string | null;
+			createdAt?: number;
+			disposeRequestedAt?: number | null;
+			binding?: {
+				agentSessionId?: string | null;
+				lastEventType?: string;
+				endedAt?: number | null;
+				endReason?: string | null;
+			} | null;
+		},
+	) {
+		db.insert(terminalSessions)
+			.values({
+				id: row.id,
+				status: row.status ?? "active",
+				originWorkspaceId: row.workspaceId ?? "ws-1",
+				createdAt: row.createdAt ?? OLD,
+				disposeRequestedAt: row.disposeRequestedAt ?? null,
+			})
+			.run();
+		if (row.binding === null) return;
+		const binding = row.binding ?? {};
+		db.insert(terminalAgentBindings)
+			.values({
+				terminalId: row.id,
+				workspaceId: row.workspaceId ?? "ws-1",
+				agentId: "claude",
+				// An explicit null asks for a binding that never captured a
+				// session id; omitting it takes the default.
+				agentSessionId:
+					binding.agentSessionId === undefined
+						? "sess-1"
+						: binding.agentSessionId,
+				startedAt: OLD,
+				lastEventAt: OLD,
+				lastEventType: binding.lastEventType ?? "Stop",
+				endedAt: binding.endedAt ?? null,
+				endReason: binding.endReason ?? null,
+			})
+			.run();
+	}
+
+	/**
+	 * The row snapshot the reaper passes in, loaded the way its own
+	 * `loadTerminalRowsById` does. Tests that exercise the policy must supply
+	 * it: with a non-empty `liveSessions` the sweep trusts the caller's map
+	 * and never reloads, so an empty map means the policy sees no rows at all.
+	 */
+	function snapshotRows(db: HostDb) {
+		const rows = db
+			.select({
+				id: terminalSessions.id,
+				status: terminalSessions.status,
+				originWorkspaceId: terminalSessions.originWorkspaceId,
+				disposeRequestedAt: terminalSessions.disposeRequestedAt,
+				createdAt: terminalSessions.createdAt,
+			})
+			.from(terminalSessions)
+			.all();
+		return new Map(rows.map((row) => [row.id, row]));
+	}
+
+	function requestDispose(db: HostDb, id: string) {
+		db.update(terminalSessions)
+			.set({ disposeRequestedAt: Date.now() })
+			.where(eq(terminalSessions.id, id))
+			.run();
+	}
+
+	function statusOf(db: HostDb, id: string): string | undefined {
+		return db
+			.select({ status: terminalSessions.status })
+			.from(terminalSessions)
+			.where(eq(terminalSessions.id, id))
+			.get()?.status;
+	}
+
+	function bindingOf(db: HostDb, id: string) {
+		return db
+			.select({
+				agentSessionId: terminalAgentBindings.agentSessionId,
+				endedAt: terminalAgentBindings.endedAt,
+				endReason: terminalAgentBindings.endReason,
+			})
+			.from(terminalAgentBindings)
+			.where(eq(terminalAgentBindings.terminalId, id))
+			.get();
+	}
+
+	it("leaves a daemon-lost agent session resumable", () => {
+		const db = createTestDb();
+		seed(db, { id: "t-lost" });
+
+		markStaleActiveRows(db, [], new Map());
+
+		expect(statusOf(db, "t-lost")).toBe("exited");
+		expect(bindingOf(db, "t-lost")?.endReason).toBe("terminal-exited");
+		expect(
+			findResumeCandidateBinding(db, "ws-1", "t-lost")?.agentSessionId,
+		).toBe("sess-1");
+	});
+
+	it("keeps a dispose-stamped row's agent out of the resume candidates", () => {
+		const db = createTestDb();
+		seed(db, { id: "t-killed", disposeRequestedAt: OLD });
+
+		markStaleActiveRows(db, [], new Map());
+
+		expect(statusOf(db, "t-killed")).toBe("disposed");
+		expect(findResumeCandidateBinding(db, "ws-1", "t-killed")).toBeUndefined();
+	});
+
+	it("leaves bindings of rows it does not sweep untouched", () => {
+		const db = createTestDb();
+		seed(db, { id: "t-alive" });
+		seed(db, { id: "t-fresh", createdAt: Date.now() });
+		seed(db, { id: "t-stale" });
+
+		// t-alive is still in the daemon's list and t-fresh is inside the
+		// spawn grace window; only t-stale is condemned. Its sweep is what
+		// proves the policy actually evaluated these rows.
+		expect(markStaleActiveRows(db, [{ id: "t-alive" }], snapshotRows(db))).toBe(
+			1,
+		);
+
+		expect(statusOf(db, "t-stale")).toBe("exited");
+		expect(statusOf(db, "t-alive")).toBe("active");
+		expect(bindingOf(db, "t-alive")?.endedAt).toBeNull();
+		expect(statusOf(db, "t-fresh")).toBe("active");
+		expect(bindingOf(db, "t-fresh")?.endedAt).toBeNull();
+	});
+
+	it("rolls the row back when the binding write fails, and retries later", () => {
+		const db = createTestDb();
+		seed(db, { id: "t-lost" });
+		// A binding write that fails for any reason (locked db, constraint,
+		// corrupt row). Committing the status flip without the binding stamp
+		// is unrecoverable: the row leaves `active`, so no later sweep, attach
+		// or respawn ever ends the binding again. The sweep fails as a whole
+		// instead (the reap pass logs it) and nothing is committed.
+		db.run(
+			sql`CREATE TRIGGER fail_binding_write BEFORE UPDATE ON terminal_agent_bindings BEGIN SELECT RAISE(ABORT, 'binding write failed'); END`,
+		);
+
+		expect(() => markStaleActiveRows(db, [], new Map())).toThrow(
+			/binding write failed/,
+		);
+
+		// Nothing committed, so the row is still a candidate for the sweep.
+		expect(statusOf(db, "t-lost")).toBe("active");
+		expect(bindingOf(db, "t-lost")?.endedAt).toBeNull();
+
+		db.run(sql`DROP TRIGGER fail_binding_write`);
+		expect(markStaleActiveRows(db, [], new Map())).toBe(1);
+
+		expect(statusOf(db, "t-lost")).toBe("exited");
+		expect(
+			findResumeCandidateBinding(db, "ws-1", "t-lost")?.agentSessionId,
+		).toBe("sess-1");
+	});
+
+	it("stops offering resume when a dispose lands after the exit flip", () => {
+		const db = createTestDb();
+		seed(db, { id: "t-swept" });
+
+		expect(markStaleActiveRows(db, [], new Map())).toBe(1);
+		expect(findResumeCandidateBinding(db, "ws-1", "t-swept")).toBeDefined();
+
+		// The user closes the pane a moment later. The dispose route stamps
+		// the binding first, then `disposeSessionAndWait` stamps the durable
+		// intent and flips the row — and none of it may leave the pane
+		// auto-resuming the session they just ended.
+		markTerminalAgentBindingEnded(db, "t-swept", "disposed");
+		requestDispose(db, "t-swept");
+		db.update(terminalSessions)
+			.set({ status: "disposed", endedAt: Date.now() })
+			.where(eq(terminalSessions.id, "t-swept"))
+			.run();
+
+		expect(bindingOf(db, "t-swept")?.endReason).toBe("disposed");
+		expect(findResumeCandidateBinding(db, "ws-1", "t-swept")).toBeUndefined();
+		expect(claimResumeCandidateBinding(db, "ws-1", "t-swept")).toBeUndefined();
+	});
+
+	it("keeps a binding the dispose route already stamped out of resume", () => {
+		// The reverse interleaving: the dispose route stamped the binding
+		// disposed and its kill has not flipped the row yet, so the sweep
+		// still sees an `active` row with no intent stamp. "disposed" is
+		// sticky — the sweep's terminal-death stamp must not overwrite it.
+		const db = createTestDb();
+		seed(db, {
+			id: "t-pane-closed",
+			binding: { endedAt: OLD, endReason: "disposed" },
+		});
+
+		expect(markStaleActiveRows(db, [], new Map())).toBe(1);
+
+		expect(statusOf(db, "t-pane-closed")).toBe("exited");
+		expect(bindingOf(db, "t-pane-closed")?.endReason).toBe("disposed");
+		expect(
+			findResumeCandidateBinding(db, "ws-1", "t-pane-closed"),
+		).toBeUndefined();
+	});
+
+	it("still sweeps a stale row that never had an agent binding", () => {
+		const db = createTestDb();
+		seed(db, { id: "t-no-agent", binding: null });
+
+		expect(markStaleActiveRows(db, [], new Map())).toBe(1);
+
+		expect(statusOf(db, "t-no-agent")).toBe("exited");
+		expect(bindingOf(db, "t-no-agent")).toBeUndefined();
+	});
+
+	it("sweeps a stale row whose binding never captured a session id", () => {
+		// Such a binding can never be a resume candidate, but the row still has
+		// to leave `active` — that is what stops live-session reads from
+		// offering an agent whose pty is gone.
+		const db = createTestDb();
+		seed(db, { id: "t-idless", binding: { agentSessionId: null } });
+
+		expect(markStaleActiveRows(db, [], new Map())).toBe(1);
+
+		expect(statusOf(db, "t-idless")).toBe("exited");
+		expect(bindingOf(db, "t-idless")?.endReason).toBe("terminal-exited");
+		expect(findResumeCandidateBinding(db, "ws-1", "t-idless")).toBeUndefined();
+	});
+
+	it("does not overwrite an older clean detach", () => {
+		const db = createTestDb();
+		seed(db, {
+			id: "t-detached",
+			binding: { endedAt: OLD, endReason: "detached" },
+		});
+
+		markStaleActiveRows(db, [], new Map());
+
+		expect(statusOf(db, "t-detached")).toBe("exited");
+		expect(bindingOf(db, "t-detached")?.endReason).toBe("detached");
+		expect(
+			findResumeCandidateBinding(db, "ws-1", "t-detached"),
+		).toBeUndefined();
 	});
 });
