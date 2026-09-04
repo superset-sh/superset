@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { NewWorkspaceScreen } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/NewWorkspaceScreen";
 import { DashboardNewWorkspaceDraftProvider } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/DashboardNewWorkspaceDraftContext";
 import { newWorkspaceAttachmentsStore } from "renderer/stores/new-workspace-attachments";
+import { resetNewWorkspaceDraftOnRouteLeave } from "renderer/stores/new-workspace-draft";
 
 export const Route = createFileRoute(
 	"/_authenticated/_dashboard/new-workspace/",
@@ -14,6 +15,9 @@ export const Route = createFileRoute(
 			typeof search.projectId === "string" ? search.projectId : undefined,
 		session: search.session === true ? true : undefined,
 	}),
+	// The handoff draft stays available for this route's entire lifetime and is
+	// cleared only once navigation actually abandons the create flow.
+	onLeave: resetNewWorkspaceDraftOnRouteLeave,
 	component: NewWorkspacePage,
 });
 
