@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `custom_apps` text;
