@@ -11239,6 +11239,9 @@ msgstr "未反映の変更をレビューします。"
 msgid "Review pull requests inside Superset: diff pane, agent-assisted review, act on comments directly."
 msgstr "Supersetの中でプルリクエストをレビューできます。差分ペイン、エージェント支援のレビュー、コメントへの直接対応。"
 
+msgid "Review requested"
+msgstr "レビューリクエスト"
+
 msgid "Review required"
 msgstr "レビュー必須"
 

@@ -11239,6 +11239,9 @@ msgstr "Xem lại các thay đổi đang chờ."
 msgid "Review pull requests inside Superset: diff pane, agent-assisted review, act on comments directly."
 msgstr "Review pull request ngay trong Superset: khung diff, review có agent hỗ trợ, xử lý bình luận trực tiếp."
 
+msgid "Review requested"
+msgstr "Yêu cầu review"
+
 msgid "Review required"
 msgstr "Cần review"
 

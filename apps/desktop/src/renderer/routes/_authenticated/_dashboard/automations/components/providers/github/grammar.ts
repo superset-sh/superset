@@ -23,6 +23,7 @@ export type Slot =
 	| "labels"
 	| "actor"
 	| "subjectAuthor"
+	| "assignee"
 	| "commentFilter";
 
 export type SentencePart = { text: string } | { slot: Slot };
@@ -48,6 +49,22 @@ export const GITHUB_SENTENCES: Record<GithubTriggerEvent, SentencePart[]> = {
 	],
 	"pull_request.merged": [
 		{ text: "PR merged in" },
+		{ slot: "repositories" },
+		{ text: "by" },
+		{ slot: "actor" },
+	],
+	"pull_request.assigned": [
+		{ text: "PR assigned to" },
+		{ slot: "assignee" },
+		{ text: "in" },
+		{ slot: "repositories" },
+		{ text: "by" },
+		{ slot: "actor" },
+	],
+	"pull_request.review_requested": [
+		{ text: "Review requested from" },
+		{ slot: "assignee" },
+		{ text: "in" },
 		{ slot: "repositories" },
 		{ text: "by" },
 		{ slot: "actor" },
@@ -182,6 +199,18 @@ export const GITHUB_MENU: TriggerMenuEntry<GithubConfig>[] = [
 					message: "Merged",
 				}),
 				"pull_request.merged",
+			),
+			leaf(
+				msg({
+					message: "Review requested",
+				}),
+				"pull_request.review_requested",
+			),
+			leaf(
+				msg({
+					message: "Assigned",
+				}),
+				"pull_request.assigned",
 			),
 		],
 	},
@@ -320,6 +349,12 @@ const COMMENT_EVENTS = new Set<GithubTriggerEvent>([
 	"issue_comment",
 ]);
 
+/** Events whose sentence names who ended up on the pull request. */
+const ASSIGNMENT_EVENTS = new Set<GithubTriggerEvent>([
+	"pull_request.assigned",
+	"pull_request.review_requested",
+]);
+
 /**
  * A new trigger of this event: the repository still to be chosen, every
  * optional filter wide open.
@@ -351,11 +386,21 @@ export function createGithubConfig(event: GithubTriggerEvent) {
 			commentFilter: null,
 		};
 	}
+	if (ASSIGNMENT_EVENTS.has(event)) {
+		return {
+			...base,
+			event: event as "pull_request.assigned" | "pull_request.review_requested",
+			assignee: { mode: "any" as const },
+		};
+	}
 	return {
 		...base,
 		event: event as Exclude<
 			GithubTriggerEvent,
-			"comment_added" | "issue_comment"
+			| "comment_added"
+			| "issue_comment"
+			| "pull_request.assigned"
+			| "pull_request.review_requested"
 		>,
 	};
 }

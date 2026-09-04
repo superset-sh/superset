@@ -11239,6 +11239,9 @@ msgstr "Openstaande wijzigingen reviewen."
 msgid "Review pull requests inside Superset: diff pane, agent-assisted review, act on comments directly."
 msgstr "Review pull requests in Superset: diff-paneel, review met hulp van een agent, direct reageren op opmerkingen."
 
+msgid "Review requested"
+msgstr "Review gevraagd"
+
 msgid "Review required"
 msgstr "Review vereist"
 

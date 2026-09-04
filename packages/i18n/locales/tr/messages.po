@@ -11239,6 +11239,9 @@ msgstr "Bekleyen değişiklikleri inceleyin."
 msgid "Review pull requests inside Superset: diff pane, agent-assisted review, act on comments directly."
 msgstr "Pull request'leri Superset içinde inceleyin: fark bölmesi, ajan destekli inceleme, yorumlara doğrudan müdahale."
 
+msgid "Review requested"
+msgstr "İnceleme istendi"
+
 msgid "Review required"
 msgstr "İnceleme gerekli"
 

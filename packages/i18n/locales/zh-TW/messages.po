@@ -11239,6 +11239,9 @@ msgstr "審查待處理的更改。"
 msgid "Review pull requests inside Superset: diff pane, agent-assisted review, act on comments directly."
 msgstr "在Superset裡審查拉取請求：差異面板、代理程式輔助審查、直接處理評論。"
 
+msgid "Review requested"
+msgstr "要求審查"
+
 msgid "Review required"
 msgstr "需要審查"
 

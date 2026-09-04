@@ -11239,6 +11239,9 @@ msgstr "Przejrzyj oczekujące zmiany."
 msgid "Review pull requests inside Superset: diff pane, agent-assisted review, act on comments directly."
 msgstr "Przeglądaj pull requesty wewnątrz Superset: panel różnic, przegląd wspierany przez agenta, reakcja na komentarze na miejscu."
 
+msgid "Review requested"
+msgstr "Zażądano przeglądu"
+
 msgid "Review required"
 msgstr "Wymagany przegląd"
 

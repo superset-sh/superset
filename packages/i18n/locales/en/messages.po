@@ -11239,6 +11239,9 @@ msgstr "Review pending changes."
 msgid "Review pull requests inside Superset: diff pane, agent-assisted review, act on comments directly."
 msgstr "Review pull requests inside Superset: diff pane, agent-assisted review, act on comments directly."
 
+msgid "Review requested"
+msgstr "Review requested"
+
 msgid "Review required"
 msgstr "Review required"
 
