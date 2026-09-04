@@ -9,6 +9,7 @@
  */
 
 import { SandboxInstance, settings } from "@blaxel/core";
+import { AGENT_CREDENTIAL_ENV_NAMES } from "@superset/shared/agent-credentials";
 import { CLOUD_AGENT_LAUNCH_ENV_NAMES } from "@superset/shared/cloud-agent-launch";
 import { SANDBOX_CREDENTIAL_PLACEHOLDER } from "@superset/shared/constants";
 import { env } from "../../env";
@@ -206,6 +207,8 @@ const INHERITED_IDENTITY_ENVS = new Set([
 	"SUPERSET_SANDBOX_WORKSPACE_ID",
 	"SUPERSET_SANDBOX_WORKSPACE_NAME",
 	...CLOUD_AGENT_LAUNCH_ENV_NAMES,
+	// A golden must never carry the credential of whoever promoted it.
+	...AGENT_CREDENTIAL_ENV_NAMES,
 ]);
 
 export async function promoteSandboxToEnvironment(args: {

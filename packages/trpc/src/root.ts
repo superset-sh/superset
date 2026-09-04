@@ -1,6 +1,7 @@
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 
 import { adminRouter } from "./router/admin";
+import { agentCredentialRouter } from "./router/agent-credential";
 import { analyticsRouter } from "./router/analytics";
 import { businessRouter } from "./router/analytics/business";
 import { growthRouter } from "./router/analytics/growth";
@@ -47,6 +48,7 @@ export const appRouter = createTRPCRouter({
 	support: supportRouter,
 	task: taskRouter,
 	team: teamRouter,
+	agentCredential: agentCredentialRouter,
 	user: userRouter,
 	v2Host: v2HostRouter,
 	v2Project: v2ProjectRouter,

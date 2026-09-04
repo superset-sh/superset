@@ -28,6 +28,10 @@
 			"types": "./src/cloud-agent-launch.ts",
 			"default": "./src/cloud-agent-launch.ts"
 		},
+		"./agent-credentials": {
+			"types": "./src/agent-credentials.ts",
+			"default": "./src/agent-credentials.ts"
+		},
 		"./constants": {
 			"types": "./src/constants.ts",
 			"default": "./src/constants.ts"
