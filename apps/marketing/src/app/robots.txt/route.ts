@@ -26,7 +26,6 @@ User-Agent: *
 Allow: /
 Allow: /api/llms.txt
 Disallow: /api/
-Disallow: /_next/
 
 # AI assistants and AI search crawlers: explicitly welcome
 ${WELCOME_AI_AGENTS.map((agent) => `User-Agent: ${agent}\nAllow: /`).join("\n\n")}
