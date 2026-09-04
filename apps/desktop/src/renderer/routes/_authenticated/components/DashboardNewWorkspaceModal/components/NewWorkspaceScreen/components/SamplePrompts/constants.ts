@@ -19,11 +19,9 @@ export const SAMPLE_PROMPTS: Record<string, SamplePrompt> = {
 	"set-up-project": {
 		id: "set-up-project",
 		label: msg({
-			id: "dashboard.newWorkspaceModal.samplePrompts.setUpProject.label",
 			message: "Set up this project for Superset",
 		}),
 		description: msg({
-			id: "dashboard.newWorkspaceModal.samplePrompts.setUpProject.description",
 			message:
 				"Write setup and teardown scripts so every new workspace starts ready to run.",
 		}),
@@ -32,11 +30,9 @@ export const SAMPLE_PROMPTS: Record<string, SamplePrompt> = {
 	"explain-repo": {
 		id: "explain-repo",
 		label: msg({
-			id: "dashboard.newWorkspaceModal.samplePrompts.explainRepo.label",
 			message: "Explain to me how this repository works",
 		}),
 		description: msg({
-			id: "dashboard.newWorkspaceModal.samplePrompts.explainRepo.description",
 			message:
 				"Get an architecture tour: entry points, how to run it, what to read first.",
 		}),
@@ -46,11 +42,9 @@ export const SAMPLE_PROMPTS: Record<string, SamplePrompt> = {
 	"fix-small-bug": {
 		id: "fix-small-bug",
 		label: msg({
-			id: "dashboard.newWorkspaceModal.samplePrompts.fixSmallBug.label",
 			message: "Find and fix a small bug",
 		}),
 		description: msg({
-			id: "dashboard.newWorkspaceModal.samplePrompts.fixSmallBug.description",
 			message:
 				"Pick a low-risk papercut, fix it, and explain how it was verified.",
 		}),
@@ -60,11 +54,9 @@ export const SAMPLE_PROMPTS: Record<string, SamplePrompt> = {
 	"add-missing-tests": {
 		id: "add-missing-tests",
 		label: msg({
-			id: "dashboard.newWorkspaceModal.samplePrompts.addMissingTests.label",
 			message: "Add tests where they're missing",
 		}),
 		description: msg({
-			id: "dashboard.newWorkspaceModal.samplePrompts.addMissingTests.description",
 			message:
 				"Find recently changed code with weak coverage and test it properly.",
 		}),
@@ -74,11 +66,9 @@ export const SAMPLE_PROMPTS: Record<string, SamplePrompt> = {
 	"improve-agent-docs": {
 		id: "improve-agent-docs",
 		label: msg({
-			id: "dashboard.newWorkspaceModal.samplePrompts.improveAgentDocs.label",
 			message: "Improve the agent instructions",
 		}),
 		description: msg({
-			id: "dashboard.newWorkspaceModal.samplePrompts.improveAgentDocs.description",
 			message:
 				"Audit AGENTS.md / CLAUDE.md against the codebase and fill the gaps.",
 		}),
@@ -88,11 +78,9 @@ export const SAMPLE_PROMPTS: Record<string, SamplePrompt> = {
 	"clean-up-todos": {
 		id: "clean-up-todos",
 		label: msg({
-			id: "dashboard.newWorkspaceModal.samplePrompts.cleanUpTodos.label",
 			message: "Knock out some TODOs",
 		}),
 		description: msg({
-			id: "dashboard.newWorkspaceModal.samplePrompts.cleanUpTodos.description",
 			message: "Find stale TODO/FIXME comments and resolve the quick ones.",
 		}),
 		prompt:
@@ -101,11 +89,9 @@ export const SAMPLE_PROMPTS: Record<string, SamplePrompt> = {
 	"explain-superset": {
 		id: "explain-superset",
 		label: msg({
-			id: "dashboard.newWorkspaceModal.samplePrompts.explainSuperset.label",
 			message: "Get more out of Superset",
 		}),
 		description: msg({
-			id: "dashboard.newWorkspaceModal.samplePrompts.explainSuperset.description",
 			message:
 				"Learn the workflow that fits this repo — parallel workspaces and agent setup.",
 		}),
@@ -171,35 +157,27 @@ export function selectSamplePrompts(
  */
 export const PROMPT_PLACEHOLDERS: MessageDescriptor[] = [
 	msg({
-		id: "dashboard.newWorkspaceModal.promptPlaceholder.whatDoYouWantToDo",
 		message: "What do you want to do?",
 	}),
 	msg({
-		id: "dashboard.newWorkspaceModal.promptPlaceholder.findSmallBug",
 		message: "Find a small bug and fix it…",
 	}),
 	msg({
-		id: "dashboard.newWorkspaceModal.promptPlaceholder.addTests",
 		message: "Add tests for the riskiest untested code…",
 	}),
 	msg({
-		id: "dashboard.newWorkspaceModal.promptPlaceholder.explainRepo",
 		message: "Explain how this repository works…",
 	}),
 	msg({
-		id: "dashboard.newWorkspaceModal.promptPlaceholder.flakyTest",
 		message: "Track down that flaky test…",
 	}),
 	msg({
-		id: "dashboard.newWorkspaceModal.promptPlaceholder.upgradeDependency",
 		message: "Upgrade a dependency and fix what breaks…",
 	}),
 	msg({
-		id: "dashboard.newWorkspaceModal.promptPlaceholder.cleanUpTodos",
 		message: "Clean up stale TODOs…",
 	}),
 	msg({
-		id: "dashboard.newWorkspaceModal.promptPlaceholder.writeDocs",
 		message: "Write docs for the part everyone asks about…",
 	}),
 ];

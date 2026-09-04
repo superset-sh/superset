@@ -35,7 +35,7 @@ export function DesktopDownloadButton({
 				href="#all-downloads"
 				className={`group inline-flex items-center gap-2 border border-border bg-background px-4 py-2.5 text-foreground text-sm transition-colors hover:bg-muted ${className}`}
 			>
-				<Trans id="marketing.download.seeAllDownloads">See all downloads</Trans>
+				<Trans>See all downloads</Trans>
 				<HiMiniArrowDownTray className="size-4" />
 			</a>
 		);
@@ -47,9 +47,7 @@ export function DesktopDownloadButton({
 			onClick={() => track("download_manual_clicked", { platform })}
 			className={`group inline-flex items-center gap-2 bg-foreground px-4 py-2.5 text-background text-sm transition-colors hover:bg-brand hover:text-white ${className}`}
 		>
-			<Trans id="marketing.download.downloadFor">
-				Download for {platformName}
-			</Trans>
+			<Trans>Download for {platformName}</Trans>
 			{/* slide-through swap: arrow exits below while a clone drops in above */}
 			<span className="relative size-4 overflow-hidden">
 				<HiMiniArrowDownTray className="size-4 transition-transform duration-300 ease-out group-hover:translate-y-full" />

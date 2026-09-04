@@ -4,9 +4,7 @@ export function Unavailable() {
 	return (
 		<div className="border border-border p-12 text-center">
 			<p className="text-sm text-muted-foreground">
-				<Trans id="marketing.stats.unavailable">
-					Stats are unavailable right now.
-				</Trans>
+				<Trans>Stats are unavailable right now.</Trans>
 			</p>
 		</div>
 	);

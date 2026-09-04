@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { Plural, Trans } from "@lingui/react/macro";
 import { useControllableState } from "@rn-primitives/hooks";
 import { i18n } from "@superset/i18n";
@@ -162,24 +163,19 @@ export type ReasoningTriggerProps = React.ComponentProps<
 const defaultGetThinkingMessage = (isStreaming: boolean, duration?: number) => {
 	if (isStreaming || duration === 0) {
 		return (
-			<Shimmer duration={1}>
-				{i18n._({ id: "mobile.reasoning.thinking", message: "Thinking..." })}
-			</Shimmer>
+			<Shimmer duration={1}>{i18n._(msg({ message: "Thinking..." }))}</Shimmer>
 		);
 	}
 	if (duration === undefined) {
 		return (
 			<Text>
-				<Trans id="mobile.reasoning.thoughtBriefly">
-					Thought for a few seconds
-				</Trans>
+				<Trans>Thought for a few seconds</Trans>
 			</Text>
 		);
 	}
 	return (
 		<Text>
 			<Plural
-				id="mobile.reasoning.thoughtForSeconds"
 				value={duration}
 				one="Thought for # second"
 				other="Thought for # seconds"

@@ -36,7 +36,6 @@ export function ImageView({ document, filePath }: ViewProps) {
 			ref={containerRef}
 			role="application"
 			aria-label={t({
-				id: "workspace.filePane.imagePreviewAria",
 				message: `Image preview of ${getBaseName(filePath)}. Zoom with plus and minus, pan with arrow keys, press 0 to reset.`,
 			})}
 			// biome-ignore lint/a11y/noNoninteractiveTabindex: focus is required for the keyboard pan/zoom handlers
@@ -71,7 +70,6 @@ export function ImageView({ document, filePath }: ViewProps) {
 					onPointerDown={(event) => event.stopPropagation()}
 					onClick={reset}
 					title={t({
-						id: "workspace.filePane.resetZoomTitle",
 						message: "Reset zoom",
 					})}
 				>

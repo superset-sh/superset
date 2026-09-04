@@ -25,21 +25,17 @@ export function AutomationsEmptyState({
 	// See plans/automations-onboarding.md.
 	const placeholders = [
 		t({
-			id: "dashboard.automations.emptyState.placeholderTriageIssues",
 			message:
 				"Every weekday at 9am, triage new GitHub issues and draft replies for my review",
 		}),
 		t({
-			id: "dashboard.automations.emptyState.placeholderSummarizeCi",
 			message: "Summarize failed CI runs every morning before standup",
 		}),
 		t({
-			id: "dashboard.automations.emptyState.placeholderReleaseNotes",
 			message:
 				"Every Friday at 4pm, draft release notes from this week's merged PRs",
 		}),
 		t({
-			id: "dashboard.automations.emptyState.placeholderNightlyBugFix",
 			message: "Nightly at 2am, find one small bug, fix it, and open a PR",
 		}),
 	];
@@ -56,9 +52,7 @@ export function AutomationsEmptyState({
 		<div className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center gap-10 pb-10">
 			<div className="flex w-full flex-col items-center gap-3 text-center">
 				<h2 className="text-lg font-semibold tracking-tight">
-					<Trans id="dashboard.automations.emptyState.title">
-						What should run on a schedule?
-					</Trans>
+					<Trans>What should run on a schedule?</Trans>
 				</h2>
 				{/* Opens an agent session that asks what to automate and creates it
 				    via the superset:automate skill / CLI. Swaps to the inline NL
@@ -67,7 +61,6 @@ export function AutomationsEmptyState({
 					type="button"
 					onClick={onCreateWithAgent}
 					aria-label={t({
-						id: "dashboard.automations.emptyState.createWithAgentAriaLabel",
 						message: "Create an automation with an agent",
 					})}
 					className="flex w-full items-center gap-3 rounded-xl border border-border px-4 py-3.5 text-left transition-colors hover:border-border/80 hover:bg-accent/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
@@ -83,7 +76,7 @@ export function AutomationsEmptyState({
 					</span>
 				</button>
 				<p className="text-xs text-muted-foreground">
-					<Trans id="dashboard.automations.emptyState.runsLandHint">
+					<Trans>
 						Runs land in a workspace. Review the diff, merge what's good.
 					</Trans>
 				</p>
@@ -91,9 +84,7 @@ export function AutomationsEmptyState({
 
 			<div className="flex w-full flex-col gap-3">
 				<h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-					<Trans id="dashboard.automations.emptyState.suggested">
-						Suggested
-					</Trans>
+					<Trans>Suggested</Trans>
 				</h3>
 				<div className="grid grid-cols-1 gap-2 md:grid-cols-2">
 					{ONBOARDING_SUGGESTIONS.map((template) => (

@@ -113,6 +113,17 @@ function renderSlot(
 					disabled={disabled}
 				/>
 			);
+		case "assignee":
+			return (
+				<UserScopeChip
+					key={index}
+					scope={c.assignee}
+					onChange={(v) => set({ assignee: v })}
+					className={mark("assignee")}
+					options={options.github?.people ?? []}
+					disabled={disabled}
+				/>
+			);
 		case "commentFilter":
 			return (
 				<TextFilterChip

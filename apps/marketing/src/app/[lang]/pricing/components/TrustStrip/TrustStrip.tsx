@@ -34,9 +34,7 @@ export function TrustStrip() {
 	return (
 		<div className="flex flex-col items-center gap-6">
 			<p className="text-sm text-muted-foreground">
-				<Trans id="marketing.pricing.trustStrip.heading">
-					Trusted by builders from
-				</Trans>
+				<Trans>Trusted by builders from</Trans>
 			</p>
 			<div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4 opacity-70">
 				{STRIP_LOGOS.map((client) => (

@@ -1,10 +1,10 @@
-import { mermaid } from "@streamdown/mermaid";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
+import { mermaidConfig, mermaidPlugins } from "@superset/ui/lib/mermaid";
 import type { NodeViewProps } from "@tiptap/react";
 import { NodeViewContent, NodeViewWrapper } from "@tiptap/react";
 import { useState } from "react";
@@ -22,8 +22,6 @@ import {
 } from "renderer/lib/tiptap/code-block-languages";
 import { useTheme } from "renderer/stores";
 import { Streamdown } from "streamdown";
-
-const mermaidPlugins = { mermaid };
 
 export function EditableCodeBlockView({
 	node,
@@ -145,7 +143,7 @@ export function EditableCodeBlockView({
 					<Streamdown
 						mode="static"
 						plugins={mermaidPlugins}
-						mermaid={{ config: { theme: isDark ? "dark" : "default" } }}
+						mermaid={mermaidConfig({ theme: isDark ? "dark" : "default" })}
 					>
 						{`\`\`\`\`mermaid\n${mermaidSource}\n\`\`\`\``}
 					</Streamdown>

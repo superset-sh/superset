@@ -52,14 +52,12 @@ export function TopBarPortRow({ port, onNavigate }: TopBarPortRowProps) {
 			await copyToClipboard(portUrl);
 			toast.success(
 				t({
-					id: "dashboard.topBar.ports.copiedUrl",
 					message: `Copied ${portUrl.replace(/^https?:\/\//, "")}`,
 				}),
 			);
 		} catch {
 			toast.error(
 				t({
-					id: "dashboard.topBar.ports.copyFailed",
 					message: "Failed to copy to clipboard",
 				}),
 			);
@@ -104,7 +102,6 @@ export function TopBarPortRow({ port, onNavigate }: TopBarPortRowProps) {
 					<button
 						type="button"
 						aria-label={t({
-							id: "dashboard.topBar.ports.openExternalAriaLabel",
 							message: `Open localhost:${port.port} in external browser`,
 						})}
 						onClick={handleOpenExternal}
@@ -117,7 +114,6 @@ export function TopBarPortRow({ port, onNavigate }: TopBarPortRowProps) {
 					<button
 						type="button"
 						aria-label={t({
-							id: "dashboard.topBar.ports.copyAriaLabel",
 							message: `Copy localhost:${port.port}`,
 						})}
 						onClick={() => void handleCopy()}
@@ -129,7 +125,6 @@ export function TopBarPortRow({ port, onNavigate }: TopBarPortRowProps) {
 				<button
 					type="button"
 					aria-label={t({
-						id: "dashboard.topBar.ports.closePortAriaLabel",
 						message: `Close port ${port.port}`,
 					})}
 					onClick={handleClose}

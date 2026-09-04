@@ -61,39 +61,33 @@ export function ConnectionControls({
 				<div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
 					<AlertTriangle className="mt-0.5 size-4 shrink-0" />
 					<div>
-						<Trans id="web.integrations.linear.expired">
+						<Trans>
 							Linear authorization expired. Reconnect to resume syncing.
 						</Trans>
 					</div>
 				</div>
 				<div className="flex gap-2">
 					<Button variant="destructive" onClick={handleConnect}>
-						<Trans id="web.integrations.linear.reconnect">
-							Reconnect Linear
-						</Trans>
+						<Trans>Reconnect Linear</Trans>
 					</Button>
 					<AlertDialog>
 						<AlertDialogTrigger asChild>
 							<Button variant="outline" disabled={disconnectMutation.isPending}>
 								<Unplug className="mr-2 size-4" />
 								{disconnectMutation.isPending ? (
-									<Trans id="web.integrations.disconnecting">
-										Disconnecting...
-									</Trans>
+									<Trans>Disconnecting...</Trans>
 								) : (
-									<Trans id="web.integrations.disconnect">Disconnect</Trans>
+									<Trans>Disconnect</Trans>
 								)}
 							</Button>
 						</AlertDialogTrigger>
 						<AlertDialogContent>
 							<AlertDialogHeader>
 								<AlertDialogTitle>
-									<Trans id="web.integrations.linear.disconnectTitle">
-										Disconnect Linear?
-									</Trans>
+									<Trans>Disconnect Linear?</Trans>
 								</AlertDialogTitle>
 								<AlertDialogDescription>
-									<Trans id="web.integrations.linear.disconnectDescription">
+									<Trans>
 										This will remove the connection between your organization
 										and Linear. You can reconnect at any time.
 									</Trans>
@@ -101,10 +95,10 @@ export function ConnectionControls({
 							</AlertDialogHeader>
 							<AlertDialogFooter>
 								<AlertDialogCancel>
-									<Trans id="web.integrations.cancel">Cancel</Trans>
+									<Trans>Cancel</Trans>
 								</AlertDialogCancel>
 								<AlertDialogAction onClick={handleDisconnect}>
-									<Trans id="web.integrations.disconnect">Disconnect</Trans>
+									<Trans>Disconnect</Trans>
 								</AlertDialogAction>
 							</AlertDialogFooter>
 						</AlertDialogContent>
@@ -121,23 +115,19 @@ export function ConnectionControls({
 					<Button variant="outline" disabled={disconnectMutation.isPending}>
 						<Unplug className="mr-2 size-4" />
 						{disconnectMutation.isPending ? (
-							<Trans id="web.integrations.disconnecting">
-								Disconnecting...
-							</Trans>
+							<Trans>Disconnecting...</Trans>
 						) : (
-							<Trans id="web.integrations.disconnect">Disconnect</Trans>
+							<Trans>Disconnect</Trans>
 						)}
 					</Button>
 				</AlertDialogTrigger>
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>
-							<Trans id="web.integrations.linear.disconnectTitle">
-								Disconnect Linear?
-							</Trans>
+							<Trans>Disconnect Linear?</Trans>
 						</AlertDialogTitle>
 						<AlertDialogDescription>
-							<Trans id="web.integrations.linear.disconnectDescription">
+							<Trans>
 								This will remove the connection between your organization and
 								Linear. You can reconnect at any time.
 							</Trans>
@@ -145,10 +135,10 @@ export function ConnectionControls({
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel>
-							<Trans id="web.integrations.cancel">Cancel</Trans>
+							<Trans>Cancel</Trans>
 						</AlertDialogCancel>
 						<AlertDialogAction onClick={handleDisconnect}>
-							<Trans id="web.integrations.disconnect">Disconnect</Trans>
+							<Trans>Disconnect</Trans>
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
@@ -158,7 +148,7 @@ export function ConnectionControls({
 
 	return (
 		<Button onClick={handleConnect}>
-			<Trans id="web.integrations.linear.connect">Connect Linear</Trans>
+			<Trans>Connect Linear</Trans>
 		</Button>
 	);
 }

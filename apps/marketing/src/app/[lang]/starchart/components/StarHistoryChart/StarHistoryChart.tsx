@@ -25,7 +25,7 @@ export function StarHistoryChart({
 
 	const chartConfig = {
 		stars: {
-			label: t({ id: "marketing.starchart.chart.stars", message: "Stars" }),
+			label: t({ message: "Stars" }),
 			color: "var(--chart-1)",
 		},
 	} satisfies ChartConfig;
@@ -102,7 +102,6 @@ export function StarHistoryChart({
 								});
 								return granularity === "week"
 									? t({
-											id: "marketing.starchart.chart.weekOf",
 											message: `Week of ${formatted}`,
 										})
 									: formatted;

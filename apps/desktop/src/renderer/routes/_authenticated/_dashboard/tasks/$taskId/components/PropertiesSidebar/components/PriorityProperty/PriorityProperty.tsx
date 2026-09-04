@@ -20,23 +20,18 @@ export function PriorityProperty({ task }: PriorityPropertyProps) {
 	const { t } = useLingui();
 	const priorityLabels: Record<TaskPriority, string> = {
 		none: t({
-			id: "dashboard.tasks.priorityProperty.priorityNone",
 			message: "No priority",
 		}),
 		urgent: t({
-			id: "dashboard.tasks.priorityProperty.priorityUrgent",
 			message: "Urgent",
 		}),
 		high: t({
-			id: "dashboard.tasks.priorityProperty.priorityHigh",
 			message: "High",
 		}),
 		medium: t({
-			id: "dashboard.tasks.priorityProperty.priorityMedium",
 			message: "Medium",
 		}),
 		low: t({
-			id: "dashboard.tasks.priorityProperty.priorityLow",
 			message: "Low",
 		}),
 	};

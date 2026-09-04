@@ -35,12 +35,10 @@ export function WorkspaceHostIncompatibleState({
 
 				<div className="flex flex-col gap-1.5">
 					<h1 className="text-[15px] font-medium tracking-tight text-foreground">
-						<Trans id="workspace.states.hostIncompatibleTitle">
-							Host needs an update
-						</Trans>
+						<Trans>Host needs an update</Trans>
 					</h1>
 					<p className="select-text cursor-text text-[13px] leading-relaxed text-muted-foreground">
-						<Trans id="workspace.states.hostIncompatibleBody">
+						<Trans>
 							This workspace's host is on an older version of Superset than this
 							client supports. Update the Superset app on that device to
 							reconnect.
@@ -64,9 +62,7 @@ export function WorkspaceHostIncompatibleState({
 					<div className="border-t border-border/60 px-3 py-2">
 						<div className="flex items-center justify-between gap-3">
 							<span className="text-[11px] uppercase tracking-wider text-muted-foreground/70">
-								<Trans id="workspace.states.hostIncompatibleRunningLabel">
-									Running
-								</Trans>
+								<Trans>Running</Trans>
 							</span>
 							<code className="select-text cursor-text font-mono text-[12px] tabular-nums text-foreground">
 								{hostVersion}
@@ -74,9 +70,7 @@ export function WorkspaceHostIncompatibleState({
 						</div>
 						<div className="mt-1 flex items-center justify-between gap-3">
 							<span className="text-[11px] uppercase tracking-wider text-muted-foreground/70">
-								<Trans id="workspace.states.hostIncompatibleRequiredLabel">
-									Required
-								</Trans>
+								<Trans>Required</Trans>
 							</span>
 							<code className="select-text cursor-text font-mono text-[12px] tabular-nums text-muted-foreground">
 								≥ {minVersion}
@@ -92,9 +86,7 @@ export function WorkspaceHostIncompatibleState({
 					className="-ml-2 h-7 gap-1.5 px-2 text-[13px] font-medium text-foreground hover:bg-muted/60"
 				>
 					<Link to="/v2-workspaces">
-						<Trans id="workspace.states.hostIncompatibleBrowseWorkspaces">
-							Browse workspaces
-						</Trans>
+						<Trans>Browse workspaces</Trans>
 						<ArrowRight
 							className="size-3.5"
 							strokeWidth={2}

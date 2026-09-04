@@ -22,9 +22,7 @@ export function PropertiesSidebar({ task }: PropertiesSidebarProps) {
 			<ScrollArea className="h-full">
 				<div className="p-4 space-y-6">
 					<h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-						<Trans id="dashboard.tasks.propertiesSidebar.title">
-							Properties
-						</Trans>
+						<Trans>Properties</Trans>
 					</h3>
 
 					<div className="space-y-3">
@@ -36,9 +34,7 @@ export function PropertiesSidebar({ task }: PropertiesSidebarProps) {
 					{/* Labels */}
 					<div className="flex flex-col gap-2">
 						<span className="text-xs text-muted-foreground">
-							<Trans id="dashboard.tasks.propertiesSidebar.labels">
-								Labels
-							</Trans>
+							<Trans>Labels</Trans>
 						</span>
 						{labels.length > 0 ? (
 							<div className="flex flex-wrap gap-1">
@@ -50,9 +46,7 @@ export function PropertiesSidebar({ task }: PropertiesSidebarProps) {
 							</div>
 						) : (
 							<span className="text-sm text-muted-foreground">
-								<Trans id="dashboard.tasks.propertiesSidebar.noLabels">
-									No labels
-								</Trans>
+								<Trans>No labels</Trans>
 							</span>
 						)}
 					</div>

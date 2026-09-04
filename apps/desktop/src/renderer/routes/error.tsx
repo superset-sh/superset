@@ -47,10 +47,10 @@ export function ErrorPage({ error, info }: ErrorComponentProps) {
 
 					<div className="flex flex-col items-center gap-2 text-center">
 						<h1 className="text-xl font-semibold">
-							<Trans id="app.errorPage.title">Something went wrong</Trans>
+							<Trans>Something went wrong</Trans>
 						</h1>
 						<p className="text-sm text-muted-foreground">
-							<Trans id="app.errorPage.description">
+							<Trans>
 								Superset hit an unexpected error. Reload to try again.
 							</Trans>
 						</p>
@@ -58,11 +58,11 @@ export function ErrorPage({ error, info }: ErrorComponentProps) {
 
 					<div className="flex items-center gap-3">
 						<Button onClick={() => window.location.reload()}>
-							<Trans id="app.errorPage.reload">Reload</Trans>
+							<Trans>Reload</Trans>
 						</Button>
 						<Button variant="outline" asChild>
 							<Link to="/">
-								<Trans id="app.errorPage.goHome">Go home</Trans>
+								<Trans>Go home</Trans>
 							</Link>
 						</Button>
 					</div>
@@ -75,9 +75,9 @@ export function ErrorPage({ error, info }: ErrorComponentProps) {
 						className="text-xs text-muted-foreground hover:text-foreground transition-colors"
 					>
 						{showDetails ? (
-							<Trans id="app.errorPage.hideDetails">Hide details</Trans>
+							<Trans>Hide details</Trans>
 						) : (
-							<Trans id="app.errorPage.showDetails">Show details</Trans>
+							<Trans>Show details</Trans>
 						)}
 					</button>
 
@@ -90,7 +90,6 @@ export function ErrorPage({ error, info }: ErrorComponentProps) {
 								}}
 								className="absolute top-2 right-2 flex items-center justify-center h-6 w-6 bg-background/80 backdrop-blur border border-border rounded hover:bg-accent transition-colors"
 								aria-label={t({
-									id: "app.errorPage.copyDetails",
 									message: "Copy error details",
 								})}
 							>

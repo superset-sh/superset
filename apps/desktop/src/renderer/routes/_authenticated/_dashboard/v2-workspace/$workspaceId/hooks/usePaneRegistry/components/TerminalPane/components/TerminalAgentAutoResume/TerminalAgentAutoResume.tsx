@@ -144,13 +144,9 @@ export function TerminalAgentAutoResume({
 					className="whitespace-nowrap text-xs text-muted-foreground"
 				>
 					{failed ? (
-						<Trans id="workspace.terminalPane.resumeFailed">
-							Failed to resume {candidate.agentLabel}
-						</Trans>
+						<Trans>Failed to resume {candidate.agentLabel}</Trans>
 					) : (
-						<Trans id="workspace.terminalPane.resuming">
-							Resuming {candidate.agentLabel}…
-						</Trans>
+						<Trans>Resuming {candidate.agentLabel}…</Trans>
 					)}
 				</output>
 				{failed && (
@@ -163,14 +159,13 @@ export function TerminalAgentAutoResume({
 								attemptedSessionRef.current = null;
 							}}
 						>
-							<Trans id="workspace.terminalPane.retryResume">Retry</Trans>
+							<Trans>Retry</Trans>
 						</Button>
 						<Button
 							variant="ghost"
 							size="icon"
 							className="size-6"
 							aria-label={t({
-								id: "workspace.terminalPane.dismissResumeAria",
 								message: "Dismiss resume prompt",
 							})}
 							onClick={() => setDismissed(true)}

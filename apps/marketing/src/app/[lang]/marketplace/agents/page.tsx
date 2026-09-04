@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import { Button } from "@superset/ui/button";
@@ -10,15 +11,17 @@ import { marketplaceSubmissionLinks } from "@/lib/marketplace";
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
 	return {
-		title: i18n._({
-			id: "marketing.meta.marketplace.agents.title",
-			message: "Agent Configs",
-		}),
-		description: i18n._({
-			id: "marketing.meta.marketplace.agents.description",
-			message:
-				"The future home for reusable Superset agent configs, prompts, and setup guides.",
-		}),
+		title: i18n._(
+			msg({
+				message: "Agent Configs",
+			}),
+		),
+		description: i18n._(
+			msg({
+				message:
+					"The future home for reusable Superset agent configs, prompts, and setup guides.",
+			}),
+		),
 		alternates: localizedAlternates(lang, "/marketplace/agents"),
 	};
 }
@@ -31,10 +34,10 @@ export default async function MarketplaceAgentsPage() {
 			<div className="mx-auto max-w-4xl px-6 py-10">
 				<div className="mb-8">
 					<h1 className="text-xl font-semibold text-foreground md:text-2xl">
-						<Trans id="marketing.marketplace.agents.title">Agent Configs</Trans>
+						<Trans>Agent Configs</Trans>
 					</h1>
 					<p className="mt-1 text-sm text-muted-foreground">
-						<Trans id="marketing.marketplace.agents.empty">
+						<Trans>
 							No public agent configs yet. This route is ready for future agent
 							config listings.
 						</Trans>
@@ -44,7 +47,7 @@ export default async function MarketplaceAgentsPage() {
 				<div className="border border-border">
 					<div className="border-b border-border px-4 py-3">
 						<p className="text-sm text-muted-foreground">
-							<Trans id="marketing.marketplace.agents.hint">
+							<Trans>
 								Add agent configs here later when you want to publish them.
 							</Trans>
 						</p>
@@ -56,9 +59,7 @@ export default async function MarketplaceAgentsPage() {
 								target="_blank"
 								rel="noopener noreferrer"
 							>
-								<Trans id="marketing.marketplace.agents.submit">
-									Submit an agent idea
-								</Trans>
+								<Trans>Submit an agent idea</Trans>
 								<ArrowUpRight className="size-4" />
 							</a>
 						</Button>

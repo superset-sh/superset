@@ -15,6 +15,7 @@
 	},
 	"scripts": {
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"test": "bun test",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
@@ -29,6 +30,7 @@
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
+		"@trpc/server": "11.16.0",
 		"@types/node": "24.12.0",
 		"@types/react": "19.2.14",
 		"bun-types": "1.3.14",

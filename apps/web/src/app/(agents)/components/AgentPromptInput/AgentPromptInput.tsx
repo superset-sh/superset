@@ -48,7 +48,6 @@ export function AgentPromptInput({
 			containerClassName="flex flex-col overflow-hidden rounded-[13px] border-[0.5px] border-border bg-foreground/[0.02]"
 			promptInputClassName="[&>[data-slot=input-group]]:rounded-none [&>[data-slot=input-group]]:border-none [&>[data-slot=input-group]]:shadow-none"
 			placeholder={t({
-				id: "web.agentPromptInput.placeholder",
 				message: "Session creation on web is coming soon",
 			})}
 			footerToolsClassName="gap-1.5"

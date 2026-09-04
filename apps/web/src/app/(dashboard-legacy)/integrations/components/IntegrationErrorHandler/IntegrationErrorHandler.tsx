@@ -1,5 +1,6 @@
 "use client";
 
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { toast } from "@superset/ui/sonner";
 import { useSearchParams } from "next/navigation";
@@ -120,10 +121,11 @@ function resolveMessage(
 	params: URLSearchParams,
 ): string {
 	if (message === undefined)
-		return i18n._({
-			id: "web.integrationCallback.unknownError",
-			message: "Something went wrong.",
-		});
+		return i18n._(
+			msg({
+				message: "Something went wrong.",
+			}),
+		);
 	if (typeof message === "string") return message;
 	const value = params.get(message.param);
 	return value
@@ -153,18 +155,20 @@ export function IntegrationErrorHandler<P extends Provider>({
 		} else if (warning) {
 			toast.warning(
 				(warnings as Record<string, string> | undefined)?.[warning] ??
-					i18n._({
-						id: "web.integrationCallback.unknownWarning",
-						message: "Warning occurred.",
-					}),
+					i18n._(
+						msg({
+							message: "Warning occurred.",
+						}),
+					),
 			);
 		} else if (success) {
 			toast.success(
 				(successes as Record<string, string> | undefined)?.[success] ??
-					i18n._({
-						id: "web.integrationCallback.unknownSuccess",
-						message: "Success!",
-					}),
+					i18n._(
+						msg({
+							message: "Success!",
+						}),
+					),
 			);
 		}
 		window.history.replaceState({}, "", `/integrations/${provider}`);

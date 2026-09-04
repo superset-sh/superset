@@ -26,20 +26,6 @@ import { deleteObjects, putObject } from "../../lib/r2";
 const SERVED_TICKET_WINDOW_SECONDS = 60 * 60;
 const VERSION_TICKET_WINDOW_SECONDS = 24 * 60 * 60;
 
-export function usercontentBaseUrl(): string {
-	if (!env.USERCONTENT_URL) {
-		throw new Error("Usercontent origin is not configured");
-	}
-	return env.USERCONTENT_URL;
-}
-
-function ticketSecret(): string {
-	if (!env.USERCONTENT_TOKEN_SECRET) {
-		throw new Error("Usercontent origin is not configured");
-	}
-	return env.USERCONTENT_TOKEN_SECRET;
-}
-
 /**
  * Rewrites the manifest the usercontent Worker serves from. Called after any
  * change to what a page serves or who may see it; idempotent, so a failed
@@ -128,6 +114,7 @@ export async function writePageManifest(pageId: string): Promise<void> {
 				key: pageManifestKey(pageId),
 				body: JSON.stringify(manifest),
 				contentType: "application/json",
+				bucket: "private",
 			});
 			return;
 		} catch (error) {
@@ -172,7 +159,7 @@ export async function mintPageTicket(
 		ttlSeconds !== undefined
 			? now + ttlSeconds
 			: Math.ceil(now / window) * window + window;
-	return signPageTicket(ticketSecret(), {
+	return signPageTicket(env.USERCONTENT_TOKEN_SECRET, {
 		pageId: page.id,
 		...(version !== undefined ? { version } : {}),
 		exp,

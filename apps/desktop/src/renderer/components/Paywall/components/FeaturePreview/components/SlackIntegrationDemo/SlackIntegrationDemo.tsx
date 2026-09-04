@@ -23,13 +23,11 @@ export function SlackIntegrationDemo() {
 					<div className="flex items-center gap-2">
 						<FaSlack className="size-4 text-violet-400" />
 						<span className="font-medium text-foreground text-xs">
-							<Trans id="components.slackIntegrationDemo.channelName">
-								#engineering
-							</Trans>
+							<Trans>#engineering</Trans>
 						</span>
 					</div>
 					<span className="rounded bg-foreground/10 px-2 py-0.5 text-muted-foreground/70 text-xs">
-						<Trans id="components.slackIntegrationDemo.live">Live</Trans>
+						<Trans>Live</Trans>
 					</span>
 				</div>
 
@@ -54,9 +52,7 @@ export function SlackIntegrationDemo() {
 						<div className="flex items-center gap-2 text-emerald-300 text-xs">
 							<HiCheck className="size-3.5" />
 							<span className="font-medium">
-								<Trans id="components.slackIntegrationDemo.taskSynced">
-									Task synced to Linear
-								</Trans>
+								<Trans>Task synced to Linear</Trans>
 							</span>
 						</div>
 					</div>

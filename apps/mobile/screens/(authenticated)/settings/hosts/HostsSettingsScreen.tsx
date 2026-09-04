@@ -41,13 +41,13 @@ export function HostsSettingsScreen() {
 				// has answered — an empty list while it is pending is not an answer.
 				<View className="items-center gap-4 py-16">
 					<Text className="text-base font-medium text-foreground">
-						<Trans id="mobile.hostsSettings.empty">No devices yet</Trans>
+						<Trans>No devices yet</Trans>
 					</Text>
 					<Text
 						className="text-center text-sm leading-5"
 						style={{ color: theme.mutedForeground }}
 					>
-						<Trans id="mobile.hostsSettings.emptyDescription">
+						<Trans>
 							In the Superset desktop app, open Settings → Remote Access and
 							turn on “Allow remote access to this device via relay”.
 						</Trans>
@@ -57,9 +57,7 @@ export function HostsSettingsScreen() {
 						onPress={() => openUrl(`${COMPANY.DOCS_URL}/remote-access`)}
 					>
 						<Text>
-							<Trans id="mobile.connectHost.readSetupGuide">
-								Read the setup guide
-							</Trans>
+							<Trans>Read the setup guide</Trans>
 						</Text>
 					</Button>
 				</View>
@@ -72,8 +70,8 @@ export function HostsSettingsScreen() {
 					trailing={
 						<Text className="text-sm" style={{ color: theme.mutedForeground }}>
 							{host.isOnline
-								? t({ id: "mobile.hostsSettings.online", message: "Online" })
-								: t({ id: "mobile.hostsSettings.offline", message: "Offline" })}
+								? t({ message: "Online" })
+								: t({ message: "Offline" })}
 						</Text>
 					}
 					isLast={index === hostRows.length - 1}

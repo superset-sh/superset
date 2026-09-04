@@ -95,9 +95,7 @@ export const ChainOfThoughtHeader = memo(
 				>
 					<BrainIcon className="size-4" />
 					<span className="flex-1 text-left">
-						{children ?? (
-							<Trans id="ui.chainOfThought.header">Chain of Thought</Trans>
-						)}
+						{children ?? <Trans>Chain of Thought</Trans>}
 					</span>
 					<ChevronDownIcon
 						className={cn(

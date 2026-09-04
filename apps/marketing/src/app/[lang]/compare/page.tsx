@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import type { Metadata } from "next";
@@ -11,15 +12,17 @@ import { formatCompareDate } from "@/lib/compare-utils";
 
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
-	const title = i18n._({
-		id: "marketing.meta.compare.title",
-		message: "Compare Superset | AI Coding Comparisons and Guides",
-	});
-	const description = i18n._({
-		id: "marketing.meta.compare.description",
-		message:
-			"Compare Superset with Cursor, Claude Code, Codex, Windsurf, Devin, GitHub Copilot, and more. Browse side-by-side comparisons, roundups, and workflow guides.",
-	});
+	const title = i18n._(
+		msg({
+			message: "Compare Superset | AI Coding Comparisons and Guides",
+		}),
+	);
+	const description = i18n._(
+		msg({
+			message:
+				"Compare Superset with Cursor, Claude Code, Codex, Windsurf, Devin, GitHub Copilot, and more. Browse side-by-side comparisons, roundups, and workflow guides.",
+		}),
+	);
 	return {
 		title,
 		description,
@@ -70,15 +73,13 @@ export default async function ComparePage() {
 					<GridCross className="top-0 right-0" />
 
 					<span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
-						<Trans id="marketing.compare.eyebrow">Compare</Trans>
+						<Trans>Compare</Trans>
 					</span>
 					<h1 className="text-3xl md:text-4xl font-medium tracking-tight text-foreground mt-4">
-						<Trans id="marketing.compare.title">
-							Superset vs the Alternatives
-						</Trans>
+						<Trans>Superset vs the Alternatives</Trans>
 					</h1>
 					<p className="text-muted-foreground mt-3 max-w-lg">
-						<Trans id="marketing.compare.subtitle">
+						<Trans>
 							See how Superset compares to other AI coding tools, from AI
 							editors to coding agents to cloud-based AI engineers.
 						</Trans>
@@ -92,39 +93,26 @@ export default async function ComparePage() {
 			{/* Content */}
 			<div className="relative max-w-3xl mx-auto px-6 py-12">
 				{roundups.length > 0 && (
-					<CompareSection
-						title={
-							<Trans id="marketing.compare.section.roundups">Roundups</Trans>
-						}
-						pages={roundups}
-					/>
+					<CompareSection title={<Trans>Roundups</Trans>} pages={roundups} />
 				)}
 
 				{tutorials.length > 0 && (
 					<CompareSection
-						title={
-							<Trans id="marketing.compare.section.tutorials">
-								Workflow Tutorials
-							</Trans>
-						}
+						title={<Trans>Workflow Tutorials</Trans>}
 						pages={tutorials}
 					/>
 				)}
 
 				{oneVsOne.length > 0 && (
 					<CompareSection
-						title={
-							<Trans id="marketing.compare.section.headToHead">
-								Head-to-Head Comparisons
-							</Trans>
-						}
+						title={<Trans>Head-to-Head Comparisons</Trans>}
 						pages={oneVsOne}
 					/>
 				)}
 
 				{pages.length === 0 && (
 					<p className="text-muted-foreground">
-						<Trans id="marketing.compare.empty">No comparisons yet.</Trans>
+						<Trans>No comparisons yet.</Trans>
 					</p>
 				)}
 			</div>
@@ -172,7 +160,7 @@ function CompareCard({
 				</p>
 			)}
 			<span className="text-xs text-muted-foreground mt-3 block">
-				<Trans id="marketing.compare.card.updated">Updated {date}</Trans>
+				<Trans>Updated {date}</Trans>
 			</span>
 		</Link>
 	);

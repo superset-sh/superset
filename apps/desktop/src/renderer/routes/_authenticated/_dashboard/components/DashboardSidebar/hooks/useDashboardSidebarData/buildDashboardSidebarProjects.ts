@@ -1,4 +1,4 @@
-import { normalizeWorkspaceTags } from "@superset/shared/workspace-tags";
+import { SESSIONS_TAG_SCOPE } from "@superset/shared/workspace-tags";
 import {
 	getProjectFolderTagIndex,
 	resolveWorkspaceSectionId,
@@ -60,6 +60,8 @@ export interface SidebarWorkspaceInput {
 	taskId: string | null;
 	createdAt: Date;
 	updatedAt: Date;
+	/** Host-stamped agent activity; null from a host that predates it. */
+	lastActivityAt: number | null;
 	tabOrder: number;
 	sectionId: string | null;
 	/** Host tag set; absent when served by an older host. */
@@ -118,6 +120,7 @@ function decorateSidebarWorkspace(
 		behindCount: null,
 		createdAt: workspace.createdAt,
 		updatedAt: workspace.updatedAt,
+		lastActivityAt: workspace.lastActivityAt,
 		taskId: workspace.taskId,
 		isPinned: workspace.pinnedAt != null,
 		pendingTransaction: workspace.pendingTransaction,
@@ -180,55 +183,63 @@ export function buildDashboardSidebarPinnedWorkspaces({
 }
 
 /**
- * Decorates the Sessions section rows (project-less workspaces), ordered by
- * tabOrder ascending. Sessions have no repo identity, so every project-derived
- * affordance (repoUrl, remote-branch, PRs) is null/off.
- */
-export function buildDashboardSidebarSessionWorkspaces({
-	sessionSidebarWorkspaces,
-	machineId,
-	pullRequestsByWorkspaceId,
-}: {
-	sessionSidebarWorkspaces: SidebarWorkspaceInput[];
-	machineId: string;
-	pullRequestsByWorkspaceId: Map<string, SidebarPullRequest>;
-}): DashboardSidebarWorkspace[] {
-	return buildDashboardSidebarSessions({
-		sessionSidebarWorkspaces,
-		machineId,
-		pullRequestsByWorkspaceId,
-	}).orderedWorkspaces;
-}
-
-/**
- * Builds the project-less Sessions lane without pretending sessions belong to
- * a synthetic project. A multi-tag session chooses the alphabetically first
- * normalized tag, giving it one deterministic home just like project folders
- * choose one winning tag. Untagged sessions
- * remain at the top and each lane preserves the user's tab order.
- *
- * `orderedWorkspaces` deliberately remains flat: Sessions is one persisted
- * reorder/pin container in the DnD model, while `tagGroups` is presentation
- * derived from host-owned tags.
+ * Builds the project-less Sessions lane with the same shape as a project's
+ * children: ungrouped sessions and tag folders interleaved by tabOrder, each
+ * folder carrying its members. Folder rows are the Sessions-scoped entries of
+ * `sidebarSections`; membership resolves through the shared tag-folder index,
+ * so a session files into the folder of its winning tag exactly like a
+ * project workspace does.
  */
 export function buildDashboardSidebarSessions({
 	sessionSidebarWorkspaces,
+	sidebarSections,
 	machineId,
 	pullRequestsByWorkspaceId,
 }: {
 	sessionSidebarWorkspaces: SidebarWorkspaceInput[];
+	sidebarSections: SidebarSectionInput[];
 	machineId: string;
 	pullRequestsByWorkspaceId: Map<string, SidebarPullRequest>;
 }): DashboardSidebarSessions {
+	const sectionMap = new Map<string, DashboardSidebarSection>();
+	const childEntries: Array<{
+		tabOrder: number;
+		child: DashboardSidebarProjectChild;
+	}> = [];
+	const orphaned: Array<{
+		tabOrder: number;
+		workspace: DashboardSidebarWorkspace;
+	}> = [];
+
+	for (const section of sidebarSections) {
+		if (section.projectId !== SESSIONS_TAG_SCOPE) continue;
+		const sidebarSection: DashboardSidebarSection = {
+			...section,
+			workspaces: [],
+		};
+		sectionMap.set(section.id, sidebarSection);
+		childEntries.push({
+			tabOrder: section.tabOrder,
+			child: { type: "section", section: sidebarSection },
+		});
+	}
+
+	const folderIndex = getProjectFolderTagIndex(
+		sidebarSections.map((section) => ({
+			sectionId: section.id,
+			projectId: section.projectId,
+			tabOrder: section.tabOrder,
+			tag: section.tag,
+		})),
+		SESSIONS_TAG_SCOPE,
+	);
+
 	const sorted = sessionSidebarWorkspaces
 		.slice()
 		.sort(
 			(left, right) =>
 				left.tabOrder - right.tabOrder || left.id.localeCompare(right.id),
 		);
-	const ungroupedWorkspaces: DashboardSidebarWorkspace[] = [];
-	const groupsByTag = new Map<string, DashboardSidebarWorkspace[]>();
-
 	for (const workspace of sorted) {
 		const decorated = decorateSidebarWorkspace(
 			workspace,
@@ -236,25 +247,48 @@ export function buildDashboardSidebarSessions({
 			machineId,
 			pullRequestsByWorkspaceId,
 		);
-		const tag = normalizeWorkspaceTags(workspace.tags)[0];
-		if (!tag) {
-			ungroupedWorkspaces.push(decorated);
+		const effectiveSectionId = resolveWorkspaceSectionId({
+			tags: workspace.tags,
+			localSectionId: workspace.sectionId,
+			index: folderIndex,
+		});
+		if (effectiveSectionId) {
+			const section = sectionMap.get(effectiveSectionId);
+			if (section) {
+				section.workspaces.push({ ...decorated, accentColor: section.color });
+				continue;
+			}
+			orphaned.push({ tabOrder: workspace.tabOrder, workspace: decorated });
 			continue;
 		}
-		const group = groupsByTag.get(tag) ?? [];
-		group.push(decorated);
-		groupsByTag.set(tag, group);
+		childEntries.push({
+			tabOrder: workspace.tabOrder,
+			child: { type: "workspace", workspace: decorated },
+		});
 	}
 
-	const tagGroups = [...groupsByTag.entries()]
-		.sort(([left], [right]) => left.localeCompare(right))
-		.map(([tag, workspaces]) => ({ tag, workspaces }));
-	const orderedWorkspaces = [
-		...ungroupedWorkspaces,
-		...tagGroups.flatMap((group) => group.workspaces),
-	];
+	const children: DashboardSidebarProjectChild[] = childEntries
+		.sort((left, right) => left.tabOrder - right.tabOrder)
+		.map(({ child }) => child);
+	if (orphaned.length > 0) {
+		// A member whose folder is hidden/missing keeps a top-level slot
+		// ahead of the first folder, matching the project builder.
+		const firstSectionIndex = children.findIndex(
+			(child) => child.type === "section",
+		);
+		children.splice(
+			firstSectionIndex === -1 ? children.length : firstSectionIndex,
+			0,
+			...orphaned
+				.sort((left, right) => left.tabOrder - right.tabOrder)
+				.map(({ workspace }) => ({ type: "workspace" as const, workspace })),
+		);
+	}
 
-	return { ungroupedWorkspaces, tagGroups, orderedWorkspaces };
+	const workspaces = children.flatMap((child) =>
+		child.type === "workspace" ? [child.workspace] : child.section.workspaces,
+	);
+	return { children, workspaces };
 }
 
 export interface BuildDashboardSidebarProjectsParams {

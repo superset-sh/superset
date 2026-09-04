@@ -25,16 +25,14 @@ export default function NotFoundScreen() {
 				</View>
 				<View className="gap-2">
 					<Text className="text-center font-semibold text-[20px] tracking-[-0.2px]">
-						<Trans id="mobile.notFound.title">This screen doesn't exist</Trans>
+						<Trans>This screen doesn't exist</Trans>
 					</Text>
 					<Text className="text-muted-foreground text-center text-[15px] leading-[21px]">
 						{pathname && pathname !== "/"
 							? t({
-									id: "mobile.notFound.pathDescription",
 									message: `Nothing lives at ${pathname}.`,
 								})
 							: t({
-									id: "mobile.notFound.description",
 									message: "That link doesn't lead anywhere in the app.",
 								})}
 					</Text>
@@ -45,7 +43,7 @@ export default function NotFoundScreen() {
 					onPress={() => router.replace("/")}
 				>
 					<Text className="font-medium text-[15px]">
-						<Trans id="mobile.notFound.goHome">Go home</Trans>
+						<Trans>Go home</Trans>
 					</Text>
 				</Pressable>
 			</View>

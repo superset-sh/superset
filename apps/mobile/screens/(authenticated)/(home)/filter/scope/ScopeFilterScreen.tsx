@@ -75,7 +75,7 @@ export function ScopeFilterScreen() {
 							strokeWidth={2}
 						/>
 					}
-					label={t({ id: "mobile.filter.cloud", message: "Cloud" })}
+					label={t({ message: "Cloud" })}
 					trailing={<ListRowCheck visible={scope === "cloud"} />}
 					onPress={selectCloud}
 					isLast={sortedHosts.length === 0}

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { dbWs } from "@superset/db/client";
+import { db } from "@superset/db/client";
 import { automations, automationTriggers } from "@superset/db/schema";
 import { scopeAllows } from "@superset/shared/automation-matching";
 import type { TriggerScope } from "@superset/shared/automation-triggers";
@@ -43,7 +43,7 @@ export async function loadFirePlan(
 	ended: boolean;
 	allows: (calendarId: string) => boolean;
 } | null> {
-	const rows = await dbWs
+	const rows = await db
 		.select({ config: automationTriggers.config })
 		.from(automationTriggers)
 		.innerJoin(automations, eq(automations.id, automationTriggers.automationId))

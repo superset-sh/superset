@@ -42,25 +42,17 @@ export function VersionRow({
 				</span>
 				{source === "agent" && (
 					<Badge variant="secondary" className="px-1 py-0 text-[10px]">
-						<Trans id="dashboard.automations.versionRow.agentBadge">
-							Agent
-						</Trans>
+						<Trans>Agent</Trans>
 					</Badge>
 				)}
 				{source === "restore" && (
 					<Badge variant="outline" className="px-1 py-0 text-[10px]">
-						<Trans id="dashboard.automations.versionRow.restoredBadge">
-							Restored
-						</Trans>
+						<Trans>Restored</Trans>
 					</Badge>
 				)}
 			</div>
 			<span className="truncate text-xs leading-tight text-muted-foreground">
-				{authorName ?? (
-					<Trans id="dashboard.automations.versionRow.unknownAuthor">
-						Unknown
-					</Trans>
-				)}
+				{authorName ?? <Trans context="person">Unknown</Trans>}
 			</span>
 		</button>
 	);

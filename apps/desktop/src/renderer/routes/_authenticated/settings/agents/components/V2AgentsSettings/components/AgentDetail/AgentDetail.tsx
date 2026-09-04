@@ -78,7 +78,6 @@ export function AgentDetail({
 					errorMessage(
 						err,
 						t({
-							id: "settings.agents.detail.hooksUpdateFailed",
 							message: "Failed to update hooks",
 						}),
 					),
@@ -149,7 +148,6 @@ export function AgentDetail({
 				errorMessage(
 					err,
 					t({
-						id: "settings.agents.detail.saveFailed",
 						message: "Failed to save",
 					}),
 				),
@@ -175,7 +173,6 @@ export function AgentDetail({
 				errorMessage(
 					err,
 					t({
-						id: "settings.agents.detail.removeFailed",
 						message: "Failed to remove",
 					}),
 				),
@@ -200,7 +197,6 @@ export function AgentDetail({
 			const updatedLabel = updated.label;
 			toast.success(
 				t({
-					id: "settings.agents.detail.restoredToast",
 					message: `${updatedLabel} restored to defaults`,
 				}),
 			);
@@ -210,7 +206,6 @@ export function AgentDetail({
 				errorMessage(
 					err,
 					t({
-						id: "settings.agents.detail.restoreFailed",
 						message: "Failed to restore defaults",
 					}),
 				),
@@ -229,7 +224,6 @@ export function AgentDetail({
 		if (command.length === 0) {
 			toast.error(
 				t({
-					id: "settings.agents.detail.commandEmpty",
 					message: "Command cannot be empty",
 				}),
 			);
@@ -287,7 +281,6 @@ export function AgentDetail({
 			<div className="space-y-6">
 				<Section
 					title={t({
-						id: "settings.agents.detail.labelSection",
 						message: "Label",
 					})}
 				>
@@ -302,7 +295,6 @@ export function AgentDetail({
 				{isCustom ? (
 					<Section
 						title={t({
-							id: "settings.agents.detail.iconSection",
 							message: "Icon",
 						})}
 					>
@@ -338,16 +330,14 @@ export function AgentDetail({
 							<div className="min-w-0 flex-1">
 								<div className="flex items-center gap-1.5">
 									<div className="text-sm font-medium">
-										<Trans id="settings.agents.detail.hooksTitle">
-											Superset hooks
-										</Trans>
+										<Trans>Superset hooks</Trans>
 									</div>
 									<Tooltip>
 										<TooltipTrigger asChild>
 											<Info className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
 										</TooltipTrigger>
 										<TooltipContent side="top" className="max-w-[320px]">
-											<Trans id="settings.agents.detail.hooksTooltip">
+											<Trans>
 												Registers lifecycle hooks in this agent's global config
 												so Superset can show status and send notifications.
 												Turning this off removes Superset's entries everywhere —
@@ -358,14 +348,13 @@ export function AgentDetail({
 									</Tooltip>
 								</div>
 								<p className="text-sm text-muted-foreground mt-0.5">
-									<Trans id="settings.agents.detail.hooksHint">
+									<Trans>
 										Show status and send notifications for this agent.
 									</Trans>
 								</p>
 							</div>
 							<Switch
 								aria-label={t({
-									id: "settings.agents.detail.hooksAriaLabel",
 									message: "Superset hooks",
 								})}
 								checked={hooksEnabled}
@@ -390,12 +379,10 @@ export function AgentDetail({
 						<div className="flex items-center justify-between gap-8">
 							<div className="min-w-0 flex-1">
 								<div className="text-sm font-medium">
-									<Trans id="settings.agents.detail.restoreDefaultTitle">
-										Restore default
-									</Trans>
+									<Trans>Restore default</Trans>
 								</div>
 								<p className="text-sm text-muted-foreground mt-0.5">
-									<Trans id="settings.agents.detail.restoreDefaultHint">
+									<Trans>
 										Replace this agent's launch settings with the current
 										bundled configuration.
 									</Trans>
@@ -410,18 +397,16 @@ export function AgentDetail({
 										className="shrink-0 gap-1.5"
 									>
 										<RotateCcw className="size-3.5" />
-										<Trans id="settings.agents.detail.restore">Restore</Trans>
+										<Trans>Restore</Trans>
 									</Button>
 								</AlertDialogTrigger>
 								<AlertDialogContent>
 									<AlertDialogHeader>
 										<AlertDialogTitle>
-											<Trans id="settings.agents.detail.restoreDialogTitle">
-												Restore {config.label} to defaults?
-											</Trans>
+											<Trans>Restore {config.label} to defaults?</Trans>
 										</AlertDialogTitle>
 										<AlertDialogDescription>
-											<Trans id="settings.agents.detail.restoreDialogHint">
+											<Trans>
 												This replaces its label, command, arguments, prompt and
 												resume settings, environment variables, and icon with
 												the current bundled configuration.
@@ -430,16 +415,12 @@ export function AgentDetail({
 									</AlertDialogHeader>
 									<AlertDialogFooter>
 										<AlertDialogCancel>
-											<Trans id="settings.agents.detail.restoreCancel">
-												Cancel
-											</Trans>
+											<Trans>Cancel</Trans>
 										</AlertDialogCancel>
 										<AlertDialogAction
 											onClick={() => restoreDefaultMutation.mutate()}
 										>
-											<Trans id="settings.agents.detail.restoreConfirm">
-												Restore defaults
-											</Trans>
+											<Trans>Restore defaults</Trans>
 										</AlertDialogAction>
 									</AlertDialogFooter>
 								</AlertDialogContent>
@@ -452,14 +433,10 @@ export function AgentDetail({
 					<div className="flex items-center justify-between gap-8">
 						<div className="min-w-0 flex-1">
 							<div className="text-sm font-medium">
-								<Trans id="settings.agents.detail.deleteTitle">
-									Delete agent
-								</Trans>
+								<Trans>Delete agent</Trans>
 							</div>
 							<p className="text-sm text-muted-foreground mt-0.5">
-								<Trans id="settings.agents.detail.deleteHint">
-									Removes this agent from this device only.
-								</Trans>
+								<Trans>Removes this agent from this device only.</Trans>
 							</p>
 						</div>
 						<Button
@@ -470,7 +447,7 @@ export function AgentDetail({
 							className="shrink-0 gap-1.5"
 						>
 							<Trash2 className="size-3.5" />
-							<Trans id="settings.agents.detail.delete">Delete</Trans>
+							<Trans>Delete</Trans>
 						</Button>
 					</div>
 				</div>

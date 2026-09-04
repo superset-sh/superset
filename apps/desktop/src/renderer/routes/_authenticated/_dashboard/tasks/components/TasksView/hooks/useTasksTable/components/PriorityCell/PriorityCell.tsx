@@ -21,23 +21,18 @@ export function PriorityCell({ info }: PriorityCellProps) {
 	const { t } = useLingui();
 	const priorityLabels: Record<TaskPriority, string> = {
 		none: t({
-			id: "dashboard.tasks.priorityCell.priorityNone",
 			message: "No priority",
 		}),
 		urgent: t({
-			id: "dashboard.tasks.priorityCell.priorityUrgent",
 			message: "Urgent",
 		}),
 		high: t({
-			id: "dashboard.tasks.priorityCell.priorityHigh",
 			message: "High",
 		}),
 		medium: t({
-			id: "dashboard.tasks.priorityCell.priorityMedium",
 			message: "Medium",
 		}),
 		low: t({
-			id: "dashboard.tasks.priorityCell.priorityLow",
 			message: "Low",
 		}),
 	};

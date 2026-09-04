@@ -41,7 +41,6 @@ export function ClearBrowsingDataDialog({
 		if (clearHistory) {
 			tasks.push({
 				label: t({
-					id: "workspace.browserPane.clearDataTaskHistory",
 					message: "history",
 				}),
 				run: () => electronTrpcClient.browserHistory.clear.mutate(),
@@ -50,7 +49,6 @@ export function ClearBrowsingDataDialog({
 		if (clearCookies) {
 			tasks.push({
 				label: t({
-					id: "workspace.browserPane.clearDataTaskCookies",
 					message: "cookies and site data",
 				}),
 				run: () =>
@@ -62,7 +60,6 @@ export function ClearBrowsingDataDialog({
 		if (clearCache) {
 			tasks.push({
 				label: t({
-					id: "workspace.browserPane.clearDataTaskCache",
 					message: "cached files",
 				}),
 				run: () =>
@@ -81,7 +78,6 @@ export function ClearBrowsingDataDialog({
 		if (failed.length === 0) {
 			toast.success(
 				t({
-					id: "workspace.browserPane.clearDataSuccess",
 					message: "Browsing data cleared",
 				}),
 			);
@@ -91,14 +87,12 @@ export function ClearBrowsingDataDialog({
 			const failedLabels = failed.map((task) => task.label).join(", ");
 			toast.error(
 				t({
-					id: "workspace.browserPane.clearDataPartialFailure",
 					message: `Cleared ${succeededLabels} — could not clear ${failedLabels}`,
 				}),
 			);
 		} else {
 			toast.error(
 				t({
-					id: "workspace.browserPane.clearDataFailure",
 					message: "Could not clear browsing data",
 				}),
 			);
@@ -111,14 +105,10 @@ export function ClearBrowsingDataDialog({
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>
-						<Trans id="workspace.browserPane.clearDataTitle">
-							Clear browsing data
-						</Trans>
+						<Trans>Clear browsing data</Trans>
 					</DialogTitle>
 					<DialogDescription>
-						<Trans id="workspace.browserPane.clearDataDescription">
-							Choose what to clear from the in-app browser.
-						</Trans>
+						<Trans>Choose what to clear from the in-app browser.</Trans>
 					</DialogDescription>
 				</DialogHeader>
 				<div className="flex flex-col gap-3 py-1">
@@ -129,9 +119,7 @@ export function ClearBrowsingDataDialog({
 							onCheckedChange={(v) => setClearHistory(v === true)}
 						/>
 						<Label htmlFor="clear-history" className="font-normal">
-							<Trans id="workspace.browserPane.clearDataHistory">
-								Browsing history
-							</Trans>
+							<Trans>Browsing history</Trans>
 						</Label>
 					</div>
 					<div className="flex items-center gap-2">
@@ -141,9 +129,7 @@ export function ClearBrowsingDataDialog({
 							onCheckedChange={(v) => setClearCookies(v === true)}
 						/>
 						<Label htmlFor="clear-cookies" className="font-normal">
-							<Trans id="workspace.browserPane.clearDataCookies">
-								Cookies and site data — signs you out of most sites
-							</Trans>
+							<Trans>Cookies and site data — signs you out of most sites</Trans>
 						</Label>
 					</div>
 					<div className="flex items-center gap-2">
@@ -153,9 +139,7 @@ export function ClearBrowsingDataDialog({
 							onCheckedChange={(v) => setClearCache(v === true)}
 						/>
 						<Label htmlFor="clear-cache" className="font-normal">
-							<Trans id="workspace.browserPane.clearDataCache">
-								Cached images and files
-							</Trans>
+							<Trans>Cached images and files</Trans>
 						</Label>
 					</div>
 				</div>
@@ -165,22 +149,14 @@ export function ClearBrowsingDataDialog({
 						onClick={() => onOpenChange(false)}
 						disabled={isClearing}
 					>
-						<Trans id="workspace.browserPane.clearDataCancel">Cancel</Trans>
+						<Trans>Cancel</Trans>
 					</Button>
 					<Button
 						variant="destructive"
 						onClick={handleClear}
 						disabled={isClearing || !canClear}
 					>
-						{isClearing ? (
-							<Trans id="workspace.browserPane.clearDataClearing">
-								Clearing…
-							</Trans>
-						) : (
-							<Trans id="workspace.browserPane.clearDataConfirm">
-								Clear data
-							</Trans>
-						)}
+						{isClearing ? <Trans>Clearing…</Trans> : <Trans>Clear data</Trans>}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

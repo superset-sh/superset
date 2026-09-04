@@ -25,14 +25,26 @@ export async function generateCloudWorkspaceName(
 			model: "claude-haiku-4-5",
 			max_tokens: 64,
 			system: INSTRUCTIONS,
-			messages: [{ role: "user", content: cleaned.slice(0, MAX_PROMPT_CHARS) }],
+			// The prompt is data, not the request: passed bare, a prompt written
+			// as an instruction ("Say hello, then list…") got answered instead
+			// of titled.
+			messages: [
+				{
+					role: "user",
+					content: `Title this task.\n\n<task>\n${cleaned.slice(0, MAX_PROMPT_CHARS)}\n</task>`,
+				},
+			],
 		});
 		const generated = response.content
 			.find((block): block is Anthropic.TextBlock => block.type === "text")
 			?.text.replace(/\s+/g, " ")
 			.replace(/^["']|["']$/g, "")
 			.trim();
-		if (generated) return generated.slice(0, 60);
+		// A sentence is a reply, not a title; fall through to the derived one.
+		// The instruction asks for 20 characters; twice that is the tolerance
+		// before a long answer is treated as a reply too.
+		if (generated && generated.length <= 40 && !generated.endsWith("."))
+			return generated;
 	} catch (error) {
 		console.error("[cloud-workspace] name generation failed", error);
 	}

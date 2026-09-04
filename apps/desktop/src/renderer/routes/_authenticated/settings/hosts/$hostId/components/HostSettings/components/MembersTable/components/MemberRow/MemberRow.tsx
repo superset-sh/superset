@@ -49,19 +49,19 @@ export function MemberRow({
 						</SelectTrigger>
 						<SelectContent>
 							<SelectItem value="owner">
-								<Trans id="settings.hosts.memberRow.roleOwner">Owner</Trans>
+								<Trans>Owner</Trans>
 							</SelectItem>
 							<SelectItem value="member">
-								<Trans id="settings.hosts.memberRow.roleMember">Member</Trans>
+								<Trans>Member</Trans>
 							</SelectItem>
 						</SelectContent>
 					</Select>
 				) : (
 					<span className="text-sm capitalize">
 						{member.role === "owner" ? (
-							<Trans id="settings.hosts.memberRow.roleOwnerText">Owner</Trans>
+							<Trans>Owner</Trans>
 						) : (
-							<Trans id="settings.hosts.memberRow.roleMemberText">Member</Trans>
+							<Trans>Member</Trans>
 						)}
 					</span>
 				)}
@@ -73,7 +73,6 @@ export function MemberRow({
 						size="sm"
 						onClick={() => onRemove(member)}
 						aria-label={t({
-							id: "settings.hosts.memberRow.removeAriaLabel",
 							message: `Remove ${member.name}`,
 						})}
 					>

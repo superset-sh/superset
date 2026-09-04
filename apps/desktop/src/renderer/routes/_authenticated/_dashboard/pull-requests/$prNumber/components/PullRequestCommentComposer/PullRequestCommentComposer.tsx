@@ -113,9 +113,7 @@ export function PullRequestCommentComposer({
 					{contextLabel}
 				</span>
 				<span className="text-[10px] tracking-tight text-muted-foreground/70">
-					<Trans id="dashboard.pullRequests.commentComposer.escToDismiss">
-						esc to dismiss
-					</Trans>
+					<Trans>esc to dismiss</Trans>
 				</span>
 			</div>
 			<div className="px-3 pb-2">
@@ -124,7 +122,6 @@ export function PullRequestCommentComposer({
 					value={comment}
 					onChange={(e) => setComment(e.target.value)}
 					placeholder={t({
-						id: "dashboard.pullRequests.commentComposer.placeholder",
 						message: "Ask the AI…",
 					})}
 					rows={3}
@@ -151,9 +148,7 @@ export function PullRequestCommentComposer({
 						disabled={submitting}
 						className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground"
 					>
-						<Trans id="dashboard.pullRequests.commentComposer.cancel">
-							Cancel
-						</Trans>
+						<Trans>Cancel</Trans>
 					</Button>
 					<Button
 						type="submit"
@@ -163,15 +158,7 @@ export function PullRequestCommentComposer({
 					>
 						{submitting && <LuLoaderCircle className="size-3 animate-spin" />}
 						<span>
-							{submitting ? (
-								<Trans id="dashboard.pullRequests.commentComposer.sending">
-									Sending…
-								</Trans>
-							) : (
-								<Trans id="dashboard.pullRequests.commentComposer.submit">
-									Comment
-								</Trans>
-							)}
+							{submitting ? <Trans>Sending…</Trans> : <Trans>Comment</Trans>}
 						</span>
 					</Button>
 				</div>

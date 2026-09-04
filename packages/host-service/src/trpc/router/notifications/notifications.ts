@@ -4,6 +4,7 @@ import { z } from "zod";
 import { terminalSessions, workspaces } from "../../../db/schema";
 import { mapEventType } from "../../../events";
 import type { HostServiceContext } from "../../../types";
+import { touchLocalWorkspaceActivity } from "../../../workspaces/local-workspace-store";
 import { publicProcedure, router } from "../../index";
 
 // Hook scripts emit "" for unset env vars; we coerce to undefined so the
@@ -123,6 +124,22 @@ export const notificationsRouter = router({
 			...(agent?.definitionId ? { definitionId: agent.definitionId } : {}),
 			occurredAt,
 		});
+
+		// Every lifecycle event is activity for the sidebar's "Last active"
+		// ranking. Best-effort: a failed write must not fail the hook, which
+		// also drives the chime and the status dots.
+		try {
+			touchLocalWorkspaceActivity(
+				ctx,
+				terminalSession.originWorkspaceId,
+				occurredAt,
+			);
+		} catch (err) {
+			console.warn(
+				`[notifications.hook] failed to record activity for workspace ${terminalSession.originWorkspaceId}:`,
+				err,
+			);
+		}
 
 		// An agent began working in this workspace — nudge the linked task
 		// to In Progress.

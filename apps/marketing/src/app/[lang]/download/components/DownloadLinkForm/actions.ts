@@ -1,5 +1,6 @@
 "use server";
 
+import { msg } from "@lingui/core/macro";
 import { DownloadLinkEmail } from "@superset/email/emails/marketing/DownloadLinkEmail";
 import { i18n, initI18n } from "@superset/i18n";
 import { Resend } from "resend";
@@ -30,10 +31,11 @@ export async function sendDownloadLink(
 	if (!parsedData.success) {
 		return {
 			success: false,
-			error: i18n._({
-				id: "marketing.download.invalidEmail",
-				message: "Enter a valid email address.",
-			}),
+			error: i18n._(
+				msg({
+					message: "Enter a valid email address.",
+				}),
+			),
 		};
 	}
 
@@ -41,10 +43,11 @@ export async function sendDownloadLink(
 	if (honeypot) {
 		return {
 			success: false,
-			error: i18n._({
-				id: "marketing.download.genericError",
-				message: "Something went wrong. Please try again.",
-			}),
+			error: i18n._(
+				msg({
+					message: "Something went wrong. Please try again.",
+				}),
+			),
 		};
 	}
 
@@ -52,10 +55,11 @@ export async function sendDownloadLink(
 	if (!z.email().safeParse(sanitizedEmail).success) {
 		return {
 			success: false,
-			error: i18n._({
-				id: "marketing.download.invalidEmail",
-				message: "Enter a valid email address.",
-			}),
+			error: i18n._(
+				msg({
+					message: "Enter a valid email address.",
+				}),
+			),
 		};
 	}
 
@@ -63,10 +67,11 @@ export async function sendDownloadLink(
 		if (!(await checkEmailFormRateLimit(sanitizedEmail))) {
 			return {
 				success: false,
-				error: i18n._({
-					id: "marketing.download.rateLimited",
-					message: "Too many requests. Please try again later.",
-				}),
+				error: i18n._(
+					msg({
+						message: "Too many requests. Please try again later.",
+					}),
+				),
 			};
 		}
 
@@ -81,10 +86,11 @@ export async function sendDownloadLink(
 			console.error("Failed to send download link:", error);
 			return {
 				success: false,
-				error: i18n._({
-					id: "marketing.download.genericError",
-					message: "Something went wrong. Please try again.",
-				}),
+				error: i18n._(
+					msg({
+						message: "Something went wrong. Please try again.",
+					}),
+				),
 			};
 		}
 
@@ -93,10 +99,11 @@ export async function sendDownloadLink(
 		console.error("Failed to send download link:", error);
 		return {
 			success: false,
-			error: i18n._({
-				id: "marketing.download.genericError",
-				message: "Something went wrong. Please try again.",
-			}),
+			error: i18n._(
+				msg({
+					message: "Something went wrong. Please try again.",
+				}),
+			),
 		};
 	}
 }

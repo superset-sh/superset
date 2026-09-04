@@ -1,5 +1,7 @@
 import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 import {
+	existsSync,
+	lstatSync,
 	mkdirSync,
 	mkdtempSync,
 	rmSync,
@@ -26,7 +28,7 @@ type WorkspaceRow = {
 	pullRequestId?: string | null;
 	archivedAt?: number | null;
 };
-type ProjectRow = { id: string; repoPath: string };
+type ProjectRow = { id: string; repoPath: string; worktreeBaseDir?: string };
 
 type WorktreeState = { hasChanges: boolean; hasUnpushedCommits: boolean };
 
@@ -40,7 +42,10 @@ interface ContextSpec {
 	worktreeState?: WorktreeState | (() => Promise<WorktreeState>);
 	// Simulates ctx.git()/env-resolution failure ("failed to open repo").
 	resolveGitEnvThrows?: boolean;
-	removeWorktree?: () => Promise<{ stillRegistered: boolean }>;
+	removeWorktree?: () => Promise<{
+		stillRegistered: boolean;
+		removeError?: string;
+	}>;
 	deleteBranch?: () => Promise<{ deleted: boolean }>;
 	// Simulates sqlite failure at the archive UPDATE — the commit point.
 	dbUpdateThrows?: boolean | "once";
@@ -118,7 +123,10 @@ function makeCtx(spec: ContextSpec): HostServiceContext & {
 			},
 			select: () => ({
 				from: () => ({
-					where: () => ({ all: terminalSelectAll }),
+					// `.all` serves the terminal-session sweep; `.get` serves
+					// getHostWorktreeBaseDir when a spec sets no per-project
+					// worktreeBaseDir ("no host settings row" shape).
+					where: () => ({ all: terminalSelectAll, get: () => undefined }),
 				}),
 			}),
 			update: () => ({
@@ -410,6 +418,195 @@ describe("workspaceCleanup.destroy cleanup ordering", () => {
 				(call) => (call[0] as { eventType: string }).eventType,
 			);
 			expect(events).toEqual(["deleted", "created"]);
+		} finally {
+			rmSync(tmp, { recursive: true, force: true });
+			rmSync(repo, { recursive: true, force: true });
+		}
+	});
+
+	test("git unregisters the worktree but the folder survives: destroy removes it", async () => {
+		// git's `worktree remove --force --force` is not atomic: it can drop
+		// the registration and then fail partway through its recursive delete
+		// (locked file, live writer). The registry read then says "removed"
+		// while the directory is still on disk (#6730).
+		const base = mkdtempSync(join(tmpdir(), "worktrees-base-"));
+		const repo = mkdtempSync(join(tmpdir(), "workspace-delete-repo-"));
+		const worktree = join(base, "p-1", "wt-partial");
+		mkdirSync(worktree, { recursive: true });
+		writeFileSync(join(worktree, "leftover.txt"), "still here");
+		try {
+			const ctx = makeCtx({
+				workspace: {
+					id: "ws-1",
+					projectId: "p-1",
+					worktreePath: worktree,
+					branch: "feature",
+				},
+				project: { id: "p-1", repoPath: repo, worktreeBaseDir: base },
+				removeWorktree: async () => ({
+					stillRegistered: false,
+					removeError:
+						"error: failed to delete 'wt-partial': Operation not permitted",
+				}),
+			});
+			const caller = workspaceCleanupRouter.createCaller(ctx);
+
+			const result = await caller.destroy({
+				workspaceId: "ws-1",
+				deleteBranch: false,
+				force: true,
+			});
+			expect(result.success).toBe(true);
+			expect(result.worktreeRemoved).toBe(true);
+			expect(existsSync(worktree)).toBe(false);
+		} finally {
+			rmSync(base, { recursive: true, force: true });
+			rmSync(repo, { recursive: true, force: true });
+		}
+	});
+
+	test("git unregisters the worktree and leaves a dangling symlink: destroy removes the link", async () => {
+		// A dangling link is not an absence: a stat-based recheck follows the
+		// link, sees nothing, and reports the worktree removed while the entry
+		// is still in the managed root.
+		const base = mkdtempSync(join(tmpdir(), "worktrees-base-"));
+		const repo = mkdtempSync(join(tmpdir(), "workspace-delete-repo-"));
+		const worktree = join(base, "p-1", "wt-dangling");
+		mkdirSync(join(base, "p-1"), { recursive: true });
+		symlinkSync(join(base, "gone-target"), worktree);
+		try {
+			expect(existsSync(worktree)).toBe(false);
+			expect(lstatSync(worktree, { throwIfNoEntry: false })).toBeDefined();
+			const ctx = makeCtx({
+				workspace: {
+					id: "ws-1",
+					projectId: "p-1",
+					worktreePath: worktree,
+					branch: "feature",
+				},
+				project: { id: "p-1", repoPath: repo, worktreeBaseDir: base },
+				removeWorktree: async () => ({ stillRegistered: false }),
+			});
+			const caller = workspaceCleanupRouter.createCaller(ctx);
+
+			const result = await caller.destroy({
+				workspaceId: "ws-1",
+				deleteBranch: false,
+				force: true,
+			});
+			expect(result.success).toBe(true);
+			expect(result.worktreeRemoved).toBe(true);
+			expect(lstatSync(worktree, { throwIfNoEntry: false })).toBeUndefined();
+		} finally {
+			rmSync(base, { recursive: true, force: true });
+			rmSync(repo, { recursive: true, force: true });
+		}
+	});
+
+	test("worktree path is a symlink into the managed root: destroy removes the link, not through it", async () => {
+		const base = mkdtempSync(join(tmpdir(), "worktrees-base-"));
+		const repo = mkdtempSync(join(tmpdir(), "workspace-delete-repo-"));
+		const outside = mkdtempSync(join(tmpdir(), "workspace-delete-outside-"));
+		const worktree = join(base, "p-1", "wt-link");
+		mkdirSync(join(base, "p-1"), { recursive: true });
+		writeFileSync(join(outside, "user-data.txt"), "keep me");
+		symlinkSync(outside, worktree);
+		try {
+			const ctx = makeCtx({
+				workspace: {
+					id: "ws-1",
+					projectId: "p-1",
+					worktreePath: worktree,
+					branch: "feature",
+				},
+				project: { id: "p-1", repoPath: repo, worktreeBaseDir: base },
+				removeWorktree: async () => ({ stillRegistered: false }),
+			});
+			const caller = workspaceCleanupRouter.createCaller(ctx);
+
+			const result = await caller.destroy({
+				workspaceId: "ws-1",
+				deleteBranch: false,
+				force: true,
+			});
+			expect(result.success).toBe(true);
+			// The link resolves outside the managed root, so the root guard
+			// refuses it and the target's contents are untouched.
+			expect(result.worktreeRemoved).toBe(false);
+			expect(existsSync(join(outside, "user-data.txt"))).toBe(true);
+			expect(
+				result.warnings.some((warning) => warning.includes("left on disk")),
+			).toBe(true);
+		} finally {
+			rmSync(base, { recursive: true, force: true });
+			rmSync(repo, { recursive: true, force: true });
+			rmSync(outside, { recursive: true, force: true });
+		}
+	});
+
+	test("unregistered leftover outside the managed root is left on disk with a warning", async () => {
+		const tmp = mkdtempSync(join(tmpdir(), "workspace-delete-"));
+		const repo = mkdtempSync(join(tmpdir(), "workspace-delete-repo-"));
+		try {
+			const ctx = makeCtx({
+				workspace: {
+					id: "ws-1",
+					projectId: "p-1",
+					worktreePath: tmp,
+					branch: "feature",
+				},
+				// No worktreeBaseDir: the default root is under the home dir,
+				// so this tmp path falls outside it and must not be rm'd.
+				project: { id: "p-1", repoPath: repo },
+				removeWorktree: async () => ({ stillRegistered: false }),
+			});
+			const caller = workspaceCleanupRouter.createCaller(ctx);
+
+			const result = await caller.destroy({
+				workspaceId: "ws-1",
+				deleteBranch: false,
+				force: true,
+			});
+			expect(result.success).toBe(true);
+			expect(existsSync(tmp)).toBe(true);
+			// The folder is still on disk, so the result must not claim the
+			// worktree was removed (#6785 review).
+			expect(result.worktreeRemoved).toBe(false);
+			expect(
+				result.warnings.some((warning) => warning.includes("left on disk")),
+			).toBe(true);
+		} finally {
+			rmSync(tmp, { recursive: true, force: true });
+			rmSync(repo, { recursive: true, force: true });
+		}
+	});
+
+	test("still-registered failure surfaces git's own error", async () => {
+		const tmp = mkdtempSync(join(tmpdir(), "workspace-delete-"));
+		const repo = mkdtempSync(join(tmpdir(), "workspace-delete-repo-"));
+		try {
+			const ctx = makeCtx({
+				workspace: {
+					id: "ws-1",
+					projectId: "p-1",
+					worktreePath: tmp,
+					branch: "feature",
+				},
+				project: { id: "p-1", repoPath: repo },
+				removeWorktree: async () => ({
+					stillRegistered: true,
+					removeError: "Operation not permitted",
+				}),
+			});
+			const caller = workspaceCleanupRouter.createCaller(ctx);
+
+			await expect(
+				caller.destroy({
+					workspaceId: "ws-1",
+					deleteBranch: false,
+					force: true,
+				}),
+			).rejects.toThrow(/Operation not permitted/);
 		} finally {
 			rmSync(tmp, { recursive: true, force: true });
 			rmSync(repo, { recursive: true, force: true });

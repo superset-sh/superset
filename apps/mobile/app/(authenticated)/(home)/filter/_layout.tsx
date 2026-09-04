@@ -14,19 +14,16 @@ export default function FilterLayout() {
 			<Stack.Screen
 				name="index"
 				options={{
-					title: t({ id: "mobile.nav.filter.title", message: "Filter" }),
+					title: t({ message: "Filter" }),
 				}}
 			/>
 			<Stack.Screen
 				name="scope"
 				options={{
-					title: t({ id: "mobile.nav.scope.title", message: "Scope" }),
+					title: t({ message: "Scope" }),
 				}}
 			/>
-			<Stack.Screen
-				name="sort"
-				options={{ title: t({ id: "mobile.nav.sort.title", message: "Sort" }) }}
-			/>
+			<Stack.Screen name="sort" options={{ title: t({ message: "Sort" }) }} />
 		</Stack>
 	);
 }

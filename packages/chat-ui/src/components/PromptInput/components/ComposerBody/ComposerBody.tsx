@@ -568,7 +568,7 @@ export function ComposerBody({
 						dragging ? "scale-100" : "scale-95",
 					)}
 				>
-					<Trans id="chatUi.composer.dropToAttach">Drop to attach</Trans>
+					<Trans>Drop to attach</Trans>
 				</span>
 			</div>
 			<AttachmentPills
@@ -697,7 +697,6 @@ export function ComposerBody({
 						<button
 							type="button"
 							aria-label={t({
-								id: "chatUi.composer.retryDictation",
 								message: "Retry dictation",
 							})}
 							onClick={() => void dictationSession.retry()}
@@ -708,7 +707,6 @@ export function ComposerBody({
 						<button
 							type="button"
 							aria-label={t({
-								id: "chatUi.composer.discardRecording",
 								message: "Discard recording",
 							})}
 							onClick={dictationSession.cancel}
@@ -719,7 +717,6 @@ export function ComposerBody({
 						<button
 							type="button"
 							aria-label={t({
-								id: "chatUi.composer.sendMessage",
 								message: "Send message",
 							})}
 							disabled
@@ -737,7 +734,6 @@ export function ComposerBody({
 						<button
 							type="button"
 							aria-label={t({
-								id: "chatUi.composer.stopDictation",
 								message: "Stop dictation",
 							})}
 							disabled={dictationSession.status === "transcribing"}
@@ -749,7 +745,6 @@ export function ComposerBody({
 						<button
 							type="button"
 							aria-label={t({
-								id: "chatUi.composer.sendMessage",
 								message: "Send message",
 							})}
 							disabled
@@ -766,7 +761,6 @@ export function ComposerBody({
 							<button
 								type="button"
 								aria-label={t({
-									id: "chatUi.composer.dictate",
 									message: "Dictate",
 								})}
 								onClick={() => {
@@ -782,7 +776,6 @@ export function ComposerBody({
 							<button
 								type="button"
 								aria-label={t({
-									id: "chatUi.composer.stopResponse",
 									message: "Stop response",
 								})}
 								onClick={onStop}
@@ -794,7 +787,6 @@ export function ComposerBody({
 							<button
 								type="button"
 								aria-label={t({
-									id: "chatUi.composer.sendMessage",
 									message: "Send message",
 								})}
 								disabled={!canSend}

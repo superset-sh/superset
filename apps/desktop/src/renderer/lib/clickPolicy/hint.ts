@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { shortActionLabel } from "./actionLabel";
 import { modifierLabel } from "./modifierLabel";
@@ -27,8 +28,9 @@ export function buildHint(
 }
 
 export function unboundHint(): string {
-	return i18n._({
-		id: "clickPolicy.hint.unbound",
-		message: "Not bound · configure in Settings → Links",
-	});
+	return i18n._(
+		msg({
+			message: "Not bound · configure in Settings → Links",
+		}),
+	);
 }

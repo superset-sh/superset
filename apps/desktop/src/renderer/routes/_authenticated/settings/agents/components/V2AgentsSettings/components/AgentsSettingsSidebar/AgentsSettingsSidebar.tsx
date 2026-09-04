@@ -90,14 +90,14 @@ export function AgentsSettingsSidebar({
 				>
 					<Plus className="size-3.5 shrink-0" />
 					<span className="truncate flex-1">
-						<Trans id="settings.agents.sidebar.addAgent">Add agent</Trans>
+						<Trans>Add agent</Trans>
 					</span>
 				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start" className="w-56">
 				<DropdownMenuItem className="gap-2" onSelect={onCreateCustomAgent}>
 					<Wrench className="size-4 shrink-0 text-muted-foreground" />
-					<Trans id="settings.agents.sidebar.customAgent">Custom agent…</Trans>
+					<Trans>Custom agent…</Trans>
 				</DropdownMenuItem>
 				<DropdownMenuSeparator />
 				{presets.map((preset) => (
@@ -115,9 +115,7 @@ export function AgentsSettingsSidebar({
 					onSelect={() => onResetToDefaults()}
 					disabled={isResetting}
 				>
-					<Trans id="settings.agents.sidebar.resetToDefaults">
-						Reset to defaults
-					</Trans>
+					<Trans>Reset to defaults</Trans>
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>
@@ -135,11 +133,9 @@ export function AgentsSettingsSidebar({
 			>
 				<SettingsListSidebar
 					searchPlaceholder={t({
-						id: "settings.agents.sidebar.searchPlaceholder",
 						message: "Filter agents...",
 					})}
 					searchAriaLabel={t({
-						id: "settings.agents.sidebar.searchAriaLabel",
 						message: "Filter agents",
 					})}
 					listHeader={listHeader}
@@ -147,7 +143,6 @@ export function AgentsSettingsSidebar({
 						{
 							id: "all",
 							title: t({
-								id: "settings.agents.sidebar.groupTitle",
 								message: "Agents",
 							}),
 							rows: configs,
@@ -158,12 +153,10 @@ export function AgentsSettingsSidebar({
 					}
 					getRowKey={(row) => row.id}
 					emptyLabel={t({
-						id: "settings.agents.sidebar.emptyLabel",
 						message: "No agents yet.",
 					})}
 					noMatchLabel={(q) =>
 						t({
-							id: "settings.agents.sidebar.noMatchLabel",
 							message: `No agents match "${q}".`,
 						})
 					}
@@ -231,7 +224,6 @@ function AgentSidebarRow({ row, isActive, onSelect }: AgentSidebarRowProps) {
 					isDragging && "opacity-100",
 				)}
 				aria-label={t({
-					id: "settings.agents.sidebar.dragToReorder",
 					message: "Drag to reorder",
 				})}
 			>

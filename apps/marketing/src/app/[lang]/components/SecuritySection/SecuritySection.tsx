@@ -23,11 +23,9 @@ const SECURITY_FEATURES: {
 		id: "source-available",
 		icon: <HiOutlineCodeBracket className="w-5 h-5 text-foreground/70" />,
 		title: msg({
-			id: "marketing.security.sourceAvailable.title",
 			message: "Source Available",
 		}),
 		description: msg({
-			id: "marketing.security.sourceAvailable.description",
 			message:
 				"Full source available on GitHub under Elastic License 2.0 (ELv2). Inspect, audit, and contribute to the code. No black boxes, no hidden functionality.",
 		}),
@@ -36,11 +34,9 @@ const SECURITY_FEATURES: {
 		id: "local-first",
 		icon: <HiOutlineServerStack className="w-5 h-5 text-foreground/70" />,
 		title: msg({
-			id: "marketing.security.localFirst.title",
 			message: "Local First",
 		}),
 		description: msg({
-			id: "marketing.security.localFirst.description",
 			message:
 				"Repos, worktrees, terminal output, and agent sessions stay on your machine. Cloud sync covers account and organization metadata only.",
 		}),
@@ -49,11 +45,9 @@ const SECURITY_FEATURES: {
 		id: "your-accounts",
 		icon: <HiOutlineSignal className="w-5 h-5 text-foreground/70" />,
 		title: msg({
-			id: "marketing.security.yourAccounts.title",
 			message: "Your Agents, Your Accounts",
 		}),
 		description: msg({
-			id: "marketing.security.yourAccounts.description",
 			message:
 				"Use your existing agent subscriptions and API keys. Superset never proxies model calls or locks your workflow to one provider.",
 		}),
@@ -76,17 +70,17 @@ export function SecuritySection() {
 				>
 					<div className="space-y-4">
 						<span className="text-sm font-mono uppercase tracking-widest text-brand">
-							<Trans id="marketing.security.eyebrow">Security</Trans>
+							<Trans>Security</Trans>
 						</span>
 						<h2 className="text-3xl sm:text-4xl lg:text-5xl font-medium tracking-tight leading-[1.1] text-foreground">
-							<Trans id="marketing.security.headline">
+							<Trans>
 								Private by default.
 								<br />
 								You&apos;re in control.
 							</Trans>
 						</h2>
 						<p className="text-base sm:text-lg font-light text-muted-foreground max-w-[700px]">
-							<Trans id="marketing.security.subheadline">
+							<Trans>
 								Your code stays local by default, with explicit control over
 								connected services.
 							</Trans>
@@ -97,7 +91,6 @@ export function SecuritySection() {
 						target="_blank"
 						rel="noopener noreferrer"
 						aria-label={t({
-							id: "marketing.security.soc2BadgeLabel",
 							message: "SOC 2 Type II compliant. Request our report.",
 						})}
 						className="hidden sm:block shrink-0 text-muted-foreground transition-colors hover:text-foreground"

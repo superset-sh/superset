@@ -1,5 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Trans, useLingui } from "@lingui/react/macro";
+import { isCloudAgentId } from "@superset/shared/cloud-agent-launch";
+import { HOST_AGENT_PRESETS } from "@superset/shared/host-agent-presets";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { SquareTerminal } from "lucide-react-native";
 import { useMemo } from "react";
@@ -17,6 +19,15 @@ import { posthog } from "@/lib/posthog";
 import { CLOUD_TARGET_ID } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/hooks/useNewChatTargets";
 import { useNewSessionPreferencesStore } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/stores/newSessionPreferencesStore";
 import { useHostAgentConfigs } from "@/screens/(authenticated)/hooks/useHostAgentConfigs";
+
+const CLOUD_AGENT_CONFIGS = HOST_AGENT_PRESETS.filter((preset) =>
+	isCloudAgentId(preset.presetId),
+).map((preset) => ({
+	id: preset.presetId,
+	presetId: preset.presetId,
+	label: preset.label,
+	iconId: preset.presetId as string | null,
+}));
 
 export function AgentMark({
 	agentId,
@@ -50,6 +61,11 @@ export function AgentPickerScreen() {
 	const agentId = useNewSessionPreferencesStore((state) => state.agentId);
 	const setAgentId = useNewSessionPreferencesStore((state) => state.setAgentId);
 	const { machineId } = useLocalSearchParams<{ machineId?: string }>();
+	// Under Cloud a laptop-only preset resolves to the one that launches.
+	const selectedAgentId =
+		machineId === CLOUD_TARGET_ID && (!agentId || !isCloudAgentId(agentId))
+			? "claude"
+			: agentId;
 
 	const hostsQuery = useOrgHostsQuery();
 	const host =
@@ -70,45 +86,42 @@ export function AgentPickerScreen() {
 				? hostServiceUrl(host.organizationId, host.machineId)
 				: null,
 	});
-	const configs = configsQuery.data ?? [];
+	// A cloud workspace launches one of the built-in presets; the sandbox has
+	// no host config of its own to list (custom agents: SUPER-2127).
+	const configs =
+		machineId === CLOUD_TARGET_ID
+			? CLOUD_AGENT_CONFIGS
+			: (configsQuery.data ?? []);
 
 	let notice: string | null = null;
 	let isLoading = false;
 	let retry: (() => void) | null = null;
 	if (!machineId) {
 		notice = t({
-			id: "mobile.agentPicker.noProjectSelected",
 			message: "No project selected",
 		});
 	} else if (machineId === CLOUD_TARGET_ID) {
-		notice = t({
-			id: "mobile.agentPicker.cloudNoAgent",
-			message: "Cloud workspaces don't run an agent yet",
-		});
+		// Built-in presets, nothing to load.
 	} else if (!host) {
 		if (hostsQuery.isPending) {
 			isLoading = true;
 		} else if (hostsQuery.isError) {
 			notice = t({
-				id: "mobile.agentPicker.machinesLoadFailed",
 				message: "Could not load your machines",
 			});
 			retry = () => void hostsQuery.refetch();
 		} else {
 			notice = t({
-				id: "mobile.agentPicker.machineUnavailable",
 				message: "That machine is no longer available",
 			});
 		}
 	} else if (!isOnline) {
 		notice = t({
-			id: "mobile.agentPicker.hostOffline",
 			message: `${host.name} is offline`,
 		});
 	} else if (configs.length === 0) {
 		if (configsQuery.isError) {
 			notice = t({
-				id: "mobile.agentPicker.agentsLoadFailed",
 				message: `Could not load agents from ${host.name}`,
 			});
 			retry = () => void configsQuery.refetch();
@@ -116,7 +129,6 @@ export function AgentPickerScreen() {
 			isLoading = true;
 		} else {
 			notice = t({
-				id: "mobile.agentPicker.noAgentsConfigured",
 				message: `No agents configured on ${host.name}`,
 			});
 		}
@@ -150,7 +162,7 @@ export function AgentPickerScreen() {
 					{retry ? (
 						<Button size="sm" variant="secondary" onPress={retry}>
 							<Text>
-								<Trans id="mobile.common.tryAgain">Try again</Trans>
+								<Trans>Try again</Trans>
 							</Text>
 						</Button>
 					) : null}
@@ -160,7 +172,7 @@ export function AgentPickerScreen() {
 				configs.map((config) => {
 					// Persist the presetId, not the row id: config ids are per-host
 					// UUIDs, presetIds resolve on any host (agents.run accepts both).
-					const isSelected = config.presetId === agentId;
+					const isSelected = config.presetId === selectedAgentId;
 					return (
 						<Pressable
 							key={config.id}

@@ -43,14 +43,13 @@ export function CopyOnSelectSetting() {
 				>
 					<HighlightText
 						text={t({
-							id: "settings.terminal.copyOnSelect.label",
 							message: "Copy on select",
 						})}
 						query={searchQuery}
 					/>
 				</Label>
 				<p className="text-xs text-muted-foreground max-w-md leading-relaxed">
-					<Trans id="settings.terminal.copyOnSelect.hint">
+					<Trans>
 						Selecting text in a terminal copies it to the clipboard right away,
 						with trailing whitespace trimmed
 					</Trans>

@@ -58,7 +58,6 @@ export function JumpToFileSheet() {
 			<Stack.Screen
 				options={{
 					title: t({
-						id: "mobile.nav.jumpToFile.title",
 						message: "Jump to file",
 					}),
 				}}
@@ -67,7 +66,6 @@ export function JumpToFileSheet() {
 				<Stack.Toolbar.Button
 					icon="xmark"
 					accessibilityLabel={t({
-						id: "mobile.common.close",
 						message: "Close",
 					})}
 					onPress={() => router.back()}
@@ -131,7 +129,7 @@ export function JumpToFileSheet() {
 				ListEmptyComponent={
 					<View className="items-center py-16">
 						<Text className="text-muted-foreground text-sm">
-							<Trans id="mobile.jumpToFile.empty">No changed files.</Trans>
+							<Trans>No changed files.</Trans>
 						</Text>
 					</View>
 				}

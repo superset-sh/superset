@@ -52,9 +52,11 @@ describe("AGENT_MODEL_SUPPORT", () => {
 });
 
 describe("SUPERSET_CHAT_MODELS", () => {
-	it("includes opus 5 and the GPT-5.6 Codex models", () => {
+	it("includes opus 5, fable 5.1, GPT-6 Astra and the GPT-5.6 Codex models", () => {
 		const ids = SUPERSET_CHAT_MODELS.map((model) => model.id);
 		expect(ids).toContain("anthropic/claude-opus-5");
+		expect(ids).toContain("anthropic/claude-fable-5-1");
+		expect(ids).toContain("openai/gpt-6-astra");
 		expect(ids).toContain("openai/gpt-5.6-sol");
 		expect(ids).toContain("openai/gpt-5.6-terra");
 		expect(ids).toContain("openai/gpt-5.6-luna");
@@ -112,6 +114,7 @@ describe("buildAgentModelArgs", () => {
 		// Aliases follow the CLI's newest model; teams standardising on one
 		// release need an id that stays put.
 		expect(ids).toContain("opus");
+		expect(ids).toContain("claude-fable-5-1");
 		expect(ids).toContain("claude-opus-4-8");
 		expect(ids).toContain("claude-opus-4-7");
 		expect(ids).toContain("claude-sonnet-4-6");
@@ -124,6 +127,7 @@ describe("buildAgentModelArgs", () => {
 			models.find((model) => model.id === id)?.group;
 		expect(groupOf("opus")).toBe("Latest");
 		expect(groupOf("claude-opus-4-8")).toBe("Pinned releases");
+		expect(groupOf("claude-fable-5-1")).toBe("Pinned releases");
 		// The header carries the distinction, so labels stay bare.
 		expect(models.find((model) => model.id === "opus")?.label).toBe("Opus");
 	});
@@ -167,10 +171,33 @@ describe("buildAgentModelArgs", () => {
 		);
 	});
 
+	it("includes fable 5.1 as a pinned claude release and for the models.dev harnesses", () => {
+		expect(buildAgentModelArgs("claude", "claude-fable-5-1")).toEqual([
+			"--model",
+			"claude-fable-5-1",
+		]);
+		for (const preset of ["opencode", "omp"]) {
+			expect(buildAgentModelArgs(preset, "anthropic/claude-fable-5-1")).toEqual(
+				["--model", "anthropic/claude-fable-5-1"],
+			);
+		}
+	});
+
 	it("includes every GPT-5.6 Codex model", () => {
 		for (const model of ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"]) {
 			expect(buildAgentModelArgs("codex", model)).toEqual(["--model", model]);
 		}
+	});
+
+	it("offers GPT-6 Astra in codex's current section", () => {
+		expect(buildAgentModelArgs("codex", "gpt-6-astra")).toEqual([
+			"--model",
+			"gpt-6-astra",
+		]);
+		const models = getAgentModelSupport("codex")?.models ?? [];
+		expect(models.find((model) => model.id === "gpt-6-astra")?.group).toBe(
+			"Current",
+		);
 	});
 
 	it("includes opus 5 and the GPT-5.6 models for the other CLIs", () => {
@@ -342,6 +369,13 @@ describe("getAgentEfforts", () => {
 			"xhigh",
 			"max",
 			"ultra",
+		]);
+		expect(getAgentEfforts("codex", "gpt-6-astra").map((e) => e.id)).toEqual([
+			"low",
+			"medium",
+			"high",
+			"xhigh",
+			"max",
 		]);
 		expect(getAgentEfforts("codex", "gpt-5.6-luna").map((e) => e.id)).toEqual([
 			"low",

@@ -1,9 +1,11 @@
 import { useEffect, useRef } from "react";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
+import { useHostTagFolders } from "renderer/hooks/host-projects/useHostTagFolders";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { isSidebarWorkspaceVisible } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
+import { getLegacyPresentationPushTargets } from "./getLegacyPresentationPushTargets";
 import {
 	type MigrationHostRow,
 	migrateLegacySidebarFolders,
@@ -13,9 +15,10 @@ import {
 // next app launch, so the effect (which re-runs on every workspace-cache
 // change) can't hammer a permanently failing host.
 const sessionParkedFolders = new Set<string>();
-// One presentation push per (project, tag) per session — the broadcast that
-// follows each push re-runs the effect, and without this the check below
-// races its own in-flight write.
+// One presentation push per (host, project, tag) per session — the broadcast
+// that follows each push re-runs the effect, and without this the check below
+// races its own in-flight write. Host identity matters: one replica's success
+// must not suppress a missing row on another replica.
 const sessionPushedSettings = new Set<string>();
 
 /**
@@ -27,6 +30,7 @@ export function useMigrateLegacySidebarFolders(): void {
 	const collections = useCollections();
 	const { workspaces: hostWorkspaces, cache, isReady } = useHostWorkspaces();
 	const { projects: hostProjects } = useHostProjects();
+	const { hostResults: tagFolderHostResults } = useHostTagFolders();
 	const runningRef = useRef(false);
 
 	// One-time presentation push: rows customised before settings moved
@@ -42,30 +46,28 @@ export function useMigrateLegacySidebarFolders(): void {
 			const hasCustomColor = section.color != null;
 			const hasCustomName = section.name !== tag;
 			if (!hasCustomColor && !hasCustomName) continue;
-			const pushKey = `${section.projectId}\u0000${tag}`;
-			if (sessionPushedSettings.has(pushKey)) continue;
 			const project = hostProjects.find(
 				(item) => item.projectKey === section.projectId,
 			);
 			if (!project) continue;
-			// Older hosts don't serve settings at all — never push to them.
-			if (project.tagSettings === undefined) continue;
-			if (project.tagSettings.some((setting) => setting.tag === tag)) {
+			const targets = getLegacyPresentationPushTargets({
+				hostIds: project.hostIds,
+				scope: section.projectId,
+				tag,
+				hostResults: tagFolderHostResults,
+			});
+			for (const target of targets) {
+				const pushKey = `${target.machineId}\u0000${section.projectId}\u0000${tag}`;
+				if (sessionPushedSettings.has(pushKey)) continue;
 				sessionPushedSettings.add(pushKey);
-				continue;
-			}
-			sessionPushedSettings.add(pushKey);
-			for (const hostId of project.hostIds) {
-				const url = cache.resolveHostUrl(hostId);
-				if (!url) continue;
-				void getHostServiceClientByUrl(url)
-					.project.setTagSetting.mutate({
-						projectId: section.projectId,
+				void getHostServiceClientByUrl(target.hostUrl)
+					.tagFolders.upsert.mutate({
+						scope: section.projectId,
 						tag,
 						...(hasCustomName ? { displayName: section.name } : {}),
 						...(hasCustomColor ? { color: section.color } : {}),
 					})
-					.catch((error) => {
+					.catch((error: unknown) => {
 						console.warn(
 							"[sidebar-tag-migration] presentation push failed:",
 							error,
@@ -73,7 +75,7 @@ export function useMigrateLegacySidebarFolders(): void {
 					});
 			}
 		}
-	}, [collections, hostProjects, cache, isReady]);
+	}, [collections, hostProjects, tagFolderHostResults, isReady]);
 
 	useEffect(() => {
 		if (!isReady || runningRef.current) return;

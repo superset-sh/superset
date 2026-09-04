@@ -29,21 +29,17 @@ export function PaymentFailedBanner({
 	const message = isOwner
 		? amountDue
 			? t({
-					id: "settings.billing.paymentFailed.ownerAmount",
 					message: `We couldn't charge ${amountDue}. Update your payment method to keep this plan.`,
 				})
 			: t({
-					id: "settings.billing.paymentFailed.owner",
 					message:
 						"We couldn't charge your payment method. Update it to keep this plan.",
 				})
 		: amountDue
 			? t({
-					id: "settings.billing.paymentFailed.memberAmount",
 					message: `We couldn't charge this organization's payment method for ${amountDue}. Ask an owner to update it.`,
 				})
 			: t({
-					id: "settings.billing.paymentFailed.member",
 					message:
 						"We couldn't charge this organization's payment method. Ask an owner to update it.",
 				});
@@ -61,9 +57,7 @@ export function PaymentFailedBanner({
 				/>
 				<span>
 					<span className="font-medium">
-						<Trans id="settings.billing.paymentFailed.label">
-							Payment failed.
-						</Trans>
+						<Trans>Payment failed.</Trans>
 					</span>{" "}
 					{message}
 				</span>
@@ -75,7 +69,7 @@ export function PaymentFailedBanner({
 					className="ml-auto h-7 shrink-0 border-warning/40 bg-warning/10 px-2.5 text-xs text-warning hover:bg-warning/20"
 					onClick={() => onPayInvoice(hostedInvoiceUrl)}
 				>
-					<Trans id="settings.billing.paymentFailed.payNow">Pay now</Trans>
+					<Trans>Pay now</Trans>
 				</Button>
 			)}
 		</div>

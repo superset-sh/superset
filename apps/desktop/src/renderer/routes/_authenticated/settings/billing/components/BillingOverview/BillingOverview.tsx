@@ -151,7 +151,6 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 			});
 			toast.success(
 				t({
-					id: "settings.billing.planRestoredToast",
 					message: "Plan restored",
 				}),
 			);
@@ -166,10 +165,10 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 			<div className="mb-8 flex items-start justify-between gap-4">
 				<div>
 					<h2 className="text-xl font-semibold">
-						<Trans id="settings.billing.title">Billing</Trans>
+						<Trans>Billing</Trans>
 					</h2>
 					<p className="text-sm text-muted-foreground mt-1">
-						<Trans id="settings.billing.subtitle">
+						<Trans>
 							For questions about billing,{" "}
 							<a
 								href="mailto:support@superset.sh"
@@ -185,7 +184,6 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 					<Link to="/settings/billing/plans">
 						<HighlightText
 							text={t({
-								id: "settings.billing.allPlansLink",
 								message: "All plans",
 							})}
 							query={searchQuery}
@@ -207,7 +205,7 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 				{showOverview && (
 					<div>
 						<h3 className="text-sm font-medium mb-2">
-							<Trans id="settings.billing.planSectionTitle">Plan</Trans>
+							<Trans context="billing">Plan</Trans>
 						</h3>
 						<div className="divide-y divide-border">
 							<CurrentPlanCard

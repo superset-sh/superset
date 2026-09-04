@@ -31,15 +31,7 @@ export function ChecksList({ checks }: ChecksListProps) {
 					<LuChevronRight className="size-3" strokeWidth={STROKE_WIDTH} />
 				)}
 				<span>
-					{expanded ? (
-						<Trans id="dashboard.sidebar.checksList.hideChecks">
-							Hide checks
-						</Trans>
-					) : (
-						<Trans id="dashboard.sidebar.checksList.showChecks">
-							Show checks
-						</Trans>
-					)}
+					{expanded ? <Trans>Hide checks</Trans> : <Trans>Show checks</Trans>}
 				</span>
 			</button>
 

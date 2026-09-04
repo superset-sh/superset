@@ -83,7 +83,6 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 				errorMessage(
 					error,
 					t({
-						id: "settings.account.deleteAccountFailed",
 						message: "Failed to delete account",
 					}),
 				),
@@ -117,13 +116,10 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 
 			setAvatarPreview(uploadResult.url);
 			await refetchSession();
-			toast.success(
-				t({ id: "settings.account.avatarUpdated", message: "Avatar updated!" }),
-			);
+			toast.success(t({ message: "Avatar updated!" }));
 		} catch {
 			toast.error(
 				t({
-					id: "settings.account.avatarUpdateFailed",
 					message: "Failed to update avatar",
 				}),
 			);
@@ -141,13 +137,10 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 		try {
 			await apiTrpcClient.user.updateProfile.mutate({ name: nameValue });
 			await refetchSession();
-			toast.success(
-				t({ id: "settings.account.nameUpdated", message: "Name updated!" }),
-			);
+			toast.success(t({ message: "Name updated!" }));
 		} catch {
 			toast.error(
 				t({
-					id: "settings.account.nameUpdateFailed",
 					message: "Failed to update name",
 				}),
 			);
@@ -159,12 +152,10 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
 				<h2 className="text-xl font-semibold">
-					<Trans id="settings.account.title">Account</Trans>
+					<Trans>Account</Trans>
 				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					<Trans id="settings.account.subtitle">
-						Manage your account settings
-					</Trans>
+					<Trans>Manage your account settings</Trans>
 				</p>
 			</div>
 
@@ -176,11 +167,9 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 						<>
 							<SettingRow
 								label={t({
-									id: "settings.account.avatarLabel",
 									message: "Avatar",
 								})}
 								hint={t({
-									id: "settings.account.avatarHint",
 									message: "Recommended size 256×256.",
 								})}
 							>
@@ -190,7 +179,6 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 									disabled={selectImageMutation.isPending}
 									className="rounded-full transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-100"
 									aria-label={t({
-										id: "settings.account.changeAvatarAriaLabel",
 										message: "Change avatar",
 									})}
 								>
@@ -202,15 +190,12 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 								</button>
 							</SettingRow>
 
-							<SettingRow
-								label={t({ id: "settings.account.nameLabel", message: "Name" })}
-							>
+							<SettingRow label={t({ message: "Name" })}>
 								<Input
 									value={nameValue}
 									onChange={(e) => setNameValue(e.target.value)}
 									onBlur={handleNameBlur}
 									placeholder={t({
-										id: "settings.account.namePlaceholder",
 										message: "Your name",
 									})}
 									className="w-80"
@@ -219,7 +204,6 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 
 							<SettingRow
 								label={t({
-									id: "settings.account.emailLabel",
 									message: "Email",
 								})}
 							>
@@ -232,9 +216,7 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 						</>
 					) : (
 						<p className="text-sm text-muted-foreground">
-							<Trans id="settings.account.loadError">
-								Unable to load user info
-							</Trans>
+							<Trans>Unable to load user info</Trans>
 						</p>
 					))}
 
@@ -242,11 +224,9 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 					<div className={showProfile ? "pt-5" : undefined}>
 						<SettingRow
 							label={t({
-								id: "settings.account.signOutLabel",
 								message: "Sign out of this device",
 							})}
 							hint={t({
-								id: "settings.account.signOutHint",
 								message:
 									"You'll need to sign in again to use Superset on this device.",
 							})}
@@ -257,13 +237,12 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 									await signOut();
 									toast.success(
 										t({
-											id: "settings.account.signedOut",
 											message: "Signed out",
 										}),
 									);
 								}}
 							>
-								<Trans id="settings.account.signOutButton">Sign out</Trans>
+								<Trans>Sign out</Trans>
 							</Button>
 						</SettingRow>
 					</div>
@@ -279,7 +258,6 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 					<div className="pt-5">
 						<SettingRow
 							label={t({
-								id: "settings.account.deleteAccountLabel",
 								message: "Delete account",
 							})}
 						>
@@ -287,25 +265,19 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 								<AlertDialogTrigger asChild>
 									<Button variant="destructive" disabled={isDeleting}>
 										{isDeleting ? (
-											<Trans id="settings.account.deletingButton">
-												Deleting…
-											</Trans>
+											<Trans>Deleting…</Trans>
 										) : (
-											<Trans id="settings.account.deleteButton">
-												Delete account
-											</Trans>
+											<Trans>Delete account</Trans>
 										)}
 									</Button>
 								</AlertDialogTrigger>
 								<AlertDialogContent>
 									<AlertDialogHeader>
 										<AlertDialogTitle>
-											<Trans id="settings.account.deleteConfirmTitle">
-												Delete account?
-											</Trans>
+											<Trans>Delete account?</Trans>
 										</AlertDialogTitle>
 										<AlertDialogDescription>
-											<Trans id="settings.account.deleteConfirmDescription">
+											<Trans>
 												All of your data will be permanently deleted after{" "}
 												{ACCOUNT_DELETION_GRACE_DAYS} days — sign back in before
 												then to restore your account.
@@ -314,15 +286,13 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 									</AlertDialogHeader>
 									<AlertDialogFooter>
 										<AlertDialogCancel>
-											<Trans id="settings.account.deleteCancel">Cancel</Trans>
+											<Trans>Cancel</Trans>
 										</AlertDialogCancel>
 										<AlertDialogAction
 											variant="destructive"
 											onClick={handleDeleteAccount}
 										>
-											<Trans id="settings.account.deleteConfirmAction">
-												Delete account
-											</Trans>
+											<Trans>Delete account</Trans>
 										</AlertDialogAction>
 									</AlertDialogFooter>
 								</AlertDialogContent>

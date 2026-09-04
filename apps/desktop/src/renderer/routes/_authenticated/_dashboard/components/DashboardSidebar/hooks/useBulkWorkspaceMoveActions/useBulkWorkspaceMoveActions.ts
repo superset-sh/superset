@@ -1,9 +1,13 @@
-import { normalizeWorkspaceTags } from "@superset/shared/workspace-tags";
+import {
+	normalizeWorkspaceTags,
+	SESSIONS_TAG_SCOPE,
+} from "@superset/shared/workspace-tags";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import {
 	applyFolderTagChange,
+	buildSidebarFolderKey,
 	mintFolderTag,
 } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import { useDashboardSidebarSectionRename } from "../../components/DashboardSidebarSectionRenameContext";
@@ -91,7 +95,7 @@ export function useBulkWorkspaceMoveActions({
 			for (const workspaceId of selectedIds)
 				updateSessionWorkspaceGroup(workspaceId, tag);
 			clearSelection();
-			requestSectionRename(`session:${tag}`);
+			requestSectionRename(buildSidebarFolderKey(SESSIONS_TAG_SCOPE, tag));
 			return;
 		}
 		const sectionId = createSection(projectId);

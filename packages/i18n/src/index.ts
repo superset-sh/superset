@@ -51,6 +51,21 @@ function ensureEnglish(): void {
 // navigator.languages (React Native, Node) pass their own preference list to
 // resolveLocale/initI18n instead. A persisted user setting takes precedence.
 export function inferLocale(): SupportedLocale {
+	return inferLocaleWithSource().locale;
+}
+
+export type InferredLocaleSource = "cookie" | "system";
+
+/**
+ * inferLocale plus where the answer came from: an explicit switcher choice
+ * pinned in LOCALE_COOKIE, or the browser's language preferences. Analytics
+ * use the source to separate users who chose a language from users who were
+ * handed one.
+ */
+export function inferLocaleWithSource(): {
+	locale: SupportedLocale;
+	source: InferredLocaleSource;
+} {
 	// An explicit choice from a language switcher outranks browser preferences.
 	// Accessed through globalThis so this file typechecks under Node-only lib
 	// settings, where the document global does not exist.
@@ -60,12 +75,14 @@ export function inferLocale(): SupportedLocale {
 			new RegExp(`(?:^|; )${LOCALE_COOKIE}=([^;]*)`),
 		);
 		const chosen = match?.[1];
-		if (chosen && isSupportedLocale(chosen)) return chosen;
+		if (chosen && isSupportedLocale(chosen)) {
+			return { locale: chosen, source: "cookie" };
+		}
 	}
 	if (typeof navigator !== "undefined" && Array.isArray(navigator.languages)) {
-		return resolveLocale(navigator.languages);
+		return { locale: resolveLocale(navigator.languages), source: "system" };
 	}
-	return DEFAULT_LOCALE;
+	return { locale: DEFAULT_LOCALE, source: "system" };
 }
 
 /** Loads a catalog without activating it. Resolves immediately if cached. */

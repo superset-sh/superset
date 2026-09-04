@@ -321,6 +321,20 @@ export class EventBus {
 	}
 
 	/**
+	 * Fan out tag-folder presentation changes for one scope (a project id, or
+	 * the Sessions lane). Its own channel rather than a field on the project
+	 * snapshot: the Sessions lane has no project to carry it.
+	 */
+	broadcastTagFoldersChanged(
+		message: Omit<
+			Extract<ServerMessage, { type: "tag-folders:changed" }>,
+			"type"
+		>,
+	): void {
+		this.broadcast({ type: "tag-folders:changed", ...message });
+	}
+
+	/**
 	 * Fan out port add/remove events discovered by the host-service scanner.
 	 * Renderer clients use this to patch their host snapshot immediately while
 	 * keeping a slow refetch as a reconnect fallback.

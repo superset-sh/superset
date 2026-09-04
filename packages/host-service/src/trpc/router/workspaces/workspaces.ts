@@ -495,6 +495,7 @@ async function registerLocalWorkspace(args: {
 			branch: args.branch,
 			name: args.name,
 			taskId: args.taskId ?? null,
+			createdByUserId: ctx.userId ?? null,
 			tags: args.tags,
 		});
 	} catch (err) {

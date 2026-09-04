@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { env } from "@/env";
 import { i18n } from "@/lib/i18n-server";
 
@@ -9,8 +10,9 @@ export function Footer() {
 			<div className="mx-auto flex w-[95vw] max-w-screen-2xl items-center justify-between">
 				<p className="text-sm text-muted-foreground">
 					{i18n._({
-						id: "web.footer.copyright",
-						message: "© {year} Superset",
+						...msg({
+							message: "© {year} Superset",
+						}),
 						values: { year: currentYear },
 					})}
 				</p>
@@ -21,7 +23,7 @@ export function Footer() {
 						rel="noopener noreferrer"
 						className="text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
 					>
-						{i18n._({ id: "web.footer.terms", message: "Terms of Service" })}
+						{i18n._(msg({ message: "Terms of Service" }))}
 					</a>
 					<span className="text-xs text-muted-foreground/70" aria-hidden="true">
 						|
@@ -32,7 +34,7 @@ export function Footer() {
 						rel="noopener noreferrer"
 						className="text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
 					>
-						{i18n._({ id: "web.footer.privacy", message: "Privacy Policy" })}
+						{i18n._(msg({ message: "Privacy Policy" }))}
 					</a>
 				</div>
 			</div>

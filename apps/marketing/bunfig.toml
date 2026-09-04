@@ -1,0 +1,2 @@
+[test]
+preload = ["../../packages/i18n/test-setup.ts"]

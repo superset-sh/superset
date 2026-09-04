@@ -70,14 +70,12 @@ export function DashboardSidebarAgentsChip({
 						aria-label={
 							isOpen
 								? t({
-										id: "dashboard.sidebar.agentsChip.hideDetailsAriaLabel",
 										message: plural(agents.length, {
 											one: "# running agent — hide details",
 											other: "# running agents — hide details",
 										}),
 									})
 								: t({
-										id: "dashboard.sidebar.agentsChip.showDetailsAriaLabel",
 										message: plural(agents.length, {
 											one: "# running agent — show details",
 											other: "# running agents — show details",
@@ -102,7 +100,7 @@ export function DashboardSidebarAgentsChip({
 			>
 				<div className="flex items-center justify-between px-2 py-1.5 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
 					<span>
-						<Trans id="dashboard.sidebar.agentsChip.title">Agents</Trans>
+						<Trans>Agents</Trans>
 					</span>
 					<span className="tabular-nums">{agents.length}</span>
 				</div>

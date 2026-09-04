@@ -13,7 +13,8 @@ export type PaneType =
 	| "webview"
 	| "file-viewer"
 	| "devtools"
-	| "comment";
+	| "comment"
+	| "desktop";
 
 /**
  * Pane status for agent lifecycle indicators

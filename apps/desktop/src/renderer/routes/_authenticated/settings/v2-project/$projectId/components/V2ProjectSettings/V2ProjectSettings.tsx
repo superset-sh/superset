@@ -62,9 +62,7 @@ export function V2ProjectSettings({
 		if (localHostId) {
 			options.push({
 				id: localHostId,
-				name:
-					currentDeviceName ??
-					t({ id: "settings.project.hostThisDevice", message: "This device" }),
+				name: currentDeviceName ?? t({ message: "This device" }),
 				isLocal: true,
 				isOnline: true,
 			});
@@ -83,7 +81,6 @@ export function V2ProjectSettings({
 				name:
 					targetHostId === machineId
 						? t({
-								id: "settings.project.hostThisDevice",
 								message: "This device",
 							})
 						: targetHostId,
@@ -102,7 +99,6 @@ export function V2ProjectSettings({
 		if (selectedHost?.name) return selectedHost.name;
 		if (!targetHostId || targetHostId === machineId)
 			return t({
-				id: "settings.project.hostThisDeviceInline",
 				message: "this device",
 			});
 		return targetHostId;
@@ -148,7 +144,7 @@ export function V2ProjectSettings({
 		if (!isReady) return null;
 		return (
 			<div className="p-6 text-sm text-muted-foreground select-text cursor-text">
-				<Trans id="settings.project.notFound">Project not found.</Trans>
+				<Trans>Project not found.</Trans>
 			</div>
 		);
 	}
@@ -197,14 +193,10 @@ export function V2ProjectSettings({
 			<div className="space-y-10">
 				<SettingsSection
 					title={t({
-						id: "settings.project.sectionGeneral",
 						message: "General",
 					})}
 				>
-					<SettingsRow
-						label={t({ id: "settings.project.nameLabel", message: "Name" })}
-						htmlFor="project-name"
-					>
+					<SettingsRow label={t({ message: "Name" })} htmlFor="project-name">
 						<NameSection
 							projectId={projectId}
 							// The targeted host's own name, not the cross-host merged
@@ -218,7 +210,6 @@ export function V2ProjectSettings({
 					</SettingsRow>
 					<SettingsRow
 						label={t({
-							id: "settings.project.repositoryLabel",
 							message: "Repository",
 						})}
 						htmlFor="project-repo"
@@ -226,9 +217,8 @@ export function V2ProjectSettings({
 						<RepositorySection repoUrl={project.repoUrl} />
 					</SettingsRow>
 					<SettingsRow
-						label={t({ id: "settings.project.iconLabel", message: "Icon" })}
+						label={t({ message: "Icon" })}
 						hint={t({
-							id: "settings.project.iconHint",
 							message:
 								"Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar.",
 						})}
@@ -249,11 +239,9 @@ export function V2ProjectSettings({
 
 				<SettingsSection
 					title={t({
-						id: "settings.project.sectionBranchesNaming",
 						message: "Branches & naming",
 					})}
 					description={t({
-						id: "settings.project.sectionBranchesNamingDescription",
 						message:
 							"How branches and workspace names are created for this project.",
 					})}
@@ -261,11 +249,9 @@ export function V2ProjectSettings({
 					{targetHostUrl && hostProject && (
 						<SettingsRow
 							label={t({
-								id: "settings.project.branchPrefixLabel",
 								message: "Branch prefix",
 							})}
 							hint={t({
-								id: "settings.project.branchPrefixHint",
 								message:
 									"Namespace new branches for this project. Defaults to the host-wide Git setting.",
 							})}
@@ -296,18 +282,15 @@ export function V2ProjectSettings({
 
 				<SettingsSection
 					title={t({
-						id: "settings.project.sectionLocationCheckout",
 						message: "Location & checkout",
 					})}
 					description={t({
-						id: "settings.project.sectionLocationCheckoutDescription",
 						message:
 							"Where the repository and new worktrees live on this host.",
 					})}
 				>
 					<SettingsRow
 						label={t({
-							id: "settings.project.locationLabel",
 							message: "Location",
 						})}
 					>
@@ -324,11 +307,9 @@ export function V2ProjectSettings({
 					</SettingsRow>
 					<SettingsRow
 						label={t({
-							id: "settings.project.worktreesLabel",
 							message: "Worktrees",
 						})}
 						hint={t({
-							id: "settings.project.worktreesHint",
 							message:
 								"Base directory for new worktree workspaces on this host.",
 						})}
@@ -351,12 +332,10 @@ export function V2ProjectSettings({
 									htmlFor="project-sparse-checkout"
 									className="text-sm font-medium"
 								>
-									<Trans id="settings.project.sparseCheckout">
-										Sparse checkout
-									</Trans>
+									<Trans>Sparse checkout</Trans>
 								</Label>
 								<p className="mt-0.5 text-xs text-muted-foreground">
-									<Trans id="settings.project.sparseCheckoutHint">
+									<Trans>
 										Folders to check out into new worktrees, one per line,
 										relative to the repo root. Files at the root are always
 										included. Empty checks out everything.
@@ -383,11 +362,9 @@ export function V2ProjectSettings({
 				{targetHostUrl && (
 					<SettingsSection
 						title={t({
-							id: "settings.project.sectionLifecycleScripts",
 							message: "Project lifecycle scripts",
 						})}
 						description={t({
-							id: "settings.project.sectionLifecycleScriptsDescription",
 							message:
 								"Commands run for workspace setup, teardown, and the Run button.",
 						})}
@@ -398,7 +375,6 @@ export function V2ProjectSettings({
 
 				<SettingsSection
 					title={t({
-						id: "settings.project.sectionDangerZone",
 						message: "Danger zone",
 					})}
 				>

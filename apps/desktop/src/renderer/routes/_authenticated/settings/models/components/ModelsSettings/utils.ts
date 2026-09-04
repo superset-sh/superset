@@ -76,11 +76,9 @@ export function buildAnthropicEnvText(values: AnthropicFormValues): string {
 
 const EXTERNAL_OAUTH_LABELS: Record<ProviderId, MessageDescriptor> = {
 	anthropic: msg({
-		id: "settings.models.status.connectedViaClaude",
 		message: "Connected via Claude",
 	}),
 	openai: msg({
-		id: "settings.models.status.connectedViaChatGpt",
 		message: "Connected via ChatGPT",
 	}),
 };
@@ -101,7 +99,6 @@ export function getProviderSubtitle(
 	if (status.authMethod === "oauth") {
 		return i18n._(
 			msg({
-				id: "settings.models.status.connectedInSuperset",
 				message: "Connected in Superset",
 			}),
 		);
@@ -109,14 +106,12 @@ export function getProviderSubtitle(
 	if (status.authMethod === "api_key" || status.authMethod === "env") {
 		return i18n._(
 			msg({
-				id: "settings.models.status.connectedWithApiKey",
 				message: "Connected with API key",
 			}),
 		);
 	}
 	return i18n._(
 		msg({
-			id: "settings.models.status.connected",
 			message: "Connected",
 		}),
 	);
@@ -129,7 +124,6 @@ export function getStatusBadge(
 		return {
 			label: i18n._(
 				msg({
-					id: "settings.models.badge.notConnected",
 					message: "Not connected",
 				}),
 			),
@@ -138,9 +132,7 @@ export function getStatusBadge(
 	}
 	if (status.issue?.code === "expired") {
 		return {
-			label: i18n._(
-				msg({ id: "settings.models.badge.expired", message: "Expired" }),
-			),
+			label: i18n._(msg({ message: "Expired" })),
 			variant: "destructive",
 		};
 	}
@@ -148,7 +140,6 @@ export function getStatusBadge(
 		return {
 			label: i18n._(
 				msg({
-					id: "settings.models.badge.needsAttention",
 					message: "Needs attention",
 				}),
 			),
@@ -157,9 +148,7 @@ export function getStatusBadge(
 	}
 	if (status.connectionState === "connected") {
 		return {
-			label: i18n._(
-				msg({ id: "settings.models.badge.active", message: "Active" }),
-			),
+			label: i18n._(msg({ message: "Active" })),
 			variant: "secondary",
 		};
 	}

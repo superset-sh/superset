@@ -63,10 +63,10 @@ export function V2WorkspaceRunButton({
 	}, [definition, navigate, projectId, setSettingsSearchQuery]);
 
 	const label = isRunning
-		? t({ id: "workspace.runButton.stop", message: "Stop" })
+		? t({ message: "Stop" })
 		: hasRunCommand
-			? t({ id: "workspace.runButton.run", message: "Run" })
-			: t({ id: "workspace.runButton.setRun", message: "Set Run" });
+			? t({ message: "Run" })
+			: t({ message: "Set Run" });
 	const Icon = isRunning ? Square : hasRunCommand ? Play : Settings;
 
 	return (
@@ -94,16 +94,13 @@ export function V2WorkspaceRunButton({
 				aria-label={
 					isRunning
 						? t({
-								id: "workspace.runButton.stopAria",
 								message: "Stop workspace run command",
 							})
 						: hasRunCommand
 							? t({
-									id: "workspace.runButton.runAria",
 									message: "Run workspace command",
 								})
 							: t({
-									id: "workspace.runButton.configureAria",
 									message: "Configure workspace run command",
 								})
 				}
@@ -130,7 +127,6 @@ export function V2WorkspaceRunButton({
 								"border-emerald-500/30 bg-emerald-500/[0.08] text-emerald-400 hover:bg-emerald-500/[0.12]",
 						)}
 						aria-label={t({
-							id: "workspace.runButton.optionsAria",
 							message: "Workspace run options",
 						})}
 					>
@@ -145,7 +141,7 @@ export function V2WorkspaceRunButton({
 								className="text-destructive focus:text-destructive"
 							>
 								<X className="mr-2 size-4 text-destructive" />
-								<Trans id="workspace.runButton.forceStop">Force Stop</Trans>
+								<Trans>Force Stop</Trans>
 							</DropdownMenuItem>
 							<DropdownMenuSeparator />
 						</>
@@ -154,11 +150,9 @@ export function V2WorkspaceRunButton({
 						<Settings className="mr-2 size-4" />
 						{definition?.source === "terminal-preset"
 							? t({
-									id: "workspace.runButton.editRunScript",
 									message: "Edit Run Script",
 								})
 							: t({
-									id: "workspace.runButton.configure",
 									message: "Configure",
 								})}
 					</DropdownMenuItem>

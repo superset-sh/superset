@@ -24,12 +24,10 @@ export function PathActions({ absolutePath, relativePath }: PathActionsProps) {
 				const reason = errorMessage(
 					err,
 					t({
-						id: "workspace.pathActions.unknownError",
 						message: "Unknown error",
 					}),
 				);
 				return t({
-					id: "workspace.pathActions.copyPathFailed",
 					message: `Failed to copy path: ${reason}`,
 				});
 			},
@@ -42,13 +40,11 @@ export function PathActions({ absolutePath, relativePath }: PathActionsProps) {
 			const reason = errorMessage(
 				error,
 				t({
-					id: "workspace.pathActions.unknownError",
 					message: "Unknown error",
 				}),
 			);
 			toast.error(
 				t({
-					id: "workspace.pathActions.revealInFinderFailed",
 					message: `Failed to reveal in Finder: ${reason}`,
 				}),
 			);
@@ -58,9 +54,7 @@ export function PathActions({ absolutePath, relativePath }: PathActionsProps) {
 		<>
 			<DropdownMenuItem onSelect={handleRevealInFinder}>
 				<FolderOpen />
-				<Trans id="workspace.pathActions.revealInFinder">
-					Reveal in Finder
-				</Trans>
+				<Trans>Reveal in Finder</Trans>
 			</DropdownMenuItem>
 			<DropdownMenuSeparator />
 			<DropdownMenuItem
@@ -68,14 +62,13 @@ export function PathActions({ absolutePath, relativePath }: PathActionsProps) {
 					handleCopy(
 						absolutePath,
 						t({
-							id: "workspace.pathActions.pathCopied",
 							message: "Path copied",
 						}),
 					)
 				}
 			>
 				<Clipboard />
-				<Trans id="workspace.pathActions.copyPath">Copy Path</Trans>
+				<Trans>Copy Path</Trans>
 			</DropdownMenuItem>
 			{relativePath && (
 				<DropdownMenuItem
@@ -83,16 +76,13 @@ export function PathActions({ absolutePath, relativePath }: PathActionsProps) {
 						handleCopy(
 							relativePath,
 							t({
-								id: "workspace.pathActions.relativePathCopied",
 								message: "Relative path copied",
 							}),
 						)
 					}
 				>
 					<Copy />
-					<Trans id="workspace.pathActions.copyRelativePath">
-						Copy Relative Path
-					</Trans>
+					<Trans>Copy Relative Path</Trans>
 				</DropdownMenuItem>
 			)}
 		</>

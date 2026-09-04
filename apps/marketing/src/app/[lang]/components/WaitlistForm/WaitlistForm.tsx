@@ -38,12 +38,10 @@ export function WaitlistForm({ heading, description }: WaitlistFormProps) {
 		return (
 			<div>
 				<h2 className="mb-2 text-xl font-medium text-foreground">
-					<Trans id="marketing.waitlist.successTitle">
-						You're on the list!
-					</Trans>
+					<Trans>You're on the list!</Trans>
 				</h2>
 				<p className="text-sm text-muted-foreground">
-					<Trans id="marketing.waitlist.successBody">
+					<Trans>
 						We'll notify you when Windows &amp; Linux support is ready.
 					</Trans>
 				</p>
@@ -72,7 +70,7 @@ export function WaitlistForm({ heading, description }: WaitlistFormProps) {
 					type="submit"
 					className="w-full rounded-lg bg-foreground py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90"
 				>
-					<Trans id="marketing.waitlist.joinButton">Join waitlist</Trans>
+					<Trans>Join waitlist</Trans>
 				</button>
 			</form>
 		</>

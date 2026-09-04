@@ -20,26 +20,25 @@ const STATUS_LABEL: Record<
 	{ label: MessageDescriptor; className: string }
 > = {
 	passed: {
-		label: msg({ id: "mobile.checks.status.passed", message: "Passed" }),
+		label: msg({ message: "Passed" }),
 		className: "bg-green-500/15 text-green-500",
 	},
 	failed: {
-		label: msg({ id: "mobile.checks.status.failed", message: "Failed" }),
+		label: msg({ message: "Failed" }),
 		className: "bg-red-500/15 text-red-500",
 	},
 	"needs-action": {
 		label: msg({
-			id: "mobile.checks.status.needsAction",
 			message: "Needs Action",
 		}),
 		className: "bg-amber-500/15 text-amber-500",
 	},
 	running: {
-		label: msg({ id: "mobile.checks.status.running", message: "Running" }),
+		label: msg({ message: "Running" }),
 		className: "bg-amber-500/15 text-amber-500",
 	},
 	ignored: {
-		label: msg({ id: "mobile.checks.status.skipped", message: "Skipped" }),
+		label: msg({ message: "Skipped" }),
 		className: "bg-secondary text-muted-foreground",
 	},
 };
@@ -70,13 +69,12 @@ export function CheckDetailSheet({
 		<>
 			<Stack.Screen
 				options={{
-					title: t({ id: "mobile.checks.detailsTitle", message: "Details" }),
+					title: t({ message: "Details" }),
 				}}
 			/>
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.Button
 					accessibilityLabel={t({
-						id: "mobile.common.close",
 						message: "Close",
 					})}
 					icon="xmark"
@@ -92,7 +90,7 @@ export function CheckDetailSheet({
 
 				<View className="border-border/60 flex-row items-center justify-between border-b py-4">
 					<Text className="text-[17px]">
-						<Trans id="mobile.checks.statusLabel">Status</Trans>
+						<Trans>Status</Trans>
 					</Text>
 					<Text
 						className={cn(
@@ -103,20 +101,12 @@ export function CheckDetailSheet({
 						{status ? i18n._(status.label) : ""}
 					</Text>
 				</View>
+				<Row label={t({ message: "Started" })} value={stamp(check.startedAt)} />
 				<Row
-					label={t({ id: "mobile.checks.started", message: "Started" })}
-					value={stamp(check.startedAt)}
-				/>
-				<Row
-					label={t({ id: "mobile.checks.completed", message: "Completed" })}
+					label={t({ message: "Completed" })}
 					value={stamp(check.completedAt)}
 				/>
-				{took ? (
-					<Row
-						label={t({ id: "mobile.checks.duration", message: "Duration" })}
-						value={took}
-					/>
-				) : null}
+				{took ? <Row label={t({ message: "Duration" })} value={took} /> : null}
 
 				<View className="gap-2 pt-8">
 					{onFixWithAgent ? (
@@ -126,9 +116,7 @@ export function CheckDetailSheet({
 							onPress={onFixWithAgent}
 						>
 							<Text className="font-medium text-[15px] text-neutral-900">
-								<Trans id="mobile.checks.fixWithAgent">
-									Fix Check with Agent
-								</Trans>
+								<Trans>Fix Check with Agent</Trans>
 							</Text>
 						</Pressable>
 					) : null}
@@ -139,7 +127,7 @@ export function CheckDetailSheet({
 							onPress={onOpenInGitHub}
 						>
 							<Text className="text-secondary-foreground font-medium text-[15px]">
-								<Trans id="mobile.checks.viewInGitHub">View in GitHub</Trans>
+								<Trans>View in GitHub</Trans>
 							</Text>
 							<Icon
 								as={ArrowUpRight}

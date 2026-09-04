@@ -20,7 +20,7 @@ export class Projects extends APIResource {
 		this._requireOrgId();
 		return this._client.hostQuery<ProjectListResponse>(
 			params.hostId,
-			"project.list",
+			{ method: "projects.list", procedure: "project.list" },
 			undefined,
 			options,
 		);

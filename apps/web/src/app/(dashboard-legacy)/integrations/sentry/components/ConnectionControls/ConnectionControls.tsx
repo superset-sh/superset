@@ -61,23 +61,19 @@ export function ConnectionControls({
 					<Button variant="outline" disabled={disconnectMutation.isPending}>
 						<Unplug className="mr-2 size-4" />
 						{disconnectMutation.isPending ? (
-							<Trans id="web.integrations.disconnecting">
-								Disconnecting...
-							</Trans>
+							<Trans>Disconnecting...</Trans>
 						) : (
-							<Trans id="web.integrations.disconnect">Disconnect</Trans>
+							<Trans>Disconnect</Trans>
 						)}
 					</Button>
 				</AlertDialogTrigger>
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>
-							<Trans id="web.integrations.sentry.disconnectTitle">
-								Disconnect Sentry?
-							</Trans>
+							<Trans>Disconnect Sentry?</Trans>
 						</AlertDialogTitle>
 						<AlertDialogDescription>
-							<Trans id="web.integrations.sentry.disconnectDescription">
+							<Trans>
 								Sentry triggers stop firing until you connect again. The
 								integration stays installed in Sentry — uninstall it there to
 								revoke access entirely.
@@ -86,12 +82,12 @@ export function ConnectionControls({
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel>
-							<Trans id="web.integrations.cancel">Cancel</Trans>
+							<Trans>Cancel</Trans>
 						</AlertDialogCancel>
 						<AlertDialogAction
 							onClick={() => disconnectMutation.mutate({ organizationId })}
 						>
-							<Trans id="web.integrations.disconnect">Disconnect</Trans>
+							<Trans>Disconnect</Trans>
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
@@ -101,7 +97,7 @@ export function ConnectionControls({
 
 	return (
 		<Button onClick={handleConnect}>
-			<Trans id="web.integrations.sentry.connect">Connect Sentry</Trans>
+			<Trans>Connect Sentry</Trans>
 		</Button>
 	);
 }

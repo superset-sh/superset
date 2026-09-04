@@ -3,7 +3,7 @@ import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import type {
 	ComposerHandle,
-	ComposerSessionAction,
+	ComposerQuickKeysAction,
 	ComposerSessionTab,
 } from "@superset/composer";
 import { i18n } from "@superset/i18n";
@@ -40,6 +40,7 @@ import {
 	getHostTerminalsQueryKey,
 	useHostTerminals,
 } from "@/screens/(authenticated)/(home)/home/hooks/useHostTerminals";
+import { HeaderNotice } from "@/screens/(authenticated)/components/HeaderNotice";
 import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
 import { useAgentIconUris } from "@/screens/(authenticated)/hooks/useAgentIconUris";
 import { useAppReviewPrompt } from "@/screens/(authenticated)/hooks/useAppReviewPrompt";
@@ -50,7 +51,6 @@ import { useTerminalSeenStore } from "@/screens/(authenticated)/stores/terminalS
 import { useTerminalTabOrderStore } from "@/screens/(authenticated)/stores/terminalTabOrderStore";
 import { useUnreadWorkspacesStore } from "@/screens/(authenticated)/stores/unreadWorkspacesStore";
 import { CloudWorkspaceProvisioningState } from "../components/CloudWorkspaceProvisioningState";
-import { HeaderNotice } from "../components/HeaderNotice";
 import { ScrollToBottomButton } from "../components/ScrollToBottomButton";
 import {
 	TerminalComposer,
@@ -92,13 +92,11 @@ const PENDING_CREATE_SESSION_TIMEOUT_MS = 60_000;
 const STATE_BANNERS: Partial<
 	Record<TerminalConnectionState, MessageDescriptor>
 > = {
-	connecting: msg({ id: "mobile.terminal.connecting", message: "Connecting…" }),
+	connecting: msg({ message: "Connecting…" }),
 	reconnecting: msg({
-		id: "mobile.terminal.reconnecting",
 		message: "Reconnecting…",
 	}),
 	denied: msg({
-		id: "mobile.terminal.denied",
 		message: "You don't have access to this terminal.",
 	}),
 };
@@ -107,8 +105,8 @@ const STATE_BANNERS: Partial<
  * The workspace IS the terminal: sessions render as tabs (agent mark + name),
  * the active tab is the one live attached stream, and the + menu launches a
  * new session from the host's agent presets (or a plain shell). Chrome: the
- * compact header (name → action sheet) and the terminal composer, whose tab
- * strip also carries this workspace's pull requests.
+ * compact header (name → action sheet) and the terminal composer, whose
+ * quick-key row also carries this workspace's pull requests.
  *
  * The tab strip is drawn by the composer rather than here. It sits directly
  * above the quick keys, inside the composer's own view tree, because its
@@ -225,7 +223,6 @@ export function WorkspaceScreen() {
 			failPendingCreate(
 				workspaceId,
 				t({
-					id: "mobile.workspaceCreate.timedOut",
 					message: "Timed out waiting for the host to create the workspace.",
 				}),
 			);
@@ -395,7 +392,6 @@ export function WorkspaceScreen() {
 				.catch((cause: unknown) =>
 					Alert.alert(
 						t({
-							id: "mobile.terminal.closeFailed",
 							message: "Could not close the session",
 						}),
 						errorMessage(cause),
@@ -414,17 +410,16 @@ export function WorkspaceScreen() {
 			const row = rows.find((candidate) => candidate.terminalId === terminalId);
 			Alert.alert(
 				t({
-					id: "mobile.terminalTabs.closeSession",
 					message: "Close session",
 				}),
 				row?.title,
 				[
 					{
-						text: t({ id: "common.cancel", message: "Cancel" }),
+						text: t({ message: "Cancel" }),
 						style: "cancel",
 					},
 					{
-						text: t({ id: "mobile.common.close", message: "Close" }),
+						text: t({ message: "Close" }),
 						style: "destructive",
 						onPress: () => killTerminal(terminalId),
 					},
@@ -463,7 +458,7 @@ export function WorkspaceScreen() {
 	const handleCopied = useCallback(
 		() =>
 			setNotice((prev) => ({
-				text: t({ id: "mobile.terminal.copied", message: "Copied" }),
+				text: t({ message: "Copied" }),
 				seq: (prev?.seq ?? 0) + 1,
 			})),
 		[t],
@@ -567,13 +562,13 @@ export function WorkspaceScreen() {
 		[id, hostUrl, workspace],
 	);
 
-	// The strip's leading chip, or nothing. Mark and colour both come off the
-	// newest pull request, the way the pill this replaced did.
+	// The chip beside the quick keys, or nothing. Mark and colour both come off
+	// the newest pull request, the way the pill this replaced did.
 	const pullRequestStatusNow = pullRequests[0]
 		? pullRequestStatus(pullRequests[0])
 		: null;
 	const pullRequestIconUri = usePullRequestIconUri(pullRequestStatusNow);
-	const pullRequestAction = useMemo((): ComposerSessionAction | undefined => {
+	const pullRequestAction = useMemo((): ComposerQuickKeysAction | undefined => {
 		const latest = pullRequests[0];
 		if (!latest) return undefined;
 		const status = pullRequestStatus(latest);
@@ -588,11 +583,9 @@ export function WorkspaceScreen() {
 			label:
 				count === 1
 					? t({
-							id: "mobile.pullRequests.viewOneLabel",
 							message: "View pull request",
 						})
 					: t({
-							id: "mobile.pullRequests.viewManyLabel",
 							message: `View ${count} pull requests`,
 						}),
 		};
@@ -633,7 +626,6 @@ export function WorkspaceScreen() {
 					options={{
 						...headerOptions,
 						title: t({
-							id: "mobile.workspaceCreate.newWorkspace",
 							message: "New workspace",
 						}),
 					}}
@@ -664,7 +656,7 @@ export function WorkspaceScreen() {
 			<Stack.Screen
 				options={{
 					...headerOptions,
-					title: t({ id: "mobile.nav.workspace.title", message: "Workspace" }),
+					title: t({ message: "Workspace" }),
 					headerTitle: notice
 						? () => (
 								<HeaderNotice
@@ -709,13 +701,11 @@ export function WorkspaceScreen() {
 			{connectionState === "error" && activeTerminalId ? (
 				<View className="bg-muted flex-row items-center justify-center gap-3 px-3 py-1.5">
 					<Text className="text-muted-foreground text-xs">
-						<Trans id="mobile.terminal.connectionFailed">
-							Connection failed.
-						</Trans>
+						<Trans>Connection failed.</Trans>
 					</Text>
 					<Pressable onPress={() => terminalRef.current?.retry()}>
 						<Text className="text-foreground text-xs font-medium">
-							<Trans id="mobile.terminal.retry">Retry</Trans>
+							<Trans>Retry</Trans>
 						</Text>
 					</Pressable>
 				</View>
@@ -734,14 +724,12 @@ export function WorkspaceScreen() {
 				{hostCompatibility.incompatible ? (
 					<WorkspacePlaceholder
 						body={t({
-							id: "mobile.workspace.hostOutdated.body",
-							message: `${host?.name ?? t({ id: "mobile.workspace.thisHost", message: "This host" })} is running host service ${hostCompatibility.hostVersion} — this app needs ${hostCompatibility.minVersion} or newer. Update Superset on that machine.`,
+							message: `${host?.name ?? t({ message: "This host" })} is running host service ${hostCompatibility.hostVersion} — this app needs ${hostCompatibility.minVersion} or newer. Update Superset on that machine.`,
 						})}
 						icon={TriangleAlert}
 						onRefresh={onRefresh}
 						refreshing={refreshing}
 						title={t({
-							id: "mobile.workspace.hostOutdated.title",
 							message: "This host needs an update",
 						})}
 					/>
@@ -803,7 +791,6 @@ export function WorkspaceScreen() {
 				) : !host ? (
 					<WorkspacePlaceholder
 						body={t({
-							id: "mobile.workspace.hostOffline.body",
 							message:
 								"It will reconnect on its own once the machine is back. Pull to check again.",
 						})}
@@ -811,7 +798,6 @@ export function WorkspaceScreen() {
 						onRefresh={onRefresh}
 						refreshing={refreshing}
 						title={t({
-							id: "mobile.workspace.hostOffline.title",
 							message: "This workspace's host is offline",
 						})}
 					/>
@@ -825,14 +811,11 @@ export function WorkspaceScreen() {
 							>
 								<Icon as={Plus} className="text-foreground size-4" />
 								<Text className="font-medium text-[15px]">
-									<Trans id="mobile.workspace.startSession">
-										Start a session
-									</Trans>
+									<Trans>Start a session</Trans>
 								</Text>
 							</Pressable>
 						}
 						body={t({
-							id: "mobile.workspace.noSessions.body",
 							message:
 								"Start an agent or a terminal to begin working in this workspace.",
 						})}
@@ -840,7 +823,6 @@ export function WorkspaceScreen() {
 						onRefresh={onRefresh}
 						refreshing={refreshing}
 						title={t({
-							id: "mobile.workspace.noSessions.title",
 							message: "No sessions yet",
 						})}
 					/>
@@ -861,8 +843,8 @@ export function WorkspaceScreen() {
 					onSessionTabCopyId={copyTerminalId}
 					onNewSessionPress={openAddMenu}
 					onAllSessionsPress={openSessions}
-					sessionAction={pullRequestAction}
-					onSessionActionPress={openPullRequests}
+					quickKeysAction={pullRequestAction}
+					onQuickKeysActionPress={openPullRequests}
 					attachmentTarget={attachmentTarget}
 					onActiveChange={setComposerActive}
 					onHeightChange={setComposerHeight}

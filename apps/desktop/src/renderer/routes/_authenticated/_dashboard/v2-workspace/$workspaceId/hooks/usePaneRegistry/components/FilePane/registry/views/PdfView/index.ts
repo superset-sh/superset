@@ -5,7 +5,7 @@ import { PdfView } from "./PdfView";
 
 export const pdfView: FileView = {
 	id: "pdf",
-	label: msg({ id: "workspace.filePane.viewPdf", message: "PDF" }),
+	label: msg({ message: "PDF" }),
 	match: (filePath) => isPdfFile(filePath),
 	priority: "exclusive",
 	documentKind: "bytes",

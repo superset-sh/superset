@@ -18,25 +18,22 @@ export function EmailSignInLink({
 		const email = (
 			await prompt({
 				title: t({
-					id: "mobile.signIn.email.promptTitle",
 					message: "Sign in with email",
 				}),
-				message: t({ id: "mobile.signIn.email.emailLabel", message: "Email" }),
-				confirmText: t({ id: "mobile.common.next", message: "Next" }),
+				message: t({ message: "Email" }),
+				confirmText: t({ message: "Next" }),
 			})
 		)?.trim();
 		if (!email) return;
 
 		const password = await prompt({
 			title: t({
-				id: "mobile.signIn.email.promptTitle",
 				message: "Sign in with email",
 			}),
 			message: t({
-				id: "mobile.signIn.email.passwordLabel",
 				message: `Password for ${email}`,
 			}),
-			confirmText: t({ id: "mobile.signIn.email.confirm", message: "Sign in" }),
+			confirmText: t({ message: "Sign in" }),
 		});
 		if (!password) return;
 
@@ -50,7 +47,6 @@ export function EmailSignInLink({
 				err instanceof Error
 					? err.message
 					: t({
-							id: "mobile.common.somethingWentWrong",
 							message: "Something went wrong",
 						}),
 			);
@@ -64,7 +60,7 @@ export function EmailSignInLink({
 			className="text-sm text-muted-foreground underline"
 			onPress={isLoading ? undefined : () => void handlePress()}
 		>
-			<Trans id="mobile.signIn.email.link">Sign in with email</Trans>
+			<Trans>Sign in with email</Trans>
 		</Text>
 	);
 }

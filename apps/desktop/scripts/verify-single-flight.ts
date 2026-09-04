@@ -44,6 +44,11 @@ async function runWorker(home: string, marker: string, label: string) {
 		},
 		dialog: { showErrorBox: () => {} },
 	}));
+	// The Lingui macro is compile-time; the coordinator's descriptors render
+	// their English default here.
+	mock.module("@lingui/core/macro", () => ({
+		msg: (descriptor: { message: string }) => descriptor,
+	}));
 	mock.module("electron-log/main", () => ({
 		default: {
 			info: (...a: unknown[]) => console.log(`[${label}]`, ...a),

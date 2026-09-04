@@ -86,11 +86,9 @@ export function WorkspaceResourceSection({
 					aria-label={
 						isProjectCollapsed
 							? t({
-									id: "dashboard.topBar.workspaceResources.expandProject",
 									message: "Expand project",
 								})
 							: t({
-									id: "dashboard.topBar.workspaceResources.collapseProject",
 									message: "Collapse project",
 								})
 					}
@@ -131,11 +129,9 @@ export function WorkspaceResourceSection({
 											aria-label={
 												isCollapsed
 													? t({
-															id: "dashboard.topBar.workspaceResources.expandWorkspace",
 															message: "Expand workspace",
 														})
 													: t({
-															id: "dashboard.topBar.workspaceResources.collapseWorkspace",
 															message: "Collapse workspace",
 														})
 											}

@@ -37,20 +37,17 @@ export function AcceptInvitationButton({
 
 		if (response.status === 409) {
 			return t({
-				id: "web.acceptInvitation.alreadyAccepted",
 				message: "This invitation has already been accepted.",
 			});
 		}
 
 		if (response.status === 400 || response.status === 404) {
 			return t({
-				id: "web.acceptInvitation.invalidOrExpired",
 				message: "This invitation link is invalid or has expired.",
 			});
 		}
 
 		return t({
-			id: "web.acceptInvitation.failed",
 			message: "Failed to accept invitation",
 		});
 	};
@@ -87,7 +84,6 @@ export function AcceptInvitationButton({
 				err instanceof Error
 					? err.message
 					: t({
-							id: "web.acceptInvitation.failed",
 							message: "Failed to accept invitation",
 						}),
 			);
@@ -99,9 +95,9 @@ export function AcceptInvitationButton({
 		<>
 			<Button onClick={handleContinue} size="lg" disabled={isProcessing}>
 				{isProcessing ? (
-					<Trans id="web.acceptInvitation.processing">Processing...</Trans>
+					<Trans>Processing...</Trans>
 				) : (
-					<Trans id="web.acceptInvitation.accept">Accept invitation</Trans>
+					<Trans>Accept invitation</Trans>
 				)}
 			</Button>
 

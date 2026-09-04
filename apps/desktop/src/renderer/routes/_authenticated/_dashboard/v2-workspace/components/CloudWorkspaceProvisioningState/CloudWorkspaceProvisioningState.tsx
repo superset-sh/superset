@@ -69,14 +69,11 @@ export function CloudWorkspaceProvisioningState({
 
 				<div className="flex flex-col gap-1.5">
 					<h1 className="text-[15px] font-medium tracking-tight text-foreground">
-						<Trans id="workspace.states.cloudProvisioningTitle">
-							Starting cloud workspace
-						</Trans>
+						<Trans>Starting cloud workspace</Trans>
 					</h1>
 					<p className="truncate text-[13px] leading-relaxed text-muted-foreground">
 						{name ||
 							t({
-								id: "workspace.states.cloudProvisioningUntitled",
 								message: "Untitled workspace",
 							})}
 					</p>
@@ -98,14 +95,12 @@ export function CloudWorkspaceProvisioningState({
 				<ul className="flex w-full flex-col gap-2">
 					<StepRow
 						label={t({
-							id: "workspace.states.cloudProvisioningStepSandbox",
 							message: "Creating sandbox",
 						})}
 						state={sandboxReady ? "done" : "active"}
 					/>
 					<StepRow
 						label={t({
-							id: "workspace.states.cloudProvisioningStepConnect",
 							message: "Connecting to the workspace",
 						})}
 						state={sandboxReady ? "active" : "pending"}
@@ -119,7 +114,7 @@ export function CloudWorkspaceProvisioningState({
 				{elapsed >= STUCK_AFTER_SECONDS && (
 					<div className="flex w-full flex-col gap-2 border-t border-border/60 pt-4 animate-in fade-in slide-in-from-bottom-1 duration-500">
 						<p className="select-text cursor-text text-[12px] leading-relaxed text-muted-foreground">
-							<Trans id="workspace.states.cloudProvisioningStuckBody">
+							<Trans>
 								This is taking longer than usual. The sandbox may still be
 								pulling its image — it keeps going whether this window is open
 								or not.
@@ -178,14 +173,11 @@ function CloudWorkspaceFailedState({
 
 				<div className="flex flex-col gap-1.5">
 					<h1 className="text-[15px] font-medium tracking-tight text-foreground">
-						<Trans id="workspace.states.cloudProvisioningFailedTitle">
-							Couldn't start cloud workspace
-						</Trans>
+						<Trans>Couldn't start cloud workspace</Trans>
 					</h1>
 					<p className="truncate text-[13px] leading-relaxed text-muted-foreground">
 						{name ||
 							t({
-								id: "workspace.states.cloudProvisioningFailedUntitled",
 								message: "Untitled workspace",
 							})}
 					</p>
@@ -206,7 +198,7 @@ function CloudWorkspaceFailedState({
 
 				<div className="w-full rounded-md border border-destructive/20 bg-destructive/[0.04] px-3 py-2.5">
 					<p className="select-text cursor-text text-[12px] leading-relaxed text-destructive/90">
-						<Trans id="workspace.states.cloudProvisioningFailedBody">
+						<Trans>
 							Provisioning failed and the sandbox was torn down. Nothing is
 							running, and this workspace can't be opened — create a new one to
 							try again.
@@ -222,11 +214,9 @@ function CloudWorkspaceFailedState({
 				>
 					{isDeleting
 						? t({
-								id: "workspace.states.cloudProvisioningRemoving",
 								message: "Removing…",
 							})
 						: t({
-								id: "workspace.states.cloudProvisioningRemoveWorkspace",
 								message: "Remove workspace",
 							})}
 				</Button>

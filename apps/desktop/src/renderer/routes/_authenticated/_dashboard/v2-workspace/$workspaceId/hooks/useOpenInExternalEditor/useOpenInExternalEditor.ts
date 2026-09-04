@@ -33,7 +33,6 @@ export function useOpenInExternalEditor(workspaceId: string) {
 			if (workspaceRow?.hostId !== machineId) {
 				toast.error(
 					t({
-						id: "workspace.externalEditor.remotePathsUnsupported",
 						message: "Can't open remote workspace paths in an external editor",
 					}),
 				);
@@ -52,7 +51,6 @@ export function useOpenInExternalEditor(workspaceId: string) {
 					console.error("Failed to open in external editor:", error);
 					toast.error(
 						t({
-							id: "workspace.externalEditor.openFailed",
 							message: "Failed to open in external editor",
 						}),
 					);

@@ -36,10 +36,10 @@ export function WorkspaceMissingWorktreeState({
 
 				<div className="flex flex-col gap-1.5">
 					<h1 className="select-text cursor-text text-[15px] font-medium tracking-tight text-foreground">
-						<Trans id="workspace.missingWorktree.title">Worktree missing</Trans>
+						<Trans>Worktree missing</Trans>
 					</h1>
 					<p className="select-text cursor-text text-[13px] leading-relaxed text-muted-foreground">
-						<Trans id="workspace.missingWorktree.body">
+						<Trans>
 							This workspace record still exists, but its worktree folder is no
 							longer on this host. Terminals and file actions are unavailable.
 						</Trans>
@@ -49,7 +49,7 @@ export function WorkspaceMissingWorktreeState({
 				{worktreePath ? (
 					<div className="flex w-full items-center gap-2 rounded-md border border-border/60 bg-muted/30 px-2.5 py-1.5">
 						<span className="shrink-0 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">
-							<Trans id="workspace.missingWorktree.pathLabel">Path</Trans>
+							<Trans>Path</Trans>
 						</span>
 						<div className="min-w-0 flex-1 overflow-x-auto">
 							<code
@@ -75,9 +75,7 @@ export function WorkspaceMissingWorktreeState({
 						}
 					>
 						<Trash2 className="size-3.5" strokeWidth={2} aria-hidden="true" />
-						<Trans id="workspace.missingWorktree.deleteWorkspace">
-							Delete workspace
-						</Trans>
+						<Trans>Delete workspace</Trans>
 					</Button>
 					<Button
 						size="sm"
@@ -91,7 +89,7 @@ export function WorkspaceMissingWorktreeState({
 							strokeWidth={2}
 							aria-hidden="true"
 						/>
-						<Trans id="workspace.missingWorktree.refresh">Refresh</Trans>
+						<Trans>Refresh</Trans>
 					</Button>
 					<Button
 						asChild
@@ -100,9 +98,7 @@ export function WorkspaceMissingWorktreeState({
 						className="h-7 gap-1.5 px-2 text-[13px] font-medium"
 					>
 						<Link to="/v2-workspaces">
-							<Trans id="workspace.missingWorktree.browseWorkspaces">
-								Browse workspaces
-							</Trans>
+							<Trans>Browse workspaces</Trans>
 							<ArrowRight
 								className="size-3.5"
 								strokeWidth={2}

@@ -71,9 +71,7 @@ export function ConfigFilePreview({
 					onClick={handleLearnMore}
 					className="gap-2"
 				>
-					<Trans id="components.configFilePreview.learnScripts">
-						Learn how to use scripts
-					</Trans>
+					<Trans>Learn how to use scripts</Trans>
 					<HiArrowTopRightOnSquare className="h-4 w-4" />
 				</Button>
 			</div>

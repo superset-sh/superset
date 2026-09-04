@@ -1,4 +1,4 @@
-import { db, dbWs } from "@superset/db/client";
+import { db } from "@superset/db/client";
 import {
 	subscriptions,
 	users,
@@ -17,9 +17,9 @@ import {
 import type { TRPCRouterRecord } from "@trpc/server";
 import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
+import { env } from "../../env";
 import { emitAppFirstOpened } from "../../lib/activation-events";
 import { fetchRelayPresence } from "../../lib/relay-presence";
-import { resolveUserRelayUrl } from "../../lib/relay-url";
 import { jwtProcedure, userError } from "../../trpc";
 
 // Registering a first host means the app is installed and running, so it
@@ -48,13 +48,12 @@ async function emitFirstHostEvent(userId: string) {
 
 export const hostRouter = {
 	/**
-	 * The relay every client and host of this user must use. Resolved here so
-	 * one authenticated answer serves the desktop, its host-service, the CLI
-	 * and the web app — client-side flag evaluation raced identification and
-	 * silently fell back, which split hosts and clients across two relays.
+	 * The relay every client and host of this user must use. Answered here so
+	 * the desktop, its host-service, the CLI and the web app all read one
+	 * value instead of resolving it separately and landing on different relays.
 	 */
-	relayEndpoint: jwtProcedure.query(async ({ ctx }) => {
-		return { url: await resolveUserRelayUrl(ctx.userId) };
+	relayEndpoint: jwtProcedure.query(() => {
+		return { url: env.RELAY_URL };
 	}),
 
 	list: jwtProcedure
@@ -72,7 +71,6 @@ export const hostRouter = {
 				.select({
 					machineId: v2Hosts.machineId,
 					name: v2Hosts.name,
-					isOnline: v2Hosts.isOnline,
 					wakeCommand: v2Hosts.wakeCommand,
 					organizationId: v2Hosts.organizationId,
 				})
@@ -91,13 +89,12 @@ export const hostRouter = {
 					),
 				);
 
-			// The relay's DOs are the presence authority; the DB flag is only
-			// the fallback for hosts still on the v1 relay, which keeps writing
-			// it. Callers' own bearer token is forwarded for the access checks.
+			// The relay's Durable Objects are the presence authority. Callers'
+			// own bearer token is forwarded for the access checks.
 			const bearer = ctx.headers.get("authorization")?.slice("Bearer ".length);
 			const presence = bearer
 				? await fetchRelayPresence(
-						await resolveUserRelayUrl(ctx.userId),
+						env.RELAY_URL,
 						bearer,
 						rows.map((row) =>
 							buildHostRoutingKey(row.organizationId, row.machineId),
@@ -110,7 +107,7 @@ export const hostRouter = {
 				name: row.name,
 				online:
 					presence?.[buildHostRoutingKey(row.organizationId, row.machineId)]
-						?.online ?? row.isOnline,
+						?.online ?? false,
 				wakeCommand: row.wakeCommand,
 				organizationId: row.organizationId,
 			}));
@@ -133,7 +130,7 @@ export const hostRouter = {
 				});
 			}
 
-			const [inserted] = await dbWs
+			const [inserted] = await db
 				.insert(v2Hosts)
 				.values({
 					organizationId: input.organizationId,
@@ -164,7 +161,7 @@ export const hostRouter = {
 			}
 
 			if (host.createdByUserId === ctx.userId) {
-				await dbWs
+				await db
 					.insert(v2UsersHosts)
 					.values({
 						organizationId: input.organizationId,
@@ -228,53 +225,6 @@ export const hostRouter = {
 			return { allowed, paidPlan };
 		}),
 
-	setOnline: jwtProcedure
-		.input(z.object({ hostId: z.string().min(1), isOnline: z.boolean() }))
-		.mutation(async ({ ctx, input }) => {
-			const parsed = parseHostRoutingKey(input.hostId);
-			if (!parsed) {
-				throw userError({
-					code: "BAD_REQUEST",
-					message: "Invalid hostId",
-					i18nKey: "serverError.host.invalidHostid",
-				});
-			}
-			if (!ctx.organizationIds.includes(parsed.organizationId)) {
-				throw userError({
-					code: "FORBIDDEN",
-					message: "No access to this host",
-					i18nKey: "serverError.host.noAccessToThisHost",
-				});
-			}
-
-			const access = await db.query.v2UsersHosts.findFirst({
-				where: and(
-					eq(v2UsersHosts.userId, ctx.userId),
-					eq(v2UsersHosts.organizationId, parsed.organizationId),
-					eq(v2UsersHosts.hostId, parsed.machineId),
-				),
-				columns: { hostId: true },
-			});
-			if (!access) {
-				throw userError({
-					code: "FORBIDDEN",
-					message: "No access to this host",
-					i18nKey: "serverError.host.noAccessToThisHost",
-				});
-			}
-
-			await db
-				.update(v2Hosts)
-				.set({ isOnline: input.isOnline })
-				.where(
-					and(
-						eq(v2Hosts.organizationId, parsed.organizationId),
-						eq(v2Hosts.machineId, parsed.machineId),
-					),
-				);
-			return { success: true };
-		}),
-
 	setWakeCommand: jwtProcedure
 		.input(
 			z.object({
@@ -311,7 +261,7 @@ export const hostRouter = {
 				});
 			}
 
-			await dbWs
+			await db
 				.update(v2Hosts)
 				.set({ wakeCommand: input.wakeCommand })
 				.where(

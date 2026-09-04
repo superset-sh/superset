@@ -38,15 +38,12 @@ export function useTabCloseGuard(): OnBeforeCloseTab {
 				(id) => probeTerminalRunning(utils, workspaceId, id),
 				{
 					title: t({
-						id: "workspace.tabCloseGuard.processRunningTitle",
 						message: "A process is still running in this tab",
 					}),
 					description: t({
-						id: "workspace.tabCloseGuard.processRunningDescription",
 						message: "Closing this tab will end the running process.",
 					}),
 					confirmLabel: t({
-						id: "workspace.tabCloseGuard.closeTab",
 						message: "Close tab",
 					}),
 				},

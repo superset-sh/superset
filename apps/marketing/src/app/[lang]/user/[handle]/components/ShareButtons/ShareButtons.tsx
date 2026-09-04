@@ -34,7 +34,7 @@ export function ShareButtons({ url, text }: ShareButtonsProps) {
 				rel="noopener noreferrer"
 			>
 				<RiTwitterXFill className="size-3.5" />
-				<Trans id="marketing.profile.share.post">Post</Trans>
+				<Trans>Post</Trans>
 			</a>
 			<a
 				className={BUTTON}
@@ -43,7 +43,7 @@ export function ShareButtons({ url, text }: ShareButtonsProps) {
 				rel="noopener noreferrer"
 			>
 				<RiLinkedinBoxFill className="size-3.5" />
-				<Trans id="marketing.profile.share.share">Share</Trans>
+				<Trans>Share</Trans>
 			</a>
 			<button type="button" className={BUTTON} onClick={copy}>
 				{copied ? (
@@ -51,11 +51,7 @@ export function ShareButtons({ url, text }: ShareButtonsProps) {
 				) : (
 					<LinkIcon className="size-3" />
 				)}
-				{copied ? (
-					<Trans id="marketing.profile.share.copied">Copied</Trans>
-				) : (
-					<Trans id="marketing.profile.share.copyLink">Copy link</Trans>
-				)}
+				{copied ? <Trans>Copied</Trans> : <Trans>Copy link</Trans>}
 			</button>
 		</div>
 	);

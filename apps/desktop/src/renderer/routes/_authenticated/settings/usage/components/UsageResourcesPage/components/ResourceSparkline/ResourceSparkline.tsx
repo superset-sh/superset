@@ -49,9 +49,7 @@ export function ResourceSparkline({
 			</div>
 			{data.length < 2 ? (
 				<div className="flex h-16 items-center justify-center text-[10px] text-muted-foreground">
-					<Trans id="settings.usage.resourceSparkline.collecting">
-						Collecting…
-					</Trans>
+					<Trans>Collecting…</Trans>
 				</div>
 			) : (
 				<ChartContainer

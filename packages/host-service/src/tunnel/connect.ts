@@ -6,7 +6,7 @@ import {
 	recordRegistrationFailure,
 	recordRegistrationSuccess,
 } from "./registration-state";
-import { TunnelClientV2 } from "./tunnel-client-v2";
+import { TunnelClient } from "./tunnel-client";
 
 export interface ConnectRelayOptions {
 	api: ApiClient;
@@ -45,7 +45,7 @@ const REGISTER_RETRY_MAX_MS = 5 * 60_000;
 
 export async function connectRelay(
 	options: ConnectRelayOptions,
-): Promise<TunnelClientV2 | null> {
+): Promise<TunnelClient | null> {
 	// Registration is what makes this host exist server-side (hosts list,
 	// automations, relay routing). A one-shot attempt left a transient API
 	// failure at boot permanently stranding the host as locally-healthy but
@@ -73,7 +73,7 @@ export async function connectRelay(
 				resolveRelayUrl: () => resolveRelayUrl(options.api, options.relayUrl),
 			};
 
-			const tunnel = new TunnelClientV2(clientOptions);
+			const tunnel = new TunnelClient(clientOptions);
 			void tunnel.connect();
 			return tunnel;
 		} catch (error) {

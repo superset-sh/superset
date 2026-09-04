@@ -30,10 +30,10 @@ export function SurfaceCards() {
 	return (
 		<section className="border-border border-t pt-12 sm:pt-16">
 			<h2 className="font-mono text-brand text-xs uppercase tracking-wider">
-				<Trans id="marketing.download.surfacesEyebrow">Every surface</Trans>
+				<Trans>Every surface</Trans>
 			</h2>
 			<p className="mt-3 max-w-2xl font-light text-foreground text-xl sm:text-2xl">
-				<Trans id="marketing.download.surfacesTitle">
+				<Trans>
 					Run your agents from the desktop, any terminal, or your phone.
 				</Trans>
 			</p>
@@ -45,10 +45,10 @@ export function SurfaceCards() {
 					</div>
 					<div className={CARD_BODY_CLASS}>
 						<h3 className="font-medium text-base text-foreground">
-							<Trans id="marketing.download.surfaceDesktopTitle">Desktop</Trans>
+							<Trans>Desktop</Trans>
 						</h3>
 						<p className={CARD_COPY_CLASS}>
-							<Trans id="marketing.download.surfaceDesktopBody">
+							<Trans>
 								The full workspace. Run agents in parallel, keep each one in its
 								own worktree, and review every change before it lands.
 							</Trans>
@@ -65,10 +65,10 @@ export function SurfaceCards() {
 					</div>
 					<div className={CARD_BODY_CLASS}>
 						<h3 className="font-medium text-base text-foreground">
-							<Trans id="marketing.download.surfaceCliTitle">CLI</Trans>
+							<Trans>CLI</Trans>
 						</h3>
 						<p className={CARD_COPY_CLASS}>
-							<Trans id="marketing.download.surfaceCliBody">
+							<Trans>
 								Create workspaces, launch agents, and read their output from any
 								terminal or script. macOS and Linux.
 							</Trans>
@@ -81,7 +81,7 @@ export function SurfaceCards() {
 								href={CLI_DOCS_URL}
 								className="inline-flex items-center gap-1 text-muted-foreground text-xs transition-colors hover:text-foreground"
 							>
-								<Trans id="marketing.download.cliDocs">CLI reference</Trans>
+								<Trans>CLI reference</Trans>
 								<HiMiniArrowRight className="size-3" />
 							</a>
 						</div>
@@ -94,13 +94,13 @@ export function SurfaceCards() {
 					</div>
 					<div className={CARD_BODY_CLASS}>
 						<h3 className="flex items-center gap-2 font-medium text-base text-foreground">
-							<Trans id="marketing.download.surfaceMobileTitle">Mobile</Trans>
+							<Trans>Mobile</Trans>
 							<span className="rounded-[2px] border border-border px-2 py-0.5 font-mono font-normal text-muted-foreground text-xs">
-								<Trans id="marketing.download.comingSoon">Coming soon</Trans>
+								<Trans>Coming soon</Trans>
 							</span>
 						</h3>
 						<p className={CARD_COPY_CLASS}>
-							<Trans id="marketing.download.surfaceMobileBody">
+							<Trans>
 								Check on running agents and read what they changed from your
 								phone.
 							</Trans>

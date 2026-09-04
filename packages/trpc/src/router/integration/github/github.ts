@@ -6,7 +6,7 @@ import {
 } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { Client } from "@upstash/qstash";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../../env";
 import { protectedProcedure, userError } from "../../../trpc";
@@ -178,6 +178,129 @@ export const githubRouter = {
 				orderBy: [desc(githubPullRequests.updatedAt)],
 				limit: 100,
 			});
+		}),
+
+	/**
+	 * One pull request per (repository, head branch) ref for sidebar chips:
+	 * an open one wins, else the most recently updated. A repository the App
+	 * is not installed on has no entry; `hasInstallation` lets a client fall
+	 * back to a host it can reach.
+	 */
+	getByBranches: protectedProcedure
+		.input(
+			z.object({
+				organizationId: z.string().uuid(),
+				refs: z
+					.array(
+						z.object({
+							repoFullName: z.string().min(1),
+							headBranch: z.string().min(1),
+						}),
+					)
+					.max(500),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+
+			const installation = await db.query.githubInstallations.findFirst({
+				where: eq(githubInstallations.organizationId, input.organizationId),
+				columns: { id: true },
+			});
+			if (!installation) {
+				return { hasInstallation: false, pullRequests: [] };
+			}
+			if (input.refs.length === 0) {
+				return { hasInstallation: true, pullRequests: [] };
+			}
+
+			const repos = await db.query.githubRepositories.findMany({
+				where: eq(githubRepositories.installationId, installation.id),
+				columns: { id: true, fullName: true, defaultBranch: true },
+			});
+			const repoByFullName = new Map(
+				repos.map((repo) => [repo.fullName.toLowerCase(), repo]),
+			);
+			const fullNameByRepoId = new Map(
+				repos.map((repo) => [repo.id, repo.fullName]),
+			);
+
+			const pairs = new Map<string, { repoId: string; headBranch: string }>();
+			for (const ref of input.refs) {
+				const repo = repoByFullName.get(ref.repoFullName.toLowerCase());
+				if (!repo) continue;
+				// The table has no head-repository owner, so a fork's `main` would
+				// match a checkout of this repository's default branch.
+				if (ref.headBranch === repo.defaultBranch) continue;
+				pairs.set(`${repo.id}\n${ref.headBranch}`, {
+					repoId: repo.id,
+					headBranch: ref.headBranch,
+				});
+			}
+			if (pairs.size === 0) {
+				return { hasInstallation: true, pullRequests: [] };
+			}
+
+			const rows = await db
+				.select({
+					repositoryId: githubPullRequests.repositoryId,
+					headBranch: githubPullRequests.headBranch,
+					number: githubPullRequests.prNumber,
+					url: githubPullRequests.url,
+					title: githubPullRequests.title,
+					state: githubPullRequests.state,
+					isDraft: githubPullRequests.isDraft,
+					reviewDecision: githubPullRequests.reviewDecision,
+					checksStatus: githubPullRequests.checksStatus,
+					checks: githubPullRequests.checks,
+					mergedAt: githubPullRequests.mergedAt,
+					updatedAt: githubPullRequests.updatedAt,
+				})
+				.from(githubPullRequests)
+				.where(
+					and(
+						eq(githubPullRequests.organizationId, input.organizationId),
+						// Exact pairs, so no requested ref can be crowded out of the
+						// limit by another ref's rows.
+						sql`(${githubPullRequests.repositoryId}, ${githubPullRequests.headBranch}) IN (${sql.join(
+							[...pairs.values()].map(
+								(pair) => sql`(${pair.repoId}::uuid, ${pair.headBranch})`,
+							),
+							sql`, `,
+						)})`,
+					),
+				)
+				.orderBy(desc(githubPullRequests.updatedAt))
+				.limit(2_000);
+
+			// Rows arrive newest first, so the first open PR per ref is the newest
+			// open one, and the first row of any state is the newest overall.
+			const bestByRef = new Map<string, (typeof rows)[number]>();
+			for (const row of rows) {
+				const key = `${row.repositoryId}\n${row.headBranch}`;
+				const existing = bestByRef.get(key);
+				if (!existing || (existing.state !== "open" && row.state === "open")) {
+					bestByRef.set(key, row);
+				}
+			}
+
+			return {
+				hasInstallation: true,
+				pullRequests: [...bestByRef.values()].map((row) => ({
+					repoFullName: fullNameByRepoId.get(row.repositoryId) ?? "",
+					headBranch: row.headBranch,
+					number: row.number,
+					url: row.url,
+					title: row.title,
+					state: row.state,
+					isDraft: row.isDraft,
+					reviewDecision: row.reviewDecision,
+					checksStatus: row.checksStatus,
+					checks: row.checks ?? [],
+					mergedAt: row.mergedAt,
+					updatedAt: row.updatedAt,
+				})),
+			};
 		}),
 
 	getStats: protectedProcedure

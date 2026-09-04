@@ -18,19 +18,17 @@ export function LinearCTA() {
 				</div>
 				<div className="space-y-2">
 					<h3 className="text-lg font-semibold">
-						<Trans id="dashboard.tasks.linearCta.title">Connect Linear</Trans>
+						<Trans>Connect Linear</Trans>
 					</h3>
 					<p className="text-sm text-muted-foreground">
-						<Trans id="dashboard.tasks.linearCta.description">
+						<Trans>
 							Connect your Linear workspace to sync issues and manage tasks
 							directly from Superset.
 						</Trans>
 					</p>
 				</div>
 				<Button onClick={handleConnectLinear}>
-					<Trans id="dashboard.tasks.linearCta.connectButton">
-						Connect Linear
-					</Trans>
+					<Trans>Connect Linear</Trans>
 				</Button>
 			</div>
 		</div>

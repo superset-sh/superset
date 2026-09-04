@@ -7,6 +7,8 @@ const execFileAsync = promisify(execFile);
 export interface ExecGhOptions {
 	cwd?: string;
 	timeout?: number;
+	/** Override the 10MB stdout cap for known-large payloads (PR diffs). */
+	maxBuffer?: number;
 }
 
 /**
@@ -27,7 +29,7 @@ export const execGh: ExecGh = async (args, options) => {
 		timeout: options?.timeout ?? 10_000,
 		// Node's 1MB default dies on large REST payloads (open-PR sweeps of
 		// busy repos exceed it even paginated).
-		maxBuffer: 10 * 1024 * 1024,
+		maxBuffer: options?.maxBuffer ?? 10 * 1024 * 1024,
 		cwd: options?.cwd,
 		env,
 	});

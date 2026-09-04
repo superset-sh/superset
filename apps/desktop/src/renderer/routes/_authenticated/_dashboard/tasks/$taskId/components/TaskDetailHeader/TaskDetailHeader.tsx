@@ -25,7 +25,6 @@ export function TaskDetailHeader({
 				className="h-8 w-8"
 				onClick={onBack}
 				aria-label={t({
-					id: "dashboard.tasks.taskDetailHeader.backToTasks",
 					message: "Back to tasks",
 				})}
 			>
@@ -42,7 +41,6 @@ export function TaskDetailHeader({
 						rel="noopener noreferrer"
 						className="text-muted-foreground hover:text-foreground transition-colors p-2"
 						title={t({
-							id: "dashboard.tasks.taskDetailHeader.openInLinear",
 							message: "Open in Linear",
 						})}
 					>

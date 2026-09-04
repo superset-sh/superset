@@ -27,7 +27,6 @@ export function AttachmentButtons({
 				<TooltipTrigger asChild>
 					<PromptInputButton
 						aria-label={t({
-							id: "dashboard.newWorkspaceModal.attachmentButtons.addAttachmentAria",
 							message: "Add attachment",
 						})}
 						className={`${PILL_BUTTON_CLASS} w-[22px]`}
@@ -37,9 +36,7 @@ export function AttachmentButtons({
 					</PromptInputButton>
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
-					<Trans id="dashboard.newWorkspaceModal.attachmentButtons.addAttachment">
-						Add attachment
-					</Trans>
+					<Trans>Add attachment</Trans>
 				</TooltipContent>
 			</Tooltip>
 			{linearIssueTrigger}

@@ -35,9 +35,7 @@ export function AssigneeMenuItems({
 			>
 				<HiOutlineUserCircle className="size-5 text-muted-foreground shrink-0" />
 				<span className="text-sm">
-					<Trans id="dashboard.tasks.assigneeMenuItems.noAssignee">
-						No assignee
-					</Trans>
+					<Trans>No assignee</Trans>
 				</span>
 				{!currentAssigneeId && !hasExternalAssignee && (
 					<span className="ml-auto text-xs text-muted-foreground">✓</span>

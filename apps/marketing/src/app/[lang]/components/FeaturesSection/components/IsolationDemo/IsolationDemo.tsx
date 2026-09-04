@@ -125,15 +125,13 @@ export function IsolationDemo() {
 						type="button"
 						className="whitespace-nowrap rounded-sm bg-foreground/[0.06] px-2 py-1 text-xs text-foreground/90 transition-colors"
 					>
-						<Trans id="marketing.features.isolation.sideBySide">
-							Side by Side
-						</Trans>
+						<Trans>Side by Side</Trans>
 					</button>
 					<button
 						type="button"
 						className="rounded-sm px-2 py-1 text-xs text-muted-foreground/55 transition-colors hover:text-foreground/80"
 					>
-						<Trans id="marketing.features.isolation.inline">Inline</Trans>
+						<Trans>Inline</Trans>
 					</button>
 				</div>
 			</div>
@@ -146,15 +144,13 @@ export function IsolationDemo() {
 						<div className="flex items-center gap-2 px-2 py-1.5 text-muted-foreground/65 text-xs">
 							<HiOutlineChatBubbleLeftRight className="w-3.5 h-3.5" />
 							<span>
-								<Trans id="marketing.features.isolation.messages">
-									Messages
-								</Trans>
+								<Trans>Messages</Trans>
 							</span>
 						</div>
 						<div className="flex items-center gap-2 px-2 py-1.5 text-muted-foreground/65 text-xs">
 							<VscGitCommit className="w-3.5 h-3.5" />
 							<span>
-								<Trans id="marketing.features.isolation.commits">Commits</Trans>
+								<Trans>Commits</Trans>
 							</span>
 							<span className="ml-auto rounded bg-foreground/[0.07] px-1.5 font-mono text-[10px] tabular-nums text-muted-foreground/70">
 								3
@@ -163,9 +159,7 @@ export function IsolationDemo() {
 						<div className="flex items-center gap-2 px-2 py-1.5 text-foreground/90 text-xs bg-foreground/[0.06] rounded-sm">
 							<VscGitPullRequest className="w-3.5 h-3.5" />
 							<span>
-								<Trans id="marketing.features.isolation.againstMain">
-									Against Main
-								</Trans>
+								<Trans>Against Main</Trans>
 							</span>
 							<HiOutlineCheck className="ml-auto w-3.5 h-3.5 text-emerald-400/85" />
 						</div>
@@ -174,7 +168,7 @@ export function IsolationDemo() {
 					{/* Files */}
 					<div className="p-2">
 						<div className="px-2 py-1 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/65">
-							<Trans id="marketing.features.isolation.unstaged">Unstaged</Trans>
+							<Trans>Unstaged</Trans>
 						</div>
 						{SIDEBAR_FILES.map((file, index) => (
 							<m.div

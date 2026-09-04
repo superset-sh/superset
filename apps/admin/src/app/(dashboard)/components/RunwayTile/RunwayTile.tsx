@@ -18,26 +18,22 @@ export function RunwayTile() {
 
 	const description = available
 		? t({
-				id: "admin.runway.description",
 				message: `$${(data.totalCashUsd / 1_000_000).toFixed(2)}M cash ÷ $${data.avgMonthlyNetBurnUsd?.toLocaleString() ?? "—"}/mo net burn, last 3 complete months. Cash includes raised capital; no growth assumed.`,
 			})
 		: ((data && !data.available ? data.reason : null) ??
 			t({
-				id: "admin.runway.descriptionFallback",
 				message: "Cash ÷ net burn at the current run rate",
 			}));
 
 	return (
 		<MetricCard
 			className="h-full"
-			title={t({ id: "admin.runway.title", message: "Runway" })}
+			title={t({ message: "Runway" })}
 			description={description}
 			value={available ? data.runwayMonths : null}
 			isLoading={query.isLoading}
 			error={query.error}
-			formatter={(v) =>
-				t({ id: "admin.runway.months", message: `${v.toLocaleString()} mo` })
-			}
+			formatter={(v) => t({ message: `${v.toLocaleString()} mo` })}
 		/>
 	);
 }

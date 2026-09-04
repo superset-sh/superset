@@ -36,7 +36,7 @@ function PaymentMethodLabel({
 			<span className="inline-flex items-center gap-1.5">
 				<img src={stripeLinkIcon} alt="Link" className="h-4 w-4 rounded-sm" />
 				<span>
-					<Trans id="settings.billing.linkByStripe">Link by Stripe</Trans>
+					<Trans>Link by Stripe</Trans>
 				</span>
 			</span>
 		);
@@ -45,7 +45,7 @@ function PaymentMethodLabel({
 	if (paymentMethod.last4) {
 		return (
 			<span>
-				<Trans id="settings.billing.cardEndingIn">
+				<Trans>
 					{capitalizeFirst(paymentMethod.brand)} ending in {paymentMethod.last4}
 				</Trans>
 			</span>
@@ -82,7 +82,6 @@ export function BillingDetails() {
 				error instanceof Error
 					? error.message
 					: t({
-							id: "settings.billing.portalOpenFailedToast",
 							message: "Failed to open the billing portal",
 						}),
 			);
@@ -98,14 +97,13 @@ export function BillingDetails() {
 	return (
 		<div>
 			<h3 className="text-sm font-medium mb-2">
-				<Trans id="settings.billing.detailsTitle">Billing details</Trans>
+				<Trans>Billing details</Trans>
 			</h3>
 			<div>
 				<DetailRow
 					label={
 						details.name ??
 						t({
-							id: "settings.billing.noNameOnFile",
 							message: "No name on file",
 						})
 					}
@@ -122,13 +120,12 @@ export function BillingDetails() {
 							onClick={() => handleEdit("general")}
 							disabled={openingPortal !== null}
 						>
-							<Trans id="settings.billing.editDetails">Edit</Trans>
+							<Trans>Edit</Trans>
 						</Button>
 					}
 				/>
 				<DetailRow
 					label={t({
-						id: "settings.billing.paymentMethodLabel",
 						message: "Payment method",
 					})}
 					hint={
@@ -136,7 +133,6 @@ export function BillingDetails() {
 							<PaymentMethodLabel paymentMethod={details.paymentMethod} />
 						) : (
 							t({
-								id: "settings.billing.noPaymentMethodOnFile",
 								message: "No payment method on file",
 							})
 						)
@@ -148,17 +144,16 @@ export function BillingDetails() {
 							onClick={() => handleEdit("payment_method_update")}
 							disabled={openingPortal !== null}
 						>
-							<Trans id="settings.billing.editPaymentMethod">Edit</Trans>
+							<Trans>Edit</Trans>
 						</Button>
 					}
 				/>
 				<DetailRow
-					label={t({ id: "settings.billing.taxIdLabel", message: "Tax ID" })}
+					label={t({ message: "Tax ID" })}
 					hint={
 						details.taxId
 							? `${details.taxId.type.toUpperCase().replace("_", " ")} · ${details.taxId.value}`
 							: t({
-									id: "settings.billing.noTaxIdOnFile",
 									message: "No tax identifier on file",
 								})
 					}
@@ -169,11 +164,7 @@ export function BillingDetails() {
 							onClick={() => handleEdit("general")}
 							disabled={openingPortal !== null}
 						>
-							{details.taxId ? (
-								<Trans id="settings.billing.editTaxId">Edit</Trans>
-							) : (
-								<Trans id="settings.billing.addTaxId">Add tax ID</Trans>
-							)}
+							{details.taxId ? <Trans>Edit</Trans> : <Trans>Add tax ID</Trans>}
 						</Button>
 					}
 				/>

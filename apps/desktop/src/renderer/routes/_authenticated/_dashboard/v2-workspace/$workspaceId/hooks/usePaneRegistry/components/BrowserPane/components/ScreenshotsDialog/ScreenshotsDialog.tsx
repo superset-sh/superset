@@ -49,7 +49,6 @@ export function ScreenshotsDialog({
 			.then(() => {
 				toast.success(
 					t({
-						id: "workspace.browserPane.screenshotPathCopied",
 						message: "Path copied",
 					}),
 					{
@@ -65,7 +64,6 @@ export function ScreenshotsDialog({
 			.catch(() => {
 				toast.error(
 					t({
-						id: "workspace.browserPane.screenshotPathCopyFailed",
 						message: "Couldn't copy path",
 					}),
 				);
@@ -81,17 +79,13 @@ export function ScreenshotsDialog({
 			<DialogContent className="max-w-lg">
 				<DialogHeader>
 					<DialogTitle>
-						<Trans id="workspace.browserPane.screenshotsTitle">
-							Screenshots
-						</Trans>
+						<Trans>Screenshots</Trans>
 					</DialogTitle>
 				</DialogHeader>
 				<ScrollArea className="h-80 min-w-0 -mx-1 px-1">
 					{rows.length === 0 ? (
 						<p className="py-8 text-center text-sm text-muted-foreground">
-							<Trans id="workspace.browserPane.noScreenshots">
-								No screenshots yet
-							</Trans>
+							<Trans>No screenshots yet</Trans>
 						</p>
 					) : (
 						<div className="flex min-w-0 flex-col">
@@ -126,11 +120,9 @@ export function ScreenshotsDialog({
 										type="button"
 										onClick={() => handleCopyPath(row.savePath)}
 										aria-label={t({
-											id: "workspace.browserPane.screenshotCopyPath",
 											message: "Copy path",
 										})}
 										title={t({
-											id: "workspace.browserPane.screenshotCopyPathTitle",
 											message: "Copy path",
 										})}
 										className="shrink-0 rounded p-1 text-muted-foreground/60 transition-colors hover:text-foreground"
@@ -141,11 +133,9 @@ export function ScreenshotsDialog({
 										type="button"
 										onClick={() => handleShowInFolder(row.id)}
 										aria-label={t({
-											id: "workspace.browserPane.screenshotShowInFolder",
 											message: "Show in folder",
 										})}
 										title={t({
-											id: "workspace.browserPane.screenshotShowInFolderTitle",
 											message: "Show in folder",
 										})}
 										className="shrink-0 rounded p-1 text-muted-foreground/60 transition-colors hover:text-foreground"
@@ -164,9 +154,7 @@ export function ScreenshotsDialog({
 						onClick={handleClear}
 						disabled={rows.length === 0}
 					>
-						<Trans id="workspace.browserPane.screenshotsClearList">
-							Clear list
-						</Trans>
+						<Trans>Clear list</Trans>
 					</Button>
 				</div>
 			</DialogContent>

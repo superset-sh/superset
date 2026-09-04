@@ -93,11 +93,9 @@ export function SymmetricResizeHandles({
 					aria-label={
 						side === "left"
 							? t({
-									id: "dashboard.newWorkspaceModal.resizeHandles.resizeLeftEdge",
 									message: "Resize left edge",
 								})
 							: t({
-									id: "dashboard.newWorkspaceModal.resizeHandles.resizeRightEdge",
 									message: "Resize right edge",
 								})
 					}

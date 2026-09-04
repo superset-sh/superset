@@ -84,14 +84,12 @@ export function ProjectTargetingField({
 		{
 			value: "all",
 			label: t({
-				id: "settings.terminal.projectTargeting.allProjects",
 				message: "All projects",
 			}),
 		},
 		{
 			value: "specific",
 			label: t({
-				id: "settings.terminal.projectTargeting.specific",
 				message: "Specific",
 			}),
 		},
@@ -138,15 +136,12 @@ export function ProjectTargetingField({
 							<Command>
 								<CommandInput
 									placeholder={t({
-										id: "settings.terminal.projectTargeting.searchPlaceholder",
 										message: "Search projects...",
 									})}
 								/>
 								<CommandList className="max-h-72">
 									<CommandEmpty>
-										<Trans id="settings.terminal.projectTargeting.noProjectsFound">
-											No projects found.
-										</Trans>
+										<Trans>No projects found.</Trans>
 									</CommandEmpty>
 									<CommandGroup>
 										{projects.map((project) => {
@@ -185,7 +180,6 @@ export function ProjectTargetingField({
 					{selectedProjects.length > 0 ? (
 						<p className="text-xs text-muted-foreground">
 							<Plural
-								id="settings.terminal.projectTargeting.selectedCount"
 								value={selectedProjects.length}
 								one="# project selected."
 								other="# projects selected."
@@ -197,9 +191,7 @@ export function ProjectTargetingField({
 
 			{projects.length === 0 ? (
 				<p className="text-xs text-muted-foreground">
-					<Trans id="settings.terminal.projectTargeting.noProjectsHint">
-						Import a project to scope presets.
-					</Trans>
+					<Trans>Import a project to scope presets.</Trans>
 				</p>
 			) : null}
 		</div>

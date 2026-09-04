@@ -46,36 +46,30 @@ export function ResourceMetricsSummary({
 			<div className="grid grid-cols-3 divide-x divide-border/50">
 				<MetricBadge
 					label={t({
-						id: "dashboard.topBar.resourceSummary.cpuLabel",
 						message: "CPU",
 					})}
 					value={formatCpu(snapshot.totalCpu)}
 					tooltip={t({
-						id: "dashboard.topBar.resourceSummary.cpuTooltip",
 						message:
 							"Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain.",
 					})}
 				/>
 				<MetricBadge
 					label={t({
-						id: "dashboard.topBar.resourceSummary.memoryLabel",
 						message: "Memory",
 					})}
 					value={formatMemory(snapshot.totalMemory)}
 					tooltip={t({
-						id: "dashboard.topBar.resourceSummary.memoryTooltip",
 						message:
 							"Resident memory used by Superset and monitored terminal process trees. If this keeps climbing without dropping, a workspace process may be retaining memory. High values increase swap risk and can cause stutter.",
 					})}
 				/>
 				<MetricBadge
 					label={t({
-						id: "dashboard.topBar.resourceSummary.ramShareLabel",
 						message: "RAM Share",
 					})}
 					value={formatPercent(trackedMemorySharePercent)}
 					tooltip={t({
-						id: "dashboard.topBar.resourceSummary.ramShareTooltip",
 						message:
 							"Percent of total system RAM used by monitored Superset resources only (not all apps). A high share means Superset is a major contributor to system memory pressure; a low share means pressure is likely elsewhere.",
 					})}
@@ -87,7 +81,6 @@ export function ResourceMetricsSummary({
 						className="mt-3 h-1 w-full overflow-hidden rounded-full bg-muted/60"
 						role="progressbar"
 						aria-label={t({
-							id: "dashboard.topBar.resourceSummary.systemRamShareAriaLabel",
 							message: "System RAM share",
 						})}
 						aria-valuenow={Math.round(clampedSharePercent)}
@@ -104,7 +97,7 @@ export function ResourceMetricsSummary({
 					</div>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" sideOffset={6}>
-					<Trans id="dashboard.topBar.resourceSummary.systemRamShare">
+					<Trans>
 						Superset uses {formatPercent(trackedMemorySharePercent)} of system
 						RAM
 					</Trans>

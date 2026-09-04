@@ -4,8 +4,9 @@ import type {
 	ServerMessage,
 } from "@superset/host-service/events";
 import type { AgentIdentity } from "@superset/shared/agent-identity";
+import { DIAL_TIMEOUT_MS } from "@superset/shared/tunnel-protocol";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
-import type { RelayAffinityProbe } from "./primeRelayAffinity";
+import type { RelayHostProbe } from "./probeRelayHost";
 import { createRelaySocket, type RelaySocket } from "./relaySocket";
 
 export type { AgentIdentity };
@@ -20,6 +21,7 @@ type EventType =
 	| "workspace:changed"
 	| "workspace:create-settled"
 	| "project:changed"
+	| "tag-folders:changed"
 	| "page-watch:changed";
 
 interface FsEventsPayload {
@@ -109,6 +111,17 @@ export interface PageWatchChangedPayload {
 	occurredAt: number;
 }
 
+type TagFoldersChangedMessage = Extract<
+	ServerMessage,
+	{ type: "tag-folders:changed" }
+>;
+
+export interface TagFoldersChangedPayload {
+	/** The scope's full set after the change — empty when all were removed. */
+	settings: TagFoldersChangedMessage["settings"];
+	occurredAt: TagFoldersChangedMessage["occurredAt"];
+}
+
 type EventListener<T extends EventType> = T extends "fs:events"
 	? (workspaceId: string, payload: FsEventsPayload) => void
 	: T extends "git:changed"
@@ -130,12 +143,14 @@ type EventListener<T extends EventType> = T extends "fs:events"
 									) => void
 								: T extends "project:changed"
 									? (projectId: string, payload: ProjectChangedPayload) => void
-									: T extends "page-watch:changed"
-										? (
-												workspaceId: string,
-												payload: PageWatchChangedPayload,
-											) => void
-										: never;
+									: T extends "tag-folders:changed"
+										? (scope: string, payload: TagFoldersChangedPayload) => void
+										: T extends "page-watch:changed"
+											? (
+													workspaceId: string,
+													payload: PageWatchChangedPayload,
+												) => void
+											: never;
 
 interface ListenerEntry {
 	type: EventType;
@@ -165,7 +180,7 @@ export interface HostConnectionStatus {
 	 * 401/403 unauthorized, null for a direct (non-relay) host URL or when the
 	 * relay itself couldn't be reached. Names *why* the socket is down.
 	 */
-	probe: RelayAffinityProbe | null;
+	probe: RelayHostProbe | null;
 }
 
 type ConnectionStatusListener = (status: HostConnectionStatus) => void;
@@ -186,19 +201,36 @@ function fileWatchKey(workspaceId: string, absolutePath: string): string {
 	return `${workspaceId}\0${absolutePath}`;
 }
 
+function probesEqual(
+	left: RelayHostProbe | null,
+	right: RelayHostProbe | null,
+): boolean {
+	if (left === right) return true;
+	if (left === null || right === null) return false;
+	return left.status === right.status;
+}
+
 function setConnectionStatus(
 	state: ConnectionState,
-	next: { state?: HostConnectionState; probe?: RelayAffinityProbe | null },
+	next: { state?: HostConnectionState; probe?: RelayHostProbe | null },
 ): void {
 	const current = state.status;
 	const nextState = next.state ?? current.state;
 	const nextProbe = "probe" in next ? (next.probe ?? null) : current.probe;
-	if (nextState === current.state && nextProbe === current.probe) return;
+	// Value-compare probes: the preflight allocates a fresh result object per
+	// dial, so identity comparison republished an unchanged 503 on every
+	// backoff attempt — fanning a no-op "transition" out to every status
+	// subscriber (and their React commits) for as long as a host stayed down.
+	if (nextState === current.state && probesEqual(nextProbe, current.probe)) {
+		return;
+	}
 
 	state.status = {
 		state: nextState,
 		since: nextState === current.state ? current.since : Date.now(),
-		probe: nextProbe,
+		// Keep the old probe object when only the state moved, so subscribers
+		// keying on probe identity don't re-derive from an equal value.
+		probe: probesEqual(nextProbe, current.probe) ? current.probe : nextProbe,
 	};
 	for (const listener of state.statusListeners) listener(state.status);
 }
@@ -244,7 +276,9 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 				? message.workspaceId
 				: message.type === "project:changed"
 					? message.projectId
-					: null;
+					: message.type === "tag-folders:changed"
+						? message.scope
+						: null;
 
 		if (
 			workspaceId &&
@@ -321,6 +355,11 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 				project: message.project,
 				occurredAt: message.occurredAt,
 			});
+		} else if (message.type === "tag-folders:changed") {
+			(entry.callback as EventListener<"tag-folders:changed">)(message.scope, {
+				settings: message.settings,
+				occurredAt: message.occurredAt,
+			});
 		}
 	}
 }
@@ -334,7 +373,7 @@ function getOrCreateConnection(
 	const existing = connections.get(key);
 	if (existing) return existing;
 
-	// createRelaySocket runs the fly-affinity preflight and re-signs the URL
+	// createRelaySocket runs the host probe and re-signs the URL
 	// with a fresh token before every attempt; backoff and reconnection live
 	// inside partysocket. Buffering is disabled so command semantics stay
 	// "send only while open" — watches are replayed from state on each open.
@@ -352,6 +391,9 @@ function getOrCreateConnection(
 		accessDeniedRetryMs: ACCESS_DENIED_RETRY_MS,
 		minReconnectionDelay: RECONNECT_BASE_MS,
 		maxReconnectionDelay: RECONNECT_MAX_MS,
+		// Relay upgrades wait for the host's dial-back (DIAL_TIMEOUT_MS);
+		// partysocket's 4s default gave up on attempts the host was answering.
+		connectionTimeout: DIAL_TIMEOUT_MS + 2_000,
 		maxEnqueuedMessages: 0,
 		onProbe: (probe) => {
 			setConnectionStatus(state, { probe });

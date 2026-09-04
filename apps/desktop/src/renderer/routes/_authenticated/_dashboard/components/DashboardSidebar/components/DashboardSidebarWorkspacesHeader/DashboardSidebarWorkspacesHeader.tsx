@@ -8,6 +8,7 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
 import {
 	VscFolderOpened,
 	VscGithubAlt,
@@ -15,15 +16,60 @@ import {
 	VscNewFolder,
 } from "react-icons/vsc";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
+import type { SidebarProjectSortMode } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import {
 	useOpenEmptyProjectModal,
 	useOpenNewProjectModal,
 	useOpenTemplateGalleryModal,
 } from "renderer/stores/add-repository-modal";
+import { useSidebarSectionsCollapseStore } from "renderer/stores/sidebar-sections-collapse";
 import { DashboardSidebarSectionHeader } from "../DashboardSidebarSectionHeader";
+import { DashboardSidebarProjectsFilterInput } from "./components/DashboardSidebarProjectsFilterInput";
+import { DashboardSidebarProjectsSortMenu } from "./components/DashboardSidebarProjectsSortMenu";
+import { useProjectFilterExpanded } from "./hooks/useProjectFilterExpanded";
 
-export function DashboardSidebarWorkspacesHeader() {
+interface DashboardSidebarWorkspacesHeaderProps {
+	sortMode: SidebarProjectSortMode;
+	onSortModeChange: (mode: SidebarProjectSortMode) => void;
+	filterQuery: string;
+	onFilterQueryChange: (query: string) => void;
+}
+
+export function DashboardSidebarWorkspacesHeader({
+	sortMode,
+	onSortModeChange,
+	filterQuery,
+	onFilterQueryChange,
+}: DashboardSidebarWorkspacesHeaderProps) {
 	const { t } = useLingui();
+	const isSectionCollapsed = useSidebarSectionsCollapseStore(
+		(s) => s.collapsed.workspaces,
+	);
+	const toggleSectionCollapsed = useSidebarSectionsCollapseStore(
+		(s) => s.toggle,
+	);
+	// The query lives in DashboardSidebar (it clears it when the sidebar
+	// collapses to the icon rail); only the open/closed flag is local, and
+	// the hook keeps the input open whenever a query is active because this
+	// header unmounts under the bulk-selection toolbar.
+	const [isFilterExpanded, setIsFilterExpanded] =
+		useProjectFilterExpanded(filterQuery);
+	const handleFilterExpandedChange = (expanded: boolean) => {
+		setIsFilterExpanded(expanded);
+		// Filtering a hidden list is useless — reveal it when the search opens.
+		if (expanded && isSectionCollapsed) toggleSectionCollapsed("workspaces");
+	};
+	// The converse: collapsing the section while the input is open would leave
+	// a filter running against a hidden list (and no chevron to say the rows
+	// are merely collapsed), so a collapse closes the filter.
+	const wasSectionCollapsedRef = useRef(isSectionCollapsed);
+	useEffect(() => {
+		if (isSectionCollapsed && !wasSectionCollapsedRef.current) {
+			onFilterQueryChange("");
+			setIsFilterExpanded(false);
+		}
+		wasSectionCollapsedRef.current = isSectionCollapsed;
+	}, [isSectionCollapsed, onFilterQueryChange, setIsFilterExpanded]);
 	const openEmptyProject = useOpenEmptyProjectModal();
 	const openNewProject = useOpenNewProjectModal();
 	const openTemplateGallery = useOpenTemplateGalleryModal();
@@ -32,7 +78,6 @@ export function DashboardSidebarWorkspacesHeader() {
 		onError: (message) => {
 			toast.error(
 				t({
-					id: "dashboard.sidebar.workspacesHeader.importFailed",
 					message: `Import failed: ${message}`,
 				}),
 			);
@@ -40,17 +85,14 @@ export function DashboardSidebarWorkspacesHeader() {
 		onMultipleProjects: ({ candidates }) => {
 			toast.error(
 				t({
-					id: "dashboard.sidebar.workspacesHeader.importFailedTitle",
 					message: "Import failed",
 				}),
 				{
 					description: t({
-						id: "dashboard.sidebar.workspacesHeader.importMultipleProjects",
 						message: `Multiple projects use this repository (${candidates.length}). Choose the project in settings to set it up on this device.`,
 					}),
 					action: {
 						label: t({
-							id: "dashboard.sidebar.workspacesHeader.openProjectsAction",
 							message: "Open Projects",
 						}),
 						onClick: () => navigate({ to: "/settings/projects" }),
@@ -65,7 +107,6 @@ export function DashboardSidebarWorkspacesHeader() {
 		if (result) {
 			toast.success(
 				t({
-					id: "dashboard.sidebar.workspacesHeader.projectReady",
 					message: "Project ready — open it from the sidebar.",
 				}),
 			);
@@ -75,11 +116,21 @@ export function DashboardSidebarWorkspacesHeader() {
 	return (
 		<DashboardSidebarSectionHeader
 			label={t({
-				id: "dashboard.sidebar.sectionProjects",
 				message: "Projects",
 			})}
 			section="workspaces"
+			labelHidden={isFilterExpanded}
 		>
+			<DashboardSidebarProjectsFilterInput
+				query={filterQuery}
+				onQueryChange={onFilterQueryChange}
+				isExpanded={isFilterExpanded}
+				onExpandedChange={handleFilterExpandedChange}
+			/>
+			<DashboardSidebarProjectsSortMenu
+				sortMode={sortMode}
+				onSortModeChange={onSortModeChange}
+			/>
 			<DropdownMenu>
 				<Tooltip delayDuration={700}>
 					<TooltipTrigger asChild>
@@ -87,7 +138,6 @@ export function DashboardSidebarWorkspacesHeader() {
 							<button
 								type="button"
 								aria-label={t({
-									id: "dashboard.sidebar.workspacesHeader.addProjectAriaLabel",
 									message: "Add project",
 								})}
 								onClick={(event) => event.stopPropagation()}
@@ -100,9 +150,7 @@ export function DashboardSidebarWorkspacesHeader() {
 						</DropdownMenuTrigger>
 					</TooltipTrigger>
 					<TooltipContent side="bottom">
-						<Trans id="dashboard.sidebar.workspacesHeader.addProject">
-							Add project
-						</Trans>
+						<Trans>Add project</Trans>
 					</TooltipContent>
 				</Tooltip>
 				<DropdownMenuContent
@@ -116,27 +164,19 @@ export function DashboardSidebarWorkspacesHeader() {
 				>
 					<DropdownMenuItem onSelect={handleImportFolder}>
 						<VscFolderOpened className="size-4" />
-						<Trans id="dashboard.sidebar.workspacesHeader.openProject">
-							Open project
-						</Trans>
+						<Trans>Open project</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuItem onSelect={() => openNewProject()}>
 						<VscGithubAlt className="size-4" />
-						<Trans id="dashboard.sidebar.workspacesHeader.cloneFromUrl">
-							Clone from URL
-						</Trans>
+						<Trans>Clone from URL</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuItem onSelect={() => openEmptyProject()}>
 						<VscNewFolder className="size-4" />
-						<Trans id="dashboard.sidebar.workspacesHeader.createNewProject">
-							Create new project
-						</Trans>
+						<Trans>Create new project</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuItem onSelect={() => openTemplateGallery()}>
 						<VscLayout className="size-4" />
-						<Trans id="dashboard.sidebar.workspacesHeader.startFromTemplate">
-							Start from a template
-						</Trans>
+						<Trans>Start from a template</Trans>
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>

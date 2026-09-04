@@ -71,7 +71,7 @@ export function InsightTileFrame({
 								className="size-6 p-0"
 								onClick={onRefresh}
 								disabled={isRefreshing}
-								aria-label={t({ id: "admin.tile.refresh", message: "Refresh" })}
+								aria-label={t({ message: "Refresh" })}
 							>
 								<LuRefreshCw
 									className={cn("size-3.5", isRefreshing && "animate-spin")}
@@ -108,7 +108,7 @@ export function InsightTileFrame({
 				) : empty ? (
 					<div className="flex h-[200px] items-center justify-center rounded-md border border-dashed">
 						<p className="text-muted-foreground text-sm">
-							{emptyLabel ?? t({ id: "admin.tile.noData", message: "No data" })}
+							{emptyLabel ?? t({ message: "No data" })}
 						</p>
 					</div>
 				) : (

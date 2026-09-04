@@ -80,10 +80,10 @@ export function TerminalSettings({
 		<div className="p-6 max-w-6xl w-full">
 			<div className="mb-8">
 				<h2 className="text-xl font-semibold">
-					<Trans id="settings.terminal.title">Terminal</Trans>
+					<Trans>Terminal</Trans>
 				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					<Trans id="settings.terminal.subtitle">
+					<Trans>
 						Configure terminal behavior and reusable terminal scripts
 					</Trans>
 				</p>

@@ -112,11 +112,9 @@ function IssueDetailPage() {
 			itemNumber={data?.number ?? issueNumber}
 			icon={<StateIcon className={`size-4 shrink-0 ${stateIconClass}`} />}
 			backLabel={t({
-				id: "dashboard.tasks.issueDetail.backToIssues",
 				message: "Back to GitHub issues",
 			})}
 			externalLabel={t({
-				id: "dashboard.tasks.issueDetail.openInGithub",
 				message: "Open issue in GitHub",
 			})}
 			url={data?.url ?? null}
@@ -131,7 +129,6 @@ function IssueDetailPage() {
 				{header}
 				<WorkItemDetailState
 					message={t({
-						id: "dashboard.tasks.issueDetail.invalidLink",
 						message: "This issue link is invalid.",
 					})}
 					isError
@@ -146,7 +143,6 @@ function IssueDetailPage() {
 				{header}
 				<WorkItemDetailState
 					message={t({
-						id: "dashboard.tasks.issueDetail.chooseProject",
 						message:
 							"Choose a project from GitHub issues before opening an issue.",
 					})}
@@ -163,12 +159,10 @@ function IssueDetailPage() {
 					message={
 						areProjectsReady
 							? t({
-									id: "dashboard.tasks.issueDetail.projectUnavailable",
 									message:
 										"This project is no longer available on your devices.",
 								})
 							: t({
-									id: "dashboard.tasks.issueDetail.loadingProject",
 									message: "Loading project…",
 								})
 					}
@@ -185,7 +179,6 @@ function IssueDetailPage() {
 				{header}
 				<WorkItemDetailState
 					message={t({
-						id: "dashboard.tasks.issueDetail.hostUnavailable",
 						message: "The device that hosts this project is unavailable.",
 					})}
 					isError
@@ -200,7 +193,6 @@ function IssueDetailPage() {
 				{header}
 				<WorkItemDetailState
 					message={t({
-						id: "dashboard.tasks.issueDetail.loadingIssue",
 						message: "Loading issue…",
 					})}
 					isLoading
@@ -218,7 +210,6 @@ function IssueDetailPage() {
 						error instanceof Error
 							? error.message
 							: t({
-									id: "dashboard.tasks.issueDetail.notFound",
 									message: "Issue not found.",
 								})
 					}
@@ -247,9 +238,7 @@ function IssueDetailPage() {
 							<>
 								<span aria-hidden>·</span>
 								<span className="min-w-0 break-words">
-									<Trans id="dashboard.tasks.issueDetail.byAuthor">
-										by {data.author}
-									</Trans>
+									<Trans>by {data.author}</Trans>
 								</span>
 							</>
 						)}
@@ -259,9 +248,7 @@ function IssueDetailPage() {
 						<MarkdownRenderer content={data.body} />
 					) : (
 						<p className="text-sm italic text-muted-foreground">
-							<Trans id="dashboard.tasks.issueDetail.noDescription">
-								No description provided.
-							</Trans>
+							<Trans>No description provided.</Trans>
 						</p>
 					)}
 				</div>

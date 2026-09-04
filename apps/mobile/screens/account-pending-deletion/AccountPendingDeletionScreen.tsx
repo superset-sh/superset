@@ -31,13 +31,11 @@ export function AccountPendingDeletionScreen() {
 			console.error("[account/reactivate] Failed:", error);
 			Alert.alert(
 				t({
-					id: "mobile.accountPendingDeletion.reactivateFailed",
 					message: "Could not reactivate",
 				}),
 				error instanceof Error
 					? error.message
 					: t({
-							id: "mobile.common.somethingWentWrongPeriod",
 							message: "Something went wrong.",
 						}),
 			);
@@ -57,20 +55,17 @@ export function AccountPendingDeletionScreen() {
 
 			<View className="items-center gap-2">
 				<Text className="text-2xl font-semibold text-foreground">
-					<Trans id="mobile.accountPendingDeletion.title">
-						Account pending deletion
-					</Trans>
+					<Trans>Account pending deletion</Trans>
 				</Text>
 				<Text className="text-center text-base text-muted-foreground">
 					{daysRemaining !== null && daysRemaining > 0 ? (
 						<Plural
-							id="mobile.accountPendingDeletion.descriptionDays"
 							value={daysRemaining}
 							one="Your account is deactivated and will be permanently deleted in # day. Reactivate to restore it exactly as you left it."
 							other="Your account is deactivated and will be permanently deleted in # days. Reactivate to restore it exactly as you left it."
 						/>
 					) : (
-						<Trans id="mobile.accountPendingDeletion.descriptionSoon">
+						<Trans>
 							Your account is deactivated and will be permanently deleted soon.
 							Reactivate to restore it exactly as you left it.
 						</Trans>
@@ -87,11 +82,9 @@ export function AccountPendingDeletionScreen() {
 					<Text>
 						{isReactivating
 							? t({
-									id: "mobile.accountPendingDeletion.reactivating",
 									message: "Reactivating…",
 								})
 							: t({
-									id: "mobile.accountPendingDeletion.reactivate",
 									message: "Reactivate my account",
 								})}
 					</Text>
@@ -103,9 +96,7 @@ export function AccountPendingDeletionScreen() {
 					onPress={() => Linking.openURL(COMPANY.MAIL_TO)}
 				>
 					<Text>
-						<Trans id="mobile.accountPendingDeletion.contactSupport">
-							Contact support
-						</Trans>
+						<Trans>Contact support</Trans>
 					</Text>
 				</Button>
 				<Button
@@ -115,7 +106,7 @@ export function AccountPendingDeletionScreen() {
 					onPress={isSigningOut ? undefined : () => void signOut()}
 				>
 					<Text>
-						<Trans id="mobile.settings.logOut.confirm">Log out</Trans>
+						<Trans>Log out</Trans>
 					</Text>
 				</Button>
 			</View>

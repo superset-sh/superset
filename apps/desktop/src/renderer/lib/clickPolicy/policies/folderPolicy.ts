@@ -46,14 +46,12 @@ export function folderIntentFor(event: ModifierEvent): FolderIntent {
 
 const FOLDER_INTENT_LABELS: Record<FolderLinkAction, MessageDescriptor> = {
 	reveal: msg({
-		id: "clickPolicy.folder.reveal",
 		message: "Reveal in sidebar",
 	}),
 	external: msg({
-		id: "clickPolicy.folder.external",
 		message: "Open in editor",
 	}),
-	finder: msg({ id: "clickPolicy.folder.finder", message: "Open in Finder" }),
+	finder: msg({ message: "Open in Finder" }),
 };
 
 export function folderIntentLabel(intent: FolderIntent): string | null {

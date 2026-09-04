@@ -58,7 +58,7 @@ function ProjectsIndexPage() {
 		if (isV2CloudEnabled ? !isReady : groupsLoading) return null;
 		return (
 			<div className="flex items-center justify-center h-full p-6 text-sm text-muted-foreground">
-				<Trans id="settings.projects.empty">No projects yet.</Trans>
+				<Trans>No projects yet.</Trans>
 			</div>
 		);
 	}

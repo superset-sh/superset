@@ -49,7 +49,6 @@ export function TopBarPortsGroup({ group, onNavigate }: TopBarPortsGroupProps) {
 		if (closedCount > 0) {
 			toast.success(
 				t({
-					id: "dashboard.topBar.ports.closedGroupPortsToast",
 					message: plural(closedCount, {
 						one: "Closed # port",
 						other: "Closed # ports",
@@ -72,11 +71,9 @@ export function TopBarPortsGroup({ group, onNavigate }: TopBarPortsGroupProps) {
 						aria-label={
 							isCollapsed
 								? t({
-										id: "dashboard.topBar.ports.expandGroup",
 										message: `Expand ${group.workspaceName}`,
 									})
 								: t({
-										id: "dashboard.topBar.ports.collapseGroup",
 										message: `Collapse ${group.workspaceName}`,
 									})
 						}
@@ -100,7 +97,7 @@ export function TopBarPortsGroup({ group, onNavigate }: TopBarPortsGroupProps) {
 				</button>
 				{group.hostType !== "local-device" && (
 					<span className="shrink-0 font-mono text-[9px] text-muted-foreground/60 uppercase">
-						<Trans id="dashboard.topBar.ports.remoteBadge">remote</Trans>
+						<Trans>remote</Trans>
 					</span>
 				)}
 				<span className="shrink-0 text-[10px] text-muted-foreground/50 tabular-nums">
@@ -114,7 +111,6 @@ export function TopBarPortsGroup({ group, onNavigate }: TopBarPortsGroupProps) {
 							disabled={isPending}
 							aria-busy={isPending}
 							aria-label={t({
-								id: "dashboard.topBar.ports.closeAllForWorkspace",
 								message: `Close all ports for ${group.workspaceName}`,
 							})}
 							className="ml-auto shrink-0 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring group-hover/wsheader:opacity-100 disabled:pointer-events-none disabled:opacity-60"
@@ -131,9 +127,7 @@ export function TopBarPortsGroup({ group, onNavigate }: TopBarPortsGroupProps) {
 					</TooltipTrigger>
 					<TooltipContent side="top">
 						<p className="text-xs">
-							<Trans id="dashboard.topBar.ports.closeAllInWorkspace">
-								Close all ports in this workspace
-							</Trans>
+							<Trans>Close all ports in this workspace</Trans>
 						</p>
 					</TooltipContent>
 				</Tooltip>

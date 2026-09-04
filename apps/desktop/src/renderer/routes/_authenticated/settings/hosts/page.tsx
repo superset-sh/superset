@@ -36,7 +36,7 @@ function HostsIndexPage() {
 		if (isPending) return null;
 		return (
 			<div className="flex items-center justify-center h-full p-6 text-sm text-muted-foreground">
-				<Trans id="settings.hosts.empty">No hosts yet.</Trans>
+				<Trans>No hosts yet.</Trans>
 			</div>
 		);
 	}

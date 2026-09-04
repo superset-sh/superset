@@ -68,7 +68,6 @@ export const FileHeaderRow = memo(function FileHeaderRow({
 				>
 					<SwiftUIButton
 						label={t({
-							id: "mobile.fileViewer.copyRelativePath",
 							message: "Copy relative path",
 						})}
 						systemImage="doc.on.doc"
@@ -76,7 +75,6 @@ export const FileHeaderRow = memo(function FileHeaderRow({
 					/>
 					<SwiftUIButton
 						label={t({
-							id: "mobile.filesChanged.viewFile",
 							message: "View file",
 						})}
 						systemImage="doc.text"
@@ -84,7 +82,6 @@ export const FileHeaderRow = memo(function FileHeaderRow({
 					/>
 					<SwiftUIButton
 						label={t({
-							id: "mobile.filesChanged.addFileComment",
 							message: "Add file comment",
 						})}
 						systemImage="text.bubble"
@@ -93,7 +90,6 @@ export const FileHeaderRow = memo(function FileHeaderRow({
 					{/* biome-ignore lint/a11y/useValidAriaRole: SwiftUI button role, not ARIA */}
 					<SwiftUIButton
 						label={t({
-							id: "mobile.filesChanged.deleteFile",
 							message: "Delete file",
 						})}
 						systemImage="trash"
@@ -106,11 +102,9 @@ export const FileHeaderRow = memo(function FileHeaderRow({
 				accessibilityLabel={
 					viewed
 						? t({
-								id: "mobile.filesChanged.markNotViewed",
 								message: "Mark as not viewed",
 							})
 						: t({
-								id: "mobile.filesChanged.markViewed",
 								message: "Mark as viewed",
 							})
 				}

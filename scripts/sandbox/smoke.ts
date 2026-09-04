@@ -13,7 +13,7 @@ import {
 } from "../../packages/trpc/src/lib/blaxel";
 
 const NAME = process.env.SMOKE_SANDBOX_NAME ?? "ws-smoke-test";
-const IMAGE = process.env.BLAXEL_SANDBOX_IMAGE ?? "superset-hostsvc";
+const IMAGE = "superset-hostsvc";
 const keep = process.argv.includes("--keep");
 
 const main = async () => {

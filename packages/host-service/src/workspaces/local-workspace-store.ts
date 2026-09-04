@@ -95,6 +95,7 @@ export function toWorkspaceSnapshot(
 		createdByUserId: row.createdByUserId,
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt || row.createdAt,
+		lastActivityAt: row.lastActivityAt,
 		tags,
 	};
 }
@@ -275,15 +276,21 @@ export function deleteLocalWorkspace(
 ): void {
 	const existing = getLocalWorkspace(ctx.db, id);
 	ctx.db.delete(workspaces).where(eq(workspaces.id, id)).run();
-	if (existing) {
-		ctx.eventBus.broadcastWorkspaceChanged({
-			workspaceId: id,
-			eventType: "deleted",
-			workspace: null,
-			occurredAt: Date.now(),
-		});
-		trackWorkspaceEvent(ctx, "workspace_deleted", existing);
-	}
+	if (existing) emitLocalWorkspaceDeleted(ctx, existing);
+}
+
+/** Broadcast/track a row deleted by a larger transaction (for example project removal). */
+export function emitLocalWorkspaceDeleted(
+	ctx: WorkspaceStoreContext,
+	row: HostWorkspaceRow,
+): void {
+	ctx.eventBus.broadcastWorkspaceChanged({
+		workspaceId: row.id,
+		eventType: "deleted",
+		workspace: null,
+		occurredAt: Date.now(),
+	});
+	trackWorkspaceEvent(ctx, "workspace_deleted", row);
 }
 
 /**
@@ -352,6 +359,48 @@ export function unarchiveLocalWorkspace(
 	}
 	const row = getLocalWorkspace(ctx.db, id);
 	if (row) emitWorkspaceChanged(ctx, "created", row);
+}
+
+/**
+ * Agent hooks fire on every tool call; one write per burst is plenty for a
+ * "last active" ranking, and it keeps a chatty agent from broadcasting a
+ * workspace:changed per tool use.
+ */
+export const WORKSPACE_ACTIVITY_THROTTLE_MS = 30_000;
+
+/**
+ * Record agent activity on a live workspace: stamp `lastActivityAt` and
+ * broadcast the row as `updated`. The first event after a quiet period
+ * writes immediately; further events inside the throttle window are
+ * dropped. Only `lastActivityAt` moves — `updatedAt` stays a metadata
+ * signal, and no analytics fire (unlike create/delete, a touch is not a
+ * workspace lifecycle event).
+ *
+ * Returns whether a write happened, for the caller's own bookkeeping.
+ */
+export function touchLocalWorkspaceActivity(
+	ctx: Pick<WorkspaceStoreContext, "db" | "eventBus">,
+	id: string,
+	occurredAt: number,
+): boolean {
+	const existing = getLocalWorkspace(ctx.db, id);
+	if (!existing || existing.archivedAt != null) return false;
+	if (
+		existing.lastActivityAt != null &&
+		occurredAt - existing.lastActivityAt < WORKSPACE_ACTIVITY_THROTTLE_MS
+	) {
+		return false;
+	}
+	ctx.db
+		.update(workspaces)
+		.set({ lastActivityAt: occurredAt })
+		.where(eq(workspaces.id, id))
+		.run();
+	emitWorkspaceChanged(ctx, "updated", {
+		...existing,
+		lastActivityAt: occurredAt,
+	});
+	return true;
 }
 
 function emitWorkspaceChanged(

@@ -14,7 +14,7 @@ export function OpenClosedFilter({
 	return (
 		<div className="flex items-center gap-2">
 			<span className="text-xs text-muted-foreground">
-				<Trans id="dashboard.openClosedFilter.state">State</Trans>
+				<Trans>State</Trans>
 			</span>
 			<ToggleGroup
 				type="single"
@@ -25,7 +25,6 @@ export function OpenClosedFilter({
 				variant="outline"
 				size="sm"
 				aria-label={t({
-					id: "dashboard.openClosedFilter.filterByState",
 					message: "Filter by state",
 				})}
 				className="h-8 rounded-md border-0 bg-muted/50 p-0.5"
@@ -33,22 +32,20 @@ export function OpenClosedFilter({
 				<ToggleGroupItem
 					value="open"
 					aria-label={t({
-						id: "dashboard.openClosedFilter.showOpenItems",
 						message: "Show open items",
 					})}
 					className="h-7 border-0 px-2 text-xs data-[state=on]:bg-background data-[state=on]:text-foreground"
 				>
-					<Trans id="dashboard.openClosedFilter.open">Open</Trans>
+					<Trans context="status">Open</Trans>
 				</ToggleGroupItem>
 				<ToggleGroupItem
 					value="all"
 					aria-label={t({
-						id: "dashboard.openClosedFilter.showAllStates",
 						message: "Show items in all states",
 					})}
 					className="h-7 border-0 px-2 text-xs data-[state=on]:bg-background data-[state=on]:text-foreground"
 				>
-					<Trans id="dashboard.openClosedFilter.all">All</Trans>
+					<Trans>All</Trans>
 				</ToggleGroupItem>
 			</ToggleGroup>
 		</div>

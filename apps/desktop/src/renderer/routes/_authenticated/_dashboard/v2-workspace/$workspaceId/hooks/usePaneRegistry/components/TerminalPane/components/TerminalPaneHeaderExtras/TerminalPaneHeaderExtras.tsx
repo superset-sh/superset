@@ -42,11 +42,9 @@ export function TerminalPaneHeaderExtras({
 	const label =
 		hotkeyText === "Unassigned"
 			? t({
-					id: "workspace.terminalPane.richInputLabel",
 					message: "Rich input",
 				})
 			: t({
-					id: "workspace.terminalPane.richInputLabelWithHotkey",
 					message: `Rich input (${hotkeyText})`,
 				});
 

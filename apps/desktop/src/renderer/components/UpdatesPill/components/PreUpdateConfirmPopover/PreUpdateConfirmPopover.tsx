@@ -43,14 +43,10 @@ export function PreUpdateConfirmPopover({
 					/>
 					<div className="mt-3 flex justify-end gap-1.5">
 						<Button variant="ghost" size="sm" onClick={onCancel}>
-							<Trans id="components.preUpdateConfirmPopover.notNow">
-								Not now
-							</Trans>
+							<Trans>Not now</Trans>
 						</Button>
 						<Button size="sm" onClick={onConfirm}>
-							<Trans id="components.preUpdateConfirmPopover.continueUpdate">
-								Continue update
-							</Trans>
+							<Trans>Continue update</Trans>
 						</Button>
 					</div>
 				</div>

@@ -86,7 +86,7 @@ export function ProjectPickerScreen() {
 					className="py-6 text-center text-sm"
 					style={{ color: theme.mutedForeground }}
 				>
-					<Trans id="mobile.projectPicker.empty">No projects available</Trans>
+					<Trans>No projects available</Trans>
 				</Text>
 			) : null}
 			{targets.map(renderRow)}

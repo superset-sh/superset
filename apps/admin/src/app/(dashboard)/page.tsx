@@ -29,7 +29,6 @@ export default function DashboardPage() {
 	const DAU_PROPS = {
 		insight: "dau",
 		description: t({
-			id: "admin.insight.dau",
 			message: "Unique users creating a real workspace, daily",
 		}),
 	} as const;
@@ -37,7 +36,6 @@ export default function DashboardPage() {
 	const WAU_PROPS = {
 		insight: "wau",
 		description: t({
-			id: "admin.insight.wau",
 			message:
 				"Unique users creating a real workspace per calendar week; current week dashed",
 		}),
@@ -47,7 +45,6 @@ export default function DashboardPage() {
 	const ACTIVATED_RATE_PROPS = {
 		insight: "activatedRate",
 		description: t({
-			id: "admin.insight.activatedRate",
 			message:
 				"Real workspaces on 2+ distinct days within week 1 of first workspace (retention-validated definition)",
 		}),
@@ -57,7 +54,6 @@ export default function DashboardPage() {
 				column: 3,
 				key: "activation_pct",
 				label: t({
-					id: "admin.series.activationRate",
 					message: "activation rate",
 				}),
 				kind: "line",
@@ -67,7 +63,6 @@ export default function DashboardPage() {
 				column: 1,
 				key: "new_creators",
 				label: t({
-					id: "admin.series.newWorkspaceCreators",
 					message: "new workspace creators",
 				}),
 				kind: "bar",
@@ -79,7 +74,6 @@ export default function DashboardPage() {
 	const ACTIVE_ORGS_PROPS = {
 		insight: "activeOrgs",
 		description: t({
-			id: "admin.insight.activeOrgs",
 			message: "Weekly orgs with 2+/5+ members creating real workspaces",
 		}),
 		xColumn: 0,
@@ -88,7 +82,6 @@ export default function DashboardPage() {
 				column: 1,
 				key: "orgs_2plus",
 				label: t({
-					id: "admin.series.orgs2Plus",
 					message: "orgs with 2+ active members",
 				}),
 				kind: "line",
@@ -97,7 +90,6 @@ export default function DashboardPage() {
 				column: 2,
 				key: "orgs_5plus",
 				label: t({
-					id: "admin.series.orgs5Plus",
 					message: "orgs with 5+ active members",
 				}),
 				kind: "line",
@@ -109,10 +101,10 @@ export default function DashboardPage() {
 		<div className="space-y-6">
 			<div>
 				<h1 className="text-2xl font-bold">
-					<Trans id="admin.dashboard.title">Company Metrics</Trans>
+					<Trans>Company Metrics</Trans>
 				</h1>
 				<p className="text-muted-foreground">
-					<Trans id="admin.dashboard.subtitle">
+					<Trans>
 						Mirror of the{" "}
 						<a
 							href={`${POSTHOG_PROJECT_URL}/dashboard/1884562`}
@@ -130,13 +122,13 @@ export default function DashboardPage() {
 			<Tabs defaultValue="company">
 				<TabsList>
 					<TabsTrigger value="company">
-						<Trans id="admin.dashboard.tabCompany">Company</Trans>
+						<Trans>Company</Trans>
 					</TabsTrigger>
 					<TabsTrigger value="product">
-						<Trans id="admin.dashboard.tabProduct">Product</Trans>
+						<Trans>Product</Trans>
 					</TabsTrigger>
 					<TabsTrigger value="growth">
-						<Trans id="admin.dashboard.tabGrowth">Growth</Trans>
+						<Trans>Growth</Trans>
 					</TabsTrigger>
 				</TabsList>
 
@@ -167,7 +159,6 @@ export default function DashboardPage() {
 						<HogQLLineTile
 							insight="workspacePercentiles"
 							description={t({
-								id: "admin.insight.workspacePercentiles",
 								message:
 									"Workspaces created per user in the last 7 days, by percentile",
 							})}
@@ -177,7 +168,6 @@ export default function DashboardPage() {
 									column: 1,
 									key: "workspaces",
 									label: t({
-										id: "admin.series.workspaces",
 										message: "workspaces",
 									}),
 									kind: "line",
@@ -187,7 +177,6 @@ export default function DashboardPage() {
 						<TrendSeriesTile
 							insight="workspacesPerCreator"
 							description={t({
-								id: "admin.insight.workspacesPerCreator",
 								message:
 									"Weekly p50/p90 real workspaces per creator; current week dashed",
 							})}
@@ -207,14 +196,12 @@ export default function DashboardPage() {
 						<TrendSeriesTile
 							insight="newSiteVisitors"
 							description={t({
-								id: "admin.insight.newSiteVisitors",
 								message: "First-ever pageview on superset.sh, daily",
 							})}
 						/>
 						<TrendSeriesTile
 							insight="downloadCtrMac"
 							description={t({
-								id: "admin.insight.downloadCtrMac",
 								message:
 									"Weekly pageview → download conversion, Mac visitors; current week dashed",
 							})}

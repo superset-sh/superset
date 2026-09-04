@@ -16,7 +16,6 @@ export const addProjectProvider: CommandProvider = {
 			{
 				id: "addProject.createNew",
 				title: msg({
-					id: "commandPalette.addProject.createNew",
 					message: "Create new project",
 				}),
 				section: "add-project",
@@ -29,7 +28,6 @@ export const addProjectProvider: CommandProvider = {
 			{
 				id: "addProject.cloneFromUrl",
 				title: msg({
-					id: "commandPalette.addProject.cloneFromUrl",
 					message: "Clone from URL",
 				}),
 				section: "add-project",
@@ -42,7 +40,6 @@ export const addProjectProvider: CommandProvider = {
 			{
 				id: "addProject.openFromFolder",
 				title: msg({
-					id: "commandPalette.addProject.openFromFolder",
 					message: "Open from folder",
 				}),
 				section: "add-project",
@@ -53,7 +50,6 @@ export const addProjectProvider: CommandProvider = {
 			{
 				id: "addProject.startFromTemplate",
 				title: msg({
-					id: "commandPalette.addProject.startFromTemplate",
 					message: "Start from a template",
 				}),
 				section: "add-project",

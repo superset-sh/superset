@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import { Image as ExpoImage } from "expo-image";
@@ -101,19 +102,15 @@ export const getMediaCategory = (
 
 export const getAttachmentLabel = (data: AttachmentData): string => {
 	if (data.type === "source-document") {
-		return (
-			data.title ||
-			data.filename ||
-			i18n._({ id: "mobile.attachment.source", message: "Source" })
-		);
+		return data.title || data.filename || i18n._(msg({ message: "Source" }));
 	}
 
 	const category = getMediaCategory(data);
 	return (
 		data.filename ||
 		(category === "image"
-			? i18n._({ id: "mobile.attachment.image", message: "Image" })
-			: i18n._({ id: "mobile.attachment.file", message: "Attachment" }))
+			? i18n._(msg({ message: "Image" }))
+			: i18n._(msg({ message: "Attachment" })))
 	);
 };
 
@@ -426,7 +423,7 @@ export const AttachmentEmpty = ({
 	<View className={cn("items-center justify-center p-4", className)} {...props}>
 		{children ?? (
 			<Text className="text-muted-foreground text-sm">
-				<Trans id="mobile.attachment.empty">No attachments</Trans>
+				<Trans>No attachments</Trans>
 			</Text>
 		)}
 	</View>

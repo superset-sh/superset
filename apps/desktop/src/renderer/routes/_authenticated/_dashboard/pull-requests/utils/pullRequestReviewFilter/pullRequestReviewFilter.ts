@@ -6,56 +6,48 @@ export const PULL_REQUEST_REVIEW_FILTERS = [
 	{
 		value: "none",
 		label: msg({
-			id: "dashboard.pullRequests.reviewFilter.none",
 			message: "No reviews",
 		}),
 	},
 	{
 		value: "required",
 		label: msg({
-			id: "dashboard.pullRequests.reviewFilter.required",
 			message: "Review required",
 		}),
 	},
 	{
 		value: "approved",
 		label: msg({
-			id: "dashboard.pullRequests.reviewFilter.approved",
 			message: "Approved review",
 		}),
 	},
 	{
 		value: "changes-requested",
 		label: msg({
-			id: "dashboard.pullRequests.reviewFilter.changesRequested",
 			message: "Changes requested",
 		}),
 	},
 	{
 		value: "reviewed-by-me",
 		label: msg({
-			id: "dashboard.pullRequests.reviewFilter.reviewedByMe",
 			message: "Reviewed by you",
 		}),
 	},
 	{
 		value: "not-reviewed-by-me",
 		label: msg({
-			id: "dashboard.pullRequests.reviewFilter.notReviewedByMe",
 			message: "Not reviewed by you",
 		}),
 	},
 	{
 		value: "review-requested",
 		label: msg({
-			id: "dashboard.pullRequests.reviewFilter.reviewRequested",
 			message: "Awaiting review from you",
 		}),
 	},
 	{
 		value: "team-review-requested",
 		label: msg({
-			id: "dashboard.pullRequests.reviewFilter.teamReviewRequested",
 			message: "Awaiting review from you or your team",
 		}),
 	},
@@ -65,7 +57,6 @@ export const PULL_REQUEST_REVIEW_FILTERS = [
 }>;
 
 const ALL_REVIEWS_LABEL: MessageDescriptor = msg({
-	id: "dashboard.pullRequests.reviewFilter.allReviewsLabel",
 	message: "All reviews",
 });
 

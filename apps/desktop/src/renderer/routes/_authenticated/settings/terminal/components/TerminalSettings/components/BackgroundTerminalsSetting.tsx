@@ -71,14 +71,13 @@ export function BackgroundTerminalsSetting() {
 				>
 					<HighlightText
 						text={t({
-							id: "settings.terminal.backgroundLimit.label",
 							message: "Background terminal memory",
 						})}
 						query={searchQuery}
 					/>
 				</Label>
 				<p className="text-xs text-muted-foreground max-w-md leading-relaxed">
-					<Trans id="settings.terminal.backgroundLimit.hint">
+					<Trans>
 						How many hidden terminals stay fully loaded (
 						{MIN_TERMINAL_PARKED_RUNTIME_CAP}–{MAX_TERMINAL_PARKED_RUNTIME_CAP}
 						); older ones keep running but reload their last 1,000 lines when

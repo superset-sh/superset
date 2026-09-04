@@ -1,6 +1,6 @@
 {
 	"name": "@superset/host-service",
-	"version": "1.25.1",
+	"version": "1.26.0",
 	"private": true,
 	"type": "module",
 	"exports": {
@@ -101,6 +101,7 @@
 	},
 	"devDependencies": {
 		"@superset/host-client": "workspace:*",
+		"@superset/i18n": "workspace:*",
 		"@superset/typescript": "workspace:*",
 		"@types/better-sqlite3": "7.6.13",
 		"@types/mime-types": "3.0.1",

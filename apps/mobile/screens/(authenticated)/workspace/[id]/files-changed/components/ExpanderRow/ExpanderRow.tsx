@@ -30,7 +30,6 @@ export function ExpanderRow({
 				<Icon as={ChevronsUpDown} className="text-sky-400 size-4" />
 				<Text className="text-sky-400 text-[13px]">
 					<Plural
-						id="mobile.diff.showHiddenLines"
 						value={hidden}
 						one="Show # hidden line"
 						other="Show # hidden lines"
@@ -46,7 +45,6 @@ export function ExpanderRow({
 		>
 			<PressableScale
 				accessibilityLabel={t({
-					id: "mobile.diff.showLinesAfter",
 					message: "Show lines after the change above",
 				})}
 				className="flex-row items-center gap-2 px-4 py-2"
@@ -58,16 +56,10 @@ export function ExpanderRow({
 				<Icon as={ChevronsDown} className="text-sky-400 size-4" />
 			</PressableScale>
 			<Text className="text-muted-foreground flex-1 text-center text-[12px]">
-				<Plural
-					id="mobile.diff.hiddenLines"
-					value={hidden}
-					one="# hidden line"
-					other="# hidden lines"
-				/>
+				<Plural value={hidden} one="# hidden line" other="# hidden lines" />
 			</Text>
 			<PressableScale
 				accessibilityLabel={t({
-					id: "mobile.diff.showLinesBefore",
 					message: "Show lines before the change below",
 				})}
 				className="flex-row items-center gap-2 px-4 py-2"

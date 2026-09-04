@@ -80,7 +80,6 @@ export function CreateTaskDialog({
 		return (
 			organization?.name ??
 			t({
-				id: "dashboard.tasks.createTaskDialog.orgFallback",
 				message: "Task",
 			})
 		);
@@ -119,7 +118,6 @@ export function CreateTaskDialog({
 	const handleAttachmentClick = () => {
 		toast.info(
 			t({
-				id: "dashboard.tasks.createTaskDialog.attachmentsNotWired",
 				message: "Attachments are not wired yet",
 			}),
 		);
@@ -150,7 +148,6 @@ export function CreateTaskDialog({
 			onOpenChange(false);
 			toast.success(
 				t({
-					id: "dashboard.tasks.createTaskDialog.createdTask",
 					message: `Created ${result.task.slug}`,
 				}),
 			);
@@ -164,7 +161,6 @@ export function CreateTaskDialog({
 				errorMessage(
 					error,
 					t({
-						id: "dashboard.tasks.createTaskDialog.createFailed",
 						message: "Failed to create task",
 					}),
 				),
@@ -185,14 +181,10 @@ export function CreateTaskDialog({
 			>
 				<DialogHeader className="sr-only">
 					<DialogTitle>
-						<Trans id="dashboard.tasks.createTaskDialog.title">
-							Create Task
-						</Trans>
+						<Trans>Create Task</Trans>
 					</DialogTitle>
 					<DialogDescription>
-						<Trans id="dashboard.tasks.createTaskDialog.description">
-							Create a new task from the desktop tasks view.
-						</Trans>
+						<Trans>Create a new task from the desktop tasks view.</Trans>
 					</DialogDescription>
 				</DialogHeader>
 
@@ -203,9 +195,7 @@ export function CreateTaskDialog({
 						</div>
 						<HiChevronRight className="size-3.5 text-muted-foreground" />
 						<span className="font-medium">
-							<Trans id="dashboard.tasks.createTaskDialog.newIssue">
-								New issue
-							</Trans>
+							<Trans>New issue</Trans>
 						</span>
 					</div>
 
@@ -215,7 +205,6 @@ export function CreateTaskDialog({
 							disabled={isCreating}
 							className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 							aria-label={t({
-								id: "dashboard.tasks.createTaskDialog.close",
 								message: "Close",
 							})}
 						>
@@ -237,7 +226,6 @@ export function CreateTaskDialog({
 							}
 						}}
 						placeholder={t({
-							id: "dashboard.tasks.createTaskDialog.titlePlaceholder",
 							message: "Task title",
 						})}
 						className="w-full bg-transparent text-3xl font-semibold tracking-tight outline-none placeholder:text-muted-foreground/60"
@@ -248,7 +236,6 @@ export function CreateTaskDialog({
 							content={description}
 							onChange={setDescription}
 							placeholder={t({
-								id: "dashboard.tasks.createTaskDialog.descriptionPlaceholder",
 								message: "Add description...",
 							})}
 							editorClassName="min-h-[240px] text-base leading-relaxed"
@@ -293,13 +280,9 @@ export function CreateTaskDialog({
 							className="h-10 rounded-full px-5 text-sm"
 						>
 							{isCreating ? (
-								<Trans id="dashboard.tasks.createTaskDialog.creating">
-									Creating...
-								</Trans>
+								<Trans>Creating...</Trans>
 							) : (
-								<Trans id="dashboard.tasks.createTaskDialog.createButton">
-									Create task
-								</Trans>
+								<Trans>Create task</Trans>
 							)}
 							{!isCreating && (
 								<KbdGroup className="ml-1.5 opacity-70">

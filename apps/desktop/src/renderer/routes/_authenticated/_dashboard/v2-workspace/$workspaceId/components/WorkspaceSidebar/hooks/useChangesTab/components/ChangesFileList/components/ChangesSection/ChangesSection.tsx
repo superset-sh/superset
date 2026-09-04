@@ -17,6 +17,7 @@ import {
 	useV2ChangesSectionsStore,
 	type V2ChangesSectionKey,
 } from "renderer/stores/v2-changes-sections";
+import { DiffStatText } from "../DiffStatText";
 
 type SectionKind = "unstaged" | "staged";
 
@@ -24,6 +25,9 @@ interface ChangesSectionProps {
 	sectionKey: V2ChangesSectionKey;
 	title: string;
 	count: number;
+	/** Section-wide +/− totals, right-aligned on the header. */
+	additions?: number;
+	deletions?: number;
 	stagingActions?: { kind: SectionKind; workspaceId: string };
 	children: ReactNode;
 }
@@ -32,6 +36,8 @@ export function ChangesSection({
 	sectionKey,
 	title,
 	count,
+	additions = 0,
+	deletions = 0,
 	stagingActions,
 	children,
 }: ChangesSectionProps) {
@@ -59,7 +65,6 @@ export function ChangesSection({
 		onError: (err) => {
 			toast.error(
 				t({
-					id: "workspace.changesSection.discardUnstagedFailed",
 					message: "Couldn't discard unstaged changes",
 				}),
 				{
@@ -73,7 +78,6 @@ export function ChangesSection({
 		onError: (err) => {
 			toast.error(
 				t({
-					id: "workspace.changesSection.discardStagedFailed",
 					message: "Couldn't discard staged changes",
 				}),
 				{
@@ -87,7 +91,6 @@ export function ChangesSection({
 		onError: (err) => {
 			toast.error(
 				t({
-					id: "workspace.changesSection.stageFailed",
 					message: "Couldn't stage changes",
 				}),
 				{ description: errorMessage(err) },
@@ -99,7 +102,6 @@ export function ChangesSection({
 		onError: (err) => {
 			toast.error(
 				t({
-					id: "workspace.changesSection.unstageFailed",
 					message: "Couldn't unstage changes",
 				}),
 				{
@@ -135,22 +137,18 @@ export function ChangesSection({
 		stagingActions?.kind === "unstaged"
 			? {
 					title: t({
-						id: "workspace.changesSection.discardUnstagedConfirmTitle",
 						message: "Discard all unstaged changes?",
 					}),
 					description: t({
-						id: "workspace.changesSection.discardUnstagedConfirmBody",
 						message:
 							"This will revert all unstaged modifications and delete untracked files. This cannot be undone.",
 					}),
 				}
 			: {
 					title: t({
-						id: "workspace.changesSection.discardStagedConfirmTitle",
 						message: "Discard all staged changes?",
 					}),
 					description: t({
-						id: "workspace.changesSection.discardStagedConfirmBody",
 						message:
 							"This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone.",
 					}),
@@ -158,8 +156,8 @@ export function ChangesSection({
 
 	const isUnstaged = stagingActions?.kind === "unstaged";
 	const stagingToggleLabel = isUnstaged
-		? t({ id: "workspace.changesSection.stageAll", message: "Stage all" })
-		: t({ id: "workspace.changesSection.unstageAll", message: "Unstage all" });
+		? t({ message: "Stage all" })
+		: t({ message: "Unstage all" });
 	const StagingToggleIcon = isUnstaged ? Plus : Minus;
 
 	return (
@@ -179,6 +177,11 @@ export function ChangesSection({
 					<span className="shrink-0 text-[10px] text-muted-foreground">
 						{count}
 					</span>
+					{(additions > 0 || deletions > 0) && (
+						<span className="ml-auto shrink-0 pl-2 text-[10px] tabular-nums">
+							<DiffStatText additions={additions} deletions={deletions} />
+						</span>
+					)}
 				</CollapsibleTrigger>
 				{stagingActions && (
 					<div className="flex shrink-0 items-center gap-0.5 pr-1.5">
@@ -189,11 +192,9 @@ export function ChangesSection({
 									aria-label={
 										stagingActions.kind === "unstaged"
 											? t({
-													id: "workspace.changesSection.discardAllUnstagedAria",
 													message: "Discard all unstaged changes",
 												})
 											: t({
-													id: "workspace.changesSection.discardAllStagedAria",
 													message: "Discard all staged changes",
 												})
 									}
@@ -204,9 +205,7 @@ export function ChangesSection({
 								</button>
 							</TooltipTrigger>
 							<TooltipContent side="bottom">
-								<Trans id="workspace.changesSection.discardAllTooltip">
-									Discard all {stagingActions.kind}
-								</Trans>
+								<Trans>Discard all {stagingActions.kind}</Trans>
 							</TooltipContent>
 						</Tooltip>
 						<Tooltip>

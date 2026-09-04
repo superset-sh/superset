@@ -205,13 +205,11 @@ export const userRouter = {
 
 			const pathname = generateImagePathname({
 				prefix: `user/${userId}/avatar`,
-				mimeType: input.mimeType,
 			});
 
 			try {
 				const url = await uploadImage({
 					fileData: input.fileData,
-					mimeType: input.mimeType,
 					pathname,
 					existingUrl: user.image,
 				});

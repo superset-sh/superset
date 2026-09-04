@@ -18,7 +18,6 @@ export function SocialLinks({ className = "" }: SocialLinksProps) {
 				rel="noopener noreferrer"
 				className="text-muted-foreground hover:text-foreground transition-colors p-1 sm:p-2"
 				aria-label={t({
-					id: "marketing.social.discord",
 					message: "Join our Discord",
 				})}
 			>
@@ -39,7 +38,6 @@ export function SocialLinks({ className = "" }: SocialLinksProps) {
 				rel="noopener noreferrer"
 				className="text-muted-foreground hover:text-foreground transition-colors p-1 sm:p-2"
 				aria-label={t({
-					id: "marketing.social.x",
 					message: "Follow us on X/Twitter",
 				})}
 			>
@@ -60,7 +58,6 @@ export function SocialLinks({ className = "" }: SocialLinksProps) {
 				rel="noopener noreferrer"
 				className="text-muted-foreground hover:text-foreground transition-colors p-1 sm:p-2"
 				aria-label={t({
-					id: "marketing.social.linkedin",
 					message: "Follow us on LinkedIn",
 				})}
 			>
@@ -81,7 +78,6 @@ export function SocialLinks({ className = "" }: SocialLinksProps) {
 				rel="noopener noreferrer"
 				className="text-muted-foreground hover:text-foreground transition-colors p-1 sm:p-2"
 				aria-label={t({
-					id: "marketing.social.youtube",
 					message: "Subscribe on YouTube",
 				})}
 			>

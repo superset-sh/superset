@@ -44,7 +44,6 @@ export function ScriptField({
 			<div
 				role="region"
 				aria-label={t({
-					id: "settings.project.scriptField.dropRegionAria",
 					message: "Script editor with file drop support",
 				})}
 				className={cn(
@@ -83,21 +82,18 @@ export function ScriptField({
 					type="button"
 					onClick={() => fileInputRef.current?.click()}
 					title={t({
-						id: "settings.project.scriptField.importFromFileTitle",
 						message: "Import from file",
 					})}
 					className="absolute bottom-2 right-2 flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
 				>
 					<HiDocumentArrowUp className="h-3.5 w-3.5" />
-					<Trans id="settings.project.scriptField.import">Import</Trans>
+					<Trans>Import</Trans>
 				</button>
 				{isDragOver && (
 					<div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-md bg-primary/10">
 						<div className="flex items-center gap-2 text-primary text-sm font-medium">
 							<HiDocumentArrowUp className="h-5 w-5" />
-							<Trans id="settings.project.scriptField.dropToImport">
-								Drop to import
-							</Trans>
+							<Trans>Drop to import</Trans>
 						</div>
 					</div>
 				)}

@@ -20,6 +20,7 @@ import {
 } from "@/hooks/useHostWorkspaces";
 import { useSelectedHost } from "@/screens/(authenticated)/(home)/hooks/useSelectedHost";
 import { useWorkspaceScope } from "@/screens/(authenticated)/(home)/hooks/useWorkspaceScope";
+import { HeaderNotice } from "@/screens/(authenticated)/components/HeaderNotice";
 import { useOrganizations } from "@/screens/(authenticated)/hooks/useOrganizations";
 import {
 	type OrgPullRequest,
@@ -35,7 +36,7 @@ import { OrganizationHeaderButton } from "./components/OrganizationHeaderButton"
 import { ProjectSectionHeader } from "./components/ProjectSectionHeader";
 import { ScopeBar } from "./components/ScopeBar";
 import { WorkspaceRow } from "./components/WorkspaceRow";
-import { useCloudRepoPrefixes } from "./hooks/useCloudRepoPrefixes";
+import { useCloudRepoPrefix } from "./hooks/useCloudRepoPrefixes";
 import {
 	type TerminalsHost,
 	useHostsTerminals,
@@ -96,6 +97,8 @@ function homeListItemKey(item: HomeListItem): string {
 	}
 }
 
+const NOTICE_MS = 1500;
+
 export function HomeScreen() {
 	const { t } = useLingui();
 	const router = useRouter();
@@ -103,6 +106,20 @@ export function HomeScreen() {
 	const hasHydrated = useWorkspacesFilterStore((store) => store.hasHydrated);
 	const [visibleIds, setVisibleIds] = useState<string[]>([]);
 	const [refreshing, setRefreshing] = useState(false);
+	// seq gives each notice its own identity: a repeat copy while "Copied" is
+	// still up remounts HeaderNotice, restarting its timer.
+	const [notice, setNotice] = useState<{ text: string; seq: number } | null>(
+		null,
+	);
+	const hideNotice = useCallback(() => setNotice(null), []);
+	const handleCopied = useCallback(
+		() =>
+			setNotice((prev) => ({
+				text: t({ message: "Copied" }),
+				seq: (prev?.seq ?? 0) + 1,
+			})),
+		[t],
+	);
 	const { height: windowHeight } = useWindowDimensions();
 	const insets = useSafeAreaInsets();
 	const queryClient = useQueryClient();
@@ -119,33 +136,15 @@ export function HomeScreen() {
 	const { workspaces, isReady, cache } = useHostWorkspaces(selectedHost);
 	const {
 		items: cloudItems,
-		targets: sandboxes,
 		cache: cloudCache,
 		isReady: cloudReady,
 	} = useCloudWorkspaceItems();
 	const cloudScope = useWorkspaceScope() === "cloud";
-	// Every addressed sandbox is a host of its own for the terminal fan-out,
-	// so cloud rows get session marks and attention like any other row. Lazier
-	// than the machine host on purpose: each sandbox is its own request, and a
-	// phone paying N requests every 5s for list decoration is the mistake
-	// desktop just walked back (#6570). Opening a workspace speeds up its own
-	// host via the shared query key.
-	// Only the scope on screen is polled: a sandbox costs its own request, and
-	// paying for every one of them to decorate rows the list isn't showing is
-	// the mistake desktop just walked back (#6570).
+	// No session marks for cloud rows: a request per sandbox keeps each one
+	// awake for as long as Home is on screen.
 	const terminalHosts = useMemo<TerminalsHost[]>(
-		() =>
-			cloudScope
-				? sandboxes.map((sandbox) => ({
-						organizationId: sandbox.organizationId,
-						machineId: sandbox.workspaceId,
-						isOnline: true,
-						refetchIntervalMs: 30_000,
-					}))
-				: selectedHost
-					? [selectedHost]
-					: [],
-		[selectedHost, sandboxes, cloudScope],
+		() => (cloudScope || !selectedHost ? [] : [selectedHost]),
+		[selectedHost, cloudScope],
 	);
 	const { terminalsByWorkspace, attentionByWorkspace } =
 		useHostsTerminals(terminalHosts);
@@ -290,7 +289,7 @@ export function HomeScreen() {
 			items.push({
 				kind: "projectHeader",
 				projectId: "__none",
-				name: t({ id: "mobile.home.noProject", message: "No project" }),
+				name: t({ message: "No project" }),
 				count: orphans.length,
 				collapsed: false,
 			});
@@ -411,11 +410,10 @@ export function HomeScreen() {
 	// Projects are fully local: PR rows are matched by repo coordinates
 	// parsed from the PR URL (cloud repo UUIDs aren't known host-side).
 	// Cloud rows' projects come from the API instead.
-	const cloudRepoPrefixes = useCloudRepoPrefixes(cloudItems);
+	const cloudRepoPrefix = useCloudRepoPrefix();
 	const repoPrefixesByProject = useMemo(
 		() =>
 			new Map<string, string | null>([
-				...cloudRepoPrefixes,
 				...projects.map((project): [string, string | null] => [
 					project.id,
 					project.repoOwner && project.repoName
@@ -423,7 +421,7 @@ export function HomeScreen() {
 						: null,
 				]),
 			]),
-		[projects, cloudRepoPrefixes],
+		[projects],
 	);
 
 	const renderItem = useCallback(
@@ -463,9 +461,11 @@ export function HomeScreen() {
 				);
 			}
 			const { workspace, cloudStatus } = item;
-			const repoPrefix = workspace.projectId
-				? repoPrefixesByProject.get(workspace.projectId)
-				: undefined;
+			const repoPrefix = cloudStatus
+				? cloudRepoPrefix
+				: workspace.projectId
+					? repoPrefixesByProject.get(workspace.projectId)
+					: undefined;
 			return (
 				<WorkspaceRow
 					workspace={workspace}
@@ -481,11 +481,13 @@ export function HomeScreen() {
 					attention={attentionByWorkspace.get(workspace.id) ?? null}
 					sessions={terminalsByWorkspace.get(workspace.id) ?? []}
 					cloudStatus={cloudStatus}
+					onCopied={handleCopied}
 				/>
 			);
 		},
 		[
 			pullRequestsByRepoBranch,
+			cloudRepoPrefix,
 			repoPrefixesByProject,
 			diffStats,
 			cache,
@@ -496,6 +498,7 @@ export function HomeScreen() {
 			selectedHost,
 			setTargetKey,
 			requestComposerFocus,
+			handleCopied,
 		],
 	);
 
@@ -535,12 +538,25 @@ export function HomeScreen() {
 			    over the content that swallows every touch (#6659); on the sheet's
 			    own header the same bar works. Hidden while the host is
 			    offline — its list isn't shown, so there is nothing to search. */}
+			<Stack.Screen
+				options={{
+					headerTitle: notice
+						? () => (
+								<HeaderNotice
+									key={notice.seq}
+									onHidden={hideNotice}
+									text={notice.text}
+									visibleFor={NOTICE_MS}
+								/>
+							)
+						: undefined,
+				}}
+			/>
 			{!cloudScope && selectedHost && !selectedHost.isOnline ? null : (
 				<Stack.Toolbar placement="right">
 					<Stack.Toolbar.Button
 						icon="magnifyingglass"
 						accessibilityLabel={t({
-							id: "mobile.home.searchWorkspaces",
 							message: "Search workspaces",
 						})}
 						onPress={() => {
@@ -589,11 +605,9 @@ export function HomeScreen() {
 								<Text className="text-center text-muted-foreground">
 									{cloudScope
 										? t({
-												id: "mobile.home.emptyCloud",
 												message: "No cloud workspaces yet",
 											})
 										: t({
-												id: "mobile.home.emptyHost",
 												message: "No projects on this host yet",
 											})}
 								</Text>

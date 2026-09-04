@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "../../i18n";
 
 // Role hierarchy from lowest to highest permission
@@ -22,11 +23,11 @@ export const ORGANIZATION_ROLES: Record<
 export function organizationRoleName(role: OrganizationRole): string {
 	switch (role) {
 		case "owner":
-			return i18n._({ id: "shared.roles.owner", message: "Owner" });
+			return i18n._(msg({ message: "Owner" }));
 		case "admin":
-			return i18n._({ id: "shared.roles.admin", message: "Admin" });
+			return i18n._(msg({ message: "Admin" }));
 		case "member":
-			return i18n._({ id: "shared.roles.member", message: "Member" });
+			return i18n._(msg({ message: "Member" }));
 	}
 }
 

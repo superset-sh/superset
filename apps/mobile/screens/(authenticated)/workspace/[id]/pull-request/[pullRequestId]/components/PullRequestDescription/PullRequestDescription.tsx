@@ -26,7 +26,7 @@ export function PullRequestDescription({ body }: { body: string }) {
 	return (
 		<View className="mx-4 gap-1">
 			<Text className="pb-1 font-semibold text-[21px] tracking-[-0.3px]">
-				<Trans id="mobile.pullRequest.description">Description</Trans>
+				<Trans>Description</Trans>
 			</Text>
 			<View
 				className="overflow-hidden"
@@ -56,7 +56,6 @@ export function PullRequestDescription({ body }: { body: string }) {
 			{overflows ? (
 				<Pressable
 					accessibilityLabel={t({
-						id: "mobile.pullRequest.toggleDescription",
 						message: "Toggle description",
 					})}
 					accessibilityRole="button"
@@ -64,9 +63,7 @@ export function PullRequestDescription({ body }: { body: string }) {
 					onPress={() => setExpanded((open) => !open)}
 				>
 					<Text className="text-muted-foreground text-[15px]">
-						{expanded
-							? t({ id: "mobile.common.seeLess", message: "See Less" })
-							: t({ id: "mobile.common.seeMore", message: "See More" })}
+						{expanded ? t({ message: "See Less" }) : t({ message: "See More" })}
 					</Text>
 				</Pressable>
 			) : null}

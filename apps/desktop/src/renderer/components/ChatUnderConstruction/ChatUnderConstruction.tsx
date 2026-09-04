@@ -7,14 +7,10 @@ export function ChatUnderConstruction() {
 			<Construction className="size-8 text-muted-foreground" />
 			<div className="space-y-1">
 				<p className="font-medium text-sm">
-					<Trans id="components.chatUnderConstruction.title">
-						Chat is being reworked
-					</Trans>
+					<Trans>Chat is being reworked</Trans>
 				</p>
 				<p className="text-muted-foreground text-xs">
-					<Trans id="components.chatUnderConstruction.description">
-						We're rebuilding this feature. Check back soon.
-					</Trans>
+					<Trans>We're rebuilding this feature. Check back soon.</Trans>
 				</p>
 			</div>
 		</div>

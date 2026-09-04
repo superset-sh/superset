@@ -112,7 +112,6 @@ export const DashboardSidebarProjectRow = forwardRef<
 									onKeyDown={(event) => event.stopPropagation()}
 									onContextMenu={(event) => event.stopPropagation()}
 									aria-label={t({
-										id: "dashboard.sidebar.projectRow.newWorkspaceAriaLabel",
 										message: "New workspace",
 									})}
 									className="hidden size-full items-center justify-center rounded transition-colors hover:bg-fill-hover group-hover:flex group-has-[:focus]:flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -121,9 +120,7 @@ export const DashboardSidebarProjectRow = forwardRef<
 								</button>
 							</TooltipTrigger>
 							<TooltipContent side="bottom">
-								<Trans id="dashboard.sidebar.projectRow.newWorkspace">
-									New workspace
-								</Trans>
+								<Trans>New workspace</Trans>
 							</TooltipContent>
 						</Tooltip>
 					</div>

@@ -111,11 +111,11 @@ export function V2PresetBarItem({
 			</ContextMenuTrigger>
 			<ContextMenuContent>
 				<ContextMenuItem onSelect={() => onExecutePreset(preset)}>
-					<Trans id="workspace.presetBarItem.runScript">Run script</Trans>
+					<Trans>Run script</Trans>
 				</ContextMenuItem>
 				<ContextMenuSeparator />
 				<ContextMenuItem onSelect={() => onEdit(preset)}>
-					<Trans id="workspace.presetBarItem.editScript">Edit script</Trans>
+					<Trans>Edit script</Trans>
 				</ContextMenuItem>
 			</ContextMenuContent>
 		</ContextMenu>

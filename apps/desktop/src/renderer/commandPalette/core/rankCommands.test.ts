@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { msg } from "@lingui/core/macro";
 import { initI18n } from "@superset/i18n";
 import { rankCommands, rankSections, scoreCommand } from "./rankCommands";
 import type { Command, CommandSection } from "./types";
@@ -27,7 +28,7 @@ const DELETE_WORKSPACE = command(
 const SECTIONS: CommandSection[] = [
 	{
 		id: "workspace",
-		label: { id: "test.section.workspace", message: "Workspace actions" },
+		label: msg({ message: "Workspace actions" }),
 		commands: [
 			command("workspace.new", "New workspace", "workspace"),
 			command("workspace.quickCreate", "Quick create workspace", "workspace", [
@@ -63,7 +64,7 @@ const SECTIONS: CommandSection[] = [
 	},
 	{
 		id: "actions",
-		label: { id: "test.section.actions", message: "Actions" },
+		label: msg({ message: "Actions" }),
 		commands: [
 			command("actions.toggleTheme", "Toggle theme", "actions", [
 				"dark",
@@ -114,7 +115,7 @@ const SECTIONS: CommandSection[] = [
 	},
 	{
 		id: "navigation",
-		label: { id: "test.section.navigation", message: "Navigation" },
+		label: msg({ message: "Navigation" }),
 		commands: [
 			command("nav.settings", "Settings", "navigation"),
 			command("nav.recentlyViewed", "Recently Viewed", "navigation", [
@@ -134,7 +135,7 @@ const SECTIONS: CommandSection[] = [
 	},
 	{
 		id: "add-project",
-		label: { id: "test.section.addProject", message: "Add project" },
+		label: msg({ message: "Add project" }),
 		commands: [
 			command("addProject.createNew", "Create new project", "add-project", [
 				"add project",

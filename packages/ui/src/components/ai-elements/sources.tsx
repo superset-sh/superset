@@ -36,12 +36,7 @@ export const SourcesTrigger = ({
 		{children ?? (
 			<>
 				<p className="font-medium">
-					<Plural
-						id="ui.sources.usedCount"
-						one="Used # source"
-						other="Used # sources"
-						value={count}
-					/>
+					<Plural one="Used # source" other="Used # sources" value={count} />
 				</p>
 				<ChevronDownIcon className="h-4 w-4" />
 			</>

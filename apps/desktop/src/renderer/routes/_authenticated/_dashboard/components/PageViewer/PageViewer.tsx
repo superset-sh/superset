@@ -69,18 +69,15 @@ export function PageViewer({
 				title={
 					missing
 						? t({
-								id: "dashboard.pageViewer.pageMissingTitle",
 								message: "This page no longer exists",
 							})
 						: t({
-								id: "dashboard.pageViewer.pageOpenFailedTitle",
 								message: "This page could not be opened",
 							})
 				}
 				description={
 					missing
 						? t({
-								id: "dashboard.pageViewer.pageMissingDescription",
 								message:
 									"It may have been deleted, or it belongs to another organization.",
 							})
@@ -105,9 +102,7 @@ export function PageViewer({
 			onEnabledChange={onCommentsEnabledChange}
 			user={{
 				id: session?.user.id ?? "",
-				name:
-					session?.user.name ??
-					t({ id: "dashboard.pageViewer.youFallback", message: "You" }),
+				name: session?.user.name ?? t({ message: "You" }),
 				image: session?.user.image ?? null,
 			}}
 		>

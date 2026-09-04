@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 /**
  * Extracts the workspace ID from a hash-routed URL.
@@ -88,7 +89,7 @@ export function getNotificationTitle({
 		tab?.userTitle?.trim() ||
 		tab?.name ||
 		pane?.name ||
-		i18n._({ id: "main.notification.fallbackTitle", message: "Terminal" })
+		i18n._(msg({ message: "Terminal" }))
 	);
 }
 
@@ -112,8 +113,6 @@ export function getWorkspaceName({
 	worktree?: Worktree | null;
 }): string {
 	return (
-		workspace?.name ||
-		worktree?.branch ||
-		i18n._({ id: "main.notification.fallbackWorkspace", message: "Workspace" })
+		workspace?.name || worktree?.branch || i18n._(msg({ message: "Workspace" }))
 	);
 }

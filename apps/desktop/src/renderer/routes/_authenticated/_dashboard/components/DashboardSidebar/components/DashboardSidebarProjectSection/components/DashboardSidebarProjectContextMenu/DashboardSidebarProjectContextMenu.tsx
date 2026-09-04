@@ -49,32 +49,26 @@ export function DashboardSidebarProjectContextMenu({
 			<ContextMenuContent onCloseAutoFocus={(event) => event.preventDefault()}>
 				<ContextMenuItem onSelect={onRename}>
 					<LuPencil className="size-4 mr-2" />
-					<Trans id="dashboard.sidebar.projectMenu.rename">Rename</Trans>
+					<Trans>Rename</Trans>
 				</ContextMenuItem>
 				<ContextMenuSeparator />
 				<ContextMenuItem onSelect={onOpenInFinder}>
 					<LuFolderOpen className="size-4 mr-2" />
-					<Trans id="dashboard.sidebar.projectMenu.openInFinder">
-						Open in Finder
-					</Trans>
+					<Trans>Open in Finder</Trans>
 				</ContextMenuItem>
 				<ContextMenuItem onSelect={onOpenSettings}>
 					<LuSettings className="size-4 mr-2" />
-					<Trans id="dashboard.sidebar.projectMenu.projectSettings">
-						Project Settings
-					</Trans>
+					<Trans>Project Settings</Trans>
 				</ContextMenuItem>
 				<ContextMenuItem onSelect={onCreateSection}>
 					<LuFolderPlus className="size-4 mr-2" />
-					<Trans id="dashboard.sidebar.projectMenu.newGroup">New group</Trans>
+					<Trans>New group</Trans>
 				</ContextMenuItem>
 				{hiddenTags.length > 0 ? (
 					<ContextMenuSub>
 						<ContextMenuSubTrigger>
 							<LuEye className="size-4 mr-2" />
-							<Trans id="dashboard.sidebar.projectMenu.hiddenFolders">
-								Hidden folders
-							</Trans>
+							<Trans>Hidden folders</Trans>
 						</ContextMenuSubTrigger>
 						<ContextMenuSubContent className="w-48 max-h-80 overflow-y-auto">
 							{hiddenTags.map((tag) => (
@@ -90,16 +84,12 @@ export function DashboardSidebarProjectContextMenu({
 				) : null}
 				<ContextMenuItem onSelect={onImportWorktrees}>
 					<LuFolderInput className="size-4 mr-2" />
-					<Trans id="dashboard.sidebar.projectMenu.importWorktrees">
-						Import untracked worktrees
-					</Trans>
+					<Trans>Import untracked worktrees</Trans>
 				</ContextMenuItem>
 				<ContextMenuSeparator />
 				<ContextMenuItem onSelect={onRemoveFromSidebar}>
 					<LuX className="size-4 mr-2" />
-					<Trans id="dashboard.sidebar.projectMenu.removeFromSidebar">
-						Remove from Sidebar
-					</Trans>
+					<Trans>Remove from Sidebar</Trans>
 				</ContextMenuItem>
 			</ContextMenuContent>
 		</ContextMenu>

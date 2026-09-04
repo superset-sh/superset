@@ -46,7 +46,7 @@ export function OrganizationSettingsScreen() {
 				className="mb-1 text-sm font-semibold"
 				style={{ color: theme.mutedForeground }}
 			>
-				<Trans id="mobile.organizationSettings.members">Members</Trans>
+				<Trans>Members</Trans>
 			</Text>
 			{memberRows.map((row, index) => (
 				<ListRow

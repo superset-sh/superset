@@ -56,9 +56,7 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 	const handleFileChange = useCallback(
 		(next: LinkTierMap) => {
 			setFileLinks(next);
-			toast.success(
-				t({ id: "settings.links.fileSaved", message: "Changes saved" }),
-			);
+			toast.success(t({ message: "Changes saved" }));
 		},
 		[setFileLinks, t],
 	);
@@ -66,9 +64,7 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 	const handleUrlChange = useCallback(
 		(next: LinkTierMap) => {
 			setUrlLinks(next);
-			toast.success(
-				t({ id: "settings.links.urlSaved", message: "Changes saved" }),
-			);
+			toast.success(t({ message: "Changes saved" }));
 		},
 		[setUrlLinks, t],
 	);
@@ -76,9 +72,7 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 	const handleFolderChange = useCallback(
 		(next: FolderTierMap) => {
 			setFolderLinks(next);
-			toast.success(
-				t({ id: "settings.links.folderSaved", message: "Changes saved" }),
-			);
+			toast.success(t({ message: "Changes saved" }));
 		},
 		[setFolderLinks, t],
 	);
@@ -86,9 +80,7 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 	const handleSidebarChange = useCallback(
 		(next: LinkTierMap) => {
 			setSidebarFileLinks(next);
-			toast.success(
-				t({ id: "settings.links.sidebarSaved", message: "Changes saved" }),
-			);
+			toast.success(t({ message: "Changes saved" }));
 		},
 		[setSidebarFileLinks, t],
 	);
@@ -96,9 +88,7 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 	const handlePortChange = useCallback(
 		(next: LinkAction) => {
 			setPortOpenAction(next);
-			toast.success(
-				t({ id: "settings.links.portSaved", message: "Changes saved" }),
-			);
+			toast.success(t({ message: "Changes saved" }));
 		},
 		[setPortOpenAction, t],
 	);
@@ -107,10 +97,10 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
 				<h2 className="text-xl font-semibold">
-					<Trans id="settings.links.title">Links</Trans>
+					<Trans>Links</Trans>
 				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					<Trans id="settings.links.subtitle">
+					<Trans>
 						Control what each click — plain or with a modifier — does to a file
 						or URL. Each row binds one modifier combination to an action.
 					</Trans>
@@ -121,11 +111,9 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 				{showSidebar && (
 					<LinkTierMapper
 						title={t({
-							id: "settings.links.sidebarFileTitle",
 							message: "Sidebar file rows",
 						})}
 						description={t({
-							id: "settings.links.sidebarFileDescription",
 							message:
 								"Applies to the file tree, changes list, and diff header.",
 						})}
@@ -140,12 +128,12 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 					<div>
 						<h3 className="text-sm font-medium mb-1">
 							<HighlightText
-								text={t({ id: "settings.links.portsTitle", message: "Ports" })}
+								text={t({ message: "Ports" })}
 								query={searchQuery}
 							/>
 						</h3>
 						<p className="text-xs text-muted-foreground mb-3">
-							<Trans id="settings.links.portsHint">
+							<Trans>
 								Where detected-port badges in the sidebar open when clicked.
 							</Trans>
 						</p>
@@ -154,7 +142,7 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 								htmlFor="links-port-action"
 								className="text-sm font-medium"
 							>
-								<Trans id="settings.links.portsOnClick">On click</Trans>
+								<Trans>On click</Trans>
 							</Label>
 							<Select
 								value={preferences.portOpenAction}
@@ -182,11 +170,9 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 				{showFile && (
 					<LinkTierMapper
 						title={t({
-							id: "settings.links.fileTitle",
 							message: "File links",
 						})}
 						description={t({
-							id: "settings.links.fileDescription",
 							message:
 								"Applies to file paths in terminals, chat tool calls, and task markdown.",
 						})}
@@ -200,11 +186,9 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 				{showFolder && (
 					<FolderLinkTierMapper
 						title={t({
-							id: "settings.links.folderTitle",
 							message: "Folder links",
 						})}
 						description={t({
-							id: "settings.links.folderDescription",
 							message:
 								"Applies to folder paths in terminal output. Folders can't open in the file viewer, so clicks reveal in the sidebar, open the external editor, or open Finder.",
 						})}
@@ -217,11 +201,9 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 				{showUrl && (
 					<LinkTierMapper
 						title={t({
-							id: "settings.links.urlTitle",
 							message: "URL links",
 						})}
 						description={t({
-							id: "settings.links.urlDescription",
 							message:
 								"Applies to URLs in terminals, chat messages, and task browsers.",
 						})}

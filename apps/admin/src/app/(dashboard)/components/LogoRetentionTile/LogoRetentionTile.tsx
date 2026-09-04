@@ -21,7 +21,6 @@ export function LogoRetentionTile() {
 	const chartConfig = {
 		retention_pct: {
 			label: t({
-				id: "admin.logoRetention.series",
 				message: "logo retention",
 			}),
 			color: "var(--chart-1)",
@@ -35,11 +34,9 @@ export function LogoRetentionTile() {
 	return (
 		<InsightTileFrame
 			title={t({
-				id: "admin.logoRetention.title",
 				message: "Logo retention — monthly",
 			})}
 			description={t({
-				id: "admin.logoRetention.description",
 				message:
 					"% of subscribed orgs at month end still subscribed one month later (count-based; $ NRR needs a Sigma query)",
 			})}

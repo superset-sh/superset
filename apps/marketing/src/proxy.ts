@@ -33,7 +33,16 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-	// Skip Next internals, API routes, and anything with a file extension
-	// (feeds, llms.txt, images, favicon) — those live at the root on purpose.
-	matcher: ["/((?!_next|api|.*\\..*).*)"],
+	// Skip Next internals, API routes, the two same-origin analytics proxies,
+	// and anything with a file extension (feeds, llms.txt, images, favicon) —
+	// those live at the root on purpose.
+	//
+	// `ingest` (PostHog, via next.config rewrites) and `monitoring` (Sentry's
+	// tunnelRoute) are extensionless, so without naming them here they get
+	// rewritten to /en/... and 404. That is silent: posthog-js still loads,
+	// because /ingest/static/*.js has a dot and slips through this matcher,
+	// and then every capture request dies. It cost four days of marketing
+	// analytics and Sentry reporting in 2026-08. apps/web and apps/api
+	// exclude both for the same reason.
+	matcher: ["/((?!_next|api|ingest|monitoring|.*\\..*).*)"],
 };

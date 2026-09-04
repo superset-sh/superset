@@ -246,6 +246,12 @@ export const workspaces = sqliteTable(
 			.$defaultFn(() => Date.now()),
 		// 0 means "predates local ownership"; write paths always set it.
 		updatedAt: integer("updated_at").notNull().default(0),
+		// Epoch ms of the newest agent lifecycle event in this workspace (see
+		// touchLocalWorkspaceActivity). Distinct from updatedAt, which only
+		// moves on metadata writes. Inserts stamp creation as the first
+		// activity; rows that predate the column stay null and consumers fall
+		// back to updatedAt.
+		lastActivityAt: integer("last_activity_at").$defaultFn(() => Date.now()),
 		// Null = local changes not yet pushed to the cloud mirror (dual-write
 		// era only; the column and reconciler go away in R3).
 		// Tombstone: null = live. Set at the destroy commit point; rows are
@@ -270,18 +276,26 @@ export const workspaces = sqliteTable(
 );
 
 /**
- * Presentation for a tag folder, host-side so it follows the user across
- * devices: a row exists only once someone customises the folder (same
- * lifecycle as the old local row). `tag` stays the stable slug agents
- * target; `display_name` is what the sidebar shows — which is what makes
- * rename a one-row update instead of retagging every member.
+ * Host-local presentation for a tag folder. A row exists only once someone
+ * customises the folder (same lifecycle as the old local row), beside the
+ * workspace tags it describes. `tag` stays the stable slug agents target;
+ * `display_name` is what the sidebar shows — which makes rename a one-row
+ * update instead of retagging every member.
+ *
+ * A folder is a (scope, tag) pair. `scope` is a project id, or the
+ * `SESSIONS_TAG_SCOPE` sentinel for the project-less Sessions lane — project
+ * ids are UUIDs, so the sentinel can never collide. Keying on one NOT NULL
+ * column (rather than a nullable `project_id`) keeps a single read path and
+ * sidesteps SQLite's quirk of permitting NULLs inside a PRIMARY KEY, which
+ * would silently allow duplicate session rows.
+ *
+ * The trade for dropping the old FK to `projects`: deleting a project no
+ * longer cascades here, so `project.remove` clears its rows explicitly.
  */
-export const workspaceTagSettings = sqliteTable(
-	"workspace_tag_settings",
+export const tagFolderSettings = sqliteTable(
+	"tag_folder_settings",
 	{
-		projectId: text("project_id")
-			.notNull()
-			.references(() => projects.id, { onDelete: "cascade" }),
+		scope: text().notNull(),
 		tag: text().notNull(),
 		displayName: text("display_name"),
 		color: text(),
@@ -290,7 +304,7 @@ export const workspaceTagSettings = sqliteTable(
 			.notNull()
 			.$defaultFn(() => Date.now()),
 	},
-	(table) => [primaryKey({ columns: [table.projectId, table.tag] })],
+	(table) => [primaryKey({ columns: [table.scope, table.tag] })],
 );
 
 /**

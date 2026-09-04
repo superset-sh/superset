@@ -55,21 +55,18 @@ export const SLACK_SENTENCES: Record<SlackTriggerEvent, SentencePart[]> = {
 export const SLACK_MENU: TriggerMenuEntry<SlackConfig>[] = [
 	leaf(
 		msg({
-			id: "dashboard.automations.providers.slack.menuMessageInChannel",
 			message: "Message in channel",
 		}),
 		"message_in_channel",
 	),
 	leaf(
 		msg({
-			id: "dashboard.automations.providers.slack.menuReactionAdded",
 			message: "Reaction added",
 		}),
 		"reaction_added",
 	),
 	leaf(
 		msg({
-			id: "dashboard.automations.providers.slack.menuChannelCreated",
 			message: "Channel created",
 		}),
 		"channel_created",

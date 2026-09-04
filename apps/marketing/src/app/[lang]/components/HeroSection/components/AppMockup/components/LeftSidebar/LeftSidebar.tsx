@@ -35,21 +35,18 @@ export function LeftSidebar({ activeDemo }: LeftSidebarProps) {
 				<NavRow
 					icon={LuLayers}
 					label={t({
-						id: "marketing.hero.mockup.nav.workspaces",
 						message: "Workspaces",
 					})}
 				/>
 				<NavRow
 					icon={LuZap}
 					label={t({
-						id: "marketing.hero.mockup.nav.automations",
 						message: "Automations",
 					})}
 				/>
 				<NavRow
 					icon={LuPlus}
 					label={t({
-						id: "marketing.hero.mockup.nav.newWorkspace",
 						message: "New Workspace",
 					})}
 				/>
@@ -75,7 +72,7 @@ export function LeftSidebar({ activeDemo }: LeftSidebarProps) {
 						/>
 						<span className="truncate text-foreground/95">new workspace</span>
 						<span className="ml-auto font-mono text-[10px] text-muted-foreground/55">
-							<Trans id="marketing.hero.mockup.creating">creating</Trans>
+							<Trans>creating</Trans>
 						</span>
 					</div>
 				</m.div>

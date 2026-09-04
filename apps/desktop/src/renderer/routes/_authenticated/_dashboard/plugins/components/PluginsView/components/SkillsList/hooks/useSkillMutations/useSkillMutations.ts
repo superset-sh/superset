@@ -24,16 +24,13 @@ export function useSkillMutations() {
 			toast.success(
 				variables.enabled
 					? t({
-							id: "dashboard.plugins.skillMutations.enabled",
 							message: `${variables.name} enabled`,
 						})
 					: t({
-							id: "dashboard.plugins.skillMutations.disabled",
 							message: `${variables.name} disabled`,
 						}),
 				{
 					description: t({
-						id: "dashboard.plugins.skillMutations.takesEffectNewSessions",
 						message: "Takes effect in new agent sessions.",
 					}),
 				},
@@ -42,7 +39,6 @@ export function useSkillMutations() {
 		onError: (error) => {
 			toast.error(
 				t({
-					id: "dashboard.plugins.skillMutations.updateFailed",
 					message: "Could not update skill",
 				}),
 				{

@@ -1,1 +1,0 @@
-export { DiffSectionBar } from "./DiffSectionBar";

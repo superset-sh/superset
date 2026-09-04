@@ -51,9 +51,7 @@ export function CopyCommand({ command, source }: CopyCommandProps) {
 				onClick={handleCopy}
 				className="shrink-0 p-1 text-muted-foreground transition-colors hover:text-foreground"
 				aria-label={
-					copied
-						? t({ id: "marketing.download.copied", message: "Copied" })
-						: t({ id: "marketing.download.copy", message: "Copy command" })
+					copied ? t({ message: "Copied" }) : t({ message: "Copy command" })
 				}
 			>
 				{copied ? (

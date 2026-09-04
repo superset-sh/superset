@@ -119,9 +119,7 @@ export function Transcript({
 			<div className="flex items-center gap-2">
 				{hasOlder && (
 					<Button onClick={onLoadOlder} size="sm" variant="ghost">
-						<Trans id="workspace.chat.loadEarlierMessages">
-							Load earlier messages
-						</Trans>
+						<Trans>Load earlier messages</Trans>
 					</Button>
 				)}
 				<Button
@@ -130,7 +128,7 @@ export function Transcript({
 					size="sm"
 					variant="ghost"
 				>
-					<Trans id="workspace.chat.expandAll">Expand all</Trans>
+					<Trans>Expand all</Trans>
 				</Button>
 			</div>
 			{groups.map((group) => (
@@ -157,9 +155,9 @@ export function Transcript({
 							variant={entry.state === "failed" ? "destructive" : "outline"}
 						>
 							{entry.state === "failed" ? (
-								<Trans id="workspace.chat.sendFailed">Failed to send</Trans>
+								<Trans>Failed to send</Trans>
 							) : (
-								<Trans id="workspace.chat.sending">Sending</Trans>
+								<Trans>Sending</Trans>
 							)}
 						</Badge>
 						{entry.state === "failed" && (
@@ -169,14 +167,14 @@ export function Transcript({
 									size="sm"
 									variant="ghost"
 								>
-									<Trans id="workspace.chat.retrySend">Retry</Trans>
+									<Trans>Retry</Trans>
 								</Button>
 								<Button
 									onClick={() => onDiscardPrompt(entry.clientId)}
 									size="sm"
 									variant="ghost"
 								>
-									<Trans id="workspace.chat.discardSend">Discard</Trans>
+									<Trans>Discard</Trans>
 								</Button>
 							</>
 						)}

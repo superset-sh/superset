@@ -2,9 +2,10 @@
 
 import { Trans } from "@lingui/react/macro";
 import { formatNumber } from "@superset/i18n/format";
+import { DOWNLOAD_URL_MAC_X64 } from "@superset/shared/constants";
 import { useEffect, useRef } from "react";
 import { WaitlistForm } from "@/app/[lang]/components/WaitlistForm";
-import { Platform, usePlatform } from "@/app/[lang]/hooks/useOS";
+import { ArchSource, Platform, usePlatform } from "@/app/[lang]/hooks/useOS";
 import { track } from "@/lib/analytics";
 import { desktopUrlFor, shouldAutoDownload } from "../../utils/desktopUrlFor";
 import { formatReleaseDate } from "../../utils/formatReleaseDate";
@@ -46,8 +47,13 @@ interface DownloadInterstitialProps {
 export function DownloadInterstitial({
 	latestRelease,
 }: DownloadInterstitialProps) {
-	const { platform } = usePlatform();
+	const { platform, archSource } = usePlatform();
 	const firedRef = useRef(false);
+
+	// The browser told us nothing about the chip, so Apple Silicon was assumed
+	// rather than detected. Say that instead of labelling the guess as a
+	// detection, and give Intel Macs a one-click way out.
+	const archUnconfirmed = archSource === ArchSource.Default;
 
 	// A phone can't run the app, so mobile visitors get a link to open on their
 	// desktop. Windows has no published build and falls through to the waitlist.
@@ -60,7 +66,7 @@ export function DownloadInterstitial({
 		if (!canAutoDownload) return;
 
 		const url = desktopUrlFor(platform);
-		track("download_started", { platform });
+		track("download_started", { platform, archSource });
 
 		// Latched in the callback, not here: if `platform` resolved again before
 		// the timer fired, latching early would strand the pending redirect on
@@ -70,7 +76,7 @@ export function DownloadInterstitial({
 			window.location.href = url;
 		}, AUTO_DOWNLOAD_DELAY_MS);
 		return () => window.clearTimeout(timer);
-	}, [canAutoDownload, platform]);
+	}, [canAutoDownload, platform, archSource]);
 
 	const assetKey = PLATFORM_ASSET_KEY[platform];
 	const asset = assetKey
@@ -84,18 +90,20 @@ export function DownloadInterstitial({
 			<div>
 				<div className="mb-6 inline-flex w-max items-center gap-2 whitespace-nowrap rounded-[2px] border border-border bg-background/80 px-3 py-1.5 font-mono text-muted-foreground text-xs">
 					<span className="shrink-0 text-brand">●</span>
-					<span>{PLATFORM_LABELS[platform]}</span>
+					<span>
+						{archUnconfirmed
+							? PLATFORM_LABELS[Platform.Unknown]
+							: PLATFORM_LABELS[platform]}
+					</span>
 				</div>
 
 				{showEmailLink ? (
 					<div className="max-w-2xl">
 						<h1 className={HEADING_CLASS}>
-							<Trans id="marketing.download.mobileTitle">
-								Get Superset on your Mac
-							</Trans>
+							<Trans>Get Superset on your Mac</Trans>
 						</h1>
 						<p className="mt-3 text-muted-foreground sm:text-lg">
-							<Trans id="marketing.download.mobileBody">
+							<Trans>
 								Superset is a desktop app. Enter your email and we&apos;ll send
 								you a download link to open on your Mac.
 							</Trans>
@@ -107,12 +115,10 @@ export function DownloadInterstitial({
 				) : showWaitlist ? (
 					<div className="max-w-2xl">
 						<h1 className={HEADING_CLASS}>
-							<Trans id="marketing.download.waitlistTitle">
-								Superset isn't on Windows yet
-							</Trans>
+							<Trans>Superset isn't on Windows yet</Trans>
 						</h1>
 						<p className="mt-3 text-muted-foreground sm:text-lg">
-							<Trans id="marketing.download.waitlistBody">
+							<Trans>
 								The desktop app runs on macOS and Linux today. Drop your email
 								and we'll let you know the moment the Windows build ships.
 							</Trans>
@@ -124,18 +130,34 @@ export function DownloadInterstitial({
 				) : (
 					<div className="max-w-2xl">
 						<h1 className={HEADING_CLASS}>
-							<Trans id="marketing.download.autoTitle">
-								You're about to get Superset
-							</Trans>
+							<Trans>You're about to get Superset</Trans>
 						</h1>
 						<p className="mt-3 text-muted-foreground sm:text-lg">
-							<Trans id="marketing.download.autoBodyShort">
+							<Trans>
 								Your download starts automatically. If it didn't, grab it here.
 							</Trans>
 						</p>
 						<div className="mt-6">
 							<DesktopDownloadButton />
 						</div>
+						{archUnconfirmed ? (
+							<p className="mt-4 text-muted-foreground text-sm">
+								<Trans>
+									Your browser doesn't report which chip you have, so this is
+									the Apple Silicon build. On an Intel Mac,{" "}
+									<a
+										href={DOWNLOAD_URL_MAC_X64}
+										onClick={() =>
+											track("download_arch_switched", { platform, archSource })
+										}
+										className="text-foreground underline underline-offset-4"
+									>
+										get the Intel build
+									</a>{" "}
+									instead.
+								</Trans>
+							</p>
+						) : null}
 					</div>
 				)}
 			</div>
@@ -146,13 +168,13 @@ export function DownloadInterstitial({
 				<dl className="divide-y divide-border border border-border font-mono text-xs md:min-w-[260px]">
 					<div className="flex items-center justify-between gap-8 px-4 py-2.5">
 						<dt className="text-muted-foreground">
-							<Trans id="marketing.download.specVersion">Version</Trans>
+							<Trans>Version</Trans>
 						</dt>
 						<dd className="text-foreground">{latestRelease.version}</dd>
 					</div>
 					<div className="flex items-center justify-between gap-8 px-4 py-2.5">
 						<dt className="text-muted-foreground">
-							<Trans id="marketing.download.specSize">Size</Trans>
+							<Trans>Size</Trans>
 						</dt>
 						<dd className="text-foreground">
 							{formatNumber(asset.sizeBytes / BYTES_PER_MB, {
@@ -163,7 +185,7 @@ export function DownloadInterstitial({
 					</div>
 					<div className="flex items-center justify-between gap-8 px-4 py-2.5">
 						<dt className="text-muted-foreground">
-							<Trans id="marketing.download.specPublished">Published</Trans>
+							<Trans>Published</Trans>
 						</dt>
 						<dd className="text-foreground">
 							{formatReleaseDate(latestRelease.publishedAt)}

@@ -42,7 +42,6 @@ export function SectionActionsMenuItems({
 	const colorOptions: { name: string; value: string }[] = [
 		{
 			name: t({
-				id: "dashboard.sidebar.sectionMenu.defaultColor",
 				message: "Default",
 			}),
 			value: PROJECT_COLOR_DEFAULT,
@@ -126,9 +125,7 @@ export function SectionActionsMenuItems({
 	const colorTrigger = (
 		<>
 			<LuPalette className={iconClassName} />
-			<Trans id="dashboard.sidebar.sectionMenu.setGroupColor">
-				Set group color
-			</Trans>
+			<Trans>Set group color</Trans>
 		</>
 	);
 
@@ -139,9 +136,7 @@ export function SectionActionsMenuItems({
 				children: (
 					<>
 						<LuPencil className={iconClassName} />
-						<Trans id="dashboard.sidebar.sectionMenu.renameGroup">
-							Rename group
-						</Trans>
+						<Trans>Rename group</Trans>
 					</>
 				),
 			})}
@@ -166,9 +161,7 @@ export function SectionActionsMenuItems({
 						children: (
 							<>
 								<LuEyeOff className={iconClassName} />
-								<Trans id="dashboard.sidebar.sectionMenu.hideFolder">
-									Hide folder
-								</Trans>
+								<Trans>Hide folder</Trans>
 							</>
 						),
 					})
@@ -190,9 +183,7 @@ export function SectionActionsMenuItems({
 									: "size-4 text-destructive"
 							}
 						/>
-						<Trans id="dashboard.sidebar.sectionMenu.deleteGroup">
-							Delete group
-						</Trans>
+						<Trans>Delete group</Trans>
 					</>
 				),
 			})}

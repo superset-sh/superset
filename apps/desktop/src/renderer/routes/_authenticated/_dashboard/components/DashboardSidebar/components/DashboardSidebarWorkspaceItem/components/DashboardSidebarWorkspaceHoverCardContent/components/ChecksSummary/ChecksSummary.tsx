@@ -24,7 +24,7 @@ export function ChecksSummary({ checks, status }: ChecksSummaryProps) {
 		},
 		failure: {
 			icon: LuX,
-			className: "text-destructive-foreground",
+			className: "text-destructive",
 		},
 		pending: {
 			icon: LuLoaderCircle,
@@ -36,10 +36,9 @@ export function ChecksSummary({ checks, status }: ChecksSummaryProps) {
 	const label =
 		total > 0
 			? t({
-					id: "dashboard.sidebar.checksSummary.passingCount",
 					message: `${passing}/${total} checks`,
 				})
-			: t({ id: "dashboard.sidebar.checksSummary.checks", message: "Checks" });
+			: t({ message: "Checks" });
 
 	return (
 		<span className={`flex items-center gap-1 ${className}`}>

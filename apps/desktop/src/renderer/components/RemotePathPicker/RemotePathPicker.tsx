@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import {
@@ -63,20 +64,23 @@ function pathToSegments(path: string, homePath: string | null): Segment[] {
 	if (homePath && (path === homePath || path === `${homePath}/`)) {
 		return [
 			{
-				label: i18n._({
-					id: "components.remotePathPicker.homeSegment",
-					message: "Home",
-				}),
+				label: i18n._(
+					msg({
+						message: "Home",
+						context: "directory",
+					}),
+				),
 				path: homePath,
 			},
 		];
 	}
 	if (homePath && path.startsWith(`${homePath}/`)) {
 		segments.push({
-			label: i18n._({
-				id: "components.remotePathPicker.homeSegment",
-				message: "Home",
-			}),
+			label: i18n._(
+				msg({
+					message: "Home",
+				}),
+			),
 			path: homePath,
 		});
 		const rest = path.slice(homePath.length + 1);
@@ -112,13 +116,10 @@ export function RemotePathPicker({
 	confirmLabel,
 }: RemotePathPickerProps) {
 	const { t } = useLingui();
-	const resolvedTitle =
-		title ??
-		t({ id: "components.remotePathPicker.title", message: "Choose a folder" });
+	const resolvedTitle = title ?? t({ message: "Choose a folder" });
 	const resolvedConfirmLabel =
 		confirmLabel ??
 		t({
-			id: "components.remotePathPicker.confirmLabel",
 			message: "Use this folder",
 		});
 	const [currentPath, setCurrentPath] = useState<string | null>(
@@ -153,7 +154,6 @@ export function RemotePathPicker({
 				query.error instanceof Error
 					? query.error.message
 					: t({
-							id: "components.remotePathPicker.listDirectoryFailed",
 							message: "Could not list directory",
 						}),
 			);
@@ -242,7 +242,6 @@ export function RemotePathPicker({
 						onClick={() => query.refetch()}
 						disabled={query.isFetching}
 						aria-label={t({
-							id: "components.remotePathPicker.refresh",
 							message: "Refresh",
 						})}
 						className="shrink-0 rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
@@ -304,7 +303,7 @@ export function RemotePathPicker({
 						variant="ghost"
 						onClick={() => onOpenChange(false)}
 					>
-						<Trans id="components.remotePathPicker.cancel">Cancel</Trans>
+						<Trans>Cancel</Trans>
 					</Button>
 					<Button
 						type="button"
