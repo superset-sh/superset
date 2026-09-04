@@ -60,7 +60,9 @@ function parseCredential(
 			accessToken: oauth.accessToken,
 			expiresAt: typeof oauth.expiresAt === "number" ? oauth.expiresAt : null,
 			refreshTokenExpiresAt:
-				oauth.refreshToken && typeof oauth.refreshTokenExpiresAt === "number"
+				typeof oauth.refreshToken === "string" &&
+				oauth.refreshToken.length > 0 &&
+				typeof oauth.refreshTokenExpiresAt === "number"
 					? oauth.refreshTokenExpiresAt
 					: null,
 			subscriptionType:
