@@ -24,6 +24,7 @@ import type {
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useStarNagStore } from "renderer/stores/star-nag";
+import { queueWorkspaceCreationPresets } from "./queueWorkspaceCreationPresets";
 import { useWorkspaceTransactionsStore } from "./workspaceTransactions";
 import { writeWorkspacePaneLayout } from "./writeWorkspacePaneLayout";
 
@@ -410,14 +411,20 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 						deleteWorkspaceLocalState(workspaceId);
 						hostWorkspacesCache.removeWorkspace(args.hostId, workspaceId);
 					}
-					// Only count genuinely new worktrees, never reopened ones or
-					// project-less sessions (createSession has no alreadyExists signal,
-					// so an undefined value here is treated as "don't count").
+					// Only genuinely new worktrees count as created — never reopened
+					// ones or project-less sessions (createSession has no
+					// alreadyExists signal, so an undefined value here is treated as
+					// "not new"). Creation presets follow the same rule: reopening a
+					// branch must not re-run them.
 					if (
 						result.workspace.projectId !== null &&
 						result.alreadyExists === false
 					) {
 						useStarNagStore.getState().recordWorkspaceCreated();
+						queueWorkspaceCreationPresets(collections, {
+							id: result.workspace.id,
+							projectId: result.workspace.projectId,
+						});
 					}
 					return {
 						ok: true,

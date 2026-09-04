@@ -1,20 +1,18 @@
 import { describe, expect, it } from "bun:test";
-import type { TerminalPreset } from "@superset/local-db";
 import { getPresetsForTriggerField } from "./preset-trigger-selection";
+
+interface TestPreset {
+	id: string;
+	projectIds: string[] | null;
+	applyOnWorkspaceCreated?: boolean;
+	applyOnNewTab?: boolean;
+}
 
 function createPreset(
 	id: string,
-	overrides: Partial<TerminalPreset> = {},
-): TerminalPreset {
-	return {
-		id,
-		name: id,
-		cwd: "",
-		commands: ["echo hi"],
-		projectIds: null,
-		executionMode: "new-tab",
-		...overrides,
-	};
+	overrides: Partial<TestPreset> = {},
+): TestPreset {
+	return { id, projectIds: null, ...overrides };
 }
 
 describe("getPresetsForTriggerField", () => {
@@ -54,6 +52,21 @@ describe("getPresetsForTriggerField", () => {
 				(preset) => preset.id,
 			),
 		).toEqual(["all-projects"]);
+	});
+
+	it("only honours the requested trigger field", () => {
+		const presets = [
+			createPreset("new-tab-only", { applyOnNewTab: true }),
+			createPreset("creation-only", { applyOnWorkspaceCreated: true }),
+		];
+
+		expect(
+			getPresetsForTriggerField(
+				presets,
+				"applyOnWorkspaceCreated",
+				"project-a",
+			).map((preset) => preset.id),
+		).toEqual(["creation-only"]);
 	});
 
 	it("returns no presets when no explicit trigger is set", () => {

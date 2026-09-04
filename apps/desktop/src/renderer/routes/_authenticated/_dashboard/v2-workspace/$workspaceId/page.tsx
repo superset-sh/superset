@@ -48,6 +48,7 @@ import { useDiffPaneTarget } from "./hooks/useDiffPaneTarget";
 import { usePagePaneIntentOpener } from "./hooks/usePagePaneIntentOpener";
 import { usePaneRegistry } from "./hooks/usePaneRegistry";
 import { renderBrowserTabIcon } from "./hooks/usePaneRegistry/components/BrowserPane";
+import { useRunWorkspaceCreationPresets } from "./hooks/useRunWorkspaceCreationPresets";
 import { useSlotElement } from "./hooks/useSlotElement";
 import { useTabCloseGuard } from "./hooks/useTabCloseGuard";
 import { useV2PresetExecution } from "./hooks/useV2PresetExecution";
@@ -168,6 +169,12 @@ function V2WorkspaceContent() {
 		focusRequestId,
 	});
 	useCreatePendingMigratedTerminals({ workspaceId, isLayoutReady });
+	useRunWorkspaceCreationPresets({
+		workspaceId,
+		isLayoutReady,
+		executePreset,
+		resolvePresetCommands,
+	});
 	useAutoAdoptBackgroundSessions({ store, workspaceId, isLayoutReady });
 	useConsumeOpenUrlRequest({
 		store,

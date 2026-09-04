@@ -64,6 +64,7 @@ import {
 	MIN_TERMINAL_PARKED_RUNTIME_CAP,
 } from "shared/constants";
 import { normalizePresetProjectIds } from "shared/preset-project-targeting";
+import { getPresetsForTriggerField } from "shared/preset-trigger-selection";
 import {
 	CUSTOM_RINGTONE_ID,
 	DEFAULT_RINGTONE_ID,
@@ -94,7 +95,6 @@ import {
 	type PresetWithUnknownMode,
 	shouldPersistNormalizedTerminalPresets,
 } from "./preset-execution-mode";
-import { getPresetsForTriggerField } from "./preset-trigger-selection";
 
 function isValidRingtoneId(ringtoneId: string): boolean {
 	if (isBuiltInRingtoneId(ringtoneId)) {

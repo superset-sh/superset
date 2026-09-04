@@ -16,10 +16,8 @@ import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/provide
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { getPresetLaunchPlan } from "renderer/stores/tabs/preset-launch";
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
-import {
-	filterMatchingPresetsForProject,
-	isProjectTargetedPreset,
-} from "shared/preset-project-targeting";
+import { filterMatchingPresetsForProject } from "shared/preset-project-targeting";
+import { getPresetsForTriggerField } from "shared/preset-trigger-selection";
 import { quote } from "shell-quote";
 import type { StoreApi } from "zustand/vanilla";
 import type { PaneViewerData, TerminalPaneData } from "../../types";
@@ -82,23 +80,6 @@ function buildFocusedTerminalCommand({
 	return `cd ${quote([resolvedCwd])} && ${command}`;
 }
 
-function selectAutoApplyPresets(
-	presets: V2TerminalPresetRow[],
-	field: "applyOnWorkspaceCreated" | "applyOnNewTab",
-) {
-	const targetedPresets = presets.filter(isProjectTargetedPreset);
-	const globalPresets = presets.filter(
-		(preset) => !isProjectTargetedPreset(preset),
-	);
-
-	const targetedTagged = targetedPresets.filter((preset) => preset[field]);
-	if (targetedTagged.length > 0) {
-		return targetedTagged;
-	}
-
-	return globalPresets.filter((preset) => preset[field]);
-}
-
 interface UseV2PresetExecutionArgs {
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 	launcher: TerminalLauncher;
@@ -140,8 +121,8 @@ export function useV2PresetExecution({
 		[allPresets, projectId],
 	);
 	const newTabPresets = useMemo(
-		() => selectAutoApplyPresets(matchedPresets, "applyOnNewTab"),
-		[matchedPresets],
+		() => getPresetsForTriggerField(allPresets, "applyOnNewTab", projectId),
+		[allPresets, projectId],
 	);
 
 	// `useV2AgentConfigs` is the cached source of truth for agent configs

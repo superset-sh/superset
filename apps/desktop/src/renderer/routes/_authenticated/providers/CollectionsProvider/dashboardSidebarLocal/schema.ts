@@ -177,6 +177,12 @@ export const workspaceLocalStateSchema = z.object({
 			}),
 		)
 		.default([]),
+	// Terminal presets tagged "auto-run on workspace creation" that matched
+	// this workspace's project when the create resolved. Presets live in
+	// renderer localStorage, so the host can't run them; the v2 workspace
+	// page drains this queue once on first open (see
+	// useRunWorkspaceCreationPresets) and clears it before running.
+	pendingCreationPresetIds: z.array(z.string()).default([]),
 });
 
 // Defaults for fields heal can synthesize. Identity fields (workspaceId,
@@ -208,6 +214,7 @@ const WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS = {
 		cwd: string | null;
 		v1PaneId: string | null;
 	}>,
+	pendingCreationPresetIds: [] as string[],
 };
 
 /**
@@ -494,6 +501,9 @@ export function healWorkspaceLocalState(raw: unknown): WorkspaceLocalStateRow {
 		pendingMigratedTerminals:
 			r.pendingMigratedTerminals ??
 			WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS.pendingMigratedTerminals,
+		pendingCreationPresetIds:
+			r.pendingCreationPresetIds ??
+			WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS.pendingCreationPresetIds,
 		sidebarState: {
 			...SIDEBAR_STATE_DEFAULTS,
 			...sidebar,
