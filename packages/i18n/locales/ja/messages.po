@@ -11015,6 +11015,9 @@ msgstr "ワークツリーの場所をリセット"
 msgid "Reset zoom"
 msgstr "ズームをリセット"
 
+msgid "Reset Zoom"
+msgstr "ズームをリセット"
+
 msgid "Resets in {countdown} · {absolute}"
 msgstr "{countdown}後にリセット · {absolute}"
 
@@ -13280,6 +13283,9 @@ msgstr "ターミナルのファイルリンク"
 msgid "Terminal font size"
 msgstr "ターミナルのフォントサイズ"
 
+msgid "Terminal font size when a terminal is focused, page zoom in a browser pane, otherwise the whole app"
+msgstr "ターミナルにフォーカスがあるときはターミナルのフォントサイズ、ブラウザペインではページのズーム、それ以外はアプリ全体"
+
 msgid "terminal ID"
 msgstr "ターミナルID"
 
@@ -15248,7 +15254,13 @@ msgstr "ズーム"
 msgid "Zoom in"
 msgstr "拡大"
 
+msgid "Zoom In"
+msgstr "拡大"
+
 msgid "Zoom out"
+msgstr "縮小"
+
+msgid "Zoom Out"
 msgstr "縮小"
 
 msgid "zsh"

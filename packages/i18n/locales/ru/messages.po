@@ -11015,6 +11015,9 @@ msgstr "Сбросить расположение worktree"
 msgid "Reset zoom"
 msgstr "Сбросить масштаб"
 
+msgid "Reset Zoom"
+msgstr "Сбросить масштаб"
+
 msgid "Resets in {countdown} · {absolute}"
 msgstr "Сброс через {countdown} · {absolute}"
 
@@ -13280,6 +13283,9 @@ msgstr "Ссылки на файлы в терминале"
 msgid "Terminal font size"
 msgstr "Размер шрифта терминала"
 
+msgid "Terminal font size when a terminal is focused, page zoom in a browser pane, otherwise the whole app"
+msgstr "Размер шрифта терминала, когда терминал в фокусе, масштаб страницы в панели браузера, иначе всё приложение"
+
 msgid "terminal ID"
 msgstr "ID терминала"
 
@@ -15248,7 +15254,13 @@ msgstr "Масштаб"
 msgid "Zoom in"
 msgstr "Приблизить"
 
+msgid "Zoom In"
+msgstr "Приблизить"
+
 msgid "Zoom out"
+msgstr "Отдалить"
+
+msgid "Zoom Out"
 msgstr "Отдалить"
 
 msgid "zsh"

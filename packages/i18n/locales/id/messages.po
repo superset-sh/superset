@@ -11015,6 +11015,9 @@ msgstr "Reset lokasi worktree"
 msgid "Reset zoom"
 msgstr "Reset zoom"
 
+msgid "Reset Zoom"
+msgstr "Reset zoom"
+
 msgid "Resets in {countdown} · {absolute}"
 msgstr "Reset dalam {countdown} · {absolute}"
 
@@ -13280,6 +13283,9 @@ msgstr "Tautan file terminal"
 msgid "Terminal font size"
 msgstr "Ukuran font terminal"
 
+msgid "Terminal font size when a terminal is focused, page zoom in a browser pane, otherwise the whole app"
+msgstr "Ukuran font terminal saat terminal difokuskan, zoom halaman di panel browser, selain itu seluruh aplikasi"
+
 msgid "terminal ID"
 msgstr "ID terminal"
 
@@ -15248,7 +15254,13 @@ msgstr "Zoom"
 msgid "Zoom in"
 msgstr "Perbesar"
 
+msgid "Zoom In"
+msgstr "Perbesar"
+
 msgid "Zoom out"
+msgstr "Perkecil"
+
+msgid "Zoom Out"
 msgstr "Perkecil"
 
 msgid "zsh"

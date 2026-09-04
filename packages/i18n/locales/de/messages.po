@@ -11015,6 +11015,9 @@ msgstr "Worktree-Speicherort zurücksetzen"
 msgid "Reset zoom"
 msgstr "Zoom zurücksetzen"
 
+msgid "Reset Zoom"
+msgstr "Zoom zurücksetzen"
+
 msgid "Resets in {countdown} · {absolute}"
 msgstr "Zurücksetzung in {countdown} · {absolute}"
 
@@ -13280,6 +13283,9 @@ msgstr "Datei-Links im Terminal"
 msgid "Terminal font size"
 msgstr "Terminal-Schriftgröße"
 
+msgid "Terminal font size when a terminal is focused, page zoom in a browser pane, otherwise the whole app"
+msgstr "Schriftgröße des Terminals, wenn ein Terminal fokussiert ist, Seitenzoom in einem Browser-Bereich, sonst die ganze App"
+
 msgid "terminal ID"
 msgstr "Terminal-ID"
 
@@ -15248,7 +15254,13 @@ msgstr "Zoom"
 msgid "Zoom in"
 msgstr "Vergrößern"
 
+msgid "Zoom In"
+msgstr "Vergrößern"
+
 msgid "Zoom out"
+msgstr "Verkleinern"
+
+msgid "Zoom Out"
 msgstr "Verkleinern"
 
 msgid "zsh"

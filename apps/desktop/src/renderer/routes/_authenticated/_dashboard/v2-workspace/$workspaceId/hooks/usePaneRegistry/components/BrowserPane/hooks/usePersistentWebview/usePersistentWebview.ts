@@ -19,10 +19,14 @@ import { browserRuntimeRegistry } from "../../browserRuntimeRegistry";
 import { DEFAULT_BROWSER_URL } from "../../constants";
 
 // Hotkeys the pane replays onto the host document when the guest forwards a
-// keystroke. Scoped to tab switching: no menu accelerator (so replaying can't
-// double-fire) and not page shortcuts. The main process is synced these chords
-// so it suppresses + forwards only them — see the forwardable-chord sync below.
+// keystroke. Scoped to tab switching and zoom: no registered menu accelerator
+// (so replaying can't double-fire) and not page shortcuts. The main process is
+// synced these chords so it suppresses + forwards only them — see the
+// forwardable-chord sync below.
 const FORWARDABLE_HOTKEYS = new Set<HotkeyId>([
+	"ZOOM_IN",
+	"ZOOM_OUT",
+	"ZOOM_RESET",
 	"PREV_TAB",
 	"NEXT_TAB",
 	"PREV_TAB_ALT",

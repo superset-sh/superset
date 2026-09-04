@@ -11015,6 +11015,9 @@ msgstr "worktree 위치 초기화"
 msgid "Reset zoom"
 msgstr "확대/축소 초기화"
 
+msgid "Reset Zoom"
+msgstr "확대/축소 초기화"
+
 msgid "Resets in {countdown} · {absolute}"
 msgstr "{countdown} 후 재설정 · {absolute}"
 
@@ -13280,6 +13283,9 @@ msgstr "터미널 파일 링크"
 msgid "Terminal font size"
 msgstr "터미널 글꼴 크기"
 
+msgid "Terminal font size when a terminal is focused, page zoom in a browser pane, otherwise the whole app"
+msgstr "터미널에 포커스가 있으면 터미널 글꼴 크기, 브라우저 패널에서는 페이지 확대/축소, 그 외에는 앱 전체"
+
 msgid "terminal ID"
 msgstr "터미널 ID"
 
@@ -15248,7 +15254,13 @@ msgstr "확대/축소"
 msgid "Zoom in"
 msgstr "확대"
 
+msgid "Zoom In"
+msgstr "확대"
+
 msgid "Zoom out"
+msgstr "축소"
+
+msgid "Zoom Out"
 msgstr "축소"
 
 msgid "zsh"

@@ -11015,6 +11015,9 @@ msgstr "Redefinir o local das worktrees"
 msgid "Reset zoom"
 msgstr "Redefinir o zoom"
 
+msgid "Reset Zoom"
+msgstr "Redefinir o zoom"
+
 msgid "Resets in {countdown} · {absolute}"
 msgstr "Zera em {countdown} · {absolute}"
 
@@ -13280,6 +13283,9 @@ msgstr "Links de arquivo do terminal"
 msgid "Terminal font size"
 msgstr "Tamanho da fonte do terminal"
 
+msgid "Terminal font size when a terminal is focused, page zoom in a browser pane, otherwise the whole app"
+msgstr "Tamanho da fonte do terminal quando um terminal está em foco, zoom da página em um painel de navegador, caso contrário o app inteiro"
+
 msgid "terminal ID"
 msgstr "ID do terminal"
 
@@ -15248,7 +15254,13 @@ msgstr "Zoom"
 msgid "Zoom in"
 msgstr "Aumentar zoom"
 
+msgid "Zoom In"
+msgstr "Aumentar zoom"
+
 msgid "Zoom out"
+msgstr "Diminuir zoom"
+
+msgid "Zoom Out"
 msgstr "Diminuir zoom"
 
 msgid "zsh"

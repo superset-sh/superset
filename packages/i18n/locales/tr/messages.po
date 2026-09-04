@@ -11015,6 +11015,9 @@ msgstr "Worktree konumunu sıfırla"
 msgid "Reset zoom"
 msgstr "Yakınlaştırmayı sıfırla"
 
+msgid "Reset Zoom"
+msgstr "Yakınlaştırmayı sıfırla"
+
 msgid "Resets in {countdown} · {absolute}"
 msgstr "{countdown} sonra sıfırlanır · {absolute}"
 
@@ -13280,6 +13283,9 @@ msgstr "Terminal dosya bağlantıları"
 msgid "Terminal font size"
 msgstr "Terminal yazı tipi boyutu"
 
+msgid "Terminal font size when a terminal is focused, page zoom in a browser pane, otherwise the whole app"
+msgstr "Bir terminal odaktayken terminal yazı tipi boyutu, tarayıcı bölmesinde sayfa yakınlaştırma, aksi halde tüm uygulama"
+
 msgid "terminal ID"
 msgstr "terminal kimliği"
 
@@ -15248,7 +15254,13 @@ msgstr "Yakınlaştırma"
 msgid "Zoom in"
 msgstr "Yakınlaştır"
 
+msgid "Zoom In"
+msgstr "Yakınlaştır"
+
 msgid "Zoom out"
+msgstr "Uzaklaştır"
+
+msgid "Zoom Out"
 msgstr "Uzaklaştır"
 
 msgid "zsh"

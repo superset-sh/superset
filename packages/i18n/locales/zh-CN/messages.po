@@ -11015,6 +11015,9 @@ msgstr "重置worktree位置"
 msgid "Reset zoom"
 msgstr "重置缩放"
 
+msgid "Reset Zoom"
+msgstr "重置缩放"
+
 msgid "Resets in {countdown} · {absolute}"
 msgstr "{countdown}后重置 · {absolute}"
 
@@ -13280,6 +13283,9 @@ msgstr "终端文件链接"
 msgid "Terminal font size"
 msgstr "终端字号"
 
+msgid "Terminal font size when a terminal is focused, page zoom in a browser pane, otherwise the whole app"
+msgstr "终端获得焦点时调整终端字号，浏览器窗格中调整页面缩放，其他情况下缩放整个应用"
+
 msgid "terminal ID"
 msgstr "终端ID"
 
@@ -15248,7 +15254,13 @@ msgstr "缩放"
 msgid "Zoom in"
 msgstr "放大"
 
+msgid "Zoom In"
+msgstr "放大"
+
 msgid "Zoom out"
+msgstr "缩小"
+
+msgid "Zoom Out"
 msgstr "缩小"
 
 msgid "zsh"

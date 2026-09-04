@@ -827,6 +827,45 @@ export const HOTKEYS_REGISTRY = {
 	},
 
 	// Window
+	ZOOM_IN: {
+		key: {
+			mac: L("meta+equal"),
+			windows: L("ctrl+equal"),
+			linux: L("ctrl+equal"),
+		},
+		label: msg({ message: "Zoom In" }),
+		category: "Window",
+		description: msg({
+			message:
+				"Terminal font size when a terminal is focused, page zoom in a browser pane, otherwise the whole app",
+		}),
+	},
+	ZOOM_OUT: {
+		key: {
+			mac: L("meta+minus"),
+			windows: L("ctrl+minus"),
+			linux: L("ctrl+minus"),
+		},
+		label: msg({ message: "Zoom Out" }),
+		category: "Window",
+		description: msg({
+			message:
+				"Terminal font size when a terminal is focused, page zoom in a browser pane, otherwise the whole app",
+		}),
+	},
+	ZOOM_RESET: {
+		key: {
+			mac: L("meta+0"),
+			windows: L("ctrl+0"),
+			linux: L("ctrl+0"),
+		},
+		label: msg({ message: "Reset Zoom" }),
+		category: "Window",
+		description: msg({
+			message:
+				"Terminal font size when a terminal is focused, page zoom in a browser pane, otherwise the whole app",
+		}),
+	},
 	OPEN_IN_APP: {
 		key: {
 			mac: L("meta+o"),
