@@ -62,7 +62,7 @@ export const createGenerateBranchNameProcedures = () => {
 					branchPrefix = undefined;
 				}
 
-				const branchName = await generateBranchNameFromPrompt(
+				const branchName = generateBranchNameFromPrompt(
 					trimmedPrompt,
 					existingBranches,
 					branchPrefix,

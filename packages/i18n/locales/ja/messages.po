@@ -1366,9 +1366,6 @@ msgstr "プロンプト付きで起動するときのみ追加されます — �
 msgid "Adding members will increase your subscription cost, prorated to your billing cycle."
 msgstr "メンバーを追加するとサブスクリプション費用が増え、請求サイクルに応じて日割り計算されます。"
 
-msgid "Additional env vars"
-msgstr "追加の環境変数"
-
 msgid "Address Comments with Agent"
 msgstr "エージェントでコメントに対応"
 
@@ -1389,9 +1386,6 @@ msgstr "管理者はオーナーを変更できません"
 
 msgid "Admins cannot promote members to owner"
 msgstr "管理者はメンバーをオーナーに昇格できません"
-
-msgid "Advanced"
-msgstr "詳細設定"
 
 msgid "Advanced options"
 msgstr "詳細オプション"
@@ -1740,18 +1734,6 @@ msgstr "別のデバイス"
 msgid "Answered"
 msgstr "回答済み"
 
-msgid "Anthropic API key cleared"
-msgstr "Anthropic APIキーをクリアしました"
-
-msgid "Anthropic API key updated"
-msgstr "Anthropic APIキーを更新しました"
-
-msgid "Anthropic settings updated"
-msgstr "Anthropicの設定を更新しました"
-
-msgid "Anthropic usually returns a full callback URL. Pasting either format works."
-msgstr "Anthropicは通常、完全なコールバックURLを返します。どちらの形式でも貼り付けられます。"
-
 msgid "Any calendar"
 msgstr "すべてのカレンダー"
 
@@ -1865,12 +1847,6 @@ msgstr "適用"
 
 msgid "Approve"
 msgstr "承認"
-
-msgid "Approve access in your browser, then paste the callback URL or `code#state` here."
-msgstr "ブラウザでアクセスを許可し、コールバックURLまたは`code#state`をここに貼り付けてください。"
-
-msgid "Approve access in your browser. If the callback does not finish, paste the redirected callback URL below."
-msgstr "ブラウザでアクセスを許可してください。コールバックが完了しない場合は、リダイレクト先のコールバックURLを下に貼り付けてください。"
 
 msgid "Approved"
 msgstr "承認"
@@ -2001,9 +1977,6 @@ msgstr "監査ログ"
 msgid "Aug 2026"
 msgstr "2026年8月"
 
-msgid "Auth token"
-msgstr "認証トークン"
-
 msgid "Authenticate your {displayName} account"
 msgstr "{displayName} アカウントを認証"
 
@@ -2021,9 +1994,6 @@ msgstr "作成者"
 
 msgid "Author: {label}"
 msgstr "作成者: {label}"
-
-msgid "Authorization code"
-msgstr "認証コード"
 
 msgid "Authorization failed"
 msgstr "認可に失敗しました"
@@ -2223,9 +2193,6 @@ msgstr "{selectedHostLabel}の新規ワークツリーのベースディレク�
 
 msgid "Base directory for new worktrees on {selectedHostName}."
 msgstr "{selectedHostName}の新規ワークツリーのベースディレクトリ。"
-
-msgid "Base URL"
-msgstr "ベースURL"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -2523,9 +2490,6 @@ msgstr "Calendar"
 
 msgid "Calendar and Gmail triggers in this organization will stop firing until an account is connected again."
 msgstr "この組織のCalendarとGmailのトリガーは、アカウントを再接続するまで動作しなくなります。"
-
-msgid "Callback URL (optional)"
-msgstr "コールバックURL(任意)"
 
 msgid "Camera access is not allowed"
 msgstr "カメラへのアクセスが許可されていません"
@@ -2846,9 +2810,6 @@ msgstr "古いTODOを整理…"
 
 msgid "Cleaner, denser sidebar"
 msgstr "すっきり高密度なサイドバー"
-
-msgid "Clear"
-msgstr "クリア"
 
 msgid "Clear browsing data"
 msgstr "閲覧データを消去"
@@ -3355,9 +3316,6 @@ msgstr "Googleアカウントを接続します。カレンダーとメールボ
 msgid "Connect a microphone to use dictation"
 msgstr "音声入力を使うにはマイクを接続してください"
 
-msgid "Connect Anthropic"
-msgstr "Anthropicを接続"
-
 msgid "Connect any AI agent to Superset."
 msgstr "どのAIエージェントでもSupersetに接続。"
 
@@ -3387,9 +3345,6 @@ msgstr "Notionを接続"
 
 msgid "Connect Notion to run automations when rows change in a data source or someone comments on a page."
 msgstr "Notionを接続して、データソースの行が変わったときやページにコメントが付いたときにオートメーションを実行します。"
-
-msgid "Connect OpenAI"
-msgstr "OpenAIを接続"
 
 msgid "Connect repos and sync pull requests."
 msgstr "リポジトリを接続し、プルリクエストを同期します。"
@@ -3431,23 +3386,11 @@ msgstr "{0} に接続"
 msgid "Connected as"
 msgstr "接続アカウント"
 
-msgid "Connected in Superset"
-msgstr "Supersetで接続済み"
-
 msgid "Connected to"
 msgstr "接続先"
 
 msgid "Connected to {connectedOrgName}"
 msgstr "{connectedOrgName}に接続済み"
-
-msgid "Connected via ChatGPT"
-msgstr "ChatGPT経由で接続済み"
-
-msgid "Connected via Claude"
-msgstr "Claude経由で接続済み"
-
-msgid "Connected with API key"
-msgstr "APIキーで接続済み"
 
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "接続しましたが、Microsoft Graphが通知サブスクリプションを拒否しました。"
@@ -3466,9 +3409,6 @@ msgstr "デスクトップに接続しています…"
 
 msgid "Connecting to the workspace"
 msgstr "ワークスペースに接続中"
-
-msgid "Connecting..."
-msgstr "接続中..."
 
 msgid "Connecting…"
 msgstr "接続中…"
@@ -5423,9 +5363,6 @@ msgstr "更新を確認できませんでした: {message}"
 
 msgid "Failed to check for updates. Please try again later."
 msgstr "アップデートを確認できませんでした。しばらくしてからもう一度お試しください。"
-
-msgid "Failed to clear"
-msgstr "クリアに失敗しました"
 
 #. placeholder {0}: errorMessage(error, "Unknown error")
 msgid "Failed to clear agent status: {0}"
@@ -7389,9 +7326,6 @@ msgstr "チームから退出"
 msgid "Leave the leaderboard?"
 msgstr "リーダーボードから退出しますか?"
 
-msgid "Leave this empty if browser login finishes on its own."
-msgstr "ブラウザログインが自動的に完了する場合は空のままにしてください。"
-
 msgid "Leaving organization..."
 msgstr "組織から退出中..."
 
@@ -7778,9 +7712,6 @@ msgstr "プランを管理"
 
 msgid "Manage plugins"
 msgstr "プラグインを管理"
-
-msgid "Manage provider accounts, API keys, and overrides. Connecting Anthropic or OpenAI below is also what powers automatic workspace naming — without one connected, new workspaces fall back to a name derived from your prompt."
-msgstr "プロバイダーアカウント、APIキー、オーバーライドを管理します。下でAnthropicまたはOpenAIを接続すると、ワークスペースの自動命名も有効になります — 未接続の場合、新規ワークスペースはプロンプトから導出された名前になります。"
 
 msgid "Manage sessions"
 msgstr "セッションを管理"
@@ -9265,9 +9196,6 @@ msgstr "GitHubでブランチを開く"
 msgid "Open Browser"
 msgstr "ブラウザを開く"
 
-msgid "Open browser again"
-msgstr "ブラウザを再度開く"
-
 msgid "Open changes"
 msgstr "変更を開く"
 
@@ -9604,12 +9532,6 @@ msgstr "ワークスペースを開く"
 msgid "Open workspace in external app (Cursor, VS Code, etc.)"
 msgstr "ワークスペースを外部アプリ (Cursor、VS Codeなど) で開く"
 
-msgid "OpenAI API key cleared"
-msgstr "OpenAI APIキーをクリアしました"
-
-msgid "OpenAI API key updated"
-msgstr "OpenAI APIキーを更新しました"
-
 msgid "Opened"
 msgstr "オープン"
 
@@ -9905,12 +9827,6 @@ msgstr "過去1週間"
 
 msgid "Paste"
 msgstr "貼り付け"
-
-msgid "Paste callback URL"
-msgstr "コールバックURLを貼り付け"
-
-msgid "Paste callback URL or code#state"
-msgstr "コールバックURLまたはcode#stateを貼り付け"
 
 msgid "Paste this into Superset CLI:"
 msgstr "これをSuperset CLIに貼り付けてください:"
@@ -10215,12 +10131,6 @@ msgstr "プレフィックス"
 
 msgid "Preparing"
 msgstr "準備中"
-
-msgid "Preparing Anthropic browser login..."
-msgstr "Anthropicのブラウザログインを準備中..."
-
-msgid "Preparing OpenAI browser login..."
-msgstr "OpenAIのブラウザログインを準備中..."
 
 msgid "Preserve commit history"
 msgstr "コミット履歴を保持"
@@ -11590,15 +11500,6 @@ msgstr "保存済み"
 msgid "Saved \"{0}\" as an environment"
 msgstr "「{0}」を環境として保存しました"
 
-msgid "Saved Anthropic API key"
-msgstr "保存済みのAnthropic APIキー"
-
-msgid "Saved on blur."
-msgstr "フォーカスを外すと保存されます。"
-
-msgid "Saved OpenAI API key"
-msgstr "保存済みのOpenAI APIキー"
-
 msgid "Saved to Downloads"
 msgstr "ダウンロードフォルダに保存しました"
 
@@ -12380,12 +12281,6 @@ msgstr "サインインしてSupersetに進む"
 
 msgid "Sign in to get started"
 msgstr "サインインして始めましょう"
-
-msgid "Sign in with ChatGPT or use an API key."
-msgstr "ChatGPTでサインインするか、APIキーを使用します。"
-
-msgid "Sign in with Claude or use an API key."
-msgstr "Claudeでサインインするか、APIキーを使用します。"
 
 msgid "Sign in with email"
 msgstr "メールでサインイン"

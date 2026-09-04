@@ -1360,7 +1360,7 @@ export const workspacesRouter = router({
 				ctx,
 				localProject.repoPath,
 			);
-			const branchName = await generateBranchNameFromPrompt(
+			const branchName = generateBranchNameFromPrompt(
 				input.prompt,
 				existingBranches,
 			);

@@ -1366,9 +1366,6 @@ msgstr "Chỉ thêm vào khi khởi chạy kèm prompt — ví dụ <0>--</0>, <
 msgid "Adding members will increase your subscription cost, prorated to your billing cycle."
 msgstr "Thêm thành viên sẽ làm tăng chi phí đăng ký, tính theo tỷ lệ trong chu kỳ thanh toán của bạn."
 
-msgid "Additional env vars"
-msgstr "Biến môi trường bổ sung"
-
 msgid "Address Comments with Agent"
 msgstr "Xử lý bình luận bằng agent"
 
@@ -1389,9 +1386,6 @@ msgstr "Admin không thể thay đổi chủ sở hữu"
 
 msgid "Admins cannot promote members to owner"
 msgstr "Admin không thể nâng thành viên lên chủ sở hữu"
-
-msgid "Advanced"
-msgstr "Nâng cao"
 
 msgid "Advanced options"
 msgstr "Tùy chọn nâng cao"
@@ -1740,18 +1734,6 @@ msgstr "thiết bị khác"
 msgid "Answered"
 msgstr "Đã trả lời"
 
-msgid "Anthropic API key cleared"
-msgstr "Đã xóa khóa API Anthropic"
-
-msgid "Anthropic API key updated"
-msgstr "Đã cập nhật khóa API Anthropic"
-
-msgid "Anthropic settings updated"
-msgstr "Đã cập nhật cài đặt Anthropic"
-
-msgid "Anthropic usually returns a full callback URL. Pasting either format works."
-msgstr "Anthropic thường trả về một URL callback đầy đủ. Dán định dạng nào cũng được."
-
 msgid "Any calendar"
 msgstr "Lịch bất kỳ"
 
@@ -1865,12 +1847,6 @@ msgstr "Áp dụng"
 
 msgid "Approve"
 msgstr "Duyệt"
-
-msgid "Approve access in your browser, then paste the callback URL or `code#state` here."
-msgstr "Chấp thuận quyền truy cập trong trình duyệt, rồi dán URL callback hoặc `code#state` vào đây."
-
-msgid "Approve access in your browser. If the callback does not finish, paste the redirected callback URL below."
-msgstr "Chấp thuận quyền truy cập trong trình duyệt. Nếu callback không hoàn tất, hãy dán URL callback được chuyển hướng vào bên dưới."
 
 msgid "Approved"
 msgstr "Đã duyệt"
@@ -2001,9 +1977,6 @@ msgstr "Nhật ký kiểm toán"
 msgid "Aug 2026"
 msgstr "Th8 2026"
 
-msgid "Auth token"
-msgstr "Token xác thực"
-
 msgid "Authenticate your {displayName} account"
 msgstr "Xác thực tài khoản {displayName} của bạn"
 
@@ -2021,9 +1994,6 @@ msgstr "Tác giả"
 
 msgid "Author: {label}"
 msgstr "Tác giả: {label}"
-
-msgid "Authorization code"
-msgstr "Mã ủy quyền"
 
 msgid "Authorization failed"
 msgstr "Cấp quyền thất bại"
@@ -2223,9 +2193,6 @@ msgstr "Thư mục gốc cho worktree mới trên {selectedHostLabel}"
 
 msgid "Base directory for new worktrees on {selectedHostName}."
 msgstr "Thư mục gốc cho worktree mới trên {selectedHostName}."
-
-msgid "Base URL"
-msgstr "Base URL"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -2523,9 +2490,6 @@ msgstr "Calendar"
 
 msgid "Calendar and Gmail triggers in this organization will stop firing until an account is connected again."
 msgstr "Các trigger Calendar và Gmail trong tổ chức này sẽ ngừng chạy cho đến khi kết nối lại một tài khoản."
-
-msgid "Callback URL (optional)"
-msgstr "URL callback (tùy chọn)"
 
 msgid "Camera access is not allowed"
 msgstr "Không được phép truy cập camera"
@@ -2846,9 +2810,6 @@ msgstr "Dọn các TODO cũ…"
 
 msgid "Cleaner, denser sidebar"
 msgstr "Thanh bên gọn và dày hơn"
-
-msgid "Clear"
-msgstr "Xóa"
 
 msgid "Clear browsing data"
 msgstr "Xóa dữ liệu duyệt web"
@@ -3355,9 +3316,6 @@ msgstr "Kết nối một tài khoản Google. Lịch và hộp thư của tài 
 msgid "Connect a microphone to use dictation"
 msgstr "Kết nối micro để dùng đọc chính tả"
 
-msgid "Connect Anthropic"
-msgstr "Kết nối Anthropic"
-
 msgid "Connect any AI agent to Superset."
 msgstr "Kết nối mọi agent AI với Superset."
 
@@ -3387,9 +3345,6 @@ msgstr "Kết nối Notion"
 
 msgid "Connect Notion to run automations when rows change in a data source or someone comments on a page."
 msgstr "Kết nối Notion để chạy tự động hóa khi các dòng trong một nguồn dữ liệu thay đổi hoặc khi ai đó bình luận trên một trang."
-
-msgid "Connect OpenAI"
-msgstr "Kết nối OpenAI"
 
 msgid "Connect repos and sync pull requests."
 msgstr "Kết nối repo và đồng bộ pull request."
@@ -3431,23 +3386,11 @@ msgstr "đã kết nối {0}"
 msgid "Connected as"
 msgstr "Đã kết nối với tư cách"
 
-msgid "Connected in Superset"
-msgstr "Đã kết nối trong Superset"
-
 msgid "Connected to"
 msgstr "Đã kết nối tới"
 
 msgid "Connected to {connectedOrgName}"
 msgstr "Đã kết nối với {connectedOrgName}"
-
-msgid "Connected via ChatGPT"
-msgstr "Đã kết nối qua ChatGPT"
-
-msgid "Connected via Claude"
-msgstr "Đã kết nối qua Claude"
-
-msgid "Connected with API key"
-msgstr "Đã kết nối bằng khóa API"
 
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "Đã kết nối, nhưng Microsoft Graph từ chối các đăng ký thông báo."
@@ -3466,9 +3409,6 @@ msgstr "Đang kết nối tới màn hình nền…"
 
 msgid "Connecting to the workspace"
 msgstr "Đang kết nối tới workspace"
-
-msgid "Connecting..."
-msgstr "Đang kết nối..."
 
 msgid "Connecting…"
 msgstr "Đang kết nối…"
@@ -5423,9 +5363,6 @@ msgstr "Không thể kiểm tra cập nhật: {message}"
 
 msgid "Failed to check for updates. Please try again later."
 msgstr "Không thể kiểm tra cập nhật. Vui lòng thử lại sau."
-
-msgid "Failed to clear"
-msgstr "Không thể xóa"
 
 #. placeholder {0}: errorMessage(error, "Unknown error")
 msgid "Failed to clear agent status: {0}"
@@ -7389,9 +7326,6 @@ msgstr "Rời nhóm"
 msgid "Leave the leaderboard?"
 msgstr "Rời bảng xếp hạng?"
 
-msgid "Leave this empty if browser login finishes on its own."
-msgstr "Để trống nếu đăng nhập trên trình duyệt tự hoàn tất."
-
 msgid "Leaving organization..."
 msgstr "Đang rời tổ chức..."
 
@@ -7778,9 +7712,6 @@ msgstr "Quản lý gói"
 
 msgid "Manage plugins"
 msgstr "Quản lý plugin"
-
-msgid "Manage provider accounts, API keys, and overrides. Connecting Anthropic or OpenAI below is also what powers automatic workspace naming — without one connected, new workspaces fall back to a name derived from your prompt."
-msgstr "Quản lý tài khoản nhà cung cấp, khóa API và các tùy chỉnh ghi đè. Kết nối Anthropic hoặc OpenAI bên dưới cũng là thứ giúp tự đặt tên workspace — nếu không có kết nối nào, workspace mới sẽ lấy tên suy ra từ prompt của bạn."
 
 msgid "Manage sessions"
 msgstr "Quản lý phiên"
@@ -9265,9 +9196,6 @@ msgstr "Mở nhánh trên GitHub"
 msgid "Open Browser"
 msgstr "Mở trình duyệt"
 
-msgid "Open browser again"
-msgstr "Mở lại trình duyệt"
-
 msgid "Open changes"
 msgstr "Mở thay đổi"
 
@@ -9604,12 +9532,6 @@ msgstr "Mở workspace"
 msgid "Open workspace in external app (Cursor, VS Code, etc.)"
 msgstr "Mở workspace trong ứng dụng ngoài (Cursor, VS Code, v.v.)"
 
-msgid "OpenAI API key cleared"
-msgstr "Đã xóa khóa API OpenAI"
-
-msgid "OpenAI API key updated"
-msgstr "Đã cập nhật khóa API OpenAI"
-
 msgid "Opened"
 msgstr "Đã mở"
 
@@ -9905,12 +9827,6 @@ msgstr "Tuần qua"
 
 msgid "Paste"
 msgstr "Dán"
-
-msgid "Paste callback URL"
-msgstr "Dán URL callback"
-
-msgid "Paste callback URL or code#state"
-msgstr "Dán URL callback hoặc code#state"
 
 msgid "Paste this into Superset CLI:"
 msgstr "Dán mã này vào Superset CLI:"
@@ -10215,12 +10131,6 @@ msgstr "Tiền tố"
 
 msgid "Preparing"
 msgstr "Đang chuẩn bị"
-
-msgid "Preparing Anthropic browser login..."
-msgstr "Đang chuẩn bị đăng nhập Anthropic trên trình duyệt..."
-
-msgid "Preparing OpenAI browser login..."
-msgstr "Đang chuẩn bị đăng nhập OpenAI trên trình duyệt..."
 
 msgid "Preserve commit history"
 msgstr "Giữ nguyên lịch sử commit"
@@ -11590,15 +11500,6 @@ msgstr "Đã lưu"
 msgid "Saved \"{0}\" as an environment"
 msgstr "Đã lưu \"{0}\" thành một environment"
 
-msgid "Saved Anthropic API key"
-msgstr "Khóa API Anthropic đã lưu"
-
-msgid "Saved on blur."
-msgstr "Lưu khi rời khỏi ô."
-
-msgid "Saved OpenAI API key"
-msgstr "Khóa API OpenAI đã lưu"
-
 msgid "Saved to Downloads"
 msgstr "Đã lưu vào Downloads"
 
@@ -12380,12 +12281,6 @@ msgstr "Đăng nhập để tiếp tục vào Superset"
 
 msgid "Sign in to get started"
 msgstr "Đăng nhập để bắt đầu"
-
-msgid "Sign in with ChatGPT or use an API key."
-msgstr "Đăng nhập bằng ChatGPT hoặc dùng khóa API."
-
-msgid "Sign in with Claude or use an API key."
-msgstr "Đăng nhập bằng Claude hoặc dùng khóa API."
 
 msgid "Sign in with email"
 msgstr "Đăng nhập bằng email"

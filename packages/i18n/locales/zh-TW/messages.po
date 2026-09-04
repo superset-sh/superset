@@ -1366,9 +1366,6 @@ msgstr "僅在帶提示詞啟動時新增，例如<0>--</0>、<1>--prompt</1>、
 msgid "Adding members will increase your subscription cost, prorated to your billing cycle."
 msgstr "新增成員會增加訂閱費用，並按帳單週期按比例計算。"
 
-msgid "Additional env vars"
-msgstr "額外環境變數"
-
 msgid "Address Comments with Agent"
 msgstr "用代理程式處理評論"
 
@@ -1389,9 +1386,6 @@ msgstr "管理員不能修改擁有者"
 
 msgid "Admins cannot promote members to owner"
 msgstr "管理員不能將成員提升為擁有者"
-
-msgid "Advanced"
-msgstr "進階"
 
 msgid "Advanced options"
 msgstr "進階選項"
@@ -1740,18 +1734,6 @@ msgstr "另一臺裝置"
 msgid "Answered"
 msgstr "已回答"
 
-msgid "Anthropic API key cleared"
-msgstr "已清除Anthropic API金鑰"
-
-msgid "Anthropic API key updated"
-msgstr "已更新Anthropic API金鑰"
-
-msgid "Anthropic settings updated"
-msgstr "已更新Anthropic設定"
-
-msgid "Anthropic usually returns a full callback URL. Pasting either format works."
-msgstr "Anthropic通常會返回完整的回呼URL。兩種格式都可以貼上。"
-
 msgid "Any calendar"
 msgstr "任意日曆"
 
@@ -1865,12 +1847,6 @@ msgstr "應用"
 
 msgid "Approve"
 msgstr "批准"
-
-msgid "Approve access in your browser, then paste the callback URL or `code#state` here."
-msgstr "在瀏覽器中批准存取，然後把回呼URL或`code#state`貼上到這裡。"
-
-msgid "Approve access in your browser. If the callback does not finish, paste the redirected callback URL below."
-msgstr "在瀏覽器中批准存取。如果回呼沒有完成，請把重新導向後的回呼URL貼上到下面。"
 
 msgid "Approved"
 msgstr "已批准"
@@ -2001,9 +1977,6 @@ msgstr "審計日誌"
 msgid "Aug 2026"
 msgstr "2026年8月"
 
-msgid "Auth token"
-msgstr "認證權杖"
-
 msgid "Authenticate your {displayName} account"
 msgstr "驗證你的 {displayName} 帳戶"
 
@@ -2021,9 +1994,6 @@ msgstr "作者"
 
 msgid "Author: {label}"
 msgstr "作者：{label}"
-
-msgid "Authorization code"
-msgstr "授權碼"
 
 msgid "Authorization failed"
 msgstr "授權失敗"
@@ -2223,9 +2193,6 @@ msgstr "{selectedHostLabel}上新建worktree的基準目錄"
 
 msgid "Base directory for new worktrees on {selectedHostName}."
 msgstr "{selectedHostName}上新建worktree的基準目錄。"
-
-msgid "Base URL"
-msgstr "基礎URL"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -2523,9 +2490,6 @@ msgstr "日曆"
 
 msgid "Calendar and Gmail triggers in this organization will stop firing until an account is connected again."
 msgstr "在重新連線帳戶之前，此組織中的日曆和Gmail觸發器將停止觸發。"
-
-msgid "Callback URL (optional)"
-msgstr "回呼URL（可選）"
 
 msgid "Camera access is not allowed"
 msgstr "相機存取未獲允許"
@@ -2846,9 +2810,6 @@ msgstr "清理過期的TODO…"
 
 msgid "Cleaner, denser sidebar"
 msgstr "更清爽緊湊的側邊欄"
-
-msgid "Clear"
-msgstr "清除"
 
 msgid "Clear browsing data"
 msgstr "清除瀏覽資料"
@@ -3355,9 +3316,6 @@ msgstr "連線一個Google帳戶。它的日曆和電子郵件均為唯讀，觸
 msgid "Connect a microphone to use dictation"
 msgstr "請連線麥克風以使用語音輸入"
 
-msgid "Connect Anthropic"
-msgstr "連線Anthropic"
-
 msgid "Connect any AI agent to Superset."
 msgstr "把任意AI代理程式接入Superset。"
 
@@ -3387,9 +3345,6 @@ msgstr "連線Notion"
 
 msgid "Connect Notion to run automations when rows change in a data source or someone comments on a page."
 msgstr "連線Notion，在資料來源中的行發生變化或有人評論頁面時執行自動化。"
-
-msgid "Connect OpenAI"
-msgstr "連線OpenAI"
 
 msgid "Connect repos and sync pull requests."
 msgstr "連線儲存庫並同步拉取請求。"
@@ -3431,23 +3386,11 @@ msgstr "連線於 {0}"
 msgid "Connected as"
 msgstr "已連線為"
 
-msgid "Connected in Superset"
-msgstr "已在Superset中連線"
-
 msgid "Connected to"
 msgstr "已連線到"
 
 msgid "Connected to {connectedOrgName}"
 msgstr "已連線到{connectedOrgName}"
-
-msgid "Connected via ChatGPT"
-msgstr "已通過ChatGPT連線"
-
-msgid "Connected via Claude"
-msgstr "已通過Claude連線"
-
-msgid "Connected with API key"
-msgstr "已使用API金鑰連線"
 
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "已連線，但Microsoft Graph拒絕了通知訂閱。"
@@ -3466,9 +3409,6 @@ msgstr "正在連線至桌面…"
 
 msgid "Connecting to the workspace"
 msgstr "正在連線工作區"
-
-msgid "Connecting..."
-msgstr "正在連線..."
 
 msgid "Connecting…"
 msgstr "正在連線…"
@@ -5423,9 +5363,6 @@ msgstr "檢查更新失敗：{message}"
 
 msgid "Failed to check for updates. Please try again later."
 msgstr "檢查更新失敗。請稍後重試。"
-
-msgid "Failed to clear"
-msgstr "清除失敗"
 
 #. placeholder {0}: errorMessage(error, "Unknown error")
 msgid "Failed to clear agent status: {0}"
@@ -7389,9 +7326,6 @@ msgstr "退出團隊"
 msgid "Leave the leaderboard?"
 msgstr "退出排行榜？"
 
-msgid "Leave this empty if browser login finishes on its own."
-msgstr "如果瀏覽器登入能自行完成，請留空。"
-
 msgid "Leaving organization..."
 msgstr "正在退出組織..."
 
@@ -7778,9 +7712,6 @@ msgstr "管理方案"
 
 msgid "Manage plugins"
 msgstr "管理外掛"
-
-msgid "Manage provider accounts, API keys, and overrides. Connecting Anthropic or OpenAI below is also what powers automatic workspace naming — without one connected, new workspaces fall back to a name derived from your prompt."
-msgstr "管理提供方帳戶、API金鑰和覆蓋配置。在下方連線Anthropic或OpenAI也為工作區自動命名提供支援——兩者都未連線時，新工作區會回退到根據你的提示詞生成的名稱。"
 
 msgid "Manage sessions"
 msgstr "管理會話"
@@ -9265,9 +9196,6 @@ msgstr "在GitHub上開啟分支"
 msgid "Open Browser"
 msgstr "開啟瀏覽器"
 
-msgid "Open browser again"
-msgstr "重新開啟瀏覽器"
-
 msgid "Open changes"
 msgstr "開啟更改"
 
@@ -9604,12 +9532,6 @@ msgstr "開啟工作區"
 msgid "Open workspace in external app (Cursor, VS Code, etc.)"
 msgstr "在外部應用中開啟工作區（Cursor、VS Code等）"
 
-msgid "OpenAI API key cleared"
-msgstr "已清除OpenAI API金鑰"
-
-msgid "OpenAI API key updated"
-msgstr "已更新OpenAI API金鑰"
-
 msgid "Opened"
 msgstr "已建立"
 
@@ -9905,12 +9827,6 @@ msgstr "過去一週"
 
 msgid "Paste"
 msgstr "貼上"
-
-msgid "Paste callback URL"
-msgstr "貼上回呼URL"
-
-msgid "Paste callback URL or code#state"
-msgstr "貼上回呼URL或code#state"
 
 msgid "Paste this into Superset CLI:"
 msgstr "把它貼上到Superset CLI："
@@ -10215,12 +10131,6 @@ msgstr "字首"
 
 msgid "Preparing"
 msgstr "正在準備"
-
-msgid "Preparing Anthropic browser login..."
-msgstr "正在準備Anthropic瀏覽器登入..."
-
-msgid "Preparing OpenAI browser login..."
-msgstr "正在準備OpenAI瀏覽器登入..."
 
 msgid "Preserve commit history"
 msgstr "保留提交歷史"
@@ -11590,15 +11500,6 @@ msgstr "已儲存"
 msgid "Saved \"{0}\" as an environment"
 msgstr "已將「{0}」儲存為環境"
 
-msgid "Saved Anthropic API key"
-msgstr "已儲存的Anthropic API金鑰"
-
-msgid "Saved on blur."
-msgstr "失焦時自動儲存。"
-
-msgid "Saved OpenAI API key"
-msgstr "已儲存的OpenAI API金鑰"
-
 msgid "Saved to Downloads"
 msgstr "已儲存到「下載」資料夾"
 
@@ -12380,12 +12281,6 @@ msgstr "登入以繼續使用Superset"
 
 msgid "Sign in to get started"
 msgstr "登入即可開始"
-
-msgid "Sign in with ChatGPT or use an API key."
-msgstr "使用ChatGPT登入或使用API金鑰。"
-
-msgid "Sign in with Claude or use an API key."
-msgstr "使用Claude登入或使用API金鑰。"
 
 msgid "Sign in with email"
 msgstr "使用電子郵件登入"

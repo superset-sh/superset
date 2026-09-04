@@ -1,9 +1,5 @@
-import { generateTitleFromMessage } from "@superset/provider-auth/server";
-import { getSmallModel } from "@superset/provider-auth/server/shared";
-import { sanitizeBranchNameWithMaxLength } from "@superset/shared/workspace-launch";
+import { deriveWorkspaceBranchFromPrompt } from "@superset/shared/workspace-launch";
 
-const BRANCH_NAME_INSTRUCTIONS =
-	"Generate a concise git branch name (2-4 words, kebab-case, descriptive, 20 characters or less). Return ONLY the branch name, nothing else.";
 const MAX_CONFLICT_RESOLUTION_ATTEMPTS = 1000;
 const INITIAL_CONFLICT_SUFFIX = 2;
 
@@ -53,31 +49,17 @@ function resolveConflict(
 	return candidate;
 }
 
-export async function generateBranchNameFromPrompt(
+/**
+ * Branch name derived from the prompt text, deduplicated against the
+ * branches that already exist. Naming happens on this machine and the
+ * prompt is never sent anywhere.
+ */
+export function generateBranchNameFromPrompt(
 	prompt: string,
 	existingBranches: string[],
 	branchPrefix?: string,
-): Promise<string | null> {
-	const model = await getSmallModel();
-	if (!model) return null;
-
-	let generated: string | null;
-	try {
-		generated = await generateTitleFromMessage({
-			message: prompt,
-			agentModel: model,
-			agentId: "branch-namer",
-			agentName: "Branch Namer",
-			instructions: BRANCH_NAME_INSTRUCTIONS,
-			tracingContext: { surface: "workspace-branch-name" },
-		});
-	} catch (error) {
-		console.warn("[generateBranchNameFromPrompt] generation failed:", error);
-		return null;
-	}
-
-	if (!generated) return null;
-	const sanitized = sanitizeBranchNameWithMaxLength(generated);
-	if (!sanitized) return null;
-	return resolveConflict(sanitized, existingBranches, branchPrefix);
+): string | null {
+	const derived = deriveWorkspaceBranchFromPrompt(prompt);
+	if (!derived) return null;
+	return resolveConflict(derived, existingBranches, branchPrefix);
 }

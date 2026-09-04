@@ -1366,9 +1366,6 @@ msgstr "Yalnızca istemle başlatılırken eklenir — örn. <0>--</0>, <1>--pro
 msgid "Adding members will increase your subscription cost, prorated to your billing cycle."
 msgstr "Üye eklemek, faturalandırma döngünüze orantılanarak abonelik maliyetinizi artırır."
 
-msgid "Additional env vars"
-msgstr "Ek ortam değişkenleri"
-
 msgid "Address Comments with Agent"
 msgstr "Yorumları ajanla ele al"
 
@@ -1389,9 +1386,6 @@ msgstr "Yöneticiler sahipleri değiştiremez"
 
 msgid "Admins cannot promote members to owner"
 msgstr "Yöneticiler üyeleri sahip yapamaz"
-
-msgid "Advanced"
-msgstr "Gelişmiş"
 
 msgid "Advanced options"
 msgstr "Gelişmiş seçenekler"
@@ -1740,18 +1734,6 @@ msgstr "başka bir cihaz"
 msgid "Answered"
 msgstr "Yanıtlandı"
 
-msgid "Anthropic API key cleared"
-msgstr "Anthropic API anahtarı temizlendi"
-
-msgid "Anthropic API key updated"
-msgstr "Anthropic API anahtarı güncellendi"
-
-msgid "Anthropic settings updated"
-msgstr "Anthropic ayarları güncellendi"
-
-msgid "Anthropic usually returns a full callback URL. Pasting either format works."
-msgstr "Anthropic genellikle tam bir geri çağırma URL'si döndürür. Her iki biçim de çalışır."
-
 msgid "Any calendar"
 msgstr "Tüm takvimler"
 
@@ -1865,12 +1847,6 @@ msgstr "Uygula"
 
 msgid "Approve"
 msgstr "Onayla"
-
-msgid "Approve access in your browser, then paste the callback URL or `code#state` here."
-msgstr "Tarayıcınızda erişimi onaylayın, ardından geri çağırma URL'sini veya `code#state` değerini buraya yapıştırın."
-
-msgid "Approve access in your browser. If the callback does not finish, paste the redirected callback URL below."
-msgstr "Tarayıcınızda erişimi onaylayın. Geri çağırma tamamlanmazsa yönlendirilen geri çağırma URL'sini aşağıya yapıştırın."
 
 msgid "Approved"
 msgstr "Onaylandı"
@@ -2001,9 +1977,6 @@ msgstr "Denetim günlükleri"
 msgid "Aug 2026"
 msgstr "Ağu 2026"
 
-msgid "Auth token"
-msgstr "Kimlik doğrulama token'ı"
-
 msgid "Authenticate your {displayName} account"
 msgstr "{displayName} hesabınızın kimliğini doğrulayın"
 
@@ -2021,9 +1994,6 @@ msgstr "Yazar"
 
 msgid "Author: {label}"
 msgstr "Yazar: {label}"
-
-msgid "Authorization code"
-msgstr "Yetkilendirme kodu"
 
 msgid "Authorization failed"
 msgstr "Yetkilendirme başarısız"
@@ -2223,9 +2193,6 @@ msgstr "{selectedHostLabel} üzerindeki yeni worktree'ler için temel dizin"
 
 msgid "Base directory for new worktrees on {selectedHostName}."
 msgstr "{selectedHostName} üzerindeki yeni worktree'ler için temel dizin."
-
-msgid "Base URL"
-msgstr "Temel URL"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -2523,9 +2490,6 @@ msgstr "Takvim"
 
 msgid "Calendar and Gmail triggers in this organization will stop firing until an account is connected again."
 msgstr "Bu kuruluştaki Calendar ve Gmail tetikleyicileri, yeniden bir hesap bağlanana kadar tetiklenmeyi durdurur."
-
-msgid "Callback URL (optional)"
-msgstr "Geri çağırma URL'si (isteğe bağlı)"
 
 msgid "Camera access is not allowed"
 msgstr "Kamera erişimine izin verilmiyor"
@@ -2846,9 +2810,6 @@ msgstr "Eskimiş TODO'ları temizle…"
 
 msgid "Cleaner, denser sidebar"
 msgstr "Daha temiz, daha yoğun kenar çubuğu"
-
-msgid "Clear"
-msgstr "Temizle"
 
 msgid "Clear browsing data"
 msgstr "Tarama verilerini temizle"
@@ -3355,9 +3316,6 @@ msgstr "Bir Google hesabı bağlayın. Takvimleri ve posta kutusu salt okunurdur
 msgid "Connect a microphone to use dictation"
 msgstr "Sesle yazmak için bir mikrofon bağlayın"
 
-msgid "Connect Anthropic"
-msgstr "Anthropic'i bağla"
-
 msgid "Connect any AI agent to Superset."
 msgstr "Herhangi bir AI ajanını Superset'e bağlayın."
 
@@ -3387,9 +3345,6 @@ msgstr "Notion'ı bağla"
 
 msgid "Connect Notion to run automations when rows change in a data source or someone comments on a page."
 msgstr "Bir veri kaynağında satırlar değiştiğinde veya biri bir sayfaya yorum yaptığında otomasyon çalıştırmak için Notion'ı bağlayın."
-
-msgid "Connect OpenAI"
-msgstr "OpenAI'ı bağla"
 
 msgid "Connect repos and sync pull requests."
 msgstr "Depoları bağlayın ve pull request'leri eşitleyin."
@@ -3431,23 +3386,11 @@ msgstr "bağlandı {0}"
 msgid "Connected as"
 msgstr "Şu hesapla bağlı"
 
-msgid "Connected in Superset"
-msgstr "Superset'te bağlı"
-
 msgid "Connected to"
 msgstr "Şuna bağlı"
 
 msgid "Connected to {connectedOrgName}"
 msgstr "{connectedOrgName} kuruluşuna bağlı"
-
-msgid "Connected via ChatGPT"
-msgstr "ChatGPT üzerinden bağlı"
-
-msgid "Connected via Claude"
-msgstr "Claude üzerinden bağlı"
-
-msgid "Connected with API key"
-msgstr "API anahtarıyla bağlı"
 
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "Bağlandı, ancak Microsoft Graph bildirim aboneliklerini reddetti."
@@ -3466,9 +3409,6 @@ msgstr "Masaüstüne bağlanılıyor…"
 
 msgid "Connecting to the workspace"
 msgstr "Çalışma alanına bağlanılıyor"
-
-msgid "Connecting..."
-msgstr "Bağlanılıyor..."
 
 msgid "Connecting…"
 msgstr "Bağlanılıyor…"
@@ -5423,9 +5363,6 @@ msgstr "Güncellemeler denetlenemedi: {message}"
 
 msgid "Failed to check for updates. Please try again later."
 msgstr "Güncellemeler denetlenemedi. Lütfen daha sonra yeniden deneyin."
-
-msgid "Failed to clear"
-msgstr "Temizlenemedi"
 
 #. placeholder {0}: errorMessage(error, "Unknown error")
 msgid "Failed to clear agent status: {0}"
@@ -7389,9 +7326,6 @@ msgstr "Takımdan ayrıl"
 msgid "Leave the leaderboard?"
 msgstr "Lider tablosundan ayrılınsın mı?"
 
-msgid "Leave this empty if browser login finishes on its own."
-msgstr "Tarayıcı girişi kendiliğinden tamamlanırsa burayı boş bırakın."
-
 msgid "Leaving organization..."
 msgstr "Kuruluştan ayrılınıyor..."
 
@@ -7778,9 +7712,6 @@ msgstr "Planı yönet"
 
 msgid "Manage plugins"
 msgstr "Eklentileri yönet"
-
-msgid "Manage provider accounts, API keys, and overrides. Connecting Anthropic or OpenAI below is also what powers automatic workspace naming — without one connected, new workspaces fall back to a name derived from your prompt."
-msgstr "Sağlayıcı hesaplarını, API anahtarlarını ve geçersiz kılmaları yönetin. Aşağıdan Anthropic veya OpenAI bağlamak, otomatik çalışma alanı adlandırmasını da çalıştıran şeydir — hiçbiri bağlı değilse yeni çalışma alanları isteminizden türetilen bir ada geri döner."
 
 msgid "Manage sessions"
 msgstr "Oturumları yönet"
@@ -9265,9 +9196,6 @@ msgstr "Dalı GitHub'da aç"
 msgid "Open Browser"
 msgstr "Tarayıcıyı aç"
 
-msgid "Open browser again"
-msgstr "Tarayıcıyı yeniden aç"
-
 msgid "Open changes"
 msgstr "Değişiklikleri aç"
 
@@ -9604,12 +9532,6 @@ msgstr "Çalışma alanını aç"
 msgid "Open workspace in external app (Cursor, VS Code, etc.)"
 msgstr "Çalışma alanını harici uygulamada aç (Cursor, VS Code vb.)"
 
-msgid "OpenAI API key cleared"
-msgstr "OpenAI API anahtarı temizlendi"
-
-msgid "OpenAI API key updated"
-msgstr "OpenAI API anahtarı güncellendi"
-
 msgid "Opened"
 msgstr "Açıldı"
 
@@ -9905,12 +9827,6 @@ msgstr "Geçen hafta"
 
 msgid "Paste"
 msgstr "Yapıştır"
-
-msgid "Paste callback URL"
-msgstr "Geri çağırma URL'sini yapıştırın"
-
-msgid "Paste callback URL or code#state"
-msgstr "Geri çağırma URL'sini veya code#state değerini yapıştırın"
 
 msgid "Paste this into Superset CLI:"
 msgstr "Bunu Superset CLI'ye yapıştırın:"
@@ -10215,12 +10131,6 @@ msgstr "Ön ek"
 
 msgid "Preparing"
 msgstr "Hazırlanıyor"
-
-msgid "Preparing Anthropic browser login..."
-msgstr "Anthropic tarayıcı girişi hazırlanıyor..."
-
-msgid "Preparing OpenAI browser login..."
-msgstr "OpenAI tarayıcı girişi hazırlanıyor..."
 
 msgid "Preserve commit history"
 msgstr "Commit geçmişini korur"
@@ -11590,15 +11500,6 @@ msgstr "Kaydedildi"
 msgid "Saved \"{0}\" as an environment"
 msgstr "\"{0}\" ortam olarak kaydedildi"
 
-msgid "Saved Anthropic API key"
-msgstr "Kayıtlı Anthropic API anahtarı"
-
-msgid "Saved on blur."
-msgstr "Odak kaybında kaydedildi."
-
-msgid "Saved OpenAI API key"
-msgstr "Kayıtlı OpenAI API anahtarı"
-
 msgid "Saved to Downloads"
 msgstr "İndirilenler klasörüne kaydedildi"
 
@@ -12380,12 +12281,6 @@ msgstr "Superset'e devam etmek için oturum açın"
 
 msgid "Sign in to get started"
 msgstr "Başlamak için oturum açın"
-
-msgid "Sign in with ChatGPT or use an API key."
-msgstr "ChatGPT ile oturum açın veya bir API anahtarı kullanın."
-
-msgid "Sign in with Claude or use an API key."
-msgstr "Claude ile oturum açın veya bir API anahtarı kullanın."
 
 msgid "Sign in with email"
 msgstr "E-posta ile oturum aç"

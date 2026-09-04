@@ -1366,9 +1366,6 @@ msgstr "프롬프트와 함께 실행할 때만 추가됩니다 — 예: <0>--</
 msgid "Adding members will increase your subscription cost, prorated to your billing cycle."
 msgstr "멤버를 추가하면 결제 주기에 비례해 구독 요금이 늘어납니다."
 
-msgid "Additional env vars"
-msgstr "추가 환경 변수"
-
 msgid "Address Comments with Agent"
 msgstr "에이전트로 코멘트 처리"
 
@@ -1389,9 +1386,6 @@ msgstr "관리자는 소유자를 변경할 수 없습니다"
 
 msgid "Admins cannot promote members to owner"
 msgstr "관리자는 멤버를 소유자로 승격할 수 없습니다"
-
-msgid "Advanced"
-msgstr "고급"
 
 msgid "Advanced options"
 msgstr "고급 옵션"
@@ -1740,18 +1734,6 @@ msgstr "다른 기기"
 msgid "Answered"
 msgstr "응답함"
 
-msgid "Anthropic API key cleared"
-msgstr "Anthropic API 키를 지웠습니다"
-
-msgid "Anthropic API key updated"
-msgstr "Anthropic API 키를 업데이트했습니다"
-
-msgid "Anthropic settings updated"
-msgstr "Anthropic 설정을 업데이트했습니다"
-
-msgid "Anthropic usually returns a full callback URL. Pasting either format works."
-msgstr "Anthropic은 보통 전체 콜백 URL을 반환합니다. 두 형식 모두 붙여넣을 수 있습니다."
-
 msgid "Any calendar"
 msgstr "모든 캘린더"
 
@@ -1865,12 +1847,6 @@ msgstr "적용"
 
 msgid "Approve"
 msgstr "승인"
-
-msgid "Approve access in your browser, then paste the callback URL or `code#state` here."
-msgstr "브라우저에서 접근을 승인한 다음, 콜백 URL 또는 `code#state`를 여기에 붙여넣으세요."
-
-msgid "Approve access in your browser. If the callback does not finish, paste the redirected callback URL below."
-msgstr "브라우저에서 접근을 승인하세요. 콜백이 완료되지 않으면 리디렉션된 콜백 URL을 아래에 붙여넣으세요."
 
 msgid "Approved"
 msgstr "승인됨"
@@ -2001,9 +1977,6 @@ msgstr "감사 로그"
 msgid "Aug 2026"
 msgstr "2026년 8월"
 
-msgid "Auth token"
-msgstr "인증 토큰"
-
 msgid "Authenticate your {displayName} account"
 msgstr "{displayName} 계정 인증"
 
@@ -2021,9 +1994,6 @@ msgstr "작성자"
 
 msgid "Author: {label}"
 msgstr "작성자: {label}"
-
-msgid "Authorization code"
-msgstr "인증 코드"
 
 msgid "Authorization failed"
 msgstr "인증에 실패했습니다"
@@ -2223,9 +2193,6 @@ msgstr "{selectedHostLabel}에서 새 worktree를 만들 기본 디렉터리입�
 
 msgid "Base directory for new worktrees on {selectedHostName}."
 msgstr "{selectedHostName}에서 새 worktree를 만들 기본 디렉터리입니다."
-
-msgid "Base URL"
-msgstr "기본 URL"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -2523,9 +2490,6 @@ msgstr "캘린더"
 
 msgid "Calendar and Gmail triggers in this organization will stop firing until an account is connected again."
 msgstr "계정을 다시 연결할 때까지 이 조직의 Calendar 및 Gmail 트리거가 실행되지 않습니다."
-
-msgid "Callback URL (optional)"
-msgstr "콜백 URL (선택)"
 
 msgid "Camera access is not allowed"
 msgstr "카메라 접근이 허용되지 않았습니다"
@@ -2846,9 +2810,6 @@ msgstr "오래된 TODO 정리…"
 
 msgid "Cleaner, denser sidebar"
 msgstr "더 깔끔하고 촘촘한 사이드바"
-
-msgid "Clear"
-msgstr "지우기"
 
 msgid "Clear browsing data"
 msgstr "인터넷 사용 기록 삭제"
@@ -3355,9 +3316,6 @@ msgstr "Google 계정을 연결하세요. 캘린더와 메일함은 읽기 전�
 msgid "Connect a microphone to use dictation"
 msgstr "받아쓰기를 사용하려면 마이크를 연결하세요"
 
-msgid "Connect Anthropic"
-msgstr "Anthropic 연결"
-
 msgid "Connect any AI agent to Superset."
 msgstr "어떤 AI 에이전트든 Superset에 연결하세요."
 
@@ -3387,9 +3345,6 @@ msgstr "Notion 연결"
 
 msgid "Connect Notion to run automations when rows change in a data source or someone comments on a page."
 msgstr "Notion을 연결하면 데이터 소스의 행이 바뀌거나 누군가 페이지에 댓글을 달 때 자동화를 실행할 수 있습니다."
-
-msgid "Connect OpenAI"
-msgstr "OpenAI 연결"
 
 msgid "Connect repos and sync pull requests."
 msgstr "리포지토리를 연결하고 풀 리퀘스트를 동기화합니다."
@@ -3431,23 +3386,11 @@ msgstr "{0}에 연결됨"
 msgid "Connected as"
 msgstr "연결 계정"
 
-msgid "Connected in Superset"
-msgstr "Superset에서 연결됨"
-
 msgid "Connected to"
 msgstr "연결 대상"
 
 msgid "Connected to {connectedOrgName}"
 msgstr "{connectedOrgName}에 연결됨"
-
-msgid "Connected via ChatGPT"
-msgstr "ChatGPT로 연결됨"
-
-msgid "Connected via Claude"
-msgstr "Claude로 연결됨"
-
-msgid "Connected with API key"
-msgstr "API 키로 연결됨"
 
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "연결되었지만 Microsoft Graph가 알림 구독을 거부했습니다."
@@ -3466,9 +3409,6 @@ msgstr "데스크톱에 연결하는 중…"
 
 msgid "Connecting to the workspace"
 msgstr "워크스페이스에 연결하는 중"
-
-msgid "Connecting..."
-msgstr "연결 중..."
 
 msgid "Connecting…"
 msgstr "연결 중…"
@@ -5423,9 +5363,6 @@ msgstr "업데이트를 확인하지 못했습니다: {message}"
 
 msgid "Failed to check for updates. Please try again later."
 msgstr "업데이트 확인에 실패했습니다. 잠시 후 다시 시도해 주세요."
-
-msgid "Failed to clear"
-msgstr "지우지 못했습니다"
 
 #. placeholder {0}: errorMessage(error, "Unknown error")
 msgid "Failed to clear agent status: {0}"
@@ -7389,9 +7326,6 @@ msgstr "팀 나가기"
 msgid "Leave the leaderboard?"
 msgstr "리더보드에서 나갈까요?"
 
-msgid "Leave this empty if browser login finishes on its own."
-msgstr "브라우저 로그인이 자체적으로 완료되면 비워 두세요."
-
 msgid "Leaving organization..."
 msgstr "조직에서 나가는 중..."
 
@@ -7778,9 +7712,6 @@ msgstr "플랜 관리"
 
 msgid "Manage plugins"
 msgstr "플러그인 관리"
-
-msgid "Manage provider accounts, API keys, and overrides. Connecting Anthropic or OpenAI below is also what powers automatic workspace naming — without one connected, new workspaces fall back to a name derived from your prompt."
-msgstr "제공업체 계정, API 키, 재정의 설정을 관리합니다. 아래에서 Anthropic이나 OpenAI를 연결하면 워크스페이스 이름도 자동으로 지어집니다. 연결하지 않으면 새 워크스페이스는 프롬프트에서 가져온 이름을 사용합니다."
 
 msgid "Manage sessions"
 msgstr "세션 관리"
@@ -9265,9 +9196,6 @@ msgstr "GitHub에서 브랜치 열기"
 msgid "Open Browser"
 msgstr "브라우저 열기"
 
-msgid "Open browser again"
-msgstr "브라우저 다시 열기"
-
 msgid "Open changes"
 msgstr "변경 열기"
 
@@ -9604,12 +9532,6 @@ msgstr "워크스페이스 열기"
 msgid "Open workspace in external app (Cursor, VS Code, etc.)"
 msgstr "외부 앱(Cursor, VS Code 등)에서 워크스페이스를 엽니다"
 
-msgid "OpenAI API key cleared"
-msgstr "OpenAI API 키를 지웠습니다"
-
-msgid "OpenAI API key updated"
-msgstr "OpenAI API 키를 업데이트했습니다"
-
 msgid "Opened"
 msgstr "열림"
 
@@ -9905,12 +9827,6 @@ msgstr "지난 한 주"
 
 msgid "Paste"
 msgstr "붙여넣기"
-
-msgid "Paste callback URL"
-msgstr "콜백 URL 붙여넣기"
-
-msgid "Paste callback URL or code#state"
-msgstr "콜백 URL 또는 code#state 붙여넣기"
 
 msgid "Paste this into Superset CLI:"
 msgstr "Superset CLI에 붙여 넣으세요:"
@@ -10215,12 +10131,6 @@ msgstr "접두사"
 
 msgid "Preparing"
 msgstr "준비 중"
-
-msgid "Preparing Anthropic browser login..."
-msgstr "Anthropic 브라우저 로그인을 준비하는 중..."
-
-msgid "Preparing OpenAI browser login..."
-msgstr "OpenAI 브라우저 로그인 준비 중..."
 
 msgid "Preserve commit history"
 msgstr "커밋 기록 유지"
@@ -11590,15 +11500,6 @@ msgstr "저장됨"
 msgid "Saved \"{0}\" as an environment"
 msgstr "\"{0}\"을(를) 환경으로 저장했습니다"
 
-msgid "Saved Anthropic API key"
-msgstr "저장된 Anthropic API 키"
-
-msgid "Saved on blur."
-msgstr "포커스를 벗어나면 저장됩니다."
-
-msgid "Saved OpenAI API key"
-msgstr "저장된 OpenAI API 키"
-
 msgid "Saved to Downloads"
 msgstr "다운로드 폴더에 저장했습니다"
 
@@ -12380,12 +12281,6 @@ msgstr "Superset을 계속 사용하려면 로그인하세요"
 
 msgid "Sign in to get started"
 msgstr "로그인하고 시작하세요"
-
-msgid "Sign in with ChatGPT or use an API key."
-msgstr "ChatGPT로 로그인하거나 API 키를 사용하세요."
-
-msgid "Sign in with Claude or use an API key."
-msgstr "Claude로 로그인하거나 API 키를 사용하세요."
 
 msgid "Sign in with email"
 msgstr "이메일로 로그인"

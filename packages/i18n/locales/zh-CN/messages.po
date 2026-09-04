@@ -1366,9 +1366,6 @@ msgstr "仅在带提示词启动时添加，例如<0>--</0>、<1>--prompt</1>、
 msgid "Adding members will increase your subscription cost, prorated to your billing cycle."
 msgstr "添加成员会增加订阅费用，并按账单周期按比例计算。"
 
-msgid "Additional env vars"
-msgstr "额外环境变量"
-
 msgid "Address Comments with Agent"
 msgstr "用智能体处理评论"
 
@@ -1389,9 +1386,6 @@ msgstr "管理员不能修改所有者"
 
 msgid "Admins cannot promote members to owner"
 msgstr "管理员不能将成员提升为所有者"
-
-msgid "Advanced"
-msgstr "高级"
 
 msgid "Advanced options"
 msgstr "高级选项"
@@ -1740,18 +1734,6 @@ msgstr "另一台设备"
 msgid "Answered"
 msgstr "已回答"
 
-msgid "Anthropic API key cleared"
-msgstr "已清除Anthropic API密钥"
-
-msgid "Anthropic API key updated"
-msgstr "已更新Anthropic API密钥"
-
-msgid "Anthropic settings updated"
-msgstr "已更新Anthropic设置"
-
-msgid "Anthropic usually returns a full callback URL. Pasting either format works."
-msgstr "Anthropic通常会返回完整的回调URL。两种格式都可以粘贴。"
-
 msgid "Any calendar"
 msgstr "任意日历"
 
@@ -1865,12 +1847,6 @@ msgstr "应用"
 
 msgid "Approve"
 msgstr "批准"
-
-msgid "Approve access in your browser, then paste the callback URL or `code#state` here."
-msgstr "在浏览器中批准访问，然后把回调URL或`code#state`粘贴到这里。"
-
-msgid "Approve access in your browser. If the callback does not finish, paste the redirected callback URL below."
-msgstr "在浏览器中批准访问。如果回调没有完成，请把重定向后的回调URL粘贴到下面。"
 
 msgid "Approved"
 msgstr "已批准"
@@ -2001,9 +1977,6 @@ msgstr "审计日志"
 msgid "Aug 2026"
 msgstr "2026年8月"
 
-msgid "Auth token"
-msgstr "认证令牌"
-
 msgid "Authenticate your {displayName} account"
 msgstr "验证你的 {displayName} 账户"
 
@@ -2021,9 +1994,6 @@ msgstr "作者"
 
 msgid "Author: {label}"
 msgstr "作者：{label}"
-
-msgid "Authorization code"
-msgstr "授权码"
 
 msgid "Authorization failed"
 msgstr "授权失败"
@@ -2223,9 +2193,6 @@ msgstr "{selectedHostLabel}上新建worktree的基准目录"
 
 msgid "Base directory for new worktrees on {selectedHostName}."
 msgstr "{selectedHostName}上新建worktree的基准目录。"
-
-msgid "Base URL"
-msgstr "基础URL"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -2523,9 +2490,6 @@ msgstr "日历"
 
 msgid "Calendar and Gmail triggers in this organization will stop firing until an account is connected again."
 msgstr "在重新连接账户之前，此组织中的日历和Gmail触发器将停止触发。"
-
-msgid "Callback URL (optional)"
-msgstr "回调URL（可选）"
 
 msgid "Camera access is not allowed"
 msgstr "相机访问未获允许"
@@ -2846,9 +2810,6 @@ msgstr "清理过期的TODO…"
 
 msgid "Cleaner, denser sidebar"
 msgstr "更清爽紧凑的侧边栏"
-
-msgid "Clear"
-msgstr "清除"
 
 msgid "Clear browsing data"
 msgstr "清除浏览数据"
@@ -3355,9 +3316,6 @@ msgstr "连接一个Google账户。它的日历和邮箱均为只读，触发器
 msgid "Connect a microphone to use dictation"
 msgstr "请连接麦克风以使用语音输入"
 
-msgid "Connect Anthropic"
-msgstr "连接Anthropic"
-
 msgid "Connect any AI agent to Superset."
 msgstr "把任意AI智能体接入Superset。"
 
@@ -3387,9 +3345,6 @@ msgstr "连接Notion"
 
 msgid "Connect Notion to run automations when rows change in a data source or someone comments on a page."
 msgstr "连接Notion，在数据源中的行发生变化或有人评论页面时运行自动化。"
-
-msgid "Connect OpenAI"
-msgstr "连接OpenAI"
 
 msgid "Connect repos and sync pull requests."
 msgstr "连接仓库并同步拉取请求。"
@@ -3431,23 +3386,11 @@ msgstr "连接于 {0}"
 msgid "Connected as"
 msgstr "已连接为"
 
-msgid "Connected in Superset"
-msgstr "已在Superset中连接"
-
 msgid "Connected to"
 msgstr "已连接到"
 
 msgid "Connected to {connectedOrgName}"
 msgstr "已连接到{connectedOrgName}"
-
-msgid "Connected via ChatGPT"
-msgstr "已通过ChatGPT连接"
-
-msgid "Connected via Claude"
-msgstr "已通过Claude连接"
-
-msgid "Connected with API key"
-msgstr "已使用API密钥连接"
 
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "已连接，但Microsoft Graph拒绝了通知订阅。"
@@ -3466,9 +3409,6 @@ msgstr "正在连接桌面…"
 
 msgid "Connecting to the workspace"
 msgstr "正在连接工作区"
-
-msgid "Connecting..."
-msgstr "正在连接..."
 
 msgid "Connecting…"
 msgstr "正在连接…"
@@ -5423,9 +5363,6 @@ msgstr "检查更新失败：{message}"
 
 msgid "Failed to check for updates. Please try again later."
 msgstr "检查更新失败。请稍后重试。"
-
-msgid "Failed to clear"
-msgstr "清除失败"
 
 #. placeholder {0}: errorMessage(error, "Unknown error")
 msgid "Failed to clear agent status: {0}"
@@ -7389,9 +7326,6 @@ msgstr "退出团队"
 msgid "Leave the leaderboard?"
 msgstr "退出排行榜？"
 
-msgid "Leave this empty if browser login finishes on its own."
-msgstr "如果浏览器登录能自行完成，请留空。"
-
 msgid "Leaving organization..."
 msgstr "正在退出组织..."
 
@@ -7778,9 +7712,6 @@ msgstr "管理方案"
 
 msgid "Manage plugins"
 msgstr "管理插件"
-
-msgid "Manage provider accounts, API keys, and overrides. Connecting Anthropic or OpenAI below is also what powers automatic workspace naming — without one connected, new workspaces fall back to a name derived from your prompt."
-msgstr "管理提供方账户、API密钥和覆盖配置。在下方连接Anthropic或OpenAI也为工作区自动命名提供支持——两者都未连接时，新工作区会回退到根据你的提示词生成的名称。"
 
 msgid "Manage sessions"
 msgstr "管理会话"
@@ -9265,9 +9196,6 @@ msgstr "在GitHub上打开分支"
 msgid "Open Browser"
 msgstr "打开浏览器"
 
-msgid "Open browser again"
-msgstr "重新打开浏览器"
-
 msgid "Open changes"
 msgstr "打开更改"
 
@@ -9604,12 +9532,6 @@ msgstr "打开工作区"
 msgid "Open workspace in external app (Cursor, VS Code, etc.)"
 msgstr "在外部应用中打开工作区（Cursor、VS Code等）"
 
-msgid "OpenAI API key cleared"
-msgstr "已清除OpenAI API密钥"
-
-msgid "OpenAI API key updated"
-msgstr "已更新OpenAI API密钥"
-
 msgid "Opened"
 msgstr "已创建"
 
@@ -9905,12 +9827,6 @@ msgstr "过去一周"
 
 msgid "Paste"
 msgstr "粘贴"
-
-msgid "Paste callback URL"
-msgstr "粘贴回调URL"
-
-msgid "Paste callback URL or code#state"
-msgstr "粘贴回调URL或code#state"
 
 msgid "Paste this into Superset CLI:"
 msgstr "把它粘贴到Superset CLI："
@@ -10215,12 +10131,6 @@ msgstr "前缀"
 
 msgid "Preparing"
 msgstr "正在准备"
-
-msgid "Preparing Anthropic browser login..."
-msgstr "正在准备Anthropic浏览器登录..."
-
-msgid "Preparing OpenAI browser login..."
-msgstr "正在准备OpenAI浏览器登录..."
 
 msgid "Preserve commit history"
 msgstr "保留提交历史"
@@ -11590,15 +11500,6 @@ msgstr "已保存"
 msgid "Saved \"{0}\" as an environment"
 msgstr "已将“{0}”保存为环境"
 
-msgid "Saved Anthropic API key"
-msgstr "已保存的Anthropic API密钥"
-
-msgid "Saved on blur."
-msgstr "失焦时自动保存。"
-
-msgid "Saved OpenAI API key"
-msgstr "已保存的OpenAI API密钥"
-
 msgid "Saved to Downloads"
 msgstr "已保存到“下载”文件夹"
 
@@ -12380,12 +12281,6 @@ msgstr "登录以继续使用Superset"
 
 msgid "Sign in to get started"
 msgstr "登录即可开始"
-
-msgid "Sign in with ChatGPT or use an API key."
-msgstr "使用ChatGPT登录或使用API密钥。"
-
-msgid "Sign in with Claude or use an API key."
-msgstr "使用Claude登录或使用API密钥。"
 
 msgid "Sign in with email"
 msgstr "使用邮箱登录"

@@ -68,8 +68,9 @@ const natives = [
 
 /**
  * Imported at module load but never executed, so they only need to resolve.
- * Mostly mastra's storage stack reached via provider-auth's credential store;
- * trimming that dependency would shrink both this list and the image.
+ * Mostly mastra's storage stack; the provider credential store that pulled it
+ * in is gone, so this list is probably trimmable — verify against a fresh
+ * bundle before cutting entries.
  */
 const runtimeResolutionOnly = [
 	"@mastra/duckdb",

@@ -1,6 +1,4 @@
 import { workspaces } from "@superset/local-db";
-import { generateTitleFromMessage } from "@superset/provider-auth/server";
-import { getSmallModel } from "@superset/provider-auth/server/shared";
 import { deriveWorkspaceTitleFromPrompt } from "@superset/shared/workspace-launch";
 import { and, eq, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
@@ -10,13 +8,11 @@ export type WorkspaceAutoRenameResult =
 	| {
 			status: "renamed";
 			name: string;
-			warning?: string;
 	  }
 	| {
 			status: "skipped";
 			reason:
 				| "empty-prompt"
-				| "missing-credentials"
 				| "generation-failed"
 				| "missing-workspace"
 				| "empty-generated-name"
@@ -26,44 +22,12 @@ export type WorkspaceAutoRenameResult =
 			warning?: string;
 	  };
 
-const FALLBACK_WARNING =
-	"A prompt-based title was used because model naming was unavailable.";
-
-export async function generateWorkspaceNameFromPrompt(prompt: string): Promise<{
-	name: string | null;
-	usedPromptFallback: boolean;
-	warning?: string;
-}> {
-	const model = await getSmallModel();
-	if (model) {
-		try {
-			const generated = await generateTitleFromMessage({
-				message: prompt,
-				agentModel: model,
-				agentId: "workspace-namer",
-				agentName: "Workspace Namer",
-				instructions:
-					"You generate concise workspace titles. 20 characters or less. Write the title in the same language as the user's message. Return ONLY the title, nothing else.",
-				tracingContext: { surface: "workspace-auto-name" },
-			});
-			if (generated !== null && generated !== undefined) {
-				return { name: generated, usedPromptFallback: false };
-			}
-		} catch (error) {
-			console.error("[workspace-ai-name] title generation failed", error);
-		}
-	}
-
-	const fallbackTitle = deriveWorkspaceTitleFromPrompt(prompt);
-	if (fallbackTitle) {
-		return {
-			name: fallbackTitle,
-			usedPromptFallback: true,
-			warning: FALLBACK_WARNING,
-		};
-	}
-
-	return { name: null, usedPromptFallback: false };
+/**
+ * Workspace title derived from the prompt text. Naming happens on this
+ * machine and the prompt is never sent anywhere.
+ */
+export function generateWorkspaceNameFromPrompt(prompt: string): string | null {
+	return deriveWorkspaceTitleFromPrompt(prompt) || null;
 }
 
 export async function attemptWorkspaceAutoRenameFromPrompt({
@@ -99,16 +63,12 @@ export async function attemptWorkspaceAutoRenameFromPrompt({
 		return { status: "skipped", reason: "workspace-named" };
 	}
 
-	const {
-		name: generatedName,
-		usedPromptFallback,
-		warning,
-	} = await generateWorkspaceNameFromPrompt(cleanedPrompt);
+	const generatedName = generateWorkspaceNameFromPrompt(cleanedPrompt);
 	if (generatedName === null) {
 		return {
 			status: "skipped",
 			reason: "generation-failed",
-			warning: warning ?? "Couldn't auto-name this workspace.",
+			warning: "Couldn't auto-name this workspace.",
 		};
 	}
 
@@ -117,11 +77,7 @@ export async function attemptWorkspaceAutoRenameFromPrompt({
 		generatedName,
 	});
 	if (decision.kind === "skip") {
-		return {
-			status: "skipped",
-			reason: decision.reason,
-			...(warning ? { warning } : {}),
-		};
+		return { status: "skipped", reason: decision.reason };
 	}
 
 	const renameResult = localDb
@@ -141,11 +97,7 @@ export async function attemptWorkspaceAutoRenameFromPrompt({
 		)
 		.run();
 	if (renameResult.changes > 0) {
-		return {
-			status: "renamed",
-			name: decision.name,
-			warning: usedPromptFallback ? warning : undefined,
-		};
+		return { status: "renamed", name: decision.name };
 	}
 
 	const latestWorkspace = localDb

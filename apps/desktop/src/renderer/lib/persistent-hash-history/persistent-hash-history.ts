@@ -7,6 +7,24 @@ import {
 const STORAGE_KEY = "router-history";
 const MAX_ENTRIES = 100;
 
+/**
+ * Paths whose routes no longer exist. This history is restored at boot, so
+ * an entry left over from a removed feature would drop the renderer straight
+ * into Not Found; they are dropped on load instead. Add a prefix here in the
+ * same change that deletes the route, the way a removed localStorage writer
+ * adds its key to DEAD_KEYS.
+ */
+const RETIRED_PATH_PREFIXES = [
+	// Models settings page; the provider chain it configured was removed
+	"/settings/models",
+];
+
+function isRetiredPath(path: string): boolean {
+	return RETIRED_PATH_PREFIXES.some(
+		(prefix) => path === prefix || path.startsWith(`${prefix}/`),
+	);
+}
+
 type LocationState = HistoryLocation["state"];
 
 interface PersistedState {
@@ -34,7 +52,17 @@ function loadPersistedState(): PersistedState {
 					Math.max(parsed.index, 0),
 					parsed.entries.length - 1,
 				);
-				return { entries: parsed.entries, index };
+				const entries: string[] = [];
+				let liveIndex = 0;
+				parsed.entries.forEach((entry, i) => {
+					if (isRetiredPath(entry)) return;
+					// Keep the cursor on the newest surviving entry at or before
+					// where it was, so back/forward still line up after a drop.
+					if (i <= index) liveIndex = entries.length;
+					entries.push(entry);
+				});
+				if (entries.length === 0) return { entries: ["/"], index: 0 };
+				return { entries, index: Math.min(liveIndex, entries.length - 1) };
 			}
 		}
 	} catch {}

@@ -1366,9 +1366,6 @@ msgstr "Přidá se jen při spuštění s promptem — např. <0>--</0>, <1>--pr
 msgid "Adding members will increase your subscription cost, prorated to your billing cycle."
 msgstr "Přidáním členů vzroste cena předplatného, poměrně k vašemu fakturačnímu cyklu."
 
-msgid "Additional env vars"
-msgstr "Další proměnné prostředí"
-
 msgid "Address Comments with Agent"
 msgstr "Vyřešit komentáře agentem"
 
@@ -1389,9 +1386,6 @@ msgstr "Správci nemohou měnit vlastníky"
 
 msgid "Admins cannot promote members to owner"
 msgstr "Správci nemohou povýšit členy na vlastníky"
-
-msgid "Advanced"
-msgstr "Pokročilé"
 
 msgid "Advanced options"
 msgstr "Pokročilé možnosti"
@@ -1740,18 +1734,6 @@ msgstr "jiné zařízení"
 msgid "Answered"
 msgstr "Zodpovězeno"
 
-msgid "Anthropic API key cleared"
-msgstr "API klíč Anthropic vymazán"
-
-msgid "Anthropic API key updated"
-msgstr "API klíč Anthropic aktualizován"
-
-msgid "Anthropic settings updated"
-msgstr "Nastavení Anthropic aktualizováno"
-
-msgid "Anthropic usually returns a full callback URL. Pasting either format works."
-msgstr "Anthropic obvykle vrací celou callback URL. Funguje kterýkoli z obou formátů."
-
 msgid "Any calendar"
 msgstr "Jakýkoli kalendář"
 
@@ -1865,12 +1847,6 @@ msgstr "Použít"
 
 msgid "Approve"
 msgstr "Schválit"
-
-msgid "Approve access in your browser, then paste the callback URL or `code#state` here."
-msgstr "Schvalte přístup v prohlížeči a pak sem vložte callback URL nebo `code#state`."
-
-msgid "Approve access in your browser. If the callback does not finish, paste the redirected callback URL below."
-msgstr "Schvalte přístup v prohlížeči. Pokud se callback nedokončí, vložte níže přesměrovanou callback URL."
 
 msgid "Approved"
 msgstr "Schváleno"
@@ -2001,9 +1977,6 @@ msgstr "Auditní logy"
 msgid "Aug 2026"
 msgstr "Srp 2026"
 
-msgid "Auth token"
-msgstr "Ověřovací token"
-
 msgid "Authenticate your {displayName} account"
 msgstr "Ověřte svůj účet {displayName}"
 
@@ -2021,9 +1994,6 @@ msgstr "Autor"
 
 msgid "Author: {label}"
 msgstr "Autor: {label}"
-
-msgid "Authorization code"
-msgstr "Autorizační kód"
 
 msgid "Authorization failed"
 msgstr "Autorizace selhala"
@@ -2223,9 +2193,6 @@ msgstr "Základní adresář pro nové worktree na {selectedHostLabel}"
 
 msgid "Base directory for new worktrees on {selectedHostName}."
 msgstr "Základní adresář pro nové worktree na {selectedHostName}."
-
-msgid "Base URL"
-msgstr "Základní URL"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -2523,9 +2490,6 @@ msgstr "Kalendář"
 
 msgid "Calendar and Gmail triggers in this organization will stop firing until an account is connected again."
 msgstr "Spouštěče Kalendáře a Gmailu v této organizaci se přestanou spouštět, dokud znovu nepřipojíte účet."
-
-msgid "Callback URL (optional)"
-msgstr "Callback URL (volitelné)"
 
 msgid "Camera access is not allowed"
 msgstr "Přístup k fotoaparátu není povolen"
@@ -2846,9 +2810,6 @@ msgstr "Ukliď zastaralé TODO…"
 
 msgid "Cleaner, denser sidebar"
 msgstr "Čistší a hustší postranní panel"
-
-msgid "Clear"
-msgstr "Vymazat"
 
 msgid "Clear browsing data"
 msgstr "Vymazat data prohlížení"
@@ -3355,9 +3316,6 @@ msgstr "Připojte účet Google. Jeho kalendáře a schránka jsou jen ke čten�
 msgid "Connect a microphone to use dictation"
 msgstr "Pro diktování připojte mikrofon"
 
-msgid "Connect Anthropic"
-msgstr "Připojit Anthropic"
-
 msgid "Connect any AI agent to Superset."
 msgstr "Připojte k Superset libovolného AI agenta."
 
@@ -3387,9 +3345,6 @@ msgstr "Připojit Notion"
 
 msgid "Connect Notion to run automations when rows change in a data source or someone comments on a page."
 msgstr "Připojte Notion a spouštějte automatizace při změně řádků v datovém zdroji nebo když někdo okomentuje stránku."
-
-msgid "Connect OpenAI"
-msgstr "Připojit OpenAI"
 
 msgid "Connect repos and sync pull requests."
 msgstr "Připojte repozitáře a synchronizujte pull requesty."
@@ -3431,23 +3386,11 @@ msgstr "připojeno {0}"
 msgid "Connected as"
 msgstr "Připojeno jako"
 
-msgid "Connected in Superset"
-msgstr "Připojeno v Superset"
-
 msgid "Connected to"
 msgstr "Připojeno k"
 
 msgid "Connected to {connectedOrgName}"
 msgstr "Připojeno k {connectedOrgName}"
-
-msgid "Connected via ChatGPT"
-msgstr "Připojeno přes ChatGPT"
-
-msgid "Connected via Claude"
-msgstr "Připojeno přes Claude"
-
-msgid "Connected with API key"
-msgstr "Připojeno pomocí API klíče"
 
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "Připojeno, ale Microsoft Graph odmítl odběry oznámení."
@@ -3466,9 +3409,6 @@ msgstr "Připojování k ploše…"
 
 msgid "Connecting to the workspace"
 msgstr "Připojuji se k pracovnímu prostoru"
-
-msgid "Connecting..."
-msgstr "Připojuji..."
 
 msgid "Connecting…"
 msgstr "Připojuji…"
@@ -5423,9 +5363,6 @@ msgstr "Nepodařilo se zkontrolovat aktualizace: {message}"
 
 msgid "Failed to check for updates. Please try again later."
 msgstr "Nepodařilo se zkontrolovat aktualizace. Zkuste to prosím později."
-
-msgid "Failed to clear"
-msgstr "Nepodařilo se vymazat"
 
 #. placeholder {0}: errorMessage(error, "Unknown error")
 msgid "Failed to clear agent status: {0}"
@@ -7389,9 +7326,6 @@ msgstr "Opustit tým"
 msgid "Leave the leaderboard?"
 msgstr "Odejít z žebříčku?"
 
-msgid "Leave this empty if browser login finishes on its own."
-msgstr "Nechte prázdné, pokud se přihlášení v prohlížeči dokončí samo."
-
 msgid "Leaving organization..."
 msgstr "Opouštím organizaci..."
 
@@ -7778,9 +7712,6 @@ msgstr "Spravovat tarif"
 
 msgid "Manage plugins"
 msgstr "Spravovat pluginy"
-
-msgid "Manage provider accounts, API keys, and overrides. Connecting Anthropic or OpenAI below is also what powers automatic workspace naming — without one connected, new workspaces fall back to a name derived from your prompt."
-msgstr "Spravujte účty poskytovatelů, API klíče a přepisy. Připojení Anthropic nebo OpenAI níže zároveň pohání automatické pojmenování pracovních prostorů — bez připojeného poskytovatele dostanou nové prostory název odvozený z vašeho promptu."
 
 msgid "Manage sessions"
 msgstr "Spravovat relace"
@@ -9265,9 +9196,6 @@ msgstr "Otevřít větev na GitHubu"
 msgid "Open Browser"
 msgstr "Otevřít prohlížeč"
 
-msgid "Open browser again"
-msgstr "Znovu otevřít prohlížeč"
-
 msgid "Open changes"
 msgstr "Otevřít změny"
 
@@ -9604,12 +9532,6 @@ msgstr "Otevřít pracovní prostor"
 msgid "Open workspace in external app (Cursor, VS Code, etc.)"
 msgstr "Otevřít pracovní prostor v externí aplikaci (Cursor, VS Code atd.)"
 
-msgid "OpenAI API key cleared"
-msgstr "API klíč OpenAI vymazán"
-
-msgid "OpenAI API key updated"
-msgstr "API klíč OpenAI aktualizován"
-
 msgid "Opened"
 msgstr "Otevřen"
 
@@ -9905,12 +9827,6 @@ msgstr "Poslední týden"
 
 msgid "Paste"
 msgstr "Vložit"
-
-msgid "Paste callback URL"
-msgstr "Vložte callback URL"
-
-msgid "Paste callback URL or code#state"
-msgstr "Vložte callback URL nebo code#state"
 
 msgid "Paste this into Superset CLI:"
 msgstr "Vložte to do Superset CLI:"
@@ -10215,12 +10131,6 @@ msgstr "Prefix"
 
 msgid "Preparing"
 msgstr "Připravuji"
-
-msgid "Preparing Anthropic browser login..."
-msgstr "Připravuji přihlášení k Anthropic v prohlížeči..."
-
-msgid "Preparing OpenAI browser login..."
-msgstr "Připravuji přihlášení k OpenAI v prohlížeči..."
 
 msgid "Preserve commit history"
 msgstr "Zachová historii commitů"
@@ -11590,15 +11500,6 @@ msgstr "Uloženo"
 msgid "Saved \"{0}\" as an environment"
 msgstr "\"{0}\" uloženo jako prostředí"
 
-msgid "Saved Anthropic API key"
-msgstr "Uložený API klíč Anthropic"
-
-msgid "Saved on blur."
-msgstr "Uloží se při opuštění pole."
-
-msgid "Saved OpenAI API key"
-msgstr "Uložený API klíč OpenAI"
-
 msgid "Saved to Downloads"
 msgstr "Uloženo do Stažených souborů"
 
@@ -12380,12 +12281,6 @@ msgstr "Přihlaste se a pokračujte do Superset"
 
 msgid "Sign in to get started"
 msgstr "Přihlaste se a můžete začít"
-
-msgid "Sign in with ChatGPT or use an API key."
-msgstr "Přihlaste se přes ChatGPT nebo použijte API klíč."
-
-msgid "Sign in with Claude or use an API key."
-msgstr "Přihlaste se přes Claude nebo použijte API klíč."
 
 msgid "Sign in with email"
 msgstr "Přihlásit se e-mailem"

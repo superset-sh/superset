@@ -1366,9 +1366,6 @@ msgstr "Nur beim Start mit Prompt ergänzt — z. B. <0>--</0>, <1>--prompt</1>,
 msgid "Adding members will increase your subscription cost, prorated to your billing cycle."
 msgstr "Weitere Mitglieder erhöhen deine Abokosten, anteilig zu deinem Abrechnungszeitraum."
 
-msgid "Additional env vars"
-msgstr "Zusätzliche Umgebungsvariablen"
-
 msgid "Address Comments with Agent"
 msgstr "Kommentare mit Agent bearbeiten"
 
@@ -1389,9 +1386,6 @@ msgstr "Admins können Inhaber nicht ändern"
 
 msgid "Admins cannot promote members to owner"
 msgstr "Admins können Mitglieder nicht zu Inhabern befördern"
-
-msgid "Advanced"
-msgstr "Erweitert"
 
 msgid "Advanced options"
 msgstr "Erweiterte Optionen"
@@ -1740,18 +1734,6 @@ msgstr "ein anderes Gerät"
 msgid "Answered"
 msgstr "Beantwortet"
 
-msgid "Anthropic API key cleared"
-msgstr "Anthropic-API-Schlüssel gelöscht"
-
-msgid "Anthropic API key updated"
-msgstr "Anthropic-API-Schlüssel aktualisiert"
-
-msgid "Anthropic settings updated"
-msgstr "Anthropic-Einstellungen aktualisiert"
-
-msgid "Anthropic usually returns a full callback URL. Pasting either format works."
-msgstr "Anthropic gibt normalerweise eine vollständige Callback-URL zurück. Beide Formate funktionieren."
-
 msgid "Any calendar"
 msgstr "Beliebiger Kalender"
 
@@ -1865,12 +1847,6 @@ msgstr "Anwenden"
 
 msgid "Approve"
 msgstr "Genehmigen"
-
-msgid "Approve access in your browser, then paste the callback URL or `code#state` here."
-msgstr "Bestätige den Zugriff im Browser und füge dann die Callback-URL oder `code#state` hier ein."
-
-msgid "Approve access in your browser. If the callback does not finish, paste the redirected callback URL below."
-msgstr "Bestätige den Zugriff im Browser. Falls der Callback nicht abschließt, füge die weitergeleitete Callback-URL unten ein."
 
 msgid "Approved"
 msgstr "Genehmigt"
@@ -2001,9 +1977,6 @@ msgstr "Audit-Logs"
 msgid "Aug 2026"
 msgstr "Aug. 2026"
 
-msgid "Auth token"
-msgstr "Auth-Token"
-
 msgid "Authenticate your {displayName} account"
 msgstr "Authentifiziere dein {displayName}-Konto"
 
@@ -2021,9 +1994,6 @@ msgstr "Autor"
 
 msgid "Author: {label}"
 msgstr "Autor: {label}"
-
-msgid "Authorization code"
-msgstr "Autorisierungscode"
 
 msgid "Authorization failed"
 msgstr "Autorisierung fehlgeschlagen"
@@ -2223,9 +2193,6 @@ msgstr "Basisverzeichnis für neue Worktrees auf {selectedHostLabel}"
 
 msgid "Base directory for new worktrees on {selectedHostName}."
 msgstr "Basisverzeichnis für neue Worktrees auf {selectedHostName}."
-
-msgid "Base URL"
-msgstr "Basis-URL"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -2523,9 +2490,6 @@ msgstr "Kalender"
 
 msgid "Calendar and Gmail triggers in this organization will stop firing until an account is connected again."
 msgstr "Calendar- und Gmail-Trigger in dieser Organisation lösen nicht mehr aus, bis wieder ein Konto verbunden ist."
-
-msgid "Callback URL (optional)"
-msgstr "Callback-URL (optional)"
 
 msgid "Camera access is not allowed"
 msgstr "Kamerazugriff ist nicht erlaubt"
@@ -2846,9 +2810,6 @@ msgstr "Veraltete TODOs aufräumen…"
 
 msgid "Cleaner, denser sidebar"
 msgstr "Aufgeräumtere, dichtere Seitenleiste"
-
-msgid "Clear"
-msgstr "Löschen"
 
 msgid "Clear browsing data"
 msgstr "Browserdaten löschen"
@@ -3355,9 +3316,6 @@ msgstr "Verbinde ein Google-Konto. Kalender und Postfach werden nur gelesen, und
 msgid "Connect a microphone to use dictation"
 msgstr "Schließe ein Mikrofon an, um zu diktieren"
 
-msgid "Connect Anthropic"
-msgstr "Anthropic verbinden"
-
 msgid "Connect any AI agent to Superset."
 msgstr "Verbinde jeden KI-Agenten mit Superset."
 
@@ -3387,9 +3345,6 @@ msgstr "Notion verbinden"
 
 msgid "Connect Notion to run automations when rows change in a data source or someone comments on a page."
 msgstr "Verbinde Notion, um Automatisierungen auszuführen, wenn sich Zeilen in einer Datenquelle ändern oder jemand eine Seite kommentiert."
-
-msgid "Connect OpenAI"
-msgstr "OpenAI verbinden"
 
 msgid "Connect repos and sync pull requests."
 msgstr "Repos verbinden und Pull Requests synchronisieren."
@@ -3431,23 +3386,11 @@ msgstr "verbunden {0}"
 msgid "Connected as"
 msgstr "Verbunden als"
 
-msgid "Connected in Superset"
-msgstr "In Superset verbunden"
-
 msgid "Connected to"
 msgstr "Verbunden mit"
 
 msgid "Connected to {connectedOrgName}"
 msgstr "Verbunden mit {connectedOrgName}"
-
-msgid "Connected via ChatGPT"
-msgstr "Über ChatGPT verbunden"
-
-msgid "Connected via Claude"
-msgstr "Über Claude verbunden"
-
-msgid "Connected with API key"
-msgstr "Mit API-Schlüssel verbunden"
 
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "Verbunden, aber Microsoft Graph hat die Benachrichtigungs-Abos abgelehnt."
@@ -3466,9 +3409,6 @@ msgstr "Verbindung zum Desktop wird hergestellt …"
 
 msgid "Connecting to the workspace"
 msgstr "Verbindung zum Arbeitsbereich"
-
-msgid "Connecting..."
-msgstr "Wird verbunden..."
 
 msgid "Connecting…"
 msgstr "Verbindung wird hergestellt…"
@@ -5423,9 +5363,6 @@ msgstr "Suche nach Updates fehlgeschlagen: {message}"
 
 msgid "Failed to check for updates. Please try again later."
 msgstr "Suche nach Updates fehlgeschlagen. Bitte versuche es später erneut."
-
-msgid "Failed to clear"
-msgstr "Löschen fehlgeschlagen"
 
 #. placeholder {0}: errorMessage(error, "Unknown error")
 msgid "Failed to clear agent status: {0}"
@@ -7389,9 +7326,6 @@ msgstr "Team verlassen"
 msgid "Leave the leaderboard?"
 msgstr "Leaderboard verlassen?"
 
-msgid "Leave this empty if browser login finishes on its own."
-msgstr "Lass dies leer, wenn die Browser-Anmeldung von selbst abschließt."
-
 msgid "Leaving organization..."
 msgstr "Organisation wird verlassen..."
 
@@ -7778,9 +7712,6 @@ msgstr "Tarif verwalten"
 
 msgid "Manage plugins"
 msgstr "Plugins verwalten"
-
-msgid "Manage provider accounts, API keys, and overrides. Connecting Anthropic or OpenAI below is also what powers automatic workspace naming — without one connected, new workspaces fall back to a name derived from your prompt."
-msgstr "Verwalte Anbieterkonten, API-Schlüssel und Überschreibungen. Eine Verbindung zu Anthropic oder OpenAI unten treibt auch die automatische Benennung von Arbeitsbereichen an — ohne Verbindung greifen neue Arbeitsbereiche auf einen aus deinem Prompt abgeleiteten Namen zurück."
 
 msgid "Manage sessions"
 msgstr "Sitzungen verwalten"
@@ -9265,9 +9196,6 @@ msgstr "Branch auf GitHub öffnen"
 msgid "Open Browser"
 msgstr "Browser öffnen"
 
-msgid "Open browser again"
-msgstr "Browser erneut öffnen"
-
 msgid "Open changes"
 msgstr "Änderungen öffnen"
 
@@ -9604,12 +9532,6 @@ msgstr "Arbeitsbereich öffnen"
 msgid "Open workspace in external app (Cursor, VS Code, etc.)"
 msgstr "Arbeitsbereich in einer externen App öffnen (Cursor, VS Code usw.)"
 
-msgid "OpenAI API key cleared"
-msgstr "OpenAI-API-Schlüssel gelöscht"
-
-msgid "OpenAI API key updated"
-msgstr "OpenAI-API-Schlüssel aktualisiert"
-
 msgid "Opened"
 msgstr "Geöffnet"
 
@@ -9905,12 +9827,6 @@ msgstr "Letzte Woche"
 
 msgid "Paste"
 msgstr "Einfügen"
-
-msgid "Paste callback URL"
-msgstr "Callback-URL einfügen"
-
-msgid "Paste callback URL or code#state"
-msgstr "Callback-URL oder code#state einfügen"
 
 msgid "Paste this into Superset CLI:"
 msgstr "Füge das in die Superset-CLI ein:"
@@ -10215,12 +10131,6 @@ msgstr "Präfix"
 
 msgid "Preparing"
 msgstr "Wird vorbereitet"
-
-msgid "Preparing Anthropic browser login..."
-msgstr "Anthropic-Browser-Anmeldung wird vorbereitet..."
-
-msgid "Preparing OpenAI browser login..."
-msgstr "OpenAI-Browser-Anmeldung wird vorbereitet..."
 
 msgid "Preserve commit history"
 msgstr "Commit-Historie erhalten"
@@ -11590,15 +11500,6 @@ msgstr "Gespeichert"
 msgid "Saved \"{0}\" as an environment"
 msgstr "„{0}“ als Umgebung gespeichert"
 
-msgid "Saved Anthropic API key"
-msgstr "Gespeicherter Anthropic-API-Schlüssel"
-
-msgid "Saved on blur."
-msgstr "Beim Verlassen des Feldes gespeichert."
-
-msgid "Saved OpenAI API key"
-msgstr "Gespeicherter OpenAI-API-Schlüssel"
-
 msgid "Saved to Downloads"
 msgstr "In Downloads gespeichert"
 
@@ -12380,12 +12281,6 @@ msgstr "Melde dich an, um zu Superset zu gelangen"
 
 msgid "Sign in to get started"
 msgstr "Melde dich an, um loszulegen"
-
-msgid "Sign in with ChatGPT or use an API key."
-msgstr "Melde dich mit ChatGPT an oder nutze einen API-Schlüssel."
-
-msgid "Sign in with Claude or use an API key."
-msgstr "Melde dich mit Claude an oder nutze einen API-Schlüssel."
 
 msgid "Sign in with email"
 msgstr "Mit E-Mail anmelden"

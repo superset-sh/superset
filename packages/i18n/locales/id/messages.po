@@ -1366,9 +1366,6 @@ msgstr "Ditambahkan hanya saat menjalankan dengan prompt — mis. <0>--</0>, <1>
 msgid "Adding members will increase your subscription cost, prorated to your billing cycle."
 msgstr "Menambah anggota akan menaikkan biaya langganan Anda, dihitung prorata terhadap siklus penagihan Anda."
 
-msgid "Additional env vars"
-msgstr "Variabel env tambahan"
-
 msgid "Address Comments with Agent"
 msgstr "Tanggapi Komentar dengan Agen"
 
@@ -1389,9 +1386,6 @@ msgstr "Admin tidak bisa mengubah pemilik"
 
 msgid "Admins cannot promote members to owner"
 msgstr "Admin tidak bisa mempromosikan anggota menjadi pemilik"
-
-msgid "Advanced"
-msgstr "Lanjutan"
 
 msgid "Advanced options"
 msgstr "Opsi lanjutan"
@@ -1740,18 +1734,6 @@ msgstr "perangkat lain"
 msgid "Answered"
 msgstr "Dijawab"
 
-msgid "Anthropic API key cleared"
-msgstr "Kunci API Anthropic dihapus"
-
-msgid "Anthropic API key updated"
-msgstr "Kunci API Anthropic diperbarui"
-
-msgid "Anthropic settings updated"
-msgstr "Pengaturan Anthropic diperbarui"
-
-msgid "Anthropic usually returns a full callback URL. Pasting either format works."
-msgstr "Anthropic biasanya mengembalikan URL callback lengkap. Kedua format bisa ditempel."
-
 msgid "Any calendar"
 msgstr "Kalender mana pun"
 
@@ -1865,12 +1847,6 @@ msgstr "Terapkan"
 
 msgid "Approve"
 msgstr "Setujui"
-
-msgid "Approve access in your browser, then paste the callback URL or `code#state` here."
-msgstr "Setujui akses di browser Anda, lalu tempel URL callback atau `code#state` di sini."
-
-msgid "Approve access in your browser. If the callback does not finish, paste the redirected callback URL below."
-msgstr "Setujui akses di browser Anda. Jika callback tidak selesai, tempel URL callback hasil pengalihan di bawah."
 
 msgid "Approved"
 msgstr "Disetujui"
@@ -2001,9 +1977,6 @@ msgstr "Log audit"
 msgid "Aug 2026"
 msgstr "Agu 2026"
 
-msgid "Auth token"
-msgstr "Token auth"
-
 msgid "Authenticate your {displayName} account"
 msgstr "Autentikasi akun {displayName} Anda"
 
@@ -2021,9 +1994,6 @@ msgstr "Penulis"
 
 msgid "Author: {label}"
 msgstr "Penulis: {label}"
-
-msgid "Authorization code"
-msgstr "Kode otorisasi"
 
 msgid "Authorization failed"
 msgstr "Otorisasi gagal"
@@ -2223,9 +2193,6 @@ msgstr "Direktori dasar untuk worktree baru di {selectedHostLabel}"
 
 msgid "Base directory for new worktrees on {selectedHostName}."
 msgstr "Direktori dasar untuk worktree baru di {selectedHostName}."
-
-msgid "Base URL"
-msgstr "Base URL"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -2523,9 +2490,6 @@ msgstr "Kalender"
 
 msgid "Calendar and Gmail triggers in this organization will stop firing until an account is connected again."
 msgstr "Pemicu Calendar dan Gmail di organisasi ini akan berhenti berjalan sampai ada akun yang terhubung lagi."
-
-msgid "Callback URL (optional)"
-msgstr "URL callback (opsional)"
 
 msgid "Camera access is not allowed"
 msgstr "Akses kamera tidak diizinkan"
@@ -2846,9 +2810,6 @@ msgstr "Bereskan TODO yang basi…"
 
 msgid "Cleaner, denser sidebar"
 msgstr "Sidebar lebih bersih dan padat"
-
-msgid "Clear"
-msgstr "Bersihkan"
 
 msgid "Clear browsing data"
 msgstr "Bersihkan data penjelajahan"
@@ -3355,9 +3316,6 @@ msgstr "Hubungkan sebuah akun Google. Kalender dan kotak suratnya bersifat baca-
 msgid "Connect a microphone to use dictation"
 msgstr "Hubungkan mikrofon untuk memakai dikte"
 
-msgid "Connect Anthropic"
-msgstr "Hubungkan Anthropic"
-
 msgid "Connect any AI agent to Superset."
 msgstr "Hubungkan agen AI mana pun ke Superset."
 
@@ -3387,9 +3345,6 @@ msgstr "Hubungkan Notion"
 
 msgid "Connect Notion to run automations when rows change in a data source or someone comments on a page."
 msgstr "Hubungkan Notion untuk menjalankan otomatisasi saat baris di sumber data berubah atau seseorang berkomentar di sebuah halaman."
-
-msgid "Connect OpenAI"
-msgstr "Hubungkan OpenAI"
 
 msgid "Connect repos and sync pull requests."
 msgstr "Hubungkan repo dan sinkronkan pull request."
@@ -3431,23 +3386,11 @@ msgstr "terhubung {0}"
 msgid "Connected as"
 msgstr "Terhubung sebagai"
 
-msgid "Connected in Superset"
-msgstr "Terhubung di Superset"
-
 msgid "Connected to"
 msgstr "Terhubung ke"
 
 msgid "Connected to {connectedOrgName}"
 msgstr "Terhubung ke {connectedOrgName}"
-
-msgid "Connected via ChatGPT"
-msgstr "Terhubung lewat ChatGPT"
-
-msgid "Connected via Claude"
-msgstr "Terhubung lewat Claude"
-
-msgid "Connected with API key"
-msgstr "Terhubung dengan kunci API"
 
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "Terhubung, tapi Microsoft Graph menolak langganan notifikasinya."
@@ -3466,9 +3409,6 @@ msgstr "Menghubungkan ke desktop…"
 
 msgid "Connecting to the workspace"
 msgstr "Menghubungkan ke workspace"
-
-msgid "Connecting..."
-msgstr "Menghubungkan..."
 
 msgid "Connecting…"
 msgstr "Menghubungkan…"
@@ -5423,9 +5363,6 @@ msgstr "Gagal memeriksa pembaruan: {message}"
 
 msgid "Failed to check for updates. Please try again later."
 msgstr "Gagal memeriksa pembaruan. Silakan coba lagi nanti."
-
-msgid "Failed to clear"
-msgstr "Gagal menghapus"
 
 #. placeholder {0}: errorMessage(error, "Unknown error")
 msgid "Failed to clear agent status: {0}"
@@ -7389,9 +7326,6 @@ msgstr "Keluar dari tim"
 msgid "Leave the leaderboard?"
 msgstr "Keluar dari papan peringkat?"
 
-msgid "Leave this empty if browser login finishes on its own."
-msgstr "Biarkan kosong jika login browser selesai dengan sendirinya."
-
 msgid "Leaving organization..."
 msgstr "Keluar dari organisasi..."
 
@@ -7778,9 +7712,6 @@ msgstr "Kelola Paket"
 
 msgid "Manage plugins"
 msgstr "Kelola plugin"
-
-msgid "Manage provider accounts, API keys, and overrides. Connecting Anthropic or OpenAI below is also what powers automatic workspace naming — without one connected, new workspaces fall back to a name derived from your prompt."
-msgstr "Kelola akun penyedia, kunci API, dan penimpaan. Menghubungkan Anthropic atau OpenAI di bawah juga yang menggerakkan penamaan workspace otomatis — tanpa salah satunya terhubung, workspace baru memakai nama yang diturunkan dari prompt Anda."
 
 msgid "Manage sessions"
 msgstr "Kelola sesi"
@@ -9265,9 +9196,6 @@ msgstr "Buka branch di GitHub"
 msgid "Open Browser"
 msgstr "Buka Browser"
 
-msgid "Open browser again"
-msgstr "Buka browser lagi"
-
 msgid "Open changes"
 msgstr "Buka perubahan"
 
@@ -9604,12 +9532,6 @@ msgstr "Buka workspace"
 msgid "Open workspace in external app (Cursor, VS Code, etc.)"
 msgstr "Buka workspace di aplikasi luar (Cursor, VS Code, dll.)"
 
-msgid "OpenAI API key cleared"
-msgstr "Kunci API OpenAI dihapus"
-
-msgid "OpenAI API key updated"
-msgstr "Kunci API OpenAI diperbarui"
-
 msgid "Opened"
 msgstr "Dibuka"
 
@@ -9905,12 +9827,6 @@ msgstr "Seminggu terakhir"
 
 msgid "Paste"
 msgstr "Tempel"
-
-msgid "Paste callback URL"
-msgstr "Tempel URL callback"
-
-msgid "Paste callback URL or code#state"
-msgstr "Tempel URL callback atau code#state"
 
 msgid "Paste this into Superset CLI:"
 msgstr "Tempel ini ke Superset CLI:"
@@ -10215,12 +10131,6 @@ msgstr "Prefix"
 
 msgid "Preparing"
 msgstr "Menyiapkan"
-
-msgid "Preparing Anthropic browser login..."
-msgstr "Menyiapkan login browser Anthropic..."
-
-msgid "Preparing OpenAI browser login..."
-msgstr "Menyiapkan login browser OpenAI..."
 
 msgid "Preserve commit history"
 msgstr "Pertahankan riwayat commit"
@@ -11590,15 +11500,6 @@ msgstr "Tersimpan"
 msgid "Saved \"{0}\" as an environment"
 msgstr "\"{0}\" disimpan sebagai environment"
 
-msgid "Saved Anthropic API key"
-msgstr "Kunci API Anthropic tersimpan"
-
-msgid "Saved on blur."
-msgstr "Tersimpan saat fokus berpindah."
-
-msgid "Saved OpenAI API key"
-msgstr "Kunci API OpenAI tersimpan"
-
 msgid "Saved to Downloads"
 msgstr "Disimpan ke Downloads"
 
@@ -12380,12 +12281,6 @@ msgstr "Masuk untuk melanjutkan ke Superset"
 
 msgid "Sign in to get started"
 msgstr "Masuk untuk memulai"
-
-msgid "Sign in with ChatGPT or use an API key."
-msgstr "Masuk dengan ChatGPT atau pakai kunci API."
-
-msgid "Sign in with Claude or use an API key."
-msgstr "Masuk dengan Claude atau pakai kunci API."
 
 msgid "Sign in with email"
 msgstr "Masuk dengan email"
