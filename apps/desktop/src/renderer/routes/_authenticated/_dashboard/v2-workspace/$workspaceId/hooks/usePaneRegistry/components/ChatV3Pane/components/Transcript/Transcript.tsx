@@ -7,8 +7,10 @@ import type {
 import type { ApprovalRequest, Decision } from "@superset/chat/protocol";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
+import { ArrowDownIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TurnGroupSection } from "./components/TurnGroupSection";
+import { isNearBottom, latestUserItemId, shouldScrollToLatest } from "./utils/scroll";
 
 export type TranscriptProps = {
 	groups: TurnGroup[];
@@ -21,20 +23,6 @@ export type TranscriptProps = {
 	onRetryPrompt: (clientId: string) => void;
 	onDiscardPrompt: (clientId: string) => void;
 };
-
-function latestUserItemId(groups: TurnGroup[]): string | null {
-	for (let groupIndex = groups.length - 1; groupIndex >= 0; groupIndex -= 1) {
-		const group = groups[groupIndex];
-		if (!group) continue;
-		for (let index = group.entries.length - 1; index >= 0; index -= 1) {
-			const entry = group.entries[index];
-			if (entry?.kind === "item" && entry.item.kind === "user_message") {
-				return entry.item.id;
-			}
-		}
-	}
-	return null;
-}
 
 function outboxText(entry: OutboxEntry): string {
 	return entry.content
@@ -95,13 +83,67 @@ export function Transcript({
 		return targets;
 	}, [approvals]);
 
+	const [isAtBottom, setIsAtBottom] = useState(true);
+	const lastAnchorItemIdRef = useRef<string | null>(null);
+
+	const checkScrollPosition = useCallback(() => {
+		const container = containerRef.current;
+		if (!container) return;
+		setIsAtBottom(
+			isNearBottom(
+				container.scrollHeight,
+				container.scrollTop,
+				container.clientHeight,
+			),
+		);
+	}, []);
+
+	useEffect(() => {
+		const container = containerRef.current;
+		if (!container) return;
+		container.addEventListener("scroll", checkScrollPosition, {
+			passive: true,
+		});
+		return () =>
+			container.removeEventListener("scroll", checkScrollPosition);
+	}, [checkScrollPosition]);
+
 	const anchorItemId = latestUserItemId(groups);
+
+	const scrollToLatest = useCallback(() => {
+		const target = anchorItemId
+			? containerRef.current?.querySelector(
+					`[data-item-id="${CSS.escape(anchorItemId)}"]`,
+				)
+			: null;
+		if (target) {
+			target.scrollIntoView({ behavior: "smooth", block: "start" });
+			return;
+		}
+		const container = containerRef.current;
+		if (container) {
+			container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+		}
+	}, [anchorItemId]);
+
+	// Pin the viewport to the latest user reply only while already near the
+	// bottom. lastAnchorItemIdRef prevents re-anchoring (yanking the viewport)
+	// when the user merely touches the bottom edge — the CodeRabbit re-anchor
+	// fix from PR #6428.
 	useEffect(() => {
 		if (!anchorItemId) return;
+		const lastAnchorItemId = lastAnchorItemIdRef.current;
+		const shouldScroll = shouldScrollToLatest({
+			anchorItemId,
+			lastAnchorItemId,
+			nearBottom: isAtBottom,
+		});
+		lastAnchorItemIdRef.current = anchorItemId;
+		if (!shouldScroll) return;
 		containerRef.current
 			?.querySelector(`[data-item-id="${CSS.escape(anchorItemId)}"]`)
 			?.scrollIntoView({ block: "start" });
-	}, [anchorItemId]);
+	}, [anchorItemId, isAtBottom]);
 
 	const firstPendingApprovalId = approvals[0]?.id ?? null;
 	useEffect(() => {
@@ -113,7 +155,7 @@ export function Transcript({
 
 	return (
 		<div
-			className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3"
+			className="relative flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3"
 			ref={containerRef}
 		>
 			<div className="flex items-center gap-2">
@@ -181,6 +223,16 @@ export function Transcript({
 					</div>
 				</div>
 			))}
+			{!isAtBottom && anchorItemId !== null && (
+				<button
+					type="button"
+					aria-label="Latest reply"
+					className="absolute bottom-4 right-4 z-10 flex size-9 items-center justify-center rounded-full border bg-background text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground"
+					onClick={scrollToLatest}
+				>
+					<ArrowDownIcon className="size-4" />
+				</button>
+			)}
 		</div>
 	);
 }
