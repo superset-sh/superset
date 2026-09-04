@@ -1,15 +1,13 @@
-import { FONT_SIZE_LIMITS } from "@superset/shared/settings-constraints";
 import { useRef } from "react";
 import { useFontSettingsMutation } from "renderer/hooks/useFontSettingsMutation";
 import { useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { DEFAULT_TERMINAL_FONT_SIZE } from "renderer/lib/terminal/appearance";
 import { browserRuntimeRegistry } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/BrowserPane/browserRuntimeRegistry";
 import { resolveZoomTarget } from "./resolveZoomTarget";
-
-type ZoomDirection = "in" | "out" | "reset";
-
-const TERMINAL_FONT_STEP = 1;
+import {
+	stepTerminalFontSize,
+	type ZoomDirection,
+} from "./stepTerminalFontSize";
 
 /**
  * Cmd/Ctrl +, -, 0 scoped to keyboard focus: a terminal steps its font size,
@@ -23,38 +21,27 @@ export function useZoomHotkeys() {
 	// Size requested by the latest keypress. The mutation's optimistic cache
 	// write lands a tick later (after query cancellation), so key-repeat
 	// presses in that window would all read the same stale size.
-	const requestedSizeRef = useRef<number | null>(null);
+	const requestedSizeRef = useRef<number | null | undefined>(undefined);
 
-	const setTerminalFontSize = (size: number | null) => {
-		requestedSizeRef.current = size ?? DEFAULT_TERMINAL_FONT_SIZE;
+	const zoomTerminalFont = async (direction: ZoomDirection) => {
+		const current =
+			requestedSizeRef.current !== undefined
+				? requestedSizeRef.current
+				: (
+						utils.settings.getFontSettings.getData() ??
+						(await utils.settings.getFontSettings.fetch())
+					).terminalFontSize;
+		const next = stepTerminalFontSize(current, direction);
+		if (next === undefined) return;
+		requestedSizeRef.current = next;
 		setFontSettings.mutate(
-			{ terminalFontSize: size },
+			{ terminalFontSize: next },
 			{
 				onSettled: () => {
-					requestedSizeRef.current = null;
+					requestedSizeRef.current = undefined;
 				},
 			},
 		);
-	};
-
-	const zoomTerminalFont = async (direction: ZoomDirection) => {
-		if (direction === "reset") {
-			setTerminalFontSize(null);
-			return;
-		}
-		const current =
-			utils.settings.getFontSettings.getData() ??
-			(await utils.settings.getFontSettings.fetch());
-		const size =
-			requestedSizeRef.current ??
-			current.terminalFontSize ??
-			DEFAULT_TERMINAL_FONT_SIZE;
-		const delta = direction === "in" ? TERMINAL_FONT_STEP : -TERMINAL_FONT_STEP;
-		const next = Math.min(
-			FONT_SIZE_LIMITS.max,
-			Math.max(FONT_SIZE_LIMITS.min, size + delta),
-		);
-		if (next !== size) setTerminalFontSize(next);
 	};
 
 	const zoom = (direction: ZoomDirection) => {
