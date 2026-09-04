@@ -56,6 +56,10 @@
 			"outputs": ["coverage/**"]
 		},
 		"build:types": {
+			// Emits declarations from source, so it needs the same upstream
+			// generated inputs a build does — the compiled Lingui catalogs in
+			// particular, which host-service reaches through @superset/i18n.
+			"dependsOn": ["^build"],
 			"outputs": ["dist-types/**"]
 		},
 		"typecheck": {
