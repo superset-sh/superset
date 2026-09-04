@@ -99,6 +99,7 @@ export const SETTING_ITEM_ID = {
 
 	HOST_MEMBERS: "host-members",
 	ENVIRONMENTS_LIST: "environments-list",
+	AGENT_ACCOUNTS: "agent-accounts",
 	ENVIRONMENTS_SECRETS: "environments-secrets",
 	HOST_INVITE_MEMBER: "host-invite-member",
 	HOST_MEMBER_ROLE: "host-member-role",
@@ -244,6 +245,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 
 	[SETTING_ITEM_ID.HOST_MEMBERS]: "shared",
 	[SETTING_ITEM_ID.ENVIRONMENTS_LIST]: "v2",
+	[SETTING_ITEM_ID.AGENT_ACCOUNTS]: "v2",
 	[SETTING_ITEM_ID.ENVIRONMENTS_SECRETS]: "v2",
 	[SETTING_ITEM_ID.HOST_INVITE_MEMBER]: "shared",
 	[SETTING_ITEM_ID.HOST_MEMBER_ROLE]: "shared",
@@ -1669,6 +1671,22 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"host service",
 			"tunnel",
 			"attack surface",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.AGENT_ACCOUNTS,
+		section: "agentAccounts",
+		title: "Agents",
+		description: "Sign-ins cloud agents run with",
+		keywords: [
+			"claude",
+			"codex",
+			"subscription",
+			"api key",
+			"oauth",
+			"sign in",
+			"token",
+			"account",
 		],
 	},
 	{
