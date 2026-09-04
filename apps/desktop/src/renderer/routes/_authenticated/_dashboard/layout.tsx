@@ -39,7 +39,6 @@ import { CrossVersionMismatchState } from "./components/CrossVersionMismatchStat
 import { DashboardContentError } from "./components/DashboardContentError";
 import { RemotePortForwarder } from "./components/RemotePortForwarder";
 import { TopBar } from "./components/TopBar";
-import { useZoomHotkeys } from "./hooks/useZoomHotkeys";
 
 export const Route = createFileRoute("/_authenticated/_dashboard")({
 	component: DashboardLayout,
@@ -146,7 +145,6 @@ function DashboardLayout() {
 	// Global hotkeys for dashboard
 	useHotkey("OPEN_SETTINGS", () => navigate({ to: "/settings/account" }));
 	useHotkey("SHOW_HOTKEYS", () => navigate({ to: "/settings/keyboard" }));
-	useZoomHotkeys();
 	useHotkey("TOGGLE_WORKSPACE_SIDEBAR", () => {
 		if (!isWorkspaceSidebarOpen) {
 			setWorkspaceSidebarOpen(true);

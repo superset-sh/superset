@@ -1,4 +1,5 @@
 import { FONT_SIZE_LIMITS } from "@superset/shared/settings-constraints";
+import { useRef } from "react";
 import { useFontSettingsMutation } from "renderer/hooks/useFontSettingsMutation";
 import { useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -19,22 +20,41 @@ export function useZoomHotkeys() {
 	const utils = electronTrpc.useUtils();
 	const setFontSettings = useFontSettingsMutation();
 	const zoomWindow = electronTrpc.window.zoom.useMutation();
+	// Size requested by the latest keypress. The mutation's optimistic cache
+	// write lands a tick later (after query cancellation), so key-repeat
+	// presses in that window would all read the same stale size.
+	const requestedSizeRef = useRef<number | null>(null);
+
+	const setTerminalFontSize = (size: number | null) => {
+		requestedSizeRef.current = size ?? DEFAULT_TERMINAL_FONT_SIZE;
+		setFontSettings.mutate(
+			{ terminalFontSize: size },
+			{
+				onSettled: () => {
+					requestedSizeRef.current = null;
+				},
+			},
+		);
+	};
 
 	const zoomTerminalFont = async (direction: ZoomDirection) => {
 		if (direction === "reset") {
-			setFontSettings.mutate({ terminalFontSize: null });
+			setTerminalFontSize(null);
 			return;
 		}
 		const current =
 			utils.settings.getFontSettings.getData() ??
 			(await utils.settings.getFontSettings.fetch());
-		const size = current.terminalFontSize ?? DEFAULT_TERMINAL_FONT_SIZE;
+		const size =
+			requestedSizeRef.current ??
+			current.terminalFontSize ??
+			DEFAULT_TERMINAL_FONT_SIZE;
 		const delta = direction === "in" ? TERMINAL_FONT_STEP : -TERMINAL_FONT_STEP;
 		const next = Math.min(
 			FONT_SIZE_LIMITS.max,
 			Math.max(FONT_SIZE_LIMITS.min, size + delta),
 		);
-		if (next !== size) setFontSettings.mutate({ terminalFontSize: next });
+		if (next !== size) setTerminalFontSize(next);
 	};
 
 	const zoom = (direction: ZoomDirection) => {
