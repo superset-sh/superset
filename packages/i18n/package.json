@@ -38,6 +38,7 @@
 		}
 	},
 	"scripts": {
+		"build": "bun run compile",
 		"extract": "bunx --bun lingui extract --clean --overwrite --workers 1",
 		"compile": "bunx --bun lingui compile --strict --verbose --workers 1",
 		"check": "bun run extract && bun run compile",
