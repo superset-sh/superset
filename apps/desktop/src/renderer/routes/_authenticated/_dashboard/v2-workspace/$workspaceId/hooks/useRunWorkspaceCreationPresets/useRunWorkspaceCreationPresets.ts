@@ -30,8 +30,7 @@ export function resolvePendingCreationPresets(
  * queueWorkspaceCreationPresets). One-shot: the queue is cleared before the
  * presets run, so a reopen — or a re-render while a run is in flight — can't
  * run them twice. Gated on layout hydration so `executePreset` sees the real
- * pane store (the agent tab the create seeded, or an empty layout it can
- * open a tab into), not the pre-hydration blank.
+ * pane store, not the pre-hydration blank.
  */
 export function useRunWorkspaceCreationPresets({
 	workspaceId,
@@ -61,6 +60,9 @@ export function useRunWorkspaceCreationPresets({
 
 	useEffect(() => {
 		if (!isLayoutReady || pendingKey === "") return;
+		// The row can vanish between render and effect (sidebar delete, another
+		// window); TanStack DB's update throws on a missing key.
+		if (!collections.v2WorkspaceLocalState.get(workspaceId)) return;
 		const presetIds = pendingKey.split("\n");
 
 		collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
@@ -73,13 +75,14 @@ export function useRunWorkspaceCreationPresets({
 			resolvePresetCommands,
 		);
 		void (async () => {
-			// Serial so split-pane/sequential presets land in the tab the
-			// previous one left active, matching the presets-bar order.
-			// executePreset toasts its own failures; the guard keeps an
-			// unexpected throw from one script skipping the ones after it.
+			// Always a fresh tab: the create seeds the agent tab as active, and a
+			// sequential script targeting the active terminal would be typed
+			// into the agent's PTY as a prompt. Serial so tabs land in
+			// presets-bar order. executePreset toasts its own failures; the
+			// guard keeps an unexpected throw from skipping later scripts.
 			for (const preset of presets) {
 				try {
-					await executePreset(preset);
+					await executePreset(preset, { target: "new-tab" });
 				} catch (err) {
 					console.error("[useRunWorkspaceCreationPresets] preset failed", {
 						workspaceId,

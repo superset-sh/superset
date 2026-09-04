@@ -414,17 +414,26 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 					// Only genuinely new worktrees count as created — never reopened
 					// ones or project-less sessions (createSession has no
 					// alreadyExists signal, so an undefined value here is treated as
-					// "not new"). Creation presets follow the same rule: reopening a
-					// branch must not re-run them.
+					// "not new").
 					if (
 						result.workspace.projectId !== null &&
 						result.alreadyExists === false
 					) {
 						useStarNagStore.getState().recordWorkspaceCreated();
-						queueWorkspaceCreationPresets(collections, {
-							id: result.workspace.id,
-							projectId: result.workspace.projectId,
-						});
+						// Creation presets follow the same rule, and additionally skip
+						// adopting an existing worktree (the host reports that as new)
+						// and creates that opted out of setup, e.g. "Import worktrees"
+						// with "Run setup" off.
+						const adoptsWorktree =
+							"worktreePath" in snapshot && !!snapshot.worktreePath;
+						const skipsSetup =
+							"runSetup" in snapshot && snapshot.runSetup === false;
+						if (!adoptsWorktree && !skipsSetup) {
+							queueWorkspaceCreationPresets(collections, {
+								id: result.workspace.id,
+								projectId: result.workspace.projectId,
+							});
+						}
 					}
 					return {
 						ok: true,

@@ -3,7 +3,7 @@ import {
 	isProjectTargetedPreset,
 } from "./preset-project-targeting";
 
-export type AutoApplyField = "applyOnWorkspaceCreated" | "applyOnNewTab";
+type AutoApplyField = "applyOnWorkspaceCreated" | "applyOnNewTab";
 
 interface AutoApplyPresetLike {
 	projectIds?: string[] | null;
