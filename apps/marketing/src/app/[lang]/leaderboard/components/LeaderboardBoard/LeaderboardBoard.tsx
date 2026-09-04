@@ -121,32 +121,27 @@ export function LeaderboardBoard({
 					stats={[
 						{
 							label: t({
-								id: "marketing.leaderboard.stats.developers",
 								message: "Developers",
 							}),
 							value: String(totals.participants),
 						},
 						{
 							label: t({
-								id: "marketing.leaderboard.stats.tokens",
 								message: "Tokens",
 							}),
 							value: formatTokens(totals.tokens),
 						},
 						{
 							label: t({
-								id: "marketing.leaderboard.stats.cost",
 								message: "Cost",
 							}),
 							value: formatUsd(totals.usd),
 							hint: t({
-								id: "marketing.leaderboard.stats.costHint",
 								message: "API-equivalent",
 							}),
 						},
 						{
 							label: t({
-								id: "marketing.leaderboard.stats.cacheRead",
 								message: "Cache read",
 							}),
 							value: `${
@@ -158,7 +153,6 @@ export function LeaderboardBoard({
 									: 0
 							}%`,
 							hint: t({
-								id: "marketing.leaderboard.stats.cacheReadHint",
 								message: "of all tokens",
 							}),
 						},
@@ -178,11 +172,7 @@ export function LeaderboardBoard({
 					latest={new Date()}
 				/>
 				<span className="font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground/70">
-					{range ? (
-						formatDayRange(range)
-					) : (
-						<Trans id="marketing.leaderboard.range.allTime">All time</Trans>
-					)}
+					{range ? formatDayRange(range) : <Trans>All time</Trans>}
 				</span>
 			</div>
 
@@ -201,14 +191,10 @@ export function LeaderboardBoard({
 						disabled={loadingMore}
 						className="px-5 py-2 text-xs font-mono uppercase tracking-wider border border-border rounded-[2px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors disabled:opacity-50"
 					>
-						{loadingMore ? (
-							<Trans id="marketing.leaderboard.loading">Loading…</Trans>
-						) : (
-							<Trans id="marketing.leaderboard.loadMore">Load more</Trans>
-						)}
+						{loadingMore ? <Trans>Loading…</Trans> : <Trans>Load more</Trans>}
 					</button>
 					<span className="font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground/70">
-						<Trans id="marketing.leaderboard.shownOfTotal">
+						<Trans>
 							{shown} of {total}
 						</Trans>
 					</span>

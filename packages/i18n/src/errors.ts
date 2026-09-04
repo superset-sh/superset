@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "./index";
 import { serverErrorMessages } from "./server-errors";
 
@@ -32,10 +33,11 @@ export function errorMessage(error: unknown, fallback?: string): string {
 	}
 	return (
 		fallback ??
-		i18n._({
-			id: "common.unexpectedError",
-			message: "Something went wrong. Please try again.",
-		})
+		i18n._(
+			msg({
+				message: "Something went wrong. Please try again.",
+			}),
+		)
 	);
 }
 

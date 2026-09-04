@@ -10,14 +10,18 @@ import {
 	LuColumns2,
 	LuEqual,
 	LuGlobe,
+	LuMonitor,
 	LuMoveRight,
 	LuPlus,
 	LuRows2,
 	LuX,
 } from "react-icons/lu";
+import { useWorkspaceHostTarget } from "renderer/hooks/host-service/useWorkspaceHostUrl";
 import { useHotkeyDisplay } from "renderer/hotkeys";
+import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import type {
 	BrowserPaneData,
+	DesktopPaneData,
 	PaneViewerData,
 	TerminalPaneData,
 } from "../../types";
@@ -40,13 +44,15 @@ export function useDefaultContextMenuActions({
 	).text;
 	const closePaneShortcut = useHotkeyDisplay("CLOSE_PANE").text;
 	const defaultBrowserUrl = useDefaultBrowserUrl();
+	const { workspace } = useWorkspace();
+	const host = useWorkspaceHostTarget(workspace.id);
+	const isSandbox = host.status === "ready" && host.kind === "sandbox";
 
 	return useMemo<ContextMenuActionConfig<PaneViewerData>[]>(
 		() => [
 			{
 				key: "split-horizontal",
 				label: t({
-					id: "workspace.paneContextMenu.splitHorizontally",
 					message: "Split Horizontally",
 				}),
 				icon: <LuRows2 />,
@@ -65,7 +71,6 @@ export function useDefaultContextMenuActions({
 			{
 				key: "split-vertical",
 				label: t({
-					id: "workspace.paneContextMenu.splitVertically",
 					message: "Split Vertically",
 				}),
 				icon: <LuColumns2 />,
@@ -84,7 +89,6 @@ export function useDefaultContextMenuActions({
 			{
 				key: "split-with-browser",
 				label: t({
-					id: "workspace.paneContextMenu.splitWithNewBrowser",
 					message: "Split with New Browser",
 				}),
 				icon: <LuGlobe />,
@@ -101,10 +105,26 @@ export function useDefaultContextMenuActions({
 					});
 				},
 			},
+			...(isSandbox
+				? [
+						{
+							key: "split-with-desktop",
+							label: t({
+								message: "Split with Desktop",
+							}),
+							icon: <LuMonitor />,
+							onSelect: (ctx) => {
+								ctx.actions.split("right", {
+									kind: "desktop",
+									data: { kind: "desktop" } as DesktopPaneData,
+								});
+							},
+						} satisfies ContextMenuActionConfig<PaneViewerData>,
+					]
+				: []),
 			{
 				key: "equalize-splits",
 				label: t({
-					id: "workspace.paneContextMenu.equalizePaneSplits",
 					message: "Equalize Pane Splits",
 				}),
 				icon: <LuEqual />,
@@ -120,7 +140,6 @@ export function useDefaultContextMenuActions({
 			{
 				key: "move-to-tab",
 				label: t({
-					id: "workspace.paneContextMenu.moveToTab",
 					message: "Move to Tab",
 				}),
 				icon: <LuMoveRight />,
@@ -143,7 +162,6 @@ export function useDefaultContextMenuActions({
 					items.push({
 						key: "move-to-new-tab",
 						label: t({
-							id: "workspace.paneContextMenu.newTab",
 							message: "New Tab",
 						}),
 						icon: <LuPlus />,
@@ -158,7 +176,6 @@ export function useDefaultContextMenuActions({
 			{
 				key: "close-pane",
 				label: t({
-					id: "workspace.paneContextMenu.closePane",
 					message: "Close Pane",
 				}),
 				icon: <LuX />,
@@ -178,6 +195,7 @@ export function useDefaultContextMenuActions({
 			launcher,
 			defaultBrowserUrl,
 			t,
+			isSandbox,
 		],
 	);
 }

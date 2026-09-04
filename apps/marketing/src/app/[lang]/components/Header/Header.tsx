@@ -2,7 +2,6 @@
 
 import { m } from "framer-motion";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DesktopNav } from "./components/DesktopNav";
 import { MobileNav } from "./components/MobileNav";
@@ -14,7 +13,6 @@ interface HeaderProps {
 }
 
 export function Header({ ctaButtons, starCounter }: HeaderProps) {
-	const pathname = usePathname();
 	const [scrolled, setScrolled] = useState(false);
 
 	useEffect(() => {
@@ -23,8 +21,6 @@ export function Header({ ctaButtons, starCounter }: HeaderProps) {
 		window.addEventListener("scroll", onScroll, { passive: true });
 		return () => window.removeEventListener("scroll", onScroll);
 	}, []);
-
-	if (pathname === "/download") return null;
 
 	return (
 		<header

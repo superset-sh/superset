@@ -57,7 +57,13 @@ export function useWorkspaceHostTarget(
 			) ?? null)
 		: null;
 	const access = cloudTrpc.cloudWorkspace.access.useMutation();
-	const [sandboxUrl, setSandboxUrl] = useState<string | null>(null);
+	// Keyed by workspace: a switch leaves the previous grant in state until the
+	// new one lands, and an unkeyed URL would report the new workspace ready
+	// at the old workspace's sandbox.
+	const [grant, setGrant] = useState<{
+		workspaceId: string;
+		url: string;
+	} | null>(null);
 	// The mutation object is a new identity on every render; the effect below
 	// must key on the workspace alone or it re-mints on each one.
 	const requestAccess = useRef(access.mutateAsync);
@@ -69,23 +75,23 @@ export function useWorkspaceHostTarget(
 		let cancelled = false;
 		let timer: ReturnType<typeof setTimeout> | undefined;
 
-		const grant = async () => {
+		const requestGrant = async () => {
 			try {
 				const granted = await requestAccess.current({ id: cloudWorkspaceId });
 				if (cancelled) return;
 				setSandboxCredentials(granted.url, {
 					previewToken: granted.token,
 				});
-				setSandboxUrl(granted.url);
+				setGrant({ workspaceId: cloudWorkspaceId, url: granted.url });
 				// The provider's token outlives neither an open workspace nor its
 				// socket, so re-mint ahead of expiry rather than on failure.
 				const remaining = new Date(granted.expiresAt).getTime() - Date.now();
-				timer = setTimeout(grant, Math.max(30_000, remaining * 0.8));
+				timer = setTimeout(requestGrant, Math.max(30_000, remaining * 0.8));
 			} catch {
-				if (!cancelled) timer = setTimeout(grant, ACCESS_RETRY_MS);
+				if (!cancelled) timer = setTimeout(requestGrant, ACCESS_RETRY_MS);
 			}
 		};
-		void grant();
+		void requestGrant();
 
 		return () => {
 			cancelled = true;
@@ -95,12 +101,12 @@ export function useWorkspaceHostTarget(
 
 	return useMemo(() => {
 		if (cloudMatch) {
-			if (!sandboxUrl) return { status: "loading" };
+			if (grant?.workspaceId !== cloudMatch.id) return { status: "loading" };
 			return {
 				status: "ready",
 				kind: "sandbox",
 				hostId: cloudMatch.id,
-				url: sandboxUrl,
+				url: grant.url,
 			};
 		}
 		if (!workspaceId || (!isReady && !match)) return { status: "loading" };
@@ -135,7 +141,7 @@ export function useWorkspaceHostTarget(
 		relayUrl,
 		cloudMatch,
 		cloudPending,
-		sandboxUrl,
+		grant,
 	]);
 }
 

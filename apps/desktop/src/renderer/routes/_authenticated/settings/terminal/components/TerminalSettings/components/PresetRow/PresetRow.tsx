@@ -106,7 +106,6 @@ export function PresetRow({
 	const firstCommand =
 		commands.find((cmd) => cmd.trim().length > 0)?.trim() ??
 		t({
-			id: "settings.terminal.presetRow.emptyCommand",
 			message: "Empty command",
 		});
 	const commandSummary =
@@ -150,7 +149,6 @@ export function PresetRow({
 					<span className="text-sm font-medium truncate">
 						{preset.name.trim() ||
 							t({
-								id: "settings.terminal.presetRow.untitledScript",
 								message: "Untitled script",
 							})}
 					</span>
@@ -159,9 +157,7 @@ export function PresetRow({
 							variant="secondary"
 							className="text-[10px] h-4 px-1.5 shrink-0"
 						>
-							<Trans id="settings.terminal.presetRow.badgeWorkspace">
-								Workspace
-							</Trans>
+							<Trans>Workspace</Trans>
 						</Badge>
 					)}
 					{isWorkspaceRun && (
@@ -169,7 +165,7 @@ export function PresetRow({
 							variant="secondary"
 							className="text-[10px] h-4 px-1.5 shrink-0"
 						>
-							<Trans id="settings.terminal.presetRow.badgeRun">Run</Trans>
+							<Trans>Run</Trans>
 						</Badge>
 					)}
 					{isNewTab && (
@@ -177,7 +173,7 @@ export function PresetRow({
 							variant="secondary"
 							className="text-[10px] h-4 px-1.5 shrink-0"
 						>
-							<Trans id="settings.terminal.presetRow.badgeTab">Tab</Trans>
+							<Trans>Tab</Trans>
 						</Badge>
 					)}
 				</div>
@@ -205,22 +201,18 @@ export function PresetRow({
 				title={
 					isVisibleInBar
 						? t({
-								id: "settings.terminal.presetRow.hideFromBar",
 								message: "Hide from bar",
 							})
 						: t({
-								id: "settings.terminal.presetRow.showInBar",
 								message: "Show in bar",
 							})
 				}
 				aria-label={
 					isVisibleInBar
 						? t({
-								id: "settings.terminal.presetRow.hideFromBar",
 								message: "Hide from bar",
 							})
 						: t({
-								id: "settings.terminal.presetRow.showInBar",
 								message: "Show in bar",
 							})
 				}
@@ -243,7 +235,6 @@ export function PresetRow({
 					isDragging && "opacity-100",
 				)}
 				aria-label={t({
-					id: "settings.terminal.presetRow.dragToReorder",
 					message: "Drag to reorder",
 				})}
 			>

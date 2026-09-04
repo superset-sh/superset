@@ -94,13 +94,14 @@ the edge.** A sandbox whose preview is ever made public is open to anyone with
 the URL. Treat preview configuration (`public: false`) as the security-
 critical setting it now is.
 
-**Model credentials never enter the sandbox.** The provider's egress proxy
+**Model credentials never enter an image sandbox.** (A fork is the exception;
+see "A fork can never have the egress proxy" below.) The provider's egress proxy
 substitutes them at the edge from a `{{SECRET:...}}` routing rule; the sandbox
 env holds only `SANDBOX_CREDENTIAL_PLACEHOLDER`. The placeholder must still be
 *set* — an unset key reads as "not logged in" and produces no request for the
 proxy to rewrite.
 
-**Credentials are fixed at creation, so a sandbox can't gain one later.** The
+**Proxy credentials are fixed at creation, so a sandbox can't gain one later.** The
 routing rules that carry them are part of the create call, which is the
 property that stops a sandbox being re-pointed at a different secret mid-life.
 The cost is that adding a provider, or rotating a key, reaches only sandboxes
@@ -197,8 +198,8 @@ What it needs, roughly in order of how much it buys:
   push the branch, provision a fresh sandbox, restore the checkout. Slower,
   but it must exist for the cases where in-place fails.
 
-Note that the *image tag* is a deploy-time env var (`BLAXEL_SANDBOX_IMAGE`),
-so new sandboxes pick up a rebuilt image for free. It is only existing ones
+Note that the *image tag* lives on the environment row (`sourceRef`, seeded from
+the `SANDBOX_IMAGE_NAME` constant), so new sandboxes pick up a rebuilt image for free. It is only existing ones
 that strand — which is why this reads as fine right up until the first
 long-lived workspace.
 
@@ -227,6 +228,54 @@ not the product (which is how a 5s path got reported here as 40s), and most of
 the weight is packages host-service imports at module load and never calls, so
 the lever is that import graph rather than anything about sandboxes.
 
+**The writable disk is half of memory, and there is no disk-size parameter.**
+Documented, not a quirk: "Blaxel sandboxes reserve, when possible, approximately
+50% of the available memory for the tmpfs filesystem" (Sandboxes → Overview,
+"Memory and filesystem"). The root is an overlay over a read-only EROFS image
+with a tmpfs upper layer, so 8 GB of memory gives 3.9 GB of disk, 16 GB gives
+7.9 GB, 32 GB gives 16 GB (and 8 CPUs), and every file written also occupies
+RAM. The `storageMb` our code used to pass was never a Blaxel field — the SDK
+has `memory`, `region`, `ttl`, `expires` and `volumes`, nothing for disk — and
+the `as never` cast let it through unnoticed (measured: 40960 still gave
+3.9 GB). `/bl` is the provider's control mount, not storage. A checkout plus
+`bun install` of this monorepo is ~6 GB, so a golden that carries
+`node_modules` and expects to run the dev stack needs 32 GB of memory, and
+every fork inherits that size along with the files. Filling the disk is what a
+"wedged" sandbox looks like: every `process.exec`, even `echo`, returns
+`status: failed` with empty logs from then on. The documented ways to get more
+space are volumes (one per sandbox, attached at creation, not forkable) and
+Agent Drive; neither fits the golden-and-fork model, which is why memory is the
+lever.
+
+**A fork takes its env on the fork request, and again on the boot script.**
+`@blaxel/core` 0.3.19 accepts `envs` on `fork()`, which replaced the spec
+update (and the restart it caused) that used to hand a fork its identity. The
+values reach processes only when the sandbox runtime baked into the image is
+current: on a golden built 2026-09-02 they landed in the spec and no process
+saw them, PID 1 included; on one rebuilt 2026-09-03 every process did, and
+fork plus get took under half a second. The `/app/start.sh` exec carries the
+same env for goldens from before that rebuild, since everything the workspace
+runs descends from it. A fork can only set or add variables, never drop one,
+so promoting a workspace blanks its identity with empty values instead; an
+empty value does override an inherited one (verified 2026-09-03: a golden's
+`NODE_ENV=production` came back empty on a fork that set it to `""`).
+
+**A fork can never have the egress proxy.** The proxy routing that injects
+the org's model keys (`network.proxy.routing`) exists only on sandboxes created
+with it: Blaxel's docs say enabling the proxy on a sandbox created without it
+requires a new sandbox, and a fork is created without it (its `spec.network`
+is null, and a source that carries routing hands its forks unresolved
+`{{file(/var/run/secrets/…)}}` proxy templates, so every outbound request
+fails with "Unsupported proxy syntax"). Applying routing to a fork afterwards with a
+spec update (the SDK's `updateSandbox`, which nothing in this codebase calls
+any more) is worse than useless: the platform builds a new instance from the
+image, and the fork comes back without `node_modules`, the tools, or anything
+else the environment carried (verified 2026-09-02 on a release probe). So a workspace forked from an environment gets its model keys the
+plain way, as `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` in the environment's
+variables, and host-service approves that key for Claude Code before an
+unattended launch so it does not stop on the "use this custom API key?"
+prompt. Image sandboxes keep the proxy and the placeholder keys.
+
 **host-service has no HTTP health route.** Readiness is the `health.check` tRPC
 procedure; `GET /health` 404s. A probe on the wrong path looks exactly like a
 sandbox that never came up, which cost an afternoon here.
@@ -242,3 +291,28 @@ enabled" even though routing works, so don't use those as a health check.
 Alpine) and only the pinned version ships prebuilds at all; better-sqlite3 must
 match what host-service was built against or it crashes on load. The image
 asserts the prebuild exists rather than letting something compile silently.
+
+**Local dev cannot exercise a sandbox, and the failure mode if you force it is
+silent.** `setup.local.sh` copies `.env.local.example` to `.env`, which sets
+`BLAXEL_API_KEY=fake-blaxel-api-key` — so provisioning fails at the provider and
+no sandbox is ever created. That part is loud and fine. The trap is what happens
+when someone supplies real Blaxel credentials to a local API to try a sandbox
+end-to-end: provisioning passes `SUPERSET_API_URL: env.NEXT_PUBLIC_API_URL`
+into the sandbox, and in local dev that value is `http://localhost:3001`. Inside
+the container `localhost` is the container, so the sandbox boots, serves, and
+looks healthy while every call it makes back to the API dials itself. Nothing
+reports an error at provision time. Treat sandboxes as a deployed-API-only
+surface, or tunnel a public URL and override `NEXT_PUBLIC_API_URL` for the
+provisioning process specifically.
+
+**Sandbox telemetry does not travel with the desktop build.** The host-service
+Sentry DSN is compiled into the desktop bundle at desktop build time
+(`apps/desktop/electron.vite.config.ts`) and handed to host-service when the
+desktop spawns it. A sandbox is started by the API and never sees a desktop
+bundle, so it can never receive that DSN — which is why sandbox startup crashes
+were invisible for as long as sandboxes have existed, rather than merely
+under-reported. Sandboxes now report to their own project via
+`SENTRY_DSN_SANDBOX` on the API, tagged with the cloud workspace id, image tag
+and provider. Keep the workspace id on both sides: a provisioning failure is
+recorded against the API and a runtime failure against the sandbox, and that id
+is the only thing that joins the two halves of one broken workspace.

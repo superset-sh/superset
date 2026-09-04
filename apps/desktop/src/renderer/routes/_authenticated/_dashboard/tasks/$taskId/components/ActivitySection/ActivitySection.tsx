@@ -20,7 +20,6 @@ export function ActivitySection({
 				avatarFallback={creatorName.charAt(0).toUpperCase()}
 				actorName={creatorName}
 				action={t({
-					id: "dashboard.tasks.activity.createdIssue",
 					message: "created the issue",
 				})}
 				timestamp={createdAt}

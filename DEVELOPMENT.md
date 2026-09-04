@@ -86,6 +86,7 @@ bun run dev:all        # Start every dev server in the monorepo
 bun test               # Run tests
 bun run lint:fix       # Fix lint + format
 bun run typecheck      # Type-check all packages
+bun run check:i18n     # Regenerate and audit translation catalogs
 bun run build          # Build the desktop app
 ```
 

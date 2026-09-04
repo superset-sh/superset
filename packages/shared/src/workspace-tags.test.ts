@@ -3,10 +3,29 @@ import { describe, expect, test } from "bun:test";
 import {
 	normalizeWorkspaceTag,
 	normalizeWorkspaceTags,
+	SESSIONS_TAG_SCOPE,
+	tagFolderScopeInputSchema,
 	WORKSPACE_TAG_MAX_LENGTH,
 	WORKSPACE_TAGS_MAX_PER_WORKSPACE,
+	workspaceTagInputSchema,
 	workspaceTagsInputSchema,
 } from "./workspace-tags";
+
+describe("tagFolderScopeInputSchema", () => {
+	test("accepts the Sessions sentinel and project UUIDs", () => {
+		expect(tagFolderScopeInputSchema.parse(SESSIONS_TAG_SCOPE)).toBe(
+			SESSIONS_TAG_SCOPE,
+		);
+		expect(
+			tagFolderScopeInputSchema.parse("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"),
+		).toBe("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+	});
+
+	test("rejects arbitrary non-empty scope strings", () => {
+		expect(tagFolderScopeInputSchema.safeParse("anything").success).toBe(false);
+		expect(tagFolderScopeInputSchema.safeParse("").success).toBe(false);
+	});
+});
 
 describe("normalizeWorkspaceTag", () => {
 	test("trims and lowercases", () => {
@@ -58,6 +77,21 @@ describe("normalizeWorkspaceTags", () => {
 			"a",
 			"b",
 		]);
+	});
+});
+
+describe("workspaceTagInputSchema", () => {
+	test("normalizes one valid tag", () => {
+		expect(workspaceTagInputSchema.parse("  Perf Work  ")).toBe("perf work");
+	});
+
+	test("rejects whitespace-only and over-length tags", () => {
+		expect(workspaceTagInputSchema.safeParse("   ").success).toBe(false);
+		expect(
+			workspaceTagInputSchema.safeParse(
+				"a".repeat(WORKSPACE_TAG_MAX_LENGTH + 1),
+			).success,
+		).toBe(false);
 	});
 });
 

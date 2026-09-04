@@ -7,7 +7,6 @@ import {
 	recordRegistrationSuccess,
 } from "./registration-state";
 import { TunnelClient } from "./tunnel-client";
-import { TunnelClientV2 } from "./tunnel-client-v2";
 
 export interface ConnectRelayOptions {
 	api: ApiClient;
@@ -41,33 +40,12 @@ async function resolveRelayUrl(
 	return fallback;
 }
 
-// The relay advertises its protocol on /health ({proto: 2} for tunnel v2);
-// anything else — including the v1 relay's {ok, region} and any probe
-// failure — selects the v1 client. Negotiating here keeps protocol choice
-// between host and relay instead of adding config plumbing through every
-// spawner (desktop, CLI, env).
-async function detectRelayProto(relayUrl: string): Promise<1 | 2> {
-	for (let attempt = 0; attempt < 3; attempt++) {
-		try {
-			const res = await fetch(new URL("/health", relayUrl), {
-				signal: AbortSignal.timeout(5_000),
-			});
-			if (!res.ok) return 1;
-			const data = (await res.json()) as { proto?: number };
-			return data.proto === 2 ? 2 : 1;
-		} catch {
-			await new Promise((r) => setTimeout(r, 1_000 * (attempt + 1)));
-		}
-	}
-	return 1;
-}
-
 const REGISTER_RETRY_BASE_MS = 30_000;
 const REGISTER_RETRY_MAX_MS = 5 * 60_000;
 
 export async function connectRelay(
 	options: ConnectRelayOptions,
-): Promise<TunnelClient | TunnelClientV2 | null> {
+): Promise<TunnelClient | null> {
 	// Registration is what makes this host exist server-side (hosts list,
 	// automations, relay routing). A one-shot attempt left a transient API
 	// failure at boot permanently stranding the host as locally-healthy but
@@ -95,12 +73,7 @@ export async function connectRelay(
 				resolveRelayUrl: () => resolveRelayUrl(options.api, options.relayUrl),
 			};
 
-			const proto = await detectRelayProto(relayUrl);
-			console.log(`[host-service] relay protocol: v${proto}`);
-			const tunnel =
-				proto === 2
-					? new TunnelClientV2(clientOptions)
-					: new TunnelClient(clientOptions);
+			const tunnel = new TunnelClient(clientOptions);
 			void tunnel.connect();
 			return tunnel;
 		} catch (error) {

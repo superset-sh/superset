@@ -48,7 +48,7 @@ jobs:
         id: create-branch
         uses: neondatabase/create-branch-action@fb620d43d4c565abaf088b848a4e28e5c4ea4d9c # 6.3.1
         with:
-          project_id: ${{ vars.NEON_PROJECT_ID }}
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
           branch_name: ${{ github.head_ref }}
           api_key: ${{ secrets.NEON_API_KEY }}
 
@@ -65,7 +65,7 @@ jobs:
         run: |
           cat > database-status.env << EOF
           DATABASE_STATUS="✅"
-          DATABASE_LINK="<a href=\"https://console.neon.tech/app/projects/${{ vars.NEON_PROJECT_ID }}/branches/${{ steps.create-branch.outputs.branch_id }}/tables\">View Branch</a>"
+          DATABASE_LINK="<a href=\"https://console.neon.tech/app/projects/${{ secrets.NEON_PROJECT_ID }}/branches/${{ steps.create-branch.outputs.branch_id }}/tables\">View Branch</a>"
           DATABASE_URL="${{ steps.create-branch.outputs.db_url_pooled }}"
           DATABASE_URL_UNPOOLED="${{ steps.create-branch.outputs.db_url }}"
           BRANCH_ID="${{ steps.create-branch.outputs.branch_id }}"
@@ -124,13 +124,14 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
           DATABASE_URL: ${{ env.DATABASE_URL }}
           DATABASE_URL_UNPOOLED: ${{ env.DATABASE_URL_UNPOOLED }}
-          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_PRIVATE_BUCKET: superset-private-dev
-          USERCONTENT_URL: ${{ vars.USERCONTENT_URL_DEV }}
-          MEDIA_URL: ${{ vars.MEDIA_URL_DEV }}
+          R2_PUBLIC_BUCKET: superset-public-dev
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          USERCONTENT_URL: ${{ secrets.USERCONTENT_URL }}
+          STATIC_URL: ${{ secrets.STATIC_URL }}
           USERCONTENT_TOKEN_SECRET: ${{ secrets.USERCONTENT_TOKEN_SECRET_DEV }}
           CLOUDFLARE_BROWSER_RENDERING_TOKEN: ${{ secrets.CLOUDFLARE_BROWSER_RENDERING_TOKEN }}
           NEXT_PUBLIC_API_URL: https://${{ env.API_ALIAS }}
@@ -145,7 +146,7 @@ jobs:
           GH_CLIENT_SECRET: ${{ secrets.GH_CLIENT_SECRET }}
           NEXT_PUBLIC_SENTRY_DSN_API: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN_API }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ vars.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
+          NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ secrets.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
           NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
           NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
           POSTHOG_API_KEY: ${{ secrets.POSTHOG_API_KEY }}
@@ -179,23 +180,24 @@ jobs:
           RELAY_URL: ${{ secrets.RELAY_URL }}
           BLAXEL_API_KEY: ${{ secrets.BLAXEL_API_KEY }}
           BLAXEL_WORKSPACE: ${{ secrets.BLAXEL_WORKSPACE }}
-          BLAXEL_REGION: ${{ vars.BLAXEL_REGION }}
-          BLAXEL_SANDBOX_IMAGE: ${{ vars.BLAXEL_SANDBOX_IMAGE }}
+          BLAXEL_REGION: ${{ secrets.BLAXEL_REGION }}
+          SENTRY_DSN_SANDBOX: ${{ secrets.SENTRY_DSN_SANDBOX }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GH_APP_SLUG: ${{ vars.GH_APP_SLUG }}
+          GH_APP_SLUG: ${{ secrets.GH_APP_SLUG }}
         run: |
           vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
           vercel build --token=$VERCEL_TOKEN
           VERCEL_URL=$(vercel deploy --prebuilt --archive=tgz --token=$VERCEL_TOKEN \
             --env DATABASE_URL=$DATABASE_URL \
             --env DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED \
-            --env BLOB_READ_WRITE_TOKEN=$BLOB_READ_WRITE_TOKEN \
             --env CLOUDFLARE_ACCOUNT_ID=$CLOUDFLARE_ACCOUNT_ID \
             --env R2_ACCESS_KEY_ID=$R2_ACCESS_KEY_ID \
             --env R2_SECRET_ACCESS_KEY=$R2_SECRET_ACCESS_KEY \
             --env R2_PRIVATE_BUCKET=$R2_PRIVATE_BUCKET \
+            --env R2_PUBLIC_BUCKET=$R2_PUBLIC_BUCKET \
+            --env R2_ENDPOINT=$R2_ENDPOINT \
             --env USERCONTENT_URL=$USERCONTENT_URL \
-            --env MEDIA_URL=$MEDIA_URL \
+            --env STATIC_URL=$STATIC_URL \
             --env USERCONTENT_TOKEN_SECRET=$USERCONTENT_TOKEN_SECRET \
             --env CLOUDFLARE_BROWSER_RENDERING_TOKEN=$CLOUDFLARE_BROWSER_RENDERING_TOKEN \
             --env NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
@@ -244,7 +246,7 @@ jobs:
             --env BLAXEL_API_KEY=$BLAXEL_API_KEY \
             --env BLAXEL_WORKSPACE=$BLAXEL_WORKSPACE \
             --env BLAXEL_REGION=$BLAXEL_REGION \
-            --env BLAXEL_SANDBOX_IMAGE=$BLAXEL_SANDBOX_IMAGE \
+            --env SENTRY_DSN_SANDBOX=$SENTRY_DSN_SANDBOX \
             --env OPENAI_API_KEY=$OPENAI_API_KEY \
             --env GH_APP_SLUG=$GH_APP_SLUG)
           vercel alias $VERCEL_URL ${{ env.API_ALIAS }} --scope=$VERCEL_ORG_ID --token=$VERCEL_TOKEN
@@ -319,15 +321,15 @@ jobs:
           NEXT_PUBLIC_ADMIN_URL: https://${{ env.ADMIN_ALIAS }}
           NEXT_PUBLIC_DOCS_URL: https://${{ env.DOCS_ALIAS }}
           NEXT_PUBLIC_RELAY_URL: ${{ secrets.RELAY_URL }}
-          USERCONTENT_URL: ${{ vars.USERCONTENT_URL_DEV }}
-          MEDIA_URL: ${{ vars.MEDIA_URL_DEV }}
+          USERCONTENT_URL: ${{ secrets.USERCONTENT_URL }}
+          STATIC_URL: ${{ secrets.STATIC_URL }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
           NEXT_PUBLIC_COOKIE_DOMAIN: ${{ secrets.NEXT_PUBLIC_COOKIE_DOMAIN }}
           NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
           NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
           NEXT_PUBLIC_SENTRY_DSN_WEB: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN_WEB }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ vars.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
+          NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ secrets.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
           KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
           KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
           KV_URL: ${{ secrets.KV_URL }}
@@ -355,7 +357,7 @@ jobs:
             --env NEXT_PUBLIC_DOCS_URL=$NEXT_PUBLIC_DOCS_URL \
             --env NEXT_PUBLIC_RELAY_URL=$NEXT_PUBLIC_RELAY_URL \
             --env USERCONTENT_URL=$USERCONTENT_URL \
-            --env MEDIA_URL=$MEDIA_URL \
+            --env STATIC_URL=$STATIC_URL \
             --env NEXT_PUBLIC_COOKIE_DOMAIN=$NEXT_PUBLIC_COOKIE_DOMAIN \
             --env NEXT_PUBLIC_POSTHOG_KEY=$NEXT_PUBLIC_POSTHOG_KEY \
             --env NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST \
@@ -450,7 +452,7 @@ jobs:
           NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
           NEXT_PUBLIC_SENTRY_DSN_MARKETING: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN_MARKETING }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ vars.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
+          NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ secrets.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
           KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
           KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
           KV_URL: ${{ secrets.KV_URL }}
@@ -504,6 +506,17 @@ jobs:
             /blog /changelog /compare /roadmap /leaderboard /marketplace \
             /agent-orchestration /parallel-coding-agents /factory-2026 \
             /mcp-install /stats /team /starchart /the-production-run
+
+      # Non-page endpoints, checked without --localized because they serve
+      # markdown and text rather than an <html> document. These are the paths
+      # src/proxy.ts must NOT rewrite into the [lang] tree: the matcher there
+      # swallowed /ingest and /monitoring for four days in 2026-08 and nothing
+      # noticed, because the pages above all kept returning 200.
+      - name: Smoke test marketing non-page endpoints
+        run: |
+          bun scripts/smoke-routes.ts "https://${{ env.MARKETING_ALIAS }}" \
+            /md/page/pricing /ja/md/page/pricing /llms.txt /agents.md \
+            /index.md /robots.txt /sitemap.xml /.well-known/mcp
 
       - name: Save marketing success status
         run: |
@@ -577,7 +590,7 @@ jobs:
           POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_PROJECT_ID }}
           NEXT_PUBLIC_SENTRY_DSN_ADMIN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN_ADMIN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ vars.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
+          NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ secrets.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
           KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
           KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
           KV_URL: ${{ secrets.KV_URL }}
@@ -694,7 +707,7 @@ jobs:
           NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
           NEXT_PUBLIC_SENTRY_DSN_DOCS: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN_DOCS }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ vars.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
+          NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ secrets.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
           SECRETS_ENCRYPTION_KEY: ${{ secrets.SECRETS_ENCRYPTION_KEY }}
         run: |
           vercel pull --yes --environment=preview --token=$VERCEL_TOKEN

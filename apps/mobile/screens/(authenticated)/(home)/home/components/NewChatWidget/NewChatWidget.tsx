@@ -1,11 +1,14 @@
 import { useLingui } from "@lingui/react/macro";
 import { Composer, type ComposerHandle } from "@superset/composer";
+import { isCloudAgentId } from "@superset/shared/cloud-agent-launch";
+import { getPresetById } from "@superset/shared/host-agent-presets";
 import { useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
+import { useCloudEnvironments } from "@/hooks/useCloudEnvironments";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
 import { useSession } from "@/lib/auth/client";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
@@ -23,6 +26,20 @@ import { useAgentIconUri } from "./hooks/useAgentIconUri";
 import { useCreateCloudWorkspace } from "./hooks/useCreateCloudWorkspace";
 import { useNewChatTargets } from "./hooks/useNewChatTargets";
 import { useNewSessionPreferencesStore } from "./stores/newSessionPreferencesStore";
+
+/** The built-in preset a cloud workspace launches, in the shape a host config has. */
+function cloudAgentConfig(agentId: string | null) {
+	// A preset picked for a laptop may not exist in the sandbox image.
+	const wanted = agentId && isCloudAgentId(agentId) ? agentId : "claude";
+	const preset = getPresetById(wanted);
+	return preset
+		? {
+				presetId: preset.presetId,
+				label: preset.label,
+				iconId: preset.presetId,
+			}
+		: undefined;
+}
 
 export function NewChatWidget({
 	workspaces,
@@ -56,6 +73,13 @@ export function NewChatWidget({
 		targets.find((target) => target.key === targetKey) ?? defaultTarget;
 	const isCloudTarget = selectedTarget?.kind === "cloud";
 	const cloudScope = useWorkspaceScope() === "cloud";
+	const environmentId = useNewSessionPreferencesStore(
+		(state) => state.environmentId,
+	);
+	const environmentsQuery = useCloudEnvironments();
+	const environments = environmentsQuery.data ?? [];
+	const selectedEnvironment =
+		environments.find((row) => row.id === environmentId) ?? environments[0];
 
 	const { data: session } = useSession();
 	const organizationId = session?.session?.activeOrganizationId ?? null;
@@ -75,7 +99,6 @@ export function NewChatWidget({
 				if (!organizationId) return null;
 				return apiClient.cloudWorkspace.listBranches.query({
 					organizationId,
-					projectId: selectedTarget.projectId,
 				});
 			}
 			return getHostServiceClientByUrl(
@@ -93,13 +116,18 @@ export function NewChatWidget({
 	const { data: agentConfigs } = useHostAgentConfigs({
 		machineId: selectedTarget?.machineId ?? null,
 		hostUrl: selectedTarget?.hostUrl ?? null,
-		// A cloud target has no host to list agents from, and create doesn't
-		// launch one (the prompt only feeds the auto-name).
+		// A cloud target has no host to list agents from; it offers the
+		// built-in presets instead (SUPER-2127 for custom ones).
 		enabled: !isCloudTarget,
 	});
-	const selectedAgent = agentConfigs?.find(
-		(config) => config.presetId === agentId,
-	);
+	const selectedAgent = isCloudTarget
+		? cloudAgentConfig(agentId)
+		: agentConfigs?.find((config) => config.presetId === agentId);
+	// A preset picked for a laptop may not exist in the sandbox; under Cloud
+	// the effective agent is the one that will actually launch.
+	const effectiveAgentId = isCloudTarget
+		? (selectedAgent?.presetId ?? "claude")
+		: agentId;
 	const agentIconUri = useAgentIconUri(selectedAgent?.iconId ?? agentId);
 	// Null until the branch list resolves. The previous fallback was the literal
 	// string "default", which reads as a branch name and is not one.
@@ -134,15 +162,12 @@ export function NewChatWidget({
 			attachment_count: message.attachments.length,
 			message_length: message.text.trim().length,
 			draft_restored: initialDraft.length > 0,
-			// A cloud create launches nothing today — the prompt only feeds the
-			// server-side auto-name — so there is no agent to name.
-			agent: isCloudTarget ? null : agentId,
+			agent: effectiveAgentId,
 			destination: isCloudTarget ? "new_cloud_workspace" : "new_workspace",
 		});
 		if (!selectedTarget) {
 			Alert.alert(
 				t({
-					id: "mobile.newChat.noProjectAvailable",
 					message: "No project available",
 				}),
 			);
@@ -151,8 +176,9 @@ export function NewChatWidget({
 		if (selectedTarget.kind === "cloud") {
 			createCloudWorkspace
 				.mutateAsync({
-					target: selectedTarget,
 					branch: baseBranch ?? branchData?.defaultBranch ?? null,
+					environmentId: selectedEnvironment?.id ?? null,
+					agent: effectiveAgentId,
 					message,
 				})
 				.then(() => {
@@ -185,28 +211,34 @@ export function NewChatWidget({
 		cloudScope
 			? {
 					id: "project",
-					label: t({ id: "mobile.filter.cloud", message: "Cloud" }),
+					label: t({ message: "Cloud" }),
 				}
 			: {
 					id: "project",
-					label:
-						selectedTarget?.projectName ??
-						t({ id: "mobile.home.noProject", message: "No project" }),
+					label: selectedTarget?.projectName ?? t({ message: "No project" }),
 					avatar: true,
 					iconUri: selectedTarget?.projectIconUrl ?? undefined,
 				},
+		...(cloudScope
+			? [
+					{
+						id: "environment",
+						label:
+							selectedEnvironment?.name ??
+							t({
+								message: "Environment",
+							}),
+					},
+				]
+			: []),
 		...(branchLabel ? [{ id: "branch", label: branchLabel, muted: true }] : []),
 	];
 
-	// No agent chip for a cloud target: nothing launches on create (parity
-	// with desktop; the sandbox-side launch is a follow-up).
-	const selectedModel = isCloudTarget
-		? undefined
-		: {
-				id: agentId ?? "claude",
-				label: selectedAgent?.label ?? "Claude",
-				iconUri: agentIconUri ?? undefined,
-			};
+	const selectedModel = {
+		id: effectiveAgentId ?? "claude",
+		label: selectedAgent?.label ?? "Claude",
+		iconUri: agentIconUri ?? undefined,
+	};
 
 	// No KeyboardAvoidingView, no absolute-fill backdrop, no safe-area padding:
 	// the native composer owns its own keyboard tracking, dimming and dismissal.
@@ -214,7 +246,6 @@ export function NewChatWidget({
 		<Composer
 			ref={composerRef}
 			placeholder={t({
-				id: "mobile.newChat.placeholder",
 				message: "Plan, ask, build...",
 			})}
 			initialDraft={initialDraft}
@@ -235,7 +266,7 @@ export function NewChatWidget({
 				if (expanded && !wasExpanded.current) {
 					posthog.capture("new_session_started", {
 						target_kind: selectedTarget?.kind ?? null,
-						agent: isCloudTarget ? null : agentId,
+						agent: effectiveAgentId,
 					});
 				}
 				wasExpanded.current = expanded;
@@ -260,7 +291,9 @@ export function NewChatWidget({
 			onChipPress={(id) => {
 				if (id === "project" && cloudScope) return;
 				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-				if (id === "project") {
+				if (id === "environment") {
+					router.push("/(authenticated)/(home)/new-session/environment");
+				} else if (id === "project") {
 					if (targets.length > 0) {
 						router.push({
 							pathname: "/(authenticated)/(home)/new-session/project",

@@ -71,7 +71,6 @@ export function DeleteHostSection({
 			await transaction.isPersisted.promise;
 			toast.success(
 				t({
-					id: "settings.hosts.deleteHost.deletedToast",
 					message: `Deleted "${hostName}"`,
 				}),
 			);
@@ -87,7 +86,6 @@ export function DeleteHostSection({
 				<p className="text-sm font-medium">
 					<HighlightText
 						text={t({
-							id: "settings.hosts.deleteHost.label",
 							message: "Delete host",
 						})}
 						query={searchQuery}
@@ -97,7 +95,7 @@ export function DeleteHostSection({
 					id={deleteHostDescriptionId}
 					className="mt-0.5 text-xs text-muted-foreground"
 				>
-					<Trans id="settings.hosts.deleteHost.hint">
+					<Trans>
 						Deletes this host, its access, and its workspaces. Files on the
 						machine stay.
 					</Trans>
@@ -107,9 +105,7 @@ export function DeleteHostSection({
 						id={localHostDescriptionId}
 						className="mt-0.5 text-xs text-muted-foreground"
 					>
-						<Trans id="settings.hosts.deleteHost.localHint">
-							Stop Superset here to delete from another device.
-						</Trans>
+						<Trans>Stop Superset here to delete from another device.</Trans>
 					</p>
 				) : null}
 			</div>
@@ -124,7 +120,7 @@ export function DeleteHostSection({
 						className="shrink-0"
 						disabled={isLocalHost || isDeleting}
 					>
-						<Trans id="settings.hosts.deleteHost.button">Delete host</Trans>
+						<Trans>Delete host</Trans>
 					</Button>
 				</AlertDialogTrigger>
 				<AlertDialogContent
@@ -135,12 +131,10 @@ export function DeleteHostSection({
 				>
 					<AlertDialogHeader>
 						<AlertDialogTitle>
-							<Trans id="settings.hosts.deleteHost.confirmTitle">
-								Delete "{hostName}"?
-							</Trans>
+							<Trans>Delete "{hostName}"?</Trans>
 						</AlertDialogTitle>
 						<AlertDialogDescription>
-							<Trans id="settings.hosts.deleteHost.confirmDescription">
+							<Trans>
 								This removes the host, its access, and its workspaces. Files on
 								the machine stay. A running host may reappear. This can’t be
 								undone.
@@ -149,7 +143,7 @@ export function DeleteHostSection({
 					</AlertDialogHeader>
 					<div className="space-y-2">
 						<Label htmlFor={confirmationInputId} className="text-xs">
-							<Trans id="settings.hosts.deleteHost.confirmPrompt">
+							<Trans>
 								Type{" "}
 								<span className="font-mono font-medium text-foreground">
 									{hostName}
@@ -169,7 +163,7 @@ export function DeleteHostSection({
 					</div>
 					<AlertDialogFooter>
 						<AlertDialogCancel disabled={isDeleting}>
-							<Trans id="settings.hosts.deleteHost.cancel">Cancel</Trans>
+							<Trans>Cancel</Trans>
 						</AlertDialogCancel>
 						<AlertDialogAction
 							variant="destructive"
@@ -180,11 +174,7 @@ export function DeleteHostSection({
 							disabled={isDeleting || !canDelete}
 							aria-busy={isDeleting}
 						>
-							{isDeleting ? (
-								<Trans id="settings.hosts.deleteHost.deleting">Deleting…</Trans>
-							) : (
-								<Trans id="settings.hosts.deleteHost.confirm">Delete</Trans>
-							)}
+							{isDeleting ? <Trans>Deleting…</Trans> : <Trans>Delete</Trans>}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

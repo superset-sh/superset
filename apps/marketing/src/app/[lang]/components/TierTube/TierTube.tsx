@@ -41,21 +41,13 @@ function PaceTooltip({
 		>
 			<div className="border border-border bg-background px-3 py-2 text-center">
 				<div className="font-mono text-[0.55rem] uppercase tracking-[0.14em] text-muted-foreground/70">
-					{reached ? (
-						<Trans id="marketing.tiers.tube.reached">Reached</Trans>
-					) : (
-						<Trans id="marketing.tiers.tube.onThisPace">On this pace</Trans>
-					)}
+					{reached ? <Trans>Reached</Trans> : <Trans>On this pace</Trans>}
 				</div>
 				<div
 					className="font-mono text-[0.72rem] mt-1"
 					style={{ color: `rgb(${rgb})` }}
 				>
-					{reached ? (
-						<Trans id="marketing.tiers.tube.now">Now</Trans>
-					) : (
-						(forecast ?? "—")
-					)}
+					{reached ? <Trans>Now</Trans> : (forecast ?? "—")}
 				</div>
 			</div>
 		</div>
@@ -149,7 +141,7 @@ export function TierTube({
 							? String(counts[tier] ?? 0)
 							: "—"
 						: isActive
-							? t({ id: "marketing.tiers.tube.you", message: "YOU" })
+							? t({ message: "YOU" })
 							: "—";
 					return (
 						<div
@@ -184,9 +176,7 @@ export function TierTube({
 							</div>
 							{isFleet && counts && isActive && (
 								<div className="text-[0.65rem] text-muted-foreground/70 mt-1">
-									<Trans id="marketing.tiers.tube.mostDevelopers">
-										most developers
-									</Trans>
+									<Trans>most developers</Trans>
 								</div>
 							)}
 						</div>

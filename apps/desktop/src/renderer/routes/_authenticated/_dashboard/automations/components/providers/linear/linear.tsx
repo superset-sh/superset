@@ -17,7 +17,7 @@ function renderSlot(
 	config: LinearConfig,
 	slot: Slot,
 	index: number,
-	{ set, mark, options, disabled }: SentenceContext,
+	{ set, mark, options, state, disabled }: SentenceContext,
 ) {
 	switch (slot) {
 		case "teams":
@@ -30,16 +30,15 @@ function renderSlot(
 					options={options.linear?.teams ?? []}
 					emptyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.linear.selectTeams",
 							message: "Select teams",
 						}),
 					)}
 					anyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.linear.anyTeam",
 							message: "Any team",
 						}),
 					)}
+					state={state}
 					disabled={disabled}
 				/>
 			);
@@ -57,16 +56,15 @@ function renderSlot(
 					options={options.linear?.projects ?? []}
 					emptyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.linear.anyProjectEmpty",
 							message: "Any project",
 						}),
 					)}
 					anyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.linear.anyProject",
 							message: "Any project",
 						}),
 					)}
+					state={state}
 					disabled={disabled}
 				/>
 			);
@@ -81,16 +79,15 @@ function renderSlot(
 					options={options.linear?.labels ?? []}
 					emptyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.linear.anyLabelEmpty",
 							message: "Any label",
 						}),
 					)}
 					anyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.linear.anyLabel",
 							message: "Any label",
 						}),
 					)}
+					state={state}
 					disabled={disabled}
 				/>
 			);
@@ -105,16 +102,15 @@ function renderSlot(
 					options={options.linear?.statuses ?? []}
 					emptyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.linear.anyStatusEmpty",
 							message: "Any status",
 						}),
 					)}
 					anyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.linear.anyStatus",
 							message: "Any status",
 						}),
 					)}
+					state={state}
 					disabled={disabled}
 				/>
 			);
@@ -128,16 +124,15 @@ function renderSlot(
 					options={options.linear?.people ?? []}
 					emptyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.linear.selectPeople",
 							message: "Select people",
 						}),
 					)}
 					anyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.linear.anyone",
 							message: "Anyone",
 						}),
 					)}
+					state={state}
 					disabled={disabled}
 				/>
 			);

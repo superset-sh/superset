@@ -19,7 +19,7 @@ function renderSlot(
 	config: GmailConfig,
 	slot: GmailSlot,
 	index: number,
-	{ set, mark, options, disabled }: SentenceContext,
+	{ set, mark, options, state, disabled }: SentenceContext,
 ) {
 	switch (slot) {
 		case "from":
@@ -32,20 +32,17 @@ function renderSlot(
 					options={[]}
 					emptyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.gmail.selectSenders",
 							message: "Select senders",
 						}),
 					)}
 					anyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.gmail.anySender",
 							message: "Any sender",
 						}),
 					)}
 					allowCustom={{
 						placeholder: i18n._(
 							msg({
-								id: "dashboard.automations.providers.gmail.fromCustomPlaceholder",
 								message: "Add address or domain…",
 							}),
 						),
@@ -63,20 +60,17 @@ function renderSlot(
 					options={[]}
 					emptyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.gmail.anyRecipientEmpty",
 							message: "Any recipient",
 						}),
 					)}
 					anyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.gmail.anyRecipient",
 							message: "Any recipient",
 						}),
 					)}
 					allowCustom={{
 						placeholder: i18n._(
 							msg({
-								id: "dashboard.automations.providers.gmail.toCustomPlaceholder",
 								message: "Add address or domain…",
 							}),
 						),
@@ -92,13 +86,11 @@ function renderSlot(
 					onChange={(v) => set({ subjectFilter: v })}
 					emptyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.gmail.subjectAnything",
 							message: "anything",
 						}),
 					)}
 					placeholder={i18n._(
 						msg({
-							id: "dashboard.automations.providers.gmail.subjectFilterPlaceholder",
 							message: "Subject contains...",
 						}),
 					)}
@@ -116,16 +108,15 @@ function renderSlot(
 					options={options.google?.labels ?? []}
 					emptyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.gmail.anyLabelEmpty",
 							message: "Any label",
 						}),
 					)}
 					anyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.gmail.anyLabel",
 							message: "Any label",
 						}),
 					)}
+					state={state}
 					disabled={disabled}
 				/>
 			);

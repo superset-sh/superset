@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { basename, join } from "node:path";
-import { provisionCodexProfile } from "@superset/agent-setup";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
@@ -11,7 +10,10 @@ import {
 } from "../../../workers/tasks/usage";
 import { protectedProcedure, queryProcedure, router } from "../../index";
 import { offLoop } from "../../off-loop";
-import { provisionClaudeAccount } from "./account-provisioning";
+import {
+	provisionClaudeAccount,
+	provisionCodexAccount,
+} from "./account-provisioning";
 import { fetchAgyAccounts } from "./agy-quota";
 import { fetchClaudeAccounts, readDefaultLoginEmail } from "./claude";
 import { fetchCodexAccounts } from "./codex";
@@ -102,22 +104,28 @@ export const usageRouter = router({
 		// (its email is only knowable via the network). The first home is the
 		// system default.
 		const codex = await Promise.all(
-			codexHomes.map(async ({ home }) => {
-				let fingerprint: string | null = null;
-				try {
-					fingerprint = createHash("sha256")
-						.update(await readFile(join(home, "auth.json")))
-						.digest("hex");
-				} catch {
-					// No readable auth.json — fingerprint stays null.
+			codexHomes.map(async ({ home, credentialKind, loginFingerprint }) => {
+				// An API-billed home's auth.json holds the raw key and is never
+				// opened; its marker mtime is the fingerprint instead.
+				let fingerprint = loginFingerprint;
+				if (credentialKind === "subscription") {
+					try {
+						fingerprint = createHash("sha256")
+							.update(await readFile(join(home, "auth.json")))
+							.digest("hex");
+					} catch {
+						// No readable auth.json — fingerprint stays null.
+					}
 				}
-				return { home, fingerprint };
+				return { home, fingerprint, credentialKind };
 			}),
 		);
 		return {
 			claude: profiles.map((profile) => ({
 				configDir: profile.configDir,
 				email: profile.email,
+				credentialKind: profile.credentialKind,
+				fingerprint: profile.loginFingerprint,
 			})),
 			codex,
 			claudeDefaultEmail,
@@ -163,7 +171,7 @@ export const usageRouter = router({
 				try {
 					await (input.agent === "claude"
 						? provisionClaudeAccount(input.selection)
-						: provisionCodexProfile(input.selection));
+						: provisionCodexAccount(input.selection));
 				} catch (error) {
 					console.warn(
 						`[host-service] provisioning ${input.agent} account ${input.selection} failed (continuing):`,
@@ -247,7 +255,7 @@ export const usageRouter = router({
 			}
 			await (input.agent === "claude"
 				? provisionClaudeAccount(input.selection)
-				: provisionCodexProfile(input.selection));
+				: provisionCodexAccount(input.selection));
 			return { success: true as const };
 		}),
 
@@ -359,6 +367,7 @@ export type {
 	ModelProvider,
 	QuotaCapableAgent,
 	UsageAccount,
+	UsageAccountCredentialKind,
 	UsageAgent,
 	UsageQuotaWindow,
 } from "./types";

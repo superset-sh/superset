@@ -57,20 +57,17 @@ export function RestartSessionsDialog({
 			<EnterEnabledAlertDialogContent className="max-w-[400px] gap-0 p-0">
 				<AlertDialogHeader className="px-4 pt-4 pb-2">
 					<AlertDialogTitle className="font-medium">
-						<Trans id="settings.usage.restartAgents.title">
-							Restart running {providerLabel} agents?
-						</Trans>
+						<Trans>Restart running {providerLabel} agents?</Trans>
 					</AlertDialogTitle>
 					<AlertDialogDescription>
 						{/* Plain-string plural branches: JSX branches extract as opaque
 						    placeholders, hiding the sentence from translators. */}
 						<Plural
-							id="settings.usage.restartAgents.count"
 							value={shown?.count ?? 0}
 							one="A running agent still uses the previous account — the switch only reaches new launches."
 							other="# running agents still use the previous account — the switch only reaches new launches."
 						/>{" "}
-						<Trans id="settings.usage.restartAgents.move">
+						<Trans>
 							Restart now to move them to {accountLabel}; each session picks its
 							conversation back up where it left off.
 						</Trans>
@@ -83,12 +80,10 @@ export function RestartSessionsDialog({
 						className="h-7 px-3 text-xs"
 						onClick={onDecline}
 					>
-						<Trans id="settings.usage.restartAgents.decline">Not now</Trans>
+						<Trans>Not now</Trans>
 					</Button>
 					<Button size="sm" className="h-7 px-3 text-xs" onClick={onConfirm}>
-						<Trans id="settings.usage.restartAgents.confirm">
-							Restart and resume
-						</Trans>
+						<Trans>Restart and resume</Trans>
 					</Button>
 				</AlertDialogFooter>
 			</EnterEnabledAlertDialogContent>

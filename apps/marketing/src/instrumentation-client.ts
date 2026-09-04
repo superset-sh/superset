@@ -42,6 +42,11 @@ async function initPosthog() {
 	posthog.register({
 		app_name: "marketing",
 		domain: window.location.hostname,
+		// The URL decides the language (bare paths are English); the server
+		// writes the resolved locale into <html lang>, and every language
+		// switch is a full navigation that re-runs this init.
+		app_locale: document.documentElement.lang,
+		app_locale_source: "url",
 	});
 
 	setPosthogInstance(posthog);

@@ -87,7 +87,6 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 					name:
 						u?.name ??
 						t({
-							id: "settings.hosts.membersUnknownUser",
 							message: "Unknown user",
 						}),
 					email: u?.email ?? "",
@@ -110,7 +109,6 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 					name:
 						u?.name ??
 						t({
-							id: "settings.hosts.candidatesUnknownUser",
 							message: "Unknown user",
 						}),
 					email: u?.email ?? "",
@@ -131,9 +129,7 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 		if (hostsPending) return null;
 		return (
 			<div className="p-6 text-sm text-muted-foreground select-text cursor-text">
-				<Trans id="settings.hosts.notFound">
-					Host not found in this organization.
-				</Trans>
+				<Trans>Host not found in this organization.</Trans>
 			</div>
 		);
 	}
@@ -145,21 +141,21 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 				userId: candidate.userId,
 				organizationId: host.organizationId,
 			}),
-			t({ id: "settings.hosts.memberAddedToast", message: "Member added" }),
+			t({ message: "Member added" }),
 		);
 	};
 
 	const handleRemove = (member: MemberRowData) => {
 		notifyOnPersist(
 			actions.v2UsersHosts.removeMember(member.usersHostsId),
-			t({ id: "settings.hosts.memberRemovedToast", message: "Member removed" }),
+			t({ message: "Member removed" }),
 		);
 	};
 
 	const handleSetRole = (member: MemberRowData, role: "owner" | "member") => {
 		notifyOnPersist(
 			actions.v2UsersHosts.setMemberRole(member.usersHostsId, role),
-			t({ id: "settings.hosts.roleUpdatedToast", message: "Role updated" }),
+			t({ message: "Role updated" }),
 		);
 	};
 
@@ -186,7 +182,6 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 						<h3 className="text-sm font-medium">
 							<HighlightText
 								text={t({
-									id: "settings.hosts.remoteAccessTitle",
 									message: "Remote access",
 								})}
 								query={searchQuery}
@@ -202,7 +197,6 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 							<h3 className="text-sm font-medium">
 								<HighlightText
 									text={t({
-										id: "settings.hosts.membersTitle",
 										message: "Members",
 									})}
 									query={searchQuery}
@@ -210,9 +204,7 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 							</h3>
 							{!isOwner && (
 								<p className="text-sm text-muted-foreground mt-0.5">
-									<Trans id="settings.hosts.membersOwnerOnly">
-										Only owners can change membership.
-									</Trans>
+									<Trans>Only owners can change membership.</Trans>
 								</p>
 							)}
 						</div>

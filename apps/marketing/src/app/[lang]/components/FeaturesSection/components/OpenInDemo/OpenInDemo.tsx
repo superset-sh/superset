@@ -75,9 +75,7 @@ export function OpenInDemo() {
 					<div className="flex flex-1 items-center gap-2 rounded-sm border border-border/60 px-2.5 py-1.5">
 						<HiMagnifyingGlass className="w-3.5 h-3.5 text-muted-foreground/45" />
 						<span className="text-xs text-muted-foreground/45">
-							<Trans id="marketing.features.openIn.searchFiles">
-								Search files...
-							</Trans>
+							<Trans>Search files...</Trans>
 						</span>
 					</div>
 
@@ -102,14 +100,13 @@ export function OpenInDemo() {
 								className="object-contain"
 							/>
 							<span className="font-medium text-xs">
-								<Trans id="marketing.features.openIn.openIn">Open in</Trans>
+								<Trans>Open in</Trans>
 							</span>
 						</button>
 						<button
 							type="button"
 							className="flex items-center rounded-r-sm border border-border bg-card px-2 text-foreground/90 transition-colors hover:bg-foreground/[0.05]"
 							aria-label={t({
-								id: "marketing.features.openIn.selectIde",
 								message: "Select IDE",
 							})}
 						>

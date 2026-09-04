@@ -22,19 +22,15 @@ export function useHiringCard({
 	return {
 		id: "hiring",
 		badge: t({
-			id: "components.hiringCard.badge",
 			message: "We're hiring",
 		}),
 		title: t({
-			id: "components.hiringCard.title",
 			message: "Like building with Superset?",
 		}),
 		description: t({
-			id: "components.hiringCard.description",
 			message: "You're one of our most active users. Come help us build it.",
 		}),
 		actionLabel: t({
-			id: "components.hiringCard.actionLabel",
 			message: "View open roles",
 		}),
 		onAction: () => {

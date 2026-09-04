@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import type { Metadata } from "next";
@@ -9,15 +10,17 @@ import { GridCross } from "./components/GridCross";
 
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
-	const title = i18n._({
-		id: "marketing.meta.blog.title",
-		message: "Blog",
-	});
-	const description = i18n._({
-		id: "marketing.meta.blog.description",
-		message:
-			"News, updates, and insights from the Superset team about parallel coding agents and developer productivity.",
-	});
+	const title = i18n._(
+		msg({
+			message: "Blog",
+		}),
+	);
+	const description = i18n._(
+		msg({
+			message:
+				"News, updates, and insights from the Superset team about parallel coding agents and developer productivity.",
+		}),
+	);
 	return {
 		title,
 		description,
@@ -67,13 +70,13 @@ export default async function BlogPage() {
 					<GridCross className="top-0 right-0" />
 
 					<span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
-						<Trans id="marketing.blog.eyebrow">Blog</Trans>
+						<Trans>Blog</Trans>
 					</span>
 					<h1 className="text-3xl md:text-4xl font-medium tracking-tight text-foreground mt-4">
-						<Trans id="marketing.blog.title">News & Updates</Trans>
+						<Trans>News & Updates</Trans>
 					</h1>
 					<p className="text-muted-foreground mt-3 max-w-lg">
-						<Trans id="marketing.blog.subtitle">
+						<Trans>
 							Insights from the Superset team about parallel coding agents and
 							developer productivity.
 						</Trans>
@@ -88,7 +91,7 @@ export default async function BlogPage() {
 			<div className="relative max-w-3xl mx-auto px-6 py-12">
 				{posts.length === 0 ? (
 					<p className="text-muted-foreground">
-						<Trans id="marketing.blog.empty">No posts yet.</Trans>
+						<Trans>No posts yet.</Trans>
 					</p>
 				) : (
 					<div className="flex flex-col gap-4">

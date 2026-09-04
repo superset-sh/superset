@@ -87,7 +87,6 @@ function SessionRowComponent({
 			    the row into one VoiceOver element and fire select on every close. */}
 			<Pressable
 				accessibilityLabel={t({
-					id: "mobile.session.closeLabel",
 					message: `Close ${row.title}`,
 				})}
 				onPress={() => onClose(row)}

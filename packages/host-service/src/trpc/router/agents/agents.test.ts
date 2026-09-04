@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
-import { describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { TRPCError } from "@trpc/server";
@@ -9,8 +9,10 @@ import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import type { HostDb } from "../../../db";
 import * as schema from "../../../db/schema";
+import { TerminalAgentStore } from "../../../terminal-agents";
 import { setDefaultAccountSelection } from "../usage/default-account";
 import {
+	bindResumedSession,
 	buildAgentCommandString,
 	buildTerminalAgentLaunch,
 	validateAgentEffortSelection,
@@ -531,6 +533,28 @@ describe("buildTerminalAgentLaunch default account env", () => {
 	// tmpdir always exists, which is all resolveDefaultAccountEnv checks.
 	const existingDir = tmpdir();
 
+	// setDefaultAccountSelection also publishes the host-wide pointer files
+	// under SUPERSET_HOME_DIR, which agent launches read on every start. Give
+	// each case its own home: without one these writes land in the real
+	// ~/.superset and repoint the developer's Codex and Claude accounts at
+	// $TMPDIR. scripts/test-preload.ts keeps that off the real home even if
+	// this hook is lost; the per-test dir also keeps the cases independent.
+	let previousSupersetHome: string | undefined;
+	let supersetHome = "";
+
+	beforeEach(() => {
+		previousSupersetHome = process.env.SUPERSET_HOME_DIR;
+		supersetHome = mkdtempSync(join(tmpdir(), "agents-default-account-"));
+		process.env.SUPERSET_HOME_DIR = supersetHome;
+	});
+
+	afterEach(() => {
+		if (previousSupersetHome === undefined)
+			delete process.env.SUPERSET_HOME_DIR;
+		else process.env.SUPERSET_HOME_DIR = previousSupersetHome;
+		rmSync(supersetHome, { recursive: true, force: true });
+	});
+
 	function seedClaude(db: HostDb, env: Record<string, string> = {}) {
 		db.insert(schema.hostAgentConfigs)
 			.values({
@@ -685,13 +709,27 @@ describe("validateAgentEffortSelection", () => {
 
 	it("rejects an invalid effort with the supported values", () => {
 		try {
-			validateAgentEffortSelection("codex", "Codex", "max");
+			validateAgentEffortSelection("codex", "Codex", "extreme");
 			throw new Error("Expected validation to fail");
 		} catch (error) {
 			expect(error).toBeInstanceOf(TRPCError);
 			expect((error as TRPCError).code).toBe("BAD_REQUEST");
 			expect((error as Error).message).toBe(
-				'Unsupported reasoning effort "max" for Codex. Choose one of: low, medium, high, xhigh.',
+				'Unsupported reasoning effort "extreme" for Codex. Choose one of: low, medium, high, xhigh, max, ultra.',
+			);
+		}
+	});
+
+	it("rejects an effort the selected model does not accept", () => {
+		expect(() =>
+			validateAgentEffortSelection("codex", "Codex", "ultra", "gpt-5.6-sol"),
+		).not.toThrow();
+		try {
+			validateAgentEffortSelection("codex", "Codex", "ultra", "gpt-5.5");
+			throw new Error("Expected validation to fail");
+		} catch (error) {
+			expect((error as Error).message).toBe(
+				'Unsupported reasoning effort "ultra" for Codex with model gpt-5.5. Choose one of: low, medium, high, xhigh.',
 			);
 		}
 	});
@@ -733,5 +771,96 @@ describe("validateAgentModeSelection", () => {
 		expect(() =>
 			validateAgentModeSelection("claude", "Claude", "plan"),
 		).toThrow("Claude does not support a launch mode override");
+	});
+});
+
+describe("bindResumedSession", () => {
+	function seedCodexConfig(db: HostDb) {
+		db.insert(schema.hostAgentConfigs)
+			.values({
+				id: "00000000-0000-0000-0000-00000000000c",
+				presetId: "codex",
+				label: "Codex",
+				command: "codex",
+				argsJson: "[]",
+				promptTransport: "argv",
+				promptArgsJson: JSON.stringify(["--"]),
+				resumeArgsJson: JSON.stringify(["resume"]),
+				forkArgsJson: JSON.stringify(["fork", "{sessionId}"]),
+				envJson: "{}",
+				displayOrder: 0,
+			})
+			.run();
+	}
+
+	const WORKSPACE_ID = "11111111-1111-1111-1111-111111111111";
+	const TERMINAL_ID = "22222222-2222-2222-2222-222222222222";
+
+	it("binds the resumed session id without waiting for a hook", () => {
+		const db = createTestDb();
+		seedCodexConfig(db);
+		const store = new TerminalAgentStore();
+
+		bindResumedSession(
+			{ db, terminalAgentStore: store },
+			{
+				workspaceId: WORKSPACE_ID,
+				agent: "codex",
+				prompt: "",
+				resumeSessionId: "01a058a7-3990-7921-bb87-66c7370b999e",
+			},
+			TERMINAL_ID,
+		);
+
+		expect(store.list()).toMatchObject([
+			{
+				terminalId: TERMINAL_ID,
+				agentId: "codex",
+				agentSessionId: "01a058a7-3990-7921-bb87-66c7370b999e",
+				lastEventType: "Attached",
+			},
+		]);
+	});
+
+	it("leaves a fresh (non-resumed) launch unbound", () => {
+		const db = createTestDb();
+		seedCodexConfig(db);
+		const store = new TerminalAgentStore();
+
+		bindResumedSession(
+			{ db, terminalAgentStore: store },
+			{ workspaceId: WORKSPACE_ID, agent: "codex", prompt: "go" },
+			TERMINAL_ID,
+		);
+
+		expect(store.list()).toEqual([]);
+	});
+
+	it("keeps the bound id when the wrapper's launch report arrives without one", () => {
+		const db = createTestDb();
+		seedCodexConfig(db);
+		const store = new TerminalAgentStore();
+
+		bindResumedSession(
+			{ db, terminalAgentStore: store },
+			{
+				workspaceId: WORKSPACE_ID,
+				agent: "codex",
+				prompt: "",
+				resumeSessionId: "01a058a7-3990-7921-bb87-66c7370b999e",
+			},
+			TERMINAL_ID,
+		);
+		store.recordEvent({
+			terminalId: TERMINAL_ID,
+			workspaceId: WORKSPACE_ID,
+			eventType: "Attached",
+			agentId: "codex",
+			occurredAt: Date.now(),
+		});
+
+		expect(store.list()[0]?.agentSessionId).toBe(
+			"01a058a7-3990-7921-bb87-66c7370b999e",
+		);
 	});
 });

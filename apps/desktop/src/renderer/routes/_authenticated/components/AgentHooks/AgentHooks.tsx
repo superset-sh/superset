@@ -1,7 +1,7 @@
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useCliTerminalScriptImport } from "./hooks/useCliTerminalScriptImport";
 import { useDefaultV2TerminalPresets } from "./hooks/useDefaultV2TerminalPresets";
-import { usePlaceLocalWorktreesInSidebar } from "./hooks/usePlaceLocalWorktreesInSidebar";
+import { usePlaceWorktreesInSidebar } from "./hooks/usePlaceWorktreesInSidebar";
 
 /**
  * Component that runs agent-related hooks requiring CollectionsProvider context.
@@ -12,6 +12,6 @@ export function AgentHooks() {
 	// config cache for Settings.
 	useDefaultV2TerminalPresets(activeHostUrl);
 	useCliTerminalScriptImport(activeOrganizationId);
-	usePlaceLocalWorktreesInSidebar();
+	usePlaceWorktreesInSidebar();
 	return null;
 }

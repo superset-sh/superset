@@ -128,12 +128,10 @@ export function TerminalConnectionIndicator({
 		onSuccess: () => {
 			toast.success(
 				t({
-					id: "workspace.terminalPane.restartSucceeded",
 					message: "Terminals restarted",
 				}),
 				{
 					description: t({
-						id: "workspace.terminalPane.restartSucceededDescription",
 						message: "All terminal sessions were closed.",
 					}),
 				},
@@ -143,7 +141,6 @@ export function TerminalConnectionIndicator({
 		onError: (error) => {
 			toast.error(
 				t({
-					id: "workspace.terminalPane.restartFailed",
 					message: "Couldn't restart terminals",
 				}),
 				{
@@ -192,16 +189,13 @@ export function TerminalConnectionIndicator({
 	const label =
 		mode === "unresponsive"
 			? t({
-					id: "workspace.terminalPane.statusUnresponsive",
 					message: "Terminals aren't responding",
 				})
 			: mode === "disconnected"
 				? t({
-						id: "workspace.terminalPane.statusDisconnected",
 						message: "Disconnected",
 					})
 				: t({
-						id: "workspace.terminalPane.statusReconnecting",
 						message: "Reconnecting…",
 					});
 	const StatusIcon = mode === "reconnecting" ? Loader2 : TriangleAlert;
@@ -220,7 +214,6 @@ export function TerminalConnectionIndicator({
 				<button
 					type="button"
 					aria-label={t({
-						id: "workspace.terminalPane.connectionAria",
 						message: `Terminal connection: ${label}`,
 					})}
 					className="flex h-5 items-center gap-1.5 rounded px-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
@@ -265,16 +258,12 @@ export function TerminalConnectionIndicator({
 								{reconnecting ? (
 									<>
 										<Loader2 className="animate-spin" />
-										<Trans id="workspace.terminalPane.reconnecting">
-											Reconnecting…
-										</Trans>
+										<Trans>Reconnecting…</Trans>
 									</>
 								) : (
 									<>
 										<RotateCw />
-										<Trans id="workspace.terminalPane.reconnect">
-											Reconnect
-										</Trans>
+										<Trans>Reconnect</Trans>
 									</>
 								)}
 							</Button>
@@ -286,7 +275,7 @@ export function TerminalConnectionIndicator({
 								disabled={restartDaemon.isPending}
 								onClick={() => setConfirmRestartOpen(true)}
 							>
-								<Trans id="workspace.terminalPane.restartDaemon">Restart</Trans>
+								<Trans>Restart</Trans>
 							</Button>
 						)}
 					</div>
@@ -296,11 +285,7 @@ export function TerminalConnectionIndicator({
 							onClick={() => setShowLog((v) => !v)}
 							className="self-center text-xs text-muted-foreground/70 transition-colors hover:text-foreground"
 						>
-							{showLog ? (
-								<Trans id="workspace.terminalPane.hideLog">Hide log</Trans>
-							) : (
-								<Trans id="workspace.terminalPane.viewLog">View log</Trans>
-							)}
+							{showLog ? <Trans>Hide log</Trans> : <Trans>View log</Trans>}
 						</button>
 					)}
 				</div>
@@ -344,7 +329,7 @@ export function TerminalConnectionIndicator({
 							}
 							className="self-start text-muted-foreground transition-colors hover:text-foreground"
 						>
-							<Trans id="workspace.terminalPane.copyLog">Copy log</Trans>
+							<Trans>Copy log</Trans>
 						</button>
 					</div>
 				)}
@@ -356,12 +341,10 @@ export function TerminalConnectionIndicator({
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>
-							<Trans id="workspace.terminalPane.restartAllTitle">
-								Restart all terminals?
-							</Trans>
+							<Trans>Restart all terminals?</Trans>
 						</AlertDialogTitle>
 						<AlertDialogDescription>
-							<Trans id="workspace.terminalPane.restartAllDescription">
+							<Trans>
 								This closes every terminal session — in this workspace and any
 								others — and can't be undone. If they're only briefly stuck,
 								waiting usually brings them back.
@@ -370,9 +353,7 @@ export function TerminalConnectionIndicator({
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel>
-							<Trans id="workspace.terminalPane.restartAllCancel">
-								Keep waiting
-							</Trans>
+							<Trans>Keep waiting</Trans>
 						</AlertDialogCancel>
 						<AlertDialogAction
 							onClick={() => {
@@ -380,9 +361,7 @@ export function TerminalConnectionIndicator({
 								restartDaemon.mutate();
 							}}
 						>
-							<Trans id="workspace.terminalPane.restartAllConfirm">
-								Restart terminals
-							</Trans>
+							<Trans>Restart terminals</Trans>
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

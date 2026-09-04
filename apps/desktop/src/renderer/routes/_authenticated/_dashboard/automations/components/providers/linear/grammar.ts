@@ -55,27 +55,23 @@ export const LINEAR_SENTENCES: Record<LinearTriggerEvent, SentencePart[]> = {
 export const LINEAR_MENU: TriggerMenuEntry<LinearConfig>[] = [
 	{
 		label: msg({
-			id: "dashboard.automations.providers.linear.menuIssue",
 			message: "Issue…",
 		}),
 		children: [
 			leaf(
 				msg({
-					id: "dashboard.automations.providers.linear.menuIssueCreated",
 					message: "Created",
 				}),
 				"issue.created",
 			),
 			leaf(
 				msg({
-					id: "dashboard.automations.providers.linear.menuIssueStatusChanged",
 					message: "Status changed",
 				}),
 				"issue.status_changed",
 			),
 			leaf(
 				msg({
-					id: "dashboard.automations.providers.linear.menuIssueAssigned",
 					message: "Assigned",
 				}),
 				"issue.assigned",
@@ -84,7 +80,6 @@ export const LINEAR_MENU: TriggerMenuEntry<LinearConfig>[] = [
 	},
 	leaf(
 		msg({
-			id: "dashboard.automations.providers.linear.menuCycleEnded",
 			message: "Cycle ended",
 		}),
 		"cycle.ended",

@@ -115,11 +115,9 @@ export function ImportHistoryDialog({
 				messages.push(
 					result.imported === 0
 						? t({
-								id: "components.importHistoryDialog.noHistory",
 								message: "no history",
 							})
 						: t({
-								id: "components.importHistoryDialog.historyCount",
 								message: plural(result.imported, {
 									one: "# history item",
 									other: "# history items",
@@ -138,7 +136,6 @@ export function ImportHistoryDialog({
 					// must not count toward importedSomething below.
 					messages.push(
 						t({
-							id: "components.importHistoryDialog.loginsSkipped",
 							message: "logins skipped (Keychain access denied)",
 						}),
 					);
@@ -147,11 +144,9 @@ export function ImportHistoryDialog({
 					messages.push(
 						result.imported === 0
 							? t({
-									id: "components.importHistoryDialog.noLogins",
 									message: "no logins",
 								})
 							: t({
-									id: "components.importHistoryDialog.loginsCount",
 									message: plural(result.imported, {
 										one: "# login",
 										other: "# logins",
@@ -163,14 +158,12 @@ export function ImportHistoryDialog({
 
 			const joinedMessages = messages.join(
 				t({
-					id: "components.importHistoryDialog.messageSeparator",
 					message: " and ",
 				}),
 			);
 			if (importedSomething) {
 				toast.success(
 					t({
-						id: "components.importHistoryDialog.importedSummary",
 						message: `Imported ${joinedMessages}`,
 					}),
 				);
@@ -178,7 +171,6 @@ export function ImportHistoryDialog({
 			} else {
 				toast.error(
 					t({
-						id: "components.importHistoryDialog.importFailed",
 						message: "Could not import from browser",
 					}),
 					{ description: joinedMessages || undefined },
@@ -193,7 +185,6 @@ export function ImportHistoryDialog({
 			if (importedSomething) dismissImportBanner(BROWSER_IMPORT_BANNER_ID);
 			toast.error(
 				t({
-					id: "components.importHistoryDialog.importErrored",
 					message: "Could not import from browser",
 				}),
 				{ description: error instanceof Error ? error.message : undefined },
@@ -224,12 +215,10 @@ export function ImportHistoryDialog({
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>
-						<Trans id="components.importHistoryDialog.title">
-							Import settings from another browser
-						</Trans>
+						<Trans>Import settings from another browser</Trans>
 					</DialogTitle>
 					<DialogDescription>
-						<Trans id="components.importHistoryDialog.description">
+						<Trans>
 							Copy your browsing history and logins from another browser into
 							Superset. Your original browser isn't changed.
 						</Trans>
@@ -238,30 +227,24 @@ export function ImportHistoryDialog({
 
 				{loadState.status === "loading" && (
 					<p className="py-4 text-sm text-muted-foreground">
-						<Trans id="components.importHistoryDialog.searchingBrowsers">
-							Looking for installed browsers…
-						</Trans>
+						<Trans>Looking for installed browsers…</Trans>
 					</p>
 				)}
 
 				{loadState.status === "needs-full-disk-access" && (
 					<div className="flex flex-col gap-3 py-2 text-sm">
 						<p className="text-muted-foreground">
-							<Trans id="components.importHistoryDialog.needsFullDiskAccess">
+							<Trans>
 								Superset needs Full Disk Access to read another browser's data.
 								Grant it in System Settings, then check again.
 							</Trans>
 						</p>
 						<div className="flex gap-2">
 							<Button variant="outline" size="sm" onClick={handleOpenSettings}>
-								<Trans id="components.importHistoryDialog.openSystemSettings">
-									Open System Settings
-								</Trans>
+								<Trans>Open System Settings</Trans>
 							</Button>
 							<Button variant="ghost" size="sm" onClick={loadSources}>
-								<Trans id="components.importHistoryDialog.checkAgain">
-									Check again
-								</Trans>
+								<Trans>Check again</Trans>
 							</Button>
 						</div>
 					</div>
@@ -269,7 +252,7 @@ export function ImportHistoryDialog({
 
 				{loadState.status === "ready" && loadState.sources.length === 0 && (
 					<p className="py-4 text-sm text-muted-foreground">
-						<Trans id="components.importHistoryDialog.noBrowsersFound">
+						<Trans>
 							No Chrome, Brave, Arc, or other Chromium browsers were found.
 						</Trans>
 					</p>
@@ -326,9 +309,7 @@ export function ImportHistoryDialog({
 									onCheckedChange={(v) => setImportHistory(v === true)}
 								/>
 								<Label htmlFor="import-history" className="font-normal">
-									<Trans id="components.importHistoryDialog.browsingHistory">
-										Browsing history
-									</Trans>
+									<Trans>Browsing history</Trans>
 								</Label>
 							</div>
 							<div className="flex items-start gap-2">
@@ -340,20 +321,16 @@ export function ImportHistoryDialog({
 								/>
 								<div className="flex flex-col gap-0.5">
 									<Label htmlFor="import-logins" className="font-normal">
-										<Trans id="components.importHistoryDialog.loginsCookies">
-											Logins (cookies)
-										</Trans>
+										<Trans>Logins (cookies)</Trans>
 									</Label>
 									<span className="text-xs text-muted-foreground">
 										{isMac ? (
-											<Trans id="components.importHistoryDialog.loginsMacHint">
+											<Trans>
 												Quit the source browser first so its logins are saved to
 												disk. You'll be asked to allow Keychain access.
 											</Trans>
 										) : (
-											<Trans id="components.importHistoryDialog.loginsMacOnly">
-												Only available on macOS.
-											</Trans>
+											<Trans>Only available on macOS.</Trans>
 										)}
 									</span>
 								</div>
@@ -368,16 +345,10 @@ export function ImportHistoryDialog({
 						onClick={() => onOpenChange(false)}
 						disabled={isImporting}
 					>
-						<Trans id="components.importHistoryDialog.cancel">Cancel</Trans>
+						<Trans>Cancel</Trans>
 					</Button>
 					<Button onClick={handleImport} disabled={isImporting || !canImport}>
-						{isImporting ? (
-							<Trans id="components.importHistoryDialog.importing">
-								Importing…
-							</Trans>
-						) : (
-							<Trans id="components.importHistoryDialog.import">Import</Trans>
-						)}
+						{isImporting ? <Trans>Importing…</Trans> : <Trans>Import</Trans>}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

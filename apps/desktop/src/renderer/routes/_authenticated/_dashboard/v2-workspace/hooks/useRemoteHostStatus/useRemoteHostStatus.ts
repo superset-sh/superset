@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { MIN_HOST_SERVICE_VERSION } from "@superset/shared/host-version";
@@ -69,10 +70,11 @@ export function useRemoteHostStatus(
 				status: "incompatible",
 				hostName:
 					hostRow?.name ??
-					i18n._({
-						id: "workspace.remoteHostStatus.unknownHost",
-						message: "Unknown host",
-					}),
+					i18n._(
+						msg({
+							message: "Unknown host",
+						}),
+					),
 				hostVersion,
 				minVersion: MIN_HOST_SERVICE_VERSION,
 			};

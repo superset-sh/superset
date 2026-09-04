@@ -87,6 +87,16 @@ enum ComposerMetrics {
   /// Slack before a scroll offset counts as "there is more that way", so a
   /// rubber-band overshoot does not flicker the fades.
   static let quickKeyScrollThreshold: CGFloat = 4
+  /// The bar's outer height — a key plus the inset either side of it — which
+  /// is also the side of the square control ahead of it.
+  static let quickKeyBarHeight: CGFloat = quickKeyHeight + quickKeyBarInset * 2
+  /// Air between that control and the bar. Wider than the keys' own spacing:
+  /// the break is what says the control is not one of them.
+  static let quickKeyActionGap: CGFloat = 8
+  /// A drawn mark needs more box than an SF Symbol at the same nominal size —
+  /// the symbol's own bounds already carry optical padding, a 24-unit lucide
+  /// path does not.
+  static let quickKeyActionMark: CGFloat = 16
 
   /// The session tab strip, above the quick keys.
   ///
@@ -297,8 +307,16 @@ struct ComposerRootView: View {
                 onAllSessions: { model.onAllSessionsPress?() }
               )
             }
-            if !model.quickKeys.isEmpty {
-              ComposerQuickKeys(keys: model.quickKeys) { model.onQuickKeyPress?($0) }
+            // The keys, or the control beside them: select mode empties the
+            // keys, and a workspace with a pull request keeps its row through
+            // that, so the cluster's height holds and the link stays put.
+            if !model.quickKeys.isEmpty || model.quickKeysAction != nil {
+              ComposerQuickKeys(
+                keys: model.quickKeys,
+                action: model.quickKeysAction,
+                onPress: { model.onQuickKeyPress?($0) },
+                onAction: { model.onQuickKeysActionPress?() }
+              )
             }
             surface
               .padding(.horizontal, ComposerMetrics.horizontalMargin)

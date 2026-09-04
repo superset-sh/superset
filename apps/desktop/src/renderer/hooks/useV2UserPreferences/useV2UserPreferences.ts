@@ -7,11 +7,10 @@ import {
 	type FolderTierMap,
 	type LinkAction,
 	type LinkTierMap,
+	type SidebarProjectSortMode,
 	V2_USER_PREFERENCES_ID,
 	type V2UserPreferencesRow,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
-
-export type RightSidebarTab = V2UserPreferencesRow["rightSidebarTab"];
 
 export interface V2UserPreferencesApi {
 	preferences: V2UserPreferencesRow;
@@ -21,11 +20,11 @@ export interface V2UserPreferencesApi {
 	setFolderLinks: (next: FolderTierMap) => void;
 	setPortOpenAction: (next: LinkAction) => void;
 	setRightSidebarOpen: (next: boolean | ((prev: boolean) => boolean)) => void;
-	setRightSidebarTab: (next: RightSidebarTab) => void;
 	setRightSidebarWidth: (next: number) => void;
 	setDeleteLocalBranch: (next: boolean) => void;
 	setShowPresetsBar: (next: boolean | ((prev: boolean) => boolean)) => void;
 	toggleShowPresetsBar: () => void;
+	setSidebarProjectSortMode: (next: SidebarProjectSortMode) => void;
 	setBuiltinPresetHidden: (presetId: string, hidden: boolean) => void;
 	/** Hide/show a tag folder in one project without touching anyone's tags. */
 	setTagFolderHidden: (projectId: string, tag: string, hidden: boolean) => void;
@@ -139,25 +138,6 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 		[collections],
 	);
 
-	const setRightSidebarTab = useCallback(
-		(next: RightSidebarTab) => {
-			const existing = collections.v2UserPreferences.get(
-				V2_USER_PREFERENCES_ID,
-			);
-			if (!existing) {
-				collections.v2UserPreferences.insert({
-					...DEFAULT_V2_USER_PREFERENCES,
-					rightSidebarTab: next,
-				});
-				return;
-			}
-			collections.v2UserPreferences.update(V2_USER_PREFERENCES_ID, (draft) => {
-				draft.rightSidebarTab = next;
-			});
-		},
-		[collections],
-	);
-
 	const setRightSidebarWidth = useCallback(
 		(next: number) => {
 			const existing = collections.v2UserPreferences.get(
@@ -223,6 +203,25 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 	const toggleShowPresetsBar = useCallback(() => {
 		setShowPresetsBar((prev) => !prev);
 	}, [setShowPresetsBar]);
+
+	const setSidebarProjectSortMode = useCallback(
+		(next: SidebarProjectSortMode) => {
+			const existing = collections.v2UserPreferences.get(
+				V2_USER_PREFERENCES_ID,
+			);
+			if (!existing) {
+				collections.v2UserPreferences.insert({
+					...DEFAULT_V2_USER_PREFERENCES,
+					sidebarProjectSortMode: next,
+				});
+				return;
+			}
+			collections.v2UserPreferences.update(V2_USER_PREFERENCES_ID, (draft) => {
+				draft.sidebarProjectSortMode = next;
+			});
+		},
+		[collections],
+	);
 
 	const setBuiltinPresetHidden = useCallback(
 		(presetId: string, hidden: boolean) => {
@@ -296,11 +295,11 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 		setFolderLinks,
 		setPortOpenAction,
 		setRightSidebarOpen,
-		setRightSidebarTab,
 		setRightSidebarWidth,
 		setDeleteLocalBranch,
 		setShowPresetsBar,
 		toggleShowPresetsBar,
+		setSidebarProjectSortMode,
 		setBuiltinPresetHidden,
 		setTagFolderHidden,
 	};

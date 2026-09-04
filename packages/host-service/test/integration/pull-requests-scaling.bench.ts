@@ -134,6 +134,26 @@ async function waitFor(
 	}
 }
 
+async function waitUntilQuiet(
+	getValue: () => number,
+	{ quietMs = 750, timeoutMs = 15_000, pollMs = 50 } = {},
+): Promise<void> {
+	const deadline = Date.now() + timeoutMs;
+	let lastValue = getValue();
+	let lastChangeAt = Date.now();
+	while (Date.now() - lastChangeAt < quietMs) {
+		if (Date.now() > deadline) {
+			throw new Error("Timed out waiting for system to quiesce");
+		}
+		await new Promise((r) => setTimeout(r, pollMs));
+		const current = getValue();
+		if (current !== lastValue) {
+			lastValue = current;
+			lastChangeAt = Date.now();
+		}
+	}
+}
+
 describe("BENCH: pull-requests runtime — post-fix steady state", () => {
 	let scenarios: BenchScenario[] = [];
 
@@ -146,16 +166,31 @@ describe("BENCH: pull-requests runtime — post-fix steady state", () => {
 		const scenario = await setup(5);
 		scenarios.push(scenario);
 
-		scenario.gitWatcher.start();
-		scenario.manager.start();
-
-		// Wait for initial sweep to settle.
-		await waitFor(() => scenario.counter.count >= 1, { timeoutMs: 10_000 });
-		await new Promise((r) => setTimeout(r, 200));
-
 		const targetWorkspaceId = scenario.workspaceIds[2];
 		const targetRepo = scenario.repos[2];
 		if (!targetWorkspaceId || !targetRepo) throw new Error("missing target");
+
+		scenario.gitWatcher.start();
+		scenario.manager.start();
+		// GitWatcher only watches a workspace while someone holds interest
+		// (#6729): simulate the target being open in a renderer, or the commit
+		// below is never observed and the latency wait times out.
+		let catchUpSeen = false;
+		const stopListening = scenario.gitWatcher.onChanged((event) => {
+			if (event.workspaceId === targetWorkspaceId) catchUpSeen = true;
+		});
+		scenario.gitWatcher.watchWorkspace(targetWorkspaceId);
+
+		// Attaching emits one catch-up git:changed (after GIT_DIR_DEBOUNCE_MS),
+		// which triggers a sync; the manager's own start() sweep runs too. Wait
+		// for the catch-up itself, then for the manager's git activity to go
+		// quiet, so neither overlaps the measured commit.
+		await waitFor(() => catchUpSeen, { timeoutMs: 10_000 });
+		await waitUntilQuiet(() => scenario.counter.count, {
+			quietMs: 800,
+			timeoutMs: 15_000,
+		});
+		stopListening();
 
 		const expectedSha = (
 			await targetRepo.commit("bench commit", { "bench.txt": "x" })

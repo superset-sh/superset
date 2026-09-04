@@ -8,6 +8,7 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
+import { track } from "renderer/lib/analytics";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
@@ -35,7 +36,6 @@ export function LanguageSection() {
 						if (error.data?.code === "UNAUTHORIZED") return;
 						toast.error(
 							t({
-								id: "settings.appearance.language.syncFailed",
 								message:
 									"Language saved on this device, but syncing it to your account failed.",
 							}),
@@ -47,7 +47,6 @@ export function LanguageSection() {
 		onError: () =>
 			toast.error(
 				t({
-					id: "settings.appearance.language.updateFailed",
 					message: "Failed to update language",
 				}),
 			),
@@ -59,7 +58,6 @@ export function LanguageSection() {
 				<div className="text-sm font-medium">
 					<HighlightText
 						text={t({
-							id: "settings.appearance.language.label",
 							message: "Language",
 						})}
 						query={searchQuery}
@@ -68,7 +66,6 @@ export function LanguageSection() {
 				<div className="text-xs text-muted-foreground">
 					<HighlightText
 						text={t({
-							id: "settings.appearance.language.hint",
 							message:
 								"App display language. Auto follows your system language.",
 						})}
@@ -78,16 +75,21 @@ export function LanguageSection() {
 			</div>
 			<Select
 				value={language ?? AUTO}
-				onValueChange={(value) =>
-					setLanguage.mutate({ language: value === AUTO ? null : value })
-				}
+				onValueChange={(value) => {
+					track("language_changed", {
+						from: language ?? AUTO,
+						to: value,
+						surface: "settings",
+					});
+					setLanguage.mutate({ language: value === AUTO ? null : value });
+				}}
 			>
 				<SelectTrigger size="sm" className="w-auto min-w-44 px-2">
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent>
 					<SelectItem value={AUTO}>
-						<Trans id="settings.appearance.language.auto">Auto (system)</Trans>
+						<Trans>Auto (system)</Trans>
 					</SelectItem>
 					{SUPPORTED_LOCALES.map((locale) => (
 						<SelectItem key={locale} value={locale}>

@@ -29,24 +29,20 @@ export function useDirtyTabCloseGuard(): OnBeforeCloseTab {
 			const title =
 				dirtyPanes.length === 1
 					? t({
-							id: "workspace.dirtyTabCloseGuard.saveSingleTitle",
 							message: `Do you want to save the changes you made to ${dirtyFileNames[0]}?`,
 						})
 					: t({
-							id: "workspace.dirtyTabCloseGuard.saveMultipleTitle",
 							message: `Do you want to save changes to ${dirtyPanes.length} files?`,
 						});
 			return new Promise<boolean>((resolve) => {
 				alert({
 					title,
 					description: t({
-						id: "workspace.dirtyTabCloseGuard.description",
 						message: "Your changes will be lost if you don't save them.",
 					}),
 					actions: [
 						{
 							label: t({
-								id: "workspace.dirtyTabCloseGuard.saveAll",
 								message: "Save All",
 							}),
 							onClick: async () => {
@@ -65,7 +61,6 @@ export function useDirtyTabCloseGuard(): OnBeforeCloseTab {
 						},
 						{
 							label: t({
-								id: "workspace.dirtyTabCloseGuard.dontSave",
 								message: "Don't Save",
 							}),
 							variant: "secondary",
@@ -80,7 +75,6 @@ export function useDirtyTabCloseGuard(): OnBeforeCloseTab {
 						},
 						{
 							label: t({
-								id: "workspace.dirtyTabCloseGuard.cancel",
 								message: "Cancel",
 							}),
 							variant: "ghost",

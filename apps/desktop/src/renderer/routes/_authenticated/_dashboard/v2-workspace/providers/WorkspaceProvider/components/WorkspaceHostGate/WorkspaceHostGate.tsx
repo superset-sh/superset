@@ -51,9 +51,8 @@ export function WorkspaceHostGate({
 	const hostName =
 		hostRow?.name ??
 		(workspace.hostId === machineId
-			? t({ id: "workspace.states.hostGateThisDevice", message: "This device" })
+			? t({ message: "This device" })
 			: t({
-					id: "workspace.states.hostGateUnknownHost",
 					message: "Unknown host",
 				}));
 

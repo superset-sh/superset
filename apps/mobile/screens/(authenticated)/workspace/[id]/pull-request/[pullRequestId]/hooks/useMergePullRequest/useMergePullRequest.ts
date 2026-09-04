@@ -15,15 +15,12 @@ import type {
 
 const METHOD_LABEL: Record<MergeMethod, MessageDescriptor> = {
 	squash: msg({
-		id: "mobile.pullRequest.action.squashAndMerge",
 		message: "Squash & Merge",
 	}),
 	merge: msg({
-		id: "mobile.pullRequest.mergeMethod.mergeCommit",
 		message: "Merge Commit",
 	}),
 	rebase: msg({
-		id: "mobile.pullRequest.action.rebaseAndMerge",
 		message: "Rebase & Merge",
 	}),
 };
@@ -71,7 +68,6 @@ export function useMergePullRequest({
 		onError: (error: Error) => {
 			Alert.alert(
 				t({
-					id: "mobile.pullRequest.mergeRefused",
 					message: "GitHub refused the merge",
 				}),
 				error.message,
@@ -84,11 +80,9 @@ export function useMergePullRequest({
 		if (!method) {
 			Alert.alert(
 				t({
-					id: "mobile.pullRequest.noMergeMethod.title",
 					message: "No merge method allowed",
 				}),
 				t({
-					id: "mobile.pullRequest.noMergeMethod.body",
 					message: "This repository does not allow merging from here.",
 				}),
 			);
@@ -97,12 +91,11 @@ export function useMergePullRequest({
 		Alert.alert(
 			i18n._(METHOD_LABEL[method]),
 			t({
-				id: "mobile.pullRequest.mergeConfirm",
 				message: `#${detail.pullRequest.number} ${detail.pullRequest.title}\n\nThis merges into ${detail.pullRequest.baseBranch} and cannot be undone here.`,
 			}),
 			[
 				{
-					text: t({ id: "common.cancel", message: "Cancel" }),
+					text: t({ message: "Cancel" }),
 					style: "cancel",
 				},
 				{

@@ -31,8 +31,8 @@ export function PullRequestsSheet() {
 		host?.isOnline === true
 			? hostServiceUrl(host.organizationId, host.machineId)
 			: null;
-	// The hook hands back current-then-newest, which is what the chip colours
-	// itself from; only the list wants the other direction.
+	// The hook hands back current-then-newest, which is what the strip's chip
+	// colours itself from; only the list wants the other direction.
 	const pullRequests = useWorkspacePullRequests(id ?? null).toReversed();
 
 	return (
@@ -40,7 +40,6 @@ export function PullRequestsSheet() {
 			<Stack.Screen
 				options={{
 					title: t({
-						id: "mobile.nav.pullRequests.title",
 						message: "Pull Requests",
 					}),
 				}}
@@ -48,7 +47,6 @@ export function PullRequestsSheet() {
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.Button
 					accessibilityLabel={t({
-						id: "mobile.common.close",
 						message: "Close",
 					})}
 					icon="xmark"
@@ -65,7 +63,6 @@ export function PullRequestsSheet() {
 					return (
 						<Pressable
 							accessibilityLabel={t({
-								id: "mobile.workspaceRow.pullRequestLabel",
 								message: `Pull request #${pullRequest.prNumber}`,
 							})}
 							accessibilityRole="button"

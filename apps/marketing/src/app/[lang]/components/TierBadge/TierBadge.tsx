@@ -4,14 +4,13 @@ import { useLingui } from "@lingui/react/macro";
 import { TierIcon } from "@/app/[lang]/components/TierIcon";
 
 export const TIER_NAMES: readonly MessageDescriptor[] = [
-	msg({ id: "marketing.tiers.name.buttonPusher", message: "Button pusher" }),
-	msg({ id: "marketing.tiers.name.operator", message: "Operator" }),
-	msg({ id: "marketing.tiers.name.plantManager", message: "Plant Manager" }),
-	msg({ id: "marketing.tiers.name.henryFord", message: "Henry Ford" }),
+	msg({ message: "Button pusher" }),
+	msg({ message: "Operator" }),
+	msg({ message: "Plant Manager" }),
+	msg({ message: "Henry Ford" }),
 ];
 
 export const UNRANKED_LABEL: MessageDescriptor = msg({
-	id: "marketing.tiers.unranked",
 	message: "Unranked",
 });
 
@@ -66,7 +65,6 @@ export function TierBadge({
 				<span className="font-mono text-[0.58rem] uppercase tracking-[0.2em] opacity-60">
 					{ranked
 						? t({
-								id: "marketing.tiers.factoryTier",
 								message: `Factory tier ${tier}`,
 							})
 						: t(UNRANKED_LABEL)}

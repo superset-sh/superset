@@ -1,13 +1,19 @@
-import { db, dbWs } from "@superset/db/client";
-import { cloudWorkspaces, v2Projects } from "@superset/db/schema";
+import { db } from "@superset/db/client";
+import { cloudWorkspaces } from "@superset/db/schema";
+import {
+	type CloudAgentLaunch,
+	cloudAgentLaunchToEnv,
+} from "@superset/shared/cloud-agent-launch";
 import {
 	SANDBOX_HOST_DB_PATH,
 	SANDBOX_WORKSPACE_PATH,
 } from "@superset/shared/constants";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { env } from "../../env";
 import { deleteSandbox, provisionSandbox } from "../../lib/blaxel";
 import { resolveCloneTarget } from "../../lib/blaxel/clone-token";
+import { cloudRepo } from "../../lib/blaxel/cloud-repo";
+import { resolveEnvironment } from "../environment/resolve-environment";
 import { generateCloudWorkspaceName } from "./generate-name";
 
 export const FALLBACK_NAME = "Cloud workspace";
@@ -24,6 +30,8 @@ export interface ProvisionCloudWorkspaceInput {
 	 * `FALLBACK_NAME` and this is what the workspace gets named from.
 	 */
 	namingPrompt?: string;
+	/** A built-in agent to run once the sandbox is up; see cloud-agent-launch. */
+	launch?: CloudAgentLaunch;
 }
 
 export type ProvisionCloudWorkspaceOutcome =
@@ -57,32 +65,26 @@ export async function provisionCloudWorkspace(
 	// provisioning anyway would leave a sandbox nothing references.
 	if (row.status !== "provisioning") return "skipped";
 
-	const project = await db.query.v2Projects.findFirst({
-		where: and(
-			eq(v2Projects.id, row.projectId),
-			eq(v2Projects.organizationId, row.organizationId),
-		),
-	});
-
 	const providerSandboxId = sandboxNameFor(row.id);
 	try {
-		if (!project) {
-			throw new Error("Project not found in this organization");
-		}
 		// Naming is a model call (~0.7s) and the sandbox itself now comes up in
 		// about that long, so it is the longest thing here. Run it alongside the
 		// clone lookup rather than ahead of it; it can't overlap the provision
 		// call itself, which bakes the name into the sandbox's environment.
-		const [resolvedName, clone] = await Promise.all([
+		const [resolvedName, clone, environment] = await Promise.all([
 			input.namingPrompt === undefined
 				? Promise.resolve(row.name)
 				: generateCloudWorkspaceName(input.namingPrompt).then(
 						(generated) => generated ?? row.name,
 					),
-			resolveCloneTarget(row.projectId),
+			cloudRepo().then((repo) => (repo ? resolveCloneTarget(repo) : null)),
+			resolveEnvironment(row.environmentId, row.organizationId),
 		]);
+		if (!environment) {
+			throw new Error("Environment not found");
+		}
 		if (!clone) {
-			throw new Error("Project has no repository to clone");
+			throw new Error("No repository to clone");
 		}
 
 		// Written before the sandbox exists rather than with the final status:
@@ -91,7 +93,7 @@ export async function provisionCloudWorkspace(
 		const nameWrite =
 			resolvedName === row.name
 				? Promise.resolve()
-				: dbWs
+				: db
 						.update(cloudWorkspaces)
 						.set({ name: resolvedName })
 						.where(eq(cloudWorkspaces.id, row.id));
@@ -101,8 +103,9 @@ export async function provisionCloudWorkspace(
 		const [sandbox] = await Promise.all([
 			provisionSandbox({
 				name: providerSandboxId,
-				image: env.BLAXEL_SANDBOX_IMAGE,
+				environment,
 				workspaceEnv: {
+					...environment.envs,
 					ORGANIZATION_ID: row.organizationId,
 					HOST_DB_PATH: SANDBOX_HOST_DB_PATH,
 					HOST_MIGRATIONS_FOLDER: "/app/drizzle",
@@ -111,7 +114,6 @@ export async function provisionCloudWorkspace(
 					SUPERSET_HOST_RUN_MODE: "sandbox",
 					SUPERSET_SANDBOX_WORKSPACE_ID: row.id,
 					SUPERSET_SANDBOX_WORKSPACE_NAME: resolvedName,
-					SUPERSET_SANDBOX_PROJECT_NAME: project.name,
 					SUPERSET_SANDBOX_BRANCH: row.branch,
 					SUPERSET_SANDBOX_WORKSPACE_PATH: SANDBOX_WORKSPACE_PATH,
 					// Compared against the URL baked into the image: a workspace for
@@ -119,12 +121,22 @@ export async function provisionCloudWorkspace(
 					// silently serving the baked repo's code.
 					SUPERSET_SANDBOX_REPO_URL: clone.cloneUrl,
 					...(clone.token ? { SUPERSET_SANDBOX_GIT_TOKEN: clone.token } : {}),
+					...(env.SENTRY_DSN_SANDBOX
+						? {
+								HOST_SERVICE_SENTRY_DSN: env.SENTRY_DSN_SANDBOX,
+								HOST_SERVICE_SENTRY_ENVIRONMENT:
+									env.NEXT_PUBLIC_SENTRY_ENVIRONMENT ?? "development",
+							}
+						: {}),
+					SUPERSET_SANDBOX_IMAGE_TAG: environment.sourceRef,
+					SUPERSET_SANDBOX_PROVIDER: row.provider,
+					...cloudAgentLaunchToEnv(input.launch),
 				},
 			}),
 			nameWrite,
 		]);
 
-		await dbWs
+		await db
 			.update(cloudWorkspaces)
 			.set({
 				providerSandboxId: sandbox.providerSandboxId,
@@ -146,7 +158,7 @@ export async function provisionCloudWorkspace(
 				teardownError,
 			);
 		});
-		await dbWs
+		await db
 			.update(cloudWorkspaces)
 			.set({ status: "failed" })
 			.where(eq(cloudWorkspaces.id, row.id));

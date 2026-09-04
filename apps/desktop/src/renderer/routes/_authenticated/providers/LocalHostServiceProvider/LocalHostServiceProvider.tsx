@@ -13,6 +13,7 @@ import { authClient, useAuthToken } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	setClientMachineId,
+	setClientUserId,
 	setHostServiceSecret,
 } from "renderer/lib/host-service-auth";
 import type { HostServiceAvailabilityStatus } from "renderer/lib/host-service-unavailable";
@@ -156,6 +157,12 @@ export function LocalHostServiceProvider({
 			setClientMachineId(machineIdData.machineId);
 		}
 	}, [machineIdData]);
+
+	const sessionUserId = session?.user.id ?? null;
+	useEffect(() => {
+		setClientUserId(sessionUserId);
+		return () => setClientUserId(null);
+	}, [sessionUserId]);
 
 	const { data: activeConnection } =
 		electronTrpc.hostServiceCoordinator.getConnection.useQuery(

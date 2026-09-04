@@ -1,9 +1,7 @@
-import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	type DraftTrigger,
-	describeTriggerProblems,
 	enabledTriggerKinds,
-	summarizeTriggerProblems,
+	type TriggerProblem,
 } from "@superset/shared/automation-triggers";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
@@ -17,69 +15,62 @@ import { Input } from "@superset/ui/input";
 import { Separator } from "@superset/ui/separator";
 import { useFeatureFlagPayload } from "posthog-js/react";
 import { type ReactNode, useMemo, useState } from "react";
-import { LuCirclePlus, LuTriangleAlert } from "react-icons/lu";
-import { TRIGGER_PROVIDERS } from "../providers";
-import { useProviderOptions } from "../providers/useProviderOptions";
+import { LuPlus } from "react-icons/lu";
+import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
+import { providerFor, TRIGGER_PROVIDERS } from "../providers";
+import type { OptionGroupState, ProviderOptions } from "../providers/types";
+import { useProviderConnections } from "../providers/useProviderConnections";
 import { TriggerSentence } from "../TriggerSentence";
+import { RuntimeWarnings } from "./components/RuntimeWarnings";
+import { collectRuntimeWarnings, lockedTierFor } from "./runtimeWarnings";
 import { TriggerMenuItems } from "./TriggerMenuItems";
 import { flattenTriggerMenu, matchesQuery } from "./triggerMenu";
 
+type ScheduleTriggerConfig = Extract<
+	DraftTrigger["config"],
+	{ kind: "schedule" }
+>;
+
 interface TriggersEditorProps {
-	triggers: DraftTrigger[];
-	/** Resolves once the set is written; rejects if it was refused. */
-	onChange: (next: DraftTrigger[]) => undefined | Promise<unknown>;
-	/** Whose integrations the pickable lists come from. */
+	drafts: DraftTrigger[];
+	onEdit: (next: DraftTrigger[]) => void;
+	problems: TriggerProblem[];
+	options: ProviderOptions;
+	optionState: Record<string, OptionGroupState>;
 	organizationId: string;
-	/** Trailing "Next run ..." text for one schedule row, by trigger id. */
-	renderNextRun?: (triggerId?: string) => ReactNode;
+	renderNextRun?: (config: ScheduleTriggerConfig) => ReactNode;
 	readOnly?: boolean;
+	children?: ReactNode;
 }
 
-/**
- * The trigger list for an automation.
- *
- * Holds drafts, not saved rows: a trigger can sit here half-configured while
- * someone is still choosing repositories, and the problems it reports are the
- * same ones the API would reject it with — the checks come from
- * `@superset/shared` rather than being restated here.
- */
 export function TriggersEditor({
-	triggers,
-	onChange,
+	drafts,
+	onEdit,
+	problems,
+	options,
+	optionState,
 	organizationId,
 	renderNextRun,
 	readOnly,
+	children,
 }: TriggersEditorProps) {
-	const { t } = useLingui();
-	// Edited locally and saved on request, unlike the rest of this page.
-	//
-	// A trigger is invalid the moment it is added — "Comment added" with no
-	// repository chosen yet — and the API rejects the whole set, so autosaving
-	// meant a new row was saved, refused, and dropped on the next render. Saving
-	// silently once it happened to become valid is no better: nothing tells you
-	// which edit crossed the line, or that anything was written at all.
-	const [drafts, setDrafts] = useState(triggers);
-	const options = useProviderOptions(organizationId, drafts);
-	const [dirty, setDirty] = useState(false);
-	const savedKey = JSON.stringify(triggers);
-	const [prevSavedKey, setPrevSavedKey] = useState(savedKey);
-	if (savedKey !== prevSavedKey) {
-		setPrevSavedKey(savedKey);
-		// Adopt what was saved — it carries the ids the server assigned — unless
-		// there are edits here, which by definition were never sent.
-		if (!dirty) setDrafts(triggers);
-	}
+	const add = (config: DraftTrigger["config"]) =>
+		onEdit([...drafts, { config }]);
 
-	const problems = useMemo(() => describeTriggerProblems(drafts), [drafts]);
+	const { plan } = useCurrentPlan();
+	const { connected, isPending: connectionsPending } =
+		useProviderConnections(organizationId);
 
-	// Nothing is wrong until someone says they are done. Every trigger is
-	// incomplete the instant it is added, so validating as you type marks a row
-	// before anyone has had the chance to fill it in — the complaint lands
-	// before the work. After a rejected save the problems stay live, so they
-	// clear as each one is fixed rather than only on the next attempt.
-	const [submitted, setSubmitted] = useState(false);
-	const shownProblems = submitted ? problems : [];
-	const banner = submitted ? summarizeTriggerProblems(problems) : null;
+	const missingConnection = (config: DraftTrigger["config"]) => {
+		if (connectionsPending) return false;
+		const required = providerFor(config).connectionProvider;
+		return required !== undefined && !connected[required];
+	};
+
+	const runtimeWarnings = useMemo(
+		() => collectRuntimeWarnings(drafts, options, plan),
+		[drafts, options, plan],
+	);
 
 	const enabledKinds = useFeatureFlagPayload(
 		FEATURE_FLAGS.AUTOMATION_EVENT_TRIGGERS,
@@ -92,126 +83,46 @@ export function TriggersEditor({
 	}, [enabledKinds]);
 
 	const [query, setQuery] = useState("");
-	const leaves = useMemo(() => flattenTriggerMenu(providers), [providers]);
+	// Locked providers stay in the menu but can't be added, so aren't indexed.
+	const leaves = useMemo(
+		() =>
+			flattenTriggerMenu(
+				providers.filter((provider) => !lockedTierFor(provider, plan)),
+			),
+		[providers, plan],
+	);
 	const results = query
 		? leaves.filter((leaf) => matchesQuery(leaf, query))
 		: [];
 
-	const edit = (next: DraftTrigger[]) => {
-		setDrafts(next);
-		setDirty(true);
-	};
-
-	const [saving, setSaving] = useState(false);
-
-	const save = async () => {
-		// Always clickable: the button is what asks for validation, so disabling
-		// it while the set is invalid would leave no way to find out why.
-		setSubmitted(true);
-		if (problems.length > 0) return;
-
-		setSaving(true);
-		try {
-			await onChange(drafts);
-			setDirty(false);
-			setSubmitted(false);
-		} catch {
-			// Stay dirty and keep the edits: this editor holds the only copy of
-			// them, and the mutation has already reported why it failed.
-		} finally {
-			setSaving(false);
-		}
-	};
-
-	const discard = () => {
-		setDrafts(triggers);
-		setDirty(false);
-		setSubmitted(false);
-	};
-
-	const add = (config: DraftTrigger["config"]) => edit([...drafts, { config }]);
-
 	return (
 		<div className="flex flex-col gap-1">
-			{/* The section label lives here rather than in the page, so the actions
-			    for the set can sit on its line. Above the surface, not below it: a
-			    Save that trails the rows drifts down the page as triggers are added,
-			    and takes the reason it was refused with it. */}
 			<div className="mb-2 flex min-h-7 items-center gap-3">
-				<span className="shrink-0 text-muted-foreground text-sm">
-					<Trans id="dashboard.automations.triggersEditor.sectionLabel">
-						Triggers
-					</Trans>
-				</span>
-
-				{banner && (
-					<p className="flex min-w-0 items-center gap-1.5 text-[13px] text-amber-600 dark:text-amber-400">
-						<LuTriangleAlert className="size-3.5 shrink-0" />
-						<span className="truncate">{banner}</span>
-					</p>
-				)}
-
-				{dirty && (
-					<div className="ml-auto flex shrink-0 items-center gap-1.5">
-						<Button
-							type="button"
-							variant="ghost"
-							size="sm"
-							onClick={discard}
-							disabled={saving}
-							className="h-7 text-[13px]"
-						>
-							<Trans id="dashboard.automations.triggersEditor.discard">
-								Discard
-							</Trans>
-						</Button>
-						<Button
-							type="button"
-							size="sm"
-							onClick={save}
-							disabled={saving}
-							className="h-7 text-[13px]"
-						>
-							{saving ? (
-								<Trans id="dashboard.automations.triggersEditor.saving">
-									Saving...
-								</Trans>
-							) : (
-								<Trans id="dashboard.automations.triggersEditor.saveTriggers">
-									Save triggers
-								</Trans>
-							)}
-						</Button>
-					</div>
-				)}
+				<span className="shrink-0 text-muted-foreground text-sm">Triggers</span>
 			</div>
 
-			{/* A filled surface, not an outlined box: the rows are the structure, and
-			    a border around them competes with the card they already sit in. */}
 			<div className="rounded-[12px] bg-foreground/[0.04] p-1">
 				{drafts.map((trigger, index) => (
 					<TriggerSentence
 						key={trigger.id ?? `draft-${index}`}
 						trigger={trigger}
 						onChange={(next) =>
-							edit(drafts.map((t, i) => (i === index ? next : t)))
+							onEdit(drafts.map((t, i) => (i === index ? next : t)))
 						}
-						onRemove={() => edit(drafts.filter((_, i) => i !== index))}
+						onRemove={() => onEdit(drafts.filter((_, i) => i !== index))}
 						options={options}
-						problems={shownProblems.filter((p) => p.index === index)}
+						optionState={optionState}
+						problems={problems.filter((p) => p.index === index)}
 						nextRun={
 							trigger.config.kind === "schedule"
-								? renderNextRun?.(trigger.id)
+								? renderNextRun?.(trigger.config)
 								: undefined
 						}
+						requiresConnection={missingConnection(trigger.config)}
 						disabled={readOnly}
 					/>
 				))}
 
-				{/* Separates the rows from the action, inset so it reads as a rule
-				    inside the surface rather than a division of the card. The bottom
-				    margin matches the row padding above it, so the rule sits centred
-				    in the gap rather than against the button. */}
 				{drafts.length > 0 && (
 					<Separator className="mx-2 mb-1.5 bg-border/60 data-[orientation=horizontal]:w-auto" />
 				)}
@@ -222,26 +133,19 @@ export function TriggersEditor({
 							type="button"
 							variant="ghost"
 							size="sm"
-							className="mb-1.5 h-10 w-full justify-start gap-2 rounded-[8px] px-2 font-normal text-[13px] text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground"
+							className="h-10 w-full justify-start gap-1.5 rounded-[8px] px-2 font-normal text-[13px] text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground"
 						>
-							<LuCirclePlus className="size-4" />
-							<Trans id="dashboard.automations.triggersEditor.addTrigger">
-								Add Trigger
-							</Trans>
+							<LuPlus className="size-4" />
+							Add Trigger
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="start" className="w-70">
-						{/* Radix runs a typeahead on printable keys and would swallow what
-					    is being typed here; Escape and the arrows still need to reach
-					    the menu, so only the characters are stopped. */}
+						{/* Radix's typeahead would swallow these keys; arrows/Escape still pass. */}
 						{leaves.length > 1 && (
 							<Input
 								autoFocus
 								value={query}
-								placeholder={t({
-									id: "dashboard.automations.triggersEditor.searchPlaceholder",
-									message: "Search triggers...",
-								})}
+								placeholder="Search triggers..."
 								onChange={(event) => setQuery(event.target.value)}
 								onKeyDown={(event) => {
 									if (event.key.length === 1 || event.key === "Backspace") {
@@ -277,18 +181,27 @@ export function TriggersEditor({
 								})}
 								{results.length === 0 && (
 									<DropdownMenuItem disabled>
-										<Trans id="dashboard.automations.triggersEditor.noMatchingTrigger">
-											No matching trigger
-										</Trans>
+										No matching trigger
 									</DropdownMenuItem>
 								)}
 							</>
 						) : (
-							<TriggerMenuItems providers={providers} onPick={add} />
+							<TriggerMenuItems
+								providers={providers}
+								onPick={add}
+								lockedLabel={(provider) => lockedTierFor(provider, plan)}
+							/>
 						)}
 					</DropdownMenuContent>
 				</DropdownMenu>
 			</div>
+
+			{children}
+
+			{/* Below the surface and the scope line, like the save banner is above
+			    them: these outlive any save, so they cannot live in the
+			    submit-gated banner. */}
+			<RuntimeWarnings warnings={runtimeWarnings} />
 		</div>
 	);
 }

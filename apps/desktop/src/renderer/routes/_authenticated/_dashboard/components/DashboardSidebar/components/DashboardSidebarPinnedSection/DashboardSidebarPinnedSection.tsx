@@ -3,6 +3,7 @@ import {
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { useLingui } from "@lingui/react/macro";
+import { useMemo } from "react";
 import { useSidebarSectionsCollapseStore } from "renderer/stores/sidebar-sections-collapse";
 import {
 	dropZoneId,
@@ -42,6 +43,13 @@ export function DashboardSidebarPinnedSection({
 	const { pinnedItems, workspacesById, projectsById, activeType } =
 		useDashboardSidebarDnd();
 	const isDraggingWorkspace = activeType === "workspace";
+	// Captured once per drag, on the render where the drag flag flips — the
+	// only render where "empty" still means "empty at pickup".
+	// biome-ignore lint/correctness/useExhaustiveDependencies: pinnedItems is read at that moment on purpose
+	const emptyAtPickup = useMemo(
+		() => isDraggingWorkspace && pinnedItems.length === 0,
+		[isDraggingWorkspace],
+	);
 	const isSectionCollapsed = useSidebarSectionsCollapseStore(
 		(s) => s.collapsed.pinned,
 	);
@@ -63,14 +71,38 @@ export function DashboardSidebarPinnedSection({
 		);
 	}
 
-	// Keep the section (and its drop targets) mounted through the whole drag,
-	// even when the last pinned row is dragged out mid-drag.
 	if (pinnedItems.length === 0 && !isDraggingWorkspace) return null;
+
+	// With nothing pinned, the section must not appear in-flow at pickup:
+	// mounting a header and drop zone above the dragged row shifts it under
+	// the pointer, and when the sidebar has no scroll room for dnd-kit to
+	// compensate the ghost sits that far off the cursor for the whole drag.
+	// Float the target instead — zero height in the list, stuck to the top of
+	// the scroller so it stays reachable however far the list is scrolled.
+	// A drag that started with pins keeps the in-flow section even after its
+	// last row transfers out, so the layout under the pointer holds still.
+	if (pinnedItems.length === 0 && emptyAtPickup) {
+		return (
+			// -mb-3 cancels the `mt-3 first:mt-0` the next section gains once
+			// it is no longer the scroller's first child — otherwise the float
+			// still nudges the list by that margin.
+			<div className="-mb-3 sticky top-0 z-20 h-0">
+				<div className="bg-sidebar/90 py-1 backdrop-blur-sm dark:bg-muted/90">
+					<SidebarDropZone
+						dropZoneId={dropZoneId(PINNED_CONTAINER)}
+						label={t({
+							message: "Drop to pin",
+						})}
+					/>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="mt-3 pb-1 first:mt-0">
 			<DashboardSidebarSectionHeader
-				label={t({ id: "dashboard.sidebar.sectionPinned", message: "Pinned" })}
+				label={t({ message: "Pinned" })}
 				section="pinned"
 			/>
 			{!isSectionCollapsed && (
@@ -91,6 +123,7 @@ export function DashboardSidebarPinnedSection({
 								key={String(id)}
 								sortableId={String(id)}
 								workspace={workspace}
+								indentation="top-level"
 								pinnedContext={{
 									projectName: project?.name ?? null,
 									projectIconUrl: project?.iconUrl ?? null,
@@ -107,7 +140,6 @@ export function DashboardSidebarPinnedSection({
 				<SidebarDropZone
 					dropZoneId={dropZoneId(PINNED_CONTAINER)}
 					label={t({
-						id: "dashboard.sidebar.pinnedSection.dropToPin",
 						message: "Drop to pin",
 					})}
 				/>

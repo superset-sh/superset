@@ -9,13 +9,13 @@ export function BinaryWarningView({ filePath, onForceView }: ViewProps) {
 		<div className="flex h-full w-full flex-col items-center justify-center gap-3 p-6 text-center">
 			<div className="text-sm font-medium">{name}</div>
 			<div className="max-w-md text-xs text-muted-foreground">
-				<Trans id="workspace.filePane.binaryWarning">
+				<Trans>
 					This looks like a binary file. Opening it as text may show garbled
 					output or freeze the editor for large files.
 				</Trans>
 			</div>
 			<Button variant="outline" size="sm" onClick={() => onForceView("code")}>
-				<Trans id="workspace.filePane.binaryOpenAnyway">Open Anyway</Trans>
+				<Trans>Open Anyway</Trans>
 			</Button>
 		</div>
 	);

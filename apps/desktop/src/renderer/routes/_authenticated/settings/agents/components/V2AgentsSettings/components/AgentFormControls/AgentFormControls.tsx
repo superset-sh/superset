@@ -87,16 +87,12 @@ export function AgentLaunchFields({
 	// into the message and then read back as an ICU argument with no value.
 	const sessionId = FORK_SESSION_ID_TOKEN;
 	return (
-		<Section
-			title={t({ id: "settings.agents.form.launchSection", message: "Launch" })}
-		>
+		<Section title={t({ message: "Launch" })}>
 			<StackedField
 				label={t({
-					id: "settings.agents.form.commandLabel",
 					message: "Command",
 				})}
 				hint={t({
-					id: "settings.agents.form.commandHint",
 					message: "Argv used to launch the agent.",
 				})}
 				htmlFor={`${idPrefix}-command`}
@@ -113,11 +109,10 @@ export function AgentLaunchFields({
 
 			<StackedField
 				label={t({
-					id: "settings.agents.form.promptArgsLabel",
 					message: "Prompt-only args",
 				})}
 				hint={
-					<Trans id="settings.agents.form.promptArgsHint">
+					<Trans>
 						Added only when launching with a prompt — e.g. <code>--</code>,{" "}
 						<code>--prompt</code>, <code>-i</code>.
 					</Trans>
@@ -136,11 +131,10 @@ export function AgentLaunchFields({
 
 			<StackedField
 				label={t({
-					id: "settings.agents.form.resumeArgsLabel",
 					message: "Resume args",
 				})}
 				hint={
-					<Trans id="settings.agents.form.resumeArgsHint">
+					<Trans>
 						Used to restore a previous session — the session id is appended
 						after these, e.g. <code>--resume</code>. Leave empty if the agent
 						can't resume by id.
@@ -160,11 +154,10 @@ export function AgentLaunchFields({
 
 			<StackedField
 				label={t({
-					id: "settings.agents.form.forkArgsLabel",
 					message: "Fork args",
 				})}
 				hint={
-					<Trans id="settings.agents.form.forkArgsHint">
+					<Trans>
 						Used to clone a previous session without changing it. Put{" "}
 						<code>{sessionId}</code> where the source id belongs, or leave empty
 						if the agent cannot fork sessions.
@@ -185,14 +178,10 @@ export function AgentLaunchFields({
 			<div className="flex items-center justify-between gap-8">
 				<div className="min-w-0 flex-1">
 					<Label className="text-sm font-medium">
-						<Trans id="settings.agents.form.promptTransport">
-							Prompt transport
-						</Trans>
+						<Trans>Prompt transport</Trans>
 					</Label>
 					<p className="text-xs text-muted-foreground mt-0.5">
-						<Trans id="settings.agents.form.promptTransportHint">
-							How the prompt is delivered to the process.
-						</Trans>
+						<Trans>How the prompt is delivered to the process.</Trans>
 					</p>
 				</div>
 				<PromptTransportToggle
@@ -265,7 +254,6 @@ export function PromptTransportToggle({
 						type="button"
 						aria-pressed={isSelected}
 						aria-label={t({
-							id: "settings.agents.form.promptTransportOptionAriaLabel",
 							message: `Prompt transport: ${option}`,
 						})}
 						onClick={() => onChange(option)}

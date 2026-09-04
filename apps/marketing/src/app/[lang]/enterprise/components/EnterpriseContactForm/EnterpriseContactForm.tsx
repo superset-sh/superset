@@ -36,7 +36,6 @@ export function EnterpriseContactForm() {
 				setErrorMessage(
 					result.error ??
 						t({
-							id: "marketing.form.error.genericShort",
 							message: "Something went wrong.",
 						}),
 				);
@@ -45,7 +44,6 @@ export function EnterpriseContactForm() {
 			setStatus("error");
 			setErrorMessage(
 				t({
-					id: "marketing.form.error.generic",
 					message: "Something went wrong. Please try again.",
 				}),
 			);
@@ -57,14 +55,10 @@ export function EnterpriseContactForm() {
 			<div className="flex flex-col items-center justify-center py-16 text-center">
 				<CheckCircle2 className="size-6 text-muted-foreground mb-4" />
 				<p className="text-lg font-medium text-foreground">
-					<Trans id="marketing.enterprise.form.successTitle">
-						Thanks for reaching out
-					</Trans>
+					<Trans>Thanks for reaching out</Trans>
 				</p>
 				<p className="mt-2 text-sm text-muted-foreground">
-					<Trans id="marketing.enterprise.form.successBody">
-						We&apos;ll be in touch shortly.
-					</Trans>
+					<Trans>We&apos;ll be in touch shortly.</Trans>
 				</p>
 			</div>
 		);
@@ -78,7 +72,7 @@ export function EnterpriseContactForm() {
 						htmlFor="ent-name"
 						className="block text-sm text-muted-foreground mb-1.5"
 					>
-						<Trans id="marketing.enterprise.form.nameLabel">Full name</Trans>
+						<Trans>Full name</Trans>
 					</label>
 					<input
 						id="ent-name"
@@ -97,7 +91,7 @@ export function EnterpriseContactForm() {
 						htmlFor="ent-role"
 						className="block text-sm text-muted-foreground mb-1.5"
 					>
-						<Trans id="marketing.enterprise.form.roleLabel">Role</Trans>
+						<Trans>Role</Trans>
 					</label>
 					<input
 						id="ent-role"
@@ -117,7 +111,7 @@ export function EnterpriseContactForm() {
 					htmlFor="ent-company"
 					className="block text-sm text-muted-foreground mb-1.5"
 				>
-					<Trans id="marketing.enterprise.form.companyLabel">Company</Trans>
+					<Trans>Company</Trans>
 				</label>
 				<input
 					id="ent-company"
@@ -137,9 +131,7 @@ export function EnterpriseContactForm() {
 						htmlFor="ent-email"
 						className="block text-sm text-muted-foreground mb-1.5"
 					>
-						<Trans id="marketing.enterprise.form.emailLabel">
-							Company email
-						</Trans>
+						<Trans>Company email</Trans>
 					</label>
 					<input
 						id="ent-email"
@@ -158,9 +150,7 @@ export function EnterpriseContactForm() {
 						htmlFor="ent-phone"
 						className="block text-sm text-muted-foreground mb-1.5"
 					>
-						<Trans id="marketing.enterprise.form.phoneLabel">
-							Phone number
-						</Trans>
+						<Trans>Phone number</Trans>
 					</label>
 					<input
 						id="ent-phone"
@@ -179,9 +169,7 @@ export function EnterpriseContactForm() {
 					htmlFor="ent-message"
 					className="block text-sm text-muted-foreground mb-1.5"
 				>
-					<Trans id="marketing.enterprise.form.messageLabel">
-						What problem are you trying to solve?
-					</Trans>
+					<Trans>What problem are you trying to solve?</Trans>
 				</label>
 				<textarea
 					id="ent-message"
@@ -219,12 +207,12 @@ export function EnterpriseContactForm() {
 			>
 				{status === "submitting" ? (
 					<>
-						<Trans id="marketing.form.sending">Sending</Trans>
+						<Trans>Sending</Trans>
 						<Loader2 className="size-3.5 animate-spin" />
 					</>
 				) : (
 					<>
-						<Trans id="marketing.enterprise.form.submit">Send</Trans>
+						<Trans>Send</Trans>
 						<ArrowRight className="size-3.5" />
 					</>
 				)}

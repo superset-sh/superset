@@ -17,6 +17,7 @@ public final class ComposerModule: Module {
         "onSessionTabPress",
         "onSessionTabClose",
         "onSessionTabCopyId",
+        "onQuickKeysActionPress",
         "onNewSessionPress",
         "onAllSessionsPress",
         "onPaste",
@@ -86,6 +87,19 @@ public final class ComposerModule: Module {
         guard view.overlay.model.sessionTabs != tabs else { return }
         withAnimation(ComposerMetrics.growth) {
           view.overlay.model.sessionTabs = tabs
+        }
+      }
+
+      /// The control beside the quick keys, or nothing. Guarded for the reason
+      /// `sessionTabs` is: the caller rebuilds this object every render, and an
+      /// unguarded assignment would open a layout transaction on a chip that
+      /// has not changed. Arriving pushes the keys over and narrows the bar
+      /// behind them; the transaction is what makes that a slide rather than
+      /// a jump. See `ComposerQuickKeys`.
+      Prop("quickKeysAction") { (view: ComposerAnchorView, action: ComposerQuickKeysAction?) in
+        guard view.overlay.model.quickKeysAction != action else { return }
+        withAnimation(ComposerMetrics.growth) {
+          view.overlay.model.quickKeysAction = action
         }
       }
 
@@ -168,6 +182,7 @@ final class ComposerAnchorView: ExpoView {
   private let onSessionTabPress = EventDispatcher()
   private let onSessionTabClose = EventDispatcher()
   private let onSessionTabCopyId = EventDispatcher()
+  private let onQuickKeysActionPress = EventDispatcher()
   private let onNewSessionPress = EventDispatcher()
   private let onAllSessionsPress = EventDispatcher()
   private let onPaste = EventDispatcher()
@@ -197,6 +212,9 @@ final class ComposerAnchorView: ExpoView {
     }
     overlay.model.onSessionTabCopyId = { [weak self] id in
       self?.onSessionTabCopyId(["id": id])
+    }
+    overlay.model.onQuickKeysActionPress = { [weak self] in
+      self?.onQuickKeysActionPress([:])
     }
     overlay.model.onNewSessionPress = { [weak self] in self?.onNewSessionPress([:]) }
     overlay.model.onAllSessionsPress = { [weak self] in self?.onAllSessionsPress([:]) }

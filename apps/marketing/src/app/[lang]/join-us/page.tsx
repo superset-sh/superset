@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import type { Metadata } from "next";
@@ -18,34 +19,38 @@ declare global {
 
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
-	const title = i18n._({
-		id: "marketing.meta.joinUs.title",
-		message: "Join us",
-	});
-	const description = i18n._({
-		id: "marketing.meta.joinUs.description",
-		message:
-			"We're hiring engineers in San Francisco. Help us build the first software factory platform.",
-	});
+	const title = i18n._(
+		msg({
+			message: "Join us",
+		}),
+	);
+	const description = i18n._(
+		msg({
+			message:
+				"We're hiring engineers in San Francisco. Help us build the first software factory platform.",
+		}),
+	);
 	return {
 		title,
 		description,
 		alternates: localizedAlternates(lang, "/join-us"),
 		openGraph: {
-			title: i18n._({
-				id: "marketing.meta.joinUs.ogTitle",
-				message: "Join us at Superset",
-			}),
+			title: i18n._(
+				msg({
+					message: "Join us at Superset",
+				}),
+			),
 			description,
 			url: localeUrl(lang, "/join-us"),
 			images: ["/opengraph-image"],
 		},
 		twitter: {
 			card: "summary_large_image",
-			title: i18n._({
-				id: "marketing.meta.joinUs.ogTitle",
-				message: "Join us at Superset",
-			}),
+			title: i18n._(
+				msg({
+					message: "Join us at Superset",
+				}),
+			),
 			description,
 			images: ["/opengraph-image"],
 		},
@@ -59,15 +64,13 @@ export default async function JoinUsPage() {
 		<main className="relative min-h-screen bg-background">
 			<div className="max-w-[90rem] mx-auto px-6 pt-24 md:pt-32">
 				<section className="grid gap-10 md:grid-cols-[2fr_3fr] md:gap-24 lg:gap-32">
-					<h1 className="text-4xl md:text-5xl font-normal leading-tight text-foreground m-0">
-						<Trans id="marketing.joinUs.title">
-							Building the last piece of software
-						</Trans>
+					<h1 className="text-4xl md:text-6xl font-normal leading-tight tracking-[-0.02em] text-foreground m-0">
+						<Trans>Building the last piece of software</Trans>
 					</h1>
 
 					<div>
 						<p className="text-xl md:text-2xl text-foreground leading-snug m-0">
-							<Trans id="marketing.joinUs.lede">
+							<Trans>
 								Superset is building self-improving software. It starts with
 								giving engineers the best tools that adapt to their needs over
 								time.
@@ -79,7 +82,7 @@ export default async function JoinUsPage() {
 							style={{ fontFamily: "var(--font-inter), sans-serif" }}
 						>
 							<p>
-								<Trans id="marketing.joinUs.bodyScale">
+								<Trans>
 									Today, tens of thousands of engineers run Superset as their
 									primary IDE, at companies like Wix, DoorDash, and Netflix.
 									Soon, teams will run 100s of agents in parallel - software
@@ -90,7 +93,7 @@ export default async function JoinUsPage() {
 							</p>
 
 							<p>
-								<Trans id="marketing.joinUs.bodyTeam">
+								<Trans>
 									Superset is built in Superset, so we're our own #1 users - you
 									get paid to make your own life easier. We're building a flat
 									and talent-dense team, and we're looking for people who have
@@ -106,8 +109,8 @@ export default async function JoinUsPage() {
 
 			<div className="max-w-[90rem] mx-auto px-6 pb-24 md:pb-32">
 				<section id="open-roles" className="mt-24 md:mt-32 scroll-mt-24">
-					<h2 className="text-2xl md:text-3xl font-normal text-foreground mb-6">
-						<Trans id="marketing.joinUs.openRoles">Open roles</Trans>
+					<h2 className="text-2xl md:text-3xl font-normal tracking-[-0.02em] text-foreground mb-6">
+						<Trans>Open roles</Trans>
 					</h2>
 
 					{/* Managed via YC Work at a Startup; layout/colors configured at bookface.ycombinator.com/workatastartup/job_board_settings */}
@@ -168,6 +171,13 @@ export default async function JoinUsPage() {
 								".back-link{" + mono + ";font-size:12px !important}",
 								".sidebar-label{" + mono + ";font-size:11px !important}",
 								".sidebar-item{border-bottom:1px solid var(--_border) !important}", // default rgba(0,0,0,.06) vanishes on dark bg
+								// regular-weight title and section headings (WaaS wraps section titles in <h3><strong>), 16px body
+								".job-title{font-size:36px !important;font-weight:400 !important;letter-spacing:-0.02em !important;line-height:1.2 !important}",
+								".description{font-size:16px !important;line-height:1.5 !important;color:var(--_text) !important}",
+								".description :is(h1,h2,h3){font-size:var(--_font-size-md) !important;font-weight:400 !important;margin:40px 0 12px !important}",
+								".description :is(h1,h2,h3) strong{font-weight:400 !important}",
+								".description :is(p,ul,ol){margin:16px 0 !important}",
+								".description li{margin-bottom:8px !important}",
 							].join("");
 							const formCss = [
 								".primary-button{" + mono + ";font-size:13px !important;font-weight:400 !important;background:var(--foreground) !important;color:var(--background) !important;transition:background-color .15s ease,color .15s ease !important}",
@@ -199,9 +209,7 @@ export default async function JoinUsPage() {
 					<waas-job-board company="superset" />
 					<noscript>
 						<a href="https://www.ycombinator.com/companies/superset/jobs">
-							<Trans id="marketing.joinUs.noscriptLink">
-								View open roles on Y Combinator
-							</Trans>
+							<Trans>View open roles on Y Combinator</Trans>
 						</a>
 					</noscript>
 				</section>

@@ -1,7 +1,6 @@
 import { useQueries } from "@tanstack/react-query";
 import { compareDesc } from "date-fns";
 import { useMemo } from "react";
-import { useCloudProjects } from "@/hooks/useCloudProjects";
 import { toHostProjectItem } from "@/hooks/useHostProjects";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
 import {
@@ -87,8 +86,6 @@ export function useNewChatTargets(workspaces: HostWorkspaceItem[] = []): {
 		})),
 	});
 
-	const { projects: cloudProjects } = useCloudProjects();
-
 	const targets = useMemo<NewChatTarget[]>(() => {
 		const result: NewChatTarget[] = [];
 		scopedHosts.forEach((host, index) => {
@@ -106,22 +103,22 @@ export function useNewChatTargets(workspaces: HostWorkspaceItem[] = []): {
 				});
 			}
 		});
+		// One target: every cloud workspace clones the same repository, so there
+		// is nothing to choose between.
 		if (scope === "cloud") {
-			for (const project of cloudProjects) {
-				result.push({
-					key: targetKeyFor(project.id, CLOUD_TARGET_ID),
-					kind: "cloud",
-					projectId: project.id,
-					projectName: project.name,
-					projectIconUrl: project.iconUrl,
-					machineId: CLOUD_TARGET_ID,
-					hostName: "Cloud",
-					hostUrl: "",
-				});
-			}
+			result.push({
+				key: targetKeyFor(CLOUD_TARGET_ID, CLOUD_TARGET_ID),
+				kind: "cloud",
+				projectId: CLOUD_TARGET_ID,
+				projectName: "Cloud",
+				projectIconUrl: null,
+				machineId: CLOUD_TARGET_ID,
+				hostName: "Cloud",
+				hostUrl: "",
+			});
 		}
 		return result.sort((a, b) => a.projectName.localeCompare(b.projectName));
-	}, [scope, scopedHosts, projectListQueries, cloudProjects]);
+	}, [scope, scopedHosts, projectListQueries]);
 
 	const defaultTarget = useMemo<NewChatTarget | null>(() => {
 		if (targets.length === 0) return null;

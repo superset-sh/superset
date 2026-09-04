@@ -73,7 +73,7 @@ export function CommitsSheet() {
 			<Stack.Title asChild>
 				<View className="items-center">
 					<Text className="font-semibold text-[17px]">
-						<Trans id="mobile.nav.commits.title">Commits</Trans>
+						<Trans>Commits</Trans>
 					</Text>
 					<View className="flex-row items-center gap-1.5">
 						<Icon
@@ -81,12 +81,7 @@ export function CommitsSheet() {
 							className="text-muted-foreground size-3.5"
 						/>
 						<Text className="text-muted-foreground text-xs">
-							<Plural
-								id="mobile.commits.count"
-								value={commits.length}
-								one="# Commit"
-								other="# Commits"
-							/>
+							<Plural value={commits.length} one="# Commit" other="# Commits" />
 						</Text>
 						{baseBranch ? (
 							<>
@@ -106,7 +101,6 @@ export function CommitsSheet() {
 				<Stack.Toolbar.Button
 					icon="xmark"
 					accessibilityLabel={t({
-						id: "mobile.common.close",
 						message: "Close",
 					})}
 					onPress={() => router.back()}
@@ -161,9 +155,7 @@ export function CommitsSheet() {
 				ListEmptyComponent={
 					<View className="items-center py-16">
 						<Text className="text-muted-foreground text-sm">
-							<Trans id="mobile.commits.empty">
-								No commits on this branch yet.
-							</Trans>
+							<Trans>No commits on this branch yet.</Trans>
 						</Text>
 					</View>
 				}

@@ -23,6 +23,7 @@ export type Slot =
 	| "labels"
 	| "actor"
 	| "subjectAuthor"
+	| "assignee"
 	| "commentFilter";
 
 export type SentencePart = { text: string } | { slot: Slot };
@@ -48,6 +49,22 @@ export const GITHUB_SENTENCES: Record<GithubTriggerEvent, SentencePart[]> = {
 	],
 	"pull_request.merged": [
 		{ text: "PR merged in" },
+		{ slot: "repositories" },
+		{ text: "by" },
+		{ slot: "actor" },
+	],
+	"pull_request.assigned": [
+		{ text: "PR assigned to" },
+		{ slot: "assignee" },
+		{ text: "in" },
+		{ slot: "repositories" },
+		{ text: "by" },
+		{ slot: "actor" },
+	],
+	"pull_request.review_requested": [
+		{ text: "Review requested from" },
+		{ slot: "assignee" },
+		{ text: "in" },
 		{ slot: "repositories" },
 		{ text: "by" },
 		{ slot: "actor" },
@@ -156,112 +173,108 @@ export const GITHUB_SENTENCES: Record<GithubTriggerEvent, SentencePart[]> = {
 export const GITHUB_MENU: TriggerMenuEntry<GithubConfig>[] = [
 	leaf(
 		msg({
-			id: "dashboard.automations.providers.github.menuDraftOpened",
 			message: "Draft opened",
 		}),
 		"draft_opened",
 	),
 	{
 		label: msg({
-			id: "dashboard.automations.providers.github.menuPullRequest",
 			message: "Pull request…",
 		}),
 		children: [
 			leaf(
 				msg({
-					id: "dashboard.automations.providers.github.menuPrOpened",
 					message: "Opened",
 				}),
 				"pull_request.opened",
 			),
 			leaf(
 				msg({
-					id: "dashboard.automations.providers.github.menuPrPushed",
 					message: "Pushed",
 				}),
 				"pull_request.pushed",
 			),
 			leaf(
 				msg({
-					id: "dashboard.automations.providers.github.menuPrMerged",
 					message: "Merged",
 				}),
 				"pull_request.merged",
+			),
+			leaf(
+				msg({
+					message: "Review requested",
+				}),
+				"pull_request.review_requested",
+			),
+			leaf(
+				msg({
+					message: "Assigned",
+				}),
+				"pull_request.assigned",
 			),
 		],
 	},
 	leaf(
 		msg({
-			id: "dashboard.automations.providers.github.menuCommentAdded",
 			message: "Comment added",
 		}),
 		"comment_added",
 	),
 	leaf(
 		msg({
-			id: "dashboard.automations.providers.github.menuPushToBranch",
 			message: "New push to branch",
 		}),
 		"push_to_branch",
 	),
 	leaf(
 		msg({
-			id: "dashboard.automations.providers.github.menuLabelChange",
 			message: "Label change",
 		}),
 		"label_change",
 	),
 	leaf(
 		msg({
-			id: "dashboard.automations.providers.github.menuChecksCompleted",
 			message: "Checks completed",
 		}),
 		"checks_completed",
 	),
 	leaf(
 		msg({
-			id: "dashboard.automations.providers.github.menuIssueComment",
 			message: "Issue comment",
 		}),
 		"issue_comment",
 	),
 	leaf(
 		msg({
-			id: "dashboard.automations.providers.github.menuPrReviewComment",
 			message: "PR review comment",
 		}),
 		"pr_review_comment",
 	),
 	{
 		label: msg({
-			id: "dashboard.automations.providers.github.menuPrReviewSubmitted",
 			message: "PR review submitted…",
 		}),
 		children: [
 			leaf(
 				msg({
-					id: "dashboard.automations.providers.github.menuReviewApproved",
 					message: "Approved",
 				}),
 				"pr_review_submitted.approved",
 			),
 			leaf(
 				msg({
-					id: "dashboard.automations.providers.github.menuReviewChangesRequested",
 					message: "Changes requested",
 				}),
 				"pr_review_submitted.changes_requested",
 			),
 			leaf(
 				msg({
-					id: "dashboard.automations.providers.github.menuReviewCommented",
 					message: "Commented",
 				}),
 				"pr_review_submitted.commented",
 			),
 			leaf(
 				msg({
-					id: "dashboard.automations.providers.github.menuReviewAny",
 					message: "Any review",
 				}),
 				"pr_review_submitted.any",
@@ -270,27 +283,23 @@ export const GITHUB_MENU: TriggerMenuEntry<GithubConfig>[] = [
 	},
 	{
 		label: msg({
-			id: "dashboard.automations.providers.github.menuReviewThread",
 			message: "Review thread…",
 		}),
 		children: [
 			leaf(
 				msg({
-					id: "dashboard.automations.providers.github.menuThreadResolved",
 					message: "Resolved",
 				}),
 				"review_thread.resolved",
 			),
 			leaf(
 				msg({
-					id: "dashboard.automations.providers.github.menuThreadUnresolved",
 					message: "Unresolved",
 				}),
 				"review_thread.unresolved",
 			),
 			leaf(
 				msg({
-					id: "dashboard.automations.providers.github.menuThreadAny",
 					message: "Any thread event",
 				}),
 				"review_thread.any",
@@ -299,34 +308,29 @@ export const GITHUB_MENU: TriggerMenuEntry<GithubConfig>[] = [
 	},
 	{
 		label: msg({
-			id: "dashboard.automations.providers.github.menuWorkflowRun",
 			message: "Workflow run completed…",
 		}),
 		children: [
 			leaf(
 				msg({
-					id: "dashboard.automations.providers.github.menuWorkflowSuccess",
 					message: "Success",
 				}),
 				"workflow_run.success",
 			),
 			leaf(
 				msg({
-					id: "dashboard.automations.providers.github.menuWorkflowFailure",
 					message: "Failure",
 				}),
 				"workflow_run.failure",
 			),
 			leaf(
 				msg({
-					id: "dashboard.automations.providers.github.menuWorkflowCancelled",
 					message: "Cancelled",
 				}),
 				"workflow_run.cancelled",
 			),
 			leaf(
 				msg({
-					id: "dashboard.automations.providers.github.menuWorkflowAny",
 					message: "Any conclusion",
 				}),
 				"workflow_run.any",
@@ -343,6 +347,12 @@ function leaf(label: MessageDescriptor, event: GithubTriggerEvent) {
 const COMMENT_EVENTS = new Set<GithubTriggerEvent>([
 	"comment_added",
 	"issue_comment",
+]);
+
+/** Events whose sentence names who ended up on the pull request. */
+const ASSIGNMENT_EVENTS = new Set<GithubTriggerEvent>([
+	"pull_request.assigned",
+	"pull_request.review_requested",
 ]);
 
 /**
@@ -376,11 +386,21 @@ export function createGithubConfig(event: GithubTriggerEvent) {
 			commentFilter: null,
 		};
 	}
+	if (ASSIGNMENT_EVENTS.has(event)) {
+		return {
+			...base,
+			event: event as "pull_request.assigned" | "pull_request.review_requested",
+			assignee: { mode: "any" as const },
+		};
+	}
 	return {
 		...base,
 		event: event as Exclude<
 			GithubTriggerEvent,
-			"comment_added" | "issue_comment"
+			| "comment_added"
+			| "issue_comment"
+			| "pull_request.assigned"
+			| "pull_request.review_requested"
 		>,
 	};
 }

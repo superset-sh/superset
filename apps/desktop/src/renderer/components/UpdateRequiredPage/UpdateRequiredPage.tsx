@@ -65,13 +65,11 @@ export function UpdateRequiredPage({
 
 					<div className="flex flex-col items-center gap-2 text-center">
 						<h1 className="text-xl font-semibold">
-							<Trans id="components.updateRequiredPage.title">
-								Update Required
-							</Trans>
+							<Trans>Update Required</Trans>
 						</h1>
 						<p className="max-w-md text-muted-foreground">
 							{message || (
-								<Trans id="components.updateRequiredPage.defaultMessage">
+								<Trans>
 									A new version of Superset is required to continue. Please
 									update to the latest version.
 								</Trans>
@@ -81,31 +79,23 @@ export function UpdateRequiredPage({
 
 					<div className="flex flex-col items-center gap-1 text-sm text-muted-foreground">
 						<span>
-							<Trans id="components.updateRequiredPage.yourVersion">
-								Your version: {currentVersion}
-							</Trans>
+							<Trans>Your version: {currentVersion}</Trans>
 						</span>
 						{minimumVersion && (
 							<span>
-								<Trans id="components.updateRequiredPage.requiredVersion">
-									Required version: {minimumVersion}+
-								</Trans>
+								<Trans>Required version: {minimumVersion}+</Trans>
 							</span>
 						)}
 					</div>
 
 					<p className="text-xs text-muted-foreground/70">
-						<Trans id="components.updateRequiredPage.sessionsSafe">
-							Your terminal sessions won't be interrupted.
-						</Trans>
+						<Trans>Your terminal sessions won't be interrupted.</Trans>
 					</p>
 
 					{isError && (
 						<p className="text-sm text-destructive select-text cursor-text break-words">
 							{updateStatus.error || (
-								<Trans id="components.updateRequiredPage.checkFailed">
-									Update check failed. Please try again.
-								</Trans>
+								<Trans>Update check failed. Please try again.</Trans>
 							)}
 						</p>
 					)}
@@ -121,13 +111,9 @@ export function UpdateRequiredPage({
 									<HiArrowPath className="h-4 w-4 animate-spin" />
 								)}
 								{installMutation.isPending ? (
-									<Trans id="components.updateRequiredPage.installing">
-										Installing...
-									</Trans>
+									<Trans>Installing...</Trans>
 								) : (
-									<Trans id="components.updateRequiredPage.installRestart">
-										Install & Restart
-									</Trans>
+									<Trans>Install & Restart</Trans>
 								)}
 							</Button>
 						) : (
@@ -140,25 +126,17 @@ export function UpdateRequiredPage({
 									className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
 								/>
 								{isChecking ? (
-									<Trans id="components.updateRequiredPage.checking">
-										Checking...
-									</Trans>
+									<Trans>Checking...</Trans>
 								) : isDownloading ? (
-									<Trans id="components.updateRequiredPage.downloading">
-										Downloading...
-									</Trans>
+									<Trans>Downloading...</Trans>
 								) : (
-									<Trans id="components.updateRequiredPage.checkForUpdate">
-										Check for Update
-									</Trans>
+									<Trans>Check for Update</Trans>
 								)}
 							</Button>
 						)}
 
 						<Button variant="ghost" onClick={handleDownloadManually}>
-							<Trans id="components.updateRequiredPage.downloadManually">
-								Download Manually
-							</Trans>
+							<Trans>Download Manually</Trans>
 						</Button>
 					</div>
 				</div>

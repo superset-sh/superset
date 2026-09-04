@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import { errorMessage, rawErrorMessage } from "@superset/i18n/errors";
@@ -58,10 +59,11 @@ function makeTerminalPane(
 	return {
 		id: paneId,
 		kind: "terminal",
-		titleOverride: i18n._({
-			id: "workspace.workspaceRun.paneTitle",
-			message: "Workspace Run",
-		}),
+		titleOverride: i18n._(
+			msg({
+				message: "Workspace Run",
+			}),
+		),
 		data: { terminalId } as TerminalPaneData,
 	};
 }
@@ -171,12 +173,10 @@ export function useV2WorkspaceRun({
 		if (!definition || !command) {
 			toast.error(
 				t({
-					id: "workspace.workspaceRun.noCommandConfigured",
 					message: "No workspace run command configured",
 				}),
 				{
 					description: t({
-						id: "workspace.workspaceRun.noCommandConfiguredDescription",
 						message:
 							"Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run.",
 					}),
@@ -243,14 +243,12 @@ export function useV2WorkspaceRun({
 		} catch (error) {
 			toast.error(
 				t({
-					id: "workspace.workspaceRun.runFailed",
 					message: "Failed to run workspace command",
 				}),
 				{
 					description: errorMessage(
 						error,
 						t({
-							id: "workspace.workspaceRun.runFailedUnknown",
 							message: "Unknown error",
 						}),
 					),
@@ -305,14 +303,12 @@ export function useV2WorkspaceRun({
 			});
 			toast.error(
 				t({
-					id: "workspace.workspaceRun.stopFailed",
 					message: "Failed to stop workspace run command",
 				}),
 				{
 					description: errorMessage(
 						error,
 						t({
-							id: "workspace.workspaceRun.stopFailedUnknown",
 							message: "Unknown error",
 						}),
 					),
@@ -359,14 +355,12 @@ export function useV2WorkspaceRun({
 
 			toast.error(
 				t({
-					id: "workspace.workspaceRun.forceStopFailed",
 					message: "Failed to force stop workspace run command",
 				}),
 				{
 					description: errorMessage(
 						error,
 						t({
-							id: "workspace.workspaceRun.forceStopFailedUnknown",
 							message: "Unknown error",
 						}),
 					),

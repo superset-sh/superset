@@ -1,6 +1,7 @@
 import { errorMessage } from "@superset/i18n/errors";
+import type { LeaderboardPeriod } from "@superset/trpc/leaderboard-periods";
 import { toast } from "@superset/ui/sonner";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { BACKFILL_DAYS, publishUsage } from "renderer/lib/leaderboard";
@@ -10,15 +11,25 @@ import {
 } from "renderer/routes/_authenticated/components/LeaderboardAutoPublish/hooks/useLeaderboardAutoPublish/autoPublishState";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
-export function useLeaderboardOptIn() {
+const MEMBERSHIP_KEY = ["leaderboard", "me"] as const;
+
+export function useLeaderboardOptIn(period: LeaderboardPeriod = "all") {
 	const { activeHostUrl, machineId } = useLocalHostService();
+	const queryClient = useQueryClient();
 
 	const membership = useQuery({
-		queryKey: ["leaderboard", "me"] as const,
-		queryFn: () => apiTrpcClient.leaderboard.me.query({ period: "all" }),
+		queryKey: [...MEMBERSHIP_KEY, period] as const,
+		queryFn: () => apiTrpcClient.leaderboard.me.query({ period }),
 		staleTime: 60_000,
 		retry: false,
 	});
+
+	// Every period variant of the membership query goes stale together, so
+	// joining from one surface updates the rank shown on another.
+	const refetchMembership = useCallback(
+		() => queryClient.invalidateQueries({ queryKey: MEMBERSHIP_KEY }),
+		[queryClient],
+	);
 
 	const [joining, setJoining] = useState(false);
 	const [leaving, setLeaving] = useState(false);
@@ -53,7 +64,7 @@ export function useLeaderboardOptIn() {
 					}
 				}
 
-				await membership.refetch();
+				await refetchMembership();
 
 				if (published === null) {
 					toast.success(`Joined as ${handle}`);
@@ -70,7 +81,7 @@ export function useLeaderboardOptIn() {
 				setJoining(false);
 			}
 		},
-		[activeHostUrl, machineId, membership],
+		[activeHostUrl, machineId, refetchMembership],
 	);
 
 	const leave = useCallback(async () => {
@@ -78,7 +89,7 @@ export function useLeaderboardOptIn() {
 		try {
 			await apiTrpcClient.leaderboard.leave.mutate();
 			clearAutoPublishState();
-			await membership.refetch();
+			await refetchMembership();
 			toast.success("Left the leaderboard and deleted your published usage");
 			return true;
 		} catch (error) {
@@ -87,7 +98,7 @@ export function useLeaderboardOptIn() {
 		} finally {
 			setLeaving(false);
 		}
-	}, [membership]);
+	}, [refetchMembership]);
 
 	return {
 		membership: membership.data ?? null,

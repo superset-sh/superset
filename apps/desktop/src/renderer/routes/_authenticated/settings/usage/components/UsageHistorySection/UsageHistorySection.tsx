@@ -78,11 +78,11 @@ export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
 		<div className="flex min-h-0 flex-1 flex-col gap-3 border-t pt-3">
 			<div className="flex flex-wrap items-center gap-x-3 gap-y-1">
 				<h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-					<Trans id="settings.usage.history.title">Token usage</Trans>
+					<Trans>Token usage</Trans>
 				</h2>
 				{firstDay && lastDay && (
 					<span className="text-[10px] text-muted-foreground">
-						<Trans id="settings.usage.history.rangeSummary">
+						<Trans>
 							{formatDayLabel(firstDay)} – {formatDayLabel(lastDay)} · API-rate
 							estimate from local session logs
 						</Trans>
@@ -95,10 +95,10 @@ export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
 					>
 						<TabsList className="h-6">
 							<TabsTrigger value="usd" className="h-4 px-1.5 text-[10px]">
-								<Trans id="settings.usage.history.metricCost">Cost</Trans>
+								<Trans>Cost</Trans>
 							</TabsTrigger>
 							<TabsTrigger value="tokens" className="h-4 px-1.5 text-[10px]">
-								<Trans id="settings.usage.history.metricTokens">Tokens</Trans>
+								<Trans>Tokens</Trans>
 							</TabsTrigger>
 						</TabsList>
 					</Tabs>
@@ -124,13 +124,9 @@ export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
 			{!history ? (
 				<div className="py-6 text-center text-xs text-muted-foreground">
 					{historyQuery.isError ? (
-						<Trans id="settings.usage.history.loadError">
-							Couldn't read usage history from this host.
-						</Trans>
+						<Trans>Couldn't read usage history from this host.</Trans>
 					) : (
-						<Trans id="settings.usage.history.scanning">
-							Scanning transcript logs…
-						</Trans>
+						<Trans>Scanning transcript logs…</Trans>
 					)}
 				</div>
 			) : (
@@ -150,20 +146,14 @@ export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
 								</div>
 								<div className="text-[10px] text-muted-foreground">
 									{metric === "usd" ? (
-										<Trans id="settings.usage.history.fullApiRateNote">
-											* if billed at full API rate
-										</Trans>
+										<Trans>* if billed at full API rate</Trans>
 									) : (
-										<Trans id="settings.usage.history.tokenKindsNote">
-											input, cache and output tokens
-										</Trans>
+										<Trans>input, cache and output tokens</Trans>
 									)}
 								</div>
 								{metric === "usd" && (
 									<div className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-										<Trans id="settings.usage.history.costToYouZero">
-											Cost to you: $0
-										</Trans>
+										<Trans>Cost to you: $0</Trans>
 									</div>
 								)}
 							</div>
@@ -197,11 +187,9 @@ export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
 											title={
 												hidden
 													? t({
-															id: "settings.usage.history.showInChart",
 															message: "Show in chart",
 														})
 													: t({
-															id: "settings.usage.history.hideFromChart",
 															message: "Hide from chart",
 														})
 											}
@@ -248,7 +236,6 @@ export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
 											className="ml-auto rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
 											onClick={() => setSelectedDay(null)}
 											aria-label={t({
-												id: "settings.usage.history.clearSelectedDay",
 												message: "Clear selected day",
 											})}
 										>

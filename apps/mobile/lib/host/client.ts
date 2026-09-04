@@ -6,10 +6,9 @@ import { apiClient } from "@/lib/trpc/client";
 // fresh-enough JWT from the auth client. Typed host tRPC clients live in
 // lib/host-service/client.
 
-// The API decides which relay this user's host is on (relay-url-override).
-// Primed once after sign-in and cached; the Expo env is the fallback until
-// then and if the API is unreachable. Sync getter so the URL builders that
-// depend on it stay sync.
+// The API decides which relay this user's host is on. Primed once after
+// sign-in and cached; the Expo env is the fallback until then and if the API
+// is unreachable. Sync getter so the URL builders that depend on it stay sync.
 let relayOverride: string | null = null;
 
 export async function primeRelayUrl(): Promise<void> {

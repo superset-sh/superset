@@ -10,6 +10,7 @@ import { rm } from "node:fs/promises";
 import { homedir, platform } from "node:os";
 import { join, resolve, sep } from "node:path";
 import { promisify } from "node:util";
+import { resolveAmbientCodexHome } from "@superset/agent-setup";
 import { keychainServicesForConfigDir } from "./profiles";
 
 const execFileAsync = promisify(execFile);
@@ -22,8 +23,8 @@ function protectedDirs(): Set<string> {
 		join(home, ".config", "claude"),
 		join(home, ".config"),
 		join(home, ".codex"),
+		resolveAmbientCodexHome(home),
 	]);
-	if (process.env.CODEX_HOME) dirs.add(resolve(process.env.CODEX_HOME));
 	return dirs;
 }
 

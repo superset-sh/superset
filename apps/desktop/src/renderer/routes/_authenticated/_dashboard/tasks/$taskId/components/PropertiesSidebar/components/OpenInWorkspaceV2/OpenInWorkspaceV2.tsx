@@ -141,24 +141,20 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 	const submitBlocker = useMemo<string | null>(() => {
 		if (!selectedProjectId)
 			return t({
-				id: "dashboard.tasks.openInWorkspaceV2.blockerSelectProject",
 				message: "Select a project",
 			});
 		if (!hostId)
 			return t({
-				id: "dashboard.tasks.openInWorkspaceV2.blockerNoActiveHost",
 				message: "No active host",
 			});
 		if (hostId !== machineId) {
 			const remote = otherHosts.find((host) => host.id === hostId);
 			if (!remote?.isOnline)
 				return t({
-					id: "dashboard.tasks.openInWorkspaceV2.blockerHostOffline",
 					message: "Host is offline",
 				});
 		} else if (!activeHostUrl) {
 			return t({
-				id: "dashboard.tasks.openInWorkspaceV2.blockerHostServiceNotRunning",
 				message: "Host service is not running",
 			});
 		}
@@ -167,12 +163,10 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 		// chosen host, otherwise the server-side guard becomes the only check.
 		if (setUpProjectIds === null)
 			return t({
-				id: "dashboard.tasks.openInWorkspaceV2.blockerCheckingHost",
 				message: "Checking host…",
 			});
 		if (selectedProject?.needsSetup === true) {
 			return t({
-				id: "dashboard.tasks.openInWorkspaceV2.blockerProjectNotSetUp",
 				message: "Project not set up on this host",
 			});
 		}
@@ -183,12 +177,10 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 		if (selectedAgent !== NONE) {
 			if (!v2AgentsFetched)
 				return t({
-					id: "dashboard.tasks.openInWorkspaceV2.blockerCheckingAgents",
 					message: "Checking agents…",
 				});
 			if (!validAgentIds.has(selectedAgent)) {
 				return t({
-					id: "dashboard.tasks.openInWorkspaceV2.blockerAgentUnavailable",
 					message: "Selected agent is not available on this host",
 				});
 			}
@@ -275,9 +267,7 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 	return (
 		<div className="flex flex-col gap-2">
 			<span className="text-xs text-muted-foreground">
-				<Trans id="dashboard.tasks.openInWorkspaceV2.title">
-					Open in workspace
-				</Trans>
+				<Trans>Open in workspace</Trans>
 			</span>
 			<DevicePicker
 				hostId={hostId}
@@ -307,9 +297,7 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 									</>
 								) : (
 									<span className="text-muted-foreground">
-										<Trans id="dashboard.tasks.openInWorkspaceV2.selectProject">
-											Select project
-										</Trans>
+										<Trans>Select project</Trans>
 									</span>
 								)}
 							</span>
@@ -322,9 +310,7 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 					>
 						{recentProjects.length === 0 ? (
 							<DropdownMenuItem disabled>
-								<Trans id="dashboard.tasks.openInWorkspaceV2.noProjects">
-									No projects found
-								</Trans>
+								<Trans>No projects found</Trans>
 							</DropdownMenuItem>
 						) : (
 							recentProjects.map((project) => (
@@ -341,9 +327,7 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 									<span className="flex-1 truncate">{project.name}</span>
 									{project.needsSetup === true && (
 										<span className="text-[10px] text-amber-500 shrink-0">
-											<Trans id="dashboard.tasks.openInWorkspaceV2.notSetUp">
-												not set up
-											</Trans>
+											<Trans>not set up</Trans>
 										</span>
 									)}
 								</DropdownMenuItem>
@@ -354,7 +338,6 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 				<Button
 					size="icon"
 					aria-label={t({
-						id: "dashboard.tasks.openInWorkspaceV2.openButton",
 						message: "Open in workspace",
 					})}
 					className="h-8 w-8 shrink-0"
@@ -368,14 +351,12 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 				agents={v2Agents}
 				value={selectedAgent}
 				placeholder={t({
-					id: "dashboard.tasks.openInWorkspaceV2.selectAgent",
 					message: "Select agent",
 				})}
 				onValueChange={setSelectedAgent}
 				triggerClassName="h-8 text-xs"
 				allowNone
 				noneLabel={t({
-					id: "dashboard.tasks.openInWorkspaceV2.noAgent",
 					message: "No agent",
 				})}
 				noneValue={NONE}

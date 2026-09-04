@@ -1,0 +1,116 @@
+---
+title: "Switching Between AI Coding Agents Without Losing Context"
+description: "Claude Code wedges, runs out of context, or turns out to be the wrong tool. Moving that session to another agent means moving the context. Here is what context actually is, why it does not travel, and the fork commands every major agent CLI ships."
+author: kiet
+date: 2026-08-30
+category: Engineering
+relatedSlugs:
+  - parallel-coding-agents-guide
+  - agent-orchestration-not-another-agent
+  - working-with-worktrees-in-superset
+---
+
+You are forty minutes into a session. The agent knows your repo, the three files that matter, the approach you rejected twice, and the one test that keeps failing. Then it wedges. Or it burns through its context window. Or you realize it is simply the wrong tool for this particular job and a different model would have solved it in one turn.
+
+Starting over means explaining it again. So most people do the thing that feels cheaper: they keep pushing the stuck session, because re-teaching a fresh agent costs more than tolerating a bad one.
+
+That trade is the actual problem. Here is what context consists of, why it does not move between agents, and what each CLI gives you today.
+
+---
+
+## What "context" actually is
+
+"Context" gets used as one word for four different things, and they do not travel equally.
+
+**The conversation.** Every turn you and the agent exchanged. This is the biggest piece and the one people mean. Each harness stores it in its own place and its own shape: Claude Code under `~/.claude`, Codex under `~/.codex`, and so on, each keyed by a session id.
+
+**The working state.** The branch, the worktree, the files already edited. This lives on disk rather than in the agent, so it transfers on its own: a second agent pointed at the same directory sees the same code. Process state is a different matter. A running dev server, its port, and anything held in memory belong to the process that started them, and the next agent inherits none of it.
+
+**The instructions.** `AGENTS.md`, `CLAUDE.md`, skills, MCP server config. Also on disk, also portable, and the most underrated of the four. Anything you teach an agent here survives not just a handoff but the agent itself.
+
+**The reasoning.** Why you rejected the first approach, which lead went nowhere. This one lives only in the transcript, and it hurts to lose, because the diff never shows it.
+
+The files and the instructions travel on their own. The fight is over the conversation and the reasoning.
+
+---
+
+## Why the conversation does not travel
+
+No vendor-neutral interchange format exists for agent sessions. Each vendor stores transcripts in its own schema, and by default none of them read another's. A few one-way importers have appeared, such as `grok import`, which pulls the current Claude Code conversation into Grok and prints a resume command. Check whether one exists for your pair before falling back to replay.
+
+That leaves two honest options, and they fail differently.
+
+**Native fork or resume** keeps full fidelity, because the harness reads its own store. It only works inside one harness. Claude cannot resume a Codex session.
+
+**Transcript replay** ports across harnesses by feeding the previous session's output to a new agent as text. That is lossy by construction, since you hand over a rendering rather than structured turns. It is the fallback when no importer covers your pair, which is still most pairs.
+
+Use the first when you want another branch of the same conversation. Use the second when you are switching tools.
+
+---
+
+## The fork commands
+
+Most agent CLIs ship a way to branch a session. The flags disagree with each other, which is the main reason people do not know the feature exists.
+
+| Agent | Fork an existing session |
+|---|---|
+| Claude Code | `claude --resume <sessionId> --fork-session` |
+| Codex | `codex fork <sessionId>` |
+| OpenCode | `opencode --session <sessionId> --fork` |
+| Grok | `grok --resume <sessionId> --fork-session` |
+| Pi | `pi --fork <sessionId>` |
+| Droid | `droid --fork <sessionId>` |
+
+We verified the first five by saying a codeword to the source session, forking it, and asking the fork to repeat the codeword back. Droid's flag comes from its documentation and we have not run it. OpenCode titles the new session "(fork #1)", which is a nice touch once you have a stack of them.
+
+A fork leaves the original untouched, and most CLIs fork from the saved session rather than a live process, so the source does not need to still be running. That is the point: you get two branches of one conversation, so you can try the risky refactor in one and keep the other intact.
+
+---
+
+## The scrollback trap
+
+If you want to move context to a *different* agent, you have to capture the old session's output. This is where the obvious approach quietly fails, and the failure is worth understanding because it applies to anything that scrapes a terminal.
+
+Most fullscreen agent TUIs draw to the **alternate screen buffer**. That is the same mechanism `vim` and `less` use, the reason your prompt reappears untouched when you quit them. The alternate screen keeps no scrollback. Nothing scrolls off, because nothing scrolls: the program redraws in place. It depends on the mode, not the tool: Pi's default `regular` mode renders to the main buffer and keeps normal scrollback, while its fullscreen mode does not.
+
+So reading the terminal's visible buffer gives you one screen, no matter how large a line budget you ask for. We measured it against a pager showing 300 known lines:
+
+| Source | Alt-screen agent | Normal shell |
+|---|---|---|
+| Visible screen buffer, 800-line budget | 392 chars, **23** history lines | 4,991 chars, 300 lines |
+| Raw pty stream | 4,478 chars, **253** history lines | 4,993 chars, 300 lines |
+
+The 800-line budget is inert on the left. Worse, once the pager exits and restores the normal screen, the visible buffer holds **none** of the 300 lines, even though every byte went down the pty.
+
+The fix is to read the raw pty output rather than the rendered screen, which means something has to keep that stream while the session runs. If you are building this yourself, that is the piece to get right first. If a harness keeps its own conversation store, prefer it: structured turns beat a reconstructed screen every time.
+
+---
+
+## Practical patterns
+
+**Put durable knowledge in `AGENTS.md`, not in the chat.** Anything you find yourself re-explaining after a handoff belongs in a file. This is the highest-leverage habit here, because it makes every future switch cheaper and it survives the agent going away entirely.
+
+**Fork before anything irreversible.** A large refactor, a dependency bump, a migration. Forking costs nothing and gives you a thread to fall back to.
+
+**Switch tools on capability, not frustration.** A wedged agent is often a context-window problem, and a fresh session of the *same* agent fixes it. Change harness when you want a different model's strengths.
+
+**Hand over a summary, not a transcript.** When you do move across tools, asking the old session to write what it learned often beats replaying its raw output. You get the reasoning without the noise.
+
+**Know what you are sending.** A transcript handoff ships your terminal output to a different vendor. Stripping control sequences is not redaction, so anything a command printed, including a token or a connection string, goes along with it. Summarize instead of replaying when the session touched credentials.
+
+---
+
+## How we handle it
+
+We ship this in [Superset](https://superset.sh) because we kept hitting it ourselves. Any agent terminal has two actions behind the fork icon: **Continue with another agent**, which starts a different harness seeded with the source session's recent output, and **Fork session**, which asks the agent for a native clone of its own session and leaves the original running.
+
+Both work from the CLI:
+
+```bash
+superset agents create --workspace W --agent codex  --from-terminal T
+superset agents create --workspace W --agent claude --fork-session S
+```
+
+The handoff reads the retained pty stream rather than the visible screen, for the reason above, and prefers a harness's own conversation store when one exists.
+
+The broader point stands whichever tool you use: the parts of context you keep on disk are the parts you never have to move. Everything else is a copy, and every copy loses something.

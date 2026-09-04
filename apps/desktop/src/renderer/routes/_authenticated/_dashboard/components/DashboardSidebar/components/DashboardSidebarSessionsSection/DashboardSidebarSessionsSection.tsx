@@ -1,7 +1,3 @@
-import {
-	SortableContext,
-	verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { LuPlus } from "react-icons/lu";
@@ -9,21 +5,24 @@ import { useOpenNewSessionModal } from "renderer/stores/new-workspace-modal";
 import { useSidebarSectionsCollapseStore } from "renderer/stores/sidebar-sections-collapse";
 import {
 	dropZoneId,
-	parseId,
 	SESSIONS_CONTAINER,
 	useDashboardSidebarDnd,
 } from "../../hooks/useSidebarDnd";
 import type { DashboardSidebarWorkspace } from "../../types";
+import { DashboardSidebarExpandedProjectContent } from "../DashboardSidebarProjectSection/components/DashboardSidebarExpandedProjectContent";
 import { DashboardSidebarSectionHeader } from "../DashboardSidebarSectionHeader";
 import { DashboardSidebarWorkspaceItem } from "../DashboardSidebarWorkspaceItem";
 import { SidebarDropZone } from "../SidebarDropZone";
-import { SortableWorkspaceItem } from "../SortableWorkspaceItem";
 
 interface DashboardSidebarSessionsSectionProps {
+	/** Every session in render order; only the collapsed rail reads it. */
 	sessionWorkspaces: DashboardSidebarWorkspace[];
 	isCollapsed?: boolean;
 	workspaceShortcutLabels?: Map<string, string>;
 	onWorkspaceHover: (workspaceId: string) => void | Promise<void>;
+	onDeleteSection: (sectionId: string) => void;
+	onRenameSection: (sectionId: string, name: string) => void;
+	onToggleSectionCollapse: (sectionId: string) => void;
 }
 
 /**
@@ -31,29 +30,32 @@ interface DashboardSidebarSessionsSectionProps {
  * header (and its "+", which opens the create surface with "No project"
  * preselected) always renders in expanded mode — like the Projects header —
  * so sessions stay discoverable at zero, and toggles a persisted section
- * collapse that hides the rows. Expanded rows are sortable: sessions
- * reorder among themselves, can be dragged into the Pinned section (pin), and
- * a pinned session dragged back here unpins. Collapsed rail renders a plain
- * icon stack with a trailing divider, matching the Pinned section.
+ * collapse that hides the rows. The rows are the Sessions DnD lane, rendered
+ * by the same list as a project: sessions reorder, file into and out of tag
+ * folders, folders drag as units, and rows cross into the Pinned section
+ * (pin) and back (unpin). Collapsed rail renders a plain icon stack with a
+ * trailing divider, matching the Pinned section.
  */
 export function DashboardSidebarSessionsSection({
 	sessionWorkspaces,
 	isCollapsed = false,
-	workspaceShortcutLabels,
+	workspaceShortcutLabels = new Map(),
 	onWorkspaceHover,
+	onDeleteSection,
+	onRenameSection,
+	onToggleSectionCollapse,
 }: DashboardSidebarSessionsSectionProps) {
 	const { t } = useLingui();
 	const openNewSessionModal = useOpenNewSessionModal();
-	const { sessionItems, workspacesById, activeWorkspaceHome } =
-		useDashboardSidebarDnd();
+	const { sessionItems, activeWorkspaceHome } = useDashboardSidebarDnd();
 	const isSectionCollapsed = useSidebarSectionsCollapseStore(
 		(s) => s.collapsed.sessions,
 	);
-	// Only a project-less session may land here, and only when there are no
-	// rows to target directly. An empty section has nothing to hide, so the
-	// zone renders regardless of the section collapse.
-	const dropZoneEligible =
+	// The expanded list owns its own drop zone; a collapsed section still
+	// needs one so a pinned session can always land back home.
+	const collapsedDropZoneEligible =
 		!isCollapsed &&
+		isSectionCollapsed &&
 		sessionItems.length === 0 &&
 		activeWorkspaceHome === SESSIONS_CONTAINER;
 
@@ -79,7 +81,6 @@ export function DashboardSidebarSessionsSection({
 		<div className="mt-3 pb-1 first:mt-0">
 			<DashboardSidebarSectionHeader
 				label={t({
-					id: "dashboard.sidebar.sectionSessions",
 					message: "Sessions",
 				})}
 				section="sessions"
@@ -89,7 +90,6 @@ export function DashboardSidebarSessionsSection({
 						<button
 							type="button"
 							aria-label={t({
-								id: "dashboard.sidebar.sessionsSection.newSessionAriaLabel",
 								message: "New session",
 							})}
 							onClick={(event) => {
@@ -103,39 +103,26 @@ export function DashboardSidebarSessionsSection({
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom">
-						<Trans id="dashboard.sidebar.sessionsSection.newSession">
-							New session
-						</Trans>
+						<Trans>New session</Trans>
 					</TooltipContent>
 				</Tooltip>
 			</DashboardSidebarSectionHeader>
-			{!isSectionCollapsed && (
-				<SortableContext
-					items={sessionItems}
-					strategy={verticalListSortingStrategy}
-				>
-					{sessionItems.map((id) => {
-						const parsed = parseId(id);
-						if (!parsed || parsed.type !== "workspace") return null;
-						const workspace = workspacesById.get(parsed.realId);
-						if (!workspace) return null;
-						return (
-							<SortableWorkspaceItem
-								key={String(id)}
-								sortableId={String(id)}
-								workspace={workspace}
-								shortcutLabel={workspaceShortcutLabels?.get(parsed.realId)}
-								onHoverCardOpen={onWorkspaceHover}
-							/>
-						);
-					})}
-				</SortableContext>
-			)}
-			{dropZoneEligible && (
+			<DashboardSidebarExpandedProjectContent
+				containerId={SESSIONS_CONTAINER}
+				projectId={null}
+				isCollapsed={isSectionCollapsed}
+				topLevelIndentation="top-level"
+				groupedIndentation="workspace"
+				workspaceShortcutLabels={workspaceShortcutLabels}
+				onWorkspaceHover={onWorkspaceHover}
+				onDeleteSection={onDeleteSection}
+				onRenameSection={onRenameSection}
+				onToggleSectionCollapse={onToggleSectionCollapse}
+			/>
+			{collapsedDropZoneEligible && (
 				<SidebarDropZone
 					dropZoneId={dropZoneId(SESSIONS_CONTAINER)}
 					label={t({
-						id: "dashboard.sidebar.sessionsSection.dropToUnpin",
 						message: "Drop to unpin",
 					})}
 				/>

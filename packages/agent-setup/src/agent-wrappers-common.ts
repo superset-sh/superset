@@ -117,16 +117,28 @@ function buildRealBinaryResolver(): string {
 export function buildDefaultAccountResolver(
 	envVar: string,
 	pointerName: string,
+	ambientEnvVar?: string,
 ): string {
 	const pointer = `"$SUPERSET_HOME_DIR/state/${pointerName}"`;
+	const restoreSystemDefault = ambientEnvVar
+		? `if [ -n "\${${ambientEnvVar}}" ]; then
+    export ${envVar}="\${${ambientEnvVar}}"
+    export SUPERSET_DEFAULT_${envVar}="\${${ambientEnvVar}}"
+  else
+    unset ${envVar}
+    unset SUPERSET_DEFAULT_${envVar}
+  fi`
+		: `unset ${envVar}
+  unset SUPERSET_DEFAULT_${envVar}`;
 	return `if [ -n "$SUPERSET_TERMINAL_ID" ] && [ -n "$SUPERSET_HOME_DIR" ] \\
   && { [ -z "\${${envVar}}" ] || [ "\${${envVar}}" = "\${SUPERSET_DEFAULT_${envVar}}" ]; } \\
   && [ -f ${pointer} ]; then
   superset_default_account="$(cat ${pointer} 2>/dev/null)"
   if [ -n "$superset_default_account" ] && [ -d "$superset_default_account" ]; then
     export ${envVar}="$superset_default_account"
+    export SUPERSET_DEFAULT_${envVar}="$superset_default_account"
   else
-    unset ${envVar}
+    ${restoreSystemDefault}
   fi
 fi
 

@@ -45,11 +45,9 @@ export function WorktreeLocationSection({
 			toast.success(
 				path
 					? t({
-							id: "settings.project.worktreeLocationUpdatedToast",
 							message: "Project worktree location updated",
 						})
 					: t({
-							id: "settings.project.worktreeLocationResetToast",
 							message: "Project worktree location reset",
 						}),
 			);
@@ -79,11 +77,9 @@ export function WorktreeLocationSection({
 				setLocation.isPending
 			}
 			browseTitle={t({
-				id: "settings.project.worktreeBrowseTitle",
 				message: "Select project worktree location",
 			})}
 			browseDescription={t({
-				id: "settings.project.worktreeBrowseDescription",
 				message: `Pick the project worktree folder on ${hostName}.`,
 			})}
 			onSelect={(path) => setLocation.mutate(path)}

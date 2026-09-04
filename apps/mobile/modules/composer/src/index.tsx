@@ -20,6 +20,8 @@ interface NativeComposerViewProps {
 	quickKeys?: ComposerQuickKey[];
 	sessionTabs?: ComposerSessionTab[];
 	sessionTabLabels?: ComposerSessionTabLabels;
+	/** Null, never undefined — see the pass-through below. */
+	quickKeysAction?: ComposerQuickKeysAction | null;
 	slashCommands?: ComposerSlashCommand[];
 	showAttachments?: boolean;
 	autocapitalization?: "sentences" | "never";
@@ -35,6 +37,7 @@ interface NativeComposerViewProps {
 	onSessionTabCopyId?: (event: { nativeEvent: { id: string } }) => void;
 	onNewSessionPress?: () => void;
 	onAllSessionsPress?: () => void;
+	onQuickKeysActionPress?: () => void;
 	onHeightChange?: (event: { nativeEvent: { height: number } }) => void;
 	onPaste?: (event: { nativeEvent: { items: ComposerPastedItem[] } }) => void;
 	onDraftChange?: (event: { nativeEvent: { text: string } }) => void;
@@ -135,6 +138,37 @@ export interface ComposerSessionTab {
 	selected?: boolean;
 	/** Desktop's StatusIndicator states; omit for a session with nothing to say. */
 	attention?: "permission" | "working" | "failed" | "review";
+}
+
+/**
+ * The one static control beside the quick keys.
+ *
+ * Data only, like the keys: the composer draws a chip and says it was pressed.
+ * What it opens is the caller's to know — the workspace terminal points it at
+ * that workspace's pull requests, and nothing here names one.
+ *
+ * It sits ahead of the bar rather than inside it, so it holds still while the
+ * keys scroll. It takes its room only once it exists: the keys slide over the
+ * moment it arrives, animated by the composer.
+ */
+export interface ComposerQuickKeysAction {
+	/** SF Symbol name, e.g. `arrow.triangle.pull`. */
+	symbol: string;
+	/**
+	 * A mark to draw instead of `symbol`. Same rule as
+	 * `ComposerSessionTab.iconUri`: a local file URI, never a Metro asset
+	 * reference. Drawn as a template, so it takes `tint` like the symbol does,
+	 * and `symbol` shows until it resolves.
+	 */
+	iconUri?: string;
+	/**
+	 * Which accent the glyph takes. Omit for the same foreground the keys use.
+	 * The name crosses the bridge and the composer owns the colour, the way
+	 * `ComposerSessionTab.attention` does.
+	 */
+	tint?: "open" | "draft" | "queued" | "merged" | "closed";
+	/** Accessibility label. Translated here; the composer has no catalog. */
+	label: string;
 }
 
 /**
@@ -246,6 +280,13 @@ interface ComposerBaseProps {
 	 */
 	quickKeys?: ComposerQuickKey[];
 	/**
+	 * The one static control beside the quick keys. Omitted on every surface
+	 * with nothing to link to — which is all of them but the workspace
+	 * terminal. Independent of `quickKeys`: an action with the keys away still
+	 * draws the row it belongs to.
+	 */
+	quickKeysAction?: ComposerQuickKeysAction;
+	/**
 	 * What the active agent can run behind `/` (or `$`). Empty or omitted
 	 * hides the suggestion panel — a plain shell, an agent without command
 	 * discovery, or a host too old to answer all look the same here.
@@ -294,6 +335,12 @@ interface ComposerBaseProps {
 	onSessionTabCopyId?: (id: string) => void;
 	onNewSessionPress?: () => void;
 	onAllSessionsPress?: () => void;
+	/**
+	 * The control beside the quick keys was pressed. Only ever fires when
+	 * `quickKeysAction` is set, so the caller that provided the chip is the one
+	 * that hears about it.
+	 */
+	onQuickKeysActionPress?: () => void;
 	/**
 	 * How much room the composer occupies above the bottom safe area — the
 	 * session tabs, the card, the quick keys and the gaps between them.
@@ -355,6 +402,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 			quickKeys,
 			sessionTabs,
 			sessionTabLabels,
+			quickKeysAction,
 			slashCommands,
 			showAttachments = true,
 			autocapitalization = "sentences",
@@ -370,6 +418,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 			onSessionTabCopyId,
 			onNewSessionPress,
 			onAllSessionsPress,
+			onQuickKeysActionPress,
 			onHeightChange,
 			onPaste,
 			onDraftChange,
@@ -400,6 +449,10 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 				quickKeys={quickKeys}
 				sessionTabs={sessionTabs}
 				sessionTabLabels={sessionTabLabels}
+				// Null rather than undefined: React Native drops undefined props
+				// before they reach the view, so the native setter is never called
+				// and a chip that has gone away stays on screen.
+				quickKeysAction={quickKeysAction ?? null}
 				slashCommands={slashCommands}
 				showAttachments={showAttachments}
 				autocapitalization={autocapitalization}
@@ -419,6 +472,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 				}
 				onNewSessionPress={onNewSessionPress}
 				onAllSessionsPress={onAllSessionsPress}
+				onQuickKeysActionPress={onQuickKeysActionPress}
 				onHeightChange={(event) => onHeightChange?.(event.nativeEvent.height)}
 				onPaste={(event) => onPaste?.(event.nativeEvent.items)}
 				onDraftChange={(event) => onDraftChange?.(event.nativeEvent.text)}

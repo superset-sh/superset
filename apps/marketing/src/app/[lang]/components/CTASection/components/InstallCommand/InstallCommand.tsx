@@ -50,7 +50,6 @@ export function InstallCommand() {
 					onClick={handleCopy}
 					className="p-2 text-muted-foreground hover:text-foreground transition-colors"
 					aria-label={t({
-						id: "marketing.cta.copyCommand",
 						message: "Copy to clipboard",
 					})}
 				>

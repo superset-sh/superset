@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import type { SelectDownload } from "@superset/local-db";
@@ -34,8 +35,9 @@ function stateLabel(row: DownloadRow): string {
 			const total = row.totalBytes;
 			return total
 				? i18n._({
-						id: "workspace.browserPane.downloadProgress",
-						message: "{received} of {total}",
+						...msg({
+							message: "{received} of {total}",
+						}),
 						values: {
 							received: formatBytes(row.receivedBytes),
 							total: formatBytes(total),
@@ -46,15 +48,17 @@ function stateLabel(row: DownloadRow): string {
 		case "completed":
 			return formatBytes(row.receivedBytes);
 		case "cancelled":
-			return i18n._({
-				id: "workspace.browserPane.downloadCancelled",
-				message: "Cancelled",
-			});
+			return i18n._(
+				msg({
+					message: "Cancelled",
+				}),
+			);
 		case "interrupted":
-			return i18n._({
-				id: "workspace.browserPane.downloadFailed",
-				message: "Failed",
-			});
+			return i18n._(
+				msg({
+					message: "Failed",
+				}),
+			);
 	}
 }
 
@@ -93,15 +97,13 @@ export function DownloadsDialog({ open, onOpenChange }: DownloadsDialogProps) {
 			<DialogContent className="max-w-lg">
 				<DialogHeader>
 					<DialogTitle>
-						<Trans id="workspace.browserPane.downloadsTitle">Downloads</Trans>
+						<Trans>Downloads</Trans>
 					</DialogTitle>
 				</DialogHeader>
 				<ScrollArea className="h-80 min-w-0 -mx-1 px-1">
 					{rows.length === 0 ? (
 						<p className="py-8 text-center text-sm text-muted-foreground">
-							<Trans id="workspace.browserPane.noDownloads">
-								No downloads yet
-							</Trans>
+							<Trans>No downloads yet</Trans>
 						</p>
 					) : (
 						<div className="flex min-w-0 flex-col">
@@ -130,7 +132,6 @@ export function DownloadsDialog({ open, onOpenChange }: DownloadsDialogProps) {
 											type="button"
 											onClick={() => handleCancel(row.id)}
 											aria-label={t({
-												id: "workspace.browserPane.cancelDownload",
 												message: "Cancel download",
 											})}
 											className="shrink-0 rounded p-1 text-muted-foreground/60 transition-colors hover:text-foreground"
@@ -142,7 +143,6 @@ export function DownloadsDialog({ open, onOpenChange }: DownloadsDialogProps) {
 											type="button"
 											onClick={() => handleShowInFolder(row.id)}
 											aria-label={t({
-												id: "workspace.browserPane.downloadShowInFolder",
 												message: "Show in folder",
 											})}
 											className="shrink-0 rounded p-1 text-muted-foreground/60 transition-colors hover:text-foreground"
@@ -162,9 +162,7 @@ export function DownloadsDialog({ open, onOpenChange }: DownloadsDialogProps) {
 						onClick={handleClear}
 						disabled={!hasFinished}
 					>
-						<Trans id="workspace.browserPane.downloadsClearList">
-							Clear list
-						</Trans>
+						<Trans>Clear list</Trans>
 					</Button>
 				</div>
 			</DialogContent>

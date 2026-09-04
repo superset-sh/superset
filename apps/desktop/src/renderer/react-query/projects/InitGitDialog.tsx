@@ -26,15 +26,13 @@ export function InitGitDialog() {
 			<AlertDialogContent>
 				<AlertDialogHeader>
 					<AlertDialogTitle>
-						<Trans id="app.initGitDialog.title">
-							Initialize Git Repository?
-						</Trans>
+						<Trans>Initialize Git Repository?</Trans>
 					</AlertDialogTitle>
 					<AlertDialogDescription asChild>
 						<div className="space-y-2">
 							{isSingle ? (
 								<p>
-									<Trans id="app.initGitDialog.singleQuestion">
+									<Trans>
 										<span className="font-medium text-foreground">
 											{paths[0]?.split("/").pop()}
 										</span>{" "}
@@ -44,7 +42,7 @@ export function InitGitDialog() {
 							) : (
 								<>
 									<p>
-										<Trans id="app.initGitDialog.multiQuestion">
+										<Trans>
 											The following folders are not git repositories. Would you
 											like to initialize them?
 										</Trans>
@@ -72,15 +70,13 @@ export function InitGitDialog() {
 						disabled={isPending}
 						onClick={() => onCancel?.()}
 					>
-						<Trans id="app.initGitDialog.cancel">Cancel</Trans>
+						<Trans>Cancel</Trans>
 					</Button>
 					<Button disabled={isPending} onClick={() => onConfirm?.()}>
 						{isPending ? (
-							<Trans id="app.initGitDialog.confirmPending">
-								Initializing...
-							</Trans>
+							<Trans>Initializing...</Trans>
 						) : (
-							<Trans id="app.initGitDialog.confirm">Initialize Git</Trans>
+							<Trans>Initialize Git</Trans>
 						)}
 					</Button>
 				</AlertDialogFooter>

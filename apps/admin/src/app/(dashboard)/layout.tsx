@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { auth } from "@superset/auth/server";
 import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
@@ -17,9 +18,7 @@ import {
 } from "@superset/ui/sidebar";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-
 import { env } from "@/env";
-
 import { AppSidebar } from "./components/AppSidebar";
 
 export default async function DashboardLayout({
@@ -60,7 +59,7 @@ export default async function DashboardLayout({
 							<BreadcrumbSeparator className="hidden md:block" />
 							<BreadcrumbItem>
 								<BreadcrumbPage>
-									{i18n._({ id: "admin.breadcrumb.home", message: "Home" })}
+									{i18n._(msg({ message: "Home" }))}
 								</BreadcrumbPage>
 							</BreadcrumbItem>
 						</BreadcrumbList>

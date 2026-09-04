@@ -19,6 +19,14 @@ export type GithubMatchableEvent = BaseMatchableEvent & {
 	isFork: boolean;
 	/** Who opened the thing being commented on. */
 	subjectAuthorId: string | null;
+	/** Their login, for the same reason actorLogin exists on people filters. */
+	subjectAuthorLogin: string | null;
+	/**
+	 * Who was put on the pull request — assigned, or asked to review. Null when
+	 * a team was asked: GitHub names the team and nobody in it.
+	 */
+	assigneeId: string | null;
+	assigneeLogin: string | null;
 	/** The product-level names this delivery maps to; see githubEventNames. */
 	names: GithubTriggerEvent[];
 };
@@ -51,6 +59,11 @@ export function githubEventNames(event: {
 		case "pull_request.labeled":
 		case "pull_request.unlabeled":
 			return ["label_change"];
+		// One delivery per person put on the PR, each naming that person.
+		case "pull_request.assigned":
+			return ["pull_request.assigned"];
+		case "pull_request.review_requested":
+			return ["pull_request.review_requested"];
 		case "push":
 			return ["push_to_branch"];
 		case "check_suite.completed":
@@ -91,6 +104,10 @@ export function githubEventNames(event: {
 }
 
 /** Whether a GitHub trigger config accepts this event. */
+/** The values a people filter may name someone by, absent ones dropped. */
+const people = (id: string | null, login: string | null): string[] =>
+	[id, login].filter((value): value is string => value !== null);
+
 export function githubTriggerMatches(
 	config: {
 		event: string;
@@ -99,6 +116,7 @@ export function githubTriggerMatches(
 		labels: TriggerScope;
 		actor: TriggerScope;
 		subjectAuthor?: TriggerScope;
+		assignee?: TriggerScope;
 		commentFilter?: { pattern: string; isRegex: boolean } | null;
 		includeForks: boolean;
 	},
@@ -116,14 +134,35 @@ export function githubTriggerMatches(
 	if (!scopeAllowsAny(config.labels, event.labels)) {
 		return no("label");
 	}
-	if (!scopeAllows(config.actor, event.actorId)) {
+	// Id or login: the roster saves GitHub's numeric id, but the roster is empty
+	// without the members permission, so people filters also accept a username
+	// someone typed. Only the id survives a rename — see UserScopeChip.
+	if (!scopeAllowsAny(config.actor, people(event.actorId, event.actorLogin))) {
 		return no("actor");
 	}
 	if (
 		config.subjectAuthor !== undefined &&
-		!scopeAllows(config.subjectAuthor, event.subjectAuthorId)
+		!scopeAllowsAny(
+			config.subjectAuthor,
+			people(event.subjectAuthorId, event.subjectAuthorLogin),
+		)
 	) {
 		return no("subjectAuthor");
+	}
+	// A team review request names the team and nobody in it, so this list is
+	// empty for one. That is deliberately not the same as refusing it outright:
+	// `{mode:"any"}` reads as "every review request in this repository" and a
+	// team request is one, while a named person — which is what "Me" resolves
+	// to before it reaches here — cannot match an empty list, so a request
+	// aimed at a whole team never fires as though it named an individual.
+	if (
+		config.assignee !== undefined &&
+		!scopeAllowsAny(
+			config.assignee,
+			people(event.assigneeId, event.assigneeLogin),
+		)
+	) {
+		return no("assignee");
 	}
 	if (!config.includeForks && event.isFork) {
 		return no("fork");

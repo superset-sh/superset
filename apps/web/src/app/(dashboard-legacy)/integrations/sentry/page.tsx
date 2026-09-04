@@ -9,43 +9,37 @@ import {
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { SiSentry } from "react-icons/si";
-import { i18n } from "@/lib/i18n-server";
 import { api } from "@/trpc/server";
 import { IntegrationErrorHandler } from "../components/IntegrationErrorHandler";
 import { requireOfferedIntegration } from "../utils/requireOfferedIntegration";
 import { ConnectionControls } from "./components/ConnectionControls";
 
+/**
+ * Sentry records the installation the moment the admin accepts it, and refuses
+ * to install it twice — so every failure after that point leaves the app
+ * installed in Sentry but unlinked here, and the install page's button greyed
+ * out. Superset cannot clear it (an installation token is refused a DELETE on
+ * its own installation), so the messages for those failures have to say what
+ * the only way back is.
+ */
+const RECONNECT = "Uninstall Superset in Sentry, then connect again.";
+
 const CALLBACK_MESSAGES = {
-	not_configured: i18n._({
-		id: "web.integrations.sentry.callback.notConfigured",
-		message:
-			"Sentry isn't available yet — the Superset app hasn't been registered with Sentry.",
-	}),
-	oauth_denied: i18n._({
-		id: "web.integrations.sentry.callback.oauthDenied",
-		message: "The install was cancelled. Please try again.",
-	}),
-	missing_params: i18n._({
-		id: "web.integrations.sentry.callback.missingParams",
-		message: "Invalid response from Sentry. Please try again.",
-	}),
-	invalid_state: i18n._({
-		id: "web.integrations.sentry.callback.invalidState",
-		message: "Your session expired. Start the connection again.",
-	}),
-	unauthorized: i18n._({
-		id: "web.integrations.callback.unauthorized",
-		message: "You are not authorized to perform this action.",
-	}),
-	token_exchange_failed: i18n._({
-		id: "web.integrations.sentry.callback.tokenExchangeFailed",
-		message: "Failed to complete the Sentry install. Please try again.",
-	}),
-	organization_lookup_failed: i18n._({
-		id: "web.integrations.sentry.callback.organizationLookupFailed",
-		message:
-			"Connected, but couldn't read your Sentry organization. Please reconnect.",
-	}),
+	not_configured:
+		"Sentry isn't available yet — the Superset app hasn't been registered with Sentry.",
+	oauth_denied: "The install was cancelled. Please try again.",
+	missing_params: `Invalid response from Sentry. ${RECONNECT}`,
+	invalid_state: `Your session expired. ${RECONNECT}`,
+	unauthorized: "You are not authorized to perform this action.",
+	token_exchange_failed: `Couldn't finish the Sentry install. ${RECONNECT}`,
+	organization_lookup_failed: `Couldn't read your Sentry organization. ${RECONNECT}`,
+	organization_already_linked: {
+		param: "owner",
+		withParam:
+			"This Sentry organization is already connected by {owner}. Ask them to disconnect first.",
+		withoutParam:
+			"This Sentry organization is already connected by another Superset organization.",
+	},
 };
 
 export default async function SentryIntegrationPage() {
@@ -57,11 +51,7 @@ export default async function SentryIntegrationPage() {
 		return (
 			<div className="flex flex-col items-center justify-center py-16">
 				<p className="text-muted-foreground">
-					{i18n._({
-						id: "web.integrations.needOrganization",
-						message:
-							"You need to be part of an organization to use integrations.",
-					})}
+					You need to be part of an organization to use integrations.
 				</p>
 			</div>
 		);
@@ -81,10 +71,7 @@ export default async function SentryIntegrationPage() {
 				className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
 			>
 				<ArrowLeft className="size-4" />
-				{i18n._({
-					id: "web.integrations.back",
-					message: "Back to Integrations",
-				})}
+				Back to Integrations
 			</Link>
 
 			<div className="flex items-start gap-6">
@@ -97,43 +84,24 @@ export default async function SentryIntegrationPage() {
 						{isConnected ? (
 							<Badge variant="default" className="gap-1">
 								<CheckCircle2 className="size-3" />
-								{i18n._({
-									id: "web.integrations.connected",
-									message: "Connected",
-								})}
+								Connected
 							</Badge>
 						) : (
-							<Badge variant="secondary">
-								{i18n._({
-									id: "web.integrations.notConnected",
-									message: "Not Connected",
-								})}
-							</Badge>
+							<Badge variant="secondary">Not Connected</Badge>
 						)}
 					</div>
 					<p className="mt-1 text-muted-foreground">
-						{i18n._({
-							id: "web.integrations.sentry.blurb",
-							message:
-								"Connect Sentry to run automations when issues are created, resolved, assigned, archived or unresolved.",
-						})}
+						Connect Sentry to run automations when issues are created, resolved,
+						assigned, archived or unresolved.
 					</p>
 				</div>
 			</div>
 
 			<Card>
 				<CardHeader>
-					<CardTitle>
-						{i18n._({
-							id: "web.integrations.connectionCard",
-							message: "Connection",
-						})}
-					</CardTitle>
+					<CardTitle>Connection</CardTitle>
 					<CardDescription>
-						{i18n._({
-							id: "web.integrations.sentry.connectionDescription",
-							message: "Install the Superset app in your Sentry organization.",
-						})}
+						Install the Superset app in your Sentry organization.
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
@@ -143,10 +111,7 @@ export default async function SentryIntegrationPage() {
 					/>
 					{connection && (
 						<div className="mt-4 text-sm text-muted-foreground">
-							{i18n._({
-								id: "web.integrations.connectedTo",
-								message: "Connected to",
-							})}{" "}
+							Connected to{" "}
 							<span className="font-medium">
 								{connection.organizationName ?? connection.organizationSlug}
 							</span>

@@ -45,9 +45,7 @@ export function MentionMenu({
 						</p>
 						{section.isLoading && section.entries.length === 0 && (
 							<p className="px-3 pb-2 text-[15px] text-muted-foreground/60">
-								{section.loadingState ?? (
-									<Trans id="chatUi.mentionMenu.loading">Loading…</Trans>
-								)}
+								{section.loadingState ?? <Trans>Loading…</Trans>}
 							</p>
 						)}
 						{!section.isLoading &&

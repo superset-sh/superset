@@ -1,5 +1,6 @@
 "use client";
 
+import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import {
@@ -14,7 +15,6 @@ import {
 	ReasoningTrigger,
 } from "@superset/ui/ai-elements/reasoning";
 import { Suggestion, Suggestions } from "@superset/ui/ai-elements/suggestion";
-
 import { ComponentCard } from "../../../components/ComponentCard";
 import { ShowcaseSection } from "../../../components/ShowcaseSection";
 
@@ -29,26 +29,30 @@ export function AiChatSection() {
 		<ShowcaseSection
 			id="ai-chat"
 			index="03"
-			title={i18n._({
-				id: "web.design.aiChatSection.aiConversation",
-				message: "AI · Conversation",
-			})}
-			description={i18n._({
-				id: "web.design.aiChatSection.chatSurfacesMessagesReasoningSuggestions",
-				message: "Chat surfaces: messages, reasoning, suggestions",
-			})}
+			title={i18n._(
+				msg({
+					message: "AI · Conversation",
+				}),
+			)}
+			description={i18n._(
+				msg({
+					message: "Chat surfaces: messages, reasoning, suggestions",
+				}),
+			)}
 		>
 			<ComponentCard
-				title={i18n._({
-					id: "web.design.aiChatSection.conversationMessage",
-					message: "Conversation · Message",
-				})}
+				title={i18n._(
+					msg({
+						message: "Conversation · Message",
+					}),
+				)}
 				importPath="@superset/ui/ai-elements/conversation"
-				description={i18n._({
-					id: "web.design.aiChatSection.alsoSupersetUiAiElements",
-					message:
-						"Also: @superset/ui/ai-elements/message — sticks to bottom as content streams",
-				})}
+				description={i18n._(
+					msg({
+						message:
+							"Also: @superset/ui/ai-elements/message — sticks to bottom as content streams",
+					}),
+				)}
 				span
 				bleed
 			>
@@ -56,14 +60,12 @@ export function AiChatSection() {
 					<ConversationContent className="mx-auto max-w-2xl">
 						<Message from="user">
 							<MessageContent>
-								<Trans id="web.design.aiChatSection.canYouStandardizeTheTooltips">
-									Can you standardize the tooltips across the app?
-								</Trans>
+								<Trans>Can you standardize the tooltips across the app?</Trans>
 							</MessageContent>
 						</Message>
 						<Message from="assistant">
 							<MessageContent>
-								<Trans id="web.design.aiChatSection.doneTheBorderedChipStyle">
+								<Trans>
 									Done — the bordered chip style used by the presets bar is now
 									the default for every tooltip, and the copy-pasted overrides
 									are removed (net −90 lines).
@@ -72,9 +74,7 @@ export function AiChatSection() {
 						</Message>
 						<Message from="user">
 							<MessageContent>
-								<Trans id="web.design.aiChatSection.niceOpenAPrWhen">
-									Nice, open a PR when ready.
-								</Trans>
+								<Trans>Nice, open a PR when ready.</Trans>
 							</MessageContent>
 						</Message>
 					</ConversationContent>
@@ -83,15 +83,17 @@ export function AiChatSection() {
 			</ComponentCard>
 
 			<ComponentCard
-				title={i18n._({
-					id: "web.design.aiChatSection.reasoning",
-					message: "Reasoning",
-				})}
+				title={i18n._(
+					msg({
+						message: "Reasoning",
+					}),
+				)}
 				importPath="@superset/ui/ai-elements/reasoning"
-				description={i18n._({
-					id: "web.design.aiChatSection.collapsibleThinkingBlockWithDuration",
-					message: "Collapsible thinking block with duration label",
-				})}
+				description={i18n._(
+					msg({
+						message: "Collapsible thinking block with duration label",
+					}),
+				)}
 			>
 				<Reasoning
 					className="w-full"
@@ -105,10 +107,11 @@ export function AiChatSection() {
 			</ComponentCard>
 
 			<ComponentCard
-				title={i18n._({
-					id: "web.design.aiChatSection.suggestions",
-					message: "Suggestions",
-				})}
+				title={i18n._(
+					msg({
+						message: "Suggestions",
+					}),
+				)}
 				importPath="@superset/ui/ai-elements/suggestion"
 			>
 				<Suggestions className="w-full">

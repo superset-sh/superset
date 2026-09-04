@@ -99,7 +99,6 @@ export default async function UserProfilePage({ params }: PageProps) {
 	const tokens = formatTokens(profile.allTime.tokens);
 	const days = profile.dayRange ? dayCount(profile.dayRange) : 0;
 	const shareText = t({
-		id: "marketing.profile.shareText",
 		message: `I'm #${rank} on the ${company} leaderboard with ${tokens} tokens of agent usage.`,
 	});
 
@@ -115,9 +114,7 @@ export default async function UserProfilePage({ params }: PageProps) {
 					href="/leaderboard"
 					className="inline-block font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted-foreground hover:text-brand transition-colors"
 				>
-					<Trans id="marketing.profile.backToLeaderboard">
-						← Back to leaderboard
-					</Trans>
+					<Trans>← Back to leaderboard</Trans>
 				</Link>
 
 				<header className="text-center pt-8 md:pt-10">
@@ -152,7 +149,7 @@ export default async function UserProfilePage({ params }: PageProps) {
 						{profile.name ?? profile.handle}
 					</h1>
 					<p className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted-foreground mt-3">
-						<Trans id="marketing.profile.handleAndRank">
+						<Trans>
 							@{profileHandle} · rank #{rank} of {total}
 						</Trans>
 					</p>
@@ -178,46 +175,38 @@ export default async function UserProfilePage({ params }: PageProps) {
 						stats={[
 							{
 								label: t({
-									id: "marketing.profile.stats.tokens",
 									message: "Tokens",
 								}),
 								value: tokens,
 								hint: t({
-									id: "marketing.profile.stats.tokensHint",
 									message: "all time",
 								}),
 							},
 							{
 								label: t({
-									id: "marketing.profile.stats.cost",
 									message: "Cost",
 								}),
 								value: formatUsd(profile.allTime.usd),
 								hint: t({
-									id: "marketing.profile.stats.costHint",
 									message: "API-equivalent",
 								}),
 							},
 							{
 								label: t({
-									id: "marketing.profile.stats.rank",
 									message: "Rank",
 								}),
 								value: `#${rank}`,
 								hint: t({
-									id: "marketing.profile.stats.rankHint",
 									message: `of ${total}`,
 								}),
 							},
 							{
 								label: t({
-									id: "marketing.profile.stats.tracking",
 									message: "Tracking",
 								}),
 
 								value: profile.dayRange
 									? t({
-											id: "marketing.profile.stats.trackingDays",
 											message: `${days}d`,
 										})
 									: "—",
@@ -230,7 +219,7 @@ export default async function UserProfilePage({ params }: PageProps) {
 
 					<section className="border border-border p-5">
 						<h2 className="font-mono text-[0.68rem] uppercase tracking-[0.11em] text-muted-foreground mb-4">
-							<Trans id="marketing.profile.models">Models</Trans>
+							<Trans>Models</Trans>
 						</h2>
 						<ModelBars
 							rows={toTokenRows(
@@ -242,9 +231,7 @@ export default async function UserProfilePage({ params }: PageProps) {
 
 					<section className="border border-border p-5">
 						<h2 className="font-mono text-[0.68rem] uppercase tracking-[0.11em] text-muted-foreground mb-4">
-							<Trans id="marketing.profile.tokenBreakdown">
-								Token breakdown
-							</Trans>
+							<Trans>Token breakdown</Trans>
 						</h2>
 						<TokenSplitBar split={profile.tokenSplit} />
 					</section>

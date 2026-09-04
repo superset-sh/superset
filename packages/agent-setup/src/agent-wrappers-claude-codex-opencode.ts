@@ -278,8 +278,11 @@ export function createCodexWrapper(): void {
 	const notifyPath = getNotifyScriptPath();
 	const script = buildWrapperScript(
 		"codex",
-		buildDefaultAccountResolver("CODEX_HOME", "default-codex-home") +
-			buildCodexWrapperExecLine(notifyPath),
+		buildDefaultAccountResolver(
+			"CODEX_HOME",
+			"default-codex-home",
+			"SUPERSET_AMBIENT_CODEX_HOME",
+		) + buildCodexWrapperExecLine(notifyPath),
 		{ agentId: "codex" },
 	);
 	createWrapper("codex", script);

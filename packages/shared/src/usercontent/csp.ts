@@ -12,10 +12,14 @@ export function pageContentSecurityPolicy(
 	return [
 		"default-src 'none'",
 		"script-src 'self' 'unsafe-inline'",
-		"style-src 'unsafe-inline'",
-		"img-src data: blob: https:",
-		"media-src data: blob: https:",
-		"font-src data: https:",
+		"style-src 'self' 'unsafe-inline'",
+		// `'self'` is what lets a directory publish's own assets load. The
+		// scheme sources cover remote media; without `'self'` a page's own
+		// image only loads because production happens to be https, and the
+		// same page served over http blocks itself.
+		"img-src 'self' data: blob: https:",
+		"media-src 'self' data: blob: https:",
+		"font-src 'self' data: https:",
 		"worker-src blob:",
 		"form-action 'none'",
 		"base-uri 'none'",

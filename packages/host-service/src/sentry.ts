@@ -21,9 +21,11 @@ export function initSentry(options: { organizationId?: string }): void {
 		initialScope: {
 			tags: {
 				service: "host-service",
-				...(options.organizationId
-					? { organization_id: options.organizationId }
-					: {}),
+				organization_id: options.organizationId,
+				run_mode: process.env.SUPERSET_HOST_RUN_MODE,
+				cloud_workspace_id: process.env.SUPERSET_SANDBOX_WORKSPACE_ID,
+				image_tag: process.env.SUPERSET_SANDBOX_IMAGE_TAG,
+				provider: process.env.SUPERSET_SANDBOX_PROVIDER,
 			},
 		},
 	});

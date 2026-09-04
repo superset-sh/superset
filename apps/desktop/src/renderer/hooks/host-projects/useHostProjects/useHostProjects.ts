@@ -13,6 +13,7 @@ import {
 	getHostProjectsQueryKey,
 	type HostProjectItem,
 	type HostProjectRow,
+	type HostProjectRowsResult,
 	loadHostProjectsSnapshot,
 	mergeHostProjects,
 	normalizeHostProjectRow,
@@ -23,12 +24,15 @@ import {
 export type {
 	HostProjectItem,
 	HostProjectRow,
+	HostProjectRowsResult,
 } from "./useHostProjects.utils";
 
 const PROJECTS_FALLBACK_REFETCH_INTERVAL_MS = 30_000;
 
 export interface UseHostProjectsResult {
 	projects: HostProjectItem[];
+	/** Unmerged per-host rows for compatibility adapters. */
+	hostResults: HostProjectRowsResult[];
 	/**
 	 * True once every host answered, failed, or served a snapshot. Gates
 	 * empty states only — existing rows always render (cache-first rule).
@@ -189,20 +193,22 @@ export function useHostProjects(): UseHostProjectsResult {
 		};
 	}, [targets, queryClient]);
 
-	const projects = useMemo(
+	const hostResults = useMemo<HostProjectRowsResult[]>(
 		() =>
-			mergeHostProjects({
-				hostResults: targets.map((target, index) => {
-					const query = queries[index];
-					const live = query?.data;
-					return {
-						target,
-						rows: live ?? snapshots.get(target.machineId),
-						reachable: live !== undefined && !query?.isError,
-					};
-				}),
+			targets.map((target, index) => {
+				const query = queries[index];
+				const live = query?.data;
+				return {
+					target,
+					rows: live ?? snapshots.get(target.machineId),
+					reachable: live !== undefined && !query?.isError,
+				};
 			}),
 		[targets, queries, snapshots],
+	);
+	const projects = useMemo(
+		() => mergeHostProjects({ hostResults }),
+		[hostResults],
 	);
 
 	// Never vacuously ready: zero targets means host discovery hasn't run
@@ -219,5 +225,5 @@ export function useHostProjects(): UseHostProjectsResult {
 				snapshots.has(targets[index]?.machineId ?? ""),
 		);
 
-	return { projects, isReady };
+	return { projects, hostResults, isReady };
 }

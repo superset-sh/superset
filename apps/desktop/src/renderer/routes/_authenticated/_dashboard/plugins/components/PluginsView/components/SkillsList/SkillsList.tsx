@@ -23,7 +23,7 @@ export function SkillsList() {
 	return (
 		<div className="flex flex-col gap-4">
 			<p className="text-sm text-muted-foreground">
-				<Trans id="dashboard.plugins.skillsList.intro">
+				<Trans>
 					Skills ship with the Superset plugin and are kept up to date
 					automatically in every agent you use. Click one to preview it.
 				</Trans>
@@ -49,13 +49,11 @@ export function SkillsList() {
 							</div>
 							{isDisabled && (
 								<span className="shrink-0 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
-									<Trans id="dashboard.plugins.skillsList.disabled">
-										Disabled
-									</Trans>
+									<Trans>Disabled</Trans>
 								</span>
 							)}
 							<Badge variant="secondary" className="shrink-0">
-								<Trans id="dashboard.plugins.skillsList.managed">Managed</Trans>
+								<Trans>Managed</Trans>
 							</Badge>
 						</button>
 					);

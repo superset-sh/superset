@@ -1,5 +1,9 @@
 import { useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
+import {
+	normalizeWorkspaceTags,
+	SESSIONS_TAG_SCOPE,
+} from "@superset/shared/workspace-tags";
 import { toast } from "@superset/ui/sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
@@ -18,7 +22,13 @@ import {
 } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/DashboardSidebarWorkspaceStatusProvider";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import {
+	applyFolderTagChange,
+	buildSidebarFolderKey,
+	mintFolderTag,
+} from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 import { useRemoveFromSidebarIntent } from "renderer/stores/remove-workspace-from-sidebar-intent";
 import { useV2NotificationStore } from "renderer/stores/v2-notifications";
@@ -27,8 +37,17 @@ interface UseDashboardSidebarWorkspaceItemActionsOptions {
 	workspaceId: string;
 	/** Null for project-less "session" workspaces. */
 	projectId: string | null;
+	/**
+	 * Cloud rows are also project-less, so a null `projectId` alone does not
+	 * mean "session". Only sessions may be grouped by tag.
+	 */
+	isSessionWorkspace?: boolean;
 	workspaceName: string;
 	branch: string;
+	/** The chip currently shown, so "Remove PR link" knows which PR to hide. */
+	pullRequestUrl?: string | null;
+	/** Cloud rows source their chip from the cloud table, not their host. */
+	isCloudWorkspace?: boolean;
 	isMainWorkspace?: boolean;
 	isPinned?: boolean;
 }
@@ -36,8 +55,11 @@ interface UseDashboardSidebarWorkspaceItemActionsOptions {
 export function useDashboardSidebarWorkspaceItemActions({
 	workspaceId,
 	projectId,
+	isSessionWorkspace = false,
 	workspaceName,
 	branch,
+	pullRequestUrl = null,
+	isCloudWorkspace = false,
 	isMainWorkspace = false,
 	isPinned = false,
 }: UseDashboardSidebarWorkspaceItemActionsOptions) {
@@ -56,13 +78,28 @@ export function useDashboardSidebarWorkspaceItemActions({
 	const { isUnread } = useSidebarWorkspaceStatus(workspaceId);
 	const workspaceHostUrl = useWorkspaceHostUrl(workspaceId);
 	const queryClient = useQueryClient();
+	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+	const sessionGroupTags = new Set(
+		hostWorkspaces.flatMap((workspace) =>
+			workspace.projectId === null
+				? normalizeWorkspaceTags(workspace.tags)
+				: [],
+		),
+	);
+	const currentWorkspaceTags = normalizeWorkspaceTags(
+		hostWorkspaces.find((workspace) => workspace.id === workspaceId)?.tags,
+	);
 
 	const clearWorkspaceAttention = () => {
 		clearManualUnread(workspaceId);
 		markWorkspaceTerminalsSeen();
 	};
-	const { createSection, moveWorkspaceToSection, setWorkspacePinned } =
-		useDashboardSidebarState();
+	const {
+		createSection,
+		moveWorkspaceToSection,
+		setWorkspacePinned,
+		setWorkspaceSuppressedPullRequest,
+	} = useDashboardSidebarState();
 
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState(workspaceName);
@@ -132,11 +169,33 @@ export function useDashboardSidebarWorkspaceItemActions({
 	};
 
 	const handleCreateSection = () => {
-		// Sessions get groups in the stacked nesting PR.
-		if (projectId === null) return;
+		if (projectId === null) {
+			if (!isSessionWorkspace) return;
+			const tag = mintFolderTag("New group", sessionGroupTags);
+			void workspaceActions.updateWorkspace(workspaceId, {
+				tags: applyFolderTagChange(currentWorkspaceTags, sessionGroupTags, tag),
+			});
+			requestSectionRename(buildSidebarFolderKey(SESSIONS_TAG_SCOPE, tag));
+			return;
+		}
 		const sectionId = createSection(projectId);
 		moveWorkspaceToSection(workspaceId, projectId, sectionId);
 		requestSectionRename(sectionId);
+	};
+
+	const handleMoveToSection = (sectionId: string | null) => {
+		if (projectId !== null) {
+			moveWorkspaceToSection(workspaceId, projectId, sectionId);
+			return;
+		}
+		if (!isSessionWorkspace) return;
+		void workspaceActions.updateWorkspace(workspaceId, {
+			tags: applyFolderTagChange(
+				currentWorkspaceTags,
+				sessionGroupTags,
+				sectionId,
+			),
+		});
 	};
 
 	const resolveWorktreePath = async (): Promise<string | null> => {
@@ -152,7 +211,6 @@ export function useDashboardSidebarWorkspaceItemActions({
 		if (!workspace?.worktreePath) {
 			toast.error(
 				t({
-					id: "dashboard.sidebar.workspaceActions.pathUnavailable",
 					message: "Workspace path is not available",
 				}),
 			);
@@ -169,7 +227,6 @@ export function useDashboardSidebarWorkspaceItemActions({
 		} catch (error) {
 			toast.error(
 				t({
-					id: "dashboard.sidebar.workspaceActions.openInFinderFailed",
 					message: `Failed to open in Finder: ${errorMessage(error, "Unknown error")}`,
 				}),
 			);
@@ -183,14 +240,12 @@ export function useDashboardSidebarWorkspaceItemActions({
 			await copyToClipboard(path);
 			toast.success(
 				t({
-					id: "dashboard.sidebar.workspaceActions.pathCopied",
 					message: "Path copied",
 				}),
 			);
 		} catch (error) {
 			toast.error(
 				t({
-					id: "dashboard.sidebar.workspaceActions.copyPathFailed",
 					message: `Failed to copy path: ${errorMessage(error, "Unknown error")}`,
 				}),
 			);
@@ -226,7 +281,6 @@ export function useDashboardSidebarWorkspaceItemActions({
 		} catch (error) {
 			toast.error(
 				t({
-					id: "dashboard.sidebar.workspaceActions.clearStatusFailed",
 					message: `Failed to clear agent status: ${errorMessage(error, "Unknown error")}`,
 				}),
 			);
@@ -234,10 +288,16 @@ export function useDashboardSidebarWorkspaceItemActions({
 	};
 
 	const handleRemovePullRequest = async () => {
+		// A cloud row's chip is local state; its sandbox is told too when open.
+		if (isCloudWorkspace && pullRequestUrl) {
+			setWorkspaceSuppressedPullRequest(workspaceId, projectId, pullRequestUrl);
+		}
 		if (!workspaceHostUrl) {
-			showHostServiceUnavailableToast(hostService, {
-				action: "removePrLink",
-			});
+			if (!isCloudWorkspace) {
+				showHostServiceUnavailableToast(hostService, {
+					action: "removePrLink",
+				});
+			}
 			return;
 		}
 		try {
@@ -250,7 +310,6 @@ export function useDashboardSidebarWorkspaceItemActions({
 		} catch (error) {
 			toast.error(
 				t({
-					id: "dashboard.sidebar.workspaceActions.removePrLinkFailed",
 					message: `Failed to remove PR link: ${errorMessage(error, "Unknown error")}`,
 				}),
 			);
@@ -261,7 +320,6 @@ export function useDashboardSidebarWorkspaceItemActions({
 		if (!branch) {
 			toast.error(
 				t({
-					id: "dashboard.sidebar.workspaceActions.branchUnavailable",
 					message: "Branch name is not available",
 				}),
 			);
@@ -271,18 +329,28 @@ export function useDashboardSidebarWorkspaceItemActions({
 			await copyToClipboard(branch);
 			toast.success(
 				t({
-					id: "dashboard.sidebar.workspaceActions.branchCopied",
 					message: "Branch name copied",
 				}),
 			);
 		} catch (error) {
 			toast.error(
 				t({
-					id: "dashboard.sidebar.workspaceActions.copyBranchFailed",
 					message: `Failed to copy branch name: ${errorMessage(error, "Unknown error")}`,
 				}),
 			);
 		}
+	};
+
+	const handleCopyWorkspaceId = () => {
+		toast.promise(copyToClipboard(workspaceId), {
+			success: t({
+				message: "Workspace ID copied",
+			}),
+			error: (error) =>
+				t({
+					message: `Failed to copy workspace ID: ${errorMessage(error, "Unknown error")}`,
+				}),
+		});
 	};
 
 	return {
@@ -291,7 +359,9 @@ export function useDashboardSidebarWorkspaceItemActions({
 		handleClick,
 		handleCopyPath,
 		handleCopyBranchName,
+		handleCopyWorkspaceId,
 		handleCreateSection,
+		handleMoveToSection,
 		handleOpenInFinder,
 		handleRemoveFromSidebar,
 		handleRemovePullRequest,
@@ -300,7 +370,6 @@ export function useDashboardSidebarWorkspaceItemActions({
 		isActive,
 		isRenaming,
 		isUnread,
-		moveWorkspaceToSection,
 		pendingName,
 		renameValue,
 		requestDelete,

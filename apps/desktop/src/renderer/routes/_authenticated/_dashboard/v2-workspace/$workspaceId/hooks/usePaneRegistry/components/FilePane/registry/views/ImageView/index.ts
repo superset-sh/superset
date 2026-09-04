@@ -5,7 +5,7 @@ import { ImageView } from "./ImageView";
 
 export const imageView: FileView = {
 	id: "image",
-	label: msg({ id: "workspace.filePane.viewImage", message: "Image" }),
+	label: msg({ message: "Image" }),
 	match: (filePath) => isImageFile(filePath),
 	priority: "exclusive",
 	documentKind: "bytes",

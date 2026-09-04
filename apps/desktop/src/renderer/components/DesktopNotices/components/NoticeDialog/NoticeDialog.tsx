@@ -50,7 +50,7 @@ export function NoticeDialog({ notice, onDismiss }: NoticeDialogProps) {
 				onInteractOutside={(e) => !notice.dismissible && e.preventDefault()}
 			>
 				<DialogTitle className="sr-only">
-					<Trans id="components.noticeDialog.title">Notice</Trans>
+					<Trans>Notice</Trans>
 				</DialogTitle>
 				<div className="p-5">
 					<MarkdownRenderer
@@ -67,7 +67,7 @@ export function NoticeDialog({ notice, onDismiss }: NoticeDialogProps) {
 									size="sm"
 									onClick={() => onDismiss(notice.id)}
 								>
-									<Trans id="components.noticeDialog.dismiss">Dismiss</Trans>
+									<Trans>Dismiss</Trans>
 								</Button>
 							)}
 							{notice.cta && (

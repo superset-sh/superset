@@ -32,12 +32,11 @@ import { useTRPC } from "@/trpc/react";
 
 const navItems: { label: MessageDescriptor; href: string }[] = [
 	{
-		label: msg({ id: "web.agentsHeader.navAgents", message: "Agents" }),
+		label: msg({ message: "Agents" }),
 		href: "/agents",
 	},
 	{
 		label: msg({
-			id: "web.agentsHeader.navIntegrations",
 			message: "Integrations",
 		}),
 		href: "/integrations",
@@ -75,8 +74,7 @@ export function AgentsHeader() {
 	);
 
 	const displayName =
-		activeOrganization?.name ??
-		t({ id: "web.agentsHeader.organizationFallback", message: "Organization" });
+		activeOrganization?.name ?? t({ message: "Organization" });
 
 	// `context` stays English for the log; `message` is what the user reads.
 	const handleActionError = (
@@ -96,7 +94,6 @@ export function AgentsHeader() {
 			handleActionError(
 				"sign out failed",
 				t({
-					id: "web.agentsHeader.signOutError",
 					message: "Failed to log out. Please try again.",
 				}),
 				error,
@@ -119,7 +116,6 @@ export function AgentsHeader() {
 			handleActionError(
 				"switch organization failed",
 				t({
-					id: "web.agentsHeader.switchOrganizationError",
 					message: "Failed to switch organization. Please try again.",
 				}),
 				error,
@@ -207,7 +203,6 @@ export function AgentsHeader() {
 			type="button"
 			className="flex cursor-pointer items-center gap-2 rounded-md border border-border/60 bg-secondary/50 px-3 py-1.5 transition-all duration-150 hover:border-border hover:bg-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 			aria-label={t({
-				id: "web.agentsHeader.organizationMenuLabel",
 				message: `Organization menu for ${displayName}`,
 			})}
 			onClick={isMobile ? () => setDrawerOpen(true) : undefined}
@@ -234,7 +229,7 @@ export function AgentsHeader() {
 			<Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
 				<DrawerContent>
 					<DrawerTitle className="sr-only">
-						<Trans id="web.agentsHeader.accountMenu">Account menu</Trans>
+						<Trans>Account menu</Trans>
 					</DrawerTitle>
 					<div className="flex flex-col gap-1 p-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
 						<div className="flex flex-col space-y-1 px-2 py-1.5">
@@ -252,9 +247,7 @@ export function AgentsHeader() {
 						{organizations && organizations.length > 1 && (
 							<>
 								<p className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-									<Trans id="web.agentsHeader.switchOrganization">
-										Switch organization
-									</Trans>
+									<Trans>Switch organization</Trans>
 								</p>
 								{organizations.map((org) => (
 									<button
@@ -272,7 +265,6 @@ export function AgentsHeader() {
 												alt={
 													org.name ??
 													t({
-														id: "web.agentsHeader.organizationFallback",
 														message: "Organization",
 													})
 												}
@@ -302,7 +294,7 @@ export function AgentsHeader() {
 						>
 							<LogOut className="size-4" />
 							<span>
-								<Trans id="web.agentsHeader.logOut">Log out</Trans>
+								<Trans>Log out</Trans>
 							</span>
 						</button>
 					</div>
@@ -332,9 +324,7 @@ export function AgentsHeader() {
 						<DropdownMenuSub>
 							<DropdownMenuSubTrigger className="cursor-pointer">
 								<span>
-									<Trans id="web.agentsHeader.switchOrganization">
-										Switch organization
-									</Trans>
+									<Trans>Switch organization</Trans>
 								</span>
 							</DropdownMenuSubTrigger>
 							<DropdownMenuSubContent>
@@ -357,7 +347,6 @@ export function AgentsHeader() {
 												alt={
 													org.name ??
 													t({
-														id: "web.agentsHeader.organizationFallback",
 														message: "Organization",
 													})
 												}
@@ -387,7 +376,7 @@ export function AgentsHeader() {
 				>
 					<LogOut className="size-4" />
 					<span>
-						<Trans id="web.agentsHeader.logOut">Log out</Trans>
+						<Trans>Log out</Trans>
 					</span>
 				</DropdownMenuItem>
 			</DropdownMenuContent>
@@ -400,7 +389,6 @@ export function AgentsHeader() {
 				<Link
 					href="/agents"
 					aria-label={t({
-						id: "web.agentsHeader.homeLink",
 						message: "Go to home",
 					})}
 				>

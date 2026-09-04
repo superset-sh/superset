@@ -1,4 +1,3 @@
-import type { MarkdownSerializerState } from "@tiptap/pm/markdown";
 import type {
 	Fragment,
 	Node as ProseMirrorNode,
@@ -7,6 +6,7 @@ import type {
 } from "@tiptap/pm/model";
 import type { Selection } from "@tiptap/pm/state";
 import { CellSelection } from "@tiptap/pm/tables";
+import type { MarkdownSerializerState } from "prosemirror-markdown";
 
 /**
  * GFM markdown serialization for TipTap tables in the markdown preview.

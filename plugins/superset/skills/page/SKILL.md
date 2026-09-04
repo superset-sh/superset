@@ -7,8 +7,10 @@ allowed-tools: Bash(superset:*)
 
 # Superset Pages
 
-A page is **one self-contained `.html` file** published to a URL people in the
-org can open. Every publish mints a version, so a page has history. Readers can
+A page is an **`.html` document** published to a URL people in the org can
+open. Publish a single file and it must be self-contained; publish a directory
+and its `index.html` is the document, with the images, stylesheets, and media
+it references by relative path published alongside it. Every publish mints a version, so a page has history. Readers can
 pin a comment to any element on it, and those comments come back to an agent to
 fix. That is what makes a page a working surface rather than an export.
 
@@ -48,9 +50,10 @@ enforced identically in the desktop pane and the web viewer:
   several chart and templating libraries and a number of date and expression
   helpers. Check for it before you reach for a dependency: the page renders
   nothing and gives no visible reason why.
-- **No external scripts or stylesheets.** `<script src="https://…">` and
-  `<link rel="stylesheet" href="https://…">` are blocked, Google Fonts
-  `<link>` tags included. Inline all CSS and JS. A remote font *file* is
+- **No scripts or stylesheets from a remote host.** `<script
+  src="https://…">` and `<link rel="stylesheet" href="https://…">` are
+  blocked, Google Fonts `<link>` tags included. A directory publish's own
+  files load fine (relative `src`/`href`), and a remote font *file* is
   allowed, so an inline `@font-face { src: url(https://…) }` works.
 - **Images, video and audio may be remote** (`https:`, `data:` or `blob:`),
   but prefer `data:` URIs for anything the page cannot do without: a reader
@@ -75,10 +78,18 @@ they need is already in the file.
 ## The other hard limits
 
 1. **`.html` only.** Any other extension is rejected at the CLI.
-2. **One file.** There is no asset upload. Inline all CSS and JS, and embed
-   images as `data:` URIs unless they are genuinely optional. No CDN links and
-   no external stylesheets; the policy blocks them.
-3. **3 MB maximum**, and base64 `data:` URIs count toward it at ~1.37× their
+2. **One file, or one directory.** `superset pages publish ./report/`
+   publishes a directory: `index.html` is the page, and every other file
+   ships at its relative path, so `<video src="demo.mp4">`,
+   `<link href="site.css">` and `<script src="app.js">` all work. Asset
+   paths may not start with `versions/`, `files/`, `_superset/` or `~`, or
+   be named `thumbnail.jpg`. Assets go up to 1 GiB each; on republish,
+   unchanged assets are not re-uploaded. Prefer H.264 MP4 or WebM for
+   video: iPhone `.mov` recordings may not play in every browser. Remote
+   CDN links and external stylesheets are still blocked; for a single-file
+   page, inline all CSS and JS and embed images as `data:` URIs.
+3. **16 MB maximum for the HTML document itself**, and base64 `data:` URIs
+   count toward it at ~1.37× their
    raw size. A few small SVGs or PNGs are fine; a photo gallery is not.
 4. **Full-bleed frame with a white default background.** Set your own `body`
    background explicitly rather than inheriting.
@@ -86,7 +97,7 @@ they need is already in the file.
 Check before publishing: no `<script src>` or `<link rel="stylesheet">` pointing
 at a remote host, no `fetch` of any kind including of a `data:` URI, no `eval`
 or `new Function` anywhere in the file or in anything you inlined, page fits in
-3 MB, opens correctly from `file://` with the network disabled. Remote images
+16 MB, opens correctly from `file://` with the network disabled. Remote images
 are the one permitted exception: they go blank offline, which is the price of
 not inlining them.
 
@@ -116,6 +127,9 @@ superset pages publish report.html \
   --title "Q3 pipeline" \
   --description "Where every open deal stands going into Q4" \
   --label "first draft"
+
+# Or a directory: index.html is the page, everything else rides along
+superset pages publish ./report/ --title "Q3 pipeline"
 ```
 
 `--title` defaults to the filename with dashes and underscores turned into
@@ -185,8 +199,8 @@ for each thread gives a `thread:` id, an `at:` CSS selector path from `<body>`,
 and the element's text at the time of writing.
 
 **That selector points into the published HTML, which is the same document as
-your source file.** A page is one self-contained file, so the anchor locates
-the exact element to edit. Quoted text alone doesn't; the same words often
+your source file.** That document is the `index.html` you published, not any
+asset beside it, so the anchor locates the exact element to edit. Quoted text alone doesn't; the same words often
 appear more than once.
 
 The loop, in order:
@@ -217,7 +231,7 @@ Reopen with `superset pages comments resolve --thread <id> --reopen`.
 | Symptom | Cause |
 | --- | --- |
 | `Only .html files can be published as a page` | Wrong extension, or you pointed at a directory |
-| Publish rejected on size | Over 3 MB; the `data:` URIs are almost always why |
+| Publish rejected on size | Over 16 MB; the `data:` URIs are almost always why |
 | A new page appeared instead of a version | Published from outside the workspace, or the path changed; use `--page <id>` |
 | Reader gets a 404 | Page is `just_me`, either set that way or created before `org` became the default; widen it with `--visibility org` |
 | Page is blank once published, fine locally | A script threw, or the page loads a script or stylesheet from a remote host |

@@ -54,17 +54,15 @@ export function useDeleteWorkspace() {
 			if (target.isCloud) {
 				Alert.alert(
 					t({
-						id: "mobile.deleteWorkspace.cloudTitle",
 						message: "Delete cloud workspace",
 					}),
 					t({
-						id: "mobile.deleteWorkspace.cloudMessage",
 						message: `Delete "${target.name}"? This shuts down its sandbox and everything in it.`,
 					}),
 					[
 						{
 							style: "cancel",
-							text: t({ id: "common.cancel", message: "Cancel" }),
+							text: t({ message: "Cancel" }),
 						},
 						{
 							onPress: () => {
@@ -72,7 +70,6 @@ export function useDeleteWorkspace() {
 								void cloud.remove(target.id).catch(() =>
 									Alert.alert(
 										t({
-											id: "mobile.deleteWorkspace.failed",
 											message: "Delete failed",
 										}),
 									),
@@ -80,7 +77,6 @@ export function useDeleteWorkspace() {
 							},
 							style: "destructive",
 							text: t({
-								id: "mobile.deleteWorkspace.confirm",
 								message: "Delete",
 							}),
 						},
@@ -93,7 +89,6 @@ export function useDeleteWorkspace() {
 			if (!hostId || !hostUrl) {
 				Alert.alert(
 					t({
-						id: "mobile.workspace.hostNotOnline",
 						message: "Host is not online",
 					}),
 				);
@@ -134,7 +129,6 @@ export function useDeleteWorkspace() {
 					void queryClient.invalidateQueries({ queryKey: listKey });
 					Alert.alert(
 						t({
-							id: "mobile.deleteWorkspace.failed",
 							message: "Delete failed",
 						}),
 						failureDetail(error),
@@ -144,17 +138,15 @@ export function useDeleteWorkspace() {
 
 			Alert.alert(
 				t({
-					id: "mobile.deleteWorkspace.title",
 					message: "Delete workspace",
 				}),
 				t({
-					id: "mobile.deleteWorkspace.message",
 					message: `Delete "${target.name}"? This removes its worktree from the host.`,
 				}),
 				[
 					{
 						style: "cancel",
-						text: t({ id: "common.cancel", message: "Cancel" }),
+						text: t({ message: "Cancel" }),
 					},
 					{
 						onPress: () => {
@@ -169,7 +161,6 @@ export function useDeleteWorkspace() {
 						},
 						style: "destructive",
 						text: t({
-							id: "mobile.deleteWorkspace.confirm",
 							message: "Delete",
 						}),
 					},

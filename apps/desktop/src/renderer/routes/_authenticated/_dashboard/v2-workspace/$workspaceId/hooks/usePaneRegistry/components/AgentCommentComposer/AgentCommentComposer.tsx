@@ -44,13 +44,11 @@ export function AgentCommentComposer({
 	const resolvedPlaceholder =
 		placeholder ??
 		t({
-			id: "workspace.agentCommentComposer.placeholder",
 			message: "Ask the AI…",
 		});
 	const resolvedSubmitLabel =
 		submitLabel ??
 		t({
-			id: "workspace.agentCommentComposer.submitLabel",
 			message: "Comment",
 		});
 	const bindings = useTerminalAgentBindings(workspaceId);
@@ -125,9 +123,7 @@ export function AgentCommentComposer({
 					{contextLabel}
 				</span>
 				<span className="text-[10px] tracking-tight text-muted-foreground/70">
-					<Trans id="workspace.agentCommentComposer.escToDismiss">
-						esc to dismiss
-					</Trans>
+					<Trans>esc to dismiss</Trans>
 				</span>
 			</div>
 
@@ -168,7 +164,7 @@ export function AgentCommentComposer({
 						disabled={submitting}
 						className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground"
 					>
-						<Trans id="workspace.agentCommentComposer.cancel">Cancel</Trans>
+						<Trans>Cancel</Trans>
 					</Button>
 					<Button
 						type="submit"
@@ -186,7 +182,6 @@ export function AgentCommentComposer({
 						<span>
 							{submitting
 								? t({
-										id: "workspace.agentCommentComposer.sending",
 										message: "Sending…",
 									})
 								: resolvedSubmitLabel}

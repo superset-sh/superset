@@ -13,7 +13,6 @@ export const DEMO_OPTIONS: readonly DemoOption[] = [
 	{
 		id: "Orchestrate Parallel Agents",
 		label: msg({
-			id: "marketing.hero.demo.orchestrateParallelAgents",
 			message: "Orchestrate Parallel Agents",
 		}),
 		videoPath: "/hero/agents.mp4",
@@ -22,7 +21,6 @@ export const DEMO_OPTIONS: readonly DemoOption[] = [
 	{
 		id: "Automate Tasks",
 		label: msg({
-			id: "marketing.hero.demo.automateTasks",
 			message: "Automate Tasks",
 		}),
 		videoPath: "/hero/worktrees.mp4",
@@ -31,7 +29,6 @@ export const DEMO_OPTIONS: readonly DemoOption[] = [
 	{
 		id: "Remote Access",
 		label: msg({
-			id: "marketing.hero.demo.remoteAccess",
 			message: "Remote Access",
 		}),
 		videoPath: "/hero/open-in.mp4",
@@ -40,7 +37,6 @@ export const DEMO_OPTIONS: readonly DemoOption[] = [
 	{
 		id: "See Changes",
 		label: msg({
-			id: "marketing.hero.demo.seeChanges",
 			message: "See Changes",
 		}),
 		videoPath: "/hero/changes.mp4",

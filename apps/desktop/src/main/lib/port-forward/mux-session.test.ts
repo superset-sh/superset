@@ -156,11 +156,7 @@ function startMiniHost(options?: {
 }
 
 function transportFor(): RelayForwardTransport {
-	return new RelayForwardTransport({
-		getToken: () => "token",
-		fetchFn: async () =>
-			new Response(JSON.stringify({ ok: true, proto: 2 }), { status: 200 }),
-	});
+	return new RelayForwardTransport({ getToken: () => "token" });
 }
 
 function target(hostUrl: string, remotePort = 3000) {

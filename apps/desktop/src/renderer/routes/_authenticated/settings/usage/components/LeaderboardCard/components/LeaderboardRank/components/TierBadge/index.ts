@@ -1,0 +1,1 @@
+export { TierBadge } from "./TierBadge";

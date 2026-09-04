@@ -2,9 +2,16 @@ export type PageVisibility = "just_me" | "org" | "everyone";
 
 const PAGE_VISIBILITIES: readonly string[] = ["just_me", "org", "everyone"];
 
+export interface PageManifestAsset {
+	key: string;
+	contentType: string;
+}
+
 export interface PageManifestVersion {
 	key: string;
 	contentType: string;
+	/** Relative path → the file it resolves to, for directory publishes. */
+	assets?: Record<string, PageManifestAsset>;
 }
 
 /**
@@ -52,11 +59,27 @@ export function parsePageManifest(text: string): PageManifest | null {
 		candidate.versions as Record<string, unknown>,
 	)) {
 		if (!entry || typeof entry !== "object") return null;
-		const { key, contentType } = entry as Record<string, unknown>;
+		const { key, contentType, assets } = entry as Record<string, unknown>;
 		if (typeof key !== "string" || typeof contentType !== "string") {
 			return null;
 		}
-		versions[version] = { key, contentType };
+		const parsed: PageManifestVersion = { key, contentType };
+		if (assets !== undefined) {
+			if (!assets || typeof assets !== "object") return null;
+			const parsedAssets: Record<string, PageManifestAsset> = {};
+			for (const [path, asset] of Object.entries(
+				assets as Record<string, unknown>,
+			)) {
+				if (!asset || typeof asset !== "object") return null;
+				const a = asset as Record<string, unknown>;
+				if (typeof a.key !== "string" || typeof a.contentType !== "string") {
+					return null;
+				}
+				parsedAssets[path] = { key: a.key, contentType: a.contentType };
+			}
+			parsed.assets = parsedAssets;
+		}
+		versions[version] = parsed;
 	}
 	return {
 		v: 1,

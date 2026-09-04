@@ -57,11 +57,9 @@ export function SkillPreviewDialog({
 		} catch (error) {
 			toast.error(
 				t({
-					id: "dashboard.plugins.skillPreview.openFileFailed",
 					message: `Failed to open file: ${errorMessage(
 						error,
 						t({
-							id: "dashboard.plugins.skillPreview.unknownError",
 							message: "Unknown error",
 						}),
 					)}`,
@@ -77,11 +75,9 @@ export function SkillPreviewDialog({
 		} catch (error) {
 			toast.error(
 				t({
-					id: "dashboard.plugins.skillPreview.revealInFinderFailed",
 					message: `Failed to reveal in Finder: ${errorMessage(
 						error,
 						t({
-							id: "dashboard.plugins.skillPreview.unknownError",
 							message: "Unknown error",
 						}),
 					)}`,
@@ -94,16 +90,13 @@ export function SkillPreviewDialog({
 		if (document.content.kind !== "text") return;
 		toast.promise(copyToClipboard(document.content.value), {
 			success: t({
-				id: "dashboard.plugins.skillPreview.markdownCopied",
 				message: "Markdown copied",
 			}),
 			error: (err: unknown) =>
 				t({
-					id: "dashboard.plugins.skillPreview.copyMarkdownFailed",
 					message: `Failed to copy markdown: ${errorMessage(
 						err,
 						t({
-							id: "dashboard.plugins.skillPreview.unknownError",
 							message: "Unknown error",
 						}),
 					)}`,
@@ -155,14 +148,10 @@ export function SkillPreviewDialog({
 								variant="outline"
 								className="h-4 rounded px-1 text-[9px] font-medium tracking-wide text-muted-foreground uppercase"
 							>
-								<Trans id="dashboard.plugins.skillPreview.skillBadge">
-									Skill
-								</Trans>
+								<Trans>Skill</Trans>
 							</Badge>
 							<Badge variant="secondary">
-								<Trans id="dashboard.plugins.skillPreview.managedBadge">
-									Managed
-								</Trans>
+								<Trans>Managed</Trans>
 							</Badge>
 						</DialogTitle>
 						<DialogDescription>{skill?.description}</DialogDescription>
@@ -180,7 +169,6 @@ export function SkillPreviewDialog({
 											checked={isEnabled}
 											disabled={isBusy}
 											aria-label={t({
-												id: "dashboard.plugins.skillPreview.skillEnabledLabel",
 												message: `${skill.name} enabled`,
 											})}
 											onCheckedChange={(checked) =>
@@ -191,13 +179,9 @@ export function SkillPreviewDialog({
 								</TooltipTrigger>
 								<TooltipContent side="bottom">
 									{isEnabled ? (
-										<Trans id="dashboard.plugins.skillPreview.disableSkill">
-											Disable skill
-										</Trans>
+										<Trans>Disable skill</Trans>
 									) : (
-										<Trans id="dashboard.plugins.skillPreview.enableSkill">
-											Enable skill
-										</Trans>
+										<Trans>Enable skill</Trans>
 									)}
 								</TooltipContent>
 							</Tooltip>
@@ -210,7 +194,6 @@ export function SkillPreviewDialog({
 										size="icon-xs"
 										className="text-muted-foreground"
 										aria-label={t({
-											id: "dashboard.plugins.skillPreview.skillActionsLabel",
 											message: `${skill.name} actions`,
 										})}
 									>
@@ -220,25 +203,21 @@ export function SkillPreviewDialog({
 								<DropdownMenuContent align="end">
 									<DropdownMenuItem onSelect={handleOpen} disabled={!path}>
 										<LuExternalLink className="size-4" />
-										<Trans id="dashboard.plugins.skillPreview.open">Open</Trans>
+										<Trans>Open</Trans>
 									</DropdownMenuItem>
 									<DropdownMenuItem
 										onSelect={handleRevealInFinder}
 										disabled={!path}
 									>
 										<LuFolderOpen className="size-4" />
-										<Trans id="dashboard.plugins.skillPreview.revealInFinder">
-											Reveal in Finder
-										</Trans>
+										<Trans>Reveal in Finder</Trans>
 									</DropdownMenuItem>
 									<DropdownMenuItem
 										onSelect={handleCopyMarkdown}
 										disabled={document.content.kind !== "text"}
 									>
 										<LuCopy className="size-4" />
-										<Trans id="dashboard.plugins.skillPreview.copyMarkdown">
-											Copy Markdown
-										</Trans>
+										<Trans>Copy Markdown</Trans>
 									</DropdownMenuItem>
 								</DropdownMenuContent>
 							</DropdownMenu>
@@ -246,7 +225,7 @@ export function SkillPreviewDialog({
 						<DialogClose className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
 							<XIcon />
 							<span className="sr-only">
-								<Trans id="dashboard.plugins.skillPreview.close">Close</Trans>
+								<Trans>Close</Trans>
 							</span>
 						</DialogClose>
 					</div>

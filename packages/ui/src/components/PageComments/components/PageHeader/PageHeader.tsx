@@ -52,7 +52,6 @@ export function PageHeader({
 				error instanceof Error
 					? error.message
 					: t({
-							id: "ui.pageHeader.sharedVersionFailed",
 							message: "Could not change the shared version",
 						}),
 			);
@@ -108,7 +107,7 @@ export function PageHeader({
 				>
 					<Button size="xs" variant="ghost" className="gap-1.5">
 						<Share2 className="size-3.5" />
-						<Trans id="ui.pageHeader.share">Share</Trans>
+						<Trans>Share</Trans>
 					</Button>
 				</PageSharePopover>
 			</div>

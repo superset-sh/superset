@@ -87,7 +87,6 @@ function AutomationDetailPage() {
 				errorMessage(
 					error,
 					t({
-						id: "dashboard.automations.detail.updateFailedToast",
 						message: "Failed to update automation",
 					}),
 				),
@@ -100,7 +99,6 @@ function AutomationDetailPage() {
 		onSuccess: () =>
 			toast.success(
 				t({
-					id: "dashboard.automations.detail.runningNowToast",
 					message: "Running now",
 				}),
 			),
@@ -117,7 +115,6 @@ function AutomationDetailPage() {
 			toast.error(
 				message ??
 					t({
-						id: "dashboard.automations.detail.runFailedToast",
 						message: "Failed to trigger run",
 					}),
 			);
@@ -144,13 +141,9 @@ function AutomationDetailPage() {
 		return (
 			<div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground select-text cursor-text">
 				{loadError && !isMissing ? (
-					<Trans id="dashboard.automations.detail.loadError">
-						Couldn't load automation: {loadError.message}
-					</Trans>
+					<Trans>Couldn't load automation: {loadError.message}</Trans>
 				) : (
-					<Trans id="dashboard.automations.detail.notFound">
-						Automation not found.
-					</Trans>
+					<Trans>Automation not found.</Trans>
 				)}
 			</div>
 		);
@@ -170,17 +163,14 @@ function AutomationDetailPage() {
 					onDelete={() => {
 						alert({
 							title: t({
-								id: "dashboard.automations.detail.deleteDialogTitle",
 								message: "Delete automation?",
 							}),
 							description: t({
-								id: "dashboard.automations.detail.deleteDialogDescription",
 								message: `"${automation.name}" will stop firing and its run history will be removed. This can't be undone.`,
 							}),
 							actions: [
 								{
 									label: t({
-										id: "dashboard.automations.detail.deleteDialogCancel",
 										message: "Cancel",
 									}),
 									variant: "outline",
@@ -188,25 +178,21 @@ function AutomationDetailPage() {
 								},
 								{
 									label: t({
-										id: "dashboard.automations.detail.deleteDialogConfirm",
 										message: "Delete",
 									}),
 									variant: "destructive",
 									onClick: () => {
 										toast.promise(deleteMutation.mutateAsync(), {
 											loading: t({
-												id: "dashboard.automations.detail.deletingToast",
 												message: "Deleting automation...",
 											}),
 											success: t({
-												id: "dashboard.automations.detail.deletedToast",
 												message: `"${automation.name}" deleted`,
 											}),
 											error: (err) =>
 												err instanceof Error
 													? err.message
 													: t({
-															id: "dashboard.automations.detail.deleteFailedToast",
 															message: "Failed to delete automation",
 														}),
 										});

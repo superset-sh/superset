@@ -472,7 +472,7 @@ export const StackTraceFrames = memo(
 						key={frame.raw}
 					>
 						<Text className="text-muted-foreground text-xs">
-							<Trans id="mobile.stackTrace.at">at</Trans>{" "}
+							<Trans>at</Trans>{" "}
 						</Text>
 						{frame.functionName && (
 							<Text
@@ -505,7 +505,6 @@ export const StackTraceFrames = memo(
 					<Pressable onPress={() => setShowAll(true)}>
 						<Text className="text-muted-foreground text-xs underline">
 							<Plural
-								id="mobile.stackTrace.showMoreFrames"
 								value={hiddenCount}
 								one="Show # more frame"
 								other="Show # more frames"
@@ -515,7 +514,7 @@ export const StackTraceFrames = memo(
 				)}
 				{framesToShow.length === 0 && (
 					<Text className="text-muted-foreground text-xs">
-						<Trans id="mobile.stackTrace.empty">No stack frames</Trans>
+						<Trans>No stack frames</Trans>
 					</Text>
 				)}
 			</View>

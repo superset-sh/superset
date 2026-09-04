@@ -361,9 +361,9 @@ export function FilesChangedScreen() {
 			ActionSheetIOS.showActionSheetWithOptions(
 				{
 					options: [
-						t({ id: "mobile.common.edit", message: "Edit" }),
-						t({ id: "mobile.deleteWorkspace.confirm", message: "Delete" }),
-						t({ id: "common.cancel", message: "Cancel" }),
+						t({ message: "Edit" }),
+						t({ message: "Delete" }),
+						t({ message: "Cancel" }),
 					],
 					destructiveButtonIndex: 1,
 					cancelButtonIndex: 2,
@@ -402,40 +402,34 @@ export function FilesChangedScreen() {
 	const deleteFile = useCallback(
 		(file: ChangesetFile) => {
 			if (!workspace || !changeset.hostUrl) return;
-			Alert.alert(
-				t({ id: "mobile.filesChanged.deleteFile", message: "Delete file" }),
-				file.path,
-				[
-					{
-						text: t({ id: "common.cancel", message: "Cancel" }),
-						style: "cancel",
+			Alert.alert(t({ message: "Delete file" }), file.path, [
+				{
+					text: t({ message: "Cancel" }),
+					style: "cancel",
+				},
+				{
+					text: t({
+						message: "Delete",
+					}),
+					style: "destructive",
+					onPress: () => {
+						getHostServiceClientByUrl(changeset.hostUrl as string)
+							.filesystem.deletePath.mutate({
+								workspaceId: workspace.id,
+								absolutePath: `${workspace.worktreePath}/${file.path}`,
+							})
+							.then(() => changeset.refetch())
+							.catch((cause: unknown) => {
+								Alert.alert(
+									t({
+										message: "Could not delete file",
+									}),
+									cause instanceof Error ? cause.message : String(cause),
+								);
+							});
 					},
-					{
-						text: t({
-							id: "mobile.deleteWorkspace.confirm",
-							message: "Delete",
-						}),
-						style: "destructive",
-						onPress: () => {
-							getHostServiceClientByUrl(changeset.hostUrl as string)
-								.filesystem.deletePath.mutate({
-									workspaceId: workspace.id,
-									absolutePath: `${workspace.worktreePath}/${file.path}`,
-								})
-								.then(() => changeset.refetch())
-								.catch((cause: unknown) => {
-									Alert.alert(
-										t({
-											id: "mobile.filesChanged.deleteFileFailed",
-											message: "Could not delete file",
-										}),
-										cause instanceof Error ? cause.message : String(cause),
-									);
-								});
-						},
-					},
-				],
-			);
+				},
+			]);
 		},
 		[workspace, changeset.hostUrl, changeset.refetch, t],
 	);
@@ -572,7 +566,6 @@ export function FilesChangedScreen() {
 						<View className="items-center px-3 py-2">
 							<Text className="text-muted-foreground text-xs">
 								<Plural
-									id="mobile.filesChanged.truncated"
 									value={item.hiddenCount}
 									one="Diff truncated — # more line on the host"
 									other="Diff truncated — # more lines on the host"
@@ -601,11 +594,9 @@ export function FilesChangedScreen() {
 								<Text className="text-muted-foreground text-xs">
 									{item.note === "binary"
 										? t({
-												id: "mobile.filesChanged.binaryFile",
 												message: "Binary file changed",
 											})
 										: t({
-												id: "mobile.filesChanged.diffLoadFailed",
 												message: "Could not load this diff",
 											})}
 								</Text>
@@ -641,7 +632,6 @@ export function FilesChangedScreen() {
 			<Stack.Screen
 				options={{
 					title: t({
-						id: "mobile.nav.filesChanged.title",
 						message: "Files changed",
 					}),
 				}}
@@ -649,7 +639,7 @@ export function FilesChangedScreen() {
 				<Stack.Title asChild>
 					<View className="items-center">
 						<Text className="font-semibold text-[16px]">
-							<Trans id="mobile.nav.filesChanged.title">Files changed</Trans>
+							<Trans>Files changed</Trans>
 						</Text>
 						<View className="flex-row gap-1.5">
 							<Text className="text-green-500 font-semibold text-[11.5px]">
@@ -665,7 +655,6 @@ export function FilesChangedScreen() {
 					<Stack.Toolbar.Menu
 						icon="ellipsis"
 						accessibilityLabel={t({
-							id: "mobile.common.moreActions",
 							message: "More actions",
 						})}
 					>
@@ -675,7 +664,7 @@ export function FilesChangedScreen() {
 								if (shareUrl) void Share.share({ url: shareUrl });
 							}}
 						>
-							{t({ id: "mobile.common.share", message: "Share" })}
+							{t({ message: "Share" })}
 						</Stack.Toolbar.MenuAction>
 						{pullRequest ? (
 							<Stack.Toolbar.MenuAction
@@ -683,7 +672,6 @@ export function FilesChangedScreen() {
 								onPress={() => void Linking.openURL(pullRequest.url)}
 							>
 								{t({
-									id: "mobile.filesChanged.openOnGitHub",
 									message: "Open on GitHub",
 								})}
 							</Stack.Toolbar.MenuAction>
@@ -716,9 +704,7 @@ export function FilesChangedScreen() {
 										strokeWidth={1.4}
 									/>
 									<Text className="text-muted-foreground text-center text-sm">
-										<Trans id="mobile.filesChanged.empty">
-											No changes on this branch yet.
-										</Trans>
+										<Trans>No changes on this branch yet.</Trans>
 									</Text>
 								</View>
 							) : null

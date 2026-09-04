@@ -55,7 +55,6 @@ export function TaskActionMenu({ task, onDelete }: TaskActionMenuProps) {
 					size="icon"
 					className="h-8 w-8"
 					aria-label={t({
-						id: "dashboard.tasks.taskActionMenu.openActions",
 						message: "Open task actions",
 					})}
 				>
@@ -66,15 +65,13 @@ export function TaskActionMenu({ task, onDelete }: TaskActionMenuProps) {
 				<DropdownMenuItem onSelect={handleCopyId}>
 					<HiOutlineDocumentDuplicate className="size-4" />
 					<span>
-						<Trans id="dashboard.tasks.taskActionMenu.copyId">Copy ID</Trans>
+						<Trans>Copy ID</Trans>
 					</span>
 				</DropdownMenuItem>
 				<DropdownMenuItem onSelect={handleCopyTitle}>
 					<HiOutlineDocumentDuplicate className="size-4" />
 					<span>
-						<Trans id="dashboard.tasks.taskActionMenu.copyTitle">
-							Copy Title
-						</Trans>
+						<Trans>Copy Title</Trans>
 					</span>
 				</DropdownMenuItem>
 
@@ -86,7 +83,7 @@ export function TaskActionMenu({ task, onDelete }: TaskActionMenuProps) {
 				>
 					<HiOutlineTrash className="text-destructive size-4" />
 					<span>
-						<Trans id="dashboard.tasks.taskActionMenu.delete">Delete</Trans>
+						<Trans>Delete</Trans>
 					</span>
 				</DropdownMenuItem>
 			</DropdownMenuContent>

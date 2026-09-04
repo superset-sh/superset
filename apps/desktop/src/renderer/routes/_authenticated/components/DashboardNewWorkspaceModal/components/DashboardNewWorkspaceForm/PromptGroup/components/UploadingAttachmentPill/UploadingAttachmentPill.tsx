@@ -34,7 +34,7 @@ export function UploadingAttachmentPill({
 			)}
 			{isError && (
 				<div className="pointer-events-none absolute top-[7px] left-[7px] flex size-5 items-center justify-center rounded bg-destructive/70 transition-opacity group-hover:opacity-0">
-					<TriangleAlert className="size-3 text-destructive-foreground" />
+					<TriangleAlert className="size-3 text-destructive" />
 				</div>
 			)}
 		</div>

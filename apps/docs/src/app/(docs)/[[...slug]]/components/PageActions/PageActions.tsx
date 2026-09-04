@@ -64,7 +64,7 @@ export function LLMCopyButton({
 			onClick={onClick}
 		>
 			{checked ? <Check /> : <Copy />}
-			<Trans id="docs.pageActions.copyMarkdown">Copy Markdown</Trans>
+			<Trans>Copy Markdown</Trans>
 		</button>
 	);
 }
@@ -93,7 +93,6 @@ export function ViewOptions({
 		return [
 			{
 				title: t({
-					id: "docs.pageActions.openInGithub",
 					message: "Open in GitHub",
 				}),
 				href: githubUrl,
@@ -106,7 +105,6 @@ export function ViewOptions({
 			},
 			{
 				title: t({
-					id: "docs.pageActions.openInScira",
 					message: "Open in Scira AI",
 				}),
 				href: `https://scira.ai/?${new URLSearchParams({
@@ -173,7 +171,6 @@ export function ViewOptions({
 			},
 			{
 				title: t({
-					id: "docs.pageActions.openInChatGpt",
 					message: "Open in ChatGPT",
 				}),
 				href: `https://chatgpt.com/?${new URLSearchParams({
@@ -194,7 +191,6 @@ export function ViewOptions({
 			},
 			{
 				title: t({
-					id: "docs.pageActions.openInClaude",
 					message: "Open in Claude",
 				}),
 				href: `https://claude.ai/new?${new URLSearchParams({
@@ -214,7 +210,6 @@ export function ViewOptions({
 			},
 			{
 				title: t({
-					id: "docs.pageActions.openInT3Chat",
 					message: "Open in T3 Chat",
 				}),
 				href: `https://t3.chat/new?${new URLSearchParams({
@@ -224,7 +219,6 @@ export function ViewOptions({
 			},
 			{
 				title: t({
-					id: "docs.pageActions.openInCopilot",
 					message: "Open in Copilot",
 				}),
 				href: `https://copilot.microsoft.com/?${new URLSearchParams({
@@ -244,7 +238,6 @@ export function ViewOptions({
 			},
 			{
 				title: t({
-					id: "docs.pageActions.openInCursor",
 					message: "Open in Cursor",
 				}),
 				href: `https://cursor.com/link/prompt?${new URLSearchParams({
@@ -276,7 +269,7 @@ export function ViewOptions({
 					}),
 				)}
 			>
-				<Trans id="docs.pageActions.openIn">Open in</Trans>
+				<Trans>Open in</Trans>
 				<ChevronDown className="size-3.5 text-fd-muted-foreground" />
 			</PopoverTrigger>
 			<PopoverContent className="flex flex-col">

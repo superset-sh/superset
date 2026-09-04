@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
 	existsSync,
 	mkdirSync,
@@ -50,6 +50,60 @@ describe("assertRemovableProfileDir", () => {
 	it("accepts a profile dir under the home dir", () => {
 		const dir = join(homedir(), ".claude-unittest-profile");
 		expect(assertRemovableProfileDir(dir)).toBe(dir);
+	});
+});
+
+describe("assertRemovableProfileDir with Codex account injection", () => {
+	let previousCodexHome: string | undefined;
+	let previousInjectedHome: string | undefined;
+	let previousAmbientHome: string | undefined;
+
+	beforeEach(() => {
+		previousCodexHome = process.env.CODEX_HOME;
+		previousInjectedHome = process.env.SUPERSET_DEFAULT_CODEX_HOME;
+		previousAmbientHome = process.env.SUPERSET_AMBIENT_CODEX_HOME;
+	});
+
+	afterEach(() => {
+		if (previousCodexHome === undefined) delete process.env.CODEX_HOME;
+		else process.env.CODEX_HOME = previousCodexHome;
+		if (previousInjectedHome === undefined)
+			delete process.env.SUPERSET_DEFAULT_CODEX_HOME;
+		else process.env.SUPERSET_DEFAULT_CODEX_HOME = previousInjectedHome;
+		if (previousAmbientHome === undefined)
+			delete process.env.SUPERSET_AMBIENT_CODEX_HOME;
+		else process.env.SUPERSET_AMBIENT_CODEX_HOME = previousAmbientHome;
+	});
+
+	it("allows removal of a profile Superset injected into CODEX_HOME", () => {
+		const profile = join(homedir(), ".codex-injected-profile");
+		process.env.CODEX_HOME = profile;
+		process.env.SUPERSET_DEFAULT_CODEX_HOME = profile;
+		delete process.env.SUPERSET_AMBIENT_CODEX_HOME;
+		expect(assertRemovableProfileDir(profile)).toBe(profile);
+	});
+
+	it("protects a preserved custom default while allowing the injected profile", () => {
+		const profile = join(homedir(), ".codex-injected-profile");
+		const customDefault = join(homedir(), ".codex-user-default");
+		process.env.CODEX_HOME = profile;
+		process.env.SUPERSET_DEFAULT_CODEX_HOME = profile;
+		process.env.SUPERSET_AMBIENT_CODEX_HOME = customDefault;
+
+		expect(() => assertRemovableProfileDir(customDefault)).toThrow(
+			/system-default/,
+		);
+		expect(assertRemovableProfileDir(profile)).toBe(profile);
+	});
+
+	it("still protects a CODEX_HOME the user set themselves", () => {
+		const customDefault = join(homedir(), ".codex-user-default");
+		process.env.CODEX_HOME = customDefault;
+		delete process.env.SUPERSET_DEFAULT_CODEX_HOME;
+		delete process.env.SUPERSET_AMBIENT_CODEX_HOME;
+		expect(() => assertRemovableProfileDir(customDefault)).toThrow(
+			/system-default/,
+		);
 	});
 });
 

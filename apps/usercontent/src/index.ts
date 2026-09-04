@@ -7,6 +7,7 @@ import {
 	injectScriptTag,
 	type PageManifest,
 	type PageTicketClaims,
+	pageAssetResponsePolicy,
 	pageContentSecurityPolicy,
 	pageIdFromHost,
 	pageManifestKey,
@@ -259,6 +260,7 @@ async function serveFile(c: Context<AppContext>): Promise<Response> {
 		"Content-Type": policy.contentType,
 		"Content-Disposition": contentDisposition(policy.disposition, filename),
 		"Content-Security-Policy": FILE_CONTENT_SECURITY_POLICY,
+		...(policy.varyOnFetchDest ? { Vary: "Sec-Fetch-Dest" } : {}),
 		"Superset-Storage-Key": key,
 		"X-Content-Type-Options": "nosniff",
 		"Referrer-Policy": "no-referrer",
@@ -271,6 +273,115 @@ async function serveFile(c: Context<AppContext>): Promise<Response> {
 			Math.min(claims.exp - Math.floor(Date.now() / 1000), 86400),
 		)}, immutable`,
 	});
+	if (range && object.range) {
+		const offset =
+			"offset" in object.range && object.range.offset !== undefined
+				? object.range.offset
+				: Math.max(
+						object.size - (object.range as { suffix: number }).suffix,
+						0,
+					);
+		const length =
+			"length" in object.range && object.range.length !== undefined
+				? object.range.length
+				: object.size - offset;
+		headers.set(
+			"Content-Range",
+			`bytes ${offset}-${offset + length - 1}/${object.size}`,
+		);
+		headers.set("Content-Length", String(length));
+		return new Response(object.body, { status: 206, headers });
+	}
+	headers.set("Content-Length", String(object.size));
+	return new Response(object.body, { headers });
+}
+
+/**
+ * An asset of a version, at the relative path the directory publish gave
+ * it: `/versions/<n>/[~<ticket>/]<path>` resolves through the manifest to a
+ * file in the private bucket. HTML assets carry the page policy like the
+ * document; everything else streams with `Range` so video seeks. Immutable
+ * per version.
+ */
+async function serveAsset(c: Context<AppContext>): Promise<Response> {
+	const manifest = await loadManifest(c);
+	if (!manifest) return notFound();
+
+	const requested = requestedVersion(c);
+	if (requested === undefined) return notFound();
+	const version = requested ?? servedVersionOf(manifest);
+	if (version === null) return notFound();
+	const entry = manifest.versions[String(version)];
+	if (!entry) return notFound();
+	const assetPath = c.req.param("path") ?? "";
+	const asset = entry.assets?.[assetPath];
+	if (!asset) return notFound();
+
+	const auth = await authorized(c, manifest, version);
+	if (!auth) return signInRedirect(c, manifest.slug);
+
+	// Assets cache like the document's thumbnail: public versions immutably,
+	// ticketed ones only until the ticket that fetched them expires.
+	const cacheControl =
+		auth === "public"
+			? IMMUTABLE
+			: `private, max-age=${Math.max(
+					0,
+					Math.min(auth.exp - Math.floor(Date.now() / 1000), 86400),
+				)}, immutable`;
+	const isHtml = asset.contentType.startsWith("text/html");
+	// Everything that is not the page's own document gets a policy of its own:
+	// without one an SVG navigated to directly ran as a top-level document with
+	// no CSP at all, reaching any host the page's CSP would have denied.
+	const policy = isHtml
+		? null
+		: pageAssetResponsePolicy({
+				contentType: asset.contentType,
+				fetchDest: c.req.header("sec-fetch-dest"),
+			});
+	const headers = new Headers({
+		"Content-Type": isHtml
+			? "text/html; charset=utf-8"
+			: (policy?.contentType ?? asset.contentType),
+		"Superset-Storage-Key": asset.key,
+		"X-Content-Type-Options": "nosniff",
+		"Referrer-Policy": "no-referrer",
+		"X-Robots-Tag": "noindex, nofollow",
+		"Accept-Ranges": "bytes",
+		"Cache-Control": cacheControl,
+	});
+	if (isHtml) {
+		// A sub-document of the page, on the page's own origin: same policy.
+		headers.set(
+			"Content-Security-Policy",
+			pageContentSecurityPolicy(
+				c.env.FRAME_ANCESTORS.split(/\s+/).filter(Boolean),
+			),
+		);
+		headers.set("Origin-Agent-Cluster", "?1");
+	} else if (policy) {
+		headers.set("Content-Security-Policy", FILE_CONTENT_SECURITY_POLICY);
+		if (policy.varyOnFetchDest) headers.set("Vary", "Sec-Fetch-Dest");
+		if (policy.disposition === "attachment") {
+			headers.set(
+				"Content-Disposition",
+				contentDisposition("attachment", assetPath.split("/").pop() || "file"),
+			);
+		}
+	}
+
+	const range = parseRange(c.req.header("range"));
+	let object: R2ObjectBody | null;
+	try {
+		object = await c.env.PRIVATE.get(asset.key, range ? { range } : undefined);
+	} catch {
+		return new Response("Range not satisfiable", {
+			status: 416,
+			headers: { "Cache-Control": "no-store" },
+		});
+	}
+	if (!object) return notFound();
+
 	if (range && object.range) {
 		const offset =
 			"offset" in object.range && object.range.offset !== undefined
@@ -335,6 +446,12 @@ app.get("/versions/:version/:ticket{~[^/]+}/", servePage);
 app.get(`/versions/:version/${THUMBNAIL_FILENAME}`, serveThumbnail);
 app.get("/files/:fileId", serveFile);
 app.get("/files/:fileId/:filename", serveFile);
+// Asset catch-alls come last: anything under a version (or the served
+// alias) that is not the document or the thumbnail is a manifest lookup.
+app.get("/versions/:version/:ticket{~[^/]+}/:path{.+}", serveAsset);
+app.get("/versions/:version/:path{.+}", serveAsset);
+app.get("/:ticket{~[^/]+}/:path{.+}", serveAsset);
+app.get("/:path{.+}", serveAsset);
 app.notFound(() => notFound());
 
 // Exceptions only; no-op until SENTRY_DSN is set.

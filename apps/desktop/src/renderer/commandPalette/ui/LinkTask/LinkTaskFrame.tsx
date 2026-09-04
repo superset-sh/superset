@@ -124,7 +124,6 @@ export function LinkTaskFrame({ workspaceId }: LinkTaskFrameProps) {
 		v2Workspaces.updateWorkspace(workspaceId, { taskId });
 		toast.success(
 			t({
-				id: "commandPalette.linkTask.linked",
 				message: `Linked ${slug} to workspace`,
 			}),
 		);
@@ -134,14 +133,12 @@ export function LinkTaskFrame({ workspaceId }: LinkTaskFrameProps) {
 	return (
 		<CommandList className="max-h-[400px]">
 			<CommandEmpty>
-				<Trans id="commandPalette.linkTask.empty">No tasks found.</Trans>
+				<Trans>No tasks found.</Trans>
 			</CommandEmpty>
 			{filtered.length > 0 && (
 				<CommandGroup
 					heading={
-						deferredQuery
-							? t({ id: "commandPalette.linkTask.results", message: "Results" })
-							: t({ id: "commandPalette.linkTask.tasks", message: "Tasks" })
+						deferredQuery ? t({ message: "Results" }) : t({ message: "Tasks" })
 					}
 				>
 					{filtered.map((task) => {

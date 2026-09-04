@@ -48,7 +48,7 @@ export function ChecksSection({
 						onPress={onOpenChecks}
 					>
 						<Text className="text-muted-foreground text-[15px]">
-							<Trans id="mobile.checks.viewAll">View All</Trans>
+							<Trans>View All</Trans>
 						</Text>
 					</Pressable>
 				) : null}
@@ -60,13 +60,11 @@ export function ChecksSection({
 		return (
 			<CardRow
 				label={t({
-					id: "mobile.checks.passingCount",
 					message: `${tally.passed}/${tally.total} Checks Passing`,
 				})}
 				leading={<ChecksRing tally={tally} />}
 				onPress={onOpenChecks}
 				subLabel={t({
-					id: "mobile.checks.runningCount",
 					message: `${tally.running} Running`,
 				})}
 			/>
@@ -77,8 +75,8 @@ export function ChecksSection({
 		<CardRow
 			label={
 				tally.passed > 0
-					? t({ id: "mobile.checks.allPassed", message: "All Checks Passed" })
-					: t({ id: "mobile.checks.skipped", message: "Checks Skipped" })
+					? t({ message: "All Checks Passed" })
+					: t({ message: "Checks Skipped" })
 			}
 			leading={
 				<View className="size-[26px] items-center justify-center rounded-full bg-green-500">

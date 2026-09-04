@@ -32,7 +32,6 @@ export function derivePullRequestQueryTargets({
 	relayUrl,
 	workspaces,
 	fallbackOrganizationId,
-	sandboxes = [],
 }: {
 	activeHostUrl: string | null;
 	hosts: PullRequestQueryHostRow[];
@@ -45,12 +44,6 @@ export function derivePullRequestQueryTargets({
 	 * under "" and re-keys once hosts arrive, cold-starting the entry.
 	 */
 	fallbackOrganizationId?: string | null;
-	/** Cloud workspaces whose sandbox currently has a brokered address. */
-	sandboxes?: Array<{
-		workspaceId: string;
-		organizationId: string;
-		url: string;
-	}>;
 }): PullRequestQueryTarget[] {
 	const workspaceIdsByHostId = new Map<string, string[]>();
 	for (const workspace of workspaces) {
@@ -108,20 +101,6 @@ export function derivePullRequestQueryTargets({
 				workspaceIds: localWorkspaceIds,
 			});
 		}
-	}
-
-	// A sandbox is its own host, addressed by the cloud workspace's id — the
-	// rows it serves were restated under that id by the workspace fan-out.
-	for (const sandbox of sandboxes) {
-		const workspaceIds = workspaceIdsByHostId.get(sandbox.workspaceId);
-		if (!workspaceIds || workspaceIds.length === 0) continue;
-		targets.push({
-			organizationId: sandbox.organizationId,
-			machineId: sandbox.workspaceId,
-			hostType: "cloud",
-			hostUrl: sandbox.url,
-			workspaceIds,
-		});
 	}
 
 	return targets;

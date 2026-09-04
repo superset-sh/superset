@@ -36,18 +36,15 @@ export function InviteMemberButton({
 		gateFeature(GATED_FEATURES.INVITE_MEMBERS, () => {
 			alert({
 				title: t({
-					id: "settings.members.inviteBillingTitle",
 					message: "This will affect your billing",
 				}),
 				description: t({
-					id: "settings.members.inviteBillingDescription",
 					message:
 						"Adding members will increase your subscription cost, prorated to your billing cycle.",
 				}),
 				actions: [
 					{
 						label: t({
-							id: "settings.members.inviteBillingCancel",
 							message: "Cancel",
 						}),
 						variant: "outline",
@@ -55,7 +52,6 @@ export function InviteMemberButton({
 					},
 					{
 						label: t({
-							id: "settings.members.inviteBillingContinue",
 							message: "Continue",
 						}),
 						onClick: () => setOpen(true),
@@ -69,7 +65,7 @@ export function InviteMemberButton({
 		<>
 			<Button size="sm" onClick={handleClick} className="gap-1.5">
 				<HiOutlinePlus className="h-3.5 w-3.5" />
-				<Trans id="settings.members.inviteButton">Invite member</Trans>
+				<Trans>Invite member</Trans>
 			</Button>
 
 			<InviteMemberDialog

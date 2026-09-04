@@ -634,14 +634,13 @@ export function V2PresetsSection({
 						<h3 className="text-sm font-medium">
 							<HighlightText
 								text={t({
-									id: "settings.terminal.v2Presets.label",
 									message: "Terminal scripts",
 								})}
 								query={searchQuery}
 							/>
 						</h3>
 						<p className="text-xs text-muted-foreground mt-0.5">
-							<Trans id="settings.terminal.v2Presets.subtitle">
+							<Trans>
 								Reusable terminal launches. Click a script to edit or drag to
 								reorder. Project setup, run, and teardown commands are lifecycle
 								scripts.
@@ -661,9 +660,7 @@ export function V2PresetsSection({
 						{showPresets && (
 							<Button size="sm" onClick={() => handleAddRow()}>
 								<HiOutlinePlus className="size-4" />
-								<Trans id="settings.terminal.v2Presets.addScript">
-									Add script
-								</Trans>
+								<Trans>Add script</Trans>
 							</Button>
 						)}
 					</div>

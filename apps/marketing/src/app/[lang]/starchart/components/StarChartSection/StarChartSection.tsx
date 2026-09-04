@@ -73,10 +73,10 @@ export function StarChartSection({ points }: StarChartSectionProps) {
 					}}
 				>
 					<ToggleGroupItem value="day" className="font-mono text-xs">
-						<Trans id="marketing.starchart.granularity.day">Day</Trans>
+						<Trans>Day</Trans>
 					</ToggleGroupItem>
 					<ToggleGroupItem value="week" className="font-mono text-xs">
-						<Trans id="marketing.starchart.granularity.week">Week</Trans>
+						<Trans>Week</Trans>
 					</ToggleGroupItem>
 				</ToggleGroup>
 				<DateRangePicker
@@ -92,13 +92,9 @@ export function StarChartSection({ points }: StarChartSectionProps) {
 					<div>
 						<span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
 							{granularity === "day" ? (
-								<Trans id="marketing.starchart.starsGainedPerDay">
-									Stars gained per day
-								</Trans>
+								<Trans>Stars gained per day</Trans>
 							) : (
-								<Trans id="marketing.starchart.starsGainedPerWeek">
-									Stars gained per week
-								</Trans>
+								<Trans>Stars gained per week</Trans>
 							)}
 						</span>
 						<div className="mt-3">
@@ -108,9 +104,7 @@ export function StarChartSection({ points }: StarChartSectionProps) {
 				</div>
 			) : (
 				<div className="rounded-lg border border-dashed border-border p-12 text-center text-muted-foreground">
-					<Trans id="marketing.starchart.emptyRange">
-						No stars in this range.
-					</Trans>
+					<Trans>No stars in this range.</Trans>
 				</div>
 			)}
 		</div>

@@ -39,6 +39,10 @@ describe("shared disabled-agent-hooks state", () => {
 	});
 
 	it("treats a missing or corrupt file as nothing disabled", () => {
+		// Remove at the path the reader resolves, not just under TEST_HOME: a
+		// sibling file's top-level hook can leave SUPERSET_HOME_DIR pointing
+		// elsewhere in CI, and the previous test's write then survives afterEach.
+		fs.rmSync(getAgentHooksStateFilePath(), { force: true });
 		expect(readSharedDisabledAgentIds()).toEqual([]);
 
 		fs.writeFileSync(getAgentHooksStateFilePath(), "{not json");

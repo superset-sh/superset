@@ -25,7 +25,7 @@ export function HeroStats() {
 		<div className="mt-8 grid grid-cols-1 sm:grid-cols-3 border border-border divide-y sm:divide-y-0 sm:divide-x divide-border">
 			<div className="px-4 py-3 md:px-5">
 				<span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
-					<Trans id="marketing.factory.hero.currentLevel">Current level</Trans>
+					<Trans>Current level</Trans>
 				</span>
 				<p className="text-lg font-mono text-foreground mt-1">
 					F3{" "}
@@ -36,7 +36,7 @@ export function HeroStats() {
 			</div>
 			<div className="px-4 py-3 md:px-5">
 				<span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
-					<Trans id="marketing.factory.hero.gatesOpen">Gates open</Trans>
+					<Trans>Gates open</Trans>
 				</span>
 				<p className="text-lg font-mono text-foreground mt-1">
 					{formatTally(f3)}{" "}
@@ -55,13 +55,12 @@ export function HeroStats() {
 								key={score.gateId}
 								targetId={`gate-${score.gateId}`}
 								title={t({
-									id: "marketing.factory.gates.jumpTitle",
 									message: `${level} · ${gate} · ${statusLabel}`,
 								})}
 								className={`h-1.5 flex-1 hover:outline hover:outline-1 hover:outline-brand ${SEGMENT_CLASSES[score.status]}`}
 							>
 								<span className="sr-only">
-									<Trans id="marketing.factory.gates.jumpLabel">
+									<Trans>
 										{level} {gate}: {statusLabel}
 									</Trans>
 								</span>
@@ -72,14 +71,12 @@ export function HeroStats() {
 			</div>
 			<div className="px-4 py-3 md:px-5">
 				<span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
-					<Trans id="marketing.factory.hero.f4GateCrossed">
-						F4 gate crossed
-					</Trans>
+					<Trans>F4 gate crossed</Trans>
 				</span>
 				<p className="text-lg font-mono text-foreground mt-1">
 					2027{" "}
 					<span className="text-muted-foreground text-sm">
-						· <Trans id="marketing.factory.hero.forecastNote">forecast</Trans>
+						· <Trans>forecast</Trans>
 					</span>
 				</p>
 			</div>

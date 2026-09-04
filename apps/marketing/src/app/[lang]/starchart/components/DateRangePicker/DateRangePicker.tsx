@@ -25,7 +25,6 @@ const PRESETS: Array<{
 	{
 		id: "all",
 		label: msg({
-			id: "marketing.starchart.range.allTime",
 			message: "All time",
 		}),
 		days: null,
@@ -33,7 +32,6 @@ const PRESETS: Array<{
 	{
 		id: "4w",
 		label: msg({
-			id: "marketing.starchart.range.last4Weeks",
 			message: "Last 4 weeks",
 		}),
 		days: 28,
@@ -41,7 +39,6 @@ const PRESETS: Array<{
 	{
 		id: "3m",
 		label: msg({
-			id: "marketing.starchart.range.last3Months",
 			message: "Last 3 months",
 		}),
 		days: 90,
@@ -49,7 +46,6 @@ const PRESETS: Array<{
 	{
 		id: "6m",
 		label: msg({
-			id: "marketing.starchart.range.last6Months",
 			message: "Last 6 months",
 		}),
 		days: 180,
@@ -77,7 +73,6 @@ export function DateRangePicker({
 					{formatRangeLabel(
 						range,
 						t({
-							id: "marketing.starchart.range.allTime",
 							message: "All time",
 						}),
 						"MMM d, yyyy",

@@ -26,7 +26,6 @@ export function PortForwardBusyActions({
 				toast.error(
 					result.error ??
 						t({
-							id: "dashboard.ports.busy.stopFailed",
 							message: "Could not stop it",
 						}),
 				);
@@ -49,9 +48,7 @@ export function PortForwardBusyActions({
 					}}
 					className={BUTTON_CLASS}
 				>
-					<Trans id="dashboard.ports.busy.stopLocal">
-						Stop local {owner.processName}
-					</Trans>
+					<Trans>Stop local {owner.processName}</Trans>
 				</button>
 			)}
 			<button
@@ -63,7 +60,7 @@ export function PortForwardBusyActions({
 				}}
 				className={BUTTON_CLASS}
 			>
-				<Trans id="dashboard.ports.busy.useAnotherPort">Use another port</Trans>
+				<Trans>Use another port</Trans>
 			</button>
 		</span>
 	);

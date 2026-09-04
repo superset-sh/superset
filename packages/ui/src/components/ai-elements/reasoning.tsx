@@ -1,5 +1,6 @@
 "use client";
 
+import { msg } from "@lingui/core/macro";
 import { Plural, Trans } from "@lingui/react/macro";
 import { useControllableState } from "@radix-ui/react-use-controllable-state";
 import { BrainIcon, ChevronDownIcon } from "lucide-react";
@@ -123,23 +124,20 @@ const defaultGetThinkingMessage = (isStreaming: boolean, duration?: number) => {
 	if (isStreaming || duration === 0) {
 		return (
 			<ShimmerLabel className="text-xs text-muted-foreground">
-				{i18n._({ id: "ui.reasoning.thinking", message: "Thinking..." })}
+				{i18n._(msg({ message: "Thinking..." }))}
 			</ShimmerLabel>
 		);
 	}
 	if (duration === undefined) {
 		return (
 			<p>
-				<Trans id="ui.reasoning.thoughtForAFewSeconds">
-					Thought for a few seconds
-				</Trans>
+				<Trans>Thought for a few seconds</Trans>
 			</p>
 		);
 	}
 	return (
 		<p>
 			<Plural
-				id="ui.reasoning.thoughtForSeconds"
 				one="Thought for # second"
 				other="Thought for # seconds"
 				value={duration}

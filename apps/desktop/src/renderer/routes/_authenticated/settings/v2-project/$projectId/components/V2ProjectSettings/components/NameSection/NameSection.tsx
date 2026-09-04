@@ -66,7 +66,6 @@ export function NameSection({
 				}
 			}}
 			placeholder={t({
-				id: "settings.project.namePlaceholder",
 				message: "Project name",
 			})}
 			className="w-96"

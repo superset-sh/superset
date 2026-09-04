@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { CommentsSidebar, PageCommentsView } from "@superset/ui/page-comments";
 import { TRPCClientError } from "@trpc/client";
 import type { Metadata } from "next";
@@ -74,9 +75,7 @@ export default async function PublishedPage({ params }: PageProps) {
 			version={page.version}
 			user={{
 				id: session?.user.id ?? "",
-				name:
-					session?.user.name ??
-					i18n._({ id: "web.page.anonymousUser", message: "You" }),
+				name: session?.user.name ?? i18n._(msg({ message: "You" })),
 				image: session?.user.image ?? null,
 			}}
 		>

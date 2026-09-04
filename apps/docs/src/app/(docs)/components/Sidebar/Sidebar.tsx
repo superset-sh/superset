@@ -26,7 +26,7 @@ export default function Sidebar() {
 					>
 						<Search className="size-3.5 shrink-0 opacity-70" />
 						<span className="grow truncate text-left">
-							<Trans id="docs.sidebar.searchPlaceholder">Search docs...</Trans>
+							<Trans>Search docs...</Trans>
 						</span>
 						<kbd className="text-[11px] font-medium text-muted-foreground">
 							⌘K

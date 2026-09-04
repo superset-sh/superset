@@ -1,3 +1,8 @@
+// Isolates SUPERSET_HOME_DIR. `bun test` run inside this package reads this
+// bunfig, not the root one, so the guard has to be re-entered here — and this
+// package is where the pointer writers live.
+import "../../../scripts/test-preload.ts";
+
 // Populate the env vars `src/env.ts` validates at module load so test runtimes
 // that boot host-service via `createApp` (instead of `serve.ts`) can import
 // modules that transitively load the validated env. Real values come from

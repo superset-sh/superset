@@ -1,4 +1,4 @@
-import { db } from "@superset/db/client";
+import { db, dbWs } from "@superset/db/client";
 import {
 	attachments,
 	files,
@@ -10,6 +10,7 @@ import {
 	users,
 	workspacePages,
 } from "@superset/db/schema";
+import { mintPageSlug } from "@superset/shared/page-slug";
 import {
 	fileOriginalKey,
 	pageManifestKey,
@@ -19,16 +20,22 @@ import {
 } from "@superset/shared/usercontent";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq, inArray, or, type SQL, sql } from "drizzle-orm";
+import { z } from "zod";
+import { env } from "../../env";
 import { deleteObjects, presignedGetUrl } from "../../lib/r2";
 import { protectedProcedure, userError } from "../../trpc";
 import { requireActiveOrgMembership } from "../utils/active-org";
 import { assertPageReadable, assertPageWritable } from "./access";
+import { pageAssetRouter } from "./assets";
 import { pageUrl } from "./page-url";
 import { publishPage } from "./publish";
+import { isEntryPathConflict } from "./publish-rules";
 import {
 	clearPageWatchSchema,
+	createPageSchema,
 	deletePageSchema,
 	listPagesSchema,
+	pageFields,
 	pageRefSchema,
 	publishPageSchema,
 	pullPageSchema,
@@ -40,7 +47,6 @@ import { resolveSharedVersion, servedVersion } from "./shared-version";
 import {
 	deletePageObjects,
 	mintPageTicket,
-	usercontentBaseUrl,
 	writePageManifest,
 } from "./storage";
 import { enqueuePageThumbnail } from "./thumbnail";
@@ -141,6 +147,78 @@ async function latestVersionNumber(pageId: string): Promise<number | null> {
 }
 
 export const pageRouter = {
+	assets: pageAssetRouter,
+
+	/**
+	 * A page with no versions yet. Assets stage against a page id, so a first
+	 * publish that carries them creates the page here and publishes into it.
+	 * A publish with no assets still mints its own page and never needs this.
+	 */
+	create: protectedProcedure
+		.input(createPageSchema)
+		.mutation(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
+			const userId = ctx.session.user.id;
+			const title = input.title ?? "Untitled";
+			// neon-http has no transactions; the pooled client does.
+			return await dbWs.transaction(async (tx) => {
+				const [page] = await tx
+					.insert(pages)
+					.values({
+						slug: mintPageSlug(title),
+						organizationId,
+						createdByUserId: userId,
+						title,
+						description: input.description ?? null,
+						visibility: input.visibility ?? "org",
+					})
+					.returning();
+				if (!page) {
+					throw userError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "Failed to create page",
+						i18nKey: "serverError.page.failedToCreatePage",
+					});
+				}
+				if (input.workspaceId && input.entryPath) {
+					await assertWorkspaceAccess({
+						executor: tx,
+						workspaceId: input.workspaceId,
+						organizationId,
+					});
+					try {
+						await tx
+							.insert(workspacePages)
+							.values({
+								workspaceId: input.workspaceId,
+								pageId: page.id,
+								entryPath: input.entryPath,
+							})
+							// Targeted at the primary key, so it stays a no-op for a page
+							// already linked to this path. It deliberately does not cover
+							// the (workspace, entryPath) unique index — a colleague's page
+							// holding this path has to surface, not be swallowed.
+							.onConflictDoNothing({
+								target: [workspacePages.workspaceId, workspacePages.pageId],
+							});
+					} catch (error) {
+						if (!isEntryPathConflict(error)) throw error;
+						throw new TRPCError({
+							code: "CONFLICT",
+							message: `Someone else has already published ${input.entryPath} from this workspace. Publish with an explicit page id to add a version to their page, or move the file.`,
+						});
+					}
+				}
+				return {
+					id: page.id,
+					slug: page.slug,
+					url: pageUrl(page.slug),
+					title: page.title,
+					visibility: page.visibility,
+				};
+			});
+		}),
+
 	publish: protectedProcedure
 		.input(publishPageSchema)
 		.mutation(async ({ ctx, input }) => {
@@ -218,7 +296,7 @@ export const pageRouter = {
 					);
 
 			const rows = await scoped.orderBy(desc(pages.updatedAt));
-			const baseUrl = usercontentBaseUrl();
+			const baseUrl = env.USERCONTENT_URL;
 			return await Promise.all(
 				rows.map(async (row) => {
 					const served = servedVersion(row.sharedVersion, row.latestVersion);
@@ -264,7 +342,7 @@ export const pageRouter = {
 			...page,
 			url: pageUrl(page.slug),
 			viewUrl: pageViewUrl({
-				baseUrl: usercontentBaseUrl(),
+				baseUrl: env.USERCONTENT_URL,
 				pageId: page.id,
 				version: served,
 				ticket: await mintPageTicket(
@@ -277,6 +355,70 @@ export const pageRouter = {
 			watch: watchState(page, Date.now()),
 		};
 	}),
+
+	/**
+	 * The page a workspace path anchors to, for the CLI's directory publish:
+	 * it compares each asset's hash against the previous version and reuses
+	 * unchanged files instead of re-uploading. Mirrors the republish lookup —
+	 * only the caller's own pages match.
+	 */
+	resolveByEntryPath: protectedProcedure
+		.input(
+			z
+				.object({
+					workspaceId: pageFields.workspaceId.optional(),
+					entryPath: pageFields.entryPath.optional(),
+					pageId: pageFields.id.optional(),
+				})
+				.refine(
+					(value) =>
+						value.pageId !== undefined ||
+						(value.workspaceId !== undefined && value.entryPath !== undefined),
+					{ message: "Provide pageId, or workspaceId and entryPath together" },
+				),
+		)
+		.query(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
+			const userId = ctx.session.user.id;
+			const [row] = input.pageId
+				? await db
+						.select({ page: pages })
+						.from(pages)
+						.where(
+							and(
+								eq(pages.id, input.pageId),
+								eq(pages.organizationId, organizationId),
+								eq(pages.createdByUserId, userId),
+							),
+						)
+						.limit(1)
+				: await db
+						.select({ page: pages })
+						.from(workspacePages)
+						.innerJoin(pages, eq(pages.id, workspacePages.pageId))
+						.where(
+							and(
+								eq(workspacePages.workspaceId, input.workspaceId ?? ""),
+								eq(workspacePages.entryPath, input.entryPath ?? ""),
+								eq(pages.organizationId, organizationId),
+								eq(pages.createdByUserId, userId),
+							),
+						)
+						.limit(1);
+			if (!row) return null;
+			const [latest] = await db
+				.select({ id: pageVersions.id, version: pageVersions.version })
+				.from(pageVersions)
+				.where(eq(pageVersions.pageId, row.page.id))
+				.orderBy(desc(pageVersions.version))
+				.limit(1);
+			return {
+				id: row.page.id,
+				slug: row.page.slug,
+				latestVersion: latest?.version ?? null,
+				latestVersionId: latest?.id ?? null,
+			};
+		}),
 
 	setVisibility: protectedProcedure
 		.input(setPageVisibilitySchema)
@@ -559,7 +701,7 @@ export const pageRouter = {
 			}
 
 			const viewUrl = pageViewUrl({
-				baseUrl: usercontentBaseUrl(),
+				baseUrl: env.USERCONTENT_URL,
 				pageId: page.id,
 				version: row.version,
 				ticket: await mintPageTicket(page, { version: row.version }),

@@ -107,12 +107,7 @@ export const TestResultsSummary = ({
 							className="size-3 text-green-700 dark:text-green-400"
 						/>
 						<Text className="text-green-700 dark:text-green-400">
-							<Plural
-								id="mobile.testResults.summary.passedCount"
-								value={summary.passed}
-								one="# passed"
-								other="# passed"
-							/>
+							<Plural value={summary.passed} one="# passed" other="# passed" />
 						</Text>
 					</Badge>
 					{summary.failed > 0 && (
@@ -126,7 +121,6 @@ export const TestResultsSummary = ({
 							/>
 							<Text className="text-red-700 dark:text-red-400">
 								<Plural
-									id="mobile.testResults.summary.failedCount"
 									value={summary.failed}
 									one="# failed"
 									other="# failed"
@@ -145,7 +139,6 @@ export const TestResultsSummary = ({
 							/>
 							<Text className="text-yellow-700 dark:text-yellow-400">
 								<Plural
-									id="mobile.testResults.summary.skippedCount"
 									value={summary.skipped}
 									one="# skipped"
 									other="# skipped"
@@ -224,7 +217,7 @@ export const TestResultsProgress = ({
 					</View>
 					<View className="flex-row justify-between">
 						<Text className="text-muted-foreground text-xs">
-							<Trans id="mobile.testResults.passedOfTotal">
+							<Trans>
 								{summary.passed}/{summary.total} tests passed
 							</Trans>
 						</Text>
@@ -377,32 +370,17 @@ export const TestSuiteStats = ({
 			<>
 				{passed > 0 && (
 					<Text className="text-green-600 text-xs dark:text-green-400">
-						<Plural
-							id="mobile.testResults.passedCount"
-							value={passed}
-							one="# passed"
-							other="# passed"
-						/>
+						<Plural value={passed} one="# passed" other="# passed" />
 					</Text>
 				)}
 				{failed > 0 && (
 					<Text className="text-red-600 text-xs dark:text-red-400">
-						<Plural
-							id="mobile.testResults.failedCount"
-							value={failed}
-							one="# failed"
-							other="# failed"
-						/>
+						<Plural value={failed} one="# failed" other="# failed" />
 					</Text>
 				)}
 				{skipped > 0 && (
 					<Text className="text-xs text-yellow-600 dark:text-yellow-400">
-						<Plural
-							id="mobile.testResults.skippedCount"
-							value={skipped}
-							one="# skipped"
-							other="# skipped"
-						/>
+						<Plural value={skipped} one="# skipped" other="# skipped" />
 					</Text>
 				)}
 			</>

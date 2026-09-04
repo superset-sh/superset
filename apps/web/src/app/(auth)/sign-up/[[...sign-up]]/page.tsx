@@ -28,7 +28,6 @@ export default function SignUpPage() {
 			console.error("Sign up failed:", err);
 			setError(
 				t({
-					id: "web.signUp.error",
 					message: "Failed to sign up. Please try again.",
 				}),
 			);
@@ -49,7 +48,6 @@ export default function SignUpPage() {
 			console.error("Sign up failed:", err);
 			setError(
 				t({
-					id: "web.signUp.error",
 					message: "Failed to sign up. Please try again.",
 				}),
 			);
@@ -63,12 +61,10 @@ export default function SignUpPage() {
 		<div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
 			<div className="flex flex-col space-y-2 text-center">
 				<h1 className="text-2xl font-semibold tracking-tight">
-					<Trans id="web.signUp.title">Create an account</Trans>
+					<Trans>Create an account</Trans>
 				</h1>
 				<p className="text-muted-foreground text-sm">
-					<Trans id="web.signUp.subtitle">
-						Sign up to get started with Superset
-					</Trans>
+					<Trans>Sign up to get started with Superset</Trans>
 				</p>
 			</div>
 			<div className="grid gap-4">
@@ -83,9 +79,9 @@ export default function SignUpPage() {
 				>
 					<FaGithub className="mr-2 size-4" />
 					{isLoadingGithub ? (
-						<Trans id="web.signUp.loading">Loading...</Trans>
+						<Trans>Loading...</Trans>
 					) : (
-						<Trans id="web.signUp.withGithub">Sign up with GitHub</Trans>
+						<Trans>Sign up with GitHub</Trans>
 					)}
 				</Button>
 				<Button
@@ -96,13 +92,13 @@ export default function SignUpPage() {
 				>
 					<FcGoogle className="mr-2 size-4" />
 					{isLoadingGoogle ? (
-						<Trans id="web.signUp.loading">Loading...</Trans>
+						<Trans>Loading...</Trans>
 					) : (
-						<Trans id="web.signUp.withGoogle">Sign up with Google</Trans>
+						<Trans>Sign up with Google</Trans>
 					)}
 				</Button>
 				<p className="text-muted-foreground px-8 text-center text-sm">
-					<Trans id="web.signUp.legal">
+					<Trans>
 						By clicking continue, you agree to our{" "}
 						<a
 							href={`${env.NEXT_PUBLIC_MARKETING_URL}/terms`}
@@ -125,7 +121,7 @@ export default function SignUpPage() {
 					</Trans>
 				</p>
 				<p className="text-center text-sm">
-					<Trans id="web.signUp.signInPrompt">
+					<Trans>
 						Already have an account?{" "}
 						<Link
 							href="/sign-in"

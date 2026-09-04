@@ -3,6 +3,7 @@ import {
 	Composer,
 	type ComposerHandle,
 	type ComposerQuickKey,
+	type ComposerQuickKeysAction,
 	type ComposerSessionTab,
 	type ComposerSlashCommand,
 } from "@superset/composer";
@@ -63,6 +64,13 @@ interface TerminalComposerProps {
 	onSessionTabCopyId: (terminalId: string) => void;
 	onNewSessionPress: () => void;
 	onAllSessionsPress: () => void;
+	/**
+	 * The static chip beside the quick keys — this workspace's pull requests.
+	 * Omitted when it has none, which is also how a workspace that never
+	 * produced one never grows the control.
+	 */
+	quickKeysAction?: ComposerQuickKeysAction;
+	onQuickKeysActionPress: () => void;
 	/** Focused, or the keyboard is up — the screen covers the terminal with a
 	 *  tap-to-dismiss target while this is true. */
 	onActiveChange?: (active: boolean) => void;
@@ -102,6 +110,8 @@ export const TerminalComposer = forwardRef<
 		onSessionTabCopyId,
 		onNewSessionPress,
 		onAllSessionsPress,
+		quickKeysAction,
+		onQuickKeysActionPress,
 		onActiveChange,
 		onHeightChange,
 		selectActive,
@@ -140,7 +150,6 @@ export const TerminalComposer = forwardRef<
 					{
 						id: COPY_SELECTION_KEY,
 						label: t({
-							id: "mobile.terminal.copySelection",
 							message: "Copy Selection",
 						}),
 					},
@@ -163,7 +172,6 @@ export const TerminalComposer = forwardRef<
 			if (!attachmentTarget) {
 				Alert.alert(
 					t({
-						id: "mobile.terminal.attachmentsNeedHost",
 						message: "Attachments need an online host",
 					}),
 				);
@@ -198,7 +206,7 @@ export const TerminalComposer = forwardRef<
 			else draft.setText("");
 		} catch (cause) {
 			Alert.alert(
-				t({ id: "mobile.terminal.sendFailed", message: "Could not send" }),
+				t({ message: "Could not send" }),
 				cause instanceof Error ? cause.message : String(cause),
 			);
 		} finally {
@@ -213,7 +221,6 @@ export const TerminalComposer = forwardRef<
 				placeholder={
 					placeholder ??
 					t({
-						id: "mobile.terminal.placeholder",
 						message: "Type a message...",
 					})
 				}
@@ -228,23 +235,18 @@ export const TerminalComposer = forwardRef<
 				// Translated here because the composer has no catalog of its own.
 				sessionTabLabels={{
 					copyId: t({
-						id: "mobile.terminalTabs.copySessionId",
 						message: "Copy session ID",
 					}),
 					close: t({
-						id: "mobile.terminalTabs.closeSession",
 						message: "Close session",
 					}),
 					newSession: t({
-						id: "mobile.nav.newSession.title",
 						message: "New session",
 					}),
 					allSessions: t({
-						id: "mobile.terminalTabs.manageSessions",
 						message: "Manage sessions",
 					}),
 					scrollToStart: t({
-						id: "mobile.terminalTabs.scrollToStart",
 						message: "Scroll to the first session",
 					}),
 				}}
@@ -253,6 +255,8 @@ export const TerminalComposer = forwardRef<
 				onSessionTabCopyId={onSessionTabCopyId}
 				onNewSessionPress={onNewSessionPress}
 				onAllSessionsPress={onAllSessionsPress}
+				quickKeysAction={quickKeysAction}
+				onQuickKeysActionPress={onQuickKeysActionPress}
 				slashCommands={slashCommands.map(
 					(command): ComposerSlashCommand => ({
 						id: `${command.trigger}${command.name}`,

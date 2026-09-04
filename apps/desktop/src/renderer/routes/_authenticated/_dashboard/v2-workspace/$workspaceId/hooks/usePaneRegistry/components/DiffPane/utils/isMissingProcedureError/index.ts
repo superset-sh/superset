@@ -1,1 +1,0 @@
-export { isMissingProcedureError } from "./isMissingProcedureError";

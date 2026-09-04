@@ -19,6 +19,7 @@ function fakeCollection<Row>(rows: Row[], key: (row: Row) => string) {
 }
 
 function makeCollections(args: {
+	projectHidden?: boolean;
 	sections?: Array<{
 		sectionId: string;
 		projectId: string;
@@ -43,6 +44,7 @@ function makeCollections(args: {
 					createdAt: DATE,
 					tabOrder: 1,
 					isCollapsed: false,
+					isHidden: args.projectHidden ?? false,
 				},
 			],
 			(row) => row.projectId,
@@ -152,5 +154,27 @@ describe("getFlattenedV2WorkspaceIds with tag folders", () => {
 				EMPTY_TAG_FOLDER_CONTEXT,
 			),
 		).toEqual(["w-member", "w-below"]);
+	});
+
+	it("skips every workspace of a hidden project so removal never navigates into it", () => {
+		const collections = makeCollections({
+			projectHidden: true,
+			workspaces: [
+				{ workspaceId: "w-one", tabOrder: 1 },
+				{ workspaceId: "w-two", tabOrder: 2 },
+			],
+		});
+		const hostWorkspaces = [
+			{ id: "w-one", projectId: PROJECT_ID, tags: [] },
+			{ id: "w-two", projectId: PROJECT_ID, tags: [] },
+		];
+
+		expect(
+			getFlattenedV2WorkspaceIds(
+				collections,
+				hostWorkspaces,
+				EMPTY_TAG_FOLDER_CONTEXT,
+			),
+		).toEqual([]);
 	});
 });

@@ -26,13 +26,10 @@ export function WorkspaceHostUnreachableState({
 	retryBusyLabel,
 }: WorkspaceHostUnreachableStateProps) {
 	const { t } = useLingui();
-	const resolvedRetryLabel =
-		retryLabel ??
-		t({ id: "workspace.states.hostUnreachableRetry", message: "Retry" });
+	const resolvedRetryLabel = retryLabel ?? t({ message: "Retry" });
 	const resolvedRetryBusyLabel =
 		retryBusyLabel ??
 		t({
-			id: "workspace.states.hostUnreachableRetrying",
 			message: "Retrying…",
 		});
 	return (
@@ -56,12 +53,10 @@ export function WorkspaceHostUnreachableState({
 
 				<div className="flex flex-col gap-1.5">
 					<h1 className="text-[15px] font-medium tracking-tight text-foreground">
-						<Trans id="workspace.states.hostUnreachableTitle">
-							Host unreachable
-						</Trans>
+						<Trans>Host unreachable</Trans>
 					</h1>
 					<p className="select-text cursor-text text-[13px] leading-relaxed text-muted-foreground">
-						<Trans id="workspace.states.hostUnreachableBody">
+						<Trans>
 							This workspace lives on a device Superset can't reach right now.
 							Terminals, files, and agents stay put — they come back as soon as
 							the connection does.
@@ -92,11 +87,9 @@ export function WorkspaceHostUnreachableState({
 						<span className="ml-auto shrink-0 text-[11px] uppercase tracking-wider text-muted-foreground/70">
 							{isReconnecting
 								? t({
-										id: "workspace.states.hostUnreachableReconnecting",
 										message: "Reconnecting",
 									})
 								: t({
-										id: "workspace.states.hostUnreachableDisconnected",
 										message: "Disconnected",
 									})}
 						</span>
@@ -104,9 +97,7 @@ export function WorkspaceHostUnreachableState({
 					<div className="border-t border-border/60 px-3 py-2">
 						<div className="grid gap-1.5 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:gap-3">
 							<span className="shrink-0 text-[11px] uppercase tracking-wider text-muted-foreground/70">
-								<Trans id="workspace.states.hostUnreachableHostIdLabel">
-									Host ID
-								</Trans>
+								<Trans>Host ID</Trans>
 							</span>
 							<div className="min-w-0 overflow-x-auto sm:text-right">
 								<code
@@ -146,9 +137,7 @@ export function WorkspaceHostUnreachableState({
 								strokeWidth={2}
 								aria-hidden="true"
 							/>
-							<Trans id="workspace.states.hostUnreachableHostSettings">
-								Host settings
-							</Trans>
+							<Trans>Host settings</Trans>
 						</Link>
 					</Button>
 				</div>

@@ -39,7 +39,6 @@ export function useFolderFirstImport(options?: {
 		try {
 			const picked = await selectDirectory.mutateAsync({
 				title: t({
-					id: "dashboard.folderFirstImport.dialogTitle",
 					message: "Import existing folder",
 				}),
 			});
@@ -83,7 +82,6 @@ export function useFolderFirstImport(options?: {
 				const first = response.cloudErrors[0];
 				onError?.(
 					t({
-						id: "dashboard.folderFirstImport.cloudUnreachable",
 						message: `Couldn't reach cloud for ${first.url}: ${first.message}`,
 					}),
 				);
@@ -101,7 +99,6 @@ export function useFolderFirstImport(options?: {
 			} else {
 				onError?.(
 					t({
-						id: "dashboard.folderFirstImport.multipleProjects",
 						message: `Multiple projects use this repository (${candidates.length}). Open the project you want from settings to set it up on this device.`,
 					}),
 				);

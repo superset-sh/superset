@@ -3,8 +3,10 @@ import { errorMessage } from "@superset/i18n/errors";
 import { sanitizePromptForPty } from "@superset/shared/agent-prompt-launch";
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { normalizeTerminalCommand } from "renderer/lib/terminal/launch-command";
+import { getTerminalAgentBindingsQueryKey } from "../useTerminalAgentBindings/useTerminalAgentBindings";
 
 export type AgentPromptFileSide = "additions" | "deletions" | "mixed";
 
@@ -67,6 +69,7 @@ interface UseSendToTerminalAgentResult {
  */
 export function useSendToTerminalAgent(): UseSendToTerminalAgentResult {
 	const { t } = useLingui();
+	const queryClient = useQueryClient();
 	const writeInput = workspaceTrpc.terminal.writeInput.useMutation();
 
 	const send = useCallback(
@@ -80,16 +83,20 @@ export function useSendToTerminalAgent(): UseSendToTerminalAgentResult {
 					data: normalizeTerminalCommand(sanitizePromptForPty(text)),
 				});
 			} catch (error) {
+				// The likeliest failure is a target whose pty died (daemon crash,
+				// reboot) while its session row lagged behind — refetch the
+				// bindings so the composer stops offering the dead agent.
+				void queryClient.invalidateQueries({
+					queryKey: getTerminalAgentBindingsQueryKey(workspaceId),
+				});
 				const message = errorMessage(
 					error,
 					t({
-						id: "hooks.sendToTerminalAgent.unknownError",
 						message: "Unknown error",
 					}),
 				);
 				toast.error(
 					t({
-						id: "hooks.sendToTerminalAgent.sendFailed",
 						message: "Couldn't send to agent",
 					}),
 					{ description: message },
@@ -97,7 +104,7 @@ export function useSendToTerminalAgent(): UseSendToTerminalAgentResult {
 				throw error;
 			}
 		},
-		[writeInput, t],
+		[writeInput, t, queryClient],
 	);
 
 	return { send, isPending: writeInput.isPending };

@@ -23,7 +23,7 @@ export function ModelPicker({
 
 	return (
 		<ResponsiveDropdown
-			title={t({ id: "web.modelPicker.title", message: "Select model" })}
+			title={t({ message: "Select model" })}
 			items={models.map((model) => ({
 				label: model.name,
 				icon: (

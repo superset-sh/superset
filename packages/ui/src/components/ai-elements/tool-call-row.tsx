@@ -88,7 +88,7 @@ export function ToolCallRow({
 		(isError ? (
 			<span className="ml-2 flex items-center gap-1 font-medium uppercase tracking-wide text-red-500">
 				<XCircleIcon className="h-3 w-3 shrink-0" />
-				<Trans id="ui.toolCallRow.error">Error</Trans>
+				<Trans>Error</Trans>
 			</span>
 		) : null);
 
@@ -151,9 +151,7 @@ export function ToolCallRow({
 													</span>
 												</TooltipTrigger>
 												<TooltipContent>
-													<Trans id="ui.toolCallRow.notConfigured">
-														Not configured
-													</Trans>
+													<Trans>Not configured</Trans>
 												</TooltipContent>
 											</Tooltip>
 										</TooltipProvider>

@@ -285,9 +285,7 @@ function SlashCommandChip({
 						>
 							<CommandList>
 								<CommandEmpty>
-									<Trans id="components.slashCommandNode.noMatch">
-										No match
-									</Trans>
+									<Trans>No match</Trans>
 								</CommandEmpty>
 								<CommandGroup>
 									{filteredOptions.map((opt) => (

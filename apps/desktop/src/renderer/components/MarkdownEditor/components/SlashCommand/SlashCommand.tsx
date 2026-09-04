@@ -39,7 +39,6 @@ const COMMANDS: CommandItem[] = [
 	// Headings group
 	{
 		title: msg({
-			id: "components.slashCommand.heading1",
 			message: "Heading 1",
 		}),
 		icon: <span className="text-xs font-semibold">H₁</span>,
@@ -49,7 +48,6 @@ const COMMANDS: CommandItem[] = [
 	},
 	{
 		title: msg({
-			id: "components.slashCommand.heading2",
 			message: "Heading 2",
 		}),
 		icon: <span className="text-xs font-semibold">H₂</span>,
@@ -59,7 +57,6 @@ const COMMANDS: CommandItem[] = [
 	},
 	{
 		title: msg({
-			id: "components.slashCommand.heading3",
 			message: "Heading 3",
 		}),
 		icon: <span className="text-xs font-semibold">H₃</span>,
@@ -70,7 +67,6 @@ const COMMANDS: CommandItem[] = [
 	// Lists group
 	{
 		title: msg({
-			id: "components.slashCommand.bulletedList",
 			message: "Bulleted list",
 		}),
 		icon: <HiOutlineListBullet className="size-4" />,
@@ -79,7 +75,6 @@ const COMMANDS: CommandItem[] = [
 	},
 	{
 		title: msg({
-			id: "components.slashCommand.numberedList",
 			message: "Numbered list",
 		}),
 		icon: <HiOutlineNumberedList className="size-4" />,
@@ -88,7 +83,6 @@ const COMMANDS: CommandItem[] = [
 	},
 	{
 		title: msg({
-			id: "components.slashCommand.checklist",
 			message: "Checklist",
 		}),
 		icon: <HiOutlineCheckCircle className="size-4" />,
@@ -98,7 +92,6 @@ const COMMANDS: CommandItem[] = [
 	// Blocks group
 	{
 		title: msg({
-			id: "components.slashCommand.codeBlock",
 			message: "Code block",
 		}),
 		icon: <HiOutlineCodeBracket className="size-4" />,
@@ -107,7 +100,6 @@ const COMMANDS: CommandItem[] = [
 	},
 	{
 		title: msg({
-			id: "components.slashCommand.blockquote",
 			message: "Blockquote",
 		}),
 		icon: <RiDoubleQuotesL className="size-4" />,
@@ -170,7 +162,7 @@ const SlashCommandList = forwardRef<SlashCommandListRef, SlashCommandListProps>(
 			return (
 				<div className="bg-popover text-popover-foreground rounded-md border p-1 shadow-md">
 					<div className="px-2 py-1.5 text-sm text-muted-foreground">
-						<Trans id="components.slashCommand.noResults">No results</Trans>
+						<Trans>No results</Trans>
 					</div>
 				</div>
 			);

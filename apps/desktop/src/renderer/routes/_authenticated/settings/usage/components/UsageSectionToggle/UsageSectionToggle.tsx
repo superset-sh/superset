@@ -20,7 +20,6 @@ export function UsageSectionToggle() {
 	return (
 		<nav
 			aria-label={t({
-				id: "settings.usage.sectionToggle.ariaLabel",
 				message: "Usage sections",
 			})}
 			className="flex items-center gap-2"
@@ -30,16 +29,14 @@ export function UsageSectionToggle() {
 				className={pillClass(!onResources)}
 				aria-current={onResources ? undefined : "page"}
 			>
-				<Trans id="settings.usage.sectionToggle.tokenUsage">Token usage</Trans>
+				<Trans>Token usage</Trans>
 			</Link>
 			<Link
 				to="/settings/usage/resources"
 				className={pillClass(onResources)}
 				aria-current={onResources ? "page" : undefined}
 			>
-				<Trans id="settings.usage.sectionToggle.machineResources">
-					Machine resources
-				</Trans>
+				<Trans>Machine resources</Trans>
 			</Link>
 		</nav>
 	);

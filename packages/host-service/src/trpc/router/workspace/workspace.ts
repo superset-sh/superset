@@ -82,6 +82,8 @@ export const workspaceRouter = router({
 				projectName: row.projectId
 					? (projectNameById.get(row.projectId) ?? null)
 					: null,
+				// Host-only: the frozen cloud shape never had an activity signal.
+				lastActivityAt: row.lastActivityAt,
 				archivedAt: row.archivedAt,
 				archiveReason: row.archiveReason,
 			}));

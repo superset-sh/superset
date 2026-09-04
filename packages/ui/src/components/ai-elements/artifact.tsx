@@ -60,7 +60,7 @@ export const ArtifactClose = ({
 	>
 		{children ?? <XIcon className="size-4" />}
 		<span className="sr-only">
-			<Trans id="ui.artifact.close">Close</Trans>
+			<Trans>Close</Trans>
 		</span>
 	</Button>
 );

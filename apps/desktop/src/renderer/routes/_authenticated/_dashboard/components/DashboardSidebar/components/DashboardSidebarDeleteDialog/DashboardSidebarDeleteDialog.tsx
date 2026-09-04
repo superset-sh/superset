@@ -63,10 +63,9 @@ export function DashboardSidebarDeleteDialog({
 	const hasWarnings = hasChanges || hasUnpushedCommits;
 	const confirmLabel = hasWarnings
 		? t({
-				id: "dashboard.sidebar.deleteDialog.deleteAnyway",
 				message: "Delete anyway",
 			})
-		: t({ id: "dashboard.sidebar.deleteDialog.delete", message: "Delete" });
+		: t({ message: "Delete" });
 
 	return (
 		<DestroyConfirmPane

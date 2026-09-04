@@ -1,5 +1,6 @@
 "use client";
 
+import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import { Button } from "@superset/ui/button";
@@ -30,7 +31,6 @@ import {
 	TrashIcon,
 	UnderlineIcon,
 } from "lucide-react";
-
 import { ComponentCard } from "../ComponentCard";
 import { ShowcaseSection } from "../ShowcaseSection";
 
@@ -39,173 +39,188 @@ export function ActionsSection() {
 		<ShowcaseSection
 			id="actions"
 			index="01"
-			title={i18n._({
-				id: "web.design.actionsSection.actions",
-				message: "Actions",
-			})}
-			description={i18n._({
-				id: "web.design.actionsSection.buttonsTogglesAndKeyboardAffordances",
-				message: "Buttons, toggles, and keyboard affordances",
-			})}
+			title={i18n._(
+				msg({
+					message: "Actions",
+				}),
+			)}
+			description={i18n._(
+				msg({
+					message: "Buttons, toggles, and keyboard affordances",
+				}),
+			)}
 		>
 			<ComponentCard
-				title={i18n._({
-					id: "web.design.actionsSection.buttonVariants",
-					message: "Button — variants",
-				})}
+				title={i18n._(
+					msg({
+						message: "Button — variants",
+					}),
+				)}
 				importPath="@superset/ui/button"
-				description={i18n._({
-					id: "web.design.actionsSection.defaultSecondaryOutlineGhostLink",
-					message: "default · secondary · outline · ghost · link · destructive",
-				})}
+				description={i18n._(
+					msg({
+						message:
+							"default · secondary · outline · ghost · link · destructive",
+					}),
+				)}
 				span
 			>
 				<Button>
-					<Trans id="web.design.actionsSection.default">Default</Trans>
+					<Trans>Default</Trans>
 				</Button>
 				<Button variant="secondary">
-					<Trans id="web.design.actionsSection.secondary">Secondary</Trans>
+					<Trans>Secondary</Trans>
 				</Button>
 				<Button variant="outline">
-					<Trans id="web.design.actionsSection.outline">Outline</Trans>
+					<Trans>Outline</Trans>
 				</Button>
 				<Button variant="ghost">
-					<Trans id="web.design.actionsSection.ghost">Ghost</Trans>
+					<Trans>Ghost</Trans>
 				</Button>
 				<Button variant="link">
-					<Trans id="web.design.actionsSection.link">Link</Trans>
+					<Trans>Link</Trans>
 				</Button>
 				<Button variant="destructive">
-					<Trans id="web.design.actionsSection.destructive">Destructive</Trans>
+					<Trans>Destructive</Trans>
 				</Button>
 			</ComponentCard>
 
 			<ComponentCard
-				title={i18n._({
-					id: "web.design.actionsSection.buttonSizes",
-					message: "Button — sizes",
-				})}
+				title={i18n._(
+					msg({
+						message: "Button — sizes",
+					}),
+				)}
 				importPath="@superset/ui/button"
-				description={i18n._({
-					id: "web.design.actionsSection.xsSmDefaultLgIcon",
-					message: "xs · sm · default · lg · icon-xs → icon-lg",
-				})}
+				description={i18n._(
+					msg({
+						message: "xs · sm · default · lg · icon-xs → icon-lg",
+					}),
+				)}
 				span
 			>
 				<Button size="xs" variant="outline">
-					<Trans id="web.design.actionsSection.extraSmall">Extra small</Trans>
+					<Trans>Extra small</Trans>
 				</Button>
 				<Button size="sm" variant="outline">
-					<Trans id="web.design.actionsSection.small">Small</Trans>
+					<Trans>Small</Trans>
 				</Button>
 				<Button variant="outline">
-					<Trans id="web.design.actionsSection.default">Default</Trans>
+					<Trans>Default</Trans>
 				</Button>
 				<Button size="lg" variant="outline">
-					<Trans id="web.design.actionsSection.large">Large</Trans>
+					<Trans>Large</Trans>
 				</Button>
 				<Button
 					size="icon-xs"
 					variant="outline"
-					aria-label={i18n._({
-						id: "web.design.actionsSection.add",
-						message: "Add",
-					})}
+					aria-label={i18n._(
+						msg({
+							message: "Add",
+						}),
+					)}
 				>
 					<PlusIcon />
 				</Button>
 				<Button
 					size="icon-sm"
 					variant="outline"
-					aria-label={i18n._({
-						id: "web.design.actionsSection.add",
-						message: "Add",
-					})}
+					aria-label={i18n._(
+						msg({
+							message: "Add",
+						}),
+					)}
 				>
 					<PlusIcon />
 				</Button>
 				<Button
 					size="icon"
 					variant="outline"
-					aria-label={i18n._({
-						id: "web.design.actionsSection.add",
-						message: "Add",
-					})}
+					aria-label={i18n._(
+						msg({
+							message: "Add",
+						}),
+					)}
 				>
 					<PlusIcon />
 				</Button>
 				<Button
 					size="icon-lg"
 					variant="outline"
-					aria-label={i18n._({
-						id: "web.design.actionsSection.add",
-						message: "Add",
-					})}
+					aria-label={i18n._(
+						msg({
+							message: "Add",
+						}),
+					)}
 				>
 					<PlusIcon />
 				</Button>
 			</ComponentCard>
 
 			<ComponentCard
-				title={i18n._({
-					id: "web.design.actionsSection.buttonStates",
-					message: "Button — states",
-				})}
+				title={i18n._(
+					msg({
+						message: "Button — states",
+					}),
+				)}
 				importPath="@superset/ui/button"
 			>
 				<Button disabled>
-					<Trans id="web.design.actionsSection.disabled">Disabled</Trans>
+					<Trans>Disabled</Trans>
 				</Button>
 				<Button disabled>
 					<Spinner />
-					<Trans id="web.design.actionsSection.saving">Saving…</Trans>
+					<Trans>Saving…</Trans>
 				</Button>
 				<Button variant="outline">
 					<ArchiveIcon />
-					<Trans id="web.design.actionsSection.withIcon">With icon</Trans>
+					<Trans>With icon</Trans>
 				</Button>
 			</ComponentCard>
 
 			<ComponentCard
-				title={i18n._({
-					id: "web.design.actionsSection.buttonGroup",
-					message: "Button Group",
-				})}
+				title={i18n._(
+					msg({
+						message: "Button Group",
+					}),
+				)}
 				importPath="@superset/ui/button-group"
 			>
 				<ButtonGroup>
 					<Button variant="outline">
-						<Trans id="web.design.actionsSection.archive">Archive</Trans>
+						<Trans>Archive</Trans>
 					</Button>
 					<Button variant="outline">
-						<Trans id="web.design.actionsSection.snooze">Snooze</Trans>
+						<Trans>Snooze</Trans>
 					</Button>
 					<ButtonGroupSeparator />
 					<Button
 						variant="outline"
 						size="icon"
-						aria-label={i18n._({
-							id: "web.design.actionsSection.delete",
-							message: "Delete",
-						})}
+						aria-label={i18n._(
+							msg({
+								message: "Delete",
+							}),
+						)}
 					>
 						<TrashIcon />
 					</Button>
 				</ButtonGroup>
 				<ButtonGroup>
 					<ButtonGroupText>
-						<Trans id="web.design.actionsSection.https">https://</Trans>
+						<Trans>https://</Trans>
 					</ButtonGroupText>
 					<Button variant="outline">
-						<Trans id="web.design.actionsSection.supersetSh">superset.sh</Trans>
+						<Trans>superset.sh</Trans>
 					</Button>
 					<Button
 						variant="outline"
 						size="icon"
-						aria-label={i18n._({
-							id: "web.design.actionsSection.expand",
-							message: "Expand",
-						})}
+						aria-label={i18n._(
+							msg({
+								message: "Expand",
+							}),
+						)}
 					>
 						<ChevronDownIcon />
 					</Button>
@@ -213,138 +228,147 @@ export function ActionsSection() {
 			</ComponentCard>
 
 			<ComponentCard
-				title={i18n._({
-					id: "web.design.actionsSection.toggle",
-					message: "Toggle",
-				})}
+				title={i18n._(
+					msg({
+						message: "Toggle",
+					}),
+				)}
 				importPath="@superset/ui/toggle"
 			>
 				<Toggle
-					aria-label={i18n._({
-						id: "web.design.actionsSection.toggleBold",
-						message: "Toggle bold",
-					})}
+					aria-label={i18n._(
+						msg({
+							message: "Toggle bold",
+						}),
+					)}
 				>
 					<BoldIcon />
 				</Toggle>
 				<Toggle
 					variant="outline"
-					aria-label={i18n._({
-						id: "web.design.actionsSection.toggleItalic",
-						message: "Toggle italic",
-					})}
+					aria-label={i18n._(
+						msg({
+							message: "Toggle italic",
+						}),
+					)}
 				>
 					<ItalicIcon />
 				</Toggle>
 				<Toggle variant="outline">
 					<UnderlineIcon />
-					<Trans id="web.design.actionsSection.withLabel">With label</Trans>
+					<Trans>With label</Trans>
 				</Toggle>
 				<Toggle
 					disabled
-					aria-label={i18n._({
-						id: "web.design.actionsSection.disabledToggle",
-						message: "Disabled toggle",
-					})}
+					aria-label={i18n._(
+						msg({
+							message: "Disabled toggle",
+						}),
+					)}
 				>
-					<Trans id="web.design.actionsSection.disabled">Disabled</Trans>
+					<Trans>Disabled</Trans>
 				</Toggle>
 			</ComponentCard>
 
 			<ComponentCard
-				title={i18n._({
-					id: "web.design.actionsSection.toggleGroup",
-					message: "Toggle Group",
-				})}
+				title={i18n._(
+					msg({
+						message: "Toggle Group",
+					}),
+				)}
 				importPath="@superset/ui/toggle-group"
 			>
 				<ToggleGroup type="multiple" variant="outline">
 					<ToggleGroupItem
 						value="bold"
-						aria-label={i18n._({
-							id: "web.design.actionsSection.bold",
-							message: "Bold",
-						})}
+						aria-label={i18n._(
+							msg({
+								message: "Bold",
+							}),
+						)}
 					>
 						<BoldIcon />
 					</ToggleGroupItem>
 					<ToggleGroupItem
 						value="italic"
-						aria-label={i18n._({
-							id: "web.design.actionsSection.italic",
-							message: "Italic",
-						})}
+						aria-label={i18n._(
+							msg({
+								message: "Italic",
+							}),
+						)}
 					>
 						<ItalicIcon />
 					</ToggleGroupItem>
 					<ToggleGroupItem
 						value="underline"
-						aria-label={i18n._({
-							id: "web.design.actionsSection.underline",
-							message: "Underline",
-						})}
+						aria-label={i18n._(
+							msg({
+								message: "Underline",
+							}),
+						)}
 					>
 						<UnderlineIcon />
 					</ToggleGroupItem>
 				</ToggleGroup>
 				<ToggleGroup type="single" defaultValue="week">
 					<ToggleGroupItem value="day">
-						<Trans id="web.design.actionsSection.day">Day</Trans>
+						<Trans>Day</Trans>
 					</ToggleGroupItem>
 					<ToggleGroupItem value="week">
-						<Trans id="web.design.actionsSection.week">Week</Trans>
+						<Trans>Week</Trans>
 					</ToggleGroupItem>
 					<ToggleGroupItem value="month">
-						<Trans id="web.design.actionsSection.month">Month</Trans>
+						<Trans>Month</Trans>
 					</ToggleGroupItem>
 				</ToggleGroup>
 			</ComponentCard>
 
 			<ComponentCard
-				title={i18n._({
-					id: "web.design.actionsSection.buttonPatternsInProduct",
-					message: "Button patterns (in product)",
-				})}
+				title={i18n._(
+					msg({
+						message: "Button patterns (in product)",
+					}),
+				)}
 				importPath="@superset/ui/button"
-				description={i18n._({
-					id: "web.design.actionsSection.splitButtonMirrorsDesktopS",
-					message:
-						"Split button mirrors desktop's OpenInButton; picker trigger mirrors PickerTrigger",
-				})}
+				description={i18n._(
+					msg({
+						message:
+							"Split button mirrors desktop's OpenInButton; picker trigger mirrors PickerTrigger",
+					}),
+				)}
 				span
 			>
 				<ButtonGroup>
 					<Button variant="outline" size="sm">
 						<CodeIcon />
-						<Trans id="web.design.actionsSection.openInCursor">
-							Open in Cursor
-						</Trans>
+						<Trans>Open in Cursor</Trans>
 					</Button>
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<Button
 								variant="outline"
 								size="icon-sm"
-								aria-label={i18n._({
-									id: "web.design.actionsSection.chooseApp",
-									message: "Choose app",
-								})}
+								aria-label={i18n._(
+									msg({
+										message: "Choose app",
+									}),
+								)}
 							>
 								<ChevronDownIcon />
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
 							<DropdownMenuItem>
-								<Trans id="web.design.actionsSection.cursor">Cursor</Trans>
+								<Trans>Cursor</Trans>
 							</DropdownMenuItem>
 							<DropdownMenuItem>
-								<Trans id="web.design.actionsSection.vsCode">VS Code</Trans>
+								<Trans>VS Code</Trans>
 							</DropdownMenuItem>
 							<DropdownMenuItem>
-								<Trans id="web.design.actionsSection.terminal">Terminal</Trans>
+								<Trans>Terminal</Trans>
 							</DropdownMenuItem>
 							<DropdownMenuItem>
-								<Trans id="web.design.actionsSection.copyPath">Copy path</Trans>
+								<Trans>Copy path</Trans>
 							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
@@ -356,9 +380,7 @@ export function ActionsSection() {
 					<span className="flex min-w-0 flex-1 items-center gap-1.5">
 						<FolderGitIcon className="size-3.5 shrink-0" />
 						<span className="truncate text-left">
-							<Trans id="web.design.actionsSection.componentShowcase">
-								component-showcase
-							</Trans>
+							<Trans>component-showcase</Trans>
 						</span>
 					</span>
 					<ChevronsUpDownIcon className="size-3 shrink-0" />
@@ -366,7 +388,7 @@ export function ActionsSection() {
 			</ComponentCard>
 
 			<ComponentCard
-				title={i18n._({ id: "web.design.actionsSection.kbd", message: "Kbd" })}
+				title={i18n._(msg({ message: "Kbd" }))}
 				importPath="@superset/ui/kbd"
 				span
 			>
@@ -380,7 +402,7 @@ export function ActionsSection() {
 					<Kbd>P</Kbd>
 				</KbdGroup>
 				<span className="text-sm text-muted-foreground">
-					<Trans id="web.design.actionsSection.pressEscToClose">
+					<Trans>
 						Press <Kbd>Esc</Kbd> to close
 					</Trans>
 				</span>

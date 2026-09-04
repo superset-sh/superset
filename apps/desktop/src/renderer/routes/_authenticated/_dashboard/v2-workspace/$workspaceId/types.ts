@@ -62,6 +62,10 @@ export interface ChatV3PaneData {
 	sessionId: string | null;
 }
 
+export interface DesktopPaneData {
+	kind: "desktop";
+}
+
 export type PaneViewerData =
 	| FilePaneData
 	| TerminalPaneData
@@ -70,4 +74,5 @@ export type PaneViewerData =
 	| DevtoolsPaneData
 	| DiffPaneData
 	| CommentPaneData
-	| PagePaneData;
+	| PagePaneData
+	| DesktopPaneData;

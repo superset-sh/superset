@@ -69,6 +69,10 @@ export const cloudWorkspaceStatusValues = [
 export const cloudWorkspaceStatusEnum = z.enum(cloudWorkspaceStatusValues);
 export type CloudWorkspaceStatus = z.infer<typeof cloudWorkspaceStatusEnum>;
 
+export const environmentSourceKindValues = ["image", "fork"] as const;
+export const environmentSourceKindEnum = z.enum(environmentSourceKindValues);
+export type EnvironmentSourceKind = z.infer<typeof environmentSourceKindEnum>;
+
 export const workspaceTypeValues = ["local", "cloud"] as const;
 export const workspaceTypeEnum = z.enum(workspaceTypeValues);
 export type WorkspaceType = z.infer<typeof workspaceTypeEnum>;
@@ -118,7 +122,6 @@ export const automationTriggerKindValues = [
 	"google_calendar",
 	"gmail",
 	"notion",
-	"circleback",
 ] as const satisfies readonly TriggerConfigInput["kind"][];
 
 export type _EveryKindHasEnumValue = [

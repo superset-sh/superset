@@ -40,7 +40,7 @@ export function ShowcaseNav({ items }: ShowcaseNavProps) {
 	return (
 		<nav className="sticky top-24 hidden self-start lg:block">
 			<p className="mb-3 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-				<Trans id="web.design.showcaseNav.sections">Sections</Trans>
+				<Trans>Sections</Trans>
 			</p>
 			<ul className="space-y-0.5 border-l border-border">
 				{items.map((item) => (

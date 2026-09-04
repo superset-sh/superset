@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react-native";
@@ -277,10 +278,11 @@ export const MessageBranchPrevious = ({
 
 	return (
 		<Button
-			accessibilityLabel={i18n._({
-				id: "mobile.message.previousBranch",
-				message: "Previous branch",
-			})}
+			accessibilityLabel={i18n._(
+				msg({
+					message: "Previous branch",
+				}),
+			)}
 			disabled={totalBranches <= 1}
 			onPress={goToPrevious}
 			size="icon"
@@ -302,10 +304,11 @@ export const MessageBranchNext = ({
 
 	return (
 		<Button
-			accessibilityLabel={i18n._({
-				id: "mobile.message.nextBranch",
-				message: "Next branch",
-			})}
+			accessibilityLabel={i18n._(
+				msg({
+					message: "Next branch",
+				}),
+			)}
 			disabled={totalBranches <= 1}
 			onPress={goToNext}
 			size="icon"
@@ -331,7 +334,7 @@ export const MessageBranchPage = ({
 			className={cn("px-2 text-muted-foreground text-sm", className)}
 			{...props}
 		>
-			<Trans id="mobile.message.branchPosition">
+			<Trans>
 				{branchPosition} of {totalBranches}
 			</Trans>
 		</Text>

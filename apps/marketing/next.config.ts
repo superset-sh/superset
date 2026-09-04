@@ -29,10 +29,6 @@ const config: NextConfig = {
 		remotePatterns: [
 			{
 				protocol: "https",
-				hostname: "*.public.blob.vercel-storage.com",
-			},
-			{
-				protocol: "https",
 				hostname: "unavatar.io",
 			},
 		],

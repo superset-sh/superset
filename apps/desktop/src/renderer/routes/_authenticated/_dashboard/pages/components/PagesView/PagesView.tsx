@@ -63,10 +63,10 @@ export function PagesView({
 	const openPage = useOpenPage();
 
 	const tabLabels: Record<PageScope, string> = {
-		all: t({ id: "dashboard.pages.tabs.all", message: "All" }),
-		pinned: t({ id: "dashboard.pages.tabs.pinned", message: "Pinned" }),
-		team: t({ id: "dashboard.pages.tabs.team", message: "Team" }),
-		mine: t({ id: "dashboard.pages.tabs.mine", message: "Just me" }),
+		all: t({ message: "All" }),
+		pinned: t({ message: "Pinned" }),
+		team: t({ message: "Team" }),
+		mine: t({ message: "Just me" }),
 	};
 
 	const all = useMemo(() => pages.data ?? [], [pages.data]);
@@ -116,7 +116,7 @@ export function PagesView({
 				<div className="mx-auto flex min-h-full w-full max-w-5xl flex-col px-8 pb-12">
 					<div className="flex items-center justify-between">
 						<h1 className="font-semibold text-xl tracking-tight">
-							<Trans id="dashboard.pages.title">Pages</Trans>
+							<Trans>Pages</Trans>
 						</h1>
 					</div>
 
@@ -147,7 +147,6 @@ export function PagesView({
 								value={search}
 								onChange={(event) => onSearchChange(event.target.value)}
 								placeholder={t({
-									id: "dashboard.pages.searchPlaceholder",
 									message: "Search pages",
 								})}
 								className="h-8 pl-7 text-sm"
@@ -170,7 +169,6 @@ export function PagesView({
 							await deletePage.mutateAsync({ id: pageId });
 							toast.success(
 								t({
-									id: "dashboard.pages.pageDeleted",
 									message: "Page deleted",
 								}),
 							);

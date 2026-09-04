@@ -24,11 +24,9 @@ export function PullRequestListToggle() {
 			aria-label={
 				isListCollapsed
 					? t({
-							id: "dashboard.pullRequests.listToggle.show",
 							message: "Show pull request list",
 						})
 					: t({
-							id: "dashboard.pullRequests.listToggle.hide",
 							message: "Hide pull request list",
 						})
 			}

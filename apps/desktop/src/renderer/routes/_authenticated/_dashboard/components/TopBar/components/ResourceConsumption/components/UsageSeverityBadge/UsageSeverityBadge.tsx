@@ -16,11 +16,9 @@ export function UsageSeverityBadge({ severity }: UsageSeverityBadgeProps) {
 			aria-label={
 				severity === "high"
 					? t({
-							id: "dashboard.topBar.usageSeverity.high",
 							message: "High usage",
 						})
 					: t({
-							id: "dashboard.topBar.usageSeverity.elevated",
 							message: "Elevated usage",
 						})
 			}

@@ -21,7 +21,6 @@ export function CommandsEditor({
 	const resolvedPlaceholder =
 		placeholder ??
 		t({
-			id: "settings.terminal.commandsEditor.placeholder",
 			message: "Command...",
 		});
 	const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -109,7 +108,6 @@ export function CommandsEditor({
 							onClick={() => handleDeleteCommand(index)}
 							className="h-8 w-8 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover/command-row:opacity-100 group-focus-within/command-row:opacity-100"
 							aria-label={t({
-								id: "settings.terminal.commandsEditor.deleteCommand",
 								message: `Delete command ${index + 1}`,
 							})}
 						>
@@ -124,9 +122,7 @@ export function CommandsEditor({
 				className="mt-1 inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline-none"
 			>
 				<HiMiniPlus className="h-3.5 w-3.5" />
-				<Trans id="settings.terminal.commandsEditor.addCommand">
-					Add command
-				</Trans>
+				<Trans>Add command</Trans>
 			</button>
 		</div>
 	);

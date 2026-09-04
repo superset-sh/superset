@@ -40,7 +40,7 @@ export function DashboardSidebarAgentHoverRow({
 
 	const statusLabel =
 		agent.status === "idle"
-			? t({ id: "dashboard.sidebar.agentHoverRow.idle", message: "Idle" })
+			? t({ message: "Idle" })
 			: getStatusTooltip(agent.status);
 
 	return (

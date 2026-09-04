@@ -56,7 +56,6 @@ export function InviteMemberDialog({
 			const roleName = organizationRoleName(role);
 			toast.error(
 				t({
-					id: "settings.members.cannotInviteAsRoleToast",
 					message: `Cannot invite users as ${roleName}`,
 				}),
 			);
@@ -74,7 +73,6 @@ export function InviteMemberDialog({
 			await utils.organization.listInvitations.invalidate();
 			toast.success(
 				t({
-					id: "settings.members.invitationSentToast",
 					message: `Invitation sent to ${email}`,
 				}),
 			);
@@ -86,7 +84,6 @@ export function InviteMemberDialog({
 				errorMessage(
 					error,
 					t({
-						id: "settings.members.inviteFailedToast",
 						message: "Failed to send invitation",
 					}),
 				),
@@ -101,10 +98,10 @@ export function InviteMemberDialog({
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>
-						<Trans id="settings.members.inviteDialogTitle">Invite Member</Trans>
+						<Trans>Invite Member</Trans>
 					</DialogTitle>
 					<DialogDescription>
-						<Trans id="settings.members.inviteDialogDescription">
+						<Trans>
 							Send an invitation to join {organizationName}. Expires in 48
 							hours.
 						</Trans>
@@ -114,13 +111,12 @@ export function InviteMemberDialog({
 				<div className="space-y-4 py-4">
 					<div className="space-y-2">
 						<Label htmlFor="email">
-							<Trans id="settings.members.emailLabel">Email</Trans>
+							<Trans>Email</Trans>
 						</Label>
 						<Input
 							id="email"
 							type="email"
 							placeholder={t({
-								id: "settings.members.emailPlaceholder",
 								message: "user@example.com",
 							})}
 							value={email}
@@ -136,7 +132,7 @@ export function InviteMemberDialog({
 
 					<div className="space-y-2">
 						<Label htmlFor="role">
-							<Trans id="settings.members.roleLabel">Role</Trans>
+							<Trans>Role</Trans>
 						</Label>
 						<Select
 							value={role}
@@ -162,13 +158,13 @@ export function InviteMemberDialog({
 						onClick={() => onOpenChange(false)}
 						disabled={isInviting}
 					>
-						<Trans id="settings.members.inviteCancel">Cancel</Trans>
+						<Trans>Cancel</Trans>
 					</Button>
 					<Button onClick={handleInvite} disabled={isInviting || !email}>
 						{isInviting ? (
-							<Trans id="settings.members.sendingButton">Sending...</Trans>
+							<Trans>Sending...</Trans>
 						) : (
-							<Trans id="settings.members.sendButton">Send Invitation</Trans>
+							<Trans>Send Invitation</Trans>
 						)}
 					</Button>
 				</DialogFooter>

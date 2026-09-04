@@ -7,13 +7,12 @@ import type { NormalizedPR } from "../../types";
 
 const reviewDecisionConfig = {
 	approved: {
-		label: msg({ id: "workspace.prHeader.approved", message: "Approved" }),
+		label: msg({ message: "Approved" }),
 		className:
 			"border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
 	},
 	changes_requested: {
 		label: msg({
-			id: "workspace.prHeader.changesRequested",
 			message: "Changes requested",
 		}),
 		className:
@@ -21,7 +20,6 @@ const reviewDecisionConfig = {
 	},
 	pending: {
 		label: msg({
-			id: "workspace.prHeader.reviewPending",
 			message: "Review pending",
 		}),
 		className:

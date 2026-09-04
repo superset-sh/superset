@@ -89,7 +89,6 @@ export function NewProjectModal({
 		try {
 			const result = await selectDirectory.mutateAsync({
 				title: t({
-					id: "dashboard.newProjectModal.selectLocationDialogTitle",
 					message: "Select project location",
 				}),
 				defaultPath: parentDir || undefined,
@@ -108,7 +107,6 @@ export function NewProjectModal({
 		if (!trimmedUrl) {
 			toast.error(
 				t({
-					id: "dashboard.newProjectModal.enterRepoUrl",
 					message: "Please enter a repository URL",
 				}),
 			);
@@ -117,7 +115,6 @@ export function NewProjectModal({
 		if (!trimmedParent) {
 			toast.error(
 				t({
-					id: "dashboard.newProjectModal.selectProjectLocation",
 					message: "Please select a project location",
 				}),
 			);
@@ -147,7 +144,6 @@ export function NewProjectModal({
 			if (!trimmedName) {
 				toast.error(
 					t({
-						id: "dashboard.newProjectModal.enterProjectName",
 						message: "Please enter a project name",
 					}),
 				);
@@ -171,14 +167,12 @@ export function NewProjectModal({
 			if (isLeakedSql) console.error("[NewProjectModal] create failed", err);
 			const message = isLeakedSql
 				? t({
-						id: "dashboard.newProjectModal.createFailedGeneric",
 						message:
 							"Could not create project. Please try a different name or check the logs.",
 					})
 				: errorMessage(err);
 			toast.error(
 				t({
-					id: "dashboard.newProjectModal.createFailedTitle",
 					message: "Could not create project",
 				}),
 				{ description: message },
@@ -194,12 +188,10 @@ export function NewProjectModal({
 			<DialogContent className="max-w-[420px]">
 				<DialogHeader>
 					<DialogTitle>
-						<Trans id="dashboard.newProjectModal.title">
-							Clone a repository
-						</Trans>
+						<Trans>Clone a repository</Trans>
 					</DialogTitle>
 					<DialogDescription className="sr-only">
-						<Trans id="dashboard.newProjectModal.description">
+						<Trans>
 							Create a new project by cloning a repository or local path.
 						</Trans>
 					</DialogDescription>
@@ -208,16 +200,13 @@ export function NewProjectModal({
 				<div className="flex flex-col gap-4">
 					<div className="flex flex-col gap-1.5">
 						<Label htmlFor="clone-url" className="text-xs">
-							<Trans id="dashboard.newProjectModal.repoUrlLabel">
-								Repository URL or path
-							</Trans>
+							<Trans>Repository URL or path</Trans>
 						</Label>
 						<Input
 							id="clone-url"
 							value={url}
 							onChange={(e) => setUrl(e.target.value)}
 							placeholder={t({
-								id: "dashboard.newProjectModal.repoUrlPlaceholder",
 								message: "https://github.com/owner/repo.git or /path/to/repo",
 							})}
 							disabled={working}
@@ -233,9 +222,7 @@ export function NewProjectModal({
 					{isV2CloudEnabled && (
 						<div className="flex flex-col gap-1.5">
 							<Label htmlFor="project-name" className="text-xs">
-								<Trans id="dashboard.newProjectModal.projectNameLabel">
-									Project name
-								</Trans>
+								<Trans>Project name</Trans>
 							</Label>
 							<Input
 								id="project-name"
@@ -252,9 +239,7 @@ export function NewProjectModal({
 
 					<div className="flex flex-col gap-1.5">
 						<Label htmlFor="project-path" className="text-xs">
-							<Trans id="dashboard.newProjectModal.locationLabel">
-								Location
-							</Trans>
+							<Trans>Location</Trans>
 						</Label>
 						<div className="flex gap-1.5">
 							<Input
@@ -272,7 +257,6 @@ export function NewProjectModal({
 								disabled={working || selectDirectory.isPending}
 								className="shrink-0"
 								aria-label={t({
-									id: "dashboard.newProjectModal.browseForDirectory",
 									message: "Browse for directory",
 								})}
 							>
@@ -289,16 +273,16 @@ export function NewProjectModal({
 						onClick={() => handleOpenChange(false)}
 						disabled={working}
 					>
-						<Trans id="dashboard.newProjectModal.cancel">Cancel</Trans>
+						<Trans>Cancel</Trans>
 					</Button>
 					<Button onClick={() => void createFromClone()} disabled={working}>
 						{working ? (
 							<>
 								<LuLoaderCircle className="size-4 animate-spin" />
-								<Trans id="dashboard.newProjectModal.cloning">Cloning…</Trans>
+								<Trans>Cloning…</Trans>
 							</>
 						) : (
-							<Trans id="dashboard.newProjectModal.clone">Clone</Trans>
+							<Trans>Clone</Trans>
 						)}
 					</Button>
 				</DialogFooter>

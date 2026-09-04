@@ -25,6 +25,8 @@ import { AgentSelect } from "renderer/components/AgentSelect";
 import { useTerminalAgentBinding } from "renderer/hooks/host-service/useTerminalAgentBindings";
 import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
 import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
+import { AGENT_STORAGE_KEY } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/types";
+import { resolveDefaultTargetConfigId } from "./resolveDefaultTargetConfigId";
 
 type Placement = "split-pane" | "new-tab";
 
@@ -79,6 +81,13 @@ export function TerminalSessionHandoffMenu({
 	const canFork = Boolean(
 		binding?.agentSessionId && sourceConfig?.forkArgs?.length,
 	);
+	const defaultTargetConfigId = resolveDefaultTargetConfigId(
+		configs.map((config) => config.id),
+		typeof window === "undefined"
+			? null
+			: window.localStorage.getItem(AGENT_STORAGE_KEY),
+		sourceConfig?.id,
+	);
 
 	// Fetched when the dialog opens rather than on Continue, so the size of
 	// what is about to be sent is on screen before the decision.
@@ -107,12 +116,8 @@ export function TerminalSessionHandoffMenu({
 
 	useEffect(() => {
 		if (action !== "handoff" || targetConfigId) return;
-		const defaultTarget =
-			configs.find((config) => config.id !== sourceConfig?.id) ??
-			sourceConfig ??
-			configs[0];
-		if (defaultTarget) setTargetConfigId(defaultTarget.id);
-	}, [action, configs, sourceConfig, targetConfigId]);
+		if (defaultTargetConfigId) setTargetConfigId(defaultTargetConfigId);
+	}, [action, defaultTargetConfigId, targetConfigId]);
 
 	if (!binding) return null;
 
@@ -121,11 +126,7 @@ export function TerminalSessionHandoffMenu({
 		setAction(nextAction);
 		setPlacement("split-pane");
 		if (nextAction === "handoff") {
-			const defaultTarget =
-				configs.find((config) => config.id !== sourceConfig?.id) ??
-				sourceConfig ??
-				configs[0];
-			setTargetConfigId(defaultTarget?.id ?? "");
+			setTargetConfigId(defaultTargetConfigId);
 		}
 	};
 
@@ -166,11 +167,9 @@ export function TerminalSessionHandoffMenu({
 
 	const title =
 		action === "fork" ? (
-			<Trans id="workspace.terminalPane.forkSessionTitle">Fork session</Trans>
+			<Trans>Fork session</Trans>
 		) : (
-			<Trans id="workspace.terminalPane.continueWithAgentTitle">
-				Continue with another agent
-			</Trans>
+			<Trans>Continue with another agent</Trans>
 		);
 
 	return (
@@ -182,7 +181,6 @@ export function TerminalSessionHandoffMenu({
 							<button
 								type="button"
 								aria-label={t({
-									id: "workspace.terminalPane.sessionActions",
 									message: "Continue or fork session",
 								})}
 								className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
@@ -192,24 +190,20 @@ export function TerminalSessionHandoffMenu({
 						</DropdownMenuTrigger>
 					</TooltipTrigger>
 					<TooltipContent side="bottom">
-						<Trans id="workspace.terminalPane.sessionActions">
-							Continue or fork session
-						</Trans>
+						<Trans>Continue or fork session</Trans>
 					</TooltipContent>
 				</Tooltip>
 				<DropdownMenuContent align="end" className="w-64">
 					<DropdownMenuItem onSelect={() => openAction("handoff")}>
 						<Bot />
-						<Trans id="workspace.terminalPane.continueWithAgent">
-							Continue with another agent…
-						</Trans>
+						<Trans>Continue with another agent…</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuItem
 						disabled={!canFork}
 						onSelect={() => openAction("fork")}
 					>
 						<GitFork />
-						<Trans id="workspace.terminalPane.forkSession">Fork session…</Trans>
+						<Trans>Fork session…</Trans>
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
@@ -225,12 +219,12 @@ export function TerminalSessionHandoffMenu({
 						<DialogTitle>{title}</DialogTitle>
 						<DialogDescription>
 							{action === "fork" ? (
-								<Trans id="workspace.terminalPane.forkSessionDescription">
+								<Trans>
 									Create a native provider fork with the same conversation
 									context. The original session stays unchanged.
 								</Trans>
 							) : (
-								<Trans id="workspace.terminalPane.continueWithAgentDescription">
+								<Trans>
 									Start a fresh agent session seeded with this terminal's recent
 									context. Workspace files remain the source of truth.
 								</Trans>
@@ -242,9 +236,7 @@ export function TerminalSessionHandoffMenu({
 						{action === "handoff" ? (
 							<div className="flex flex-col gap-2">
 								<Label>
-									<Trans id="workspace.terminalPane.targetAgent">
-										Target agent
-									</Trans>
+									<Trans>Target agent</Trans>
 								</Label>
 								<AgentSelect
 									agents={configs.map((config) => ({
@@ -255,7 +247,6 @@ export function TerminalSessionHandoffMenu({
 									}))}
 									value={targetConfigId}
 									placeholder={t({
-										id: "workspace.terminalPane.selectAgent",
 										message: "Select an agent",
 									})}
 									onValueChange={setTargetConfigId}
@@ -266,19 +257,17 @@ export function TerminalSessionHandoffMenu({
 								{selectedConfig && (
 									<p className="text-muted-foreground text-xs">
 										{transcriptFailed ? (
-											<Trans id="workspace.terminalPane.contextUnavailable">
-												Couldn't read this terminal's context.
-											</Trans>
+											<Trans>Couldn't read this terminal's context.</Trans>
 										) : transcript === null ? (
-											<Trans id="workspace.terminalPane.contextMeasuring">
+											<Trans>
 												Measuring the context to send to {selectedConfig.label}…
 											</Trans>
 										) : transcript.length === 0 ? (
-											<Trans id="workspace.terminalPane.contextEmpty">
+											<Trans>
 												This terminal has no output to hand over yet.
 											</Trans>
 										) : (
-											<Trans id="workspace.terminalPane.contextDisclosureSized">
+											<Trans>
 												Sends {formatNumber(transcript.length)} characters of
 												terminal context (about{" "}
 												{formatNumber(estimateTokens(transcript.length))}{" "}
@@ -290,7 +279,7 @@ export function TerminalSessionHandoffMenu({
 							</div>
 						) : (
 							<div className="rounded-md border bg-muted/30 px-3 py-2 text-sm">
-								<Trans id="workspace.terminalPane.forkProvider">
+								<Trans>
 									Provider: {sourceConfig?.label ?? binding.agentId}
 								</Trans>
 							</div>
@@ -298,9 +287,7 @@ export function TerminalSessionHandoffMenu({
 
 						<div className="flex flex-col gap-2">
 							<Label>
-								<Trans id="workspace.terminalPane.openSessionIn">
-									Open session in
-								</Trans>
+								<Trans>Open session in</Trans>
 							</Label>
 							<div className="grid grid-cols-2 gap-2" role="radiogroup">
 								<Button
@@ -311,9 +298,7 @@ export function TerminalSessionHandoffMenu({
 									disabled={isStarting}
 								>
 									<PanelRight />
-									<Trans id="workspace.terminalPane.splitPane">
-										Split pane
-									</Trans>
+									<Trans>Split pane</Trans>
 								</Button>
 								<Button
 									type="button"
@@ -323,7 +308,7 @@ export function TerminalSessionHandoffMenu({
 									disabled={isStarting}
 								>
 									<SquareStack />
-									<Trans id="workspace.terminalPane.newTab">New tab</Trans>
+									<Trans>New tab</Trans>
 								</Button>
 							</div>
 						</div>
@@ -335,9 +320,7 @@ export function TerminalSessionHandoffMenu({
 							onClick={() => setAction(null)}
 							disabled={isStarting}
 						>
-							<Trans id="workspace.terminalPane.sessionActionCancel">
-								Cancel
-							</Trans>
+							<Trans>Cancel</Trans>
 						</Button>
 						<Button
 							onClick={start}
@@ -351,17 +334,11 @@ export function TerminalSessionHandoffMenu({
 							}
 						>
 							{isStarting ? (
-								<Trans id="workspace.terminalPane.startingSession">
-									Starting…
-								</Trans>
+								<Trans>Starting…</Trans>
 							) : action === "fork" ? (
-								<Trans id="workspace.terminalPane.forkSessionConfirm">
-									Fork session
-								</Trans>
+								<Trans>Fork session</Trans>
 							) : (
-								<Trans id="workspace.terminalPane.continueWithAgentConfirm">
-									Continue
-								</Trans>
+								<Trans>Continue</Trans>
 							)}
 						</Button>
 					</DialogFooter>

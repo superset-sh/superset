@@ -8,6 +8,7 @@
  * component tests keep asserting the source copy. Mirrors
  * `apps/desktop/test-setup.ts`.
  */
+import "../../scripts/test-preload.ts";
 import { mock } from "bun:test";
 
 type MessageDescriptor = {

@@ -1,467 +1,330 @@
-import { serve } from "@hono/node-server";
-import { createNodeWebSocket } from "@hono/node-ws";
+import * as Sentry from "@sentry/cloudflare";
+import { buildUpstreamHeaders } from "@superset/shared/host-routing";
+import { RELAY_CLOSE } from "@superset/shared/tunnel-protocol";
 import type { Context, MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { logger } from "hono/logger";
+import { getServerByName } from "partyserver";
 import { accessDenialMessage, checkHostAccess } from "./access";
 import { type AuthContext, verifyJWT } from "./auth";
-import * as directory from "./directory";
-import { env } from "./env";
-import { createProxyBridge, internalProxyUrl, PROXY_HOP_PARAM } from "./proxy";
-import { startSyntheticCheck } from "./synthetic";
+import { HostTunnel } from "./host-tunnel";
+import { placeHost, readPlacement } from "./placement";
 import { isTrpcPath, trpcErrorResponse } from "./trpc-error";
-import { TunnelManager } from "./tunnel";
-
-// Bearer tokens we never want in stdout. Hosts put their JWT on the WS
-// upgrade URL because browser WebSockets can't send custom headers, and
-// Hono's default `logger()` echoes the full query string. Mask the values
-// before they reach the log sink so the raw token doesn't end up in Fly
-// logs.
-const SENSITIVE_QUERY_RE = /([?&])(token)=[^&\s]+/g;
-const redactingLogger = logger((message, ...rest) => {
-	const redacted =
-		typeof message === "string"
-			? message.replace(SENSITIVE_QUERY_RE, "$1$2=REDACTED")
-			: message;
-	console.log(redacted, ...rest);
-});
-
-process.on("uncaughtException", (err) => {
-	console.error("[relay] uncaughtException (suppressed)", err);
-});
-process.on("unhandledRejection", (reason) => {
-	console.error("[relay] unhandledRejection (suppressed)", reason);
-});
+import type { RelayEnv } from "./types";
 
 type AppContext = {
+	Bindings: RelayEnv;
 	Variables: {
 		auth: AuthContext;
 		token: string;
 		hostId: string;
-		// Set by the auth middleware when a WS upgrade targets a tunnel owned by
-		// another relay instance: the WS handler bridges to that instance over
-		// Fly's private network instead of fly-replaying (which can't route a
-		// WS upgrade).
-		proxyOwner: { region: string; machineId: string };
 	};
 };
 
 const app = new Hono<AppContext>();
-const tunnelManager = new TunnelManager();
-const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 
-// Graceful drain on Fly's pre-stop signal. Fly's init sends SIGINT (not
-// SIGTERM) to the main process during rolling deploys; listen on both to
-// also cover hand-rolled `fly machine stop` and local Ctrl-C. Without this,
-// deploys kill the process while tunnels are open and host-services see
-// TCP-RST'd sockets, triggering their long exponential backoff.
-//
-// Sequence: stop accepting new TCP connections (server.close), then close
-// every open tunnel with the app-defined drain code so hosts reconnect
-// promptly, and clear this machine's directory ownership before process exit.
-// server is assigned at the bottom of this file — by signal time, the closure
-// has it.
-let server: ReturnType<typeof serve> | null = null;
-let draining = false;
-const handleDrain = async (signal: string) => {
-	if (draining) return;
-	draining = true;
-	console.log(`[relay] ${signal} received, draining tunnels`);
-	try {
-		server?.close();
-		const cleared = await tunnelManager.drain({
-			clearDirectory: () =>
-				directory.clearStaleEntriesForMachine(
-					env.FLY_REGION,
-					env.FLY_MACHINE_ID,
-				),
-		});
-		if (cleared > 0) {
-			console.log(`[relay] cleared ${cleared} directory entries during drain`);
-		}
-	} catch (err) {
-		console.error("[relay] drain failed", err);
-	}
-	process.exit(0);
-};
-process.on("SIGINT", () => void handleDrain("SIGINT"));
-process.on("SIGTERM", () => void handleDrain("SIGTERM"));
-
-app.use("*", redactingLogger);
 app.use("*", cors());
 
-app.onError((err, c) => {
-	console.error("[relay] unhandled error", err);
-	return c.json({ error: "Internal server error" }, 500);
-});
+// `proto: 2` is read by desktops up to 1.25.x before they open a port-forward
+// mux. It can go once the fleet is past those builds.
+app.get("/health", (c) => c.json({ ok: true, proto: 2 }));
 
-app.get("/health", (c) => c.json({ ok: true, region: env.FLY_REGION }));
-
-// ── Auth ────────────────────────────────────────────────────────────
-
-function extractToken(c: {
-	req: {
-		header(name: string): string | undefined;
-		query(name: string): string | undefined;
-	};
-}): string | null {
+function extractToken(c: Context<AppContext>): string | null {
 	const header = c.req.header("Authorization");
 	if (header?.startsWith("Bearer ")) return header.slice(7);
 	return c.req.query("token") ?? null;
 }
 
-async function maybeReplay(hostId: string): Promise<{
-	header: Record<string, string>;
-	kind: "instance" | "region";
-} | null> {
-	if (tunnelManager.hasTunnel(hostId)) return null;
-	const owner = await directory.lookup(hostId).catch((err) => {
-		console.error("[relay] directory.lookup failed", { hostId, err });
-		return null;
-	});
-	if (!owner) return null;
-	// Guard against directory thinking we own a tunnel we don't have locally
-	// (sweep race window, or a register write that hasn't landed yet). Without
-	// this, fly would replay the request right back to us → infinite loop.
-	if (
-		owner.region === env.FLY_REGION &&
-		owner.machineId === env.FLY_MACHINE_ID
-	) {
-		return null;
-	}
-	if (owner.region === env.FLY_REGION) {
-		return {
-			header: { "fly-replay": `instance=${owner.machineId}` },
-			kind: "instance",
-		};
-	}
-	return {
-		header: { "fly-replay": `region=${owner.region}` },
-		kind: "region",
-	};
+// Null when the host has never connected: nothing may create its object but
+// the host itself, so callers answer "offline" instead of instantiating one
+// wherever they happen to be.
+async function tunnelStub(c: Context<AppContext>, hostId: string) {
+	const placement = await readPlacement(c.env, hostId);
+	return placement ? getServerByName(c.env.HostTunnel, placement.name) : null;
 }
+
+function isWsUpgrade(c: Context<AppContext>): boolean {
+	return c.req.header("Upgrade")?.toLowerCase() === "websocket";
+}
+
+// A failed auth on a WebSocket upgrade completes the handshake and closes
+// with a typed RELAY_CLOSE code + reason ≤123 bytes — the only way the peer
+// can see *why* (browsers and plain WS clients cannot read a non-101
+// response).
+function acceptAndClose(code: number, reason: string): Response {
+	const pair = new WebSocketPair();
+	pair[1].accept();
+	pair[1].close(code, reason);
+	return new Response(null, { status: 101, webSocket: pair[0] });
+}
+
+type Denial = { status: 401 | 403 | 500; message: string };
+
+async function authenticate(
+	c: Context<AppContext>,
+	hostId: string,
+): Promise<{ auth: AuthContext; token: string } | Denial> {
+	const token = extractToken(c);
+	if (!token) return { status: 401, message: "Unauthorized" };
+	const auth = await verifyJWT(token, c.env.NEXT_PUBLIC_API_URL);
+	if (!auth) return { status: 401, message: "Unauthorized" };
+	const access = await checkHostAccess(
+		auth,
+		token,
+		hostId,
+		c.env.NEXT_PUBLIC_API_URL,
+	);
+	if (!access.ok) {
+		const message = `Forbidden: ${accessDenialMessage(access.reason)}`;
+		// "error" means the access check itself failed (API unreachable), not
+		// a denial — 500 so clients keep retrying instead of giving up.
+		return access.reason === "error"
+			? { status: 500, message }
+			: { status: 403, message };
+	}
+	return { auth, token };
+}
+
+function isDenial(value: unknown): value is Denial {
+	return typeof (value as Denial).status === "number";
+}
+
+// ── Host control channel ────────────────────────────────────────────
+
+app.get("/v2/control", async (c) => {
+	if (!isWsUpgrade(c)) {
+		return c.json({ error: "WebSocket upgrade required" }, 426);
+	}
+	const hostId = c.req.query("hostId");
+	if (!hostId) return acceptAndClose(RELAY_CLOSE.badRequest, "Missing hostId");
+	const result = await authenticate(c, hostId);
+	if (isDenial(result)) {
+		return acceptAndClose(
+			result.status === 401 ? RELAY_CLOSE.authExpired : RELAY_CLOSE.forbidden,
+			result.message,
+		);
+	}
+
+	const placement = await placeHost(
+		c.env,
+		hostId,
+		c.req.raw.cf as IncomingRequestCfProperties | undefined,
+	);
+	const stub = await getServerByName(c.env.HostTunnel, placement.name);
+	return stub.fetch(
+		`https://relay/register?hostId=${encodeURIComponent(hostId)}`,
+		{ headers: { Upgrade: "websocket", "x-relay-token": result.token } },
+	);
+});
+
+// ── Host dial-back (stream attach) ──────────────────────────────────
+// The one-time ticket is the credential: unguessable, single-use, expires in
+// DIAL_TIMEOUT_MS, and only ever issued to the authenticated host over its
+// control channel. No JWT re-verification on this hot path.
+
+app.get("/v2/dial", async (c) => {
+	if (!isWsUpgrade(c)) {
+		return c.json({ error: "WebSocket upgrade required" }, 426);
+	}
+	const hostId = c.req.query("hostId");
+	const ticket = c.req.query("ticket");
+	if (!hostId || !ticket)
+		return acceptAndClose(RELAY_CLOSE.badRequest, "Missing hostId or ticket");
+	const stub = await tunnelStub(c, hostId);
+	if (!stub)
+		return acceptAndClose(RELAY_CLOSE.unknownTicket, "Host not placed");
+	return stub.fetch(`https://relay/dial?ticket=${encodeURIComponent(ticket)}`, {
+		headers: { Upgrade: "websocket" },
+	});
+});
+
+// ── Batch presence (the DO is the presence authority) ───────────────
+
+const MAX_PRESENCE_HOSTS = 50;
+
+app.get("/presence", async (c) => {
+	const hostIds = (c.req.query("hostIds") ?? "")
+		.split(",")
+		.map((id) => id.trim())
+		.filter(Boolean);
+	if (hostIds.length === 0 || hostIds.length > MAX_PRESENCE_HOSTS) {
+		return c.json({ error: `Provide 1-${MAX_PRESENCE_HOSTS} hostIds` }, 400);
+	}
+	const token = extractToken(c);
+	if (!token) return c.json({ error: "Unauthorized" }, 401);
+	const auth = await verifyJWT(token, c.env.NEXT_PUBLIC_API_URL);
+	if (!auth) return c.json({ error: "Unauthorized" }, 401);
+
+	// Denied and unknown hosts are omitted rather than erroring the batch: a
+	// partial answer still renders every dot the caller may see.
+	const entries = await Promise.all(
+		hostIds.map(async (hostId) => {
+			const access = await checkHostAccess(
+				auth,
+				token,
+				hostId,
+				c.env.NEXT_PUBLIC_API_URL,
+			);
+			if (!access.ok) return null;
+			const stub = await tunnelStub(c, hostId);
+			if (!stub) return [hostId, { online: false, lastSeenAt: null }] as const;
+			return [hostId, await stub.presenceInfo()] as const;
+		}),
+	);
+	const hosts: Record<string, { online: boolean; lastSeenAt: number | null }> =
+		{};
+	for (const entry of entries) {
+		if (entry) hosts[entry[0]] = entry[1];
+	}
+	return c.json({ hosts });
+});
+
+// ── Client-facing host routes ───────────────────────────────────────
 
 function pathAfterHost(c: Context<AppContext>): string {
 	const hostId = c.req.param("hostId") ?? "";
-	const path = new URL(c.req.url).pathname;
-	return path.slice(`/hosts/${hostId}`.length);
+	return new URL(c.req.url).pathname.slice(`/hosts/${hostId}`.length);
 }
 
+app.get("/hosts/:hostId/_whoowns", async (c) => {
+	const hostId = c.req.param("hostId");
+	const result = await authenticate(c, hostId);
+	if (isDenial(result)) {
+		return c.json({ error: result.message }, result.status);
+	}
+	const stub = await tunnelStub(c, hostId);
+	if (!stub || !(await stub.isConnected())) {
+		return c.json({ error: "Host not connected" }, 503);
+	}
+	return c.json({ ok: true });
+});
+
 const authMiddleware: MiddlewareHandler<AppContext> = async (c, next) => {
-	const wantsTrpc = isTrpcPath(pathAfterHost(c));
-
-	const token = extractToken(c);
-	if (!token)
-		return wantsTrpc
-			? trpcErrorResponse(c, "UNAUTHORIZED", "Unauthorized")
-			: c.json({ error: "Unauthorized" }, 401);
-
-	const auth = await verifyJWT(token, env.NEXT_PUBLIC_API_URL);
-	if (!auth)
-		return wantsTrpc
-			? trpcErrorResponse(c, "UNAUTHORIZED", "Unauthorized")
-			: c.json({ error: "Unauthorized" }, 401);
-
 	const hostId = c.req.param("hostId");
 	if (!hostId) return c.json({ error: "Missing hostId" }, 400);
-
-	// Replay BEFORE the access check: if this machine doesn't own the
-	// tunnel, the destination machine will authorize the request — no need
-	// to double-bill the API for checkHostAccess on every cross-machine hop.
-	if (!tunnelManager.hasTunnel(hostId)) {
-		const isWsUpgrade = c.req.header("upgrade")?.toLowerCase() === "websocket";
-
-		// fly-replay can't route a WS upgrade — the replay header rides on a
-		// response that only arrives after the handshake, so the browser sees a
-		// non-101 status and fails with 1006/502. So WS upgrades never fly-replay:
-		// when another instance owns the tunnel, hand the WS handler the owner so
-		// it bridges over Fly's private network instead. A `_rlp=1` hop that
-		// reached us means the directory is stale (we were told we own it but
-		// don't) — fail so the upstream relay closes and the client reconnects,
-		// rather than re-proxying into a loop.
-		if (isWsUpgrade) {
-			const isProxyHop = c.req.query(PROXY_HOP_PARAM) === "1";
-			if (!isProxyHop) {
-				const owner = await directory.lookup(hostId).catch((err) => {
-					console.error("[relay] directory.lookup failed", { hostId, err });
-					return null;
-				});
-				const ownedElsewhere =
-					owner != null &&
-					!(
-						owner.region === env.FLY_REGION &&
-						owner.machineId === env.FLY_MACHINE_ID
-					);
-				if (ownedElsewhere) {
-					c.set("auth", auth);
-					c.set("token", token);
-					c.set("hostId", hostId);
-					c.set("proxyOwner", owner);
-					return next();
-				}
-			}
-			return c.json({ error: "Host not connected" }, 503);
+	const result = await authenticate(c, hostId);
+	if (isDenial(result)) {
+		if (isTrpcPath(pathAfterHost(c))) {
+			return trpcErrorResponse(
+				c,
+				result.status === 403 ? "FORBIDDEN" : "UNAUTHORIZED",
+				result.message,
+			);
 		}
-
-		const replay = await maybeReplay(hostId);
-		if (replay) return c.body(null, 200, replay.header);
-		return wantsTrpc
-			? trpcErrorResponse(c, "SERVICE_UNAVAILABLE", "Host is not online")
-			: c.json({ error: "Host not connected" }, 503);
+		return c.json({ error: result.message }, result.status);
 	}
-
-	const access = await checkHostAccess(auth, token, hostId);
-	if (!access.ok) {
-		const detail = `Forbidden: ${accessDenialMessage(access.reason)}`;
-		return wantsTrpc
-			? trpcErrorResponse(c, "FORBIDDEN", detail)
-			: c.json({ error: detail }, 403);
-	}
-
-	c.set("auth", auth);
-	c.set("token", token);
+	c.set("auth", result.auth);
+	c.set("token", result.token);
 	c.set("hostId", hostId);
 	return next();
 };
-
-// ── Tunnel ──────────────────────────────────────────────────────────
-
-app.get(
-	"/tunnel",
-	upgradeWebSocket((c) => {
-		const hostId = c.req.query("hostId");
-		const token = extractToken(c);
-		let registeredWs: Parameters<typeof tunnelManager.register>[2] | null =
-			null;
-
-		return {
-			onOpen: async (_event, ws) => {
-				if (draining) {
-					ws.close(TunnelManager.WS_CLOSE_DRAIN, "Server draining for deploy");
-					return;
-				}
-
-				if (!hostId || !token) {
-					ws.close(1008, "Missing hostId or token");
-					return;
-				}
-
-				const auth = await verifyJWT(token, env.NEXT_PUBLIC_API_URL);
-				if (!auth) {
-					ws.close(1008, "Unauthorized");
-					return;
-				}
-
-				const access = await checkHostAccess(auth, token, hostId);
-				if (!access.ok) {
-					ws.close(1008, `Forbidden: ${accessDenialMessage(access.reason)}`);
-					return;
-				}
-
-				if (draining) {
-					ws.close(TunnelManager.WS_CLOSE_DRAIN, "Server draining for deploy");
-					return;
-				}
-
-				await tunnelManager.register(hostId, token, ws);
-				// register closes ws itself on directory failure; only mark
-				// authorized if the socket is still usable.
-				if (ws.readyState === 1) registeredWs = ws;
-			},
-			onMessage: (event) => {
-				if (registeredWs && hostId)
-					tunnelManager.handleMessage(hostId, event.data);
-			},
-			onClose: () => {
-				if (registeredWs && hostId)
-					tunnelManager.unregister(hostId, registeredWs);
-			},
-			onError: () => {
-				if (registeredWs && hostId)
-					tunnelManager.unregister(hostId, registeredWs);
-			},
-		};
-	}),
-);
-
-// ── Pre-flight for WS replay (host hits this once before opening WS to a host) ─
-
-// Pre-flight for WS upgrade routing. Requires a valid JWT so we don't leak
-// tunnel-presence or fly topology to unauthenticated probers. When this
-// machine owns the tunnel, it also runs the (cached) access check: the WS
-// upgrade's 403 is invisible to browser clients (they only see a 1006 close),
-// so this is the one place a definitive denial can surface — clients use it
-// to stop reconnect-looping against hosts they'll never be allowed to reach.
-app.get("/hosts/:hostId/_whoowns", async (c) => {
-	const token = extractToken(c);
-	if (!token) return c.json({ error: "Unauthorized" }, 401);
-	const auth = await verifyJWT(token, env.NEXT_PUBLIC_API_URL);
-	if (!auth) return c.json({ error: "Unauthorized" }, 401);
-
-	const hostId = c.req.param("hostId");
-	const replay = await maybeReplay(hostId);
-	if (!replay) {
-		if (!tunnelManager.hasTunnel(hostId)) {
-			return c.json({ error: "Host not connected" }, 503);
-		}
-		const access = await checkHostAccess(auth, token, hostId);
-		if (!access.ok) {
-			const detail = `Forbidden: ${accessDenialMessage(access.reason)}`;
-			// "error" means the access check itself failed (API unreachable), not
-			// a denial — don't 403, or clients would stop retrying permanently.
-			return access.reason === "error"
-				? c.json({ error: detail }, 500)
-				: c.json({ error: detail }, 403);
-		}
-		return c.json({ ok: true, region: env.FLY_REGION });
-	}
-	return c.body(null, 200, replay.header);
-});
-
-// ── Host proxy (auth required) ──────────────────────────────────────
 
 app.use("/hosts/:hostId/*", authMiddleware);
 
 app.all("/hosts/:hostId/trpc/*", async (c) => {
 	const hostId = c.get("hostId");
-	const prefix = `/hosts/${hostId}`;
 	const url = new URL(c.req.url);
-	const path = `${url.pathname.slice(prefix.length) || "/"}${url.search}`;
-	const body = (await c.req.text().catch(() => "")) || undefined;
+	const path = pathAfterHost(c) || "/";
+	const query = url.search.slice(1);
 
-	const headers: Record<string, string> = {};
-	for (const [key, value] of c.req.raw.headers.entries()) {
-		if (key !== "host" && key !== "authorization") headers[key] = value;
-	}
+	const headers = buildUpstreamHeaders(c.req.raw.headers, c.get("auth").sub);
 
-	try {
-		const res = await tunnelManager.sendHttpRequest(hostId, {
-			method: c.req.method,
-			path,
-			headers,
-			body,
-		});
-		return new Response(res.body ?? null, {
-			status: res.status,
-			headers: res.headers,
-		});
-	} catch (error) {
-		console.error("[relay] proxy failed", { hostId, path, error });
-		const message = error instanceof Error ? error.message : "Proxy error";
-		return trpcErrorResponse(c, "BAD_GATEWAY", message);
+	const stub = await tunnelStub(c, hostId);
+	if (!stub) {
+		return trpcErrorResponse(c, "SERVICE_UNAVAILABLE", "Host is not online");
 	}
+	const result = await stub.proxyHttp({
+		method: c.req.method,
+		pathWithQuery: query ? `${path}?${query}` : path,
+		headers,
+		body: new Uint8Array(await c.req.raw.arrayBuffer()),
+	});
+	if (!result.ok) {
+		if (result.reason === "dial-failed") {
+			return trpcErrorResponse(
+				c,
+				"BAD_GATEWAY",
+				"Host could not reach the relay",
+			);
+		}
+		return (await stub.isConnected())
+			? trpcErrorResponse(c, "BAD_GATEWAY", "Request timed out")
+			: trpcErrorResponse(c, "SERVICE_UNAVAILABLE", "Host is not online");
+	}
+	return new Response(result.body.byteLength > 0 ? result.body : null, {
+		status: result.status,
+		headers: result.headers,
+	});
 });
 
-app.get(
-	"/hosts/:hostId/*",
-	upgradeWebSocket((c) => {
-		const url = new URL(c.req.url);
-		const hostId = url.pathname.split("/")[2] ?? "";
-		const prefix = `/hosts/${hostId}`;
-		const path = url.pathname.slice(prefix.length) || "/";
-		const query = url.search.slice(1) || undefined;
-
-		// Cross-instance bridge: this node doesn't own the tunnel, so relay the
-		// WS to the owning instance over Fly's private network and pipe frames
-		// both ways. The owning node runs the normal access check + channel path.
-		const proxyOwner = c.get("proxyOwner");
-		if (proxyOwner) {
-			const target = internalProxyUrl(proxyOwner, hostId, path, url.search, {
-				appName: env.FLY_APP_NAME,
-				port: env.RELAY_PORT,
-			});
-			return createProxyBridge(target);
-		}
-
-		let channelId: string | null = null;
-
-		return {
-			onOpen: (_event, ws) => {
-				try {
-					channelId = tunnelManager.openWsChannel(hostId, path, query, ws);
-				} catch {
-					ws.close(1011, "Failed to open channel");
-				}
-			},
-			onMessage: (event) => {
-				if (channelId)
-					tunnelManager.sendWsFrame(hostId, channelId, String(event.data));
-			},
-			onClose: () => {
-				if (channelId) tunnelManager.closeWsChannel(hostId, channelId);
-			},
-			onError: () => {
-				if (channelId) tunnelManager.closeWsChannel(hostId, channelId);
-			},
-		};
-	}),
-);
-
-// ── Periodic directory sweeper ──────────────────────────────────────
-
-setInterval(() => {
-	void directory.sweepStale().catch((err) => {
-		console.error("[relay] directory.sweepStale failed", err);
-	});
-}, 30_000);
-
-// ── Synthetic check ─────────────────────────────────────────────────
-
-if (env.RELAY_SYNTHETIC_JWT) {
-	startSyntheticCheck({
-		relayUrl: env.RELAY_PUBLIC_URL,
-		jwt: env.RELAY_SYNTHETIC_JWT,
-		region: env.FLY_REGION,
-		machineId: env.FLY_MACHINE_ID,
-	});
-}
-
-// ── Start ───────────────────────────────────────────────────────────
-
-// Clear any directory entries our previous process generation left behind
-// (SIGKILL, drain race, etc.) before we begin accepting connections, so
-// fly-replay doesn't route cross-region requests at us for tunnels we no
-// longer have. Best-effort: relay still boots if Upstash is unreachable.
-try {
-	const cleared = await directory.clearStaleEntriesForMachine(
-		env.FLY_REGION,
-		env.FLY_MACHINE_ID,
-	);
-	if (cleared > 0) {
-		console.log(
-			`[relay] cleared ${cleared} stale directory entries on startup`,
-		);
+app.get("/hosts/:hostId/*", async (c) => {
+	if (!isWsUpgrade(c)) {
+		return c.json({ error: "WebSocket upgrade required" }, 426);
 	}
-} catch (err) {
-	console.error("[relay] startup cleanup failed", err);
+	const hostId = c.get("hostId");
+	const url = new URL(c.req.url);
+	const path = pathAfterHost(c) || "/";
+	if (path.startsWith("//")) return c.json({ error: "Invalid path" }, 400);
+	const query = url.search.slice(1);
+	const ticket = crypto.randomUUID();
+
+	// The 101 is deferred until the host has dialed, so offline hosts fail
+	// before the handshake instead of open-then-close.
+	const stub = await tunnelStub(c, hostId);
+	if (!stub) return c.json({ error: "Host not connected" }, 503);
+	const prepared = await stub.prepareStream(ticket, path, query || undefined);
+	if (prepared === "no-host") {
+		return c.json({ error: "Host not connected" }, 503);
+	}
+	if (prepared === "timeout") {
+		return c.json({ error: "Host did not answer" }, 504);
+	}
+	if (prepared === "dial-failed") {
+		return c.json({ error: "Host could not reach the relay" }, 502);
+	}
+	return stub.fetch(
+		`https://relay/client?ticket=${encodeURIComponent(ticket)}`,
+		{ headers: { Upgrade: "websocket" } },
+	);
+});
+
+// A WebSocket ending is not a defect, but the runtime reports it as one: when a
+// peer goes away — a host restarting, a laptop sleeping, a deploy — the
+// invocation that opened the socket throws. Every control channel ends this
+// way, about 5,600 times an hour, which is 100% of the exceptions this Worker
+// currently raises. Sending them would spend the key's whole rate limit on
+// noise within the first minute of each hour and bury the real errors behind
+// it, so they are dropped before they leave the isolate.
+function isPeerGone(message: string): boolean {
+	return (
+		message === "Network connection lost." ||
+		// Hibernation or eviction closed the object under an in-flight handler.
+		message.startsWith(
+			"Connection closed: this Durable Object instance is no longer active",
+		)
+	);
 }
 
-// Bind dual-stack (`::`) rather than the default `0.0.0.0`. Fly's private
-// 6PN network (`<machine>.vm.<app>.internal`) is IPv6-only, and relay-to-relay
-// WS proxying dials peers over it; `::` accepts both the public IPv4 proxy
-// traffic (IPv4-mapped, V6ONLY=0 on Linux) and 6PN IPv6 peer connections.
-server = serve(
-	{ fetch: app.fetch, port: env.RELAY_PORT, hostname: "::" },
-	(info) => {
-		console.log(
-			`[relay] listening on [::]:${info.port} (region=${env.FLY_REGION} machine=${env.FLY_MACHINE_ID})`,
-		);
+// Exceptions only — console/breadcrumb capture stays off: retaining every log
+// line is a memory leak at relay volume. No-op until SENTRY_DSN is set.
+const sentryOptions = (env: RelayEnv): Sentry.CloudflareOptions => ({
+	dsn: env.SENTRY_DSN,
+	tracesSampleRate: 0,
+	sendDefaultPii: false,
+	integrations: (defaults) =>
+		defaults.filter((integration) => integration.name !== "Console"),
+	beforeSend: (event) => {
+		const message = event.exception?.values?.[0]?.value;
+		return message && isPeerGone(message) ? null : event;
 	},
-);
-injectWebSocket(server);
+});
 
-// Disable Nagle's algorithm on every incoming connection. Both the client's
-// terminal WebSocket and the host's tunnel WebSocket connect here, so this
-// covers the relay's writes in both directions. Nagle interacting with TCP
-// delayed-ACK adds tens-to-hundreds of milliseconds to small, sparse
-// interactive frames (terminal keystrokes and their echoes) while leaving
-// bulk output untouched; across the relay's multiple hops this compounds into
-// seconds of perceived typing lag. Interactive proxies should always set
-// TCP_NODELAY. (@hono/node-server returns a Node http.Server.)
-(server as unknown as import("node:http").Server).on(
-	"connection",
-	(socket: import("node:net").Socket) => {
-		socket.setNoDelay(true);
-	},
+const InstrumentedHostTunnel = Sentry.instrumentDurableObjectWithSentry(
+	sentryOptions,
+	HostTunnel,
 );
+export { InstrumentedHostTunnel as HostTunnel };
+
+export default Sentry.withSentry(sentryOptions, {
+	fetch: app.fetch,
+} satisfies ExportedHandler<RelayEnv>);

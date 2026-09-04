@@ -9,6 +9,7 @@
  */
 
 import { SandboxInstance, settings } from "@blaxel/core";
+import { CLOUD_AGENT_LAUNCH_ENV_NAMES } from "@superset/shared/cloud-agent-launch";
 import { SANDBOX_CREDENTIAL_PLACEHOLDER } from "@superset/shared/constants";
 import { env } from "../../env";
 import { userError } from "../../i18n-error";
@@ -69,9 +70,34 @@ export interface ProvisionedSandbox {
  * Creates the sandbox and its private preview. Returns once the preview URL
  * exists — not once anything is listening on it, which is the caller's job.
  */
+export interface SandboxEnvironment {
+	sourceKind: "image" | "fork";
+	sourceRef: string;
+}
+
+async function forkSandbox(
+	name: string,
+	sourceSandbox: string,
+	workspaceEnv: Record<string, string>,
+): Promise<SandboxInstance> {
+	const source = await SandboxInstance.get(sourceSandbox);
+	// The fork request carries the workspace's env, so no spec update and no
+	// restart follow it. The values also ride on the boot script's own exec
+	// (see provisionSandbox): a golden whose sandbox runtime predates fork
+	// envs hands its children the source's env instead, and the script is
+	// what everything the workspace runs descends from.
+	await source.fork(name, {
+		envs: Object.entries(workspaceEnv).map(([envName, value]) => ({
+			name: envName,
+			value,
+		})),
+	});
+	return await SandboxInstance.get(name);
+}
+
 export async function provisionSandbox(args: {
 	name: string;
-	image: string;
+	environment: SandboxEnvironment;
 	/**
 	 * Everything the sandbox needs to configure itself. It reads these on boot
 	 * and seeds its own project and workspace rows, which is why provisioning
@@ -82,7 +108,7 @@ export async function provisionSandbox(args: {
 	region?: string;
 }): Promise<ProvisionedSandbox> {
 	configureBlaxel();
-	const memoryMb = args.memoryMb ?? 4096;
+	const memoryMb = args.memoryMb ?? 8192;
 	const region = args.region ?? env.BLAXEL_REGION;
 	const { envs: credentialEnvs, routing } = agentCredentialRoutes();
 	const envs = [
@@ -93,20 +119,26 @@ export async function provisionSandbox(args: {
 		})),
 	];
 
-	const sandbox = await SandboxInstance.createIfNotExists({
-		name: args.name,
-		image: args.image,
-		memory: memoryMb,
-		// Without disk-backed root the writable layer is tmpfs in RAM, and a
-		// checkout plus node_modules is write-heavy enough to exhaust it.
-		storageMb: 20480,
-		ports: [{ target: HOST_SERVICE_PORT, protocol: "HTTP" }],
-		region,
-		envs,
-		// Routing is fixed at creation, so a sandbox can never be re-pointed at
-		// a different secret later in its life.
-		network: { proxy: { routing } },
-	} as never);
+	const sandbox =
+		args.environment.sourceKind === "fork"
+			? await forkSandbox(
+					args.name,
+					args.environment.sourceRef,
+					args.workspaceEnv,
+				)
+			: await SandboxInstance.createIfNotExists({
+					name: args.name,
+					image: args.environment.sourceRef,
+					// The writable root is tmpfs sized at half of this; there is no
+					// separate disk (docs/cloud-sandbox-mismatches.md).
+					memory: memoryMb,
+					ports: [{ target: HOST_SERVICE_PORT, protocol: "HTTP" }],
+					region,
+					envs,
+					// Routing is fixed at creation, so a sandbox can never be re-pointed at
+					// a different secret later in its life.
+					network: { proxy: { routing } },
+				} as never);
 
 	// The desktop renderer is a browser: without CORS on the provider's edge
 	// every request to the sandbox fails preflight. The wildcard origin grants
@@ -139,14 +171,78 @@ export async function provisionSandbox(args: {
 	// Start host-service and return — the only thing provisioning runs inside a
 	// sandbox, and it is not awaited. The script needs a second or two; the
 	// client discovers the result by polling the health endpoint it already
-	// polls, so there is nothing to wait for here.
+	// polls, so there is nothing to wait for here. A fork gets its env on this
+	// exec as well as on the fork request, which covers goldens whose sandbox
+	// runtime predates fork envs (docs/cloud-sandbox-mismatches.md).
 	await sandbox.process.exec({
 		name: "host-service",
 		command: "/app/start.sh",
+		...(args.environment.sourceKind === "fork"
+			? { env: args.workspaceEnv }
+			: {}),
 		waitForCompletion: false,
 	} as never);
 
 	return { providerSandboxId: args.name, sandboxUrl };
+}
+
+const INHERITED_IDENTITY: Array<[path: string, recursive: boolean]> = [
+	["/data/host.db", false],
+	["/data/host.db-wal", false],
+	["/data/host.db-shm", false],
+	["/data/.workspace-bootstrapped", false],
+	["/data/.sandbox-agent-launched", false],
+	["/data/.superset-db-branch", false],
+	["/root/.superset/host", true],
+	["/root/.gitconfig", false],
+];
+
+const INHERITED_IDENTITY_ENVS = new Set([
+	"ORGANIZATION_ID",
+	"SUPERSET_SANDBOX_BRANCH",
+	"SUPERSET_SANDBOX_GIT_TOKEN",
+	"SUPERSET_SANDBOX_PROJECT_NAME",
+	"SUPERSET_SANDBOX_REPO_URL",
+	"SUPERSET_SANDBOX_WORKSPACE_ID",
+	"SUPERSET_SANDBOX_WORKSPACE_NAME",
+	...CLOUD_AGENT_LAUNCH_ENV_NAMES,
+]);
+
+export async function promoteSandboxToEnvironment(args: {
+	sourceSandbox: string;
+	goldenName: string;
+}): Promise<string> {
+	configureBlaxel();
+	const source = await SandboxInstance.get(args.sourceSandbox);
+	// A fork inherits the source's env and can only set or add variables, never
+	// drop one, so the promoting workspace's identity is blanked on the fork
+	// request: every later workspace forked from this environment would
+	// otherwise carry the promoter's git token and launch the promoter's agent.
+	await source.fork(args.goldenName, {
+		envs: [...INHERITED_IDENTITY_ENVS].map((name) => ({ name, value: "" })),
+	});
+
+	const golden = await SandboxInstance.get(args.goldenName);
+
+	for (const name of ["host-service", "diag-start"]) {
+		await golden.process.stop(name).catch((error) => {
+			if (!isSandboxNotFound(error)) throw error;
+		});
+	}
+
+	for (const [path, recursive] of INHERITED_IDENTITY) {
+		await golden.fs.rm(path, recursive).catch((error) => {
+			if (!isSandboxNotFound(error)) throw error;
+		});
+	}
+
+	await golden.process.exec({
+		name: "prepare-environment",
+		command: "pkill -f pty-daemon.js || true",
+		waitForCompletion: true,
+	} as never);
+
+	return args.goldenName;
 }
 
 export interface PreviewAccess {

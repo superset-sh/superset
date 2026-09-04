@@ -7,9 +7,9 @@ const ALLOWED_TTL_MS = 15 * 60 * 1000;
 const DENIED_TTL_MS = 30 * 1000;
 
 // Cache by (userId, hostId), not (token, hostId). Tokens rotate on every JWT
-// refresh while the underlying user→host authorization is stable, so a
-// token-keyed cache effectively expires with each refresh and burns
-// host.checkAccess calls on the API for no reason.
+// refresh while the underlying user→host authorization is stable. Caches are
+// per-isolate on Workers, so hit rates are lower than a single server's — the
+// short TTLs bound the staleness either way.
 const allowedCache = new LRUCache<string, true>({
 	max: 50_000,
 	ttl: ALLOWED_TTL_MS,
@@ -19,9 +19,6 @@ const deniedCache = new LRUCache<string, true>({
 	ttl: DENIED_TTL_MS,
 });
 
-// Why access was denied. Surfaced to the host in the WS close reason so the
-// opaque "Forbidden" becomes self-explaining. These are the user's own
-// memberships, so nothing sensitive leaks.
 export type AccessDenial =
 	| "invalid_host"
 	| "not_in_org"
@@ -48,9 +45,8 @@ export async function checkHostAccess(
 	auth: AuthContext,
 	token: string,
 	hostId: string,
+	apiUrl: string,
 ): Promise<AccessResult> {
-	// Short-circuit "not in org" locally: the API does this same check from
-	// the JWT before hitting the DB, so the round trip is wasted.
 	const parsed = parseHostRoutingKey(hostId);
 	if (!parsed) return { ok: false, reason: "invalid_host" };
 	if (!auth.organizationIds.includes(parsed.organizationId)) {
@@ -62,7 +58,7 @@ export async function checkHostAccess(
 	if (deniedCache.has(key)) return { ok: false, reason: "not_registered" };
 
 	try {
-		const client = createApiClient(token);
+		const client = createApiClient(token, apiUrl);
 		const result = await client.host.checkAccess.query({ hostId });
 		if (result.allowed) {
 			allowedCache.set(key, true);

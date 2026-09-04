@@ -23,26 +23,23 @@ type ViewMode = "workspaces" | "projects";
 const KIND_FILTERS: Array<{ value: KindFilter; label: MessageDescriptor }> = [
 	{
 		value: "all",
-		label: msg({ id: "settings.usage.workspacesPage.kindAll", message: "All" }),
+		label: msg({ message: "All" }),
 	},
 	{
 		value: "workspace",
 		label: msg({
-			id: "settings.usage.workspacesPage.kindWorkspaces",
 			message: "Workspaces",
 		}),
 	},
 	{
 		value: "project",
 		label: msg({
-			id: "settings.usage.workspacesPage.kindRepos",
 			message: "Repos",
 		}),
 	},
 	{
 		value: "other",
 		label: msg({
-			id: "settings.usage.workspacesPage.kindOther",
 			message: "Other",
 		}),
 	},
@@ -78,13 +75,11 @@ function groupLabel(key: GroupKey): string {
 	return key.kind === "sessions"
 		? i18n._(
 				msg({
-					id: "settings.usage.workspacesPage.groupSessions",
 					message: "Sessions",
 				}),
 			)
 		: i18n._(
 				msg({
-					id: "settings.usage.workspacesPage.groupNoProject",
 					message: "No project",
 				}),
 			);
@@ -168,18 +163,14 @@ export function UsageWorkspacesPage({ hostUrl }: { hostUrl: string | null }) {
 					className="flex items-center gap-1 rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 				>
 					<LuArrowLeft className="size-3" />
-					<Trans id="settings.usage.workspacesPage.backToUsage">Usage</Trans>
+					<Trans>Usage</Trans>
 				</Link>
 				<span className="text-muted-foreground/60">/</span>
 				<h1 className="text-base font-semibold tracking-tight">
 					{view === "projects" ? (
-						<Trans id="settings.usage.workspacesPage.titleProjects">
-							Projects
-						</Trans>
+						<Trans>Projects</Trans>
 					) : (
-						<Trans id="settings.usage.workspacesPage.titleWorkspaces">
-							Workspaces
-						</Trans>
+						<Trans>Workspaces</Trans>
 					)}
 				</h1>
 				<div className="ml-auto flex items-center gap-1.5">
@@ -189,14 +180,10 @@ export function UsageWorkspacesPage({ hostUrl }: { hostUrl: string | null }) {
 					>
 						<TabsList className="h-6">
 							<TabsTrigger value="usd" className="h-4 px-1.5 text-[10px]">
-								<Trans id="settings.usage.workspacesPage.metricCost">
-									Cost
-								</Trans>
+								<Trans>Cost</Trans>
 							</TabsTrigger>
 							<TabsTrigger value="tokens" className="h-4 px-1.5 text-[10px]">
-								<Trans id="settings.usage.workspacesPage.metricTokens">
-									Tokens
-								</Trans>
+								<Trans>Tokens</Trans>
 							</TabsTrigger>
 						</TabsList>
 					</Tabs>
@@ -229,14 +216,10 @@ export function UsageWorkspacesPage({ hostUrl }: { hostUrl: string | null }) {
 				>
 					<TabsList className="h-6">
 						<TabsTrigger value="workspaces" className="h-4 px-1.5 text-[10px]">
-							<Trans id="settings.usage.workspacesPage.viewWorkspaces">
-								Workspaces
-							</Trans>
+							<Trans>Workspaces</Trans>
 						</TabsTrigger>
 						<TabsTrigger value="projects" className="h-4 px-1.5 text-[10px]">
-							<Trans id="settings.usage.workspacesPage.viewProjects">
-								Projects
-							</Trans>
+							<Trans>Projects</Trans>
 						</TabsTrigger>
 					</TabsList>
 				</Tabs>
@@ -246,11 +229,9 @@ export function UsageWorkspacesPage({ hostUrl }: { hostUrl: string | null }) {
 					placeholder={
 						view === "projects"
 							? t({
-									id: "settings.usage.workspacesPage.filterProjectsPlaceholder",
 									message: "Filter projects…",
 								})
 							: t({
-									id: "settings.usage.workspacesPage.filterWorkspacesPlaceholder",
 									message: "Filter workspaces…",
 								})
 					}
@@ -281,9 +262,7 @@ export function UsageWorkspacesPage({ hostUrl }: { hostUrl: string | null }) {
 						className="flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:text-foreground"
 					>
 						{groupFilter.kind === "project" ? (
-							<Trans id="settings.usage.workspacesPage.projectFilterChip">
-								Project: {groupFilter.name}
-							</Trans>
+							<Trans>Project: {groupFilter.name}</Trans>
 						) : (
 							groupLabel(groupFilter)
 						)}
@@ -291,7 +270,7 @@ export function UsageWorkspacesPage({ hostUrl }: { hostUrl: string | null }) {
 					</button>
 				)}
 				<span className="ml-auto text-[11px] tabular-nums text-muted-foreground">
-					<Trans id="settings.usage.workspacesPage.shownSummary">
+					<Trans>
 						{shownCount} shown · {formatUsd(shownUsd)} ·{" "}
 						{formatTokens(shownTokens)} tokens
 					</Trans>
@@ -300,40 +279,24 @@ export function UsageWorkspacesPage({ hostUrl }: { hostUrl: string | null }) {
 
 			{!history ? (
 				<div className="py-8 text-center text-xs text-muted-foreground">
-					<Trans id="settings.usage.workspacesPage.loading">
-						Loading usage history…
-					</Trans>
+					<Trans>Loading usage history…</Trans>
 				</div>
 			) : shownCount === 0 ? (
 				<div className="py-8 text-center text-xs text-muted-foreground">
 					{view === "projects" ? (
-						<Trans id="settings.usage.workspacesPage.noProjectsMatch">
-							No projects match.
-						</Trans>
+						<Trans>No projects match.</Trans>
 					) : (
-						<Trans id="settings.usage.workspacesPage.noWorkspacesMatch">
-							No workspaces match.
-						</Trans>
+						<Trans>No workspaces match.</Trans>
 					)}
 				</div>
 			) : view === "projects" ? (
 				<div className="flex flex-col gap-1.5">
 					<div className="flex items-baseline justify-between border-b py-1 text-[11px] text-muted-foreground">
 						<span className="font-medium">
-							<Trans id="settings.usage.workspacesPage.columnProject">
-								Project
-							</Trans>
+							<Trans>Project</Trans>
 						</span>
 						<span className="font-medium">
-							{metric === "usd" ? (
-								<Trans id="settings.usage.workspacesPage.projectColumnCost">
-									Cost
-								</Trans>
-							) : (
-								<Trans id="settings.usage.workspacesPage.projectColumnTokens">
-									Tokens
-								</Trans>
-							)}
+							{metric === "usd" ? <Trans>Cost</Trans> : <Trans>Tokens</Trans>}
 						</span>
 					</div>
 					{projectGroups.map((group) => (
@@ -356,7 +319,6 @@ export function UsageWorkspacesPage({ hostUrl }: { hostUrl: string | null }) {
 									{group.workspaceCount > 1 && (
 										<span className="text-[9px] text-muted-foreground">
 											<Plural
-												id="settings.usage.workspacesPage.workspaceCount"
 												value={group.workspaceCount}
 												one="# workspace"
 												other="# workspaces"
@@ -386,20 +348,10 @@ export function UsageWorkspacesPage({ hostUrl }: { hostUrl: string | null }) {
 				<div className="flex flex-col gap-1.5">
 					<div className="flex items-baseline justify-between border-b py-1 text-[11px] text-muted-foreground">
 						<span className="font-medium">
-							<Trans id="settings.usage.workspacesPage.columnWorkspace">
-								Workspace
-							</Trans>
+							<Trans>Workspace</Trans>
 						</span>
 						<span className="font-medium">
-							{metric === "usd" ? (
-								<Trans id="settings.usage.workspacesPage.workspaceColumnCost">
-									Cost
-								</Trans>
-							) : (
-								<Trans id="settings.usage.workspacesPage.workspaceColumnTokens">
-									Tokens
-								</Trans>
-							)}
+							{metric === "usd" ? <Trans>Cost</Trans> : <Trans>Tokens</Trans>}
 						</span>
 					</div>
 					{workspaceRows.map((row) => (

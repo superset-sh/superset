@@ -86,10 +86,12 @@ function seedPullRequest(
 		reviewDecision?: string | null;
 		checksStatus?: string;
 		checksJson?: string;
+		mergedAt?: number | null;
 	},
 ) {
 	db.insert(schema.pullRequests)
 		.values({
+			mergedAt: pr.mergedAt ?? null,
 			id: pr.id,
 			projectId: PROJECT_ID,
 			repoProvider: "github",
@@ -187,14 +189,16 @@ function makePrNode(pr: {
 	headOwner?: string;
 	headRepo?: string;
 	title?: string;
+	state?: "open" | "closed";
+	mergedAt?: string | null;
 }) {
 	return {
 		number: pr.number,
 		title: pr.title ?? `PR ${pr.number}`,
 		html_url: `https://github.com/${REPO.owner}/${REPO.name}/pull/${pr.number}`,
-		state: "open",
+		state: pr.state ?? "open",
 		draft: false,
-		merged_at: null,
+		merged_at: pr.mergedAt ?? null,
 		updated_at: "2026-05-08T12:00:00Z",
 		head: {
 			ref: pr.headRef,
@@ -334,6 +338,273 @@ describe("PullRequestRuntimeManager direct checkout PR linking", () => {
 		await manager.refreshPullRequestsByWorkspaces(["ws"]);
 
 		expect(getWorkspace(db, "ws")?.pullRequestId).toBeNull();
+	});
+});
+
+describe("PullRequestRuntimeManager mergedAt attribution", () => {
+	const MERGED_AT_ISO = "2026-05-01T10:00:00Z";
+	const MERGED_AT = Date.parse(MERGED_AT_ISO);
+	// First observed three days after the merge.
+	const OBSERVED_AT = Date.parse("2026-05-04T09:00:00Z");
+
+	function mergedPrExecGh(mergedAt: string | null, state: "open" | "closed") {
+		return async (args: string[]) => {
+			const path = args.find((arg) => arg.startsWith("repos/"));
+			if (path === `repos/${REPO.owner}/${REPO.name}/pulls`) {
+				return [
+					makePrNode({
+						number: 42,
+						headRef: "fix/sidebar",
+						headSha: "abc123",
+						state,
+						mergedAt,
+					}),
+				];
+			}
+			if (path?.endsWith("/reviews")) return [];
+			if (path?.endsWith("/check-runs")) return { check_runs: [] };
+			if (path?.endsWith("/statuses")) return [];
+			throw new Error(`unexpected gh call: ${args.join(" ")}`);
+		};
+	}
+
+	function seedLinkedWorkspace(db: HostDb, pullRequestId: string | null) {
+		seedWorkspace(db, {
+			id: "ws",
+			branch: "fix/sidebar",
+			headSha: "abc123",
+			upstreamOwner: REPO.owner,
+			upstreamRepo: REPO.name,
+			upstreamBranch: "fix/sidebar",
+			pullRequestId,
+		});
+	}
+
+	test("attributes a merge first observed on D+3 to GitHub's merged_at on day D", async () => {
+		setSystemTime(new Date(OBSERVED_AT));
+		try {
+			const db = createRealDb();
+			seedProject(db);
+			seedLinkedWorkspace(db, null);
+			const manager = createManager(db, {
+				execGh: mergedPrExecGh(MERGED_AT_ISO, "closed"),
+			});
+
+			await manager.refreshPullRequestsByWorkspaces(["ws"]);
+
+			const pr = getPrByNumber(db, 42);
+			expect(pr?.state).toBe("merged");
+			expect(pr?.mergedAt).toBe(MERGED_AT);
+			expect(new Date(pr?.mergedAt ?? 0).toISOString().slice(0, 10)).toBe(
+				"2026-05-01",
+			);
+		} finally {
+			setSystemTime();
+		}
+	});
+
+	test("uses merged_at when an existing open row transitions to merged", async () => {
+		setSystemTime(new Date(OBSERVED_AT));
+		try {
+			const db = createRealDb();
+			seedProject(db);
+			seedPullRequest(db, {
+				id: "pr-existing",
+				prNumber: 42,
+				headBranch: "fix/sidebar",
+				headSha: "abc123",
+				state: "open",
+			});
+			seedLinkedWorkspace(db, "pr-existing");
+			const manager = createManager(db, {
+				execGh: mergedPrExecGh(MERGED_AT_ISO, "closed"),
+			});
+
+			await manager.refreshPullRequestsByWorkspaces(["ws"]);
+
+			const pr = getPrById(db, "pr-existing");
+			expect(pr?.state).toBe("merged");
+			expect(pr?.mergedAt).toBe(MERGED_AT);
+		} finally {
+			setSystemTime();
+		}
+	});
+
+	// A row stamped at observation time before this fix heals when that PR
+	// head is fetched again, so GitHub's merged_at wins over what is stored.
+	test("repairs a stamped observation time with GitHub's merged_at", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedPullRequest(db, {
+			id: "pr-existing",
+			prNumber: 42,
+			headBranch: "fix/sidebar",
+			headSha: "abc123",
+			state: "merged",
+			mergedAt: OBSERVED_AT,
+		});
+		seedLinkedWorkspace(db, "pr-existing");
+		const manager = createManager(db, {
+			execGh: mergedPrExecGh(MERGED_AT_ISO, "closed"),
+		});
+
+		await manager.refreshPullRequestsByWorkspaces(["ws"]);
+
+		expect(getPrById(db, "pr-existing")?.mergedAt).toBe(MERGED_AT);
+	});
+
+	// The stored value is only a fallback: it survives when the source has no
+	// usable timestamp of its own.
+	test("keeps an existing mergedAt when the fetched merged_at is unparseable", async () => {
+		const STORED = Date.parse("2026-04-20T08:00:00Z");
+		const db = createRealDb();
+		seedProject(db);
+		seedPullRequest(db, {
+			id: "pr-existing",
+			prNumber: 42,
+			headBranch: "fix/sidebar",
+			headSha: "abc123",
+			state: "merged",
+			mergedAt: STORED,
+		});
+		seedLinkedWorkspace(db, "pr-existing");
+		const manager = createManager(db, {
+			execGh: mergedPrExecGh("not-a-date", "closed"),
+		});
+
+		await manager.refreshPullRequestsByWorkspaces(["ws"]);
+
+		const pr = getPrById(db, "pr-existing");
+		expect(pr?.state).toBe("merged");
+		expect(pr?.mergedAt).toBe(STORED);
+	});
+
+	test("leaves mergedAt null for a PR that is not merged", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedLinkedWorkspace(db, null);
+		const manager = createManager(db, {
+			execGh: mergedPrExecGh(null, "closed"),
+		});
+
+		await manager.refreshPullRequestsByWorkspaces(["ws"]);
+
+		const pr = getPrByNumber(db, 42);
+		expect(pr?.state).toBe("closed");
+		expect(pr?.mergedAt).toBeNull();
+	});
+
+	// GitHub says merged but the timestamp is unusable: keep the merged row
+	// visible to "merged in the last N days" windows by stamping observation
+	// time, the pre-existing contract for rows without a source timestamp.
+	test("falls back to observation time when merged_at is unparseable", async () => {
+		setSystemTime(new Date(OBSERVED_AT));
+		try {
+			const db = createRealDb();
+			seedProject(db);
+			seedLinkedWorkspace(db, null);
+			const manager = createManager(db, {
+				execGh: mergedPrExecGh("not-a-date", "closed"),
+			});
+
+			await manager.refreshPullRequestsByWorkspaces(["ws"]);
+
+			const pr = getPrByNumber(db, 42);
+			expect(pr?.state).toBe("merged");
+			expect(pr?.mergedAt).toBe(OBSERVED_AT);
+		} finally {
+			setSystemTime();
+		}
+	});
+
+	test("checkout link uses the caller's mergedAt when present", async () => {
+		setSystemTime(new Date(OBSERVED_AT));
+		try {
+			const db = createRealDb();
+			seedProject(db);
+			seedWorkspace(db, { id: "ws", branch: "pr/42" });
+			const manager = createManager(db);
+
+			const prId = await manager.linkWorkspaceToCheckoutPullRequest({
+				workspaceId: "ws",
+				projectId: PROJECT_ID,
+				pullRequest: {
+					number: 42,
+					url: "https://github.com/base-owner/base-repo/pull/42",
+					title: "Merged earlier",
+					state: "merged",
+					mergedAt: MERGED_AT_ISO,
+					headRefName: "fix/sidebar",
+					headRefOid: "abc123",
+					isCrossRepository: false,
+				},
+			});
+
+			expect(getPrById(db, prId ?? "")?.mergedAt).toBe(MERGED_AT);
+		} finally {
+			setSystemTime();
+		}
+	});
+
+	test("checkout link without a source timestamp stamps observation time", async () => {
+		setSystemTime(new Date(OBSERVED_AT));
+		try {
+			const db = createRealDb();
+			seedProject(db);
+			seedWorkspace(db, { id: "ws", branch: "pr/42" });
+			const manager = createManager(db);
+
+			const prId = await manager.linkWorkspaceToCheckoutPullRequest({
+				workspaceId: "ws",
+				projectId: PROJECT_ID,
+				pullRequest: {
+					number: 42,
+					url: "https://github.com/base-owner/base-repo/pull/42",
+					title: "Merged, no timestamp",
+					state: "merged",
+					headRefName: "fix/sidebar",
+					headRefOid: "abc123",
+					isCrossRepository: false,
+				},
+			});
+
+			expect(getPrById(db, prId ?? "")?.mergedAt).toBe(OBSERVED_AT);
+		} finally {
+			setSystemTime();
+		}
+	});
+
+	test("checkout link without a source timestamp keeps the existing mergedAt", async () => {
+		const STORED = Date.parse("2026-04-20T08:00:00Z");
+		const db = createRealDb();
+		seedProject(db);
+		seedPullRequest(db, {
+			id: "pr-existing",
+			prNumber: 42,
+			headBranch: "fix/sidebar",
+			headSha: "abc123",
+			state: "merged",
+			mergedAt: STORED,
+		});
+		seedWorkspace(db, { id: "ws", branch: "pr/42" });
+		const manager = createManager(db);
+
+		const prId = await manager.linkWorkspaceToCheckoutPullRequest({
+			workspaceId: "ws",
+			projectId: PROJECT_ID,
+			pullRequest: {
+				number: 42,
+				url: "https://github.com/base-owner/base-repo/pull/42",
+				title: "Merged, no timestamp",
+				state: "merged",
+				headRefName: "fix/sidebar",
+				headRefOid: "abc123",
+				isCrossRepository: false,
+			},
+		});
+
+		expect(prId).toBe("pr-existing");
+		expect(getPrById(db, "pr-existing")?.mergedAt).toBe(STORED);
 	});
 });
 

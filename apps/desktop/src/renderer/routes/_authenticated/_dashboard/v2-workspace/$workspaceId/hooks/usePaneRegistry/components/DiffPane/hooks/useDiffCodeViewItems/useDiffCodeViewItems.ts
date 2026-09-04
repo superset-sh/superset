@@ -12,13 +12,13 @@ import { useQueries } from "@tanstack/react-query";
 import { getQueryKey } from "@trpc/react-query";
 import type { inferRouterInputs } from "@trpc/server";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { isMissingProcedureError } from "renderer/lib/isMissingProcedureError";
 import {
 	type ChangesetFile,
 	getChangesetFileKey,
 } from "../../../../../useChangeset";
 import { createGetDiffInput } from "../../utils/createGetDiffInput";
 import { isGeneratedDiffFile } from "../../utils/diffLoadingGuards";
-import { isMissingProcedureError } from "../../utils/isMissingProcedureError";
 import type {
 	DeferredDiffReason,
 	DiffAnnotationMetadata,

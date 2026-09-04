@@ -41,6 +41,7 @@ export function WorkspaceRow({
 	attention,
 	sessions,
 	cloudStatus,
+	onCopied,
 }: {
 	workspace: HostWorkspaceItem;
 	pullRequest?: SelectGithubPullRequest;
@@ -50,6 +51,8 @@ export function WorkspaceRow({
 	sessions: TerminalRowData[];
 	/** Set for a cloud workspace; drives the row's pending/failed treatment. */
 	cloudStatus?: CloudWorkspaceStatus;
+	/** Copy ID landed on the pasteboard; the screen shows its "Copied" notice. */
+	onCopied: () => void;
 }) {
 	const { t } = useLingui();
 	const router = useRouter();
@@ -64,7 +67,7 @@ export function WorkspaceRow({
 		shareWorkspace,
 		isUnread,
 		toggleUnread,
-	} = useWorkspaceRowActions(workspace, cache, sessions, cloudStatus);
+	} = useWorkspaceRowActions(workspace, cache, sessions, cloudStatus, onCopied);
 	// A manual mark reads as `review` — desktop's rollup ranks it lowest, so
 	// any live status the sessions are reporting keeps the slot.
 	const rowAttention = attention ?? (isUnread ? "review" : null);
@@ -115,7 +118,6 @@ export function WorkspaceRow({
 						{prIcon && pullRequest ? (
 							<Button
 								accessibilityLabel={t({
-									id: "mobile.workspaceRow.pullRequestLabel",
 									message: `Pull request #${pullRequest.prNumber}`,
 								})}
 								ph-label="workspace-row-pull-request"

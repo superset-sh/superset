@@ -13,7 +13,7 @@ export class Members extends APIResource {
 		options?: RequestOptions,
 	): APIPromise<MemberListResponse> {
 		return this._client.query<MemberListResponse>(
-			"organization.members.list",
+			{ method: "organization.members.list", procedure: "organization.members.list" },
 			query ?? undefined,
 			options,
 		);

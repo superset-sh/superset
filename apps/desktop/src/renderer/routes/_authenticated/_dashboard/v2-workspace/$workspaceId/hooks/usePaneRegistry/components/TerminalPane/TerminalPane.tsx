@@ -424,11 +424,9 @@ export function TerminalPane({
 							? error.message
 							: files.length === 1
 								? t({
-										id: "workspace.terminalPane.pasteUploadFailedSingle",
 										message: "Failed to send the file to the remote workspace",
 									})
 								: t({
-										id: "workspace.terminalPane.pasteUploadFailedMultiple",
 										message: "Failed to send the files to the remote workspace",
 									}),
 					);

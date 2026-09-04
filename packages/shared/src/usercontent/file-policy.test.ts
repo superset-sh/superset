@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { fileResponsePolicy } from "./file-policy";
+import { fileResponsePolicy, pageAssetResponsePolicy } from "./file-policy";
 
 describe("fileResponsePolicy", () => {
 	test("scriptable documents always download", () => {
@@ -64,5 +64,74 @@ describe("fileResponsePolicy", () => {
 		expect(
 			fileResponsePolicy({ contentType: "", fetchDest: undefined }).contentType,
 		).toBe("application/octet-stream");
+	});
+});
+
+describe("pageAssetResponsePolicy", () => {
+	const policy = (contentType: string, fetchDest?: string) =>
+		pageAssetResponsePolicy({ contentType, fetchDest });
+
+	test("a page serves its own stylesheet and script inline", () => {
+		// The media route downloads these; a page legitimately references them
+		// as subresources, so blanket-reusing that policy would break pages.
+		expect(policy("text/css", "style").disposition).toBe("inline");
+		expect(policy("text/javascript", "script").disposition).toBe("inline");
+	});
+
+	test("an SVG renders as an image and downloads when navigated to", () => {
+		expect(policy("image/svg+xml", "image").disposition).toBe("inline");
+		expect(policy("image/svg+xml", "document").disposition).toBe("attachment");
+		expect(policy("image/svg+xml", undefined).disposition).toBe("attachment");
+	});
+
+	test("scriptable documents other than the page's own download", () => {
+		expect(policy("application/xhtml+xml", "document").disposition).toBe(
+			"attachment",
+		);
+		expect(policy("text/xml", "document").disposition).toBe("attachment");
+	});
+
+	test("ordinary media stays inline", () => {
+		expect(policy("image/png", "image").disposition).toBe("inline");
+		expect(policy("video/mp4", "video").disposition).toBe("inline");
+		expect(policy("font/woff2", "font").disposition).toBe("inline");
+	});
+
+	test("the served type is normalised, never the client's parameters", () => {
+		expect(policy("image/PNG; charset=binary", "image").contentType).toBe(
+			"image/png",
+		);
+		expect(policy("", "image").contentType).toBe("application/octet-stream");
+	});
+});
+
+describe("varyOnFetchDest", () => {
+	test("SVG varies, because its disposition is chosen from the fetch dest", () => {
+		// Without Vary a shared cache hands a navigation the variant it stored
+		// for an <img>, which quietly undoes the download guard.
+		expect(
+			pageAssetResponsePolicy({
+				contentType: "image/svg+xml",
+				fetchDest: "image",
+			}).varyOnFetchDest,
+		).toBe(true);
+		expect(
+			fileResponsePolicy({ contentType: "image/svg+xml", fetchDest: "image" })
+				.varyOnFetchDest,
+		).toBe(true);
+	});
+
+	test("types with a fixed disposition do not vary", () => {
+		for (const type of [
+			"image/png",
+			"text/css",
+			"text/html",
+			"application/pdf",
+		]) {
+			expect(
+				pageAssetResponsePolicy({ contentType: type, fetchDest: "document" })
+					.varyOnFetchDest,
+			).toBe(false);
+		}
 	});
 });

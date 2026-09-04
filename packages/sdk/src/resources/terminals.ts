@@ -15,7 +15,7 @@ export class Terminals extends APIResource {
 		this._requireOrgId();
 		return this._client.hostMutation<TerminalCreateResult>(
 			params.hostId,
-			"terminal.createSession",
+			{ method: "terminals.create", procedure: "terminal.createSession" },
 			{
 				workspaceId: params.workspaceId,
 				initialCommand: params.command,
@@ -29,7 +29,7 @@ export class Terminals extends APIResource {
 		this._requireOrgId();
 		return this._client.hostQuery<TerminalListResult>(
 			params.hostId,
-			"terminal.list",
+			{ method: "terminals.list", procedure: "terminal.list" },
 			{ workspaceId: params.workspaceId },
 		);
 	}
@@ -43,7 +43,7 @@ export class Terminals extends APIResource {
 		this._requireOrgId();
 		return this._client.hostMutation<TerminalSendResult>(
 			params.hostId,
-			"terminal.send",
+			{ method: "terminals.send", procedure: "terminal.send" },
 			{
 				terminalId: params.terminalId,
 				workspaceId: params.workspaceId,
@@ -61,7 +61,7 @@ export class Terminals extends APIResource {
 		this._requireOrgId();
 		return this._client.hostQuery<TerminalReadResult>(
 			params.hostId,
-			"terminal.snapshot",
+			{ method: "terminals.read", procedure: "terminal.snapshot" },
 			{
 				terminalId: params.terminalId,
 				workspaceId: params.workspaceId,
@@ -75,7 +75,7 @@ export class Terminals extends APIResource {
 		this._requireOrgId();
 		return this._client.hostMutation<TerminalCloseResult>(
 			params.hostId,
-			"terminal.killSession",
+			{ method: "terminals.close", procedure: "terminal.killSession" },
 			{ terminalId: params.terminalId, workspaceId: params.workspaceId },
 		);
 	}

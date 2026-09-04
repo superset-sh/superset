@@ -40,7 +40,6 @@ export function DashboardSidebarPortsChip({
 		if (closedCount > 0) {
 			toast.success(
 				t({
-					id: "dashboard.sidebar.portsChip.closedPortsToast",
 					message: plural(closedCount, {
 						one: "Closed # port",
 						other: "Closed # ports",
@@ -81,14 +80,12 @@ export function DashboardSidebarPortsChip({
 						aria-label={
 							isOpen
 								? t({
-										id: "dashboard.sidebar.portsChip.hideDetailsAriaLabel",
 										message: plural(ports.length, {
 											one: "# active port — hide details",
 											other: "# active ports — hide details",
 										}),
 									})
 								: t({
-										id: "dashboard.sidebar.portsChip.showDetailsAriaLabel",
 										message: plural(ports.length, {
 											one: "# active port — show details",
 											other: "# active ports — show details",
@@ -123,7 +120,7 @@ export function DashboardSidebarPortsChip({
 			>
 				<div className="flex items-center justify-between px-2 py-1.5 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
 					<span>
-						<Trans id="dashboard.sidebar.portsChip.title">Ports</Trans>
+						<Trans>Ports</Trans>
 					</span>
 					<span className="tabular-nums">{ports.length}</span>
 				</div>
@@ -143,9 +140,7 @@ export function DashboardSidebarPortsChip({
 					className="flex w-full items-center gap-1.5 rounded-sm px-2 py-1 text-xs hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-70"
 				>
 					<LuX className="size-3" strokeWidth={STROKE_WIDTH} />
-					<Trans id="dashboard.sidebar.portsChip.closeAllPorts">
-						Close all ports
-					</Trans>
+					<Trans>Close all ports</Trans>
 				</button>
 			</HoverCardContent>
 		</HoverCard>

@@ -37,7 +37,7 @@ const TASK_SLUG_CONSTRAINT = "tasks_org_slug_unique";
 const TASK_SLUG_RETRY_LIMIT = 5;
 
 type DbWsTransaction = Parameters<Parameters<typeof dbWs.transaction>[0]>[0];
-type Executor = typeof dbWs | DbWsTransaction;
+type Executor = typeof db | DbWsTransaction;
 
 function isConstraintError(error: unknown, constraint: string): boolean {
 	if (!error || typeof error !== "object") {

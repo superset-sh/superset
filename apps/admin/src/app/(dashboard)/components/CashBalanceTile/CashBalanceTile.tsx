@@ -23,7 +23,6 @@ export function CashBalanceTile() {
 	const chartConfig = {
 		cashUsd: {
 			label: t({
-				id: "admin.cashBalance.seriesTotalCash",
 				message: "total cash",
 			}),
 			color: "var(--chart-2)",
@@ -39,11 +38,9 @@ export function CashBalanceTile() {
 	return (
 		<InsightTileFrame
 			title={t({
-				id: "admin.cashBalance.title",
 				message: "Cash — total balance (Mercury)",
 			})}
 			description={t({
-				id: "admin.cashBalance.description",
 				message:
 					"Checking + savings + Treasury over time; fundraise tranches are the steps",
 			})}
@@ -54,7 +51,6 @@ export function CashBalanceTile() {
 			emptyLabel={
 				unavailableReason
 					? t({
-							id: "admin.tile.unavailableReason",
 							message: `Unavailable: ${unavailableReason}`,
 						})
 					: undefined

@@ -34,7 +34,6 @@ export function ContactForm() {
 				setErrorMessage(
 					result.error ??
 						t({
-							id: "marketing.form.error.genericShort",
 							message: "Something went wrong.",
 						}),
 				);
@@ -43,7 +42,6 @@ export function ContactForm() {
 			setStatus("error");
 			setErrorMessage(
 				t({
-					id: "marketing.form.error.generic",
 					message: "Something went wrong. Please try again.",
 				}),
 			);
@@ -55,14 +53,10 @@ export function ContactForm() {
 			<div className="flex flex-col items-center justify-center py-16 text-center">
 				<CheckCircle2 className="size-6 text-muted-foreground mb-4" />
 				<p className="text-lg font-medium text-foreground">
-					<Trans id="marketing.contact.form.successTitle">
-						Thanks for reaching out
-					</Trans>
+					<Trans>Thanks for reaching out</Trans>
 				</p>
 				<p className="mt-2 text-sm text-muted-foreground">
-					<Trans id="marketing.contact.form.successBody">
-						We&apos;ll get back to you shortly.
-					</Trans>
+					<Trans>We&apos;ll get back to you shortly.</Trans>
 				</p>
 			</div>
 		);
@@ -76,7 +70,7 @@ export function ContactForm() {
 						htmlFor="contact-name"
 						className="block text-sm text-muted-foreground mb-1.5"
 					>
-						<Trans id="marketing.contact.form.nameLabel">Full name</Trans>
+						<Trans>Full name</Trans>
 					</label>
 					<input
 						id="contact-name"
@@ -95,7 +89,7 @@ export function ContactForm() {
 						htmlFor="contact-email"
 						className="block text-sm text-muted-foreground mb-1.5"
 					>
-						<Trans id="marketing.contact.form.emailLabel">Email</Trans>
+						<Trans>Email</Trans>
 					</label>
 					<input
 						id="contact-email"
@@ -115,7 +109,7 @@ export function ContactForm() {
 					htmlFor="contact-topic"
 					className="block text-sm text-muted-foreground mb-1.5"
 				>
-					<Trans id="marketing.contact.form.topicLabel">Topic</Trans>
+					<Trans>Topic</Trans>
 				</label>
 				<input
 					id="contact-topic"
@@ -133,9 +127,7 @@ export function ContactForm() {
 					htmlFor="contact-message"
 					className="block text-sm text-muted-foreground mb-1.5"
 				>
-					<Trans id="marketing.contact.form.messageLabel">
-						How can we help?
-					</Trans>
+					<Trans>How can we help?</Trans>
 				</label>
 				<textarea
 					id="contact-message"
@@ -173,12 +165,12 @@ export function ContactForm() {
 			>
 				{status === "submitting" ? (
 					<>
-						<Trans id="marketing.form.sending">Sending</Trans>
+						<Trans>Sending</Trans>
 						<Loader2 className="size-3.5 animate-spin" />
 					</>
 				) : (
 					<>
-						<Trans id="marketing.contact.form.submit">Send message</Trans>
+						<Trans>Send message</Trans>
 						<ArrowRight className="size-3.5" />
 					</>
 				)}

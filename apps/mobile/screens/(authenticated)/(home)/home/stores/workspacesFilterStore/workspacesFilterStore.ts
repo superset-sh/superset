@@ -14,11 +14,11 @@ export const SORT_OPTIONS: {
 	label: MessageDescriptor;
 }[] = [
 	{
-		label: msg({ id: "mobile.home.sort.updatedAt", message: "Last updated" }),
+		label: msg({ message: "Last updated" }),
 		value: "updatedAt",
 	},
 	{
-		label: msg({ id: "mobile.home.sort.createdAt", message: "Date created" }),
+		label: msg({ message: "Date created" }),
 		value: "createdAt",
 	},
 ];

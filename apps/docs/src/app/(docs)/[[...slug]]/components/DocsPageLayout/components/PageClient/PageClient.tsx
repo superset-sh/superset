@@ -107,7 +107,7 @@ export function LastUpdate(props: { date: Date }) {
 
 	return (
 		<p className="text-sm text-fd-muted-foreground">
-			<Trans id="docs.page.lastUpdated">Last updated on {date}</Trans>
+			<Trans>Last updated on {date}</Trans>
 		</p>
 	);
 }
@@ -180,7 +180,7 @@ export function Footer({ items }: FooterProps) {
 					<div className={cn(itemLabel())}>
 						<ChevronLeft className="-ms-1 size-4 shrink-0 rtl:rotate-180" />
 						<p>
-							<Trans id="docs.page.previous">Previous</Trans>
+							<Trans>Previous</Trans>
 						</p>
 					</div>
 					<p className="font-medium md:text-[15px]">{previous.name}</p>
@@ -194,7 +194,7 @@ export function Footer({ items }: FooterProps) {
 					<div className={cn(itemLabel({ className: "flex-row-reverse" }))}>
 						<ChevronRight className="-me-1 size-4 shrink-0 rtl:rotate-180" />
 						<p>
-							<Trans id="docs.page.next">Next</Trans>
+							<Trans>Next</Trans>
 						</p>
 					</div>
 					<p className="font-medium md:text-[15px]">{next.name}</p>

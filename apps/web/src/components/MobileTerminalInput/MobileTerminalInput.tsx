@@ -71,7 +71,6 @@ export function MobileTerminalInput({
 			<textarea
 				ref={textareaRef}
 				aria-label={t({
-					id: "web.mobileTerminalInput.ariaLabel",
 					message: "Terminal input",
 				})}
 				autoCapitalize="none"
@@ -84,7 +83,6 @@ export function MobileTerminalInput({
 					focused
 						? undefined
 						: t({
-								id: "web.mobileTerminalInput.placeholder",
 								message: "Type here to send to the terminal",
 							})
 				}

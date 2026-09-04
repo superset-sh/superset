@@ -27,22 +27,22 @@ export function FolderMenuItems({
 		<>
 			<DropdownMenuItem onSelect={() => setTimeout(onNewFile, 0)}>
 				<FilePlus />
-				<Trans id="workspace.folderMenuItems.newFile">New File...</Trans>
+				<Trans>New File...</Trans>
 			</DropdownMenuItem>
 			<DropdownMenuItem onSelect={() => setTimeout(onNewFolder, 0)}>
 				<FolderPlus />
-				<Trans id="workspace.folderMenuItems.newFolder">New Folder...</Trans>
+				<Trans>New Folder...</Trans>
 			</DropdownMenuItem>
 			<DropdownMenuSeparator />
 			<PathActions absolutePath={absolutePath} relativePath={relativePath} />
 			<DropdownMenuSeparator />
 			<DropdownMenuItem onSelect={() => setTimeout(onRename, 0)}>
 				<Pencil />
-				<Trans id="workspace.folderMenuItems.rename">Rename...</Trans>
+				<Trans>Rename...</Trans>
 			</DropdownMenuItem>
 			<DropdownMenuItem variant="destructive" onSelect={onDelete}>
 				<Trash2 />
-				<Trans id="workspace.folderMenuItems.delete">Delete</Trans>
+				<Trans>Delete</Trans>
 			</DropdownMenuItem>
 		</>
 	);

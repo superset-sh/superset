@@ -60,6 +60,11 @@ const EMPTY_STATE: BrowserRuntimeState = Object.freeze({
 
 const ROOT_CONTAINER_ID = "browser-runtime-root";
 
+/** Page-zoom bounds and step for a browser pane (1 = 100%). */
+export const BROWSER_ZOOM = Object.freeze({ min: 0.25, max: 5, step: 0.1 });
+
+export type BrowserZoomDirection = "in" | "out" | "reset";
+
 class BrowserRuntimeRegistryImpl {
 	private entries = new Map<string, RegistryEntry>();
 	private listenersByPaneId = new Map<string, Set<() => void>>();
@@ -666,9 +671,36 @@ class BrowserRuntimeRegistryImpl {
 	setZoomFactor(paneId: string, factor: number): void {
 		const entry = this.entries.get(paneId);
 		if (!entry) return;
-		const clamped = Math.min(5, Math.max(0.25, factor));
+		const clamped = Math.min(
+			BROWSER_ZOOM.max,
+			Math.max(BROWSER_ZOOM.min, factor),
+		);
 		entry.webview.setZoomFactor(clamped);
 		this.setState(paneId, { zoomFactor: clamped });
+	}
+
+	stepZoom(paneId: string, direction: BrowserZoomDirection): void {
+		const entry = this.entries.get(paneId);
+		if (!entry) return;
+		if (direction === "reset") {
+			this.setZoomFactor(paneId, 1);
+			return;
+		}
+		// Zoom is per-origin, so another pane on the same origin may have moved
+		// it since we last read it; step from what the page renders at now.
+		this.refreshZoomState(paneId);
+		const delta = direction === "in" ? BROWSER_ZOOM.step : -BROWSER_ZOOM.step;
+		// Round to the step grid so repeated steps don't drift (1.2000000000000002).
+		const next = Math.round((entry.state.zoomFactor + delta) * 100) / 100;
+		this.setZoomFactor(paneId, next);
+	}
+
+	/** The pane whose `<webview>` is `element`, e.g. `document.activeElement`. */
+	getPaneIdForWebview(element: Element): string | null {
+		for (const [paneId, entry] of this.entries) {
+			if (entry.webview === element) return paneId;
+		}
+		return null;
 	}
 }
 

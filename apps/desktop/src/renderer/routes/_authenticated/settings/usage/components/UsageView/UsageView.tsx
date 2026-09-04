@@ -18,6 +18,7 @@ import {
 	LuCircleCheck,
 	LuCopy,
 	LuEllipsis,
+	LuExternalLink,
 	LuEye,
 	LuEyeOff,
 	LuPlus,
@@ -36,32 +37,25 @@ import { useHostUsageQuota } from "../../hooks/useHostUsageQuota";
 import { useRemoveUsageAccount } from "../../hooks/useRemoveUsageAccount";
 import { useRestartAgentSessions } from "../../hooks/useRestartAgentSessions";
 import { useSetDefaultUsageAccount } from "../../hooks/useSetDefaultUsageAccount";
-import { LeaderboardPrompt } from "../LeaderboardPrompt";
+import { LeaderboardCard } from "../LeaderboardCard";
 import { UsageHistorySection } from "../UsageHistorySection";
 import type { SwitchSignInTarget } from "./components/AddAccountDialog";
 import { AddAccountDialog } from "./components/AddAccountDialog";
 import { RemoveAccountDialog } from "./components/RemoveAccountDialog";
 import type { RestartSessionsPrompt } from "./components/RestartSessionsDialog";
 import { RestartSessionsDialog } from "./components/RestartSessionsDialog";
+import { API_BILLING_LINKS } from "./utils/apiBilling";
 import { formatResetIn, formatResetLabel } from "./utils/formatResetIn";
 import { switchSignInCommand } from "./utils/switchSignInCommand";
+import type { ManagedAgent, QuotaAgent } from "./utils/visibleQuotaAgents";
+import { isManagedAgent, visibleQuotaAgents } from "./utils/visibleQuotaAgents";
 
-type Agent = UsageAccount["agent"];
-
-const AGENTS: Agent[] = ["claude", "codex", "grok", "agy"];
-
-const AGENT_LABELS: Record<Agent, string> = {
+const AGENT_LABELS: Record<QuotaAgent, string> = {
 	claude: "Claude Code",
 	codex: "Codex",
 	grok: "Grok",
 	agy: "Antigravity",
 };
-
-type ManagedAgent = "claude" | "codex";
-
-function isManagedAgent(agent: Agent): agent is ManagedAgent {
-	return agent === "claude" || agent === "codex";
-}
 
 function meterColor(usedPercent: number): string {
 	if (usedPercent >= 90) return "bg-red-500";
@@ -101,7 +95,6 @@ function creditsLine(account: UsageAccount): string | null {
 		const balance = account.creditsBalance.toFixed(2);
 		return i18n._(
 			msg({
-				id: "settings.usage.account.creditsBalance",
 				message: `$${balance} credits`,
 			}),
 		);
@@ -111,7 +104,6 @@ function creditsLine(account: UsageAccount): string | null {
 		const limit = (account.extraUsage.limitCents / 100).toFixed(2);
 		return i18n._(
 			msg({
-				id: "settings.usage.account.extraUsage",
 				message: `extra $${used} of $${limit}`,
 			}),
 		);
@@ -120,7 +112,6 @@ function creditsLine(account: UsageAccount): string | null {
 }
 
 const DEFAULT_TITLE = msg({
-	id: "settings.usage.account.defaultTitle",
 	message:
 		"New agent launches use this account. Relaunch a running agent to switch it.",
 });
@@ -184,7 +175,6 @@ function AccountCard({
 							className="shrink-0 self-center text-muted-foreground/50 transition-colors hover:text-primary disabled:pointer-events-none"
 							disabled={isSwitching}
 							title={t({
-								id: "settings.usage.account.makeDefaultTitle",
 								message:
 									"Make default — launch new terminals and agents on this account.",
 							})}
@@ -200,7 +190,7 @@ function AccountCard({
 					)}
 				>
 					{hideEmails && account.email ? (
-						<Trans id="settings.usage.account.emailHidden">Email hidden</Trans>
+						<Trans>Email hidden</Trans>
 					) : (
 						(account.email ?? AGENT_LABELS[account.agent])
 					)}
@@ -210,20 +200,19 @@ function AccountCard({
 						{account.plan}
 					</span>
 				)}
-				{account.status !== "ok" && (
+				{account.credentialKind === "api_key" && (
+					<span className="rounded bg-muted px-1 text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
+						<Trans>API</Trans>
+					</span>
+				)}
+				{account.status !== "ok" && account.status !== "token_stale" && (
 					<span className="rounded bg-amber-500/15 px-1 text-[9px] font-medium uppercase tracking-wide text-amber-500">
 						{account.status === "token_expired" ? (
-							<Trans id="settings.usage.account.statusSignInExpired">
-								Sign-in expired
-							</Trans>
+							<Trans>Sign-in expired</Trans>
 						) : account.status === "signed_out" ? (
-							<Trans id="settings.usage.account.statusSignedOut">
-								Signed out
-							</Trans>
+							<Trans>Signed out</Trans>
 						) : (
-							<Trans id="settings.usage.account.statusUnavailable">
-								Unavailable
-							</Trans>
+							<Trans>Unavailable</Trans>
 						)}
 					</span>
 				)}
@@ -246,32 +235,51 @@ function AccountCard({
 						<DropdownMenuContent align="end">
 							{onSwitchSignIn && (
 								<DropdownMenuItem onClick={onSwitchSignIn}>
-									<Trans id="settings.usage.account.switchSignIn">
-										Switch sign-in…
-									</Trans>
+									<Trans>Switch sign-in…</Trans>
 								</DropdownMenuItem>
 							)}
 							{onRemove && (
 								<DropdownMenuItem variant="destructive" onClick={onRemove}>
-									<Trans id="settings.usage.account.remove">Remove…</Trans>
+									<Trans>Remove…</Trans>
 								</DropdownMenuItem>
 							)}
 						</DropdownMenuContent>
 					</DropdownMenu>
 				)}
 			</div>
-			{account.status === "ok" ? (
+			{account.credentialKind === "api_key" ? (
+				// Pay-per-token billing has no quota windows; point at the
+				// provider's own usage page instead.
+				<div className="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">
+					<span className="truncate">
+						<Trans>Billed per token.</Trans>
+					</span>
+					{isManagedAgent(account.agent) && (
+						<a
+							href={API_BILLING_LINKS[account.agent].usage}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="ml-auto inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap hover:text-foreground hover:underline"
+						>
+							<Trans>View usage</Trans>
+							<LuExternalLink className="size-2.5" />
+						</a>
+					)}
+				</div>
+			) : account.status === "ok" ? (
 				<div className="mt-2 flex flex-col gap-1.5">
 					{account.windows.map((window) => (
 						<QuotaWindowRow key={window.id} window={window} />
 					))}
 				</div>
+			) : account.status === "token_stale" ? (
+				<div className="mt-1.5 text-[11px] text-muted-foreground">
+					<Trans>Refreshes when Claude Code next runs.</Trans>
+				</div>
 			) : expiredCommand !== null ? (
 				<div className="mt-1.5 flex flex-wrap items-center gap-x-1 gap-y-1 text-[11px] text-muted-foreground">
 					<span>
-						<Trans id="settings.usage.account.expiredRunPrefix">
-							Sign-in expired — run
-						</Trans>
+						<Trans>Sign-in expired — run</Trans>
 					</span>
 					<button
 						type="button"
@@ -281,7 +289,6 @@ function AccountCard({
 							copyToClipboard(expiredCommand).catch(() =>
 								toast.error(
 									t({
-										id: "settings.usage.account.copyFailed",
 										message: "Copy failed",
 									}),
 									{ description: expiredCommand },
@@ -297,18 +304,12 @@ function AccountCard({
 						)}
 					</button>
 					<span>
-						<Trans id="settings.usage.account.expiredRunSuffix">
-							in a terminal on this host.
-						</Trans>
+						<Trans>in a terminal on this host.</Trans>
 					</span>
 				</div>
 			) : (
 				<div className="mt-1.5 text-[11px] text-muted-foreground">
-					{account.statusDetail ?? (
-						<Trans id="settings.usage.account.usageUnavailable">
-							Usage unavailable.
-						</Trans>
-					)}
+					{account.statusDetail ?? <Trans>Usage unavailable.</Trans>}
 				</div>
 			)}
 			{/* The radio + accent border already mark the default when the cards
@@ -324,9 +325,7 @@ function AccountCard({
 								title={i18n._(DEFAULT_TITLE)}
 							>
 								<LuCircleCheck className="size-3" />
-								<Trans id="settings.usage.account.defaultForNewAgents">
-									Default for new agents
-								</Trans>
+								<Trans>Default for new agents</Trans>
 							</span>
 						)
 					) : onMakeDefault ? (
@@ -338,9 +337,7 @@ function AccountCard({
 							title={i18n._(DEFAULT_TITLE)}
 							onClick={onMakeDefault}
 						>
-							<Trans id="settings.usage.account.makeDefault">
-								Make default
-							</Trans>
+							<Trans>Make default</Trans>
 						</Button>
 					) : null}
 					{credits && (
@@ -382,12 +379,10 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 	) => {
 		toast.success(
 			t({
-				id: "settings.usage.account.madeDefaultToast",
 				message: `New ${providerLabel} agents will use ${accountLabel}.`,
 			}),
 			{
 				description: t({
-					id: "settings.usage.account.madeDefaultDescription",
 					message: "Relaunch running agents to switch them.",
 				}),
 			},
@@ -454,12 +449,10 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 				onSuccess: () => {
 					toast.success(
 						t({
-							id: "settings.usage.restartAgents.startedToast",
 							message: `Restarting agents on ${accountLabel}.`,
 						}),
 						{
 							description: t({
-								id: "settings.usage.restartAgents.startedDescription",
 								message: "Each session resumes where it left off.",
 							}),
 						},
@@ -481,6 +474,7 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 		setDialogAgent(account.agent);
 		setSwitchTarget({
 			agent: account.agent,
+			credentialKind: account.credentialKind,
 			selection: account.selection,
 			label:
 				account.selection === null
@@ -492,12 +486,10 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 
 	return (
 		<div className="mx-auto flex min-h-full w-full max-w-5xl flex-col gap-3 px-6 py-4">
-			<LeaderboardPrompt hostUrl={hostUrl} />
+			<LeaderboardCard hostUrl={hostUrl} />
 			<div className="flex items-center gap-2">
 				<span className="ml-auto text-[10px] text-muted-foreground">
-					<Trans id="settings.usage.quota.refreshNote">
-						Official quota · refreshes every 5 min
-					</Trans>
+					<Trans>Official quota · refreshes every 5 min</Trans>
 				</span>
 				<Button
 					variant="ghost"
@@ -511,11 +503,7 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 					) : (
 						<LuEyeOff className="size-3" />
 					)}
-					{hideEmails ? (
-						<Trans id="settings.usage.quota.showEmails">Show emails</Trans>
-					) : (
-						<Trans id="settings.usage.quota.hideEmails">Hide emails</Trans>
-					)}
+					{hideEmails ? <Trans>Show emails</Trans> : <Trans>Hide emails</Trans>}
 				</Button>
 				<Button
 					variant="ghost"
@@ -535,84 +523,77 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 				</Button>
 			</div>
 
-			{quotaQuery.isPending ? (
-				<div className="py-4 text-center text-xs text-muted-foreground">
-					<Trans id="settings.usage.quota.reading">
-						Reading subscription usage…
-					</Trans>
-				</div>
-			) : (
-				AGENTS.filter((agent) =>
-					accounts.some((account) => account.agent === agent),
-				).map((agent) => {
-					const agentAccounts = accounts.filter(
-						(account) => account.agent === agent,
-					);
-					const icon = getPresetIcon(agent, isDark);
-					return (
-						<section key={agent} className="flex flex-col gap-1.5">
-							<div className="flex items-center gap-1.5">
-								{icon && <img src={icon} alt="" className="size-3.5" />}
-								<span className="text-xs font-medium">
-									{AGENT_LABELS[agent]}
-								</span>
-								{isManagedAgent(agent) && (
-									<Button
-										variant="ghost"
-										size="sm"
-										className="ml-auto h-5 gap-1 px-1.5 text-[10px] text-muted-foreground"
-										disabled={!hostUrl}
-										onClick={() => openAddAgentAccount(agent)}
-									>
-										<LuPlus className="size-3" />
-										<Trans id="settings.usage.quota.addAccount">
-											Add account
-										</Trans>
-									</Button>
-								)}
-							</div>
-							{agentAccounts.length === 0 ? (
-								<div className="rounded-lg border border-dashed px-3 py-2 text-[11px] text-muted-foreground">
-									<Trans id="settings.usage.quota.noLogins">
-										No {AGENT_LABELS[agent]} logins on this host — sign in and
-										usage appears here.
-									</Trans>
-								</div>
-							) : (
-								<div className="grid gap-2 md:grid-cols-2">
-									{agentAccounts.map((account) => (
-										<AccountCard
-											key={account.accountKey}
-											account={account}
-											onMakeDefault={
-												isManagedAgent(account.agent)
-													? () => makeDefaultAccount(account)
-													: null
-											}
-											onSwitchSignIn={
-												isManagedAgent(account.agent)
-													? () => openSwitchSignIn(account)
-													: null
-											}
-											onRemove={
-												isManagedAgent(account.agent) &&
-												account.selection !== null
-													? () => setRemoveTarget(account)
-													: null
-											}
-											isSwitching={setDefault.isPending}
-											selectable={
-												isManagedAgent(agent) && agentAccounts.length > 1
-											}
-											hideEmails={hideEmails}
-										/>
-									))}
-								</div>
+			{/* Sections render before the first quota read lands so Add account is
+			    reachable straight away; each shows its own placeholder meanwhile. */}
+			{visibleQuotaAgents(accounts).map((agent) => {
+				const agentAccounts = accounts.filter(
+					(account) => account.agent === agent,
+				);
+				const icon = getPresetIcon(agent, isDark);
+				return (
+					<section key={agent} className="flex flex-col gap-1.5">
+						<div className="flex items-center gap-1.5">
+							{icon && <img src={icon} alt="" className="size-3.5" />}
+							<span className="text-xs font-medium">{AGENT_LABELS[agent]}</span>
+							{isManagedAgent(agent) && (
+								<Button
+									variant="ghost"
+									size="sm"
+									className="ml-auto h-5 gap-1 px-1.5 text-[10px] text-muted-foreground"
+									disabled={!hostUrl}
+									onClick={() => openAddAgentAccount(agent)}
+								>
+									<LuPlus className="size-3" />
+									<Trans>Add account</Trans>
+								</Button>
 							)}
-						</section>
-					);
-				})
-			)}
+						</div>
+						{quotaQuery.isPending ? (
+							<div className="flex items-center gap-1.5 rounded-lg border border-dashed px-3 py-2 text-[11px] text-muted-foreground">
+								<LuRefreshCw className="size-3 animate-spin" />
+								<Trans>Reading usage…</Trans>
+							</div>
+						) : agentAccounts.length === 0 ? (
+							<div className="rounded-lg border border-dashed px-3 py-2 text-[11px] text-muted-foreground">
+								<Trans>
+									No {AGENT_LABELS[agent]} logins on this host — sign in and
+									usage appears here.
+								</Trans>
+							</div>
+						) : (
+							<div className="grid gap-2 md:grid-cols-2">
+								{agentAccounts.map((account) => (
+									<AccountCard
+										key={account.accountKey}
+										account={account}
+										onMakeDefault={
+											isManagedAgent(account.agent)
+												? () => makeDefaultAccount(account)
+												: null
+										}
+										onSwitchSignIn={
+											isManagedAgent(account.agent)
+												? () => openSwitchSignIn(account)
+												: null
+										}
+										onRemove={
+											isManagedAgent(account.agent) &&
+											account.selection !== null
+												? () => setRemoveTarget(account)
+												: null
+										}
+										isSwitching={setDefault.isPending}
+										selectable={
+											isManagedAgent(agent) && agentAccounts.length > 1
+										}
+										hideEmails={hideEmails}
+									/>
+								))}
+							</div>
+						)}
+					</section>
+				);
+			})}
 
 			<RemoveAccountDialog
 				account={removeTarget}
@@ -638,7 +619,6 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 									removeTarget.email ?? removeTarget.sourceLabel;
 								toast.success(
 									t({
-										id: "settings.usage.account.removedToast",
 										message: `Removed ${removedLabel}.`,
 									}),
 								);

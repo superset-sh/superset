@@ -1,5 +1,6 @@
 "use client";
 
+import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { ChevronRightIcon } from "lucide-react";
 import type { ComponentType } from "react";
@@ -40,8 +41,9 @@ function buildSummary(items: ExploringGroupItem[]): string {
 	if (files > 0) {
 		parts.push(
 			i18n._({
-				id: "ui.exploringGroup.fileCount",
-				message: "{count, plural, one {# file} other {# files}}",
+				...msg({
+					message: "{count, plural, one {# file} other {# files}}",
+				}),
 				values: { count: files },
 			}),
 		);
@@ -49,8 +51,9 @@ function buildSummary(items: ExploringGroupItem[]): string {
 	if (searches > 0) {
 		parts.push(
 			i18n._({
-				id: "ui.exploringGroup.searchCount",
-				message: "{count, plural, one {# search} other {# searches}}",
+				...msg({
+					message: "{count, plural, one {# search} other {# searches}}",
+				}),
 				values: { count: searches },
 			}),
 		);
@@ -96,11 +99,7 @@ export const ExploringGroup = ({
 				<div className="min-w-0 flex flex-1 items-center gap-1">
 					<div className="flex min-w-0 items-center gap-1.5 text-xs">
 						<span className="shrink-0 whitespace-nowrap font-medium text-muted-foreground">
-							{isStreaming ? (
-								<Trans id="ui.exploringGroup.exploring">Exploring</Trans>
-							) : (
-								<Trans id="ui.exploringGroup.explored">Explored</Trans>
-							)}
+							{isStreaming ? <Trans>Exploring</Trans> : <Trans>Explored</Trans>}
 						</span>
 						<span className="shrink-0 whitespace-nowrap text-muted-foreground/60">
 							{summary}

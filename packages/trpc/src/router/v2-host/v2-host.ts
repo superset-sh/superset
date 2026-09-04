@@ -1,10 +1,14 @@
+import { mintUserJwt } from "@superset/auth/server";
 import { db, dbWs } from "@superset/db/client";
 import { v2UsersHostRoleValues } from "@superset/db/enums";
 import { members, v2Hosts, v2UsersHosts } from "@superset/db/schema";
 import { getCurrentTxid } from "@superset/db/utils";
+import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
+import { env } from "../../env";
+import { fetchRelayPresence } from "../../lib/relay-presence";
 import { protectedProcedure, userError } from "../../trpc";
 import {
 	requireActiveOrgId,
@@ -73,11 +77,10 @@ async function requireOrgMember(userId: string, organizationId: string) {
 export const v2HostRouter = {
 	list: protectedProcedure.query(async ({ ctx }) => {
 		const organizationId = requireActiveOrgId(ctx);
-		return db
+		const rows = await db
 			.select({
 				machineId: v2Hosts.machineId,
 				name: v2Hosts.name,
-				isOnline: v2Hosts.isOnline,
 				organizationId: v2Hosts.organizationId,
 			})
 			.from(v2Hosts)
@@ -94,6 +97,26 @@ export const v2HostRouter = {
 					eq(v2UsersHosts.userId, ctx.session.user.id),
 				),
 			);
+
+		// The relay's Durable Objects are the presence authority. Session
+		// callers hold no relay JWT, so mint a short one for the lookup.
+		const jwt = await mintUserJwt({
+			userId: ctx.session.user.id,
+			organizationIds: [organizationId],
+			scope: "host-presence",
+			ttlSeconds: 60,
+		});
+		const presence = await fetchRelayPresence(
+			env.RELAY_URL,
+			jwt,
+			rows.map((row) => buildHostRoutingKey(row.organizationId, row.machineId)),
+		);
+		return rows.map((row) => ({
+			...row,
+			isOnline:
+				presence?.[buildHostRoutingKey(row.organizationId, row.machineId)]
+					?.online ?? false,
+		}));
 	}),
 
 	listMembers: protectedProcedure.query(async ({ ctx }) => {

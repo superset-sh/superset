@@ -219,7 +219,7 @@ describe("PortForwardManager", () => {
 		const m = manager({
 			kind: "relay",
 			probe: async () => {
-				throw new Error("protocol v1");
+				throw new Error("probe failed");
 			},
 			openStream: async () => new PassThrough(),
 		});
@@ -229,7 +229,7 @@ describe("PortForwardManager", () => {
 			workspaceId: "ws1",
 			ports: [await freePort()],
 		});
-		expect(fwd?.status).toEqual({ state: "error", message: "protocol v1" });
+		expect(fwd?.status).toEqual({ state: "error", message: "probe failed" });
 		m.stopAll();
 	});
 

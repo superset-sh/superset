@@ -6,7 +6,6 @@ import { msg } from "@lingui/core/macro";
 const HOST_OFFLINE_ERRORS = ["target host offline", "no host available"];
 
 export const HOST_OFFLINE_HELP = msg({
-	id: "dashboard.automations.hostOfflineHelp",
 	message:
 		"The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again.",
 });

@@ -19,21 +19,17 @@ export function UsageProjectBars({ history }: { history: UsageHistory }) {
 		<div className="flex flex-col gap-1.5">
 			<div className="flex items-baseline justify-between border-b py-1 text-[11px] text-muted-foreground">
 				<span className="font-medium">
-					<Trans id="settings.usage.projectBars.columnWorkspace">
-						Workspace
-					</Trans>
+					<Trans>Workspace</Trans>
 				</span>
 				<span className="flex items-baseline gap-2">
 					<Link
 						to="/settings/usage/workspaces"
 						className="rounded px-1 text-[10px] transition-colors hover:bg-muted hover:text-foreground"
 					>
-						<Trans id="settings.usage.projectBars.viewAll">
-							All {history.projects.length} →
-						</Trans>
+						<Trans>All {history.projects.length} →</Trans>
 					</Link>
 					<span className="font-medium">
-						<Trans id="settings.usage.projectBars.columnCost">Cost</Trans>
+						<Trans>Cost</Trans>
 					</span>
 				</span>
 			</div>

@@ -91,7 +91,6 @@ export function SocialButton({
 			</View>
 			<Text className="flex-1 max-w-36 text-center">
 				{t({
-					id: "mobile.signIn.continueWithProvider",
 					message: `Continue with ${PROVIDER_NAME[provider]}`,
 				})}
 			</Text>

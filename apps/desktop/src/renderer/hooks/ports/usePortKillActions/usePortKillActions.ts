@@ -49,7 +49,6 @@ export function usePortKillActions<TPort extends PortKillTarget>({
 				if (!result.success) {
 					toast.error(
 						t({
-							id: "hooks.portKillActions.closePortFailed",
 							message: `Failed to close port ${port.port}`,
 						}),
 						{ description: getFailureDescription(result) },
@@ -78,7 +77,6 @@ export function usePortKillActions<TPort extends PortKillTarget>({
 				if (failed.length > 0) {
 					toast.error(
 						t({
-							id: "hooks.portKillActions.closePortsFailed",
 							message: plural(failed.length, {
 								one: "Failed to close # port",
 								other: "Failed to close # ports",

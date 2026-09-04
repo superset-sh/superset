@@ -134,22 +134,18 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 				toast.error(
 					result.error.message ??
 						t({
-							id: "settings.teams.detail.saveFailedToast",
 							message: "Failed to save team",
 						}),
 				);
 				return;
 			}
 			await utils.organization.listTeams.invalidate();
-			toast.success(
-				t({ id: "settings.teams.detail.savedToast", message: "Saved" }),
-			);
+			toast.success(t({ message: "Saved" }));
 		} catch (error) {
 			toast.error(
 				errorMessage(
 					error,
 					t({
-						id: "settings.teams.detail.saveFailedToast",
 						message: "Failed to save team",
 					}),
 				),
@@ -171,7 +167,6 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 				toast.error(
 					result.error.message ??
 						t({
-							id: "settings.teams.detail.deleteFailedToast",
 							message: "Failed to delete team",
 						}),
 				);
@@ -181,12 +176,10 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 			const deletedName =
 				team?.name ??
 				t({
-					id: "settings.teams.detail.deletedFallbackName",
 					message: "team",
 				});
 			toast.success(
 				t({
-					id: "settings.teams.detail.deletedToast",
 					message: `Deleted "${deletedName}"`,
 				}),
 			);
@@ -196,7 +189,6 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 				errorMessage(
 					error,
 					t({
-						id: "settings.teams.detail.deleteFailedToast",
 						message: "Failed to delete team",
 					}),
 				),
@@ -215,9 +207,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 				userId: currentUserId,
 			});
 			await utils.organization.listTeams.invalidate();
-			toast.success(
-				t({ id: "settings.teams.detail.leftTeamToast", message: "Left team" }),
-			);
+			toast.success(t({ message: "Left team" }));
 			setOpenDialog(null);
 			navigate({ to: "/settings/teams" });
 		} catch (error) {
@@ -225,7 +215,6 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 				errorMessage(
 					error,
 					t({
-						id: "settings.teams.detail.leaveFailedToast",
 						message: "Failed to leave team",
 					}),
 				),
@@ -248,10 +237,10 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 						className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4"
 					>
 						<HiArrowLeft className="h-4 w-4" />
-						<Trans id="settings.teams.detail.backToTeams">All teams</Trans>
+						<Trans>All teams</Trans>
 					</Link>
 					<h2 className="text-2xl font-semibold">
-						<Trans id="settings.teams.detail.title">Team settings</Trans>
+						<Trans>Team settings</Trans>
 					</h2>
 				</div>
 			</div>
@@ -263,7 +252,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 							<div className="space-y-4 max-w-md">
 								<div className="space-y-1.5">
 									<Label htmlFor="team-name-edit">
-										<Trans id="settings.teams.detail.nameLabel">Name</Trans>
+										<Trans>Name</Trans>
 									</Label>
 									<Input
 										id="team-name-edit"
@@ -273,7 +262,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 								</div>
 								<div className="space-y-1.5">
 									<Label htmlFor="team-slug-edit">
-										<Trans id="settings.teams.detail.slugLabel">Slug</Trans>
+										<Trans>Slug</Trans>
 									</Label>
 									<Input
 										id="team-slug-edit"
@@ -281,7 +270,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 										onChange={(event) => setSlugValue(event.target.value)}
 									/>
 									<p className="text-xs text-muted-foreground">
-										<Trans id="settings.teams.detail.slugHint">
+										<Trans>
 											URL-friendly identifier, unique within your organization.
 										</Trans>
 									</p>
@@ -292,11 +281,9 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 										disabled={!isDirty || isSubmitting}
 									>
 										{isSubmitting ? (
-											<Trans id="settings.teams.detail.savingButton">
-												Saving...
-											</Trans>
+											<Trans>Saving...</Trans>
 										) : (
-											<Trans id="settings.teams.detail.saveButton">Save</Trans>
+											<Trans>Save</Trans>
 										)}
 									</Button>
 								</div>
@@ -307,9 +294,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 					<div className="max-w-5xl space-y-4">
 						<div className="flex items-center justify-between gap-4">
 							<h3 className="text-lg font-semibold">
-								<Trans id="settings.teams.detail.membersTitle">
-									Team members
-								</Trans>
+								<Trans>Team members</Trans>
 							</h3>
 							{team && (
 								<AddMemberButton
@@ -336,9 +321,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 							</div>
 						) : members.length === 0 ? (
 							<div className="text-center py-12 text-muted-foreground border rounded-lg">
-								<Trans id="settings.teams.detail.membersEmpty">
-									No members yet
-								</Trans>
+								<Trans>No members yet</Trans>
 							</div>
 						) : (
 							<div className="border rounded-lg">
@@ -346,19 +329,13 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 									<TableHeader>
 										<TableRow>
 											<TableHead>
-												<Trans id="settings.teams.detail.columnName">
-													Name
-												</Trans>
+												<Trans>Name</Trans>
 											</TableHead>
 											<TableHead>
-												<Trans id="settings.teams.detail.columnEmail">
-													Email
-												</Trans>
+												<Trans>Email</Trans>
 											</TableHead>
 											<TableHead>
-												<Trans id="settings.teams.detail.columnJoined">
-													Joined
-												</Trans>
+												<Trans>Joined</Trans>
 											</TableHead>
 										</TableRow>
 									</TableHeader>
@@ -378,8 +355,8 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 																<span className="font-medium">
 																	{member.name ||
 																		t({
-																			id: "settings.teams.detail.unknownMemberName",
 																			message: "Unknown",
+																			context: "person",
 																		})}
 																</span>
 																{isCurrentUser && (
@@ -387,9 +364,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 																		variant="secondary"
 																		className="text-xs"
 																	>
-																		<Trans id="settings.teams.detail.youBadge">
-																			You
-																		</Trans>
+																		<Trans>You</Trans>
 																	</Badge>
 																)}
 															</div>
@@ -413,21 +388,17 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 					{team && (
 						<div className="max-w-5xl space-y-4">
 							<h3 className="text-lg font-semibold">
-								<Trans id="settings.teams.detail.dangerZoneTitle">
-									Danger zone
-								</Trans>
+								<Trans>Danger zone</Trans>
 							</h3>
 							<div className="border rounded-lg divide-y">
 								{currentMember && (
 									<div className="flex items-center justify-between gap-4 p-4">
 										<div className="min-w-0">
 											<p className="text-sm font-medium">
-												<Trans id="settings.teams.detail.leaveTitle">
-													Leave team
-												</Trans>
+												<Trans>Leave team</Trans>
 											</p>
 											<p className="text-xs text-muted-foreground mt-0.5">
-												<Trans id="settings.teams.detail.leaveHint">
+												<Trans>
 													You'll stop being a member of this team. You can be
 													re-added by another team member.
 												</Trans>
@@ -437,21 +408,17 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 											variant="outline"
 											onClick={() => setOpenDialog("leaveTeam")}
 										>
-											<Trans id="settings.teams.detail.leaveButton">
-												Leave team
-											</Trans>
+											<Trans>Leave team</Trans>
 										</Button>
 									</div>
 								)}
 								<div className="flex items-center justify-between gap-4 p-4">
 									<div className="min-w-0">
 										<p className="text-sm font-medium">
-											<Trans id="settings.teams.detail.deleteTitle">
-												Delete team
-											</Trans>
+											<Trans>Delete team</Trans>
 										</p>
 										<p className="text-xs text-muted-foreground mt-0.5">
-											<Trans id="settings.teams.detail.deleteHint">
+											<Trans>
 												Permanently remove <strong>{team.name}</strong> and all
 												of its members. This can't be undone.
 											</Trans>
@@ -461,9 +428,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 										variant="destructive"
 										onClick={() => setOpenDialog("delete")}
 									>
-										<Trans id="settings.teams.detail.deleteButton">
-											Delete team
-										</Trans>
+										<Trans>Delete team</Trans>
 									</Button>
 								</div>
 							</div>
@@ -479,12 +444,10 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>
-							<Trans id="settings.teams.detail.deleteDialogTitle">
-								Delete team
-							</Trans>
+							<Trans>Delete team</Trans>
 						</DialogTitle>
 						<DialogDescription>
-							<Trans id="settings.teams.detail.deleteDialogDescription">
+							<Trans>
 								This will delete <strong>{team?.name}</strong> and remove all of
 								its members. This can't be undone.
 							</Trans>
@@ -497,7 +460,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 							onClick={() => setOpenDialog(null)}
 							disabled={isSubmitting}
 						>
-							<Trans id="settings.teams.detail.deleteCancel">Cancel</Trans>
+							<Trans>Cancel</Trans>
 						</Button>
 						<Button
 							type="button"
@@ -506,13 +469,9 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 							disabled={isSubmitting}
 						>
 							{isSubmitting ? (
-								<Trans id="settings.teams.detail.deletingButton">
-									Deleting...
-								</Trans>
+								<Trans>Deleting...</Trans>
 							) : (
-								<Trans id="settings.teams.detail.deleteConfirm">
-									Delete team
-								</Trans>
+								<Trans>Delete team</Trans>
 							)}
 						</Button>
 					</DialogFooter>
@@ -526,12 +485,10 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>
-							<Trans id="settings.teams.detail.leaveDialogTitle">
-								Leave team
-							</Trans>
+							<Trans>Leave team</Trans>
 						</DialogTitle>
 						<DialogDescription>
-							<Trans id="settings.teams.detail.leaveDialogDescription">
+							<Trans>
 								You'll stop being a member of this team. You can be re-added by
 								another team member.
 							</Trans>
@@ -544,7 +501,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 							onClick={() => setOpenDialog(null)}
 							disabled={isSubmitting}
 						>
-							<Trans id="settings.teams.detail.leaveCancel">Cancel</Trans>
+							<Trans>Cancel</Trans>
 						</Button>
 						<Button
 							type="button"
@@ -553,13 +510,9 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 							disabled={isSubmitting}
 						>
 							{isSubmitting ? (
-								<Trans id="settings.teams.detail.leavingButton">
-									Leaving...
-								</Trans>
+								<Trans>Leaving...</Trans>
 							) : (
-								<Trans id="settings.teams.detail.leaveConfirm">
-									Leave team
-								</Trans>
+								<Trans>Leave team</Trans>
 							)}
 						</Button>
 					</DialogFooter>

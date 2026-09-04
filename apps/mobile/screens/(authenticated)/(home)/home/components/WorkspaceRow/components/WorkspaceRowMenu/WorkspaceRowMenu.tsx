@@ -46,11 +46,9 @@ export function WorkspaceRowMenu({
 				>
 					{isUnread
 						? t({
-								id: "mobile.workspaceRow.markAsRead",
 								message: "Mark as Read",
 							})
 						: t({
-								id: "mobile.workspaceRow.markAsUnread",
 								message: "Mark as Unread",
 							})}
 				</Link.MenuAction>
@@ -58,26 +56,24 @@ export function WorkspaceRowMenu({
 					icon={pinned ? "pin.slash" : "pin"}
 					onPress={onTogglePin}
 				>
-					{pinned
-						? t({ id: "mobile.workspaceRow.unpin", message: "Unpin" })
-						: t({ id: "mobile.workspaceRow.pin", message: "Pin" })}
+					{pinned ? t({ message: "Unpin" }) : t({ message: "Pin" })}
 				</Link.MenuAction>
 				{canRename ? (
 					<Link.MenuAction icon="pencil" onPress={onRename}>
-						{t({ id: "mobile.workspaceRow.rename", message: "Rename" })}
+						{t({ message: "Rename" })}
 					</Link.MenuAction>
 				) : null}
 				{canDelete ? (
 					<Link.MenuAction icon="trash" destructive onPress={onDelete}>
-						{t({ id: "mobile.workspaceRow.delete", message: "Delete" })}
+						{t({ message: "Delete" })}
 					</Link.MenuAction>
 				) : null}
 				<Link.Menu inline>
 					<Link.MenuAction icon="doc.on.doc" onPress={onCopyId}>
-						{t({ id: "mobile.workspaceRow.copyId", message: "Copy ID" })}
+						{t({ message: "Copy ID" })}
 					</Link.MenuAction>
 					<Link.MenuAction icon="square.and.arrow.up" onPress={onShare}>
-						{t({ id: "mobile.common.share", message: "Share" })}
+						{t({ message: "Share" })}
 					</Link.MenuAction>
 				</Link.Menu>
 			</Link.Menu>

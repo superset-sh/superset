@@ -207,7 +207,10 @@ function createDb(): HostDb {
 	const rows = [{ id: WORKSPACE_ID, worktreePath: "" }];
 	return {
 		select: () => ({
-			from: () => ({ where: () => ({ all: () => rows }), all: () => rows }),
+			from: () => ({
+				where: () => ({ all: () => rows, get: () => rows[0] }),
+				all: () => rows,
+			}),
 		}),
 		query: {
 			workspaces: {
@@ -311,6 +314,14 @@ async function main(): Promise<void> {
 	eventBus.handleMessage(
 		socket,
 		JSON.stringify({ type: "fs:watch", workspaceId: WORKSPACE_ID }),
+	);
+	// GitWatcher only watches a workspace while someone holds interest
+	// (#6729) — the earlier direct rescan() call no longer attaches anything
+	// on its own, so this bench needs to register interest explicitly, same
+	// as a real client would.
+	eventBus.handleMessage(
+		socket,
+		JSON.stringify({ type: "git:watch", workspaceId: WORKSPACE_ID }),
 	);
 	await new Promise((r) => setTimeout(r, 500));
 

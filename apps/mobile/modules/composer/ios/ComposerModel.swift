@@ -60,6 +60,10 @@ final class ComposerModel {
   /// has no catalog. See `ComposerSessionTabLabels`.
   var sessionTabLabels = ComposerSessionTabLabels()
 
+  /// The control beside the quick keys. Nil on every surface with nothing to
+  /// link to, which is all of them but the workspace terminal.
+  var quickKeysAction: ComposerQuickKeysAction?
+
   /// What the active agent can run behind `/` (or `$`). Empty hides the
   /// suggestion panel entirely — a plain shell, an agent without discovery,
   /// or a host too old to answer all land here the same way.
@@ -119,6 +123,9 @@ final class ComposerModel {
   @ObservationIgnored var onSessionTabCopyId: ((String) -> Void)?
   @ObservationIgnored var onNewSessionPress: (() -> Void)?
   @ObservationIgnored var onAllSessionsPress: (() -> Void)?
+  /// The control beside the quick keys was pressed. Where it goes is React
+  /// Native's to know.
+  @ObservationIgnored var onQuickKeysActionPress: (() -> Void)?
   /// Files and images pasted into the field, already written to disk. The tray
   /// lives in React Native, so the composer hands over URIs and lets it add
   /// them the same way the pickers do.

@@ -8,7 +8,7 @@ import type { CommentPaneData, DiffFocusSide } from "../../../../types";
 import {
 	coerceCheckStatus,
 	computeChecksRollup,
-} from "../../components/PRActionHeader/utils/computeChecksStatus";
+} from "../../../../utils/computeChecksStatus";
 import type { SidebarTabDefinition } from "../../types";
 import { ReviewTabContent } from "./components/ReviewTabContent";
 import type { NormalizedComment, NormalizedPR } from "./types";
@@ -100,7 +100,7 @@ export function useReviewTab({
 
 	return {
 		id: "review",
-		label: t({ id: "workspace.reviewTab.label", message: "Review" }),
+		label: t({ message: "Review" }),
 		icon: LuMessageSquare,
 		badge: openReviewCount > 0 ? openReviewCount : undefined,
 		content,

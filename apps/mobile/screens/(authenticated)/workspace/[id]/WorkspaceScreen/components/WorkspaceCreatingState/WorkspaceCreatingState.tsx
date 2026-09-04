@@ -35,17 +35,14 @@ export function WorkspaceCreatingState({
 	const { t } = useLingui();
 	const elapsedSeconds = useElapsedSeconds(startedAt);
 	const steps: Array<{ label: string; state: StepState }> = [
-		t({ id: "mobile.workspaceCreate.step.preparing", message: "Preparing" }),
+		t({ message: "Preparing" }),
 		t({
-			id: "mobile.workspaceCreate.step.fetching",
 			message: "Fetching latest changes",
 		}),
 		t({
-			id: "mobile.workspaceCreate.step.worktree",
 			message: "Creating worktree",
 		}),
 		t({
-			id: "mobile.workspaceCreate.step.startingAgent",
 			message: `Starting ${agentLabel}`,
 		}),
 	].map((label, index) => ({
@@ -57,9 +54,7 @@ export function WorkspaceCreatingState({
 		<View className="flex-1 items-center justify-center px-8">
 			<AsciiSpinner />
 			<Text className="mt-3 font-semibold text-[17px]">
-				<Trans id="mobile.workspaceCreate.creatingTitle">
-					Creating workspace
-				</Trans>
+				<Trans>Creating workspace</Trans>
 			</Text>
 			<Text className="text-muted-foreground mt-1.5 font-mono text-xs">
 				{subtitle}
@@ -75,7 +70,6 @@ export function WorkspaceCreatingState({
 				</Text>
 				<Text className="text-muted-foreground font-mono text-[11px]">
 					{t({
-						id: "mobile.workspaceCreate.typical",
 						message: `~${TYPICAL_SECONDS}s typical`,
 					})}
 				</Text>
@@ -83,7 +77,7 @@ export function WorkspaceCreatingState({
 			{elapsedSeconds >= SLOW_HINT_AT_S ? (
 				<View className="border-border mt-5 gap-3 self-stretch border-t px-3 pt-4">
 					<Text className="text-muted-foreground text-[13px] leading-5">
-						<Trans id="mobile.workspaceCreate.slowHint">
+						<Trans>
 							Still working — large repos can take a few minutes. You can leave;
 							the workspace will appear on Home when it's ready.
 						</Trans>
@@ -95,7 +89,7 @@ export function WorkspaceCreatingState({
 						onPress={onBackHome}
 					>
 						<Text>
-							<Trans id="mobile.common.backToHome">Back to Home</Trans>
+							<Trans>Back to Home</Trans>
 						</Text>
 					</Button>
 				</View>

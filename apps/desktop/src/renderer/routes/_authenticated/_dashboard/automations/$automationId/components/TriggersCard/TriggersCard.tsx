@@ -1,17 +1,18 @@
-import { Trans } from "@lingui/react/macro";
-import { formatRelativeTime } from "@superset/i18n/format";
-import type { DraftTrigger } from "@superset/shared/automation-triggers";
-import {
-	formatDateTimeInTimezone,
-	nextOccurrenceAfter,
-} from "@superset/shared/rrule";
+import { formatDateTime } from "@superset/i18n/format";
+import type {
+	DraftTrigger,
+	TriggerProblem,
+} from "@superset/shared/automation-triggers";
+import { nextOccurrenceAfter } from "@superset/shared/rrule";
 import type { RouterOutputs } from "@superset/trpc";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useMemo } from "react";
 import { useRecentProjects } from "renderer/hooks/host-projects/useRecentProjects";
 import type { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { DevicePicker } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 import { ProjectPicker } from "../../../components/ProjectPicker";
+import type {
+	OptionGroupState,
+	ProviderOptions,
+} from "../../../components/providers/types";
 import { RelayOfflineNotice } from "../../../components/RelayOfflineNotice";
 import { TriggersEditor } from "../../../components/TriggersEditor";
 import { WorkspacePicker } from "../../../components/WorkspacePicker";
@@ -23,176 +24,149 @@ export type AutomationUpdatePatch = Partial<
 
 type AutomationDetail = RouterOutputs["automation"]["get"];
 
+export interface ScopeDraft {
+	v2ProjectId: string | null;
+	targetHostId: string | null;
+	v2WorkspaceId: string | null;
+	tags: string[];
+}
+
 interface TriggersCardProps {
 	automation: AutomationDetail;
 	hostId: string | null;
 	readOnly?: boolean;
-	onUpdate: (patch: AutomationUpdatePatch) => void;
-	/** Resolves once the write lands, so the editor knows the set is saved. */
-	onSaveTriggers: (triggers: DraftTrigger[]) => Promise<unknown>;
+	scope: ScopeDraft;
+	onScopeChange: (patch: Partial<ScopeDraft>) => void;
+	drafts: DraftTrigger[];
+	onEditTriggers: (next: DraftTrigger[]) => void;
+	problems: TriggerProblem[];
+	options: ProviderOptions;
+	optionState: Record<string, OptionGroupState>;
 }
 
-/**
- * Sentence-shaped trigger: "[Daily at 8:00 AM] [America/LA]" with an
- * indented scope line "in [project] on [device] · [workspace]".
- */
 export function TriggersCard({
 	automation,
 	hostId,
 	readOnly,
-	onUpdate,
-	onSaveTriggers,
+	scope,
+	onScopeChange,
+	drafts,
+	onEditTriggers,
+	problems,
+	options,
+	optionState,
 }: TriggersCardProps) {
 	const recentProjects = useRecentProjects();
 	const selectedProject = recentProjects.find(
-		(p) => p.id === automation.v2ProjectId,
+		(p) => p.id === scope.v2ProjectId,
 	);
 
-	// Per trigger, not per automation: an automation can hold several schedules,
-	// and the automation-level nextRunAt is only the soonest of them — showing it
-	// on every row claims they all fire at the same time.
-	const nextRunByTriggerId = useMemo(() => {
-		// The zone travels with the date: schedules on one automation can sit in
-		// different timezones, so formatting them all in the automation-level one
-		// would label the tooltip wrongly for every schedule but the soonest.
-		const entries = new Map<string, { at: Date; timezone: string }>();
-
-		for (const trigger of automation.triggers) {
-			const config = trigger.config as DraftTrigger["config"];
-			if (config.kind !== "schedule") continue;
-
-			// The saved nextRunAt is the dispatcher's truth; the computed one
-			// covers a paused automation, whose stored value is stale.
-			if (automation.enabled && trigger.nextRunAt) {
-				entries.set(trigger.id, {
-					at: new Date(trigger.nextRunAt),
-					timezone: config.timezone,
-				});
-				continue;
-			}
-			try {
-				const next = nextOccurrenceAfter({
-					rrule: config.rrule,
-					dtstart: new Date(config.dtstart),
-					timezone: config.timezone,
-					after: new Date(),
-				});
-				if (next)
-					entries.set(trigger.id, { at: next, timezone: config.timezone });
-			} catch (error) {
-				console.warn(
-					`[TriggersCard] failed to compute next occurrence for trigger ${trigger.id}`,
-					error,
-				);
-			}
-		}
-
-		return entries;
-	}, [automation.triggers, automation.enabled]);
-
-	// The scope line is the same grammar as a trigger sentence — "in X on Y using
-	// Z" — so it uses the same chips. Left alone, the three pickers render at
-	// 36px/12px, 22px/11px and 36px/12px, none of which match the 24px/13px chips
-	// directly above them. Passed per call site, so the pickers keep their own
-	// look everywhere else they are used.
+	// Sized to match the sentence chips above, which the pickers don't match by default.
 	const SCOPE_CHIP =
 		"h-6 gap-1 rounded-[6px] bg-foreground/[0.06] px-2 text-[13px] font-normal hover:bg-foreground/10";
 
-	const renderNextRun = (triggerId?: string) => {
-		const run = triggerId ? nextRunByTriggerId.get(triggerId) : undefined;
-		if (!run) return null;
-		return (
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<span>
-						{automation.enabled ? (
-							<Trans id="dashboard.automations.triggersCard.nextRun">
-								Next run
-							</Trans>
-						) : (
-							<Trans id="dashboard.automations.triggersCard.wouldRun">
-								Would run
-							</Trans>
-						)}{" "}
-						{formatRelativeTime(run.at)}
-					</span>
-				</TooltipTrigger>
-				<TooltipContent side="right">
-					{formatDateTimeInTimezone(run.at, run.timezone)}
-				</TooltipContent>
-			</Tooltip>
-		);
+	const renderNextRun = (
+		config: Extract<DraftTrigger["config"], { kind: "schedule" }>,
+	) => {
+		try {
+			const next = nextOccurrenceAfter({
+				rrule: config.rrule,
+				dtstart: new Date(config.dtstart),
+				timezone: config.timezone,
+				after: new Date(),
+			});
+			if (!next) return null;
+			return (
+				<span>
+					{"Next run "}
+					{formatDateTime(next, {
+						weekday: "short",
+						month: "short",
+						day: "numeric",
+						hour: "numeric",
+						minute: "2-digit",
+						timeZoneName: "short",
+						timeZone: config.timezone,
+					})}
+				</span>
+			);
+		} catch {
+			return null;
+		}
 	};
 
 	return (
 		<div className="flex flex-col gap-1">
 			<TriggersEditor
-				triggers={automation.triggers.map((t) => ({
-					id: t.id,
-					config: t.config as DraftTrigger["config"],
-				}))}
-				onChange={onSaveTriggers}
+				drafts={drafts}
+				onEdit={onEditTriggers}
+				problems={problems}
+				options={options}
+				optionState={optionState}
 				organizationId={automation.organizationId}
 				renderNextRun={renderNextRun}
 				readOnly={readOnly}
-			/>
-			<div className="flex flex-wrap items-center gap-x-1 gap-y-1 px-2 pt-1 text-[13px] text-muted-foreground">
-				{/* One message, pickers as placeholders: bare "in"/"on"/"using"
-				    fragments cannot be translated into case-marking or verb-final
-				    languages; a whole sentence lets each locale reorder the chips. */}
-				<Trans id="dashboard.automations.triggersCard.scopeSentence">
-					<span>in</span>{" "}
+			>
+				<div className="flex flex-wrap items-center gap-x-1 gap-y-1 px-2 pt-1 text-[13px] text-muted-foreground">
+					<span>in</span>
 					<ProjectPicker
 						className={SCOPE_CHIP}
 						selectedProject={selectedProject}
-						sessionSelected={automation.v2ProjectId === null}
+						sessionSelected={scope.v2ProjectId === null}
 						recentProjects={recentProjects}
 						disabled={readOnly}
-						onSelectProject={(v2ProjectId) => onUpdate({ v2ProjectId })}
-					/>{" "}
-					<span>on</span>{" "}
+						onSelectProject={(v2ProjectId) =>
+							onScopeChange(
+								v2ProjectId === scope.v2ProjectId
+									? { v2ProjectId }
+									: { v2ProjectId, v2WorkspaceId: null },
+							)
+						}
+					/>
+					<span>on</span>
 					<DevicePicker
 						className={SCOPE_CHIP}
 						hostId={hostId}
 						showLocalOnlineState
 						disabled={readOnly}
 						onSelectHostId={(nextHostId) =>
-							onUpdate({ targetHostId: nextHostId })
+							onScopeChange(
+								nextHostId === scope.targetHostId
+									? { targetHostId: nextHostId }
+									: { targetHostId: nextHostId, v2WorkspaceId: null },
+							)
 						}
-					/>{" "}
-					<span>using</span>{" "}
+					/>
+					<span>using</span>
 					<WorkspacePicker
 						className={SCOPE_CHIP}
 						hostId={hostId}
-						projectId={automation.v2ProjectId}
-						value={automation.v2WorkspaceId}
+						projectId={scope.v2ProjectId}
+						value={scope.v2WorkspaceId}
 						disabled={readOnly}
 						onChange={(v2WorkspaceId) =>
-							onUpdate({
+							onScopeChange({
 								v2WorkspaceId,
-								// Denormalized pin: the picker is scoped to this host/project,
-								// so send both — the cloud stores them without a
-								// workspace-registry lookup. A null project means the pin is a
-								// session workspace.
+								// Denormalized pin: the cloud stores both without a registry lookup.
 								...(v2WorkspaceId && hostId
 									? {
 											targetHostId: hostId,
-											v2ProjectId: automation.v2ProjectId,
+											v2ProjectId: scope.v2ProjectId,
 										}
 									: {}),
 							})
 						}
-					/>{" "}
-					<span>tagged</span>{" "}
+					/>
+					<span>tagged</span>
 					<AutomationTagsPicker
 						className={SCOPE_CHIP}
-						tags={automation.tags}
-						projectId={automation.v2ProjectId}
+						tags={scope.tags}
+						projectId={scope.v2ProjectId}
 						disabled={readOnly}
-						onChange={(tags) => onUpdate({ tags })}
+						onChange={(tags) => onScopeChange({ tags })}
 					/>
-				</Trans>
-			</div>
+				</div>
+			</TriggersEditor>
 			<RelayOfflineNotice hostId={hostId} className="mt-1" />
 		</div>
 	);

@@ -299,31 +299,31 @@ export function V2ScriptsEditor({
 							value="setup"
 							className="relative h-8 rounded-none border-0 bg-transparent px-3 text-sm font-medium text-muted-foreground shadow-none transition-colors hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-transparent data-[state=active]:after:bg-foreground"
 						>
-							<Trans id="settings.project.scripts.setupTab">Setup</Trans>
+							<Trans>Setup</Trans>
 						</TabsTrigger>
 						<TabsTrigger
 							value="teardown"
 							className="relative h-8 rounded-none border-0 bg-transparent px-3 text-sm font-medium text-muted-foreground shadow-none transition-colors hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-transparent data-[state=active]:after:bg-foreground"
 						>
-							<Trans id="settings.project.scripts.teardownTab">Teardown</Trans>
+							<Trans>Teardown</Trans>
 						</TabsTrigger>
 						<TabsTrigger
 							value="run"
 							className="relative h-8 rounded-none border-0 bg-transparent px-3 text-sm font-medium text-muted-foreground shadow-none transition-colors hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-transparent data-[state=active]:after:bg-foreground"
 						>
-							<Trans id="settings.project.scripts.runTab">Run</Trans>
+							<Trans>Run</Trans>
 						</TabsTrigger>
 					</TabsList>
 					<div className="flex h-5 items-center pb-1.5 text-xs text-muted-foreground">
 						{saveStatus === "saving" && (
 							<span>
-								<Trans id="settings.project.scripts.saving">Saving…</Trans>
+								<Trans>Saving…</Trans>
 							</span>
 						)}
 						{saveStatus === "saved" && (
 							<span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
 								<HiCheckCircle className="h-3.5 w-3.5" />
-								<Trans id="settings.project.scripts.saved">Saved</Trans>
+								<Trans>Saved</Trans>
 							</span>
 						)}
 					</div>

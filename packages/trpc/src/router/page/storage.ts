@@ -1,12 +1,20 @@
 import { db } from "@superset/db/client";
-import { pages, pageVersions, type SelectPage } from "@superset/db/schema";
 import {
+	attachments,
+	files,
+	pages,
+	pageVersions,
+	type SelectPage,
+} from "@superset/db/schema";
+import {
+	fileOriginalKey,
 	type PageManifest,
+	type PageManifestAsset,
 	pageManifestKey,
 	pageThumbnailKey,
 	signPageTicket,
 } from "@superset/shared/usercontent";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { env } from "../../env";
 import { deleteObjects, putObject } from "../../lib/r2";
 
@@ -17,20 +25,6 @@ import { deleteObjects, putObject } from "../../lib/r2";
 // so it turns hourly; a pinned version is immutable, so it gets a day.
 const SERVED_TICKET_WINDOW_SECONDS = 60 * 60;
 const VERSION_TICKET_WINDOW_SECONDS = 24 * 60 * 60;
-
-export function usercontentBaseUrl(): string {
-	if (!env.USERCONTENT_URL) {
-		throw new Error("Usercontent origin is not configured");
-	}
-	return env.USERCONTENT_URL;
-}
-
-function ticketSecret(): string {
-	if (!env.USERCONTENT_TOKEN_SECRET) {
-		throw new Error("Usercontent origin is not configured");
-	}
-	return env.USERCONTENT_TOKEN_SECRET;
-}
 
 /**
  * Rewrites the manifest the usercontent Worker serves from. Called after any
@@ -47,6 +41,7 @@ export async function writePageManifest(pageId: string): Promise<void> {
 
 	const rows = await db
 		.select({
+			id: pageVersions.id,
 			version: pageVersions.version,
 			key: pageVersions.storageKey,
 			contentType: pageVersions.contentType,
@@ -54,6 +49,37 @@ export async function writePageManifest(pageId: string): Promise<void> {
 		.from(pageVersions)
 		.where(eq(pageVersions.pageId, pageId))
 		.orderBy(asc(pageVersions.version));
+
+	const assetsByVersion = new Map<string, Record<string, PageManifestAsset>>();
+	if (rows.length > 0) {
+		const assetRows = await db
+			.select({
+				versionId: attachments.parentId,
+				path: attachments.path,
+				fileId: files.id,
+				contentType: files.contentType,
+			})
+			.from(attachments)
+			.innerJoin(files, eq(files.id, attachments.fileId))
+			.where(
+				and(
+					eq(attachments.parentKind, "page_version"),
+					inArray(
+						attachments.parentId,
+						rows.map((row) => row.id),
+					),
+				),
+			);
+		for (const asset of assetRows) {
+			if (asset.path === null) continue;
+			const entry = assetsByVersion.get(asset.versionId) ?? {};
+			entry[asset.path] = {
+				key: fileOriginalKey(asset.fileId),
+				contentType: asset.contentType,
+			};
+			assetsByVersion.set(asset.versionId, entry);
+		}
+	}
 
 	const manifest: PageManifest = {
 		v: 1,
@@ -63,10 +89,17 @@ export async function writePageManifest(pageId: string): Promise<void> {
 		sharedVersion: page.sharedVersion,
 		latestVersion: rows.at(-1)?.version ?? null,
 		versions: Object.fromEntries(
-			rows.map((row) => [
-				String(row.version),
-				{ key: row.key, contentType: row.contentType },
-			]),
+			rows.map((row) => {
+				const assets = assetsByVersion.get(row.id);
+				return [
+					String(row.version),
+					{
+						key: row.key,
+						contentType: row.contentType,
+						...(assets ? { assets } : {}),
+					},
+				];
+			}),
 		),
 	};
 
@@ -81,6 +114,7 @@ export async function writePageManifest(pageId: string): Promise<void> {
 				key: pageManifestKey(pageId),
 				body: JSON.stringify(manifest),
 				contentType: "application/json",
+				bucket: "private",
 			});
 			return;
 		} catch (error) {
@@ -125,7 +159,7 @@ export async function mintPageTicket(
 		ttlSeconds !== undefined
 			? now + ttlSeconds
 			: Math.ceil(now / window) * window + window;
-	return signPageTicket(ticketSecret(), {
+	return signPageTicket(env.USERCONTENT_TOKEN_SECRET, {
 		pageId: page.id,
 		...(version !== undefined ? { version } : {}),
 		exp,

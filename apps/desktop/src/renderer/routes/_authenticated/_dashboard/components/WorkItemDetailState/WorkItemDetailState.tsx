@@ -32,7 +32,7 @@ export function WorkItemDetailState({
 			<span className="max-w-prose text-wrap-pretty">{message}</span>
 			{onRetry && (
 				<Button variant="outline" size="sm" onClick={onRetry}>
-					<Trans id="dashboard.workItemDetailState.tryAgain">Try again</Trans>
+					<Trans>Try again</Trans>
 				</Button>
 			)}
 		</div>

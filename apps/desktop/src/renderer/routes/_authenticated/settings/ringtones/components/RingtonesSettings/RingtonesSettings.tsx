@@ -89,11 +89,9 @@ function RingtoneRow({
 				aria-label={
 					isPlaying
 						? t({
-								id: "settings.ringtones.stopRingtone",
 								message: `Stop ${ringtone.name}`,
 							})
 						: t({
-								id: "settings.ringtones.playRingtone",
 								message: `Play ${ringtone.name}`,
 							})
 				}
@@ -263,12 +261,10 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
 				<h2 className="text-xl font-semibold">
-					<Trans id="settings.ringtones.title">Notifications</Trans>
+					<Trans>Notifications</Trans>
 				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					<Trans id="settings.ringtones.subtitle">
-						Sounds and ringtone for completed tasks
-					</Trans>
+					<Trans>Sounds and ringtone for completed tasks</Trans>
 				</p>
 			</div>
 
@@ -281,14 +277,10 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 								htmlFor="notification-sounds"
 								className="text-sm font-medium"
 							>
-								<Trans id="settings.ringtones.soundsLabel">
-									Notification sounds
-								</Trans>
+								<Trans>Notification sounds</Trans>
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								<Trans id="settings.ringtones.soundsHint">
-									Play a sound when tasks complete
-								</Trans>
+								<Trans>Play a sound when tasks complete</Trans>
 							</p>
 						</div>
 						<Switch
@@ -311,14 +303,13 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 								<h3 className="text-sm font-medium mb-1">
 									<HighlightText
 										text={t({
-											id: "settings.ringtones.notificationSoundLabel",
 											message: "Notification sound",
 										})}
 										query={searchQuery}
 									/>
 								</h3>
 								<p className="text-xs text-muted-foreground">
-									<Trans id="settings.ringtones.pickSoundHint">
+									<Trans>
 										Pick a sound or add your own. Custom audio supports .mp3,
 										.wav, and .ogg.
 									</Trans>
@@ -337,13 +328,9 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 									<HiPlus className="mr-1.5 h-3.5 w-3.5" />
 								)}
 								{customRingtone ? (
-									<Trans id="settings.ringtones.replaceCustomAudio">
-										Replace custom audio
-									</Trans>
+									<Trans>Replace custom audio</Trans>
 								) : (
-									<Trans id="settings.ringtones.addCustomAudio">
-										Add custom audio
-									</Trans>
+									<Trans>Add custom audio</Trans>
 								)}
 							</Button>
 						</div>

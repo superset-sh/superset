@@ -6,14 +6,14 @@ import {
 	type ChangesetFile,
 	getChangesetFileKey,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
+import { toRelativeWorkspacePath } from "shared/absolute-paths";
 import type { FoldSignal } from "../../ChangesFileList";
 import { FileRow } from "../FileRow";
 import { FolderHeader } from "./components/FolderHeader";
 
 const ROOT_FOLDER_KEY = "";
 const ROOT_FOLDER_LABEL = msg({
-	id: "workspace.changesFoldersView.rootFolder",
-	message: "Root Path",
+	message: "./",
 });
 // FolderHeader and FileRow are single-line rows (`py-1`, `text-xs`); the
 // virtualizer re-measures each one, so this is only the pre-measure estimate.
@@ -24,6 +24,10 @@ interface ChangesFoldersViewProps {
 	files: ChangesetFile[];
 	workspaceId: string;
 	worktreePath?: string;
+	/** Absolute path of the diff pane's open file — highlights its row. */
+	selectedFilePath?: string;
+	/** Disambiguates a path present in several sections (staged + unstaged). */
+	selectedChangeKey?: string;
 	/** Bumped by the toolbar's expand-all / collapse-all buttons. */
 	foldSignal: FoldSignal;
 	onSelectFile?: (
@@ -68,12 +72,18 @@ export const ChangesFoldersView = memo(function ChangesFoldersView({
 	files,
 	workspaceId,
 	worktreePath,
+	selectedFilePath,
+	selectedChangeKey,
 	foldSignal,
 	onSelectFile,
 	onOpenFile,
 	onOpenInEditor,
 }: ChangesFoldersViewProps) {
 	const groups = useMemo(() => groupFilesByFolder(files), [files]);
+	const selectedRelPath =
+		selectedFilePath && worktreePath
+			? toRelativeWorkspacePath(worktreePath, selectedFilePath)
+			: selectedFilePath;
 	const [closedFolders, setClosedFolders] = useState<Set<string>>(new Set());
 
 	const toggleFolder = useCallback((folderPath: string) => {
@@ -175,6 +185,11 @@ export const ChangesFoldersView = memo(function ChangesFoldersView({
 									workspaceId={workspaceId}
 									worktreePath={worktreePath}
 									hideDir
+									isSelected={
+										row.file.path === selectedRelPath &&
+										(selectedChangeKey == null ||
+											getChangesetFileKey(row.file) === selectedChangeKey)
+									}
 									onSelect={onSelectFile}
 									onOpenFile={onOpenFile}
 									onOpenInEditor={onOpenInEditor}

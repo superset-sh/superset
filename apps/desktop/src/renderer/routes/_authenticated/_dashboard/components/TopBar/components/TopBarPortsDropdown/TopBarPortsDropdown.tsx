@@ -52,7 +52,6 @@ export function TopBarPortsDropdown({
 						<button
 							type="button"
 							aria-label={t({
-								id: "dashboard.topBar.ports.pillAriaLabel",
 								message: `Ports — ${totalPortCount} live`,
 							})}
 							className="flex items-center gap-1.5 rounded-md px-2 py-1 text-muted-foreground text-xs transition-colors hover:bg-fill-hover hover:text-foreground data-[state=open]:bg-fill-hover data-[state=open]:text-foreground"
@@ -64,7 +63,7 @@ export function TopBarPortsDropdown({
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
 					<p className="text-xs">
-						<Trans id="dashboard.topBar.ports.summary">
+						<Trans>
 							<Plural value={totalPortCount} one="# port" other="# ports" />{" "}
 							across{" "}
 							<Plural
@@ -83,7 +82,7 @@ export function TopBarPortsDropdown({
 						strokeWidth={STROKE_WIDTH}
 					/>
 					<span className="font-medium text-foreground text-xs">
-						<Trans id="dashboard.topBar.ports.title">Ports</Trans>
+						<Trans>Ports</Trans>
 					</span>
 				</div>
 				<div className="max-h-80 overflow-y-auto p-1">

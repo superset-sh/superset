@@ -71,11 +71,9 @@ export function ProjectsSettingsSidebar({
 	return (
 		<SettingsListSidebar
 			searchPlaceholder={t({
-				id: "settings.projects.filterPlaceholder",
 				message: "Filter projects...",
 			})}
 			searchAriaLabel={t({
-				id: "settings.projects.filterAria",
 				message: "Filter projects",
 			})}
 			hideFilterWhenEmpty
@@ -83,12 +81,10 @@ export function ProjectsSettingsSidebar({
 			filterRow={(row, q) => row.name.toLowerCase().includes(q.toLowerCase())}
 			getRowKey={(row) => `${row.kind}:${row.id}`}
 			emptyLabel={t({
-				id: "settings.projects.emptyLabel",
 				message: "No projects yet.",
 			})}
 			noMatchLabel={(q) =>
 				t({
-					id: "settings.projects.noMatchLabel",
 					message: `No projects match "${q}".`,
 				})
 			}

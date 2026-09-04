@@ -179,16 +179,14 @@ export function IntegrationsSettings({
 			<div className="p-6 max-w-4xl w-full">
 				<div className="mb-8">
 					<h2 className="text-xl font-semibold">
-						<Trans id="settings.integrations.noOrgTitle">Integrations</Trans>
+						<Trans>Integrations</Trans>
 					</h2>
 					<p className="text-sm text-muted-foreground mt-1">
-						<Trans id="settings.integrations.noOrgSubtitle">
-							Connect external services to sync data.
-						</Trans>
+						<Trans>Connect external services to sync data.</Trans>
 					</p>
 				</div>
 				<p className="text-sm text-muted-foreground">
-					<Trans id="settings.integrations.noOrgHint">
+					<Trans>
 						You need to be part of an organization to use integrations.
 					</Trans>
 				</p>
@@ -200,10 +198,10 @@ export function IntegrationsSettings({
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
 				<h2 className="text-xl font-semibold">
-					<Trans id="settings.integrations.title">Integrations</Trans>
+					<Trans>Integrations</Trans>
 				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					<Trans id="settings.integrations.subtitle">
+					<Trans>
 						Connect external services to sync data with your organization.
 					</Trans>
 				</p>
@@ -232,7 +230,7 @@ export function IntegrationsSettings({
 			</div>
 
 			<p className="mt-6 text-xs text-muted-foreground">
-				<Trans id="settings.integrations.manageOnWebHint">
+				<Trans>
 					Manage integrations in the web app to connect and configure services.
 				</Trans>
 			</p>
@@ -273,14 +271,12 @@ function IntegrationRow({
 			<span className="text-xs text-muted-foreground">
 				{isConnected ? (
 					connectedOrgName ? (
-						<Trans id="settings.integrations.connectedTo">
-							Connected to {connectedOrgName}
-						</Trans>
+						<Trans>Connected to {connectedOrgName}</Trans>
 					) : (
-						<Trans id="settings.integrations.connected">Connected</Trans>
+						<Trans>Connected</Trans>
 					)
 				) : (
-					<Trans id="settings.integrations.notConnected">Not connected</Trans>
+					<Trans>Not connected</Trans>
 				)}
 			</span>
 		</div>
@@ -308,11 +304,7 @@ function IntegrationRow({
 					className="gap-2"
 				>
 					<HiOutlineArrowTopRightOnSquare className="size-4" />
-					{isConnected ? (
-						<Trans id="settings.integrations.manage">Manage</Trans>
-					) : (
-						<Trans id="settings.integrations.connect">Connect</Trans>
-					)}
+					{isConnected ? <Trans>Manage</Trans> : <Trans>Connect</Trans>}
 				</Button>
 			</div>
 		</div>

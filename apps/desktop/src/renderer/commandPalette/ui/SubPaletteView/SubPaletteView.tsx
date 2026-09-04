@@ -42,7 +42,7 @@ export function SubPaletteView({
 	return (
 		<CommandList>
 			<CommandEmpty>
-				<Trans id="commandPalette.subPalette.empty">Nothing here.</Trans>
+				<Trans>Nothing here.</Trans>
 			</CommandEmpty>
 			<CommandGroup heading={i18n._(parent.title)}>
 				{visible.map((command) => (

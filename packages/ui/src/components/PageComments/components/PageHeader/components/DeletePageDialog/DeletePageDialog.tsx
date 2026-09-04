@@ -43,7 +43,6 @@ export function DeletePageDialog({
 				errorMessage(
 					error,
 					t({
-						id: "ui.deletePageDialog.deleteFailed",
 						message: "Could not delete this page",
 					}),
 				),
@@ -58,28 +57,26 @@ export function DeletePageDialog({
 			<AlertDialogContent>
 				<AlertDialogHeader>
 					<AlertDialogTitle>
-						<Trans id="ui.deletePageDialog.title">Delete “{title}”?</Trans>
+						<Trans>Delete “{title}”?</Trans>
 					</AlertDialogTitle>
 					<AlertDialogDescription>
 						{versionCount > 1 ? (
-							<Trans id="ui.deletePageDialog.descriptionMany">
+							<Trans>
 								All {versionCount} versions and their content are removed.
 								Anyone with the link loses access.
 							</Trans>
 						) : (
-							<Trans id="ui.deletePageDialog.descriptionOne">
+							<Trans>
 								The page and its content are removed. Anyone with the link loses
 								access.
 							</Trans>
 						)}{" "}
-						<Trans id="ui.deletePageDialog.irreversible">
-							This cannot be undone.
-						</Trans>
+						<Trans>This cannot be undone.</Trans>
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
 					<AlertDialogCancel disabled={busy}>
-						<Trans id="ui.deletePageDialog.cancel">Cancel</Trans>
+						<Trans>Cancel</Trans>
 					</AlertDialogCancel>
 					<AlertDialogAction
 						disabled={busy}
@@ -88,11 +85,7 @@ export function DeletePageDialog({
 							void confirm();
 						}}
 					>
-						{busy ? (
-							<Trans id="ui.deletePageDialog.deleting">Deleting…</Trans>
-						) : (
-							<Trans id="ui.deletePageDialog.confirm">Delete page</Trans>
-						)}
+						{busy ? <Trans>Deleting…</Trans> : <Trans>Delete page</Trans>}
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>

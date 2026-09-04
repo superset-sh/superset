@@ -8,6 +8,26 @@ export const WORKSPACE_TAG_MAX_LENGTH = 64;
 export const WORKSPACE_TAGS_MAX_PER_WORKSPACE = 32;
 
 /**
+ * Scope for tag folders that belong to no project — the Sessions lane. A
+ * folder is a (scope, tag) pair, where scope is normally a project id;
+ * those are UUIDs, so this sentinel can never collide with one.
+ */
+export const SESSIONS_TAG_SCOPE = "sessions";
+
+/** Router boundary for the only two valid folder owner shapes. */
+export const tagFolderScopeInputSchema = z.union([
+	z.literal(SESSIONS_TAG_SCOPE),
+	z.string().uuid(),
+]);
+
+export type TagFolderScopeInput = z.infer<typeof tagFolderScopeInputSchema>;
+
+/** The scope a tag folder lives under: a project id, or the Sessions lane. */
+export function tagFolderScope(projectId: string | null): string {
+	return projectId ?? SESSIONS_TAG_SCOPE;
+}
+
+/**
  * Trim + lowercase. Returns null for empty, over-length, or missing input.
  * Accepts null/undefined because persisted rows written before a field
  * existed carry undefined — callers must not need their own guard.
@@ -45,24 +65,26 @@ export function normalizeWorkspaceTags(
 	return [...unique].sort();
 }
 
+/** Router-boundary schema for one tag; parses to its stored normalized form. */
+export const workspaceTagInputSchema = z
+	.string()
+	.superRefine((tag, ctx) => {
+		if (normalizeWorkspaceTag(tag) == null) {
+			ctx.addIssue({
+				code: "custom",
+				message: `Tag must be 1-${WORKSPACE_TAG_MAX_LENGTH} characters after trimming`,
+			});
+		}
+	})
+	.transform((tag) => normalizeWorkspaceTag(tag) as string);
+
 /**
  * Router-boundary schema. Rejects (never silently drops) invalid tags and
  * over-cap sets; parses to the normalized, deduped, sorted set. The cap
  * applies to the deduped set — that is what gets stored.
  */
 export const workspaceTagsInputSchema = z
-	.array(z.string())
-	.superRefine((tags, ctx) => {
-		for (const [index, tag] of tags.entries()) {
-			if (normalizeWorkspaceTag(tag) == null) {
-				ctx.addIssue({
-					code: "custom",
-					message: `Tag must be 1-${WORKSPACE_TAG_MAX_LENGTH} characters after trimming`,
-					path: [index],
-				});
-			}
-		}
-	})
+	.array(workspaceTagInputSchema)
 	.transform((tags) => normalizeWorkspaceTags(tags))
 	.refine((tags) => tags.length <= WORKSPACE_TAGS_MAX_PER_WORKSPACE, {
 		message: `A workspace can have at most ${WORKSPACE_TAGS_MAX_PER_WORKSPACE} tags`,

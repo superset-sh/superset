@@ -67,8 +67,7 @@ export function ResponsiveDropdown({
 				<Drawer open={open} onOpenChange={setOpen}>
 					<DrawerContent>
 						<DrawerTitle className="sr-only">
-							{title ??
-								t({ id: "web.responsiveDropdown.title", message: "Menu" })}
+							{title ?? t({ message: "Menu" })}
 						</DrawerTitle>
 						<div className="flex flex-col gap-1 p-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
 							{items.map((item) => (

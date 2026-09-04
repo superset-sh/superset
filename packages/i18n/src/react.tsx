@@ -70,6 +70,12 @@ interface LanguageSwitcherProps {
 	 */
 	onSelect?: (locale: SupportedLocale) => void;
 	/**
+	 * Called with the chosen and the outgoing locale before the choice is
+	 * applied, so apps can record the switch ahead of the reload or
+	 * navigation that follows.
+	 */
+	onChange?: (next: SupportedLocale, current: SupportedLocale) => void;
+	/**
 	 * Server-resolved effective locale, when the caller knows it. Client
 	 * components server-render through the non-RSC module instance, whose
 	 * i18n singleton has not been activated for the request — without this
@@ -98,6 +104,7 @@ export function LanguageSwitcher({
 	label,
 	locale,
 	onSelect,
+	onChange,
 	className,
 }: LanguageSwitcherProps) {
 	// The effective locale: starts at the module's current value (the server
@@ -118,6 +125,7 @@ export function LanguageSwitcher({
 			value={value}
 			onChange={(event) => {
 				const next = event.target.value as SupportedLocale;
+				onChange?.(next, value);
 				if (onSelect) {
 					onSelect(next);
 					return;

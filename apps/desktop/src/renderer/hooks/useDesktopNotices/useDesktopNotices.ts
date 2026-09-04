@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import {
 	type DesktopNotice,
@@ -84,10 +85,11 @@ export function useDesktopNotices(): UseDesktopNoticesResult {
 				trigger: "immediate",
 				body: data.message,
 				cta: {
-					label: i18n._({
-						id: "hooks.desktopNotices.installAndRestart",
-						message: "Install & restart",
-					}),
+					label: i18n._(
+						msg({
+							message: "Install & restart",
+						}),
+					),
 					action: "install-update",
 				},
 				dismissible: false,

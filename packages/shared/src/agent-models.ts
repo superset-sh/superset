@@ -47,6 +47,11 @@ export const SUPERSET_CHAT_MODELS: readonly SupersetChatModel[] = [
 	{ id: "anthropic/claude-opus-5", label: "Opus 5", provider: "Anthropic" },
 	{ id: "anthropic/claude-opus-4-8", label: "Opus 4.8", provider: "Anthropic" },
 	{ id: "anthropic/claude-opus-4-7", label: "Opus 4.7", provider: "Anthropic" },
+	{
+		id: "anthropic/claude-fable-5-1",
+		label: "Fable 5.1",
+		provider: "Anthropic",
+	},
 	{ id: "anthropic/claude-fable-5", label: "Fable 5", provider: "Anthropic" },
 	{
 		id: "anthropic/claude-sonnet-4-6",
@@ -58,6 +63,7 @@ export const SUPERSET_CHAT_MODELS: readonly SupersetChatModel[] = [
 		label: "Haiku 4.5",
 		provider: "Anthropic",
 	},
+	{ id: "openai/gpt-6-astra", label: "GPT-6 Astra", provider: "OpenAI" },
 	{ id: "openai/gpt-5.6-sol", label: "GPT-5.6 Sol", provider: "OpenAI" },
 	{
 		id: "openai/gpt-5.6-terra",
@@ -89,6 +95,7 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 			{ id: "opus", label: "Opus", group: LATEST_GROUP },
 			{ id: "sonnet", label: "Sonnet", group: LATEST_GROUP },
 			{ id: "haiku", label: "Haiku", group: LATEST_GROUP },
+			{ id: "claude-fable-5-1", label: "Fable 5.1", group: PINNED_GROUP },
 			{ id: "claude-fable-5", label: "Fable 5", group: PINNED_GROUP },
 			{ id: "claude-opus-5", label: "Opus 5", group: PINNED_GROUP },
 			{ id: "claude-sonnet-5", label: "Sonnet 5", group: PINNED_GROUP },
@@ -104,6 +111,11 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 		presetId: "codex",
 		modelFlag: "--model",
 		models: [
+			// GPT-6 Astra is the slug Codex's model docs publish (2026-09-03) and
+			// the API's only GPT-6 id. OpenAI is enabling it account by account,
+			// so it shows up in a login's live catalog (`codex app-server` →
+			// `model/list`) only once that account has access.
+			{ id: "gpt-6-astra", label: "GPT-6 Astra", group: CURRENT_GROUP },
 			{ id: "gpt-5.6-sol", label: "GPT-5.6 Sol", group: CURRENT_GROUP },
 			{ id: "gpt-5.6-terra", label: "GPT-5.6 Terra", group: CURRENT_GROUP },
 			{ id: "gpt-5.6-luna", label: "GPT-5.6 Luna", group: CURRENT_GROUP },
@@ -166,8 +178,10 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 			// openai ids verified against `opencode models` (2026-08-05), which
 			// no longer lists the old `openai/gpt-5`. anthropic ids follow the
 			// same models.dev catalog but need an authed anthropic provider to
-			// appear in that listing.
+			// appear in that listing; `claude-fable-5-1` was checked against
+			// models.dev directly (2026-09-01).
 			{ id: "anthropic/claude-opus-5", label: "Claude Opus 5" },
+			{ id: "anthropic/claude-fable-5-1", label: "Claude Fable 5.1" },
 			{ id: "anthropic/claude-fable-5", label: "Claude Fable 5" },
 			{ id: "anthropic/claude-sonnet-4-5", label: "Claude Sonnet 4.5" },
 			{ id: "openai/gpt-5.6-sol", label: "GPT-5.6 Sol" },
@@ -181,11 +195,13 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 		models: [
 			// OMP accepts configured role aliases as well as exact
 			// provider/model selectors. Exact ids verified against
-			// `omp models --json` in OMP 18.0.1.
+			// `omp models --json` in OMP 18.0.1; `claude-fable-5-1` against the
+			// catalog bundled in OMP 18.1.2.
 			{ id: "@smol", label: "Configured fast model" },
 			{ id: "@slow", label: "Configured slow model" },
 			{ id: "@plan", label: "Configured plan model" },
 			{ id: "anthropic/claude-opus-5", label: "Claude Opus 5" },
+			{ id: "anthropic/claude-fable-5-1", label: "Claude Fable 5.1" },
 			{ id: "anthropic/claude-fable-5", label: "Claude Fable 5" },
 			{
 				id: "anthropic/claude-sonnet-4-6",
@@ -221,6 +237,16 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 	},
 ];
 
+export interface AgentEffortOption extends AgentModelOption {
+	/**
+	 * Model ids that accept this effort, when only some do. Absent means every
+	 * model the agent offers takes it. Codex's two top levels arrived with
+	 * GPT-5.6 and the models below it reject them, so the picker only offers
+	 * them next to a model that has them.
+	 */
+	models?: readonly string[];
+}
+
 export interface AgentEffortSupport {
 	presetId: string;
 	effortFlag: string;
@@ -230,7 +256,7 @@ export interface AgentEffortSupport {
 	 * `-c model_reasoning_effort=high`.
 	 */
 	effortValuePrefix?: string;
-	efforts: AgentModelOption[];
+	efforts: AgentEffortOption[];
 }
 
 export interface AgentModeOption extends AgentModelOption {
@@ -293,6 +319,18 @@ export const AGENT_EFFORT_SUPPORT: readonly AgentEffortSupport[] = [
 			{ id: "medium", label: "Medium" },
 			{ id: "high", label: "High" },
 			{ id: "xhigh", label: "xHigh" },
+			// Per-model support taken from Codex's own model catalog
+			// (`supported_reasoning_levels`, codex-cli 0.149.1): every GPT-5.6
+			// model takes `max`, and `ultra` — max reasoning plus automatic
+			// task delegation — is Sol and Terra only. GPT-6 Astra documents
+			// `max` (API `reasoning.effort`); `ultra` stays off until its live
+			// catalog entry confirms it.
+			{
+				id: "max",
+				label: "Max",
+				models: ["gpt-6-astra", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"],
+			},
+			{ id: "ultra", label: "Ultra", models: ["gpt-5.6-sol", "gpt-5.6-terra"] },
 		],
 	},
 	{
@@ -375,19 +413,44 @@ export function getAgentModeSupport(
 }
 
 /**
+ * Efforts the given preset offers for `model` — the full curated list minus
+ * any option the selected model rejects. An unset model (or an id outside the
+ * curated catalog, which `buildAgentModelArgs` drops so the launch runs the
+ * agent's own default) keeps the full list.
+ */
+export function getAgentEfforts(
+	presetId: string,
+	model?: string,
+): AgentEffortOption[] {
+	const support = getAgentEffortSupport(presetId);
+	if (!support) return [];
+	const selected = getAgentModelSupport(presetId)?.models.some(
+		(option) => option.id === model,
+	)
+		? model
+		: undefined;
+	return support.efforts.filter(
+		(effort) => !effort.models || !selected || effort.models.includes(selected),
+	);
+}
+
+/**
  * Argv tokens that select `effort` for the given preset, e.g.
  * `["--effort", "high"]` (codex: `["-c", "model_reasoning_effort=high"]`).
- * Same degrade-to-default contract as `buildAgentModelArgs`: unknown presets
- * or effort ids outside the curated list return `[]`.
+ * Same degrade-to-default contract as `buildAgentModelArgs`: unknown presets,
+ * effort ids outside the curated list, and efforts the selected model rejects
+ * return `[]`.
  */
 export function buildAgentEffortArgs(
 	presetId: string,
 	effort: string | undefined,
+	model?: string,
 ): string[] {
 	if (!effort) return [];
 	const support = getAgentEffortSupport(presetId);
 	if (!support) return [];
-	if (!support.efforts.some((option) => option.id === effort)) return [];
+	const efforts = getAgentEfforts(presetId, model);
+	if (!efforts.some((option) => option.id === effort)) return [];
 	return [support.effortFlag, `${support.effortValuePrefix ?? ""}${effort}`];
 }
 

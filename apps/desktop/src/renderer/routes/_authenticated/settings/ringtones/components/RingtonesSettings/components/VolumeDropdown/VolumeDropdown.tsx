@@ -15,31 +15,29 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 const VOLUME_LEVELS = [
 	{
 		value: 20,
-		label: msg({ id: "settings.ringtones.volumeQuiet", message: "Quiet" }),
+		label: msg({ message: "Quiet" }),
 	},
 	{
 		value: 40,
-		label: msg({ id: "settings.ringtones.volumeLow", message: "Low" }),
+		label: msg({ message: "Low" }),
 	},
 	{
 		value: 60,
-		label: msg({ id: "settings.ringtones.volumeMedium", message: "Medium" }),
+		label: msg({ message: "Medium" }),
 	},
 	{
 		value: 80,
-		label: msg({ id: "settings.ringtones.volumeHigh", message: "High" }),
+		label: msg({ message: "High" }),
 	},
 	{
 		value: 100,
-		label: msg({ id: "settings.ringtones.volumeMaximum", message: "Maximum" }),
+		label: msg({ message: "Maximum" }),
 	},
 ] as const;
 
 function getVolumeLabel(volume: number): string {
 	const level = VOLUME_LEVELS.find((l) => l.value === volume);
-	return level
-		? i18n._(level.label)
-		: i18n._(msg({ id: "settings.ringtones.volumeCustom", message: "Custom" }));
+	return level ? i18n._(level.label) : i18n._(msg({ message: "Custom" }));
 }
 
 export function VolumeDropdown() {
@@ -80,7 +78,7 @@ export function VolumeDropdown() {
 		<div>
 			<div className="flex items-center justify-between gap-4">
 				<Label htmlFor="notification-volume" className="text-sm font-medium">
-					<Trans id="settings.ringtones.volume">Volume</Trans>
+					<Trans>Volume</Trans>
 				</Label>
 				<Select
 					value={volume.toString()}

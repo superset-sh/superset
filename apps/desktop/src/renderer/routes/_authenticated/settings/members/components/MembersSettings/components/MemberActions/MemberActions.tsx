@@ -88,18 +88,15 @@ export function MemberActions({
 		if (isCurrentUser) {
 			toast.promise(leaveOrganization(), {
 				loading: t({
-					id: "settings.members.leavingToast",
 					message: "Leaving organization...",
 				}),
 				success: t({
-					id: "settings.members.leftToast",
 					message: "Left organization",
 				}),
 				error: (err) =>
 					errorMessage(
 						err,
 						t({
-							id: "settings.members.leaveFailedToast",
 							message: "Failed to leave organization",
 						}),
 					),
@@ -107,18 +104,15 @@ export function MemberActions({
 		} else {
 			toast.promise(removeMember(), {
 				loading: t({
-					id: "settings.members.removingToast",
 					message: "Removing member...",
 				}),
 				success: t({
-					id: "settings.members.removedToast",
 					message: "Member removed",
 				}),
 				error: (err) =>
 					errorMessage(
 						err,
 						t({
-							id: "settings.members.removeFailedToast",
 							message: "Failed to remove member",
 						}),
 					),
@@ -130,7 +124,6 @@ export function MemberActions({
 		const billingNote =
 			plan === "pro" || plan === "enterprise"
 				? ` ${t({
-						id: "settings.members.billingAdjustedNote",
 						message: "Your subscription will be adjusted accordingly.",
 					})}`
 				: "";
@@ -140,26 +133,21 @@ export function MemberActions({
 		alert({
 			title: isCurrentUser
 				? t({
-						id: "settings.members.leaveConfirmTitle",
 						message: "Leave organization?",
 					})
 				: t({
-						id: "settings.members.removeConfirmTitle",
 						message: "Remove team member?",
 					}),
 			description: isCurrentUser
 				? t({
-						id: "settings.members.leaveConfirmDescription",
 						message: `Are you sure you want to leave this organization? You will lose access immediately.${billingNote}`,
 					})
 				: t({
-						id: "settings.members.removeConfirmDescription",
 						message: `Are you sure you want to remove ${memberName} (${memberEmail}) from the organization? They will lose access immediately.${billingNote}`,
 					}),
 			actions: [
 				{
 					label: t({
-						id: "settings.members.confirmCancel",
 						message: "Cancel",
 					}),
 					variant: "outline",
@@ -168,11 +156,9 @@ export function MemberActions({
 				{
 					label: isCurrentUser
 						? t({
-								id: "settings.members.leaveConfirmAction",
 								message: "Leave Organization",
 							})
 						: t({
-								id: "settings.members.removeConfirmAction",
 								message: "Remove Member",
 							}),
 					variant: "destructive",
@@ -194,7 +180,6 @@ export function MemberActions({
 			const newRoleName = organizationRoleName(newRole);
 			toast.success(
 				t({
-					id: "settings.members.roleChangedToast",
 					message: `Role changed to ${newRoleName}`,
 				}),
 			);
@@ -203,7 +188,6 @@ export function MemberActions({
 				errorMessage(
 					error,
 					t({
-						id: "settings.members.roleChangeFailedToast",
 						message: "Failed to change role",
 					}),
 				),
@@ -222,17 +206,14 @@ export function MemberActions({
 			const newRoleName = organizationRoleName(newRole);
 			alert({
 				title: t({
-					id: "settings.members.demoteConfirmTitle",
 					message: "Demote yourself?",
 				}),
 				description: t({
-					id: "settings.members.demoteConfirmDescription",
 					message: `You're about to change your role from ${currentRoleName} to ${newRoleName}. Another owner will need to restore your permissions. Are you sure?`,
 				}),
 				actions: [
 					{
 						label: t({
-							id: "settings.members.demoteCancel",
 							message: "Cancel",
 						}),
 						variant: "outline",
@@ -240,7 +221,6 @@ export function MemberActions({
 					},
 					{
 						label: t({
-							id: "settings.members.demoteConfirmAction",
 							message: "Yes, demote me",
 						}),
 						variant: "destructive",
@@ -264,7 +244,7 @@ export function MemberActions({
 				{availableRoles.length > 0 && (
 					<DropdownMenuSub>
 						<DropdownMenuSubTrigger disabled={isChangingRole}>
-							<Trans id="settings.members.changeRole">Change role</Trans>
+							<Trans>Change role</Trans>
 						</DropdownMenuSubTrigger>
 						<DropdownMenuSubContent>
 							{availableRoles.map((role) => (
@@ -273,9 +253,7 @@ export function MemberActions({
 									onSelect={() => handleRoleSelection(role)}
 									disabled={isChangingRole}
 								>
-									<Trans id="settings.members.changeToRole">
-										Change to {organizationRoleName(role)}
-									</Trans>
+									<Trans>Change to {organizationRoleName(role)}</Trans>
 								</DropdownMenuItem>
 							))}
 						</DropdownMenuSubContent>
@@ -289,9 +267,7 @@ export function MemberActions({
 					>
 						<HiOutlineTrash className="h-4 w-4 text-destructive" />
 						<span>
-							<Trans id="settings.members.leaveOrganization">
-								Leave organization...
-							</Trans>
+							<Trans>Leave organization...</Trans>
 						</span>
 					</DropdownMenuItem>
 				) : canRemove ? (
@@ -301,7 +277,7 @@ export function MemberActions({
 					>
 						<HiOutlineTrash className="h-4 w-4 text-destructive" />
 						<span>
-							<Trans id="settings.members.removeMember">Remove member</Trans>
+							<Trans>Remove member</Trans>
 						</span>
 					</DropdownMenuItem>
 				) : null}

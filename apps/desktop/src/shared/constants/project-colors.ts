@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 
 /** Special value representing "no custom color" - uses default gray border */
@@ -12,68 +13,62 @@ export const PROJECT_COLOR_DEFAULT = "default";
 export const PROJECT_COLORS = [
 	{
 		id: "red",
-		name: () => i18n._({ id: "constants.projectColors.red", message: "Red" }),
+		name: () => i18n._(msg({ message: "Red" })),
 		value: "#ef4444",
 	},
 	{
 		id: "orange",
-		name: () =>
-			i18n._({ id: "constants.projectColors.orange", message: "Orange" }),
+		name: () => i18n._(msg({ message: "Orange" })),
 		value: "#f97316",
 	},
 	{
 		id: "yellow",
-		name: () =>
-			i18n._({ id: "constants.projectColors.yellow", message: "Yellow" }),
+		name: () => i18n._(msg({ message: "Yellow" })),
 		value: "#eab308",
 	},
 	{
 		id: "lime",
-		name: () => i18n._({ id: "constants.projectColors.lime", message: "Lime" }),
+		name: () => i18n._(msg({ message: "Lime" })),
 		value: "#84cc16",
 	},
 	{
 		id: "green",
-		name: () =>
-			i18n._({ id: "constants.projectColors.green", message: "Green" }),
+		name: () => i18n._(msg({ message: "Green" })),
 		value: "#22c55e",
 	},
 	{
 		id: "teal",
-		name: () => i18n._({ id: "constants.projectColors.teal", message: "Teal" }),
+		name: () => i18n._(msg({ message: "Teal" })),
 		value: "#14b8a6",
 	},
 	{
 		id: "cyan",
-		name: () => i18n._({ id: "constants.projectColors.cyan", message: "Cyan" }),
+		name: () => i18n._(msg({ message: "Cyan" })),
 		value: "#06b6d4",
 	},
 	{
 		id: "blue",
-		name: () => i18n._({ id: "constants.projectColors.blue", message: "Blue" }),
+		name: () => i18n._(msg({ message: "Blue" })),
 		value: "#3b82f6",
 	},
 	{
 		id: "indigo",
-		name: () =>
-			i18n._({ id: "constants.projectColors.indigo", message: "Indigo" }),
+		name: () => i18n._(msg({ message: "Indigo" })),
 		value: "#6366f1",
 	},
 	{
 		id: "purple",
-		name: () =>
-			i18n._({ id: "constants.projectColors.purple", message: "Purple" }),
+		name: () => i18n._(msg({ message: "Purple" })),
 		value: "#a855f7",
 	},
 	{
 		id: "pink",
-		name: () => i18n._({ id: "constants.projectColors.pink", message: "Pink" }),
+		name: () => i18n._(msg({ message: "Pink" })),
 		value: "#ec4899",
 	},
 	{
 		id: "slate",
-		name: () =>
-			i18n._({ id: "constants.projectColors.slate", message: "Slate" }),
+		name: () => i18n._(msg({ message: "Slate" })),
 		value: "#64748b",
 	},
 ] as const;

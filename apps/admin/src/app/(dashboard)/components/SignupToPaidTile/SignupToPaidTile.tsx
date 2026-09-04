@@ -21,13 +21,12 @@ export function SignupToPaidTile() {
 	const chartConfig = {
 		conversion_pct: {
 			label: t({
-				id: "admin.signupToPaid.seriesConversion",
 				message: "signup → paid ≤30d",
 			}),
 			color: "var(--chart-1)",
 		},
 		signups: {
-			label: t({ id: "admin.signupToPaid.seriesSignups", message: "signups" }),
+			label: t({ message: "signups" }),
 			color: "var(--chart-2)",
 		},
 	} satisfies ChartConfig;
@@ -40,11 +39,9 @@ export function SignupToPaidTile() {
 	return (
 		<InsightTileFrame
 			title={t({
-				id: "admin.signupToPaid.title",
 				message: "Signup → paid within 30d",
 			})}
 			description={t({
-				id: "admin.signupToPaid.description",
 				message:
 					"Weekly signup cohorts (Neon); cohorts younger than 30d excluded",
 			})}

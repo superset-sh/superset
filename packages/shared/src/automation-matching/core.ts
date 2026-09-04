@@ -46,6 +46,10 @@ export function scopeAllows(
 	value: string | null,
 ): boolean {
 	if (scope.mode === "any") return true;
+	// "me" reaching a matcher means the caller skipped resolveMeScopes; fail
+	// closed rather than guessing an identity here — matchers are pure and
+	// cannot look one up.
+	if (scope.mode === "me") return false;
 	if (value === null) return false;
 	return scope.ids.includes(value);
 }
@@ -53,7 +57,41 @@ export function scopeAllows(
 /** Same, over the event's list of values — labels, attendees. */
 export function scopeAllowsAny(scope: TriggerScope, values: string[]): boolean {
 	if (scope.mode === "any") return true;
+	if (scope.mode === "me") return false;
 	return values.some((v) => scope.ids.includes(v));
+}
+
+/**
+ * Substitutes every `{mode:"me"}` scope in a config with the resolved id —
+ * the automation OWNER's identity at the event's provider, looked up when the
+ * event arrives. Null (no identity connected) resolves to an empty list, so
+ * the trigger is configured fine and silent, which the editor warns about.
+ */
+/** Whether any scope in the config is `{mode:"me"}`. */
+export function configHasMeScope(config: object): boolean {
+	return Object.values(config).some(
+		(value) =>
+			value !== null &&
+			typeof value === "object" &&
+			(value as { mode?: unknown }).mode === "me",
+	);
+}
+
+export function resolveMeScopes<Config extends object>(
+	config: Config,
+	meId: string | null,
+): Config {
+	const out = { ...config } as Record<string, unknown>;
+	for (const [key, value] of Object.entries(out)) {
+		if (
+			value !== null &&
+			typeof value === "object" &&
+			(value as { mode?: unknown }).mode === "me"
+		) {
+			out[key] = { mode: "list", ids: meId === null ? [] : [meId] };
+		}
+	}
+	return out as Config;
 }
 
 /**

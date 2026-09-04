@@ -11,12 +11,13 @@ import {
 	linkSync,
 	mkdirSync,
 	readFileSync,
+	realpathSync,
 	renameSync,
 	unlinkSync,
 	writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import type { HostDb } from "../../../db/index.ts";
 import { hostSettings } from "../../../db/schema.ts";
 
@@ -34,6 +35,34 @@ const POINTER_NAMES: Record<SwitchableAccountAgent, string> = {
  */
 function supersetHomeDir(): string {
 	return process.env.SUPERSET_HOME_DIR?.trim() || join(homedir(), ".superset");
+}
+
+/**
+ * Mirror of agent-setup's resolveAmbientCodexHome. New terminals preserve the
+ * user's real Codex home separately from the profile Superset injects, so a
+ * nested host-service can recover it without importing agent-setup here.
+ */
+function ambientCodexHome(): string {
+	const fromEnv = process.env.CODEX_HOME?.trim();
+	const supersetInjected = process.env.SUPERSET_DEFAULT_CODEX_HOME?.trim();
+	const preservedAmbient = process.env.SUPERSET_AMBIENT_CODEX_HOME?.trim();
+	if (
+		fromEnv &&
+		(!supersetInjected ||
+			canonicalAccountHome(fromEnv) !== canonicalAccountHome(supersetInjected))
+	) {
+		return resolve(fromEnv);
+	}
+	if (preservedAmbient) return resolve(preservedAmbient);
+	return join(homedir(), ".codex");
+}
+
+function canonicalAccountHome(target: string): string {
+	try {
+		return realpathSync(target);
+	} catch {
+		return resolve(target);
+	}
 }
 
 function defaultAccountPointerPath(agent: SwitchableAccountAgent): string {
@@ -237,12 +266,18 @@ export function resolveDefaultAccountEnv(
 			SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR: selections.claudeConfigDir,
 		};
 	}
-	if (
-		presetId === "codex" &&
-		selections.codexHome &&
-		existsSync(selections.codexHome)
-	) {
+	if (presetId === "codex") {
+		const ambientCodex = ambientCodexHome();
+		const ambient = { SUPERSET_AMBIENT_CODEX_HOME: ambientCodex };
+		if (!selections.codexHome || !existsSync(selections.codexHome)) {
+			return {
+				...ambient,
+				CODEX_HOME: ambientCodex,
+				SUPERSET_DEFAULT_CODEX_HOME: ambientCodex,
+			};
+		}
 		return {
+			...ambient,
 			CODEX_HOME: selections.codexHome,
 			SUPERSET_DEFAULT_CODEX_HOME: selections.codexHome,
 		};

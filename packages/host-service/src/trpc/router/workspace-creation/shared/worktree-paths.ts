@@ -1,6 +1,14 @@
 import { realpathSync } from "node:fs";
 import { homedir } from "node:os";
-import { isAbsolute, join, normalize, resolve, sep } from "node:path";
+import {
+	basename,
+	dirname,
+	isAbsolute,
+	join,
+	normalize,
+	resolve,
+	sep,
+} from "node:path";
 import { TRPCError } from "@trpc/server";
 
 // Kept outside the primary checkout so editors, file watchers, and
@@ -68,7 +76,15 @@ function normalizePath(p: string): string {
 	try {
 		return realpathSync(p);
 	} catch {
-		return resolve(p);
+		// A dangling or unreadable leaf still has a real parent. Canonicalise
+		// that so the leaf compares against the same prefix as a base that
+		// sits behind a symlink (macOS `/var` → `/private/var`).
+		const abs = resolve(p);
+		try {
+			return join(realpathSync(dirname(abs)), basename(abs));
+		} catch {
+			return abs;
+		}
 	}
 }
 

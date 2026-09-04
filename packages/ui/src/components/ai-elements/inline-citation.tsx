@@ -211,7 +211,7 @@ export const InlineCitationCarouselPrev = ({
 
 	return (
 		<button
-			aria-label={t({ id: "ui.inlineCitation.previous", message: "Previous" })}
+			aria-label={t({ message: "Previous" })}
 			className={cn("shrink-0", className)}
 			onClick={handleClick}
 			type="button"
@@ -239,7 +239,7 @@ export const InlineCitationCarouselNext = ({
 
 	return (
 		<button
-			aria-label={t({ id: "ui.inlineCitation.next", message: "Next" })}
+			aria-label={t({ message: "Next" })}
 			className={cn("shrink-0", className)}
 			onClick={handleClick}
 			type="button"

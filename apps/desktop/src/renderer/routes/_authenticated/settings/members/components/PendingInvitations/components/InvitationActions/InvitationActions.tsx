@@ -31,7 +31,6 @@ export function InvitationActions({ invitation }: InvitationActionsProps) {
 			await utils.organization.listInvitations.invalidate();
 			toast.success(
 				t({
-					id: "settings.members.invitationCanceledToast",
 					message: "Invitation canceled",
 				}),
 			);
@@ -40,7 +39,6 @@ export function InvitationActions({ invitation }: InvitationActionsProps) {
 				errorMessage(
 					error,
 					t({
-						id: "settings.members.invitationCancelFailedToast",
 						message: "Failed to cancel invitation",
 					}),
 				),
@@ -64,7 +62,7 @@ export function InvitationActions({ invitation }: InvitationActionsProps) {
 					className="text-destructive gap-2"
 				>
 					<HiOutlineXMark className="h-4 w-4" />
-					<Trans id="settings.members.cancelInvitation">Cancel</Trans>
+					<Trans>Cancel</Trans>
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>

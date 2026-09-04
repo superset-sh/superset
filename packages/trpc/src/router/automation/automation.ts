@@ -17,8 +17,9 @@ import {
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, asc, desc, eq, ilike } from "drizzle-orm";
 import { z } from "zod";
-import { resolveUserRelayUrl } from "../../lib/relay-url";
+import { env } from "../../env";
 import { protectedProcedure, userError } from "../../trpc";
+import { joinSlackTriggerChannels } from "../integration/slack/joinChannels";
 import { requireActiveOrgMembership } from "../utils/active-org";
 import { dispatchAutomation } from "./dispatch";
 import {
@@ -419,6 +420,11 @@ export const automationRouter = {
 
 			// Reported from what was actually written, not from the input: a
 			// trigger set may describe a different schedule, or none at all.
+			// After the commit: joining can only make a saved trigger start working.
+			if (input.triggers) {
+				await joinSlackTriggerChannels(organizationId, input.triggers);
+			}
+
 			return withSchedule(created, input.triggers ?? null, legacySchedule);
 		}),
 
@@ -550,6 +556,7 @@ export const automationRouter = {
 						v2ProjectId: nextProjectId,
 						v2WorkspaceId: nextWorkspaceId,
 						tags: input.tags ?? existing.tags,
+						prompt: input.prompt ?? existing.prompt,
 					})
 					.where(eq(automations.id, input.id))
 					.returning();
@@ -562,6 +569,16 @@ export const automationRouter = {
 					});
 				}
 
+				// Only on a real change, so saving a scope tweak doesn't mint a
+				// version identical to the last one.
+				if (input.prompt !== undefined && input.prompt !== existing.prompt) {
+					await recordPromptVersion(tx, {
+						automationId: row.id,
+						authorUserId: ctx.session.user.id,
+						content: input.prompt,
+						source: promptSourceFromSession(ctx.session),
+					});
+				}
 				if (input.triggers) {
 					await saveTriggerSet(tx, {
 						automationId: row.id,
@@ -581,6 +598,10 @@ export const automationRouter = {
 
 				return row;
 			});
+
+			if (input.triggers) {
+				await joinSlackTriggerChannels(organizationId, input.triggers);
+			}
 
 			// Same as create: a trigger set may have replaced or removed the
 			// schedule, so the response reflects what was saved.
@@ -678,7 +699,7 @@ export const automationRouter = {
 			const organizationId = await requireActiveOrgMembership(ctx);
 			await getAutomationForUser(ctx.session.user.id, organizationId, input.id);
 
-			await dbWs.delete(automations).where(eq(automations.id, input.id));
+			await db.delete(automations).where(eq(automations.id, input.id));
 
 			return { ok: true };
 		}),
@@ -752,7 +773,7 @@ export const automationRouter = {
 			const outcome = await dispatchAutomation({
 				automation,
 				scheduledFor: new Date(),
-				relayUrl: await resolveUserRelayUrl(automation.ownerUserId),
+				relayUrl: env.RELAY_URL,
 			});
 
 			if (outcome.status === "conflict") {

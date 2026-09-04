@@ -1,1 +1,1 @@
-export { useCloudRepoPrefixes } from "./useCloudRepoPrefixes";
+export { useCloudRepoPrefix } from "./useCloudRepoPrefixes";

@@ -42,7 +42,6 @@ export function SectionActionsMenuItems({
 	const colorOptions: { name: string; value: string }[] = [
 		{
 			name: t({
-				id: "dashboard.sidebar.sectionMenu.defaultColor",
 				message: "Default",
 			}),
 			value: PROJECT_COLOR_DEFAULT,
@@ -102,7 +101,7 @@ export function SectionActionsMenuItems({
 
 		return renderItem({
 			key: projectColor.value,
-			onSelect: () => onSetColor(isDefault ? null : projectColor.value),
+			onSelect: () => onSetColor?.(isDefault ? null : projectColor.value),
 			children: (
 				<>
 					<span
@@ -126,9 +125,7 @@ export function SectionActionsMenuItems({
 	const colorTrigger = (
 		<>
 			<LuPalette className={iconClassName} />
-			<Trans id="dashboard.sidebar.sectionMenu.setGroupColor">
-				Set group color
-			</Trans>
+			<Trans>Set group color</Trans>
 		</>
 	);
 
@@ -139,36 +136,32 @@ export function SectionActionsMenuItems({
 				children: (
 					<>
 						<LuPencil className={iconClassName} />
-						<Trans id="dashboard.sidebar.sectionMenu.renameGroup">
-							Rename group
-						</Trans>
+						<Trans>Rename group</Trans>
 					</>
 				),
 			})}
-			{kind === "context" ? (
+			{onSetColor && kind === "context" ? (
 				<ContextMenuSub>
 					<ContextMenuSubTrigger>{colorTrigger}</ContextMenuSubTrigger>
 					<ContextMenuSubContent className="w-40 max-h-80 overflow-y-auto">
 						{colorItems}
 					</ContextMenuSubContent>
 				</ContextMenuSub>
-			) : (
+			) : onSetColor ? (
 				<DropdownMenuSub>
 					<DropdownMenuSubTrigger>{colorTrigger}</DropdownMenuSubTrigger>
 					<DropdownMenuSubContent className="w-40 max-h-80 overflow-y-auto">
 						{colorItems}
 					</DropdownMenuSubContent>
 				</DropdownMenuSub>
-			)}
+			) : null}
 			{onHide
 				? renderItem({
 						onSelect: onHide,
 						children: (
 							<>
 								<LuEyeOff className={iconClassName} />
-								<Trans id="dashboard.sidebar.sectionMenu.hideFolder">
-									Hide folder
-								</Trans>
+								<Trans>Hide folder</Trans>
 							</>
 						),
 					})
@@ -190,9 +183,7 @@ export function SectionActionsMenuItems({
 									: "size-4 text-destructive"
 							}
 						/>
-						<Trans id="dashboard.sidebar.sectionMenu.deleteGroup">
-							Delete group
-						</Trans>
+						<Trans>Delete group</Trans>
 					</>
 				),
 			})}
