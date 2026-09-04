@@ -1,0 +1,30 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=block" rel="stylesheet">
+<style>
+  html,body{margin:0;background:#0a0a0a}
+  body{width:1200px;height:630px;overflow:hidden;position:relative;font-family:"Inter Variable",Inter,ui-sans-serif,system-ui,sans-serif;font-feature-settings:"cv01","ss03";color:#fff;-webkit-font-smoothing:antialiased}
+  .glow{position:absolute;left:50%;top:100%;width:1600px;height:900px;transform:translate(-50%,-52%);background:radial-gradient(closest-side,rgba(210,86,17,.55),rgba(210,86,17,.16) 45%,rgba(10,10,10,0) 72%);pointer-events:none}
+  .grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);background-size:60px 60px;-webkit-mask-image:radial-gradient(ellipse 70% 60% at 50% 30%,#000 30%,transparent 100%)}
+  .top{position:absolute;left:0;right:0;top:60px;display:flex;flex-direction:column;align-items:center;gap:24px}
+  h1{margin:0;font-size:66px;font-weight:500;letter-spacing:-0.035em;line-height:1.05;word-spacing:.15em;color:#fafafa;text-align:center}
+  h1 .br{padding:0 .18em;position:relative;color:#fff}
+  h1 .br::before,h1 .br::after{content:"";position:absolute;top:-.06em;bottom:-.06em;width:.12em;border:2px solid #d25611}
+  h1 .br::before{left:-.02em;border-right:0}
+  h1 .br::after{right:-.02em;border-left:0}
+  .sub{font-size:23px;font-weight:300;color:#a3a3a3;letter-spacing:-.01em}
+  .win{position:absolute;left:50%;top:308px;transform:translateX(-50%);width:1060px;height:420px;border-radius:12px;background:#0f0f0f;border:1px solid rgba(255,255,255,.16);box-shadow:0 0 0 1px rgba(0,0,0,.6),0 40px 120px rgba(0,0,0,.6);overflow:hidden}
+  .win img{display:block;width:100%;height:auto}
+  .fade{position:absolute;left:0;right:0;bottom:0;height:150px;background:linear-gradient(180deg,rgba(10,10,10,0),rgba(10,10,10,.92) 70%,#0a0a0a)}
+</style></head><body>
+<div class="grid"></div>
+<div class="glow"></div>
+<div class="top">
+  <img src="../../public/title.svg" style="height:42px">
+  <h1>Orchestrate <span class="br">any</span> coding agent</h1>
+  <div class="sub">One workspace for Claude Code, Codex, and any coding agent.</div>
+</div>
+<div class="win"><img src="screenshot.png"></div>
+<div class="fade"></div>
+</body></html>
