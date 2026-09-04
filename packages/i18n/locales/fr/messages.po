@@ -5809,9 +5809,6 @@ msgstr "Déposez un ticket, recevez une pull request vérifiée et prête à fus
 msgid "File actions"
 msgstr "Actions sur le fichier"
 
-msgid "File is empty"
-msgstr "Le fichier est vide"
-
 msgid "File is too large to preview"
 msgstr "Le fichier est trop volumineux pour être prévisualisé"
 

@@ -5809,9 +5809,6 @@ msgstr "Abre un ticket y recibe una PR verificada y lista para fusionar, con cap
 msgid "File actions"
 msgstr "Acciones de archivo"
 
-msgid "File is empty"
-msgstr "El archivo está vacío"
-
 msgid "File is too large to preview"
 msgstr "El archivo es demasiado grande para previsualizarlo"
 

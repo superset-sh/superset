@@ -5,24 +5,28 @@ import {
 	files,
 	pages,
 	pageVersions,
+	type SelectFile,
 	type SelectPage,
 	type SelectPageVersion,
 	workspacePages,
 } from "@superset/db/schema";
+import {
+	MAX_PAGE_BYTES,
+	PAGE_CONTENT_TYPES,
+} from "@superset/shared/page-content-types";
 import { mintPageSlug } from "@superset/shared/page-slug";
 import { fileOriginalKey, pageVersionKey } from "@superset/shared/usercontent";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, lte } from "drizzle-orm";
 import { userError } from "../../i18n-error";
 import { SNIFF_BYTES, sniffContentType } from "../../lib/files";
-import { getObject, headObject, putObject } from "../../lib/r2";
+import { copyObject, deleteObjects, getObject, headObject } from "../../lib/r2";
 import { assertPageWritable } from "./access";
 import { pageUrl } from "./page-url";
 import {
 	isEntryPathConflict,
 	isVersionConflict,
 	titleFromFilename,
-	validatePublishContent,
 } from "./publish-rules";
 import type { PublishPageInput } from "./schema";
 import { writePageManifest } from "./storage";
@@ -46,6 +50,15 @@ type PublishedVersion = Pick<
  */
 class TargetPageChanged extends Error {}
 
+/** The uploaded object this version's bytes are copied from. */
+type PublishDocument = {
+	fileId: string;
+	key: string;
+	contentType: string;
+	sizeBytes: number;
+	sha256: string;
+};
+
 export async function publishPage({
 	input,
 	organizationId,
@@ -55,7 +68,11 @@ export async function publishPage({
 	organizationId: string;
 	userId: string;
 }) {
-	const { buffer, sha256 } = validatePublishContent(input);
+	const document = await loadUploadedDocument({
+		fileId: input.fileId,
+		organizationId,
+		userId,
+	});
 
 	for (let attempt = 1; ; attempt += 1) {
 		try {
@@ -63,8 +80,7 @@ export async function publishPage({
 				input,
 				organizationId,
 				userId,
-				buffer,
-				sha256,
+				document,
 			});
 		} catch (error) {
 			if (!isVersionConflict(error) && !(error instanceof TargetPageChanged)) {
@@ -80,18 +96,106 @@ export async function publishPage({
 	}
 }
 
+/**
+ * A presigned PUT lands without the API seeing it, so this is where an
+ * uploaded object is held to what its row declared: present, at the size it
+ * claimed. The document and every staged asset go through it.
+ */
+async function verifyUploadedObject({
+	file,
+	subject,
+}: {
+	file: SelectFile;
+	subject: string;
+}): Promise<{ key: string; sizeBytes: number }> {
+	// Explicitly typed so a `refuse` call narrows what follows it.
+	const refuse: (reason: string) => never = (reason) => {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `${subject} ${reason}`,
+		});
+	};
+	const key = fileOriginalKey(file.id);
+	const head = await headObject(key);
+	if (!head) refuse("was never uploaded — send the bytes first");
+	if (head.sizeBytes !== file.sizeBytes) {
+		refuse("does not match the size it declared — upload it again");
+	}
+	return { key, sizeBytes: head.sizeBytes };
+}
+
+/**
+ * The document this caller uploaded, verified before a version is reserved
+ * for it. The row is consumed inside the publish transaction, not here.
+ *
+ * It has to look exactly like what an upload of `kind: "document"` records —
+ * the caller's own, still pending, HTML, and inside the page ceiling. An
+ * asset that lost its staging is a pending file of this caller's too, and its
+ * ceiling is six times higher; matching on the document's own shape is what
+ * keeps one from standing in for a page.
+ */
+async function loadUploadedDocument({
+	fileId,
+	organizationId,
+	userId,
+}: {
+	fileId: string;
+	organizationId: string;
+	userId: string;
+}): Promise<PublishDocument> {
+	const [file] = await db
+		.select()
+		.from(files)
+		.where(
+			and(
+				eq(files.id, fileId),
+				eq(files.organizationId, organizationId),
+				eq(files.createdByUserId, userId),
+				eq(files.status, "pending"),
+				inArray(files.contentType, [...PAGE_CONTENT_TYPES]),
+				lte(files.sizeBytes, MAX_PAGE_BYTES),
+			),
+		)
+		.limit(1);
+	// An asset still staged is addressed by path, never by id.
+	const [attached] = file
+		? await db
+				.select({ id: attachments.id })
+				.from(attachments)
+				.where(eq(attachments.fileId, file.id))
+				.limit(1)
+		: [];
+	if (!file || attached) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message:
+				"Upload not found — upload the document and send the bytes first",
+		});
+	}
+
+	const { key, sizeBytes } = await verifyUploadedObject({
+		file,
+		subject: "The document",
+	});
+	return {
+		fileId: file.id,
+		key,
+		contentType: file.contentType,
+		sizeBytes,
+		sha256: file.sha256,
+	};
+}
+
 async function runPublish({
 	input,
 	organizationId,
 	userId,
-	buffer,
-	sha256,
+	document,
 }: {
 	input: PublishPageInput;
 	organizationId: string;
 	userId: string;
-	buffer: Buffer;
-	sha256: string;
+	document: PublishDocument;
 }) {
 	// The version number is reserved before the bytes move so the key can
 	// name it. A concurrent publish of the same page collides on the unique
@@ -165,9 +269,9 @@ async function runPublish({
 				version,
 				label: input.label ?? null,
 				storageKey: key,
-				contentType: input.contentType,
-				sizeBytes: buffer.length,
-				sha256,
+				contentType: document.contentType,
+				sizeBytes: document.sizeBytes,
+				sha256: document.sha256,
 				createdByUserId: userId,
 			})
 			.returning();
@@ -212,11 +316,24 @@ async function runPublish({
 			);
 		}
 
-		await putObject({
+		// Consuming the upload is part of the version's transaction, and
+		// guarded on `pending` the way a staged asset is: a second publish of
+		// the same upload, or the sweep claiming it mid-publish, matches
+		// nothing and the caller uploads again.
+		const [consumed] = await tx
+			.delete(files)
+			.where(and(eq(files.id, document.fileId), eq(files.status, "pending")))
+			.returning({ id: files.id });
+		if (!consumed) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "The upload expired before publishing — upload it again",
+			});
+		}
+		await copyObject({
+			sourceKey: document.key,
 			key,
-			body: buffer,
-			contentType: input.contentType,
-			bucket: "private",
+			contentType: document.contentType,
 		});
 		return {
 			id: page.id,
@@ -240,6 +357,18 @@ async function runPublish({
 		pageId: published.id,
 		version: published.version,
 	});
+	// The version has its own copy now. Its row went with the transaction,
+	// so nothing sweeps this object later: a failure here strands it, which
+	// is logged and accepted over failing a publish that already happened.
+	try {
+		await deleteObjects([document.key]);
+	} catch (error) {
+		console.error("[pages] uploaded document cleanup failed", {
+			pageId: published.id,
+			key: document.key,
+			error,
+		});
+	}
 	return published;
 }
 
@@ -273,19 +402,8 @@ async function verifyStagedAssets(
 			}
 			if (file.status === "ready") return { id, fileId: file.id, path };
 
-			// Explicitly typed so a `refuse` call narrows what follows it.
-			const refuse: (reason: string) => never = (reason) => {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: `Asset ${JSON.stringify(path)} ${reason}`,
-				});
-			};
-			const key = fileOriginalKey(file.id);
-			const head = await headObject(key);
-			if (!head) refuse("was never uploaded — send the bytes first");
-			if (head.sizeBytes !== file.sizeBytes) {
-				refuse("does not match the size it declared — upload it again");
-			}
+			const subject = `Asset ${JSON.stringify(path)}`;
+			const { key } = await verifyUploadedObject({ file, subject });
 			const sample = await getObject(key, {
 				range: `bytes=0-${SNIFF_BYTES - 1}`,
 			});
@@ -303,7 +421,12 @@ async function verifyStagedAssets(
 				})
 				.where(and(eq(files.id, file.id), eq(files.status, "pending")))
 				.returning({ id: files.id });
-			if (!updated) refuse("expired before publishing — upload it again");
+			if (!updated) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `${subject} expired before publishing — upload it again`,
+				});
+			}
 			return { id, fileId: file.id, path };
 		}),
 	);

@@ -5809,9 +5809,6 @@ msgstr "Ticket einreichen, verifizierten, merge-fertigen PR zurückbekommen — 
 msgid "File actions"
 msgstr "Dateiaktionen"
 
-msgid "File is empty"
-msgstr "Die Datei ist leer"
-
 msgid "File is too large to preview"
 msgstr "Die Datei ist zu groß für eine Vorschau"
 

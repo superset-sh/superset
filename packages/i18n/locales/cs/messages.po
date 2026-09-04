@@ -5809,9 +5809,6 @@ msgstr "Založte ticket a dostanete zpět ověřený PR připravený ke sloučen
 msgid "File actions"
 msgstr "Akce souboru"
 
-msgid "File is empty"
-msgstr "Soubor je prázdný"
-
 msgid "File is too large to preview"
 msgstr "Soubor je pro náhled příliš velký"
 

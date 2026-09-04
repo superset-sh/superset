@@ -5809,9 +5809,6 @@ msgstr "Bir bilet açın, değişikliğin çalıştığının kanıtı olarak ek
 msgid "File actions"
 msgstr "Dosya eylemleri"
 
-msgid "File is empty"
-msgstr "Dosya boş"
-
 msgid "File is too large to preview"
 msgstr "Dosya önizlenemeyecek kadar büyük"
 

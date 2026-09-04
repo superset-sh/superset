@@ -5809,9 +5809,6 @@ msgstr "Dien een ticket in en krijg een geverifieerde, merge-klare PR terug, met
 msgid "File actions"
 msgstr "Bestandsacties"
 
-msgid "File is empty"
-msgstr "Bestand is leeg"
-
 msgid "File is too large to preview"
 msgstr "Bestand is te groot voor een voorbeeld"
 

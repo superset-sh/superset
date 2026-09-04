@@ -5809,9 +5809,6 @@ msgstr "Abra um ticket e receba de volta um PR verificado e pronto para merge, c
 msgid "File actions"
 msgstr "Ações do arquivo"
 
-msgid "File is empty"
-msgstr "O arquivo está vazio"
-
 msgid "File is too large to preview"
 msgstr "O arquivo é grande demais para pré-visualizar"
 

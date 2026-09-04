@@ -5809,9 +5809,6 @@ msgstr "티켓을 등록하면 검증된 머지 가능한 PR이 돌아옵니다.
 msgid "File actions"
 msgstr "파일 작업"
 
-msgid "File is empty"
-msgstr "파일이 비어 있습니다"
-
 msgid "File is too large to preview"
 msgstr "파일이 너무 커서 미리 볼 수 없습니다"
 

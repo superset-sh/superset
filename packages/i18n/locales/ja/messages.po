@@ -5809,9 +5809,6 @@ msgstr "チケットを起票すれば、検証済みでマージ可能なPRが�
 msgid "File actions"
 msgstr "ファイルの操作"
 
-msgid "File is empty"
-msgstr "ファイルが空です"
-
 msgid "File is too large to preview"
 msgstr "ファイルが大きすぎてプレビューできません"
 

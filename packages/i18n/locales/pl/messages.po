@@ -5809,9 +5809,6 @@ msgstr "Zgłoś ticket, odbierz zweryfikowany PR gotowy do scalenia, ze zrzutami
 msgid "File actions"
 msgstr "Akcje pliku"
 
-msgid "File is empty"
-msgstr "Plik jest pusty"
-
 msgid "File is too large to preview"
 msgstr "Plik jest za duży, aby go podejrzeć"
 

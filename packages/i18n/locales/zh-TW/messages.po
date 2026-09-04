@@ -5809,9 +5809,6 @@ msgstr "提一個工單，拿回一個已驗證、可直接合併的PR，並附�
 msgid "File actions"
 msgstr "檔案操作"
 
-msgid "File is empty"
-msgstr "檔案為空"
-
 msgid "File is too large to preview"
 msgstr "檔案過大，無法預覽"
 

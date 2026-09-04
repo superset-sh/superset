@@ -11,7 +11,8 @@ import { validateAssetPaths } from "../publish-rules";
 import {
 	MAX_PAGE_ASSETS,
 	removePageAssetSchema,
-	uploadPageAssetSchema,
+	type UploadPageFileInput,
+	uploadPageFileSchema,
 } from "./schema";
 
 /**
@@ -21,13 +22,23 @@ import {
  * staged bytes, snapshots them onto the version it mints, and clears the
  * staging area — so staging always means "what is new for the next version",
  * and anything unchanged is reused from the page's lineage instead.
+ *
+ * The page's own document takes the same presigned PUT, minus the staging: it
+ * belongs to the version publish is about to mint, not to the page.
  */
 export const pageAssetRouter = {
 	upload: protectedProcedure
-		.input(uploadPageAssetSchema)
+		.input(uploadPageFileSchema)
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
 			const userId = ctx.session.user.id;
+
+			// A document has no page to stage against and no lineage to be reused
+			// from — publish is handed its id directly.
+			if (input.kind === "document") {
+				return await recordUpload({ input, organizationId, userId });
+			}
+
 			const page = await loadWritablePage({
 				pageId: input.pageId,
 				organizationId,
@@ -50,42 +61,16 @@ export const pageAssetRouter = {
 			});
 			if (reused) {
 				await stageAsset({ pageId: page.id, path: input.path, fileId: reused });
-				return { reused: true as const };
+				return { fileId: reused, upload: null };
 			}
 
-			const [row] = await db
-				.insert(files)
-				.values({
-					organizationId,
-					name: input.name,
-					contentType: input.contentType,
-					sizeBytes: input.sizeBytes,
-					sha256: input.sha256,
-					createdByUserId: userId,
-				})
-				.returning();
-			if (!row) {
-				throw userError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to record the upload",
-					i18nKey: "serverError.page.failedToRecordTheUpload",
-				});
-			}
-
-			// The signature covers the declared type and length, but a presigned
-			// PUT lands without us seeing it — publish is where the bytes are
-			// checked against what was declared here.
-			const upload = await presignedPutUrl({
-				key: fileOriginalKey(row.id),
-				contentType: input.contentType,
-				contentLength: input.sizeBytes,
+			const recorded = await recordUpload({ input, organizationId, userId });
+			await stageAsset({
+				pageId: page.id,
+				path: input.path,
+				fileId: recorded.fileId,
 			});
-			await stageAsset({ pageId: page.id, path: input.path, fileId: row.id });
-			return {
-				reused: false as const,
-				uploadUrl: upload.url,
-				headers: upload.headers,
-			};
+			return recorded;
 		}),
 
 	remove: protectedProcedure
@@ -103,6 +88,51 @@ export const pageAssetRouter = {
 			return { path: input.path };
 		}),
 } satisfies TRPCRouterRecord;
+
+/**
+ * The pending row and the presigned PUT — the one place either kind of file
+ * is recorded. The signature covers the declared type and length, but the PUT
+ * lands without us seeing it, so publish is where the bytes are checked
+ * against what was declared here. An upload never claimed is swept.
+ */
+async function recordUpload({
+	input,
+	organizationId,
+	userId,
+}: {
+	input: UploadPageFileInput;
+	organizationId: string;
+	userId: string;
+}): Promise<{
+	fileId: string;
+	upload: { url: string; headers: Record<string, string> };
+}> {
+	const [row] = await db
+		.insert(files)
+		.values({
+			organizationId,
+			name: input.name,
+			contentType: input.contentType,
+			sizeBytes: input.sizeBytes,
+			sha256: input.sha256,
+			createdByUserId: userId,
+		})
+		.returning({ id: files.id });
+	if (!row) {
+		throw userError({
+			code: "INTERNAL_SERVER_ERROR",
+			message: "Failed to record the upload",
+			i18nKey: "serverError.page.failedToRecordTheUpload",
+		});
+	}
+
+	const upload = await presignedPutUrl({
+		key: fileOriginalKey(row.id),
+		contentType: input.contentType,
+		contentLength: input.sizeBytes,
+	});
+	return { fileId: row.id, upload };
+}
 
 function stagedAt({ pageId, path }: { pageId: string; path: string }) {
 	return and(

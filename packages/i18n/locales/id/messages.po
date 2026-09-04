@@ -5809,9 +5809,6 @@ msgstr "Buat tiket, dapatkan PR terverifikasi yang siap di-merge, lengkap dengan
 msgid "File actions"
 msgstr "Aksi file"
 
-msgid "File is empty"
-msgstr "File kosong"
-
 msgid "File is too large to preview"
 msgstr "File terlalu besar untuk dipratinjau"
 

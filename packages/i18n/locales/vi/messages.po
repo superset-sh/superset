@@ -5809,9 +5809,6 @@ msgstr "Tạo một ticket, nhận lại một PR đã kiểm chứng và sẵn 
 msgid "File actions"
 msgstr "Hành động tệp"
 
-msgid "File is empty"
-msgstr "Tệp rỗng"
-
 msgid "File is too large to preview"
 msgstr "Tệp quá lớn để xem trước"
 

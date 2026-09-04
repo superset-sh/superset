@@ -5809,9 +5809,6 @@ msgstr "Заведите тикет — получите проверенный 
 msgid "File actions"
 msgstr "Действия с файлом"
 
-msgid "File is empty"
-msgstr "Файл пуст"
-
 msgid "File is too large to preview"
 msgstr "Файл слишком большой для предпросмотра"
 

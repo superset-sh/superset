@@ -3,7 +3,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ApiClient } from "../../../../../lib/api-client";
-import { uploadAssets } from "./uploadAssets";
+import { uploadAssets } from "./upload";
 
 const dir = mkdtempSync(join(tmpdir(), "upload-assets-"));
 const write = (name: string, content: string) => {
@@ -44,13 +44,17 @@ function fakeApi({
 						sha256: string;
 					}) => {
 						staged.push(input);
-						if (reusePaths.includes(input.path)) return { reused: true };
+						if (reusePaths.includes(input.path)) {
+							return { fileId: `file-${input.path}`, upload: null };
+						}
 						return {
-							reused: false,
-							uploadUrl: `http://localhost:${server.port}/${
-								failUpload ? "fail" : "ok"
-							}`,
-							headers: {},
+							fileId: `file-${input.path}`,
+							upload: {
+								url: `http://localhost:${server.port}/${
+									failUpload ? "fail" : "ok"
+								}`,
+								headers: {},
+							},
 						};
 					},
 				},

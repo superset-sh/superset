@@ -5809,9 +5809,6 @@ msgstr "File a ticket, get back a verified, merge-ready PR, with screenshots or 
 msgid "File actions"
 msgstr "File actions"
 
-msgid "File is empty"
-msgstr "File is empty"
-
 msgid "File is too large to preview"
 msgstr "File is too large to preview"
 
