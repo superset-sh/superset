@@ -12,6 +12,7 @@ import {
 import type { ChangesetFile } from "../../../../../../../useChangeset";
 import type { FileView } from "../../../../../FilePane/registry";
 import { createGetDiffInput } from "../../../../utils/createGetDiffInput";
+import { hashString } from "../../../../utils/hashString";
 import { createSnapshotDocument } from "../../utils/createSnapshotDocument";
 
 export type DiffSide = "old" | "new";
@@ -80,13 +81,13 @@ function GitObjectSide({
 		if (query.data.exceededLimit || query.data.content === null) {
 			return { kind: "too-large" };
 		}
-		// react-query keeps the same `data` reference when a refetch returns
-		// identical JSON, so keying the revision on the payload (not the fetch
-		// time) means an unchanged blob never remounts the view.
+		// The revision keys on the payload, not the fetch time, so a refetch
+		// that returns the same bytes never remounts the view, and one that
+		// returns different bytes of the same length still does.
 		return {
 			kind: "bytes",
 			value: decodeBase64(query.data.content),
-			revision: `${side}:${query.data.byteLength}:${query.data.content.length}`,
+			revision: `${side}:${hashString(query.data.content)}`,
 		};
 	}, [query.data, query.isError, query.error, side]);
 	const document = useMemo(

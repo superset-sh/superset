@@ -59,7 +59,15 @@ export function BinaryDiffPreview({
 		);
 	}
 
-	if (!requested && !AUTO_PREVIEW_VIEW_IDS.has(view.id)) {
+	const sides = [
+		hasOld && oldView ? { side: "old" as const, view: oldView } : null,
+		hasNew ? { side: "new" as const, view } : null,
+	].filter((entry) => entry !== null);
+
+	if (
+		!requested &&
+		sides.some((entry) => !AUTO_PREVIEW_VIEW_IDS.has(entry.view.id))
+	) {
 		return (
 			<Placeholder>
 				<p className="cursor-text select-text text-sm">
@@ -79,10 +87,6 @@ export function BinaryDiffPreview({
 		);
 	}
 
-	const sides = [
-		hasOld && oldView ? { side: "old" as const, view: oldView } : null,
-		hasNew ? { side: "new" as const, view } : null,
-	].filter((entry) => entry !== null);
 	return (
 		<div className="flex flex-col items-center gap-3 bg-muted/30 p-4">
 			<div
