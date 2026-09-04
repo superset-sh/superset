@@ -2,7 +2,6 @@ import { Trans } from "@lingui/react/macro";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { type ReactNode, useMemo } from "react";
 import { LuLoader } from "react-icons/lu";
-import { isMissingProcedureError } from "renderer/lib/isMissingProcedureError";
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import {
 	type ContentState,
@@ -92,25 +91,6 @@ function GitObjectSide({
 		[workspaceId, absolutePath, content],
 	);
 
-	// A host that predates the procedure (remote or cloud) can still show the
-	// working tree for a working-tree diff; the old side has nowhere to come
-	// from and stays blank.
-	if (
-		query.isError &&
-		isMissingProcedureError(query.error) &&
-		side === "new" &&
-		file.source.kind !== "commit"
-	) {
-		return (
-			<WorktreeSide
-				file={file}
-				side={side}
-				view={view}
-				workspaceId={workspaceId}
-				worktreePath={worktreePath}
-			/>
-		);
-	}
 	return (
 		<SideBody
 			document={document}

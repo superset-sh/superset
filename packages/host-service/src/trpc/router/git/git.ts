@@ -664,7 +664,12 @@ export const gitRouter = router({
 		.input(
 			getDiffInputShape.extend({
 				side: z.enum(["old", "new"]),
-				maxBytes: z.number().int().positive().optional(),
+				maxBytes: z
+					.number()
+					.int()
+					.positive()
+					.max(DIFF_SIDE_FILE_MAX_BYTES)
+					.optional(),
 			}),
 		)
 		.query(async ({ ctx, input }) => {
