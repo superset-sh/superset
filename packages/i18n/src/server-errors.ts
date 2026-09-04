@@ -13,6 +13,48 @@ export const serverErrorMessages: Record<
 	string,
 	(params?: Record<string, unknown>) => string
 > = {
+	"serverError.agentCredential.anthropicRejectedKey": () =>
+		i18n._(
+			msg({
+				message: "Anthropic rejected this API key.",
+			}),
+		),
+	"serverError.agentCredential.anthropicRejectedToken": () =>
+		i18n._(
+			msg({
+				message: "Anthropic rejected this token.",
+			}),
+		),
+	"serverError.agentCredential.empty": () =>
+		i18n._(
+			msg({
+				message: "Enter a value.",
+			}),
+		),
+	"serverError.agentCredential.openaiRejectedKey": () =>
+		i18n._(
+			msg({
+				message: "OpenAI rejected this API key.",
+			}),
+		),
+	"serverError.agentCredential.providerAnswered": (params) =>
+		i18n._(
+			msg({
+				message: `The provider answered ${params?.status}.`,
+			}),
+		),
+	"serverError.agentCredential.providerUnreachable": () =>
+		i18n._(
+			msg({
+				message: "Could not reach the provider. Try again.",
+			}),
+		),
+	"serverError.agentCredential.unsupported": (params) =>
+		i18n._(
+			msg({
+				message: `${params?.agent} cannot be signed in this way yet.`,
+			}),
+		),
 	"serverError.apiKey.activeOrganizationRequiredToCreate": () =>
 		i18n._(
 			msg({

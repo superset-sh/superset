@@ -168,3 +168,7 @@ export type PageCommentAuthorKind = z.infer<typeof pageCommentAuthorKindEnum>;
 export const leaderboardVisibilityValues = ["public", "hidden"] as const;
 export const leaderboardVisibilityEnum = z.enum(leaderboardVisibilityValues);
 export type LeaderboardVisibility = z.infer<typeof leaderboardVisibilityEnum>;
+
+/** How a person signed their agent in: a subscription token, or a provider API key. */
+export const agentCredentialKindValues = ["subscription", "api_key"] as const;
+export type AgentCredentialKind = (typeof agentCredentialKindValues)[number];

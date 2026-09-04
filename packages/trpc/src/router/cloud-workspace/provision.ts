@@ -13,6 +13,7 @@ import { env } from "../../env";
 import { deleteSandbox, provisionSandbox } from "../../lib/blaxel";
 import { resolveCloneTarget } from "../../lib/blaxel/clone-token";
 import { cloudRepo } from "../../lib/blaxel/cloud-repo";
+import { resolveAgentCredentialEnv } from "../agent-credential";
 import { resolveEnvironment } from "../environment/resolve-environment";
 import { generateCloudWorkspaceName } from "./generate-name";
 
@@ -80,6 +81,15 @@ export async function provisionCloudWorkspace(
 			cloudRepo().then((repo) => (repo ? resolveCloneTarget(repo) : null)),
 			resolveEnvironment(row.environmentId, row.organizationId),
 		]);
+		// The person who started the workspace signs the agent in, so their own
+		// subscription or key is what runs inside it. Absent when they have not
+		// connected that agent; the environment's own keys then apply.
+		const agentCredentialEnv = row.createdByUserId
+			? await resolveAgentCredentialEnv({
+					userId: row.createdByUserId,
+					agent: input.launch?.agent,
+				})
+			: {};
 		if (!environment) {
 			throw new Error("Environment not found");
 		}
@@ -131,6 +141,8 @@ export async function provisionCloudWorkspace(
 					SUPERSET_SANDBOX_IMAGE_TAG: environment.sourceRef,
 					SUPERSET_SANDBOX_PROVIDER: row.provider,
 					...cloudAgentLaunchToEnv(input.launch),
+					// Last, so a person's own sign-in beats the shared environment key.
+					...agentCredentialEnv,
 				},
 			}),
 			nameWrite,

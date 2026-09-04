@@ -20,6 +20,7 @@ export {
 
 import fs from "node:fs";
 import os from "node:os";
+import { AGENT_CREDENTIAL_ENV_NAMES } from "@superset/shared/agent-credentials";
 import {
 	TERMINAL_TERM_PROGRAM,
 	TERMINAL_TERM_PROGRAM_VERSION,
@@ -48,7 +49,7 @@ let cachedMacosSystemCertAvailable: boolean | null = null;
  * Read from `process.env` rather than the validated `env` so that importing
  * this module doesn't require a fully-populated host environment.
  */
-const SANDBOX_AGENT_CREDENTIAL_KEYS = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY"];
+const SANDBOX_AGENT_CREDENTIAL_KEYS = [...AGENT_CREDENTIAL_ENV_NAMES];
 
 function hasMacosSystemCertBundle(): boolean {
 	if (cachedMacosSystemCertAvailable !== null) {

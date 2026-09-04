@@ -19,6 +19,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { organizations, users } from "./auth";
 import {
+	agentCredentialKindValues,
 	automationPromptSourceValues,
 	automationRunStatusValues,
 	automationSessionKindValues,
@@ -56,6 +57,10 @@ export const integrationProvider = pgEnum(
 	integrationProviderValues,
 );
 export const commandStatus = pgEnum("command_status", commandStatusValues);
+export const agentCredentialKind = pgEnum(
+	"agent_credential_kind",
+	agentCredentialKindValues,
+);
 export const cloudWorkspaceStatus = pgEnum(
 	"cloud_workspace_status",
 	cloudWorkspaceStatusValues,
@@ -1536,3 +1541,44 @@ export const pageComments = pgTable(
 
 export type InsertPageComment = typeof pageComments.$inferInsert;
 export type SelectPageComment = typeof pageComments.$inferSelect;
+
+/**
+ * A person's own agent sign-in, used when they start a cloud workspace. The
+ * credential belongs to the person rather than an organization, so one row
+ * serves every organization they work in and it leaves with the account.
+ */
+export const agentCredentials = pgTable(
+	"agent_credentials",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		userId: uuid("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		/** Agent preset id, e.g. "claude" or "codex". Text so a custom agent fits. */
+		agent: text().notNull(),
+		kind: agentCredentialKind().notNull(),
+		encryptedValue: text("encrypted_value").notNull(),
+		/** Set when the key is for a gateway or a compatible endpoint. */
+		baseUrl: text("base_url"),
+		/** What to show in settings, e.g. the account email. Never the credential. */
+		accountLabel: text("account_label"),
+		lastValidatedAt: timestamp("last_validated_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		unique("agent_credentials_user_id_agent_unique").on(
+			table.userId,
+			table.agent,
+		),
+		index("agent_credentials_user_id_idx").on(table.userId),
+	],
+);
+
+export type InsertAgentCredential = typeof agentCredentials.$inferInsert;
+export type SelectAgentCredential = typeof agentCredentials.$inferSelect;

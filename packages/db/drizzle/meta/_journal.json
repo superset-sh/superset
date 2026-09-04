@@ -750,6 +750,13 @@
       "when": 1788489378410,
       "tag": "0106_plugin_marketplace_installs_and_connections",
       "breakpoints": true
+    },
+    {
+      "idx": 107,
+      "version": "7",
+      "when": 1788588954135,
+      "tag": "0107_agent_credentials",
+      "breakpoints": true
     }
   ]
 }
