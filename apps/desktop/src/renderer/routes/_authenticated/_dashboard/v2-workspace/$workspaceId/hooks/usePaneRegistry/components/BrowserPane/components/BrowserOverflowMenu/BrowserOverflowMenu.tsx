@@ -73,9 +73,9 @@ export function BrowserOverflowMenu({
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 
 	useEffect(() => {
-		browserRuntimeRegistry.setHostPopoverPassthrough(isMenuOpen);
-		return () => browserRuntimeRegistry.setHostPopoverPassthrough(false);
-	}, [isMenuOpen]);
+		browserRuntimeRegistry.setHostPopoverOpen(paneId, isMenuOpen);
+		return () => browserRuntimeRegistry.setHostPopoverOpen(paneId, false);
+	}, [paneId, isMenuOpen]);
 
 	const handlePrint = () => browserRuntimeRegistry.print(paneId);
 
