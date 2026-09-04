@@ -9,7 +9,7 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { CheckIcon, MinusIcon, PlusIcon, RotateCcwIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { TbDots } from "react-icons/tb";
 import { ImportHistoryDialog } from "renderer/components/ImportHistoryDialog";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
@@ -70,6 +70,12 @@ export function BrowserOverflowMenu({
 	const [isDownloadsOpen, setIsDownloadsOpen] = useState(false);
 	const [isScreenshotsOpen, setIsScreenshotsOpen] = useState(false);
 	const [isClearDataOpen, setIsClearDataOpen] = useState(false);
+	const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+	useEffect(() => {
+		browserRuntimeRegistry.setHostPopoverPassthrough(isMenuOpen);
+		return () => browserRuntimeRegistry.setHostPopoverPassthrough(false);
+	}, [isMenuOpen]);
 
 	const handlePrint = () => browserRuntimeRegistry.print(paneId);
 
@@ -142,7 +148,7 @@ export function BrowserOverflowMenu({
 
 	return (
 		<>
-			<DropdownMenu>
+			<DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
 				<DropdownMenuTrigger asChild>
 					<button
 						type="button"
