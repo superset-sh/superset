@@ -243,6 +243,9 @@ export const settings = sqliteTable("settings", {
 		"block" | "bar" | "underline"
 	>(),
 	terminalCursorBlink: integer("terminal_cursor_blink", { mode: "boolean" }),
+	terminalMacOptionIsMeta: integer("terminal_mac_option_is_meta", {
+		mode: "boolean",
+	}),
 	terminalParkedRuntimeCap: integer("terminal_parked_runtime_cap"),
 	terminalCopyOnSelect: integer("terminal_copy_on_select", {
 		mode: "boolean",

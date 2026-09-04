@@ -393,6 +393,13 @@
       "when": 1788309290755,
       "tag": "0055_drop_clerk_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "6",
+      "when": 1788123252861,
+      "tag": "0056_add_terminal_mac_option_is_meta_setting",
+      "breakpoints": true
     }
   ]
 }

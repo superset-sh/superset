@@ -28,6 +28,7 @@ const EMPTY_FONT_SETTINGS: FontSettings = {
 	terminalMinimumContrast: null,
 	terminalCursorStyle: null,
 	terminalCursorBlink: null,
+	terminalMacOptionIsMeta: null,
 	editorFontFamily: null,
 	editorFontSize: null,
 	editorLineHeight: null,

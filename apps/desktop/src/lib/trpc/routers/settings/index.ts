@@ -1007,6 +1007,7 @@ export const createSettingsRouter = () => {
 				terminalMinimumContrast: row.terminalMinimumContrast ?? null,
 				terminalCursorStyle: row.terminalCursorStyle ?? null,
 				terminalCursorBlink: row.terminalCursorBlink ?? null,
+				terminalMacOptionIsMeta: row.terminalMacOptionIsMeta ?? null,
 				editorFontFamily: row.editorFontFamily ?? null,
 				editorFontSize: row.editorFontSize ?? null,
 				editorLineHeight: row.editorLineHeight ?? null,
