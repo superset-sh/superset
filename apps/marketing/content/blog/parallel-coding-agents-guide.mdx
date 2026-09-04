@@ -177,6 +177,8 @@ On a modern laptop, 5-7 concurrent agents are comfortable. Beyond that, you may 
 
 Each agent makes API calls to its model provider. Running 10 Claude Code instances hits Anthropic's rate limits faster than one. Monitor your provider's rate limit headers and throttle if needed.
 
+Throttling only goes so far once a team is running agents all day. Shared API tiers are sized per account, so ten agents on one key share the same tokens-per-minute budget that one agent used to have to itself. If your agents run on open models, reserved capacity removes that ceiling: [Morph Dedicated Inference](https://www.morphllm.com/dedicated-inference) reserves B200 or B300 capacity by the GPU-hour on an isolated, OpenAI-compatible endpoint with a 99.9% availability SLA, so throughput is fixed by the hardware you reserve rather than a shared pool. For hosted models like Claude, the equivalent is a higher usage tier or a provisioned throughput plan from the provider.
+
 ### Disk Space
 
 Each worktree is a full checkout of your working directory. For a 1GB repo, 10 worktrees use ~10GB. The git object store is shared, so history isn't duplicated. Clean up completed worktrees promptly.

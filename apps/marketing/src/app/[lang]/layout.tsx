@@ -70,8 +70,8 @@ export const metadata: Metadata = {
 		images: [
 			{
 				url: "/og-image.png",
-				width: 1200,
-				height: 630,
+				width: 2400,
+				height: 1260,
 				alt: `${COMPANY.NAME} - Orchestrate any coding agent`,
 			},
 		],

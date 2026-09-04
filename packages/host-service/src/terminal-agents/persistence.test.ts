@@ -1,6 +1,7 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, it } from "bun:test";
 import { resolve } from "node:path";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import type { HostDb } from "../db";
@@ -358,6 +359,56 @@ describe("binding end marking and resume candidates", () => {
 		markTerminalAgentBindingEnded(db, "t1", "terminal-exited", 11_000);
 		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeUndefined();
 		expect(claimResumeCandidateBinding(db, "ws-1", "t1")).toBeUndefined();
+	});
+
+	it("a dispose overrides a terminal-death stamp that beat it", () => {
+		// The pane-close route marks the binding disposed before its kill, but
+		// the terminal can already be dead: a pty exit or the reaper's sweep
+		// stamps "terminal-exited" first. The user's decision still has to
+		// win, or auto-resume brings the killed session back.
+		const db = createTestDb();
+		seedWithSessionId(db, "t1");
+		markTerminalAgentBindingEnded(db, "t1", "terminal-exited", 42);
+		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeDefined();
+
+		expect(markTerminalAgentBindingEnded(db, "t1", "disposed", 90)).toEqual({
+			workspaceId: "ws-1",
+		});
+
+		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeUndefined();
+		expect(claimResumeCandidateBinding(db, "ws-1", "t1")).toBeUndefined();
+		// Only the reason changes — the first writer's timestamp stands.
+		expect(
+			new SqliteTerminalAgentBindingPersistence(db).getEnded("t1"),
+		).toEqual({ endedAt: 42, agentSessionId: "sess-t1" });
+	});
+
+	it("a dispose leaves a resumed claim and a clean detach as they are", () => {
+		// Resume cleanup disposes the dead terminal after the claim, and a pane
+		// close after a real quit disposes a detached one; neither is a resume
+		// candidate, so the override has nothing to protect and the row keeps
+		// the reason that tells its history.
+		const db = createTestDb();
+		const endReasonOf = (id: string) =>
+			db
+				.select({ endReason: terminalAgentBindings.endReason })
+				.from(terminalAgentBindings)
+				.where(eq(terminalAgentBindings.terminalId, id))
+				.get()?.endReason;
+		seedWithSessionId(db, "t-resumed");
+		markTerminalAgentBindingEnded(db, "t-resumed", "terminal-exited", 42);
+		expect(claimResumeCandidateBinding(db, "ws-1", "t-resumed")).toBeDefined();
+		expect(
+			markTerminalAgentBindingEnded(db, "t-resumed", "disposed", 90),
+		).toBeUndefined();
+		expect(endReasonOf("t-resumed")).toBe("resumed");
+
+		seedWithSessionId(db, "t-detached");
+		markTerminalAgentBindingEnded(db, "t-detached", "detached", 42);
+		expect(
+			markTerminalAgentBindingEnded(db, "t-detached", "disposed", 90_000),
+		).toBeUndefined();
+		expect(endReasonOf("t-detached")).toBe("detached");
 	});
 
 	it("a claimed row survives late terminal-death marking untouched", () => {

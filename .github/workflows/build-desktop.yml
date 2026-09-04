@@ -147,10 +147,15 @@ jobs:
         run: |
           APP_DIR=$(find release -maxdepth 2 -name "*.app" -type d | head -1)
           UNPACKED="$APP_DIR/Contents/Resources/app.asar.unpacked/node_modules"
-          BINDING="$UNPACKED/@duckdb/node-bindings-darwin-${{ matrix.arch }}/duckdb.node"
-          test -f "$BINDING" || {
-            echo "::error::DuckDB native binding missing from packaged app — Intel/arm launch will crash. Expected: $BINDING"
-            ls -la "$UNPACKED/@duckdb" 2>/dev/null || echo "  (no @duckdb directory in app.asar.unpacked)"
+          # @ast-grep/napi is the arch-specific native package copy-native-modules
+          # resolves for the *target* arch (fetching from npm and failing hard if
+          # it cannot), so its absence here means a genuine cross-arch packaging
+          # miss rather than a package we only copy opportunistically.
+          PKG_DIR="$UNPACKED/@ast-grep/napi-darwin-${{ matrix.arch }}"
+          BINDING=$(find "$PKG_DIR" -name '*.node' 2>/dev/null | head -1)
+          test -n "$BINDING" || {
+            echo "::error::@ast-grep/napi native binding missing from packaged app — Intel/arm launch will crash. Expected a .node in: $PKG_DIR"
+            ls -la "$UNPACKED/@ast-grep" 2>/dev/null || echo "  (no @ast-grep directory in app.asar.unpacked)"
             exit 1
           }
           echo "OK: bundled $BINDING ($(du -h "$BINDING" | cut -f1))"
