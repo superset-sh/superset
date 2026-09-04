@@ -50,6 +50,8 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 	);
 	const showStarGithub = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_STAR_GITHUB,
+		visibleItems,
+	);
 	const showCustomApps = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_CUSTOM_APPS,
 		visibleItems,
