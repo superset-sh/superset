@@ -4330,6 +4330,9 @@ msgstr "По умолчанию ({defaultWorktreePath})"
 msgid "default browser"
 msgstr "браузер по умолчанию"
 
+msgid "Default Browser"
+msgstr "Браузер по умолчанию"
+
 msgid "Default effort"
 msgstr "Уровень усилий по умолчанию"
 
@@ -5014,6 +5017,9 @@ msgstr "Редактирование файла..."
 
 msgid "editor"
 msgstr "редактор"
+
+msgid "Editor"
+msgstr "Редактор"
 
 msgid "Editor & Workflow"
 msgstr "Редактор и процесс"
@@ -5946,6 +5952,9 @@ msgstr "Найти недавно изменённый код со слабым 
 msgid "Find stale TODO/FIXME comments and resolve the quick ones."
 msgstr "Найти старые комментарии TODO/FIXME и закрыть быстрые."
 
+msgid "Finder"
+msgstr "Finder"
+
 msgid "Finish review"
 msgstr "Завершить ревью"
 
@@ -6779,6 +6788,9 @@ msgstr "В десктопном приложении Superset откройте �
 
 msgid "in-app browser"
 msgstr "встроенный браузер"
+
+msgid "In-App Browser"
+msgstr "Встроенный браузер"
 
 msgid "In-app PR merge"
 msgstr "Слияние PR внутри приложения"
@@ -8223,6 +8235,9 @@ msgstr "Новая автоматизация"
 
 msgid "New Browser"
 msgstr "Новый браузер"
+
+msgid "New Browser Tab"
+msgstr "Новая вкладка браузера"
 
 msgid "New chat"
 msgstr "Новый чат"

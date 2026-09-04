@@ -4330,6 +4330,9 @@ msgstr "기본값({defaultWorktreePath})"
 msgid "default browser"
 msgstr "기본 브라우저"
 
+msgid "Default Browser"
+msgstr "기본 브라우저"
+
 msgid "Default effort"
 msgstr "기본 강도"
 
@@ -5013,6 +5016,9 @@ msgid "Editing file..."
 msgstr "파일 수정 중..."
 
 msgid "editor"
+msgstr "에디터"
+
+msgid "Editor"
 msgstr "에디터"
 
 msgid "Editor & Workflow"
@@ -5946,6 +5952,9 @@ msgstr "최근 변경되었지만 커버리지가 낮은 코드를 찾아 제대
 msgid "Find stale TODO/FIXME comments and resolve the quick ones."
 msgstr "오래된 TODO/FIXME 주석을 찾아 간단한 것부터 해결합니다."
 
+msgid "Finder"
+msgstr "Finder"
+
 msgid "Finish review"
 msgstr "리뷰 마치기"
 
@@ -6778,6 +6787,9 @@ msgid "In the Superset desktop app, open Settings → Remote Access and turn on 
 msgstr "Superset 데스크톱 앱에서 설정 → 원격 액세스을 열고 “릴레이를 통해 이 기기에 원격 액세스 허용”을 켜세요."
 
 msgid "in-app browser"
+msgstr "앱 내 브라우저"
+
+msgid "In-App Browser"
 msgstr "앱 내 브라우저"
 
 msgid "In-app PR merge"
@@ -8223,6 +8235,9 @@ msgstr "새 자동화"
 
 msgid "New Browser"
 msgstr "새 브라우저"
+
+msgid "New Browser Tab"
+msgstr "새 브라우저 탭"
 
 msgid "New chat"
 msgstr "새 채팅"

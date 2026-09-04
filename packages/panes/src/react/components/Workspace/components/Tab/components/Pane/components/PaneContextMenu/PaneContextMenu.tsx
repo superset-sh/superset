@@ -31,6 +31,12 @@ function ContextMenuItems<TData>({
 	return (
 		<>
 			{actions.map((action) => {
+				const hidden =
+					typeof action.hidden === "function"
+						? action.hidden(context)
+						: action.hidden;
+				if (hidden) return null;
+
 				if (action.type === "separator") {
 					return <ContextMenuSeparator key={action.key} />;
 				}

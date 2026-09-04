@@ -26,6 +26,7 @@ import {
 	LuClipboard,
 	LuClipboardCopy,
 	LuEraser,
+	LuExternalLink,
 	LuPower,
 } from "react-icons/lu";
 import { useWorkspaceHostTarget } from "renderer/hooks/host-service/useWorkspaceHostUrl";
@@ -76,6 +77,8 @@ import { TerminalPane } from "./components/TerminalPane";
 import { TerminalPaneHeaderExtras } from "./components/TerminalPane/components/TerminalPaneHeaderExtras";
 import { TerminalPaneIcon } from "./components/TerminalPane/components/TerminalPaneIcon";
 import { TerminalSessionDropdown } from "./components/TerminalPane/components/TerminalSessionDropdown";
+import { terminalContextMenuLinkStore } from "./components/TerminalPane/contextMenuLinkStore";
+import { openInActions } from "./utils/openInActions";
 import { pagePaneLabel } from "./utils/pagePaneLabel";
 
 function getFileName(filePath: string): string {
@@ -472,7 +475,21 @@ export function usePaneRegistry({
 					/>
 				),
 				contextMenuActions: (_ctx, defaults) => {
+					const hasLink = (ctx: RendererContext<PaneViewerData>) =>
+						Boolean(terminalContextMenuLinkStore.get(ctx.pane.id)?.link);
 					const terminalActions: ContextMenuActionConfig<PaneViewerData>[] = [
+						{
+							key: "open-link-in",
+							label: t({ message: "Open in" }),
+							icon: <LuExternalLink />,
+							hidden: (ctx) => !hasLink(ctx),
+							children: openInActions,
+						},
+						{
+							key: "sep-open-link-in",
+							type: "separator",
+							hidden: (ctx) => !hasLink(ctx),
+						},
 						{
 							key: "copy",
 							label: t({ message: "Copy" }),

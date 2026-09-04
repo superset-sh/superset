@@ -4330,6 +4330,9 @@ msgstr "Výchozí ({defaultWorktreePath})"
 msgid "default browser"
 msgstr "výchozí prohlížeč"
 
+msgid "Default Browser"
+msgstr "Výchozí prohlížeč"
+
 msgid "Default effort"
 msgstr "Výchozí úsilí"
 
@@ -5014,6 +5017,9 @@ msgstr "Upravuji soubor..."
 
 msgid "editor"
 msgstr "editor"
+
+msgid "Editor"
+msgstr "Editor"
 
 msgid "Editor & Workflow"
 msgstr "Editor a workflow"
@@ -5946,6 +5952,9 @@ msgstr "Najde nedávno změněný kód se slabým pokrytím a pořádně ho otes
 msgid "Find stale TODO/FIXME comments and resolve the quick ones."
 msgstr "Najde zastaralé komentáře TODO/FIXME a ty rychlé vyřeší."
 
+msgid "Finder"
+msgstr "Finder"
+
 msgid "Finish review"
 msgstr "Dokončit revizi"
 
@@ -6779,6 +6788,9 @@ msgstr "V desktopové aplikaci Superset otevřete Nastavení → Vzdálený př�
 
 msgid "in-app browser"
 msgstr "vestavěný prohlížeč"
+
+msgid "In-App Browser"
+msgstr "Vestavěný prohlížeč"
 
 msgid "In-app PR merge"
 msgstr "Slučování PR přímo v aplikaci"
@@ -8223,6 +8235,9 @@ msgstr "Nová automatizace"
 
 msgid "New Browser"
 msgstr "Nový prohlížeč"
+
+msgid "New Browser Tab"
+msgstr "Nová karta prohlížeče"
 
 msgid "New chat"
 msgstr "Nový chat"
