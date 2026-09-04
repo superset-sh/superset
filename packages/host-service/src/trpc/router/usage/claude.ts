@@ -22,7 +22,7 @@ const CLAUDE_PROFILE_URL = "https://api.anthropic.com/api/oauth/profile";
 const CLAUDE_OAUTH_BETA_HEADER = "oauth-2025-04-20";
 const FETCH_TIMEOUT_MS = 10_000;
 
-interface ClaudeOauthCredential {
+export interface ClaudeOauthCredential {
 	accessToken: string;
 	expiresAt: number | null;
 	refreshTokenExpiresAt: number | null;
@@ -105,10 +105,6 @@ async function readKeychainCredential(): Promise<ClaudeOauthCredential | null> {
 	);
 }
 
-function isLive(credential: ClaudeOauthCredential): boolean {
-	return credential.expiresAt === null || credential.expiresAt > Date.now();
-}
-
 export const STALE_TOKEN_DETAIL = "Refreshes when Claude Code next runs.";
 export const EXPIRED_TOKEN_DETAIL =
 	"Sign-in expired — run /login in Claude Code.";
@@ -138,17 +134,25 @@ export function classifyLapsedToken(
 	return "token_expired";
 }
 
-/** Live beats expired; among equals the latest expiry wins. */
-function pickFreshest(
-	candidates: Array<ClaudeOauthCredential | null>,
-): ClaudeOauthCredential | null {
-	let best: ClaudeOauthCredential | null = null;
+const LAPSED_RANK = { live: 2, token_stale: 1, token_expired: 0 } as const;
+
+/** Live beats stale beats expired; among equals the latest expiry wins. */
+export function pickFreshest<T extends ClaudeOauthCredential>(
+	candidates: Array<T | null>,
+	now = Date.now(),
+): T | null {
+	let best: T | null = null;
 	for (const candidate of candidates) {
 		if (!candidate) continue;
+		if (!best) {
+			best = candidate;
+			continue;
+		}
+		const rank = LAPSED_RANK[classifyLapsedToken(candidate, now)];
+		const bestRank = LAPSED_RANK[classifyLapsedToken(best, now)];
 		if (
-			!best ||
-			(isLive(candidate) && !isLive(best)) ||
-			(isLive(candidate) === isLive(best) &&
+			rank > bestRank ||
+			(rank === bestRank &&
 				(candidate.expiresAt ?? Number.POSITIVE_INFINITY) >
 					(best.expiresAt ?? Number.POSITIVE_INFINITY))
 		) {
