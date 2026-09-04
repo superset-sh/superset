@@ -68,18 +68,8 @@ const natives = [
 
 /**
  * Imported at module load but never executed, so they only need to resolve.
- * Mostly mastra's storage stack; the provider credential store that pulled it
- * in is gone, so this list is probably trimmable — verify against a fresh
- * bundle before cutting entries.
  */
-const runtimeResolutionOnly = [
-	"@mastra/duckdb",
-	"@anush008/tokenizers",
-	"onnxruntime-node",
-	"libsql",
-	"@parcel/watcher",
-	"@xterm/headless",
-];
+const runtimeResolutionOnly = ["libsql", "@parcel/watcher", "@xterm/headless"];
 
 const BUNDLE = join(
 	REPO_ROOT,
