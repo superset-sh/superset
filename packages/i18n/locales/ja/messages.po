@@ -160,6 +160,10 @@ msgstr "{0, plural, one {#件成功} other {#件成功}}"
 msgid "{0, plural, one {# project selected.} other {# projects selected.}}"
 msgstr "{0, plural, one {#件のプロジェクトを選択中。} other {#件のプロジェクトを選択中。}}"
 
+#. placeholder {0}: projectFilters.length
+msgid "{0, plural, one {# project} other {# projects}}"
+msgstr "{0, plural, one {# 件のプロジェクト} other {# 件のプロジェクト}}"
+
 #. placeholder {0}: repositories.length
 #. placeholder {0}: selectedProjects.length
 msgid "{0, plural, one {# repository} other {# repositories}}"
@@ -273,6 +277,10 @@ msgstr "{0} – {1} · ローカルセッションログからのAPI定価換算
 msgid "{0} — try the Superset tray menu > Host Service > Restart."
 msgstr "{0} — Supersetのトレイメニュー > ホストサービス > 再起動をお試しください。"
 
+#. placeholder {0}: creator.name
+msgid "{0} (you)"
+msgstr "{0}（自分）"
+
 #. placeholder {0}: actor.login
 msgid "{0} {actorVerb}"
 msgstr "{0}が{actorVerb}"
@@ -301,7 +309,7 @@ msgstr "{0}を無効にしました"
 
 #. placeholder {0}: displayName(variables.name)
 #. placeholder {0}: plugin.interface.displayName
-#. placeholder {0}: plugin?.interface.displayName ?? entry.name
+#. placeholder {0}: skill.name
 msgid "{0} enabled"
 msgstr "{0}を有効化"
 
@@ -344,6 +352,11 @@ msgstr "{0}はFreeプランです。Superset MobileはProプランの組織で�
 #. placeholder {2}: hostCompatibility.minVersion
 msgid "{0} is running host service {1} — this app needs {2} or newer. Update Superset on that machine."
 msgstr "{0}のホストサービスは{1}です — このアプリには{2}以降が必要です。そのマシンでSupersetを更新してください。"
+
+#. placeholder {0}: displayName(name)
+#. placeholder {0}: displayName(variables.name)
+msgid "{0} is set up on this machine, but not on your account"
+msgstr "{0} はこのマシンには設定されていますが、アカウントには設定されていません"
 
 #. placeholder {0}: v.toLocaleString()
 msgid "{0} mo"
@@ -414,6 +427,10 @@ msgstr "直近30日間で{0}トークン。<0>{handle}</0>として公開中。"
 #. placeholder {0}: displayName(variables.name)
 msgid "{0} uninstalled"
 msgstr "{0}をアンインストールしました"
+
+#. placeholder {0}: displayName(variables.name)
+msgid "{0} updated"
+msgstr "{0} を更新しました"
 
 #. placeholder {0}: file.path
 msgid "{0} was deleted in this change."
@@ -622,6 +639,9 @@ msgstr "{level} · {gate} · {statusLabel}"
 msgid "{level} {gate}: {statusLabel}"
 msgstr "{level} {gate}: {statusLabel}"
 
+msgid "{localHostName} (this device)"
+msgstr "{localHostName}（このデバイス）"
+
 #. placeholder {0}: <> <span className="tabular-nums font-medium text-foreground"> # </span>{" "} result for &ldquo;{query}&rdquo; </>
 #. placeholder {1}: <> <span className="tabular-nums font-medium text-foreground"> # </span>{" "} results for &ldquo;{query}&rdquo; </>
 msgid "{matchCount, plural, one {{0}} other {{1}}}"
@@ -647,6 +667,18 @@ msgstr "{months}か月前"
 
 msgid "{myFailedCount} of your automations failed their last run"
 msgstr "自分のオートメーションのうち{myFailedCount}件が前回の実行に失敗しました"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceBuiltinRemove"
+msgstr "{name} は組み込みのため削除できません"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceReserved"
+msgstr "{name} は組み込みのため置き換えられません"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceNotAdded"
+msgstr "{name} は追加されていません"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {人を1人以上指定するか、{choice}を選択してください。} sender {送信者を1人以上指定するか、{choice}を選択してください。} other {項目を1つ以上指定するか、{choice}を選択してください。}}"
@@ -694,6 +726,14 @@ msgstr "{provider}のロゴ"
 
 msgid "{readPercent}% read"
 msgstr "{readPercent}%読了"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.ambiguousPlugin"
+msgstr "{reason}"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.dispatchFailed"
+msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{received}/{total}"
@@ -1135,6 +1175,10 @@ msgstr "Accordion"
 msgid "Account"
 msgstr "アカウント"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceNotResolvable"
+msgstr "アカウントへのインストールはファーストパーティのマニフェストのみを解決するため、{marketplace} の {plugin} はまだアカウントにインストールできません。このマシンにはインストールされたままです。"
+
 msgid "Account is pending deletion."
 msgstr "アカウントは削除待ちです。"
 
@@ -1264,6 +1308,9 @@ msgstr "サイドバーのメニューから追加して始めましょう。"
 
 msgid "Add photos or files"
 msgstr "写真やファイルを追加"
+
+msgid "Add plugin"
+msgstr "プラグインを追加"
 
 msgid "Add project"
 msgstr "プロジェクトを追加"
@@ -1957,6 +2004,9 @@ msgstr "2026年8月"
 msgid "Auth token"
 msgstr "認証トークン"
 
+msgid "Authenticate your {displayName} account"
+msgstr "{displayName} アカウントを認証"
+
 msgid "Authentication"
 msgstr "認証"
 
@@ -2562,6 +2612,9 @@ msgstr "現金 — 総残高(Mercury)"
 msgid "Cash ÷ net burn at the current run rate"
 msgstr "現在のランレートでの現金 ÷ ネットバーン"
 
+msgid "Category"
+msgstr "カテゴリ"
+
 msgid "Certificate Authority Invalid"
 msgstr "認証局が無効です"
 
@@ -2631,9 +2684,6 @@ msgstr "変更がリクエストされています"
 
 msgid "Changes saved"
 msgstr "変更を保存しました"
-
-msgid "Changes take effect in new agent sessions."
-msgstr "変更は新しいエージェントセッションから有効になります。"
 
 msgid "Changing..."
 msgstr "変更中..."
@@ -3374,6 +3424,10 @@ msgstr "Slackのワークスペースを接続して、会話からタスクを�
 msgid "Connected"
 msgstr "接続済み"
 
+#. placeholder {0}: formatDate(new Date(connection.createdAt))
+msgid "connected {0}"
+msgstr "{0} に接続"
+
 msgid "Connected as"
 msgstr "接続アカウント"
 
@@ -3428,11 +3482,18 @@ msgstr "接続が閉じられました"
 msgid "Connection failed."
 msgstr "接続に失敗しました。"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.connectionNotFound"
+msgstr "接続が見つかりません"
+
 msgid "Connection Refused"
 msgstr "接続が拒否されました"
 
 msgid "Connection Timed Out"
 msgstr "接続がタイムアウトしました"
+
+msgid "Connections"
+msgstr "接続"
 
 msgid "Consent finished but Microsoft did not issue a token for the tenant."
 msgstr "同意は完了しましたが、Microsoftがテナント用のトークンを発行しませんでした。"
@@ -3738,6 +3799,9 @@ msgstr "環境を読み込めませんでした"
 msgid "Could not load environments."
 msgstr "環境を読み込めませんでした。"
 
+msgid "Could not load plugins. Check your connection and try again."
+msgstr "プラグインを読み込めませんでした。接続を確認して再試行してください。"
+
 msgid "Could not load presets from the host"
 msgstr "ホストからプリセットを読み込めませんでした"
 
@@ -3830,6 +3894,10 @@ msgstr "スキルを更新できませんでした"
 
 msgid "Could not update the branch"
 msgstr "ブランチを更新できませんでした"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.credentialUnverified"
+msgstr "認証情報を確認できませんでした: {reason}"
 
 msgid "Could not watch this page"
 msgstr "このページを監視できませんでした"
@@ -4108,6 +4176,9 @@ msgstr "作成 <0>· 7日</0>"
 
 msgid "Created 1 folder in {where}"
 msgstr "1件のフォルダを{where}に作成しました"
+
+msgid "Created by"
+msgstr "作成者"
 
 msgid "Created team \"{trimmedName}\""
 msgstr "チーム「{trimmedName}」を作成しました"
@@ -4572,9 +4643,6 @@ msgstr "切断中"
 msgid "Details"
 msgstr "詳細"
 
-msgid "Detected in your agent configs"
-msgstr "エージェント設定から検出"
-
 msgid "Dev"
 msgstr "開発"
 
@@ -4589,9 +4657,6 @@ msgstr "開発者"
 
 msgid "Developers"
 msgstr "開発者"
-
-msgid "Device"
-msgstr "デバイス"
 
 msgid "Device: {selectedLabel}"
 msgstr "デバイス: {selectedLabel}"
@@ -4637,9 +4702,6 @@ msgstr "スキルを無効にする"
 
 msgid "Disabled"
 msgstr "無効"
-
-msgid "Disabled — kept installed, but Superset writes nothing into your agent configs."
-msgstr "無効 — インストールされたままですが、Supersetはエージェント設定に何も書き込みません。"
 
 msgid "Disabled toggle"
 msgstr "無効なトグル"
@@ -4692,6 +4754,10 @@ msgstr "破棄しました — 今後は確認しません"
 
 msgid "Disconnect"
 msgstr "切断"
+
+#. placeholder {0}: connection.account ?? displayName
+msgid "Disconnect {0}"
+msgstr "{0} を切断"
 
 msgid "Disconnect GitHub?"
 msgstr "GitHubの接続を解除しますか?"
@@ -5067,9 +5133,6 @@ msgstr "リレーアクセスを有効にする…"
 msgid "Enable skill"
 msgstr "スキルを有効にする"
 
-msgid "Enabled — servers are written into your agent configs."
-msgstr "有効 — サーバーがエージェント設定に書き込まれます。"
-
 msgid "Engineering deep-dives and launches."
 msgstr "技術の深掘りとリリース情報。"
 
@@ -5102,12 +5165,6 @@ msgstr "エンタープライズ"
 
 msgid "Enterprise ARR by account"
 msgstr "アカウント別エンタープライズARR"
-
-msgid "Entries you added yourself stay active in your agent config."
-msgstr "ご自身で追加したエントリはエージェント設定で有効なまま残ります。"
-
-msgid "Entries you added yourself stay in your agent config."
-msgstr "ご自身で追加したエントリはエージェント設定に残ります。"
 
 msgid "Environment"
 msgstr "環境"
@@ -5879,6 +5936,9 @@ msgstr "エージェントを絞り込み..."
 
 msgid "Filter by @{normalizedSearch}"
 msgstr "@{normalizedSearch}で絞り込む"
+
+msgid "Filter by device"
+msgstr "デバイスで絞り込む"
 
 msgid "Filter by reviews"
 msgstr "レビューで絞り込む"
@@ -6756,6 +6816,9 @@ msgstr "差分ビューアの改善"
 msgid "in a terminal on this host."
 msgstr "このホストのターミナルで実行してください。"
 
+msgid "In all projects"
+msgstr "すべてのプロジェクト"
+
 msgid "In just a few months, <0>tens of thousands of engineers</0> run Superset as their primary IDE, at companies like Wix, DoorDash, and Netflix."
 msgstr "わずか数か月で、Wix、DoorDash、Netflixといった企業を含め<0>数万人のエンジニア</0>がSupersetを主要なIDEとして使っています。"
 
@@ -6799,6 +6862,9 @@ msgid "Industry median, our estimate. Dashed is forecast. The first F4 teams cro
 msgstr "業界中央値、当社推定。破線は予測です。最初のF4チームはこれより早くゲートを超えます。"
 
 msgid "Info"
+msgstr "情報"
+
+msgid "Information"
 msgstr "情報"
 
 msgid "Initialize Git"
@@ -6847,9 +6913,6 @@ msgstr "並列コーディングエージェントと開発者の生産性につ
 msgid "Inspecting {0}"
 msgstr "{0}を検査中"
 
-msgid "Install"
-msgstr "インストール"
-
 msgid "Install & restart"
 msgstr "インストールして再起動"
 
@@ -6877,9 +6940,9 @@ msgstr "すべてのワークスペースにまたがるMCPサーバーのイン
 msgid "Installed"
 msgstr "インストール済み"
 
-#. placeholder {0}: record.installedAt.slice(0, 10)
-msgid "installed {0}"
-msgstr "{0}をインストールしました"
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceHasInstalls"
+msgstr "インストール済みのプラグインが {name} 由来です: {plugins}。先に削除してください。"
 
 msgid "Installing..."
 msgstr "インストール中..."
@@ -7350,6 +7413,9 @@ msgstr "1分未満前"
 msgid "Letter spacing (px)"
 msgstr "字間 (px)"
 
+msgid "License"
+msgstr "ライセンス"
+
 msgid "Lifecycle scripts"
 msgstr "ライフサイクルスクリプト"
 
@@ -7815,9 +7881,6 @@ msgstr "MCPマネージャー"
 msgid "MCP Server"
 msgstr "MCPサーバー"
 
-msgid "MCP servers"
-msgstr "MCPサーバー"
-
 msgid "Mean"
 msgstr "平均"
 
@@ -7977,6 +8040,10 @@ msgstr "必要な認可パラメーターがありません。"
 
 msgid "Missing required fields."
 msgstr "必須項目が入力されていません。"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.missingInput"
+msgstr "必須の入力 {input} がありません"
 
 msgid "Mobile"
 msgstr "モバイル"
@@ -8577,6 +8644,9 @@ msgstr "Issueが見つかりません。"
 msgid "No items"
 msgstr "項目なし"
 
+msgid "No known creators"
+msgstr "既知の作成者はいません"
+
 msgid "No labels"
 msgstr "ラベルなし"
 
@@ -8585,9 +8655,6 @@ msgstr "ライブセッションはありません"
 
 msgid "no logins"
 msgstr "ログイン情報なし"
-
-msgid "no longer in the catalog"
-msgstr "カタログから削除されました"
 
 msgid "No match"
 msgstr "一致なし"
@@ -8648,6 +8715,9 @@ msgstr "保留中の招待はありません"
 
 msgid "No people found."
 msgstr "該当するユーザーがいません。"
+
+msgid "No plugins available yet."
+msgstr "利用できるプラグインはまだありません。"
 
 #. placeholder {0}: search.trim()
 msgid "No plugins match \"{0}\""
@@ -8999,6 +9069,9 @@ msgstr "そしていま、ソフトウェア工場のためのプラットフォ
 msgid "Numbered list"
 msgstr "番号付きリスト"
 
+msgid "OAuth 2.0"
+msgstr "OAuth 2.0"
+
 msgid "OAuth by default, API keys for CI"
 msgstr "既定はOAuth、CIにはAPIキー"
 
@@ -9154,6 +9227,10 @@ msgstr "オープン"
 #. placeholder {0}: linkedAgent?.label ?? t({ message: "agent settings", })
 msgid "Open {0}"
 msgstr "{0}を開く"
+
+#. placeholder {0}: plugin.interface.displayName
+msgid "Open {0} website"
+msgstr "{0} のウェブサイトを開く"
 
 msgid "Open {filePath}"
 msgstr "{filePath}を開く"
@@ -10036,6 +10113,14 @@ msgstr "組織を選択してください"
 msgid "Please try signing in again from the desktop app."
 msgstr "デスクトップアプリからもう一度サインインしてください。"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.noApiKeyAuth"
+msgstr "プラグイン {plugin} は api_key 認証を使用していません"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.notInstalled"
+msgstr "プラグイン {plugin} はインストールされていません"
+
 msgid "Plugin marketplace"
 msgstr "プラグインマーケットプレイス"
 
@@ -10398,9 +10483,6 @@ msgstr "プロパティ"
 
 msgid "Provide either id or slug"
 msgstr "idまたはslugのいずれかを指定してください"
-
-msgid "Provided by entries in your own agent config."
-msgstr "ご自身のエージェント設定のエントリによって提供されています。"
 
 #. placeholder {0}: sourceConfig?.label ?? binding.agentId
 msgid "Provider: {0}"
@@ -10774,9 +10856,6 @@ msgstr "リモートアクセス"
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "リモートMCPサーバー — HTTP経由で接続"
-
-msgid "Remote servers sign you in the first time an agent uses them."
-msgstr "リモートサーバーは、エージェントが最初に使用するときにサインインを求めます。"
 
 msgid "Remote workspace"
 msgstr "リモートワークスペース"
@@ -13821,6 +13900,9 @@ msgstr "このパスは存在しますが、ディレクトリではありませ
 msgid "This path is a directory"
 msgstr "このパスはディレクトリです"
 
+msgid "This plugin needs no account — its skills are ready to use."
+msgstr "このプラグインにアカウントは不要です — スキルはすぐに使えます。"
+
 msgid "This port is still in use"
 msgstr "このポートはまだ使用中です"
 
@@ -14306,10 +14388,7 @@ msgstr "選択したワークスペースをグループ解除"
 msgid "Unified view"
 msgstr "統合表示"
 
-msgid "Uninstall"
-msgstr "アンインストール"
-
-#. placeholder {0}: plugin?.interface.displayName ?? entry.name
+#. placeholder {0}: plugin.interface.displayName
 msgid "Uninstall {0}"
 msgstr "{0}をアンインストール"
 
@@ -14346,6 +14425,10 @@ msgstr "不明なホスト"
 
 msgid "Unknown Host"
 msgstr "不明なホスト"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.unknownPlugin"
+msgstr "不明なプラグイン {plugin}"
 
 msgid "Unknown project"
 msgstr "不明なプロジェクト"
@@ -14422,6 +14505,9 @@ msgstr "次の実行"
 
 msgid "Up Next"
 msgstr "次に着手"
+
+msgid "Update"
+msgstr "更新"
 
 msgid "Update available"
 msgstr "アップデートあり"
@@ -15151,9 +15237,6 @@ msgstr "あなた"
 
 msgid "YOU"
 msgstr "あなた"
-
-msgid "You added these yourself — Superset never touches them, and never writes duplicates of servers you already have."
-msgstr "これらはご自身で追加したものです — Supersetが変更することはなく、既存のサーバーと重複して書き込むこともありません。"
 
 msgid "You appear to be offline"
 msgstr "オフラインのようです"

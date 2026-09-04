@@ -89,9 +89,17 @@ export {
 	writeSharedDisabledSkillIds,
 } from "./disabled-skills";
 export {
+	installedPluginsFilePath,
+	readInstalledPluginSources,
+} from "./installed-plugins";
+export {
 	readExternallyConfiguredMcpServers,
 	type SyncManagedMcpServersOptions,
 	syncManagedMcpServers,
 } from "./managed-mcp-servers";
-export { createManagedSkills } from "./managed-skills";
+export {
+	createManagedSkills,
+	type PluginSkillSource,
+} from "./managed-skills";
 export { getBinDir, resolveSupersetHomeDir } from "./paths";
+export { writeFileIfChanged } from "./write-file-if-changed";

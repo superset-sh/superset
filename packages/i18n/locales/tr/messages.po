@@ -160,6 +160,10 @@ msgstr "{0, plural, one {# geçti} other {# geçti}}"
 msgid "{0, plural, one {# project selected.} other {# projects selected.}}"
 msgstr "{0, plural, one {# proje seçildi.} other {# proje seçildi.}}"
 
+#. placeholder {0}: projectFilters.length
+msgid "{0, plural, one {# project} other {# projects}}"
+msgstr "{0, plural, one {# proje} other {# proje}}"
+
 #. placeholder {0}: repositories.length
 #. placeholder {0}: selectedProjects.length
 msgid "{0, plural, one {# repository} other {# repositories}}"
@@ -273,6 +277,10 @@ msgstr "{0} – {1} · yerel oturum günlüklerinden API tarifesi tahmini"
 msgid "{0} — try the Superset tray menu > Host Service > Restart."
 msgstr "{0} — Superset tepsi menüsünde Host hizmeti > Yeniden başlat yolunu deneyin."
 
+#. placeholder {0}: creator.name
+msgid "{0} (you)"
+msgstr "{0} (siz)"
+
 #. placeholder {0}: actor.login
 msgid "{0} {actorVerb}"
 msgstr "{0} {actorVerb}"
@@ -301,7 +309,7 @@ msgstr "{0} devre dışı bırakıldı"
 
 #. placeholder {0}: displayName(variables.name)
 #. placeholder {0}: plugin.interface.displayName
-#. placeholder {0}: plugin?.interface.displayName ?? entry.name
+#. placeholder {0}: skill.name
 msgid "{0} enabled"
 msgstr "{0} etkin"
 
@@ -344,6 +352,11 @@ msgstr "{0} Ücretsiz planda. Superset Mobile, Pro planındaki kuruluşlar için
 #. placeholder {2}: hostCompatibility.minVersion
 msgid "{0} is running host service {1} — this app needs {2} or newer. Update Superset on that machine."
 msgstr "{0} üzerinde host hizmeti {1} çalışıyor — bu uygulama {2} veya daha yenisini gerektiriyor. O makinede Superset'i güncelleyin."
+
+#. placeholder {0}: displayName(name)
+#. placeholder {0}: displayName(variables.name)
+msgid "{0} is set up on this machine, but not on your account"
+msgstr "{0} bu makinede kurulu, ancak hesabınızda değil"
 
 #. placeholder {0}: v.toLocaleString()
 msgid "{0} mo"
@@ -414,6 +427,10 @@ msgstr "Son 30 günde {0} token. <0>{handle}</0> olarak yayınlanıyor."
 #. placeholder {0}: displayName(variables.name)
 msgid "{0} uninstalled"
 msgstr "{0} kaldırıldı"
+
+#. placeholder {0}: displayName(variables.name)
+msgid "{0} updated"
+msgstr "{0} güncellendi"
 
 #. placeholder {0}: file.path
 msgid "{0} was deleted in this change."
@@ -622,6 +639,9 @@ msgstr "{level} · {gate} · {statusLabel}"
 msgid "{level} {gate}: {statusLabel}"
 msgstr "{level} {gate}: {statusLabel}"
 
+msgid "{localHostName} (this device)"
+msgstr "{localHostName} (bu cihaz)"
+
 #. placeholder {0}: <> <span className="tabular-nums font-medium text-foreground"> # </span>{" "} result for &ldquo;{query}&rdquo; </>
 #. placeholder {1}: <> <span className="tabular-nums font-medium text-foreground"> # </span>{" "} results for &ldquo;{query}&rdquo; </>
 msgid "{matchCount, plural, one {{0}} other {{1}}}"
@@ -647,6 +667,18 @@ msgstr "{months}ay önce"
 
 msgid "{myFailedCount} of your automations failed their last run"
 msgstr "Otomasyonlarınızdan {myFailedCount} tanesi son çalıştırmasında başarısız oldu"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceBuiltinRemove"
+msgstr "{name} yerleşiktir ve kaldırılamaz"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceReserved"
+msgstr "{name} yerleşiktir ve değiştirilemez"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceNotAdded"
+msgstr "{name} eklenmedi"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {En az bir kişi belirtin veya {choice} seçeneğini seçin.} sender {En az bir gönderen belirtin veya {choice} seçeneğini seçin.} other {En az bir öğe belirtin veya {choice} seçeneğini seçin.}}"
@@ -694,6 +726,14 @@ msgstr "{provider} logosu"
 
 msgid "{readPercent}% read"
 msgstr "%{readPercent} okundu"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.ambiguousPlugin"
+msgstr "{reason}"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.dispatchFailed"
+msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{total} içinden {received}"
@@ -1135,6 +1175,10 @@ msgstr "Akordeon"
 msgid "Account"
 msgstr "Hesap"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceNotResolvable"
+msgstr "Hesaba kurulum yalnızca birinci taraf manifestlerini çözer, bu yüzden {marketplace} kaynaklı {plugin} henüz hesabınıza kurulamaz. Bu makinede kurulu kalır."
+
 msgid "Account is pending deletion."
 msgstr "Hesap silinmeyi bekliyor."
 
@@ -1264,6 +1308,9 @@ msgstr "Başlamak için kenar çubuğundaki menüden bir tane ekleyin."
 
 msgid "Add photos or files"
 msgstr "Fotoğraf veya dosya ekle"
+
+msgid "Add plugin"
+msgstr "Eklenti ekle"
 
 msgid "Add project"
 msgstr "Proje ekle"
@@ -1957,6 +2004,9 @@ msgstr "Ağu 2026"
 msgid "Auth token"
 msgstr "Kimlik doğrulama token'ı"
 
+msgid "Authenticate your {displayName} account"
+msgstr "{displayName} hesabınızın kimliğini doğrulayın"
+
 msgid "Authentication"
 msgstr "Kimlik doğrulama"
 
@@ -2562,6 +2612,9 @@ msgstr "Nakit — toplam bakiye (Mercury)"
 msgid "Cash ÷ net burn at the current run rate"
 msgstr "Mevcut hızda nakit ÷ net harcama"
 
+msgid "Category"
+msgstr "Kategori"
+
 msgid "Certificate Authority Invalid"
 msgstr "Sertifika yetkilisi geçersiz"
 
@@ -2631,9 +2684,6 @@ msgstr "Değişiklik istendi"
 
 msgid "Changes saved"
 msgstr "Değişiklikler kaydedildi"
-
-msgid "Changes take effect in new agent sessions."
-msgstr "Değişiklikler yeni ajan oturumlarında geçerli olur."
 
 msgid "Changing..."
 msgstr "Değiştiriliyor..."
@@ -3374,6 +3424,10 @@ msgstr "Görevleri konuşmalardan yönetmek için Slack çalışma alanınızı 
 msgid "Connected"
 msgstr "Bağlı"
 
+#. placeholder {0}: formatDate(new Date(connection.createdAt))
+msgid "connected {0}"
+msgstr "bağlandı {0}"
+
 msgid "Connected as"
 msgstr "Şu hesapla bağlı"
 
@@ -3428,11 +3482,18 @@ msgstr "Bağlantı kapandı"
 msgid "Connection failed."
 msgstr "Bağlantı başarısız."
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.connectionNotFound"
+msgstr "Bağlantı bulunamadı"
+
 msgid "Connection Refused"
 msgstr "Bağlantı reddedildi"
 
 msgid "Connection Timed Out"
 msgstr "Bağlantı zaman aşımına uğradı"
+
+msgid "Connections"
+msgstr "Bağlantılar"
 
 msgid "Consent finished but Microsoft did not issue a token for the tenant."
 msgstr "Onay tamamlandı ancak Microsoft kiracı için token vermedi."
@@ -3738,6 +3799,9 @@ msgstr "Ortamlar yüklenemedi"
 msgid "Could not load environments."
 msgstr "Ortamlar yüklenemedi."
 
+msgid "Could not load plugins. Check your connection and try again."
+msgstr "Eklentiler yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin."
+
 msgid "Could not load presets from the host"
 msgstr "Host'tan hazır ayarlar yüklenemedi"
 
@@ -3830,6 +3894,10 @@ msgstr "Beceri güncellenemedi"
 
 msgid "Could not update the branch"
 msgstr "Dal güncellenemedi"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.credentialUnverified"
+msgstr "Kimlik bilgisi doğrulanamadı: {reason}"
 
 msgid "Could not watch this page"
 msgstr "Bu sayfa izlenemedi"
@@ -4108,6 +4176,9 @@ msgstr "Oluşturulan <0>· 7g</0>"
 
 msgid "Created 1 folder in {where}"
 msgstr "{where} konumunda 1 klasör oluşturuldu"
+
+msgid "Created by"
+msgstr "Oluşturan"
 
 msgid "Created team \"{trimmedName}\""
 msgstr "\"{trimmedName}\" takımı oluşturuldu"
@@ -4572,9 +4643,6 @@ msgstr "Ayrılmış"
 msgid "Details"
 msgstr "Ayrıntılar"
 
-msgid "Detected in your agent configs"
-msgstr "Ajan yapılandırmalarınızda bulundu"
-
 msgid "Dev"
 msgstr "Geliştirme"
 
@@ -4589,9 +4657,6 @@ msgstr "Geliştirici"
 
 msgid "Developers"
 msgstr "Geliştiriciler"
-
-msgid "Device"
-msgstr "Cihaz"
 
 msgid "Device: {selectedLabel}"
 msgstr "Cihaz: {selectedLabel}"
@@ -4637,9 +4702,6 @@ msgstr "Beceriyi devre dışı bırak"
 
 msgid "Disabled"
 msgstr "Devre dışı"
-
-msgid "Disabled — kept installed, but Superset writes nothing into your agent configs."
-msgstr "Devre dışı — kurulu kalır, ancak Superset ajan yapılandırmalarınıza hiçbir şey yazmaz."
 
 msgid "Disabled toggle"
 msgstr "Devre dışı anahtar"
@@ -4692,6 +4754,10 @@ msgstr "Atıldı — bir daha sorulmayacak"
 
 msgid "Disconnect"
 msgstr "Bağlantıyı kes"
+
+#. placeholder {0}: connection.account ?? displayName
+msgid "Disconnect {0}"
+msgstr "{0} bağlantısını kes"
 
 msgid "Disconnect GitHub?"
 msgstr "GitHub bağlantısı kesilsin mi?"
@@ -5067,9 +5133,6 @@ msgstr "Röle erişimini etkinleştir…"
 msgid "Enable skill"
 msgstr "Beceriyi etkinleştir"
 
-msgid "Enabled — servers are written into your agent configs."
-msgstr "Etkin — sunucular ajan yapılandırmalarınıza yazılır."
-
 msgid "Engineering deep-dives and launches."
 msgstr "Mühendislik derinlemesine yazıları ve lansmanlar."
 
@@ -5102,12 +5165,6 @@ msgstr "Kurumsal"
 
 msgid "Enterprise ARR by account"
 msgstr "Hesaba göre kurumsal ARR"
-
-msgid "Entries you added yourself stay active in your agent config."
-msgstr "Kendi eklediğiniz kayıtlar ajan yapılandırmanızda etkin kalır."
-
-msgid "Entries you added yourself stay in your agent config."
-msgstr "Kendi eklediğiniz kayıtlar ajan yapılandırmanızda kalır."
 
 msgid "Environment"
 msgstr "Ortam"
@@ -5879,6 +5936,9 @@ msgstr "Ajanları filtrele..."
 
 msgid "Filter by @{normalizedSearch}"
 msgstr "@{normalizedSearch} ile filtrele"
+
+msgid "Filter by device"
+msgstr "Cihaza göre filtrele"
 
 msgid "Filter by reviews"
 msgstr "İncelemeye göre filtrele"
@@ -6756,6 +6816,9 @@ msgstr "Geliştirilmiş fark görüntüleyici"
 msgid "in a terminal on this host."
 msgstr "komutunu çalıştırın."
 
+msgid "In all projects"
+msgstr "Tüm projelerde"
+
 msgid "In just a few months, <0>tens of thousands of engineers</0> run Superset as their primary IDE, at companies like Wix, DoorDash, and Netflix."
 msgstr "Yalnızca birkaç ayda <0>on binlerce mühendis</0> Superset'i birincil IDE'si olarak kullanmaya başladı; Wix, DoorDash ve Netflix gibi şirketlerde."
 
@@ -6799,6 +6862,9 @@ msgid "Industry median, our estimate. Dashed is forecast. The first F4 teams cro
 msgstr "Sektör medyanı, bizim tahminimiz. Kesikli çizgi öngörüdür. İlk F4 takımları eşiği daha erken geçer."
 
 msgid "Info"
+msgstr "Bilgi"
+
+msgid "Information"
 msgstr "Bilgi"
 
 msgid "Initialize Git"
@@ -6847,9 +6913,6 @@ msgstr "Superset ekibinden paralel kodlama ajanları ve geliştirici verimliliğ
 msgid "Inspecting {0}"
 msgstr "{0} inceleniyor"
 
-msgid "Install"
-msgstr "Kur"
-
 msgid "Install & restart"
 msgstr "Kur ve yeniden başlat"
 
@@ -6877,9 +6940,9 @@ msgstr "MCP sunucularını tek bir yerden, merkezi OAuth ile tüm çalışma ala
 msgid "Installed"
 msgstr "Kurulu"
 
-#. placeholder {0}: record.installedAt.slice(0, 10)
-msgid "installed {0}"
-msgstr "kuruldu: {0}"
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceHasInstalls"
+msgstr "Kurulu eklentiler {name} kaynağından geldi: {plugins}. Önce onları kaldırın."
 
 msgid "Installing..."
 msgstr "Kuruluyor..."
@@ -7350,6 +7413,9 @@ msgstr "bir dakikadan az önce"
 msgid "Letter spacing (px)"
 msgstr "Harf aralığı (px)"
 
+msgid "License"
+msgstr "Lisans"
+
 msgid "Lifecycle scripts"
 msgstr "Yaşam döngüsü betikleri"
 
@@ -7815,9 +7881,6 @@ msgstr "MCP yöneticisi"
 msgid "MCP Server"
 msgstr "MCP sunucusu"
 
-msgid "MCP servers"
-msgstr "MCP sunucuları"
-
 msgid "Mean"
 msgstr "Ortalama"
 
@@ -7977,6 +8040,10 @@ msgstr "Gerekli yetkilendirme parametreleri eksik."
 
 msgid "Missing required fields."
 msgstr "Zorunlu alanlar eksik."
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.missingInput"
+msgstr "Zorunlu girdi {input} eksik"
 
 msgid "Mobile"
 msgstr "Mobil"
@@ -8577,6 +8644,9 @@ msgstr "Issue bulunamadı."
 msgid "No items"
 msgstr "Öğe yok"
 
+msgid "No known creators"
+msgstr "Bilinen oluşturan yok"
+
 msgid "No labels"
 msgstr "Etiket yok"
 
@@ -8585,9 +8655,6 @@ msgstr "Canlı oturum yok"
 
 msgid "no logins"
 msgstr "oturum bilgisi yok"
-
-msgid "no longer in the catalog"
-msgstr "artık katalogda değil"
 
 msgid "No match"
 msgstr "Eşleşme yok"
@@ -8648,6 +8715,9 @@ msgstr "Bekleyen davet yok"
 
 msgid "No people found."
 msgstr "Kişi bulunamadı."
+
+msgid "No plugins available yet."
+msgstr "Henüz kullanılabilir eklenti yok."
 
 #. placeholder {0}: search.trim()
 msgid "No plugins match \"{0}\""
@@ -8999,6 +9069,9 @@ msgstr "Şimdi, yazılım fabrikaları için platformu kurmak üzere Silikon Vad
 msgid "Numbered list"
 msgstr "Numaralı liste"
 
+msgid "OAuth 2.0"
+msgstr "OAuth 2.0"
+
 msgid "OAuth by default, API keys for CI"
 msgstr "Varsayılan OAuth, CI için API anahtarları"
 
@@ -9154,6 +9227,10 @@ msgstr "Açık"
 #. placeholder {0}: linkedAgent?.label ?? t({ message: "agent settings", })
 msgid "Open {0}"
 msgstr "Aç: {0}"
+
+#. placeholder {0}: plugin.interface.displayName
+msgid "Open {0} website"
+msgstr "{0} web sitesini aç"
 
 msgid "Open {filePath}"
 msgstr "Aç: {filePath}"
@@ -10036,6 +10113,14 @@ msgstr "Lütfen bir kuruluş seçin"
 msgid "Please try signing in again from the desktop app."
 msgstr "Lütfen masaüstü uygulamasından yeniden oturum açmayı deneyin."
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.noApiKeyAuth"
+msgstr "{plugin} eklentisi api_key kimlik doğrulaması kullanmıyor"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.notInstalled"
+msgstr "{plugin} eklentisi kurulu değil"
+
 msgid "Plugin marketplace"
 msgstr "Eklenti pazar yeri"
 
@@ -10398,9 +10483,6 @@ msgstr "Özellikler"
 
 msgid "Provide either id or slug"
 msgstr "id veya slug değerlerinden birini sağlayın"
-
-msgid "Provided by entries in your own agent config."
-msgstr "Kendi ajan yapılandırmanızdaki kayıtlardan sağlanır."
 
 #. placeholder {0}: sourceConfig?.label ?? binding.agentId
 msgid "Provider: {0}"
@@ -10774,9 +10856,6 @@ msgstr "Uzaktan erişim"
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "Uzak MCP sunucusu — HTTP üzerinden bağlanır"
-
-msgid "Remote servers sign you in the first time an agent uses them."
-msgstr "Uzak sunucular, bir ajan onları ilk kez kullandığında sizi oturuma alır."
 
 msgid "Remote workspace"
 msgstr "Uzak çalışma alanı"
@@ -13821,6 +13900,9 @@ msgstr "Bu yol mevcut, ancak bir dizin değil."
 msgid "This path is a directory"
 msgstr "Bu yol bir dizin"
 
+msgid "This plugin needs no account — its skills are ready to use."
+msgstr "Bu eklenti hesap gerektirmez — Becerileri kullanıma hazır."
+
 msgid "This port is still in use"
 msgstr "Bu port hâlâ kullanımda"
 
@@ -14306,10 +14388,7 @@ msgstr "Seçili çalışma alanlarını gruptan çıkar"
 msgid "Unified view"
 msgstr "Birleşik görünüm"
 
-msgid "Uninstall"
-msgstr "Kaldır"
-
-#. placeholder {0}: plugin?.interface.displayName ?? entry.name
+#. placeholder {0}: plugin.interface.displayName
 msgid "Uninstall {0}"
 msgstr "{0} eklentisini kaldır"
 
@@ -14346,6 +14425,10 @@ msgstr "Bilinmeyen host"
 
 msgid "Unknown Host"
 msgstr "Bilinmeyen host"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.unknownPlugin"
+msgstr "Bilinmeyen eklenti {plugin}"
 
 msgid "Unknown project"
 msgstr "Bilinmeyen proje"
@@ -14422,6 +14505,9 @@ msgstr "Sırada"
 
 msgid "Up Next"
 msgstr "Sırada"
+
+msgid "Update"
+msgstr "Güncelle"
 
 msgid "Update available"
 msgstr "Güncelleme mevcut"
@@ -15151,9 +15237,6 @@ msgstr "Siz"
 
 msgid "YOU"
 msgstr "SİZ"
-
-msgid "You added these yourself — Superset never touches them, and never writes duplicates of servers you already have."
-msgstr "Bunları siz eklediniz — Superset onlara hiç dokunmaz ve zaten sahip olduğunuz sunucuların kopyalarını asla yazmaz."
 
 msgid "You appear to be offline"
 msgstr "Çevrimdışı görünüyorsunuz"

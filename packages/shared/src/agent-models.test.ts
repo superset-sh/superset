@@ -11,6 +11,7 @@ import {
 	getAgentEfforts,
 	getAgentModelSupport,
 	getAgentModeSupport,
+	isCuratedAgentModel,
 	resolveAgentLaunchPresetId,
 	SUPERSET_CHAT_MODELS,
 } from "./agent-models";
@@ -164,8 +165,15 @@ describe("buildAgentModelArgs", () => {
 			buildAgentModelArgs("cursor-agent", "claude-fable-5-thinking-high"),
 		).toEqual(["--model", "claude-fable-5-thinking-high"]);
 		expect(
-			buildAgentModelArgs("cursor-agent", "claude-fable-5-thinking-xhigh"),
+			buildAgentModelArgs(
+				"cursor-agent",
+				"claude-fable-5-thinking-high",
+				"xhigh",
+			),
 		).toEqual(["--model", "claude-fable-5-thinking-xhigh"]);
+		expect(
+			buildAgentModelArgs("cursor-agent", "claude-fable-5-1-thinking-high"),
+		).toEqual(["--model", "claude-fable-5-1-thinking-high"]);
 		expect(buildAgentModelArgs("opencode", "anthropic/claude-fable-5")).toEqual(
 			["--model", "anthropic/claude-fable-5"],
 		);
@@ -261,6 +269,22 @@ describe("AGENT_EFFORT_SUPPORT", () => {
 			expect(entry.efforts.length).toBeGreaterThan(0);
 		}
 	});
+
+	it("keys model variants by curated models and efforts", () => {
+		for (const entry of AGENT_EFFORT_SUPPORT) {
+			if (!entry.modelVariants) continue;
+			const modelIds = new Set(
+				getAgentModelSupport(entry.presetId)?.models.map((m) => m.id),
+			);
+			const effortIds = new Set(entry.efforts.map((e) => e.id));
+			for (const [model, variants] of Object.entries(entry.modelVariants)) {
+				expect(modelIds.has(model)).toBe(true);
+				for (const effort of Object.keys(variants)) {
+					expect(effortIds.has(effort)).toBe(true);
+				}
+			}
+		}
+	});
 });
 
 describe("AGENT_MODE_SUPPORT", () => {
@@ -351,6 +375,12 @@ describe("buildAgentEffortArgs", () => {
 		expect(buildAgentEffortArgs("copilot", "max")).toEqual([]);
 	});
 
+	it("returns [] for cursor-agent, whose effort rides the model id", () => {
+		expect(
+			buildAgentEffortArgs("cursor-agent", "low", "claude-opus-5-high"),
+		).toEqual([]);
+	});
+
 	it("drops an effort the selected model does not accept", () => {
 		expect(buildAgentEffortArgs("codex", "ultra", "gpt-5.6-sol")).toEqual([
 			"-c",
@@ -402,6 +432,87 @@ describe("getAgentEfforts", () => {
 
 	it("returns [] for presets without effort support", () => {
 		expect(getAgentEfforts("gemini")).toEqual([]);
+	});
+
+	it("offers cursor-agent efforts only for models with a ladder", () => {
+		expect(
+			getAgentEfforts("cursor-agent", "claude-opus-4-8-high").map((e) => e.id),
+		).toEqual(["low", "medium", "high", "xhigh", "max"]);
+		expect(
+			getAgentEfforts("cursor-agent", "claude-opus-5-high").map((e) => e.id),
+		).toEqual(["low", "medium", "high"]);
+		expect(
+			getAgentEfforts("cursor-agent", "gpt-5.6-sol-medium").map((e) => e.id),
+		).toEqual(["none", "low", "medium", "high", "xhigh", "max"]);
+		expect(
+			getAgentEfforts("cursor-agent", "kimi-k3-max").map((e) => e.id),
+		).toEqual(["low", "high", "max"]);
+		expect(getAgentEfforts("cursor-agent", "auto")).toEqual([]);
+		expect(getAgentEfforts("cursor-agent", "composer-2.5")).toEqual([]);
+		expect(getAgentEfforts("cursor-agent")).toEqual([]);
+		expect(getAgentEfforts("cursor-agent", "gpt-9")).toEqual([]);
+	});
+});
+
+describe("buildAgentModelArgs with effort", () => {
+	it("swaps in the cursor-agent sibling id for the effort", () => {
+		expect(
+			buildAgentModelArgs("cursor-agent", "claude-opus-4-8-high", "low"),
+		).toEqual(["--model", "claude-opus-4-8-low"]);
+		expect(
+			buildAgentModelArgs("cursor-agent", "gpt-5.3-codex", "medium"),
+		).toEqual(["--model", "gpt-5.3-codex"]);
+		expect(
+			buildAgentModelArgs("cursor-agent", "gpt-5.3-codex", "xhigh"),
+		).toEqual(["--model", "gpt-5.3-codex-xhigh"]);
+		expect(
+			buildAgentModelArgs("cursor-agent", "gpt-5.6-luna-medium", "none"),
+		).toEqual(["--model", "gpt-5.6-luna-none"]);
+		expect(
+			buildAgentModelArgs("cursor-agent", "gpt-5.5-medium", "xhigh"),
+		).toEqual(["--model", "gpt-5.5-extra-high"]);
+		expect(
+			buildAgentModelArgs("cursor-agent", "claude-opus-4-7-xhigh", "low"),
+		).toEqual(["--model", "claude-opus-4-7-low"]);
+	});
+
+	it("keeps the default level when the model has no such effort", () => {
+		expect(
+			buildAgentModelArgs("cursor-agent", "claude-opus-5-high", "max"),
+		).toEqual(["--model", "claude-opus-5-high"]);
+		expect(buildAgentModelArgs("cursor-agent", "auto", "high")).toEqual([
+			"--model",
+			"auto",
+		]);
+		expect(buildAgentModelArgs("cursor-agent", "auto")).toEqual([
+			"--model",
+			"auto",
+		]);
+	});
+
+	it("still launches a sibling id saved before it was folded into its family", () => {
+		expect(
+			buildAgentModelArgs("cursor-agent", "claude-fable-5-thinking-xhigh"),
+		).toEqual(["--model", "claude-fable-5-thinking-xhigh"]);
+		expect(buildAgentModelArgs("cursor-agent", "claude-opus-4-8-low")).toEqual([
+			"--model",
+			"claude-opus-4-8-low",
+		]);
+		expect(
+			buildAgentModelArgs("cursor-agent", "claude-opus-4-8-bogus"),
+		).toEqual([]);
+		expect(isCuratedAgentModel("cursor-agent", "gpt-5.5-extra-high")).toBe(
+			true,
+		);
+		expect(isCuratedAgentModel("claude", "claude-opus-5")).toBe(true);
+		expect(isCuratedAgentModel("claude", "opus-9")).toBe(false);
+	});
+
+	it("ignores effort for flag-based presets", () => {
+		expect(buildAgentModelArgs("claude", "opus", "high")).toEqual([
+			"--model",
+			"opus",
+		]);
 	});
 });
 

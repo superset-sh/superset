@@ -1,0 +1,4 @@
+interface:
+  display_name: "Superset Plugins"
+  short_description: "Install plugins, connect their accounts, and call their MCP tools"
+  default_prompt: "Use $superset-plugins to install a plugin, connect its account, or call its tools."

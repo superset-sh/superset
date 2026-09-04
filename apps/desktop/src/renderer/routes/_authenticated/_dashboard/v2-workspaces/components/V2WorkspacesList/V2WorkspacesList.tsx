@@ -112,6 +112,9 @@ export function V2WorkspacesList({
 	const agentStatusFilters = useV2WorkspacesFilterStore(
 		(state) => state.agentStatusFilters,
 	);
+	const creatorFilters = useV2WorkspacesFilterStore(
+		(state) => state.creatorFilters,
+	);
 	const pinFilter = useV2WorkspacesFilterStore((state) => state.pinFilter);
 	const resetFilters = useV2WorkspacesFilterStore((state) => state.reset);
 	const archivedWindow = useV2WorkspacesFilterStore(
@@ -130,6 +133,7 @@ export function V2WorkspacesList({
 		projectFilters.length > 0 ||
 		prStateFilters.length > 0 ||
 		agentStatusFilters.length > 0 ||
+		creatorFilters.length > 0 ||
 		pinFilter !== "all" ||
 		// A narrowed archive window can hide every row (e.g. all tombstones
 		// with "Hide archived") — that's a filter, not an empty account.
@@ -175,7 +179,8 @@ export function V2WorkspacesList({
 	}
 
 	return (
-		<div className="min-h-0 flex-1 overflow-y-auto">
+		// @container so rows can shed metadata as the pane narrows.
+		<div className="@container min-h-0 flex-1 overflow-y-auto">
 			{sections.map((section) => (
 				<StatusSectionGroup
 					key={section.column}

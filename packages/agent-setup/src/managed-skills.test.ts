@@ -12,6 +12,7 @@ import {
 	createManagedSkills,
 	MANAGED_SENTINEL_NAME,
 	MANAGED_SKILL_MARKER,
+	type PluginSkillSource,
 	setFrontmatterName,
 	withManagedMarker,
 } from "./managed-skills";
@@ -23,6 +24,8 @@ const TEST_ROOT = path.join(
 const HOME_DIR = path.join(TEST_ROOT, "home");
 const TEMPLATES_DIR = path.join(TEST_ROOT, "templates");
 const BUNDLED_PLUGIN = path.join(TEMPLATES_DIR, "plugin");
+
+const SUPERSET_HOME = path.join(TEST_ROOT, "superset");
 
 const claudeSkills = path.join(HOME_DIR, ".claude", "skills");
 const claudePlugin = path.join(claudeSkills, "superset");
@@ -54,21 +57,75 @@ function seedBundledPlugin(): void {
 	writeFileSync(path.join(agentsExtra, "openai.yaml"), "model: test\n");
 }
 
-async function run(disabledSkills?: readonly string[]): Promise<void> {
+async function run(
+	disabledSkills?: readonly string[],
+	pluginSources?: readonly PluginSkillSource[],
+): Promise<void> {
 	await createManagedSkills({
 		homeDir: HOME_DIR,
 		templatesDir: TEMPLATES_DIR,
 		disabledSkills,
+		pluginSources,
 	});
+}
+
+function seedMarketplacePlugin(
+	name: string,
+	skills: readonly string[],
+): PluginSkillSource {
+	const dir = path.join(TEST_ROOT, "marketplace", name);
+	mkdirSync(dir, { recursive: true });
+	writeFileSync(
+		path.join(dir, "plugin.json"),
+		JSON.stringify({
+			name,
+			version: "1.2.3",
+			description: `${name} plugin`,
+			license: "MIT",
+		}),
+	);
+	for (const skill of skills) {
+		const skillDir = path.join(dir, "skills", skill);
+		mkdirSync(skillDir, { recursive: true });
+		writeFileSync(path.join(skillDir, "SKILL.md"), skillMd(skill));
+	}
+	mkdirSync(path.join(dir, "server"), { recursive: true });
+	writeFileSync(path.join(dir, "server", "index.mjs"), "export const run = 1;");
+	return { name, dir };
+}
+
+/**
+ * The ledger this file writes and reads. Named explicitly rather than resolved
+ * from SUPERSET_HOME_DIR: sibling files in the same process move that variable
+ * in their own hooks, and one landing between this write and the read under
+ * test sends the reader to a home with no ledger in it.
+ */
+const INSTALLED_PLUGINS_FILE = path.join(
+	SUPERSET_HOME,
+	"plugins",
+	"installed_plugins.json",
+);
+
+function writeInstalledPlugins(
+	plugins: readonly Record<string, unknown>[],
+): void {
+	const dir = path.join(SUPERSET_HOME, "plugins");
+	mkdirSync(dir, { recursive: true });
+	writeFileSync(
+		path.join(dir, "installed_plugins.json"),
+		JSON.stringify({ version: 1, plugins }),
+	);
 }
 
 beforeEach(() => {
 	rmSync(TEST_ROOT, { recursive: true, force: true });
 	seedBundledPlugin();
 	mkdirSync(HOME_DIR, { recursive: true });
+	process.env.SUPERSET_HOME_DIR = SUPERSET_HOME;
 });
 
 afterEach(() => {
+	delete process.env.SUPERSET_HOME_DIR;
 	rmSync(TEST_ROOT, { recursive: true, force: true });
 });
 
@@ -260,5 +317,183 @@ describe("createManagedSkills", () => {
 			MANAGED_SKILL_MARKER,
 		);
 		expect(existsSync(path.join(claudePlugin, "skills", "10x"))).toBe(true);
+	});
+});
+
+describe("createManagedSkills with plugin sources", () => {
+	it("grafts a marketplace plugin into the one Superset plugin dir", async () => {
+		const github = seedMarketplacePlugin("github", ["issue-triage"]);
+		await run(undefined, [github]);
+
+		expect(existsSync(path.join(claudeSkills, "github"))).toBe(false);
+		const claudeSkill = readFileSync(
+			path.join(claudePlugin, "skills", "github-issue-triage", "SKILL.md"),
+			"utf-8",
+		);
+		expect(claudeSkill).toContain("name: github-issue-triage");
+
+		const shared = readFileSync(
+			path.join(agentsSkills, "github-issue-triage", "SKILL.md"),
+			"utf-8",
+		);
+		expect(shared).toContain("name: github-issue-triage");
+		expect(shared).toContain(MANAGED_SKILL_MARKER);
+	});
+
+	it("keeps non-skill payload out of the Claude plugin dir", async () => {
+		const linear = seedMarketplacePlugin("linear", ["triage"]);
+		await run(undefined, [linear]);
+
+		expect(existsSync(path.join(claudePlugin, "server"))).toBe(false);
+		expect(existsSync(path.join(claudePlugin, "skills", "server"))).toBe(false);
+		expect(existsSync(path.join(claudePlugin, "skills", "linear-triage"))).toBe(
+			true,
+		);
+	});
+
+	it("leaves the bundled plugin alone and reaps only uninstalled plugins", async () => {
+		const github = seedMarketplacePlugin("github", ["issue-triage"]);
+		await run(undefined, [github]);
+		expect(existsSync(path.join(agentsSkills, "github-issue-triage"))).toBe(
+			true,
+		);
+
+		await run(undefined, []);
+
+		expect(existsSync(path.join(agentsSkills, "github-issue-triage"))).toBe(
+			false,
+		);
+		expect(
+			existsSync(path.join(claudePlugin, "skills", "github-issue-triage")),
+		).toBe(false);
+		expect(existsSync(path.join(agentsSkills, "superset-feedback"))).toBe(true);
+		expect(existsSync(path.join(claudePlugin, "skills", "feedback"))).toBe(
+			true,
+		);
+	});
+
+	it("disables one plugin's skill without touching the same name elsewhere", async () => {
+		const github = seedMarketplacePlugin("github", ["feedback"]);
+		await run(["github/feedback"], [github]);
+
+		expect(existsSync(path.join(agentsSkills, "github-feedback"))).toBe(false);
+		expect(
+			existsSync(path.join(claudePlugin, "skills", "github-feedback")),
+		).toBe(false);
+		expect(existsSync(path.join(agentsSkills, "superset-feedback"))).toBe(true);
+		expect(existsSync(path.join(claudePlugin, "skills", "feedback"))).toBe(
+			true,
+		);
+	});
+
+	it("keeps a bare disable scoped to the bundled plugin", async () => {
+		const github = seedMarketplacePlugin("github", ["feedback"]);
+		await run(["feedback"], [github]);
+
+		expect(existsSync(path.join(agentsSkills, "superset-feedback"))).toBe(
+			false,
+		);
+		expect(existsSync(path.join(agentsSkills, "github-feedback"))).toBe(true);
+	});
+
+	it("refuses a plugin that would take over the bundled directory", async () => {
+		const impostor = seedMarketplacePlugin("superset", ["evil"]);
+		await run(undefined, [impostor]);
+
+		expect(existsSync(path.join(agentsSkills, "superset-evil"))).toBe(false);
+		expect(existsSync(path.join(agentsSkills, "superset-feedback"))).toBe(true);
+		expect(
+			JSON.parse(
+				readFileSync(
+					path.join(claudePlugin, ".claude-plugin", "plugin.json"),
+					"utf-8",
+				),
+			).version,
+		).toBe("0.3.0");
+	});
+
+	it("preserves a plugin's skills when its source directory is gone", async () => {
+		const github = seedMarketplacePlugin("github", ["issue-triage"]);
+		await run(undefined, [github]);
+
+		rmSync(github.dir, { recursive: true });
+		await run(undefined, [github]);
+
+		expect(existsSync(path.join(agentsSkills, "github-issue-triage"))).toBe(
+			true,
+		);
+		expect(
+			existsSync(path.join(claudePlugin, "skills", "github-issue-triage")),
+		).toBe(true);
+	});
+
+	it("reaps a skill the plugin stopped shipping", async () => {
+		const github = seedMarketplacePlugin("github", [
+			"issue-triage",
+			"ci-triage",
+		]);
+		await run(undefined, [github]);
+		expect(existsSync(path.join(agentsSkills, "github-ci-triage"))).toBe(true);
+
+		rmSync(path.join(github.dir, "skills", "ci-triage"), { recursive: true });
+		await run(undefined, [github]);
+
+		expect(existsSync(path.join(agentsSkills, "github-ci-triage"))).toBe(false);
+		expect(
+			existsSync(path.join(claudePlugin, "skills", "github-ci-triage")),
+		).toBe(false);
+		expect(existsSync(path.join(agentsSkills, "github-issue-triage"))).toBe(
+			true,
+		);
+	});
+});
+
+describe("createManagedSkills without an explicit source list", () => {
+	it("reads installed plugins from disk", async () => {
+		const github = seedMarketplacePlugin("github", ["issue-triage"]);
+		writeInstalledPlugins([
+			{ name: github.name, installPath: github.dir, enabled: true },
+		]);
+
+		await createManagedSkills({
+			homeDir: HOME_DIR,
+			templatesDir: TEMPLATES_DIR,
+			installedPluginsFile: INSTALLED_PLUGINS_FILE,
+		});
+
+		expect(existsSync(path.join(agentsSkills, "github-issue-triage"))).toBe(
+			true,
+		);
+		expect(
+			existsSync(path.join(claudePlugin, "skills", "github-issue-triage")),
+		).toBe(true);
+	});
+
+	it("skips a disabled install", async () => {
+		const github = seedMarketplacePlugin("github", ["issue-triage"]);
+		writeInstalledPlugins([
+			{ name: github.name, installPath: github.dir, enabled: false },
+		]);
+
+		await createManagedSkills({
+			homeDir: HOME_DIR,
+			templatesDir: TEMPLATES_DIR,
+			installedPluginsFile: INSTALLED_PLUGINS_FILE,
+		});
+
+		expect(existsSync(path.join(agentsSkills, "github-issue-triage"))).toBe(
+			false,
+		);
+		expect(existsSync(path.join(agentsSkills, "superset-feedback"))).toBe(true);
+	});
+
+	it("provisions the bundled plugin when the file is absent", async () => {
+		await createManagedSkills({
+			homeDir: HOME_DIR,
+			templatesDir: TEMPLATES_DIR,
+			installedPluginsFile: INSTALLED_PLUGINS_FILE,
+		});
+
+		expect(existsSync(path.join(agentsSkills, "superset-feedback"))).toBe(true);
 	});
 });

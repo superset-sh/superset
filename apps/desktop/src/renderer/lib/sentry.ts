@@ -1,7 +1,12 @@
 import { SENTRY_IGNORE_ERRORS } from "@superset/shared/sentry";
+import { createSentryEventThrottle } from "@superset/shared/sentry-throttle";
 import { env } from "../env.renderer";
 
 let sentryInitialized = false;
+
+// Shared across the process: the point is to notice a repeat, which needs one
+// instance rather than one per call.
+const throttleRepeats = createSentryEventThrottle();
 
 export async function initSentry(): Promise<void> {
 	if (sentryInitialized) return;
@@ -27,7 +32,7 @@ export async function initSentry(): Promise<void> {
 				if (original instanceof Error && original.name === "TRPCClientError") {
 					return null;
 				}
-				return event;
+				return throttleRepeats(event);
 			},
 		});
 

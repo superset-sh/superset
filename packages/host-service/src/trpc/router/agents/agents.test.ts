@@ -746,6 +746,48 @@ describe("validateAgentEffortSelection", () => {
 			);
 		}
 	});
+
+	it("accepts a cursor-agent effort sibling passed as the model itself", () => {
+		expect(() =>
+			validateAgentModelSelection(
+				"cursor-agent",
+				"Cursor Agent",
+				"claude-fable-5-thinking-xhigh",
+			),
+		).not.toThrow();
+	});
+
+	it("accepts cursor-agent efforts only on models with a ladder", () => {
+		expect(() =>
+			validateAgentEffortSelection(
+				"cursor-agent",
+				"Cursor Agent",
+				"low",
+				"claude-opus-4-8-high",
+			),
+		).not.toThrow();
+		try {
+			validateAgentEffortSelection(
+				"cursor-agent",
+				"Cursor Agent",
+				"low",
+				"auto",
+			);
+			throw new Error("Expected validation to fail");
+		} catch (error) {
+			expect((error as Error).message).toBe(
+				"Cursor Agent does not support a reasoning effort override with model auto. Omit effort to use the agent default.",
+			);
+		}
+		try {
+			validateAgentEffortSelection("cursor-agent", "Cursor Agent", "low");
+			throw new Error("Expected validation to fail");
+		} catch (error) {
+			expect((error as Error).message).toBe(
+				"Cursor Agent does not support a reasoning effort override without a model. Omit effort to use the agent default.",
+			);
+		}
+	});
 });
 
 describe("validateAgentModeSelection", () => {

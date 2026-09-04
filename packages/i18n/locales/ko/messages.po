@@ -160,6 +160,10 @@ msgstr "{0, plural, one {#개 통과} other {#개 통과}}"
 msgid "{0, plural, one {# project selected.} other {# projects selected.}}"
 msgstr "{0, plural, one {프로젝트 #개를 선택했습니다.} other {프로젝트 #개를 선택했습니다.}}"
 
+#. placeholder {0}: projectFilters.length
+msgid "{0, plural, one {# project} other {# projects}}"
+msgstr "{0, plural, one {프로젝트 #개} other {프로젝트 #개}}"
+
 #. placeholder {0}: repositories.length
 #. placeholder {0}: selectedProjects.length
 msgid "{0, plural, one {# repository} other {# repositories}}"
@@ -273,6 +277,10 @@ msgstr "{0} – {1} · 로컬 세션 로그 기반 API 요금 추정치"
 msgid "{0} — try the Superset tray menu > Host Service > Restart."
 msgstr "{0} — Superset 트레이 메뉴 > Host Service > Restart를 사용해 보세요."
 
+#. placeholder {0}: creator.name
+msgid "{0} (you)"
+msgstr "{0} (나)"
+
 #. placeholder {0}: actor.login
 msgid "{0} {actorVerb}"
 msgstr "{0} {actorVerb}"
@@ -301,7 +309,7 @@ msgstr "{0} 비활성화됨"
 
 #. placeholder {0}: displayName(variables.name)
 #. placeholder {0}: plugin.interface.displayName
-#. placeholder {0}: plugin?.interface.displayName ?? entry.name
+#. placeholder {0}: skill.name
 msgid "{0} enabled"
 msgstr "{0} 활성화됨"
 
@@ -344,6 +352,11 @@ msgstr "{0}은(는) Free 플랜을 사용 중입니다. Superset Mobile은 Pro �
 #. placeholder {2}: hostCompatibility.minVersion
 msgid "{0} is running host service {1} — this app needs {2} or newer. Update Superset on that machine."
 msgstr "{0}에서 호스트 서비스 {1}을(를) 실행 중입니다 — 이 앱에는 {2} 이상이 필요합니다. 해당 컴퓨터에서 Superset을 업데이트하세요."
+
+#. placeholder {0}: displayName(name)
+#. placeholder {0}: displayName(variables.name)
+msgid "{0} is set up on this machine, but not on your account"
+msgstr "{0}이(가) 이 컴퓨터에는 설정되어 있지만 계정에는 없습니다"
 
 #. placeholder {0}: v.toLocaleString()
 msgid "{0} mo"
@@ -414,6 +427,10 @@ msgstr "최근 30일간 토큰 {0}개. <0>{handle}</0>(으)로 게시 중."
 #. placeholder {0}: displayName(variables.name)
 msgid "{0} uninstalled"
 msgstr "{0} 제거됨"
+
+#. placeholder {0}: displayName(variables.name)
+msgid "{0} updated"
+msgstr "{0} 업데이트됨"
 
 #. placeholder {0}: file.path
 msgid "{0} was deleted in this change."
@@ -622,6 +639,9 @@ msgstr "{level} · {gate} · {statusLabel}"
 msgid "{level} {gate}: {statusLabel}"
 msgstr "{level} {gate}: {statusLabel}"
 
+msgid "{localHostName} (this device)"
+msgstr "{localHostName} (이 기기)"
+
 #. placeholder {0}: <> <span className="tabular-nums font-medium text-foreground"> # </span>{" "} result for &ldquo;{query}&rdquo; </>
 #. placeholder {1}: <> <span className="tabular-nums font-medium text-foreground"> # </span>{" "} results for &ldquo;{query}&rdquo; </>
 msgid "{matchCount, plural, one {{0}} other {{1}}}"
@@ -647,6 +667,18 @@ msgstr "{months}개월 전"
 
 msgid "{myFailedCount} of your automations failed their last run"
 msgstr "내 자동화 {myFailedCount}개가 마지막 실행에 실패했습니다"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceBuiltinRemove"
+msgstr "{name}은(는) 기본 제공이라 제거할 수 없습니다"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceReserved"
+msgstr "{name}은(는) 기본 제공이라 교체할 수 없습니다"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceNotAdded"
+msgstr "{name}이(가) 추가되지 않았습니다"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {사람을 한 명 이상 지정하거나 {choice} 옵션을 선택하세요.} sender {발신자를 한 명 이상 지정하거나 {choice} 옵션을 선택하세요.} other {항목을 하나 이상 지정하거나 {choice} 옵션을 선택하세요.}}"
@@ -694,6 +726,14 @@ msgstr "{provider} 로고"
 
 msgid "{readPercent}% read"
 msgstr "{readPercent}% 읽음"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.ambiguousPlugin"
+msgstr "{reason}"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.dispatchFailed"
+msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{total} 중 {received}"
@@ -1135,6 +1175,10 @@ msgstr "아코디언"
 msgid "Account"
 msgstr "계정"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceNotResolvable"
+msgstr "계정 설치는 자체 매니페스트만 해석하므로 {marketplace}의 {plugin}은(는) 아직 계정에 설치할 수 없습니다. 이 컴퓨터에는 설치된 상태로 남습니다."
+
 msgid "Account is pending deletion."
 msgstr "계정이 삭제 대기 중입니다."
 
@@ -1264,6 +1308,9 @@ msgstr "사이드바 메뉴에서 하나 추가해 시작하세요."
 
 msgid "Add photos or files"
 msgstr "사진 또는 파일 추가"
+
+msgid "Add plugin"
+msgstr "플러그인 추가"
 
 msgid "Add project"
 msgstr "프로젝트 추가"
@@ -1957,6 +2004,9 @@ msgstr "2026년 8월"
 msgid "Auth token"
 msgstr "인증 토큰"
 
+msgid "Authenticate your {displayName} account"
+msgstr "{displayName} 계정 인증"
+
 msgid "Authentication"
 msgstr "인증"
 
@@ -2562,6 +2612,9 @@ msgstr "현금 — 총 잔액 (Mercury)"
 msgid "Cash ÷ net burn at the current run rate"
 msgstr "현재 실행률 기준 현금 ÷ 순 소진액"
 
+msgid "Category"
+msgstr "카테고리"
+
 msgid "Certificate Authority Invalid"
 msgstr "인증 기관이 올바르지 않음"
 
@@ -2631,9 +2684,6 @@ msgstr "변경 요청됨"
 
 msgid "Changes saved"
 msgstr "변경 사항이 저장되었습니다"
-
-msgid "Changes take effect in new agent sessions."
-msgstr "변경 사항은 새 에이전트 세션부터 적용됩니다."
 
 msgid "Changing..."
 msgstr "변경하는 중..."
@@ -3374,6 +3424,10 @@ msgstr "Slack 워크스페이스를 연결해 대화에서 바로 작업을 관�
 msgid "Connected"
 msgstr "연결됨"
 
+#. placeholder {0}: formatDate(new Date(connection.createdAt))
+msgid "connected {0}"
+msgstr "{0}에 연결됨"
+
 msgid "Connected as"
 msgstr "연결 계정"
 
@@ -3428,11 +3482,18 @@ msgstr "연결이 닫힘"
 msgid "Connection failed."
 msgstr "연결에 실패했습니다."
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.connectionNotFound"
+msgstr "연결을 찾을 수 없습니다"
+
 msgid "Connection Refused"
 msgstr "연결이 거부됨"
 
 msgid "Connection Timed Out"
 msgstr "연결 시간 초과"
+
+msgid "Connections"
+msgstr "연결"
 
 msgid "Consent finished but Microsoft did not issue a token for the tenant."
 msgstr "동의는 완료되었지만 Microsoft가 테넌트용 토큰을 발급하지 않았습니다."
@@ -3738,6 +3799,9 @@ msgstr "환경을 불러오지 못했습니다"
 msgid "Could not load environments."
 msgstr "환경을 불러오지 못했습니다."
 
+msgid "Could not load plugins. Check your connection and try again."
+msgstr "플러그인을 불러오지 못했습니다. 연결을 확인하고 다시 시도하세요."
+
 msgid "Could not load presets from the host"
 msgstr "호스트에서 프리셋을 불러올 수 없습니다"
 
@@ -3830,6 +3894,10 @@ msgstr "스킬을 업데이트할 수 없습니다"
 
 msgid "Could not update the branch"
 msgstr "브랜치를 업데이트할 수 없습니다"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.credentialUnverified"
+msgstr "자격 증명을 확인하지 못했습니다: {reason}"
 
 msgid "Could not watch this page"
 msgstr "이 페이지를 감시할 수 없습니다"
@@ -4108,6 +4176,9 @@ msgstr "생성됨 <0>· 7일</0>"
 
 msgid "Created 1 folder in {where}"
 msgstr "{where}에 폴더 1개를 만들었습니다"
+
+msgid "Created by"
+msgstr "만든 사람"
 
 msgid "Created team \"{trimmedName}\""
 msgstr "\"{trimmedName}\" 팀을 만들었습니다"
@@ -4572,9 +4643,6 @@ msgstr "분리됨"
 msgid "Details"
 msgstr "세부 정보"
 
-msgid "Detected in your agent configs"
-msgstr "에이전트 설정에서 감지됨"
-
 msgid "Dev"
 msgstr "개발"
 
@@ -4589,9 +4657,6 @@ msgstr "개발자"
 
 msgid "Developers"
 msgstr "개발자"
-
-msgid "Device"
-msgstr "기기"
 
 msgid "Device: {selectedLabel}"
 msgstr "기기: {selectedLabel}"
@@ -4637,9 +4702,6 @@ msgstr "스킬 비활성화"
 
 msgid "Disabled"
 msgstr "비활성화됨"
-
-msgid "Disabled — kept installed, but Superset writes nothing into your agent configs."
-msgstr "비활성화됨 — 설치는 유지되지만 Superset이 에이전트 설정에 아무것도 쓰지 않습니다."
 
 msgid "Disabled toggle"
 msgstr "비활성화된 토글"
@@ -4692,6 +4754,10 @@ msgstr "버렸습니다 — 다시 묻지 않습니다"
 
 msgid "Disconnect"
 msgstr "연결 해제"
+
+#. placeholder {0}: connection.account ?? displayName
+msgid "Disconnect {0}"
+msgstr "{0} 연결 해제"
 
 msgid "Disconnect GitHub?"
 msgstr "GitHub 연결을 해제할까요?"
@@ -5067,9 +5133,6 @@ msgstr "릴레이 접근 활성화…"
 msgid "Enable skill"
 msgstr "스킬 활성화"
 
-msgid "Enabled — servers are written into your agent configs."
-msgstr "활성화됨 — 서버가 에이전트 설정에 기록됩니다."
-
 msgid "Engineering deep-dives and launches."
 msgstr "엔지니어링 심층 글과 출시 소식."
 
@@ -5102,12 +5165,6 @@ msgstr "엔터프라이즈"
 
 msgid "Enterprise ARR by account"
 msgstr "계정별 엔터프라이즈 ARR"
-
-msgid "Entries you added yourself stay active in your agent config."
-msgstr "직접 추가한 항목은 에이전트 설정에서 계속 활성 상태로 유지됩니다."
-
-msgid "Entries you added yourself stay in your agent config."
-msgstr "직접 추가한 항목은 에이전트 설정에 그대로 남습니다."
 
 msgid "Environment"
 msgstr "환경"
@@ -5879,6 +5936,9 @@ msgstr "에이전트 필터..."
 
 msgid "Filter by @{normalizedSearch}"
 msgstr "@{normalizedSearch}(으)로 필터링"
+
+msgid "Filter by device"
+msgstr "기기별 필터"
 
 msgid "Filter by reviews"
 msgstr "리뷰로 필터링"
@@ -6756,6 +6816,9 @@ msgstr "차이 뷰어 개선"
 msgid "in a terminal on this host."
 msgstr "(이 호스트의 터미널에서)"
 
+msgid "In all projects"
+msgstr "모든 프로젝트"
+
 msgid "In just a few months, <0>tens of thousands of engineers</0> run Superset as their primary IDE, at companies like Wix, DoorDash, and Netflix."
 msgstr "몇 달 만에 <0>수만 명의 엔지니어</0>가 Wix, DoorDash, Netflix 같은 회사에서 Superset을 주력 IDE로 사용하고 있습니다."
 
@@ -6799,6 +6862,9 @@ msgid "Industry median, our estimate. Dashed is forecast. The first F4 teams cro
 msgstr "업계 중앙값, 자체 추정치. 점선은 전망입니다. 최초의 F4 팀은 이보다 먼저 관문을 넘습니다."
 
 msgid "Info"
+msgstr "정보"
+
+msgid "Information"
 msgstr "정보"
 
 msgid "Initialize Git"
@@ -6847,9 +6913,6 @@ msgstr "병렬 코딩 에이전트와 개발자 생산성에 대한 Superset 팀
 msgid "Inspecting {0}"
 msgstr "{0} 검사 중"
 
-msgid "Install"
-msgstr "설치"
-
 msgid "Install & restart"
 msgstr "설치 후 재시작"
 
@@ -6877,9 +6940,9 @@ msgstr "모든 워크스페이스의 MCP 서버를 한곳에서 설치하고, �
 msgid "Installed"
 msgstr "설치됨"
 
-#. placeholder {0}: record.installedAt.slice(0, 10)
-msgid "installed {0}"
-msgstr "{0}에 설치됨"
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceHasInstalls"
+msgstr "설치된 플러그인이 {name}에서 왔습니다: {plugins}. 먼저 제거하세요."
 
 msgid "Installing..."
 msgstr "설치 중..."
@@ -7350,6 +7413,9 @@ msgstr "1분 이내"
 msgid "Letter spacing (px)"
 msgstr "자간(px)"
 
+msgid "License"
+msgstr "라이선스"
+
 msgid "Lifecycle scripts"
 msgstr "라이프사이클 스크립트"
 
@@ -7815,9 +7881,6 @@ msgstr "MCP 관리자"
 msgid "MCP Server"
 msgstr "MCP 서버"
 
-msgid "MCP servers"
-msgstr "MCP 서버"
-
 msgid "Mean"
 msgstr "평균"
 
@@ -7977,6 +8040,10 @@ msgstr "필수 인증 매개변수가 없습니다."
 
 msgid "Missing required fields."
 msgstr "필수 항목이 비어 있습니다."
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.missingInput"
+msgstr "필수 입력 {input}이(가) 없습니다"
 
 msgid "Mobile"
 msgstr "모바일"
@@ -8577,6 +8644,9 @@ msgstr "이슈를 찾을 수 없습니다."
 msgid "No items"
 msgstr "항목 없음"
 
+msgid "No known creators"
+msgstr "알려진 만든 사람이 없습니다"
+
 msgid "No labels"
 msgstr "레이블 없음"
 
@@ -8585,9 +8655,6 @@ msgstr "활성 세션 없음"
 
 msgid "no logins"
 msgstr "로그인 없음"
-
-msgid "no longer in the catalog"
-msgstr "더 이상 카탈로그에 없음"
 
 msgid "No match"
 msgstr "일치 항목 없음"
@@ -8648,6 +8715,9 @@ msgstr "대기 중인 초대가 없습니다"
 
 msgid "No people found."
 msgstr "사용자를 찾을 수 없습니다."
+
+msgid "No plugins available yet."
+msgstr "아직 사용할 수 있는 플러그인이 없습니다."
 
 #. placeholder {0}: search.trim()
 msgid "No plugins match \"{0}\""
@@ -8999,6 +9069,9 @@ msgstr "이제 소프트웨어 공장을 위한 플랫폼을 만들기 위해 �
 msgid "Numbered list"
 msgstr "번호 매기기 목록"
 
+msgid "OAuth 2.0"
+msgstr "OAuth 2.0"
+
 msgid "OAuth by default, API keys for CI"
 msgstr "기본은 OAuth, CI에는 API 키"
 
@@ -9154,6 +9227,10 @@ msgstr "열림"
 #. placeholder {0}: linkedAgent?.label ?? t({ message: "agent settings", })
 msgid "Open {0}"
 msgstr "{0} 열기"
+
+#. placeholder {0}: plugin.interface.displayName
+msgid "Open {0} website"
+msgstr "{0} 웹사이트 열기"
 
 msgid "Open {filePath}"
 msgstr "{filePath} 열기"
@@ -10036,6 +10113,14 @@ msgstr "조직을 선택해 주세요"
 msgid "Please try signing in again from the desktop app."
 msgstr "데스크톱 앱에서 다시 로그인해 주세요."
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.noApiKeyAuth"
+msgstr "플러그인 {plugin}은(는) api_key 인증을 사용하지 않습니다"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.notInstalled"
+msgstr "플러그인 {plugin}이(가) 설치되지 않았습니다"
+
 msgid "Plugin marketplace"
 msgstr "플러그인 마켓플레이스"
 
@@ -10398,9 +10483,6 @@ msgstr "속성"
 
 msgid "Provide either id or slug"
 msgstr "id 또는 슬러그 중 하나를 제공하세요"
-
-msgid "Provided by entries in your own agent config."
-msgstr "직접 작성한 에이전트 설정 항목에서 제공됩니다."
 
 #. placeholder {0}: sourceConfig?.label ?? binding.agentId
 msgid "Provider: {0}"
@@ -10774,9 +10856,6 @@ msgstr "원격 액세스"
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "원격 MCP 서버 — HTTP로 연결합니다"
-
-msgid "Remote servers sign you in the first time an agent uses them."
-msgstr "원격 서버는 에이전트가 처음 사용할 때 로그인을 요청합니다."
 
 msgid "Remote workspace"
 msgstr "원격 워크스페이스"
@@ -13821,6 +13900,9 @@ msgstr "이 경로는 있지만 디렉터리가 아닙니다."
 msgid "This path is a directory"
 msgstr "이 경로는 디렉터리입니다"
 
+msgid "This plugin needs no account — its skills are ready to use."
+msgstr "이 플러그인은 계정이 필요 없습니다 — 스킬을 바로 사용할 수 있습니다."
+
 msgid "This port is still in use"
 msgstr "이 포트는 아직 사용 중입니다"
 
@@ -14306,10 +14388,7 @@ msgstr "선택한 워크스페이스 그룹 해제"
 msgid "Unified view"
 msgstr "통합 보기"
 
-msgid "Uninstall"
-msgstr "제거"
-
-#. placeholder {0}: plugin?.interface.displayName ?? entry.name
+#. placeholder {0}: plugin.interface.displayName
 msgid "Uninstall {0}"
 msgstr "{0} 제거"
 
@@ -14346,6 +14425,10 @@ msgstr "알 수 없는 호스트"
 
 msgid "Unknown Host"
 msgstr "알 수 없는 호스트"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.unknownPlugin"
+msgstr "알 수 없는 플러그인 {plugin}"
 
 msgid "Unknown project"
 msgstr "알 수 없는 프로젝트"
@@ -14422,6 +14505,9 @@ msgstr "다음 실행"
 
 msgid "Up Next"
 msgstr "다음 차례"
+
+msgid "Update"
+msgstr "업데이트"
 
 msgid "Update available"
 msgstr "업데이트 있음"
@@ -15151,9 +15237,6 @@ msgstr "나"
 
 msgid "YOU"
 msgstr "나"
-
-msgid "You added these yourself — Superset never touches them, and never writes duplicates of servers you already have."
-msgstr "직접 추가한 항목입니다. Superset은 이 항목을 건드리지 않으며, 이미 가지고 있는 서버를 중복해서 쓰지 않습니다."
 
 msgid "You appear to be offline"
 msgstr "오프라인 상태로 보입니다"

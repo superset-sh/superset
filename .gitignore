@@ -97,3 +97,7 @@ superset-dev-data/
 
 # Local-only plans (not tracked)
 plans/local/
+
+# Plugin build output is committed: a release is the plugin's tree at its
+# `<plugin>@<version>` tag, so the bundle users install has to be in it. The
+# build stamp travels with it so `plugins check` can verify it against src/.

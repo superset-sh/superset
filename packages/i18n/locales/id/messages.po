@@ -160,6 +160,10 @@ msgstr "{0, plural, one {# lulus} other {# lulus}}"
 msgid "{0, plural, one {# project selected.} other {# projects selected.}}"
 msgstr "{0, plural, one {# proyek dipilih.} other {# proyek dipilih.}}"
 
+#. placeholder {0}: projectFilters.length
+msgid "{0, plural, one {# project} other {# projects}}"
+msgstr "{0, plural, one {# proyek} other {# proyek}}"
+
 #. placeholder {0}: repositories.length
 #. placeholder {0}: selectedProjects.length
 msgid "{0, plural, one {# repository} other {# repositories}}"
@@ -273,6 +277,10 @@ msgstr "{0} – {1} · perkiraan tarif API dari log sesi lokal"
 msgid "{0} — try the Superset tray menu > Host Service > Restart."
 msgstr "{0} — coba menu tray Superset > Host Service > Restart."
 
+#. placeholder {0}: creator.name
+msgid "{0} (you)"
+msgstr "{0} (Anda)"
+
 #. placeholder {0}: actor.login
 msgid "{0} {actorVerb}"
 msgstr "{0} {actorVerb}"
@@ -301,7 +309,7 @@ msgstr "{0} dinonaktifkan"
 
 #. placeholder {0}: displayName(variables.name)
 #. placeholder {0}: plugin.interface.displayName
-#. placeholder {0}: plugin?.interface.displayName ?? entry.name
+#. placeholder {0}: skill.name
 msgid "{0} enabled"
 msgstr "{0} aktif"
 
@@ -344,6 +352,11 @@ msgstr "{0} memakai paket Gratis. Superset Mobile tersedia untuk organisasi deng
 #. placeholder {2}: hostCompatibility.minVersion
 msgid "{0} is running host service {1} — this app needs {2} or newer. Update Superset on that machine."
 msgstr "{0} menjalankan layanan host {1} — aplikasi ini butuh {2} atau lebih baru. Perbarui Superset di mesin itu."
+
+#. placeholder {0}: displayName(name)
+#. placeholder {0}: displayName(variables.name)
+msgid "{0} is set up on this machine, but not on your account"
+msgstr "{0} sudah disiapkan di mesin ini, tetapi tidak di akun Anda"
 
 #. placeholder {0}: v.toLocaleString()
 msgid "{0} mo"
@@ -414,6 +427,10 @@ msgstr "{0} token dalam 30 hari terakhir. Dipublikasikan sebagai <0>{handle}</0>
 #. placeholder {0}: displayName(variables.name)
 msgid "{0} uninstalled"
 msgstr "{0} dicopot"
+
+#. placeholder {0}: displayName(variables.name)
+msgid "{0} updated"
+msgstr "{0} diperbarui"
 
 #. placeholder {0}: file.path
 msgid "{0} was deleted in this change."
@@ -622,6 +639,9 @@ msgstr "{level} · {gate} · {statusLabel}"
 msgid "{level} {gate}: {statusLabel}"
 msgstr "{level} {gate}: {statusLabel}"
 
+msgid "{localHostName} (this device)"
+msgstr "{localHostName} (perangkat ini)"
+
 #. placeholder {0}: <> <span className="tabular-nums font-medium text-foreground"> # </span>{" "} result for &ldquo;{query}&rdquo; </>
 #. placeholder {1}: <> <span className="tabular-nums font-medium text-foreground"> # </span>{" "} results for &ldquo;{query}&rdquo; </>
 msgid "{matchCount, plural, one {{0}} other {{1}}}"
@@ -647,6 +667,18 @@ msgstr "{months}bln lalu"
 
 msgid "{myFailedCount} of your automations failed their last run"
 msgstr "{myFailedCount} otomatisasi Anda gagal pada run terakhirnya"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceBuiltinRemove"
+msgstr "{name} bawaan dan tidak dapat dihapus"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceReserved"
+msgstr "{name} bawaan dan tidak dapat diganti"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceNotAdded"
+msgstr "{name} belum ditambahkan"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {Tentukan minimal satu orang, atau pilih {choice}.} sender {Tentukan minimal satu pengirim, atau pilih {choice}.} other {Tentukan minimal satu entri, atau pilih {choice}.}}"
@@ -694,6 +726,14 @@ msgstr "Logo {provider}"
 
 msgid "{readPercent}% read"
 msgstr "{readPercent}% dibaca"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.ambiguousPlugin"
+msgstr "{reason}"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.dispatchFailed"
+msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{received} dari {total}"
@@ -1135,6 +1175,10 @@ msgstr "Accordion"
 msgid "Account"
 msgstr "Akun"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceNotResolvable"
+msgstr "Instalasi ke akun hanya menangani manifes internal, jadi {plugin} dari {marketplace} belum dapat dipasang ke akun Anda. Plugin tetap terpasang di mesin ini."
+
 msgid "Account is pending deletion."
 msgstr "Akun sedang menunggu penghapusan."
 
@@ -1264,6 +1308,9 @@ msgstr "Tambahkan satu dari menu di sidebar untuk memulai."
 
 msgid "Add photos or files"
 msgstr "Tambah foto atau file"
+
+msgid "Add plugin"
+msgstr "Tambah plugin"
 
 msgid "Add project"
 msgstr "Tambah proyek"
@@ -1957,6 +2004,9 @@ msgstr "Agu 2026"
 msgid "Auth token"
 msgstr "Token auth"
 
+msgid "Authenticate your {displayName} account"
+msgstr "Autentikasi akun {displayName} Anda"
+
 msgid "Authentication"
 msgstr "Autentikasi"
 
@@ -2562,6 +2612,9 @@ msgstr "Kas — saldo total (Mercury)"
 msgid "Cash ÷ net burn at the current run rate"
 msgstr "Kas ÷ net burn pada run rate saat ini"
 
+msgid "Category"
+msgstr "Kategori"
+
 msgid "Certificate Authority Invalid"
 msgstr "Certificate Authority Tidak Valid"
 
@@ -2631,9 +2684,6 @@ msgstr "Perubahan Diminta"
 
 msgid "Changes saved"
 msgstr "Perubahan disimpan"
-
-msgid "Changes take effect in new agent sessions."
-msgstr "Perubahan berlaku pada sesi agen yang baru."
 
 msgid "Changing..."
 msgstr "Mengubah..."
@@ -3374,6 +3424,10 @@ msgstr "Hubungkan workspace Slack Anda untuk mengelola tugas dari percakapan."
 msgid "Connected"
 msgstr "Terhubung"
 
+#. placeholder {0}: formatDate(new Date(connection.createdAt))
+msgid "connected {0}"
+msgstr "terhubung {0}"
+
 msgid "Connected as"
 msgstr "Terhubung sebagai"
 
@@ -3428,11 +3482,18 @@ msgstr "Koneksi Ditutup"
 msgid "Connection failed."
 msgstr "Koneksi gagal."
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.connectionNotFound"
+msgstr "Koneksi tidak ditemukan"
+
 msgid "Connection Refused"
 msgstr "Koneksi Ditolak"
 
 msgid "Connection Timed Out"
 msgstr "Koneksi Kehabisan Waktu"
+
+msgid "Connections"
+msgstr "Koneksi"
 
 msgid "Consent finished but Microsoft did not issue a token for the tenant."
 msgstr "Persetujuan selesai tapi Microsoft tidak menerbitkan token untuk tenant-nya."
@@ -3738,6 +3799,9 @@ msgstr "Tidak dapat memuat environment"
 msgid "Could not load environments."
 msgstr "Tidak dapat memuat environment."
 
+msgid "Could not load plugins. Check your connection and try again."
+msgstr "Tidak dapat memuat plugin. Periksa koneksi Anda dan coba lagi."
+
 msgid "Could not load presets from the host"
 msgstr "Tidak bisa memuat preset dari host"
 
@@ -3830,6 +3894,10 @@ msgstr "Tidak bisa memperbarui skill"
 
 msgid "Could not update the branch"
 msgstr "Tidak bisa memperbarui branch"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.credentialUnverified"
+msgstr "Tidak dapat memverifikasi kredensial: {reason}"
 
 msgid "Could not watch this page"
 msgstr "Tidak bisa memantau halaman ini"
@@ -4108,6 +4176,9 @@ msgstr "Dibuat <0>· 7h</0>"
 
 msgid "Created 1 folder in {where}"
 msgstr "Membuat 1 folder di {where}"
+
+msgid "Created by"
+msgstr "Dibuat oleh"
 
 msgid "Created team \"{trimmedName}\""
 msgstr "Membuat tim \"{trimmedName}\""
@@ -4572,9 +4643,6 @@ msgstr "Terlepas"
 msgid "Details"
 msgstr "Detail"
 
-msgid "Detected in your agent configs"
-msgstr "Terdeteksi di konfigurasi agen Anda"
-
 msgid "Dev"
 msgstr "Dev"
 
@@ -4589,9 +4657,6 @@ msgstr "Developer"
 
 msgid "Developers"
 msgstr "Developer"
-
-msgid "Device"
-msgstr "Perangkat"
 
 msgid "Device: {selectedLabel}"
 msgstr "Perangkat: {selectedLabel}"
@@ -4637,9 +4702,6 @@ msgstr "Nonaktifkan skill"
 
 msgid "Disabled"
 msgstr "Nonaktif"
-
-msgid "Disabled — kept installed, but Superset writes nothing into your agent configs."
-msgstr "Nonaktif — tetap terpasang, tapi Superset tidak menulis apa pun ke konfigurasi agen Anda."
 
 msgid "Disabled toggle"
 msgstr "Toggle nonaktif"
@@ -4692,6 +4754,10 @@ msgstr "Dibuang — tidak akan ditanya lagi"
 
 msgid "Disconnect"
 msgstr "Putuskan"
+
+#. placeholder {0}: connection.account ?? displayName
+msgid "Disconnect {0}"
+msgstr "Putuskan {0}"
 
 msgid "Disconnect GitHub?"
 msgstr "Putuskan GitHub?"
@@ -5067,9 +5133,6 @@ msgstr "Aktifkan akses relay…"
 msgid "Enable skill"
 msgstr "Aktifkan skill"
 
-msgid "Enabled — servers are written into your agent configs."
-msgstr "Aktif — server ditulis ke konfigurasi agen Anda."
-
 msgid "Engineering deep-dives and launches."
 msgstr "Bahasan mendalam soal teknik dan peluncuran."
 
@@ -5102,12 +5165,6 @@ msgstr "Enterprise"
 
 msgid "Enterprise ARR by account"
 msgstr "ARR enterprise per akun"
-
-msgid "Entries you added yourself stay active in your agent config."
-msgstr "Entri yang Anda tambahkan sendiri tetap aktif di konfigurasi agen Anda."
-
-msgid "Entries you added yourself stay in your agent config."
-msgstr "Entri yang Anda tambahkan sendiri tetap ada di konfigurasi agen Anda."
 
 msgid "Environment"
 msgstr "Lingkungan"
@@ -5879,6 +5936,9 @@ msgstr "Filter agen..."
 
 msgid "Filter by @{normalizedSearch}"
 msgstr "Filter menurut @{normalizedSearch}"
+
+msgid "Filter by device"
+msgstr "Filter berdasarkan perangkat"
 
 msgid "Filter by reviews"
 msgstr "Filter menurut review"
@@ -6756,6 +6816,9 @@ msgstr "Penampil diff yang lebih baik"
 msgid "in a terminal on this host."
 msgstr "di terminal pada host ini."
 
+msgid "In all projects"
+msgstr "Di semua proyek"
+
 msgid "In just a few months, <0>tens of thousands of engineers</0> run Superset as their primary IDE, at companies like Wix, DoorDash, and Netflix."
 msgstr "Hanya dalam beberapa bulan, <0>puluhan ribu engineer</0> memakai Superset sebagai IDE utama mereka, di perusahaan seperti Wix, DoorDash, dan Netflix."
 
@@ -6800,6 +6863,9 @@ msgstr "Median industri, perkiraan kami. Garis putus-putus adalah prakiraan. Tim
 
 msgid "Info"
 msgstr "Info"
+
+msgid "Information"
+msgstr "Informasi"
 
 msgid "Initialize Git"
 msgstr "Inisialisasi Git"
@@ -6847,9 +6913,6 @@ msgstr "Wawasan dari tim Superset tentang agen coding paralel dan produktivitas 
 msgid "Inspecting {0}"
 msgstr "Memeriksa {0}"
 
-msgid "Install"
-msgstr "Instal"
-
 msgid "Install & restart"
 msgstr "Instal & mulai ulang"
 
@@ -6877,9 +6940,9 @@ msgstr "Pasang, otorisasi, dan atur cakupan server MCP di semua workspace Anda d
 msgid "Installed"
 msgstr "Terpasang"
 
-#. placeholder {0}: record.installedAt.slice(0, 10)
-msgid "installed {0}"
-msgstr "dipasang {0}"
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceHasInstalls"
+msgstr "Plugin yang terpasang berasal dari {name}: {plugins}. Hapus dulu."
 
 msgid "Installing..."
 msgstr "Memasang..."
@@ -7350,6 +7413,9 @@ msgstr "kurang dari semenit lalu"
 msgid "Letter spacing (px)"
 msgstr "Jarak huruf (px)"
 
+msgid "License"
+msgstr "Lisensi"
+
 msgid "Lifecycle scripts"
 msgstr "Skrip lifecycle"
 
@@ -7815,9 +7881,6 @@ msgstr "Manajer MCP"
 msgid "MCP Server"
 msgstr "Server MCP"
 
-msgid "MCP servers"
-msgstr "Server MCP"
-
 msgid "Mean"
 msgstr "Rata-rata"
 
@@ -7977,6 +8040,10 @@ msgstr "Parameter otorisasi yang wajib tidak ada."
 
 msgid "Missing required fields."
 msgstr "Ada kolom wajib yang belum diisi."
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.missingInput"
+msgstr "Input wajib {input} tidak ada"
 
 msgid "Mobile"
 msgstr "Mobile"
@@ -8577,6 +8644,9 @@ msgstr "Tidak ada issue ditemukan."
 msgid "No items"
 msgstr "Tidak ada item"
 
+msgid "No known creators"
+msgstr "Tidak ada pembuat yang diketahui"
+
 msgid "No labels"
 msgstr "Tanpa label"
 
@@ -8585,9 +8655,6 @@ msgstr "Tidak ada sesi aktif"
 
 msgid "no logins"
 msgstr "tanpa login"
-
-msgid "no longer in the catalog"
-msgstr "sudah tidak ada di katalog"
 
 msgid "No match"
 msgstr "Tidak ada yang cocok"
@@ -8648,6 +8715,9 @@ msgstr "Tidak ada undangan tertunda"
 
 msgid "No people found."
 msgstr "Tidak ada orang ditemukan."
+
+msgid "No plugins available yet."
+msgstr "Belum ada plugin yang tersedia."
 
 #. placeholder {0}: search.trim()
 msgid "No plugins match \"{0}\""
@@ -8999,6 +9069,9 @@ msgstr "Kini, kami telah menggalang <0>$11 juta</0> dari investor terbaik di Sil
 msgid "Numbered list"
 msgstr "Daftar bernomor"
 
+msgid "OAuth 2.0"
+msgstr "OAuth 2.0"
+
 msgid "OAuth by default, API keys for CI"
 msgstr "OAuth secara bawaan, kunci API untuk CI"
 
@@ -9154,6 +9227,10 @@ msgstr "Buka"
 #. placeholder {0}: linkedAgent?.label ?? t({ message: "agent settings", })
 msgid "Open {0}"
 msgstr "Buka {0}"
+
+#. placeholder {0}: plugin.interface.displayName
+msgid "Open {0} website"
+msgstr "Buka situs web {0}"
 
 msgid "Open {filePath}"
 msgstr "Buka {filePath}"
@@ -10036,6 +10113,14 @@ msgstr "Silakan pilih sebuah organisasi"
 msgid "Please try signing in again from the desktop app."
 msgstr "Silakan coba masuk lagi dari aplikasi desktop."
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.noApiKeyAuth"
+msgstr "Plugin {plugin} tidak memakai autentikasi api_key"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.notInstalled"
+msgstr "Plugin {plugin} tidak terpasang"
+
 msgid "Plugin marketplace"
 msgstr "Marketplace plugin"
 
@@ -10398,9 +10483,6 @@ msgstr "Properti"
 
 msgid "Provide either id or slug"
 msgstr "Berikan id atau slug"
-
-msgid "Provided by entries in your own agent config."
-msgstr "Disediakan oleh entri di konfigurasi agen Anda sendiri."
 
 #. placeholder {0}: sourceConfig?.label ?? binding.agentId
 msgid "Provider: {0}"
@@ -10774,9 +10856,6 @@ msgstr "Akses Jarak Jauh"
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "Server MCP remote — terhubung lewat HTTP"
-
-msgid "Remote servers sign you in the first time an agent uses them."
-msgstr "Server remote meminta Anda masuk saat pertama kali dipakai agen."
 
 msgid "Remote workspace"
 msgstr "Workspace jarak jauh"
@@ -13821,6 +13900,9 @@ msgstr "Path ini ada, tapi bukan direktori."
 msgid "This path is a directory"
 msgstr "Path ini adalah direktori"
 
+msgid "This plugin needs no account — its skills are ready to use."
+msgstr "Plugin ini tidak memerlukan akun — Skill-nya siap dipakai."
+
 msgid "This port is still in use"
 msgstr "Port ini masih dipakai"
 
@@ -14306,10 +14388,7 @@ msgstr "Keluarkan workspace terpilih dari grup"
 msgid "Unified view"
 msgstr "Tampilan menyatu"
 
-msgid "Uninstall"
-msgstr "Uninstall"
-
-#. placeholder {0}: plugin?.interface.displayName ?? entry.name
+#. placeholder {0}: plugin.interface.displayName
 msgid "Uninstall {0}"
 msgstr "Uninstall {0}"
 
@@ -14346,6 +14425,10 @@ msgstr "Host tidak diketahui"
 
 msgid "Unknown Host"
 msgstr "Host Tidak Diketahui"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.unknownPlugin"
+msgstr "Plugin tidak dikenal {plugin}"
 
 msgid "Unknown project"
 msgstr "Proyek tidak diketahui"
@@ -14422,6 +14505,9 @@ msgstr "Berikutnya"
 
 msgid "Up Next"
 msgstr "Berikutnya"
+
+msgid "Update"
+msgstr "Perbarui"
 
 msgid "Update available"
 msgstr "Pembaruan tersedia"
@@ -15151,9 +15237,6 @@ msgstr "Anda"
 
 msgid "YOU"
 msgstr "ANDA"
-
-msgid "You added these yourself — Superset never touches them, and never writes duplicates of servers you already have."
-msgstr "Anda menambahkannya sendiri — Superset tidak pernah mengutak-atiknya, dan tidak pernah menulis duplikat server yang sudah Anda punya."
 
 msgid "You appear to be offline"
 msgstr "Anda tampaknya sedang offline"

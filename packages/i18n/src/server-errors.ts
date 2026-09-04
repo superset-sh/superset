@@ -472,6 +472,85 @@ export const serverErrorMessages: Record<
 				message: "Thread not found",
 			}),
 		),
+	"serverError.plugins.ambiguousPlugin": (params) =>
+		i18n._({
+			id: "serverError.plugins.ambiguousPlugin",
+			message: "{reason}",
+			values: params,
+		}),
+	"serverError.plugins.connectionNotFound": () =>
+		i18n._({
+			id: "serverError.plugins.connectionNotFound",
+			message: "Connection not found",
+		}),
+	"serverError.plugins.credentialUnverified": (params) =>
+		i18n._({
+			id: "serverError.plugins.credentialUnverified",
+			message: "Could not verify the credential: {reason}",
+			values: params,
+		}),
+	"serverError.plugins.dispatchFailed": (params) =>
+		i18n._({
+			id: "serverError.plugins.dispatchFailed",
+			message: "{reason}",
+			values: params,
+		}),
+	"serverError.plugins.marketplaceBuiltinRemove": (params) =>
+		i18n._({
+			id: "serverError.plugins.marketplaceBuiltinRemove",
+			message: "{name} is built in and cannot be removed",
+			values: params,
+		}),
+	"serverError.plugins.marketplaceHasInstalls": (params) =>
+		i18n._({
+			id: "serverError.plugins.marketplaceHasInstalls",
+			message:
+				"Installed plugins came from {name}: {plugins}. Remove them first.",
+			values: params,
+		}),
+	"serverError.plugins.marketplaceNotAdded": (params) =>
+		i18n._({
+			id: "serverError.plugins.marketplaceNotAdded",
+			message: "{name} is not added",
+			values: params,
+		}),
+	"serverError.plugins.marketplaceNotResolvable": (params) =>
+		i18n._({
+			id: "serverError.plugins.marketplaceNotResolvable",
+			message:
+				"Account install resolves first-party manifests only, so {plugin} from {marketplace} cannot be installed to your account yet. It stays installed on this machine.",
+			values: params,
+		}),
+	"serverError.plugins.marketplaceReserved": (params) =>
+		i18n._({
+			id: "serverError.plugins.marketplaceReserved",
+			message: "{name} is built in and cannot be replaced",
+			values: params,
+		}),
+	"serverError.plugins.missingInput": (params) =>
+		i18n._({
+			id: "serverError.plugins.missingInput",
+			message: "Missing required input {input}",
+			values: params,
+		}),
+	"serverError.plugins.noApiKeyAuth": (params) =>
+		i18n._({
+			id: "serverError.plugins.noApiKeyAuth",
+			message: "Plugin {plugin} does not use api_key auth",
+			values: params,
+		}),
+	"serverError.plugins.notInstalled": (params) =>
+		i18n._({
+			id: "serverError.plugins.notInstalled",
+			message: "Plugin {plugin} is not installed",
+			values: params,
+		}),
+	"serverError.plugins.unknownPlugin": (params) =>
+		i18n._({
+			id: "serverError.plugins.unknownPlugin",
+			message: "Unknown plugin {plugin}",
+			values: params,
+		}),
 	"serverError.support.failedToSavePrompt": () =>
 		i18n._(
 			msg({

@@ -15,6 +15,7 @@ import { leaderboardRouter } from "./router/leaderboard";
 import { organizationRouter } from "./router/organization";
 import { pageRouter } from "./router/page";
 import { pageCommentRouter } from "./router/page-comment";
+import { pluginsRouter } from "./router/plugins";
 import { supportRouter } from "./router/support/support";
 import { taskRouter } from "./router/task";
 import { teamRouter } from "./router/team";
@@ -40,6 +41,7 @@ export const appRouter = createTRPCRouter({
 	organization: organizationRouter,
 	page: pageRouter,
 	pageComment: pageCommentRouter,
+	plugins: pluginsRouter,
 	support: supportRouter,
 	task: taskRouter,
 	team: teamRouter,

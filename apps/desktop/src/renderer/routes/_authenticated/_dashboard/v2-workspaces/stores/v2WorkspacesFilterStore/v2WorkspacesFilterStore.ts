@@ -1,6 +1,7 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 export const DEVICE_FILTER_THIS_DEVICE = "this-device";
 export const DEVICE_FILTER_ALL_DEVICES = "all-devices";
@@ -126,6 +127,8 @@ interface V2WorkspacesFilterState {
 	prStateFilters: V2WorkspacesPrStateFilter[];
 	/** Empty = any agent status. */
 	agentStatusFilters: V2WorkspacesAgentStatusFilter[];
+	/** Creator user ids; empty = any creator. */
+	creatorFilters: string[];
 	/** Sidebar visibility: shown, hidden, or both ("all"). */
 	pinFilter: V2WorkspacesPinFilter;
 	viewMode: V2WorkspacesViewMode;
@@ -142,6 +145,7 @@ interface V2WorkspacesFilterState {
 	setAgentStatusFilters: (
 		agentStatusFilters: V2WorkspacesAgentStatusFilter[],
 	) => void;
+	setCreatorFilters: (creatorFilters: string[]) => void;
 	setPinFilter: (pinFilter: V2WorkspacesPinFilter) => void;
 	setViewMode: (viewMode: V2WorkspacesViewMode) => void;
 	setSortMode: (sortMode: V2WorkspacesSortMode) => void;
@@ -152,42 +156,55 @@ interface V2WorkspacesFilterState {
 }
 
 export const useV2WorkspacesFilterStore = create<V2WorkspacesFilterState>()(
-	(set) => ({
-		searchQuery: "",
-		deviceFilter: DEVICE_FILTER_THIS_DEVICE,
-		projectFilters: [],
-		prStateFilters: [],
-		agentStatusFilters: [],
-		pinFilter: "all",
-		viewMode: "board",
-		sortMode: "activity",
-		archivedWindow: "none",
-		hiddenLanes: [],
-		setSearchQuery: (searchQuery) => set({ searchQuery }),
-		setDeviceFilter: (deviceFilter) => set({ deviceFilter }),
-		setProjectFilters: (projectFilters) => set({ projectFilters }),
-		setPrStateFilters: (prStateFilters) => set({ prStateFilters }),
-		setAgentStatusFilters: (agentStatusFilters) => set({ agentStatusFilters }),
-		setPinFilter: (pinFilter) => set({ pinFilter }),
-		setViewMode: (viewMode) => set({ viewMode }),
-		setSortMode: (sortMode) => set({ sortMode }),
-		setArchivedWindow: (archivedWindow) => set({ archivedWindow }),
-		toggleLane: (lane) =>
-			set((state) => ({
-				hiddenLanes: state.hiddenLanes.includes(lane)
-					? state.hiddenLanes.filter((hidden) => hidden !== lane)
-					: [...state.hiddenLanes, lane],
-			})),
-		reset: () =>
-			set({
-				searchQuery: "",
-				deviceFilter: DEVICE_FILTER_THIS_DEVICE,
-				projectFilters: [],
-				prStateFilters: [],
-				agentStatusFilters: [],
-				pinFilter: "all",
-				archivedWindow: "none",
-				hiddenLanes: [],
-			}),
-	}),
+	persist(
+		(set) => ({
+			searchQuery: "",
+			deviceFilter: DEVICE_FILTER_THIS_DEVICE,
+			projectFilters: [],
+			prStateFilters: [],
+			agentStatusFilters: [],
+			creatorFilters: [],
+			pinFilter: "all",
+			viewMode: "board",
+			sortMode: "activity",
+			archivedWindow: "none",
+			hiddenLanes: [],
+			setSearchQuery: (searchQuery) => set({ searchQuery }),
+			setDeviceFilter: (deviceFilter) => set({ deviceFilter }),
+			setProjectFilters: (projectFilters) => set({ projectFilters }),
+			setPrStateFilters: (prStateFilters) => set({ prStateFilters }),
+			setAgentStatusFilters: (agentStatusFilters) =>
+				set({ agentStatusFilters }),
+			setCreatorFilters: (creatorFilters) => set({ creatorFilters }),
+			setPinFilter: (pinFilter) => set({ pinFilter }),
+			setViewMode: (viewMode) => set({ viewMode }),
+			setSortMode: (sortMode) => set({ sortMode }),
+			setArchivedWindow: (archivedWindow) => set({ archivedWindow }),
+			toggleLane: (lane) =>
+				set((state) => ({
+					hiddenLanes: state.hiddenLanes.includes(lane)
+						? state.hiddenLanes.filter((hidden) => hidden !== lane)
+						: [...state.hiddenLanes, lane],
+				})),
+			reset: () =>
+				set({
+					searchQuery: "",
+					deviceFilter: DEVICE_FILTER_THIS_DEVICE,
+					projectFilters: [],
+					prStateFilters: [],
+					agentStatusFilters: [],
+					creatorFilters: [],
+					pinFilter: "all",
+					archivedWindow: "none",
+					hiddenLanes: [],
+				}),
+		}),
+		{
+			name: "v2-workspaces-view",
+			// Fixed-size singleton: only the list/board choice survives reloads.
+			// Filters and search stay per-visit (a `?view=` deep link still wins
+			// — the page hydrates URL params over the rehydrated value on mount).
+			partialize: (state) => ({ viewMode: state.viewMode }),
+		},
+	),
 );

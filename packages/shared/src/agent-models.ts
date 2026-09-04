@@ -79,6 +79,9 @@ export const SUPERSET_CHAT_MODELS: readonly SupersetChatModel[] = [
 
 const LATEST_GROUP = "Latest";
 const PINNED_GROUP = "Pinned releases";
+const CURSOR_ANTHROPIC_GROUP = "Anthropic";
+const CURSOR_OPENAI_GROUP = "OpenAI";
+const CURSOR_OTHER_GROUP = "Other";
 const CURRENT_GROUP = "Current";
 const CODEX_RETIRING_GROUP = "Retiring 2026-08-31";
 
@@ -151,24 +154,82 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 		presetId: "cursor-agent",
 		modelFlag: "--model",
 		models: [
-			// cursor-agent has no effort flag, so effort/thinking levels are
-			// baked into the model ids. Ids verified against a live account's
-			// `--list-models` (2026-08-05); the list is account-dependent and
-			// unknown ids are rejected by the CLI, not silently ignored.
-			// "auto" is the only id free-plan accounts can use (besides
-			// composer) — named models fail there with "Named models
-			// unavailable", so keep an explicit working choice in the picker.
+			// cursor-agent has no effort flag: every effort level is its own
+			// model id, and these are each family's default level. The effort
+			// picker swaps in the sibling id (`CURSOR_EFFORT_VARIANTS`). Ids
+			// verified against a live account's `--list-models` (2026-09-04);
+			// the list is account-dependent and unknown ids are rejected by
+			// the CLI, not silently ignored. "auto" is the only id free-plan
+			// accounts can use (besides composer) — named models fail there
+			// with "Named models unavailable", so keep an explicit working
+			// choice in the picker.
 			{ id: "auto", label: "Auto" },
-			{ id: "claude-fable-5-thinking-high", label: "Fable 5" },
-			{ id: "claude-fable-5-thinking-xhigh", label: "Fable 5 xHigh" },
-			{ id: "claude-opus-5-high", label: "Opus 5" },
-			{ id: "claude-opus-4-8-high", label: "Opus 4.8" },
-			{ id: "claude-4.6-sonnet-medium", label: "Sonnet 4.6" },
-			{ id: "gpt-5.6-sol-medium", label: "GPT-5.6 Sol" },
-			{ id: "gpt-5.6-terra-medium", label: "GPT-5.6 Terra" },
-			{ id: "gpt-5.6-luna-medium", label: "GPT-5.6 Luna" },
-			{ id: "gpt-5.3-codex", label: "Codex 5.3" },
 			{ id: "composer-2.5", label: "Composer 2.5" },
+			{
+				id: "claude-fable-5-1-thinking-high",
+				label: "Fable 5.1",
+				group: CURSOR_ANTHROPIC_GROUP,
+			},
+			{
+				id: "claude-fable-5-thinking-high",
+				label: "Fable 5",
+				group: CURSOR_ANTHROPIC_GROUP,
+			},
+			{
+				id: "claude-opus-5-high",
+				label: "Opus 5",
+				group: CURSOR_ANTHROPIC_GROUP,
+			},
+			{
+				id: "claude-sonnet-5-thinking-high",
+				label: "Sonnet 5",
+				group: CURSOR_ANTHROPIC_GROUP,
+			},
+			{
+				id: "claude-opus-4-8-high",
+				label: "Opus 4.8",
+				group: CURSOR_ANTHROPIC_GROUP,
+			},
+			{
+				id: "claude-opus-4-7-xhigh",
+				label: "Opus 4.7",
+				group: CURSOR_ANTHROPIC_GROUP,
+			},
+			{
+				id: "claude-4.6-sonnet-medium",
+				label: "Sonnet 4.6",
+				group: CURSOR_ANTHROPIC_GROUP,
+			},
+			{
+				id: "gpt-5.6-sol-medium",
+				label: "GPT-5.6 Sol",
+				group: CURSOR_OPENAI_GROUP,
+			},
+			{
+				id: "gpt-5.6-terra-medium",
+				label: "GPT-5.6 Terra",
+				group: CURSOR_OPENAI_GROUP,
+			},
+			{
+				id: "gpt-5.6-luna-medium",
+				label: "GPT-5.6 Luna",
+				group: CURSOR_OPENAI_GROUP,
+			},
+			{ id: "gpt-5.5-medium", label: "GPT-5.5", group: CURSOR_OPENAI_GROUP },
+			{ id: "gpt-5.4-medium", label: "GPT-5.4", group: CURSOR_OPENAI_GROUP },
+			{ id: "gpt-5.3-codex", label: "Codex 5.3", group: CURSOR_OPENAI_GROUP },
+			{
+				id: "gemini-3.8-flash-high",
+				label: "Gemini 3.8 Flash",
+				group: CURSOR_OTHER_GROUP,
+			},
+			{
+				id: "cursor-grok-4.6-high",
+				label: "Grok 4.6",
+				group: CURSOR_OTHER_GROUP,
+			},
+			{ id: "kimi-k3-max", label: "Kimi K3", group: CURSOR_OTHER_GROUP },
+			{ id: "glm-5.2-high", label: "GLM 5.2", group: CURSOR_OTHER_GROUP },
 		],
 	},
 	{
@@ -249,7 +310,11 @@ export interface AgentEffortOption extends AgentModelOption {
 
 export interface AgentEffortSupport {
 	presetId: string;
-	effortFlag: string;
+	/**
+	 * Flag that carries the effort. `null` when the CLI has none and effort
+	 * instead selects a sibling model id via `modelVariants`.
+	 */
+	effortFlag: string | null;
 	/**
 	 * Prepended to the selected effort id to form the flag's value token.
 	 * Codex has no dedicated effort flag, so effort rides a config override:
@@ -257,6 +322,13 @@ export interface AgentEffortSupport {
 	 */
 	effortValuePrefix?: string;
 	efforts: AgentEffortOption[];
+	/**
+	 * Curated model id → effort id → model id to launch instead. cursor-agent
+	 * publishes one model id per effort level (`claude-opus-4-8-low`), so the
+	 * effort rewrites the `--model` token and only models with a ladder here
+	 * offer an effort at all.
+	 */
+	modelVariants?: Readonly<Record<string, Readonly<Record<string, string>>>>;
 }
 
 export interface AgentModeOption extends AgentModelOption {
@@ -268,6 +340,106 @@ export interface AgentModeSupport {
 	presetId: string;
 	modes: AgentModeOption[];
 }
+
+/**
+ * cursor-agent model ids for each effort level of one family. Every level is
+ * `<family>-<level>` except where `overrides` says otherwise (Codex 5.3's
+ * medium is the bare `gpt-5.3-codex`). Verified against `--list-models`
+ * (cursor-agent 2026.08.11); the CLI's bracket override syntax
+ * (`model[effort=high]`) is rejected by its model validator, so sibling ids
+ * are the only route.
+ */
+function cursorEffortVariants(
+	family: string,
+	levels: readonly string[],
+	overrides: Readonly<Record<string, string>> = {},
+): Readonly<Record<string, string>> {
+	return Object.fromEntries(
+		levels.map((level) => [level, overrides[level] ?? `${family}-${level}`]),
+	);
+}
+
+const CURSOR_CLAUDE_LEVELS = ["low", "medium", "high", "xhigh", "max"] as const;
+const CURSOR_GPT_LEVELS = [
+	"none",
+	"low",
+	"medium",
+	"high",
+	"xhigh",
+	"max",
+] as const;
+
+const CURSOR_EFFORT_VARIANTS: Readonly<
+	Record<string, Readonly<Record<string, string>>>
+> = {
+	"claude-fable-5-1-thinking-high": cursorEffortVariants(
+		"claude-fable-5-1-thinking",
+		CURSOR_CLAUDE_LEVELS,
+	),
+	"claude-fable-5-thinking-high": cursorEffortVariants(
+		"claude-fable-5-thinking",
+		CURSOR_CLAUDE_LEVELS,
+	),
+	// Opus 5 without thinking only goes up to high; xhigh and max exist on
+	// its thinking sibling, which is a different model in Cursor's catalog.
+	"claude-opus-5-high": cursorEffortVariants("claude-opus-5", [
+		"low",
+		"medium",
+		"high",
+	]),
+	"claude-sonnet-5-thinking-high": cursorEffortVariants(
+		"claude-sonnet-5-thinking",
+		CURSOR_CLAUDE_LEVELS,
+	),
+	"claude-opus-4-8-high": cursorEffortVariants(
+		"claude-opus-4-8",
+		CURSOR_CLAUDE_LEVELS,
+	),
+	"claude-opus-4-7-xhigh": cursorEffortVariants(
+		"claude-opus-4-7",
+		CURSOR_CLAUDE_LEVELS,
+	),
+	"gpt-5.6-sol-medium": cursorEffortVariants("gpt-5.6-sol", CURSOR_GPT_LEVELS),
+	"gpt-5.6-terra-medium": cursorEffortVariants(
+		"gpt-5.6-terra",
+		CURSOR_GPT_LEVELS,
+	),
+	"gpt-5.6-luna-medium": cursorEffortVariants(
+		"gpt-5.6-luna",
+		CURSOR_GPT_LEVELS,
+	),
+	// GPT-5.5 spells its top level out ("extra-high") where every other
+	// family uses "xhigh".
+	"gpt-5.5-medium": cursorEffortVariants(
+		"gpt-5.5",
+		["none", "low", "medium", "high", "xhigh"],
+		{ xhigh: "gpt-5.5-extra-high" },
+	),
+	"gpt-5.4-medium": cursorEffortVariants("gpt-5.4", [
+		"low",
+		"medium",
+		"high",
+		"xhigh",
+	]),
+	"gpt-5.3-codex": cursorEffortVariants(
+		"gpt-5.3-codex",
+		["low", "medium", "high", "xhigh"],
+		{ medium: "gpt-5.3-codex" },
+	),
+	"gemini-3.8-flash-high": cursorEffortVariants("gemini-3.8-flash", [
+		"low",
+		"medium",
+		"high",
+	]),
+	"cursor-grok-4.6-high": cursorEffortVariants("cursor-grok-4.6", [
+		"low",
+		"medium",
+		"high",
+		"xhigh",
+	]),
+	"kimi-k3-max": cursorEffortVariants("kimi-k3", ["low", "high", "max"]),
+	"glm-5.2-high": cursorEffortVariants("glm-5.2", ["high", "max"]),
+};
 
 const PI_THINKING_LEVELS: AgentModelOption[] = [
 	{ id: "off", label: "Off" },
@@ -282,8 +454,8 @@ const PI_THINKING_LEVELS: AgentModelOption[] = [
  * Curated per-agent reasoning-effort catalogs, mirroring
  * `AGENT_MODEL_SUPPORT`. Flags and accepted values were verified against each
  * CLI's `--help` (or its own validator) — agents absent from this list
- * (gemini, opencode, cursor-agent, droid, superset chat) expose no effort
- * control on their interactive launch command.
+ * (gemini, opencode, droid, superset chat) expose no effort control on their
+ * interactive launch command.
  */
 export const AGENT_EFFORT_SUPPORT: readonly AgentEffortSupport[] = [
 	{
@@ -364,6 +536,19 @@ export const AGENT_EFFORT_SUPPORT: readonly AgentEffortSupport[] = [
 			{ id: "xhigh", label: "xHigh" },
 		],
 	},
+	{
+		presetId: "cursor-agent",
+		effortFlag: null,
+		efforts: [
+			{ id: "none", label: "None" },
+			{ id: "low", label: "Low" },
+			{ id: "medium", label: "Medium" },
+			{ id: "high", label: "High" },
+			{ id: "xhigh", label: "xHigh" },
+			{ id: "max", label: "Max" },
+		],
+		modelVariants: CURSOR_EFFORT_VARIANTS,
+	},
 ];
 
 /**
@@ -416,7 +601,9 @@ export function getAgentModeSupport(
  * Efforts the given preset offers for `model` — the full curated list minus
  * any option the selected model rejects. An unset model (or an id outside the
  * curated catalog, which `buildAgentModelArgs` drops so the launch runs the
- * agent's own default) keeps the full list.
+ * agent's own default) keeps the full list. Presets whose effort is a sibling
+ * model id (`modelVariants`) offer only that model's ladder, and nothing when
+ * the model is unset or has no ladder.
  */
 export function getAgentEfforts(
 	presetId: string,
@@ -429,6 +616,11 @@ export function getAgentEfforts(
 	)
 		? model
 		: undefined;
+	if (support.modelVariants) {
+		const variants = selected ? support.modelVariants[selected] : undefined;
+		if (!variants) return [];
+		return support.efforts.filter((effort) => effort.id in variants);
+	}
 	return support.efforts.filter(
 		(effort) => !effort.models || !selected || effort.models.includes(selected),
 	);
@@ -439,7 +631,8 @@ export function getAgentEfforts(
  * `["--effort", "high"]` (codex: `["-c", "model_reasoning_effort=high"]`).
  * Same degrade-to-default contract as `buildAgentModelArgs`: unknown presets,
  * effort ids outside the curated list, and efforts the selected model rejects
- * return `[]`.
+ * return `[]`. Presets without an effort flag (cursor-agent) also return `[]`:
+ * their effort already rode the `--model` token from `buildAgentModelArgs`.
  */
 export function buildAgentEffortArgs(
 	presetId: string,
@@ -448,7 +641,7 @@ export function buildAgentEffortArgs(
 ): string[] {
 	if (!effort) return [];
 	const support = getAgentEffortSupport(presetId);
-	if (!support) return [];
+	if (!support?.effortFlag) return [];
 	const efforts = getAgentEfforts(presetId, model);
 	if (!efforts.some((option) => option.id === effort)) return [];
 	return [support.effortFlag, `${support.effortValuePrefix ?? ""}${effort}`];
@@ -469,22 +662,46 @@ export function buildAgentModeArgs(
 }
 
 /**
+ * Whether `model` is an id the preset's launch accepts: a curated picker entry
+ * or, for presets whose effort is a sibling model id, any of those siblings.
+ * That keeps a preference saved before a sibling was folded into its family
+ * (cursor-agent's old "Fable 5 xHigh" entry) launching, and lets CLI callers
+ * pass any level id directly.
+ */
+export function isCuratedAgentModel(presetId: string, model: string): boolean {
+	const support = getAgentModelSupport(presetId);
+	if (!support) return false;
+	if (support.models.some((option) => option.id === model)) return true;
+	const variants = getAgentEffortSupport(presetId)?.modelVariants;
+	if (!variants) return false;
+	return Object.values(variants).some((ladder) =>
+		Object.values(ladder).includes(model),
+	);
+}
+
+/**
  * Argv tokens that select `model` for the given preset, e.g.
  * `["--model", "sonnet"]`. Returns `[]` for unknown presets, presets without
  * a CLI flag (superset chat), an unset model, or a model id that isn't in
  * the preset's curated list — callers can spread the result unconditionally
  * and a stale or arbitrary model id degrades to the CLI default instead of
- * a broken launch.
+ * a broken launch. When the preset's effort is a sibling model id
+ * (cursor-agent), a curated `effort` swaps that id in; an effort the model
+ * has no ladder for launches the model's default level.
  */
 export function buildAgentModelArgs(
 	presetId: string,
 	model: string | undefined,
+	effort?: string,
 ): string[] {
 	if (!model) return [];
 	const support = getAgentModelSupport(presetId);
 	if (!support?.modelFlag) return [];
-	if (!support.models.some((option) => option.id === model)) return [];
-	return [support.modelFlag, model];
+	if (!isCuratedAgentModel(presetId, model)) return [];
+	const variant = effort
+		? getAgentEffortSupport(presetId)?.modelVariants?.[model]?.[effort]
+		: undefined;
+	return [support.modelFlag, variant ?? model];
 }
 
 /**

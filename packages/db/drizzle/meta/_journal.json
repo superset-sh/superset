@@ -743,6 +743,13 @@
       "when": 1788319505909,
       "tag": "0105_drop_cloud_workspace_project",
       "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1788489378410,
+      "tag": "0106_plugin_marketplace_installs_and_connections",
+      "breakpoints": true
     }
   ]
 }

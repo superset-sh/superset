@@ -160,6 +160,10 @@ msgstr "{0, plural, one {# đã qua} other {# đã qua}}"
 msgid "{0, plural, one {# project selected.} other {# projects selected.}}"
 msgstr "{0, plural, one {Đã chọn # dự án.} other {Đã chọn # dự án.}}"
 
+#. placeholder {0}: projectFilters.length
+msgid "{0, plural, one {# project} other {# projects}}"
+msgstr "{0, plural, one {# dự án} other {# dự án}}"
+
 #. placeholder {0}: repositories.length
 #. placeholder {0}: selectedProjects.length
 msgid "{0, plural, one {# repository} other {# repositories}}"
@@ -273,6 +277,10 @@ msgstr "{0} – {1} · ước tính theo giá API từ log phiên cục bộ"
 msgid "{0} — try the Superset tray menu > Host Service > Restart."
 msgstr "{0} — hãy thử menu khay Superset > Dịch vụ host > Khởi động lại."
 
+#. placeholder {0}: creator.name
+msgid "{0} (you)"
+msgstr "{0} (bạn)"
+
 #. placeholder {0}: actor.login
 msgid "{0} {actorVerb}"
 msgstr "{0} {actorVerb}"
@@ -301,7 +309,7 @@ msgstr "Đã tắt {0}"
 
 #. placeholder {0}: displayName(variables.name)
 #. placeholder {0}: plugin.interface.displayName
-#. placeholder {0}: plugin?.interface.displayName ?? entry.name
+#. placeholder {0}: skill.name
 msgid "{0} enabled"
 msgstr "Đã bật {0}"
 
@@ -344,6 +352,11 @@ msgstr "{0} đang dùng gói Free. Superset Mobile chỉ dành cho tổ chức d
 #. placeholder {2}: hostCompatibility.minVersion
 msgid "{0} is running host service {1} — this app needs {2} or newer. Update Superset on that machine."
 msgstr "{0} đang chạy dịch vụ host {1} — ứng dụng này cần {2} trở lên. Hãy cập nhật Superset trên máy đó."
+
+#. placeholder {0}: displayName(name)
+#. placeholder {0}: displayName(variables.name)
+msgid "{0} is set up on this machine, but not on your account"
+msgstr "{0} đã được thiết lập trên máy này, nhưng chưa có trên tài khoản của bạn"
 
 #. placeholder {0}: v.toLocaleString()
 msgid "{0} mo"
@@ -414,6 +427,10 @@ msgstr "{0} token trong 30 ngày qua. Đang công khai dưới tên <0>{handle}<
 #. placeholder {0}: displayName(variables.name)
 msgid "{0} uninstalled"
 msgstr "Đã gỡ {0}"
+
+#. placeholder {0}: displayName(variables.name)
+msgid "{0} updated"
+msgstr "Đã cập nhật {0}"
 
 #. placeholder {0}: file.path
 msgid "{0} was deleted in this change."
@@ -622,6 +639,9 @@ msgstr "{level} · {gate} · {statusLabel}"
 msgid "{level} {gate}: {statusLabel}"
 msgstr "{level} {gate}: {statusLabel}"
 
+msgid "{localHostName} (this device)"
+msgstr "{localHostName} (thiết bị này)"
+
 #. placeholder {0}: <> <span className="tabular-nums font-medium text-foreground"> # </span>{" "} result for &ldquo;{query}&rdquo; </>
 #. placeholder {1}: <> <span className="tabular-nums font-medium text-foreground"> # </span>{" "} results for &ldquo;{query}&rdquo; </>
 msgid "{matchCount, plural, one {{0}} other {{1}}}"
@@ -647,6 +667,18 @@ msgstr "{months} tháng trước"
 
 msgid "{myFailedCount} of your automations failed their last run"
 msgstr "{myFailedCount} tự động hóa của bạn thất bại ở lần chạy gần nhất"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceBuiltinRemove"
+msgstr "{name} là tích hợp sẵn nên không thể gỡ"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceReserved"
+msgstr "{name} là tích hợp sẵn nên không thể thay thế"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceNotAdded"
+msgstr "{name} chưa được thêm"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {Hãy chỉ định ít nhất một người, hoặc chọn {choice}.} sender {Hãy chỉ định ít nhất một người gửi, hoặc chọn {choice}.} other {Hãy chỉ định ít nhất một mục, hoặc chọn {choice}.}}"
@@ -694,6 +726,14 @@ msgstr "Logo {provider}"
 
 msgid "{readPercent}% read"
 msgstr "đã đọc {readPercent}%"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.ambiguousPlugin"
+msgstr "{reason}"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.dispatchFailed"
+msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{received} trên {total}"
@@ -1135,6 +1175,10 @@ msgstr "Accordion"
 msgid "Account"
 msgstr "Tài khoản"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceNotResolvable"
+msgstr "Cài đặt lên tài khoản chỉ xử lý manifest nội bộ, nên {plugin} từ {marketplace} chưa thể cài lên tài khoản của bạn. Nó vẫn được cài trên máy này."
+
 msgid "Account is pending deletion."
 msgstr "Tài khoản đang chờ xóa."
 
@@ -1264,6 +1308,9 @@ msgstr "Thêm một agent từ menu ở thanh bên để bắt đầu."
 
 msgid "Add photos or files"
 msgstr "Thêm ảnh hoặc tệp"
+
+msgid "Add plugin"
+msgstr "Thêm plugin"
 
 msgid "Add project"
 msgstr "Thêm dự án"
@@ -1957,6 +2004,9 @@ msgstr "Th8 2026"
 msgid "Auth token"
 msgstr "Token xác thực"
 
+msgid "Authenticate your {displayName} account"
+msgstr "Xác thực tài khoản {displayName} của bạn"
+
 msgid "Authentication"
 msgstr "Xác thực"
 
@@ -2562,6 +2612,9 @@ msgstr "Tiền mặt — tổng số dư (Mercury)"
 msgid "Cash ÷ net burn at the current run rate"
 msgstr "Tiền mặt ÷ đốt tiền ròng theo tốc độ hiện tại"
 
+msgid "Category"
+msgstr "Danh mục"
+
 msgid "Certificate Authority Invalid"
 msgstr "Tổ chức cấp chứng chỉ không hợp lệ"
 
@@ -2631,9 +2684,6 @@ msgstr "Yêu cầu thay đổi"
 
 msgid "Changes saved"
 msgstr "Đã lưu thay đổi"
-
-msgid "Changes take effect in new agent sessions."
-msgstr "Thay đổi có hiệu lực ở các phiên agent mới."
 
 msgid "Changing..."
 msgstr "Đang chuyển..."
@@ -3374,6 +3424,10 @@ msgstr "Kết nối workspace Slack của bạn để quản lý tác vụ ngay 
 msgid "Connected"
 msgstr "Đã kết nối"
 
+#. placeholder {0}: formatDate(new Date(connection.createdAt))
+msgid "connected {0}"
+msgstr "đã kết nối {0}"
+
 msgid "Connected as"
 msgstr "Đã kết nối với tư cách"
 
@@ -3428,11 +3482,18 @@ msgstr "Kết nối đã đóng"
 msgid "Connection failed."
 msgstr "Kết nối thất bại."
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.connectionNotFound"
+msgstr "Không tìm thấy kết nối"
+
 msgid "Connection Refused"
 msgstr "Kết nối bị từ chối"
 
 msgid "Connection Timed Out"
 msgstr "Kết nối quá thời gian"
+
+msgid "Connections"
+msgstr "Kết nối"
 
 msgid "Consent finished but Microsoft did not issue a token for the tenant."
 msgstr "Đã cấp quyền xong nhưng Microsoft không cấp token cho tenant."
@@ -3738,6 +3799,9 @@ msgstr "Không thể tải environment"
 msgid "Could not load environments."
 msgstr "Không thể tải environments."
 
+msgid "Could not load plugins. Check your connection and try again."
+msgstr "Không tải được plugin. Hãy kiểm tra kết nối và thử lại."
+
 msgid "Could not load presets from the host"
 msgstr "Không thể tải preset từ host"
 
@@ -3830,6 +3894,10 @@ msgstr "Không thể cập nhật skill"
 
 msgid "Could not update the branch"
 msgstr "Không thể cập nhật nhánh"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.credentialUnverified"
+msgstr "Không xác minh được thông tin đăng nhập: {reason}"
 
 msgid "Could not watch this page"
 msgstr "Không thể theo dõi trang này"
@@ -4108,6 +4176,9 @@ msgstr "Đã tạo <0>· 7 ngày</0>"
 
 msgid "Created 1 folder in {where}"
 msgstr "Đã tạo 1 thư mục trong {where}"
+
+msgid "Created by"
+msgstr "Người tạo"
 
 msgid "Created team \"{trimmedName}\""
 msgstr "Đã tạo nhóm \"{trimmedName}\""
@@ -4572,9 +4643,6 @@ msgstr "Đã tách"
 msgid "Details"
 msgstr "Chi tiết"
 
-msgid "Detected in your agent configs"
-msgstr "Phát hiện trong cấu hình agent của bạn"
-
 msgid "Dev"
 msgstr "Dev"
 
@@ -4589,9 +4657,6 @@ msgstr "Lập trình viên"
 
 msgid "Developers"
 msgstr "Lập trình viên"
-
-msgid "Device"
-msgstr "Thiết bị"
 
 msgid "Device: {selectedLabel}"
 msgstr "Thiết bị: {selectedLabel}"
@@ -4637,9 +4702,6 @@ msgstr "Tắt skill"
 
 msgid "Disabled"
 msgstr "Đã tắt"
-
-msgid "Disabled — kept installed, but Superset writes nothing into your agent configs."
-msgstr "Đã tắt — vẫn được cài, nhưng Superset không ghi gì vào cấu hình agent của bạn."
 
 msgid "Disabled toggle"
 msgstr "Công tắc đã tắt"
@@ -4692,6 +4754,10 @@ msgstr "Đã bỏ — sẽ không hỏi lại"
 
 msgid "Disconnect"
 msgstr "Ngắt kết nối"
+
+#. placeholder {0}: connection.account ?? displayName
+msgid "Disconnect {0}"
+msgstr "Ngắt kết nối {0}"
 
 msgid "Disconnect GitHub?"
 msgstr "Ngắt kết nối GitHub?"
@@ -5067,9 +5133,6 @@ msgstr "Bật truy cập relay…"
 msgid "Enable skill"
 msgstr "Bật skill"
 
-msgid "Enabled — servers are written into your agent configs."
-msgstr "Đã bật — các server được ghi vào cấu hình agent của bạn."
-
 msgid "Engineering deep-dives and launches."
 msgstr "Bài kỹ thuật chuyên sâu và các lần ra mắt."
 
@@ -5102,12 +5165,6 @@ msgstr "Enterprise"
 
 msgid "Enterprise ARR by account"
 msgstr "ARR enterprise theo tài khoản"
-
-msgid "Entries you added yourself stay active in your agent config."
-msgstr "Các mục bạn tự thêm vẫn hoạt động trong cấu hình agent của bạn."
-
-msgid "Entries you added yourself stay in your agent config."
-msgstr "Các mục bạn tự thêm vẫn nằm trong cấu hình agent của bạn."
 
 msgid "Environment"
 msgstr "Môi trường"
@@ -5879,6 +5936,9 @@ msgstr "Lọc agent..."
 
 msgid "Filter by @{normalizedSearch}"
 msgstr "Lọc theo @{normalizedSearch}"
+
+msgid "Filter by device"
+msgstr "Lọc theo thiết bị"
 
 msgid "Filter by reviews"
 msgstr "Lọc theo review"
@@ -6756,6 +6816,9 @@ msgstr "Khung xem diff cải tiến"
 msgid "in a terminal on this host."
 msgstr "trong một terminal trên host này."
 
+msgid "In all projects"
+msgstr "Trong tất cả dự án"
+
 msgid "In just a few months, <0>tens of thousands of engineers</0> run Superset as their primary IDE, at companies like Wix, DoorDash, and Netflix."
 msgstr "Chỉ trong vài tháng, <0>hàng chục nghìn kỹ sư</0> dùng Superset làm IDE chính, tại các công ty như Wix, DoorDash và Netflix."
 
@@ -6799,6 +6862,9 @@ msgid "Industry median, our estimate. Dashed is forecast. The first F4 teams cro
 msgstr "Trung vị ngành, theo ước tính của chúng tôi. Nét đứt là dự báo. Các đội F4 đầu tiên vượt cổng sớm hơn."
 
 msgid "Info"
+msgstr "Thông tin"
+
+msgid "Information"
 msgstr "Thông tin"
 
 msgid "Initialize Git"
@@ -6847,9 +6913,6 @@ msgstr "Góc nhìn từ đội ngũ Superset về coding agent chạy song song 
 msgid "Inspecting {0}"
 msgstr "Đang kiểm tra {0}"
 
-msgid "Install"
-msgstr "Cài đặt"
-
 msgid "Install & restart"
 msgstr "Cài đặt & khởi động lại"
 
@@ -6877,9 +6940,9 @@ msgstr "Cài đặt, ủy quyền và giới hạn phạm vi server MCP trên m�
 msgid "Installed"
 msgstr "Đã cài"
 
-#. placeholder {0}: record.installedAt.slice(0, 10)
-msgid "installed {0}"
-msgstr "đã cài {0}"
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceHasInstalls"
+msgstr "Các plugin đã cài đến từ {name}: {plugins}. Hãy gỡ chúng trước."
 
 msgid "Installing..."
 msgstr "Đang cài đặt..."
@@ -7350,6 +7413,9 @@ msgstr "chưa đầy một phút trước"
 msgid "Letter spacing (px)"
 msgstr "Giãn cách chữ (px)"
 
+msgid "License"
+msgstr "Giấy phép"
+
 msgid "Lifecycle scripts"
 msgstr "Script vòng đời"
 
@@ -7815,9 +7881,6 @@ msgstr "Trình quản lý MCP"
 msgid "MCP Server"
 msgstr "Server MCP"
 
-msgid "MCP servers"
-msgstr "Server MCP"
-
 msgid "Mean"
 msgstr "Trung bình"
 
@@ -7977,6 +8040,10 @@ msgstr "Thiếu tham số cấp quyền bắt buộc."
 
 msgid "Missing required fields."
 msgstr "Thiếu trường bắt buộc."
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.missingInput"
+msgstr "Thiếu dữ liệu bắt buộc {input}"
 
 msgid "Mobile"
 msgstr "Di động"
@@ -8577,6 +8644,9 @@ msgstr "Không tìm thấy issue nào."
 msgid "No items"
 msgstr "Không có mục nào"
 
+msgid "No known creators"
+msgstr "Không có người tạo nào được biết"
+
 msgid "No labels"
 msgstr "Không có nhãn"
 
@@ -8585,9 +8655,6 @@ msgstr "Không có phiên nào đang chạy"
 
 msgid "no logins"
 msgstr "không có đăng nhập"
-
-msgid "no longer in the catalog"
-msgstr "không còn trong danh mục"
 
 msgid "No match"
 msgstr "Không khớp"
@@ -8648,6 +8715,9 @@ msgstr "Không có lời mời nào đang chờ"
 
 msgid "No people found."
 msgstr "Không tìm thấy ai."
+
+msgid "No plugins available yet."
+msgstr "Chưa có plugin nào."
 
 #. placeholder {0}: search.trim()
 msgid "No plugins match \"{0}\""
@@ -8999,6 +9069,9 @@ msgstr "Giờ đây, chúng tôi đã gọi được <0>11 triệu USD</0> từ 
 msgid "Numbered list"
 msgstr "Danh sách đánh số"
 
+msgid "OAuth 2.0"
+msgstr "OAuth 2.0"
+
 msgid "OAuth by default, API keys for CI"
 msgstr "Mặc định là OAuth, khóa API cho CI"
 
@@ -9154,6 +9227,10 @@ msgstr "Đang mở"
 #. placeholder {0}: linkedAgent?.label ?? t({ message: "agent settings", })
 msgid "Open {0}"
 msgstr "Mở {0}"
+
+#. placeholder {0}: plugin.interface.displayName
+msgid "Open {0} website"
+msgstr "Mở website {0}"
 
 msgid "Open {filePath}"
 msgstr "Mở {filePath}"
@@ -10036,6 +10113,14 @@ msgstr "Vui lòng chọn một tổ chức"
 msgid "Please try signing in again from the desktop app."
 msgstr "Vui lòng thử đăng nhập lại từ ứng dụng máy tính."
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.noApiKeyAuth"
+msgstr "Plugin {plugin} không dùng xác thực api_key"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.notInstalled"
+msgstr "Plugin {plugin} chưa được cài"
+
 msgid "Plugin marketplace"
 msgstr "Marketplace plugin"
 
@@ -10398,9 +10483,6 @@ msgstr "Thuộc tính"
 
 msgid "Provide either id or slug"
 msgstr "Hãy cung cấp id hoặc slug"
-
-msgid "Provided by entries in your own agent config."
-msgstr "Do các mục trong cấu hình agent của bạn cung cấp."
 
 #. placeholder {0}: sourceConfig?.label ?? binding.agentId
 msgid "Provider: {0}"
@@ -10774,9 +10856,6 @@ msgstr "Truy cập từ xa"
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "Server MCP từ xa — kết nối qua HTTP"
-
-msgid "Remote servers sign you in the first time an agent uses them."
-msgstr "Server từ xa sẽ yêu cầu bạn đăng nhập lần đầu khi một agent dùng chúng."
 
 msgid "Remote workspace"
 msgstr "Workspace từ xa"
@@ -13821,6 +13900,9 @@ msgstr "Đường dẫn này tồn tại nhưng không phải thư mục."
 msgid "This path is a directory"
 msgstr "Đường dẫn này là một thư mục"
 
+msgid "This plugin needs no account — its skills are ready to use."
+msgstr "Plugin này không cần tài khoản — các Skill của nó đã sẵn sàng dùng."
+
 msgid "This port is still in use"
 msgstr "Cổng này vẫn đang được dùng"
 
@@ -14306,10 +14388,7 @@ msgstr "Bỏ nhóm các workspace đã chọn"
 msgid "Unified view"
 msgstr "Xem hợp nhất"
 
-msgid "Uninstall"
-msgstr "Gỡ cài đặt"
-
-#. placeholder {0}: plugin?.interface.displayName ?? entry.name
+#. placeholder {0}: plugin.interface.displayName
 msgid "Uninstall {0}"
 msgstr "Gỡ cài đặt {0}"
 
@@ -14346,6 +14425,10 @@ msgstr "Host không xác định"
 
 msgid "Unknown Host"
 msgstr "Host không rõ"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.unknownPlugin"
+msgstr "Plugin không xác định {plugin}"
 
 msgid "Unknown project"
 msgstr "Dự án không xác định"
@@ -14422,6 +14505,9 @@ msgstr "Sắp tới"
 
 msgid "Up Next"
 msgstr "Sắp tới"
+
+msgid "Update"
+msgstr "Cập nhật"
 
 msgid "Update available"
 msgstr "Có bản cập nhật"
@@ -15151,9 +15237,6 @@ msgstr "Bạn"
 
 msgid "YOU"
 msgstr "BẠN"
-
-msgid "You added these yourself — Superset never touches them, and never writes duplicates of servers you already have."
-msgstr "Bạn tự thêm những mục này — Superset không bao giờ đụng vào, cũng không ghi trùng các server bạn đã có."
 
 msgid "You appear to be offline"
 msgstr "Có vẻ bạn đang ngoại tuyến"

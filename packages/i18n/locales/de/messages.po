@@ -160,6 +160,10 @@ msgstr "{0, plural, one {# bestanden} other {# bestanden}}"
 msgid "{0, plural, one {# project selected.} other {# projects selected.}}"
 msgstr "{0, plural, one {# Projekt ausgewählt.} other {# Projekte ausgewählt.}}"
 
+#. placeholder {0}: projectFilters.length
+msgid "{0, plural, one {# project} other {# projects}}"
+msgstr "{0, plural, one {# Projekt} other {# Projekte}}"
+
 #. placeholder {0}: repositories.length
 #. placeholder {0}: selectedProjects.length
 msgid "{0, plural, one {# repository} other {# repositories}}"
@@ -273,6 +277,10 @@ msgstr "{0} – {1} · Schätzung zum API-Preis aus lokalen Sitzungs-Logs"
 msgid "{0} — try the Superset tray menu > Host Service > Restart."
 msgstr "{0} — versuche es über das Superset-Menü in der Menüleiste > Host Service > Restart."
 
+#. placeholder {0}: creator.name
+msgid "{0} (you)"
+msgstr "{0} (du)"
+
 #. placeholder {0}: actor.login
 msgid "{0} {actorVerb}"
 msgstr "{0} {actorVerb}"
@@ -301,7 +309,7 @@ msgstr "{0} deaktiviert"
 
 #. placeholder {0}: displayName(variables.name)
 #. placeholder {0}: plugin.interface.displayName
-#. placeholder {0}: plugin?.interface.displayName ?? entry.name
+#. placeholder {0}: skill.name
 msgid "{0} enabled"
 msgstr "{0} aktiviert"
 
@@ -344,6 +352,11 @@ msgstr "{0} nutzt den Free-Tarif. Superset Mobile ist für Organisationen mit Pr
 #. placeholder {2}: hostCompatibility.minVersion
 msgid "{0} is running host service {1} — this app needs {2} or newer. Update Superset on that machine."
 msgstr "Auf {0} läuft Host-Dienst {1} — diese App braucht {2} oder neuer. Aktualisiere Superset auf diesem Rechner."
+
+#. placeholder {0}: displayName(name)
+#. placeholder {0}: displayName(variables.name)
+msgid "{0} is set up on this machine, but not on your account"
+msgstr "{0} ist auf diesem Rechner eingerichtet, aber nicht in deinem Konto"
 
 #. placeholder {0}: v.toLocaleString()
 msgid "{0} mo"
@@ -414,6 +427,10 @@ msgstr "{0} Tokens in den letzten 30 Tagen. Veröffentlichung als <0>{handle}</0
 #. placeholder {0}: displayName(variables.name)
 msgid "{0} uninstalled"
 msgstr "{0} deinstalliert"
+
+#. placeholder {0}: displayName(variables.name)
+msgid "{0} updated"
+msgstr "{0} aktualisiert"
 
 #. placeholder {0}: file.path
 msgid "{0} was deleted in this change."
@@ -622,6 +639,9 @@ msgstr "{level} · {gate} · {statusLabel}"
 msgid "{level} {gate}: {statusLabel}"
 msgstr "{level} {gate}: {statusLabel}"
 
+msgid "{localHostName} (this device)"
+msgstr "{localHostName} (dieses Gerät)"
+
 #. placeholder {0}: <> <span className="tabular-nums font-medium text-foreground"> # </span>{" "} result for &ldquo;{query}&rdquo; </>
 #. placeholder {1}: <> <span className="tabular-nums font-medium text-foreground"> # </span>{" "} results for &ldquo;{query}&rdquo; </>
 msgid "{matchCount, plural, one {{0}} other {{1}}}"
@@ -647,6 +667,18 @@ msgstr "vor {months} Mon."
 
 msgid "{myFailedCount} of your automations failed their last run"
 msgstr "Bei {myFailedCount} deiner Automatisierungen ist der letzte Lauf fehlgeschlagen"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceBuiltinRemove"
+msgstr "{name} ist integriert und kann nicht entfernt werden"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceReserved"
+msgstr "{name} ist integriert und kann nicht ersetzt werden"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceNotAdded"
+msgstr "{name} ist nicht hinzugefügt"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {Gib mindestens eine Person an, oder wähle {choice}.} sender {Gib mindestens einen Absender an, oder wähle {choice}.} other {Gib mindestens einen Eintrag an, oder wähle {choice}.}}"
@@ -694,6 +726,14 @@ msgstr "{provider}-Logo"
 
 msgid "{readPercent}% read"
 msgstr "{readPercent} % gelesen"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.ambiguousPlugin"
+msgstr "{reason}"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.dispatchFailed"
+msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{received} von {total}"
@@ -1135,6 +1175,10 @@ msgstr "Accordion"
 msgid "Account"
 msgstr "Konto"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceNotResolvable"
+msgstr "Die Installation im Konto löst nur Erstanbieter-Manifeste auf, daher kann {plugin} aus {marketplace} noch nicht in deinem Konto installiert werden. Es bleibt auf diesem Rechner installiert."
+
 msgid "Account is pending deletion."
 msgstr "Das Konto ist zur Löschung vorgemerkt."
 
@@ -1264,6 +1308,9 @@ msgstr "Füge über das Menü in der Seitenleiste einen hinzu, um loszulegen."
 
 msgid "Add photos or files"
 msgstr "Fotos oder Dateien hinzufügen"
+
+msgid "Add plugin"
+msgstr "Plugin hinzufügen"
 
 msgid "Add project"
 msgstr "Projekt hinzufügen"
@@ -1957,6 +2004,9 @@ msgstr "Aug. 2026"
 msgid "Auth token"
 msgstr "Auth-Token"
 
+msgid "Authenticate your {displayName} account"
+msgstr "Authentifiziere dein {displayName}-Konto"
+
 msgid "Authentication"
 msgstr "Authentifizierung"
 
@@ -2562,6 +2612,9 @@ msgstr "Cash — Gesamtbestand (Mercury)"
 msgid "Cash ÷ net burn at the current run rate"
 msgstr "Cash ÷ Net Burn bei aktueller Run-Rate"
 
+msgid "Category"
+msgstr "Kategorie"
+
 msgid "Certificate Authority Invalid"
 msgstr "Zertifizierungsstelle ungültig"
 
@@ -2631,9 +2684,6 @@ msgstr "Änderungen angefordert"
 
 msgid "Changes saved"
 msgstr "Änderungen gespeichert"
-
-msgid "Changes take effect in new agent sessions."
-msgstr "Änderungen greifen in neuen Agenten-Sitzungen."
 
 msgid "Changing..."
 msgstr "Wird umgestellt..."
@@ -3374,6 +3424,10 @@ msgstr "Verbinde deinen Slack-Workspace, um Aufgaben aus Unterhaltungen zu verwa
 msgid "Connected"
 msgstr "Verbunden"
 
+#. placeholder {0}: formatDate(new Date(connection.createdAt))
+msgid "connected {0}"
+msgstr "verbunden {0}"
+
 msgid "Connected as"
 msgstr "Verbunden als"
 
@@ -3428,11 +3482,18 @@ msgstr "Verbindung geschlossen"
 msgid "Connection failed."
 msgstr "Verbindung fehlgeschlagen."
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.connectionNotFound"
+msgstr "Verbindung nicht gefunden"
+
 msgid "Connection Refused"
 msgstr "Verbindung abgelehnt"
 
 msgid "Connection Timed Out"
 msgstr "Zeitüberschreitung der Verbindung"
+
+msgid "Connections"
+msgstr "Verbindungen"
 
 msgid "Consent finished but Microsoft did not issue a token for the tenant."
 msgstr "Die Zustimmung ist abgeschlossen, aber Microsoft hat kein Token für den Tenant ausgestellt."
@@ -3738,6 +3799,9 @@ msgstr "Umgebungen konnten nicht geladen werden"
 msgid "Could not load environments."
 msgstr "Umgebungen konnten nicht geladen werden."
 
+msgid "Could not load plugins. Check your connection and try again."
+msgstr "Plugins konnten nicht geladen werden. Prüfe deine Verbindung und versuche es erneut."
+
 msgid "Could not load presets from the host"
 msgstr "Presets konnten nicht vom Host geladen werden"
 
@@ -3830,6 +3894,10 @@ msgstr "Skill konnte nicht aktualisiert werden"
 
 msgid "Could not update the branch"
 msgstr "Branch konnte nicht aktualisiert werden"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.credentialUnverified"
+msgstr "Die Zugangsdaten konnten nicht überprüft werden: {reason}"
 
 msgid "Could not watch this page"
 msgstr "Seite ließ sich nicht beobachten"
@@ -4108,6 +4176,9 @@ msgstr "Erstellt <0>· 7 T.</0>"
 
 msgid "Created 1 folder in {where}"
 msgstr "1 Ordner in {where} erstellt"
+
+msgid "Created by"
+msgstr "Erstellt von"
 
 msgid "Created team \"{trimmedName}\""
 msgstr "Team \"{trimmedName}\" erstellt"
@@ -4572,9 +4643,6 @@ msgstr "Abgelöst"
 msgid "Details"
 msgstr "Details"
 
-msgid "Detected in your agent configs"
-msgstr "In deinen Agenten-Konfigurationen erkannt"
-
 msgid "Dev"
 msgstr "Dev"
 
@@ -4589,9 +4657,6 @@ msgstr "Entwickler"
 
 msgid "Developers"
 msgstr "Entwickler"
-
-msgid "Device"
-msgstr "Gerät"
 
 msgid "Device: {selectedLabel}"
 msgstr "Gerät: {selectedLabel}"
@@ -4637,9 +4702,6 @@ msgstr "Skill deaktivieren"
 
 msgid "Disabled"
 msgstr "Deaktiviert"
-
-msgid "Disabled — kept installed, but Superset writes nothing into your agent configs."
-msgstr "Deaktiviert — bleibt installiert, aber Superset schreibt nichts in deine Agenten-Konfigurationen."
 
 msgid "Disabled toggle"
 msgstr "Deaktivierter Schalter"
@@ -4692,6 +4754,10 @@ msgstr "Verworfen — wird nicht mehr gefragt"
 
 msgid "Disconnect"
 msgstr "Trennen"
+
+#. placeholder {0}: connection.account ?? displayName
+msgid "Disconnect {0}"
+msgstr "{0} trennen"
 
 msgid "Disconnect GitHub?"
 msgstr "GitHub trennen?"
@@ -5067,9 +5133,6 @@ msgstr "Relay-Zugriff aktivieren…"
 msgid "Enable skill"
 msgstr "Skill aktivieren"
 
-msgid "Enabled — servers are written into your agent configs."
-msgstr "Aktiviert — die Server werden in deine Agenten-Konfigurationen geschrieben."
-
 msgid "Engineering deep-dives and launches."
 msgstr "Technische Deep-Dives und Launches."
 
@@ -5102,12 +5165,6 @@ msgstr "Enterprise"
 
 msgid "Enterprise ARR by account"
 msgstr "Enterprise-ARR nach Konto"
-
-msgid "Entries you added yourself stay active in your agent config."
-msgstr "Einträge, die du selbst hinzugefügt hast, bleiben in deiner Agenten-Konfiguration aktiv."
-
-msgid "Entries you added yourself stay in your agent config."
-msgstr "Einträge, die du selbst hinzugefügt hast, bleiben in deiner Agenten-Konfiguration."
 
 msgid "Environment"
 msgstr "Umgebung"
@@ -5879,6 +5936,9 @@ msgstr "Agenten filtern..."
 
 msgid "Filter by @{normalizedSearch}"
 msgstr "Nach @{normalizedSearch} filtern"
+
+msgid "Filter by device"
+msgstr "Nach Gerät filtern"
 
 msgid "Filter by reviews"
 msgstr "Nach Reviews filtern"
@@ -6756,6 +6816,9 @@ msgstr "Verbesserter Diff-Betrachter"
 msgid "in a terminal on this host."
 msgstr "in einem Terminal auf diesem Host aus."
 
+msgid "In all projects"
+msgstr "In allen Projekten"
+
 msgid "In just a few months, <0>tens of thousands of engineers</0> run Superset as their primary IDE, at companies like Wix, DoorDash, and Netflix."
 msgstr "In nur wenigen Monaten nutzen <0>Zehntausende Entwickler</0> Superset als ihre primäre IDE, in Unternehmen wie Wix, DoorDash und Netflix."
 
@@ -6800,6 +6863,9 @@ msgstr "Branchenmedian, unsere Schätzung. Gestrichelt ist Prognose. Die ersten 
 
 msgid "Info"
 msgstr "Info"
+
+msgid "Information"
+msgstr "Informationen"
 
 msgid "Initialize Git"
 msgstr "Git initialisieren"
@@ -6847,9 +6913,6 @@ msgstr "Einblicke vom Superset-Team zu parallelen Coding-Agenten und Entwicklerp
 msgid "Inspecting {0}"
 msgstr "{0} wird untersucht"
 
-msgid "Install"
-msgstr "Installieren"
-
 msgid "Install & restart"
 msgstr "Installieren & neu starten"
 
@@ -6877,9 +6940,9 @@ msgstr "MCP-Server an einem Ort installieren, autorisieren und über alle Arbeit
 msgid "Installed"
 msgstr "Installiert"
 
-#. placeholder {0}: record.installedAt.slice(0, 10)
-msgid "installed {0}"
-msgstr "installiert {0}"
+#. js-lingui-explicit-id
+msgid "serverError.plugins.marketplaceHasInstalls"
+msgstr "Installierte Plugins stammen aus {name}: {plugins}. Entferne sie zuerst."
 
 msgid "Installing..."
 msgstr "Wird installiert..."
@@ -7350,6 +7413,9 @@ msgstr "vor weniger als einer Minute"
 msgid "Letter spacing (px)"
 msgstr "Zeichenabstand (px)"
 
+msgid "License"
+msgstr "Lizenz"
+
 msgid "Lifecycle scripts"
 msgstr "Lifecycle-Skripte"
 
@@ -7815,9 +7881,6 @@ msgstr "MCP-Manager"
 msgid "MCP Server"
 msgstr "MCP-Server"
 
-msgid "MCP servers"
-msgstr "MCP-Server"
-
 msgid "Mean"
 msgstr "Mittelwert"
 
@@ -7977,6 +8040,10 @@ msgstr "Erforderliche Autorisierungsparameter fehlen."
 
 msgid "Missing required fields."
 msgstr "Es fehlen Pflichtfelder."
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.missingInput"
+msgstr "Erforderliche Eingabe {input} fehlt"
 
 msgid "Mobile"
 msgstr "Mobil"
@@ -8577,6 +8644,9 @@ msgstr "Keine Issues gefunden."
 msgid "No items"
 msgstr "Keine Einträge"
 
+msgid "No known creators"
+msgstr "Keine bekannten Ersteller"
+
 msgid "No labels"
 msgstr "Keine Labels"
 
@@ -8585,9 +8655,6 @@ msgstr "Keine aktiven Sitzungen"
 
 msgid "no logins"
 msgstr "keine Logins"
-
-msgid "no longer in the catalog"
-msgstr "nicht mehr im Katalog"
 
 msgid "No match"
 msgstr "Kein Treffer"
@@ -8648,6 +8715,9 @@ msgstr "Keine offenen Einladungen"
 
 msgid "No people found."
 msgstr "Keine Personen gefunden."
+
+msgid "No plugins available yet."
+msgstr "Noch keine Plugins verfügbar."
 
 #. placeholder {0}: search.trim()
 msgid "No plugins match \"{0}\""
@@ -8999,6 +9069,9 @@ msgstr "Jetzt haben wir <0>11 Mio. $</0> von den besten Investoren im Silicon Va
 msgid "Numbered list"
 msgstr "Nummerierte Liste"
 
+msgid "OAuth 2.0"
+msgstr "OAuth 2.0"
+
 msgid "OAuth by default, API keys for CI"
 msgstr "OAuth als Standard, API-Schlüssel für CI"
 
@@ -9154,6 +9227,10 @@ msgstr "Offen"
 #. placeholder {0}: linkedAgent?.label ?? t({ message: "agent settings", })
 msgid "Open {0}"
 msgstr "{0} öffnen"
+
+#. placeholder {0}: plugin.interface.displayName
+msgid "Open {0} website"
+msgstr "{0}-Website öffnen"
 
 msgid "Open {filePath}"
 msgstr "{filePath} öffnen"
@@ -10036,6 +10113,14 @@ msgstr "Bitte wähle eine Organisation"
 msgid "Please try signing in again from the desktop app."
 msgstr "Bitte melde dich erneut aus der Desktop-App an."
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.noApiKeyAuth"
+msgstr "Plugin {plugin} verwendet keine api_key-Authentifizierung"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.notInstalled"
+msgstr "Plugin {plugin} ist nicht installiert"
+
 msgid "Plugin marketplace"
 msgstr "Plugin-Marketplace"
 
@@ -10398,9 +10483,6 @@ msgstr "Eigenschaften"
 
 msgid "Provide either id or slug"
 msgstr "Gib entweder id oder slug an"
-
-msgid "Provided by entries in your own agent config."
-msgstr "Stammt aus Einträgen in deiner eigenen Agenten-Konfiguration."
 
 #. placeholder {0}: sourceConfig?.label ?? binding.agentId
 msgid "Provider: {0}"
@@ -10774,9 +10856,6 @@ msgstr "Fernzugriff"
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "Remote-MCP-Server — verbindet über HTTP"
-
-msgid "Remote servers sign you in the first time an agent uses them."
-msgstr "Bei Remote-Servern meldest du dich an, sobald ein Agent sie zum ersten Mal nutzt."
 
 msgid "Remote workspace"
 msgstr "Remote-Arbeitsbereich"
@@ -13821,6 +13900,9 @@ msgstr "Dieser Pfad existiert, ist aber kein Verzeichnis."
 msgid "This path is a directory"
 msgstr "Dieser Pfad ist ein Verzeichnis"
 
+msgid "This plugin needs no account — its skills are ready to use."
+msgstr "Dieses Plugin braucht kein Konto — seine Skills sind sofort einsatzbereit."
+
 msgid "This port is still in use"
 msgstr "Dieser Port ist noch in Benutzung"
 
@@ -14306,10 +14388,7 @@ msgstr "Gruppierung ausgewählter Arbeitsbereiche aufheben"
 msgid "Unified view"
 msgstr "Einheitliche Ansicht"
 
-msgid "Uninstall"
-msgstr "Deinstallieren"
-
-#. placeholder {0}: plugin?.interface.displayName ?? entry.name
+#. placeholder {0}: plugin.interface.displayName
 msgid "Uninstall {0}"
 msgstr "{0} deinstallieren"
 
@@ -14346,6 +14425,10 @@ msgstr "Unbekannter Host"
 
 msgid "Unknown Host"
 msgstr "Unbekannter Host"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.unknownPlugin"
+msgstr "Unbekanntes Plugin {plugin}"
 
 msgid "Unknown project"
 msgstr "Unbekanntes Projekt"
@@ -14422,6 +14505,9 @@ msgstr "Als Nächstes"
 
 msgid "Up Next"
 msgstr "Als Nächstes"
+
+msgid "Update"
+msgstr "Aktualisieren"
 
 msgid "Update available"
 msgstr "Update verfügbar"
@@ -15151,9 +15237,6 @@ msgstr "Du"
 
 msgid "YOU"
 msgstr "DU"
-
-msgid "You added these yourself — Superset never touches them, and never writes duplicates of servers you already have."
-msgstr "Die hast du selbst hinzugefügt — Superset fasst sie nie an und legt nie Duplikate von Servern an, die du schon hast."
 
 msgid "You appear to be offline"
 msgstr "Du scheinst offline zu sein"

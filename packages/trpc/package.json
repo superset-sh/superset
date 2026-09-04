@@ -98,6 +98,7 @@
 		"@upstash/redis": "1.37.0",
 		"@vercel/kv": "3.0.0",
 		"aws4fetch": "1.0.20",
+		"better-auth": "1.6.22",
 		"drizzle-orm": "0.45.2",
 		"gaxios": "7.3.1",
 		"google-auth-library": "10.5.0",

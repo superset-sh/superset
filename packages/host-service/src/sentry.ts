@@ -1,6 +1,11 @@
 import * as Sentry from "@sentry/node";
+import { createSentryEventThrottle } from "@superset/shared/sentry-throttle";
 
 let initialized = false;
+
+// Shared across the process: the point is to notice a repeat, which needs one
+// instance rather than one per call.
+const throttleRepeats = createSentryEventThrottle();
 
 export function initSentry(options: { organizationId?: string }): void {
 	if (initialized) return;
@@ -11,6 +16,9 @@ export function initSentry(options: { organizationId?: string }): void {
 		release: process.env.HOST_SERVICE_SENTRY_RELEASE,
 		environment: process.env.HOST_SERVICE_SENTRY_ENVIRONMENT,
 		tracesSampleRate: 0,
+		// A host that fails once usually fails in a loop: git.getStatus alone
+		// sent 135k copies of one `spawn EBADF` from seven machines last month.
+		beforeSend: throttleRepeats,
 		// safety.ts keeps the process alive through uncaught exceptions; Sentry
 		// must capture them without re-introducing the exit.
 		integrations: [

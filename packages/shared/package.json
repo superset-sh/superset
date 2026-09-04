@@ -56,6 +56,10 @@
 			"types": "./src/sentry.ts",
 			"default": "./src/sentry.ts"
 		},
+		"./sentry-throttle": {
+			"types": "./src/sentry-throttle.ts",
+			"default": "./src/sentry-throttle.ts"
+		},
 		"./slash-commands": {
 			"types": "./src/slash-commands.ts",
 			"default": "./src/slash-commands.ts"
