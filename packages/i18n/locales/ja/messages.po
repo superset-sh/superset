@@ -1070,6 +1070,13 @@ msgstr "このオートメーションの実行はすでに進行中です。"
 msgid "A selection of integrations curated by our team."
 msgstr "チームが厳選した連携です。"
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "A separate pay-per-token profile. The key stays in the {0} CLI."
+msgstr "トークン単位で課金される別プロファイルです。キーは{0} CLI内に保持されます。"
+
+msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
+msgstr "スキル、プラグイン、MCPサーバー、設定を共有する別プロファイルです。"
+
 msgid "a teammate"
 msgstr "チームメンバー"
 
@@ -1751,6 +1758,9 @@ msgstr "何でも"
 msgid "AP"
 msgstr "AP"
 
+msgid "API"
+msgstr "API"
+
 msgid "API key"
 msgstr "APIキー"
 
@@ -2184,6 +2194,9 @@ msgstr "その先:F5は近い将来の主張ではない"
 
 msgid "Billed monthly"
 msgstr "月払い"
+
+msgid "Billed per token."
+msgstr "トークン単位で課金。"
 
 msgid "Billed yearly"
 msgstr "年払い"
@@ -6956,8 +6969,8 @@ msgstr "データは安全ですか?"
 msgid "is now signed in here."
 msgstr "がここにサインインしました。"
 
-msgid "is signed in and will show its quota here."
-msgstr "がサインインしており、クォータがここに表示されます。"
+msgid "is signed in."
+msgstr "がサインインしました。"
 
 msgid "Is Superset free to use?"
 msgstr "Supersetは無料で使えますか?"
@@ -10561,8 +10574,8 @@ msgstr "並列コーディングエージェントのガイドを読む"
 msgid "Read the setup guide"
 msgstr "セットアップガイドを読む"
 
-msgid "Reading subscription usage…"
-msgstr "サブスクリプション使用量を読み取り中…"
+msgid "Reading usage…"
+msgstr "使用量を取得中…"
 
 msgid "Reading your local usage…"
 msgstr "ローカルの使用量を読み取り中…"
@@ -11351,6 +11364,12 @@ msgstr "コマンドを実行し、アプリ内を移動します。"
 msgid "Run History"
 msgstr "実行履歴"
 
+msgid "Run in a terminal on this host; paste your key when asked:"
+msgstr "このホストのターミナルで実行し、求められたらキーを貼り付けてください:"
+
+msgid "Run in a terminal on this host:"
+msgstr "このホストのターミナルで実行してください:"
+
 msgid "Run in Workspace"
 msgstr "ワークスペースで実行"
 
@@ -11377,9 +11396,6 @@ msgstr "ターミナルコマンドの実行や他のアプリケーションと
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "2つ目のターミナルを並行して起動する代わりに、セットアップ完了後にワークスペースセットアップのターミナルでエージェントを実行します"
-
-msgid "Run this in any terminal on this host, then finish the sign-in in your browser:"
-msgstr "このホストの任意のターミナルで実行し、ブラウザでサインインを完了してください:"
 
 msgid "Run workspace command"
 msgstr "ワークスペースのコマンドを実行"
@@ -12266,9 +12282,6 @@ msgstr "ローカル管理者としてサインイン(開発用)"
 msgid "Sign in to {0}"
 msgstr "{0}にサインイン"
 
-msgid "Sign in to a second subscription as a separate profile. Your current login is untouched, and the new profile shares your skills, plugins, MCP servers, and settings."
-msgstr "別のプロファイルとして2つ目のサブスクリプションにサインインします。現在のログインはそのまま、新しいプロファイルはスキル、プラグイン、MCPサーバー、設定を共有します。"
-
 msgid "Sign in to continue to Superset"
 msgstr "サインインしてSupersetに進む"
 
@@ -12843,6 +12856,9 @@ msgstr "登録する"
 
 msgid "Subscribe on YouTube"
 msgstr "YouTubeで登録"
+
+msgid "Subscription"
+msgstr "サブスクリプション"
 
 msgid "Success"
 msgstr "成功"
@@ -14669,6 +14685,9 @@ msgstr "GitHubでリリースを見る"
 msgid "View Superset repository on GitHub"
 msgstr "GitHubでSupersetのリポジトリを見る"
 
+msgid "View usage"
+msgstr "使用量を表示"
+
 msgid "Volume"
 msgstr "音量"
 
@@ -14684,8 +14703,8 @@ msgstr "チェックを待機中"
 msgid "Waiting for Review"
 msgstr "レビューを待機中"
 
-msgid "Waiting for the sign-in to complete — this updates automatically."
-msgstr "サインイン完了を待っています — 自動的に更新されます。"
+msgid "Waiting for sign-in…"
+msgstr "サインインを待機中…"
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "もっと早く欲しいものがありますか?<0>Discordで教えてください</0>。ここにあるものの多くは、ユーザーの要望から始まりました。"

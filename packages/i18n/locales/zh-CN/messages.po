@@ -1070,6 +1070,13 @@ msgstr "此自动化已有一次运行正在进行中。"
 msgid "A selection of integrations curated by our team."
 msgstr "我们团队精选的一组集成。"
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "A separate pay-per-token profile. The key stays in the {0} CLI."
+msgstr "按 token 计费的独立配置文件。密钥保存在 {0} CLI 中。"
+
+msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
+msgstr "共享你的技能、插件、MCP服务器和设置的独立配置文件。"
+
 msgid "a teammate"
 msgstr "某位队友"
 
@@ -1751,6 +1758,9 @@ msgstr "任意内容"
 msgid "AP"
 msgstr "AP"
 
+msgid "API"
+msgstr "API"
+
 msgid "API key"
 msgstr "API密钥"
 
@@ -2184,6 +2194,9 @@ msgstr "再往后：F5不是近期的主张"
 
 msgid "Billed monthly"
 msgstr "按月计费"
+
+msgid "Billed per token."
+msgstr "按 token 计费。"
 
 msgid "Billed yearly"
 msgstr "按年计费"
@@ -6956,8 +6969,8 @@ msgstr "我的数据安全吗？"
 msgid "is now signed in here."
 msgstr "现已在此登录。"
 
-msgid "is signed in and will show its quota here."
-msgstr "已登录，其配额会显示在这里。"
+msgid "is signed in."
+msgstr "已登录。"
 
 msgid "Is Superset free to use?"
 msgstr "Superset免费吗？"
@@ -10561,8 +10574,8 @@ msgstr "阅读并行编码智能体指南"
 msgid "Read the setup guide"
 msgstr "阅读设置指南"
 
-msgid "Reading subscription usage…"
-msgstr "正在读取订阅用量…"
+msgid "Reading usage…"
+msgstr "正在读取用量…"
 
 msgid "Reading your local usage…"
 msgstr "正在读取本地用量…"
@@ -11351,6 +11364,12 @@ msgstr "运行命令并在应用中导航。"
 msgid "Run History"
 msgstr "运行历史"
 
+msgid "Run in a terminal on this host; paste your key when asked:"
+msgstr "在此主机的终端中运行，出现提示时粘贴你的密钥："
+
+msgid "Run in a terminal on this host:"
+msgstr "在此主机的终端中运行："
+
 msgid "Run in Workspace"
 msgstr "在工作区中运行"
 
@@ -11377,9 +11396,6 @@ msgstr "运行终端命令并与其他应用程序交互。"
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "设置完成后在“工作区设置”终端中运行智能体，而不是另外启动第二个终端"
-
-msgid "Run this in any terminal on this host, then finish the sign-in in your browser:"
-msgstr "在此主机的任意终端中运行以下命令，然后在浏览器中完成登录："
 
 msgid "Run workspace command"
 msgstr "运行工作区命令"
@@ -12266,9 +12282,6 @@ msgstr "以本地管理员身份登录（开发）"
 msgid "Sign in to {0}"
 msgstr "登录{0}"
 
-msgid "Sign in to a second subscription as a separate profile. Your current login is untouched, and the new profile shares your skills, plugins, MCP servers, and settings."
-msgstr "以独立配置文件登录第二个订阅。你当前的登录不受影响，新配置文件共享你的技能、插件、MCP服务器和设置。"
-
 msgid "Sign in to continue to Superset"
 msgstr "登录以继续使用Superset"
 
@@ -12843,6 +12856,9 @@ msgstr "订阅"
 
 msgid "Subscribe on YouTube"
 msgstr "在YouTube上订阅"
+
+msgid "Subscription"
+msgstr "订阅"
 
 msgid "Success"
 msgstr "成功"
@@ -14669,6 +14685,9 @@ msgstr "在GitHub上查看发布"
 msgid "View Superset repository on GitHub"
 msgstr "在GitHub上查看Superset仓库"
 
+msgid "View usage"
+msgstr "查看用量"
+
 msgid "Volume"
 msgstr "音量"
 
@@ -14684,8 +14703,8 @@ msgstr "等待检查"
 msgid "Waiting for Review"
 msgstr "等待审查"
 
-msgid "Waiting for the sign-in to complete — this updates automatically."
-msgstr "正在等待登录完成——此处会自动更新。"
+msgid "Waiting for sign-in…"
+msgstr "等待登录…"
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "想让某件事早点做？<0>在Discord上告诉我们</0>。这里的很多条目最初都来自用户的请求。"

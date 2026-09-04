@@ -1070,6 +1070,13 @@ msgstr "Запуск этой автоматизации уже выполняе
 msgid "A selection of integrations curated by our team."
 msgstr "Подборка интеграций от нашей команды."
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "A separate pay-per-token profile. The key stays in the {0} CLI."
+msgstr "Отдельный профиль с оплатой за токены. Ключ остаётся в CLI {0}."
+
+msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
+msgstr "Отдельный профиль, использующий ваши навыки, плагины, серверы MCP и настройки."
+
 msgid "a teammate"
 msgstr "участник команды"
 
@@ -1751,6 +1758,9 @@ msgstr "что угодно"
 msgid "AP"
 msgstr "AP"
 
+msgid "API"
+msgstr "API"
+
 msgid "API key"
 msgstr "Ключ API"
 
@@ -2184,6 +2194,9 @@ msgstr "Дальше: F5 — не заявка на ближайшее буду�
 
 msgid "Billed monthly"
 msgstr "Оплата помесячно"
+
+msgid "Billed per token."
+msgstr "Оплата за токены."
 
 msgid "Billed yearly"
 msgstr "Оплата за год"
@@ -6956,8 +6969,8 @@ msgstr "Мои данные в безопасности?"
 msgid "is now signed in here."
 msgstr "теперь вошёл здесь."
 
-msgid "is signed in and will show its quota here."
-msgstr "вошёл в систему, и его квота будет показана здесь."
+msgid "is signed in."
+msgstr "вошёл в систему."
 
 msgid "Is Superset free to use?"
 msgstr "Superset бесплатный?"
@@ -10561,8 +10574,8 @@ msgstr "Читать руководство по параллельным код
 msgid "Read the setup guide"
 msgstr "Читать руководство по настройке"
 
-msgid "Reading subscription usage…"
-msgstr "Чтение использования подписки…"
+msgid "Reading usage…"
+msgstr "Чтение данных об использовании…"
 
 msgid "Reading your local usage…"
 msgstr "Чтение локальной статистики…"
@@ -11351,6 +11364,12 @@ msgstr "Выполняйте команды и перемещайтесь по �
 msgid "Run History"
 msgstr "История запусков"
 
+msgid "Run in a terminal on this host; paste your key when asked:"
+msgstr "Выполните это в терминале на этом хосте и вставьте ключ, когда его запросят:"
+
+msgid "Run in a terminal on this host:"
+msgstr "Выполните это в терминале на этом хосте:"
+
 msgid "Run in Workspace"
 msgstr "Запустить в рабочей области"
 
@@ -11377,9 +11396,6 @@ msgstr "Запускать команды в терминале и взаимо�
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Запускать агента в терминале настройки рабочей области после завершения установки вместо запуска второго терминала рядом"
-
-msgid "Run this in any terminal on this host, then finish the sign-in in your browser:"
-msgstr "Выполните это в любом терминале на этом хосте, затем завершите вход в браузере:"
 
 msgid "Run workspace command"
 msgstr "Запустить команду рабочей области"
@@ -12266,9 +12282,6 @@ msgstr "Войти как локальный админ (dev)"
 msgid "Sign in to {0}"
 msgstr "Войдите в {0}"
 
-msgid "Sign in to a second subscription as a separate profile. Your current login is untouched, and the new profile shares your skills, plugins, MCP servers, and settings."
-msgstr "Войдите во вторую подписку как отдельный профиль. Текущий вход не затрагивается, а новый профиль использует ваши навыки, плагины, серверы MCP и настройки."
-
 msgid "Sign in to continue to Superset"
 msgstr "Войдите, чтобы продолжить в Superset"
 
@@ -12843,6 +12856,9 @@ msgstr "ПОДПИСАТЬСЯ"
 
 msgid "Subscribe on YouTube"
 msgstr "Подписывайтесь на YouTube"
+
+msgid "Subscription"
+msgstr "Подписка"
 
 msgid "Success"
 msgstr "Успех"
@@ -14669,6 +14685,9 @@ msgstr "Смотреть релизы на GitHub"
 msgid "View Superset repository on GitHub"
 msgstr "Открыть репозиторий Superset на GitHub"
 
+msgid "View usage"
+msgstr "Посмотреть использование"
+
 msgid "Volume"
 msgstr "Громкость"
 
@@ -14684,8 +14703,8 @@ msgstr "Ожидание проверок"
 msgid "Waiting for Review"
 msgstr "Ожидание ревью"
 
-msgid "Waiting for the sign-in to complete — this updates automatically."
-msgstr "Ожидание завершения входа — обновится автоматически."
+msgid "Waiting for sign-in…"
+msgstr "Ожидание входа…"
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Хотите что-то быстрее? <0>Скажите нам в Discord</0>. Многое из этого началось с пожелания пользователя."

@@ -1070,6 +1070,13 @@ msgstr "Ya hay una ejecución de esta automatización en curso."
 msgid "A selection of integrations curated by our team."
 msgstr "Una selección de integraciones elegidas por nuestro equipo."
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "A separate pay-per-token profile. The key stays in the {0} CLI."
+msgstr "Un perfil aparte facturado por token. La clave se queda en la CLI de {0}."
+
+msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
+msgstr "Un perfil aparte que comparte tus skills, plugins, servidores MCP y configuración."
+
 msgid "a teammate"
 msgstr "un compañero de equipo"
 
@@ -1751,6 +1758,9 @@ msgstr "cualquier cosa"
 msgid "AP"
 msgstr "AP"
 
+msgid "API"
+msgstr "API"
+
 msgid "API key"
 msgstr "Clave de API"
 
@@ -2184,6 +2194,9 @@ msgstr "Más allá: F5 no es una afirmación a corto plazo"
 
 msgid "Billed monthly"
 msgstr "Facturación mensual"
+
+msgid "Billed per token."
+msgstr "Facturado por token."
 
 msgid "Billed yearly"
 msgstr "Facturación anual"
@@ -6956,8 +6969,8 @@ msgstr "¿Están seguros mis datos?"
 msgid "is now signed in here."
 msgstr "tiene ahora la sesión iniciada aquí."
 
-msgid "is signed in and will show its quota here."
-msgstr "tiene la sesión iniciada y mostrará aquí su cuota."
+msgid "is signed in."
+msgstr "tiene la sesión iniciada."
 
 msgid "Is Superset free to use?"
 msgstr "¿Superset es gratis?"
@@ -10561,8 +10574,8 @@ msgstr "Leer la guía sobre agentes de código en paralelo"
 msgid "Read the setup guide"
 msgstr "Leer la guía de configuración"
 
-msgid "Reading subscription usage…"
-msgstr "Leyendo el uso de la suscripción…"
+msgid "Reading usage…"
+msgstr "Leyendo el uso…"
 
 msgid "Reading your local usage…"
 msgstr "Leyendo el uso local…"
@@ -11351,6 +11364,12 @@ msgstr "Ejecutar comandos y navegar por la aplicación."
 msgid "Run History"
 msgstr "Historial de ejecuciones"
 
+msgid "Run in a terminal on this host; paste your key when asked:"
+msgstr "Ejecuta esto en una terminal de este host y pega tu clave cuando se te pida:"
+
+msgid "Run in a terminal on this host:"
+msgstr "Ejecuta esto en una terminal de este host:"
+
 msgid "Run in Workspace"
 msgstr "Ejecutar en un espacio de trabajo"
 
@@ -11377,9 +11396,6 @@ msgstr "Ejecutar comandos de terminal e interactuar con otras aplicaciones."
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Ejecutar el agente en el terminal de configuración del espacio de trabajo cuando termine la configuración, en lugar de abrir un segundo terminal en paralelo"
-
-msgid "Run this in any terminal on this host, then finish the sign-in in your browser:"
-msgstr "Ejecuta esto en cualquier terminal de este host y luego termina el inicio de sesión en tu navegador:"
 
 msgid "Run workspace command"
 msgstr "Ejecutar el comando del espacio de trabajo"
@@ -12266,9 +12282,6 @@ msgstr "Iniciar sesión como Local Admin (dev)"
 msgid "Sign in to {0}"
 msgstr "Inicia sesión en {0}"
 
-msgid "Sign in to a second subscription as a separate profile. Your current login is untouched, and the new profile shares your skills, plugins, MCP servers, and settings."
-msgstr "Inicia sesión en una segunda suscripción como perfil aparte. Tu sesión actual no se toca, y el perfil nuevo comparte tus skills, plugins, servidores MCP y configuración."
-
 msgid "Sign in to continue to Superset"
 msgstr "Inicia sesión para continuar en Superset"
 
@@ -12843,6 +12856,9 @@ msgstr "SUSCRIBIRSE"
 
 msgid "Subscribe on YouTube"
 msgstr "Suscríbete en YouTube"
+
+msgid "Subscription"
+msgstr "Suscripción"
 
 msgid "Success"
 msgstr "Éxito"
@@ -14669,6 +14685,9 @@ msgstr "Ver las versiones en GitHub"
 msgid "View Superset repository on GitHub"
 msgstr "Ver el repositorio de Superset en GitHub"
 
+msgid "View usage"
+msgstr "Ver uso"
+
 msgid "Volume"
 msgstr "Volumen"
 
@@ -14684,8 +14703,8 @@ msgstr "Esperando las comprobaciones"
 msgid "Waiting for Review"
 msgstr "Esperando la revisión"
 
-msgid "Waiting for the sign-in to complete — this updates automatically."
-msgstr "Esperando a que termine el inicio de sesión; esto se actualiza solo."
+msgid "Waiting for sign-in…"
+msgstr "Esperando el inicio de sesión…"
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "¿Quieres algo antes? <0>Cuéntanoslo en Discord</0>. Buena parte de lo que hay aquí empezó como una petición de un usuario."

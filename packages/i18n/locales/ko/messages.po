@@ -1070,6 +1070,13 @@ msgstr "이 자동화의 실행이 이미 진행 중입니다."
 msgid "A selection of integrations curated by our team."
 msgstr "저희 팀이 엄선한 연동 모음입니다."
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "A separate pay-per-token profile. The key stays in the {0} CLI."
+msgstr "토큰 단위로 과금되는 별도 프로필입니다. 키는 {0} CLI 안에 남습니다."
+
+msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
+msgstr "스킬, 플러그인, MCP 서버, 설정을 공유하는 별도 프로필입니다."
+
 msgid "a teammate"
 msgstr "팀원"
 
@@ -1751,6 +1758,9 @@ msgstr "모든 내용"
 msgid "AP"
 msgstr "AP"
 
+msgid "API"
+msgstr "API"
+
 msgid "API key"
 msgstr "API 키"
 
@@ -2184,6 +2194,9 @@ msgstr "그 너머: F5는 단기 전망이 아닙니다"
 
 msgid "Billed monthly"
 msgstr "월간 결제"
+
+msgid "Billed per token."
+msgstr "토큰 단위 과금."
 
 msgid "Billed yearly"
 msgstr "연간 결제"
@@ -6956,8 +6969,8 @@ msgstr "데이터는 안전한가요?"
 msgid "is now signed in here."
 msgstr "이(가) 여기에 로그인되었습니다."
 
-msgid "is signed in and will show its quota here."
-msgstr "이(가) 로그인되었으며 여기에 할당량이 표시됩니다."
+msgid "is signed in."
+msgstr "이(가) 로그인되었습니다."
 
 msgid "Is Superset free to use?"
 msgstr "Superset은 무료로 쓸 수 있나요?"
@@ -10561,8 +10574,8 @@ msgstr "병렬 코딩 에이전트 가이드 읽기"
 msgid "Read the setup guide"
 msgstr "설정 가이드 읽기"
 
-msgid "Reading subscription usage…"
-msgstr "구독 사용량을 읽는 중…"
+msgid "Reading usage…"
+msgstr "사용량 읽는 중…"
 
 msgid "Reading your local usage…"
 msgstr "로컬 사용량을 읽는 중…"
@@ -11351,6 +11364,12 @@ msgstr "명령을 실행하고 앱을 탐색합니다."
 msgid "Run History"
 msgstr "실행 기록"
 
+msgid "Run in a terminal on this host; paste your key when asked:"
+msgstr "이 호스트의 터미널에서 실행하고, 요청되면 키를 붙여 넣으세요:"
+
+msgid "Run in a terminal on this host:"
+msgstr "이 호스트의 터미널에서 실행하세요:"
+
 msgid "Run in Workspace"
 msgstr "워크스페이스에서 실행"
 
@@ -11377,9 +11396,6 @@ msgstr "터미널 명령을 실행하고 다른 애플리케이션과 상호작�
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "터미널을 하나 더 띄우는 대신, 설정이 끝난 뒤 워크스페이스 설정 터미널에서 에이전트를 실행합니다"
-
-msgid "Run this in any terminal on this host, then finish the sign-in in your browser:"
-msgstr "이 호스트의 아무 터미널에서 다음을 실행한 뒤 브라우저에서 로그인을 마치세요:"
 
 msgid "Run workspace command"
 msgstr "워크스페이스 명령 실행"
@@ -12266,9 +12282,6 @@ msgstr "로컬 관리자로 로그인 (dev)"
 msgid "Sign in to {0}"
 msgstr "{0}에 로그인"
 
-msgid "Sign in to a second subscription as a separate profile. Your current login is untouched, and the new profile shares your skills, plugins, MCP servers, and settings."
-msgstr "두 번째 구독에 별도 프로필로 로그인하세요. 현재 로그인은 그대로 유지되며, 새 프로필은 스킬, 플러그인, MCP 서버, 설정을 공유합니다."
-
 msgid "Sign in to continue to Superset"
 msgstr "Superset을 계속 사용하려면 로그인하세요"
 
@@ -12843,6 +12856,9 @@ msgstr "구독하기"
 
 msgid "Subscribe on YouTube"
 msgstr "YouTube에서 구독하기"
+
+msgid "Subscription"
+msgstr "구독"
 
 msgid "Success"
 msgstr "성공"
@@ -14669,6 +14685,9 @@ msgstr "GitHub에서 릴리스 보기"
 msgid "View Superset repository on GitHub"
 msgstr "GitHub에서 Superset 리포지토리 보기"
 
+msgid "View usage"
+msgstr "사용량 보기"
+
 msgid "Volume"
 msgstr "볼륨"
 
@@ -14684,8 +14703,8 @@ msgstr "검사 대기 중"
 msgid "Waiting for Review"
 msgstr "리뷰 대기 중"
 
-msgid "Waiting for the sign-in to complete — this updates automatically."
-msgstr "로그인이 완료되기를 기다리는 중입니다 — 자동으로 갱신됩니다."
+msgid "Waiting for sign-in…"
+msgstr "로그인 대기 중…"
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "더 빨리 필요한 기능이 있나요? <0>Discord에서 알려 주세요</0>. 여기 있는 항목 상당수가 사용자 요청에서 시작했습니다."

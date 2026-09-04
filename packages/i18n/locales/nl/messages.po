@@ -1070,6 +1070,13 @@ msgstr "Er loopt al een run voor deze automatisering."
 msgid "A selection of integrations curated by our team."
 msgstr "Een selectie van integraties die ons team heeft samengesteld."
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "A separate pay-per-token profile. The key stays in the {0} CLI."
+msgstr "Een apart profiel dat per token wordt afgerekend. De sleutel blijft in de {0}-CLI."
+
+msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
+msgstr "Een apart profiel dat je skills, plugins, MCP-servers en instellingen deelt."
+
 msgid "a teammate"
 msgstr "een teamgenoot"
 
@@ -1751,6 +1758,9 @@ msgstr "wat dan ook"
 msgid "AP"
 msgstr "AP"
 
+msgid "API"
+msgstr "API"
+
 msgid "API key"
 msgstr "API-sleutel"
 
@@ -2184,6 +2194,9 @@ msgstr "Verder: F5 is geen claim voor de korte termijn"
 
 msgid "Billed monthly"
 msgstr "Maandelijks gefactureerd"
+
+msgid "Billed per token."
+msgstr "Afgerekend per token."
 
 msgid "Billed yearly"
 msgstr "Jaarlijks gefactureerd"
@@ -6956,8 +6969,8 @@ msgstr "Zijn mijn gegevens veilig?"
 msgid "is now signed in here."
 msgstr "is nu hier ingelogd."
 
-msgid "is signed in and will show its quota here."
-msgstr "is ingelogd en toont hier zijn quotum."
+msgid "is signed in."
+msgstr "is ingelogd."
 
 msgid "Is Superset free to use?"
 msgstr "Is Superset gratis te gebruiken?"
@@ -10561,8 +10574,8 @@ msgstr "Lees de gids over parallelle coding agents"
 msgid "Read the setup guide"
 msgstr "Lees de installatiegids"
 
-msgid "Reading subscription usage…"
-msgstr "Abonnementsgebruik lezen…"
+msgid "Reading usage…"
+msgstr "Gebruik wordt gelezen…"
 
 msgid "Reading your local usage…"
 msgstr "Je lokale gebruik wordt gelezen…"
@@ -11351,6 +11364,12 @@ msgstr "Opdrachten uitvoeren en door de app navigeren."
 msgid "Run History"
 msgstr "Runs"
 
+msgid "Run in a terminal on this host; paste your key when asked:"
+msgstr "Voer dit uit in een terminal op deze host en plak je sleutel wanneer daarom wordt gevraagd:"
+
+msgid "Run in a terminal on this host:"
+msgstr "Voer dit uit in een terminal op deze host:"
+
 msgid "Run in Workspace"
 msgstr "Uitvoeren in werkruimte"
 
@@ -11377,9 +11396,6 @@ msgstr "Terminalcommando's uitvoeren en met andere applicaties werken."
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Draai de agent in de terminal van de werkruimte-setup zodra die klaar is, in plaats van er een tweede terminal naast te starten"
-
-msgid "Run this in any terminal on this host, then finish the sign-in in your browser:"
-msgstr "Voer dit uit in een terminal op deze host en rond de login daarna af in je browser:"
 
 msgid "Run workspace command"
 msgstr "Werkruimtecommando uitvoeren"
@@ -12266,9 +12282,6 @@ msgstr "Inloggen als lokale beheerder (dev)"
 msgid "Sign in to {0}"
 msgstr "Log in bij {0}"
 
-msgid "Sign in to a second subscription as a separate profile. Your current login is untouched, and the new profile shares your skills, plugins, MCP servers, and settings."
-msgstr "Log in op een tweede abonnement als apart profiel. Je huidige login blijft ongemoeid, en het nieuwe profiel deelt je skills, plugins, MCP-servers en instellingen."
-
 msgid "Sign in to continue to Superset"
 msgstr "Log in om verder te gaan naar Superset"
 
@@ -12843,6 +12856,9 @@ msgstr "ABONNEER"
 
 msgid "Subscribe on YouTube"
 msgstr "Abonneer op YouTube"
+
+msgid "Subscription"
+msgstr "Abonnement"
 
 msgid "Success"
 msgstr "Geslaagd"
@@ -14669,6 +14685,9 @@ msgstr "Releases bekijken op GitHub"
 msgid "View Superset repository on GitHub"
 msgstr "Superset-repository bekijken op GitHub"
 
+msgid "View usage"
+msgstr "Gebruik bekijken"
+
 msgid "Volume"
 msgstr "Volume"
 
@@ -14684,8 +14703,8 @@ msgstr "Wachten op checks"
 msgid "Waiting for Review"
 msgstr "Wachten op review"
 
-msgid "Waiting for the sign-in to complete — this updates automatically."
-msgstr "Wachten tot de login is afgerond — dit werkt automatisch bij."
+msgid "Waiting for sign-in…"
+msgstr "Wachten op login…"
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Wil je iets eerder zien? <0>Laat het weten in Discord</0>. Veel van wat hier staat begon als gebruikersverzoek."

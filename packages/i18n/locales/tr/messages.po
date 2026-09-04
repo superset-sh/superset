@@ -1070,6 +1070,13 @@ msgstr "Bu otomasyon için bir çalıştırma zaten sürüyor."
 msgid "A selection of integrations curated by our team."
 msgstr "Ekibimizin seçtiği entegrasyonlardan bir derleme."
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "A separate pay-per-token profile. The key stays in the {0} CLI."
+msgstr "Token başına faturalandırılan ayrı bir profil. Anahtar {0} CLI içinde kalır."
+
+msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
+msgstr "Becerilerinizi, eklentilerinizi, MCP sunucularınızı ve ayarlarınızı paylaşan ayrı bir profil."
+
 msgid "a teammate"
 msgstr "bir takım arkadaşı"
 
@@ -1751,6 +1758,9 @@ msgstr "herhangi bir şey"
 msgid "AP"
 msgstr "AP"
 
+msgid "API"
+msgstr "API"
+
 msgid "API key"
 msgstr "API anahtarı"
 
@@ -2184,6 +2194,9 @@ msgstr "Ötesi: F5 yakın vadeli bir iddia değil"
 
 msgid "Billed monthly"
 msgstr "Aylık faturalandırılır"
+
+msgid "Billed per token."
+msgstr "Token başına faturalandırılır."
 
 msgid "Billed yearly"
 msgstr "Yıllık faturalandırılır"
@@ -6956,8 +6969,8 @@ msgstr "Verilerim güvende mi?"
 msgid "is now signed in here."
 msgstr "artık burada oturum açtı."
 
-msgid "is signed in and will show its quota here."
-msgstr "oturum açtı ve kotasını burada gösterecek."
+msgid "is signed in."
+msgstr "oturum açtı."
 
 msgid "Is Superset free to use?"
 msgstr "Superset ücretsiz mi?"
@@ -10561,8 +10574,8 @@ msgstr "Paralel kodlama ajanları rehberini okuyun"
 msgid "Read the setup guide"
 msgstr "Kurulum rehberini okuyun"
 
-msgid "Reading subscription usage…"
-msgstr "Abonelik kullanımı okunuyor…"
+msgid "Reading usage…"
+msgstr "Kullanım okunuyor…"
 
 msgid "Reading your local usage…"
 msgstr "Yerel kullanımınız okunuyor…"
@@ -11351,6 +11364,12 @@ msgstr "Komutları çalıştırın ve uygulamada gezinin."
 msgid "Run History"
 msgstr "Çalıştırma geçmişi"
 
+msgid "Run in a terminal on this host; paste your key when asked:"
+msgstr "Bunu bu host'taki bir terminalde çalıştırın ve istendiğinde anahtarınızı yapıştırın:"
+
+msgid "Run in a terminal on this host:"
+msgstr "Bunu bu host'taki bir terminalde çalıştırın:"
+
 msgid "Run in Workspace"
 msgstr "Çalışma alanında çalıştır"
 
@@ -11377,9 +11396,6 @@ msgstr "Terminal komutları çalıştırın ve diğer uygulamalarla etkileşin."
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Yanında ikinci bir terminal başlatmak yerine, kurulum bittikten sonra ajanı Çalışma Alanı Kurulumu terminalinde çalıştır"
-
-msgid "Run this in any terminal on this host, then finish the sign-in in your browser:"
-msgstr "Bunu bu host'taki herhangi bir terminalde çalıştırın, sonra oturum açmayı tarayıcınızda tamamlayın:"
 
 msgid "Run workspace command"
 msgstr "Çalışma alanı komutunu çalıştır"
@@ -12266,9 +12282,6 @@ msgstr "Yerel yönetici olarak oturum aç (dev)"
 msgid "Sign in to {0}"
 msgstr "{0} kuruluşunda oturum açın"
 
-msgid "Sign in to a second subscription as a separate profile. Your current login is untouched, and the new profile shares your skills, plugins, MCP servers, and settings."
-msgstr "İkinci bir aboneliğe ayrı bir profil olarak giriş yapın. Mevcut oturumunuza dokunulmaz ve yeni profil becerilerinizi, eklentilerinizi, MCP sunucularınızı ve ayarlarınızı paylaşır."
-
 msgid "Sign in to continue to Superset"
 msgstr "Superset'e devam etmek için oturum açın"
 
@@ -12843,6 +12856,9 @@ msgstr "ABONE OL"
 
 msgid "Subscribe on YouTube"
 msgstr "YouTube'da abone olun"
+
+msgid "Subscription"
+msgstr "Abonelik"
 
 msgid "Success"
 msgstr "Başarılı"
@@ -14669,6 +14685,9 @@ msgstr "Sürümleri GitHub'da görüntüle"
 msgid "View Superset repository on GitHub"
 msgstr "Superset deposunu GitHub'da görüntüle"
 
+msgid "View usage"
+msgstr "Kullanımı görüntüle"
+
 msgid "Volume"
 msgstr "Ses düzeyi"
 
@@ -14684,8 +14703,8 @@ msgstr "Kontroller bekleniyor"
 msgid "Waiting for Review"
 msgstr "İnceleme bekleniyor"
 
-msgid "Waiting for the sign-in to complete — this updates automatically."
-msgstr "Oturum açmanın tamamlanması bekleniyor — bu otomatik olarak güncellenir."
+msgid "Waiting for sign-in…"
+msgstr "Oturum açma bekleniyor…"
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Bir şeyi daha erken mi istiyorsunuz? <0>Discord'da bize söyleyin</0>. Buradakilerin çoğu bir kullanıcı isteği olarak başladı."

@@ -1070,6 +1070,13 @@ msgstr "Sebuah run untuk otomatisasi ini sedang berjalan."
 msgid "A selection of integrations curated by our team."
 msgstr "Pilihan integrasi yang dikurasi tim kami."
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "A separate pay-per-token profile. The key stays in the {0} CLI."
+msgstr "Profil terpisah yang ditagih per token. Kunci tetap berada di CLI {0}."
+
+msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
+msgstr "Profil terpisah yang berbagi skill, plugin, server MCP, dan pengaturan Anda."
+
 msgid "a teammate"
 msgstr "rekan tim"
 
@@ -1751,6 +1758,9 @@ msgstr "apa saja"
 msgid "AP"
 msgstr "AP"
 
+msgid "API"
+msgstr "API"
+
 msgid "API key"
 msgstr "Kunci API"
 
@@ -2184,6 +2194,9 @@ msgstr "Di luar itu: F5 bukan klaim jangka dekat"
 
 msgid "Billed monthly"
 msgstr "Ditagih bulanan"
+
+msgid "Billed per token."
+msgstr "Ditagih per token."
 
 msgid "Billed yearly"
 msgstr "Ditagih tahunan"
@@ -6956,8 +6969,8 @@ msgstr "Apakah data saya aman?"
 msgid "is now signed in here."
 msgstr "kini sudah masuk di sini."
 
-msgid "is signed in and will show its quota here."
-msgstr "sudah masuk dan akan menampilkan kuotanya di sini."
+msgid "is signed in."
+msgstr "sudah masuk."
 
 msgid "Is Superset free to use?"
 msgstr "Apakah Superset gratis dipakai?"
@@ -10561,8 +10574,8 @@ msgstr "Baca panduan agen coding paralel"
 msgid "Read the setup guide"
 msgstr "Baca panduan penyiapan"
 
-msgid "Reading subscription usage…"
-msgstr "Membaca penggunaan langganan…"
+msgid "Reading usage…"
+msgstr "Membaca penggunaan…"
 
 msgid "Reading your local usage…"
 msgstr "Membaca penggunaan lokal Anda…"
@@ -11351,6 +11364,12 @@ msgstr "Jalankan perintah dan navigasi aplikasi."
 msgid "Run History"
 msgstr "Riwayat Run"
 
+msgid "Run in a terminal on this host; paste your key when asked:"
+msgstr "Jalankan ini di terminal pada host ini dan tempel kunci Anda saat diminta:"
+
+msgid "Run in a terminal on this host:"
+msgstr "Jalankan ini di terminal pada host ini:"
+
 msgid "Run in Workspace"
 msgstr "Jalankan di Workspace"
 
@@ -11377,9 +11396,6 @@ msgstr "Menjalankan perintah terminal dan berinteraksi dengan aplikasi lain."
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Jalankan agen di terminal Workspace Setup setelah setup selesai, bukan membuka terminal kedua di sampingnya"
-
-msgid "Run this in any terminal on this host, then finish the sign-in in your browser:"
-msgstr "Jalankan ini di terminal mana pun pada host ini, lalu selesaikan proses masuk di browser Anda:"
 
 msgid "Run workspace command"
 msgstr "Jalankan perintah workspace"
@@ -12266,9 +12282,6 @@ msgstr "Masuk sebagai Local Admin (dev)"
 msgid "Sign in to {0}"
 msgstr "Masuk ke {0}"
 
-msgid "Sign in to a second subscription as a separate profile. Your current login is untouched, and the new profile shares your skills, plugins, MCP servers, and settings."
-msgstr "Masuk ke langganan kedua sebagai profil terpisah. Login Anda saat ini tidak tersentuh, dan profil baru berbagi skill, plugin, server MCP, dan pengaturan Anda."
-
 msgid "Sign in to continue to Superset"
 msgstr "Masuk untuk melanjutkan ke Superset"
 
@@ -12843,6 +12856,9 @@ msgstr "BERLANGGANAN"
 
 msgid "Subscribe on YouTube"
 msgstr "Berlangganan di YouTube"
+
+msgid "Subscription"
+msgstr "Langganan"
 
 msgid "Success"
 msgstr "Berhasil"
@@ -14669,6 +14685,9 @@ msgstr "Lihat rilis di GitHub"
 msgid "View Superset repository on GitHub"
 msgstr "Lihat repositori Superset di GitHub"
 
+msgid "View usage"
+msgstr "Lihat penggunaan"
+
 msgid "Volume"
 msgstr "Volume"
 
@@ -14684,8 +14703,8 @@ msgstr "Menunggu Check"
 msgid "Waiting for Review"
 msgstr "Menunggu Review"
 
-msgid "Waiting for the sign-in to complete — this updates automatically."
-msgstr "Menunggu proses masuk selesai — ini diperbarui otomatis."
+msgid "Waiting for sign-in…"
+msgstr "Menunggu proses masuk…"
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Ingin sesuatu lebih cepat? <0>Beri tahu kami di Discord</0>. Banyak yang ada di sini bermula dari permintaan pengguna."

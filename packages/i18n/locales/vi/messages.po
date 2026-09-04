@@ -1070,6 +1070,13 @@ msgstr "Một lần chạy của tự động hóa này đang diễn ra."
 msgid "A selection of integrations curated by our team."
 msgstr "Một số tích hợp do đội ngũ của chúng tôi tuyển chọn."
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "A separate pay-per-token profile. The key stays in the {0} CLI."
+msgstr "Một hồ sơ riêng tính phí theo token. Khóa nằm trong CLI {0}."
+
+msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
+msgstr "Một hồ sơ riêng dùng chung skill, plugin, server MCP và cài đặt của bạn."
+
 msgid "a teammate"
 msgstr "một đồng đội"
 
@@ -1751,6 +1758,9 @@ msgstr "bất kỳ điều gì"
 msgid "AP"
 msgstr "AP"
 
+msgid "API"
+msgstr "API"
+
 msgid "API key"
 msgstr "Khóa API"
 
@@ -2184,6 +2194,9 @@ msgstr "Xa hơn: F5 không phải tuyên bố cho tương lai gần"
 
 msgid "Billed monthly"
 msgstr "Thanh toán theo tháng"
+
+msgid "Billed per token."
+msgstr "Tính phí theo token."
 
 msgid "Billed yearly"
 msgstr "Thanh toán theo năm"
@@ -6956,8 +6969,8 @@ msgstr "Dữ liệu của tôi có an toàn không?"
 msgid "is now signed in here."
 msgstr "hiện đã đăng nhập ở đây."
 
-msgid "is signed in and will show its quota here."
-msgstr "đã đăng nhập và sẽ hiện hạn mức ở đây."
+msgid "is signed in."
+msgstr "đã đăng nhập."
 
 msgid "Is Superset free to use?"
 msgstr "Superset có miễn phí không?"
@@ -10561,8 +10574,8 @@ msgstr "Đọc hướng dẫn về coding agent chạy song song"
 msgid "Read the setup guide"
 msgstr "Đọc hướng dẫn thiết lập"
 
-msgid "Reading subscription usage…"
-msgstr "Đang đọc mức dùng của gói đăng ký…"
+msgid "Reading usage…"
+msgstr "Đang đọc mức sử dụng…"
 
 msgid "Reading your local usage…"
 msgstr "Đang đọc mức sử dụng cục bộ của bạn…"
@@ -11351,6 +11364,12 @@ msgstr "Chạy lệnh và điều hướng trong ứng dụng."
 msgid "Run History"
 msgstr "Lịch sử chạy"
 
+msgid "Run in a terminal on this host; paste your key when asked:"
+msgstr "Chạy lệnh này trong terminal trên host này và dán khóa khi được yêu cầu:"
+
+msgid "Run in a terminal on this host:"
+msgstr "Chạy lệnh này trong terminal trên host này:"
+
 msgid "Run in Workspace"
 msgstr "Chạy trong workspace"
 
@@ -11377,9 +11396,6 @@ msgstr "Chạy lệnh terminal và tương tác với ứng dụng khác."
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Chạy agent trong terminal Workspace Setup sau khi setup xong thay vì mở thêm một terminal thứ hai bên cạnh"
-
-msgid "Run this in any terminal on this host, then finish the sign-in in your browser:"
-msgstr "Chạy lệnh này trong bất kỳ terminal nào trên host này, rồi hoàn tất đăng nhập trong trình duyệt:"
 
 msgid "Run workspace command"
 msgstr "Chạy lệnh của workspace"
@@ -12266,9 +12282,6 @@ msgstr "Đăng nhập với quyền Local Admin (dev)"
 msgid "Sign in to {0}"
 msgstr "Đăng nhập vào {0}"
 
-msgid "Sign in to a second subscription as a separate profile. Your current login is untouched, and the new profile shares your skills, plugins, MCP servers, and settings."
-msgstr "Đăng nhập vào một gói đăng ký thứ hai dưới dạng hồ sơ riêng. Lần đăng nhập hiện tại của bạn không bị ảnh hưởng, và hồ sơ mới dùng chung skill, plugin, server MCP và cài đặt của bạn."
-
 msgid "Sign in to continue to Superset"
 msgstr "Đăng nhập để tiếp tục vào Superset"
 
@@ -12843,6 +12856,9 @@ msgstr "ĐĂNG KÝ"
 
 msgid "Subscribe on YouTube"
 msgstr "Đăng ký trên YouTube"
+
+msgid "Subscription"
+msgstr "Gói đăng ký"
 
 msgid "Success"
 msgstr "Thành công"
@@ -14669,6 +14685,9 @@ msgstr "Xem bản phát hành trên GitHub"
 msgid "View Superset repository on GitHub"
 msgstr "Xem repository Superset trên GitHub"
 
+msgid "View usage"
+msgstr "Xem mức sử dụng"
+
 msgid "Volume"
 msgstr "Âm lượng"
 
@@ -14684,8 +14703,8 @@ msgstr "Đang chờ check"
 msgid "Waiting for Review"
 msgstr "Đang chờ review"
 
-msgid "Waiting for the sign-in to complete — this updates automatically."
-msgstr "Đang chờ hoàn tất đăng nhập — phần này tự cập nhật."
+msgid "Waiting for sign-in…"
+msgstr "Đang chờ đăng nhập…"
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Muốn có sớm hơn? <0>Hãy nói với chúng tôi trên Discord</0>. Phần lớn những gì ở đây bắt đầu từ yêu cầu của người dùng."

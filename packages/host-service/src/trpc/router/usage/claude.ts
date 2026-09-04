@@ -191,6 +191,7 @@ export async function readDefaultLoginEmail(): Promise<string | null> {
 async function discoverClaudeCredentials(): Promise<{
 	credentials: ClaudeOauthCredential[];
 	signedOutProfiles: Awaited<ReturnType<typeof discoverClaudeProfiles>>;
+	apiProfiles: Awaited<ReturnType<typeof discoverClaudeProfiles>>;
 }> {
 	const home = homedir();
 	const defaultCandidates: Array<{ path: string; sourceLabel: string }> = [
@@ -243,7 +244,15 @@ async function discoverClaudeCredentials(): Promise<{
 		return freshest ? { ...freshest, email: profile.email } : null;
 	};
 
-	const profiles = await discoverClaudeProfiles();
+	// API-billed profiles have no quota to fetch and their credentials stay
+	// unread; only subscription profiles go through the credential readers.
+	const allProfiles = await discoverClaudeProfiles();
+	const profiles = allProfiles.filter(
+		(profile) => profile.credentialKind === "subscription",
+	);
+	const apiProfiles = allProfiles.filter(
+		(profile) => profile.credentialKind === "api_key",
+	);
 	const [defaultEmail, keychainCredential, defaultFiles, explicit, profiled] =
 		await Promise.all([
 			readDefaultLoginEmail(),
@@ -278,7 +287,7 @@ async function discoverClaudeCredentials(): Promise<{
 	const signedOutProfiles = profiles.filter(
 		(_profile, index) => profiled[index] === null,
 	);
-	return { credentials: [...byToken.values()], signedOutProfiles };
+	return { credentials: [...byToken.values()], signedOutProfiles, apiProfiles };
 }
 
 interface ClaudeUsageWindow {
@@ -378,6 +387,7 @@ async function fetchClaudeAccount(
 ): Promise<UsageAccount> {
 	const base = {
 		agent: "claude" as const,
+		credentialKind: "subscription" as const,
 		accountKey: credential.accountKey,
 		sourceLabel: credential.sourceLabel,
 		plan: credential.subscriptionType,
@@ -479,11 +489,32 @@ async function fetchClaudeAccount(
 }
 
 export async function fetchClaudeAccounts(): Promise<UsageAccount[]> {
-	const { credentials, signedOutProfiles } = await discoverClaudeCredentials();
+	const { credentials, signedOutProfiles, apiProfiles } =
+		await discoverClaudeCredentials();
 	const accounts = await Promise.all(credentials.map(fetchClaudeAccount));
+	for (const profile of apiProfiles) {
+		accounts.push({
+			agent: "claude",
+			credentialKind: "api_key",
+			accountKey: profile.configDir,
+			sourceLabel: profile.sourceLabel,
+			email: profile.email,
+			plan: null,
+			status: "ok",
+			statusDetail:
+				"Billed per token through the Anthropic Console — no quota windows.",
+			windows: [],
+			creditsBalance: null,
+			extraUsage: null,
+			selection: profile.configDir,
+			isDefault: false,
+			fetchedAt: new Date(),
+		});
+	}
 	for (const profile of signedOutProfiles) {
 		accounts.push({
 			agent: "claude",
+			credentialKind: "subscription",
 			accountKey: profile.configDir,
 			sourceLabel: profile.sourceLabel,
 			email: profile.email,

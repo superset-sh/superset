@@ -1070,6 +1070,13 @@ msgstr "Běh této automatizace už probíhá."
 msgid "A selection of integrations curated by our team."
 msgstr "Výběr integrací sestavený naším týmem."
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "A separate pay-per-token profile. The key stays in the {0} CLI."
+msgstr "Samostatný profil účtovaný za tokeny. Klíč zůstává v CLI {0}."
+
+msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
+msgstr "Samostatný profil, který sdílí vaše skills, pluginy, MCP servery i nastavení."
+
 msgid "a teammate"
 msgstr "kolega"
 
@@ -1751,6 +1758,9 @@ msgstr "cokoli"
 msgid "AP"
 msgstr "AP"
 
+msgid "API"
+msgstr "API"
+
 msgid "API key"
 msgstr "API klíč"
 
@@ -2184,6 +2194,9 @@ msgstr "Za obzorem: F5 není tvrzení o blízké budoucnosti"
 
 msgid "Billed monthly"
 msgstr "Účtováno měsíčně"
+
+msgid "Billed per token."
+msgstr "Účtováno za tokeny."
 
 msgid "Billed yearly"
 msgstr "Účtováno ročně"
@@ -6956,8 +6969,8 @@ msgstr "Jsou moje data v bezpečí?"
 msgid "is now signed in here."
 msgstr "je tady teď přihlášen."
 
-msgid "is signed in and will show its quota here."
-msgstr "je přihlášen a zobrazí zde svou kvótu."
+msgid "is signed in."
+msgstr "je přihlášen."
 
 msgid "Is Superset free to use?"
 msgstr "Je Superset zdarma?"
@@ -10561,8 +10574,8 @@ msgstr "Přečíst průvodce paralelními kódovacími agenty"
 msgid "Read the setup guide"
 msgstr "Přečíst průvodce nastavením"
 
-msgid "Reading subscription usage…"
-msgstr "Načítám využití předplatného…"
+msgid "Reading usage…"
+msgstr "Načítání využití…"
 
 msgid "Reading your local usage…"
 msgstr "Načítám vaše lokální využití…"
@@ -11351,6 +11364,12 @@ msgstr "Spouštějte příkazy a procházejte aplikaci."
 msgid "Run History"
 msgstr "Historie běhů"
 
+msgid "Run in a terminal on this host; paste your key when asked:"
+msgstr "Spusťte to v terminálu na tomto hostu a na výzvu vložte svůj klíč:"
+
+msgid "Run in a terminal on this host:"
+msgstr "Spusťte to v terminálu na tomto hostu:"
+
 msgid "Run in Workspace"
 msgstr "Spustit v pracovním prostoru"
 
@@ -11377,9 +11396,6 @@ msgstr "Spouštět příkazy v terminálu a pracovat s dalšími aplikacemi."
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Spustit agenta v terminálu Workspace Setup, jakmile setup doběhne, místo spuštění druhého terminálu vedle něj"
-
-msgid "Run this in any terminal on this host, then finish the sign-in in your browser:"
-msgstr "Spusťte to v libovolném terminálu na tomto hostu a pak dokončete přihlášení v prohlížeči:"
 
 msgid "Run workspace command"
 msgstr "Spustit příkaz pracovního prostoru"
@@ -12266,9 +12282,6 @@ msgstr "Přihlásit se jako Local Admin (dev)"
 msgid "Sign in to {0}"
 msgstr "Přihlaste se do {0}"
 
-msgid "Sign in to a second subscription as a separate profile. Your current login is untouched, and the new profile shares your skills, plugins, MCP servers, and settings."
-msgstr "Přihlaste se k druhému předplatnému jako samostatný profil. Vaše současné přihlášení zůstane beze změny a nový profil sdílí vaše skills, pluginy, MCP servery i nastavení."
-
 msgid "Sign in to continue to Superset"
 msgstr "Přihlaste se a pokračujte do Superset"
 
@@ -12843,6 +12856,9 @@ msgstr "ODEBÍRAT"
 
 msgid "Subscribe on YouTube"
 msgstr "Odebírejte na YouTube"
+
+msgid "Subscription"
+msgstr "Předplatné"
 
 msgid "Success"
 msgstr "Úspěch"
@@ -14669,6 +14685,9 @@ msgstr "Zobrazit vydání na GitHubu"
 msgid "View Superset repository on GitHub"
 msgstr "Zobrazit repozitář Superset na GitHubu"
 
+msgid "View usage"
+msgstr "Zobrazit využití"
+
 msgid "Volume"
 msgstr "Hlasitost"
 
@@ -14684,8 +14703,8 @@ msgstr "Čeká na kontroly"
 msgid "Waiting for Review"
 msgstr "Čeká na revizi"
 
-msgid "Waiting for the sign-in to complete — this updates automatically."
-msgstr "Čekám na dokončení přihlášení — aktualizuje se to automaticky."
+msgid "Waiting for sign-in…"
+msgstr "Čeká se na přihlášení…"
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Chcete něco dřív? <0>Napište nám na Discordu</0>. Spousta z toho, co je tady, začala jako přání uživatele."

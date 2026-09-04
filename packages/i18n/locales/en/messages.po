@@ -1070,6 +1070,13 @@ msgstr "A run for this automation is already in progress."
 msgid "A selection of integrations curated by our team."
 msgstr "A selection of integrations curated by our team."
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "A separate pay-per-token profile. The key stays in the {0} CLI."
+msgstr "A separate pay-per-token profile. The key stays in the {0} CLI."
+
+msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
+msgstr "A separate profile that shares your skills, plugins, MCP servers, and settings."
+
 msgid "a teammate"
 msgstr "a teammate"
 
@@ -1751,6 +1758,9 @@ msgstr "anything"
 msgid "AP"
 msgstr "AP"
 
+msgid "API"
+msgstr "API"
+
 msgid "API key"
 msgstr "API key"
 
@@ -2184,6 +2194,9 @@ msgstr "Beyond: F5 is not a near-term claim"
 
 msgid "Billed monthly"
 msgstr "Billed monthly"
+
+msgid "Billed per token."
+msgstr "Billed per token."
 
 msgid "Billed yearly"
 msgstr "Billed yearly"
@@ -6956,8 +6969,8 @@ msgstr "Is my data secure?"
 msgid "is now signed in here."
 msgstr "is now signed in here."
 
-msgid "is signed in and will show its quota here."
-msgstr "is signed in and will show its quota here."
+msgid "is signed in."
+msgstr "is signed in."
 
 msgid "Is Superset free to use?"
 msgstr "Is Superset free to use?"
@@ -10561,8 +10574,8 @@ msgstr "Read the guide to parallel coding agents"
 msgid "Read the setup guide"
 msgstr "Read the setup guide"
 
-msgid "Reading subscription usage…"
-msgstr "Reading subscription usage…"
+msgid "Reading usage…"
+msgstr "Reading usage…"
 
 msgid "Reading your local usage…"
 msgstr "Reading your local usage…"
@@ -11351,6 +11364,12 @@ msgstr "Run commands and navigate the application."
 msgid "Run History"
 msgstr "Run History"
 
+msgid "Run in a terminal on this host; paste your key when asked:"
+msgstr "Run in a terminal on this host; paste your key when asked:"
+
+msgid "Run in a terminal on this host:"
+msgstr "Run in a terminal on this host:"
+
 msgid "Run in Workspace"
 msgstr "Run in Workspace"
 
@@ -11377,9 +11396,6 @@ msgstr "Run terminal commands and interact with other applications."
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
-
-msgid "Run this in any terminal on this host, then finish the sign-in in your browser:"
-msgstr "Run this in any terminal on this host, then finish the sign-in in your browser:"
 
 msgid "Run workspace command"
 msgstr "Run workspace command"
@@ -12266,9 +12282,6 @@ msgstr "Sign in as Local Admin (dev)"
 msgid "Sign in to {0}"
 msgstr "Sign in to {0}"
 
-msgid "Sign in to a second subscription as a separate profile. Your current login is untouched, and the new profile shares your skills, plugins, MCP servers, and settings."
-msgstr "Sign in to a second subscription as a separate profile. Your current login is untouched, and the new profile shares your skills, plugins, MCP servers, and settings."
-
 msgid "Sign in to continue to Superset"
 msgstr "Sign in to continue to Superset"
 
@@ -12843,6 +12856,9 @@ msgstr "SUBSCRIBE"
 
 msgid "Subscribe on YouTube"
 msgstr "Subscribe on YouTube"
+
+msgid "Subscription"
+msgstr "Subscription"
 
 msgid "Success"
 msgstr "Success"
@@ -14669,6 +14685,9 @@ msgstr "View releases on GitHub"
 msgid "View Superset repository on GitHub"
 msgstr "View Superset repository on GitHub"
 
+msgid "View usage"
+msgstr "View usage"
+
 msgid "Volume"
 msgstr "Volume"
 
@@ -14684,8 +14703,8 @@ msgstr "Waiting for Checks"
 msgid "Waiting for Review"
 msgstr "Waiting for Review"
 
-msgid "Waiting for the sign-in to complete — this updates automatically."
-msgstr "Waiting for the sign-in to complete — this updates automatically."
+msgid "Waiting for sign-in…"
+msgstr "Waiting for sign-in…"
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."

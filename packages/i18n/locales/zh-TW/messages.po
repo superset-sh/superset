@@ -1070,6 +1070,13 @@ msgstr "此自動化已有一次執行正在進行中。"
 msgid "A selection of integrations curated by our team."
 msgstr "我們團隊精選的一組整合。"
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "A separate pay-per-token profile. The key stays in the {0} CLI."
+msgstr "按 token 計費的獨立配置檔案。金鑰保存在 {0} CLI 中。"
+
+msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
+msgstr "共享你的技能、外掛、MCP伺服器和設定的獨立配置檔案。"
+
 msgid "a teammate"
 msgstr "某位隊友"
 
@@ -1751,6 +1758,9 @@ msgstr "任意內容"
 msgid "AP"
 msgstr "AP"
 
+msgid "API"
+msgstr "API"
+
 msgid "API key"
 msgstr "API金鑰"
 
@@ -2184,6 +2194,9 @@ msgstr "再往後：F5不是近期的主張"
 
 msgid "Billed monthly"
 msgstr "按月計費"
+
+msgid "Billed per token."
+msgstr "按 token 計費。"
 
 msgid "Billed yearly"
 msgstr "按年計費"
@@ -6956,8 +6969,8 @@ msgstr "我的資料安全嗎？"
 msgid "is now signed in here."
 msgstr "現已在此登入。"
 
-msgid "is signed in and will show its quota here."
-msgstr "已登入，其配額會顯示在這裡。"
+msgid "is signed in."
+msgstr "已登入。"
 
 msgid "Is Superset free to use?"
 msgstr "Superset免費嗎？"
@@ -10561,8 +10574,8 @@ msgstr "閱讀並行編碼代理程式指南"
 msgid "Read the setup guide"
 msgstr "閱讀設定指南"
 
-msgid "Reading subscription usage…"
-msgstr "正在讀取訂閱用量…"
+msgid "Reading usage…"
+msgstr "正在讀取用量…"
 
 msgid "Reading your local usage…"
 msgstr "正在讀取本地用量…"
@@ -11351,6 +11364,12 @@ msgstr "執行命令並在應用中導航。"
 msgid "Run History"
 msgstr "執行歷史"
 
+msgid "Run in a terminal on this host; paste your key when asked:"
+msgstr "在此主機的終端中執行，出現提示時貼上你的金鑰："
+
+msgid "Run in a terminal on this host:"
+msgstr "在此主機的終端中執行："
+
 msgid "Run in Workspace"
 msgstr "在工作區中執行"
 
@@ -11377,9 +11396,6 @@ msgstr "執行終端命令並與其他應用程式程式互動。"
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "設定完成後在「工作區設定」終端中執行代理程式，而不是另外啟動第二個終端"
-
-msgid "Run this in any terminal on this host, then finish the sign-in in your browser:"
-msgstr "在此主機的任意終端中執行以下命令，然後在瀏覽器中完成登入："
 
 msgid "Run workspace command"
 msgstr "執行工作區命令"
@@ -12266,9 +12282,6 @@ msgstr "以本地管理員身份登入（開發）"
 msgid "Sign in to {0}"
 msgstr "登入{0}"
 
-msgid "Sign in to a second subscription as a separate profile. Your current login is untouched, and the new profile shares your skills, plugins, MCP servers, and settings."
-msgstr "以獨立配置檔案登入第二個訂閱。你目前的登入不受影響，新配置檔案共享你的技能、外掛、MCP伺服器和設定。"
-
 msgid "Sign in to continue to Superset"
 msgstr "登入以繼續使用Superset"
 
@@ -12843,6 +12856,9 @@ msgstr "訂閱"
 
 msgid "Subscribe on YouTube"
 msgstr "在YouTube上訂閱"
+
+msgid "Subscription"
+msgstr "訂閱"
 
 msgid "Success"
 msgstr "成功"
@@ -14669,6 +14685,9 @@ msgstr "在GitHub上檢視釋出"
 msgid "View Superset repository on GitHub"
 msgstr "在GitHub上檢視Superset儲存庫"
 
+msgid "View usage"
+msgstr "檢視用量"
+
 msgid "Volume"
 msgstr "音量"
 
@@ -14684,8 +14703,8 @@ msgstr "等待檢查"
 msgid "Waiting for Review"
 msgstr "等待審查"
 
-msgid "Waiting for the sign-in to complete — this updates automatically."
-msgstr "正在等待登入完成——此處會自動更新。"
+msgid "Waiting for sign-in…"
+msgstr "等待登入…"
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "想讓某件事早點做？<0>在Discord上告訴我們</0>。這裡的很多條目最初都來自使用者的請求。"

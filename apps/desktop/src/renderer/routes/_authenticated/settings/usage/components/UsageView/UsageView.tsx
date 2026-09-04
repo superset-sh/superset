@@ -18,6 +18,7 @@ import {
 	LuCircleCheck,
 	LuCopy,
 	LuEllipsis,
+	LuExternalLink,
 	LuEye,
 	LuEyeOff,
 	LuPlus,
@@ -43,6 +44,7 @@ import { AddAccountDialog } from "./components/AddAccountDialog";
 import { RemoveAccountDialog } from "./components/RemoveAccountDialog";
 import type { RestartSessionsPrompt } from "./components/RestartSessionsDialog";
 import { RestartSessionsDialog } from "./components/RestartSessionsDialog";
+import { API_BILLING_LINKS } from "./utils/apiBilling";
 import { formatResetIn, formatResetLabel } from "./utils/formatResetIn";
 import { switchSignInCommand } from "./utils/switchSignInCommand";
 import type { ManagedAgent, QuotaAgent } from "./utils/visibleQuotaAgents";
@@ -198,6 +200,11 @@ function AccountCard({
 						{account.plan}
 					</span>
 				)}
+				{account.credentialKind === "api_key" && (
+					<span className="rounded bg-muted px-1 text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
+						<Trans>API</Trans>
+					</span>
+				)}
 				{account.status !== "ok" && account.status !== "token_stale" && (
 					<span className="rounded bg-amber-500/15 px-1 text-[9px] font-medium uppercase tracking-wide text-amber-500">
 						{account.status === "token_expired" ? (
@@ -240,7 +247,26 @@ function AccountCard({
 					</DropdownMenu>
 				)}
 			</div>
-			{account.status === "ok" ? (
+			{account.credentialKind === "api_key" ? (
+				// Pay-per-token billing has no quota windows; point at the
+				// provider's own usage page instead.
+				<div className="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">
+					<span className="truncate">
+						<Trans>Billed per token.</Trans>
+					</span>
+					{isManagedAgent(account.agent) && (
+						<a
+							href={API_BILLING_LINKS[account.agent].usage}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="ml-auto inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap hover:text-foreground hover:underline"
+						>
+							<Trans>View usage</Trans>
+							<LuExternalLink className="size-2.5" />
+						</a>
+					)}
+				</div>
+			) : account.status === "ok" ? (
 				<div className="mt-2 flex flex-col gap-1.5">
 					{account.windows.map((window) => (
 						<QuotaWindowRow key={window.id} window={window} />
@@ -448,6 +474,7 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 		setDialogAgent(account.agent);
 		setSwitchTarget({
 			agent: account.agent,
+			credentialKind: account.credentialKind,
 			selection: account.selection,
 			label:
 				account.selection === null
@@ -496,78 +523,77 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 				</Button>
 			</div>
 
-			{quotaQuery.isPending ? (
-				<div className="py-4 text-center text-xs text-muted-foreground">
-					<Trans>Reading subscription usage…</Trans>
-				</div>
-			) : (
-				visibleQuotaAgents(accounts).map((agent) => {
-					const agentAccounts = accounts.filter(
-						(account) => account.agent === agent,
-					);
-					const icon = getPresetIcon(agent, isDark);
-					return (
-						<section key={agent} className="flex flex-col gap-1.5">
-							<div className="flex items-center gap-1.5">
-								{icon && <img src={icon} alt="" className="size-3.5" />}
-								<span className="text-xs font-medium">
-									{AGENT_LABELS[agent]}
-								</span>
-								{isManagedAgent(agent) && (
-									<Button
-										variant="ghost"
-										size="sm"
-										className="ml-auto h-5 gap-1 px-1.5 text-[10px] text-muted-foreground"
-										disabled={!hostUrl}
-										onClick={() => openAddAgentAccount(agent)}
-									>
-										<LuPlus className="size-3" />
-										<Trans>Add account</Trans>
-									</Button>
-								)}
-							</div>
-							{agentAccounts.length === 0 ? (
-								<div className="rounded-lg border border-dashed px-3 py-2 text-[11px] text-muted-foreground">
-									<Trans>
-										No {AGENT_LABELS[agent]} logins on this host — sign in and
-										usage appears here.
-									</Trans>
-								</div>
-							) : (
-								<div className="grid gap-2 md:grid-cols-2">
-									{agentAccounts.map((account) => (
-										<AccountCard
-											key={account.accountKey}
-											account={account}
-											onMakeDefault={
-												isManagedAgent(account.agent)
-													? () => makeDefaultAccount(account)
-													: null
-											}
-											onSwitchSignIn={
-												isManagedAgent(account.agent)
-													? () => openSwitchSignIn(account)
-													: null
-											}
-											onRemove={
-												isManagedAgent(account.agent) &&
-												account.selection !== null
-													? () => setRemoveTarget(account)
-													: null
-											}
-											isSwitching={setDefault.isPending}
-											selectable={
-												isManagedAgent(agent) && agentAccounts.length > 1
-											}
-											hideEmails={hideEmails}
-										/>
-									))}
-								</div>
+			{/* Sections render before the first quota read lands so Add account is
+			    reachable straight away; each shows its own placeholder meanwhile. */}
+			{visibleQuotaAgents(accounts).map((agent) => {
+				const agentAccounts = accounts.filter(
+					(account) => account.agent === agent,
+				);
+				const icon = getPresetIcon(agent, isDark);
+				return (
+					<section key={agent} className="flex flex-col gap-1.5">
+						<div className="flex items-center gap-1.5">
+							{icon && <img src={icon} alt="" className="size-3.5" />}
+							<span className="text-xs font-medium">{AGENT_LABELS[agent]}</span>
+							{isManagedAgent(agent) && (
+								<Button
+									variant="ghost"
+									size="sm"
+									className="ml-auto h-5 gap-1 px-1.5 text-[10px] text-muted-foreground"
+									disabled={!hostUrl}
+									onClick={() => openAddAgentAccount(agent)}
+								>
+									<LuPlus className="size-3" />
+									<Trans>Add account</Trans>
+								</Button>
 							)}
-						</section>
-					);
-				})
-			)}
+						</div>
+						{quotaQuery.isPending ? (
+							<div className="flex items-center gap-1.5 rounded-lg border border-dashed px-3 py-2 text-[11px] text-muted-foreground">
+								<LuRefreshCw className="size-3 animate-spin" />
+								<Trans>Reading usage…</Trans>
+							</div>
+						) : agentAccounts.length === 0 ? (
+							<div className="rounded-lg border border-dashed px-3 py-2 text-[11px] text-muted-foreground">
+								<Trans>
+									No {AGENT_LABELS[agent]} logins on this host — sign in and
+									usage appears here.
+								</Trans>
+							</div>
+						) : (
+							<div className="grid gap-2 md:grid-cols-2">
+								{agentAccounts.map((account) => (
+									<AccountCard
+										key={account.accountKey}
+										account={account}
+										onMakeDefault={
+											isManagedAgent(account.agent)
+												? () => makeDefaultAccount(account)
+												: null
+										}
+										onSwitchSignIn={
+											isManagedAgent(account.agent)
+												? () => openSwitchSignIn(account)
+												: null
+										}
+										onRemove={
+											isManagedAgent(account.agent) &&
+											account.selection !== null
+												? () => setRemoveTarget(account)
+												: null
+										}
+										isSwitching={setDefault.isPending}
+										selectable={
+											isManagedAgent(agent) && agentAccounts.length > 1
+										}
+										hideEmails={hideEmails}
+									/>
+								))}
+							</div>
+						)}
+					</section>
+				);
+			})}
 
 			<RemoveAccountDialog
 				account={removeTarget}
