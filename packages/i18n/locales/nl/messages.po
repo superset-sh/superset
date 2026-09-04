@@ -1827,6 +1827,9 @@ msgstr "Weergavetaal van de app. Automatisch volgt je systeemtaal."
 msgid "Appearance"
 msgstr "Uiterlijk"
 
+msgid "Application name"
+msgstr "Toepassingsnaam"
+
 msgid "Applies to"
 msgstr "Geldt voor"
 
@@ -1853,6 +1856,9 @@ msgstr "Goedgekeurd"
 
 msgid "Approved review"
 msgstr "Goedgekeurde review"
+
+msgid "Apps to show under \"Custom\" in the Open in menus. On macOS the bundle id is preferred because it keeps working when the app bundle is renamed (for example \"Xcode-26.5.0.app\")."
+msgstr "Apps die onder \"Aangepast\" in de Openen in-menu's worden getoond. Op macOS heeft de bundle-id de voorkeur, omdat die blijft werken wanneer de app-bundel wordt hernoemd (bijvoorbeeld \"Xcode-26.5.0.app\")."
 
 msgid "apps/desktop/src/renderer"
 msgstr "apps/desktop/src/renderer"
@@ -2405,6 +2411,9 @@ msgstr "Opsommingslijst"
 
 msgid "Bulleted list"
 msgstr "Opsommingslijst"
+
+msgid "Bundle id"
+msgstr "Bundle-id"
 
 #. placeholder {0}: versions.expected
 msgid "bundled {0}"
@@ -4204,6 +4213,9 @@ msgstr "Aangepast"
 
 msgid "Custom agent…"
 msgstr "Eigen agent…"
+
+msgid "Custom apps"
+msgstr "Aangepaste apps"
 
 msgid "Custom components beyond the shadcn set"
 msgstr "Eigen componenten buiten de shadcn-set"
@@ -8122,6 +8134,9 @@ msgstr "Mysterieuze Machinist"
 msgid "Name"
 msgstr "Naam"
 
+msgid "Name (e.g. Xcode Beta)"
+msgstr "Naam (bijv. Xcode Beta)"
+
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "Een naam en een URL-vriendelijke slug. Beide zijn later te wijzigen."
 
@@ -8220,6 +8235,15 @@ msgstr "Nieuwe browser"
 
 msgid "New chat"
 msgstr "Nieuwe chat"
+
+msgid "New custom app application name"
+msgstr "Toepassingsnaam van nieuwe aangepaste app"
+
+msgid "New custom app bundle id"
+msgstr "Bundle-id van nieuwe aangepaste app"
+
+msgid "New custom app name"
+msgstr "Naam van nieuwe aangepaste app"
 
 msgid "New environment"
 msgstr "Nieuwe omgeving"
@@ -9240,6 +9264,9 @@ msgstr "Bestand openen"
 
 msgid "Open File"
 msgstr "Bestand openen"
+
+msgid "Open file in"
+msgstr "Bestand openen in"
 
 msgid "Open File in New Tab"
 msgstr "Bestand openen in nieuw tabblad"
@@ -10388,6 +10415,9 @@ msgstr "Prompts die je verstuurt verschijnen hier."
 msgid "Properties"
 msgstr "Eigenschappen"
 
+msgid "Provide an application name or a bundle id"
+msgstr "Geef een toepassingsnaam of een bundle-id op"
+
 msgid "Provide either id or slug"
 msgstr "Geef een id of een slug op"
 
@@ -10773,6 +10803,7 @@ msgstr "Externe werkruimte — apparaat offline"
 msgid "Remove"
 msgstr "Verwijderen"
 
+#. placeholder {0}: app.label
 #. placeholder {0}: member.name
 msgid "Remove {0}"
 msgstr "{0} verwijderen"

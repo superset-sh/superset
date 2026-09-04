@@ -1827,6 +1827,9 @@ msgstr "Anzeigesprache der App. Automatisch folgt deiner Systemsprache."
 msgid "Appearance"
 msgstr "Darstellung"
 
+msgid "Application name"
+msgstr "Anwendungsname"
+
 msgid "Applies to"
 msgstr "Gilt für"
 
@@ -1853,6 +1856,9 @@ msgstr "Genehmigt"
 
 msgid "Approved review"
 msgstr "Genehmigtes Review"
+
+msgid "Apps to show under \"Custom\" in the Open in menus. On macOS the bundle id is preferred because it keeps working when the app bundle is renamed (for example \"Xcode-26.5.0.app\")."
+msgstr "Apps, die in den „Öffnen in“-Menüs unter „Benutzerdefiniert“ angezeigt werden. Unter macOS wird die Bundle-ID bevorzugt, da sie auch nach dem Umbenennen des App-Bundles (z. B. „Xcode-26.5.0.app“) weiter funktioniert."
 
 msgid "apps/desktop/src/renderer"
 msgstr "apps/desktop/src/renderer"
@@ -2405,6 +2411,9 @@ msgstr "Aufzählung"
 
 msgid "Bulleted list"
 msgstr "Aufzählung"
+
+msgid "Bundle id"
+msgstr "Bundle-ID"
 
 #. placeholder {0}: versions.expected
 msgid "bundled {0}"
@@ -4204,6 +4213,9 @@ msgstr "Benutzerdefiniert"
 
 msgid "Custom agent…"
 msgstr "Eigener Agent…"
+
+msgid "Custom apps"
+msgstr "Benutzerdefinierte Apps"
 
 msgid "Custom components beyond the shadcn set"
 msgstr "Eigene Komponenten jenseits des shadcn-Sets"
@@ -8122,6 +8134,9 @@ msgstr "Mysteriöser Maschinist"
 msgid "Name"
 msgstr "Name"
 
+msgid "Name (e.g. Xcode Beta)"
+msgstr "Name (z. B. Xcode Beta)"
+
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "Name und ein URL-tauglicher Slug. Beides lässt sich später ändern."
 
@@ -8220,6 +8235,15 @@ msgstr "Neuer Browser"
 
 msgid "New chat"
 msgstr "Neuer Chat"
+
+msgid "New custom app application name"
+msgstr "Anwendungsname der neuen benutzerdefinierten App"
+
+msgid "New custom app bundle id"
+msgstr "Bundle-ID der neuen benutzerdefinierten App"
+
+msgid "New custom app name"
+msgstr "Name der neuen benutzerdefinierten App"
 
 msgid "New environment"
 msgstr "Neue Umgebung"
@@ -9240,6 +9264,9 @@ msgstr "Datei öffnen"
 
 msgid "Open File"
 msgstr "Datei öffnen"
+
+msgid "Open file in"
+msgstr "Datei öffnen in"
 
 msgid "Open File in New Tab"
 msgstr "Datei in neuem Tab öffnen"
@@ -10388,6 +10415,9 @@ msgstr "Von dir gesendete Prompts erscheinen hier."
 msgid "Properties"
 msgstr "Eigenschaften"
 
+msgid "Provide an application name or a bundle id"
+msgstr "Gib einen Anwendungsnamen oder eine Bundle-ID an"
+
 msgid "Provide either id or slug"
 msgstr "Gib entweder id oder slug an"
 
@@ -10773,6 +10803,7 @@ msgstr "Remote-Arbeitsbereich — Gerät offline"
 msgid "Remove"
 msgstr "Entfernen"
 
+#. placeholder {0}: app.label
 #. placeholder {0}: member.name
 msgid "Remove {0}"
 msgstr "{0} entfernen"

@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	ContextMenuItem,
 	ContextMenuSub,
@@ -52,9 +53,9 @@ const PRIMITIVES = {
  * chosen editor. Routes through `useOpenInExternalEditor` so the remote-host
  * guard and path resolution match the sibling "Open in Editor" action.
  *
- * ponytail: a focused component rather than reusing OpenInExternalDropdownItems.
- * That one is workspace-scoped (bakes in Finder + Terminal + Copy-path); a
- * single file only wants editors, so forcing it through here would mean adding
+ * A focused component rather than reusing OpenInExternalDropdownItems. That
+ * one is workspace-scoped (bakes in Finder + Terminal + Copy-path); a single
+ * file only wants editors, so forcing it through here would mean adding
  * hide-flags to a shared component for one caller.
  */
 export function OpenFileInMenuItems({
@@ -62,6 +63,7 @@ export function OpenFileInMenuItems({
 	workspaceId,
 	menuType = "context",
 }: OpenFileInMenuItemsProps) {
+	const { t } = useLingui();
 	const isDark = useThemeStore((state) => state.activeTheme?.type === "dark");
 	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
 	const customApps = useCustomApps();
@@ -97,20 +99,24 @@ export function OpenFileInMenuItems({
 		<Sub>
 			<SubTrigger>
 				<ExternalLink />
-				Open file in
+				<Trans>Open file in</Trans>
 			</SubTrigger>
 			<SubContent>
 				<Sub>
-					<SubTrigger>{triggerLabel(vscodeIcon, "IDE")}</SubTrigger>
+					<SubTrigger>
+						{triggerLabel(vscodeIcon, t({ message: "IDE" }))}
+					</SubTrigger>
 					<SubContent>
 						{appRows(IDE_OPTIONS)}
 						<Sub>
-							<SubTrigger>{triggerLabel(vscodeIcon, "VS Code")}</SubTrigger>
+							<SubTrigger>
+								{triggerLabel(vscodeIcon, t({ message: "VS Code" }))}
+							</SubTrigger>
 							<SubContent>{appRows(VSCODE_OPTIONS)}</SubContent>
 						</Sub>
 						<Sub>
 							<SubTrigger>
-								{triggerLabel(jetbrainsIcon, "JetBrains")}
+								{triggerLabel(jetbrainsIcon, t({ message: "JetBrains" }))}
 							</SubTrigger>
 							<SubContent>{appRows(JETBRAINS_OPTIONS)}</SubContent>
 						</Sub>
@@ -121,7 +127,9 @@ export function OpenFileInMenuItems({
 						<SubTrigger>
 							<div className="flex items-center gap-2">
 								<AppWindow className="size-4" />
-								<span>Custom</span>
+								<span>
+									<Trans>Custom</Trans>
+								</span>
 							</div>
 						</SubTrigger>
 						<SubContent>{appRows(customApps)}</SubContent>

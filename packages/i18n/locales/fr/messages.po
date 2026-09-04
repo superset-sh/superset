@@ -1827,6 +1827,9 @@ msgstr "Langue d'affichage de l'application. Auto suit la langue de votre systè
 msgid "Appearance"
 msgstr "Apparence"
 
+msgid "Application name"
+msgstr "Nom de l'application"
+
 msgid "Applies to"
 msgstr "S'applique à"
 
@@ -1853,6 +1856,9 @@ msgstr "Approuvée"
 
 msgid "Approved review"
 msgstr "Revue approuvée"
+
+msgid "Apps to show under \"Custom\" in the Open in menus. On macOS the bundle id is preferred because it keeps working when the app bundle is renamed (for example \"Xcode-26.5.0.app\")."
+msgstr "Applications à afficher sous « Personnalisé » dans les menus Ouvrir dans. Sur macOS, l'identifiant de bundle est préférable car il continue de fonctionner quand le bundle de l'application est renommé (par exemple « Xcode-26.5.0.app »)."
 
 msgid "apps/desktop/src/renderer"
 msgstr "apps/desktop/src/renderer"
@@ -2405,6 +2411,9 @@ msgstr "Liste à puces"
 
 msgid "Bulleted list"
 msgstr "Liste à puces"
+
+msgid "Bundle id"
+msgstr "Identifiant de bundle"
 
 #. placeholder {0}: versions.expected
 msgid "bundled {0}"
@@ -4204,6 +4213,9 @@ msgstr "Personnalisé"
 
 msgid "Custom agent…"
 msgstr "Agent personnalisé…"
+
+msgid "Custom apps"
+msgstr "Applications personnalisées"
 
 msgid "Custom components beyond the shadcn set"
 msgstr "Composants personnalisés au-delà de l'ensemble shadcn"
@@ -8122,6 +8134,9 @@ msgstr "Machiniste mystère"
 msgid "Name"
 msgstr "Nom"
 
+msgid "Name (e.g. Xcode Beta)"
+msgstr "Nom (par ex. Xcode Beta)"
+
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "Un nom et un slug compatible avec les URL. Les deux peuvent être modifiés plus tard."
 
@@ -8220,6 +8235,15 @@ msgstr "Nouveau navigateur"
 
 msgid "New chat"
 msgstr "Nouvelle discussion"
+
+msgid "New custom app application name"
+msgstr "Nom de l'application du nouvel élément personnalisé"
+
+msgid "New custom app bundle id"
+msgstr "Identifiant de bundle du nouvel élément personnalisé"
+
+msgid "New custom app name"
+msgstr "Nom du nouvel élément personnalisé"
 
 msgid "New environment"
 msgstr "Nouvel environnement"
@@ -9240,6 +9264,9 @@ msgstr "Ouvrir le fichier"
 
 msgid "Open File"
 msgstr "Ouvrir le fichier"
+
+msgid "Open file in"
+msgstr "Ouvrir le fichier dans"
 
 msgid "Open File in New Tab"
 msgstr "Ouvrir le fichier dans un nouvel onglet"
@@ -10388,6 +10415,9 @@ msgstr "Les prompts que vous soumettez apparaîtront ici."
 msgid "Properties"
 msgstr "Propriétés"
 
+msgid "Provide an application name or a bundle id"
+msgstr "Indiquez un nom d'application ou un identifiant de bundle"
+
 msgid "Provide either id or slug"
 msgstr "Fournissez soit un id, soit un slug"
 
@@ -10773,6 +10803,7 @@ msgstr "Espace de travail distant — appareil hors ligne"
 msgid "Remove"
 msgstr "Retirer"
 
+#. placeholder {0}: app.label
 #. placeholder {0}: member.name
 msgid "Remove {0}"
 msgstr "Retirer {0}"

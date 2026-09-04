@@ -1827,6 +1827,9 @@ msgstr "应用显示语言。自动模式会跟随你的系统语言。"
 msgid "Appearance"
 msgstr "外观"
 
+msgid "Application name"
+msgstr "应用程序名称"
+
 msgid "Applies to"
 msgstr "适用于"
 
@@ -1853,6 +1856,9 @@ msgstr "已批准"
 
 msgid "Approved review"
 msgstr "审查已批准"
+
+msgid "Apps to show under \"Custom\" in the Open in menus. On macOS the bundle id is preferred because it keeps working when the app bundle is renamed (for example \"Xcode-26.5.0.app\")."
+msgstr "在“打开方式”菜单的“自定义”下显示的应用。在 macOS 上推荐使用 bundle id，因为即使应用包被重命名（例如“Xcode-26.5.0.app”）它也能继续工作。"
 
 msgid "apps/desktop/src/renderer"
 msgstr "apps/desktop/src/renderer"
@@ -2405,6 +2411,9 @@ msgstr "项目符号列表"
 
 msgid "Bulleted list"
 msgstr "项目符号列表"
+
+msgid "Bundle id"
+msgstr "Bundle id"
 
 #. placeholder {0}: versions.expected
 msgid "bundled {0}"
@@ -4204,6 +4213,9 @@ msgstr "自定义"
 
 msgid "Custom agent…"
 msgstr "自定义智能体…"
+
+msgid "Custom apps"
+msgstr "自定义应用"
 
 msgid "Custom components beyond the shadcn set"
 msgstr "shadcn组件集之外的自定义组件"
@@ -8122,6 +8134,9 @@ msgstr "神秘机械师"
 msgid "Name"
 msgstr "名称"
 
+msgid "Name (e.g. Xcode Beta)"
+msgstr "名称（例如 Xcode Beta）"
+
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "名称和一个URL友好的slug。两者稍后都可以更改。"
 
@@ -8220,6 +8235,15 @@ msgstr "新建浏览器"
 
 msgid "New chat"
 msgstr "新建聊天"
+
+msgid "New custom app application name"
+msgstr "新自定义应用的应用程序名称"
+
+msgid "New custom app bundle id"
+msgstr "新自定义应用的 bundle id"
+
+msgid "New custom app name"
+msgstr "新自定义应用的名称"
 
 msgid "New environment"
 msgstr "新建环境"
@@ -9240,6 +9264,9 @@ msgstr "打开文件"
 
 msgid "Open File"
 msgstr "打开文件"
+
+msgid "Open file in"
+msgstr "用其他应用打开文件"
 
 msgid "Open File in New Tab"
 msgstr "在新标签页中打开文件"
@@ -10388,6 +10415,9 @@ msgstr "你提交过的提示词会显示在这里。"
 msgid "Properties"
 msgstr "属性"
 
+msgid "Provide an application name or a bundle id"
+msgstr "请提供应用程序名称或 bundle id"
+
 msgid "Provide either id or slug"
 msgstr "请提供id或slug"
 
@@ -10773,6 +10803,7 @@ msgstr "远程工作区，设备离线"
 msgid "Remove"
 msgstr "移除"
 
+#. placeholder {0}: app.label
 #. placeholder {0}: member.name
 msgid "Remove {0}"
 msgstr "移除{0}"

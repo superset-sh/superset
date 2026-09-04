@@ -1827,6 +1827,9 @@ msgstr "Bahasa tampilan aplikasi. Otomatis mengikuti bahasa sistem Anda."
 msgid "Appearance"
 msgstr "Tampilan"
 
+msgid "Application name"
+msgstr "Nama aplikasi"
+
 msgid "Applies to"
 msgstr "Berlaku untuk"
 
@@ -1853,6 +1856,9 @@ msgstr "Disetujui"
 
 msgid "Approved review"
 msgstr "Review disetujui"
+
+msgid "Apps to show under \"Custom\" in the Open in menus. On macOS the bundle id is preferred because it keeps working when the app bundle is renamed (for example \"Xcode-26.5.0.app\")."
+msgstr "Aplikasi yang ditampilkan di bawah \"Kustom\" pada menu Buka di. Di macOS, bundle id lebih disarankan karena tetap berfungsi saat bundel aplikasi diganti namanya (misalnya \"Xcode-26.5.0.app\")."
 
 msgid "apps/desktop/src/renderer"
 msgstr "apps/desktop/src/renderer"
@@ -2405,6 +2411,9 @@ msgstr "Daftar berpoin"
 
 msgid "Bulleted list"
 msgstr "Daftar berpoin"
+
+msgid "Bundle id"
+msgstr "Bundle id"
 
 #. placeholder {0}: versions.expected
 msgid "bundled {0}"
@@ -4204,6 +4213,9 @@ msgstr "Kustom"
 
 msgid "Custom agent…"
 msgstr "Agen kustom…"
+
+msgid "Custom apps"
+msgstr "Aplikasi kustom"
 
 msgid "Custom components beyond the shadcn set"
 msgstr "Komponen kustom di luar set shadcn"
@@ -8122,6 +8134,9 @@ msgstr "Masinis Misterius"
 msgid "Name"
 msgstr "Nama"
 
+msgid "Name (e.g. Xcode Beta)"
+msgstr "Nama (mis. Xcode Beta)"
+
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "Nama dan slug yang ramah URL. Keduanya bisa diubah nanti."
 
@@ -8220,6 +8235,15 @@ msgstr "Browser Baru"
 
 msgid "New chat"
 msgstr "Chat baru"
+
+msgid "New custom app application name"
+msgstr "Nama aplikasi untuk aplikasi kustom baru"
+
+msgid "New custom app bundle id"
+msgstr "Bundle id untuk aplikasi kustom baru"
+
+msgid "New custom app name"
+msgstr "Nama aplikasi kustom baru"
 
 msgid "New environment"
 msgstr "Environment baru"
@@ -9240,6 +9264,9 @@ msgstr "Buka file"
 
 msgid "Open File"
 msgstr "Buka File"
+
+msgid "Open file in"
+msgstr "Buka file di"
 
 msgid "Open File in New Tab"
 msgstr "Buka File di Tab Baru"
@@ -10388,6 +10415,9 @@ msgstr "Prompt yang Anda kirim akan muncul di sini."
 msgid "Properties"
 msgstr "Properti"
 
+msgid "Provide an application name or a bundle id"
+msgstr "Masukkan nama aplikasi atau bundle id"
+
 msgid "Provide either id or slug"
 msgstr "Berikan id atau slug"
 
@@ -10773,6 +10803,7 @@ msgstr "Workspace jarak jauh — perangkat offline"
 msgid "Remove"
 msgstr "Hapus"
 
+#. placeholder {0}: app.label
 #. placeholder {0}: member.name
 msgid "Remove {0}"
 msgstr "Hapus {0}"

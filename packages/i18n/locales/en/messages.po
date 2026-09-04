@@ -1827,6 +1827,9 @@ msgstr "App display language. Auto follows your system language."
 msgid "Appearance"
 msgstr "Appearance"
 
+msgid "Application name"
+msgstr "Application name"
+
 msgid "Applies to"
 msgstr "Applies to"
 
@@ -1853,6 +1856,9 @@ msgstr "Approved"
 
 msgid "Approved review"
 msgstr "Approved review"
+
+msgid "Apps to show under \"Custom\" in the Open in menus. On macOS the bundle id is preferred because it keeps working when the app bundle is renamed (for example \"Xcode-26.5.0.app\")."
+msgstr "Apps to show under \"Custom\" in the Open in menus. On macOS the bundle id is preferred because it keeps working when the app bundle is renamed (for example \"Xcode-26.5.0.app\")."
 
 msgid "apps/desktop/src/renderer"
 msgstr "apps/desktop/src/renderer"
@@ -2405,6 +2411,9 @@ msgstr "Bullet list"
 
 msgid "Bulleted list"
 msgstr "Bulleted list"
+
+msgid "Bundle id"
+msgstr "Bundle id"
 
 #. placeholder {0}: versions.expected
 msgid "bundled {0}"
@@ -4204,6 +4213,9 @@ msgstr "Custom"
 
 msgid "Custom agent…"
 msgstr "Custom agent…"
+
+msgid "Custom apps"
+msgstr "Custom apps"
 
 msgid "Custom components beyond the shadcn set"
 msgstr "Custom components beyond the shadcn set"
@@ -8122,6 +8134,9 @@ msgstr "Mystery Machinist"
 msgid "Name"
 msgstr "Name"
 
+msgid "Name (e.g. Xcode Beta)"
+msgstr "Name (e.g. Xcode Beta)"
+
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "Name and a URL-friendly slug. Both can be changed later."
 
@@ -8220,6 +8235,15 @@ msgstr "New Browser"
 
 msgid "New chat"
 msgstr "New chat"
+
+msgid "New custom app application name"
+msgstr "New custom app application name"
+
+msgid "New custom app bundle id"
+msgstr "New custom app bundle id"
+
+msgid "New custom app name"
+msgstr "New custom app name"
 
 msgid "New environment"
 msgstr "New environment"
@@ -9240,6 +9264,9 @@ msgstr "Open file"
 
 msgid "Open File"
 msgstr "Open File"
+
+msgid "Open file in"
+msgstr "Open file in"
 
 msgid "Open File in New Tab"
 msgstr "Open File in New Tab"
@@ -10388,6 +10415,9 @@ msgstr "Prompts you submit will show up here."
 msgid "Properties"
 msgstr "Properties"
 
+msgid "Provide an application name or a bundle id"
+msgstr "Provide an application name or a bundle id"
+
 msgid "Provide either id or slug"
 msgstr "Provide either id or slug"
 
@@ -10773,6 +10803,7 @@ msgstr "Remote workspace — device offline"
 msgid "Remove"
 msgstr "Remove"
 
+#. placeholder {0}: app.label
 #. placeholder {0}: member.name
 msgid "Remove {0}"
 msgstr "Remove {0}"

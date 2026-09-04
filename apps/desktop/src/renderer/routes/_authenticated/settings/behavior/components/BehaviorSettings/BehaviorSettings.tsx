@@ -18,8 +18,8 @@ import {
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
-import { GithubStarRow } from "./components/GithubStarRow";
 import { CustomAppsSection } from "./components/CustomAppsSection";
+import { GithubStarRow } from "./components/GithubStarRow";
 
 interface BehaviorSettingsProps {
 	visibleItems?: SettingItemId[] | null;
@@ -322,7 +322,7 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 				)}
 
 				{showStarGithub && <GithubStarRow searchQuery={searchQuery} />}
-				{showCustomApps && <CustomAppsSection />}
+				{showCustomApps && <CustomAppsSection searchQuery={searchQuery} />}
 			</div>
 		</div>
 	);

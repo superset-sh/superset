@@ -1827,6 +1827,9 @@ msgstr "Ngôn ngữ hiển thị của ứng dụng. Tự động sẽ theo ngô
 msgid "Appearance"
 msgstr "Giao diện"
 
+msgid "Application name"
+msgstr "Tên ứng dụng"
+
 msgid "Applies to"
 msgstr "Áp dụng cho"
 
@@ -1853,6 +1856,9 @@ msgstr "Đã duyệt"
 
 msgid "Approved review"
 msgstr "Review đã duyệt"
+
+msgid "Apps to show under \"Custom\" in the Open in menus. On macOS the bundle id is preferred because it keeps working when the app bundle is renamed (for example \"Xcode-26.5.0.app\")."
+msgstr "Các ứng dụng hiển thị trong mục \"Tùy chỉnh\" của menu Mở trong. Trên macOS nên dùng bundle id vì nó vẫn hoạt động khi gói ứng dụng bị đổi tên (ví dụ \"Xcode-26.5.0.app\")."
 
 msgid "apps/desktop/src/renderer"
 msgstr "apps/desktop/src/renderer"
@@ -2405,6 +2411,9 @@ msgstr "Danh sách dấu đầu dòng"
 
 msgid "Bulleted list"
 msgstr "Danh sách dấu đầu dòng"
+
+msgid "Bundle id"
+msgstr "Bundle id"
 
 #. placeholder {0}: versions.expected
 msgid "bundled {0}"
@@ -4204,6 +4213,9 @@ msgstr "Tùy chỉnh"
 
 msgid "Custom agent…"
 msgstr "Agent tùy chỉnh…"
+
+msgid "Custom apps"
+msgstr "Ứng dụng tùy chỉnh"
 
 msgid "Custom components beyond the shadcn set"
 msgstr "Component tùy chỉnh ngoài bộ shadcn"
@@ -8122,6 +8134,9 @@ msgstr "Thợ máy bí ẩn"
 msgid "Name"
 msgstr "Tên"
 
+msgid "Name (e.g. Xcode Beta)"
+msgstr "Tên (ví dụ: Xcode Beta)"
+
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "Tên và một slug thân thiện với URL. Cả hai đều đổi được sau."
 
@@ -8220,6 +8235,15 @@ msgstr "Trình duyệt mới"
 
 msgid "New chat"
 msgstr "Chat mới"
+
+msgid "New custom app application name"
+msgstr "Tên ứng dụng của ứng dụng tùy chỉnh mới"
+
+msgid "New custom app bundle id"
+msgstr "Bundle id của ứng dụng tùy chỉnh mới"
+
+msgid "New custom app name"
+msgstr "Tên ứng dụng tùy chỉnh mới"
 
 msgid "New environment"
 msgstr "Environment mới"
@@ -9240,6 +9264,9 @@ msgstr "Mở tệp"
 
 msgid "Open File"
 msgstr "Mở tệp"
+
+msgid "Open file in"
+msgstr "Mở tệp trong"
 
 msgid "Open File in New Tab"
 msgstr "Mở tệp ở tab mới"
@@ -10388,6 +10415,9 @@ msgstr "Các prompt bạn gửi sẽ xuất hiện ở đây."
 msgid "Properties"
 msgstr "Thuộc tính"
 
+msgid "Provide an application name or a bundle id"
+msgstr "Nhập tên ứng dụng hoặc bundle id"
+
 msgid "Provide either id or slug"
 msgstr "Hãy cung cấp id hoặc slug"
 
@@ -10773,6 +10803,7 @@ msgstr "Workspace từ xa — thiết bị ngoại tuyến"
 msgid "Remove"
 msgstr "Gỡ"
 
+#. placeholder {0}: app.label
 #. placeholder {0}: member.name
 msgid "Remove {0}"
 msgstr "Gỡ {0}"

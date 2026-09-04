@@ -234,7 +234,9 @@ export function OpenInExternalDropdownItems({
 							)}
 						>
 							<LuAppWindow className={cn("size-4", subTriggerIconClassName)} />
-							<span>Custom</span>
+							<span>
+								<Trans>Custom</Trans>
+							</span>
 						</div>
 					</DropdownMenuSubTrigger>
 					<DropdownMenuSubContent

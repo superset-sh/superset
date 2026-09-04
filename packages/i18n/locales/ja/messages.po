@@ -1827,6 +1827,9 @@ msgstr "アプリの表示言語。自動ではシステムの言語に従いま
 msgid "Appearance"
 msgstr "外観"
 
+msgid "Application name"
+msgstr "アプリケーション名"
+
 msgid "Applies to"
 msgstr "適用範囲"
 
@@ -1853,6 +1856,9 @@ msgstr "承認"
 
 msgid "Approved review"
 msgstr "承認済みレビュー"
+
+msgid "Apps to show under \"Custom\" in the Open in menus. On macOS the bundle id is preferred because it keeps working when the app bundle is renamed (for example \"Xcode-26.5.0.app\")."
+msgstr "「開く」メニューの「カスタム」に表示するアプリです。macOS ではバンドル ID を推奨します。アプリのバンドル名が変更されても（例: 「Xcode-26.5.0.app」）動作し続けるためです。"
 
 msgid "apps/desktop/src/renderer"
 msgstr "apps/desktop/src/renderer"
@@ -2405,6 +2411,9 @@ msgstr "箇条書きリスト"
 
 msgid "Bulleted list"
 msgstr "箇条書きリスト"
+
+msgid "Bundle id"
+msgstr "バンドル ID"
 
 #. placeholder {0}: versions.expected
 msgid "bundled {0}"
@@ -4204,6 +4213,9 @@ msgstr "カスタム"
 
 msgid "Custom agent…"
 msgstr "カスタムエージェント…"
+
+msgid "Custom apps"
+msgstr "カスタムアプリ"
 
 msgid "Custom components beyond the shadcn set"
 msgstr "shadcnのセットにない独自コンポーネント"
@@ -8122,6 +8134,9 @@ msgstr "謎の機械工"
 msgid "Name"
 msgstr "名前"
 
+msgid "Name (e.g. Xcode Beta)"
+msgstr "名前（例: Xcode Beta）"
+
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "名前とURLフレンドリーなスラッグ。どちらも後で変更できます。"
 
@@ -8220,6 +8235,15 @@ msgstr "新規ブラウザ"
 
 msgid "New chat"
 msgstr "新しいチャット"
+
+msgid "New custom app application name"
+msgstr "新しいカスタムアプリのアプリケーション名"
+
+msgid "New custom app bundle id"
+msgstr "新しいカスタムアプリのバンドル ID"
+
+msgid "New custom app name"
+msgstr "新しいカスタムアプリの名前"
 
 msgid "New environment"
 msgstr "新しい環境"
@@ -9239,6 +9263,9 @@ msgid "Open file"
 msgstr "ファイルを開く"
 
 msgid "Open File"
+msgstr "ファイルを開く"
+
+msgid "Open file in"
 msgstr "ファイルを開く"
 
 msgid "Open File in New Tab"
@@ -10388,6 +10415,9 @@ msgstr "送信したプロンプトがここに表示されます。"
 msgid "Properties"
 msgstr "プロパティ"
 
+msgid "Provide an application name or a bundle id"
+msgstr "アプリケーション名またはバンドル ID を入力してください"
+
 msgid "Provide either id or slug"
 msgstr "idまたはslugのいずれかを指定してください"
 
@@ -10773,6 +10803,7 @@ msgstr "リモートワークスペース — デバイスがオフライン"
 msgid "Remove"
 msgstr "削除"
 
+#. placeholder {0}: app.label
 #. placeholder {0}: member.name
 msgid "Remove {0}"
 msgstr "{0}を削除"

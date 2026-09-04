@@ -1827,6 +1827,9 @@ msgstr "앱 표시 언어입니다. 자동은 시스템 언어를 따릅니다."
 msgid "Appearance"
 msgstr "모양"
 
+msgid "Application name"
+msgstr "애플리케이션 이름"
+
 msgid "Applies to"
 msgstr "적용 범위"
 
@@ -1853,6 +1856,9 @@ msgstr "승인됨"
 
 msgid "Approved review"
 msgstr "승인된 리뷰"
+
+msgid "Apps to show under \"Custom\" in the Open in menus. On macOS the bundle id is preferred because it keeps working when the app bundle is renamed (for example \"Xcode-26.5.0.app\")."
+msgstr "다음에서 열기 메뉴의 \"사용자 지정\" 아래에 표시할 앱입니다. macOS에서는 앱 번들 이름이 바뀌어도(예: \"Xcode-26.5.0.app\") 계속 동작하는 번들 ID를 권장합니다."
 
 msgid "apps/desktop/src/renderer"
 msgstr "apps/desktop/src/renderer"
@@ -2405,6 +2411,9 @@ msgstr "글머리 기호 목록"
 
 msgid "Bulleted list"
 msgstr "글머리 기호 목록"
+
+msgid "Bundle id"
+msgstr "번들 ID"
 
 #. placeholder {0}: versions.expected
 msgid "bundled {0}"
@@ -4204,6 +4213,9 @@ msgstr "사용자 지정"
 
 msgid "Custom agent…"
 msgstr "사용자 지정 에이전트…"
+
+msgid "Custom apps"
+msgstr "사용자 지정 앱"
 
 msgid "Custom components beyond the shadcn set"
 msgstr "shadcn 세트를 넘어선 커스텀 컴포넌트"
@@ -8122,6 +8134,9 @@ msgstr "수수께끼의 기계공"
 msgid "Name"
 msgstr "이름"
 
+msgid "Name (e.g. Xcode Beta)"
+msgstr "이름 (예: Xcode Beta)"
+
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "이름과 URL에 쓰기 좋은 슬러그를 정하세요. 둘 다 나중에 바꿀 수 있습니다."
 
@@ -8220,6 +8235,15 @@ msgstr "새 브라우저"
 
 msgid "New chat"
 msgstr "새 채팅"
+
+msgid "New custom app application name"
+msgstr "새 사용자 지정 앱의 애플리케이션 이름"
+
+msgid "New custom app bundle id"
+msgstr "새 사용자 지정 앱의 번들 ID"
+
+msgid "New custom app name"
+msgstr "새 사용자 지정 앱 이름"
 
 msgid "New environment"
 msgstr "새 환경"
@@ -9240,6 +9264,9 @@ msgstr "파일 열기"
 
 msgid "Open File"
 msgstr "파일 열기"
+
+msgid "Open file in"
+msgstr "다음에서 파일 열기"
 
 msgid "Open File in New Tab"
 msgstr "새 탭에서 파일 열기"
@@ -10388,6 +10415,9 @@ msgstr "제출한 프롬프트가 여기에 표시됩니다."
 msgid "Properties"
 msgstr "속성"
 
+msgid "Provide an application name or a bundle id"
+msgstr "애플리케이션 이름 또는 번들 ID를 입력하세요"
+
 msgid "Provide either id or slug"
 msgstr "id 또는 슬러그 중 하나를 제공하세요"
 
@@ -10773,6 +10803,7 @@ msgstr "원격 워크스페이스 — 기기 오프라인"
 msgid "Remove"
 msgstr "제거"
 
+#. placeholder {0}: app.label
 #. placeholder {0}: member.name
 msgid "Remove {0}"
 msgstr "{0} 제거"

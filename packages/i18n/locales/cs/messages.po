@@ -1827,6 +1827,9 @@ msgstr "Jazyk aplikace. Automatický režim se řídí jazykem systému."
 msgid "Appearance"
 msgstr "Vzhled"
 
+msgid "Application name"
+msgstr "Název aplikace"
+
 msgid "Applies to"
 msgstr "Platí pro"
 
@@ -1853,6 +1856,9 @@ msgstr "Schváleno"
 
 msgid "Approved review"
 msgstr "Schválená revize"
+
+msgid "Apps to show under \"Custom\" in the Open in menus. On macOS the bundle id is preferred because it keeps working when the app bundle is renamed (for example \"Xcode-26.5.0.app\")."
+msgstr "Aplikace zobrazené v nabídkách Otevřít v pod položkou „Vlastní“. Na macOS je vhodnější bundle id, protože funguje i po přejmenování balíčku aplikace (např. „Xcode-26.5.0.app“)."
 
 msgid "apps/desktop/src/renderer"
 msgstr "apps/desktop/src/renderer"
@@ -2405,6 +2411,9 @@ msgstr "Odrážkový seznam"
 
 msgid "Bulleted list"
 msgstr "Odrážkový seznam"
+
+msgid "Bundle id"
+msgstr "Bundle id"
 
 #. placeholder {0}: versions.expected
 msgid "bundled {0}"
@@ -4204,6 +4213,9 @@ msgstr "Vlastní"
 
 msgid "Custom agent…"
 msgstr "Vlastní agent…"
+
+msgid "Custom apps"
+msgstr "Vlastní aplikace"
 
 msgid "Custom components beyond the shadcn set"
 msgstr "Vlastní komponenty nad rámec sady shadcn"
@@ -8122,6 +8134,9 @@ msgstr "Záhadný strojník"
 msgid "Name"
 msgstr "Název"
 
+msgid "Name (e.g. Xcode Beta)"
+msgstr "Název (např. Xcode Beta)"
+
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "Název a slug vhodný do URL. Obojí jde později změnit."
 
@@ -8220,6 +8235,15 @@ msgstr "Nový prohlížeč"
 
 msgid "New chat"
 msgstr "Nový chat"
+
+msgid "New custom app application name"
+msgstr "Název aplikace nové vlastní aplikace"
+
+msgid "New custom app bundle id"
+msgstr "Bundle id nové vlastní aplikace"
+
+msgid "New custom app name"
+msgstr "Název nové vlastní aplikace"
 
 msgid "New environment"
 msgstr "Nové prostředí"
@@ -9240,6 +9264,9 @@ msgstr "Otevřít soubor"
 
 msgid "Open File"
 msgstr "Otevřít soubor"
+
+msgid "Open file in"
+msgstr "Otevřít soubor v"
 
 msgid "Open File in New Tab"
 msgstr "Otevřít soubor na nové kartě"
@@ -10388,6 +10415,9 @@ msgstr "Prompty, které odešlete, se objeví tady."
 msgid "Properties"
 msgstr "Vlastnosti"
 
+msgid "Provide an application name or a bundle id"
+msgstr "Zadejte název aplikace nebo bundle id"
+
 msgid "Provide either id or slug"
 msgstr "Zadejte buď id, nebo slug"
 
@@ -10773,6 +10803,7 @@ msgstr "Vzdálený pracovní prostor — zařízení offline"
 msgid "Remove"
 msgstr "Odebrat"
 
+#. placeholder {0}: app.label
 #. placeholder {0}: member.name
 msgid "Remove {0}"
 msgstr "Odebrat {0}"

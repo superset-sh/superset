@@ -1827,6 +1827,9 @@ msgstr "Язык интерфейса приложения. Авто следу�
 msgid "Appearance"
 msgstr "Внешний вид"
 
+msgid "Application name"
+msgstr "Имя приложения"
+
 msgid "Applies to"
 msgstr "Применяется к"
 
@@ -1853,6 +1856,9 @@ msgstr "Одобрено"
 
 msgid "Approved review"
 msgstr "Одобренное ревью"
+
+msgid "Apps to show under \"Custom\" in the Open in menus. On macOS the bundle id is preferred because it keeps working when the app bundle is renamed (for example \"Xcode-26.5.0.app\")."
+msgstr "Приложения, которые показываются в разделе «Своя» меню «Открыть в». В macOS предпочтителен bundle id: он продолжает работать, даже если пакет приложения переименован (например, «Xcode-26.5.0.app»)."
 
 msgid "apps/desktop/src/renderer"
 msgstr "apps/desktop/src/renderer"
@@ -2405,6 +2411,9 @@ msgstr "Маркированный список"
 
 msgid "Bulleted list"
 msgstr "Маркированный список"
+
+msgid "Bundle id"
+msgstr "Bundle id"
 
 #. placeholder {0}: versions.expected
 msgid "bundled {0}"
@@ -4204,6 +4213,9 @@ msgstr "Своя"
 
 msgid "Custom agent…"
 msgstr "Свой агент…"
+
+msgid "Custom apps"
+msgstr "Свои приложения"
 
 msgid "Custom components beyond the shadcn set"
 msgstr "Свои компоненты за пределами набора shadcn"
@@ -8122,6 +8134,9 @@ msgstr "Загадочный станочник"
 msgid "Name"
 msgstr "Название"
 
+msgid "Name (e.g. Xcode Beta)"
+msgstr "Название (например, Xcode Beta)"
+
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "Название и slug для URL. Оба можно изменить позже."
 
@@ -8220,6 +8235,15 @@ msgstr "Новый браузер"
 
 msgid "New chat"
 msgstr "Новый чат"
+
+msgid "New custom app application name"
+msgstr "Имя приложения для нового своего приложения"
+
+msgid "New custom app bundle id"
+msgstr "Bundle id нового своего приложения"
+
+msgid "New custom app name"
+msgstr "Название нового своего приложения"
 
 msgid "New environment"
 msgstr "Новое окружение"
@@ -9240,6 +9264,9 @@ msgstr "Открыть файл"
 
 msgid "Open File"
 msgstr "Открыть файл"
+
+msgid "Open file in"
+msgstr "Открыть файл в"
 
 msgid "Open File in New Tab"
 msgstr "Открыть файл в новой вкладке"
@@ -10388,6 +10415,9 @@ msgstr "Отправленные промпты появятся здесь."
 msgid "Properties"
 msgstr "Свойства"
 
+msgid "Provide an application name or a bundle id"
+msgstr "Укажите имя приложения или bundle id"
+
 msgid "Provide either id or slug"
 msgstr "Укажите id или slug"
 
@@ -10773,6 +10803,7 @@ msgstr "Удалённая рабочая область — устройств�
 msgid "Remove"
 msgstr "Удалить"
 
+#. placeholder {0}: app.label
 #. placeholder {0}: member.name
 msgid "Remove {0}"
 msgstr "Удалить {0}"

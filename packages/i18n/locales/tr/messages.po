@@ -1827,6 +1827,9 @@ msgstr "Uygulama görüntüleme dili. Otomatik, sistem dilinizi izler."
 msgid "Appearance"
 msgstr "Görünüm"
 
+msgid "Application name"
+msgstr "Uygulama adı"
+
 msgid "Applies to"
 msgstr "Uygulanacak yer"
 
@@ -1853,6 +1856,9 @@ msgstr "Onaylandı"
 
 msgid "Approved review"
 msgstr "Onaylanmış inceleme"
+
+msgid "Apps to show under \"Custom\" in the Open in menus. On macOS the bundle id is preferred because it keeps working when the app bundle is renamed (for example \"Xcode-26.5.0.app\")."
+msgstr "Şununla aç menülerinde \"Özel\" altında gösterilecek uygulamalar. macOS'ta bundle id tercih edilir; uygulama paketi yeniden adlandırılsa bile (örneğin \"Xcode-26.5.0.app\") çalışmaya devam eder."
 
 msgid "apps/desktop/src/renderer"
 msgstr "apps/desktop/src/renderer"
@@ -2405,6 +2411,9 @@ msgstr "Madde işaretli liste"
 
 msgid "Bulleted list"
 msgstr "Madde işaretli liste"
+
+msgid "Bundle id"
+msgstr "Bundle id"
 
 #. placeholder {0}: versions.expected
 msgid "bundled {0}"
@@ -4204,6 +4213,9 @@ msgstr "Özel"
 
 msgid "Custom agent…"
 msgstr "Özel ajan…"
+
+msgid "Custom apps"
+msgstr "Özel uygulamalar"
 
 msgid "Custom components beyond the shadcn set"
 msgstr "shadcn setinin ötesindeki özel bileşenler"
@@ -8122,6 +8134,9 @@ msgstr "Gizemli Makinist"
 msgid "Name"
 msgstr "Ad"
 
+msgid "Name (e.g. Xcode Beta)"
+msgstr "Ad (örn. Xcode Beta)"
+
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "Bir ad ve URL dostu bir slug. İkisi de sonradan değiştirilebilir."
 
@@ -8220,6 +8235,15 @@ msgstr "Yeni tarayıcı"
 
 msgid "New chat"
 msgstr "Yeni sohbet"
+
+msgid "New custom app application name"
+msgstr "Yeni özel uygulamanın uygulama adı"
+
+msgid "New custom app bundle id"
+msgstr "Yeni özel uygulamanın bundle id'si"
+
+msgid "New custom app name"
+msgstr "Yeni özel uygulamanın adı"
 
 msgid "New environment"
 msgstr "Yeni ortam"
@@ -9240,6 +9264,9 @@ msgstr "Dosyayı aç"
 
 msgid "Open File"
 msgstr "Dosyayı aç"
+
+msgid "Open file in"
+msgstr "Dosyayı şununla aç"
 
 msgid "Open File in New Tab"
 msgstr "Dosyayı yeni sekmede aç"
@@ -10388,6 +10415,9 @@ msgstr "Gönderdiğiniz istemler burada görünecek."
 msgid "Properties"
 msgstr "Özellikler"
 
+msgid "Provide an application name or a bundle id"
+msgstr "Bir uygulama adı veya bundle id girin"
+
 msgid "Provide either id or slug"
 msgstr "id veya slug değerlerinden birini sağlayın"
 
@@ -10773,6 +10803,7 @@ msgstr "Uzak çalışma alanı — cihaz çevrimdışı"
 msgid "Remove"
 msgstr "Kaldır"
 
+#. placeholder {0}: app.label
 #. placeholder {0}: member.name
 msgid "Remove {0}"
 msgstr "{0} kişisini kaldır"
