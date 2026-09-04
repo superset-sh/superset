@@ -585,6 +585,15 @@ msgstr "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}
 msgid "{hostName} is offline"
 msgstr "{hostName} is offline"
 
+msgid "{hostName} is running an older version of Superset"
+msgstr "{hostName} is running an older version of Superset"
+
+msgid "{hostName} isn't responding"
+msgstr "{hostName} isn't responding"
+
+msgid "{hostName} isn't signed in to GitHub"
+msgstr "{hostName} isn't signed in to GitHub"
+
 msgid "{hotkeyText} to hide"
 msgstr "{hotkeyText} to hide"
 
@@ -2499,6 +2508,9 @@ msgstr "Can't open remote workspace paths in an external editor"
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Can't open remote workspace paths in Finder"
 
+msgid "Can't reach {hostName}"
+msgstr "Can't reach {hostName}"
+
 msgid "Cancel"
 msgstr "Cancel"
 
@@ -2927,6 +2939,12 @@ msgstr "Clone to <0>{parentDir}</0>"
 #. placeholder {0}: result.repoPath
 msgid "Cloned to {0}"
 msgstr "Cloned to {0}"
+
+msgid "Cloning private repositories onto this machine needs it."
+msgstr "Cloning private repositories onto this machine needs it."
+
+msgid "Cloning private repositories onto this machine will fail until it is."
+msgstr "Cloning private repositories onto this machine will fail until it is."
 
 msgid "Cloning…"
 msgstr "Cloning…"
@@ -6205,6 +6223,9 @@ msgstr "General"
 msgid "General access"
 msgstr "General access"
 
+msgid "Generate a key first"
+msgstr "Generate a key first"
+
 msgid "Generate a key to use with MCP servers."
 msgstr "Generate a key to use with MCP servers."
 
@@ -6277,6 +6298,9 @@ msgstr "GitHub App installation was cancelled."
 msgid "GitHub App installed successfully!"
 msgstr "GitHub App installed successfully!"
 
+msgid "GitHub CLI isn't installed on {hostName}"
+msgstr "GitHub CLI isn't installed on {hostName}"
+
 msgid "GitHub connected, but initial sync failed to start. Please try reconnecting."
 msgstr "GitHub connected, but initial sync failed to start. Please try reconnecting."
 
@@ -6291,6 +6315,9 @@ msgstr "GitHub issues"
 
 msgid "GitHub refused the merge"
 msgstr "GitHub refused the merge"
+
+msgid "GitHub sign-in needed"
+msgstr "GitHub sign-in needed"
 
 msgid "GitHub username"
 msgstr "GitHub username"
@@ -7049,11 +7076,20 @@ msgstr "Issue URL must match {repoMismatch}."
 msgid "Issue…"
 msgstr "Issue…"
 
+msgid "It may be asleep or switched off. Open Superset on that machine, or start the host service from a terminal there."
+msgstr "It may be asleep or switched off. Open Superset on that machine, or start the host service from a terminal there."
+
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "It may have been deleted, or it belongs to another organization."
 
 msgid "It will reconnect on its own once the machine is back. Pull to check again."
 msgstr "It will reconnect on its own once the machine is back. Pull to check again."
+
+msgid "It's connected but not answering. Restarting Superset on that machine, or its host service, usually clears it."
+msgstr "It's connected but not answering. Restarting Superset on that machine, or its host service, usually clears it."
+
+msgid "It's on {version}. Update it there to enable the rest of this page."
+msgstr "It's on {version}. Update it there to enable the rest of this page."
 
 msgid "Italic"
 msgstr "Italic"
@@ -8380,6 +8416,9 @@ msgstr "No {0} logins on this host — sign in and usage appears here."
 
 msgid "No access to this host"
 msgstr "No access to this host"
+
+msgid "No access to this repo"
+msgstr "No access to this repo"
 
 msgid "No active enterprise accounts"
 msgstr "No active enterprise accounts"
@@ -13761,6 +13800,9 @@ msgstr "this device ({id})"
 msgid "This device isn't connected to the Superset relay, so automation runs will be skipped."
 msgstr "This device isn't connected to the Superset relay, so automation runs will be skipped."
 
+msgid "This device's host service isn't responding"
+msgstr "This device's host service isn't responding"
+
 msgid "This directory does not exist. The terminal script will fall back to the workspace root."
 msgstr "This directory does not exist. The terminal script will fall back to the workspace root."
 
@@ -14465,6 +14507,9 @@ msgstr "Update daemon"
 msgid "Update Error"
 msgstr "Update Error"
 
+msgid "Update it there to enable the rest of this page."
+msgstr "Update it there to enable the rest of this page."
+
 msgid "Update naming instructions"
 msgstr "Update naming instructions"
 
@@ -15085,6 +15130,9 @@ msgstr "Workspaces created per user in the last 7 days, by percentile"
 
 msgid "Workspaces on this device will show up here."
 msgstr "Workspaces on this device will show up here."
+
+msgid "Workspaces on this device won't open until it's back. Restarting Superset usually clears it."
+msgstr "Workspaces on this device won't open until it's back. Restarting Superset usually clears it."
 
 msgid "worktree"
 msgstr "worktree"

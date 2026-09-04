@@ -585,6 +585,15 @@ msgstr "{hiddenCount, plural, one {再显示#个栈帧} other {再显示#个栈�
 msgid "{hostName} is offline"
 msgstr "{hostName}已离线"
 
+msgid "{hostName} is running an older version of Superset"
+msgstr "{hostName} 正在运行较旧版本的 Superset"
+
+msgid "{hostName} isn't responding"
+msgstr "{hostName} 没有响应"
+
+msgid "{hostName} isn't signed in to GitHub"
+msgstr "{hostName} 未登录 GitHub"
+
 msgid "{hotkeyText} to hide"
 msgstr "按{hotkeyText}隐藏"
 
@@ -2499,6 +2508,9 @@ msgstr "无法在外部编辑器中打开远程工作区路径"
 msgid "Can't open remote workspace paths in Finder"
 msgstr "无法在Finder中打开远程工作区路径"
 
+msgid "Can't reach {hostName}"
+msgstr "无法连接到 {hostName}"
+
 msgid "Cancel"
 msgstr "取消"
 
@@ -2927,6 +2939,12 @@ msgstr "克隆到 <0>{parentDir}</0>"
 #. placeholder {0}: result.repoPath
 msgid "Cloned to {0}"
 msgstr "已克隆到{0}"
+
+msgid "Cloning private repositories onto this machine needs it."
+msgstr "将私有仓库克隆到此机器需要它。"
+
+msgid "Cloning private repositories onto this machine will fail until it is."
+msgstr "在登录之前，将私有仓库克隆到此机器会失败。"
 
 msgid "Cloning…"
 msgstr "正在克隆…"
@@ -6205,6 +6223,9 @@ msgstr "通用"
 msgid "General access"
 msgstr "通用访问权限"
 
+msgid "Generate a key first"
+msgstr "请先生成密钥"
+
 msgid "Generate a key to use with MCP servers."
 msgstr "生成一个密钥，用于MCP服务器。"
 
@@ -6277,6 +6298,9 @@ msgstr "GitHub App安装已取消。"
 msgid "GitHub App installed successfully!"
 msgstr "GitHub App安装成功！"
 
+msgid "GitHub CLI isn't installed on {hostName}"
+msgstr "{hostName} 上未安装 GitHub CLI"
+
 msgid "GitHub connected, but initial sync failed to start. Please try reconnecting."
 msgstr "GitHub已连接，但初始同步未能启动。请尝试重新连接。"
 
@@ -6291,6 +6315,9 @@ msgstr "GitHub议题"
 
 msgid "GitHub refused the merge"
 msgstr "GitHub拒绝了此次合并"
+
+msgid "GitHub sign-in needed"
+msgstr "需要登录 GitHub"
 
 msgid "GitHub username"
 msgstr "GitHub用户名"
@@ -7049,11 +7076,20 @@ msgstr "议题URL必须匹配{repoMismatch}。"
 msgid "Issue…"
 msgstr "议题…"
 
+msgid "It may be asleep or switched off. Open Superset on that machine, or start the host service from a terminal there."
+msgstr "它可能处于睡眠状态或已关机。请在那台机器上打开 Superset，或从终端启动 host service。"
+
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "它可能已被删除，或属于另一个组织。"
 
 msgid "It will reconnect on its own once the machine is back. Pull to check again."
 msgstr "机器恢复后它会自动重新连接。下拉可再次检查。"
+
+msgid "It's connected but not answering. Restarting Superset on that machine, or its host service, usually clears it."
+msgstr "已连接但没有响应。在那台机器上重启 Superset 或其 host service 通常可以解决。"
+
+msgid "It's on {version}. Update it there to enable the rest of this page."
+msgstr "当前版本为 {version}。在那台机器上更新即可启用本页的其余功能。"
 
 msgid "Italic"
 msgstr "斜体"
@@ -8380,6 +8416,9 @@ msgstr "此主机上没有{0}登录——登录后用量会显示在这里。"
 
 msgid "No access to this host"
 msgstr "没有此主机的访问权限"
+
+msgid "No access to this repo"
+msgstr "无权访问此仓库"
 
 msgid "No active enterprise accounts"
 msgstr "没有活跃的企业客户"
@@ -13761,6 +13800,9 @@ msgstr "此设备（{id}）"
 msgid "This device isn't connected to the Superset relay, so automation runs will be skipped."
 msgstr "此设备没有连接到Superset中继，自动化的运行会被跳过。"
 
+msgid "This device's host service isn't responding"
+msgstr "此设备的 host service 没有响应"
+
 msgid "This directory does not exist. The terminal script will fall back to the workspace root."
 msgstr "此目录不存在。终端脚本将回退到工作区根目录。"
 
@@ -14465,6 +14507,9 @@ msgstr "更新守护进程"
 msgid "Update Error"
 msgstr "更新出错"
 
+msgid "Update it there to enable the rest of this page."
+msgstr "在那台机器上更新即可启用本页的其余功能。"
+
 msgid "Update naming instructions"
 msgstr "更新命名规则"
 
@@ -15085,6 +15130,9 @@ msgstr "最近7天每位用户创建的工作区数，按分位数"
 
 msgid "Workspaces on this device will show up here."
 msgstr "此设备上的工作区会显示在这里。"
+
+msgid "Workspaces on this device won't open until it's back. Restarting Superset usually clears it."
+msgstr "在恢复之前，此设备上的工作区无法打开。重启 Superset 通常可以解决。"
 
 msgid "worktree"
 msgstr "worktree"

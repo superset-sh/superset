@@ -585,6 +585,15 @@ msgstr "{hiddenCount, plural, one {Tampilkan # frame lagi} other {Tampilkan # fr
 msgid "{hostName} is offline"
 msgstr "{hostName} sedang offline"
 
+msgid "{hostName} is running an older version of Superset"
+msgstr "{hostName} menjalankan versi Superset yang lebih lama"
+
+msgid "{hostName} isn't responding"
+msgstr "{hostName} tidak merespons"
+
+msgid "{hostName} isn't signed in to GitHub"
+msgstr "{hostName} belum masuk ke GitHub"
+
 msgid "{hotkeyText} to hide"
 msgstr "{hotkeyText} untuk menyembunyikan"
 
@@ -2499,6 +2508,9 @@ msgstr "Tidak bisa membuka path workspace jarak jauh di editor eksternal"
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Tidak bisa membuka path workspace jarak jauh di Finder"
 
+msgid "Can't reach {hostName}"
+msgstr "Tidak dapat menjangkau {hostName}"
+
 msgid "Cancel"
 msgstr "Batal"
 
@@ -2927,6 +2939,12 @@ msgstr "Klon ke <0>{parentDir}</0>"
 #. placeholder {0}: result.repoPath
 msgid "Cloned to {0}"
 msgstr "Di-clone ke {0}"
+
+msgid "Cloning private repositories onto this machine needs it."
+msgstr "Diperlukan untuk mengklon repositori privat ke mesin ini."
+
+msgid "Cloning private repositories onto this machine will fail until it is."
+msgstr "Mengklon repositori privat ke mesin ini akan gagal sampai hal itu dilakukan."
 
 msgid "Cloning…"
 msgstr "Meng-clone…"
@@ -6205,6 +6223,9 @@ msgstr "Umum"
 msgid "General access"
 msgstr "Akses umum"
 
+msgid "Generate a key first"
+msgstr "Buat kunci terlebih dahulu"
+
 msgid "Generate a key to use with MCP servers."
 msgstr "Buat kunci untuk dipakai dengan server MCP."
 
@@ -6277,6 +6298,9 @@ msgstr "Pemasangan GitHub App dibatalkan."
 msgid "GitHub App installed successfully!"
 msgstr "GitHub App berhasil dipasang!"
 
+msgid "GitHub CLI isn't installed on {hostName}"
+msgstr "GitHub CLI belum terpasang di {hostName}"
+
 msgid "GitHub connected, but initial sync failed to start. Please try reconnecting."
 msgstr "GitHub terhubung, tapi sinkronisasi awal gagal dimulai. Silakan coba hubungkan ulang."
 
@@ -6291,6 +6315,9 @@ msgstr "Issue GitHub"
 
 msgid "GitHub refused the merge"
 msgstr "GitHub menolak merge-nya"
+
+msgid "GitHub sign-in needed"
+msgstr "Perlu masuk ke GitHub"
 
 msgid "GitHub username"
 msgstr "Username GitHub"
@@ -7049,11 +7076,20 @@ msgstr "URL issue harus cocok dengan {repoMismatch}."
 msgid "Issue…"
 msgstr "Issue…"
 
+msgid "It may be asleep or switched off. Open Superset on that machine, or start the host service from a terminal there."
+msgstr "Mungkin sedang tidur atau dimatikan. Buka Superset di mesin itu, atau jalankan host-service dari terminal."
+
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "Mungkin sudah dihapus, atau milik organisasi lain."
 
 msgid "It will reconnect on its own once the machine is back. Pull to check again."
 msgstr "Host akan tersambung sendiri begitu mesinnya kembali. Tarik untuk memeriksa lagi."
+
+msgid "It's connected but not answering. Restarting Superset on that machine, or its host service, usually clears it."
+msgstr "Terhubung tetapi tidak menjawab. Memulai ulang Superset di mesin itu, atau host-service-nya, biasanya mengatasinya."
+
+msgid "It's on {version}. Update it there to enable the rest of this page."
+msgstr "Versinya {version}. Perbarui di sana untuk mengaktifkan sisa halaman ini."
 
 msgid "Italic"
 msgstr "Miring"
@@ -8380,6 +8416,9 @@ msgstr "Tidak ada login {0} di host ini — masuk dan penggunaannya akan muncul 
 
 msgid "No access to this host"
 msgstr "Tidak ada akses ke host ini"
+
+msgid "No access to this repo"
+msgstr "Tidak ada akses ke repositori ini"
 
 msgid "No active enterprise accounts"
 msgstr "Tidak ada akun enterprise yang aktif"
@@ -13761,6 +13800,9 @@ msgstr "perangkat ini ({id})"
 msgid "This device isn't connected to the Superset relay, so automation runs will be skipped."
 msgstr "Perangkat ini tidak terhubung ke relay Superset, jadi run otomatisasi akan dilewati."
 
+msgid "This device's host service isn't responding"
+msgstr "host-service perangkat ini tidak merespons"
+
 msgid "This directory does not exist. The terminal script will fall back to the workspace root."
 msgstr "Direktori ini tidak ada. Skrip terminal akan memakai root workspace."
 
@@ -14465,6 +14507,9 @@ msgstr "Perbarui daemon"
 msgid "Update Error"
 msgstr "Kesalahan Pembaruan"
 
+msgid "Update it there to enable the rest of this page."
+msgstr "Perbarui di sana untuk mengaktifkan sisa halaman ini."
+
 msgid "Update naming instructions"
 msgstr "Perbarui instruksi penamaan"
 
@@ -15085,6 +15130,9 @@ msgstr "Workspace yang dibuat per pengguna dalam 7 hari terakhir, menurut persen
 
 msgid "Workspaces on this device will show up here."
 msgstr "Workspace di perangkat ini akan muncul di sini."
+
+msgid "Workspaces on this device won't open until it's back. Restarting Superset usually clears it."
+msgstr "Workspace di perangkat ini tidak akan terbuka sampai kembali. Memulai ulang Superset biasanya mengatasinya."
 
 msgid "worktree"
 msgstr "worktree"

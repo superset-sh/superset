@@ -585,6 +585,15 @@ msgstr "{hiddenCount, plural, one {さらに#件のフレームを表示} other 
 msgid "{hostName} is offline"
 msgstr "{hostName}はオフラインです"
 
+msgid "{hostName} is running an older version of Superset"
+msgstr "{hostName} は古いバージョンの Superset を実行しています"
+
+msgid "{hostName} isn't responding"
+msgstr "{hostName} が応答していません"
+
+msgid "{hostName} isn't signed in to GitHub"
+msgstr "{hostName} は GitHub にサインインしていません"
+
 msgid "{hotkeyText} to hide"
 msgstr "{hotkeyText}で隠す"
 
@@ -2499,6 +2508,9 @@ msgstr "リモートワークスペースのパスは外部エディタで開け
 msgid "Can't open remote workspace paths in Finder"
 msgstr "リモートワークスペースのパスはFinderで開けません"
 
+msgid "Can't reach {hostName}"
+msgstr "{hostName} に接続できません"
+
 msgid "Cancel"
 msgstr "キャンセル"
 
@@ -2927,6 +2939,12 @@ msgstr "<0>{parentDir}</0> にクローン"
 #. placeholder {0}: result.repoPath
 msgid "Cloned to {0}"
 msgstr "{0}にクローンしました"
+
+msgid "Cloning private repositories onto this machine needs it."
+msgstr "このマシンにプライベートリポジトリをクローンするには必要です。"
+
+msgid "Cloning private repositories onto this machine will fail until it is."
+msgstr "サインインするまで、このマシンへのプライベートリポジトリのクローンは失敗します。"
 
 msgid "Cloning…"
 msgstr "クローン中…"
@@ -6205,6 +6223,9 @@ msgstr "全般"
 msgid "General access"
 msgstr "一般的なアクセス"
 
+msgid "Generate a key first"
+msgstr "先にキーを生成してください"
+
 msgid "Generate a key to use with MCP servers."
 msgstr "MCPサーバーで使用するキーを生成します。"
 
@@ -6277,6 +6298,9 @@ msgstr "GitHub Appのインストールがキャンセルされました。"
 msgid "GitHub App installed successfully!"
 msgstr "GitHub Appをインストールしました!"
 
+msgid "GitHub CLI isn't installed on {hostName}"
+msgstr "{hostName} に GitHub CLI がインストールされていません"
+
 msgid "GitHub connected, but initial sync failed to start. Please try reconnecting."
 msgstr "GitHubは接続しましたが、初回同期を開始できませんでした。再接続をお試しください。"
 
@@ -6291,6 +6315,9 @@ msgstr "GitHub issue"
 
 msgid "GitHub refused the merge"
 msgstr "GitHubがマージを拒否しました"
+
+msgid "GitHub sign-in needed"
+msgstr "GitHub へのサインインが必要"
 
 msgid "GitHub username"
 msgstr "GitHubのユーザー名"
@@ -7049,11 +7076,20 @@ msgstr "IssueのURLは{repoMismatch}と一致する必要があります。"
 msgid "Issue…"
 msgstr "Issue…"
 
+msgid "It may be asleep or switched off. Open Superset on that machine, or start the host service from a terminal there."
+msgstr "スリープ中か電源が切れている可能性があります。そのマシンで Superset を開くか、ターミナルからホストサービスを起動してください。"
+
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "削除されたか、別の組織に属している可能性があります。"
 
 msgid "It will reconnect on its own once the machine is back. Pull to check again."
 msgstr "マシンが復帰すれば自動的に再接続します。引っ張って再確認できます。"
+
+msgid "It's connected but not answering. Restarting Superset on that machine, or its host service, usually clears it."
+msgstr "接続はされていますが応答しません。そのマシンで Superset かホストサービスを再起動すると、たいてい解決します。"
+
+msgid "It's on {version}. Update it there to enable the rest of this page."
+msgstr "バージョンは {version} です。そのマシンで更新すると、このページの残りの機能が有効になります。"
 
 msgid "Italic"
 msgstr "斜体"
@@ -8380,6 +8416,9 @@ msgstr "このホストに{0}のログインがありません — サインイ�
 
 msgid "No access to this host"
 msgstr "このホストへのアクセス権がありません"
+
+msgid "No access to this repo"
+msgstr "このリポジトリにアクセスできません"
 
 msgid "No active enterprise accounts"
 msgstr "有効なエンタープライズアカウントはありません"
@@ -13761,6 +13800,9 @@ msgstr "このデバイス ({id})"
 msgid "This device isn't connected to the Superset relay, so automation runs will be skipped."
 msgstr "このデバイスはSupersetリレーに接続されていないため、オートメーションの実行はスキップされます。"
 
+msgid "This device's host service isn't responding"
+msgstr "このデバイスのホストサービスが応答していません"
+
 msgid "This directory does not exist. The terminal script will fall back to the workspace root."
 msgstr "このディレクトリは存在しません。ターミナルスクリプトはワークスペースルートにフォールバックします。"
 
@@ -14465,6 +14507,9 @@ msgstr "デーモンを更新"
 msgid "Update Error"
 msgstr "アップデートエラー"
 
+msgid "Update it there to enable the rest of this page."
+msgstr "そのマシンで更新すると、このページの残りの機能が有効になります。"
+
 msgid "Update naming instructions"
 msgstr "命名指示を更新"
 
@@ -15085,6 +15130,9 @@ msgstr "直近7日のユーザーあたりワークスペース作成数(パー�
 
 msgid "Workspaces on this device will show up here."
 msgstr "このデバイスのワークスペースがここに表示されます。"
+
+msgid "Workspaces on this device won't open until it's back. Restarting Superset usually clears it."
+msgstr "復旧するまで、このデバイスのワークスペースは開けません。Superset を再起動すると、たいてい解決します。"
 
 msgid "worktree"
 msgstr "ワークツリー"

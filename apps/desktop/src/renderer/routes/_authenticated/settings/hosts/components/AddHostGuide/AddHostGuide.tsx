@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -42,6 +42,7 @@ function placeholderCommand(organizationId: string | null): string {
 const HOST_POLL_INTERVAL_MS = 5_000;
 
 export function AddHostGuide() {
+	const { t } = useLingui();
 	const navigate = useNavigate();
 	const utils = cloudTrpc.useUtils();
 	// The org THIS window is showing: the key is minted for the org whose
@@ -175,7 +176,7 @@ export function AddHostGuide() {
 										: placeholderCommand(organizationId)
 								}
 								disabled={!minted}
-								disabledHint="Generate a key first"
+								disabledHint={t({ message: "Generate a key first" })}
 							/>
 						)}
 					</li>

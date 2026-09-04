@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
@@ -25,22 +25,25 @@ const DEFAULT_PARENT_DIR = "~/.superset/projects";
  * Short trigger label when the access check failed: what's wrong, not how to
  * fix it. The device pill next to it already names the host.
  */
-function failureLabel(
+function useFailureLabel(): (
 	reason: NonNullable<
 		ReturnType<typeof useCloneAccessPlan>["access"]
 	>["reason"],
-): string | null {
-	switch (reason) {
-		case "auth":
-			return "GitHub sign-in needed";
-		case "not_found":
-			return "No access to this repo";
-		case "network":
-		case "unreachable":
-			return "Host unreachable";
-		default:
-			return null;
-	}
+) => string | null {
+	const { t } = useLingui();
+	return (reason) => {
+		switch (reason) {
+			case "auth":
+				return t({ message: "GitHub sign-in needed" });
+			case "not_found":
+				return t({ message: "No access to this repo" });
+			case "network":
+			case "unreachable":
+				return t({ message: "Host unreachable" });
+			default:
+				return null;
+		}
+	};
 }
 
 /**
@@ -58,6 +61,7 @@ export function ClonePlanPill({
 	onOpenSettings,
 }: ClonePlanPillProps) {
 	const pathInputId = useId();
+	const failureLabel = useFailureLabel();
 	const access = plan.access;
 	const failed = !plan.isCheckingAccess && access !== null && !access.ok;
 	const verified = !plan.isCheckingAccess && access?.ok === true;

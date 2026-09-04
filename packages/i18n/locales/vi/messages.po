@@ -585,6 +585,15 @@ msgstr "{hiddenCount, plural, one {Hiện thêm # frame} other {Hiện thêm # f
 msgid "{hostName} is offline"
 msgstr "{hostName} đang ngoại tuyến"
 
+msgid "{hostName} is running an older version of Superset"
+msgstr "{hostName} đang chạy phiên bản Superset cũ hơn"
+
+msgid "{hostName} isn't responding"
+msgstr "{hostName} không phản hồi"
+
+msgid "{hostName} isn't signed in to GitHub"
+msgstr "{hostName} chưa đăng nhập GitHub"
+
 msgid "{hotkeyText} to hide"
 msgstr "{hotkeyText} để ẩn"
 
@@ -2499,6 +2508,9 @@ msgstr "Không thể mở đường dẫn workspace từ xa trong trình soạn 
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Không thể mở đường dẫn workspace từ xa trong Finder"
 
+msgid "Can't reach {hostName}"
+msgstr "Không thể kết nối tới {hostName}"
+
 msgid "Cancel"
 msgstr "Hủy"
 
@@ -2927,6 +2939,12 @@ msgstr "Sao chép vào <0>{parentDir}</0>"
 #. placeholder {0}: result.repoPath
 msgid "Cloned to {0}"
 msgstr "Đã clone vào {0}"
+
+msgid "Cloning private repositories onto this machine needs it."
+msgstr "Cần thiết để sao chép kho lưu trữ riêng tư về máy này."
+
+msgid "Cloning private repositories onto this machine will fail until it is."
+msgstr "Việc sao chép kho lưu trữ riêng tư về máy này sẽ thất bại cho đến khi đăng nhập."
 
 msgid "Cloning…"
 msgstr "Đang clone…"
@@ -6205,6 +6223,9 @@ msgstr "Chung"
 msgid "General access"
 msgstr "Quyền truy cập chung"
 
+msgid "Generate a key first"
+msgstr "Hãy tạo khóa trước"
+
 msgid "Generate a key to use with MCP servers."
 msgstr "Tạo một khóa để dùng với các server MCP."
 
@@ -6277,6 +6298,9 @@ msgstr "Việc cài đặt GitHub App đã bị hủy."
 msgid "GitHub App installed successfully!"
 msgstr "Đã cài GitHub App thành công!"
 
+msgid "GitHub CLI isn't installed on {hostName}"
+msgstr "GitHub CLI chưa được cài trên {hostName}"
+
 msgid "GitHub connected, but initial sync failed to start. Please try reconnecting."
 msgstr "Đã kết nối GitHub, nhưng lần đồng bộ đầu tiên không khởi động được. Vui lòng thử kết nối lại."
 
@@ -6291,6 +6315,9 @@ msgstr "Issue GitHub"
 
 msgid "GitHub refused the merge"
 msgstr "GitHub từ chối merge"
+
+msgid "GitHub sign-in needed"
+msgstr "Cần đăng nhập GitHub"
 
 msgid "GitHub username"
 msgstr "Tên người dùng GitHub"
@@ -7049,11 +7076,20 @@ msgstr "URL của issue phải khớp với {repoMismatch}."
 msgid "Issue…"
 msgstr "Issue…"
 
+msgid "It may be asleep or switched off. Open Superset on that machine, or start the host service from a terminal there."
+msgstr "Máy có thể đang ngủ hoặc đã tắt. Hãy mở Superset trên máy đó, hoặc khởi động host-service từ terminal."
+
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "Có thể nó đã bị xóa, hoặc thuộc về một tổ chức khác."
 
 msgid "It will reconnect on its own once the machine is back. Pull to check again."
 msgstr "Nó sẽ tự kết nối lại khi máy hoạt động trở lại. Kéo để kiểm tra lại."
+
+msgid "It's connected but not answering. Restarting Superset on that machine, or its host service, usually clears it."
+msgstr "Máy đã kết nối nhưng không trả lời. Khởi động lại Superset trên máy đó, hoặc host-service của nó, thường sẽ khắc phục."
+
+msgid "It's on {version}. Update it there to enable the rest of this page."
+msgstr "Đang ở phiên bản {version}. Hãy cập nhật trên máy đó để bật phần còn lại của trang này."
 
 msgid "Italic"
 msgstr "Nghiêng"
@@ -8380,6 +8416,9 @@ msgstr "Chưa có lần đăng nhập {0} nào trên host này — hãy đăng n
 
 msgid "No access to this host"
 msgstr "Không có quyền truy cập host này"
+
+msgid "No access to this repo"
+msgstr "Không có quyền truy cập kho này"
 
 msgid "No active enterprise accounts"
 msgstr "Không có tài khoản enterprise nào đang hoạt động"
@@ -13761,6 +13800,9 @@ msgstr "thiết bị này ({id})"
 msgid "This device isn't connected to the Superset relay, so automation runs will be skipped."
 msgstr "Thiết bị này chưa kết nối tới relay của Superset nên các lần chạy tự động hóa sẽ bị bỏ qua."
 
+msgid "This device's host service isn't responding"
+msgstr "host-service của thiết bị này không phản hồi"
+
 msgid "This directory does not exist. The terminal script will fall back to the workspace root."
 msgstr "Thư mục này không tồn tại. Script terminal sẽ quay về thư mục gốc của workspace."
 
@@ -14465,6 +14507,9 @@ msgstr "Cập nhật daemon"
 msgid "Update Error"
 msgstr "Lỗi cập nhật"
 
+msgid "Update it there to enable the rest of this page."
+msgstr "Hãy cập nhật trên máy đó để bật phần còn lại của trang này."
+
 msgid "Update naming instructions"
 msgstr "Cập nhật quy tắc đặt tên"
 
@@ -15085,6 +15130,9 @@ msgstr "Số workspace được tạo trên mỗi người dùng trong 7 ngày q
 
 msgid "Workspaces on this device will show up here."
 msgstr "Workspace trên thiết bị này sẽ xuất hiện ở đây."
+
+msgid "Workspaces on this device won't open until it's back. Restarting Superset usually clears it."
+msgstr "Các workspace trên thiết bị này sẽ không mở được cho đến khi nó hoạt động lại. Khởi động lại Superset thường sẽ khắc phục."
 
 msgid "worktree"
 msgstr "worktree"

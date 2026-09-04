@@ -585,6 +585,15 @@ msgstr "{hiddenCount, plural, one {# çerçeve daha göster} other {# çerçeve 
 msgid "{hostName} is offline"
 msgstr "{hostName} çevrimdışı"
 
+msgid "{hostName} is running an older version of Superset"
+msgstr "{hostName} daha eski bir Superset sürümü çalıştırıyor"
+
+msgid "{hostName} isn't responding"
+msgstr "{hostName} yanıt vermiyor"
+
+msgid "{hostName} isn't signed in to GitHub"
+msgstr "{hostName} GitHub'a giriş yapmamış"
+
 msgid "{hotkeyText} to hide"
 msgstr "gizlemek için {hotkeyText}"
 
@@ -2499,6 +2508,9 @@ msgstr "Uzak çalışma alanı yolları harici düzenleyicide açılamaz"
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Uzak çalışma alanı yolları Finder'da açılamaz"
 
+msgid "Can't reach {hostName}"
+msgstr "{hostName} erişilemiyor"
+
 msgid "Cancel"
 msgstr "İptal"
 
@@ -2927,6 +2939,12 @@ msgstr "Şuraya klonla: <0>{parentDir}</0>"
 #. placeholder {0}: result.repoPath
 msgid "Cloned to {0}"
 msgstr "{0} konumuna klonlandı"
+
+msgid "Cloning private repositories onto this machine needs it."
+msgstr "Bu makineye özel depoları klonlamak için gerekli."
+
+msgid "Cloning private repositories onto this machine will fail until it is."
+msgstr "Giriş yapılana kadar bu makineye özel depoları klonlamak başarısız olacak."
 
 msgid "Cloning…"
 msgstr "Klonlanıyor…"
@@ -6205,6 +6223,9 @@ msgstr "Genel"
 msgid "General access"
 msgstr "Genel erişim"
 
+msgid "Generate a key first"
+msgstr "Önce bir anahtar oluşturun"
+
 msgid "Generate a key to use with MCP servers."
 msgstr "MCP sunucularıyla kullanmak için bir anahtar oluşturun."
 
@@ -6277,6 +6298,9 @@ msgstr "GitHub App kurulumu iptal edildi."
 msgid "GitHub App installed successfully!"
 msgstr "GitHub App başarıyla kuruldu!"
 
+msgid "GitHub CLI isn't installed on {hostName}"
+msgstr "{hostName} üzerinde GitHub CLI kurulu değil"
+
 msgid "GitHub connected, but initial sync failed to start. Please try reconnecting."
 msgstr "GitHub bağlandı, ancak ilk eşitleme başlatılamadı. Lütfen yeniden bağlanmayı deneyin."
 
@@ -6291,6 +6315,9 @@ msgstr "GitHub issue'ları"
 
 msgid "GitHub refused the merge"
 msgstr "GitHub birleştirmeyi reddetti"
+
+msgid "GitHub sign-in needed"
+msgstr "GitHub girişi gerekli"
 
 msgid "GitHub username"
 msgstr "GitHub kullanıcı adı"
@@ -7049,11 +7076,20 @@ msgstr "Issue URL'si {repoMismatch} ile eşleşmeli."
 msgid "Issue…"
 msgstr "Issue…"
 
+msgid "It may be asleep or switched off. Open Superset on that machine, or start the host service from a terminal there."
+msgstr "Uyku modunda veya kapalı olabilir. O makinede Superset'i açın ya da host-service'i bir terminalden başlatın."
+
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "Silinmiş olabilir veya başka bir kuruluşa ait olabilir."
 
 msgid "It will reconnect on its own once the machine is back. Pull to check again."
 msgstr "Makine geri döndüğünde kendiliğinden yeniden bağlanır. Yeniden denetlemek için aşağı çekin."
+
+msgid "It's connected but not answering. Restarting Superset on that machine, or its host service, usually clears it."
+msgstr "Bağlı ama yanıt vermiyor. O makinede Superset'i veya host-service'ini yeniden başlatmak genelde sorunu giderir."
+
+msgid "It's on {version}. Update it there to enable the rest of this page."
+msgstr "{version} sürümünde. Bu sayfanın geri kalanını etkinleştirmek için orada güncelleyin."
 
 msgid "Italic"
 msgstr "İtalik"
@@ -8380,6 +8416,9 @@ msgstr "Bu host'ta {0} oturumu yok — oturum açın, kullanım burada görüns�
 
 msgid "No access to this host"
 msgstr "Bu host'a erişim yok"
+
+msgid "No access to this repo"
+msgstr "Bu depoya erişim yok"
 
 msgid "No active enterprise accounts"
 msgstr "Etkin kurumsal hesap yok"
@@ -13761,6 +13800,9 @@ msgstr "bu cihaz ({id})"
 msgid "This device isn't connected to the Superset relay, so automation runs will be skipped."
 msgstr "Bu cihaz Superset rölesine bağlı değil, bu yüzden otomasyon çalıştırmaları atlanacak."
 
+msgid "This device's host service isn't responding"
+msgstr "Bu cihazın host-service'i yanıt vermiyor"
+
 msgid "This directory does not exist. The terminal script will fall back to the workspace root."
 msgstr "Bu dizin mevcut değil. Terminal betiği çalışma alanı köküne geri dönecek."
 
@@ -14465,6 +14507,9 @@ msgstr "Daemon'u güncelle"
 msgid "Update Error"
 msgstr "Güncelleme hatası"
 
+msgid "Update it there to enable the rest of this page."
+msgstr "Bu sayfanın geri kalanını etkinleştirmek için orada güncelleyin."
+
 msgid "Update naming instructions"
 msgstr "Adlandırma yönergelerini güncelle"
 
@@ -15085,6 +15130,9 @@ msgstr "Son 7 günde kullanıcı başına oluşturulan çalışma alanları, yü
 
 msgid "Workspaces on this device will show up here."
 msgstr "Bu cihazdaki çalışma alanları burada görünecek."
+
+msgid "Workspaces on this device won't open until it's back. Restarting Superset usually clears it."
+msgstr "Geri gelene kadar bu cihazdaki çalışma alanları açılmaz. Superset'i yeniden başlatmak genelde sorunu giderir."
 
 msgid "worktree"
 msgstr "worktree"

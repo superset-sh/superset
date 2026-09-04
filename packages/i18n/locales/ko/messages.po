@@ -585,6 +585,15 @@ msgstr "{hiddenCount, plural, one {프레임 #개 더 보기} other {프레임 #
 msgid "{hostName} is offline"
 msgstr "{hostName}이(가) 오프라인입니다"
 
+msgid "{hostName} is running an older version of Superset"
+msgstr "{hostName}에서 이전 버전의 Superset을 실행 중입니다"
+
+msgid "{hostName} isn't responding"
+msgstr "{hostName}이(가) 응답하지 않습니다"
+
+msgid "{hostName} isn't signed in to GitHub"
+msgstr "{hostName}이(가) GitHub에 로그인되어 있지 않습니다"
+
 msgid "{hotkeyText} to hide"
 msgstr "{hotkeyText}로 숨기기"
 
@@ -2499,6 +2508,9 @@ msgstr "원격 워크스페이스 경로는 외부 에디터에서 열 수 없�
 msgid "Can't open remote workspace paths in Finder"
 msgstr "원격 워크스페이스 경로는 Finder에서 열 수 없습니다"
 
+msgid "Can't reach {hostName}"
+msgstr "{hostName}에 연결할 수 없습니다"
+
 msgid "Cancel"
 msgstr "취소"
 
@@ -2927,6 +2939,12 @@ msgstr "<0>{parentDir}</0>에 클론"
 #. placeholder {0}: result.repoPath
 msgid "Cloned to {0}"
 msgstr "{0}(으)로 클론했습니다"
+
+msgid "Cloning private repositories onto this machine needs it."
+msgstr "이 머신에 비공개 저장소를 클론하려면 필요합니다."
+
+msgid "Cloning private repositories onto this machine will fail until it is."
+msgstr "로그인하기 전까지 이 머신으로의 비공개 저장소 클론은 실패합니다."
 
 msgid "Cloning…"
 msgstr "클론하는 중…"
@@ -6205,6 +6223,9 @@ msgstr "일반"
 msgid "General access"
 msgstr "일반 접근 권한"
 
+msgid "Generate a key first"
+msgstr "먼저 키를 생성하세요"
+
 msgid "Generate a key to use with MCP servers."
 msgstr "MCP 서버에서 사용할 키를 생성하세요."
 
@@ -6277,6 +6298,9 @@ msgstr "GitHub App 설치가 취소되었습니다."
 msgid "GitHub App installed successfully!"
 msgstr "GitHub App을 설치했습니다!"
 
+msgid "GitHub CLI isn't installed on {hostName}"
+msgstr "{hostName}에 GitHub CLI가 설치되어 있지 않습니다"
+
 msgid "GitHub connected, but initial sync failed to start. Please try reconnecting."
 msgstr "GitHub는 연결되었지만 초기 동기화를 시작하지 못했습니다. 다시 연결해 보세요."
 
@@ -6291,6 +6315,9 @@ msgstr "GitHub 이슈"
 
 msgid "GitHub refused the merge"
 msgstr "GitHub가 머지를 거부했습니다"
+
+msgid "GitHub sign-in needed"
+msgstr "GitHub 로그인 필요"
 
 msgid "GitHub username"
 msgstr "GitHub 사용자 이름"
@@ -7049,11 +7076,20 @@ msgstr "이슈 URL이 {repoMismatch}과(와) 일치해야 합니다."
 msgid "Issue…"
 msgstr "이슈…"
 
+msgid "It may be asleep or switched off. Open Superset on that machine, or start the host service from a terminal there."
+msgstr "절전 모드이거나 꺼져 있을 수 있습니다. 해당 머신에서 Superset을 열거나 터미널에서 host service를 시작하세요."
+
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "삭제되었거나 다른 조직에 속한 페이지일 수 있습니다."
 
 msgid "It will reconnect on its own once the machine is back. Pull to check again."
 msgstr "컴퓨터가 돌아오면 자동으로 다시 연결됩니다. 당겨서 다시 확인하세요."
+
+msgid "It's connected but not answering. Restarting Superset on that machine, or its host service, usually clears it."
+msgstr "연결되어 있지만 응답하지 않습니다. 해당 머신에서 Superset 또는 host service를 재시작하면 대개 해결됩니다."
+
+msgid "It's on {version}. Update it there to enable the rest of this page."
+msgstr "현재 {version} 버전입니다. 해당 머신에서 업데이트하면 이 페이지의 나머지 기능이 활성화됩니다."
 
 msgid "Italic"
 msgstr "기울임꼴"
@@ -8380,6 +8416,9 @@ msgstr "이 호스트에 {0} 로그인이 없습니다 — 로그인하면 사�
 
 msgid "No access to this host"
 msgstr "이 호스트에 접근할 수 없습니다"
+
+msgid "No access to this repo"
+msgstr "이 저장소에 접근할 수 없음"
 
 msgid "No active enterprise accounts"
 msgstr "활성 엔터프라이즈 계정 없음"
@@ -13761,6 +13800,9 @@ msgstr "이 기기 ({id})"
 msgid "This device isn't connected to the Superset relay, so automation runs will be skipped."
 msgstr "이 기기가 Superset 릴레이에 연결되어 있지 않아 자동화 실행이 건너뛰어집니다."
 
+msgid "This device's host service isn't responding"
+msgstr "이 기기의 host service가 응답하지 않습니다"
+
 msgid "This directory does not exist. The terminal script will fall back to the workspace root."
 msgstr "이 디렉터리가 없습니다. 터미널 스크립트는 워크스페이스 루트에서 실행됩니다."
 
@@ -14465,6 +14507,9 @@ msgstr "데몬 업데이트"
 msgid "Update Error"
 msgstr "업데이트 오류"
 
+msgid "Update it there to enable the rest of this page."
+msgstr "해당 머신에서 업데이트하면 이 페이지의 나머지 기능이 활성화됩니다."
+
 msgid "Update naming instructions"
 msgstr "이름 지정 지침 업데이트"
 
@@ -15085,6 +15130,9 @@ msgstr "최근 7일간 사용자당 생성한 워크스페이스 수, 백분위�
 
 msgid "Workspaces on this device will show up here."
 msgstr "이 기기의 워크스페이스가 여기에 표시됩니다."
+
+msgid "Workspaces on this device won't open until it's back. Restarting Superset usually clears it."
+msgstr "복구될 때까지 이 기기의 워크스페이스는 열리지 않습니다. Superset을 재시작하면 대개 해결됩니다."
 
 msgid "worktree"
 msgstr "worktree"

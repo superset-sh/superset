@@ -90,8 +90,17 @@ export function HostReadinessBanner({
 			return (
 				<>
 					<Banner
-						title="This device's host service isn't responding"
-						body="Workspaces on this device won't open until it's back. Restarting Superset usually clears it."
+						title={
+							<Trans>
+								This device&apos;s host service isn&apos;t responding
+							</Trans>
+						}
+						body={
+							<Trans>
+								Workspaces on this device won&apos;t open until it&apos;s back.
+								Restarting Superset usually clears it.
+							</Trans>
+						}
 					/>
 					{dialog}
 				</>
@@ -110,13 +119,23 @@ export function HostReadinessBanner({
 			<>
 				{responding ? (
 					<Banner
-						title={`${hostName} isn't responding`}
-						body="It's connected but not answering. Restarting Superset on that machine, or its host service, usually clears it."
+						title={<Trans>{hostName} isn&apos;t responding</Trans>}
+						body={
+							<Trans>
+								It&apos;s connected but not answering. Restarting Superset on
+								that machine, or its host service, usually clears it.
+							</Trans>
+						}
 					/>
 				) : (
 					<Banner
-						title={`Can't reach ${hostName}`}
-						body="It may be asleep or switched off. Open Superset on that machine, or start the host service from a terminal there."
+						title={<Trans>Can&apos;t reach {hostName}</Trans>}
+						body={
+							<Trans>
+								It may be asleep or switched off. Open Superset on that machine,
+								or start the host service from a terminal there.
+							</Trans>
+						}
 						command={START_COMMAND}
 					/>
 				)}
@@ -133,11 +152,18 @@ export function HostReadinessBanner({
 		return (
 			<>
 				<Banner
-					title={`${hostName} is running an older version of Superset`}
+					title={
+						<Trans>{hostName} is running an older version of Superset</Trans>
+					}
 					body={
-						version
-							? `It's on ${version}. Update it there to enable the rest of this page.`
-							: "Update it there to enable the rest of this page."
+						version ? (
+							<Trans>
+								It&apos;s on {version}. Update it there to enable the rest of
+								this page.
+							</Trans>
+						) : (
+							<Trans>Update it there to enable the rest of this page.</Trans>
+						)
 					}
 					command={UPDATE_COMMAND}
 				/>
@@ -150,8 +176,12 @@ export function HostReadinessBanner({
 		return (
 			<>
 				<Banner
-					title={`GitHub CLI isn't installed on ${hostName}`}
-					body="Cloning private repositories onto this machine needs it."
+					title={<Trans>GitHub CLI isn&apos;t installed on {hostName}</Trans>}
+					body={
+						<Trans>
+							Cloning private repositories onto this machine needs it.
+						</Trans>
+					}
 					command={signIn ? null : installCommandFor(infoQuery.data?.platform)}
 					action={
 						signIn ? (
@@ -175,8 +205,13 @@ export function HostReadinessBanner({
 		return (
 			<>
 				<Banner
-					title={`${hostName} isn't signed in to GitHub`}
-					body="Cloning private repositories onto this machine will fail until it is."
+					title={<Trans>{hostName} isn&apos;t signed in to GitHub</Trans>}
+					body={
+						<Trans>
+							Cloning private repositories onto this machine will fail until it
+							is.
+						</Trans>
+					}
 					command={signIn ? null : GH_AUTH_COMMAND}
 					action={
 						signIn ? (
@@ -205,8 +240,8 @@ function Banner({
 	command,
 	action,
 }: {
-	title: string;
-	body: string;
+	title: React.ReactNode;
+	body: React.ReactNode;
 	command?: string | null;
 	action?: React.ReactNode;
 }) {

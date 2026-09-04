@@ -585,6 +585,15 @@ msgstr "{hiddenCount, plural, one {Показать ещё # кадр} few {По
 msgid "{hostName} is offline"
 msgstr "{hostName} офлайн"
 
+msgid "{hostName} is running an older version of Superset"
+msgstr "На {hostName} работает более старая версия Superset"
+
+msgid "{hostName} isn't responding"
+msgstr "{hostName} не отвечает"
+
+msgid "{hostName} isn't signed in to GitHub"
+msgstr "{hostName} не вошёл в GitHub"
+
 msgid "{hotkeyText} to hide"
 msgstr "{hotkeyText} — скрыть"
 
@@ -2499,6 +2508,9 @@ msgstr "Пути удалённых рабочих областей нельзя
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Пути удалённых рабочих областей нельзя открыть в Finder"
 
+msgid "Can't reach {hostName}"
+msgstr "Не удаётся связаться с {hostName}"
+
 msgid "Cancel"
 msgstr "Отмена"
 
@@ -2927,6 +2939,12 @@ msgstr "Клонировать в <0>{parentDir}</0>"
 #. placeholder {0}: result.repoPath
 msgid "Cloned to {0}"
 msgstr "Клонировано в {0}"
+
+msgid "Cloning private repositories onto this machine needs it."
+msgstr "Нужен для клонирования приватных репозиториев на эту машину."
+
+msgid "Cloning private repositories onto this machine will fail until it is."
+msgstr "Клонирование приватных репозиториев на эту машину будет завершаться ошибкой, пока этого не произойдёт."
 
 msgid "Cloning…"
 msgstr "Клонирование…"
@@ -6205,6 +6223,9 @@ msgstr "Общие"
 msgid "General access"
 msgstr "Общий доступ"
 
+msgid "Generate a key first"
+msgstr "Сначала создайте ключ"
+
 msgid "Generate a key to use with MCP servers."
 msgstr "Создайте ключ для использования с серверами MCP."
 
@@ -6277,6 +6298,9 @@ msgstr "Установка GitHub App отменена."
 msgid "GitHub App installed successfully!"
 msgstr "GitHub App успешно установлен!"
 
+msgid "GitHub CLI isn't installed on {hostName}"
+msgstr "GitHub CLI не установлен на {hostName}"
+
 msgid "GitHub connected, but initial sync failed to start. Please try reconnecting."
 msgstr "GitHub подключён, но начальную синхронизацию не удалось запустить. Попробуйте переподключить."
 
@@ -6291,6 +6315,9 @@ msgstr "Задачи GitHub"
 
 msgid "GitHub refused the merge"
 msgstr "GitHub отклонил слияние"
+
+msgid "GitHub sign-in needed"
+msgstr "Требуется вход в GitHub"
 
 msgid "GitHub username"
 msgstr "Имя пользователя GitHub"
@@ -7049,11 +7076,20 @@ msgstr "URL задачи должен соответствовать {repoMismat
 msgid "Issue…"
 msgstr "Задача…"
 
+msgid "It may be asleep or switched off. Open Superset on that machine, or start the host service from a terminal there."
+msgstr "Возможно, она спит или выключена. Откройте Superset на этой машине или запустите host-service в терминале."
+
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "Возможно, она удалена или принадлежит другой организации."
 
 msgid "It will reconnect on its own once the machine is back. Pull to check again."
 msgstr "Он переподключится сам, когда машина вернётся. Потяните, чтобы проверить снова."
+
+msgid "It's connected but not answering. Restarting Superset on that machine, or its host service, usually clears it."
+msgstr "Она подключена, но не отвечает. Обычно помогает перезапуск Superset на той машине или её host-service."
+
+msgid "It's on {version}. Update it there to enable the rest of this page."
+msgstr "Установлена версия {version}. Обновите её там, чтобы включить остальную часть страницы."
 
 msgid "Italic"
 msgstr "Курсив"
@@ -8380,6 +8416,9 @@ msgstr "На этом хосте нет входов {0} — войдите, и 
 
 msgid "No access to this host"
 msgstr "Нет доступа к этому хосту"
+
+msgid "No access to this repo"
+msgstr "Нет доступа к этому репозиторию"
 
 msgid "No active enterprise accounts"
 msgstr "Нет активных enterprise-аккаунтов"
@@ -13761,6 +13800,9 @@ msgstr "это устройство ({id})"
 msgid "This device isn't connected to the Superset relay, so automation runs will be skipped."
 msgstr "Это устройство не подключено к реле Superset, поэтому запуски автоматизаций будут пропускаться."
 
+msgid "This device's host service isn't responding"
+msgstr "host-service этого устройства не отвечает"
+
 msgid "This directory does not exist. The terminal script will fall back to the workspace root."
 msgstr "Такой папки не существует. Скрипт терминала запустится в корне рабочей области."
 
@@ -14465,6 +14507,9 @@ msgstr "Обновить демон"
 msgid "Update Error"
 msgstr "Ошибка обновления"
 
+msgid "Update it there to enable the rest of this page."
+msgstr "Обновите её там, чтобы включить остальную часть страницы."
+
 msgid "Update naming instructions"
 msgstr "Обновить правила именования"
 
@@ -15085,6 +15130,9 @@ msgstr "Рабочие области, созданные одним польз�
 
 msgid "Workspaces on this device will show up here."
 msgstr "Рабочие области с этого устройства появятся здесь."
+
+msgid "Workspaces on this device won't open until it's back. Restarting Superset usually clears it."
+msgstr "Рабочие области на этом устройстве не откроются, пока он не вернётся. Обычно помогает перезапуск Superset."
 
 msgid "worktree"
 msgstr "worktree"
