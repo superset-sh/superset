@@ -7545,6 +7545,9 @@ msgstr "Načítám fonty..."
 msgid "Loading groups…"
 msgstr "Načítám skupiny…"
 
+msgid "Loading image…"
+msgstr "Načítám obrázek…"
+
 msgid "Loading issue…"
 msgstr "Načítám issue…"
 

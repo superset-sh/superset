@@ -7545,6 +7545,9 @@ msgstr "Đang tải font..."
 msgid "Loading groups…"
 msgstr "Đang tải nhóm…"
 
+msgid "Loading image…"
+msgstr "Đang tải hình ảnh…"
+
 msgid "Loading issue…"
 msgstr "Đang tải issue…"
 

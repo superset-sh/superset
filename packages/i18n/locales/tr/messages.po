@@ -7545,6 +7545,9 @@ msgstr "Yazı tipleri yükleniyor..."
 msgid "Loading groups…"
 msgstr "Gruplar yükleniyor…"
 
+msgid "Loading image…"
+msgstr "Görsel yükleniyor…"
+
 msgid "Loading issue…"
 msgstr "Issue yükleniyor…"
 

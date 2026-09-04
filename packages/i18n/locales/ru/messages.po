@@ -7545,6 +7545,9 @@ msgstr "Загрузка шрифтов..."
 msgid "Loading groups…"
 msgstr "Загрузка групп…"
 
+msgid "Loading image…"
+msgstr "Загрузка изображения…"
+
 msgid "Loading issue…"
 msgstr "Загрузка задачи…"
 

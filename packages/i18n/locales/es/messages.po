@@ -7545,6 +7545,9 @@ msgstr "Cargando fuentes..."
 msgid "Loading groups…"
 msgstr "Cargando grupos…"
 
+msgid "Loading image…"
+msgstr "Cargando imagen…"
+
 msgid "Loading issue…"
 msgstr "Cargando issue…"
 

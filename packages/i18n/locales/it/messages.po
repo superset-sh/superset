@@ -7545,6 +7545,9 @@ msgstr "Caricamento dei font..."
 msgid "Loading groups…"
 msgstr "Caricamento dei gruppi…"
 
+msgid "Loading image…"
+msgstr "Caricamento dell’immagine…"
+
 msgid "Loading issue…"
 msgstr "Caricamento della issue…"
 

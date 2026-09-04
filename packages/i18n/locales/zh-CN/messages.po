@@ -7545,6 +7545,9 @@ msgstr "正在加载字体..."
 msgid "Loading groups…"
 msgstr "正在加载分组…"
 
+msgid "Loading image…"
+msgstr "正在加载图片…"
+
 msgid "Loading issue…"
 msgstr "正在加载议题…"
 

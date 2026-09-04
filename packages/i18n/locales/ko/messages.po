@@ -7545,6 +7545,9 @@ msgstr "글꼴 불러오는 중..."
 msgid "Loading groups…"
 msgstr "그룹 불러오는 중…"
 
+msgid "Loading image…"
+msgstr "이미지 불러오는 중…"
+
 msgid "Loading issue…"
 msgstr "이슈 불러오는 중…"
 

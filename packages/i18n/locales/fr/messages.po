@@ -7545,6 +7545,9 @@ msgstr "Chargement des polices..."
 msgid "Loading groups…"
 msgstr "Chargement des groupes…"
 
+msgid "Loading image…"
+msgstr "Chargement de l’image…"
+
 msgid "Loading issue…"
 msgstr "Chargement de l'issue…"
 

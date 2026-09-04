@@ -7545,6 +7545,9 @@ msgstr "Memuat font..."
 msgid "Loading groups…"
 msgstr "Memuat grup…"
 
+msgid "Loading image…"
+msgstr "Memuat gambar…"
+
 msgid "Loading issue…"
 msgstr "Memuat issue…"
 

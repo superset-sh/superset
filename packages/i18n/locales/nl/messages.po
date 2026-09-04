@@ -7545,6 +7545,9 @@ msgstr "Lettertypen laden..."
 msgid "Loading groups…"
 msgstr "Groepen laden…"
 
+msgid "Loading image…"
+msgstr "Afbeelding laden…"
+
 msgid "Loading issue…"
 msgstr "Issue laden…"
 

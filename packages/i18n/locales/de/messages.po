@@ -7545,6 +7545,9 @@ msgstr "Schriften werden geladen..."
 msgid "Loading groups…"
 msgstr "Gruppen werden geladen…"
 
+msgid "Loading image…"
+msgstr "Bild wird geladen…"
+
 msgid "Loading issue…"
 msgstr "Issue wird geladen…"
 

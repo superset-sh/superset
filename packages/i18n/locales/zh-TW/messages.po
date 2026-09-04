@@ -7545,6 +7545,9 @@ msgstr "正在載入字型..."
 msgid "Loading groups…"
 msgstr "正在載入群組…"
 
+msgid "Loading image…"
+msgstr "正在載入圖片…"
+
 msgid "Loading issue…"
 msgstr "正在載入議題…"
 

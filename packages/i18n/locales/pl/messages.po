@@ -7545,6 +7545,9 @@ msgstr "Wczytywanie czcionek..."
 msgid "Loading groups…"
 msgstr "Wczytywanie grup…"
 
+msgid "Loading image…"
+msgstr "Wczytywanie obrazu…"
+
 msgid "Loading issue…"
 msgstr "Wczytywanie zgłoszenia…"
 
