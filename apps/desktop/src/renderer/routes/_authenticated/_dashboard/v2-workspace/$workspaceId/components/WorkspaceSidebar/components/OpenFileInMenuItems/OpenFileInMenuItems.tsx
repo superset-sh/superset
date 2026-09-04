@@ -15,12 +15,15 @@ import { AppWindow, ExternalLink } from "lucide-react";
 import jetbrainsIcon from "renderer/assets/app-icons/jetbrains.svg";
 import vscodeIcon from "renderer/assets/app-icons/vscode.svg";
 import {
+	AppOptionIcon,
+	useCustomApps,
+} from "renderer/components/OpenInExternalDropdown";
+import {
 	IDE_OPTIONS,
 	JETBRAINS_OPTIONS,
 	type OpenInExternalAppOption,
 	VSCODE_OPTIONS,
 } from "renderer/components/OpenInExternalDropdown/constants";
-import { useCustomApps } from "renderer/components/OpenInExternalDropdown/useCustomApps";
 import { useOpenInExternalEditor } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useOpenInExternalEditor";
 import { useThemeStore } from "renderer/stores";
 
@@ -71,22 +74,15 @@ export function OpenFileInMenuItems({
 
 	// Terminals are intentionally omitted — they open a directory, not a file.
 	const appRows = (apps: OpenInExternalAppOption[]) =>
-		apps.map((app) => {
-			const icon = isDark ? app.darkIcon : app.lightIcon;
-			return (
-				<Item
-					key={app.id}
-					onSelect={() => openInExternalEditor(path, { app: app.id })}
-				>
-					{icon ? (
-						<img src={icon} alt="" className="size-4 object-contain" />
-					) : (
-						<AppWindow />
-					)}
-					{app.label}
-				</Item>
-			);
-		});
+		apps.map((app) => (
+			<Item
+				key={app.id}
+				onSelect={() => openInExternalEditor(path, { app: app.id })}
+			>
+				<AppOptionIcon option={app} isDark={isDark} />
+				{app.label}
+			</Item>
+		));
 
 	const triggerLabel = (icon: string, label: string) => (
 		<div className="flex items-center gap-2">

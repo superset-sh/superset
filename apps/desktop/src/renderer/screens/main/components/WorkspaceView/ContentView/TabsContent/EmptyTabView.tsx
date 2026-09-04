@@ -6,7 +6,7 @@ import { BsTerminalPlus } from "react-icons/bs";
 import { LuExternalLink, LuSearch, LuTrash2 } from "react-icons/lu";
 import { TbWorld } from "react-icons/tb";
 import { GitHubStarPill } from "renderer/components/GitHubStarPill";
-import { getAppOption } from "renderer/components/OpenInExternalDropdown";
+import { useAppOption } from "renderer/components/OpenInExternalDropdown";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceDeleteHandler } from "renderer/react-query/workspaces";
@@ -63,11 +63,11 @@ export function EmptyTabView({
 		addBrowserTab(workspaceId);
 	}, [addBrowserTab, workspaceId]);
 
+	const appOption = useAppOption(resolvedExternalApp);
 	const openInActionLabel = useMemo(() => {
-		const appOption = getAppOption(resolvedExternalApp);
 		const appName = appOption?.displayLabel ?? appOption?.label;
 		return appName ? `Open in ${appName}` : null;
-	}, [resolvedExternalApp]);
+	}, [appOption]);
 
 	const actions = useMemo<EmptyTabAction[]>(() => {
 		const baseActions: EmptyTabAction[] = [

@@ -13,6 +13,7 @@ import { LuAppWindow, LuCopy } from "react-icons/lu";
 import jetbrainsIcon from "renderer/assets/app-icons/jetbrains.svg";
 import terminalIcon from "renderer/assets/app-icons/terminal.png";
 import vscodeIcon from "renderer/assets/app-icons/vscode.svg";
+import { AppOptionIcon } from "./components/AppOptionIcon";
 import {
 	FINDER_OPTIONS,
 	IDE_OPTIONS,
@@ -81,30 +82,23 @@ export function OpenInExternalDropdownItems({
 		apps: OpenInExternalAppOption[],
 		group: OpenInExternalAppGroup,
 	) =>
-		apps.map((app) => {
-			const icon = isDark ? app.darkIcon : app.lightIcon;
-			return (
-				<DropdownMenuItem
-					key={app.id}
-					onClick={() => onOpenIn(app.id)}
-					className={appItemClassName}
-				>
-					<div className={cn("flex items-center gap-2", appContentClassName)}>
-						{icon ? (
-							<img
-								src={icon}
-								alt=""
-								className={cn("size-4 object-contain", appIconClassName)}
-							/>
-						) : (
-							<LuAppWindow className={cn("size-4", appIconClassName)} />
-						)}
-						<span className={appLabelClassName}>{app.label}</span>
-					</div>
-					{renderAppTrailing?.(app.id, group)}
-				</DropdownMenuItem>
-			);
-		});
+		apps.map((app) => (
+			<DropdownMenuItem
+				key={app.id}
+				onClick={() => onOpenIn(app.id)}
+				className={appItemClassName}
+			>
+				<div className={cn("flex items-center gap-2", appContentClassName)}>
+					<AppOptionIcon
+						option={app}
+						isDark={isDark}
+						className={appIconClassName}
+					/>
+					<span className={appLabelClassName}>{app.label}</span>
+				</div>
+				{renderAppTrailing?.(app.id, group)}
+			</DropdownMenuItem>
+		));
 
 	const activeIdeOption = activeApp
 		? [...IDE_OPTIONS, ...VSCODE_OPTIONS, ...JETBRAINS_OPTIONS].find(

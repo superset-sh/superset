@@ -11,8 +11,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useState } from "react";
 import { HiChevronDown } from "react-icons/hi2";
 import {
-	getAppOption,
+	AppOptionIcon,
 	OpenInExternalDropdownItems,
+	useAppOption,
 } from "renderer/components/OpenInExternalDropdown";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { HotkeyLabel, useHotkeyDisplay } from "renderer/hotkeys";
@@ -61,10 +62,9 @@ export function OpenInButton({
 	});
 	const { copyToClipboard } = useCopyToClipboard();
 
-	const currentApp = getAppOption(resolvedApp) ?? null;
+	const currentApp = useAppOption(resolvedApp) ?? null;
 
 	const isDark = activeTheme?.type === "dark";
-	const currentAppIcon = currentApp?.[isDark ? "darkIcon" : "lightIcon"];
 	const handleOpenIn = (app: AppRef) => {
 		if (!path) return;
 		openInApp.mutate({ path, app, projectId });
@@ -94,11 +94,7 @@ export function OpenInButton({
 							onClick={handleOpenLastUsed}
 							disabled={!path}
 						>
-							<img
-								src={currentAppIcon}
-								alt=""
-								className="size-4 object-contain"
-							/>
+							<AppOptionIcon option={currentApp} isDark={isDark} />
 							<span className="font-medium">{label}</span>
 						</Button>
 					</TooltipTrigger>

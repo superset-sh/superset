@@ -10,11 +10,12 @@ import { OverflowFadeText } from "@superset/ui/overflow-fade-text";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import { VscChevronDown } from "react-icons/vsc";
 import {
-	getAppOption,
+	AppOptionIcon,
 	OpenInExternalDropdownItems,
+	useAppOption,
 } from "renderer/components/OpenInExternalDropdown";
 import { HotkeyLabel, useHotkey, useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -66,10 +67,7 @@ export function V2OpenInMenuButton({
 			),
 	});
 
-	const currentApp = useMemo(
-		() => getAppOption(resolvedApp) ?? null,
-		[resolvedApp],
-	);
+	const currentApp = useAppOption(resolvedApp) ?? null;
 	const openInDisplay = useHotkeyDisplay("OPEN_IN_APP");
 	const copyPathDisplay = useHotkeyDisplay("COPY_PATH");
 	const showOpenInShortcut = openInDisplay.text !== "Unassigned";
@@ -130,10 +128,10 @@ export function V2OpenInMenuButton({
 						)}
 					>
 						{currentApp && (
-							<img
-								src={isDark ? currentApp.darkIcon : currentApp.lightIcon}
-								alt=""
-								className="size-3.5 object-contain shrink-0"
+							<AppOptionIcon
+								option={currentApp}
+								isDark={isDark}
+								className="size-3.5"
 							/>
 						)}
 						{branch && (

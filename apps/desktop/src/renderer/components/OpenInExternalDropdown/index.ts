@@ -1,3 +1,4 @@
+export { AppOptionIcon } from "./components/AppOptionIcon";
 export type { OpenInExternalAppOption } from "./constants";
 export {
 	APP_OPTIONS,
