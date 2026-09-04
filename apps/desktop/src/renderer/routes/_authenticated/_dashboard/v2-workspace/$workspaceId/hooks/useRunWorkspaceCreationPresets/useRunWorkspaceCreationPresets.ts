@@ -75,8 +75,18 @@ export function useRunWorkspaceCreationPresets({
 		void (async () => {
 			// Serial so split-pane/sequential presets land in the tab the
 			// previous one left active, matching the presets-bar order.
+			// executePreset toasts its own failures; the guard keeps an
+			// unexpected throw from one script skipping the ones after it.
 			for (const preset of presets) {
-				await executePreset(preset);
+				try {
+					await executePreset(preset);
+				} catch (err) {
+					console.error("[useRunWorkspaceCreationPresets] preset failed", {
+						workspaceId,
+						presetId: preset.id,
+						err,
+					});
+				}
 			}
 		})();
 	}, [
