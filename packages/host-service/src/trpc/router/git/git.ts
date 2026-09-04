@@ -34,6 +34,7 @@ import type {
 import { scheduleBaseRefFetch } from "./utils/base-ref-freshness";
 import { rethrowEnvironmentalGitError } from "./utils/classify-git-error";
 import { gitConfigWrite } from "./utils/config-write";
+import { diffSideObjectSpec, readDiffSideBlob } from "./utils/diff-side-blob";
 import {
 	assertSafeRelativePath,
 	getDefaultBranchName,
@@ -192,6 +193,7 @@ const getDiffInputShape = z.object({
  * changeset we expect the Changes pane to render, while still bounding a
  * runaway/malicious request. */
 const MAX_DIFF_BULK_PATHS = 2000;
+const DIFF_SIDE_FILE_MAX_BYTES = 10 * 1024 * 1024;
 
 export const gitRouter = router({
 	listBranches: queryProcedure
@@ -650,6 +652,51 @@ export const gitRouter = router({
 				input.path,
 				refs,
 			);
+		}),
+
+	// One side of a binary file's diff, read from the git object the text
+	// diff would compare (index, HEAD, merge-base or a commit) so an image or
+	// PDF preview shows the same "before" and "after" as the hunks around it.
+	// The unstaged "new" side is the working tree and is not served here;
+	// callers read it through `filesystem.readFile`.
+	readDiffSideFile: queryProcedure
+		.meta({ timeoutMs: 30_000 })
+		.input(
+			getDiffInputShape.extend({
+				side: z.enum(["old", "new"]),
+				maxBytes: z.number().int().positive().optional(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			assertSafeRelativePath(input.path);
+			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const git = await ctx.git(worktreePath);
+			const refs = await resolveDiffCategoryRefs(git, input.category, input);
+			const spec = diffSideObjectSpec(
+				input.category,
+				input.side,
+				input.path,
+				refs,
+			);
+			if (!spec) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"The unstaged new side is the working tree, not a git object",
+				});
+			}
+			const blob = await readDiffSideBlob(
+				git,
+				spec,
+				input.maxBytes ?? DIFF_SIDE_FILE_MAX_BYTES,
+			);
+			if (blob.kind === "missing") return { kind: "missing" as const };
+			return {
+				kind: "bytes" as const,
+				content: blob.content?.toString("base64") ?? null,
+				byteLength: blob.byteLength,
+				exceededLimit: blob.exceededLimit,
+			};
 		}),
 
 	// Bulk sibling of `getDiff` for callers (the Changes pane) that need every
