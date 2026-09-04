@@ -25,7 +25,6 @@ import {
 	rmSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
-import { satisfies } from "semver";
 import { requiredMaterializedNodeModules } from "../runtime-dependencies";
 
 // Target architecture for cross-compilation. When set, platform-specific
@@ -111,123 +110,6 @@ function copyModuleIfSymlink(
 	return true;
 }
 
-function readInstalledModuleVersion(modulePath: string): string | null {
-	const packageJsonPath = join(modulePath, "package.json");
-	if (!existsSync(packageJsonPath)) return null;
-	type PackageJson = { version?: string };
-	const packageJson = JSON.parse(
-		readFileSync(packageJsonPath, "utf8"),
-	) as PackageJson;
-	return packageJson.version ?? null;
-}
-
-function copyExactModuleVersion(
-	nodeModulesDir: string,
-	moduleName: string,
-	version: string,
-	destPath: string,
-	required: boolean,
-): boolean {
-	const bunStoreDir = getBunStoreDir(nodeModulesDir);
-	const bunStoreFolderName = findBunStoreFolderName(
-		bunStoreDir,
-		moduleName,
-		version,
-	);
-	if (bunStoreFolderName) {
-		const sourcePath = join(
-			bunStoreDir,
-			bunStoreFolderName,
-			"node_modules",
-			moduleName,
-		);
-		if (existsSync(sourcePath)) {
-			mkdirSync(dirname(destPath), { recursive: true });
-			cpSync(sourcePath, destPath, { recursive: true });
-			console.log(`    Copied ${moduleName}@${version} to: ${destPath}`);
-			return true;
-		}
-	}
-
-	if (fetchNpmPackage(moduleName, version, destPath)) {
-		return true;
-	}
-
-	if (required) {
-		console.error(
-			`  [ERROR] Failed to materialize ${moduleName}@${version} at ${destPath}`,
-		);
-		process.exit(1);
-	}
-
-	return false;
-}
-
-function _copyDependencyForPackage(
-	nodeModulesDir: string,
-	parentModuleName: string,
-	dependencyName: string,
-	dependencyRange: string,
-	required: boolean,
-): void {
-	const topLevelDependencyPath = join(nodeModulesDir, dependencyName);
-	const topLevelVersion = readInstalledModuleVersion(topLevelDependencyPath);
-
-	if (topLevelVersion && satisfies(topLevelVersion, dependencyRange)) {
-		copyModuleIfSymlink(nodeModulesDir, dependencyName, required);
-		return;
-	}
-
-	if (!topLevelVersion) {
-		console.log(
-			`  ${dependencyName}: top-level version missing; materializing ${dependencyRange} at the workspace root`,
-		);
-		copyExactModuleVersion(
-			nodeModulesDir,
-			dependencyName,
-			dependencyRange,
-			topLevelDependencyPath,
-			required,
-		);
-		return;
-	}
-
-	const nestedDependencyPath = join(
-		nodeModulesDir,
-		parentModuleName,
-		"node_modules",
-		dependencyName,
-	);
-	const nestedVersion = readInstalledModuleVersion(nestedDependencyPath);
-	if (nestedVersion && satisfies(nestedVersion, dependencyRange)) {
-		const nestedStats = lstatSync(nestedDependencyPath);
-		if (nestedStats.isSymbolicLink()) {
-			const realPath = realpathSync(nestedDependencyPath);
-			rmSync(nestedDependencyPath);
-			cpSync(realPath, nestedDependencyPath, {
-				recursive: true,
-			});
-		}
-		return;
-	}
-
-	console.log(
-		`  ${dependencyName}: top-level version ${topLevelVersion ?? "missing"} does not satisfy ${dependencyRange}; materializing nested copy for ${parentModuleName}`,
-	);
-
-	copyExactModuleVersion(
-		nodeModulesDir,
-		dependencyName,
-		dependencyRange,
-		nestedDependencyPath,
-		required,
-	);
-}
-
-/**
- * Fetch an npm package tarball and extract it to destPath.
- * Used when cross-compiling and the target platform package isn't in the Bun store.
- */
 function fetchNpmPackage(
 	packageName: string,
 	version: string,

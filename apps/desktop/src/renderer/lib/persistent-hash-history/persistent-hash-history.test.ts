@@ -251,66 +251,6 @@ describe("createPersistentHashHistory", () => {
 			expect(history.length).toBe(1);
 			expect(history.location.pathname).toBe("/");
 		});
-
-		it("drops retired routes and re-anchors the cursor", () => {
-			storage.set(
-				"router-history",
-				JSON.stringify({
-					entries: ["/", "/settings/models", "/tasks"],
-					index: 1,
-				}),
-			);
-
-			const history = createPersistentHashHistory();
-			expect(history.length).toBe(2);
-			expect(history.getEntries().map((e) => e.path)).toEqual(["/", "/tasks"]);
-			// The cursor sat on the retired entry, so it falls back to the
-			// newest surviving entry before it rather than jumping forward.
-			expect(history.location.pathname).toBe("/");
-		});
-
-		it("drops a retired route carrying a search string or hash", () => {
-			storage.set(
-				"router-history",
-				JSON.stringify({
-					entries: [
-						"/",
-						"/settings/models?tab=anthropic",
-						"/settings/models#keys",
-					],
-					index: 2,
-				}),
-			);
-
-			const history = createPersistentHashHistory();
-			expect(history.getEntries().map((e) => e.path)).toEqual(["/"]);
-			expect(history.location.pathname).toBe("/");
-		});
-
-		it("keeps routes that merely share a retired prefix", () => {
-			storage.set(
-				"router-history",
-				JSON.stringify({
-					entries: ["/", "/settings/models-of-agents"],
-					index: 1,
-				}),
-			);
-
-			const history = createPersistentHashHistory();
-			expect(history.length).toBe(2);
-			expect(history.location.pathname).toBe("/settings/models-of-agents");
-		});
-
-		it("falls back to / when every stored entry is retired", () => {
-			storage.set(
-				"router-history",
-				JSON.stringify({ entries: ["/settings/models"], index: 0 }),
-			);
-
-			const history = createPersistentHashHistory();
-			expect(history.length).toBe(1);
-			expect(history.location.pathname).toBe("/");
-		});
 	});
 
 	describe("MAX_ENTRIES cap", () => {

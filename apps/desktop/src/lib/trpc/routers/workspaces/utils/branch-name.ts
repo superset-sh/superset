@@ -1,5 +1,3 @@
-import { deriveWorkspaceBranchFromPrompt } from "@superset/shared/workspace-launch";
-
 const MAX_CONFLICT_RESOLUTION_ATTEMPTS = 1000;
 const INITIAL_CONFLICT_SUFFIX = 2;
 
@@ -10,10 +8,15 @@ function hasConflict(
 	return existingBranchesSet.has(branchName.toLowerCase());
 }
 
-function resolveConflict(
+/**
+ * Returns a branch name that does not collide with `existingBranches`,
+ * appending -2, -3, ... until one is free. Comparison happens on the
+ * prefixed name, since that is what the branch will actually be called.
+ */
+export function deduplicateBranchName(
 	baseName: string,
 	existingBranches: string[],
-	branchPrefix: string | undefined,
+	branchPrefix?: string,
 ): string {
 	const prefixedBase = branchPrefix ? `${branchPrefix}/${baseName}` : baseName;
 	const lowerPrefixedBase = prefixedBase.toLowerCase();
@@ -47,19 +50,4 @@ function resolveConflict(
 	}
 
 	return candidate;
-}
-
-/**
- * Branch name derived from the prompt text, deduplicated against the
- * branches that already exist. Naming happens on this machine and the
- * prompt is never sent anywhere.
- */
-export function generateBranchNameFromPrompt(
-	prompt: string,
-	existingBranches: string[],
-	branchPrefix?: string,
-): string | null {
-	const derived = deriveWorkspaceBranchFromPrompt(prompt);
-	if (!derived) return null;
-	return resolveConflict(derived, existingBranches, branchPrefix);
 }
