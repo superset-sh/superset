@@ -240,14 +240,16 @@ const customAppFieldsSchema = z.object({
 	bundleId: z.string().trim().min(1).max(200).optional(),
 });
 
-const requireIdentifier = [
-	(app: { appName?: string; bundleId?: string }) =>
-		Boolean(app.appName || app.bundleId),
-	{ message: "Provide an app name or a bundle id", path: ["appName"] },
-] as const;
+const hasIdentifier = (app: { appName?: string; bundleId?: string }) =>
+	Boolean(app.appName || app.bundleId);
+const identifierParams = {
+	message: "Provide an app name or a bundle id",
+	path: ["appName"],
+};
 
 export const customAppSchema = customAppFieldsSchema.refine(
-	...requireIdentifier,
+	hasIdentifier,
+	identifierParams,
 );
 
 /**
@@ -257,7 +259,7 @@ export const customAppSchema = customAppFieldsSchema.refine(
  */
 export const customAppInputSchema = customAppFieldsSchema
 	.omit({ id: true })
-	.refine(...requireIdentifier);
+	.refine(hasIdentifier, identifierParams);
 
 export type CustomApp = z.infer<typeof customAppSchema>;
 
