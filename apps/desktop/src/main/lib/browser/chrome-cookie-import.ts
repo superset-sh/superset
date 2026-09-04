@@ -41,7 +41,13 @@ export interface ImportedCookie {
 	url: string;
 	name: string;
 	value: string;
-	domain: string;
+	/**
+	 * Only set for a cookie Chrome stored with a `Domain` attribute (a leading
+	 * dot in `host_key`). Electron normalizes any `domain` it is given into a
+	 * domain cookie, so a host-only cookie must leave it out and let `url`
+	 * carry the host — see `mapCookieRow`.
+	 */
+	domain?: string;
 	path: string;
 	secure: boolean;
 	httpOnly: boolean;
@@ -201,12 +207,17 @@ export function mapCookieRow(
 		url: cookieUrl(row.host_key, isSecure, row.path),
 		name: row.name,
 		value,
-		domain: row.host_key,
 		path: row.path || "/",
 		secure: isSecure,
 		httpOnly: row.is_httponly === 1,
 		sameSite: sameSiteFor(row.samesite),
 	};
+	// Chrome marks a domain cookie with a leading dot; a bare host means the
+	// cookie was set without `Domain` and is host-only. Passing the bare host as
+	// `domain` would make Electron store it as `.host`, and the next time the
+	// site sets its own host-only cookie of that name the browser would send
+	// both — Google answers that with `accounts.google.com/CookieMismatch`.
+	if (row.host_key.startsWith(".")) cookie.domain = row.host_key;
 	if (row.is_persistent === 1) {
 		const expiration = chromeTimeToUnixSeconds(row.expires_utc);
 		if (expiration !== undefined) cookie.expirationDate = expiration;
@@ -288,10 +299,96 @@ function isProtectedCookieHost(host: string): boolean {
 	);
 }
 
+function cookieHost(cookie: ImportedCookie): string {
+	return cookie.domain ?? new URL(cookie.url).hostname;
+}
+
+/** Identity of a cookie slot: the exact host key plus name and path. */
+function cookieKey(hostKey: string, name: string, cookiePath: string): string {
+	return `${hostKey}|${name}|${cookiePath}`;
+}
+
+/**
+ * `cookies.remove(url, name)` deletes every cookie of that name the URL would
+ * receive — a host-only cookie and its `.host` twin alike — so the URL has to
+ * be https (which also matches non-Secure cookies) and carry the cookie's path.
+ */
+function removalUrl(host: string, cookiePath: string): string {
+	return `https://${host}${cookiePath || "/"}`;
+}
+
+/**
+ * Bare hosts that already hold a `.host` domain cookie with the same name and
+ * path. A session's jar can hold both, and the browser sends both values,
+ * which sites reject or read inconsistently. Earlier versions of this
+ * importer created that state for every host-only cookie in the source
+ * profile, so it has to be cleaned up rather than assumed absent.
+ */
+function dottedTwinSlots(cookies: Electron.Cookie[]): Set<string> {
+	const slots = new Set<string>();
+	for (const cookie of cookies) {
+		if (!cookie.domain?.startsWith(".")) continue;
+		slots.add(
+			cookieKey(cookie.domain.slice(1), cookie.name, cookie.path ?? "/"),
+		);
+	}
+	return slots;
+}
+
+/**
+ * Injects already-decrypted cookies into an Electron session (a browser pane's
+ * jar). Skips cookies for Superset's own hosts and any the session rejects.
+ *
+ * A host-only cookie replaces a stale `.host` twin left by an earlier import,
+ * unless the source profile itself holds both — then both are imported as-is.
+ */
+export async function importCookies(
+	targetSession: Session,
+	cookies: ImportedCookie[],
+): Promise<Omit<CookieImportResult, "keyUnavailable">> {
+	const sourceDomainSlots = new Set(
+		cookies
+			.filter((cookie) => cookie.domain !== undefined)
+			.map((cookie) =>
+				cookieKey((cookie.domain as string).slice(1), cookie.name, cookie.path),
+			),
+	);
+	const staleTwins = dottedTwinSlots(await targetSession.cookies.get({}));
+
+	let imported = 0;
+	let skipped = 0;
+	for (const cookie of cookies) {
+		const host = cookieHost(cookie);
+		if (isProtectedCookieHost(host)) {
+			skipped++;
+			continue;
+		}
+		try {
+			const slot = cookieKey(host, cookie.name, cookie.path);
+			if (
+				cookie.domain === undefined &&
+				staleTwins.has(slot) &&
+				!sourceDomainSlots.has(slot)
+			) {
+				await targetSession.cookies.remove(
+					removalUrl(host, cookie.path),
+					cookie.name,
+				);
+			}
+			await targetSession.cookies.set(cookie);
+			imported++;
+		} catch {
+			// Chrome stores some cookies Electron rejects (invalid host/secure
+			// combinations, etc.). Skip rather than fail.
+			skipped++;
+		}
+	}
+	return { imported, skipped };
+}
+
 /**
  * Reads a Chromium profile's cookies and injects them into an Electron session
- * (a browser pane's jar), so the user's logins carry over. Skips cookies for
- * Superset's own hosts and any the session rejects.
+ * (a browser pane's jar), so the user's logins carry over.
  */
 export async function importCookiesIntoSession(
 	targetSession: Session,
@@ -302,22 +399,48 @@ export async function importCookiesIntoSession(
 	if (cookies.length === 0) {
 		return { imported: 0, skipped: 0, keyUnavailable: true };
 	}
+	const result = await importCookies(targetSession, cookies);
+	return { ...result, keyUnavailable: false };
+}
 
-	let imported = 0;
-	let skipped = 0;
+/**
+ * Collapses every host-only cookie that shares its name and path with a
+ * `.host` twin down to the host-only one, which is the value the site set
+ * itself, most recently. Repairs jars written by earlier versions of the
+ * importer, which stored every host-only cookie as a domain cookie: as soon as
+ * a site refreshed one of those (Google rotates `LSID` on every sign-in), the
+ * jar carried two values under one name. Returns the number of twins removed.
+ */
+export async function repairImportedCookieTwins(
+	targetSession: Session,
+): Promise<number> {
+	const cookies = await targetSession.cookies.get({});
+	const twins = dottedTwinSlots(cookies);
+	let repaired = 0;
 	for (const cookie of cookies) {
-		if (isProtectedCookieHost(cookie.domain)) {
-			skipped++;
-			continue;
-		}
+		if (!cookie.hostOnly || !cookie.domain) continue;
+		const cookiePath = cookie.path ?? "/";
+		if (!twins.has(cookieKey(cookie.domain, cookie.name, cookiePath))) continue;
 		try {
-			await targetSession.cookies.set(cookie);
-			imported++;
+			// Removal takes the host-only cookie with it, so put that one back.
+			const url = removalUrl(cookie.domain, cookiePath);
+			await targetSession.cookies.remove(url, cookie.name);
+			await targetSession.cookies.set({
+				url,
+				name: cookie.name,
+				value: cookie.value,
+				path: cookiePath,
+				secure: cookie.secure,
+				httpOnly: cookie.httpOnly,
+				sameSite: cookie.sameSite,
+				...(cookie.expirationDate !== undefined && {
+					expirationDate: cookie.expirationDate,
+				}),
+			});
+			repaired++;
 		} catch {
-			// Chrome stores some cookies Electron rejects (invalid host/secure
-			// combinations, __Host- prefixes, etc.). Skip rather than fail.
-			skipped++;
+			// Leave a cookie the session refuses to rewrite alone.
 		}
 	}
-	return { imported, skipped, keyUnavailable: false };
+	return repaired;
 }
