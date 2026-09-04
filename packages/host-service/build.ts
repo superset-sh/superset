@@ -26,7 +26,6 @@ const result = await Bun.build({
 		"better-sqlite3",
 		"node-pty",
 		"@parcel/watcher",
-		"libsql",
 		// Optional peer of webdriverio; the browser-driver code path never
 		// executes at runtime, so these must not be bundled.
 		"puppeteer-core",

@@ -69,7 +69,7 @@ const natives = [
 /**
  * Imported at module load but never executed, so they only need to resolve.
  */
-const runtimeResolutionOnly = ["libsql", "@parcel/watcher", "@xterm/headless"];
+const runtimeResolutionOnly = ["@parcel/watcher", "@xterm/headless"];
 
 const BUNDLE = join(
 	REPO_ROOT,

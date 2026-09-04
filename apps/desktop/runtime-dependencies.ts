@@ -69,16 +69,6 @@ const externalizedRuntimeModules: ExternalizedRuntimeModule[] = [
 		],
 		asarUnpackGlobs: ["**/node_modules/@parcel/watcher*/**/*"],
 	},
-	{
-		specifier: "libsql",
-		materialize: ["libsql"],
-		packagedCopies: [
-			copyWholeModule("libsql"),
-			copyWholeModule("@libsql"),
-			copyWholeModule("@neon-rs"),
-		],
-		asarUnpackGlobs: ["**/node_modules/@libsql/**/*"],
-	},
 ];
 
 const packagedSupportModules = [

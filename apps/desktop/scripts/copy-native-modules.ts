@@ -163,7 +163,7 @@ function copyExactModuleVersion(
 	return false;
 }
 
-function copyDependencyForPackage(
+function _copyDependencyForPackage(
 	nodeModulesDir: string,
 	parentModuleName: string,
 	dependencyName: string,
@@ -343,63 +343,6 @@ function copyAstGrepPlatformPackages(nodeModulesDir: string): void {
 	}
 }
 
-function copyLibsqlDependencies(nodeModulesDir: string): void {
-	const libsqlPath = join(nodeModulesDir, "libsql");
-	const libsqlPkgJsonPath = join(libsqlPath, "package.json");
-	if (!existsSync(libsqlPkgJsonPath)) return;
-
-	type LibsqlPackageJson = {
-		dependencies?: Record<string, string>;
-		optionalDependencies?: Record<string, string>;
-	};
-	const libsqlPkg = JSON.parse(
-		readFileSync(libsqlPkgJsonPath, "utf8"),
-	) as LibsqlPackageJson;
-	const deps = libsqlPkg.dependencies ?? {};
-	const optionalDeps = libsqlPkg.optionalDependencies ?? {};
-
-	console.log("\nPreparing libsql runtime dependencies...");
-	for (const [dep, version] of Object.entries(deps)) {
-		copyDependencyForPackage(nodeModulesDir, "libsql", dep, version, true);
-	}
-
-	// Copy whichever optional native platform packages Bun installed for this platform.
-	for (const dep of Object.keys(optionalDeps)) {
-		copyModuleIfSymlink(nodeModulesDir, dep, false);
-	}
-
-	// Some Bun installs place optional deps under .bun/node_modules/@scope.
-	// Mirror discovered @libsql optional packages if present there.
-	const bunFlatLibsqlScopePath = join(
-		getBunFlatNodeModulesDir(nodeModulesDir),
-		"@libsql",
-	);
-	if (existsSync(bunFlatLibsqlScopePath)) {
-		for (const entry of readdirSync(bunFlatLibsqlScopePath)) {
-			if (
-				!entry.includes("darwin") &&
-				!entry.includes("linux") &&
-				!entry.includes("win32")
-			) {
-				continue;
-			}
-			copyModuleIfSymlink(nodeModulesDir, `@libsql/${entry}`, false);
-		}
-	}
-
-	// Cross-compilation: ensure the target platform's @libsql package is present
-	const targetSuffix = `${TARGET_PLATFORM}-${TARGET_ARCH}`;
-	const targetLibsqlPkgs = Object.entries(optionalDeps).filter(([name]) =>
-		name.includes(targetSuffix),
-	);
-	for (const [name, version] of targetLibsqlPkgs) {
-		const destPath = join(nodeModulesDir, name);
-		if (!existsSync(destPath)) {
-			fetchNpmPackage(name, version, destPath);
-		}
-	}
-}
-
 function copyParcelWatcherPlatformPackages(nodeModulesDir: string): void {
 	const watcherPath = join(nodeModulesDir, "@parcel", "watcher");
 	const watcherPkgJsonPath = join(watcherPath, "package.json");
@@ -487,7 +430,6 @@ function prepareNativeModules() {
 	console.log("\nPreparing ast-grep platform package...");
 	copyAstGrepPlatformPackages(nodeModulesDir);
 	copyParcelWatcherPlatformPackages(nodeModulesDir);
-	copyLibsqlDependencies(nodeModulesDir);
 
 	console.log("\nDone!");
 }
