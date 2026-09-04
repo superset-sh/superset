@@ -142,7 +142,7 @@ msgstr "{0, plural, one {파일 #개} other {파일 #개}}"
 
 #. placeholder {0}: projects.length
 msgid "{0, plural, one {# hidden project} other {# hidden projects}}"
-msgstr "{0, plural, other {숨긴 프로젝트 #개}}"
+msgstr "{0, plural, one {숨긴 프로젝트 #개} other {숨긴 프로젝트 #개}}"
 
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
@@ -655,7 +655,7 @@ msgid "{noun, select, repository {Specify at least one repository.} channel {Spe
 msgstr "{noun, select, repository {리포지토리를 하나 이상 지정하세요.} channel {채널을 하나 이상 지정하세요.} reaction {리액션을 하나 이상 지정하세요.} dataSource {데이터 소스를 하나 이상 지정하세요.} team {팀을 하나 이상 지정하세요.} project {프로젝트를 하나 이상 지정하세요.} calendar {캘린더를 하나 이상 지정하세요.} other {항목을 하나 이상 지정하세요.}}"
 
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
-msgstr "{offlineHostCount, plural, other {기기 #대가 오프라인 상태이며 사본을 그대로 유지합니다.}}"
+msgstr "{offlineHostCount, plural, one {기기 #대가 오프라인 상태이며 사본을 그대로 유지합니다.} other {기기 #대가 오프라인 상태이며 사본을 그대로 유지합니다.}}"
 
 msgid "{openCount} open"
 msgstr "{openCount}개 열림"
@@ -782,7 +782,7 @@ msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}: 정리에 실패했습니다"
 
 msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
-msgstr "{worktreeCount, plural, other {연결 가능한 모든 기기에서 프로젝트와 워크스페이스 #개를 제거하고, 해당 worktree를 디스크에서 삭제합니다.}}"
+msgstr "{worktreeCount, plural, one {연결 가능한 모든 기기에서 프로젝트와 워크스페이스 #개를 제거하고, 해당 worktree를 디스크에서 삭제합니다.} other {연결 가능한 모든 기기에서 프로젝트와 워크스페이스 #개를 제거하고, 해당 worktree를 디스크에서 삭제합니다.}}"
 
 msgid "{years}y ago"
 msgstr "{years}년 전"

@@ -15087,7 +15087,7 @@ msgid "Worktrees"
 msgstr "Worktrees"
 
 msgid "Worktrees with uncommitted changes are left on disk."
-msgstr "Worktree s neodevzdanými změnami zůstanou na disku."
+msgstr "Worktree s necommitnutými změnami zůstanou na disku."
 
 msgid "Would you like to reassign it?"
 msgstr "Chcete zkratku přiřadit znovu?"

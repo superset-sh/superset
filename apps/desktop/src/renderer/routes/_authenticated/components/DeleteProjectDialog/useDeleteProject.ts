@@ -37,15 +37,18 @@ export function useDeleteProject({
 	);
 	const { workspaces } = useHostWorkspaces();
 	// The main workspace is the repository checkout itself and survives;
-	// only worktrees are removed from disk.
-	const worktreeCount = useMemo(
-		() =>
-			workspaces.filter(
-				(workspace) =>
-					workspace.projectId === projectId && workspace.type === "worktree",
-			).length,
-		[workspaces, projectId],
-	);
+	// only worktrees are removed from disk. Count only hosts the delete will
+	// actually reach — an offline device keeps its worktrees, and the dialog
+	// says so separately.
+	const worktreeCount = useMemo(() => {
+		const reachableHostIds = new Set(reachableHosts.map((host) => host.hostId));
+		return workspaces.filter(
+			(workspace) =>
+				workspace.projectId === projectId &&
+				workspace.type === "worktree" &&
+				reachableHostIds.has(workspace.hostId),
+		).length;
+	}, [workspaces, projectId, reachableHosts]);
 	const [isDeleting, setIsDeleting] = useState(false);
 
 	const deleteProject = async (): Promise<boolean> => {

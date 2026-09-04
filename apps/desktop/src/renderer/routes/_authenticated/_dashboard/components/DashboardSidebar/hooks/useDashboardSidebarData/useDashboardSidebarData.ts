@@ -451,6 +451,10 @@ export function useDashboardSidebarData() {
 		sidebarWorkspaces,
 	]);
 
+	const hiddenProjectIds = useMemo(
+		() => new Set(hiddenProjects.map((project) => project.id)),
+		[hiddenProjects],
+	);
 	const pullRequestQueryTargets = useMemo<PullRequestQueryTarget[]>(
 		() =>
 			derivePullRequestQueryTargets({
@@ -459,13 +463,18 @@ export function useDashboardSidebarData() {
 				machineId,
 				relayUrl,
 				// Sessions (null projectId) have no remote and never carry PRs.
+				// A hidden project renders nothing, so its workspaces stop
+				// polling too.
 				workspaces: visibleSidebarWorkspaces.filter(
-					(workspace) => workspace.projectId !== null,
+					(workspace) =>
+						workspace.projectId !== null &&
+						!hiddenProjectIds.has(workspace.projectId),
 				),
 				fallbackOrganizationId: knownHostsOrgId,
 			}),
 		[
 			activeHostUrl,
+			hiddenProjectIds,
 			hosts,
 			knownHostsOrgId,
 			machineId,

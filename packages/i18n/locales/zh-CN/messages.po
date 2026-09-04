@@ -142,7 +142,7 @@ msgstr "{0, plural, one {#个文件} other {#个文件}}"
 
 #. placeholder {0}: projects.length
 msgid "{0, plural, one {# hidden project} other {# hidden projects}}"
-msgstr "{0, plural, other {# 个已隐藏的项目}}"
+msgstr "{0, plural, one {# 个已隐藏的项目} other {# 个已隐藏的项目}}"
 
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
@@ -655,7 +655,7 @@ msgid "{noun, select, repository {Specify at least one repository.} channel {Spe
 msgstr "{noun, select, repository {请至少指定一个仓库。} channel {请至少指定一个频道。} reaction {请至少指定一个回应。} dataSource {请至少指定一个数据源。} team {请至少指定一个团队。} project {请至少指定一个项目。} calendar {请至少指定一个日历。} other {请至少指定一个条目。}}"
 
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
-msgstr "{offlineHostCount, plural, other {# 台设备处于离线状态，将保留其副本。}}"
+msgstr "{offlineHostCount, plural, one {# 台设备处于离线状态，将保留其副本。} other {# 台设备处于离线状态，将保留其副本。}}"
 
 msgid "{openCount} open"
 msgstr "{openCount}项已开启"
@@ -782,7 +782,7 @@ msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}：清理失败"
 
 msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
-msgstr "{worktreeCount, plural, other {这会从所有可访问的设备中移除该项目及其 # 个工作区，并从磁盘删除它们的worktree。}}"
+msgstr "{worktreeCount, plural, one {这会从所有可访问的设备中移除该项目及其 # 个工作区，并从磁盘删除它们的worktree。} other {这会从所有可访问的设备中移除该项目及其 # 个工作区，并从磁盘删除它们的worktree。}}"
 
 msgid "{years}y ago"
 msgstr "{years}年前"

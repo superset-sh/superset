@@ -142,7 +142,7 @@ msgstr "{0, plural, one {#ファイル} other {#ファイル}}"
 
 #. placeholder {0}: projects.length
 msgid "{0, plural, one {# hidden project} other {# hidden projects}}"
-msgstr "{0, plural, other {非表示のプロジェクト #件}}"
+msgstr "{0, plural, one {非表示のプロジェクト #件} other {非表示のプロジェクト #件}}"
 
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
@@ -655,7 +655,7 @@ msgid "{noun, select, repository {Specify at least one repository.} channel {Spe
 msgstr "{noun, select, repository {リポジトリを1つ以上指定してください。} channel {チャンネルを1つ以上指定してください。} reaction {リアクションを1つ以上指定してください。} dataSource {データソースを1つ以上指定してください。} team {チームを1つ以上指定してください。} project {プロジェクトを1つ以上指定してください。} calendar {カレンダーを1つ以上指定してください。} other {項目を1つ以上指定してください。}}"
 
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
-msgstr "{offlineHostCount, plural, other {#台のデバイスがオフラインのため、そのコピーは残ります。}}"
+msgstr "{offlineHostCount, plural, one {#台のデバイスがオフラインのため、そのコピーは残ります。} other {#台のデバイスがオフラインのため、そのコピーは残ります。}}"
 
 msgid "{openCount} open"
 msgstr "{openCount}件通過"
@@ -782,7 +782,7 @@ msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}: ティアダウンに失敗しました"
 
 msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
-msgstr "{worktreeCount, plural, other {到達可能なすべてのデバイスからプロジェクトと#件のワークスペースを削除し、それらのワークツリーをディスクから削除します。}}"
+msgstr "{worktreeCount, plural, one {到達可能なすべてのデバイスからプロジェクトと#件のワークスペースを削除し、それらのワークツリーをディスクから削除します。} other {到達可能なすべてのデバイスからプロジェクトと#件のワークスペースを削除し、それらのワークツリーをディスクから削除します。}}"
 
 msgid "{years}y ago"
 msgstr "{years}年前"

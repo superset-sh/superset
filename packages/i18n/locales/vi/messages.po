@@ -142,7 +142,7 @@ msgstr "{0, plural, one {# tệp} other {# tệp}}"
 
 #. placeholder {0}: projects.length
 msgid "{0, plural, one {# hidden project} other {# hidden projects}}"
-msgstr "{0, plural, other {# dự án đã ẩn}}"
+msgstr "{0, plural, one {# dự án đã ẩn} other {# dự án đã ẩn}}"
 
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
@@ -655,7 +655,7 @@ msgid "{noun, select, repository {Specify at least one repository.} channel {Spe
 msgstr "{noun, select, repository {Hãy chỉ định ít nhất một repo.} channel {Hãy chỉ định ít nhất một kênh.} reaction {Hãy chỉ định ít nhất một reaction.} dataSource {Hãy chỉ định ít nhất một nguồn dữ liệu.} team {Hãy chỉ định ít nhất một nhóm.} project {Hãy chỉ định ít nhất một dự án.} calendar {Hãy chỉ định ít nhất một lịch.} other {Hãy chỉ định ít nhất một mục.}}"
 
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
-msgstr "{offlineHostCount, plural, other {# thiết bị đang ngoại tuyến và sẽ giữ lại bản sao của mình.}}"
+msgstr "{offlineHostCount, plural, one {# thiết bị đang ngoại tuyến và sẽ giữ lại bản sao của mình.} other {# thiết bị đang ngoại tuyến và sẽ giữ lại bản sao của mình.}}"
 
 msgid "{openCount} open"
 msgstr "{openCount} còn mở"
@@ -782,7 +782,7 @@ msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}: teardown thất bại"
 
 msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
-msgstr "{worktreeCount, plural, other {Thao tác này sẽ gỡ dự án và # workspace của nó khỏi mọi thiết bị có thể kết nối, đồng thời xóa các worktree đó khỏi ổ đĩa.}}"
+msgstr "{worktreeCount, plural, one {Thao tác này sẽ gỡ dự án và # workspace của nó khỏi mọi thiết bị có thể kết nối, đồng thời xóa các worktree đó khỏi ổ đĩa.} other {Thao tác này sẽ gỡ dự án và # workspace của nó khỏi mọi thiết bị có thể kết nối, đồng thời xóa các worktree đó khỏi ổ đĩa.}}"
 
 msgid "{years}y ago"
 msgstr "{years} năm trước"
