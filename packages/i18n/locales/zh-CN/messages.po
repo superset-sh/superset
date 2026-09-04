@@ -8237,7 +8237,7 @@ msgid "New Browser"
 msgstr "新建浏览器"
 
 msgid "New Browser Tab"
-msgstr "新浏览器标签页"
+msgstr "新建浏览器标签页"
 
 msgid "New chat"
 msgstr "新建聊天"

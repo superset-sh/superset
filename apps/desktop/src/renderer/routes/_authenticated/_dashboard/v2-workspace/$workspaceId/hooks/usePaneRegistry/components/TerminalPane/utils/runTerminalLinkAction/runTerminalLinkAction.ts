@@ -23,6 +23,8 @@ export interface TerminalLinkActionDeps {
 		position?: { line?: number; column?: number },
 	) => void;
 	revealInFinder: (path: string, options?: { isDirectory?: boolean }) => void;
+	/** Worktree root, when known. Outside it, "reveal" degrades to Finder. */
+	worktreePath: string | undefined;
 }
 
 export function runUrlLinkAction(

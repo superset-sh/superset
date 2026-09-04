@@ -2,6 +2,7 @@ import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import type { ContextMenuActionConfig, RendererContext } from "@superset/panes";
 import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
+import { isWithinWorkspacePath } from "shared/absolute-paths";
 import { terminalContextMenuLinkStore } from "../../components/TerminalPane/contextMenuLinkStore";
 import {
 	runFileLinkAction,
@@ -67,12 +68,23 @@ export function openInActions(
 	if (!path) return [];
 
 	if (link.isDirectory) {
+		//  falls back to Finder for folders outside the worktree
+		// (revealPath's containment check), so offering "Sidebar" there would
+		// both lie and duplicate the Finder entry. The hover tooltip makes the
+		// same swap — see resolveHoverLabel in TerminalPane.
+		const canReveal =
+			!entry.deps.worktreePath ||
+			isWithinWorkspacePath(entry.deps.worktreePath, path);
 		return [
-			{
-				key: "open-in-sidebar",
-				label: i18n._(FOLDER_LABELS[0]),
-				onSelect: () => runFolderLinkAction(entry.deps, path, "reveal"),
-			},
+			...(canReveal
+				? [
+						{
+							key: "open-in-sidebar",
+							label: i18n._(FOLDER_LABELS[0]),
+							onSelect: () => runFolderLinkAction(entry.deps, path, "reveal"),
+						},
+					]
+				: []),
 			{
 				key: "open-in-editor",
 				label: i18n._(FOLDER_LABELS[1]),

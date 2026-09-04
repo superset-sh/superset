@@ -84,6 +84,7 @@ export function TerminalPane({
 	const isPagesEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.PAGES) ?? false;
 	const {
 		hoveredLink,
+		liveHoveredLinkRef,
 		onHover: onLinkHover,
 		onLeave: onLinkLeave,
 	} = useLinkHoverState();
@@ -102,10 +103,8 @@ export function TerminalPane({
 	const terminalInstanceId = ctx.pane.id;
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	// Link actions are fired from event handlers (xterm clicks, context-menu
-	// selections) that outlive the render they were registered in, so both the
-	// deps and the hovered link are read through refs.
-	const hoveredLinkRef = useRef(hoveredLink);
-	hoveredLinkRef.current = hoveredLink;
+	// selections) that outlive the render they were registered in, so the deps
+	// are read through a ref.
 	const linkActionDepsRef = useRef<TerminalLinkActionDeps>({
 		store: ctx.store,
 		isPagesEnabled,
@@ -113,6 +112,7 @@ export function TerminalPane({
 		onRevealPath,
 		openInExternalEditor,
 		revealInFinder,
+		worktreePath,
 	});
 	linkActionDepsRef.current = {
 		store: ctx.store,
@@ -121,6 +121,7 @@ export function TerminalPane({
 		onRevealPath,
 		openInExternalEditor,
 		revealInFinder,
+		worktreePath,
 	};
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	// Open/closed is tracked per terminalId in a shared store so the header
@@ -372,7 +373,7 @@ export function TerminalPane({
 		if (!container) return;
 		const onContextMenu = () => {
 			terminalContextMenuLinkStore.record(terminalInstanceId, {
-				link: hoveredLinkRef.current?.info ?? null,
+				link: liveHoveredLinkRef.current?.info ?? null,
 				deps: linkActionDepsRef.current,
 			});
 		};
@@ -381,7 +382,7 @@ export function TerminalPane({
 			container.removeEventListener("contextmenu", onContextMenu, true);
 			terminalContextMenuLinkStore.clear(terminalInstanceId);
 		};
-	}, [terminalInstanceId]);
+	}, [terminalInstanceId, liveHoveredLinkRef]);
 
 	// --- Remote image paste ---
 	// The default paste path forwards Ctrl+V and lets the TUI read the OS
