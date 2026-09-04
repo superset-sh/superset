@@ -20,7 +20,7 @@ const STEPS = [
 		path: "/onboarding",
 		match: (p: string) => p === "/onboarding",
 		title: "Setup Superset",
-		subtitle: "Connect your agents and tools to get started.",
+		subtitle: "Connect the tools Superset needs to get started.",
 	},
 	{
 		path: "/onboarding/project",
