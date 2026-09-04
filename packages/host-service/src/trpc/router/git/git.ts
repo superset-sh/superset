@@ -19,6 +19,10 @@ import {
 	gitStatusSnapshotTask,
 } from "../../../workers/tasks/git";
 import { protectedProcedure, queryProcedure, router } from "../../index";
+import {
+	hasRecordedAgentHistory,
+	moveWorkspaceWorktree,
+} from "../workspace-creation/shared/move-worktree";
 import { resolveGithubRepo } from "../workspace-creation/shared/project-helpers";
 import type {
 	ChangedFile,
@@ -465,7 +469,23 @@ export const gitRouter = router({
 			}
 
 			await git.raw(["branch", "-m", input.oldName, input.newName]);
-			return { name: input.newName };
+
+			// The directory was named after the branch at creation, so follow
+			// the rename with it — but only while nothing has filed anything
+			// under the old path. A refusal is not an error: the branch is
+			// renamed either way, and a stale directory name is cosmetic.
+			let movedTo: string | null = null;
+			if (
+				!(await hasRecordedAgentHistory(ctx, input.workspaceId, worktreePath))
+			) {
+				const result = await moveWorkspaceWorktree({
+					ctx,
+					workspaceId: input.workspaceId,
+					newLeafName: input.newName,
+				});
+				if (result.moved) movedTo = result.worktreePath;
+			}
+			return { name: input.newName, worktreePath: movedTo };
 		}),
 
 	discardChanges: protectedProcedure

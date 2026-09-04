@@ -22,6 +22,7 @@ import type { HostDb } from "../../../../db";
 import type { HostServiceContext } from "../../../../types";
 import { updateLocalWorkspace } from "../../../../workspaces/local-workspace-store";
 import { resolveHostAgentConfig } from "../../agents/agents";
+import { moveWorkspaceWorktree } from "../shared/move-worktree";
 import { listBranchNames } from "./list-branch-names";
 import { deduplicateBranchName } from "./sanitize-branch";
 
@@ -342,6 +343,13 @@ interface ApplyGeneratedNamesArgs {
 	renameTitle: boolean;
 	/** Replace the git branch name with an AI-picked one. Skip when the user typed a branch. */
 	renameBranch: boolean;
+	/**
+	 * Rename the worktree directory to follow the new branch. Only safe
+	 * while nothing has recorded the old path — true at create time, where
+	 * no terminal or agent has started yet; late callers must consult
+	 * `hasRecordedAgentHistory` first.
+	 */
+	moveWorktreeDir?: boolean;
 }
 
 interface ApplyAiRenameArgs extends ApplyGeneratedNamesArgs {
@@ -380,8 +388,9 @@ export async function applyAiWorkspaceRename(
  *
  * `renameTitle` / `renameBranch` let callers preserve user-typed
  * values: skip replacing whichever side the user supplied directly.
- * The worktree directory keeps its creation-time name — renaming it
- * under running terminals/agents would break their recorded paths.
+ * The worktree directory follows the branch only when the caller passes
+ * `moveWorktreeDir` — renaming it under running terminals/agents would
+ * break their recorded paths.
  */
 export async function applyGeneratedWorkspaceNames(
 	args: ApplyGeneratedNamesArgs & { names: GeneratedWorkspaceNames },
@@ -396,6 +405,7 @@ export async function applyGeneratedWorkspaceNames(
 		names: aiNames,
 		renameTitle,
 		renameBranch,
+		moveWorktreeDir = false,
 	} = args;
 
 	if (!renameTitle && !renameBranch) return null;
@@ -447,5 +457,12 @@ export async function applyGeneratedWorkspaceNames(
 		);
 		return null;
 	}
+
+	// After the row patch: the move repoints `worktreePath` on the same row,
+	// and a failure there must not cost us the name that already landed.
+	if (gitRenamed && moveWorktreeDir) {
+		await moveWorkspaceWorktree({ ctx, workspaceId, newLeafName: deduped });
+	}
+
 	return { name: updated.name, branch: updated.branch };
 }

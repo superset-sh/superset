@@ -352,6 +352,36 @@ export const gitWorktreeRemoveTask = defineWorkerTask<
 	},
 });
 
+export const gitWorktreeMoveTask = defineWorkerTask<
+	{ repoPath: string; from: string; to: string; gitEnv: GitTaskEnv },
+	{ moved: true } | { moved: false; reason: "has-submodules" | "locked" }
+>({
+	type: "git/moveWorktree",
+	handler: async ({ repoPath, from, to, gitEnv }) => {
+		const git = createUserSimpleGit(repoPath).env(gitEnv);
+		try {
+			// Move from git's canonical path so a symlinked stored path
+			// (macOS `/var` → `/private/var`) still matches its registration.
+			await git.raw(["worktree", "move", normalizeWorktreePath(from), to]);
+			return { moved: true };
+		} catch (err) {
+			// Two refusals are ordinary answers rather than failures: git
+			// rejects a worktree containing submodules outright (there is no
+			// --force for it), and a locked one without `-f -f`, which we
+			// decline to do under the user. Anything else is unexplained and
+			// throws.
+			const message = err instanceof Error ? err.message : String(err);
+			if (message.includes("submodule")) {
+				return { moved: false, reason: "has-submodules" };
+			}
+			if (message.includes("locked working tree")) {
+				return { moved: false, reason: "locked" };
+			}
+			throw err;
+		}
+	},
+});
+
 export const gitDeleteBranchTask = defineWorkerTask<
 	{ repoPath: string; branch: string; gitEnv: GitTaskEnv },
 	{ deleted: boolean }
@@ -513,6 +543,7 @@ export const gitTasks = [
 	gitIdentityTask,
 	gitWorktreeStateTask,
 	gitWorktreeRemoveTask,
+	gitWorktreeMoveTask,
 	gitDeleteBranchTask,
 	gitCommitTask,
 	gitPushTask,
