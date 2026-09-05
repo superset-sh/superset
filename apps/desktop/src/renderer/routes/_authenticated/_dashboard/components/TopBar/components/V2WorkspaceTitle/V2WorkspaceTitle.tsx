@@ -1,7 +1,7 @@
 import { OverflowFadeText } from "@superset/ui/overflow-fade-text";
 import { ChevronRight, GitBranch } from "lucide-react";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
-import { getWorkspaceDisplayName } from "shared/workspace-display-name";
+import { getV2WorkspaceDisplayName } from "renderer/utils/getV2WorkspaceDisplayName";
 
 interface V2WorkspaceTitleProps {
 	workspaceId: string;
@@ -10,7 +10,7 @@ interface V2WorkspaceTitleProps {
 export function V2WorkspaceTitle({ workspaceId }: V2WorkspaceTitleProps) {
 	const { workspaces } = useHostWorkspaces();
 	const workspace = workspaces.find((w) => w.id === workspaceId) ?? null;
-	const name = workspace ? getWorkspaceDisplayName(workspace) || null : null;
+	const name = workspace ? getV2WorkspaceDisplayName(workspace) || null : null;
 	const rawBranch = workspace?.branch ?? null;
 	// The display name falls back to the branch for unnamed worktrees; don't
 	// render the same text twice.

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import { getWorkspaceDisplayName } from "./workspace-display-name";
+import { getV2WorkspaceDisplayName } from "./getV2WorkspaceDisplayName";
 
-describe("getWorkspaceDisplayName", () => {
+describe("getV2WorkspaceDisplayName", () => {
 	it("always displays main workspaces as 'local'", () => {
 		expect(
-			getWorkspaceDisplayName({
+			getV2WorkspaceDisplayName({
 				type: "main",
 				name: "some custom name",
 				branch: "main",
@@ -14,7 +14,7 @@ describe("getWorkspaceDisplayName", () => {
 
 	it("uses the worktree workspace name when set", () => {
 		expect(
-			getWorkspaceDisplayName({
+			getV2WorkspaceDisplayName({
 				type: "worktree",
 				name: "Fix login bug",
 				branch: "fix-login-bug",
@@ -24,7 +24,7 @@ describe("getWorkspaceDisplayName", () => {
 
 	it("falls back to the branch for unnamed worktree workspaces", () => {
 		expect(
-			getWorkspaceDisplayName({
+			getV2WorkspaceDisplayName({
 				type: "worktree",
 				name: "",
 				branch: "fix-login-bug",
