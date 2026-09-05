@@ -22,10 +22,8 @@ import type { AgentRunResult } from "../agents/agents";
 import {
 	killAndResumeTerminalAgent,
 	listAccountRestartCandidates,
-	type RestartAccountSessionsDeps,
 	type ResumeSessionDeps,
 	registerPendingNudge,
-	restartAccountSessions,
 	resumeTerminalAgentSession,
 } from "./terminal-agents";
 
@@ -476,60 +474,10 @@ describe("listAccountRestartCandidates", () => {
 		]);
 	});
 
-	it("skips sessions whose config cannot resume", () => {
-		const db = createTestDb();
-		seedAgentConfig(db, { resumeArgs: [] });
-		seedLiveBinding(db);
-
-		expect(listAccountRestartCandidates(db, createStore(db), "claude")).toEqual(
-			[],
-		);
-	});
-});
-
-describe("restartAccountSessions", () => {
-	function createRestartDeps(
-		db: HostDb,
-		disposeSession?: RestartAccountSessionsDeps["disposeSession"],
-	) {
-		const disposedTerminals: string[] = [];
-		const deps: RestartAccountSessionsDeps = {
-			db,
-			terminalAgentStore: createStore(db),
-			disposeSession:
-				disposeSession ??
-				((terminalId) => {
-					disposedTerminals.push(terminalId);
-					return Promise.resolve();
-				}),
-		};
-		return { deps, disposedTerminals };
-	}
-
-	it("kills each candidate crash-style, leaving a resume candidate behind", async () => {
-		const db = createTestDb();
-		seedAgentConfig(db, { env: UNMANAGED_ENV });
-		seedLiveBinding(db, { terminalId: "t1" });
-		seedLiveBinding(db, { terminalId: "t2" });
-		const { deps, disposedTerminals } = createRestartDeps(db);
-
-		const result = await restartAccountSessions(deps, "claude");
-
-		expect(result.restartedTerminalIds.sort()).toEqual(["t1", "t2"]);
-		expect(disposedTerminals.sort()).toEqual(["t1", "t2"]);
-		// "terminal-exited", not "disposed": auto-resume must pick these up.
-		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeDefined();
-		expect(findResumeCandidateBinding(db, "ws-1", "t2")).toBeDefined();
-		// The bindings left the live view, so a repeat restarts nothing.
-		expect(await restartAccountSessions(deps, "claude")).toEqual({
-			restartedTerminalIds: [],
-		});
-	});
-
-	// #28: the dialog counts only the sessions the engine cannot move, so the
-	// mutation must kill only those — a managed Claude session picked the
-	// swapped login up in place and restarting it would drop a live turn.
-	it("restarts only the sessions the engine could not move", async () => {
+	// KTD12: the Usage notice counts the unmanaged rows only, so the flag that
+	// separates a hand-pinned session from one the switch reaches is the whole
+	// contract this list still owes its caller.
+	it("reports a session pinned to a hand-exported config dir as unmanaged", () => {
 		const db = createTestDb();
 		seedAgentConfig(db);
 		seedAgentConfig(db, {
@@ -543,30 +491,34 @@ describe("restartAccountSessions", () => {
 			terminalId: "t-unmanaged",
 			definitionId: UNMANAGED_DEFINITION_ID,
 		});
-		const { deps, disposedTerminals } = createRestartDeps(db);
 
-		const result = await restartAccountSessions(deps, "claude");
-
-		expect(result.restartedTerminalIds).toEqual(["t-unmanaged"]);
-		expect(disposedTerminals).toEqual(["t-unmanaged"]);
-		// The managed session was never marked ended, so nothing resumes it.
-		expect(findResumeCandidateBinding(db, "ws-1", "t-managed")).toBeUndefined();
-		expect(findResumeCandidateBinding(db, "ws-1", "t-unmanaged")).toBeDefined();
-	});
-
-	it("keeps the resume candidate when the dispose fails", async () => {
-		const db = createTestDb();
-		seedAgentConfig(db, { env: UNMANAGED_ENV });
-		seedLiveBinding(db, { terminalId: "t1" });
-		const { deps } = createRestartDeps(db, () =>
-			Promise.reject(new Error("daemon unreachable")),
+		const candidates = listAccountRestartCandidates(
+			db,
+			createStore(db),
+			"claude",
 		);
 
-		const result = await restartAccountSessions(deps, "claude");
+		expect(
+			candidates
+				.map(({ binding, managed }) => ({
+					terminalId: binding.terminalId,
+					managed,
+				}))
+				.sort((a, b) => a.terminalId.localeCompare(b.terminalId)),
+		).toEqual([
+			{ terminalId: "t-managed", managed: true },
+			{ terminalId: "t-unmanaged", managed: false },
+		]);
+	});
 
-		expect(result).toEqual({ restartedTerminalIds: [] });
-		// The reaper finishes the kill; the session id must stay resumable.
-		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeDefined();
+	it("skips sessions whose config cannot resume", () => {
+		const db = createTestDb();
+		seedAgentConfig(db, { resumeArgs: [] });
+		seedLiveBinding(db);
+
+		expect(listAccountRestartCandidates(db, createStore(db), "claude")).toEqual(
+			[],
+		);
 	});
 });
 

@@ -262,8 +262,7 @@ function daemonCloseFailed(result: unknown): boolean {
 
 /**
  * Kill one live agent session the way a crash would and bring it straight
- * back with its conversation — the account engine's mover (KTD8) and the
- * in-process half of `restartAccountSessions`.
+ * back with its conversation — the account engine's mover (KTD8).
  *
  * A kill the daemon could not confirm returns `{ resumed: false }`: the old
  * pty may still hold the session, and resuming on top of it would run two
@@ -434,58 +433,6 @@ export interface AccountRestartCandidate {
 	managed: boolean;
 }
 
-export interface RestartAccountSessionsDeps {
-	db: HostDb;
-	terminalAgentStore: TerminalAgentStore;
-	disposeSession: (terminalId: string) => Promise<unknown>;
-}
-
-/**
- * Relaunch every live `provider` agent the engine could not move — the ones
- * pinned to a hand-exported config dir — onto the current default account.
- * Each candidate terminal is killed the way a crash would kill it — the
- * binding is marked "terminal-exited", never "disposed" — so the standard
- * auto-resume path relaunches the agent with its saved session id (or fresh,
- * for one that never got a prompt), and the agent wrapper re-resolves the
- * account pointer at launch: same conversation, new account. Marking ended
- * precedes the dispose because the renderer re-checks for a resume candidate
- * on the socket close the dispose causes; the store's own "change" event
- * never reaches it. Panes that are not open resume when their workspace is
- * next viewed, like any other
- * dead-terminal candidate.
- */
-export async function restartAccountSessions(
-	deps: RestartAccountSessionsDeps,
-	provider: "claude" | "codex",
-): Promise<{ restartedTerminalIds: string[] }> {
-	const candidates = listAccountRestartCandidates(
-		deps.db,
-		deps.terminalAgentStore,
-		provider,
-	);
-	const restartedTerminalIds: string[] = [];
-	for (const { binding, managed } of candidates) {
-		// KTD12: the engine already moved every managed session — Claude picks
-		// the swapped login up in place, Codex restarts at idle — so killing
-		// one here would throw away a live turn. It is also the count the
-		// confirmation dialog showed, which filters the same way.
-		if (managed) continue;
-		deps.terminalAgentStore.markTerminalExited(binding.terminalId);
-		try {
-			await deps.disposeSession(binding.terminalId);
-		} catch (error) {
-			// The reaper retries the kill; the binding stays a valid candidate.
-			console.warn(
-				"[terminal-agents] account-switch restart failed to dispose terminal",
-				{ terminalId: binding.terminalId, error },
-			);
-			continue;
-		}
-		restartedTerminalIds.push(binding.terminalId);
-	}
-	return { restartedTerminalIds };
-}
-
 function inflightKey(
 	workspaceId: string,
 	agentId: TerminalAgentId,
@@ -593,8 +540,8 @@ export const terminalAgentsRouter = router({
 		),
 
 	/**
-	 * The sessions {@link restartAccountSessions} would relaunch — exposed
-	 * separately so the Usage tab can ask before restarting anything.
+	 * The live sessions a default-account switch could not reach — exposed so
+	 * the Usage tab can tell the user which agents stayed behind.
 	 */
 	accountRestartCandidates: protectedProcedure
 		.input(z.object({ provider: z.enum(["claude", "codex"]) }))
@@ -609,21 +556,6 @@ export const terminalAgentsRouter = router({
 				agentLabel,
 				managed,
 			})),
-		),
-
-	/** See {@link restartAccountSessions}. */
-	restartAccountSessions: protectedProcedure
-		.input(z.object({ provider: z.enum(["claude", "codex"]) }))
-		.mutation(({ ctx, input }) =>
-			restartAccountSessions(
-				{
-					db: ctx.db,
-					terminalAgentStore: ctx.terminalAgentStore,
-					disposeSession: (terminalId) =>
-						disposeSessionAndWait(terminalId, ctx.db),
-				},
-				input.provider,
-			),
 		),
 
 	/**
