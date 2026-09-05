@@ -478,11 +478,11 @@ async function fetchClaudeProfileEmail(
 	}
 }
 
+/** `rateLimited` is the usage endpoint's 429, which backs off every poll on
+ * it (KTD10); callers that only want the row ignore it. */
 async function fetchClaudeAccount(
 	credential: ClaudeOauthCredential,
-	/** The usage endpoint's HTTP status, so a poller can see a 429. */
-	onHttpStatus?: (status: number) => void,
-): Promise<UsageAccount> {
+): Promise<{ account: UsageAccount; rateLimited: boolean }> {
 	const base = {
 		agent: "claude" as const,
 		credentialKind: "subscription" as const,
@@ -504,13 +504,16 @@ async function fetchClaudeAccount(
 	const lapsed = classifyLapsedToken(credential);
 	if (lapsed !== "live") {
 		return {
-			...base,
-			email: credential.email ?? null,
-			status: lapsed,
-			statusDetail:
-				lapsed === "token_stale" ? STALE_TOKEN_DETAIL : EXPIRED_TOKEN_DETAIL,
-			windows: [],
-			extraUsage: null,
+			account: {
+				...base,
+				email: credential.email ?? null,
+				status: lapsed,
+				statusDetail:
+					lapsed === "token_stale" ? STALE_TOKEN_DETAIL : EXPIRED_TOKEN_DETAIL,
+				windows: [],
+				extraUsage: null,
+			},
+			rateLimited: false,
 		};
 	}
 
@@ -525,26 +528,32 @@ async function fetchClaudeAccount(
 			}),
 			fetchClaudeProfileEmail(credential.accessToken),
 		]);
-		onHttpStatus?.(usageResponse.status);
+		const rateLimited = usageResponse.status === 429;
 
 		if (usageResponse.status === 401 || usageResponse.status === 403) {
 			return {
-				...base,
-				email: apiEmail ?? credential.email ?? null,
-				status: "token_expired",
-				statusDetail: EXPIRED_TOKEN_DETAIL,
-				windows: [],
-				extraUsage: null,
+				account: {
+					...base,
+					email: apiEmail ?? credential.email ?? null,
+					status: "token_expired",
+					statusDetail: EXPIRED_TOKEN_DETAIL,
+					windows: [],
+					extraUsage: null,
+				},
+				rateLimited,
 			};
 		}
 		if (!usageResponse.ok) {
 			return {
-				...base,
-				email: apiEmail ?? credential.email ?? null,
-				status: "unavailable",
-				statusDetail: `Usage endpoint returned ${usageResponse.status}.`,
-				windows: [],
-				extraUsage: null,
+				account: {
+					...base,
+					email: apiEmail ?? credential.email ?? null,
+					status: "unavailable",
+					statusDetail: `Usage endpoint returned ${usageResponse.status}.`,
+					windows: [],
+					extraUsage: null,
+				},
+				rateLimited,
 			};
 		}
 
@@ -561,92 +570,98 @@ async function fetchClaudeAccount(
 
 		if (windows.length === 0) {
 			return {
-				...base,
-				email: apiEmail ?? credential.email ?? null,
-				status: "unavailable",
-				statusDetail:
-					"No quota data returned (org-managed and education plans do not expose limits).",
-				windows: [],
-				extraUsage,
+				account: {
+					...base,
+					email: apiEmail ?? credential.email ?? null,
+					status: "unavailable",
+					statusDetail:
+						"No quota data returned (org-managed and education plans do not expose limits).",
+					windows: [],
+					extraUsage,
+				},
+				rateLimited,
 			};
 		}
 
 		return {
-			...base,
-			email: apiEmail ?? credential.email ?? null,
-			status: "ok",
-			statusDetail: null,
-			windows,
-			extraUsage,
+			account: {
+				...base,
+				email: apiEmail ?? credential.email ?? null,
+				status: "ok",
+				statusDetail: null,
+				windows,
+				extraUsage,
+			},
+			rateLimited,
 		};
 	} catch (error) {
 		return {
-			...base,
-			email: credential.email ?? null,
-			status: "unavailable",
-			statusDetail:
-				error instanceof Error ? error.message : "Failed to fetch usage.",
-			windows: [],
-			extraUsage: null,
+			account: {
+				...base,
+				email: credential.email ?? null,
+				status: "unavailable",
+				statusDetail:
+					error instanceof Error ? error.message : "Failed to fetch usage.",
+				windows: [],
+				extraUsage: null,
+			},
+			rateLimited: false,
 		};
 	}
 }
 
-/** An API-billed profile: no quota endpoint, so the card is built locally. */
-function claudeApiKeyAccount(profile: ClaudeProfile): UsageAccount {
+/** The fields the two locally-built profile rows share; neither has a quota
+ * endpoint to call, so both are composed from the profile alone. */
+function claudeStaticAccountBase(profile: ClaudeProfile) {
 	return {
-		agent: "claude",
-		credentialKind: "api_key",
+		agent: "claude" as const,
 		accountKey: profile.configDir,
 		sourceLabel: profile.sourceLabel,
 		email: profile.email,
 		plan: null,
-		status: "ok",
-		statusDetail:
-			"Billed per token through the Anthropic Console — no quota windows.",
 		windows: [],
 		creditsBalance: null,
 		extraUsage: null,
 		selection: profile.configDir,
 		accountId: profile.accountId,
-		// R16: rotating onto a pay-per-token login would spend money silently.
-		inRotation: false,
 		managed: true,
 		isDefault: false,
 		fetchedAt: new Date(),
+	};
+}
+
+/** An API-billed profile: no quota endpoint, so the card is built locally. */
+function claudeApiKeyAccount(profile: ClaudeProfile): UsageAccount {
+	return {
+		...claudeStaticAccountBase(profile),
+		credentialKind: "api_key",
+		status: "ok",
+		statusDetail:
+			"Billed per token through the Anthropic Console — no quota windows.",
+		// R16: rotating onto a pay-per-token login would spend money silently.
+		inRotation: false,
 	};
 }
 
 /** A profile with an identity but no readable credential. */
 function claudeSignedOutAccount(profile: ClaudeProfile): UsageAccount {
 	return {
-		agent: "claude",
+		...claudeStaticAccountBase(profile),
 		credentialKind: "subscription",
-		accountKey: profile.configDir,
-		sourceLabel: profile.sourceLabel,
-		email: profile.email,
-		plan: null,
 		status: "signed_out",
 		statusDetail:
 			"Signed out — use Switch sign-in to reconnect, or Remove to delete this profile.",
-		windows: [],
-		creditsBalance: null,
-		extraUsage: null,
-		selection: profile.configDir,
-		accountId: profile.accountId,
 		inRotation: true,
-		managed: true,
-		isDefault: false,
-		fetchedAt: new Date(),
 	};
 }
 
 export async function fetchClaudeAccounts(): Promise<UsageAccount[]> {
 	const { credentials, signedOutProfiles, apiProfiles } =
 		await discoverClaudeCredentials();
-	const accounts = await Promise.all(
+	const fetched = await Promise.all(
 		credentials.map((credential) => fetchClaudeAccount(credential)),
 	);
+	const accounts = fetched.map((result) => result.account);
 	accounts.push(...apiProfiles.map(claudeApiKeyAccount));
 	accounts.push(...signedOutProfiles.map(claudeSignedOutAccount));
 	return accounts;
@@ -702,9 +717,5 @@ export async function fetchClaudeAccountForSelection(
 			? await readDefaultCredential()
 			: await readCredentialForConfigDir(selection);
 	if (!credential) return { account: null, rateLimited: false };
-	let rateLimited = false;
-	const account = await fetchClaudeAccount(credential, (status) => {
-		rateLimited = status === 429;
-	});
-	return { account, rateLimited };
+	return fetchClaudeAccount(credential);
 }

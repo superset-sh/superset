@@ -104,12 +104,12 @@ export async function fetchCodexAccounts(): Promise<UsageAccount[]> {
 	// The first discovered home is what codex uses with no CODEX_HOME override
 	// (see discoverCodexHomes) — running on it needs no env injection.
 	const defaultHome = homes[0]?.home ?? null;
-	const accounts = await Promise.all(
+	const fetched = await Promise.all(
 		homes.map((home) =>
 			fetchCodexAccountForHome(home, home.home === defaultHome),
 		),
 	);
-	return dedupeCodexAccounts(accounts.flat());
+	return dedupeCodexAccounts(fetched.flatMap((result) => result.accounts));
 }
 
 /**
@@ -179,20 +179,18 @@ export async function discoverCodexQuotaTargets(): Promise<{
 export async function fetchCodexAccountForSelection(
 	selection: string | null,
 ): Promise<{ account: UsageAccount | null; rateLimited: boolean }> {
-	const homes = await discoverCodexHomes();
+	// Only the one home this selection names has to be classified; the
+	// system default is always the first entry either way.
+	const homes = await discoverCodexHomes(selection === null ? [] : [selection]);
 	const defaultHome = homes[0]?.home ?? null;
 	const home =
 		selection === null
 			? homes[0]
 			: homes.find((candidate) => candidate.home === selection);
 	if (!home) return { account: null, rateLimited: false };
-	let rateLimited = false;
-	const accounts = await fetchCodexAccountForHome(
+	const { accounts, rateLimited } = await fetchCodexAccountForHome(
 		home,
 		home.home === defaultHome,
-		(status) => {
-			rateLimited = status === 429;
-		},
 	);
 	return { account: accounts[0] ?? null, rateLimited };
 }
@@ -236,28 +234,31 @@ function codexApiKeyAccount(
 	};
 }
 
+/** `rateLimited` is the usage endpoint's 429, which backs off every poll on
+ * it (KTD10); callers that only want the rows ignore it. */
 async function fetchCodexAccountForHome(
 	home: CodexHome,
 	isDefaultHome: boolean,
-	/** The usage endpoint's HTTP status, so a poller can see a 429. */
-	onHttpStatus?: (status: number) => void,
-): Promise<UsageAccount[]> {
+): Promise<{ accounts: UsageAccount[]; rateLimited: boolean }> {
 	const codexHome = home.home;
 	const authPath = join(codexHome, "auth.json");
 	const base = codexAccountBase(home, isDefaultHome);
 
 	if (home.credentialKind === "api_key") {
-		return [codexApiKeyAccount(home, isDefaultHome)];
+		return {
+			accounts: [codexApiKeyAccount(home, isDefaultHome)],
+			rateLimited: false,
+		};
 	}
 
 	let auth: CodexAuthFile;
 	try {
 		auth = JSON.parse(await readFile(authPath, "utf-8"));
 	} catch {
-		return [];
+		return { accounts: [], rateLimited: false };
 	}
 	const accessToken = auth.tokens?.access_token;
-	if (!accessToken) return [];
+	if (!accessToken) return { accounts: [], rateLimited: false };
 
 	try {
 		const headers: Record<string, string> = {
@@ -270,63 +271,75 @@ async function fetchCodexAccountForHome(
 			headers,
 			signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
 		});
-		onHttpStatus?.(response.status);
+		const rateLimited = response.status === 429;
 
 		if (response.status === 401 || response.status === 403) {
-			return [
-				{
-					...base,
-					email: null,
-					plan: null,
-					status: "token_expired",
-					statusDetail: "Codex token expired — run `codex` to refresh it.",
-					windows: [],
-					creditsBalance: null,
-				},
-			];
+			return {
+				accounts: [
+					{
+						...base,
+						email: null,
+						plan: null,
+						status: "token_expired",
+						statusDetail: "Codex token expired — run `codex` to refresh it.",
+						windows: [],
+						creditsBalance: null,
+					},
+				],
+				rateLimited,
+			};
 		}
 		if (!response.ok) {
-			return [
-				{
-					...base,
-					email: null,
-					plan: null,
-					status: "unavailable",
-					statusDetail: `Usage endpoint returned ${response.status}.`,
-					windows: [],
-					creditsBalance: null,
-				},
-			];
+			return {
+				accounts: [
+					{
+						...base,
+						email: null,
+						plan: null,
+						status: "unavailable",
+						statusDetail: `Usage endpoint returned ${response.status}.`,
+						windows: [],
+						creditsBalance: null,
+					},
+				],
+				rateLimited,
+			};
 		}
 
 		const usage = (await response.json()) as CodexUsageResponse;
 		const windows = mapWindows(usage);
 		const balance = Number.parseFloat(usage.credits?.balance ?? "");
 
-		return [
-			{
-				...base,
-				email: usage.email ?? null,
-				plan: usage.plan_type ?? null,
-				status: windows.length > 0 ? "ok" : "unavailable",
-				statusDetail:
-					windows.length > 0 ? null : "No quota data returned for this plan.",
-				windows,
-				creditsBalance: Number.isFinite(balance) ? balance : null,
-			},
-		];
+		return {
+			accounts: [
+				{
+					...base,
+					email: usage.email ?? null,
+					plan: usage.plan_type ?? null,
+					status: windows.length > 0 ? "ok" : "unavailable",
+					statusDetail:
+						windows.length > 0 ? null : "No quota data returned for this plan.",
+					windows,
+					creditsBalance: Number.isFinite(balance) ? balance : null,
+				},
+			],
+			rateLimited,
+		};
 	} catch (error) {
-		return [
-			{
-				...base,
-				email: null,
-				plan: null,
-				status: "unavailable",
-				statusDetail:
-					error instanceof Error ? error.message : "Failed to fetch usage.",
-				windows: [],
-				creditsBalance: null,
-			},
-		];
+		return {
+			accounts: [
+				{
+					...base,
+					email: null,
+					plan: null,
+					status: "unavailable",
+					statusDetail:
+						error instanceof Error ? error.message : "Failed to fetch usage.",
+					windows: [],
+					creditsBalance: null,
+				},
+			],
+			rateLimited: false,
+		};
 	}
 }

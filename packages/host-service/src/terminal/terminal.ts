@@ -1039,12 +1039,6 @@ async function getOrAdoptSession({
 }
 
 /**
- * Public "send a follow-up to whatever runs in this terminal" path. Frames
- * the text as a bracketed paste when the running program has that mode on,
- * so embedded newlines reach a TUI agent (claude/codex) as literal newlines
- * rather than premature Enter presses.
- */
-/**
  * Whether the session's terminal currently has bracketed paste enabled — the
  * account engine's session mover uses it as one gate before typing a
  * continue nudge, so text never lands at a bare shell prompt.
@@ -1058,6 +1052,12 @@ export function isBracketedPasteActive(terminalId: string): boolean {
 	);
 }
 
+/**
+ * Public "send a follow-up to whatever runs in this terminal" path. Frames
+ * the text as a bracketed paste when the running program has that mode on,
+ * so embedded newlines reach a TUI agent (claude/codex) as literal newlines
+ * rather than premature Enter presses.
+ */
 export async function writeFramedInputToSession({
 	terminalId,
 	workspaceId,

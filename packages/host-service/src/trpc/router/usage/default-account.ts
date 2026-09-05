@@ -18,6 +18,7 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
+import { accountRotationKey as sharedAccountRotationKey } from "@superset/shared/account-rotation";
 import { EngineState } from "../../../account-engine/engine-state.ts";
 import type {
 	RotationState,
@@ -63,7 +64,9 @@ function ambientCodexHome(): string {
 	return join(homedir(), ".codex");
 }
 
-function canonicalAccountHome(target: string): string {
+/** Realpath, falling back to a plain resolve for a path that does not exist
+ * yet: two spellings of the same account home must compare equal. */
+export function canonicalAccountHome(target: string): string {
 	try {
 		return realpathSync(target);
 	} catch {
@@ -301,11 +304,12 @@ export interface AccountEngineView {
 }
 
 /** R16: the rotation flag's key. Identity first, so a profile dir that moves
- * (or an account that changes dirs) keeps its toggle. */
+ * (or an account that changes dirs) keeps its toggle. Shared with the
+ * renderer, which reads the same keys back. */
 export function accountRotationKey(
 	account: Pick<UsageAccount, "agent" | "accountId" | "selection">,
 ): string {
-	return `${account.agent}:${account.accountId ?? account.selection ?? "default"}`;
+	return sharedAccountRotationKey(account);
 }
 
 export function readAccountEngineView(db: HostDb): AccountEngineView {

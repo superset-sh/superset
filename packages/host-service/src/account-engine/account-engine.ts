@@ -204,6 +204,24 @@ interface PerformSwitchInput {
 	fallbackRestart?: boolean;
 }
 
+/** A history row of a completed switch, with every field the
+ * `account:switched` event needs settled rather than optional. */
+type SwitchRecord = HistoryEntry & {
+	reasonKind: AccountSwitchReasonKind;
+	windowId: string | null;
+	usedPercent: number | null;
+	fallbackRestart: boolean;
+};
+
+/** The tick's already-loaded state, handed to the limit-hint pass so it does
+ * not re-read the state dir and re-claim the lock straight after the tick. */
+interface LimitHintPass {
+	settings: EngineSettings;
+	agents: readonly AccountAgent[];
+	runtime: RuntimeState;
+	rotation: RotationState;
+}
+
 function errorText(error: unknown): string {
 	return error instanceof Error ? error.message : String(error);
 }
@@ -538,6 +556,7 @@ export class AccountEngine {
 		}
 
 		const runtime = this.state.readRuntime();
+		const runtimeBefore = JSON.stringify(runtime);
 		const rotation = this.state.readRotation();
 		// The active account is resolved first: the poll schedule, the
 		// identity re-assertion and the decision all key off it.
@@ -556,11 +575,15 @@ export class AccountEngine {
 			await this.evaluate(agent, settings[agent], rotation, runtime, now);
 		}
 
-		this.state.writeRuntime(runtime);
+		// A quiet tick must not rewrite the file every interval: the state dir
+		// is shared with the other Superset host-services on this machine.
+		if (JSON.stringify(runtime) !== runtimeBefore) {
+			this.state.writeRuntime(runtime);
+		}
 		for (const agent of agents) {
 			this.broadcastState(agent, settings[agent], runtime, now);
 		}
-		await this.handleLimitHints(now);
+		await this.handleLimitHints(now, { settings, agents, runtime, rotation });
 	}
 
 	// ── Ownership (KTD5) ───────────────────────────────────────────────
@@ -777,26 +800,15 @@ export class AccountEngine {
 				now,
 			];
 		}
-		this.state.appendHistory(this.historyEntry(input));
+		const entry = this.historyEntry(input);
+		this.state.appendHistory(entry);
 		this.state.writeRuntime(runtime);
-		this.broadcast.switched({
-			scope: agent,
-			agent,
-			fromAccountId: input.from?.accountId ?? null,
-			fromLabel: input.from?.label ?? null,
-			toAccountId: input.target.accountId,
-			toLabel: input.target.label,
-			reasonKind: input.reasonKind,
-			windowId: input.windowId,
-			usedPercent: input.usedPercent,
-			at: now,
-			fallbackRestart: input.fallbackRestart ?? false,
-		});
+		this.broadcast.switched(switchedPayload(entry));
 		await this.moveSessions(agent, result.activeDir ?? null);
 		return { ok: true };
 	}
 
-	private historyEntry(input: PerformSwitchInput): HistoryEntry {
+	private historyEntry(input: PerformSwitchInput): SwitchRecord {
 		return {
 			at: input.now,
 			agent: input.agent,
@@ -984,17 +996,16 @@ export class AccountEngine {
 		// A credential we did not write: someone signed in behind us (a
 		// `/login` inside a session, or another tool). Adopt it so the next
 		// swap saves it back to the right dir rather than to the wrong one.
-		const adopted = this.pool("claude").find(
+		const pool = this.pool("claude");
+		const adopted = pool.find(
 			(item) => item.row.accountId === seen.accountUuid,
 		);
-		const from = this.pool("claude").find(
-			(item) => item.row.accountId === expected,
-		);
+		const from = pool.find((item) => item.row.accountId === expected);
 		state.activeAccountId = seen.accountUuid;
 		state.activeSelection = adopted?.row.selection ?? null;
 		state.exhaustedNotifiedAt = null;
 		this.lastWritten = null;
-		this.state.appendHistory({
+		const entry: SwitchRecord = {
 			at: now,
 			agent: "claude",
 			fromAccountId: expected,
@@ -1005,20 +1016,9 @@ export class AccountEngine {
 			windowId: null,
 			usedPercent: null,
 			fallbackRestart: false,
-		});
-		this.broadcast.switched({
-			scope: "claude",
-			agent: "claude",
-			fromAccountId: expected,
-			fromLabel: from?.row.label ?? null,
-			toAccountId: seen.accountUuid,
-			toLabel: adopted?.row.label ?? null,
-			reasonKind: "external",
-			windowId: null,
-			usedPercent: null,
-			at: now,
-			fallbackRestart: false,
-		});
+		};
+		this.state.appendHistory(entry);
+		this.broadcast.switched(switchedPayload(entry));
 	}
 
 	private async readActiveIdentitySafe(
@@ -1040,11 +1040,14 @@ export class AccountEngine {
 	 * snapshot costs no provider call, and the quota refresh goes through the
 	 * store so it honours the poll floor and the 429 back-off.
 	 */
-	async handleLimitHints(now: number = this.now()): Promise<void> {
+	async handleLimitHints(
+		now: number = this.now(),
+		loaded?: LimitHintPass,
+	): Promise<void> {
 		if (this.handlingHints) return;
 		this.handlingHints = true;
 		try {
-			await this.runLimitHints(now);
+			await this.runLimitHints(now, loaded);
 		} catch (error) {
 			console.warn("[account-engine] limit-stop handling failed:", error);
 		} finally {
@@ -1052,15 +1055,16 @@ export class AccountEngine {
 		}
 	}
 
-	private async runLimitHints(now: number): Promise<void> {
+	private async runLimitHints(
+		now: number,
+		loaded?: LimitHintPass,
+	): Promise<void> {
 		if (!this.platformSupported()) return;
-		const settings = this.state.readSettings();
-		const agents = AGENTS.filter((agent) => settings[agent].enabled);
-		if (agents.length === 0) return;
-		if (!this.ensureOwnership(now)) return;
-
-		const runtime = this.state.readRuntime();
-		const rotation = this.state.readRotation();
+		// The tick hands its own state down; a standalone pass off the session
+		// subscription has to read it (and claim the lock) for itself.
+		const pass = loaded ?? this.loadLimitHintPass(now);
+		if (!pass) return;
+		const { settings, agents, runtime, rotation } = pass;
 		for (const agent of agents) {
 			this.resolveActive(agent, runtime);
 			for (const row of this.hostDeps.listSessions(agent)) {
@@ -1068,6 +1072,19 @@ export class AccountEngine {
 				await this.handleHint(row, settings, rotation, runtime, now);
 			}
 		}
+	}
+
+	private loadLimitHintPass(now: number): LimitHintPass | null {
+		const settings = this.state.readSettings();
+		const agents = AGENTS.filter((agent) => settings[agent].enabled);
+		if (agents.length === 0) return null;
+		if (!this.ensureOwnership(now)) return null;
+		return {
+			settings,
+			agents,
+			runtime: this.state.readRuntime(),
+			rotation: this.state.readRotation(),
+		};
 	}
 
 	private isLimitHint(row: MovableSession): boolean {
@@ -1229,6 +1246,12 @@ export class AccountEngine {
 	private platformSupported(): boolean {
 		return this.platform !== "win32";
 	}
+}
+
+/** The `account:switched` event of a completed switch: the history row plus
+ * the bus's filter key, so the two can never drift apart. */
+function switchedPayload(entry: SwitchRecord): AccountSwitchedPayload {
+	return { scope: entry.agent, ...entry };
 }
 
 function storeRef(selection: string | null): ClaudeLoginStoreRef {

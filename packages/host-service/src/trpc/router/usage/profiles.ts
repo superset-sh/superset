@@ -538,7 +538,9 @@ export async function readCodexProfileKind(
  * `selection: null`. It is listed even without an `auth.json` so the
  * add-account poller has a baseline to compare a fresh `codex login` against.
  */
-export async function discoverCodexHomes(): Promise<CodexHome[]> {
+export async function discoverCodexHomes(
+	candidates?: string[],
+): Promise<CodexHome[]> {
 	const home = homedir();
 	const defaultHome = resolveAmbientCodexHome(home);
 	const defaultKind = (await readCodexProfileKind(defaultHome)) ?? {
@@ -557,10 +559,12 @@ export async function discoverCodexHomes(): Promise<CodexHome[]> {
 		],
 	]);
 
-	const candidates = (await listSubdirectories(home)).filter((path) =>
-		path.slice(home.length + 1).startsWith(".codex"),
-	);
-	for (const candidate of candidates) {
+	const scanned =
+		candidates ??
+		(await listSubdirectories(home)).filter((path) =>
+			path.slice(home.length + 1).startsWith(".codex"),
+		);
+	for (const candidate of scanned) {
 		if (homes.has(candidate)) continue;
 		const kind = await readCodexProfileKind(candidate);
 		if (!kind) continue;

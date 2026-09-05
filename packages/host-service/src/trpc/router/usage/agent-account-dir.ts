@@ -11,10 +11,11 @@
  * another account.
  */
 
-import { realpathSync } from "node:fs";
-import { resolve } from "node:path";
 import type { HostDb } from "../../../db/index.ts";
-import { resolveDefaultAccountEnv } from "./default-account.ts";
+import {
+	canonicalAccountHome,
+	resolveDefaultAccountEnv,
+} from "./default-account.ts";
 
 /** The two agent families whose account dir Superset can switch. */
 export type AccountDirFamily = "claude" | "codex";
@@ -37,6 +38,12 @@ export interface AgentAccountDirInput {
 	family: AccountDirFamily;
 	/** The agent config's own env overlay, which wins over the host default. */
 	env?: Record<string, string>;
+	/**
+	 * The host default env, when the caller already has it. It depends only on
+	 * `db` and `family`, so a caller resolving many launches of one family
+	 * resolves it once instead of re-querying per launch.
+	 */
+	defaultEnv?: Record<string, string>;
 }
 
 export interface AgentAccountDir {
@@ -55,15 +62,7 @@ export interface AgentAccountDir {
 
 function samePath(a: string, b: string): boolean {
 	if (a === b) return true;
-	return canonical(a) === canonical(b);
-}
-
-function canonical(target: string): string {
-	try {
-		return realpathSync(target);
-	} catch {
-		return resolve(target);
-	}
+	return canonicalAccountHome(a) === canonicalAccountHome(b);
 }
 
 /**
@@ -77,7 +76,7 @@ export function resolveAgentAccountDir(
 ): AgentAccountDir {
 	const vars = DIR_VARS[input.family];
 	const env = {
-		...resolveDefaultAccountEnv(db, input.family),
+		...(input.defaultEnv ?? resolveDefaultAccountEnv(db, input.family)),
 		...input.env,
 	};
 	const configDir = env[vars.configDir] || null;

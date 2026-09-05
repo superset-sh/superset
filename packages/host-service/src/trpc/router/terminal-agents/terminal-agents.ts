@@ -292,6 +292,9 @@ export function listAccountRestartCandidates(
 	provider: "claude" | "codex",
 ): AccountRestartCandidate[] {
 	const out: AccountRestartCandidate[] = [];
+	// The host default depends only on `db` and `provider`, and resolving it
+	// costs a DB query plus the pointer reads: once, not once per binding.
+	const defaultEnv = resolveDefaultAccountEnv(db, provider);
 	for (const binding of store.list()) {
 		if (!binding.agentSessionId) continue;
 		const config = resolveHostAgentConfig(
@@ -303,6 +306,7 @@ export function listAccountRestartCandidates(
 		const account = resolveAgentAccountDir(db, {
 			family: provider,
 			env: config.env,
+			defaultEnv,
 		});
 		out.push({
 			binding,
