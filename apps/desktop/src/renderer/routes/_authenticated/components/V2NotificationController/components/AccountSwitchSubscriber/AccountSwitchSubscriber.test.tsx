@@ -29,11 +29,14 @@ type BusListener = (scope: string, payload: unknown) => void;
 const busListeners = new Map<string, Set<BusListener>>();
 let busRetainCount = 0;
 
-// Spread the real modules: `mock.module` is process-wide, so a partial stub
-// would strip the other exports from every suite in the same run.
-const realHostEventBus = await import("renderer/lib/host-event-bus");
-const realTrpcClient = await import("renderer/lib/trpc-client");
-const realSonner = await import("@superset/ui/sonner");
+// Snapshot the real modules: `mock.module` is process-wide, so a partial stub
+// would strip the other exports from every suite in the same run. Copied
+// rather than held as namespaces, because `mock.module` rewrites the live
+// namespace in place — a namespace captured here would hand the stub back to
+// the `afterAll` that is meant to undo it.
+const realHostEventBus = { ...(await import("renderer/lib/host-event-bus")) };
+const realTrpcClient = { ...(await import("renderer/lib/trpc-client")) };
+const realSonner = { ...(await import("@superset/ui/sonner")) };
 
 mock.module("renderer/lib/host-event-bus", () => ({
 	...realHostEventBus,
@@ -116,6 +119,11 @@ const { AccountSwitchSubscriber } = await import("./AccountSwitchSubscriber");
 
 afterEach(cleanup);
 afterAll(async () => {
+	// `mock.module` is process-wide and `mock.restore` does not undo it, so the
+	// real modules go back before the next suite in this run imports them.
+	mock.module("renderer/lib/host-event-bus", () => ({ ...realHostEventBus }));
+	mock.module("renderer/lib/trpc-client", () => ({ ...realTrpcClient }));
+	mock.module("@superset/ui/sonner", () => ({ ...realSonner }));
 	if (!alreadyRegistered) await GlobalRegistrator.unregister();
 });
 
@@ -245,6 +253,29 @@ describe("switch notifications", () => {
 		await emit("account:switched", "claude", payload);
 
 		expect(shown).toHaveLength(1);
+	});
+
+	// The dedupe set is module-level, so keying it by agent and timestamp alone
+	// let one host's switch swallow another host's identical-looking one.
+	test("two hosts switching at the same instant both notify", async () => {
+		await mountSubscriber("http://host-two-switch-a");
+		await mountSubscriber("http://host-two-switch-b");
+		const payload = switched({ at: 2_500 });
+
+		await emit(
+			"account:switched",
+			"claude",
+			payload,
+			"http://host-two-switch-a",
+		);
+		await emit(
+			"account:switched",
+			"claude",
+			payload,
+			"http://host-two-switch-b",
+		);
+
+		expect(shown).toHaveLength(2);
 	});
 
 	test("a manual switch stays silent but still refreshes the page", async () => {
@@ -437,6 +468,30 @@ describe("switch failures", () => {
 		expect(shown).toHaveLength(2);
 	});
 
+	test("two hosts reporting the same failure both notify", async () => {
+		await mountSubscriber("http://host-two-failure-a");
+		await mountSubscriber("http://host-two-failure-b");
+		const payload = engineState({
+			occurredAt: 8_600,
+			lastSwitchFailure: { code: "verify-failed", at: 8_600 },
+		});
+
+		await emit(
+			"account:engine-state",
+			"claude",
+			payload,
+			"http://host-two-failure-a",
+		);
+		await emit(
+			"account:engine-state",
+			"claude",
+			payload,
+			"http://host-two-failure-b",
+		);
+
+		expect(shown).toHaveLength(2);
+	});
+
 	test("a code the renderer has wording for reads as that wording", async () => {
 		await mountSubscriber("http://host-switch-failure-known");
 
@@ -457,6 +512,11 @@ describe("switch failures", () => {
 	});
 });
 
+function readWatermarks(): unknown {
+	const raw = localStorage.getItem("superset.accountSwitch.lastSeenAt");
+	return raw === null ? null : JSON.parse(raw);
+}
+
 describe("away summary", () => {
 	test("summarises switches newer than the marker, once", async () => {
 		historyEntries = [
@@ -469,13 +529,39 @@ describe("away summary", () => {
 		await mountSubscriber("http://host-away-first");
 		expect(toasts).toEqual(["2 account switches while you were away"]);
 
-		// The marker moved past every entry, so a second host that reports the
-		// same history says nothing.
-		await mountSubscriber("http://host-away-second");
+		// Remounting the same host does not summarise it twice.
+		await mountSubscriber("http://host-away-first");
 		expect(toasts).toHaveLength(1);
-		expect(localStorage.getItem("superset.accountSwitch.lastSeenAt")).toBe(
-			"700",
-		);
+		expect(readWatermarks()).toEqual({ "http://host-away-first": 700 });
+	});
+
+	// The marker used to be one renderer-wide number, so the first host to
+	// report swallowed every other host's summary.
+	test("each host summarises against its own marker", async () => {
+		historyEntries = [{ at: 1_500, agent: "claude", reasonKind: "threshold" }];
+
+		await mountSubscriber("http://host-away-per-host-a");
+		await mountSubscriber("http://host-away-per-host-b");
+
+		expect(toasts).toEqual([
+			"1 account switch while you were away",
+			"1 account switch while you were away",
+		]);
+		expect(readWatermarks()).toEqual({
+			"http://host-away-per-host-a": 1_500,
+			"http://host-away-per-host-b": 1_500,
+		});
+	});
+
+	// Profiles written before the marker became a map still hold a bare number.
+	test("a legacy scalar marker is read as no marker, not a crash", async () => {
+		localStorage.setItem("superset.accountSwitch.lastSeenAt", "9999999");
+		historyEntries = [{ at: 1_600, agent: "claude", reasonKind: "threshold" }];
+
+		await mountSubscriber("http://host-away-legacy");
+
+		expect(toasts).toEqual(["1 account switch while you were away"]);
+		expect(readWatermarks()).toEqual({ "http://host-away-legacy": 1_600 });
 	});
 
 	test("a single switch reads in the singular", async () => {
@@ -490,9 +576,7 @@ describe("away summary", () => {
 		await mountSubscriber("http://host-away-live");
 		await emit("account:switched", "claude", switched({ at: 10_010 }));
 
-		expect(localStorage.getItem("superset.accountSwitch.lastSeenAt")).toBe(
-			"10010",
-		);
+		expect(readWatermarks()).toEqual({ "http://host-away-live": 10_010 });
 	});
 
 	test("an unreachable host is left to try again, without a toast", async () => {

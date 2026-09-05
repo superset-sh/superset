@@ -25,16 +25,22 @@ type AccountAgent = AccountSwitchedPayload["agent"];
 const AWAY_SUMMARY_LIMIT = 50;
 
 /**
- * Newest switch the user has been told about, so switches made while the app
- * was closed can be summarised once on the next launch. Bounded: a single
- * epoch-ms number, overwritten in place, never keyed by entity.
+ * Newest switch the user has been told about *per host*, so switches made
+ * while the app was closed can be summarised once on the next launch. One
+ * subscriber mounts per host, so a renderer-wide number let a second host's
+ * newer timestamp swallow the first host's summary. Bounded: a
+ * `{ [hostUrl]: epochMs }` map capped to `MAX_WATERMARK_HOSTS` entries, the
+ * newest kept.
  */
 const LAST_SEEN_AT_KEY = "superset.accountSwitch.lastSeenAt";
+const MAX_WATERMARK_HOSTS = 8;
 
 /**
- * One notification per `(agent, at)`. Module-level, so the same switch
- * arriving over two host connections in this window notifies once. A second
- * desktop window is a separate renderer process and is not covered.
+ * One notification per `(hostUrl, agent, at)`. Module-level, so the same
+ * switch replayed on one host's connection in this window notifies once —
+ * host-scoped, because two hosts switching the same agent at the same
+ * timestamp are two real events. A second desktop window is a separate
+ * renderer process and is not covered.
  */
 const seenSwitchKeys = new Set<string>();
 const MAX_SEEN_SWITCH_KEYS = 200;
@@ -93,9 +99,9 @@ export function AccountSwitchSubscriber({
 			// Always: the active account changed even when the user did it
 			// themselves, so the page must not keep showing the old one.
 			void invalidateAccountQueries(queryClient, hostUrl);
-			rememberLastSeenAt(payload.at);
+			rememberLastSeenAt(hostUrl, payload.at);
 
-			if (!markSwitchSeen(`${payload.agent}:${payload.at}`)) return;
+			if (!markSwitchSeen(`${hostUrl}:${payload.agent}:${payload.at}`)) return;
 			const content = getSwitchNotification(payload);
 			if (!content) return;
 			showNative(content);
@@ -109,7 +115,7 @@ export function AccountSwitchSubscriber({
 			});
 			notifyExhaustion(payload, hostUrl);
 			notifyNeedsAttention(payload, hostUrl, workspaces);
-			notifySwitchFailure(payload);
+			notifySwitchFailure(payload, hostUrl);
 		},
 	);
 
@@ -274,14 +280,18 @@ function notifyNeedsAttention(
 /**
  * R24: an automatic switch the engine could not make. The previous login is
  * still in place, so the user has to know a limit is no longer being routed
- * around. One notice per `(agent, code, at)`, so a repeated failure with a new
- * timestamp is told again while the same broadcast replayed is not.
+ * around. One notice per `(hostUrl, agent, code, at)`, so a repeated failure
+ * with a new timestamp is told again while the same broadcast replayed is not,
+ * and one host's failure never silences another host's.
  */
-function notifySwitchFailure(payload: AccountEngineStatePayload): void {
+function notifySwitchFailure(
+	payload: AccountEngineStatePayload,
+	hostUrl: string,
+): void {
 	const failure = payload.lastSwitchFailure;
 	if (!failure) return;
-	if (!markSwitchSeen(`failure:${payload.agent}:${failure.code}:${failure.at}`))
-		return;
+	const key = `failure:${hostUrl}:${payload.agent}:${failure.code}:${failure.at}`;
+	if (!markSwitchSeen(key)) return;
 
 	const agent = getAgentLabel(payload.agent);
 	showNative({
@@ -313,9 +323,8 @@ function showNative(input: {
 
 /**
  * One toast for the switches that happened while the desktop was closed.
- * Runs once per host per renderer; the marker is host-wide, so with several
- * hosts the first one to report wins and the rest stay silent rather than
- * stacking toasts.
+ * Runs once per host per renderer, against that host's own marker, so every
+ * host summarises what it alone missed.
  */
 async function showAwaySummary(
 	hostUrl: string,
@@ -324,11 +333,11 @@ async function showAwaySummary(
 	if (summarisedHosts.has(hostUrl)) return;
 	summarisedHosts.add(hostUrl);
 
-	const lastSeenAt = readLastSeenAt();
+	const lastSeenAt = readLastSeenAt(hostUrl);
 	try {
 		const { entries } = await loadHistory(hostUrl);
 
-		rememberLastSeenAt(...entries.map((entry) => entry.at));
+		rememberLastSeenAt(hostUrl, ...entries.map((entry) => entry.at));
 		// `fallback-rejected` rows are refused hints, not switches.
 		const count = entries.filter(
 			(entry) =>
@@ -353,22 +362,50 @@ async function showAwaySummary(
 	}
 }
 
-function readLastSeenAt(): number {
+/**
+ * Anything that is not the current map — absent, blocked, or the pre-per-host
+ * scalar this key used to hold — reads as "no watermark yet", which costs at
+ * most one extra summary and is overwritten on the next write.
+ */
+function readWatermarks(): Record<string, number> {
 	try {
 		const raw = localStorage.getItem(LAST_SEEN_AT_KEY);
-		const parsed = raw === null ? 0 : Number(raw);
-		return Number.isFinite(parsed) ? parsed : 0;
+		if (raw === null) return {};
+		const parsed: unknown = JSON.parse(raw);
+		if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed))
+			return {};
+		const watermarks: Record<string, number> = {};
+		for (const [host, at] of Object.entries(parsed)) {
+			if (typeof at === "number" && Number.isFinite(at)) watermarks[host] = at;
+		}
+		return watermarks;
 	} catch {
-		return 0;
+		return {};
 	}
 }
 
-function rememberLastSeenAt(...timestamps: number[]): void {
+function readLastSeenAt(hostUrl: string): number {
+	return readWatermarks()[hostUrl] ?? 0;
+}
+
+function rememberLastSeenAt(hostUrl: string, ...timestamps: number[]): void {
 	const newest = Math.max(0, ...timestamps);
-	if (newest <= readLastSeenAt()) return;
+	const watermarks = readWatermarks();
+	if (newest <= (watermarks[hostUrl] ?? 0)) return;
+	watermarks[hostUrl] = newest;
 	try {
-		localStorage.setItem(LAST_SEEN_AT_KEY, String(newest));
+		localStorage.setItem(LAST_SEEN_AT_KEY, JSON.stringify(cap(watermarks)));
 	} catch {
 		// A blocked or full localStorage only costs a repeated summary.
 	}
+}
+
+/** Keeps the newest few hosts: the key must not grow with every host this
+ * renderer has ever connected to. */
+function cap(watermarks: Record<string, number>): Record<string, number> {
+	const entries = Object.entries(watermarks);
+	if (entries.length <= MAX_WATERMARK_HOSTS) return watermarks;
+	return Object.fromEntries(
+		entries.sort(([, a], [, b]) => b - a).slice(0, MAX_WATERMARK_HOSTS),
+	);
 }

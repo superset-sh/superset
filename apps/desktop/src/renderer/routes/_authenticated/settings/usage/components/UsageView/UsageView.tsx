@@ -807,7 +807,8 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 								);
 								setRemoveTarget(null);
 							},
-							onError: (error) => toast.error(errorMessage(error)),
+							onError: (error) =>
+								toast.error(engineErrorMessage(error) ?? errorMessage(error)),
 						},
 					);
 				}}

@@ -20,7 +20,11 @@ const restart = mock(() => Promise.resolve({ restartedTerminalIds: [] }));
 
 // Spread the real module: `mock.module` is process-wide, so a partial stub
 // would strip the other exports from every suite in the same run.
-const realHostServiceClient = await import("renderer/lib/host-service-client");
+// Snapshot into a plain object: `mock.module` rewrites the live namespace in
+// place, so spreading the namespace itself in `afterAll` would restore the stub.
+const realHostServiceClient = {
+	...(await import("renderer/lib/host-service-client")),
+};
 mock.module("renderer/lib/host-service-client", () => ({
 	...realHostServiceClient,
 	getHostServiceClientByUrl: () => ({
