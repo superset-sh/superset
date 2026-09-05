@@ -308,13 +308,107 @@ function cookieKey(hostKey: string, name: string, cookiePath: string): string {
 	return `${hostKey}|${name}|${cookiePath}`;
 }
 
+function slotOf(cookie: Electron.Cookie): string {
+	return cookieKey(cookie.domain ?? "", cookie.name, cookie.path ?? "/");
+}
+
+/** RFC 6265 section 5.1.3: whether a cookie's domain covers a request host. */
+function domainCovers(cookieDomain: string | undefined, host: string): boolean {
+	if (!cookieDomain) return false;
+	if (!cookieDomain.startsWith(".")) return cookieDomain === host;
+	const bare = cookieDomain.slice(1);
+	return host === bare || host.endsWith(`.${bare}`);
+}
+
+/** RFC 6265 section 5.1.4: whether a cookie's path covers a request path. */
+function pathCovers(cookiePath: string, requestPath: string): boolean {
+	if (cookiePath === requestPath) return true;
+	if (!requestPath.startsWith(cookiePath)) return false;
+	return cookiePath.endsWith("/") || requestPath[cookiePath.length] === "/";
+}
+
 /**
- * `cookies.remove(url, name)` deletes every cookie of that name the URL would
- * receive — a host-only cookie and its `.host` twin alike — so the URL has to
- * be https (which also matches non-Secure cookies) and carry the cookie's path.
+ * `cookies.remove(url, name)` is the only deletion Electron offers, and it
+ * takes every cookie of that name the URL would receive: the `.host` twin, the
+ * host-only cookie, and any parent-domain or shorter-path cookie too. The URL
+ * has to be https (which also matches non-Secure cookies) and carry the path.
  */
 function removalUrl(host: string, cookiePath: string): string {
 	return `https://${host}${cookiePath || "/"}`;
+}
+
+function cookiesRemovedBy(
+	jar: Electron.Cookie[],
+	host: string,
+	cookiePath: string,
+	name: string,
+): Electron.Cookie[] {
+	return jar.filter(
+		(cookie) =>
+			cookie.name === name &&
+			domainCovers(cookie.domain, host) &&
+			pathCovers(cookie.path ?? "/", cookiePath),
+	);
+}
+
+/** The `cookies.set` call that recreates a cookie exactly as the jar holds it. */
+function toSetDetails(cookie: Electron.Cookie): Electron.CookiesSetDetails {
+	const domain = cookie.domain ?? "";
+	const cookiePath = cookie.path ?? "/";
+	return {
+		url: removalUrl(domain.replace(/^\./, ""), cookiePath),
+		name: cookie.name,
+		value: cookie.value,
+		path: cookiePath,
+		secure: cookie.secure,
+		httpOnly: cookie.httpOnly,
+		sameSite: cookie.sameSite,
+		...(domain.startsWith(".") && { domain }),
+		...(cookie.expirationDate !== undefined && {
+			expirationDate: cookie.expirationDate,
+		}),
+	};
+}
+
+/**
+ * Deletes the `.host` twins named in `doomed` (slot keys, see `cookieKey`),
+ * one host-only slot at a time, and puts back every other cookie the removal
+ * took with it. `jar` is the snapshot the collateral is restored from, so it
+ * must predate the removals. If a restore fails the remaining cookies of that
+ * slot, twin included, are put back rather than left missing.
+ */
+async function dropDottedTwins(
+	targetSession: Session,
+	jar: Electron.Cookie[],
+	slots: Array<{ host: string; name: string; path: string }>,
+): Promise<number> {
+	const doomed = new Set(
+		slots.map((slot) => cookieKey(`.${slot.host}`, slot.name, slot.path)),
+	);
+	let dropped = 0;
+	for (const slot of slots) {
+		const hit = cookiesRemovedBy(jar, slot.host, slot.path, slot.name);
+		const keep = hit.filter((cookie) => !doomed.has(slotOf(cookie)));
+		try {
+			await targetSession.cookies.remove(
+				removalUrl(slot.host, slot.path),
+				slot.name,
+			);
+		} catch {
+			continue;
+		}
+		try {
+			for (const cookie of keep) {
+				await targetSession.cookies.set(toSetDetails(cookie));
+			}
+			dropped++;
+		} catch {
+			for (const cookie of hit) {
+				await targetSession.cookies.set(toSetDetails(cookie)).catch(() => {});
+			}
+		}
+	}
+	return dropped;
 }
 
 /**
@@ -341,40 +435,42 @@ function dottedTwinSlots(cookies: Electron.Cookie[]): Set<string> {
  *
  * A host-only cookie replaces a stale `.host` twin left by an earlier import,
  * unless the source profile itself holds both — then both are imported as-is.
+ * Twins go first, before any cookie is written, so a value the removal
+ * restores from the old jar is overwritten by the source's value afterwards.
  */
 export async function importCookies(
 	targetSession: Session,
 	cookies: ImportedCookie[],
 ): Promise<Omit<CookieImportResult, "keyUnavailable">> {
+	const accepted = cookies.filter(
+		(cookie) => !isProtectedCookieHost(cookieHost(cookie)),
+	);
 	const sourceDomainSlots = new Set(
-		cookies
+		accepted
 			.filter((cookie) => cookie.domain !== undefined)
 			.map((cookie) =>
 				cookieKey((cookie.domain as string).slice(1), cookie.name, cookie.path),
 			),
 	);
-	const staleTwins = dottedTwinSlots(await targetSession.cookies.get({}));
+	const jar = await targetSession.cookies.get({});
+	const staleTwins = dottedTwinSlots(jar);
+	const twinsToDrop = accepted
+		.filter((cookie) => cookie.domain === undefined)
+		.map((cookie) => ({
+			host: cookieHost(cookie),
+			name: cookie.name,
+			path: cookie.path,
+		}))
+		.filter((slot) => {
+			const key = cookieKey(slot.host, slot.name, slot.path);
+			return staleTwins.has(key) && !sourceDomainSlots.has(key);
+		});
+	await dropDottedTwins(targetSession, jar, twinsToDrop);
 
 	let imported = 0;
-	let skipped = 0;
-	for (const cookie of cookies) {
-		const host = cookieHost(cookie);
-		if (isProtectedCookieHost(host)) {
-			skipped++;
-			continue;
-		}
+	let skipped = cookies.length - accepted.length;
+	for (const cookie of accepted) {
 		try {
-			const slot = cookieKey(host, cookie.name, cookie.path);
-			if (
-				cookie.domain === undefined &&
-				staleTwins.has(slot) &&
-				!sourceDomainSlots.has(slot)
-			) {
-				await targetSession.cookies.remove(
-					removalUrl(host, cookie.path),
-					cookie.name,
-				);
-			}
 			await targetSession.cookies.set(cookie);
 			imported++;
 		} catch {
@@ -409,38 +505,28 @@ export async function importCookiesIntoSession(
  * itself, most recently. Repairs jars written by earlier versions of the
  * importer, which stored every host-only cookie as a domain cookie: as soon as
  * a site refreshed one of those (Google rotates `LSID` on every sign-in), the
- * jar carried two values under one name. Returns the number of twins removed.
+ * jar carried two values under one name. Sites do occasionally set such a
+ * pair on purpose (analytics and A/B cookies, in the profiles checked), which
+ * is why this runs once per install rather than on every launch. Superset's
+ * own hosts are left alone, as on import. Returns the number of twins removed.
  */
 export async function repairImportedCookieTwins(
 	targetSession: Session,
 ): Promise<number> {
-	const cookies = await targetSession.cookies.get({});
-	const twins = dottedTwinSlots(cookies);
-	let repaired = 0;
-	for (const cookie of cookies) {
-		if (!cookie.hostOnly || !cookie.domain) continue;
-		const cookiePath = cookie.path ?? "/";
-		if (!twins.has(cookieKey(cookie.domain, cookie.name, cookiePath))) continue;
-		try {
-			// Removal takes the host-only cookie with it, so put that one back.
-			const url = removalUrl(cookie.domain, cookiePath);
-			await targetSession.cookies.remove(url, cookie.name);
-			await targetSession.cookies.set({
-				url,
-				name: cookie.name,
-				value: cookie.value,
-				path: cookiePath,
-				secure: cookie.secure,
-				httpOnly: cookie.httpOnly,
-				sameSite: cookie.sameSite,
-				...(cookie.expirationDate !== undefined && {
-					expirationDate: cookie.expirationDate,
-				}),
-			});
-			repaired++;
-		} catch {
-			// Leave a cookie the session refuses to rewrite alone.
-		}
-	}
-	return repaired;
+	const jar = await targetSession.cookies.get({});
+	const twins = dottedTwinSlots(jar);
+	const slots = jar
+		.filter(
+			(cookie): cookie is Electron.Cookie & { domain: string } =>
+				cookie.hostOnly === true &&
+				cookie.domain !== undefined &&
+				!isProtectedCookieHost(cookie.domain) &&
+				twins.has(cookieKey(cookie.domain, cookie.name, cookie.path ?? "/")),
+		)
+		.map((cookie) => ({
+			host: cookie.domain,
+			name: cookie.name,
+			path: cookie.path ?? "/",
+		}));
+	return dropDottedTwins(targetSession, jar, slots);
 }

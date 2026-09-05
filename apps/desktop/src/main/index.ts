@@ -482,7 +482,9 @@ if (!gotTheLock) {
 		initSentry();
 		await initAppState();
 		initTanstackDbPersistence();
-		void repairImportedCookiesOnce();
+		// Before any window can load a page: a pane that navigates mid-sweep
+		// would still see the duplicate cookies this removes.
+		await repairImportedCookiesOnce();
 
 		sweepNetworkLogs();
 

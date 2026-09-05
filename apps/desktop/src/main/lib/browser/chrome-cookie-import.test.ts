@@ -162,29 +162,52 @@ describe("mapCookieRow", () => {
 	});
 });
 
+/** RFC 6265 domain-match, as Chromium applies it when picking request cookies. */
+function domainCovers(cookieDomain: string, host: string): boolean {
+	if (!cookieDomain.startsWith(".")) return cookieDomain === host;
+	const bare = cookieDomain.slice(1);
+	return host === bare || host.endsWith(`.${bare}`);
+}
+
+/** RFC 6265 path-match. */
+function pathCovers(cookiePath: string, requestPath: string): boolean {
+	if (cookiePath === requestPath) return true;
+	if (!requestPath.startsWith(cookiePath)) return false;
+	return cookiePath.endsWith("/") || requestPath[cookiePath.length] === "/";
+}
+
 /**
  * In-memory stand-in for `session.cookies`. Mirrors the one behaviour the
  * importer depends on: `remove(url, name)` deletes every cookie of that name
- * the URL would receive, host-only and `.host` twin alike.
+ * the URL would receive — host-only, `.host` twin, parent-domain and
+ * shorter-path cookies alike (verified against Electron 41).
  */
 function fakeSession(initial: Cookie[] = []) {
 	const jar: Cookie[] = [...initial];
 	const removed: Array<[string, string]> = [];
 	const set: ImportedCookie[] = [];
 	const rejectNames = new Set<string>();
+	const rejectValues = new Set<string>();
 	const cookies = {
 		get: async () => [...jar],
 		remove: async (url: string, name: string) => {
 			removed.push([url, name]);
-			const host = new URL(url).hostname;
+			const { hostname, pathname } = new URL(url);
 			for (let i = jar.length - 1; i >= 0; i--) {
 				const c = jar[i] as Cookie;
-				const bare = c.domain?.replace(/^\./, "");
-				if (c.name === name && bare === host) jar.splice(i, 1);
+				if (
+					c.name === name &&
+					domainCovers(c.domain ?? "", hostname) &&
+					pathCovers(c.path ?? "/", pathname)
+				) {
+					jar.splice(i, 1);
+				}
 			}
 		},
 		set: async (cookie: ImportedCookie) => {
-			if (rejectNames.has(cookie.name)) throw new Error("rejected");
+			if (rejectNames.has(cookie.name) || rejectValues.has(cookie.value)) {
+				throw new Error("rejected");
+			}
 			set.push(cookie);
 			const domain = cookie.domain ?? new URL(cookie.url).hostname;
 			const idx = jar.findIndex(
@@ -215,7 +238,14 @@ function fakeSession(initial: Cookie[] = []) {
 		removed,
 		set,
 		rejectNames,
+		rejectValues,
 	};
+}
+
+function jarView(jar: Cookie[]): Array<[string, string, string]> {
+	return [...jar]
+		.map((c): [string, string, string] => [c.domain ?? "", c.name, c.value])
+		.sort((a, b) => a.join().localeCompare(b.join()));
 }
 
 function stored(
@@ -301,6 +331,22 @@ describe("importCookies", () => {
 		expect(s.jar).toHaveLength(2);
 	});
 
+	it("drops twins before writing, so restored collateral takes the source's value", async () => {
+		const s = fakeSession([
+			stored(".www.google.com", "OTZ", "stale-import"),
+			stored("www.google.com", "OTZ", "set-by-google"),
+			stored(".google.com", "OTZ", "old-parent"),
+		]);
+		await importCookies(s.session, [
+			imported(".google.com", "OTZ", "new-parent"),
+			imported("www.google.com", "OTZ", "fresh"),
+		]);
+		expect(jarView(s.jar)).toEqual([
+			[".google.com", "OTZ", "new-parent"],
+			["www.google.com", "OTZ", "fresh"],
+		]);
+	});
+
 	it("skips Superset's own hosts, host-only or domain", async () => {
 		const s = fakeSession();
 		const result = await importCookies(s.session, [
@@ -351,6 +397,74 @@ describe("repairImportedCookieTwins", () => {
 			sameSite: "no_restriction",
 			expirationDate: 1_900_000_000,
 		});
+	});
+
+	it("puts back a parent-domain cookie the removal took with the twin", async () => {
+		const s = fakeSession([
+			stored(".www.google.com", "OTZ", "stale-import"),
+			stored("www.google.com", "OTZ", "set-by-google"),
+			stored(".google.com", "OTZ", "parent"),
+		]);
+		expect(await repairImportedCookieTwins(s.session)).toBe(1);
+		expect(jarView(s.jar)).toEqual([
+			[".google.com", "OTZ", "parent"],
+			["www.google.com", "OTZ", "set-by-google"],
+		]);
+		expect(s.set.map((c) => [c.domain, c.value])).toEqual([
+			[undefined, "set-by-google"],
+			[".google.com", "parent"],
+		]);
+	});
+
+	it("puts back a shorter-path cookie the removal took with the twin", async () => {
+		const s = fakeSession([
+			stored(".mail.google.com", "COMPASS", "stale", { path: "/mail" }),
+			stored("mail.google.com", "COMPASS", "fresh", { path: "/mail" }),
+			stored("mail.google.com", "COMPASS", "root", { path: "/" }),
+		]);
+		await repairImportedCookieTwins(s.session);
+		expect(s.removed).toEqual([["https://mail.google.com/mail", "COMPASS"]]);
+		expect(s.jar.map((c) => [c.domain, c.path, c.value]).sort()).toEqual([
+			["mail.google.com", "/", "root"],
+			["mail.google.com", "/mail", "fresh"],
+		]);
+	});
+
+	it("does not resurrect a twin that a later slot's removal also hits", async () => {
+		const s = fakeSession([
+			stored(".www.google.com", "OTZ", "stale-a"),
+			stored("www.google.com", "OTZ", "host-a"),
+			stored(".x.www.google.com", "OTZ", "stale-b"),
+			stored("x.www.google.com", "OTZ", "host-b"),
+		]);
+		expect(await repairImportedCookieTwins(s.session)).toBe(2);
+		expect(jarView(s.jar)).toEqual([
+			["www.google.com", "OTZ", "host-a"],
+			["x.www.google.com", "OTZ", "host-b"],
+		]);
+	});
+
+	it("restores the whole slot, twin included, when a re-set fails", async () => {
+		const s = fakeSession([
+			stored(".example.com", "a", "stale"),
+			stored("example.com", "a", "fresh-but-rejected"),
+		]);
+		s.rejectValues.add("fresh-but-rejected");
+		expect(await repairImportedCookieTwins(s.session)).toBe(0);
+		// The host-only cookie cannot be re-set, so at least the twin survives
+		// rather than the name vanishing from the jar altogether.
+		expect(jarView(s.jar)).toEqual([[".example.com", "a", "stale"]]);
+	});
+
+	it("leaves Superset's own hosts alone", async () => {
+		const s = fakeSession([
+			stored(".app.superset.sh", "session", "a"),
+			stored("app.superset.sh", "session", "b"),
+			stored(".localhost", "dev", "a", { secure: false }),
+			stored("localhost", "dev", "b", { secure: false }),
+		]);
+		expect(await repairImportedCookieTwins(s.session)).toBe(0);
+		expect(s.removed).toEqual([]);
 	});
 
 	it("re-sets a session cookie without an expiration", async () => {
