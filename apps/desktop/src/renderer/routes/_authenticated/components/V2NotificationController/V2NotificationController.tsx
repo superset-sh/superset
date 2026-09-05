@@ -1,7 +1,7 @@
 import type { WorkspaceState } from "@superset/panes";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useEffectEvent, useMemo } from "react";
+import { Fragment, useEffectEvent, useMemo } from "react";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -12,6 +12,7 @@ import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/Host
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import type { AgentLifecycleEvent } from "shared/notification-types";
+import { AccountSwitchSubscriber } from "./components/AccountSwitchSubscriber";
 import {
 	HostNotificationSubscriber,
 	type HostNotificationWorkspaceState,
@@ -169,11 +170,16 @@ export function V2NotificationController() {
 	return (
 		<>
 			{hostGroups.map((group) => (
-				<HostNotificationSubscriber
-					key={group.hostUrl}
-					hostUrl={group.hostUrl}
-					workspaces={group.workspaces}
-				/>
+				<Fragment key={group.hostUrl}>
+					<HostNotificationSubscriber
+						hostUrl={group.hostUrl}
+						workspaces={group.workspaces}
+					/>
+					<AccountSwitchSubscriber
+						hostUrl={group.hostUrl}
+						workspaces={group.workspaces}
+					/>
+				</Fragment>
 			))}
 		</>
 	);

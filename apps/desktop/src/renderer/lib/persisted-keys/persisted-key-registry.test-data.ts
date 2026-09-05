@@ -128,6 +128,12 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		"src/renderer/routes/_authenticated/settings/usage/utils/usageLastSection/usageLastSection.ts",
 		["usage-last-section-v1"],
 	],
+	// Fixed-size singleton: one epoch-ms number, overwritten in place by the
+	// away-summary toast. Dies with the account engine (move to DEAD_KEYS).
+	[
+		"src/renderer/routes/_authenticated/components/V2NotificationController/components/AccountSwitchSubscriber/AccountSwitchSubscriber.tsx",
+		["superset.accountSwitch.lastSeenAt"],
+	],
 	[
 		"src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/utils/leaderboardCardCollapsed/leaderboardCardCollapsed.ts",
 		["leaderboard-card-collapsed-v1"],
