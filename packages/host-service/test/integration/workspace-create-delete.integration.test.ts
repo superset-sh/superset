@@ -524,6 +524,40 @@ describe("workspace.create + workspace.delete integration", () => {
 		expect(archivedAfter?.archiveReason).toBe("deleted");
 	});
 
+	test("delete() keeps the local branch when deleteBranch is omitted", async () => {
+		const scenario = await createFeatureWorktreeScenario({
+			hostOptions: { apiOverrides: cloudFlows.workspaceDeleteOk() },
+		});
+		dispose = scenario.dispose;
+
+		const result = await scenario.host.trpc.workspace.delete.mutate({
+			id: scenario.featureWorkspaceId,
+		});
+		expect(result.success).toBe(true);
+		expect(result.branchDeleted).toBe(false);
+
+		const branches = await scenario.repo.git.branchLocal();
+		expect(branches.all).toContain(scenario.branch);
+	});
+
+	test("delete() with deleteBranch also removes the local branch", async () => {
+		const scenario = await createFeatureWorktreeScenario({
+			hostOptions: { apiOverrides: cloudFlows.workspaceDeleteOk() },
+		});
+		dispose = scenario.dispose;
+
+		const result = await scenario.host.trpc.workspace.delete.mutate({
+			id: scenario.featureWorkspaceId,
+			deleteBranch: true,
+		});
+		expect(result.success).toBe(true);
+		expect(result.branchDeleted).toBe(true);
+		expect(result.warnings).toEqual([]);
+
+		const branches = await scenario.repo.git.branchLocal();
+		expect(branches.all).not.toContain(scenario.branch);
+	});
+
 	test("delete() requires authentication", async () => {
 		const scenario = await createBasicScenario();
 		dispose = scenario.dispose;

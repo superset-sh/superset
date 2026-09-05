@@ -699,13 +699,26 @@ superset workspaces create --project prj_… --name "perf-spike" --branch perf/s
 	options={[
 		{ flag: "--host <id>", description: "Host the workspaces live on." },
 		{ flag: "--local", description: "Target this machine (the default)." },
+		{ flag: "--delete-branch", description: "Also delete each workspace's local branch (`git branch -D`). Off by default." },
 	]}
-	output={`{ deleted: string[]; warnings: string[] }`}
+	output={`{ deleted: string[]; branchesDeleted: string[]; warnings: string[] }`}
 >
 Delete one or more workspaces on the target host (default: this machine).
+The worktree is always removed; the local git branch is kept unless you pass
+`--delete-branch`.
+
+Passing the flag is your consent to a forced delete: the branch goes away with
+`git branch -D` even when it is unmerged, so unpushed commits on it are lost.
+Branch deletion runs after the workspace is already gone, so a git failure
+lands in `warnings` instead of failing the delete, and the workspace stays in
+`deleted`. `branchesDeleted` lists the workspaces whose branch cleanup
+succeeded (a branch that was already gone counts as done).
 
 ```bash
 superset workspaces delete ws_a ws_b ws_c
+
+# Delete the workspaces and their local branches
+superset workspaces delete ws_a --delete-branch
 ```
 </Command>
 
