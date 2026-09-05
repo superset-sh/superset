@@ -316,6 +316,7 @@ async function runDestroy(
 				worktreePath: local.worktreePath,
 				repoPath: project.repoPath,
 				projectId: project.id,
+				workspaceName: local.name,
 			});
 			if (teardown.status === "failed") {
 				if (input.teardownMode === "blocking") {

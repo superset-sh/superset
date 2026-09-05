@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
 import {
 	chmodSync,
+	existsSync,
 	mkdirSync,
 	mkdtempSync,
 	rmSync,
@@ -9,6 +10,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { removeDevAppProfile } from "./dev-app-profile";
 import {
 	buildTeardownCommandFromShell,
 	buildTeardownInitialCommand,
@@ -232,6 +234,120 @@ describe("resolveTeardownCommand", () => {
 			});
 
 			expect(resolved).toBeNull();
+		} finally {
+			sb.cleanup();
+		}
+	});
+});
+
+describe("removeDevAppProfile", () => {
+	function makeAppDataDir(): { appDataDir: string; cleanup: () => void } {
+		const appDataDir = mkdtempSync(join(tmpdir(), "host-service-appdata-"));
+		return {
+			appDataDir,
+			cleanup: () => rmSync(appDataDir, { recursive: true, force: true }),
+		};
+	}
+
+	function seedProfile(appDataDir: string, name: string): string {
+		const dir = join(appDataDir, name);
+		mkdirSync(join(dir, "Cache"), { recursive: true });
+		writeFileSync(join(dir, "Cache", "data_0"), "x");
+		return dir;
+	}
+
+	test("removes the profile the dev app minted for this workspace", async () => {
+		const sb = makeAppDataDir();
+		try {
+			const profile = seedProfile(sb.appDataDir, "Superset (feature-x)");
+
+			await removeDevAppProfile({
+				workspaceName: "feature-x",
+				appDataDir: sb.appDataDir,
+			});
+
+			expect(existsSync(profile)).toBe(false);
+		} finally {
+			sb.cleanup();
+		}
+	});
+
+	test("leaves other workspaces' profiles alone", async () => {
+		const sb = makeAppDataDir();
+		try {
+			const other = seedProfile(sb.appDataDir, "Superset (feature-y)");
+
+			await removeDevAppProfile({
+				workspaceName: "feature-x",
+				appDataDir: sb.appDataDir,
+			});
+
+			expect(existsSync(other)).toBe(true);
+		} finally {
+			sb.cleanup();
+		}
+	});
+
+	// The installed builds' profiles are real user data. No workspace name can
+	// derive them (they carry no parens), but the guard is load-bearing enough
+	// to pin: a naming change that made it possible would silently wipe the
+	// user's installed Superset.
+	test("never removes an installed build's profile", async () => {
+		const sb = makeAppDataDir();
+		try {
+			const installed = ["Superset", "Superset Dev", "Superset Canary"].map(
+				(name) => seedProfile(sb.appDataDir, name),
+			);
+
+			for (const workspaceName of ["", "  ", ")", "Dev", "Canary"]) {
+				await removeDevAppProfile({
+					workspaceName,
+					appDataDir: sb.appDataDir,
+				});
+			}
+
+			for (const dir of installed) expect(existsSync(dir)).toBe(true);
+		} finally {
+			sb.cleanup();
+		}
+	});
+
+	test("refuses a workspace name that would escape the profiles directory", async () => {
+		const sb = makeAppDataDir();
+		try {
+			const sibling = seedProfile(sb.appDataDir, "Superset (victim)");
+
+			await removeDevAppProfile({
+				workspaceName: "../Superset (victim)",
+				appDataDir: join(sb.appDataDir, "nested"),
+			});
+
+			expect(existsSync(sibling)).toBe(true);
+		} finally {
+			sb.cleanup();
+		}
+	});
+
+	// A row written before the name column was backfilled carries no usable
+	// name. Best-effort means that must not throw and take the delete with it.
+	test("survives a workspace row with no name", async () => {
+		await removeDevAppProfile({
+			workspaceName: undefined as unknown as string,
+			appDataDir: "/nonexistent",
+		});
+		await removeDevAppProfile({
+			workspaceName: "",
+			appDataDir: "/nonexistent",
+		});
+	});
+
+	test("is a no-op when the workspace never minted a profile", async () => {
+		const sb = makeAppDataDir();
+		try {
+			await removeDevAppProfile({
+				workspaceName: "never-opened",
+				appDataDir: sb.appDataDir,
+			});
 		} finally {
 			sb.cleanup();
 		}

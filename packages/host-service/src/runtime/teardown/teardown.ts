@@ -6,6 +6,7 @@ import {
 	disposeSession,
 } from "../../terminal/terminal";
 import { resolveScript, shellSingleQuote } from "../setup/config";
+import { removeDevAppProfile } from "./dev-app-profile";
 
 export { TEARDOWN_TIMEOUT_MS };
 
@@ -32,9 +33,13 @@ interface RunTeardownOptions {
 	/** Main repo path — source of truth for `.superset/config.json`. */
 	repoPath: string;
 	projectId: string;
+	/** Workspace name — the dev app profile directory is derived from it. */
+	workspaceName: string;
 	timeoutMs?: number;
 	/** Override $HOME for tests. Defaults to `os.homedir()`. */
 	homeDir?: string;
+	/** Override the app-profiles directory for tests. */
+	appDataDir?: string;
 }
 
 /**
@@ -50,6 +55,10 @@ interface RunTeardownOptions {
  *
  * Silent by design — the PTY session is transient and not surfaced as a
  * visible pane. The renderer only sees the output tail on failure.
+ *
+ * Also reaps the workspace's desktop dev app profile. That runs before the
+ * script resolution below, so a workspace with no teardown of its own still
+ * gets its profile reclaimed on the `{ status: "skipped" }` path.
  */
 export async function runTeardown({
 	db,
@@ -57,9 +66,18 @@ export async function runTeardown({
 	worktreePath,
 	repoPath,
 	projectId,
+	workspaceName,
 	timeoutMs = TEARDOWN_TIMEOUT_MS,
 	homeDir,
+	appDataDir,
 }: RunTeardownOptions): Promise<TeardownResult> {
+	// Best-effort: removeDevAppProfile swallows its own failures, so a profile
+	// that cannot be removed never turns a successful delete into a failure.
+	await removeDevAppProfile({
+		workspaceName,
+		...(appDataDir && { appDataDir }),
+	});
+
 	const resolved = resolveTeardownCommand({
 		repoPath,
 		projectId,

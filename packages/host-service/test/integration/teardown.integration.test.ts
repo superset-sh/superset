@@ -84,6 +84,9 @@ describe("runTeardown integration", () => {
 			worktreePath: scenario.repo.repoPath,
 			repoPath: scenario.repo.repoPath,
 			projectId: scenario.projectId,
+			// Empty: this test is about the PTY, and a real name here would
+			// point the profile reap at the developer's Application Support.
+			workspaceName: "",
 			timeoutMs: 3_000,
 		});
 

@@ -9,6 +9,7 @@ import {
 } from "@superset/agent-setup";
 import { i18n, initI18nAsync } from "@superset/i18n";
 import { settings } from "@superset/local-db";
+import { devAppProfileDirName } from "@superset/shared/dev-app-profile";
 import { app, dialog, Notification, net, protocol, session } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import {
@@ -24,6 +25,7 @@ import {
 	PLATFORM,
 	PROTOCOL_SCHEME,
 } from "shared/constants";
+import { sweepDevAppProfiles } from "./dev-app-profile-sweep";
 import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
 import { isUpdateReadyToInstall, setupAutoUpdater } from "./lib/auto-updater";
@@ -73,11 +75,13 @@ void applyShellEnvToProcess().catch((error) => {
 	console.error("[main] Failed to apply shell environment:", error);
 });
 
-// Dev mode: label the app with the workspace name so multiple worktrees are distinguishable
+// Dev mode: label the app with the workspace name so multiple worktrees are
+// distinguishable. This also moves `app.getPath("userData")`, so the workspace
+// gets its own Chromium profile — see sweepDevAppProfiles for the reaping.
 if (IS_DEV) {
 	const workspaceName = resolveDevWorkspaceName();
 	if (workspaceName) {
-		app.setName(`Superset (${workspaceName})`);
+		app.setName(devAppProfileDirName(workspaceName));
 	}
 }
 
@@ -483,6 +487,7 @@ if (!gotTheLock) {
 		initTanstackDbPersistence();
 
 		sweepNetworkLogs();
+		sweepDevAppProfiles();
 
 		await loadWebviewBrowserExtension();
 
