@@ -1,0 +1,809 @@
+import { afterEach, describe, expect, it } from "bun:test";
+import {
+	chmodSync,
+	mkdirSync,
+	mkdtempSync,
+	readdirSync,
+	readFileSync,
+	realpathSync,
+	rmSync,
+	statSync,
+	symlinkSync,
+	writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+	claudeKeychainAccounts,
+	keychainServicesForConfigDir,
+} from "../trpc/router/usage/profiles";
+import {
+	type ClaudeSwapDeps,
+	seedActiveClaudeLogin,
+	swapClaudeLogin,
+} from "./claude-login-swap";
+
+const roots: string[] = [];
+
+function tempRoot(name: string): string {
+	const root = realpathSync(mkdtempSync(join(tmpdir(), `superset-${name}-`)));
+	roots.push(root);
+	return root;
+}
+
+afterEach(() => {
+	for (const root of roots.splice(0)) {
+		rmSync(root, { recursive: true, force: true });
+	}
+});
+
+function oauth(token: string, expiresAt = 1_000): Record<string, unknown> {
+	return {
+		accessToken: token,
+		refreshToken: `refresh-${token}`,
+		expiresAt,
+		refreshTokenExpiresAt: expiresAt + 10_000,
+		scopes: ["user:inference"],
+		subscriptionType: "max",
+	};
+}
+
+function identity(name: string): Record<string, unknown> {
+	return {
+		oauthAccount: {
+			accountUuid: `uuid-${name}`,
+			emailAddress: `${name}@example.com`,
+		},
+		userID: `user-${name}`,
+	};
+}
+
+interface Fixture {
+	home: string;
+	superset: string;
+	activeDir: string;
+	profileA: string;
+	profileB: string;
+	systemDefault: string;
+	deps: ClaudeSwapDeps;
+}
+
+function makeDir(path: string): string {
+	mkdirSync(path, { recursive: true });
+	chmodSync(path, 0o700);
+	return path;
+}
+
+function writeCredentials(dir: string, body: Record<string, unknown>): void {
+	writeFileSync(join(dir, ".credentials.json"), JSON.stringify(body), {
+		mode: 0o600,
+	});
+}
+
+function readCredentials(dir: string): Record<string, unknown> {
+	return JSON.parse(readFileSync(join(dir, ".credentials.json"), "utf-8"));
+}
+
+function fixture(): Fixture {
+	const home = tempRoot("swap-home");
+	const superset = tempRoot("swap-superset");
+	const activeDir = makeDir(join(superset, "accounts", "claude-active"));
+	const profileA = makeDir(join(home, ".claude-a"));
+	const profileB = makeDir(join(home, ".claude-b"));
+	const systemDefault = makeDir(join(home, ".claude"));
+
+	// A is the account currently live in the active dir, and Claude Code has
+	// refreshed its token there since the profile dir was last written.
+	writeCredentials(activeDir, {
+		claudeAiOauth: oauth("t-a-refreshed", 5_000),
+		mcpOAuth: { "active-server": { token: "m-active" } },
+	});
+	writeFileSync(
+		join(activeDir, ".claude.json"),
+		JSON.stringify({
+			...identity("a"),
+			hasCompletedOnboarding: true,
+			projects: { "/tmp/session": { hasTrustDialogAccepted: true } },
+		}),
+	);
+	writeCredentials(profileA, {
+		claudeAiOauth: oauth("t-a", 1_000),
+		mcpOAuth: { "a-server": { token: "m-a" } },
+	});
+	writeFileSync(join(profileA, ".claude.json"), JSON.stringify(identity("a")));
+	writeCredentials(profileB, { claudeAiOauth: oauth("t-b", 2_000) });
+	writeFileSync(join(profileB, ".claude.json"), JSON.stringify(identity("b")));
+
+	return {
+		home,
+		superset,
+		activeDir,
+		profileA,
+		profileB,
+		systemDefault,
+		deps: { homeDir: home, supersetHomeDir: superset, darwin: false },
+	};
+}
+
+const asProfile = (dir: string) => ({ kind: "profile" as const, dir });
+const SYSTEM_DEFAULT = { kind: "system-default" as const };
+
+describe("swapClaudeLogin on a file-backed store", () => {
+	it("moves the target login in and keeps the active dir's other state", async () => {
+		const f = fixture();
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		if (!result.ok) throw new Error(result.reason);
+		expect(result.identity.accountUuid).toBe("uuid-b");
+		expect(result.identity.emailAddress).toBe("b@example.com");
+
+		const credentials = readCredentials(f.activeDir);
+		expect(credentials.claudeAiOauth).toEqual(oauth("t-b", 2_000));
+		expect(credentials.mcpOAuth).toEqual({
+			"active-server": { token: "m-active" },
+		});
+		expect(statSync(join(f.activeDir, ".credentials.json")).mode & 0o777).toBe(
+			0o600,
+		);
+
+		const state = JSON.parse(
+			readFileSync(join(f.activeDir, ".claude.json"), "utf-8"),
+		);
+		expect(state.oauthAccount).toEqual(identity("b").oauthAccount);
+		expect(state.userID).toBe("user-b");
+		expect(state.hasCompletedOnboarding).toBe(true);
+		expect(state.projects["/tmp/session"].hasTrustDialogAccepted).toBe(true);
+	});
+
+	it("drops an identity key the target account does not carry", async () => {
+		const f = fixture();
+		// B never signed in with a userID; A's must not survive the swap.
+		writeFileSync(
+			join(f.profileB, ".claude.json"),
+			JSON.stringify({ oauthAccount: identity("b").oauthAccount }),
+		);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		expect(result.ok).toBe(true);
+		const state = JSON.parse(
+			readFileSync(join(f.activeDir, ".claude.json"), "utf-8"),
+		);
+		expect(state.userID).toBeUndefined();
+		expect(state.oauthAccount).toEqual(identity("b").oauthAccount);
+		expect(state.projects["/tmp/session"].hasTrustDialogAccepted).toBe(true);
+	});
+
+	it("saves the active dir's refreshed login back to its owner only", async () => {
+		const f = fixture();
+
+		await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		const owner = readCredentials(f.profileA);
+		expect(owner.claudeAiOauth).toEqual(oauth("t-a-refreshed", 5_000));
+		expect(owner.mcpOAuth).toEqual({ "a-server": { token: "m-a" } });
+		// The owner's identity file is never rewritten by a swap.
+		expect(
+			JSON.parse(readFileSync(join(f.profileA, ".claude.json"), "utf-8")),
+		).toEqual(identity("a"));
+	});
+
+	it("never regresses an owner login that is already newer", async () => {
+		const f = fixture();
+		writeCredentials(f.profileA, {
+			claudeAiOauth: oauth("t-a-newest", 9_000),
+			mcpOAuth: { "a-server": { token: "m-a" } },
+		});
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		expect(result.ok).toBe(true);
+		expect(readCredentials(f.profileA).claudeAiOauth).toEqual(
+			oauth("t-a-newest", 9_000),
+		);
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-b", 2_000),
+		);
+	});
+
+	it("refuses without an owner binding and leaves every store untouched", async () => {
+		const f = fixture();
+		const before = readCredentials(f.activeDir);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: undefined,
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		expect(result).toEqual({
+			ok: false,
+			code: "owner-unknown",
+			reason: expect.any(String),
+		});
+		expect(readCredentials(f.activeDir)).toEqual(before);
+		expect(readCredentials(f.profileA).claudeAiOauth).toEqual(oauth("t-a"));
+	});
+
+	it("refuses a group-writable owner dir before writing anything", async () => {
+		const f = fixture();
+		chmodSync(f.profileA, 0o770);
+		const before = readCredentials(f.activeDir);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-owner" });
+		expect(readCredentials(f.activeDir)).toEqual(before);
+		expect(readCredentials(f.profileA).claudeAiOauth).toEqual(oauth("t-a"));
+	});
+
+	it("refuses a symlinked active dir and skips the save-back", async () => {
+		const f = fixture();
+		const real = makeDir(join(f.superset, "accounts", "real-active"));
+		writeCredentials(real, { claudeAiOauth: oauth("t-a-refreshed", 5_000) });
+		const linked = join(f.superset, "accounts", "linked-active");
+		symlinkSync(real, linked);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: linked,
+			deps: f.deps,
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-active-dir" });
+		expect(readCredentials(real).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+		expect(readCredentials(f.profileA).claudeAiOauth).toEqual(oauth("t-a"));
+	});
+
+	it("re-validates the active dir after the save-back", async () => {
+		const f = fixture();
+		const before = readCredentials(f.activeDir);
+		const deps: ClaudeSwapDeps = {
+			...f.deps,
+			fs: {
+				rename: async (from: string, to: string) => {
+					const { rename } = await import("node:fs/promises");
+					await rename(from, to);
+					// The dir loses its exclusive mode between the two writes.
+					if (to.startsWith(f.profileA)) chmodSync(f.activeDir, 0o777);
+				},
+			},
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps,
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-active-dir" });
+		expect(readCredentials(f.activeDir)).toEqual(before);
+	});
+
+	it("retries once when the source changes under it", async () => {
+		const f = fixture();
+		let reads = 0;
+		const deps: ClaudeSwapDeps = {
+			...f.deps,
+			fs: {
+				readFile: async (path: string, encoding: "utf-8") => {
+					const { readFile } = await import("node:fs/promises");
+					if (path === join(f.profileB, ".credentials.json") && ++reads === 2) {
+						writeCredentials(f.profileB, {
+							claudeAiOauth: oauth("t-b-rotated", 3_000),
+						});
+					}
+					return readFile(path, encoding);
+				},
+			},
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps,
+		});
+
+		expect(result.ok).toBe(true);
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-b-rotated", 3_000),
+		);
+	});
+
+	it("aborts when the source keeps changing, leaving the active dir alone", async () => {
+		const f = fixture();
+		const before = readCredentials(f.activeDir);
+		let reads = 0;
+		const deps: ClaudeSwapDeps = {
+			...f.deps,
+			fs: {
+				readFile: async (path: string, encoding: "utf-8") => {
+					const { readFile } = await import("node:fs/promises");
+					if (path === join(f.profileB, ".credentials.json") && reads++ > 0) {
+						writeCredentials(f.profileB, {
+							claudeAiOauth: oauth(`t-b-${reads}`, 3_000),
+						});
+					}
+					return readFile(path, encoding);
+				},
+			},
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps,
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "source-changed" });
+		expect(readCredentials(f.activeDir)).toEqual(before);
+	});
+
+	it("leaves the previous login in place when the write fails (AE13)", async () => {
+		const f = fixture();
+		const before = readCredentials(f.activeDir);
+		const deps: ClaudeSwapDeps = {
+			...f.deps,
+			fs: {
+				writeFile: async (path: string) => {
+					if (path.startsWith(join(f.activeDir, ".credentials.json"))) {
+						throw new Error("ENOSPC: no space left on device");
+					}
+					const { writeFile } = await import("node:fs/promises");
+					await writeFile(path, "");
+				},
+			},
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps,
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "write-failed" });
+		expect(readCredentials(f.activeDir)).toEqual(before);
+		expect(
+			JSON.parse(readFileSync(join(f.activeDir, ".claude.json"), "utf-8"))
+				.oauthAccount,
+		).toEqual(identity("a").oauthAccount);
+	});
+
+	it("fails the verify step when the store does not read back as the target", async () => {
+		const f = fixture();
+		const deps: ClaudeSwapDeps = {
+			...f.deps,
+			fs: {
+				writeFile: async (path: string, data: string, options: unknown) => {
+					const { writeFile } = await import("node:fs/promises");
+					const corrupted = path.includes(".credentials.json")
+						? JSON.stringify({ claudeAiOauth: oauth("t-wrong") })
+						: data;
+					await writeFile(
+						path,
+						corrupted,
+						options as { mode: number; flag: string },
+					);
+				},
+			},
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps,
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "verify-failed" });
+	});
+
+	it("replaces a symlinked .credentials.json with a real file", async () => {
+		const f = fixture();
+		const decoy = join(f.home, "decoy-credentials.json");
+		writeFileSync(decoy, JSON.stringify({ claudeAiOauth: oauth("t-decoy") }));
+		rmSync(join(f.activeDir, ".credentials.json"));
+		symlinkSync(decoy, join(f.activeDir, ".credentials.json"));
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		expect(result.ok).toBe(true);
+		const { lstatSync } = await import("node:fs");
+		expect(
+			lstatSync(join(f.activeDir, ".credentials.json")).isSymbolicLink(),
+		).toBe(false);
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-b", 2_000),
+		);
+		expect(JSON.parse(readFileSync(decoy, "utf-8")).claudeAiOauth).toEqual(
+			oauth("t-decoy"),
+		);
+	});
+
+	it("keeps at most three owner-only backups per dir", async () => {
+		const f = fixture();
+		let clock = 1_700_000_000_000;
+		const deps: ClaudeSwapDeps = { ...f.deps, now: () => (clock += 1_000) };
+		for (let round = 0; round < 4; round++) {
+			const forward = round % 2 === 0;
+			const result = await swapClaudeLogin({
+				target: asProfile(forward ? f.profileB : f.profileA),
+				ownerBinding: asProfile(forward ? f.profileA : f.profileB),
+				activeDir: f.activeDir,
+				deps,
+			});
+			expect(result.ok).toBe(true);
+		}
+
+		const backups = readdirSync(f.activeDir).filter((name) =>
+			name.startsWith(".credentials.json."),
+		);
+		expect(backups).toHaveLength(3);
+		for (const name of backups) {
+			expect(statSync(join(f.activeDir, name)).mode & 0o777).toBe(0o600);
+		}
+	});
+
+	it("refuses a target with no login and one with no identity", async () => {
+		const f = fixture();
+		const before = readCredentials(f.activeDir);
+		const empty = makeDir(join(f.home, ".claude-empty"));
+
+		expect(
+			await swapClaudeLogin({
+				target: asProfile(empty),
+				ownerBinding: asProfile(f.profileA),
+				activeDir: f.activeDir,
+				deps: f.deps,
+			}),
+		).toMatchObject({ ok: false, code: "no-target-login" });
+
+		writeCredentials(empty, { claudeAiOauth: oauth("t-empty") });
+		expect(
+			await swapClaudeLogin({
+				target: asProfile(empty),
+				ownerBinding: asProfile(f.profileA),
+				activeDir: f.activeDir,
+				deps: f.deps,
+			}),
+		).toMatchObject({ ok: false, code: "no-target-identity" });
+		expect(readCredentials(f.activeDir)).toEqual(before);
+	});
+});
+
+describe("swapClaudeLogin with the system-default account", () => {
+	it("saves the system default's own login back into ~/.claude and swaps it back in", async () => {
+		const f = fixture();
+		writeCredentials(f.systemDefault, {
+			claudeAiOauth: oauth("t-sys", 1_000),
+			mcpOAuth: { "sys-server": { token: "m-sys" } },
+		});
+		writeFileSync(
+			join(f.home, ".claude.json"),
+			JSON.stringify({ ...identity("sys"), hasCompletedOnboarding: true }),
+		);
+		// The active dir currently runs the system-default login, refreshed.
+		writeCredentials(f.activeDir, {
+			claudeAiOauth: oauth("t-sys-refreshed", 5_000),
+			mcpOAuth: { "active-server": { token: "m-active" } },
+		});
+		writeFileSync(
+			join(f.activeDir, ".claude.json"),
+			JSON.stringify(identity("sys")),
+		);
+
+		const away = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: SYSTEM_DEFAULT,
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+		expect(away.ok).toBe(true);
+		const saved = readCredentials(f.systemDefault);
+		expect(saved.claudeAiOauth).toEqual(oauth("t-sys-refreshed", 5_000));
+		expect(saved.mcpOAuth).toEqual({ "sys-server": { token: "m-sys" } });
+		expect(
+			JSON.parse(readFileSync(join(f.home, ".claude.json"), "utf-8")).userID,
+		).toBe("user-sys");
+
+		const back = await swapClaudeLogin({
+			target: SYSTEM_DEFAULT,
+			ownerBinding: asProfile(f.profileB),
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+		expect(back).toMatchObject({ ok: true });
+		if (!back.ok) throw new Error(back.reason);
+		expect(back.identity.accountUuid).toBe("uuid-sys");
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-sys-refreshed", 5_000),
+		);
+	});
+});
+
+interface KeychainItem {
+	service: string;
+	account: string;
+	secret: string;
+}
+
+function fakeKeychain(items: KeychainItem[]) {
+	const calls: Array<{ args: string[]; stdin?: string }> = [];
+	const unquote = (token: string) =>
+		token.startsWith('"')
+			? token.slice(1, -1).replace(/\\(["\\])/g, "$1")
+			: token;
+	const splitArgs = (line: string): string[] => {
+		const tokens = line.match(/"(?:[^"\\]|\\.)*"|\S+/g) ?? [];
+		return tokens.map(unquote);
+	};
+	const exec = async (args: string[], stdin?: string) => {
+		calls.push({ args, stdin });
+		if (args[0] === "-i") {
+			for (const line of (stdin ?? "").split("\n").filter(Boolean)) {
+				const parsed = splitArgs(line);
+				if (parsed[0] !== "add-generic-password") throw new Error("unknown");
+				const account = parsed[parsed.indexOf("-a") + 1] as string;
+				const service = parsed[parsed.indexOf("-s") + 1] as string;
+				const secret = parsed[parsed.indexOf("-w") + 1] as string;
+				const existing = items.find(
+					(item) => item.service === service && item.account === account,
+				);
+				if (existing) existing.secret = secret;
+				else items.push({ service, account, secret });
+			}
+			return { stdout: "", stderr: "" };
+		}
+		const service = args[args.indexOf("-s") + 1];
+		const accountIndex = args.indexOf("-a");
+		const account = accountIndex === -1 ? null : args[accountIndex + 1];
+		const hit = items.find(
+			(item) =>
+				item.service === service &&
+				(account === null || item.account === account),
+		);
+		if (!hit) throw new Error("The specified item could not be found");
+		if (args.includes("-g")) {
+			return {
+				stdout: `password: "${hit.secret}"\n`,
+				stderr: `keychain: "login.keychain-db"\nattributes:\n    "acct"<blob>="${hit.account}"\n    "svce"<blob>="${hit.service}"\n`,
+			};
+		}
+		return { stdout: `${hit.secret}\n`, stderr: "" };
+	};
+	return { exec, calls, items };
+}
+
+describe("swapClaudeLogin on macOS (injected security exec)", () => {
+	it("writes the secret on stdin under the matched service and account", async () => {
+		const f = fixture();
+		rmSync(join(f.activeDir, ".credentials.json"));
+		rmSync(join(f.profileA, ".credentials.json"));
+		rmSync(join(f.profileB, ".credentials.json"));
+		const activeService = keychainServicesForConfigDir(
+			f.activeDir,
+		)[0] as string;
+		const account = claudeKeychainAccounts()[0] as string;
+		const keychain = fakeKeychain([
+			{
+				service: activeService,
+				account,
+				secret: JSON.stringify({
+					claudeAiOauth: oauth("t-a-refreshed", 5_000),
+					mcpOAuth: { "active-server": { token: "m-active" } },
+				}),
+			},
+			{
+				service: keychainServicesForConfigDir(f.profileA)[0] as string,
+				account,
+				secret: JSON.stringify({ claudeAiOauth: oauth("t-a", 1_000) }),
+			},
+			{
+				service: keychainServicesForConfigDir(f.profileB)[0] as string,
+				account,
+				secret: JSON.stringify({ claudeAiOauth: oauth("t-b", 2_000) }),
+			},
+		]);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, darwin: true, exec: keychain.exec },
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		const active = keychain.items.find(
+			(item) => item.service === activeService,
+		);
+		expect(JSON.parse(active?.secret ?? "{}")).toEqual({
+			claudeAiOauth: oauth("t-b", 2_000),
+			mcpOAuth: { "active-server": { token: "m-active" } },
+		});
+		const owner = keychain.items.find(
+			(item) => item.service === keychainServicesForConfigDir(f.profileA)[0],
+		);
+		expect(JSON.parse(owner?.secret ?? "{}").claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+
+		const writes = keychain.calls.filter((call) => call.args[0] === "-i");
+		expect(writes.length).toBeGreaterThan(0);
+		for (const call of keychain.calls) {
+			expect(call.args.join(" ")).not.toContain("t-b");
+			expect(call.args.join(" ")).not.toContain("t-a-refreshed");
+		}
+		expect(writes.some((call) => call.stdin?.includes("t-b"))).toBe(true);
+		// No credential file is invented beside the Keychain item.
+		expect(readdirSync(f.activeDir)).not.toContain(".credentials.json");
+	});
+
+	it("resolves an unattributed item's account before writing", async () => {
+		const f = fixture();
+		rmSync(join(f.activeDir, ".credentials.json"));
+		const activeService = keychainServicesForConfigDir(
+			f.activeDir,
+		)[0] as string;
+		const keychain = fakeKeychain([
+			{
+				service: activeService,
+				account: "legacy-account",
+				secret: JSON.stringify({
+					claudeAiOauth: oauth("t-a-refreshed", 5_000),
+				}),
+			},
+		]);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, darwin: true, exec: keychain.exec },
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		expect(
+			keychain.items.filter((item) => item.service === activeService),
+		).toHaveLength(1);
+		expect(
+			JSON.parse(
+				keychain.items.find((item) => item.service === activeService)?.secret ??
+					"{}",
+			).claudeAiOauth,
+		).toEqual(oauth("t-b", 2_000));
+	});
+
+	it("refuses when the account attribute stays ambiguous", async () => {
+		const f = fixture();
+		rmSync(join(f.activeDir, ".credentials.json"));
+		const activeService = keychainServicesForConfigDir(
+			f.activeDir,
+		)[0] as string;
+		const keychain = fakeKeychain([
+			{
+				service: activeService,
+				account: "legacy-account",
+				secret: JSON.stringify({ claudeAiOauth: oauth("t-a-refreshed") }),
+			},
+		]);
+		const exec = async (args: string[], stdin?: string) => {
+			if (args.includes("-g")) throw new Error("attributes unavailable");
+			return keychain.exec(args, stdin);
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, darwin: true, exec },
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "keychain-ambiguous" });
+		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
+	});
+
+	it("updates both stores when a file and a Keychain item hold a login", async () => {
+		const f = fixture();
+		const activeService = keychainServicesForConfigDir(
+			f.activeDir,
+		)[0] as string;
+		const account = claudeKeychainAccounts()[0] as string;
+		const keychain = fakeKeychain([
+			{
+				service: activeService,
+				account,
+				secret: JSON.stringify({
+					claudeAiOauth: oauth("t-a-refreshed", 5_000),
+				}),
+			},
+		]);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, darwin: true, exec: keychain.exec },
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-b", 2_000),
+		);
+		expect(
+			JSON.parse(
+				keychain.items.find((item) => item.service === activeService)?.secret ??
+					"{}",
+			).claudeAiOauth,
+		).toEqual(oauth("t-b", 2_000));
+	});
+});
+
+describe("seedActiveClaudeLogin", () => {
+	it("copies the source login and identity into a fresh active dir", async () => {
+		const f = fixture();
+		const empty = makeDir(join(f.superset, "accounts", "fresh-active"));
+		writeCredentials(f.systemDefault, { claudeAiOauth: oauth("t-sys") });
+		writeFileSync(
+			join(f.home, ".claude.json"),
+			JSON.stringify({ ...identity("sys"), hasCompletedOnboarding: true }),
+		);
+
+		const result = await seedActiveClaudeLogin({
+			source: SYSTEM_DEFAULT,
+			activeDir: empty,
+			deps: f.deps,
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		expect(readCredentials(empty).claudeAiOauth).toEqual(oauth("t-sys"));
+		expect(statSync(join(empty, ".credentials.json")).mode & 0o777).toBe(0o600);
+		const state = JSON.parse(
+			readFileSync(join(empty, ".claude.json"), "utf-8"),
+		);
+		expect(state.oauthAccount).toEqual(identity("sys").oauthAccount);
+		// Seeding never writes back to the source.
+		expect(readCredentials(f.systemDefault).claudeAiOauth).toEqual(
+			oauth("t-sys"),
+		);
+	});
+});

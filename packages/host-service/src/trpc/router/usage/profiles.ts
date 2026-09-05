@@ -230,26 +230,221 @@ export function claudeKeychainAccounts(
  * client filed under a different name.
  */
 export async function readKeychainSecrets(service: string): Promise<string[]> {
-	if (platform() !== "darwin") return [];
-	const secrets: string[] = [];
-	const scopes = [
-		...claudeKeychainAccounts().map((account) => ["-a", account]),
-		[],
-	];
-	for (const scope of scopes) {
+	return (await readKeychainHits(service)).map((hit) => hit.secret);
+}
+
+/**
+ * `security` with the arguments given, optionally fed a command on stdin
+ * (`security -i`) so a secret never appears in argv, where any process on the
+ * machine can read it. Injectable so the Keychain paths stay testable off
+ * macOS.
+ */
+export type SecurityExec = (
+	args: string[],
+	stdin?: string,
+) => Promise<{ stdout: string; stderr: string }>;
+
+export interface KeychainAccess {
+	exec?: SecurityExec;
+	/** Overrides the platform check; the Keychain only exists on macOS. */
+	darwin?: boolean;
+}
+
+export const runSecurity: SecurityExec = (args, stdin) => {
+	const running = execFileAsync("security", args, { timeout: 5_000 });
+	if (stdin !== undefined) running.child.stdin?.end(stdin);
+	return running;
+};
+
+export interface KeychainHit {
+	/** The `-a` attribute that matched, or null when only the unscoped probe
+	 * found the item — a write has to resolve it before it can target the
+	 * same item (see readKeychainAccountAttribute). */
+	account: string | null;
+	secret: string;
+}
+
+/**
+ * The same probe readKeychainSecrets has always done, but reporting which
+ * account attribute matched: a login swap writes back into the item it read,
+ * and `add-generic-password` filed under the wrong `-a` creates a second item
+ * instead of updating the CLI's own.
+ */
+export async function readKeychainHits(
+	service: string,
+	access: KeychainAccess = {},
+): Promise<KeychainHit[]> {
+	if (!(access.darwin ?? platform() === "darwin")) return [];
+	const exec = access.exec ?? runSecurity;
+	const hits: KeychainHit[] = [];
+	const scopes: Array<string | null> = [...claudeKeychainAccounts(), null];
+	for (const account of scopes) {
 		try {
-			const { stdout } = await execFileAsync(
-				"security",
-				["find-generic-password", ...scope, "-s", service, "-w"],
-				{ timeout: 5_000 },
-			);
+			const { stdout } = await exec([
+				"find-generic-password",
+				...(account === null ? [] : ["-a", account]),
+				"-s",
+				service,
+				"-w",
+			]);
 			const secret = stdout.trim();
-			if (secret && !secrets.includes(secret)) secrets.push(secret);
+			if (secret && !hits.some((hit) => hit.secret === secret)) {
+				hits.push({ account, secret });
+			}
 		} catch {
 			// No item under this scope.
 		}
 	}
-	return secrets;
+	return hits;
+}
+
+/**
+ * The `acct` attribute of the item under `service`, read from
+ * `find-generic-password -g`'s attribute dump. Used only when the login was
+ * found by an unscoped probe, so the write can target that exact item.
+ */
+export async function readKeychainAccountAttribute(
+	service: string,
+	access: KeychainAccess = {},
+): Promise<string | null> {
+	const exec = access.exec ?? runSecurity;
+	try {
+		const { stderr, stdout } = await exec([
+			"find-generic-password",
+			"-g",
+			"-s",
+			service,
+		]);
+		const match = /"acct"<blob>="([^"]*)"/.exec(`${stderr}\n${stdout}`);
+		return match?.[1] ? match[1] : null;
+	} catch {
+		return null;
+	}
+}
+
+/** The unscoped item the system-default login (`~/.claude`) lives in. */
+export const CLAUDE_DEFAULT_KEYCHAIN_SERVICE = "Claude Code-credentials";
+
+/** A parsed credential store: the OAuth login plus siblings like `mcpOAuth`. */
+export interface ClaudeCredentialJson {
+	claudeAiOauth?: Record<string, unknown>;
+	[key: string]: unknown;
+}
+
+export interface ClaudeLoginRead {
+	/** The freshest store's contents, or null when neither holds a login. */
+	login: ClaudeCredentialJson | null;
+	/** Which store `login` came from. */
+	source: "file" | "keychain";
+	credentialsPath: string;
+	/** Parsed credential file, login or not — a swap preserves its siblings. */
+	fileContent: ClaudeCredentialJson | null;
+	fileLogin: ClaudeCredentialJson | null;
+	keychainService: string | null;
+	keychainAccount: string | null;
+	keychainContent: ClaudeCredentialJson | null;
+	keychainLogin: ClaudeCredentialJson | null;
+}
+
+function parseCredentialJson(raw: string): ClaudeCredentialJson | null {
+	try {
+		const parsed: unknown = JSON.parse(raw);
+		if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+			return null;
+		}
+		return parsed as ClaudeCredentialJson;
+	} catch {
+		return null;
+	}
+}
+
+function hasLogin(content: ClaudeCredentialJson | null): boolean {
+	const oauth = content?.claudeAiOauth;
+	return typeof oauth === "object" && oauth !== null && !Array.isArray(oauth);
+}
+
+function expiry(content: ClaudeCredentialJson | null): number {
+	const oauth = content?.claudeAiOauth;
+	const value = (oauth as { expiresAt?: unknown } | undefined)?.expiresAt;
+	return typeof value === "number" ? value : 0;
+}
+
+/**
+ * Where a login's credential store and identity file live. A custom config
+ * dir keeps both inside itself; the system default (`selection: null`) keeps
+ * credentials in `~/.claude` and its identity next door at `~/.claude.json`.
+ */
+export function claudeCredentialsPath(
+	configDir: string | null,
+	homeDir: string = homedir(),
+): string {
+	return join(configDir ?? join(homeDir, ".claude"), ".credentials.json");
+}
+
+export function claudeStatePath(
+	configDir: string | null,
+	homeDir: string = homedir(),
+): string {
+	return configDir
+		? join(configDir, ".claude.json")
+		: join(homeDir, ".claude.json");
+}
+
+/**
+ * The login held for one config dir (`null` = the system default), naming the
+ * store it came from so a caller can write back into that same store. Both
+ * stores are reported: on macOS a dir can hold a credential file and a
+ * Keychain item at once, and a swap that updates only one leaves the CLI on
+ * the other account.
+ */
+export async function readClaudeLogin(
+	configDir: string | null,
+	access: KeychainAccess & {
+		homeDir?: string;
+		/** Injectable so a caller can read through its own fs surface. */
+		readFile?: (path: string, encoding: "utf-8") => Promise<string>;
+	} = {},
+): Promise<ClaudeLoginRead> {
+	const credentialsPath = claudeCredentialsPath(configDir, access.homeDir);
+	const read = access.readFile ?? readFile;
+	const fileContent = await read(credentialsPath, "utf-8").then(
+		parseCredentialJson,
+		() => null,
+	);
+	const services = configDir
+		? keychainServicesForConfigDir(configDir)
+		: [CLAUDE_DEFAULT_KEYCHAIN_SERVICE];
+	let keychainService: string | null = null;
+	let keychainAccount: string | null = null;
+	let keychainContent: ClaudeCredentialJson | null = null;
+	for (const service of services) {
+		for (const hit of await readKeychainHits(service, access)) {
+			const parsed = parseCredentialJson(hit.secret);
+			if (!hasLogin(parsed)) continue;
+			if (expiry(parsed) < expiry(keychainContent)) continue;
+			keychainService = service;
+			keychainAccount = hit.account;
+			keychainContent = parsed;
+		}
+		if (keychainContent) break;
+	}
+
+	const fileLogin = hasLogin(fileContent) ? fileContent : null;
+	const keychainLogin = hasLogin(keychainContent) ? keychainContent : null;
+	const keychainWins =
+		keychainLogin !== null &&
+		(fileLogin === null || expiry(keychainLogin) > expiry(fileLogin));
+	return {
+		login: keychainWins ? keychainLogin : fileLogin,
+		source: keychainWins ? "keychain" : "file",
+		credentialsPath,
+		fileContent,
+		fileLogin,
+		keychainService,
+		keychainAccount,
+		keychainContent,
+		keychainLogin,
+	};
 }
 
 interface CodexAuthShape {

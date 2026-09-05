@@ -6,12 +6,14 @@
  */
 
 import { existsSync } from "node:fs";
+import { chmod, mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import {
 	provisionClaudeProfile,
 	provisionCodexProfile,
 	resolveAmbientCodexHome,
+	resolveSupersetHomeDir,
 } from "@superset/agent-setup";
 import type { HostDb } from "../../../db/index.ts";
 import {
@@ -31,6 +33,42 @@ import {
 export async function provisionClaudeAccount(configDir: string): Promise<void> {
 	shareClaudeSessionState(configDir, join(homedir(), ".claude"));
 	await provisionClaudeProfile(configDir);
+}
+
+/**
+ * The Superset-owned Claude config dir that account switching swaps logins
+ * into (KTD2). It is the one dir whose credentials Superset writes: `~/.claude`
+ * and the user's own profile dirs stay the vault of logins, so Claude runs
+ * outside Superset keep working.
+ */
+export function activeClaudeConfigDir(): string {
+	return join(resolveSupersetHomeDir(), "accounts", "claude-active");
+}
+
+/**
+ * Creates the active dir owner-only and brings it up to date like any other
+ * profile — shared session history, skills, plugins, settings, MCP servers —
+ * so a session that moves onto it keeps its `--resume` history.
+ *
+ * `seedLogin` puts the login of the account that is active today into a
+ * brand-new dir (the system default's store, per KTD14, unless the caller
+ * names another). It is injected rather than imported so this module stays
+ * clear of the account engine, and it runs before provisioning: the state
+ * file it writes is what lets provisioning force `hasCompletedOnboarding`,
+ * whose absence opens the first-boot wizard on the dir's first launch.
+ */
+export async function ensureActiveClaudeDir(
+	options: { seedLogin?: (activeDir: string) => Promise<void> } = {},
+): Promise<string> {
+	const dir = activeClaudeConfigDir();
+	await mkdir(dir, { recursive: true, mode: 0o700 });
+	await chmod(dir, 0o700);
+	// No state file means no login has ever been swapped into this dir.
+	if (options.seedLogin && !existsSync(join(dir, ".claude.json"))) {
+		await options.seedLogin(dir);
+	}
+	await provisionClaudeAccount(dir);
+	return dir;
 }
 
 /**
