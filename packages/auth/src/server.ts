@@ -1231,10 +1231,6 @@ export const auth = betterAuth({
 								planName: subscription.plan,
 								accessEndsAt,
 								dueToPaymentFailure,
-								resubscribeUrl:
-									recipient.role === "owner"
-										? env.NEXT_PUBLIC_WEB_URL
-										: undefined,
 							}),
 						})),
 					);
