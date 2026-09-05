@@ -1,8 +1,8 @@
 import { db } from "@superset/db/client";
-import { members, organizations, users } from "@superset/db/schema";
+import { members, users } from "@superset/db/schema";
 import { COMPANY } from "@superset/shared/constants";
 import type { TRPCRouterRecord } from "@trpc/server";
-import { and, gte, inArray, notLike, type SQL, sql } from "drizzle-orm";
+import { and, gte, notLike, type SQL, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { cachedGrowthMetric } from "../../lib/growth/cache";
@@ -50,7 +50,7 @@ function cachedHogQL<T>(key: string, compute: () => Promise<T>): Promise<T> {
 // Weekly counts of rows created since the first week, keyed on the Monday
 // that starts each week so they line up with PostHog's toStartOfWeek(x, 1).
 async function weeklyCreated(
-	table: typeof users | typeof organizations,
+	table: typeof users,
 	weeks: string[],
 	extra?: SQL,
 ): Promise<number[]> {
@@ -67,6 +67,29 @@ async function weeklyCreated(
 		.groupBy(sql`1`);
 	const pivoted = pivotWeekly(
 		rows.map((r): WeeklyRow => [r.week, "created", Number(r.count)]),
+		weeks,
+	);
+	return pivoted.series[0]?.values ?? new Array<number>(weeks.length).fill(0);
+}
+
+// Organizations by the week their second member joined: the moment a
+// personal organization became a team, whenever it was created.
+async function weeklyTeamsFormed(weeks: string[]): Promise<number[]> {
+	const since = new Date(`${weeks[0]}T00:00:00Z`);
+	const result = await db.execute<{ week: string; count: number }>(sql`
+		SELECT to_char(date_trunc('week', second_join AT TIME ZONE 'UTC'), 'YYYY-MM-DD') AS week,
+			count(*)::int AS count
+		FROM (
+			SELECT (array_agg(${members.createdAt} ORDER BY ${members.createdAt}))[2] AS second_join
+			FROM ${members}
+			GROUP BY ${members.organizationId}
+			HAVING count(*) >= 2
+		) AS teams
+		WHERE second_join >= ${since}
+		GROUP BY 1
+	`);
+	const pivoted = pivotWeekly(
+		result.rows.map((r): WeeklyRow => [r.week, "teams", Number(r.count)]),
 		weeks,
 	);
 	return pivoted.series[0]?.values ?? new Array<number>(weeks.length).fill(0);
@@ -134,16 +157,11 @@ export const growthRouter = {
 
 	// Visitors → download clicks → accounts → teams, by week. Accounts exclude
 	// the company's own domain so dogfooding does not read as growth. Every
-	// account gets a personal organization, so only organizations that grew to
-	// a second member count as a team.
+	// account gets a personal organization, so a team is the week an
+	// organization gained its second member.
 	conversions: adminProcedure.input(weekCountInput).query(({ input }) =>
 		cachedHogQL(`conversions:v2:${input.weeks}`, async () => {
 			const weeks = weekStarts(input.weeks);
-			const multiMemberOrgIds = db
-				.select({ id: members.organizationId })
-				.from(members)
-				.groupBy(members.organizationId)
-				.having(sql`count(*) >= 2`);
 			const [events, signups, teams] = await Promise.all([
 				fetchConversionEvents(input.weeks),
 				weeklyCreated(
@@ -151,11 +169,7 @@ export const growthRouter = {
 					weeks,
 					notLike(users.email, `%${COMPANY.EMAIL_DOMAIN}`),
 				),
-				weeklyCreated(
-					organizations,
-					weeks,
-					inArray(organizations.id, multiMemberOrgIds),
-				),
+				weeklyTeamsFormed(weeks),
 			]);
 			return { ...events, signups, teams };
 		}),

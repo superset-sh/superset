@@ -15101,8 +15101,8 @@ msgstr "Notes de version hebdomadaires"
 msgid "Weekly signup cohorts (Neon); cohorts younger than 30d excluded"
 msgstr "Cohortes d'inscription hebdomadaires (Neon) ; cohortes de moins de 30 j exclues"
 
-msgid "Weekly site visitors (PostHog sessions), people who clicked download, accounts created (Neon, company emails excluded), and teams: organizations created that week that now have two or more members. Rates are for the last complete week."
-msgstr "Visiteurs hebdomadaires du site (sessions PostHog), personnes ayant cliqué sur télécharger, comptes créés (Neon, e-mails de l'entreprise exclus) et équipes : organisations créées cette semaine-là qui comptent aujourd'hui deux membres ou plus. Les taux portent sur la dernière semaine complète."
+msgid "Weekly site visitors (PostHog sessions), people who clicked download, accounts created (Neon, company emails excluded), and teams: organizations that gained their second member that week. Rates are for the last complete week."
+msgstr "Visiteurs hebdomadaires du site (sessions PostHog), personnes ayant cliqué sur télécharger, comptes créés (Neon, e-mails de l'entreprise exclus) et équipes : organisations ayant accueilli leur deuxième membre cette semaine-là. Les taux portent sur la dernière semaine complète."
 
 msgid "Weekly visitors arriving from a search results page. Search Console below says which queries they typed."
 msgstr "Visiteurs hebdomadaires arrivant d'une page de résultats de recherche. La Search Console ci-dessous indique les requêtes saisies."

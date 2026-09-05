@@ -66,7 +66,7 @@ export function ConversionsTile() {
 			title={t({ message: "Visitors to downloads to accounts" })}
 			description={t({
 				message:
-					"Weekly site visitors (PostHog sessions), people who clicked download, accounts created (Neon, company emails excluded), and teams: organizations created that week that now have two or more members. Rates are for the last complete week.",
+					"Weekly site visitors (PostHog sessions), people who clicked download, accounts created (Neon, company emails excluded), and teams: organizations that gained their second member that week. Rates are for the last complete week.",
 			})}
 			weeks={data?.weeks ?? []}
 			series={series}

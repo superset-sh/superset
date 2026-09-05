@@ -15101,8 +15101,8 @@ msgstr "Haftalık sürüm notları"
 msgid "Weekly signup cohorts (Neon); cohorts younger than 30d excluded"
 msgstr "Haftalık kayıt kohortları (Neon); 30 günden genç kohortlar hariç"
 
-msgid "Weekly site visitors (PostHog sessions), people who clicked download, accounts created (Neon, company emails excluded), and teams: organizations created that week that now have two or more members. Rates are for the last complete week."
-msgstr "Haftalık site ziyaretçileri (PostHog oturumları), indir'e tıklayanlar, oluşturulan hesaplar (Neon, şirket e-postaları hariç) ve ekipler: o hafta oluşturulup şu an iki veya daha fazla üyesi olan organizasyonlar. Oranlar son tam hafta içindir."
+msgid "Weekly site visitors (PostHog sessions), people who clicked download, accounts created (Neon, company emails excluded), and teams: organizations that gained their second member that week. Rates are for the last complete week."
+msgstr "Haftalık site ziyaretçileri (PostHog oturumları), indir'e tıklayanlar, oluşturulan hesaplar (Neon, şirket e-postaları hariç) ve ekipler: o hafta ikinci üyesini kazanan organizasyonlar. Oranlar son tam hafta içindir."
 
 msgid "Weekly visitors arriving from a search results page. Search Console below says which queries they typed."
 msgstr "Bir arama sonuçları sayfasından gelen haftalık ziyaretçiler. Aşağıdaki Search Console hangi sorguları yazdıklarını gösterir."

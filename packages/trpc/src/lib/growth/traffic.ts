@@ -116,7 +116,7 @@ export async function fetchSearchEngines(
 	const query = `
 SELECT toStartOfWeek($start_timestamp, 1) AS week, ${SEARCH_ENGINE_SQL} AS engine, uniq(distinct_id) AS visitors
 FROM sessions
-WHERE ${sessionsScope(weeks)} AND $channel_type IN ('Organic Search', 'Paid Search')
+WHERE ${sessionsScope(weeks)} AND $channel_type = 'Organic Search'
 GROUP BY week, engine
 ORDER BY week`;
 	const rows = await runHogQL<WeeklyRow>(query);

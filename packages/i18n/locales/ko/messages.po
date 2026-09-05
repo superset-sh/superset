@@ -15101,8 +15101,8 @@ msgstr "주간 릴리스 노트"
 msgid "Weekly signup cohorts (Neon); cohorts younger than 30d excluded"
 msgstr "주간 가입 코호트 (Neon). 생성 30일 미만 코호트는 제외"
 
-msgid "Weekly site visitors (PostHog sessions), people who clicked download, accounts created (Neon, company emails excluded), and teams: organizations created that week that now have two or more members. Rates are for the last complete week."
-msgstr "주간 사이트 방문자(PostHog 세션), 다운로드를 클릭한 사람, 생성된 계정(Neon, 회사 이메일 제외), 팀: 그 주에 생성되어 현재 구성원이 2명 이상인 조직. 비율은 최근 완전한 주 기준."
+msgid "Weekly site visitors (PostHog sessions), people who clicked download, accounts created (Neon, company emails excluded), and teams: organizations that gained their second member that week. Rates are for the last complete week."
+msgstr "주간 사이트 방문자(PostHog 세션), 다운로드를 클릭한 사람, 생성된 계정(Neon, 회사 이메일 제외), 팀: 그 주에 두 번째 구성원을 맞이한 조직. 비율은 최근 완전한 주 기준."
 
 msgid "Weekly visitors arriving from a search results page. Search Console below says which queries they typed."
 msgstr "검색 결과 페이지에서 도착한 주간 방문자. 입력한 검색어는 아래 Search Console에서 확인."

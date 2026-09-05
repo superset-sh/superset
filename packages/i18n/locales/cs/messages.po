@@ -15101,8 +15101,8 @@ msgstr "Týdenní poznámky k vydání"
 msgid "Weekly signup cohorts (Neon); cohorts younger than 30d excluded"
 msgstr "Týdenní kohorty registrací (Neon); kohorty mladší 30 d jsou vyloučeny"
 
-msgid "Weekly site visitors (PostHog sessions), people who clicked download, accounts created (Neon, company emails excluded), and teams: organizations created that week that now have two or more members. Rates are for the last complete week."
-msgstr "Týdenní návštěvníci webu (relace PostHog), lidé, kteří klikli na stáhnout, vytvořené účty (Neon, bez firemních e-mailů) a týmy: organizace vytvořené v daném týdnu, které mají nyní dva a více členů. Poměry platí pro poslední celý týden."
+msgid "Weekly site visitors (PostHog sessions), people who clicked download, accounts created (Neon, company emails excluded), and teams: organizations that gained their second member that week. Rates are for the last complete week."
+msgstr "Týdenní návštěvníci webu (relace PostHog), lidé, kteří klikli na stáhnout, vytvořené účty (Neon, bez firemních e-mailů) a týmy: organizace, které v daném týdnu získaly druhého člena. Poměry platí pro poslední celý týden."
 
 msgid "Weekly visitors arriving from a search results page. Search Console below says which queries they typed."
 msgstr "Týdenní návštěvníci ze stránky s výsledky vyhledávání. Search Console níže ukazuje, jaké dotazy zadali."

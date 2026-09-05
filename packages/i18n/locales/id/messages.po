@@ -15101,8 +15101,8 @@ msgstr "Catatan rilis mingguan"
 msgid "Weekly signup cohorts (Neon); cohorts younger than 30d excluded"
 msgstr "Kohor pendaftaran mingguan (Neon); kohor yang lebih muda dari 30h dikecualikan"
 
-msgid "Weekly site visitors (PostHog sessions), people who clicked download, accounts created (Neon, company emails excluded), and teams: organizations created that week that now have two or more members. Rates are for the last complete week."
-msgstr "Pengunjung situs mingguan (sesi PostHog), orang yang mengeklik unduh, akun yang dibuat (Neon, email perusahaan dikecualikan), dan tim: organisasi yang dibuat minggu itu dan kini memiliki dua anggota atau lebih. Rasio untuk minggu penuh terakhir."
+msgid "Weekly site visitors (PostHog sessions), people who clicked download, accounts created (Neon, company emails excluded), and teams: organizations that gained their second member that week. Rates are for the last complete week."
+msgstr "Pengunjung situs mingguan (sesi PostHog), orang yang mengeklik unduh, akun yang dibuat (Neon, email perusahaan dikecualikan), dan tim: organisasi yang mendapatkan anggota keduanya pada minggu itu. Rasio untuk minggu penuh terakhir."
 
 msgid "Weekly visitors arriving from a search results page. Search Console below says which queries they typed."
 msgstr "Pengunjung mingguan yang datang dari halaman hasil pencarian. Search Console di bawah menunjukkan kueri yang mereka ketik."

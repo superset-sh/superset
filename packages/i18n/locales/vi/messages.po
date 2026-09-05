@@ -15101,8 +15101,8 @@ msgstr "Ghi chú phát hành hằng tuần"
 msgid "Weekly signup cohorts (Neon); cohorts younger than 30d excluded"
 msgstr "Nhóm đăng ký theo tuần (Neon); không tính nhóm dưới 30 ngày"
 
-msgid "Weekly site visitors (PostHog sessions), people who clicked download, accounts created (Neon, company emails excluded), and teams: organizations created that week that now have two or more members. Rates are for the last complete week."
-msgstr "Khách truy cập trang hằng tuần (phiên PostHog), người nhấp tải xuống, tài khoản được tạo (Neon, loại trừ email công ty) và nhóm: các tổ chức được tạo trong tuần đó hiện có từ hai thành viên trở lên. Tỷ lệ tính cho tuần trọn vẹn gần nhất."
+msgid "Weekly site visitors (PostHog sessions), people who clicked download, accounts created (Neon, company emails excluded), and teams: organizations that gained their second member that week. Rates are for the last complete week."
+msgstr "Khách truy cập trang hằng tuần (phiên PostHog), người nhấp tải xuống, tài khoản được tạo (Neon, loại trừ email công ty) và nhóm: các tổ chức có thêm thành viên thứ hai trong tuần đó. Tỷ lệ tính cho tuần trọn vẹn gần nhất."
 
 msgid "Weekly visitors arriving from a search results page. Search Console below says which queries they typed."
 msgstr "Khách truy cập hằng tuần đến từ trang kết quả tìm kiếm. Search Console bên dưới cho biết họ đã gõ truy vấn nào."

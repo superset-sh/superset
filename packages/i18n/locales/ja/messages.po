@@ -15101,8 +15101,8 @@ msgstr "週次リリースノート"
 msgid "Weekly signup cohorts (Neon); cohorts younger than 30d excluded"
 msgstr "週次のサインアップコホート(Neon)。30日未満のコホートは除外"
 
-msgid "Weekly site visitors (PostHog sessions), people who clicked download, accounts created (Neon, company emails excluded), and teams: organizations created that week that now have two or more members. Rates are for the last complete week."
-msgstr "週ごとのサイト訪問者（PostHog セッション）、ダウンロードをクリックした人、作成されたアカウント（Neon、会社のメールは除外）、チーム: その週に作成され現在メンバーが2人以上いる組織。率は直近の完全な週のもの。"
+msgid "Weekly site visitors (PostHog sessions), people who clicked download, accounts created (Neon, company emails excluded), and teams: organizations that gained their second member that week. Rates are for the last complete week."
+msgstr "週ごとのサイト訪問者（PostHog セッション）、ダウンロードをクリックした人、作成されたアカウント（Neon、会社のメールは除外）、チーム: その週に2人目のメンバーを迎えた組織。率は直近の完全な週のもの。"
 
 msgid "Weekly visitors arriving from a search results page. Search Console below says which queries they typed."
 msgstr "検索結果ページから到達した週ごとの訪問者。入力されたクエリは下の Search Console を参照。"

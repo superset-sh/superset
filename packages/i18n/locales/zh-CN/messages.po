@@ -15101,8 +15101,8 @@ msgstr "每周发布说明"
 msgid "Weekly signup cohorts (Neon); cohorts younger than 30d excluded"
 msgstr "按周划分的注册同期群（Neon）；不足30天的同期群已排除"
 
-msgid "Weekly site visitors (PostHog sessions), people who clicked download, accounts created (Neon, company emails excluded), and teams: organizations created that week that now have two or more members. Rates are for the last complete week."
-msgstr "每周站点访客（PostHog 会话）、点击下载的人、创建的账号（Neon，排除公司邮箱）以及团队：当周创建且现已有两名或以上成员的组织。比率取最近一个完整周。"
+msgid "Weekly site visitors (PostHog sessions), people who clicked download, accounts created (Neon, company emails excluded), and teams: organizations that gained their second member that week. Rates are for the last complete week."
+msgstr "每周站点访客（PostHog 会话）、点击下载的人、创建的账号（Neon，排除公司邮箱）以及团队：当周迎来第二名成员的组织。比率取最近一个完整周。"
 
 msgid "Weekly visitors arriving from a search results page. Search Console below says which queries they typed."
 msgstr "每周从搜索结果页到达的访客。他们输入的查询词见下方 Search Console。"

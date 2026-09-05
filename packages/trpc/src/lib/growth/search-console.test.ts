@@ -63,46 +63,53 @@ describe("dateWindow", () => {
 });
 
 describe("groupWeekly", () => {
-	test("sums daily rows into weeks and tracks non-brand clicks separately", () => {
+	test("takes clicks from complete daily totals and subtracts named-query clicks for non-brand", () => {
 		const weeks = ["2026-08-24", "2026-08-31"];
-		const weekly = groupWeekly(
-			[
-				{
-					keys: ["2026-08-25", "superset"],
-					clicks: 5,
-					impressions: 50,
-					ctr: 0.1,
-					position: 1,
-				},
-				{
-					keys: ["2026-08-26", "cursor alternatives"],
-					clicks: 2,
-					impressions: 100,
-					ctr: 0.02,
-					position: 12,
-				},
-				{
-					keys: ["2026-09-01", "apache superset"],
-					clicks: 7,
-					impressions: 700,
-					ctr: 0.01,
-					position: 40,
-				},
-				{
-					keys: ["2026-09-02", "agentic ide"],
-					clicks: 1,
-					impressions: 30,
-					ctr: 0.03,
-					position: 8,
-				},
-			],
+		const totals = [
+			{
+				keys: ["2026-08-25"],
+				clicks: 9,
+				impressions: 190,
+				ctr: 0.05,
+				position: 5,
+			},
+			{
+				keys: ["2026-09-01"],
+				clicks: 12,
+				impressions: 800,
+				ctr: 0.015,
+				position: 30,
+			},
+		];
+		// The by-query rows are a truncated list: the long tail on Sep 1 is missing.
+		const byQuery = [
+			{
+				keys: ["2026-08-25", "superset"],
+				clicks: 5,
+				impressions: 50,
+				ctr: 0.1,
+				position: 1,
+			},
+			{
+				keys: ["2026-08-25", "cursor alternatives"],
+				clicks: 2,
+				impressions: 100,
+				ctr: 0.02,
+				position: 12,
+			},
+			{
+				keys: ["2026-09-01", "apache superset"],
+				clicks: 7,
+				impressions: 700,
+				ctr: 0.01,
+				position: 40,
+			},
+		];
+		expect(groupWeekly(totals, byQuery, weeks)).toEqual({
 			weeks,
-		);
-		expect(weekly).toEqual({
-			weeks,
-			clicks: [7, 8],
-			impressions: [150, 730],
-			nonBrandClicks: [2, 1],
+			clicks: [9, 12],
+			impressions: [190, 800],
+			nonBrandClicks: [4, 5],
 		});
 	});
 });

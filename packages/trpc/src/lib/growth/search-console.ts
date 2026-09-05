@@ -12,6 +12,10 @@ const CACHE_KEY = "search-console";
 const CACHE_TTL_SECONDS = 60 * 60;
 const DATA_DELAY_DAYS = 3;
 const TOP_ROWS = 20;
+// Brand queries are few and high-volume, so they sit at the top of a
+// clicks-ordered list; non-brand is everything else, derived from complete
+// totals rather than summed from a list that Google truncates.
+const QUERY_ROWS = 5000;
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const SCOPE = "https://www.googleapis.com/auth/webmasters.readonly";
 const API_BASE = "https://www.googleapis.com/webmasters/v3/sites";
@@ -125,31 +129,40 @@ export function dateWindow(weekCount: number, now = new Date()) {
 	return { weeks, start: weeks[0] ?? isoDate(end), end: isoDate(end) };
 }
 
-// Daily rows keyed by ["date"] or ["date", "query"], into per-week totals.
+// Daily totals (complete) minus the brand and Apache clicks found in the
+// daily-by-query rows, so the non-brand series never shrinks because Google
+// cut the long tail off the query list.
 export function groupWeekly(
-	dailyRows: SearchRow[],
+	dailyTotals: SearchRow[],
+	dailyByQuery: SearchRow[],
 	weeks: string[],
 ): SearchConsoleWeekly {
 	const rows: WeeklyRow[] = [];
-	for (const row of dailyRows) {
-		const [date, query] = row.keys;
+	for (const row of dailyTotals) {
+		const [date] = row.keys;
 		if (!date) continue;
 		const week = weekStartOf(date);
 		rows.push([week, "clicks", row.clicks]);
 		rows.push([week, "impressions", row.impressions]);
-		if (query !== undefined && classifyQuery(query) === "nonbrand") {
-			rows.push([week, "nonbrand", row.clicks]);
+	}
+	for (const row of dailyByQuery) {
+		const [date, query] = row.keys;
+		if (!date || query === undefined) continue;
+		if (classifyQuery(query) !== "nonbrand") {
+			rows.push([weekStartOf(date), "named", row.clicks]);
 		}
 	}
 	const table = pivotWeekly(rows, weeks);
 	const zeros = new Array<number>(weeks.length).fill(0);
 	const values = (key: string) =>
 		table.series.find((s) => s.key === key)?.values ?? zeros;
+	const clicks = values("clicks");
+	const named = values("named");
 	return {
 		weeks,
-		clicks: values("clicks"),
+		clicks,
 		impressions: values("impressions"),
-		nonBrandClicks: values("nonbrand"),
+		nonBrandClicks: clicks.map((c, i) => Math.max(0, c - (named[i] ?? 0))),
 	};
 }
 
@@ -222,31 +235,38 @@ async function fetchSearchConsoleLive(
 	const { weeks, start, end } = dateWindow(weekCount);
 	const recentStart = isoDate(new Date(Date.parse(end) - 27 * DAY_MS));
 
-	const [dailyByQuery, totals, queries, pages] = await Promise.all([
-		searchAnalytics(token, siteUrl, {
-			startDate: start,
-			endDate: end,
-			dimensions: ["date", "query"],
-			rowLimit: 25000,
-		}),
-		searchAnalytics(token, siteUrl, {
-			startDate: recentStart,
-			endDate: end,
-			dimensions: [],
-		}),
-		searchAnalytics(token, siteUrl, {
-			startDate: recentStart,
-			endDate: end,
-			dimensions: ["query"],
-			rowLimit: 500,
-		}),
-		searchAnalytics(token, siteUrl, {
-			startDate: recentStart,
-			endDate: end,
-			dimensions: ["page"],
-			rowLimit: TOP_ROWS,
-		}),
-	]);
+	const [dailyTotals, dailyByQuery, totals, queries, pages] = await Promise.all(
+		[
+			searchAnalytics(token, siteUrl, {
+				startDate: start,
+				endDate: end,
+				dimensions: ["date"],
+			}),
+			searchAnalytics(token, siteUrl, {
+				startDate: start,
+				endDate: end,
+				dimensions: ["date", "query"],
+				rowLimit: 25000,
+			}),
+			searchAnalytics(token, siteUrl, {
+				startDate: recentStart,
+				endDate: end,
+				dimensions: [],
+			}),
+			searchAnalytics(token, siteUrl, {
+				startDate: recentStart,
+				endDate: end,
+				dimensions: ["query"],
+				rowLimit: QUERY_ROWS,
+			}),
+			searchAnalytics(token, siteUrl, {
+				startDate: recentStart,
+				endDate: end,
+				dimensions: ["page"],
+				rowLimit: TOP_ROWS,
+			}),
+		],
+	);
 
 	const byKind: Record<QueryKind, { clicks: number; impressions: number }> = {
 		brand: { clicks: 0, impressions: 0 },
@@ -256,8 +276,10 @@ async function fetchSearchConsoleLive(
 	const topQueries: SearchQueryRow[] = queries.map((row) => {
 		const query = row.keys[0] ?? "";
 		const kind = classifyQuery(query);
-		byKind[kind].clicks += row.clicks;
-		byKind[kind].impressions += row.impressions;
+		if (kind !== "nonbrand") {
+			byKind[kind].clicks += row.clicks;
+			byKind[kind].impressions += row.impressions;
+		}
 		return {
 			query,
 			kind,
@@ -268,6 +290,18 @@ async function fetchSearchConsoleLive(
 		};
 	});
 	const total = totals[0];
+	byKind.nonbrand = {
+		clicks: Math.max(
+			0,
+			(total?.clicks ?? 0) - byKind.brand.clicks - byKind.apache.clicks,
+		),
+		impressions: Math.max(
+			0,
+			(total?.impressions ?? 0) -
+				byKind.brand.impressions -
+				byKind.apache.impressions,
+		),
+	};
 
 	return {
 		available: true,
@@ -280,7 +314,7 @@ async function fetchSearchConsoleLive(
 			position: total?.position ?? 0,
 		},
 		byKind,
-		weekly: groupWeekly(dailyByQuery, weeks),
+		weekly: groupWeekly(dailyTotals, dailyByQuery, weeks),
 		topQueries: topQueries.slice(0, TOP_ROWS),
 		topPages: pages.map((row) => ({
 			page: row.keys[0] ?? "",
