@@ -20,13 +20,16 @@ import {
 	applyAccountEngineState,
 	isActiveAccount,
 	readAccountEngineView,
-	setDefaultAccountSelection,
 } from "./default-account";
+import { engineError, usageEngineRouter, writableEngine } from "./engine";
 import { countAgentPrsByDay } from "./history/agent-prs";
 import { removeClaudeProfile, removeCodexHome } from "./profile-remove";
 import { discoverClaudeProfiles, discoverCodexHomes } from "./profiles";
 
 export const usageRouter = router({
+	/** U7: the account engine's settings, rotation and switch history. */
+	engine: usageEngineRouter,
+
 	quota: queryProcedure
 		.meta({ timeoutMs: 15_000 })
 		.input(z.object({ forceRefresh: z.boolean().optional() }).optional())
@@ -89,8 +92,10 @@ export const usageRouter = router({
 	}),
 
 	/**
-	 * Point new agent launches at one of the discovered logins (null = the
-	 * system default). Never touches credentials — see default-account.ts.
+	 * R2/R4: make one of the discovered logins the active account (null = the
+	 * system default, KTD14). The engine performs it by the same path an
+	 * automatic switch takes, so it reaches running sessions, records a manual
+	 * history entry and restarts the cooldown while auto-switch stays on.
 	 */
 	setDefaultAccount: protectedProcedure
 		.input(
@@ -100,25 +105,12 @@ export const usageRouter = router({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			if (input.selection !== null) {
-				// Only accept a discovered login: the value lands in a shell env
-				// overlay, and a typo'd dir would boot agents signed out.
-				const accounts = await ctx.runtime.quotaStore.read({
-					agents: [input.agent],
-				});
-				const known = accounts.some(
-					(account) =>
-						account.agent === input.agent &&
-						account.selection === input.selection,
-				);
-				if (!known) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: `No ${input.agent} login found at ${input.selection} — refresh usage and pick again.`,
-					});
-				}
-			}
-			setDefaultAccountSelection(ctx.db, input.agent, input.selection);
+			// A sandbox host runs no engine (KTD1), and a lock loser must not
+			// swap behind the owner's back (KTD5). The engine itself refuses an
+			// account it cannot see, so no separate known-login check is needed.
+			const engine = writableEngine(ctx.runtime.accountEngine);
+			const outcome = await engine.switchManually(input.agent, input.selection);
+			if (!outcome.ok) throw engineError(outcome.code);
 			// A profile dir is a whole config root, not just a login: without
 			// provisioning, agents launched there lose the user's skills,
 			// plugins, MCP servers and settings along with Superset's lifecycle
