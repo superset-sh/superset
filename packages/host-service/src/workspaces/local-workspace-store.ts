@@ -10,6 +10,10 @@ import { workspaces, workspaceTags } from "../db/schema";
 import type { EventBus } from "../events";
 import type { WorkspaceSnapshot } from "../events/types";
 import type { ApiClient } from "../types";
+import type {
+	ArchiveWorkspaceSource,
+	UnarchiveWorkspaceSource,
+} from "./shelve-sources";
 
 export type HostWorkspaceRow = typeof workspaces.$inferSelect;
 
@@ -32,8 +36,13 @@ export interface WorkspaceStoreContext {
  */
 function trackWorkspaceEvent(
 	ctx: WorkspaceStoreContext,
-	event: "workspace_created" | "workspace_deleted",
+	event:
+		| "workspace_created"
+		| "workspace_deleted"
+		| "workspace_archived"
+		| "workspace_unarchived",
 	row: HostWorkspaceRow,
+	extra: Record<string, string | number | boolean | null> = {},
 ): void {
 	if (!ctx.api) return;
 	const clientMachineId = ctx.clientMachineId ?? getHostId();
@@ -52,6 +61,7 @@ function trackWorkspaceEvent(
 					host_kind: clientMachineId === getHostId() ? "local" : "remote",
 					client_machine_id: clientMachineId,
 					host_service_version: hostServicePackageJson.version,
+					...extra,
 				},
 			})
 			.catch(() => {});
@@ -96,6 +106,7 @@ export function toWorkspaceSnapshot(
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt || row.createdAt,
 		lastActivityAt: row.lastActivityAt,
+		shelvedAt: row.shelvedAt ?? null,
 		tags,
 	};
 }
@@ -359,6 +370,58 @@ export function unarchiveLocalWorkspace(
 	}
 	const row = getLocalWorkspace(ctx.db, id);
 	if (row) emitWorkspaceChanged(ctx, "created", row);
+}
+
+/**
+ * Reversible user-facing "Archive": stamps `shelvedAt` so the row leaves the
+ * sidebar and every live list, while the worktree, branch, and terminal
+ * sessions stay exactly as they are (the reaper suspends the terminals after
+ * a grace period). Not a tombstone — `archiveLocalWorkspace` is the destroy
+ * commit point and broadcasts `deleted`; this broadcasts a normal `updated`
+ * so clients move the row between lists instead of dropping it. Idempotent:
+ * an already-shelved row keeps its timestamp, broadcasts nothing, and does
+ * not count again in analytics.
+ */
+export function shelveLocalWorkspace(
+	ctx: WorkspaceStoreContext,
+	id: string,
+	source: ArchiveWorkspaceSource,
+): HostWorkspaceRow | undefined {
+	const existing = getLocalWorkspace(ctx.db, id);
+	if (!existing) return undefined;
+	if (existing.shelvedAt != null) return existing;
+	const now = Date.now();
+	ctx.db
+		.update(workspaces)
+		.set({ shelvedAt: now, updatedAt: now })
+		.where(eq(workspaces.id, id))
+		.run();
+	const row = getLocalWorkspace(ctx.db, id);
+	if (!row) return undefined;
+	emitWorkspaceChanged(ctx, "updated", row);
+	trackWorkspaceEvent(ctx, "workspace_archived", row, { source });
+	return row;
+}
+
+/** Clear the reversible archive flag and broadcast `updated`. Idempotent. */
+export function unshelveLocalWorkspace(
+	ctx: WorkspaceStoreContext,
+	id: string,
+	source: UnarchiveWorkspaceSource,
+): HostWorkspaceRow | undefined {
+	const existing = getLocalWorkspace(ctx.db, id);
+	if (!existing) return undefined;
+	if (existing.shelvedAt == null) return existing;
+	ctx.db
+		.update(workspaces)
+		.set({ shelvedAt: null, updatedAt: Date.now() })
+		.where(eq(workspaces.id, id))
+		.run();
+	const row = getLocalWorkspace(ctx.db, id);
+	if (!row) return undefined;
+	emitWorkspaceChanged(ctx, "updated", row);
+	trackWorkspaceEvent(ctx, "workspace_unarchived", row, { source });
+	return row;
 }
 
 /**

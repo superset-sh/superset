@@ -17,9 +17,15 @@ import type { HostServiceContext } from "../../../types";
 import type { GitTaskEnv } from "../../../workers/tasks/git";
 import {
 	archiveLocalWorkspace,
+	shelveLocalWorkspace,
 	trackWorkspaceDeleted,
 	unarchiveLocalWorkspace,
+	unshelveLocalWorkspace,
 } from "../../../workspaces/local-workspace-store";
+import {
+	ARCHIVE_WORKSPACE_SOURCES,
+	UNARCHIVE_WORKSPACE_SOURCES,
+} from "../../../workspaces/shelve-sources";
 import type {
 	DeleteInProgressCause,
 	TeardownFailureCause,
@@ -213,7 +219,70 @@ export const workspaceCleanupRouter = router({
 				teardownMode: input.skipTeardown ? "skip" : "blocking",
 			}),
 		),
+
+	/**
+	 * Reversible "Archive": stamps `shelvedAt` so the workspace leaves the
+	 * sidebar, and nothing else — no worktree, branch, or terminal work; the
+	 * terminal reaper suspends its ptys once the undo window has passed.
+	 * Distinct from `destroy`'s tombstone (`archivedAt`), which is permanent.
+	 *
+	 * Refuses main workspaces (same guard as destroy) and tombstoned rows
+	 * (already deleted; nothing to put away). Idempotent.
+	 */
+	shelve: protectedProcedure
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				source: z.enum(ARCHIVE_WORKSPACE_SOURCES),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const main = await isMainWorkspace(ctx, input.workspaceId);
+			if (main.isMain) {
+				throw new TRPCError({ code: "BAD_REQUEST", message: main.reason });
+			}
+			assertShelvable(main.local, input.workspaceId);
+			const row = shelveLocalWorkspace(ctx, input.workspaceId, input.source);
+			return { success: true as const, shelvedAt: row?.shelvedAt ?? null };
+		}),
+
+	/** Clears `shelvedAt`, returning the workspace to the sidebar. Idempotent. */
+	unshelve: protectedProcedure
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				source: z.enum(UNARCHIVE_WORKSPACE_SOURCES),
+			}),
+		)
+		.mutation(({ ctx, input }) => {
+			const local = ctx.db.query.workspaces
+				.findFirst({ where: eq(workspaces.id, input.workspaceId) })
+				.sync();
+			assertShelvable(local, input.workspaceId);
+			const row = unshelveLocalWorkspace(ctx, input.workspaceId, input.source);
+			return { success: true as const, shelvedAt: row?.shelvedAt ?? null };
+		}),
 });
+
+/** A row can move between live and archived only while it exists and has
+ * not been destroyed: a tombstone is gone from every list already. */
+function assertShelvable(
+	local: { archivedAt: number | null } | undefined,
+	workspaceId: string,
+): asserts local is { archivedAt: number | null } {
+	if (!local) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: `Workspace not found: ${workspaceId}`,
+		});
+	}
+	if (local.archivedAt != null) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "This workspace has already been deleted.",
+		});
+	}
+}
 
 export async function destroyWorkspace(
 	ctx: HostServiceContext,

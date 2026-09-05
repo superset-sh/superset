@@ -260,6 +260,11 @@ export const workspaces = sqliteTable(
 		archivedAt: integer("archived_at"),
 		// "merged" when the linked PR was merged at destroy time.
 		archiveReason: text("archive_reason").$type<"merged" | "deleted">(),
+		// Reversible user-facing "Archive": null = live in the sidebar. Set by
+		// workspaceCleanup.shelve, cleared by unshelve. Unlike the tombstone
+		// above the row stays fully live (worktree, branch, terminals); the
+		// reaper suspends its terminals after a grace period.
+		shelvedAt: integer("shelved_at"),
 	},
 	(table) => [
 		index("workspaces_project_id_idx").on(table.projectId),

@@ -88,6 +88,12 @@ export interface WorkspaceSnapshot {
 	 * writes (rename, tags, PR link).
 	 */
 	lastActivityAt: number | null;
+	/**
+	 * Epoch ms the user archived the workspace (workspaceCleanup.shelve), or
+	 * null while it is live in the sidebar. Reversible; distinct from the
+	 * destroy tombstone, which rides a `deleted` event and is not carried here.
+	 */
+	shelvedAt: number | null;
 	/** Normalized, sorted tag set; sidebar folders derive from it. */
 	tags: string[];
 }

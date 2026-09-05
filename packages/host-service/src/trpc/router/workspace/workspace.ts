@@ -86,6 +86,10 @@ export const workspaceRouter = router({
 				lastActivityAt: row.lastActivityAt,
 				archivedAt: row.archivedAt,
 				archiveReason: row.archiveReason,
+				// Reversible archive (workspaceCleanup.shelve); the row stays
+				// live. Exposed so CLI/MCP callers can tell; default filtering
+				// is unchanged in this release.
+				shelvedAt: row.shelvedAt,
 			}));
 		}),
 
