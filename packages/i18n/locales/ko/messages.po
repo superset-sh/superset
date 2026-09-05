@@ -294,6 +294,11 @@ msgstr "{0} → {1} 대기 중"
 msgid "{0} actions"
 msgstr "{0} 작업"
 
+#. placeholder {0}: left.name
+#. placeholder {1}: right.name
+msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
+msgstr "{0}와 {1}이(가) 터미널 공룡이 되어 결판을 냅니다. 승부는 기록이 결정합니다."
+
 #. placeholder {0}: formatTokens(me.tokens - below.tokens)
 msgid "{0} behind you"
 msgstr "{0} 차이로 뒤"
@@ -424,6 +429,16 @@ msgstr "#{1}을 제치려면 {0}"
 msgid "{0} tokens in the last 30 days. Publishing as <0>{handle}</0>."
 msgstr "최근 30일간 토큰 {0}개. <0>{handle}</0>(으)로 게시 중."
 
+#. placeholder {0}: formatTokens(cell.tokens)
+#. placeholder {1}: cell.day
+msgid "{0} tokens on {1}"
+msgstr "{1}에 {0} 토큰"
+
+#. placeholder {0}: formatTokens(calendar.total)
+#. placeholder {1}: String(calendar.activeDays)
+msgid "{0} tokens over {1} active days"
+msgstr "활동 {1}일 동안 토큰 {0}개"
+
 #. placeholder {0}: displayName(variables.name)
 msgid "{0} uninstalled"
 msgstr "{0} 제거됨"
@@ -432,14 +447,34 @@ msgstr "{0} 제거됨"
 msgid "{0} updated"
 msgstr "{0} 업데이트됨"
 
+#. placeholder {0}: left.name
+#. placeholder {1}: right.name
+msgid "{0} vs {1}"
+msgstr "{0} 대 {1}"
+
 #. placeholder {0}: file.path
 msgid "{0} was deleted in this change."
 msgstr "{0}은(는) 이 변경에서 삭제되었습니다."
+
+#. placeholder {0}: winner?.name
+#. placeholder {1}: result.events.length
+msgid "{0} wins in {1} turns"
+msgstr "{0} 승리, {1}턴 만에"
+
+#. placeholder {0}: winner?.name
+#. placeholder {1}: result.events.length
+msgid "{0} wins on damage after {1} turns"
+msgstr "{1}턴 종료, {0}이(가) 누적 데미지로 승리"
 
 #. placeholder {0}: check.name
 #. placeholder {1}: took ? `, ${took}` : ""
 msgid "{0}, {outcome}{1}"
 msgstr "{0}, {outcome}{1}"
+
+#. placeholder {0}: String(met)
+#. placeholder {1}: String(gaps.length)
+msgid "{0}/{1}"
+msgstr "{0}/{1}"
 
 #. placeholder {0}: tally.passed
 #. placeholder {1}: tally.total
@@ -450,6 +485,11 @@ msgstr "검사 {1}개 중 {0}개 통과"
 #. placeholder {1}: summary.total
 msgid "{0}/{1} tests passed"
 msgstr "테스트 {0}/{1}개 통과"
+
+#. placeholder {0}: String(bio.length)
+#. placeholder {1}: String(BIO_MAX)
+msgid "{0}/{1}. Links are stripped."
+msgstr "{0}/{1}. 링크는 제거됩니다."
 
 #. placeholder {0}: Math.round(100 * shareOfTotal)
 #. placeholder {1}: formatTokens(detail.tokens)
@@ -647,6 +687,10 @@ msgstr "{localHostName} (이 기기)"
 msgid "{matchCount, plural, one {{0}} other {{1}}}"
 msgstr "{matchCount, plural, one {{0}} other {{1}}}"
 
+#. placeholder {0}: gaps.length
+msgid "{met} of {0} objectives carrying for {nextLabel} — {laggingLabels} furthest behind."
+msgstr "{0}개 목표 중 {met}개가 {nextLabel}을(를) 향해 제 몫을 하고 있습니다 — {laggingLabels}이(가) 가장 뒤처져 있습니다."
+
 msgid "{minimumContrast}:1 contrast"
 msgstr "대비 {minimumContrast}:1"
 
@@ -782,6 +826,9 @@ msgstr "{teardownFailureCount, plural, one {그래도 삭제하면 해당 워크
 msgid "{teardownFailureCount, plural, one {Delete anyway} other {Delete # anyway}}"
 msgstr "{teardownFailureCount, plural, one {그래도 #개 삭제} other {그래도 #개 삭제}}"
 
+msgid "{threshold, plural, one {# agent PR merged} other {# agent PRs merged}}"
+msgstr "{threshold, plural, other {에이전트 PR # 건 머지}}"
+
 msgid "{toolName} interrupted"
 msgstr "{toolName} 중단됨"
 
@@ -826,9 +873,6 @@ msgstr "{worktreeCount, plural, one {연결 가능한 모든 기기에서 프로
 
 msgid "{years}y ago"
 msgstr "{years}년 전"
-
-msgid "@{profileHandle} · rank #{rank} of {total}"
-msgstr "@{profileHandle} · {total}명 중 {rank}위"
 
 msgid "@superset"
 msgstr "@superset"
@@ -1182,6 +1226,9 @@ msgstr "계정이 삭제 대기 중입니다."
 msgid "Account pending deletion"
 msgstr "삭제 예정 계정"
 
+msgid "Achievements"
+msgstr "업적"
+
 msgid "Acme Inc."
 msgstr "Acme Inc."
 
@@ -1207,6 +1254,12 @@ msgstr "활성 {0}"
 
 msgid "Active agent sessions."
 msgstr "활성 에이전트 세션입니다."
+
+msgid "active days"
+msgstr "활동 일수"
+
+msgid "Active days in the last 30"
+msgstr "최근 30일 중 활동 일수"
 
 msgid "Active organization required to create an API key"
 msgstr "API 키를 만들려면 활성 조직이 필요합니다"
@@ -1414,6 +1467,12 @@ msgstr "에이전트 실행 구성"
 msgid "Agent picker (Claude, Codex, Cursor…) used by every session-creation flow"
 msgstr "모든 세션 생성 흐름에서 쓰는 에이전트 선택기(Claude, Codex, Cursor…)"
 
+msgid "agent PRs merged"
+msgstr "머지된 에이전트 PR"
+
+msgid "Agent PRs merged per week"
+msgstr "주당 머지된 에이전트 PR"
+
 msgid "Agent review at parity with human review"
 msgstr "사람 리뷰와 동등한 수준의 에이전트 리뷰"
 
@@ -1438,9 +1497,6 @@ msgstr "에이전트 세션을 시작했습니다"
 msgid "agent settings"
 msgstr "에이전트 설정"
 
-msgid "Agent usage, ranked"
-msgstr "에이전트 사용량 순위"
-
 msgid "Agents"
 msgstr "에이전트"
 
@@ -1452,6 +1508,9 @@ msgstr "에이전트가 작업 중간 개입 없이 일상적인 티켓을 완�
 
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "에이전트가 직접 미리 보기를 띄우고, UI를 조작하고, 리뷰 준비 표시를 하기 전에 스크린샷 증거를 첨부합니다."
+
+msgid "Agents running at once"
+msgstr "동시에 실행 중인 에이전트"
 
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Superset 리더보드에 참여한 모든 개발자의 에이전트 사용량 집계 — 토큰, 비용, 캐시 동작, 그리고 실제로 많이 쓰이는 모델입니다."
@@ -1507,6 +1566,10 @@ msgstr "전체 {0} →"
 msgid "All {0} checks passed"
 msgstr "검사 {0}개 모두 통과"
 
+#. placeholder {0}: gaps.length
+msgid "All {0} objectives are carrying their weight for {nextLabel}."
+msgstr "{0}개 목표 모두가 {nextLabel}을(를) 향해 제 몫을 하고 있습니다."
+
 #. placeholder {0}: summary.relevantChecks.length
 msgid "All {0} passed"
 msgstr "{0} 모두 통과"
@@ -1553,6 +1616,9 @@ msgstr "모두 현재 탭에서"
 
 msgid "All in current tab (split panes)"
 msgstr "모두 현재 탭에서 (분할 패널)"
+
+msgid "All objectives cleared. Top rung, nothing left to reach for."
+msgstr "모든 목표를 달성했습니다. 최고 단계라 더 오를 곳이 없습니다."
 
 msgid "All of the organization's data will be permanently deleted — this cannot be undone."
 msgstr "조직의 모든 데이터가 영구적으로 삭제되며, 되돌릴 수 없습니다."
@@ -1815,6 +1881,9 @@ msgstr "API 키"
 msgid "API-equivalent"
 msgstr "API 환산"
 
+msgid "API-equivalent cost"
+msgstr "API 환산 비용"
+
 msgid "App display language"
 msgstr "앱 표시 언어"
 
@@ -1925,6 +1994,9 @@ msgstr "at"
 
 msgid "At least one team we can name, ours included, passes every F4 gate for a full quarter and publishes the numbers."
 msgstr "우리를 포함해 이름을 댈 수 있는 팀 중 최소 한 곳이 한 분기 내내 모든 F4 관문을 통과하고 그 수치를 공개합니다."
+
+msgid "at once"
+msgstr "동시"
 
 msgid "Attached"
 msgstr "연결됨"
@@ -2245,6 +2317,9 @@ msgstr "바이너리 파일 변경됨"
 
 msgid "Binary file hidden"
 msgstr "바이너리 파일 숨김"
+
+msgid "Bio"
+msgstr "소개"
 
 msgid "Block"
 msgstr "블록"
@@ -2865,6 +2940,9 @@ msgstr "워크스페이스 선택 해제"
 msgid "Cleared {succeededLabels} — could not clear {failedLabels}"
 msgstr "{succeededLabels}은(는) 삭제했지만 {failedLabels}은(는) 삭제하지 못했습니다"
 
+msgid "Cleared Operator inside the Run 01 window"
+msgstr "Run 01 기간에 Operator 달성"
+
 msgid "Cleared terminal history"
 msgstr "터미널 기록을 지웠습니다"
 
@@ -3435,6 +3513,9 @@ msgstr "연결 시간 초과"
 msgid "Connections"
 msgstr "연결"
 
+msgid "consecutive active days"
+msgstr "연속 활동 일수"
+
 msgid "Consent finished but Microsoft did not issue a token for the tenant."
 msgstr "동의는 완료되었지만 Microsoft가 테넌트용 토큰을 발급하지 않았습니다."
 
@@ -3495,6 +3576,9 @@ msgstr "GitHub로 계속하기"
 
 msgid "Continue with Google"
 msgstr "Google로 계속하기"
+
+msgid "Contributions"
+msgstr "기여"
 
 msgid "Control how your local machine is reachable from elsewhere"
 msgstr "외부에서 로컬 머신에 접근하는 방식을 제어합니다"
@@ -3580,6 +3664,9 @@ msgstr "복사 실패"
 
 msgid "Copy failed. Select the text and copy it manually."
 msgstr "복사하지 못했습니다. 텍스트를 선택해 직접 복사하세요."
+
+msgid "copy fight link"
+msgstr "대전 링크 복사"
 
 msgid "Copy file name"
 msgstr "파일 이름 복사"
@@ -3674,6 +3761,9 @@ msgstr "설정 복사 중"
 
 msgid "Cost"
 msgstr "비용"
+
+msgid "Cost per merged PR"
+msgstr "머지된 PR당 비용"
 
 msgid "Cost to you: $0"
 msgstr "실제 비용: $0"
@@ -3891,6 +3981,9 @@ msgstr "풀 리퀘스트를 불러오지 못했습니다: {msg}"
 
 msgid "Couldn't load review comments"
 msgstr "리뷰 코멘트를 불러오지 못했습니다"
+
+msgid "Couldn't load your profile, so editing is disabled."
+msgstr "프로필을 불러오지 못해 편집이 비활성화되었습니다."
 
 msgid "Couldn't merge pull request"
 msgstr "풀 리퀘스트를 머지하지 못했습니다"
@@ -4304,6 +4397,15 @@ msgstr "기간"
 msgid "Day"
 msgstr "일"
 
+msgid "Day One"
+msgstr "데이 원"
+
+msgid "days running three agents at once"
+msgstr "에이전트 세 개를 동시에 돌린 일수"
+
+msgid "days running two agents at once"
+msgstr "에이전트 두 개를 동시에 돌린 일수"
+
 msgid "Deactivated"
 msgstr "비활성화됨"
 
@@ -4542,6 +4644,9 @@ msgstr "거부"
 
 msgid "Dependencies"
 msgstr "의존성"
+
+msgid "Depth"
+msgstr "깊이"
 
 msgid "descending"
 msgstr "내림차순"
@@ -4850,6 +4955,9 @@ msgstr "스타터 다운로드"
 msgid "Download Superset"
 msgstr "Superset 다운로드"
 
+msgid "Download Superset and publish yours"
+msgstr "Superset을 내려받아 내 기록을 공개하세요"
+
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "Download Superset at <0>{0}/download</0>."
 msgstr "<0>{0}/download</0>에서 Superset을 다운로드하세요."
@@ -4987,6 +5095,16 @@ msgstr "2027년 초"
 msgid "Early 2028"
 msgstr "2028년 초"
 
+#. placeholder {0}: formatDate(new Date(`${awardedOn}T00:00:00Z`), { day: "numeric", month: "short", year: "numeric", timeZone: "UTC", })
+msgid "Earned {0}"
+msgstr "{0}에 획득"
+
+msgid "Earned {name}"
+msgstr "{name} 획득"
+
+msgid "Earned {name} ×{tier}"
+msgstr "{name} ×{tier} 획득"
+
 msgid "Edit"
 msgstr "편집"
 
@@ -5032,6 +5150,9 @@ msgstr "편집기 및 워크플로"
 
 msgid "Editor typography"
 msgstr "편집기 타이포그래피"
+
+msgid "Efficient"
+msgstr "효율"
 
 msgid "Electron/tRPC-coupled, so referenced rather than rendered. Badge = import sites today; high counts are promotion candidates for packages/ui"
 msgstr "Electron/tRPC에 묶여 있어 렌더링하지 않고 참조만 합니다. 배지는 현재 import 지점 수이며, 수가 많으면 packages/ui로 승격할 후보입니다"
@@ -5181,6 +5302,9 @@ msgstr "매주 {day} {time}"
 msgid "Every agent runs in its own Git worktree, so ten agents can work on ten branches of one repo without conflicts. You watch, review, and merge them all from one window."
 msgstr "모든 에이전트가 각자의 Git worktree에서 실행되므로, 에이전트 열 개가 한 리포지토리의 브랜치 열 개에서 충돌 없이 작업할 수 있습니다. 창 하나에서 전부 지켜보고, 리뷰하고, 머지합니다."
 
+msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
+msgstr "모든 축이 다음 등급을 향해 제 몫을 하고 있습니다. 이대로 유지하면 등급은 따라옵니다."
+
 msgid "Every Friday at 4pm, draft release notes from this week's merged PRs"
 msgstr "매주 금요일 오후 4시에 이번 주 머지된 PR로 릴리스 노트 초안 작성하기"
 
@@ -5189,6 +5313,9 @@ msgstr "매주 금요일 오후 4시에 이번 주 머지된 PR로 릴리스 노
 
 msgid "Every minute"
 msgstr "1분마다"
+
+msgid "Every objective is carrying its weight for the next rung. Measured over the trailing 30 days."
+msgstr "모든 목표가 다음 단계를 향해 제 몫을 하고 있습니다. 최근 30일 기준입니다."
 
 msgid "Every star on <0>{repoSlug}</0>, plotted since launch."
 msgstr "출시 이후 <0>{repoSlug}</0>의 모든 스타를 그래프로 나타냈습니다."
@@ -6620,6 +6747,9 @@ msgstr "명령이 열리는 방식입니다."
 msgid "How the prompt is delivered to the process."
 msgstr "프로세스에 프롬프트를 전달하는 방식입니다."
 
+msgid "How tiers work →"
+msgstr "등급 산정 방식 →"
+
 msgid "How to install {name} in Superset"
 msgstr "Superset에 {name} 설치하는 방법"
 
@@ -6628,6 +6758,9 @@ msgstr "https://"
 
 msgid "https://github.com/owner/repo.git or /path/to/repo"
 msgstr "https://github.com/owner/repo.git 또는 /path/to/repo"
+
+msgid "Human"
+msgstr "사람"
 
 msgid "Human mode:"
 msgstr "사람용 모드:"
@@ -7365,6 +7498,9 @@ msgstr "팀에서 나갔습니다"
 msgid "Legal"
 msgstr "법적 고지"
 
+msgid "Less"
+msgstr "적음"
+
 msgid "less than a minute ago"
 msgstr "1분 이내"
 
@@ -7451,6 +7587,9 @@ msgstr "클론하려면 먼저 프로젝트에 GitHub 리포지토리를 연결�
 
 msgid "Link by Stripe"
 msgstr "Link by Stripe"
+
+msgid "link copied"
+msgstr "링크를 복사했습니다"
 
 msgid "Link copied"
 msgstr "링크 복사됨"
@@ -7835,6 +7974,9 @@ msgstr "MCP 서버"
 
 msgid "Mean"
 msgstr "평균"
+
+msgid "Measured over the trailing 30 days"
+msgstr "최근 30일 기준"
 
 msgid "Measuring resource usage…"
 msgstr "리소스 사용량을 측정하는 중…"
@@ -8245,6 +8387,9 @@ msgstr "새 브라우저"
 msgid "New Browser Tab"
 msgstr "새 브라우저 탭"
 
+msgid "new challengers"
+msgstr "새 도전자"
+
 msgid "New chat"
 msgstr "새 채팅"
 
@@ -8374,6 +8519,9 @@ msgstr "차세대 채팅"
 
 msgid "Next:"
 msgstr "다음:"
+
+msgid "Next: {nextLabel}"
+msgstr "다음: {nextLabel}"
 
 msgid "Nice, open a PR when ready."
 msgstr "좋아요, 준비되면 PR을 올려 주세요."
@@ -8891,6 +9039,9 @@ msgstr "아닙니다. 에이전트는 그대로 독립적이고, Superset은 그
 msgid "Nobody has joined the board yet."
 msgstr "아직 순위표에 참여한 사람이 없습니다."
 
+msgid "Nobody here by that name."
+msgstr "그런 이름을 가진 사람이 없습니다."
+
 msgid "Nobody on your team has shared automations yet."
 msgstr "아직 팀에서 공유한 자동화가 없습니다."
 
@@ -9106,6 +9257,12 @@ msgstr "엔지니어 한 명이 하루 근무 내내 3개 이상의 에이전트
 msgid "One human drives at most one agent at a time."
 msgstr "사람 한 명이 한 번에 최대 한 개의 에이전트를 다룹니다."
 
+msgid "One line about how you work"
+msgstr "일하는 방식을 한 줄로"
+
+msgid "One of the first hundred on the board"
+msgstr "보드의 첫 100명 중 한 명"
+
 msgid "one of the selected repositories"
 msgstr "선택한 리포지토리 중 하나"
 
@@ -9150,6 +9307,9 @@ msgstr "소유자만 결제를 관리할 수 있습니다"
 
 msgid "Only owners can update organization settings"
 msgstr "소유자만 조직 설정을 변경할 수 있습니다"
+
+msgid "Only people who opted in appear here."
+msgstr "참여를 선택한 사람만 여기에 표시됩니다."
 
 msgid "Only the author can edit a comment"
 msgstr "작성자만 코멘트를 수정할 수 있습니다"
@@ -9906,6 +10066,15 @@ msgstr "대기 중인 초대"
 msgid "People with access"
 msgstr "접근 권한이 있는 사람"
 
+msgid "per merged PR"
+msgstr "머지된 PR당"
+
+msgid "per merged PR, lower is better"
+msgstr "머지된 PR당 비용, 낮을수록 좋음"
+
+msgid "per session"
+msgstr "세션당"
+
 msgid "per user/month"
 msgstr "사용자당 월"
 
@@ -9982,6 +10151,9 @@ msgstr "{hostName}에서 프로젝트 worktree 폴더를 선택하세요."
 msgid "Pick the worktree folder on {hostName}."
 msgstr "{hostName}에서 worktree 폴더를 선택하세요."
 
+msgid "Pick two developers, watch their agent usage stats fight it out as terminal dinosaurs. Same two handles always produce the same fight."
+msgstr "개발자 두 명을 고르면 에이전트 사용 기록이 터미널 공룡이 되어 겨룹니다. 같은 핸들 조합은 언제나 같은 대전을 만듭니다."
+
 msgid "Pick your agent for a one-line install, or copy the config by hand. Every client, including OAuth and API key setup, is covered in the <0>full MCP server docs</0>."
 msgstr "한 줄 설치를 위해 에이전트를 고르거나 설정을 직접 복사하세요. OAuth와 API 키 설정을 포함한 모든 클라이언트는 <0>전체 MCP 서버 문서</0>에서 다룹니다."
 
@@ -10024,6 +10196,9 @@ msgstr "툴팁 리팩터링 계획 중"
 
 msgid "Plans"
 msgstr "플랜"
+
+msgid "Plant Floor"
+msgstr "작업 현장"
 
 msgid "Plant Manager"
 msgstr "공장장"
@@ -10428,6 +10603,9 @@ msgstr "제공자: {0}"
 msgid "Provisioning failed and the sandbox was torn down. Nothing is running, and this workspace can't be opened — create a new one to try again."
 msgstr "프로비저닝에 실패해 샌드박스가 정리되었습니다. 실행 중인 것은 없으며 이 워크스페이스는 열 수 없습니다. 다시 시도하려면 새로 만드세요."
 
+msgid "PRs a week"
+msgstr "주당 PR"
+
 msgid "Public"
 msgstr "공개"
 
@@ -10568,6 +10746,9 @@ msgstr "RAM 점유율"
 
 msgid "Rank"
 msgstr "순위"
+
+msgid "rank #{rank} of {total}"
+msgstr "{total}명 중 {rank}위"
 
 msgid "Rank by"
 msgstr "정렬 기준"
@@ -10785,6 +10966,9 @@ msgstr "프로젝트를 이동할까요?"
 
 msgid "Relocating…"
 msgstr "이동하는 중…"
+
+msgid "rematch"
+msgstr "재대결"
 
 msgid "remote"
 msgstr "원격"
@@ -11386,6 +11570,9 @@ msgstr "{0} 지금 실행"
 msgid "Run {runNumber}"
 msgstr "런 {runNumber}"
 
+msgid "Run 01"
+msgstr "Run 01"
+
 msgid "Run 10+ parallel coding agents on your machine."
 msgstr "내 머신에서 10개 이상의 코딩 에이전트를 병렬로 실행합니다."
 
@@ -11521,6 +11708,9 @@ msgstr "저장 실패: {message}"
 msgid "Save preferences"
 msgstr "환경설정 저장"
 
+msgid "Save profile"
+msgstr "프로필 저장"
+
 msgid "save the agent"
 msgstr "에이전트를 저장할"
 
@@ -11579,6 +11769,10 @@ msgstr "SCIM 프로비저닝"
 msgid "Scope"
 msgstr "범위"
 
+#. placeholder {0}: String(MIN_ACTIVE_DAYS)
+msgid "Scoring starts once the board can see {0} days of usage."
+msgstr "보드가 {0}일치 사용 기록을 확보하면 점수 산정이 시작됩니다."
+
 msgid "Screenshot copied to clipboard"
 msgstr "스크린샷을 클립보드에 복사했습니다"
 
@@ -11636,6 +11830,12 @@ msgstr "브랜치 검색..."
 
 msgid "Search changed files"
 msgstr "변경된 파일 검색"
+
+msgid "Search developers"
+msgstr "개발자 검색"
+
+msgid "Search developers by handle or name"
+msgstr "핸들 또는 이름으로 개발자 검색"
 
 msgid "Search docs..."
 msgstr "문서 검색..."
@@ -12117,6 +12317,9 @@ msgstr "설정 스크립트"
 msgid "shadcn/ui tooltip recipe"
 msgstr "shadcn/ui 툴팁 레시피"
 
+msgid "Shade is relative to this developer's busiest day"
+msgstr "색의 진하기는 이 개발자의 가장 바빴던 날을 기준으로 합니다"
+
 msgid "Share"
 msgstr "공유"
 
@@ -12152,6 +12355,9 @@ msgstr "Shiki로 하이라이트하고, 줄 번호는 선택 사항입니다"
 
 msgid "Shimmer · Shimmer Label"
 msgstr "시머 · 시머 레이블"
+
+msgid "Ship It"
+msgstr "출시"
 
 msgid "Shortcut already in use"
 msgstr "이미 사용 중인 단축키"
@@ -12586,6 +12792,9 @@ msgstr "스파스 체크아웃"
 msgid "Specific"
 msgstr "특정 프로젝트"
 
+msgid "Spend"
+msgstr "지출"
+
 msgid "Split"
 msgstr "분할"
 
@@ -12918,6 +13127,9 @@ msgstr "요약"
 msgid "sun 11:00"
 msgstr "일 11:00"
 
+msgid "Super Fights"
+msgstr "슈퍼 파이트"
+
 msgid "superseded"
 msgstr "대체됨"
 
@@ -13059,6 +13271,9 @@ msgstr "GitHub 스타로 프로젝트를 응원해 주세요"
 
 msgid "Suspended"
 msgstr "일시 중지됨"
+
+msgid "Sustain"
+msgstr "지속"
 
 msgid "Switch agents. Keep your workflow"
 msgstr "에이전트는 바꾸고, 워크플로는 그대로"
@@ -13712,6 +13927,9 @@ msgstr "접근 방식을 생각하는 중"
 msgid "Thinking..."
 msgstr "생각하는 중..."
 
+msgid "Thirty"
+msgstr "서른 날"
+
 msgid "This action is irreversible."
 msgstr "이 동작은 되돌릴 수 없습니다."
 
@@ -14070,6 +14288,12 @@ msgstr "토큰 사용량"
 msgid "Tokens"
 msgstr "토큰"
 
+msgid "Tokens per session"
+msgstr "세션당 토큰"
+
+msgid "tokens per session, trailing 30 days"
+msgstr "세션당 토큰, 최근 30일"
+
 msgid "Too many feedback submissions. Try again later."
 msgstr "피드백 제출이 너무 많습니다. 나중에 다시 시도하세요."
 
@@ -14112,11 +14336,17 @@ msgstr "tooltip-refactor.diff"
 msgid "Top models"
 msgstr "상위 모델"
 
+msgid "Top tier. Nothing left to clear."
+msgstr "최고 등급입니다. 더 달성할 것이 없습니다."
+
 msgid "Topic"
 msgstr "주제"
 
 msgid "Total"
 msgstr "합계"
+
+msgid "Total agent sessions"
+msgstr "전체 에이전트 세션"
 
 msgid "total cash"
 msgstr "총 현금"
@@ -14126,6 +14356,9 @@ msgstr "총 비용"
 
 msgid "Total spend"
 msgstr "총 지출"
+
+msgid "Total tokens published"
+msgstr "공개한 전체 토큰"
 
 msgid "Track and manage tasks synced from Linear. Stay on top of your work without leaving Superset."
 msgstr "Linear에서 동기화된 작업을 추적하고 관리하세요. Superset을 벗어나지 않고 업무를 챙길 수 있습니다."
@@ -14205,6 +14438,9 @@ msgstr "턴 실패{0}"
 
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Slack 대화를 작업으로 바꾸고, 워크스페이스에서 에이전트를 실행하고, 일이 시작되는 곳에서 팀원과 상황을 공유하세요."
+
+msgid "Two Hands"
+msgstr "양손"
 
 msgid "Type"
 msgstr "타입"
@@ -14407,6 +14643,10 @@ msgstr "푸시 안 됨"
 
 msgid "Unranked"
 msgstr "순위 없음"
+
+#. placeholder {0}: String(MIN_ACTIVE_DAYS)
+msgid "Unranked until {0} days carry usage."
+msgstr "{0}일치 사용 기록이 쌓이기 전까지는 순위가 없습니다."
 
 msgid "Unresolve"
 msgstr "해결 취소"
@@ -14634,6 +14874,9 @@ msgstr "v2ProjectId가 워크스페이스의 프로젝트와 일치하지 않습
 msgid "Variables"
 msgstr "변수"
 
+msgid "Verified through sign-in"
+msgstr "로그인으로 확인됨"
+
 msgid "Verify Kbd stays visible inside tooltips"
 msgstr "툴팁 안에서 Kbd가 계속 보이는지 확인"
 
@@ -14738,6 +14981,11 @@ msgstr "VS Code"
 
 msgid "Wait for workspace setup before starting agents"
 msgstr "에이전트를 시작하기 전에 워크스페이스 설정 기다리기"
+
+#. placeholder {0}: names.a
+#. placeholder {1}: names.b
+msgid "waiting for {0} and {1}…"
+msgstr "{0}와 {1}을(를) 기다리는 중…"
 
 msgid "Waiting for Checks"
 msgstr "검사 대기 중"
@@ -14955,6 +15203,9 @@ msgstr "이 터미널 스크립트를 사용할 수 있는 범위입니다."
 msgid "Where to look next"
 msgstr "다음으로 찾아볼 곳"
 
+msgid "Where you actually are"
+msgstr "당신의 실제 위치"
+
 msgid "Which agents are supported?"
 msgstr "어떤 에이전트를 지원하나요?"
 
@@ -14963,6 +15214,12 @@ msgstr "어떤 AI 코딩 에이전트를 지원하나요?"
 
 msgid "Who can open this page from its link"
 msgstr "링크로 이 페이지를 열 수 있는 사람"
+
+msgid "Whole Task"
+msgstr "작업 완수"
+
+msgid "Width"
+msgstr "너비"
 
 msgid "Window"
 msgstr "창"
@@ -15141,6 +15398,9 @@ msgstr "파일 쓰는 중..."
 msgid "Wrote"
 msgstr "씀"
 
+msgid "X handle"
+msgstr "X 핸들"
+
 msgid "xs · sm · default · lg · icon-xs → icon-lg"
 msgstr "xs · sm · default · lg · icon-xs → icon-lg"
 
@@ -15191,6 +15451,10 @@ msgstr "현재 <0>{currentPlanLabel} 플랜</0>을 사용 중입니다. 플랜�
 
 msgid "You are the only owner of an organization that has other members. Transfer ownership or delete the organization first."
 msgstr "다른 멤버가 있는 조직의 유일한 소유자입니다. 먼저 소유권을 이전하거나 조직을 삭제하세요."
+
+#. placeholder {0}: String(MIN_ACTIVE_DAYS)
+msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
+msgstr "{0}일치 사용 기록이 쌓이기 전까지는 순위가 없습니다. 전체 그림이 보이면 점수 산정이 시작됩니다."
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "이 작업은 되돌릴 수 없습니다. 터미널 패널에 \"Process exited\"가 표시되며 다시 시작할 수 있습니다."
@@ -15269,6 +15533,9 @@ msgstr "코드는 기본적으로 로컬에 머물고, 연결된 서비스는 �
 msgid "Your download starts automatically. If it didn't, grab it here."
 msgstr "다운로드가 자동으로 시작됩니다. 시작되지 않으면 여기서 받으세요."
 
+msgid "Your GitHub link comes from the account you signed in with, so it shows as verified and cannot be edited here."
+msgstr "GitHub 링크는 로그인에 사용한 계정에서 가져오므로 확인됨으로 표시되며 여기서는 수정할 수 없습니다."
+
 msgid "Your name"
 msgstr "이름"
 
@@ -15282,8 +15549,15 @@ msgstr "조직의 플랜은 소유자가 {0}에서 관리합니다."
 msgid "Your rank"
 msgstr "내 순위"
 
+#. placeholder {0}: String(gaps.length)
+msgid "Your rung is a weighted score across the {0} objectives measured for you, so a strong one offsets a weak one. Measured over the trailing 30 days."
+msgstr "등급은 측정된 {0}개 목표의 가중 점수라서 강한 항목이 약한 항목을 보완합니다. 최근 30일 기준입니다."
+
 msgid "Your Slack account has been linked to Superset. You can close this tab and return to Slack."
 msgstr "Slack 계정이 Superset에 연결되었습니다. 이 탭을 닫고 Slack으로 돌아가셔도 됩니다."
+
+msgid "Your stats, settled in combat"
+msgstr "당신의 기록으로, 대결로 가리다"
 
 msgid "Your subscription has been activated. You can now access all Pro features."
 msgstr "구독이 활성화되었습니다. 이제 모든 Pro 기능을 사용할 수 있습니다."
@@ -15296,6 +15570,10 @@ msgstr "Superset 다운로드가 시작됩니다."
 
 msgid "Your terminal sessions won't be interrupted."
 msgstr "터미널 세션은 중단되지 않습니다."
+
+#. placeholder {0}: String(gaps.length)
+msgid "Your tier is a weighted score across the {0} axes measured for you, so a strong axis offsets a weak one. The axes below are the ones lagging."
+msgstr "티어는 측정된 {0}개 축의 가중 점수라서 강한 축이 약한 축을 보완합니다. 아래는 뒤처진 축입니다."
 
 msgid "Your tokens"
 msgstr "내 토큰"

@@ -757,6 +757,20 @@
       "when": 1788589621442,
       "tag": "0107_drop_v2_hosts_is_online",
       "breakpoints": true
+    },
+    {
+      "idx": 108,
+      "version": "7",
+      "when": 1788593295841,
+      "tag": "0108_add_handles_public_profiles_awards",
+      "breakpoints": true
+    },
+    {
+      "idx": 109,
+      "version": "7",
+      "when": 1788593305453,
+      "tag": "0109_move_participants_to_public_profiles",
+      "breakpoints": true
     }
   ]
 }

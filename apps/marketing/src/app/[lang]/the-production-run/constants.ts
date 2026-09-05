@@ -2,15 +2,26 @@ import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { formatDate } from "@superset/i18n/format";
 import {
+	ANCHORS,
+	type AxisName,
+	BANDS,
+	bandTier,
 	COST_CEILINGS,
 	costTier,
 	FLOORS,
-	floorTier,
+	factoryScore,
 	type Tier,
 	tierProgress,
 } from "@superset/trpc/leaderboard-tier";
 
-export { COST_CEILINGS, FLOORS };
+export { ANCHORS, BANDS, COST_CEILINGS, FLOORS };
+
+export const TIER_BANDS: readonly number[] = [0, ...BANDS];
+
+export function axisAtBand(axis: AxisName, band: number): number {
+	const [low, high] = ANCHORS[axis];
+	return low * (high / low) ** (band / 100);
+}
 
 export interface MeasuredVariable {
 	name: string;
@@ -108,73 +119,75 @@ export interface ProductionTier {
 	name: string;
 	unit: string;
 	description: string;
+	score: number;
 	gates: TierGate[];
+	costCeiling: number;
 	tell: string;
 	medianEta: string;
+}
+
+const tokensLabel = (value: number) => `${(value / 1_000_000).toFixed(1)}M`;
+
+function gatesForTier(tier: 1 | 2 | 3 | 4): TierGate[] {
+	const band = TIER_BANDS[tier - 1] ?? 0;
+	return [
+		{ axis: "Width", value: axisAtBand("width", band).toFixed(1) },
+		{ axis: "Depth", value: tokensLabel(axisAtBand("depth", band)) },
+		{ axis: "Output", value: `${axisAtBand("output", band).toFixed(1)}/wk` },
+		{ axis: "Sustain", value: `${Math.round(axisAtBand("sustain", band))}/30` },
+		{
+			axis: "Cost",
+			value: `\u2264 $${Math.round(COST_CEILINGS[tier - 1] ?? 0)}`,
+		},
+	];
 }
 
 export const PRODUCTION_TIERS: ProductionTier[] = [
 	{
 		tier: 1,
+		score: TIER_BANDS[0] ?? 0,
+		gates: gatesForTier(1),
+		costCeiling: COST_CEILINGS[0] ?? 0,
 		name: "Button pusher",
 		unit: "the line",
 		description:
 			"You are in the loop for every step. The agent writes, you read every line before it merges, and your throughput is bounded by your reading speed, which means the agent is not saving you the expensive part.",
-		gates: [
-			{ axis: "Width", value: "1" },
-			{ axis: "Depth", value: "none" },
-			{ axis: "Output", value: "none" },
-			{ axis: "Sustain", value: "8/30" },
-			{ axis: "Cost", value: "\u2264 $15" },
-		],
 		tell: "Close the laptop and nothing continues.",
 		medianEta: "Where the board is today",
 	},
 	{
 		tier: 2,
+		score: TIER_BANDS[1] ?? 0,
+		gates: gatesForTier(2),
+		costCeiling: COST_CEILINGS[1] ?? 0,
 		name: "Operator",
 		unit: "the task",
 		description:
 			"The real break, and it is psychological before it is technical. Starting a second session is admitting you cannot watch both. You stop reading keystrokes and start reading outcomes.",
-		gates: [
-			{ axis: "Width", value: "2" },
-			{ axis: "Depth", value: "2.5M" },
-			{ axis: "Output", value: "1/wk" },
-			{ axis: "Sustain", value: "10/30" },
-			{ axis: "Cost", value: "\u2264 $9" },
-		],
 		tell: "You have been surprised, well or badly, by a diff you did not watch get written.",
 		medianEta: "Median tier by mid 2027",
 	},
 	{
 		tier: 3,
+		score: TIER_BANDS[2] ?? 0,
+		gates: gatesForTier(3),
+		costCeiling: COST_CEILINGS[2] ?? 0,
 		name: "Plant Manager",
 		unit: "the queue",
 		description:
 			"Three streams through a workday means you are scheduling rather than executing. Your day becomes deciding what runs next and judging what came back. This is where serious teams are.",
-		gates: [
-			{ axis: "Width", value: "3" },
-			{ axis: "Depth", value: "10M" },
-			{ axis: "Output", value: "3/wk" },
-			{ axis: "Sustain", value: "15/30" },
-			{ axis: "Cost", value: "\u2264 $7" },
-		],
 		tell: "You run out of well-specified work before you run out of agent capacity.",
 		medianEta: "Median tier by mid 2028",
 	},
 	{
 		tier: 4,
+		score: TIER_BANDS[3] ?? 0,
+		gates: gatesForTier(4),
+		costCeiling: COST_CEILINGS[3] ?? 0,
 		name: "Henry Ford",
 		unit: "the decision",
 		description:
 			"Ten concurrent streams is past what a person can hold in working memory. Reaching this tier means you stopped holding it, and something else tracks state: agents reviewing agents, overnight runs, a queue that survives you closing the laptop.",
-		gates: [
-			{ axis: "Width", value: "10" },
-			{ axis: "Depth", value: "40M" },
-			{ axis: "Output", value: "10/wk" },
-			{ axis: "Sustain", value: "20/30" },
-			{ axis: "Cost", value: "\u2264 $3.50" },
-		],
 		tell: "Work completes while you sleep and is mergeable in the morning. You find out what shipped by reading, not by watching.",
 		medianEta: "One in five by Aug 2028",
 	},
@@ -195,7 +208,7 @@ export const TRAJECTORY: TrajectoryPoint[] = [
 ];
 
 export const MEASURED_TODAY: [number, number, number, number] = [
-	99.7, 0.3, 0, 0,
+	78.4, 21.1, 0.5, 0,
 ];
 
 export const DOUBLING_MONTHS = 7;
@@ -224,6 +237,7 @@ export interface RunState {
 	sustain: number;
 	costPerPr: number;
 	tier: number;
+	score: number;
 	limitedBy: string[];
 	pricePerMtok: number;
 	costPerSession: number;
@@ -244,14 +258,25 @@ export function runStateAt(months: number): RunState {
 	const sessionsPerPr = sessionsPerPrAt(months);
 	const costPerPr = ((sessionsPerPr * depth) / 1_000_000) * price;
 
-	const tiers = {
-		Width: floorTier(width, FLOORS.width),
-		Depth: floorTier(depth, FLOORS.depth),
-		Output: floorTier(output, FLOORS.output),
-		Sustain: floorTier(sustain, FLOORS.sustain),
-		Cost: Math.max(1, costTier(costPerPr)),
+	const values = { width, depth, output, sustain, cost: costPerPr };
+	const { score, parts } = factoryScore(values);
+
+	let tier: number = bandTier(score);
+	const capped = Math.max(1, costTier(costPerPr));
+	if (capped < tier) tier = capped;
+
+	const LABELS: Record<AxisName, string> = {
+		width: "Width",
+		depth: "Depth",
+		output: "Output",
+		sustain: "Sustain",
+		cost: "Cost",
 	};
-	const tier = Math.min(...Object.values(tiers));
+	const lagging = (Object.keys(parts) as AxisName[])
+		.filter((axis) => parts[axis] < 1)
+		.sort((a, b) => parts[a] - parts[b])
+		.slice(0, 2)
+		.map((axis) => LABELS[axis]);
 
 	return {
 		months,
@@ -261,9 +286,8 @@ export function runStateAt(months: number): RunState {
 		sustain,
 		costPerPr,
 		tier,
-		limitedBy: Object.entries(tiers)
-			.filter(([, value]) => value === tier)
-			.map(([axis]) => axis),
+		score,
+		limitedBy: capped < bandTier(score) ? ["Cost", ...lagging] : lagging,
 		pricePerMtok: price,
 		costPerSession: (depth / 1_000_000) * price,
 		sessionsPerPr,
@@ -318,7 +342,7 @@ export const RUNS: ProductionRun[] = [
 		number: 1,
 		label: "Run 01",
 		title: "Everybody to Operator",
-		goal: "Two agents at once, something merging every week.",
+		goal: "Three agents at once, a couple of things merging every week.",
 		startsOn: "2026-09-01",
 		endsOn: "2026-09-30",
 		window: "1 to 30 September 2026",
@@ -327,28 +351,28 @@ export const RUNS: ProductionRun[] = [
 		targets: [
 			{
 				axis: "Width",
-				value: "2 agents at once",
+				value: "3.2 agents at once",
 				note: "Not ten. Often enough that it is your median, not your best afternoon.",
 			},
 			{
 				axis: "Depth",
-				value: "2.5M tokens per session",
+				value: "10.4M tokens per session",
 				note: "Give a session a whole task instead of a question.",
 			},
 			{
 				axis: "Output",
-				value: "1 merged agent PR a week",
-				note: "Four in the month. The work has to land.",
+				value: "2.1 merged agent PRs a week",
+				note: "Eight or nine in the month. The work has to land.",
 			},
 			{
 				axis: "Sustain",
-				value: "10 active days",
-				note: "A third of the month.",
+				value: "17 active days",
+				note: "Most working days of the month.",
 			},
 			{
 				axis: "Cost",
-				value: "≤ $9 per merged PR",
-				note: "Falls out of the rest, at about three and a half sessions per landed PR.",
+				value: "\u2264 $315 per merged PR",
+				note: "Comfortably inside the $750 ceiling, which is the one axis still enforced as a hard cap.",
 			},
 		],
 		rewards: [

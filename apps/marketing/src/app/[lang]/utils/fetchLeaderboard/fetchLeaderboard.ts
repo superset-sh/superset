@@ -19,8 +19,11 @@ export interface RangeQuery {
 	to?: string;
 }
 
-export interface StandingsQuery extends RangeQuery {
+export interface MetricQuery extends RangeQuery {
 	metric?: LeaderboardMetric;
+}
+
+export interface StandingsQuery extends MetricQuery {
 	limit?: number;
 	offset?: number;
 }
@@ -72,4 +75,44 @@ export async function fetchParticipant(
 		}
 		throw error;
 	}
+}
+
+export async function fetchStanding(
+	handle: string,
+	options: MetricQuery = {},
+	signal?: AbortSignal,
+): Promise<StandingRow | null> {
+	try {
+		return await leaderboardClient.leaderboard.public.standing.query(
+			{ handle, ...options },
+			{ signal },
+		);
+	} catch (error) {
+		if (signal?.aborted) return null;
+		console.error("[marketing/leaderboard] standing error:", error);
+		return null;
+	}
+}
+
+export async function fetchSearch(
+	query: string,
+	options: MetricQuery = {},
+	signal?: AbortSignal,
+): Promise<StandingRow[]> {
+	try {
+		return await leaderboardClient.leaderboard.public.search.query(
+			{ query, ...options },
+			{ signal },
+		);
+	} catch (error) {
+		if (signal?.aborted) return [];
+		console.error("[marketing/leaderboard] search error:", error);
+		return [];
+	}
+}
+
+export async function fetchPublicHandles(): Promise<
+	Array<{ handle: string; lastPublishedAt: Date | null }>
+> {
+	return await leaderboardClient.leaderboard.public.handles.query();
 }

@@ -294,6 +294,11 @@ msgstr "{0} → {1} 保留中"
 msgid "{0} actions"
 msgstr "{0}の操作"
 
+#. placeholder {0}: left.name
+#. placeholder {1}: right.name
+msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
+msgstr "{0}と{1}がターミナル恐竜となって決着をつけます。勝敗を決めるのは統計です。"
+
 #. placeholder {0}: formatTokens(me.tokens - below.tokens)
 msgid "{0} behind you"
 msgstr "{0}差で後続"
@@ -424,6 +429,16 @@ msgstr "#{1}を抜くまで{0}"
 msgid "{0} tokens in the last 30 days. Publishing as <0>{handle}</0>."
 msgstr "直近30日間で{0}トークン。<0>{handle}</0>として公開中。"
 
+#. placeholder {0}: formatTokens(cell.tokens)
+#. placeholder {1}: cell.day
+msgid "{0} tokens on {1}"
+msgstr "{1}に{0}トークン"
+
+#. placeholder {0}: formatTokens(calendar.total)
+#. placeholder {1}: String(calendar.activeDays)
+msgid "{0} tokens over {1} active days"
+msgstr "アクティブ日数{1}日で{0}トークン"
+
 #. placeholder {0}: displayName(variables.name)
 msgid "{0} uninstalled"
 msgstr "{0}をアンインストールしました"
@@ -432,14 +447,34 @@ msgstr "{0}をアンインストールしました"
 msgid "{0} updated"
 msgstr "{0} を更新しました"
 
+#. placeholder {0}: left.name
+#. placeholder {1}: right.name
+msgid "{0} vs {1}"
+msgstr "{0} 対 {1}"
+
 #. placeholder {0}: file.path
 msgid "{0} was deleted in this change."
 msgstr "{0}はこの変更で削除されました。"
+
+#. placeholder {0}: winner?.name
+#. placeholder {1}: result.events.length
+msgid "{0} wins in {1} turns"
+msgstr "{0}が{1}ターンで勝利"
+
+#. placeholder {0}: winner?.name
+#. placeholder {1}: result.events.length
+msgid "{0} wins on damage after {1} turns"
+msgstr "{1}ターン終了、{0}がダメージ判定で勝利"
 
 #. placeholder {0}: check.name
 #. placeholder {1}: took ? `, ${took}` : ""
 msgid "{0}, {outcome}{1}"
 msgstr "{0}、{outcome}{1}"
+
+#. placeholder {0}: String(met)
+#. placeholder {1}: String(gaps.length)
+msgid "{0}/{1}"
+msgstr "{0}/{1}"
 
 #. placeholder {0}: tally.passed
 #. placeholder {1}: tally.total
@@ -450,6 +485,11 @@ msgstr "{1}件中{0}件のチェックが成功"
 #. placeholder {1}: summary.total
 msgid "{0}/{1} tests passed"
 msgstr "{1}件中{0}件のテストが成功"
+
+#. placeholder {0}: String(bio.length)
+#. placeholder {1}: String(BIO_MAX)
+msgid "{0}/{1}. Links are stripped."
+msgstr "{0}/{1}。リンクは削除されます。"
 
 #. placeholder {0}: Math.round(100 * shareOfTotal)
 #. placeholder {1}: formatTokens(detail.tokens)
@@ -647,6 +687,10 @@ msgstr "{localHostName}（このデバイス）"
 msgid "{matchCount, plural, one {{0}} other {{1}}}"
 msgstr "{matchCount, plural, one {{0}} other {{1}}}"
 
+#. placeholder {0}: gaps.length
+msgid "{met} of {0} objectives carrying for {nextLabel} — {laggingLabels} furthest behind."
+msgstr "{nextLabel} に向けて {0} 個中 {met} 個の目標が働いています — {laggingLabels} が最も遅れています。"
+
 msgid "{minimumContrast}:1 contrast"
 msgstr "コントラスト {minimumContrast}:1"
 
@@ -782,6 +826,9 @@ msgstr "{teardownFailureCount, plural, one {「それでも削除」は該当ワ
 msgid "{teardownFailureCount, plural, one {Delete anyway} other {Delete # anyway}}"
 msgstr "{teardownFailureCount, plural, one {それでも削除} other {それでも#件削除}}"
 
+msgid "{threshold, plural, one {# agent PR merged} other {# agent PRs merged}}"
+msgstr "{threshold, plural, other {#件のエージェントPRをマージ}}"
+
 msgid "{toolName} interrupted"
 msgstr "{toolName}が中断されました"
 
@@ -826,9 +873,6 @@ msgstr "{worktreeCount, plural, one {到達可能なすべてのデバイスか�
 
 msgid "{years}y ago"
 msgstr "{years}年前"
-
-msgid "@{profileHandle} · rank #{rank} of {total}"
-msgstr "@{profileHandle} · {total}人中{rank}位"
 
 msgid "@superset"
 msgstr "@superset"
@@ -1182,6 +1226,9 @@ msgstr "アカウントは削除待ちです。"
 msgid "Account pending deletion"
 msgstr "アカウントは削除待ちです"
 
+msgid "Achievements"
+msgstr "実績"
+
 msgid "Acme Inc."
 msgstr "Acme Inc."
 
@@ -1207,6 +1254,12 @@ msgstr "アクティブ {0}"
 
 msgid "Active agent sessions."
 msgstr "実行中のエージェントセッション。"
+
+msgid "active days"
+msgstr "アクティブ日数"
+
+msgid "Active days in the last 30"
+msgstr "直近30日のアクティブ日数"
 
 msgid "Active organization required to create an API key"
 msgstr "APIキーの作成にはアクティブな組織が必要です"
@@ -1414,6 +1467,12 @@ msgstr "エージェント起動設定"
 msgid "Agent picker (Claude, Codex, Cursor…) used by every session-creation flow"
 msgstr "すべてのセッション作成フローで使うエージェントピッカー(Claude、Codex、Cursor…)"
 
+msgid "agent PRs merged"
+msgstr "マージされたエージェントのPR"
+
+msgid "Agent PRs merged per week"
+msgstr "週あたりのマージされたエージェントPR"
+
 msgid "Agent review at parity with human review"
 msgstr "エージェントのレビューが人間のレビューと同等"
 
@@ -1438,9 +1497,6 @@ msgstr "エージェントセッションを開始しました"
 msgid "agent settings"
 msgstr "エージェント設定"
 
-msgid "Agent usage, ranked"
-msgstr "エージェント使用量のランキング"
-
 msgid "Agents"
 msgstr "エージェント"
 
@@ -1452,6 +1508,9 @@ msgstr "エージェントが定型チケットを途中の介入なしに完了
 
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "エージェントが自らプレビューを開き、UIを操作し、レビュー待ちにする前にスクリーンショットの証拠を添付します。"
+
+msgid "Agents running at once"
+msgstr "同時に動かしているエージェント数"
 
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Supersetリーダーボード上の全開発者を横断したエージェント利用の集計 — トークン、コスト、キャッシュの挙動、実際に選ばれているモデル。"
@@ -1507,6 +1566,10 @@ msgstr "すべての{0}件 →"
 msgid "All {0} checks passed"
 msgstr "{0}件すべてのチェックが成功しました"
 
+#. placeholder {0}: gaps.length
+msgid "All {0} objectives are carrying their weight for {nextLabel}."
+msgstr "{0} 個すべての目標が {nextLabel} に向けて働いています。"
+
 #. placeholder {0}: summary.relevantChecks.length
 msgid "All {0} passed"
 msgstr "{0}件すべて成功"
@@ -1553,6 +1616,9 @@ msgstr "すべて現在のタブで"
 
 msgid "All in current tab (split panes)"
 msgstr "すべて現在のタブで(ペイン分割)"
+
+msgid "All objectives cleared. Top rung, nothing left to reach for."
+msgstr "すべての目標をクリア。最上段で、これ以上目指すものはありません。"
 
 msgid "All of the organization's data will be permanently deleted — this cannot be undone."
 msgstr "組織のすべてのデータが完全に削除されます — この操作は元に戻せません。"
@@ -1815,6 +1881,9 @@ msgstr "APIキー"
 msgid "API-equivalent"
 msgstr "API換算"
 
+msgid "API-equivalent cost"
+msgstr "API換算のコスト"
+
 msgid "App display language"
 msgstr "アプリの表示言語"
 
@@ -1925,6 +1994,9 @@ msgstr "at"
 
 msgid "At least one team we can name, ours included, passes every F4 gate for a full quarter and publishes the numbers."
 msgstr "名前を挙げられるチームが少なくとも1つ、当社を含めて、四半期を通してF4のゲートをすべて通過し、その数値を公開する。"
+
+msgid "at once"
+msgstr "同時"
 
 msgid "Attached"
 msgstr "接続中"
@@ -2245,6 +2317,9 @@ msgstr "バイナリファイルが変更されました"
 
 msgid "Binary file hidden"
 msgstr "バイナリファイルは非表示"
+
+msgid "Bio"
+msgstr "自己紹介"
 
 msgid "Block"
 msgstr "ブロック"
@@ -2865,6 +2940,9 @@ msgstr "ワークスペースの選択を解除"
 msgid "Cleared {succeededLabels} — could not clear {failedLabels}"
 msgstr "{succeededLabels}を消去しました — {failedLabels}は消去できませんでした"
 
+msgid "Cleared Operator inside the Run 01 window"
+msgstr "Run 01 期間中に Operator を達成"
+
 msgid "Cleared terminal history"
 msgstr "ターミナル履歴をクリアしました"
 
@@ -3435,6 +3513,9 @@ msgstr "接続がタイムアウトしました"
 msgid "Connections"
 msgstr "接続"
 
+msgid "consecutive active days"
+msgstr "連続アクティブ日数"
+
 msgid "Consent finished but Microsoft did not issue a token for the tenant."
 msgstr "同意は完了しましたが、Microsoftがテナント用のトークンを発行しませんでした。"
 
@@ -3495,6 +3576,9 @@ msgstr "GitHubで続行"
 
 msgid "Continue with Google"
 msgstr "Googleで続行"
+
+msgid "Contributions"
+msgstr "コントリビューション"
 
 msgid "Control how your local machine is reachable from elsewhere"
 msgstr "このマシンに外部からどのように接続できるかを設定"
@@ -3580,6 +3664,9 @@ msgstr "コピーに失敗しました"
 
 msgid "Copy failed. Select the text and copy it manually."
 msgstr "コピーできませんでした。テキストを選択して手動でコピーしてください。"
+
+msgid "copy fight link"
+msgstr "対戦リンクをコピー"
 
 msgid "Copy file name"
 msgstr "ファイル名をコピー"
@@ -3674,6 +3761,9 @@ msgstr "設定をコピー中"
 
 msgid "Cost"
 msgstr "コスト"
+
+msgid "Cost per merged PR"
+msgstr "マージされたPRあたりのコスト"
 
 msgid "Cost to you: $0"
 msgstr "実際のコスト: $0"
@@ -3891,6 +3981,9 @@ msgstr "プルリクエストを読み込めませんでした: {msg}"
 
 msgid "Couldn't load review comments"
 msgstr "レビューコメントを読み込めませんでした"
+
+msgid "Couldn't load your profile, so editing is disabled."
+msgstr "プロフィールを読み込めなかったため、編集は無効です。"
 
 msgid "Couldn't merge pull request"
 msgstr "プルリクエストをマージできませんでした"
@@ -4304,6 +4397,15 @@ msgstr "期間"
 msgid "Day"
 msgstr "日"
 
+msgid "Day One"
+msgstr "デイワン"
+
+msgid "days running three agents at once"
+msgstr "エージェントを同時に3つ動かした日数"
+
+msgid "days running two agents at once"
+msgstr "エージェントを同時に2つ動かした日数"
+
 msgid "Deactivated"
 msgstr "無効化済み"
 
@@ -4542,6 +4644,9 @@ msgstr "拒否"
 
 msgid "Dependencies"
 msgstr "依存関係"
+
+msgid "Depth"
+msgstr "深さ"
 
 msgid "descending"
 msgstr "降順"
@@ -4850,6 +4955,9 @@ msgstr "スターターをダウンロード"
 msgid "Download Superset"
 msgstr "Supersetをダウンロード"
 
+msgid "Download Superset and publish yours"
+msgstr "Superset をダウンロードして自分の記録を公開"
+
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "Download Superset at <0>{0}/download</0>."
 msgstr "<0>{0}/download</0>からSupersetをダウンロードしてください。"
@@ -4987,6 +5095,16 @@ msgstr "2027年前半"
 msgid "Early 2028"
 msgstr "2028年前半"
 
+#. placeholder {0}: formatDate(new Date(`${awardedOn}T00:00:00Z`), { day: "numeric", month: "short", year: "numeric", timeZone: "UTC", })
+msgid "Earned {0}"
+msgstr "獲得日: {0}"
+
+msgid "Earned {name}"
+msgstr "「{name}」を獲得"
+
+msgid "Earned {name} ×{tier}"
+msgstr "「{name}」×{tier} を獲得"
+
 msgid "Edit"
 msgstr "編集"
 
@@ -5032,6 +5150,9 @@ msgstr "エディタとワークフロー"
 
 msgid "Editor typography"
 msgstr "エディタのタイポグラフィ"
+
+msgid "Efficient"
+msgstr "効率"
 
 msgid "Electron/tRPC-coupled, so referenced rather than rendered. Badge = import sites today; high counts are promotion candidates for packages/ui"
 msgstr "Electron/tRPCに依存するため、描画せず参照のみです。バッジは現在のインポート箇所数で、数が多いものはpackages/uiへの昇格候補です"
@@ -5181,6 +5302,9 @@ msgstr "毎週{day} {time}"
 msgid "Every agent runs in its own Git worktree, so ten agents can work on ten branches of one repo without conflicts. You watch, review, and merge them all from one window."
 msgstr "各エージェントは専用のGitワークツリーで動くため、10体のエージェントが1つのリポジトリの10本のブランチで衝突なく作業できます。監視もレビューもマージも、すべて1つのウィンドウから行えます。"
 
+msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
+msgstr "すべての軸が次のティアのために働いています。これを維持すればティアは付いてきます。"
+
 msgid "Every Friday at 4pm, draft release notes from this week's merged PRs"
 msgstr "毎週金曜午後4時に、今週マージされたPRからリリースノートの下書きを作成する"
 
@@ -5189,6 +5313,9 @@ msgstr "毎週金曜午後4時に、今週マージされたPRからリリース
 
 msgid "Every minute"
 msgstr "毎分"
+
+msgid "Every objective is carrying its weight for the next rung. Measured over the trailing 30 days."
+msgstr "すべての目標が次の段に向けて力を発揮しています。直近30日間で計測。"
 
 msgid "Every star on <0>{repoSlug}</0>, plotted since launch."
 msgstr "<0>{repoSlug}</0>のすべてのスターを、公開時からプロットしています。"
@@ -6620,6 +6747,9 @@ msgstr "コマンドの開き方。"
 msgid "How the prompt is delivered to the process."
 msgstr "プロンプトをプロセスに渡す方法。"
 
+msgid "How tiers work →"
+msgstr "ティアの仕組み →"
+
 msgid "How to install {name} in Superset"
 msgstr "Supersetに{name}をインストールする方法"
 
@@ -6628,6 +6758,9 @@ msgstr "https://"
 
 msgid "https://github.com/owner/repo.git or /path/to/repo"
 msgstr "https://github.com/owner/repo.git または /path/to/repo"
+
+msgid "Human"
+msgstr "人間"
 
 msgid "Human mode:"
 msgstr "ヒューマンモード:"
@@ -7365,6 +7498,9 @@ msgstr "チームから退出しました"
 msgid "Legal"
 msgstr "法務"
 
+msgid "Less"
+msgstr "少ない"
+
 msgid "less than a minute ago"
 msgstr "1分未満前"
 
@@ -7451,6 +7587,9 @@ msgstr "クローンを有効にするには、先にプロジェクトにGitHub
 
 msgid "Link by Stripe"
 msgstr "Link by Stripe"
+
+msgid "link copied"
+msgstr "リンクをコピーしました"
 
 msgid "Link copied"
 msgstr "リンクをコピーしました"
@@ -7835,6 +7974,9 @@ msgstr "MCPサーバー"
 
 msgid "Mean"
 msgstr "平均"
+
+msgid "Measured over the trailing 30 days"
+msgstr "直近30日間で計測"
 
 msgid "Measuring resource usage…"
 msgstr "リソース使用量を計測中…"
@@ -8245,6 +8387,9 @@ msgstr "新規ブラウザ"
 msgid "New Browser Tab"
 msgstr "新しいブラウザタブ"
 
+msgid "new challengers"
+msgstr "別の対戦相手"
+
 msgid "New chat"
 msgstr "新しいチャット"
 
@@ -8374,6 +8519,9 @@ msgstr "次世代のチャット"
 
 msgid "Next:"
 msgstr "次:"
+
+msgid "Next: {nextLabel}"
+msgstr "次: {nextLabel}"
 
 msgid "Nice, open a PR when ready."
 msgstr "いいですね。準備ができたらPRを作成してください。"
@@ -8891,6 +9039,9 @@ msgstr "いいえ。エージェントは独立したままで、Supersetはそ�
 msgid "Nobody has joined the board yet."
 msgstr "まだ誰も参加していません。"
 
+msgid "Nobody here by that name."
+msgstr "その名前の人は見つかりません。"
+
 msgid "Nobody on your team has shared automations yet."
 msgstr "チームで共有されたオートメーションはまだありません。"
 
@@ -9106,6 +9257,12 @@ msgstr "エンジニア1人が1日を通して3つ以上のエージェントの
 msgid "One human drives at most one agent at a time."
 msgstr "人間1人が同時に動かすエージェントは最大1体。"
 
+msgid "One line about how you work"
+msgstr "働き方について一行で"
+
+msgid "One of the first hundred on the board"
+msgstr "ボード最初の100人のひとり"
+
 msgid "one of the selected repositories"
 msgstr "選択したリポジトリのいずれか"
 
@@ -9150,6 +9307,9 @@ msgstr "請求を管理できるのはオーナーのみです"
 
 msgid "Only owners can update organization settings"
 msgstr "組織の設定を更新できるのはオーナーのみです"
+
+msgid "Only people who opted in appear here."
+msgstr "参加を選んだ人だけがここに表示されます。"
 
 msgid "Only the author can edit a comment"
 msgstr "コメントを編集できるのは投稿者のみです"
@@ -9906,6 +10066,15 @@ msgstr "保留中の招待"
 msgid "People with access"
 msgstr "アクセスできるユーザー"
 
+msgid "per merged PR"
+msgstr "マージされたPRあたり"
+
+msgid "per merged PR, lower is better"
+msgstr "マージされたPRあたり、低いほど良い"
+
+msgid "per session"
+msgstr "セッションあたり"
+
 msgid "per user/month"
 msgstr "1ユーザーあたり月額"
 
@@ -9982,6 +10151,9 @@ msgstr "{hostName}のプロジェクトのワークツリーフォルダを選�
 msgid "Pick the worktree folder on {hostName}."
 msgstr "{hostName}のワークツリーフォルダを選択してください。"
 
+msgid "Pick two developers, watch their agent usage stats fight it out as terminal dinosaurs. Same two handles always produce the same fight."
+msgstr "開発者を2人選ぶと、エージェントの使用統計をもとにターミナル恐竜として戦います。同じハンドルの組み合わせなら常に同じ試合になります。"
+
 msgid "Pick your agent for a one-line install, or copy the config by hand. Every client, including OAuth and API key setup, is covered in the <0>full MCP server docs</0>."
 msgstr "エージェントを選べば1行でインストールできます。設定を手でコピーしても構いません。OAuthやAPIキーの設定を含む各クライアントの手順は<0>MCPサーバーの完全なドキュメント</0>にあります。"
 
@@ -10024,6 +10196,9 @@ msgstr "tooltipのリファクタリングを計画中"
 
 msgid "Plans"
 msgstr "プラン"
+
+msgid "Plant Floor"
+msgstr "工場フロア"
 
 msgid "Plant Manager"
 msgstr "工場長"
@@ -10428,6 +10603,9 @@ msgstr "プロバイダー: {0}"
 msgid "Provisioning failed and the sandbox was torn down. Nothing is running, and this workspace can't be opened — create a new one to try again."
 msgstr "プロビジョニングに失敗し、サンドボックスは破棄されました。何も実行されておらず、このワークスペースは開けません — 新しく作成してやり直してください。"
 
+msgid "PRs a week"
+msgstr "週あたりPR"
+
 msgid "Public"
 msgstr "パブリック"
 
@@ -10568,6 +10746,9 @@ msgstr "RAMシェア"
 
 msgid "Rank"
 msgstr "順位"
+
+msgid "rank #{rank} of {total}"
+msgstr "{total} 人中 {rank} 位"
 
 msgid "Rank by"
 msgstr "ランキングの基準"
@@ -10785,6 +10966,9 @@ msgstr "プロジェクトを移動しますか?"
 
 msgid "Relocating…"
 msgstr "移動中…"
+
+msgid "rematch"
+msgstr "再戦"
 
 msgid "remote"
 msgstr "リモート"
@@ -11386,6 +11570,9 @@ msgstr "{0}を今すぐ実行"
 msgid "Run {runNumber}"
 msgstr "ラン {runNumber}"
 
+msgid "Run 01"
+msgstr "Run 01"
+
 msgid "Run 10+ parallel coding agents on your machine."
 msgstr "手元のマシンで10以上のコーディングエージェントを並列実行できます。"
 
@@ -11521,6 +11708,9 @@ msgstr "保存に失敗しました: {message}"
 msgid "Save preferences"
 msgstr "設定を保存"
 
+msgid "Save profile"
+msgstr "プロフィールを保存"
+
 msgid "save the agent"
 msgstr "エージェントを保存する"
 
@@ -11579,6 +11769,10 @@ msgstr "SCIMプロビジョニング"
 msgid "Scope"
 msgstr "範囲"
 
+#. placeholder {0}: String(MIN_ACTIVE_DAYS)
+msgid "Scoring starts once the board can see {0} days of usage."
+msgstr "{0}日分の使用状況がそろうとスコアリングが始まります。"
+
 msgid "Screenshot copied to clipboard"
 msgstr "スクリーンショットをクリップボードにコピーしました"
 
@@ -11636,6 +11830,12 @@ msgstr "ブランチを検索..."
 
 msgid "Search changed files"
 msgstr "変更されたファイルを検索"
+
+msgid "Search developers"
+msgstr "開発者を検索"
+
+msgid "Search developers by handle or name"
+msgstr "ハンドルまたは名前で開発者を検索"
 
 msgid "Search docs..."
 msgstr "ドキュメントを検索..."
@@ -12117,6 +12317,9 @@ msgstr "セットアップスクリプト"
 msgid "shadcn/ui tooltip recipe"
 msgstr "shadcn/uiのtooltipレシピ"
 
+msgid "Shade is relative to this developer's busiest day"
+msgstr "濃さはこの開発者の最も活動量が多い日を基準にしています"
+
 msgid "Share"
 msgstr "共有"
 
@@ -12152,6 +12355,9 @@ msgstr "Shikiでハイライト、行番号は任意"
 
 msgid "Shimmer · Shimmer Label"
 msgstr "Shimmer · Shimmer Label"
+
+msgid "Ship It"
+msgstr "出荷"
 
 msgid "Shortcut already in use"
 msgstr "ショートカットは使用中です"
@@ -12586,6 +12792,9 @@ msgstr "スパースチェックアウト"
 msgid "Specific"
 msgstr "指定のみ"
 
+msgid "Spend"
+msgstr "支出"
+
 msgid "Split"
 msgstr "分割"
 
@@ -12918,6 +13127,9 @@ msgstr "概要"
 msgid "sun 11:00"
 msgstr "日 11:00"
 
+msgid "Super Fights"
+msgstr "スーパーファイト"
+
 msgid "superseded"
 msgstr "置き換え済み"
 
@@ -13059,6 +13271,9 @@ msgstr "GitHubスターでプロジェクトを応援"
 
 msgid "Suspended"
 msgstr "停止中"
+
+msgid "Sustain"
+msgstr "継続"
 
 msgid "Switch agents. Keep your workflow"
 msgstr "エージェントは替える。ワークフローはそのまま"
@@ -13712,6 +13927,9 @@ msgstr "進め方を検討中"
 msgid "Thinking..."
 msgstr "思考中..."
 
+msgid "Thirty"
+msgstr "30日"
+
 msgid "This action is irreversible."
 msgstr "この操作は元に戻せません。"
 
@@ -14070,6 +14288,12 @@ msgstr "トークン使用量"
 msgid "Tokens"
 msgstr "トークン"
 
+msgid "Tokens per session"
+msgstr "セッションあたりのトークン"
+
+msgid "tokens per session, trailing 30 days"
+msgstr "直近30日のセッションあたりトークン"
+
 msgid "Too many feedback submissions. Try again later."
 msgstr "フィードバックの送信が多すぎます。しばらくしてからお試しください。"
 
@@ -14112,11 +14336,17 @@ msgstr "tooltip-refactor.diff"
 msgid "Top models"
 msgstr "上位のモデル"
 
+msgid "Top tier. Nothing left to clear."
+msgstr "最上位ティア。クリアすべきものはもうありません。"
+
 msgid "Topic"
 msgstr "トピック"
 
 msgid "Total"
 msgstr "合計"
+
+msgid "Total agent sessions"
+msgstr "エージェントセッションの合計"
 
 msgid "total cash"
 msgstr "総現金"
@@ -14126,6 +14356,9 @@ msgstr "合計コスト"
 
 msgid "Total spend"
 msgstr "支出合計"
+
+msgid "Total tokens published"
+msgstr "公開したトークンの合計"
 
 msgid "Track and manage tasks synced from Linear. Stay on top of your work without leaving Superset."
 msgstr "Linearから同期したタスクを追跡・管理できます。Supersetを離れずに仕事を把握できます。"
@@ -14205,6 +14438,9 @@ msgstr "ターンが失敗しました{0}"
 
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Slackの会話をタスクに変え、ワークスペースからエージェントを実行し、仕事が始まる場所でチームと共有できます。"
+
+msgid "Two Hands"
+msgstr "両手"
 
 msgid "Type"
 msgstr "型"
@@ -14407,6 +14643,10 @@ msgstr "未プッシュ"
 
 msgid "Unranked"
 msgstr "ランク外"
+
+#. placeholder {0}: String(MIN_ACTIVE_DAYS)
+msgid "Unranked until {0} days carry usage."
+msgstr "{0}日分の使用実績がそろうまではランク外です。"
 
 msgid "Unresolve"
 msgstr "解決を取り消す"
@@ -14634,6 +14874,9 @@ msgstr "v2ProjectIdがワークスペースのプロジェクトと一致しま�
 msgid "Variables"
 msgstr "変数"
 
+msgid "Verified through sign-in"
+msgstr "サインインで確認済み"
+
 msgid "Verify Kbd stays visible inside tooltips"
 msgstr "tooltip内でKbdが見えたままか確認する"
 
@@ -14738,6 +14981,11 @@ msgstr "VS Code"
 
 msgid "Wait for workspace setup before starting agents"
 msgstr "エージェント起動前にワークスペースのセットアップを待つ"
+
+#. placeholder {0}: names.a
+#. placeholder {1}: names.b
+msgid "waiting for {0} and {1}…"
+msgstr "{0}と{1}を待っています…"
 
 msgid "Waiting for Checks"
 msgstr "チェックを待機中"
@@ -14955,6 +15203,9 @@ msgstr "このターミナルスクリプトを利用できる範囲。"
 msgid "Where to look next"
 msgstr "次に見る場所"
 
+msgid "Where you actually are"
+msgstr "あなたの実際の位置"
+
 msgid "Which agents are supported?"
 msgstr "どのエージェントに対応していますか?"
 
@@ -14963,6 +15214,12 @@ msgstr "どのAIコーディングエージェントに対応していますか?
 
 msgid "Who can open this page from its link"
 msgstr "リンクからこのページを開ける人"
+
+msgid "Whole Task"
+msgstr "タスク完遂"
+
+msgid "Width"
+msgstr "幅"
 
 msgid "Window"
 msgstr "ウィンドウ"
@@ -15141,6 +15398,9 @@ msgstr "ファイルを書き込み中..."
 msgid "Wrote"
 msgstr "書き込み"
 
+msgid "X handle"
+msgstr "X ハンドル"
+
 msgid "xs · sm · default · lg · icon-xs → icon-lg"
 msgstr "xs · sm · default · lg · icon-xs → icon-lg"
 
@@ -15191,6 +15451,10 @@ msgstr "現在<0>{currentPlanLabel}プラン</0>をご利用中です。プラ�
 
 msgid "You are the only owner of an organization that has other members. Transfer ownership or delete the organization first."
 msgstr "他にメンバーがいる組織の唯一のオーナーです。先にオーナー権限を移譲するか、組織を削除してください。"
+
+#. placeholder {0}: String(MIN_ACTIVE_DAYS)
+msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
+msgstr "{0}日分の使用実績がそろうまではランク外です。全体像が見えるようになってからスコアリングが始まります。"
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "この操作は元に戻せません。ターミナルペインに「Process exited」と表示され、再起動できます。"
@@ -15269,6 +15533,9 @@ msgstr "コードは既定でローカルに留まり、連携するサービス
 msgid "Your download starts automatically. If it didn't, grab it here."
 msgstr "ダウンロードは自動的に開始されます。開始されない場合はこちらから取得してください。"
 
+msgid "Your GitHub link comes from the account you signed in with, so it shows as verified and cannot be edited here."
+msgstr "GitHub のリンクはサインインしたアカウントから取得されるため、確認済みと表示され、ここでは編集できません。"
+
 msgid "Your name"
 msgstr "あなたの名前"
 
@@ -15282,8 +15549,15 @@ msgstr "組織のプランは{0}でオーナーが管理しています。"
 msgid "Your rank"
 msgstr "あなたのランク"
 
+#. placeholder {0}: String(gaps.length)
+msgid "Your rung is a weighted score across the {0} objectives measured for you, so a strong one offsets a weak one. Measured over the trailing 30 days."
+msgstr "あなたの段位は、計測できた{0}項目の加重スコアです。強い項目が弱い項目を補います。直近30日間で計測。"
+
 msgid "Your Slack account has been linked to Superset. You can close this tab and return to Slack."
 msgstr "SlackアカウントをSupersetに紐付けました。このタブを閉じてSlackに戻れます。"
+
+msgid "Your stats, settled in combat"
+msgstr "あなたの統計で、戦って決着を"
 
 msgid "Your subscription has been activated. You can now access all Pro features."
 msgstr "サブスクリプションが有効になりました。すべてのPro機能を利用できます。"
@@ -15296,6 +15570,10 @@ msgstr "Supersetのダウンロードを開始しています。"
 
 msgid "Your terminal sessions won't be interrupted."
 msgstr "ターミナルセッションは中断されません。"
+
+#. placeholder {0}: String(gaps.length)
+msgid "Your tier is a weighted score across the {0} axes measured for you, so a strong axis offsets a weak one. The axes below are the ones lagging."
+msgstr "あなたのティアは、計測できた{0}軸の加重スコアです。強い軸が弱い軸を補います。以下は遅れている軸です。"
 
 msgid "Your tokens"
 msgstr "あなたのトークン"

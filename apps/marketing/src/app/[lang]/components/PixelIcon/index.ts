@@ -1,0 +1,1 @@
+export { PixelIcon } from "./PixelIcon";

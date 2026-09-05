@@ -5,7 +5,6 @@ import {
 	index,
 	integer,
 	numeric,
-	pgEnum,
 	pgTable,
 	text,
 	timestamp,
@@ -13,12 +12,7 @@ import {
 	uuid,
 } from "drizzle-orm/pg-core";
 import { organizations, users } from "./auth";
-import { leaderboardVisibilityValues } from "./enums";
-
-export const leaderboardVisibility = pgEnum(
-	"leaderboard_visibility",
-	leaderboardVisibilityValues,
-);
+import { leaderboardVisibility, publicProfiles } from "./profiles";
 
 export const leaderboardParticipants = pgTable(
 	"leaderboard_participants",
@@ -38,8 +32,6 @@ export const leaderboardParticipants = pgTable(
 			.notNull()
 			.defaultNow(),
 		revokedAt: timestamp("revoked_at", { withTimezone: true }),
-		// Shadow lever: publish still succeeds, but the board queries exclude the
-		// participant. Distinct from revokedAt, which rejects the publish outright.
 		flaggedAt: timestamp("flagged_at", { withTimezone: true }),
 		lastPublishedAt: timestamp("last_published_at", { withTimezone: true }),
 
@@ -101,18 +93,13 @@ export const leaderboardParticipants = pgTable(
 	],
 );
 
-export type SelectLeaderboardParticipant =
-	typeof leaderboardParticipants.$inferSelect;
-export type InsertLeaderboardParticipant =
-	typeof leaderboardParticipants.$inferInsert;
-
 export const leaderboardDaily = pgTable(
 	"leaderboard_daily",
 	{
 		id: uuid().primaryKey().defaultRandom(),
 		userId: uuid("user_id")
 			.notNull()
-			.references(() => leaderboardParticipants.userId, {
+			.references(() => publicProfiles.userId, {
 				onDelete: "cascade",
 			}),
 
@@ -179,7 +166,7 @@ export const leaderboardDailyFactory = pgTable(
 		id: uuid().primaryKey().defaultRandom(),
 		userId: uuid("user_id")
 			.notNull()
-			.references(() => leaderboardParticipants.userId, {
+			.references(() => publicProfiles.userId, {
 				onDelete: "cascade",
 			}),
 

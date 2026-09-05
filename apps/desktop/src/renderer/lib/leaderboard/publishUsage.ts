@@ -1,4 +1,4 @@
-import type { RouterInputs } from "@superset/trpc";
+import type { RouterInputs, RouterOutputs } from "@superset/trpc";
 import { PUBLISH_PAYLOAD_VERSION } from "@superset/trpc/leaderboard-schema";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -8,6 +8,9 @@ export const BACKFILL_DAYS = 30;
 export const PREVIEW_DAYS = 30;
 
 type PublishInput = RouterInputs["leaderboard"]["publish"];
+type PublishResult = RouterOutputs["leaderboard"]["publish"];
+
+export type Awarded = PublishResult["awarded"];
 
 export type LeaderboardPayloadDay = PublishInput["days"][number];
 export type LeaderboardFactoryDay = NonNullable<
@@ -31,9 +34,9 @@ export async function buildPayload(
 export async function publishPayload(
 	machineId: string,
 	payload: LeaderboardPayload,
-): Promise<{ written: number; days: number }> {
+): Promise<PublishResult> {
 	if (payload.days.length === 0 && payload.factoryDays.length === 0) {
-		return { written: 0, days: 0 };
+		return { written: 0, days: 0, awarded: [] };
 	}
 
 	return await apiTrpcClient.leaderboard.publish.mutate({
@@ -48,6 +51,6 @@ export async function publishUsage(
 	hostUrl: string,
 	machineId: string,
 	days: number = BACKFILL_DAYS,
-): Promise<{ written: number; days: number }> {
+): Promise<PublishResult> {
 	return await publishPayload(machineId, await buildPayload(hostUrl, days));
 }

@@ -182,13 +182,15 @@ export default async function ProductionRunPage({
 								</dl>
 
 								<p className={BODY}>
-									Your tier is the{" "}
-									<strong className="text-foreground">minimum</strong> across
-									all five, never an average. Ten parallel sessions that never
-									merge anything leaves Output at the bottom, so you are at the
-									bottom. Every axis measures something you had to give up:
-									watching, reviewing, scheduling, holding state. You cannot
-									compensate for still doing one by doing more of another.
+									Your tier is a{" "}
+									<strong className="text-foreground">weighted score</strong>{" "}
+									across all five, so a strong axis genuinely offsets a weak
+									one. Cost is the exception: spend too much per merged PR and
+									it caps your tier outright, whatever the other four say. Every
+									axis measures something you had to give up: watching,
+									reviewing, scheduling, holding state. Axes we cannot measure
+									for you yet — Output and Cost before your first merged PR —
+									are left out of the score rather than counted as zero.
 								</p>
 								<p className={BODY}>
 									The gates are deliberately out of reach today, because a high
@@ -197,10 +199,11 @@ export default async function ProductionRunPage({
 									flaggable, and accounts that manufacture merges get hidden.
 								</p>
 								<p className={BODY}>
-									It runs over your trailing 30 days. You promote when 60% of
-									your active days clear the next tier, hold until you drop
-									under 40%, and sit unranked below 8 active days. One good
-									Tuesday moves nothing.
+									It runs over your trailing 30 days, on medians rather than
+									totals, and you sit unranked below 8 active days. Once you
+									reach a tier you hold it until the score drops more than three
+									points under the band that earned it. One good Tuesday moves
+									nothing.
 								</p>
 								<p className={BODY}>
 									None of your work leaves your machine: not prompts, file
@@ -262,8 +265,9 @@ export default async function ProductionRunPage({
 								</div>
 
 								<p className={BODY}>
-									The badge waits, then jumps: it cannot move until the slowest
-									axis clears, and for a stretch in the middle every axis reads{" "}
+									The badge waits, then jumps: the weighted score has to clear a
+									band before anything moves, and for a stretch in the middle
+									every axis reads{" "}
 									<em className="not-italic text-foreground">holding</em> at
 									once. Meanwhile the cost of landing one change falls the whole
 									way. The slider runs a few months past August 2028 so the top

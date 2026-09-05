@@ -12,6 +12,7 @@ import {
 	PRICING_FAQ_ITEMS,
 	PRICING_TIERS,
 } from "@/app/[lang]/pricing/constants";
+import { fetchParticipant } from "@/app/[lang]/utils/fetchLeaderboard";
 import { getBlogPost } from "@/lib/blog";
 import { getCategoryPage } from "@/lib/category";
 import { getChangelogEntry } from "@/lib/changelog";
@@ -24,6 +25,7 @@ import {
 } from "@/lib/llms";
 import { markdownNotFound } from "@/lib/markdown-not-found";
 import { getAllPeople } from "@/lib/people";
+import { renderProfileMarkdown } from "@/lib/profile-markdown";
 
 interface MarkdownPage {
 	title: string;
@@ -206,7 +208,10 @@ const STATIC_PAGES: Record<string, () => MarkdownPage> = {
 	enterprise: enterprisePage,
 };
 
-function loadPage(section: string, slug: string): MarkdownPage | undefined {
+async function loadPage(
+	section: string,
+	slug: string,
+): Promise<MarkdownPage | undefined> {
 	const baseUrl = COMPANY.MARKETING_URL;
 	if (section === "page") {
 		return STATIC_PAGES[slug]?.();
@@ -245,6 +250,19 @@ function loadPage(section: string, slug: string): MarkdownPage | undefined {
 			content: stripMdxSyntax(page.content),
 		};
 	}
+	if (section === "user") {
+		const profile = await fetchParticipant(slug.toLowerCase(), {
+			period: "all",
+		});
+		if (!profile) return undefined;
+		const tier = profile.factory?.tier ?? 0;
+		return {
+			title: `${profile.name ?? profile.handle} (@${profile.handle})`,
+			url: `${baseUrl}/${profile.handle}`,
+			description: `Rank #${profile.rank} of ${profile.total} on the ${COMPANY.NAME} leaderboard, tier ${tier}.`,
+			content: renderProfileMarkdown(profile),
+		};
+	}
 	if (section === "changelog") {
 		const entry = getChangelogEntry(slug);
 		if (!entry || entry.draft) return undefined;
@@ -278,8 +296,23 @@ export async function GET(
 	activateServerI18n(lang);
 	const locale = lang;
 	const [section, slug] = path;
-	const page =
-		path.length === 2 && section && slug ? loadPage(section, slug) : undefined;
+	let page: MarkdownPage | undefined;
+	try {
+		page =
+			path.length === 2 && section && slug
+				? await loadPage(section, slug)
+				: undefined;
+	} catch (error) {
+		console.error("[marketing/md] page load failed:", error);
+		return new Response("Temporarily unavailable\n", {
+			status: 503,
+			headers: {
+				"content-type": "text/markdown; charset=utf-8",
+				"cache-control": "no-store",
+				"retry-after": "30",
+			},
+		});
+	}
 	if (!page) {
 		return markdownNotFound();
 	}

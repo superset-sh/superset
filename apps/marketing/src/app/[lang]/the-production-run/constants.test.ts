@@ -1,8 +1,9 @@
 import { beforeAll, describe, expect, test } from "bun:test";
 import { initI18n, initI18nAsync } from "@superset/i18n";
+import { bandTier, factoryScore } from "@superset/trpc/leaderboard-tier";
 import {
+	axisAtBand,
 	COST_CEILINGS,
-	FLOORS,
 	GRADED_AXES,
 	MEASURED_TODAY,
 	monthLabel,
@@ -16,6 +17,7 @@ import {
 	runStatus,
 	runStatusLabel,
 	SLIDER_MONTHS,
+	TIER_BANDS,
 	TRAJECTORY,
 } from "./constants";
 
@@ -134,22 +136,46 @@ describe("the figures printed on the page", () => {
 	});
 });
 
-describe("published gates match the graded floors", () => {
-	test("every tier quotes width, output, sustain and cost verbatim", () => {
+describe("published gates are derived from the score bands", () => {
+	test("every tier quotes the balanced profile at its own band", () => {
 		for (let tier = 1; tier <= 4; tier++) {
-			expect(gate(tier, "Width")).toBe(String(FLOORS.width[tier - 1]));
-			expect(gate(tier, "Sustain")).toBe(`${FLOORS.sustain[tier - 1]}/30`);
+			const band = TIER_BANDS[tier - 1] ?? 0;
+			expect(Number(gate(tier, "Width"))).toBeCloseTo(
+				axisAtBand("width", band),
+				1,
+			);
+			expect(tokens(gate(tier, "Depth"))).toBeCloseTo(
+				axisAtBand("depth", band),
+				-5,
+			);
+			expect(Number.parseFloat(gate(tier, "Output"))).toBeCloseTo(
+				axisAtBand("output", band),
+				1,
+			);
+			expect(Number.parseFloat(gate(tier, "Sustain"))).toBe(
+				Math.round(axisAtBand("sustain", band)),
+			);
 			expect(money(gate(tier, "Cost"))).toBe(COST_CEILINGS[tier - 1] ?? 0);
-			if (tier > 1) {
-				expect(gate(tier, "Output")).toBe(`${FLOORS.output[tier - 1]}/wk`);
-				expect(tokens(gate(tier, "Depth"))).toBe(FLOORS.depth[tier - 1] ?? 0);
-			}
 		}
 	});
 
-	test("the bottom rung grades presence only", () => {
-		expect(gate(1, "Depth")).toBe("none");
-		expect(gate(1, "Output")).toBe("none");
+	test("the rungs climb on every axis", () => {
+		for (let tier = 2; tier <= 4; tier++) {
+			expect(Number(gate(tier, "Width"))).toBeGreaterThan(
+				Number(gate(tier - 1, "Width")),
+			);
+			expect(tokens(gate(tier, "Depth"))).toBeGreaterThan(
+				tokens(gate(tier - 1, "Depth")),
+			);
+			expect(money(gate(tier, "Cost"))).toBeLessThan(
+				money(gate(tier - 1, "Cost")),
+			);
+		}
+	});
+
+	test("the bottom rung grades presence, not performance", () => {
+		expect(PRODUCTION_TIERS[0]?.score).toBe(0);
+		expect(Number(gate(1, "Width"))).toBe(1);
 	});
 
 	test("every graded axis appears on every tier", () => {
@@ -173,23 +199,19 @@ describe("run targets", () => {
 	});
 
 	test("hitting the published targets actually clears Operator", () => {
-		const cost = run?.targets.find((target) => target.axis === "Cost");
-		expect(money(cost?.value ?? "")).toBeLessThanOrEqual(COST_CEILINGS[1] ?? 0);
+		const target = (axis: string) =>
+			run?.targets.find((entry) => entry.axis === axis)?.value ?? "";
 
-		const width = run?.targets.find((target) => target.axis === "Width");
-		expect(Number.parseFloat(width?.value ?? "0")).toBeGreaterThanOrEqual(
-			FLOORS.width[1] ?? 0,
-		);
+		const values = {
+			width: Number.parseFloat(target("Width")),
+			depth: tokens(target("Depth")),
+			output: Number.parseFloat(target("Output")),
+			sustain: Number.parseFloat(target("Sustain")),
+			cost: money(target("Cost")),
+		};
 
-		const depth = run?.targets.find((target) => target.axis === "Depth");
-		expect(tokens(depth?.value ?? "")).toBeGreaterThanOrEqual(
-			FLOORS.depth[1] ?? 0,
-		);
-
-		const sustain = run?.targets.find((target) => target.axis === "Sustain");
-		expect(Number.parseFloat(sustain?.value ?? "0")).toBeGreaterThanOrEqual(
-			FLOORS.sustain[1] ?? 0,
-		);
+		expect(bandTier(factoryScore(values).score)).toBeGreaterThanOrEqual(2);
+		expect(money(target("Cost"))).toBeLessThanOrEqual(COST_CEILINGS[1] ?? 0);
 	});
 
 	test("each run mints its own rewards", () => {
@@ -255,9 +277,13 @@ describe("the forecast table", () => {
 		expect(median).toBe(3);
 	});
 
-	test("the measured board is nowhere near the forecast it sits under", () => {
-		expect(MEASURED_TODAY[0]).toBeGreaterThan(99);
-		expect(TRAJECTORY[0]?.shares[0]).toBeLessThan(80);
+	test("the measured board still sits below the forecast it runs under", () => {
+		expect(MEASURED_TODAY[0]).toBeGreaterThan(TRAJECTORY[0]?.shares[0] ?? 0);
+		expect((MEASURED_TODAY[2] ?? 0) + (MEASURED_TODAY[3] ?? 0)).toBeLessThan(2);
+		expect(MEASURED_TODAY.reduce((sum, share) => sum + share, 0)).toBeCloseTo(
+			100,
+			0,
+		);
 	});
 });
 

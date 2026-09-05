@@ -294,6 +294,11 @@ msgstr "{0} → {1} in behandeling"
 msgid "{0} actions"
 msgstr "Acties voor {0}"
 
+#. placeholder {0}: left.name
+#. placeholder {1}: right.name
+msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
+msgstr "{0} en {1} beslechten het als terminaldinosaurussen. De statistieken bepalen de winnaar."
+
 #. placeholder {0}: formatTokens(me.tokens - below.tokens)
 msgid "{0} behind you"
 msgstr "{0} achter je"
@@ -424,6 +429,16 @@ msgstr "{0} om #{1} voorbij te gaan"
 msgid "{0} tokens in the last 30 days. Publishing as <0>{handle}</0>."
 msgstr "{0} tokens in de laatste 30 dagen. Gepubliceerd als <0>{handle}</0>."
 
+#. placeholder {0}: formatTokens(cell.tokens)
+#. placeholder {1}: cell.day
+msgid "{0} tokens on {1}"
+msgstr "{0} tokens op {1}"
+
+#. placeholder {0}: formatTokens(calendar.total)
+#. placeholder {1}: String(calendar.activeDays)
+msgid "{0} tokens over {1} active days"
+msgstr "{0} tokens over {1} actieve dagen"
+
 #. placeholder {0}: displayName(variables.name)
 msgid "{0} uninstalled"
 msgstr "{0} verwijderd"
@@ -432,14 +447,34 @@ msgstr "{0} verwijderd"
 msgid "{0} updated"
 msgstr "{0} bijgewerkt"
 
+#. placeholder {0}: left.name
+#. placeholder {1}: right.name
+msgid "{0} vs {1}"
+msgstr "{0} tegen {1}"
+
 #. placeholder {0}: file.path
 msgid "{0} was deleted in this change."
 msgstr "{0} is verwijderd in deze wijziging."
+
+#. placeholder {0}: winner?.name
+#. placeholder {1}: result.events.length
+msgid "{0} wins in {1} turns"
+msgstr "{0} wint in {1} beurten"
+
+#. placeholder {0}: winner?.name
+#. placeholder {1}: result.events.length
+msgid "{0} wins on damage after {1} turns"
+msgstr "{0} wint op schade na {1} beurten"
 
 #. placeholder {0}: check.name
 #. placeholder {1}: took ? `, ${took}` : ""
 msgid "{0}, {outcome}{1}"
 msgstr "{0}, {outcome}{1}"
+
+#. placeholder {0}: String(met)
+#. placeholder {1}: String(gaps.length)
+msgid "{0}/{1}"
+msgstr "{0}/{1}"
 
 #. placeholder {0}: tally.passed
 #. placeholder {1}: tally.total
@@ -450,6 +485,11 @@ msgstr "{0}/{1} checks geslaagd"
 #. placeholder {1}: summary.total
 msgid "{0}/{1} tests passed"
 msgstr "{0}/{1} tests geslaagd"
+
+#. placeholder {0}: String(bio.length)
+#. placeholder {1}: String(BIO_MAX)
+msgid "{0}/{1}. Links are stripped."
+msgstr "{0}/{1}. Links worden verwijderd."
 
 #. placeholder {0}: Math.round(100 * shareOfTotal)
 #. placeholder {1}: formatTokens(detail.tokens)
@@ -647,6 +687,10 @@ msgstr "{localHostName} (dit apparaat)"
 msgid "{matchCount, plural, one {{0}} other {{1}}}"
 msgstr "{matchCount, plural, one {{0}} other {{1}}}"
 
+#. placeholder {0}: gaps.length
+msgid "{met} of {0} objectives carrying for {nextLabel} — {laggingLabels} furthest behind."
+msgstr "{met} van {0} doelen dragen bij voor {nextLabel} — {laggingLabels} lopen het verst achter."
+
 msgid "{minimumContrast}:1 contrast"
 msgstr "{minimumContrast}:1 contrast"
 
@@ -782,6 +826,9 @@ msgstr "{teardownFailureCount, plural, one {Toch verwijderen slaat het teardown-
 msgid "{teardownFailureCount, plural, one {Delete anyway} other {Delete # anyway}}"
 msgstr "{teardownFailureCount, plural, one {Toch verwijderen} other {Toch # verwijderen}}"
 
+msgid "{threshold, plural, one {# agent PR merged} other {# agent PRs merged}}"
+msgstr "{threshold, plural, one {# agent-PR gemerged} other {# agent-PR's gemerged}}"
+
 msgid "{toolName} interrupted"
 msgstr "{toolName} onderbroken"
 
@@ -826,9 +873,6 @@ msgstr "{worktreeCount, plural, one {Dit verwijdert het project en zijn # werkru
 
 msgid "{years}y ago"
 msgstr "{years}j geleden"
-
-msgid "@{profileHandle} · rank #{rank} of {total}"
-msgstr "@{profileHandle} · plek #{rank} van {total}"
 
 msgid "@superset"
 msgstr "@superset"
@@ -1182,6 +1226,9 @@ msgstr "Account wordt verwijderd."
 msgid "Account pending deletion"
 msgstr "Account wordt verwijderd"
 
+msgid "Achievements"
+msgstr "Prestaties"
+
 msgid "Acme Inc."
 msgstr "Acme Inc."
 
@@ -1207,6 +1254,12 @@ msgstr "actief {0}"
 
 msgid "Active agent sessions."
 msgstr "Actieve agentsessies."
+
+msgid "active days"
+msgstr "actieve dagen"
+
+msgid "Active days in the last 30"
+msgstr "Actieve dagen in de laatste 30 dagen"
 
 msgid "Active organization required to create an API key"
 msgstr "Actieve organisatie vereist om een API-sleutel aan te maken"
@@ -1414,6 +1467,12 @@ msgstr "Startconfiguratie van de agent"
 msgid "Agent picker (Claude, Codex, Cursor…) used by every session-creation flow"
 msgstr "Agentkiezer (Claude, Codex, Cursor…) die elke flow voor sessiecreatie gebruikt"
 
+msgid "agent PRs merged"
+msgstr "gemergede agent-PR's"
+
+msgid "Agent PRs merged per week"
+msgstr "Gemergede agent-PR's per week"
+
 msgid "Agent review at parity with human review"
 msgstr "Agentreview op gelijk niveau met menselijke review"
 
@@ -1438,9 +1497,6 @@ msgstr "Agentsessie gestart"
 msgid "agent settings"
 msgstr "agentinstellingen"
 
-msgid "Agent usage, ranked"
-msgstr "Agentgebruik, gerangschikt"
-
 msgid "Agents"
 msgstr "Agents"
 
@@ -1452,6 +1508,9 @@ msgstr "Agents voltooien routinetickets zonder tussentijds ingrijpen."
 
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Agents laden hun eigen preview, bedienen de UI en voegen screenshotbewijs toe voordat ze werk klaarzetten voor review."
+
+msgid "Agents running at once"
+msgstr "Agents die tegelijk draaien"
 
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Totaal agentgebruik van alle developers op het Superset-leaderboard — tokens, kosten, cachegedrag en welke modellen mensen echt gebruiken."
@@ -1507,6 +1566,10 @@ msgstr "Alle {0} →"
 msgid "All {0} checks passed"
 msgstr "Alle {0} checks geslaagd"
 
+#. placeholder {0}: gaps.length
+msgid "All {0} objectives are carrying their weight for {nextLabel}."
+msgstr "Alle {0} doelen dragen hun deel bij voor {nextLabel}."
+
 #. placeholder {0}: summary.relevantChecks.length
 msgid "All {0} passed"
 msgstr "Alle {0} geslaagd"
@@ -1553,6 +1616,9 @@ msgstr "Alles in huidig tabblad"
 
 msgid "All in current tab (split panes)"
 msgstr "Alles in huidig tabblad (gesplitste panelen)"
+
+msgid "All objectives cleared. Top rung, nothing left to reach for."
+msgstr "Alle doelen gehaald. Hoogste trede, er is niets meer om naar te streven."
 
 msgid "All of the organization's data will be permanently deleted — this cannot be undone."
 msgstr "Alle gegevens van de organisatie worden definitief verwijderd — dit kan niet ongedaan worden gemaakt."
@@ -1815,6 +1881,9 @@ msgstr "API-sleutels"
 msgid "API-equivalent"
 msgstr "API-equivalent"
 
+msgid "API-equivalent cost"
+msgstr "API-equivalente kosten"
+
 msgid "App display language"
 msgstr "Weergavetaal van de app"
 
@@ -1925,6 +1994,9 @@ msgstr "at"
 
 msgid "At least one team we can name, ours included, passes every F4 gate for a full quarter and publishes the numbers."
 msgstr "Minstens één team dat we kunnen noemen, het onze inbegrepen, haalt een heel kwartaal lang elke F4-drempel en publiceert de cijfers."
+
+msgid "at once"
+msgstr "tegelijk"
 
 msgid "Attached"
 msgstr "Gekoppeld"
@@ -2245,6 +2317,9 @@ msgstr "Binair bestand gewijzigd"
 
 msgid "Binary file hidden"
 msgstr "Binair bestand verborgen"
+
+msgid "Bio"
+msgstr "Bio"
 
 msgid "Block"
 msgstr "Blok"
@@ -2865,6 +2940,9 @@ msgstr "Werkruimteselectie wissen"
 msgid "Cleared {succeededLabels} — could not clear {failedLabels}"
 msgstr "{succeededLabels} gewist — {failedLabels} kon niet worden gewist"
 
+msgid "Cleared Operator inside the Run 01 window"
+msgstr "Operator gehaald binnen het Run 01-venster"
+
 msgid "Cleared terminal history"
 msgstr "Terminalgeschiedenis gewist"
 
@@ -3435,6 +3513,9 @@ msgstr "Verbinding verlopen"
 msgid "Connections"
 msgstr "Verbindingen"
 
+msgid "consecutive active days"
+msgstr "opeenvolgende actieve dagen"
+
 msgid "Consent finished but Microsoft did not issue a token for the tenant."
 msgstr "De toestemming is afgerond, maar Microsoft heeft geen token voor de tenant afgegeven."
 
@@ -3495,6 +3576,9 @@ msgstr "Doorgaan met GitHub"
 
 msgid "Continue with Google"
 msgstr "Doorgaan met Google"
+
+msgid "Contributions"
+msgstr "Bijdragen"
 
 msgid "Control how your local machine is reachable from elsewhere"
 msgstr "Bepaal hoe je lokale machine van buitenaf bereikbaar is"
@@ -3580,6 +3664,9 @@ msgstr "Kopiëren mislukt"
 
 msgid "Copy failed. Select the text and copy it manually."
 msgstr "Kopiëren mislukt. Selecteer de tekst en kopieer handmatig."
+
+msgid "copy fight link"
+msgstr "gevechtslink kopiëren"
 
 msgid "Copy file name"
 msgstr "Bestandsnaam kopiëren"
@@ -3674,6 +3761,9 @@ msgstr "Configuratie kopiëren"
 
 msgid "Cost"
 msgstr "Kosten"
+
+msgid "Cost per merged PR"
+msgstr "Kosten per gemergede PR"
 
 msgid "Cost to you: $0"
 msgstr "Kosten voor jou: $0"
@@ -3891,6 +3981,9 @@ msgstr "Kan pull requests niet laden: {msg}"
 
 msgid "Couldn't load review comments"
 msgstr "Kan reviewopmerkingen niet laden"
+
+msgid "Couldn't load your profile, so editing is disabled."
+msgstr "Je profiel kon niet worden geladen, daarom is bewerken uitgeschakeld."
 
 msgid "Couldn't merge pull request"
 msgstr "Kan pull request niet mergen"
@@ -4304,6 +4397,15 @@ msgstr "Datumbereik"
 msgid "Day"
 msgstr "Dag"
 
+msgid "Day One"
+msgstr "Dag één"
+
+msgid "days running three agents at once"
+msgstr "dagen met drie agents tegelijk"
+
+msgid "days running two agents at once"
+msgstr "dagen met twee agents tegelijk"
+
 msgid "Deactivated"
 msgstr "Gedeactiveerd"
 
@@ -4542,6 +4644,9 @@ msgstr "Weigeren"
 
 msgid "Dependencies"
 msgstr "Dependencies"
+
+msgid "Depth"
+msgstr "Diepte"
 
 msgid "descending"
 msgstr "aflopend"
@@ -4850,6 +4955,9 @@ msgstr "Startbestand downloaden"
 msgid "Download Superset"
 msgstr "Superset downloaden"
 
+msgid "Download Superset and publish yours"
+msgstr "Download Superset en publiceer die van jou"
+
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "Download Superset at <0>{0}/download</0>."
 msgstr "Download Superset op <0>{0}/download</0>."
@@ -4987,6 +5095,16 @@ msgstr "Begin 2027"
 msgid "Early 2028"
 msgstr "Begin 2028"
 
+#. placeholder {0}: formatDate(new Date(`${awardedOn}T00:00:00Z`), { day: "numeric", month: "short", year: "numeric", timeZone: "UTC", })
+msgid "Earned {0}"
+msgstr "Behaald op {0}"
+
+msgid "Earned {name}"
+msgstr "{name} behaald"
+
+msgid "Earned {name} ×{tier}"
+msgstr "{name} ×{tier} behaald"
+
 msgid "Edit"
 msgstr "Bewerken"
 
@@ -5032,6 +5150,9 @@ msgstr "Editor en workflow"
 
 msgid "Editor typography"
 msgstr "Editortypografie"
+
+msgid "Efficient"
+msgstr "Efficiënt"
 
 msgid "Electron/tRPC-coupled, so referenced rather than rendered. Badge = import sites today; high counts are promotion candidates for packages/ui"
 msgstr "Gekoppeld aan Electron/tRPC, dus alleen genoemd in plaats van gerenderd. Badge = huidige importplekken; hoge aantallen zijn kandidaten voor promotie naar packages/ui"
@@ -5181,6 +5302,9 @@ msgstr "Elke {day} om {time}"
 msgid "Every agent runs in its own Git worktree, so ten agents can work on ten branches of one repo without conflicts. You watch, review, and merge them all from one window."
 msgstr "Elke agent draait in zijn eigen Git-worktree, dus tien agents kunnen aan tien branches van één repo werken zonder conflicten. Je volgt, reviewt en merget ze allemaal vanuit één venster."
 
+msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
+msgstr "Elke as draagt zijn deel bij voor het volgende niveau. Houd dit vast en het niveau volgt."
+
 msgid "Every Friday at 4pm, draft release notes from this week's merged PRs"
 msgstr "Elke vrijdag om 16.00 uur: stel release notes op uit de gemergede PR's van deze week"
 
@@ -5189,6 +5313,9 @@ msgstr "Elke vrijdag om 16.00 uur: stel release notes op uit de gemergede PR's v
 
 msgid "Every minute"
 msgstr "Elke minuut"
+
+msgid "Every objective is carrying its weight for the next rung. Measured over the trailing 30 days."
+msgstr "Alle doelen dragen bij aan de volgende trede. Gemeten over de laatste 30 dagen."
 
 msgid "Every star on <0>{repoSlug}</0>, plotted since launch."
 msgstr "Elke ster op <0>{repoSlug}</0>, uitgezet sinds de lancering."
@@ -6620,6 +6747,9 @@ msgstr "Hoe het commando opent."
 msgid "How the prompt is delivered to the process."
 msgstr "Hoe de prompt bij het proces wordt afgeleverd."
 
+msgid "How tiers work →"
+msgstr "Hoe de niveaus werken →"
+
 msgid "How to install {name} in Superset"
 msgstr "{name} installeren in Superset"
 
@@ -6628,6 +6758,9 @@ msgstr "https://"
 
 msgid "https://github.com/owner/repo.git or /path/to/repo"
 msgstr "https://github.com/owner/repo.git of /pad/naar/repo"
+
+msgid "Human"
+msgstr "Mens"
 
 msgid "Human mode:"
 msgstr "Human mode:"
@@ -7365,6 +7498,9 @@ msgstr "Team verlaten"
 msgid "Legal"
 msgstr "Juridisch"
 
+msgid "Less"
+msgstr "Minder"
+
 msgid "less than a minute ago"
 msgstr "minder dan een minuut geleden"
 
@@ -7451,6 +7587,9 @@ msgstr "Koppel eerst een GitHub-repository aan het project om te kunnen klonen."
 
 msgid "Link by Stripe"
 msgstr "Link by Stripe"
+
+msgid "link copied"
+msgstr "link gekopieerd"
 
 msgid "Link copied"
 msgstr "Link gekopieerd"
@@ -7835,6 +7974,9 @@ msgstr "MCP-server"
 
 msgid "Mean"
 msgstr "Gemiddelde"
+
+msgid "Measured over the trailing 30 days"
+msgstr "Gemeten over de laatste 30 dagen"
 
 msgid "Measuring resource usage…"
 msgstr "Resourcegebruik meten…"
@@ -8245,6 +8387,9 @@ msgstr "Nieuwe browser"
 msgid "New Browser Tab"
 msgstr "Nieuw browsertabblad"
 
+msgid "new challengers"
+msgstr "nieuwe uitdagers"
+
 msgid "New chat"
 msgstr "Nieuwe chat"
 
@@ -8374,6 +8519,9 @@ msgstr "Chat van de volgende generatie"
 
 msgid "Next:"
 msgstr "Volgende:"
+
+msgid "Next: {nextLabel}"
+msgstr "Volgende: {nextLabel}"
 
 msgid "Nice, open a PR when ready."
 msgstr "Mooi, open een PR als het klaar is."
@@ -8891,6 +9039,9 @@ msgstr "Nee. Je agents blijven onafhankelijk; Superset is de orkestratielaag ero
 msgid "Nobody has joined the board yet."
 msgstr "Nog niemand doet mee aan de ranglijst."
 
+msgid "Nobody here by that name."
+msgstr "Niemand hier met die naam."
+
 msgid "Nobody on your team has shared automations yet."
 msgstr "Nog niemand in je team heeft automatiseringen gedeeld."
 
@@ -9106,6 +9257,12 @@ msgstr "Eén engineer houdt 3 of meer agentwerkstromen een werkdag lang draaiend
 msgid "One human drives at most one agent at a time."
 msgstr "Eén mens stuurt hoogstens één agent tegelijk aan."
 
+msgid "One line about how you work"
+msgstr "Eén regel over hoe je werkt"
+
+msgid "One of the first hundred on the board"
+msgstr "Bij de eerste honderd op het bord"
+
 msgid "one of the selected repositories"
 msgstr "een van de geselecteerde repository's"
 
@@ -9150,6 +9307,9 @@ msgstr "Alleen eigenaren kunnen de facturering beheren"
 
 msgid "Only owners can update organization settings"
 msgstr "Alleen eigenaren kunnen organisatie-instellingen bijwerken"
+
+msgid "Only people who opted in appear here."
+msgstr "Alleen mensen die zich hebben aangemeld verschijnen hier."
 
 msgid "Only the author can edit a comment"
 msgstr "Alleen de auteur kan een opmerking bewerken"
@@ -9906,6 +10066,15 @@ msgstr "Openstaande uitnodigingen"
 msgid "People with access"
 msgstr "Personen met toegang"
 
+msgid "per merged PR"
+msgstr "per gemergede PR"
+
+msgid "per merged PR, lower is better"
+msgstr "per gemergede PR, lager is beter"
+
+msgid "per session"
+msgstr "per sessie"
+
 msgid "per user/month"
 msgstr "per gebruiker/maand"
 
@@ -9982,6 +10151,9 @@ msgstr "Kies de worktree-map van het project op {hostName}."
 msgid "Pick the worktree folder on {hostName}."
 msgstr "Kies de worktree-map op {hostName}."
 
+msgid "Pick two developers, watch their agent usage stats fight it out as terminal dinosaurs. Same two handles always produce the same fight."
+msgstr "Kies twee ontwikkelaars en kijk hoe hun agentgebruiksstatistieken het uitvechten als terminaldinosaurussen. Dezelfde twee handles leveren altijd hetzelfde gevecht op."
+
 msgid "Pick your agent for a one-line install, or copy the config by hand. Every client, including OAuth and API key setup, is covered in the <0>full MCP server docs</0>."
 msgstr "Kies je agent voor een installatie in één regel, of kopieer de configuratie handmatig. Elke client, inclusief OAuth en API-sleutels, staat in de <0>volledige MCP-serverdocumentatie</0>."
 
@@ -10024,6 +10196,9 @@ msgstr "De tooltip-refactor plannen"
 
 msgid "Plans"
 msgstr "Plannen"
+
+msgid "Plant Floor"
+msgstr "Werkvloer"
 
 msgid "Plant Manager"
 msgstr "Fabrieksmanager"
@@ -10428,6 +10603,9 @@ msgstr "Provider: {0}"
 msgid "Provisioning failed and the sandbox was torn down. Nothing is running, and this workspace can't be opened — create a new one to try again."
 msgstr "Het provisioneren is mislukt en de sandbox is afgebroken. Er draait niets en deze werkruimte kan niet worden geopend — maak een nieuwe aan om het opnieuw te proberen."
 
+msgid "PRs a week"
+msgstr "PR's per week"
+
 msgid "Public"
 msgstr "Openbaar"
 
@@ -10568,6 +10746,9 @@ msgstr "RAM-aandeel"
 
 msgid "Rank"
 msgstr "Plek"
+
+msgid "rank #{rank} of {total}"
+msgstr "plaats {rank} van {total}"
 
 msgid "Rank by"
 msgstr "Rangschikken op"
@@ -10785,6 +10966,9 @@ msgstr "Project verplaatsen?"
 
 msgid "Relocating…"
 msgstr "Verplaatsen…"
+
+msgid "rematch"
+msgstr "revanche"
 
 msgid "remote"
 msgstr "remote"
@@ -11386,6 +11570,9 @@ msgstr "{0} nu uitvoeren"
 msgid "Run {runNumber}"
 msgstr "Run {runNumber}"
 
+msgid "Run 01"
+msgstr "Run 01"
+
 msgid "Run 10+ parallel coding agents on your machine."
 msgstr "Draai 10+ parallelle coding agents op je machine."
 
@@ -11521,6 +11708,9 @@ msgstr "Opslaan mislukt: {message}"
 msgid "Save preferences"
 msgstr "Voorkeuren opslaan"
 
+msgid "Save profile"
+msgstr "Profiel opslaan"
+
 msgid "save the agent"
 msgstr "de agent opslaan"
 
@@ -11579,6 +11769,10 @@ msgstr "SCIM-provisioning"
 msgid "Scope"
 msgstr "Bereik"
 
+#. placeholder {0}: String(MIN_ACTIVE_DAYS)
+msgid "Scoring starts once the board can see {0} days of usage."
+msgstr "De score start zodra het bord {0} dagen gebruik ziet."
+
 msgid "Screenshot copied to clipboard"
 msgstr "Screenshot naar klembord gekopieerd"
 
@@ -11636,6 +11830,12 @@ msgstr "Branches zoeken..."
 
 msgid "Search changed files"
 msgstr "Gewijzigde bestanden zoeken"
+
+msgid "Search developers"
+msgstr "Ontwikkelaars zoeken"
+
+msgid "Search developers by handle or name"
+msgstr "Zoek ontwikkelaars op handle of naam"
 
 msgid "Search docs..."
 msgstr "Docs zoeken..."
@@ -12117,6 +12317,9 @@ msgstr "Setup-script"
 msgid "shadcn/ui tooltip recipe"
 msgstr "shadcn/ui tooltip-recept"
 
+msgid "Shade is relative to this developer's busiest day"
+msgstr "De kleurintensiteit is relatief aan de drukste dag van deze ontwikkelaar"
+
 msgid "Share"
 msgstr "Delen"
 
@@ -12152,6 +12355,9 @@ msgstr "Met Shiki gehighlight, met optionele regelnummers"
 
 msgid "Shimmer · Shimmer Label"
 msgstr "Shimmer · Shimmer-label"
+
+msgid "Ship It"
+msgstr "Geleverd"
 
 msgid "Shortcut already in use"
 msgstr "Sneltoets al in gebruik"
@@ -12586,6 +12792,9 @@ msgstr "Sparse checkout"
 msgid "Specific"
 msgstr "Specifiek"
 
+msgid "Spend"
+msgstr "Uitgaven"
+
 msgid "Split"
 msgstr "Gesplitst"
 
@@ -12918,6 +13127,9 @@ msgstr "Samenvatting"
 msgid "sun 11:00"
 msgstr "zo 11:00"
 
+msgid "Super Fights"
+msgstr "Supergevechten"
+
 msgid "superseded"
 msgstr "vervangen"
 
@@ -13059,6 +13271,9 @@ msgstr "Steun het project met een GitHub-ster"
 
 msgid "Suspended"
 msgstr "Opgeschort"
+
+msgid "Sustain"
+msgstr "Volhouden"
 
 msgid "Switch agents. Keep your workflow"
 msgstr "Wissel van agent. Houd je workflow"
@@ -13712,6 +13927,9 @@ msgstr "Nadenken over de aanpak"
 msgid "Thinking..."
 msgstr "Denken..."
 
+msgid "Thirty"
+msgstr "Dertig"
+
 msgid "This action is irreversible."
 msgstr "Deze actie kan niet worden teruggedraaid."
 
@@ -14070,6 +14288,12 @@ msgstr "Tokengebruik"
 msgid "Tokens"
 msgstr "Tokens"
 
+msgid "Tokens per session"
+msgstr "Tokens per sessie"
+
+msgid "tokens per session, trailing 30 days"
+msgstr "tokens per sessie, laatste 30 dagen"
+
 msgid "Too many feedback submissions. Try again later."
 msgstr "Te veel feedbackinzendingen. Probeer het later opnieuw."
 
@@ -14112,11 +14336,17 @@ msgstr "tooltip-refactor.diff"
 msgid "Top models"
 msgstr "Topmodellen"
 
+msgid "Top tier. Nothing left to clear."
+msgstr "Hoogste niveau. Er valt niets meer te halen."
+
 msgid "Topic"
 msgstr "Onderwerp"
 
 msgid "Total"
 msgstr "Totaal"
+
+msgid "Total agent sessions"
+msgstr "Totaal aantal agent-sessies"
 
 msgid "total cash"
 msgstr "totale cash"
@@ -14126,6 +14356,9 @@ msgstr "Totale kosten"
 
 msgid "Total spend"
 msgstr "Totale uitgaven"
+
+msgid "Total tokens published"
+msgstr "Totaal gepubliceerde tokens"
 
 msgid "Track and manage tasks synced from Linear. Stay on top of your work without leaving Superset."
 msgstr "Volg en beheer taken die vanuit Linear zijn gesynchroniseerd. Houd overzicht zonder Superset te verlaten."
@@ -14205,6 +14438,9 @@ msgstr "Beurt mislukt{0}"
 
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Zet Slack-gesprekken om in taken, laat agents draaien vanuit je werkruimte en houd teamgenoten op de hoogte waar het werk begint."
+
+msgid "Two Hands"
+msgstr "Twee handen"
 
 msgid "Type"
 msgstr "Type"
@@ -14407,6 +14643,10 @@ msgstr "Niet gepusht"
 
 msgid "Unranked"
 msgstr "Geen positie"
+
+#. placeholder {0}: String(MIN_ACTIVE_DAYS)
+msgid "Unranked until {0} days carry usage."
+msgstr "Geen positie tot {0} dagen gebruik tonen."
 
 msgid "Unresolve"
 msgstr "Heropenen"
@@ -14634,6 +14874,9 @@ msgstr "v2ProjectId komt niet overeen met het project van de werkruimte"
 msgid "Variables"
 msgstr "Variabelen"
 
+msgid "Verified through sign-in"
+msgstr "Geverifieerd via inloggen"
+
 msgid "Verify Kbd stays visible inside tooltips"
 msgstr "Controleren of Kbd zichtbaar blijft in tooltips"
 
@@ -14738,6 +14981,11 @@ msgstr "VS Code"
 
 msgid "Wait for workspace setup before starting agents"
 msgstr "Wachten op werkruimte-setup voordat agents starten"
+
+#. placeholder {0}: names.a
+#. placeholder {1}: names.b
+msgid "waiting for {0} and {1}…"
+msgstr "wachten op {0} en {1}…"
 
 msgid "Waiting for Checks"
 msgstr "Wachten op checks"
@@ -14955,6 +15203,9 @@ msgstr "Waar dit terminalscript beschikbaar is."
 msgid "Where to look next"
 msgstr "Waar je verder kunt kijken"
 
+msgid "Where you actually are"
+msgstr "Waar je echt staat"
+
 msgid "Which agents are supported?"
 msgstr "Welke agents worden ondersteund?"
 
@@ -14963,6 +15214,12 @@ msgstr "Welke AI-coding agents worden ondersteund?"
 
 msgid "Who can open this page from its link"
 msgstr "Wie deze pagina via de link kan openen"
+
+msgid "Whole Task"
+msgstr "Hele taak"
+
+msgid "Width"
+msgstr "Breedte"
 
 msgid "Window"
 msgstr "Venster"
@@ -15141,6 +15398,9 @@ msgstr "Bestand schrijven..."
 msgid "Wrote"
 msgstr "Geschreven"
 
+msgid "X handle"
+msgstr "X-handle"
+
 msgid "xs · sm · default · lg · icon-xs → icon-lg"
 msgstr "xs · sm · default · lg · icon-xs → icon-lg"
 
@@ -15191,6 +15451,10 @@ msgstr "Je zit op het <0>{currentPlanLabel}-plan</0>. Heb je vragen of wil je me
 
 msgid "You are the only owner of an organization that has other members. Transfer ownership or delete the organization first."
 msgstr "Je bent de enige eigenaar van een organisatie met andere leden. Draag het eigendom over of verwijder de organisatie eerst."
+
+#. placeholder {0}: String(MIN_ACTIVE_DAYS)
+msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
+msgstr "Je hebt geen positie tot {0} dagen gebruik tonen. De score start zodra het volledige beeld zichtbaar is."
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Dit kun je niet ongedaan maken. Terminalpanelen tonen \"Process exited\" en zijn opnieuw te starten."
@@ -15269,6 +15533,9 @@ msgstr "Je code blijft standaard lokaal, met expliciete controle over gekoppelde
 msgid "Your download starts automatically. If it didn't, grab it here."
 msgstr "Je download start automatisch. Gebeurt dat niet, download dan hier."
 
+msgid "Your GitHub link comes from the account you signed in with, so it shows as verified and cannot be edited here."
+msgstr "Je GitHub-link komt van het account waarmee je bent ingelogd, daarom staat hij als geverifieerd en kun je hem hier niet bewerken."
+
 msgid "Your name"
 msgstr "Je naam"
 
@@ -15282,8 +15549,15 @@ msgstr "Het plan van je organisatie wordt beheerd door de eigenaar op {0}."
 msgid "Your rank"
 msgstr "Je positie"
 
+#. placeholder {0}: String(gaps.length)
+msgid "Your rung is a weighted score across the {0} objectives measured for you, so a strong one offsets a weak one. Measured over the trailing 30 days."
+msgstr "Je trede is een gewogen score over de {0} doelen die voor jou gemeten zijn, dus een sterk doel compenseert een zwak doel. Gemeten over de laatste 30 dagen."
+
 msgid "Your Slack account has been linked to Superset. You can close this tab and return to Slack."
 msgstr "Je Slack-account is gekoppeld aan Superset. Je kunt dit tabblad sluiten en terug naar Slack gaan."
+
+msgid "Your stats, settled in combat"
+msgstr "Jouw statistieken, beslecht in een gevecht"
 
 msgid "Your subscription has been activated. You can now access all Pro features."
 msgstr "Je abonnement is geactiveerd. Je hebt nu toegang tot alle Pro-functies."
@@ -15296,6 +15570,10 @@ msgstr "Je Superset-download start."
 
 msgid "Your terminal sessions won't be interrupted."
 msgstr "Je terminalsessies worden niet onderbroken."
+
+#. placeholder {0}: String(gaps.length)
+msgid "Your tier is a weighted score across the {0} axes measured for you, so a strong axis offsets a weak one. The axes below are the ones lagging."
+msgstr "Je niveau is een gewogen score over de {0} assen die voor jou gemeten zijn, dus een sterke as compenseert een zwakke. De assen hieronder blijven achter."
 
 msgid "Your tokens"
 msgstr "Je tokens"

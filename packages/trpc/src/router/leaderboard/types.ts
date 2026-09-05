@@ -11,6 +11,20 @@ export interface StandingRow {
 	sessions: number;
 	approximate: boolean;
 	tier: number;
+	axes: {
+		width: number;
+		depth: number;
+		output: number;
+		sustain: number;
+		cost: number;
+	};
+}
+
+export interface ViewerProfile {
+	handle: string;
+	name: string | null;
+	tier: number;
+	axes: StandingRow["axes"];
 }
 
 export interface StandingsResult {
@@ -99,4 +113,21 @@ export interface ParticipantProfile {
 		usd: string;
 	}>;
 	daily: Array<{ day: string; tokens: number; usd: string }>;
+	bio: string | null;
+	githubHandle: string | null;
+	xHandle: string | null;
+	websiteUrl: string | null;
+	axes: {
+		width: number;
+		depth: number;
+		output: number;
+		sustain: number;
+		cost: number;
+	};
+	awards: Array<{
+		slug: string;
+		tier: number;
+		value: string;
+		awardedOn: string;
+	}>;
 }

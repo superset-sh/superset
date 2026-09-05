@@ -14,40 +14,50 @@ const furnaceGlow = (rgb: string) =>
 interface FactoryBackdropProps {
 	tint?: string;
 	halfWidth?: number;
+	glow?: boolean;
+	grid?: boolean;
 }
 
 export function FactoryBackdrop({
 	tint = BRAND_RGB,
 	halfWidth = 448,
+	glow = true,
+	grid = true,
 }: FactoryBackdropProps) {
 	return (
 		<div
 			aria-hidden="true"
 			className="pointer-events-none absolute inset-0 overflow-hidden"
 		>
-			<div
-				className="absolute inset-0"
-				style={{
-					backgroundImage: FLOOR_GRID,
-					backgroundSize: "32px 32px",
-					maskImage: FLOOR_FADE,
-					WebkitMaskImage: FLOOR_FADE,
-				}}
-			/>
-			<div
-				className="absolute inset-x-0 top-0 h-[620px]"
-				style={{ backgroundImage: furnaceGlow(tint) }}
-			/>
+			{grid && (
+				<div
+					className="absolute inset-0"
+					style={{
+						backgroundImage: FLOOR_GRID,
+						backgroundSize: "32px 32px",
+						maskImage: FLOOR_FADE,
+						WebkitMaskImage: FLOOR_FADE,
+					}}
+				/>
+			)}
+			{glow && (
+				<div
+					className="absolute inset-x-0 top-0 h-[620px]"
+					style={{ backgroundImage: furnaceGlow(tint) }}
+				/>
+			)}
 			<div
 				className="absolute inset-0"
 				style={{ backgroundImage: guideLines(halfWidth) }}
 			/>
-			<div
-				className="absolute inset-x-0 top-0 h-px"
-				style={{
-					backgroundImage: `linear-gradient(to right, transparent, rgba(${tint},0.55), transparent)`,
-				}}
-			/>
+			{glow && (
+				<div
+					className="absolute inset-x-0 top-0 h-px"
+					style={{
+						backgroundImage: `linear-gradient(to right, transparent, rgba(${tint},0.55), transparent)`,
+					}}
+				/>
+			)}
 		</div>
 	);
 }

@@ -1,11 +1,9 @@
 import { z } from "zod";
 import { isDayKey, LEADERBOARD_PERIODS } from "./periods";
+import { isReservedHandle } from "./reserved-handles";
 
 const dayKey = z.string().refine(isDayKey, "Expected a real YYYY-MM-DD date");
 
-// Per field, per (day, provider, model, host) row. Generous next to real usage,
-// but low enough that a full payload cannot overflow the bigint rollup on
-// leaderboard_participants.
 export const MAX_TOKENS_PER_ROW_FIELD = 50_000_000_000;
 
 const tokenCount = z.number().int().min(0).max(MAX_TOKENS_PER_ROW_FIELD);
@@ -19,11 +17,36 @@ export const handleSchema = z
 	.regex(
 		/^[a-z0-9](?:[a-z0-9]|-(?=[a-z0-9])){0,38}$/,
 		"Letters, numbers and single dashes only",
-	);
+	)
+	.refine((handle) => !isReservedHandle(handle), "That handle is reserved");
 
 export const visibilitySchema = z.enum(["public", "hidden"]);
 
 export const periodSchema = z.enum(LEADERBOARD_PERIODS);
+
+export const BIO_MAX = 160;
+
+export const profileSchema = z.object({
+	bio: z
+		.string()
+		.trim()
+		.max(BIO_MAX)
+		.transform((value) => value.replace(/https?:\/\/\S+/gi, "").trim())
+		.nullable(),
+	xHandle: z
+		.string()
+		.trim()
+		.regex(/^@?[A-Za-z0-9_]{1,15}$/, "Letters, numbers and underscores only")
+		.transform((value) => value.replace(/^@/, ""))
+		.nullable(),
+	websiteUrl: z
+		.string()
+		.trim()
+		.url()
+		.startsWith("https://", "Must start with https://")
+		.max(200)
+		.nullable(),
+});
 
 export const joinSchema = z.object({
 	handle: handleSchema,
@@ -99,6 +122,16 @@ export const standingsSchema = windowSchema.extend({
 	// OFFSET is O(n) over a grouped aggregate on an anonymous endpoint; the board
 	// only pages sequentially, so deep scans are abuse rather than use.
 	offset: z.number().int().min(0).max(1_000).default(0),
+});
+
+export const standingForSchema = windowSchema.extend({
+	handle: handleSchema,
+	metric: metricSchema.default("tokens"),
+});
+
+export const searchSchema = windowSchema.extend({
+	query: z.string().trim().min(1).max(64),
+	metric: metricSchema.default("tokens"),
 });
 
 export const participantSchema = windowSchema.extend({

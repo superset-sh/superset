@@ -33,6 +33,17 @@ export function formatPercent(
 	});
 }
 
+export function formatList(
+	values: string[],
+	options?: Intl.ListFormatOptions,
+): string {
+	return new Intl.ListFormat(getActiveLocale(), {
+		style: "long",
+		type: "conjunction",
+		...options,
+	}).format(values);
+}
+
 // 123400 -> "123K"
 export function formatCompactNumber(
 	value: number,

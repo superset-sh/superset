@@ -294,6 +294,11 @@ msgstr "{0} → {1}待更新"
 msgid "{0} actions"
 msgstr "{0}的操作"
 
+#. placeholder {0}: left.name
+#. placeholder {1}: right.name
+msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
+msgstr "{0}與{1}化身終端恐龍一決勝負。數據決定輸贏。"
+
 #. placeholder {0}: formatTokens(me.tokens - below.tokens)
 msgid "{0} behind you"
 msgstr "落後你 {0}"
@@ -424,6 +429,16 @@ msgstr "再 {0} 即可超越 #{1}"
 msgid "{0} tokens in the last 30 days. Publishing as <0>{handle}</0>."
 msgstr "最近30天 {0} 個 tokens。以 <0>{handle}</0> 身分發布。"
 
+#. placeholder {0}: formatTokens(cell.tokens)
+#. placeholder {1}: cell.day
+msgid "{0} tokens on {1}"
+msgstr "{1} 的 {0} 個 token"
+
+#. placeholder {0}: formatTokens(calendar.total)
+#. placeholder {1}: String(calendar.activeDays)
+msgid "{0} tokens over {1} active days"
+msgstr "{1} 個活躍日內共 {0} 個 Token"
+
 #. placeholder {0}: displayName(variables.name)
 msgid "{0} uninstalled"
 msgstr "{0}已解除安裝"
@@ -432,14 +447,34 @@ msgstr "{0}已解除安裝"
 msgid "{0} updated"
 msgstr "{0} 已更新"
 
+#. placeholder {0}: left.name
+#. placeholder {1}: right.name
+msgid "{0} vs {1}"
+msgstr "{0} 對戰 {1}"
+
 #. placeholder {0}: file.path
 msgid "{0} was deleted in this change."
 msgstr "{0}已在此更改中被刪除。"
+
+#. placeholder {0}: winner?.name
+#. placeholder {1}: result.events.length
+msgid "{0} wins in {1} turns"
+msgstr "{0} 在第 {1} 回合獲勝"
+
+#. placeholder {0}: winner?.name
+#. placeholder {1}: result.events.length
+msgid "{0} wins on damage after {1} turns"
+msgstr "{1} 回合結束，{0} 以傷害判定獲勝"
 
 #. placeholder {0}: check.name
 #. placeholder {1}: took ? `, ${took}` : ""
 msgid "{0}, {outcome}{1}"
 msgstr "{0}，{outcome}{1}"
+
+#. placeholder {0}: String(met)
+#. placeholder {1}: String(gaps.length)
+msgid "{0}/{1}"
+msgstr "{0}/{1}"
 
 #. placeholder {0}: tally.passed
 #. placeholder {1}: tally.total
@@ -450,6 +485,11 @@ msgstr "{1}項檢查中{0}項通過"
 #. placeholder {1}: summary.total
 msgid "{0}/{1} tests passed"
 msgstr "{0}/{1}項測試通過"
+
+#. placeholder {0}: String(bio.length)
+#. placeholder {1}: String(BIO_MAX)
+msgid "{0}/{1}. Links are stripped."
+msgstr "{0}/{1}。連結會被移除。"
 
 #. placeholder {0}: Math.round(100 * shareOfTotal)
 #. placeholder {1}: formatTokens(detail.tokens)
@@ -647,6 +687,10 @@ msgstr "{localHostName}（此裝置）"
 msgid "{matchCount, plural, one {{0}} other {{1}}}"
 msgstr "{matchCount, plural, one {{0}} other {{1}}}"
 
+#. placeholder {0}: gaps.length
+msgid "{met} of {0} objectives carrying for {nextLabel} — {laggingLabels} furthest behind."
+msgstr "{0} 項目標中有 {met} 項在為 {nextLabel} 出力 —— {laggingLabels} 落後最多。"
+
 msgid "{minimumContrast}:1 contrast"
 msgstr "{minimumContrast}:1對比度"
 
@@ -782,6 +826,9 @@ msgstr "{teardownFailureCount, plural, one {「仍然刪除」會跳過受影響
 msgid "{teardownFailureCount, plural, one {Delete anyway} other {Delete # anyway}}"
 msgstr "{teardownFailureCount, plural, one {仍然刪除} other {仍然刪除#個}}"
 
+msgid "{threshold, plural, one {# agent PR merged} other {# agent PRs merged}}"
+msgstr "{threshold, plural, other {已合併 # 個智慧代理 PR}}"
+
 msgid "{toolName} interrupted"
 msgstr "{toolName}已中斷"
 
@@ -826,9 +873,6 @@ msgstr "{worktreeCount, plural, one {這會從所有可連線的裝置中移除�
 
 msgid "{years}y ago"
 msgstr "{years}年前"
-
-msgid "@{profileHandle} · rank #{rank} of {total}"
-msgstr "@{profileHandle} · 第{rank}名，共{total}名"
 
 msgid "@superset"
 msgstr "@superset"
@@ -1182,6 +1226,9 @@ msgstr "帳戶正在等待刪除。"
 msgid "Account pending deletion"
 msgstr "帳戶待刪除"
 
+msgid "Achievements"
+msgstr "成就"
+
 msgid "Acme Inc."
 msgstr "Acme Inc."
 
@@ -1207,6 +1254,12 @@ msgstr "活躍{0}"
 
 msgid "Active agent sessions."
 msgstr "活躍的代理程式會話。"
+
+msgid "active days"
+msgstr "活躍天數"
+
+msgid "Active days in the last 30"
+msgstr "近 30 天的活躍天數"
 
 msgid "Active organization required to create an API key"
 msgstr "建立API金鑰需要有活動組織"
@@ -1414,6 +1467,12 @@ msgstr "代理程式啟動配置"
 msgid "Agent picker (Claude, Codex, Cursor…) used by every session-creation flow"
 msgstr "代理程式選擇器（Claude、Codex、Cursor…），所有建立會話的流程都在用"
 
+msgid "agent PRs merged"
+msgstr "已合併的代理程式 PR"
+
+msgid "Agent PRs merged per week"
+msgstr "每週合併的代理程式 PR"
+
 msgid "Agent review at parity with human review"
 msgstr "代理程式審查與人類審查持平"
 
@@ -1438,9 +1497,6 @@ msgstr "代理程式會話已開始"
 msgid "agent settings"
 msgstr "代理程式設定"
 
-msgid "Agent usage, ranked"
-msgstr "代理程式用量排名"
-
 msgid "Agents"
 msgstr "代理程式"
 
@@ -1452,6 +1508,9 @@ msgstr "代理程式無需中途干預即可完成常規工單。"
 
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "代理程式自己載入預覽、操作介面，並在標記為待審查之前附上截圖證據。"
+
+msgid "Agents running at once"
+msgstr "同時執行的代理程式數"
 
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Superset 排行榜上所有開發者的彙總代理使用量 — tokens、成本、快取行為，以及大家實際選用的模型。"
@@ -1507,6 +1566,10 @@ msgstr "全部{0}個 →"
 msgid "All {0} checks passed"
 msgstr "{0}項檢查全部通過"
 
+#. placeholder {0}: gaps.length
+msgid "All {0} objectives are carrying their weight for {nextLabel}."
+msgstr "全部 {0} 項目標都在為 {nextLabel} 出力。"
+
 #. placeholder {0}: summary.relevantChecks.length
 msgid "All {0} passed"
 msgstr "{0}全部通過"
@@ -1553,6 +1616,9 @@ msgstr "全部在目前分頁"
 
 msgid "All in current tab (split panes)"
 msgstr "全部在目前分頁（分屏窗格）"
+
+msgid "All objectives cleared. Top rung, nothing left to reach for."
+msgstr "所有目標均已達成。已在最高一級，沒有更高可追。"
 
 msgid "All of the organization's data will be permanently deleted — this cannot be undone."
 msgstr "該組織的所有資料都將被永久刪除——此操作無法復原。"
@@ -1815,6 +1881,9 @@ msgstr "API金鑰"
 msgid "API-equivalent"
 msgstr "按API價折算"
 
+msgid "API-equivalent cost"
+msgstr "API 等價費用"
+
 msgid "App display language"
 msgstr "應用顯示語言"
 
@@ -1925,6 +1994,9 @@ msgstr "位於"
 
 msgid "At least one team we can name, ours included, passes every F4 gate for a full quarter and publishes the numbers."
 msgstr "至少有一支叫得出名字的團隊（包括我們自己）連續一個季度通過全部F4關卡，並公佈資料。"
+
+msgid "at once"
+msgstr "同時"
 
 msgid "Attached"
 msgstr "已附加"
@@ -2245,6 +2317,9 @@ msgstr "二進位檔案已更改"
 
 msgid "Binary file hidden"
 msgstr "二進位檔案已隱藏"
+
+msgid "Bio"
+msgstr "簡介"
 
 msgid "Block"
 msgstr "方塊"
@@ -2865,6 +2940,9 @@ msgstr "清除工作區選擇"
 msgid "Cleared {succeededLabels} — could not clear {failedLabels}"
 msgstr "已清除{succeededLabels}——無法清除{failedLabels}"
 
+msgid "Cleared Operator inside the Run 01 window"
+msgstr "在 Run 01 期間達到 Operator"
+
 msgid "Cleared terminal history"
 msgstr "已清除終端歷史"
 
@@ -3435,6 +3513,9 @@ msgstr "連線逾時"
 msgid "Connections"
 msgstr "連線"
 
+msgid "consecutive active days"
+msgstr "連續活躍天數"
+
 msgid "Consent finished but Microsoft did not issue a token for the tenant."
 msgstr "授權同意已完成，但Microsoft沒有為該租戶簽發權杖。"
 
@@ -3495,6 +3576,9 @@ msgstr "使用GitHub繼續"
 
 msgid "Continue with Google"
 msgstr "使用Google繼續"
+
+msgid "Contributions"
+msgstr "貢獻"
 
 msgid "Control how your local machine is reachable from elsewhere"
 msgstr "控制這台機器如何從外部存取"
@@ -3580,6 +3664,9 @@ msgstr "複製失敗"
 
 msgid "Copy failed. Select the text and copy it manually."
 msgstr "複製失敗。請選中文字手動複製。"
+
+msgid "copy fight link"
+msgstr "複製對戰連結"
 
 msgid "Copy file name"
 msgstr "複製檔名"
@@ -3674,6 +3761,9 @@ msgstr "正在複製配置"
 
 msgid "Cost"
 msgstr "費用"
+
+msgid "Cost per merged PR"
+msgstr "每個合併 PR 的費用"
 
 msgid "Cost to you: $0"
 msgstr "你的費用：$0"
@@ -3891,6 +3981,9 @@ msgstr "無法載入拉取請求：{msg}"
 
 msgid "Couldn't load review comments"
 msgstr "無法載入審查評論"
+
+msgid "Couldn't load your profile, so editing is disabled."
+msgstr "無法載入你的個人檔案，編輯已停用。"
 
 msgid "Couldn't merge pull request"
 msgstr "無法合併拉取請求"
@@ -4304,6 +4397,15 @@ msgstr "日期範圍"
 msgid "Day"
 msgstr "按天"
 
+msgid "Day One"
+msgstr "元老"
+
+msgid "days running three agents at once"
+msgstr "同時執行三個代理程式的天數"
+
+msgid "days running two agents at once"
+msgstr "同時執行兩個代理程式的天數"
+
 msgid "Deactivated"
 msgstr "已停用"
 
@@ -4542,6 +4644,9 @@ msgstr "拒絕"
 
 msgid "Dependencies"
 msgstr "相依性"
+
+msgid "Depth"
+msgstr "深度"
 
 msgid "descending"
 msgstr "降序"
@@ -4850,6 +4955,9 @@ msgstr "下載模板"
 msgid "Download Superset"
 msgstr "下載Superset"
 
+msgid "Download Superset and publish yours"
+msgstr "下載 Superset，公開你自己的數據"
+
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "Download Superset at <0>{0}/download</0>."
 msgstr "在<0>{0}/download</0>下載Superset。"
@@ -4987,6 +5095,16 @@ msgstr "2027年初"
 msgid "Early 2028"
 msgstr "2028年初"
 
+#. placeholder {0}: formatDate(new Date(`${awardedOn}T00:00:00Z`), { day: "numeric", month: "short", year: "numeric", timeZone: "UTC", })
+msgid "Earned {0}"
+msgstr "獲得於 {0}"
+
+msgid "Earned {name}"
+msgstr "已獲得「{name}」"
+
+msgid "Earned {name} ×{tier}"
+msgstr "已獲得「{name}」×{tier}"
+
 msgid "Edit"
 msgstr "編輯"
 
@@ -5032,6 +5150,9 @@ msgstr "編輯器與工作流"
 
 msgid "Editor typography"
 msgstr "編輯器排版"
+
+msgid "Efficient"
+msgstr "高效"
 
 msgid "Electron/tRPC-coupled, so referenced rather than rendered. Badge = import sites today; high counts are promotion candidates for packages/ui"
 msgstr "與Electron/tRPC耦合，因此只做引用而不實際渲染。徽章=目前的匯入處數量；數量高的可以考慮提升到packages/ui"
@@ -5181,6 +5302,9 @@ msgstr "每{day} {time}"
 msgid "Every agent runs in its own Git worktree, so ten agents can work on ten branches of one repo without conflicts. You watch, review, and merge them all from one window."
 msgstr "每個代理程式都跑在自己的Git worktree裡，十個代理程式可以在同一個儲存庫的十個分支上互不衝突地工作。你在一個視窗裡觀察、審查併合併它們。"
 
+msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
+msgstr "每個維度都在為下一等級出力。保持住，等級自然會來。"
+
 msgid "Every Friday at 4pm, draft release notes from this week's merged PRs"
 msgstr "每週五下午4點，根據本週合併的PR起草釋出說明"
 
@@ -5189,6 +5313,9 @@ msgstr "每週五下午4點，根據本週合併的PR起草釋出說明。"
 
 msgid "Every minute"
 msgstr "每分鐘"
+
+msgid "Every objective is carrying its weight for the next rung. Measured over the trailing 30 days."
+msgstr "所有目標都在為下一階發力。以最近 30 天計算。"
 
 msgid "Every star on <0>{repoSlug}</0>, plotted since launch."
 msgstr "<0>{repoSlug}</0>的每一個星標，自發布起繪製。"
@@ -6620,6 +6747,9 @@ msgstr "命令的開啟方式。"
 msgid "How the prompt is delivered to the process."
 msgstr "提示詞如何傳遞給處理程序。"
 
+msgid "How tiers work →"
+msgstr "等級如何計算 →"
+
 msgid "How to install {name} in Superset"
 msgstr "如何在Superset中安裝{name}"
 
@@ -6628,6 +6758,9 @@ msgstr "https://"
 
 msgid "https://github.com/owner/repo.git or /path/to/repo"
 msgstr "https://github.com/owner/repo.git 或 /path/to/repo"
+
+msgid "Human"
+msgstr "人類"
 
 msgid "Human mode:"
 msgstr "人類模式："
@@ -7365,6 +7498,9 @@ msgstr "已退出團隊"
 msgid "Legal"
 msgstr "法律"
 
+msgid "Less"
+msgstr "少"
+
 msgid "less than a minute ago"
 msgstr "不到一分鐘前"
 
@@ -7451,6 +7587,9 @@ msgstr "請先為專案關聯GitHub儲存庫才能克隆。"
 
 msgid "Link by Stripe"
 msgstr "Link by Stripe"
+
+msgid "link copied"
+msgstr "連結已複製"
 
 msgid "Link copied"
 msgstr "連結已複製"
@@ -7835,6 +7974,9 @@ msgstr "MCP伺服器"
 
 msgid "Mean"
 msgstr "平均"
+
+msgid "Measured over the trailing 30 days"
+msgstr "以最近 30 天計算"
 
 msgid "Measuring resource usage…"
 msgstr "正在測量資源佔用…"
@@ -8245,6 +8387,9 @@ msgstr "新建瀏覽器"
 msgid "New Browser Tab"
 msgstr "新瀏覽器分頁"
 
+msgid "new challengers"
+msgstr "換對手"
+
 msgid "New chat"
 msgstr "新建聊天"
 
@@ -8374,6 +8519,9 @@ msgstr "下一代聊天"
 
 msgid "Next:"
 msgstr "下一節："
+
+msgid "Next: {nextLabel}"
+msgstr "下一級：{nextLabel}"
 
 msgid "Nice, open a PR when ready."
 msgstr "不錯，準備好就開個PR。"
@@ -8891,6 +9039,9 @@ msgstr "不是。你的代理程式保持獨立，Superset是圍繞它們的編�
 msgid "Nobody has joined the board yet."
 msgstr "還沒有人加入榜單。"
 
+msgid "Nobody here by that name."
+msgstr "找不到這個名字的人。"
+
 msgid "Nobody on your team has shared automations yet."
 msgstr "團隊裡還沒有人共享自動化。"
 
@@ -9106,6 +9257,12 @@ msgstr "一名工程師在一個工作日內維持3條以上代理程式工作�
 msgid "One human drives at most one agent at a time."
 msgstr "一個人同時最多驅動一個代理程式。"
 
+msgid "One line about how you work"
+msgstr "用一句話介紹你的工作方式"
+
+msgid "One of the first hundred on the board"
+msgstr "榜單最早的一百人之一"
+
 msgid "one of the selected repositories"
 msgstr "所選儲存庫之一"
 
@@ -9150,6 +9307,9 @@ msgstr "只有擁有者才能管理帳單"
 
 msgid "Only owners can update organization settings"
 msgstr "只有擁有者才能更新組織設定"
+
+msgid "Only people who opted in appear here."
+msgstr "只有選擇加入的人才會出現在這裡。"
 
 msgid "Only the author can edit a comment"
 msgstr "只有作者才能編輯評論"
@@ -9906,6 +10066,15 @@ msgstr "待處理邀請"
 msgid "People with access"
 msgstr "有存取權限的人"
 
+msgid "per merged PR"
+msgstr "每個合併 PR"
+
+msgid "per merged PR, lower is better"
+msgstr "每個合併 PR 的成本，越低越好"
+
+msgid "per session"
+msgstr "每次會話"
+
 msgid "per user/month"
 msgstr "每使用者/月"
 
@@ -9982,6 +10151,9 @@ msgstr "在{hostName}上選擇專案的worktree資料夾。"
 msgid "Pick the worktree folder on {hostName}."
 msgstr "在{hostName}上選擇worktree資料夾。"
 
+msgid "Pick two developers, watch their agent usage stats fight it out as terminal dinosaurs. Same two handles always produce the same fight."
+msgstr "挑選兩位開發者，看他們的智慧代理使用數據化為終端恐龍一決勝負。相同的兩個帳號名稱永遠產生相同的對戰。"
+
 msgid "Pick your agent for a one-line install, or copy the config by hand. Every client, including OAuth and API key setup, is covered in the <0>full MCP server docs</0>."
 msgstr "選擇你的代理程式獲取一行安裝命令，或者手動複製配置。所有客戶端（含OAuth和API金鑰設定）都在<0>完整的MCP伺服器文件</0>裡。"
 
@@ -10024,6 +10196,9 @@ msgstr "正在規劃tooltip重構"
 
 msgid "Plans"
 msgstr "方案"
+
+msgid "Plant Floor"
+msgstr "廠房"
 
 msgid "Plant Manager"
 msgstr "廠長"
@@ -10428,6 +10603,9 @@ msgstr "供應商：{0}"
 msgid "Provisioning failed and the sandbox was torn down. Nothing is running, and this workspace can't be opened — create a new one to try again."
 msgstr "預配失敗，沙箱已被銷燬。目前沒有任何處理程序在執行，此工作區也無法開啟 — 請新建一個再試。"
 
+msgid "PRs a week"
+msgstr "PR/週"
+
 msgid "Public"
 msgstr "公開"
 
@@ -10568,6 +10746,9 @@ msgstr "RAM佔比"
 
 msgid "Rank"
 msgstr "排名"
+
+msgid "rank #{rank} of {total}"
+msgstr "第 {rank} 名，共 {total} 名"
 
 msgid "Rank by"
 msgstr "排序依據"
@@ -10785,6 +10966,9 @@ msgstr "遷移專案？"
 
 msgid "Relocating…"
 msgstr "正在遷移…"
+
+msgid "rematch"
+msgstr "再來一局"
 
 msgid "remote"
 msgstr "遠端"
@@ -11386,6 +11570,9 @@ msgstr "立即執行{0}"
 msgid "Run {runNumber}"
 msgstr "第 {runNumber} 期"
 
+msgid "Run 01"
+msgstr "Run 01"
+
 msgid "Run 10+ parallel coding agents on your machine."
 msgstr "在你的機器上並行執行10個以上的編碼代理程式。"
 
@@ -11521,6 +11708,9 @@ msgstr "儲存失敗：{message}"
 msgid "Save preferences"
 msgstr "儲存偏好設定"
 
+msgid "Save profile"
+msgstr "儲存個人資料"
+
 msgid "save the agent"
 msgstr "儲存代理程式"
 
@@ -11579,6 +11769,10 @@ msgstr "SCIM帳號開通"
 msgid "Scope"
 msgstr "範圍"
 
+#. placeholder {0}: String(MIN_ACTIVE_DAYS)
+msgid "Scoring starts once the board can see {0} days of usage."
+msgstr "當看板看到 {0} 天的使用資料後，才會開始計分。"
+
 msgid "Screenshot copied to clipboard"
 msgstr "截圖已複製到剪貼簿"
 
@@ -11636,6 +11830,12 @@ msgstr "搜尋分支..."
 
 msgid "Search changed files"
 msgstr "搜尋更改的檔案"
+
+msgid "Search developers"
+msgstr "搜尋開發者"
+
+msgid "Search developers by handle or name"
+msgstr "以帳號名稱或姓名搜尋開發者"
 
 msgid "Search docs..."
 msgstr "搜尋文件..."
@@ -12117,6 +12317,9 @@ msgstr "設定指令碼"
 msgid "shadcn/ui tooltip recipe"
 msgstr "shadcn/ui的tooltip方案"
 
+msgid "Shade is relative to this developer's busiest day"
+msgstr "深淺以該開發者最忙的一天為基準"
+
 msgid "Share"
 msgstr "分享"
 
@@ -12152,6 +12355,9 @@ msgstr "使用Shiki高亮，行號可選"
 
 msgid "Shimmer · Shimmer Label"
 msgstr "微光 · 微光標籤"
+
+msgid "Ship It"
+msgstr "交付"
 
 msgid "Shortcut already in use"
 msgstr "快速鍵已被使用"
@@ -12586,6 +12792,9 @@ msgstr "稀疏檢出"
 msgid "Specific"
 msgstr "指定"
 
+msgid "Spend"
+msgstr "支出"
+
 msgid "Split"
 msgstr "分屏"
 
@@ -12918,6 +13127,9 @@ msgstr "摘要"
 msgid "sun 11:00"
 msgstr "週日11:00"
 
+msgid "Super Fights"
+msgstr "超級對戰"
+
 msgid "superseded"
 msgstr "已被取代"
 
@@ -13059,6 +13271,9 @@ msgstr "在GitHub上點個star來支援這個專案"
 
 msgid "Suspended"
 msgstr "已暫停"
+
+msgid "Sustain"
+msgstr "持續"
 
 msgid "Switch agents. Keep your workflow"
 msgstr "換代理程式，不換工作流"
@@ -13712,6 +13927,9 @@ msgstr "正在思考實現方式"
 msgid "Thinking..."
 msgstr "正在思考..."
 
+msgid "Thirty"
+msgstr "三十天"
+
 msgid "This action is irreversible."
 msgstr "此操作不可逆。"
 
@@ -14070,6 +14288,12 @@ msgstr "Token用量"
 msgid "Tokens"
 msgstr "Token"
 
+msgid "Tokens per session"
+msgstr "每次會話的 Token"
+
+msgid "tokens per session, trailing 30 days"
+msgstr "每次會話的 Token，近 30 天"
+
 msgid "Too many feedback submissions. Try again later."
 msgstr "回饋提交次數過多。請稍後重試。"
 
@@ -14112,11 +14336,17 @@ msgstr "tooltip-refactor.diff"
 msgid "Top models"
 msgstr "模型排行"
 
+msgid "Top tier. Nothing left to clear."
+msgstr "最高等級。沒有更多可以達成的了。"
+
 msgid "Topic"
 msgstr "主題"
 
 msgid "Total"
 msgstr "合計"
+
+msgid "Total agent sessions"
+msgstr "代理程式會話總數"
 
 msgid "total cash"
 msgstr "現金總額"
@@ -14126,6 +14356,9 @@ msgstr "總費用"
 
 msgid "Total spend"
 msgstr "總花費"
+
+msgid "Total tokens published"
+msgstr "已公開的 Token 總數"
 
 msgid "Track and manage tasks synced from Linear. Stay on top of your work without leaving Superset."
 msgstr "追蹤和管理從Linear同步的任務。不用離開Superset就能掌控工作。"
@@ -14205,6 +14438,9 @@ msgstr "本輪失敗{0}"
 
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "把Slack對話變成任務，從工作區執行代理程式，讓隊友在工作開始的地方保持同步。"
+
+msgid "Two Hands"
+msgstr "雙手齊開"
 
 msgid "Type"
 msgstr "型別"
@@ -14407,6 +14643,10 @@ msgstr "未推送"
 
 msgid "Unranked"
 msgstr "未上榜"
+
+#. placeholder {0}: String(MIN_ACTIVE_DAYS)
+msgid "Unranked until {0} days carry usage."
+msgstr "在累計 {0} 天使用紀錄之前不參與排名。"
 
 msgid "Unresolve"
 msgstr "取消解決"
@@ -14634,6 +14874,9 @@ msgstr "v2ProjectId與該工作區的專案不匹配"
 msgid "Variables"
 msgstr "變數"
 
+msgid "Verified through sign-in"
+msgstr "透過登入驗證"
+
 msgid "Verify Kbd stays visible inside tooltips"
 msgstr "確認Kbd在tooltip中仍然可見"
 
@@ -14738,6 +14981,11 @@ msgstr "VS Code"
 
 msgid "Wait for workspace setup before starting agents"
 msgstr "啟動代理程式前等待工作區設定完成"
+
+#. placeholder {0}: names.a
+#. placeholder {1}: names.b
+msgid "waiting for {0} and {1}…"
+msgstr "正在等待 {0} 和 {1}…"
 
 msgid "Waiting for Checks"
 msgstr "等待檢查"
@@ -14955,6 +15203,9 @@ msgstr "此終端指令碼在哪些地方可用。"
 msgid "Where to look next"
 msgstr "接下來可以看這些"
 
+msgid "Where you actually are"
+msgstr "你的真實位置"
+
 msgid "Which agents are supported?"
 msgstr "支援哪些代理程式？"
 
@@ -14963,6 +15214,12 @@ msgstr "支援哪些AI編碼代理程式？"
 
 msgid "Who can open this page from its link"
 msgstr "誰可以通過連結開啟這個頁面"
+
+msgid "Whole Task"
+msgstr "整任務"
+
+msgid "Width"
+msgstr "寬度"
 
 msgid "Window"
 msgstr "視窗"
@@ -15141,6 +15398,9 @@ msgstr "正在寫入檔案..."
 msgid "Wrote"
 msgstr "已寫入"
 
+msgid "X handle"
+msgstr "X 帳號名稱"
+
 msgid "xs · sm · default · lg · icon-xs → icon-lg"
 msgstr "xs · sm · default · lg · icon-xs → icon-lg"
 
@@ -15191,6 +15451,10 @@ msgstr "你目前使用的是<0>{currentPlanLabel}方案</0>。如有任何疑�
 
 msgid "You are the only owner of an organization that has other members. Transfer ownership or delete the organization first."
 msgstr "你是某個仍有其他成員的組織的唯一擁有者。請先轉移所有權或刪除該組織。"
+
+#. placeholder {0}: String(MIN_ACTIVE_DAYS)
+msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
+msgstr "在累計 {0} 天使用紀錄之前你不參與排名。等看板掌握完整情況後才會開始計分。"
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "此操作無法復原。終端窗格會顯示「處理程序已退出」，之後可以重新啟動。"
@@ -15269,6 +15533,9 @@ msgstr "你的程式碼預設留在本地，連線哪些服務由你明確決定
 msgid "Your download starts automatically. If it didn't, grab it here."
 msgstr "下載將自動開始。若未開始，請由此取得。"
 
+msgid "Your GitHub link comes from the account you signed in with, so it shows as verified and cannot be edited here."
+msgstr "你的 GitHub 連結來自登入所用的帳號，因此顯示為已驗證，無法在此編輯。"
+
 msgid "Your name"
 msgstr "你的姓名"
 
@@ -15282,8 +15549,15 @@ msgstr "你所在組織的方案由擁有者在{0}管理。"
 msgid "Your rank"
 msgstr "你的排名"
 
+#. placeholder {0}: String(gaps.length)
+msgid "Your rung is a weighted score across the {0} objectives measured for you, so a strong one offsets a weak one. Measured over the trailing 30 days."
+msgstr "你的階級是為你測得的 {0} 項目標的加權分數，強項可以彌補弱項。以最近 30 天計算。"
+
 msgid "Your Slack account has been linked to Superset. You can close this tab and return to Slack."
 msgstr "你的Slack帳戶已關聯到Superset。你可以關閉這個分頁並返回Slack。"
+
+msgid "Your stats, settled in combat"
+msgstr "用你的數據，在對戰中見真章"
 
 msgid "Your subscription has been activated. You can now access all Pro features."
 msgstr "你的訂閱已啟用。現在可以使用全部Pro功能。"
@@ -15296,6 +15570,10 @@ msgstr "您的 Superset 下載即將開始。"
 
 msgid "Your terminal sessions won't be interrupted."
 msgstr "你的終端會話不會被中斷。"
+
+#. placeholder {0}: String(gaps.length)
+msgid "Your tier is a weighted score across the {0} axes measured for you, so a strong axis offsets a weak one. The axes below are the ones lagging."
+msgstr "你的等級是為你測得的 {0} 個面向的加權分數，強項可以彌補弱項。以下是落後的面向。"
 
 msgid "Your tokens"
 msgstr "你的 token 數"

@@ -7,12 +7,16 @@ import { TierTube } from "@/app/[lang]/components/TierTube";
 import type {
 	LeaderboardMetric,
 	LeaderboardStats,
+	StandingRow,
 	Standings,
 } from "@/app/[lang]/utils/fetchLeaderboard";
 import {
+	fetchSearch,
+	fetchStanding,
 	fetchStandings,
 	fetchStats,
 } from "@/app/[lang]/utils/fetchLeaderboard";
+import { fetchViewer } from "@/app/[lang]/utils/fetchViewer";
 import {
 	formatDayRange,
 	formatTokens,
@@ -21,12 +25,15 @@ import {
 import { LeaderboardTable } from "./components/LeaderboardTable";
 import { MetricTabs } from "./components/MetricTabs";
 import { type RangeSelection, RangeTabs } from "./components/RangeTabs";
+import { SearchBox } from "./components/SearchBox";
 import { buildStandingsQuery } from "./utils/buildStandingsQuery";
 
 interface LeaderboardBoardProps {
 	initialStandings: Standings | null;
 	initialStats: LeaderboardStats | null;
 	earliest: string;
+	header?: React.ReactNode;
+	headerLink?: React.ReactNode;
 
 	pixelClassName?: string;
 }
@@ -37,6 +44,8 @@ export function LeaderboardBoard({
 	initialStandings,
 	initialStats,
 	earliest,
+	header,
+	headerLink,
 	pixelClassName,
 }: LeaderboardBoardProps) {
 	const { t } = useLingui();
@@ -47,7 +56,88 @@ export function LeaderboardBoard({
 	const [loading, setLoading] = useState(false);
 	const [touched, setTouched] = useState(false);
 	const [loadingMore, setLoadingMore] = useState(false);
+	const [search, setSearch] = useState("");
+	const [viewerHandle, setViewerHandle] = useState<string | null>(null);
+	const [pinned, setPinned] = useState<StandingRow | null>(null);
+
+	useEffect(() => {
+		const initial = new URLSearchParams(window.location.search).get("q");
+		if (initial) setSearch(initial);
+	}, []);
+
+	useEffect(() => {
+		const url = new URL(window.location.href);
+		const term = search.trim();
+		if (term) url.searchParams.set("q", term);
+		else url.searchParams.delete("q");
+		window.history.replaceState(null, "", url);
+	}, [search]);
+	const [results, setResults] = useState<StandingRow[] | null>(null);
+	const [searching, setSearching] = useState(false);
 	const queryGeneration = useRef(0);
+
+	useEffect(() => {
+		const term = search.trim();
+		if (term.length === 0) {
+			setResults(null);
+			setSearching(false);
+			return;
+		}
+
+		const controller = new AbortController();
+		setResults(null);
+		setSearching(true);
+		const timer = setTimeout(() => {
+			fetchSearch(
+				term,
+				buildStandingsQuery(selection, metric),
+				controller.signal,
+			)
+				.then((rows) => {
+					if (!controller.signal.aborted) setResults(rows);
+				})
+				.finally(() => {
+					if (!controller.signal.aborted) setSearching(false);
+				});
+		}, 200);
+
+		return () => {
+			clearTimeout(timer);
+			controller.abort();
+		};
+	}, [search, selection, metric]);
+
+	useEffect(() => {
+		let live = true;
+		fetchViewer().then((viewer) => {
+			if (live) setViewerHandle(viewer?.handle ?? null);
+		});
+		return () => {
+			live = false;
+		};
+	}, []);
+
+	const loadedRows = standings?.rows;
+	const onScreen =
+		!!viewerHandle && !!loadedRows?.some((row) => row.handle === viewerHandle);
+
+	useEffect(() => {
+		if (!viewerHandle || onScreen) {
+			setPinned(null);
+			return;
+		}
+
+		const controller = new AbortController();
+		fetchStanding(
+			viewerHandle,
+			buildStandingsQuery(selection, metric),
+			controller.signal,
+		).then((row) => {
+			if (!controller.signal.aborted) setPinned(row);
+		});
+
+		return () => controller.abort();
+	}, [viewerHandle, onScreen, selection, metric]);
 
 	useEffect(() => {
 		if (!touched) return;
@@ -108,6 +198,13 @@ export function LeaderboardBoard({
 
 	return (
 		<div className="space-y-8">
+			<div className="flex items-center justify-between gap-4">
+				<SearchBox value={search} onChange={setSearch} busy={searching} />
+				{headerLink}
+			</div>
+
+			{header}
+
 			<TierTube
 				subject="fleet"
 				position={stats?.tiers?.position ?? 0}
@@ -177,13 +274,16 @@ export function LeaderboardBoard({
 			</div>
 
 			<LeaderboardTable
-				rows={standings?.rows ?? []}
+				rows={results ?? standings?.rows ?? []}
 				metric={metric}
-				isLoading={loading && !standings}
+				isLoading={results === null && loading && !standings}
+				emptyReason={results !== null ? "search" : "board"}
 				pixelClassName={pixelClassName}
+				viewerHandle={viewerHandle}
+				pinnedRow={results === null ? pinned : null}
 			/>
 
-			{standings && total > shown && (
+			{results === null && standings && total > shown && (
 				<div className="flex flex-col items-center gap-3">
 					<button
 						type="button"

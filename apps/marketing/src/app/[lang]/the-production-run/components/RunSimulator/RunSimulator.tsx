@@ -2,15 +2,17 @@
 
 import { useLingui } from "@lingui/react/macro";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { MeterBar } from "@/app/[lang]/components/MeterBar";
 import { tierLabel, tierRgb } from "@/app/[lang]/components/TierBadge";
 import { TierIcon } from "@/app/[lang]/components/TierIcon";
 import {
+	axisAtBand,
 	COST_CEILINGS,
-	FLOORS,
 	monthLabel,
 	RUN_MONTHS,
 	runStateAt,
 	SLIDER_MONTHS,
+	TIER_BANDS,
 } from "../../constants";
 import { Readout } from "./components/Readout";
 
@@ -70,6 +72,7 @@ export function RunSimulator() {
 	const costRatio = start.costPerPr / state.costPerPr;
 	const rgb = tierRgb(state.tier);
 	const nextTier = Math.min(4, state.tier + 1);
+	const nextBand = TIER_BANDS[nextTier - 1] ?? 0;
 	const atTop = state.tier >= 4;
 
 	return (
@@ -123,7 +126,7 @@ export function RunSimulator() {
 							floor={
 								atTop
 									? "top"
-									: `T${nextTier} \u2265 ${FLOORS.width[nextTier - 1]}`
+									: `T${nextTier} ~ ${axisAtBand("width", nextBand).toFixed(1)}`
 							}
 							held={state.limitedBy.includes("Width")}
 						/>
@@ -134,9 +137,7 @@ export function RunSimulator() {
 							floor={
 								atTop
 									? "top"
-									: `T${nextTier} \u2265 ${formatTokens(
-											FLOORS.depth[nextTier - 1] ?? 0,
-										)}`
+									: `T${nextTier} ~ ${formatTokens(axisAtBand("depth", nextBand))}`
 							}
 							held={state.limitedBy.includes("Depth")}
 						/>
@@ -147,7 +148,7 @@ export function RunSimulator() {
 							floor={
 								atTop
 									? "top"
-									: `T${nextTier} \u2265 ${FLOORS.output[nextTier - 1]}`
+									: `T${nextTier} ~ ${axisAtBand("output", nextBand).toFixed(1)}`
 							}
 							held={state.limitedBy.includes("Output")}
 						/>
@@ -158,7 +159,7 @@ export function RunSimulator() {
 							floor={
 								atTop
 									? "top"
-									: `T${nextTier} \u2265 ${FLOORS.sustain[nextTier - 1]}`
+									: `T${nextTier} ~ ${Math.round(axisAtBand("sustain", nextBand))}`
 							}
 							held={state.limitedBy.includes("Sustain")}
 						/>
@@ -191,7 +192,7 @@ export function RunSimulator() {
 							<TierIcon tier={state.tier} size={30} />
 						</span>
 						<p className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground mt-3">
-							Tier {state.tier}
+							Tier {state.tier} · score {Math.round(state.score)}
 						</p>
 						<p
 							className="text-xl md:text-2xl font-medium tracking-tight mt-1"
@@ -212,15 +213,11 @@ export function RunSimulator() {
 								{Math.round(state.progress * 100)}%
 							</span>
 						</div>
-						<div className="mt-2 h-1.5 w-full bg-border overflow-hidden">
-							<div
-								className="h-full transition-[width] duration-100"
-								style={{
-									width: `${state.progress * 100}%`,
-									background: `rgb(${rgb})`,
-								}}
-							/>
-						</div>
+						<MeterBar
+							className="mt-2"
+							value={state.progress}
+							color={`rgb(${rgb})`}
+						/>
 					</div>
 
 					<dl className="mt-5 text-xs">
