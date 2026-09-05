@@ -855,9 +855,6 @@ msgstr "% of subscribed orgs at month end still subscribed one month later (coun
 msgid "% of subscriptions started each month still active k months later (Neon, enterprise excluded)"
 msgstr "% of subscriptions started each month still active k months later (Neon, enterprise excluded)"
 
-msgid "© {year} Superset"
-msgstr "© {year} Superset"
-
 msgid "© {year} Superset Inc."
 msgstr "© {year} Superset Inc."
 
@@ -1181,9 +1178,6 @@ msgstr "Account install resolves first-party manifests only, so {plugin} from {m
 
 msgid "Account is pending deletion."
 msgstr "Account is pending deletion."
-
-msgid "Account menu"
-msgstr "Account menu"
 
 msgid "Account pending deletion"
 msgstr "Account pending deletion"
@@ -9430,6 +9424,9 @@ msgstr "Open localhost:{0} in external browser"
 msgid "Open menu"
 msgstr "Open menu"
 
+msgid "Open navigation"
+msgstr "Open navigation"
+
 msgid "Open on GitHub"
 msgstr "Open on GitHub"
 
@@ -9651,9 +9648,6 @@ msgstr "Organization logo"
 
 msgid "Organization menu"
 msgstr "Organization menu"
-
-msgid "Organization menu for {displayName}"
-msgstr "Organization menu for {displayName}"
 
 msgid "Organization Name"
 msgstr "Organization Name"

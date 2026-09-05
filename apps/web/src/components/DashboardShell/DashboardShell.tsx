@@ -1,22 +1,18 @@
-import { msg } from "@lingui/core/macro";
+import { AppSidebar, type AppSidebarVariant } from "../AppSidebar";
 
-import { AppHeader, type AppHeaderNavItem } from "../AppHeader";
-import { Footer } from "./components/Footer";
-
-const NAV_ITEMS: AppHeaderNavItem[] = [
-	{ href: "/agents", label: msg({ message: "Home" }) },
-	{ href: "/integrations", label: msg({ message: "Integrations" }) },
-	{ href: "/settings/account", label: msg({ message: "Account" }) },
-];
-
-export function DashboardShell({ children }: { children: React.ReactNode }) {
+export function DashboardShell({
+	variant,
+	children,
+}: {
+	variant: AppSidebarVariant;
+	children: React.ReactNode;
+}) {
 	return (
-		<div className="flex min-h-[100dvh] flex-col bg-background">
-			<AppHeader navItems={NAV_ITEMS} />
-			<main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+		<div className="flex h-dvh w-full flex-col overflow-hidden bg-background md:flex-row">
+			<AppSidebar variant={variant} />
+			<main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
 				{children}
 			</main>
-			<Footer />
 		</div>
 	);
 }

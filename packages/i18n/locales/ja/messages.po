@@ -855,9 +855,6 @@ msgstr "月末時点で契約中の組織が1か月後も契約している割�
 msgid "% of subscriptions started each month still active k months later (Neon, enterprise excluded)"
 msgstr "各月に開始したサブスクリプションのうち、kか月後も有効な割合(Neon、エンタープライズ除く)"
 
-msgid "© {year} Superset"
-msgstr "© {year} Superset"
-
 msgid "© {year} Superset Inc."
 msgstr "© {year} Superset Inc."
 
@@ -1181,9 +1178,6 @@ msgstr "アカウントへのインストールはファーストパーティの
 
 msgid "Account is pending deletion."
 msgstr "アカウントは削除待ちです。"
-
-msgid "Account menu"
-msgstr "アカウントメニュー"
 
 msgid "Account pending deletion"
 msgstr "アカウントは削除待ちです"
@@ -9430,6 +9424,9 @@ msgstr "localhost:{0}を外部ブラウザで開く"
 msgid "Open menu"
 msgstr "メニューを開く"
 
+msgid "Open navigation"
+msgstr "ナビゲーションを開く"
+
 msgid "Open on GitHub"
 msgstr "GitHubで開く"
 
@@ -9651,9 +9648,6 @@ msgstr "組織のロゴ"
 
 msgid "Organization menu"
 msgstr "組織メニュー"
-
-msgid "Organization menu for {displayName}"
-msgstr "{displayName}の組織メニュー"
 
 msgid "Organization Name"
 msgstr "組織名"

@@ -3,6 +3,8 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { DashboardShell } from "@/components/DashboardShell";
+import { PageContainer } from "@/components/PageContainer";
+import { getAgentsUiAccess } from "../(agents)/utils/getAgentsUiAccess";
 
 export default async function DashboardLayout({
 	children,
@@ -17,5 +19,11 @@ export default async function DashboardLayout({
 		redirect("/sign-in");
 	}
 
-	return <DashboardShell>{children}</DashboardShell>;
+	const { hasAgentsUiAccess } = await getAgentsUiAccess();
+
+	return (
+		<DashboardShell variant={hasAgentsUiAccess ? "agents" : "dashboard"}>
+			<PageContainer>{children}</PageContainer>
+		</DashboardShell>
+	);
 }

@@ -855,9 +855,6 @@ msgstr "% tổ chức đang đăng ký vào cuối tháng vẫn còn đăng ký 
 msgid "% of subscriptions started each month still active k months later (Neon, enterprise excluded)"
 msgstr "% gói đăng ký bắt đầu mỗi tháng còn hoạt động sau k tháng (Neon, không tính enterprise)"
 
-msgid "© {year} Superset"
-msgstr "© {year} Superset"
-
 msgid "© {year} Superset Inc."
 msgstr "© {year} Superset Inc."
 
@@ -1181,9 +1178,6 @@ msgstr "Cài đặt lên tài khoản chỉ xử lý manifest nội bộ, nên {
 
 msgid "Account is pending deletion."
 msgstr "Tài khoản đang chờ xóa."
-
-msgid "Account menu"
-msgstr "Menu tài khoản"
 
 msgid "Account pending deletion"
 msgstr "Tài khoản đang chờ xóa"
@@ -9430,6 +9424,9 @@ msgstr "Mở localhost:{0} trong trình duyệt ngoài"
 msgid "Open menu"
 msgstr "Mở menu"
 
+msgid "Open navigation"
+msgstr "Mở điều hướng"
+
 msgid "Open on GitHub"
 msgstr "Mở trên GitHub"
 
@@ -9651,9 +9648,6 @@ msgstr "Logo tổ chức"
 
 msgid "Organization menu"
 msgstr "Menu tổ chức"
-
-msgid "Organization menu for {displayName}"
-msgstr "Menu tổ chức cho {displayName}"
 
 msgid "Organization Name"
 msgstr "Tên tổ chức"

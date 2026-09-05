@@ -855,9 +855,6 @@ msgstr "% de organizaciones suscritas a fin de mes que siguen suscritas un mes d
 msgid "% of subscriptions started each month still active k months later (Neon, enterprise excluded)"
 msgstr "% de suscripciones iniciadas cada mes que siguen activas k meses después (Neon, sin enterprise)"
 
-msgid "© {year} Superset"
-msgstr "© {year} Superset"
-
 msgid "© {year} Superset Inc."
 msgstr "© {year} Superset Inc."
 
@@ -1181,9 +1178,6 @@ msgstr "La instalación en la cuenta solo resuelve manifiestos propios, así que
 
 msgid "Account is pending deletion."
 msgstr "La cuenta está pendiente de eliminación."
-
-msgid "Account menu"
-msgstr "Menú de la cuenta"
 
 msgid "Account pending deletion"
 msgstr "Cuenta pendiente de eliminación"
@@ -9430,6 +9424,9 @@ msgstr "Abrir localhost:{0} en el navegador externo"
 msgid "Open menu"
 msgstr "Abrir el menú"
 
+msgid "Open navigation"
+msgstr "Abrir navegación"
+
 msgid "Open on GitHub"
 msgstr "Abrir en GitHub"
 
@@ -9651,9 +9648,6 @@ msgstr "Logotipo de la organización"
 
 msgid "Organization menu"
 msgstr "Menú de organización"
-
-msgid "Organization menu for {displayName}"
-msgstr "Menú de organización de {displayName}"
 
 msgid "Organization Name"
 msgstr "Nombre de la organización"

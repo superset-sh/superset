@@ -855,9 +855,6 @@ msgstr "月末订阅组织中一个月后仍在订阅的比例（按数量计；
 msgid "% of subscriptions started each month still active k months later (Neon, enterprise excluded)"
 msgstr "每月新增订阅在k个月后仍然有效的比例（Neon，不含企业版）"
 
-msgid "© {year} Superset"
-msgstr "© {year} Superset"
-
 msgid "© {year} Superset Inc."
 msgstr "© {year} Superset Inc."
 
@@ -1181,9 +1178,6 @@ msgstr "账户安装仅解析第一方清单，因此来自 {marketplace} 的 {p
 
 msgid "Account is pending deletion."
 msgstr "账户正在等待删除。"
-
-msgid "Account menu"
-msgstr "账户菜单"
 
 msgid "Account pending deletion"
 msgstr "账户待删除"
@@ -9430,6 +9424,9 @@ msgstr "在外部浏览器中打开localhost:{0}"
 msgid "Open menu"
 msgstr "打开菜单"
 
+msgid "Open navigation"
+msgstr "打开导航"
+
 msgid "Open on GitHub"
 msgstr "在GitHub上打开"
 
@@ -9651,9 +9648,6 @@ msgstr "组织logo"
 
 msgid "Organization menu"
 msgstr "组织菜单"
-
-msgid "Organization menu for {displayName}"
-msgstr "{displayName}的组织菜单"
 
 msgid "Organization Name"
 msgstr "组织名称"

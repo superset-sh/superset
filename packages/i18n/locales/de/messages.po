@@ -855,9 +855,6 @@ msgstr "% der zum Monatsende abonnierten Orgs, die einen Monat später noch abon
 msgid "% of subscriptions started each month still active k months later (Neon, enterprise excluded)"
 msgstr "% der pro Monat gestarteten Abos, die k Monate später noch aktiv sind (Neon, ohne Enterprise)"
 
-msgid "© {year} Superset"
-msgstr "© {year} Superset"
-
 msgid "© {year} Superset Inc."
 msgstr "© {year} Superset Inc."
 
@@ -1181,9 +1178,6 @@ msgstr "Die Installation im Konto löst nur Erstanbieter-Manifeste auf, daher ka
 
 msgid "Account is pending deletion."
 msgstr "Das Konto ist zur Löschung vorgemerkt."
-
-msgid "Account menu"
-msgstr "Kontomenü"
 
 msgid "Account pending deletion"
 msgstr "Konto zur Löschung vorgemerkt"
@@ -9430,6 +9424,9 @@ msgstr "localhost:{0} im externen Browser öffnen"
 msgid "Open menu"
 msgstr "Menü öffnen"
 
+msgid "Open navigation"
+msgstr "Navigation öffnen"
+
 msgid "Open on GitHub"
 msgstr "Auf GitHub öffnen"
 
@@ -9651,9 +9648,6 @@ msgstr "Organisationslogo"
 
 msgid "Organization menu"
 msgstr "Organisationsmenü"
-
-msgid "Organization menu for {displayName}"
-msgstr "Organisationsmenü für {displayName}"
 
 msgid "Organization Name"
 msgstr "Name der Organisation"

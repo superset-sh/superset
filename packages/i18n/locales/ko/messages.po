@@ -855,9 +855,6 @@ msgstr "월말 기준 구독 조직 중 한 달 뒤에도 구독을 유지한 �
 msgid "% of subscriptions started each month still active k months later (Neon, enterprise excluded)"
 msgstr "월별로 시작된 구독 중 k개월 후에도 활성 상태인 비율 (Neon, 엔터프라이즈 제외)"
 
-msgid "© {year} Superset"
-msgstr "© {year} Superset"
-
 msgid "© {year} Superset Inc."
 msgstr "© {year} Superset Inc."
 
@@ -1181,9 +1178,6 @@ msgstr "계정 설치는 자체 매니페스트만 해석하므로 {marketplace}
 
 msgid "Account is pending deletion."
 msgstr "계정이 삭제 대기 중입니다."
-
-msgid "Account menu"
-msgstr "계정 메뉴"
 
 msgid "Account pending deletion"
 msgstr "삭제 예정 계정"
@@ -9430,6 +9424,9 @@ msgstr "외부 브라우저에서 localhost:{0} 열기"
 msgid "Open menu"
 msgstr "메뉴 열기"
 
+msgid "Open navigation"
+msgstr "내비게이션 열기"
+
 msgid "Open on GitHub"
 msgstr "GitHub에서 열기"
 
@@ -9651,9 +9648,6 @@ msgstr "조직 로고"
 
 msgid "Organization menu"
 msgstr "조직 메뉴"
-
-msgid "Organization menu for {displayName}"
-msgstr "{displayName}의 조직 메뉴"
 
 msgid "Organization Name"
 msgstr "조직 이름"

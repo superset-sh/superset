@@ -4,7 +4,6 @@ import { Button } from "@superset/ui/button";
 import { Download } from "lucide-react";
 import { notFound } from "next/navigation";
 import { FaGithub } from "react-icons/fa";
-import { AppHeader, type AppHeaderNavItem } from "@/components/AppHeader";
 import { i18n } from "@/lib/i18n-server";
 import { ProductDemo } from "../../(dashboard-legacy)/components/ProductDemo";
 import { AgentPromptInput } from "../components/AgentPromptInput";
@@ -14,11 +13,6 @@ import {
 	getMockSessionsByWorkspaceId,
 } from "../mock-data";
 import { getAgentsUiAccess } from "../utils/getAgentsUiAccess";
-
-const NAV_ITEMS: AppHeaderNavItem[] = [
-	{ href: "/agents", label: msg({ message: "Agents" }) },
-	{ href: "/integrations", label: msg({ message: "Integrations" }) },
-];
 
 export default async function AgentsPage() {
 	const { hasAgentsUiAccess } = await getAgentsUiAccess();
@@ -33,26 +27,23 @@ export default async function AgentsPage() {
 		const sessions = getMockSessionsByWorkspaceId(workspace.id);
 
 		return (
-			<>
-				<AppHeader navItems={NAV_ITEMS} />
-				<div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6">
-					<div className="flex flex-col gap-1 px-1">
-						<p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-							{i18n._(
-								msg({
-									message: "Workspace",
-								}),
-							)}
-						</p>
-						<h1 className="text-lg font-medium">{workspace.name}</h1>
-						<p className="text-sm text-muted-foreground">
-							{workspace.repoFullName} · {workspace.branch}
-						</p>
-					</div>
-					<AgentPromptInput workspace={workspace} />
-					<SessionList sessions={sessions} workspaceId={workspace.id} />
+			<div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6">
+				<div className="flex flex-col gap-1 px-1">
+					<p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+						{i18n._(
+							msg({
+								message: "Workspace",
+							}),
+						)}
+					</p>
+					<h1 className="text-lg font-medium">{workspace.name}</h1>
+					<p className="text-sm text-muted-foreground">
+						{workspace.repoFullName} · {workspace.branch}
+					</p>
 				</div>
-			</>
+				<AgentPromptInput workspace={workspace} />
+				<SessionList sessions={sessions} workspaceId={workspace.id} />
+			</div>
 		);
 	}
 

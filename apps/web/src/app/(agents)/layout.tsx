@@ -1,4 +1,5 @@
 import { DashboardShell } from "@/components/DashboardShell";
+import { PageContainer } from "@/components/PageContainer";
 import { getAgentsUiAccess } from "./utils/getAgentsUiAccess";
 
 export default async function AgentsLayout({
@@ -9,12 +10,12 @@ export default async function AgentsLayout({
 	const { hasAgentsUiAccess } = await getAgentsUiAccess();
 
 	if (hasAgentsUiAccess) {
-		return (
-			<div className="flex min-h-[100dvh] flex-col bg-background">
-				{children}
-			</div>
-		);
+		return <DashboardShell variant="agents">{children}</DashboardShell>;
 	}
 
-	return <DashboardShell>{children}</DashboardShell>;
+	return (
+		<DashboardShell variant="dashboard">
+			<PageContainer>{children}</PageContainer>
+		</DashboardShell>
+	);
 }

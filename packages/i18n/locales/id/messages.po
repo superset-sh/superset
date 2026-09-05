@@ -855,9 +855,6 @@ msgstr "% organisasi berlangganan di akhir bulan yang masih berlangganan sebulan
 msgid "% of subscriptions started each month still active k months later (Neon, enterprise excluded)"
 msgstr "% langganan yang dimulai tiap bulan dan masih aktif k bulan kemudian (Neon, enterprise dikecualikan)"
 
-msgid "© {year} Superset"
-msgstr "© {year} Superset"
-
 msgid "© {year} Superset Inc."
 msgstr "© {year} Superset Inc."
 
@@ -1181,9 +1178,6 @@ msgstr "Instalasi ke akun hanya menangani manifes internal, jadi {plugin} dari {
 
 msgid "Account is pending deletion."
 msgstr "Akun sedang menunggu penghapusan."
-
-msgid "Account menu"
-msgstr "Menu akun"
 
 msgid "Account pending deletion"
 msgstr "Akun menunggu penghapusan"
@@ -9430,6 +9424,9 @@ msgstr "Buka localhost:{0} di browser eksternal"
 msgid "Open menu"
 msgstr "Buka menu"
 
+msgid "Open navigation"
+msgstr "Buka navigasi"
+
 msgid "Open on GitHub"
 msgstr "Buka di GitHub"
 
@@ -9651,9 +9648,6 @@ msgstr "Logo organisasi"
 
 msgid "Organization menu"
 msgstr "Menu organisasi"
-
-msgid "Organization menu for {displayName}"
-msgstr "Menu organisasi untuk {displayName}"
 
 msgid "Organization Name"
 msgstr "Nama Organisasi"

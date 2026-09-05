@@ -855,9 +855,6 @@ msgstr "% organizací s předplatným na konci měsíce, které mají předplatn
 msgid "% of subscriptions started each month still active k months later (Neon, enterprise excluded)"
 msgstr "% předplatných zahájených v daném měsíci, která jsou po k měsících stále aktivní (Neon, bez enterprise)"
 
-msgid "© {year} Superset"
-msgstr "© {year} Superset"
-
 msgid "© {year} Superset Inc."
 msgstr "© {year} Superset Inc."
 
@@ -1181,9 +1178,6 @@ msgstr "Instalace do účtu zpracovává jen manifesty první strany, takže {pl
 
 msgid "Account is pending deletion."
 msgstr "Účet čeká na smazání."
-
-msgid "Account menu"
-msgstr "Nabídka účtu"
 
 msgid "Account pending deletion"
 msgstr "Účet čeká na smazání"
@@ -9430,6 +9424,9 @@ msgstr "Otevřít localhost:{0} v externím prohlížeči"
 msgid "Open menu"
 msgstr "Otevřít nabídku"
 
+msgid "Open navigation"
+msgstr "Otevřít navigaci"
+
 msgid "Open on GitHub"
 msgstr "Otevřít na GitHubu"
 
@@ -9651,9 +9648,6 @@ msgstr "Logo organizace"
 
 msgid "Organization menu"
 msgstr "Nabídka organizace"
-
-msgid "Organization menu for {displayName}"
-msgstr "Nabídka organizace pro {displayName}"
 
 msgid "Organization Name"
 msgstr "Název organizace"

@@ -855,9 +855,6 @@ msgstr "% van de betalende organisaties aan het eind van de maand dat een maand 
 msgid "% of subscriptions started each month still active k months later (Neon, enterprise excluded)"
 msgstr "% van de abonnementen die elke maand starten en k maanden later nog actief zijn (Neon, enterprise uitgesloten)"
 
-msgid "© {year} Superset"
-msgstr "© {year} Superset"
-
 msgid "© {year} Superset Inc."
 msgstr "© {year} Superset Inc."
 
@@ -1181,9 +1178,6 @@ msgstr "Installatie op het account werkt alleen met eigen manifests, dus {plugin
 
 msgid "Account is pending deletion."
 msgstr "Account wordt verwijderd."
-
-msgid "Account menu"
-msgstr "Accountmenu"
 
 msgid "Account pending deletion"
 msgstr "Account wordt verwijderd"
@@ -9430,6 +9424,9 @@ msgstr "localhost:{0} openen in externe browser"
 msgid "Open menu"
 msgstr "Menu openen"
 
+msgid "Open navigation"
+msgstr "Navigatie openen"
+
 msgid "Open on GitHub"
 msgstr "Openen op GitHub"
 
@@ -9651,9 +9648,6 @@ msgstr "Logo van organisatie"
 
 msgid "Organization menu"
 msgstr "Organisatiemenu"
-
-msgid "Organization menu for {displayName}"
-msgstr "Organisatiemenu voor {displayName}"
 
 msgid "Organization Name"
 msgstr "Organisatienaam"

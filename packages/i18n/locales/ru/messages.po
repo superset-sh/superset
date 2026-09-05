@@ -855,9 +855,6 @@ msgstr "% организаций с подпиской на конец меся�
 msgid "% of subscriptions started each month still active k months later (Neon, enterprise excluded)"
 msgstr "% подписок, начатых в каждом месяце и активных k месяцев спустя (Neon, без enterprise)"
 
-msgid "© {year} Superset"
-msgstr "© {year} Superset"
-
 msgid "© {year} Superset Inc."
 msgstr "© {year} Superset Inc."
 
@@ -1181,9 +1178,6 @@ msgstr "Установка в аккаунт работает только с с
 
 msgid "Account is pending deletion."
 msgstr "Аккаунт ожидает удаления."
-
-msgid "Account menu"
-msgstr "Меню аккаунта"
 
 msgid "Account pending deletion"
 msgstr "Аккаунт ожидает удаления"
@@ -9430,6 +9424,9 @@ msgstr "Открыть localhost:{0} во внешнем браузере"
 msgid "Open menu"
 msgstr "Открыть меню"
 
+msgid "Open navigation"
+msgstr "Открыть навигацию"
+
 msgid "Open on GitHub"
 msgstr "Открыть на GitHub"
 
@@ -9651,9 +9648,6 @@ msgstr "Логотип организации"
 
 msgid "Organization menu"
 msgstr "Меню организации"
-
-msgid "Organization menu for {displayName}"
-msgstr "Меню организации {displayName}"
 
 msgid "Organization Name"
 msgstr "Название организации"
