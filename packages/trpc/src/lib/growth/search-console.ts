@@ -267,7 +267,6 @@ async function fetchSearchConsoleLive(
 				startDate: start,
 				endDate: end,
 				dimensions: ["date", "query"],
-				rowLimit: 25000,
 			}),
 			searchAnalytics(token, siteUrl, {
 				startDate: recentStart,
@@ -278,13 +277,11 @@ async function fetchSearchConsoleLive(
 				startDate: recentStart,
 				endDate: end,
 				dimensions: ["query"],
-				rowLimit: QUERY_ROWS,
 			}),
 			searchAnalytics(token, siteUrl, {
 				startDate: recentStart,
 				endDate: end,
 				dimensions: ["page"],
-				rowLimit: TOP_ROWS,
 			}),
 		],
 	);
