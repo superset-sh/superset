@@ -38,7 +38,7 @@
 		"@rn-primitives/context-menu": "1.4.0",
 		"@rn-primitives/dialog": "1.4.0",
 		"@rn-primitives/dropdown-menu": "1.4.0",
-		"@rn-primitives/hooks": "1.4.0",
+		"@rn-primitives/hooks": "1.5.2",
 		"@rn-primitives/hover-card": "1.4.0",
 		"@rn-primitives/label": "1.4.0",
 		"@rn-primitives/menubar": "1.4.0",
