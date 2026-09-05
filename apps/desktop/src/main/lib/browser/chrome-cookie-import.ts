@@ -416,7 +416,7 @@ async function dropDottedTwins(
  * path. A session's jar can hold both, and the browser sends both values,
  * which sites reject or read inconsistently. Earlier versions of this
  * importer created that state for every host-only cookie in the source
- * profile, so it has to be cleaned up rather than assumed absent.
+ * profile, so a re-import has to clean it up rather than assume it absent.
  */
 function dottedTwinSlots(cookies: Electron.Cookie[]): Set<string> {
 	const slots = new Set<string>();
@@ -497,36 +497,4 @@ export async function importCookiesIntoSession(
 	}
 	const result = await importCookies(targetSession, cookies);
 	return { ...result, keyUnavailable: false };
-}
-
-/**
- * Collapses every host-only cookie that shares its name and path with a
- * `.host` twin down to the host-only one, which is the value the site set
- * itself, most recently. Repairs jars written by earlier versions of the
- * importer, which stored every host-only cookie as a domain cookie: as soon as
- * a site refreshed one of those (Google rotates `LSID` on every sign-in), the
- * jar carried two values under one name. Sites do occasionally set such a
- * pair on purpose (analytics and A/B cookies, in the profiles checked), which
- * is why this runs once per install rather than on every launch. Superset's
- * own hosts are left alone, as on import. Returns the number of twins removed.
- */
-export async function repairImportedCookieTwins(
-	targetSession: Session,
-): Promise<number> {
-	const jar = await targetSession.cookies.get({});
-	const twins = dottedTwinSlots(jar);
-	const slots = jar
-		.filter(
-			(cookie): cookie is Electron.Cookie & { domain: string } =>
-				cookie.hostOnly === true &&
-				cookie.domain !== undefined &&
-				!isProtectedCookieHost(cookie.domain) &&
-				twins.has(cookieKey(cookie.domain, cookie.name, cookie.path ?? "/")),
-		)
-		.map((cookie) => ({
-			host: cookie.domain,
-			name: cookie.name,
-			path: cookie.path ?? "/",
-		}));
-	return dropDottedTwins(targetSession, jar, slots);
 }

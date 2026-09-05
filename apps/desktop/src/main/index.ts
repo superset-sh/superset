@@ -28,7 +28,6 @@ import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
 import { isUpdateReadyToInstall, setupAutoUpdater } from "./lib/auto-updater";
 import { startBrowserBridge } from "./lib/browser/browser-bridge";
-import { repairImportedCookiesOnce } from "./lib/browser/cookie-import-repair";
 import { downloadManager } from "./lib/browser/download-manager";
 import { installBundledCliShim } from "./lib/bundled-cli";
 import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
@@ -482,9 +481,6 @@ if (!gotTheLock) {
 		initSentry();
 		await initAppState();
 		initTanstackDbPersistence();
-		// Before any window can load a page: a pane that navigates mid-sweep
-		// would still see the duplicate cookies this removes.
-		await repairImportedCookiesOnce();
 
 		sweepNetworkLogs();
 

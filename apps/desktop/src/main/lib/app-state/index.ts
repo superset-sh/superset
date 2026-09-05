@@ -49,7 +49,6 @@ function ensureValidShape(data: Partial<AppState>): AppState {
 			},
 		},
 		lastRunVersion: data.lastRunVersion,
-		cookieImportRepaired: data.cookieImportRepaired,
 	};
 }
 

@@ -55,11 +55,6 @@ export interface AppState {
 	v1AgentSessions?: Record<string, V1PaneAgentSession>;
 	/** App version at last launch; a mismatch means an update was just installed */
 	lastRunVersion?: string;
-	/**
-	 * The one-time cleanup of duplicate cookies left by the pre-1.27 Chrome
-	 * cookie importer has run (see `repairImportedCookieTwins`).
-	 */
-	cookieImportRepaired?: boolean;
 }
 
 export const defaultAppState: AppState = {

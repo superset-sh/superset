@@ -7,7 +7,6 @@ import {
 	type ImportedCookie,
 	importCookies,
 	mapCookieRow,
-	repairImportedCookieTwins,
 	safeStorageServiceFor,
 } from "./chrome-cookie-import";
 
@@ -347,6 +346,54 @@ describe("importCookies", () => {
 		]);
 	});
 
+	it("puts back a shorter-path cookie the twin removal took with it", async () => {
+		const s = fakeSession([
+			stored(".mail.google.com", "COMPASS", "stale", { path: "/mail" }),
+			stored("mail.google.com", "COMPASS", "root", { path: "/" }),
+		]);
+		await importCookies(s.session, [
+			imported("mail.google.com", "COMPASS", "fresh", { path: "/mail" }),
+		]);
+		expect(s.removed).toEqual([["https://mail.google.com/mail", "COMPASS"]]);
+		expect(s.jar.map((c) => [c.domain, c.path, c.value]).sort()).toEqual([
+			["mail.google.com", "/", "root"],
+			["mail.google.com", "/mail", "fresh"],
+		]);
+	});
+
+	it("does not resurrect a twin that a later slot's removal also hits", async () => {
+		const s = fakeSession([
+			stored(".www.google.com", "OTZ", "stale-a"),
+			stored(".x.www.google.com", "OTZ", "stale-b"),
+		]);
+		await importCookies(s.session, [
+			imported("www.google.com", "OTZ", "host-a"),
+			imported("x.www.google.com", "OTZ", "host-b"),
+		]);
+		expect(jarView(s.jar)).toEqual([
+			["www.google.com", "OTZ", "host-a"],
+			["x.www.google.com", "OTZ", "host-b"],
+		]);
+	});
+
+	it("restores the whole slot, twin included, when a collateral re-set fails", async () => {
+		const s = fakeSession([
+			stored(".www.google.com", "OTZ", "stale"),
+			stored(".google.com", "OTZ", "parent-rejected"),
+		]);
+		s.rejectValues.add("parent-rejected");
+		s.rejectNames.add("unrelated");
+		await importCookies(s.session, [
+			imported("www.google.com", "OTZ", "fresh"),
+		]);
+		// The parent could not be put back, so the twin was, and the import
+		// then wrote the fresh host-only cookie next to it.
+		expect(jarView(s.jar)).toEqual([
+			[".www.google.com", "OTZ", "stale"],
+			["www.google.com", "OTZ", "fresh"],
+		]);
+	});
+
 	it("skips Superset's own hosts, host-only or domain", async () => {
 		const s = fakeSession();
 		const result = await importCookies(s.session, [
@@ -367,125 +414,5 @@ describe("importCookies", () => {
 			imported("example.com", "good", "x"),
 		]);
 		expect(result).toEqual({ imported: 1, skipped: 1 });
-	});
-});
-
-describe("repairImportedCookieTwins", () => {
-	it("collapses each twin pair to the host-only cookie", async () => {
-		const s = fakeSession([
-			stored(".accounts.google.com", "LSID", "stale-import"),
-			stored("accounts.google.com", "LSID", "set-by-google", {
-				secure: true,
-				httpOnly: true,
-				sameSite: "no_restriction",
-			}),
-			stored(".google.com", "SID", "unrelated-domain-cookie"),
-			stored("github.com", "logged_in", "host-only-alone"),
-		]);
-		const repaired = await repairImportedCookieTwins(s.session);
-		expect(repaired).toBe(1);
-		expect(s.removed).toEqual([["https://accounts.google.com/", "LSID"]]);
-		expect(s.jar.map((c) => [c.domain, c.name, c.value])).toEqual([
-			[".google.com", "SID", "unrelated-domain-cookie"],
-			["github.com", "logged_in", "host-only-alone"],
-			["accounts.google.com", "LSID", "set-by-google"],
-		]);
-		expect(s.set[0]).toMatchObject({
-			url: "https://accounts.google.com/",
-			secure: true,
-			httpOnly: true,
-			sameSite: "no_restriction",
-			expirationDate: 1_900_000_000,
-		});
-	});
-
-	it("puts back a parent-domain cookie the removal took with the twin", async () => {
-		const s = fakeSession([
-			stored(".www.google.com", "OTZ", "stale-import"),
-			stored("www.google.com", "OTZ", "set-by-google"),
-			stored(".google.com", "OTZ", "parent"),
-		]);
-		expect(await repairImportedCookieTwins(s.session)).toBe(1);
-		expect(jarView(s.jar)).toEqual([
-			[".google.com", "OTZ", "parent"],
-			["www.google.com", "OTZ", "set-by-google"],
-		]);
-		expect(s.set.map((c) => [c.domain, c.value])).toEqual([
-			[undefined, "set-by-google"],
-			[".google.com", "parent"],
-		]);
-	});
-
-	it("puts back a shorter-path cookie the removal took with the twin", async () => {
-		const s = fakeSession([
-			stored(".mail.google.com", "COMPASS", "stale", { path: "/mail" }),
-			stored("mail.google.com", "COMPASS", "fresh", { path: "/mail" }),
-			stored("mail.google.com", "COMPASS", "root", { path: "/" }),
-		]);
-		await repairImportedCookieTwins(s.session);
-		expect(s.removed).toEqual([["https://mail.google.com/mail", "COMPASS"]]);
-		expect(s.jar.map((c) => [c.domain, c.path, c.value]).sort()).toEqual([
-			["mail.google.com", "/", "root"],
-			["mail.google.com", "/mail", "fresh"],
-		]);
-	});
-
-	it("does not resurrect a twin that a later slot's removal also hits", async () => {
-		const s = fakeSession([
-			stored(".www.google.com", "OTZ", "stale-a"),
-			stored("www.google.com", "OTZ", "host-a"),
-			stored(".x.www.google.com", "OTZ", "stale-b"),
-			stored("x.www.google.com", "OTZ", "host-b"),
-		]);
-		expect(await repairImportedCookieTwins(s.session)).toBe(2);
-		expect(jarView(s.jar)).toEqual([
-			["www.google.com", "OTZ", "host-a"],
-			["x.www.google.com", "OTZ", "host-b"],
-		]);
-	});
-
-	it("restores the whole slot, twin included, when a re-set fails", async () => {
-		const s = fakeSession([
-			stored(".example.com", "a", "stale"),
-			stored("example.com", "a", "fresh-but-rejected"),
-		]);
-		s.rejectValues.add("fresh-but-rejected");
-		expect(await repairImportedCookieTwins(s.session)).toBe(0);
-		// The host-only cookie cannot be re-set, so at least the twin survives
-		// rather than the name vanishing from the jar altogether.
-		expect(jarView(s.jar)).toEqual([[".example.com", "a", "stale"]]);
-	});
-
-	it("leaves Superset's own hosts alone", async () => {
-		const s = fakeSession([
-			stored(".app.superset.sh", "session", "a"),
-			stored("app.superset.sh", "session", "b"),
-			stored(".localhost", "dev", "a", { secure: false }),
-			stored("localhost", "dev", "b", { secure: false }),
-		]);
-		expect(await repairImportedCookieTwins(s.session)).toBe(0);
-		expect(s.removed).toEqual([]);
-	});
-
-	it("re-sets a session cookie without an expiration", async () => {
-		const s = fakeSession([
-			stored(".x.com", "__cuid", "a"),
-			stored("x.com", "__cuid", "b", {
-				session: true,
-				expirationDate: undefined,
-			}),
-		]);
-		await repairImportedCookieTwins(s.session);
-		expect(s.set[0]).not.toHaveProperty("expirationDate");
-	});
-
-	it("is a no-op on a clean jar", async () => {
-		const s = fakeSession([
-			stored(".example.com", "a", "1"),
-			stored("example.com", "b", "2"),
-		]);
-		expect(await repairImportedCookieTwins(s.session)).toBe(0);
-		expect(s.removed).toEqual([]);
-		expect(s.set).toEqual([]);
 	});
 });
