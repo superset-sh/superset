@@ -288,6 +288,8 @@ export interface DashboardSidebarDndValue {
 	projectsById: Map<string, DashboardSidebarProject>;
 	groupInfo: Map<string, { sectionId: string; color: string | null }>;
 	collapsedSectionIds: Set<string>;
+	/** Rows and folders are a sorted view: their sortables are inert. */
+	isChildDragDisabled: boolean;
 }
 
 const DashboardSidebarDndContext =
@@ -345,13 +347,21 @@ interface UseSidebarDndOptions {
 	sessionChildren: DashboardSidebarProjectChild[];
 	onReorderProjects: (projectIds: string[]) => void;
 	/**
-	 * True while a non-manual sort or an active filter means the rendered
-	 * lists are a transformed view of the manual order. Committing a drop in
-	 * that state would rewrite tabOrder against the view and corrupt the real
-	 * order of hidden/reordered siblings, so every drag (projects, workspaces,
-	 * folders, pinned, sessions) is inert.
+	 * True while a filter hides projects: the rendered project list is a
+	 * subset of the manual order, so committing a drop would rewrite tabOrder
+	 * against the view. The sort modes never reorder projects, so they do not
+	 * set this — a project stays draggable while its workspaces are sorted.
 	 */
-	disabled?: boolean;
+	projectDragDisabled?: boolean;
+	/**
+	 * True while a non-manual sort or an active filter means every project's
+	 * child list is a transformed view of the manual order. Committing a drop
+	 * there would corrupt the real order of reordered/hidden siblings, so
+	 * every row drag (workspaces, folders, pinned, sessions) is inert —
+	 * including in the unsorted Pinned and Sessions lanes, whose drags can
+	 * land in a project.
+	 */
+	childDragDisabled?: boolean;
 }
 
 export function useSidebarDnd({
@@ -359,7 +369,8 @@ export function useSidebarDnd({
 	pinnedWorkspaces,
 	sessionChildren,
 	onReorderProjects,
-	disabled = false,
+	projectDragDisabled = false,
+	childDragDisabled = false,
 }: UseSidebarDndOptions) {
 	const {
 		reorderPinnedWorkspaces,
@@ -368,6 +379,7 @@ export function useSidebarDnd({
 		setWorkspacePinned,
 	} = useDashboardSidebarState();
 
+	const noDragsPossible = projectDragDisabled && childDragDisabled;
 	const sensors = useSensors(
 		// 5px absorbs the 1-3px of jitter a real click carries without turning
 		// it into a pickup; anything smaller starts reordering rows on sloppy
@@ -376,15 +388,15 @@ export function useSidebarDnd({
 		// at activation, detached one event loop after the drag ends).
 		useSensor(GatedMouseSensor, {
 			activationConstraint: { distance: 5 },
-			disabled,
+			disabled: noDragsPossible,
 		}),
 		useSensor(GatedTouchSensor, {
 			activationConstraint: { delay: 200, tolerance: 5 },
-			disabled,
+			disabled: noDragsPossible,
 		}),
 		useSensor(GatedKeyboardSensor, {
 			coordinateGetter: sortableKeyboardCoordinates,
-			disabled,
+			disabled: noDragsPossible,
 		}),
 	);
 
@@ -1086,6 +1098,7 @@ export function useSidebarDnd({
 			projectsById,
 			groupInfo,
 			collapsedSectionIds,
+			isChildDragDisabled: childDragDisabled,
 		}),
 		[
 			items,
@@ -1100,6 +1113,7 @@ export function useSidebarDnd({
 			projectsById,
 			groupInfo,
 			collapsedSectionIds,
+			childDragDisabled,
 		],
 	);
 
