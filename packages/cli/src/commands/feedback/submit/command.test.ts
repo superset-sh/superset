@@ -1,0 +1,136 @@
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import submitCommand, {
+	MAX_ATTACHMENT_TOTAL_BASE64_CHARS,
+	MAX_ATTACHMENT_TOTAL_BYTES,
+} from "./command";
+
+interface SubmittedAttachment {
+	filename: string;
+	contentBase64: string;
+}
+
+let submitted: { attachments?: SubmittedAttachment[] } | undefined;
+let dir: string;
+let stderr: string[];
+let stderrSpy: ReturnType<typeof spyOn>;
+
+function invoke(attach: string[]) {
+	return submitCommand.run({
+		ctx: {
+			api: {
+				support: {
+					submitFeedback: {
+						mutate: async (input: typeof submitted) => {
+							submitted = input;
+						},
+					},
+				},
+			},
+		} as never,
+		args: {} as never,
+		options: {
+			type: "bug",
+			title: "Attachment limits",
+			body: "The log is attached.",
+			attach: attach.join(","),
+		} as never,
+		signal: new AbortController().signal,
+	});
+}
+
+/** Bytes whose value depends on their offset, so a tail is distinguishable from a head. */
+function patterned(size: number): Buffer {
+	const buffer = Buffer.alloc(size);
+	for (let i = 0; i < size; i++) buffer[i] = i % 251;
+	return buffer;
+}
+
+function writeFixture(name: string, content: Buffer): string {
+	const path = join(dir, name);
+	writeFileSync(path, content);
+	return path;
+}
+
+beforeEach(() => {
+	dir = mkdtempSync(join(tmpdir(), "superset-feedback-"));
+	submitted = undefined;
+	stderr = [];
+	stderrSpy = spyOn(process.stderr, "write").mockImplementation(((
+		chunk: string | Uint8Array,
+	) => {
+		stderr.push(String(chunk));
+		return true;
+	}) as typeof process.stderr.write);
+});
+
+afterEach(() => {
+	stderrSpy.mockRestore();
+	rmSync(dir, { recursive: true, force: true });
+});
+
+describe("feedback submit attachments", () => {
+	test("the enforced limit fits Vercel's 4.5 MB body cap after base64 expansion", () => {
+		const encoded = Buffer.alloc(MAX_ATTACHMENT_TOTAL_BYTES).toString("base64");
+		expect(encoded.length).toBeLessThanOrEqual(
+			MAX_ATTACHMENT_TOTAL_BASE64_CHARS,
+		);
+		// Room for the report body (20k chars), the diagnostics bundle (under
+		// 90k chars encoded), titles, filenames, and JSON framing.
+		expect(MAX_ATTACHMENT_TOTAL_BASE64_CHARS + 110_000).toBeLessThan(4_500_000);
+	});
+
+	test("sends an attachment under the limit intact", async () => {
+		const content = patterned(1024);
+		const path = writeFixture("small.log", content);
+
+		await invoke([path]);
+
+		expect(submitted?.attachments).toHaveLength(1);
+		expect(submitted?.attachments?.[0]?.filename).toBe("small.log");
+		expect(
+			Buffer.from(
+				submitted?.attachments?.[0]?.contentBase64 ?? "",
+				"base64",
+			).equals(content),
+		).toBe(true);
+		expect(stderr.join("")).toBe("");
+	});
+
+	test("attaches the tail of a single oversized file and says so", async () => {
+		const content = patterned(MAX_ATTACHMENT_TOTAL_BYTES + 4096);
+		const path = writeFixture("host-service.log", content);
+
+		await invoke([path]);
+
+		expect(submitted?.attachments).toHaveLength(1);
+		const attachment = submitted?.attachments?.[0];
+		expect(attachment?.filename).toBe("host-service.log");
+		expect(attachment?.contentBase64.length).toBeLessThanOrEqual(
+			MAX_ATTACHMENT_TOTAL_BASE64_CHARS,
+		);
+		expect(
+			Buffer.from(attachment?.contentBase64 ?? "", "base64").equals(
+				content.subarray(content.length - MAX_ATTACHMENT_TOTAL_BYTES),
+			),
+		).toBe(true);
+		expect(stderr.join("")).toContain(
+			`Truncated host-service.log to its last ${MAX_ATTACHMENT_TOTAL_BYTES} bytes`,
+		);
+	});
+
+	test("fails before uploading when several attachments together exceed the limit", async () => {
+		const each = Math.ceil(MAX_ATTACHMENT_TOTAL_BYTES * 0.6);
+		const first = writeFixture("host-service.log", patterned(each));
+		const second = writeFixture("main.log", patterned(each));
+
+		const error = await invoke([first, second]).catch((thrown) => thrown);
+		expect(error).toBeInstanceOf(Error);
+		expect(error.message).toContain("3.2 MB");
+		expect(error.message).toContain("host-service.log");
+		expect(error.message).toContain("main.log");
+		expect(submitted).toBeUndefined();
+	});
+});
