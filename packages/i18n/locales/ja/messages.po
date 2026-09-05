@@ -4330,6 +4330,9 @@ msgstr "デフォルト({defaultWorktreePath})"
 msgid "default browser"
 msgstr "既定のブラウザ"
 
+msgid "Default Browser"
+msgstr "既定のブラウザ"
+
 msgid "Default effort"
 msgstr "デフォルトのエフォート"
 
@@ -5013,6 +5016,9 @@ msgid "Editing file..."
 msgstr "ファイルを編集中..."
 
 msgid "editor"
+msgstr "エディタ"
+
+msgid "Editor"
 msgstr "エディタ"
 
 msgid "Editor & Workflow"
@@ -5946,6 +5952,9 @@ msgstr "最近変更されたカバレッジの薄いコードを見つけて、
 msgid "Find stale TODO/FIXME comments and resolve the quick ones."
 msgstr "古いTODO/FIXMEコメントを見つけて、すぐ直せるものを解消します。"
 
+msgid "Finder"
+msgstr "Finder"
+
 msgid "Finish review"
 msgstr "レビューを完了"
 
@@ -6778,6 +6787,9 @@ msgid "In the Superset desktop app, open Settings → Remote Access and turn on 
 msgstr "Supersetデスクトップアプリで設定 → リモートアクセスを開き、「リレー経由でこのデバイスへのリモートアクセスを許可」をオンにしてください。"
 
 msgid "in-app browser"
+msgstr "アプリ内ブラウザ"
+
+msgid "In-App Browser"
 msgstr "アプリ内ブラウザ"
 
 msgid "In-app PR merge"
@@ -8223,6 +8235,9 @@ msgstr "新規オートメーション"
 
 msgid "New Browser"
 msgstr "新規ブラウザ"
+
+msgid "New Browser Tab"
+msgstr "新しいブラウザタブ"
 
 msgid "New chat"
 msgstr "新しいチャット"

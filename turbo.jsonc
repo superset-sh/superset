@@ -44,6 +44,10 @@
 			]
 		},
 		"dev": {
+			// Compiled Lingui catalogs are generated, not committed, so dev has to
+			// build them before anything imports @superset/i18n. Scoped to that one
+			// package so starting dev doesn't drag in every other build.
+			"dependsOn": ["@superset/i18n#build"],
 			"cache": false,
 			"persistent": true
 		},
@@ -52,6 +56,10 @@
 			"outputs": ["coverage/**"]
 		},
 		"build:types": {
+			// Emits declarations from source, so it needs the same upstream
+			// generated inputs a build does — the compiled Lingui catalogs in
+			// particular, which host-service reaches through @superset/i18n.
+			"dependsOn": ["^build"],
 			"outputs": ["dist-types/**"]
 		},
 		"typecheck": {

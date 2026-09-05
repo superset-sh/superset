@@ -4330,6 +4330,9 @@ msgstr "Standaard ({defaultWorktreePath})"
 msgid "default browser"
 msgstr "standaardbrowser"
 
+msgid "Default Browser"
+msgstr "Standaardbrowser"
+
 msgid "Default effort"
 msgstr "Standaard-effort"
 
@@ -5014,6 +5017,9 @@ msgstr "Bestand bewerken..."
 
 msgid "editor"
 msgstr "editor"
+
+msgid "Editor"
+msgstr "Editor"
 
 msgid "Editor & Workflow"
 msgstr "Editor en workflow"
@@ -5946,6 +5952,9 @@ msgstr "Zoek recent gewijzigde code met zwakke dekking en test die goed."
 msgid "Find stale TODO/FIXME comments and resolve the quick ones."
 msgstr "Zoek verouderde TODO/FIXME-opmerkingen en los de snelle op."
 
+msgid "Finder"
+msgstr "Finder"
+
 msgid "Finish review"
 msgstr "Review afronden"
 
@@ -6779,6 +6788,9 @@ msgstr "Open in de Superset-desktopapp Instellingen â†’ Externe toegang en zet â
 
 msgid "in-app browser"
 msgstr "ingebouwde browser"
+
+msgid "In-App Browser"
+msgstr "Ingebouwde browser"
 
 msgid "In-app PR merge"
 msgstr "PR's mergen in de app"
@@ -8223,6 +8235,9 @@ msgstr "Nieuwe automatisering"
 
 msgid "New Browser"
 msgstr "Nieuwe browser"
+
+msgid "New Browser Tab"
+msgstr "Nieuw browsertabblad"
 
 msgid "New chat"
 msgstr "Nieuwe chat"

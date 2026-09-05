@@ -10,7 +10,7 @@ import {
 import { Button } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
 import { Label } from "@superset/ui/label";
-import { useEffect, useId } from "react";
+import { useEffect, useId, useRef } from "react";
 import { shouldConfirmDeleteDialogKey } from "../../utils/shouldConfirmDeleteDialogKey";
 
 interface DestroyConfirmPaneProps {
@@ -46,18 +46,34 @@ export function DestroyConfirmPane({
 	const checkboxId = useId();
 	const hasWarnings = hasChanges || hasUnpushedCommits;
 
+	// Read through a ref so a re-render while the dialog is open (checkbox
+	// toggle, warning banner) doesn't tear down and re-arm the listener.
+	const onConfirmRef = useRef(onConfirm);
+	useEffect(() => {
+		onConfirmRef.current = onConfirm;
+	}, [onConfirm]);
+
 	useEffect(() => {
 		if (!open || !canConfirm) return;
 
 		const handleKeyDown = (event: KeyboardEvent) => {
 			if (!shouldConfirmDeleteDialogKey(event)) return;
 			event.preventDefault();
-			onConfirm();
+			onConfirmRef.current();
 		};
 
-		window.addEventListener("keydown", handleKeyDown);
-		return () => window.removeEventListener("keydown", handleKeyDown);
-	}, [canConfirm, onConfirm, open]);
+		// Arm after the current task: the Enter that selected "Delete" in a
+		// context menu is still bubbling when this pane mounts, and a listener
+		// added now would confirm the delete on that same keystroke.
+		const timer = setTimeout(
+			() => window.addEventListener("keydown", handleKeyDown),
+			0,
+		);
+		return () => {
+			clearTimeout(timer);
+			window.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [canConfirm, open]);
 
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>

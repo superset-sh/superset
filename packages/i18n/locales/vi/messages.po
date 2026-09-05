@@ -4330,6 +4330,9 @@ msgstr "Mặc định ({defaultWorktreePath})"
 msgid "default browser"
 msgstr "trình duyệt mặc định"
 
+msgid "Default Browser"
+msgstr "Trình duyệt mặc định"
+
 msgid "Default effort"
 msgstr "Mức nỗ lực mặc định"
 
@@ -5014,6 +5017,9 @@ msgstr "Đang sửa tệp..."
 
 msgid "editor"
 msgstr "editor"
+
+msgid "Editor"
+msgstr "Editor"
 
 msgid "Editor & Workflow"
 msgstr "Trình soạn thảo & Quy trình"
@@ -5946,6 +5952,9 @@ msgstr "Tìm code vừa thay đổi có coverage yếu và viết test đàng ho
 msgid "Find stale TODO/FIXME comments and resolve the quick ones."
 msgstr "Tìm các comment TODO/FIXME cũ và xử lý những cái nhanh gọn."
 
+msgid "Finder"
+msgstr "Finder"
+
 msgid "Finish review"
 msgstr "Hoàn tất review"
 
@@ -6779,6 +6788,9 @@ msgstr "Trong ứng dụng Superset trên máy tính, mở Cài đặt → Truy 
 
 msgid "in-app browser"
 msgstr "trình duyệt trong ứng dụng"
+
+msgid "In-App Browser"
+msgstr "Trình duyệt của ứng dụng"
 
 msgid "In-app PR merge"
 msgstr "Merge PR ngay trong ứng dụng"
@@ -8223,6 +8235,9 @@ msgstr "Tự động hóa mới"
 
 msgid "New Browser"
 msgstr "Trình duyệt mới"
+
+msgid "New Browser Tab"
+msgstr "Tab trình duyệt mới"
 
 msgid "New chat"
 msgstr "Chat mới"

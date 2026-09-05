@@ -4330,6 +4330,9 @@ msgstr "Standard ({defaultWorktreePath})"
 msgid "default browser"
 msgstr "Standardbrowser"
 
+msgid "Default Browser"
+msgstr "Standardbrowser"
+
 msgid "Default effort"
 msgstr "Standard-Aufwand"
 
@@ -5013,6 +5016,9 @@ msgid "Editing file..."
 msgstr "Datei wird bearbeitet..."
 
 msgid "editor"
+msgstr "Editor"
+
+msgid "Editor"
 msgstr "Editor"
 
 msgid "Editor & Workflow"
@@ -5946,6 +5952,9 @@ msgstr "Kürzlich geänderten Code mit schwacher Abdeckung finden und ordentlich
 msgid "Find stale TODO/FIXME comments and resolve the quick ones."
 msgstr "Veraltete TODO-/FIXME-Kommentare finden und die schnellen davon erledigen."
 
+msgid "Finder"
+msgstr "Finder"
+
 msgid "Finish review"
 msgstr "Review abschließen"
 
@@ -6778,6 +6787,9 @@ msgid "In the Superset desktop app, open Settings → Remote Access and turn on 
 msgstr "Öffne in der Superset-Desktop-App Einstellungen → Fernzugriff und aktiviere „Fernzugriff auf dieses Gerät über den Relay erlauben“."
 
 msgid "in-app browser"
+msgstr "In-App-Browser"
+
+msgid "In-App Browser"
 msgstr "In-App-Browser"
 
 msgid "In-app PR merge"
@@ -8223,6 +8235,9 @@ msgstr "Neue Automatisierung"
 
 msgid "New Browser"
 msgstr "Neuer Browser"
+
+msgid "New Browser Tab"
+msgstr "Neuer Browser-Tab"
 
 msgid "New chat"
 msgstr "Neuer Chat"

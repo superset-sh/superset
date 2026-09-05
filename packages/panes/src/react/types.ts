@@ -18,6 +18,12 @@ export interface ContextMenuActionConfig<TData> {
 	shortcut?: string;
 	onSelect?: (context: RendererContext<TData>) => void;
 	disabled?: boolean | ((context: RendererContext<TData>) => boolean);
+	/**
+	 * Omit the entry entirely. Evaluated when the menu opens, not when the
+	 * action list is built, so an entry can depend on state that changes
+	 * between opens (e.g. whether the right-click landed on a terminal link).
+	 */
+	hidden?: boolean | ((context: RendererContext<TData>) => boolean);
 	variant?: "destructive";
 	type?: "item" | "separator";
 	children?:

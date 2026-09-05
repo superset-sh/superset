@@ -4330,6 +4330,9 @@ msgstr "默认（{defaultWorktreePath}）"
 msgid "default browser"
 msgstr "默认浏览器"
 
+msgid "Default Browser"
+msgstr "默认浏览器"
+
 msgid "Default effort"
 msgstr "默认推理强度"
 
@@ -5013,6 +5016,9 @@ msgid "Editing file..."
 msgstr "正在编辑文件..."
 
 msgid "editor"
+msgstr "编辑器"
+
+msgid "Editor"
 msgstr "编辑器"
 
 msgid "Editor & Workflow"
@@ -5946,6 +5952,9 @@ msgstr "找出最近改动过、覆盖率薄弱的代码，好好补上测试。
 msgid "Find stale TODO/FIXME comments and resolve the quick ones."
 msgstr "找出过期的TODO/FIXME注释，把好处理的解决掉。"
 
+msgid "Finder"
+msgstr "Finder"
+
 msgid "Finish review"
 msgstr "完成审查"
 
@@ -6778,6 +6787,9 @@ msgid "In the Superset desktop app, open Settings → Remote Access and turn on 
 msgstr "在Superset桌面应用中打开“设置 → 远程访问”，开启“允许通过中继远程访问本设备”。"
 
 msgid "in-app browser"
+msgstr "应用内浏览器"
+
+msgid "In-App Browser"
 msgstr "应用内浏览器"
 
 msgid "In-app PR merge"
@@ -8223,6 +8235,9 @@ msgstr "新建自动化"
 
 msgid "New Browser"
 msgstr "新建浏览器"
+
+msgid "New Browser Tab"
+msgstr "新建浏览器标签页"
 
 msgid "New chat"
 msgstr "新建聊天"

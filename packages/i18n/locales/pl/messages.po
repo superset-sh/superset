@@ -4330,6 +4330,9 @@ msgstr "Domyślny ({defaultWorktreePath})"
 msgid "default browser"
 msgstr "domyślna przeglądarka"
 
+msgid "Default Browser"
+msgstr "Domyślna przeglądarka"
+
 msgid "Default effort"
 msgstr "Domyślny wysiłek"
 
@@ -5014,6 +5017,9 @@ msgstr "Edytowanie pliku..."
 
 msgid "editor"
 msgstr "edytor"
+
+msgid "Editor"
+msgstr "Edytor"
 
 msgid "Editor & Workflow"
 msgstr "Edytor i workflow"
@@ -5946,6 +5952,9 @@ msgstr "Znajdź niedawno zmieniony kod ze słabym pokryciem i porządnie go prze
 msgid "Find stale TODO/FIXME comments and resolve the quick ones."
 msgstr "Znajdź nieaktualne komentarze TODO/FIXME i rozwiąż te szybkie."
 
+msgid "Finder"
+msgstr "Finder"
+
 msgid "Finish review"
 msgstr "Zakończ przegląd"
 
@@ -6779,6 +6788,9 @@ msgstr "W aplikacji Superset na komputerze otwórz Ustawienia → Dostęp zdalny
 
 msgid "in-app browser"
 msgstr "przeglądarka w aplikacji"
+
+msgid "In-App Browser"
+msgstr "Przeglądarka w aplikacji"
 
 msgid "In-app PR merge"
 msgstr "Scalanie PR w aplikacji"
@@ -8223,6 +8235,9 @@ msgstr "Nowa automatyzacja"
 
 msgid "New Browser"
 msgstr "Nowa przeglądarka"
+
+msgid "New Browser Tab"
+msgstr "Nowa karta przeglądarki"
 
 msgid "New chat"
 msgstr "Nowy czat"

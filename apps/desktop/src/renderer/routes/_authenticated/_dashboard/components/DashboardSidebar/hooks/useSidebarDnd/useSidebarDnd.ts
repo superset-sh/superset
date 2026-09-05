@@ -364,7 +364,7 @@ export function useSidebarDnd({
 	const {
 		reorderPinnedWorkspaces,
 		reorderProjectChildren,
-		moveWorkspaceToSectionAtIndex,
+		setSectionWorkspaceOrder,
 		setWorkspacePinned,
 	} = useDashboardSidebarState();
 
@@ -751,12 +751,10 @@ export function useSidebarDnd({
 
 			// Each section's workspace order
 			for (const [sectionId, wsIds] of Object.entries(parsed.sections)) {
-				for (let i = 0; i < wsIds.length; i++) {
-					moveWorkspaceToSectionAtIndex(wsIds[i], projectId, sectionId, i);
-				}
+				setSectionWorkspaceOrder(projectId, sectionId, wsIds);
 			}
 		},
-		[reorderProjectChildren, moveWorkspaceToSectionAtIndex],
+		[reorderProjectChildren, setSectionWorkspaceOrder],
 	);
 
 	const persistWorkspaceDrop = useCallback(

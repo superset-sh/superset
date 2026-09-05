@@ -101,3 +101,11 @@ plans/local/
 # Plugin build output is committed: a release is the plugin's tree at its
 # `<plugin>@<version>` tag, so the bundle users install has to be in it. The
 # build stamp travels with it so `plugins check` can verify it against src/.
+
+# Compiled Lingui catalogs. Generated from messages.po by `lingui compile`
+# (packages/i18n `build`), which every dependent's build/typecheck/test runs
+# via turbo `^build`. Committing them is what Lingui's docs warn against, and
+# it cost us a guaranteed conflict on all 17 files whenever two branches added
+# a string: compile emits one minified line per locale, and git cannot
+# three-way merge a single-line file.
+packages/i18n/locales/*/messages.ts

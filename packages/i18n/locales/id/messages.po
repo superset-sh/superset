@@ -4330,6 +4330,9 @@ msgstr "Bawaan ({defaultWorktreePath})"
 msgid "default browser"
 msgstr "browser bawaan"
 
+msgid "Default Browser"
+msgstr "Browser bawaan"
+
 msgid "Default effort"
 msgstr "Effort bawaan"
 
@@ -5014,6 +5017,9 @@ msgstr "Mengedit file..."
 
 msgid "editor"
 msgstr "editor"
+
+msgid "Editor"
+msgstr "Editor"
 
 msgid "Editor & Workflow"
 msgstr "Editor & Alur Kerja"
@@ -5946,6 +5952,9 @@ msgstr "Cari kode yang baru berubah dengan cakupan tes lemah dan uji dengan bena
 msgid "Find stale TODO/FIXME comments and resolve the quick ones."
 msgstr "Cari komentar TODO/FIXME yang basi dan selesaikan yang mudah."
 
+msgid "Finder"
+msgstr "Finder"
+
 msgid "Finish review"
 msgstr "Selesaikan review"
 
@@ -6779,6 +6788,9 @@ msgstr "Di aplikasi desktop Superset, buka Pengaturan → Akses Jarak Jauh dan a
 
 msgid "in-app browser"
 msgstr "browser dalam aplikasi"
+
+msgid "In-App Browser"
+msgstr "Browser dalam aplikasi"
 
 msgid "In-app PR merge"
 msgstr "Merge PR di dalam aplikasi"
@@ -8223,6 +8235,9 @@ msgstr "Otomatisasi baru"
 
 msgid "New Browser"
 msgstr "Browser Baru"
+
+msgid "New Browser Tab"
+msgstr "Tab browser baru"
 
 msgid "New chat"
 msgstr "Chat baru"

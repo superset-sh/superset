@@ -96,6 +96,48 @@ from the SUPER-1793 report into 0.20.0-beta.297, and hunks 1–3 are candidates
 for upstreaming. If upstream ships them, delete the patch, the
 `patchedDependencies` entry, and update (not delete) the guard test.
 
+## @xterm/xterm (`@xterm%2Fxterm@<version>.patch`)
+
+**Why:** SUPER-2120 / DESKTOP-12J. `Terminal.resize()` drains the write queue
+through `WriteBuffer.flushSync()`, which ignores the promise an async parser
+handler returns and then re-enters the parser without the continuation token
+it needs. `@xterm/addon-image` decodes inline images asynchronously (cursor-agent
+draws them with the kitty protocol because we identify as kitty), so a re-fit
+landing mid-decode put the parser in its FAIL state: every later write throws,
+the pane never renders again while the program keeps running, and only
+recreating the pane recovers. `flushSync` also drained from index 0 regardless
+of `_bufferOffset`, re-parsing chunks a sliced `_innerWrite` had already
+applied — duplicated output on a resize during heavy output.
+
+**What it changes** (`lib/xterm.js`, `lib/xterm.mjs`, and
+`src/common/input/WriteBuffer.ts` for readability — bundles are what run):
+
+1. `flushSync` returns early while a chunk is paused in an async handler
+   (`_asyncPending`), drains from `_bufferOffset` instead of index 0, and when a
+   chunk it applies returns a promise, hands the queue to the same continuation
+   `_innerWrite` uses instead of dropping the promise.
+2. That continuation lives in a new `_resumeAfterAsync`, which also cancels a
+   scheduled write loop so it cannot touch the paused chunk before the handler
+   settles.
+
+**Guard test:** `apps/desktop/src/xterm-flushsync-patch.test.ts` asserts the
+patch markers in both bundles and reproduces the failure against the real
+build: an image chunk plus a text chunk, then `resize()`, must not throw and
+must render both once the handler settles.
+
+**Regenerating after a version bump** (~10 min), unless upstream has absorbed
+it (check `WriteBuffer.flushSync` for `_asyncPending` or an equivalent guard;
+then delete the patch, the `patchedDependencies` entry, and update the test):
+
+```bash
+bun patch @xterm/xterm@<new-version>
+# edit node_modules/@xterm/xterm per the two changes above — in both lib
+# bundles find `flushSync(){` and the `if(<promise>){...}` branch inside
+# `_innerWrite`; mirror the edits in src/common/input/WriteBuffer.ts
+bun patch --commit 'node_modules/@xterm/xterm'
+bun test apps/desktop/src/xterm-flushsync-patch.test.ts
+```
+
 ## node-pty (`node-pty@<version>.patch`)
 
 **Why:** DESKTOP-101 / DESKTOP-107 / DESKTOP-10J. The desktop main process

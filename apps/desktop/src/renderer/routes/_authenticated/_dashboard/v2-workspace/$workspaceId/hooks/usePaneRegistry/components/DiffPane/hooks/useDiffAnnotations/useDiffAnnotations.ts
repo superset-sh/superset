@@ -21,6 +21,9 @@ export interface DiffCommentThread {
 	isOutdated: boolean;
 	url?: string;
 	sourceLine?: number;
+	/** REST databaseId of the thread's first comment — replies thread onto
+	 *  it. Unset only if GitHub ever returns a thread with zero comments. */
+	replyToCommentId?: number;
 }
 
 /** Local-only metadata for a draft composer pinned to the end of a selection. */
@@ -118,6 +121,7 @@ export function useDiffAnnotationsByPath({
 					isResolved: thread.isResolved,
 					isOutdated: thread.isOutdated,
 					...(url ? { url } : {}),
+					...(firstDbId != null ? { replyToCommentId: firstDbId } : {}),
 					comments: thread.comments.map((c) => {
 						const createdAt = parseTimestamp(c.createdAt);
 						return {

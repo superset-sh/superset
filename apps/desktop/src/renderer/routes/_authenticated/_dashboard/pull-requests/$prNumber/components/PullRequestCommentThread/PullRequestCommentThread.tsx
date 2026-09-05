@@ -7,7 +7,6 @@ import {
 	CollapsibleTrigger,
 } from "@superset/ui/collapsible";
 import { toast } from "@superset/ui/sonner";
-import { Textarea } from "@superset/ui/textarea";
 import { cn } from "@superset/ui/utils";
 import { useEffect, useState } from "react";
 import {
@@ -18,6 +17,7 @@ import {
 	LuLoaderCircle,
 } from "react-icons/lu";
 import { CommentMarkdown } from "renderer/components/CommentMarkdown";
+import { ReviewThreadReplyComposer } from "renderer/routes/_authenticated/_dashboard/components/ReviewThreadReplyComposer";
 import "./comment-thread.css";
 
 interface Comment {
@@ -49,7 +49,8 @@ interface PullRequestCommentThreadProps {
 // visuals, but the resolve mutation is injected via a prop instead of
 // wired to that component's workspaceId-scoped git.setReviewThreadResolution
 // call, since this one's callers (the PR list/detail Code tab) browse a PR
-// directly and don't necessarily have a workspace linked to it.
+// directly and don't necessarily have a workspace linked to it. The reply
+// box is the shared ReviewThreadReplyComposer; only the dispatch differs.
 export function PullRequestCommentThread({
 	isResolved,
 	isOutdated,
@@ -99,31 +100,6 @@ export function PullRequestCommentThread({
 	}, [focusTick]);
 
 	const firstComment = comments[0];
-	const handleReplySubmit = () => {
-		const trimmed = replyText.trim();
-		if (!trimmed) return;
-		const dispatched = onReply(trimmed);
-		if (!dispatched) {
-			toast.error(
-				t({
-					message: "Couldn't send reply",
-				}),
-				{
-					description: t({
-						message: "This thread has no comment to reply to.",
-					}),
-				},
-			);
-			return;
-		}
-		// Optimistic clear: the mutation itself is fire-and-forget from here,
-		// and a failure past this point already surfaces as a toast (see
-		// PullRequestCodeTab's replyToThread onError) — restoring the draft
-		// on failure would need a promise-returning prop for marginal
-		// benefit. `dispatched` only guards against onReply no-op'ing before
-		// ever calling the mutation.
-		setReplyText("");
-	};
 
 	return (
 		<Collapsible
@@ -238,23 +214,13 @@ export function PullRequestCommentThread({
 						<CommentRow key={comment.id} comment={comment} />
 					))}
 				</ul>
-				<div className="flex flex-col gap-2 border-t border-border/50 bg-muted/20 px-3 py-2">
-					<Textarea
-						value={replyText}
-						onChange={(e) => setReplyText(e.target.value)}
-						onKeyDown={(e) => {
-							if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-								e.preventDefault();
-								handleReplySubmit();
-							}
-						}}
-						placeholder={t({
-							message: "Write a reply…",
-						})}
-						rows={2}
-						className="resize-none bg-background text-xs"
-					/>
-					<div className="flex items-center justify-end gap-2">
+				<ReviewThreadReplyComposer
+					value={replyText}
+					onChange={setReplyText}
+					onReply={onReply}
+					isPending={isReplyPending}
+					className="border-border/50 bg-muted/20 px-3"
+					actions={
 						<Button
 							type="button"
 							size="xs"
@@ -271,19 +237,8 @@ export function PullRequestCommentThread({
 								<Trans>Resolve conversation</Trans>
 							)}
 						</Button>
-						<Button
-							type="button"
-							size="xs"
-							disabled={!replyText.trim() || isReplyPending}
-							onClick={handleReplySubmit}
-						>
-							{isReplyPending && (
-								<LuLoaderCircle className="size-3 animate-spin" />
-							)}
-							<Trans>Reply</Trans>
-						</Button>
-					</div>
-				</div>
+					}
+				/>
 			</CollapsibleContent>
 		</Collapsible>
 	);

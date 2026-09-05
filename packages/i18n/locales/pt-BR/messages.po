@@ -4330,6 +4330,9 @@ msgstr "Padrão ({defaultWorktreePath})"
 msgid "default browser"
 msgstr "navegador padrão"
 
+msgid "Default Browser"
+msgstr "Navegador padrão"
+
 msgid "Default effort"
 msgstr "Esforço padrão"
 
@@ -5014,6 +5017,9 @@ msgstr "Editando o arquivo..."
 
 msgid "editor"
 msgstr "editor"
+
+msgid "Editor"
+msgstr "Editor"
 
 msgid "Editor & Workflow"
 msgstr "Editor e fluxo de trabalho"
@@ -5946,6 +5952,9 @@ msgstr "Encontre código alterado recentemente com pouca cobertura e teste direi
 msgid "Find stale TODO/FIXME comments and resolve the quick ones."
 msgstr "Encontre comentários TODO/FIXME antigos e resolva os rápidos."
 
+msgid "Finder"
+msgstr "Finder"
+
 msgid "Finish review"
 msgstr "Concluir revisão"
 
@@ -6779,6 +6788,9 @@ msgstr "No app de desktop do Superset, abra Configurações → Acesso remoto e 
 
 msgid "in-app browser"
 msgstr "navegador do app"
+
+msgid "In-App Browser"
+msgstr "Navegador do app"
 
 msgid "In-app PR merge"
 msgstr "Merge de PR dentro do app"
@@ -8223,6 +8235,9 @@ msgstr "Nova automação"
 
 msgid "New Browser"
 msgstr "Novo navegador"
+
+msgid "New Browser Tab"
+msgstr "Nova aba do navegador"
 
 msgid "New chat"
 msgstr "Novo chat"

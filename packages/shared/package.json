@@ -72,6 +72,10 @@
 			"types": "./src/dev-credentials.ts",
 			"default": "./src/dev-credentials.ts"
 		},
+		"./dev-app-profile": {
+			"types": "./src/dev-app-profile.ts",
+			"default": "./src/dev-app-profile.ts"
+		},
 		"./desktop-notices": {
 			"types": "./src/desktop-notices.ts",
 			"default": "./src/desktop-notices.ts"

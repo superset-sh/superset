@@ -20,6 +20,7 @@ import {
 	LuLoaderCircle,
 } from "react-icons/lu";
 import { CommentMarkdown } from "renderer/components/CommentMarkdown";
+import { ReviewThreadReplyComposer } from "renderer/routes/_authenticated/_dashboard/components/ReviewThreadReplyComposer";
 import "./comment-thread.css";
 import { msg } from "@lingui/core/macro";
 
@@ -38,6 +39,10 @@ interface CommentThreadProps {
 	isOutdated?: boolean;
 	url?: string;
 	comments: Comment[];
+	/** REST databaseId of a comment already in the thread — replies thread
+	 *  onto it regardless of which comment they target. Undefined only if
+	 *  GitHub ever returns a thread with zero comments (shouldn't happen). */
+	replyToCommentId?: number;
 	/** Force-expand the bubble whenever this changes — lets jump-to-line
 	 *  reveal a collapsed (resolved/outdated) thread. */
 	focusTick?: number;
@@ -50,6 +55,7 @@ export function CommentThread({
 	isOutdated,
 	url,
 	comments,
+	replyToCommentId,
 	focusTick,
 }: CommentThreadProps) {
 	const { t } = useLingui();
@@ -105,6 +111,26 @@ export function CommentThread({
 			},
 		},
 	);
+	const [replyText, setReplyText] = useState("");
+	const replyToThread = workspaceTrpc.git.replyToReviewThread.useMutation({
+		onSuccess: () => {
+			void utils.git.getPullRequestThreads.invalidate({ workspaceId });
+		},
+		onError: (error, variables) => {
+			// The draft is cleared as soon as it's sent; hand it back so a
+			// rejected reply isn't retyped — unless a new one is already
+			// underway.
+			setReplyText((current) => (current.trim() ? current : variables.body));
+			toast.error(
+				t({
+					message: "Couldn't post reply",
+				}),
+				{
+					description: errorMessage(error),
+				},
+			);
+		},
+	});
 
 	return (
 		<Collapsible
@@ -195,30 +221,45 @@ export function CommentThread({
 						<CommentRow key={comment.id} comment={comment} />
 					))}
 				</ul>
-				<div className="flex items-center justify-end border-t border-border bg-muted/30 px-2.5 py-1.5">
-					<Button
-						type="button"
-						size="xs"
-						variant="outline"
-						disabled={setResolution.isPending}
-						onClick={() =>
-							setResolution.mutate({
-								workspaceId,
-								threadId,
-								resolved: !isResolved,
-							})
-						}
-					>
-						{setResolution.isPending && (
-							<LuLoaderCircle className="size-3 animate-spin" />
-						)}
-						{isResolved ? (
-							<Trans>Unresolve</Trans>
-						) : (
-							<Trans>Resolve conversation</Trans>
-						)}
-					</Button>
-				</div>
+				<ReviewThreadReplyComposer
+					value={replyText}
+					onChange={setReplyText}
+					onReply={(body) => {
+						if (replyToCommentId == null) return false;
+						replyToThread.mutate({
+							workspaceId,
+							commentId: replyToCommentId,
+							body,
+						});
+						return true;
+					}}
+					isPending={replyToThread.isPending}
+					className="border-border bg-muted/30 px-2.5"
+					actions={
+						<Button
+							type="button"
+							size="xs"
+							variant="outline"
+							disabled={setResolution.isPending}
+							onClick={() =>
+								setResolution.mutate({
+									workspaceId,
+									threadId,
+									resolved: !isResolved,
+								})
+							}
+						>
+							{setResolution.isPending && (
+								<LuLoaderCircle className="size-3 animate-spin" />
+							)}
+							{isResolved ? (
+								<Trans>Unresolve</Trans>
+							) : (
+								<Trans>Resolve conversation</Trans>
+							)}
+						</Button>
+					}
+				/>
 			</CollapsibleContent>
 		</Collapsible>
 	);

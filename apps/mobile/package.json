@@ -3,6 +3,7 @@
 	"version": "1.0.0",
 	"main": "expo-router/entry",
 	"scripts": {
+		"predev": "bun run --filter=@superset/i18n build",
 		"dev": "EXPO_UNSTABLE_MCP_SERVER=1 expo start",
 		"android": "expo run:android",
 		"ios": "expo run:ios",

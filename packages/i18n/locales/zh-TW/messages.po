@@ -4330,6 +4330,9 @@ msgstr "預設（{defaultWorktreePath}）"
 msgid "default browser"
 msgstr "預設瀏覽器"
 
+msgid "Default Browser"
+msgstr "預設瀏覽器"
+
 msgid "Default effort"
 msgstr "預設推理強度"
 
@@ -5013,6 +5016,9 @@ msgid "Editing file..."
 msgstr "正在編輯檔案..."
 
 msgid "editor"
+msgstr "編輯器"
+
+msgid "Editor"
 msgstr "編輯器"
 
 msgid "Editor & Workflow"
@@ -5946,6 +5952,9 @@ msgstr "找出最近改動過、覆蓋率薄弱的程式碼，好好補上測試
 msgid "Find stale TODO/FIXME comments and resolve the quick ones."
 msgstr "找出過期的TODO/FIXME註釋，把好處理的解決掉。"
 
+msgid "Finder"
+msgstr "Finder"
+
 msgid "Finish review"
 msgstr "完成審查"
 
@@ -6778,6 +6787,9 @@ msgid "In the Superset desktop app, open Settings → Remote Access and turn on 
 msgstr "在Superset桌面應用程式中開啟「設定 → 遠端存取」，開啟「允許遠端工作區通過中繼存取此裝置」。"
 
 msgid "in-app browser"
+msgstr "應用程式內瀏覽器"
+
+msgid "In-App Browser"
 msgstr "應用程式內瀏覽器"
 
 msgid "In-app PR merge"
@@ -8223,6 +8235,9 @@ msgstr "新建自動化"
 
 msgid "New Browser"
 msgstr "新建瀏覽器"
+
+msgid "New Browser Tab"
+msgstr "新瀏覽器分頁"
 
 msgid "New chat"
 msgstr "新建聊天"

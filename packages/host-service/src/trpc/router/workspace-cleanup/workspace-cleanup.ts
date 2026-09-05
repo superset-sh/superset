@@ -2,12 +2,16 @@ import { existsSync, lstatSync, statSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { sanitizePromptForPty } from "@superset/shared/agent-prompt-launch";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { eq, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { pullRequests } from "../../../db/schema";
+import { pullRequests, workspaces } from "../../../db/schema";
 import { invalidateLabelCache } from "../../../ports/static-ports";
 import { coercePullRequestState } from "../../../runtime/pull-requests/utils/pull-request-mappers";
-import { runTeardown, type TeardownResult } from "../../../runtime/teardown";
+import {
+	removeDevAppProfile,
+	runTeardown,
+	type TeardownResult,
+} from "../../../runtime/teardown";
 import { disposeSessionsByWorkspaceId } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
 import type { GitTaskEnv } from "../../../workers/tasks/git";
@@ -622,6 +626,22 @@ async function runDestroyPhases(
 			const message = err instanceof Error ? err.message : String(err);
 			warnings.push(`Failed to invalidate label cache: ${message}`);
 		}
+
+		// The desktop dev app profile, last: every throw above un-archives the
+		// workspace and hands it back to the user, and a workspace that came
+		// back must still have its logins and browser storage. By here nothing
+		// can roll the delete back. Swallows its own failures — reclaiming
+		// disk must never fail a delete.
+		if (sharesProfileWithLiveWorkspace(ctx, local)) {
+			// The profile directory is keyed by name alone, so same-named
+			// workspaces share one. Reaping it here would wipe the survivor's
+			// browser storage on a delete it had nothing to do with.
+			warnings.push(
+				`Left the dev app profile for "${local.name}" on disk: another workspace shares that name`,
+			);
+		} else {
+			await removeDevAppProfile({ workspaceName: local.name });
+		}
 	}
 
 	return {
@@ -633,6 +653,42 @@ async function runDestroyPhases(
 		branchDeleted,
 		warnings,
 	};
+}
+
+/**
+ * True when a live workspace still answers to this name. The dev app derives
+ * its profile directory from the workspace name alone, so same-named
+ * workspaces share one — and the survivor must keep it.
+ *
+ * Reads fail closed (assume shared): leaving a directory on disk is the
+ * recoverable mistake, and the startup sweep collects it once it goes stale.
+ */
+function sharesProfileWithLiveWorkspace(
+	ctx: HostServiceContext,
+	local: { id: string; name: string },
+): boolean {
+	// Defensive: rows written before the name column was backfilled carry ""
+	// and test fixtures carry nothing at all. Neither names a profile.
+	if (typeof local.name !== "string" || !local.name.trim()) return false;
+	const profileKey = local.name.trim();
+	try {
+		// Compared trimmed in JS rather than matched in SQL: the profile key is
+		// the trimmed name, so "foo" and " foo" share a directory that an
+		// equality match would miss. The row count here is per host, and this
+		// path already does far heavier work.
+		const rows = ctx.db.query.workspaces
+			.findMany({
+				columns: { id: true, name: true },
+				where: isNull(workspaces.archivedAt),
+			})
+			.sync();
+		return rows.some(
+			(row) => row.id !== local.id && row.name?.trim() === profileKey,
+		);
+	} catch (err) {
+		console.warn("[workspace-cleanup] profile name-sharing lookup failed", err);
+		return true;
+	}
 }
 
 function formatTeardownWarning(

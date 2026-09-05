@@ -9,6 +9,7 @@
 		"build:darwin-arm64": "cli-framework build --target=bun-darwin-arm64 --outfile=./dist/superset-darwin-arm64",
 		"build:linux-x64": "cli-framework build --target=bun-linux-x64 --outfile=./dist/superset-linux-x64",
 		"build:all": "bun run build:darwin-arm64 && bun run build:linux-x64",
+		"prebuild:dist": "bun run --filter=@superset/i18n build",
 		"build:dist": "bun run scripts/build-dist.ts",
 		"typecheck": "tsc --noEmit",
 		"test": "bun test"
