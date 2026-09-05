@@ -7,7 +7,10 @@ import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import { attemptWorkspaceAutoRenameFromPrompt } from "../utils/ai-name";
-import { resolveWorkspaceBaseBranch } from "../utils/base-branch";
+import {
+	resolvePrBaseBranch,
+	resolveWorkspaceBaseBranch,
+} from "../utils/base-branch";
 import { setBranchBaseConfig } from "../utils/base-branch-config";
 import { resolveBranchPrefix } from "../utils/branch-prefix";
 import {
@@ -317,12 +320,16 @@ interface HandleNewWorktreeParams {
 	workspaceName: string;
 }
 
+/**
+ * `remote` holds remote-tracking branches with the "origin/" prefix stripped,
+ * matching `all`'s shape. Undefined when git could not be read at all.
+ */
 async function getKnownBranchesSafe(
 	repoPath: string,
-): Promise<string[] | undefined> {
+): Promise<{ all: string[]; remote: string[] } | undefined> {
 	try {
 		const { local, remote } = await listBranches(repoPath);
-		return [...local, ...remote];
+		return { all: [...local, ...remote], remote };
 	} catch (error) {
 		console.warn(
 			`[workspaces/create] Failed to list branches for ${repoPath}:`,
@@ -359,9 +366,18 @@ async function handleNewWorktree({
 
 	const knownBranches = await getKnownBranchesSafe(project.mainRepoPath);
 	const compareBaseBranch = resolveWorkspaceBaseBranch({
+		// A PR is reviewed against the branch it merges into, not the project's
+		// configured base — a stacked PR would otherwise open showing its
+		// parent's commits as its own changes. A base we cannot compare
+		// against leaves the project's own precedence (configured base, then
+		// repo default) untouched.
+		explicitBaseBranch: resolvePrBaseBranch({
+			baseRefName: prInfo.baseRefName,
+			remoteBranches: knownBranches?.remote,
+		}),
 		workspaceBaseBranch: project.workspaceBaseBranch,
 		defaultBranch: project.defaultBranch,
-		knownBranches,
+		knownBranches: knownBranches?.all,
 	});
 
 	const worktree = localDb
@@ -1063,7 +1079,7 @@ export const createCreateProcedures = () => {
 				const compareBaseBranch = resolveWorkspaceBaseBranch({
 					workspaceBaseBranch: project.workspaceBaseBranch,
 					defaultBranch: project.defaultBranch,
-					knownBranches,
+					knownBranches: knownBranches?.all,
 				});
 
 				let imported = 0;
@@ -1143,7 +1159,7 @@ export const createCreateProcedures = () => {
 				const compareBaseBranch = resolveWorkspaceBaseBranch({
 					workspaceBaseBranch: project.workspaceBaseBranch,
 					defaultBranch: project.defaultBranch,
-					knownBranches,
+					knownBranches: knownBranches?.all,
 				});
 
 				const allExternalWorktrees = await listExternalWorktrees(
