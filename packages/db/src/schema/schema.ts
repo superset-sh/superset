@@ -661,7 +661,6 @@ export const v2Hosts = pgTable(
 			.references(() => organizations.id, { onDelete: "cascade" }),
 		machineId: text("machine_id").notNull(),
 		name: text().notNull(),
-		isOnline: boolean("is_online").notNull().default(false),
 		// User-defined command run locally to wake/start this host (e.g. resume a
 		// cloud sandbox, start a VM). Null when the host has no wake command.
 		wakeCommand: text("wake_command"),

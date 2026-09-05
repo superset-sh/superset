@@ -750,6 +750,13 @@
       "when": 1788489378410,
       "tag": "0106_plugin_marketplace_installs_and_connections",
       "breakpoints": true
+    },
+    {
+      "idx": 107,
+      "version": "7",
+      "when": 1788589621442,
+      "tag": "0107_drop_v2_hosts_is_online",
+      "breakpoints": true
     }
   ]
 }
