@@ -2,9 +2,9 @@ import { existsSync, lstatSync, statSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { sanitizePromptForPty } from "@superset/shared/agent-prompt-launch";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { pullRequests } from "../../../db/schema";
+import { pullRequests, workspaces } from "../../../db/schema";
 import { invalidateLabelCache } from "../../../ports/static-ports";
 import { coercePullRequestState } from "../../../runtime/pull-requests/utils/pull-request-mappers";
 import {
@@ -632,7 +632,16 @@ async function runDestroyPhases(
 		// back must still have its logins and browser storage. By here nothing
 		// can roll the delete back. Swallows its own failures — reclaiming
 		// disk must never fail a delete.
-		await removeDevAppProfile({ workspaceName: local.name });
+		if (sharesProfileWithLiveWorkspace(ctx, local)) {
+			// The profile directory is keyed by name alone, so same-named
+			// workspaces share one. Reaping it here would wipe the survivor's
+			// browser storage on a delete it had nothing to do with.
+			warnings.push(
+				`Left the dev app profile for "${local.name}" on disk: another workspace shares that name`,
+			);
+		} else {
+			await removeDevAppProfile({ workspaceName: local.name });
+		}
 	}
 
 	return {
@@ -644,6 +653,38 @@ async function runDestroyPhases(
 		branchDeleted,
 		warnings,
 	};
+}
+
+/**
+ * True when a live workspace still answers to this name. The dev app derives
+ * its profile directory from the workspace name alone, so same-named
+ * workspaces share one — and the survivor must keep it.
+ *
+ * Reads fail closed (assume shared): leaving a directory on disk is the
+ * recoverable mistake, and the startup sweep collects it once it goes stale.
+ */
+function sharesProfileWithLiveWorkspace(
+	ctx: HostServiceContext,
+	local: { id: string; name: string },
+): boolean {
+	// Defensive: rows written before the name column was backfilled carry ""
+	// and test fixtures carry nothing at all. Neither names a profile.
+	if (typeof local.name !== "string" || !local.name.trim()) return false;
+	try {
+		const rows = ctx.db.query.workspaces
+			.findMany({
+				columns: { id: true },
+				where: and(
+					eq(workspaces.name, local.name),
+					isNull(workspaces.archivedAt),
+				),
+			})
+			.sync();
+		return rows.some((row) => row.id !== local.id);
+	} catch (err) {
+		console.warn("[workspace-cleanup] profile name-sharing lookup failed", err);
+		return true;
+	}
 }
 
 function formatTeardownWarning(
