@@ -194,16 +194,11 @@ export function updateTerminalScript({
 	});
 }
 
-export interface DeleteTerminalScriptResult {
-	script: TerminalPreset;
-	/** True when the row is gone already; false while the desktop must still remove its copy. */
-	removed: boolean;
-}
-
 /**
- * Remove a script. One the desktop never imported disappears immediately;
- * otherwise the row stays as a tombstone until the desktop app deletes its
- * copy and drops the row (see cliDeletePending).
+ * Remove a script. The row always stays as a tombstone until the desktop app
+ * has deleted its copy and drops the row (see cliDeletePending): an
+ * import-pending marker cannot tell a never-imported script from one being
+ * edited, and even a fresh add may already be copied but not yet acknowledged.
  */
 export function deleteTerminalScript({
 	organizationId,
@@ -211,22 +206,12 @@ export function deleteTerminalScript({
 }: {
 	organizationId: string;
 	id: string;
-}): DeleteTerminalScriptResult {
-	return updateSettingsAtomically<DeleteTerminalScriptResult>((row) => {
+}): TerminalPreset {
+	return updateSettingsAtomically((row) => {
 		const scripts = row?.terminalPresets ?? [];
 		const { index, script } = requireScript(scripts, id);
 		if (script.cliDeletePending) {
-			return {
-				patch: { terminalPresets: scripts },
-				result: { script, removed: false },
-			};
-		}
-		if (script.cliImportPending) {
-			const next = scripts.filter((_, i) => i !== index);
-			return {
-				patch: { terminalPresets: next },
-				result: { script, removed: true },
-			};
+			return { patch: { terminalPresets: scripts }, result: script };
 		}
 		const {
 			cliImportPending: _pending,
@@ -240,10 +225,7 @@ export function deleteTerminalScript({
 		};
 		const next = [...scripts];
 		next[index] = tombstone;
-		return {
-			patch: { terminalPresets: next },
-			result: { script: tombstone, removed: false },
-		};
+		return { patch: { terminalPresets: next }, result: tombstone };
 	});
 }
 

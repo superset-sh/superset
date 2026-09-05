@@ -163,7 +163,7 @@ describe("updateTerminalScript", () => {
 });
 
 describe("deleteTerminalScript", () => {
-	test("removes a script the desktop never imported", () => {
+	test("tombstones a script even when its import is still pending", () => {
 		const script = createTerminalScript({
 			organizationId: "org-a",
 			name: "Fresh",
@@ -175,8 +175,9 @@ describe("deleteTerminalScript", () => {
 			id: script.id,
 		});
 
-		expect(result.removed).toBe(true);
-		expect(readSettingsRow()?.terminalPresets).toEqual([]);
+		expect(result.cliDeletePending).toBe(true);
+		expect(result.cliImportPending).toBeUndefined();
+		expect(readSettingsRow()?.terminalPresets).toEqual([result]);
 	});
 
 	test("leaves a tombstone for a script the desktop already imported", () => {
@@ -186,12 +187,8 @@ describe("deleteTerminalScript", () => {
 			],
 		});
 
-		const result = deleteTerminalScript({
-			organizationId: "org-a",
-			id: "imported",
-		});
+		deleteTerminalScript({ organizationId: "org-a", id: "imported" });
 
-		expect(result.removed).toBe(false);
 		expect(readSettingsRow()?.terminalPresets).toEqual([
 			{
 				id: "imported",
@@ -207,7 +204,7 @@ describe("deleteTerminalScript", () => {
 			organizationId: "org-a",
 			id: "imported",
 		});
-		expect(again.removed).toBe(false);
+		expect(again.cliDeletePending).toBe(true);
 		expect(readSettingsRow()?.terminalPresets).toHaveLength(1);
 	});
 

@@ -14,14 +14,12 @@ export default command({
 	run: async ({ args }) => {
 		const organizationId = requireOrganizationId();
 		const id = args.id as string;
-		const { script, removed } = deleteTerminalScript({ organizationId, id });
+		const script = deleteTerminalScript({ organizationId, id });
 		const refreshed = await notifyDesktopSettingsChanged();
 
 		return {
 			data: toPublicTerminalScript(script),
-			message: removed
-				? `Deleted terminal script ${script.name} (${script.id}).`
-				: `Deleted terminal script ${script.name} (${script.id}). ${desktopSyncNote(refreshed)}`,
+			message: `Deleted terminal script ${script.name} (${script.id}). ${desktopSyncNote(refreshed)}`,
 		};
 	},
 });

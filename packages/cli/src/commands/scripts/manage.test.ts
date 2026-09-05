@@ -181,7 +181,7 @@ describe("scripts edit", () => {
 });
 
 describe("scripts delete", () => {
-	test("drops a script the desktop has not imported yet", async () => {
+	test("tombstones a script the desktop has not acknowledged yet", async () => {
 		const added = await run(addCommand, {
 			options: { name: "Temp", command: ["echo temp"] },
 		});
@@ -190,10 +190,13 @@ describe("scripts delete", () => {
 			args: { id: added.data.id },
 		});
 
-		expect(result.message).toBe(
-			`Deleted terminal script Temp (${added.data.id}).`,
-		);
-		expect(readSettingsRow()?.terminalPresets).toEqual([]);
+		expect(result.data).toMatchObject({
+			id: added.data.id,
+			status: "deleting",
+		});
+		const stored = readSettingsRow()?.terminalPresets?.[0];
+		expect(stored?.cliDeletePending).toBe(true);
+		expect(stored?.cliImportPending).toBeUndefined();
 	});
 
 	test("tombstones an imported script until the desktop removes its copy", async () => {

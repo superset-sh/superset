@@ -136,10 +136,9 @@ superset scripts edit <id> --all-projects --no-hidden
 	]}
 	output="Terminal script"
 >
-Delete a script. A script the desktop app has not picked up yet disappears
-immediately. One it already shows is removed from the app the next time it
-opens or refocuses with the same organization active; until then it lists
-with status `deleting`.
+Delete a script. The desktop app removes its copy the next time it opens or
+refocuses with the same organization active (immediately when it is running);
+until then the script lists with status `deleting`.
 
 ```bash
 superset scripts delete <id>
