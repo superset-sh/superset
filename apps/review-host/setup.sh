@@ -113,7 +113,7 @@ UNIT
 
 cat > /etc/systemd/system/superset-review-update.service <<UNIT
 [Unit]
-Description=Bring the review host's host-service up to the latest release
+Description=Bring the review host up to the latest release (backstop; the release trigger is primary)
 After=network-online.target
 Wants=network-online.target
 
@@ -124,11 +124,14 @@ UNIT
 
 cat > /etc/systemd/system/superset-review-update.timer <<UNIT
 [Unit]
-Description=Daily check that the review host is on the current release
+Description=Backstop check that the review host is on the current release
 
 [Timer]
-OnCalendar=daily
-RandomizedDelaySec=30m
+# Every 6h. The primary path is the release trigger, which fires the moment a
+# release is published; this is what catches a missed or failed webhook, and a
+# box that came back from a reboot behind.
+OnCalendar=*-*-* 00/6:00:00
+RandomizedDelaySec=15m
 Persistent=true
 
 [Install]
