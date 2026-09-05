@@ -12,12 +12,16 @@ import {
 	findResumeCandidateBinding,
 	markTerminalAgentBindingEnded,
 } from "../../terminal-agents/persistence.ts";
+import { markTerminalSessionSuspended } from "../terminal.ts";
 import {
 	markStaleActiveRows,
 	PORT_SCAN_WARMUP_DELAYS_MS,
 	planPortScanSync,
+	planShelvedSuspends,
 	planStaleActiveRows,
 	REAP_INTERVAL_MS,
+	SHELVE_SUSPEND_GRACE_MS,
+	STALE_ACTIVE_GRACE_MS,
 	shouldReapRow,
 } from "./reaper.ts";
 
@@ -550,5 +554,229 @@ describe("markStaleActiveRows agent bindings", () => {
 		expect(
 			findResumeCandidateBinding(db, "ws-1", "t-detached"),
 		).toBeUndefined();
+	});
+});
+
+describe("planShelvedSuspends", () => {
+	const NOW = 1_000_000_000;
+	const PAST_GRACE = NOW - SHELVE_SUSPEND_GRACE_MS - 1;
+	const activeRow = { status: "active", originWorkspaceId: "ws-1" };
+
+	it("suspends a live session once its workspace has been shelved past the grace", () => {
+		const plan = planShelvedSuspends({
+			liveSessions: [{ id: "term-1" }],
+			rowById: new Map([["term-1", activeRow]]),
+			shelvedWorkspaces: new Map([["ws-1", PAST_GRACE]]),
+			now: NOW,
+		});
+		expect(plan.suspend).toEqual(["term-1"]);
+	});
+
+	it("leaves sessions alone inside the grace window (the undo toast must get the same pty back)", () => {
+		const plan = planShelvedSuspends({
+			liveSessions: [{ id: "term-1" }],
+			rowById: new Map([["term-1", activeRow]]),
+			shelvedWorkspaces: new Map([["ws-1", NOW - SHELVE_SUSPEND_GRACE_MS + 1]]),
+			now: NOW,
+		});
+		expect(plan.suspend).toEqual([]);
+	});
+
+	it("never suspends a session whose workspace is not shelved", () => {
+		const plan = planShelvedSuspends({
+			liveSessions: [{ id: "term-1" }, { id: "term-2" }],
+			rowById: new Map([
+				["term-1", activeRow],
+				["term-2", { status: "active", originWorkspaceId: "ws-2" }],
+			]),
+			shelvedWorkspaces: new Map([["ws-2", PAST_GRACE]]),
+			now: NOW,
+		});
+		expect(plan.suspend).toEqual(["term-2"]);
+	});
+
+	it("lets dispose supersede suspend for a row the orphan pass already condemns", () => {
+		const plan = planShelvedSuspends({
+			liveSessions: [{ id: "term-1" }],
+			rowById: new Map([
+				["term-1", { ...activeRow, disposeRequestedAt: NOW - 1 }],
+			]),
+			shelvedWorkspaces: new Map([["ws-1", PAST_GRACE]]),
+			now: NOW,
+		});
+		expect(plan.suspend).toEqual([]);
+	});
+
+	it("is idempotent: an already-suspended session is no longer alive, so it is never planned again", () => {
+		const plan = planShelvedSuspends({
+			liveSessions: [],
+			rowById: new Map([
+				["term-1", { status: "suspended", originWorkspaceId: "ws-1" }],
+			]),
+			shelvedWorkspaces: new Map([["ws-1", PAST_GRACE]]),
+			now: NOW,
+		});
+		expect(plan.suspend).toEqual([]);
+	});
+
+	it("skips rowless, workspace-less, and non-active rows", () => {
+		const plan = planShelvedSuspends({
+			liveSessions: [
+				{ id: "rowless" },
+				{ id: "no-workspace" },
+				{ id: "exited" },
+			],
+			rowById: new Map([
+				["no-workspace", { status: "active", originWorkspaceId: null }],
+				["exited", { status: "exited", originWorkspaceId: "ws-1" }],
+			]),
+			shelvedWorkspaces: new Map([["ws-1", PAST_GRACE]]),
+			now: NOW,
+		});
+		expect(plan.suspend).toEqual([]);
+	});
+});
+
+describe("suspended sessions survive the stale-active sweep", () => {
+	const SHELVED_AT = Date.now() - 10 * 60_000;
+	const CREATED_AT = SHELVED_AT - 60_000;
+
+	function createTestDb(): HostDb {
+		const sqlite = new Database(":memory:");
+		const db = drizzle(sqlite, { schema });
+		migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
+		return db as unknown as HostDb;
+	}
+
+	function seedShelvedWorkspaceWithAgentTerminal(db: HostDb) {
+		db.insert(schema.workspaces)
+			.values({
+				id: "ws-1",
+				projectId: null,
+				worktreePath: "/tmp/ws-1",
+				branch: "feature",
+				name: "feature",
+				type: "session",
+				shelvedAt: SHELVED_AT,
+			})
+			.run();
+		db.insert(terminalSessions)
+			.values({
+				id: "term-1",
+				status: "active",
+				originWorkspaceId: "ws-1",
+				createdAt: CREATED_AT,
+			})
+			.run();
+		db.insert(terminalAgentBindings)
+			.values({
+				terminalId: "term-1",
+				workspaceId: "ws-1",
+				agentId: "claude",
+				agentSessionId: "sess-1",
+				startedAt: CREATED_AT,
+				lastEventAt: CREATED_AT,
+				lastEventType: "Stop",
+			})
+			.run();
+	}
+
+	function rowsById(db: HostDb) {
+		const rows = db
+			.select({
+				id: terminalSessions.id,
+				status: terminalSessions.status,
+				originWorkspaceId: terminalSessions.originWorkspaceId,
+				disposeRequestedAt: terminalSessions.disposeRequestedAt,
+				createdAt: terminalSessions.createdAt,
+			})
+			.from(terminalSessions)
+			.all();
+		return new Map(rows.map((row) => [row.id, row]));
+	}
+
+	function sessionRow(db: HostDb) {
+		return db
+			.select({
+				status: terminalSessions.status,
+				endedAt: terminalSessions.endedAt,
+				disposeRequestedAt: terminalSessions.disposeRequestedAt,
+			})
+			.from(terminalSessions)
+			.where(eq(terminalSessions.id, "term-1"))
+			.get();
+	}
+
+	it("marks the row suspended and ends (never deletes) the agent binding", () => {
+		const db = createTestDb();
+		seedShelvedWorkspaceWithAgentTerminal(db);
+		const endedAt = Date.now();
+
+		expect(markTerminalSessionSuspended(db, "term-1", endedAt)).toBe(true);
+
+		expect(sessionRow(db)).toEqual({
+			status: "suspended",
+			endedAt,
+			disposeRequestedAt: null,
+		});
+		const binding = db
+			.select({
+				agentSessionId: terminalAgentBindings.agentSessionId,
+				endedAt: terminalAgentBindings.endedAt,
+				endReason: terminalAgentBindings.endReason,
+			})
+			.from(terminalAgentBindings)
+			.where(eq(terminalAgentBindings.terminalId, "term-1"))
+			.get();
+		expect(binding).toEqual({
+			agentSessionId: "sess-1",
+			endedAt,
+			endReason: "terminal-exited",
+		});
+	});
+
+	it("only flips active rows: a pty that exited on its own keeps `exited`", () => {
+		const db = createTestDb();
+		seedShelvedWorkspaceWithAgentTerminal(db);
+		db.update(terminalSessions)
+			.set({ status: "exited", endedAt: Date.now() })
+			.where(eq(terminalSessions.id, "term-1"))
+			.run();
+
+		expect(markTerminalSessionSuspended(db, "term-1")).toBe(false);
+		expect(sessionRow(db)?.status).toBe("exited");
+	});
+
+	it("stays restorable after both grace windows and another full reaper pass", () => {
+		const db = createTestDb();
+		seedShelvedWorkspaceWithAgentTerminal(db);
+		markTerminalSessionSuspended(db, "term-1", Date.now());
+
+		// A later pass: the daemon lists nothing alive (the pty is gone), the
+		// clock is past the spawn grace AND the shelve grace. The stale-active
+		// sweep — the trap that turns a lingering `active` row into an
+		// unrestorable `exited` one — must leave a suspended row untouched.
+		const later = Date.now() + STALE_ACTIVE_GRACE_MS + SHELVE_SUSPEND_GRACE_MS;
+		const stale = planStaleActiveRows({
+			aliveIds: new Set(),
+			rowsById: rowsById(db),
+			isLive: noneLive,
+			now: later,
+		});
+		expect(stale).toEqual({ exited: [], disposed: [] });
+		expect(markStaleActiveRows(db, [], new Map())).toBe(0);
+
+		const plan = planShelvedSuspends({
+			liveSessions: [],
+			rowById: rowsById(db),
+			shelvedWorkspaces: new Map([["ws-1", SHELVED_AT]]),
+			now: later,
+		});
+		expect(plan.suspend).toEqual([]);
+
+		expect(sessionRow(db)?.status).toBe("suspended");
+		expect(
+			findResumeCandidateBinding(db, "ws-1", "term-1")?.agentSessionId,
+		).toBe("sess-1");
 	});
 });

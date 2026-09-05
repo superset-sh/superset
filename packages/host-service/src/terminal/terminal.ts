@@ -48,6 +48,10 @@ import {
 	resolveDefaultAccountTerminalEnv,
 } from "../trpc/router/usage/default-account.ts";
 import {
+	getTerminalWorkspaceMismatchError,
+	planTerminalAttach,
+} from "./attach-plan.ts";
+import {
 	DaemonClient,
 	type Signal as DaemonSignal,
 	DaemonUnavailableError,
@@ -2375,23 +2379,24 @@ export function disposeSession(terminalId: string, db: HostDb) {
 		});
 }
 
-export async function disposeSessionAndWait(
+interface KillSessionRuntimeResult {
+	/** The in-memory session that was torn down, if one existed. */
+	session: TerminalSession | undefined;
+	closeResult: DaemonCloseResult;
+}
+
+/**
+ * Kill a session's pty and tear down every piece of in-memory bookkeeping —
+ * sockets, daemon callbacks, mode tracker, the `sessions` entry, the port
+ * scanner registration. Falls back to closing the daemon-side session
+ * directly when nothing is in memory (an `active` row from a previous
+ * host-service process). Deliberately does NOT touch the `terminal_sessions`
+ * row: dispose marks it `disposed` (never comes back) and suspend marks it
+ * `suspended` (respawns on the next attach), and only they know which.
+ */
+async function killSessionRuntime(
 	terminalId: string,
-	db: HostDb,
-): Promise<DisposeSessionResult> {
-	// Durable intent-to-kill: if this attempt fails (daemon hiccup, host
-	// restart mid-kill), the reaper retries any stamped row — a one-shot
-	// renderer broadcast must not be the only chance to kill a session.
-	// First request time wins so retries don't look like fresh requests.
-	db.update(terminalSessions)
-		.set({ disposeRequestedAt: Date.now() })
-		.where(
-			and(
-				eq(terminalSessions.id, terminalId),
-				isNull(terminalSessions.disposeRequestedAt),
-			),
-		)
-		.run();
+): Promise<KillSessionRuntimeResult> {
 	const session = sessions.get(terminalId);
 	let closePromise: Promise<DaemonCloseResult> | null = null;
 
@@ -2445,6 +2450,29 @@ export async function disposeSessionAndWait(
 		? await closePromise
 		: { attempted: false, succeeded: true };
 
+	return { session, closeResult };
+}
+
+export async function disposeSessionAndWait(
+	terminalId: string,
+	db: HostDb,
+): Promise<DisposeSessionResult> {
+	// Durable intent-to-kill: if this attempt fails (daemon hiccup, host
+	// restart mid-kill), the reaper retries any stamped row — a one-shot
+	// renderer broadcast must not be the only chance to kill a session.
+	// First request time wins so retries don't look like fresh requests.
+	db.update(terminalSessions)
+		.set({ disposeRequestedAt: Date.now() })
+		.where(
+			and(
+				eq(terminalSessions.id, terminalId),
+				isNull(terminalSessions.disposeRequestedAt),
+			),
+		)
+		.run();
+
+	const { session, closeResult } = await killSessionRuntime(terminalId);
+
 	if (closeResult.succeeded) {
 		const endedAt = Date.now();
 		db.update(terminalSessions)
@@ -2473,6 +2501,76 @@ export async function disposeSessionAndWait(
 		daemonCloseAttempted: closeResult.attempted,
 		daemonCloseSucceeded: closeResult.succeeded,
 	};
+}
+
+/**
+ * Durable half of a suspend: flip an `active` row to `suspended` and end its
+ * agent binding as "terminal-exited" in one transaction. Only `active` rows
+ * flip — a pty that exited on its own in the meantime keeps `exited`.
+ *
+ * `suspended` is what keeps the row restorable: the reaper's stale-active
+ * sweep only touches `active` rows, so it can never flip this one to
+ * `exited` (which would dead-end the next attach with session-gone), and
+ * `resolveSessionForAttach` sends a `suspended` row straight to the respawn
+ * path. The binding is ended, never deleted: a surviving `agentSessionId`
+ * with `endReason === "terminal-exited"` is exactly what offers the agent
+ * for resume when the shell comes back. Returns whether the row flipped.
+ */
+export function markTerminalSessionSuspended(
+	db: HostDb,
+	terminalId: string,
+	endedAt: number = Date.now(),
+): boolean {
+	return db.transaction((tx) => {
+		const flipped = tx
+			.update(terminalSessions)
+			.set({ status: "suspended", endedAt })
+			.where(
+				and(
+					eq(terminalSessions.id, terminalId),
+					eq(terminalSessions.status, "active"),
+				),
+			)
+			.returning({ id: terminalSessions.id })
+			.all();
+		if (flipped.length === 0) return false;
+		markTerminalAgentBindingEnded(tx, terminalId, "terminal-exited", endedAt);
+		return true;
+	});
+}
+
+/**
+ * Suspend a session whose workspace has been archived past the undo grace:
+ * kill the pty and mark the row `suspended` so the shell respawns (with the
+ * "Session Contents Restored" notice and its agent offered for resume) when
+ * the workspace is unarchived and reopened. Unlike dispose this stamps no
+ * dispose intent and the row is only marked after a confirmed kill — a
+ * failed kill leaves it `active` so the next reaper pass retries.
+ */
+export async function suspendSessionAndWait(
+	terminalId: string,
+	db: HostDb,
+): Promise<{ terminalId: string; suspended: boolean }> {
+	const { session, closeResult } = await killSessionRuntime(terminalId);
+	if (!closeResult.succeeded) return { terminalId, suspended: false };
+
+	const endedAt = Date.now();
+	const suspended = markTerminalSessionSuspended(db, terminalId, endedAt);
+
+	// Same reasoning as dispose: the daemon callbacks are gone, so onExit will
+	// never announce this pty's death — tell any refetching reader now.
+	if (session && !session.exited) {
+		session.eventBus?.broadcastTerminalLifecycle({
+			workspaceId: session.workspaceId,
+			terminalId,
+			eventType: "exit",
+			exitCode: 0,
+			signal: 0,
+			occurredAt: endedAt,
+		});
+	}
+
+	return { terminalId, suspended };
 }
 
 /**
@@ -2585,22 +2683,6 @@ function resolveTerminalCwd(
 		: cwdOverride;
 	const resolvedPath = join(worktreePath, relativePath);
 	return existsSync(resolvedPath) ? resolvedPath : worktreePath;
-}
-
-function getTerminalWorkspaceMismatchError({
-	terminalId,
-	ownerWorkspaceId,
-	requestedWorkspaceId,
-}: {
-	terminalId: string;
-	ownerWorkspaceId: string | null | undefined;
-	requestedWorkspaceId: string;
-}): string | null {
-	if (!ownerWorkspaceId || ownerWorkspaceId === requestedWorkspaceId) {
-		return null;
-	}
-
-	return `Terminal session "${terminalId}" belongs to workspace "${ownerWorkspaceId}", not "${requestedWorkspaceId}".`;
 }
 
 type CreateSessionError = TerminalSessionError;
@@ -3261,54 +3343,54 @@ export function registerWorkspaceTerminalRoute({
 						code: "session-gone",
 					};
 				}
-				if (record.status === "disposed") {
-					return {
-						error: `Terminal session "${terminalId}" is disposed.`,
-						code: "session-gone",
-					};
-				}
-				if (record.status === "exited") {
-					return {
-						error: `Terminal session "${terminalId}" has exited.`,
-						code: "session-gone",
-					};
-				}
-				if (!record.originWorkspaceId) {
-					return {
-						error: `Terminal session "${terminalId}" is missing a workspace.`,
-					};
-				}
-				if (requestedWorkspaceId) {
-					const mismatchError = getTerminalWorkspaceMismatchError({
-						terminalId,
-						ownerWorkspaceId: record.originWorkspaceId,
-						requestedWorkspaceId,
-					});
-					if (mismatchError) return { error: mismatchError };
-				}
-
-				// Prefer adoption: if the daemon still owns the PTY across a
-				// host-service restart, we keep the live shell + ring buffer.
-				const adopted = await createTerminalSessionInternal({
+				const plan = planTerminalAttach({
 					terminalId,
-					workspaceId: record.originWorkspaceId,
-					themeType: requestedThemeType,
-					db,
-					eventBus,
-					adoptOnly: true,
+					record,
+					requestedWorkspaceId,
 				});
-				if (!("error" in adopted)) return adopted;
-				// Daemon unreachable ≠ PTY lost: the shell may still be alive behind
-				// the stall, so don't end agent bindings or respawn — let the
-				// renderer retry until the daemon answers.
-				if (adopted.transient) return adopted;
+				if (plan.kind === "missing") {
+					// Unreachable: the no-row case returned above. Kept so the
+					// union stays exhaustive if the planner grows a case.
+					return {
+						error: `Terminal session "${terminalId}" not found; create it before connecting.`,
+						code: "session-gone",
+					};
+				}
+				if (plan.kind === "session-gone") {
+					return { error: plan.error, code: "session-gone" };
+				}
+				if (plan.kind === "error") return { error: plan.error };
 
-				// Active row but daemon no longer owns the PTY (laptop sleep,
-				// daemon restart, machine reboot). Respawn rather than dead-end
-				// the pane — the renderer's xterm scrollback stays painted above.
-				// Any agent bound to the old PTY died with it without a goodbye;
-				// mark its binding ended so it surfaces as a resume candidate.
-				console.log(`[terminal] respawning lost session ${terminalId}`);
+				if (plan.kind === "adopt") {
+					// Prefer adoption: if the daemon still owns the PTY across a
+					// host-service restart, we keep the live shell + ring buffer.
+					const adopted = await createTerminalSessionInternal({
+						terminalId,
+						workspaceId: plan.workspaceId,
+						themeType: requestedThemeType,
+						db,
+						eventBus,
+						adoptOnly: true,
+					});
+					if (!("error" in adopted)) return adopted;
+					// Daemon unreachable ≠ PTY lost: the shell may still be alive
+					// behind the stall, so don't end agent bindings or respawn —
+					// let the renderer retry until the daemon answers.
+					if (adopted.transient) return adopted;
+					// Active row but daemon no longer owns the PTY (laptop sleep,
+					// daemon restart, machine reboot).
+					console.log(`[terminal] respawning lost session ${terminalId}`);
+				} else {
+					// The reaper killed this pty because its workspace was archived;
+					// there is nothing to adopt.
+					console.log(`[terminal] respawning suspended session ${terminalId}`);
+				}
+
+				// Respawn rather than dead-end the pane — the renderer's xterm
+				// scrollback stays painted above. Any agent bound to the old PTY
+				// died with it without a goodbye; mark its binding ended so it
+				// surfaces as a resume candidate (a no-op for a suspended row,
+				// whose binding was ended at suspend time).
 				try {
 					markTerminalAgentBindingEnded(db, terminalId, "terminal-exited");
 				} catch (error) {
@@ -3319,7 +3401,7 @@ export function registerWorkspaceTerminalRoute({
 				}
 				return createTerminalSessionInternal({
 					terminalId,
-					workspaceId: record.originWorkspaceId,
+					workspaceId: plan.workspaceId,
 					themeType: requestedThemeType,
 					db,
 					eventBus,

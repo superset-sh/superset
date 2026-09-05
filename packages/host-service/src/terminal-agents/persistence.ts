@@ -383,7 +383,7 @@ export class SqliteTerminalAgentBindingPersistence
 	/**
 	 * Best-effort boot hygiene. Bindings whose session row is missing or
 	 * workspace-less have nothing left to resume into — drop them. Bindings
-	 * whose terminal is `exited`/`disposed` but never got marked ended (the
+	 * whose terminal is `exited`/`disposed`/`suspended` but never got marked ended (the
 	 * host was down when the terminal died) are backfilled as
 	 * "terminal-exited" so they survive as resume candidates. Reads already
 	 * hide non-live bindings via the live join, so callers may swallow
@@ -425,7 +425,7 @@ export class SqliteTerminalAgentBindingPersistence
 			)
 			.where(
 				and(
-					inArray(terminalSessions.status, ["exited", "disposed"]),
+					inArray(terminalSessions.status, ["exited", "disposed", "suspended"]),
 					isNull(terminalAgentBindings.endedAt),
 				),
 			)

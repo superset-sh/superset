@@ -1,17 +1,30 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import type { HostDb } from "../../db/index.ts";
-import { terminalSessions } from "../../db/schema.ts";
+import { terminalSessions, workspaces } from "../../db/schema.ts";
 import { portManager } from "../../ports/port-manager.ts";
 import { markTerminalAgentBindingEnded } from "../../terminal-agents/persistence.ts";
 import { getDaemonClient } from "../daemon-client-singleton.ts";
-import { disposeSessionAndWait, isLiveTerminalSession } from "../terminal.ts";
+import {
+	disposeSessionAndWait,
+	isLiveTerminalSession,
+	suspendSessionAndWait,
+} from "../terminal.ts";
 
 interface ReapResult {
 	reaped: number;
 	failed: number;
+	suspended: number;
 }
 
 export const REAP_INTERVAL_MS = 5 * 60 * 1000;
+
+/**
+ * How long an archived (shelved) workspace's terminals keep running before
+ * the reaper suspends them. Comfortably longer than the renderer's undo
+ * toast (8s), so an Undo inside the toast always gets the very same
+ * processes back; anything later gets a respawned shell with scrollback.
+ */
+export const SHELVE_SUSPEND_GRACE_MS = 60_000;
 
 /**
  * A host-service restart begins with an empty port scanner while the detached
@@ -154,6 +167,59 @@ export function planPortScanSync({
 	}
 
 	return { register, unregister };
+}
+
+/**
+ * Live sessions to suspend because their workspace has been archived past the
+ * grace window. Pure so the policy is unit testable.
+ *
+ * Dispose supersedes suspend: a row `shouldReapRow` already condemns is the
+ * orphan pass's job. Only `active` rows qualify — an `exited` row has no pty
+ * to kill and a `suspended` one is already done. Idempotent for free: a
+ * suspended session's pty is dead, so it is absent from the next pass's
+ * `liveSessions`; no separate "already suspended" marker is needed.
+ */
+export function planShelvedSuspends({
+	liveSessions,
+	rowById,
+	shelvedWorkspaces,
+	now,
+	graceMs = SHELVE_SUSPEND_GRACE_MS,
+}: {
+	liveSessions: { id: string }[];
+	rowById: Map<string, TerminalRow>;
+	/** workspaceId → shelvedAt (epoch ms) for every shelved, non-tombstoned row. */
+	shelvedWorkspaces: Map<string, number>;
+	now: number;
+	graceMs?: number;
+}): { suspend: string[] } {
+	const suspend: string[] = [];
+	if (shelvedWorkspaces.size === 0) return { suspend };
+	for (const session of liveSessions) {
+		const row = rowById.get(session.id);
+		if (!row || !row.originWorkspaceId) continue;
+		if (row.status !== "active" || shouldReapRow(row)) continue;
+		const shelvedAt = shelvedWorkspaces.get(row.originWorkspaceId);
+		if (shelvedAt == null) continue;
+		if (now - shelvedAt < graceMs) continue;
+		suspend.push(session.id);
+	}
+	return { suspend };
+}
+
+/** Shelved workspaces whose sessions are this sweep's to suspend. A
+ * tombstoned row's sessions belong to destroy, which hard-disposes them. */
+function loadShelvedWorkspaces(db: HostDb): Map<string, number> {
+	const rows = db
+		.select({ id: workspaces.id, shelvedAt: workspaces.shelvedAt })
+		.from(workspaces)
+		.where(and(isNotNull(workspaces.shelvedAt), isNull(workspaces.archivedAt)))
+		.all();
+	const byId = new Map<string, number>();
+	for (const row of rows) {
+		if (row.shelvedAt != null) byId.set(row.id, row.shelvedAt);
+	}
+	return byId;
 }
 
 function loadTerminalRowsById(db: HostDb): Map<string, TerminalRow> {
@@ -314,7 +380,7 @@ async function reapOrphanedSessions(
 
 	if (liveSessions.length === 0) {
 		rowlessPendingSecondPass.clear();
-		return { reaped: 0, failed: 0 };
+		return { reaped: 0, failed: 0, suspended: 0 };
 	}
 
 	const orphans: { id: string; rowless: boolean }[] = [];
@@ -356,7 +422,36 @@ async function reapOrphanedSessions(
 	rowlessPendingSecondPass.clear();
 	for (const id of stillRowless) rowlessPendingSecondPass.add(id);
 
-	return { reaped, failed };
+	// Archived workspaces: after the orphan pass (dispose supersedes suspend)
+	// so a session condemned above is never suspended instead. Best-effort —
+	// a failure here must not fail the reap.
+	let suspended = 0;
+	try {
+		const plan = planShelvedSuspends({
+			liveSessions,
+			rowById,
+			shelvedWorkspaces: loadShelvedWorkspaces(db),
+			now: Date.now(),
+		});
+		for (const terminalId of plan.suspend) {
+			try {
+				const result = await suspendSessionAndWait(terminalId, db);
+				if (result.suspended) suspended += 1;
+			} catch (err) {
+				console.warn("[host-service] terminal reaper: suspend failed", {
+					terminalId,
+					err,
+				});
+			}
+		}
+	} catch (err) {
+		console.warn(
+			"[host-service] terminal reaper: shelved-suspend pass failed:",
+			err,
+		);
+	}
+
+	return { reaped, failed, suspended };
 }
 
 export function startTerminalReaper(db: HostDb): () => void {
@@ -370,6 +465,11 @@ export function startTerminalReaper(db: HostDb): () => void {
 				if (result.reaped > 0 || result.failed > 0) {
 					console.log(
 						`[host-service] terminal reaper: ${result.reaped} reaped, ${result.failed} failed`,
+					);
+				}
+				if (result.suspended > 0) {
+					console.log(
+						`[host-service] terminal reaper: suspended ${result.suspended} session(s) of archived workspaces`,
 					);
 				}
 			})

@@ -92,7 +92,9 @@ function createHarness() {
 }
 
 function readWorkspace(db: HostDb, id: string) {
-	return db.query.workspaces.findFirst({ where: eq(schema.workspaces.id, id) }).sync();
+	return db.query.workspaces
+		.findFirst({ where: eq(schema.workspaces.id, id) })
+		.sync();
 }
 
 describe("workspaceCleanup.shelve", () => {
@@ -126,9 +128,9 @@ describe("workspaceCleanup.shelve", () => {
 
 		expect(second.shelvedAt).toBe(first.shelvedAt);
 		expect(broadcasts).toHaveLength(1);
-		expect(tracked.filter((t) => t.event === "workspace_archived")).toHaveLength(
-			1,
-		);
+		expect(
+			tracked.filter((t) => t.event === "workspace_archived"),
+		).toHaveLength(1);
 	});
 
 	it("refuses a main workspace", async () => {
@@ -190,7 +192,9 @@ describe("workspaceCleanup.shelve", () => {
 		expect(session?.endedAt).toBeNull();
 		expect(session?.disposeRequestedAt).toBeNull();
 		const binding = db.query.terminalAgentBindings
-			.findFirst({ where: eq(schema.terminalAgentBindings.terminalId, TERMINAL_ID) })
+			.findFirst({
+				where: eq(schema.terminalAgentBindings.terminalId, TERMINAL_ID),
+			})
 			.sync();
 		expect(binding?.endedAt).toBeNull();
 		expect(binding?.agentSessionId).toBe("session-1");
