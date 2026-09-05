@@ -8,6 +8,7 @@ import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/u
 import { parseSidebarFolderKey } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
 import { PROJECT_COLOR_DEFAULT } from "shared/constants/project-colors";
+import { useDashboardSidebarDnd } from "../../hooks/useSidebarDnd";
 import type {
 	DashboardSidebarSection,
 	DashboardSidebarWorkspaceIndentation,
@@ -36,6 +37,7 @@ export function SortableSectionHeader({
 	onRename,
 	onToggleCollapse,
 }: SortableSectionHeaderProps) {
+	const { isChildDragDisabled } = useDashboardSidebarDnd();
 	const { setSectionColor } = useDashboardSidebarState();
 	const { clearPendingSectionRename, pendingRenameSectionId } =
 		useDashboardSidebarSectionRename();
@@ -57,7 +59,7 @@ export function SortableSectionHeader({
 		transform,
 		transition,
 		isDragging,
-	} = useSortable({ id: sortableId });
+	} = useSortable({ id: sortableId, disabled: isChildDragDisabled });
 
 	const hasColor =
 		section.color != null && section.color !== PROJECT_COLOR_DEFAULT;
@@ -121,7 +123,7 @@ export function SortableSectionHeader({
 					}
 					isCollapsed={section.isCollapsed}
 					isEditing={isRenaming}
-					isDraggable
+					isDraggable={!isChildDragDisabled}
 					indentation={indentation}
 					onToggleCollapse={() => onToggleCollapse(section.id)}
 					actions={

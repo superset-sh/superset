@@ -4886,8 +4886,8 @@ msgstr "preparate 3 risposte di supporto"
 msgid "Drag to reorder"
 msgstr "Trascina per riordinare"
 
-msgid "Drag to reorder in Manual order"
-msgstr "Trascina per riordinare in Ordine manuale"
+msgid "Drag workspaces to reorder in Manual order"
+msgstr "Trascina i workspace per riordinarli in Ordine manuale"
 
 msgid "Drawer"
 msgstr "Drawer"
@@ -12543,14 +12543,11 @@ msgstr "Ordina per"
 msgid "Sort by {label}, currently {sortLabel}"
 msgstr "Ordina per {label}, attualmente {sortLabel}"
 
-msgid "Sort projects"
-msgstr "Ordina progetti"
-
-msgid "Sort projects ({currentLabel})"
-msgstr "Ordina progetti ({currentLabel})"
-
 msgid "Sort workspaces"
 msgstr "Ordina i workspace"
+
+msgid "Sort workspaces ({currentLabel})"
+msgstr "Ordina i workspace ({currentLabel})"
 
 msgid "Sounds and ringtone for completed tasks"
 msgstr "Suoni e suoneria per i task completati"
