@@ -274,9 +274,13 @@ export function pickConsumeFirst(
 	let bestAt = Number.POSITIVE_INFINITY;
 	for (const account of accounts) {
 		const at = longestPeriodResetAt(account) ?? Number.POSITIVE_INFINITY;
+		// The tie also has to take the first candidate: when every reset is
+		// unknown every `at` is Infinity, and a tie-break that only ever
+		// replaces an existing `best` would pick nobody and report the agent
+		// exhausted while a candidate still has headroom to drain.
 		if (
 			at < bestAt ||
-			(at === bestAt && best !== null && account.accountKey < best.accountKey)
+			(at === bestAt && (best === null || account.accountKey < best.accountKey))
 		) {
 			best = account;
 			bestAt = at;

@@ -274,13 +274,37 @@ function daemonCloseFailed(result: unknown): boolean {
  * first. The binding is marked "terminal-exited", never "disposed", so it
  * stays a resume candidate; the old pty is disposed before the relaunch so
  * two processes never hold the same session id.
+ *
+ * Marking it exited is also what publishes it as a resume candidate, so the
+ * `resumeInflight` slot is reserved before the mark and held until the kill
+ * is done: a renderer auto-resume arriving in that window would otherwise
+ * claim the candidate and launch a second agent while the old pty may still
+ * be running the conversation. A resume that lands during the window waits on
+ * this call and shares its result instead of launching.
  */
 export async function killAndResumeTerminalAgent(
 	deps: ResumeSessionDeps,
 	input: { workspaceId: string; terminalId: string; prompt?: string },
 ): Promise<ResumeResult> {
 	const { workspaceId, terminalId, prompt } = input;
+	const key = `${workspaceId}::${terminalId}`;
 	if (prompt) registerPendingNudge(workspaceId, terminalId, prompt);
+
+	// A resume already in flight has claimed the candidate and disposes the
+	// old terminal itself; joining it is what any other caller does.
+	const pending = resumeInflight.get(key);
+	if (pending) return pending;
+
+	let settle!: (result: ResumeResult) => void;
+	const reserved = new Promise<ResumeResult>((resolve) => {
+		settle = resolve;
+	});
+	resumeInflight.set(key, reserved);
+	// Dropped in the same turn the real resume installs its own entry, so no
+	// caller can slip between the two.
+	const handOver = (): void => {
+		if (resumeInflight.get(key) === reserved) resumeInflight.delete(key);
+	};
 
 	deps.terminalAgentStore.markTerminalExited(terminalId);
 	let disposal: unknown;
@@ -289,6 +313,8 @@ export async function killAndResumeTerminalAgent(
 	} catch (error) {
 		// The reaper finishes the kill and the nudge stays pending, so the
 		// candidate can still be resumed with it.
+		handOver();
+		settle({ resumed: false });
 		console.warn("[terminal-agents] failed to kill terminal before resume", {
 			terminalId,
 			error,
@@ -301,6 +327,8 @@ export async function killAndResumeTerminalAgent(
 		// resuming now would put two agents on one conversation. The reaper
 		// retries the kill and the nudge stays pending for the resume that
 		// follows it; the caller treats this as needing attention.
+		handOver();
+		settle({ resumed: false });
 		console.warn(
 			"[terminal-agents] the daemon could not confirm the kill; not resuming",
 			{ terminalId },
@@ -308,7 +336,20 @@ export async function killAndResumeTerminalAgent(
 		return { resumed: false };
 	}
 
-	return resumeTerminalAgentSession(deps, { workspaceId, terminalId });
+	handOver();
+	try {
+		const result = await resumeTerminalAgentSession(deps, {
+			workspaceId,
+			terminalId,
+		});
+		settle(result);
+		return result;
+	} catch (error) {
+		// Waiters are resolved, never rejected: with no waiter at all a
+		// rejected reservation would surface as an unhandled rejection.
+		settle({ resumed: false });
+		throw error;
+	}
 }
 
 /**

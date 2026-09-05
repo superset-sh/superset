@@ -780,6 +780,52 @@ describe("killAndResumeTerminalAgent", () => {
 		expect(retryCalls.map((call) => call.prompt)).toEqual(["nudge"]);
 	});
 
+	// Marking the terminal exited publishes it as a resume candidate while the
+	// old pty is still being killed. A renderer auto-resume landing there used
+	// to claim it and launch a second agent on the same conversation.
+	it("holds off a concurrent resume until the kill is done", async () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedLiveBinding(db, { terminalId: "t1" });
+		const killer = createDeps(db);
+		const racer = createDeps(db);
+		let finishKill!: () => void;
+		const killed = new Promise<void>((resolve) => {
+			finishKill = resolve;
+		});
+		killer.deps.disposeSession = (terminalId) => {
+			killer.disposedTerminals.push(terminalId);
+			return killed;
+		};
+
+		const kill = killAndResumeTerminalAgent(killer.deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+			prompt: "nudge",
+		});
+		expect(killer.disposedTerminals).toEqual(["t1"]);
+
+		const raced = resumeTerminalAgentSession(racer.deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+		await Promise.resolve();
+		expect(racer.runCalls).toEqual([]);
+
+		finishKill();
+		const [killResult, raceResult] = await Promise.all([kill, raced]);
+
+		// One launch for this conversation, and the racer shares its outcome.
+		expect(killResult).toEqual({
+			resumed: true,
+			terminalId: "t-new",
+			label: "Claude",
+		});
+		expect(raceResult).toEqual(killResult);
+		expect(killer.runCalls.map((call) => call.prompt)).toEqual(["nudge"]);
+		expect(racer.runCalls).toEqual([]);
+	});
+
 	it("restarts without a prompt when no nudge is given", async () => {
 		const db = createTestDb();
 		seedAgentConfig(db);

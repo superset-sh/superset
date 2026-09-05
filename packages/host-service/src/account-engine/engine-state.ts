@@ -18,13 +18,20 @@
 import { randomUUID } from "node:crypto";
 import {
 	appendFileSync,
+	closeSync,
+	fstatSync,
+	fsyncSync,
+	ftruncateSync,
 	linkSync,
 	mkdirSync,
+	openSync,
 	readFileSync,
+	readSync,
 	renameSync,
 	statSync,
 	unlinkSync,
 	writeFileSync,
+	writeSync,
 } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -356,7 +363,7 @@ export class EngineState {
 		if (this.assertSafeStateDir().readOnly) return false;
 		const { record } = this.readLockFile();
 		if (!record || record.nonce !== nonce) return false;
-		return this.swapLock(nonce, { ...record, heartbeatAt: now });
+		return this.refreshLock(nonce, { ...record, heartbeatAt: now });
 	}
 
 	/** Re-reads the lock: a reclaim by another process must be observed. */
@@ -365,37 +372,87 @@ export class EngineState {
 	}
 
 	releaseLock(nonce: string): void {
-		if (!this.isOwner(nonce)) return;
+		const path = join(this.dir, LOCK_FILE);
+		const before = this.ownedLockIdentity(path, nonce);
+		if (!before) return;
+		// Re-read immediately before the unlink. A reclaim that lands between
+		// the ownership check and the unlink puts a *successor's* lock on this
+		// path, and deleting that would leave the host unlocked while a live
+		// engine still believes it owns it.
+		const after = this.ownedLockIdentity(path, nonce);
+		if (!after || after.ino !== before.ino || after.dev !== before.dev) return;
 		try {
-			unlinkSync(join(this.dir, LOCK_FILE));
+			unlinkSync(path);
 		} catch {
 			// Already gone, or reclaimed between the check and the unlink.
 		}
 	}
 
 	/**
-	 * Compare-and-swap the lock file: the replacement is staged first, then the
-	 * on-disk nonce is re-read *immediately* before the rename and the write is
-	 * abandoned if it is no longer ours. Without that second read a heartbeat
-	 * that started while the lock was still ours would happily rename over a
-	 * lock another process reclaimed in the meantime, and both engines would
-	 * believe they own the host.
+	 * Inode identity of the lock while it still carries `nonce`, else null.
+	 * A reclaim always links a *fresh* inode over the path, so a changed inode
+	 * is a reclaim even if the record still reads the same.
 	 */
-	private swapLock(nonce: string, record: LockRecord): boolean {
-		const target = join(this.dir, LOCK_FILE);
-		let temporary: string | null = this.temporaryPath(target);
+	private ownedLockIdentity(
+		path: string,
+		nonce: string,
+	): { ino: number; dev: number } | null {
+		let stats: ReturnType<typeof statSync>;
 		try {
-			writeFileSync(temporary, JSON.stringify(record), {
-				mode: 0o600,
-				flag: "wx",
-			});
-			if (this.readLockFile().record?.nonce !== nonce) return false;
-			renameSync(temporary, target);
-			temporary = null;
-			return true;
-		} finally {
-			this.discard(temporary);
+			stats = statSync(path);
+		} catch {
+			return null;
 		}
+		if (this.readLockFile().record?.nonce !== nonce) return null;
+		return { ino: stats.ino, dev: stats.dev };
+	}
+
+	/**
+	 * Refresh the heartbeat *in place*, on the inode we verified, instead of
+	 * renaming a staged replacement over the path. A rename cannot be made
+	 * safe: a claimant that renames the stale lock aside and links its own in
+	 * the window between the check and the rename has its lock silently
+	 * overwritten, and both engines then believe they own the host. Writing
+	 * into the verified fd cannot do that — if a claimant renamed our inode
+	 * aside first, the refreshed record lands on that aside file, never on the
+	 * successor's lock, and the next ownership check (which re-reads the path)
+	 * reports the loss.
+	 */
+	private refreshLock(nonce: string, record: LockRecord): boolean {
+		const target = join(this.dir, LOCK_FILE);
+		let fd: number | null = null;
+		try {
+			fd = openSync(target, "r+");
+			if (!this.holdsLock(fd, target, nonce)) return false;
+			const payload = JSON.stringify(record);
+			// Written before the truncate, so a concurrent reader never sees an
+			// empty lock and mistakes a live owner for a corrupt one. The record
+			// only ever grows (heartbeatAt is monotonic), so the truncate is a
+			// no-op in practice.
+			writeSync(fd, payload, 0, "utf8");
+			ftruncateSync(fd, Buffer.byteLength(payload));
+			fsyncSync(fd);
+			return true;
+		} catch {
+			// A lock we can no longer open or write is a lock we no longer hold.
+			return false;
+		} finally {
+			if (fd !== null) closeSync(fd);
+		}
+	}
+
+	/** True while `target` still names this fd's inode and it carries `nonce`. */
+	private holdsLock(fd: number, target: string, nonce: string): boolean {
+		const held = fstatSync(fd);
+		const onPath = statSync(target);
+		if (onPath.ino !== held.ino || onPath.dev !== held.dev) return false;
+		if (held.size <= 0) return false;
+		const buffer = Buffer.alloc(held.size);
+		readSync(fd, buffer, 0, buffer.length, 0);
+		const parsed = lockSchema.safeParse(
+			this.parseJson(LOCK_FILE, buffer.toString("utf8")),
+		);
+		return parsed.success && parsed.data.nonce === nonce;
 	}
 
 	private linkLock(lockPath: string, record: LockRecord): boolean {

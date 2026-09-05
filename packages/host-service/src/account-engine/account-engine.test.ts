@@ -129,6 +129,10 @@ interface HarnessOptions {
 	/** Runs inside the awaited quota refresh, where a slow tick can lose the
 	 * lock under itself (KTD5). */
 	onRefreshDue?: () => Promise<void> | void;
+	/** Runs inside the awaited swap — Keychain and filesystem work that can
+	 * outlast the lease or `stop()`'s drain (KTD5). Called with the 1-based
+	 * swap number, so a restore can be told from the swap it undoes. */
+	onSwap?: (call: number) => Promise<void> | void;
 }
 
 function harness(options: HarnessOptions = {}) {
@@ -238,6 +242,7 @@ function harness(options: HarnessOptions = {}) {
 		swap: async (input) => {
 			calls.push("swap");
 			swapInputs.push(input);
+			await options.onSwap?.(swapInputs.length);
 			const result = options.swapResults?.[swapInputs.length - 1] ??
 				options.swapResult ?? {
 					ok: true,
@@ -349,6 +354,23 @@ function twoClaudeAccounts(): QuotaEntry[] {
 				selection: "/profiles/b",
 				email: "b@example.com",
 				windows: [w("five_hour", "Session (5h)", 20)],
+			}),
+		),
+	];
+}
+
+/** The same pair plus a spare too near its limit to be switched onto, so a
+ * third account can appear in the active dir without ever being chosen. */
+function threeClaudeAccounts(): QuotaEntry[] {
+	return [
+		...twoClaudeAccounts(),
+		entryFor(
+			usageAccount({
+				accountKey: "key-c",
+				accountId: "acct-c",
+				selection: "/profiles/c",
+				email: "c@example.com",
+				windows: [w("five_hour", "Session (5h)", 99)],
 			}),
 		),
 	];
@@ -961,20 +983,41 @@ describe("AccountEngine", () => {
 		expect(h.engine.status().claude.activeAccountId).toBe("acct-b");
 	});
 
-	it("adopts an external login change as the active account", async () => {
+	// KTD3: a Claude Code that was running through the switch refreshes its own
+	// OAuth token — a credential we did not write — and rewrites .claude.json
+	// from the identity it started with, which is the account the switch moved
+	// away from. Two ordinary things, not a `/login`.
+	it("keeps the active account when the running CLI refreshes its own token", async () => {
 		const h = harness({ entries: twoClaudeAccounts() });
 		enable(h.engine);
 		await h.engine.tick();
 
+		h.setActiveIdentity({ accountUuid: "acct-a", credentialHash: "refreshed" });
+		h.advance(MINUTE);
+		await h.engine.tick();
+
+		expect(h.identityWrites).toEqual([join(ACTIVE_DIR, ".claude.json")]);
+		expect(h.engine.status().claude.activeAccountId).toBe("acct-b");
+		expect(h.switched).toHaveLength(1);
+	});
+
+	// The other half of the same fork: a name that is neither the account we
+	// switched to nor the one we switched away from can only have got there by
+	// someone signing in behind us.
+	it("adopts an external login change as the active account", async () => {
+		const h = harness({ entries: threeClaudeAccounts() });
+		enable(h.engine);
+		await h.engine.tick();
+
 		h.setActiveIdentity({
-			accountUuid: "acct-a",
+			accountUuid: "acct-c",
 			credentialHash: "someone-else",
 		});
 		h.advance(MINUTE);
 		await h.engine.tick();
 
 		expect(h.identityWrites).toEqual([]);
-		expect(h.engine.status().claude.activeAccountId).toBe("acct-a");
+		expect(h.engine.status().claude.activeAccountId).toBe("acct-c");
 		expect(h.switched.at(-1)?.reasonKind).toBe("external");
 	});
 
@@ -982,14 +1025,14 @@ describe("AccountEngine", () => {
 	// cooldown the engine can switch straight back off the login the user just
 	// signed into by hand.
 	it("starts the cooldown when it adopts an external login", async () => {
-		const h = harness({ entries: twoClaudeAccounts() });
+		const h = harness({ entries: threeClaudeAccounts() });
 		enable(h.engine);
 		await h.engine.tick();
 
-		// A `/login` inside a session put account A back, and A is the one over
-		// the threshold: the decision would move away from it immediately.
+		// A `/login` inside a session signed in as account C, and C is the one
+		// over the threshold: the decision would move away from it immediately.
 		h.setEntries([
-			entryFor(usageAccount({ windows: [w("five_hour", "Session (5h)", 95)] })),
+			entryFor(usageAccount({ windows: [w("five_hour", "Session (5h)", 5)] })),
 			entryFor(
 				usageAccount({
 					accountKey: "key-b",
@@ -999,9 +1042,18 @@ describe("AccountEngine", () => {
 					windows: [w("five_hour", "Session (5h)", 5)],
 				}),
 			),
+			entryFor(
+				usageAccount({
+					accountKey: "key-c",
+					accountId: "acct-c",
+					selection: "/profiles/c",
+					email: "c@example.com",
+					windows: [w("five_hour", "Session (5h)", 95)],
+				}),
+			),
 		]);
 		h.setActiveIdentity({
-			accountUuid: "acct-a",
+			accountUuid: "acct-c",
 			credentialHash: "someone-else",
 		});
 		// Past the first switch's cooldown, so only the adoption's own can hold
@@ -1011,7 +1063,7 @@ describe("AccountEngine", () => {
 		await h.engine.tick();
 
 		expect(h.switched.at(-1)?.reasonKind).toBe("external");
-		expect(h.engine.status().claude.activeAccountId).toBe("acct-a");
+		expect(h.engine.status().claude.activeAccountId).toBe("acct-c");
 		expect(h.engine.status().claude.cooldownUntil).toBe(at + 5 * MINUTE);
 	});
 
@@ -1253,6 +1305,27 @@ describe("AccountEngine", () => {
 	});
 
 	// #22: the lease is three ticks long, and a slow tick can outlive it.
+	// `setSettings` writes straight to the state dir rather than queueing on
+	// the mutation lane, so a tick that read its settings before the quota
+	// refresh would otherwise switch on a snapshot the user has since changed.
+	it("does not switch an agent turned off while the tick awaited quota", async () => {
+		let engine: AccountEngine | null = null;
+		const h = harness({
+			entries: twoClaudeAccounts(),
+			onRefreshDue: () => {
+				expect(engine?.setSettings("claude", { enabled: false }).ok).toBe(true);
+			},
+		});
+		engine = h.engine;
+		enable(h.engine);
+
+		await h.engine.tick();
+
+		expect(h.calls).not.toContain("swap");
+		expect(h.switched).toEqual([]);
+		expect(h.engine.status().claude.enabled).toBe(false);
+	});
+
 	it("stops a tick that lost the lock mid-flight, before any swap or write", async () => {
 		const thief = harness();
 		const h = harness({
@@ -1450,6 +1523,32 @@ describe("AccountEngine", () => {
 		expect(loser.calls).not.toContain("swap");
 	});
 
+	// Following is about moving this host's own sessions onto the login the
+	// owner chose, not about auto-switching — and auto-switch is off by
+	// default, so a loser used to sit on the old account forever.
+	it("follows the owner's manual switch with every agent's auto-switch off", async () => {
+		const loser = harness({
+			sessions: [movableSession({ agent: "codex", configDir: "/codex/a" })],
+		});
+		const runtime = loser.engineState.readRuntime();
+		runtime.perAgent.codex.activeSelection = "/codex/a";
+		loser.engineState.writeRuntime(runtime);
+		// The owner holds the lock; nothing here ever enables an agent.
+		const owner = harness();
+		await owner.engine.tick();
+		await loser.engine.tick();
+		expect(loser.engine.status().codex.lockOwner).toBe(false);
+		expect(loser.externalSwitches).toEqual([]);
+
+		// The owner's manual switch names a new Codex home in the shared
+		// runtime.json, which is the loser's only notice (KTD5).
+		runtime.perAgent.codex.activeSelection = "/codex/b";
+		loser.engineState.writeRuntime(runtime);
+		await loser.engine.tick();
+
+		expect(loser.externalSwitches).toEqual(["codex"]);
+	});
+
 	it("follows a switch between two Codex homes that carry no identity", async () => {
 		const owner = harness();
 		// The settings file is the shared one, so this enables codex for the
@@ -1608,6 +1707,38 @@ describe("AccountEngine", () => {
 			h.engineStates.find((event) => event.lastSwitchFailure)?.lastSwitchFailure
 				?.code,
 		).toBe("pointer-failed");
+	});
+
+	// KTD5: the swap is Keychain and filesystem work, and `stop()` only drains
+	// for ten seconds before it hands the lock back — so the lock can be gone
+	// by the time the swap resolves.
+	it("puts the previous login back when the lock goes during the swap", async () => {
+		const thief = harness();
+		const h = harness({
+			entries: twoClaudeAccounts(),
+			onSwap: async (call) => {
+				// Only the swap itself; the restore that undoes it must not be
+				// interrupted too.
+				if (call > 1) return;
+				thief.advance(4 * MINUTE);
+				await thief.engine.tick();
+			},
+		});
+		enable(h.engine);
+
+		await h.engine.tick();
+
+		expect(h.calls.filter((call) => call === "swap")).toHaveLength(2);
+		expect(h.swapInputs[1]?.target).toEqual({
+			kind: "profile",
+			dir: "/profiles/a",
+		});
+		expect(h.calls).not.toContain("setPointer");
+		expect(h.switched).toEqual([]);
+		expect(h.engineState.readRuntime().perAgent.claude.activeAccountId).toBe(
+			null,
+		);
+		expect(thief.engine.status().claude.lockOwner).toBe(true);
 	});
 
 	it("reports split state when the pointer fails and the login cannot go back", async () => {

@@ -271,11 +271,11 @@ export class QuotaStore {
 	}
 
 	/**
-	 * KTD5: only a lock loser installs a source. While one is set and the owner
-	 * has actually published something for the agents being read, `read` serves
-	 * that mirror and performs no fetch and no discovery — every host-service on
-	 * this machine otherwise polls the same endpoints and defeats the host-wide
-	 * request budget. A mirror that holds nothing is not an answer, though (see
+	 * KTD5: only a lock loser installs a source. For every agent the owner has
+	 * actually published, `read` serves that mirror and performs no fetch and
+	 * no discovery — every host-service on this machine otherwise polls the
+	 * same endpoints and defeats the host-wide request budget. An agent the
+	 * mirror says nothing about is read locally, though (see
 	 * {@link readMirror}).
 	 */
 	setSnapshotSource(source: (() => QuotaStoreSnapshot | null) | null): void {
@@ -316,17 +316,22 @@ export class QuotaStore {
 	): Promise<UsageAccount[]> {
 		const agents = options.agents ?? ALL_AGENTS;
 		// KTD5: a lock loser answers from the owner's mirror, forced refresh
-		// included — the owner is already polling on this machine's behalf. With
-		// nothing mirrored for these agents it reads for itself instead.
+		// included — the owner is already polling on this machine's behalf. The
+		// mirror covers one agent at a time, though (an owner polling Claude
+		// with Codex disabled publishes Claude alone), so the agents it does not
+		// cover are still discovered and fetched here.
 		const mirrored = this.readMirror(agents);
-		if (mirrored) return mirrored;
+		const uncovered = agents.filter(
+			(agent) => !mirrored.covered.includes(agent),
+		);
+		if (uncovered.length === 0) return this.collect(agents, mirrored.entries);
 		const now = this.now();
 		await Promise.all(
-			agents.map((agent) =>
+			uncovered.map((agent) =>
 				this.ensureEntries(agent, now, options.forceRefresh ?? false),
 			),
 		);
-		const stale = agents
+		const stale = uncovered
 			.flatMap((agent) => this.entries(agent))
 			.filter(
 				(entry) =>
@@ -339,7 +344,10 @@ export class QuotaStore {
 			await this.runBatch(stale, now);
 			this.emitSnapshot();
 		}
-		return this.collect(agents);
+		return this.collect(agents, [
+			...mirrored.entries,
+			...uncovered.flatMap((agent) => this.entries(agent)),
+		]);
 	}
 
 	/** The engine tick (KTD1): fetch what the schedule says is due. */
@@ -576,21 +584,27 @@ export class QuotaStore {
 	 * from multiplying this machine's provider requests by the number of
 	 * host-services running on it.
 	 *
-	 * Null — "no mirror, read for yourself" — when the owner has published
-	 * nothing for these agents. That is the ordinary state of an owner whose
-	 * auto-switch is off: it polls nothing, so treating its silence as the
-	 * answer would leave every other host's Usage page empty for good.
+	 * Coverage is per requested agent, not all-or-nothing: an agent the owner
+	 * published nothing for is one this host reads for itself. That is the
+	 * ordinary state of an owner whose auto-switch is off for one agent — it
+	 * polls only the other — so treating its silence as the answer would leave
+	 * the uncovered agent missing from every other host's Usage page for good.
 	 *
 	 * The mirror is JSON another process wrote, so one malformed entry is
 	 * dropped rather than allowed to throw out of every read on this host.
 	 */
-	private readMirror(agents: QuotaCapableAgent[]): UsageAccount[] | null {
-		if (!this.snapshotSource) return null;
+	private readMirror(agents: QuotaCapableAgent[]): {
+		entries: Array<{ agent: QuotaCapableAgent; accounts: UsageAccount[] }>;
+		covered: QuotaCapableAgent[];
+	} {
+		const empty = { entries: [], covered: [] };
+		if (!this.snapshotSource) return empty;
 		const snapshot = this.snapshotSource();
 		const mirrored: Array<{
 			agent: QuotaCapableAgent;
 			accounts: UsageAccount[];
 		}> = [];
+		const covered = new Set<QuotaCapableAgent>();
 		let dropped = 0;
 		for (const entry of snapshot?.entries ?? []) {
 			try {
@@ -599,6 +613,7 @@ export class QuotaStore {
 					agent: entry.agent,
 					accounts: entry.accounts.map(reviveAccountDates),
 				});
+				covered.add(entry.agent);
 			} catch {
 				dropped++;
 			}
@@ -611,8 +626,7 @@ export class QuotaStore {
 				}; ignoring them`,
 			);
 		}
-		if (mirrored.length === 0) return null;
-		return this.collect(agents, mirrored);
+		return { entries: mirrored, covered: [...covered] };
 	}
 
 	private collect(

@@ -180,6 +180,14 @@ export const usageRouter = router({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			// KTD5: the mutation lane below only serialises this host-service.
+			// On a lock loser the instance that owns the lock can switch onto
+			// this profile at any moment, and a deleted profile dir is not
+			// recoverable — so removal happens on the owner or not at all. A
+			// sandbox has no engine and keeps the unserialised path.
+			if (ctx.runtime.accountEngine?.ownsLock() === false) {
+				throw engineError("lock-loser");
+			}
 			const accounts = await ctx.runtime.quotaStore.read({
 				agents: [input.agent],
 			});

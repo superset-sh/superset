@@ -236,6 +236,72 @@ describe("account-engine state", () => {
 		).toEqual([]);
 	});
 
+	it("never overwrites a successor's lock when a takeover lands mid-heartbeat", () => {
+		const owner = new EngineState();
+		expect(owner.claimLock("nonce-a", 1_000)).toBe(true);
+		const dir = join(home, "state", "account-engine");
+		const lockPath = join(dir, "engine.lock");
+		const rival = new EngineState();
+
+		// The window a rename could never close: the lock is verified as ours,
+		// and only then does a rival rename our inode aside and link its own.
+		// The refreshed record must land on the inode we opened, never here.
+		type LockHolder = {
+			holdsLock(fd: number, target: string, nonce: string): boolean;
+		};
+		const seam = owner as unknown as LockHolder;
+		const realHolds = seam.holdsLock.bind(owner);
+		let raced = false;
+		seam.holdsLock = (fd, target, nonce) => {
+			const held = realHolds(fd, target, nonce);
+			if (!raced) {
+				raced = true;
+				rival.claimLock("nonce-b", 1_000 + DEFAULT_LOCK_STALE_MS + 1);
+			}
+			return held;
+		};
+
+		owner.heartbeat("nonce-a", 2_000);
+
+		expect(raced).toBe(true);
+		expect(JSON.parse(readFileSync(lockPath, "utf8")).nonce).toBe("nonce-b");
+		expect(rival.isOwner("nonce-b")).toBe(true);
+		// The loss is reported by the next ownership check, which re-reads the
+		// path and finds the foreign nonce on a fresh heartbeat.
+		expect(owner.isOwner("nonce-a")).toBe(false);
+		expect(owner.claimLock("nonce-a", 2_100)).toBe(false);
+		expect(readdirSync(dir).filter((name) => name.endsWith(".tmp"))).toEqual(
+			[],
+		);
+	});
+
+	it("leaves a successor's lock in place when a release races a takeover", () => {
+		const owner = new EngineState();
+		expect(owner.claimLock("nonce-a", 1_000)).toBe(true);
+		const lockPath = join(home, "state", "account-engine", "engine.lock");
+		const rival = new EngineState();
+
+		// Ours at the ownership check, the rival's by the time the unlink would
+		// run: releasing here would leave the host unlocked under a live owner.
+		type LockReader = { readLockFile(): unknown };
+		const seam = owner as unknown as LockReader;
+		const realRead = seam.readLockFile.bind(owner);
+		let reads = 0;
+		seam.readLockFile = () => {
+			reads += 1;
+			const seen = realRead();
+			if (reads === 1) {
+				rival.claimLock("nonce-b", 1_000 + DEFAULT_LOCK_STALE_MS + 1);
+			}
+			return seen;
+		};
+
+		owner.releaseLock("nonce-a");
+
+		expect(JSON.parse(readFileSync(lockPath, "utf8")).nonce).toBe("nonce-b");
+		expect(rival.isOwner("nonce-b")).toBe(true);
+	});
+
 	it("keeps refreshing while the lock is still ours", () => {
 		const owner = new EngineState();
 		expect(owner.claimLock("nonce-a", 1_000)).toBe(true);

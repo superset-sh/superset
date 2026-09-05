@@ -690,6 +690,34 @@ describe("QuotaStore snapshot mirror", () => {
 		expect(h.calls).toHaveLength(2);
 	});
 
+	// An owner polling Claude with Codex auto-switch off publishes Claude
+	// alone. Taking that partial mirror for the whole answer would hide every
+	// Codex account from this host until the owner enabled Codex too.
+	it("serves the mirrored agent and reads the uncovered one for itself", async () => {
+		const owner = harness({ claudeSelections: [null] });
+		await owner.store.read({ agents: ["claude"] });
+		const published = JSON.parse(
+			JSON.stringify(owner.store.snapshot()),
+		) as QuotaStoreSnapshot;
+
+		const loser = harness({
+			claudeSelections: [null],
+			codexSelections: ["/profiles/codex"],
+		});
+		loser.store.setSnapshotSource(() => published);
+
+		const accounts = await loser.store.read({ agents: ["claude", "codex"] });
+
+		expect(accounts.map((entry) => [entry.agent, entry.selection])).toEqual([
+			["claude", null],
+			["codex", "/profiles/codex"],
+		]);
+		// Claude came from the mirror; only the uncovered agent was fetched.
+		expect(loser.calls.map((call) => call.key)).toEqual([
+			quotaEntryKey("codex", "/profiles/codex"),
+		]);
+	});
+
 	// The mirror is JSON another process wrote; one bad row must not fail
 	// every Usage query on this host.
 	it("drops malformed mirror entries and serves the rest", async () => {

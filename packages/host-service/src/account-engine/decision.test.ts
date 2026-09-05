@@ -256,6 +256,40 @@ describe("pickConsumeFirst", () => {
 		);
 	});
 
+	// Every reset unknown ties every candidate at Infinity. Picking nobody
+	// there told the engine the agent was exhausted while an account with a
+	// full session window was sitting right next to it.
+	it("still picks a candidate when no account reports a reset", () => {
+		const b = account({
+			accountKey: "key-b",
+			windows: [window_("five_hour", "Session (5h)", 20)],
+		});
+		const a = account({
+			accountKey: "key-a",
+			windows: [window_("five_hour", "Session (5h)", 30)],
+		});
+		expect(pickConsumeFirst([b, a])?.accountKey).toBe("key-a");
+
+		const decision = shouldSwitch({
+			settings: settings({ strategy: "consume-first" }),
+			active: account({
+				windows: [window_("five_hour", "Session (5h)", 95)],
+			}),
+			candidates: [
+				account({
+					accountId: "acct-b",
+					accountKey: "key-b",
+					windows: [window_("five_hour", "Session (5h)", 20)],
+				}),
+			],
+			rotation: {},
+			runtime: { cooldownUntil: null, activeAccountId: "acct-a" },
+			now: T0,
+		});
+		expect(decision).toMatchObject({ switch: true, reasonKind: "threshold" });
+		expect(decision.switch && decision.target.accountId).toBe("acct-b");
+	});
+
 	it("takes the soonest across the plain and scoped weekly windows", () => {
 		const soonestIsPlain = account({
 			accountKey: "key-a",

@@ -415,6 +415,10 @@ export class AccountEngine {
 	private lastWritten:
 		| (ActiveDirIdentity & {
 				keys: Record<string, unknown>;
+				/** The account the switch that wrote this moved away from, so a
+				 * running CLI's token refresh under the pre-switch identity is
+				 * told apart from a `/login` (KTD3). */
+				previousAccountUuid: string | null;
 		  })
 		| null = null;
 	/** Last engine-state broadcast per agent, so steady state is not resent. */
@@ -533,6 +537,17 @@ export class AccountEngine {
 	 */
 	runExclusive<T>(fn: () => Promise<T>): Promise<T> {
 		return this.serialize(fn);
+	}
+
+	/**
+	 * KTD5, re-read from disk rather than from `status()`'s cached flag:
+	 * whether this instance may change account state right now. `setSettings`
+	 * and `setRotation` gate on the same answer, and so does a caller whose
+	 * work `runExclusive` cannot protect from the *other* host-service — a
+	 * profile delete, say.
+	 */
+	ownsLock(): boolean {
+		return this.ownsMutations();
 	}
 
 	getSettings(): EngineSettings {
@@ -752,7 +767,12 @@ export class AccountEngine {
 		// default, so releasing it here would leave every fresh install a
 		// lock loser that refuses its own user.
 		if (!this.ensureOwnership(now)) {
-			if (agents.length > 0) await this.followOwner(agents);
+			// Every agent, not just the enabled ones: following is about moving
+			// this host's own sessions onto the login the owner chose, which is
+			// unrelated to whether this host would have chosen it. Auto-switch
+			// is off by default, so gating on it left a loser sitting on the
+			// old account after every manual switch on the owner.
+			await this.followOwner(AGENTS);
 			return;
 		}
 		// Nothing to decide with every agent's auto-switch off, but the lock
@@ -761,7 +781,6 @@ export class AccountEngine {
 
 		const runtime = this.state.readRuntime();
 		const runtimeBefore = JSON.stringify(runtime);
-		const rotation = this.state.readRotation();
 		// The active account is resolved first: the poll schedule, the
 		// identity re-assertion and the decision all key off it.
 		for (const agent of agents) await this.resolveActive(agent, runtime);
@@ -782,8 +801,18 @@ export class AccountEngine {
 			if (!this.ensureOwnership(this.now())) return;
 		}
 
-		for (const agent of agents) {
-			await this.evaluate(agent, settings[agent], rotation, runtime, now);
+		// `setSettings` and `setRotation` write straight to the state dir
+		// rather than queueing on the mutation lane, so the snapshots taken at
+		// the top of this tick are as old as every await since: a user who
+		// turned auto-switch off, or held an account out of rotation, while
+		// the quota refresh was in flight must not be switched by this tick
+		// anyway. Re-read here, after the last await before the decision.
+		const live = this.state.readSettings();
+		const liveRotation = this.state.readRotation();
+		const liveAgents = agents.filter((agent) => live[agent].enabled);
+
+		for (const agent of liveAgents) {
+			await this.evaluate(agent, live[agent], liveRotation, runtime, now);
 			if (!this.ensureOwnership(this.now())) return;
 		}
 
@@ -793,11 +822,16 @@ export class AccountEngine {
 			this.state.writeRuntime(runtime);
 		}
 		for (const agent of agents) {
-			this.broadcastState(agent, settings[agent], runtime, now);
+			this.broadcastState(agent, live[agent], runtime, now);
 		}
 		// Not through `handleLimitHints`: this tick already holds the mutation
 		// slot, and queueing behind itself would never resolve.
-		await this.limitHintPass(now, { settings, agents, runtime, rotation });
+		await this.limitHintPass(now, {
+			settings: live,
+			agents: liveAgents,
+			runtime,
+			rotation: liveRotation,
+		});
 	}
 
 	// ── Ownership (KTD5) ───────────────────────────────────────────────
@@ -1163,6 +1197,9 @@ export class AccountEngine {
 				: this.switchCodex(input);
 
 		if (!result.ok) {
+			// KTD5: losing the lock mid-swap is not a swap failure, and never
+			// reaches the `account:switched` bus.
+			if (result.code === "lock-loser") return LOCK_LOSER;
 			// R24: nothing moved. The previous login is still in place and the
 			// sessions on it keep working.
 			this.broadcastState(agent, input.settings, runtime, now, {
@@ -1234,7 +1271,7 @@ export class AccountEngine {
 
 	private async switchClaude(
 		input: PerformSwitchInput,
-	): Promise<SwitchOutcome & { activeDir?: string }> {
+	): Promise<ManualSwitchOutcome & { activeDir?: string }> {
 		let activeDir: string;
 		try {
 			activeDir = await this.ensureActiveDir({
@@ -1264,6 +1301,10 @@ export class AccountEngine {
 			// The binding as an identity, so the swap can refuse a save-back
 			// into the wrong dir after a `/login` inside a live session.
 			expectedOwnerAccountId: input.from?.accountId ?? null,
+			// The same claim about the target, so a `/login` that landed there
+			// since the decision is refused rather than moved onto under the
+			// account the decision was about.
+			expectedTargetAccountId: input.target.accountId ?? null,
 			// A hand-exported dir is read, never written: the login it holds
 			// is not Superset's to save back.
 			ownerManaged: input.from?.managed ?? true,
@@ -1276,6 +1317,26 @@ export class AccountEngine {
 			// changed rather than re-asserting a stale identity block (KTD3).
 			if (result.code === "split-state") this.lastWritten = null;
 			return { ok: false, code: result.code, reason: result.reason };
+		}
+
+		// The swap is the longest await in a switch — Keychain, then the
+		// filesystem — and it can outlast both the lease and `stop()`'s
+		// bounded drain, which hands the lock back with this call still in
+		// flight. Publishing the pointer now would point the machine at a
+		// login the instance that owns the lock knows nothing about, so the
+		// previous one goes back through the same primitive instead (R24).
+		if (!this.ensureOwnership(this.now())) {
+			if (await this.restorePreviousLogin(input, activeDir)) return LOCK_LOSER;
+			// Neither the pointer nor the login moved back: the active dir
+			// holds the target's login under no record at all. Forget what we
+			// wrote so the next tick reads the dir as externally changed (KTD3).
+			this.lastWritten = null;
+			return {
+				ok: false,
+				code: "split-state",
+				reason:
+					"the host lock was lost while the login was being swapped, and the previous login could not be put back",
+			};
 		}
 
 		this.recordBinding(
@@ -1311,6 +1372,12 @@ export class AccountEngine {
 			accountUuid: result.identity.accountUuid,
 			credentialHash: seen?.credentialHash ?? null,
 			keys: result.identity.keys,
+			// KTD3: the account this switch moved away from. A Claude Code that
+			// was running through the switch refreshes its own token and
+			// rewrites `.claude.json` from the identity it started with, so a
+			// changed credential paired with *this* id is that CLI, not a
+			// `/login`.
+			previousAccountUuid: input.from?.accountId ?? null,
 		};
 		return { ok: true, activeDir };
 	}
@@ -1444,14 +1511,23 @@ export class AccountEngine {
 		if (!this.ensureOwnership(this.now())) return;
 
 		const written = this.lastWritten;
-		if (
+		// The credential is still the one we wrote, so only the identity block
+		// drifted: a running Claude Code rewrote `.claude.json` from memory.
+		const identityOnly =
 			written !== null &&
 			written.credentialHash !== null &&
-			written.credentialHash === seen.credentialHash
-		) {
-			// The credential is still the one we wrote, so only the identity
-			// block drifted: a running Claude Code rewrote `.claude.json` from
-			// memory. Put our block back and leave the active account alone.
+			written.credentialHash === seen.credentialHash;
+		// The credential changed *and* the block names the account this host
+		// switched away from. That pair is the same CLI doing two ordinary
+		// things — refreshing its own OAuth token, and rewriting the state file
+		// from the identity it started the session with — not someone signing
+		// in behind us, which would leave a third account's name here.
+		const cliRefresh =
+			written !== null &&
+			written.previousAccountUuid !== null &&
+			written.previousAccountUuid === seen.accountUuid;
+		if (written !== null && (identityOnly || cliRefresh)) {
+			// Put our block back and leave the active account alone.
 			try {
 				await this.writeClaudeState(claudeStatePath(activeDir), (existing) => ({
 					...existing,
@@ -1463,6 +1539,9 @@ export class AccountEngine {
 					error,
 				);
 			}
+			// The refreshed credential is still ours; record it, or the next
+			// tick reads this same pair as an unknown login.
+			this.lastWritten = { ...written, credentialHash: seen.credentialHash };
 			return;
 		}
 

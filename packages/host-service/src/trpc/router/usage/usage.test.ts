@@ -186,6 +186,7 @@ describe("usageRouter.removeAccount", () => {
 		const agentStatus = { activeAccountId: null, activeSelection: null };
 		(ctx.runtime as unknown as { accountEngine: unknown }).accountEngine = {
 			status: () => ({ claude: agentStatus, codex: agentStatus }),
+			ownsLock: () => true,
 			runExclusive,
 		};
 
@@ -201,6 +202,25 @@ describe("usageRouter.removeAccount", () => {
 				.createCaller(ctx)
 				.removeAccount({ agent: "claude", selection: SPARE_DIR }),
 		).rejects.toThrow(/switch/i);
+		expect(invalidate).not.toHaveBeenCalled();
+	});
+
+	// KTD5: the lane above serialises this host-service only, so on a lock
+	// loser the owner can still switch onto the dir this call is deleting.
+	it("refuses removal on a host-service that does not own the lock", async () => {
+		const ctx = context();
+		const agentStatus = { activeAccountId: null, activeSelection: null };
+		(ctx.runtime as unknown as { accountEngine: unknown }).accountEngine = {
+			status: () => ({ claude: agentStatus, codex: agentStatus }),
+			ownsLock: () => false,
+			runExclusive: <T>(fn: () => Promise<T>) => fn(),
+		};
+
+		await expect(
+			usageRouter
+				.createCaller(ctx)
+				.removeAccount({ agent: "claude", selection: SPARE_DIR }),
+		).rejects.toThrow("lock-loser");
 		expect(invalidate).not.toHaveBeenCalled();
 	});
 });
