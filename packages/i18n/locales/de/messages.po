@@ -13291,9 +13291,6 @@ msgstr "Zu Arbeitsbereich 8 wechseln"
 msgid "Switch to Workspace 9"
 msgstr "Zu Arbeitsbereich 9 wechseln"
 
-msgid "Switched by the consume-first strategy"
-msgstr "Gewechselt durch die Strategie \"Zuerst aufbrauchen\""
-
 msgid "Switching resumes when a usage window resets."
 msgstr "Der Wechsel wird fortgesetzt, sobald ein Nutzungsfenster zurückgesetzt wird."
 

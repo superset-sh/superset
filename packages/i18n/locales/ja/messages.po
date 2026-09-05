@@ -13291,9 +13291,6 @@ msgstr "ワークスペース8に切り替え"
 msgid "Switch to Workspace 9"
 msgstr "ワークスペース9に切り替え"
 
-msgid "Switched by the consume-first strategy"
-msgstr "使い切り優先の方針で切り替えました"
-
 msgid "Switching resumes when a usage window resets."
 msgstr "使用量の枠がリセットされると切り替えを再開します。"
 

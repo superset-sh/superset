@@ -162,4 +162,19 @@ describe("AccountCard account state", () => {
 		expect(text).toContain("Unmanaged");
 		expect(text).toContain("switching leaves this login alone");
 	});
+
+	// #11: the card promises switching never writes to this login, so it must
+	// not offer a control that would — not the button, not the rotation
+	// toggle, and not the selectable circle that would sit there doing nothing.
+	test("an unmanaged login offers no way to switch onto it", () => {
+		const view = renderCard(account({ managed: false }));
+		const ui = within(view.baseElement as HTMLElement);
+		expect(ui.queryByText("Make active")).toBeNull();
+		expect(ui.queryByRole("switch")).toBeNull();
+		expect(
+			ui.queryByTitle(
+				"Make active — running sessions move to this account too.",
+			),
+		).toBeNull();
+	});
 });

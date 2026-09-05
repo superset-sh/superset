@@ -13291,9 +13291,6 @@ msgstr "8. çalışma alanına geç"
 msgid "Switch to Workspace 9"
 msgstr "9. çalışma alanına geç"
 
-msgid "Switched by the consume-first strategy"
-msgstr "Önce tüket stratejisiyle geçildi"
-
 msgid "Switching resumes when a usage window resets."
 msgstr "Bir kullanım penceresi sıfırlandığında geçiş yeniden başlar."
 

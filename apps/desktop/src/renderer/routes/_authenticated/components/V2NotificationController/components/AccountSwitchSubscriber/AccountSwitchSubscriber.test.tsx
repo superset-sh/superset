@@ -247,6 +247,20 @@ describe("switch notifications", () => {
 		expect(invalidatedKeys()).toContain(HOST_USAGE_QUOTA_QUERY_KEY[0]);
 	});
 
+	// Both the "most headroom" and the consume-first strategies emit
+	// `reasonKind: "strategy"`, so the body must not name either one.
+	test("a proactive move reads the same whichever strategy made it", async () => {
+		await mountSubscriber("http://host-strategy");
+
+		await emit(
+			"account:switched",
+			"claude",
+			switched({ at: 4_500, reasonKind: "strategy" }),
+		);
+
+		expect(shown[0]?.body).toBe("More headroom elsewhere");
+	});
+
 	test("a model window names the model", async () => {
 		await mountSubscriber("http://host-model");
 

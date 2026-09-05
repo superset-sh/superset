@@ -13291,9 +13291,6 @@ msgstr "切换到工作区8"
 msgid "Switch to Workspace 9"
 msgstr "切换到工作区9"
 
-msgid "Switched by the consume-first strategy"
-msgstr "按“先用完”策略切换"
-
 msgid "Switching resumes when a usage window resets."
 msgstr "用量时段重置后会恢复切换。"
 

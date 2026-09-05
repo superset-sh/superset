@@ -192,8 +192,10 @@ function getSwitchReason(payload: AccountSwitchedPayload): string {
 			});
 			return i18n._(msg({ message: `${windowLabel} at ${percent}` }));
 		}
+		// Both strategies emit this reason, so the sentence names the reason,
+		// not the strategy — worded as the switch-history table words it.
 		case "strategy":
-			return i18n._(msg({ message: "Switched by the consume-first strategy" }));
+			return i18n._(msg({ message: "More headroom elsewhere" }));
 		case "fallback":
 			return i18n._(msg({ message: "Fallback restart after a usage limit" }));
 		case "external":

@@ -132,8 +132,8 @@ const ACTIVE_TITLE = msg({
 
 export function AccountCard({
 	account,
-	onMakeActive,
-	onToggleRotation,
+	onMakeActive: makeActive,
+	onToggleRotation: toggleRotation,
 	onSwitchSignIn,
 	onRemove,
 	isActivating,
@@ -164,6 +164,12 @@ export function AccountCard({
 }) {
 	const { t } = useLingui();
 	const rotationId = useId();
+	// A login set up outside Superset is ours to read, never to write — the
+	// engine refuses it as a switch target for the same reason — so the card
+	// offers no way to switch onto it or to put it in rotation. The
+	// "Unmanaged" badge and the line under the card say why.
+	const onMakeActive = account.managed ? makeActive : null;
+	const onToggleRotation = account.managed ? toggleRotation : null;
 	const credits = creditsLine(account);
 	const { copyToClipboard, copied } = useCopyToClipboard();
 	const expiredCommand =
@@ -191,7 +197,7 @@ export function AccountCard({
 						<span className="shrink-0 self-center" title={i18n._(ACTIVE_TITLE)}>
 							<LuCircleCheck className="size-3.5 text-primary" />
 						</span>
-					) : (
+					) : onMakeActive ? (
 						<button
 							type="button"
 							className="shrink-0 self-center text-muted-foreground/50 transition-colors hover:text-primary disabled:pointer-events-none"
@@ -200,11 +206,11 @@ export function AccountCard({
 								message:
 									"Make active — running sessions move to this account too.",
 							})}
-							onClick={onMakeActive ?? undefined}
+							onClick={onMakeActive}
 						>
 							<LuCircle className="size-3.5" />
 						</button>
-					))}
+					) : null)}
 				<span
 					className={cn(
 						"truncate text-xs font-medium transition-[filter]",

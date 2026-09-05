@@ -13291,9 +13291,6 @@ msgstr "Przełącz na obszar roboczy 8"
 msgid "Switch to Workspace 9"
 msgstr "Przełącz na obszar roboczy 9"
 
-msgid "Switched by the consume-first strategy"
-msgstr "Przełączono strategią „najpierw wykorzystaj”"
-
 msgid "Switching resumes when a usage window resets."
 msgstr "Przełączanie wróci, gdy zresetuje się okno zużycia."
 

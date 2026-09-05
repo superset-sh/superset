@@ -13291,9 +13291,6 @@ msgstr "워크스페이스 8로 전환"
 msgid "Switch to Workspace 9"
 msgstr "워크스페이스 9로 전환"
 
-msgid "Switched by the consume-first strategy"
-msgstr "먼저 소진 전략에 따라 전환함"
-
 msgid "Switching resumes when a usage window resets."
 msgstr "사용량 구간이 초기화되면 전환이 다시 시작됩니다."
 

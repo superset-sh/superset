@@ -13291,9 +13291,6 @@ msgstr "Beralih ke Workspace 8"
 msgid "Switch to Workspace 9"
 msgstr "Beralih ke Workspace 9"
 
-msgid "Switched by the consume-first strategy"
-msgstr "Diganti oleh strategi habiskan-dulu"
-
 msgid "Switching resumes when a usage window resets."
 msgstr "Pergantian dilanjutkan saat salah satu periode penggunaan direset."
 

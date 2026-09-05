@@ -13291,9 +13291,6 @@ msgstr "Chuyển tới workspace 8"
 msgid "Switch to Workspace 9"
 msgstr "Chuyển tới workspace 9"
 
-msgid "Switched by the consume-first strategy"
-msgstr "Đã chuyển theo chiến lược dùng hết trước"
-
 msgid "Switching resumes when a usage window resets."
 msgstr "Việc đổi tài khoản sẽ tiếp tục khi một chu kỳ sử dụng được đặt lại."
 

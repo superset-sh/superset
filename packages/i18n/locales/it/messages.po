@@ -13291,9 +13291,6 @@ msgstr "Passa al workspace 8"
 msgid "Switch to Workspace 9"
 msgstr "Passa al workspace 9"
 
-msgid "Switched by the consume-first strategy"
-msgstr "Cambio dovuto alla strategia \"esaurisci prima\""
-
 msgid "Switching resumes when a usage window resets."
 msgstr "Il cambio riprende quando una finestra di utilizzo si azzera."
 

@@ -13291,9 +13291,6 @@ msgstr "Přepnout na pracovní prostor 8"
 msgid "Switch to Workspace 9"
 msgstr "Přepnout na pracovní prostor 9"
 
-msgid "Switched by the consume-first strategy"
-msgstr "Přepnuto strategií „nejdřív spotřebovat“"
-
 msgid "Switching resumes when a usage window resets."
 msgstr "Přepínání se obnoví, jakmile se okno využití resetuje."
 

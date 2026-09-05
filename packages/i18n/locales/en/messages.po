@@ -13291,9 +13291,6 @@ msgstr "Switch to Workspace 8"
 msgid "Switch to Workspace 9"
 msgstr "Switch to Workspace 9"
 
-msgid "Switched by the consume-first strategy"
-msgstr "Switched by the consume-first strategy"
-
 msgid "Switching resumes when a usage window resets."
 msgstr "Switching resumes when a usage window resets."
 

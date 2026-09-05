@@ -13291,9 +13291,6 @@ msgstr "Перейти в рабочую область 8"
 msgid "Switch to Workspace 9"
 msgstr "Перейти в рабочую область 9"
 
-msgid "Switched by the consume-first strategy"
-msgstr "Переключено стратегией «сначала израсходовать»"
-
 msgid "Switching resumes when a usage window resets."
 msgstr "Переключение возобновится, когда сбросится одно из окон использования."
 

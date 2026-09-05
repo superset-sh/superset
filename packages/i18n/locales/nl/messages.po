@@ -13291,9 +13291,6 @@ msgstr "Naar werkruimte 8"
 msgid "Switch to Workspace 9"
 msgstr "Naar werkruimte 9"
 
-msgid "Switched by the consume-first strategy"
-msgstr "Gewisseld door de strategie die eerst opmaakt"
-
 msgid "Switching resumes when a usage window resets."
 msgstr "Wisselen gaat verder zodra een gebruiksvenster reset."
 

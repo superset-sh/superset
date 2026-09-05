@@ -122,6 +122,76 @@ describe("AutoSwitchSettings controls", () => {
 		]);
 	});
 
+	test("picking a strategy sends the one the user chose", async () => {
+		const { commits, ui } = setup();
+		await act(async () => {
+			fireEvent.keyDown(
+				ui.getByRole("combobox", { name: "Which account to move to" }),
+				{ key: "ArrowDown" },
+			);
+		});
+		await act(async () => {
+			fireEvent.click(
+				ui.getByRole("option", { name: "Use up the soonest reset" }),
+			);
+		});
+		expect(commits).toEqual([{ strategy: "consume-first" }]);
+	});
+
+	test("picking a poll interval sends it in seconds", async () => {
+		const { commits, ui } = setup();
+		await act(async () => {
+			fireEvent.keyDown(
+				ui.getByRole("combobox", { name: "Check usage every" }),
+				{ key: "ArrowDown" },
+			);
+		});
+		await act(async () => {
+			fireEvent.click(ui.getByRole("option", { name: "2 minutes" }));
+		});
+		expect(commits).toEqual([{ pollIntervalSeconds: 120 }]);
+	});
+
+	test("model windows are trimmed and blank entries dropped", async () => {
+		const { commits, ui } = setup();
+		const field = ui.getByRole("textbox", {
+			name: "Model windows",
+		}) as HTMLInputElement;
+		await act(async () => {
+			fireEvent.change(field, { target: { value: "Fable, , Opus, " } });
+			fireEvent.blur(field);
+		});
+		expect(commits).toEqual([{ modelWindows: ["Fable", "Opus"] }]);
+	});
+
+	// The NaN branch reverts instead of erroring, so the number on screen is
+	// always the one the engine is using.
+	test("a cooldown that is not a number is dropped, and a real one is sent", async () => {
+		const { commits, ui } = setup();
+		const field = ui.getByRole("spinbutton", {
+			name: "Wait between switches",
+		}) as HTMLInputElement;
+		await act(async () => {
+			fireEvent.change(field, { target: { value: "abc" } });
+			fireEvent.blur(field);
+		});
+		expect(commits).toEqual([]);
+		expect(
+			(
+				ui.getByRole("spinbutton", {
+					name: "Wait between switches",
+				}) as HTMLInputElement
+			).value,
+		).toBe("5");
+		expect(ui.queryByRole("alert")).toBeNull();
+
+		await act(async () => {
+			fireEvent.change(field, { target: { value: "10" } });
+			fireEvent.blur(field);
+		});
+		expect(commits).toEqual([{ cooldownSeconds: 600 }]);
+	});
+
 	test("a refusal reverts the control and says why", async () => {
 		const onCommit = mock(() => Promise.reject(new Error("invalid-settings")));
 		const view = render(
