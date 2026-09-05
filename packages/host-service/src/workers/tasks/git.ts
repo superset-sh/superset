@@ -3,6 +3,7 @@
 // host-service event loop. Credential env is resolved in-process (it needs
 // the credential provider) and crosses as plain data.
 
+import { rm } from "node:fs/promises";
 import {
 	type ResolvedGitInfo,
 	readGitIdentity,
@@ -302,7 +303,20 @@ export const gitWorktreeStateTask = defineWorkerTask<
 });
 
 export const gitWorktreeRemoveTask = defineWorkerTask<
-	{ repoPath: string; worktreePath: string; gitEnv: GitTaskEnv },
+	{
+		repoPath: string;
+		worktreePath: string;
+		gitEnv: GitTaskEnv;
+		/**
+		 * Confirmed safe by the caller (the destroy saga) against
+		 * `isInsideProjectWorktreesRoot` before it is set. When true, the
+		 * handler deletes the directory with the native recursive rm *before*
+		 * asking git to unregister; when false it leaves removal to git and
+		 * the caller's own guarded fallback. Never set from inside the worker —
+		 * the worker has no project root knowledge.
+		 */
+		nativeRm?: boolean;
+	},
 	{ stillRegistered: boolean; removeError?: string }
 >({
 	type: "git/removeWorktree",
@@ -310,7 +324,10 @@ export const gitWorktreeRemoveTask = defineWorkerTask<
 	// HOST-SERVICE-47) and the timeout named only the budget. Its steps stall
 	// for unrelated reasons, so each announces itself before starting and the
 	// pool names the last one in the timeout error.
-	handler: async ({ repoPath, worktreePath, gitEnv }, reportPhase) => {
+	handler: async (
+		{ repoPath, worktreePath, gitEnv, nativeRm },
+		reportPhase,
+	) => {
 		// Labelled from the first statement so every moment of the handler
 		// falls under some phase — an unlabelled timeout would be
 		// indistinguishable from one reported by a build without this.
@@ -320,6 +337,22 @@ export const gitWorktreeRemoveTask = defineWorkerTask<
 		// (macOS `/var` → `/private/var`) still matches its registration.
 		// `realpathSync.native` is a blocking syscall, hence its own phase.
 		const target = normalizeWorktreePath(worktreePath);
+		// #6887: when the caller has confirmed the path sits inside the managed
+		// worktrees root (`nativeRm`), delete the directory with the native
+		// recursive rm *before* asking git to unregister. git's
+		// remove_dir_recursively is a single-threaded walk that cannot finish a
+		// node_modules-heavy worktree (161k+ entries, pnpm hardlinks) inside
+		// the 120 s task budget — the delete times out with the worktree still
+		// in PROCESSING. The node rm is several times faster, `force` makes a
+		// missing or concurrently-cleaned path a no-op, and once the tree is
+		// gone the `worktree remove` below is near-instant (it only drops the
+		// registry entry). This also shrinks the #6730 surface: git no longer
+		// owns a walk that can fail mid-way and unregister while leaving an
+		// orphaned folder.
+		if (nativeRm) {
+			reportPhase?.("delete-files");
+			await rm(target, { recursive: true, force: true, maxRetries: 3 });
+		}
 		// The registry read below decides "registered or not" (the command's
 		// exit text is locale- and version-dependent), but registration is
 		// not the whole story: git can unregister the worktree and still fail

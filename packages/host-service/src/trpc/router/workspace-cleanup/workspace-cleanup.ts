@@ -530,11 +530,27 @@ async function runDestroyPhases(
 			let stillRegistered = true;
 			let removeError: string | undefined;
 			try {
-				({ stillRegistered, removeError } = await cleanupGitOps.removeWorktree({
-					repoPath: project.repoPath,
-					worktreePath: local.worktreePath,
-					gitEnv: repoGitEnv,
-				}));
+				// The fast native rm only runs when the caller can prove the
+				// path is inside this project's managed worktrees root — a
+				// stale or corrupt `worktreePath` row (e.g. a symlink out of
+				// the root) must never reach the worker's recursive delete
+				// (#6785). Same `isInsideProjectWorktreesRoot` gate the
+				// disk-recheck fallback below uses.
+				const worktreeBaseDir =
+					project.worktreeBaseDir ?? getHostWorktreeBaseDir(ctx);
+				const nativeRm = isInsideProjectWorktreesRoot(
+					local.worktreePath,
+					project.id,
+					worktreeBaseDir,
+				);
+				({ stillRegistered, removeError } = await cleanupGitOps.removeWorktree(
+					{
+						repoPath: project.repoPath,
+						worktreePath: local.worktreePath,
+						gitEnv: repoGitEnv,
+						nativeRm,
+					},
+				));
 			} catch (err) {
 				const message = err instanceof Error ? err.message : String(err);
 				throw new TRPCError({
