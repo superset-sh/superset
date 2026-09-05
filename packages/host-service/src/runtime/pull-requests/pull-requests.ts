@@ -13,6 +13,7 @@ import {
 import type { EventBus } from "../../events/event-bus";
 import type { GitWatcher } from "../../events/git-watcher";
 import type { ExecGh } from "../../trpc/router/workspace-creation/utils/exec-gh";
+import { isWorkerTaskTimeout } from "../../workers/WorkerTaskRunner";
 import { type GitFactory, resolveDefaultBranchName } from "../git";
 import {
 	fetchOpenPullRequests,
@@ -72,6 +73,16 @@ const REPO_PULL_REQUEST_CACHE_MAX_TTL_MS = 30 * 60_000;
 // Re-probe cadence for worktrees observed missing on disk. existsSync-only —
 // cheap enough to run every tick; spawning git against a missing dir is not.
 const MISSING_WORKTREE_PROBE_INTERVAL_MS = 30_000;
+
+// A workspace whose refs read keeps blowing its worker budget is not going to
+// answer the next poll either: on the machines this happens on (endpoint
+// security inspecting every exec, a repo on a slow disk) each attempt costs
+// 15s of a worker slot and more git processes queued behind the ones already
+// stuck. After two consecutive timeouts the workspace sits out for a growing
+// window (5 min doubling to 1 h). Any successful read clears it.
+const REFS_TIMEOUT_TRIP_COUNT = 2;
+const REFS_TIMEOUT_COOLDOWN_BASE_MS = 5 * 60_000;
+const REFS_TIMEOUT_COOLDOWN_MAX_MS = 60 * 60_000;
 // Dedup + link-assignment key. Branch stays case-sensitive: `feature` and
 // `Feature` are distinct branches with distinct PRs, so collapsing them here
 // would mislink. Case drift is tolerated only in the fallback in
@@ -237,6 +248,11 @@ export class PullRequestRuntimeManager {
 	// spawn no git; the probe timer re-enters the normal sync path when the
 	// directory reappears. One log line per transition, never per attempt.
 	private readonly missingWorktrees = new Map<string, string>();
+	/** workspaceId -> consecutive refs-read timeouts and the cooldown they earned. */
+	private readonly refsTimeouts = new Map<
+		string,
+		{ streak: number; skipUntil: number }
+	>();
 	private missingWorktreeProbeTimer: ReturnType<typeof setInterval> | null =
 		null;
 
@@ -690,10 +706,12 @@ export class PullRequestRuntimeManager {
 			return null;
 		}
 		this.noteWorktreePresent(workspace.id);
+		if (this.isRefsReadCoolingDown(workspace.id)) return null;
 		try {
 			const { branch, headSha, upstream } = await this.readWorkspaceRefs(
 				workspace.worktreePath,
 			);
+			this.refsTimeouts.delete(workspace.id);
 			if (!branch) return null;
 
 			const upstreamOwner = upstream?.owner ?? null;
@@ -736,6 +754,9 @@ export class PullRequestRuntimeManager {
 
 			return workspace.projectId;
 		} catch (error) {
+			if (isWorkerTaskTimeout(error)) {
+				this.noteRefsReadTimeout(workspace.id, workspace.worktreePath);
+			}
 			console.warn(
 				"[host-service:pull-request-runtime] Failed to sync workspace branch",
 				{
@@ -746,6 +767,31 @@ export class PullRequestRuntimeManager {
 			);
 			return null;
 		}
+	}
+
+	private isRefsReadCoolingDown(workspaceId: string): boolean {
+		const entry = this.refsTimeouts.get(workspaceId);
+		return entry !== undefined && Date.now() < entry.skipUntil;
+	}
+
+	private noteRefsReadTimeout(workspaceId: string, worktreePath: string): void {
+		const streak = (this.refsTimeouts.get(workspaceId)?.streak ?? 0) + 1;
+		if (streak < REFS_TIMEOUT_TRIP_COUNT) {
+			this.refsTimeouts.set(workspaceId, { streak, skipUntil: 0 });
+			return;
+		}
+		const cooldownMs = Math.min(
+			REFS_TIMEOUT_COOLDOWN_BASE_MS * 2 ** (streak - REFS_TIMEOUT_TRIP_COUNT),
+			REFS_TIMEOUT_COOLDOWN_MAX_MS,
+		);
+		this.refsTimeouts.set(workspaceId, {
+			streak,
+			skipUntil: Date.now() + cooldownMs,
+		});
+		console.warn(
+			`[host-service:pull-request-runtime] git is not answering for a workspace; pausing its branch sync for ${Math.round(cooldownMs / 60_000)}m`,
+			{ workspaceId, worktreePath, consecutiveTimeouts: streak },
+		);
 	}
 
 	private noteWorktreeMissing(workspaceId: string, worktreePath: string): void {

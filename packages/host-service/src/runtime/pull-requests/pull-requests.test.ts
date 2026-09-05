@@ -10,6 +10,10 @@ import type { HostDb } from "../../db";
 import * as schema from "../../db/schema";
 import { pullRequests, workspaces } from "../../db/schema";
 import type { WorkspaceChangedMessage } from "../../events/types";
+import {
+	WORKER_TASK_TIMEOUT_CODE,
+	WorkerTaskError,
+} from "../../workers/WorkerTaskRunner";
 import { PullRequestRuntimeManager } from "./pull-requests";
 import type { WorkspaceRefsSnapshot } from "./utils/workspace-refs";
 
@@ -1288,6 +1292,94 @@ async function waitFor(
 		await new Promise((resolve) => setTimeout(resolve, 10));
 	}
 }
+
+// Typed handle on the private per-workspace sync so the cooldown can be
+// driven directly, without timers or watcher events.
+function workspaceSyncer(manager: PullRequestRuntimeManager) {
+	const accessible = manager as unknown as {
+		syncOneWorkspace(workspaceId: string): Promise<void>;
+	};
+	return accessible.syncOneWorkspace.bind(accessible);
+}
+
+function refsTimeoutError() {
+	const message = 'Task "git/readWorkspaceRefs" timed out after 15000ms';
+	return new WorkerTaskError(message, {
+		name: "WorkerTaskTimeoutError",
+		message,
+		code: WORKER_TASK_TIMEOUT_CODE,
+	});
+}
+
+describe("refs read timeout cooldown", () => {
+	test("sits a workspace out after two consecutive timeouts and resumes after the window", async () => {
+		const t0 = Date.now();
+		setSystemTime(new Date(t0));
+		try {
+			const db = createRealDb();
+			seedProject(db);
+			seedWorkspace(db, { id: "ws-slow", branch: "feat/slow" });
+			let reads = 0;
+			let timingOut = true;
+			const manager = createManager(db, {
+				readWorkspaceRefs: async () => {
+					reads += 1;
+					if (timingOut) throw refsTimeoutError();
+					return { branch: "feat/slow", headSha: "sha-slow", upstream: null };
+				},
+			});
+			const sync = () =>
+				withSilencedWarnings(() => workspaceSyncer(manager)("ws-slow"));
+
+			await sync();
+			await sync();
+			expect(reads).toBe(2);
+
+			// Third and fourth polls inside the 5 min window never reach git.
+			await sync();
+			setSystemTime(new Date(t0 + 4 * 60_000));
+			await sync();
+			expect(reads).toBe(2);
+
+			// The window ends, one more attempt is allowed, and it times out
+			// again: the next window doubles to 10 min.
+			setSystemTime(new Date(t0 + 5 * 60_000 + 1_000));
+			await sync();
+			expect(reads).toBe(3);
+			setSystemTime(new Date(t0 + 12 * 60_000));
+			await sync();
+			expect(reads).toBe(3);
+
+			// A successful read clears the streak entirely.
+			timingOut = false;
+			setSystemTime(new Date(t0 + 16 * 60_000));
+			await sync();
+			await sync();
+			expect(reads).toBe(5);
+		} finally {
+			setSystemTime();
+		}
+	});
+
+	test("a non-timeout failure does not start a cooldown", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedWorkspace(db, { id: "ws-broken", branch: "feat/broken" });
+		let reads = 0;
+		const manager = createManager(db, {
+			readWorkspaceRefs: async () => {
+				reads += 1;
+				throw new Error("fatal: not a git repository");
+			},
+		});
+		const sync = () =>
+			withSilencedWarnings(() => workspaceSyncer(manager)("ws-broken"));
+		await sync();
+		await sync();
+		await sync();
+		expect(reads).toBe(3);
+	});
+});
 
 describe("workspace-created event trigger", () => {
 	// The manager only consumes workspaceId (it re-reads the row from the DB),
