@@ -111,7 +111,7 @@
 		"@tanstack/react-virtual": "3.14.3",
 		"@tiptap/core": "3.30.4",
 		"@tiptap/extension-blockquote": "3.30.4",
-		"@tiptap/extension-bold": "3.30.4",
+		"@tiptap/extension-bold": "3.30.5",
 		"@tiptap/extension-bubble-menu": "3.30.4",
 		"@tiptap/extension-bullet-list": "3.30.4",
 		"@tiptap/extension-code": "3.30.4",
