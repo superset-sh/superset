@@ -3,6 +3,7 @@ import path from "node:path";
 import {
 	devAppProfileDirName,
 	isDevAppProfileDirName,
+	isProfileLockHeld,
 	resolveAppDataDir,
 } from "@superset/shared/dev-app-profile";
 
@@ -42,7 +43,18 @@ export async function removeDevAppProfile({
 		// directory, and against ever naming an installed build's profile.
 		if (!isDevAppProfileDirName(dirName)) return;
 
-		await rm(path.join(appDataDir, dirName), { recursive: true, force: true });
+		const target = path.join(appDataDir, dirName);
+		// Deleting the workspace the running dev app was launched from would
+		// pull userData out from under its live windows. Leave it; once that
+		// app exits, the startup sweep reclaims the directory.
+		if (isProfileLockHeld(target)) {
+			console.warn(
+				"[workspace-cleanup] Dev app profile still in use, leaving it:",
+				target,
+			);
+			return;
+		}
+		await rm(target, { recursive: true, force: true });
 	} catch (error) {
 		console.warn(
 			"[teardown] Failed to remove dev app profile for workspace",

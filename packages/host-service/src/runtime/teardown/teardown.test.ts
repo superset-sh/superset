@@ -6,9 +6,10 @@ import {
 	mkdirSync,
 	mkdtempSync,
 	rmSync,
+	symlinkSync,
 	writeFileSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
+import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import { removeDevAppProfile } from "./dev-app-profile";
 import {
@@ -323,6 +324,46 @@ describe("removeDevAppProfile", () => {
 			});
 
 			expect(existsSync(sibling)).toBe(true);
+		} finally {
+			sb.cleanup();
+		}
+	});
+
+	// Deleting the workspace the running dev app was launched from must not
+	// pull userData out from under its live windows. The startup sweep
+	// reclaims it once that app exits.
+	test("leaves a profile a live app still holds", async () => {
+		const sb = makeAppDataDir();
+		try {
+			const profile = seedProfile(sb.appDataDir, "Superset (in-use)");
+			symlinkSync(
+				`${hostname()}-${process.pid}`,
+				join(profile, "SingletonLock"),
+			);
+
+			await removeDevAppProfile({
+				workspaceName: "in-use",
+				appDataDir: sb.appDataDir,
+			});
+
+			expect(existsSync(profile)).toBe(true);
+		} finally {
+			sb.cleanup();
+		}
+	});
+
+	test("removes a profile whose lock belongs to a dead process", async () => {
+		const sb = makeAppDataDir();
+		try {
+			const profile = seedProfile(sb.appDataDir, "Superset (crashed)");
+			symlinkSync(`${hostname()}-999999`, join(profile, "SingletonLock"));
+
+			await removeDevAppProfile({
+				workspaceName: "crashed",
+				appDataDir: sb.appDataDir,
+			});
+
+			expect(existsSync(profile)).toBe(false);
 		} finally {
 			sb.cleanup();
 		}

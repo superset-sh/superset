@@ -1,8 +1,17 @@
 import { describe, expect, test } from "bun:test";
+import {
+	mkdirSync,
+	mkdtempSync,
+	rmSync,
+	symlinkSync,
+	writeFileSync,
+} from "node:fs";
+import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import {
 	devAppProfileDirName,
 	isDevAppProfileDirName,
+	isProfileLockHeld,
 	isStrandedDevAppProfile,
 	resolveAppDataDir,
 } from "./dev-app-profile";
@@ -140,5 +149,77 @@ describe("isStrandedDevAppProfile", () => {
 	test("never reclaims the profile the running app is using", () => {
 		expect(check("Superset (a)", 400)).toBe(false);
 		expect(check("Superset (a)", 400, "Superset (b)")).toBe(true);
+	});
+});
+
+describe("isProfileLockHeld", () => {
+	function profileWith(lock?: string): { dir: string; cleanup: () => void } {
+		const root = mkdtempSync(join(tmpdir(), "profile-lock-"));
+		const dir = join(root, "Superset (ws)");
+		mkdirSync(dir, { recursive: true });
+		if (lock !== undefined) symlinkSync(lock, join(dir, "SingletonLock"));
+		return {
+			dir,
+			cleanup: () => rmSync(root, { recursive: true, force: true }),
+		};
+	}
+
+	test("no lock means nobody is home", () => {
+		const p = profileWith();
+		try {
+			expect(isProfileLockHeld(p.dir)).toBe(false);
+		} finally {
+			p.cleanup();
+		}
+	});
+
+	test("a lock naming a live process is held", () => {
+		const p = profileWith(`${hostname()}-${process.pid}`);
+		try {
+			expect(isProfileLockHeld(p.dir)).toBe(true);
+		} finally {
+			p.cleanup();
+		}
+	});
+
+	// Hostnames contain hyphens ("Satyas-MacBook-Pro.local-78859"), so the pid
+	// is the segment after the LAST one.
+	test("parses the pid from a hyphenated hostname", () => {
+		const p = profileWith(`Satyas-MacBook-Pro.local-${process.pid}`);
+		try {
+			expect(isProfileLockHeld(p.dir)).toBe(true);
+		} finally {
+			p.cleanup();
+		}
+	});
+
+	test("a lock left by a dead process is not held", () => {
+		const p = profileWith(`${hostname()}-999999`);
+		try {
+			expect(isProfileLockHeld(p.dir)).toBe(false);
+		} finally {
+			p.cleanup();
+		}
+	});
+
+	// Fails closed: an unreadable lock counts as in use, because guessing the
+	// other way corrupts a running profile.
+	test("an unparseable lock counts as held", () => {
+		const p = profileWith("no-pid-here-x");
+		try {
+			expect(isProfileLockHeld(p.dir)).toBe(true);
+		} finally {
+			p.cleanup();
+		}
+	});
+
+	test("a plain lock file (Windows shape) counts as held", () => {
+		const p = profileWith();
+		try {
+			writeFileSync(join(p.dir, "SingletonLock"), "");
+			expect(isProfileLockHeld(p.dir)).toBe(true);
+		} finally {
+			p.cleanup();
+		}
 	});
 });

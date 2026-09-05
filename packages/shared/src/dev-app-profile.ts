@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
@@ -107,4 +108,40 @@ export function isStrandedDevAppProfile({
 	if (name === currentProfile) return false;
 	if (!isDevAppProfileDirName(name)) return false;
 	return mtimeMs <= now - STALE_DEV_APP_PROFILE_MAX_AGE_MS;
+}
+
+/**
+ * True when Chromium still holds this profile, so it must not be removed.
+ *
+ * Age is not proof of idleness, and neither is a delete request: deleting the
+ * workspace whose profile the running dev app is using would pull `userData`
+ * out from under live windows. Chromium's `SingletonLock` is a symlink to
+ * `<hostname>-<pid>`, so the owning process can be probed directly.
+ *
+ * Fails closed on purpose. A lock that cannot be read or parsed counts as in
+ * use, which at worst strands one directory a later delete still reaps;
+ * guessing the other way corrupts someone's running profile.
+ *
+ * Windows writes `SingletonLock` as a plain lock file rather than a symlink,
+ * so every existing lock reads as live there and only unlocked profiles are
+ * reclaimed — the conservative direction.
+ */
+export function isProfileLockHeld(profileDir: string): boolean {
+	let target: string;
+	try {
+		target = fs.readlinkSync(path.join(profileDir, "SingletonLock"));
+	} catch (error) {
+		// ENOENT is the ordinary case: no lock, nobody home.
+		return (error as NodeJS.ErrnoException).code !== "ENOENT";
+	}
+
+	const pid = Number(target.slice(target.lastIndexOf("-") + 1));
+	if (!Number.isInteger(pid) || pid <= 0) return true;
+	try {
+		process.kill(pid, 0);
+		return true;
+	} catch (error) {
+		// EPERM means the process is alive and simply not ours to signal.
+		return (error as NodeJS.ErrnoException).code === "EPERM";
+	}
 }
