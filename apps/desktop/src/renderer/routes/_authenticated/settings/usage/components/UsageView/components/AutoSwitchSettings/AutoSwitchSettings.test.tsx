@@ -82,6 +82,46 @@ describe("AutoSwitchSettings controls", () => {
 		expect(ui.queryByRole("alert")).toBeNull();
 	});
 
+	// R14: the host accepts 60 to 3600 seconds, so the control must not offer
+	// a number outside it.
+	test("the cooldown field only offers minutes the host accepts", async () => {
+		const { commits, ui } = setup();
+		const field = ui.getByRole("spinbutton", {
+			name: "Wait between switches",
+		}) as HTMLInputElement;
+		expect(field.getAttribute("min")).toBe("1");
+		expect(field.getAttribute("max")).toBe("60");
+		await act(async () => {
+			fireEvent.change(field, { target: { value: "0" } });
+			fireEvent.blur(field);
+		});
+		await act(async () => {
+			fireEvent.change(field, { target: { value: "120" } });
+			fireEvent.blur(field);
+		});
+		expect(commits).toEqual([
+			{ cooldownSeconds: 60 },
+			{ cooldownSeconds: 3600 },
+		]);
+		expect(ui.queryByRole("alert")).toBeNull();
+	});
+
+	test("the model-window list is capped where the host caps it", async () => {
+		const { commits, ui } = setup();
+		const field = ui.getByRole("textbox", {
+			name: "Model windows",
+		}) as HTMLInputElement;
+		await act(async () => {
+			fireEvent.change(field, {
+				target: { value: "a, b, c, d, e, f, g, h, i, j" },
+			});
+			fireEvent.blur(field);
+		});
+		expect(commits).toEqual([
+			{ modelWindows: ["a", "b", "c", "d", "e", "f", "g", "h"] },
+		]);
+	});
+
 	test("a refusal reverts the control and says why", async () => {
 		const onCommit = mock(() => Promise.reject(new Error("invalid-settings")));
 		const view = render(

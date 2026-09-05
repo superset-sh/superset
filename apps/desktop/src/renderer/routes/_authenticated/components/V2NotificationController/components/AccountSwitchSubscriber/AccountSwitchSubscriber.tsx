@@ -15,6 +15,7 @@ import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { ACCOUNT_ENGINE_QUERY_KEY } from "renderer/routes/_authenticated/settings/usage/hooks/useAccountEngineSettings";
 import { invalidateHostUsageQuota } from "renderer/routes/_authenticated/settings/usage/hooks/useHostUsageQuota";
 import { SWITCH_HISTORY_QUERY_KEY } from "renderer/routes/_authenticated/settings/usage/hooks/useSwitchHistory";
+import { windowLabel as getWindowLabel } from "renderer/routes/_authenticated/utils/windowLabel";
 import type { HostNotificationWorkspaceState } from "../HostNotificationSubscriber";
 
 type AccountAgent = AccountSwitchedPayload["agent"];
@@ -200,22 +201,6 @@ function getSwitchReason(payload: AccountSwitchedPayload): string {
 		default:
 			return "";
 	}
-}
-
-const WEEKLY_SCOPED_PREFIX = "weekly_scoped:";
-
-function getWindowLabel(windowId: string): string {
-	if (windowId === "five_hour" || windowId === "primary") {
-		return i18n._(msg({ message: "5-hour window" }));
-	}
-	if (windowId === "seven_day" || windowId === "secondary") {
-		return i18n._(msg({ message: "weekly window" }));
-	}
-	if (windowId.startsWith(WEEKLY_SCOPED_PREFIX)) {
-		const model = windowId.slice(WEEKLY_SCOPED_PREFIX.length);
-		return i18n._(msg({ message: `${model} weekly window` }));
-	}
-	return windowId;
 }
 
 function getAgentLabel(agent: AccountAgent): string {

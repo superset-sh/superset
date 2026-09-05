@@ -175,10 +175,18 @@ export class TerminalAgentStore extends EventEmitter {
 			BUSY_EVENT_TYPES.has(prior.lastEventType) &&
 			STOPPED_EVENT_TYPES.has(lastEventType);
 
+		// A failure describes the turn it ended, so it is dropped the moment
+		// the session moves on: a new turn, or a different agent session in
+		// the same terminal. Carrying it forward leaves a rate-limit stop
+		// arming the engine's limit-stop fallback against a live session.
+		const turnStarted =
+			BUSY_EVENT_TYPES.has(eventType) || eventType === "SessionStart";
 		const lastFailure =
 			eventType === "Failed" && errorType
 				? { errorType, at: occurredAt }
-				: prior?.lastFailure;
+				: turnStarted || sessionChanged
+					? undefined
+					: prior?.lastFailure;
 
 		const next: TerminalAgentBinding = {
 			terminalId,

@@ -665,7 +665,10 @@ describe("TerminalAgentStore limit-stop signals", () => {
 		expect(store.get("t1")?.lastTransitionAt).toBe(500);
 	});
 
-	it("keeps the last failure across later events and never invents one", () => {
+	// The failure describes the turn it ended: the account engine reads it as
+	// a limit-stop hint, so one carried past its turn would arm the fallback
+	// against a live session.
+	it("keeps the last failure until the session moves on, and never invents one", () => {
 		start(100);
 		store.recordEvent({
 			terminalId: "t1",
@@ -674,29 +677,51 @@ describe("TerminalAgentStore limit-stop signals", () => {
 			errorType: "rate_limit",
 			occurredAt: 200,
 		});
-		store.recordEvent({
-			terminalId: "t1",
-			workspaceId: WORKSPACE,
-			eventType: "Start",
-			occurredAt: 300,
-		});
-
-		expect(store.get("t1")?.lastFailure).toEqual({
-			errorType: "rate_limit",
-			at: 200,
-		});
 
 		// A Failed without an error class leaves the previous one alone.
 		store.recordEvent({
 			terminalId: "t1",
 			workspaceId: WORKSPACE,
 			eventType: "Failed",
-			occurredAt: 400,
+			occurredAt: 250,
+		});
+		// Neither does an event that is not turn progress.
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Notification",
+			occurredAt: 275,
 		});
 		expect(store.get("t1")?.lastFailure).toEqual({
 			errorType: "rate_limit",
 			at: 200,
 		});
+
+		// A new turn drops it.
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Start",
+			occurredAt: 300,
+		});
+		expect(store.get("t1")?.lastFailure).toBeUndefined();
+
+		// So does a new agent session in the same terminal.
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Failed",
+			errorType: "rate_limit",
+			occurredAt: 400,
+		});
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Stop",
+			agentSessionId: "s2",
+			occurredAt: 450,
+		});
+		expect(store.get("t1")?.lastFailure).toBeUndefined();
 
 		// A different terminal never inherits it.
 		store.recordEvent({

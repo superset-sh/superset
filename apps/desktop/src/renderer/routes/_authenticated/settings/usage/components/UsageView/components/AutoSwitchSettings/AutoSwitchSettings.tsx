@@ -26,8 +26,12 @@ const POLL_INTERVALS: PollIntervalSeconds[] = [30, 60, 120, 300];
 
 const MIN_THRESHOLD = 1;
 const MAX_THRESHOLD = 100;
-const MIN_COOLDOWN_MINUTES = 0;
-const MAX_COOLDOWN_MINUTES = 120;
+// The host accepts 60 to 3600 seconds; a control must not offer a value the
+// host always refuses.
+const MIN_COOLDOWN_MINUTES = 1;
+const MAX_COOLDOWN_MINUTES = 60;
+/** The host's own cap on model windows (`.max(8)` on the settings schema). */
+const MAX_MODEL_WINDOWS = 8;
 
 function clamp(value: number, min: number, max: number): number {
 	return Math.min(max, Math.max(min, value));
@@ -290,7 +294,8 @@ export function AutoSwitchSettings({
 											modelWindows: models
 												.split(",")
 												.map((name) => name.trim())
-												.filter((name) => name.length > 0),
+												.filter((name) => name.length > 0)
+												.slice(0, MAX_MODEL_WINDOWS),
 										});
 									}}
 								/>

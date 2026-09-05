@@ -101,6 +101,8 @@ interface HarnessOptions {
 	corroborates?: boolean;
 	platform?: NodeJS.Platform;
 	activeDirThrows?: boolean;
+	/** The host pointer per agent, as `getDefaultAccountSelections` reads it. */
+	pointer?: { claudeConfigDir?: string | null; codexHome?: string | null };
 }
 
 function harness(options: HarnessOptions = {}) {
@@ -219,6 +221,10 @@ function harness(options: HarnessOptions = {}) {
 			calls.push("setPointer");
 			pointers.push({ agent, selection });
 		},
+		readPointerSelections: () => ({
+			claudeConfigDir: options.pointer?.claudeConfigDir ?? null,
+			codexHome: options.pointer?.codexHome ?? null,
+		}),
 		updateClaudeStateFile: async (path) => {
 			identityWrites.push(path);
 		},
@@ -706,6 +712,136 @@ describe("AccountEngine", () => {
 		expect(h.identityWrites).toEqual([]);
 		expect(h.engine.status().claude.activeAccountId).toBe("acct-a");
 		expect(h.switched.at(-1)?.reasonKind).toBe("external");
+	});
+
+	// KTD5/R2: auto-switch is off on a fresh install, and the lock is what
+	// lets this instance act on the user's own commands at all.
+	it("claims the lock with every agent's auto-switch off", async () => {
+		const h = harness({ entries: twoClaudeAccounts() });
+
+		await h.engine.tick();
+
+		expect(h.engine.status().claude.lockOwner).toBe(true);
+		expect(h.engine.status().codex.lockOwner).toBe(true);
+		expect(h.calls).not.toContain("swap");
+
+		const result = await h.engine.switchManually("claude", "/profiles/b");
+		expect(result.ok).toBe(true);
+		expect(h.engine.status().claude.activeAccountId).toBe("acct-b");
+	});
+
+	it("owns the lock from start(), not a tick later", () => {
+		const h = harness();
+
+		h.engine.start();
+
+		expect(h.engine.status().claude.lockOwner).toBe(true);
+		h.engine.stop();
+		expect(h.engine.status().claude.lockOwner).toBe(false);
+	});
+
+	it("keeps the lock across a tick that has nothing to decide", async () => {
+		const owner = harness();
+		await owner.engine.tick();
+		expect(owner.engine.status().claude.lockOwner).toBe(true);
+
+		const second = harness();
+		await second.engine.tick();
+
+		expect(second.engine.status().claude.lockOwner).toBe(false);
+		expect(owner.engine.status().claude.lockOwner).toBe(true);
+	});
+
+	it("refuses a manual switch once the lock is lost", async () => {
+		const owner = harness({ entries: twoClaudeAccounts() });
+		await owner.engine.tick();
+
+		const loser = harness({ entries: twoClaudeAccounts() });
+		const result = await loser.engine.switchManually("claude", "/profiles/b");
+
+		expect(result).toEqual({
+			ok: false,
+			code: "lock-loser",
+			reason:
+				"Another Superset instance on this machine owns account switching.",
+		});
+		expect(loser.calls).not.toContain("swap");
+	});
+
+	// KTD4: the quota store never sets isDefault — the Usage query decorates a
+	// copy — so the pointer is what says which login sessions are on.
+	it("seeds the active account from the host pointer", async () => {
+		// B has the most headroom, so no proactive move competes with the
+		// question under test.
+		const calmPair = () => [
+			entryFor(usageAccount({ windows: [w("five_hour", "Session (5h)", 30)] })),
+			entryFor(
+				usageAccount({
+					accountKey: "key-b",
+					accountId: "acct-b",
+					selection: "/profiles/b",
+					windows: [w("five_hour", "Session (5h)", 10)],
+				}),
+			),
+		];
+		const h = harness({
+			entries: calmPair(),
+			pointer: { claudeConfigDir: "/profiles/b" },
+		});
+		// The active dir holds B's login, which is what the pointer names.
+		h.setActiveIdentity({ accountUuid: "acct-b", credentialHash: "hash-b" });
+		enable(h.engine);
+
+		await h.engine.tick();
+
+		expect(h.engine.status().claude.activeAccountId).toBe("acct-b");
+		expect(h.calls).not.toContain("swap");
+	});
+
+	it("reads a null pointer as the system-default login", async () => {
+		const h = harness({
+			entries: [
+				entryFor(
+					usageAccount({
+						accountKey: "key-default",
+						accountId: "acct-default",
+						selection: null,
+						windows: [w("five_hour", "Session (5h)", 10)],
+					}),
+				),
+				entryFor(
+					usageAccount({
+						accountKey: "key-b",
+						accountId: "acct-b",
+						selection: "/profiles/b",
+						windows: [w("five_hour", "Session (5h)", 20)],
+					}),
+				),
+			],
+			pointer: { claudeConfigDir: null },
+		});
+		h.setActiveIdentity({
+			accountUuid: "acct-default",
+			credentialHash: "hash-default",
+		});
+		enable(h.engine);
+
+		await h.engine.tick();
+
+		expect(h.engine.status().claude.activeAccountId).toBe("acct-default");
+	});
+
+	// R16: the renderer and the router both file the toggle under
+	// `${agent}:${accountId}`, so the decision has to read it there.
+	it("holds a candidate out of rotation under the router's own key", async () => {
+		const h = harness({ entries: twoClaudeAccounts() });
+		enable(h.engine);
+		h.engine.setRotation("claude:acct-b", false);
+
+		await h.engine.tick();
+
+		expect(h.calls).not.toContain("swap");
+		expect(h.engine.status().claude.exhausted).toBe(true);
 	});
 
 	it("never swaps on a lock loser and moves its sessions on an external switch", async () => {

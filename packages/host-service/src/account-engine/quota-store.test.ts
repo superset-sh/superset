@@ -276,6 +276,26 @@ describe("QuotaStore adaptive cadence", () => {
 		}
 	});
 
+	// R14/R17: pressing Refresh on the Usage page runs a batch with no
+	// schedule of its own; it must not push the active account's next poll out
+	// to the idle five minutes.
+	it("keeps the engine's cadence through an on-demand refresh", async () => {
+		const h = harness({ claudeSelections: [null, "/profiles/a"] });
+		await h.store.refreshDue(h.now, {
+			claude: { activeKey: CLAUDE_DEFAULT, intervalMs: 30_000 },
+		});
+
+		h.advance(MINUTE);
+		await h.store.read({ agents: ["claude"], forceRefresh: true });
+
+		expect(requireEntry(h.store, CLAUDE_DEFAULT).nextPollAt).toBe(
+			h.now + 30_000,
+		);
+		expect(requireEntry(h.store, CLAUDE_A).nextPollAt).toBe(
+			h.now + IDLE_POLL_MS,
+		);
+	});
+
 	it("polls exhausted entries about every ten minutes", async () => {
 		const h = harness({
 			claudeSelections: [null, "/profiles/a"],

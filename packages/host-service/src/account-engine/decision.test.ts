@@ -148,7 +148,21 @@ describe("isEligible", () => {
 		expect(isEligible(apiKey, { "acct-c": true })).toBe(true);
 	});
 
-	it("lets the rotation file override the account's own flag", () => {
+	// R16: the spelling the renderer writes and the router stores is
+	// accountRotationKey — `${agent}:${accountId ?? selection ?? "default"}`.
+	it("reads the toggle under the key the router actually writes", () => {
+		expect(
+			isEligible(account({ inRotation: true }), { "claude:acct-a": false }),
+		).toBe(false);
+		expect(
+			isEligible(
+				account({ accountId: null, selection: null, inRotation: false }),
+				{ "claude:default": true },
+			),
+		).toBe(true);
+	});
+
+	it("still honours the legacy bare-id and account-key spellings", () => {
 		expect(isEligible(account({ inRotation: true }), { "acct-a": false })).toBe(
 			false,
 		);
@@ -410,7 +424,7 @@ describe("shouldSwitch", () => {
 					windows: [window_("five_hour", "Session (5h)", 1)],
 				}),
 			],
-			rotation: { "acct-b": false },
+			rotation: { "claude:acct-b": false },
 			runtime,
 			now: T0,
 		});

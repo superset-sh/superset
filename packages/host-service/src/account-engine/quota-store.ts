@@ -212,6 +212,10 @@ export class QuotaStore {
 	/** Per-endpoint request timestamps, for the budget. */
 	private readonly requests = new Map<QuotaCapableAgent, number[]>();
 	private readonly backoff = new Map<QuotaCapableAgent, number>();
+	/** The last cadence the engine asked for, per agent. An on-demand read
+	 * (the Usage page's Refresh) runs a batch with no schedule of its own and
+	 * must not slow the active account down to the idle poll. */
+	private readonly lastSchedules = new Map<AccountAgent, AgentPollSchedule>();
 	/** KTD5: installed by the lock owner so its store is mirrored into
 	 * quota.json for lock losers, and removed the moment it loses the lock. */
 	private snapshotSink: ((snapshot: QuotaStoreSnapshot) => void) | null = null;
@@ -292,6 +296,7 @@ export class QuotaStore {
 		for (const agent of agents) {
 			const agentSchedule = schedule[agent];
 			if (!agentSchedule) continue;
+			this.lastSchedules.set(agent, agentSchedule);
 			const candidates = this.entries(agent)
 				.filter((entry) => entry.fetchable && entry.nextPollAt <= now)
 				// The active entry goes first, so the budget defers the others
@@ -510,7 +515,7 @@ export class QuotaStore {
 	): void {
 		const agentSchedule =
 			entry.agent === "claude" || entry.agent === "codex"
-				? schedule?.[entry.agent]
+				? (schedule?.[entry.agent] ?? this.lastSchedules.get(entry.agent))
 				: undefined;
 		const base = !agentSchedule
 			? IDLE_POLL_MS

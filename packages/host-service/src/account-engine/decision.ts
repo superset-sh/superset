@@ -19,6 +19,7 @@
  *    watching the engine decline to move.
  */
 
+import { accountRotationKey } from "@superset/shared/account-rotation";
 import type {
 	UsageAccountCredentialKind,
 	UsageQuotaWindow,
@@ -177,9 +178,10 @@ export function isNearLimit(score: number, thresholdPercent: number): boolean {
 
 /**
  * R16/R23. In rotation and signed in. The rotation file wins over the flag
- * the account carries, because that file is what the user's toggle writes;
- * `accountId` is looked up first and `accountKey` second so a toggle stored
- * before the identity was known still applies.
+ * the account carries, because that file is what the user's toggle writes.
+ * `accountRotationKey` is the spelling both the renderer and the router use,
+ * so it is looked up first; the bare `accountId` and `accountKey` follow it
+ * as legacy spellings a toggle may still be filed under.
  */
 export function isEligible(
 	account: DecisionAccount,
@@ -196,6 +198,8 @@ function rotationFlag(
 	account: DecisionAccount,
 	rotation: RotationState,
 ): boolean {
+	const key = accountRotationKey(account);
+	if (key in rotation) return rotation[key] === true;
 	if (account.accountId !== null && account.accountId in rotation) {
 		return rotation[account.accountId] === true;
 	}

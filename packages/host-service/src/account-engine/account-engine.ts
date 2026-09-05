@@ -40,7 +40,11 @@ import {
 	ensureActiveClaudeDir,
 } from "../trpc/router/usage/account-provisioning.ts";
 import { updateClaudeStateFile } from "../trpc/router/usage/claude-state-file.ts";
-import { setDefaultAccountSelection } from "../trpc/router/usage/default-account.ts";
+import {
+	type DefaultAccountSelections,
+	getDefaultAccountSelections,
+	setDefaultAccountSelection,
+} from "../trpc/router/usage/default-account.ts";
 import {
 	claudeStatePath,
 	readClaudeLogin,
@@ -156,6 +160,9 @@ export interface AccountEngineDeps {
 	seed?: typeof seedActiveClaudeLogin;
 	ensureActiveDir?: typeof ensureActiveClaudeDir;
 	setPointer?: typeof setDefaultAccountSelection;
+	/** The host pointer the agent wrappers resolve on every launch. It seeds
+	 * the active account on a first run (KTD4). */
+	readPointerSelections?: typeof getDefaultAccountSelections;
 	updateClaudeStateFile?: typeof updateClaudeStateFile;
 	/** The active Claude dir's path, without provisioning it. */
 	resolveActiveDir?: () => string;
@@ -168,6 +175,12 @@ export interface AccountEngineDeps {
 export type SwitchOutcome =
 	| { ok: true }
 	| { ok: false; code: AccountSwitchFailureCode; reason: string };
+
+/** A user's own switch can also be refused for holding no lock (KTD5), which
+ * is not a swap failure and never reaches the `account:switched` bus. */
+export type ManualSwitchOutcome =
+	| SwitchOutcome
+	| { ok: false; code: "lock-loser"; reason: string };
 
 export type SettingsOutcome =
 	| { ok: true; settings: EngineSettings }
@@ -300,6 +313,7 @@ export class AccountEngine {
 	private readonly seed: typeof seedActiveClaudeLogin;
 	private readonly ensureActiveDir: typeof ensureActiveClaudeDir;
 	private readonly setPointer: typeof setDefaultAccountSelection;
+	private readonly readPointerSelections: typeof getDefaultAccountSelections;
 	private readonly writeClaudeState: typeof updateClaudeStateFile;
 	private readonly resolveActiveDir: () => string;
 	private readonly readActiveIdentity: (
@@ -349,6 +363,8 @@ export class AccountEngine {
 		this.seed = deps.seed ?? seedActiveClaudeLogin;
 		this.ensureActiveDir = deps.ensureActiveDir ?? ensureActiveClaudeDir;
 		this.setPointer = deps.setPointer ?? setDefaultAccountSelection;
+		this.readPointerSelections =
+			deps.readPointerSelections ?? getDefaultAccountSelections;
 		this.writeClaudeState = deps.updateClaudeStateFile ?? updateClaudeStateFile;
 		this.resolveActiveDir = deps.resolveActiveDir ?? activeClaudeConfigDir;
 		this.readActiveIdentity =
@@ -359,6 +375,10 @@ export class AccountEngine {
 
 	start(): void {
 		if (this.ticker) return;
+		// Claimed at boot rather than a tick later: until this host owns the
+		// lock every account mutation the Usage page sends is refused, and the
+		// first tick is a whole interval away (KTD5).
+		if (this.platformSupported()) this.ensureOwnership(this.now());
 		this.ticker = this.setIntervalFn(() => {
 			void this.tick();
 		}, this.tickIntervalMs);
@@ -442,7 +462,7 @@ export class AccountEngine {
 	async switchManually(
 		agent: AccountAgent,
 		selection: string | null,
-	): Promise<SwitchOutcome> {
+	): Promise<ManualSwitchOutcome> {
 		if (!this.platformSupported()) {
 			return {
 				ok: false,
@@ -451,7 +471,16 @@ export class AccountEngine {
 			};
 		}
 		const now = this.now();
-		this.ensureOwnership(now);
+		// KTD5: another instance holding the lock owns the credentials, so a
+		// swap here would sign its sessions out from under it.
+		if (!this.ensureOwnership(now)) {
+			return {
+				ok: false,
+				code: "lock-loser",
+				reason:
+					"Another Superset instance on this machine owns account switching.",
+			};
+		}
 		const settings = this.state.readSettings();
 		const runtime = this.state.readRuntime();
 		this.resolveActive(agent, runtime);
@@ -546,14 +575,19 @@ export class AccountEngine {
 		if (!this.platformSupported()) return;
 		const settings = this.state.readSettings();
 		const agents = AGENTS.filter((agent) => settings[agent].enabled);
-		if (agents.length === 0) {
-			this.releaseOwnership();
-			return;
-		}
+		// The lock is claimed before the enabled check, not after it: it is
+		// what makes this instance the one allowed to write account state at
+		// all (KTD5), and the Usage page's own actions — a manual switch, a
+		// settings change — go through the same gate. Auto-switch is off by
+		// default, so releasing it here would leave every fresh install a
+		// lock loser that refuses its own user.
 		if (!this.ensureOwnership(now)) {
-			await this.followOwner(agents);
+			if (agents.length > 0) await this.followOwner(agents);
 			return;
 		}
+		// Nothing to decide with every agent's auto-switch off, but the lock
+		// stays claimed.
+		if (agents.length === 0) return;
 
 		const runtime = this.state.readRuntime();
 		const runtimeBefore = JSON.stringify(runtime);
@@ -654,7 +688,7 @@ export class AccountEngine {
 		return out;
 	}
 
-	/** The engine's own record wins; `isDefault` seeds it on a first run. */
+	/** The engine's own record wins; then `isDefault`, then the host pointer. */
 	private resolveActive(agent: AccountAgent, runtime: RuntimeState): void {
 		const state = runtime.perAgent[agent];
 		const pool = this.pool(agent);
@@ -662,10 +696,39 @@ export class AccountEngine {
 			state.activeAccountId === null
 				? undefined
 				: pool.find((item) => item.row.accountId === state.activeAccountId);
-		const chosen = known ?? pool.find((item) => item.account.isDefault);
+		const chosen =
+			known ??
+			pool.find((item) => item.account.isDefault) ??
+			this.pointerAccount(agent, pool);
 		if (!chosen) return;
 		state.activeAccountId = chosen.row.accountId;
 		state.activeSelection = chosen.row.selection;
+	}
+
+	/**
+	 * KTD4: the quota store's rows always carry `isDefault: false` — the
+	 * Usage query decorates a copy of them, never the store — so on a first
+	 * run the host pointer is what says which login sessions are on. A null
+	 * pointer is the system-default login, which is the pool row whose
+	 * selection is null.
+	 */
+	private pointerAccount(
+		agent: AccountAgent,
+		pool: EngineAccount[],
+	): EngineAccount | undefined {
+		let selections: DefaultAccountSelections;
+		try {
+			selections = this.readPointerSelections(this.db);
+		} catch (error) {
+			console.warn(
+				"[account-engine] could not read the account pointer:",
+				error,
+			);
+			return undefined;
+		}
+		const selection =
+			agent === "claude" ? selections.claudeConfigDir : selections.codexHome;
+		return pool.find((item) => item.row.selection === selection);
 	}
 
 	private schedule(

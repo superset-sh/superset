@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { quotaEntryKey } from "../../../account-engine/quota-store.ts";
@@ -128,5 +134,105 @@ describe("usageRouter.removeAccount", () => {
 			.removeAccount({ agent: "claude", selection: SPARE_DIR });
 
 		expect(invalidate).toHaveBeenCalledWith(quotaEntryKey("claude", SPARE_DIR));
+	});
+});
+
+/**
+ * KTD13: the engine's hot swap is POSIX-only, but picking the login new
+ * sessions launch on is not — that is a pointer write, and it worked on
+ * Windows long before the engine existed.
+ */
+describe("usageRouter.setDefaultAccount", () => {
+	let home: string;
+	let previousHome: string | undefined;
+
+	function context(options: { platformSupported: boolean }) {
+		const switched: Array<{ agent: string; selection: string | null }> = [];
+		const written: Array<Record<string, unknown>> = [];
+		const agentStatus = {
+			lockOwner: true,
+			platformSupported: options.platformSupported,
+		};
+		const status = () => ({ claude: agentStatus, codex: agentStatus });
+		const ctx = {
+			isAuthenticated: true,
+			db: {
+				select: () => ({
+					from: () => ({
+						get: () => ({
+							defaultClaudeConfigDir: null,
+							defaultCodexHome: null,
+						}),
+					}),
+				}),
+				insert: () => ({
+					values: (values: Record<string, unknown>) => {
+						written.push(values);
+						return { onConflictDoUpdate: () => ({ run: () => {} }) };
+					},
+				}),
+			} as unknown as HostDb,
+			runtime: {
+				accountEngine: {
+					status,
+					switchManually: async (agent: string, selection: string | null) => {
+						switched.push({ agent, selection });
+						return { ok: true as const };
+					},
+				},
+				quotaStore: {
+					read: async () => [account({ accountId: "uuid-a", selection: null })],
+				},
+			},
+		} as unknown as HostServiceContext;
+		return { ctx, switched, written };
+	}
+
+	beforeEach(() => {
+		previousHome = process.env.SUPERSET_HOME_DIR;
+		home = mkdtempSync(join(tmpdir(), "superset-set-default-account-"));
+		process.env.SUPERSET_HOME_DIR = home;
+	});
+
+	afterEach(() => {
+		if (previousHome === undefined) delete process.env.SUPERSET_HOME_DIR;
+		else process.env.SUPERSET_HOME_DIR = previousHome;
+		rmSync(home, { recursive: true, force: true });
+	});
+
+	it("writes the pointer itself where the engine cannot swap (Windows)", async () => {
+		const { ctx, switched, written } = context({ platformSupported: false });
+
+		await usageRouter
+			.createCaller(ctx)
+			.setDefaultAccount({ agent: "claude", selection: null });
+
+		expect(switched).toEqual([]);
+		expect(written).toEqual([{ id: 1, defaultClaudeConfigDir: null }]);
+		expect(
+			readFileSync(join(home, "state", "default-claude-config-dir"), "utf8"),
+		).toBe("");
+	});
+
+	it("still refuses a login this host cannot see", async () => {
+		const { ctx, switched } = context({ platformSupported: false });
+
+		await expect(
+			usageRouter
+				.createCaller(ctx)
+				.setDefaultAccount({ agent: "claude", selection: SPARE_DIR }),
+		).rejects.toThrow(/refresh usage and pick again/);
+		expect(switched).toEqual([]);
+	});
+
+	it("goes through the engine where it can swap", async () => {
+		const { ctx, switched, written } = context({ platformSupported: true });
+
+		await usageRouter
+			.createCaller(ctx)
+			.setDefaultAccount({ agent: "claude", selection: null });
+
+		expect(switched).toEqual([{ agent: "claude", selection: null }]);
+		expect(written).toEqual([]);
 	});
 });

@@ -8,27 +8,9 @@ import {
 	TableHeader,
 	TableRow,
 } from "@superset/ui/table";
+import { windowLabel } from "renderer/routes/_authenticated/utils/windowLabel";
 import type { EngineAgent } from "../../../../hooks/useAccountEngineSettings";
 import type { SwitchHistoryEntry } from "../../../../hooks/useSwitchHistory";
-
-/** Window ids the engine cites, in the words the account cards use. Brand
- * model names inside a scoped id are never translated. */
-const WINDOW_LABELS: Record<string, string> = {
-	five_hour: "Session (5h)",
-	seven_day: "Weekly",
-	seven_day_sonnet: "Weekly · Sonnet",
-	primary: "Session",
-	secondary: "Weekly",
-};
-
-function windowLabel(windowId: string): string {
-	const known = WINDOW_LABELS[windowId];
-	if (known) return known;
-	const scoped = windowId.startsWith("weekly_scoped:")
-		? windowId.slice("weekly_scoped:".length)
-		: null;
-	return scoped ? `Weekly · ${scoped}` : windowId;
-}
 
 interface SwitchHistoryProps {
 	entries: SwitchHistoryEntry[];

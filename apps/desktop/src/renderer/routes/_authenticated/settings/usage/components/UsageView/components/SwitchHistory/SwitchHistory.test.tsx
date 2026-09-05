@@ -57,7 +57,7 @@ describe("SwitchHistory", () => {
 	test("keeps the host's newest-first order and composes the reason itself", () => {
 		const ui = renderHistory([newer, older]);
 		const rows = ui.getAllByRole("row").slice(1);
-		expect(rows[0]?.textContent).toContain("Session (5h) at 91%");
+		expect(rows[0]?.textContent).toContain("5-hour window at 91%");
 		expect(rows[0]?.textContent).toContain("Claude Code");
 		expect(rows[0]?.textContent).toContain("Automatic");
 		expect(rows[0]?.textContent).toContain("Restarted and resumed");
