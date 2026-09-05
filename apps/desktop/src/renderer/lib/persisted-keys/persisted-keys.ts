@@ -39,6 +39,12 @@ export const DEAD_KEYS: DeadKey[] = [
 	{ key: "v2-available-banner-v1", match: "exact" },
 	// Bumped to v2 so updated clients republish a full 30-day leaderboard window
 	{ key: "leaderboard-auto-publish-v1", match: "exact" },
+	// Router history moved to app-state.json (routerHistoryByWindow), which is
+	// pruned with the window set rather than swept from the renderer. The
+	// prefix entry also covers the per-window keys. Migration reads and removes
+	// these at module evaluation, so the sweep only catches profiles whose
+	// owning window never opens again.
+	{ key: "router-history", match: "prefix" },
 ];
 
 function matchesDeadKey(key: string): boolean {

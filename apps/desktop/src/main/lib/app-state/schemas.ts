@@ -36,6 +36,16 @@ export interface V1PaneAgentSession {
 	updatedAt: number;
 }
 
+/**
+ * A window's saved router history: the hash routes it has visited and where in
+ * that list it currently sits. Small and fixed-shape — the entry list is capped
+ * before it is stored.
+ */
+export interface RouterHistoryState {
+	entries: string[];
+	index: number;
+}
+
 export interface AppState {
 	/**
 	 * The pre-multi-window layout. Retained as the record the first restored
@@ -49,6 +59,14 @@ export interface AppState {
 	 * (wrong) layout. Pruned to the restorable window set on every persist.
 	 */
 	tabsStateByWindow?: Record<string, BaseTabsState>;
+	/**
+	 * Router history per window, keyed the same way as `tabsStateByWindow` and
+	 * pruned by the same pass. Lives here rather than in renderer localStorage
+	 * because localStorage is shared by every window of the profile, and because
+	 * the main process can hand this to a new renderer synchronously at startup
+	 * — the router is built from it before React mounts.
+	 */
+	routerHistoryByWindow?: Record<string, RouterHistoryState>;
 	themeState: ThemeState;
 	hotkeysState: LegacyHotkeysState;
 	/** v1 pane id → last agent session seen there (see V1PaneAgentSession). */

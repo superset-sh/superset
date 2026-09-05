@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { JSONFilePreset } from "lowdb/node";
 import { APP_STATE_PATH } from "../app-environment";
+import { pruneByWindow } from "./pruneByWindow";
 import type { AppState } from "./schemas";
 import { defaultAppState } from "./schemas";
 
@@ -120,12 +121,13 @@ export const appState = new Proxy({} as AppStateDB, {
  * keeping its layout would grow app-state.json on every new window forever.
  */
 export function pruneWindowScopedState(liveKeys: string[]): void {
-	const byWindow = appState.data.tabsStateByWindow;
-	if (!byWindow) return;
 	const live = new Set(liveKeys);
-	const kept = Object.fromEntries(
-		Object.entries(byWindow).filter(([key]) => live.has(key)),
+	appState.data.tabsStateByWindow = pruneByWindow(
+		appState.data.tabsStateByWindow,
+		live,
 	);
-	if (Object.keys(kept).length === Object.keys(byWindow).length) return;
-	appState.data.tabsStateByWindow = kept;
+	appState.data.routerHistoryByWindow = pruneByWindow(
+		appState.data.routerHistoryByWindow,
+		live,
+	);
 }

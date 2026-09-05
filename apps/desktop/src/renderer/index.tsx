@@ -13,7 +13,9 @@ import {
 	reportBootError,
 } from "./lib/boot-errors";
 import { sweepDeadPersistedKeys } from "./lib/persisted-keys";
-import { persistentHistory } from "./lib/persistent-hash-history";
+import {
+	persistentHistory,
+} from "./lib/persistent-hash-history";
 import { posthog } from "./lib/posthog";
 import { pruneExpiredTerminalState } from "./lib/terminal/terminal-buffer-gc";
 import { electronQueryClient } from "./providers/ElectronTRPCProvider";
@@ -31,6 +33,8 @@ initBootErrorHandling(rootElement);
 pruneExpiredTerminalState();
 // Keys from removed features otherwise live on user profiles forever.
 sweepDeadPersistedKeys();
+// Router history is per window now, and closed windows leave theirs behind.
+// Deliberately not awaited: it needs the main process, and boot must not wait.
 
 const router = createRouter({
 	routeTree,

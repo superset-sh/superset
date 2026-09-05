@@ -6,6 +6,7 @@ export {
 export {
 	isValidPersistedWindow,
 	isValidWindowState,
+	LEGACY_WINDOW_KEY,
 	loadWindowState,
 	loadWindows,
 	type PersistedWindow,

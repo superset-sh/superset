@@ -45,10 +45,6 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 	],
 	["src/renderer/lib/posthog.ts", ["ph_*_posthog", "__ph_opt_in_out_*"]],
 	[
-		"src/renderer/lib/persistent-hash-history/persistent-hash-history.ts",
-		["router-history"],
-	],
-	[
 		"src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/state/paneScrollStateCache/paneScrollStateCache.ts",
 		["v2-pane-scroll-state-v1"],
 	],
