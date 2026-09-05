@@ -34,6 +34,7 @@ None blocking. Product forks were settled in the brief (two rounds of live revie
 - [x] (2026-09-05 17:00Z) Dev instance of this worktree booted with the refreshed `.env`; archive → undo round trip exercised live over CDP (80 → 79 → 80 sidebar rows, toast with Undo and the view link), Archived view rendered with a real archived row.
 - [x] (2026-09-05 18:20Z) Code review: eight angle reviewers plus the orchestrator's own pass (44 raw findings, 7 verified by the orchestrator) and their fixes committed as "fix: address review findings on the archive experience"; outcomes tabled on the review page and in Surprises below.
 - [x] (2026-09-05 18:40Z) A third, fresh-context reviewer (plan + diff only) reproduced the top findings and added one: the project-delete dialog counted only live worktrees; fixed, and the Workspaces-page Archive item is gated on sandbox hosts like the sidebar's.
+- [x] (2026-09-05 19:20Z) Page review: suspend-timing question settled in favour of the existing sweep design (see Decision Log); cloud archive recorded as a follow-up.
 - [ ] Manual verification matrix in a dev instance (Avi's call; see Validation): the terminal-suspend and post-grace-unarchive scenarios remain unverified by hand.
 
 ## Surprises & Discoveries
@@ -105,6 +106,12 @@ None blocking. Product forks were settled in the brief (two rounds of live revie
 - Decision: the Archived view keeps the header's device, project, and Filter controls active and hides only the Display dropdown.
   Rationale: the brief hides Display (sort/history/lanes make no sense for a fixed-order list); the other controls narrow the archived list the same way they narrow the live one and cost nothing.
   Date/Author: 2026-09-05 / worker.
+- Decision: keep the suspend on the reaper sweep with a 60 s grace (suspension lands one to six minutes after archiving); a host-side per-archive timer that suspends right after the toast closes was built, then dropped.
+  Rationale: page review. Satya first asked why terminals need a lifecycle beyond the toast (expecting less code); Avi deferred to him; once it was clear the suspend is the existing sweep applying one rule (no extra lifecycle code) and that a toast-tied timer would add code, Satya concluded a few minutes of lingering is fine. The timer commit was reverted before push.
+  Date/Author: 2026-09-05 / Satya Patel, Avi, worker.
+- Decision: cloud sandboxes keep Delete in this PR; the team's inclination (Satya, Avi, page review) is to give cloud workspaces an archive too, as Conductor does, in a follow-up.
+  Rationale: cloud workspaces have no host row; their archive needs a cloud-side flag and sandbox suspend semantics, which is a separate change from this host-local one.
+  Date/Author: 2026-09-05 / Satya Patel, Avi, worker.
 - Decision: keep the drizzle-kit generated migration filename (`0031_fat_barracuda.sql`) instead of renaming it like `0030_workspace_last_activity_at.sql`.
   Rationale: the brief says never to hand-edit `packages/host-service/drizzle/`, and a rename means editing the journal tag by hand. Avi can rename before merge if the team prefers descriptive names.
   Date/Author: 2026-09-05 / worker.
