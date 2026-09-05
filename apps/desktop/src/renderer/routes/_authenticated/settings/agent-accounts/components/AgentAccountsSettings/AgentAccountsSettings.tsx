@@ -3,12 +3,12 @@ import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { Check, Plus } from "lucide-react";
 import { useState } from "react";
+import { AgentIcon } from "renderer/routes/_authenticated/settings/agents/components/V2AgentsSettings/components/AgentIcon";
 import {
 	isConfigured,
-	useCloudAuthMock,
-} from "renderer/routes/_authenticated/settings/agents/components/V2AgentsSettings/components/AgentDetail/components/CloudAuthSection/cloud-auth-mock-store";
-import { CloudAuthDialog } from "renderer/routes/_authenticated/settings/agents/components/V2AgentsSettings/components/AgentDetail/components/CloudAuthSection/components/CloudAuthDialog";
-import { AgentIcon } from "renderer/routes/_authenticated/settings/agents/components/V2AgentsSettings/components/AgentIcon";
+	useAgentCredential,
+} from "../../hooks/useAgentCredential";
+import { CloudAuthDialog } from "./components/CloudAuthDialog";
 
 /** Agents the sandbox image carries; a row per agent, like a provider list. */
 const CLOUD_AGENTS: Array<{ presetId: string; label: string }> = [
@@ -48,8 +48,9 @@ function AgentAccountRow({
 	label: string;
 }) {
 	const { t } = useLingui();
-	const [state, update] = useCloudAuthMock(presetId);
+	const credential = useAgentCredential(presetId);
 	const [open, setOpen] = useState(false);
+	const { state } = credential;
 	const configured = isConfigured(state);
 	const statusLabel =
 		state.method === "subscription" && state.subscriptionConnected
@@ -86,12 +87,15 @@ function AgentAccountRow({
 				</Button>
 			)}
 			<CloudAuthDialog
+				accountLabel={credential.accountLabel}
+				chooseMethod={credential.chooseMethod}
+				disconnect={credential.disconnect}
 				label={label}
 				onOpenChange={setOpen}
 				open={open}
 				presetId={presetId}
+				save={credential.save}
 				state={state}
-				update={update}
 			/>
 		</div>
 	);

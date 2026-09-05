@@ -22,30 +22,16 @@ import {
 	ExternalLink,
 	Eye,
 	EyeOff,
-	User,
 } from "lucide-react";
 import { useState } from "react";
-import { FaAws } from "react-icons/fa6";
 import { SiVercel } from "react-icons/si";
 
-/**
- * Mock of the server-side check a real version runs before saving: one
- * cheap call to the provider with the credential. A rejection keeps the
- * dialog open where it was and says who rejected what.
- */
-function mockVerify(ok: boolean, rejection: string): Promise<void> {
-	return new Promise((resolve, reject) => {
-		window.setTimeout(
-			() => (ok ? resolve() : reject(new Error(rejection))),
-			700,
-		);
-	});
-}
-
 import type {
+	CloudAuthMethod,
 	CloudAuthState,
 	CustomProvider,
-} from "../../cloud-auth-mock-store";
+	SaveCredentialInput,
+} from "../../../../hooks/useAgentCredential";
 
 interface CloudAuthDialogProps {
 	open: boolean;
@@ -53,11 +39,11 @@ interface CloudAuthDialogProps {
 	presetId: string;
 	label: string;
 	state: CloudAuthState;
-	update: (patch: Partial<CloudAuthState>) => void;
+	accountLabel: string | null;
+	chooseMethod: (method: CloudAuthMethod) => void;
+	save: (input: SaveCredentialInput) => Promise<unknown>;
+	disconnect: () => Promise<unknown>;
 }
-
-const MOCK_TOKEN = "sk-ant-oat01-LDfEQSvxjioImKGD232uMj4pvcOt9s6GnjNBufXzf9Q";
-const MOCK_EMAIL = "you@superset.sh";
 
 export function CloudAuthDialog({
 	open,
@@ -65,31 +51,42 @@ export function CloudAuthDialog({
 	presetId,
 	label,
 	state,
-	update,
+	accountLabel,
+	chooseMethod,
+	save,
+	disconnect,
 }: CloudAuthDialogProps) {
 	const { t } = useLingui();
 	const isClaude = presetId === "claude";
 	const [view, setView] = useState<"main" | "custom">("main");
-	const [revealed, setRevealed] = useState(false);
+	const [baseUrlDraft, setBaseUrlDraft] = useState("");
+	const [expanded, setExpanded] = useState<CustomProvider | null>(null);
 	const [tokenDraft, setTokenDraft] = useState("");
 	const [apiKeyDraft, setApiKeyDraft] = useState("");
 	const [apiKeyAdvanced, setApiKeyAdvanced] = useState(false);
 	const [checking, setChecking] = useState<string | null>(null);
-	const [connecting, setConnecting] = useState(false);
 
+	/**
+	 * One call does both: the server checks the credential against the
+	 * provider and only stores it if that succeeds. A refusal keeps the
+	 * dialog where it is and repeats what the provider said.
+	 */
 	const verifyAndSave = async (
 		id: string,
-		ok: boolean,
-		rejection: string,
-		onOk: () => void,
+		input: SaveCredentialInput,
+		onOk?: () => void,
 	) => {
 		setChecking(id);
 		try {
-			await mockVerify(ok, rejection);
-			onOk();
+			await save(input);
+			onOk?.();
 			toast.success(t({ message: "Verified and saved" }));
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : rejection);
+			toast.error(
+				error instanceof Error
+					? error.message
+					: t({ message: "The provider refused it." }),
+			);
 		} finally {
 			setChecking(null);
 		}
@@ -100,46 +97,18 @@ export function CloudAuthDialog({
 		onOpenChange(next);
 	};
 
-	const connect = () => {
-		setConnecting(true);
-		window.setTimeout(() => {
-			setConnecting(false);
-			update({ method: "subscription", subscriptionConnected: true });
-		}, 900);
-	};
-
 	const providers: Array<{
 		id: CustomProvider;
 		label: string;
 		icon: React.ReactNode;
 		advanced?: boolean;
-	}> = isClaude
-		? [
-				{
-					id: "gateway",
-					label: t({ message: "Vercel AI Gateway" }),
-					icon: <SiVercel className="size-4" />,
-				},
-				{
-					id: "bedrock",
-					label: t({ message: "Amazon Bedrock" }),
-					icon: <FaAws className="size-4" />,
-				},
-				{
-					id: "manual",
-					label: t({ message: "Manual" }),
-					icon: <User className="size-4" />,
-					advanced: true,
-				},
-			]
-		: [
-				{
-					id: "manual",
-					label: t({ message: "Manual" }),
-					icon: <User className="size-4" />,
-					advanced: true,
-				},
-			];
+	}> = [
+		{
+			id: "gateway",
+			label: t({ message: "Vercel AI Gateway" }),
+			icon: <SiVercel className="size-4" />,
+		},
+	];
 	const customLabel = providers.find(
 		(provider) => provider.id === state.customProvider,
 	)?.label;
@@ -179,26 +148,22 @@ export function CloudAuthDialog({
 						</DialogHeader>
 						<div className="space-y-2">
 							{providers.map((provider) => {
-								const expanded = state.customProvider === provider.id;
-								const saved = state.customSaved && expanded;
+								const isOpen = expanded === provider.id;
+								const saved = state.customSaved && isOpen;
 								return (
 									<div
 										className={cn(
 											"rounded-lg border border-border",
-											expanded && "border-primary/40",
+											isOpen && "border-primary/40",
 										)}
 										key={provider.id}
 									>
 										<button
 											className="flex w-full items-center gap-3 px-3 py-3 text-left text-sm"
-											onClick={() =>
-												update({
-													customProvider: expanded ? null : provider.id,
-												})
-											}
+											onClick={() => setExpanded(isOpen ? null : provider.id)}
 											type="button"
 										>
-											{expanded ? (
+											{isOpen ? (
 												<ChevronDown className="size-4 text-muted-foreground" />
 											) : (
 												<ChevronRight className="size-4 text-muted-foreground" />
@@ -216,14 +181,16 @@ export function CloudAuthDialog({
 												<Check className="ml-auto size-4 text-emerald-500" />
 											) : null}
 										</button>
-										{expanded ? (
+										{isOpen ? (
 											<div className="space-y-3 border-t border-border px-3 py-3">
 												<ProviderForm
 													checking={checking === provider.id}
-													onSave={(ok, rejection) =>
-														verifyAndSave(provider.id, ok, rejection, () =>
-															update({ method: "custom", customSaved: true }),
-														)
+													onSave={(value, baseUrl) =>
+														verifyAndSave(provider.id, {
+															kind: "api_key",
+															value,
+															baseUrl,
+														})
 													}
 													provider={provider.id}
 												/>
@@ -253,7 +220,7 @@ export function CloudAuthDialog({
 							<RadioGroup
 								className="gap-3"
 								onValueChange={(value) =>
-									update({ method: value as "subscription" | "api_key" })
+									chooseMethod(value as CloudAuthMethod)
 								}
 								value={state.method === "custom" ? "" : state.method}
 							>
@@ -275,54 +242,27 @@ export function CloudAuthDialog({
 										</Label>
 										{state.subscriptionConnected ? (
 											<Button
-												onClick={() => update({ subscriptionConnected: false })}
+												onClick={() => void disconnect()}
 												size="sm"
 												variant="ghost"
 											>
 												<Trans>Sign out</Trans>
 											</Button>
-										) : (
-											<Button disabled={connecting} onClick={connect} size="sm">
-												{connecting ? (
-													<Trans>Waiting for browser…</Trans>
-												) : isClaude ? (
-													<Trans>Sign in with Claude</Trans>
-												) : (
-													<Trans>Sign in with ChatGPT</Trans>
-												)}
-											</Button>
-										)}
+										) : null}
 									</div>
 									{state.method === "subscription" ? (
 										state.subscriptionConnected ? (
 											<div className="mt-3 pl-7">
 												<p className="text-xs text-muted-foreground">
-													<Trans>Signed in as {MOCK_EMAIL}</Trans>
+													{accountLabel ? (
+														<Trans>Signed in as {accountLabel}</Trans>
+													) : (
+														<Trans>
+															Signed in. The token is stored encrypted and is
+															never shown again.
+														</Trans>
+													)}
 												</p>
-												<div className="mt-1.5 flex items-center gap-2">
-													<code className="flex-1 truncate rounded-md border border-border bg-muted/40 px-2.5 py-1.5 font-mono text-xs">
-														{revealed
-															? MOCK_TOKEN
-															: "sk-ant-oat01-••••••••••••••••••••••••••••"}
-													</code>
-													<Button
-														aria-label={
-															revealed
-																? t({ message: "Hide token" })
-																: t({ message: "Show token" })
-														}
-														className="size-7"
-														onClick={() => setRevealed((value) => !value)}
-														size="icon"
-														variant="ghost"
-													>
-														{revealed ? (
-															<EyeOff className="size-4" />
-														) : (
-															<Eye className="size-4" />
-														)}
-													</Button>
-												</div>
 											</div>
 										) : (
 											<div className="mt-3 space-y-2 pl-7">
@@ -366,15 +306,27 @@ export function CloudAuthDialog({
 														value={tokenDraft}
 													/>
 													<Button
-														disabled={!tokenDraft.trim()}
-														onClick={() => {
-															update({ subscriptionConnected: true });
-															setTokenDraft("");
-														}}
+														disabled={
+															!tokenDraft.trim() || checking === "subscription"
+														}
+														onClick={() =>
+															verifyAndSave(
+																"subscription",
+																{
+																	kind: "subscription",
+																	value: tokenDraft.trim(),
+																},
+																() => setTokenDraft(""),
+															)
+														}
 														size="sm"
 														variant="outline"
 													>
-														<Trans>Save</Trans>
+														{checking === "subscription" ? (
+															<Trans>Checking…</Trans>
+														) : (
+															<Trans>Save</Trans>
+														)}
 													</Button>
 												</div>
 											</div>
@@ -426,11 +378,13 @@ export function CloudAuthDialog({
 											{apiKeyAdvanced ? (
 												<Field
 													label={t({ message: "Base URL" })}
+													onChange={setBaseUrlDraft}
 													placeholder={
 														isClaude
 															? "https://api.anthropic.com"
 															: "https://api.openai.com/v1"
 													}
+													value={baseUrlDraft}
 												/>
 											) : null}
 											<div className="flex items-center gap-2">
@@ -455,20 +409,14 @@ export function CloudAuthDialog({
 													onClick={() =>
 														verifyAndSave(
 															"api_key",
-															apiKeyDraft.startsWith(
-																isClaude ? "sk-ant-" : "sk-",
-															),
-															isClaude
-																? t({
-																		message: "Anthropic rejected this API key.",
-																	})
-																: t({
-																		message: "OpenAI rejected this API key.",
-																	}),
-															() => {
-																update({ apiKeySaved: true });
-																setApiKeyDraft("");
+															{
+																kind: "api_key",
+																value: apiKeyDraft.trim(),
+																...(baseUrlDraft.trim()
+																	? { baseUrl: baseUrlDraft.trim() }
+																	: {}),
 															},
+															() => setApiKeyDraft(""),
 														)
 													}
 													size="sm"
@@ -562,9 +510,13 @@ function SecretField({
 function Field({
 	label,
 	placeholder,
+	value,
+	onChange,
 }: {
 	label: string;
 	placeholder?: string;
+	value?: string;
+	onChange?: (value: string) => void;
 }) {
 	return (
 		<div className="space-y-1.5">
@@ -572,7 +524,9 @@ function Field({
 			<Input
 				autoComplete="off"
 				className="font-mono text-sm"
+				onChange={(e) => onChange?.(e.target.value)}
 				placeholder={placeholder}
+				value={value ?? ""}
 			/>
 		</div>
 	);
@@ -584,125 +538,47 @@ function ProviderForm({
 	checking,
 }: {
 	provider: CustomProvider;
-	onSave: (ok: boolean, rejection: string) => void;
+	onSave: (value: string, baseUrl: string) => void;
 	checking: boolean;
 }) {
 	const { t } = useLingui();
 	const [draft, setDraft] = useState("");
-	const filled = draft.trim().length > 0;
-	if (provider === "gateway") {
-		return (
-			<>
-				<a
-					className="inline-flex items-center gap-1 text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
-					href="https://vercel.com/ai-gateway"
-					rel="noreferrer"
-					target="_blank"
-				>
-					<Trans>Get an API key</Trans>
-					<ExternalLink className="size-3.5" />
-				</a>
-				<div className="flex items-center gap-2">
-					<div className="flex-1">
-						<SecretField
-							onChange={setDraft}
-							placeholder="AI_GATEWAY_API_KEY"
-							value={draft}
-						/>
-					</div>
-					<Button
-						disabled={checking}
-						onClick={() =>
-							onSave(
-								filled,
-								t({ message: "Vercel AI Gateway rejected this key." }),
-							)
-						}
-						size="sm"
-					>
-						{checking ? <Trans>Checking…</Trans> : <Trans>Save</Trans>}
-					</Button>
-				</div>
-			</>
-		);
-	}
-	if (provider === "bedrock") {
-		return (
-			<>
-				<RadioGroup className="flex items-center gap-5" defaultValue="aws">
-					<div className="flex items-center gap-2">
-						<RadioGroupItem id="bedrock-aws" value="aws" />
-						<Label className="font-normal" htmlFor="bedrock-aws">
-							<Trans>AWS access keys</Trans>
-						</Label>
-					</div>
-					<div className="flex items-center gap-2">
-						<RadioGroupItem id="bedrock-key" value="key" />
-						<Label className="font-normal" htmlFor="bedrock-key">
-							<Trans>Bedrock API key</Trans>
-						</Label>
-					</div>
-				</RadioGroup>
-				<SecretField
-					label={t({ message: "Access key ID" })}
-					onChange={setDraft}
-					placeholder="AKIA…"
-					value={draft}
-				/>
-				<SecretField
-					label={t({ message: "Secret access key" })}
-					placeholder=""
-				/>
-				<SecretField
-					label={t({ message: "Session token (optional)" })}
-					placeholder=""
-				/>
-				<Field label={t({ message: "Region" })} placeholder="us-east-1" />
-				<Field
-					label={t({ message: "Test model" })}
-					placeholder="us.anthropic.claude-sonnet-4-6"
-				/>
-				<Button
-					disabled={checking}
-					onClick={() =>
-						onSave(
-							filled,
-							t({ message: "Bedrock rejected these credentials." }),
-						)
-					}
-					size="sm"
-				>
-					{checking ? <Trans>Testing…</Trans> : <Trans>Test and save</Trans>}
-				</Button>
-			</>
-		);
-	}
+	const [baseUrl, setBaseUrl] = useState("https://ai-gateway.vercel.sh/v1");
+	const filled = draft.trim().length > 0 && baseUrl.trim().length > 0;
+	if (provider !== "gateway") return null;
 	return (
 		<>
-			<p className="text-xs text-muted-foreground">
-				<Trans>
-					Environment variables handed to the agent as-is, one per line. Use
-					this for a self-hosted proxy or anything the presets do not cover.
-				</Trans>
-			</p>
-			<textarea
-				className="min-h-24 w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-sm"
-				onChange={(e) => setDraft(e.target.value)}
-				placeholder={"ANTHROPIC_BASE_URL=https://…\nANTHROPIC_AUTH_TOKEN=…"}
-				value={draft}
-			/>
-			<Button
-				disabled={checking}
-				onClick={() =>
-					onSave(
-						filled,
-						t({ message: "The endpoint rejected these variables." }),
-					)
-				}
-				size="sm"
+			<a
+				className="inline-flex items-center gap-1 text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+				href="https://vercel.com/ai-gateway"
+				rel="noreferrer"
+				target="_blank"
 			>
-				{checking ? <Trans>Testing…</Trans> : <Trans>Save</Trans>}
-			</Button>
+				<Trans>Get an API key</Trans>
+				<ExternalLink className="size-3.5" />
+			</a>
+			<Field
+				label={t({ message: "Base URL" })}
+				onChange={setBaseUrl}
+				placeholder="https://ai-gateway.vercel.sh/v1"
+				value={baseUrl}
+			/>
+			<div className="flex items-center gap-2">
+				<div className="flex-1">
+					<SecretField
+						onChange={setDraft}
+						placeholder="AI_GATEWAY_API_KEY"
+						value={draft}
+					/>
+				</div>
+				<Button
+					disabled={!filled || checking}
+					onClick={() => onSave(draft.trim(), baseUrl.trim())}
+					size="sm"
+				>
+					{checking ? <Trans>Checking…</Trans> : <Trans>Save</Trans>}
+				</Button>
+			</div>
 		</>
 	);
 }
