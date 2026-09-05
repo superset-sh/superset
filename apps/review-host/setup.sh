@@ -17,14 +17,30 @@ apt-get install -y --no-install-recommends ca-certificates curl git python3 rsyn
 
 # host-service bundle. On the boot disk, so it survives reboots and can be
 # updated in place — the whole reason this is a VM and not an immutable image.
-if [ ! -x /opt/superset/bin/superset-host ] \
-   || ! grep -aq "$SUPERSET_VERSION" /opt/superset/lib/host-service.js 2>/dev/null; then
+# Only ever move forward. self-update.sh bumps this box on its own, so a later
+# setup.sh or provision.sh run would otherwise reinstall the pinned default and
+# silently downgrade a host the timer had already moved on — the exact staleness
+# this directory exists to prevent.
+#
+# The installed version is recorded in a marker file rather than grepped out of
+# the 24 MB bundle: the bundle has no reliable version literal, and a grep that
+# matches nothing exits non-zero, which under `set -euo pipefail` aborts setup
+# entirely. Both of those bit this script before the marker existed.
+INSTALLED=$(cat /opt/superset/.superset-version 2>/dev/null || true)
+if [ -n "$INSTALLED" ] && [ "$INSTALLED" != "$SUPERSET_VERSION" ] \
+   && [ "$(printf '%s\n%s\n' "$INSTALLED" "$SUPERSET_VERSION" | sort -V | tail -1)" = "$INSTALLED" ]; then
+  echo "[setup] leaving host-service $INSTALLED in place; it is newer than $SUPERSET_VERSION"
+  SUPERSET_VERSION="$INSTALLED"
+fi
+
+if [ ! -x /opt/superset/bin/superset-host ] || [ "$INSTALLED" != "$SUPERSET_VERSION" ]; then
   rm -rf /opt/superset.new
   mkdir -p /opt/superset.new
   curl -fsSL -o /tmp/superset.tar.gz \
     "https://github.com/superset-sh/superset/releases/download/cli-v${SUPERSET_VERSION}/superset-linux-x64.tar.gz"
   tar -xzf /tmp/superset.tar.gz -C /opt/superset.new
   rm -f /tmp/superset.tar.gz
+  echo "$SUPERSET_VERSION" > /opt/superset.new/.superset-version
   rm -rf /opt/superset.old
   [ -d /opt/superset ] && mv /opt/superset /opt/superset.old
   mv /opt/superset.new /opt/superset

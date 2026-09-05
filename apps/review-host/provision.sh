@@ -42,10 +42,17 @@ fi
 echo "==> staging payload"
 PAYLOAD="$(mktemp -d)/payload"
 mkdir -p "$PAYLOAD/review-host" "$PAYLOAD/state"
-cp "$HERE"/{setup.sh,run.sh,watchdog.sh,update.sh} "$PAYLOAD/review-host/"
+cp "$HERE"/{setup.sh,run.sh,watchdog.sh,update.sh,self-update.sh} "$PAYLOAD/review-host/"
 cp -R "$HERE/demo" "$PAYLOAD/demo"
 cp "$STATE_DIR/config.json" "$PAYLOAD/state/"
-cp "$STATE_DIR"/host.db* "$PAYLOAD/state/" 2>/dev/null || true
+# host.db carries the reviewer's projects and workspaces. Provisioning without
+# it produces a host that answers every check and shows an empty app, which is
+# worse than failing here.
+if ! ls "$STATE_DIR"/host.db >/dev/null 2>&1; then
+  echo "no host.db in $STATE_DIR — the reviewer's workspaces live there; refusing to provision an empty host" >&2
+  exit 1
+fi
+cp "$STATE_DIR"/host.db* "$PAYLOAD/state/"
 tar -czf "$PAYLOAD.tgz" -C "$(dirname "$PAYLOAD")" payload
 
 echo "==> uploading"

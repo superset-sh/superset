@@ -10769,7 +10769,7 @@ msgid "Relay access enabled, connecting to the relay…"
 msgstr "已启用中继访问，正在连接中继…"
 
 msgid "Release…"
-msgstr "发布…"
+msgstr "版本…"
 
 msgid "Reload"
 msgstr "重新加载"

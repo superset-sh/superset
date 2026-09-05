@@ -66,13 +66,22 @@ sudo REVIEW_ORG_ID=9617bc8e-7f57-4af8-8b5e-586290ae536a bash /opt/review-host/se
 replacement before retiring the current one — two machines resolving to the same
 hostId would evict each other's relay tunnel in a loop.
 
-## Bump it with every release
+## Staying current
 
-Nothing does this automatically yet. `setup.sh`'s `SUPERSET_VERSION` and whatever
-`update.sh` last installed are the only record of what is running. The whole
-reason this box matters is that it went 21 days stale unnoticed — a scheduled
-check that compares the running version against the latest `cli-v*` release is
-the actual fix, and it is still owed.
+`SUPERSET_VERSION` in `setup.sh` is only the floor a fresh VM starts from. Two
+things keep the box current after that:
+
+- **The release trigger** — an automation fires on `release.published` and
+  updates the box. This is the primary path.
+- **`self-update.sh`** — the backstop, on a 6h systemd timer
+  (`superset-review-update.timer`). It reads the latest `desktop-v*` release, the
+  `cli-v*` tags being prereleases that `/releases/latest` never returns, and hands
+  to `update.sh`.
+
+Both only ever move forward, `update.sh` rolls back unless the new build answers
+*and* the relay can see it, and `setup.sh` refuses to reinstall an older pin over
+a newer installed build. The reason for all of that is that this box went 21 days
+stale unnoticed, which is what the outside-in `check.sh` now also watches for.
 
 ## Why there is no health check on the port
 

@@ -37,7 +37,12 @@ TAG=$(curl -sf -m 20 -H "Accept: application/vnd.github+json" \
   https://api.github.com/repos/superset-sh/superset/releases/latest 2>/dev/null \
   | python3 -c 'import json,sys;print(json.load(sys.stdin).get("tag_name",""))' 2>/dev/null)
 LATEST="${TAG#desktop-v}"
-if [ -n "$LATEST" ] && [ -n "$RUNNING_VERSION" ]; then
+# Every branch below fails closed. A probe that cannot run tells us nothing
+# about the host, and reporting OK on no evidence is the failure mode this
+# script exists to catch — it is how the box went 21 days unnoticed.
+if [ -z "$LATEST" ]; then
+  fail "could not read the latest release from GitHub; version not verified"
+elif [ -n "$LATEST" ] && [ -n "$RUNNING_VERSION" ]; then
   if [ "$LATEST" = "$RUNNING_VERSION" ]; then
     note "version: current with $LATEST"
   else
@@ -62,8 +67,13 @@ PROCS=$(grep -rhE "\b($NS)\.[a-zA-Z][a-zA-Z0-9]*\.(query|mutate)\b" "$ROOT/apps/
   | grep -oE "\b($NS)\.[a-zA-Z][a-zA-Z0-9]*\.(query|mutate)\b" | sed -E 's/\.(query|mutate)$//' | sort -u)
 COUNT=$(printf '%s\n' "$PROCS" | grep -c . || true)
 if [ -n "$RUNNING_VERSION" ] && [ "$COUNT" -gt 0 ]; then
-  MISSING=$(ssh_box "sudo sh -c 'for P in $(printf '%s ' $PROCS); do R=\$(curl -s -H \"Authorization: Bearer $SECRET\" \"http://127.0.0.1:48800/trpc/\$P\" | head -c 200); case \"\$R\" in *NOT_FOUND*) echo \$P;; esac; done'")
-  if [ -z "$MISSING" ]; then
+  # Reports per procedure so a probe that never ran is distinguishable
+  # from one that found nothing missing. -m bounds a hung procedure.
+  PROBED=$(ssh_box "sudo sh -c 'for P in $(printf '%s ' $PROCS); do R=\$(curl -s -m 15 -H \"Authorization: Bearer $SECRET\" \"http://127.0.0.1:48800/trpc/\$P\" | head -c 200); case \"\$R\" in *NOT_FOUND*) echo \"missing \$P\";; *) echo \"ok \$P\";; esac; done'")
+  MISSING=$(printf '%s\n' "$PROBED" | awk '$1=="missing"{print $2}')
+  if [ -z "$PROBED" ]; then
+    fail "the procedure probe did not run; the host's surface is unverified"
+  elif [ -z "$MISSING" ]; then
     note "procedures: all $COUNT the app calls are present"
   else
     fail "procedures missing on the host: $(printf '%s' "$MISSING" | tr '\n' ' ')"
@@ -76,14 +86,24 @@ fi
 # not, and every demo workspace would have opened onto nothing while the list
 # looked perfect. So test the disk, not the list.
 WS_JSON=$(ssh_box "sudo curl -s -m 10 -H 'Authorization: Bearer $SECRET' http://127.0.0.1:48800/trpc/workspace.list")
-if [ -n "$WS_JSON" ]; then
+if [ -z "$WS_JSON" ]; then
+  fail "workspace.list did not answer; the reviewer's workspaces are unverified"
+else
   PATHS=$(printf '%s' "$WS_JSON" | python3 -c 'import json,sys
 d = json.load(sys.stdin)["result"]["data"]["json"]
 print(" ".join(w["worktreePath"] for w in d if w.get("worktreePath")))' 2>/dev/null)
   if [ -n "$PATHS" ]; then
-    GONE=$(ssh_box "sudo bash -c 'for p in $PATHS; do [ -d \"\$p\" ] || echo \"\$p\"; done'" | paste -sd', ' -)
-    [ -z "$GONE" ] && note "worktrees: every workspace has one on disk" \
-      || fail "worktrees missing (the workspace opens onto nothing): $GONE"
+    # A failed ssh here returns nothing, which is indistinguishable from "all
+    # present" unless the probe reports for itself.
+    DISK=$(ssh_box "sudo bash -c 'for p in $PATHS; do if [ -d \"\$p\" ]; then echo \"ok \$p\"; else echo \"gone \$p\"; fi; done'")
+    GONE=$(printf '%s\n' "$DISK" | awk '$1=="gone"{print $2}' | paste -sd', ' -)
+    if [ -z "$DISK" ]; then
+      fail "the worktree probe did not run; cannot tell whether the workspaces open"
+    elif [ -z "$GONE" ]; then
+      note "worktrees: every workspace has one on disk"
+    else
+      fail "worktrees missing (the workspace opens onto nothing): $GONE"
+    fi
   fi
 
   # Whatever is in this organization is what Apple sees, and it has drifted

@@ -4098,7 +4098,7 @@ msgstr "Creado"
 
 msgctxt "github release action"
 msgid "Created"
-msgstr "Creado"
+msgstr "Creada"
 
 #. placeholder {0}: result.task.slug
 msgid "Created {0}"
@@ -4481,7 +4481,7 @@ msgstr "Eliminados"
 
 msgctxt "github release action"
 msgid "Deleted"
-msgstr "Eliminado"
+msgstr "Eliminada"
 
 msgid "Deleted \"{deletedName}\""
 msgstr "\"{deletedName}\" eliminado"
@@ -5022,7 +5022,7 @@ msgstr "Editado"
 
 msgctxt "github release action"
 msgid "Edited"
-msgstr "Editado"
+msgstr "Editada"
 
 msgid "Editing file..."
 msgstr "Editando archivo..."
@@ -10448,7 +10448,7 @@ msgstr "Publicada"
 
 msgctxt "github release action"
 msgid "Published"
-msgstr "Publicado"
+msgstr "Publicada"
 
 msgid "Publishes your token counts and model names, never repo names, file paths or prompts. You can leave at any time, which deletes everything you've published."
 msgstr "Publica los recuentos de tokens y los nombres de los modelos; nunca nombres de repositorios, rutas de archivos ni prompts. Se puede salir en cualquier momento, lo que borra todo lo publicado."
@@ -10769,7 +10769,7 @@ msgid "Relay access enabled, connecting to the relay…"
 msgstr "Acceso por relay habilitado, conectando al relay…"
 
 msgid "Release…"
-msgstr "Lanzamiento…"
+msgstr "Versión…"
 
 msgid "Reload"
 msgstr "Recargar"
@@ -14406,7 +14406,7 @@ msgstr "Desfijar"
 
 msgctxt "github release action"
 msgid "Unpublished"
-msgstr "Publicación retirada"
+msgstr "Despublicada"
 
 msgid "Unpushed"
 msgstr "Sin push"
