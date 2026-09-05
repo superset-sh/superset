@@ -1,4 +1,5 @@
 import { cachedGrowthMetric } from "./cache";
+import { fetchWithTimeout } from "./fetch";
 import { LOCALE_PREFIXES } from "./site";
 import {
 	pivotWeekly,
@@ -104,7 +105,7 @@ export function summarizeContent(
 async function fetchContentInventoryLive(
 	weekCount: number,
 ): Promise<ContentInventory> {
-	const response = await fetch(SITEMAP_URL);
+	const response = await fetchWithTimeout(SITEMAP_URL);
 	if (!response.ok) {
 		throw new Error(`sitemap fetch failed (${response.status})`);
 	}

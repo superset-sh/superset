@@ -2,6 +2,7 @@ import { createSign } from "node:crypto";
 
 import { env } from "../../env";
 import { cachedGrowthMetric } from "./cache";
+import { fetchWithTimeout } from "./fetch";
 import { pivotWeekly, type WeeklyRow, weekStarts } from "./weeks";
 
 // Google Search Console via a service account added as a user of the property
@@ -12,10 +13,6 @@ const CACHE_KEY = "search-console";
 const CACHE_TTL_SECONDS = 60 * 60;
 const DATA_DELAY_DAYS = 3;
 const TOP_ROWS = 20;
-// Brand queries are few and high-volume, so they sit at the top of a
-// clicks-ordered list; non-brand is everything else, derived from complete
-// totals rather than summed from a list that Google truncates.
-const QUERY_ROWS = 5000;
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const SCOPE = "https://www.googleapis.com/auth/webmasters.readonly";
 const API_BASE = "https://www.googleapis.com/webmasters/v3/sites";
@@ -171,7 +168,7 @@ function weekStartOf(date: string): string {
 }
 
 async function accessToken(account: ServiceAccount): Promise<string> {
-	const response = await fetch(TOKEN_URL, {
+	const response = await fetchWithTimeout(TOKEN_URL, {
 		method: "POST",
 		headers: { "Content-Type": "application/x-www-form-urlencoded" },
 		body: new URLSearchParams({
@@ -186,12 +183,18 @@ async function accessToken(account: ServiceAccount): Promise<string> {
 	return data.access_token;
 }
 
-async function searchAnalytics(
+// Google caps a page at 25,000 rows and never says whether more exist, so
+// dimensioned queries page with startRow until a short page comes back.
+// PAGE_LIMIT bounds the work for a property far busier than ours.
+const PAGE_ROWS = 25000;
+const PAGE_LIMIT = 8;
+
+async function searchAnalyticsPage(
 	token: string,
 	siteUrl: string,
 	body: Record<string, unknown>,
 ): Promise<SearchRow[]> {
-	const response = await fetch(
+	const response = await fetchWithTimeout(
 		`${API_BASE}/${encodeURIComponent(siteUrl)}/searchAnalytics/query`,
 		{
 			method: "POST",
@@ -209,6 +212,24 @@ async function searchAnalytics(
 	}
 	const data = (await response.json()) as { rows?: SearchRow[] };
 	return data.rows ?? [];
+}
+
+async function searchAnalytics(
+	token: string,
+	siteUrl: string,
+	body: Record<string, unknown>,
+): Promise<SearchRow[]> {
+	const rows: SearchRow[] = [];
+	for (let page = 0; page < PAGE_LIMIT; page += 1) {
+		const batch = await searchAnalyticsPage(token, siteUrl, {
+			...body,
+			rowLimit: PAGE_ROWS,
+			startRow: page * PAGE_ROWS,
+		});
+		rows.push(...batch);
+		if (batch.length < PAGE_ROWS) break;
+	}
+	return rows;
 }
 
 function parseServiceAccount(raw: string): ServiceAccount {
@@ -316,7 +337,7 @@ async function fetchSearchConsoleLive(
 		byKind,
 		weekly: groupWeekly(dailyTotals, dailyByQuery, weeks),
 		topQueries: topQueries.slice(0, TOP_ROWS),
-		topPages: pages.map((row) => ({
+		topPages: pages.slice(0, TOP_ROWS).map((row) => ({
 			page: row.keys[0] ?? "",
 			clicks: row.clicks,
 			impressions: row.impressions,

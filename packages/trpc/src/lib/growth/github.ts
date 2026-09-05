@@ -1,6 +1,7 @@
 import { COMPANY } from "@superset/shared/constants";
 
 import { cachedGrowthMetric } from "./cache";
+import { fetchWithTimeout } from "./fetch";
 
 const CACHE_KEY = "github";
 const CACHE_TTL_SECONDS = 30 * 60;
@@ -77,10 +78,11 @@ async function fetchGithub(): Promise<GithubStats> {
 	const slug = repoSlug();
 	const headers = { Accept: "application/vnd.github+json" };
 	const [repoResponse, releasesResponse] = await Promise.all([
-		fetch(`https://api.github.com/repos/${slug}`, { headers }),
-		fetch(`https://api.github.com/repos/${slug}/releases?per_page=40`, {
-			headers,
-		}),
+		fetchWithTimeout(`https://api.github.com/repos/${slug}`, { headers }),
+		fetchWithTimeout(
+			`https://api.github.com/repos/${slug}/releases?per_page=40`,
+			{ headers },
+		),
 	]);
 	if (!repoResponse.ok) {
 		return {

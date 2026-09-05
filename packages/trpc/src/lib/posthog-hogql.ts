@@ -1,4 +1,8 @@
 import { env } from "../env";
+import { fetchWithTimeout } from "./growth/fetch";
+
+// Heavy weekly HogQL over 26 weeks has taken 15-20 s to recompute.
+const QUERY_TIMEOUT_MS = 40_000;
 
 // Runs an ad-hoc HogQL query through PostHog's query endpoint and returns the
 // raw rows. Saved insights (posthog-client.ts) cover the canonical company
@@ -7,7 +11,7 @@ import { env } from "../env";
 export async function runHogQL<Row extends unknown[]>(
 	query: string,
 ): Promise<Row[]> {
-	const response = await fetch(
+	const response = await fetchWithTimeout(
 		`${env.POSTHOG_API_HOST}/api/projects/${env.POSTHOG_PROJECT_ID}/query/`,
 		{
 			method: "POST",
@@ -17,6 +21,7 @@ export async function runHogQL<Row extends unknown[]>(
 			},
 			body: JSON.stringify({ query: { kind: "HogQLQuery", query } }),
 		},
+		QUERY_TIMEOUT_MS,
 	);
 
 	if (!response.ok) {

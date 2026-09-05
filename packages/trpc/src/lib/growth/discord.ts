@@ -1,6 +1,7 @@
 import { COMPANY } from "@superset/shared/constants";
 
 import { cachedGrowthMetric } from "./cache";
+import { fetchWithTimeout } from "./fetch";
 
 const CACHE_KEY = "discord";
 const CACHE_TTL_SECONDS = 30 * 60;
@@ -14,7 +15,7 @@ export type DiscordStats =
 async function fetchDiscord(): Promise<DiscordStats> {
 	const code = new URL(COMPANY.DISCORD_URL).pathname.split("/").pop();
 	if (!code) return { available: false, reason: "no invite code" };
-	const response = await fetch(
+	const response = await fetchWithTimeout(
 		`https://discord.com/api/v10/invites/${code}?with_counts=true`,
 	);
 	if (!response.ok) {
