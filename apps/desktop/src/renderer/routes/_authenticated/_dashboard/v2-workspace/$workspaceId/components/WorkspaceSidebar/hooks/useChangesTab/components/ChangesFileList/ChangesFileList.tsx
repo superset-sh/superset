@@ -18,7 +18,7 @@ export interface FoldSignal {
 
 interface ChangesFileListProps {
 	files: ChangesetFile[];
-	/** True while the toolbar search hides some files — flips the empty copy. */
+	/** True while a toolbar search query is active — flips the empty copy. */
 	isFiltered?: boolean;
 	workspaceId: string;
 	isLoading?: boolean;

@@ -107,7 +107,9 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 		() => filterChangesetFiles(files, deferredQuery),
 		[files, deferredQuery],
 	);
-	const isFiltered = visibleFiles.length !== files.length;
+	// From the query, not a length comparison: with zero changed files both
+	// lists are empty, and an active search must still read as a search miss.
+	const isFiltered = deferredQuery.trim().length > 0;
 
 	if (shouldShowChangesLoading(status)) {
 		return (
