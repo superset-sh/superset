@@ -136,9 +136,7 @@ export function OpenFileInMenuItems({
 						</Sub>
 					</SubContent>
 				</Sub>
-				{customApps.length === 0 ? (
-					addCustomAppItem
-				) : (
+				{customApps.length > 0 && (
 					<Sub>
 						<SubTrigger>
 							<div className="flex items-center gap-2">

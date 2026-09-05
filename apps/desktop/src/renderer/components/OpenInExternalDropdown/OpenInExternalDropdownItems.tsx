@@ -232,9 +232,7 @@ export function OpenInExternalDropdownItems({
 					{renderAppOptions(TERMINAL_OPTIONS, "terminal")}
 				</DropdownMenuSubContent>
 			</DropdownMenuSub>
-			{customApps.length === 0 ? (
-				addCustomAppItem
-			) : (
+			{customApps.length > 0 && (
 				<DropdownMenuSub>
 					<DropdownMenuSubTrigger className={subTriggerClassName}>
 						<div
