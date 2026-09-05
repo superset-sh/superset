@@ -91,6 +91,26 @@ const desktopDevOrigins =
 			]
 		: [];
 
+/**
+ * Stripe is the authority here, not our `subscriptions` row: the row is keyed
+ * by organization, so an organization that resubscribed has more than one and
+ * the wrong status can win. On a read failure this answers `false`, which
+ * sends the mail — a duplicate notice beats swallowing a real one.
+ */
+async function isStripeSubscriptionCancelled(stripeSubscriptionId: string) {
+	try {
+		const stripeSubscription =
+			await stripeClient.subscriptions.retrieve(stripeSubscriptionId);
+		return stripeSubscription.status === "canceled";
+	} catch (error) {
+		console.error(
+			"[stripe/payment-failed] Failed to read subscription status:",
+			error,
+		);
+		return false;
+	}
+}
+
 function serializeCancellationDetails(
 	cancellationDetails?: Stripe.Subscription.CancellationDetails | null,
 ) {
@@ -1279,13 +1299,27 @@ export const auth = betterAuth({
 							where: eq(subscriptions.referenceId, org.id),
 						});
 
+						const stripeSubId =
+							subscription?.stripeSubscriptionId ??
+							(invoice.parent?.subscription_details?.subscription as
+								| string
+								| undefined);
+
 						const isFinalAttempt = invoice.next_payment_attempt == null;
 						const isFirstAttempt = (invoice.attempt_count ?? 0) <= 1;
+
+						// Stripe keeps retrying the closing invoice after someone cancels,
+						// so this still fires for subscriptions that are already gone.
+						// Warning them they are about to lose access would be false, and
+						// nagging someone who already left is worse than saying nothing.
+						const alreadyCancelled = stripeSubId
+							? await isStripeSubscriptionCancelled(stripeSubId)
+							: false;
 
 						// Stripe fires this on every retry. Mailing all of them trains
 						// people to ignore the one that matters, so only the opening
 						// notice and the last-chance notice go out.
-						if (isFirstAttempt || isFinalAttempt) {
+						if (!alreadyCancelled && (isFirstAttempt || isFinalAttempt)) {
 							const recipients = await getOrganizationBillingRecipients(org.id);
 							const amount = formatPrice(invoice.amount_due, invoice.currency);
 							const nextRetryDate = invoice.next_payment_attempt
@@ -1305,20 +1339,15 @@ export const auth = betterAuth({
 										planName: subscription?.plan ?? "Pro",
 										amount,
 										nextRetryDate,
-										payInvoiceUrl:
-											recipient.role === "owner"
-												? (invoice.hosted_invoice_url ?? undefined)
-												: undefined,
+										// Anyone holding the link can settle a hosted invoice,
+										// so every billing recipient gets it. The old
+										// owners-only gate existed because this used to be a
+										// billing portal session, which needs ownership.
+										payInvoiceUrl: invoice.hosted_invoice_url ?? undefined,
 									}),
 								})),
 							);
 						}
-
-						const stripeSubId =
-							subscription?.stripeSubscriptionId ??
-							(invoice.parent?.subscription_details?.subscription as
-								| string
-								| undefined);
 
 						if (stripeSubId) {
 							try {
