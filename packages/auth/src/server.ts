@@ -11,6 +11,7 @@ import { WelcomeEmail } from "@superset/email/emails/activation/00-welcome";
 import { MemberAddedBillingEmail } from "@superset/email/emails/billing/member-added";
 import { MemberRemovedBillingEmail } from "@superset/email/emails/billing/member-removed";
 import { PaymentFailedEmail } from "@superset/email/emails/billing/payment-failed";
+import { RenewalUpcomingEmail } from "@superset/email/emails/billing/renewal-upcoming";
 import { SubscriptionCancelledEmail } from "@superset/email/emails/billing/subscription-cancelled";
 import { SubscriptionStartedEmail } from "@superset/email/emails/billing/subscription-started";
 import { OrganizationInvitationEmail } from "@superset/email/emails/team/invitation";
@@ -1372,6 +1373,67 @@ export const auth = betterAuth({
 								);
 							}
 						}
+					}
+
+					if (event.type === "invoice.upcoming") {
+						const invoice = event.data.object as Stripe.Invoice;
+
+						const customerId =
+							typeof invoice.customer === "string"
+								? invoice.customer
+								: invoice.customer?.id;
+
+						if (!customerId) return;
+
+						const stripeSubId = invoice.parent?.subscription_details
+							?.subscription as string | undefined;
+
+						if (!stripeSubId) return;
+
+						// Matched on the Stripe id, not the organization: an organization
+						// that resubscribed has several rows and the wrong one can win.
+						const subscription = await db.query.subscriptions.findFirst({
+							where: eq(subscriptions.stripeSubscriptionId, stripeSubId),
+						});
+
+						// Annual only — see RenewalUpcomingEmail for why monthly plans and
+						// seat changes are deliberately left out.
+						if (subscription?.billingInterval !== "yearly") return;
+
+						const renewsAtSeconds =
+							invoice.next_payment_attempt ?? invoice.period_end;
+
+						if (!renewsAtSeconds) return;
+
+						const org = await db.query.organizations.findFirst({
+							where: eq(authSchema.organizations.stripeCustomerId, customerId),
+						});
+
+						if (!org) return;
+
+						const recipients = await getOrganizationBillingRecipients(org.id);
+						// Max, not sum: a proration line carries its own quantity and
+						// adding them together reports more seats than exist.
+						const seatCount = invoice.lines.data.reduce(
+							(largest, line) => Math.max(largest, line.quantity ?? 0),
+							0,
+						);
+
+						await resend.batch.send(
+							recipients.map((recipient) => ({
+								from: "Superset <noreply@superset.sh>",
+								to: recipient.email,
+								subject: `${org.name}'s ${subscription.plan} plan renews soon`,
+								react: RenewalUpcomingEmail({
+									recipientName: recipient.name,
+									organizationName: org.name,
+									planName: subscription.plan,
+									amount: formatPrice(invoice.amount_due, invoice.currency),
+									renewsAt: new Date(renewsAtSeconds * 1000),
+									seatCount: Math.max(1, seatCount),
+								}),
+							})),
+						);
 					}
 
 					if (event.type === "invoice.paid") {
