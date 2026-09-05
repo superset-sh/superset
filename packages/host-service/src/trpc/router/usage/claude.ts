@@ -13,12 +13,17 @@
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { recordIdentityBindings } from "./default-account";
+import {
+	activeClaudeConfigDirPath,
+	readActiveClaudeBinding,
+	recordIdentityBindings,
+} from "./default-account";
 import {
 	type ClaudeProfile,
 	discoverClaudeProfiles,
 	discoverClaudeProfilesWithStatus,
 	isActiveClaudeConfigDir,
+	keychainServicesForConfigDir,
 	readClaudeIdentity,
 	readKeychainSecrets,
 } from "./profiles";
@@ -729,6 +734,72 @@ export async function readCredentialForConfigDir(
 	};
 }
 
+/** Every store the active dir's login can live in: its credential file and,
+ * on macOS, a Keychain item keyed by the dir — the same pair a profile is read
+ * from. Only the token is wanted, so the identity fields are placeholders. */
+async function readActiveDirCredential(
+	activeDir: string,
+): Promise<ClaudeOauthCredential | null> {
+	const candidates = [
+		await readCredentialFile(
+			join(activeDir, ".credentials.json"),
+			activeDir,
+			activeDir,
+		),
+	];
+	for (const service of keychainServicesForConfigDir(activeDir)) {
+		for (const secret of await readKeychainSecrets(service)) {
+			candidates.push(parseCredential(secret, activeDir, activeDir, activeDir));
+		}
+	}
+	return pickFreshest(candidates);
+}
+
+/**
+ * KTD2/KTD3: running sessions read the active dir, so the CLI refreshes the
+ * access token *there* — the copy in the account's own store is only rewritten
+ * by the next swap. Polling that copy turns the active account `token_stale`
+ * about eight hours after a switch, which skips the usage endpoint and freezes
+ * its windows at their last-known values, and proactive switching and
+ * limit-stop corroboration then score it on frozen numbers. So the active
+ * account is polled with the token the active dir holds.
+ *
+ * Only the token moves: the row keeps reporting the account's own source,
+ * selection and managed flag. The active dir must name the same account — a
+ * `/login` or a swap since the engine recorded its binding leaves someone
+ * else's login there, and fetching that would file one account's quota under
+ * another's row.
+ */
+async function preferActiveDirToken(
+	credential: ClaudeOauthCredential,
+): Promise<ClaudeOauthCredential> {
+	if (!credential.accountId) return credential;
+	const active = readActiveClaudeBinding();
+	const isActive =
+		active.accountId !== null
+			? active.accountId === credential.accountId
+			: active.selection === credential.selection;
+	if (!isActive) return credential;
+
+	const activeDir = activeClaudeConfigDirPath();
+	const [fromActiveDir, identity] = await Promise.all([
+		readActiveDirCredential(activeDir),
+		readClaudeIdentity(activeDir),
+	]);
+	if (!fromActiveDir || identity?.accountId !== credential.accountId) {
+		return credential;
+	}
+	const merged: ClaudeOauthCredential = {
+		...credential,
+		accessToken: fromActiveDir.accessToken,
+		expiresAt: fromActiveDir.expiresAt,
+		refreshTokenExpiresAt: fromActiveDir.refreshTokenExpiresAt,
+	};
+	// The active dir is normally the fresher of the two, but a swap that saved
+	// this login back and moved on leaves it holding the older copy.
+	return pickFreshest([merged, credential]) ?? credential;
+}
+
 /**
  * One login's quota, for the quota store's per-account cadence. `rateLimited`
  * is the 429 that backs off every poll on this endpoint (KTD10).
@@ -741,5 +812,5 @@ export async function fetchClaudeAccountForSelection(
 			? await readDefaultCredential()
 			: await readCredentialForConfigDir(selection);
 	if (!credential) return { account: null, rateLimited: false };
-	return fetchClaudeAccount(credential);
+	return fetchClaudeAccount(await preferActiveDirToken(credential));
 }

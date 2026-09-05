@@ -7,11 +7,13 @@
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { resolveAmbientCodexHome } from "@superset/agent-setup";
 import { recordIdentityBindings } from "./default-account";
 import {
 	type CodexHome,
 	discoverCodexHomes,
 	discoverCodexHomesWithStatus,
+	readCodexProfileKind,
 } from "./profiles";
 import type { UsageAccount, UsageQuotaWindow } from "./types";
 
@@ -151,6 +153,23 @@ function recordCodexHomeBindings(homes: CodexHome[]): CodexHome[] {
 		),
 	);
 	return homes;
+}
+
+/**
+ * KTD4: the ChatGPT account a selection's home is signed in as right now,
+ * read from the same `auth.json` discovery classifies it by (`null` is the
+ * system-default home). Null when the home holds no readable subscription
+ * login — an API-billed home, or one that has never been signed in.
+ *
+ * Exported for the account engine, which re-reads it immediately before it
+ * publishes a Codex pointer: a home re-authenticated since the last poll
+ * belongs to somebody else now.
+ */
+export async function readCodexSelectionAccountId(
+	selection: string | null,
+): Promise<string | null> {
+	const home = selection ?? resolveAmbientCodexHome();
+	return (await readCodexProfileKind(home))?.accountId ?? null;
 }
 
 /**

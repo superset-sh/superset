@@ -358,6 +358,29 @@ export function readAccountEngineView(db: HostDb): AccountEngineView {
 	};
 }
 
+/**
+ * KTD2/KTD4: which Claude account the engine last swapped into the active
+ * dir, read straight from its runtime record. `readAccountEngineView` is the
+ * fuller answer but needs a db handle for the pointer half, which the quota
+ * fetch path does not have — and the pointer cannot name the login inside the
+ * active dir anyway, only the engine's own record can.
+ */
+export function readActiveClaudeBinding(): {
+	accountId: string | null;
+	selection: string | null;
+} {
+	try {
+		const claude = new EngineState().readRuntime().perAgent.claude;
+		return {
+			accountId: claude.activeAccountId,
+			selection: claude.activeSelection,
+		};
+	} catch {
+		// Unreadable engine state: nothing is known to be active.
+		return { accountId: null, selection: null };
+	}
+}
+
 /** R1/R20: "active" means every running session of this agent is on it. */
 export function isActiveAccount(
 	account: UsageAccount,

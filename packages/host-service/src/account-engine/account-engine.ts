@@ -41,6 +41,7 @@ import {
 	ensureActiveClaudeDir,
 } from "../trpc/router/usage/account-provisioning.ts";
 import { updateClaudeStateFile } from "../trpc/router/usage/claude-state-file.ts";
+import { readCodexSelectionAccountId } from "../trpc/router/usage/codex.ts";
 import {
 	type DefaultAccountSelections,
 	getDefaultAccountSelections,
@@ -57,6 +58,7 @@ import type {
 } from "../trpc/router/usage/types.ts";
 import {
 	type ClaudeLoginStoreRef,
+	type ClaudeSwapResult,
 	seedActiveClaudeLogin,
 	swapClaudeLogin,
 } from "./claude-login-swap.ts";
@@ -202,6 +204,9 @@ export interface AccountEngineDeps {
 	/** The active Claude dir's path, without provisioning it. */
 	resolveActiveDir?: () => string;
 	readActiveIdentity?: (activeDir: string) => Promise<ActiveDirIdentity>;
+	/** KTD4: the account a Codex home is signed in as right now, re-read
+	 * immediately before that home's pointer is published. */
+	readCodexIdentity?: (selection: string | null) => Promise<string | null>;
 	/** The terminal-agent store's `change` signal: a limit-stop hint arrives
 	 * as a store write, not as a tick (KTD7). */
 	subscribeToSessions?: (onChange: () => void) => () => void;
@@ -386,6 +391,9 @@ export class AccountEngine {
 	private readonly readActiveIdentity: (
 		activeDir: string,
 	) => Promise<ActiveDirIdentity>;
+	private readonly readCodexIdentity: (
+		selection: string | null,
+	) => Promise<string | null>;
 	private readonly setBindingRecorder: typeof setIdentityBindingRecorder;
 
 	/** This process's claim on the host-wide lock (KTD5). */
@@ -421,6 +429,14 @@ export class AccountEngine {
 				previousAccountUuid: string | null;
 		  })
 		| null = null;
+	/**
+	 * KTD3: set while the active Claude dir's credential and identity block
+	 * cannot be told apart — a running CLI's own token refresh looks exactly
+	 * like a `/login` back to the account this host switched away from, and
+	 * nothing local resolves which. Nothing is re-asserted or adopted while it
+	 * is set, and the next swap saves nothing back.
+	 */
+	private claudeIdentityIndeterminate = false;
 	/** Last engine-state broadcast per agent, so steady state is not resent. */
 	private readonly lastState = new Map<AccountAgent, string>();
 	/** A lock loser's view of the owner's active account and selection, for
@@ -455,6 +471,8 @@ export class AccountEngine {
 		this.resolveActiveDir = deps.resolveActiveDir ?? activeClaudeConfigDir;
 		this.readActiveIdentity =
 			deps.readActiveIdentity ?? readActiveClaudeIdentity;
+		this.readCodexIdentity =
+			deps.readCodexIdentity ?? readCodexSelectionAccountId;
 		this.setBindingRecorder =
 			deps.setBindingRecorder ?? setIdentityBindingRecorder;
 	}
@@ -972,7 +990,17 @@ export class AccountEngine {
 
 	// ── Accounts and scheduling ────────────────────────────────────────
 
-	private pool(agent: AccountAgent): EngineAccount[] {
+	/**
+	 * Every row this host can see for `agent`. `activeSelection` turns it into
+	 * the *decision* pool: rows naming one provider account collapse to one
+	 * (see `collapseByAccountId`). Callers that have to see every row as it was
+	 * discovered — a manual switch resolving a selection, the owner-binding
+	 * scan whose whole job is to notice two dirs for one account — leave it out.
+	 */
+	private pool(
+		agent: AccountAgent,
+		activeSelection?: string | null,
+	): EngineAccount[] {
 		const out: EngineAccount[] = [];
 		for (const entry of this.quotaStore.entries(agent)) {
 			for (const account of entry.accounts) {
@@ -994,7 +1022,9 @@ export class AccountEngine {
 				});
 			}
 		}
-		return out;
+		return activeSelection === undefined
+			? out
+			: collapseByAccountId(out, activeSelection);
 	}
 
 	/**
@@ -1122,7 +1152,7 @@ export class AccountEngine {
 		now: number,
 	): Promise<void> {
 		const state = runtime.perAgent[agent];
-		const pool = this.pool(agent);
+		const pool = this.pool(agent, state.activeSelection);
 		const active = this.activeRow(pool, state);
 		// With nothing known about the account sessions run on there is no
 		// comparison to make, and a switch would be a guess.
@@ -1194,7 +1224,7 @@ export class AccountEngine {
 		const result =
 			agent === "claude"
 				? await this.switchClaude(input)
-				: this.switchCodex(input);
+				: await this.switchCodex(input);
 
 		if (!result.ok) {
 			// KTD5: losing the lock mid-swap is not a swap failure, and never
@@ -1217,6 +1247,20 @@ export class AccountEngine {
 			input.fallbackRestart === undefined
 				? false
 				: await input.fallbackRestart();
+		// That restart is a kill, a relaunch and a typed nudge, and it can
+		// outlast both the lease and `stop()`'s drain. The login has moved and
+		// stays moved, but publishing this instance's runtime state and event
+		// now would overwrite whatever the instance that took the lock has
+		// since decided (KTD5).
+		if (
+			input.fallbackRestart !== undefined &&
+			!this.ensureOwnership(this.now())
+		) {
+			console.warn(
+				"[account-engine] the host lock was lost while the limit-stopped session restarted; this switch is not published.",
+			);
+			return LOCK_LOSER;
+		}
 		state.activeAccountId = input.target.accountId;
 		state.activeSelection = input.target.selection;
 		state.cooldownUntil = now + input.settings.cooldownSeconds * 1000;
@@ -1272,11 +1316,21 @@ export class AccountEngine {
 	private async switchClaude(
 		input: PerformSwitchInput,
 	): Promise<ManualSwitchOutcome & { activeDir?: string }> {
+		// KTD14, first activation: no account is known to be active and the
+		// active dir holds no credential, so there is nothing of the user's to
+		// save back — no owner to bind, and no login to seed from. Seeding from
+		// the absent system default is what used to leave the owner requirement
+		// unsatisfiable forever.
+		const firstActivation =
+			input.from === null && !(await this.activeDirHoldsLogin());
+
 		let activeDir: string;
 		try {
-			activeDir = await this.ensureActiveDir({
-				seedLogin: (dir) => this.seedActiveDir(dir, input),
-			});
+			activeDir = await this.ensureActiveDir(
+				firstActivation
+					? {}
+					: { seedLogin: (dir) => this.seedActiveDir(dir, input) },
+			);
 		} catch (error) {
 			return {
 				ok: false,
@@ -1285,31 +1339,48 @@ export class AccountEngine {
 			};
 		}
 
-		const ownerBinding = this.ownerBinding(input.runtime, input.from);
-		if (!ownerBinding) {
-			return {
-				ok: false,
-				code: "owner-unknown",
-				reason:
-					"No account is bound to the login in the active dir, and the identity scan was ambiguous.",
-			};
+		let result: ClaudeSwapResult;
+		if (firstActivation) {
+			// The same primitive a brand-new active dir uses: copy the target in
+			// and save nothing back.
+			result = await this.seed({
+				source: storeRef(input.target.selection),
+				activeDir,
+			});
+		} else {
+			const ownerBinding = this.ownerBinding(input.runtime, input.from);
+			if (!ownerBinding) {
+				return {
+					ok: false,
+					code: "owner-unknown",
+					reason:
+						"No account is bound to the login in the active dir, and the identity scan was ambiguous.",
+				};
+			}
+			// KTD3: while the active dir's identity is indeterminate nobody can
+			// say whose credential is in it, so this one swap reads the dir and
+			// writes nothing back — and offers no owner claim, which the swap
+			// would otherwise check against an identity block that is exactly
+			// what is in doubt.
+			const indeterminate = this.claudeIdentityIndeterminate;
+			result = await this.swap({
+				target: storeRef(input.target.selection),
+				ownerBinding,
+				// The binding as an identity, so the swap can refuse a save-back
+				// into the wrong dir after a `/login` inside a live session.
+				expectedOwnerAccountId: indeterminate
+					? null
+					: (input.from?.accountId ?? null),
+				// The same claim about the target, so a `/login` that landed there
+				// since the decision is refused rather than moved onto under the
+				// account the decision was about.
+				expectedTargetAccountId: input.target.accountId ?? null,
+				// A hand-exported dir is read, never written: the login it holds
+				// is not Superset's to save back.
+				ownerManaged: indeterminate ? false : (input.from?.managed ?? true),
+				activeDir,
+			});
 		}
-
-		const result = await this.swap({
-			target: storeRef(input.target.selection),
-			ownerBinding,
-			// The binding as an identity, so the swap can refuse a save-back
-			// into the wrong dir after a `/login` inside a live session.
-			expectedOwnerAccountId: input.from?.accountId ?? null,
-			// The same claim about the target, so a `/login` that landed there
-			// since the decision is refused rather than moved onto under the
-			// account the decision was about.
-			expectedTargetAccountId: input.target.accountId ?? null,
-			// A hand-exported dir is read, never written: the login it holds
-			// is not Superset's to save back.
-			ownerManaged: input.from?.managed ?? true,
-			activeDir,
-		});
 		if (!result.ok) {
 			// Split state: the active dir holds the target's credential under
 			// the previous identity, so what we last wrote no longer describes
@@ -1382,9 +1453,34 @@ export class AccountEngine {
 		return { ok: true, activeDir };
 	}
 
-	private switchCodex(
+	private async switchCodex(
 		input: PerformSwitchInput,
-	): SwitchOutcome & { activeDir?: string } {
+	): Promise<SwitchOutcome & { activeDir?: string }> {
+		// A Codex switch is the pointer alone, so the home's own auth.json is
+		// the last word on who this points at — and the decision's claim is
+		// only as fresh as the last poll. A `codex login` in that home since
+		// then re-authenticated it as somebody else, and publishing anyway
+		// would record the switch under an account nobody is signed in as.
+		// A home that names no account is nothing to contradict.
+		const expected = input.target.accountId;
+		if (expected !== null) {
+			let seen: string | null = null;
+			try {
+				seen = await this.readCodexIdentity(input.target.selection);
+			} catch (error) {
+				console.warn(
+					"[account-engine] could not re-read the Codex home's identity:",
+					error,
+				);
+			}
+			if (seen !== null && seen !== expected) {
+				return {
+					ok: false,
+					code: "target-changed",
+					reason: `${input.target.selection ?? "the default Codex home"} is signed in as account ${seen}, not the expected ${expected}`,
+				};
+			}
+		}
 		try {
 			this.setPointer(this.db, "codex", input.target.selection);
 		} catch (error) {
@@ -1505,6 +1601,12 @@ export class AccountEngine {
 		const activeDir = this.resolveActiveDir();
 		const seen = await this.readActiveIdentitySafe(activeDir);
 		if (!seen || seen.accountUuid === null || seen.accountUuid === expected) {
+			// The state file names the account this host believes is active
+			// again — whatever it was that could not be told apart has resolved
+			// itself, and the pair agree.
+			if (seen?.accountUuid === expected) {
+				this.claudeIdentityIndeterminate = false;
+			}
 			return;
 		}
 		// The read above is the awaited boundary; everything below writes.
@@ -1518,15 +1620,34 @@ export class AccountEngine {
 			written.credentialHash !== null &&
 			written.credentialHash === seen.credentialHash;
 		// The credential changed *and* the block names the account this host
-		// switched away from. That pair is the same CLI doing two ordinary
+		// switched away from. That is either the same CLI doing two ordinary
 		// things — refreshing its own OAuth token, and rewriting the state file
-		// from the identity it started the session with — not someone signing
-		// in behind us, which would leave a third account's name here.
-		const cliRefresh =
+		// from the identity it started the session with — or a `/login` back
+		// into that very account. Nothing on this host tells the two apart:
+		// resolving it would take asking the provider whose credential this is,
+		// and no reader here returns an account id for a credential.
+		const ambiguous =
 			written !== null &&
+			!identityOnly &&
 			written.previousAccountUuid !== null &&
 			written.previousAccountUuid === seen.accountUuid;
-		if (written !== null && (identityOnly || cliRefresh)) {
+		if (ambiguous) {
+			// Re-assert nothing, adopt nothing, and let the next swap read the
+			// dir without saving anything back — a wrong guess either way writes
+			// one account's credential into the other's profile. Said once, and
+			// polling carries on until the pair agree again.
+			if (!this.claudeIdentityIndeterminate) {
+				this.claudeIdentityIndeterminate = true;
+				console.warn(
+					"[account-engine] the active Claude dir's identity and credential disagree; not re-asserting until they settle.",
+				);
+				this.broadcastState("claude", settings, runtime, now, {
+					lastSwitchFailure: { code: "owner-unknown", at: now },
+				});
+			}
+			return;
+		}
+		if (written !== null && identityOnly) {
 			// Put our block back and leave the active account alone.
 			try {
 				await this.writeClaudeState(claudeStatePath(activeDir), (existing) => ({
@@ -1562,6 +1683,9 @@ export class AccountEngine {
 		state.cooldownUntil = now + settings.cooldownSeconds * 1000;
 		state.exhaustedNotifiedAt = null;
 		this.lastWritten = null;
+		// A third account's name settles who is in the dir; nothing is in doubt
+		// any more.
+		this.claudeIdentityIndeterminate = false;
 		const entry: SwitchRecord = {
 			at: now,
 			agent: "claude",
@@ -1576,6 +1700,17 @@ export class AccountEngine {
 		};
 		this.state.appendHistory(entry);
 		this.broadcast.switched(switchedPayload(entry));
+	}
+
+	/**
+	 * Whether the active dir holds a Claude credential at all — a dir that
+	 * holds none has no previous login to save back. A dir that cannot be read
+	 * counts as holding one: skipping the save-back over a login that is really
+	 * there would strand the token the CLI last refreshed.
+	 */
+	private async activeDirHoldsLogin(): Promise<boolean> {
+		const seen = await this.readActiveIdentitySafe(this.resolveActiveDir());
+		return seen === null || seen.credentialHash !== null;
 	}
 
 	private async readActiveIdentitySafe(
@@ -1668,22 +1803,49 @@ export class AccountEngine {
 		now: number,
 	): Promise<void> {
 		const agent = row.agent;
-		const settings = allSettings[agent];
-		const state = runtime.perAgent[agent];
 		// A Claude hint is one hook event: acting on it twice would be acting
 		// on the same stop twice. A Codex stall has no event to key on and is
 		// re-checked instead, behind the mover's own gates.
 		const key = `${agent}:${row.terminalId}:${row.lastEventAt}`;
-		if (agent === "claude") {
-			if (this.handledHints.has(key)) return;
-			// Bounded: the set only exists to stop one hook event being acted
-			// on twice, so forgetting the oldest costs nothing.
-			if (this.handledHints.size > 200) this.handledHints.clear();
-			this.handledHints.add(key);
-		}
+		if (agent === "claude" && this.handledHints.has(key)) return;
+		const resolved = await this.runHint(
+			row,
+			allSettings,
+			rotation,
+			runtime,
+			now,
+		);
+		// Keyed only once the hint reached an outcome. A StopFailure that lands
+		// before anything has polled resolves no active account, and retiring it
+		// here would drop the one event that says the account is spent.
+		if (!resolved || agent !== "claude") return;
+		// Bounded: the set only exists to stop one hook event being acted on
+		// twice, so forgetting the oldest costs nothing.
+		if (this.handledHints.size > 200) this.handledHints.clear();
+		this.handledHints.add(key);
+	}
 
-		const active = this.activeRow(this.pool(agent), state);
-		if (!active) return;
+	/**
+	 * One hint through the gates. Returns whether it reached an outcome —
+	 * acted on, or turned down by a gate — as opposed to going nowhere because
+	 * this host cannot yet say which account the session is on.
+	 */
+	private async runHint(
+		row: MovableSession,
+		allSettings: EngineSettings,
+		rotation: RotationState,
+		runtime: RuntimeState,
+		now: number,
+	): Promise<boolean> {
+		const agent = row.agent;
+		const settings = allSettings[agent];
+		const state = runtime.perAgent[agent];
+
+		const active = this.activeRow(
+			this.pool(agent, state.activeSelection),
+			state,
+		);
+		if (!active) return false;
 
 		// Gate 1: the local rate limits, before any snapshot or provider call.
 		if (
@@ -1694,7 +1856,7 @@ export class AccountEngine {
 			})
 		) {
 			this.recordRejectedHint(agent, active.row, now);
-			return;
+			return true;
 		}
 
 		// Gate 2: the host reads the terminal's own screen. Nothing here
@@ -1708,7 +1870,7 @@ export class AccountEngine {
 		);
 		if (!corroborated) {
 			this.recordRejectedHint(agent, active.row, now);
-			return;
+			return true;
 		}
 
 		// Gate 3: fresh numbers, through the store so a hint storm cannot
@@ -1718,15 +1880,17 @@ export class AccountEngine {
 			now,
 			this.schedule(allSettings, runtime, [agent]),
 		);
-		if (!this.ensureOwnership(this.now())) return;
+		// KTD5: the lock went while the quota was in flight, so this pass acts
+		// on nothing — and the hint stays retryable for whoever owns it next.
+		if (!this.ensureOwnership(this.now())) return false;
 
-		const pool = this.pool(agent);
+		const pool = this.pool(agent, state.activeSelection);
 		const from = this.activeRow(pool, state) ?? active;
 		if (!from.row.windows.some((window) => window.usedPercent >= 100)) {
 			// The screen said "limit" but the account has room: a stale screen,
 			// or a limit that has already reset.
 			this.recordRejectedHint(agent, from.row, now);
-			return;
+			return true;
 		}
 		const usable = this.targets(pool, from).filter(
 			(candidate) =>
@@ -1743,7 +1907,7 @@ export class AccountEngine {
 			state.exhaustedNotifiedAt ??= now;
 			this.state.writeRuntime(runtime);
 			this.broadcastState(agent, settings, runtime, now);
-			return;
+			return true;
 		}
 
 		const worst = worstWindow(from.row, settings.modelWindows);
@@ -1762,6 +1926,7 @@ export class AccountEngine {
 			fallbackRestart: () => this.mover.fallbackRestart(row),
 			excludeTerminalId: row.terminalId,
 		});
+		return true;
 	}
 
 	/** KTD7: a hint the gates turned down is recorded, never acted on. */
@@ -1827,6 +1992,46 @@ export class AccountEngine {
  * the bus's filter key, so the two can never drift apart. */
 function switchedPayload(entry: SwitchRecord): AccountSwitchedPayload {
 	return { scope: entry.agent, ...entry };
+}
+
+/**
+ * One provider account is one candidate. Two Codex homes signed into the same
+ * ChatGPT account discover as two rows, polled at different times, and the
+ * staler one's numbers read as headroom the account does not have — so the
+ * decision moves onto the login it is already running. Rows carrying no
+ * provider id (API-billed logins) are all distinct: only the selection tells
+ * those apart, which is why the collapse ignores them.
+ *
+ * Of two rows for one account the one sessions are actually on wins, since the
+ * decision is about moving off it; otherwise the freshest fetch does.
+ */
+function collapseByAccountId(
+	pool: EngineAccount[],
+	activeSelection: string | null,
+): EngineAccount[] {
+	const kept = new Map<string, EngineAccount>();
+	for (const item of pool) {
+		const id = item.row.accountId;
+		if (id === null) continue;
+		const held = kept.get(id);
+		if (held === undefined || outranks(item, held, activeSelection)) {
+			kept.set(id, item);
+		}
+	}
+	return pool.filter(
+		(item) =>
+			item.row.accountId === null || kept.get(item.row.accountId) === item,
+	);
+}
+
+function outranks(
+	item: EngineAccount,
+	held: EngineAccount,
+	activeSelection: string | null,
+): boolean {
+	if (item.row.selection === activeSelection) return true;
+	if (held.row.selection === activeSelection) return false;
+	return (item.entry.fetchedAt ?? 0) > (held.entry.fetchedAt ?? 0);
 }
 
 /** Two paths naming the same dir. Lexical only: the pointer and the active

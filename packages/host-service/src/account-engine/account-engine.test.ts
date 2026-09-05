@@ -120,6 +120,13 @@ interface HarnessOptions {
 	onSetPointer?: () => void;
 	/** What the mover's fallback restart reports back. */
 	restartSucceeds?: boolean;
+	/** Runs inside the awaited fallback restart — a kill, a relaunch and a
+	 * typed nudge, all of which can outlast the lease (KTD5). */
+	onFallbackRestart?: () => Promise<void> | void;
+	/** KTD4: what a Codex home's auth.json names right now. */
+	codexIdentity?: (selection: string | null) => string | null;
+	/** The account the seed reports it copied in. */
+	seedAccountId?: string;
 	/** Runs inside the on-demand quota read a manual switch falls back to. */
 	onRead?: () => void;
 	/** The host pointer per agent, as `getDefaultAccountSelections` reads it. */
@@ -217,6 +224,7 @@ function harness(options: HarnessOptions = {}) {
 			fallbackRestart: async (row) => {
 				calls.push("fallbackRestart");
 				restarted.push(row);
+				await options.onFallbackRestart?.();
 				return options.restartSucceeds ?? true;
 			},
 			corroborateLimitStop: async () => {
@@ -259,7 +267,10 @@ function harness(options: HarnessOptions = {}) {
 		seed: async (input) => {
 			calls.push("seed");
 			seedInputs.push(input);
-			return { ok: true, identity: swapIdentity("acct-a") };
+			return {
+				ok: true,
+				identity: swapIdentity(options.seedAccountId ?? "acct-a"),
+			};
 		},
 		ensureActiveDir: async (opts) => {
 			if (options.activeDirThrows) throw new Error("permission denied");
@@ -291,6 +302,8 @@ function harness(options: HarnessOptions = {}) {
 		},
 		resolveActiveDir: () => ACTIVE_DIR,
 		readActiveIdentity: async () => activeIdentity,
+		readCodexIdentity: async (selection) =>
+			options.codexIdentity?.(selection) ?? null,
 	});
 
 	return {
@@ -751,6 +764,48 @@ describe("AccountEngine", () => {
 		expect(h.engineState.readHistory(1)[0]?.fallbackRestart).toBe(false);
 	});
 
+	// KTD5: the restart is a kill, a relaunch and a typed nudge, so it can
+	// outlast the lease. The instance that took the lock owns the runtime state
+	// from then on, and publishing this one's would write over its decisions.
+	it("publishes nothing when the lock goes while the stopped session restarts", async () => {
+		const thief = harness();
+		const h = harness({
+			entries: [
+				entryFor(
+					usageAccount({
+						isDefault: true,
+						windows: [w("five_hour", "Session (5h)", 100)],
+					}),
+				),
+				entryFor(
+					usageAccount({
+						accountKey: "key-b",
+						accountId: "acct-b",
+						selection: "/profiles/b",
+						windows: [w("five_hour", "Session (5h)", 10)],
+					}),
+				),
+			],
+			sessions: [movableSession({ limitHintErrorType: "rate_limit" })],
+			onFallbackRestart: async () => {
+				thief.advance(4 * MINUTE);
+				await thief.engine.tick();
+			},
+		});
+		enable(h.engine);
+
+		await h.engine.handleLimitHints();
+
+		expect(h.calls).toContain("fallbackRestart");
+		expect(h.switched).toEqual([]);
+		expect(h.engineState.readHistory(10)).toEqual([]);
+		expect(h.calls).not.toContain("moveAtIdle");
+		expect(h.engineState.readRuntime().perAgent.claude.activeAccountId).toBe(
+			null,
+		);
+		expect(h.engine.status().claude.lockOwner).toBe(false);
+	});
+
 	// AE8/R4.
 	it("switches manually, resets the cooldown and the latch, and stays enabled", async () => {
 		const h = harness({
@@ -921,6 +976,47 @@ describe("AccountEngine", () => {
 		expect(h.moved[0]?.agent).toBe("codex");
 	});
 
+	// KTD4: the pointer is the whole Codex switch, so the home's own auth.json
+	// is the last word on who it points at — and the decision's claim is only
+	// as fresh as the last poll.
+	it("refuses a Codex switch onto a home signed in as another account", async () => {
+		const codex = (over: Partial<UsageAccount>) =>
+			usageAccount({ agent: "codex", ...over });
+		const h = harness({
+			entries: [
+				entryFor(
+					codex({
+						isDefault: true,
+						selection: "/codex/a",
+						windows: [w("primary", "5h", 95)],
+					}),
+				),
+				entryFor(
+					codex({
+						accountKey: "key-b",
+						accountId: "acct-b",
+						selection: "/codex/b",
+						windows: [w("primary", "5h", 10)],
+					}),
+				),
+			],
+			// A `codex login` in that home since the last poll.
+			codexIdentity: (selection) =>
+				selection === "/codex/b" ? "acct-z" : null,
+		});
+		enable(h.engine, "codex");
+
+		await h.engine.tick();
+
+		expect(h.pointers).toEqual([]);
+		expect(h.switched).toEqual([]);
+		expect(h.engine.status().codex.activeAccountId).toBe("acct-a");
+		expect(
+			h.engineStates.find((event) => event.lastSwitchFailure)?.lastSwitchFailure
+				?.code,
+		).toBe("target-changed");
+	});
+
 	it("refuses to enable auto-switch on Windows", () => {
 		const h = harness({ platform: "win32" });
 
@@ -983,12 +1079,17 @@ describe("AccountEngine", () => {
 		expect(h.engine.status().claude.activeAccountId).toBe("acct-b");
 	});
 
-	// KTD3: a Claude Code that was running through the switch refreshes its own
-	// OAuth token — a credential we did not write — and rewrites .claude.json
-	// from the identity it started with, which is the account the switch moved
-	// away from. Two ordinary things, not a `/login`.
-	it("keeps the active account when the running CLI refreshes its own token", async () => {
+	// KTD3: a changed credential under the name of the account the switch moved
+	// away from is either that CLI refreshing its own token or a `/login`
+	// straight back into it, and nothing on this host tells the two apart —
+	// guessing "refresh" re-asserts B's name over A's credential, and the next
+	// save-back then writes A's login into B's profile.
+	it("holds the active identity indeterminate while a changed credential names the previous account", async () => {
 		const h = harness({ entries: twoClaudeAccounts() });
+		const attention = () =>
+			h.engineStates.filter(
+				(event) => event.lastSwitchFailure?.code === "owner-unknown",
+			).length;
 		enable(h.engine);
 		await h.engine.tick();
 
@@ -996,9 +1097,59 @@ describe("AccountEngine", () => {
 		h.advance(MINUTE);
 		await h.engine.tick();
 
-		expect(h.identityWrites).toEqual([join(ACTIVE_DIR, ".claude.json")]);
+		// Nothing re-asserted, nothing adopted, and said once.
+		expect(h.identityWrites).toEqual([]);
 		expect(h.engine.status().claude.activeAccountId).toBe("acct-b");
 		expect(h.switched).toHaveLength(1);
+		expect(attention()).toBe(1);
+
+		// Still in doubt on the next tick, and still said only once.
+		h.advance(MINUTE);
+		await h.engine.tick();
+		expect(attention()).toBe(1);
+
+		// The state file names the active account again: the pair agree, the
+		// state clears, and the next drift is judged afresh.
+		h.setActiveIdentity({ accountUuid: "acct-b", credentialHash: "refreshed" });
+		h.advance(MINUTE);
+		await h.engine.tick();
+		h.setActiveIdentity({ accountUuid: "acct-a", credentialHash: "again" });
+		h.advance(MINUTE);
+		await h.engine.tick();
+
+		expect(attention()).toBe(2);
+	});
+
+	// The other half: the engine keeps switching while the dir is in doubt,
+	// but reads it rather than writing anything back — a save-back would put
+	// whichever credential is really there into the wrong account's profile.
+	it("saves nothing back on the swap that follows an indeterminate identity", async () => {
+		const h = harness({ entries: threeClaudeAccounts() });
+		enable(h.engine);
+		await h.engine.tick();
+
+		h.setActiveIdentity({ accountUuid: "acct-a", credentialHash: "refreshed" });
+		h.advance(MINUTE);
+		await h.engine.tick();
+
+		// Past the cooldown, with the account the engine believes is active now
+		// the one over its threshold.
+		h.setEntries([
+			entryFor(usageAccount({ windows: [w("five_hour", "Session (5h)", 5)] })),
+			entryFor(
+				usageAccount({
+					accountKey: "key-b",
+					accountId: "acct-b",
+					selection: "/profiles/b",
+					windows: [w("five_hour", "Session (5h)", 95)],
+				}),
+			),
+		]);
+		h.advance(6 * MINUTE);
+		await h.engine.tick();
+
+		expect(h.swapInputs.at(-1)?.ownerManaged).toBe(false);
+		expect(h.swapInputs.at(-1)?.expectedOwnerAccountId).toBeNull();
 	});
 
 	// The other half of the same fork: a name that is neither the account we
@@ -1103,6 +1254,41 @@ describe("AccountEngine", () => {
 		// on the null id picks /codex/a — at 95% — and moves off it.
 		expect(h.pointers).toEqual([]);
 		expect(h.switched).toEqual([]);
+	});
+
+	// The mirror image: two homes signed into ONE ChatGPT account are one
+	// account, polled at two different times. The staler row's numbers used to
+	// read as headroom, and the engine switched onto the login it was on.
+	it("collapses two homes sharing a provider account into one candidate", async () => {
+		const codex = (over: Partial<UsageAccount>) =>
+			usageAccount({ agent: "codex", accountId: "acct-x", ...over });
+		const h = harness({
+			entries: [
+				entryFor(
+					codex({
+						isDefault: true,
+						selection: "/codex/a",
+						windows: [w("primary", "5h", 95)],
+					}),
+				),
+				entryFor(
+					codex({
+						accountKey: "key-b",
+						selection: "/codex/b",
+						windows: [w("primary", "5h", 10)],
+					}),
+					{ fetchedAt: T0 - MINUTE },
+				),
+			],
+		});
+		enable(h.engine, "codex");
+
+		await h.engine.tick();
+
+		expect(h.pointers).toEqual([]);
+		expect(h.switched).toEqual([]);
+		// The one candidate left is the active one, and it is spent.
+		expect(h.engine.status().codex.exhausted).toBe(true);
 	});
 
 	// KTD5/R2: auto-switch is off on a fresh install, and the lock is what
@@ -1473,6 +1659,44 @@ describe("AccountEngine", () => {
 				.readHistory(10)
 				.filter((entry) => entry.reasonKind === "fallback-rejected"),
 		).toEqual([]);
+	});
+
+	// The dedupe key used to be added before the active account was resolved,
+	// so a StopFailure that landed before anything had polled retired the one
+	// event saying the account is spent.
+	it("retries a hint that arrived before the pool was populated", async () => {
+		const h = harness({
+			entries: [],
+			sessions: [movableSession({ limitHintErrorType: "rate_limit" })],
+		});
+		enable(h.engine);
+
+		await h.engine.handleLimitHints();
+		// Nothing known about the account the session is on: no gate was even
+		// reached, so nothing was decided about this hint.
+		expect(h.calls).toEqual([]);
+
+		h.setEntries([
+			entryFor(
+				usageAccount({
+					isDefault: true,
+					windows: [w("five_hour", "Session (5h)", 100)],
+				}),
+			),
+			entryFor(
+				usageAccount({
+					accountKey: "key-b",
+					accountId: "acct-b",
+					selection: "/profiles/b",
+					windows: [w("five_hour", "Session (5h)", 10)],
+				}),
+			),
+		]);
+		await h.engine.handleLimitHints();
+		await h.engine.handleLimitHints();
+
+		expect(h.calls.filter((call) => call === "swap")).toHaveLength(1);
+		expect(h.restarted.map((row) => row.terminalId)).toEqual(["term-1"]);
 	});
 
 	// #17: a loser that starts after the owner switched used to take the new
@@ -1865,6 +2089,41 @@ describe("AccountEngine", () => {
 			dir: "/profiles/b",
 		});
 		expect(h.pointers).toEqual([{ agent: "claude", selection: ACTIVE_DIR }]);
+	});
+
+	// KTD14: nothing has ever been swapped in and the system default holds no
+	// login, so there is no previous account to save back and no owner to bind
+	// — the first activation used to be refused as `owner-unknown` forever.
+	it("activates the first account when there is no previous login to save back", async () => {
+		const h = harness({
+			entries: [
+				entryFor(
+					usageAccount({
+						accountKey: "key-b",
+						accountId: "acct-b",
+						selection: "/profiles/b",
+						email: "b@example.com",
+					}),
+				),
+			],
+			seedAccountId: "acct-b",
+		});
+		h.setActiveIdentity({ accountUuid: null, credentialHash: null });
+
+		const result = await h.engine.switchManually("claude", "/profiles/b");
+
+		expect(result).toEqual({ ok: true });
+		// The target goes in through the seed — the primitive that saves
+		// nothing back — rather than through a swap with a made-up owner.
+		expect(h.calls).not.toContain("swap");
+		expect(h.seedInputs).toEqual([
+			{
+				source: { kind: "profile", dir: "/profiles/b" },
+				activeDir: ACTIVE_DIR,
+			},
+		]);
+		expect(h.pointers).toEqual([{ agent: "claude", selection: ACTIVE_DIR }]);
+		expect(h.engine.status().claude.activeAccountId).toBe("acct-b");
 	});
 
 	// #I: the pointer write is what makes an unpinned session resolve to the
