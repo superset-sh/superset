@@ -910,6 +910,89 @@ describe("PullRequestRuntimeManager refresh", () => {
 	// A permanently failing fetch (payload over maxBuffer, revoked auth) must
 	// not respawn gh at full 60s-TTL cadence forever: consecutive failures
 	// double the cached rejection's TTL, and a success resets the streak.
+	test("holds every GitHub lookup after a transport failure instead of spawning gh per repo", async () => {
+		const t0 = Date.now();
+		setSystemTime(new Date(t0));
+		try {
+			const db = createRealDb();
+			seedProject(db);
+			let ghAttempts = 0;
+			let octokitAttempts = 0;
+			const manager = createManager(db, {
+				execGh: async () => {
+					ghAttempts += 1;
+					throw Object.assign(new Error("Command failed: gh api"), {
+						stderr:
+							"error connecting to api.github.com\ndial tcp: lookup api.github.com: no such host",
+					});
+				},
+				github: (async () => {
+					octokitAttempts += 1;
+					throw new Error("octokit should not run on a dead network");
+				}) as never,
+			});
+			const repoOf = (name: string) => ({
+				provider: "github" as const,
+				owner: REPO.owner,
+				name,
+				url: `https://github.com/${REPO.owner}/${name}.git`,
+				remoteName: "origin",
+				defaultBranch: "main",
+			});
+			const fetchOpenPrs = openPullRequestsSweeper(manager);
+			const sweep = (name: string) =>
+				withSilencedWarnings(() => fetchOpenPrs(repoOf(name)).catch(() => {}));
+
+			// The first repo pays one gh spawn. Octokit is skipped: it would hit
+			// the same resolver.
+			await sweep("repo-a");
+			expect(ghAttempts).toBe(1);
+			expect(octokitAttempts).toBe(0);
+
+			// Every other repo is held without a spawn while the gate is closed.
+			await sweep("repo-b");
+			await sweep("repo-c");
+			expect(ghAttempts).toBe(1);
+
+			// The gate reopens after its first window and tries once more.
+			setSystemTime(new Date(t0 + 61_000));
+			await sweep("repo-d");
+			expect(ghAttempts).toBe(2);
+			expect(octokitAttempts).toBe(0);
+		} finally {
+			setSystemTime();
+		}
+	});
+
+	test("still falls back to Octokit when gh fails but GitHub answered", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		let octokitAttempts = 0;
+		const manager = createManager(db, {
+			execGh: async () => {
+				throw Object.assign(new Error("gh: HTTP 403"), {
+					code: 1,
+					stderr: "gh: API rate limit exceeded",
+				});
+			},
+			github: (async () => {
+				octokitAttempts += 1;
+				throw new Error("octokit unavailable");
+			}) as never,
+		});
+		const repo = {
+			provider: "github" as const,
+			owner: REPO.owner,
+			name: REPO.name,
+			url: `https://github.com/${REPO.owner}/${REPO.name}.git`,
+			remoteName: "origin",
+			defaultBranch: "main",
+		};
+		const fetchOpenPrs = openPullRequestsSweeper(manager);
+		await withSilencedWarnings(() => fetchOpenPrs(repo).catch(() => {}));
+		expect(octokitAttempts).toBe(1);
+	});
+
 	test("backs off repeated open-PR sweep failures and resets on success", async () => {
 		const t0 = Date.now();
 		setSystemTime(new Date(t0));

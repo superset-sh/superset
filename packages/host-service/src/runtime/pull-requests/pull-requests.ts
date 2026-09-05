@@ -32,6 +32,7 @@ import type {
 	GitHubPullRequestNode,
 	GitHubPullRequestReviewDecision,
 } from "./utils/github-query/types";
+import { GitHubReachabilityGate } from "./utils/github-reachability";
 import {
 	type ChecksStatus,
 	coerceChecksStatus,
@@ -208,6 +209,9 @@ export class PullRequestRuntimeManager {
 	private unsubscribeFromGitWatcher: (() => void) | null = null;
 	private unsubscribeFromWorkspaceEvents: (() => void) | null = null;
 	private readonly inFlightProjects = new Map<string, Promise<void>>();
+	// One gate for every GitHub call the runtime makes: an unreachable GitHub
+	// is a property of this host's network, not of any repo.
+	private readonly githubGate = new GitHubReachabilityGate();
 	private readonly workspaceSyncState = new Map<
 		string,
 		{ running: Promise<void>; rerunPending: boolean }
@@ -1146,6 +1150,52 @@ export class PullRequestRuntimeManager {
 		return rowId;
 	}
 
+	/**
+	 * Runs a GitHub lookup through `gh` with an Octokit fallback, behind the
+	 * reachability gate. A transport failure from `gh` (DNS, timeout, refused)
+	 * skips the fallback: Octokit would hit the same network and hang the same
+	 * way. HTTP failures still fall through to Octokit, which may hold a
+	 * different credential.
+	 */
+	private async fetchFromGitHub<T>(
+		what: string,
+		context: Record<string, unknown>,
+		viaGh: () => Promise<T>,
+		viaOctokit: () => Promise<T>,
+	): Promise<T> {
+		this.githubGate.assertReachable();
+		try {
+			const result = await viaGh();
+			this.githubGate.recordSuccess();
+			return result;
+		} catch (ghError) {
+			if (this.noteGitHubFailure(ghError)) throw ghError;
+			console.warn(
+				`[host-service:pull-request-runtime] gh ${what} failed; falling back to Octokit`,
+				{ ...context, error: ghError },
+			);
+		}
+		try {
+			const result = await viaOctokit();
+			this.githubGate.recordSuccess();
+			return result;
+		} catch (octokitError) {
+			this.noteGitHubFailure(octokitError);
+			throw octokitError;
+		}
+	}
+
+	/** Trips the gate on a transport failure and says so once per hold. */
+	private noteGitHubFailure(error: unknown): boolean {
+		const holdMs = this.githubGate.recordFailure(error);
+		if (holdMs === null) return false;
+		console.warn(
+			`[host-service:pull-request-runtime] GitHub unreachable; holding GitHub lookups for ${Math.round(holdMs / 1000)}s`,
+			{ error },
+		);
+		return true;
+	}
+
 	// Keep failed promises cached for the full TTL so subsequent polls share
 	// the rejection without firing new GitHub calls. Evicting on every error
 	// caused a self-perpetuating storm under rate-limit / abuse-detection
@@ -1214,26 +1264,23 @@ export class PullRequestRuntimeManager {
 			this.pullRequestHeadCache,
 			cacheKey,
 			options,
-			async () => {
-				try {
-					return await fetchPullRequestByHeadFromGh(
-						this.execGh,
-						{ owner: repo.owner, name: repo.name },
-						head,
-					);
-				} catch (ghError) {
-					console.warn(
-						"[host-service:pull-request-runtime] gh PR head lookup failed; falling back to Octokit",
-						{ owner: repo.owner, name: repo.name, head, error: ghError },
-					);
-					const octokit = await this.github();
-					return fetchPullRequestByHead(
-						octokit,
-						{ owner: repo.owner, name: repo.name },
-						head,
-					);
-				}
-			},
+			() =>
+				this.fetchFromGitHub(
+					"PR head lookup",
+					{ owner: repo.owner, name: repo.name, head },
+					() =>
+						fetchPullRequestByHeadFromGh(
+							this.execGh,
+							{ owner: repo.owner, name: repo.name },
+							head,
+						),
+					async () =>
+						fetchPullRequestByHead(
+							await this.github(),
+							{ owner: repo.owner, name: repo.name },
+							head,
+						),
+				),
 		);
 	}
 
@@ -1249,24 +1296,21 @@ export class PullRequestRuntimeManager {
 			this.openPullRequestsCache,
 			cacheKey,
 			options,
-			async () => {
-				try {
-					return await fetchOpenPullRequestsFromGh(this.execGh, {
-						owner: repo.owner,
-						name: repo.name,
-					});
-				} catch (ghError) {
-					console.warn(
-						"[host-service:pull-request-runtime] gh open-PR sweep failed; falling back to Octokit",
-						{ owner: repo.owner, name: repo.name, error: ghError },
-					);
-					const octokit = await this.github();
-					return fetchOpenPullRequests(octokit, {
-						owner: repo.owner,
-						name: repo.name,
-					});
-				}
-			},
+			() =>
+				this.fetchFromGitHub(
+					"open-PR sweep",
+					{ owner: repo.owner, name: repo.name },
+					() =>
+						fetchOpenPullRequestsFromGh(this.execGh, {
+							owner: repo.owner,
+							name: repo.name,
+						}),
+					async () =>
+						fetchOpenPullRequests(await this.github(), {
+							owner: repo.owner,
+							name: repo.name,
+						}),
+				),
 		);
 	}
 
