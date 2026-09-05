@@ -24,6 +24,8 @@ import {
 	getCollections,
 	preloadCollections,
 } from "./collections";
+import { OrgResolutionScreen } from "./components/OrgResolutionScreen";
+import { resolveWindowOrg } from "./resolveWindowOrg";
 
 // Cloud query procedures take no organizationId input (the server scopes by
 // active org), so their React Query keys don't encode the org — on org switch
@@ -92,8 +94,32 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 
 	// Account-wide ("the orgs I belong to"), so it is not affected by — and does
 	// not depend on — the org header this provider sets.
-	const { data: organizations } =
-		cloudTrpc.organization.list.useQuery(undefined);
+	const {
+		data: organizations,
+		isError: organizationsErrored,
+		refetch: refetchOrganizations,
+	} = cloudTrpc.organization.list.useQuery(undefined);
+
+	// `unresolvable` is rendered below, never adopted: initialization is
+	// one-shot, so seeding from an unverified registry id on a transient failure
+	// would pin the window permanently. Waiting keeps the blank recoverable.
+	const resolution = useMemo(
+		() =>
+			resolveWindowOrg({
+				windowOrgPending,
+				windowOrgId,
+				organizations,
+				organizationsErrored,
+				sessionOrgId,
+			}),
+		[
+			windowOrgPending,
+			windowOrgId,
+			organizations,
+			organizationsErrored,
+			sessionOrgId,
+		],
+	);
 
 	// Initialize the window's org exactly once. After this, the window's org is
 	// owned by local state (and switchOrganization); later — possibly transient —
@@ -104,24 +130,10 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 	const initializedRef = useRef(false);
 	useEffect(() => {
 		if (initializedRef.current) return;
-		if (windowOrgPending) return;
-		// The registry's org is only preferred while it is still one the user
-		// belongs to. Leaving an organization (or having membership revoked
-		// elsewhere) leaves a dead id in the registry, and adopting it would pin
-		// the window to an org whose every read now fails. Until the membership
-		// list has loaded we cannot tell stale from valid, so wait rather than
-		// guess — the window is showing nothing yet either way.
-		const registryOrgIsStillMine =
-			windowOrgId != null &&
-			organizations != null &&
-			organizations.some((organization) => organization.id === windowOrgId);
-		if (windowOrgId != null && organizations == null) return;
-		const resolved =
-			(registryOrgIsStillMine ? windowOrgId : sessionOrgId) ?? null;
-		if (!resolved) return;
+		if (resolution.kind !== "resolved") return;
 		initializedRef.current = true;
-		setActiveOrganizationId(resolved);
-	}, [windowOrgPending, windowOrgId, sessionOrgId, organizations]);
+		setActiveOrganizationId(resolution.organizationId);
+	}, [resolution]);
 
 	// Scope this window's cloud reads to its own org, during render rather than
 	// in an effect: children below issue their first queries while this render
@@ -228,14 +240,19 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 		[collections, activeOrganizationId, switchOrganization],
 	);
 
-	// Only a window with no org at all renders nothing. Switching used to
-	// return null too, which unmounted the whole authenticated tree for as
-	// long as the destination org's collections took to preload — a blank
+	// Only a window with no org at all shows the resolution screen. Switching
+	// used to return null too, which unmounted the whole authenticated tree for
+	// as long as the destination org's collections took to preload — a blank
 	// window for minutes on a large org. The context still points at the
 	// previous org until the switch resolves, so keeping it mounted shows the
 	// org you're leaving rather than a void.
 	if (!contextValue) {
-		return null;
+		return (
+			<OrgResolutionScreen
+				errored={resolution.kind === "unresolvable"}
+				onRetry={() => void refetchOrganizations()}
+			/>
+		);
 	}
 
 	return (

@@ -1,0 +1,1 @@
+export { OrgResolutionScreen } from "./OrgResolutionScreen";
