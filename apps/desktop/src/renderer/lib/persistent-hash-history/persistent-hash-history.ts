@@ -3,9 +3,52 @@ import {
 	type HistoryLocation,
 	type RouterHistory,
 } from "@tanstack/react-router";
+import { LEGACY_WINDOW_KEY } from "shared/window-identity";
 
-const STORAGE_KEY = "router-history";
+const STORAGE_KEY_BASE = "router-history";
 const MAX_ENTRIES = 100;
+
+/**
+ * localStorage is shared by every window of the profile, so a single
+ * "router-history" key meant all windows read and wrote one history: the last
+ * window to navigate decided where *every* window reopened, and a restored
+ * window routinely landed on another window's workspace — in another
+ * organization. Scoping by the window's persisted key gives each window its own
+ * history across relaunches.
+ */
+export function resolveStorageKey(
+	windowKey: string | undefined,
+	storage: Pick<Storage, "getItem" | "setItem" | "removeItem">,
+): string {
+	// No key means a test harness or a renderer opened outside createWindow;
+	// the bare key is the only sensible target and nothing else will claim it.
+	if (!windowKey) return STORAGE_KEY_BASE;
+
+	const scoped = `${STORAGE_KEY_BASE}:${windowKey}`;
+
+	// Every production window is minted a key, so the bare record left by a
+	// pre-multi-window profile would otherwise never be read again and the user
+	// would silently lose their route on upgrade. Hand it to the one window that
+	// represents the old single window, exactly once, and take the bare key with
+	// it rather than stranding it on the profile forever.
+	if (windowKey === LEGACY_WINDOW_KEY && storage.getItem(scoped) === null) {
+		const inherited = storage.getItem(STORAGE_KEY_BASE);
+		if (inherited !== null) {
+			storage.setItem(scoped, inherited);
+			storage.removeItem(STORAGE_KEY_BASE);
+		}
+	}
+
+	return scoped;
+}
+
+const STORAGE_KEY = (() => {
+	try {
+		return resolveStorageKey(window.App?.windowKey, localStorage);
+	} catch {
+		return STORAGE_KEY_BASE;
+	}
+})();
 
 type LocationState = HistoryLocation["state"];
 

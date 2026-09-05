@@ -56,9 +56,10 @@ Object.defineProperty(globalThis, "window", {
 });
 
 // Now safe to import — the module-level singleton will find window/localStorage
-const { createPersistentHashHistory } = await import(
+const { createPersistentHashHistory, resolveStorageKey } = await import(
 	"./persistent-hash-history"
 );
+const { LEGACY_WINDOW_KEY } = await import("shared/window-identity");
 
 beforeEach(() => {
 	storage.clear();
@@ -377,6 +378,86 @@ describe("createPersistentHashHistory", () => {
 
 			history.back();
 			expect(mockReplaceState).toHaveBeenCalledWith(null, "", "#/");
+		});
+	});
+	describe("resolveStorageKey", () => {
+		/** A storage double independent of the module-level singleton's. */
+		function makeStorage(initial: Record<string, string> = {}) {
+			const map = new Map(Object.entries(initial));
+			return {
+				map,
+				getItem: (key: string) => map.get(key) ?? null,
+				setItem: (key: string, value: string) => {
+					map.set(key, value);
+				},
+				removeItem: (key: string) => {
+					map.delete(key);
+				},
+			};
+		}
+
+		it("scopes the key to the window", () => {
+			const storage = makeStorage();
+			expect(resolveStorageKey("window-a", storage)).toBe(
+				"router-history:window-a",
+			);
+		});
+
+		it("falls back to the bare key when there is no window key", () => {
+			const storage = makeStorage();
+			expect(resolveStorageKey(undefined, storage)).toBe("router-history");
+			expect(resolveStorageKey("", storage)).toBe("router-history");
+		});
+
+		it("hands the pre-multi-window record to the legacy window", () => {
+			const storage = makeStorage({ "router-history": "legacy-route" });
+
+			const key = resolveStorageKey(LEGACY_WINDOW_KEY, storage);
+
+			expect(key).toBe(`router-history:${LEGACY_WINDOW_KEY}`);
+			expect(storage.map.get(key)).toBe("legacy-route");
+			// Moved, not copied: leaving it behind would strand a key that nothing
+			// reads and the sweep deliberately never collects.
+			expect(storage.map.has("router-history")).toBe(false);
+		});
+
+		it("never lets an ordinary window claim the legacy record", () => {
+			const storage = makeStorage({ "router-history": "legacy-route" });
+
+			const key = resolveStorageKey("window-b", storage);
+
+			expect(key).toBe("router-history:window-b");
+			expect(storage.map.get(key)).toBeUndefined();
+			// Still there for the legacy window to claim whenever it opens.
+			expect(storage.map.get("router-history")).toBe("legacy-route");
+		});
+
+		it("does not overwrite a legacy window that already has its own history", () => {
+			const storage = makeStorage({
+				"router-history": "stale-legacy-route",
+				[`router-history:${LEGACY_WINDOW_KEY}`]: "current-route",
+			});
+
+			const key = resolveStorageKey(LEGACY_WINDOW_KEY, storage);
+
+			expect(storage.map.get(key)).toBe("current-route");
+		});
+
+		it("is a one-time handoff", () => {
+			const storage = makeStorage({ "router-history": "legacy-route" });
+			const key = resolveStorageKey(LEGACY_WINDOW_KEY, storage);
+			storage.setItem(key, "navigated-since");
+
+			// A second launch must not resurrect the old route over the new one.
+			expect(resolveStorageKey(LEGACY_WINDOW_KEY, storage)).toBe(key);
+			expect(storage.map.get(key)).toBe("navigated-since");
+		});
+
+		it("tolerates a profile with no legacy record at all", () => {
+			const storage = makeStorage();
+			const key = resolveStorageKey(LEGACY_WINDOW_KEY, storage);
+			expect(key).toBe(`router-history:${LEGACY_WINDOW_KEY}`);
+			expect(storage.map.size).toBe(0);
 		});
 	});
 });

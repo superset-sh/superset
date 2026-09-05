@@ -289,13 +289,16 @@ function AuthenticatedLayout() {
 	return (
 		<DndProvider manager={dragDropManager}>
 			<CollectionsProvider>
-				<WindowTitle />
 				<GlobalBrowserLifecycle />
 				<LocalHostServiceProvider>
 					{/* Above the workspace fan-out: it needs sandbox addresses to
 					    include them as hosts. */}
 					<SandboxAccessProvider>
 						<HostWorkspacesProvider>
+							{/* Inside the fan-out: the title names the active
+							    workspace, which is what tells two windows on the
+							    same org apart. */}
+							<WindowTitle />
 							<WorkerPoolContextProvider
 								poolOptions={{ workerFactory: createPierreWorker, poolSize: 8 }}
 								highlighterOptions={{ preferredHighlighter: "shiki-wasm" }}

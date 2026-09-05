@@ -374,6 +374,10 @@ export async function createPlatformWindow({
 
 	const wasEmpty = getAllWindows().length === 0;
 
+	// Minted here rather than at registerWindow: the renderer needs it in
+	// webPreferences below, which is built before the window exists.
+	const windowKey = key ?? randomUUID();
+
 	// Explicit bounds (restore) win. The first window falls back to the saved
 	// single-window position; an *additional* New Window opens fresh/centered so
 	// it doesn't land exactly on top of an existing window.
@@ -413,6 +417,11 @@ export async function createPlatformWindow({
 		webPreferences: {
 			preload: join(__dirname, "../preload/index.js"),
 			webviewTag: true,
+			// The renderer needs its window's persisted identity synchronously, at
+			// module-evaluation time: the router's history is restored from
+			// localStorage before React mounts, so it cannot wait on IPC. Passed as
+			// a process argument and re-exposed by the preload.
+			additionalArguments: [`--superset-window-key=${windowKey}`],
 			// Chromium's built-in PDF viewer, used by the file pane's PDF view
 			plugins: true,
 			// Isolate Electron session from system browser cookies
@@ -421,7 +430,7 @@ export async function createPlatformWindow({
 		},
 	});
 
-	registerWindow({ window, orgId, key: key ?? randomUUID() });
+	registerWindow({ window, orgId, key: windowKey });
 	window.on("focus", () => markFocused(window.id));
 
 	attachEditContextMenu(window.webContents);
