@@ -127,6 +127,45 @@ describe("account-engine state", () => {
 		expect(first.isOwner("nonce-a")).toBe(false);
 	});
 
+	it("aborts a claim when the owner refreshes between the read and the rename", () => {
+		const owner = new EngineState();
+		expect(owner.claimLock("nonce-a", 1_000)).toBe(true);
+		const dir = join(home, "state", "account-engine");
+		const lockPath = join(dir, "engine.lock");
+		const claimant = new EngineState();
+		const now = 1_000 + DEFAULT_LOCK_STALE_MS + 1;
+
+		// The claimant reads a stale heartbeat, and only then does the owner
+		// prove itself alive by refreshing in place. Renaming that now-fresh
+		// record aside must not hand the host to the claimant.
+		type LockReader = { readLockFile(): unknown };
+		const seam = claimant as unknown as LockReader;
+		const realRead = seam.readLockFile.bind(claimant);
+		let refreshed = false;
+		seam.readLockFile = () => {
+			const seen = realRead();
+			if (!refreshed) {
+				refreshed = true;
+				expect(owner.heartbeat("nonce-a", now)).toBe(true);
+			}
+			return seen;
+		};
+
+		expect(claimant.claimLock("nonce-b", now)).toBe(false);
+
+		expect(refreshed).toBe(true);
+		expect(JSON.parse(readFileSync(lockPath, "utf8"))).toEqual({
+			nonce: "nonce-a",
+			startedAt: 1_000,
+			heartbeatAt: now,
+		});
+		expect(owner.isOwner("nonce-a")).toBe(true);
+		expect(claimant.isOwner("nonce-b")).toBe(false);
+		expect(readdirSync(dir).filter((name) => name.includes(".stale."))).toEqual(
+			[],
+		);
+	});
+
 	it("reports not-owner once the nonce on disk was overwritten", () => {
 		const state = new EngineState();
 		expect(state.claimLock("nonce-a", 1000)).toBe(true);
@@ -318,6 +357,31 @@ describe("account-engine state", () => {
 			startedAt: 1_000,
 			heartbeatAt: 2_000,
 		});
+	});
+
+	// The in-place refresh writes the record and then truncates to its length,
+	// which is only safe while the record never shrinks — otherwise a reader
+	// racing the write could see a half-record and reclaim a live lock.
+	it("never shortens the lock record on a heartbeat", () => {
+		const owner = new EngineState();
+		const startedAt = 1_000_000_000_000;
+		expect(owner.claimLock("nonce-a", startedAt)).toBe(true);
+		const lockPath = join(home, "state", "account-engine", "engine.lock");
+
+		let previousSize = statSync(lockPath).size;
+		// The last of these crosses into an extra digit, the only way the record
+		// changes length at all.
+		for (const at of [startedAt + 1, 9_999_999_999_999, 10_000_000_000_000]) {
+			expect(owner.heartbeat("nonce-a", at)).toBe(true);
+			const size = statSync(lockPath).size;
+			expect(size).toBeGreaterThanOrEqual(previousSize);
+			expect(JSON.parse(readFileSync(lockPath, "utf8"))).toEqual({
+				nonce: "nonce-a",
+				startedAt,
+				heartbeatAt: at,
+			});
+			previousSize = size;
+		}
 	});
 
 	it("falls back to defaults on a corrupt settings file and logs once", () => {

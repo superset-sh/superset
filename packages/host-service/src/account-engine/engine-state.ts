@@ -324,7 +324,9 @@ export class EngineState {
 	 * Atomic create-if-absent claim (the linkSync idiom already used by
 	 * migrateDefaultAccountPointer). A lock whose heartbeat is older than
 	 * staleAfterMs is reclaimed by renaming it aside first, so only the process
-	 * whose rename succeeded may re-link it. Pid liveness is never consulted:
+	 * whose rename succeeded may re-link it, and the renamed record is re-read
+	 * before it is deleted so a heartbeat that landed after the staleness check
+	 * still wins. Pid liveness is never consulted:
 	 * pids are reused, and the engine may run in another container entirely.
 	 */
 	claimLock(
@@ -338,11 +340,33 @@ export class EngineState {
 		if (record?.nonce === nonce) return this.heartbeat(nonce, now);
 		if (record && now - record.heartbeatAt <= staleAfterMs) return false;
 		if (exists) {
-			const asidePath = `${lockPath}.stale.${process.pid}.${randomUUID()}`;
+			const asideName = `${LOCK_FILE}.stale.${process.pid}.${randomUUID()}`;
+			const asidePath = join(this.dir, asideName);
 			try {
 				renameSync(lockPath, asidePath);
 			} catch {
 				// Another claimant renamed it first; it gets to re-link.
+				return false;
+			}
+			// The owner refreshes in place, so it may have proved itself alive
+			// between the read above and this rename. Inspect what was actually
+			// moved aside rather than trusting the stale read: a lock that is
+			// now fresh goes back where it was and this claim is abandoned.
+			const aside = this.readLockRecord(asideName);
+			if (
+				aside &&
+				aside.nonce !== nonce &&
+				now - aside.heartbeatAt <= staleAfterMs
+			) {
+				try {
+					// linkSync, not renameSync: if another claimant linked its own
+					// lock while the path was empty, that successor owns the host
+					// and must not be clobbered by the record we moved aside.
+					linkSync(asidePath, lockPath);
+				} catch {
+					// EEXIST — a successor already claimed the path.
+				}
+				this.discard(asidePath);
 				return false;
 			}
 			try {
@@ -424,13 +448,20 @@ export class EngineState {
 		try {
 			fd = openSync(target, "r+");
 			if (!this.holdsLock(fd, target, nonce)) return false;
-			const payload = JSON.stringify(record);
-			// Written before the truncate, so a concurrent reader never sees an
-			// empty lock and mistakes a live owner for a corrupt one. The record
-			// only ever grows (heartbeatAt is monotonic), so the truncate is a
-			// no-op in practice.
-			writeSync(fd, payload, 0, "utf8");
-			ftruncateSync(fd, Buffer.byteLength(payload));
+			const payload = Buffer.from(JSON.stringify(record), "utf8");
+			// The whole record in one write at offset 0, then a truncate to the
+			// length just written. `nonce` and `startedAt` are fixed for the life
+			// of a lock and `heartbeatAt` is monotonic non-decreasing, so the
+			// serialized record can never be shorter than the one on disk: the
+			// truncate can only ever be a no-op, never a trim that leaves a
+			// half-record behind. A reader racing this write therefore sees the
+			// old record, the new one, or — when both are the same length — one
+			// whose heartbeat digits mix the two, which is still valid JSON with
+			// our nonce and a heartbeat between the old and the new. It can never
+			// see an empty or truncated lock and mistake a live owner for a
+			// corrupt one.
+			writeSync(fd, payload, 0, payload.length, 0);
+			ftruncateSync(fd, payload.length);
 			fsyncSync(fd);
 			return true;
 		} catch {
@@ -483,6 +514,14 @@ export class EngineState {
 		// A corrupt lock counts as present but unowned, so it is reclaimed
 		// rather than wedging the engine for good.
 		return { exists: true, record: result.success ? result.data : null };
+	}
+
+	/** The lock record stored under `name` in the state dir, else null. */
+	private readLockRecord(name: string): LockRecord | null {
+		const raw = this.readText(name);
+		if (raw === null) return null;
+		const result = lockSchema.safeParse(this.parseJson(LOCK_FILE, raw));
+		return result.success ? result.data : null;
 	}
 
 	private rotateHistory(path: string): void {
