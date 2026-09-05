@@ -23,7 +23,11 @@ export async function removeDevAppProfile({
 	appDataDir = resolveAppDataDir(),
 }: {
 	workspaceName: string;
-	/** Override for tests. Defaults to Electron's `appData` path. */
+	/**
+	 * Defaults to the real `appData` path, so a test that drives a delete with
+	 * a plausible workspace name would reap a developer's actual profile.
+	 * Every test touching this path must pass a temp directory.
+	 */
 	appDataDir?: string;
 }): Promise<void> {
 	try {
