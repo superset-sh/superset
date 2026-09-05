@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { quotaEntryKey } from "../../../account-engine/quota-store.ts";
 import { projects, workspaces } from "../../../db/schema";
 import {
 	leaderboardPayloadTask,
@@ -14,65 +15,23 @@ import {
 	provisionClaudeAccount,
 	provisionCodexAccount,
 } from "./account-provisioning";
-import { fetchAgyAccounts } from "./agy-quota";
-import { fetchClaudeAccounts, readDefaultLoginEmail } from "./claude";
-import { fetchCodexAccounts } from "./codex";
+import { readDefaultLoginEmail } from "./claude";
 import {
 	getDefaultAccountSelections,
 	setDefaultAccountSelection,
 } from "./default-account";
-import { fetchGrokAccounts } from "./grok-quota";
 import { countAgentPrsByDay } from "./history/agent-prs";
 import { removeClaudeProfile, removeCodexHome } from "./profile-remove";
 import { discoverClaudeProfiles, discoverCodexHomes } from "./profiles";
-import type { UsageAccount } from "./types";
-
-/**
- * Agent quota endpoints are undocumented and rate-limit-sensitive, so
- * results are cached briefly and concurrent callers share one in-flight
- * request. The cached promise is evicted on rejection so a failure does not
- * replay for the whole TTL.
- */
-// >=5 min: Anthropic 429-blacklists faster pollers of the oauth/usage
-// endpoint (ccusage deprecated its live gauge over this; CodexBar #30930).
-const QUOTA_CACHE_TTL_MS = 5 * 60 * 1000;
-
-let cachedQuota: { promise: Promise<UsageAccount[]>; cachedAt: number } | null =
-	null;
-
-function loadAccounts(): Promise<UsageAccount[]> {
-	return Promise.all([
-		fetchClaudeAccounts(),
-		fetchCodexAccounts(),
-		fetchGrokAccounts(),
-		fetchAgyAccounts(),
-	]).then((groups) => groups.flat());
-}
-
-function getQuota(forceRefresh: boolean): Promise<UsageAccount[]> {
-	if (
-		!forceRefresh &&
-		cachedQuota &&
-		Date.now() - cachedQuota.cachedAt < QUOTA_CACHE_TTL_MS
-	) {
-		return cachedQuota.promise;
-	}
-
-	const promise = loadAccounts();
-	const entry = { promise, cachedAt: Date.now() };
-	cachedQuota = entry;
-	promise.catch(() => {
-		if (cachedQuota === entry) cachedQuota = null;
-	});
-	return promise;
-}
 
 export const usageRouter = router({
 	quota: queryProcedure
 		.meta({ timeoutMs: 15_000 })
 		.input(z.object({ forceRefresh: z.boolean().optional() }).optional())
 		.query(async ({ ctx, input }) => {
-			const accounts = await getQuota(input?.forceRefresh ?? false);
+			const accounts = await ctx.runtime.quotaStore.read({
+				forceRefresh: input?.forceRefresh ?? false,
+			});
 			// isDefault is applied per query, not cached with the quota: changing
 			// the default must reflect immediately without re-hitting providers.
 			const defaults = getDefaultAccountSelections(ctx.db);
@@ -147,7 +106,9 @@ export const usageRouter = router({
 			if (input.selection !== null) {
 				// Only accept a discovered login: the value lands in a shell env
 				// overlay, and a typo'd dir would boot agents signed out.
-				const accounts = await getQuota(false);
+				const accounts = await ctx.runtime.quotaStore.read({
+					agents: [input.agent],
+				});
 				const known = accounts.some(
 					(account) =>
 						account.agent === input.agent &&
@@ -197,7 +158,9 @@ export const usageRouter = router({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const accounts = await getQuota(false);
+			const accounts = await ctx.runtime.quotaStore.read({
+				agents: [input.agent],
+			});
 			const known = accounts.some(
 				(account) =>
 					account.agent === input.agent &&
@@ -222,9 +185,11 @@ export const usageRouter = router({
 			if (pointer === input.selection) {
 				setDefaultAccountSelection(ctx.db, input.agent, null);
 			}
-			// The quota cache still lists the removed account; drop it so the
-			// next query re-discovers.
-			cachedQuota = null;
+			// The store still lists the removed account; drop its entry so the
+			// next read re-discovers.
+			ctx.runtime.quotaStore.invalidate(
+				quotaEntryKey(input.agent, input.selection),
+			);
 			return { success: true as const };
 		}),
 

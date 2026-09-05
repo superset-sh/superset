@@ -6,6 +6,7 @@ import { TRPCError } from "@trpc/server";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { QuotaStore } from "./account-engine/quota-store.ts";
 import { createApiClient } from "./api";
 import { createChatV3Mount, registerChatV3Routes } from "./chat-v3";
 import { createDb, type HostDb } from "./db";
@@ -237,10 +238,16 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	});
 	pageWatch.subscribeToTerminalEvents(eventBus);
 
+	// Owns quota fetching for the Usage page and, later, for the account
+	// engine's adaptive cadence (KTD10). Unconditional: with no engine it
+	// simply serves on-demand reads with the 5-minute TTL.
+	const quotaStore = new QuotaStore();
+
 	const runtime = {
 		filesystem,
 		pullRequests: pullRequestRuntime,
 		pageWatch,
+		quotaStore,
 	};
 
 	// Startup sweeps run in the background so they don't block server

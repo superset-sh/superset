@@ -13,7 +13,11 @@
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { discoverClaudeProfiles, readKeychainSecrets } from "./profiles";
+import {
+	type ClaudeProfile,
+	discoverClaudeProfiles,
+	readKeychainSecrets,
+} from "./profiles";
 import type { UsageAccount, UsageQuotaWindow } from "./types";
 
 const CLAUDE_KEYCHAIN_SERVICE = "Claude Code-credentials";
@@ -176,6 +180,65 @@ export async function readDefaultLoginEmail(): Promise<string | null> {
 	}
 }
 
+/** The one login slot the CLI uses with no CLAUDE_CONFIG_DIR override. */
+function defaultCredentialCandidates(
+	home: string,
+): Array<{ path: string; sourceLabel: string }> {
+	return [
+		{
+			path: join(home, ".claude", ".credentials.json"),
+			sourceLabel: "~/.claude",
+		},
+		{
+			path: join(home, ".config", "claude", "credentials.json"),
+			sourceLabel: "~/.config/claude",
+		},
+	];
+}
+
+async function readDefaultCredential(): Promise<ClaudeOauthCredential | null> {
+	const home = homedir();
+	const [defaultEmail, keychainCredential, defaultFiles] = await Promise.all([
+		readDefaultLoginEmail(),
+		readKeychainCredential(),
+		Promise.all(
+			defaultCredentialCandidates(home).map(({ path, sourceLabel }) =>
+				readCredentialFile(path, sourceLabel, null),
+			),
+		),
+	]);
+	const credential = pickFreshest([keychainCredential, ...defaultFiles]);
+	if (credential && !credential.email && defaultEmail) {
+		credential.email = defaultEmail;
+	}
+	return credential;
+}
+
+async function readProfileCredential(
+	profile: ClaudeProfile,
+): Promise<ClaudeOauthCredential | null> {
+	const fromFile = await readCredentialFile(
+		profile.credentialsPath,
+		profile.sourceLabel,
+		profile.configDir,
+	);
+	const candidates: Array<ClaudeOauthCredential | null> = [fromFile];
+	for (const service of profile.keychainServices) {
+		for (const secret of await readKeychainSecrets(service)) {
+			candidates.push(
+				parseCredential(
+					secret,
+					profile.configDir,
+					profile.sourceLabel,
+					profile.configDir,
+				),
+			);
+		}
+	}
+	const freshest = pickFreshest(candidates);
+	return freshest ? { ...freshest, email: profile.email } : null;
+}
+
 /**
  * Discovers Claude logins on this machine: the default config locations,
  * any CLAUDE_CONFIG_DIR entries (comma-list supported), auto-discovered
@@ -194,16 +257,6 @@ async function discoverClaudeCredentials(): Promise<{
 	apiProfiles: Awaited<ReturnType<typeof discoverClaudeProfiles>>;
 }> {
 	const home = homedir();
-	const defaultCandidates: Array<{ path: string; sourceLabel: string }> = [
-		{
-			path: join(home, ".claude", ".credentials.json"),
-			sourceLabel: "~/.claude",
-		},
-		{
-			path: join(home, ".config", "claude", "credentials.json"),
-			sourceLabel: "~/.config/claude",
-		},
-	];
 	const explicitCandidates: Array<{
 		path: string;
 		sourceLabel: string;
@@ -219,31 +272,6 @@ async function discoverClaudeCredentials(): Promise<{
 		});
 	}
 
-	const readProfileCredential = async (
-		profile: Awaited<ReturnType<typeof discoverClaudeProfiles>>[number],
-	): Promise<ClaudeOauthCredential | null> => {
-		const fromFile = await readCredentialFile(
-			profile.credentialsPath,
-			profile.sourceLabel,
-			profile.configDir,
-		);
-		const candidates: Array<ClaudeOauthCredential | null> = [fromFile];
-		for (const service of profile.keychainServices) {
-			for (const secret of await readKeychainSecrets(service)) {
-				candidates.push(
-					parseCredential(
-						secret,
-						profile.configDir,
-						profile.sourceLabel,
-						profile.configDir,
-					),
-				);
-			}
-		}
-		const freshest = pickFreshest(candidates);
-		return freshest ? { ...freshest, email: profile.email } : null;
-	};
-
 	// API-billed profiles have no quota to fetch and their credentials stay
 	// unread; only subscription profiles go through the credential readers.
 	const allProfiles = await discoverClaudeProfiles();
@@ -253,27 +281,15 @@ async function discoverClaudeCredentials(): Promise<{
 	const apiProfiles = allProfiles.filter(
 		(profile) => profile.credentialKind === "api_key",
 	);
-	const [defaultEmail, keychainCredential, defaultFiles, explicit, profiled] =
-		await Promise.all([
-			readDefaultLoginEmail(),
-			readKeychainCredential(),
-			Promise.all(
-				defaultCandidates.map(({ path, sourceLabel }) =>
-					readCredentialFile(path, sourceLabel, null),
-				),
+	const [defaultCredential, explicit, profiled] = await Promise.all([
+		readDefaultCredential(),
+		Promise.all(
+			explicitCandidates.map(({ path, sourceLabel, configDir }) =>
+				readCredentialFile(path, sourceLabel, configDir),
 			),
-			Promise.all(
-				explicitCandidates.map(({ path, sourceLabel, configDir }) =>
-					readCredentialFile(path, sourceLabel, configDir),
-				),
-			),
-			Promise.all(profiles.map(readProfileCredential)),
-		]);
-
-	const defaultCredential = pickFreshest([keychainCredential, ...defaultFiles]);
-	if (defaultCredential && !defaultCredential.email && defaultEmail) {
-		defaultCredential.email = defaultEmail;
-	}
+		),
+		Promise.all(profiles.map(readProfileCredential)),
+	]);
 
 	const byToken = new Map<string, ClaudeOauthCredential>();
 	for (const credential of [defaultCredential, ...explicit, ...profiled]) {
@@ -384,6 +400,8 @@ async function fetchClaudeProfileEmail(
 
 async function fetchClaudeAccount(
 	credential: ClaudeOauthCredential,
+	/** The usage endpoint's HTTP status, so a poller can see a 429. */
+	onHttpStatus?: (status: number) => void,
 ): Promise<UsageAccount> {
 	const base = {
 		agent: "claude" as const,
@@ -422,6 +440,7 @@ async function fetchClaudeAccount(
 			}),
 			fetchClaudeProfileEmail(credential.accessToken),
 		]);
+		onHttpStatus?.(usageResponse.status);
 
 		if (usageResponse.status === 401 || usageResponse.status === 403) {
 			return {
@@ -488,47 +507,112 @@ async function fetchClaudeAccount(
 	}
 }
 
+/** An API-billed profile: no quota endpoint, so the card is built locally. */
+function claudeApiKeyAccount(profile: ClaudeProfile): UsageAccount {
+	return {
+		agent: "claude",
+		credentialKind: "api_key",
+		accountKey: profile.configDir,
+		sourceLabel: profile.sourceLabel,
+		email: profile.email,
+		plan: null,
+		status: "ok",
+		statusDetail:
+			"Billed per token through the Anthropic Console — no quota windows.",
+		windows: [],
+		creditsBalance: null,
+		extraUsage: null,
+		selection: profile.configDir,
+		isDefault: false,
+		fetchedAt: new Date(),
+	};
+}
+
+/** A profile with an identity but no readable credential. */
+function claudeSignedOutAccount(profile: ClaudeProfile): UsageAccount {
+	return {
+		agent: "claude",
+		credentialKind: "subscription",
+		accountKey: profile.configDir,
+		sourceLabel: profile.sourceLabel,
+		email: profile.email,
+		plan: null,
+		status: "signed_out",
+		statusDetail:
+			"Signed out — use Switch sign-in to reconnect, or Remove to delete this profile.",
+		windows: [],
+		creditsBalance: null,
+		extraUsage: null,
+		selection: profile.configDir,
+		isDefault: false,
+		fetchedAt: new Date(),
+	};
+}
+
 export async function fetchClaudeAccounts(): Promise<UsageAccount[]> {
 	const { credentials, signedOutProfiles, apiProfiles } =
 		await discoverClaudeCredentials();
-	const accounts = await Promise.all(credentials.map(fetchClaudeAccount));
-	for (const profile of apiProfiles) {
-		accounts.push({
-			agent: "claude",
-			credentialKind: "api_key",
-			accountKey: profile.configDir,
-			sourceLabel: profile.sourceLabel,
-			email: profile.email,
-			plan: null,
-			status: "ok",
-			statusDetail:
-				"Billed per token through the Anthropic Console — no quota windows.",
-			windows: [],
-			creditsBalance: null,
-			extraUsage: null,
-			selection: profile.configDir,
-			isDefault: false,
-			fetchedAt: new Date(),
-		});
-	}
-	for (const profile of signedOutProfiles) {
-		accounts.push({
-			agent: "claude",
-			credentialKind: "subscription",
-			accountKey: profile.configDir,
-			sourceLabel: profile.sourceLabel,
-			email: profile.email,
-			plan: null,
-			status: "signed_out",
-			statusDetail:
-				"Signed out — use Switch sign-in to reconnect, or Remove to delete this profile.",
-			windows: [],
-			creditsBalance: null,
-			extraUsage: null,
-			selection: profile.configDir,
-			isDefault: false,
-			fetchedAt: new Date(),
-		});
-	}
+	const accounts = await Promise.all(
+		credentials.map((credential) => fetchClaudeAccount(credential)),
+	);
+	accounts.push(...apiProfiles.map(claudeApiKeyAccount));
+	accounts.push(...signedOutProfiles.map(claudeSignedOutAccount));
 	return accounts;
+}
+
+/**
+ * The quota store's discovery pass (KTD10): which logins have a credential
+ * worth polling, and the rows that have no fetch of their own.
+ */
+export async function discoverClaudeQuotaTargets(): Promise<{
+	selections: Array<string | null>;
+	staticAccounts: UsageAccount[];
+}> {
+	const { credentials, signedOutProfiles, apiProfiles } =
+		await discoverClaudeCredentials();
+	return {
+		selections: credentials.map((credential) => credential.selection),
+		staticAccounts: [
+			...apiProfiles.map(claudeApiKeyAccount),
+			...signedOutProfiles.map(claudeSignedOutAccount),
+		],
+	};
+}
+
+async function readCredentialForConfigDir(
+	configDir: string,
+): Promise<ClaudeOauthCredential | null> {
+	const profile = (await discoverClaudeProfiles()).find(
+		(candidate) => candidate.configDir === configDir,
+	);
+	if (profile) {
+		return profile.credentialKind === "subscription"
+			? readProfileCredential(profile)
+			: null;
+	}
+	// A CLAUDE_CONFIG_DIR entry that profile discovery does not classify.
+	return readCredentialFile(
+		join(configDir, ".credentials.json"),
+		configDir.replace(homedir(), "~"),
+		configDir,
+	);
+}
+
+/**
+ * One login's quota, for the quota store's per-account cadence. `rateLimited`
+ * is the 429 that backs off every poll on this endpoint (KTD10).
+ */
+export async function fetchClaudeAccountForSelection(
+	selection: string | null,
+): Promise<{ account: UsageAccount | null; rateLimited: boolean }> {
+	const credential =
+		selection === null
+			? await readDefaultCredential()
+			: await readCredentialForConfigDir(selection);
+	if (!credential) return { account: null, rateLimited: false };
+	let rateLimited = false;
+	const account = await fetchClaudeAccount(credential, (status) => {
+		rateLimited = status === 429;
+	});
+	return { account, rateLimited };
 }

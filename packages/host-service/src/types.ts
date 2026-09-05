@@ -1,6 +1,7 @@
 import type { Octokit } from "@octokit/rest";
 import type { AppRouter } from "@superset/trpc";
 import type { TRPCClient } from "@trpc/client";
+import type { QuotaStore } from "./account-engine/quota-store.ts";
 import type { HostDb } from "./db";
 import type { EventBus } from "./events";
 import type { PageWatchManager } from "./page-watch/index.ts";
@@ -16,6 +17,10 @@ export interface HostServiceRuntime {
 	filesystem: WorkspaceFilesystemManager;
 	pullRequests: PullRequestRuntimeManager;
 	pageWatch: PageWatchManager;
+	/** Host-wide quota fetching, TTL and cadence for every quota-capable
+	 * agent (KTD10). Constructed unconditionally; the account engine drives
+	 * its cadence when it runs. */
+	quotaStore: QuotaStore;
 }
 
 export interface HostServiceContext {

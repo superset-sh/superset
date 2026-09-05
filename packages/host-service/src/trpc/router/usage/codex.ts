@@ -108,10 +108,16 @@ export async function fetchCodexAccounts(): Promise<UsageAccount[]> {
 			fetchCodexAccountForHome(home, home.home === defaultHome),
 		),
 	);
-	// Dedupe by account email — one login used from several homes is one
-	// account; keep the first (default home wins).
+	return dedupeCodexAccounts(accounts.flat());
+}
+
+/**
+ * Dedupe by account email — one login used from several homes is one
+ * account; keep the first (default home wins).
+ */
+export function dedupeCodexAccounts(accounts: UsageAccount[]): UsageAccount[] {
 	const seen = new Set<string>();
-	return accounts.flat().filter((account) => {
+	return accounts.filter((account) => {
 		const key = account.email ?? account.accountKey;
 		if (seen.has(key)) return false;
 		seen.add(key);
@@ -119,16 +125,60 @@ export async function fetchCodexAccounts(): Promise<UsageAccount[]> {
 	});
 }
 
-async function fetchCodexAccountForHome(
-	home: CodexHome,
-	isDefaultHome: boolean,
-): Promise<UsageAccount[]> {
+/**
+ * The quota store's discovery pass (KTD10): the homes worth polling, and the
+ * API-billed rows that have no quota endpoint to call.
+ */
+export async function discoverCodexQuotaTargets(): Promise<{
+	selections: Array<string | null>;
+	staticAccounts: UsageAccount[];
+}> {
+	const homes = await discoverCodexHomes();
+	const defaultHome = homes[0]?.home ?? null;
+	const selections: Array<string | null> = [];
+	const staticAccounts: UsageAccount[] = [];
+	for (const home of homes) {
+		const isDefaultHome = home.home === defaultHome;
+		if (home.credentialKind === "api_key") {
+			staticAccounts.push(codexApiKeyAccount(home, isDefaultHome));
+		} else {
+			selections.push(isDefaultHome ? null : home.home);
+		}
+	}
+	return { selections, staticAccounts };
+}
+
+/**
+ * One login's quota, for the quota store's per-account cadence. `rateLimited`
+ * is the 429 that backs off every poll on this endpoint (KTD10).
+ */
+export async function fetchCodexAccountForSelection(
+	selection: string | null,
+): Promise<{ account: UsageAccount | null; rateLimited: boolean }> {
+	const homes = await discoverCodexHomes();
+	const defaultHome = homes[0]?.home ?? null;
+	const home =
+		selection === null
+			? homes[0]
+			: homes.find((candidate) => candidate.home === selection);
+	if (!home) return { account: null, rateLimited: false };
+	let rateLimited = false;
+	const accounts = await fetchCodexAccountForHome(
+		home,
+		home.home === defaultHome,
+		(status) => {
+			rateLimited = status === 429;
+		},
+	);
+	return { account: accounts[0] ?? null, rateLimited };
+}
+
+function codexAccountBase(home: CodexHome, isDefaultHome: boolean) {
 	const codexHome = home.home;
-	const authPath = join(codexHome, "auth.json");
-	const base = {
+	return {
 		agent: "codex" as const,
 		credentialKind: home.credentialKind,
-		accountKey: authPath,
+		accountKey: join(codexHome, "auth.json"),
 		sourceLabel: codexHome.replace(homedir(), "~"),
 		extraUsage: null,
 		selection: isDefaultHome ? null : codexHome,
@@ -136,22 +186,40 @@ async function fetchCodexAccountForHome(
 		isDefault: false,
 		fetchedAt: new Date(),
 	};
+}
 
-	// API billing has no quota endpoint, and the auth.json holds the raw key —
-	// the card is built from the marker alone.
+/**
+ * API billing has no quota endpoint, and the auth.json holds the raw key —
+ * the card is built from the marker alone.
+ */
+function codexApiKeyAccount(
+	home: CodexHome,
+	isDefaultHome: boolean,
+): UsageAccount {
+	return {
+		...codexAccountBase(home, isDefaultHome),
+		email: null,
+		plan: null,
+		status: "ok",
+		statusDetail:
+			"Billed per token through the OpenAI Platform — no quota windows.",
+		windows: [],
+		creditsBalance: null,
+	};
+}
+
+async function fetchCodexAccountForHome(
+	home: CodexHome,
+	isDefaultHome: boolean,
+	/** The usage endpoint's HTTP status, so a poller can see a 429. */
+	onHttpStatus?: (status: number) => void,
+): Promise<UsageAccount[]> {
+	const codexHome = home.home;
+	const authPath = join(codexHome, "auth.json");
+	const base = codexAccountBase(home, isDefaultHome);
+
 	if (home.credentialKind === "api_key") {
-		return [
-			{
-				...base,
-				email: null,
-				plan: null,
-				status: "ok",
-				statusDetail:
-					"Billed per token through the OpenAI Platform — no quota windows.",
-				windows: [],
-				creditsBalance: null,
-			},
-		];
+		return [codexApiKeyAccount(home, isDefaultHome)];
 	}
 
 	let auth: CodexAuthFile;
@@ -174,6 +242,7 @@ async function fetchCodexAccountForHome(
 			headers,
 			signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
 		});
+		onHttpStatus?.(response.status);
 
 		if (response.status === 401 || response.status === 403) {
 			return [
