@@ -389,24 +389,29 @@ export function useSidebarDnd({
 		setWorkspacePinned,
 	} = useDashboardSidebarState();
 
+	// useSensor memoizes on the options object's identity, and this hook
+	// re-renders on every hovered-row change mid-drag. Inline option literals
+	// therefore rebuilt the sensor list each time, which recomputed every
+	// sortable's `listeners` and busted the memo that keeps each project's
+	// section subtree (rows, menus, dialogs) out of the per-move render.
+	const sensorOptions = useMemo(
+		() => ({
+			// 5px absorbs the 1-3px of jitter a real click carries without
+			// turning it into a pickup; anything smaller starts reordering rows
+			// on sloppy clicks. The trailing click after an activated drag is
+			// already swallowed by dnd-kit (capture-phase document click
+			// listener installed at activation, detached one event loop after
+			// the drag ends).
+			mouse: { activationConstraint: { distance: 5 }, disabled },
+			touch: { activationConstraint: { delay: 200, tolerance: 5 }, disabled },
+			keyboard: { coordinateGetter: sortableKeyboardCoordinates, disabled },
+		}),
+		[disabled],
+	);
 	const sensors = useSensors(
-		// 5px absorbs the 1-3px of jitter a real click carries without turning
-		// it into a pickup; anything smaller starts reordering rows on sloppy
-		// clicks. The trailing click after an activated drag is already
-		// swallowed by dnd-kit (capture-phase document click listener installed
-		// at activation, detached one event loop after the drag ends).
-		useSensor(GatedMouseSensor, {
-			activationConstraint: { distance: 5 },
-			disabled,
-		}),
-		useSensor(GatedTouchSensor, {
-			activationConstraint: { delay: 200, tolerance: 5 },
-			disabled,
-		}),
-		useSensor(GatedKeyboardSensor, {
-			coordinateGetter: sortableKeyboardCoordinates,
-			disabled,
-		}),
+		useSensor(GatedMouseSensor, sensorOptions.mouse),
+		useSensor(GatedTouchSensor, sensorOptions.touch),
+		useSensor(GatedKeyboardSensor, sensorOptions.keyboard),
 	);
 
 	const [items, setItems] = useState<SidebarDndItems>(() => ({
