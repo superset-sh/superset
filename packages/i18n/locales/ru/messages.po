@@ -525,9 +525,6 @@ msgstr "{count, plural, one {# worktree в этом репозитории не 
 msgid "{count, plural, one {Created # workspace} other {Created # workspaces}}"
 msgstr "{count, plural, one {Создана # рабочая область} few {Создано # рабочие области} many {Создано # рабочих областей} other {Создано # рабочей области}}"
 
-msgid "{count, plural, one {Delete # Workspace} other {Delete # Workspaces}}"
-msgstr "{count, plural, one {Удалить # рабочую область} few {Удалить # рабочие области} many {Удалить # рабочих областей} other {Удалить # рабочих областей}}"
-
 msgid "{count, plural, one {Every # day at {time}} other {Every # days at {time}}}"
 msgstr "{count, plural, one {Каждый # день в {time}} few {Каждые # дня в {time}} many {Каждые # дней в {time}} other {Каждые # дня в {time}}}"
 
@@ -1900,7 +1897,7 @@ msgstr "Архив"
 msgid "Archived \"{0}\""
 msgstr "«{0}» архивирована"
 
-#. placeholder {0}: formatRelativeTime(workspace.shelvedAt)
+#. placeholder {0}: formatRelativeTime(workspace.archivedAt)
 msgid "Archived {0}"
 msgstr "Архивирована {0}"
 
@@ -4498,9 +4495,6 @@ msgstr "Удалить проект…"
 
 msgid "Delete script"
 msgstr "Удалить скрипт"
-
-msgid "Delete selected workspaces"
-msgstr "Удалить выбранные рабочие области"
 
 msgid "Delete session \"{workspaceName}\"?"
 msgstr "Удалить сессию «{workspaceName}»?"

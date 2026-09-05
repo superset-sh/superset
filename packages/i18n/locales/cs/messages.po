@@ -525,9 +525,6 @@ msgstr "{count, plural, one {# worktree v tomto repozitáři nemá pracovní pro
 msgid "{count, plural, one {Created # workspace} other {Created # workspaces}}"
 msgstr "{count, plural, one {Vytvořen # pracovní prostor} few {Vytvořeny # pracovní prostory} many {Vytvořeno # pracovního prostoru} other {Vytvořeno # pracovních prostorů}}"
 
-msgid "{count, plural, one {Delete # Workspace} other {Delete # Workspaces}}"
-msgstr "{count, plural, one {Smazat # pracovní prostor} few {Smazat # pracovní prostory} many {Smazat # pracovního prostoru} other {Smazat # pracovních prostorů}}"
-
 msgid "{count, plural, one {Every # day at {time}} other {Every # days at {time}}}"
 msgstr "{count, plural, one {Každý # den v {time}} few {Každé # dny v {time}} many {Každých # dne v {time}} other {Každých # dní v {time}}}"
 
@@ -1900,7 +1897,7 @@ msgstr "Archivované"
 msgid "Archived \"{0}\""
 msgstr "„{0}“ archivován"
 
-#. placeholder {0}: formatRelativeTime(workspace.shelvedAt)
+#. placeholder {0}: formatRelativeTime(workspace.archivedAt)
 msgid "Archived {0}"
 msgstr "Archivováno {0}"
 
@@ -4498,9 +4495,6 @@ msgstr "Smazat projekt…"
 
 msgid "Delete script"
 msgstr "Smazat skript"
-
-msgid "Delete selected workspaces"
-msgstr "Smazat vybrané pracovní prostory"
 
 msgid "Delete session \"{workspaceName}\"?"
 msgstr "Smazat relaci „{workspaceName}“?"

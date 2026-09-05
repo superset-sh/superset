@@ -525,9 +525,6 @@ msgstr "{count, plural, one {Bu depodaki # worktree'nin çalışma alanı yok. �
 msgid "{count, plural, one {Created # workspace} other {Created # workspaces}}"
 msgstr "{count, plural, one {# çalışma alanı oluşturuldu} other {# çalışma alanı oluşturuldu}}"
 
-msgid "{count, plural, one {Delete # Workspace} other {Delete # Workspaces}}"
-msgstr "{count, plural, one {# çalışma alanını sil} other {# çalışma alanını sil}}"
-
 msgid "{count, plural, one {Every # day at {time}} other {Every # days at {time}}}"
 msgstr "{count, plural, one {# günde bir, saat {time}} other {# günde bir, saat {time}}}"
 
@@ -1900,7 +1897,7 @@ msgstr "Arşivlenmiş"
 msgid "Archived \"{0}\""
 msgstr "\"{0}\" arşivlendi"
 
-#. placeholder {0}: formatRelativeTime(workspace.shelvedAt)
+#. placeholder {0}: formatRelativeTime(workspace.archivedAt)
 msgid "Archived {0}"
 msgstr "{0} arşivlendi"
 
@@ -4498,9 +4495,6 @@ msgstr "Projeyi sil…"
 
 msgid "Delete script"
 msgstr "Betiği sil"
-
-msgid "Delete selected workspaces"
-msgstr "Seçili çalışma alanlarını sil"
 
 msgid "Delete session \"{workspaceName}\"?"
 msgstr "\"{workspaceName}\" oturumu silinsin mi?"

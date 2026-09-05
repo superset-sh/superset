@@ -34,6 +34,7 @@ export interface V2WorkspaceActions {
 	removeFromSidebar: () => void;
 	/** Instant, reversible; no dialog. */
 	archive: () => void;
+	/** Cloud sandboxes only (no archive); host rows delete from the Archived view. */
 	openDeleteDialog: () => void;
 }
 
@@ -195,14 +196,15 @@ export function V2WorkspaceContextMenu({
 								<LuArchive className="size-4" />
 								<Trans>Archive</Trans>
 							</ContextMenuItem>
-						) : null}
-						<ContextMenuItem
-							onSelect={openDeleteDialog}
-							className="text-destructive focus:text-destructive"
-						>
-							<LuTrash2 className="size-4 text-destructive" />
-							<Trans>Delete</Trans>
-						</ContextMenuItem>
+						) : (
+							<ContextMenuItem
+								onSelect={openDeleteDialog}
+								className="text-destructive focus:text-destructive"
+							>
+								<LuTrash2 className="size-4 text-destructive" />
+								<Trans>Delete</Trans>
+							</ContextMenuItem>
+						)}
 					</>
 				) : null}
 			</ContextMenuContent>

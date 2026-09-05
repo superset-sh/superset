@@ -525,9 +525,6 @@ msgstr "{count, plural, one {このリポジトリの#件のワークツリー�
 msgid "{count, plural, one {Created # workspace} other {Created # workspaces}}"
 msgstr "{count, plural, one {#件のワークスペースを作成しました} other {#件のワークスペースを作成しました}}"
 
-msgid "{count, plural, one {Delete # Workspace} other {Delete # Workspaces}}"
-msgstr "{count, plural, one {#件のワークスペースを削除} other {#件のワークスペースを削除}}"
-
 msgid "{count, plural, one {Every # day at {time}} other {Every # days at {time}}}"
 msgstr "{count, plural, one {#日ごと {time}} other {#日ごと {time}}}"
 
@@ -1900,7 +1897,7 @@ msgstr "アーカイブ済み"
 msgid "Archived \"{0}\""
 msgstr "「{0}」をアーカイブしました"
 
-#. placeholder {0}: formatRelativeTime(workspace.shelvedAt)
+#. placeholder {0}: formatRelativeTime(workspace.archivedAt)
 msgid "Archived {0}"
 msgstr "{0}にアーカイブ"
 
@@ -4498,9 +4495,6 @@ msgstr "プロジェクトを削除…"
 
 msgid "Delete script"
 msgstr "スクリプトを削除"
-
-msgid "Delete selected workspaces"
-msgstr "選択したワークスペースを削除"
 
 msgid "Delete session \"{workspaceName}\"?"
 msgstr "セッション「{workspaceName}」を削除しますか?"

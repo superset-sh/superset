@@ -525,9 +525,6 @@ msgstr "{count, plural, one {# worktree trong repository này chưa có workspac
 msgid "{count, plural, one {Created # workspace} other {Created # workspaces}}"
 msgstr "{count, plural, one {Đã tạo # workspace} other {Đã tạo # workspace}}"
 
-msgid "{count, plural, one {Delete # Workspace} other {Delete # Workspaces}}"
-msgstr "{count, plural, one {Xóa # workspace} other {Xóa # workspace}}"
-
 msgid "{count, plural, one {Every # day at {time}} other {Every # days at {time}}}"
 msgstr "{count, plural, one {Mỗi # ngày lúc {time}} other {Mỗi # ngày lúc {time}}}"
 
@@ -1900,7 +1897,7 @@ msgstr "Đã lưu trữ"
 msgid "Archived \"{0}\""
 msgstr "Đã lưu trữ \"{0}\""
 
-#. placeholder {0}: formatRelativeTime(workspace.shelvedAt)
+#. placeholder {0}: formatRelativeTime(workspace.archivedAt)
 msgid "Archived {0}"
 msgstr "Đã lưu trữ {0}"
 
@@ -4498,9 +4495,6 @@ msgstr "Xóa dự án…"
 
 msgid "Delete script"
 msgstr "Xóa script"
-
-msgid "Delete selected workspaces"
-msgstr "Xóa các workspace đã chọn"
 
 msgid "Delete session \"{workspaceName}\"?"
 msgstr "Xóa phiên \"{workspaceName}\"?"

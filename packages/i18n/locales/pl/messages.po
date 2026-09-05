@@ -525,9 +525,6 @@ msgstr "{count, plural, one {# worktree w tym repozytorium nie ma obszaru robocz
 msgid "{count, plural, one {Created # workspace} other {Created # workspaces}}"
 msgstr "{count, plural, one {Utworzono # obszar roboczy} few {Utworzono # obszary robocze} many {Utworzono # obszarów roboczych} other {Utworzono # obszaru roboczego}}"
 
-msgid "{count, plural, one {Delete # Workspace} other {Delete # Workspaces}}"
-msgstr "{count, plural, one {Usuń # obszar roboczy} few {Usuń # obszary robocze} many {Usuń # obszarów roboczych} other {Usuń # obszaru roboczego}}"
-
 msgid "{count, plural, one {Every # day at {time}} other {Every # days at {time}}}"
 msgstr "{count, plural, one {Co # dzień o {time}} few {Co # dni o {time}} many {Co # dni o {time}} other {Co # dnia o {time}}}"
 
@@ -1900,7 +1897,7 @@ msgstr "Zarchiwizowane"
 msgid "Archived \"{0}\""
 msgstr "Zarchiwizowano „{0}”"
 
-#. placeholder {0}: formatRelativeTime(workspace.shelvedAt)
+#. placeholder {0}: formatRelativeTime(workspace.archivedAt)
 msgid "Archived {0}"
 msgstr "Zarchiwizowano {0}"
 
@@ -4498,9 +4495,6 @@ msgstr "Usuń projekt…"
 
 msgid "Delete script"
 msgstr "Usuń skrypt"
-
-msgid "Delete selected workspaces"
-msgstr "Usuń zaznaczone obszary robocze"
 
 msgid "Delete session \"{workspaceName}\"?"
 msgstr "Usunąć sesję „{workspaceName}”?"

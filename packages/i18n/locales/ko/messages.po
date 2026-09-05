@@ -525,9 +525,6 @@ msgstr "{count, plural, one {이 리포지토리의 worktree #개에 워크스�
 msgid "{count, plural, one {Created # workspace} other {Created # workspaces}}"
 msgstr "{count, plural, one {워크스페이스 #개를 만들었습니다} other {워크스페이스 #개를 만들었습니다}}"
 
-msgid "{count, plural, one {Delete # Workspace} other {Delete # Workspaces}}"
-msgstr "{count, plural, one {워크스페이스 #개 삭제} other {워크스페이스 #개 삭제}}"
-
 msgid "{count, plural, one {Every # day at {time}} other {Every # days at {time}}}"
 msgstr "{count, plural, one {#일마다 {time}} other {#일마다 {time}}}"
 
@@ -1900,7 +1897,7 @@ msgstr "보관됨"
 msgid "Archived \"{0}\""
 msgstr "\"{0}\"을(를) 보관했습니다"
 
-#. placeholder {0}: formatRelativeTime(workspace.shelvedAt)
+#. placeholder {0}: formatRelativeTime(workspace.archivedAt)
 msgid "Archived {0}"
 msgstr "{0} 보관됨"
 
@@ -4498,9 +4495,6 @@ msgstr "프로젝트 삭제…"
 
 msgid "Delete script"
 msgstr "스크립트 삭제"
-
-msgid "Delete selected workspaces"
-msgstr "선택한 워크스페이스 삭제"
 
 msgid "Delete session \"{workspaceName}\"?"
 msgstr "세션 \"{workspaceName}\"을(를) 삭제할까요?"

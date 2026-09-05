@@ -525,9 +525,6 @@ msgstr "{count, plural, one {此儲存庫中有#個worktree沒有對應的工作
 msgid "{count, plural, one {Created # workspace} other {Created # workspaces}}"
 msgstr "{count, plural, one {已建立#個工作區} other {已建立#個工作區}}"
 
-msgid "{count, plural, one {Delete # Workspace} other {Delete # Workspaces}}"
-msgstr "{count, plural, one {刪除#個工作區} other {刪除#個工作區}}"
-
 msgid "{count, plural, one {Every # day at {time}} other {Every # days at {time}}}"
 msgstr "{count, plural, one {每#天{time}} other {每#天{time}}}"
 
@@ -1900,7 +1897,7 @@ msgstr "已歸檔"
 msgid "Archived \"{0}\""
 msgstr "已歸檔「{0}」"
 
-#. placeholder {0}: formatRelativeTime(workspace.shelvedAt)
+#. placeholder {0}: formatRelativeTime(workspace.archivedAt)
 msgid "Archived {0}"
 msgstr "歸檔於{0}"
 
@@ -4498,9 +4495,6 @@ msgstr "刪除專案…"
 
 msgid "Delete script"
 msgstr "刪除指令碼"
-
-msgid "Delete selected workspaces"
-msgstr "刪除選中的工作區"
 
 msgid "Delete session \"{workspaceName}\"?"
 msgstr "刪除會話「{workspaceName}」？"

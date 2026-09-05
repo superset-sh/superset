@@ -525,9 +525,6 @@ msgstr "{count, plural, one {# worktree di repositori ini belum punya workspace.
 msgid "{count, plural, one {Created # workspace} other {Created # workspaces}}"
 msgstr "{count, plural, one {Membuat # workspace} other {Membuat # workspace}}"
 
-msgid "{count, plural, one {Delete # Workspace} other {Delete # Workspaces}}"
-msgstr "{count, plural, one {Hapus # Workspace} other {Hapus # Workspace}}"
-
 msgid "{count, plural, one {Every # day at {time}} other {Every # days at {time}}}"
 msgstr "{count, plural, one {Tiap # hari pukul {time}} other {Tiap # hari pukul {time}}}"
 
@@ -1900,7 +1897,7 @@ msgstr "Diarsipkan"
 msgid "Archived \"{0}\""
 msgstr "\"{0}\" diarsipkan"
 
-#. placeholder {0}: formatRelativeTime(workspace.shelvedAt)
+#. placeholder {0}: formatRelativeTime(workspace.archivedAt)
 msgid "Archived {0}"
 msgstr "Diarsipkan {0}"
 
@@ -4498,9 +4495,6 @@ msgstr "Hapus proyek…"
 
 msgid "Delete script"
 msgstr "Hapus skrip"
-
-msgid "Delete selected workspaces"
-msgstr "Hapus workspace yang dipilih"
 
 msgid "Delete session \"{workspaceName}\"?"
 msgstr "Hapus sesi \"{workspaceName}\"?"

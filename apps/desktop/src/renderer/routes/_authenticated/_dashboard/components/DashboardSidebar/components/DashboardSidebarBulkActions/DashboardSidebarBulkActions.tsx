@@ -13,14 +13,12 @@ import {
 	LuArchive,
 	LuFolderInput,
 	LuFolderPlus,
-	LuTrash2,
 	LuUngroup,
 	LuX,
 } from "react-icons/lu";
 import { useArchiveWorkspaceIntent } from "renderer/stores/archive-workspace-intent";
 import { useBulkWorkspaceMoveActions } from "../../hooks/useBulkWorkspaceMoveActions";
 import { useDashboardSidebarSelection } from "../../providers/DashboardSidebarSelectionProvider";
-import { useBulkDeleteWorkspacesIntent } from "../../stores/bulkDeleteWorkspacesIntent";
 import type {
 	DashboardSidebarProject,
 	DashboardSidebarWorkspace,
@@ -77,11 +75,12 @@ export function DashboardSidebarBulkActions({
 		sectionIdByWorkspaceId,
 	});
 
-	const openDeleteDialog = () =>
-		useBulkDeleteWorkspacesIntent.getState().request(selectedWorkspaces);
 	const archivableIds = selectArchivableWorkspaceIds(selectedWorkspaces);
 	// Instant and undoable (one toast with "Undo all"), so the selection
-	// clears right away — the rows are leaving the sidebar.
+	// clears right away — the rows are leaving the sidebar. There is no bulk
+	// Delete here: a host workspace is deleted from the Archived view, and
+	// cloud sandboxes (the only rows Delete would apply to) can't be
+	// bulk-selected.
 	const archiveSelection = () => {
 		if (archivableIds.length === 0) return;
 		useArchiveWorkspaceIntent
@@ -225,24 +224,6 @@ export function DashboardSidebarBulkActions({
 						</TooltipTrigger>
 						<TooltipContent side="bottom">
 							<Trans>Archive</Trans>
-						</TooltipContent>
-					</Tooltip>
-
-					<Tooltip delayDuration={300}>
-						<TooltipTrigger asChild>
-							<button
-								type="button"
-								onClick={openDeleteDialog}
-								className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-								aria-label={t({
-									message: "Delete selected workspaces",
-								})}
-							>
-								<LuTrash2 className="size-3.5" />
-							</button>
-						</TooltipTrigger>
-						<TooltipContent side="bottom">
-							<Trans>Delete</Trans>
 						</TooltipContent>
 					</Tooltip>
 				</div>

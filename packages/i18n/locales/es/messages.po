@@ -525,9 +525,6 @@ msgstr "{count, plural, one {# worktree de este repositorio no tiene espacio de 
 msgid "{count, plural, one {Created # workspace} other {Created # workspaces}}"
 msgstr "{count, plural, one {# espacio de trabajo creado} other {# espacios de trabajo creados}}"
 
-msgid "{count, plural, one {Delete # Workspace} other {Delete # Workspaces}}"
-msgstr "{count, plural, one {Eliminar # espacio de trabajo} other {Eliminar # espacios de trabajo}}"
-
 msgid "{count, plural, one {Every # day at {time}} other {Every # days at {time}}}"
 msgstr "{count, plural, one {Cada # día a las {time}} other {Cada # días a las {time}}}"
 
@@ -1900,7 +1897,7 @@ msgstr "Archivados"
 msgid "Archived \"{0}\""
 msgstr "«{0}» archivado"
 
-#. placeholder {0}: formatRelativeTime(workspace.shelvedAt)
+#. placeholder {0}: formatRelativeTime(workspace.archivedAt)
 msgid "Archived {0}"
 msgstr "Archivado {0}"
 
@@ -4498,9 +4495,6 @@ msgstr "Eliminar el proyecto…"
 
 msgid "Delete script"
 msgstr "Eliminar el script"
-
-msgid "Delete selected workspaces"
-msgstr "Eliminar los espacios de trabajo seleccionados"
 
 msgid "Delete session \"{workspaceName}\"?"
 msgstr "¿Eliminar la sesión \"{workspaceName}\"?"

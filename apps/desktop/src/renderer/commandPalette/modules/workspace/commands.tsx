@@ -103,7 +103,8 @@ export const workspaceProvider: CommandProvider = {
 
 		if (!isMain) {
 			// Archive is the primary close: instant and undoable. Cloud sandboxes
-			// have no archive and keep delete on the hotkey.
+			// have no archive and keep Delete (on the hotkey too); a host
+			// workspace is deleted from the Workspaces page's Archived view.
 			if (!workspace.isCloud) {
 				commands.push({
 					id: `workspace.archive:${workspace.id}`,
@@ -112,7 +113,7 @@ export const workspaceProvider: CommandProvider = {
 					}),
 					section: "workspace",
 					icon: ArchiveIcon,
-					keywords: ["close", "put away", "shelve"],
+					keywords: ["close", "put away"],
 					hotkeyId: "CLOSE_WORKSPACE",
 					run: () =>
 						useArchiveWorkspaceIntent.getState().request({
@@ -120,22 +121,23 @@ export const workspaceProvider: CommandProvider = {
 							source: "command-palette",
 						}),
 				});
-			}
-			commands.push({
-				id: `workspace.delete:${workspace.id}`,
-				title: msg({
-					message: "Delete workspace",
-				}),
-				section: "workspace",
-				icon: Trash2Icon,
-				keywords: ["remove", "close"],
-				hotkeyId: workspace.isCloud ? "CLOSE_WORKSPACE" : undefined,
-				run: () =>
-					useDeleteWorkspaceIntent.getState().request({
-						workspaceId: workspace.id,
-						workspaceName: workspace.name,
+			} else {
+				commands.push({
+					id: `workspace.delete:${workspace.id}`,
+					title: msg({
+						message: "Delete workspace",
 					}),
-			});
+					section: "workspace",
+					icon: Trash2Icon,
+					keywords: ["remove", "close"],
+					hotkeyId: "CLOSE_WORKSPACE",
+					run: () =>
+						useDeleteWorkspaceIntent.getState().request({
+							workspaceId: workspace.id,
+							workspaceName: workspace.name,
+						}),
+				});
+			}
 		}
 
 		return commands;

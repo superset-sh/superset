@@ -525,9 +525,6 @@ msgstr "{count, plural, one {# worktree in this repository has no workspace. It 
 msgid "{count, plural, one {Created # workspace} other {Created # workspaces}}"
 msgstr "{count, plural, one {Created # workspace} other {Created # workspaces}}"
 
-msgid "{count, plural, one {Delete # Workspace} other {Delete # Workspaces}}"
-msgstr "{count, plural, one {Delete # Workspace} other {Delete # Workspaces}}"
-
 msgid "{count, plural, one {Every # day at {time}} other {Every # days at {time}}}"
 msgstr "{count, plural, one {Every # day at {time}} other {Every # days at {time}}}"
 
@@ -1900,7 +1897,7 @@ msgstr "Archived"
 msgid "Archived \"{0}\""
 msgstr "Archived \"{0}\""
 
-#. placeholder {0}: formatRelativeTime(workspace.shelvedAt)
+#. placeholder {0}: formatRelativeTime(workspace.archivedAt)
 msgid "Archived {0}"
 msgstr "Archived {0}"
 
@@ -4498,9 +4495,6 @@ msgstr "Delete Project…"
 
 msgid "Delete script"
 msgstr "Delete script"
-
-msgid "Delete selected workspaces"
-msgstr "Delete selected workspaces"
 
 msgid "Delete session \"{workspaceName}\"?"
 msgstr "Delete session \"{workspaceName}\"?"

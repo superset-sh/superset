@@ -68,6 +68,11 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 	onPromoteToEnvironment?: () => void;
 	/** Instant, reversible; absent for main and cloud workspaces. */
 	onArchive?: () => void;
+	/**
+	 * Cloud sandboxes only: they have no archive, so Delete is their close.
+	 * A host workspace is deleted from the Workspaces page's Archived view,
+	 * never from here — one destructive path, behind a deliberate step.
+	 */
 	onDelete?: () => void;
 	onToggleUnread: () => void;
 	onClearStatus: () => void;
@@ -277,8 +282,9 @@ export function DashboardSidebarWorkspaceContextMenu({
 					>
 						<LuTrash2 className="size-4 mr-2 text-destructive" />
 						<Trans>Delete</Trans>
-						{/* Without an Archive item (cloud sandboxes) the hotkey still
-						    deletes; the shortcut must sit on what it does. */}
+						{/* Delete is only offered where there is no Archive (cloud
+						    sandboxes), and there the hotkey deletes; the shortcut
+						    must sit on what it does. */}
 						{!onArchive && showArchiveShortcut && (
 							<ContextMenuShortcut>{archiveHotkeyText}</ContextMenuShortcut>
 						)}

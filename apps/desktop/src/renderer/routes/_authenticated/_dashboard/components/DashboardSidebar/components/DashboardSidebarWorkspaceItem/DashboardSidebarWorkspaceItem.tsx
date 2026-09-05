@@ -316,7 +316,9 @@ export function DashboardSidebarWorkspaceItem({
 							onArchive={
 								canArchive ? () => requestArchive("sidebar-menu") : undefined
 							}
-							onDelete={isMainWorkspace ? undefined : requestDelete}
+							onDelete={
+								isMainWorkspace || canArchive ? undefined : requestDelete
+							}
 							onToggleUnread={handleToggleUnread}
 							onClearStatus={handleClearStatus}
 						>
@@ -415,7 +417,7 @@ export function DashboardSidebarWorkspaceItem({
 						onArchive={
 							canArchive ? () => requestArchive("sidebar-menu") : undefined
 						}
-						onDelete={isMainWorkspace ? undefined : requestDelete}
+						onDelete={isMainWorkspace || canArchive ? undefined : requestDelete}
 						onToggleUnread={handleToggleUnread}
 						onClearStatus={handleClearStatus}
 					>
