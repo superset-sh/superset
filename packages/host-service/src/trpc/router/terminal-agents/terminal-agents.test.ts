@@ -444,6 +444,38 @@ describe("listAccountRestartCandidates", () => {
 		]);
 	});
 
+	// `lastFailure` has no SQLite column, so the persisted read gives it back
+	// without one. The engine's Claude limit-stop path keys on exactly that
+	// field, so it has to come from the in-memory row.
+	it("carries the in-memory failure the persisted row cannot hold", () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedLiveBinding(db, { terminalId: "t1" });
+		const persisted = createStore(db).list();
+		const store = new TerminalAgentStore({
+			load: () => [],
+			upsert: () => {},
+			delete: () => {},
+			listLive: () => persisted,
+		});
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: "ws-1",
+			agentId: "claude",
+			agentSessionId: "sess-t1",
+			eventType: "Failed",
+			errorType: "rate_limit",
+			occurredAt: 9,
+		});
+
+		const candidates = listAccountRestartCandidates(db, store, "claude");
+
+		expect(persisted[0]?.lastFailure).toBeUndefined();
+		expect(candidates.map(({ binding }) => binding.lastFailure)).toEqual([
+			{ errorType: "rate_limit", at: 9 },
+		]);
+	});
+
 	it("skips sessions whose config cannot resume", () => {
 		const db = createTestDb();
 		seedAgentConfig(db, { resumeArgs: [] });
@@ -714,6 +746,38 @@ describe("killAndResumeTerminalAgent", () => {
 		// Killed before the relaunch, then swept again by the resume path's
 		// own cleanup — the second dispose lands on an already-dead terminal.
 		expect(disposedTerminals).toEqual(["t1", "t1"]);
+	});
+
+	// The daemon reports a kill it could not confirm by returning, not by
+	// throwing. Resuming on top of a pty that may still be alive would run two
+	// agents on one session.
+	it("does not resume when the daemon could not confirm the kill", async () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedLiveBinding(db, { terminalId: "t1" });
+		const { deps, runCalls } = createDeps(db);
+		deps.disposeSession = async () => ({
+			terminalId: "t1",
+			daemonCloseAttempted: true,
+			daemonCloseSucceeded: false,
+		});
+
+		const result = await killAndResumeTerminalAgent(deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+			prompt: "nudge",
+		});
+
+		expect(result).toEqual({ resumed: false });
+		expect(runCalls).toEqual([]);
+		// The nudge stays pending, so the resume that follows the reaper's
+		// kill still carries it.
+		const { deps: retryDeps, runCalls: retryCalls } = createDeps(db);
+		await resumeTerminalAgentSession(retryDeps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+		expect(retryCalls.map((call) => call.prompt)).toEqual(["nudge"]);
 	});
 
 	it("restarts without a prompt when no nudge is given", async () => {

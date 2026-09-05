@@ -978,6 +978,81 @@ describe("AccountEngine", () => {
 		expect(h.switched.at(-1)?.reasonKind).toBe("external");
 	});
 
+	// The adoption and the decision happen in the same tick, so without a
+	// cooldown the engine can switch straight back off the login the user just
+	// signed into by hand.
+	it("starts the cooldown when it adopts an external login", async () => {
+		const h = harness({ entries: twoClaudeAccounts() });
+		enable(h.engine);
+		await h.engine.tick();
+
+		// A `/login` inside a session put account A back, and A is the one over
+		// the threshold: the decision would move away from it immediately.
+		h.setEntries([
+			entryFor(usageAccount({ windows: [w("five_hour", "Session (5h)", 95)] })),
+			entryFor(
+				usageAccount({
+					accountKey: "key-b",
+					accountId: "acct-b",
+					selection: "/profiles/b",
+					email: "b@example.com",
+					windows: [w("five_hour", "Session (5h)", 5)],
+				}),
+			),
+		]);
+		h.setActiveIdentity({
+			accountUuid: "acct-a",
+			credentialHash: "someone-else",
+		});
+		// Past the first switch's cooldown, so only the adoption's own can hold
+		// the decision back.
+		h.advance(6 * MINUTE);
+		const at = h.at();
+		await h.engine.tick();
+
+		expect(h.switched.at(-1)?.reasonKind).toBe("external");
+		expect(h.engine.status().claude.activeAccountId).toBe("acct-a");
+		expect(h.engine.status().claude.cooldownUntil).toBe(at + 5 * MINUTE);
+	});
+
+	// API-billed logins carry no provider account id, so a recorded null id
+	// matches every one of them: only the selection says which is active.
+	it("tells two accounts with no provider id apart by the selection", async () => {
+		const h = harness({
+			entries: [
+				entryFor(
+					usageAccount({
+						agent: "codex",
+						accountKey: "key-a",
+						accountId: null,
+						selection: "/codex/a",
+						windows: [w("primary", "Primary", 95)],
+					}),
+				),
+				entryFor(
+					usageAccount({
+						agent: "codex",
+						accountKey: "key-b",
+						accountId: null,
+						selection: "/codex/b",
+						windows: [w("primary", "Primary", 10)],
+					}),
+				),
+			],
+		});
+		enable(h.engine, "codex");
+		const runtime = h.engineState.readRuntime();
+		runtime.perAgent.codex.activeSelection = "/codex/b";
+		h.engineState.writeRuntime(runtime);
+
+		await h.engine.tick();
+
+		// The active account has room, so there is nothing to decide. Matching
+		// on the null id picks /codex/a — at 95% — and moves off it.
+		expect(h.pointers).toEqual([]);
+		expect(h.switched).toEqual([]);
+	});
+
 	// KTD5/R2: auto-switch is off on a fresh install, and the lock is what
 	// lets this instance act on the user's own commands at all.
 	it("claims the lock with every agent's auto-switch off", async () => {

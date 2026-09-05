@@ -168,6 +168,41 @@ describe("usageRouter.removeAccount", () => {
 		).rejects.toThrow(/switch/i);
 		expect(invalidate).not.toHaveBeenCalled();
 	});
+
+	// The re-check is only worth anything if a switch cannot run between it
+	// and the delete: the removal joins the engine's mutation lane, so a
+	// switch already queued there lands first and the re-check sees it.
+	it("runs the re-check behind a switch already queued on the engine", async () => {
+		const ctx = context();
+		let lane: Promise<unknown> = Promise.resolve();
+		const runExclusive = <T>(fn: () => Promise<T>): Promise<T> => {
+			const next = lane.then(fn, fn);
+			lane = next.then(
+				() => {},
+				() => {},
+			);
+			return next;
+		};
+		const agentStatus = { activeAccountId: null, activeSelection: null };
+		(ctx.runtime as unknown as { accountEngine: unknown }).accountEngine = {
+			status: () => ({ claude: agentStatus, codex: agentStatus }),
+			runExclusive,
+		};
+
+		// A switch onto the spare account is mid-flight on the lane when the
+		// removal arrives, and finishes after the removal's first check.
+		void runExclusive(async () => {
+			await new Promise((resolve) => setTimeout(resolve, 5));
+			writeRuntime("uuid-b", SPARE_DIR);
+		});
+
+		await expect(
+			usageRouter
+				.createCaller(ctx)
+				.removeAccount({ agent: "claude", selection: SPARE_DIR }),
+		).rejects.toThrow(/switch/i);
+		expect(invalidate).not.toHaveBeenCalled();
+	});
 });
 
 /**

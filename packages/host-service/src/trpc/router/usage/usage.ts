@@ -210,23 +210,35 @@ export const usageRouter = router({
 			};
 			refuseIfActive(target);
 			// A switch can land between the check above and the delete below —
-			// they are separated by awaits and no engine lock — and removing the
-			// dir every running session is signed in to is not recoverable. Both
-			// reads are cheap and neither hits a provider, so the check is
-			// repeated on fresh state as the last thing before the filesystem.
-			const current = (
-				await ctx.runtime.quotaStore.read({ agents: [input.agent] })
-			).find(
-				(account) =>
-					account.agent === input.agent &&
-					account.selection === input.selection,
-			);
-			refuseIfActive(current ?? target);
-			if (input.agent === "claude") {
-				await removeClaudeProfile(input.selection);
-			} else {
-				await removeCodexHome(input.selection);
-			}
+			// they are separated by awaits — and removing the dir every running
+			// session is signed in to is not recoverable. Both reads are cheap
+			// and neither hits a provider, so the check is repeated on fresh
+			// state as the last thing before the filesystem.
+			const recheckAndDelete = async (): Promise<void> => {
+				const current = (
+					await ctx.runtime.quotaStore.read({ agents: [input.agent] })
+				).find(
+					(account) =>
+						account.agent === input.agent &&
+						account.selection === input.selection,
+				);
+				refuseIfActive(current ?? target);
+				if (input.agent === "claude") {
+					await removeClaudeProfile(input.selection);
+				} else {
+					await removeCodexHome(input.selection);
+				}
+			};
+			// On the engine's mutation lane, so a switch already queued there
+			// finishes before the re-check reads the active account, and one
+			// that arrives later waits for the delete. This serialises within
+			// one host-service; across processes the lock owner's
+			// `ensureOwnership` is what stops another instance switching under
+			// us. A sandbox has no engine and keeps the unserialised path.
+			const engine = ctx.runtime.accountEngine;
+			await (engine
+				? engine.runExclusive(recheckAndDelete)
+				: recheckAndDelete());
 			// The store still lists the removed account; drop its entry so the
 			// next read re-discovers.
 			ctx.runtime.quotaStore.invalidate(

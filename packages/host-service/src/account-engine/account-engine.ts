@@ -522,6 +522,19 @@ export class AccountEngine {
 
 	// ── Public surface (U7) ────────────────────────────────────────────
 
+	/**
+	 * Runs `fn` on the same mutation lane as ticks and manual switches, for a
+	 * caller whose work must not interleave with a switch — deleting a profile
+	 * dir, say, which is not recoverable if a switch lands onto it first.
+	 *
+	 * In-process only: it serialises this host-service's own mutations. Across
+	 * processes the host-wide lock still decides, and it is the switch side's
+	 * `ensureOwnership` that a lock loser is stopped by.
+	 */
+	runExclusive<T>(fn: () => Promise<T>): Promise<T> {
+		return this.serialize(fn);
+	}
+
 	getSettings(): EngineSettings {
 		return this.state.readSettings();
 	}
@@ -635,9 +648,7 @@ export class AccountEngine {
 		}
 		await this.resolveActive(agent, runtime);
 		const state = runtime.perAgent[agent];
-		const from =
-			pool.find((item) => item.row.accountId === state.activeAccountId)?.row ??
-			null;
+		const from = this.activeRow(pool, state)?.row ?? null;
 		const target = pool.find((item) => item.row.selection === selection);
 		if (!target) {
 			return {
@@ -767,7 +778,7 @@ export class AccountEngine {
 		if (!this.ensureOwnership(this.now())) return;
 
 		if (agents.includes("claude")) {
-			await this.reassertClaudeIdentity(runtime, now);
+			await this.reassertClaudeIdentity(runtime, settings.claude, now);
 			if (!this.ensureOwnership(this.now())) return;
 		}
 
@@ -952,6 +963,21 @@ export class AccountEngine {
 		return out;
 	}
 
+	/**
+	 * The pool row for the account sessions are running on. API-billed logins
+	 * carry no provider account id, so a recorded null id matches every one of
+	 * them — the selection is the only thing that tells those apart, and it is
+	 * what `resolveActive` records alongside the id.
+	 */
+	private activeRow(
+		pool: EngineAccount[],
+		state: RuntimeState["perAgent"][AccountAgent],
+	): EngineAccount | undefined {
+		return state.activeAccountId !== null
+			? pool.find((item) => item.row.accountId === state.activeAccountId)
+			: pool.find((item) => item.row.selection === state.activeSelection);
+	}
+
 	/** The engine's own record wins; then `isDefault`, then the host pointer. */
 	private async resolveActive(
 		agent: AccountAgent,
@@ -1063,9 +1089,7 @@ export class AccountEngine {
 	): Promise<void> {
 		const state = runtime.perAgent[agent];
 		const pool = this.pool(agent);
-		const active = pool.find(
-			(item) => item.row.accountId === state.activeAccountId,
-		);
+		const active = this.activeRow(pool, state);
 		// With nothing known about the account sessions run on there is no
 		// comparison to make, and a switch would be a guess.
 		if (!active) return;
@@ -1405,6 +1429,7 @@ export class AccountEngine {
 
 	private async reassertClaudeIdentity(
 		runtime: RuntimeState,
+		settings: AutoSwitchSettings,
 		now: number,
 	): Promise<void> {
 		const state = runtime.perAgent.claude;
@@ -1451,6 +1476,11 @@ export class AccountEngine {
 		const from = pool.find((item) => item.row.accountId === expected);
 		state.activeAccountId = seen.accountUuid;
 		state.activeSelection = adopted?.row.selection ?? null;
+		// The same cooldown a manual switch starts: someone just chose this
+		// login by hand, and `evaluate` runs later in this very tick — without
+		// it the engine could switch straight back off the account the user
+		// signed into.
+		state.cooldownUntil = now + settings.cooldownSeconds * 1000;
 		state.exhaustedNotifiedAt = null;
 		this.lastWritten = null;
 		const entry: SwitchRecord = {
@@ -1573,9 +1603,7 @@ export class AccountEngine {
 			this.handledHints.add(key);
 		}
 
-		const active = this.pool(agent).find(
-			(item) => item.row.accountId === state.activeAccountId,
-		);
+		const active = this.activeRow(this.pool(agent), state);
 		if (!active) return;
 
 		// Gate 1: the local rate limits, before any snapshot or provider call.
@@ -1614,9 +1642,7 @@ export class AccountEngine {
 		if (!this.ensureOwnership(this.now())) return;
 
 		const pool = this.pool(agent);
-		const from =
-			pool.find((item) => item.row.accountId === state.activeAccountId) ??
-			active;
+		const from = this.activeRow(pool, state) ?? active;
 		if (!from.row.windows.some((window) => window.usedPercent >= 100)) {
 			// The screen said "limit" but the account has room: a stale screen,
 			// or a limit that has already reset.

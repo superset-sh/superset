@@ -245,9 +245,29 @@ export async function resumeTerminalAgentSession(
 }
 
 /**
+ * `disposeSessionAndWait` reports a kill the daemon could not confirm by
+ * returning `daemonCloseSucceeded: false`, not by throwing — see
+ * `DisposeSessionResult`. Read defensively because the dep is a plain
+ * `Promise<unknown>`: a test double (or a future disposer) may resolve with
+ * nothing at all, which is not a failure.
+ */
+function daemonCloseFailed(result: unknown): boolean {
+	return (
+		typeof result === "object" &&
+		result !== null &&
+		(result as { daemonCloseSucceeded?: unknown }).daemonCloseSucceeded ===
+			false
+	);
+}
+
+/**
  * Kill one live agent session the way a crash would and bring it straight
  * back with its conversation — the account engine's mover (KTD8) and the
  * in-process half of `restartAccountSessions`.
+ *
+ * A kill the daemon could not confirm returns `{ resumed: false }`: the old
+ * pty may still hold the session, and resuming on top of it would run two
+ * agents on one conversation.
  *
  * `prompt` is registered before anything is killed, so the resume that
  * follows launches with it even if the renderer's auto-resume gets there
@@ -263,8 +283,9 @@ export async function killAndResumeTerminalAgent(
 	if (prompt) registerPendingNudge(workspaceId, terminalId, prompt);
 
 	deps.terminalAgentStore.markTerminalExited(terminalId);
+	let disposal: unknown;
 	try {
-		await deps.disposeSession(terminalId);
+		disposal = await deps.disposeSession(terminalId);
 	} catch (error) {
 		// The reaper finishes the kill and the nudge stays pending, so the
 		// candidate can still be resumed with it.
@@ -273,6 +294,18 @@ export async function killAndResumeTerminalAgent(
 			error,
 		});
 		throw error;
+	}
+	if (daemonCloseFailed(disposal)) {
+		// Same situation as the throw above, reported by a return value rather
+		// than an exception: the old pty may still be running the session, so
+		// resuming now would put two agents on one conversation. The reaper
+		// retries the kill and the nudge stays pending for the resume that
+		// follows it; the caller treats this as needing attention.
+		console.warn(
+			"[terminal-agents] the daemon could not confirm the kill; not resuming",
+			{ terminalId },
+		);
+		return { resumed: false };
 	}
 
 	return resumeTerminalAgentSession(deps, { workspaceId, terminalId });
@@ -303,7 +336,8 @@ export function listAccountRestartCandidates(
 	// The host default depends only on `db` and `provider`, and resolving it
 	// costs a DB query plus the pointer reads: once, not once per binding.
 	const defaultEnv = resolveDefaultAccountEnv(db, provider);
-	for (const binding of store.list()) {
+	for (const listed of store.list()) {
+		const binding = withEphemeralFields(store, listed);
 		if (!binding.agentSessionId) continue;
 		const config = resolveHostAgentConfig(
 			db,
@@ -324,6 +358,30 @@ export function listAccountRestartCandidates(
 		});
 	}
 	return out;
+}
+
+/**
+ * `store.list()` is served from SQLite in production, and `lastFailure` and
+ * `lastTransitionAt` have no columns there — they are in-memory only (see
+ * TerminalAgentBinding). Without them the account engine never sees a Claude
+ * limit stop at all, so the row it acts on is the listed one topped up from
+ * the store's own map.
+ */
+function withEphemeralFields(
+	store: TerminalAgentStore,
+	listed: TerminalAgentBinding,
+): TerminalAgentBinding {
+	const live = store.get(listed.terminalId);
+	if (!live) return listed;
+	return {
+		...listed,
+		...(live.lastFailure === undefined
+			? {}
+			: { lastFailure: live.lastFailure }),
+		...(live.lastTransitionAt === undefined
+			? {}
+			: { lastTransitionAt: live.lastTransitionAt }),
+	};
 }
 
 export interface AccountRestartCandidate {

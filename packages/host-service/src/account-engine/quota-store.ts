@@ -257,6 +257,8 @@ export class QuotaStore {
 	 * and no provider is called. Null with no engine, or while this process
 	 * owns the lock. */
 	private snapshotSource: (() => QuotaStoreSnapshot | null) | null = null;
+	/** Said once: a mirror this host cannot read is re-read every few seconds. */
+	private warnedMirrorShape = false;
 
 	constructor(deps: QuotaStoreDeps = {}) {
 		this.deps = deps;
@@ -269,10 +271,12 @@ export class QuotaStore {
 	}
 
 	/**
-	 * KTD5: only a lock loser installs a source. While one is set, `read`
-	 * serves the owner's mirror and performs no fetch and no discovery — every
-	 * host-service on this machine otherwise polls the same endpoints and
-	 * defeats the host-wide request budget.
+	 * KTD5: only a lock loser installs a source. While one is set and the owner
+	 * has actually published something for the agents being read, `read` serves
+	 * that mirror and performs no fetch and no discovery — every host-service on
+	 * this machine otherwise polls the same endpoints and defeats the host-wide
+	 * request budget. A mirror that holds nothing is not an answer, though (see
+	 * {@link readMirror}).
 	 */
 	setSnapshotSource(source: (() => QuotaStoreSnapshot | null) | null): void {
 		this.snapshotSource = source;
@@ -312,7 +316,8 @@ export class QuotaStore {
 	): Promise<UsageAccount[]> {
 		const agents = options.agents ?? ALL_AGENTS;
 		// KTD5: a lock loser answers from the owner's mirror, forced refresh
-		// included — the owner is already polling on this machine's behalf.
+		// included — the owner is already polling on this machine's behalf. With
+		// nothing mirrored for these agents it reads for itself instead.
 		const mirrored = this.readMirror(agents);
 		if (mirrored) return mirrored;
 		const now = this.now();
@@ -432,8 +437,21 @@ export class QuotaStore {
 		for (const selection of targets.selections) {
 			const key = quotaEntryKey(agent, selection);
 			keep.add(key);
-			if (!this.entryMap.has(key)) {
+			const existing = this.entryMap.get(key);
+			if (!existing) {
 				this.entryMap.set(key, newEntry(key, agent, selection, true, now));
+				continue;
+			}
+			// A signed-out profile is carried as a static row with no fetch of
+			// its own. Once the Switch sign-in flow restores its credential the
+			// discovery pass lists it as a selection again, so the row goes back
+			// to being fetchable and is read at once — otherwise it keeps its
+			// signed-out numbers until the host-service restarts. Its accounts
+			// are still the static ones, so it counts as never fetched.
+			if (!existing.fetchable) {
+				existing.fetchable = true;
+				existing.fetchedAt = null;
+				existing.nextPollAt = now;
 			}
 		}
 		for (const account of targets.staticAccounts) {
@@ -554,22 +572,47 @@ export class QuotaStore {
 	}
 
 	/**
-	 * KTD5: the lock owner's `quota.json`, or — until it has published one —
-	 * whatever this store already knows. Never a fetch: a loser that fell back
-	 * to polling would multiply this machine's provider requests by the number
-	 * of host-services running on it.
+	 * KTD5: the lock owner's `quota.json`. Serving it is what keeps a loser
+	 * from multiplying this machine's provider requests by the number of
+	 * host-services running on it.
+	 *
+	 * Null — "no mirror, read for yourself" — when the owner has published
+	 * nothing for these agents. That is the ordinary state of an owner whose
+	 * auto-switch is off: it polls nothing, so treating its silence as the
+	 * answer would leave every other host's Usage page empty for good.
+	 *
+	 * The mirror is JSON another process wrote, so one malformed entry is
+	 * dropped rather than allowed to throw out of every read on this host.
 	 */
 	private readMirror(agents: QuotaCapableAgent[]): UsageAccount[] | null {
 		if (!this.snapshotSource) return null;
 		const snapshot = this.snapshotSource();
-		if (!snapshot) return this.collect(agents);
-		return this.collect(
-			agents,
-			snapshot.entries.map((entry) => ({
-				agent: entry.agent,
-				accounts: entry.accounts.map(reviveAccountDates),
-			})),
-		);
+		const mirrored: Array<{
+			agent: QuotaCapableAgent;
+			accounts: UsageAccount[];
+		}> = [];
+		let dropped = 0;
+		for (const entry of snapshot?.entries ?? []) {
+			try {
+				if (!agents.includes(entry.agent)) continue;
+				mirrored.push({
+					agent: entry.agent,
+					accounts: entry.accounts.map(reviveAccountDates),
+				});
+			} catch {
+				dropped++;
+			}
+		}
+		if (dropped > 0 && !this.warnedMirrorShape) {
+			this.warnedMirrorShape = true;
+			console.warn(
+				`[quota-store] the owner's quota mirror holds ${dropped} malformed entr${
+					dropped === 1 ? "y" : "ies"
+				}; ignoring them`,
+			);
+		}
+		if (mirrored.length === 0) return null;
+		return this.collect(agents, mirrored);
 	}
 
 	private collect(

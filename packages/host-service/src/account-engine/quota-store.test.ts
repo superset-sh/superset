@@ -6,6 +6,7 @@ import type {
 import {
 	BUDGET_MAX_REQUESTS,
 	budgetMaxRequests,
+	DISCOVERY_INTERVAL_MS,
 	eligibleForSwitch,
 	IDLE_POLL_MS,
 	MAX_BACKOFF_MS,
@@ -236,6 +237,35 @@ describe("QuotaStore discovery", () => {
 		const third = await h.store.read({ agents: ["claude"] });
 		expect(third.map((a) => a.selection)).toEqual([null]);
 		expect(h.store.entry(CLAUDE_A)).toBeUndefined();
+	});
+
+	// The Switch sign-in flow puts a credential back into a profile that was
+	// carried as a signed-out static row; without re-arming it, the row keeps
+	// its signed-out numbers (and its "cannot be switched onto") until restart.
+	it("re-arms a static row once discovery lists it as a signed-in selection", async () => {
+		const h = harness({
+			claudeSelections: [null],
+			claudeStatic: [
+				account("claude", "/profiles/a", {
+					status: "signed_out",
+					statusDetail: "Signed out",
+					windows: [],
+				}),
+			],
+		});
+		await h.store.read({ agents: ["claude"] });
+		expect(requireEntry(h.store, CLAUDE_A).fetchable).toBe(false);
+		expect(h.callsFor(CLAUDE_A)).toHaveLength(0);
+
+		h.state.claudeStatic = [];
+		h.state.claudeSelections = [null, "/profiles/a"];
+		h.advance(DISCOVERY_INTERVAL_MS);
+		const accounts = await h.store.read({ agents: ["claude"] });
+
+		expect(h.callsFor(CLAUDE_A)).toHaveLength(1);
+		expect(
+			accounts.find((entry) => entry.selection === "/profiles/a")?.status,
+		).toBe("ok");
 	});
 
 	// discoverClaudeProfiles abandons its walk once the scan-time budget runs
@@ -613,22 +643,89 @@ describe("QuotaStore snapshot mirror", () => {
 		expect(loser.calls).toEqual([]);
 	});
 
-	it("serves a lock loser its last-known entries until the owner publishes", async () => {
+	// An owner with auto-switch off polls nothing and publishes nothing, which
+	// is not the same as "this machine has no accounts": a loser that took the
+	// missing mirror for an answer would show an empty Usage page for good.
+	it("reads for itself while the owner has published nothing", async () => {
 		const h = harness({ claudeSelections: [null] });
 		await h.store.read({ agents: ["claude"] });
 		const before = h.calls.length;
 		h.store.setSnapshotSource(() => null);
+
+		// Inside the TTL the entries it already has still answer.
+		const cached = await h.store.read({ agents: ["claude"] });
+		expect(cached.map((entry) => entry.selection)).toEqual([null]);
+		expect(h.calls).toHaveLength(before);
+
 		h.advance(2 * QUOTA_TTL_MS);
+		const refreshed = await h.store.read({ agents: ["claude"] });
+
+		expect(refreshed.map((entry) => entry.selection)).toEqual([null]);
+		expect(h.calls).toHaveLength(before + 1);
+	});
+
+	it("discovers and fetches when the mirror holds nothing for the agent", async () => {
+		const h = harness({ claudeSelections: [null, "/profiles/a"] });
+		// The owner mirrors another agent entirely — nothing for Claude.
+		h.store.setSnapshotSource(() => ({
+			entries: [
+				{
+					key: "grok",
+					agent: "grok",
+					selection: null,
+					accounts: [],
+					fetchedAt: T0,
+					tokenState: "ok",
+					lastError: null,
+				},
+			],
+		}));
 
 		const accounts = await h.store.read({ agents: ["claude"] });
 
+		expect(accounts.map((entry) => entry.selection)).toEqual([
+			null,
+			"/profiles/a",
+		]);
+		expect(h.calls).toHaveLength(2);
+	});
+
+	// The mirror is JSON another process wrote; one bad row must not fail
+	// every Usage query on this host.
+	it("drops malformed mirror entries and serves the rest", async () => {
+		const owner = harness({ claudeSelections: [null] });
+		await owner.store.read({ agents: ["claude"] });
+		const published = JSON.parse(
+			JSON.stringify(owner.store.snapshot()),
+		) as QuotaStoreSnapshot;
+		published.entries.unshift({
+			key: "claude:/profiles/broken",
+			agent: "claude",
+			selection: "/profiles/broken",
+			accounts: [null as unknown as UsageAccount],
+			fetchedAt: T0,
+			tokenState: "ok",
+			lastError: null,
+		});
+
+		const loser = harness({ claudeSelections: [null] });
+		loser.store.setSnapshotSource(() => published);
+
+		const accounts = await loser.store.read({ agents: ["claude"] });
+
 		expect(accounts.map((entry) => entry.selection)).toEqual([null]);
-		expect(h.calls).toHaveLength(before);
+		expect(loser.calls).toEqual([]);
 	});
 
 	it("fetches again once it owns the lock", async () => {
+		const owner = harness({ claudeSelections: [null] });
+		await owner.store.read({ agents: ["claude"] });
+		const published = JSON.parse(
+			JSON.stringify(owner.store.snapshot()),
+		) as QuotaStoreSnapshot;
+
 		const h = harness({ claudeSelections: [null] });
-		h.store.setSnapshotSource(() => null);
+		h.store.setSnapshotSource(() => published);
 		await h.store.read({ agents: ["claude"] });
 		expect(h.calls).toEqual([]);
 
