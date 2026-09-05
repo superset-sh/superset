@@ -1,0 +1,1 @@
+export { Wordmark } from "./Wordmark";
