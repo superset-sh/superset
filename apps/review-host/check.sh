@@ -25,6 +25,16 @@ fail() { echo "FAIL: $1"; FAIL=1; }
 
 ssh_box() { gcloud compute ssh "$INSTANCE" --zone="$ZONE" --project="$PROJECT" --quiet --command="$1" 2>/dev/null; }
 
+# Distinguish "the box is broken" from "this machine cannot ask". Without this,
+# an expired gcloud refresh token reports the instance as missing and pages
+# someone about a host that is perfectly healthy — every probe below runs
+# through gcloud, so they all fail the same way.
+if ! gcloud auth print-access-token >/dev/null 2>&1; then
+  echo "INCONCLUSIVE: gcloud cannot authenticate on this machine; the review host was not checked"
+  echo "  run: gcloud auth login"
+  exit 2
+fi
+
 STATUS=$(gcloud compute instances describe "$INSTANCE" --zone="$ZONE" --project="$PROJECT" --format="value(status)" 2>/dev/null)
 [ "$STATUS" = "RUNNING" ] && note "instance: RUNNING" || fail "instance is '${STATUS:-missing}', not RUNNING"
 
@@ -123,6 +133,21 @@ Update icon size'
     LOST=$(comm -23 <(printf '%s\n' "$EXPECTED") <(printf '%s\n' "$ACTUAL") | paste -sd', ' -)
     [ -n "$EXTRA" ] && fail "extra workspaces the reviewer would see: $EXTRA"
     [ -n "$LOST" ] && fail "demo workspaces missing from the reviewer's list: $LOST"
+  fi
+fi
+
+# The store listing promises "review the diff from your phone", so an empty diff
+# is a listing mismatch, not a cosmetic gap. It has been empty twice: once when
+# the worktrees were rebuilt as bare branches, and once when the demo repos lost
+# refs/remotes/origin/HEAD and the base could not resolve at all.
+if [ -n "$WS_JSON" ]; then
+  WS_IDS=$(printf '%s' "$WS_JSON" | python3 -c 'import json,sys
+d = json.load(sys.stdin)["result"]["data"]["json"]
+print(" ".join(w["id"] for w in d if w.get("type") != "main"))' 2>/dev/null)
+  if [ -n "$WS_IDS" ]; then
+    NODIFF=$(ssh_box "sudo sh -c 'for W in $WS_IDS; do n=\$(curl -s -m 15 -X POST -H \"Authorization: Bearer $SECRET\" -H \"content-type: application/json\" --data \"{\\\"json\\\":{\\\"workspaceId\\\":\\\"\$W\\\"}}\" http://127.0.0.1:48800/trpc/git.listCommits | grep -c hash); [ \"\$n\" = \"0\" ] && echo \$W; done'")
+    [ -z "$NODIFF" ] && note "diffs: every demo workspace has one" \
+      || fail "demo workspaces with an empty diff (the listing promises diff review): $(printf '%s' "$NODIFF" | tr '\n' ' ')"
   fi
 fi
 
