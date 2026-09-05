@@ -111,7 +111,32 @@ RestartSec=30
 WantedBy=multi-user.target
 UNIT
 
+cat > /etc/systemd/system/superset-review-update.service <<UNIT
+[Unit]
+Description=Bring the review host's host-service up to the latest release
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/review-host/self-update.sh
+UNIT
+
+cat > /etc/systemd/system/superset-review-update.timer <<UNIT
+[Unit]
+Description=Daily check that the review host is on the current release
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=30m
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+UNIT
+
 systemctl daemon-reload
+systemctl enable --now superset-review-update.timer
 
 # Two machines sharing one /etc/machine-id resolve to the same hostId and would
 # evict each other's relay tunnel in a loop. START_SERVICES=0 provisions without
