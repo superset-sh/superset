@@ -94,6 +94,21 @@ describe("resolveAgentAccountDir", () => {
 		).toEqual({ configDir: exported, managed: false });
 	});
 
+	// The twin is Superset's own marker, injected beside its selection. A
+	// config's env carrying one is a user pinning the pair by hand — read as
+	// Superset's own, it would hand the engine a session it must not restart.
+	it("treats a config that supplies the Superset twin itself as pinned", () => {
+		expect(
+			resolveAgentAccountDir(mockDb({ claude: profile }), {
+				family: "claude",
+				env: {
+					CLAUDE_CONFIG_DIR: exported,
+					SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR: exported,
+				},
+			}),
+		).toEqual({ configDir: exported, managed: false });
+	});
+
 	it("classifies Codex homes the same way", () => {
 		const selected = resolveAgentAccountDir(mockDb({ codex: profile }), {
 			family: "codex",

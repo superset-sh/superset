@@ -8,7 +8,11 @@ import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { recordIdentityBindings } from "./default-account";
-import { type CodexHome, discoverCodexHomes } from "./profiles";
+import {
+	type CodexHome,
+	discoverCodexHomes,
+	discoverCodexHomesWithStatus,
+} from "./profiles";
 import type { UsageAccount, UsageQuotaWindow } from "./types";
 
 const CODEX_USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
@@ -151,13 +155,20 @@ function recordCodexHomeBindings(homes: CodexHome[]): CodexHome[] {
 
 /**
  * The quota store's discovery pass (KTD10): the homes worth polling, and the
- * API-billed rows that have no quota endpoint to call.
+ * API-billed rows that have no quota endpoint to call. `complete` is false
+ * when the `~` listing failed — the store reaps entries missing from this
+ * result, and a home dir that could not be read yields the same empty scan as
+ * one holding no extra homes. `homeDir` overrides the scan root for tests.
  */
-export async function discoverCodexQuotaTargets(): Promise<{
+export async function discoverCodexQuotaTargets(homeDir?: string): Promise<{
 	selections: Array<string | null>;
 	staticAccounts: UsageAccount[];
+	complete: boolean;
 }> {
-	const homes = recordCodexHomeBindings(await discoverCodexHomes());
+	const { homes: discovered, complete } = await discoverCodexHomesWithStatus({
+		homeDir,
+	});
+	const homes = recordCodexHomeBindings(discovered);
 	const defaultHome = homes[0]?.home ?? null;
 	const selections: Array<string | null> = [];
 	const staticAccounts: UsageAccount[] = [];
@@ -169,7 +180,7 @@ export async function discoverCodexQuotaTargets(): Promise<{
 			selections.push(isDefaultHome ? null : home.home);
 		}
 	}
-	return { selections, staticAccounts };
+	return { selections, staticAccounts, complete };
 }
 
 /**

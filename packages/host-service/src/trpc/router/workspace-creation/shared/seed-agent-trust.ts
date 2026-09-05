@@ -74,10 +74,14 @@ function resolveTrustTarget(
 ): TrustTarget | null {
 	const family = resolveTrustFamily(config);
 	if (family === null) return null;
-	const { configDir } = resolveAgentAccountDir(db, {
+	const { configDir, managed } = resolveAgentAccountDir(db, {
 		family,
 		env: config.env,
 	});
+	// A dir the user pinned themselves is Superset's to read, never to write:
+	// the folder dialog showing once costs less than a host-service write into
+	// a config dir nobody handed us. (KTD12.)
+	if (!managed) return null;
 	if (family === "claude") {
 		return {
 			family,

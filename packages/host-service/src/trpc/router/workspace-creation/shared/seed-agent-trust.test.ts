@@ -1,16 +1,21 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
 	chmodSync,
+	existsSync,
+	mkdirSync,
 	mkdtempSync,
 	readFileSync,
+	realpathSync,
 	rmSync,
 	statSync,
 	writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { HostDb } from "../../../../db";
 import {
 	resolveTrustFamily,
+	seedAgentFolderTrust,
 	seedClaudeFolderTrust,
 	seedCodexFolderTrust,
 } from "./seed-agent-trust";
@@ -217,5 +222,74 @@ describe("seedCodexFolderTrust", () => {
 		expect(readFileSync(file, "utf-8")).toContain(
 			'[projects."/tmp/session-h"]\ntrust_level = "trusted"\n',
 		);
+	});
+});
+
+/**
+ * KTD12: a config dir the user pinned themselves is Superset's to read, never
+ * to write. The trust seeder resolves the same dir a launch would, so it is
+ * also the place that would write into one.
+ */
+describe("seedAgentFolderTrust", () => {
+	function mockDb(claudeConfigDir: string | null): HostDb {
+		return {
+			select: () => ({
+				from: () => ({
+					get: () => ({
+						defaultClaudeConfigDir: claudeConfigDir,
+						defaultCodexHome: null,
+					}),
+				}),
+			}),
+		} as unknown as HostDb;
+	}
+
+	const previousSupersetHome = process.env.SUPERSET_HOME_DIR;
+	let selected: string;
+	let pinned: string;
+	let folder: string;
+
+	beforeEach(() => {
+		process.env.SUPERSET_HOME_DIR = join(dir, "superset");
+		selected = join(dir, "selected-profile");
+		pinned = join(dir, "hand-exported");
+		folder = join(dir, "session");
+		for (const path of [selected, pinned, folder]) {
+			mkdirSync(path, { recursive: true });
+		}
+	});
+
+	afterEach(() => {
+		if (previousSupersetHome === undefined)
+			delete process.env.SUPERSET_HOME_DIR;
+		else process.env.SUPERSET_HOME_DIR = previousSupersetHome;
+	});
+
+	const claudeConfig = (env: Record<string, string>) => ({
+		presetId: "claude",
+		command: "claude",
+		env,
+	});
+
+	test("seeds the Superset-selected config dir", async () => {
+		await seedAgentFolderTrust(mockDb(selected), folder, claudeConfig({}));
+
+		const state = JSON.parse(
+			readFileSync(join(selected, ".claude.json"), "utf-8"),
+		);
+		expect(state.projects[realpathSync(folder)].hasTrustDialogAccepted).toBe(
+			true,
+		);
+	});
+
+	test("never writes into a config dir the user pinned", async () => {
+		await seedAgentFolderTrust(
+			mockDb(selected),
+			folder,
+			claudeConfig({ CLAUDE_CONFIG_DIR: pinned }),
+		);
+
+		expect(existsSync(join(pinned, ".claude.json"))).toBe(false);
+		expect(existsSync(join(selected, ".claude.json"))).toBe(false);
 	});
 });

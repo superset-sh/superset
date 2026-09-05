@@ -15,9 +15,10 @@
  *     the CLI since it was last saved;
  *  3. validate the owner's store and save that login back into it, never
  *     regressing a newer one, keeping three capped 0600 backups;
- *  4. re-validate the active dir, re-hash the source (one retry if it moved),
- *     write the target's `claudeAiOauth` preserving `mcpOAuth`, then swap the
- *     identity block in `.claude.json` preserving onboarding and trust;
+ *  4. re-validate the active dir, re-read the source (one retry if its login
+ *     moved, refusing outright if its account did), write the target's
+ *     `claudeAiOauth` preserving `mcpOAuth`, then swap the identity block in
+ *     `.claude.json` preserving onboarding and trust;
  *  5. read both back and verify they are the target's.
  *
  * The owner is named by the caller (the engine's identity-to-dir binding);
@@ -37,7 +38,7 @@ import {
 	writeFile,
 } from "node:fs/promises";
 import { homedir } from "node:os";
-import { basename, dirname, join, sep } from "node:path";
+import { basename, dirname, join, resolve, sep } from "node:path";
 import { updateClaudeStateFile } from "../trpc/router/usage/claude-state-file";
 import {
 	CLAUDE_DEFAULT_KEYCHAIN_SERVICE,
@@ -73,11 +74,14 @@ export type ClaudeSwapFailureCode =
 	| "no-target-login"
 	| "no-target-identity"
 	| "source-changed"
+	/** The target was signed in again between the read of its identity and
+	 * the write, so its login and its identity no longer belong together. */
+	| "target-changed"
 	| "keychain-ambiguous"
 	| "write-failed"
-	/** The credential landed but the identity did not, and putting the
-	 * credential back failed too: the active dir holds the target's login
-	 * under the previous account's identity until something reconciles it. */
+	/** The write landed in part — a credential without its identity, or one
+	 * of two credential stores — and putting the previous login back failed
+	 * too: the active dir stays mixed until something reconciles it. */
 	| "split-state"
 	| "verify-failed";
 
@@ -171,7 +175,11 @@ function configDirOf(ref: ClaudeLoginStoreRef): string | null {
 }
 
 function isInside(path: string, base: string): boolean {
-	return path === base || path.startsWith(`${base}${sep}`);
+	// `resolve` drops a trailing separator — a $SUPERSET_HOME_DIR spelled
+	// `~/.superset/` would otherwise be inside nothing — and normalizes the
+	// rest, so the prefix check compares like with like.
+	const root = resolve(base);
+	return path === root || path.startsWith(`${root}${sep}`);
 }
 
 /**
@@ -215,13 +223,29 @@ async function readStore(
 
 type Oauth = Record<string, unknown>;
 
-/** Stable over key order, so a rewrite that only reorders keys is not read as
- * a concurrent login change. */
+/** JSON with every object's keys sorted, at every depth. `JSON.stringify`'s
+ * replacer-array form sorts only the top level and drops nested properties
+ * altogether, which hashed a nested change as no change at all. */
+function stableStringify(value: unknown): string {
+	if (Array.isArray(value)) {
+		return `[${value.map(stableStringify).join(",")}]`;
+	}
+	if (value !== null && typeof value === "object") {
+		const entries = Object.entries(value as Record<string, unknown>)
+			.filter(([, entry]) => entry !== undefined)
+			.sort(([a], [b]) => (a < b ? -1 : 1));
+		return `{${entries
+			.map(([key, entry]) => `${JSON.stringify(key)}:${stableStringify(entry)}`)
+			.join(",")}}`;
+	}
+	return JSON.stringify(value) ?? "null";
+}
+
+/** Stable over key order at every depth, so a rewrite that only reorders keys
+ * is not read as a concurrent login change. */
 function hashOauth(oauth: Oauth | undefined): string {
 	if (!oauth) return "";
-	return createHash("sha256")
-		.update(JSON.stringify(oauth, Object.keys(oauth).sort()))
-		.digest("hex");
+	return createHash("sha256").update(stableStringify(oauth)).digest("hex");
 }
 
 function oauthOf(read: ClaudeLoginRead): Oauth | undefined {
@@ -419,6 +443,9 @@ async function applyStoreWrite(
 	plan: StoreWritePlan,
 	oauth: Oauth,
 	ctx: SwapContext,
+	/** Filled in as each store lands, so a caller can roll back exactly the
+	 * stores a write that failed halfway had already reached. */
+	written: StoreWritePlan = { file: false, keychain: null },
 ): Promise<void> {
 	if (plan.file) {
 		if (read.fileContent) {
@@ -429,6 +456,7 @@ async function applyStoreWrite(
 			{ ...(read.fileContent ?? {}), claudeAiOauth: oauth },
 			ctx,
 		);
+		written.file = true;
 	}
 	if (plan.keychain) {
 		await writeKeychainItem(
@@ -436,7 +464,36 @@ async function applyStoreWrite(
 			{ ...(read.keychainContent ?? {}), claudeAiOauth: oauth },
 			ctx,
 		);
+		written.keychain = plan.keychain;
 	}
+}
+
+/**
+ * Puts the login the active dir held back into every store a failed write had
+ * already reached, so a half-applied swap does not leave the dir serving two
+ * accounts. Reports `write-failed` once the dir is whole again, `split-state`
+ * when the restore failed too.
+ */
+async function rollbackActiveWrite(
+	activeRead: ClaudeLoginRead,
+	written: StoreWritePlan,
+	activeDir: string,
+	reason: string,
+	ctx: SwapContext,
+): Promise<ClaudeSwapResult> {
+	const restore = oauthOf(activeRead);
+	if ((!written.file && !written.keychain) || !restore) {
+		return failure("write-failed", reason);
+	}
+	try {
+		await applyStoreWrite(activeRead, written, restore, ctx);
+	} catch (rollbackError) {
+		return failure(
+			"split-state",
+			`${reason}; ${activeDir} still holds the target login and could not be rolled back: ${errorText(rollbackError)}`,
+		);
+	}
+	return failure("write-failed", reason);
 }
 
 interface TargetLogin {
@@ -505,6 +562,24 @@ async function applyToActiveDir(
 				`${storeDir(target.ref, ctx)} lost its login mid-swap`,
 			);
 		}
+		// The identity is re-read with it: a `/login` in the target since
+		// loadTarget pairs a new credential with the identity read before it,
+		// and writing that pair signs the active dir in as one account under
+		// another account's name.
+		const freshIdentity = await readIdentity(
+			claudeStatePath(configDirOf(target.ref), ctx.homeDir),
+			ctx,
+		);
+		if (
+			target.identity.accountUuid &&
+			freshIdentity?.accountUuid &&
+			freshIdentity.accountUuid !== target.identity.accountUuid
+		) {
+			return failure(
+				"target-changed",
+				`${storeDir(target.ref, ctx)} was signed in as account ${freshIdentity.accountUuid} while the swap read it`,
+			);
+		}
 		const freshHash = hashOauth(fresh);
 		if (freshHash === hash) break;
 		if (attempt >= 1) {
@@ -521,12 +596,18 @@ async function applyToActiveDir(
 	const activeRead = await readStore(activeRef, ctx);
 	const planned = await planStoreWrite(activeRef, activeRead, ctx);
 	if (!planned.ok) return planned.result;
+	// A plan naming two stores can fail on the second with the first already
+	// holding the target: the CLI would then serve whichever it prefers.
+	const written: StoreWritePlan = { file: false, keychain: null };
 	try {
-		await applyStoreWrite(activeRead, planned.plan, oauth, ctx);
+		await applyStoreWrite(activeRead, planned.plan, oauth, ctx, written);
 	} catch (error) {
-		return failure(
-			"write-failed",
+		return rollbackActiveWrite(
+			activeRead,
+			written,
+			activeDir,
 			`writing the login into ${activeDir} failed: ${errorText(error)}`,
+			ctx,
 		);
 	}
 	try {
@@ -535,22 +616,17 @@ async function applyToActiveDir(
 			return { ...state, ...target.identity.keys };
 		});
 	} catch (error) {
-		const reason = `writing the identity into ${activeDir} failed: ${errorText(error)}`;
 		// The credential is already the target's while the identity still names
 		// the previous account — the exact state a later save-back reads as the
 		// previous account's own login. Undo the credential so the dir stays
 		// whole; the protocol is not transactional, this one step is.
-		const restore = oauthOf(activeRead);
-		if (!restore) return failure("write-failed", reason);
-		try {
-			await applyStoreWrite(activeRead, planned.plan, restore, ctx);
-		} catch (rollbackError) {
-			return failure(
-				"split-state",
-				`${reason}; ${activeDir} now holds the target login under the previous identity and could not be rolled back: ${errorText(rollbackError)}`,
-			);
-		}
-		return failure("write-failed", reason);
+		return rollbackActiveWrite(
+			activeRead,
+			written,
+			activeDir,
+			`writing the identity into ${activeDir} failed: ${errorText(error)}`,
+			ctx,
+		);
 	}
 
 	const verifyRead = await readStore(activeRef, ctx);

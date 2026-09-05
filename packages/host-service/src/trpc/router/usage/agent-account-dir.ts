@@ -86,6 +86,14 @@ export function resolveAgentAccountDir(
 		// governs the moment an account is selected.
 		return { configDir: null, managed: true };
 	}
+	// The twin is Superset's own marker, injected beside its selection and
+	// never part of an agent config's env. A config carrying one is a user
+	// pinning the pair by hand, so it names the session's account, not
+	// Superset — otherwise any config could forge its own twin and hand the
+	// engine permission to restart a pinned session onto another account.
+	if (input.env && vars.supersetTwin in input.env) {
+		return { configDir, managed: false };
+	}
 	return {
 		configDir,
 		managed: injected !== null && samePath(configDir, injected),

@@ -17,6 +17,7 @@ import { recordIdentityBindings } from "./default-account";
 import {
 	type ClaudeProfile,
 	discoverClaudeProfiles,
+	discoverClaudeProfilesWithStatus,
 	isActiveClaudeConfigDir,
 	readClaudeIdentity,
 	readKeychainSecrets,
@@ -282,11 +283,15 @@ async function discoverClaudeCredentials(): Promise<{
 	credentials: ClaudeOauthCredential[];
 	signedOutProfiles: Awaited<ReturnType<typeof discoverClaudeProfiles>>;
 	apiProfiles: Awaited<ReturnType<typeof discoverClaudeProfiles>>;
+	/** False when the profile scan gave up on its time budget mid-walk, so
+	 * this list is a subset of the logins on disk. */
+	complete: boolean;
 }> {
 	const home = homedir();
 	// API-billed profiles have no quota to fetch and their credentials stay
 	// unread; only subscription profiles go through the credential readers.
-	const allProfiles = await discoverClaudeProfiles();
+	const { profiles: allProfiles, complete } =
+		await discoverClaudeProfilesWithStatus();
 	const profiles = allProfiles.filter(
 		(profile) => profile.credentialKind === "subscription",
 	);
@@ -363,7 +368,7 @@ async function discoverClaudeCredentials(): Promise<{
 	const signedOutProfiles = profiles.filter(
 		(_profile, index) => profiled[index] === null,
 	);
-	return { credentials, signedOutProfiles, apiProfiles };
+	return { credentials, signedOutProfiles, apiProfiles, complete };
 }
 
 /**
@@ -669,13 +674,17 @@ export async function fetchClaudeAccounts(): Promise<UsageAccount[]> {
 
 /**
  * The quota store's discovery pass (KTD10): which logins have a credential
- * worth polling, and the rows that have no fetch of their own.
+ * worth polling, and the rows that have no fetch of their own. `complete` is
+ * false when the profile scan ran out of time mid-walk — the store reaps
+ * entries missing from this result, and a truncated list is not proof an
+ * account is gone.
  */
 export async function discoverClaudeQuotaTargets(): Promise<{
 	selections: Array<string | null>;
 	staticAccounts: UsageAccount[];
+	complete: boolean;
 }> {
-	const { credentials, signedOutProfiles, apiProfiles } =
+	const { credentials, signedOutProfiles, apiProfiles, complete } =
 		await discoverClaudeCredentials();
 	return {
 		selections: credentials.map((credential) => credential.selection),
@@ -683,10 +692,13 @@ export async function discoverClaudeQuotaTargets(): Promise<{
 			...apiProfiles.map(claudeApiKeyAccount),
 			...signedOutProfiles.map(claudeSignedOutAccount),
 		],
+		complete,
 	};
 }
 
-async function readCredentialForConfigDir(
+/** Exported for the store's refetch tests; call it through
+ * `fetchClaudeAccountForSelection`. */
+export async function readCredentialForConfigDir(
 	configDir: string,
 ): Promise<ClaudeOauthCredential | null> {
 	const profile = (await discoverClaudeProfiles()).find(
@@ -697,12 +709,24 @@ async function readCredentialForConfigDir(
 			? readProfileCredential(profile)
 			: null;
 	}
-	// A CLAUDE_CONFIG_DIR entry that profile discovery does not classify.
-	return readCredentialFile(
+	// A CLAUDE_CONFIG_DIR entry that profile discovery does not classify —
+	// the same row discoverClaudeCredentials builds by hand, and it has to be
+	// rebuilt the same way: dropping the identity would strand the store row
+	// without an account id, and defaulting `managed` to true would offer a
+	// hand-exported dir as a swap target.
+	const credential = await readCredentialFile(
 		join(configDir, ".credentials.json"),
 		configDir.replace(homedir(), "~"),
 		configDir,
 	);
+	if (!credential) return null;
+	const identity = await readClaudeIdentity(configDir);
+	return {
+		...credential,
+		email: identity?.email ?? null,
+		accountId: identity?.accountId ?? null,
+		managed: false,
+	};
 }
 
 /**

@@ -1,10 +1,16 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, spyOn } from "bun:test";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { ClaudeOauthCredential } from "./claude";
 import {
 	classifyLapsedToken,
 	dedupeClaudeCredentials,
+	discoverClaudeQuotaTargets,
 	pickFreshest,
+	readCredentialForConfigDir,
 } from "./claude";
+import { setIdentityBindingRecorder } from "./default-account";
 
 const now = Date.parse("2026-09-04T14:00:00Z");
 const hour = 60 * 60 * 1000;
@@ -148,5 +154,78 @@ describe("dedupeClaudeCredentials", () => {
 				(one) => one.accessToken,
 			),
 		).toEqual(["shared", "other"]);
+	});
+});
+
+/**
+ * The quota store refetches one row at a time by its config dir. A dir the
+ * profile scan does not classify is the hand-exported kind: rebuilt without
+ * its identity it loses the account it belongs to, and rebuilt as managed it
+ * becomes a swap target Superset was never handed.
+ */
+describe("readCredentialForConfigDir", () => {
+	const roots: string[] = [];
+
+	afterEach(() => {
+		for (const root of roots.splice(0)) {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("keeps an unclassified dir's identity and its unmanaged status", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "superset-claude-explicit-"));
+		roots.push(dir);
+		writeFileSync(
+			join(dir, ".credentials.json"),
+			JSON.stringify({
+				claudeAiOauth: {
+					accessToken: "t-exported",
+					refreshToken: "r",
+					expiresAt: Date.now() + hour,
+				},
+			}),
+		);
+		writeFileSync(
+			join(dir, ".claude.json"),
+			JSON.stringify({
+				oauthAccount: { accountUuid: "uuid-exported", emailAddress: "x@y.z" },
+			}),
+		);
+
+		const credential = await readCredentialForConfigDir(dir);
+
+		expect(credential).toMatchObject({
+			accessToken: "t-exported",
+			accountId: "uuid-exported",
+			email: "x@y.z",
+			selection: dir,
+			managed: false,
+		});
+	});
+});
+
+/**
+ * The quota store reaps every login this pass omits, so the pass carries the
+ * profile scan's completeness: that scan abandons its walk on a time budget
+ * (see discoverClaudeProfilesWithStatus), and a short list is not proof an
+ * account is gone.
+ */
+describe("discoverClaudeQuotaTargets", () => {
+	afterEach(() => {
+		setIdentityBindingRecorder(null);
+	});
+
+	it("reports a scan that walked to the end as complete", async () => {
+		// Discovery records identity bindings through the engine state; this
+		// test only cares about the scan's completeness.
+		setIdentityBindingRecorder(() => {});
+		// A frozen clock can never exhaust the scan budget, so a slow machine
+		// cannot turn this into the truncated case.
+		const clock = spyOn(Date, "now").mockReturnValue(0);
+		try {
+			expect((await discoverClaudeQuotaTargets()).complete).toBe(true);
+		} finally {
+			clock.mockRestore();
+		}
 	});
 });

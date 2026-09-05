@@ -135,6 +135,62 @@ describe("updateClaudeStateFile", () => {
 		expect(statSync(file).mode & 0o777).toBe(0o600);
 	});
 
+	// Claude Code, a trust seed and an account swap all write this file. A
+	// read-modify-write blind to a change in between replaces the newer file
+	// with the older snapshot, dropping the identity or the trust entry the
+	// other writer had just added.
+	it("re-reads and re-applies when the file changes mid-update", async () => {
+		const file = join(tempDir(), ".claude.json");
+		writeFileSync(file, JSON.stringify({ userID: "user-a" }));
+		let passes = 0;
+
+		await updateClaudeStateFile(file, (state) => {
+			// Stands in for the CLI rewriting the file after the read: only on
+			// the first pass, so the retry sees a settled file.
+			if (passes++ === 0) {
+				writeFileSync(
+					file,
+					JSON.stringify({
+						userID: "user-a",
+						projects: { "/tmp/other": { hasTrustDialogAccepted: true } },
+					}),
+				);
+			}
+			return { ...state, oauthAccount: { accountUuid: "uuid-b" } };
+		});
+
+		expect(passes).toBe(2);
+		const state = JSON.parse(readFileSync(file, "utf-8"));
+		expect(state.oauthAccount).toEqual({ accountUuid: "uuid-b" });
+		expect(state.userID).toBe("user-a");
+		// The concurrent writer's entry survived the update.
+		expect(state.projects["/tmp/other"].hasTrustDialogAccepted).toBe(true);
+	});
+
+	it("gives up rather than overwrite a file that keeps changing", async () => {
+		const dir = tempDir();
+		const file = join(dir, ".claude.json");
+		writeFileSync(file, JSON.stringify({ userID: "user-a" }));
+		let round = 0;
+
+		await expect(
+			updateClaudeStateFile(file, (state) => {
+				round += 1;
+				writeFileSync(
+					file,
+					JSON.stringify({ userID: "user-a", pad: "x".repeat(round) }),
+				);
+				return { ...state, oauthAccount: { accountUuid: "uuid-b" } };
+			}),
+		).rejects.toThrow(/kept changing/);
+
+		// The other writer's bytes stand, and no half-written temp file is left.
+		expect(
+			JSON.parse(readFileSync(file, "utf-8")).oauthAccount,
+		).toBeUndefined();
+		expect(readdirSync(dir)).toEqual([".claude.json"]);
+	});
+
 	it("propagates a failure without clobbering the previous state", async () => {
 		const dir = tempDir();
 		const file = join(dir, "missing", ".claude.json");

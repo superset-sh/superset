@@ -102,24 +102,41 @@ export function keychainServicesForConfigDir(configDir: string): string[] {
 	);
 }
 
-async function listSubdirectories(dir: string): Promise<string[]> {
+/**
+ * Subdirectories of `dir`, and whether the listing itself succeeded — an
+ * unreadable dir yields the same empty list as an empty one, and a caller
+ * whose result feeds a reaper has to tell those two apart.
+ */
+async function listSubdirectories(
+	dir: string,
+): Promise<{ paths: string[]; ok: boolean }> {
 	try {
 		const entries = await readdir(dir, { withFileTypes: true });
-		return entries
-			.filter((entry) => entry.isDirectory())
-			.map((entry) => join(dir, entry.name));
+		return {
+			paths: entries
+				.filter((entry) => entry.isDirectory())
+				.map((entry) => join(dir, entry.name)),
+			ok: true,
+		};
 	} catch {
-		return [];
+		return { paths: [], ok: false };
 	}
 }
 
-async function candidateDirectories(): Promise<string[]> {
+/** `ok` is false when the home dir itself could not be listed: an empty
+ * candidate list is then a failed scan, not proof that every profile is gone.
+ * A missing `~/.config` is ordinary and does not count. */
+async function candidateDirectories(): Promise<{
+	paths: string[];
+	ok: boolean;
+}> {
 	const home = homedir();
-	const dotDirs = (await listSubdirectories(home)).filter((path) =>
+	const homeListing = await listSubdirectories(home);
+	const dotDirs = homeListing.paths.filter((path) =>
 		path.slice(home.length + 1).startsWith("."),
 	);
-	const configDirs = await listSubdirectories(join(home, ".config"));
-	return [...dotDirs, ...configDirs].sort();
+	const configDirs = (await listSubdirectories(join(home, ".config"))).paths;
+	return { paths: [...dotDirs, ...configDirs].sort(), ok: homeListing.ok };
 }
 
 interface ClaudeStateFile {
@@ -190,13 +207,18 @@ export async function isActiveClaudeConfigDir(dir: string): Promise<boolean> {
 }
 
 /**
- * Extra Claude profile dirs beyond the defaults. Default homes are excluded —
- * callers already cover `~/.claude` and `~/.config/claude`. `candidates`
- * overrides the home-dir scan for tests.
+ * Extra Claude profile dirs beyond the defaults, and whether the walk reached
+ * every candidate. Default homes are excluded — callers already cover
+ * `~/.claude` and `~/.config/claude`. `candidates` overrides the home-dir scan
+ * for tests.
+ *
+ * `complete` is false when the scan-time budget cut the walk short: the list
+ * is then a subset of what is on disk, and a caller that reaps whatever is
+ * missing from it (the quota store) would delete live accounts.
  */
-export async function discoverClaudeProfiles(
+export async function discoverClaudeProfilesWithStatus(
 	candidates?: string[],
-): Promise<ClaudeProfile[]> {
+): Promise<{ profiles: ClaudeProfile[]; complete: boolean }> {
 	const home = homedir();
 	const excluded = new Set([
 		join(home, ".claude"),
@@ -206,8 +228,13 @@ export async function discoverClaudeProfiles(
 	const profiles: ClaudeProfile[] = [];
 	const activeDir = await canonicalPath(activeClaudeConfigDirPath());
 
-	for (const candidate of candidates ?? (await candidateDirectories())) {
-		if (Date.now() - started > SCAN_TIME_BUDGET_MS) break;
+	const scan = candidates
+		? { paths: candidates, ok: true }
+		: await candidateDirectories();
+	for (const candidate of scan.paths) {
+		if (Date.now() - started > SCAN_TIME_BUDGET_MS) {
+			return { profiles, complete: false };
+		}
 		if (excluded.has(candidate)) continue;
 		if ((await canonicalPath(candidate)) === activeDir) continue;
 		const [identity, apiFingerprint] = await Promise.all([
@@ -226,7 +253,14 @@ export async function discoverClaudeProfiles(
 			keychainServices: keychainServicesForConfigDir(candidate),
 		});
 	}
-	return profiles;
+	return { profiles, complete: scan.ok };
+}
+
+/** The profiles alone, for callers with nothing to reap on a short list. */
+export async function discoverClaudeProfiles(
+	candidates?: string[],
+): Promise<ClaudeProfile[]> {
+	return (await discoverClaudeProfilesWithStatus(candidates)).profiles;
 }
 
 const KEYCHAIN_ACCOUNT_PATTERN = /^[a-zA-Z0-9._-]+$/;
@@ -398,15 +432,58 @@ function parseCredentialJson(raw: string): ClaudeCredentialJson | null {
 	}
 }
 
+/**
+ * A store counts as holding a login only with a usable token in it. A
+ * `claudeAiOauth` left half-written (the CLI rewrites the whole object on
+ * refresh) or emptied is not one: treating it as a login lists a phantom
+ * account and, worse, lets a swap move that empty object into the active dir
+ * and sign the session out.
+ */
 function hasLogin(content: ClaudeCredentialJson | null): boolean {
 	const oauth = content?.claudeAiOauth;
-	return typeof oauth === "object" && oauth !== null && !Array.isArray(oauth);
+	if (typeof oauth !== "object" || oauth === null || Array.isArray(oauth)) {
+		return false;
+	}
+	const { accessToken, refreshToken } = oauth as {
+		accessToken?: unknown;
+		refreshToken?: unknown;
+	};
+	if (typeof accessToken !== "string" || accessToken === "") return false;
+	// A refresh token is optional, but a present one has to be usable.
+	return (
+		refreshToken === undefined ||
+		(typeof refreshToken === "string" && refreshToken !== "")
+	);
 }
 
 function expiry(content: ClaudeCredentialJson | null): number {
 	const oauth = content?.claudeAiOauth;
 	const value = (oauth as { expiresAt?: unknown } | undefined)?.expiresAt;
 	return typeof value === "number" ? value : 0;
+}
+
+function loginTimestamp(
+	content: ClaudeCredentialJson | null,
+	key: string,
+): number {
+	const oauth = content?.claudeAiOauth as Record<string, unknown> | undefined;
+	const value = oauth?.[key];
+	return typeof value === "number" ? value : 0;
+}
+
+/**
+ * Whether `candidate` is the newer of two copies of one login, by the same
+ * two expiries claude-login-swap's non-regression check uses — so the store
+ * this read names is the store a save-back would agree is newest.
+ */
+function isFresherLogin(
+	candidate: ClaudeCredentialJson | null,
+	current: ClaudeCredentialJson | null,
+): boolean {
+	if (!current) return true;
+	return ["expiresAt", "refreshTokenExpiresAt"].some(
+		(key) => loginTimestamp(candidate, key) > loginTimestamp(current, key),
+	);
 }
 
 /**
@@ -419,6 +496,20 @@ export function claudeCredentialsPath(
 	homeDir: string = homedir(),
 ): string {
 	return join(configDir ?? join(homeDir, ".claude"), ".credentials.json");
+}
+
+/**
+ * The files the system-default login can live in. `~/.claude` and
+ * `~/.config/claude` are ONE slot the CLI writes whichever half it prefers
+ * (fetchClaudeAccounts reads both the same way), so a read that opened only
+ * the first would report a user signed in under the second as signed out —
+ * and a save-back would write the login into the file the CLI is not reading.
+ */
+function claudeDefaultCredentialPaths(homeDir: string): string[] {
+	return [
+		claudeCredentialsPath(null, homeDir),
+		join(homeDir, ".config", "claude", "credentials.json"),
+	];
 }
 
 export function claudeStatePath(
@@ -445,28 +536,42 @@ export async function readClaudeLogin(
 		readFile?: (path: string, encoding: "utf-8") => Promise<string>;
 	} = {},
 ): Promise<ClaudeLoginRead> {
-	const credentialsPath = claudeCredentialsPath(configDir, access.homeDir);
 	const read = access.readFile ?? readFile;
-	const fileContent = await read(credentialsPath, "utf-8").then(
-		parseCredentialJson,
-		() => null,
-	);
+	const paths = configDir
+		? [claudeCredentialsPath(configDir, access.homeDir)]
+		: claudeDefaultCredentialPaths(access.homeDir ?? homedir());
+	let credentialsPath = paths[0] as string;
+	let fileContent: ClaudeCredentialJson | null = null;
+	for (const path of paths) {
+		const parsed = await read(path, "utf-8").then(
+			parseCredentialJson,
+			() => null,
+		);
+		if (!parsed) continue;
+		if (fileContent && !hasLogin(parsed)) continue;
+		if (hasLogin(fileContent) && !isFresherLogin(parsed, fileContent)) continue;
+		credentialsPath = path;
+		fileContent = parsed;
+	}
+
 	const services = configDir
 		? keychainServicesForConfigDir(configDir)
 		: [CLAUDE_DEFAULT_KEYCHAIN_SERVICE];
 	let keychainService: string | null = null;
 	let keychainAccount: string | null = null;
 	let keychainContent: ClaudeCredentialJson | null = null;
+	// Every spelling is probed, never just the first that hits: a dir the user
+	// re-spelled leaves a stale item filed under the old hash, and stopping
+	// there would swap that old login in and name it as the write target.
 	for (const service of services) {
 		for (const hit of await readKeychainHits(service, access)) {
 			const parsed = parseCredentialJson(hit.secret);
 			if (!hasLogin(parsed)) continue;
-			if (expiry(parsed) < expiry(keychainContent)) continue;
+			if (!isFresherLogin(parsed, keychainContent)) continue;
 			keychainService = service;
 			keychainAccount = hit.account;
 			keychainContent = parsed;
 		}
-		if (keychainContent) break;
 	}
 
 	const fileLogin = hasLogin(fileContent) ? fileContent : null;
@@ -537,11 +642,23 @@ export async function readCodexProfileKind(
  * The first entry is the system default, and `fetchCodexAccounts` gives it
  * `selection: null`. It is listed even without an `auth.json` so the
  * add-account poller has a baseline to compare a fresh `codex login` against.
+ *
+ * `complete` is false when the `~` listing failed: the walk then saw no
+ * dot-dirs at all, which on its own is indistinguishable from a home holding
+ * none, so a caller that reaps whatever is missing would delete every
+ * non-default home. `candidates` and `homeDir` override the scan for tests.
  */
-export async function discoverCodexHomes(
-	candidates?: string[],
-): Promise<CodexHome[]> {
-	const home = homedir();
+export async function discoverCodexHomesWithStatus({
+	candidates,
+	homeDir,
+}: {
+	candidates?: string[];
+	homeDir?: string;
+} = {}): Promise<{
+	homes: CodexHome[];
+	complete: boolean;
+}> {
+	const home = homeDir ?? homedir();
 	const defaultHome = resolveAmbientCodexHome(home);
 	const defaultKind = (await readCodexProfileKind(defaultHome)) ?? {
 		credentialKind: "subscription" as const,
@@ -559,11 +676,15 @@ export async function discoverCodexHomes(
 		],
 	]);
 
-	const scanned =
-		candidates ??
-		(await listSubdirectories(home)).filter((path) =>
+	let complete = true;
+	let scanned = candidates;
+	if (!scanned) {
+		const listing = await listSubdirectories(home);
+		complete = listing.ok;
+		scanned = listing.paths.filter((path) =>
 			path.slice(home.length + 1).startsWith(".codex"),
 		);
+	}
 	for (const candidate of scanned) {
 		if (homes.has(candidate)) continue;
 		const kind = await readCodexProfileKind(candidate);
@@ -574,5 +695,12 @@ export async function discoverCodexHomes(
 			...kind,
 		});
 	}
-	return [...homes.values()];
+	return { homes: [...homes.values()], complete };
+}
+
+/** The homes alone, for callers with nothing to reap on a short list. */
+export async function discoverCodexHomes(
+	candidates?: string[],
+): Promise<CodexHome[]> {
+	return (await discoverCodexHomesWithStatus({ candidates })).homes;
 }

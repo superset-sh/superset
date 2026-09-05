@@ -7,7 +7,14 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { readdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
+import {
+	readdir,
+	readFile,
+	rename,
+	stat,
+	unlink,
+	writeFile,
+} from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 
 export type ClaudeState = Record<string, unknown>;
@@ -16,6 +23,10 @@ export type ClaudeState = Record<string, unknown>;
  * unparsable read lands next to it and is capped the same way. */
 const BACKUP_MARKER = ".superset-swap-bak";
 const MAX_BACKUPS_PER_DIR = 3;
+/** One re-read is enough for the writers that actually collide here (the CLI,
+ * a trust seed, a swap); a file changing faster than that is not ours to
+ * reconcile silently. */
+const MAX_ATTEMPTS = 2;
 
 function errorCode(error: unknown): string | undefined {
 	return (error as NodeJS.ErrnoException | null)?.code;
@@ -82,6 +93,44 @@ async function backupUnparsableState(
 	}
 }
 
+/** Mtime and size of the file this write is replacing, or null when there is
+ * none — the fingerprint a concurrent writer changes. */
+async function stateFingerprint(statePath: string): Promise<string | null> {
+	try {
+		const info = await stat(statePath);
+		return `${info.mtimeMs}:${info.size}`;
+	} catch (error) {
+		if (errorCode(error) === "ENOENT") return null;
+		throw error;
+	}
+}
+
+/** Writes the mutated state, unless the file changed since `before` — in
+ * which case the caller has to re-read and re-apply, since this snapshot no
+ * longer has the other writer's bytes in it. */
+async function writeIfUnchanged(
+	statePath: string,
+	next: ClaudeState,
+	before: string | null,
+): Promise<boolean> {
+	const temporaryPath = `${statePath}.${process.pid}.${randomUUID()}.tmp`;
+	try {
+		await writeFile(temporaryPath, JSON.stringify(next, null, 2), {
+			mode: 0o600,
+			flag: "wx",
+		});
+		if ((await stateFingerprint(statePath)) !== before) {
+			await unlink(temporaryPath).catch(() => {});
+			return false;
+		}
+		await rename(temporaryPath, statePath);
+		return true;
+	} catch (error) {
+		await unlink(temporaryPath).catch(() => {});
+		throw error;
+	}
+}
+
 /**
  * Applies `mutate` to the parsed state file and writes the result back
  * tmp-then-rename, owner-only. A missing file is empty state — the mutation is
@@ -89,28 +138,32 @@ async function backupUnparsableState(
  * Claude Code itself would overwrite. A file that exists but does not parse is
  * copied aside first, so the identity and trust entries it held are
  * recoverable rather than destroyed.
+ *
+ * Claude Code, a trust seed and a swap all write this file, so the
+ * read-modify-write is guarded: the file is fingerprinted before the read and
+ * again right before the rename, and a file that moved in between is re-read
+ * and the mutation re-applied rather than replaced with the older snapshot —
+ * which would sign the user out or drop every folder-trust entry written since
+ * the read.
  */
 export async function updateClaudeStateFile(
 	statePath: string,
 	mutate: (state: ClaudeState) => ClaudeState,
 ): Promise<void> {
-	let state: ClaudeState = {};
-	const raw = await readExistingState(statePath);
-	if (raw !== null && raw.trim() !== "") {
-		const parsed = parseState(raw);
-		if (parsed) state = parsed;
-		else await backupUnparsableState(statePath, raw);
-	}
-	const next = mutate(state);
-	const temporaryPath = `${statePath}.${process.pid}.${randomUUID()}.tmp`;
-	try {
-		await writeFile(temporaryPath, JSON.stringify(next, null, 2), {
-			mode: 0o600,
-			flag: "wx",
-		});
-		await rename(temporaryPath, statePath);
-	} catch (error) {
-		await unlink(temporaryPath).catch(() => {});
-		throw error;
+	for (let attempt = 1; ; attempt++) {
+		const before = await stateFingerprint(statePath);
+		let state: ClaudeState = {};
+		const raw = await readExistingState(statePath);
+		if (raw !== null && raw.trim() !== "") {
+			const parsed = parseState(raw);
+			if (parsed) state = parsed;
+			else await backupUnparsableState(statePath, raw);
+		}
+		if (await writeIfUnchanged(statePath, mutate(state), before)) return;
+		if (attempt >= MAX_ATTEMPTS) {
+			throw new Error(
+				`${statePath} kept changing while Superset updated it; no write was made`,
+			);
+		}
 	}
 }

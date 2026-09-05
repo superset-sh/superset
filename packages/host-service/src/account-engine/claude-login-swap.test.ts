@@ -12,7 +12,7 @@ import {
 	writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import {
 	claudeKeychainAccounts,
 	keychainServicesForConfigDir,
@@ -615,6 +615,144 @@ describe("swapClaudeLogin on a file-backed store", () => {
 		}
 	});
 
+	// $SUPERSET_HOME_DIR is a user-supplied string: spelled with a trailing
+	// slash it used to make every dir under it "outside the Superset home".
+	it("accepts an active dir under a Superset home spelled with a trailing slash", async () => {
+		const f = fixture();
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, supersetHomeDir: `${f.superset}${sep}` },
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-b", 2_000),
+		);
+	});
+
+	// The source hash has to see the whole login: a change nested inside
+	// `claudeAiOauth` used to hash identically, so the stale copy was written.
+	it("picks up a change nested inside the source login", async () => {
+		const f = fixture();
+		writeCredentials(f.profileB, {
+			claudeAiOauth: {
+				...oauth("t-b", 2_000),
+				organization: { uuid: "org-1", name: "one" },
+			},
+		});
+		let reads = 0;
+		const deps: ClaudeSwapDeps = {
+			...f.deps,
+			fs: {
+				readFile: async (path: string, encoding: "utf-8") => {
+					const { readFile } = await import("node:fs/promises");
+					if (path === join(f.profileB, ".credentials.json") && reads++ === 1) {
+						writeCredentials(f.profileB, {
+							claudeAiOauth: {
+								...oauth("t-b", 2_000),
+								organization: { uuid: "org-2", name: "two" },
+							},
+						});
+					}
+					return readFile(path, encoding);
+				},
+			},
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps,
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		expect(readCredentials(f.activeDir).claudeAiOauth).toMatchObject({
+			organization: { uuid: "org-2", name: "two" },
+		});
+	});
+
+	it("does not read a key reorder, nested included, as a change", async () => {
+		const f = fixture();
+		const reorder = (value: Record<string, unknown>) =>
+			Object.fromEntries(Object.entries(value).reverse());
+		writeCredentials(f.profileB, {
+			claudeAiOauth: { ...oauth("t-b", 2_000), organization: { a: 1, b: 2 } },
+		});
+		const deps: ClaudeSwapDeps = {
+			...f.deps,
+			fs: {
+				readFile: async (path: string, encoding: "utf-8") => {
+					const { readFile } = await import("node:fs/promises");
+					if (path === join(f.profileB, ".credentials.json")) {
+						// Rewritten in a different order on every single read.
+						const current = readCredentials(f.profileB).claudeAiOauth as Record<
+							string,
+							unknown
+						>;
+						writeCredentials(f.profileB, {
+							claudeAiOauth: reorder({
+								...current,
+								organization: reorder(
+									current.organization as Record<string, unknown>,
+								),
+							}),
+						});
+					}
+					return readFile(path, encoding);
+				},
+			},
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps,
+		});
+
+		expect(result).toMatchObject({ ok: true });
+	});
+
+	// A `/login` in the target between the identity read and the write would
+	// pair one account's credential with another account's identity.
+	it("aborts when the target is signed in again mid-swap", async () => {
+		const f = fixture();
+		const before = readCredentials(f.activeDir);
+		let reads = 0;
+		const deps: ClaudeSwapDeps = {
+			...f.deps,
+			fs: {
+				readFile: async (path: string, encoding: "utf-8") => {
+					const { readFile } = await import("node:fs/promises");
+					if (path === join(f.profileB, ".credentials.json") && reads++ === 1) {
+						writeCredentials(f.profileB, {
+							claudeAiOauth: oauth("t-c", 9_000),
+						});
+						writeFileSync(
+							join(f.profileB, ".claude.json"),
+							JSON.stringify(identity("c")),
+						);
+					}
+					return readFile(path, encoding);
+				},
+			},
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps,
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "target-changed" });
+		expect(readCredentials(f.activeDir)).toEqual(before);
+	});
+
 	it("refuses a target with no login and one with no identity", async () => {
 		const f = fixture();
 		const before = readCredentials(f.activeDir);
@@ -935,6 +1073,49 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 					"{}",
 			).claudeAiOauth,
 		).toEqual(oauth("t-b", 2_000));
+	});
+
+	// Two stores, one write: a Keychain failure after the file landed leaves
+	// the CLI free to serve either account, so the file goes back too.
+	it("rolls the file back when the Keychain half of the write fails", async () => {
+		const f = fixture();
+		const activeService = keychainServicesForConfigDir(
+			f.activeDir,
+		)[0] as string;
+		const account = claudeKeychainAccounts()[0] as string;
+		const previous = JSON.stringify({
+			claudeAiOauth: oauth("t-a-refreshed", 5_000),
+		});
+		const keychain = fakeKeychain([
+			{ service: activeService, account, secret: previous },
+		]);
+		const exec = async (args: string[], stdin?: string) => {
+			if (args[0] === "-i") {
+				throw new Error(
+					"SecKeychainItemModifyContent: write permissions error",
+				);
+			}
+			return keychain.exec(args, stdin);
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, darwin: true, exec },
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "write-failed" });
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+		expect(
+			keychain.items.find((item) => item.service === activeService)?.secret,
+		).toBe(previous);
+		expect(
+			JSON.parse(readFileSync(join(f.activeDir, ".claude.json"), "utf-8"))
+				.oauthAccount,
+		).toEqual(identity("a").oauthAccount);
 	});
 });
 

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import {
 	mkdirSync,
 	mkdtempSync,
@@ -13,6 +13,8 @@ import {
 	API_BILLING_MARKER,
 	claudeKeychainAccounts,
 	discoverClaudeProfiles,
+	discoverClaudeProfilesWithStatus,
+	discoverCodexHomesWithStatus,
 	keychainServicesForConfigDir,
 	readClaudeLogin,
 	readCodexProfileKind,
@@ -178,6 +180,109 @@ describe("discoverClaudeProfiles", () => {
 			credentialKind: "subscription",
 			loginFingerprint: null,
 		});
+	});
+});
+
+/**
+ * The quota store reaps every entry a discovery pass omits, so a pass that
+ * stopped early has to say so: the walk gives up on its scan-time budget, and
+ * a slow disk would otherwise read as "these accounts are gone".
+ */
+describe("discoverClaudeProfilesWithStatus", () => {
+	function identityDir(email: string): string {
+		const dir = tempProfile();
+		writeFileSync(
+			join(dir, ".claude.json"),
+			JSON.stringify({ oauthAccount: { emailAddress: email } }),
+		);
+		return dir;
+	}
+
+	it("is complete when the walk reached every candidate", async () => {
+		const candidates = [identityDir("a@b.c"), identityDir("d@e.f")];
+		// A frozen clock can never exhaust the budget, so a slow machine
+		// cannot turn this into the truncated case.
+		const clock = spyOn(Date, "now").mockReturnValue(0);
+		try {
+			const { profiles, complete } =
+				await discoverClaudeProfilesWithStatus(candidates);
+
+			expect(profiles.map((profile) => profile.configDir)).toEqual(candidates);
+			expect(complete).toBe(true);
+		} finally {
+			clock.mockRestore();
+		}
+	});
+
+	it("is incomplete when the scan-time budget cut the walk short", async () => {
+		const first = identityDir("a@b.c");
+		const second = identityDir("d@e.f");
+		// Walk start, the first candidate's check, then a check past the
+		// 1.5s budget on the second.
+		const readings = [0, 0];
+		const clock = spyOn(Date, "now").mockImplementation(
+			() => readings.shift() ?? 60_000,
+		);
+		try {
+			const { profiles, complete } = await discoverClaudeProfilesWithStatus([
+				first,
+				second,
+			]);
+
+			expect(profiles.map((profile) => profile.configDir)).toEqual([first]);
+			expect(complete).toBe(false);
+		} finally {
+			clock.mockRestore();
+		}
+	});
+});
+
+/**
+ * The same reaping hazard on the Codex side: an unreadable home dir lists no
+ * dot-dirs at all, which is exactly what a home holding none looks like.
+ */
+describe("discoverCodexHomesWithStatus", () => {
+	const codexEnvKeys = [
+		"CODEX_HOME",
+		"SUPERSET_DEFAULT_CODEX_HOME",
+		"SUPERSET_AMBIENT_CODEX_HOME",
+	] as const;
+	let previousCodexEnv: Array<string | undefined> = [];
+
+	beforeEach(() => {
+		previousCodexEnv = codexEnvKeys.map((key) => process.env[key]);
+		for (const key of codexEnvKeys) delete process.env[key];
+	});
+
+	afterEach(() => {
+		for (const [index, key] of codexEnvKeys.entries()) {
+			const previous = previousCodexEnv[index];
+			if (previous === undefined) delete process.env[key];
+			else process.env[key] = previous;
+		}
+	});
+
+	it("is complete when the home dir simply holds no extra homes", async () => {
+		const home = tempProfile();
+
+		const { homes, complete } = await discoverCodexHomesWithStatus({
+			homeDir: home,
+		});
+
+		expect(homes.map((entry) => entry.home)).toEqual([join(home, ".codex")]);
+		expect(complete).toBe(true);
+	});
+
+	it("is incomplete when the home dir could not be read", async () => {
+		const home = join(tempProfile(), "gone");
+
+		const { homes, complete } = await discoverCodexHomesWithStatus({
+			homeDir: home,
+		});
+
+		// The default home is still reported; only the scan for siblings failed.
+		expect(homes.map((entry) => entry.home)).toEqual([join(home, ".codex")]);
+		expect(complete).toBe(false);
 	});
 });
 
@@ -364,5 +469,103 @@ describe("readClaudeLogin", () => {
 		expect(read.login).toBeNull();
 		expect(read.fileLogin).toBeNull();
 		expect(read.keychainLogin).toBeNull();
+	});
+
+	// A token-less `claudeAiOauth` is what a half-finished write leaves; read
+	// as a login it lists a phantom account and a swap moves the empty object
+	// into the active dir, signing the running session out.
+	it("does not count an empty or token-less oauth block as a login", async () => {
+		const dir = tempProfile();
+		writeFileSync(
+			join(dir, ".credentials.json"),
+			JSON.stringify({ claudeAiOauth: {} }),
+		);
+		expect((await readClaudeLogin(dir, { darwin: false })).login).toBeNull();
+
+		const partial = { claudeAiOauth: { accessToken: "t-a", refreshToken: "" } };
+		writeFileSync(join(dir, ".credentials.json"), JSON.stringify(partial));
+		const read = await readClaudeLogin(dir, { darwin: false });
+		expect(read.login).toBeNull();
+		expect(read.fileLogin).toBeNull();
+		// The parsed file is still reported, so a later write keeps its siblings.
+		expect(read.fileContent).toEqual(partial);
+	});
+
+	// Claude Code hashes the literal CLAUDE_CONFIG_DIR string, so a dir the
+	// user re-spelled leaves a stale item under the old hash. Stopping at the
+	// first service that hits would swap that months-old login in.
+	it("keeps the freshest login across every config-dir spelling", async () => {
+		const dir = tempProfile();
+		const services = keychainServicesForConfigDir(dir);
+		const [first, second] = services;
+		const stale = {
+			claudeAiOauth: {
+				accessToken: "t-old",
+				refreshToken: "r-old",
+				expiresAt: 10,
+				refreshTokenExpiresAt: 20,
+			},
+		};
+		const fresh = {
+			claudeAiOauth: {
+				accessToken: "t-new",
+				refreshToken: "r-new",
+				expiresAt: 500,
+				refreshTokenExpiresAt: 900,
+			},
+		};
+		const exec = async (args: string[]) => {
+			if (args.indexOf("-a") === -1) throw new Error("no unscoped item");
+			const service = args[args.indexOf("-s") + 1];
+			if (service === first)
+				return { stdout: JSON.stringify(stale), stderr: "" };
+			if (service === second)
+				return { stdout: JSON.stringify(fresh), stderr: "" };
+			throw new Error("The specified item could not be found");
+		};
+
+		const read = await readClaudeLogin(dir, { darwin: true, exec });
+		expect(read.login).toEqual(fresh);
+		expect(read.keychainService).toBe(second as string);
+		expect(read.keychainAccount).toBe(claudeKeychainAccounts()[0] ?? null);
+	});
+
+	// `~/.claude` and `~/.config/claude` are one login slot (fetchClaudeAccounts
+	// reads both): a read that opened only the first calls a signed-in user
+	// signed out, and a save-back would write where the CLI is not looking.
+	it("reads the system default from ~/.config/claude and names that file", async () => {
+		const home = tempProfile();
+		mkdirSync(join(home, ".claude"));
+		mkdirSync(join(home, ".config", "claude"), { recursive: true });
+		const stale = {
+			claudeAiOauth: {
+				accessToken: "t-old",
+				refreshToken: "r",
+				expiresAt: 10,
+				refreshTokenExpiresAt: 20,
+			},
+		};
+		const fresh = {
+			claudeAiOauth: {
+				accessToken: "t-new",
+				refreshToken: "r",
+				expiresAt: 500,
+				refreshTokenExpiresAt: 900,
+			},
+		};
+		writeFileSync(
+			join(home, ".claude", ".credentials.json"),
+			JSON.stringify(stale),
+		);
+		writeFileSync(
+			join(home, ".config", "claude", "credentials.json"),
+			JSON.stringify(fresh),
+		);
+
+		const read = await readClaudeLogin(null, { darwin: false, homeDir: home });
+		expect(read.login).toEqual(fresh);
+		expect(read.credentialsPath).toBe(
+			join(home, ".config", "claude", "credentials.json"),
+		);
 	});
 });
