@@ -336,6 +336,7 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 				updatedAt: now,
 				worktreePath: "",
 				worktreeExists: true,
+				shelvedAt: null,
 			});
 
 			// The wait-for-setup gate is a desktop setting the host can't read;

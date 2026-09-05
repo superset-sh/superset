@@ -2,8 +2,10 @@ import { describe, expect, it } from "bun:test";
 import type { WorkspaceSnapshotPayload } from "@superset/workspace-client";
 import {
 	applyWorkspaceChangedEvent,
+	type HostWorkspaceItem,
 	isEventBusReopen,
 	mergeHostWorkspaces,
+	splitShelvedWorkspaces,
 	toHostWorkspaceItem,
 } from "./useHostWorkspaces.utils";
 
@@ -23,6 +25,7 @@ function makeSnapshot(
 		createdAt: 1_700_000_000_000,
 		updatedAt: 1_700_000_000_000,
 		lastActivityAt: 1_700_000_050_000,
+		shelvedAt: null,
 		tags: [],
 		...overrides,
 	};
@@ -160,5 +163,155 @@ describe("toHostWorkspaceItem", () => {
 			lastActivityAt: null,
 			hostReachable: false,
 		});
+	});
+});
+
+describe("applyWorkspaceChangedEvent shelvedAt", () => {
+	const SHELVED_AT = 1_700_000_100_000;
+
+	it("carries the snapshot's shelvedAt onto the cached row", () => {
+		const rows = applyWorkspaceChangedEvent(
+			undefined,
+			{
+				eventType: "updated",
+				workspace: makeSnapshot({ id: "w1", shelvedAt: SHELVED_AT }),
+			},
+			HOST,
+			"w1",
+		);
+		expect(rows?.[0]?.shelvedAt).toBe(SHELVED_AT);
+	});
+
+	it("clears the flag when an unarchive broadcasts shelvedAt: null", () => {
+		// The `??` idiom used for older-host omissions would keep the row
+		// archived forever here; null is a real value and must win.
+		const archived = applyWorkspaceChangedEvent(
+			undefined,
+			{
+				eventType: "updated",
+				workspace: makeSnapshot({ id: "w1", shelvedAt: SHELVED_AT }),
+			},
+			HOST,
+			"w1",
+		);
+		const restored = applyWorkspaceChangedEvent(
+			archived,
+			{
+				eventType: "updated",
+				workspace: makeSnapshot({ id: "w1", shelvedAt: null }),
+			},
+			HOST,
+			"w1",
+		);
+		expect(restored?.[0]?.shelvedAt).toBeNull();
+	});
+
+	it("keeps the cached flag when an older host's event omits the field", () => {
+		const archived = applyWorkspaceChangedEvent(
+			undefined,
+			{
+				eventType: "updated",
+				workspace: makeSnapshot({ id: "w1", shelvedAt: SHELVED_AT }),
+			},
+			HOST,
+			"w1",
+		);
+		const { shelvedAt: _omitted, ...legacySnapshot } = makeSnapshot({
+			id: "w1",
+		});
+		const next = applyWorkspaceChangedEvent(
+			archived,
+			{
+				eventType: "updated",
+				workspace: legacySnapshot as WorkspaceSnapshotPayload,
+			},
+			HOST,
+			"w1",
+		);
+		expect(next?.[0]?.shelvedAt).toBe(SHELVED_AT);
+	});
+
+	it("defaults a brand-new row without the field to null", () => {
+		const { shelvedAt: _omitted, ...legacySnapshot } = makeSnapshot({
+			id: "w1",
+		});
+		const rows = applyWorkspaceChangedEvent(
+			undefined,
+			{
+				eventType: "created",
+				workspace: legacySnapshot as WorkspaceSnapshotPayload,
+			},
+			HOST,
+			"w1",
+		);
+		expect(rows?.[0]?.shelvedAt).toBeNull();
+	});
+});
+
+describe("splitShelvedWorkspaces", () => {
+	function makeItem(id: string, shelvedAt: number | null): HostWorkspaceItem {
+		return {
+			id,
+			organizationId: HOST.organizationId,
+			projectId: "project-1",
+			hostId: HOST.machineId,
+			name: id,
+			branch: id,
+			type: "worktree",
+			createdByUserId: null,
+			taskId: null,
+			createdAt: new Date(1_700_000_000_000),
+			updatedAt: new Date(1_700_000_000_000),
+			lastActivityAt: null,
+			hostReachable: true,
+			shelvedAt,
+		};
+	}
+
+	it("partitions by the flag, preserving order within each side", () => {
+		const { workspaces, shelvedWorkspaces } = splitShelvedWorkspaces([
+			makeItem("live-1", null),
+			makeItem("shelved-1", 10),
+			makeItem("live-2", null),
+			makeItem("shelved-2", 20),
+		]);
+		expect(workspaces.map((w) => w.id)).toEqual(["live-1", "live-2"]);
+		expect(shelvedWorkspaces.map((w) => w.id)).toEqual([
+			"shelved-1",
+			"shelved-2",
+		]);
+	});
+
+	it("treats a zero timestamp as archived and null as live", () => {
+		const { workspaces, shelvedWorkspaces } = splitShelvedWorkspaces([
+			makeItem("epoch", 0),
+			makeItem("live", null),
+		]);
+		expect(shelvedWorkspaces.map((w) => w.id)).toEqual(["epoch"]);
+		expect(workspaces.map((w) => w.id)).toEqual(["live"]);
+	});
+});
+
+describe("toHostWorkspaceItem shelvedAt", () => {
+	it("normalizes an absent flag to null", () => {
+		const item = toHostWorkspaceItem(
+			{
+				id: "w1",
+				organizationId: HOST.organizationId,
+				projectId: "project-1",
+				hostId: HOST.machineId,
+				name: "w1",
+				branch: "w1",
+				type: "worktree",
+				createdByUserId: null,
+				taskId: null,
+				createdAt: new Date(0),
+				updatedAt: new Date(0),
+				worktreePath: "/tmp/w1",
+				worktreeExists: true,
+			},
+			true,
+		);
+		expect(item.shelvedAt).toBeNull();
 	});
 });

@@ -17,6 +17,7 @@ import {
 	loadHostWorkspacesSnapshot,
 	mergeHostWorkspaces,
 	saveHostWorkspacesSnapshot,
+	splitShelvedWorkspaces,
 	toHostWorkspaceItem,
 } from "./useHostWorkspaces.utils";
 
@@ -57,7 +58,15 @@ export interface HostWorkspacesCacheOps {
 }
 
 export interface UseHostWorkspacesResult {
+	/** Live, unarchived rows (plus tombstones when `includeArchived`). */
 	workspaces: HostWorkspaceItem[];
+	/**
+	 * User-archived rows (`shelvedAt` set): the same cached host rows as
+	 * `workspaces`, split by the flag. Only the Workspaces page's Archived
+	 * view, the deep-link archived state, and the archive/undo flow read
+	 * these; everything else sees only `workspaces`.
+	 */
+	shelvedWorkspaces: HostWorkspaceItem[];
 	/**
 	 * True once every host answered, failed, or served a snapshot. Gates
 	 * empty states only — existing rows always render (cache-first rule).
@@ -326,7 +335,7 @@ export function useHostWorkspacesSource(
 		};
 	}, [targets, queryClient, includeArchived]);
 
-	const workspaces = useMemo(() => {
+	const { workspaces, shelvedWorkspaces } = useMemo(() => {
 		const merged = mergeHostWorkspaces({
 			hostResults: targets.map((target, index) => {
 				const query = queries[index];
@@ -338,7 +347,10 @@ export function useHostWorkspacesSource(
 				};
 			}),
 		});
-		if (!includeArchived) return merged;
+		// Archived (shelved) rows are live rows the user put away; they leave
+		// `workspaces` here and nowhere else, so every consumer hides them.
+		const split = splitShelvedWorkspaces(merged);
+		if (!includeArchived) return split;
 		// Tombstones append after live rows; consumers dedupe by id, so a row
 		// mid-unarchive can't render twice.
 		const liveIds = new Set(merged.map((row) => row.id));
@@ -353,7 +365,10 @@ export function useHostWorkspacesSource(
 					.map((row) => toHostWorkspaceItem(row, !query?.isError))
 			);
 		});
-		return [...merged, ...archived];
+		return {
+			workspaces: [...split.workspaces, ...archived],
+			shelvedWorkspaces: split.shelvedWorkspaces,
+		};
 	}, [targets, queries, includeArchived, archivedQueries, snapshots]);
 
 	// Readiness reflects host-query settlement only. A scoped host that
@@ -437,5 +452,11 @@ export function useHostWorkspacesSource(
 		};
 	}, [targets, queryClient]);
 
-	return { workspaces, isReady, hostsSettled: knownHostsSettled, cache };
+	return {
+		workspaces,
+		shelvedWorkspaces,
+		isReady,
+		hostsSettled: knownHostsSettled,
+		cache,
+	};
 }

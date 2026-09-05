@@ -43,6 +43,13 @@ export interface HostWorkspaceRow extends HostShapedWorkspace {
 	/** Non-null = archived tombstone (only served on `includeArchived`). */
 	archivedAt?: number | null;
 	archiveReason?: "merged" | "deleted" | null;
+	/**
+	 * Non-null = the user archived ("shelved") the workspace; it is still a
+	 * live row (worktree, branch, terminals intact) and comes back with
+	 * Unarchive. Optional because an older host omits it. Distinct from the
+	 * `archivedAt` tombstone above.
+	 */
+	shelvedAt?: number | null;
 }
 
 /** Merged item returned by useHostWorkspaces. */
@@ -55,6 +62,8 @@ export interface HostWorkspaceItem extends HostShapedWorkspace {
 	/** Non-null = archived tombstone (only present on `includeArchived`). */
 	archivedAt?: number | null;
 	archiveReason?: "merged" | "deleted" | null;
+	/** Non-null = user-archived (see HostWorkspaceRow); normalized to null. */
+	shelvedAt: number | null;
 }
 
 export interface HostWorkspacesQueryTarget {
@@ -252,6 +261,12 @@ export function applyWorkspaceChangedEvent(
 		// Same runtime-optionality as tags: an older host's events omit it, so
 		// keep the row's last known stamp rather than wiping it.
 		lastActivityAt: snapshot.lastActivityAt ?? existing?.lastActivityAt ?? null,
+		// Absent (older host) keeps the cached value; null is a real value —
+		// an unarchive broadcasts `shelvedAt: null` and must clear it.
+		shelvedAt:
+			snapshot.shelvedAt !== undefined
+				? snapshot.shelvedAt
+				: (existing?.shelvedAt ?? null),
 		worktreePath: snapshot.worktreePath,
 		// A host broadcasting created/updated just acted on the worktree;
 		// keep a known value over assuming.
@@ -275,8 +290,28 @@ export function toHostWorkspaceItem(
 	return {
 		...row,
 		lastActivityAt: row.lastActivityAt ?? null,
+		shelvedAt: row.shelvedAt ?? null,
 		hostReachable,
 	};
+}
+
+/**
+ * Split merged items into the live sidebar set and the user-archived set.
+ * Both are live host rows (not tombstones); only `shelvedAt` tells them
+ * apart. Every existing `.workspaces` consumer — sidebar, palette, hotkeys,
+ * navigation — hides archived rows through this one seam.
+ */
+export function splitShelvedWorkspaces(items: HostWorkspaceItem[]): {
+	workspaces: HostWorkspaceItem[];
+	shelvedWorkspaces: HostWorkspaceItem[];
+} {
+	const workspaces: HostWorkspaceItem[] = [];
+	const shelvedWorkspaces: HostWorkspaceItem[] = [];
+	for (const item of items) {
+		if (item.shelvedAt != null) shelvedWorkspaces.push(item);
+		else workspaces.push(item);
+	}
+	return { workspaces, shelvedWorkspaces };
 }
 
 /**

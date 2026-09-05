@@ -101,6 +101,8 @@ export interface AccessibleV2Workspace {
 	/** Non-null = archived tombstone (soft-deleted workspace). */
 	archivedAt: number | null;
 	archiveReason: "merged" | "deleted" | null;
+	/** Non-null = user-archived (reversible); only set with `includeShelved`. */
+	shelvedAt: number | null;
 }
 
 export interface V2WorkspaceHostOption {
@@ -129,6 +131,12 @@ export interface UseAccessibleV2WorkspacesResult {
 	all: AccessibleV2Workspace[];
 	/** Row-source settlement — gates empty states only, never rendered rows. */
 	isReady: boolean;
+	/**
+	 * How many user-archived workspaces the current device scope holds,
+	 * independent of `includeShelved` and of search/filters — the header's
+	 * Archived toggle shows it while the live views are open.
+	 */
+	shelvedCount: number;
 	hostOptions: V2WorkspaceHostOption[];
 	projectOptions: V2WorkspaceProjectOption[];
 	creatorOptions: V2WorkspaceCreatorOption[];
@@ -158,6 +166,12 @@ interface UseAccessibleV2WorkspacesOptions {
 	 * device filter — the archived fetch rides the scoped host source.
 	 */
 	includeArchived?: boolean;
+	/**
+	 * Serve the user-archived (shelved) rows INSTEAD of the live ones — the
+	 * Workspaces page's Archived view. Mutually exclusive with
+	 * `includeArchived`; the page passes exactly one based on its view mode.
+	 */
+	includeShelved?: boolean;
 }
 
 function workspaceMatchesSearch(
@@ -285,8 +299,11 @@ export function useAccessibleV2Workspaces(
 		includeArchived: options.includeArchived ?? false,
 	});
 	const fanoutSource = useHostWorkspaces();
-	const { workspaces: hostWorkspaces, isReady } =
-		deviceFilter === undefined ? fanoutSource : scopedSource;
+	const source = deviceFilter === undefined ? fanoutSource : scopedSource;
+	const { isReady } = source;
+	const hostWorkspaces = options.includeShelved
+		? source.shelvedWorkspaces
+		: source.workspaces;
 
 	const { data: rawHostRows = [] } = cloudTrpc.v2Host.list.useQuery(undefined, {
 		refetchInterval: 30_000,
@@ -399,6 +416,7 @@ export function useAccessibleV2Workspaces(
 			sidebarIsHidden: boolean;
 			archivedAt: number | null;
 			archiveReason: "merged" | "deleted" | null;
+			shelvedAt: number | null;
 		};
 		return hostWorkspaces.flatMap((workspace): AccessibleRowDraft[] => {
 			if (workspace.organizationId !== activeOrganizationId) return [];
@@ -442,6 +460,7 @@ export function useAccessibleV2Workspaces(
 						sidebarIsHidden: sessionSidebarState?.isHidden ?? false,
 						archivedAt: workspace.archivedAt ?? null,
 						archiveReason: workspace.archiveReason ?? null,
+						shelvedAt: workspace.shelvedAt,
 					},
 				];
 			}
@@ -492,6 +511,7 @@ export function useAccessibleV2Workspaces(
 					sidebarIsHidden: sidebarState?.isHidden ?? false,
 					archivedAt: workspace.archivedAt ?? null,
 					archiveReason: workspace.archiveReason ?? null,
+					shelvedAt: workspace.shelvedAt,
 				},
 			];
 		});
@@ -735,6 +755,7 @@ export function useAccessibleV2Workspaces(
 				diffStats: diffStatsByWorkspaceId.get(row.id) ?? null,
 				archivedAt: row.archivedAt,
 				archiveReason: row.archiveReason,
+				shelvedAt: row.shelvedAt,
 			});
 		}
 		return Array.from(deduped.values()).sort(
@@ -898,9 +919,16 @@ export function useAccessibleV2Workspaces(
 		return map;
 	}, [enriched]);
 
+	// Counted on the raw split (before the org/project join) so the badge
+	// never lags the Archived view; both filter by the same device scope.
+	const shelvedCount = source.shelvedWorkspaces.filter(
+		(workspace) => workspace.organizationId === activeOrganizationId,
+	).length;
+
 	return {
 		all: fullyFiltered,
 		isReady,
+		shelvedCount,
 		hostOptions,
 		projectOptions,
 		creatorOptions,
