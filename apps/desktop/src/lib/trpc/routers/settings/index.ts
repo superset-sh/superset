@@ -1116,9 +1116,13 @@ export const createSettingsRouter = () => {
 		setShowUsageInSidebar: publicProcedure
 			.input(z.object({ enabled: z.boolean() }))
 			.mutation(({ input }) => {
+				// Target the row getSettings() reads: legacy DBs can hold a non-1
+				// row id, and upserting id 1 there would split settings across
+				// two rows.
+				const { id } = getSettings();
 				localDb
 					.insert(settings)
-					.values({ id: 1, showUsageInSidebar: input.enabled })
+					.values({ id, showUsageInSidebar: input.enabled })
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { showUsageInSidebar: input.enabled },
