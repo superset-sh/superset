@@ -3,7 +3,8 @@ import { cloudTrpc } from "renderer/lib/cloud-trpc";
 
 /** How the dialog is showing the credential; not every one of these is stored. */
 export type CloudAuthMethod = "subscription" | "api_key" | "custom";
-export type CustomProvider = "bedrock" | "gateway" | "manual";
+/** Only providers a credential row can actually hold: one value plus a base URL. */
+export type CustomProvider = "gateway";
 
 export interface CloudAuthState {
 	method: CloudAuthMethod;
@@ -18,6 +19,7 @@ export interface SaveCredentialInput {
 	value: string;
 	baseUrl?: string;
 	accountLabel?: string;
+	provider?: "gateway";
 }
 
 /**
@@ -59,7 +61,7 @@ export function useAgentCredential(presetId: string) {
 		method,
 		subscriptionConnected: stored === "subscription",
 		apiKeySaved: stored === "api_key",
-		customProvider: stored === "custom" ? "manual" : null,
+		customProvider: stored === "custom" ? "gateway" : null,
 		customSaved: stored === "custom",
 	};
 

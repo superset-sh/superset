@@ -3,6 +3,7 @@ import type { AgentCredentialKind } from "@superset/db/schema";
 const TIMEOUT_MS = 10_000;
 const ANTHROPIC_DEFAULT = "https://api.anthropic.com";
 const OPENAI_DEFAULT = "https://api.openai.com";
+const GATEWAY_DEFAULT = "https://ai-gateway.vercel.sh";
 
 export interface ValidationResult {
 	ok: boolean;
@@ -12,12 +13,20 @@ export interface ValidationResult {
 	params?: Record<string, string | number>;
 }
 
+/**
+ * Joins a base URL to a probe path. A base URL is usually given with its
+ * version segment already on it, so that segment is trimmed before the path
+ * is appended; without this the request lands on `/v1/v1/...` and 404s.
+ */
 function endpoint(
 	baseUrl: string | null | undefined,
 	fallback: string,
+	path: string,
 ): string {
-	const origin = (baseUrl || fallback).replace(/\/+$/, "");
-	return `${origin}/v1/models`;
+	const origin = (baseUrl || fallback)
+		.replace(/\/+$/, "")
+		.replace(/\/v\d+$/, "");
+	return `${origin}${path}`;
 }
 
 async function probe(
@@ -61,12 +70,25 @@ export async function validateAgentCredential(input: {
 	kind: AgentCredentialKind;
 	value: string;
 	baseUrl?: string | null;
+	provider?: string | null;
 }): Promise<ValidationResult> {
-	const { agent, kind, value, baseUrl } = input;
+	const { agent, kind, value, baseUrl, provider } = input;
+	// The gateway's model list is public, so it can never tell a good key from
+	// a bad one; credits is the cheapest call there that actually authenticates.
+	if (provider === "gateway") {
+		return probe(
+			endpoint(baseUrl, GATEWAY_DEFAULT, "/v1/credits"),
+			{ Authorization: `Bearer ${value}` },
+			{
+				message: "Vercel AI Gateway rejected this key.",
+				i18nKey: "serverError.agentCredential.gatewayRejectedKey",
+			},
+		);
+	}
 	if (agent === "claude") {
 		if (kind === "subscription") {
 			return probe(
-				endpoint(baseUrl, ANTHROPIC_DEFAULT),
+				endpoint(baseUrl, ANTHROPIC_DEFAULT, "/v1/models"),
 				{
 					Authorization: `Bearer ${value}`,
 					"anthropic-version": "2023-06-01",
@@ -79,7 +101,7 @@ export async function validateAgentCredential(input: {
 			);
 		}
 		return probe(
-			endpoint(baseUrl, ANTHROPIC_DEFAULT),
+			endpoint(baseUrl, ANTHROPIC_DEFAULT, "/v1/models"),
 			{ "x-api-key": value, "anthropic-version": "2023-06-01" },
 			{
 				message: "Anthropic rejected this API key.",
@@ -94,7 +116,7 @@ export async function validateAgentCredential(input: {
 			return { ok: true };
 		}
 		return probe(
-			endpoint(baseUrl, OPENAI_DEFAULT),
+			endpoint(baseUrl, OPENAI_DEFAULT, "/v1/models"),
 			{ Authorization: `Bearer ${value}` },
 			{
 				message: "OpenAI rejected this API key.",

@@ -38,6 +38,8 @@ export const agentCredentialRouter = {
 				kind: z.enum(agentCredentialKindValues),
 				value: z.string().min(1).max(8192),
 				baseUrl: z.string().url().max(2048).optional(),
+				/** Which custom provider the value came from; picks the check to run. */
+				provider: z.enum(["gateway"]).optional(),
 				accountLabel: z.string().max(200).optional(),
 			}),
 		)
@@ -64,6 +66,7 @@ export const agentCredentialRouter = {
 				kind: input.kind,
 				value,
 				baseUrl: input.baseUrl,
+				provider: input.provider,
 			});
 			if (!check.ok) {
 				throw userError({
