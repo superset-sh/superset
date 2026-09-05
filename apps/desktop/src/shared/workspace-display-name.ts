@@ -1,4 +1,4 @@
-interface V2WorkspaceNameSource {
+interface WorkspaceNameSource {
 	type: "main" | "worktree" | "session";
 	name: string;
 	branch: string;
@@ -9,8 +9,8 @@ interface V2WorkspaceNameSource {
  * checked-out branch rather than a user-chosen label, so they always display
  * as "local".
  */
-export function getV2WorkspaceDisplayName(
-	workspace: V2WorkspaceNameSource,
+export function getWorkspaceDisplayName(
+	workspace: WorkspaceNameSource,
 ): string {
 	if (workspace.type === "main") return "local";
 	return workspace.name || workspace.branch;

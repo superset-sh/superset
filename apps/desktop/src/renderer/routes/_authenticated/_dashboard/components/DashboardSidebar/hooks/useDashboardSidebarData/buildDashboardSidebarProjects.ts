@@ -5,7 +5,7 @@ import {
 	type TagFolderRef,
 } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import type { WorkspaceTransactionSnapshot } from "renderer/stores/workspace-creates";
-import { getV2WorkspaceDisplayName } from "renderer/utils/getV2WorkspaceDisplayName";
+import { getWorkspaceDisplayName } from "shared/workspace-display-name";
 import type {
 	DashboardSidebarPinnedWorkspace,
 	DashboardSidebarProject,
@@ -106,7 +106,7 @@ function decorateSidebarWorkspace(
 		type: workspace.type,
 		hostIsOnline: hostType === "remote-device" ? workspace.hostIsOnline : null,
 		accentColor: null,
-		name: getV2WorkspaceDisplayName(workspace),
+		name: getWorkspaceDisplayName(workspace),
 		branch: workspace.branch,
 		pullRequest: pullRequestsByWorkspaceId.get(workspace.id) ?? null,
 		repoUrl:
