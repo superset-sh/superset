@@ -4336,6 +4336,9 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 msgid "Default ({defaultWorktreePath})"
 msgstr "기본값({defaultWorktreePath})"
 
+msgid "Default app"
+msgstr "기본 앱"
+
 msgid "default browser"
 msgstr "기본 브라우저"
 
@@ -9271,9 +9274,6 @@ msgstr "파일 열기"
 msgid "Open File"
 msgstr "파일 열기"
 
-msgid "Open file in"
-msgstr "다음에서 파일 열기"
-
 msgid "Open File in New Tab"
 msgstr "새 탭에서 파일 열기"
 
@@ -9298,6 +9298,9 @@ msgstr "어떤 IDE에서든 열기"
 
 msgid "Open in Any IDE"
 msgstr "어떤 IDE에서든 열기"
+
+msgid "Open in app"
+msgstr "앱에서 열기"
 
 msgid "Open in App"
 msgstr "앱에서 열기"

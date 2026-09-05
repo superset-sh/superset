@@ -4,19 +4,12 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuShortcut,
 } from "@superset/ui/dropdown-menu";
-import {
-	ExternalLink,
-	FileText,
-	GitCompare,
-	SquarePlus,
-	Trash2,
-	Undo2,
-} from "lucide-react";
+import { FileText, GitCompare, SquarePlus, Trash2, Undo2 } from "lucide-react";
 import {
 	modifierLabel,
 	useChangesSidebarFilePolicy,
 } from "renderer/lib/clickPolicy";
-import { OpenFileInMenuItems } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/OpenFileInMenuItems";
+import { OpenInAppMenuItems } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/OpenInAppMenuItems";
 import {
 	type ChangesetFile,
 	getChangesetFileKey,
@@ -35,6 +28,7 @@ interface FileRowContextMenuItemsProps {
 		changeKey?: string,
 	) => void;
 	onOpenFile?: (absolutePath: string, openInNewTab?: boolean) => void;
+	/** Kept for callers; the "Open in app" submenu drives the editor itself. */
 	onOpenInEditor?: (path: string) => void;
 	/**
 	 * Ask the parent to run the discard flow for this file. The confirm dialog
@@ -57,7 +51,6 @@ export function FileRowContextMenuItems({
 	sectionKind,
 	onSelectFile,
 	onOpenFile,
-	onOpenInEditor,
 	onRequestDiscard,
 }: FileRowContextMenuItemsProps) {
 	const { t } = useLingui();
@@ -109,22 +102,11 @@ export function FileRowContextMenuItems({
 				<SquarePlus />
 				<Trans>Open File in New Tab</Trans>
 			</DropdownMenuItem>
-			<DropdownMenuItem
-				onSelect={() => onOpenInEditor?.(file.path)}
-				disabled={!onOpenInEditor}
-			>
-				<ExternalLink />
-				<Trans>Open in Editor</Trans>
-				{externalTier && (
-					<DropdownMenuShortcut>
-						{modifierLabel(externalTier)}
-					</DropdownMenuShortcut>
-				)}
-			</DropdownMenuItem>
-			<OpenFileInMenuItems
+			<OpenInAppMenuItems
 				path={file.path}
 				workspaceId={workspaceId}
 				menuType="dropdown"
+				shortcutLabel={externalTier ? modifierLabel(externalTier) : undefined}
 			/>
 			{absolutePath && (
 				<>

@@ -2,6 +2,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	ContextMenuItem,
 	ContextMenuSeparator,
+	ContextMenuShortcut,
 	ContextMenuSub,
 	ContextMenuSubContent,
 	ContextMenuSubTrigger,
@@ -9,6 +10,7 @@ import {
 import {
 	DropdownMenuItem,
 	DropdownMenuSeparator,
+	DropdownMenuShortcut,
 	DropdownMenuSub,
 	DropdownMenuSubContent,
 	DropdownMenuSubTrigger,
@@ -19,6 +21,7 @@ import jetbrainsIcon from "renderer/assets/app-icons/jetbrains.svg";
 import vscodeIcon from "renderer/assets/app-icons/vscode.svg";
 import {
 	AppOptionIcon,
+	useAppOption,
 	useCustomApps,
 } from "renderer/components/OpenInExternalDropdown";
 import {
@@ -28,13 +31,17 @@ import {
 	VSCODE_OPTIONS,
 } from "renderer/components/OpenInExternalDropdown/constants";
 import { useOpenInExternalEditor } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useOpenInExternalEditor";
+import { useV2ProjectDefaultApp } from "renderer/routes/_authenticated/hooks/useV2ProjectDefaultApp";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useThemeStore } from "renderer/stores";
 
-interface OpenFileInMenuItemsProps {
+interface OpenInAppMenuItemsProps {
 	/** Repo-relative file path. */
 	path: string;
 	workspaceId: string;
 	menuType?: "context" | "dropdown";
+	/** Modifier hint for the default-app row (the same click policy tier). */
+	shortcutLabel?: string;
 }
 
 // Radix context-menu and dropdown-menu share an identical API; pick the set
@@ -43,6 +50,7 @@ const PRIMITIVES = {
 	context: {
 		Item: ContextMenuItem,
 		Separator: ContextMenuSeparator,
+		Shortcut: ContextMenuShortcut,
 		Sub: ContextMenuSub,
 		SubTrigger: ContextMenuSubTrigger,
 		SubContent: ContextMenuSubContent,
@@ -50,6 +58,7 @@ const PRIMITIVES = {
 	dropdown: {
 		Item: DropdownMenuItem,
 		Separator: DropdownMenuSeparator,
+		Shortcut: DropdownMenuShortcut,
 		Sub: DropdownMenuSub,
 		SubTrigger: DropdownMenuSubTrigger,
 		SubContent: DropdownMenuSubContent,
@@ -57,26 +66,37 @@ const PRIMITIVES = {
 } as const;
 
 /**
- * "Open file in ▸" submenu — opens the specific file (not the workspace) in the
- * chosen editor. Routes through `useOpenInExternalEditor` so the remote-host
- * guard and path resolution match the sibling "Open in Editor" action.
+ * "Open in app ▸" submenu for a single file. The first row is the project's
+ * current default (what a modifier-click opens); below it every editor,
+ * grouped like the workspace "Open in" menu, plus the user's custom apps.
+ * Routes through `useOpenInExternalEditor` so the remote-host guard and path
+ * resolution match the modifier-click path exactly.
  *
  * A focused component rather than reusing OpenInExternalDropdownItems. That
  * one is workspace-scoped (bakes in Finder + Terminal + Copy-path); a single
  * file only wants editors, so forcing it through here would mean adding
  * hide-flags to a shared component for one caller.
  */
-export function OpenFileInMenuItems({
+export function OpenInAppMenuItems({
 	path,
 	workspaceId,
 	menuType = "context",
-}: OpenFileInMenuItemsProps) {
+	shortcutLabel,
+}: OpenInAppMenuItemsProps) {
 	const { t } = useLingui();
 	const isDark = useThemeStore((state) => state.activeTheme?.type === "dark");
 	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
 	const customApps = useCustomApps();
-	const { Item, Separator, Sub, SubTrigger, SubContent } = PRIMITIVES[menuType];
+	const { Item, Separator, Shortcut, Sub, SubTrigger, SubContent } =
+		PRIMITIVES[menuType];
 	const navigate = useNavigate();
+
+	const { workspaces } = useHostWorkspaces();
+	const projectId =
+		workspaces.find((w) => w.id === workspaceId)?.projectId ?? undefined;
+	const { app: defaultAppRef } = useV2ProjectDefaultApp(projectId);
+	const defaultApp = useAppOption(defaultAppRef);
+
 	const addCustomAppItem = (
 		<Item
 			onSelect={() =>
@@ -113,28 +133,33 @@ export function OpenFileInMenuItems({
 		<Sub>
 			<SubTrigger>
 				<ExternalLink />
-				<Trans>Open file in</Trans>
+				<Trans>Open in app</Trans>
 			</SubTrigger>
 			<SubContent>
+				<Item onSelect={() => openInExternalEditor(path)}>
+					{defaultApp ? (
+						<AppOptionIcon option={defaultApp} isDark={isDark} />
+					) : (
+						<ExternalLink />
+					)}
+					{defaultApp
+						? (defaultApp.displayLabel ?? defaultApp.label)
+						: t({ message: "Default app" })}
+					{shortcutLabel && <Shortcut>{shortcutLabel}</Shortcut>}
+				</Item>
+				<Separator />
+				{appRows(IDE_OPTIONS)}
 				<Sub>
 					<SubTrigger>
-						{triggerLabel(vscodeIcon, t({ message: "IDE" }))}
+						{triggerLabel(vscodeIcon, t({ message: "VS Code" }))}
 					</SubTrigger>
-					<SubContent>
-						{appRows(IDE_OPTIONS)}
-						<Sub>
-							<SubTrigger>
-								{triggerLabel(vscodeIcon, t({ message: "VS Code" }))}
-							</SubTrigger>
-							<SubContent>{appRows(VSCODE_OPTIONS)}</SubContent>
-						</Sub>
-						<Sub>
-							<SubTrigger>
-								{triggerLabel(jetbrainsIcon, t({ message: "JetBrains" }))}
-							</SubTrigger>
-							<SubContent>{appRows(JETBRAINS_OPTIONS)}</SubContent>
-						</Sub>
-					</SubContent>
+					<SubContent>{appRows(VSCODE_OPTIONS)}</SubContent>
+				</Sub>
+				<Sub>
+					<SubTrigger>
+						{triggerLabel(jetbrainsIcon, t({ message: "JetBrains" }))}
+					</SubTrigger>
+					<SubContent>{appRows(JETBRAINS_OPTIONS)}</SubContent>
 				</Sub>
 				{customApps.length > 0 && (
 					<Sub>

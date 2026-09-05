@@ -21,7 +21,6 @@ import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
 import {
 	ChevronDown,
-	ExternalLink,
 	FileText,
 	GitCompare,
 	SquarePlus,
@@ -36,7 +35,7 @@ import {
 import { FileIcon } from "renderer/lib/fileIcons";
 import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/DiscardConfirmDialog";
 import { StatusIndicator } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/StatusIndicator";
-import { OpenFileInMenuItems } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/OpenFileInMenuItems";
+import { OpenInAppMenuItems } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/OpenInAppMenuItems";
 import {
 	type ChangesetFile,
 	getChangesetFileKey,
@@ -237,18 +236,14 @@ export const FileRow = memo(function FileRow({
 							<SquarePlus />
 							<Trans>Open File in New Tab</Trans>
 						</DropdownMenuItem>
-						<DropdownMenuItem
-							onSelect={() => onOpenInEditor?.(file.path)}
-							disabled={!onOpenInEditor}
-						>
-							<ExternalLink />
-							<Trans>Open in Editor</Trans>
-							{externalTier && (
-								<DropdownMenuShortcut>
-									{modifierLabel(externalTier)}
-								</DropdownMenuShortcut>
-							)}
-						</DropdownMenuItem>
+						<OpenInAppMenuItems
+							path={file.path}
+							workspaceId={workspaceId}
+							menuType="dropdown"
+							shortcutLabel={
+								externalTier ? modifierLabel(externalTier) : undefined
+							}
+						/>
 					</DropdownMenuContent>
 				</DropdownMenu>
 			</div>
@@ -298,22 +293,11 @@ export const FileRow = memo(function FileRow({
 					<SquarePlus />
 					<Trans>Open File in New Tab</Trans>
 				</ContextMenuItem>
-				<ContextMenuItem
-					onSelect={() => onOpenInEditor?.(file.path)}
-					disabled={!onOpenInEditor}
-				>
-					<ExternalLink />
-					<Trans>Open in Editor</Trans>
-					{externalTier && (
-						<ContextMenuShortcut>
-							{modifierLabel(externalTier)}
-						</ContextMenuShortcut>
-					)}
-				</ContextMenuItem>
-				<OpenFileInMenuItems
+				<OpenInAppMenuItems
 					path={file.path}
 					workspaceId={workspaceId}
 					menuType="context"
+					shortcutLabel={externalTier ? modifierLabel(externalTier) : undefined}
 				/>
 				{absolutePath && (
 					<>

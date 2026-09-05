@@ -4336,6 +4336,9 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 msgid "Default ({defaultWorktreePath})"
 msgstr "預設（{defaultWorktreePath}）"
 
+msgid "Default app"
+msgstr "預設應用程式"
+
 msgid "default browser"
 msgstr "預設瀏覽器"
 
@@ -9271,9 +9274,6 @@ msgstr "開啟檔案"
 msgid "Open File"
 msgstr "開啟檔案"
 
-msgid "Open file in"
-msgstr "以其他應用程式開啟檔案"
-
 msgid "Open File in New Tab"
 msgstr "在新分頁中開啟檔案"
 
@@ -9298,6 +9298,9 @@ msgstr "在任意IDE中開啟"
 
 msgid "Open in Any IDE"
 msgstr "在任意IDE中開啟"
+
+msgid "Open in app"
+msgstr "以應用程式開啟"
 
 msgid "Open in App"
 msgstr "在應用中開啟"

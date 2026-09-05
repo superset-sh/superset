@@ -4336,6 +4336,9 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 msgid "Default ({defaultWorktreePath})"
 msgstr "Výchozí ({defaultWorktreePath})"
 
+msgid "Default app"
+msgstr "Výchozí aplikace"
+
 msgid "default browser"
 msgstr "výchozí prohlížeč"
 
@@ -9271,9 +9274,6 @@ msgstr "Otevřít soubor"
 msgid "Open File"
 msgstr "Otevřít soubor"
 
-msgid "Open file in"
-msgstr "Otevřít soubor v"
-
 msgid "Open File in New Tab"
 msgstr "Otevřít soubor na nové kartě"
 
@@ -9298,6 +9298,9 @@ msgstr "Otevřete v jakémkoli IDE"
 
 msgid "Open in Any IDE"
 msgstr "Otevřete v libovolném IDE"
+
+msgid "Open in app"
+msgstr "Otevřít v aplikaci"
 
 msgid "Open in App"
 msgstr "Otevřít v aplikaci"

@@ -4336,6 +4336,9 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 msgid "Default ({defaultWorktreePath})"
 msgstr "Mặc định ({defaultWorktreePath})"
 
+msgid "Default app"
+msgstr "Ứng dụng mặc định"
+
 msgid "default browser"
 msgstr "trình duyệt mặc định"
 
@@ -9271,9 +9274,6 @@ msgstr "Mở tệp"
 msgid "Open File"
 msgstr "Mở tệp"
 
-msgid "Open file in"
-msgstr "Mở tệp trong"
-
 msgid "Open File in New Tab"
 msgstr "Mở tệp ở tab mới"
 
@@ -9298,6 +9298,9 @@ msgstr "Mở trong mọi IDE"
 
 msgid "Open in Any IDE"
 msgstr "Mở trong IDE bất kỳ"
+
+msgid "Open in app"
+msgstr "Mở trong ứng dụng"
 
 msgid "Open in App"
 msgstr "Mở trong ứng dụng"

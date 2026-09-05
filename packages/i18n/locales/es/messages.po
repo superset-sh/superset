@@ -4336,6 +4336,9 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 msgid "Default ({defaultWorktreePath})"
 msgstr "Predeterminada ({defaultWorktreePath})"
 
+msgid "Default app"
+msgstr "Aplicación predeterminada"
+
 msgid "default browser"
 msgstr "navegador predeterminado"
 
@@ -9271,9 +9274,6 @@ msgstr "Abrir el archivo"
 msgid "Open File"
 msgstr "Abrir el archivo"
 
-msgid "Open file in"
-msgstr "Abrir archivo en"
-
 msgid "Open File in New Tab"
 msgstr "Abrir el archivo en una pestaña nueva"
 
@@ -9298,6 +9298,9 @@ msgstr "Abrir en cualquier IDE"
 
 msgid "Open in Any IDE"
 msgstr "Ábrelo en cualquier IDE"
+
+msgid "Open in app"
+msgstr "Abrir en una aplicación"
 
 msgid "Open in App"
 msgstr "Abrir en una app"

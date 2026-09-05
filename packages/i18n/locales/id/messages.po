@@ -4336,6 +4336,9 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 msgid "Default ({defaultWorktreePath})"
 msgstr "Bawaan ({defaultWorktreePath})"
 
+msgid "Default app"
+msgstr "Aplikasi default"
+
 msgid "default browser"
 msgstr "browser bawaan"
 
@@ -9271,9 +9274,6 @@ msgstr "Buka file"
 msgid "Open File"
 msgstr "Buka File"
 
-msgid "Open file in"
-msgstr "Buka file di"
-
 msgid "Open File in New Tab"
 msgstr "Buka File di Tab Baru"
 
@@ -9298,6 +9298,9 @@ msgstr "Buka di IDE mana pun"
 
 msgid "Open in Any IDE"
 msgstr "Buka di IDE Mana Pun"
+
+msgid "Open in app"
+msgstr "Buka di aplikasi"
 
 msgid "Open in App"
 msgstr "Buka di Aplikasi"

@@ -4336,6 +4336,9 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 msgid "Default ({defaultWorktreePath})"
 msgstr "デフォルト({defaultWorktreePath})"
 
+msgid "Default app"
+msgstr "デフォルトのアプリ"
+
 msgid "default browser"
 msgstr "既定のブラウザ"
 
@@ -9271,9 +9274,6 @@ msgstr "ファイルを開く"
 msgid "Open File"
 msgstr "ファイルを開く"
 
-msgid "Open file in"
-msgstr "ファイルを開く"
-
 msgid "Open File in New Tab"
 msgstr "新しいタブでファイルを開く"
 
@@ -9298,6 +9298,9 @@ msgstr "どのIDEでも開ける"
 
 msgid "Open in Any IDE"
 msgstr "好きなIDEで開く"
+
+msgid "Open in app"
+msgstr "アプリで開く"
 
 msgid "Open in App"
 msgstr "アプリで開く"
