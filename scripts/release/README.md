@@ -75,14 +75,12 @@ standalone CLI — no manual CLI step.
 
 ## After publishing: rebuild the App Store review host
 
-`superset-review-host` pins its host-service version in a Dockerfile and cannot
-update any other way — its rootfs resets to the image on every restart, so a
-hand-patched binary silently reverts on the next boot. Once `cli-v<version>`
-exists:
+`superset-review-host` (GCP, `us-west1-b`) has no auto-update. Once
+`cli-v<version>` exists:
 
 ```bash
-# bump SUPERSET_VERSION in apps/review-host/Dockerfile, then
-apps/review-host/scripts/deploy.sh
+gcloud compute ssh superset-review-host --zone=us-west1-b --command \
+  'sudo SUPERSET_VERSION=<version> bash /opt/review-host/update.sh'
 ```
 
 Skipping this is how the box sat on 1.22.0 from 2026-08-14 to 2026-09-05 while

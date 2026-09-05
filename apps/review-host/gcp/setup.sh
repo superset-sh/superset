@@ -1,0 +1,128 @@
+#!/usr/bin/env bash
+# Provisions the App Store review host on a fresh Ubuntu 24.04 VM. Idempotent.
+# Run as root on the VM: sudo bash setup.sh
+set -euo pipefail
+
+SUPERSET_VERSION="${SUPERSET_VERSION:-1.26.0}"
+GH_VERSION="${GH_VERSION:-2.100.0}"
+REVIEW_ORG_ID="${REVIEW_ORG_ID:?set REVIEW_ORG_ID}"
+
+# The reviewer sees this as the machine name (getHostName() is
+# hostname().split(".")[0]).
+hostnamectl set-hostname acme-devbox
+
+export DEBIAN_FRONTEND=noninteractive
+apt-get update
+apt-get install -y --no-install-recommends ca-certificates curl git python3 rsync
+
+# host-service bundle. On the boot disk, so it survives reboots and can be
+# updated in place — the whole reason this is a VM and not an immutable image.
+if [ ! -x /opt/superset/bin/superset-host ] \
+   || ! grep -aq "$SUPERSET_VERSION" /opt/superset/lib/host-service.js 2>/dev/null; then
+  rm -rf /opt/superset.new
+  mkdir -p /opt/superset.new
+  curl -fsSL -o /tmp/superset.tar.gz \
+    "https://github.com/superset-sh/superset/releases/download/cli-v${SUPERSET_VERSION}/superset-linux-x64.tar.gz"
+  tar -xzf /tmp/superset.tar.gz -C /opt/superset.new
+  rm -f /tmp/superset.tar.gz
+  rm -rf /opt/superset.old
+  [ -d /opt/superset ] && mv /opt/superset /opt/superset.old
+  mv /opt/superset.new /opt/superset
+  rm -rf /opt/superset.old
+fi
+
+# The agent the reviewer runs. The installer refuses to run under sudo unless
+# told to — without the opt-in it would either abort or land in the invoking
+# user's home, and host-service runs as root.
+if [ ! -x /root/.local/bin/claude ]; then
+  curl -fsSL https://claude.ai/install.sh | CLAUDE_INSTALL_ALLOW_SUDO=1 HOME=/root bash
+fi
+
+# Agents reach for gh unprompted; without it they improvise and fail.
+if [ ! -x /usr/local/bin/gh ]; then
+  curl -fsSL -o /tmp/gh.tar.gz \
+    "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_amd64.tar.gz"
+  tar -xzf /tmp/gh.tar.gz -C /tmp
+  install -m0755 "/tmp/gh_${GH_VERSION}_linux_amd64/bin/gh" /usr/local/bin/gh
+  rm -rf /tmp/gh.tar.gz "/tmp/gh_${GH_VERSION}_linux_amd64"
+fi
+
+# Demo repositories the reviewer browses. Real git repos with no remote.
+mkdir -p /demo
+if [ ! -d /demo/acme/.git ]; then
+  git config --global user.email "appreview@superset.sh"
+  git config --global user.name "Superset"
+  git config --global init.defaultBranch main
+  for repo in /demo/*; do
+    [ -d "$repo" ] || continue
+    git -C "$repo" init -q
+    git -C "$repo" add -A
+    git -C "$repo" commit -qm "Initial commit"
+  done
+fi
+
+install -m0755 /opt/review-host/run.sh /opt/review-host/run.sh 2>/dev/null || true
+
+# Host identity. getHostId() is HMAC(salt, contents of /etc/machine-id), and on
+# the Fly image that file was EMPTY — the ubuntu base never populates it and
+# nothing there runs systemd — so this host's id is the HMAC of the empty
+# string, a5b47dedad57a63d234ffff6753c74df. Reproducing it needs an empty file.
+#
+# We cannot just blank /etc/machine-id: systemd treats an empty one as first
+# boot and repopulates it, which would silently change the id on the next reboot
+# and register a second host the reviewer sees as a duplicate. So the OS keeps a
+# real machine-id and only host-service is shown an empty one, via BindReadOnlyPaths.
+: > /opt/review-host/machine-id
+chmod 0444 /opt/review-host/machine-id
+[ -s /etc/machine-id ] || systemd-machine-id-setup
+
+cat > /etc/systemd/system/superset-review-host.service <<UNIT
+[Unit]
+Description=Superset host-service for the App Store review account
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+Environment=REVIEW_ORG_ID=${REVIEW_ORG_ID}
+ExecStart=/opt/review-host/run.sh
+BindReadOnlyPaths=/opt/review-host/machine-id:/etc/machine-id
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+cat > /etc/systemd/system/superset-review-watchdog.service <<UNIT
+[Unit]
+Description=Restarts host-service when the relay stops seeing this host
+After=superset-review-host.service
+Requires=superset-review-host.service
+
+[Service]
+Type=exec
+Environment=REVIEW_ORG_ID=${REVIEW_ORG_ID}
+ExecStart=/opt/review-host/watchdog.sh
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+systemctl daemon-reload
+
+# Two machines sharing one /etc/machine-id resolve to the same hostId and would
+# evict each other's relay tunnel in a loop. START_SERVICES=0 provisions without
+# claiming the identity, so the old host can be stopped first.
+if [ "${START_SERVICES:-1}" = "1" ]; then
+  systemctl enable --now superset-review-host.service
+  systemctl enable --now superset-review-watchdog.service
+else
+  systemctl enable superset-review-host.service
+  systemctl enable superset-review-watchdog.service
+  echo "[setup] services enabled but not started (START_SERVICES=0)"
+fi
+
+echo "[setup] done; host-service ${SUPERSET_VERSION}"
