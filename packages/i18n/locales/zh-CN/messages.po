@@ -298,6 +298,10 @@ msgstr "{0}的操作"
 msgid "{0} behind you"
 msgstr "落后你{0}"
 
+#. placeholder {0}: params?.agent
+msgid "{0} cannot be signed in this way yet."
+msgstr "{0}还不能用这种方式登录。"
+
 #. placeholder {0}: formatNumber(participants)
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
 msgstr "已有{0}位开发者按agent用量排名。你最近30天的数据已计入，只是尚未公开。仅包含token数量和模型名称，不含仓库名、文件路径或提示词。"
@@ -632,6 +636,9 @@ msgstr "{kindLabel}主题"
 
 msgid "{label} (partial week)"
 msgstr "{label}（不完整周）"
+
+msgid "{label} in cloud workspaces"
+msgstr "云端工作区中的{label}"
 
 msgid "{level} · {gate} · {statusLabel}"
 msgstr "{level} · {gate} · {statusLabel}"
@@ -1387,6 +1394,9 @@ msgstr "管理员不能修改所有者"
 msgid "Admins cannot promote members to owner"
 msgstr "管理员不能将成员提升为所有者"
 
+msgid "Advanced"
+msgstr "高级"
+
 msgid "Advanced options"
 msgstr "高级选项"
 
@@ -1401,6 +1411,9 @@ msgstr "对比main"
 
 msgid "Agent"
 msgstr "智能体"
+
+msgid "Agent commands"
+msgstr "智能体命令"
 
 msgid "Agent Complete — {workspaceName}"
 msgstr "智能体已完成 — {workspaceName}"
@@ -1736,6 +1749,12 @@ msgstr "另一台设备"
 
 msgid "Answered"
 msgstr "已回答"
+
+msgid "Anthropic rejected this API key."
+msgstr "Anthropic拒绝了此API密钥。"
+
+msgid "Anthropic rejected this token."
+msgstr "Anthropic拒绝了此令牌。"
 
 msgid "Any calendar"
 msgstr "任意日历"
@@ -2196,6 +2215,9 @@ msgstr "{selectedHostLabel}上新建worktree的基准目录"
 
 msgid "Base directory for new worktrees on {selectedHostName}."
 msgstr "{selectedHostName}上新建worktree的基准目录。"
+
+msgid "Base URL"
+msgstr "基础URL"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -3398,6 +3420,12 @@ msgstr "已连接到"
 msgid "Connected to {connectedOrgName}"
 msgstr "已连接到{connectedOrgName}"
 
+msgid "Connected via subscription"
+msgstr "已通过订阅连接"
+
+msgid "Connected with API key"
+msgstr "已用API密钥连接"
+
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "已连接，但Microsoft Graph拒绝了通知订阅。"
 
@@ -3780,6 +3808,9 @@ msgstr "无法连接到桌面。"
 
 msgid "Could not reach the host to load this pull request."
 msgstr "无法连接到主机以加载此拉取请求。"
+
+msgid "Could not reach the provider. Try again."
+msgstr "无法连接到提供商，请重试。"
 
 msgid "Could not reach this workspace's machine"
 msgstr "无法连接到这个工作区所在的机器"
@@ -4228,6 +4259,9 @@ msgstr "自定义前缀"
 
 msgid "Custom pricing"
 msgstr "定制价格"
+
+msgid "Custom provider"
+msgstr "自定义提供商"
 
 msgid "Custom terminal agents"
 msgstr "自定义终端智能体"
@@ -5105,6 +5139,9 @@ msgstr "请输入有效的邮箱地址。"
 
 msgid "Enter a valid recurrence rule."
 msgstr "请输入有效的重复规则。"
+
+msgid "Enter a value."
+msgstr "请输入一个值。"
 
 msgid "Enter URL or search..."
 msgstr "输入URL或搜索..."
@@ -6225,11 +6262,17 @@ msgstr "生成中"
 msgid "Generating..."
 msgstr "正在生成..."
 
+msgid "Get an API key"
+msgstr "获取API密钥"
+
 msgid "Get an architecture tour: entry points, how to run it, what to read first."
 msgstr "来一次架构导览：入口在哪、怎么跑起来、先读什么。"
 
 msgid "Get in touch with the {companyName} team."
 msgstr "联系 {companyName} 团队。"
+
+msgid "Get key"
+msgstr "获取密钥"
 
 msgid "Get more out of Superset"
 msgstr "把Superset用得更好"
@@ -6430,6 +6473,9 @@ msgstr "已隐藏的文件夹"
 msgid "Hidden until you join"
 msgstr "加入后才会显示"
 
+msgid "Hide"
+msgstr "隐藏"
+
 msgid "Hide checks"
 msgstr "隐藏检查"
 
@@ -6616,6 +6662,9 @@ msgstr "提示词如何传递给进程。"
 
 msgid "How to install {name} in Superset"
 msgstr "如何在Superset中安装{name}"
+
+msgid "How your agents sign in inside cloud workspaces. Other people connect their own subscriptions or API keys; on this machine each agent keeps using the login already on it."
+msgstr "你的智能体在云端工作区中如何登录。其他人连接各自的订阅或API密钥；在这台机器上，每个智能体继续使用它上面已有的登录。"
 
 msgid "https://"
 msgstr "https://"
@@ -9556,6 +9605,9 @@ msgstr "打开工作区"
 msgid "Open workspace in external app (Cursor, VS Code, etc.)"
 msgstr "在外部应用中打开工作区（Cursor、VS Code等）"
 
+msgid "OpenAI rejected this API key."
+msgstr "OpenAI拒绝了此API密钥。"
+
 msgid "Opened"
 msgstr "已创建"
 
@@ -9963,6 +10015,9 @@ msgstr "选择一个工作区"
 
 msgid "Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
 msgstr "选择图标和颜色，或上传自定义图片。默认使用关联的GitHub所有者头像。"
+
+msgid "Pick how {label} signs in inside a sandbox. The credential is handed to the agent process when it launches and is not stored in the sandbox."
+msgstr "选择{label}在沙箱中的登录方式。凭据在启动时交给智能体进程，不会存放在沙箱里。"
 
 msgid "Pick the best agent."
 msgstr "挑选最合适的智能体。"
@@ -11354,6 +11409,9 @@ msgstr "旋转设备"
 msgid "Roundups"
 msgstr "综合评测"
 
+msgid "Route {label} through a provider you run, with the credentials you hold. Saved values are handed to the agent at launch."
+msgstr "让{label}走你自己运行的提供商，用你手中的凭据。保存的值会在启动时交给智能体。"
+
 msgid "Routine tickets with no mid-task intervention"
 msgstr "常规工单无需中途干预"
 
@@ -12058,6 +12116,9 @@ msgstr "设置密码"
 msgid "Set Run"
 msgstr "设置运行命令"
 
+msgid "Set up"
+msgstr "设置"
+
 msgid "Set up project on {hostName}"
 msgstr "在{hostName}上设置项目"
 
@@ -12142,6 +12203,9 @@ msgstr "微光 · 微光标签"
 
 msgid "Shortcut already in use"
 msgstr "快捷键已被使用"
+
+msgid "Show"
+msgstr "显示"
 
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "退出应用时显示确认对话框"
@@ -12324,6 +12388,9 @@ msgstr "使用GitHub登录"
 msgid "Sign in with Google"
 msgstr "使用Google登录"
 
+msgid "Sign in with your Claude account, or run <0>claude setup-token</0><1><2/></1> in a terminal and paste the token here."
+msgstr "使用你的Claude账户登录，或在终端中运行<0>claude setup-token</0><1><2/></1>，然后把令牌粘贴到这里。"
+
 msgid "Sign out"
 msgstr "退出登录"
 
@@ -12359,8 +12426,14 @@ msgstr "登录已过期——请运行"
 msgid "Sign-in failed"
 msgstr "登录失败"
 
+msgid "Signed in as {accountLabel}"
+msgstr "已登录为{accountLabel}"
+
 msgid "Signed in as <0>{userName}</0>"
 msgstr "已登录为<0>{userName}</0>"
+
+msgid "Signed in. The token is stored encrypted and is never shown again."
+msgstr "已登录。令牌以加密方式保存，且不会再次显示。"
 
 msgid "Signed out"
 msgstr "已退出登录"
@@ -12370,6 +12443,9 @@ msgstr "已登录的站点"
 
 msgid "Signing in..."
 msgstr "正在登录..."
+
+msgid "Signs in the way the Codex CLI does. Or run <0>codex login</0> in a terminal and paste its token here."
+msgstr "以Codex CLI的方式登录。或在终端中运行<0>codex login</0>，然后把它的令牌粘贴到这里。"
 
 msgid "signup → paid ≤30d"
 msgstr "注册 → 30天内付费"
@@ -13587,6 +13663,13 @@ msgstr "你要找的页面不存在。"
 msgid "The people behind Superset."
 msgstr "Superset背后的团队。"
 
+#. placeholder {0}: params?.status
+msgid "The provider answered {0}."
+msgstr "提供商返回了{0}。"
+
+msgid "The provider refused it."
+msgstr "提供商拒绝了它。"
+
 msgid "The recovery period has ended. Contact support@superset.sh."
 msgstr "恢复期已结束。请联系support@superset.sh。"
 
@@ -14616,6 +14699,12 @@ msgstr "v2ProjectId与该工作区的项目不匹配"
 
 msgid "Variables"
 msgstr "变量"
+
+msgid "Vercel AI Gateway"
+msgstr "Vercel AI Gateway"
+
+msgid "Verified and saved"
+msgstr "已验证并保存"
 
 msgid "Verify Kbd stays visible inside tooltips"
 msgstr "确认Kbd在tooltip中仍然可见"

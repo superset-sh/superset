@@ -298,6 +298,10 @@ msgstr "{0}的操作"
 msgid "{0} behind you"
 msgstr "落後你 {0}"
 
+#. placeholder {0}: params?.agent
+msgid "{0} cannot be signed in this way yet."
+msgstr "{0}還不能用這種方式登入。"
+
 #. placeholder {0}: formatNumber(participants)
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
 msgstr "已有 {0} 位開發者依 agent 用量排名。你最近 30 天的資料已計入，只是尚未公開。僅包含 token 數量與模型名稱，不含儲存庫名稱、檔案路徑或提示詞。"
@@ -632,6 +636,9 @@ msgstr "{kindLabel}主題"
 
 msgid "{label} (partial week)"
 msgstr "{label}（不完整週）"
+
+msgid "{label} in cloud workspaces"
+msgstr "雲端工作區中的{label}"
 
 msgid "{level} · {gate} · {statusLabel}"
 msgstr "{level} · {gate} · {statusLabel}"
@@ -1387,6 +1394,9 @@ msgstr "管理員不能修改擁有者"
 msgid "Admins cannot promote members to owner"
 msgstr "管理員不能將成員提升為擁有者"
 
+msgid "Advanced"
+msgstr "進階"
+
 msgid "Advanced options"
 msgstr "進階選項"
 
@@ -1401,6 +1411,9 @@ msgstr "對比main"
 
 msgid "Agent"
 msgstr "代理程式"
+
+msgid "Agent commands"
+msgstr "代理程式指令"
 
 msgid "Agent Complete — {workspaceName}"
 msgstr "代理程式已完成 — {workspaceName}"
@@ -1736,6 +1749,12 @@ msgstr "另一臺裝置"
 
 msgid "Answered"
 msgstr "已回答"
+
+msgid "Anthropic rejected this API key."
+msgstr "Anthropic拒絕了此API金鑰。"
+
+msgid "Anthropic rejected this token."
+msgstr "Anthropic拒絕了此權杖。"
 
 msgid "Any calendar"
 msgstr "任意日曆"
@@ -2196,6 +2215,9 @@ msgstr "{selectedHostLabel}上新建worktree的基準目錄"
 
 msgid "Base directory for new worktrees on {selectedHostName}."
 msgstr "{selectedHostName}上新建worktree的基準目錄。"
+
+msgid "Base URL"
+msgstr "基礎URL"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -3398,6 +3420,12 @@ msgstr "已連線到"
 msgid "Connected to {connectedOrgName}"
 msgstr "已連線到{connectedOrgName}"
 
+msgid "Connected via subscription"
+msgstr "已透過訂閱連線"
+
+msgid "Connected with API key"
+msgstr "已用API金鑰連線"
+
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "已連線，但Microsoft Graph拒絕了通知訂閱。"
 
@@ -3780,6 +3808,9 @@ msgstr "無法連線至桌面。"
 
 msgid "Could not reach the host to load this pull request."
 msgstr "無法連線到主機以載入此拉取請求。"
+
+msgid "Could not reach the provider. Try again."
+msgstr "無法連線到提供商，請重試。"
 
 msgid "Could not reach this workspace's machine"
 msgstr "無法連線到這個工作區所在的機器"
@@ -4228,6 +4259,9 @@ msgstr "自訂字首"
 
 msgid "Custom pricing"
 msgstr "定製價格"
+
+msgid "Custom provider"
+msgstr "自訂提供商"
 
 msgid "Custom terminal agents"
 msgstr "自訂終端代理程式"
@@ -5105,6 +5139,9 @@ msgstr "請輸入有效的電子郵件地址。"
 
 msgid "Enter a valid recurrence rule."
 msgstr "請輸入有效的重複規則。"
+
+msgid "Enter a value."
+msgstr "請輸入一個值。"
 
 msgid "Enter URL or search..."
 msgstr "輸入URL或搜尋..."
@@ -6225,11 +6262,17 @@ msgstr "生成中"
 msgid "Generating..."
 msgstr "正在生成..."
 
+msgid "Get an API key"
+msgstr "取得API金鑰"
+
 msgid "Get an architecture tour: entry points, how to run it, what to read first."
 msgstr "來一次架構導覽：入口在哪、怎麼跑起來、先讀什麼。"
 
 msgid "Get in touch with the {companyName} team."
 msgstr "與 {companyName} 團隊聯繫。"
+
+msgid "Get key"
+msgstr "取得金鑰"
 
 msgid "Get more out of Superset"
 msgstr "把Superset用得更好"
@@ -6430,6 +6473,9 @@ msgstr "已隱藏的資料夾"
 msgid "Hidden until you join"
 msgstr "加入後才會顯示"
 
+msgid "Hide"
+msgstr "隱藏"
+
 msgid "Hide checks"
 msgstr "隱藏檢查"
 
@@ -6616,6 +6662,9 @@ msgstr "提示詞如何傳遞給處理程序。"
 
 msgid "How to install {name} in Superset"
 msgstr "如何在Superset中安裝{name}"
+
+msgid "How your agents sign in inside cloud workspaces. Other people connect their own subscriptions or API keys; on this machine each agent keeps using the login already on it."
+msgstr "你的代理程式在雲端工作區中如何登入。其他人連接各自的訂閱或API金鑰；在這台機器上，每個代理程式繼續使用它上面已有的登入。"
 
 msgid "https://"
 msgstr "https://"
@@ -9556,6 +9605,9 @@ msgstr "開啟工作區"
 msgid "Open workspace in external app (Cursor, VS Code, etc.)"
 msgstr "在外部應用中開啟工作區（Cursor、VS Code等）"
 
+msgid "OpenAI rejected this API key."
+msgstr "OpenAI拒絕了此API金鑰。"
+
 msgid "Opened"
 msgstr "已建立"
 
@@ -9963,6 +10015,9 @@ msgstr "選擇一個工作區"
 
 msgid "Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
 msgstr "選擇圖示和顏色，或上傳自訂圖片。預設使用關聯的GitHub擁有者頭像。"
+
+msgid "Pick how {label} signs in inside a sandbox. The credential is handed to the agent process when it launches and is not stored in the sandbox."
+msgstr "選擇{label}在沙箱中的登入方式。憑證在啟動時交給代理程式的行程，不會存放在沙箱裡。"
 
 msgid "Pick the best agent."
 msgstr "挑選最合適的代理程式。"
@@ -11354,6 +11409,9 @@ msgstr "旋轉裝置"
 msgid "Roundups"
 msgstr "綜合評測"
 
+msgid "Route {label} through a provider you run, with the credentials you hold. Saved values are handed to the agent at launch."
+msgstr "讓{label}走你自己運行的提供商，用你手中的憑證。已儲存的值會在啟動時交給代理程式。"
+
 msgid "Routine tickets with no mid-task intervention"
 msgstr "常規工單無需中途干預"
 
@@ -12058,6 +12116,9 @@ msgstr "設定密碼"
 msgid "Set Run"
 msgstr "設定執行命令"
 
+msgid "Set up"
+msgstr "設定"
+
 msgid "Set up project on {hostName}"
 msgstr "在{hostName}上設定專案"
 
@@ -12142,6 +12203,9 @@ msgstr "微光 · 微光標籤"
 
 msgid "Shortcut already in use"
 msgstr "快速鍵已被使用"
+
+msgid "Show"
+msgstr "顯示"
 
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "退出應用時顯示確認對話方塊"
@@ -12324,6 +12388,9 @@ msgstr "使用GitHub登入"
 msgid "Sign in with Google"
 msgstr "使用Google登入"
 
+msgid "Sign in with your Claude account, or run <0>claude setup-token</0><1><2/></1> in a terminal and paste the token here."
+msgstr "使用你的Claude帳戶登入，或在終端中執行<0>claude setup-token</0><1><2/></1>，然後把權杖貼到這裡。"
+
 msgid "Sign out"
 msgstr "登出"
 
@@ -12359,8 +12426,14 @@ msgstr "登入已過期——請執行"
 msgid "Sign-in failed"
 msgstr "登入失敗"
 
+msgid "Signed in as {accountLabel}"
+msgstr "已登入為{accountLabel}"
+
 msgid "Signed in as <0>{userName}</0>"
 msgstr "已登入為<0>{userName}</0>"
+
+msgid "Signed in. The token is stored encrypted and is never shown again."
+msgstr "已登入。權杖以加密方式儲存，且不會再次顯示。"
 
 msgid "Signed out"
 msgstr "已登出"
@@ -12370,6 +12443,9 @@ msgstr "已登入的站點"
 
 msgid "Signing in..."
 msgstr "正在登入..."
+
+msgid "Signs in the way the Codex CLI does. Or run <0>codex login</0> in a terminal and paste its token here."
+msgstr "以Codex CLI的方式登入。或在終端中執行<0>codex login</0>，然後把它的權杖貼到這裡。"
 
 msgid "signup → paid ≤30d"
 msgstr "註冊 → 30天內付費"
@@ -13587,6 +13663,13 @@ msgstr "你要找的頁面不存在。"
 msgid "The people behind Superset."
 msgstr "Superset背後的團隊。"
 
+#. placeholder {0}: params?.status
+msgid "The provider answered {0}."
+msgstr "提供商回應了{0}。"
+
+msgid "The provider refused it."
+msgstr "提供商拒絕了它。"
+
 msgid "The recovery period has ended. Contact support@superset.sh."
 msgstr "恢復期已結束。請聯絡support@superset.sh。"
 
@@ -14616,6 +14699,12 @@ msgstr "v2ProjectId與該工作區的專案不匹配"
 
 msgid "Variables"
 msgstr "變數"
+
+msgid "Vercel AI Gateway"
+msgstr "Vercel AI Gateway"
+
+msgid "Verified and saved"
+msgstr "已驗證並儲存"
 
 msgid "Verify Kbd stays visible inside tooltips"
 msgstr "確認Kbd在tooltip中仍然可見"

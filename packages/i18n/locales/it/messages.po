@@ -298,6 +298,10 @@ msgstr "Azioni di {0}"
 msgid "{0} behind you"
 msgstr "{0} dietro di te"
 
+#. placeholder {0}: params?.agent
+msgid "{0} cannot be signed in this way yet."
+msgstr "{0} non può ancora accedere in questo modo."
+
 #. placeholder {0}: formatNumber(participants)
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
 msgstr "{0} sviluppatori sono in classifica per utilizzo degli agenti. I tuoi ultimi 30 giorni sono già conteggiati, solo nascosti. Solo conteggi di token e nomi dei modelli, nessun nome di repo, percorso di file o prompt."
@@ -632,6 +636,9 @@ msgstr "Tema {kindLabel}"
 
 msgid "{label} (partial week)"
 msgstr "{label} (settimana parziale)"
+
+msgid "{label} in cloud workspaces"
+msgstr "{label} nei workspace cloud"
 
 msgid "{level} · {gate} · {statusLabel}"
 msgstr "{level} · {gate} · {statusLabel}"
@@ -1387,6 +1394,9 @@ msgstr "Gli amministratori non possono modificare i proprietari"
 msgid "Admins cannot promote members to owner"
 msgstr "Gli amministratori non possono promuovere i membri a proprietari"
 
+msgid "Advanced"
+msgstr "Avanzate"
+
 msgid "Advanced options"
 msgstr "Opzioni avanzate"
 
@@ -1401,6 +1411,9 @@ msgstr "Rispetto a main"
 
 msgid "Agent"
 msgstr "Agente"
+
+msgid "Agent commands"
+msgstr "Comandi degli agenti"
 
 msgid "Agent Complete — {workspaceName}"
 msgstr "Agente completato — {workspaceName}"
@@ -1736,6 +1749,12 @@ msgstr "un altro dispositivo"
 
 msgid "Answered"
 msgstr "Risposto"
+
+msgid "Anthropic rejected this API key."
+msgstr "Anthropic ha rifiutato questa chiave API."
+
+msgid "Anthropic rejected this token."
+msgstr "Anthropic ha rifiutato questo token."
 
 msgid "Any calendar"
 msgstr "Qualsiasi calendario"
@@ -2196,6 +2215,9 @@ msgstr "Directory di base per i nuovi worktree su {selectedHostLabel}"
 
 msgid "Base directory for new worktrees on {selectedHostName}."
 msgstr "Directory di base per i nuovi worktree su {selectedHostName}."
+
+msgid "Base URL"
+msgstr "URL di base"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -3398,6 +3420,12 @@ msgstr "Collegato a"
 msgid "Connected to {connectedOrgName}"
 msgstr "Collegato a {connectedOrgName}"
 
+msgid "Connected via subscription"
+msgstr "Collegato tramite abbonamento"
+
+msgid "Connected with API key"
+msgstr "Collegato con chiave API"
+
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "Collegato, ma Microsoft Graph ha rifiutato le sottoscrizioni alle notifiche."
 
@@ -3780,6 +3808,9 @@ msgstr "Impossibile raggiungere il desktop."
 
 msgid "Could not reach the host to load this pull request."
 msgstr "Impossibile raggiungere l'host per caricare questa pull request."
+
+msgid "Could not reach the provider. Try again."
+msgstr "Impossibile raggiungere il provider. Riprova."
 
 msgid "Could not reach this workspace's machine"
 msgstr "Impossibile raggiungere la macchina di questo workspace"
@@ -4228,6 +4259,9 @@ msgstr "Prefisso personalizzato"
 
 msgid "Custom pricing"
 msgstr "Prezzo personalizzato"
+
+msgid "Custom provider"
+msgstr "Provider personalizzato"
 
 msgid "Custom terminal agents"
 msgstr "Agenti da terminale personalizzati"
@@ -5105,6 +5139,9 @@ msgstr "Inserisci un indirizzo email valido."
 
 msgid "Enter a valid recurrence rule."
 msgstr "Inserisci una regola di ricorrenza valida."
+
+msgid "Enter a value."
+msgstr "Inserisci un valore."
 
 msgid "Enter URL or search..."
 msgstr "Inserisci un URL o cerca..."
@@ -6225,11 +6262,17 @@ msgstr "Generazione"
 msgid "Generating..."
 msgstr "Generazione..."
 
+msgid "Get an API key"
+msgstr "Ottieni una chiave API"
+
 msgid "Get an architecture tour: entry points, how to run it, what to read first."
 msgstr "Ottieni un tour dell'architettura: punti di ingresso, come eseguirlo, cosa leggere per primo."
 
 msgid "Get in touch with the {companyName} team."
 msgstr "Mettiti in contatto con il team di {companyName}."
+
+msgid "Get key"
+msgstr "Ottieni la chiave"
 
 msgid "Get more out of Superset"
 msgstr "Ottieni di più da Superset"
@@ -6430,6 +6473,9 @@ msgstr "Cartelle nascoste"
 msgid "Hidden until you join"
 msgstr "Nascosta finché non partecipi"
 
+msgid "Hide"
+msgstr "Nascondi"
+
 msgid "Hide checks"
 msgstr "Nascondi i controlli"
 
@@ -6616,6 +6662,9 @@ msgstr "Come il prompt viene consegnato al processo."
 
 msgid "How to install {name} in Superset"
 msgstr "Come installare {name} in Superset"
+
+msgid "How your agents sign in inside cloud workspaces. Other people connect their own subscriptions or API keys; on this machine each agent keeps using the login already on it."
+msgstr "Come i tuoi agenti accedono nei workspace cloud. Le altre persone collegano i propri abbonamenti o le proprie chiavi API; su questa macchina ogni agente continua a usare l'accesso già presente."
 
 msgid "https://"
 msgstr "https://"
@@ -9556,6 +9605,9 @@ msgstr "Apri il workspace"
 msgid "Open workspace in external app (Cursor, VS Code, etc.)"
 msgstr "Apri il workspace in un'app esterna (Cursor, VS Code, ecc.)"
 
+msgid "OpenAI rejected this API key."
+msgstr "OpenAI ha rifiutato questa chiave API."
+
 msgid "Opened"
 msgstr "Aperta"
 
@@ -9963,6 +10015,9 @@ msgstr "Scegli un workspace"
 
 msgid "Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
 msgstr "Scegli un'icona e un colore oppure carica un'immagine personalizzata. Per impostazione predefinita usa l'avatar del proprietario GitHub collegato."
+
+msgid "Pick how {label} signs in inside a sandbox. The credential is handed to the agent process when it launches and is not stored in the sandbox."
+msgstr "Scegli come {label} accede dentro una sandbox. La credenziale viene passata al processo dell'agente all'avvio e non viene salvata nella sandbox."
 
 msgid "Pick the best agent."
 msgstr "Scegli l'agente migliore."
@@ -11354,6 +11409,9 @@ msgstr "Ruota il dispositivo"
 msgid "Roundups"
 msgstr "Panoramiche"
 
+msgid "Route {label} through a provider you run, with the credentials you hold. Saved values are handed to the agent at launch."
+msgstr "Instrada {label} attraverso un provider gestito da te, con le credenziali che possiedi. I valori salvati vengono passati all'agente all'avvio."
+
 msgid "Routine tickets with no mid-task intervention"
 msgstr "Ticket di routine senza interventi a metà task"
 
@@ -12058,6 +12116,9 @@ msgstr "Imposta password"
 msgid "Set Run"
 msgstr "Imposta l'esecuzione"
 
+msgid "Set up"
+msgstr "Configura"
+
 msgid "Set up project on {hostName}"
 msgstr "Configura il progetto su {hostName}"
 
@@ -12142,6 +12203,9 @@ msgstr "Shimmer · Shimmer Label"
 
 msgid "Shortcut already in use"
 msgstr "Scorciatoia già in uso"
+
+msgid "Show"
+msgstr "Mostra"
 
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Mostra una finestra di conferma quando esci dall'app"
@@ -12324,6 +12388,9 @@ msgstr "Accedi con GitHub"
 msgid "Sign in with Google"
 msgstr "Accedi con Google"
 
+msgid "Sign in with your Claude account, or run <0>claude setup-token</0><1><2/></1> in a terminal and paste the token here."
+msgstr "Accedi con il tuo account Claude, oppure esegui <0>claude setup-token</0><1><2/></1> in un terminale e incolla qui il token."
+
 msgid "Sign out"
 msgstr "Esci"
 
@@ -12359,8 +12426,14 @@ msgstr "Accesso scaduto — esegui"
 msgid "Sign-in failed"
 msgstr "Accesso non riuscito"
 
+msgid "Signed in as {accountLabel}"
+msgstr "Hai effettuato l'accesso come {accountLabel}"
+
 msgid "Signed in as <0>{userName}</0>"
 msgstr "Hai effettuato l'accesso come <0>{userName}</0>"
+
+msgid "Signed in. The token is stored encrypted and is never shown again."
+msgstr "Accesso effettuato. Il token è salvato cifrato e non viene più mostrato."
 
 msgid "Signed out"
 msgstr "Disconnesso"
@@ -12370,6 +12443,9 @@ msgstr "Siti con accesso effettuato"
 
 msgid "Signing in..."
 msgstr "Accesso in corso..."
+
+msgid "Signs in the way the Codex CLI does. Or run <0>codex login</0> in a terminal and paste its token here."
+msgstr "Accede nello stesso modo della CLI di Codex. Oppure esegui <0>codex login</0> in un terminale e incolla qui il suo token."
 
 msgid "signup → paid ≤30d"
 msgstr "iscrizione → pagante ≤30g"
@@ -13587,6 +13663,13 @@ msgstr "La pagina che cerchi non esiste."
 msgid "The people behind Superset."
 msgstr "Le persone dietro Superset."
 
+#. placeholder {0}: params?.status
+msgid "The provider answered {0}."
+msgstr "Il provider ha risposto {0}."
+
+msgid "The provider refused it."
+msgstr "Il provider l'ha rifiutata."
+
 msgid "The recovery period has ended. Contact support@superset.sh."
 msgstr "Il periodo di recupero è terminato. Contatta support@superset.sh."
 
@@ -14616,6 +14699,12 @@ msgstr "v2ProjectId non corrisponde al progetto del workspace"
 
 msgid "Variables"
 msgstr "Variabili"
+
+msgid "Vercel AI Gateway"
+msgstr "Vercel AI Gateway"
+
+msgid "Verified and saved"
+msgstr "Verificato e salvato"
 
 msgid "Verify Kbd stays visible inside tooltips"
 msgstr "Verifica che Kbd resti visibile dentro i tooltip"

@@ -298,6 +298,10 @@ msgstr "Acties voor {0}"
 msgid "{0} behind you"
 msgstr "{0} achter je"
 
+#. placeholder {0}: params?.agent
+msgid "{0} cannot be signed in this way yet."
+msgstr "{0} kan nog niet op deze manier worden ingelogd."
+
 #. placeholder {0}: formatNumber(participants)
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
 msgstr "{0} developers zijn gerangschikt op agentgebruik. Je laatste 30 dagen zijn al meegeteld, alleen verborgen. Alleen tokenaantallen en modelnamen, geen repo-namen, bestandspaden of prompts."
@@ -632,6 +636,9 @@ msgstr "{kindLabel} thema"
 
 msgid "{label} (partial week)"
 msgstr "{label} (onvolledige week)"
+
+msgid "{label} in cloud workspaces"
+msgstr "{label} in cloudwerkruimtes"
 
 msgid "{level} · {gate} · {statusLabel}"
 msgstr "{level} · {gate} · {statusLabel}"
@@ -1387,6 +1394,9 @@ msgstr "Beheerders kunnen eigenaren niet wijzigen"
 msgid "Admins cannot promote members to owner"
 msgstr "Beheerders kunnen leden niet tot eigenaar promoveren"
 
+msgid "Advanced"
+msgstr "Geavanceerd"
+
 msgid "Advanced options"
 msgstr "Geavanceerde opties"
 
@@ -1401,6 +1411,9 @@ msgstr "Ten opzichte van main"
 
 msgid "Agent"
 msgstr "Agent"
+
+msgid "Agent commands"
+msgstr "Agentcommando's"
 
 msgid "Agent Complete — {workspaceName}"
 msgstr "Agent klaar — {workspaceName}"
@@ -1736,6 +1749,12 @@ msgstr "een ander apparaat"
 
 msgid "Answered"
 msgstr "Beantwoord"
+
+msgid "Anthropic rejected this API key."
+msgstr "Anthropic heeft deze API-sleutel geweigerd."
+
+msgid "Anthropic rejected this token."
+msgstr "Anthropic heeft dit token geweigerd."
 
 msgid "Any calendar"
 msgstr "Elke agenda"
@@ -2196,6 +2215,9 @@ msgstr "Basismap voor nieuwe worktrees op {selectedHostLabel}"
 
 msgid "Base directory for new worktrees on {selectedHostName}."
 msgstr "Basismap voor nieuwe worktrees op {selectedHostName}."
+
+msgid "Base URL"
+msgstr "Basis-URL"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -3398,6 +3420,12 @@ msgstr "Verbonden met"
 msgid "Connected to {connectedOrgName}"
 msgstr "Verbonden met {connectedOrgName}"
 
+msgid "Connected via subscription"
+msgstr "Verbonden via abonnement"
+
+msgid "Connected with API key"
+msgstr "Verbonden met API-sleutel"
+
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "Verbonden, maar Microsoft Graph heeft de meldingsabonnementen geweigerd."
 
@@ -3780,6 +3808,9 @@ msgstr "Kan het bureaublad niet bereiken."
 
 msgid "Could not reach the host to load this pull request."
 msgstr "Kan de host niet bereiken om deze pull request te laden."
+
+msgid "Could not reach the provider. Try again."
+msgstr "Kon de provider niet bereiken. Probeer het opnieuw."
 
 msgid "Could not reach this workspace's machine"
 msgstr "Kan de machine van deze werkruimte niet bereiken"
@@ -4228,6 +4259,9 @@ msgstr "Eigen prefix"
 
 msgid "Custom pricing"
 msgstr "Prijs op maat"
+
+msgid "Custom provider"
+msgstr "Eigen provider"
 
 msgid "Custom terminal agents"
 msgstr "Eigen terminalagents"
@@ -5105,6 +5139,9 @@ msgstr "Voer een geldig e-mailadres in."
 
 msgid "Enter a valid recurrence rule."
 msgstr "Voer een geldige herhalingsregel in."
+
+msgid "Enter a value."
+msgstr "Voer een waarde in."
 
 msgid "Enter URL or search..."
 msgstr "Voer URL of zoekterm in..."
@@ -6225,11 +6262,17 @@ msgstr "Genereren"
 msgid "Generating..."
 msgstr "Genereren..."
 
+msgid "Get an API key"
+msgstr "API-sleutel ophalen"
+
 msgid "Get an architecture tour: entry points, how to run it, what to read first."
 msgstr "Krijg een rondleiding door de architectuur: entrypoints, hoe je het draait, wat je eerst leest."
 
 msgid "Get in touch with the {companyName} team."
 msgstr "Neem contact op met het team van {companyName}."
+
+msgid "Get key"
+msgstr "Sleutel ophalen"
 
 msgid "Get more out of Superset"
 msgstr "Haal meer uit Superset"
@@ -6430,6 +6473,9 @@ msgstr "Verborgen mappen"
 msgid "Hidden until you join"
 msgstr "Verborgen tot je meedoet"
 
+msgid "Hide"
+msgstr "Verbergen"
+
 msgid "Hide checks"
 msgstr "Checks verbergen"
 
@@ -6616,6 +6662,9 @@ msgstr "Hoe de prompt bij het proces wordt afgeleverd."
 
 msgid "How to install {name} in Superset"
 msgstr "{name} installeren in Superset"
+
+msgid "How your agents sign in inside cloud workspaces. Other people connect their own subscriptions or API keys; on this machine each agent keeps using the login already on it."
+msgstr "Hoe je agents inloggen binnen cloudwerkruimtes. Anderen koppelen hun eigen abonnementen of API-sleutels; op deze machine blijft elke agent de login gebruiken die er al op staat."
 
 msgid "https://"
 msgstr "https://"
@@ -9556,6 +9605,9 @@ msgstr "Werkruimte openen"
 msgid "Open workspace in external app (Cursor, VS Code, etc.)"
 msgstr "Werkruimte openen in een externe app (Cursor, VS Code, enz.)"
 
+msgid "OpenAI rejected this API key."
+msgstr "OpenAI heeft deze API-sleutel geweigerd."
+
 msgid "Opened"
 msgstr "Geopend"
 
@@ -9963,6 +10015,9 @@ msgstr "Kies een werkruimte"
 
 msgid "Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
 msgstr "Kies een icoon en een kleur, of upload een eigen afbeelding. Standaard is de avatar van de gekoppelde GitHub-eigenaar."
+
+msgid "Pick how {label} signs in inside a sandbox. The credential is handed to the agent process when it launches and is not stored in the sandbox."
+msgstr "Kies hoe {label} inlogt binnen een sandbox. De inloggegevens gaan bij het starten naar het agentproces en worden niet in de sandbox opgeslagen."
 
 msgid "Pick the best agent."
 msgstr "Kies de beste agent."
@@ -11354,6 +11409,9 @@ msgstr "Apparaat draaien"
 msgid "Roundups"
 msgstr "Overzichten"
 
+msgid "Route {label} through a provider you run, with the credentials you hold. Saved values are handed to the agent at launch."
+msgstr "Stuur {label} via een provider die je zelf draait, met de inloggegevens die jij hebt. Opgeslagen waarden gaan bij het starten naar de agent."
+
 msgid "Routine tickets with no mid-task intervention"
 msgstr "Routinetickets zonder tussentijds ingrijpen"
 
@@ -12058,6 +12116,9 @@ msgstr "Wachtwoord instellen"
 msgid "Set Run"
 msgstr "Run instellen"
 
+msgid "Set up"
+msgstr "Instellen"
+
 msgid "Set up project on {hostName}"
 msgstr "Project instellen op {hostName}"
 
@@ -12142,6 +12203,9 @@ msgstr "Shimmer · Shimmer-label"
 
 msgid "Shortcut already in use"
 msgstr "Sneltoets al in gebruik"
+
+msgid "Show"
+msgstr "Tonen"
 
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Toon een bevestiging bij het afsluiten van de app"
@@ -12324,6 +12388,9 @@ msgstr "Inloggen met GitHub"
 msgid "Sign in with Google"
 msgstr "Inloggen met Google"
 
+msgid "Sign in with your Claude account, or run <0>claude setup-token</0><1><2/></1> in a terminal and paste the token here."
+msgstr "Log in met je Claude-account, of voer <0>claude setup-token</0><1><2/></1> uit in een terminal en plak het token hier."
+
 msgid "Sign out"
 msgstr "Uitloggen"
 
@@ -12359,8 +12426,14 @@ msgstr "Login verlopen — voer"
 msgid "Sign-in failed"
 msgstr "Inloggen mislukt"
 
+msgid "Signed in as {accountLabel}"
+msgstr "Ingelogd als {accountLabel}"
+
 msgid "Signed in as <0>{userName}</0>"
 msgstr "Ingelogd als <0>{userName}</0>"
+
+msgid "Signed in. The token is stored encrypted and is never shown again."
+msgstr "Ingelogd. Het token wordt versleuteld opgeslagen en wordt nooit meer getoond."
 
 msgid "Signed out"
 msgstr "Uitgelogd"
@@ -12370,6 +12443,9 @@ msgstr "Sites waarop je bent ingelogd"
 
 msgid "Signing in..."
 msgstr "Inloggen..."
+
+msgid "Signs in the way the Codex CLI does. Or run <0>codex login</0> in a terminal and paste its token here."
+msgstr "Logt in zoals de Codex CLI dat doet. Of voer <0>codex login</0> uit in een terminal en plak het token hier."
 
 msgid "signup → paid ≤30d"
 msgstr "aanmelding → betaald ≤30d"
@@ -13587,6 +13663,13 @@ msgstr "De pagina die je zoekt bestaat niet."
 msgid "The people behind Superset."
 msgstr "De mensen achter Superset."
 
+#. placeholder {0}: params?.status
+msgid "The provider answered {0}."
+msgstr "De provider antwoordde {0}."
+
+msgid "The provider refused it."
+msgstr "De provider heeft het geweigerd."
+
 msgid "The recovery period has ended. Contact support@superset.sh."
 msgstr "De herstelperiode is voorbij. Neem contact op via support@superset.sh."
 
@@ -14616,6 +14699,12 @@ msgstr "v2ProjectId komt niet overeen met het project van de werkruimte"
 
 msgid "Variables"
 msgstr "Variabelen"
+
+msgid "Vercel AI Gateway"
+msgstr "Vercel AI Gateway"
+
+msgid "Verified and saved"
+msgstr "Geverifieerd en opgeslagen"
 
 msgid "Verify Kbd stays visible inside tooltips"
 msgstr "Controleren of Kbd zichtbaar blijft in tooltips"

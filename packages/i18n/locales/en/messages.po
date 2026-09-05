@@ -298,6 +298,10 @@ msgstr "{0} actions"
 msgid "{0} behind you"
 msgstr "{0} behind you"
 
+#. placeholder {0}: params?.agent
+msgid "{0} cannot be signed in this way yet."
+msgstr "{0} cannot be signed in this way yet."
+
 #. placeholder {0}: formatNumber(participants)
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
 msgstr "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
@@ -632,6 +636,9 @@ msgstr "{kindLabel} theme"
 
 msgid "{label} (partial week)"
 msgstr "{label} (partial week)"
+
+msgid "{label} in cloud workspaces"
+msgstr "{label} in cloud workspaces"
 
 msgid "{level} · {gate} · {statusLabel}"
 msgstr "{level} · {gate} · {statusLabel}"
@@ -1387,6 +1394,9 @@ msgstr "Admins cannot modify owners"
 msgid "Admins cannot promote members to owner"
 msgstr "Admins cannot promote members to owner"
 
+msgid "Advanced"
+msgstr "Advanced"
+
 msgid "Advanced options"
 msgstr "Advanced options"
 
@@ -1401,6 +1411,9 @@ msgstr "Against Main"
 
 msgid "Agent"
 msgstr "Agent"
+
+msgid "Agent commands"
+msgstr "Agent commands"
 
 msgid "Agent Complete — {workspaceName}"
 msgstr "Agent Complete — {workspaceName}"
@@ -1736,6 +1749,12 @@ msgstr "another device"
 
 msgid "Answered"
 msgstr "Answered"
+
+msgid "Anthropic rejected this API key."
+msgstr "Anthropic rejected this API key."
+
+msgid "Anthropic rejected this token."
+msgstr "Anthropic rejected this token."
 
 msgid "Any calendar"
 msgstr "Any calendar"
@@ -2196,6 +2215,9 @@ msgstr "Base directory for new worktrees on {selectedHostLabel}"
 
 msgid "Base directory for new worktrees on {selectedHostName}."
 msgstr "Base directory for new worktrees on {selectedHostName}."
+
+msgid "Base URL"
+msgstr "Base URL"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -3398,6 +3420,12 @@ msgstr "Connected to"
 msgid "Connected to {connectedOrgName}"
 msgstr "Connected to {connectedOrgName}"
 
+msgid "Connected via subscription"
+msgstr "Connected via subscription"
+
+msgid "Connected with API key"
+msgstr "Connected with API key"
+
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "Connected, but Microsoft Graph refused the notification subscriptions."
 
@@ -3780,6 +3808,9 @@ msgstr "Could not reach the desktop."
 
 msgid "Could not reach the host to load this pull request."
 msgstr "Could not reach the host to load this pull request."
+
+msgid "Could not reach the provider. Try again."
+msgstr "Could not reach the provider. Try again."
 
 msgid "Could not reach this workspace's machine"
 msgstr "Could not reach this workspace's machine"
@@ -4228,6 +4259,9 @@ msgstr "Custom prefix"
 
 msgid "Custom pricing"
 msgstr "Custom pricing"
+
+msgid "Custom provider"
+msgstr "Custom provider"
 
 msgid "Custom terminal agents"
 msgstr "Custom terminal agents"
@@ -5105,6 +5139,9 @@ msgstr "Enter a valid email address."
 
 msgid "Enter a valid recurrence rule."
 msgstr "Enter a valid recurrence rule."
+
+msgid "Enter a value."
+msgstr "Enter a value."
 
 msgid "Enter URL or search..."
 msgstr "Enter URL or search..."
@@ -6225,11 +6262,17 @@ msgstr "Generating"
 msgid "Generating..."
 msgstr "Generating..."
 
+msgid "Get an API key"
+msgstr "Get an API key"
+
 msgid "Get an architecture tour: entry points, how to run it, what to read first."
 msgstr "Get an architecture tour: entry points, how to run it, what to read first."
 
 msgid "Get in touch with the {companyName} team."
 msgstr "Get in touch with the {companyName} team."
+
+msgid "Get key"
+msgstr "Get key"
 
 msgid "Get more out of Superset"
 msgstr "Get more out of Superset"
@@ -6430,6 +6473,9 @@ msgstr "Hidden folders"
 msgid "Hidden until you join"
 msgstr "Hidden until you join"
 
+msgid "Hide"
+msgstr "Hide"
+
 msgid "Hide checks"
 msgstr "Hide checks"
 
@@ -6616,6 +6662,9 @@ msgstr "How the prompt is delivered to the process."
 
 msgid "How to install {name} in Superset"
 msgstr "How to install {name} in Superset"
+
+msgid "How your agents sign in inside cloud workspaces. Other people connect their own subscriptions or API keys; on this machine each agent keeps using the login already on it."
+msgstr "How your agents sign in inside cloud workspaces. Other people connect their own subscriptions or API keys; on this machine each agent keeps using the login already on it."
 
 msgid "https://"
 msgstr "https://"
@@ -9556,6 +9605,9 @@ msgstr "Open workspace"
 msgid "Open workspace in external app (Cursor, VS Code, etc.)"
 msgstr "Open workspace in external app (Cursor, VS Code, etc.)"
 
+msgid "OpenAI rejected this API key."
+msgstr "OpenAI rejected this API key."
+
 msgid "Opened"
 msgstr "Opened"
 
@@ -9963,6 +10015,9 @@ msgstr "Pick a workspace"
 
 msgid "Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
 msgstr "Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
+
+msgid "Pick how {label} signs in inside a sandbox. The credential is handed to the agent process when it launches and is not stored in the sandbox."
+msgstr "Pick how {label} signs in inside a sandbox. The credential is handed to the agent process when it launches and is not stored in the sandbox."
 
 msgid "Pick the best agent."
 msgstr "Pick the best agent."
@@ -11354,6 +11409,9 @@ msgstr "Rotate device"
 msgid "Roundups"
 msgstr "Roundups"
 
+msgid "Route {label} through a provider you run, with the credentials you hold. Saved values are handed to the agent at launch."
+msgstr "Route {label} through a provider you run, with the credentials you hold. Saved values are handed to the agent at launch."
+
 msgid "Routine tickets with no mid-task intervention"
 msgstr "Routine tickets with no mid-task intervention"
 
@@ -12058,6 +12116,9 @@ msgstr "Set Password"
 msgid "Set Run"
 msgstr "Set Run"
 
+msgid "Set up"
+msgstr "Set up"
+
 msgid "Set up project on {hostName}"
 msgstr "Set up project on {hostName}"
 
@@ -12142,6 +12203,9 @@ msgstr "Shimmer · Shimmer Label"
 
 msgid "Shortcut already in use"
 msgstr "Shortcut already in use"
+
+msgid "Show"
+msgstr "Show"
 
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Show a confirmation dialog when quitting the app"
@@ -12324,6 +12388,9 @@ msgstr "Sign in with GitHub"
 msgid "Sign in with Google"
 msgstr "Sign in with Google"
 
+msgid "Sign in with your Claude account, or run <0>claude setup-token</0><1><2/></1> in a terminal and paste the token here."
+msgstr "Sign in with your Claude account, or run <0>claude setup-token</0><1><2/></1> in a terminal and paste the token here."
+
 msgid "Sign out"
 msgstr "Sign out"
 
@@ -12359,8 +12426,14 @@ msgstr "Sign-in expired — run"
 msgid "Sign-in failed"
 msgstr "Sign-in failed"
 
+msgid "Signed in as {accountLabel}"
+msgstr "Signed in as {accountLabel}"
+
 msgid "Signed in as <0>{userName}</0>"
 msgstr "Signed in as <0>{userName}</0>"
+
+msgid "Signed in. The token is stored encrypted and is never shown again."
+msgstr "Signed in. The token is stored encrypted and is never shown again."
 
 msgid "Signed out"
 msgstr "Signed out"
@@ -12370,6 +12443,9 @@ msgstr "Signed-in sites"
 
 msgid "Signing in..."
 msgstr "Signing in..."
+
+msgid "Signs in the way the Codex CLI does. Or run <0>codex login</0> in a terminal and paste its token here."
+msgstr "Signs in the way the Codex CLI does. Or run <0>codex login</0> in a terminal and paste its token here."
 
 msgid "signup → paid ≤30d"
 msgstr "signup → paid ≤30d"
@@ -13587,6 +13663,13 @@ msgstr "The page you're looking for doesn't exist."
 msgid "The people behind Superset."
 msgstr "The people behind Superset."
 
+#. placeholder {0}: params?.status
+msgid "The provider answered {0}."
+msgstr "The provider answered {0}."
+
+msgid "The provider refused it."
+msgstr "The provider refused it."
+
 msgid "The recovery period has ended. Contact support@superset.sh."
 msgstr "The recovery period has ended. Contact support@superset.sh."
 
@@ -14616,6 +14699,12 @@ msgstr "v2ProjectId does not match the workspace's project"
 
 msgid "Variables"
 msgstr "Variables"
+
+msgid "Vercel AI Gateway"
+msgstr "Vercel AI Gateway"
+
+msgid "Verified and saved"
+msgstr "Verified and saved"
 
 msgid "Verify Kbd stays visible inside tooltips"
 msgstr "Verify Kbd stays visible inside tooltips"

@@ -298,6 +298,10 @@ msgstr "{0} 작업"
 msgid "{0} behind you"
 msgstr "{0} 차이로 뒤"
 
+#. placeholder {0}: params?.agent
+msgid "{0} cannot be signed in this way yet."
+msgstr "{0}은(는) 아직 이 방식으로 로그인할 수 없습니다."
+
 #. placeholder {0}: formatNumber(participants)
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
 msgstr "{0}명의 개발자가 에이전트 사용량으로 순위에 올라 있습니다. 최근 30일 사용량은 이미 집계되어 있고 숨겨져 있을 뿐입니다. 토큰 수와 모델 이름만 공개되며 저장소 이름, 파일 경로, 프롬프트는 포함되지 않습니다."
@@ -632,6 +636,9 @@ msgstr "{kindLabel} 테마"
 
 msgid "{label} (partial week)"
 msgstr "{label} (미완료 주)"
+
+msgid "{label} in cloud workspaces"
+msgstr "클라우드 워크스페이스의 {label}"
 
 msgid "{level} · {gate} · {statusLabel}"
 msgstr "{level} · {gate} · {statusLabel}"
@@ -1387,6 +1394,9 @@ msgstr "관리자는 소유자를 변경할 수 없습니다"
 msgid "Admins cannot promote members to owner"
 msgstr "관리자는 멤버를 소유자로 승격할 수 없습니다"
 
+msgid "Advanced"
+msgstr "고급"
+
 msgid "Advanced options"
 msgstr "고급 옵션"
 
@@ -1401,6 +1411,9 @@ msgstr "main 기준"
 
 msgid "Agent"
 msgstr "에이전트"
+
+msgid "Agent commands"
+msgstr "에이전트 명령"
 
 msgid "Agent Complete — {workspaceName}"
 msgstr "에이전트 완료 — {workspaceName}"
@@ -1736,6 +1749,12 @@ msgstr "다른 기기"
 
 msgid "Answered"
 msgstr "응답함"
+
+msgid "Anthropic rejected this API key."
+msgstr "Anthropic이 이 API 키를 거부했습니다."
+
+msgid "Anthropic rejected this token."
+msgstr "Anthropic이 이 토큰을 거부했습니다."
 
 msgid "Any calendar"
 msgstr "모든 캘린더"
@@ -2196,6 +2215,9 @@ msgstr "{selectedHostLabel}에서 새 worktree를 만들 기본 디렉터리입�
 
 msgid "Base directory for new worktrees on {selectedHostName}."
 msgstr "{selectedHostName}에서 새 worktree를 만들 기본 디렉터리입니다."
+
+msgid "Base URL"
+msgstr "기본 URL"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -3398,6 +3420,12 @@ msgstr "연결 대상"
 msgid "Connected to {connectedOrgName}"
 msgstr "{connectedOrgName}에 연결됨"
 
+msgid "Connected via subscription"
+msgstr "구독으로 연결됨"
+
+msgid "Connected with API key"
+msgstr "API 키로 연결됨"
+
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "연결되었지만 Microsoft Graph가 알림 구독을 거부했습니다."
 
@@ -3780,6 +3808,9 @@ msgstr "데스크톱에 연결할 수 없습니다."
 
 msgid "Could not reach the host to load this pull request."
 msgstr "호스트에 연결할 수 없어 이 풀 리퀘스트를 불러오지 못했습니다."
+
+msgid "Could not reach the provider. Try again."
+msgstr "제공사에 연결하지 못했습니다. 다시 시도하세요."
 
 msgid "Could not reach this workspace's machine"
 msgstr "이 워크스페이스의 컴퓨터에 연결할 수 없습니다"
@@ -4228,6 +4259,9 @@ msgstr "사용자 지정 접두사"
 
 msgid "Custom pricing"
 msgstr "맞춤 가격"
+
+msgid "Custom provider"
+msgstr "사용자 지정 제공사"
 
 msgid "Custom terminal agents"
 msgstr "커스텀 터미널 에이전트"
@@ -5105,6 +5139,9 @@ msgstr "올바른 이메일 주소를 입력하세요."
 
 msgid "Enter a valid recurrence rule."
 msgstr "유효한 반복 규칙을 입력하세요."
+
+msgid "Enter a value."
+msgstr "값을 입력하세요."
 
 msgid "Enter URL or search..."
 msgstr "URL 또는 검색어 입력..."
@@ -6225,11 +6262,17 @@ msgstr "생성 중"
 msgid "Generating..."
 msgstr "생성 중..."
 
+msgid "Get an API key"
+msgstr "API 키 받기"
+
 msgid "Get an architecture tour: entry points, how to run it, what to read first."
 msgstr "아키텍처 둘러보기: 진입점, 실행 방법, 먼저 읽어야 할 것."
 
 msgid "Get in touch with the {companyName} team."
 msgstr "{companyName} 팀에 문의하세요."
+
+msgid "Get key"
+msgstr "키 받기"
 
 msgid "Get more out of Superset"
 msgstr "Superset 더 잘 활용하기"
@@ -6430,6 +6473,9 @@ msgstr "숨긴 폴더"
 msgid "Hidden until you join"
 msgstr "참여 전까지 숨김"
 
+msgid "Hide"
+msgstr "숨기기"
+
 msgid "Hide checks"
 msgstr "검사 숨기기"
 
@@ -6616,6 +6662,9 @@ msgstr "프로세스에 프롬프트를 전달하는 방식입니다."
 
 msgid "How to install {name} in Superset"
 msgstr "Superset에 {name} 설치하는 방법"
+
+msgid "How your agents sign in inside cloud workspaces. Other people connect their own subscriptions or API keys; on this machine each agent keeps using the login already on it."
+msgstr "클라우드 워크스페이스 안에서 에이전트가 로그인하는 방식입니다. 다른 사람은 각자의 구독이나 API 키를 연결하며, 이 컴퓨터에서는 각 에이전트가 이미 있는 로그인을 계속 사용합니다."
 
 msgid "https://"
 msgstr "https://"
@@ -9556,6 +9605,9 @@ msgstr "워크스페이스 열기"
 msgid "Open workspace in external app (Cursor, VS Code, etc.)"
 msgstr "외부 앱(Cursor, VS Code 등)에서 워크스페이스를 엽니다"
 
+msgid "OpenAI rejected this API key."
+msgstr "OpenAI가 이 API 키를 거부했습니다."
+
 msgid "Opened"
 msgstr "열림"
 
@@ -9963,6 +10015,9 @@ msgstr "워크스페이스 선택"
 
 msgid "Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
 msgstr "아이콘과 색상을 고르거나 직접 만든 이미지를 업로드하세요. 기본값은 연결된 GitHub 소유자의 아바타입니다."
+
+msgid "Pick how {label} signs in inside a sandbox. The credential is handed to the agent process when it launches and is not stored in the sandbox."
+msgstr "샌드박스 안에서 {label}이(가) 로그인하는 방식을 고르세요. 자격 증명은 실행될 때 에이전트 프로세스로 전달되며 샌드박스에는 저장되지 않습니다."
 
 msgid "Pick the best agent."
 msgstr "최고의 에이전트를 고르세요."
@@ -11354,6 +11409,9 @@ msgstr "기기 회전"
 msgid "Roundups"
 msgstr "모아 보기"
 
+msgid "Route {label} through a provider you run, with the credentials you hold. Saved values are handed to the agent at launch."
+msgstr "직접 운영하는 제공사와 보유한 자격 증명으로 {label}을(를) 경유시킵니다. 저장한 값은 실행 시 에이전트로 전달됩니다."
+
 msgid "Routine tickets with no mid-task intervention"
 msgstr "작업 중간 개입 없는 일상적인 티켓"
 
@@ -12058,6 +12116,9 @@ msgstr "비밀번호 설정"
 msgid "Set Run"
 msgstr "실행 설정"
 
+msgid "Set up"
+msgstr "설정"
+
 msgid "Set up project on {hostName}"
 msgstr "{hostName}에 프로젝트 설정"
 
@@ -12142,6 +12203,9 @@ msgstr "시머 · 시머 레이블"
 
 msgid "Shortcut already in use"
 msgstr "이미 사용 중인 단축키"
+
+msgid "Show"
+msgstr "표시"
 
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "앱을 종료할 때 확인 대화 상자를 표시합니다"
@@ -12324,6 +12388,9 @@ msgstr "GitHub로 로그인"
 msgid "Sign in with Google"
 msgstr "Google로 로그인"
 
+msgid "Sign in with your Claude account, or run <0>claude setup-token</0><1><2/></1> in a terminal and paste the token here."
+msgstr "Claude 계정으로 로그인하거나, 터미널에서 <0>claude setup-token</0><1><2/></1>을 실행해 토큰을 여기에 붙여넣으세요."
+
 msgid "Sign out"
 msgstr "로그아웃"
 
@@ -12359,8 +12426,14 @@ msgstr "로그인이 만료되었습니다 — 다음 명령을 실행하세요:
 msgid "Sign-in failed"
 msgstr "로그인 실패"
 
+msgid "Signed in as {accountLabel}"
+msgstr "{accountLabel}(으)로 로그인됨"
+
 msgid "Signed in as <0>{userName}</0>"
 msgstr "<0>{userName}</0>(으)로 로그인됨"
+
+msgid "Signed in. The token is stored encrypted and is never shown again."
+msgstr "로그인했습니다. 토큰은 암호화되어 저장되며 다시 표시되지 않습니다."
 
 msgid "Signed out"
 msgstr "로그아웃됨"
@@ -12370,6 +12443,9 @@ msgstr "로그인한 사이트"
 
 msgid "Signing in..."
 msgstr "로그인하는 중..."
+
+msgid "Signs in the way the Codex CLI does. Or run <0>codex login</0> in a terminal and paste its token here."
+msgstr "Codex CLI와 같은 방식으로 로그인합니다. 또는 터미널에서 <0>codex login</0>을 실행해 토큰을 여기에 붙여넣으세요."
 
 msgid "signup → paid ≤30d"
 msgstr "가입 → 유료 30일 이내"
@@ -13587,6 +13663,13 @@ msgstr "찾으시는 페이지가 존재하지 않습니다."
 msgid "The people behind Superset."
 msgstr "Superset을 만드는 사람들."
 
+#. placeholder {0}: params?.status
+msgid "The provider answered {0}."
+msgstr "제공사가 {0}을(를) 반환했습니다."
+
+msgid "The provider refused it."
+msgstr "제공사가 거부했습니다."
+
 msgid "The recovery period has ended. Contact support@superset.sh."
 msgstr "복구 기간이 끝났습니다. support@superset.sh로 문의하세요."
 
@@ -14616,6 +14699,12 @@ msgstr "v2ProjectId가 워크스페이스의 프로젝트와 일치하지 않습
 
 msgid "Variables"
 msgstr "변수"
+
+msgid "Vercel AI Gateway"
+msgstr "Vercel AI Gateway"
+
+msgid "Verified and saved"
+msgstr "확인 후 저장됨"
 
 msgid "Verify Kbd stays visible inside tooltips"
 msgstr "툴팁 안에서 Kbd가 계속 보이는지 확인"

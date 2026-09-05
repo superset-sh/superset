@@ -298,6 +298,10 @@ msgstr "Hành động {0}"
 msgid "{0} behind you"
 msgstr "{0} phía sau bạn"
 
+#. placeholder {0}: params?.agent
+msgid "{0} cannot be signed in this way yet."
+msgstr "{0} chưa thể đăng nhập theo cách này."
+
 #. placeholder {0}: formatNumber(participants)
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
 msgstr "{0} nhà phát triển được xếp hạng theo mức dùng agent. 30 ngày qua của bạn đã được tính, chỉ là đang ẩn. Chỉ số lượng token và tên mô hình, không có tên repo, đường dẫn tệp hay prompt."
@@ -632,6 +636,9 @@ msgstr "Chủ đề {kindLabel}"
 
 msgid "{label} (partial week)"
 msgstr "{label} (tuần chưa đủ)"
+
+msgid "{label} in cloud workspaces"
+msgstr "{label} trong workspace cloud"
 
 msgid "{level} · {gate} · {statusLabel}"
 msgstr "{level} · {gate} · {statusLabel}"
@@ -1387,6 +1394,9 @@ msgstr "Admin không thể thay đổi chủ sở hữu"
 msgid "Admins cannot promote members to owner"
 msgstr "Admin không thể nâng thành viên lên chủ sở hữu"
 
+msgid "Advanced"
+msgstr "Nâng cao"
+
 msgid "Advanced options"
 msgstr "Tùy chọn nâng cao"
 
@@ -1401,6 +1411,9 @@ msgstr "So với main"
 
 msgid "Agent"
 msgstr "Agent"
+
+msgid "Agent commands"
+msgstr "Lệnh của agent"
 
 msgid "Agent Complete — {workspaceName}"
 msgstr "Agent đã xong — {workspaceName}"
@@ -1736,6 +1749,12 @@ msgstr "thiết bị khác"
 
 msgid "Answered"
 msgstr "Đã trả lời"
+
+msgid "Anthropic rejected this API key."
+msgstr "Anthropic đã từ chối khóa API này."
+
+msgid "Anthropic rejected this token."
+msgstr "Anthropic đã từ chối token này."
 
 msgid "Any calendar"
 msgstr "Lịch bất kỳ"
@@ -2196,6 +2215,9 @@ msgstr "Thư mục gốc cho worktree mới trên {selectedHostLabel}"
 
 msgid "Base directory for new worktrees on {selectedHostName}."
 msgstr "Thư mục gốc cho worktree mới trên {selectedHostName}."
+
+msgid "Base URL"
+msgstr "URL gốc"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -3398,6 +3420,12 @@ msgstr "Đã kết nối tới"
 msgid "Connected to {connectedOrgName}"
 msgstr "Đã kết nối với {connectedOrgName}"
 
+msgid "Connected via subscription"
+msgstr "Đã kết nối qua gói đăng ký"
+
+msgid "Connected with API key"
+msgstr "Đã kết nối bằng khóa API"
+
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "Đã kết nối, nhưng Microsoft Graph từ chối các đăng ký thông báo."
 
@@ -3780,6 +3808,9 @@ msgstr "Không thể kết nối tới màn hình nền."
 
 msgid "Could not reach the host to load this pull request."
 msgstr "Không kết nối được tới host để tải pull request này."
+
+msgid "Could not reach the provider. Try again."
+msgstr "Không kết nối được tới nhà cung cấp. Hãy thử lại."
 
 msgid "Could not reach this workspace's machine"
 msgstr "Không kết nối được tới máy của workspace này"
@@ -4228,6 +4259,9 @@ msgstr "Tiền tố tùy chỉnh"
 
 msgid "Custom pricing"
 msgstr "Giá tùy chỉnh"
+
+msgid "Custom provider"
+msgstr "Nhà cung cấp tùy chỉnh"
 
 msgid "Custom terminal agents"
 msgstr "Agent terminal tùy chỉnh"
@@ -5105,6 +5139,9 @@ msgstr "Hãy nhập địa chỉ email hợp lệ."
 
 msgid "Enter a valid recurrence rule."
 msgstr "Hãy nhập một quy tắc lặp hợp lệ."
+
+msgid "Enter a value."
+msgstr "Hãy nhập một giá trị."
 
 msgid "Enter URL or search..."
 msgstr "Nhập URL hoặc tìm kiếm..."
@@ -6225,11 +6262,17 @@ msgstr "Đang tạo"
 msgid "Generating..."
 msgstr "Đang tạo..."
 
+msgid "Get an API key"
+msgstr "Lấy khóa API"
+
 msgid "Get an architecture tour: entry points, how to run it, what to read first."
 msgstr "Đi một vòng kiến trúc: điểm vào, cách chạy, nên đọc gì trước."
 
 msgid "Get in touch with the {companyName} team."
 msgstr "Liên hệ với đội ngũ {companyName}."
+
+msgid "Get key"
+msgstr "Lấy khóa"
 
 msgid "Get more out of Superset"
 msgstr "Khai thác Superset nhiều hơn"
@@ -6430,6 +6473,9 @@ msgstr "Thư mục đã ẩn"
 msgid "Hidden until you join"
 msgstr "Ẩn cho đến khi bạn tham gia"
 
+msgid "Hide"
+msgstr "Ẩn"
+
 msgid "Hide checks"
 msgstr "Ẩn check"
 
@@ -6616,6 +6662,9 @@ msgstr "Cách prompt được đưa tới tiến trình."
 
 msgid "How to install {name} in Superset"
 msgstr "Cách cài {name} trong Superset"
+
+msgid "How your agents sign in inside cloud workspaces. Other people connect their own subscriptions or API keys; on this machine each agent keeps using the login already on it."
+msgstr "Cách các agent của bạn đăng nhập bên trong workspace cloud. Người khác kết nối gói đăng ký hoặc khóa API của riêng họ; trên máy này mỗi agent vẫn dùng phiên đăng nhập sẵn có."
 
 msgid "https://"
 msgstr "https://"
@@ -9556,6 +9605,9 @@ msgstr "Mở workspace"
 msgid "Open workspace in external app (Cursor, VS Code, etc.)"
 msgstr "Mở workspace trong ứng dụng ngoài (Cursor, VS Code, v.v.)"
 
+msgid "OpenAI rejected this API key."
+msgstr "OpenAI đã từ chối khóa API này."
+
 msgid "Opened"
 msgstr "Đã mở"
 
@@ -9963,6 +10015,9 @@ msgstr "Chọn một workspace"
 
 msgid "Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
 msgstr "Chọn biểu tượng và màu, hoặc tải ảnh riêng lên. Mặc định dùng ảnh đại diện của chủ sở hữu GitHub đã liên kết."
+
+msgid "Pick how {label} signs in inside a sandbox. The credential is handed to the agent process when it launches and is not stored in the sandbox."
+msgstr "Chọn cách {label} đăng nhập bên trong sandbox. Thông tin xác thực được chuyển cho tiến trình agent khi khởi chạy và không được lưu trong sandbox."
 
 msgid "Pick the best agent."
 msgstr "Chọn agent tốt nhất."
@@ -11354,6 +11409,9 @@ msgstr "Xoay thiết bị"
 msgid "Roundups"
 msgstr "Tổng hợp"
 
+msgid "Route {label} through a provider you run, with the credentials you hold. Saved values are handed to the agent at launch."
+msgstr "Định tuyến {label} qua nhà cung cấp do bạn tự vận hành, với thông tin xác thực bạn nắm giữ. Giá trị đã lưu được chuyển cho agent khi khởi chạy."
+
 msgid "Routine tickets with no mid-task intervention"
 msgstr "Ticket thường ngày không cần can thiệp giữa chừng"
 
@@ -12058,6 +12116,9 @@ msgstr "Đặt mật khẩu"
 msgid "Set Run"
 msgstr "Đặt lệnh chạy"
 
+msgid "Set up"
+msgstr "Thiết lập"
+
 msgid "Set up project on {hostName}"
 msgstr "Thiết lập dự án trên {hostName}"
 
@@ -12142,6 +12203,9 @@ msgstr "Shimmer · Shimmer Label"
 
 msgid "Shortcut already in use"
 msgstr "Phím tắt đã được dùng"
+
+msgid "Show"
+msgstr "Hiện"
 
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Hiện hộp thoại xác nhận khi thoát ứng dụng"
@@ -12324,6 +12388,9 @@ msgstr "Đăng nhập bằng GitHub"
 msgid "Sign in with Google"
 msgstr "Đăng nhập bằng Google"
 
+msgid "Sign in with your Claude account, or run <0>claude setup-token</0><1><2/></1> in a terminal and paste the token here."
+msgstr "Đăng nhập bằng tài khoản Claude của bạn, hoặc chạy <0>claude setup-token</0><1><2/></1> trong terminal rồi dán token vào đây."
+
 msgid "Sign out"
 msgstr "Đăng xuất"
 
@@ -12359,8 +12426,14 @@ msgstr "Đăng nhập đã hết hạn — hãy chạy"
 msgid "Sign-in failed"
 msgstr "Đăng nhập thất bại"
 
+msgid "Signed in as {accountLabel}"
+msgstr "Đang đăng nhập với {accountLabel}"
+
 msgid "Signed in as <0>{userName}</0>"
 msgstr "Đang đăng nhập với <0>{userName}</0>"
+
+msgid "Signed in. The token is stored encrypted and is never shown again."
+msgstr "Đã đăng nhập. Token được lưu ở dạng mã hóa và không bao giờ hiển thị lại."
 
 msgid "Signed out"
 msgstr "Đã đăng xuất"
@@ -12370,6 +12443,9 @@ msgstr "Trang đang đăng nhập"
 
 msgid "Signing in..."
 msgstr "Đang đăng nhập..."
+
+msgid "Signs in the way the Codex CLI does. Or run <0>codex login</0> in a terminal and paste its token here."
+msgstr "Đăng nhập giống cách Codex CLI làm. Hoặc chạy <0>codex login</0> trong terminal rồi dán token của nó vào đây."
 
 msgid "signup → paid ≤30d"
 msgstr "đăng ký → trả phí ≤30 ngày"
@@ -13587,6 +13663,13 @@ msgstr "Trang bạn tìm không tồn tại."
 msgid "The people behind Superset."
 msgstr "Những người đứng sau Superset."
 
+#. placeholder {0}: params?.status
+msgid "The provider answered {0}."
+msgstr "Nhà cung cấp trả về {0}."
+
+msgid "The provider refused it."
+msgstr "Nhà cung cấp đã từ chối."
+
 msgid "The recovery period has ended. Contact support@superset.sh."
 msgstr "Thời hạn khôi phục đã kết thúc. Hãy liên hệ support@superset.sh."
 
@@ -14616,6 +14699,12 @@ msgstr "v2ProjectId không khớp với dự án của workspace"
 
 msgid "Variables"
 msgstr "Biến"
+
+msgid "Vercel AI Gateway"
+msgstr "Vercel AI Gateway"
+
+msgid "Verified and saved"
+msgstr "Đã xác minh và lưu"
 
 msgid "Verify Kbd stays visible inside tooltips"
 msgstr "Kiểm tra Kbd vẫn hiện rõ bên trong tooltip"
