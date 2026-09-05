@@ -1039,6 +1039,20 @@ async function getOrAdoptSession({
 }
 
 /**
+ * Whether the session's terminal currently has bracketed paste enabled — the
+ * account engine's session mover uses it as one gate before typing a
+ * continue nudge, so text never lands at a bare shell prompt.
+ */
+export function isBracketedPasteActive(terminalId: string): boolean {
+	const session = sessions.get(terminalId);
+	return (
+		session !== undefined &&
+		!session.exited &&
+		session.modeTracker.isBracketedPasteActive()
+	);
+}
+
+/**
  * Public "send a follow-up to whatever runs in this terminal" path. Frames
  * the text as a bracketed paste when the running program has that mode on,
  * so embedded newlines reach a TUI agent (claude/codex) as literal newlines

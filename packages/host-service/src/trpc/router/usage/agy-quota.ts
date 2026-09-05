@@ -111,6 +111,11 @@ export async function fetchAgyAccounts(): Promise<UsageAccount[]> {
 		creditsBalance: null,
 		extraUsage: null,
 		selection: null,
+		// No switchable login: these CLIs keep one account per machine, so
+		// there is no identity to key on and nothing for rotation to pick.
+		accountId: null,
+		inRotation: false,
+		managed: false,
 		isDefault: false,
 		fetchedAt: new Date(),
 	};

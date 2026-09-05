@@ -7,7 +7,14 @@
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { type CodexHome, discoverCodexHomes } from "./profiles";
+import { resolveAmbientCodexHome } from "@superset/agent-setup";
+import { recordIdentityBindings } from "./default-account";
+import {
+	type CodexHome,
+	discoverCodexHomes,
+	discoverCodexHomesWithStatus,
+	readCodexProfileKind,
+} from "./profiles";
 import type { UsageAccount, UsageQuotaWindow } from "./types";
 
 const CODEX_USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
@@ -99,69 +106,189 @@ function mapWindows(usage: CodexUsageResponse): UsageQuotaWindow[] {
 }
 
 export async function fetchCodexAccounts(): Promise<UsageAccount[]> {
-	const homes = await discoverCodexHomes();
+	const homes = await recordCodexHomeBindings(await discoverCodexHomes());
 	// The first discovered home is what codex uses with no CODEX_HOME override
 	// (see discoverCodexHomes) — running on it needs no env injection.
 	const defaultHome = homes[0]?.home ?? null;
-	const accounts = await Promise.all(
+	const fetched = await Promise.all(
 		homes.map((home) =>
 			fetchCodexAccountForHome(home, home.home === defaultHome),
 		),
 	);
-	// Dedupe by account email — one login used from several homes is one
-	// account; keep the first (default home wins).
+	return dedupeCodexAccounts(fetched.flatMap((result) => result.accounts));
+}
+
+/**
+ * Dedupe by the ChatGPT account id auth.json carries (KTD4) — one login used
+ * from several homes is one account; keep the first (default home wins). The
+ * email is only a fallback: it comes from the usage endpoint, so a login
+ * whose fetch failed has none, and two such homes used to merge into one row.
+ */
+export function dedupeCodexAccounts(accounts: UsageAccount[]): UsageAccount[] {
 	const seen = new Set<string>();
-	return accounts.flat().filter((account) => {
-		const key = account.email ?? account.accountKey;
+	return accounts.filter((account) => {
+		const key = account.accountId ?? account.email ?? account.accountKey;
 		if (seen.has(key)) return false;
 		seen.add(key);
 		return true;
 	});
 }
 
-async function fetchCodexAccountForHome(
-	home: CodexHome,
-	isDefaultHome: boolean,
-): Promise<UsageAccount[]> {
+/**
+ * KTD3 step 2: record which home each Codex identity lives in (null for the
+ * system-default home), the same pairing Claude discovery records.
+ */
+function recordCodexHomeBindings(homes: CodexHome[]): CodexHome[] {
+	const defaultHome = homes[0]?.home ?? null;
+	recordIdentityBindings(
+		homes.flatMap((home) =>
+			home.accountId
+				? [
+						[
+							home.accountId,
+							home.home === defaultHome ? null : home.home,
+						] as const,
+					]
+				: [],
+		),
+	);
+	return homes;
+}
+
+/**
+ * KTD4: the ChatGPT account a selection's home is signed in as right now,
+ * read from the same `auth.json` discovery classifies it by (`null` is the
+ * system-default home). Null when the home holds no readable subscription
+ * login — an API-billed home, or one that has never been signed in.
+ *
+ * Exported for the account engine, which re-reads it immediately before it
+ * publishes a Codex pointer: a home re-authenticated since the last poll
+ * belongs to somebody else now.
+ */
+export async function readCodexSelectionAccountId(
+	selection: string | null,
+): Promise<string | null> {
+	const home = selection ?? resolveAmbientCodexHome();
+	return (await readCodexProfileKind(home))?.accountId ?? null;
+}
+
+/**
+ * The quota store's discovery pass (KTD10): the homes worth polling, and the
+ * API-billed rows that have no quota endpoint to call. `complete` is false
+ * when the `~` listing failed — the store reaps entries missing from this
+ * result, and a home dir that could not be read yields the same empty scan as
+ * one holding no extra homes. `homeDir` overrides the scan root for tests.
+ */
+export async function discoverCodexQuotaTargets(homeDir?: string): Promise<{
+	selections: Array<string | null>;
+	staticAccounts: UsageAccount[];
+	complete: boolean;
+}> {
+	const { homes: discovered, complete } = await discoverCodexHomesWithStatus({
+		homeDir,
+	});
+	const homes = recordCodexHomeBindings(discovered);
+	const defaultHome = homes[0]?.home ?? null;
+	const selections: Array<string | null> = [];
+	const staticAccounts: UsageAccount[] = [];
+	for (const home of homes) {
+		const isDefaultHome = home.home === defaultHome;
+		if (home.credentialKind === "api_key") {
+			staticAccounts.push(codexApiKeyAccount(home, isDefaultHome));
+		} else {
+			selections.push(isDefaultHome ? null : home.home);
+		}
+	}
+	return { selections, staticAccounts, complete };
+}
+
+/**
+ * One login's quota, for the quota store's per-account cadence. `rateLimited`
+ * is the 429 that backs off every poll on this endpoint (KTD10).
+ */
+export async function fetchCodexAccountForSelection(
+	selection: string | null,
+): Promise<{ account: UsageAccount | null; rateLimited: boolean }> {
+	// Only the one home this selection names has to be classified; the
+	// system default is always the first entry either way.
+	const homes = await discoverCodexHomes(selection === null ? [] : [selection]);
+	const defaultHome = homes[0]?.home ?? null;
+	const home =
+		selection === null
+			? homes[0]
+			: homes.find((candidate) => candidate.home === selection);
+	if (!home) return { account: null, rateLimited: false };
+	const { accounts, rateLimited } = await fetchCodexAccountForHome(
+		home,
+		home.home === defaultHome,
+	);
+	return { account: accounts[0] ?? null, rateLimited };
+}
+
+function codexAccountBase(home: CodexHome, isDefaultHome: boolean) {
 	const codexHome = home.home;
-	const authPath = join(codexHome, "auth.json");
-	const base = {
+	return {
 		agent: "codex" as const,
 		credentialKind: home.credentialKind,
-		accountKey: authPath,
+		accountKey: join(codexHome, "auth.json"),
 		sourceLabel: codexHome.replace(homedir(), "~"),
 		extraUsage: null,
 		selection: isDefaultHome ? null : codexHome,
-		// Decorated per-query from host settings; the quota cache outlives it.
+		accountId: home.accountId,
+		// R16: API-billed logins stay out of rotation. The toggle and the
+		// active badge are decorated per query; the quota cache outlives both.
+		inRotation: home.credentialKind === "subscription",
+		managed: true,
 		isDefault: false,
 		fetchedAt: new Date(),
 	};
+}
 
-	// API billing has no quota endpoint, and the auth.json holds the raw key —
-	// the card is built from the marker alone.
+/**
+ * API billing has no quota endpoint, and the auth.json holds the raw key —
+ * the card is built from the marker alone.
+ */
+function codexApiKeyAccount(
+	home: CodexHome,
+	isDefaultHome: boolean,
+): UsageAccount {
+	return {
+		...codexAccountBase(home, isDefaultHome),
+		email: null,
+		plan: null,
+		status: "ok",
+		statusDetail:
+			"Billed per token through the OpenAI Platform — no quota windows.",
+		windows: [],
+		creditsBalance: null,
+	};
+}
+
+/** `rateLimited` is the usage endpoint's 429, which backs off every poll on
+ * it (KTD10); callers that only want the rows ignore it. */
+async function fetchCodexAccountForHome(
+	home: CodexHome,
+	isDefaultHome: boolean,
+): Promise<{ accounts: UsageAccount[]; rateLimited: boolean }> {
+	const codexHome = home.home;
+	const authPath = join(codexHome, "auth.json");
+	const base = codexAccountBase(home, isDefaultHome);
+
 	if (home.credentialKind === "api_key") {
-		return [
-			{
-				...base,
-				email: null,
-				plan: null,
-				status: "ok",
-				statusDetail:
-					"Billed per token through the OpenAI Platform — no quota windows.",
-				windows: [],
-				creditsBalance: null,
-			},
-		];
+		return {
+			accounts: [codexApiKeyAccount(home, isDefaultHome)],
+			rateLimited: false,
+		};
 	}
 
 	let auth: CodexAuthFile;
 	try {
 		auth = JSON.parse(await readFile(authPath, "utf-8"));
 	} catch {
-		return [];
+		return { accounts: [], rateLimited: false };
 	}
 	const accessToken = auth.tokens?.access_token;
-	if (!accessToken) return [];
+	if (!accessToken) return { accounts: [], rateLimited: false };
 
 	try {
 		const headers: Record<string, string> = {
@@ -174,62 +301,75 @@ async function fetchCodexAccountForHome(
 			headers,
 			signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
 		});
+		const rateLimited = response.status === 429;
 
 		if (response.status === 401 || response.status === 403) {
-			return [
-				{
-					...base,
-					email: null,
-					plan: null,
-					status: "token_expired",
-					statusDetail: "Codex token expired — run `codex` to refresh it.",
-					windows: [],
-					creditsBalance: null,
-				},
-			];
+			return {
+				accounts: [
+					{
+						...base,
+						email: null,
+						plan: null,
+						status: "token_expired",
+						statusDetail: "Codex token expired — run `codex` to refresh it.",
+						windows: [],
+						creditsBalance: null,
+					},
+				],
+				rateLimited,
+			};
 		}
 		if (!response.ok) {
-			return [
-				{
-					...base,
-					email: null,
-					plan: null,
-					status: "unavailable",
-					statusDetail: `Usage endpoint returned ${response.status}.`,
-					windows: [],
-					creditsBalance: null,
-				},
-			];
+			return {
+				accounts: [
+					{
+						...base,
+						email: null,
+						plan: null,
+						status: "unavailable",
+						statusDetail: `Usage endpoint returned ${response.status}.`,
+						windows: [],
+						creditsBalance: null,
+					},
+				],
+				rateLimited,
+			};
 		}
 
 		const usage = (await response.json()) as CodexUsageResponse;
 		const windows = mapWindows(usage);
 		const balance = Number.parseFloat(usage.credits?.balance ?? "");
 
-		return [
-			{
-				...base,
-				email: usage.email ?? null,
-				plan: usage.plan_type ?? null,
-				status: windows.length > 0 ? "ok" : "unavailable",
-				statusDetail:
-					windows.length > 0 ? null : "No quota data returned for this plan.",
-				windows,
-				creditsBalance: Number.isFinite(balance) ? balance : null,
-			},
-		];
+		return {
+			accounts: [
+				{
+					...base,
+					email: usage.email ?? null,
+					plan: usage.plan_type ?? null,
+					status: windows.length > 0 ? "ok" : "unavailable",
+					statusDetail:
+						windows.length > 0 ? null : "No quota data returned for this plan.",
+					windows,
+					creditsBalance: Number.isFinite(balance) ? balance : null,
+				},
+			],
+			rateLimited,
+		};
 	} catch (error) {
-		return [
-			{
-				...base,
-				email: null,
-				plan: null,
-				status: "unavailable",
-				statusDetail:
-					error instanceof Error ? error.message : "Failed to fetch usage.",
-				windows: [],
-				creditsBalance: null,
-			},
-		];
+		return {
+			accounts: [
+				{
+					...base,
+					email: null,
+					plan: null,
+					status: "unavailable",
+					statusDetail:
+						error instanceof Error ? error.message : "Failed to fetch usage.",
+					windows: [],
+					creditsBalance: null,
+				},
+			],
+			rateLimited: false,
+		};
 	}
 }

@@ -12,10 +12,12 @@ import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/Host
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import type { AgentLifecycleEvent } from "shared/notification-types";
+import { AccountSwitchSubscriber } from "./components/AccountSwitchSubscriber";
 import {
 	HostNotificationSubscriber,
 	type HostNotificationWorkspaceState,
 } from "./components/HostNotificationSubscriber";
+import { getAccountSwitchGroups } from "./lib/getAccountSwitchGroups";
 import { getNotificationWorkspaceName } from "./lib/getNotificationWorkspaceName";
 import { markV2AgentLifecycleTargetSeen } from "./lib/lifecycleEvents";
 
@@ -119,6 +121,12 @@ export function V2NotificationController() {
 			}),
 		[workspaceHosts, workspaceStatesById, machineId, activeHostUrl, relayUrl],
 	);
+	// Account events are host-wide, so the local host is subscribed whether or
+	// not the sidebar currently shows a workspace living on it.
+	const accountSwitchGroups = useMemo(
+		() => getAccountSwitchGroups({ hostGroups, activeHostUrl }),
+		[hostGroups, activeHostUrl],
+	);
 
 	const handleElectronAgentLifecycle = useEffectEvent(
 		(event: ElectronNotificationEvent) => {
@@ -170,6 +178,13 @@ export function V2NotificationController() {
 		<>
 			{hostGroups.map((group) => (
 				<HostNotificationSubscriber
+					key={group.hostUrl}
+					hostUrl={group.hostUrl}
+					workspaces={group.workspaces}
+				/>
+			))}
+			{accountSwitchGroups.map((group) => (
+				<AccountSwitchSubscriber
 					key={group.hostUrl}
 					hostUrl={group.hostUrl}
 					workspaces={group.workspaces}

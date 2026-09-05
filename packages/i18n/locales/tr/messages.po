@@ -213,8 +213,8 @@ msgid "{0, plural, one {# workspace} other {# workspaces}}"
 msgstr "{0, plural, one {# çalışma alanı} other {# çalışma alanı}}"
 
 #. placeholder {0}: shown?.count ?? 0
-msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
-msgstr "{0, plural, one {Çalışan bir ajan hâlâ önceki hesabı kullanıyor — geçiş yalnızca yeni başlatmalar için geçerli.} other {Çalışan # ajan hâlâ önceki hesabı kullanıyor — geçiş yalnızca yeni başlatmalar için geçerli.}}"
+msgid "{0, plural, one {A running agent is pinned to its own config dir by its agent configuration, so it keeps the account signed in there.} other {# running agents are pinned to their own config dirs by their agent configuration, so they keep the accounts signed in there.}}"
+msgstr "{0, plural, one {# çalışan ajan, ajan yapılandırması tarafından kendi yapılandırma dizinine sabitlenmiş; bu yüzden orada oturum açılmış hesabı korur.} other {# çalışan ajan, ajan yapılandırmaları tarafından kendi yapılandırma dizinlerine sabitlenmiş; bu yüzden orada oturum açılmış hesapları korur.}}"
 
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
@@ -293,6 +293,11 @@ msgstr "{0} → {1} bekliyor"
 #. placeholder {0}: skill.name
 msgid "{0} actions"
 msgstr "{0} eylemleri"
+
+#. placeholder {0}: windowLabel(entry.windowId)
+#. placeholder {1}: formatPercent(entry.usedPercent / 100, { maximumFractionDigits: 0 })
+msgid "{0} at {1}"
+msgstr "{0}: {1}"
 
 #. placeholder {0}: formatTokens(me.tokens - below.tokens)
 msgid "{0} behind you"
@@ -461,8 +466,23 @@ msgstr "tüm token'ların %{0} kadarı · {1} token"
 msgid "{0}% of total cost · {1} tokens · * at API list rates"
 msgstr "toplam maliyetin %{0} kadarı · {1} token · * API liste fiyatlarıyla"
 
+msgid "{accountLabel} is now the active {providerLabel} account."
+msgstr "{accountLabel} artık etkin {providerLabel} hesabı."
+
 msgid "{actual} so far · ~{projected} projected"
 msgstr "şu ana kadar {actual} · ~{projected} öngörülüyor"
+
+msgid "{agent} could not switch accounts"
+msgstr "{agent} hesap değiştiremedi"
+
+msgid "{agent} switched account"
+msgstr "{agent} hesap değiştirdi"
+
+msgid "{agent} switched from {fromLabel} to {toLabel}"
+msgstr "{agent}, {fromLabel} hesabından {toLabel} hesabına geçti"
+
+msgid "{agent} switched to {toLabel}"
+msgstr "{agent}, {toLabel} hesabına geçti"
 
 msgid "{backgroundCount, plural, one {# background terminal session} other {# background terminal sessions}}"
 msgstr "{backgroundCount, plural, one {# arka plan terminal oturumu} other {# arka plan terminal oturumu}}"
@@ -488,6 +508,9 @@ msgstr "{configTitle} yazı tipi boyutu"
 
 msgid "{cookieCount} cookies — forget this site"
 msgstr "{cookieCount} çerez — bu siteyi unut"
+
+msgid "{count, plural, one {# account switch while you were away} other {# account switches while you were away}}"
+msgstr "{count, plural, one {Siz yokken # hesap değişikliği} other {Siz yokken # hesap değişikliği}}"
 
 msgid "{count, plural, one {# Check Failed} other {# Checks Failed}}"
 msgstr "{count, plural, one {# kontrol başarısız} other {# kontrol başarısız}}"
@@ -656,6 +679,9 @@ msgstr "{minutes}dk"
 msgid "{minutes}m ago"
 msgstr "{minutes}dk önce"
 
+msgid "{model} weekly window"
+msgstr "{model} haftalık penceresi"
+
 msgid "{modKey}↵ to create"
 msgstr "Oluşturmak için {modKey}↵"
 
@@ -814,6 +840,9 @@ msgstr "{updatedLabel} varsayılanlara geri yüklendi"
 
 msgid "{waiting} Waiting"
 msgstr "{waiting} bekliyor"
+
+msgid "{windowLabel} at {percent}"
+msgstr "{windowLabel}: {percent}"
 
 msgid "{workspaceName}: host is unavailable"
 msgstr "{workspaceName}: host kullanılamıyor"
@@ -988,6 +1017,9 @@ msgstr "1 çerez — bu siteyi unut"
 msgid "1 hour"
 msgstr "1 saat"
 
+msgid "1 minute"
+msgstr "1 dakika"
+
 msgid "1 user"
 msgstr "1 kullanıcı"
 
@@ -1008,6 +1040,9 @@ msgstr "2 ajan · 14 dosya değişti"
 
 msgid "2 hours"
 msgstr "2 saat"
+
+msgid "2 minutes"
+msgstr "2 dakika"
 
 msgid "2021 to 2023"
 msgstr "2021 - 2023"
@@ -1036,6 +1071,9 @@ msgstr "Mühendis başına 3+ eşzamanlı iş akışı"
 msgid "30 minutes"
 msgstr "30 dakika"
 
+msgid "30 seconds"
+msgstr "30 saniye"
+
 msgid "30D"
 msgstr "30G"
 
@@ -1054,6 +1092,9 @@ msgstr "45 dosya · +82 −172"
 msgid "5 minutes"
 msgstr "5 dakika"
 
+msgid "5-hour window"
+msgstr "5 saatlik pencere"
+
 msgid "55 call sites pass {code}"
 msgstr "55 çağrı noktası {code} geçiriyor"
 
@@ -1065,6 +1106,9 @@ msgstr "7G"
 
 msgid "87.4K of 200K tokens used in this session."
 msgstr "Bu oturumda 200K token'ın 87,4K'sı kullanıldı."
+
+msgid "A {agent} session needs attention"
+msgstr "Bir {agent} oturumu ilgi bekliyor"
 
 msgid "A better in-app browser: preview your changes and click any element to send it to the agent as context."
 msgstr "Daha iyi bir uygulama içi tarayıcı: değişikliklerinizi önizleyin ve herhangi bir öğeye tıklayarak bağlam olarak ajana gönderin."
@@ -1175,6 +1219,9 @@ msgstr "Akordeon"
 msgid "Account"
 msgstr "Hesap"
 
+msgid "Account changed outside Superset"
+msgstr "Hesap Superset dışında değiştirildi"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceNotResolvable"
 msgstr "Hesaba kurulum yalnızca birinci taraf manifestlerini çözer, bu yüzden {marketplace} kaynaklı {plugin} henüz hesabınıza kurulamaz. Bu makinede kurulu kalır."
@@ -1206,6 +1253,13 @@ msgstr "aktivasyon oranı"
 
 msgid "Active"
 msgstr "Etkin"
+
+msgctxt "account state"
+msgid "Active"
+msgstr "Etkin"
+
+msgid "Active — every running and newly launched session of this agent uses this account."
+msgstr "Etkin — bu ajanın çalışan ve yeni başlatılan tüm oturumları bu hesabı kullanır."
 
 #. placeholder {0}: formatDistanceToNowStrict(binding.lastEventAt, { addSuffix: true, })
 msgid "active {0}"
@@ -1402,6 +1456,10 @@ msgstr "main ile karşılaştır"
 msgid "Agent"
 msgstr "Ajan"
 
+msgctxt "switch history column"
+msgid "Agent"
+msgstr "Ajan"
+
 msgid "Agent Complete — {workspaceName}"
 msgstr "Ajan tamamlandı — {workspaceName}"
 
@@ -1516,6 +1574,9 @@ msgstr "{0} kontrolün tümü geçti"
 #. placeholder {0}: summary.relevantChecks.length
 msgid "All {0} passed"
 msgstr "Tümü geçti ({0})"
+
+msgid "All {agent} accounts are at their limit"
+msgstr "Tüm {agent} hesapları limitine ulaştı"
 
 msgid "All {versionCount} versions and their content are removed. Anyone with the link loses access."
 msgstr "{versionCount} sürümün tamamı ve içerikleri kaldırılır. Bağlantıya sahip herkes erişimini kaybeder."
@@ -1734,6 +1795,12 @@ msgstr "Anonim Montajcı"
 msgid "another device"
 msgstr "başka bir cihaz"
 
+msgid "Another Superset instance on this machine owns account switching. Change this there."
+msgstr "Bu makinedeki başka bir Superset örneği hesap değiştirmeyi yönetiyor. Bunu oradan değiştirin."
+
+msgid "Another Superset instance on this machine owns automatic switching. Change these settings there."
+msgstr "Bu makinedeki başka bir Superset örneği otomatik geçişi yönetiyor. Bu ayarları oradan değiştirin."
+
 msgid "Answered"
 msgstr "Yanıtlandı"
 
@@ -1847,6 +1914,9 @@ msgstr "Terminallerdeki, sohbet mesajlarındaki ve görev tarayıcılarındaki U
 
 msgid "Apply"
 msgstr "Uygula"
+
+msgid "Approaching the usage limit"
+msgstr "Kullanım limitine yaklaşılıyor"
 
 msgid "Approve"
 msgstr "Onayla"
@@ -2051,6 +2121,19 @@ msgstr "Görevleri otomatikleştirin"
 
 msgid "Automate workspace setup for {projectName}"
 msgstr "{projectName} için çalışma alanı kurulumunu otomatikleştirin"
+
+msgctxt "account switch trigger"
+msgid "Automatic"
+msgstr "Otomatik"
+
+msgid "Automatic account switching is not available on Windows. Switch accounts by hand instead."
+msgstr "Otomatik hesap değiştirme Windows'ta kullanılamaz. Hesapları elle değiştirin."
+
+msgid "Automatic switching may move sessions onto this account. Held-out accounts stay available to pick by hand."
+msgstr "Otomatik geçiş oturumları bu hesaba taşıyabilir. Dışarıda bırakılan hesaplar elle seçilebilir kalır."
+
+msgid "Automatic switching needs macOS or Linux. On Windows you can still switch the active {agentLabel} account by hand."
+msgstr "Otomatik geçiş için macOS veya Linux gerekir. Windows'ta etkin {agentLabel} hesabını yine de elle değiştirebilirsiniz."
 
 msgid "Automation"
 msgstr "Otomasyon"
@@ -2705,6 +2788,9 @@ msgstr "Kaynakları denetle"
 
 msgid "Check the rendered prompt and launch output before saving"
 msgstr "Kaydetmeden önce oluşturulan istemi ve başlatma çıktısını kontrol edin"
+
+msgid "Check usage every"
+msgstr "Kullanımı kontrol etme sıklığı"
 
 msgid "Check your connection and try again"
 msgstr "Bağlantınızı kontrol edip yeniden deneyin"
@@ -4340,9 +4426,6 @@ msgstr "Varsayılan tarayıcı"
 msgid "Default effort"
 msgstr "Varsayılan çaba"
 
-msgid "Default for new agents"
-msgstr "Yeni ajanlar için varsayılan"
-
 msgid "Default location for new worktree workspaces on this host."
 msgstr "Bu host'taki yeni worktree çalışma alanları için varsayılan konum."
 
@@ -4972,9 +5055,6 @@ msgstr "Her biri kendi yeni sekmesinde"
 msgid "Each morning at 8am, look at yesterday's failed CI runs, diagnose the most common failure, and open a fix PR."
 msgstr "Her sabah 08.00'de dünkü başarısız CI çalıştırmalarına bak, en sık görülen hatayı teşhis et ve düzeltme PR'ı aç."
 
-msgid "Each session resumes where it left off."
-msgstr "Her oturum kaldığı yerden devam eder."
-
 msgid "Each surface has its own typography. Changes appear immediately in the live previews."
 msgstr "Her yüzeyin kendi tipografisi vardır. Değişiklikler canlı önizlemelerde hemen görünür."
 
@@ -5196,6 +5276,10 @@ msgstr "Her cuma 16.00'da bu haftanın birleştirilen PR'larından sürüm notla
 msgid "Every minute"
 msgstr "Her dakika"
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Every running and newly launched {0} session uses the active account."
+msgstr "Çalışan ve yeni başlatılan tüm {0} oturumları etkin hesabı kullanır."
+
 msgid "Every star on <0>{repoSlug}</0>, plotted since launch."
 msgstr "<0>{repoSlug}</0> üzerindeki her yıldız, lansmandan bu yana grafikte."
 
@@ -5339,6 +5423,9 @@ msgstr "F4 eşiği · %{F4_GATE_SHARE}"
 
 msgid "F4 gate crossed"
 msgstr "F4 eşiği aşıldı"
+
+msgid "Fable, Opus"
+msgstr "Fable, Opus"
 
 msgid "Factory 2026"
 msgstr "Factory 2026"
@@ -5811,6 +5898,9 @@ msgstr "Logo yüklenemedi"
 msgid "Failure"
 msgstr "Başarısız"
 
+msgid "Fallback restart after a usage limit"
+msgstr "Kullanım limiti sonrası yedek yeniden başlatma"
+
 msgid "FAQ"
 msgstr "SSS"
 
@@ -6177,6 +6267,10 @@ msgstr "kaynak:"
 msgid "From"
 msgstr "Kaynak"
 
+msgctxt "switch history column"
+msgid "From"
+msgstr "Nereden"
+
 msgid "from {price}/user/mo"
 msgstr "başlangıç: {price}/kullanıcı/ay"
 
@@ -6505,6 +6599,9 @@ msgstr "geçmiş"
 msgid "History"
 msgstr "Geçmiş"
 
+msgid "History is unavailable right now. Reopen this page to try again."
+msgstr "Geçmiş şu anda kullanılamıyor. Yeniden denemek için bu sayfayı tekrar açın."
+
 msgid "Home"
 msgstr "Ana sayfa"
 
@@ -6791,6 +6888,9 @@ msgstr "Devam ediyor"
 
 msgid "In Progress"
 msgstr "Devam ediyor"
+
+msgid "In rotation"
+msgstr "Rotasyonda"
 
 msgid "In the Superset desktop app, open <0>Settings → Appearance → Theme</0>."
 msgstr "Superset masaüstü uygulamasında <0>Ayarlar → Görünüm → Tema</0> bölümünü açın."
@@ -7410,6 +7510,12 @@ msgstr "Superset ile geliştirmeyi seviyor musunuz?"
 msgid "Lime"
 msgstr "Limon yeşili"
 
+msgid "Limit hit — session restarted"
+msgstr "Limite ulaşıldı — oturum yeniden başlatıldı"
+
+msgid "Limit report not confirmed — no switch"
+msgstr "Limit bildirimi doğrulanmadı — geçiş yapılmadı"
+
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
 msgid "Line {0}"
@@ -7662,6 +7768,9 @@ msgstr "Oturumu kapat"
 msgid "Log out?"
 msgstr "Oturum kapatılsın mı?"
 
+msgid "Login changed outside Superset"
+msgstr "Oturum açma bilgisi Superset dışında değiştirildi"
+
 msgid "Logins (cookies)"
 msgstr "Oturum bilgileri (çerezler)"
 
@@ -7710,14 +7819,14 @@ msgstr "Ana"
 msgid "Main workspace"
 msgstr "Ana çalışma alanı"
 
+msgid "Make active"
+msgstr "Etkin yap"
+
+msgid "Make active — running sessions move to this account too."
+msgstr "Etkin yap — çalışan oturumlar da bu hesaba geçer."
+
 msgid "Make all panes equal size"
 msgstr "Tüm bölmeleri eşit boyuta getir"
-
-msgid "Make default"
-msgstr "Varsayılan yap"
-
-msgid "Make default — launch new terminals and agents on this account."
-msgstr "Varsayılan yap — yeni terminalleri ve ajanları bu hesapta başlat."
 
 msgid "Make the chip style the TooltipContent default"
 msgstr "Çip stilini TooltipContent varsayılanı yap"
@@ -7767,6 +7876,10 @@ msgstr "Yönetilen"
 msgid "Managed by your organization admin."
 msgstr "Kuruluş yöneticiniz tarafından yönetiliyor."
 
+msgid "Manual"
+msgstr "Elle"
+
+msgctxt "account switch trigger"
 msgid "Manual"
 msgstr "Elle"
 
@@ -7966,6 +8079,9 @@ msgstr "2026 ortası"
 msgid "Mid 2027"
 msgstr "2027 ortası"
 
+msgid "min"
+msgstr "dk"
+
 msgid "Mine"
 msgstr "Benim"
 
@@ -8024,6 +8140,9 @@ msgstr "Model"
 msgid "Model context usage"
 msgstr "Model bağlam kullanımı"
 
+msgid "Model names whose weekly window also counts toward the threshold, separated by commas. Leave empty to watch only the account-wide windows."
+msgstr "Haftalık penceresi de eşiğe sayılan model adları, virgülle ayrılır. Yalnızca hesap genelindeki pencereleri izlemek için boş bırakın."
+
 msgid "Model picker scoped to the selected agent"
 msgstr "Seçili ajanla sınırlı model seçici"
 
@@ -8032,6 +8151,9 @@ msgstr "Model seçici"
 
 msgid "Model volume"
 msgstr "Model hacmi"
+
+msgid "Model windows"
+msgstr "Model pencereleri"
 
 msgid "Model-suggested code appears in a majority of new files."
 msgstr "Model önerili kod, yeni dosyaların çoğunda görünür."
@@ -8099,6 +8221,9 @@ msgstr "Daha fazla {kindLower} tema"
 msgid "More actions"
 msgstr "Diğer eylemler"
 
+msgid "More headroom elsewhere"
+msgstr "Başka hesapta daha fazla kota kaldı"
+
 msgid "More pages"
 msgstr "Daha fazla sayfa"
 
@@ -8108,11 +8233,17 @@ msgstr "Birleştirilen değişikliklerin yarısından fazlası, hiç insan düze
 msgid "most developers"
 msgstr "çoğu geliştirici"
 
+msgid "Most headroom"
+msgstr "En çok kalan kota"
+
 msgid "Most of software history"
 msgstr "Yazılım tarihinin çoğu"
 
 msgid "Move {count} to Group"
 msgstr "{count} öğeyi gruba taşı"
+
+msgid "Move running and new {agentLabel} sessions to another account before this one runs out."
+msgstr "Bu hesap tükenmeden önce çalışan ve yeni {agentLabel} oturumlarını başka bir hesaba taşır."
 
 msgid "Move to group"
 msgstr "Gruba taşı"
@@ -8194,6 +8325,9 @@ msgstr "Gezinme"
 msgid "Navigation Menu"
 msgstr "Gezinme menüsü"
 
+msgid "Near the limit"
+msgstr "Limite yakın"
+
 msgid "Need app-level wiring (form state, chart data, app shell)"
 msgstr "Uygulama düzeyinde bağlantı gerekir (form durumu, grafik verisi, uygulama kabuğu)"
 
@@ -8230,14 +8364,8 @@ msgstr "Ağ değişti"
 msgid "Never"
 msgstr "Hiç"
 
-msgid "New {providerLabel} agents will use {accountLabel}."
-msgstr "Yeni {providerLabel} ajanları {accountLabel} hesabını kullanacak."
-
 msgid "New agent"
 msgstr "Yeni ajan"
-
-msgid "New agent launches use this account. Relaunch a running agent to switch it."
-msgstr "Yeni ajan başlatmaları bu hesabı kullanır. Değiştirmek için çalışan bir ajanı yeniden başlatın."
 
 msgid "New agent session"
 msgstr "Yeni ajan oturumu"
@@ -8393,6 +8521,9 @@ msgstr "Bu host'ta {0} oturumu yok — oturum açın, kullanım burada görüns�
 
 msgid "No access to this host"
 msgstr "Bu host'a erişim yok"
+
+msgid "No account switches yet. Every switch, automatic or by hand, is listed here."
+msgstr "Henüz hesap değişikliği yok. Otomatik veya elle yapılan her geçiş burada listelenir."
 
 msgid "No active enterprise accounts"
 msgstr "Etkin kurumsal hesap yok"
@@ -8959,6 +9090,10 @@ msgstr "Henüz olay alınmıyor: Microsoft Graph bildirim aboneliklerini reddett
 
 msgid "Not reviewed by you"
 msgstr "Sizin incelemediğiniz"
+
+#. placeholder {0}: engineErrorCode(failure)
+msgid "Not saved ({0}). The previous value still stands."
+msgstr "Kaydedilmedi ({0}). Önceki değer geçerli kalır."
 
 msgid "not set up"
 msgstr "kurulu değil"
@@ -9734,6 +9869,10 @@ msgstr "Çıktı şeması"
 msgid "Output truncated"
 msgstr "Çıktı kısaltıldı"
 
+msgctxt "account switch trigger"
+msgid "Outside Superset"
+msgstr "Superset dışında"
+
 msgid "Overflow Fade"
 msgstr "Taşma solması"
 
@@ -9917,6 +10056,9 @@ msgstr "kullanıcı/ay başına"
 
 msgid "Percent of total system RAM used by monitored Superset resources only (not all apps). A high share means Superset is a major contributor to system memory pressure; a low share means pressure is likely elsewhere."
 msgstr "Yalnızca izlenen Superset kaynaklarının kullandığı toplam sistem RAM'i yüzdesi (tüm uygulamalar değil). Yüksek pay, Superset'in sistem bellek baskısına önemli ölçüde katkıda bulunduğu anlamına gelir; düşük pay ise baskının büyük olasılıkla başka yerden geldiğini gösterir."
+
+msgid "Percent used at which any window of the active account counts as near its limit."
+msgstr "Etkin hesabın herhangi bir penceresinin limitine yakın sayıldığı kullanım yüzdesi."
 
 #. placeholder {0}: team.name
 msgid "Permanently remove <0>{0}</0> and all of its members. This can't be undone."
@@ -10158,6 +10300,9 @@ msgstr "Tahmin ilerlemesi"
 
 msgid "Predictions about AI are cheap because nobody checks them. This page is a rubric, not a vibe: every gate below is either true or false of a real team shipping real software. We update it as gates open, and we do not move the goalposts."
 msgstr "Yapay zekâ hakkındaki tahminler ucuzdur, çünkü kimse onları denetlemez. Bu sayfa bir his değil, bir değerlendirme ölçeğidir: aşağıdaki her eşik, gerçek yazılım gönderen gerçek bir takım için ya doğrudur ya yanlış. Eşikler açıldıkça güncelliyoruz ve kaleyi yerinden oynatmıyoruz."
+
+msgid "Prefer the account whose weekly window resets soonest, so no quota expires unused"
+msgstr "Haftalık penceresi en erken sıfırlanan hesabı tercih eder, böylece hiçbir kota kullanılmadan yanmaz"
 
 msgid "Preferences"
 msgstr "Tercihler"
@@ -10623,6 +10768,9 @@ msgstr "Paralel kodlama ajanları rehberini okuyun"
 msgid "Read the setup guide"
 msgstr "Kurulum rehberini okuyun"
 
+msgid "Reading switch history…"
+msgstr "Geçiş geçmişi okunuyor…"
+
 msgid "Reading usage…"
 msgstr "Kullanım okunuyor…"
 
@@ -10761,9 +10909,6 @@ msgstr "İlgili yazılar"
 
 msgid "Relative path copied"
 msgstr "Göreli yol kopyalandı"
-
-msgid "Relaunch running agents to switch them."
-msgstr "Değiştirmek için çalışan ajanları yeniden başlatın."
 
 msgid "Relay access enabled, connecting to the relay…"
 msgstr "Röle erişimi etkinleştirildi, röleye bağlanılıyor…"
@@ -11137,9 +11282,6 @@ msgstr "Tüm terminaller yeniden başlatılsın mı?"
 msgid "Restart and close sessions"
 msgstr "Yeniden başlat ve oturumları kapat"
 
-msgid "Restart and resume"
-msgstr "Yeniden başlat ve devam et"
-
 msgid "Restart Browser"
 msgstr "Tarayıcıyı yeniden başlat"
 
@@ -11148,12 +11290,6 @@ msgstr "Daemon'u yeniden başlat"
 
 msgid "Restart host service"
 msgstr "Host hizmetini yeniden başlat"
-
-msgid "Restart now to move them to {accountLabel}; each session picks its conversation back up where it left off."
-msgstr "Şimdi yeniden başlatarak {accountLabel} hesabına taşıyın; her oturum konuşmasına kaldığı yerden devam eder."
-
-msgid "Restart running {providerLabel} agents?"
-msgstr "Çalışan {providerLabel} ajanları yeniden başlatılsın mı?"
 
 msgid "Restart terminal daemon?"
 msgstr "Terminal daemon'u yeniden başlatılsın mı?"
@@ -11167,8 +11303,8 @@ msgstr "{restartedOrgCount} host hizmeti yeniden başlatıldı"
 msgid "Restarted 1 host service"
 msgstr "1 host hizmeti yeniden başlatıldı"
 
-msgid "Restarting agents on {accountLabel}."
-msgstr "Ajanlar {accountLabel} üzerinde yeniden başlatılıyor."
+msgid "Restarted and resumed"
+msgstr "Yeniden başlatıldı ve devam etti"
 
 msgid "Restarting host services…"
 msgstr "Host hizmetleri yeniden başlatılıyor…"
@@ -11370,6 +11506,10 @@ msgstr "Bir ajan oturumunu, konuşma ve dosya değişiklikleriyle birlikte herha
 msgid "Rotate device"
 msgstr "Cihazı döndür"
 
+#. placeholder {0}: engineErrorCode(failure)
+msgid "Rotation not saved ({0})."
+msgstr "Rotasyon kaydedilmedi ({0})."
+
 msgid "Roundups"
 msgstr "Derlemeler"
 
@@ -11478,6 +11618,12 @@ msgstr "Eşleştirilmiş bir cihazda çalışıyor"
 
 msgid "Running on this device"
 msgstr "Bu cihazda çalışıyor"
+
+msgid "Running sessions move over when they go idle, resuming where they left off."
+msgstr "Çalışan oturumlar boşta kaldıklarında yeni hesaba geçer ve kaldıkları yerden devam eder."
+
+msgid "Running sessions pick up the new login in place; ones on their own profile restart when they go idle."
+msgstr "Çalışan oturumlar yeni oturum bilgilerini yerinde alır; kendi profilinde olanlar boşta kaldıklarında yeniden başlar."
 
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Çalışan terminal süreçleri devam eder, ancak uygulama yeniden başlatıldıktan sonra eski çıktı artık kullanılamayabilir."
@@ -12053,6 +12199,10 @@ msgstr "Oturum görünümü"
 msgid "Sessions"
 msgstr "Oturumlar"
 
+msgctxt "switch history column"
+msgid "Sessions"
+msgstr "Oturumlar"
+
 #. placeholder {0}: detail.sessions.length
 msgid "Sessions · top {0} by cost"
 msgstr "Oturumlar · maliyete göre ilk {0}"
@@ -12076,6 +12226,9 @@ msgstr "Parolayı belirle"
 
 msgid "Set Run"
 msgstr "Çalıştırmayı ayarla"
+
+msgid "Set up outside Superset. Its usage is shown, but switching never writes to this login."
+msgstr "Superset dışında kuruldu. Kullanımı gösterilir, ancak geçiş bu oturum bilgilerine hiçbir zaman yazmaz."
 
 msgid "Set up project on {hostName}"
 msgstr "{hostName} üzerinde projeyi kur"
@@ -12381,6 +12534,9 @@ msgstr "Oturum açılamadı"
 msgid "Signed in as <0>{userName}</0>"
 msgstr "<0>{userName}</0> olarak oturum açıldı"
 
+msgid "Signed in outside Superset, so switching leaves this login alone."
+msgstr "Superset dışında oturum açıldı, bu yüzden geçiş bu oturum bilgilerine dokunmaz."
+
 msgid "Signed out"
 msgstr "Oturum kapatıldı"
 
@@ -12512,6 +12668,9 @@ msgstr "SOC 2 Type II uyumlu. Raporumuzu talep edin."
 
 msgid "SOC 2 Type II report"
 msgstr "SOC 2 Type II raporu"
+
+msgid "Some {providerLabel} sessions stay on their own account"
+msgstr "Bazı {providerLabel} oturumları kendi hesabında kalır"
 
 msgid "Some files are not an accepted type and were not added."
 msgstr "Bazı dosyalar kabul edilen türde değil ve eklenmedi."
@@ -12667,6 +12826,9 @@ msgstr "Tümünü hazırla"
 msgid "Staged"
 msgstr "Hazırlanmış"
 
+msgid "Stale token, still eligible"
+msgstr "Token eskimiş, hâlâ uygun"
+
 msgid "Standard action strip for pane headers"
 msgstr "Bölme başlıkları için standart eylem şeridi"
 
@@ -12802,6 +12964,9 @@ msgstr "Durum değişti"
 
 msgid "Stay connected (refresh tokens)"
 msgstr "Bağlı kalma (yenileme token'ları)"
+
+msgid "Stay until the active account nears its limit, then move to the account with the most headroom"
+msgstr "Etkin hesap limitine yaklaşana kadar kalır, sonra en çok kotası kalan hesaba geçer"
 
 #. placeholder {0}: step === "workspace" ? 1 : 2
 msgid "Step {0} of 2"
@@ -13066,8 +13231,22 @@ msgstr "Projeyi bir GitHub yıldızıyla destekleyin"
 msgid "Suspended"
 msgstr "Askıya alındı"
 
+msgid "Switch accounts automatically"
+msgstr "Hesapları otomatik değiştir"
+
 msgid "Switch agents. Keep your workflow"
 msgstr "Ajan değiştirin. İş akışınızı koruyun"
+
+msgid "Switch at"
+msgstr "Geçiş eşiği"
+
+#. placeholder {0}: engineErrorCode(failure)
+#. placeholder {0}: failure.code
+msgid "Switch failed ({0}). The previous account is still active."
+msgstr "Geçiş başarısız ({0}). Önceki hesap hâlâ etkin."
+
+msgid "Switch history"
+msgstr "Geçiş geçmişi"
 
 msgid "Switch host"
 msgstr "Host değiştir"
@@ -13137,6 +13316,12 @@ msgstr "8. çalışma alanına geç"
 
 msgid "Switch to Workspace 9"
 msgstr "9. çalışma alanına geç"
+
+msgid "Switching resumes when a usage window resets."
+msgstr "Bir kullanım penceresi sıfırlandığında geçiş yeniden başlar."
+
+msgid "Switching…"
+msgstr "Geçiliyor…"
 
 msgid "Sync"
 msgstr "Eşitle"
@@ -13426,6 +13611,15 @@ msgstr "Bu ada izin verilmiyor."
 msgid "The 2026 bet"
 msgstr "2026 bahsi"
 
+msgid "The access token is past its expiry but the sign-in is not — a fresh one is minted the next time the CLI runs."
+msgstr "Erişim token'ının süresi doldu ama oturumun süresi dolmadı — CLI bir sonraki çalıştığında yenisi üretilir."
+
+msgid "The account engine is not running on this host, so {agentLabel} accounts cannot switch automatically."
+msgstr "Hesap motoru bu host üzerinde çalışmıyor, bu yüzden {agentLabel} hesapları otomatik değiştirilemez."
+
+msgid "The account engine is not running on this host."
+msgstr "Hesap motoru bu host üzerinde çalışmıyor."
+
 msgid "the active organization"
 msgstr "etkin kuruluş"
 
@@ -13524,6 +13718,9 @@ msgstr "Yeniden kullanılabilir Superset ajan yapılandırmaları, istemleri ve 
 
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "Host, Superset rölesine bağlı değil. Bu cihazsa Ayarlar > Uzaktan erişim bölümünde \"Uzaktan erişimnın bu cihaza röle üzerinden erişmesine izin ver\" seçeneğini açıp yeniden deneyin."
+
+msgid "The host rejected that value, so the previous one still stands."
+msgstr "Host bu değeri reddetti, bu yüzden önceki değer geçerli kalır."
 
 msgid "The human reads every line before it merges."
 msgstr "İnsan, birleştirilmeden önce her satırı okur."
@@ -14001,6 +14198,10 @@ msgstr "Başlık şunu içerir..."
 msgid "To"
 msgstr "Hedef"
 
+msgctxt "switch history column"
+msgid "To"
+msgstr "Nereye"
+
 msgid "Toast (Sonner)"
 msgstr "Bildirim (Sonner)"
 
@@ -14153,6 +14354,10 @@ msgstr "Yeni issue'ları sınıflandır"
 
 msgid "triaging 12 new issues…"
 msgstr "12 yeni issue sınıflandırılıyor…"
+
+msgctxt "switch history column"
+msgid "Trigger"
+msgstr "Tetikleyici"
 
 msgid "Trigger alert()"
 msgstr "alert() tetikle"
@@ -14355,6 +14560,9 @@ msgctxt "person"
 msgid "Unknown"
 msgstr "Bilinmiyor"
 
+msgid "Unknown account"
+msgstr "Bilinmeyen hesap"
+
 msgid "Unknown device"
 msgstr "Bilinmeyen cihaz"
 
@@ -14391,6 +14599,9 @@ msgstr "Sınırsız"
 
 msgid "Unlimited users"
 msgstr "Sınırsız kullanıcı"
+
+msgid "Unmanaged"
+msgstr "Yönetilmeyen"
 
 msgid "Unmute notifications"
 msgstr "Bildirimlerin sesini aç"
@@ -14589,6 +14800,9 @@ msgstr "Takılan veya yanıt vermeyen terminalleri düzeltmek için bunu kullan�
 msgid "Use this when calling the Superset API."
 msgstr "Superset API'yi çağırırken bunu kullanın."
 
+msgid "Use up the soonest reset"
+msgstr "En yakın sıfırlanan kotayı harca"
+
 msgid "Use voice transcription and push-to-talk features."
 msgstr "Sesli yazıya dökme ve bas-konuş özelliklerini kullanın."
 
@@ -14742,6 +14956,9 @@ msgstr "Ses düzeyi"
 msgid "VS Code"
 msgstr "VS Code"
 
+msgid "Wait between switches"
+msgstr "Geçişler arası bekleme"
+
 msgid "Wait for workspace setup before starting agents"
 msgstr "Ajanları başlatmadan önce çalışma alanı kurulumunu bekle"
 
@@ -14880,6 +15097,9 @@ msgstr "Haftalık sürüm notları"
 msgid "Weekly signup cohorts (Neon); cohorts younger than 30d excluded"
 msgstr "Haftalık kayıt kohortları (Neon); 30 günden genç kohortlar hariç"
 
+msgid "weekly window"
+msgstr "haftalık pencere"
+
 msgid "Welcome back"
 msgstr "Tekrar hoş geldiniz"
 
@@ -14934,6 +15154,10 @@ msgstr "Enterprise'a neler dahil?"
 msgid "What's New"
 msgstr "Yenilikler"
 
+msgctxt "switch history column"
+msgid "When"
+msgstr "Ne zaman"
+
 msgid "When off, nothing else can reach the files and tools on this device. You can still connect out to remote sandboxes from here. <0>Learn more<1/></0>"
 msgstr "Kapalıyken başka hiçbir şey bu cihazdaki dosya ve araçlara erişemez. Buradan uzak sandbox'lara yine de bağlanabilirsiniz. <0>Daha fazla bilgi<1/></0>"
 
@@ -14961,6 +15185,9 @@ msgstr "Bu terminal betiğinin nerede kullanılabilir olduğu."
 msgid "Where to look next"
 msgstr "Sırada nereye bakmalı"
 
+msgid "Which account to move to"
+msgstr "Hangi hesaba geçilsin"
+
 msgid "Which agents are supported?"
 msgstr "Hangi ajanlar destekleniyor?"
 
@@ -14969,6 +15196,10 @@ msgstr "Hangi AI kodlama ajanları destekleniyor?"
 
 msgid "Who can open this page from its link"
 msgstr "Bu sayfayı bağlantısından kimlerin açabileceği"
+
+msgctxt "switch history column"
+msgid "Why"
+msgstr "Neden"
 
 msgid "Window"
 msgstr "Pencere"
@@ -15215,6 +15446,9 @@ msgstr "Bu üyeyi kaldırma izniniz yok"
 
 msgid "You need to be part of an organization to use integrations."
 msgstr "Entegrasyonları kullanmak için bir kuruluşun parçası olmanız gerekir."
+
+msgid "You picked this account"
+msgstr "Bu hesabı siz seçtiniz"
 
 #. placeholder {0}: preview.rank
 #. placeholder {1}: preview.total

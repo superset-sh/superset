@@ -416,3 +416,49 @@ describe("notificationsRouter.hook", () => {
 		}
 	});
 });
+
+describe("notificationsRouter.hook errorType", () => {
+	it("records a known StopFailure error class on the terminal binding", async () => {
+		const { ctx, terminalAgentStore } = createContext("workspace-1");
+
+		await notificationsRouter.createCaller(ctx).hook({
+			terminalId: "terminal-1",
+			eventType: "StopFailure",
+			errorType: "rate_limit",
+			agent: { agentId: "claude", sessionId: "session-abc" },
+		});
+
+		const binding = terminalAgentStore.get("terminal-1");
+		expect(binding?.lastEventType).toBe("Failed");
+		expect(binding?.lastFailure?.errorType).toBe("rate_limit");
+	});
+
+	it("drops an error class outside the enum instead of storing it", async () => {
+		const { ctx, terminalAgentStore } = createContext("workspace-1");
+
+		const result = await notificationsRouter.createCaller(ctx).hook({
+			terminalId: "terminal-1",
+			eventType: "StopFailure",
+			// The endpoint is unauthenticated: anything off the enum is dropped,
+			// never stored. `as never` because the input type is the enum.
+			errorType: "rate_limit; rm -rf /" as never,
+			agent: { agentId: "claude" },
+		});
+
+		expect(result).toEqual({ success: true, ignored: false });
+		expect(terminalAgentStore.get("terminal-1")?.lastFailure).toBeUndefined();
+	});
+
+	it("accepts a payload without an error class", async () => {
+		const { ctx, terminalAgentStore } = createContext("workspace-1");
+
+		const result = await notificationsRouter.createCaller(ctx).hook({
+			terminalId: "terminal-1",
+			eventType: "StopFailure",
+			agent: { agentId: "claude" },
+		});
+
+		expect(result).toEqual({ success: true, ignored: false });
+		expect(terminalAgentStore.get("terminal-1")?.lastFailure).toBeUndefined();
+	});
+});

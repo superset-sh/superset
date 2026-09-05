@@ -10,6 +10,8 @@ interface RecordEventInput {
 	terminalId: string;
 	workspaceId: string;
 	eventType: string;
+	/** Bounded failure class from a `Failed` event's hook payload. */
+	errorType?: string;
 	agentId?: TerminalAgentId;
 	agentSessionId?: string;
 	definitionId?: AgentDefinitionId;
@@ -36,6 +38,12 @@ const END_EVENT_REASONS = new Map<string, TerminalAgentEndReason>([
  * upsert would erase `endedAt`/`endReason` and destroy the resume candidate.
  */
 const END_STRAGGLER_WINDOW_MS = 30_000;
+
+// The agent is mid-turn on these; anything else is idle or session-lifetime
+// noise. A busy row moving to a stopped one is the moment a limit stop would
+// have happened, which is what the account engine dates its evidence by.
+const BUSY_EVENT_TYPES = new Set(["Start", "PermissionRequest"]);
+const STOPPED_EVENT_TYPES = new Set(["Stop", "Failed"]);
 
 export interface TerminalAgentBindingPersistence {
 	load(): TerminalAgentBinding[];
@@ -98,6 +106,7 @@ export class TerminalAgentStore extends EventEmitter {
 			terminalId,
 			workspaceId,
 			eventType,
+			errorType,
 			agentId,
 			agentSessionId,
 			definitionId,
@@ -156,6 +165,43 @@ export class TerminalAgentStore extends EventEmitter {
 				? prior.lastEventType
 				: undefined;
 
+		const lastEventType = preservedLifecycleState ?? eventType;
+
+		// Only a real busy → stopped move stamps the transition: a second Stop
+		// leaves the first one's timestamp in place, so the engine dates the
+		// stop it is investigating, not the last hook it happened to receive.
+		const stoppedNow =
+			prior !== undefined &&
+			BUSY_EVENT_TYPES.has(prior.lastEventType) &&
+			STOPPED_EVENT_TYPES.has(lastEventType);
+
+		// A session start, whatever the agent called it: the hook router
+		// normalizes every flavour of SessionStart to "Attached"
+		// (events/map-event-type.ts), and a relaunch of the same conversation
+		// is reported as "Attached" too, keeping the session id it resumed. So
+		// "Attached" — never "SessionStart" — is the start this store sees.
+		const sessionStarted = eventType === "Attached";
+
+		// A transition belongs to the session it happened in. A session start
+		// or a different agent session id in the same terminal starts over,
+		// exactly as `lastFailure` does — otherwise the engine dates a fresh
+		// session's evidence by the previous session's stop.
+		const carriedTransitionAt =
+			sessionChanged || sessionStarted ? undefined : prior?.lastTransitionAt;
+
+		// A failure describes the turn it ended, so it is dropped the moment
+		// the session moves on: a new turn, a session start, or a different
+		// agent session in the same terminal. Carrying it forward leaves a
+		// rate-limit stop arming the engine's limit-stop fallback against a
+		// live session.
+		const turnStarted = BUSY_EVENT_TYPES.has(eventType) || sessionStarted;
+		const lastFailure =
+			eventType === "Failed" && errorType
+				? { errorType, at: occurredAt }
+				: turnStarted || sessionChanged
+					? undefined
+					: prior?.lastFailure;
+
 		const next: TerminalAgentBinding = {
 			terminalId,
 			workspaceId,
@@ -165,7 +211,9 @@ export class TerminalAgentStore extends EventEmitter {
 			startedAt:
 				prior !== undefined && !sessionChanged ? prior.startedAt : occurredAt,
 			lastEventAt: occurredAt,
-			lastEventType: preservedLifecycleState ?? eventType,
+			lastEventType,
+			lastFailure,
+			lastTransitionAt: stoppedNow ? occurredAt : carriedTransitionAt,
 		};
 
 		this.byTerminal.set(terminalId, next);

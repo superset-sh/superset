@@ -597,3 +597,224 @@ describe("TerminalAgentStore", () => {
 		expect(lateArrival.persisted.has("t1")).toBe(true);
 	});
 });
+
+describe("TerminalAgentStore limit-stop signals", () => {
+	let store: TerminalAgentStore;
+
+	beforeEach(() => {
+		store = new TerminalAgentStore();
+	});
+
+	function start(occurredAt: number) {
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Start",
+			agentId: "claude",
+			occurredAt,
+		});
+	}
+
+	it("records the error class of a Failed event beside lastEventType", () => {
+		start(100);
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Failed",
+			errorType: "rate_limit",
+			occurredAt: 200,
+		});
+
+		const binding = store.get("t1");
+		expect(binding?.lastEventType).toBe("Failed");
+		expect(binding?.lastFailure).toEqual({ errorType: "rate_limit", at: 200 });
+	});
+
+	it("stamps the busy to stopped transition, and only on that move", () => {
+		start(100);
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Stop",
+			occurredAt: 200,
+		});
+		expect(store.get("t1")?.lastTransitionAt).toBe(200);
+
+		// Stop after Stop is not a transition: the timestamp must not move.
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Stop",
+			occurredAt: 300,
+		});
+		expect(store.get("t1")?.lastTransitionAt).toBe(200);
+
+		// A permission request is busy, so the next Stop is a fresh transition.
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "PermissionRequest",
+			occurredAt: 400,
+		});
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Failed",
+			occurredAt: 500,
+		});
+		expect(store.get("t1")?.lastTransitionAt).toBe(500);
+	});
+
+	// The transition dates the stop the engine is investigating, so it belongs
+	// to the session it happened in — a new agent session in the same terminal
+	// starts over, exactly as lastFailure does.
+	it("drops the transition timestamp when a new agent session takes over", () => {
+		start(100);
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Stop",
+			occurredAt: 200,
+		});
+		expect(store.get("t1")?.lastTransitionAt).toBe(200);
+
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Start",
+			agentSessionId: "s2",
+			occurredAt: 300,
+		});
+		expect(store.get("t1")?.lastTransitionAt).toBeUndefined();
+
+		// The same session's own events still carry it forward.
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Stop",
+			agentSessionId: "s2",
+			occurredAt: 400,
+		});
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Stop",
+			agentSessionId: "s2",
+			occurredAt: 500,
+		});
+		expect(store.get("t1")?.lastTransitionAt).toBe(400);
+	});
+
+	// The failure describes the turn it ended: the account engine reads it as
+	// a limit-stop hint, so one carried past its turn would arm the fallback
+	// against a live session.
+	it("keeps the last failure until the session moves on, and never invents one", () => {
+		start(100);
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Failed",
+			errorType: "rate_limit",
+			occurredAt: 200,
+		});
+
+		// A Failed without an error class leaves the previous one alone.
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Failed",
+			occurredAt: 250,
+		});
+		// Neither does an event that is not turn progress.
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Notification",
+			occurredAt: 275,
+		});
+		expect(store.get("t1")?.lastFailure).toEqual({
+			errorType: "rate_limit",
+			at: 200,
+		});
+
+		// A new turn drops it.
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Start",
+			occurredAt: 300,
+		});
+		expect(store.get("t1")?.lastFailure).toBeUndefined();
+
+		// So does a new agent session in the same terminal.
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Failed",
+			errorType: "rate_limit",
+			occurredAt: 400,
+		});
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Stop",
+			agentSessionId: "s2",
+			occurredAt: 450,
+		});
+		expect(store.get("t1")?.lastFailure).toBeUndefined();
+
+		// A different terminal never inherits it.
+		store.recordEvent({
+			terminalId: "t2",
+			workspaceId: WORKSPACE,
+			eventType: "Stop",
+			agentId: "claude",
+			occurredAt: 500,
+		});
+		expect(store.get("t2")?.lastFailure).toBeUndefined();
+		expect(store.get("t2")?.lastTransitionAt).toBeUndefined();
+	});
+
+	// The hook router normalizes SessionStart to "Attached" before the store
+	// ever sees it, and a relaunched conversation resumes its own session id —
+	// so a session start must drop the previous run's evidence even though
+	// nothing about the session id changed.
+	it("drops the failure and transition when the session restarts as Attached", () => {
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Start",
+			agentId: "claude",
+			agentSessionId: "s1",
+			occurredAt: 100,
+		});
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Failed",
+			errorType: "rate_limit",
+			agentId: "claude",
+			agentSessionId: "s1",
+			occurredAt: 200,
+		});
+		expect(store.get("t1")?.lastFailure).toEqual({
+			errorType: "rate_limit",
+			at: 200,
+		});
+		expect(store.get("t1")?.lastTransitionAt).toBe(200);
+
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "claude",
+			agentSessionId: "s1",
+			occurredAt: 300,
+		});
+
+		expect(store.get("t1")?.lastFailure).toBeUndefined();
+		expect(store.get("t1")?.lastTransitionAt).toBeUndefined();
+		// The start still does not rewrite the lifecycle state it arrived after.
+		expect(store.get("t1")?.lastEventType).toBe("Failed");
+	});
+});

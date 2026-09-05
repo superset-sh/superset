@@ -213,8 +213,8 @@ msgid "{0, plural, one {# workspace} other {# workspaces}}"
 msgstr "{0, plural, one {# pracovní prostor} few {# pracovní prostory} many {# pracovního prostoru} other {# pracovních prostorů}}"
 
 #. placeholder {0}: shown?.count ?? 0
-msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
-msgstr "{0, plural, one {# běžící agent stále používá předchozí účet — přepnutí platí jen pro nová spuštění.} few {# běžící agenti stále používají předchozí účet — přepnutí platí jen pro nová spuštění.} many {# běžícího agenta stále používá předchozí účet — přepnutí platí jen pro nová spuštění.} other {# běžících agentů stále používá předchozí účet — přepnutí platí jen pro nová spuštění.}}"
+msgid "{0, plural, one {A running agent is pinned to its own config dir by its agent configuration, so it keeps the account signed in there.} other {# running agents are pinned to their own config dirs by their agent configuration, so they keep the accounts signed in there.}}"
+msgstr "{0, plural, one {Běžící agent je svou konfigurací připnutý k vlastnímu konfiguračnímu adresáři, takže si ponechá účet přihlášený v něm.} few {# běžící agenti jsou svou konfigurací připnutí k vlastním konfiguračním adresářům, takže si ponechají účty přihlášené v nich.} many {# běžícího agenta je svou konfigurací připnuto k vlastním konfiguračním adresářům, takže si ponechají účty přihlášené v nich.} other {# běžících agentů je svou konfigurací připnuto k vlastním konfiguračním adresářům, takže si ponechají účty přihlášené v nich.}}"
 
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
@@ -293,6 +293,11 @@ msgstr "čeká {0} → {1}"
 #. placeholder {0}: skill.name
 msgid "{0} actions"
 msgstr "Akce {0}"
+
+#. placeholder {0}: windowLabel(entry.windowId)
+#. placeholder {1}: formatPercent(entry.usedPercent / 100, { maximumFractionDigits: 0 })
+msgid "{0} at {1}"
+msgstr "{0} na {1}"
 
 #. placeholder {0}: formatTokens(me.tokens - below.tokens)
 msgid "{0} behind you"
@@ -461,8 +466,23 @@ msgstr "{0} % všech tokenů · {1} tokenů"
 msgid "{0}% of total cost · {1} tokens · * at API list rates"
 msgstr "{0} % celkových nákladů · {1} tokenů · * v ceníkových sazbách API"
 
+msgid "{accountLabel} is now the active {providerLabel} account."
+msgstr "{accountLabel} je nyní aktivní účet {providerLabel}."
+
 msgid "{actual} so far · ~{projected} projected"
 msgstr "zatím {actual} · odhad ~{projected}"
+
+msgid "{agent} could not switch accounts"
+msgstr "{agent} nemohl přepnout účet"
+
+msgid "{agent} switched account"
+msgstr "{agent} přepnul účet"
+
+msgid "{agent} switched from {fromLabel} to {toLabel}"
+msgstr "{agent} přepnul z {fromLabel} na {toLabel}"
+
+msgid "{agent} switched to {toLabel}"
+msgstr "{agent} přepnul na {toLabel}"
 
 msgid "{backgroundCount, plural, one {# background terminal session} other {# background terminal sessions}}"
 msgstr "{backgroundCount, plural, one {# relace terminálu na pozadí} few {# relace terminálu na pozadí} many {# relace terminálu na pozadí} other {# relací terminálu na pozadí}}"
@@ -488,6 +508,9 @@ msgstr "Velikost písma: {configTitle}"
 
 msgid "{cookieCount} cookies — forget this site"
 msgstr "{cookieCount} cookies — zapomenout tento web"
+
+msgid "{count, plural, one {# account switch while you were away} other {# account switches while you were away}}"
+msgstr "{count, plural, one {# přepnutí účtu, když jste byli pryč} few {# přepnutí účtu, když jste byli pryč} many {# přepnutí účtu, když jste byli pryč} other {# přepnutí účtu, když jste byli pryč}}"
 
 msgid "{count, plural, one {# Check Failed} other {# Checks Failed}}"
 msgstr "{count, plural, one {# kontrola selhala} few {# kontroly selhaly} many {# kontroly selhalo} other {# kontrol selhalo}}"
@@ -656,6 +679,9 @@ msgstr "{minutes} m"
 msgid "{minutes}m ago"
 msgstr "před {minutes} m"
 
+msgid "{model} weekly window"
+msgstr "Týdenní okno modelu {model}"
+
 msgid "{modKey}↵ to create"
 msgstr "{modKey}↵ pro vytvoření"
 
@@ -814,6 +840,9 @@ msgstr "{updatedLabel} obnoveno na výchozí"
 
 msgid "{waiting} Waiting"
 msgstr "Čeká: {waiting}"
+
+msgid "{windowLabel} at {percent}"
+msgstr "{windowLabel} na {percent}"
 
 msgid "{workspaceName}: host is unavailable"
 msgstr "{workspaceName}: host není dostupný"
@@ -988,6 +1017,9 @@ msgstr "1 cookie — zapomenout tento web"
 msgid "1 hour"
 msgstr "1 hodina"
 
+msgid "1 minute"
+msgstr "1 minuta"
+
 msgid "1 user"
 msgstr "1 uživatel"
 
@@ -1008,6 +1040,9 @@ msgstr "2 agenti · 14 změněných souborů"
 
 msgid "2 hours"
 msgstr "2 hodiny"
+
+msgid "2 minutes"
+msgstr "2 minuty"
 
 msgid "2021 to 2023"
 msgstr "2021 až 2023"
@@ -1036,6 +1071,9 @@ msgstr "3+ souběžné proudy práce na inženýra"
 msgid "30 minutes"
 msgstr "30 minut"
 
+msgid "30 seconds"
+msgstr "30 sekund"
+
 msgid "30D"
 msgstr "30 d"
 
@@ -1054,6 +1092,9 @@ msgstr "45 souborů · +82 −172"
 msgid "5 minutes"
 msgstr "5 minut"
 
+msgid "5-hour window"
+msgstr "Pětihodinové okno"
+
 msgid "55 call sites pass {code}"
 msgstr "55 míst volání předává {code}"
 
@@ -1065,6 +1106,9 @@ msgstr "7 d"
 
 msgid "87.4K of 200K tokens used in this session."
 msgstr "V této relaci využito 87,4 tis. z 200 tis. tokenů."
+
+msgid "A {agent} session needs attention"
+msgstr "Relace agenta {agent} vyžaduje pozornost"
 
 msgid "A better in-app browser: preview your changes and click any element to send it to the agent as context."
 msgstr "Lepší vestavěný prohlížeč: prohlédněte si své změny a kliknutím na libovolný prvek ho pošlete agentovi jako kontext."
@@ -1175,6 +1219,9 @@ msgstr "Akordeon"
 msgid "Account"
 msgstr "Účet"
 
+msgid "Account changed outside Superset"
+msgstr "Účet změněn mimo Superset"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceNotResolvable"
 msgstr "Instalace do účtu zpracovává jen manifesty první strany, takže {plugin} z {marketplace} zatím nelze nainstalovat do vašeho účtu. Zůstává nainstalován na tomto počítači."
@@ -1206,6 +1253,13 @@ msgstr "míra aktivace"
 
 msgid "Active"
 msgstr "Aktivní"
+
+msgctxt "account state"
+msgid "Active"
+msgstr "Aktivní"
+
+msgid "Active — every running and newly launched session of this agent uses this account."
+msgstr "Aktivní — každá běžící i nově spuštěná relace tohoto agenta používá tento účet."
 
 #. placeholder {0}: formatDistanceToNowStrict(binding.lastEventAt, { addSuffix: true, })
 msgid "active {0}"
@@ -1402,6 +1456,10 @@ msgstr "Proti main"
 msgid "Agent"
 msgstr "Agent"
 
+msgctxt "switch history column"
+msgid "Agent"
+msgstr "Agent"
+
 msgid "Agent Complete — {workspaceName}"
 msgstr "Agent dokončil — {workspaceName}"
 
@@ -1516,6 +1574,9 @@ msgstr "Všech {0} kontrol prošlo"
 #. placeholder {0}: summary.relevantChecks.length
 msgid "All {0} passed"
 msgstr "Všech {0} prošlo"
+
+msgid "All {agent} accounts are at their limit"
+msgstr "Všechny účty {agent} dosáhly limitu"
 
 msgid "All {versionCount} versions and their content are removed. Anyone with the link loses access."
 msgstr "Odstraní se všechny verze ({versionCount}) i jejich obsah. Kdokoli s odkazem ztratí přístup."
@@ -1734,6 +1795,12 @@ msgstr "Anonymní montér"
 msgid "another device"
 msgstr "jiné zařízení"
 
+msgid "Another Superset instance on this machine owns account switching. Change this there."
+msgstr "Přepínání účtů řídí jiná instance Supersetu na tomto počítači. Změňte to tam."
+
+msgid "Another Superset instance on this machine owns automatic switching. Change these settings there."
+msgstr "Automatické přepínání řídí jiná instance Supersetu na tomto počítači. Změňte tato nastavení tam."
+
 msgid "Answered"
 msgstr "Zodpovězeno"
 
@@ -1847,6 +1914,9 @@ msgstr "Platí pro URL v terminálech, zprávách chatu a prohlížečích úkol
 
 msgid "Apply"
 msgstr "Použít"
+
+msgid "Approaching the usage limit"
+msgstr "Blíží se limit využití"
 
 msgid "Approve"
 msgstr "Schválit"
@@ -2051,6 +2121,19 @@ msgstr "Automatizujte úkoly"
 
 msgid "Automate workspace setup for {projectName}"
 msgstr "Zautomatizujte nastavení pracovního prostoru pro {projectName}"
+
+msgctxt "account switch trigger"
+msgid "Automatic"
+msgstr "Automatické"
+
+msgid "Automatic account switching is not available on Windows. Switch accounts by hand instead."
+msgstr "Automatické přepínání účtů není ve Windows dostupné. Přepínejte účty ručně."
+
+msgid "Automatic switching may move sessions onto this account. Held-out accounts stay available to pick by hand."
+msgstr "Automatické přepínání může na tento účet přesouvat relace. Účty mimo rotaci zůstávají k dispozici pro ruční volbu."
+
+msgid "Automatic switching needs macOS or Linux. On Windows you can still switch the active {agentLabel} account by hand."
+msgstr "Automatické přepínání vyžaduje macOS nebo Linux. Ve Windows můžete aktivní účet {agentLabel} stále přepnout ručně."
 
 msgid "Automation"
 msgstr "Automatizace"
@@ -2705,6 +2788,9 @@ msgstr "Zkontrolovat prostředky"
 
 msgid "Check the rendered prompt and launch output before saving"
 msgstr "Před uložením zkontrolujte vykreslený prompt a výstup spuštění"
+
+msgid "Check usage every"
+msgstr "Jak často kontrolovat využití"
 
 msgid "Check your connection and try again"
 msgstr "Zkontrolujte připojení a zkuste to znovu"
@@ -4340,9 +4426,6 @@ msgstr "Výchozí prohlížeč"
 msgid "Default effort"
 msgstr "Výchozí úsilí"
 
-msgid "Default for new agents"
-msgstr "Výchozí pro nové agenty"
-
 msgid "Default location for new worktree workspaces on this host."
 msgstr "Výchozí umístění nových pracovních prostorů s worktree na tomto hostu."
 
@@ -4972,9 +5055,6 @@ msgstr "Každý ve vlastní nové kartě"
 msgid "Each morning at 8am, look at yesterday's failed CI runs, diagnose the most common failure, and open a fix PR."
 msgstr "Každé ráno v 8:00 se podívej na včerejší neúspěšné běhy CI, urči nejčastější příčinu selhání a otevři PR s opravou."
 
-msgid "Each session resumes where it left off."
-msgstr "Každá relace naváže tam, kde skončila."
-
 msgid "Each surface has its own typography. Changes appear immediately in the live previews."
 msgstr "Každá plocha má vlastní typografii. Změny se okamžitě projeví v živých náhledech."
 
@@ -5196,6 +5276,10 @@ msgstr "Každý pátek v 16:00 sepiš poznámky k vydání ze sloučených PR za
 msgid "Every minute"
 msgstr "Každou minutu"
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Every running and newly launched {0} session uses the active account."
+msgstr "Každá běžící i nově spuštěná relace {0} používá aktivní účet."
+
 msgid "Every star on <0>{repoSlug}</0>, plotted since launch."
 msgstr "Každá hvězda na <0>{repoSlug}</0>, vynesená od spuštění."
 
@@ -5339,6 +5423,9 @@ msgstr "Brána F4 · {F4_GATE_SHARE} %"
 
 msgid "F4 gate crossed"
 msgstr "Brána F4 překročena"
+
+msgid "Fable, Opus"
+msgstr "Fable, Opus"
 
 msgid "Factory 2026"
 msgstr "Factory 2026"
@@ -5811,6 +5898,9 @@ msgstr "Nepodařilo se nahrát logo"
 msgid "Failure"
 msgstr "Selhání"
 
+msgid "Fallback restart after a usage limit"
+msgstr "Nouzový restart po dosažení limitu využití"
+
 msgid "FAQ"
 msgstr "FAQ"
 
@@ -6177,6 +6267,10 @@ msgstr "z"
 msgid "From"
 msgstr "Z"
 
+msgctxt "switch history column"
+msgid "From"
+msgstr "Z"
+
 msgid "from {price}/user/mo"
 msgstr "od {price}/uživatele/měs."
 
@@ -6505,6 +6599,9 @@ msgstr "historie"
 msgid "History"
 msgstr "Historie"
 
+msgid "History is unavailable right now. Reopen this page to try again."
+msgstr "Historie je momentálně nedostupná. Zkuste to znovu otevřením této stránky."
+
 msgid "Home"
 msgstr "Domů"
 
@@ -6791,6 +6888,9 @@ msgstr "Probíhá"
 
 msgid "In Progress"
 msgstr "Probíhá"
+
+msgid "In rotation"
+msgstr "V rotaci"
 
 msgid "In the Superset desktop app, open <0>Settings → Appearance → Theme</0>."
 msgstr "V desktopové aplikaci Superset otevřete <0>Nastavení → Vzhled → Motiv</0>."
@@ -7410,6 +7510,12 @@ msgstr "Baví vás vývoj v Superset?"
 msgid "Lime"
 msgstr "Limetková"
 
+msgid "Limit hit — session restarted"
+msgstr "Limit dosažen — relace restartována"
+
+msgid "Limit report not confirmed — no switch"
+msgstr "Hlášení o limitu nepotvrzeno — bez přepnutí"
+
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
 msgid "Line {0}"
@@ -7662,6 +7768,9 @@ msgstr "Odhlásit se"
 msgid "Log out?"
 msgstr "Odhlásit se?"
 
+msgid "Login changed outside Superset"
+msgstr "Přihlášení změněno mimo Superset"
+
 msgid "Logins (cookies)"
 msgstr "Přihlášení (cookies)"
 
@@ -7710,14 +7819,14 @@ msgstr "Hlavní"
 msgid "Main workspace"
 msgstr "Hlavní pracovní prostor"
 
+msgid "Make active"
+msgstr "Nastavit jako aktivní"
+
+msgid "Make active — running sessions move to this account too."
+msgstr "Nastavit jako aktivní — běžící relace přejdou na tento účet také."
+
 msgid "Make all panes equal size"
 msgstr "Nastavit všem panelům stejnou velikost"
-
-msgid "Make default"
-msgstr "Nastavit jako výchozí"
-
-msgid "Make default — launch new terminals and agents on this account."
-msgstr "Nastavit jako výchozí — nové terminály a agenty spouštět na tomto účtu."
 
 msgid "Make the chip style the TooltipContent default"
 msgstr "Udělat ze stylu čipu výchozí TooltipContent"
@@ -7769,6 +7878,10 @@ msgstr "Spravuje správce vaší organizace."
 
 msgid "Manual"
 msgstr "Manuální"
+
+msgctxt "account switch trigger"
+msgid "Manual"
+msgstr "Ruční"
 
 msgid "Manual order"
 msgstr "Ruční řazení"
@@ -7966,6 +8079,9 @@ msgstr "Polovina 2026"
 msgid "Mid 2027"
 msgstr "Pol. 2027"
 
+msgid "min"
+msgstr "min"
+
 msgid "Mine"
 msgstr "Moje"
 
@@ -8024,6 +8140,9 @@ msgstr "Model"
 msgid "Model context usage"
 msgstr "Využití kontextu modelu"
 
+msgid "Model names whose weekly window also counts toward the threshold, separated by commas. Leave empty to watch only the account-wide windows."
+msgstr "Názvy modelů, jejichž týdenní okno se také započítává do prahu, oddělené čárkami. Nechte prázdné, chcete-li sledovat jen okna celého účtu."
+
 msgid "Model picker scoped to the selected agent"
 msgstr "Výběr modelu omezený na vybraného agenta"
 
@@ -8032,6 +8151,9 @@ msgstr "Výběr modelu"
 
 msgid "Model volume"
 msgstr "Objem modelů"
+
+msgid "Model windows"
+msgstr "Okna modelů"
 
 msgid "Model-suggested code appears in a majority of new files."
 msgstr "Kód navržený modelem se objeví ve většině nových souborů."
@@ -8099,6 +8221,9 @@ msgstr "Další {kindLower} motivy"
 msgid "More actions"
 msgstr "Další akce"
 
+msgid "More headroom elsewhere"
+msgstr "Více rezervy jinde"
+
 msgid "More pages"
 msgstr "Další stránky"
 
@@ -8108,11 +8233,17 @@ msgstr "Víc než polovinu sloučených změn napíší agenti bez jediné lidsk
 msgid "most developers"
 msgstr "většina vývojářů"
 
+msgid "Most headroom"
+msgstr "Nejvíce rezervy"
+
 msgid "Most of software history"
 msgstr "Většina historie softwaru"
 
 msgid "Move {count} to Group"
 msgstr "Přesunout {count} do skupiny"
+
+msgid "Move running and new {agentLabel} sessions to another account before this one runs out."
+msgstr "Přesuňte běžící i nové relace {agentLabel} na jiný účet dřív, než tento dojde."
 
 msgid "Move to group"
 msgstr "Přesunout do skupiny"
@@ -8194,6 +8325,9 @@ msgstr "Navigace"
 msgid "Navigation Menu"
 msgstr "Navigační nabídka"
 
+msgid "Near the limit"
+msgstr "Blízko limitu"
+
 msgid "Need app-level wiring (form state, chart data, app shell)"
 msgstr "Vyžadují zapojení na úrovni aplikace (stav formuláře, data grafu, app shell)"
 
@@ -8230,14 +8364,8 @@ msgstr "Síť se změnila"
 msgid "Never"
 msgstr "Nikdy"
 
-msgid "New {providerLabel} agents will use {accountLabel}."
-msgstr "Noví agenti {providerLabel} použijí {accountLabel}."
-
 msgid "New agent"
 msgstr "Nový agent"
-
-msgid "New agent launches use this account. Relaunch a running agent to switch it."
-msgstr "Nová spuštění agentů použijí tento účet. Běžícího agenta přepnete jeho novým spuštěním."
 
 msgid "New agent session"
 msgstr "Nová relace agenta"
@@ -8393,6 +8521,9 @@ msgstr "Na tomto hostu nejsou žádná přihlášení {0} — přihlaste se a vy
 
 msgid "No access to this host"
 msgstr "K tomuto hostu nemáte přístup"
+
+msgid "No account switches yet. Every switch, automatic or by hand, is listed here."
+msgstr "Zatím žádné přepnutí účtu. Každé přepnutí, automatické i ruční, se objeví zde."
 
 msgid "No active enterprise accounts"
 msgstr "Žádné aktivní enterprise účty"
@@ -8959,6 +9090,10 @@ msgstr "Zatím nepřicházejí žádné události: Microsoft Graph odmítl odbě
 
 msgid "Not reviewed by you"
 msgstr "Bez vaší revize"
+
+#. placeholder {0}: engineErrorCode(failure)
+msgid "Not saved ({0}). The previous value still stands."
+msgstr "Neuloženo ({0}). Platí dál předchozí hodnota."
 
 msgid "not set up"
 msgstr "není nastaveno"
@@ -9734,6 +9869,10 @@ msgstr "Výstupní schéma"
 msgid "Output truncated"
 msgstr "Výstup zkrácen"
 
+msgctxt "account switch trigger"
+msgid "Outside Superset"
+msgstr "Mimo Superset"
+
 msgid "Overflow Fade"
 msgstr "Overflow Fade"
 
@@ -9917,6 +10056,9 @@ msgstr "na uživatele/měsíc"
 
 msgid "Percent of total system RAM used by monitored Superset resources only (not all apps). A high share means Superset is a major contributor to system memory pressure; a low share means pressure is likely elsewhere."
 msgstr "Procento celkové systémové RAM využité jen sledovanými prostředky Superset (ne všemi aplikacemi). Vysoký podíl znamená, že se Superset zásadně podílí na tlaku na paměť; nízký podíl znamená, že tlak pochází nejspíš odjinud."
+
+msgid "Percent used at which any window of the active account counts as near its limit."
+msgstr "Procento využití, při kterém se libovolné okno aktivního účtu považuje za blízké limitu."
 
 #. placeholder {0}: team.name
 msgid "Permanently remove <0>{0}</0> and all of its members. This can't be undone."
@@ -10158,6 +10300,9 @@ msgstr "Průběh předpovědi"
 
 msgid "Predictions about AI are cheap because nobody checks them. This page is a rubric, not a vibe: every gate below is either true or false of a real team shipping real software. We update it as gates open, and we do not move the goalposts."
 msgstr "Předpovědi o AI jsou laciné, protože je nikdo nekontroluje. Tahle stránka je hodnoticí tabulka, ne dojem: každá brána níže je u reálného týmu dodávajícího reálný software buď pravdivá, nebo ne. Aktualizujeme ji, jak se brány otevírají, a neposouváme mantinely."
+
+msgid "Prefer the account whose weekly window resets soonest, so no quota expires unused"
+msgstr "Upřednostnit účet, jehož týdenní okno se resetuje nejdřív, aby žádná kvóta nepropadla nevyužitá"
 
 msgid "Preferences"
 msgstr "Předvolby"
@@ -10623,6 +10768,9 @@ msgstr "Přečíst průvodce paralelními kódovacími agenty"
 msgid "Read the setup guide"
 msgstr "Přečíst průvodce nastavením"
 
+msgid "Reading switch history…"
+msgstr "Načítání historie přepnutí…"
+
 msgid "Reading usage…"
 msgstr "Načítání využití…"
 
@@ -10761,9 +10909,6 @@ msgstr "Související články"
 
 msgid "Relative path copied"
 msgstr "Relativní cesta zkopírována"
-
-msgid "Relaunch running agents to switch them."
-msgstr "Běžící agenty přepnete jejich novým spuštěním."
 
 msgid "Relay access enabled, connecting to the relay…"
 msgstr "Přístup přes relay povolen, připojuji se k relay…"
@@ -11137,9 +11282,6 @@ msgstr "Restartovat všechny terminály?"
 msgid "Restart and close sessions"
 msgstr "Restartovat a zavřít relace"
 
-msgid "Restart and resume"
-msgstr "Restartovat a navázat"
-
 msgid "Restart Browser"
 msgstr "Restartovat prohlížeč"
 
@@ -11148,12 +11290,6 @@ msgstr "Restartovat démona"
 
 msgid "Restart host service"
 msgstr "Restartovat host service"
-
-msgid "Restart now to move them to {accountLabel}; each session picks its conversation back up where it left off."
-msgstr "Restartujte je teď a přejdou na {accountLabel}; každá relace naváže na rozhovor tam, kde skončila."
-
-msgid "Restart running {providerLabel} agents?"
-msgstr "Restartovat běžící agenty {providerLabel}?"
 
 msgid "Restart terminal daemon?"
 msgstr "Restartovat terminálového démona?"
@@ -11167,8 +11303,8 @@ msgstr "Restartováno {restartedOrgCount} host services"
 msgid "Restarted 1 host service"
 msgstr "Restartována 1 host service"
 
-msgid "Restarting agents on {accountLabel}."
-msgstr "Restartuji agenty na {accountLabel}."
+msgid "Restarted and resumed"
+msgstr "Restartováno a obnoveno"
 
 msgid "Restarting host services…"
 msgstr "Restartuji služby hosta…"
@@ -11370,6 +11506,10 @@ msgstr "Vraťte relaci agenta k libovolnému kontrolnímu bodu, konverzaci i zm�
 msgid "Rotate device"
 msgstr "Otočit zařízení"
 
+#. placeholder {0}: engineErrorCode(failure)
+msgid "Rotation not saved ({0})."
+msgstr "Rotace neuložena ({0})."
+
 msgid "Roundups"
 msgstr "Přehledy"
 
@@ -11478,6 +11618,12 @@ msgstr "Běží na spárovaném zařízení"
 
 msgid "Running on this device"
 msgstr "Běží na tomto zařízení"
+
+msgid "Running sessions move over when they go idle, resuming where they left off."
+msgstr "Běžící relace přejdou na nový účet, jakmile budou nečinné, a pokračují tam, kde skončily."
+
+msgid "Running sessions pick up the new login in place; ones on their own profile restart when they go idle."
+msgstr "Běžící relace převezmou nové přihlášení na místě; ty s vlastním profilem se restartují, jakmile budou nečinné."
 
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Běžící procesy v terminálu poběží dál, ale starší výstup po restartu aplikace už nemusí být k dispozici."
@@ -12053,6 +12199,10 @@ msgstr "Zobrazení relace"
 msgid "Sessions"
 msgstr "Relace"
 
+msgctxt "switch history column"
+msgid "Sessions"
+msgstr "Relace"
+
 #. placeholder {0}: detail.sessions.length
 msgid "Sessions · top {0} by cost"
 msgstr "Relace · top {0} podle nákladů"
@@ -12076,6 +12226,9 @@ msgstr "Nastavit heslo"
 
 msgid "Set Run"
 msgstr "Nastavit spuštění"
+
+msgid "Set up outside Superset. Its usage is shown, but switching never writes to this login."
+msgstr "Nastaveno mimo Superset. Využití se zobrazuje, ale přepínání do tohoto přihlášení nikdy nezapisuje."
 
 msgid "Set up project on {hostName}"
 msgstr "Nastavit projekt na {hostName}"
@@ -12381,6 +12534,9 @@ msgstr "Přihlášení selhalo"
 msgid "Signed in as <0>{userName}</0>"
 msgstr "Přihlášeni jako <0>{userName}</0>"
 
+msgid "Signed in outside Superset, so switching leaves this login alone."
+msgstr "Přihlášeno mimo Superset, takže přepínání se tohoto přihlášení nedotkne."
+
 msgid "Signed out"
 msgstr "Odhlášeno"
 
@@ -12512,6 +12668,9 @@ msgstr "V souladu se SOC 2 Type II. Vyžádejte si naši zprávu."
 
 msgid "SOC 2 Type II report"
 msgstr "Zpráva SOC 2 Type II"
+
+msgid "Some {providerLabel} sessions stay on their own account"
+msgstr "Některé relace {providerLabel} zůstávají na svém vlastním účtu"
 
 msgid "Some files are not an accepted type and were not added."
 msgstr "Některé soubory nemají povolený typ a nebyly přidány."
@@ -12667,6 +12826,9 @@ msgstr "Připravit vše"
 msgid "Staged"
 msgstr "Připravené"
 
+msgid "Stale token, still eligible"
+msgstr "Zastaralý token, stále použitelný"
+
 msgid "Standard action strip for pane headers"
 msgstr "Standardní pruh akcí pro záhlaví panelů"
 
@@ -12802,6 +12964,9 @@ msgstr "Změna stavu"
 
 msgid "Stay connected (refresh tokens)"
 msgstr "zůstat připojená (obnovovací tokeny)"
+
+msgid "Stay until the active account nears its limit, then move to the account with the most headroom"
+msgstr "Zůstat, dokud se aktivní účet nepřiblíží limitu, pak přejít na účet s největší rezervou"
 
 #. placeholder {0}: step === "workspace" ? 1 : 2
 msgid "Step {0} of 2"
@@ -13066,8 +13231,22 @@ msgstr "Podpořte projekt hvězdou na GitHubu"
 msgid "Suspended"
 msgstr "Pozastaveno"
 
+msgid "Switch accounts automatically"
+msgstr "Přepínat účty automaticky"
+
 msgid "Switch agents. Keep your workflow"
 msgstr "Vyměňte agenta. Workflow zůstane"
+
+msgid "Switch at"
+msgstr "Přepnout při"
+
+#. placeholder {0}: engineErrorCode(failure)
+#. placeholder {0}: failure.code
+msgid "Switch failed ({0}). The previous account is still active."
+msgstr "Přepnutí selhalo ({0}). Předchozí účet je stále aktivní."
+
+msgid "Switch history"
+msgstr "Historie přepnutí"
 
 msgid "Switch host"
 msgstr "Přepnout hosta"
@@ -13137,6 +13316,12 @@ msgstr "Přepnout na pracovní prostor 8"
 
 msgid "Switch to Workspace 9"
 msgstr "Přepnout na pracovní prostor 9"
+
+msgid "Switching resumes when a usage window resets."
+msgstr "Přepínání se obnoví, jakmile se okno využití resetuje."
+
+msgid "Switching…"
+msgstr "Přepínání…"
 
 msgid "Sync"
 msgstr "Synchronizovat"
@@ -13426,6 +13611,15 @@ msgstr "Takový název není povolený."
 msgid "The 2026 bet"
 msgstr "Sázka na rok 2026"
 
+msgid "The access token is past its expiry but the sign-in is not — a fresh one is minted the next time the CLI runs."
+msgstr "Přístupovému tokenu vypršela platnost, ale přihlášení ne — nový se vytvoří při příštím spuštění CLI."
+
+msgid "The account engine is not running on this host, so {agentLabel} accounts cannot switch automatically."
+msgstr "Modul účtů na tomto hostu neběží, takže účty {agentLabel} se nemohou přepínat automaticky."
+
+msgid "The account engine is not running on this host."
+msgstr "Modul účtů na tomto hostu neběží."
+
 msgid "the active organization"
 msgstr "aktivní organizaci"
 
@@ -13524,6 +13718,9 @@ msgstr "Budoucí domov pro znovupoužitelné konfigurace agentů, prompty a prů
 
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "Host není připojený k Superset relay. Pokud jde o toto zařízení, zapněte „Povolit vzdálený přístup k tomuto zařízení přes relay“ v Nastavení > Vzdálený přístup a zkuste to znovu."
+
+msgid "The host rejected that value, so the previous one still stands."
+msgstr "Host tuto hodnotu odmítl, takže platí dál ta předchozí."
 
 msgid "The human reads every line before it merges."
 msgstr "Člověk přečte každý řádek, než se sloučí."
@@ -14001,6 +14198,10 @@ msgstr "Název obsahuje..."
 msgid "To"
 msgstr "Do"
 
+msgctxt "switch history column"
+msgid "To"
+msgstr "Na"
+
 msgid "Toast (Sonner)"
 msgstr "Toast (Sonner)"
 
@@ -14153,6 +14354,10 @@ msgstr "Třídit nové issues"
 
 msgid "triaging 12 new issues…"
 msgstr "třídí 12 nových issues…"
+
+msgctxt "switch history column"
+msgid "Trigger"
+msgstr "Spouštěč"
 
 msgid "Trigger alert()"
 msgstr "Spustit alert()"
@@ -14355,6 +14560,9 @@ msgctxt "person"
 msgid "Unknown"
 msgstr "Neznámá"
 
+msgid "Unknown account"
+msgstr "Neznámý účet"
+
 msgid "Unknown device"
 msgstr "Neznámé zařízení"
 
@@ -14391,6 +14599,9 @@ msgstr "Neomezeně"
 
 msgid "Unlimited users"
 msgstr "Neomezeně uživatelů"
+
+msgid "Unmanaged"
+msgstr "Nespravováno"
 
 msgid "Unmute notifications"
 msgstr "Zrušit ztlumení oznámení"
@@ -14589,6 +14800,9 @@ msgstr "Použijte, když jsou terminály zaseknuté nebo nereagují."
 msgid "Use this when calling the Superset API."
 msgstr "Použijte při volání Superset API."
 
+msgid "Use up the soonest reset"
+msgstr "Vyčerpat nejbližší reset"
+
 msgid "Use voice transcription and push-to-talk features."
 msgstr "Používat přepis řeči a funkce push-to-talk."
 
@@ -14742,6 +14956,9 @@ msgstr "Hlasitost"
 msgid "VS Code"
 msgstr "VS Code"
 
+msgid "Wait between switches"
+msgstr "Čekání mezi přepnutími"
+
 msgid "Wait for workspace setup before starting agents"
 msgstr "Před spuštěním agentů počkat na setup pracovního prostoru"
 
@@ -14880,6 +15097,9 @@ msgstr "Týdenní poznámky k vydání"
 msgid "Weekly signup cohorts (Neon); cohorts younger than 30d excluded"
 msgstr "Týdenní kohorty registrací (Neon); kohorty mladší 30 d jsou vyloučeny"
 
+msgid "weekly window"
+msgstr "Týdenní okno"
+
 msgid "Welcome back"
 msgstr "Vítejte zpět"
 
@@ -14934,6 +15154,10 @@ msgstr "Co obsahuje Enterprise?"
 msgid "What's New"
 msgstr "Co je nového"
 
+msgctxt "switch history column"
+msgid "When"
+msgstr "Kdy"
+
 msgid "When off, nothing else can reach the files and tools on this device. You can still connect out to remote sandboxes from here. <0>Learn more<1/></0>"
 msgstr "Když je vypnuto, nic jiného se nedostane k souborům a nástrojům na tomto zařízení. Odsud se stále můžete připojovat ke vzdáleným sandboxům. <0>Zjistit více<1/></0>"
 
@@ -14961,6 +15185,9 @@ msgstr "Kde je tento terminálový skript dostupný."
 msgid "Where to look next"
 msgstr "Kam se podívat dál"
 
+msgid "Which account to move to"
+msgstr "Na který účet přejít"
+
 msgid "Which agents are supported?"
 msgstr "Kteří agenti jsou podporovaní?"
 
@@ -14969,6 +15196,10 @@ msgstr "Kteří AI kódovací agenti jsou podporovaní?"
 
 msgid "Who can open this page from its link"
 msgstr "Kdo může tuto stránku otevřít z odkazu"
+
+msgctxt "switch history column"
+msgid "Why"
+msgstr "Proč"
 
 msgid "Window"
 msgstr "Okno"
@@ -15215,6 +15446,9 @@ msgstr "Nemáte oprávnění tohoto člena odebrat"
 
 msgid "You need to be part of an organization to use integrations."
 msgstr "Pro používání integrací musíte být součástí organizace."
+
+msgid "You picked this account"
+msgstr "Tento účet jste vybrali vy"
 
 #. placeholder {0}: preview.rank
 #. placeholder {1}: preview.total

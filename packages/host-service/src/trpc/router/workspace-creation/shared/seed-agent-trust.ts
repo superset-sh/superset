@@ -29,7 +29,8 @@ import {
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import type { HostDb } from "../../../../db";
-import { resolveDefaultAccountEnv } from "../../usage/default-account";
+import { resolveAgentAccountDir } from "../../usage/agent-account-dir";
+import { updateClaudeStateFile } from "../../usage/claude-state-file";
 
 type TrustFamily = "claude" | "codex";
 
@@ -73,9 +74,15 @@ function resolveTrustTarget(
 ): TrustTarget | null {
 	const family = resolveTrustFamily(config);
 	if (family === null) return null;
-	const env = { ...resolveDefaultAccountEnv(db, family), ...config.env };
+	const { configDir, managed } = resolveAgentAccountDir(db, {
+		family,
+		env: config.env,
+	});
+	// A dir the user pinned themselves is Superset's to read, never to write:
+	// the folder dialog showing once costs less than a host-service write into
+	// a config dir nobody handed us. (KTD12.)
+	if (!managed) return null;
 	if (family === "claude") {
-		const configDir = env.CLAUDE_CONFIG_DIR;
 		return {
 			family,
 			file: configDir
@@ -83,8 +90,10 @@ function resolveTrustTarget(
 				: join(homedir(), ".claude.json"),
 		};
 	}
-	const codexHome = env.CODEX_HOME || join(homedir(), ".codex");
-	return { family, file: join(codexHome, "config.toml") };
+	return {
+		family,
+		file: join(configDir ?? join(homedir(), ".codex"), "config.toml"),
+	};
 }
 
 /**
@@ -109,38 +118,72 @@ async function atomicWrite(file: string, content: string): Promise<void> {
 	}
 }
 
+/** The `projects` map of a Claude state file, tolerating anything else. */
+function claudeProjects(
+	state: Record<string, unknown>,
+): Record<string, Record<string, unknown> | undefined> {
+	const projects = state.projects;
+	if (
+		projects === null ||
+		typeof projects !== "object" ||
+		Array.isArray(projects)
+	) {
+		return {};
+	}
+	return projects as Record<string, Record<string, unknown> | undefined>;
+}
+
 /**
  * Merge `projects[<path>].hasTrustDialogAccepted: true` into a Claude state
- * file, preserving every other key. A corrupt file throws instead of being
- * clobbered. No-op when the entry is already trusted.
+ * file, preserving every other key. The write goes through
+ * `updateClaudeStateFile`, the one writer of that file — so a corrupt file is
+ * re-seeded rather than stranding every session folder on the trust dialog,
+ * and an account swap rewriting the identity block cannot race this one.
+ * No-op when the entry is already trusted.
  */
 export async function seedClaudeFolderTrust(
 	stateFile: string,
 	folderPath: string,
 ): Promise<void> {
-	let state: Record<string, unknown> = {};
 	if (existsSync(stateFile)) {
-		state = JSON.parse(await readFile(stateFile, "utf-8"));
+		// Cheap pre-read so an already-trusted folder leaves the file byte for
+		// byte as Claude Code wrote it.
+		const current = await readFile(stateFile, "utf-8").then(
+			(raw) => {
+				try {
+					return JSON.parse(raw) as Record<string, unknown>;
+				} catch {
+					return {};
+				}
+			},
+			() => ({}) as Record<string, unknown>,
+		);
+		if (claudeProjects(current)[folderPath]?.hasTrustDialogAccepted === true) {
+			return;
+		}
 	} else if (!existsSync(dirname(stateFile))) {
 		// A missing config dir means this login was never set up — the CLI's
 		// own onboarding (which includes trust) will run anyway.
 		return;
 	}
-	const projects = (state.projects ?? {}) as Record<
-		string,
-		Record<string, unknown> | undefined
-	>;
-	// `false` is Claude's default scaffold value ("dialog never accepted"),
-	// not a recorded decline — the CLI persists no decline state (declining
-	// just exits). So overwriting false → true is the intended seed, unlike
-	// Codex's explicit "untrusted", which is preserved below.
-	const existing = projects[folderPath];
-	if (existing?.hasTrustDialogAccepted === true) return;
-	state.projects = {
-		...projects,
-		[folderPath]: { ...existing, hasTrustDialogAccepted: true },
-	};
-	await atomicWrite(stateFile, JSON.stringify(state, null, 2));
+
+	await updateClaudeStateFile(stateFile, (state) => {
+		const projects = claudeProjects(state);
+		// `false` is Claude's default scaffold value ("dialog never accepted"),
+		// not a recorded decline — the CLI persists no decline state (declining
+		// just exits). So overwriting false → true is the intended seed, unlike
+		// Codex's explicit "untrusted", which is preserved below.
+		return {
+			...state,
+			projects: {
+				...projects,
+				[folderPath]: {
+					...projects[folderPath],
+					hasTrustDialogAccepted: true,
+				},
+			},
+		};
+	});
 }
 
 /**

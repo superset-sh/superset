@@ -1,0 +1,1 @@
+export { windowLabel } from "./windowLabel";
