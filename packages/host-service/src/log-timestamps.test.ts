@@ -29,7 +29,7 @@ describe("installConsoleTimestamps", () => {
 			(["log", "info", "warn", "error", "debug"] as const).map((method) => [
 				method,
 				(...args: unknown[]) => {
-					(calls[method] ??= []).push(args);
+					calls[method] = [...(calls[method] ?? []), args];
 				},
 			]),
 		) as Pick<Console, "log" | "info" | "warn" | "error" | "debug">;
