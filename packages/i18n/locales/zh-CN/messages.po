@@ -213,8 +213,8 @@ msgid "{0, plural, one {# workspace} other {# workspaces}}"
 msgstr "{0, plural, one {#个工作区} other {#个工作区}}"
 
 #. placeholder {0}: shown?.count ?? 0
-msgid "{0, plural, one {A running agent uses a config dir Superset does not manage, so the switch did not reach it.} other {# running agents use config dirs Superset does not manage, so the switch did not reach them.}}"
-msgstr "{0, plural, one {有一个正在运行的智能体使用了Superset未管理的配置目录，切换未生效。} other {有#个正在运行的智能体使用了Superset未管理的配置目录，切换未对它们生效。}}"
+msgid "{0, plural, one {A running agent is pinned to its own config dir by its agent configuration, so it keeps the account signed in there.} other {# running agents are pinned to their own config dirs by their agent configuration, so they keep the accounts signed in there.}}"
+msgstr "{0, plural, one {有一个正在运行的智能体被其智能体配置固定到了自己的配置目录，因此仍使用该目录登录的账号。} other {有#个正在运行的智能体被其智能体配置固定到了各自的配置目录，因此仍使用这些目录登录的账号。}}"
 
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
@@ -5046,9 +5046,6 @@ msgstr "每条各占一个新标签页"
 
 msgid "Each morning at 8am, look at yesterday's failed CI runs, diagnose the most common failure, and open a fix PR."
 msgstr "每天早上8点，查看昨天失败的CI运行，诊断最常见的失败原因，并提一个修复PR。"
-
-msgid "Each session resumes where it left off."
-msgstr "每个会话都会从中断处继续。"
 
 msgid "Each surface has its own typography. Changes appear immediately in the live previews."
 msgstr "每个界面都有各自的排版设置。更改会立即体现在实时预览中。"
@@ -11263,9 +11260,6 @@ msgstr "重启所有终端？"
 msgid "Restart and close sessions"
 msgstr "重启并关闭会话"
 
-msgid "Restart and resume"
-msgstr "重新启动并恢复"
-
 msgid "Restart Browser"
 msgstr "重启浏览器"
 
@@ -11274,12 +11268,6 @@ msgstr "重启守护进程"
 
 msgid "Restart host service"
 msgstr "重启主机服务"
-
-msgid "Restart now to move them to {accountLabel}; each session picks its conversation back up where it left off."
-msgstr "立即重新启动即可迁移到{accountLabel}；每个会话都会从中断处继续。"
-
-msgid "Restart running {providerLabel} agents?"
-msgstr "要重新启动运行中的{providerLabel}智能体吗？"
 
 msgid "Restart terminal daemon?"
 msgstr "重启终端守护进程？"
@@ -11295,9 +11283,6 @@ msgstr "已重启1个主机服务"
 
 msgid "Restarted and resumed"
 msgstr "已重启并恢复"
-
-msgid "Restarting agents on {accountLabel}."
-msgstr "正在{accountLabel}上重新启动智能体。"
 
 msgid "Restarting host services…"
 msgstr "正在重启主机服务…"
@@ -12652,6 +12637,9 @@ msgstr "已通过SOC 2 Type II合规。可索取报告。"
 
 msgid "SOC 2 Type II report"
 msgstr "SOC 2 Type II报告"
+
+msgid "Some {providerLabel} sessions stay on their own account"
+msgstr "部分{providerLabel}会话仍留在各自的账号上"
 
 msgid "Some files are not an accepted type and were not added."
 msgstr "部分文件的类型不被允许，未添加。"

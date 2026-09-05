@@ -1,46 +1,42 @@
 import { Plural, Trans } from "@lingui/react/macro";
 import {
 	AlertDialog,
+	AlertDialogAction,
 	AlertDialogDescription,
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
 	EnterEnabledAlertDialogContent,
 } from "@superset/ui/alert-dialog";
-import { Button } from "@superset/ui/button";
 import { useRef } from "react";
 
 export interface RestartSessionsPrompt {
-	agent: "claude" | "codex";
 	/** "Claude Code" / "Codex". */
 	providerLabel: string;
-	/** The account just made default, as shown on its card. */
+	/** The account just made active, as shown on its card. */
 	accountLabel: string;
-	/** Running agent sessions the restart would relaunch. */
+	/** Running sessions the switch could not reach. */
 	count: number;
 }
 
 interface RestartSessionsDialogProps {
-	/** The pending ask; null keeps the dialog closed. */
+	/** The pending notice; null keeps the dialog closed. */
 	prompt: RestartSessionsPrompt | null;
-	/** Escape/overlay/"Not now" — the switch stands, nothing restarts. */
-	onDecline: () => void;
-	onConfirm: () => void;
+	/** Escape/overlay/"OK" — the switch stands, nothing else happens. */
+	onDismiss: () => void;
 }
 
 /**
- * Post-switch ask from the Usage tab for sessions the account engine cannot
- * reach — those running on a config dir the user exported by hand. Managed
- * sessions move on their own; these keep the previous account until
- * relaunched, so offer to restart them now. Confirming kills
- * each session crash-style and auto-resume brings it back with the same
- * conversation on the new account, so the confirm button is deliberately
- * not styled destructive.
+ * Post-switch notice from the Usage tab for the sessions a switch cannot
+ * move: their agent configuration exports its own `CLAUDE_CONFIG_DIR` /
+ * `CODEX_HOME`, and that env wins over the host default at launch (see
+ * `resolveAgentAccountDir`), so they stay on their own account however they
+ * are relaunched. There is nothing to offer but the fact — a restart would
+ * resume them on the very same account — so this only informs and dismisses.
  */
 export function RestartSessionsDialog({
 	prompt,
-	onDecline,
-	onConfirm,
+	onDismiss,
 }: RestartSessionsDialogProps) {
 	// Radix animates the dialog out after `prompt` clears; keep the last
 	// prompt so the exit frames don't collapse to "0 running agents".
@@ -48,45 +44,38 @@ export function RestartSessionsDialog({
 	if (prompt !== null) lastPromptRef.current = prompt;
 	const shown = prompt ?? lastPromptRef.current;
 	const providerLabel = shown?.providerLabel ?? "";
-	const accountLabel = shown?.accountLabel ?? "";
 	return (
 		<AlertDialog
 			open={prompt !== null}
 			onOpenChange={(open) => {
-				if (!open) onDecline();
+				if (!open) onDismiss();
 			}}
 		>
 			<EnterEnabledAlertDialogContent className="max-w-[400px] gap-0 p-0">
 				<AlertDialogHeader className="px-4 pt-4 pb-2">
 					<AlertDialogTitle className="font-medium">
-						<Trans>Restart running {providerLabel} agents?</Trans>
+						<Trans>
+							Some {providerLabel} sessions stay on their own account
+						</Trans>
 					</AlertDialogTitle>
 					<AlertDialogDescription>
 						{/* Plain-string plural branches: JSX branches extract as opaque
 						    placeholders, hiding the sentence from translators. */}
 						<Plural
 							value={shown?.count ?? 0}
-							one="A running agent uses a config dir Superset does not manage, so the switch did not reach it."
-							other="# running agents use config dirs Superset does not manage, so the switch did not reach them."
-						/>{" "}
-						<Trans>
-							Restart now to move them to {accountLabel}; each session picks its
-							conversation back up where it left off.
-						</Trans>
+							one="A running agent is pinned to its own config dir by its agent configuration, so it keeps the account signed in there."
+							other="# running agents are pinned to their own config dirs by their agent configuration, so they keep the accounts signed in there."
+						/>
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter className="flex-row justify-end gap-2 px-4 pt-2 pb-4">
-					<Button
-						variant="ghost"
-						size="sm"
-						className="h-7 px-3 text-xs"
-						onClick={onDecline}
-					>
-						<Trans>Not now</Trans>
-					</Button>
-					<Button size="sm" className="h-7 px-3 text-xs" onClick={onConfirm}>
-						<Trans>Restart and resume</Trans>
-					</Button>
+					{/* Closing the dialog is what reports the dismissal, so this
+					    carries no onClick of its own: Radix closes on click and the
+					    single `onOpenChange` path fires once for button, Escape and
+					    overlay alike. */}
+					<AlertDialogAction size="sm" className="h-7 px-3 text-xs">
+						<Trans>OK</Trans>
+					</AlertDialogAction>
 				</AlertDialogFooter>
 			</EnterEnabledAlertDialogContent>
 		</AlertDialog>

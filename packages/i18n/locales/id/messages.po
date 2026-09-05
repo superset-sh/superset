@@ -213,8 +213,8 @@ msgid "{0, plural, one {# workspace} other {# workspaces}}"
 msgstr "{0, plural, one {# workspace} other {# workspace}}"
 
 #. placeholder {0}: shown?.count ?? 0
-msgid "{0, plural, one {A running agent uses a config dir Superset does not manage, so the switch did not reach it.} other {# running agents use config dirs Superset does not manage, so the switch did not reach them.}}"
-msgstr "{0, plural, one {# agen berjalan memakai direktori konfigurasi yang tidak dikelola Superset, jadi pergantian tidak sampai ke mereka.} other {# agen berjalan memakai direktori konfigurasi yang tidak dikelola Superset, jadi pergantian tidak sampai ke mereka.}}"
+msgid "{0, plural, one {A running agent is pinned to its own config dir by its agent configuration, so it keeps the account signed in there.} other {# running agents are pinned to their own config dirs by their agent configuration, so they keep the accounts signed in there.}}"
+msgstr "{0, plural, one {# agen berjalan disematkan ke direktori konfigurasinya sendiri oleh konfigurasi agennya, jadi tetap memakai akun yang masuk di sana.} other {# agen berjalan disematkan ke direktori konfigurasinya sendiri oleh konfigurasi agennya, jadi tetap memakai akun yang masuk di sana.}}"
 
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
@@ -5046,9 +5046,6 @@ msgstr "Masing-masing di tab barunya sendiri"
 
 msgid "Each morning at 8am, look at yesterday's failed CI runs, diagnose the most common failure, and open a fix PR."
 msgstr "Tiap pagi jam 8, lihat run CI yang gagal kemarin, diagnosis kegagalan paling umum, dan buka PR perbaikan."
-
-msgid "Each session resumes where it left off."
-msgstr "Setiap sesi melanjutkan dari titik terakhir."
 
 msgid "Each surface has its own typography. Changes appear immediately in the live previews."
 msgstr "Tiap permukaan punya tipografinya sendiri. Perubahan langsung terlihat di pratinjau."
@@ -11263,9 +11260,6 @@ msgstr "Mulai ulang semua terminal?"
 msgid "Restart and close sessions"
 msgstr "Mulai ulang dan tutup sesi"
 
-msgid "Restart and resume"
-msgstr "Jalankan ulang dan lanjutkan"
-
 msgid "Restart Browser"
 msgstr "Mulai Ulang Browser"
 
@@ -11274,12 +11268,6 @@ msgstr "Mulai ulang daemon"
 
 msgid "Restart host service"
 msgstr "Mulai ulang layanan host"
-
-msgid "Restart now to move them to {accountLabel}; each session picks its conversation back up where it left off."
-msgstr "Jalankan ulang sekarang untuk memindahkannya ke {accountLabel}; setiap sesi melanjutkan percakapan dari titik terakhir."
-
-msgid "Restart running {providerLabel} agents?"
-msgstr "Jalankan ulang agen {providerLabel} yang sedang berjalan?"
 
 msgid "Restart terminal daemon?"
 msgstr "Mulai ulang daemon terminal?"
@@ -11295,9 +11283,6 @@ msgstr "Memulai ulang 1 layanan host"
 
 msgid "Restarted and resumed"
 msgstr "Dijalankan ulang dan dilanjutkan"
-
-msgid "Restarting agents on {accountLabel}."
-msgstr "Menjalankan ulang agen di {accountLabel}."
 
 msgid "Restarting host services…"
 msgstr "Memulai ulang layanan host…"
@@ -12652,6 +12637,9 @@ msgstr "Patuh SOC 2 Type II. Minta laporan kami."
 
 msgid "SOC 2 Type II report"
 msgstr "Laporan SOC 2 Type II"
+
+msgid "Some {providerLabel} sessions stay on their own account"
+msgstr "Beberapa sesi {providerLabel} tetap di akunnya sendiri"
 
 msgid "Some files are not an accepted type and were not added."
 msgstr "Sebagian file bukan tipe yang diterima dan tidak ditambahkan."

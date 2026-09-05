@@ -213,8 +213,8 @@ msgid "{0, plural, one {# workspace} other {# workspaces}}"
 msgstr "{0, plural, one {# workspace} other {# workspace}}"
 
 #. placeholder {0}: shown?.count ?? 0
-msgid "{0, plural, one {A running agent uses a config dir Superset does not manage, so the switch did not reach it.} other {# running agents use config dirs Superset does not manage, so the switch did not reach them.}}"
-msgstr "{0, plural, one {Un agente in esecuzione usa una cartella di configurazione che Superset non gestisce, quindi il cambio non l'ha raggiunto.} other {# agenti in esecuzione usano cartelle di configurazione che Superset non gestisce, quindi il cambio non li ha raggiunti.}}"
+msgid "{0, plural, one {A running agent is pinned to its own config dir by its agent configuration, so it keeps the account signed in there.} other {# running agents are pinned to their own config dirs by their agent configuration, so they keep the accounts signed in there.}}"
+msgstr "{0, plural, one {Un agente in esecuzione è ancorato a una propria cartella di configurazione dalla sua configurazione, quindi mantiene l'account connesso lì.} other {# agenti in esecuzione sono ancorati a proprie cartelle di configurazione dalla loro configurazione, quindi mantengono gli account connessi lì.}}"
 
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
@@ -5046,9 +5046,6 @@ msgstr "Ognuno in una nuova scheda"
 
 msgid "Each morning at 8am, look at yesterday's failed CI runs, diagnose the most common failure, and open a fix PR."
 msgstr "Ogni mattina alle 8, guarda le esecuzioni CI fallite di ieri, diagnostica l'errore più comune e apri una PR di correzione."
-
-msgid "Each session resumes where it left off."
-msgstr "Ogni sessione riprende da dove si era interrotta."
 
 msgid "Each surface has its own typography. Changes appear immediately in the live previews."
 msgstr "Ogni superficie ha la sua tipografia. Le modifiche compaiono subito nelle anteprime dal vivo."
@@ -11263,9 +11260,6 @@ msgstr "Riavviare tutti i terminali?"
 msgid "Restart and close sessions"
 msgstr "Riavvia e chiudi le sessioni"
 
-msgid "Restart and resume"
-msgstr "Riavvia e riprendi"
-
 msgid "Restart Browser"
 msgstr "Riavvia il browser"
 
@@ -11274,12 +11268,6 @@ msgstr "Riavvia il daemon"
 
 msgid "Restart host service"
 msgstr "Riavvia il servizio host"
-
-msgid "Restart now to move them to {accountLabel}; each session picks its conversation back up where it left off."
-msgstr "Riavviali ora per spostarli su {accountLabel}; ogni sessione riprende la conversazione da dove si era interrotta."
-
-msgid "Restart running {providerLabel} agents?"
-msgstr "Riavviare gli agenti {providerLabel} in esecuzione?"
 
 msgid "Restart terminal daemon?"
 msgstr "Riavviare il daemon del terminale?"
@@ -11295,9 +11283,6 @@ msgstr "Riavviato 1 servizio host"
 
 msgid "Restarted and resumed"
 msgstr "Riavviata e ripresa"
-
-msgid "Restarting agents on {accountLabel}."
-msgstr "Riavvio degli agenti su {accountLabel}."
 
 msgid "Restarting host services…"
 msgstr "Riavvio dei servizi host…"
@@ -12652,6 +12637,9 @@ msgstr "Conforme a SOC 2 Type II. Richiedi il nostro report."
 
 msgid "SOC 2 Type II report"
 msgstr "Report SOC 2 Type II"
+
+msgid "Some {providerLabel} sessions stay on their own account"
+msgstr "Alcune sessioni {providerLabel} restano sul proprio account"
 
 msgid "Some files are not an accepted type and were not added."
 msgstr "Alcuni file non sono di un tipo consentito e non sono stati aggiunti."

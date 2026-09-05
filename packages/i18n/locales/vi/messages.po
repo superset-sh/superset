@@ -213,8 +213,8 @@ msgid "{0, plural, one {# workspace} other {# workspaces}}"
 msgstr "{0, plural, one {# workspace} other {# workspace}}"
 
 #. placeholder {0}: shown?.count ?? 0
-msgid "{0, plural, one {A running agent uses a config dir Superset does not manage, so the switch did not reach it.} other {# running agents use config dirs Superset does not manage, so the switch did not reach them.}}"
-msgstr "{0, plural, one {# agent đang chạy dùng thư mục cấu hình mà Superset không quản lý, nên việc đổi tài khoản chưa tới được chúng.} other {# agent đang chạy dùng thư mục cấu hình mà Superset không quản lý, nên việc đổi tài khoản chưa tới được chúng.}}"
+msgid "{0, plural, one {A running agent is pinned to its own config dir by its agent configuration, so it keeps the account signed in there.} other {# running agents are pinned to their own config dirs by their agent configuration, so they keep the accounts signed in there.}}"
+msgstr "{0, plural, one {# agent đang chạy được ghim vào thư mục cấu hình riêng theo cấu hình agent, nên vẫn giữ tài khoản đã đăng nhập ở đó.} other {# agent đang chạy được ghim vào thư mục cấu hình riêng theo cấu hình agent, nên vẫn giữ tài khoản đã đăng nhập ở đó.}}"
 
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
@@ -5046,9 +5046,6 @@ msgstr "Mỗi lệnh một tab mới"
 
 msgid "Each morning at 8am, look at yesterday's failed CI runs, diagnose the most common failure, and open a fix PR."
 msgstr "Mỗi sáng lúc 8h, xem các lần chạy CI thất bại hôm qua, chẩn đoán lỗi phổ biến nhất và mở một PR sửa lỗi."
-
-msgid "Each session resumes where it left off."
-msgstr "Mỗi phiên sẽ tiếp tục từ chỗ đang dở."
 
 msgid "Each surface has its own typography. Changes appear immediately in the live previews."
 msgstr "Mỗi bề mặt có kiểu chữ riêng. Thay đổi hiện ra ngay trong phần xem trước trực tiếp."
@@ -11263,9 +11260,6 @@ msgstr "Khởi động lại toàn bộ terminal?"
 msgid "Restart and close sessions"
 msgstr "Khởi động lại và đóng các phiên"
 
-msgid "Restart and resume"
-msgstr "Khởi động lại và tiếp tục"
-
 msgid "Restart Browser"
 msgstr "Khởi động lại trình duyệt"
 
@@ -11274,12 +11268,6 @@ msgstr "Khởi động lại daemon"
 
 msgid "Restart host service"
 msgstr "Khởi động lại dịch vụ host"
-
-msgid "Restart now to move them to {accountLabel}; each session picks its conversation back up where it left off."
-msgstr "Khởi động lại ngay để chuyển sang {accountLabel}; mỗi phiên sẽ tiếp tục cuộc trò chuyện từ chỗ đang dở."
-
-msgid "Restart running {providerLabel} agents?"
-msgstr "Khởi động lại các agent {providerLabel} đang chạy?"
 
 msgid "Restart terminal daemon?"
 msgstr "Khởi động lại daemon terminal?"
@@ -11295,9 +11283,6 @@ msgstr "Đã khởi động lại 1 dịch vụ host"
 
 msgid "Restarted and resumed"
 msgstr "Đã khởi động lại và tiếp tục"
-
-msgid "Restarting agents on {accountLabel}."
-msgstr "Đang khởi động lại các agent trên {accountLabel}."
 
 msgid "Restarting host services…"
 msgstr "Đang khởi động lại dịch vụ host…"
@@ -12652,6 +12637,9 @@ msgstr "Tuân thủ SOC 2 Type II. Yêu cầu báo cáo của chúng tôi."
 
 msgid "SOC 2 Type II report"
 msgstr "Báo cáo SOC 2 Type II"
+
+msgid "Some {providerLabel} sessions stay on their own account"
+msgstr "Một số phiên {providerLabel} vẫn giữ tài khoản riêng"
 
 msgid "Some files are not an accepted type and were not added."
 msgstr "Một số tệp không thuộc loại được chấp nhận nên không được thêm."

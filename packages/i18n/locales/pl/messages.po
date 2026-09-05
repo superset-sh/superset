@@ -213,8 +213,8 @@ msgid "{0, plural, one {# workspace} other {# workspaces}}"
 msgstr "{0, plural, one {# obszar roboczy} few {# obszary robocze} many {# obszarów roboczych} other {# obszaru roboczego}}"
 
 #. placeholder {0}: shown?.count ?? 0
-msgid "{0, plural, one {A running agent uses a config dir Superset does not manage, so the switch did not reach it.} other {# running agents use config dirs Superset does not manage, so the switch did not reach them.}}"
-msgstr "{0, plural, one {Działający agent korzysta z katalogu konfiguracji, którym Superset nie zarządza, więc przełączenie do niego nie dotarło.} few {# działający agenci korzystają z katalogów konfiguracji, którymi Superset nie zarządza, więc przełączenie do nich nie dotarło.} many {# działających agentów korzysta z katalogów konfiguracji, którymi Superset nie zarządza, więc przełączenie do nich nie dotarło.} other {# działającego agenta korzysta z katalogów konfiguracji, którymi Superset nie zarządza, więc przełączenie do nich nie dotarło.}}"
+msgid "{0, plural, one {A running agent is pinned to its own config dir by its agent configuration, so it keeps the account signed in there.} other {# running agents are pinned to their own config dirs by their agent configuration, so they keep the accounts signed in there.}}"
+msgstr "{0, plural, one {Działający agent jest przypięty przez swoją konfigurację do własnego katalogu konfiguracji, więc zachowuje konto zalogowane w tym katalogu.} few {# działających agentów jest przypiętych przez swoją konfigurację do własnych katalogów konfiguracji, więc zachowują konta zalogowane w tych katalogach.} many {# działających agentów jest przypiętych przez swoją konfigurację do własnych katalogów konfiguracji, więc zachowują konta zalogowane w tych katalogach.} other {# działającego agenta jest przypiętego przez swoją konfigurację do własnych katalogów konfiguracji, więc zachowuje konto zalogowane w tym katalogu.}}"
 
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
@@ -5046,9 +5046,6 @@ msgstr "Każde we własnej nowej karcie"
 
 msgid "Each morning at 8am, look at yesterday's failed CI runs, diagnose the most common failure, and open a fix PR."
 msgstr "Każdego ranka o 8:00 sprawdź wczorajsze nieudane uruchomienia CI, zdiagnozuj najczęstszą przyczynę i otwórz PR z poprawką."
-
-msgid "Each session resumes where it left off."
-msgstr "Każda sesja wznowi się tam, gdzie została przerwana."
 
 msgid "Each surface has its own typography. Changes appear immediately in the live previews."
 msgstr "Każda powierzchnia ma własną typografię. Zmiany widać od razu w podglądach na żywo."
@@ -11263,9 +11260,6 @@ msgstr "Zrestartować wszystkie terminale?"
 msgid "Restart and close sessions"
 msgstr "Zrestartuj i zamknij sesje"
 
-msgid "Restart and resume"
-msgstr "Uruchom ponownie i wznów"
-
 msgid "Restart Browser"
 msgstr "Uruchom przeglądarkę ponownie"
 
@@ -11274,12 +11268,6 @@ msgstr "Zrestartuj demona"
 
 msgid "Restart host service"
 msgstr "Zrestartuj usługę hosta"
-
-msgid "Restart now to move them to {accountLabel}; each session picks its conversation back up where it left off."
-msgstr "Uruchom ich ponownie teraz, aby przenieść na {accountLabel}; każda sesja podejmie rozmowę tam, gdzie ją przerwano."
-
-msgid "Restart running {providerLabel} agents?"
-msgstr "Uruchomić ponownie działających agentów {providerLabel}?"
 
 msgid "Restart terminal daemon?"
 msgstr "Zrestartować demona terminala?"
@@ -11295,9 +11283,6 @@ msgstr "Zrestartowano 1 usługę hosta"
 
 msgid "Restarted and resumed"
 msgstr "Zrestartowano i wznowiono"
-
-msgid "Restarting agents on {accountLabel}."
-msgstr "Ponowne uruchamianie agentów na {accountLabel}."
 
 msgid "Restarting host services…"
 msgstr "Restartowanie usług hosta…"
@@ -12652,6 +12637,9 @@ msgstr "Zgodność z SOC 2 Type II. Poproś o raport."
 
 msgid "SOC 2 Type II report"
 msgstr "Raport SOC 2 Type II"
+
+msgid "Some {providerLabel} sessions stay on their own account"
+msgstr "Część sesji {providerLabel} zostaje na własnym koncie"
 
 msgid "Some files are not an accepted type and were not added."
 msgstr "Część plików ma niedozwolony typ i nie została dodana."

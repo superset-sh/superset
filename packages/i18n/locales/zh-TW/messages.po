@@ -213,8 +213,8 @@ msgid "{0, plural, one {# workspace} other {# workspaces}}"
 msgstr "{0, plural, one {#個工作區} other {#個工作區}}"
 
 #. placeholder {0}: shown?.count ?? 0
-msgid "{0, plural, one {A running agent uses a config dir Superset does not manage, so the switch did not reach it.} other {# running agents use config dirs Superset does not manage, so the switch did not reach them.}}"
-msgstr "{0, plural, one {有一個正在執行的代理程式使用了Superset未管理的設定目錄，切換未生效。} other {有#個正在執行的代理程式使用了Superset未管理的設定目錄，切換未對它們生效。}}"
+msgid "{0, plural, one {A running agent is pinned to its own config dir by its agent configuration, so it keeps the account signed in there.} other {# running agents are pinned to their own config dirs by their agent configuration, so they keep the accounts signed in there.}}"
+msgstr "{0, plural, one {有一個正在執行的代理程式被其代理程式設定固定到自己的設定目錄，因此仍使用該目錄登入的帳號。} other {有#個正在執行的代理程式被其代理程式設定固定到各自的設定目錄，因此仍使用這些目錄登入的帳號。}}"
 
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
@@ -5046,9 +5046,6 @@ msgstr "每條各佔一個新分頁"
 
 msgid "Each morning at 8am, look at yesterday's failed CI runs, diagnose the most common failure, and open a fix PR."
 msgstr "每天早上8點，檢視昨天失敗的CI執行，診斷最常見的失敗原因，並提一個修復PR。"
-
-msgid "Each session resumes where it left off."
-msgstr "每個會話都會從中斷處繼續。"
 
 msgid "Each surface has its own typography. Changes appear immediately in the live previews."
 msgstr "每個介面都有各自的排版設定。更改會立即體現在即時預覽中。"
@@ -11263,9 +11260,6 @@ msgstr "重啟所有終端？"
 msgid "Restart and close sessions"
 msgstr "重啟並關閉會話"
 
-msgid "Restart and resume"
-msgstr "重新啟動並繼續"
-
 msgid "Restart Browser"
 msgstr "重啟瀏覽器"
 
@@ -11274,12 +11268,6 @@ msgstr "重啟守護程式"
 
 msgid "Restart host service"
 msgstr "重啟主機服務"
-
-msgid "Restart now to move them to {accountLabel}; each session picks its conversation back up where it left off."
-msgstr "立即重新啟動即可移至{accountLabel}；每個會話都會從中斷處繼續對話。"
-
-msgid "Restart running {providerLabel} agents?"
-msgstr "要重新啟動執行中的{providerLabel}代理程式嗎？"
 
 msgid "Restart terminal daemon?"
 msgstr "重啟終端守護程式？"
@@ -11295,9 +11283,6 @@ msgstr "已重啟1個主機服務"
 
 msgid "Restarted and resumed"
 msgstr "已重啟並恢復"
-
-msgid "Restarting agents on {accountLabel}."
-msgstr "正在{accountLabel}上重新啟動代理程式。"
 
 msgid "Restarting host services…"
 msgstr "正在重啟主機服務…"
@@ -12652,6 +12637,9 @@ msgstr "已通過SOC 2 Type II合規。可索取報告。"
 
 msgid "SOC 2 Type II report"
 msgstr "SOC 2 Type II報告"
+
+msgid "Some {providerLabel} sessions stay on their own account"
+msgstr "部分{providerLabel}會話仍留在各自的帳號上"
 
 msgid "Some files are not an accepted type and were not added."
 msgstr "部分檔案的型別不被允許，未新增。"

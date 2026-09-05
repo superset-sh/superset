@@ -38,8 +38,8 @@ import type {
 	UsageQuotaWindow,
 } from "../../hooks/useHostUsageQuota";
 import { useHostUsageQuota } from "../../hooks/useHostUsageQuota";
+import { usePinnedAgentSessions } from "../../hooks/usePinnedAgentSessions";
 import { useRemoveUsageAccount } from "../../hooks/useRemoveUsageAccount";
-import { useRestartAgentSessions } from "../../hooks/useRestartAgentSessions";
 import { useSetAccountEngineSettings } from "../../hooks/useSetAccountEngineSettings";
 import { useSetAccountRotation } from "../../hooks/useSetAccountRotation";
 import { useSetDefaultUsageAccount } from "../../hooks/useSetDefaultUsageAccount";
@@ -470,8 +470,7 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 	// cards are touched in a row.
 	const [cardErrors, setCardErrors] = useState<Record<string, string>>({});
 	const [activatingKey, setActivatingKey] = useState<string | null>(null);
-	const { countRestartCandidates, restartMutation } =
-		useRestartAgentSessions(hostUrl);
+	const { countPinnedSessions } = usePinnedAgentSessions(hostUrl);
 
 	const accounts = quotaQuery.data ?? [];
 	const isBusy = quotaQuery.isFetching || isRefreshing;
@@ -513,8 +512,9 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 		});
 	};
 
-	// Sessions the engine cannot hot-swap (Codex, and Claude sessions pinned
-	// outside the active dir) still need a restart — after a switch, offer it.
+	// Sessions pinned to their own config dir by their agent configuration
+	// never move: that env wins over the host default at launch, so no
+	// relaunch would reach them — say so instead of promising otherwise.
 	// When the host can't be asked, fall back to the plain toast.
 	const handleDefaultSwitched = async (
 		agent: ManagedAgent,
@@ -523,13 +523,12 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 		const providerLabel = AGENT_LABELS[agent];
 		let candidateCount = 0;
 		try {
-			candidateCount = await countRestartCandidates(agent);
+			candidateCount = await countPinnedSessions(agent);
 		} catch {
 			// Fall through to the plain toast.
 		}
 		if (candidateCount > 0) {
 			setRestartPrompt({
-				agent,
 				providerLabel,
 				accountLabel,
 				count: candidateCount,
@@ -586,35 +585,13 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 		);
 	};
 
-	const declineRestartSessions = () => {
+	// The switch itself succeeded; the confirmation waits for the notice so
+	// the two never contradict each other on screen at once.
+	const dismissRestartPrompt = () => {
 		if (!restartPrompt) return;
 		const { providerLabel, accountLabel } = restartPrompt;
 		setRestartPrompt(null);
 		showMadeActiveToast(providerLabel, accountLabel);
-	};
-
-	const confirmRestartSessions = () => {
-		if (!restartPrompt) return;
-		const { agent, accountLabel } = restartPrompt;
-		setRestartPrompt(null);
-		restartMutation.mutate(
-			{ agent },
-			{
-				onSuccess: () => {
-					toast.success(
-						t({
-							message: `Restarting agents on ${accountLabel}.`,
-						}),
-						{
-							description: t({
-								message: "Each session resumes where it left off.",
-							}),
-						},
-					);
-				},
-				onError: (error) => toast.error(errorMessage(error)),
-			},
-		);
 	};
 
 	const openAddAgentAccount = (agent: ManagedAgent) => {
@@ -816,8 +793,7 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 
 			<RestartSessionsDialog
 				prompt={restartPrompt}
-				onDecline={declineRestartSessions}
-				onConfirm={confirmRestartSessions}
+				onDismiss={dismissRestartPrompt}
 			/>
 
 			<AddAccountDialog

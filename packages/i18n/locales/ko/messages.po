@@ -213,8 +213,8 @@ msgid "{0, plural, one {# workspace} other {# workspaces}}"
 msgstr "{0, plural, one {워크스페이스 #개} other {워크스페이스 #개}}"
 
 #. placeholder {0}: shown?.count ?? 0
-msgid "{0, plural, one {A running agent uses a config dir Superset does not manage, so the switch did not reach it.} other {# running agents use config dirs Superset does not manage, so the switch did not reach them.}}"
-msgstr "{0, plural, one {Superset이 관리하지 않는 설정 디렉터리를 쓰는 에이전트가 실행 중이어서 전환이 적용되지 않았습니다.} other {Superset이 관리하지 않는 설정 디렉터리를 쓰는 에이전트 #개가 실행 중이어서 전환이 적용되지 않았습니다.}}"
+msgid "{0, plural, one {A running agent is pinned to its own config dir by its agent configuration, so it keeps the account signed in there.} other {# running agents are pinned to their own config dirs by their agent configuration, so they keep the accounts signed in there.}}"
+msgstr "{0, plural, one {에이전트 설정이 전용 설정 디렉터리를 고정한 에이전트가 실행 중이어서 그 디렉터리에 로그인된 계정을 그대로 씁니다.} other {에이전트 설정이 전용 설정 디렉터리를 고정한 에이전트 #개가 실행 중이어서 각자 그 디렉터리에 로그인된 계정을 그대로 씁니다.}}"
 
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
@@ -5046,9 +5046,6 @@ msgstr "각각 새 탭에서"
 
 msgid "Each morning at 8am, look at yesterday's failed CI runs, diagnose the most common failure, and open a fix PR."
 msgstr "매일 오전 8시에 어제 실패한 CI 실행을 살펴보고, 가장 흔한 실패 원인을 진단해 수정 PR을 엽니다."
-
-msgid "Each session resumes where it left off."
-msgstr "각 세션은 중단된 지점부터 이어집니다."
 
 msgid "Each surface has its own typography. Changes appear immediately in the live previews."
 msgstr "각 화면마다 타이포그래피를 따로 설정합니다. 변경 사항은 실시간 미리보기에 바로 반영됩니다."
@@ -11263,9 +11260,6 @@ msgstr "모든 터미널을 다시 시작할까요?"
 msgid "Restart and close sessions"
 msgstr "다시 시작하고 세션 닫기"
 
-msgid "Restart and resume"
-msgstr "다시 시작하고 이어가기"
-
 msgid "Restart Browser"
 msgstr "브라우저 다시 시작"
 
@@ -11274,12 +11268,6 @@ msgstr "데몬 다시 시작"
 
 msgid "Restart host service"
 msgstr "호스트 서비스 다시 시작"
-
-msgid "Restart now to move them to {accountLabel}; each session picks its conversation back up where it left off."
-msgstr "지금 다시 시작하면 {accountLabel}(으)로 이동하며, 각 세션은 중단된 대화를 이어서 진행합니다."
-
-msgid "Restart running {providerLabel} agents?"
-msgstr "실행 중인 {providerLabel} 에이전트를 다시 시작할까요?"
 
 msgid "Restart terminal daemon?"
 msgstr "터미널 데몬을 다시 시작할까요?"
@@ -11295,9 +11283,6 @@ msgstr "호스트 서비스 1개를 재시작했습니다"
 
 msgid "Restarted and resumed"
 msgstr "재시작 후 이어서 진행"
-
-msgid "Restarting agents on {accountLabel}."
-msgstr "{accountLabel}에서 에이전트를 다시 시작하는 중입니다."
 
 msgid "Restarting host services…"
 msgstr "호스트 서비스를 재시작하는 중…"
@@ -12652,6 +12637,9 @@ msgstr "SOC 2 Type II 준수. 보고서를 요청하세요."
 
 msgid "SOC 2 Type II report"
 msgstr "SOC 2 Type II 보고서"
+
+msgid "Some {providerLabel} sessions stay on their own account"
+msgstr "일부 {providerLabel} 세션은 자체 계정을 유지합니다"
 
 msgid "Some files are not an accepted type and were not added."
 msgstr "일부 파일이 허용되지 않는 형식이라 추가되지 않았습니다."

@@ -16,7 +16,6 @@ interface Candidate {
 
 let candidates: Candidate[] = [];
 const queryCandidates = mock(() => Promise.resolve(candidates));
-const restart = mock(() => Promise.resolve({ restartedTerminalIds: [] }));
 
 // Spread the real module: `mock.module` is process-wide, so a partial stub
 // would strip the other exports from every suite in the same run.
@@ -30,18 +29,12 @@ mock.module("renderer/lib/host-service-client", () => ({
 	getHostServiceClientByUrl: () => ({
 		terminalAgents: {
 			accountRestartCandidates: { query: queryCandidates },
-			restartAccountSessions: { mutate: restart },
 		},
 	}),
 }));
 
-const { QueryClient, QueryClientProvider } = await import(
-	"@tanstack/react-query"
-);
-const { act, cleanup, renderHook, waitFor } = await import(
-	"@testing-library/react"
-);
-const { useRestartAgentSessions } = await import("./useRestartAgentSessions");
+const { cleanup, renderHook } = await import("@testing-library/react");
+const { usePinnedAgentSessions } = await import("./usePinnedAgentSessions");
 
 afterEach(cleanup);
 afterAll(async () => {
@@ -56,20 +49,13 @@ afterAll(async () => {
 const HOST = "http://127.0.0.1:7777";
 
 function setup(hostUrl: string | null = HOST) {
-	const queryClient = new QueryClient({
-		defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
-	});
-	return renderHook(() => useRestartAgentSessions(hostUrl), {
-		wrapper: ({ children }: { children: React.ReactNode }) => (
-			<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-		),
-	});
+	return renderHook(() => usePinnedAgentSessions(hostUrl));
 }
 
-describe("useRestartAgentSessions", () => {
+describe("usePinnedAgentSessions", () => {
 	// KTD12: a managed session is hot-swapped in place, so it is never part of
-	// the number the restart prompt asks the user to confirm.
-	test("counts only the sessions the engine could not move", async () => {
+	// the number the notice reports as left behind.
+	test("counts only the sessions pinned to their own config dir", async () => {
 		candidates = [
 			{
 				terminalId: "t-managed",
@@ -92,7 +78,7 @@ describe("useRestartAgentSessions", () => {
 		];
 		const view = setup();
 
-		const count = await view.result.current.countRestartCandidates("claude");
+		const count = await view.result.current.countPinnedSessions("claude");
 
 		expect(count).toBe(2);
 		expect(queryCandidates).toHaveBeenCalledWith({ provider: "claude" });
@@ -102,17 +88,7 @@ describe("useRestartAgentSessions", () => {
 		queryCandidates.mockClear();
 		const view = setup(null);
 
-		expect(await view.result.current.countRestartCandidates("codex")).toBe(0);
+		expect(await view.result.current.countPinnedSessions("codex")).toBe(0);
 		expect(queryCandidates).not.toHaveBeenCalled();
-	});
-
-	test("restarts the agent the prompt was about", async () => {
-		const view = setup();
-		await act(async () => {
-			view.result.current.restartMutation.mutate({ agent: "codex" });
-		});
-		await waitFor(() =>
-			expect(restart).toHaveBeenCalledWith({ provider: "codex" }),
-		);
 	});
 });

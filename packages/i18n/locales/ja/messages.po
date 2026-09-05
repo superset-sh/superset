@@ -213,8 +213,8 @@ msgid "{0, plural, one {# workspace} other {# workspaces}}"
 msgstr "{0, plural, one {#件のワークスペース} other {#件のワークスペース}}"
 
 #. placeholder {0}: shown?.count ?? 0
-msgid "{0, plural, one {A running agent uses a config dir Superset does not manage, so the switch did not reach it.} other {# running agents use config dirs Superset does not manage, so the switch did not reach them.}}"
-msgstr "{0, plural, one {Supersetが管理していない設定ディレクトリを使うエージェントが実行中のため、切り替えが反映されませんでした。} other {Supersetが管理していない設定ディレクトリを使うエージェントが#件実行中のため、切り替えが反映されませんでした。}}"
+msgid "{0, plural, one {A running agent is pinned to its own config dir by its agent configuration, so it keeps the account signed in there.} other {# running agents are pinned to their own config dirs by their agent configuration, so they keep the accounts signed in there.}}"
+msgstr "{0, plural, one {エージェント設定で専用の設定ディレクトリが固定されたエージェントが実行中のため、そのディレクトリでログインしているアカウントのままになります。} other {エージェント設定で専用の設定ディレクトリが固定されたエージェントが#件実行中のため、それぞれそのディレクトリでログインしているアカウントのままになります。}}"
 
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
@@ -5046,9 +5046,6 @@ msgstr "それぞれ新しいタブで"
 
 msgid "Each morning at 8am, look at yesterday's failed CI runs, diagnose the most common failure, and open a fix PR."
 msgstr "毎朝午前8時に、前日の失敗したCI実行を確認し、最も多い失敗原因を診断して修正PRを作成する。"
-
-msgid "Each session resumes where it left off."
-msgstr "各セッションは中断したところから再開します。"
 
 msgid "Each surface has its own typography. Changes appear immediately in the live previews."
 msgstr "サーフェスごとに独自のタイポグラフィがあります。変更はライブプレビューに即座に反映されます。"
@@ -11263,9 +11260,6 @@ msgstr "すべてのターミナルを再起動しますか?"
 msgid "Restart and close sessions"
 msgstr "再起動してセッションを閉じる"
 
-msgid "Restart and resume"
-msgstr "再起動して再開"
-
 msgid "Restart Browser"
 msgstr "ブラウザを再起動"
 
@@ -11274,12 +11268,6 @@ msgstr "デーモンを再起動"
 
 msgid "Restart host service"
 msgstr "ホストサービスを再起動"
-
-msgid "Restart now to move them to {accountLabel}; each session picks its conversation back up where it left off."
-msgstr "今すぐ再起動すると{accountLabel}に移行し、各セッションは会話を中断したところから再開します。"
-
-msgid "Restart running {providerLabel} agents?"
-msgstr "実行中の{providerLabel}エージェントを再起動しますか？"
 
 msgid "Restart terminal daemon?"
 msgstr "ターミナルデーモンを再起動しますか?"
@@ -11295,9 +11283,6 @@ msgstr "1件のホストサービスを再起動しました"
 
 msgid "Restarted and resumed"
 msgstr "再起動して再開"
-
-msgid "Restarting agents on {accountLabel}."
-msgstr "{accountLabel}でエージェントを再起動しています。"
 
 msgid "Restarting host services…"
 msgstr "ホストサービスを再起動中…"
@@ -12652,6 +12637,9 @@ msgstr "SOC 2 Type II準拠。レポートをご請求ください。"
 
 msgid "SOC 2 Type II report"
 msgstr "SOC 2 Type IIレポート"
+
+msgid "Some {providerLabel} sessions stay on their own account"
+msgstr "一部の{providerLabel}セッションは元のアカウントのままです"
 
 msgid "Some files are not an accepted type and were not added."
 msgstr "一部のファイルは対応していない形式のため追加されませんでした。"

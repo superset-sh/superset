@@ -213,8 +213,8 @@ msgid "{0, plural, one {# workspace} other {# workspaces}}"
 msgstr "{0, plural, one {# рабочая область} few {# рабочие области} many {# рабочих областей} other {# рабочей области}}"
 
 #. placeholder {0}: shown?.count ?? 0
-msgid "{0, plural, one {A running agent uses a config dir Superset does not manage, so the switch did not reach it.} other {# running agents use config dirs Superset does not manage, so the switch did not reach them.}}"
-msgstr "{0, plural, one {# работающий агент использует конфиг-каталог, которым Superset не управляет, поэтому переключение до него не дошло.} few {# работающих агента используют конфиг-каталоги, которыми Superset не управляет, поэтому переключение до них не дошло.} many {# работающих агентов используют конфиг-каталоги, которыми Superset не управляет, поэтому переключение до них не дошло.} other {# работающих агента используют конфиг-каталоги, которыми Superset не управляет, поэтому переключение до них не дошло.}}"
+msgid "{0, plural, one {A running agent is pinned to its own config dir by its agent configuration, so it keeps the account signed in there.} other {# running agents are pinned to their own config dirs by their agent configuration, so they keep the accounts signed in there.}}"
+msgstr "{0, plural, one {# работающий агент закреплён своей конфигурацией за собственным конфиг-каталогом, поэтому сохраняет аккаунт, в который вошёл этот каталог.} few {# работающих агента закреплены своей конфигурацией за собственными конфиг-каталогами, поэтому сохраняют аккаунты, в которые вошли эти каталоги.} many {# работающих агентов закреплены своей конфигурацией за собственными конфиг-каталогами, поэтому сохраняют аккаунты, в которые вошли эти каталоги.} other {# работающих агента закреплены своей конфигурацией за собственными конфиг-каталогами, поэтому сохраняют аккаунты, в которые вошли эти каталоги.}}"
 
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
@@ -5046,9 +5046,6 @@ msgstr "Каждая в своей новой вкладке"
 
 msgid "Each morning at 8am, look at yesterday's failed CI runs, diagnose the most common failure, and open a fix PR."
 msgstr "Каждое утро в 8:00 смотри вчерашние упавшие запуски CI, определяй самую частую причину и открывай PR с исправлением."
-
-msgid "Each session resumes where it left off."
-msgstr "Каждая сессия продолжит с того места, где остановилась."
 
 msgid "Each surface has its own typography. Changes appear immediately in the live previews."
 msgstr "У каждой поверхности своя типографика. Изменения сразу видны в живом предпросмотре."
@@ -11263,9 +11260,6 @@ msgstr "Перезапустить все терминалы?"
 msgid "Restart and close sessions"
 msgstr "Перезапустить и закрыть сессии"
 
-msgid "Restart and resume"
-msgstr "Перезапустить и продолжить"
-
 msgid "Restart Browser"
 msgstr "Перезапустить браузер"
 
@@ -11274,12 +11268,6 @@ msgstr "Перезапустить демон"
 
 msgid "Restart host service"
 msgstr "Перезапустить службу хоста"
-
-msgid "Restart now to move them to {accountLabel}; each session picks its conversation back up where it left off."
-msgstr "Перезапустите их сейчас, чтобы перевести на {accountLabel}; каждая сессия продолжит разговор с того места, где остановилась."
-
-msgid "Restart running {providerLabel} agents?"
-msgstr "Перезапустить работающих агентов {providerLabel}?"
 
 msgid "Restart terminal daemon?"
 msgstr "Перезапустить демон терминала?"
@@ -11295,9 +11283,6 @@ msgstr "Перезапущена 1 служба хоста"
 
 msgid "Restarted and resumed"
 msgstr "Перезапущены и продолжены"
-
-msgid "Restarting agents on {accountLabel}."
-msgstr "Перезапускаем агентов на {accountLabel}."
 
 msgid "Restarting host services…"
 msgstr "Перезапуск служб хоста…"
@@ -12652,6 +12637,9 @@ msgstr "Соответствие SOC 2 Type II. Запросите отчёт."
 
 msgid "SOC 2 Type II report"
 msgstr "Отчёт SOC 2 Type II"
+
+msgid "Some {providerLabel} sessions stay on their own account"
+msgstr "Часть сессий {providerLabel} остаётся на своём аккаунте"
 
 msgid "Some files are not an accepted type and were not added."
 msgstr "Некоторые файлы не подходят по типу и не были добавлены."
