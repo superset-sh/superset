@@ -1,29 +1,16 @@
+import type { AppRouter } from "@superset/host-service";
 import { useQuery } from "@tanstack/react-query";
+import type { inferRouterOutputs } from "@trpc/server";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import type { EngineAgent } from "../useAccountEngineSettings";
+
+type RouterOutputs = inferRouterOutputs<AppRouter>;
+
+export type SwitchHistoryEntry =
+	RouterOutputs["usage"]["engine"]["history"]["entries"][number];
 
 /** Why the engine moved (KTD6): structured, so the renderer composes and
  * translates the sentence instead of showing host-composed text. */
-export type SwitchReasonKind =
-	| "threshold"
-	| "strategy"
-	| "manual"
-	| "fallback"
-	| "fallback-rejected"
-	| "external";
-
-export interface SwitchHistoryEntry {
-	at: number;
-	agent: EngineAgent;
-	fromAccountId: string | null;
-	fromLabel: string | null;
-	toAccountId: string | null;
-	toLabel: string | null;
-	reasonKind: SwitchReasonKind;
-	windowId?: string | null;
-	usedPercent?: number | null;
-	fallbackRestart?: boolean;
-}
+export type SwitchReasonKind = SwitchHistoryEntry["reasonKind"];
 
 export const SWITCH_HISTORY_QUERY_KEY = ["host-switch-history"] as const;
 

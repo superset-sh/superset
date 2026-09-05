@@ -12,18 +12,12 @@ import { useEffect, useEffectEvent } from "react";
 import { getHostEventBus } from "renderer/lib/host-event-bus";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
+import { ACCOUNT_ENGINE_QUERY_KEY } from "renderer/routes/_authenticated/settings/usage/hooks/useAccountEngineSettings";
 import { invalidateHostUsageQuota } from "renderer/routes/_authenticated/settings/usage/hooks/useHostUsageQuota";
+import { SWITCH_HISTORY_QUERY_KEY } from "renderer/routes/_authenticated/settings/usage/hooks/useSwitchHistory";
 import type { HostNotificationWorkspaceState } from "../HostNotificationSubscriber";
 
 type AccountAgent = AccountSwitchedPayload["agent"];
-
-/**
- * Query keys of the Usage page's engine hooks. Duplicated rather than
- * imported so a background notification listener never pulls the settings
- * route's module graph in; they must stay in step with those hooks.
- */
-const ENGINE_SETTINGS_QUERY_KEY = "host-account-engine-settings";
-const ENGINE_HISTORY_QUERY_KEY = "host-account-engine-history";
 
 /** How far back the away summary looks. Older switches are not summarised. */
 const AWAY_SUMMARY_LIMIT = 50;
@@ -101,7 +95,7 @@ export function AccountSwitchSubscriber({
 	const handleEngineState = useEffectEvent(
 		(_agent: string, payload: AccountEngineStatePayload) => {
 			void queryClient.invalidateQueries({
-				queryKey: [ENGINE_SETTINGS_QUERY_KEY, hostUrl],
+				queryKey: [...ACCOUNT_ENGINE_QUERY_KEY, hostUrl],
 			});
 			notifyExhaustion(payload);
 			notifyNeedsAttention(payload, workspaces);
@@ -143,10 +137,10 @@ function invalidateAccountQueries(
 	return Promise.all([
 		invalidateHostUsageQuota(queryClient, hostUrl),
 		queryClient.invalidateQueries({
-			queryKey: [ENGINE_SETTINGS_QUERY_KEY, hostUrl],
+			queryKey: [...ACCOUNT_ENGINE_QUERY_KEY, hostUrl],
 		}),
 		queryClient.invalidateQueries({
-			queryKey: [ENGINE_HISTORY_QUERY_KEY, hostUrl],
+			queryKey: [...SWITCH_HISTORY_QUERY_KEY, hostUrl],
 		}),
 	]);
 }

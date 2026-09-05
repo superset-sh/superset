@@ -96,6 +96,15 @@ mock.module("@superset/ui/sonner", () => ({
 	},
 }));
 
+const { ACCOUNT_ENGINE_QUERY_KEY } = await import(
+	"renderer/routes/_authenticated/settings/usage/hooks/useAccountEngineSettings"
+);
+const { HOST_USAGE_QUOTA_QUERY_KEY } = await import(
+	"renderer/routes/_authenticated/settings/usage/hooks/useHostUsageQuota"
+);
+const { SWITCH_HISTORY_QUERY_KEY } = await import(
+	"renderer/routes/_authenticated/settings/usage/hooks/useSwitchHistory"
+);
 const { act, cleanup, render } = await import("@testing-library/react");
 const { QueryClient, QueryClientProvider } = await import(
 	"@tanstack/react-query"
@@ -131,9 +140,9 @@ async function mountSubscriber(hostUrl: string) {
 	});
 	// Seed each key so `getQueryState` can report whether it was invalidated.
 	const keys = [
-		["host-usage-quota", hostUrl],
-		["host-account-engine-settings", hostUrl],
-		["host-account-engine-history", hostUrl],
+		[...HOST_USAGE_QUOTA_QUERY_KEY, hostUrl],
+		[...ACCOUNT_ENGINE_QUERY_KEY, hostUrl],
+		[...SWITCH_HISTORY_QUERY_KEY, hostUrl],
 	];
 	for (const key of keys) queryClient.setQueryData(key, []);
 
@@ -209,9 +218,9 @@ describe("switch notifications", () => {
 			},
 		]);
 		expect(invalidatedKeys()).toEqual([
-			"host-usage-quota",
-			"host-account-engine-settings",
-			"host-account-engine-history",
+			HOST_USAGE_QUOTA_QUERY_KEY[0],
+			ACCOUNT_ENGINE_QUERY_KEY[0],
+			SWITCH_HISTORY_QUERY_KEY[0],
 		]);
 	});
 
@@ -235,7 +244,7 @@ describe("switch notifications", () => {
 		);
 
 		expect(shown).toEqual([]);
-		expect(invalidatedKeys()).toContain("host-usage-quota");
+		expect(invalidatedKeys()).toContain(HOST_USAGE_QUOTA_QUERY_KEY[0]);
 	});
 
 	test("a model window names the model", async () => {
