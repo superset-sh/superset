@@ -1211,24 +1211,30 @@ export const auth = betterAuth({
 					);
 					const accessEndsAt = subscription.periodEnd ?? new Date();
 
-					const portalSession =
-						await stripeClient.billingPortal.sessions.create({
-							customer: org.stripeCustomerId,
-							return_url: env.NEXT_PUBLIC_WEB_URL,
-						});
+					// periodEnd is the period Stripe was trying to bill for, so on a
+					// collection failure it sits weeks in the future while access has
+					// already stopped. Only a voluntary cancel keeps access until then.
+					const dueToPaymentFailure =
+						(cancellationDetails ?? stripeSubscription.cancellation_details)
+							?.reason === "payment_failed";
 
 					await resend.batch.send(
 						recipients.map((recipient) => ({
 							from: "Superset <noreply@superset.sh>",
 							to: recipient.email,
-							subject: `Your ${subscription.plan} subscription has been cancelled`,
+							subject: dueToPaymentFailure
+								? `Your ${subscription.plan} subscription ended`
+								: `Your ${subscription.plan} subscription has been cancelled`,
 							react: SubscriptionCancelledEmail({
 								recipientName: recipient.name,
 								organizationName: org.name,
 								planName: subscription.plan,
 								accessEndsAt,
-								billingPortalUrl:
-									recipient.role === "owner" ? portalSession.url : undefined,
+								dueToPaymentFailure,
+								resubscribeUrl:
+									recipient.role === "owner"
+										? env.NEXT_PUBLIC_WEB_URL
+										: undefined,
 							}),
 						})),
 					);
@@ -1277,30 +1283,40 @@ export const auth = betterAuth({
 							where: eq(subscriptions.referenceId, org.id),
 						});
 
-						const recipients = await getOrganizationBillingRecipients(org.id);
-						const amount = formatPrice(invoice.amount_due, invoice.currency);
+						const isFinalAttempt = invoice.next_payment_attempt == null;
+						const isFirstAttempt = (invoice.attempt_count ?? 0) <= 1;
 
-						const portalSession =
-							await stripeClient.billingPortal.sessions.create({
-								customer: org.stripeCustomerId,
-								return_url: env.NEXT_PUBLIC_WEB_URL,
-							});
+						// Stripe fires this on every retry. Mailing all of them trains
+						// people to ignore the one that matters, so only the opening
+						// notice and the last-chance notice go out.
+						if (isFirstAttempt || isFinalAttempt) {
+							const recipients = await getOrganizationBillingRecipients(org.id);
+							const amount = formatPrice(invoice.amount_due, invoice.currency);
+							const nextRetryDate = invoice.next_payment_attempt
+								? new Date(invoice.next_payment_attempt * 1000)
+								: null;
 
-						await resend.batch.send(
-							recipients.map((recipient) => ({
-								from: "Superset <noreply@superset.sh>",
-								to: recipient.email,
-								subject: `Payment failed for ${org.name}`,
-								react: PaymentFailedEmail({
-									recipientName: recipient.name,
-									organizationName: org.name,
-									planName: subscription?.plan ?? "Pro",
-									amount,
-									billingPortalUrl:
-										recipient.role === "owner" ? portalSession.url : undefined,
-								}),
-							})),
-						);
+							await resend.batch.send(
+								recipients.map((recipient) => ({
+									from: "Superset <noreply@superset.sh>",
+									to: recipient.email,
+									subject: isFinalAttempt
+										? `Final notice: payment failed for ${org.name}`
+										: `Payment failed for ${org.name}`,
+									react: PaymentFailedEmail({
+										recipientName: recipient.name,
+										organizationName: org.name,
+										planName: subscription?.plan ?? "Pro",
+										amount,
+										nextRetryDate,
+										payInvoiceUrl:
+											recipient.role === "owner"
+												? (invoice.hosted_invoice_url ?? undefined)
+												: undefined,
+									}),
+								})),
+							);
+						}
 
 						const stripeSubId =
 							subscription?.stripeSubscriptionId ??
