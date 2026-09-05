@@ -1,7 +1,7 @@
 import type { WorkspaceState } from "@superset/panes";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { useLiveQuery } from "@tanstack/react-db";
-import { Fragment, useEffectEvent, useMemo } from "react";
+import { useEffectEvent, useMemo } from "react";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -17,6 +17,7 @@ import {
 	HostNotificationSubscriber,
 	type HostNotificationWorkspaceState,
 } from "./components/HostNotificationSubscriber";
+import { getAccountSwitchGroups } from "./lib/getAccountSwitchGroups";
 import { getNotificationWorkspaceName } from "./lib/getNotificationWorkspaceName";
 import { markV2AgentLifecycleTargetSeen } from "./lib/lifecycleEvents";
 
@@ -120,6 +121,12 @@ export function V2NotificationController() {
 			}),
 		[workspaceHosts, workspaceStatesById, machineId, activeHostUrl, relayUrl],
 	);
+	// Account events are host-wide, so the local host is subscribed whether or
+	// not the sidebar currently shows a workspace living on it.
+	const accountSwitchGroups = useMemo(
+		() => getAccountSwitchGroups({ hostGroups, activeHostUrl }),
+		[hostGroups, activeHostUrl],
+	);
 
 	const handleElectronAgentLifecycle = useEffectEvent(
 		(event: ElectronNotificationEvent) => {
@@ -170,16 +177,18 @@ export function V2NotificationController() {
 	return (
 		<>
 			{hostGroups.map((group) => (
-				<Fragment key={group.hostUrl}>
-					<HostNotificationSubscriber
-						hostUrl={group.hostUrl}
-						workspaces={group.workspaces}
-					/>
-					<AccountSwitchSubscriber
-						hostUrl={group.hostUrl}
-						workspaces={group.workspaces}
-					/>
-				</Fragment>
+				<HostNotificationSubscriber
+					key={group.hostUrl}
+					hostUrl={group.hostUrl}
+					workspaces={group.workspaces}
+				/>
+			))}
+			{accountSwitchGroups.map((group) => (
+				<AccountSwitchSubscriber
+					key={group.hostUrl}
+					hostUrl={group.hostUrl}
+					workspaces={group.workspaces}
+				/>
 			))}
 		</>
 	);

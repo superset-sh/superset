@@ -472,6 +472,9 @@ msgstr "{accountLabel} giờ là tài khoản {providerLabel} đang hoạt độ
 msgid "{actual} so far · ~{projected} projected"
 msgstr "{actual} đến hiện tại · dự kiến ~{projected}"
 
+msgid "{agent} could not switch accounts"
+msgstr "{agent} không thể đổi tài khoản"
+
 msgid "{agent} switched account"
 msgstr "{agent} đã đổi tài khoản"
 
@@ -6586,6 +6589,9 @@ msgstr "lịch sử"
 
 msgid "History"
 msgstr "Lịch sử"
+
+msgid "History is unavailable right now. Reopen this page to try again."
+msgstr "Hiện không thể tải lịch sử. Hãy mở lại trang này để thử lại."
 
 msgid "Home"
 msgstr "Trang chủ"
@@ -13216,6 +13222,7 @@ msgid "Switch at"
 msgstr "Đổi khi đạt"
 
 #. placeholder {0}: engineErrorCode(failure)
+#. placeholder {0}: failure.code
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "Đổi tài khoản thất bại ({0}). Tài khoản trước đó vẫn đang hoạt động."
 

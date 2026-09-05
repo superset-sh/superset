@@ -24,6 +24,8 @@ if (!alreadyRegistered) GlobalRegistrator.register();
 
 type BusListener = (scope: string, payload: unknown) => void;
 
+/** Keyed by `${hostUrl}|${eventType}`: the latches under test are per host,
+ * so a test has to be able to deliver an event to one host only. */
 const busListeners = new Map<string, Set<BusListener>>();
 let busRetainCount = 0;
 
@@ -35,11 +37,12 @@ const realSonner = await import("@superset/ui/sonner");
 
 mock.module("renderer/lib/host-event-bus", () => ({
 	...realHostEventBus,
-	getHostEventBus: () => ({
+	getHostEventBus: (hostUrl: string) => ({
 		on: (type: string, _scope: string, callback: BusListener) => {
-			const listeners = busListeners.get(type) ?? new Set<BusListener>();
+			const key = `${hostUrl}|${type}`;
+			const listeners = busListeners.get(key) ?? new Set<BusListener>();
 			listeners.add(callback);
-			busListeners.set(type, listeners);
+			busListeners.set(key, listeners);
 			return () => listeners.delete(callback);
 		},
 		retain: () => {
@@ -166,10 +169,20 @@ async function mountSubscriber(hostUrl: string) {
 	};
 }
 
-async function emit(type: string, scope: string, payload: unknown) {
+/** Delivers to every mounted host, or to `hostUrl` alone when one is named. */
+async function emit(
+	type: string,
+	scope: string,
+	payload: unknown,
+	hostUrl?: string,
+) {
 	await act(async () => {
-		for (const listener of busListeners.get(type) ?? []) {
-			listener(scope, payload);
+		for (const [key, listeners] of busListeners) {
+			const separator = key.lastIndexOf("|");
+			if (key.slice(separator + 1) !== type) continue;
+			if (hostUrl !== undefined && key.slice(0, separator) !== hostUrl)
+				continue;
+			for (const listener of listeners) listener(scope, payload);
 		}
 	});
 }
@@ -334,6 +347,112 @@ describe("engine state notices", () => {
 		expect(shown[0]).toMatchObject({
 			title: "A Codex session needs attention",
 			body: "Fix the login page",
+		});
+	});
+
+	// The latches are module-level, so keying them by agent alone let the
+	// first host that reported an episode silence every other host's.
+	test("one host's exhaustion does not silence another host's", async () => {
+		await mountSubscriber("http://host-two-exhausted-a");
+		await mountSubscriber("http://host-two-exhausted-b");
+
+		await emit(
+			"account:engine-state",
+			"claude",
+			engineState({ occurredAt: 7_001, exhausted: true }),
+			"http://host-two-exhausted-a",
+		);
+		await emit(
+			"account:engine-state",
+			"claude",
+			engineState({ occurredAt: 7_002, exhausted: true }),
+			"http://host-two-exhausted-b",
+		);
+
+		expect(shown).toHaveLength(2);
+	});
+
+	test("one host's stuck session does not silence another host's", async () => {
+		await mountSubscriber("http://host-two-attention-a");
+		await mountSubscriber("http://host-two-attention-b");
+		const payload = engineState({
+			occurredAt: 7_003,
+			needsAttention: {
+				workspaceId: "workspace-1",
+				terminalId: "terminal-9",
+				reason: "resume-failed",
+			},
+		});
+
+		await emit(
+			"account:engine-state",
+			"claude",
+			payload,
+			"http://host-two-attention-a",
+		);
+		await emit(
+			"account:engine-state",
+			"claude",
+			payload,
+			"http://host-two-attention-b",
+		);
+
+		expect(shown).toHaveLength(2);
+	});
+});
+
+describe("switch failures", () => {
+	test("a failed automatic switch is told once, and again when it recurs", async () => {
+		await mountSubscriber("http://host-switch-failure");
+		const failure = { code: "verify-failed" as const, at: 8_000 };
+
+		await emit(
+			"account:engine-state",
+			"claude",
+			engineState({ occurredAt: 8_001, lastSwitchFailure: failure }),
+		);
+		// The same failure re-broadcast (a later state change) says nothing new.
+		await emit(
+			"account:engine-state",
+			"claude",
+			engineState({ occurredAt: 8_002, lastSwitchFailure: failure }),
+		);
+
+		expect(shown).toEqual([
+			{
+				silent: true,
+				title: "Claude could not switch accounts",
+				body: "Switch failed (verify-failed). The previous account is still active.",
+			},
+		]);
+
+		await emit(
+			"account:engine-state",
+			"claude",
+			engineState({
+				occurredAt: 8_003,
+				lastSwitchFailure: { code: "verify-failed", at: 8_500 },
+			}),
+		);
+		expect(shown).toHaveLength(2);
+	});
+
+	test("a code the renderer has wording for reads as that wording", async () => {
+		await mountSubscriber("http://host-switch-failure-known");
+
+		await emit(
+			"account:engine-state",
+			"codex",
+			engineState({
+				occurredAt: 9_001,
+				agent: "codex",
+				lastSwitchFailure: { code: "unsupported-platform", at: 9_000 },
+			}),
+		);
+
+		expect(shown[0]).toMatchObject({
+			title: "Codex could not switch accounts",
+			body: "Automatic account switching is not available on Windows. Switch accounts by hand instead.",
 		});
 	});
 });

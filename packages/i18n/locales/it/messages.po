@@ -472,6 +472,9 @@ msgstr "{accountLabel} è ora l'account {providerLabel} attivo."
 msgid "{actual} so far · ~{projected} projected"
 msgstr "{actual} finora · ~{projected} previste"
 
+msgid "{agent} could not switch accounts"
+msgstr "{agent} non è riuscito a cambiare account"
+
 msgid "{agent} switched account"
 msgstr "{agent} ha cambiato account"
 
@@ -6586,6 +6589,9 @@ msgstr "cronologia"
 
 msgid "History"
 msgstr "Cronologia"
+
+msgid "History is unavailable right now. Reopen this page to try again."
+msgstr "La cronologia non è disponibile al momento. Riapri questa pagina per riprovare."
 
 msgid "Home"
 msgstr "Home"
@@ -13216,6 +13222,7 @@ msgid "Switch at"
 msgstr "Cambia a"
 
 #. placeholder {0}: engineErrorCode(failure)
+#. placeholder {0}: failure.code
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "Cambio non riuscito ({0}). L'account precedente è ancora attivo."
 

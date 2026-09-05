@@ -472,6 +472,9 @@ msgstr "{accountLabel}现在是{providerLabel}正在使用的账户。"
 msgid "{actual} so far · ~{projected} projected"
 msgstr "目前{actual} · 预计约{projected}"
 
+msgid "{agent} could not switch accounts"
+msgstr "{agent}无法切换账户"
+
 msgid "{agent} switched account"
 msgstr "{agent}已切换账户"
 
@@ -6586,6 +6589,9 @@ msgstr "历史"
 
 msgid "History"
 msgstr "历史"
+
+msgid "History is unavailable right now. Reopen this page to try again."
+msgstr "暂时无法获取记录。重新打开此页面可再试一次。"
 
 msgid "Home"
 msgstr "首页"
@@ -13216,6 +13222,7 @@ msgid "Switch at"
 msgstr "切换阈值"
 
 #. placeholder {0}: engineErrorCode(failure)
+#. placeholder {0}: failure.code
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "切换失败（{0}）。之前的账户仍在使用中。"
 

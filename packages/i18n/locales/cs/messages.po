@@ -472,6 +472,9 @@ msgstr "{accountLabel} je nyní aktivní účet {providerLabel}."
 msgid "{actual} so far · ~{projected} projected"
 msgstr "zatím {actual} · odhad ~{projected}"
 
+msgid "{agent} could not switch accounts"
+msgstr "{agent} nemohl přepnout účet"
+
 msgid "{agent} switched account"
 msgstr "{agent} přepnul účet"
 
@@ -6586,6 +6589,9 @@ msgstr "historie"
 
 msgid "History"
 msgstr "Historie"
+
+msgid "History is unavailable right now. Reopen this page to try again."
+msgstr "Historie je momentálně nedostupná. Zkuste to znovu otevřením této stránky."
 
 msgid "Home"
 msgstr "Domů"
@@ -13216,6 +13222,7 @@ msgid "Switch at"
 msgstr "Přepnout při"
 
 #. placeholder {0}: engineErrorCode(failure)
+#. placeholder {0}: failure.code
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "Přepnutí selhalo ({0}). Předchozí účet je stále aktivní."
 

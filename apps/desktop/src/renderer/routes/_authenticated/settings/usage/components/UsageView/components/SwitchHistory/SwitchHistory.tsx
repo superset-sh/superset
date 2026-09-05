@@ -8,6 +8,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@superset/ui/table";
+import { cn } from "@superset/ui/utils";
 import { windowLabel } from "renderer/routes/_authenticated/utils/windowLabel";
 import type { EngineAgent } from "../../../../hooks/useAccountEngineSettings";
 import type { SwitchHistoryEntry } from "../../../../hooks/useSwitchHistory";
@@ -15,8 +16,13 @@ import type { SwitchHistoryEntry } from "../../../../hooks/useSwitchHistory";
 interface SwitchHistoryProps {
 	entries: SwitchHistoryEntry[];
 	isLoading: boolean;
+	/** The host could not be read: an empty table would claim nothing happened. */
+	isError: boolean;
 	/** Brand names, supplied by the page so both surfaces title an agent alike. */
 	agentLabels: Record<EngineAgent, string>;
+	/** Follows the page toggle, so a screenshot of the page hides the emails
+	 * here too — the account cards blur theirs the same way. */
+	hideEmails: boolean;
 }
 
 /**
@@ -27,12 +33,20 @@ interface SwitchHistoryProps {
 export function SwitchHistory({
 	entries,
 	isLoading,
+	isError,
 	agentLabels,
+	hideEmails,
 }: SwitchHistoryProps) {
 	const { t } = useLingui();
 	const unknownAccount = t({
 		message: "Unknown account",
 	});
+	const hiddenEmail = t({
+		message: "Email hidden",
+	});
+
+	const accountLabel = (label: string | null): string =>
+		hideEmails && label ? hiddenEmail : (label ?? unknownAccount);
 
 	const reasonText = (entry: SwitchHistoryEntry): string => {
 		switch (entry.reasonKind) {
@@ -92,6 +106,12 @@ export function SwitchHistory({
 				<div className="rounded-lg border border-dashed px-3 py-2 text-[11px] text-muted-foreground">
 					<Trans>Reading switch history…</Trans>
 				</div>
+			) : isError ? (
+				<div className="rounded-lg border border-dashed px-3 py-2 text-[11px] text-muted-foreground">
+					<Trans>
+						History is unavailable right now. Reopen this page to try again.
+					</Trans>
+				</div>
 			) : entries.length === 0 ? (
 				<div className="rounded-lg border border-dashed px-3 py-2 text-[11px] text-muted-foreground">
 					<Trans>
@@ -143,11 +163,21 @@ export function SwitchHistory({
 									<TableCell className="px-2 py-1">
 										{agentLabels[entry.agent]}
 									</TableCell>
-									<TableCell className="max-w-[12rem] truncate px-2 py-1 text-muted-foreground">
-										{entry.fromLabel ?? unknownAccount}
+									<TableCell
+										className={cn(
+											"max-w-[12rem] truncate px-2 py-1 text-muted-foreground",
+											hideEmails && entry.fromLabel && "select-none blur-[5px]",
+										)}
+									>
+										{accountLabel(entry.fromLabel)}
 									</TableCell>
-									<TableCell className="max-w-[12rem] truncate px-2 py-1">
-										{entry.toLabel ?? unknownAccount}
+									<TableCell
+										className={cn(
+											"max-w-[12rem] truncate px-2 py-1",
+											hideEmails && entry.toLabel && "select-none blur-[5px]",
+										)}
+									>
+										{accountLabel(entry.toLabel)}
 									</TableCell>
 									<TableCell className="px-2 py-1 text-muted-foreground">
 										{reasonText(entry)}

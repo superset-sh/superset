@@ -472,6 +472,9 @@ msgstr "{accountLabel} kini menjadi akun {providerLabel} yang aktif."
 msgid "{actual} so far · ~{projected} projected"
 msgstr "{actual} sejauh ini · ~{projected} diperkirakan"
 
+msgid "{agent} could not switch accounts"
+msgstr "{agent} tidak dapat mengganti akun"
+
 msgid "{agent} switched account"
 msgstr "{agent} mengganti akun"
 
@@ -6586,6 +6589,9 @@ msgstr "riwayat"
 
 msgid "History"
 msgstr "Riwayat"
+
+msgid "History is unavailable right now. Reopen this page to try again."
+msgstr "Riwayat tidak tersedia saat ini. Buka ulang halaman ini untuk mencoba lagi."
 
 msgid "Home"
 msgstr "Beranda"
@@ -13216,6 +13222,7 @@ msgid "Switch at"
 msgstr "Ganti pada"
 
 #. placeholder {0}: engineErrorCode(failure)
+#. placeholder {0}: failure.code
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "Pergantian gagal ({0}). Akun sebelumnya tetap aktif."
 

@@ -472,6 +472,9 @@ msgstr "{accountLabel}現在是{providerLabel}正在使用的帳戶。"
 msgid "{actual} so far · ~{projected} projected"
 msgstr "目前{actual} · 預計約{projected}"
 
+msgid "{agent} could not switch accounts"
+msgstr "{agent}無法切換帳戶"
+
 msgid "{agent} switched account"
 msgstr "{agent}已切換帳戶"
 
@@ -6586,6 +6589,9 @@ msgstr "歷史"
 
 msgid "History"
 msgstr "歷史"
+
+msgid "History is unavailable right now. Reopen this page to try again."
+msgstr "暫時無法取得記錄。重新開啟此頁面可再試一次。"
 
 msgid "Home"
 msgstr "首頁"
@@ -13216,6 +13222,7 @@ msgid "Switch at"
 msgstr "切換門檻"
 
 #. placeholder {0}: engineErrorCode(failure)
+#. placeholder {0}: failure.code
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "切換失敗（{0}）。之前的帳戶仍在使用中。"
 

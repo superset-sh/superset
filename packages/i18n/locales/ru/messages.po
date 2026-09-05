@@ -472,6 +472,9 @@ msgstr "{accountLabel} теперь активный аккаунт {providerLab
 msgid "{actual} so far · ~{projected} projected"
 msgstr "{actual} на данный момент · прогноз ~{projected}"
 
+msgid "{agent} could not switch accounts"
+msgstr "{agent}: не удалось переключить аккаунт"
+
 msgid "{agent} switched account"
 msgstr "{agent}: аккаунт переключён"
 
@@ -6586,6 +6589,9 @@ msgstr "история"
 
 msgid "History"
 msgstr "История"
+
+msgid "History is unavailable right now. Reopen this page to try again."
+msgstr "История сейчас недоступна. Откройте эту страницу заново, чтобы повторить попытку."
 
 msgid "Home"
 msgstr "Главная"
@@ -13216,6 +13222,7 @@ msgid "Switch at"
 msgstr "Переключать при"
 
 #. placeholder {0}: engineErrorCode(failure)
+#. placeholder {0}: failure.code
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "Не удалось переключить ({0}). Прежний аккаунт остаётся активным."
 

@@ -472,6 +472,9 @@ msgstr "{accountLabel}が{providerLabel}のアクティブなアカウントに�
 msgid "{actual} so far · ~{projected} projected"
 msgstr "現時点で{actual} · 予測は約{projected}"
 
+msgid "{agent} could not switch accounts"
+msgstr "{agent}はアカウントを切り替えられませんでした"
+
 msgid "{agent} switched account"
 msgstr "{agent}がアカウントを切り替えました"
 
@@ -6586,6 +6589,9 @@ msgstr "履歴"
 
 msgid "History"
 msgstr "履歴"
+
+msgid "History is unavailable right now. Reopen this page to try again."
+msgstr "履歴は現在利用できません。このページを開き直すと再試行します。"
 
 msgid "Home"
 msgstr "ホーム"
@@ -13216,6 +13222,7 @@ msgid "Switch at"
 msgstr "切り替えるしきい値"
 
 #. placeholder {0}: engineErrorCode(failure)
+#. placeholder {0}: failure.code
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "切り替えに失敗しました({0})。以前のアカウントがそのままアクティブです。"
 

@@ -41,6 +41,11 @@ const { useRestartAgentSessions } = await import("./useRestartAgentSessions");
 
 afterEach(cleanup);
 afterAll(async () => {
+	// `mock.module` is process-wide and `mock.restore` does not undo it, so the
+	// real module goes back before the next suite in this run asks for a client.
+	mock.module("renderer/lib/host-service-client", () => ({
+		...realHostServiceClient,
+	}));
 	if (!alreadyRegistered) await GlobalRegistrator.unregister();
 });
 

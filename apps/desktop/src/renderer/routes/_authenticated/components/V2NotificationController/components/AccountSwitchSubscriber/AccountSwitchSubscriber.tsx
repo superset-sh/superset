@@ -12,6 +12,7 @@ import { useEffect, useEffectEvent } from "react";
 import { getHostEventBus } from "renderer/lib/host-event-bus";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
+import { engineErrorMessage } from "renderer/routes/_authenticated/settings/usage/components/UsageView/utils/engineErrorMessage";
 import { ACCOUNT_ENGINE_QUERY_KEY } from "renderer/routes/_authenticated/settings/usage/hooks/useAccountEngineSettings";
 import { invalidateHostUsageQuota } from "renderer/routes/_authenticated/settings/usage/hooks/useHostUsageQuota";
 import { SWITCH_HISTORY_QUERY_KEY } from "renderer/routes/_authenticated/settings/usage/hooks/useSwitchHistory";
@@ -39,11 +40,19 @@ const seenSwitchKeys = new Set<string>();
 const MAX_SEEN_SWITCH_KEYS = 200;
 
 /** Agents currently in the R22 all-exhausted state, so it notifies once per
- * episode rather than on every engine-state broadcast. */
-const exhaustedAgents = new Set<AccountAgent>();
+ * episode rather than on every engine-state broadcast. Keyed by
+ * `${hostUrl}|${agent}`: engine state is per host, so one host's episode must
+ * not silence another's. */
+const exhaustedAgents = new Set<string>();
 
-/** Last "needs attention" session reported per agent, same reasoning. */
-const needsAttentionKeys = new Map<AccountAgent, string>();
+/** Last "needs attention" session reported per host and agent, same
+ * reasoning. */
+const needsAttentionKeys = new Map<string, string>();
+
+/** Per-host, per-agent latch key for the engine-state notices. */
+function latchKey(hostUrl: string, agent: AccountAgent): string {
+	return `${hostUrl}|${agent}`;
+}
 
 /** Hosts whose away summary already ran in this renderer. */
 const summarisedHosts = new Set<string>();
@@ -98,8 +107,9 @@ export function AccountSwitchSubscriber({
 			void queryClient.invalidateQueries({
 				queryKey: [...ACCOUNT_ENGINE_QUERY_KEY, hostUrl],
 			});
-			notifyExhaustion(payload);
-			notifyNeedsAttention(payload, workspaces);
+			notifyExhaustion(payload, hostUrl);
+			notifyNeedsAttention(payload, hostUrl, workspaces);
+			notifySwitchFailure(payload);
 		},
 	);
 
@@ -210,13 +220,17 @@ function getAgentLabel(agent: AccountAgent): string {
 }
 
 /** R22: told once per episode, and again only after the engine recovers. */
-function notifyExhaustion(payload: AccountEngineStatePayload): void {
+function notifyExhaustion(
+	payload: AccountEngineStatePayload,
+	hostUrl: string,
+): void {
+	const key = latchKey(hostUrl, payload.agent);
 	if (!payload.exhausted) {
-		exhaustedAgents.delete(payload.agent);
+		exhaustedAgents.delete(key);
 		return;
 	}
-	if (exhaustedAgents.has(payload.agent)) return;
-	exhaustedAgents.add(payload.agent);
+	if (exhaustedAgents.has(key)) return;
+	exhaustedAgents.add(key);
 
 	const agent = getAgentLabel(payload.agent);
 	showNative({
@@ -230,16 +244,18 @@ function notifyExhaustion(payload: AccountEngineStatePayload): void {
 /** KTD8: a session the engine could not move on its own. */
 function notifyNeedsAttention(
 	payload: AccountEngineStatePayload,
+	hostUrl: string,
 	workspaces: HostNotificationWorkspaceState[],
 ): void {
+	const latch = latchKey(hostUrl, payload.agent);
 	const target = payload.needsAttention;
 	if (!target) {
-		needsAttentionKeys.delete(payload.agent);
+		needsAttentionKeys.delete(latch);
 		return;
 	}
 	const key = `${target.workspaceId}:${target.terminalId}:${target.reason}`;
-	if (needsAttentionKeys.get(payload.agent) === key) return;
-	needsAttentionKeys.set(payload.agent, key);
+	if (needsAttentionKeys.get(latch) === key) return;
+	needsAttentionKeys.set(latch, key);
 
 	const agent = getAgentLabel(payload.agent);
 	const workspace = workspaces.find(
@@ -252,6 +268,31 @@ function notifyNeedsAttention(
 			workspaceId: target.workspaceId,
 			source: { type: "terminal", id: target.terminalId },
 		},
+	});
+}
+
+/**
+ * R24: an automatic switch the engine could not make. The previous login is
+ * still in place, so the user has to know a limit is no longer being routed
+ * around. One notice per `(agent, code, at)`, so a repeated failure with a new
+ * timestamp is told again while the same broadcast replayed is not.
+ */
+function notifySwitchFailure(payload: AccountEngineStatePayload): void {
+	const failure = payload.lastSwitchFailure;
+	if (!failure) return;
+	if (!markSwitchSeen(`failure:${payload.agent}:${failure.code}:${failure.at}`))
+		return;
+
+	const agent = getAgentLabel(payload.agent);
+	showNative({
+		title: i18n._(msg({ message: `${agent} could not switch accounts` })),
+		body:
+			engineErrorMessage(failure.code) ??
+			i18n._(
+				msg({
+					message: `Switch failed (${failure.code}). The previous account is still active.`,
+				}),
+			),
 	});
 }
 

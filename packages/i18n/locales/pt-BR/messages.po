@@ -472,6 +472,9 @@ msgstr "{accountLabel} agora é a conta {providerLabel} ativa."
 msgid "{actual} so far · ~{projected} projected"
 msgstr "{actual} até agora · ~{projected} projetadas"
 
+msgid "{agent} could not switch accounts"
+msgstr "{agent} não conseguiu trocar de conta"
+
 msgid "{agent} switched account"
 msgstr "{agent} trocou de conta"
 
@@ -6586,6 +6589,9 @@ msgstr "histórico"
 
 msgid "History"
 msgstr "Histórico"
+
+msgid "History is unavailable right now. Reopen this page to try again."
+msgstr "O histórico está indisponível no momento. Reabra esta página para tentar de novo."
 
 msgid "Home"
 msgstr "Início"
@@ -13216,6 +13222,7 @@ msgid "Switch at"
 msgstr "Trocar em"
 
 #. placeholder {0}: engineErrorCode(failure)
+#. placeholder {0}: failure.code
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "Falha na troca ({0}). A conta anterior continua ativa."
 

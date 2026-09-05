@@ -42,12 +42,18 @@ const newer: Entry = {
 	fallbackRestart: true,
 };
 
-function renderHistory(entries: Entry[]) {
+function renderHistory(
+	entries: Entry[],
+	props: Partial<Parameters<typeof SwitchHistory>[0]> = {},
+) {
 	const view = render(
 		<SwitchHistory
 			entries={entries}
 			isLoading={false}
+			isError={false}
 			agentLabels={AGENT_LABELS}
+			hideEmails={false}
+			{...props}
 		/>,
 	);
 	return within(view.baseElement as HTMLElement);
@@ -70,5 +76,24 @@ describe("SwitchHistory", () => {
 		const ui = renderHistory([]);
 		expect(ui.queryByRole("table")).toBeNull();
 		expect(ui.getByText(/No account switches yet/)).toBeTruthy();
+	});
+
+	// A failed read is not an empty history: claiming nothing ever happened
+	// would be a lie the user cannot tell from the truth.
+	test("a failed read says so instead of claiming nothing happened", () => {
+		const ui = renderHistory([], { isError: true });
+		expect(ui.queryByRole("table")).toBeNull();
+		expect(ui.queryByText(/No account switches yet/)).toBeNull();
+		expect(ui.getByText(/History is unavailable right now/)).toBeTruthy();
+	});
+
+	test("hidden emails are hidden in the table too", () => {
+		const ui = renderHistory([newer], { hideEmails: true });
+		const row = ui.getAllByRole("row")[1];
+		expect(row?.textContent).not.toContain("a@example.com");
+		expect(row?.textContent).not.toContain("b@example.com");
+		expect(ui.getAllByText("Email hidden")).toHaveLength(2);
+		// The rest of the row still reads.
+		expect(row?.textContent).toContain("Claude Code");
 	});
 });

@@ -843,7 +843,9 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 			<SwitchHistory
 				entries={historyQuery.data?.entries ?? []}
 				isLoading={historyQuery.isPending && !!hostUrl}
+				isError={historyQuery.isError}
 				agentLabels={{ claude: AGENT_LABELS.claude, codex: AGENT_LABELS.codex }}
+				hideEmails={hideEmails}
 			/>
 
 			<UsageHistorySection hostUrl={hostUrl} />

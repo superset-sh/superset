@@ -472,6 +472,9 @@ msgstr "{accountLabel} is nu het actieve {providerLabel}-account."
 msgid "{actual} so far · ~{projected} projected"
 msgstr "{actual} tot nu toe · ~{projected} verwacht"
 
+msgid "{agent} could not switch accounts"
+msgstr "{agent} kon niet van account wisselen"
+
 msgid "{agent} switched account"
 msgstr "{agent} is van account gewisseld"
 
@@ -6586,6 +6589,9 @@ msgstr "geschiedenis"
 
 msgid "History"
 msgstr "Geschiedenis"
+
+msgid "History is unavailable right now. Reopen this page to try again."
+msgstr "De geschiedenis is nu niet beschikbaar. Open deze pagina opnieuw om het nog eens te proberen."
 
 msgid "Home"
 msgstr "Home"
@@ -13216,6 +13222,7 @@ msgid "Switch at"
 msgstr "Wisselen bij"
 
 #. placeholder {0}: engineErrorCode(failure)
+#. placeholder {0}: failure.code
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "Wisselen mislukt ({0}). Het vorige account is nog actief."
 

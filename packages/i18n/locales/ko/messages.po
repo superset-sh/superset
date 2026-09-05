@@ -472,6 +472,9 @@ msgstr "이제 {accountLabel}이(가) 활성 {providerLabel} 계정입니다."
 msgid "{actual} so far · ~{projected} projected"
 msgstr "현재 {actual} · 예상 ~{projected}"
 
+msgid "{agent} could not switch accounts"
+msgstr "{agent}이(가) 계정을 전환하지 못했습니다"
+
 msgid "{agent} switched account"
 msgstr "{agent}이(가) 계정을 전환했습니다"
 
@@ -6586,6 +6589,9 @@ msgstr "기록"
 
 msgid "History"
 msgstr "기록"
+
+msgid "History is unavailable right now. Reopen this page to try again."
+msgstr "지금은 기록을 불러올 수 없습니다. 이 페이지를 다시 열면 다시 시도합니다."
 
 msgid "Home"
 msgstr "홈"
@@ -13216,6 +13222,7 @@ msgid "Switch at"
 msgstr "전환 기준"
 
 #. placeholder {0}: engineErrorCode(failure)
+#. placeholder {0}: failure.code
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "전환하지 못했습니다({0}). 이전 계정이 그대로 활성 상태입니다."
 

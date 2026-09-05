@@ -472,6 +472,9 @@ msgstr "{accountLabel} artık etkin {providerLabel} hesabı."
 msgid "{actual} so far · ~{projected} projected"
 msgstr "şu ana kadar {actual} · ~{projected} öngörülüyor"
 
+msgid "{agent} could not switch accounts"
+msgstr "{agent} hesap değiştiremedi"
+
 msgid "{agent} switched account"
 msgstr "{agent} hesap değiştirdi"
 
@@ -6586,6 +6589,9 @@ msgstr "geçmiş"
 
 msgid "History"
 msgstr "Geçmiş"
+
+msgid "History is unavailable right now. Reopen this page to try again."
+msgstr "Geçmiş şu anda kullanılamıyor. Yeniden denemek için bu sayfayı tekrar açın."
 
 msgid "Home"
 msgstr "Ana sayfa"
@@ -13216,6 +13222,7 @@ msgid "Switch at"
 msgstr "Geçiş eşiği"
 
 #. placeholder {0}: engineErrorCode(failure)
+#. placeholder {0}: failure.code
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "Geçiş başarısız ({0}). Önceki hesap hâlâ etkin."
 
