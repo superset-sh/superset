@@ -183,10 +183,10 @@ describe("account-engine state", () => {
 			const state = new EngineState();
 			expect(state.readSettings()).toEqual(defaultEngineSettings());
 			expect(state.readSettings()).toEqual(defaultEngineSettings());
-			// console.warn is process-global: count only this module's warnings so
-			// an unrelated suite's async log line cannot fail the once-guard.
+			// console.warn is process-global: count only this file's warning so
+			// another suite's late async log line cannot fail the once-guard.
 			const ours = warn.mock.calls.filter((call) =>
-				String(call[0]).startsWith("[account-engine]"),
+				String(call[0]).includes("settings.json is not valid JSON"),
 			);
 			expect(ours).toHaveLength(1);
 		} finally {
