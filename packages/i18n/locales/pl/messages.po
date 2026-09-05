@@ -1266,6 +1266,9 @@ msgstr "Dodaj środowisko w Ustawieniach, zanim utworzysz obszar roboczy w chmur
 msgid "Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are."
 msgstr "Dodaj dowolną maszynę jako hosta. Obszary robocze działają dalej, gdy laptop śpi, a Ty możesz zajrzeć do nich z dowolnego miejsca."
 
+msgid "Add app"
+msgstr "Dodaj aplikację"
+
 msgid "Add attachment"
 msgstr "Dodaj załącznik"
 
@@ -1856,9 +1859,6 @@ msgstr "Zatwierdzony"
 
 msgid "Approved review"
 msgstr "Przegląd zatwierdzony"
-
-msgid "Apps to show under \"Custom\" in the Open in menus. On macOS the bundle id is preferred because it keeps working when the app bundle is renamed (for example \"Xcode-26.5.0.app\")."
-msgstr "Aplikacje wyświetlane w sekcji „Własny” w menu Otwórz w. W systemie macOS preferowany jest bundle id, ponieważ działa nadal po zmianie nazwy pakietu aplikacji (np. „Xcode-26.5.0.app”)."
 
 msgid "apps/desktop/src/renderer"
 msgstr "apps/desktop/src/renderer"
@@ -4408,6 +4408,9 @@ msgstr "Usuń mimo to"
 msgid "Delete anyway will skip the teardown script entirely."
 msgstr "„Usuń mimo to” całkowicie pominie skrypt sprzątający."
 
+msgid "Delete app"
+msgstr "Usuń aplikację"
+
 msgid "Delete automation"
 msgstr "Usuń automatyzację"
 
@@ -5026,6 +5029,9 @@ msgstr "Edytor i workflow"
 
 msgid "Editor typography"
 msgstr "Typografia edytora"
+
+msgid "Editors and tools Superset doesn't list yet. They appear under \"Custom\" in every Open in menu and can be the editor the actions above open."
+msgstr "Edytory i narzędzia, których Superset jeszcze nie zna. Pojawiają się w sekcji „Własny” każdego menu Otwórz w i mogą być edytorem otwieranym przez powyższe akcje."
 
 msgid "Electron/tRPC-coupled, so referenced rather than rendered. Badge = import sites today; high counts are promotion candidates for packages/ui"
 msgstr "Powiązane z Electronem/tRPC, więc tylko wymienione, nie renderowane. Plakietka = obecne miejsca importu; wysokie liczby to kandydaci do przeniesienia do packages/ui"
@@ -5945,6 +5951,9 @@ msgstr "Znajdź na stronie"
 
 msgid "Find in Terminal"
 msgstr "Znajdź w terminalu"
+
+msgid "Find it with `osascript -e 'id of app \"Xcode\"'` or in the app's Info.plist."
+msgstr "Znajdziesz go poleceniem `osascript -e 'id of app \"Xcode\"'` lub w pliku Info.plist aplikacji."
 
 msgid "Find recently changed code with weak coverage and test it properly."
 msgstr "Znajdź niedawno zmieniony kod ze słabym pokryciem i porządnie go przetestuj."
@@ -7545,6 +7554,9 @@ msgstr "Wczytywanie współtwórców…"
 msgid "Loading conversation..."
 msgstr "Wczytywanie rozmowy..."
 
+msgid "Loading custom apps..."
+msgstr "Ładowanie własnych aplikacji..."
+
 msgid "Loading diff…"
 msgstr "Wczytywanie różnic…"
 
@@ -8134,9 +8146,6 @@ msgstr "Tajemniczy Tokarz"
 msgid "Name"
 msgstr "Nazwa"
 
-msgid "Name (e.g. Xcode Beta)"
-msgstr "Nazwa (np. Xcode Beta)"
-
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "Nazwa i slug przyjazny adresom URL. Oba można później zmienić."
 
@@ -8235,15 +8244,6 @@ msgstr "Nowa przeglądarka"
 
 msgid "New chat"
 msgstr "Nowy czat"
-
-msgid "New custom app application name"
-msgstr "Nazwa aplikacji nowej własnej aplikacji"
-
-msgid "New custom app bundle id"
-msgstr "Bundle id nowej własnej aplikacji"
-
-msgid "New custom app name"
-msgstr "Nazwa nowej własnej aplikacji"
 
 msgid "New environment"
 msgstr "Nowe środowisko"
@@ -8511,6 +8511,9 @@ msgstr "Nie znaleziono współtwórców."
 
 msgid "No credit card required."
 msgstr "Bez karty kredytowej."
+
+msgid "No custom apps yet. Click \"Add app\" to register one by bundle id or application name."
+msgstr "Brak własnych aplikacji. Kliknij „Dodaj aplikację”, aby zarejestrować ją po bundle id lub nazwie aplikacji."
 
 msgid "No data"
 msgstr "Brak danych"
@@ -9066,6 +9069,9 @@ msgstr "na {offScopeHostName} — nie uruchomi się tutaj"
 
 msgid "On click"
 msgstr "Po kliknięciu"
+
+msgid "On macOS the bundle id is what launches the app, so it keeps working when the app bundle is renamed. The application name is the fallback, and the binary name on Linux."
+msgstr "W systemie macOS aplikację uruchamia bundle id, więc działa nadal po zmianie nazwy pakietu. Nazwa aplikacji jest rozwiązaniem zapasowym, a w Linuksie nazwą pliku binarnego."
 
 msgid "On our radar. Order and scope may change."
 msgstr "Mamy to na radarze. Kolejność i zakres mogą się zmienić."
@@ -10415,8 +10421,8 @@ msgstr "Przesłane prompty pojawią się tutaj."
 msgid "Properties"
 msgstr "Właściwości"
 
-msgid "Provide an application name or a bundle id"
-msgstr "Podaj nazwę aplikacji lub bundle id"
+msgid "Provide a bundle id or an application name."
+msgstr "Podaj bundle id lub nazwę aplikacji."
 
 msgid "Provide either id or slug"
 msgstr "Podaj id albo slug"
@@ -12270,6 +12276,9 @@ msgstr "Wyświetlane"
 msgid "Shown in launchers and this list."
 msgstr "Widoczna w launcherach i na tej liście."
 
+msgid "Shown in the Open in menus."
+msgstr "Wyświetlana w menu Otwórz w."
+
 msgid "Shown in the sidebar and task list."
 msgstr "Widoczne na pasku bocznym i liście zadań."
 
@@ -13404,6 +13413,9 @@ msgstr "Ta maszyna nie jest już dostępna"
 
 msgid "That name isn't allowed."
 msgstr "Taka nazwa jest niedozwolona."
+
+msgid "The .app name as shown in Finder, without the extension."
+msgstr "Nazwa pliku .app widoczna w Finderze, bez rozszerzenia."
 
 msgid "The 2026 bet"
 msgstr "Zakład na 2026"
@@ -15124,6 +15136,9 @@ msgstr "Zapisywanie pliku..."
 
 msgid "Wrote"
 msgstr "Zapisano"
+
+msgid "Xcode Beta"
+msgstr "Xcode Beta"
 
 msgid "xs · sm · default · lg · icon-xs → icon-lg"
 msgstr "xs · sm · default · lg · icon-xs → icon-lg"

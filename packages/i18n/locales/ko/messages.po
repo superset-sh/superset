@@ -1266,6 +1266,9 @@ msgstr "클라우드 워크스페이스를 만들기 전에 설정에서 환경�
 msgid "Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are."
 msgstr "어떤 머신이든 호스트로 추가하세요. 노트북이 잠자기에 들어가도 워크스페이스는 계속 돌고, 어디서든 확인할 수 있습니다."
 
+msgid "Add app"
+msgstr "앱 추가"
+
 msgid "Add attachment"
 msgstr "첨부 추가"
 
@@ -1856,9 +1859,6 @@ msgstr "승인됨"
 
 msgid "Approved review"
 msgstr "승인된 리뷰"
-
-msgid "Apps to show under \"Custom\" in the Open in menus. On macOS the bundle id is preferred because it keeps working when the app bundle is renamed (for example \"Xcode-26.5.0.app\")."
-msgstr "다음에서 열기 메뉴의 \"사용자 지정\" 아래에 표시할 앱입니다. macOS에서는 앱 번들 이름이 바뀌어도(예: \"Xcode-26.5.0.app\") 계속 동작하는 번들 ID를 권장합니다."
 
 msgid "apps/desktop/src/renderer"
 msgstr "apps/desktop/src/renderer"
@@ -4408,6 +4408,9 @@ msgstr "그래도 삭제"
 msgid "Delete anyway will skip the teardown script entirely."
 msgstr "그래도 삭제하면 정리 스크립트를 완전히 건너뜁니다."
 
+msgid "Delete app"
+msgstr "앱 삭제"
+
 msgid "Delete automation"
 msgstr "자동화 삭제"
 
@@ -5026,6 +5029,9 @@ msgstr "편집기 및 워크플로"
 
 msgid "Editor typography"
 msgstr "편집기 타이포그래피"
+
+msgid "Editors and tools Superset doesn't list yet. They appear under \"Custom\" in every Open in menu and can be the editor the actions above open."
+msgstr "Superset에 아직 등록되지 않은 편집기와 도구입니다. 모든 다음에서 열기 메뉴의 \"사용자 지정\" 아래에 표시되며, 위 동작이 여는 편집기로 사용할 수 있습니다."
 
 msgid "Electron/tRPC-coupled, so referenced rather than rendered. Badge = import sites today; high counts are promotion candidates for packages/ui"
 msgstr "Electron/tRPC에 묶여 있어 렌더링하지 않고 참조만 합니다. 배지는 현재 import 지점 수이며, 수가 많으면 packages/ui로 승격할 후보입니다"
@@ -5945,6 +5951,9 @@ msgstr "페이지에서 찾기"
 
 msgid "Find in Terminal"
 msgstr "터미널에서 찾기"
+
+msgid "Find it with `osascript -e 'id of app \"Xcode\"'` or in the app's Info.plist."
+msgstr "`osascript -e 'id of app \"Xcode\"'` 또는 앱의 Info.plist에서 확인하세요."
 
 msgid "Find recently changed code with weak coverage and test it properly."
 msgstr "최근 변경되었지만 커버리지가 낮은 코드를 찾아 제대로 테스트합니다."
@@ -7545,6 +7554,9 @@ msgstr "기여자 불러오는 중…"
 msgid "Loading conversation..."
 msgstr "대화를 불러오는 중..."
 
+msgid "Loading custom apps..."
+msgstr "사용자 지정 앱을 불러오는 중..."
+
 msgid "Loading diff…"
 msgstr "차이 불러오는 중…"
 
@@ -8134,9 +8146,6 @@ msgstr "수수께끼의 기계공"
 msgid "Name"
 msgstr "이름"
 
-msgid "Name (e.g. Xcode Beta)"
-msgstr "이름 (예: Xcode Beta)"
-
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "이름과 URL에 쓰기 좋은 슬러그를 정하세요. 둘 다 나중에 바꿀 수 있습니다."
 
@@ -8235,15 +8244,6 @@ msgstr "새 브라우저"
 
 msgid "New chat"
 msgstr "새 채팅"
-
-msgid "New custom app application name"
-msgstr "새 사용자 지정 앱의 애플리케이션 이름"
-
-msgid "New custom app bundle id"
-msgstr "새 사용자 지정 앱의 번들 ID"
-
-msgid "New custom app name"
-msgstr "새 사용자 지정 앱 이름"
 
 msgid "New environment"
 msgstr "새 환경"
@@ -8511,6 +8511,9 @@ msgstr "기여자를 찾을 수 없습니다."
 
 msgid "No credit card required."
 msgstr "신용카드가 필요 없습니다."
+
+msgid "No custom apps yet. Click \"Add app\" to register one by bundle id or application name."
+msgstr "아직 사용자 지정 앱이 없습니다. \"앱 추가\"를 클릭해 번들 ID 또는 애플리케이션 이름으로 등록하세요."
 
 msgid "No data"
 msgstr "데이터 없음"
@@ -9066,6 +9069,9 @@ msgstr "{offScopeHostName}에 있음 — 여기서는 실행되지 않습니다"
 
 msgid "On click"
 msgstr "클릭 시"
+
+msgid "On macOS the bundle id is what launches the app, so it keeps working when the app bundle is renamed. The application name is the fallback, and the binary name on Linux."
+msgstr "macOS에서는 번들 ID로 앱을 실행하므로 앱 번들 이름이 바뀌어도 계속 동작합니다. 애플리케이션 이름은 대체 수단이며, Linux에서는 바이너리 이름입니다."
 
 msgid "On our radar. Order and scope may change."
 msgstr "지켜보고 있습니다. 순서와 범위는 바뀔 수 있습니다."
@@ -10415,8 +10421,8 @@ msgstr "제출한 프롬프트가 여기에 표시됩니다."
 msgid "Properties"
 msgstr "속성"
 
-msgid "Provide an application name or a bundle id"
-msgstr "애플리케이션 이름 또는 번들 ID를 입력하세요"
+msgid "Provide a bundle id or an application name."
+msgstr "번들 ID 또는 애플리케이션 이름을 입력하세요."
 
 msgid "Provide either id or slug"
 msgstr "id 또는 슬러그 중 하나를 제공하세요"
@@ -12270,6 +12276,9 @@ msgstr "표시됨"
 msgid "Shown in launchers and this list."
 msgstr "실행기와 이 목록에 표시됩니다."
 
+msgid "Shown in the Open in menus."
+msgstr "다음에서 열기 메뉴에 표시됩니다."
+
 msgid "Shown in the sidebar and task list."
 msgstr "사이드바와 작업 목록에 표시됩니다."
 
@@ -13404,6 +13413,9 @@ msgstr "해당 머신을 더 이상 사용할 수 없습니다"
 
 msgid "That name isn't allowed."
 msgstr "사용할 수 없는 이름입니다."
+
+msgid "The .app name as shown in Finder, without the extension."
+msgstr "Finder에 표시되는 .app 이름(확장자 제외)."
 
 msgid "The 2026 bet"
 msgstr "2026년의 베팅"
@@ -15124,6 +15136,9 @@ msgstr "파일 쓰는 중..."
 
 msgid "Wrote"
 msgstr "씀"
+
+msgid "Xcode Beta"
+msgstr "Xcode Beta"
 
 msgid "xs · sm · default · lg · icon-xs → icon-lg"
 msgstr "xs · sm · default · lg · icon-xs → icon-lg"

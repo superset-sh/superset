@@ -98,7 +98,7 @@ async function openPathInApp(filePath: string, app: AppRef): Promise<void> {
 		if (!customApp) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
-				message: `Custom app ${app} is no longer configured. Re-add it in Settings → General → Custom apps.`,
+				message: `Custom app ${app} is no longer configured. Re-add it in Settings → Links → Custom apps.`,
 			});
 		}
 		candidates = getCustomAppCommand(customApp, filePath);

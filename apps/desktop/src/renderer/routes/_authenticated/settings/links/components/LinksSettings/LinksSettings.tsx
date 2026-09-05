@@ -23,6 +23,7 @@ import {
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
+import { CustomAppsSection } from "../CustomAppsSection";
 import { FolderLinkTierMapper } from "../FolderLinkTierMapper";
 import { LinkTierMapper } from "../LinkTierMapper";
 
@@ -52,6 +53,10 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 		visibleItems,
 	);
 	const showPort = isItemVisible(SETTING_ITEM_ID.LINKS_PORT, visibleItems);
+	const showCustomApps = isItemVisible(
+		SETTING_ITEM_ID.LINKS_CUSTOM_APPS,
+		visibleItems,
+	);
 
 	const handleFileChange = useCallback(
 		(next: LinkTierMap) => {
@@ -213,6 +218,8 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 						surface="url"
 					/>
 				)}
+
+				{showCustomApps && <CustomAppsSection />}
 			</div>
 		</div>
 	);

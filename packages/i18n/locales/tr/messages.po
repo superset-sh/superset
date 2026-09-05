@@ -1266,6 +1266,9 @@ msgstr "Bulut çalışma alanı oluşturmadan önce Ayarlar'da bir ortam ekleyin
 msgid "Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are."
 msgstr "Herhangi bir makineyi host olarak ekleyin. Dizüstünüz uykuya geçtiğinde çalışma alanları çalışmaya devam eder ve nerede olursanız olun durumu kontrol edebilirsiniz."
 
+msgid "Add app"
+msgstr "Uygulama ekle"
+
 msgid "Add attachment"
 msgstr "Ek ekle"
 
@@ -1856,9 +1859,6 @@ msgstr "Onaylandı"
 
 msgid "Approved review"
 msgstr "Onaylanmış inceleme"
-
-msgid "Apps to show under \"Custom\" in the Open in menus. On macOS the bundle id is preferred because it keeps working when the app bundle is renamed (for example \"Xcode-26.5.0.app\")."
-msgstr "Şununla aç menülerinde \"Özel\" altında gösterilecek uygulamalar. macOS'ta bundle id tercih edilir; uygulama paketi yeniden adlandırılsa bile (örneğin \"Xcode-26.5.0.app\") çalışmaya devam eder."
 
 msgid "apps/desktop/src/renderer"
 msgstr "apps/desktop/src/renderer"
@@ -4408,6 +4408,9 @@ msgstr "Yine de sil"
 msgid "Delete anyway will skip the teardown script entirely."
 msgstr "Yine de sil, kapatma betiğini tamamen atlar."
 
+msgid "Delete app"
+msgstr "Uygulamayı sil"
+
 msgid "Delete automation"
 msgstr "Otomasyonu sil"
 
@@ -5026,6 +5029,9 @@ msgstr "Düzenleyici ve iş akışı"
 
 msgid "Editor typography"
 msgstr "Düzenleyici tipografisi"
+
+msgid "Editors and tools Superset doesn't list yet. They appear under \"Custom\" in every Open in menu and can be the editor the actions above open."
+msgstr "Superset'in henüz listelemediği düzenleyiciler ve araçlar. Her Şununla aç menüsünde \"Özel\" altında görünür ve yukarıdaki eylemlerin açtığı düzenleyici olabilir."
 
 msgid "Electron/tRPC-coupled, so referenced rather than rendered. Badge = import sites today; high counts are promotion candidates for packages/ui"
 msgstr "Electron/tRPC'ye bağlı olduğu için işlenmek yerine referans veriliyor. Rozet = bugünkü içe aktarma noktaları; yüksek sayılar packages/ui'ye taşınma adayıdır"
@@ -5945,6 +5951,9 @@ msgstr "Sayfada bul"
 
 msgid "Find in Terminal"
 msgstr "Terminalde bul"
+
+msgid "Find it with `osascript -e 'id of app \"Xcode\"'` or in the app's Info.plist."
+msgstr "`osascript -e 'id of app \"Xcode\"'` ile veya uygulamanın Info.plist dosyasından bulun."
 
 msgid "Find recently changed code with weak coverage and test it properly."
 msgstr "Kapsamı zayıf olan, yakın zamanda değişmiş kodu bul ve düzgün test et."
@@ -7545,6 +7554,9 @@ msgstr "Katkıda bulunanlar yükleniyor…"
 msgid "Loading conversation..."
 msgstr "Konuşma yükleniyor..."
 
+msgid "Loading custom apps..."
+msgstr "Özel uygulamalar yükleniyor..."
+
 msgid "Loading diff…"
 msgstr "Fark yükleniyor…"
 
@@ -8134,9 +8146,6 @@ msgstr "Gizemli Makinist"
 msgid "Name"
 msgstr "Ad"
 
-msgid "Name (e.g. Xcode Beta)"
-msgstr "Ad (örn. Xcode Beta)"
-
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "Bir ad ve URL dostu bir slug. İkisi de sonradan değiştirilebilir."
 
@@ -8235,15 +8244,6 @@ msgstr "Yeni tarayıcı"
 
 msgid "New chat"
 msgstr "Yeni sohbet"
-
-msgid "New custom app application name"
-msgstr "Yeni özel uygulamanın uygulama adı"
-
-msgid "New custom app bundle id"
-msgstr "Yeni özel uygulamanın bundle id'si"
-
-msgid "New custom app name"
-msgstr "Yeni özel uygulamanın adı"
 
 msgid "New environment"
 msgstr "Yeni ortam"
@@ -8511,6 +8511,9 @@ msgstr "Katkıda bulunan bulunamadı."
 
 msgid "No credit card required."
 msgstr "Kredi kartı gerekmez."
+
+msgid "No custom apps yet. Click \"Add app\" to register one by bundle id or application name."
+msgstr "Henüz özel uygulama yok. Bundle id veya uygulama adıyla kaydetmek için \"Uygulama ekle\"ye tıklayın."
 
 msgid "No data"
 msgstr "Veri yok"
@@ -9066,6 +9069,9 @@ msgstr "{offScopeHostName} üzerinde — burada çalışmaz"
 
 msgid "On click"
 msgstr "Tıklandığında"
+
+msgid "On macOS the bundle id is what launches the app, so it keeps working when the app bundle is renamed. The application name is the fallback, and the binary name on Linux."
+msgstr "macOS'ta uygulamayı bundle id başlatır; bu yüzden uygulama paketi yeniden adlandırılsa bile çalışmaya devam eder. Uygulama adı yedektir ve Linux'ta ikili dosya adıdır."
 
 msgid "On our radar. Order and scope may change."
 msgstr "Radarımızda. Sıra ve kapsam değişebilir."
@@ -10415,8 +10421,8 @@ msgstr "Gönderdiğiniz istemler burada görünecek."
 msgid "Properties"
 msgstr "Özellikler"
 
-msgid "Provide an application name or a bundle id"
-msgstr "Bir uygulama adı veya bundle id girin"
+msgid "Provide a bundle id or an application name."
+msgstr "Bir bundle id veya uygulama adı girin."
 
 msgid "Provide either id or slug"
 msgstr "id veya slug değerlerinden birini sağlayın"
@@ -12270,6 +12276,9 @@ msgstr "Gösterilen"
 msgid "Shown in launchers and this list."
 msgstr "Başlatıcılarda ve bu listede gösterilir."
 
+msgid "Shown in the Open in menus."
+msgstr "Şununla aç menülerinde gösterilir."
+
 msgid "Shown in the sidebar and task list."
 msgstr "Kenar çubuğunda ve görev listesinde gösterilir."
 
@@ -13404,6 +13413,9 @@ msgstr "O makine artık kullanılamıyor"
 
 msgid "That name isn't allowed."
 msgstr "Bu ada izin verilmiyor."
+
+msgid "The .app name as shown in Finder, without the extension."
+msgstr "Finder'da görünen .app adı, uzantısız."
 
 msgid "The 2026 bet"
 msgstr "2026 bahsi"
@@ -15124,6 +15136,9 @@ msgstr "Dosya yazılıyor..."
 
 msgid "Wrote"
 msgstr "Yazıldı"
+
+msgid "Xcode Beta"
+msgstr "Xcode Beta"
 
 msgid "xs · sm · default · lg · icon-xs → icon-lg"
 msgstr "xs · sm · default · lg · icon-xs → icon-lg"

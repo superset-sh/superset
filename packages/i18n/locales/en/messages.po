@@ -1266,6 +1266,9 @@ msgstr "Add an environment in Settings before creating a cloud workspace"
 msgid "Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are."
 msgstr "Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are."
 
+msgid "Add app"
+msgstr "Add app"
+
 msgid "Add attachment"
 msgstr "Add attachment"
 
@@ -1856,9 +1859,6 @@ msgstr "Approved"
 
 msgid "Approved review"
 msgstr "Approved review"
-
-msgid "Apps to show under \"Custom\" in the Open in menus. On macOS the bundle id is preferred because it keeps working when the app bundle is renamed (for example \"Xcode-26.5.0.app\")."
-msgstr "Apps to show under \"Custom\" in the Open in menus. On macOS the bundle id is preferred because it keeps working when the app bundle is renamed (for example \"Xcode-26.5.0.app\")."
 
 msgid "apps/desktop/src/renderer"
 msgstr "apps/desktop/src/renderer"
@@ -4408,6 +4408,9 @@ msgstr "Delete anyway"
 msgid "Delete anyway will skip the teardown script entirely."
 msgstr "Delete anyway will skip the teardown script entirely."
 
+msgid "Delete app"
+msgstr "Delete app"
+
 msgid "Delete automation"
 msgstr "Delete automation"
 
@@ -5026,6 +5029,9 @@ msgstr "Editor & Workflow"
 
 msgid "Editor typography"
 msgstr "Editor typography"
+
+msgid "Editors and tools Superset doesn't list yet. They appear under \"Custom\" in every Open in menu and can be the editor the actions above open."
+msgstr "Editors and tools Superset doesn't list yet. They appear under \"Custom\" in every Open in menu and can be the editor the actions above open."
 
 msgid "Electron/tRPC-coupled, so referenced rather than rendered. Badge = import sites today; high counts are promotion candidates for packages/ui"
 msgstr "Electron/tRPC-coupled, so referenced rather than rendered. Badge = import sites today; high counts are promotion candidates for packages/ui"
@@ -5945,6 +5951,9 @@ msgstr "Find in page"
 
 msgid "Find in Terminal"
 msgstr "Find in Terminal"
+
+msgid "Find it with `osascript -e 'id of app \"Xcode\"'` or in the app's Info.plist."
+msgstr "Find it with `osascript -e 'id of app \"Xcode\"'` or in the app's Info.plist."
 
 msgid "Find recently changed code with weak coverage and test it properly."
 msgstr "Find recently changed code with weak coverage and test it properly."
@@ -7545,6 +7554,9 @@ msgstr "Loading contributors…"
 msgid "Loading conversation..."
 msgstr "Loading conversation..."
 
+msgid "Loading custom apps..."
+msgstr "Loading custom apps..."
+
 msgid "Loading diff…"
 msgstr "Loading diff…"
 
@@ -8134,9 +8146,6 @@ msgstr "Mystery Machinist"
 msgid "Name"
 msgstr "Name"
 
-msgid "Name (e.g. Xcode Beta)"
-msgstr "Name (e.g. Xcode Beta)"
-
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "Name and a URL-friendly slug. Both can be changed later."
 
@@ -8235,15 +8244,6 @@ msgstr "New Browser"
 
 msgid "New chat"
 msgstr "New chat"
-
-msgid "New custom app application name"
-msgstr "New custom app application name"
-
-msgid "New custom app bundle id"
-msgstr "New custom app bundle id"
-
-msgid "New custom app name"
-msgstr "New custom app name"
 
 msgid "New environment"
 msgstr "New environment"
@@ -8511,6 +8511,9 @@ msgstr "No contributors found."
 
 msgid "No credit card required."
 msgstr "No credit card required."
+
+msgid "No custom apps yet. Click \"Add app\" to register one by bundle id or application name."
+msgstr "No custom apps yet. Click \"Add app\" to register one by bundle id or application name."
 
 msgid "No data"
 msgstr "No data"
@@ -9066,6 +9069,9 @@ msgstr "on {offScopeHostName} — won't run here"
 
 msgid "On click"
 msgstr "On click"
+
+msgid "On macOS the bundle id is what launches the app, so it keeps working when the app bundle is renamed. The application name is the fallback, and the binary name on Linux."
+msgstr "On macOS the bundle id is what launches the app, so it keeps working when the app bundle is renamed. The application name is the fallback, and the binary name on Linux."
 
 msgid "On our radar. Order and scope may change."
 msgstr "On our radar. Order and scope may change."
@@ -10415,8 +10421,8 @@ msgstr "Prompts you submit will show up here."
 msgid "Properties"
 msgstr "Properties"
 
-msgid "Provide an application name or a bundle id"
-msgstr "Provide an application name or a bundle id"
+msgid "Provide a bundle id or an application name."
+msgstr "Provide a bundle id or an application name."
 
 msgid "Provide either id or slug"
 msgstr "Provide either id or slug"
@@ -12270,6 +12276,9 @@ msgstr "Shown"
 msgid "Shown in launchers and this list."
 msgstr "Shown in launchers and this list."
 
+msgid "Shown in the Open in menus."
+msgstr "Shown in the Open in menus."
+
 msgid "Shown in the sidebar and task list."
 msgstr "Shown in the sidebar and task list."
 
@@ -13404,6 +13413,9 @@ msgstr "That machine is no longer available"
 
 msgid "That name isn't allowed."
 msgstr "That name isn't allowed."
+
+msgid "The .app name as shown in Finder, without the extension."
+msgstr "The .app name as shown in Finder, without the extension."
 
 msgid "The 2026 bet"
 msgstr "The 2026 bet"
@@ -15124,6 +15136,9 @@ msgstr "Writing file..."
 
 msgid "Wrote"
 msgstr "Wrote"
+
+msgid "Xcode Beta"
+msgstr "Xcode Beta"
 
 msgid "xs · sm · default · lg · icon-xs → icon-lg"
 msgstr "xs · sm · default · lg · icon-xs → icon-lg"

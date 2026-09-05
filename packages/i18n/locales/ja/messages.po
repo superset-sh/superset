@@ -1266,6 +1266,9 @@ msgstr "クラウドワークスペースを作成する前に、設定で環境
 msgid "Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are."
 msgstr "どんなマシンでもホストとして追加できます。ノートPCがスリープしてもワークスペースは動き続け、どこからでも様子を確認できます。"
 
+msgid "Add app"
+msgstr "アプリを追加"
+
 msgid "Add attachment"
 msgstr "添付ファイルを追加"
 
@@ -1856,9 +1859,6 @@ msgstr "承認"
 
 msgid "Approved review"
 msgstr "承認済みレビュー"
-
-msgid "Apps to show under \"Custom\" in the Open in menus. On macOS the bundle id is preferred because it keeps working when the app bundle is renamed (for example \"Xcode-26.5.0.app\")."
-msgstr "「開く」メニューの「カスタム」に表示するアプリです。macOS ではバンドル ID を推奨します。アプリのバンドル名が変更されても（例: 「Xcode-26.5.0.app」）動作し続けるためです。"
 
 msgid "apps/desktop/src/renderer"
 msgstr "apps/desktop/src/renderer"
@@ -4408,6 +4408,9 @@ msgstr "それでも削除"
 msgid "Delete anyway will skip the teardown script entirely."
 msgstr "「それでも削除」はティアダウンスクリプトを完全にスキップします。"
 
+msgid "Delete app"
+msgstr "アプリを削除"
+
 msgid "Delete automation"
 msgstr "オートメーションを削除"
 
@@ -5026,6 +5029,9 @@ msgstr "エディタとワークフロー"
 
 msgid "Editor typography"
 msgstr "エディタのタイポグラフィ"
+
+msgid "Editors and tools Superset doesn't list yet. They appear under \"Custom\" in every Open in menu and can be the editor the actions above open."
+msgstr "Superset にまだ登録されていないエディタやツールです。すべての「開く」メニューの「カスタム」に表示され、上記のアクションが開くエディタとして使えます。"
 
 msgid "Electron/tRPC-coupled, so referenced rather than rendered. Badge = import sites today; high counts are promotion candidates for packages/ui"
 msgstr "Electron/tRPCに依存するため、描画せず参照のみです。バッジは現在のインポート箇所数で、数が多いものはpackages/uiへの昇格候補です"
@@ -5945,6 +5951,9 @@ msgstr "ページ内検索"
 
 msgid "Find in Terminal"
 msgstr "ターミナル内を検索"
+
+msgid "Find it with `osascript -e 'id of app \"Xcode\"'` or in the app's Info.plist."
+msgstr "`osascript -e 'id of app \"Xcode\"'` で調べるか、アプリの Info.plist を確認してください。"
 
 msgid "Find recently changed code with weak coverage and test it properly."
 msgstr "最近変更されたカバレッジの薄いコードを見つけて、きちんとテストします。"
@@ -7545,6 +7554,9 @@ msgstr "コントリビューターを読み込み中…"
 msgid "Loading conversation..."
 msgstr "会話を読み込み中..."
 
+msgid "Loading custom apps..."
+msgstr "カスタムアプリを読み込み中..."
+
 msgid "Loading diff…"
 msgstr "差分を読み込み中…"
 
@@ -8134,9 +8146,6 @@ msgstr "謎の機械工"
 msgid "Name"
 msgstr "名前"
 
-msgid "Name (e.g. Xcode Beta)"
-msgstr "名前（例: Xcode Beta）"
-
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "名前とURLフレンドリーなスラッグ。どちらも後で変更できます。"
 
@@ -8235,15 +8244,6 @@ msgstr "新規ブラウザ"
 
 msgid "New chat"
 msgstr "新しいチャット"
-
-msgid "New custom app application name"
-msgstr "新しいカスタムアプリのアプリケーション名"
-
-msgid "New custom app bundle id"
-msgstr "新しいカスタムアプリのバンドル ID"
-
-msgid "New custom app name"
-msgstr "新しいカスタムアプリの名前"
 
 msgid "New environment"
 msgstr "新しい環境"
@@ -8511,6 +8511,9 @@ msgstr "コントリビューターが見つかりません。"
 
 msgid "No credit card required."
 msgstr "クレジットカードは不要です。"
+
+msgid "No custom apps yet. Click \"Add app\" to register one by bundle id or application name."
+msgstr "カスタムアプリはまだありません。「アプリを追加」をクリックして、バンドル ID またはアプリケーション名で登録してください。"
 
 msgid "No data"
 msgstr "データなし"
@@ -9066,6 +9069,9 @@ msgstr "{offScopeHostName}上 — ここでは実行されません"
 
 msgid "On click"
 msgstr "クリック時"
+
+msgid "On macOS the bundle id is what launches the app, so it keeps working when the app bundle is renamed. The application name is the fallback, and the binary name on Linux."
+msgstr "macOS ではバンドル ID でアプリを起動するため、アプリのバンドル名が変更されても動作し続けます。アプリケーション名は代替手段で、Linux ではバイナリ名になります。"
 
 msgid "On our radar. Order and scope may change."
 msgstr "視野には入っています。順序や範囲は変わる可能性があります。"
@@ -10415,8 +10421,8 @@ msgstr "送信したプロンプトがここに表示されます。"
 msgid "Properties"
 msgstr "プロパティ"
 
-msgid "Provide an application name or a bundle id"
-msgstr "アプリケーション名またはバンドル ID を入力してください"
+msgid "Provide a bundle id or an application name."
+msgstr "バンドル ID またはアプリケーション名を入力してください。"
 
 msgid "Provide either id or slug"
 msgstr "idまたはslugのいずれかを指定してください"
@@ -12270,6 +12276,9 @@ msgstr "表示中"
 msgid "Shown in launchers and this list."
 msgstr "ランチャーとこの一覧に表示されます。"
 
+msgid "Shown in the Open in menus."
+msgstr "「開く」メニューに表示されます。"
+
 msgid "Shown in the sidebar and task list."
 msgstr "サイドバーとタスク一覧に表示されます。"
 
@@ -13404,6 +13413,9 @@ msgstr "そのマシンは利用できなくなりました"
 
 msgid "That name isn't allowed."
 msgstr "その名前は使用できません。"
+
+msgid "The .app name as shown in Finder, without the extension."
+msgstr "Finder に表示される .app の名前（拡張子なし）。"
 
 msgid "The 2026 bet"
 msgstr "2026年の賭け"
@@ -15124,6 +15136,9 @@ msgstr "ファイルを書き込み中..."
 
 msgid "Wrote"
 msgstr "書き込み"
+
+msgid "Xcode Beta"
+msgstr "Xcode Beta"
 
 msgid "xs · sm · default · lg · icon-xs → icon-lg"
 msgstr "xs · sm · default · lg · icon-xs → icon-lg"

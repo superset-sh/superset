@@ -1266,6 +1266,9 @@ msgstr "建立雲端工作區前，請先在設定中新增環境"
 msgid "Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are."
 msgstr "把任意機器新增為主機。筆記本休眠時工作區照常執行，你在哪兒都能檢視進展。"
 
+msgid "Add app"
+msgstr "新增應用程式"
+
 msgid "Add attachment"
 msgstr "新增附件"
 
@@ -1856,9 +1859,6 @@ msgstr "已批准"
 
 msgid "Approved review"
 msgstr "審查已批准"
-
-msgid "Apps to show under \"Custom\" in the Open in menus. On macOS the bundle id is preferred because it keeps working when the app bundle is renamed (for example \"Xcode-26.5.0.app\")."
-msgstr "在「開啟方式」選單的「自訂」下顯示的應用程式。在 macOS 上建議使用 bundle id，因為即使應用程式套件被重新命名（例如「Xcode-26.5.0.app」）仍可正常運作。"
 
 msgid "apps/desktop/src/renderer"
 msgstr "apps/desktop/src/renderer"
@@ -4408,6 +4408,9 @@ msgstr "仍然刪除"
 msgid "Delete anyway will skip the teardown script entirely."
 msgstr "「仍然刪除」將完全跳過清理指令碼。"
 
+msgid "Delete app"
+msgstr "刪除應用程式"
+
 msgid "Delete automation"
 msgstr "刪除自動化"
 
@@ -5026,6 +5029,9 @@ msgstr "編輯器與工作流"
 
 msgid "Editor typography"
 msgstr "編輯器排版"
+
+msgid "Editors and tools Superset doesn't list yet. They appear under \"Custom\" in every Open in menu and can be the editor the actions above open."
+msgstr "Superset 尚未列出的編輯器和工具。它們會顯示在每個「開啟方式」選單的「自訂」下，並可作為上述動作開啟的編輯器。"
 
 msgid "Electron/tRPC-coupled, so referenced rather than rendered. Badge = import sites today; high counts are promotion candidates for packages/ui"
 msgstr "與Electron/tRPC耦合，因此只做引用而不實際渲染。徽章=目前的匯入處數量；數量高的可以考慮提升到packages/ui"
@@ -5945,6 +5951,9 @@ msgstr "在頁面中查詢"
 
 msgid "Find in Terminal"
 msgstr "在終端中查詢"
+
+msgid "Find it with `osascript -e 'id of app \"Xcode\"'` or in the app's Info.plist."
+msgstr "可透過 `osascript -e 'id of app \"Xcode\"'` 或在應用程式的 Info.plist 中查詢。"
 
 msgid "Find recently changed code with weak coverage and test it properly."
 msgstr "找出最近改動過、覆蓋率薄弱的程式碼，好好補上測試。"
@@ -7545,6 +7554,9 @@ msgstr "正在載入貢獻者…"
 msgid "Loading conversation..."
 msgstr "正在載入對話..."
 
+msgid "Loading custom apps..."
+msgstr "正在載入自訂應用程式..."
+
 msgid "Loading diff…"
 msgstr "正在載入差異…"
 
@@ -8134,9 +8146,6 @@ msgstr "神秘機械師"
 msgid "Name"
 msgstr "名稱"
 
-msgid "Name (e.g. Xcode Beta)"
-msgstr "名稱（例如 Xcode Beta）"
-
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "名稱和一個URL友好的slug。兩者稍後都可以更改。"
 
@@ -8235,15 +8244,6 @@ msgstr "新建瀏覽器"
 
 msgid "New chat"
 msgstr "新建聊天"
-
-msgid "New custom app application name"
-msgstr "新自訂應用程式的應用程式名稱"
-
-msgid "New custom app bundle id"
-msgstr "新自訂應用程式的 bundle id"
-
-msgid "New custom app name"
-msgstr "新自訂應用程式的名稱"
 
 msgid "New environment"
 msgstr "新增環境"
@@ -8511,6 +8511,9 @@ msgstr "未找到貢獻者。"
 
 msgid "No credit card required."
 msgstr "無需信用卡。"
+
+msgid "No custom apps yet. Click \"Add app\" to register one by bundle id or application name."
+msgstr "尚無自訂應用程式。點擊「新增應用程式」，透過 bundle id 或應用程式名稱註冊一個。"
 
 msgid "No data"
 msgstr "無資料"
@@ -9066,6 +9069,9 @@ msgstr "在{offScopeHostName}上，不會在這裡執行"
 
 msgid "On click"
 msgstr "點選時"
+
+msgid "On macOS the bundle id is what launches the app, so it keeps working when the app bundle is renamed. The application name is the fallback, and the binary name on Linux."
+msgstr "在 macOS 上是由 bundle id 啟動應用程式，因此應用程式套件重新命名後仍可運作。應用程式名稱是備用方式，在 Linux 上則是執行檔名稱。"
 
 msgid "On our radar. Order and scope may change."
 msgstr "在我們的視野內。順序和範圍可能會變。"
@@ -10415,8 +10421,8 @@ msgstr "你提交過的提示詞會顯示在這裡。"
 msgid "Properties"
 msgstr "屬性"
 
-msgid "Provide an application name or a bundle id"
-msgstr "請提供應用程式名稱或 bundle id"
+msgid "Provide a bundle id or an application name."
+msgstr "請提供 bundle id 或應用程式名稱。"
 
 msgid "Provide either id or slug"
 msgstr "請提供id或slug"
@@ -12270,6 +12276,9 @@ msgstr "已顯示"
 msgid "Shown in launchers and this list."
 msgstr "會顯示在啟動器和此列表中。"
 
+msgid "Shown in the Open in menus."
+msgstr "顯示在「開啟方式」選單中。"
+
 msgid "Shown in the sidebar and task list."
 msgstr "會顯示在側邊欄和任務列表中。"
 
@@ -13404,6 +13413,9 @@ msgstr "該機器已不可用"
 
 msgid "That name isn't allowed."
 msgstr "該名稱不被允許。"
+
+msgid "The .app name as shown in Finder, without the extension."
+msgstr "Finder 中顯示的 .app 名稱，不含副檔名。"
 
 msgid "The 2026 bet"
 msgstr "2026年的賭注"
@@ -15124,6 +15136,9 @@ msgstr "正在寫入檔案..."
 
 msgid "Wrote"
 msgstr "已寫入"
+
+msgid "Xcode Beta"
+msgstr "Xcode Beta"
 
 msgid "xs · sm · default · lg · icon-xs → icon-lg"
 msgstr "xs · sm · default · lg · icon-xs → icon-lg"

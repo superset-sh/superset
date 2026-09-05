@@ -44,7 +44,6 @@ export const SETTING_ITEM_ID = {
 
 	BROWSER_HOMEPAGE: "browser-homepage",
 	BROWSER_IMPORT_HISTORY: "browser-import-history",
-	BEHAVIOR_CUSTOM_APPS: "behavior-custom-apps",
 
 	GIT_BRANCH_PREFIX: "git-branch-prefix",
 	GIT_DELETE_LOCAL_BRANCH: "git-delete-local-branch",
@@ -66,6 +65,7 @@ export const SETTING_ITEM_ID = {
 	LINKS_URL: "links-url",
 	LINKS_SIDEBAR_FILE: "links-sidebar-file",
 	LINKS_PORT: "links-port",
+	LINKS_CUSTOM_APPS: "links-custom-apps",
 
 	EXPERIMENTAL_SUPERSET_V2: "experimental-superset-v2",
 	EXPERIMENTAL_V1_MIGRATION: "experimental-v1-migration",
@@ -190,7 +190,6 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	// The in-app browser pane is a v2-only surface.
 	[SETTING_ITEM_ID.BROWSER_HOMEPAGE]: "v2",
 	[SETTING_ITEM_ID.BROWSER_IMPORT_HISTORY]: "v2",
-	[SETTING_ITEM_ID.BEHAVIOR_CUSTOM_APPS]: "shared",
 
 	// Branch prefix exists in both UIs — v1 `GitSettings`, v2 `V2GitSettings`.
 	[SETTING_ITEM_ID.GIT_BRANCH_PREFIX]: "shared",
@@ -213,6 +212,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.LINKS_URL]: "v2",
 	[SETTING_ITEM_ID.LINKS_SIDEBAR_FILE]: "v2",
 	[SETTING_ITEM_ID.LINKS_PORT]: "v2",
+	[SETTING_ITEM_ID.LINKS_CUSTOM_APPS]: "shared",
 
 	[SETTING_ITEM_ID.EXPERIMENTAL_SUPERSET_V2]: "shared",
 	[SETTING_ITEM_ID.EXPERIMENTAL_V1_MIGRATION]: "v2",
@@ -930,11 +930,11 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
-		id: SETTING_ITEM_ID.BEHAVIOR_CUSTOM_APPS,
-		section: "behavior",
+		id: SETTING_ITEM_ID.LINKS_CUSTOM_APPS,
+		section: "links",
 		title: "Custom apps",
 		description:
-			"Add your own apps to the Open in menus by app name or bundle id",
+			"Register editors and tools for the Open in menus by bundle id or application name",
 		keywords: [
 			"custom",
 			"apps",

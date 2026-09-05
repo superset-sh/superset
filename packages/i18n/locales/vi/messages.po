@@ -1266,6 +1266,9 @@ msgstr "Thêm một environment trong Settings trước khi tạo workspace clou
 msgid "Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are."
 msgstr "Thêm bất kỳ máy nào làm host. Workspace vẫn chạy khi laptop của bạn ngủ, và bạn có thể kiểm tra từ bất cứ đâu."
 
+msgid "Add app"
+msgstr "Thêm ứng dụng"
+
 msgid "Add attachment"
 msgstr "Thêm tệp đính kèm"
 
@@ -1856,9 +1859,6 @@ msgstr "Đã duyệt"
 
 msgid "Approved review"
 msgstr "Review đã duyệt"
-
-msgid "Apps to show under \"Custom\" in the Open in menus. On macOS the bundle id is preferred because it keeps working when the app bundle is renamed (for example \"Xcode-26.5.0.app\")."
-msgstr "Các ứng dụng hiển thị trong mục \"Tùy chỉnh\" của menu Mở trong. Trên macOS nên dùng bundle id vì nó vẫn hoạt động khi gói ứng dụng bị đổi tên (ví dụ \"Xcode-26.5.0.app\")."
 
 msgid "apps/desktop/src/renderer"
 msgstr "apps/desktop/src/renderer"
@@ -4408,6 +4408,9 @@ msgstr "Vẫn xóa"
 msgid "Delete anyway will skip the teardown script entirely."
 msgstr "Vẫn xóa sẽ bỏ qua hoàn toàn script teardown."
 
+msgid "Delete app"
+msgstr "Xóa ứng dụng"
+
 msgid "Delete automation"
 msgstr "Xóa tự động hóa"
 
@@ -5026,6 +5029,9 @@ msgstr "Trình soạn thảo & Quy trình"
 
 msgid "Editor typography"
 msgstr "Kiểu chữ trình soạn thảo"
+
+msgid "Editors and tools Superset doesn't list yet. They appear under \"Custom\" in every Open in menu and can be the editor the actions above open."
+msgstr "Trình soạn thảo và công cụ mà Superset chưa liệt kê. Chúng xuất hiện trong mục \"Tùy chỉnh\" của mọi menu Mở trong và có thể là trình soạn thảo mà các thao tác ở trên mở."
 
 msgid "Electron/tRPC-coupled, so referenced rather than rendered. Badge = import sites today; high counts are promotion candidates for packages/ui"
 msgstr "Gắn với Electron/tRPC nên chỉ được nhắc tới chứ không dựng. Badge = số nơi import hiện tại; số cao là ứng viên đưa lên packages/ui"
@@ -5945,6 +5951,9 @@ msgstr "Tìm trong trang"
 
 msgid "Find in Terminal"
 msgstr "Tìm trong terminal"
+
+msgid "Find it with `osascript -e 'id of app \"Xcode\"'` or in the app's Info.plist."
+msgstr "Tìm bằng `osascript -e 'id of app \"Xcode\"'` hoặc trong Info.plist của ứng dụng."
 
 msgid "Find recently changed code with weak coverage and test it properly."
 msgstr "Tìm code vừa thay đổi có coverage yếu và viết test đàng hoàng."
@@ -7545,6 +7554,9 @@ msgstr "Đang tải người đóng góp…"
 msgid "Loading conversation..."
 msgstr "Đang tải cuộc trò chuyện..."
 
+msgid "Loading custom apps..."
+msgstr "Đang tải ứng dụng tùy chỉnh..."
+
 msgid "Loading diff…"
 msgstr "Đang tải diff…"
 
@@ -8134,9 +8146,6 @@ msgstr "Thợ máy bí ẩn"
 msgid "Name"
 msgstr "Tên"
 
-msgid "Name (e.g. Xcode Beta)"
-msgstr "Tên (ví dụ: Xcode Beta)"
-
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "Tên và một slug thân thiện với URL. Cả hai đều đổi được sau."
 
@@ -8235,15 +8244,6 @@ msgstr "Trình duyệt mới"
 
 msgid "New chat"
 msgstr "Chat mới"
-
-msgid "New custom app application name"
-msgstr "Tên ứng dụng của ứng dụng tùy chỉnh mới"
-
-msgid "New custom app bundle id"
-msgstr "Bundle id của ứng dụng tùy chỉnh mới"
-
-msgid "New custom app name"
-msgstr "Tên ứng dụng tùy chỉnh mới"
 
 msgid "New environment"
 msgstr "Environment mới"
@@ -8511,6 +8511,9 @@ msgstr "Không tìm thấy người đóng góp nào."
 
 msgid "No credit card required."
 msgstr "Không cần thẻ tín dụng."
+
+msgid "No custom apps yet. Click \"Add app\" to register one by bundle id or application name."
+msgstr "Chưa có ứng dụng tùy chỉnh. Nhấn \"Thêm ứng dụng\" để đăng ký bằng bundle id hoặc tên ứng dụng."
 
 msgid "No data"
 msgstr "Không có dữ liệu"
@@ -9066,6 +9069,9 @@ msgstr "trên {offScopeHostName} — sẽ không chạy ở đây"
 
 msgid "On click"
 msgstr "Khi nhấp"
+
+msgid "On macOS the bundle id is what launches the app, so it keeps working when the app bundle is renamed. The application name is the fallback, and the binary name on Linux."
+msgstr "Trên macOS, bundle id là thứ khởi chạy ứng dụng nên vẫn hoạt động khi gói ứng dụng bị đổi tên. Tên ứng dụng là phương án dự phòng, và trên Linux là tên tệp thực thi."
 
 msgid "On our radar. Order and scope may change."
 msgstr "Đang trong tầm ngắm. Thứ tự và phạm vi có thể thay đổi."
@@ -10415,8 +10421,8 @@ msgstr "Các prompt bạn gửi sẽ xuất hiện ở đây."
 msgid "Properties"
 msgstr "Thuộc tính"
 
-msgid "Provide an application name or a bundle id"
-msgstr "Nhập tên ứng dụng hoặc bundle id"
+msgid "Provide a bundle id or an application name."
+msgstr "Nhập bundle id hoặc tên ứng dụng."
 
 msgid "Provide either id or slug"
 msgstr "Hãy cung cấp id hoặc slug"
@@ -12270,6 +12276,9 @@ msgstr "Đang hiển thị"
 msgid "Shown in launchers and this list."
 msgstr "Hiển thị trong trình khởi chạy và danh sách này."
 
+msgid "Shown in the Open in menus."
+msgstr "Hiển thị trong menu Mở trong."
+
 msgid "Shown in the sidebar and task list."
 msgstr "Hiển thị ở thanh bên và danh sách tác vụ."
 
@@ -13404,6 +13413,9 @@ msgstr "Máy đó không còn khả dụng"
 
 msgid "That name isn't allowed."
 msgstr "Tên đó không được phép."
+
+msgid "The .app name as shown in Finder, without the extension."
+msgstr "Tên .app như hiển thị trong Finder, không có phần mở rộng."
 
 msgid "The 2026 bet"
 msgstr "Canh bạc 2026"
@@ -15124,6 +15136,9 @@ msgstr "Đang ghi tệp..."
 
 msgid "Wrote"
 msgstr "Đã ghi"
+
+msgid "Xcode Beta"
+msgstr "Xcode Beta"
 
 msgid "xs · sm · default · lg · icon-xs → icon-lg"
 msgstr "xs · sm · default · lg · icon-xs → icon-lg"

@@ -1266,6 +1266,9 @@ msgstr "Ajoutez un environnement dans les Paramètres avant de créer un espace 
 msgid "Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are."
 msgstr "Ajoutez n'importe quelle machine comme hôte. Les espaces de travail continuent de tourner quand votre portable est en veille, et vous pouvez venir aux nouvelles d'où que vous soyez."
 
+msgid "Add app"
+msgstr "Ajouter une application"
+
 msgid "Add attachment"
 msgstr "Ajouter une pièce jointe"
 
@@ -1856,9 +1859,6 @@ msgstr "Approuvée"
 
 msgid "Approved review"
 msgstr "Revue approuvée"
-
-msgid "Apps to show under \"Custom\" in the Open in menus. On macOS the bundle id is preferred because it keeps working when the app bundle is renamed (for example \"Xcode-26.5.0.app\")."
-msgstr "Applications à afficher sous « Personnalisé » dans les menus Ouvrir dans. Sur macOS, l'identifiant de bundle est préférable car il continue de fonctionner quand le bundle de l'application est renommé (par exemple « Xcode-26.5.0.app »)."
 
 msgid "apps/desktop/src/renderer"
 msgstr "apps/desktop/src/renderer"
@@ -4408,6 +4408,9 @@ msgstr "Supprimer quand même"
 msgid "Delete anyway will skip the teardown script entirely."
 msgstr "Supprimer quand même ignorera entièrement le script de nettoyage."
 
+msgid "Delete app"
+msgstr "Supprimer l'application"
+
 msgid "Delete automation"
 msgstr "Supprimer l'automatisation"
 
@@ -5026,6 +5029,9 @@ msgstr "Éditeur et flux de travail"
 
 msgid "Editor typography"
 msgstr "Typographie de l'éditeur"
+
+msgid "Editors and tools Superset doesn't list yet. They appear under \"Custom\" in every Open in menu and can be the editor the actions above open."
+msgstr "Éditeurs et outils que Superset ne liste pas encore. Ils apparaissent sous « Personnalisé » dans chaque menu Ouvrir dans et peuvent être l'éditeur ouvert par les actions ci-dessus."
 
 msgid "Electron/tRPC-coupled, so referenced rather than rendered. Badge = import sites today; high counts are promotion candidates for packages/ui"
 msgstr "Couplés à Electron/tRPC, donc référencés plutôt que rendus. Le badge = les sites d'import actuels ; les compteurs élevés sont candidats à une promotion vers packages/ui"
@@ -5945,6 +5951,9 @@ msgstr "Rechercher dans la page"
 
 msgid "Find in Terminal"
 msgstr "Rechercher dans le terminal"
+
+msgid "Find it with `osascript -e 'id of app \"Xcode\"'` or in the app's Info.plist."
+msgstr "Obtenez-le avec `osascript -e 'id of app \"Xcode\"'` ou dans l'Info.plist de l'application."
 
 msgid "Find recently changed code with weak coverage and test it properly."
 msgstr "Trouver le code récemment modifié dont la couverture est faible et le tester correctement."
@@ -7545,6 +7554,9 @@ msgstr "Chargement des contributeurs…"
 msgid "Loading conversation..."
 msgstr "Chargement de la conversation..."
 
+msgid "Loading custom apps..."
+msgstr "Chargement des applications personnalisées..."
+
 msgid "Loading diff…"
 msgstr "Chargement du diff…"
 
@@ -8134,9 +8146,6 @@ msgstr "Machiniste mystère"
 msgid "Name"
 msgstr "Nom"
 
-msgid "Name (e.g. Xcode Beta)"
-msgstr "Nom (par ex. Xcode Beta)"
-
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "Un nom et un slug compatible avec les URL. Les deux peuvent être modifiés plus tard."
 
@@ -8235,15 +8244,6 @@ msgstr "Nouveau navigateur"
 
 msgid "New chat"
 msgstr "Nouvelle discussion"
-
-msgid "New custom app application name"
-msgstr "Nom de l'application du nouvel élément personnalisé"
-
-msgid "New custom app bundle id"
-msgstr "Identifiant de bundle du nouvel élément personnalisé"
-
-msgid "New custom app name"
-msgstr "Nom du nouvel élément personnalisé"
 
 msgid "New environment"
 msgstr "Nouvel environnement"
@@ -8511,6 +8511,9 @@ msgstr "Aucun contributeur trouvé."
 
 msgid "No credit card required."
 msgstr "Aucune carte bancaire requise."
+
+msgid "No custom apps yet. Click \"Add app\" to register one by bundle id or application name."
+msgstr "Aucune application personnalisée pour l'instant. Cliquez sur « Ajouter une application » pour en enregistrer une par identifiant de bundle ou nom d'application."
 
 msgid "No data"
 msgstr "Aucune donnée"
@@ -9066,6 +9069,9 @@ msgstr "sur {offScopeHostName} — ne s'exécutera pas ici"
 
 msgid "On click"
 msgstr "Au clic"
+
+msgid "On macOS the bundle id is what launches the app, so it keeps working when the app bundle is renamed. The application name is the fallback, and the binary name on Linux."
+msgstr "Sur macOS, c'est l'identifiant de bundle qui lance l'application, il continue donc de fonctionner si le bundle est renommé. Le nom d'application sert de secours, et de nom de binaire sur Linux."
 
 msgid "On our radar. Order and scope may change."
 msgstr "Dans notre viseur. L'ordre et le périmètre peuvent changer."
@@ -10415,8 +10421,8 @@ msgstr "Les prompts que vous soumettez apparaîtront ici."
 msgid "Properties"
 msgstr "Propriétés"
 
-msgid "Provide an application name or a bundle id"
-msgstr "Indiquez un nom d'application ou un identifiant de bundle"
+msgid "Provide a bundle id or an application name."
+msgstr "Indiquez un identifiant de bundle ou un nom d'application."
 
 msgid "Provide either id or slug"
 msgstr "Fournissez soit un id, soit un slug"
@@ -12270,6 +12276,9 @@ msgstr "Affichés"
 msgid "Shown in launchers and this list."
 msgstr "Affichée dans les lanceurs et dans cette liste."
 
+msgid "Shown in the Open in menus."
+msgstr "Affiché dans les menus Ouvrir dans."
+
 msgid "Shown in the sidebar and task list."
 msgstr "Affiché dans la barre latérale et la liste des tâches."
 
@@ -13404,6 +13413,9 @@ msgstr "Cette machine n'est plus disponible"
 
 msgid "That name isn't allowed."
 msgstr "Ce nom n'est pas autorisé."
+
+msgid "The .app name as shown in Finder, without the extension."
+msgstr "Le nom du .app tel qu'il apparaît dans le Finder, sans l'extension."
 
 msgid "The 2026 bet"
 msgstr "Le pari 2026"
@@ -15124,6 +15136,9 @@ msgstr "Écriture du fichier..."
 
 msgid "Wrote"
 msgstr "Écrit"
+
+msgid "Xcode Beta"
+msgstr "Xcode Beta"
 
 msgid "xs · sm · default · lg · icon-xs → icon-lg"
 msgstr "xs · sm · default · lg · icon-xs → icon-lg"

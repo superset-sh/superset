@@ -1266,6 +1266,9 @@ msgstr "Před vytvořením cloudového pracovního prostoru přidejte prostřed�
 msgid "Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are."
 msgstr "Přidejte jako hosta libovolný počítač. Pracovní prostory běží dál, i když váš laptop usne, a vy se můžete kdykoli podívat, jak si vedou."
 
+msgid "Add app"
+msgstr "Přidat aplikaci"
+
 msgid "Add attachment"
 msgstr "Přidat přílohu"
 
@@ -1856,9 +1859,6 @@ msgstr "Schváleno"
 
 msgid "Approved review"
 msgstr "Schválená revize"
-
-msgid "Apps to show under \"Custom\" in the Open in menus. On macOS the bundle id is preferred because it keeps working when the app bundle is renamed (for example \"Xcode-26.5.0.app\")."
-msgstr "Aplikace zobrazené v nabídkách Otevřít v pod položkou „Vlastní“. Na macOS je vhodnější bundle id, protože funguje i po přejmenování balíčku aplikace (např. „Xcode-26.5.0.app“)."
 
 msgid "apps/desktop/src/renderer"
 msgstr "apps/desktop/src/renderer"
@@ -4408,6 +4408,9 @@ msgstr "Přesto smazat"
 msgid "Delete anyway will skip the teardown script entirely."
 msgstr "„Přesto smazat“ teardown skript úplně přeskočí."
 
+msgid "Delete app"
+msgstr "Smazat aplikaci"
+
 msgid "Delete automation"
 msgstr "Smazat automatizaci"
 
@@ -5026,6 +5029,9 @@ msgstr "Editor a workflow"
 
 msgid "Editor typography"
 msgstr "Typografie editoru"
+
+msgid "Editors and tools Superset doesn't list yet. They appear under \"Custom\" in every Open in menu and can be the editor the actions above open."
+msgstr "Editory a nástroje, které Superset zatím nezná. Zobrazují se pod položkou „Vlastní“ v každé nabídce Otevřít v a mohou být editorem, který otevírají výše uvedené akce."
 
 msgid "Electron/tRPC-coupled, so referenced rather than rendered. Badge = import sites today; high counts are promotion candidates for packages/ui"
 msgstr "Svázané s Electronem/tRPC, proto jen odkazované, ne vykreslené. Odznak = dnešní místa importu; vysoká čísla jsou kandidáti na přesun do packages/ui"
@@ -5945,6 +5951,9 @@ msgstr "Najít na stránce"
 
 msgid "Find in Terminal"
 msgstr "Najít v terminálu"
+
+msgid "Find it with `osascript -e 'id of app \"Xcode\"'` or in the app's Info.plist."
+msgstr "Zjistíte ho příkazem `osascript -e 'id of app \"Xcode\"'` nebo v Info.plist aplikace."
 
 msgid "Find recently changed code with weak coverage and test it properly."
 msgstr "Najde nedávno změněný kód se slabým pokrytím a pořádně ho otestuje."
@@ -7545,6 +7554,9 @@ msgstr "Načítám přispěvatele…"
 msgid "Loading conversation..."
 msgstr "Načítám konverzaci..."
 
+msgid "Loading custom apps..."
+msgstr "Načítání vlastních aplikací..."
+
 msgid "Loading diff…"
 msgstr "Načítám rozdíly…"
 
@@ -8134,9 +8146,6 @@ msgstr "Záhadný strojník"
 msgid "Name"
 msgstr "Název"
 
-msgid "Name (e.g. Xcode Beta)"
-msgstr "Název (např. Xcode Beta)"
-
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "Název a slug vhodný do URL. Obojí jde později změnit."
 
@@ -8235,15 +8244,6 @@ msgstr "Nový prohlížeč"
 
 msgid "New chat"
 msgstr "Nový chat"
-
-msgid "New custom app application name"
-msgstr "Název aplikace nové vlastní aplikace"
-
-msgid "New custom app bundle id"
-msgstr "Bundle id nové vlastní aplikace"
-
-msgid "New custom app name"
-msgstr "Název nové vlastní aplikace"
 
 msgid "New environment"
 msgstr "Nové prostředí"
@@ -8511,6 +8511,9 @@ msgstr "Nenalezeni žádní přispěvatelé."
 
 msgid "No credit card required."
 msgstr "Bez platební karty."
+
+msgid "No custom apps yet. Click \"Add app\" to register one by bundle id or application name."
+msgstr "Zatím žádné vlastní aplikace. Klikněte na „Přidat aplikaci“ a zaregistrujte ji podle bundle id nebo názvu aplikace."
 
 msgid "No data"
 msgstr "Žádná data"
@@ -9066,6 +9069,9 @@ msgstr "na {offScopeHostName} — tady nepoběží"
 
 msgid "On click"
 msgstr "Po kliknutí"
+
+msgid "On macOS the bundle id is what launches the app, so it keeps working when the app bundle is renamed. The application name is the fallback, and the binary name on Linux."
+msgstr "Na macOS aplikaci spouští bundle id, takže funguje i po přejmenování balíčku. Název aplikace je záložní volba a na Linuxu název binárky."
 
 msgid "On our radar. Order and scope may change."
 msgstr "Máme to na radaru. Pořadí i rozsah se můžou změnit."
@@ -10415,8 +10421,8 @@ msgstr "Prompty, které odešlete, se objeví tady."
 msgid "Properties"
 msgstr "Vlastnosti"
 
-msgid "Provide an application name or a bundle id"
-msgstr "Zadejte název aplikace nebo bundle id"
+msgid "Provide a bundle id or an application name."
+msgstr "Zadejte bundle id nebo název aplikace."
 
 msgid "Provide either id or slug"
 msgstr "Zadejte buď id, nebo slug"
@@ -12270,6 +12276,9 @@ msgstr "Zobrazené"
 msgid "Shown in launchers and this list."
 msgstr "Zobrazuje se ve spouštěčích a v tomto seznamu."
 
+msgid "Shown in the Open in menus."
+msgstr "Zobrazuje se v nabídkách Otevřít v."
+
 msgid "Shown in the sidebar and task list."
 msgstr "Zobrazuje se v postranním panelu a seznamu úkolů."
 
@@ -13404,6 +13413,9 @@ msgstr "Tento počítač už není dostupný"
 
 msgid "That name isn't allowed."
 msgstr "Takový název není povolený."
+
+msgid "The .app name as shown in Finder, without the extension."
+msgstr "Název .app, jak se zobrazuje ve Finderu, bez přípony."
 
 msgid "The 2026 bet"
 msgstr "Sázka na rok 2026"
@@ -15124,6 +15136,9 @@ msgstr "Zapisuji soubor..."
 
 msgid "Wrote"
 msgstr "Zapsáno"
+
+msgid "Xcode Beta"
+msgstr "Xcode Beta"
 
 msgid "xs · sm · default · lg · icon-xs → icon-lg"
 msgstr "xs · sm · default · lg · icon-xs → icon-lg"
