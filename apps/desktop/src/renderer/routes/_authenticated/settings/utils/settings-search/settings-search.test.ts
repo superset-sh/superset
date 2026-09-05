@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+	getVisibleItemsForSection,
 	SETTING_ITEM_ID,
 	type SettingsItem,
 	searchSettings,
@@ -75,5 +76,39 @@ describe("settings search - hosts", () => {
 		const ids = getIds(searchSettings("delete host"));
 
 		expect(ids).toContain(SETTING_ITEM_ID.HOST_DELETE);
+	});
+});
+
+describe("settings search - usage in sidebar", () => {
+	it('searching "sidebar" in General returns the usage-in-sidebar switch for v2 users', () => {
+		const ids = getVisibleItemsForSection({
+			section: "behavior",
+			searchQuery: "sidebar",
+			isV2: true,
+		});
+		expect(ids).toContain(SETTING_ITEM_ID.BEHAVIOR_USAGE_IN_SIDEBAR);
+	});
+
+	it("hides the usage-in-sidebar switch from v1 users", () => {
+		const ids = getVisibleItemsForSection({
+			section: "behavior",
+			searchQuery: "sidebar",
+			isV2: false,
+		});
+		expect(ids).not.toContain(SETTING_ITEM_ID.BEHAVIOR_USAGE_IN_SIDEBAR);
+	});
+
+	it('searching "shortcut" matches the usage-in-sidebar item', () => {
+		const ids = getIds(searchSettings("shortcut"));
+		expect(ids).toContain(SETTING_ITEM_ID.BEHAVIOR_USAGE_IN_SIDEBAR);
+	});
+
+	it("lists the usage-in-sidebar switch in General without a search for v2 users", () => {
+		const ids = getVisibleItemsForSection({
+			section: "behavior",
+			searchQuery: "",
+			isV2: true,
+		});
+		expect(ids).toContain(SETTING_ITEM_ID.BEHAVIOR_USAGE_IN_SIDEBAR);
 	});
 });
