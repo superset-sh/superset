@@ -11597,8 +11597,11 @@ msgstr "Läuft auf einem gekoppelten Gerät"
 msgid "Running on this device"
 msgstr "Läuft auf diesem Gerät"
 
-msgid "Running sessions move over without being relaunched."
-msgstr "Laufende Sitzungen wechseln mit, ohne neu gestartet zu werden."
+msgid "Running sessions move over when they go idle, resuming where they left off."
+msgstr "Laufende Sitzungen wechseln, sobald sie untätig sind, und machen dort weiter, wo sie aufgehört haben."
+
+msgid "Running sessions pick up the new login in place; ones on their own profile restart when they go idle."
+msgstr "Laufende Sitzungen übernehmen die neue Anmeldung an Ort und Stelle; die mit eigenem Profil starten neu, sobald sie untätig sind."
 
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Laufende Terminal-Prozesse laufen weiter, ältere Ausgaben sind nach einem Neustart der App aber möglicherweise nicht mehr verfügbar."

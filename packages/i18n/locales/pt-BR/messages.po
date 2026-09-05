@@ -11597,8 +11597,11 @@ msgstr "Rodando em um dispositivo pareado"
 msgid "Running on this device"
 msgstr "Rodando neste dispositivo"
 
-msgid "Running sessions move over without being relaunched."
-msgstr "As sessões em execução mudam de conta sem serem reiniciadas."
+msgid "Running sessions move over when they go idle, resuming where they left off."
+msgstr "As sessões em execução mudam quando ficam ociosas e continuam de onde pararam."
+
+msgid "Running sessions pick up the new login in place; ones on their own profile restart when they go idle."
+msgstr "As sessões em execução assumem o novo login no lugar; as que têm perfil próprio reiniciam quando ficam ociosas."
 
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Os processos de terminal em execução continuam, mas a saída mais antiga pode não estar mais disponível depois de reiniciar o app."

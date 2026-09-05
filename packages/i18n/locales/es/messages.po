@@ -11597,8 +11597,11 @@ msgstr "En ejecución en un dispositivo emparejado"
 msgid "Running on this device"
 msgstr "En ejecución en este dispositivo"
 
-msgid "Running sessions move over without being relaunched."
-msgstr "Las sesiones en ejecución se trasladan sin reiniciarse."
+msgid "Running sessions move over when they go idle, resuming where they left off."
+msgstr "Las sesiones en ejecución cambian cuando quedan inactivas y continúan donde se quedaron."
+
+msgid "Running sessions pick up the new login in place; ones on their own profile restart when they go idle."
+msgstr "Las sesiones en ejecución adoptan el nuevo inicio de sesión sin moverse; las que tienen su propio perfil se reinician cuando quedan inactivas."
 
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Los procesos de terminal en marcha continúan, pero puede que la salida más antigua deje de estar disponible al reiniciar la app."

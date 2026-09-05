@@ -9,8 +9,11 @@ import {
 	EnterEnabledAlertDialogContent,
 } from "@superset/ui/alert-dialog";
 import { useRef } from "react";
+import type { ManagedAgent } from "../../utils/visibleQuotaAgents";
 
 export interface RestartSessionsPrompt {
+	/** Whose sessions these are; the confirmation toast words itself per agent. */
+	agent: ManagedAgent;
 	/** "Claude Code" / "Codex". */
 	providerLabel: string;
 	/** The account just made active, as shown on its card. */

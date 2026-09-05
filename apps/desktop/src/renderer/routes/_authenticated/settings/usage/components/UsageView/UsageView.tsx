@@ -125,6 +125,31 @@ function creditsLine(account: UsageAccount): string | null {
 	return null;
 }
 
+/**
+ * What the switch really does to the sessions already running, per agent. A
+ * Claude session on the shared active login reads it again on its next turn,
+ * so it needs no relaunch; one launched from its own profile dir does, and
+ * every Codex session does — its account *is* its config dir. The engine
+ * restarts those with resume the moment they are between turns
+ * (`SessionMover.moveAtIdle`), so the confirmation must not promise that
+ * nothing is relaunched.
+ */
+export function sessionMoveNote(agent: ManagedAgent): string {
+	return agent === "claude"
+		? i18n._(
+				msg({
+					message:
+						"Running sessions pick up the new login in place; ones on their own profile restart when they go idle.",
+				}),
+			)
+		: i18n._(
+				msg({
+					message:
+						"Running sessions move over when they go idle, resuming where they left off.",
+				}),
+			);
+}
+
 const ACTIVE_TITLE = msg({
 	message:
 		"Active — every running and newly launched session of this agent uses this account.",
@@ -481,16 +506,13 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 		AccountEngineAgentSettings
 	> | null = engineQuery.data?.settings ?? null;
 
-	const showMadeActiveToast = (providerLabel: string, accountLabel: string) => {
+	const showMadeActiveToast = (agent: ManagedAgent, accountLabel: string) => {
+		const providerLabel = AGENT_LABELS[agent];
 		toast.success(
 			t({
 				message: `${accountLabel} is now the active ${providerLabel} account.`,
 			}),
-			{
-				description: t({
-					message: "Running sessions move over without being relaunched.",
-				}),
-			},
+			{ description: sessionMoveNote(agent) },
 		);
 	};
 
@@ -529,13 +551,14 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 		}
 		if (candidateCount > 0) {
 			setRestartPrompt({
+				agent,
 				providerLabel,
 				accountLabel,
 				count: candidateCount,
 			});
 			return;
 		}
-		showMadeActiveToast(providerLabel, accountLabel);
+		showMadeActiveToast(agent, accountLabel);
 	};
 
 	// R2/F3: the host performs the switch, so a failure must leave the
@@ -589,9 +612,9 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 	// the two never contradict each other on screen at once.
 	const dismissRestartPrompt = () => {
 		if (!restartPrompt) return;
-		const { providerLabel, accountLabel } = restartPrompt;
+		const { agent, accountLabel } = restartPrompt;
 		setRestartPrompt(null);
-		showMadeActiveToast(providerLabel, accountLabel);
+		showMadeActiveToast(agent, accountLabel);
 	};
 
 	const openAddAgentAccount = (agent: ManagedAgent) => {

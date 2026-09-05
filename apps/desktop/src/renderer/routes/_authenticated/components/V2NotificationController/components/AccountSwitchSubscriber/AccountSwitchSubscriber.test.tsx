@@ -87,8 +87,11 @@ interface HistoryEntry {
 
 let historyEntries: HistoryEntry[] = [];
 let historyError: Error | null = null;
+/** Held open by the race test so an event can land mid-load. */
+let historyGate: Promise<void> | null = null;
 
 const loadHistory = async () => {
+	if (historyGate) await historyGate;
 	if (historyError) throw historyError;
 	return { entries: historyEntries };
 };
@@ -133,6 +136,7 @@ beforeEach(() => {
 	busListeners.clear();
 	historyEntries = [];
 	historyError = null;
+	historyGate = null;
 	localStorage.clear();
 });
 
@@ -577,6 +581,39 @@ describe("away summary", () => {
 		await emit("account:switched", "claude", switched({ at: 10_010 }));
 
 		expect(readWatermarks()).toEqual({ "http://host-away-live": 10_010 });
+	});
+
+	// The watermark is read before the history round trip, so a switch that
+	// arrives during it used to be notified live and then counted again as one
+	// the user had missed.
+	test("a switch that lands during the load is not counted twice", async () => {
+		let openGate = () => {};
+		historyGate = new Promise<void>((resolve) => {
+			openGate = resolve;
+		});
+		historyEntries = [
+			{ at: 11_100, agent: "claude", reasonKind: "threshold" },
+			{ at: 11_200, agent: "codex", reasonKind: "strategy" },
+			// The live one below, as the host records it.
+			{ at: 11_300, agent: "claude", reasonKind: "threshold" },
+		];
+
+		await mountSubscriber("http://host-away-race");
+		expect(toasts).toEqual([]);
+
+		await emit(
+			"account:switched",
+			"claude",
+			switched({ at: 11_300 }),
+			"http://host-away-race",
+		);
+		await act(async () => {
+			openGate();
+			await new Promise((resolve) => setTimeout(resolve, 0));
+		});
+
+		expect(shown).toHaveLength(1);
+		expect(toasts).toEqual(["2 account switches while you were away"]);
 	});
 
 	test("an unreachable host is left to try again, without a toast", async () => {

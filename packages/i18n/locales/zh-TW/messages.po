@@ -11597,8 +11597,11 @@ msgstr "在已配對的裝置上執行"
 msgid "Running on this device"
 msgstr "在此裝置上執行"
 
-msgid "Running sessions move over without being relaunched."
-msgstr "正在執行的會話會直接移轉，無需重新啟動。"
+msgid "Running sessions move over when they go idle, resuming where they left off."
+msgstr "正在執行的會話會在閒置時切換過去，並從中斷處繼續。"
+
+msgid "Running sessions pick up the new login in place; ones on their own profile restart when they go idle."
+msgstr "正在執行的會話會就地使用新的登入資訊；使用自有設定檔的會話會在閒置時重新啟動。"
 
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "執行中的終端處理程序會繼續，但重啟應用後可能無法再看到較早的輸出。"

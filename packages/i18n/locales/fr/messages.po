@@ -11597,8 +11597,11 @@ msgstr "S'exécute sur un appareil associé"
 msgid "Running on this device"
 msgstr "S'exécute sur cet appareil"
 
-msgid "Running sessions move over without being relaunched."
-msgstr "Les sessions en cours basculent sans être relancées."
+msgid "Running sessions move over when they go idle, resuming where they left off."
+msgstr "Les sessions en cours basculent dès qu'elles sont inactives et reprennent là où elles s'étaient arrêtées."
+
+msgid "Running sessions pick up the new login in place; ones on their own profile restart when they go idle."
+msgstr "Les sessions en cours reprennent la nouvelle connexion sur place ; celles qui ont leur propre profil redémarrent dès qu'elles sont inactives."
 
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Les processus de terminal en cours continuent, mais les sorties plus anciennes pourraient ne plus être disponibles après un redémarrage de l'application."

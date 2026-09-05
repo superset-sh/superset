@@ -12,7 +12,7 @@ if (!alreadyRegistered) GlobalRegistrator.register();
 const { cleanup, fireEvent, render, within } = await import(
 	"@testing-library/react"
 );
-const { AccountCard } = await import("./UsageView");
+const { AccountCard, sessionMoveNote } = await import("./UsageView");
 
 afterEach(cleanup);
 afterAll(async () => {
@@ -64,6 +64,24 @@ function renderCard(
 		/>,
 	);
 }
+
+describe("post-switch confirmation", () => {
+	// The engine restarts Codex sessions with resume at their next idle
+	// moment, and a Claude session on its own profile dir too, so the old
+	// single sentence ("move over without being relaunched") was a promise the
+	// switch does not keep.
+	test("the note reads true for each agent's sessions", () => {
+		expect(sessionMoveNote("claude")).toBe(
+			"Running sessions pick up the new login in place; ones on their own profile restart when they go idle.",
+		);
+		expect(sessionMoveNote("codex")).toBe(
+			"Running sessions move over when they go idle, resuming where they left off.",
+		);
+		for (const agent of ["claude", "codex"] as const) {
+			expect(sessionMoveNote(agent)).not.toContain("without being relaunched");
+		}
+	});
+});
 
 describe("AccountCard active indicator", () => {
 	test("only the active account says Active; the rest offer the switch", () => {

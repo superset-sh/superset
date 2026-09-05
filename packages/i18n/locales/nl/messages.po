@@ -11597,8 +11597,11 @@ msgstr "Draait op een gekoppeld apparaat"
 msgid "Running on this device"
 msgstr "Draait op dit apparaat"
 
-msgid "Running sessions move over without being relaunched."
-msgstr "Actieve sessies gaan mee zonder opnieuw te starten."
+msgid "Running sessions move over when they go idle, resuming where they left off."
+msgstr "Actieve sessies wisselen zodra ze inactief zijn en gaan verder waar ze gebleven waren."
+
+msgid "Running sessions pick up the new login in place; ones on their own profile restart when they go idle."
+msgstr "Actieve sessies pakken de nieuwe login ter plekke op; die met een eigen profiel starten opnieuw zodra ze inactief zijn."
 
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Draaiende terminalprocessen gaan door, maar oudere uitvoer is na het herstarten van de app mogelijk niet meer beschikbaar."

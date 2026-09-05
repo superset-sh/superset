@@ -11597,8 +11597,11 @@ msgstr "Běží na spárovaném zařízení"
 msgid "Running on this device"
 msgstr "Běží na tomto zařízení"
 
-msgid "Running sessions move over without being relaunched."
-msgstr "Běžící relace přejdou bez opětovného spuštění."
+msgid "Running sessions move over when they go idle, resuming where they left off."
+msgstr "Běžící relace přejdou na nový účet, jakmile budou nečinné, a pokračují tam, kde skončily."
+
+msgid "Running sessions pick up the new login in place; ones on their own profile restart when they go idle."
+msgstr "Běžící relace převezmou nové přihlášení na místě; ty s vlastním profilem se restartují, jakmile budou nečinné."
 
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Běžící procesy v terminálu poběží dál, ale starší výstup po restartu aplikace už nemusí být k dispozici."

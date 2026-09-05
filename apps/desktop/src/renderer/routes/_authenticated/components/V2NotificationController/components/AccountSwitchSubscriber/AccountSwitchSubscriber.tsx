@@ -64,6 +64,14 @@ function latchKey(hostUrl: string, agent: AccountAgent): string {
 const summarisedHosts = new Set<string>();
 
 /**
+ * Timestamps of the switches told live per host, collected only while that
+ * host's away summary is still loading. The summary reads its watermark
+ * before the round trip, so a switch that lands during it would otherwise be
+ * notified *and* counted again as one the user missed.
+ */
+const liveSwitchesDuringSummary = new Map<string, Set<number>>();
+
+/**
  * Turns the engine's structured account events into what the user actually
  * sees: a native notification per switch (R19), the exhaustion and
  * needs-attention notices (R22, KTD8), live Usage-page updates, and one
@@ -100,6 +108,7 @@ export function AccountSwitchSubscriber({
 			// themselves, so the page must not keep showing the old one.
 			void invalidateAccountQueries(queryClient, hostUrl);
 			rememberLastSeenAt(hostUrl, payload.at);
+			liveSwitchesDuringSummary.get(hostUrl)?.add(payload.at);
 
 			if (!markSwitchSeen(`${hostUrl}:${payload.agent}:${payload.at}`)) return;
 			const content = getSwitchNotification(payload);
@@ -334,14 +343,21 @@ async function showAwaySummary(
 	summarisedHosts.add(hostUrl);
 
 	const lastSeenAt = readLastSeenAt(hostUrl);
+	const toldLive = new Set<number>();
+	liveSwitchesDuringSummary.set(hostUrl, toldLive);
 	try {
 		const { entries } = await loadHistory(hostUrl);
 
 		rememberLastSeenAt(hostUrl, ...entries.map((entry) => entry.at));
-		// `fallback-rejected` rows are refused hints, not switches.
+		// `fallback-rejected` rows are refused hints, not switches. A switch
+		// that arrived live during the load is already on screen as its own
+		// notification, so the summary leaves it out rather than telling the
+		// user about it twice.
 		const count = entries.filter(
 			(entry) =>
-				entry.at > lastSeenAt && entry.reasonKind !== "fallback-rejected",
+				entry.at > lastSeenAt &&
+				entry.reasonKind !== "fallback-rejected" &&
+				!toldLive.has(entry.at),
 		).length;
 		if (count === 0) return;
 
@@ -359,6 +375,8 @@ async function showAwaySummary(
 		// A host that was unreachable at boot gets another chance on remount.
 		summarisedHosts.delete(hostUrl);
 		console.warn("[accounts] failed to read the switch history:", error);
+	} finally {
+		liveSwitchesDuringSummary.delete(hostUrl);
 	}
 }
 

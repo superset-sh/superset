@@ -11597,8 +11597,11 @@ msgstr "Работает на сопряжённом устройстве"
 msgid "Running on this device"
 msgstr "Работает на этом устройстве"
 
-msgid "Running sessions move over without being relaunched."
-msgstr "Работающие сессии перейдут без перезапуска."
+msgid "Running sessions move over when they go idle, resuming where they left off."
+msgstr "Работающие сессии перейдут на новый аккаунт, когда освободятся, и продолжат с того же места."
+
+msgid "Running sessions pick up the new login in place; ones on their own profile restart when they go idle."
+msgstr "Работающие сессии подхватят новый вход на месте; те, что на собственном профиле, перезапустятся, когда освободятся."
 
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Работающие процессы терминала продолжат работу, но более старый вывод может стать недоступен после перезапуска приложения."

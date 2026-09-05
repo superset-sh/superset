@@ -20,6 +20,7 @@ afterAll(async () => {
 });
 
 const prompt = {
+	agent: "claude" as const,
 	providerLabel: "Claude Code",
 	accountLabel: "a@example.com",
 	count: 2,

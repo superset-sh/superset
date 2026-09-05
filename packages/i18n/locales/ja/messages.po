@@ -11597,8 +11597,11 @@ msgstr "ペアリング済みデバイスで実行中"
 msgid "Running on this device"
 msgstr "このデバイスで実行中"
 
-msgid "Running sessions move over without being relaunched."
-msgstr "実行中のセッションは起動し直さずにそのまま移ります。"
+msgid "Running sessions move over when they go idle, resuming where they left off."
+msgstr "実行中のセッションはアイドルになった時点で切り替わり、中断したところから再開します。"
+
+msgid "Running sessions pick up the new login in place; ones on their own profile restart when they go idle."
+msgstr "実行中のセッションはそのまま新しいログインに切り替わります。専用プロファイルのセッションはアイドルになった時点で再起動します。"
 
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "実行中のターミナルプロセスは継続しますが、アプリ再起動後に古い出力が利用できなくなる場合があります。"
