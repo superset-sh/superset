@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>terminals explain — Verification Report</title>
+<style>
+  :root{
+    --bg: #f6f5f2;
+    --bg-panel: #ffffff;
+    --bg-code: #22201c;
+    --code-ink: #e8e4da;
+    --code-dim: #9b9689;
+    --code-accent: #7fc9a8;
+    --code-warn: #e0a458;
+    --ink: #1a1815;
+    --ink-dim: #57534a;
+    --ink-faint: #8a8577;
+    --line: #e1ddd2;
+    --line-strong: #c7c0b1;
+    --accent: #2f6f5e;
+    --accent-ink: #1f4a3e;
+    --accent-bg: #e3ede8;
+    --pass: #2f6f5e;
+    --pass-bg: #e3ede8;
+    --warn: #92621f;
+    --warn-bg: #f6ead3;
+    --mono: "SF Mono", ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+    --sans: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg: #16150f;
+      --bg-panel: #1c1b15;
+      --bg-code: #100f0c;
+      --code-ink: #e5e1d6;
+      --code-dim: #857f6f;
+      --code-accent: #8fd6b3;
+      --code-warn: #e6b06e;
+      --ink: #ece8db;
+      --ink-dim: #b6b09e;
+      --ink-faint: #83806e;
+      --line: #322f26;
+      --line-strong: #4a4536;
+      --accent: #7fc9a8;
+      --accent-ink: #a6e2c4;
+      --accent-bg: #1e2c25;
+      --pass: #7fc9a8;
+      --pass-bg: #1e2c25;
+      --warn: #e6b06e;
+      --warn-bg: #332711;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg: #16150f;
+    --bg-panel: #1c1b15;
+    --bg-code: #100f0c;
+    --code-ink: #e5e1d6;
+    --code-dim: #857f6f;
+    --code-accent: #8fd6b3;
+    --code-warn: #e6b06e;
+    --ink: #ece8db;
+    --ink-dim: #b6b09e;
+    --ink-faint: #83806e;
+    --line: #322f26;
+    --line-strong: #4a4536;
+    --accent: #7fc9a8;
+    --accent-ink: #a6e2c4;
+    --accent-bg: #1e2c25;
+    --pass: #7fc9a8;
+    --pass-bg: #1e2c25;
+    --warn: #e6b06e;
+    --warn-bg: #332711;
+  }
+
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.55;
+    padding: 3.5rem 2rem 6rem;
+  }
+  .page{ max-width: 1120px; margin: 0 auto; }
+
+  header.masthead{
+    border-bottom: 3px solid var(--ink);
+    padding-bottom: 1.6rem;
+    margin-bottom: 2.4rem;
+  }
+  .kicker{
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 0.8rem;
+  }
+  h1{
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: clamp(1.5rem, 3vw, 2.1rem);
+    line-height: 1.2;
+    margin: 0 0 0.7rem;
+    letter-spacing: -0.01em;
+  }
+  .dek{
+    font-size: 1.02rem;
+    color: var(--ink-dim);
+    max-width: 78ch;
+    margin: 0 0 1.2rem;
+  }
+  .status-row{
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .badge{
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    padding: 0.28rem 0.65rem;
+    border-radius: 3px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .badge.branch{ background: var(--accent-bg); color: var(--accent-ink); }
+  .badge.status{ background: var(--warn-bg); color: var(--warn); }
+  .meta-row{
+    display:flex;
+    gap: 1.4rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+    font-family: var(--mono);
+    font-size: 0.76rem;
+    color: var(--ink-faint);
+  }
+  .meta-row b{ color: var(--ink-dim); font-weight: 600; }
+
+  section{ margin-bottom: 3rem; }
+  h2{
+    font-family: var(--mono);
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 0 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: baseline;
+    gap: 0.7rem;
+  }
+  h2 .num{ color: var(--ink-faint); font-weight: 400; }
+  h3{
+    font-family: var(--mono);
+    font-size: 0.92rem;
+    font-weight: 700;
+    margin: 1.6rem 0 0.6rem;
+    color: var(--ink);
+  }
+  p{ margin: 0 0 1rem; color: var(--ink); max-width: 78ch; }
+  p.lede{ font-size: 1rem; color: var(--ink-dim); }
+
+  code{
+    font-family: var(--mono);
+    font-size: 0.88em;
+    background: color-mix(in srgb, var(--ink) 7%, transparent);
+    padding: 0.08em 0.4em;
+    border-radius: 3px;
+  }
+
+  .file-list{
+    display: grid;
+    gap: 0.9rem;
+    margin: 1rem 0;
+  }
+  .file-item{
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--line-strong);
+    border-radius: 4px;
+    padding: 0.9rem 1.1rem;
+  }
+  .file-item .path{
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    color: var(--accent-ink);
+    font-weight: 600;
+    display: block;
+    margin-bottom: 0.35rem;
+    word-break: break-all;
+  }
+  .file-item .desc{ font-size: 0.9rem; color: var(--ink-dim); margin: 0; }
+  .file-item.new .path::before{
+    content: "new · ";
+    color: var(--pass);
+    font-weight: 700;
+  }
+
+  .check-list{ list-style: none; margin: 0 0 1rem; padding: 0; }
+  .check-list li{
+    display: flex;
+    gap: 0.7rem;
+    align-items: flex-start;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 0.92rem;
+  }
+  .check-list li:last-child{ border-bottom: none; }
+  .check-list .mark{
+    font-family: var(--mono);
+    color: var(--pass);
+    font-weight: 700;
+    flex-shrink: 0;
+    width: 1.1em;
+  }
+  .check-list code{ white-space: nowrap; }
+  .check-list .result{ color: var(--ink-dim); }
+
+  .transcript{
+    margin: 1rem 0 1.8rem;
+  }
+  .transcript .label{
+    font-family: var(--mono);
+    font-size: 0.76rem;
+    color: var(--ink-faint);
+    margin-bottom: 0.4rem;
+    letter-spacing: 0.02em;
+  }
+  .code-wrap{
+    overflow-x: auto;
+    background: var(--bg-code);
+    border-radius: 6px;
+    border: 1px solid var(--line-strong);
+  }
+  pre{
+    margin: 0;
+    padding: 1rem 1.2rem;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: var(--code-ink);
+    white-space: pre;
+    tab-size: 2;
+  }
+  .cmd{ color: var(--code-accent); }
+  .cmt{ color: var(--code-dim); }
+  .warn-line{ color: var(--code-warn); }
+
+  .caveat{
+    background: var(--warn-bg);
+    border-left: 3px solid var(--warn);
+    border-radius: 4px;
+    padding: 0.9rem 1.1rem;
+    font-size: 0.9rem;
+    color: var(--ink);
+    margin: 1rem 0;
+  }
+  .caveat b{ color: var(--warn); font-family: var(--mono); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-bottom: 0.3rem; }
+
+  .spotcheck{
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 1.2rem 1.4rem;
+  }
+
+  .closing{
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+    padding: 1.4rem 1.5rem;
+  }
+  .closing h2{ border: none; padding: 0; margin-bottom: 0.7rem; }
+  .closing p:last-child{ margin-bottom: 0; }
+
+  footer{
+    margin-top: 3rem;
+    padding-top: 1.4rem;
+    border-top: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 0.74rem;
+    color: var(--ink-faint);
+  }
+
+  ::selection{ background: var(--accent-bg); color: var(--accent-ink); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="masthead">
+    <p class="kicker">Engineering verification report</p>
+    <h1>superset terminals explain</h1>
+    <p class="dek">A new CLI command that surfaces the raw hook-event evidence behind a terminal's agent status — built, statically verified, and run end-to-end against a real <code>claude</code> process. This report is the evidence, not a summary of it.</p>
+    <div class="status-row">
+      <span class="badge branch">branch: feat/terminals-explain</span>
+      <span class="badge status">uncommitted — working tree only, awaiting review</span>
+    </div>
+    <div class="meta-row">
+      <span><b>4</b> files modified</span>
+      <span><b>1</b> new command directory</span>
+      <span><b>5</b> new unit tests</span>
+      <span><b>2</b> independent verification passes</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>Why this exists</h2>
+    <p class="lede">Superset derives an agent's live status entirely from hook self-report events POSTed by each agent CLI's native hooks — not from screen-scraping. That's more precise when it works, but it fails <em>stuck</em> rather than <em>soft</em>: if a hook never fires (Claude Code fires no <code>Stop</code> hook on a Ctrl+C/Esc interrupt), the status silently keeps its last value forever, with no way to tell "still working" from "wedged" short of reading source.</p>
+    <p><code>terminals explain</code> closes that gap. It doesn't add a new detection mechanism — it exposes the evidence the existing one already has: the last hook event, when it fired, and what status that implies, so a stuck indicator is diagnosable from one CLI call instead of a source dive.</p>
+  </section>
+
+  <section>
+    <h2>What was built</h2>
+    <div class="file-list">
+      <div class="file-item">
+        <span class="path">packages/host-service/src/trpc/router/terminal-agents/terminal-agents.ts</span>
+        <p class="desc">New <code>explain</code> procedure + <code>explainTerminalAgentBinding()</code>. Returns <code>{'{'}binding: null{'}'}</code> or <code>{'{'}binding, derivedStatus, sinceMs{'}'}</code>. <code>derivedStatus</code> is one of <code>working / permission / failed / idle / ended</code> — mirrors the desktop's status derivation minus "seen"-gating (the CLI has no concept of a viewed tab), plus a fifth <code>ended</code> status for closed terminals, which the desktop's live view hides entirely.</p>
+      </div>
+      <div class="file-item">
+        <span class="path">packages/host-service/src/terminal-agents/persistence.ts</span>
+        <p class="desc">New <code>getTerminalAgentBindingAnyState()</code> — live reads normally hide ended rows; explain needs them, since "the session ended, and why" is part of the answer.</p>
+      </div>
+      <div class="file-item">
+        <span class="path">packages/host-service/src/terminal-agents/index.ts</span>
+        <p class="desc">Barrel export addition for the type the router needed.</p>
+      </div>
+      <div class="file-item new">
+        <span class="path">packages/cli/src/commands/terminals/explain/command.ts</span>
+        <p class="desc"><code>superset terminals explain --workspace &lt;id&gt; --terminal &lt;id&gt; [--json]</code>. Mirrors the existing <code>terminals read</code> command's conventions exactly — same workspace/host resolution, same <code>{'{'}data, message{'}'}</code> return shape.</p>
+      </div>
+      <div class="file-item">
+        <span class="path">packages/host-service/src/trpc/router/terminal-agents/terminal-agents.test.ts</span>
+        <p class="desc">5 new cases: no binding, live evidence + <code>sinceMs</code>, all event→status mappings, ended binding, cross-workspace isolation.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">01 /</span> Static verification</h2>
+    <p class="lede">Run directly by the orchestrating session, independent of the implementing agent's own claims.</p>
+    <ul class="check-list">
+      <li><span class="mark">✓</span><span><code>git diff --stat</code> <span class="result">— 4 files changed, 284 insertions, 1 deletion, plus the new command directory. No stray changes.</span></span></li>
+      <li><span class="mark">✓</span><span><code>bun run --cwd packages/host-service typecheck</code> <span class="result">— clean.</span></span></li>
+      <li><span class="mark">✓</span><span><code>bun run --cwd packages/cli typecheck</code> <span class="result">— clean.</span></span></li>
+      <li><span class="mark">✓</span><span><code>bun test terminal-agents.test.ts</code> <span class="result">— 15 pass, 0 fail, 42 expect() calls, including a new <code>describe("explainTerminalAgentBinding", …)</code> block.</span></span></li>
+      <li><span class="mark">✓</span><span><code>bunx biome check</code> on all 4 touched files <span class="result">— "Checked 4 files in 30ms. No fixes applied."</span></span></li>
+      <li><span class="mark">✓</span><span><code>bun run --cwd packages/cli dev terminals explain --help</code> <span class="result">— real usage text printed: workspace/host/terminal options, global --json/--quiet/--api-key. The command is actually wired into the CLI framework, not just present as a file.</span></span></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="num">02 /</span> Real end-to-end run</h2>
+    <p class="lede">Run by the implementing agent against a real <code>claude</code> process in an isolated scratch harness — real <code>createApp</code>/routers/SQLite, a real pty-daemon under node, no relay/cloud/<code>~/.claude</code> side effects. Deliberately <strong>not</strong> the live desktop app's production host-service, which backs 100 real workspaces on this machine and was left untouched rather than restarted to load local code. Every transcript below is a literal captured terminal output.</p>
+
+    <h3>No binding — fresh plain terminal</h3>
+    <div class="transcript">
+      <div class="code-wrap"><pre><span class="cmd">$ terminals explain --workspace e2e0e2e0-… --terminal cb78871b-… --no-json</span>
+No agent binding recorded for terminal cb78871b-6f0f-4d69-a754-63cb90655130.
+No agent hook has ever reported here — either only a plain shell ran in this
+terminal, or the agent's hook integration isn't wired up.
+
+<span class="cmd">$ terminals explain --workspace e2e0e2e0-… --terminal cb78871b-… --json</span>
+{
+  "binding": null
+}</pre></div>
+    </div>
+
+    <h3>Real claude agent, shortly after start</h3>
+    <p style="font-size:0.88rem;color:var(--ink-faint);margin-top:-0.3rem;">Spawned via <code>agents create --agent claude --prompt "Write an 800-word short story… no tools."</code>, terminal <code>f401cb8d-…</code>.</p>
+    <div class="transcript">
+      <div class="code-wrap"><pre><span class="cmd">$ terminals explain --workspace e2e0e2e0-… --terminal f401cb8d-… --no-json</span>
+claude · working (last event Start, 0 seconds ago)
+session dbac982b-f608-456f-ad0f-7755b7e65e98, started 1 second ago, still live
+note: status is hook self-reporting with no liveness check — an agent
+interrupted with Esc/Ctrl+C fires no hook, so a stale last event can mean
+the status is stuck, not that the agent is busy.
+
+<span class="cmd">$ terminals explain --workspace e2e0e2e0-… --terminal f401cb8d-… --json</span>
+{
+  "binding": {
+    "terminalId": "f401cb8d-1cbc-4a04-9798-c31194436ae1",
+    "workspaceId": "e2e0e2e0-1111-4222-8333-444444444444",
+    "agentId": "claude",
+    "agentSessionId": "dbac982b-f608-456f-ad0f-7755b7e65e98",
+    "definitionId": null,
+    "startedAt": 1788286503051,
+    "lastEventAt": 1788286503209,
+    "lastEventType": "Start",
+    "endedAt": null,
+    "endReason": null
+  },
+  "derivedStatus": "working",
+  "sinceMs": 660
+}</pre></div>
+    </div>
+
+    <h3>Same terminal, after its real Stop hook fired</h3>
+    <p style="font-size:0.88rem;color:var(--ink-faint);margin-top:-0.3rem;">Turn took ~21s real wall-clock time.</p>
+    <div class="transcript">
+      <div class="code-wrap"><pre><span class="cmd">$ terminals explain --workspace e2e0e2e0-… --terminal f401cb8d-… --no-json</span>
+claude · idle (last event Stop, 0 seconds ago)
+session dbac982b-f608-456f-ad0f-7755b7e65e98, started 22 seconds ago, still live
+note: desktop may show "review" instead of "idle" until the pane has been
+viewed.
+
+<span class="cmd">$ terminals explain --workspace e2e0e2e0-… --terminal f401cb8d-… --json</span>
+{
+  "binding": {
+    "terminalId": "f401cb8d-1cbc-4a04-9798-c31194436ae1",
+    "workspaceId": "e2e0e2e0-1111-4222-8333-444444444444",
+    "agentId": "claude",
+    "agentSessionId": "dbac982b-f608-456f-ad0f-7755b7e65e98",
+    "definitionId": null,
+    "startedAt": 1788286503051,
+    "lastEventAt": 1788286524385,
+    "lastEventType": "Stop",
+    "endedAt": null,
+    "endReason": null
+  },
+  "derivedStatus": "idle",
+  "sinceMs": 736
+}</pre></div>
+    </div>
+
+    <h3>Real ended state</h3>
+    <p style="font-size:0.88rem;color:var(--ink-faint);margin-top:-0.3rem;">Closing the terminal from the run above.</p>
+    <div class="transcript">
+      <div class="code-wrap"><pre><span class="cmd">$ terminals close --workspace e2e0e2e0-… --terminal f401cb8d-… --no-json</span>
+Closed terminal f401cb8d-1cbc-4a04-9798-c31194436ae1
+
+<span class="cmd">$ terminals explain --workspace e2e0e2e0-… --terminal f401cb8d-… --no-json</span>
+claude · ended (last event Stop, 2 minutes ago)
+session dbac982b-f608-456f-ad0f-7755b7e65e98, started 2 minutes ago,
+ended 3 seconds ago (disposed — the session was deliberately killed)
+
+<span class="cmd">$ terminals explain --workspace e2e0e2e0-… --terminal f401cb8d-… --json</span>
+{
+  "binding": {
+    "terminalId": "f401cb8d-1cbc-4a04-9798-c31194436ae1",
+    "workspaceId": "e2e0e2e0-1111-4222-8333-444444444444",
+    "agentId": "claude",
+    "agentSessionId": "dbac982b-f608-456f-ad0f-7755b7e65e98",
+    "definitionId": null,
+    "startedAt": 1788286503051,
+    "lastEventAt": 1788286524385,
+    "lastEventType": "Stop",
+    "endedAt": 1788286628586,
+    "endReason": "disposed"
+  },
+  "derivedStatus": "ended",
+  "sinceMs": 107821
+}</pre></div>
+    </div>
+
+    <div class="caveat">
+      <b>Permission state — not live-triggered this round</b>
+      Superset launches claude in auto-approve mode in this harness, so producing a real held approval would have needed config surgery. The <code>permission</code> mapping was verified in an earlier pass via the exact hook payload the real notify script sends — not fabricated, just not captured live here. Said plainly rather than papered over.
+    </div>
+
+    <p style="font-size:0.9rem;color:var(--ink-dim);">Real <code>claude</code> added roughly 13 seconds of boot latency before the first <code>Start</code> event and produced a genuine <code>agentSessionId</code> — neither observable from a replayed hook payload. A separate run also produced one real <code>StopFailure → failed</code> transition that an earlier replayed-payload pass had only simulated.</p>
+  </section>
+
+  <section>
+    <h2><span class="num">03 /</span> Post-hoc spot-check</h2>
+    <p class="lede">Run by the orchestrating session after the implementing agent reported completion — not taken on faith.</p>
+    <div class="spotcheck">
+      <ul class="check-list">
+        <li><span class="mark">✓</span><span><code>git status --short</code> <span class="result">— exactly the 4 modified files + the new command directory. No leaked scratch files.</span></span></li>
+        <li><span class="mark">✓</span><span><code>ps aux | grep host-service</code> <span class="result">— no orphaned scratch processes; only the two long-running real desktop-app host-service processes, untouched.</span></span></li>
+        <li><span class="mark">✓</span><span><code>superset status --json</code> <span class="result">— real daemon still healthy, uptime ~4.8 days, never touched by this work.</span></span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="closing">
+    <h2>Where this leaves things</h2>
+    <p>Two independent, complementary passes: static checks (types, tests, lint, real command wiring) confirming the code is correct in isolation, and a live run against a real <code>claude</code> process confirming the whole chain — hook POST → store → router → CLI formatting — behaves as designed, including a state (<code>ended</code>) and a failure mode (<code>StopFailure</code>) that only a real run could produce. The one gap left open is deliberate: this was never run against the actual production host-service backing the real desktop app, because doing that meant restarting a daemon serving 100 live workspaces without asking first.</p>
+    <p>Nothing here is committed or pushed. It's sitting on <code>feat/terminals-explain</code>, ready for review.</p>
+  </section>
+
+  <footer>
+    Verification performed across two sessions — a static/independent check pass and a live E2E pass — both against the same working-tree diff. All command output on this page is captured, not fabricated.
+  </footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Superset vs Herdr — CLI Gap Report</title>
+<style>
+  :root{
+    --bg: #fbfaf7;
+    --bg-panel: #ffffff;
+    --ink: #1c1a17;
+    --ink-dim: #55504a;
+    --ink-faint: #8b8479;
+    --line: #e4e0d8;
+    --line-strong: #c9c3b6;
+    --accent: #b5451b;
+    --accent-ink: #7a2f12;
+    --accent-bg: #fbe9e0;
+    --good: #2f5d3a;
+    --good-bg: #e7f0e6;
+    --mono: "SF Mono", ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --sans: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg: #17140f;
+      --bg-panel: #1f1b15;
+      --ink: #ede8de;
+      --ink-dim: #b8b0a1;
+      --ink-faint: #837a6b;
+      --line: #343026;
+      --line-strong: #4a4436;
+      --accent: #e2794a;
+      --accent-ink: #f2a37c;
+      --accent-bg: #2e2015;
+      --good: #7cbf8a;
+      --good-bg: #1c2a1e;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg: #17140f;
+    --bg-panel: #1f1b15;
+    --ink: #ede8de;
+    --ink-dim: #b8b0a1;
+    --ink-faint: #837a6b;
+    --line: #343026;
+    --line-strong: #4a4436;
+    --accent: #e2794a;
+    --accent-ink: #f2a37c;
+    --accent-bg: #2e2015;
+    --good: #7cbf8a;
+    --good-bg: #1c2a1e;
+  }
+
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.55;
+    padding: 4rem 1.5rem 6rem;
+  }
+  .page{
+    max-width: 1040px;
+    margin: 0 auto;
+  }
+
+  header.masthead{
+    border-bottom: 3px solid var(--ink);
+    padding-bottom: 1.75rem;
+    margin-bottom: 2.5rem;
+  }
+  .kicker{
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 0.9rem;
+  }
+  h1{
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: clamp(2rem, 4.2vw, 2.9rem);
+    line-height: 1.08;
+    margin: 0 0 0.9rem;
+    letter-spacing: -0.01em;
+  }
+  .dek{
+    font-size: 1.08rem;
+    color: var(--ink-dim);
+    max-width: 62ch;
+    margin: 0;
+  }
+  .meta-row{
+    display:flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-top: 1.4rem;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--ink-faint);
+  }
+  .meta-row span b{ color: var(--ink-dim); font-weight: 600; }
+
+  section{ margin-bottom: 3.2rem; }
+  h2{
+    font-family: var(--serif);
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--line);
+  }
+  h3{
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem;
+  }
+  p{ margin: 0 0 1rem; color: var(--ink); max-width: 72ch; }
+  p.tight{ margin-bottom: 0.6rem; }
+
+  .lede-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+  }
+  @media (max-width: 700px){ .lede-grid{ grid-template-columns: 1fr; } }
+  .lede-card{
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 1.25rem 1.4rem;
+  }
+  .lede-card .tag{
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    display:block;
+    margin-bottom: 0.5rem;
+  }
+  .lede-card p{ margin-bottom: 0; font-size: 0.94rem; color: var(--ink-dim); }
+  .lede-card.super{ border-left: 3px solid var(--ink); }
+  .lede-card.herdr{ border-left: 3px solid var(--accent); }
+
+  /* gap table */
+  .table-wrap{
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--bg-panel);
+  }
+  table{
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 760px;
+    font-size: 0.92rem;
+  }
+  thead th{
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 600;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--line-strong);
+    white-space: nowrap;
+  }
+  tbody td{
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  tbody tr:last-child td{ border-bottom: none; }
+  tbody tr:hover{ background: color-mix(in srgb, var(--accent) 4%, transparent); }
+  td.capability{ font-weight: 600; width: 22%; }
+  td.cmd{ font-family: var(--mono); font-size: 0.82rem; color: var(--ink-dim); width: 24%; }
+  td.desc{ color: var(--ink-dim); width: 34%; }
+  td.status{ width: 20%; }
+  .pill{
+    display:inline-block;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .pill.missing{ background: var(--accent-bg); color: var(--accent-ink); }
+  .pill.has{ background: var(--good-bg); color: var(--good); }
+  code{
+    font-family: var(--mono);
+    font-size: 0.88em;
+    background: color-mix(in srgb, var(--ink) 6%, transparent);
+    padding: 0.08em 0.4em;
+    border-radius: 3px;
+  }
+
+  .section-note{
+    font-size: 0.88rem;
+    color: var(--ink-faint);
+    margin-top: 0.9rem;
+    border-left: 2px solid var(--line-strong);
+    padding-left: 0.9rem;
+  }
+
+  /* reverse table (superset ahead) */
+  .reverse-table td.status .pill.has{ background: var(--good-bg); color: var(--good); }
+
+  .verdict{
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+    padding: 1.5rem 1.6rem;
+  }
+  .verdict h2{ border: none; padding: 0; margin-bottom: 0.75rem; }
+  .verdict p:last-child{ margin-bottom: 0; }
+
+  footer{
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 0.76rem;
+    color: var(--ink-faint);
+  }
+
+  ::selection{ background: var(--accent-bg); color: var(--accent-ink); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="masthead">
+    <p class="kicker">CLI comparison &middot; internal</p>
+    <h1>Superset vs Herdr, at the command line</h1>
+    <p class="dek">Herdr (YC F26) is a single-machine terminal runtime for coding agents — a tmux-grade CLI and socket API over one server's panes and sessions. Superset's CLI is a fleet-orchestration client over hosts, projects, and an org. This is what each can do that the other can't, scoped strictly to the CLI surface.</p>
+    <div class="meta-row">
+      <span>Herdr <b>v0.8.0</b></span>
+      <span>Superset CLI <b>v1.25.0</b></span>
+      <span>Source: <b>--help</b> output, all subcommands, both tools</span>
+    </div>
+  </header>
+
+  <section>
+    <div class="lede-grid">
+      <div class="lede-card super">
+        <span class="tag">Superset CLI</span>
+        <p>A client for a fleet-management API: workspaces, agents, and terminals across hosts and an organization, plus tasks, scheduled automations, published pages, auth, and browser-pane driving over CDP. Built for orchestrating many agents across many machines.</p>
+      </div>
+      <div class="lede-card herdr">
+        <span class="tag">Herdr CLI</span>
+        <p>A client for one server's socket API: workspaces, worktrees, tabs, panes, and agent sessions on a single machine, with tmux-style attach/detach, raw key injection, and pane geometry control. Built for keeping terminals alive and directly steerable.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>What Herdr's CLI has that Superset's doesn't</h2>
+    <p class="tight">Eleven capabilities, all in the low-level "control a live terminal" layer — precisely the layer Herdr exists to own.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Capability</th><th>Herdr command</th><th>What it does</th><th>Superset today</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="capability">Raw key injection</td>
+            <td class="cmd">agent send-keys<br>pane send-keys</td>
+            <td class="desc">Send literal key presses — <code>esc</code>, <code>ctrl+c</code>, arrows — to a target pane.</td>
+            <td class="status"><span class="pill missing">missing</span><br><span class="section-note" style="margin-top:.4rem;border:none;padding:0;">terminals send writes text + Enter only</span></td>
+          </tr>
+          <tr>
+            <td class="capability">Pane geometry control</td>
+            <td class="cmd">pane split / resize / zoom<br>swap / move / neighbor / edges / layout</td>
+            <td class="desc">Script a tmux-style pane tree: split, resize by ratio, zoom, swap positions, query neighbors and layout.</td>
+            <td class="status"><span class="pill missing">missing</span></td>
+          </tr>
+          <tr>
+            <td class="capability">Wait-for-output</td>
+            <td class="cmd">pane wait-output</td>
+            <td class="desc">Block until a pane's output matches a pattern, without polling.</td>
+            <td class="status"><span class="pill missing">missing</span></td>
+          </tr>
+          <tr>
+            <td class="capability">Wait-for-agent-state</td>
+            <td class="cmd">agent wait --until<br>agent prompt --wait</td>
+            <td class="desc">Block in-CLI until an agent reaches idle/blocked/done, with a timeout — no external polling loop needed.</td>
+            <td class="status"><span class="pill missing">missing</span><br><span class="section-note" style="margin-top:.4rem;border:none;padding:0;">callers poll terminals read themselves</span></td>
+          </tr>
+          <tr>
+            <td class="capability">Named session attach</td>
+            <td class="cmd">session attach &lt;name&gt;</td>
+            <td class="desc">Drop directly into a persistent session from the current shell, tmux-style.</td>
+            <td class="status"><span class="pill missing">missing</span><br><span class="section-note" style="margin-top:.4rem;border:none;padding:0;">workspaces open launches the desktop GUI instead</span></td>
+          </tr>
+          <tr>
+            <td class="capability">Direct SSH remote attach</td>
+            <td class="cmd">--remote &lt;ssh-target&gt;<br>--remote-keybindings</td>
+            <td class="desc">One command attaches through SSH to a remote server, streaming the UI locally.</td>
+            <td class="status"><span class="pill missing">missing</span><br><span class="section-note" style="margin-top:.4rem;border:none;padding:0;">remote/cloud access goes through hosts wake + the app</span></td>
+          </tr>
+          <tr>
+            <td class="capability">Self-describing socket API</td>
+            <td class="cmd">api schema<br>api snapshot</td>
+            <td class="desc">Dump the full IPC schema and live runtime state for external tooling to introspect.</td>
+            <td class="status"><span class="pill missing">missing</span><br><span class="section-note" style="margin-top:.4rem;border:none;padding:0;">--json exists; no schema-introspection command</span></td>
+          </tr>
+          <tr>
+            <td class="capability">Shell completions</td>
+            <td class="cmd">completion zsh<br>completion &lt;shell&gt;</td>
+            <td class="desc">Generate shell completion scripts.</td>
+            <td class="status"><span class="pill missing">missing</span></td>
+          </tr>
+          <tr>
+            <td class="capability">Update channel switch</td>
+            <td class="cmd">channel show / set</td>
+            <td class="desc">Choose stable vs preview update channel from the CLI.</td>
+            <td class="status"><span class="pill missing">missing</span></td>
+          </tr>
+          <tr>
+            <td class="capability">Third-party agent hooks</td>
+            <td class="cmd">integration install / uninstall / status</td>
+            <td class="desc">Installs hook files into ~15 external agent config dirs so state is visible even for agents Herdr didn't launch.</td>
+            <td class="status"><span class="pill missing">missing</span><br><span class="section-note" style="margin-top:.4rem;border:none;padding:0;">Superset only tracks agents it spawned itself</span></td>
+          </tr>
+          <tr>
+            <td class="capability">Notification CLI</td>
+            <td class="cmd">notification show</td>
+            <td class="desc">Read notifications from the CLI.</td>
+            <td class="status"><span class="pill missing">missing</span></td>
+          </tr>
+          <tr>
+            <td class="capability">Config diagnostics</td>
+            <td class="cmd">config check</td>
+            <td class="desc">Validate config.toml and print diagnostics.</td>
+            <td class="status"><span class="pill missing">missing</span><br><span class="section-note" style="margin-top:.4rem;border:none;padding:0;">settings get/set/reset exist; no validate step</span></td>
+          </tr>
+          <tr>
+            <td class="capability">Detection debugging</td>
+            <td class="cmd">agent explain</td>
+            <td class="desc">Explains why an agent's state was detected as working/blocked/done.</td>
+            <td class="status"><span class="pill missing">missing</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>What Superset's CLI has that Herdr's doesn't</h2>
+    <p class="tight">For balance — the asymmetry runs both ways. This is everything above the single-machine layer.</p>
+    <div class="table-wrap">
+      <table class="reverse-table">
+        <thead>
+          <tr><th>Capability</th><th>Superset command</th><th>What it does</th><th>Herdr today</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="capability">Multi-host, multi-org fleet</td>
+            <td class="cmd">hosts, projects, organization, auth</td>
+            <td class="desc">List/wake hosts, manage projects, switch orgs, OAuth or API-key auth.</td>
+            <td class="status"><span class="pill missing">missing</span></td>
+          </tr>
+          <tr>
+            <td class="capability">Task tracking</td>
+            <td class="cmd">tasks create / get / list / update</td>
+            <td class="desc">First-class tasks with statuses, linked to workspaces.</td>
+            <td class="status"><span class="pill missing">missing</span></td>
+          </tr>
+          <tr>
+            <td class="capability">Scheduled automations</td>
+            <td class="cmd">automations create --rrule ... / logs / pause / resume</td>
+            <td class="desc">Cron-style recurring agent runs with a TypeScript SDK and Slack bot.</td>
+            <td class="status"><span class="pill missing">missing</span></td>
+          </tr>
+          <tr>
+            <td class="capability">Published pages</td>
+            <td class="cmd">pages publish / comments / versions</td>
+            <td class="desc">Ship a self-contained HTML page to a URL, versioned, with inline reader comments.</td>
+            <td class="status"><span class="pill missing">missing</span></td>
+          </tr>
+          <tr>
+            <td class="capability">Browser-pane driving</td>
+            <td class="cmd">browser cdp / eval / screenshot / navigate</td>
+            <td class="desc">Raw CDP endpoint plus scripted navigation, JS eval, and screenshots of an in-app browser pane.</td>
+            <td class="status"><span class="pill missing">missing</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="verdict">
+    <h2>Reading the gaps</h2>
+    <p>The eleven items above are real and mostly cheap to close individually — <code>send-keys</code>, a wait-for-state flag on <code>terminals</code>/<code>agents</code>, and shell completions are the highest-leverage, lowest-cost additions if the goal is scripting parity. But most of the list is the reason Herdr exists: fine-grained pane geometry, tmux-style session attach, and a self-describing socket API are a single-machine terminal multiplexer's entire job description, not a checklist Superset is behind on.</p>
+    <p>The sharper way to read it: Superset's CLI is a fleet-management client that happens to touch terminals; Herdr's CLI is a terminal multiplexer that happens to know about agents. Closing every row here would mean growing Superset's terminal primitives into a second pane-management layer next to the desktop app's own — worth doing only for specific scripting workflows that are actually blocked today (raw key injection and wait-for-state polling are the two most likely candidates), not as parity for its own sake.</p>
+  </section>
+
+  <footer>
+    Compiled from <code>herdr --help</code> (all subcommands, v0.8.0) and <code>superset --help</code> (all subcommands, v1.25.0) run locally, plus herdr.dev/docs.
+  </footer>
+
+</div>
+</body>
+</html>

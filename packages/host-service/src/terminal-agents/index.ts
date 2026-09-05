@@ -4,4 +4,8 @@ export type {
 	TerminalAgentBindingPersistence,
 } from "./store";
 export { TerminalAgentStore } from "./store";
-export type { TerminalAgentBinding, TerminalAgentId } from "./types";
+export type {
+	TerminalAgentBinding,
+	TerminalAgentEndReason,
+	TerminalAgentId,
+} from "./types";
