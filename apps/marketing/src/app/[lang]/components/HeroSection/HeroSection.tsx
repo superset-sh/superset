@@ -18,16 +18,22 @@ export function HeroSection() {
 	const headlineSegments = [
 		{
 			id: "lead",
-			// Trailing space separates the two segments as the typewriter runs
+			// Typed newline, not a space: the headline is always two lines, and
+			// the break arrives as part of the animation (the caret drops to the
+			// second line) instead of the second segment starting on line one and
+			// reflowing down once it outgrows the width. Needs the h1's
+			// whitespace-pre-line to render.
 			text: `${t({
 				message: "Bring Any Agent.",
-			})} `,
+			})}\n`,
 		},
 		{
 			id: "emphasis",
 			text: t({
 				message: "Orchestrate Them All.",
 			}),
+			// Beat on the empty second line before the payoff line types
+			delayBefore: 450,
 			// Plain inline (not inline-block): vertical padding on inline boxes
 			// paints the brackets without affecting line height, so the line
 			// can't jump when this segment mounts mid-animation
@@ -60,7 +66,7 @@ export function HeroSection() {
 							</span>
 						</Link>
 						<div className="space-y-4 sm:space-y-6">
-							<h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium tracking-tight leading-[1.1] [word-spacing:0.15em] text-foreground relative max-w-6xl mx-auto">
+							<h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium tracking-tight leading-[1.1] [word-spacing:0.15em] whitespace-pre-line text-foreground relative max-w-6xl mx-auto">
 								{/* Real headline for screen readers and no-JS crawlers; the
 								    typewriter below is purely visual */}
 								<span className="sr-only">
