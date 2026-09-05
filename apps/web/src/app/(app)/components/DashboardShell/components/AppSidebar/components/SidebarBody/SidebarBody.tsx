@@ -13,7 +13,11 @@ export function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
 	return (
 		<div className="flex h-full flex-col">
 			<div className="flex h-12 shrink-0 items-center px-4">
-				<Link href="/" aria-label={t({ message: "Go to home" })}>
+				<Link
+					href="/"
+					aria-label={t({ message: "Go to home" })}
+					onClick={onNavigate}
+				>
 					<Wordmark />
 				</Link>
 			</div>
