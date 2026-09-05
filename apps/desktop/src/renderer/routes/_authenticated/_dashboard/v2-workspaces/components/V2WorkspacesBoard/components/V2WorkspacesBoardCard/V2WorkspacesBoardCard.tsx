@@ -5,6 +5,7 @@ import { cn } from "@superset/ui/utils";
 import { memo } from "react";
 import { CgLaptop } from "react-icons/cg";
 import { LuGitBranch, LuMonitor } from "react-icons/lu";
+import { isTombstonedWorkspace } from "renderer/hooks/host-workspaces/useHostWorkspaces";
 import { V2WorkspaceContextMenu } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspaceContextMenu";
 import { WorkspaceChecksDot } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/WorkspaceChecksDot";
 import { WorkspaceStateGlyph } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/WorkspaceStateGlyph";
@@ -57,7 +58,7 @@ function BoardCardBody({
 	// reach the real <button> or right-click never opens the menu.
 } & React.ComponentPropsWithRef<"button">) {
 	const { t } = useLingui();
-	const isArchived = workspace.archivedAt != null;
+	const isArchived = isTombstonedWorkspace(workspace);
 	const isDone = isArchived || workspace.pr?.state === "merged";
 	const isMainWorkspace = workspace.type === "main";
 	// Same rule as the list row: the branch line only earns its slot when it

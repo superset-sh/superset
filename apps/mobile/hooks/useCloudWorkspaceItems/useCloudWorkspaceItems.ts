@@ -50,10 +50,9 @@ function itemFromCloudRow(cloud: CloudWorkspaceRow): CloudWorkspaceItem {
 		worktreePath: "",
 		worktreeExists: true,
 		projectName: null,
+		// Cloud sandboxes have no archive (the desktop keeps delete for them).
 		archivedAt: null,
 		archiveReason: null,
-		// Cloud sandboxes have no archive (the desktop keeps delete for them).
-		shelvedAt: null,
 		hostReachable: false,
 		cloud: { status: cloud.status },
 	};

@@ -6,7 +6,11 @@ import { useMemo } from "react";
 import { resolveProjectIconUrl } from "renderer/hooks/host-projects/resolveProjectIconUrl";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { deriveTerminalAgentStatus } from "renderer/hooks/host-service/useTerminalAgentStatuses";
-import { useHostWorkspacesSource } from "renderer/hooks/host-workspaces/useHostWorkspaces";
+import {
+	isTombstonedWorkspace,
+	useHostWorkspacesSource,
+	type WorkspaceArchiveReason,
+} from "renderer/hooks/host-workspaces/useHostWorkspaces";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { useHostsPresence } from "renderer/hooks/useHostsPresence";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
@@ -104,11 +108,13 @@ export interface AccessibleV2Workspace {
 	lastAgentEventAt: number | null;
 	/** Working-tree + against-base churn; null until the host answers. */
 	diffStats: V2WorkspaceDiffStats | null;
-	/** Non-null = archived tombstone (soft-deleted workspace). */
+	/**
+	 * Null = live. A destroy tombstone ("merged" | "deleted", only with
+	 * `includeArchived`) or the user's reversible archive ("user", only in
+	 * the Archived view).
+	 */
 	archivedAt: number | null;
-	archiveReason: "merged" | "deleted" | null;
-	/** Non-null = user-archived (reversible); only set with `includeShelved`. */
-	shelvedAt: number | null;
+	archiveReason: WorkspaceArchiveReason | null;
 }
 
 export interface V2WorkspaceHostOption {
@@ -139,10 +145,10 @@ export interface UseAccessibleV2WorkspacesResult {
 	isReady: boolean;
 	/**
 	 * How many user-archived workspaces the current device scope holds,
-	 * independent of `includeShelved` and of search/filters — the header's
+	 * independent of `archivedView` and of search/filters — the header's
 	 * Archived toggle shows it while the live views are open.
 	 */
-	shelvedCount: number;
+	archivedCount: number;
 	hostOptions: V2WorkspaceHostOption[];
 	projectOptions: V2WorkspaceProjectOption[];
 	creatorOptions: V2WorkspaceCreatorOption[];
@@ -173,11 +179,11 @@ interface UseAccessibleV2WorkspacesOptions {
 	 */
 	includeArchived?: boolean;
 	/**
-	 * Serve the user-archived (shelved) rows INSTEAD of the live ones — the
-	 * Workspaces page's Archived view. Mutually exclusive with
-	 * `includeArchived`; the page passes exactly one based on its view mode.
+	 * Serve the user-archived rows INSTEAD of the live ones — the Workspaces
+	 * page's Archived view. Independent of `includeArchived`, which is about
+	 * destroy tombstones.
 	 */
-	includeShelved?: boolean;
+	archivedView?: boolean;
 }
 
 function workspaceMatchesSearch(
@@ -223,7 +229,7 @@ function matchesPinFilter(
 	if (pinFilter === "all") return true;
 	// Archived tombstones may keep stale sidebar metadata; they are never
 	// pinned regardless of what that metadata says.
-	if (workspace.archivedAt !== null) return pinFilter === "unpinned";
+	if (isTombstonedWorkspace(workspace)) return pinFilter === "unpinned";
 	return pinFilter === "pinned"
 		? workspace.isInSidebar
 		: !workspace.isInSidebar;
@@ -307,8 +313,8 @@ export function useAccessibleV2Workspaces(
 	const fanoutSource = useHostWorkspaces();
 	const source = deviceFilter === undefined ? fanoutSource : scopedSource;
 	const { isReady } = source;
-	const hostWorkspaces = options.includeShelved
-		? source.shelvedWorkspaces
+	const hostWorkspaces = options.archivedView
+		? source.archivedWorkspaces
 		: source.workspaces;
 
 	const { data: rawHostRows = [] } = cloudTrpc.v2Host.list.useQuery(undefined, {
@@ -421,8 +427,7 @@ export function useAccessibleV2Workspaces(
 			sidebarWorkspaceId: string | null;
 			sidebarIsHidden: boolean;
 			archivedAt: number | null;
-			archiveReason: "merged" | "deleted" | null;
-			shelvedAt: number | null;
+			archiveReason: WorkspaceArchiveReason | null;
 		};
 		return hostWorkspaces.flatMap((workspace): AccessibleRowDraft[] => {
 			if (workspace.organizationId !== activeOrganizationId) return [];
@@ -464,9 +469,8 @@ export function useAccessibleV2Workspaces(
 						sidebarProjectId: null,
 						sidebarWorkspaceId: sessionSidebarState?.workspaceId ?? null,
 						sidebarIsHidden: sessionSidebarState?.isHidden ?? false,
-						archivedAt: workspace.archivedAt ?? null,
-						archiveReason: workspace.archiveReason ?? null,
-						shelvedAt: workspace.shelvedAt,
+						archivedAt: workspace.archivedAt,
+						archiveReason: workspace.archiveReason,
 					},
 				];
 			}
@@ -515,9 +519,8 @@ export function useAccessibleV2Workspaces(
 						: null,
 					sidebarWorkspaceId: sidebarState?.workspaceId ?? null,
 					sidebarIsHidden: sidebarState?.isHidden ?? false,
-					archivedAt: workspace.archivedAt ?? null,
-					archiveReason: workspace.archiveReason ?? null,
-					shelvedAt: workspace.shelvedAt,
+					archivedAt: workspace.archivedAt,
+					archiveReason: workspace.archiveReason,
 				},
 			];
 		});
@@ -762,7 +765,6 @@ export function useAccessibleV2Workspaces(
 				diffStats: diffStatsByWorkspaceId.get(row.id) ?? null,
 				archivedAt: row.archivedAt,
 				archiveReason: row.archiveReason,
-				shelvedAt: row.shelvedAt,
 			});
 		}
 		return Array.from(deduped.values()).sort(
@@ -928,14 +930,14 @@ export function useAccessibleV2Workspaces(
 
 	// Counted on the raw split (before the org/project join) so the badge
 	// never lags the Archived view; both filter by the same device scope.
-	const shelvedCount = source.shelvedWorkspaces.filter(
+	const archivedCount = source.archivedWorkspaces.filter(
 		(workspace) => workspace.organizationId === activeOrganizationId,
 	).length;
 
 	return {
 		all: fullyFiltered,
 		isReady,
-		shelvedCount,
+		archivedCount,
 		hostOptions,
 		projectOptions,
 		creatorOptions,

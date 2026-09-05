@@ -2,9 +2,9 @@ import { existsSync, lstatSync, statSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { sanitizePromptForPty } from "@superset/shared/agent-prompt-launch";
 import { TRPCError } from "@trpc/server";
-import { eq, isNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { pullRequests, workspaces } from "../../../db/schema";
+import { pullRequests } from "../../../db/schema";
 import { invalidateLabelCache } from "../../../ports/static-ports";
 import { coercePullRequestState } from "../../../runtime/pull-requests/utils/pull-request-mappers";
 import {
@@ -16,17 +16,23 @@ import { disposeSessionsByWorkspaceId } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
 import type { GitTaskEnv } from "../../../workers/tasks/git";
 import {
-	archiveLocalWorkspace,
-	getLocalWorkspace,
-	shelveLocalWorkspace,
-	trackWorkspaceDeleted,
-	unarchiveLocalWorkspace,
-	unshelveLocalWorkspace,
-} from "../../../workspaces/local-workspace-store";
-import {
 	ARCHIVE_WORKSPACE_SOURCES,
 	UNARCHIVE_WORKSPACE_SOURCES,
-} from "../../../workspaces/shelve-sources";
+} from "../../../workspaces/archive-sources";
+import {
+	type ArchiveState,
+	isTombstoned,
+	notTombstoned,
+	type TombstoneReason,
+} from "../../../workspaces/archive-state";
+import {
+	archiveLocalWorkspace,
+	getLocalWorkspace,
+	restoreLocalWorkspaceTombstone,
+	tombstoneLocalWorkspace,
+	trackWorkspaceDeleted,
+	unarchiveLocalWorkspace,
+} from "../../../workspaces/local-workspace-store";
 import type {
 	DeleteInProgressCause,
 	TeardownFailureCause,
@@ -160,10 +166,10 @@ export const workspaceCleanupRouter = router({
 	/**
 	 * Destroy a workspace in phases:
 	 *
-	 *   0.   Archive      ← the commit point, FIRST: the row tombstones
-	 *                       (archivedAt/archiveReason) and vanishes from
-	 *                       default lists before any slow work, so the
-	 *                       delete feels instant in every client
+	 *   0.   Tombstone    ← the commit point, FIRST: the row tombstones
+	 *                       (archivedAt/archiveReason "merged"|"deleted")
+	 *                       and vanishes from default lists before any
+	 *                       slow work, so the delete feels instant
 	 *   1.   Preflight    — dirty-worktree check (skip if force)
 	 *   2.   Teardown     — run .superset/teardown.sh (per teardownMode)
 	 *   3.   Local cleanup — PTYs, worktree
@@ -171,8 +177,9 @@ export const workspaceCleanupRouter = router({
 	 *   5.   Caches
 	 *
 	 * A thrown failure — preflight conflict, blocking teardown, or the
-	 * unrecoverable parts of step 3 — un-archives the row so the workspace
-	 * reappears and stays retryable instead of orphaning disk state.
+	 * unrecoverable parts of step 3 — puts the row back as it was (live, or
+	 * archived by the user) so the workspace reappears and stays retryable
+	 * instead of orphaning disk state.
 	 * Steps 4-5 (and the tolerated parts of step 3) degrade to warnings on
 	 * a still-successful delete, and telemetry fires on that success. A
 	 * crash after the archive is finished by the startup reconciler
@@ -222,15 +229,16 @@ export const workspaceCleanupRouter = router({
 		),
 
 	/**
-	 * Reversible "Archive": stamps `shelvedAt` so the workspace leaves the
-	 * sidebar, and nothing else — no worktree, branch, or terminal work; the
-	 * terminal reaper suspends its ptys once the undo window has passed.
-	 * Distinct from `destroy`'s tombstone (`archivedAt`), which is permanent.
+	 * Reversible "Archive": stamps `archivedAt` with reason "user" so the
+	 * workspace leaves the sidebar, and nothing else — no worktree, branch,
+	 * or terminal work; the terminal reaper suspends its ptys once the undo
+	 * window has passed. Same columns as `destroy`'s tombstone, told apart
+	 * by the reason (see workspaces/archive-state.ts).
 	 *
 	 * Refuses main workspaces (same guard as destroy) and tombstoned rows
 	 * (already deleted; nothing to put away). Idempotent.
 	 */
-	shelve: protectedProcedure
+	archive: protectedProcedure
 		.input(
 			z.object({
 				workspaceId: z.string(),
@@ -242,13 +250,13 @@ export const workspaceCleanupRouter = router({
 			if (main.isMain) {
 				throw new TRPCError({ code: "BAD_REQUEST", message: main.reason });
 			}
-			assertShelvable(main.local, input.workspaceId);
-			const row = shelveLocalWorkspace(ctx, input.workspaceId, input.source);
-			return { success: true as const, shelvedAt: row?.shelvedAt ?? null };
+			assertArchivable(main.local, input.workspaceId);
+			const row = archiveLocalWorkspace(ctx, input.workspaceId, input.source);
+			return { success: true as const, archivedAt: row?.archivedAt ?? null };
 		}),
 
-	/** Clears `shelvedAt`, returning the workspace to the sidebar. Idempotent. */
-	unshelve: protectedProcedure
+	/** Clears a user archive, returning the workspace to the sidebar. Idempotent. */
+	unarchive: protectedProcedure
 		.input(
 			z.object({
 				workspaceId: z.string(),
@@ -257,25 +265,25 @@ export const workspaceCleanupRouter = router({
 		)
 		.mutation(({ ctx, input }) => {
 			const local = getLocalWorkspace(ctx.db, input.workspaceId);
-			assertShelvable(local, input.workspaceId);
-			const row = unshelveLocalWorkspace(ctx, input.workspaceId, input.source);
-			return { success: true as const, shelvedAt: row?.shelvedAt ?? null };
+			assertArchivable(local, input.workspaceId);
+			const row = unarchiveLocalWorkspace(ctx, input.workspaceId, input.source);
+			return { success: true as const, archivedAt: row?.archivedAt ?? null };
 		}),
 });
 
 /** A row can move between live and archived only while it exists and has
  * not been destroyed: a tombstone is gone from every list already. */
-function assertShelvable(
-	local: { archivedAt: number | null } | undefined,
+function assertArchivable(
+	local: ArchiveState | undefined,
 	workspaceId: string,
-): asserts local is { archivedAt: number | null } {
+): asserts local is ArchiveState {
 	if (!local) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: `Workspace not found: ${workspaceId}`,
 		});
 	}
-	if (local.archivedAt != null) {
+	if (isTombstoned(local)) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "This workspace has already been deleted.",
@@ -316,23 +324,28 @@ async function runDestroy(
 	}
 	const { local, project } = main;
 
-	// ─── Step 0: Archive (the commit point) ────────────────────────
+	// ─── Step 0: Tombstone (the commit point) ──────────────────────
 	// FIRST, before any slow work (git preflight, teardown script): the
 	// tombstone is a durable delete-intent record, and its broadcast is
-	// what drops the row from every list — archiving up front is what
+	// what drops the row from every list — tombstoning up front is what
 	// makes the delete feel instant. If the host crashes mid-cleanup the
 	// startup reconciler finishes the job with best-effort teardown. ANY
-	// failure below un-archives so the workspace reappears live and
-	// retryable. The renderer's delete dialog is globally mounted (not
-	// under the row) so a teardown-failure prompt survives the row
-	// vanishing here. Sessions tombstone too — they're workspaces with
-	// a little missing data (no project, no PRs; reason is always
-	// "deleted"), and session folder names are claimed against ALL rows
-	// including tombstones, so a tombstone's path can't be reused.
-	const marked = local != null;
-	if (marked) {
-		archiveLocalWorkspace(ctx, input.workspaceId, archiveReasonFor(ctx, local));
-	}
+	// failure below puts the row back as it was (live, or archived by the
+	// user — deleting from the Archived view must not resurrect a row in
+	// the sidebar) so the workspace reappears and stays retryable. The
+	// renderer's delete dialog is globally mounted (not under the row) so
+	// a teardown-failure prompt survives the row vanishing here. Sessions
+	// tombstone too — they're workspaces with a little missing data (no
+	// project, no PRs; reason is always "deleted"), and session folder
+	// names are claimed against ALL rows including tombstones, so a
+	// tombstone's path can't be reused.
+	const previous = local
+		? tombstoneLocalWorkspace(
+				ctx,
+				input.workspaceId,
+				archiveReasonFor(ctx, local),
+			)
+		: undefined;
 
 	try {
 		// ─── Step 1: Preflight ─────────────────────────────────────
@@ -415,12 +428,15 @@ async function runDestroy(
 			project,
 			warnings,
 		});
-		// Telemetry at the true commit: a failed destroy un-archives below and
-		// must not count, and a retried destroy must count exactly once.
-		if (marked && local) trackWorkspaceDeleted(ctx, local);
+		// Telemetry at the true commit: a failed destroy restores the row
+		// below and must not count, and a retried destroy must count exactly
+		// once.
+		if (previous && local) trackWorkspaceDeleted(ctx, local);
 		return result;
 	} catch (err) {
-		if (marked) unarchiveLocalWorkspace(ctx, input.workspaceId);
+		if (previous) {
+			restoreLocalWorkspaceTombstone(ctx, input.workspaceId, previous);
+		}
 		throw err;
 	}
 }
@@ -450,7 +466,7 @@ function isMissingPath(path: string): boolean {
 function archiveReasonFor(
 	ctx: HostServiceContext,
 	local: { pullRequestId: string | null },
-): "merged" | "deleted" {
+): TombstoneReason {
 	if (!local.pullRequestId) return "deleted";
 	try {
 		const pr = ctx.db.query.pullRequests
@@ -747,7 +763,8 @@ function sharesProfileWithLiveWorkspace(
 		const rows = ctx.db.query.workspaces
 			.findMany({
 				columns: { id: true, name: true },
-				where: isNull(workspaces.archivedAt),
+				// A user-archived row still owns its profile directory.
+				where: notTombstoned,
 			})
 			.sync();
 		return rows.some(

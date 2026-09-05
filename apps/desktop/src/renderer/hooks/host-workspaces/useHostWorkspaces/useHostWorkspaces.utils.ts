@@ -40,16 +40,31 @@ export type HostShapedWorkspace = Omit<
 export interface HostWorkspaceRow extends HostShapedWorkspace {
 	worktreePath: string;
 	worktreeExists: boolean;
-	/** Non-null = archived tombstone (only served on `includeArchived`). */
-	archivedAt?: number | null;
-	archiveReason?: "merged" | "deleted" | null;
 	/**
-	 * Non-null = the user archived ("shelved") the workspace; it is still a
-	 * live row (worktree, branch, terminals intact) and comes back with
-	 * Unarchive. Optional because an older host omits it. Distinct from the
-	 * `archivedAt` tombstone above.
+	 * Null = live in the sidebar. Set two ways, told apart by the reason:
+	 * destroy's tombstone ("merged" | "deleted", only served on
+	 * `includeArchived`) and the user's reversible Archive ("user": still a
+	 * live row with worktree, branch, and terminals intact, back with
+	 * Unarchive). Optional because an older host omits them.
 	 */
-	shelvedAt?: number | null;
+	archivedAt?: number | null;
+	archiveReason?: WorkspaceArchiveReason | null;
+}
+
+export type WorkspaceArchiveReason = "merged" | "deleted" | "user";
+
+/** Destroyed, or being destroyed: a tombstone kept for the board's history. */
+export function isTombstonedWorkspace(
+	row: Pick<HostWorkspaceRow, "archivedAt" | "archiveReason">,
+): boolean {
+	return row.archivedAt != null && row.archiveReason !== "user";
+}
+
+/** Put away by the user; reversible, worktree and terminals intact. */
+export function isUserArchivedWorkspace(
+	row: Pick<HostWorkspaceRow, "archivedAt" | "archiveReason">,
+): boolean {
+	return row.archivedAt != null && row.archiveReason === "user";
 }
 
 /** Merged item returned by useHostWorkspaces. */
@@ -59,11 +74,9 @@ export interface HostWorkspaceItem extends HostShapedWorkspace {
 	lastActivityAt: number | null;
 	/** False when the host didn't answer. */
 	hostReachable: boolean;
-	/** Non-null = archived tombstone (only present on `includeArchived`). */
-	archivedAt?: number | null;
-	archiveReason?: "merged" | "deleted" | null;
-	/** Non-null = user-archived (see HostWorkspaceRow); normalized to null. */
-	shelvedAt: number | null;
+	/** See HostWorkspaceRow; normalized to null for an older host. */
+	archivedAt: number | null;
+	archiveReason: WorkspaceArchiveReason | null;
 }
 
 export interface HostWorkspacesQueryTarget {
@@ -262,11 +275,15 @@ export function applyWorkspaceChangedEvent(
 		// keep the row's last known stamp rather than wiping it.
 		lastActivityAt: snapshot.lastActivityAt ?? existing?.lastActivityAt ?? null,
 		// Absent (older host) keeps the cached value; null is a real value —
-		// an unarchive broadcasts `shelvedAt: null` and must clear it.
-		shelvedAt:
-			snapshot.shelvedAt !== undefined
-				? snapshot.shelvedAt
-				: (existing?.shelvedAt ?? null),
+		// an unarchive broadcasts `archivedAt: null` and must clear it.
+		archivedAt:
+			snapshot.archivedAt !== undefined
+				? snapshot.archivedAt
+				: (existing?.archivedAt ?? null),
+		archiveReason:
+			snapshot.archiveReason !== undefined
+				? snapshot.archiveReason
+				: (existing?.archiveReason ?? null),
 		worktreePath: snapshot.worktreePath,
 		// A host broadcasting created/updated just acted on the worktree;
 		// keep a known value over assuming.
@@ -290,7 +307,8 @@ export function toHostWorkspaceItem(
 	return {
 		...row,
 		lastActivityAt: row.lastActivityAt ?? null,
-		shelvedAt: row.shelvedAt ?? null,
+		archivedAt: row.archivedAt ?? null,
+		archiveReason: row.archiveReason ?? null,
 		hostReachable,
 	};
 }
@@ -312,21 +330,22 @@ export function toHostWorkspaceRow(item: HostWorkspaceItem): HostWorkspaceRow {
 
 /**
  * Split merged items into the live sidebar set and the user-archived set.
- * Both are live host rows (not tombstones); only `shelvedAt` tells them
- * apart. Every existing `.workspaces` consumer — sidebar, palette, hotkeys,
- * navigation — hides archived rows through this one seam.
+ * Both are live host rows (the host never serves tombstones here); only
+ * the "user" archive reason tells them apart. Every existing `.workspaces`
+ * consumer — sidebar, palette, hotkeys, navigation — hides archived rows
+ * through this one seam.
  */
-export function splitShelvedWorkspaces(items: HostWorkspaceItem[]): {
+export function splitArchivedWorkspaces(items: HostWorkspaceItem[]): {
 	workspaces: HostWorkspaceItem[];
-	shelvedWorkspaces: HostWorkspaceItem[];
+	archivedWorkspaces: HostWorkspaceItem[];
 } {
 	const workspaces: HostWorkspaceItem[] = [];
-	const shelvedWorkspaces: HostWorkspaceItem[] = [];
+	const archivedWorkspaces: HostWorkspaceItem[] = [];
 	for (const item of items) {
-		if (item.shelvedAt != null) shelvedWorkspaces.push(item);
+		if (isUserArchivedWorkspace(item)) archivedWorkspaces.push(item);
 		else workspaces.push(item);
 	}
-	return { workspaces, shelvedWorkspaces };
+	return { workspaces, archivedWorkspaces };
 }
 
 /**

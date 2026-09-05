@@ -4,7 +4,7 @@ import hostServicePackageJson from "@superset/host-service/package.json" with {
 };
 import { getHostId } from "@superset/shared/host-info";
 import { normalizeWorkspaceTags } from "@superset/shared/workspace-tags";
-import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { HostDb } from "../db";
 import { workspaces, workspaceTags } from "../db/schema";
 import type { EventBus } from "../events";
@@ -13,7 +13,15 @@ import type { ApiClient } from "../types";
 import type {
 	ArchiveWorkspaceSource,
 	UnarchiveWorkspaceSource,
-} from "./shelve-sources";
+} from "./archive-sources";
+import {
+	type ArchiveState,
+	isTombstoned,
+	LIVE_ARCHIVE_STATE,
+	type TombstoneReason,
+	USER_ARCHIVE_REASON,
+	userArchived,
+} from "./archive-state";
 
 export type HostWorkspaceRow = typeof workspaces.$inferSelect;
 
@@ -106,7 +114,8 @@ export function toWorkspaceSnapshot(
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt || row.createdAt,
 		lastActivityAt: row.lastActivityAt,
-		shelvedAt: row.shelvedAt ?? null,
+		archivedAt: row.archivedAt ?? null,
+		archiveReason: row.archiveReason ?? null,
 		tags,
 	};
 }
@@ -279,7 +288,7 @@ export function updateLocalWorkspace(
 }
 
 /** Hard-delete a local row and broadcast. Idempotent. The destroy pipeline
- * archives via `archiveLocalWorkspace` instead — this remains only for
+ * tombstones via `tombstoneLocalWorkspace` instead — this remains only for
  * phantom-row cleanup (adopt-existing-worktree conflicts). */
 export function deleteLocalWorkspace(
 	ctx: WorkspaceStoreContext,
@@ -308,17 +317,28 @@ export function emitLocalWorkspaceDeleted(
  * Tombstone a local row instead of deleting it. Broadcasts the same
  * `deleted` event shape as a hard delete so every existing consumer drops
  * the row identically; the row itself survives for the board's
- * Merged/Deleted history. Idempotent — re-archiving keeps the original
+ * Merged/Deleted history. Idempotent — re-tombstoning keeps the original
  * timestamp and reason.
+ *
+ * Returns the state to put back if the destroy fails: the row as it was
+ * (live, or archived by the user), or live for a row that was already a
+ * tombstone, so a retried delete that fails again still revives it as
+ * retryable instead of leaving orphan disk state invisible.
  */
-export function archiveLocalWorkspace(
+export function tombstoneLocalWorkspace(
 	ctx: WorkspaceStoreContext,
 	id: string,
-	reason: "merged" | "deleted",
-): void {
+	reason: TombstoneReason,
+): ArchiveState | undefined {
 	const existing = getLocalWorkspace(ctx.db, id);
-	if (!existing) return;
-	if (existing.archivedAt == null) {
+	if (!existing) return undefined;
+	const previous: ArchiveState = isTombstoned(existing)
+		? LIVE_ARCHIVE_STATE
+		: {
+				archivedAt: existing.archivedAt,
+				archiveReason: existing.archiveReason,
+			};
+	if (!isTombstoned(existing)) {
 		ctx.db
 			.update(workspaces)
 			.set({
@@ -336,8 +356,9 @@ export function archiveLocalWorkspace(
 		occurredAt: Date.now(),
 	});
 	// Telemetry deliberately NOT emitted here: the destroy can still fail
-	// and un-archive. The pipeline calls trackWorkspaceDeleted once the
+	// and restore the row. The pipeline calls trackWorkspaceDeleted once the
 	// physical cleanup actually commits.
+	return previous;
 }
 
 /** Emit the deletion telemetry event — called by the destroy pipeline
@@ -350,21 +371,27 @@ export function trackWorkspaceDeleted(
 }
 
 /**
- * Revive a tombstoned row — the destroy pipeline failed after the
- * mark-first commit, so the workspace is live and retryable again.
- * Broadcasts `created` so list patchers that dropped the row on the
- * archive event re-add it. Idempotent.
+ * Put a tombstoned row back — the destroy pipeline failed after the
+ * mark-first commit, so the workspace returns to what it was (live and
+ * retryable, or archived by the user, per `previous`). Broadcasts `created`
+ * so list patchers that dropped the row on the tombstone event re-add it.
+ * Idempotent.
  */
-export function unarchiveLocalWorkspace(
+export function restoreLocalWorkspaceTombstone(
 	ctx: WorkspaceStoreContext,
 	id: string,
+	previous: ArchiveState,
 ): void {
 	const existing = getLocalWorkspace(ctx.db, id);
 	if (!existing) return;
-	if (existing.archivedAt != null) {
+	if (isTombstoned(existing)) {
 		ctx.db
 			.update(workspaces)
-			.set({ archivedAt: null, archiveReason: null, updatedAt: Date.now() })
+			.set({
+				archivedAt: previous.archivedAt,
+				archiveReason: previous.archiveReason,
+				updatedAt: Date.now(),
+			})
 			.where(eq(workspaces.id, id))
 			.run();
 	}
@@ -373,16 +400,17 @@ export function unarchiveLocalWorkspace(
 }
 
 /**
- * Reversible user-facing "Archive": stamps `shelvedAt` so the row leaves the
- * sidebar and every live list, while the worktree, branch, and terminal
- * sessions stay exactly as they are (the reaper suspends the terminals after
- * a grace period). Not a tombstone — `archiveLocalWorkspace` is the destroy
- * commit point and broadcasts `deleted`; this broadcasts a normal `updated`
- * so clients move the row between lists instead of dropping it. Idempotent:
- * an already-shelved row keeps its timestamp, broadcasts nothing, and does
- * not count again in analytics.
+ * Reversible user-facing "Archive": stamps `archivedAt` with reason "user"
+ * so the row leaves the sidebar and every live list, while the worktree,
+ * branch, and terminal sessions stay exactly as they are (the reaper
+ * suspends the terminals after a grace period). Not a tombstone —
+ * `tombstoneLocalWorkspace` is the destroy commit point and broadcasts
+ * `deleted`; this broadcasts a normal `updated` so clients move the row
+ * between lists instead of dropping it. Idempotent: an already-archived row
+ * keeps its timestamp, broadcasts nothing, and does not count again in
+ * analytics; a tombstone is never touched (the router refuses it first).
  */
-export function shelveLocalWorkspace(
+export function archiveLocalWorkspace(
 	ctx: WorkspaceStoreContext,
 	id: string,
 	source: ArchiveWorkspaceSource,
@@ -395,8 +423,12 @@ export function shelveLocalWorkspace(
 	const now = Date.now();
 	const changed = ctx.db
 		.update(workspaces)
-		.set({ shelvedAt: now, updatedAt: now })
-		.where(and(eq(workspaces.id, id), isNull(workspaces.shelvedAt)))
+		.set({
+			archivedAt: now,
+			archiveReason: USER_ARCHIVE_REASON,
+			updatedAt: now,
+		})
+		.where(and(eq(workspaces.id, id), isNull(workspaces.archivedAt)))
 		.returning({ id: workspaces.id })
 		.all();
 	if (changed.length === 0) return existing;
@@ -407,8 +439,9 @@ export function shelveLocalWorkspace(
 	return row;
 }
 
-/** Clear the reversible archive flag and broadcast `updated`. Idempotent. */
-export function unshelveLocalWorkspace(
+/** Clear a user archive and broadcast `updated`. Idempotent; a tombstone
+ * is never revived here (that is `restoreLocalWorkspaceTombstone`'s job). */
+export function unarchiveLocalWorkspace(
 	ctx: WorkspaceStoreContext,
 	id: string,
 	source: UnarchiveWorkspaceSource,
@@ -417,8 +450,8 @@ export function unshelveLocalWorkspace(
 	if (!existing) return undefined;
 	const changed = ctx.db
 		.update(workspaces)
-		.set({ shelvedAt: null, updatedAt: Date.now() })
-		.where(and(eq(workspaces.id, id), isNotNull(workspaces.shelvedAt)))
+		.set({ archivedAt: null, archiveReason: null, updatedAt: Date.now() })
+		.where(and(eq(workspaces.id, id), userArchived))
 		.returning({ id: workspaces.id })
 		.all();
 	if (changed.length === 0) return existing;
@@ -452,7 +485,7 @@ export function touchLocalWorkspaceActivity(
 	occurredAt: number,
 ): boolean {
 	const existing = getLocalWorkspace(ctx.db, id);
-	if (!existing || existing.archivedAt != null) return false;
+	if (!existing || isTombstoned(existing)) return false;
 	if (
 		existing.lastActivityAt != null &&
 		occurredAt - existing.lastActivityAt < WORKSPACE_ACTIVITY_THROTTLE_MS

@@ -4,4 +4,9 @@ export type {
 	HostShapedWorkspace,
 	HostWorkspaceItem,
 	HostWorkspaceRow,
+	WorkspaceArchiveReason,
+} from "./useHostWorkspaces.utils";
+export {
+	isTombstonedWorkspace,
+	isUserArchivedWorkspace,
 } from "./useHostWorkspaces.utils";

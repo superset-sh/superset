@@ -1,17 +1,22 @@
 import { existsSync } from "node:fs";
-import { and, eq, isNotNull, isNull } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { workspaces } from "../db/schema";
 import { destroyWorkspace } from "../trpc/router/workspace-cleanup";
 import type { HostServiceContext } from "../types";
+import { notTombstoned, tombstoned } from "../workspaces/archive-state";
 
 /**
- * Finish crash-interrupted deletes. The destroy pipeline archives the row
- * first (mark-first commit point), so a crash mid-teardown leaves an
- * archived row whose worktree still exists on disk. The user's delete
+ * Finish crash-interrupted deletes. The destroy pipeline tombstones the row
+ * first (mark-first commit point), so a crash mid-teardown leaves a
+ * tombstoned row whose worktree still exists on disk. The user's delete
  * intent is durably recorded — resume it with best-effort teardown rather
  * than blocking forever on a broken teardown script. A failure here
- * un-archives the row (destroy semantics), making the workspace visible
- * and retryable instead of leaving orphan disk state invisible.
+ * revives the row (destroy semantics), making the workspace visible and
+ * retryable instead of leaving orphan disk state invisible.
+ *
+ * Only tombstones (reason "merged" | "deleted") qualify. A row the user
+ * archived shares the columns but keeps its worktree on purpose; it is a
+ * live owner of its path here, never a stranded delete.
  */
 export async function runArchivedWorkspaceReconcile(
 	ctx: HostServiceContext,
@@ -19,7 +24,7 @@ export async function runArchivedWorkspaceReconcile(
 	const archived = ctx.db
 		.select({ id: workspaces.id, worktreePath: workspaces.worktreePath })
 		.from(workspaces)
-		.where(isNotNull(workspaces.archivedAt))
+		.where(tombstoned)
 		.all();
 	if (archived.length === 0) return;
 
@@ -27,7 +32,7 @@ export async function runArchivedWorkspaceReconcile(
 		ctx.db
 			.select({ worktreePath: workspaces.worktreePath })
 			.from(workspaces)
-			.where(isNull(workspaces.archivedAt))
+			.where(notTombstoned)
 			.all()
 			.map((row) => row.worktreePath),
 	);
@@ -40,12 +45,7 @@ export async function runArchivedWorkspaceReconcile(
 		const liveOwner = ctx.db
 			.select({ id: workspaces.id })
 			.from(workspaces)
-			.where(
-				and(
-					isNull(workspaces.archivedAt),
-					eq(workspaces.worktreePath, row.worktreePath),
-				),
-			)
+			.where(and(notTombstoned, eq(workspaces.worktreePath, row.worktreePath)))
 			.get();
 		if (liveOwner) continue;
 		try {

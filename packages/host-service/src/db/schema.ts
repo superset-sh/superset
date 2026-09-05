@@ -12,6 +12,7 @@ import {
 	text,
 	uniqueIndex,
 } from "drizzle-orm/sqlite-core";
+import type { ArchiveReason } from "../workspaces/archive-state";
 
 export const terminalSessions = sqliteTable(
 	"terminal_sessions",
@@ -255,16 +256,13 @@ export const workspaces = sqliteTable(
 		lastActivityAt: integer("last_activity_at").$defaultFn(() => Date.now()),
 		// Null = local changes not yet pushed to the cloud mirror (dual-write
 		// era only; the column and reconciler go away in R3).
-		// Tombstone: null = live. Set at the destroy commit point; rows are
-		// kept forever and surface on the board's Merged/Deleted columns.
+		// Null = live in the sidebar. Set two ways, told apart by the reason
+		// (see workspaces/archive-state.ts): destroy's tombstone ("merged" |
+		// "deleted"; rows kept forever for the board's Merged/Deleted history)
+		// and the user's reversible Archive ("user"; worktree, branch, and
+		// terminals stay, and Unarchive clears both columns again).
 		archivedAt: integer("archived_at"),
-		// "merged" when the linked PR was merged at destroy time.
-		archiveReason: text("archive_reason").$type<"merged" | "deleted">(),
-		// Reversible user-facing "Archive": null = live in the sidebar. Set by
-		// workspaceCleanup.shelve, cleared by unshelve. Unlike the tombstone
-		// above the row stays fully live (worktree, branch, terminals); the
-		// reaper suspends its terminals after a grace period.
-		shelvedAt: integer("shelved_at"),
+		archiveReason: text("archive_reason").$type<ArchiveReason>(),
 	},
 	(table) => [
 		index("workspaces_project_id_idx").on(table.projectId),

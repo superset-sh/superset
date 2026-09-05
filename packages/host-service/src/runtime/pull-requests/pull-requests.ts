@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import type { Octokit } from "@octokit/rest";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import type { HostDb } from "../../db";
 import {
 	projects,
@@ -13,6 +13,7 @@ import {
 import type { EventBus } from "../../events/event-bus";
 import type { GitWatcher } from "../../events/git-watcher";
 import type { ExecGh } from "../../trpc/router/workspace-creation/utils/exec-gh";
+import { isTombstoned, notTombstoned } from "../../workspaces/archive-state";
 import { type GitFactory, resolveDefaultBranchName } from "../git";
 import {
 	fetchOpenPullRequests,
@@ -465,10 +466,11 @@ export class PullRequestRuntimeManager {
 			.where(inArray(workspaces.id, workspaceIds))
 			.all();
 
-		// Session workspaces (null projectId) have no remote to sync; archived
-		// workspaces keep their PR state frozen at destroy time.
+		// Session workspaces (null projectId) have no remote to sync; destroyed
+		// workspaces keep their PR state frozen at destroy time. A workspace
+		// the user archived is still synced: it comes back with Unarchive.
 		const active = rows.filter(
-			(row) => row.archivedAt == null && row.projectId != null,
+			(row) => !isTombstoned(row) && row.projectId != null,
 		);
 
 		// Re-read each workspace's git refs before matching: callers hit this
@@ -603,17 +605,18 @@ export class PullRequestRuntimeManager {
 		// coalesces — if a sync is already running for a workspace, this just
 		// flips its rerunPending flag.
 		// Session workspaces (null projectId) have no remote and no PRs, and
-		// archived workspaces are frozen. Filtered in JS: the unit-test fakes
+		// destroyed workspaces are frozen. Filtered in JS: the unit-test fakes
 		// stub select().from().all() without a where() builder.
 		const ids = this.db
 			.select({
 				id: workspaces.id,
 				projectId: workspaces.projectId,
 				archivedAt: workspaces.archivedAt,
+				archiveReason: workspaces.archiveReason,
 			})
 			.from(workspaces)
 			.all()
-			.filter((row) => row.projectId !== null && row.archivedAt == null);
+			.filter((row) => row.projectId !== null && !isTombstoned(row));
 
 		// Sequential to keep git subprocess concurrency bounded; matches the
 		// original sweep's behavior. refreshProject inside each sync still
@@ -668,9 +671,9 @@ export class PullRequestRuntimeManager {
 			return;
 		}
 		// Session workspaces (null projectId) have no remote and no PRs; the
-		// GitWatcher still fires for their repos, so gate here too. Archived
+		// GitWatcher still fires for their repos, so gate here too. Destroyed
 		// workspaces are frozen tombstones — never resync or relink them.
-		if (workspace.projectId === null || workspace.archivedAt !== null) {
+		if (workspace.projectId === null || isTombstoned(workspace)) {
 			this.forgetMissingWorktree(workspaceId);
 			return;
 		}
@@ -727,11 +730,9 @@ export class PullRequestRuntimeManager {
 					pullRequestId,
 					...(branch !== workspace.branch ? { updatedAt: Date.now() } : {}),
 				})
-				// Guard: the workspace can archive during the awaited ref read;
-				// a tombstone's branch/PR link is frozen.
-				.where(
-					and(eq(workspaces.id, workspace.id), isNull(workspaces.archivedAt)),
-				)
+				// Guard: the workspace can be destroyed during the awaited ref
+				// read; a tombstone's branch/PR link is frozen.
+				.where(and(eq(workspaces.id, workspace.id), notTombstoned))
 				.run();
 
 			return workspace.projectId;
@@ -785,16 +786,17 @@ export class PullRequestRuntimeManager {
 			.select({
 				projectId: workspaces.projectId,
 				archivedAt: workspaces.archivedAt,
+				archiveReason: workspaces.archiveReason,
 			})
 			.from(workspaces)
 			.all();
-		// Session workspaces (null projectId) have no remote to sync; archived
+		// Session workspaces (null projectId) have no remote to sync; destroyed
 		// workspaces are frozen. Filtered in JS for the same fake-friendly
 		// reason as syncWorkspaceBranches.
 		const projectIds = [
 			...new Set(
 				rows
-					.filter((row) => row.archivedAt == null)
+					.filter((row) => !isTombstoned(row))
 					.map((row) => row.projectId)
 					.filter((id) => id !== null),
 			),
@@ -844,9 +846,9 @@ export class PullRequestRuntimeManager {
 			.from(workspaces)
 			.where(eq(workspaces.projectId, projectId))
 			.all()
-			// JS-filtered like the sweeps: archived rows keep their frozen PR
+			// JS-filtered like the sweeps: tombstoned rows keep their frozen PR
 			// link; refreshing them could clear it (e.g. branch deleted).
-			.filter((workspace) => workspace.archivedAt == null);
+			.filter((workspace) => !isTombstoned(workspace));
 		if (projectWorkspaces.length === 0) return;
 
 		const wantedRefs = new Map<string, GitHubPullRequestHeadRef>();
@@ -885,12 +887,7 @@ export class PullRequestRuntimeManager {
 					this.db
 						.update(workspaces)
 						.set({ pullRequestId: null })
-						.where(
-							and(
-								eq(workspaces.id, workspace.id),
-								isNull(workspaces.archivedAt),
-							),
-						)
+						.where(and(eq(workspaces.id, workspace.id), notTombstoned))
 						.run();
 				}
 				continue;
@@ -905,9 +902,7 @@ export class PullRequestRuntimeManager {
 				this.db
 					.update(workspaces)
 					.set({ pullRequestId: match.id })
-					.where(
-						and(eq(workspaces.id, workspace.id), isNull(workspaces.archivedAt)),
-					)
+					.where(and(eq(workspaces.id, workspace.id), notTombstoned))
 					.run();
 				// The sweep re-asserts the link every pass, so this also heals
 				// history rows for links that predate the table.
@@ -921,9 +916,7 @@ export class PullRequestRuntimeManager {
 				this.db
 					.update(workspaces)
 					.set({ pullRequestId: null })
-					.where(
-						and(eq(workspaces.id, workspace.id), isNull(workspaces.archivedAt)),
-					)
+					.where(and(eq(workspaces.id, workspace.id), notTombstoned))
 					.run();
 			}
 		}

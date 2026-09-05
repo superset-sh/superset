@@ -14,13 +14,14 @@ import {
 } from "../../terminal-agents/persistence.ts";
 import { markTerminalSessionSuspended } from "../terminal.ts";
 import {
+	ARCHIVE_SUSPEND_GRACE_MS,
+	loadArchivedWorkspaces,
 	markStaleActiveRows,
 	PORT_SCAN_WARMUP_DELAYS_MS,
+	planArchivedSuspends,
 	planPortScanSync,
-	planShelvedSuspends,
 	planStaleActiveRows,
 	REAP_INTERVAL_MS,
-	SHELVE_SUSPEND_GRACE_MS,
 	STALE_ACTIVE_GRACE_MS,
 	shouldReapRow,
 } from "./reaper.ts";
@@ -557,86 +558,88 @@ describe("markStaleActiveRows agent bindings", () => {
 	});
 });
 
-describe("planShelvedSuspends", () => {
+describe("planArchivedSuspends", () => {
 	const NOW = 1_000_000_000;
-	const PAST_GRACE = NOW - SHELVE_SUSPEND_GRACE_MS - 1;
+	const PAST_GRACE = NOW - ARCHIVE_SUSPEND_GRACE_MS - 1;
 	const activeRow = { status: "active", originWorkspaceId: "ws-1" };
 
-	it("suspends a live session once its workspace has been shelved past the grace", () => {
-		const plan = planShelvedSuspends({
+	it("suspends a live session once its workspace has been archived past the grace", () => {
+		const plan = planArchivedSuspends({
 			liveSessions: [{ id: "term-1" }],
 			rowById: new Map([["term-1", activeRow]]),
-			shelvedWorkspaces: new Map([["ws-1", PAST_GRACE]]),
+			archivedWorkspaces: new Map([["ws-1", PAST_GRACE]]),
 			now: NOW,
 		});
 		expect(plan.suspend).toEqual(["term-1"]);
 	});
 
 	it("leaves sessions alone inside the grace window (the undo toast must get the same pty back)", () => {
-		const plan = planShelvedSuspends({
+		const plan = planArchivedSuspends({
 			liveSessions: [{ id: "term-1" }],
 			rowById: new Map([["term-1", activeRow]]),
-			shelvedWorkspaces: new Map([["ws-1", NOW - SHELVE_SUSPEND_GRACE_MS + 1]]),
+			archivedWorkspaces: new Map([
+				["ws-1", NOW - ARCHIVE_SUSPEND_GRACE_MS + 1],
+			]),
 			now: NOW,
 		});
 		expect(plan.suspend).toEqual([]);
 	});
 
-	it("never suspends a session whose workspace is not shelved", () => {
-		const plan = planShelvedSuspends({
+	it("never suspends a session whose workspace is not archived", () => {
+		const plan = planArchivedSuspends({
 			liveSessions: [{ id: "term-1" }, { id: "term-2" }],
 			rowById: new Map([
 				["term-1", activeRow],
 				["term-2", { status: "active", originWorkspaceId: "ws-2" }],
 			]),
-			shelvedWorkspaces: new Map([["ws-2", PAST_GRACE]]),
+			archivedWorkspaces: new Map([["ws-2", PAST_GRACE]]),
 			now: NOW,
 		});
 		expect(plan.suspend).toEqual(["term-2"]);
 	});
 
 	it("lets dispose supersede suspend for a row the orphan pass already condemns", () => {
-		const plan = planShelvedSuspends({
+		const plan = planArchivedSuspends({
 			liveSessions: [{ id: "term-1" }],
 			rowById: new Map([
 				["term-1", { ...activeRow, disposeRequestedAt: NOW - 1 }],
 			]),
-			shelvedWorkspaces: new Map([["ws-1", PAST_GRACE]]),
+			archivedWorkspaces: new Map([["ws-1", PAST_GRACE]]),
 			now: NOW,
 		});
 		expect(plan.suspend).toEqual([]);
 	});
 
 	it("is idempotent: an already-suspended session is no longer alive, so it is never planned again", () => {
-		const plan = planShelvedSuspends({
+		const plan = planArchivedSuspends({
 			liveSessions: [],
 			rowById: new Map([
 				["term-1", { status: "suspended", originWorkspaceId: "ws-1" }],
 			]),
-			shelvedWorkspaces: new Map([["ws-1", PAST_GRACE]]),
+			archivedWorkspaces: new Map([["ws-1", PAST_GRACE]]),
 			now: NOW,
 		});
 		expect(plan.suspend).toEqual([]);
 	});
 
-	it("never suspends a session created after the shelve (deliberate new use)", () => {
+	it("never suspends a session created after the archive (deliberate new use)", () => {
 		// A CLI or automation opened this terminal in the archived workspace;
 		// creation also unarchives, but even racing that, an older archive must
 		// not reap a shell someone just started.
-		const plan = planShelvedSuspends({
+		const plan = planArchivedSuspends({
 			liveSessions: [{ id: "old" }, { id: "new" }],
 			rowById: new Map([
 				["old", { ...activeRow, createdAt: PAST_GRACE - 10_000 }],
 				["new", { ...activeRow, createdAt: PAST_GRACE + 10_000 }],
 			]),
-			shelvedWorkspaces: new Map([["ws-1", PAST_GRACE]]),
+			archivedWorkspaces: new Map([["ws-1", PAST_GRACE]]),
 			now: NOW,
 		});
 		expect(plan.suspend).toEqual(["old"]);
 	});
 
 	it("skips rowless, workspace-less, and non-active rows", () => {
-		const plan = planShelvedSuspends({
+		const plan = planArchivedSuspends({
 			liveSessions: [
 				{ id: "rowless" },
 				{ id: "no-workspace" },
@@ -646,16 +649,60 @@ describe("planShelvedSuspends", () => {
 				["no-workspace", { status: "active", originWorkspaceId: null }],
 				["exited", { status: "exited", originWorkspaceId: "ws-1" }],
 			]),
-			shelvedWorkspaces: new Map([["ws-1", PAST_GRACE]]),
+			archivedWorkspaces: new Map([["ws-1", PAST_GRACE]]),
 			now: NOW,
 		});
 		expect(plan.suspend).toEqual([]);
 	});
 });
 
+describe("loadArchivedWorkspaces", () => {
+	it("lists user-archived rows only: tombstones belong to destroy, live rows are not archived", () => {
+		const sqlite = new Database(":memory:");
+		const db = drizzle(sqlite, { schema });
+		migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
+		const base = {
+			projectId: null,
+			worktreePath: "/tmp/x",
+			branch: "b",
+			name: "b",
+			type: "session" as const,
+		};
+		db.insert(schema.workspaces)
+			.values([
+				{ ...base, id: "live", worktreePath: "/tmp/live" },
+				{
+					...base,
+					id: "user",
+					worktreePath: "/tmp/user",
+					archivedAt: 5,
+					archiveReason: "user",
+				},
+				{
+					...base,
+					id: "gone",
+					worktreePath: "/tmp/gone",
+					archivedAt: 6,
+					archiveReason: "deleted",
+				},
+				{
+					...base,
+					id: "merged",
+					worktreePath: "/tmp/merged",
+					archivedAt: 7,
+					archiveReason: "merged",
+				},
+			])
+			.run();
+		expect([...loadArchivedWorkspaces(db as unknown as HostDb)]).toEqual([
+			["user", 5],
+		]);
+	});
+});
+
 describe("suspended sessions survive the stale-active sweep", () => {
-	const SHELVED_AT = Date.now() - 10 * 60_000;
-	const CREATED_AT = SHELVED_AT - 60_000;
+	const ARCHIVED_AT = Date.now() - 10 * 60_000;
+	const CREATED_AT = ARCHIVED_AT - 60_000;
 
 	function createTestDb(): HostDb {
 		const sqlite = new Database(":memory:");
@@ -664,7 +711,7 @@ describe("suspended sessions survive the stale-active sweep", () => {
 		return db as unknown as HostDb;
 	}
 
-	function seedShelvedWorkspaceWithAgentTerminal(db: HostDb) {
+	function seedArchivedWorkspaceWithAgentTerminal(db: HostDb) {
 		db.insert(schema.workspaces)
 			.values({
 				id: "ws-1",
@@ -673,7 +720,8 @@ describe("suspended sessions survive the stale-active sweep", () => {
 				branch: "feature",
 				name: "feature",
 				type: "session",
-				shelvedAt: SHELVED_AT,
+				archivedAt: ARCHIVED_AT,
+				archiveReason: "user",
 			})
 			.run();
 		db.insert(terminalSessions)
@@ -725,7 +773,7 @@ describe("suspended sessions survive the stale-active sweep", () => {
 
 	it("marks the row suspended and ends (never deletes) the agent binding", () => {
 		const db = createTestDb();
-		seedShelvedWorkspaceWithAgentTerminal(db);
+		seedArchivedWorkspaceWithAgentTerminal(db);
 		const endedAt = Date.now();
 
 		expect(markTerminalSessionSuspended(db, "term-1", endedAt)).toBe(true);
@@ -753,7 +801,7 @@ describe("suspended sessions survive the stale-active sweep", () => {
 
 	it("only flips active rows: a pty that exited on its own keeps `exited`", () => {
 		const db = createTestDb();
-		seedShelvedWorkspaceWithAgentTerminal(db);
+		seedArchivedWorkspaceWithAgentTerminal(db);
 		db.update(terminalSessions)
 			.set({ status: "exited", endedAt: Date.now() })
 			.where(eq(terminalSessions.id, "term-1"))
@@ -765,14 +813,14 @@ describe("suspended sessions survive the stale-active sweep", () => {
 
 	it("stays restorable after both grace windows and another full reaper pass", () => {
 		const db = createTestDb();
-		seedShelvedWorkspaceWithAgentTerminal(db);
+		seedArchivedWorkspaceWithAgentTerminal(db);
 		markTerminalSessionSuspended(db, "term-1", Date.now());
 
 		// A later pass: the daemon lists nothing alive (the pty is gone), the
-		// clock is past the spawn grace AND the shelve grace. The stale-active
+		// clock is past the spawn grace AND the archive grace. The stale-active
 		// sweep — the trap that turns a lingering `active` row into an
 		// unrestorable `exited` one — must leave a suspended row untouched.
-		const later = Date.now() + STALE_ACTIVE_GRACE_MS + SHELVE_SUSPEND_GRACE_MS;
+		const later = Date.now() + STALE_ACTIVE_GRACE_MS + ARCHIVE_SUSPEND_GRACE_MS;
 		const stale = planStaleActiveRows({
 			aliveIds: new Set(),
 			rowsById: rowsById(db),
@@ -782,10 +830,10 @@ describe("suspended sessions survive the stale-active sweep", () => {
 		expect(stale).toEqual({ exited: [], disposed: [] });
 		expect(markStaleActiveRows(db, [], new Map())).toBe(0);
 
-		const plan = planShelvedSuspends({
+		const plan = planArchivedSuspends({
 			liveSessions: [],
 			rowById: rowsById(db),
-			shelvedWorkspaces: new Map([["ws-1", SHELVED_AT]]),
+			archivedWorkspaces: new Map([["ws-1", ARCHIVED_AT]]),
 			now: later,
 		});
 		expect(plan.suspend).toEqual([]);

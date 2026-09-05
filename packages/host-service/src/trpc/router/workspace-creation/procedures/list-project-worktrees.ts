@@ -1,6 +1,7 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { workspaces } from "../../../../db/schema";
+import { notTombstoned } from "../../../../workspaces/archive-state";
 import { protectedProcedure } from "../../../index";
 import {
 	requireLocalProject,
@@ -32,12 +33,7 @@ export const listProjectWorktrees = protectedProcedure
 		const workspaceRows = ctx.db
 			.select()
 			.from(workspaces)
-			.where(
-				and(
-					eq(workspaces.projectId, input.projectId),
-					isNull(workspaces.archivedAt),
-				),
-			)
+			.where(and(eq(workspaces.projectId, input.projectId), notTombstoned))
 			.all();
 		const workspaceBranches = new Set(
 			workspaceRows.map((row) => row.branch).filter(Boolean),

@@ -47,7 +47,8 @@ import {
 	resolveDefaultAccountEnv,
 	resolveDefaultAccountTerminalEnv,
 } from "../trpc/router/usage/default-account.ts";
-import { unshelveLocalWorkspace } from "../workspaces/local-workspace-store.ts";
+import { isUserArchived } from "../workspaces/archive-state.ts";
+import { unarchiveLocalWorkspace } from "../workspaces/local-workspace-store.ts";
 import {
 	getTerminalWorkspaceMismatchError,
 	planTerminalAttach,
@@ -2752,17 +2753,17 @@ export async function createTerminalSessionInternal({
 
 	// Opening a new, listed terminal in an archived workspace (CLI, MCP, an
 	// automation) means someone is using it again: bring it back. Otherwise
-	// the shell would run hidden and the reaper's shelved-suspend pass would
+	// the shell would run hidden and the reaper's archived-suspend pass would
 	// kill it on its next tick. Adoption and unlisted (teardown) sessions are
-	// not "use" and leave the flag alone. No `api` here, so this path emits
+	// not "use" and leave the stamp alone. No `api` here, so this path emits
 	// no analytics; every user-facing unarchive goes through the router.
 	if (
 		!adoptOnly &&
 		listed &&
-		workspace.shelvedAt != null &&
+		isUserArchived(workspace) &&
 		eventBus !== undefined
 	) {
-		unshelveLocalWorkspace({ db, eventBus }, workspaceId, "terminal-create");
+		unarchiveLocalWorkspace({ db, eventBus }, workspaceId, "terminal-create");
 	}
 
 	// Derive root path from the workspace's project. Session workspaces

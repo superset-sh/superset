@@ -78,10 +78,11 @@ export function useHostWorkspaces(
 	const workspaces = useMemo<HostWorkspaceItem[]>(
 		() =>
 			(query.data ?? [])
-				// A workspace the user archived on the desktop (`shelvedAt` set)
+				// A workspace the user archived on the desktop (`archivedAt` with
+				// reason "user"; the host never serves destroy tombstones here)
 				// is put away everywhere: it leaves this list the same way it
 				// leaves the desktop sidebar, and comes back on unarchive.
-				.filter((row) => row.shelvedAt == null)
+				.filter((row) => row.archivedAt == null)
 				.map((row) => ({
 					...row,
 					hostReachable: !query.isError,

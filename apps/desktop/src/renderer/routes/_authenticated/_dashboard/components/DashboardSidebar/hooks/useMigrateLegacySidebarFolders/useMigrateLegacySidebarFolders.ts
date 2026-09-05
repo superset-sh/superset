@@ -31,7 +31,7 @@ export function useMigrateLegacySidebarFolders(): void {
 	const collections = useCollections();
 	const {
 		workspaces: hostWorkspaces,
-		shelvedWorkspaces,
+		archivedWorkspaces,
 		cache,
 		isReady,
 	} = useHostWorkspaces();
@@ -90,7 +90,7 @@ export function useMigrateLegacySidebarFolders(): void {
 
 		// Archived rows included: the migration reads "no host row" as "deleted
 		// workspace" and drops the member, which an archived one is not.
-		const allHostWorkspaces = [...hostWorkspaces, ...shelvedWorkspaces];
+		const allHostWorkspaces = [...hostWorkspaces, ...archivedWorkspaces];
 		const hostRowsById = new Map<string, MigrationHostRow>(
 			allHostWorkspaces.map((workspace) => [
 				workspace.id,
@@ -158,5 +158,5 @@ export function useMigrateLegacySidebarFolders(): void {
 			.finally(() => {
 				runningRef.current = false;
 			});
-	}, [collections, hostWorkspaces, shelvedWorkspaces, cache, isReady]);
+	}, [collections, hostWorkspaces, archivedWorkspaces, cache, isReady]);
 }

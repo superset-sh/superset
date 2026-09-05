@@ -5,7 +5,7 @@ import {
 	type HostWorkspaceItem,
 	isEventBusReopen,
 	mergeHostWorkspaces,
-	splitShelvedWorkspaces,
+	splitArchivedWorkspaces,
 	toHostWorkspaceItem,
 } from "./useHostWorkspaces.utils";
 
@@ -25,7 +25,8 @@ function makeSnapshot(
 		createdAt: 1_700_000_000_000,
 		updatedAt: 1_700_000_000_000,
 		lastActivityAt: 1_700_000_050_000,
-		shelvedAt: null,
+		archivedAt: null,
+		archiveReason: null,
 		tags: [],
 		...overrides,
 	};
@@ -166,30 +167,39 @@ describe("toHostWorkspaceItem", () => {
 	});
 });
 
-describe("applyWorkspaceChangedEvent shelvedAt", () => {
-	const SHELVED_AT = 1_700_000_100_000;
+describe("applyWorkspaceChangedEvent archivedAt", () => {
+	const ARCHIVED_AT = 1_700_000_100_000;
 
-	it("carries the snapshot's shelvedAt onto the cached row", () => {
+	it("carries the snapshot's archive stamp onto the cached row", () => {
 		const rows = applyWorkspaceChangedEvent(
 			undefined,
 			{
 				eventType: "updated",
-				workspace: makeSnapshot({ id: "w1", shelvedAt: SHELVED_AT }),
+				workspace: makeSnapshot({
+					id: "w1",
+					archivedAt: ARCHIVED_AT,
+					archiveReason: "user",
+				}),
 			},
 			HOST,
 			"w1",
 		);
-		expect(rows?.[0]?.shelvedAt).toBe(SHELVED_AT);
+		expect(rows?.[0]?.archivedAt).toBe(ARCHIVED_AT);
+		expect(rows?.[0]?.archiveReason).toBe("user");
 	});
 
-	it("clears the flag when an unarchive broadcasts shelvedAt: null", () => {
+	it("clears the stamp when an unarchive broadcasts archivedAt: null", () => {
 		// The `??` idiom used for older-host omissions would keep the row
 		// archived forever here; null is a real value and must win.
 		const archived = applyWorkspaceChangedEvent(
 			undefined,
 			{
 				eventType: "updated",
-				workspace: makeSnapshot({ id: "w1", shelvedAt: SHELVED_AT }),
+				workspace: makeSnapshot({
+					id: "w1",
+					archivedAt: ARCHIVED_AT,
+					archiveReason: "user",
+				}),
 			},
 			HOST,
 			"w1",
@@ -198,25 +208,38 @@ describe("applyWorkspaceChangedEvent shelvedAt", () => {
 			archived,
 			{
 				eventType: "updated",
-				workspace: makeSnapshot({ id: "w1", shelvedAt: null }),
+				workspace: makeSnapshot({
+					id: "w1",
+					archivedAt: null,
+					archiveReason: null,
+				}),
 			},
 			HOST,
 			"w1",
 		);
-		expect(restored?.[0]?.shelvedAt).toBeNull();
+		expect(restored?.[0]?.archivedAt).toBeNull();
+		expect(restored?.[0]?.archiveReason).toBeNull();
 	});
 
-	it("keeps the cached flag when an older host's event omits the field", () => {
+	it("keeps the cached stamp when an older host's event omits the fields", () => {
 		const archived = applyWorkspaceChangedEvent(
 			undefined,
 			{
 				eventType: "updated",
-				workspace: makeSnapshot({ id: "w1", shelvedAt: SHELVED_AT }),
+				workspace: makeSnapshot({
+					id: "w1",
+					archivedAt: ARCHIVED_AT,
+					archiveReason: "user",
+				}),
 			},
 			HOST,
 			"w1",
 		);
-		const { shelvedAt: _omitted, ...legacySnapshot } = makeSnapshot({
+		const {
+			archivedAt: _omitted,
+			archiveReason: _omittedReason,
+			...legacySnapshot
+		} = makeSnapshot({
 			id: "w1",
 		});
 		const next = applyWorkspaceChangedEvent(
@@ -228,11 +251,16 @@ describe("applyWorkspaceChangedEvent shelvedAt", () => {
 			HOST,
 			"w1",
 		);
-		expect(next?.[0]?.shelvedAt).toBe(SHELVED_AT);
+		expect(next?.[0]?.archivedAt).toBe(ARCHIVED_AT);
+		expect(next?.[0]?.archiveReason).toBe("user");
 	});
 
-	it("defaults a brand-new row without the field to null", () => {
-		const { shelvedAt: _omitted, ...legacySnapshot } = makeSnapshot({
+	it("defaults a brand-new row without the fields to null", () => {
+		const {
+			archivedAt: _omitted,
+			archiveReason: _omittedReason,
+			...legacySnapshot
+		} = makeSnapshot({
 			id: "w1",
 		});
 		const rows = applyWorkspaceChangedEvent(
@@ -244,12 +272,19 @@ describe("applyWorkspaceChangedEvent shelvedAt", () => {
 			HOST,
 			"w1",
 		);
-		expect(rows?.[0]?.shelvedAt).toBeNull();
+		expect(rows?.[0]?.archivedAt).toBeNull();
+		expect(rows?.[0]?.archiveReason).toBeNull();
 	});
 });
 
-describe("splitShelvedWorkspaces", () => {
-	function makeItem(id: string, shelvedAt: number | null): HostWorkspaceItem {
+describe("splitArchivedWorkspaces", () => {
+	function makeItem(
+		id: string,
+		archivedAt: number | null,
+		archiveReason: HostWorkspaceItem["archiveReason"] = archivedAt == null
+			? null
+			: "user",
+	): HostWorkspaceItem {
 		return {
 			id,
 			organizationId: HOST.organizationId,
@@ -264,36 +299,49 @@ describe("splitShelvedWorkspaces", () => {
 			updatedAt: new Date(1_700_000_000_000),
 			lastActivityAt: null,
 			hostReachable: true,
-			shelvedAt,
+			archivedAt,
+			archiveReason,
 		};
 	}
 
-	it("partitions by the flag, preserving order within each side", () => {
-		const { workspaces, shelvedWorkspaces } = splitShelvedWorkspaces([
+	it("partitions by the user reason, preserving order within each side", () => {
+		const { workspaces, archivedWorkspaces } = splitArchivedWorkspaces([
 			makeItem("live-1", null),
-			makeItem("shelved-1", 10),
+			makeItem("archived-1", 10),
 			makeItem("live-2", null),
-			makeItem("shelved-2", 20),
+			makeItem("archived-2", 20),
 		]);
 		expect(workspaces.map((w) => w.id)).toEqual(["live-1", "live-2"]);
-		expect(shelvedWorkspaces.map((w) => w.id)).toEqual([
-			"shelved-1",
-			"shelved-2",
+		expect(archivedWorkspaces.map((w) => w.id)).toEqual([
+			"archived-1",
+			"archived-2",
 		]);
 	});
 
+	it("keeps a tombstone on the live side: only the user reason is an archive", () => {
+		// Tombstones only reach this list on `includeArchived`, where the
+		// board expects them alongside live rows, never in the Archived view.
+		const { workspaces, archivedWorkspaces } = splitArchivedWorkspaces([
+			makeItem("deleted", 5, "deleted"),
+			makeItem("merged", 6, "merged"),
+			makeItem("user", 7),
+		]);
+		expect(workspaces.map((w) => w.id)).toEqual(["deleted", "merged"]);
+		expect(archivedWorkspaces.map((w) => w.id)).toEqual(["user"]);
+	});
+
 	it("treats a zero timestamp as archived and null as live", () => {
-		const { workspaces, shelvedWorkspaces } = splitShelvedWorkspaces([
+		const { workspaces, archivedWorkspaces } = splitArchivedWorkspaces([
 			makeItem("epoch", 0),
 			makeItem("live", null),
 		]);
-		expect(shelvedWorkspaces.map((w) => w.id)).toEqual(["epoch"]);
+		expect(archivedWorkspaces.map((w) => w.id)).toEqual(["epoch"]);
 		expect(workspaces.map((w) => w.id)).toEqual(["live"]);
 	});
 });
 
-describe("toHostWorkspaceItem shelvedAt", () => {
-	it("normalizes an absent flag to null", () => {
+describe("toHostWorkspaceItem archive stamp", () => {
+	it("normalizes absent fields to null", () => {
 		const item = toHostWorkspaceItem(
 			{
 				id: "w1",
@@ -312,6 +360,7 @@ describe("toHostWorkspaceItem shelvedAt", () => {
 			},
 			true,
 		);
-		expect(item.shelvedAt).toBeNull();
+		expect(item.archivedAt).toBeNull();
+		expect(item.archiveReason).toBeNull();
 	});
 });

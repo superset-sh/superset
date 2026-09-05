@@ -1,8 +1,12 @@
-import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import type { HostDb } from "../../db/index.ts";
 import { terminalSessions, workspaces } from "../../db/schema.ts";
 import { portManager } from "../../ports/port-manager.ts";
 import { markTerminalAgentBindingEnded } from "../../terminal-agents/persistence.ts";
+import {
+	isUserArchived,
+	userArchived,
+} from "../../workspaces/archive-state.ts";
 import { getDaemonClient } from "../daemon-client-singleton.ts";
 import {
 	disposeSessionAndWait,
@@ -20,12 +24,12 @@ interface ReapResult {
 export const REAP_INTERVAL_MS = 5 * 60 * 1000;
 
 /**
- * How long an archived (shelved) workspace's terminals keep running before
- * the reaper suspends them. Comfortably longer than the renderer's undo
- * toast (8s), so an Undo inside the toast always gets the very same
- * processes back; anything later gets a respawned shell with scrollback.
+ * How long an archived workspace's terminals keep running before the reaper
+ * suspends them. Comfortably longer than the renderer's undo toast (8s), so
+ * an Undo inside the toast always gets the very same processes back;
+ * anything later gets a respawned shell with scrollback.
  */
-export const SHELVE_SUSPEND_GRACE_MS = 60_000;
+export const ARCHIVE_SUSPEND_GRACE_MS = 60_000;
 
 /**
  * A host-service restart begins with an empty port scanner while the detached
@@ -177,35 +181,36 @@ export function planPortScanSync({
  * Dispose supersedes suspend: a row `shouldReapRow` already condemns is the
  * orphan pass's job. Only `active` rows qualify — an `exited` row has no pty
  * to kill and a `suspended` one is already done. A session created after
- * the shelve is deliberate new use (a CLI or automation opened it; creation
+ * the archive is deliberate new use (a CLI or automation opened it; creation
  * also unarchives) and is never suspended by an older archive. Idempotent
  * for free: a suspended session's pty is dead, so it is absent from the next
  * pass's `liveSessions`; no separate "already suspended" marker is needed.
  */
-export function planShelvedSuspends({
+export function planArchivedSuspends({
 	liveSessions,
 	rowById,
-	shelvedWorkspaces,
+	archivedWorkspaces,
 	now,
-	graceMs = SHELVE_SUSPEND_GRACE_MS,
+	graceMs = ARCHIVE_SUSPEND_GRACE_MS,
 }: {
 	liveSessions: { id: string }[];
 	rowById: Map<string, TerminalRow>;
-	/** workspaceId → shelvedAt (epoch ms) for every shelved, non-tombstoned row. */
-	shelvedWorkspaces: Map<string, number>;
+	/** workspaceId → archivedAt (epoch ms) for every user-archived row; a
+	 * tombstone's sessions belong to destroy and are never listed here. */
+	archivedWorkspaces: Map<string, number>;
 	now: number;
 	graceMs?: number;
 }): { suspend: string[] } {
 	const suspend: string[] = [];
-	if (shelvedWorkspaces.size === 0) return { suspend };
+	if (archivedWorkspaces.size === 0) return { suspend };
 	for (const session of liveSessions) {
 		const row = rowById.get(session.id);
 		if (!row || !row.originWorkspaceId) continue;
 		if (row.status !== "active" || shouldReapRow(row)) continue;
-		const shelvedAt = shelvedWorkspaces.get(row.originWorkspaceId);
-		if (shelvedAt == null) continue;
-		if (now - shelvedAt < graceMs) continue;
-		if (row.createdAt != null && row.createdAt > shelvedAt) continue;
+		const archivedAt = archivedWorkspaces.get(row.originWorkspaceId);
+		if (archivedAt == null) continue;
+		if (now - archivedAt < graceMs) continue;
+		if (row.createdAt != null && row.createdAt > archivedAt) continue;
 		suspend.push(session.id);
 	}
 	return { suspend };
@@ -231,31 +236,31 @@ async function runWithConcurrency<T>(
 	await Promise.all(workers);
 }
 
-/** Re-read one workspace's flag right before a kill: an unarchive that lands
- * mid-pass must win over the plan computed at the start of the pass. */
-function isWorkspaceStillShelved(db: HostDb, workspaceId: string): boolean {
+/** Re-read one workspace's state right before a kill: an unarchive that
+ * lands mid-pass must win over the plan computed at the start of the pass. */
+function isWorkspaceStillArchived(db: HostDb, workspaceId: string): boolean {
 	const row = db
 		.select({
-			shelvedAt: workspaces.shelvedAt,
 			archivedAt: workspaces.archivedAt,
+			archiveReason: workspaces.archiveReason,
 		})
 		.from(workspaces)
 		.where(eq(workspaces.id, workspaceId))
 		.get();
-	return row?.shelvedAt != null && row.archivedAt == null;
+	return row !== undefined && isUserArchived(row);
 }
 
-/** Shelved workspaces whose sessions are this sweep's to suspend. A
+/** User-archived workspaces whose sessions are this sweep's to suspend. A
  * tombstoned row's sessions belong to destroy, which hard-disposes them. */
-function loadShelvedWorkspaces(db: HostDb): Map<string, number> {
+export function loadArchivedWorkspaces(db: HostDb): Map<string, number> {
 	const rows = db
-		.select({ id: workspaces.id, shelvedAt: workspaces.shelvedAt })
+		.select({ id: workspaces.id, archivedAt: workspaces.archivedAt })
 		.from(workspaces)
-		.where(and(isNotNull(workspaces.shelvedAt), isNull(workspaces.archivedAt)))
+		.where(userArchived)
 		.all();
 	const byId = new Map<string, number>();
 	for (const row of rows) {
-		if (row.shelvedAt != null) byId.set(row.id, row.shelvedAt);
+		if (row.archivedAt != null) byId.set(row.id, row.archivedAt);
 	}
 	return byId;
 }
@@ -465,10 +470,10 @@ async function reapOrphanedSessions(
 	// a failure here must not fail the reap.
 	let suspended = 0;
 	try {
-		const plan = planShelvedSuspends({
+		const plan = planArchivedSuspends({
 			liveSessions,
 			rowById,
-			shelvedWorkspaces: loadShelvedWorkspaces(db),
+			archivedWorkspaces: loadArchivedWorkspaces(db),
 			now: Date.now(),
 		});
 		// A bulk archive can hand one tick dozens of suspends, each a daemon
@@ -480,9 +485,9 @@ async function reapOrphanedSessions(
 			async (terminalId) => {
 				// The plan is a snapshot; by the time this runs the user may have
 				// unarchived and reopened the workspace. Skip anything that is no
-				// longer shelved or that a renderer is attached to right now.
+				// longer archived or that a renderer is attached to right now.
 				const workspaceId = rowById.get(terminalId)?.originWorkspaceId;
-				if (!workspaceId || !isWorkspaceStillShelved(db, workspaceId)) return;
+				if (!workspaceId || !isWorkspaceStillArchived(db, workspaceId)) return;
 				if (isTerminalSessionAttached(terminalId)) return;
 				try {
 					const result = await suspendSessionAndWait(terminalId, db);
@@ -497,7 +502,7 @@ async function reapOrphanedSessions(
 		);
 	} catch (err) {
 		console.warn(
-			"[host-service] terminal reaper: shelved-suspend pass failed:",
+			"[host-service] terminal reaper: archived-suspend pass failed:",
 			err,
 		);
 	}

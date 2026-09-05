@@ -2,6 +2,7 @@ import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
+import { isUserArchivedWorkspace } from "renderer/hooks/host-workspaces/useHostWorkspaces";
 import { useCloudWorkspaces } from "renderer/hooks/useCloudWorkspaces";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -58,8 +59,9 @@ function V2WorkspaceLayout() {
 	// entry can also land on a workspace the user archived: it exists, it is
 	// just put away, and renders its own state below — not the workspace UI,
 	// not "not found".
-	const workspace = found && found.shelvedAt == null ? found : null;
-	const archivedWorkspace = found && found.shelvedAt != null ? found : null;
+	const workspace = found && !isUserArchivedWorkspace(found) ? found : null;
+	const archivedWorkspace =
+		found && isUserArchivedWorkspace(found) ? found : null;
 	// The open workspace's sandbox joins the fan-out as its own host, so a
 	// cloud workspace is found the same way as any other — but it has no
 	// v2_hosts row for the remote version gate to check.

@@ -22,7 +22,7 @@ import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-inten
 import { ArchivedWorkspaceRow } from "./components/ArchivedWorkspaceRow";
 
 interface V2WorkspacesArchivedProps {
-	/** User-archived rows (the page passes `includeShelved`), already
+	/** User-archived rows (the page passes `archivedView`), already
 	 * search/filter-narrowed by useAccessibleV2Workspaces. */
 	workspaces: AccessibleV2Workspace[];
 	isReady: boolean;
@@ -33,7 +33,7 @@ interface V2WorkspacesArchivedProps {
  * first, with Unarchive and Delete. Deletes reuse the existing single and
  * bulk destroy dialogs (dirty-worktree warnings, teardown-failure retry,
  * progress toast) rather than forking them; a failed destroy un-tombstones
- * with `shelvedAt` intact, so the row simply returns here.
+ * still archived, so the row simply returns here.
  */
 export function V2WorkspacesArchived({
 	workspaces,
@@ -58,7 +58,7 @@ export function V2WorkspacesArchived({
 
 	const sorted = useMemo(
 		() =>
-			[...workspaces].sort((a, b) => (b.shelvedAt ?? 0) - (a.shelvedAt ?? 0)),
+			[...workspaces].sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0)),
 		[workspaces],
 	);
 	const deletable = useMemo(

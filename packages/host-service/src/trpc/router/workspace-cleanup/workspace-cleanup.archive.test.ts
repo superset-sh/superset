@@ -9,6 +9,10 @@ import * as schema from "../../../db/schema";
 import type { EventBus } from "../../../events";
 import type { WorkspaceChangedMessage } from "../../../events/types";
 import type { HostServiceContext } from "../../../types";
+import {
+	restoreLocalWorkspaceTombstone,
+	tombstoneLocalWorkspace,
+} from "../../../workspaces/local-workspace-store";
 import { createCallerFactory } from "../../index";
 import { workspaceCleanupRouter } from "./workspace-cleanup";
 
@@ -86,6 +90,7 @@ function createHarness() {
 	return {
 		caller: createCallerFactory(workspaceCleanupRouter)(ctx),
 		db,
+		eventBus,
 		broadcasts,
 		tracked,
 	};
@@ -97,36 +102,39 @@ function readWorkspace(db: HostDb, id: string) {
 		.sync();
 }
 
-describe("workspaceCleanup.shelve", () => {
-	it("stamps shelvedAt and broadcasts one `updated` event carrying it", async () => {
+describe("workspaceCleanup.archive", () => {
+	it('stamps archivedAt with reason "user" and broadcasts one `updated` event carrying it', async () => {
 		const { caller, db, broadcasts } = createHarness();
 
-		const result = await caller.shelve({
+		const result = await caller.archive({
 			workspaceId: WORKSPACE_ID,
 			source: "sidebar",
 		});
 
 		expect(result.success).toBe(true);
-		expect(result.shelvedAt).toEqual(expect.any(Number));
-		expect(readWorkspace(db, WORKSPACE_ID)?.shelvedAt).toBe(result.shelvedAt);
+		expect(result.archivedAt).toEqual(expect.any(Number));
+		const row = readWorkspace(db, WORKSPACE_ID);
+		expect(row?.archivedAt).toBe(result.archivedAt);
+		expect(row?.archiveReason).toBe("user");
 		expect(broadcasts).toHaveLength(1);
 		expect(broadcasts[0]?.eventType).toBe("updated");
-		expect(broadcasts[0]?.workspace?.shelvedAt).toBe(result.shelvedAt);
+		expect(broadcasts[0]?.workspace?.archivedAt).toBe(result.archivedAt);
+		expect(broadcasts[0]?.workspace?.archiveReason).toBe("user");
 	});
 
 	it("is idempotent: a repeat keeps the timestamp and broadcasts nothing", async () => {
 		const { caller, broadcasts, tracked } = createHarness();
 
-		const first = await caller.shelve({
+		const first = await caller.archive({
 			workspaceId: WORKSPACE_ID,
 			source: "sidebar",
 		});
-		const second = await caller.shelve({
+		const second = await caller.archive({
 			workspaceId: WORKSPACE_ID,
 			source: "hotkey",
 		});
 
-		expect(second.shelvedAt).toBe(first.shelvedAt);
+		expect(second.archivedAt).toBe(first.archivedAt);
 		expect(broadcasts).toHaveLength(1);
 		expect(
 			tracked.filter((t) => t.event === "workspace_archived"),
@@ -136,9 +144,9 @@ describe("workspaceCleanup.shelve", () => {
 	it("refuses a main workspace", async () => {
 		const { caller, db } = createHarness();
 		await expect(
-			caller.shelve({ workspaceId: MAIN_WORKSPACE_ID, source: "sidebar" }),
+			caller.archive({ workspaceId: MAIN_WORKSPACE_ID, source: "sidebar" }),
 		).rejects.toMatchObject({ code: "BAD_REQUEST" });
-		expect(readWorkspace(db, MAIN_WORKSPACE_ID)?.shelvedAt).toBeNull();
+		expect(readWorkspace(db, MAIN_WORKSPACE_ID)?.archivedAt).toBeNull();
 	});
 
 	it("refuses a tombstoned (already destroyed) row", async () => {
@@ -149,15 +157,15 @@ describe("workspaceCleanup.shelve", () => {
 			.run();
 
 		await expect(
-			caller.shelve({ workspaceId: WORKSPACE_ID, source: "sidebar" }),
+			caller.archive({ workspaceId: WORKSPACE_ID, source: "sidebar" }),
 		).rejects.toMatchObject({ code: "NOT_FOUND" });
-		expect(readWorkspace(db, WORKSPACE_ID)?.shelvedAt).toBeNull();
+		expect(readWorkspace(db, WORKSPACE_ID)?.archiveReason).toBe("deleted");
 	});
 
 	it("answers NOT_FOUND for an unknown id", async () => {
 		const { caller } = createHarness();
 		await expect(
-			caller.shelve({ workspaceId: "does-not-exist", source: "sidebar" }),
+			caller.archive({ workspaceId: "does-not-exist", source: "sidebar" }),
 		).rejects.toMatchObject({ code: "NOT_FOUND" });
 	});
 
@@ -183,7 +191,7 @@ describe("workspaceCleanup.shelve", () => {
 			})
 			.run();
 
-		await caller.shelve({ workspaceId: WORKSPACE_ID, source: "bulk" });
+		await caller.archive({ workspaceId: WORKSPACE_ID, source: "bulk" });
 
 		const session = db.query.terminalSessions
 			.findFirst({ where: eq(schema.terminalSessions.id, TERMINAL_ID) })
@@ -202,7 +210,7 @@ describe("workspaceCleanup.shelve", () => {
 
 	it("emits workspace_archived host-side with the caller's source", async () => {
 		const { caller, tracked } = createHarness();
-		await caller.shelve({
+		await caller.archive({
 			workspaceId: WORKSPACE_ID,
 			source: "command-palette",
 		});
@@ -214,22 +222,24 @@ describe("workspaceCleanup.shelve", () => {
 	});
 });
 
-describe("workspaceCleanup.unshelve", () => {
-	it("clears shelvedAt and broadcasts `updated` with null", async () => {
+describe("workspaceCleanup.unarchive", () => {
+	it("clears the stamp and broadcasts `updated` with null", async () => {
 		const { caller, db, broadcasts, tracked } = createHarness();
-		await caller.shelve({ workspaceId: WORKSPACE_ID, source: "sidebar" });
+		await caller.archive({ workspaceId: WORKSPACE_ID, source: "sidebar" });
 		broadcasts.length = 0;
 
-		const result = await caller.unshelve({
+		const result = await caller.unarchive({
 			workspaceId: WORKSPACE_ID,
 			source: "undo-toast",
 		});
 
-		expect(result.shelvedAt).toBeNull();
-		expect(readWorkspace(db, WORKSPACE_ID)?.shelvedAt).toBeNull();
+		expect(result.archivedAt).toBeNull();
+		const row = readWorkspace(db, WORKSPACE_ID);
+		expect(row?.archivedAt).toBeNull();
+		expect(row?.archiveReason).toBeNull();
 		expect(broadcasts).toHaveLength(1);
 		expect(broadcasts[0]?.eventType).toBe("updated");
-		expect(broadcasts[0]?.workspace?.shelvedAt).toBeNull();
+		expect(broadcasts[0]?.workspace?.archivedAt).toBeNull();
 		expect(
 			tracked.find((t) => t.event === "workspace_unarchived")?.properties,
 		).toMatchObject({ source: "undo-toast" });
@@ -237,24 +247,78 @@ describe("workspaceCleanup.unshelve", () => {
 
 	it("is a no-op on a live row", async () => {
 		const { caller, broadcasts, tracked } = createHarness();
-		const result = await caller.unshelve({
+		const result = await caller.unarchive({
 			workspaceId: WORKSPACE_ID,
 			source: "workspaces-page",
 		});
-		expect(result.shelvedAt).toBeNull();
+		expect(result.archivedAt).toBeNull();
 		expect(broadcasts).toHaveLength(0);
 		expect(tracked).toHaveLength(0);
 	});
 
 	it("refuses a tombstoned row", async () => {
 		const { caller, db } = createHarness();
-		await caller.shelve({ workspaceId: WORKSPACE_ID, source: "sidebar" });
+		await caller.archive({ workspaceId: WORKSPACE_ID, source: "sidebar" });
 		db.update(schema.workspaces)
 			.set({ archivedAt: Date.now(), archiveReason: "deleted" })
 			.where(eq(schema.workspaces.id, WORKSPACE_ID))
 			.run();
 		await expect(
-			caller.unshelve({ workspaceId: WORKSPACE_ID, source: "deep-link" }),
+			caller.unarchive({ workspaceId: WORKSPACE_ID, source: "deep-link" }),
 		).rejects.toMatchObject({ code: "NOT_FOUND" });
+	});
+});
+
+const LIVE = { archivedAt: null, archiveReason: null } as const;
+
+describe("tombstone over a user archive", () => {
+	it("a failed delete of an archived workspace puts it back archived, not live", async () => {
+		const harness = createHarness();
+		const { caller, db, broadcasts } = harness;
+		const archived = await caller.archive({
+			workspaceId: WORKSPACE_ID,
+			source: "sidebar",
+		});
+		broadcasts.length = 0;
+		const ctx = { db, eventBus: harness.eventBus };
+
+		const previous = tombstoneLocalWorkspace(ctx, WORKSPACE_ID, "deleted");
+		expect(previous).toEqual({
+			archivedAt: archived.archivedAt,
+			archiveReason: "user",
+		});
+		expect(readWorkspace(db, WORKSPACE_ID)?.archiveReason).toBe("deleted");
+		expect(broadcasts.map((b) => b.eventType)).toEqual(["deleted"]);
+
+		restoreLocalWorkspaceTombstone(ctx, WORKSPACE_ID, previous ?? LIVE);
+		const row = readWorkspace(db, WORKSPACE_ID);
+		expect(row?.archivedAt).toBe(archived.archivedAt);
+		expect(row?.archiveReason).toBe("user");
+		expect(broadcasts.at(-1)?.eventType).toBe("created");
+		expect(broadcasts.at(-1)?.workspace?.archiveReason).toBe("user");
+	});
+
+	it("a failed delete of a live workspace revives it live", () => {
+		const harness = createHarness();
+		const { db } = harness;
+		const ctx = { db, eventBus: harness.eventBus };
+		const previous = tombstoneLocalWorkspace(ctx, WORKSPACE_ID, "merged");
+		expect(previous).toEqual({ archivedAt: null, archiveReason: null });
+		restoreLocalWorkspaceTombstone(ctx, WORKSPACE_ID, previous ?? LIVE);
+		const row = readWorkspace(db, WORKSPACE_ID);
+		expect(row?.archivedAt).toBeNull();
+		expect(row?.archiveReason).toBeNull();
+	});
+
+	it("a retried delete of an existing tombstone that fails revives it live (retryable)", () => {
+		const harness = createHarness();
+		const { db } = harness;
+		const ctx = { db, eventBus: harness.eventBus };
+		const first = tombstoneLocalWorkspace(ctx, WORKSPACE_ID, "deleted");
+		expect(first).toEqual({ archivedAt: null, archiveReason: null });
+		const retry = tombstoneLocalWorkspace(ctx, WORKSPACE_ID, "deleted");
+		expect(retry).toEqual({ archivedAt: null, archiveReason: null });
+		restoreLocalWorkspaceTombstone(ctx, WORKSPACE_ID, retry ?? LIVE);
+		expect(readWorkspace(db, WORKSPACE_ID)?.archivedAt).toBeNull();
 	});
 });

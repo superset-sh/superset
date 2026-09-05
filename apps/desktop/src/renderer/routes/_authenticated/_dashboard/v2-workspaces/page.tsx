@@ -178,7 +178,7 @@ function V2WorkspacesPage() {
 	const {
 		all,
 		isReady,
-		shelvedCount,
+		archivedCount,
 		hostOptions,
 		projectOptions,
 		creatorOptions,
@@ -199,7 +199,7 @@ function V2WorkspacesPage() {
 		// switch, for rows that view never reads.
 		includeArchived: true,
 		// The Archived view lists the user-archived rows instead of the live ones.
-		includeShelved: isArchivedView,
+		archivedView: isArchivedView,
 	});
 
 	// Re-rendering hundreds of rows takes hundreds of ms; deferring keeps
@@ -219,7 +219,7 @@ function V2WorkspacesPage() {
 				creatorOptions={creatorOptions}
 				hostsById={hostsById}
 				projectsById={projectsById}
-				archivedCount={shelvedCount}
+				archivedCount={archivedCount}
 			/>
 			{viewMode === "archived" ? (
 				<V2WorkspacesArchived

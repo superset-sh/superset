@@ -1,14 +1,19 @@
 import { randomUUID } from "node:crypto";
 import { TRPCError } from "@trpc/server";
-import { and, eq, isNull, ne, or } from "drizzle-orm";
+import { and, eq, ne, or } from "drizzle-orm";
 import { workspaces } from "../../../../db/schema";
 import type { HostServiceContext } from "../../../../types";
+import {
+	isUserArchived,
+	notTombstoned,
+} from "../../../../workspaces/archive-state";
 import {
 	type CloudShapedWorkspace,
 	deleteLocalWorkspace,
 	getLocalWorkspace,
 	insertLocalWorkspace,
 	toCloudShape,
+	unarchiveLocalWorkspace,
 	updateLocalWorkspace,
 	type WorkspaceStoreContext,
 } from "../../../../workspaces/local-workspace-store";
@@ -118,20 +123,29 @@ export async function adoptExistingWorktree(
 		};
 	}
 
-	// Already linked at this exact (branch, path) — reuse the row.
+	// Already linked at this exact (branch, path) — reuse the row. Adopting
+	// a workspace the user archived is using it again: bring it back rather
+	// than answering with a row nothing lists.
 	const existingByBranch = ctx.db.query.workspaces
 		.findFirst({
 			where: and(
 				eq(workspaces.projectId, projectId),
 				eq(workspaces.branch, branch),
-				isNull(workspaces.archivedAt),
+				notTombstoned,
 			),
 		})
 		.sync();
 	if (existingByBranch && existingByBranch.worktreePath === worktreePath) {
 		await recordBaseBranch(git, branch, baseBranch);
+		const row = isUserArchived(existingByBranch)
+			? (unarchiveLocalWorkspace(
+					store,
+					existingByBranch.id,
+					"workspace-create",
+				) ?? existingByBranch)
+			: existingByBranch;
 		return {
-			workspace: toCloudShape(existingByBranch, ctx.organizationId),
+			workspace: toCloudShape(row, ctx.organizationId),
 			alreadyExists: true,
 		};
 	}
@@ -143,11 +157,14 @@ export async function adoptExistingWorktree(
 			where: and(
 				eq(workspaces.projectId, projectId),
 				eq(workspaces.worktreePath, worktreePath),
-				isNull(workspaces.archivedAt),
+				notTombstoned,
 			),
 		})
 		.sync();
 	if (existingByPath) {
+		if (isUserArchived(existingByPath)) {
+			unarchiveLocalWorkspace(store, existingByPath.id, "workspace-create");
+		}
 		deleteLocalWorkspaceConflicts(store, {
 			projectId,
 			worktreePath,
@@ -225,7 +242,7 @@ function deleteLocalWorkspaceConflicts(
 				ne(workspaces.id, args.keepWorkspaceId),
 				// Tombstones aren't phantoms — same-branch history must survive
 				// re-creating a workspace on that branch.
-				isNull(workspaces.archivedAt),
+				notTombstoned,
 			),
 		)
 		.all();

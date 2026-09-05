@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-	archiveLocalWorkspace,
-	unarchiveLocalWorkspace,
+	restoreLocalWorkspaceTombstone,
+	tombstoneLocalWorkspace,
 } from "../../src/workspaces/local-workspace-store";
 import {
 	type BasicScenario,
@@ -86,7 +86,7 @@ describe("workspace router integration", () => {
 	});
 });
 
-describe("workspace list archive semantics", () => {
+describe("workspace list tombstone semantics", () => {
 	let scenario: BasicScenario;
 
 	beforeEach(async () => {
@@ -104,13 +104,13 @@ describe("workspace list archive semantics", () => {
 		};
 	}
 
-	test("list excludes archived rows by default and includes them on opt-in", async () => {
+	test("list excludes tombstoned rows by default and includes them on opt-in", async () => {
 		const { id: archivedId } = seedWorkspace(scenario.host, {
 			projectId: scenario.projectId,
 			worktreePath: join(scenario.repo.repoPath, "..", "gone-worktree"),
 			branch: "feature/gone",
 		});
-		archiveLocalWorkspace(storeCtx(), archivedId, "merged");
+		tombstoneLocalWorkspace(storeCtx(), archivedId, "merged");
 
 		const defaultList = await scenario.host.trpc.workspace.list.query();
 		expect(defaultList.map((w) => w.id)).not.toContain(archivedId);
@@ -128,20 +128,20 @@ describe("workspace list archive semantics", () => {
 		expect(live?.archiveReason).toBeNull();
 	});
 
-	test("archive is idempotent and unarchive restores the row", async () => {
+	test("tombstoning is idempotent and restoring revives the row", async () => {
 		const { id } = seedWorkspace(scenario.host, {
 			projectId: scenario.projectId,
 			worktreePath: join(scenario.repo.repoPath, "..", "wt-2"),
 			branch: "feature/two",
 		});
-		archiveLocalWorkspace(storeCtx(), id, "deleted");
+		const previous = tombstoneLocalWorkspace(storeCtx(), id, "deleted");
 		const first = await scenario.host.trpc.workspace.list.query({
 			includeArchived: true,
 		});
 		const firstArchivedAt = first.find((w) => w.id === id)?.archivedAt;
 
 		// Re-archiving with a different reason keeps the original tombstone.
-		archiveLocalWorkspace(storeCtx(), id, "merged");
+		tombstoneLocalWorkspace(storeCtx(), id, "merged");
 		const second = await scenario.host.trpc.workspace.list.query({
 			includeArchived: true,
 		});
@@ -150,7 +150,11 @@ describe("workspace list archive semantics", () => {
 		);
 		expect(second.find((w) => w.id === id)?.archiveReason).toBe("deleted");
 
-		unarchiveLocalWorkspace(storeCtx(), id);
+		restoreLocalWorkspaceTombstone(
+			storeCtx(),
+			id,
+			previous ?? { archivedAt: null, archiveReason: null },
+		);
 		const restored = await scenario.host.trpc.workspace.list.query();
 		expect(restored.map((w) => w.id)).toContain(id);
 	});

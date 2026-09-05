@@ -7,7 +7,7 @@ import {
 } from "@superset/shared/workspace-launch";
 import { workspaceTagsInputSchema } from "@superset/shared/workspace-tags";
 import { TRPCError } from "@trpc/server";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import { createGitEnvResolver } from "../../../runtime/git";
@@ -16,11 +16,15 @@ import type { HostServiceContext } from "../../../types";
 import { getHostWorkerPool } from "../../../workers/host-worker-pool";
 import { gitFetchBaseRefTask } from "../../../workers/tasks/git";
 import {
+	isUserArchived,
+	notTombstoned,
+} from "../../../workspaces/archive-state";
+import {
 	type CloudShapedWorkspace,
 	getLocalWorkspace,
 	insertLocalWorkspace,
 	toCloudShape,
-	unshelveLocalWorkspace,
+	unarchiveLocalWorkspace,
 } from "../../../workspaces/local-workspace-store";
 import {
 	createCallerFactory,
@@ -175,21 +179,22 @@ function findExistingWorkspaceByBranch(
 				eq(workspaces.branch, branch),
 				// Deletes tombstone the row instead of removing it, so a
 				// tombstone must not satisfy idempotency: matching one returns
-				// the archived row with `alreadyExists: true` and silently
+				// the destroyed row with `alreadyExists: true` and silently
 				// skips the create — no worktree, nothing in the sidebar. Its
 				// worktree is gone, so re-creating on the same branch inserts a
 				// fresh live row alongside it. The adopt path already filters
 				// these (#6383).
-				isNull(workspaces.archivedAt),
+				notTombstoned,
 			),
 		})
 		.sync();
 	if (!local) return null;
-	// A user-archived (shelved) row does satisfy idempotency — its worktree
-	// and branch are intact — but the caller asked to open this branch, so
-	// hand it back live rather than pointing them at an archived workspace.
-	if (local.shelvedAt != null) {
-		unshelveLocalWorkspace(ctx, local.id, "workspace-create");
+	// A user-archived row does satisfy idempotency — its worktree and branch
+	// are intact — but the caller asked to open this branch, so hand it back
+	// live rather than pointing them at an archived workspace.
+	if (isUserArchived(local)) {
+		const restored = unarchiveLocalWorkspace(ctx, local.id, "workspace-create");
+		return toCloudShape(restored ?? local, ctx.organizationId);
 	}
 	return toCloudShape(local, ctx.organizationId);
 }

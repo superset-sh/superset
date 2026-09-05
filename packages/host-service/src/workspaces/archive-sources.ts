@@ -1,5 +1,5 @@
 /**
- * Where an archive ("shelve") or unarchive came from, carried on the
+ * Where an archive or unarchive came from, carried on the
  * mutation input and emitted with the host-side analytics event. Host-side
  * emission is what lets CLI/MCP archives count alongside the desktop's; the
  * renderer never tracks these itself.

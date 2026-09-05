@@ -70,7 +70,10 @@ type BoardColumnInputs = Pick<
 export function deriveBoardColumn(
 	workspace: BoardColumnInputs,
 ): BoardColumnKey {
-	if (workspace.archivedAt != null) {
+	// Only destroy tombstones are history. A workspace the user archived
+	// shares the columns (reason "user") but lives in the Archived view, not
+	// on the board; should one arrive, it is a live row, not a deletion.
+	if (workspace.archivedAt != null && workspace.archiveReason !== "user") {
 		return workspace.archiveReason === "merged" ? "merged" : "deleted";
 	}
 	if (workspace.pr?.state === "merged") return "merged";

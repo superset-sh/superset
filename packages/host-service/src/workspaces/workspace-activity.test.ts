@@ -13,6 +13,7 @@ import {
 	archiveLocalWorkspace,
 	getLocalWorkspace,
 	insertLocalWorkspace,
+	tombstoneLocalWorkspace,
 	touchLocalWorkspaceActivity,
 	updateLocalWorkspace,
 	WORKSPACE_ACTIVITY_THROTTLE_MS,
@@ -168,9 +169,26 @@ describe("touchLocalWorkspaceActivity", () => {
 		);
 	});
 
-	it("ignores archived rows", () => {
+	it("still touches a workspace the user archived", () => {
 		const { db, eventBus, messages } = setup({ initialActivityAt: null });
-		archiveLocalWorkspace({ db, eventBus }, WORKSPACE_ID, "deleted");
+		archiveLocalWorkspace({ db, eventBus }, WORKSPACE_ID, "sidebar");
+		messages.length = 0;
+
+		expect(
+			touchLocalWorkspaceActivity(
+				{ db, eventBus },
+				WORKSPACE_ID,
+				1_700_000_000_000,
+			),
+		).toBe(true);
+		expect(getLocalWorkspace(db, WORKSPACE_ID)?.lastActivityAt).toBe(
+			1_700_000_000_000,
+		);
+	});
+
+	it("ignores tombstoned rows", () => {
+		const { db, eventBus, messages } = setup({ initialActivityAt: null });
+		tombstoneLocalWorkspace({ db, eventBus }, WORKSPACE_ID, "deleted");
 		messages.length = 0;
 
 		expect(

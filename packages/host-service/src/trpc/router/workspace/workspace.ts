@@ -2,9 +2,10 @@ import { existsSync } from "node:fs";
 import { basename } from "node:path";
 import { workspaceTagsInputSchema } from "@superset/shared/workspace-tags";
 import { TRPCError } from "@trpc/server";
-import { eq, isNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
+import { isTombstoned, notTombstoned } from "../../../workspaces/archive-state";
 import {
 	getWorkspaceTags,
 	getWorkspaceTagsByWorkspaceId,
@@ -40,19 +41,17 @@ export const workspaceRouter = router({
 	 * Authoritative list of this host's workspaces, served entirely from
 	 * host.db — works with zero cloud availability. Rows are shaped like
 	 * cloud rows (plus local extras) so consumers of either read path agree.
-	 * Archived (tombstoned) rows are excluded unless the caller opts in —
-	 * only the workspaces board does, for its Merged/Deleted columns.
+	 * Tombstoned (destroyed) rows are excluded unless the caller opts in —
+	 * only the workspaces board does, for its Merged/Deleted columns. Rows
+	 * the user archived (reason "user") are live rows that were put away and
+	 * are always served, with the stamp, so clients can list them apart.
 	 */
 	list: protectedProcedure
 		.input(z.object({ includeArchived: z.boolean().default(false) }).optional())
 		.query(({ ctx, input }) => {
 			const rows = input?.includeArchived
 				? ctx.db.select().from(workspaces).all()
-				: ctx.db
-						.select()
-						.from(workspaces)
-						.where(isNull(workspaces.archivedAt))
-						.all();
+				: ctx.db.select().from(workspaces).where(notTombstoned).all();
 			const projectNameById = new Map(
 				ctx.db
 					.select({
@@ -77,19 +76,19 @@ export const workspaceRouter = router({
 				worktreePath: row.worktreePath,
 				// Tombstones' worktrees are gone by definition; stat-checking an
 				// unbounded, forever-growing archive on every poll adds up.
-				worktreeExists:
-					row.archivedAt == null ? existsSync(row.worktreePath) : false,
+				worktreeExists: isTombstoned(row)
+					? false
+					: existsSync(row.worktreePath),
 				projectName: row.projectId
 					? (projectNameById.get(row.projectId) ?? null)
 					: null,
 				// Host-only: the frozen cloud shape never had an activity signal.
 				lastActivityAt: row.lastActivityAt,
+				// Tombstone or user archive, per the reason. CLI/MCP callers see
+				// user-archived rows with the stamp; default filtering hides
+				// only tombstones in this release.
 				archivedAt: row.archivedAt,
 				archiveReason: row.archiveReason,
-				// Reversible archive (workspaceCleanup.shelve); the row stays
-				// live. Exposed so CLI/MCP callers can tell; default filtering
-				// is unchanged in this release.
-				shelvedAt: row.shelvedAt,
 			}));
 		}),
 

@@ -6,6 +6,7 @@ import {
 	workspacePullRequests,
 	workspaces,
 } from "../../../../db/schema";
+import { tombstoned } from "../../../../workspaces/archive-state";
 import { utcMidnightCutoff } from "./leaderboard-days";
 
 export function countAgentPrsByDay(
@@ -34,10 +35,7 @@ export function countAgentPrsByDay(
 			and(
 				isNotNull(pullRequests.mergedAt),
 				gte(pullRequests.mergedAt, cutoff),
-				or(
-					isNotNull(terminalAgentBindings.terminalId),
-					isNotNull(workspaces.archivedAt),
-				),
+				or(isNotNull(terminalAgentBindings.terminalId), tombstoned),
 			),
 		)
 		.all();

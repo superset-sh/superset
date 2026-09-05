@@ -14,10 +14,11 @@ import {
 	type HostWorkspaceItem,
 	type HostWorkspaceRow,
 	isEventBusReopen,
+	isTombstonedWorkspace,
 	loadHostWorkspacesSnapshot,
 	mergeHostWorkspaces,
 	saveHostWorkspacesSnapshot,
-	splitShelvedWorkspaces,
+	splitArchivedWorkspaces,
 	toHostWorkspaceItem,
 } from "./useHostWorkspaces.utils";
 
@@ -61,12 +62,12 @@ export interface UseHostWorkspacesResult {
 	/** Live, unarchived rows (plus tombstones when `includeArchived`). */
 	workspaces: HostWorkspaceItem[];
 	/**
-	 * User-archived rows (`shelvedAt` set): the same cached host rows as
-	 * `workspaces`, split by the flag. Only the Workspaces page's Archived
-	 * view, the deep-link archived state, and the archive/undo flow read
-	 * these; everything else sees only `workspaces`.
+	 * User-archived rows (archive reason "user"): the same cached host rows
+	 * as `workspaces`, split by the reason. Only the Workspaces page's
+	 * Archived view, the deep-link archived state, and the archive/undo flow
+	 * read these; everything else sees only `workspaces`.
 	 */
-	shelvedWorkspaces: HostWorkspaceItem[];
+	archivedWorkspaces: HostWorkspaceItem[];
 	/**
 	 * A row by id regardless of archive state — the one lookup every
 	 * by-id consumer that must still see archived rows (delete dialogs,
@@ -107,8 +108,8 @@ export interface UseHostWorkspacesResult {
  *
  * `includeArchived` additionally fetches archived tombstones (soft-deleted
  * workspaces) under a separate query key — the shared live cache never sees
- * archived rows. Tombstones append after live rows with
- * `archivedAt`/`archiveReason` set.
+ * tombstones. Tombstones append after live rows with a destroy reason on
+ * `archivedAt`/`archiveReason`.
  */
 export function useHostWorkspacesSource(
 	scopedHostId?: string | null,
@@ -246,7 +247,7 @@ export function useHostWorkspacesSource(
 				const rows = (await client.workspace.list.query({
 					includeArchived: true,
 				})) as HostWorkspaceRow[];
-				return rows.filter((row) => row.archivedAt != null);
+				return rows.filter(isTombstonedWorkspace);
 			},
 		})),
 	});
@@ -342,7 +343,7 @@ export function useHostWorkspacesSource(
 		};
 	}, [targets, queryClient, includeArchived]);
 
-	const { workspaces, shelvedWorkspaces } = useMemo(() => {
+	const { workspaces, archivedWorkspaces } = useMemo(() => {
 		const merged = mergeHostWorkspaces({
 			hostResults: targets.map((target, index) => {
 				const query = queries[index];
@@ -354,9 +355,9 @@ export function useHostWorkspacesSource(
 				};
 			}),
 		});
-		// Archived (shelved) rows are live rows the user put away; they leave
+		// User-archived rows are live rows the user put away; they leave
 		// `workspaces` here and nowhere else, so every consumer hides them.
-		const split = splitShelvedWorkspaces(merged);
+		const split = splitArchivedWorkspaces(merged);
 		if (!includeArchived) return split;
 		// Tombstones append after live rows; consumers dedupe by id, so a row
 		// mid-unarchive can't render twice.
@@ -374,7 +375,7 @@ export function useHostWorkspacesSource(
 		});
 		return {
 			workspaces: [...split.workspaces, ...archived],
-			shelvedWorkspaces: split.shelvedWorkspaces,
+			archivedWorkspaces: split.archivedWorkspaces,
 		};
 	}, [targets, queries, includeArchived, archivedQueries, snapshots]);
 
@@ -462,9 +463,9 @@ export function useHostWorkspacesSource(
 	const byId = useMemo(() => {
 		const map = new Map<string, HostWorkspaceItem>();
 		for (const item of workspaces) map.set(item.id, item);
-		for (const item of shelvedWorkspaces) map.set(item.id, item);
+		for (const item of archivedWorkspaces) map.set(item.id, item);
 		return map;
-	}, [workspaces, shelvedWorkspaces]);
+	}, [workspaces, archivedWorkspaces]);
 	const findWorkspace = useCallback(
 		(workspaceId: string) => byId.get(workspaceId),
 		[byId],
@@ -472,7 +473,7 @@ export function useHostWorkspacesSource(
 
 	return {
 		workspaces,
-		shelvedWorkspaces,
+		archivedWorkspaces,
 		findWorkspace,
 		isReady,
 		hostsSettled: knownHostsSettled,

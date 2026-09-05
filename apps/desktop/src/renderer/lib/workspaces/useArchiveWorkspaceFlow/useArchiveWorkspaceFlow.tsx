@@ -15,12 +15,13 @@ import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/Host
 
 type WorkspaceCleanupInputs = inferRouterInputs<AppRouter>["workspaceCleanup"];
 
-/** The host owns these enums (packages/host-service/src/workspaces/shelve-sources.ts);
+/** The host owns these enums (packages/host-service/src/workspaces/archive-sources.ts);
  * analytics fire host-side with the value. Derived from the router so a new
  * source is one edit, not two. */
-export type ArchiveWorkspaceSource = WorkspaceCleanupInputs["shelve"]["source"];
+export type ArchiveWorkspaceSource =
+	WorkspaceCleanupInputs["archive"]["source"];
 export type UnarchiveWorkspaceSource =
-	WorkspaceCleanupInputs["unshelve"]["source"];
+	WorkspaceCleanupInputs["unarchive"]["source"];
 
 /** Longer than a slip needs, shorter than the host's suspend grace (60s),
  * so an Undo inside the toast always gets the very same terminals back. */
@@ -112,11 +113,15 @@ export function useArchiveWorkspaceFlow(): UseArchiveWorkspaceFlow {
 				return false;
 			}
 			const captured = toHostWorkspaceRow(row);
-			cache.upsertWorkspace({ ...captured, shelvedAt: null });
+			cache.upsertWorkspace({
+				...captured,
+				archivedAt: null,
+				archiveReason: null,
+			});
 			try {
 				await getHostServiceClientByUrl(
 					hostUrl,
-				).workspaceCleanup.unshelve.mutate({ workspaceId, source });
+				).workspaceCleanup.unarchive.mutate({ workspaceId, source });
 			} catch (error) {
 				cache.upsertWorkspace(captured);
 				cache.invalidateHost(row.hostId);
@@ -155,7 +160,8 @@ export function useArchiveWorkspaceFlow(): UseArchiveWorkspaceFlow {
 			let unarchivable = 0;
 			for (const workspaceId of new Set(workspaceIds)) {
 				const row = findRow(workspaceId);
-				if (!row || row.shelvedAt != null) continue;
+				// Already archived, or a tombstone: nothing to put away.
+				if (!row || row.archivedAt != null) continue;
 				// Never archivable: the project's own checkout, and cloud
 				// sandboxes, which keep their delete path.
 				if (row.type === "main" || cache.isSandboxHost(row.hostId)) {
@@ -205,17 +211,17 @@ export function useArchiveWorkspaceFlow(): UseArchiveWorkspaceFlow {
 				navigateAwayFromWorkspace(activeWorkspaceId, new Set(ids));
 			}
 
-			const shelvedAt = Date.now();
+			const archivedAt = Date.now();
 			const captured = new Map(
 				targets.map(({ row }) => [row.id, toHostWorkspaceRow(row)] as const),
 			);
 			for (const row of captured.values()) {
-				cache.upsertWorkspace({ ...row, shelvedAt });
+				cache.upsertWorkspace({ ...row, archivedAt, archiveReason: "user" });
 			}
 
 			const settled = await Promise.allSettled(
 				targets.map(({ row, hostUrl }) =>
-					getHostServiceClientByUrl(hostUrl).workspaceCleanup.shelve.mutate({
+					getHostServiceClientByUrl(hostUrl).workspaceCleanup.archive.mutate({
 						workspaceId: row.id,
 						source,
 					}),

@@ -1,6 +1,7 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { pullRequests, workspaces } from "../../../../db/schema";
+import { notTombstoned } from "../../../../workspaces/archive-state";
 import { protectedProcedure } from "../../../index";
 
 const getLinkedWorkspaceInputSchema = z.object({
@@ -38,9 +39,7 @@ export const getLinkedWorkspace = protectedProcedure
 		const workspace = ctx.db
 			.select({ id: workspaces.id })
 			.from(workspaces)
-			.where(
-				and(eq(workspaces.pullRequestId, pr.id), isNull(workspaces.archivedAt)),
-			)
+			.where(and(eq(workspaces.pullRequestId, pr.id), notTombstoned))
 			.orderBy(desc(workspaces.updatedAt), desc(workspaces.createdAt))
 			.get();
 		return { workspaceId: workspace?.id ?? null };

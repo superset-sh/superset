@@ -1,6 +1,7 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { workspaces } from "../../../../db/schema";
 import { resolveDefaultBranchName } from "../../../../runtime/git/refs";
+import { notTombstoned } from "../../../../workspaces/archive-state";
 import { protectedProcedure } from "../../../index";
 import { searchBranchesInputSchema } from "../schemas";
 import {
@@ -63,12 +64,7 @@ export const searchBranches = protectedProcedure
 			ctx.db
 				.select()
 				.from(workspaces)
-				.where(
-					and(
-						eq(workspaces.projectId, input.projectId),
-						isNull(workspaces.archivedAt),
-					),
-				)
+				.where(and(eq(workspaces.projectId, input.projectId), notTombstoned))
 				.all()
 				.map((workspace) => workspace.branch)
 				.filter((branch): branch is string => Boolean(branch)),

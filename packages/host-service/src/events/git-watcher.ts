@@ -2,11 +2,12 @@ import { execFile } from "node:child_process";
 import { existsSync, type FSWatcher, watch } from "node:fs";
 import { promisify } from "node:util";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { HostDb } from "../db/index.ts";
 import { workspaces } from "../db/schema.ts";
 import type { WorkspaceFilesystemManager } from "../runtime/filesystem/index.ts";
 import { listGitIgnoredDirs } from "../runtime/git/index.ts";
+import { notTombstoned } from "../workspaces/archive-state.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -314,9 +315,7 @@ export class GitWatcher {
 			row = this.db
 				.select({ worktreePath: workspaces.worktreePath })
 				.from(workspaces)
-				.where(
-					and(eq(workspaces.id, workspaceId), isNull(workspaces.archivedAt)),
-				)
+				.where(and(eq(workspaces.id, workspaceId), notTombstoned))
 				.get();
 		} catch (error) {
 			console.error("[git-watcher] attach lookup failed", {
@@ -566,7 +565,7 @@ export class GitWatcher {
 					worktreePath: workspaces.worktreePath,
 				})
 				.from(workspaces)
-				.where(isNull(workspaces.archivedAt))
+				.where(notTombstoned)
 				.all();
 		} catch {
 			return;

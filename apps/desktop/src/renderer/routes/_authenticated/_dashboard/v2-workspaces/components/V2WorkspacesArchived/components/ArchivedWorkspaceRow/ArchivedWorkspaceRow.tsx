@@ -33,8 +33,8 @@ export function ArchivedWorkspaceRow({
 			"This workspace's host is offline. Actions resume when it reconnects.",
 	});
 	const archivedAgo =
-		workspace.shelvedAt != null
-			? t({ message: `Archived ${formatRelativeTime(workspace.shelvedAt)}` })
+		workspace.archivedAt != null
+			? t({ message: `Archived ${formatRelativeTime(workspace.archivedAt)}` })
 			: null;
 
 	return (
@@ -92,8 +92,8 @@ export function ArchivedWorkspaceRow({
 				<span
 					className="shrink-0 text-xs tabular-nums text-muted-foreground"
 					title={
-						workspace.shelvedAt != null
-							? formatDateTime(workspace.shelvedAt)
+						workspace.archivedAt != null
+							? formatDateTime(workspace.archivedAt)
 							: undefined
 					}
 				>

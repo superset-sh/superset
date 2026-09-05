@@ -51,7 +51,7 @@ export const navigationProvider: CommandProvider = {
 				}),
 				section: "navigation",
 				icon: ArchiveIcon,
-				keywords: ["archive", "unarchive", "restore", "shelved", "put away"],
+				keywords: ["archive", "unarchive", "restore", "put away"],
 				when: (ctx) => ctx.isV2CloudEnabled,
 				run: (ctx) =>
 					ctx.navigate("/v2-workspaces", { search: { view: "archived" } }),

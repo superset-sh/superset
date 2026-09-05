@@ -89,11 +89,14 @@ export interface WorkspaceSnapshot {
 	 */
 	lastActivityAt: number | null;
 	/**
-	 * Epoch ms the user archived the workspace (workspaceCleanup.shelve), or
-	 * null while it is live in the sidebar. Reversible; distinct from the
-	 * destroy tombstone, which rides a `deleted` event and is not carried here.
+	 * Null while the workspace is live in the sidebar. Set with reason
+	 * "user" by the reversible Archive (workspaceCleanup.archive) and cleared
+	 * by Unarchive; both ride `updated`. Destroy's tombstone ("merged" |
+	 * "deleted") rides a `deleted` event with no snapshot, so a snapshot only
+	 * ever carries a tombstone when a failed delete restores the row.
 	 */
-	shelvedAt: number | null;
+	archivedAt: number | null;
+	archiveReason: "merged" | "deleted" | "user" | null;
 	/** Normalized, sorted tag set; sidebar folders derive from it. */
 	tags: string[];
 }

@@ -277,7 +277,7 @@ export function useDashboardSidebarState() {
 	const collections = useCollections();
 	const {
 		workspaces: hostWorkspaces,
-		shelvedWorkspaces,
+		archivedWorkspaces,
 		cache: hostWorkspacesCache,
 	} = useHostWorkspaces();
 	const { activeHostUrl } = useLocalHostService();
@@ -874,7 +874,7 @@ export function useDashboardSidebarState() {
 			// do archived members: a tag left on one would resurrect the folder
 			// the day it is unarchived.
 			if (folderTag !== null) {
-				for (const workspace of [...hostWorkspaces, ...shelvedWorkspaces]) {
+				for (const workspace of [...hostWorkspaces, ...archivedWorkspaces]) {
 					if (workspace.projectId !== projectId) continue;
 					const tags = normalizeWorkspaceTags(workspace.tags);
 					if (!tags.includes(folderTag)) continue;
@@ -891,7 +891,7 @@ export function useDashboardSidebarState() {
 		[
 			collections,
 			hostWorkspaces,
-			shelvedWorkspaces,
+			archivedWorkspaces,
 			removeTagSetting,
 			tagFolderContext,
 			writeWorkspaceTags,
