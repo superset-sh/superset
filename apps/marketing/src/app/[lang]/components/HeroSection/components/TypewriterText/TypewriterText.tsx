@@ -55,7 +55,9 @@ export function TypewriterText({
 	if (segments) {
 		let offset = 0;
 		for (const segment of segments) {
-			if (offset > 0 && offset === displayedText.length) {
+			// Guard on the segment being non-empty, not on offset: an empty
+			// segment shares its successor's offset and would swallow the pause
+			if (segment.text.length > 0 && offset === displayedText.length) {
 				pauseBeforeNext = segment.delayBefore ?? 0;
 				break;
 			}
