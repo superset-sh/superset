@@ -55,8 +55,17 @@ export function DestroyConfirmPane({
 			onConfirm();
 		};
 
-		window.addEventListener("keydown", handleKeyDown);
-		return () => window.removeEventListener("keydown", handleKeyDown);
+		// Arm after the current task: the Enter that selected "Delete" in a
+		// context menu is still bubbling when this pane mounts, and a listener
+		// added now would confirm the delete on that same keystroke.
+		const timer = setTimeout(
+			() => window.addEventListener("keydown", handleKeyDown),
+			0,
+		);
+		return () => {
+			clearTimeout(timer);
+			window.removeEventListener("keydown", handleKeyDown);
+		};
 	}, [canConfirm, onConfirm, open]);
 
 	return (
