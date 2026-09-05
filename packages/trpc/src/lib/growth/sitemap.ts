@@ -1,5 +1,3 @@
-import { COMPANY } from "@superset/shared/constants";
-
 import { cachedGrowthMetric } from "./cache";
 import { LOCALE_PREFIXES } from "./site";
 import {
@@ -9,6 +7,9 @@ import {
 	weekStarts,
 } from "./weeks";
 
+// The published site, not this environment's marketing URL: content velocity
+// is about what is live, and dev has no marketing server to ask.
+const SITEMAP_URL = "https://superset.sh/sitemap.xml";
 const CACHE_KEY = "content-inventory";
 const CACHE_TTL_SECONDS = 60 * 60;
 const RECENT_DAYS = 30;
@@ -103,7 +104,7 @@ export function summarizeContent(
 async function fetchContentInventoryLive(
 	weekCount: number,
 ): Promise<ContentInventory> {
-	const response = await fetch(`${COMPANY.MARKETING_URL}/sitemap.xml`);
+	const response = await fetch(SITEMAP_URL);
 	if (!response.ok) {
 		throw new Error(`sitemap fetch failed (${response.status})`);
 	}
