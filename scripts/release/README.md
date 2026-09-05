@@ -73,6 +73,23 @@ auto-updater reads. Publishing (either way) also triggers
 `release-cli-lockstep.yml`, which tags `cli-v<version>` and ships the matching
 standalone CLI — no manual CLI step.
 
+## After publishing: rebuild the App Store review host
+
+`superset-review-host` pins its host-service version in a Dockerfile and cannot
+update any other way — its rootfs resets to the image on every restart, so a
+hand-patched binary silently reverts on the next boot. Once `cli-v<version>`
+exists:
+
+```bash
+# bump SUPERSET_VERSION in apps/review-host/Dockerfile, then
+apps/review-host/scripts/deploy.sh
+```
+
+Skipping this is how the box sat on 1.22.0 from 2026-08-14 to 2026-09-05 while
+the app shipped 1.26.0, 404ing on seven procedures the mobile app calls — with no
+upgrade prompt, because it still cleared `MIN_HOST_SERVICE_VERSION`. Background:
+`apps/review-host/README.md`.
+
 ## When the daemon guard blocks
 
 ```

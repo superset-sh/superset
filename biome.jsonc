@@ -19,7 +19,10 @@
 			"!apps/mobile/uniwind-types.d.ts",
 			"!packages/sdk/src",
 			// Vendored Vale style packages (synced by `vale sync`); don't reformat.
-			"!apps/marketing/vale-styles"
+			"!apps/marketing/vale-styles",
+			// Demo repositories baked into the App Store review host image. The
+			// reviewer reads these files; keep them as shipped, not as we format.
+			"!apps/review-host/demo"
 		]
 	},
 	"formatter": {

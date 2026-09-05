@@ -1,0 +1,30 @@
+app = "superset-review-host"
+primary_region = "sjc"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  REVIEW_ORG_ID = "9617bc8e-7f57-4af8-8b5e-586290ae536a"
+
+# OAuth session, host.db and the reviewer's worktrees. The only thing on this
+# machine that survives a restart — everything else resets to the image.
+[mounts]
+  source = "review_host_data"
+  destination = "/root/.superset"
+
+# No Fly health check on purpose. host-service binds 127.0.0.1 only (verified on
+# 1.26.0; 1.22.0 bound 0.0.0.0, which is why the old TCP check on 48800 passed
+# and then went permanently critical after the upgrade). Nothing reaches it over
+# Fly's network — the relay tunnel dials it from inside the machine — so there is
+# no address for a check to connect to and no unauthenticated route to probe.
+# Liveness is the entrypoint's watchdog, which asks the relay whether this host
+# is actually routable. That is the question Fly's check could never answer.
+
+# 2GB, not the 1GB this file used to claim: the running machine was scaled by
+# hand and a deploy from the old config would have silently halved it under a
+# reviewer.
+[[vm]]
+  memory = "2gb"
+  cpu_kind = "shared"
+  cpus = 1
