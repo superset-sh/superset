@@ -85,7 +85,7 @@ export function OpenInExternalDropdownItems({
 		<DropdownMenuItem onClick={addCustomApp} className={appItemClassName}>
 			<div className={cn("flex items-center gap-2", appContentClassName)}>
 				<LuPlus className={cn("size-4", appIconClassName)} />
-				<span className={appLabelClassName}>
+				<span className={cn("whitespace-nowrap", appLabelClassName)}>
 					<Trans>Add custom app…</Trans>
 				</span>
 			</div>

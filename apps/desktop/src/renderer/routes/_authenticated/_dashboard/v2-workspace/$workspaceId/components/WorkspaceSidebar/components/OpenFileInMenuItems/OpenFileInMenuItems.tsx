@@ -84,7 +84,9 @@ export function OpenFileInMenuItems({
 			}
 		>
 			<Plus />
-			<Trans>Add custom app…</Trans>
+			<span className="whitespace-nowrap">
+				<Trans>Add custom app…</Trans>
+			</span>
 		</Item>
 	);
 
