@@ -1,6 +1,8 @@
 export { useEventBus } from "./hooks/useEventBus";
 export { useGitChangeEvents } from "./hooks/useGitChangeEvents";
 export {
+	type AccountEngineStatePayload,
+	type AccountSwitchedPayload,
 	type AgentBindingsChangedPayload,
 	type AgentIdentity,
 	type AgentLifecyclePayload,

@@ -108,6 +108,14 @@ export interface AgentPollSchedule {
 	/** Entry key of the active account, polled at `intervalMs`. */
 	activeKey: string | null;
 	intervalMs: number;
+	/**
+	 * R22: while the engine is latched all-exhausted it polls at the slow
+	 * cadence, but never past the reset that would end the latch — so it
+	 * wakes the moment a window gives quota back. Ignored while an entry is
+	 * backing off from a 429: that back-off targets the poller, not the
+	 * account, and must not be shortened.
+	 */
+	wakeAt?: number;
 }
 
 export type QuotaRefreshSchedule = Partial<
@@ -204,10 +212,18 @@ export class QuotaStore {
 	/** Per-endpoint request timestamps, for the budget. */
 	private readonly requests = new Map<QuotaCapableAgent, number[]>();
 	private readonly backoff = new Map<QuotaCapableAgent, number>();
+	/** KTD5: installed by the lock owner so its store is mirrored into
+	 * quota.json for lock losers, and removed the moment it loses the lock. */
+	private snapshotSink: ((snapshot: QuotaStoreSnapshot) => void) | null = null;
 
 	constructor(deps: QuotaStoreDeps = {}) {
 		this.deps = deps;
 		this.now = deps.now ?? Date.now;
+	}
+
+	/** KTD5: only the engine that owns the host-wide lock installs a sink. */
+	setSnapshotSink(sink: ((snapshot: QuotaStoreSnapshot) => void) | null): void {
+		this.snapshotSink = sink;
 	}
 
 	entry(key: string): QuotaEntry | undefined {
@@ -503,7 +519,12 @@ export class QuotaStore {
 				: isExhausted(entry)
 					? EXHAUSTED_POLL_MS
 					: IDLE_POLL_MS;
-		entry.nextPollAt = now + Math.max(base, entry.backoffMs);
+		const next = now + Math.max(base, entry.backoffMs);
+		const wakeAt = agentSchedule?.wakeAt;
+		entry.nextPollAt =
+			wakeAt !== undefined && entry.backoffMs === 0
+				? Math.min(next, Math.max(wakeAt, now + 1))
+				: next;
 	}
 
 	/** KTD10: a 429 targets the poller, so every entry on that endpoint waits. */
@@ -551,7 +572,10 @@ export class QuotaStore {
 	}
 
 	private emitSnapshot(): void {
-		this.deps.onSnapshot?.(this.snapshot());
+		if (!this.deps.onSnapshot && !this.snapshotSink) return;
+		const snapshot = this.snapshot();
+		this.deps.onSnapshot?.(snapshot);
+		this.snapshotSink?.(snapshot);
 	}
 }
 

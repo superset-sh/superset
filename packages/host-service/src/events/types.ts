@@ -193,6 +193,100 @@ export interface WorkspaceCreateSettledMessage {
 	occurredAt: number;
 }
 
+/** The two agents whose active account Superset switches (KTD6). */
+export type AccountEventAgent = "claude" | "codex";
+
+/** Why the active account changed. A closed set, because the renderer
+ * composes and translates the sentence the user reads — the host never sends
+ * text (KTD6). */
+export type AccountSwitchReasonKind =
+	| "threshold"
+	| "strategy"
+	| "manual"
+	| "fallback"
+	| "external";
+
+/**
+ * Why a switch attempt did not happen (R24). Mirrors
+ * `ClaudeSwapFailureCode` plus the engine's own refusals; declared
+ * structurally here, like `WorkspaceSnapshot`, so `@superset/host-service/events`
+ * consumers do not couple to the swap module.
+ */
+export type AccountSwitchFailureCode =
+	| "owner-unknown"
+	| "invalid-target"
+	| "invalid-owner"
+	| "invalid-active-dir"
+	| "no-target-login"
+	| "no-target-identity"
+	| "source-changed"
+	| "keychain-ambiguous"
+	| "write-failed"
+	| "verify-failed"
+	| "active-dir-unavailable"
+	| "pointer-failed"
+	/** KTD13: auto and engine-driven switching are refused on Windows. */
+	| "unsupported-platform"
+	/** The named account is not one this host can see. */
+	| "unknown-account";
+
+/**
+ * One completed account switch (R19, R21). Every field is structured: ids,
+ * display labels and numbers. Nothing sourced from a hook payload or a
+ * terminal screen travels here, and no token material exists in this shape
+ * to leak.
+ */
+export interface AccountSwitchedMessage {
+	type: "account:switched";
+	/** The filter key, set to the agent, mirroring `tag-folders:changed`. */
+	scope: AccountEventAgent;
+	agent: AccountEventAgent;
+	fromAccountId: string | null;
+	/** Display label of the previous account — never an address to compose
+	 * free text from. */
+	fromLabel: string | null;
+	toAccountId: string | null;
+	toLabel: string | null;
+	reasonKind: AccountSwitchReasonKind;
+	/** The window that explains the move ("five_hour"), when one does. */
+	windowId: string | null;
+	usedPercent: number | null;
+	at: number;
+	/** True when the switch was a fallback that also restarted sessions (R8). */
+	fallbackRestart?: boolean;
+}
+
+/**
+ * The engine's own state for one agent (R20, R22, R24). Sent whenever it
+ * changes so the Usage page's indicator never needs a reload.
+ */
+export interface AccountEngineStateMessage {
+	type: "account:engine-state";
+	scope: AccountEventAgent;
+	agent: AccountEventAgent;
+	enabled: boolean;
+	activeAccountId: string | null;
+	/** R15: no automatic switch happens before this epoch ms. */
+	cooldownUntil: number | null;
+	/** R22: every eligible account is at or over the threshold. */
+	exhausted: boolean;
+	/** KTD5: false on a host-service that lost the one-engine-per-home lock. */
+	lockOwner: boolean;
+	/** A session that could not be moved and needs a human (KTD8). */
+	needsAttention?: {
+		workspaceId: string;
+		terminalId: string;
+		reason: "resume-failed" | "nudge-undeliverable";
+	};
+	/** R24: the last switch attempt failed and the previous login is still in
+	 * place. A code, never a message. */
+	lastSwitchFailure?: { code: AccountSwitchFailureCode; at: number };
+	occurredAt: number;
+}
+
+export type AccountSwitchedPayload = Omit<AccountSwitchedMessage, "type">;
+export type AccountEngineStatePayload = Omit<AccountEngineStateMessage, "type">;
+
 export interface EventBusErrorMessage {
 	type: "error";
 	message: string;
@@ -220,6 +314,8 @@ export type ServerMessage =
 	| ProjectChangedMessage
 	| TagFoldersChangedMessage
 	| PageWatchChangedMessage
+	| AccountSwitchedMessage
+	| AccountEngineStateMessage
 	| EventBusErrorMessage;
 
 // ── Client → Server ────────────────────────────────────────────────

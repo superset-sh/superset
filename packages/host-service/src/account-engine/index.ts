@@ -1,8 +1,36 @@
 export {
+	AccountEngine,
+	type AccountEngineBroadcast,
+	type AccountEngineDeps,
+	type ActiveDirIdentity,
+	type AgentEngineStatus,
+	BASE_TICK_MS,
+	type EngineQuotaStore,
+	type EngineSessionMover,
+	type SettingsOutcome,
+	type SwitchOutcome,
+	WINDOWS_UNSUPPORTED_REASON,
+} from "./account-engine.ts";
+export {
 	type ClaudeSwapResult,
 	seedActiveClaudeLogin,
 	swapClaudeLogin,
 } from "./claude-login-swap.ts";
+export {
+	DEFAULT_HYSTERESIS_MARGIN,
+	type DecisionAccount,
+	type DecisionRuntime,
+	isEligible,
+	isNearLimit,
+	pickBest,
+	pickConsumeFirst,
+	relevantWindows,
+	type ShouldSwitchInput,
+	type SwitchDecision,
+	scoreAccount,
+	shouldSwitch,
+	worstWindow,
+} from "./decision.ts";
 export {
 	DEFAULT_LOCK_STALE_MS,
 	defaultAutoSwitchSettings,

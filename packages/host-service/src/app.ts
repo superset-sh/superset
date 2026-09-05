@@ -6,7 +6,14 @@ import { TRPCError } from "@trpc/server";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { AccountEngine } from "./account-engine/account-engine.ts";
+import { EngineState } from "./account-engine/engine-state.ts";
+import {
+	createAccountEngineHostDeps,
+	subscribeSessionMoverToStore,
+} from "./account-engine/host-deps.ts";
 import { QuotaStore } from "./account-engine/quota-store.ts";
+import { SessionMover } from "./account-engine/session-mover.ts";
 import { createApiClient } from "./api";
 import { createChatV3Mount, registerChatV3Routes } from "./chat-v3";
 import { createDb, type HostDb } from "./db";
@@ -31,6 +38,7 @@ import {
 	runSandboxSelfSeed,
 } from "./runtime/sandbox-self-seed";
 import {
+	isBracketedPasteActive,
 	isLiveTerminalSession,
 	registerWorkspaceTerminalRoute,
 	writeFramedInputToSession,
@@ -49,6 +57,7 @@ import type {
 	ApiClient,
 	BrowserBridgeConfig,
 	HostServiceContext,
+	HostServiceRuntime,
 } from "./types";
 import { getHostWorkerPool } from "./workers/host-worker-pool";
 import { gitWorkspaceRefsTask } from "./workers/tasks/git";
@@ -243,12 +252,83 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	// simply serves on-demand reads with the 5-minute TTL.
 	const quotaStore = new QuotaStore();
 
-	const runtime = {
+	const runtime: HostServiceRuntime = {
 		filesystem,
 		pullRequests: pullRequestRuntime,
 		pageWatch,
 		quotaStore,
+		accountEngine: null,
 	};
+
+	// The account engine (KTD1), after the terminal-agent store and the event
+	// bus because it reaches both only through the closures built here.
+	//
+	// Never in a sandbox: a sandbox is provisioned with exactly one account
+	// and one workspace, so there is nothing to switch between, and its engine
+	// would only race the machine that owns the host-wide lock. `runtime`
+	// keeps a null in that case, and every caller treats it as "not running".
+	let stopAccountEngine: (() => void) | null = null;
+	if (process.env.SUPERSET_HOST_RUN_MODE !== "sandbox") {
+		const engineHostDeps = createAccountEngineHostDeps({
+			db,
+			terminalAgentStore,
+			// Fabricated per launch, the way launchSandboxAgent does it: a
+			// resume needs a HostServiceContext and only app.ts can build one.
+			makeContext: () =>
+				({
+					git,
+					credentials: providers.credentials,
+					github,
+					execGh,
+					api,
+					db,
+					runtime,
+					eventBus,
+					terminalAgentStore,
+					organizationId: config.organizationId,
+					isAuthenticated: true,
+					browserBridge: config.browserBridge,
+				}) as HostServiceContext,
+			isBracketedPasteActive,
+		});
+		const engineState = new EngineState();
+		const mover = new SessionMover({
+			...engineHostDeps,
+			onNeedsAttention: (event) =>
+				runtime.accountEngine?.reportNeedsAttention(event),
+		});
+		// A row that was mid-turn when the switch happened moves at its next
+		// Stop; the store's change event is the only notice of that (R7).
+		const unsubscribeMover = subscribeSessionMoverToStore(
+			terminalAgentStore,
+			mover,
+		);
+		const engine = new AccountEngine({
+			engineState,
+			quotaStore,
+			mover,
+			hostDeps: engineHostDeps,
+			db,
+			broadcast: {
+				switched: (payload) => eventBus.broadcastAccountSwitched(payload),
+				engineState: (payload) => eventBus.broadcastAccountEngineState(payload),
+			},
+			// A limit stop arrives as a store write, not as a tick (KTD7).
+			subscribeToSessions: (onChange) => {
+				const handler = () => onChange();
+				terminalAgentStore.on("change", handler);
+				return () => {
+					terminalAgentStore.off("change", handler);
+				};
+			},
+		});
+		engine.start();
+		runtime.accountEngine = engine;
+		stopAccountEngine = () => {
+			unsubscribeMover();
+			engine.stop();
+		};
+	}
 
 	// Startup sweeps run in the background so they don't block server
 	// startup. Ordering matters: the project backfill fills identity fields
@@ -389,6 +469,11 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			pageWatch.stop();
 		} catch (err) {
 			console.warn("[host-service] pageWatch.stop failed:", err);
+		}
+		try {
+			stopAccountEngine?.();
+		} catch (err) {
+			console.warn("[host-service] accountEngine.stop failed:", err);
 		}
 		try {
 			await chatV3.dispose();
