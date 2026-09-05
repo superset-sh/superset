@@ -4096,6 +4096,10 @@ msgstr "создан"
 msgid "Created"
 msgstr "Создана"
 
+msgctxt "github release action"
+msgid "Created"
+msgstr "Создан"
+
 #. placeholder {0}: result.task.slug
 msgid "Created {0}"
 msgstr "Создана {0}"
@@ -4474,6 +4478,10 @@ msgstr "Удалить рабочую область «{workspaceName}»?"
 
 msgid "Deleted"
 msgstr "Удалено"
+
+msgctxt "github release action"
+msgid "Deleted"
+msgstr "Удалён"
 
 msgid "Deleted \"{deletedName}\""
 msgstr "«{deletedName}» удалена"
@@ -5011,6 +5019,10 @@ msgstr "Изменить скрипт"
 
 msgid "Edited"
 msgstr "Изменено"
+
+msgctxt "github release action"
+msgid "Edited"
+msgstr "Изменён"
 
 msgid "Editing file..."
 msgstr "Редактирование файла..."
@@ -10434,6 +10446,10 @@ msgstr "Опубликуйте страницу из агента или CLI, и
 msgid "Published"
 msgstr "Опубликовано"
 
+msgctxt "github release action"
+msgid "Published"
+msgstr "Опубликован"
+
 msgid "Publishes your token counts and model names, never repo names, file paths or prompts. You can leave at any time, which deletes everything you've published."
 msgstr "Публикует количество токенов и названия моделей — никогда названия репозиториев, пути к файлам или промпты. Выйти можно в любой момент, это удалит всё опубликованное."
 
@@ -10751,6 +10767,9 @@ msgstr "Перезапустите работающих агентов, чтоб
 
 msgid "Relay access enabled, connecting to the relay…"
 msgstr "Доступ через реле включён, подключаемся к реле…"
+
+msgid "Release…"
+msgstr "Релиз…"
 
 msgid "Reload"
 msgstr "Перезагрузить"
@@ -14384,6 +14403,10 @@ msgstr "Не оплачен"
 
 msgid "Unpin"
 msgstr "Открепить"
+
+msgctxt "github release action"
+msgid "Unpublished"
+msgstr "Снят с публикации"
 
 msgid "Unpushed"
 msgstr "Неотправленное"

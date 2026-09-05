@@ -4096,6 +4096,10 @@ msgstr "đã tạo"
 msgid "Created"
 msgstr "Được tạo"
 
+msgctxt "github release action"
+msgid "Created"
+msgstr "Đã tạo"
+
 #. placeholder {0}: result.task.slug
 msgid "Created {0}"
 msgstr "Đã tạo {0}"
@@ -4472,6 +4476,10 @@ msgstr "Xóa workspace"
 msgid "Delete workspace \"{workspaceName}\"?"
 msgstr "Xóa workspace \"{workspaceName}\"?"
 
+msgid "Deleted"
+msgstr "Đã xóa"
+
+msgctxt "github release action"
 msgid "Deleted"
 msgstr "Đã xóa"
 
@@ -5011,6 +5019,10 @@ msgstr "Sửa script"
 
 msgid "Edited"
 msgstr "Đã sửa"
+
+msgctxt "github release action"
+msgid "Edited"
+msgstr "Đã chỉnh sửa"
 
 msgid "Editing file..."
 msgstr "Đang sửa tệp..."
@@ -10434,6 +10446,10 @@ msgstr "Xuất bản một trang từ agent hoặc CLI và nó sẽ xuất hiệ
 msgid "Published"
 msgstr "Phát hành"
 
+msgctxt "github release action"
+msgid "Published"
+msgstr "Đã xuất bản"
+
 msgid "Publishes your token counts and model names, never repo names, file paths or prompts. You can leave at any time, which deletes everything you've published."
 msgstr "Công khai số token và tên mô hình của bạn, không bao giờ công khai tên repo, đường dẫn tệp hay prompt. Bạn có thể rời khỏi bất cứ lúc nào, khi đó mọi thứ bạn đã công khai sẽ bị xóa."
 
@@ -10751,6 +10767,9 @@ msgstr "Hãy khởi chạy lại các agent đang chạy để đổi sang tài 
 
 msgid "Relay access enabled, connecting to the relay…"
 msgstr "Đã bật truy cập relay, đang kết nối tới relay…"
+
+msgid "Release…"
+msgstr "Bản phát hành…"
 
 msgid "Reload"
 msgstr "Tải lại"
@@ -14384,6 +14403,10 @@ msgstr "Chưa thanh toán"
 
 msgid "Unpin"
 msgstr "Bỏ ghim"
+
+msgctxt "github release action"
+msgid "Unpublished"
+msgstr "Đã hủy xuất bản"
 
 msgid "Unpushed"
 msgstr "Chưa push"

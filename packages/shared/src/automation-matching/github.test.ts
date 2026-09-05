@@ -253,3 +253,50 @@ describe("githubTriggerMatches assignee scope", () => {
 		).toEqual({ matches: false, reason: "assignee" });
 	});
 });
+
+describe("release events", () => {
+	// GitHub sends five actions on the release webhook and the product offers
+	// all five, so each qualified wire type has to arrive as its own trigger
+	// name rather than collapsing into one "a release happened".
+	it.each([
+		"release.published",
+		"release.created",
+		"release.edited",
+		"release.unpublished",
+		"release.deleted",
+	])("%s maps to itself", (eventType) => {
+		expect(names(eventType)).toEqual([eventType as never]);
+	});
+
+	it("ignores a release action the product does not offer", () => {
+		expect(names("release.prereleased")).toEqual([]);
+	});
+
+	// A release names a tag, not a branch, and carries no labels — so the
+	// branch and label scopes have to pass on null/empty rather than refuse.
+	it("matches a release with no ref and no labels", () => {
+		expect(
+			githubTriggerMatches(
+				{ ...config({ mode: "any" }), event: "release.published" },
+				event({
+					eventType: "release.published",
+					names: ["release.published"],
+					ref: null,
+					labels: [],
+				}),
+			),
+		).toEqual({ matches: true });
+	});
+
+	it("does not fire a trigger that names a different release action", () => {
+		expect(
+			githubTriggerMatches(
+				{ ...config({ mode: "any" }), event: "release.deleted" },
+				event({
+					eventType: "release.published",
+					names: ["release.published"],
+				}),
+			).matches,
+		).toBe(false);
+	});
+});

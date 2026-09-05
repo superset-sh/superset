@@ -4096,6 +4096,10 @@ msgstr "作成済み"
 msgid "Created"
 msgstr "作成日"
 
+msgctxt "github release action"
+msgid "Created"
+msgstr "作成"
+
 #. placeholder {0}: result.task.slug
 msgid "Created {0}"
 msgstr "{0}を作成しました"
@@ -4474,6 +4478,10 @@ msgstr "ワークスペース「{workspaceName}」を削除しますか?"
 
 msgid "Deleted"
 msgstr "削除済み"
+
+msgctxt "github release action"
+msgid "Deleted"
+msgstr "削除"
 
 msgid "Deleted \"{deletedName}\""
 msgstr "「{deletedName}」を削除しました"
@@ -5009,6 +5017,10 @@ msgstr "実行スクリプトを編集"
 msgid "Edit script"
 msgstr "スクリプトを編集"
 
+msgid "Edited"
+msgstr "編集"
+
+msgctxt "github release action"
 msgid "Edited"
 msgstr "編集"
 
@@ -10434,6 +10446,10 @@ msgstr "エージェントまたはCLIからページを公開すると、ここ
 msgid "Published"
 msgstr "公開日"
 
+msgctxt "github release action"
+msgid "Published"
+msgstr "公開"
+
 msgid "Publishes your token counts and model names, never repo names, file paths or prompts. You can leave at any time, which deletes everything you've published."
 msgstr "トークン数とモデル名のみを公開し、リポジトリ名、ファイルパス、プロンプトは公開しません。いつでも退出でき、退出すると公開したものはすべて削除されます。"
 
@@ -10751,6 +10767,9 @@ msgstr "実行中のエージェントを切り替えるには再起動してく
 
 msgid "Relay access enabled, connecting to the relay…"
 msgstr "リレーアクセスを有効にしました。リレーに接続中…"
+
+msgid "Release…"
+msgstr "リリース…"
 
 msgid "Reload"
 msgstr "再読み込み"
@@ -14384,6 +14403,10 @@ msgstr "未払い"
 
 msgid "Unpin"
 msgstr "ピン留めを解除"
+
+msgctxt "github release action"
+msgid "Unpublished"
+msgstr "非公開化"
 
 msgid "Unpushed"
 msgstr "未プッシュ"

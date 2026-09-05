@@ -4096,6 +4096,10 @@ msgstr "已创建"
 msgid "Created"
 msgstr "创建时间"
 
+msgctxt "github release action"
+msgid "Created"
+msgstr "已创建"
+
 #. placeholder {0}: result.task.slug
 msgid "Created {0}"
 msgstr "已创建{0}"
@@ -4472,6 +4476,10 @@ msgstr "删除工作区"
 msgid "Delete workspace \"{workspaceName}\"?"
 msgstr "删除工作区“{workspaceName}”？"
 
+msgid "Deleted"
+msgstr "已删除"
+
+msgctxt "github release action"
 msgid "Deleted"
 msgstr "已删除"
 
@@ -5009,6 +5017,10 @@ msgstr "编辑运行脚本"
 msgid "Edit script"
 msgstr "编辑脚本"
 
+msgid "Edited"
+msgstr "已编辑"
+
+msgctxt "github release action"
 msgid "Edited"
 msgstr "已编辑"
 
@@ -10434,6 +10446,10 @@ msgstr "从智能体或CLI发布一个页面，它就会出现在这里。"
 msgid "Published"
 msgstr "发布时间"
 
+msgctxt "github release action"
+msgid "Published"
+msgstr "已发布"
+
 msgid "Publishes your token counts and model names, never repo names, file paths or prompts. You can leave at any time, which deletes everything you've published."
 msgstr "会公开你的token数量和模型名称，绝不会公开仓库名、文件路径或提示词。你可以随时退出，退出会删除你发布过的所有内容。"
 
@@ -10751,6 +10767,9 @@ msgstr "重新启动运行中的智能体才能切换。"
 
 msgid "Relay access enabled, connecting to the relay…"
 msgstr "已启用中继访问，正在连接中继…"
+
+msgid "Release…"
+msgstr "发布…"
 
 msgid "Reload"
 msgstr "重新加载"
@@ -14384,6 +14403,10 @@ msgstr "未支付"
 
 msgid "Unpin"
 msgstr "取消置顶"
+
+msgctxt "github release action"
+msgid "Unpublished"
+msgstr "已取消发布"
 
 msgid "Unpushed"
 msgstr "未推送"

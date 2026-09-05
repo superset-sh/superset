@@ -4096,6 +4096,10 @@ msgstr "vytvořeno"
 msgid "Created"
 msgstr "Vytvořeno"
 
+msgctxt "github release action"
+msgid "Created"
+msgstr "Vytvořeno"
+
 #. placeholder {0}: result.task.slug
 msgid "Created {0}"
 msgstr "Vytvořeno {0}"
@@ -4472,6 +4476,10 @@ msgstr "Smazat pracovní prostor"
 msgid "Delete workspace \"{workspaceName}\"?"
 msgstr "Smazat pracovní prostor „{workspaceName}“?"
 
+msgid "Deleted"
+msgstr "Smazáno"
+
+msgctxt "github release action"
 msgid "Deleted"
 msgstr "Smazáno"
 
@@ -5009,6 +5017,10 @@ msgstr "Upravit run skript"
 msgid "Edit script"
 msgstr "Upravit skript"
 
+msgid "Edited"
+msgstr "Upraveno"
+
+msgctxt "github release action"
 msgid "Edited"
 msgstr "Upraveno"
 
@@ -10434,6 +10446,10 @@ msgstr "Zveřejněte stránku z agenta nebo z CLI a objeví se tady."
 msgid "Published"
 msgstr "Publikováno"
 
+msgctxt "github release action"
+msgid "Published"
+msgstr "Publikováno"
+
 msgid "Publishes your token counts and model names, never repo names, file paths or prompts. You can leave at any time, which deletes everything you've published."
 msgstr "Zveřejní počty tokenů a názvy modelů, nikdy názvy repozitářů, cesty k souborům ani prompty. Kdykoli můžete odejít — tím se smaže vše, co jste zveřejnili."
 
@@ -10751,6 +10767,9 @@ msgstr "Běžící agenty přepnete jejich novým spuštěním."
 
 msgid "Relay access enabled, connecting to the relay…"
 msgstr "Přístup přes relay povolen, připojuji se k relay…"
+
+msgid "Release…"
+msgstr "Vydání…"
 
 msgid "Reload"
 msgstr "Načíst znovu"
@@ -14384,6 +14403,10 @@ msgstr "Nezaplacená"
 
 msgid "Unpin"
 msgstr "Odepnout"
+
+msgctxt "github release action"
+msgid "Unpublished"
+msgstr "Publikování zrušeno"
 
 msgid "Unpushed"
 msgstr "Neodesláno"

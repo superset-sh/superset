@@ -4096,6 +4096,10 @@ msgstr "已建立"
 msgid "Created"
 msgstr "建立時間"
 
+msgctxt "github release action"
+msgid "Created"
+msgstr "已建立"
+
 #. placeholder {0}: result.task.slug
 msgid "Created {0}"
 msgstr "已建立{0}"
@@ -4472,6 +4476,10 @@ msgstr "刪除工作區"
 msgid "Delete workspace \"{workspaceName}\"?"
 msgstr "刪除工作區「{workspaceName}」？"
 
+msgid "Deleted"
+msgstr "已刪除"
+
+msgctxt "github release action"
 msgid "Deleted"
 msgstr "已刪除"
 
@@ -5009,6 +5017,10 @@ msgstr "編輯執行指令碼"
 msgid "Edit script"
 msgstr "編輯指令碼"
 
+msgid "Edited"
+msgstr "已編輯"
+
+msgctxt "github release action"
 msgid "Edited"
 msgstr "已編輯"
 
@@ -10434,6 +10446,10 @@ msgstr "從代理程式或CLI釋出一個頁面，它就會出現在這裡。"
 msgid "Published"
 msgstr "發布時間"
 
+msgctxt "github release action"
+msgid "Published"
+msgstr "已發佈"
+
 msgid "Publishes your token counts and model names, never repo names, file paths or prompts. You can leave at any time, which deletes everything you've published."
 msgstr "會公開你的token數量和模型名稱，絕不會公開儲存庫名、檔案路徑或提示詞。你可以隨時退出，退出會刪除你釋出過的所有內容。"
 
@@ -10751,6 +10767,9 @@ msgstr "重新啟動執行中的代理程式才能切換。"
 
 msgid "Relay access enabled, connecting to the relay…"
 msgstr "已啟用中繼存取，正在連線中繼…"
+
+msgid "Release…"
+msgstr "發佈…"
 
 msgid "Reload"
 msgstr "重新載入"
@@ -14384,6 +14403,10 @@ msgstr "未支付"
 
 msgid "Unpin"
 msgstr "取消固定"
+
+msgctxt "github release action"
+msgid "Unpublished"
+msgstr "已取消發佈"
 
 msgid "Unpushed"
 msgstr "未推送"

@@ -4096,6 +4096,10 @@ msgstr "erstellt"
 msgid "Created"
 msgstr "Erstellt"
 
+msgctxt "github release action"
+msgid "Created"
+msgstr "Erstellt"
+
 #. placeholder {0}: result.task.slug
 msgid "Created {0}"
 msgstr "{0} erstellt"
@@ -4472,6 +4476,10 @@ msgstr "Arbeitsbereich löschen"
 msgid "Delete workspace \"{workspaceName}\"?"
 msgstr "Arbeitsbereich \"{workspaceName}\" löschen?"
 
+msgid "Deleted"
+msgstr "Gelöscht"
+
+msgctxt "github release action"
 msgid "Deleted"
 msgstr "Gelöscht"
 
@@ -5009,6 +5017,10 @@ msgstr "Run-Skript bearbeiten"
 msgid "Edit script"
 msgstr "Skript bearbeiten"
 
+msgid "Edited"
+msgstr "Bearbeitet"
+
+msgctxt "github release action"
 msgid "Edited"
 msgstr "Bearbeitet"
 
@@ -10434,6 +10446,10 @@ msgstr "Veröffentliche eine Seite aus einem Agenten oder der CLI, dann erschein
 msgid "Published"
 msgstr "Veröffentlicht"
 
+msgctxt "github release action"
+msgid "Published"
+msgstr "Veröffentlicht"
+
 msgid "Publishes your token counts and model names, never repo names, file paths or prompts. You can leave at any time, which deletes everything you've published."
 msgstr "Veröffentlicht deine Token-Zahlen und Modellnamen, niemals Repo-Namen, Dateipfade oder Prompts. Du kannst jederzeit austreten, wodurch alles Veröffentlichte gelöscht wird."
 
@@ -10751,6 +10767,9 @@ msgstr "Starte laufende Agenten neu, um sie umzustellen."
 
 msgid "Relay access enabled, connecting to the relay…"
 msgstr "Relay-Zugriff aktiviert, Verbindung zum Relay wird hergestellt…"
+
+msgid "Release…"
+msgstr "Release…"
 
 msgid "Reload"
 msgstr "Neu laden"
@@ -14384,6 +14403,10 @@ msgstr "Unbezahlt"
 
 msgid "Unpin"
 msgstr "Lösen"
+
+msgctxt "github release action"
+msgid "Unpublished"
+msgstr "Veröffentlichung zurückgezogen"
 
 msgid "Unpushed"
 msgstr "Nicht gepusht"

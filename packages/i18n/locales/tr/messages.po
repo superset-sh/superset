@@ -4096,6 +4096,10 @@ msgstr "oluşturuldu"
 msgid "Created"
 msgstr "Oluşturuldu"
 
+msgctxt "github release action"
+msgid "Created"
+msgstr "Oluşturuldu"
+
 #. placeholder {0}: result.task.slug
 msgid "Created {0}"
 msgstr "{0} oluşturuldu"
@@ -4472,6 +4476,10 @@ msgstr "Çalışma alanını sil"
 msgid "Delete workspace \"{workspaceName}\"?"
 msgstr "\"{workspaceName}\" çalışma alanı silinsin mi?"
 
+msgid "Deleted"
+msgstr "Silindi"
+
+msgctxt "github release action"
 msgid "Deleted"
 msgstr "Silindi"
 
@@ -5009,6 +5017,10 @@ msgstr "Çalıştırma betiğini düzenle"
 msgid "Edit script"
 msgstr "Betiği düzenle"
 
+msgid "Edited"
+msgstr "Düzenlendi"
+
+msgctxt "github release action"
 msgid "Edited"
 msgstr "Düzenlendi"
 
@@ -10434,6 +10446,10 @@ msgstr "Bir ajandan veya CLI'den sayfa yayımlayın, burada görünsün."
 msgid "Published"
 msgstr "Yayınlanma"
 
+msgctxt "github release action"
+msgid "Published"
+msgstr "Yayınlandı"
+
 msgid "Publishes your token counts and model names, never repo names, file paths or prompts. You can leave at any time, which deletes everything you've published."
 msgstr "Token sayılarınızı ve model adlarınızı yayımlar; depo adlarını, dosya yollarını veya istemleri asla yayımlamaz. İstediğiniz zaman ayrılabilirsiniz; ayrıldığınızda yayımladığınız her şey silinir."
 
@@ -10751,6 +10767,9 @@ msgstr "Değiştirmek için çalışan ajanları yeniden başlatın."
 
 msgid "Relay access enabled, connecting to the relay…"
 msgstr "Röle erişimi etkinleştirildi, röleye bağlanılıyor…"
+
+msgid "Release…"
+msgstr "Sürüm…"
 
 msgid "Reload"
 msgstr "Yeniden yükle"
@@ -14384,6 +14403,10 @@ msgstr "Ödenmemiş"
 
 msgid "Unpin"
 msgstr "Sabitlemeyi kaldır"
+
+msgctxt "github release action"
+msgid "Unpublished"
+msgstr "Yayından kaldırıldı"
 
 msgid "Unpushed"
 msgstr "Push edilmemiş"

@@ -314,6 +314,18 @@ describe("the wording of a GitHub row", () => {
 		);
 		expect(sentence).toBe("Review requested from Anyone in superset by Anyone");
 	});
+
+	// A release has no branch and no labels, so its sentence is only the event
+	// and where — the scopes githubCommon carries go unrendered rather than
+	// offering the reviewer filters that can never match.
+	test("a release names only the repository", async () => {
+		const { sentence } = await row(
+			config("release.published", {
+				repositories: { mode: "list", ids: ["10"] },
+			}),
+		);
+		expect(sentence).toBe("Release published in superset");
+	});
 });
 
 describe('a GitHub row that filters by "Me" with no account connected', () => {

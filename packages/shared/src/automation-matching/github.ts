@@ -98,6 +98,14 @@ export function githubEventNames(event: {
 			}
 			return any;
 		}
+		// GitHub's release actions map one-to-one onto the product's, so the
+		// qualified wire type is already the trigger name.
+		case "release.published":
+		case "release.created":
+		case "release.edited":
+		case "release.unpublished":
+		case "release.deleted":
+			return [t as GithubTriggerEvent];
 		default:
 			return [];
 	}

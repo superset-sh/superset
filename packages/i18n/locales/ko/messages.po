@@ -4096,6 +4096,10 @@ msgstr "생성됨"
 msgid "Created"
 msgstr "생성됨"
 
+msgctxt "github release action"
+msgid "Created"
+msgstr "생성됨"
+
 #. placeholder {0}: result.task.slug
 msgid "Created {0}"
 msgstr "{0} 생성됨"
@@ -4472,6 +4476,10 @@ msgstr "워크스페이스 삭제"
 msgid "Delete workspace \"{workspaceName}\"?"
 msgstr "워크스페이스 \"{workspaceName}\"을(를) 삭제할까요?"
 
+msgid "Deleted"
+msgstr "삭제됨"
+
+msgctxt "github release action"
 msgid "Deleted"
 msgstr "삭제됨"
 
@@ -5011,6 +5019,10 @@ msgstr "스크립트 편집"
 
 msgid "Edited"
 msgstr "수정됨"
+
+msgctxt "github release action"
+msgid "Edited"
+msgstr "편집됨"
 
 msgid "Editing file..."
 msgstr "파일 수정 중..."
@@ -10434,6 +10446,10 @@ msgstr "에이전트나 CLI에서 페이지를 게시하면 여기에 표시됩�
 msgid "Published"
 msgstr "게시일"
 
+msgctxt "github release action"
+msgid "Published"
+msgstr "게시됨"
+
 msgid "Publishes your token counts and model names, never repo names, file paths or prompts. You can leave at any time, which deletes everything you've published."
 msgstr "토큰 수와 모델 이름만 공개하며, 리포지토리 이름이나 파일 경로, 프롬프트는 절대 공개하지 않습니다. 언제든 탈퇴할 수 있고, 탈퇴하면 공개한 내용이 모두 삭제됩니다."
 
@@ -10751,6 +10767,9 @@ msgstr "실행 중인 에이전트는 다시 실행해야 바뀝니다."
 
 msgid "Relay access enabled, connecting to the relay…"
 msgstr "릴레이 접근이 활성화되었습니다. 릴레이에 연결하는 중…"
+
+msgid "Release…"
+msgstr "릴리스…"
 
 msgid "Reload"
 msgstr "다시 로드"
@@ -14384,6 +14403,10 @@ msgstr "미결제"
 
 msgid "Unpin"
 msgstr "고정 해제"
+
+msgctxt "github release action"
+msgid "Unpublished"
+msgstr "게시 취소됨"
 
 msgid "Unpushed"
 msgstr "푸시 안 됨"
