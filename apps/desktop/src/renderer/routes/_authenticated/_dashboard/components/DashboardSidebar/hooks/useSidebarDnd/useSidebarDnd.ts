@@ -35,6 +35,10 @@ import {
 } from "react";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { laneProjectIdForScope } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
+import {
+	useWorkspaceTransactionsStore,
+	type WorkspaceTransactionSnapshot,
+} from "renderer/stores/workspace-creates";
 import type {
 	DashboardSidebarPinnedWorkspace,
 	DashboardSidebarProject,
@@ -195,6 +199,23 @@ function fingerprintChildren(children: DashboardSidebarProjectChild[]): string {
 				: `s:${c.section.id}:${c.section.workspaces.map((w) => w.id).join("|")}`,
 		)
 		.join(",");
+}
+
+/**
+ * True while a host write (tag strip/add, rename) for a row that is in the
+ * drag model has not settled. Inserts and deletes are not held: a pending
+ * create must surface its row as soon as the data has it.
+ */
+export function hasInFlightRowWrite(
+	transactions: Record<string, Pick<WorkspaceTransactionSnapshot, "type">>,
+	rowContainers: ReadonlyMap<UniqueIdentifier, string>,
+): boolean {
+	for (const [workspaceId, transaction] of Object.entries(transactions)) {
+		if (transaction.type === "update" && rowContainers.has(wsId(workspaceId))) {
+			return true;
+		}
+	}
+	return false;
 }
 
 /**
@@ -439,8 +460,24 @@ export function useSidebarDnd({
 
 	// Sync from external data when items or their order/membership changes
 	const prevFingerprintRef = useRef("");
+	const workspaceTransactionsById = useWorkspaceTransactionsStore(
+		(state) => state.byWorkspaceId,
+	);
 	useEffect(() => {
 		if (activeId || activeIdRef.current) return; // Don't reset during active drag
+		// A drop across a folder boundary strips or adds a host tag. The host
+		// cache is patched before the request goes out, but its observers
+		// re-render on a later task, so on the drop commit the props still
+		// carry the old tag and would re-file the row into the folder it just
+		// left (visible as the row snapping back, then jumping once the write
+		// lands). Hold the drag model while our own host writes for sidebar
+		// rows are in flight; the store clears on success or failure and this
+		// effect re-runs against converged data.
+		if (
+			hasInFlightRowWrite(workspaceTransactionsById, containerByIdRef.current)
+		) {
+			return;
+		}
 		const fingerprint = [
 			pinnedWorkspaces.map((ws) => ws.id).join("|"),
 			fingerprintChildren(sessionChildren),
@@ -464,7 +501,14 @@ export function useSidebarDnd({
 				membership: buildMembership(projects, sessionChildren),
 			});
 		}
-	}, [projects, pinnedWorkspaces, sessionChildren, activeId, commitDragItems]);
+	}, [
+		projects,
+		pinnedWorkspaces,
+		sessionChildren,
+		activeId,
+		commitDragItems,
+		workspaceTransactionsById,
+	]);
 
 	// ── Lookups ──────────────────────────────────────────────────────
 
