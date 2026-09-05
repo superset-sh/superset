@@ -77,10 +77,15 @@ export function useHostWorkspaces(
 
 	const workspaces = useMemo<HostWorkspaceItem[]>(
 		() =>
-			(query.data ?? []).map((row) => ({
-				...row,
-				hostReachable: !query.isError,
-			})),
+			(query.data ?? [])
+				// A workspace the user archived on the desktop (`shelvedAt` set)
+				// is put away everywhere: it leaves this list the same way it
+				// leaves the desktop sidebar, and comes back on unarchive.
+				.filter((row) => row.shelvedAt == null)
+				.map((row) => ({
+					...row,
+					hostReachable: !query.isError,
+				})),
 		[query.data, query.isError],
 	);
 
