@@ -347,6 +347,15 @@ export function CloudAuthDialog({
 												<Check className="size-4 text-emerald-500" />
 											) : null}
 										</Label>
+										{state.apiKeySaved || state.customSaved ? (
+											<Button
+												onClick={() => void disconnect()}
+												size="sm"
+												variant="ghost"
+											>
+												<Trans>Remove</Trans>
+											</Button>
+										) : null}
 										<a
 											className="inline-flex items-center gap-1 text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
 											href={
