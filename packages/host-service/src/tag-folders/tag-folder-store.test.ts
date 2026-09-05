@@ -11,6 +11,7 @@ import type { EventBus } from "../events";
 import type { TagFoldersChangedMessage } from "../events/types";
 import {
 	deleteTagFolderSetting,
+	getAllTagFolderSettings,
 	getTagFolderSettings,
 	hasTagFolderScope,
 	upsertTagFolderSetting,
@@ -69,7 +70,7 @@ describe("tag folder settings store", () => {
 				color: "#ff0000",
 			},
 		);
-		expect(getTagFolderSettings(h.db, PROJECT)).toEqual([
+		expect(getTagFolderSettings(h.db, PROJECT, null)).toEqual([
 			{
 				tag: "perf",
 				displayName: "Perf Work",
@@ -114,7 +115,7 @@ describe("tag folder settings store", () => {
 		);
 		deleteTagFolderSetting({ db: h.db, eventBus: h.eventBus }, PROJECT, "perf");
 		deleteTagFolderSetting({ db: h.db, eventBus: h.eventBus }, PROJECT, "perf");
-		expect(getTagFolderSettings(h.db, PROJECT)).toEqual([]);
+		expect(getTagFolderSettings(h.db, PROJECT, null)).toEqual([]);
 	});
 
 	it("rejects a tag that cannot be normalized", () => {
@@ -141,7 +142,7 @@ describe("tag folder settings store", () => {
 			"backend",
 			{ color: "#00ff00", displayName: "Backend" },
 		);
-		expect(getTagFolderSettings(h.db, SESSIONS_TAG_SCOPE)).toEqual([
+		expect(getTagFolderSettings(h.db, SESSIONS_TAG_SCOPE, null)).toEqual([
 			{
 				tag: "backend",
 				displayName: "Backend",
@@ -162,9 +163,93 @@ describe("tag folder settings store", () => {
 			"api",
 			{ color: "#0000ff" },
 		);
-		expect(getTagFolderSettings(h.db, PROJECT)[0]?.color).toBe("#ff0000");
-		expect(getTagFolderSettings(h.db, SESSIONS_TAG_SCOPE)[0]?.color).toBe(
+		expect(getTagFolderSettings(h.db, PROJECT, null)[0]?.color).toBe("#ff0000");
+		expect(getTagFolderSettings(h.db, SESSIONS_TAG_SCOPE, null)[0]?.color).toBe(
 			"#0000ff",
 		);
+	});
+
+	describe("per-user folders", () => {
+		const me = { userId: "user-a" };
+		const them = { userId: "user-b" };
+
+		it("a customised folder is the customiser's own", () => {
+			const h = createHarness();
+			upsertTagFolderSetting(
+				{ db: h.db, eventBus: h.eventBus, ...me },
+				PROJECT,
+				"perf",
+				{ displayName: "Performance" },
+			);
+			expect(getTagFolderSettings(h.db, PROJECT, "user-a")).toEqual([
+				{
+					tag: "perf",
+					displayName: "Performance",
+					color: null,
+					tabOrder: null,
+				},
+			]);
+			expect(getTagFolderSettings(h.db, PROJECT, "user-b")).toEqual([]);
+			expect(getAllTagFolderSettings(h.db, "user-b")).toEqual([]);
+		});
+
+		it("two users customise the same folder independently", () => {
+			const h = createHarness();
+			upsertTagFolderSetting(
+				{ db: h.db, eventBus: h.eventBus, ...me },
+				PROJECT,
+				"perf",
+				{ color: "#ff0000" },
+			);
+			upsertTagFolderSetting(
+				{ db: h.db, eventBus: h.eventBus, ...them },
+				PROJECT,
+				"perf",
+				{ color: "#0000ff" },
+			);
+			expect(getTagFolderSettings(h.db, PROJECT, "user-a")[0]?.color).toBe(
+				"#ff0000",
+			);
+			expect(getTagFolderSettings(h.db, PROJECT, "user-b")[0]?.color).toBe(
+				"#0000ff",
+			);
+			deleteTagFolderSetting(
+				{ db: h.db, eventBus: h.eventBus, ...me },
+				PROJECT,
+				"perf",
+			);
+			expect(getTagFolderSettings(h.db, PROJECT, "user-a")).toEqual([]);
+			expect(getTagFolderSettings(h.db, PROJECT, "user-b")[0]?.color).toBe(
+				"#0000ff",
+			);
+		});
+
+		it("a legacy row is visible to everyone until someone claims it", () => {
+			const h = createHarness();
+			// Written before folders had owners (no acting user).
+			upsertTagFolderSetting(
+				{ db: h.db, eventBus: h.eventBus },
+				PROJECT,
+				"perf",
+				{ displayName: "Legacy", color: "#00ff00" },
+			);
+			expect(
+				getTagFolderSettings(h.db, PROJECT, "user-b")[0]?.displayName,
+			).toBe("Legacy");
+			upsertTagFolderSetting(
+				{ db: h.db, eventBus: h.eventBus, ...me },
+				PROJECT,
+				"perf",
+				{ displayName: "Mine" },
+			);
+			// The claim keeps what the patch didn't touch and leaves one row.
+			expect(getTagFolderSettings(h.db, PROJECT, "user-a")).toEqual([
+				{ tag: "perf", displayName: "Mine", color: "#00ff00", tabOrder: null },
+			]);
+			expect(getTagFolderSettings(h.db, PROJECT, "user-b")).toEqual([]);
+			expect(h.db.select().from(schema.tagFolderSettings).all()).toHaveLength(
+				1,
+			);
+		});
 	});
 });

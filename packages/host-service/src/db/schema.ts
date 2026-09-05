@@ -298,6 +298,11 @@ export const tagFolderSettings = sqliteTable(
 	{
 		scope: text().notNull(),
 		tag: text().notNull(),
+		// A folder is personal like the tags it derives from (see
+		// `workspaceTags`): keyed per user so renaming yours never renames a
+		// teammate's folder of the same tag. Same NOT NULL / empty-string
+		// convention: '' = customised before folders had an owner.
+		createdByUserId: text("created_by_user_id").notNull().default(""),
 		displayName: text("display_name"),
 		color: text(),
 		tabOrder: integer("tab_order"),
@@ -305,7 +310,11 @@ export const tagFolderSettings = sqliteTable(
 			.notNull()
 			.$defaultFn(() => Date.now()),
 	},
-	(table) => [primaryKey({ columns: [table.scope, table.tag] })],
+	(table) => [
+		primaryKey({
+			columns: [table.scope, table.tag, table.createdByUserId],
+		}),
+	],
 );
 
 /**

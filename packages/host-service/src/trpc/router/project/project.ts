@@ -71,7 +71,10 @@ export interface FindByPathCandidate {
 export const projectRouter = router({
 	list: protectedProcedure.query(({ ctx }) => {
 		const tagSettingsByProject = new Map<string, TagSettingSnapshot[]>();
-		for (const { scope, ...setting } of getAllTagFolderSettings(ctx.db)) {
+		for (const { scope, ...setting } of getAllTagFolderSettings(
+			ctx.db,
+			ctx.userId,
+		)) {
 			const settings = tagSettingsByProject.get(scope) ?? [];
 			settings.push(setting);
 			tagSettingsByProject.set(scope, settings);
@@ -143,7 +146,7 @@ export const projectRouter = router({
 				});
 			}
 			const settings = upsertTagFolderSetting(
-				{ db: ctx.db, eventBus: ctx.eventBus },
+				{ db: ctx.db, eventBus: ctx.eventBus, userId: ctx.userId },
 				input.projectId,
 				input.tag,
 				{
@@ -177,7 +180,7 @@ export const projectRouter = router({
 				});
 			}
 			const settings = deleteTagFolderSetting(
-				{ db: ctx.db, eventBus: ctx.eventBus },
+				{ db: ctx.db, eventBus: ctx.eventBus, userId: ctx.userId },
 				input.projectId,
 				input.tag,
 			);

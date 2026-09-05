@@ -225,6 +225,13 @@
       "when": 1788577712009,
       "tag": "0031_workspace_tag_creator",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1788629868602,
+      "tag": "0032_tag_folder_creator",
+      "breakpoints": true
     }
   ]
 }
