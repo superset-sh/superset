@@ -12165,6 +12165,9 @@ msgstr "Kürzel bereits belegt"
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Beim Beenden der App einen Bestätigungsdialog anzeigen"
 
+msgid "Show a Usage button in the home sidebar, under Pull requests"
+msgstr "Eine Schaltfläche „Nutzung“ in der Seitenleiste der Startansicht unter „Pull Requests“ anzeigen"
+
 msgid "Show all {count}"
 msgstr "Alle {count} anzeigen"
 
@@ -14533,6 +14536,9 @@ msgstr "URL-tauglicher Bezeichner, eindeutig innerhalb deiner Organisation."
 
 msgid "Usage"
 msgstr "Nutzung"
+
+msgid "Usage in sidebar"
+msgstr "Nutzung in der Seitenleiste"
 
 msgid "Usage sections"
 msgstr "Nutzungsbereiche"

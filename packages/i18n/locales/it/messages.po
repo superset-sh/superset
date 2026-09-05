@@ -12165,6 +12165,9 @@ msgstr "Scorciatoia già in uso"
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Mostra una finestra di conferma quando esci dall'app"
 
+msgid "Show a Usage button in the home sidebar, under Pull requests"
+msgstr "Mostra un pulsante Utilizzo nella barra laterale della home, sotto Pull request"
+
 msgid "Show all {count}"
 msgstr "Mostra tutti i {count}"
 
@@ -14533,6 +14536,9 @@ msgstr "Identificatore adatto agli URL, univoco all'interno della tua organizzaz
 
 msgid "Usage"
 msgstr "Utilizzo"
+
+msgid "Usage in sidebar"
+msgstr "Utilizzo nella barra laterale"
 
 msgid "Usage sections"
 msgstr "Sezioni di utilizzo"

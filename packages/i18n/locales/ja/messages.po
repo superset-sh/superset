@@ -12165,6 +12165,9 @@ msgstr "ショートカットは使用中です"
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "アプリ終了時に確認ダイアログを表示"
 
+msgid "Show a Usage button in the home sidebar, under Pull requests"
+msgstr "ホームのサイドバーの「プルリクエスト」の下に「使用量」ボタンを表示"
+
 msgid "Show all {count}"
 msgstr "{count}件すべて表示"
 
@@ -14533,6 +14536,9 @@ msgstr "組織内で一意のURLフレンドリーな識別子。"
 
 msgid "Usage"
 msgstr "使用量"
+
+msgid "Usage in sidebar"
+msgstr "サイドバーに使用量を表示"
 
 msgid "Usage sections"
 msgstr "使用量セクション"

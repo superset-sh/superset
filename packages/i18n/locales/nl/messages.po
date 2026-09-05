@@ -12165,6 +12165,9 @@ msgstr "Sneltoets al in gebruik"
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Toon een bevestiging bij het afsluiten van de app"
 
+msgid "Show a Usage button in the home sidebar, under Pull requests"
+msgstr "Toon een knop Gebruik in de zijbalk van het startscherm, onder Pull requests"
+
 msgid "Show all {count}"
 msgstr "Alle {count} tonen"
 
@@ -14533,6 +14536,9 @@ msgstr "URL-vriendelijke identifier, uniek binnen je organisatie."
 
 msgid "Usage"
 msgstr "Gebruik"
+
+msgid "Usage in sidebar"
+msgstr "Gebruik in de zijbalk"
 
 msgid "Usage sections"
 msgstr "Onderdelen van gebruik"

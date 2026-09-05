@@ -55,6 +55,7 @@ import {
 	DEFAULT_OPEN_LINKS_IN_APP,
 	DEFAULT_SHOW_PRESETS_BAR,
 	DEFAULT_SHOW_RESOURCE_MONITOR,
+	DEFAULT_SHOW_USAGE_IN_SIDEBAR,
 	DEFAULT_TERMINAL_COPY_ON_SELECT,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 	DEFAULT_TERMINAL_PARKED_RUNTIME_CAP,
@@ -1101,6 +1102,30 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { showResourceMonitor: input.enabled },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getShowUsageInSidebar: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.showUsageInSidebar ?? DEFAULT_SHOW_USAGE_IN_SIDEBAR;
+		}),
+
+		setShowUsageInSidebar: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				// Target the row getSettings() reads: legacy DBs can hold a non-1
+				// row id, and upserting id 1 there would split settings across
+				// two rows.
+				const { id } = getSettings();
+				localDb
+					.insert(settings)
+					.values({ id, showUsageInSidebar: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { showUsageInSidebar: input.enabled },
 					})
 					.run();
 

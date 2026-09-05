@@ -12165,6 +12165,9 @@ msgstr "Raccourci déjà utilisé"
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Afficher une boîte de dialogue de confirmation à la fermeture de l'application"
 
+msgid "Show a Usage button in the home sidebar, under Pull requests"
+msgstr "Afficher un bouton Utilisation dans la barre latérale d'accueil, sous Pull requests"
+
 msgid "Show all {count}"
 msgstr "Afficher les {count}"
 
@@ -14533,6 +14536,9 @@ msgstr "Identifiant compatible avec les URL, unique au sein de votre organisatio
 
 msgid "Usage"
 msgstr "Utilisation"
+
+msgid "Usage in sidebar"
+msgstr "Utilisation dans la barre latérale"
 
 msgid "Usage sections"
 msgstr "Sections d'utilisation"

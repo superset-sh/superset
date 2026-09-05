@@ -12165,6 +12165,9 @@ msgstr "Сочетание уже используется"
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Показывать подтверждение при выходе из приложения"
 
+msgid "Show a Usage button in the home sidebar, under Pull requests"
+msgstr "Показывать кнопку «Использование» в боковой панели главного экрана под пул-реквестами"
+
 msgid "Show all {count}"
 msgstr "Показать все {count}"
 
@@ -14533,6 +14536,9 @@ msgstr "Идентификатор для URL, уникальный внутри
 
 msgid "Usage"
 msgstr "Использование"
+
+msgid "Usage in sidebar"
+msgstr "Использование в боковой панели"
 
 msgid "Usage sections"
 msgstr "Разделы использования"

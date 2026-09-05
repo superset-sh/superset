@@ -12165,6 +12165,9 @@ msgstr "El atajo ya está en uso"
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Mostrar un diálogo de confirmación al salir de la app"
 
+msgid "Show a Usage button in the home sidebar, under Pull requests"
+msgstr "Mostrar un botón de Uso en la barra lateral de inicio, debajo de Pull requests"
+
 msgid "Show all {count}"
 msgstr "Mostrar los {count}"
 
@@ -14533,6 +14536,9 @@ msgstr "Identificador apto para URL, único dentro de tu organización."
 
 msgid "Usage"
 msgstr "Uso"
+
+msgid "Usage in sidebar"
+msgstr "Uso en la barra lateral"
 
 msgid "Usage sections"
 msgstr "Secciones de uso"

@@ -43,6 +43,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		SETTING_ITEM_ID.BEHAVIOR_RESOURCE_MONITOR,
 		visibleItems,
 	);
+	const showUsageInSidebar = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_USAGE_IN_SIDEBAR,
+		visibleItems,
+	);
 	const showOpenLinksInApp = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP,
 		visibleItems,
@@ -118,6 +122,29 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 			},
 			onSettled: () => {
 				utils.settings.getShowResourceMonitor.invalidate();
+			},
+		});
+
+	const { data: usageInSidebarEnabled, isLoading: isUsageInSidebarLoading } =
+		electronTrpc.settings.getShowUsageInSidebar.useQuery();
+	const setShowUsageInSidebar =
+		electronTrpc.settings.setShowUsageInSidebar.useMutation({
+			onMutate: async ({ enabled }) => {
+				await utils.settings.getShowUsageInSidebar.cancel();
+				const previous = utils.settings.getShowUsageInSidebar.getData();
+				utils.settings.getShowUsageInSidebar.setData(undefined, enabled);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getShowUsageInSidebar.setData(
+						undefined,
+						context.previous,
+					);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getShowUsageInSidebar.invalidate();
 			},
 		});
 
@@ -279,6 +306,36 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 							}
 							disabled={
 								isResourceMonitorLoading || setShowResourceMonitor.isPending
+							}
+						/>
+					</div>
+				)}
+
+				{showUsageInSidebar && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label htmlFor="usage-in-sidebar" className="text-sm font-medium">
+								<HighlightText
+									text={t({
+										message: "Usage in sidebar",
+									})}
+									query={searchQuery}
+								/>
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								<Trans>
+									Show a Usage button in the home sidebar, under Pull requests
+								</Trans>
+							</p>
+						</div>
+						<Switch
+							id="usage-in-sidebar"
+							checked={usageInSidebarEnabled ?? false}
+							onCheckedChange={(enabled) =>
+								setShowUsageInSidebar.mutate({ enabled })
+							}
+							disabled={
+								isUsageInSidebarLoading || setShowUsageInSidebar.isPending
 							}
 						/>
 					</div>

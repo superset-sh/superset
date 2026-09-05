@@ -12165,6 +12165,9 @@ msgstr "快速鍵已被使用"
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "退出應用時顯示確認對話方塊"
 
+msgid "Show a Usage button in the home sidebar, under Pull requests"
+msgstr "在首頁側邊欄的「拉取請求」下方顯示「用量」按鈕"
+
 msgid "Show all {count}"
 msgstr "顯示全部{count}條"
 
@@ -14533,6 +14536,9 @@ msgstr "URL友好的識別符號，在你的組織內唯一。"
 
 msgid "Usage"
 msgstr "用量"
+
+msgid "Usage in sidebar"
+msgstr "在側邊欄顯示用量"
 
 msgid "Usage sections"
 msgstr "用量分區"

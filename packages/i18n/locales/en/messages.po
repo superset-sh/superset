@@ -12165,6 +12165,9 @@ msgstr "Shortcut already in use"
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Show a confirmation dialog when quitting the app"
 
+msgid "Show a Usage button in the home sidebar, under Pull requests"
+msgstr "Show a Usage button in the home sidebar, under Pull requests"
+
 msgid "Show all {count}"
 msgstr "Show all {count}"
 
@@ -14533,6 +14536,9 @@ msgstr "URL-friendly identifier, unique within your organization."
 
 msgid "Usage"
 msgstr "Usage"
+
+msgid "Usage in sidebar"
+msgstr "Usage in sidebar"
 
 msgid "Usage sections"
 msgstr "Usage sections"
