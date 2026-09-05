@@ -72,6 +72,14 @@ export const parseId = (id: UniqueIdentifier) => {
 	return null;
 };
 
+const workspaceIdsOf = (ids: UniqueIdentifier[]): ReadonlySet<string> =>
+	new Set(
+		ids.flatMap((id) => {
+			const parsed = parseId(id);
+			return parsed?.type === "workspace" ? [parsed.realId] : [];
+		}),
+	);
+
 // ── Containers ───────────────────────────────────────────────────────
 //
 // Every workspace row lives in exactly one container: the top-level Pinned
@@ -202,20 +210,37 @@ function fingerprintChildren(children: DashboardSidebarProjectChild[]): string {
 }
 
 /**
- * True while a host write (tag strip/add, rename) for a row that is in the
- * drag model has not settled. Inserts and deletes are not held: a pending
- * create must surface its row as soon as the data has it.
+ * True while a host write started by the last drop (a tag strip/add) has not
+ * settled. Only `update` transactions for the rows that drop wrote count:
+ * a rename elsewhere, or a pending create/delete, must not hold the model.
  */
 export function hasInFlightRowWrite(
 	transactions: Record<string, Pick<WorkspaceTransactionSnapshot, "type">>,
-	rowContainers: ReadonlyMap<UniqueIdentifier, string>,
+	dropWriteIds: ReadonlySet<string>,
 ): boolean {
-	for (const [workspaceId, transaction] of Object.entries(transactions)) {
-		if (transaction.type === "update" && rowContainers.has(wsId(workspaceId))) {
-			return true;
-		}
+	for (const workspaceId of dropWriteIds) {
+		if (transactions[workspaceId]?.type === "update") return true;
 	}
 	return false;
+}
+
+/**
+ * What the external-data sync effect should do this run. After a hold ends
+ * the model is reconciled even when the fingerprint matches what was last
+ * synced: a rejected write can roll the props back to exactly the pre-drop
+ * shape, and nothing else would ever replace the optimistic order.
+ */
+export function planExternalSync(input: {
+	inFlight: boolean;
+	wasHeld: boolean;
+	fingerprint: string;
+	prevFingerprint: string;
+}): "hold" | "sync" | "skip" {
+	if (input.inFlight) return "hold";
+	if (input.wasHeld || input.fingerprint !== input.prevFingerprint) {
+		return "sync";
+	}
+	return "skip";
 }
 
 /**
@@ -465,6 +490,10 @@ export function useSidebarDnd({
 
 	// Sync from external data when items or their order/membership changes
 	const prevFingerprintRef = useRef("");
+	// Workspace ids whose host rows the last drop may have written, set by the
+	// drop handler before it persists; cleared once their writes settle.
+	const dropWriteIdsRef = useRef<ReadonlySet<string>>(new Set());
+	const heldRef = useRef(false);
 	const workspaceTransactionsById = useWorkspaceTransactionsStore(
 		(state) => state.byWorkspaceId,
 	);
@@ -475,14 +504,9 @@ export function useSidebarDnd({
 		// re-render on a later task, so on the drop commit the props still
 		// carry the old tag and would re-file the row into the folder it just
 		// left (visible as the row snapping back, then jumping once the write
-		// lands). Hold the drag model while our own host writes for sidebar
-		// rows are in flight; the store clears on success or failure and this
-		// effect re-runs against converged data.
-		if (
-			hasInFlightRowWrite(workspaceTransactionsById, containerByIdRef.current)
-		) {
-			return;
-		}
+		// lands). Hold the drag model while that drop's host writes are in
+		// flight; the store clears on success or failure and this effect
+		// re-runs against converged data.
 		const fingerprint = [
 			pinnedWorkspaces.map((ws) => ws.id).join("|"),
 			fingerprintChildren(sessionChildren),
@@ -492,7 +516,22 @@ export function useSidebarDnd({
 				)
 				.join(";"),
 		].join("\n");
-		if (fingerprint !== prevFingerprintRef.current) {
+		const plan = planExternalSync({
+			inFlight: hasInFlightRowWrite(
+				workspaceTransactionsById,
+				dropWriteIdsRef.current,
+			),
+			wasHeld: heldRef.current,
+			fingerprint,
+			prevFingerprint: prevFingerprintRef.current,
+		});
+		if (plan === "hold") {
+			heldRef.current = true;
+			return;
+		}
+		dropWriteIdsRef.current = new Set();
+		heldRef.current = false;
+		if (plan === "sync") {
 			prevFingerprintRef.current = fingerprint;
 			commitDragItems({
 				pinned: pinnedWorkspaces.map((ws) => wsId(ws.id)),
@@ -979,6 +1018,7 @@ export function useSidebarDnd({
 						? rebuilt
 						: normalizeMainFirst(rebuilt);
 				commitDragItems(withContainerList(current, container, newList));
+				dropWriteIdsRef.current = workspaceIdsOf(newList);
 				commitContainerToDb(container, newList, current.membership);
 				return;
 			}
@@ -1067,6 +1107,10 @@ export function useSidebarDnd({
 				});
 
 				if (!unchanged) {
+					dropWriteIdsRef.current = workspaceIdsOf([
+						...targetList,
+						...getContainerList(next, sourceContainer),
+					]);
 					persistWorkspaceDrop(
 						parsed.realId,
 						targetContainer,
