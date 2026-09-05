@@ -2,6 +2,7 @@ import { serve } from "@hono/node-server";
 import { createApp } from "./app";
 import { getSupervisor, startDaemonBootstrap } from "./daemon";
 import { env } from "./env";
+import { installConsoleTimestamps } from "./log-timestamps";
 import {
 	ConfigFileSessionTokenSource,
 	JwtApiAuthProvider,
@@ -21,6 +22,7 @@ import { startTerminalReaper } from "./terminal/reaper";
 import { connectRelay } from "./tunnel";
 
 async function main(): Promise<void> {
+	installConsoleTimestamps();
 	initSentry({ organizationId: env.ORGANIZATION_ID });
 	console.log(
 		`[host-service] starting (org=${env.ORGANIZATION_ID}, port=${env.PORT}, NODE_ENV=${process.env.NODE_ENV ?? "unset"})`,
