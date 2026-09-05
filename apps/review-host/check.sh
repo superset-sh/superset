@@ -70,5 +70,41 @@ if [ -n "$RUNNING_VERSION" ] && [ "$COUNT" -gt 0 ]; then
   fi
 fi
 
+# The workspace list is the reviewer's home screen, and workspace.list reads
+# host.db — which will happily describe worktrees that are not on disk. That is
+# exactly what moving to GCP produced: host.db came across, the worktrees did
+# not, and every demo workspace would have opened onto nothing while the list
+# looked perfect. So test the disk, not the list.
+WS_JSON=$(ssh_box "sudo curl -s -m 10 -H 'Authorization: Bearer $SECRET' http://127.0.0.1:48800/trpc/workspace.list")
+if [ -n "$WS_JSON" ]; then
+  PATHS=$(printf '%s' "$WS_JSON" | python3 -c 'import json,sys
+d = json.load(sys.stdin)["result"]["data"]["json"]
+print(" ".join(w["worktreePath"] for w in d if w.get("worktreePath")))' 2>/dev/null)
+  if [ -n "$PATHS" ]; then
+    GONE=$(ssh_box "sudo bash -c 'for p in $PATHS; do [ -d \"\$p\" ] || echo \"\$p\"; done'" | paste -sd', ' -)
+    [ -z "$GONE" ] && note "worktrees: every workspace has one on disk" \
+      || fail "worktrees missing (the workspace opens onto nothing): $GONE"
+  fi
+
+  # Whatever is in this organization is what Apple sees, and it has drifted
+  # before — two stray probe workspaces sat next to the curated set.
+  ACTUAL=$(printf '%s' "$WS_JSON" | python3 -c 'import json,sys
+d = json.load(sys.stdin)["result"]["data"]["json"]
+print("\n".join(sorted(w["name"] for w in d if w.get("type") != "main")))' 2>/dev/null)
+  EXPECTED='Add haptics to buttons
+Add transcription demo
+Fix input overflow handling
+Tidy up empty states
+Update icon size'
+  if [ "$ACTUAL" = "$EXPECTED" ]; then
+    note "demo set: matches the App Store screenshots"
+  else
+    EXTRA=$(comm -13 <(printf '%s\n' "$EXPECTED") <(printf '%s\n' "$ACTUAL") | paste -sd', ' -)
+    LOST=$(comm -23 <(printf '%s\n' "$EXPECTED") <(printf '%s\n' "$ACTUAL") | paste -sd', ' -)
+    [ -n "$EXTRA" ] && fail "extra workspaces the reviewer would see: $EXTRA"
+    [ -n "$LOST" ] && fail "demo workspaces missing from the reviewer's list: $LOST"
+  fi
+fi
+
 [ "$FAIL" -eq 0 ] && echo "OK — the review host is serving what the app expects" || echo "review host needs attention"
 exit "$FAIL"
