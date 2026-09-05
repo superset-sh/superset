@@ -75,6 +75,10 @@ export type ClaudeSwapFailureCode =
 	| "source-changed"
 	| "keychain-ambiguous"
 	| "write-failed"
+	/** The credential landed but the identity did not, and putting the
+	 * credential back failed too: the active dir holds the target's login
+	 * under the previous account's identity until something reconciles it. */
+	| "split-state"
 	| "verify-failed";
 
 export type ClaudeSwapResult =
@@ -531,10 +535,22 @@ async function applyToActiveDir(
 			return { ...state, ...target.identity.keys };
 		});
 	} catch (error) {
-		return failure(
-			"write-failed",
-			`writing the identity into ${activeDir} failed: ${errorText(error)}`,
-		);
+		const reason = `writing the identity into ${activeDir} failed: ${errorText(error)}`;
+		// The credential is already the target's while the identity still names
+		// the previous account — the exact state a later save-back reads as the
+		// previous account's own login. Undo the credential so the dir stays
+		// whole; the protocol is not transactional, this one step is.
+		const restore = oauthOf(activeRead);
+		if (!restore) return failure("write-failed", reason);
+		try {
+			await applyStoreWrite(activeRead, planned.plan, restore, ctx);
+		} catch (rollbackError) {
+			return failure(
+				"split-state",
+				`${reason}; ${activeDir} now holds the target login under the previous identity and could not be rolled back: ${errorText(rollbackError)}`,
+			);
+		}
+		return failure("write-failed", reason);
 	}
 
 	const verifyRead = await readStore(activeRef, ctx);
@@ -565,10 +581,23 @@ async function applyToActiveDir(
  * back to `ownerBinding`'s own store. `ownerBinding` names the account whose
  * login is in the active dir now; without it the swap refuses rather than
  * guess, because saving A's refreshed token into B's dir signs B out.
+ *
+ * `expectedOwnerAccountId` is that same claim as an identity: pass the owner's
+ * accountUuid and the save-back is checked against the identity actually in
+ * the active dir before it writes. Optional so a caller that has no identity
+ * to offer keeps today's behaviour.
+ *
+ * `ownerManaged: false` drops the save-back altogether: a config dir the user
+ * exported by hand is Superset's to read, never to write, so the login it
+ * owns is left where the CLI last put it rather than saved back here.
  */
 export async function swapClaudeLogin(input: {
 	target: ClaudeLoginStoreRef;
 	ownerBinding: ClaudeLoginStoreRef | undefined;
+	/** The accountUuid `ownerBinding` stands for, when the caller knows it. */
+	expectedOwnerAccountId?: string | null;
+	/** Whether Superset may write `ownerBinding`'s store. Default true. */
+	ownerManaged?: boolean;
 	activeDir: string;
 	deps?: ClaudeSwapDeps;
 }): Promise<ClaudeSwapResult> {
@@ -592,20 +621,45 @@ export async function swapClaudeLogin(input: {
 	if (activeInvalid) return failure("invalid-active-dir", activeInvalid);
 	const previous = oauthOf(await readStore(activeRef, ctx));
 
-	const ownerInvalid = await validateDir(storeDir(ownerBinding, ctx), ctx);
-	if (ownerInvalid) return failure("invalid-owner", ownerInvalid);
-	if (previous) {
-		const ownerRead = await readStore(ownerBinding, ctx);
-		if (!wouldRegress(oauthOf(ownerRead), previous)) {
-			const planned = await planStoreWrite(ownerBinding, ownerRead, ctx);
-			if (!planned.ok) return planned.result;
-			try {
-				await applyStoreWrite(ownerRead, planned.plan, previous, ctx);
-			} catch (error) {
-				return failure(
-					"write-failed",
-					`saving the previous login back to ${storeDir(ownerBinding, ctx)} failed: ${errorText(error)}`,
-				);
+	// The caller's owner claim is refreshed at most once a tick, so a `/login`
+	// run inside a live session leaves a login here that `ownerBinding` does
+	// not name. `wouldRegress` cannot catch that — expiry timestamps are
+	// unrelated across accounts — so compare the identities instead. A dir
+	// whose identity is missing or unreadable keeps today's behaviour.
+	if (input.expectedOwnerAccountId) {
+		const activeIdentity = await readIdentity(
+			claudeStatePath(input.activeDir, ctx.homeDir),
+			ctx,
+		);
+		if (
+			activeIdentity?.accountUuid &&
+			activeIdentity.accountUuid !== input.expectedOwnerAccountId
+		) {
+			return failure(
+				"owner-unknown",
+				`the login in ${input.activeDir} belongs to account ${activeIdentity.accountUuid}, not the one bound to ${storeDir(ownerBinding, ctx)}`,
+			);
+		}
+	}
+
+	// An unmanaged owner is never validated and never written: the dir is not
+	// Superset's, so neither its permissions nor its backups are its business.
+	if (input.ownerManaged !== false) {
+		const ownerInvalid = await validateDir(storeDir(ownerBinding, ctx), ctx);
+		if (ownerInvalid) return failure("invalid-owner", ownerInvalid);
+		if (previous) {
+			const ownerRead = await readStore(ownerBinding, ctx);
+			if (!wouldRegress(oauthOf(ownerRead), previous)) {
+				const planned = await planStoreWrite(ownerBinding, ownerRead, ctx);
+				if (!planned.ok) return planned.result;
+				try {
+					await applyStoreWrite(ownerRead, planned.plan, previous, ctx);
+				} catch (error) {
+					return failure(
+						"write-failed",
+						`saving the previous login back to ${storeDir(ownerBinding, ctx)} failed: ${errorText(error)}`,
+					);
+				}
 			}
 		}
 	}

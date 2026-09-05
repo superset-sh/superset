@@ -80,10 +80,9 @@ describe("usageRouter.removeAccount", () => {
 		} as unknown as HostServiceContext;
 	}
 
-	beforeEach(() => {
-		previousHome = process.env.SUPERSET_HOME_DIR;
-		home = mkdtempSync(join(tmpdir(), "superset-remove-account-"));
-		process.env.SUPERSET_HOME_DIR = home;
+	/** What the engine records after a switch; rewriting it mid-call is a
+	 * switch landing while this mutation is in flight. */
+	function writeRuntime(accountId: string, selection: string): void {
 		const stateDir = join(home, "state", "account-engine");
 		mkdirSync(stateDir, { recursive: true, mode: 0o700 });
 		writeFileSync(
@@ -95,8 +94,8 @@ describe("usageRouter.removeAccount", () => {
 						cooldownUntil: null,
 						exhaustedNotifiedAt: null,
 						fallbackTimestamps: [],
-						activeAccountId: "uuid-a",
-						activeSelection: ACTIVE_DIR,
+						activeAccountId: accountId,
+						activeSelection: selection,
 					},
 					codex: {
 						cooldownUntil: null,
@@ -110,6 +109,13 @@ describe("usageRouter.removeAccount", () => {
 			}),
 			{ mode: 0o600 },
 		);
+	}
+
+	beforeEach(() => {
+		previousHome = process.env.SUPERSET_HOME_DIR;
+		home = mkdtempSync(join(tmpdir(), "superset-remove-account-"));
+		process.env.SUPERSET_HOME_DIR = home;
+		writeRuntime("uuid-a", ACTIVE_DIR);
 		invalidate.mockClear();
 	});
 
@@ -134,6 +140,33 @@ describe("usageRouter.removeAccount", () => {
 			.removeAccount({ agent: "claude", selection: SPARE_DIR });
 
 		expect(invalidate).toHaveBeenCalledWith(quotaEntryKey("claude", SPARE_DIR));
+	});
+
+	// A switch landing after the first check would otherwise delete the dir
+	// every running session is signed in to.
+	it("refuses an account that became active before the delete", async () => {
+		const ctx = context();
+		let reads = 0;
+		(
+			ctx.runtime.quotaStore as unknown as {
+				read: () => Promise<UsageAccount[]>;
+			}
+		).read = async () => {
+			// The engine finishes a switch onto the spare account between the
+			// first check and the last one.
+			if (++reads === 2) writeRuntime("uuid-b", SPARE_DIR);
+			return [
+				account({ accountId: "uuid-a", selection: ACTIVE_DIR }),
+				account({ accountId: "uuid-b", selection: SPARE_DIR }),
+			];
+		};
+
+		await expect(
+			usageRouter
+				.createCaller(ctx)
+				.removeAccount({ agent: "claude", selection: SPARE_DIR }),
+		).rejects.toThrow(/switch/i);
+		expect(invalidate).not.toHaveBeenCalled();
 	});
 });
 

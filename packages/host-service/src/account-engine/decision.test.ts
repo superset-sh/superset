@@ -40,6 +40,7 @@ function account(over: Partial<DecisionAccount> = {}): DecisionAccount {
 		label: "work",
 		credentialKind: "subscription",
 		inRotation: true,
+		managed: true,
 		tokenState: "ok",
 		windows: [
 			window_("five_hour", "Session (5h)", 10),
@@ -160,6 +161,16 @@ describe("isEligible", () => {
 				{ "claude:default": true },
 			),
 		).toBe(true);
+	});
+
+	// A hand-exported CLAUDE_CONFIG_DIR is Superset's to read, never to write,
+	// so it never becomes a switch target — the rotation file cannot override
+	// that the way it overrides the account's own flag.
+	it("never picks a login Superset does not manage", () => {
+		expect(isEligible(account({ managed: false }), {})).toBe(false);
+		expect(
+			isEligible(account({ managed: false }), { "claude:acct-a": true }),
+		).toBe(false);
 	});
 
 	it("still honours the legacy bare-id and account-key spellings", () => {
@@ -388,6 +399,61 @@ describe("shouldSwitch", () => {
 			now: T0,
 		});
 		expect(decision).toMatchObject({ switch: true, reasonKind: "strategy" });
+		expect(decision.switch && decision.target.accountId).toBe("acct-b");
+	});
+
+	// R12: the account whose weekly window comes back first is the one to
+	// drain, so a healthy pair must not swap on every cooldown expiry.
+	it("consume-first: stays when the active account resets sooner", () => {
+		const decision = shouldSwitch({
+			settings: settings({ strategy: "consume-first" }),
+			active: account({
+				windows: [
+					window_("five_hour", "Session (5h)", 40),
+					window_("seven_day", "Weekly", 40, T0 + 6 * HOUR),
+				],
+			}),
+			candidates: [
+				account({
+					accountId: "acct-b",
+					accountKey: "key-b",
+					windows: [
+						window_("five_hour", "Session (5h)", 30),
+						window_("seven_day", "Weekly", 30, T0 + 5 * DAY),
+					],
+				}),
+			],
+			rotation: {},
+			runtime,
+			now: T0,
+		});
+		expect(decision).toEqual({ switch: false, allExhausted: false });
+	});
+
+	it("consume-first: still moves off an account at the threshold", () => {
+		const decision = shouldSwitch({
+			settings: settings({ strategy: "consume-first" }),
+			active: account({
+				windows: [
+					window_("five_hour", "Session (5h)", 95),
+					window_("seven_day", "Weekly", 40, T0 + 6 * HOUR),
+				],
+			}),
+			candidates: [
+				account({
+					accountId: "acct-b",
+					accountKey: "key-b",
+					windows: [
+						window_("five_hour", "Session (5h)", 30),
+						window_("seven_day", "Weekly", 30, T0 + 5 * DAY),
+					],
+				}),
+			],
+			rotation: {},
+			runtime,
+			now: T0,
+		});
+		expect(decision).toMatchObject({ switch: true, reasonKind: "threshold" });
 		expect(decision.switch && decision.target.accountId).toBe("acct-b");
 	});
 

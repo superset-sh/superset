@@ -26,6 +26,7 @@ import { engineError, usageEngineRouter, writableEngine } from "./engine";
 import { countAgentPrsByDay } from "./history/agent-prs";
 import { removeClaudeProfile, removeCodexHome } from "./profile-remove";
 import { discoverClaudeProfiles, discoverCodexHomes } from "./profiles";
+import type { UsageAccount } from "./types";
 
 export const usageRouter = router({
 	/** U7: the account engine's settings, rotation and switch history. */
@@ -193,12 +194,34 @@ export const usageRouter = router({
 					message: `No removable ${input.agent} profile at ${input.selection}.`,
 				});
 			}
-			if (isActiveAccount(target, readAccountEngineView(ctx.db))) {
+			const refuseIfActive = (account: UsageAccount): void => {
+				const engineStatus = ctx.runtime.accountEngine?.status()[input.agent];
+				const active =
+					isActiveAccount(account, readAccountEngineView(ctx.db)) ||
+					(engineStatus?.activeAccountId != null &&
+						account.accountId === engineStatus.activeAccountId) ||
+					(engineStatus?.activeSelection != null &&
+						account.selection === engineStatus.activeSelection);
+				if (!active) return;
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: `This is the active ${input.agent} account — switch to another account first, then remove it.`,
 				});
-			}
+			};
+			refuseIfActive(target);
+			// A switch can land between the check above and the delete below —
+			// they are separated by awaits and no engine lock — and removing the
+			// dir every running session is signed in to is not recoverable. Both
+			// reads are cheap and neither hits a provider, so the check is
+			// repeated on fresh state as the last thing before the filesystem.
+			const current = (
+				await ctx.runtime.quotaStore.read({ agents: [input.agent] })
+			).find(
+				(account) =>
+					account.agent === input.agent &&
+					account.selection === input.selection,
+			);
+			refuseIfActive(current ?? target);
 			if (input.agent === "claude") {
 				await removeClaudeProfile(input.selection);
 			} else {

@@ -73,6 +73,9 @@ export interface DecisionAccount {
 	credentialKind: UsageAccountCredentialKind;
 	/** R16, as the account itself reports it (API-key logins default out). */
 	inRotation: boolean;
+	/** Whether Superset may write this login's store. False for a config dir
+	 * the user exported by hand, which is read but never switched onto. */
+	managed: boolean;
 	tokenState: QuotaTokenState;
 	windows: readonly UsageQuotaWindow[];
 }
@@ -177,11 +180,11 @@ export function isNearLimit(score: number, thresholdPercent: number): boolean {
 }
 
 /**
- * R16/R23. In rotation and signed in. The rotation file wins over the flag
- * the account carries, because that file is what the user's toggle writes.
- * `accountRotationKey` is the spelling both the renderer and the router use,
- * so it is looked up first; the bare `accountId` and `accountKey` follow it
- * as legacy spellings a toggle may still be filed under.
+ * R16/R23. Managed, in rotation and signed in. The rotation file wins over
+ * the flag the account carries, because that file is what the user's toggle
+ * writes. `accountRotationKey` is the spelling both the renderer and the
+ * router use, so it is looked up first; the bare `accountId` and `accountKey`
+ * follow it as legacy spellings a toggle may still be filed under.
  */
 export function isEligible(
 	account: DecisionAccount,
@@ -191,6 +194,10 @@ export function isEligible(
 	if (tokenState === "token_expired" || tokenState === "signed_out") {
 		return false;
 	}
+	// A dir the user exported by hand is Superset's to read, never to write:
+	// it is listed and usable, but no switch targets it — not even one the
+	// rotation file says yes to.
+	if (!account.managed) return false;
 	return rotationFlag(account, rotation);
 }
 
@@ -313,8 +320,20 @@ export function shouldSwitch(input: ShouldSwitchInput): SwitchDecision {
 			(candidate) => scoreAccount(candidate, models) >= margin,
 		);
 		const target = pickConsumeFirst(withRoom);
-		if (target) return move(target, activeNearLimit ? "threshold" : "strategy");
-		return stay(activeNearLimit);
+		if (!target) return stay(activeNearLimit);
+		if (activeNearLimit) return move(target, "threshold");
+		// R12: a proactive move only pays when the target's longest window
+		// really does reset before the active account's. Without this the pair
+		// swap every time the cooldown expires, since `eligible` excludes the
+		// active account and so the account just left always wins the next
+		// tick. An unknown reset sorts last on either side, as it does in
+		// pickConsumeFirst, so it never wins the comparison.
+		const activeResetAt =
+			longestPeriodResetAt(active) ?? Number.POSITIVE_INFINITY;
+		const targetResetAt =
+			longestPeriodResetAt(target) ?? Number.POSITIVE_INFINITY;
+		if (targetResetAt < activeResetAt) return move(target, "strategy");
+		return stay(false);
 	}
 
 	// `best`: only ever land on an account that is not itself near its limit,

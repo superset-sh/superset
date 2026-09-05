@@ -222,6 +222,7 @@ export type AccountSwitchFailureCode =
 	| "source-changed"
 	| "keychain-ambiguous"
 	| "write-failed"
+	| "split-state"
 	| "verify-failed"
 	| "active-dir-unavailable"
 	| "pointer-failed"
