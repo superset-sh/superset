@@ -7,7 +7,11 @@ import { z } from "zod";
 import { pullRequests } from "../../../db/schema";
 import { invalidateLabelCache } from "../../../ports/static-ports";
 import { coercePullRequestState } from "../../../runtime/pull-requests/utils/pull-request-mappers";
-import { runTeardown, type TeardownResult } from "../../../runtime/teardown";
+import {
+	removeDevAppProfile,
+	runTeardown,
+	type TeardownResult,
+} from "../../../runtime/teardown";
 import { disposeSessionsByWorkspaceId } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
 import type { GitTaskEnv } from "../../../workers/tasks/git";
@@ -316,7 +320,6 @@ async function runDestroy(
 				worktreePath: local.worktreePath,
 				repoPath: project.repoPath,
 				projectId: project.id,
-				workspaceName: local.name,
 			});
 			if (teardown.status === "failed") {
 				if (input.teardownMode === "blocking") {
@@ -623,6 +626,13 @@ async function runDestroyPhases(
 			const message = err instanceof Error ? err.message : String(err);
 			warnings.push(`Failed to invalidate label cache: ${message}`);
 		}
+
+		// The desktop dev app profile, last: every throw above un-archives the
+		// workspace and hands it back to the user, and a workspace that came
+		// back must still have its logins and browser storage. By here nothing
+		// can roll the delete back. Swallows its own failures — reclaiming
+		// disk must never fail a delete.
+		await removeDevAppProfile({ workspaceName: local.name });
 	}
 
 	return {

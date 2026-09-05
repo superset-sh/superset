@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { join } from "node:path";
 import {
 	devAppProfileDirName,
 	isDevAppProfileDirName,
@@ -65,6 +66,23 @@ describe("resolveAppDataDir", () => {
 				env: { XDG_CONFIG_HOME: "/home/dev/cfg" },
 			}),
 		).toBe("/home/dev/cfg");
+		// An empty variable is unset — letting "" through would make the
+		// caller's path.join resolve relative to its working directory.
+		expect(
+			resolveAppDataDir({
+				platform: "linux",
+				homeDir: "/home/dev",
+				env: { XDG_CONFIG_HOME: "" },
+			}),
+		).toBe("/home/dev/.config");
+		// Separator-agnostic: node:path joins with "/" on a posix test host.
+		expect(
+			resolveAppDataDir({
+				platform: "win32",
+				homeDir: "C:\\Users\\dev",
+				env: { APPDATA: "" },
+			}),
+		).toBe(join("C:\\Users\\dev", "AppData", "Roaming"));
 		expect(
 			resolveAppDataDir({
 				platform: "win32",

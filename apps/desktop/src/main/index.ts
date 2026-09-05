@@ -9,7 +9,10 @@ import {
 } from "@superset/agent-setup";
 import { i18n, initI18nAsync } from "@superset/i18n";
 import { settings } from "@superset/local-db";
-import { devAppProfileDirName } from "@superset/shared/dev-app-profile";
+import {
+	devAppProfileDirName,
+	isDevAppProfileDirName,
+} from "@superset/shared/dev-app-profile";
 import { app, dialog, Notification, net, protocol, session } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import {
@@ -80,8 +83,19 @@ void applyShellEnvToProcess().catch((error) => {
 // gets its own Chromium profile — see sweepDevAppProfiles for the reaping.
 if (IS_DEV) {
 	const workspaceName = resolveDevWorkspaceName();
-	if (workspaceName) {
-		app.setName(devAppProfileDirName(workspaceName));
+	const profileName = workspaceName
+		? devAppProfileDirName(workspaceName)
+		: undefined;
+	// A name carrying a path separator would make Electron nest userData inside
+	// a directory neither the sweep nor teardown can ever reap. Keep the
+	// default profile instead — a shared dock label beats an unreclaimable one.
+	if (profileName && isDevAppProfileDirName(profileName)) {
+		app.setName(profileName);
+	} else if (profileName) {
+		console.warn(
+			"[main] Not renaming the app: unusable profile name",
+			profileName,
+		);
 	}
 }
 

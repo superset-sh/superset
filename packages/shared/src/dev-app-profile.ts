@@ -72,9 +72,11 @@ export function resolveAppDataDir({
 		case "darwin":
 			return path.join(homeDir, "Library", "Application Support");
 		case "win32":
-			return env.APPDATA ?? path.join(homeDir, "AppData", "Roaming");
+			// `||`, not `??`: an empty variable is unset, and letting "" through
+			// would make the caller's path.join resolve relative to its cwd.
+			return env.APPDATA || path.join(homeDir, "AppData", "Roaming");
 		default:
-			return env.XDG_CONFIG_HOME ?? path.join(homeDir, ".config");
+			return env.XDG_CONFIG_HOME || path.join(homeDir, ".config");
 	}
 }
 
