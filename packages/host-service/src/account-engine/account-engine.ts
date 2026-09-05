@@ -28,6 +28,7 @@
 
 import { createHash, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
+import { resolve as resolvePath } from "node:path";
 import type { HostDb } from "../db/index.ts";
 import type {
 	AccountEngineStatePayload,
@@ -106,6 +107,29 @@ const HOUR_MS = 3_600_000;
 const CLAUDE_RATE_LIMIT_HINT = "rate_limit";
 const POLL_INTERVALS = new Set([30, 60, 120, 300]);
 
+/** How long `stop()` waits for the work already in flight before it releases
+ * the host lock anyway. Long enough for a provider call and a session move,
+ * short enough that a wedged one cannot hold a shutdown open. */
+const STOP_DRAIN_MS = 10_000;
+
+/**
+ * KTD7 gate 2 asks the mover two questions at once — did this terminal's own
+ * screen show the limit, and is the account really spent — and only the first
+ * costs nothing. A Claude hint's permission to read a screen is the hook
+ * event, not the quota, so it is asked with a stand-in window that leaves the
+ * screen as the only variable; the quota half is then evaluated against
+ * numbers refreshed *after* the screen corroborated it, because a limit
+ * reached between two polls is still a real limit.
+ */
+const SNAPSHOT_ONLY_WINDOWS: readonly UsageQuotaWindow[] = [
+	{
+		id: "limit-hint",
+		label: "limit hint",
+		usedPercent: 100,
+		resetsAt: null,
+	},
+];
+
 /** KTD13: the engine is refused on Windows rather than half-supported. */
 export const WINDOWS_UNSUPPORTED_REASON =
 	"Automatic account switching is not supported on Windows: the launch wrapper that re-resolves the account pointer is POSIX shell.";
@@ -123,6 +147,12 @@ export interface ActiveDirIdentity {
 export interface EngineQuotaStore {
 	entries(agent?: AccountAgent): QuotaEntry[];
 	entry(key: string): QuotaEntry | undefined;
+	/** The on-demand read the Usage page uses: it discovers an agent's logins
+	 * even on a host where nothing has polled yet (R3). */
+	read(options?: {
+		agents?: AccountAgent[];
+		forceRefresh?: boolean;
+	}): Promise<unknown>;
 	refreshDue(now: number, schedule: QuotaRefreshSchedule): Promise<void>;
 	setSnapshotSink(sink: ((snapshot: QuotaStoreSnapshot) => void) | null): void;
 	setSnapshotSource(source: (() => QuotaStoreSnapshot | null) | null): void;
@@ -187,16 +217,29 @@ export type ManualSwitchOutcome =
 	| SwitchOutcome
 	| { ok: false; code: "lock-loser"; reason: string };
 
+const LOCK_LOSER_REASON =
+	"Another Superset instance on this machine owns account switching.";
+
 /** KTD5: what every path that noticed the lock is gone returns. */
 const LOCK_LOSER: ManualSwitchOutcome = {
 	ok: false,
 	code: "lock-loser",
-	reason: "Another Superset instance on this machine owns account switching.",
+	reason: LOCK_LOSER_REASON,
 };
 
 export type SettingsOutcome =
 	| { ok: true; settings: EngineSettings }
-	| { ok: false; code: "unsupported-platform" | "invalid"; reason: string };
+	| {
+			ok: false;
+			code: "unsupported-platform" | "invalid" | "lock-loser";
+			reason: string;
+	  };
+
+/** R16, and KTD5: the rotation flags live in the same host-wide state dir as
+ * everything else, so a lock loser may not write them either. */
+export type RotationOutcome =
+	| { ok: true; rotation: RotationState }
+	| { ok: false; code: "lock-loser"; reason: string };
 
 export interface AgentEngineStatus {
 	enabled: boolean;
@@ -226,7 +269,12 @@ interface PerformSwitchInput {
 	windowId: string | null;
 	usedPercent: number | null;
 	now: number;
-	fallbackRestart?: boolean;
+	/**
+	 * R8: the limit-stopped session's restart, run here rather than by the
+	 * caller so the history row and the `account:switched` event can carry
+	 * what actually happened instead of what was intended.
+	 */
+	fallbackRestart?: () => Promise<boolean>;
 	/**
 	 * KTD8: the terminal a limit hint named. The planned move leaves it alone
 	 * so `fallbackRestart` is the one that restarts it — a bare restart here
@@ -351,6 +399,17 @@ export class AccountEngine {
 	private ticking = false;
 	private tickRequested = false;
 	private handlingHints = false;
+	/** Set by `stop()`, and checked at every awaited boundary: an engine that
+	 * has handed the host lock back writes nothing more. */
+	private stopped = false;
+	/**
+	 * One in-process mutation at a time. The tick, a manual switch and a
+	 * limit-hint pass all read `runtime.json`, await I/O and write it back;
+	 * without this they interleave and the last writer persists a snapshot
+	 * taken before the other one's switch. The file lock (KTD5) serialises
+	 * across processes; this chain serialises within one.
+	 */
+	private mutation: Promise<unknown> = Promise.resolve();
 	private unsubscribeSessions: (() => void) | null = null;
 	/** What this process last wrote into the active Claude dir (KTD3). */
 	private lastWritten:
@@ -400,6 +459,7 @@ export class AccountEngine {
 
 	start(): void {
 		if (this.ticker) return;
+		this.stopped = false;
 		// Claimed at boot rather than a tick later: until this host owns the
 		// lock every account mutation the Usage page sends is refused, and the
 		// first tick is a whole interval away (KTD5).
@@ -414,14 +474,50 @@ export class AccountEngine {
 			}) ?? null;
 	}
 
-	stop(): void {
+	/**
+	 * Ownership is handed back last. A tick already in flight still holds the
+	 * credentials — it may be mid-swap — so releasing the lock before it ends
+	 * would let another host on this machine claim it and swap at the same
+	 * time. The flag stops that tick at its next awaited boundary; the wait is
+	 * bounded so a wedged provider call cannot hold a shutdown open.
+	 */
+	async stop(): Promise<void> {
+		this.stopped = true;
 		if (this.ticker) {
 			this.clearIntervalFn(this.ticker);
 			this.ticker = null;
 		}
 		this.unsubscribeSessions?.();
 		this.unsubscribeSessions = null;
+		await this.settle(STOP_DRAIN_MS);
 		this.releaseOwnership();
+	}
+
+	/** Waits for the mutation chain to drain, or for `timeoutMs`. */
+	private async settle(timeoutMs: number): Promise<void> {
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		const deadline = new Promise<void>((done) => {
+			timer = setTimeout(done, timeoutMs);
+			timer.unref?.();
+		});
+		try {
+			await Promise.race([this.mutation.catch(() => {}), deadline]);
+		} finally {
+			if (timer) clearTimeout(timer);
+		}
+	}
+
+	/**
+	 * Queues `run` behind whatever mutation is already in flight. Never call
+	 * it from inside one: the inner call would wait for the outer to finish.
+	 */
+	private serialize<T>(run: () => Promise<T>): Promise<T> {
+		const next = this.mutation.then(run, run);
+		this.mutation = next.then(
+			() => {},
+			() => {},
+		);
+		return next;
 	}
 
 	// ── Public surface (U7) ────────────────────────────────────────────
@@ -441,6 +537,9 @@ export class AccountEngine {
 				reason: WINDOWS_UNSUPPORTED_REASON,
 			};
 		}
+		if (!this.ownsMutations()) {
+			return { ok: false, code: "lock-loser", reason: LOCK_LOSER_REASON };
+		}
 		const current = this.state.readSettings();
 		const next: AutoSwitchSettings = { ...current[agent], ...patch };
 		const invalid = validateSettings(next);
@@ -450,10 +549,24 @@ export class AccountEngine {
 		return { ok: true, settings };
 	}
 
-	setRotation(accountKey: string, inRotation: boolean): RotationState {
+	setRotation(accountKey: string, inRotation: boolean): RotationOutcome {
+		if (!this.ownsMutations()) {
+			return { ok: false, code: "lock-loser", reason: LOCK_LOSER_REASON };
+		}
 		const rotation = { ...this.state.readRotation(), [accountKey]: inRotation };
 		this.state.writeRotation(rotation);
-		return rotation;
+		return { ok: true, rotation };
+	}
+
+	/**
+	 * KTD5, re-read from disk rather than from the cached flag: the lock can
+	 * have gone to another instance since the last tick, and the state dir it
+	 * owns is where these writes land. On Windows the engine never claims the
+	 * lock at all (KTD13), so there is nothing to revalidate.
+	 */
+	private ownsMutations(): boolean {
+		if (!this.platformSupported()) return true;
+		return this.ensureOwnership(this.now());
 	}
 
 	history(limit = 50): HistoryEntry[] {
@@ -495,14 +608,32 @@ export class AccountEngine {
 				reason: WINDOWS_UNSUPPORTED_REASON,
 			};
 		}
+		// A tick may be mid-switch on a runtime snapshot of its own; this waits
+		// for it rather than deciding against state that is about to change.
+		return this.serialize(() => this.runManualSwitch(agent, selection));
+	}
+
+	private async runManualSwitch(
+		agent: AccountAgent,
+		selection: string | null,
+	): Promise<ManualSwitchOutcome> {
 		const now = this.now();
 		// KTD5: another instance holding the lock owns the credentials, so a
 		// swap here would sign its sessions out from under it.
 		if (!this.ensureOwnership(now)) return LOCK_LOSER;
 		const settings = this.state.readSettings();
 		const runtime = this.state.readRuntime();
-		this.resolveActive(agent, runtime);
-		const pool = this.pool(agent);
+		let pool = this.pool(agent);
+		if (!pool.some((item) => item.row.selection === selection)) {
+			// R3: with auto-switch off nothing has ever polled this agent, so
+			// the pool is empty on a host where the account plainly exists. One
+			// on-demand read through the store — which owns the poll floor and
+			// the back-off — before a valid selection is refused as unknown.
+			await this.quotaStore.read({ agents: [agent] });
+			if (!this.ensureOwnership(this.now())) return LOCK_LOSER;
+			pool = this.pool(agent);
+		}
+		await this.resolveActive(agent, runtime);
 		const state = runtime.perAgent[agent];
 		const from =
 			pool.find((item) => item.row.accountId === state.activeAccountId)?.row ??
@@ -588,7 +719,7 @@ export class AccountEngine {
 		}
 		this.ticking = true;
 		try {
-			await this.runTick(now);
+			await this.serialize(() => this.runTick(now));
 		} catch (error) {
 			console.warn("[account-engine] tick failed:", error);
 		} finally {
@@ -622,7 +753,7 @@ export class AccountEngine {
 		const rotation = this.state.readRotation();
 		// The active account is resolved first: the poll schedule, the
 		// identity re-assertion and the decision all key off it.
-		for (const agent of agents) this.resolveActive(agent, runtime);
+		for (const agent of agents) await this.resolveActive(agent, runtime);
 
 		await this.quotaStore.refreshDue(
 			now,
@@ -653,12 +784,21 @@ export class AccountEngine {
 		for (const agent of agents) {
 			this.broadcastState(agent, settings[agent], runtime, now);
 		}
-		await this.handleLimitHints(now, { settings, agents, runtime, rotation });
+		// Not through `handleLimitHints`: this tick already holds the mutation
+		// slot, and queueing behind itself would never resolve.
+		await this.limitHintPass(now, { settings, agents, runtime, rotation });
 	}
 
 	// ── Ownership (KTD5) ───────────────────────────────────────────────
 
 	private ensureOwnership(now: number): boolean {
+		// A stopped engine claims nothing and re-claims nothing: `stop()` is
+		// about to hand the lock to whoever wants it next, and every awaited
+		// boundary below asks this question before it writes.
+		if (this.stopped) {
+			this.owner = false;
+			return false;
+		}
 		const owner = this.state.claimLock(this.nonce, now, this.lockStaleMs);
 		this.owner = owner;
 		if (this.ownershipApplied === owner) return owner;
@@ -736,8 +876,29 @@ export class AccountEngine {
 				await this.reconcile(agent, state);
 				continue;
 			}
-			await this.mover.onExternalSwitch(agent);
+			await this.followExternalSwitch(agent);
 		}
+	}
+
+	/**
+	 * KTD12/R6 on the loser's side: a Claude session already running on the
+	 * shared active dir picks the owner's new login up in place, so restarting
+	 * it would throw away a live turn for nothing. The mover's own
+	 * external-switch path takes every row, so the filter is applied here —
+	 * the same one the owner's move uses.
+	 */
+	private async followExternalSwitch(agent: AccountAgent): Promise<void> {
+		if (agent !== "claude") {
+			await this.mover.onExternalSwitch(agent);
+			return;
+		}
+		const activeDir = this.resolveActiveDir();
+		await this.mover.moveAtIdle(
+			agent,
+			this.hostDeps
+				.listSessions(agent)
+				.filter((row) => row.configDir !== activeDir),
+		);
 	}
 
 	/**
@@ -792,17 +953,29 @@ export class AccountEngine {
 	}
 
 	/** The engine's own record wins; then `isDefault`, then the host pointer. */
-	private resolveActive(agent: AccountAgent, runtime: RuntimeState): void {
+	private async resolveActive(
+		agent: AccountAgent,
+		runtime: RuntimeState,
+	): Promise<void> {
 		const state = runtime.perAgent[agent];
 		const pool = this.pool(agent);
-		const known =
-			state.activeAccountId === null
-				? undefined
-				: pool.find((item) => item.row.accountId === state.activeAccountId);
+		// A recorded account keeps the record even when it is absent from the
+		// pool — a provider read that failed, a profile dir not mounted yet.
+		// The guesses below are for a state that records nothing at all;
+		// substituting a plausible row for an account we simply cannot see
+		// right now would point the engine at a login sessions are not on, and
+		// `evaluate` already refuses to switch without a known active.
+		if (state.activeAccountId !== null) {
+			const known = pool.find(
+				(item) => item.row.accountId === state.activeAccountId,
+			);
+			if (known) state.activeSelection = known.row.selection;
+			return;
+		}
+		if (state.activeSelection !== null) return;
 		const chosen =
-			known ??
 			pool.find((item) => item.account.isDefault) ??
-			this.pointerAccount(agent, pool);
+			(await this.pointerAccount(agent, pool));
 		if (!chosen) return;
 		state.activeAccountId = chosen.row.accountId;
 		state.activeSelection = chosen.row.selection;
@@ -815,10 +988,10 @@ export class AccountEngine {
 	 * pointer is the system-default login, which is the pool row whose
 	 * selection is null.
 	 */
-	private pointerAccount(
+	private async pointerAccount(
 		agent: AccountAgent,
 		pool: EngineAccount[],
-	): EngineAccount | undefined {
+	): Promise<EngineAccount | undefined> {
 		let selections: DefaultAccountSelections;
 		try {
 			selections = this.readPointerSelections(this.db);
@@ -831,7 +1004,17 @@ export class AccountEngine {
 		}
 		const selection =
 			agent === "claude" ? selections.claudeConfigDir : selections.codexHome;
-		return pool.find((item) => item.row.selection === selection);
+		const match = pool.find((item) => item.row.selection === selection);
+		if (match) return match;
+		// After any Claude switch the pointer names Superset's own active dir,
+		// which is never a pool row — so a host that lost runtime.json would
+		// find no account here at all. The dir's own identity says which one
+		// its login belongs to.
+		if (agent !== "claude" || selection === null) return undefined;
+		if (!samePath(selection, this.resolveActiveDir())) return undefined;
+		const seen = await this.readActiveIdentitySafe(selection);
+		if (!seen?.accountUuid) return undefined;
+		return pool.find((item) => item.row.accountId === seen.accountUuid);
 	}
 
 	private schedule(
@@ -946,6 +1129,10 @@ export class AccountEngine {
 		// the lease is re-checked immediately before them and again before the
 		// state they leave behind.
 		if (!this.ensureOwnership(this.now())) return LOCK_LOSER;
+		// The config dirs sessions were *launched* from, read before the
+		// pointer moves. Afterwards an unpinned session resolves to the active
+		// dir and the filter below would read it as already moved.
+		const launched = this.hostDeps.listSessions(agent);
 		const result =
 			agent === "claude"
 				? await this.switchClaude(input)
@@ -961,6 +1148,14 @@ export class AccountEngine {
 		}
 
 		if (!this.ensureOwnership(this.now())) return LOCK_LOSER;
+		// R8: the limit-stopped session comes back before the row and the
+		// event that claim it did. It is also what puts that session on the
+		// new account, so it runs here rather than after the planned move —
+		// which leaves it alone (KTD8).
+		const restarted =
+			input.fallbackRestart === undefined
+				? false
+				: await input.fallbackRestart();
 		state.activeAccountId = input.target.accountId;
 		state.activeSelection = input.target.selection;
 		state.cooldownUntil = now + input.settings.cooldownSeconds * 1000;
@@ -971,8 +1166,18 @@ export class AccountEngine {
 				now,
 			];
 		}
-		const entry = this.historyEntry(input);
-		this.state.appendHistory(entry);
+		const entry = this.historyEntry(input, restarted);
+		try {
+			this.state.appendHistory(entry);
+		} catch (error) {
+			// The switch has already happened. A row that could not be appended
+			// is a lost line in a log, not a reason to leave the runtime state
+			// and the sessions behind on the previous account.
+			console.warn(
+				"[account-engine] could not record the switch in history:",
+				error,
+			);
+		}
 		this.state.writeRuntime(runtime);
 		this.broadcast.switched(switchedPayload(entry));
 		if (!this.ensureOwnership(this.now())) return { ok: true };
@@ -980,11 +1185,15 @@ export class AccountEngine {
 			agent,
 			result.activeDir ?? null,
 			input.excludeTerminalId ?? null,
+			launched,
 		);
 		return { ok: true };
 	}
 
-	private historyEntry(input: PerformSwitchInput): SwitchRecord {
+	private historyEntry(
+		input: PerformSwitchInput,
+		fallbackRestart: boolean,
+	): SwitchRecord {
 		return {
 			at: input.now,
 			agent: input.agent,
@@ -995,7 +1204,7 @@ export class AccountEngine {
 			reasonKind: input.reasonKind,
 			windowId: input.windowId,
 			usedPercent: input.usedPercent,
-			fallbackRestart: input.fallbackRestart ?? false,
+			fallbackRestart,
 		};
 	}
 
@@ -1005,7 +1214,7 @@ export class AccountEngine {
 		let activeDir: string;
 		try {
 			activeDir = await this.ensureActiveDir({
-				seedLogin: (dir) => this.seedActiveDir(dir, input.runtime),
+				seedLogin: (dir) => this.seedActiveDir(dir, input),
 			});
 		} catch (error) {
 			return {
@@ -1053,7 +1262,23 @@ export class AccountEngine {
 		try {
 			this.setPointer(this.db, "claude", activeDir);
 		} catch (error) {
-			return { ok: false, code: "pointer-failed", reason: errorText(error) };
+			// R24 says a failed switch changes nothing, and the swap above has
+			// already changed the active dir. Put the previous login back
+			// through the same primitive before reporting the failure;
+			// otherwise the sessions are on an account nothing recorded.
+			const restored = await this.restorePreviousLogin(input, activeDir);
+			if (restored) {
+				return { ok: false, code: "pointer-failed", reason: errorText(error) };
+			}
+			// Neither half took: the active dir holds the target's login and
+			// the pointer still names the old one. Forget what we wrote so the
+			// next tick reads the dir as externally changed (KTD3).
+			this.lastWritten = null;
+			return {
+				ok: false,
+				code: "split-state",
+				reason: `the account pointer could not be moved (${errorText(error)}) and the previous login could not be put back`,
+			};
 		}
 		// Remember what we wrote so the next tick can tell a running Claude
 		// Code's identity rewrite from a real login change (KTD3).
@@ -1077,18 +1302,48 @@ export class AccountEngine {
 		return { ok: true };
 	}
 
+	/**
+	 * The swap that undoes a swap: same primitive, same direction, target and
+	 * owner exchanged. Only the login moves — the pointer never did.
+	 */
+	private async restorePreviousLogin(
+		input: PerformSwitchInput,
+		activeDir: string,
+	): Promise<boolean> {
+		const from = input.from;
+		if (!from) return false;
+		const result = await this.swap({
+			target: storeRef(from.selection),
+			ownerBinding: storeRef(input.target.selection),
+			expectedOwnerAccountId: input.target.accountId,
+			ownerManaged: input.target.managed,
+			activeDir,
+		});
+		if (!result.ok) return false;
+		this.recordBinding(
+			input.runtime,
+			result.identity.accountUuid,
+			from.selection,
+		);
+		return true;
+	}
+
 	private async seedActiveDir(
 		dir: string,
-		runtime: RuntimeState,
+		input: PerformSwitchInput,
 	): Promise<void> {
-		// KTD14: a brand-new active dir starts from the system-default login,
-		// which is the account every session was already running on.
+		// KTD14: a brand-new active dir starts from the login every session is
+		// already running on — which on a host upgraded into this feature is
+		// whatever the pointer selects, not necessarily `~/.claude`. Seeding
+		// from the system default there would save the wrong credential back
+		// over the selected profile on the first swap.
+		const source = input.from?.selection ?? null;
 		const result = await this.seed({
-			source: { kind: "system-default" },
+			source: storeRef(source),
 			activeDir: dir,
 		});
 		if (result.ok)
-			this.recordBinding(runtime, result.identity.accountUuid, null);
+			this.recordBinding(input.runtime, result.identity.accountUuid, source);
 	}
 
 	private recordBinding(
@@ -1135,10 +1390,10 @@ export class AccountEngine {
 		agent: AccountAgent,
 		activeDir: string | null,
 		excludeTerminalId: string | null = null,
+		/** Rows as they were before the pointer moved; see `performSwitch`. */
+		launched: MovableSession[] = this.hostDeps.listSessions(agent),
 	): Promise<void> {
-		const rows = this.hostDeps
-			.listSessions(agent)
-			.filter((row) => row.terminalId !== excludeTerminalId);
+		const rows = launched.filter((row) => row.terminalId !== excludeTerminalId);
 		const moving =
 			agent === "claude" && activeDir !== null
 				? rows.filter((row) => row.configDir !== activeDir)
@@ -1233,8 +1488,15 @@ export class AccountEngine {
 	 * snapshot costs no provider call, and the quota refresh goes through the
 	 * store so it honours the poll floor and the 429 back-off.
 	 */
-	async handleLimitHints(
-		now: number = this.now(),
+	async handleLimitHints(now: number = this.now()): Promise<void> {
+		// A hint arrives on the store's change signal, which is nothing to do
+		// with the tick: it waits for whatever the tick is doing rather than
+		// switching against a runtime snapshot that is about to be rewritten.
+		return this.serialize(() => this.limitHintPass(now));
+	}
+
+	private async limitHintPass(
+		now: number,
 		loaded?: LimitHintPass,
 	): Promise<void> {
 		if (this.handlingHints) return;
@@ -1259,7 +1521,7 @@ export class AccountEngine {
 		if (!pass) return;
 		const { settings, agents, runtime, rotation } = pass;
 		for (const agent of agents) {
-			this.resolveActive(agent, runtime);
+			await this.resolveActive(agent, runtime);
 			for (const row of this.hostDeps.listSessions(agent)) {
 				if (!row.managed || !this.isLimitHint(row)) continue;
 				await this.handleHint(row, settings, rotation, runtime, now);
@@ -1328,26 +1590,39 @@ export class AccountEngine {
 			return;
 		}
 
-		// Gate 2: the host reads the terminal's own screen.
+		// Gate 2: the host reads the terminal's own screen. Nothing here
+		// reaches a provider, so a forged hint is turned down before it can
+		// cost a request. Codex's stall is only allowed to open a screen once
+		// its own numbers say the account is spent; Claude's hook event is its
+		// own permission (see SNAPSHOT_ONLY_WINDOWS).
 		const corroborated = await this.mover.corroborateLimitStop(
 			row,
-			active.account.windows,
-		);
-		// Gate 3: fresh numbers for the target choice, through the store so a
-		// hint storm cannot become a fetch storm.
-		await this.quotaStore.refreshDue(
-			now,
-			this.schedule(allSettings, runtime, [agent]),
+			agent === "claude" ? SNAPSHOT_ONLY_WINDOWS : active.account.windows,
 		);
 		if (!corroborated) {
 			this.recordRejectedHint(agent, active.row, now);
 			return;
 		}
 
+		// Gate 3: fresh numbers, through the store so a hint storm cannot
+		// become a fetch storm — and read *after* the screen corroborated,
+		// because a limit reached between two polls is still a real limit.
+		await this.quotaStore.refreshDue(
+			now,
+			this.schedule(allSettings, runtime, [agent]),
+		);
+		if (!this.ensureOwnership(this.now())) return;
+
 		const pool = this.pool(agent);
 		const from =
 			pool.find((item) => item.row.accountId === state.activeAccountId) ??
 			active;
+		if (!from.row.windows.some((window) => window.usedPercent >= 100)) {
+			// The screen said "limit" but the account has room: a stale screen,
+			// or a limit that has already reset.
+			this.recordRejectedHint(agent, from.row, now);
+			return;
+		}
 		const usable = this.targets(pool, from).filter(
 			(candidate) =>
 				isEligible(candidate, rotation) &&
@@ -1367,7 +1642,7 @@ export class AccountEngine {
 		}
 
 		const worst = worstWindow(from.row, settings.modelWindows);
-		const outcome = await this.performSwitch({
+		await this.performSwitch({
 			agent,
 			settings,
 			runtime,
@@ -1377,10 +1652,11 @@ export class AccountEngine {
 			windowId: worst?.id ?? null,
 			usedPercent: worst?.usedPercent ?? null,
 			now,
-			fallbackRestart: true,
+			// Run by the switch itself, once the pointer moved and before the
+			// history row that reports whether it worked.
+			fallbackRestart: () => this.mover.fallbackRestart(row),
 			excludeTerminalId: row.terminalId,
 		});
-		if (outcome.ok) await this.mover.fallbackRestart(row);
 	}
 
 	/** KTD7: a hint the gates turned down is recorded, never acted on. */
@@ -1446,6 +1722,13 @@ export class AccountEngine {
  * the bus's filter key, so the two can never drift apart. */
 function switchedPayload(entry: SwitchRecord): AccountSwitchedPayload {
 	return { scope: entry.agent, ...entry };
+}
+
+/** Two paths naming the same dir. Lexical only: the pointer and the active
+ * dir are both written by this process, so trailing slashes and `.` segments
+ * are the whole difference to expect. */
+function samePath(a: string, b: string): boolean {
+	return resolvePath(a) === resolvePath(b);
 }
 
 function storeRef(selection: string | null): ClaudeLoginStoreRef {

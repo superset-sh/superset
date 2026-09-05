@@ -136,6 +136,15 @@ describe("isEligible", () => {
 		expect(isEligible(account({ tokenState: "signed_out" }), {})).toBe(false);
 	});
 
+	// An unreadable quota reports no windows, which scores a full 100 headroom
+	// — the account an automatic switch would land on. It stays manual-only.
+	it("refuses an account whose quota could not be read", () => {
+		const unreadable = account({ tokenState: "unavailable", windows: [] });
+		expect(scoreAccount(unreadable, [])).toBe(100);
+		expect(isEligible(unreadable, {})).toBe(false);
+		expect(isEligible(unreadable, { "claude:acct-a": true })).toBe(false);
+	});
+
 	// AE7: an API-key account is skipped at the default and eligible once its
 	// rotation toggle is on.
 	it("holds API-key accounts out of rotation by default", () => {
@@ -225,6 +234,41 @@ describe("pickConsumeFirst", () => {
 			windows: [window_("seven_day", "Weekly", 10, T0 + 2 * DAY)],
 		});
 		expect(pickConsumeFirst([unknown, known])?.accountKey).toBe("key-b");
+	});
+
+	// Some Claude plans report the weekly period only per model. Ignoring
+	// `weekly_scoped:` left consume-first with no reset to rank those accounts
+	// by, so every one of them sorted last and the strategy did nothing.
+	it("ranks a Claude account by its scoped weekly window when that is all it has", () => {
+		const scopedOnly = account({
+			accountKey: "key-a",
+			windows: [
+				window_("five_hour", "Session (5h)", 40, T0 + HOUR),
+				window_("weekly_scoped:Fable", "Weekly · Fable", 40, T0 + 6 * HOUR),
+			],
+		});
+		const plainWeekly = account({
+			accountKey: "key-b",
+			windows: [window_("seven_day", "Weekly", 40, T0 + 5 * DAY)],
+		});
+		expect(pickConsumeFirst([scopedOnly, plainWeekly])?.accountKey).toBe(
+			"key-a",
+		);
+	});
+
+	it("takes the soonest across the plain and scoped weekly windows", () => {
+		const soonestIsPlain = account({
+			accountKey: "key-a",
+			windows: [
+				window_("seven_day", "Weekly", 40, T0 + 2 * DAY),
+				window_("weekly_scoped:Fable", "Weekly · Fable", 40, T0 + 5 * DAY),
+			],
+		});
+		const later = account({
+			accountKey: "key-b",
+			windows: [window_("seven_day", "Weekly", 40, T0 + 3 * DAY)],
+		});
+		expect(pickConsumeFirst([soonestIsPlain, later])?.accountKey).toBe("key-a");
 	});
 });
 

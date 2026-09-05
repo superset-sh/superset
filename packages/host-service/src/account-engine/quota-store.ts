@@ -52,6 +52,25 @@ export const MAX_BACKOFF_MS = 30 * 60_000;
  */
 export const BUDGET_WINDOW_MS = 5 * 60_000;
 export const BUDGET_MAX_REQUESTS = 6;
+/** Slots held back for the accounts that are not the active one. */
+const BUDGET_SECONDARY_SLOTS = 2;
+
+/**
+ * The budget for one endpoint at the cadence the engine actually asked for.
+ * A flat six would silently cap the configured interval — a 30-second active
+ * poll needs ten slots per window on its own — so the cap is whatever that
+ * interval costs plus a couple for the secondary accounts, never less than
+ * {@link BUDGET_MAX_REQUESTS}.
+ */
+export function budgetMaxRequests(activeIntervalMs?: number): number {
+	if (activeIntervalMs === undefined || activeIntervalMs <= 0) {
+		return BUDGET_MAX_REQUESTS;
+	}
+	return Math.max(
+		BUDGET_MAX_REQUESTS,
+		Math.ceil(BUDGET_WINDOW_MS / activeIntervalMs) + BUDGET_SECONDARY_SLOTS,
+	);
+}
 
 /** Mirrors `UsageAccountStatus`: what the last read said about the login. */
 export type QuotaTokenState = UsageAccountStatus;
@@ -88,6 +107,14 @@ export interface QuotaDiscovery {
 	selections: Array<string | null>;
 	/** Rows with no fetch of their own (signed-out, API-key). */
 	staticAccounts: UsageAccount[];
+	/**
+	 * False when the pass stopped early and the result is a subset of what is
+	 * really there — `discoverClaudeProfiles` gives up on its scan-time budget
+	 * mid-walk, and a truncated list would otherwise reap every profile it did
+	 * not reach. Absent means complete, so a producer that cannot be partial
+	 * says nothing.
+	 */
+	complete?: boolean;
 }
 
 export interface QuotaStoreSnapshotEntry {
@@ -157,12 +184,18 @@ export function quotaEntryKey(
  * R23/KTD11: a stale access token still counts as signed in and keeps its
  * last-known windows; an expired or signed-out login is never switched onto.
  * A failing fetch also holds the account back — its numbers are last-known,
- * so it may be scored but must not be moved onto (AE10).
+ * so it may be scored but must not be moved onto (AE10). `unavailable` is the
+ * same case one layer down: the read itself did not land (an endpoint error, a
+ * timeout, no windows at all), so an automatic switch would be moving onto
+ * quota nobody has read. It stays a *manual* target — the user asking for it
+ * is evidence the engine does not have.
  */
 export function eligibleForSwitch(entry: QuotaEntry): boolean {
 	if (entry.lastError !== null) return false;
 	return (
-		entry.tokenState !== "token_expired" && entry.tokenState !== "signed_out"
+		entry.tokenState !== "token_expired" &&
+		entry.tokenState !== "signed_out" &&
+		entry.tokenState !== "unavailable"
 	);
 }
 
@@ -326,9 +359,10 @@ export class QuotaStore {
 						Number(a.key === agentSchedule.activeKey);
 					return rank !== 0 ? rank : a.nextPollAt - b.nextPollAt;
 				});
+			const budget = budgetMaxRequests(agentSchedule.intervalMs);
 			let used = this.requestsInWindow(agent, now);
 			for (const entry of candidates) {
-				if (used < BUDGET_MAX_REQUESTS) {
+				if (used < budget) {
 					used++;
 					due.push(entry);
 				} else {
@@ -416,8 +450,13 @@ export class QuotaStore {
 			entry.nextPollAt = Number.POSITIVE_INFINITY;
 			this.entryMap.set(key, entry);
 		}
-		for (const [key, entry] of [...this.entryMap]) {
-			if (entry.agent === agent && !keep.has(key)) this.entryMap.delete(key);
+		// Only a pass that saw everything may reap: a scan that ran out of its
+		// time budget half-way lists fewer profiles than exist, and deleting the
+		// rest would drop live accounts off the Usage page and out of rotation.
+		if (targets.complete !== false) {
+			for (const [key, entry] of [...this.entryMap]) {
+				if (entry.agent === agent && !keep.has(key)) this.entryMap.delete(key);
+			}
 		}
 		this.discoveredAt.set(agent, now);
 	}

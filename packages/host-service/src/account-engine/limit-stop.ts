@@ -60,6 +60,21 @@ const LIMIT_TEXT: Partial<Record<QuotaCapableAgent, RegExp>> = {
 };
 
 /**
+ * The last `rows` lines of a terminal snapshot: what is on screen *now*.
+ *
+ * The host's snapshot carries recent scrollback as well as the visible screen
+ * (a plain shell keeps up to a thousand lines of it), and an hours-old limit
+ * message sitting in that scrollback would corroborate a brand-new hint. Gate
+ * 2 is meant to be evidence that this turn stopped, so it only ever sees the
+ * screen. Matched in memory like every other snapshot text, never persisted.
+ */
+export function lastVisibleScreen(screenText: string, rows: number): string {
+	if (!Number.isFinite(rows) || rows <= 0) return screenText;
+	const lines = screenText.split("\n");
+	return lines.length <= rows ? screenText : lines.slice(-rows).join("\n");
+}
+
+/**
  * Gate 2: the host-observed corroborator. `screenText` is a live terminal
  * snapshot — matched in memory, never persisted, broadcast or logged.
  */

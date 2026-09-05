@@ -13,7 +13,11 @@ import type {
 	UsageQuotaWindow,
 } from "../trpc/router/usage/types.ts";
 import { AccountEngine } from "./account-engine.ts";
-import type { ClaudeSwapResult, swapClaudeLogin } from "./claude-login-swap.ts";
+import type {
+	ClaudeSwapResult,
+	seedActiveClaudeLogin,
+	swapClaudeLogin,
+} from "./claude-login-swap.ts";
 import { EngineState } from "./engine-state.ts";
 import type { AccountEngineHostDeps } from "./host-deps.ts";
 import type {
@@ -103,9 +107,21 @@ interface HarnessOptions {
 	entries?: QuotaEntry[];
 	sessions?: MovableSession[];
 	swapResult?: ClaudeSwapResult;
+	/** Per-call swap results, indexed by call: a restore after a failed
+	 * pointer write is the second swap of the same switch. */
+	swapResults?: ClaudeSwapResult[];
 	corroborates?: boolean;
 	platform?: NodeJS.Platform;
 	activeDirThrows?: boolean;
+	/** The pointer write fails — after the credential has already moved. */
+	setPointerThrows?: boolean;
+	/** Runs after a successful pointer write, where the launch wrapper would
+	 * re-resolve unpinned sessions onto the new active dir. */
+	onSetPointer?: () => void;
+	/** What the mover's fallback restart reports back. */
+	restartSucceeds?: boolean;
+	/** Runs inside the on-demand quota read a manual switch falls back to. */
+	onRead?: () => void;
 	/** The host pointer per agent, as `getDefaultAccountSelections` reads it. */
 	pointer?: { claudeConfigDir?: string | null; codexHome?: string | null };
 	/** Terminals `isAgentBusy` reports as mid-turn — a Codex limit hint. */
@@ -133,6 +149,8 @@ function harness(options: HarnessOptions = {}) {
 	const snapshotSources: Array<(() => QuotaStoreSnapshot | null) | null> = [];
 	const bindingRecorders: Array<IdentityBindingRecorder | null> = [];
 	const swapInputs: Array<Parameters<typeof swapClaudeLogin>[0]> = [];
+	const seedInputs: Array<Parameters<typeof seedActiveClaudeLogin>[0]> = [];
+	const reads: Array<AccountAgent[] | undefined> = [];
 	let clock = T0;
 	let entries = options.entries ?? [];
 	let sessions = options.sessions ?? [];
@@ -167,6 +185,12 @@ function harness(options: HarnessOptions = {}) {
 					? entries
 					: entries.filter((entry) => entry.agent === agent),
 			entry: (key) => entries.find((entry) => entry.key === key),
+			read: async (opts) => {
+				calls.push("read");
+				reads.push(opts?.agents);
+				options.onRead?.();
+				return [];
+			},
 			refreshDue: async (now, schedule) => {
 				calls.push("refreshDue");
 				schedules.push({ now, schedule });
@@ -189,7 +213,7 @@ function harness(options: HarnessOptions = {}) {
 			fallbackRestart: async (row) => {
 				calls.push("fallbackRestart");
 				restarted.push(row);
-				return true;
+				return options.restartSucceeds ?? true;
 			},
 			corroborateLimitStop: async () => {
 				calls.push("corroborate");
@@ -214,10 +238,11 @@ function harness(options: HarnessOptions = {}) {
 		swap: async (input) => {
 			calls.push("swap");
 			swapInputs.push(input);
-			const result = options.swapResult ?? {
-				ok: true,
-				identity: swapIdentity("acct-b"),
-			};
+			const result = options.swapResults?.[swapInputs.length - 1] ??
+				options.swapResult ?? {
+					ok: true,
+					identity: swapIdentity("acct-b"),
+				};
 			if (result.ok) {
 				activeIdentity = {
 					accountUuid: result.identity.accountUuid,
@@ -226,8 +251,9 @@ function harness(options: HarnessOptions = {}) {
 			}
 			return result;
 		},
-		seed: async () => {
+		seed: async (input) => {
 			calls.push("seed");
+			seedInputs.push(input);
 			return { ok: true, identity: swapIdentity("acct-a") };
 		},
 		ensureActiveDir: async (opts) => {
@@ -243,6 +269,8 @@ function harness(options: HarnessOptions = {}) {
 		setPointer: (_db, agent, selection) => {
 			calls.push("setPointer");
 			pointers.push({ agent, selection });
+			if (options.setPointerThrows) throw new Error("pointer write failed");
+			options.onSetPointer?.();
 		},
 		readPointerSelections: () => ({
 			claudeConfigDir: options.pointer?.claudeConfigDir ?? null,
@@ -273,6 +301,8 @@ function harness(options: HarnessOptions = {}) {
 		externalSwitches,
 		identityWrites,
 		swapInputs,
+		seedInputs,
+		reads,
 		snapshotSinks,
 		snapshotSources,
 		bindingRecorders,
@@ -554,8 +584,9 @@ describe("AccountEngine", () => {
 			"seed",
 			"swap",
 			"setPointer",
-			"moveAtIdle",
+			// Before the history row and the event that report it (#J).
 			"fallbackRestart",
+			"moveAtIdle",
 		]);
 		expect(h.switched.at(-1)?.reasonKind).toBe("fallback");
 		expect(h.restarted.map((row) => row.terminalId)).toEqual(["term-1"]);
@@ -582,7 +613,9 @@ describe("AccountEngine", () => {
 		expect(h.engine.status().claude.exhausted).toBe(true);
 	});
 
-	it("records a rejected hint instead of switching on it", async () => {
+	// KTD7: the hook endpoint is unauthenticated, so a forged hint must cost
+	// nothing at all — the screen turns it down before any provider request.
+	it("records a rejected hint instead of switching on it, and fetches nothing", async () => {
 		const h = harness({
 			entries: twoClaudeAccounts(),
 			sessions: [movableSession({ limitHintErrorType: "rate_limit" })],
@@ -592,11 +625,108 @@ describe("AccountEngine", () => {
 
 		await h.engine.handleLimitHints();
 
-		expect(h.calls).not.toContain("swap");
+		expect(h.calls).toEqual(["corroborate"]);
 		expect(h.engineState.readHistory(10)[0]).toMatchObject({
 			reasonKind: "fallback-rejected",
 			agent: "claude",
 		});
+	});
+
+	// The other half of the same gate: the quota it is judged against is the
+	// one read after the screen corroborated, not the one from the last poll.
+	it("accepts a hint whose limit only shows in the refreshed quota", async () => {
+		const spare = () =>
+			entryFor(
+				usageAccount({
+					accountKey: "key-b",
+					accountId: "acct-b",
+					selection: "/profiles/b",
+					windows: [w("five_hour", "Session (5h)", 10)],
+				}),
+			);
+		const activeAt = (usedPercent: number) =>
+			entryFor(
+				usageAccount({
+					isDefault: true,
+					windows: [w("five_hour", "Session (5h)", usedPercent)],
+				}),
+			);
+		const h = harness({
+			entries: [activeAt(80), spare()],
+			sessions: [movableSession({ limitHintErrorType: "rate_limit" })],
+			onRefreshDue: () => {
+				// The poll that lands between the hint and the decision: the
+				// account really did hit its limit since the last one.
+				h.setEntries([activeAt(100), spare()]);
+			},
+		});
+		enable(h.engine);
+
+		await h.engine.handleLimitHints();
+
+		expect(h.switched.at(-1)?.reasonKind).toBe("fallback");
+		expect(h.restarted.map((row) => row.terminalId)).toEqual(["term-1"]);
+	});
+
+	// #J: the row and the event used to claim a restart that had not run yet.
+	it("records the fallback restart that happened", async () => {
+		const h = harness({
+			entries: [
+				entryFor(
+					usageAccount({
+						isDefault: true,
+						windows: [w("five_hour", "Session (5h)", 100)],
+					}),
+				),
+				entryFor(
+					usageAccount({
+						accountKey: "key-b",
+						accountId: "acct-b",
+						selection: "/profiles/b",
+						windows: [w("five_hour", "Session (5h)", 10)],
+					}),
+				),
+			],
+			sessions: [movableSession({ limitHintErrorType: "rate_limit" })],
+		});
+		enable(h.engine);
+
+		await h.engine.handleLimitHints();
+
+		expect(h.switched.at(-1)?.fallbackRestart).toBe(true);
+		expect(h.engineState.readHistory(1)[0]?.fallbackRestart).toBe(true);
+	});
+
+	it("records a fallback whose restart failed as one that did not restart", async () => {
+		const h = harness({
+			entries: [
+				entryFor(
+					usageAccount({
+						isDefault: true,
+						windows: [w("five_hour", "Session (5h)", 100)],
+					}),
+				),
+				entryFor(
+					usageAccount({
+						accountKey: "key-b",
+						accountId: "acct-b",
+						selection: "/profiles/b",
+						windows: [w("five_hour", "Session (5h)", 10)],
+					}),
+				),
+			],
+			sessions: [movableSession({ limitHintErrorType: "rate_limit" })],
+			restartSucceeds: false,
+		});
+		enable(h.engine);
+
+		await h.engine.handleLimitHints();
+
+		// The switch still happened — only the session needs a human now, and
+		// the mover has already said so.
+		expect(h.switched.at(-1)?.reasonKind).toBe("fallback");
+		expect(h.switched.at(-1)?.fallbackRestart).toBe(false);
+		expect(h.engineState.readHistory(1)[0]?.fallbackRestart).toBe(false);
 	});
 
 	// AE8/R4.
@@ -864,13 +994,13 @@ describe("AccountEngine", () => {
 		expect(h.engine.status().claude.activeAccountId).toBe("acct-b");
 	});
 
-	it("owns the lock from start(), not a tick later", () => {
+	it("owns the lock from start(), not a tick later", async () => {
 		const h = harness();
 
 		h.engine.start();
 
 		expect(h.engine.status().claude.lockOwner).toBe(true);
-		h.engine.stop();
+		await h.engine.stop();
 		expect(h.engine.status().claude.lockOwner).toBe(false);
 	});
 
@@ -996,7 +1126,7 @@ describe("AccountEngine", () => {
 		await loser.engine.tick();
 		expect(loser.engine.status().claude.lockOwner).toBe(false);
 		expect(loser.calls).not.toContain("refreshDue");
-		expect(loser.externalSwitches).toEqual([]);
+		expect(loser.moved).toEqual([]);
 
 		// The owner switches; the shared runtime.json is the loser's only
 		// notice, because two org host-services share no event bus (KTD5).
@@ -1008,8 +1138,43 @@ describe("AccountEngine", () => {
 		loser.advance(11 * MINUTE);
 		await loser.engine.tick();
 
-		expect(loser.externalSwitches).toEqual(["claude"]);
+		expect(loser.moved.map((move) => move.agent)).toEqual(["claude"]);
 		expect(loser.calls).not.toContain("swap");
+	});
+
+	// KTD12/R6 on the loser's side: the follow used to hand the mover every
+	// Claude row, including the ones already on the shared active dir.
+	it("leaves a follower's sessions on the active dir alone", async () => {
+		const calm = () => [
+			entryFor(
+				usageAccount({
+					isDefault: true,
+					windows: [w("five_hour", "Session (5h)", 10)],
+				}),
+			),
+		];
+		const owner = harness({ entries: calm() });
+		enable(owner.engine);
+		await owner.engine.tick();
+
+		const loser = harness({
+			sessions: [
+				movableSession({ configDir: ACTIVE_DIR }),
+				movableSession({ terminalId: "term-2", configDir: "/profiles/a" }),
+			],
+		});
+		await loser.engine.tick();
+
+		owner.setEntries(twoClaudeAccounts());
+		owner.advance(10 * MINUTE);
+		await owner.engine.tick();
+
+		loser.advance(11 * MINUTE);
+		await loser.engine.tick();
+
+		expect(loser.moved.at(-1)?.rows?.map((row) => row.terminalId)).toEqual([
+			"term-2",
+		]);
 	});
 
 	// #22: the lease is three ticks long, and a slow tick can outlive it.
@@ -1212,10 +1377,12 @@ describe("AccountEngine", () => {
 
 	it("follows a switch between two Codex homes that carry no identity", async () => {
 		const owner = harness();
+		// The settings file is the shared one, so this enables codex for the
+		// loser too — which, holding no lock, may not write settings itself.
+		enable(owner.engine, "codex");
 		await owner.engine.tick();
 
 		const loser = harness();
-		enable(loser.engine, "codex");
 		const runtime = loser.engineState.readRuntime();
 		runtime.perAgent.codex.activeSelection = "/codex/a";
 		loser.engineState.writeRuntime(runtime);
@@ -1252,6 +1419,303 @@ describe("AccountEngine", () => {
 				reason: "nudge-undeliverable",
 			},
 		});
+	});
+
+	// One engine, one mutation at a time: the tick and the manual switch both
+	// read runtime.json, await I/O and write it back.
+	it("runs a manual switch issued mid-tick only after the tick has finished", async () => {
+		let release: () => void = () => {};
+		const gate = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		const pending: Array<Promise<unknown>> = [];
+		const h = harness({
+			entries: [
+				entryFor(
+					usageAccount({
+						isDefault: true,
+						windows: [w("five_hour", "Session (5h)", 30)],
+					}),
+				),
+				entryFor(
+					usageAccount({
+						accountKey: "key-b",
+						accountId: "acct-b",
+						selection: "/profiles/b",
+						windows: [w("five_hour", "Session (5h)", 10)],
+					}),
+				),
+			],
+			onRefreshDue: async () => {
+				pending.push(h.engine.switchManually("claude", "/profiles/b"));
+				h.calls.push("manual-issued");
+				await gate;
+				h.calls.push("refresh-done");
+			},
+		});
+		enable(h.engine);
+
+		const tick = h.engine.tick();
+		// Every chance to interleave: the manual switch is queued and the tick
+		// is still parked inside the quota read.
+		await Promise.resolve();
+		await Promise.resolve();
+		expect(h.calls).toEqual(["refreshDue", "manual-issued"]);
+
+		release();
+		await tick;
+		await Promise.all(pending);
+
+		expect(h.calls.indexOf("swap")).toBeGreaterThan(
+			h.calls.indexOf("refresh-done"),
+		);
+		expect(h.engine.status().claude.activeAccountId).toBe("acct-b");
+	});
+
+	// KTD5: releasing the lock under a tick that is still swapping would let
+	// the next instance swap on top of it.
+	it("hands the lock back only once the tick in flight has finished", async () => {
+		const thief = harness();
+		const pending: Array<Promise<unknown>> = [];
+		const h = harness({
+			entries: twoClaudeAccounts(),
+			onRefreshDue: async () => {
+				pending.push(h.engine.stop());
+				// Still held: this tick has not returned yet.
+				await thief.engine.tick();
+				expect(thief.engine.status().claude.lockOwner).toBe(false);
+			},
+		});
+		enable(h.engine);
+
+		await h.engine.tick();
+		await Promise.all(pending);
+
+		expect(h.calls).not.toContain("swap");
+		expect(h.engineState.readHistory(10)).toEqual([]);
+		expect(h.engineState.readRuntime().perAgent.claude.activeAccountId).toBe(
+			null,
+		);
+		expect(h.engine.status().claude.lockOwner).toBe(false);
+
+		await thief.engine.tick();
+		expect(thief.engine.status().claude.lockOwner).toBe(true);
+	});
+
+	// R24: a failed switch changes nothing — including one that failed after
+	// the credential had already moved.
+	it("puts the previous login back when the pointer write fails", async () => {
+		const h = harness({
+			entries: twoClaudeAccounts(),
+			setPointerThrows: true,
+			swapResults: [
+				{ ok: true, identity: swapIdentity("acct-b") },
+				{ ok: true, identity: swapIdentity("acct-a") },
+			],
+		});
+		enable(h.engine);
+
+		await h.engine.tick();
+
+		expect(h.calls.filter((call) => call === "swap")).toHaveLength(2);
+		expect(h.swapInputs[1]?.target).toEqual({
+			kind: "profile",
+			dir: "/profiles/a",
+		});
+		expect(h.swapInputs[1]?.ownerBinding).toEqual({
+			kind: "profile",
+			dir: "/profiles/b",
+		});
+		expect(h.swapInputs[1]?.expectedOwnerAccountId).toBe("acct-b");
+		expect(h.switched).toEqual([]);
+		expect(h.engine.status().claude.activeAccountId).toBe("acct-a");
+		expect(
+			h.engineStates.find((event) => event.lastSwitchFailure)?.lastSwitchFailure
+				?.code,
+		).toBe("pointer-failed");
+	});
+
+	it("reports split state when the pointer fails and the login cannot go back", async () => {
+		const h = harness({
+			entries: twoClaudeAccounts(),
+			setPointerThrows: true,
+			swapResults: [
+				{ ok: true, identity: swapIdentity("acct-b") },
+				{ ok: false, code: "write-failed", reason: "store is read-only" },
+			],
+		});
+		enable(h.engine);
+
+		await h.engine.tick();
+
+		expect(
+			h.engineStates.find((event) => event.lastSwitchFailure)?.lastSwitchFailure
+				?.code,
+		).toBe("split-state");
+		expect(h.switched).toEqual([]);
+	});
+
+	// The switch has already happened by then; a lost history row must not
+	// leave the sessions behind on the old account.
+	it("finishes the transition when the history append fails", async () => {
+		const h = harness({
+			entries: twoClaudeAccounts(),
+			sessions: [movableSession()],
+		});
+		enable(h.engine);
+		h.engineState.appendHistory = () => {
+			throw new Error("history is read-only");
+		};
+
+		await h.engine.tick();
+
+		expect(h.switched).toHaveLength(1);
+		expect(h.calls).toContain("moveAtIdle");
+		expect(h.engineState.readRuntime().perAgent.claude.activeAccountId).toBe(
+			"acct-b",
+		);
+	});
+
+	// KTD4: after a switch the pointer names Superset's own active dir, which
+	// is not a pool row — a host that lost runtime.json found no account here.
+	it("reads the active dir's own identity when the pointer names it", async () => {
+		const h = harness({
+			entries: [
+				entryFor(
+					usageAccount({ windows: [w("five_hour", "Session (5h)", 30)] }),
+				),
+				entryFor(
+					usageAccount({
+						accountKey: "key-b",
+						accountId: "acct-b",
+						selection: "/profiles/b",
+						windows: [w("five_hour", "Session (5h)", 10)],
+					}),
+				),
+			],
+			pointer: { claudeConfigDir: ACTIVE_DIR },
+		});
+		h.setActiveIdentity({ accountUuid: "acct-b", credentialHash: "hash-b" });
+		enable(h.engine);
+
+		await h.engine.tick();
+
+		expect(h.engine.status().claude.activeAccountId).toBe("acct-b");
+		expect(h.calls).not.toContain("swap");
+	});
+
+	// The recorded account is not a guess to be replaced: a provider read that
+	// failed drops it from the pool without moving any session.
+	it("keeps a recorded active account that has dropped out of the pool", async () => {
+		const h = harness({ entries: twoClaudeAccounts() });
+		h.setActiveIdentity({ accountUuid: "acct-gone", credentialHash: "hash-x" });
+		enable(h.engine);
+		const runtime = h.engineState.readRuntime();
+		runtime.perAgent.claude.activeAccountId = "acct-gone";
+		runtime.perAgent.claude.activeSelection = "/profiles/gone";
+		h.engineState.writeRuntime(runtime);
+
+		await h.engine.tick();
+
+		expect(h.calls).not.toContain("swap");
+		const after = h.engineState.readRuntime().perAgent.claude;
+		expect(after.activeAccountId).toBe("acct-gone");
+		expect(after.activeSelection).toBe("/profiles/gone");
+	});
+
+	// KTD14 on an upgraded host: the login sessions are on is whatever the
+	// pointer selects, and seeding from ~/.claude would save the wrong
+	// credential back over it on the first swap.
+	it("seeds a new active dir from the login the pointer selects", async () => {
+		const h = harness({
+			entries: [
+				entryFor(
+					usageAccount({
+						accountKey: "key-b",
+						accountId: "acct-b",
+						selection: "/profiles/b",
+						windows: [w("five_hour", "Session (5h)", 91)],
+					}),
+				),
+				entryFor(
+					usageAccount({
+						accountKey: "key-c",
+						accountId: "acct-c",
+						selection: "/profiles/c",
+						windows: [w("five_hour", "Session (5h)", 20)],
+					}),
+				),
+			],
+			pointer: { claudeConfigDir: "/profiles/b" },
+		});
+		h.setActiveIdentity({ accountUuid: "acct-b", credentialHash: "hash-b" });
+		enable(h.engine);
+
+		await h.engine.tick();
+
+		expect(h.seedInputs).toHaveLength(1);
+		expect(h.seedInputs[0]?.source).toEqual({
+			kind: "profile",
+			dir: "/profiles/b",
+		});
+		expect(h.pointers).toEqual([{ agent: "claude", selection: ACTIVE_DIR }]);
+	});
+
+	// #I: the pointer write is what makes an unpinned session resolve to the
+	// active dir, so the rows the filter reads must predate it.
+	it("moves the sessions by the dirs they were launched from", async () => {
+		const h = harness({
+			entries: twoClaudeAccounts(),
+			sessions: [movableSession()],
+			onSetPointer: () => {
+				// The launch wrapper now resolves this session to the new dir.
+				h.setSessions([movableSession({ configDir: ACTIVE_DIR })]);
+			},
+		});
+		enable(h.engine);
+
+		await h.engine.tick();
+
+		expect(h.moved[0]?.rows?.map((row) => row.terminalId)).toEqual(["term-1"]);
+	});
+
+	// R3: with auto-switch off nothing has polled this agent yet, and the
+	// user's own switch must not be refused for that.
+	it("discovers the target on demand when nothing has polled yet", async () => {
+		const h = harness({
+			entries: [],
+			onRead: () => {
+				h.setEntries(twoClaudeAccounts());
+			},
+		});
+
+		const result = await h.engine.switchManually("claude", "/profiles/b");
+
+		expect(h.reads).toEqual([["claude"]]);
+		expect(result.ok).toBe(true);
+		expect(h.engine.status().claude.activeAccountId).toBe("acct-b");
+	});
+
+	// KTD5: the cached flag can be a tick out of date, and these writes land
+	// in the state dir the lock owner owns.
+	it("refuses a settings or rotation write once the lock is lost", async () => {
+		const owner = harness();
+		await owner.engine.tick();
+
+		const loser = harness();
+
+		expect(loser.engine.setSettings("claude", { enabled: true })).toEqual({
+			ok: false,
+			code: "lock-loser",
+			reason:
+				"Another Superset instance on this machine owns account switching.",
+		});
+		expect(loser.engineState.readSettings().claude.enabled).toBe(false);
+		expect(loser.engine.setRotation("claude:acct-b", false)).toMatchObject({
+			ok: false,
+			code: "lock-loser",
+		});
+		expect(loser.engineState.readRotation()).toEqual({});
 	});
 
 	it("keeps token material out of the history file", async () => {

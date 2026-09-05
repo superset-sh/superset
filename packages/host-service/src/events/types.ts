@@ -220,6 +220,7 @@ export type AccountSwitchFailureCode =
 	| "no-target-login"
 	| "no-target-identity"
 	| "source-changed"
+	| "target-changed"
 	| "keychain-ambiguous"
 	| "write-failed"
 	| "split-state"

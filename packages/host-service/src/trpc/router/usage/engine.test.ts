@@ -82,7 +82,7 @@ function fakeEngine(options: FakeOptions = {}) {
 		},
 		setRotation: (accountKey: string, inRotation: boolean) => {
 			rotation = { ...rotation, [accountKey]: inRotation };
-			return rotation;
+			return { ok: true as const, rotation };
 		},
 		history: (limit = 50) => history.slice(0, limit),
 		status: () => {

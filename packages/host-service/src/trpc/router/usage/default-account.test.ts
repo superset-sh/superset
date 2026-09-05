@@ -292,6 +292,32 @@ describe("active account semantics", () => {
 		expect(isActiveAccount(second, view)).toBe(true);
 	});
 
+	// KTD4: the pointer names the Superset active dir, which is not a login of
+	// its own, and the engine recorded nothing. Treating that as "the
+	// system-default login" put an active badge on an account that may not be
+	// the one running.
+	it("marks no row active when the pointer names the active dir and nothing else is known", () => {
+		const activeDir = activeClaudeConfigDirPath();
+		mkdirSync(activeDir, { recursive: true });
+		syncDefaultAccountPointer("claude", activeDir);
+
+		const view = readAccountEngineView(trackingDb(activeDir));
+
+		expect(view.claude.unknown).toBe(true);
+		expect(
+			isActiveAccount(account({ accountId: "uuid-a", selection: null }), view),
+		).toBe(false);
+		expect(
+			isActiveAccount(
+				account({ accountId: "uuid-b", selection: "/home/u/.claude-b" }),
+				view,
+			),
+		).toBe(false);
+		expect(
+			applyAccountEngineState(account({ selection: null }), view).isDefault,
+		).toBe(false);
+	});
+
 	it("falls back to the pointer rule when the engine recorded nothing", () => {
 		syncDefaultAccountPointer("claude", "/home/u/.claude-a");
 		const view = readAccountEngineView(trackingDb(null));
@@ -344,6 +370,41 @@ describe("active account semantics", () => {
 		expect(
 			JSON.parse(readFileSync(runtimePath, "utf8")).identityBindings,
 		).toEqual({ "uuid-a": "/home/u/.claude-a", "uuid-default": null });
+	});
+
+	// KTD3 step 2: a dir holds one login at a time. Leaving the old identity
+	// bound to it makes the next swap save the new login's refreshed credential
+	// into what it thinks is the old account's store.
+	it("retires the previous identity when a dir is re-authenticated", () => {
+		const dir = "/home/u/.claude-a";
+		recordIdentityBindings([
+			["uuid-a", dir],
+			["uuid-other", "/home/u/.claude-b"],
+			["uuid-default", null],
+		]);
+
+		recordIdentityBindings([["uuid-new", dir]]);
+
+		const runtimePath = join(stateDir(), "runtime.json");
+		expect(
+			JSON.parse(readFileSync(runtimePath, "utf8")).identityBindings,
+		).toEqual({
+			"uuid-new": dir,
+			"uuid-other": "/home/u/.claude-b",
+			// null is the system-default login, which Claude and Codex each
+			// bind an identity to — never reaped.
+			"uuid-default": null,
+		});
+
+		recordIdentityBindings([["uuid-codex-default", null]]);
+		expect(
+			JSON.parse(readFileSync(runtimePath, "utf8")).identityBindings,
+		).toEqual({
+			"uuid-new": dir,
+			"uuid-other": "/home/u/.claude-b",
+			"uuid-default": null,
+			"uuid-codex-default": null,
+		});
 	});
 
 	// KTD5: discovery runs unlocked in every host-service, and writeRuntime

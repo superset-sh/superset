@@ -175,6 +175,14 @@ export class TerminalAgentStore extends EventEmitter {
 			BUSY_EVENT_TYPES.has(prior.lastEventType) &&
 			STOPPED_EVENT_TYPES.has(lastEventType);
 
+		// A transition belongs to the session it happened in. A different agent
+		// session id in the same terminal starts over, exactly as `lastFailure`
+		// does — otherwise the engine dates a fresh session's evidence by the
+		// previous session's stop.
+		const carriedTransitionAt = sessionChanged
+			? undefined
+			: prior?.lastTransitionAt;
+
 		// A failure describes the turn it ended, so it is dropped the moment
 		// the session moves on: a new turn, or a different agent session in
 		// the same terminal. Carrying it forward leaves a rate-limit stop
@@ -199,7 +207,7 @@ export class TerminalAgentStore extends EventEmitter {
 			lastEventAt: occurredAt,
 			lastEventType,
 			lastFailure,
-			lastTransitionAt: stoppedNow ? occurredAt : prior?.lastTransitionAt,
+			lastTransitionAt: stoppedNow ? occurredAt : carriedTransitionAt,
 		};
 
 		this.byTerminal.set(terminalId, next);

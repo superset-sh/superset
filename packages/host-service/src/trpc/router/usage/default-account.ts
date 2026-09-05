@@ -295,6 +295,14 @@ export interface ActiveAgentBinding {
 	/** Fallback rule: the selection the pointer names. Null once the pointer
 	 * names the active dir and the engine recorded no selection either. */
 	pointerSelection: string | null;
+	/**
+	 * KTD4: the pointer names the Superset active dir and the engine recorded
+	 * neither an account nor a selection for it, so which login is live is
+	 * genuinely unknown. `pointerSelection` is null there, which reads as "the
+	 * system-default login" — marking that row active would be a guess, so no
+	 * row is marked instead.
+	 */
+	unknown: boolean;
 }
 
 export interface AccountEngineView {
@@ -324,19 +332,27 @@ export function readAccountEngineView(db: HostDb): AccountEngineView {
 		// Unreadable engine state falls back to the pointer rule below.
 	}
 	const claude = runtime?.perAgent.claude;
+	const claudeOnActiveDir = isActiveClaudeDirPointer(defaults.claudeConfigDir);
+	// The pointer names the active dir once a swap has run, and no account is
+	// discovered there (KTD4); the engine's own record of which selection it
+	// swapped in stands in for it.
+	const claudeSelection = claudeOnActiveDir
+		? (claude?.activeSelection ?? null)
+		: defaults.claudeConfigDir;
+	const claudeAccountId = claude?.activeAccountId ?? null;
 	return {
 		claude: {
-			accountId: claude?.activeAccountId ?? null,
-			// The pointer names the active dir once a swap has run, and no
-			// account is discovered there (KTD4); the engine's own record of
-			// which selection it swapped in stands in for it.
-			pointerSelection: isActiveClaudeDirPointer(defaults.claudeConfigDir)
-				? (claude?.activeSelection ?? null)
-				: defaults.claudeConfigDir,
+			accountId: claudeAccountId,
+			pointerSelection: claudeSelection,
+			unknown:
+				claudeOnActiveDir &&
+				claudeAccountId === null &&
+				claudeSelection === null,
 		},
 		codex: {
 			accountId: runtime?.perAgent.codex.activeAccountId ?? null,
 			pointerSelection: defaults.codexHome,
+			unknown: false,
 		},
 		rotation,
 	};
@@ -351,6 +367,9 @@ export function isActiveAccount(
 	const binding = view[account.agent];
 	if (binding.accountId !== null)
 		return account.accountId === binding.accountId;
+	// Nothing says which account is live, so nothing is shown as live: a wrong
+	// "active" badge is worse than none.
+	if (binding.unknown) return false;
 	return account.selection === binding.pointerSelection;
 }
 
@@ -412,19 +431,29 @@ export function recordIdentityBindings(
 		// writeRuntime replaces the whole file, and the engine may have
 		// written an active account or a cooldown since discovery started.
 		const runtime = state.readRuntime();
-		const changed = [...updates].some(
-			([accountId, profileDir]) =>
-				!(accountId in runtime.identityBindings) ||
-				runtime.identityBindings[accountId] !== profileDir,
-		);
+		const next = { ...runtime.identityBindings };
+		for (const [accountId, profileDir] of updates) {
+			// A dir holds one login at a time. Re-authenticating it as a
+			// different account must retire the old identity's claim on it,
+			// or the next swap saves the new login's refreshed credential
+			// back into what it believes is the old account's store. Only a
+			// real dir is retired: null is the system-default login, which
+			// Claude and Codex each bind an identity to legitimately.
+			if (profileDir !== null) {
+				for (const [other, dir] of Object.entries(next)) {
+					if (other !== accountId && dir === profileDir) delete next[other];
+				}
+			}
+			next[accountId] = profileDir;
+		}
+		const before = runtime.identityBindings;
+		const changed =
+			Object.keys(next).length !== Object.keys(before).length ||
+			Object.entries(next).some(
+				([accountId, dir]) => before[accountId] !== dir,
+			);
 		if (!changed) return;
-		state.writeRuntime({
-			...runtime,
-			identityBindings: {
-				...runtime.identityBindings,
-				...Object.fromEntries(updates),
-			},
-		});
+		state.writeRuntime({ ...runtime, identityBindings: next });
 	} catch (error) {
 		console.warn("[host-service] recording identity bindings failed:", error);
 	}

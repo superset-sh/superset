@@ -665,6 +665,46 @@ describe("TerminalAgentStore limit-stop signals", () => {
 		expect(store.get("t1")?.lastTransitionAt).toBe(500);
 	});
 
+	// The transition dates the stop the engine is investigating, so it belongs
+	// to the session it happened in — a new agent session in the same terminal
+	// starts over, exactly as lastFailure does.
+	it("drops the transition timestamp when a new agent session takes over", () => {
+		start(100);
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Stop",
+			occurredAt: 200,
+		});
+		expect(store.get("t1")?.lastTransitionAt).toBe(200);
+
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Start",
+			agentSessionId: "s2",
+			occurredAt: 300,
+		});
+		expect(store.get("t1")?.lastTransitionAt).toBeUndefined();
+
+		// The same session's own events still carry it forward.
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Stop",
+			agentSessionId: "s2",
+			occurredAt: 400,
+		});
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Stop",
+			agentSessionId: "s2",
+			occurredAt: 500,
+		});
+		expect(store.get("t1")?.lastTransitionAt).toBe(400);
+	});
+
 	// The failure describes the turn it ended: the account engine reads it as
 	// a limit-stop hint, so one carried past its turn would arm the fallback
 	// against a live session.

@@ -146,9 +146,11 @@ export const usageEngineRouter = router({
 		)
 		.mutation(({ ctx, input }): { rotation: RotationState } => {
 			const engine = writableEngine(ctx.runtime.accountEngine);
-			return {
-				rotation: engine.setRotation(input.accountKey, input.inRotation),
-			};
+			const outcome = engine.setRotation(input.accountKey, input.inRotation);
+			// The engine re-reads the lock from disk, so it can refuse where
+			// `writableEngine`'s cached flag still said yes.
+			if (!outcome.ok) throw engineError(outcome.code);
+			return { rotation: outcome.rotation };
 		}),
 
 	/** R21: the switch history, newest first. */

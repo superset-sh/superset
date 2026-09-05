@@ -267,7 +267,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	// and one workspace, so there is nothing to switch between, and its engine
 	// would only race the machine that owns the host-wide lock. `runtime`
 	// keeps a null in that case, and every caller treats it as "not running".
-	let stopAccountEngine: (() => void) | null = null;
+	let stopAccountEngine: (() => Promise<void>) | null = null;
 	if (process.env.SUPERSET_HOST_RUN_MODE !== "sandbox") {
 		const engineHostDeps = createAccountEngineHostDeps({
 			db,
@@ -324,9 +324,12 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		});
 		engine.start();
 		runtime.accountEngine = engine;
-		stopAccountEngine = () => {
+		// Awaited on dispose: the engine hands the host-wide lock back only
+		// once the tick in flight has finished, so another instance cannot
+		// claim it and swap credentials on top of one already in progress.
+		stopAccountEngine = async () => {
 			unsubscribeMover();
-			engine.stop();
+			await engine.stop();
 		};
 	}
 
@@ -471,7 +474,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			console.warn("[host-service] pageWatch.stop failed:", err);
 		}
 		try {
-			stopAccountEngine?.();
+			await stopAccountEngine?.();
 		} catch (err) {
 			console.warn("[host-service] accountEngine.stop failed:", err);
 		}

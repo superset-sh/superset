@@ -356,11 +356,7 @@ export class EngineState {
 		if (this.assertSafeStateDir().readOnly) return false;
 		const { record } = this.readLockFile();
 		if (!record || record.nonce !== nonce) return false;
-		this.writeFileAtomically(
-			join(this.dir, LOCK_FILE),
-			JSON.stringify({ ...record, heartbeatAt: now }),
-		);
-		return true;
+		return this.swapLock(nonce, { ...record, heartbeatAt: now });
 	}
 
 	/** Re-reads the lock: a reclaim by another process must be observed. */
@@ -374,6 +370,31 @@ export class EngineState {
 			unlinkSync(join(this.dir, LOCK_FILE));
 		} catch {
 			// Already gone, or reclaimed between the check and the unlink.
+		}
+	}
+
+	/**
+	 * Compare-and-swap the lock file: the replacement is staged first, then the
+	 * on-disk nonce is re-read *immediately* before the rename and the write is
+	 * abandoned if it is no longer ours. Without that second read a heartbeat
+	 * that started while the lock was still ours would happily rename over a
+	 * lock another process reclaimed in the meantime, and both engines would
+	 * believe they own the host.
+	 */
+	private swapLock(nonce: string, record: LockRecord): boolean {
+		const target = join(this.dir, LOCK_FILE);
+		let temporary: string | null = this.temporaryPath(target);
+		try {
+			writeFileSync(temporary, JSON.stringify(record), {
+				mode: 0o600,
+				flag: "wx",
+			});
+			if (this.readLockFile().record?.nonce !== nonce) return false;
+			renameSync(temporary, target);
+			temporary = null;
+			return true;
+		} finally {
+			this.discard(temporary);
 		}
 	}
 

@@ -5,6 +5,7 @@ import type {
 } from "../trpc/router/usage/types.ts";
 import {
 	BUDGET_MAX_REQUESTS,
+	budgetMaxRequests,
 	eligibleForSwitch,
 	IDLE_POLL_MS,
 	MAX_BACKOFF_MS,
@@ -73,6 +74,8 @@ function harness(
 		claudeSelections: options.claudeSelections ?? [null],
 		claudeStatic: options.claudeStatic ?? ([] as UsageAccount[]),
 		codexSelections: options.codexSelections ?? ([] as Array<string | null>),
+		/** False stands for a scan that ran out of its time budget. */
+		claudeComplete: true,
 	};
 	const calls: Array<{ key: string; at: number }> = [];
 	const snapshots: QuotaStoreSnapshot[] = [];
@@ -81,6 +84,7 @@ function harness(
 		discoverClaude: async () => ({
 			selections: state.claudeSelections,
 			staticAccounts: state.claudeStatic,
+			complete: state.claudeComplete,
 		}),
 		discoverCodex: async () => ({
 			selections: state.codexSelections,
@@ -233,6 +237,26 @@ describe("QuotaStore discovery", () => {
 		expect(third.map((a) => a.selection)).toEqual([null]);
 		expect(h.store.entry(CLAUDE_A)).toBeUndefined();
 	});
+
+	// discoverClaudeProfiles abandons its walk once the scan-time budget runs
+	// out, so a short list is not proof a profile is gone.
+	it("reaps nothing from a pass that reports itself incomplete", async () => {
+		const h = harness({ claudeSelections: [null, "/profiles/a"] });
+		await h.store.read({ agents: ["claude"] });
+		expect(h.store.entry(CLAUDE_A)).toBeDefined();
+
+		h.state.claudeSelections = [null];
+		h.state.claudeComplete = false;
+		h.advance(QUOTA_TTL_MS);
+		await h.store.read({ agents: ["claude"] });
+		expect(h.store.entry(CLAUDE_A)).toBeDefined();
+
+		// The next complete pass reaps it as before.
+		h.state.claudeComplete = true;
+		h.advance(QUOTA_TTL_MS);
+		await h.store.read({ agents: ["claude"] });
+		expect(h.store.entry(CLAUDE_A)).toBeUndefined();
+	});
 });
 
 describe("QuotaStore adaptive cadence", () => {
@@ -272,8 +296,37 @@ describe("QuotaStore adaptive cadence", () => {
 			const inWindow = h.calls.filter(
 				(other) => other.at > call.at - 5 * MINUTE && other.at <= call.at,
 			);
-			expect(inWindow.length).toBeLessThanOrEqual(BUDGET_MAX_REQUESTS);
+			expect(inWindow.length).toBeLessThanOrEqual(budgetMaxRequests(MINUTE));
 		}
+	});
+
+	// The budget is what the configured cadence costs plus a couple of slots
+	// for the other accounts; a flat six would silently cap a 30-second poll at
+	// four requests per window and never honour the setting at all.
+	it("honours a 30-second active cadence across a five-minute window", async () => {
+		const h = harness({
+			claudeSelections: [null, "/profiles/a", "/profiles/b"],
+		});
+		const schedule = {
+			claude: { activeKey: CLAUDE_DEFAULT, intervalMs: 30_000 },
+		};
+
+		for (let step = 0; step < 10; step++) {
+			await h.store.refreshDue(h.now, schedule);
+			h.advance(30_000);
+		}
+
+		expect(h.callsFor(CLAUDE_DEFAULT)).toHaveLength(10);
+		// The secondary accounts still got their slot in the same window.
+		expect(h.callsFor(CLAUDE_A)).toHaveLength(1);
+		expect(h.callsFor(CLAUDE_B)).toHaveLength(1);
+	});
+
+	it("scales the budget with the interval and never drops below the floor", () => {
+		expect(budgetMaxRequests(30_000)).toBe(12);
+		expect(budgetMaxRequests(MINUTE)).toBe(7);
+		expect(budgetMaxRequests(5 * MINUTE)).toBe(BUDGET_MAX_REQUESTS);
+		expect(budgetMaxRequests(undefined)).toBe(BUDGET_MAX_REQUESTS);
 	});
 
 	// R14/R17: pressing Refresh on the Usage page runs a batch with no
@@ -323,8 +376,9 @@ describe("QuotaStore adaptive cadence", () => {
 
 	it("defers non-active entries first when the schedule exceeds the budget", async () => {
 		// One more account than the endpoint budget allows in one pass.
+		const budget = budgetMaxRequests(MINUTE);
 		const selections = Array.from(
-			{ length: BUDGET_MAX_REQUESTS },
+			{ length: budget },
 			(_, index) => `/profiles/${index}`,
 		);
 		const h = harness({ claudeSelections: [null, ...selections] });
@@ -333,7 +387,7 @@ describe("QuotaStore adaptive cadence", () => {
 			claude: { activeKey: CLAUDE_DEFAULT, intervalMs: MINUTE },
 		});
 
-		expect(h.calls).toHaveLength(BUDGET_MAX_REQUESTS);
+		expect(h.calls).toHaveLength(budget);
 		expect(h.callsFor(CLAUDE_DEFAULT)).toHaveLength(1);
 		const deferred = h.store
 			.entries("claude")
@@ -494,6 +548,29 @@ describe("QuotaStore resilience", () => {
 		);
 		expect(signedOut.tokenState).toBe("signed_out");
 		expect(eligibleForSwitch(signedOut)).toBe(false);
+	});
+
+	// AE10: the fetch came back, but with nothing readable in it. Zero windows
+	// score a full 100 headroom, so an eligible "unavailable" entry is the one
+	// an automatic switch would pick.
+	it("reports an account whose quota could not be read as ineligible", async () => {
+		const h = harness({
+			claudeSelections: [null],
+			respondClaude: async (selection) => ({
+				account: account("claude", selection, {
+					status: "unavailable",
+					statusDetail: "Usage endpoint timed out.",
+					windows: [],
+				}),
+				rateLimited: false,
+			}),
+		});
+
+		await h.store.read({ agents: ["claude"] });
+		const entry = requireEntry(h.store, CLAUDE_DEFAULT);
+		expect(entry.tokenState).toBe("unavailable");
+		expect(entry.lastError).toBeNull();
+		expect(eligibleForSwitch(entry)).toBe(false);
 	});
 });
 

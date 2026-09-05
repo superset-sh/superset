@@ -3,6 +3,7 @@ import type { UsageQuotaWindow } from "../trpc/router/usage/types";
 import {
 	fallbackAllowed,
 	isCorroboratedLimitStop,
+	lastVisibleScreen,
 	snapshotShowsLimit,
 } from "./limit-stop";
 
@@ -106,6 +107,37 @@ describe("snapshotShowsLimit", () => {
 		expect(snapshotShowsLimit("grok", "You've hit your usage limit")).toBe(
 			false,
 		);
+	});
+});
+
+describe("lastVisibleScreen", () => {
+	// The host's snapshot carries scrollback as well as the screen, so a limit
+	// message from hours ago would otherwise corroborate a brand-new hint.
+	it("keeps a limit line still on screen and drops one left in scrollback", () => {
+		const rows = 3;
+		const scrolledOff = [
+			"You've hit your usage limit.",
+			"$ ls",
+			"a.txt  b.txt",
+			"$ codex",
+		].join("\n");
+		expect(snapshotShowsLimit("codex", scrolledOff)).toBe(true);
+		expect(
+			snapshotShowsLimit("codex", lastVisibleScreen(scrolledOff, rows)),
+		).toBe(false);
+
+		const onScreen = ["$ ls", "$ codex", "You've hit your usage limit."].join(
+			"\n",
+		);
+		expect(snapshotShowsLimit("codex", lastVisibleScreen(onScreen, rows))).toBe(
+			true,
+		);
+	});
+
+	it("returns the text unchanged when it already fits, or rows is unusable", () => {
+		expect(lastVisibleScreen("one\ntwo", 5)).toBe("one\ntwo");
+		expect(lastVisibleScreen("one\ntwo", 0)).toBe("one\ntwo");
+		expect(lastVisibleScreen("one\ntwo", Number.NaN)).toBe("one\ntwo");
 	});
 });
 

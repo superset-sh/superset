@@ -173,6 +173,87 @@ describe("account-engine state", () => {
 		expect(rival.isOwner("nonce-b")).toBe(true);
 	});
 
+	// The heartbeat stages its write and then re-reads the nonce: without that
+	// second read, an owner whose lock was reclaimed mid-refresh renames its
+	// stale record back over the new owner's and both believe they own the host.
+	it("refuses a heartbeat whose lock was reclaimed under it", () => {
+		const owner = new EngineState();
+		expect(owner.claimLock("nonce-a", 1_000_000)).toBe(true);
+
+		const rival = new EngineState();
+		expect(
+			rival.claimLock("nonce-b", 1_000_000 + DEFAULT_LOCK_STALE_MS + 1),
+		).toBe(true);
+
+		// The old owner still thinks it holds the lock and refreshes.
+		expect(
+			owner.heartbeat("nonce-a", 1_000_000 + DEFAULT_LOCK_STALE_MS + 2),
+		).toBe(false);
+		expect(owner.isOwner("nonce-a")).toBe(false);
+		expect(rival.isOwner("nonce-b")).toBe(true);
+		expect(
+			readdirSync(join(home, "state", "account-engine")).filter((name) =>
+				name.endsWith(".tmp"),
+			),
+		).toEqual([]);
+	});
+
+	it("abandons a heartbeat reclaimed between the nonce check and the write", () => {
+		const owner = new EngineState();
+		expect(owner.claimLock("nonce-a", 1_000)).toBe(true);
+		const lockPath = join(home, "state", "account-engine", "engine.lock");
+
+		// The window the compare-and-swap closes is inside one synchronous
+		// call, so it is opened here: the lock is still ours when the heartbeat
+		// reads it, and a rival owns it by the time the rename would land.
+		type LockReader = { readLockFile(): unknown };
+		const seam = owner as unknown as LockReader;
+		const realRead = seam.readLockFile.bind(owner);
+		let reads = 0;
+		seam.readLockFile = () => {
+			reads += 1;
+			const seen = realRead();
+			if (reads === 1) {
+				writeFileSync(
+					lockPath,
+					JSON.stringify({
+						nonce: "nonce-b",
+						startedAt: 2_000,
+						heartbeatAt: 2_000,
+					}),
+					{ mode: 0o600 },
+				);
+			}
+			return seen;
+		};
+
+		expect(owner.heartbeat("nonce-a", 3_000)).toBe(false);
+		expect(JSON.parse(readFileSync(lockPath, "utf8")).nonce).toBe("nonce-b");
+		expect(
+			readdirSync(join(home, "state", "account-engine")).filter((name) =>
+				name.endsWith(".tmp"),
+			),
+		).toEqual([]);
+	});
+
+	it("keeps refreshing while the lock is still ours", () => {
+		const owner = new EngineState();
+		expect(owner.claimLock("nonce-a", 1_000)).toBe(true);
+		expect(owner.heartbeat("nonce-a", 2_000)).toBe(true);
+
+		const lock = JSON.parse(
+			readFileSync(
+				join(home, "state", "account-engine", "engine.lock"),
+				"utf8",
+			),
+		);
+		expect(lock).toEqual({
+			nonce: "nonce-a",
+			startedAt: 1_000,
+			heartbeatAt: 2_000,
+		});
+	});
+
 	it("falls back to defaults on a corrupt settings file and logs once", () => {
 		const dir = join(home, "state", "account-engine");
 		mkdirSync(dir, { recursive: true, mode: 0o700 });

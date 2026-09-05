@@ -27,9 +27,10 @@ export const CONTINUE_NUDGE =
 	"Continue where you left off. The account was switched; the previous turn was interrupted.";
 
 /**
- * KTD9: Codex fires no hook when a turn ends in an error, so a row still
+ * KTD9: Codex fires no hook when a turn ends in an error, so a Codex row still
  * reading "Start" this long after its last event is treated as idle rather
- * than left running on the old account forever.
+ * than left running on the old account forever. Codex only: Claude's hooks
+ * report Stop reliably, so a Claude row parked on Start is a long turn.
  */
 export const STALE_START_MS = 15 * 60_000;
 
@@ -117,8 +118,17 @@ export class SessionMover {
 	private readonly setTimeoutFn: typeof setTimeout;
 	private readonly staleStartMs: number;
 	private readonly nudgeRetryMs: number;
-	/** Agents with at least one row waiting for its turn to end. */
-	private readonly deferred = new Set<AccountAgent>();
+	/**
+	 * Rows waiting for their turn to end, per agent: terminal id → the account
+	 * dir the row was on when it was deferred. Remembering the ids (rather than
+	 * only the agent) is what keeps the next store change from re-scanning and
+	 * restarting rows that are already on the new account; remembering the dir
+	 * is how a row that has since moved off it is recognised.
+	 */
+	private readonly deferred = new Map<
+		AccountAgent,
+		Map<string, string | null>
+	>();
 
 	constructor(deps: SessionMoverDeps) {
 		this.deps = deps;
@@ -139,6 +149,7 @@ export class SessionMover {
 	): Promise<MoveResult> {
 		const movedTerminalIds: string[] = [];
 		const deferredTerminalIds: string[] = [];
+		const waiting = new Map<string, string | null>();
 
 		for (const row of rows) {
 			// KTD12: a session the user pinned to their own config dir is
@@ -146,13 +157,16 @@ export class SessionMover {
 			if (!row.managed) continue;
 			if (!this.isIdle(row)) {
 				deferredTerminalIds.push(row.terminalId);
+				waiting.set(row.terminalId, row.configDir);
 				continue;
 			}
 			const resumed = await this.restart(row);
 			if (resumed) movedTerminalIds.push(row.terminalId);
 		}
 
-		if (deferredTerminalIds.length > 0) this.deferred.add(agent);
+		// `rows` is the whole set this pass considered, so what it did not defer
+		// is not waiting on anything any more.
+		if (waiting.size > 0) this.deferred.set(agent, waiting);
 		else this.deferred.delete(agent);
 
 		return { movedTerminalIds, deferredTerminalIds };
@@ -166,10 +180,27 @@ export class SessionMover {
 		return this.moveAtIdle(agent);
 	}
 
-	/** Re-scan the agents that had rows mid-turn when the store changes. */
+	/**
+	 * Retry the rows that were mid-turn when the store changes — only those.
+	 * A full re-scan here would restart every idle managed row again, including
+	 * the sessions this switch already moved onto the new account. A remembered
+	 * row that has vanished, or whose account dir has changed since (it is on
+	 * the new account already), is dropped instead of restarted.
+	 */
 	async handleStoreChange(_workspaceId: string): Promise<void> {
-		for (const agent of [...this.deferred]) {
-			await this.moveAtIdle(agent);
+		for (const [agent, waiting] of [...this.deferred]) {
+			const rows = this.deps
+				.listSessions(agent)
+				.filter(
+					(row) =>
+						waiting.has(row.terminalId) &&
+						waiting.get(row.terminalId) === row.configDir,
+				);
+			if (rows.length === 0) {
+				this.deferred.delete(agent);
+				continue;
+			}
+			await this.moveAtIdle(agent, rows);
 		}
 	}
 
@@ -237,13 +268,16 @@ export class SessionMover {
 	}
 
 	/**
-	 * KTD9. Idle is `!isAgentBusy`, except that a row parked on `Start` with
-	 * no newer event for `staleStartMs` counts as idle too — Codex reports
-	 * nothing when a turn dies. A pending permission request is always busy:
-	 * killing it would discard a decision the user is about to make.
+	 * KTD9. Idle is `!isAgentBusy`, except that a *Codex* row parked on `Start`
+	 * with no newer event for `staleStartMs` counts as idle too — Codex reports
+	 * nothing when a turn dies in an error. Claude's hooks do report Stop, so
+	 * its long `Start` is a live turn and killing it would throw the turn away.
+	 * A pending permission request is always busy: killing it would discard a
+	 * decision the user is about to make.
 	 */
 	private isIdle(row: MovableSession): boolean {
 		if (!this.deps.isAgentBusy(row.terminalId)) return true;
+		if (row.agent !== "codex") return false;
 		if (row.lastEventType !== "Start") return false;
 		return this.now() - row.lastEventAt >= this.staleStartMs;
 	}

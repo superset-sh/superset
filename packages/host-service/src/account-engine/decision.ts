@@ -45,15 +45,18 @@ const ACCOUNT_WIDE_WINDOW_IDS: Record<AccountAgent, readonly string[]> = {
 };
 
 /**
- * The longest-period window per agent — Claude's weekly, Codex's secondary
- * (R12). `consume-first` orders accounts by when this one resets, so it is
+ * The longest-period windows per agent — Claude's weekly, Codex's secondary
+ * (R12). `consume-first` orders accounts by when this one resets, so they are
  * matched by prefix: `seven_day_sonnet` still belongs to the weekly period
- * when a plan reports no plain `seven_day`.
+ * when a plan reports no plain `seven_day`, and so does a per-model
+ * `weekly_scoped:Fable`, which on some plans is the only weekly window
+ * reported at all — without it consume-first would have no reset to rank by.
  */
-const LONGEST_PERIOD_WINDOW_PREFIX: Record<AccountAgent, string> = {
-	claude: "seven_day",
-	codex: "secondary",
-};
+const LONGEST_PERIOD_WINDOW_PREFIXES: Record<AccountAgent, readonly string[]> =
+	{
+		claude: ["seven_day", "weekly_scoped:"],
+		codex: ["secondary"],
+	};
 
 /**
  * One candidate as the engine hands it to the decision. It is deliberately
@@ -191,7 +194,15 @@ export function isEligible(
 	rotation: RotationState,
 	tokenState: QuotaTokenState = account.tokenState,
 ): boolean {
-	if (tokenState === "token_expired" || tokenState === "signed_out") {
+	// `unavailable` is a read that did not land (endpoint error, timeout, no
+	// windows). Its zero windows would score a full 100 headroom, so without
+	// this an automatic switch lands on the one account nobody could read. It
+	// stays a manual target.
+	if (
+		tokenState === "token_expired" ||
+		tokenState === "signed_out" ||
+		tokenState === "unavailable"
+	) {
 		return false;
 	}
 	// A dir the user exported by hand is Superset's to read, never to write:
@@ -239,10 +250,11 @@ export function pickBest(
 }
 
 function longestPeriodResetAt(account: DecisionAccount): number | null {
-	const prefix = LONGEST_PERIOD_WINDOW_PREFIX[account.agent];
+	const prefixes = LONGEST_PERIOD_WINDOW_PREFIXES[account.agent];
 	let soonest: number | null = null;
 	for (const window of account.windows) {
-		if (!window.id.startsWith(prefix) || window.resetsAt === null) continue;
+		if (window.resetsAt === null) continue;
+		if (!prefixes.some((prefix) => window.id.startsWith(prefix))) continue;
 		const at = window.resetsAt.getTime();
 		if (soonest === null || at < soonest) soonest = at;
 	}

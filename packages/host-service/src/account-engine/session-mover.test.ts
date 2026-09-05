@@ -134,6 +134,26 @@ describe("moveAtIdle", () => {
 		expect(h.killCalls).toHaveLength(1);
 	});
 
+	// KTD9 exists because Codex fires no hook when a turn dies in an error.
+	// Claude's hooks do report Stop, so a Claude row 20 minutes into Start is a
+	// long turn, and restarting it would throw that turn away.
+	it("leaves a long Claude turn on Start alone, but not a stale Codex one", async () => {
+		const stale = {
+			lastEventType: "Start",
+			lastEventAt: NOW - 20 * 60_000,
+		} as const;
+
+		const claude = harness({ isAgentBusy: () => true });
+		await claude.mover.moveAtIdle("claude", [
+			row({ agent: "claude", ...stale }),
+		]);
+		expect(claude.killCalls).toEqual([]);
+
+		const codex = harness({ isAgentBusy: () => true });
+		await codex.mover.moveAtIdle("codex", [row(stale)]);
+		expect(codex.killCalls).toHaveLength(1);
+	});
+
 	it("never touches an unmanaged (user-exported) row", async () => {
 		const h = harness();
 		await h.mover.moveAtIdle("claude", [
@@ -155,6 +175,53 @@ describe("moveAtIdle", () => {
 		busy = false;
 		await h.mover.handleStoreChange("ws-1");
 		expect(h.killCalls).toEqual([{ workspaceId: "ws-1", terminalId: "t1" }]);
+	});
+
+	// The deferral remembers which rows were mid-turn, not just the agent: a
+	// re-scan would restart the sessions this switch already moved.
+	it("restarts only the deferred row on the next store change, once", async () => {
+		let busyTerminalId: string | null = "t2";
+		const rows = [
+			row({ terminalId: "t1", lastEventType: "Stop" }),
+			row({ terminalId: "t2", lastEventType: "Start" }),
+		];
+		const h = harness({
+			isAgentBusy: (terminalId) => terminalId === busyTerminalId,
+			listSessions: () => rows,
+		});
+
+		const result = await h.mover.moveAtIdle("codex", rows);
+		expect(result).toEqual({
+			movedTerminalIds: ["t1"],
+			deferredTerminalIds: ["t2"],
+		});
+
+		busyTerminalId = null;
+		await h.mover.handleStoreChange("ws-1");
+		expect(h.killCalls.map((call) => call.terminalId)).toEqual(["t1", "t2"]);
+
+		// Nothing is waiting any more, so a later change restarts nothing.
+		await h.mover.handleStoreChange("ws-1");
+		expect(h.killCalls.map((call) => call.terminalId)).toEqual(["t1", "t2"]);
+	});
+
+	it("drops a deferred row that has since moved onto the new account", async () => {
+		let busy = true;
+		const h = harness({
+			isAgentBusy: () => busy,
+			// It comes back idle, but on the dir the switch moved everything to.
+			listSessions: () => [
+				row({ lastEventType: "Stop", configDir: "/accounts/claude-active" }),
+			],
+		});
+
+		await h.mover.moveAtIdle("codex", [
+			row({ lastEventType: "Start", configDir: "/profiles/a" }),
+		]);
+		busy = false;
+		await h.mover.handleStoreChange("ws-1");
+
+		expect(h.killCalls).toEqual([]);
 	});
 
 	it("moves this host's own rows on an external switch, touching no swap", async () => {

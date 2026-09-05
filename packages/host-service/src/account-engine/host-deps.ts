@@ -27,6 +27,7 @@ import {
 	type ResumeSessionDeps,
 } from "../trpc/router/terminal-agents/terminal-agents.ts";
 import type { HostServiceContext } from "../types.ts";
+import { lastVisibleScreen } from "./limit-stop.ts";
 import type {
 	MovableSession,
 	ResumedTerminal,
@@ -137,12 +138,15 @@ export function createAccountEngineHostDeps(
 		},
 
 		// Read in memory and handed straight to the matcher; the engine keeps
-		// only the boolean (KTD7).
+		// only the boolean (KTD7). Trimmed to the visible screen: the snapshot
+		// carries recent scrollback too, and an old limit message left up there
+		// must not corroborate a new hint.
 		snapshotTerminal: async (terminalId) => {
 			const workspaceId = terminalAgentStore.get(terminalId)?.workspaceId;
 			if (!workspaceId) return null;
 			const result = await snapshotSession({ terminalId, workspaceId, db });
-			return "error" in result ? null : result.text;
+			if ("error" in result) return null;
+			return lastVisibleScreen(result.text, result.rows);
 		},
 
 		hasStartedAgent: (terminalId, agent) => {
@@ -159,16 +163,27 @@ export function createAccountEngineHostDeps(
 }
 
 /**
- * Re-scan for movable sessions whenever the store changes: a row that was
- * mid-turn when the switch happened moves at its next `Stop` (R7), and the
- * store's per-workspace `change` event is the only notice of that.
+ * Retry the sessions that were mid-turn whenever the store changes: such a row
+ * moves at its next `Stop` (R7), and the store's per-workspace `change` event
+ * is the only notice of that.
  */
 export function subscribeSessionMoverToStore(
 	store: TerminalAgentStore,
 	mover: SessionMover,
 ): () => void {
 	const onChange = (workspaceId: string) => {
-		void mover.handleStoreChange(workspaceId);
+		// Detached on purpose — the store's emit must not wait on a restart —
+		// but never unhandled: a rejection here is the reason a session stayed
+		// on the old account, so it is reported rather than swallowed.
+		mover.handleStoreChange(workspaceId).catch((error: unknown) => {
+			console.warn(
+				"[account-engine] moving sessions after a store change failed",
+				{
+					workspaceId,
+					error,
+				},
+			);
+		});
 	};
 	store.on("change", onChange);
 	return () => {
