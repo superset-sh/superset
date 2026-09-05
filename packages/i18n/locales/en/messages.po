@@ -63,6 +63,9 @@ msgstr "\"{0}\" will be merged into {1} via {2}. This can't be undone from here.
 msgid "\"{0}\" will stop firing and its run history will be removed. This can't be undone."
 msgstr "\"{0}\" will stop firing and its run history will be removed. This can't be undone."
 
+msgid "“{displayName}” was put away. Its files, branch, and terminal history are kept. Unarchive it to pick up where you left off."
+msgstr "“{displayName}” was put away. Its files, branch, and terminal history are kept. Unarchive it to pick up where you left off."
+
 msgid "\"{name}\" deleted"
 msgstr "\"{name}\" deleted"
 
@@ -97,6 +100,10 @@ msgstr "{0, plural, one {# active port — hide details} other {# active ports �
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — show details} other {# active ports — show details}}"
 msgstr "{0, plural, one {# active port — show details} other {# active ports — show details}}"
+
+#. placeholder {0}: sorted.length
+msgid "{0, plural, one {# archived workspace} other {# archived workspaces}}"
+msgstr "{0, plural, one {# archived workspace} other {# archived workspaces}}"
 
 #. placeholder {0}: workspace.diffStats.fileCount
 msgid "{0, plural, one {# changed file} other {# changed files}}"
@@ -215,6 +222,14 @@ msgstr "{0, plural, one {# workspace} other {# workspaces}}"
 #. placeholder {0}: shown?.count ?? 0
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
+
+#. placeholder {0}: archivableIds.length
+msgid "{0, plural, one {Archive # Workspace} other {Archive # Workspaces}}"
+msgstr "{0, plural, one {Archive # Workspace} other {Archive # Workspaces}}"
+
+#. placeholder {0}: archived.length
+msgid "{0, plural, one {Archived # workspace} other {Archived # workspaces}}"
+msgstr "{0, plural, one {Archived # workspace} other {Archived # workspaces}}"
 
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
@@ -685,6 +700,9 @@ msgstr "{noun, select, person {Specify at least one person, or choose {choice}.}
 
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
+
+msgid "{offline, plural, one {Can't archive # workspace: its host is offline.} other {Can't archive # workspaces: their hosts are offline.}}"
+msgstr "{offline, plural, one {Can't archive # workspace: its host is offline.} other {Can't archive # workspaces: their hosts are offline.}}"
 
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
@@ -1866,8 +1884,31 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 msgid "Archive"
 msgstr "Archive"
 
+msgid "Archive selected workspaces"
+msgstr "Archive selected workspaces"
+
+msgid "Archive the current workspace"
+msgstr "Archive the current workspace"
+
+msgid "Archive workspace"
+msgstr "Archive workspace"
+
 msgid "Archived"
 msgstr "Archived"
+
+#. placeholder {0}: single.name || single.branch
+msgid "Archived \"{0}\""
+msgstr "Archived \"{0}\""
+
+#. placeholder {0}: formatRelativeTime(workspace.shelvedAt)
+msgid "Archived {0}"
+msgstr "Archived {0}"
+
+msgid "Archived workspaces"
+msgstr "Archived workspaces"
+
+msgid "Archived workspaces show up here."
+msgstr "Archived workspaces show up here."
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "Are you sure you want to delete this file? This action cannot be undone."
@@ -2518,6 +2559,9 @@ msgstr "Can't open remote workspace paths in an external editor"
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Can't open remote workspace paths in Finder"
 
+msgid "Can't restore \"{name}\": its host is offline."
+msgstr "Can't restore \"{name}\": its host is offline."
+
 msgid "Cancel"
 msgstr "Cancel"
 
@@ -2991,9 +3035,6 @@ msgstr "Close modal"
 
 msgid "Close modal backdrop"
 msgstr "Close modal backdrop"
-
-msgid "Close or delete the current workspace"
-msgstr "Close or delete the current workspace"
 
 msgid "Close other apps using the microphone"
 msgstr "Close other apps using the microphone"
@@ -4403,6 +4444,9 @@ msgstr "Delete account?"
 msgid "Delete agent"
 msgstr "Delete agent"
 
+msgid "Delete all"
+msgstr "Delete all"
+
 msgid "Delete anyway"
 msgstr "Delete anyway"
 
@@ -4442,6 +4486,9 @@ msgstr "Delete organization"
 
 msgid "Delete page"
 msgstr "Delete page"
+
+msgid "Delete permanently"
+msgstr "Delete permanently"
 
 msgid "Delete project"
 msgstr "Delete project"
@@ -5373,6 +5420,10 @@ msgstr "Failed to add agent"
 msgid "Failed to add member"
 msgstr "Failed to add member"
 
+#. placeholder {0}: errorMessage(result.reason, t({ message: "Unknown error" }))
+msgid "Failed to archive \"{name}\": {0}"
+msgstr "Failed to archive \"{name}\": {0}"
+
 msgid "Failed to cancel invitation"
 msgstr "Failed to cancel invitation"
 
@@ -5672,6 +5723,10 @@ msgstr "Failed to restart daemon"
 
 msgid "Failed to restore"
 msgstr "Failed to restore"
+
+#. placeholder {0}: errorMessage(error, t({ message: "Unknown error" }))
+msgid "Failed to restore \"{name}\": {0}"
+msgstr "Failed to restore \"{name}\": {0}"
 
 msgid "Failed to restore defaults"
 msgstr "Failed to restore defaults"
@@ -8440,6 +8495,9 @@ msgstr "No agents yet."
 msgid "No API keys yet."
 msgstr "No API keys yet."
 
+msgid "No archived workspaces"
+msgstr "No archived workspaces"
+
 msgid "No assignee"
 msgstr "No assignee"
 
@@ -11197,6 +11255,9 @@ msgstr "Restore this version?"
 
 msgid "Restored"
 msgstr "Restored"
+
+msgid "Restored \"{name}\""
+msgstr "Restored \"{name}\""
 
 msgid "Restoring your session"
 msgstr "Restoring your session"
@@ -13956,6 +14017,9 @@ msgstr "This will terminate the session and its underlying process."
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 
+msgid "This workspace is archived"
+msgstr "This workspace is archived"
+
 msgid "This workspace lives on a device Superset can't reach right now. Terminals, files, and agents stay put — they come back as soon as the connection does."
 msgstr "This workspace lives on a device Superset can't reach right now. Terminals, files, and agents stay put — they come back as soon as the connection does."
 
@@ -13967,6 +14031,9 @@ msgstr "This workspace record still exists, but its worktree folder is no longer
 
 msgid "This workspace's host is offline"
 msgstr "This workspace's host is offline"
+
+msgid "This workspace's host is offline. Actions resume when it reconnects."
+msgstr "This workspace's host is offline. Actions resume when it reconnects."
 
 msgid "This workspace's host is on an older version of Superset than this client supports. Update the Superset app on that device to reconnect."
 msgstr "This workspace's host is on an older version of Superset than this client supports. Update the Superset app on that device to reconnect."
@@ -14278,6 +14345,9 @@ msgstr "Unable to start dictation"
 msgid "Unable to transcribe audio"
 msgstr "Unable to transcribe audio"
 
+msgid "Unarchive"
+msgstr "Unarchive"
+
 msgid "Unassigned"
 msgstr "Unassigned"
 
@@ -14319,6 +14389,9 @@ msgstr "Underway"
 
 msgid "Undo"
 msgstr "Undo"
+
+msgid "Undo all"
+msgstr "Undo all"
 
 msgid "Ungroup"
 msgstr "Ungroup"
@@ -14692,6 +14765,9 @@ msgstr "View all"
 
 msgid "View All"
 msgstr "View All"
+
+msgid "View archived workspaces"
+msgstr "View archived workspaces"
 
 #. placeholder {0}: comment.authorLogin
 msgid "View comment by {0}"

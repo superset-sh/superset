@@ -63,6 +63,9 @@ msgstr "\"{0}\" sẽ được merge vào {1} bằng {2}. Không thể hoàn tác
 msgid "\"{0}\" will stop firing and its run history will be removed. This can't be undone."
 msgstr "\"{0}\" sẽ ngừng kích hoạt và lịch sử chạy sẽ bị xóa. Không thể hoàn tác."
 
+msgid "“{displayName}” was put away. Its files, branch, and terminal history are kept. Unarchive it to pick up where you left off."
+msgstr "\"{displayName}\" đã được lưu trữ. Tệp, nhánh và lịch sử terminal vẫn được giữ nguyên. Bỏ lưu trữ để tiếp tục từ chỗ bạn đã dừng."
+
 msgid "\"{name}\" deleted"
 msgstr "Đã xóa \"{name}\""
 
@@ -97,6 +100,10 @@ msgstr "{0, plural, one {# cổng đang hoạt động — ẩn chi tiết} othe
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — show details} other {# active ports — show details}}"
 msgstr "{0, plural, one {# cổng đang hoạt động — hiện chi tiết} other {# cổng đang hoạt động — hiện chi tiết}}"
+
+#. placeholder {0}: sorted.length
+msgid "{0, plural, one {# archived workspace} other {# archived workspaces}}"
+msgstr "{0, plural, other {# workspace đã lưu trữ}}"
 
 #. placeholder {0}: workspace.diffStats.fileCount
 msgid "{0, plural, one {# changed file} other {# changed files}}"
@@ -215,6 +222,14 @@ msgstr "{0, plural, one {# workspace} other {# workspace}}"
 #. placeholder {0}: shown?.count ?? 0
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {# agent đang chạy vẫn dùng tài khoản trước — việc chuyển chỉ áp dụng cho lần khởi chạy mới.} other {# agent đang chạy vẫn dùng tài khoản trước — việc chuyển chỉ áp dụng cho lần khởi chạy mới.}}"
+
+#. placeholder {0}: archivableIds.length
+msgid "{0, plural, one {Archive # Workspace} other {Archive # Workspaces}}"
+msgstr "{0, plural, other {Lưu trữ # workspace}}"
+
+#. placeholder {0}: archived.length
+msgid "{0, plural, one {Archived # workspace} other {Archived # workspaces}}"
+msgstr "{0, plural, other {Đã lưu trữ # workspace}}"
 
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
@@ -685,6 +700,9 @@ msgstr "{noun, select, person {Hãy chỉ định ít nhất một người, ho�
 
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {Hãy chỉ định ít nhất một repo.} channel {Hãy chỉ định ít nhất một kênh.} reaction {Hãy chỉ định ít nhất một reaction.} dataSource {Hãy chỉ định ít nhất một nguồn dữ liệu.} team {Hãy chỉ định ít nhất một nhóm.} project {Hãy chỉ định ít nhất một dự án.} calendar {Hãy chỉ định ít nhất một lịch.} other {Hãy chỉ định ít nhất một mục.}}"
+
+msgid "{offline, plural, one {Can't archive # workspace: its host is offline.} other {Can't archive # workspaces: their hosts are offline.}}"
+msgstr "{offline, plural, other {Không thể lưu trữ # workspace: host đang ngoại tuyến.}}"
 
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {# thiết bị đang ngoại tuyến và sẽ giữ lại bản sao của mình.} other {# thiết bị đang ngoại tuyến và sẽ giữ lại bản sao của mình.}}"
@@ -1866,8 +1884,31 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 msgid "Archive"
 msgstr "Lưu trữ"
 
+msgid "Archive selected workspaces"
+msgstr "Lưu trữ các workspace đã chọn"
+
+msgid "Archive the current workspace"
+msgstr "Lưu trữ workspace hiện tại"
+
+msgid "Archive workspace"
+msgstr "Lưu trữ workspace"
+
 msgid "Archived"
 msgstr "Đã lưu trữ"
+
+#. placeholder {0}: single.name || single.branch
+msgid "Archived \"{0}\""
+msgstr "Đã lưu trữ \"{0}\""
+
+#. placeholder {0}: formatRelativeTime(workspace.shelvedAt)
+msgid "Archived {0}"
+msgstr "Đã lưu trữ {0}"
+
+msgid "Archived workspaces"
+msgstr "Workspace đã lưu trữ"
+
+msgid "Archived workspaces show up here."
+msgstr "Các workspace đã lưu trữ sẽ hiển thị ở đây."
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "Bạn chắc chắn muốn xóa tệp này? Không thể hoàn tác."
@@ -2518,6 +2559,9 @@ msgstr "Không thể mở đường dẫn workspace từ xa trong trình soạn 
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Không thể mở đường dẫn workspace từ xa trong Finder"
 
+msgid "Can't restore \"{name}\": its host is offline."
+msgstr "Không thể khôi phục \"{name}\": host đang ngoại tuyến."
+
 msgid "Cancel"
 msgstr "Hủy"
 
@@ -2991,9 +3035,6 @@ msgstr "Đóng hộp thoại"
 
 msgid "Close modal backdrop"
 msgstr "Đóng nền hộp thoại"
-
-msgid "Close or delete the current workspace"
-msgstr "Đóng hoặc xóa workspace hiện tại"
 
 msgid "Close other apps using the microphone"
 msgstr "Đóng các ứng dụng khác đang dùng micro"
@@ -4403,6 +4444,9 @@ msgstr "Xóa tài khoản?"
 msgid "Delete agent"
 msgstr "Xóa agent"
 
+msgid "Delete all"
+msgstr "Xóa tất cả"
+
 msgid "Delete anyway"
 msgstr "Vẫn xóa"
 
@@ -4442,6 +4486,9 @@ msgstr "Xóa tổ chức"
 
 msgid "Delete page"
 msgstr "Xóa trang"
+
+msgid "Delete permanently"
+msgstr "Xóa vĩnh viễn"
 
 msgid "Delete project"
 msgstr "Xóa dự án"
@@ -5373,6 +5420,10 @@ msgstr "Không thể thêm agent"
 msgid "Failed to add member"
 msgstr "Không thể thêm thành viên"
 
+#. placeholder {0}: errorMessage(result.reason, t({ message: "Unknown error" }))
+msgid "Failed to archive \"{name}\": {0}"
+msgstr "Không lưu trữ được \"{name}\": {0}"
+
 msgid "Failed to cancel invitation"
 msgstr "Không thể hủy lời mời"
 
@@ -5672,6 +5723,10 @@ msgstr "Không thể khởi động lại daemon"
 
 msgid "Failed to restore"
 msgstr "Không thể khôi phục"
+
+#. placeholder {0}: errorMessage(error, t({ message: "Unknown error" }))
+msgid "Failed to restore \"{name}\": {0}"
+msgstr "Không khôi phục được \"{name}\": {0}"
 
 msgid "Failed to restore defaults"
 msgstr "Không thể khôi phục mặc định"
@@ -8440,6 +8495,9 @@ msgstr "Chưa có agent nào."
 msgid "No API keys yet."
 msgstr "Chưa có khóa API nào."
 
+msgid "No archived workspaces"
+msgstr "Không có workspace nào được lưu trữ"
+
 msgid "No assignee"
 msgstr "Không có người phụ trách"
 
@@ -11197,6 +11255,9 @@ msgstr "Khôi phục phiên bản này?"
 
 msgid "Restored"
 msgstr "Đã khôi phục"
+
+msgid "Restored \"{name}\""
+msgstr "Đã khôi phục \"{name}\""
 
 msgid "Restoring your session"
 msgstr "Đang khôi phục phiên của bạn"
@@ -13956,6 +14017,9 @@ msgstr "Thao tác này sẽ kết thúc phiên và tiến trình bên dưới n�
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Thao tác này sẽ bỏ stage và hoàn nguyên toàn bộ thay đổi đã stage. Các tệp mới đã stage sẽ bị xóa. Không thể hoàn tác."
 
+msgid "This workspace is archived"
+msgstr "Workspace này đã được lưu trữ"
+
 msgid "This workspace lives on a device Superset can't reach right now. Terminals, files, and agents stay put — they come back as soon as the connection does."
 msgstr "Workspace này nằm trên một thiết bị mà Superset hiện không kết nối được. Terminal, tệp và agent vẫn nguyên đó — chúng trở lại ngay khi có kết nối."
 
@@ -13967,6 +14031,9 @@ msgstr "Bản ghi workspace này vẫn còn, nhưng thư mục worktree của n�
 
 msgid "This workspace's host is offline"
 msgstr "Host của workspace này đang ngoại tuyến"
+
+msgid "This workspace's host is offline. Actions resume when it reconnects."
+msgstr "Host của workspace này đang ngoại tuyến. Các thao tác sẽ khả dụng khi kết nối lại."
 
 msgid "This workspace's host is on an older version of Superset than this client supports. Update the Superset app on that device to reconnect."
 msgstr "Host của workspace này đang chạy phiên bản Superset cũ hơn mức client này hỗ trợ. Hãy cập nhật ứng dụng Superset trên thiết bị đó để kết nối lại."
@@ -14278,6 +14345,9 @@ msgstr "Không thể bắt đầu đọc chính tả"
 msgid "Unable to transcribe audio"
 msgstr "Không thể chuyển âm thanh thành văn bản"
 
+msgid "Unarchive"
+msgstr "Bỏ lưu trữ"
+
 msgid "Unassigned"
 msgstr "Chưa giao"
 
@@ -14319,6 +14389,9 @@ msgstr "Đang diễn ra"
 
 msgid "Undo"
 msgstr "Hoàn tác"
+
+msgid "Undo all"
+msgstr "Hoàn tác tất cả"
 
 msgid "Ungroup"
 msgstr "Bỏ nhóm"
@@ -14692,6 +14765,9 @@ msgstr "Xem tất cả"
 
 msgid "View All"
 msgstr "Xem tất cả"
+
+msgid "View archived workspaces"
+msgstr "Xem các workspace đã lưu trữ"
 
 #. placeholder {0}: comment.authorLogin
 msgid "View comment by {0}"

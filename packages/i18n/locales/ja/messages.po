@@ -63,6 +63,9 @@ msgstr "「{0}」は{2}で{1}にマージされます。ここからは元に戻
 msgid "\"{0}\" will stop firing and its run history will be removed. This can't be undone."
 msgstr "「{0}」は発火しなくなり、実行履歴も削除されます。この操作は元に戻せません。"
 
+msgid "“{displayName}” was put away. Its files, branch, and terminal history are kept. Unarchive it to pick up where you left off."
+msgstr "「{displayName}」はアーカイブされています。ファイル、ブランチ、ターミナル履歴は保持されています。アーカイブを解除すると、中断したところから作業を再開できます。"
+
 msgid "\"{name}\" deleted"
 msgstr "「{name}」を削除しました"
 
@@ -97,6 +100,10 @@ msgstr "{0, plural, one {#個のアクティブなポート — 詳細を隠す}
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — show details} other {# active ports — show details}}"
 msgstr "{0, plural, one {#個のアクティブなポート — 詳細を表示} other {#個のアクティブなポート — 詳細を表示}}"
+
+#. placeholder {0}: sorted.length
+msgid "{0, plural, one {# archived workspace} other {# archived workspaces}}"
+msgstr "{0, plural, other {アーカイブ済みワークスペース # 件}}"
 
 #. placeholder {0}: workspace.diffStats.fileCount
 msgid "{0, plural, one {# changed file} other {# changed files}}"
@@ -215,6 +222,14 @@ msgstr "{0, plural, one {#件のワークスペース} other {#件のワーク�
 #. placeholder {0}: shown?.count ?? 0
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {実行中の#件のエージェントはまだ以前のアカウントを使用しています。切り替えが適用されるのは新規起動のみです。} other {実行中の#件のエージェントはまだ以前のアカウントを使用しています。切り替えが適用されるのは新規起動のみです。}}"
+
+#. placeholder {0}: archivableIds.length
+msgid "{0, plural, one {Archive # Workspace} other {Archive # Workspaces}}"
+msgstr "{0, plural, other {# 件のワークスペースをアーカイブ}}"
+
+#. placeholder {0}: archived.length
+msgid "{0, plural, one {Archived # workspace} other {Archived # workspaces}}"
+msgstr "{0, plural, other {# 件のワークスペースをアーカイブしました}}"
 
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
@@ -685,6 +700,9 @@ msgstr "{noun, select, person {人を1人以上指定するか、{choice}を選�
 
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {リポジトリを1つ以上指定してください。} channel {チャンネルを1つ以上指定してください。} reaction {リアクションを1つ以上指定してください。} dataSource {データソースを1つ以上指定してください。} team {チームを1つ以上指定してください。} project {プロジェクトを1つ以上指定してください。} calendar {カレンダーを1つ以上指定してください。} other {項目を1つ以上指定してください。}}"
+
+msgid "{offline, plural, one {Can't archive # workspace: its host is offline.} other {Can't archive # workspaces: their hosts are offline.}}"
+msgstr "{offline, plural, other {# 件のワークスペースをアーカイブできません: ホストがオフラインです。}}"
 
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {#台のデバイスがオフラインのため、そのコピーは残ります。} other {#台のデバイスがオフラインのため、そのコピーは残ります。}}"
@@ -1866,8 +1884,31 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 msgid "Archive"
 msgstr "アーカイブ"
 
+msgid "Archive selected workspaces"
+msgstr "選択したワークスペースをアーカイブ"
+
+msgid "Archive the current workspace"
+msgstr "現在のワークスペースをアーカイブ"
+
+msgid "Archive workspace"
+msgstr "ワークスペースをアーカイブ"
+
 msgid "Archived"
 msgstr "アーカイブ済み"
+
+#. placeholder {0}: single.name || single.branch
+msgid "Archived \"{0}\""
+msgstr "「{0}」をアーカイブしました"
+
+#. placeholder {0}: formatRelativeTime(workspace.shelvedAt)
+msgid "Archived {0}"
+msgstr "{0}にアーカイブ"
+
+msgid "Archived workspaces"
+msgstr "アーカイブ済みワークスペース"
+
+msgid "Archived workspaces show up here."
+msgstr "アーカイブしたワークスペースはここに表示されます。"
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "このファイルを削除してもよろしいですか?この操作は元に戻せません。"
@@ -2518,6 +2559,9 @@ msgstr "リモートワークスペースのパスは外部エディタで開け
 msgid "Can't open remote workspace paths in Finder"
 msgstr "リモートワークスペースのパスはFinderで開けません"
 
+msgid "Can't restore \"{name}\": its host is offline."
+msgstr "「{name}」を復元できません: ホストがオフラインです。"
+
 msgid "Cancel"
 msgstr "キャンセル"
 
@@ -2991,9 +3035,6 @@ msgstr "モーダルを閉じる"
 
 msgid "Close modal backdrop"
 msgstr "モーダルの背景を閉じる"
-
-msgid "Close or delete the current workspace"
-msgstr "現在のワークスペースを閉じるか削除する"
 
 msgid "Close other apps using the microphone"
 msgstr "マイクを使用中の他のアプリを閉じてください"
@@ -4403,6 +4444,9 @@ msgstr "アカウントを削除しますか?"
 msgid "Delete agent"
 msgstr "エージェントを削除"
 
+msgid "Delete all"
+msgstr "すべて削除"
+
 msgid "Delete anyway"
 msgstr "それでも削除"
 
@@ -4442,6 +4486,9 @@ msgstr "組織を削除"
 
 msgid "Delete page"
 msgstr "ページを削除"
+
+msgid "Delete permanently"
+msgstr "完全に削除"
 
 msgid "Delete project"
 msgstr "プロジェクトを削除"
@@ -5373,6 +5420,10 @@ msgstr "エージェントの追加に失敗しました"
 msgid "Failed to add member"
 msgstr "メンバーの追加に失敗しました"
 
+#. placeholder {0}: errorMessage(result.reason, t({ message: "Unknown error" }))
+msgid "Failed to archive \"{name}\": {0}"
+msgstr "「{name}」をアーカイブできませんでした: {0}"
+
 msgid "Failed to cancel invitation"
 msgstr "招待のキャンセルに失敗しました"
 
@@ -5672,6 +5723,10 @@ msgstr "デーモンの再起動に失敗しました"
 
 msgid "Failed to restore"
 msgstr "復元できませんでした"
+
+#. placeholder {0}: errorMessage(error, t({ message: "Unknown error" }))
+msgid "Failed to restore \"{name}\": {0}"
+msgstr "「{name}」を復元できませんでした: {0}"
 
 msgid "Failed to restore defaults"
 msgstr "デフォルトの復元に失敗しました"
@@ -8440,6 +8495,9 @@ msgstr "エージェントはまだありません。"
 msgid "No API keys yet."
 msgstr "APIキーはまだありません。"
 
+msgid "No archived workspaces"
+msgstr "アーカイブ済みのワークスペースはありません"
+
 msgid "No assignee"
 msgstr "担当者なし"
 
@@ -11197,6 +11255,9 @@ msgstr "このバージョンを復元しますか?"
 
 msgid "Restored"
 msgstr "復元済み"
+
+msgid "Restored \"{name}\""
+msgstr "「{name}」を復元しました"
 
 msgid "Restoring your session"
 msgstr "セッションを復元中"
@@ -13956,6 +14017,9 @@ msgstr "セッションとその基盤プロセスを終了します。"
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "ステージ済みの変更をすべてステージ解除して元に戻します。ステージ済みの新規ファイルは削除されます。元に戻せません。"
 
+msgid "This workspace is archived"
+msgstr "このワークスペースはアーカイブされています"
+
 msgid "This workspace lives on a device Superset can't reach right now. Terminals, files, and agents stay put — they come back as soon as the connection does."
 msgstr "このワークスペースは、Supersetが現在接続できないデバイス上にあります。ターミナル、ファイル、エージェントはそのまま残り、接続が回復し次第戻ります。"
 
@@ -13967,6 +14031,9 @@ msgstr "このワークスペースの記録は残っていますが、ワーク
 
 msgid "This workspace's host is offline"
 msgstr "このワークスペースのホストはオフラインです"
+
+msgid "This workspace's host is offline. Actions resume when it reconnects."
+msgstr "このワークスペースのホストはオフラインです。再接続すると操作できるようになります。"
 
 msgid "This workspace's host is on an older version of Superset than this client supports. Update the Superset app on that device to reconnect."
 msgstr "このワークスペースのホストは、このクライアントが対応するより古いバージョンのSupersetを実行しています。そのデバイスのSupersetアプリを更新して再接続してください。"
@@ -14278,6 +14345,9 @@ msgstr "音声入力を開始できません"
 msgid "Unable to transcribe audio"
 msgstr "音声を文字起こしできません"
 
+msgid "Unarchive"
+msgstr "アーカイブ解除"
+
 msgid "Unassigned"
 msgstr "未割り当て"
 
@@ -14319,6 +14389,9 @@ msgstr "進行中"
 
 msgid "Undo"
 msgstr "取り消す"
+
+msgid "Undo all"
+msgstr "すべて取り消す"
 
 msgid "Ungroup"
 msgstr "グループ解除"
@@ -14692,6 +14765,9 @@ msgstr "すべて表示"
 
 msgid "View All"
 msgstr "すべて表示"
+
+msgid "View archived workspaces"
+msgstr "アーカイブ済みワークスペースを表示"
 
 #. placeholder {0}: comment.authorLogin
 msgid "View comment by {0}"

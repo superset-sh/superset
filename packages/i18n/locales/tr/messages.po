@@ -63,6 +63,9 @@ msgstr "\"{0}\", {2} ile {1} dalına birleştirilecek. Buradan geri alınamaz."
 msgid "\"{0}\" will stop firing and its run history will be removed. This can't be undone."
 msgstr "\"{0}\" artık tetiklenmeyecek ve çalıştırma geçmişi kaldırılacak. Bu geri alınamaz."
 
+msgid "“{displayName}” was put away. Its files, branch, and terminal history are kept. Unarchive it to pick up where you left off."
+msgstr "\"{displayName}\" arşive kaldırıldı. Dosyaları, dalı ve terminal geçmişi korunuyor. Kaldığınız yerden devam etmek için arşivden çıkarın."
+
 msgid "\"{name}\" deleted"
 msgstr "\"{name}\" silindi"
 
@@ -97,6 +100,10 @@ msgstr "{0, plural, one {# etkin port — ayrıntıları gizle} other {# etkin p
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — show details} other {# active ports — show details}}"
 msgstr "{0, plural, one {# etkin port — ayrıntıları göster} other {# etkin port — ayrıntıları göster}}"
+
+#. placeholder {0}: sorted.length
+msgid "{0, plural, one {# archived workspace} other {# archived workspaces}}"
+msgstr "{0, plural, one {# arşivlenmiş çalışma alanı} other {# arşivlenmiş çalışma alanı}}"
 
 #. placeholder {0}: workspace.diffStats.fileCount
 msgid "{0, plural, one {# changed file} other {# changed files}}"
@@ -215,6 +222,14 @@ msgstr "{0, plural, one {# çalışma alanı} other {# çalışma alanı}}"
 #. placeholder {0}: shown?.count ?? 0
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {Çalışan bir ajan hâlâ önceki hesabı kullanıyor — geçiş yalnızca yeni başlatmalar için geçerli.} other {Çalışan # ajan hâlâ önceki hesabı kullanıyor — geçiş yalnızca yeni başlatmalar için geçerli.}}"
+
+#. placeholder {0}: archivableIds.length
+msgid "{0, plural, one {Archive # Workspace} other {Archive # Workspaces}}"
+msgstr "{0, plural, one {# çalışma alanını arşivle} other {# çalışma alanını arşivle}}"
+
+#. placeholder {0}: archived.length
+msgid "{0, plural, one {Archived # workspace} other {Archived # workspaces}}"
+msgstr "{0, plural, one {# çalışma alanı arşivlendi} other {# çalışma alanı arşivlendi}}"
 
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
@@ -685,6 +700,9 @@ msgstr "{noun, select, person {En az bir kişi belirtin veya {choice} seçeneği
 
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {En az bir depo belirtin.} channel {En az bir kanal belirtin.} reaction {En az bir tepki belirtin.} dataSource {En az bir veri kaynağı belirtin.} team {En az bir takım belirtin.} project {En az bir proje belirtin.} calendar {En az bir takvim belirtin.} other {En az bir öğe belirtin.}}"
+
+msgid "{offline, plural, one {Can't archive # workspace: its host is offline.} other {Can't archive # workspaces: their hosts are offline.}}"
+msgstr "{offline, plural, one {# çalışma alanı arşivlenemiyor: host'u çevrimdışı.} other {# çalışma alanı arşivlenemiyor: host'ları çevrimdışı.}}"
 
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {# cihaz çevrimdışı ve kopyasını koruyor.} other {# cihaz çevrimdışı ve kopyalarını koruyor.}}"
@@ -1866,8 +1884,31 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 msgid "Archive"
 msgstr "Arşivle"
 
+msgid "Archive selected workspaces"
+msgstr "Seçili çalışma alanlarını arşivle"
+
+msgid "Archive the current workspace"
+msgstr "Geçerli çalışma alanını arşivle"
+
+msgid "Archive workspace"
+msgstr "Çalışma alanını arşivle"
+
 msgid "Archived"
 msgstr "Arşivlenmiş"
+
+#. placeholder {0}: single.name || single.branch
+msgid "Archived \"{0}\""
+msgstr "\"{0}\" arşivlendi"
+
+#. placeholder {0}: formatRelativeTime(workspace.shelvedAt)
+msgid "Archived {0}"
+msgstr "{0} arşivlendi"
+
+msgid "Archived workspaces"
+msgstr "Arşivlenmiş çalışma alanları"
+
+msgid "Archived workspaces show up here."
+msgstr "Arşivlenen çalışma alanları burada görünür."
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "Bu dosyayı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz."
@@ -2518,6 +2559,9 @@ msgstr "Uzak çalışma alanı yolları harici düzenleyicide açılamaz"
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Uzak çalışma alanı yolları Finder'da açılamaz"
 
+msgid "Can't restore \"{name}\": its host is offline."
+msgstr "\"{name}\" geri yüklenemiyor: host'u çevrimdışı."
+
 msgid "Cancel"
 msgstr "İptal"
 
@@ -2991,9 +3035,6 @@ msgstr "Pencereyi kapat"
 
 msgid "Close modal backdrop"
 msgstr "Pencere arka planını kapat"
-
-msgid "Close or delete the current workspace"
-msgstr "Geçerli çalışma alanını kapat veya sil"
 
 msgid "Close other apps using the microphone"
 msgstr "Mikrofonu kullanan diğer uygulamaları kapatın"
@@ -4403,6 +4444,9 @@ msgstr "Hesap silinsin mi?"
 msgid "Delete agent"
 msgstr "Ajanı sil"
 
+msgid "Delete all"
+msgstr "Tümünü sil"
+
 msgid "Delete anyway"
 msgstr "Yine de sil"
 
@@ -4442,6 +4486,9 @@ msgstr "Kuruluşu sil"
 
 msgid "Delete page"
 msgstr "Sayfayı sil"
+
+msgid "Delete permanently"
+msgstr "Kalıcı olarak sil"
 
 msgid "Delete project"
 msgstr "Projeyi sil"
@@ -5373,6 +5420,10 @@ msgstr "Ajan eklenemedi"
 msgid "Failed to add member"
 msgstr "Üye eklenemedi"
 
+#. placeholder {0}: errorMessage(result.reason, t({ message: "Unknown error" }))
+msgid "Failed to archive \"{name}\": {0}"
+msgstr "\"{name}\" arşivlenemedi: {0}"
+
 msgid "Failed to cancel invitation"
 msgstr "Davet iptal edilemedi"
 
@@ -5672,6 +5723,10 @@ msgstr "Daemon yeniden başlatılamadı"
 
 msgid "Failed to restore"
 msgstr "Geri yüklenemedi"
+
+#. placeholder {0}: errorMessage(error, t({ message: "Unknown error" }))
+msgid "Failed to restore \"{name}\": {0}"
+msgstr "\"{name}\" geri yüklenemedi: {0}"
 
 msgid "Failed to restore defaults"
 msgstr "Varsayılanlar geri yüklenemedi"
@@ -8440,6 +8495,9 @@ msgstr "Henüz ajan yok."
 msgid "No API keys yet."
 msgstr "Henüz API anahtarı yok."
 
+msgid "No archived workspaces"
+msgstr "Arşivlenmiş çalışma alanı yok"
+
 msgid "No assignee"
 msgstr "Atanan yok"
 
@@ -11197,6 +11255,9 @@ msgstr "Bu sürüm geri yüklensin mi?"
 
 msgid "Restored"
 msgstr "Geri yüklendi"
+
+msgid "Restored \"{name}\""
+msgstr "\"{name}\" geri yüklendi"
 
 msgid "Restoring your session"
 msgstr "Oturumunuz geri yükleniyor"
@@ -13956,6 +14017,9 @@ msgstr "Bu işlem oturumu ve altındaki süreci sonlandırır."
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Bu işlem, hazırlanmış tüm değişiklikleri hazırlıktan çıkarır ve geri alır. Hazırlanmış yeni dosyalar silinir. Bu geri alınamaz."
 
+msgid "This workspace is archived"
+msgstr "Bu çalışma alanı arşivlenmiş"
+
 msgid "This workspace lives on a device Superset can't reach right now. Terminals, files, and agents stay put — they come back as soon as the connection does."
 msgstr "Bu çalışma alanı, Superset'in şu anda erişemediği bir cihazda bulunuyor. Terminaller, dosyalar ve ajanlar yerinde kalır — bağlantı geri geldiğinde onlar da geri gelir."
 
@@ -13967,6 +14031,9 @@ msgstr "Bu çalışma alanı kaydı hâlâ var, ancak worktree klasörü artık 
 
 msgid "This workspace's host is offline"
 msgstr "Bu çalışma alanının host'u çevrimdışı"
+
+msgid "This workspace's host is offline. Actions resume when it reconnects."
+msgstr "Bu çalışma alanının host'u çevrimdışı. Yeniden bağlandığında işlemler devam eder."
 
 msgid "This workspace's host is on an older version of Superset than this client supports. Update the Superset app on that device to reconnect."
 msgstr "Bu çalışma alanının host'u, bu istemcinin desteklediğinden daha eski bir Superset sürümünde. Yeniden bağlanmak için o cihazdaki Superset uygulamasını güncelleyin."
@@ -14278,6 +14345,9 @@ msgstr "Sesle yazma başlatılamıyor"
 msgid "Unable to transcribe audio"
 msgstr "Ses yazıya dökülemiyor"
 
+msgid "Unarchive"
+msgstr "Arşivden çıkar"
+
 msgid "Unassigned"
 msgstr "Atanmamış"
 
@@ -14319,6 +14389,9 @@ msgstr "Sürüyor"
 
 msgid "Undo"
 msgstr "Geri al"
+
+msgid "Undo all"
+msgstr "Tümünü geri al"
 
 msgid "Ungroup"
 msgstr "Gruptan çıkar"
@@ -14692,6 +14765,9 @@ msgstr "Tümünü görüntüle"
 
 msgid "View All"
 msgstr "Tümünü görüntüle"
+
+msgid "View archived workspaces"
+msgstr "Arşivlenen çalışma alanlarını görüntüle"
 
 #. placeholder {0}: comment.authorLogin
 msgid "View comment by {0}"

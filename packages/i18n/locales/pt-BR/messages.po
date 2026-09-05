@@ -63,6 +63,9 @@ msgstr "\"{0}\" será mesclado em {1} via {2}. Não dá para desfazer daqui."
 msgid "\"{0}\" will stop firing and its run history will be removed. This can't be undone."
 msgstr "\"{0}\" vai parar de disparar e seu histórico de execuções será removido. Não dá para desfazer."
 
+msgid "“{displayName}” was put away. Its files, branch, and terminal history are kept. Unarchive it to pick up where you left off."
+msgstr "\"{displayName}\" foi arquivada. Seus arquivos, branch e histórico do terminal foram mantidos. Desarquive para continuar de onde parou."
+
 msgid "\"{name}\" deleted"
 msgstr "\"{name}\" excluída"
 
@@ -97,6 +100,10 @@ msgstr "{0, plural, one {# porta ativa — ocultar detalhes} other {# portas ati
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — show details} other {# active ports — show details}}"
 msgstr "{0, plural, one {# porta ativa — mostrar detalhes} other {# portas ativas — mostrar detalhes}}"
+
+#. placeholder {0}: sorted.length
+msgid "{0, plural, one {# archived workspace} other {# archived workspaces}}"
+msgstr "{0, plural, one {# área de trabalho arquivada} other {# áreas de trabalho arquivadas}}"
 
 #. placeholder {0}: workspace.diffStats.fileCount
 msgid "{0, plural, one {# changed file} other {# changed files}}"
@@ -215,6 +222,14 @@ msgstr "{0, plural, one {# área de trabalho} other {# áreas de trabalho}}"
 #. placeholder {0}: shown?.count ?? 0
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {Um agente em execução ainda usa a conta anterior — a troca só vale para novos lançamentos.} other {# agentes em execução ainda usam a conta anterior — a troca só vale para novos lançamentos.}}"
+
+#. placeholder {0}: archivableIds.length
+msgid "{0, plural, one {Archive # Workspace} other {Archive # Workspaces}}"
+msgstr "{0, plural, one {Arquivar # área de trabalho} other {Arquivar # áreas de trabalho}}"
+
+#. placeholder {0}: archived.length
+msgid "{0, plural, one {Archived # workspace} other {Archived # workspaces}}"
+msgstr "{0, plural, one {# área de trabalho arquivada} other {# áreas de trabalho arquivadas}}"
 
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
@@ -685,6 +700,9 @@ msgstr "{noun, select, person {Especifique pelo menos uma pessoa, ou escolha {ch
 
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {Especifique pelo menos um repositório.} channel {Especifique pelo menos um canal.} reaction {Especifique pelo menos uma reação.} dataSource {Especifique pelo menos uma fonte de dados.} team {Especifique pelo menos uma equipe.} project {Especifique pelo menos um projeto.} calendar {Especifique pelo menos um calendário.} other {Especifique pelo menos um item.}}"
+
+msgid "{offline, plural, one {Can't archive # workspace: its host is offline.} other {Can't archive # workspaces: their hosts are offline.}}"
+msgstr "{offline, plural, one {Não foi possível arquivar # área de trabalho: o host está offline.} other {Não foi possível arquivar # áreas de trabalho: os hosts estão offline.}}"
 
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {# dispositivo está offline e mantém sua cópia.} other {# dispositivos estão offline e mantêm suas cópias.}}"
@@ -1866,8 +1884,31 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 msgid "Archive"
 msgstr "Arquivar"
 
+msgid "Archive selected workspaces"
+msgstr "Arquivar áreas de trabalho selecionadas"
+
+msgid "Archive the current workspace"
+msgstr "Arquivar a área de trabalho atual"
+
+msgid "Archive workspace"
+msgstr "Arquivar área de trabalho"
+
 msgid "Archived"
 msgstr "Arquivadas"
+
+#. placeholder {0}: single.name || single.branch
+msgid "Archived \"{0}\""
+msgstr "\"{0}\" arquivada"
+
+#. placeholder {0}: formatRelativeTime(workspace.shelvedAt)
+msgid "Archived {0}"
+msgstr "Arquivada {0}"
+
+msgid "Archived workspaces"
+msgstr "Áreas de trabalho arquivadas"
+
+msgid "Archived workspaces show up here."
+msgstr "As áreas de trabalho arquivadas aparecem aqui."
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "Tem certeza de que quer excluir este arquivo? Não dá para desfazer."
@@ -2518,6 +2559,9 @@ msgstr "Não dá para abrir caminhos de áreas de trabalho remotas em um editor 
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Não dá para abrir caminhos de áreas de trabalho remotas no Finder"
 
+msgid "Can't restore \"{name}\": its host is offline."
+msgstr "Não é possível restaurar \"{name}\": o host está offline."
+
 msgid "Cancel"
 msgstr "Cancelar"
 
@@ -2991,9 +3035,6 @@ msgstr "Fechar modal"
 
 msgid "Close modal backdrop"
 msgstr "Fechar o fundo do modal"
-
-msgid "Close or delete the current workspace"
-msgstr "Fechar ou excluir a área de trabalho atual"
 
 msgid "Close other apps using the microphone"
 msgstr "Feche outros apps que estejam usando o microfone"
@@ -4403,6 +4444,9 @@ msgstr "Excluir a conta?"
 msgid "Delete agent"
 msgstr "Excluir agente"
 
+msgid "Delete all"
+msgstr "Excluir tudo"
+
 msgid "Delete anyway"
 msgstr "Excluir mesmo assim"
 
@@ -4442,6 +4486,9 @@ msgstr "Excluir organização"
 
 msgid "Delete page"
 msgstr "Excluir página"
+
+msgid "Delete permanently"
+msgstr "Excluir permanentemente"
 
 msgid "Delete project"
 msgstr "Excluir projeto"
@@ -5373,6 +5420,10 @@ msgstr "Falha ao adicionar o agente"
 msgid "Failed to add member"
 msgstr "Falha ao adicionar o membro"
 
+#. placeholder {0}: errorMessage(result.reason, t({ message: "Unknown error" }))
+msgid "Failed to archive \"{name}\": {0}"
+msgstr "Falha ao arquivar \"{name}\": {0}"
+
 msgid "Failed to cancel invitation"
 msgstr "Falha ao cancelar o convite"
 
@@ -5672,6 +5723,10 @@ msgstr "Falha ao reiniciar o daemon"
 
 msgid "Failed to restore"
 msgstr "Falha ao restaurar"
+
+#. placeholder {0}: errorMessage(error, t({ message: "Unknown error" }))
+msgid "Failed to restore \"{name}\": {0}"
+msgstr "Falha ao restaurar \"{name}\": {0}"
 
 msgid "Failed to restore defaults"
 msgstr "Falha ao restaurar os padrões"
@@ -8440,6 +8495,9 @@ msgstr "Nenhum agente ainda."
 msgid "No API keys yet."
 msgstr "Nenhuma chave de API ainda."
 
+msgid "No archived workspaces"
+msgstr "Nenhuma área de trabalho arquivada"
+
 msgid "No assignee"
 msgstr "Sem responsável"
 
@@ -11197,6 +11255,9 @@ msgstr "Restaurar esta versão?"
 
 msgid "Restored"
 msgstr "Restaurado"
+
+msgid "Restored \"{name}\""
+msgstr "\"{name}\" restaurada"
 
 msgid "Restoring your session"
 msgstr "Restaurando sua sessão"
@@ -13956,6 +14017,9 @@ msgstr "Isso encerra a sessão e o processo por trás dela."
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Isso remove do stage e reverte todas as alterações no stage. Arquivos novos no stage serão excluídos. Não dá para desfazer."
 
+msgid "This workspace is archived"
+msgstr "Esta área de trabalho está arquivada"
+
 msgid "This workspace lives on a device Superset can't reach right now. Terminals, files, and agents stay put — they come back as soon as the connection does."
 msgstr "Esta área de trabalho está em um dispositivo que o Superset não consegue alcançar agora. Terminais, arquivos e agentes continuam no lugar — eles voltam assim que a conexão voltar."
 
@@ -13967,6 +14031,9 @@ msgstr "O registro desta área de trabalho ainda existe, mas a pasta da worktree
 
 msgid "This workspace's host is offline"
 msgstr "O host desta área de trabalho está offline"
+
+msgid "This workspace's host is offline. Actions resume when it reconnects."
+msgstr "O host desta área de trabalho está offline. As ações voltam a funcionar quando ele reconectar."
 
 msgid "This workspace's host is on an older version of Superset than this client supports. Update the Superset app on that device to reconnect."
 msgstr "O host desta área de trabalho está em uma versão do Superset mais antiga do que este cliente suporta. Atualize o app do Superset nesse dispositivo para reconectar."
@@ -14278,6 +14345,9 @@ msgstr "Não foi possível iniciar o ditado"
 msgid "Unable to transcribe audio"
 msgstr "Não foi possível transcrever o áudio"
 
+msgid "Unarchive"
+msgstr "Desarquivar"
+
 msgid "Unassigned"
 msgstr "Sem responsável"
 
@@ -14319,6 +14389,9 @@ msgstr "Em curso"
 
 msgid "Undo"
 msgstr "Desfazer"
+
+msgid "Undo all"
+msgstr "Desfazer tudo"
 
 msgid "Ungroup"
 msgstr "Desagrupar"
@@ -14692,6 +14765,9 @@ msgstr "Ver todas"
 
 msgid "View All"
 msgstr "Ver todas"
+
+msgid "View archived workspaces"
+msgstr "Ver áreas de trabalho arquivadas"
 
 #. placeholder {0}: comment.authorLogin
 msgid "View comment by {0}"

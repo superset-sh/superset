@@ -63,6 +63,9 @@ msgstr "「{0}」將通過{2}合併到{1}。在這裡無法復原。"
 msgid "\"{0}\" will stop firing and its run history will be removed. This can't be undone."
 msgstr "「{0}」將不再觸發，其執行歷史也會被移除。此操作無法復原。"
 
+msgid "“{displayName}” was put away. Its files, branch, and terminal history are kept. Unarchive it to pick up where you left off."
+msgstr "「{displayName}」已歸檔。其檔案、分支和終端機歷史均已保留。取消歸檔即可從上次中斷處繼續。"
+
 msgid "\"{name}\" deleted"
 msgstr "「{name}」已刪除"
 
@@ -97,6 +100,10 @@ msgstr "{0, plural, one {#個活動埠 — 隱藏詳情} other {#個活動埠 �
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — show details} other {# active ports — show details}}"
 msgstr "{0, plural, one {#個活動埠 — 顯示詳情} other {#個活動埠 — 顯示詳情}}"
+
+#. placeholder {0}: sorted.length
+msgid "{0, plural, one {# archived workspace} other {# archived workspaces}}"
+msgstr "{0, plural, other {# 個已歸檔的工作區}}"
 
 #. placeholder {0}: workspace.diffStats.fileCount
 msgid "{0, plural, one {# changed file} other {# changed files}}"
@@ -215,6 +222,14 @@ msgstr "{0, plural, one {#個工作區} other {#個工作區}}"
 #. placeholder {0}: shown?.count ?? 0
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {#個執行中的代理程式仍在使用先前的帳戶。切換只對新啟動生效。} other {#個執行中的代理程式仍在使用先前的帳戶。切換只對新啟動生效。}}"
+
+#. placeholder {0}: archivableIds.length
+msgid "{0, plural, one {Archive # Workspace} other {Archive # Workspaces}}"
+msgstr "{0, plural, other {歸檔 # 個工作區}}"
+
+#. placeholder {0}: archived.length
+msgid "{0, plural, one {Archived # workspace} other {Archived # workspaces}}"
+msgstr "{0, plural, other {已歸檔 # 個工作區}}"
 
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
@@ -685,6 +700,9 @@ msgstr "{noun, select, person {請至少指定一個人員，或選擇{choice}�
 
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {請至少指定一個倉庫。} channel {請至少指定一個頻道。} reaction {請至少指定一個回應。} dataSource {請至少指定一個資料來源。} team {請至少指定一個團隊。} project {請至少指定一個專案。} calendar {請至少指定一個日曆。} other {請至少指定一個項目。}}"
+
+msgid "{offline, plural, one {Can't archive # workspace: its host is offline.} other {Can't archive # workspaces: their hosts are offline.}}"
+msgstr "{offline, plural, other {無法歸檔 # 個工作區：主機已離線。}}"
 
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {# 台裝置處於離線狀態，將保留其副本。} other {# 台裝置處於離線狀態，將保留其副本。}}"
@@ -1866,8 +1884,31 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 msgid "Archive"
 msgstr "歸檔"
 
+msgid "Archive selected workspaces"
+msgstr "歸檔所選工作區"
+
+msgid "Archive the current workspace"
+msgstr "歸檔目前的工作區"
+
+msgid "Archive workspace"
+msgstr "歸檔工作區"
+
 msgid "Archived"
 msgstr "已歸檔"
+
+#. placeholder {0}: single.name || single.branch
+msgid "Archived \"{0}\""
+msgstr "已歸檔「{0}」"
+
+#. placeholder {0}: formatRelativeTime(workspace.shelvedAt)
+msgid "Archived {0}"
+msgstr "歸檔於{0}"
+
+msgid "Archived workspaces"
+msgstr "已歸檔的工作區"
+
+msgid "Archived workspaces show up here."
+msgstr "已歸檔的工作區會顯示在這裡。"
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "確定要刪除此檔案嗎？此操作無法復原。"
@@ -2518,6 +2559,9 @@ msgstr "無法在外部編輯器中開啟遠端工作區路徑"
 msgid "Can't open remote workspace paths in Finder"
 msgstr "無法在Finder中開啟遠端工作區路徑"
 
+msgid "Can't restore \"{name}\": its host is offline."
+msgstr "無法恢復「{name}」：主機已離線。"
+
 msgid "Cancel"
 msgstr "取消"
 
@@ -2991,9 +3035,6 @@ msgstr "關閉彈窗"
 
 msgid "Close modal backdrop"
 msgstr "關閉彈窗背景"
-
-msgid "Close or delete the current workspace"
-msgstr "關閉或刪除目前工作區"
 
 msgid "Close other apps using the microphone"
 msgstr "請關閉其他正在使用麥克風的應用"
@@ -4403,6 +4444,9 @@ msgstr "刪除帳戶？"
 msgid "Delete agent"
 msgstr "刪除代理程式"
 
+msgid "Delete all"
+msgstr "全部刪除"
+
 msgid "Delete anyway"
 msgstr "仍然刪除"
 
@@ -4442,6 +4486,9 @@ msgstr "刪除組織"
 
 msgid "Delete page"
 msgstr "刪除頁面"
+
+msgid "Delete permanently"
+msgstr "永久刪除"
 
 msgid "Delete project"
 msgstr "刪除專案"
@@ -5373,6 +5420,10 @@ msgstr "新增代理程式失敗"
 msgid "Failed to add member"
 msgstr "新增成員失敗"
 
+#. placeholder {0}: errorMessage(result.reason, t({ message: "Unknown error" }))
+msgid "Failed to archive \"{name}\": {0}"
+msgstr "歸檔「{name}」失敗：{0}"
+
 msgid "Failed to cancel invitation"
 msgstr "取消邀請失敗"
 
@@ -5672,6 +5723,10 @@ msgstr "重啟守護程式失敗"
 
 msgid "Failed to restore"
 msgstr "恢復失敗"
+
+#. placeholder {0}: errorMessage(error, t({ message: "Unknown error" }))
+msgid "Failed to restore \"{name}\": {0}"
+msgstr "恢復「{name}」失敗：{0}"
 
 msgid "Failed to restore defaults"
 msgstr "恢復預設值失敗"
@@ -8440,6 +8495,9 @@ msgstr "暫無代理程式。"
 msgid "No API keys yet."
 msgstr "暫無API金鑰。"
 
+msgid "No archived workspaces"
+msgstr "沒有已歸檔的工作區"
+
 msgid "No assignee"
 msgstr "無負責人"
 
@@ -11197,6 +11255,9 @@ msgstr "恢復這個版本？"
 
 msgid "Restored"
 msgstr "已恢復"
+
+msgid "Restored \"{name}\""
+msgstr "已恢復「{name}」"
 
 msgid "Restoring your session"
 msgstr "正在恢復你的會話"
@@ -13956,6 +14017,9 @@ msgstr "這將終止該會話及其底層處理程序。"
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "這將取消暫存並還原所有已暫存的更改。已暫存的新檔案將被刪除。此操作無法復原。"
 
+msgid "This workspace is archived"
+msgstr "此工作區已歸檔"
+
 msgid "This workspace lives on a device Superset can't reach right now. Terminals, files, and agents stay put — they come back as soon as the connection does."
 msgstr "此工作區位於Superset目前無法連線的裝置上。終端、檔案和代理程式都會保持原樣 — 連線一恢復它們就會回來。"
 
@@ -13967,6 +14031,9 @@ msgstr "此工作區記錄仍然存在，但它的worktree資料夾已不在此�
 
 msgid "This workspace's host is offline"
 msgstr "此工作區的主機已離線"
+
+msgid "This workspace's host is offline. Actions resume when it reconnects."
+msgstr "此工作區的主機已離線。重新連線後即可繼續操作。"
 
 msgid "This workspace's host is on an older version of Superset than this client supports. Update the Superset app on that device to reconnect."
 msgstr "此工作區所在主機的Superset版本低於此客戶端支援的版本。請在該裝置上更新Superset應用程式以重新連線。"
@@ -14278,6 +14345,9 @@ msgstr "無法開始語音輸入"
 msgid "Unable to transcribe audio"
 msgstr "無法轉寫音訊"
 
+msgid "Unarchive"
+msgstr "取消歸檔"
+
 msgid "Unassigned"
 msgstr "未分配"
 
@@ -14319,6 +14389,9 @@ msgstr "進行中"
 
 msgid "Undo"
 msgstr "撤銷"
+
+msgid "Undo all"
+msgstr "全部撤銷"
 
 msgid "Ungroup"
 msgstr "取消群組"
@@ -14692,6 +14765,9 @@ msgstr "檢視全部"
 
 msgid "View All"
 msgstr "檢視全部"
+
+msgid "View archived workspaces"
+msgstr "檢視已歸檔的工作區"
 
 #. placeholder {0}: comment.authorLogin
 msgid "View comment by {0}"

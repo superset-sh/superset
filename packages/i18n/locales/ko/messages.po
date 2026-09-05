@@ -63,6 +63,9 @@ msgstr "\"{0}\"이(가) {2} 방식으로 {1}에 머지됩니다. 여기에서는
 msgid "\"{0}\" will stop firing and its run history will be removed. This can't be undone."
 msgstr "\"{0}\"이(가) 더 이상 실행되지 않으며 실행 기록도 삭제됩니다. 되돌릴 수 없습니다."
 
+msgid "“{displayName}” was put away. Its files, branch, and terminal history are kept. Unarchive it to pick up where you left off."
+msgstr "\"{displayName}\"이(가) 보관되었습니다. 파일, 브랜치, 터미널 기록은 그대로 유지됩니다. 보관을 해제하면 중단했던 작업을 이어갈 수 있습니다."
+
 msgid "\"{name}\" deleted"
 msgstr "\"{name}\"을(를) 삭제했습니다"
 
@@ -97,6 +100,10 @@ msgstr "{0, plural, one {활성 포트 #개 — 세부 정보 숨기기} other {
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — show details} other {# active ports — show details}}"
 msgstr "{0, plural, one {활성 포트 #개 — 세부 정보 표시} other {활성 포트 #개 — 세부 정보 표시}}"
+
+#. placeholder {0}: sorted.length
+msgid "{0, plural, one {# archived workspace} other {# archived workspaces}}"
+msgstr "{0, plural, other {보관된 워크스페이스 #개}}"
 
 #. placeholder {0}: workspace.diffStats.fileCount
 msgid "{0, plural, one {# changed file} other {# changed files}}"
@@ -215,6 +222,14 @@ msgstr "{0, plural, one {워크스페이스 #개} other {워크스페이스 #개
 #. placeholder {0}: shown?.count ?? 0
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {실행 중인 에이전트 #개가 아직 이전 계정을 사용하고 있습니다. 전환은 새 실행에만 적용됩니다.} other {실행 중인 에이전트 #개가 아직 이전 계정을 사용하고 있습니다. 전환은 새 실행에만 적용됩니다.}}"
+
+#. placeholder {0}: archivableIds.length
+msgid "{0, plural, one {Archive # Workspace} other {Archive # Workspaces}}"
+msgstr "{0, plural, other {워크스페이스 #개 보관}}"
+
+#. placeholder {0}: archived.length
+msgid "{0, plural, one {Archived # workspace} other {Archived # workspaces}}"
+msgstr "{0, plural, other {워크스페이스 #개를 보관했습니다}}"
 
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
@@ -685,6 +700,9 @@ msgstr "{noun, select, person {사람을 한 명 이상 지정하거나 {choice}
 
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {리포지토리를 하나 이상 지정하세요.} channel {채널을 하나 이상 지정하세요.} reaction {리액션을 하나 이상 지정하세요.} dataSource {데이터 소스를 하나 이상 지정하세요.} team {팀을 하나 이상 지정하세요.} project {프로젝트를 하나 이상 지정하세요.} calendar {캘린더를 하나 이상 지정하세요.} other {항목을 하나 이상 지정하세요.}}"
+
+msgid "{offline, plural, one {Can't archive # workspace: its host is offline.} other {Can't archive # workspaces: their hosts are offline.}}"
+msgstr "{offline, plural, other {워크스페이스 #개를 보관할 수 없습니다: 호스트가 오프라인입니다.}}"
 
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {기기 #대가 오프라인 상태이며 사본을 그대로 유지합니다.} other {기기 #대가 오프라인 상태이며 사본을 그대로 유지합니다.}}"
@@ -1866,8 +1884,31 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 msgid "Archive"
 msgstr "보관"
 
+msgid "Archive selected workspaces"
+msgstr "선택한 워크스페이스 보관"
+
+msgid "Archive the current workspace"
+msgstr "현재 워크스페이스 보관"
+
+msgid "Archive workspace"
+msgstr "워크스페이스 보관"
+
 msgid "Archived"
 msgstr "보관됨"
+
+#. placeholder {0}: single.name || single.branch
+msgid "Archived \"{0}\""
+msgstr "\"{0}\"을(를) 보관했습니다"
+
+#. placeholder {0}: formatRelativeTime(workspace.shelvedAt)
+msgid "Archived {0}"
+msgstr "{0} 보관됨"
+
+msgid "Archived workspaces"
+msgstr "보관된 워크스페이스"
+
+msgid "Archived workspaces show up here."
+msgstr "보관한 워크스페이스가 여기에 표시됩니다."
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "이 파일을 삭제할까요? 되돌릴 수 없습니다."
@@ -2518,6 +2559,9 @@ msgstr "원격 워크스페이스 경로는 외부 에디터에서 열 수 없�
 msgid "Can't open remote workspace paths in Finder"
 msgstr "원격 워크스페이스 경로는 Finder에서 열 수 없습니다"
 
+msgid "Can't restore \"{name}\": its host is offline."
+msgstr "\"{name}\"을(를) 복원할 수 없습니다: 호스트가 오프라인입니다."
+
 msgid "Cancel"
 msgstr "취소"
 
@@ -2991,9 +3035,6 @@ msgstr "모달 닫기"
 
 msgid "Close modal backdrop"
 msgstr "모달 배경 닫기"
-
-msgid "Close or delete the current workspace"
-msgstr "현재 워크스페이스를 닫거나 삭제합니다"
 
 msgid "Close other apps using the microphone"
 msgstr "마이크를 사용 중인 다른 앱을 닫으세요"
@@ -4403,6 +4444,9 @@ msgstr "계정을 삭제할까요?"
 msgid "Delete agent"
 msgstr "에이전트 삭제"
 
+msgid "Delete all"
+msgstr "모두 삭제"
+
 msgid "Delete anyway"
 msgstr "그래도 삭제"
 
@@ -4442,6 +4486,9 @@ msgstr "조직 삭제"
 
 msgid "Delete page"
 msgstr "페이지 삭제"
+
+msgid "Delete permanently"
+msgstr "영구 삭제"
 
 msgid "Delete project"
 msgstr "프로젝트 삭제"
@@ -5373,6 +5420,10 @@ msgstr "에이전트를 추가하지 못했습니다"
 msgid "Failed to add member"
 msgstr "멤버를 추가하지 못했습니다"
 
+#. placeholder {0}: errorMessage(result.reason, t({ message: "Unknown error" }))
+msgid "Failed to archive \"{name}\": {0}"
+msgstr "\"{name}\" 보관 실패: {0}"
+
 msgid "Failed to cancel invitation"
 msgstr "초대를 취소하지 못했습니다"
 
@@ -5672,6 +5723,10 @@ msgstr "데몬을 다시 시작하지 못했습니다"
 
 msgid "Failed to restore"
 msgstr "복원하지 못했습니다"
+
+#. placeholder {0}: errorMessage(error, t({ message: "Unknown error" }))
+msgid "Failed to restore \"{name}\": {0}"
+msgstr "\"{name}\" 복원 실패: {0}"
 
 msgid "Failed to restore defaults"
 msgstr "기본값을 복원하지 못했습니다"
@@ -8440,6 +8495,9 @@ msgstr "아직 에이전트가 없습니다."
 msgid "No API keys yet."
 msgstr "아직 API 키가 없습니다."
 
+msgid "No archived workspaces"
+msgstr "보관된 워크스페이스가 없습니다"
+
 msgid "No assignee"
 msgstr "담당자 없음"
 
@@ -11197,6 +11255,9 @@ msgstr "이 버전을 복원할까요?"
 
 msgid "Restored"
 msgstr "복원됨"
+
+msgid "Restored \"{name}\""
+msgstr "\"{name}\"을(를) 복원했습니다"
 
 msgid "Restoring your session"
 msgstr "세션을 복원하는 중"
@@ -13956,6 +14017,9 @@ msgstr "이 세션과 그 하위 프로세스를 종료합니다."
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "스테이징된 변경 사항을 모두 스테이징 해제하고 되돌립니다. 스테이징된 새 파일은 삭제됩니다. 되돌릴 수 없습니다."
 
+msgid "This workspace is archived"
+msgstr "이 워크스페이스는 보관되어 있습니다"
+
 msgid "This workspace lives on a device Superset can't reach right now. Terminals, files, and agents stay put — they come back as soon as the connection does."
 msgstr "이 워크스페이스는 Superset이 지금 연결할 수 없는 기기에 있습니다. 터미널, 파일, 에이전트는 그대로 남아 있으며 연결이 복구되면 바로 돌아옵니다."
 
@@ -13967,6 +14031,9 @@ msgstr "이 워크스페이스 기록은 남아 있지만, worktree 폴더가 �
 
 msgid "This workspace's host is offline"
 msgstr "이 워크스페이스의 호스트가 오프라인입니다"
+
+msgid "This workspace's host is offline. Actions resume when it reconnects."
+msgstr "이 워크스페이스의 호스트가 오프라인입니다. 다시 연결되면 작업할 수 있습니다."
 
 msgid "This workspace's host is on an older version of Superset than this client supports. Update the Superset app on that device to reconnect."
 msgstr "이 워크스페이스의 호스트가 이 클라이언트에서 지원하는 것보다 오래된 Superset 버전을 쓰고 있습니다. 다시 연결하려면 해당 기기의 Superset 앱을 업데이트하세요."
@@ -14278,6 +14345,9 @@ msgstr "받아쓰기를 시작할 수 없습니다"
 msgid "Unable to transcribe audio"
 msgstr "오디오를 변환할 수 없습니다"
 
+msgid "Unarchive"
+msgstr "보관 해제"
+
 msgid "Unassigned"
 msgstr "미할당"
 
@@ -14319,6 +14389,9 @@ msgstr "진행 중"
 
 msgid "Undo"
 msgstr "실행 취소"
+
+msgid "Undo all"
+msgstr "모두 실행 취소"
 
 msgid "Ungroup"
 msgstr "그룹 해제"
@@ -14692,6 +14765,9 @@ msgstr "전체 보기"
 
 msgid "View All"
 msgstr "전체 보기"
+
+msgid "View archived workspaces"
+msgstr "보관된 워크스페이스 보기"
 
 #. placeholder {0}: comment.authorLogin
 msgid "View comment by {0}"

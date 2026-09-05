@@ -63,6 +63,9 @@ msgstr "«{0}» будет объединён в {1} через {2}. Отмен�
 msgid "\"{0}\" will stop firing and its run history will be removed. This can't be undone."
 msgstr "«{0}» перестанет срабатывать, а история её запусков будет удалена. Это нельзя отменить."
 
+msgid "“{displayName}” was put away. Its files, branch, and terminal history are kept. Unarchive it to pick up where you left off."
+msgstr "«{displayName}» отложена в архив. Файлы, ветка и история терминала сохранены. Разархивируйте её, чтобы продолжить с того места, где остановились."
+
 msgid "\"{name}\" deleted"
 msgstr "«{name}» удалена"
 
@@ -97,6 +100,10 @@ msgstr "{0, plural, one {# активный порт — скрыть детал
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — show details} other {# active ports — show details}}"
 msgstr "{0, plural, one {# активный порт — показать детали} few {# активных порта — показать детали} many {# активных портов — показать детали} other {# активных портов — показать детали}}"
+
+#. placeholder {0}: sorted.length
+msgid "{0, plural, one {# archived workspace} other {# archived workspaces}}"
+msgstr "{0, plural, one {# архивированная рабочая область} few {# архивированные рабочие области} many {# архивированных рабочих областей} other {# архивированной рабочей области}}"
 
 #. placeholder {0}: workspace.diffStats.fileCount
 msgid "{0, plural, one {# changed file} other {# changed files}}"
@@ -215,6 +222,14 @@ msgstr "{0, plural, one {# рабочая область} few {# рабочие 
 #. placeholder {0}: shown?.count ?? 0
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {# работающий агент всё ещё использует прежний аккаунт — переключение действует только для новых запусков.} few {# работающих агента всё ещё используют прежний аккаунт — переключение действует только для новых запусков.} many {# работающих агентов всё ещё используют прежний аккаунт — переключение действует только для новых запусков.} other {# работающего агента всё ещё использует прежний аккаунт — переключение действует только для новых запусков.}}"
+
+#. placeholder {0}: archivableIds.length
+msgid "{0, plural, one {Archive # Workspace} other {Archive # Workspaces}}"
+msgstr "{0, plural, one {Архивировать # рабочую область} few {Архивировать # рабочие области} many {Архивировать # рабочих областей} other {Архивировать # рабочей области}}"
+
+#. placeholder {0}: archived.length
+msgid "{0, plural, one {Archived # workspace} other {Archived # workspaces}}"
+msgstr "{0, plural, one {Архивирована # рабочая область} few {Архивированы # рабочие области} many {Архивировано # рабочих областей} other {Архивировано # рабочей области}}"
 
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
@@ -685,6 +700,9 @@ msgstr "{noun, select, person {Укажите хотя бы одного чел�
 
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {Укажите хотя бы один репозиторий.} channel {Укажите хотя бы один канал.} reaction {Укажите хотя бы одну реакцию.} dataSource {Укажите хотя бы один источник данных.} team {Укажите хотя бы одну команду.} project {Укажите хотя бы один проект.} calendar {Укажите хотя бы один календарь.} other {Укажите хотя бы одно значение.}}"
+
+msgid "{offline, plural, one {Can't archive # workspace: its host is offline.} other {Can't archive # workspaces: their hosts are offline.}}"
+msgstr "{offline, plural, one {Не удалось архивировать # рабочую область: её хост офлайн.} few {Не удалось архивировать # рабочие области: их хосты офлайн.} many {Не удалось архивировать # рабочих областей: их хосты офлайн.} other {Не удалось архивировать # рабочей области: их хосты офлайн.}}"
 
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {# устройство офлайн и сохранит свою копию.} few {# устройства офлайн и сохранят свои копии.} many {# устройств офлайн и сохранят свои копии.} other {# устройства офлайн и сохранят свои копии.}}"
@@ -1866,8 +1884,31 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 msgid "Archive"
 msgstr "Архивировать"
 
+msgid "Archive selected workspaces"
+msgstr "Архивировать выбранные рабочие области"
+
+msgid "Archive the current workspace"
+msgstr "Архивировать текущую рабочую область"
+
+msgid "Archive workspace"
+msgstr "Архивировать рабочую область"
+
 msgid "Archived"
 msgstr "Архив"
+
+#. placeholder {0}: single.name || single.branch
+msgid "Archived \"{0}\""
+msgstr "«{0}» архивирована"
+
+#. placeholder {0}: formatRelativeTime(workspace.shelvedAt)
+msgid "Archived {0}"
+msgstr "Архивирована {0}"
+
+msgid "Archived workspaces"
+msgstr "Архивированные рабочие области"
+
+msgid "Archived workspaces show up here."
+msgstr "Архивированные рабочие области появятся здесь."
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "Точно удалить этот файл? Действие нельзя отменить."
@@ -2518,6 +2559,9 @@ msgstr "Пути удалённых рабочих областей нельзя
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Пути удалённых рабочих областей нельзя открыть в Finder"
 
+msgid "Can't restore \"{name}\": its host is offline."
+msgstr "Не удалось восстановить «{name}»: её хост офлайн."
+
 msgid "Cancel"
 msgstr "Отмена"
 
@@ -2991,9 +3035,6 @@ msgstr "Закрыть окно"
 
 msgid "Close modal backdrop"
 msgstr "Закрыть фон окна"
-
-msgid "Close or delete the current workspace"
-msgstr "Закрыть или удалить текущую рабочую область"
 
 msgid "Close other apps using the microphone"
 msgstr "Закройте другие приложения, использующие микрофон"
@@ -4403,6 +4444,9 @@ msgstr "Удалить аккаунт?"
 msgid "Delete agent"
 msgstr "Удалить агента"
 
+msgid "Delete all"
+msgstr "Удалить все"
+
 msgid "Delete anyway"
 msgstr "Всё равно удалить"
 
@@ -4442,6 +4486,9 @@ msgstr "Удалить организацию"
 
 msgid "Delete page"
 msgstr "Удалить страницу"
+
+msgid "Delete permanently"
+msgstr "Удалить навсегда"
 
 msgid "Delete project"
 msgstr "Удалить проект"
@@ -5373,6 +5420,10 @@ msgstr "Не удалось добавить агента"
 msgid "Failed to add member"
 msgstr "Не удалось добавить участника"
 
+#. placeholder {0}: errorMessage(result.reason, t({ message: "Unknown error" }))
+msgid "Failed to archive \"{name}\": {0}"
+msgstr "Не удалось архивировать «{name}»: {0}"
+
 msgid "Failed to cancel invitation"
 msgstr "Не удалось отменить приглашение"
 
@@ -5672,6 +5723,10 @@ msgstr "Не удалось перезапустить демон"
 
 msgid "Failed to restore"
 msgstr "Не удалось восстановить"
+
+#. placeholder {0}: errorMessage(error, t({ message: "Unknown error" }))
+msgid "Failed to restore \"{name}\": {0}"
+msgstr "Не удалось восстановить «{name}»: {0}"
 
 msgid "Failed to restore defaults"
 msgstr "Не удалось восстановить значения по умолчанию"
@@ -8440,6 +8495,9 @@ msgstr "Агентов пока нет."
 msgid "No API keys yet."
 msgstr "Ключей API пока нет."
 
+msgid "No archived workspaces"
+msgstr "Нет архивированных рабочих областей"
+
 msgid "No assignee"
 msgstr "Без исполнителя"
 
@@ -11197,6 +11255,9 @@ msgstr "Восстановить эту версию?"
 
 msgid "Restored"
 msgstr "Восстановлено"
+
+msgid "Restored \"{name}\""
+msgstr "«{name}» восстановлена"
 
 msgid "Restoring your session"
 msgstr "Восстановление сессии"
@@ -13956,6 +14017,9 @@ msgstr "Это завершит сессию и связанный с ней п�
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Это снимет индексацию и откатит все проиндексированные изменения. Проиндексированные новые файлы будут удалены. Отменить нельзя."
 
+msgid "This workspace is archived"
+msgstr "Эта рабочая область архивирована"
+
 msgid "This workspace lives on a device Superset can't reach right now. Terminals, files, and agents stay put — they come back as soon as the connection does."
 msgstr "Эта рабочая область находится на устройстве, до которого Superset сейчас не может достучаться. Терминалы, файлы и агенты остаются на месте — они вернутся, как только вернётся соединение."
 
@@ -13967,6 +14031,9 @@ msgstr "Запись об этой рабочей области ещё суще
 
 msgid "This workspace's host is offline"
 msgstr "Хост этой рабочей области офлайн"
+
+msgid "This workspace's host is offline. Actions resume when it reconnects."
+msgstr "Хост этой рабочей области офлайн. Действия станут доступны после переподключения."
 
 msgid "This workspace's host is on an older version of Superset than this client supports. Update the Superset app on that device to reconnect."
 msgstr "Хост этой рабочей области работает на более старой версии Superset, чем поддерживает этот клиент. Обновите приложение Superset на том устройстве, чтобы переподключиться."
@@ -14278,6 +14345,9 @@ msgstr "Не удалось запустить диктовку"
 msgid "Unable to transcribe audio"
 msgstr "Не удалось расшифровать аудио"
 
+msgid "Unarchive"
+msgstr "Разархивировать"
+
 msgid "Unassigned"
 msgstr "Не назначено"
 
@@ -14319,6 +14389,9 @@ msgstr "Идёт"
 
 msgid "Undo"
 msgstr "Отменить"
+
+msgid "Undo all"
+msgstr "Отменить всё"
 
 msgid "Ungroup"
 msgstr "Убрать из группы"
@@ -14692,6 +14765,9 @@ msgstr "Смотреть все"
 
 msgid "View All"
 msgstr "Смотреть все"
+
+msgid "View archived workspaces"
+msgstr "Показать архивированные рабочие области"
 
 #. placeholder {0}: comment.authorLogin
 msgid "View comment by {0}"

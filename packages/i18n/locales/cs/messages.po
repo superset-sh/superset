@@ -63,6 +63,9 @@ msgstr "„{0}“ bude sloučen do {1} pomocí {2}. Odsud to nelze vrátit zpět
 msgid "\"{0}\" will stop firing and its run history will be removed. This can't be undone."
 msgstr "„{0}“ se přestane spouštět a její historie běhů bude odstraněna. Tuto akci nelze vrátit zpět."
 
+msgid "“{displayName}” was put away. Its files, branch, and terminal history are kept. Unarchive it to pick up where you left off."
+msgstr "„{displayName}“ byl uložen do archivu. Soubory, větev i historie terminálu zůstávají zachovány. Obnovte ho z archivu a pokračujte tam, kde jste skončili."
+
 msgid "\"{name}\" deleted"
 msgstr "„{name}“ smazáno"
 
@@ -97,6 +100,10 @@ msgstr "{0, plural, one {# aktivní port — skrýt podrobnosti} few {# aktivní
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — show details} other {# active ports — show details}}"
 msgstr "{0, plural, one {# aktivní port — zobrazit podrobnosti} few {# aktivní porty — zobrazit podrobnosti} many {# aktivního portu — zobrazit podrobnosti} other {# aktivních portů — zobrazit podrobnosti}}"
+
+#. placeholder {0}: sorted.length
+msgid "{0, plural, one {# archived workspace} other {# archived workspaces}}"
+msgstr "{0, plural, one {# archivovaný pracovní prostor} few {# archivované pracovní prostory} many {# archivovaného pracovního prostoru} other {# archivovaných pracovních prostorů}}"
 
 #. placeholder {0}: workspace.diffStats.fileCount
 msgid "{0, plural, one {# changed file} other {# changed files}}"
@@ -215,6 +222,14 @@ msgstr "{0, plural, one {# pracovní prostor} few {# pracovní prostory} many {#
 #. placeholder {0}: shown?.count ?? 0
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {# běžící agent stále používá předchozí účet — přepnutí platí jen pro nová spuštění.} few {# běžící agenti stále používají předchozí účet — přepnutí platí jen pro nová spuštění.} many {# běžícího agenta stále používá předchozí účet — přepnutí platí jen pro nová spuštění.} other {# běžících agentů stále používá předchozí účet — přepnutí platí jen pro nová spuštění.}}"
+
+#. placeholder {0}: archivableIds.length
+msgid "{0, plural, one {Archive # Workspace} other {Archive # Workspaces}}"
+msgstr "{0, plural, one {Archivovat # pracovní prostor} few {Archivovat # pracovní prostory} many {Archivovat # pracovního prostoru} other {Archivovat # pracovních prostorů}}"
+
+#. placeholder {0}: archived.length
+msgid "{0, plural, one {Archived # workspace} other {Archived # workspaces}}"
+msgstr "{0, plural, one {Archivován # pracovní prostor} few {Archivovány # pracovní prostory} many {Archivováno # pracovního prostoru} other {Archivováno # pracovních prostorů}}"
 
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
@@ -685,6 +700,9 @@ msgstr "{noun, select, person {Zadejte alespoň jednu osobu, nebo zvolte {choice
 
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {Zadejte alespoň jeden repozitář.} channel {Zadejte alespoň jeden kanál.} reaction {Zadejte alespoň jednu reakci.} dataSource {Zadejte alespoň jeden zdroj dat.} team {Zadejte alespoň jeden tým.} project {Zadejte alespoň jeden projekt.} calendar {Zadejte alespoň jeden kalendář.} other {Zadejte alespoň jednu položku.}}"
+
+msgid "{offline, plural, one {Can't archive # workspace: its host is offline.} other {Can't archive # workspaces: their hosts are offline.}}"
+msgstr "{offline, plural, one {Nelze archivovat # pracovní prostor: jeho host je offline.} few {Nelze archivovat # pracovní prostory: jejich hosty jsou offline.} many {Nelze archivovat # pracovního prostoru: jejich hosty jsou offline.} other {Nelze archivovat # pracovních prostorů: jejich hosty jsou offline.}}"
 
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {# zařízení je offline a ponechá si svou kopii.} few {# zařízení jsou offline a ponechají si svou kopii.} many {# zařízení je offline a ponechá si svou kopii.} other {# zařízení je offline a ponechá si svou kopii.}}"
@@ -1866,8 +1884,31 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 msgid "Archive"
 msgstr "Archivovat"
 
+msgid "Archive selected workspaces"
+msgstr "Archivovat vybrané pracovní prostory"
+
+msgid "Archive the current workspace"
+msgstr "Archivovat aktuální pracovní prostor"
+
+msgid "Archive workspace"
+msgstr "Archivovat pracovní prostor"
+
 msgid "Archived"
 msgstr "Archivované"
+
+#. placeholder {0}: single.name || single.branch
+msgid "Archived \"{0}\""
+msgstr "„{0}“ archivován"
+
+#. placeholder {0}: formatRelativeTime(workspace.shelvedAt)
+msgid "Archived {0}"
+msgstr "Archivováno {0}"
+
+msgid "Archived workspaces"
+msgstr "Archivované pracovní prostory"
+
+msgid "Archived workspaces show up here."
+msgstr "Archivované pracovní prostory se zobrazí zde."
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "Opravdu chcete tento soubor smazat? Tuto akci nelze vrátit zpět."
@@ -2518,6 +2559,9 @@ msgstr "Cesty vzdáleného pracovního prostoru nejde otevřít v externím edit
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Cesty vzdáleného pracovního prostoru nejde otevřít ve Finderu"
 
+msgid "Can't restore \"{name}\": its host is offline."
+msgstr "Nelze obnovit „{name}“: jeho host je offline."
+
 msgid "Cancel"
 msgstr "Zrušit"
 
@@ -2991,9 +3035,6 @@ msgstr "Zavřít okno"
 
 msgid "Close modal backdrop"
 msgstr "Zavřít pozadí okna"
-
-msgid "Close or delete the current workspace"
-msgstr "Zavřít nebo smazat aktuální pracovní prostor"
 
 msgid "Close other apps using the microphone"
 msgstr "Zavřete ostatní aplikace, které používají mikrofon"
@@ -4403,6 +4444,9 @@ msgstr "Smazat účet?"
 msgid "Delete agent"
 msgstr "Smazat agenta"
 
+msgid "Delete all"
+msgstr "Smazat vše"
+
 msgid "Delete anyway"
 msgstr "Přesto smazat"
 
@@ -4442,6 +4486,9 @@ msgstr "Smazat organizaci"
 
 msgid "Delete page"
 msgstr "Smazat stránku"
+
+msgid "Delete permanently"
+msgstr "Trvale smazat"
 
 msgid "Delete project"
 msgstr "Smazat projekt"
@@ -5373,6 +5420,10 @@ msgstr "Nepodařilo se přidat agenta"
 msgid "Failed to add member"
 msgstr "Nepodařilo se přidat člena"
 
+#. placeholder {0}: errorMessage(result.reason, t({ message: "Unknown error" }))
+msgid "Failed to archive \"{name}\": {0}"
+msgstr "Archivace „{name}“ se nezdařila: {0}"
+
 msgid "Failed to cancel invitation"
 msgstr "Nepodařilo se zrušit pozvánku"
 
@@ -5672,6 +5723,10 @@ msgstr "Nepodařilo se restartovat démona"
 
 msgid "Failed to restore"
 msgstr "Obnovení se nezdařilo"
+
+#. placeholder {0}: errorMessage(error, t({ message: "Unknown error" }))
+msgid "Failed to restore \"{name}\": {0}"
+msgstr "Obnovení „{name}“ se nezdařilo: {0}"
 
 msgid "Failed to restore defaults"
 msgstr "Nepodařilo se obnovit výchozí nastavení"
@@ -8440,6 +8495,9 @@ msgstr "Zatím žádní agenti."
 msgid "No API keys yet."
 msgstr "Zatím žádné API klíče."
 
+msgid "No archived workspaces"
+msgstr "Žádné archivované pracovní prostory"
+
 msgid "No assignee"
 msgstr "Bez řešitele"
 
@@ -11197,6 +11255,9 @@ msgstr "Obnovit tuto verzi?"
 
 msgid "Restored"
 msgstr "Obnoveno"
+
+msgid "Restored \"{name}\""
+msgstr "„{name}“ obnoven"
 
 msgid "Restoring your session"
 msgstr "Obnovuji vaši relaci"
@@ -13956,6 +14017,9 @@ msgstr "Tímto se ukončí relace i její proces."
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Tímto zrušíte přípravu a vrátíte všechny připravené změny. Připravené nové soubory budou smazány. Tuto akci nelze vrátit zpět."
 
+msgid "This workspace is archived"
+msgstr "Tento pracovní prostor je archivován"
+
 msgid "This workspace lives on a device Superset can't reach right now. Terminals, files, and agents stay put — they come back as soon as the connection does."
 msgstr "Tento pracovní prostor je na zařízení, na které Superset právě nedosáhne. Terminály, soubory i agenti zůstávají, kde jsou — vrátí se, jakmile se obnoví spojení."
 
@@ -13967,6 +14031,9 @@ msgstr "Záznam tohoto pracovního prostoru pořád existuje, ale jeho složka w
 
 msgid "This workspace's host is offline"
 msgstr "Host tohoto pracovního prostoru je offline"
+
+msgid "This workspace's host is offline. Actions resume when it reconnects."
+msgstr "Host tohoto pracovního prostoru je offline. Akce budou dostupné po opětovném připojení."
 
 msgid "This workspace's host is on an older version of Superset than this client supports. Update the Superset app on that device to reconnect."
 msgstr "Host tohoto pracovního prostoru má starší verzi Superset, než tento klient podporuje. Aktualizujte na tom zařízení aplikaci Superset a připojte se znovu."
@@ -14278,6 +14345,9 @@ msgstr "Diktování se nepodařilo spustit"
 msgid "Unable to transcribe audio"
 msgstr "Zvuk se nepodařilo přepsat"
 
+msgid "Unarchive"
+msgstr "Obnovit z archivu"
+
 msgid "Unassigned"
 msgstr "Nepřiřazeno"
 
@@ -14319,6 +14389,9 @@ msgstr "Probíhá"
 
 msgid "Undo"
 msgstr "Zpět"
+
+msgid "Undo all"
+msgstr "Vrátit vše zpět"
 
 msgid "Ungroup"
 msgstr "Zrušit skupinu"
@@ -14692,6 +14765,9 @@ msgstr "Zobrazit vše"
 
 msgid "View All"
 msgstr "Zobrazit vše"
+
+msgid "View archived workspaces"
+msgstr "Zobrazit archivované pracovní prostory"
 
 #. placeholder {0}: comment.authorLogin
 msgid "View comment by {0}"
