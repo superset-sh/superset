@@ -29,6 +29,7 @@ import {
 	buildSidebarFolderKey,
 	mintFolderTag,
 } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
+import { useArchiveWorkspaceIntent } from "renderer/stores/archive-workspace-intent";
 import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 import { useRemoveFromSidebarIntent } from "renderer/stores/remove-workspace-from-sidebar-intent";
 import { useV2NotificationStore } from "renderer/stores/v2-notifications";
@@ -157,6 +158,15 @@ export function useDashboardSidebarWorkspaceItemActions({
 			workspaceId,
 			workspaceName: workspaceName || branch,
 		});
+	};
+
+	// Archive is instant and reversible, so no dialog — but it still runs
+	// through the globally-mounted ArchiveWorkspaceMount (one flow instance
+	// app-wide instead of one per row; see archive-workspace-intent).
+	const requestArchive = (source: "sidebar" | "sidebar-menu") => {
+		useArchiveWorkspaceIntent
+			.getState()
+			.request({ workspaceIds: [workspaceId], source });
 	};
 
 	const handleRemoveFromSidebar = () => {
@@ -372,6 +382,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 		isUnread,
 		pendingName,
 		renameValue,
+		requestArchive,
 		requestDelete,
 		setRenameValue,
 		startRename,

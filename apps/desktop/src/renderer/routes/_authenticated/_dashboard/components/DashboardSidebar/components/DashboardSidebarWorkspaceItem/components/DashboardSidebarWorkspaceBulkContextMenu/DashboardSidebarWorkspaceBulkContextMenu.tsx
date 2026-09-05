@@ -11,16 +11,19 @@ import {
 } from "@superset/ui/context-menu";
 import type { ReactNode } from "react";
 import {
+	LuArchive,
 	LuArrowRightLeft,
 	LuArrowUp,
 	LuFolderPlus,
 	LuTrash2,
 	LuX,
 } from "react-icons/lu";
+import { useArchiveWorkspaceIntent } from "renderer/stores/archive-workspace-intent";
 import { useBulkWorkspaceMoveActions } from "../../../../hooks/useBulkWorkspaceMoveActions";
 import { useDashboardSidebarHoverActions } from "../../../../providers/DashboardSidebarHoverProvider";
 import { useDashboardSidebarSelection } from "../../../../providers/DashboardSidebarSelectionProvider";
 import { useBulkDeleteWorkspacesIntent } from "../../../../stores/bulkDeleteWorkspacesIntent";
+import { selectArchivableWorkspaceIds } from "../../../../utils/selectArchivableWorkspaceIds";
 import { useWorkspaceBulkMenuScope } from "../WorkspaceBulkMenuScope";
 
 interface DashboardSidebarWorkspaceBulkContextMenuProps {
@@ -48,6 +51,14 @@ export function DashboardSidebarWorkspaceBulkContextMenu({
 	});
 	const openDeleteDialog = () =>
 		useBulkDeleteWorkspacesIntent.getState().request(selectedWorkspaces);
+	const archivableIds = selectArchivableWorkspaceIds(selectedWorkspaces);
+	const archiveSelection = () => {
+		if (archivableIds.length === 0) return;
+		useArchiveWorkspaceIntent
+			.getState()
+			.request({ workspaceIds: archivableIds, source: "bulk" });
+		clearSelection();
+	};
 
 	if (!scope) return children;
 
@@ -100,6 +111,16 @@ export function DashboardSidebarWorkspaceBulkContextMenu({
 					</ContextMenuItem>
 				)}
 				<ContextMenuSeparator />
+				{archivableIds.length > 0 && (
+					<ContextMenuItem onSelect={archiveSelection}>
+						<LuArchive className="size-4 mr-2" />
+						<Plural
+							value={archivableIds.length}
+							one="Archive # Workspace"
+							other="Archive # Workspaces"
+						/>
+					</ContextMenuItem>
+				)}
 				<ContextMenuItem
 					onSelect={openDeleteDialog}
 					className="text-destructive focus:text-destructive"

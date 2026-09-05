@@ -12,7 +12,12 @@ import {
 	useEffect,
 	useRef,
 } from "react";
-import { HiCheck, HiMiniMinus, HiMiniXMark } from "react-icons/hi2";
+import {
+	HiCheck,
+	HiMiniArchiveBox,
+	HiMiniMinus,
+	HiMiniXMark,
+} from "react-icons/hi2";
 import { WorkspaceNameMarquee } from "renderer/components/WorkspaceNameMarquee";
 import type { DiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { useFocusVisible } from "renderer/hooks/useFocusVisible";
@@ -72,6 +77,12 @@ interface DashboardSidebarExpandedWorkspaceRowProps
 	onKeyboardActivate?: KeyboardEventHandler<HTMLDivElement>;
 	onWorkspaceChipsClick?: MouseEventHandler<HTMLDivElement>;
 	onDoubleClick?: () => void;
+	/**
+	 * The primary "put it away" action. When set, the hover button archives
+	 * (instant, reversible); when absent (cloud rows), it falls back to
+	 * `onCloseWorkspaceClick`, the delete dialog.
+	 */
+	onArchiveWorkspaceClick?: () => void;
 	onCloseWorkspaceClick: () => void;
 	onRemoveFromSidebarClick: () => void;
 	onRenameValueChange: (value: string) => void;
@@ -101,6 +112,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			onKeyboardActivate,
 			onWorkspaceChipsClick,
 			onDoubleClick,
+			onArchiveWorkspaceClick,
 			onCloseWorkspaceClick,
 			onRemoveFromSidebarClick,
 			onRenameValueChange,
@@ -417,6 +429,41 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 													label={t({
 														message: "Remove from sidebar",
 													})}
+												/>
+											</TooltipContent>
+										</Tooltip>
+									) : onArchiveWorkspaceClick ? (
+										<Tooltip delayDuration={300}>
+											<TooltipTrigger asChild>
+												<button
+													type="button"
+													onClick={(event) => {
+														event.stopPropagation();
+														onArchiveWorkspaceClick();
+													}}
+													onKeyDown={(event) => {
+														if (
+															event.key === "Enter" ||
+															event.key === " " ||
+															event.key === "Spacebar"
+														) {
+															event.stopPropagation();
+														}
+													}}
+													className="flex items-center justify-center text-muted-foreground hover:text-foreground"
+													aria-label={t({
+														message: "Archive workspace",
+													})}
+												>
+													<HiMiniArchiveBox className="size-3.5" />
+												</button>
+											</TooltipTrigger>
+											<TooltipContent side="top">
+												<HotkeyLabel
+													label={t({
+														message: "Archive workspace",
+													})}
+													id={isActive ? "CLOSE_WORKSPACE" : undefined}
 												/>
 											</TooltipContent>
 										</Tooltip>

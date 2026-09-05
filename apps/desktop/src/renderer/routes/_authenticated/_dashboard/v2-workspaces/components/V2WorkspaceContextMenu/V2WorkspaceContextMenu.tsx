@@ -11,6 +11,7 @@ import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useCallback } from "react";
 import {
+	LuArchive,
 	LuArrowUpRight,
 	LuGitBranch,
 	LuPanelLeftClose,
@@ -22,6 +23,7 @@ import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import type { AccessibleV2Workspace } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import { useArchiveWorkspaceIntent } from "renderer/stores/archive-workspace-intent";
 import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 
 export interface V2WorkspaceActions {
@@ -29,6 +31,8 @@ export interface V2WorkspaceActions {
 	open: () => void;
 	addToSidebar: () => void;
 	removeFromSidebar: () => void;
+	/** Instant, reversible; no dialog. */
+	archive: () => void;
 	openDeleteDialog: () => void;
 }
 
@@ -124,6 +128,14 @@ export function V2WorkspaceContextMenu({
 		}
 	}, [copyToClipboard, workspace.branch, t]);
 
+	// The shared archive flow runs in the globally-mounted
+	// ArchiveWorkspaceMount; this row only files the request.
+	const archive = useCallback(() => {
+		useArchiveWorkspaceIntent
+			.getState()
+			.request({ workspaceIds: [workspace.id], source: "workspaces-page" });
+	}, [workspace.id]);
+
 	// Globally-mounted dialog (DeleteWorkspaceMount): archive-first
 	// tombstoning drops this row the moment the destroy starts, which
 	// would unmount a row-local dialog mid-flight.
@@ -141,6 +153,7 @@ export function V2WorkspaceContextMenu({
 					open,
 					addToSidebar,
 					removeFromSidebar,
+					archive,
 					openDeleteDialog,
 				})}
 			</ContextMenuTrigger>
@@ -171,6 +184,10 @@ export function V2WorkspaceContextMenu({
 				{!isMainWorkspace ? (
 					<>
 						<ContextMenuSeparator />
+						<ContextMenuItem onSelect={archive}>
+							<LuArchive className="size-4" />
+							<Trans>Archive</Trans>
+						</ContextMenuItem>
 						<ContextMenuItem
 							onSelect={openDeleteDialog}
 							className="text-destructive focus:text-destructive"

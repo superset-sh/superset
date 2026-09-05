@@ -10,12 +10,14 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { type ReactNode, useMemo } from "react";
 import {
+	LuArchive,
 	LuFolderInput,
 	LuFolderPlus,
 	LuTrash2,
 	LuUngroup,
 	LuX,
 } from "react-icons/lu";
+import { useArchiveWorkspaceIntent } from "renderer/stores/archive-workspace-intent";
 import { useBulkWorkspaceMoveActions } from "../../hooks/useBulkWorkspaceMoveActions";
 import { useDashboardSidebarSelection } from "../../providers/DashboardSidebarSelectionProvider";
 import { useBulkDeleteWorkspacesIntent } from "../../stores/bulkDeleteWorkspacesIntent";
@@ -23,6 +25,7 @@ import type {
 	DashboardSidebarProject,
 	DashboardSidebarWorkspace,
 } from "../../types";
+import { selectArchivableWorkspaceIds } from "../../utils/selectArchivableWorkspaceIds";
 
 interface DashboardSidebarBulkActionsProps {
 	projects: DashboardSidebarProject[];
@@ -76,6 +79,16 @@ export function DashboardSidebarBulkActions({
 
 	const openDeleteDialog = () =>
 		useBulkDeleteWorkspacesIntent.getState().request(selectedWorkspaces);
+	const archivableIds = selectArchivableWorkspaceIds(selectedWorkspaces);
+	// Instant and undoable (one toast with "Undo all"), so the selection
+	// clears right away — the rows are leaving the sidebar.
+	const archiveSelection = () => {
+		if (archivableIds.length === 0) return;
+		useArchiveWorkspaceIntent
+			.getState()
+			.request({ workspaceIds: archivableIds, source: "bulk" });
+		clearSelection();
+	};
 
 	return (
 		<>
@@ -193,6 +206,25 @@ export function DashboardSidebarBulkActions({
 						</TooltipTrigger>
 						<TooltipContent side="bottom">
 							<Trans>Ungroup</Trans>
+						</TooltipContent>
+					</Tooltip>
+
+					<Tooltip delayDuration={300}>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								disabled={archivableIds.length === 0}
+								onClick={archiveSelection}
+								className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground disabled:pointer-events-none disabled:opacity-35"
+								aria-label={t({
+									message: "Archive selected workspaces",
+								})}
+							>
+								<LuArchive className="size-3.5" />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom">
+							<Trans>Archive</Trans>
 						</TooltipContent>
 					</Tooltip>
 

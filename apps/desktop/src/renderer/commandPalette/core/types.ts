@@ -22,6 +22,8 @@ export interface CommandContext {
 		projectId?: string;
 		workspaceType?: "main" | "worktree" | "session";
 		hostId?: string;
+		/** True for a cloud sandbox, which has no archive (delete only). */
+		isCloud?: boolean;
 		preferredOpenInApp?: ExternalApp;
 	} | null;
 	activeHostUrl: string | null;
@@ -31,7 +33,10 @@ export interface CommandContext {
 	localMachineId: string | null;
 	notificationSoundsMuted: boolean;
 	isV2CloudEnabled: boolean;
-	navigate: (path: string) => void;
+	navigate: (
+		path: string,
+		options?: { search?: Record<string, unknown> },
+	) => void;
 	focusedView?: "editor" | "terminal" | "git" | "issues" | "files" | "chat";
 }
 

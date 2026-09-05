@@ -71,7 +71,10 @@ export const V2_WORKSPACES_PIN_FILTER_LABELS: Record<
 	}),
 };
 
-export type V2WorkspacesViewMode = "list" | "board";
+export const V2_WORKSPACES_VIEW_MODES = ["list", "board", "archived"] as const;
+/** "archived" lists user-archived (reversible) workspaces — not the
+ * Merged/Deleted tombstones, which the `archivedWindow` lookback controls. */
+export type V2WorkspacesViewMode = (typeof V2_WORKSPACES_VIEW_MODES)[number];
 
 export const V2_WORKSPACES_SORT_MODES = [
 	"activity",

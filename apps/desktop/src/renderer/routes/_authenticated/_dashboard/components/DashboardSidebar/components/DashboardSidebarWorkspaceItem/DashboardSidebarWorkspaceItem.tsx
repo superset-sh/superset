@@ -97,6 +97,9 @@ export function DashboardSidebarWorkspaceItem({
 	} = workspace;
 	const isMainWorkspace = workspace.type === "main";
 	const isSessionWorkspace = workspace.type === "session";
+	// Archive is host-local: main workspaces are never put away and cloud
+	// sandboxes keep their delete path.
+	const canArchive = !isMainWorkspace && hostType !== "cloud";
 	const { status: workspaceStatus, diffStats } = useSidebarWorkspaceStatus(id);
 	const {
 		cancelRename,
@@ -117,6 +120,7 @@ export function DashboardSidebarWorkspaceItem({
 		isUnread,
 		isRenaming,
 		renameValue,
+		requestArchive,
 		requestDelete,
 		setRenameValue,
 		startRename,
@@ -301,7 +305,7 @@ export function DashboardSidebarWorkspaceItem({
 							isPinned={workspace.isPinned}
 							onTogglePin={handleTogglePin}
 							onCreateSection={handleCreateSection}
-							showDeleteHotkey={isActive}
+							showArchiveHotkey={isActive}
 							onMoveToSection={handleMoveToSection}
 							onOpenInFinder={handleOpenInFinder}
 							onCopyPath={handleCopyPath}
@@ -310,6 +314,9 @@ export function DashboardSidebarWorkspaceItem({
 							onRemoveFromSidebar={handleRemoveFromSidebar}
 							onRemovePullRequest={handleRemovePullRequest}
 							onRename={isMainWorkspace ? undefined : startRename}
+							onArchive={
+								canArchive ? () => requestArchive("sidebar-menu") : undefined
+							}
 							onDelete={isMainWorkspace ? undefined : requestDelete}
 							onToggleUnread={handleToggleUnread}
 							onClearStatus={handleClearStatus}
@@ -361,6 +368,9 @@ export function DashboardSidebarWorkspaceItem({
 				onWorkspaceChipsClick={handleWorkspaceChipsClick}
 				onDoubleClick={isPending || isMainWorkspace ? undefined : startRename}
 				onRemoveFromSidebarClick={handleRemoveFromSidebar}
+				onArchiveWorkspaceClick={
+					canArchive ? () => requestArchive("sidebar") : undefined
+				}
 				onCloseWorkspaceClick={requestDelete}
 				onRenameValueChange={setRenameValue}
 				onSubmitRename={submitRename}
@@ -396,13 +406,16 @@ export function DashboardSidebarWorkspaceItem({
 						isPinned={workspace.isPinned}
 						onTogglePin={handleTogglePin}
 						onOpenInFinder={handleOpenInFinder}
-						showDeleteHotkey={isActive}
+						showArchiveHotkey={isActive}
 						onCopyPath={handleCopyPath}
 						onCopyBranchName={handleCopyBranchName}
 						onCopyWorkspaceId={handleCopyWorkspaceId}
 						onRemoveFromSidebar={handleRemoveFromSidebar}
 						onRemovePullRequest={handleRemovePullRequest}
 						onRename={isMainWorkspace ? undefined : startRename}
+						onArchive={
+							canArchive ? () => requestArchive("sidebar-menu") : undefined
+						}
 						onDelete={isMainWorkspace ? undefined : requestDelete}
 						onToggleUnread={handleToggleUnread}
 						onClearStatus={handleClearStatus}

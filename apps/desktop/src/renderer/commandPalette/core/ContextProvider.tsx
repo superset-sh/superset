@@ -38,8 +38,8 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 	} = useLocalHostService();
 
 	const navigateTo = useCallback(
-		(path: string) => {
-			void navigate({ to: path });
+		(path: string, options?: { search?: Record<string, unknown> }) => {
+			void navigate({ to: path, search: options?.search });
 		},
 		[navigate],
 	);
@@ -47,7 +47,8 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 	const v2Match = matchRoute({ to: "/v2-workspace/$workspaceId", fuzzy: true });
 	const v2WorkspaceId = v2Match !== false ? v2Match.workspaceId : null;
 
-	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+	const { workspaces: hostWorkspaces, cache: hostWorkspacesCache } =
+		useHostWorkspaces();
 	const v2Workspace = useMemo(() => {
 		if (!v2WorkspaceId) return null;
 		const workspace = hostWorkspaces.find((w) => w.id === v2WorkspaceId);
@@ -58,8 +59,9 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 			projectId: workspace.projectId,
 			type: workspace.type,
 			hostId: workspace.hostId,
+			isCloud: hostWorkspacesCache.isSandboxHost(workspace.hostId),
 		};
-	}, [hostWorkspaces, v2WorkspaceId]);
+	}, [hostWorkspaces, hostWorkspacesCache, v2WorkspaceId]);
 	const projectId = v2Workspace?.projectId ?? null;
 
 	const { data: preferredAppRows = [] } = useLiveQuery(
@@ -87,6 +89,7 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 						projectId: v2Workspace.projectId ?? undefined,
 						workspaceType: v2Workspace.type,
 						hostId: v2Workspace.hostId ?? undefined,
+						isCloud: v2Workspace.isCloud,
 						preferredOpenInApp,
 					}
 				: null,

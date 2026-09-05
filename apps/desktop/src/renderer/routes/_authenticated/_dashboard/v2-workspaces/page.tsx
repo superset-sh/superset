@@ -11,6 +11,7 @@ import {
 	V2_WORKSPACES_ARCHIVED_WINDOWS,
 	V2_WORKSPACES_PIN_FILTERS,
 	V2_WORKSPACES_PR_STATE_FILTERS,
+	V2_WORKSPACES_VIEW_MODES,
 	type V2WorkspacesAgentStatusFilter,
 	type V2WorkspacesArchivedWindow,
 	type V2WorkspacesPinFilter,
@@ -72,10 +73,9 @@ export const Route = createFileRoute(
 		pin: V2_WORKSPACES_PIN_FILTERS.includes(search.pin as V2WorkspacesPinFilter)
 			? (search.pin as V2WorkspacesPinFilter)
 			: undefined,
-		view:
-			search.view === "board" || search.view === "list"
-				? search.view
-				: undefined,
+		view: V2_WORKSPACES_VIEW_MODES.includes(search.view as V2WorkspacesViewMode)
+			? (search.view as V2WorkspacesViewMode)
+			: undefined,
 		archived: V2_WORKSPACES_ARCHIVED_WINDOWS.includes(
 			search.archived as V2WorkspacesArchivedWindow,
 		)

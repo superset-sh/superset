@@ -11,6 +11,7 @@ import {
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
 import {
+	LuArchive,
 	LuArrowRightLeft,
 	LuArrowUp,
 	LuBellOff,
@@ -52,7 +53,8 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 	isUnread: boolean;
 	hasStatus: boolean;
 	hasPullRequest: boolean;
-	showDeleteHotkey?: boolean;
+	/** Show the CLOSE_WORKSPACE shortcut on Archive (the active row only). */
+	showArchiveHotkey?: boolean;
 	onTogglePin: () => void;
 	onCreateSection: () => void;
 	onMoveToSection: (sectionId: string | null) => void;
@@ -64,6 +66,8 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 	onRename?: () => void;
 	/** Cloud workspaces only: turn this sandbox into a reusable environment. */
 	onPromoteToEnvironment?: () => void;
+	/** Instant, reversible; absent for main and cloud workspaces. */
+	onArchive?: () => void;
 	onDelete?: () => void;
 	onToggleUnread: () => void;
 	onClearStatus: () => void;
@@ -82,7 +86,7 @@ export function DashboardSidebarWorkspaceContextMenu({
 	isUnread,
 	hasStatus,
 	hasPullRequest,
-	showDeleteHotkey = false,
+	showArchiveHotkey = false,
 	onTogglePin,
 	onCreateSection,
 	onMoveToSection,
@@ -93,6 +97,7 @@ export function DashboardSidebarWorkspaceContextMenu({
 	onRemoveFromSidebar,
 	onRename,
 	onPromoteToEnvironment,
+	onArchive,
 	onDelete,
 	onToggleUnread,
 	onClearStatus,
@@ -104,9 +109,9 @@ export function DashboardSidebarWorkspaceContextMenu({
 	const { isPending: isKillingPorts, killPorts } =
 		useDashboardSidebarPortKill();
 	const ports = portGroup?.ports ?? [];
-	const deleteHotkeyText = useHotkeyDisplay("CLOSE_WORKSPACE").text;
-	const showDeleteShortcut =
-		showDeleteHotkey && deleteHotkeyText !== "Unassigned";
+	const archiveHotkeyText = useHotkeyDisplay("CLOSE_WORKSPACE").text;
+	const showArchiveShortcut =
+		showArchiveHotkey && archiveHotkeyText !== "Unassigned";
 	// The derived union — a tag-only folder with no stored row is a valid
 	// move target.
 	const { sections } = useProjectTagFolderSections(projectId);
@@ -256,6 +261,15 @@ export function DashboardSidebarWorkspaceContextMenu({
 					<LuX className="size-4 mr-2" />
 					<Trans>Remove from Sidebar</Trans>
 				</ContextMenuItem>
+				{onArchive ? (
+					<ContextMenuItem onSelect={onArchive}>
+						<LuArchive className="size-4 mr-2" />
+						<Trans>Archive</Trans>
+						{showArchiveShortcut && (
+							<ContextMenuShortcut>{archiveHotkeyText}</ContextMenuShortcut>
+						)}
+					</ContextMenuItem>
+				) : null}
 				{onDelete ? (
 					<ContextMenuItem
 						onSelect={onDelete}
@@ -263,9 +277,6 @@ export function DashboardSidebarWorkspaceContextMenu({
 					>
 						<LuTrash2 className="size-4 mr-2 text-destructive" />
 						<Trans>Delete</Trans>
-						{showDeleteShortcut && (
-							<ContextMenuShortcut>{deleteHotkeyText}</ContextMenuShortcut>
-						)}
 					</ContextMenuItem>
 				) : null}
 			</ContextMenuContent>

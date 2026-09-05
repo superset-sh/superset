@@ -22,6 +22,7 @@ import { useLocalHostService } from "renderer/routes/_authenticated/providers/Lo
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { WorkspaceSidebar } from "renderer/screens/main/components/WorkspaceSidebar";
 import { DeleteWorkspaceDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
+import { useArchiveWorkspaceIntent } from "renderer/stores/archive-workspace-intent";
 import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 import { usePortsDisplayMode } from "renderer/stores/inline-workspace-ports";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
@@ -58,7 +59,8 @@ function DashboardLayout() {
 	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const portsDisplayMode = usePortsDisplayMode();
-	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+	const { workspaces: hostWorkspaces, cache: hostWorkspacesCache } =
+		useHostWorkspaces();
 	const quickCreateWorkspace = useQuickCreateWorkspace();
 	useDevSeedV2Sidebar();
 	useEffect(() => {
@@ -182,9 +184,18 @@ function DashboardLayout() {
 				currentV2Workspace &&
 				currentV2Workspace.type !== "main"
 			) {
-				useDeleteWorkspaceIntent.getState().request({
-					workspaceId: currentV2WorkspaceId,
-					workspaceName: currentV2Workspace.name || currentV2Workspace.branch,
+				// v2 closes by archiving (instant, undoable). Cloud sandboxes
+				// have no archive and keep the delete dialog.
+				if (hostWorkspacesCache.isSandboxHost(currentV2Workspace.hostId)) {
+					useDeleteWorkspaceIntent.getState().request({
+						workspaceId: currentV2WorkspaceId,
+						workspaceName: currentV2Workspace.name || currentV2Workspace.branch,
+					});
+					return;
+				}
+				useArchiveWorkspaceIntent.getState().request({
+					workspaceIds: [currentV2WorkspaceId],
+					source: "hotkey",
 				});
 			}
 		},

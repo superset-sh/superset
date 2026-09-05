@@ -12,6 +12,7 @@ export {
 	V2_WORKSPACES_PR_STATE_FILTERS,
 	V2_WORKSPACES_SORT_LABELS,
 	V2_WORKSPACES_SORT_MODES,
+	V2_WORKSPACES_VIEW_MODES,
 	type V2WorkspacesAgentStatusFilter,
 	type V2WorkspacesArchivedWindow,
 	type V2WorkspacesBoardLane,

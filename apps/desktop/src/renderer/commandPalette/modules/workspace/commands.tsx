@@ -3,11 +3,13 @@ import {
 	ArchiveIcon,
 	FileIcon,
 	LinkIcon,
+	PanelLeftCloseIcon,
 	PlusIcon,
 	Trash2Icon,
 	ZapIcon,
 } from "lucide-react";
 import { useQuickOpenStore } from "renderer/commandPalette/ui/QuickOpen/quickOpenStore";
+import { useArchiveWorkspaceIntent } from "renderer/stores/archive-workspace-intent";
 import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 import { useNewWorkspaceModalStore } from "renderer/stores/new-workspace-modal";
 import { useQuickCreateWorkspaceIntent } from "renderer/stores/quick-create-workspace-intent";
@@ -86,7 +88,8 @@ export const workspaceProvider: CommandProvider = {
 					message: "Remove from sidebar",
 				}),
 				section: "workspace",
-				icon: ArchiveIcon,
+				// The archive glyph now belongs to Archive; hiding is a sidebar action.
+				icon: PanelLeftCloseIcon,
 				keywords: ["hide"],
 				run: () =>
 					useRemoveFromSidebarIntent.getState().request({
@@ -99,6 +102,25 @@ export const workspaceProvider: CommandProvider = {
 		}
 
 		if (!isMain) {
+			// Archive is the primary close: instant and undoable. Cloud sandboxes
+			// have no archive and keep delete on the hotkey.
+			if (!workspace.isCloud) {
+				commands.push({
+					id: `workspace.archive:${workspace.id}`,
+					title: msg({
+						message: "Archive workspace",
+					}),
+					section: "workspace",
+					icon: ArchiveIcon,
+					keywords: ["close", "put away", "shelve"],
+					hotkeyId: "CLOSE_WORKSPACE",
+					run: () =>
+						useArchiveWorkspaceIntent.getState().request({
+							workspaceIds: [workspace.id],
+							source: "command-palette",
+						}),
+				});
+			}
 			commands.push({
 				id: `workspace.delete:${workspace.id}`,
 				title: msg({
@@ -106,8 +128,8 @@ export const workspaceProvider: CommandProvider = {
 				}),
 				section: "workspace",
 				icon: Trash2Icon,
-				keywords: ["archive", "remove", "close"],
-				hotkeyId: "CLOSE_WORKSPACE",
+				keywords: ["remove", "close"],
+				hotkeyId: workspace.isCloud ? "CLOSE_WORKSPACE" : undefined,
 				run: () =>
 					useDeleteWorkspaceIntent.getState().request({
 						workspaceId: workspace.id,

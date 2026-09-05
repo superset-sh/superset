@@ -1,5 +1,10 @@
 import { msg } from "@lingui/core/macro";
-import { BookOpenIcon, HistoryIcon, SettingsIcon } from "lucide-react";
+import {
+	ArchiveIcon,
+	BookOpenIcon,
+	HistoryIcon,
+	SettingsIcon,
+} from "lucide-react";
 import { LuLayers } from "react-icons/lu";
 import type { Command, CommandProvider } from "../../core/types";
 import { RecentlyViewedFrame } from "../../ui/RecentlyViewed/RecentlyViewedFrame";
@@ -38,6 +43,18 @@ export const navigationProvider: CommandProvider = {
 				icon: LuLayers,
 				keywords: ["workspace", "project", "repo", "repository", "switch"],
 				renderFrame: () => <WorkspaceListFrame />,
+			},
+			{
+				id: "nav.archivedWorkspaces",
+				title: msg({
+					message: "Archived workspaces",
+				}),
+				section: "navigation",
+				icon: ArchiveIcon,
+				keywords: ["archive", "unarchive", "restore", "shelved", "put away"],
+				when: (ctx) => ctx.isV2CloudEnabled,
+				run: (ctx) =>
+					ctx.navigate("/v2-workspaces", { search: { view: "archived" } }),
 			},
 			{
 				id: "nav.docs",

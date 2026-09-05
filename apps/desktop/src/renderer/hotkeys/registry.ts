@@ -224,7 +224,7 @@ export const HOTKEYS_REGISTRY = {
 		}),
 		category: "Workspace",
 		description: msg({
-			message: "Close or delete the current workspace",
+			message: "Archive the current workspace",
 		}),
 	},
 	NEW_WORKSPACE: {
