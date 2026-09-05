@@ -4985,8 +4985,8 @@ msgstr "Sleep om te verplaatsen"
 msgid "Drag to reorder"
 msgstr "Sleep om te herordenen"
 
-msgid "Drag to reorder in Manual order"
-msgstr "Sleep om te herordenen in Handmatige volgorde"
+msgid "Drag workspaces to reorder in Manual order"
+msgstr "Sleep werkruimtes om ze te herordenen in Handmatige volgorde"
 
 msgid "Drawer"
 msgstr "Drawer"
@@ -12743,14 +12743,11 @@ msgstr "Sorteren op"
 msgid "Sort by {label}, currently {sortLabel}"
 msgstr "Sorteren op {label}, nu {sortLabel}"
 
-msgid "Sort projects"
-msgstr "Projecten sorteren"
-
-msgid "Sort projects ({currentLabel})"
-msgstr "Projecten sorteren ({currentLabel})"
-
 msgid "Sort workspaces"
 msgstr "Werkruimtes sorteren"
+
+msgid "Sort workspaces ({currentLabel})"
+msgstr "Werkruimtes sorteren ({currentLabel})"
 
 msgid "Sounds and ringtone for completed tasks"
 msgstr "Geluiden en beltoon voor afgeronde taken"

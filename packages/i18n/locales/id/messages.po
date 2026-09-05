@@ -4985,8 +4985,8 @@ msgstr "Seret untuk memindahkan"
 msgid "Drag to reorder"
 msgstr "Seret untuk mengurutkan ulang"
 
-msgid "Drag to reorder in Manual order"
-msgstr "Seret untuk mengatur ulang dalam Urutan manual"
+msgid "Drag workspaces to reorder in Manual order"
+msgstr "Seret workspace untuk mengatur ulang dalam Urutan manual"
 
 msgid "Drawer"
 msgstr "Drawer"
@@ -12743,14 +12743,11 @@ msgstr "Urutkan menurut"
 msgid "Sort by {label}, currently {sortLabel}"
 msgstr "Urutkan menurut {label}, saat ini {sortLabel}"
 
-msgid "Sort projects"
-msgstr "Urutkan proyek"
-
-msgid "Sort projects ({currentLabel})"
-msgstr "Urutkan proyek ({currentLabel})"
-
 msgid "Sort workspaces"
 msgstr "Urutkan workspace"
+
+msgid "Sort workspaces ({currentLabel})"
+msgstr "Urutkan workspace ({currentLabel})"
 
 msgid "Sounds and ringtone for completed tasks"
 msgstr "Suara dan nada dering untuk tugas yang selesai"

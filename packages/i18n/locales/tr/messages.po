@@ -4985,8 +4985,8 @@ msgstr "Taşımak için sürükle"
 msgid "Drag to reorder"
 msgstr "Sıralamak için sürükleyin"
 
-msgid "Drag to reorder in Manual order"
-msgstr "Manuel sıralamada yeniden düzenlemek için sürükleyin"
+msgid "Drag workspaces to reorder in Manual order"
+msgstr "Manuel sıralamada yeniden düzenlemek için çalışma alanlarını sürükleyin"
 
 msgid "Drawer"
 msgstr "Çekmece"
@@ -12743,14 +12743,11 @@ msgstr "Sıralama ölçütü"
 msgid "Sort by {label}, currently {sortLabel}"
 msgstr "{label} ölçütüne göre sırala, şu anda {sortLabel}"
 
-msgid "Sort projects"
-msgstr "Projeleri sırala"
-
-msgid "Sort projects ({currentLabel})"
-msgstr "Projeleri sırala ({currentLabel})"
-
 msgid "Sort workspaces"
 msgstr "Çalışma alanlarını sırala"
+
+msgid "Sort workspaces ({currentLabel})"
+msgstr "Çalışma alanlarını sırala ({currentLabel})"
 
 msgid "Sounds and ringtone for completed tasks"
 msgstr "Tamamlanan görevler için sesler ve zil sesi"

@@ -4985,8 +4985,8 @@ msgstr "拖动以移动"
 msgid "Drag to reorder"
 msgstr "拖动以重新排序"
 
-msgid "Drag to reorder in Manual order"
-msgstr "在手动排序下可拖拽重新排列"
+msgid "Drag workspaces to reorder in Manual order"
+msgstr "在手动排序下可拖拽工作区重新排列"
 
 msgid "Drawer"
 msgstr "抽屉"
@@ -12743,14 +12743,11 @@ msgstr "排序方式"
 msgid "Sort by {label}, currently {sortLabel}"
 msgstr "按{label}排序，当前为{sortLabel}"
 
-msgid "Sort projects"
-msgstr "项目排序"
-
-msgid "Sort projects ({currentLabel})"
-msgstr "项目排序（{currentLabel}）"
-
 msgid "Sort workspaces"
 msgstr "排序工作区"
+
+msgid "Sort workspaces ({currentLabel})"
+msgstr "排序工作区（{currentLabel}）"
 
 msgid "Sounds and ringtone for completed tasks"
 msgstr "任务完成时的声音和铃声"

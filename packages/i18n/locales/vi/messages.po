@@ -4985,8 +4985,8 @@ msgstr "Kéo để di chuyển"
 msgid "Drag to reorder"
 msgstr "Kéo để sắp xếp lại"
 
-msgid "Drag to reorder in Manual order"
-msgstr "Kéo để sắp xếp lại trong Thứ tự thủ công"
+msgid "Drag workspaces to reorder in Manual order"
+msgstr "Kéo workspace để sắp xếp lại trong Thứ tự thủ công"
 
 msgid "Drawer"
 msgstr "Drawer"
@@ -12743,14 +12743,11 @@ msgstr "Sắp xếp theo"
 msgid "Sort by {label}, currently {sortLabel}"
 msgstr "Sắp xếp theo {label}, hiện tại {sortLabel}"
 
-msgid "Sort projects"
-msgstr "Sắp xếp dự án"
-
-msgid "Sort projects ({currentLabel})"
-msgstr "Sắp xếp dự án ({currentLabel})"
-
 msgid "Sort workspaces"
 msgstr "Sắp xếp workspace"
+
+msgid "Sort workspaces ({currentLabel})"
+msgstr "Sắp xếp workspace ({currentLabel})"
 
 msgid "Sounds and ringtone for completed tasks"
 msgstr "Âm thanh và nhạc chuông cho tác vụ đã hoàn tất"

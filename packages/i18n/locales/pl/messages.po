@@ -4985,8 +4985,8 @@ msgstr "Przeciągnij, aby przenieść"
 msgid "Drag to reorder"
 msgstr "Przeciągnij, aby zmienić kolejność"
 
-msgid "Drag to reorder in Manual order"
-msgstr "Przeciągnij, aby zmienić kolejność w trybie ręcznym"
+msgid "Drag workspaces to reorder in Manual order"
+msgstr "Przeciągaj obszary robocze, aby zmienić kolejność w trybie ręcznym"
 
 msgid "Drawer"
 msgstr "Szuflada"
@@ -12743,14 +12743,11 @@ msgstr "Sortuj według"
 msgid "Sort by {label}, currently {sortLabel}"
 msgstr "Sortuj wg {label}, obecnie {sortLabel}"
 
-msgid "Sort projects"
-msgstr "Sortuj projekty"
-
-msgid "Sort projects ({currentLabel})"
-msgstr "Sortuj projekty ({currentLabel})"
-
 msgid "Sort workspaces"
 msgstr "Sortuj obszary robocze"
+
+msgid "Sort workspaces ({currentLabel})"
+msgstr "Sortuj obszary robocze ({currentLabel})"
 
 msgid "Sounds and ringtone for completed tasks"
 msgstr "Dźwięki i dzwonek dla zakończonych zadań"

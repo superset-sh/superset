@@ -4985,8 +4985,8 @@ msgstr "Перетащите, чтобы переместить"
 msgid "Drag to reorder"
 msgstr "Перетащите, чтобы изменить порядок"
 
-msgid "Drag to reorder in Manual order"
-msgstr "Перетащите для изменения порядка в ручной сортировке"
+msgid "Drag workspaces to reorder in Manual order"
+msgstr "Перетаскивайте рабочие области для изменения порядка в ручной сортировке"
 
 msgid "Drawer"
 msgstr "Шторка"
@@ -12743,14 +12743,11 @@ msgstr "Сортировать по"
 msgid "Sort by {label}, currently {sortLabel}"
 msgstr "Сортировать по {label}, сейчас {sortLabel}"
 
-msgid "Sort projects"
-msgstr "Сортировать проекты"
-
-msgid "Sort projects ({currentLabel})"
-msgstr "Сортировать проекты ({currentLabel})"
-
 msgid "Sort workspaces"
 msgstr "Сортировать рабочие области"
+
+msgid "Sort workspaces ({currentLabel})"
+msgstr "Сортировать рабочие области ({currentLabel})"
 
 msgid "Sounds and ringtone for completed tasks"
 msgstr "Звуки и мелодия для завершённых задач"

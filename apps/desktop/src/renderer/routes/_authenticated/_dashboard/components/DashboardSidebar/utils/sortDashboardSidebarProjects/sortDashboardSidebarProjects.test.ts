@@ -6,7 +6,6 @@ import {
 	makeWorkspace,
 } from "../testProjectFixtures";
 import {
-	getProjectActivityTimestamp,
 	getWorkspaceActivityTime,
 	sortDashboardSidebarProjectChildren,
 	sortDashboardSidebarProjects,
@@ -51,86 +50,6 @@ describe("getWorkspaceActivityTime", () => {
 	});
 });
 
-describe("getProjectActivityTimestamp", () => {
-	it("uses the most recently active workspace, including inside sections", () => {
-		const project = makeProject({
-			id: "p1",
-			name: "Alpha",
-			updatedAt: new Date("2026-06-01"),
-			children: [
-				{
-					type: "workspace",
-					workspace: makeWorkspace({
-						id: "w1",
-						name: "one",
-						lastActivityAt: at("2026-02-01"),
-					}),
-				},
-				{
-					type: "section",
-					section: makeSection({
-						id: "s1",
-						name: "Section",
-						workspaces: [
-							makeWorkspace({
-								id: "w2",
-								name: "two",
-								lastActivityAt: at("2026-03-01"),
-							}),
-						],
-					}),
-				},
-			],
-		});
-		expect(getProjectActivityTimestamp(project)).toBe(at("2026-03-01"));
-	});
-
-	it("falls back to the project's own updatedAt when there are no workspaces", () => {
-		const project = makeProject({
-			id: "p1",
-			name: "Alpha",
-			updatedAt: new Date("2026-05-01"),
-		});
-		expect(getProjectActivityTimestamp(project)).toBe(at("2026-05-01"));
-	});
-
-	it("falls back to createdAt when updatedAt is garbage", () => {
-		const project = makeProject({
-			id: "p1",
-			name: "Alpha",
-			createdAt: new Date("2026-04-01"),
-			updatedAt: "nope" as unknown as Date,
-		});
-		expect(getProjectActivityTimestamp(project)).toBe(at("2026-04-01"));
-	});
-
-	it("skips NaN workspace timestamps instead of poisoning the max", () => {
-		const project = makeProject({
-			id: "p1",
-			name: "Alpha",
-			children: [
-				{
-					type: "workspace",
-					workspace: makeWorkspace({
-						id: "w-bad",
-						name: "bad",
-						updatedAt: "garbage" as unknown as Date,
-					}),
-				},
-				{
-					type: "workspace",
-					workspace: makeWorkspace({
-						id: "w-good",
-						name: "good",
-						lastActivityAt: at("2026-03-01"),
-					}),
-				},
-			],
-		});
-		expect(getProjectActivityTimestamp(project)).toBe(at("2026-03-01"));
-	});
-});
-
 describe("sortDashboardSidebarProjects", () => {
 	const older = makeProject({
 		id: "p-older",
@@ -168,31 +87,22 @@ describe("sortDashboardSidebarProjects", () => {
 		expect(sortDashboardSidebarProjects(projects, "manual")).toBe(projects);
 	});
 
-	it("sorts newest created first in created mode", () => {
+	it("keeps the manual project order in created mode", () => {
 		expect(
 			sortDashboardSidebarProjects([older, newer], "created").map((p) => p.id),
-		).toEqual(["p-newer", "p-older"]);
+		).toEqual(["p-older", "p-newer"]);
 	});
 
-	it("sorts by workspace activity in active mode", () => {
+	it("keeps the manual project order in active mode", () => {
 		expect(
 			sortDashboardSidebarProjects([newer, older], "active").map((p) => p.id),
-		).toEqual(["p-older", "p-newer"]);
+		).toEqual(["p-newer", "p-older"]);
 	});
 
 	it("does not mutate the input array", () => {
 		const projects = [newer, older];
 		sortDashboardSidebarProjects(projects, "active");
 		expect(projects.map((p) => p.id)).toEqual(["p-newer", "p-older"]);
-	});
-
-	it("breaks timestamp ties by name, then id", () => {
-		const a = makeProject({ id: "p-a", name: "Apple" });
-		const b = makeProject({ id: "p-b", name: "Banana" });
-		const b2 = makeProject({ id: "p-b2", name: "Banana" });
-		expect(
-			sortDashboardSidebarProjects([b2, b, a], "created").map((p) => p.id),
-		).toEqual(["p-a", "p-b", "p-b2"]);
 	});
 
 	it("keeps a project's identity when its children are already in order", () => {
@@ -202,11 +112,19 @@ describe("sortDashboardSidebarProjects", () => {
 
 	// Persisted caches can revive Date columns as ISO strings; sorting must
 	// coerce them, never throw mid-render.
-	it("sorts workspaces whose timestamps are ISO strings at runtime", () => {
-		const stringDated = makeProject({
-			id: "p-string",
-			name: "StringDates",
+	it("sorts children whose timestamps are ISO strings at runtime", () => {
+		const project = makeProject({
+			id: "p1",
+			name: "Alpha",
 			children: [
+				{
+					type: "workspace",
+					workspace: makeWorkspace({
+						id: "w-date",
+						name: "host-served",
+						updatedAt: new Date("2026-05-01"),
+					}),
+				},
 				{
 					type: "workspace",
 					workspace: makeWorkspace({
@@ -217,49 +135,8 @@ describe("sortDashboardSidebarProjects", () => {
 				},
 			],
 		});
-		const dateDated = makeProject({
-			id: "p-date",
-			name: "DateDates",
-			children: [
-				{
-					type: "workspace",
-					workspace: makeWorkspace({
-						id: "w-date",
-						name: "host-served",
-						updatedAt: new Date("2026-05-01"),
-					}),
-				},
-			],
-		});
-		expect(
-			sortDashboardSidebarProjects([dateDated, stringDated], "active").map(
-				(p) => p.id,
-			),
-		).toEqual(["p-string", "p-date"]);
-	});
-
-	it("sinks garbage timestamps below dated projects and orders them by name", () => {
-		const dated = makeProject({
-			id: "p-dated",
-			name: "Zed",
-			createdAt: new Date("2020-01-01"),
-		});
-		const garbage = makeProject({
-			id: "p-garbage",
-			name: "Apple",
-			createdAt: "not-a-date" as unknown as Date,
-		});
-		const alsoGarbage = makeProject({
-			id: "p-garbage-2",
-			name: "Banana",
-			createdAt: "also-not-a-date" as unknown as Date,
-		});
-		expect(
-			sortDashboardSidebarProjects(
-				[alsoGarbage, dated, garbage],
-				"created",
-			).map((p) => p.id),
-		).toEqual(["p-dated", "p-garbage", "p-garbage-2"]);
+		const [sorted] = sortDashboardSidebarProjects([project], "active");
+		expect(childIds(sorted?.children ?? [])).toEqual(["w-string", "w-date"]);
 	});
 
 	it("does not throw for null or undefined timestamps", () => {
@@ -437,6 +314,68 @@ describe("sortDashboardSidebarProjectChildren", () => {
 		expect(childIds(sorted)).toEqual(["w-created-late", "w-created-early"]);
 	});
 
+	it("breaks timestamp ties by name, then id", () => {
+		const tie = at("2026-05-01");
+		const apple = makeWorkspace({
+			id: "w-a",
+			name: "Apple",
+			lastActivityAt: tie,
+		});
+		const banana = makeWorkspace({
+			id: "w-b",
+			name: "Banana",
+			lastActivityAt: tie,
+		});
+		const banana2 = makeWorkspace({
+			id: "w-b2",
+			name: "Banana",
+			lastActivityAt: tie,
+		});
+		const sorted = sortDashboardSidebarProjectChildren(
+			[banana2, banana, apple].map((workspace) => ({
+				type: "workspace" as const,
+				workspace,
+			})),
+			"active",
+		);
+		expect(childIds(sorted)).toEqual(["w-a", "w-b", "w-b2"]);
+	});
+
+	it("sinks garbage timestamps below dated rows and orders them by name", () => {
+		const dated: DashboardSidebarProjectChild = {
+			type: "workspace",
+			workspace: makeWorkspace({
+				id: "w-dated",
+				name: "Zed",
+				createdAt: new Date("2020-01-01"),
+			}),
+		};
+		const garbage: DashboardSidebarProjectChild = {
+			type: "workspace",
+			workspace: makeWorkspace({
+				id: "w-garbage",
+				name: "Apple",
+				createdAt: "not-a-date" as unknown as Date,
+			}),
+		};
+		const alsoGarbage: DashboardSidebarProjectChild = {
+			type: "workspace",
+			workspace: makeWorkspace({
+				id: "w-garbage-2",
+				name: "Banana",
+				createdAt: "also-not-a-date" as unknown as Date,
+			}),
+		};
+		expect(
+			childIds(
+				sortDashboardSidebarProjectChildren(
+					[alsoGarbage, dated, garbage],
+					"created",
+				),
+			),
+		).toEqual(["w-dated", "w-garbage", "w-garbage-2"]);
+	});
+
 	it("does not mutate the input children or sections", () => {
 		const children = [section, oldWorktree, newWorktree];
 		const sectionWorkspaceIds = section.section.workspaces.map((w) => w.id);
@@ -541,45 +480,40 @@ describe("lastActivityAt in active mode", () => {
 		]);
 	});
 
-	it("bubbles activity up to project ordering", () => {
-		const staleMetadata = makeProject({
-			id: "p-busy",
-			name: "Busy",
-			updatedAt: new Date("2026-01-01"),
-			children: [
-				{
-					type: "workspace",
-					workspace: makeWorkspace({
-						id: "w1",
-						name: "one",
-						updatedAt: new Date("2026-01-01"),
-						lastActivityAt: at("2026-07-01"),
-					}),
-				},
-			],
-		});
-		const freshMetadata = makeProject({
+	// Activity ranks rows inside a project and stops there — a busy workspace
+	// must not drag its project up past the one above it.
+	it("does not bubble activity up to project ordering", () => {
+		const idle = makeProject({
 			id: "p-idle",
 			name: "Idle",
-			updatedAt: new Date("2026-08-01"),
 			children: [
 				{
 					type: "workspace",
 					workspace: makeWorkspace({
 						id: "w2",
 						name: "two",
-						updatedAt: new Date("2026-08-01"),
 						lastActivityAt: at("2026-05-01"),
 					}),
 				},
 			],
 		});
+		const busy = makeProject({
+			id: "p-busy",
+			name: "Busy",
+			children: [
+				{
+					type: "workspace",
+					workspace: makeWorkspace({
+						id: "w1",
+						name: "one",
+						lastActivityAt: at("2026-07-01"),
+					}),
+				},
+			],
+		});
 		expect(
-			sortDashboardSidebarProjects(
-				[freshMetadata, staleMetadata],
-				"active",
-			).map((p) => p.id),
-		).toEqual(["p-busy", "p-idle"]);
+			sortDashboardSidebarProjects([idle, busy], "active").map((p) => p.id),
+		).toEqual(["p-idle", "p-busy"]);
 	});
 
 	it("bubbles activity inside a section up to the section's rank", () => {

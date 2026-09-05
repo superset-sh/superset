@@ -4985,8 +4985,8 @@ msgstr "드래그하여 이동"
 msgid "Drag to reorder"
 msgstr "끌어서 순서 변경"
 
-msgid "Drag to reorder in Manual order"
-msgstr "수동 정렬에서 드래그하여 순서 변경"
+msgid "Drag workspaces to reorder in Manual order"
+msgstr "수동 정렬에서 워크스페이스를 드래그하여 순서 변경"
 
 msgid "Drawer"
 msgstr "드로어"
@@ -12743,14 +12743,11 @@ msgstr "정렬 기준"
 msgid "Sort by {label}, currently {sortLabel}"
 msgstr "{label} 기준 정렬, 현재 {sortLabel}"
 
-msgid "Sort projects"
-msgstr "프로젝트 정렬"
-
-msgid "Sort projects ({currentLabel})"
-msgstr "프로젝트 정렬 ({currentLabel})"
-
 msgid "Sort workspaces"
 msgstr "워크스페이스 정렬"
+
+msgid "Sort workspaces ({currentLabel})"
+msgstr "워크스페이스 정렬 ({currentLabel})"
 
 msgid "Sounds and ringtone for completed tasks"
 msgstr "완료된 작업에 사용할 소리와 벨소리"

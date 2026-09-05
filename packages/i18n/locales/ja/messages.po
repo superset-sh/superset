@@ -4985,8 +4985,8 @@ msgstr "ドラッグして移動"
 msgid "Drag to reorder"
 msgstr "ドラッグして並べ替え"
 
-msgid "Drag to reorder in Manual order"
-msgstr "手動順ではドラッグして並べ替え"
+msgid "Drag workspaces to reorder in Manual order"
+msgstr "手動順ではワークスペースをドラッグして並べ替え"
 
 msgid "Drawer"
 msgstr "Drawer"
@@ -12743,14 +12743,11 @@ msgstr "並び替え"
 msgid "Sort by {label}, currently {sortLabel}"
 msgstr "{label}で並べ替え、現在{sortLabel}"
 
-msgid "Sort projects"
-msgstr "プロジェクトを並び替え"
-
-msgid "Sort projects ({currentLabel})"
-msgstr "プロジェクトを並び替え({currentLabel})"
-
 msgid "Sort workspaces"
 msgstr "ワークスペースを並べ替え"
+
+msgid "Sort workspaces ({currentLabel})"
+msgstr "ワークスペースを並べ替え（{currentLabel}）"
 
 msgid "Sounds and ringtone for completed tasks"
 msgstr "タスク完了時のサウンドと着信音"

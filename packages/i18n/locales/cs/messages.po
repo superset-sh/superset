@@ -4985,8 +4985,8 @@ msgstr "Přetažením přesunete"
 msgid "Drag to reorder"
 msgstr "Přetažením změníte pořadí"
 
-msgid "Drag to reorder in Manual order"
-msgstr "Přetažením změníte pořadí v ručním řazení"
+msgid "Drag workspaces to reorder in Manual order"
+msgstr "Přetažením pracovních prostorů změníte pořadí v ručním řazení"
 
 msgid "Drawer"
 msgstr "Drawer"
@@ -12743,14 +12743,11 @@ msgstr "Řadit podle"
 msgid "Sort by {label}, currently {sortLabel}"
 msgstr "Seřadit podle {label}, aktuálně {sortLabel}"
 
-msgid "Sort projects"
-msgstr "Seřadit projekty"
-
-msgid "Sort projects ({currentLabel})"
-msgstr "Seřadit projekty ({currentLabel})"
-
 msgid "Sort workspaces"
 msgstr "Seřadit pracovní prostory"
+
+msgid "Sort workspaces ({currentLabel})"
+msgstr "Seřadit pracovní prostory ({currentLabel})"
 
 msgid "Sounds and ringtone for completed tasks"
 msgstr "Zvuky a vyzvánění pro dokončené úkoly"
