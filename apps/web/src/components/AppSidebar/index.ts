@@ -1,1 +1,1 @@
-export { AppSidebar, type AppSidebarVariant } from "./AppSidebar";
+export { AppSidebar } from "./AppSidebar";

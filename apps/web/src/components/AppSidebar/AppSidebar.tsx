@@ -48,20 +48,15 @@ import { useState } from "react";
 import { env } from "@/env";
 import { useTRPC } from "@/trpc/react";
 
-export type AppSidebarVariant = "dashboard" | "agents";
-
 interface NavItem {
 	href: string;
 	label: MessageDescriptor;
 	icon: LucideIcon;
 }
 
-const HOME_ITEM: Record<AppSidebarVariant, NavItem> = {
-	dashboard: { href: "/agents", label: msg({ message: "Home" }), icon: Home },
-	agents: { href: "/agents", label: msg({ message: "Agents" }), icon: Bot },
-};
-
-const SHARED_ITEMS: NavItem[] = [
+const NAV_ITEMS: NavItem[] = [
+	{ href: "/", label: msg({ message: "Home" }), icon: Home },
+	{ href: "/agents", label: msg({ message: "Agents" }), icon: Bot },
 	{
 		href: "/integrations",
 		label: msg({ message: "Integrations" }),
@@ -100,18 +95,12 @@ function Wordmark() {
 	);
 }
 
-function SidebarNav({
-	items,
-	onNavigate,
-}: {
-	items: NavItem[];
-	onNavigate?: () => void;
-}) {
+function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
 	const pathname = usePathname();
 
 	return (
 		<nav className="flex flex-col gap-px px-2">
-			{items.map((item) => {
+			{NAV_ITEMS.map((item) => {
 				const isActive = isNavItemActive(pathname, item.href);
 				const Icon = item.icon;
 				return (
@@ -322,23 +311,17 @@ function OrganizationMenu() {
 	);
 }
 
-function SidebarBody({
-	items,
-	onNavigate,
-}: {
-	items: NavItem[];
-	onNavigate?: () => void;
-}) {
+function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
 	const { t } = useLingui();
 
 	return (
 		<div className="flex h-full flex-col">
 			<div className="flex h-12 shrink-0 items-center px-4">
-				<Link href="/agents" aria-label={t({ message: "Go to home" })}>
+				<Link href="/" aria-label={t({ message: "Go to home" })}>
 					<Wordmark />
 				</Link>
 			</div>
-			<SidebarNav items={items} onNavigate={onNavigate} />
+			<SidebarNav onNavigate={onNavigate} />
 			<div className="flex-1" />
 			<div className="p-2">
 				<OrganizationMenu />
@@ -347,10 +330,9 @@ function SidebarBody({
 	);
 }
 
-export function AppSidebar({ variant }: { variant: AppSidebarVariant }) {
+export function AppSidebar() {
 	const { t } = useLingui();
 	const [sheetOpen, setSheetOpen] = useState(false);
-	const items = [HOME_ITEM[variant], ...SHARED_ITEMS];
 
 	return (
 		<>
@@ -376,15 +358,12 @@ export function AppSidebar({ variant }: { variant: AppSidebarVariant }) {
 						</SheetTitle>
 						{/* The translucent sidebar tint needs the opaque sheet under it. */}
 						<div className={cn("h-full", SIDEBAR_SURFACE)}>
-							<SidebarBody
-								items={items}
-								onNavigate={() => setSheetOpen(false)}
-							/>
+							<SidebarBody onNavigate={() => setSheetOpen(false)} />
 						</div>
 					</SheetContent>
 				</Sheet>
 				<Link
-					href="/agents"
+					href="/"
 					aria-label={t({ message: "Go to home" })}
 					className="px-2"
 				>
@@ -397,7 +376,7 @@ export function AppSidebar({ variant }: { variant: AppSidebarVariant }) {
 					SIDEBAR_SURFACE,
 				)}
 			>
-				<SidebarBody items={items} />
+				<SidebarBody />
 			</aside>
 		</>
 	);
