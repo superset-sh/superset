@@ -24,13 +24,13 @@ None blocking. Product forks were settled in the brief (two rounds of live revie
 
 - [x] (2026-09-05 07:55Z) Discovery: read prior branch `archive-workspace-experience` (plan, diff, uncommitted fix), PR #6011 context, and every file the brief anchors on in current `main`.
 - [x] (2026-09-05 08:10Z) Plan written, including the terminal status audit table below.
-- [ ] Milestone 1: host-service schema + shelve/unshelve data plane + tests.
-- [ ] Milestone 2: terminal suspend (`killSessionRuntime`, `suspendSessionAndWait`, `suspended` status, attach planner) + reaper `planShelvedSuspends` + tests.
-- [ ] Milestone 3: renderer data plane (`shelvedAt` on rows, `workspaces`/`shelvedWorkspaces` split, event mapping, host-target lookup) + tests.
-- [ ] Milestone 4: shared archive flow hook, intent store + mount, and every entry point rewired (sidebar button, sidebar menu, hotkey, palette, page menus, bulk).
-- [ ] Milestone 5: Archived view on the Workspaces page, header toggle, History rename, deep-link archived state.
-- [ ] i18n catalogs filled for all 17 locales; `check:i18n` clean.
-- [ ] Gates: root typecheck, lint, host-service + desktop tests all green.
+- [x] (2026-09-05 08:40Z) Milestone 1: host-service schema + shelve/unshelve data plane + tests.
+- [x] (2026-09-05 09:30Z) Milestone 2: terminal suspend (`killSessionRuntime`, `suspendSessionAndWait`, `markTerminalSessionSuspended`, `planTerminalAttach`) + reaper `planShelvedSuspends` + tests.
+- [x] (2026-09-05 10:00Z) Milestone 3: renderer data plane (`shelvedAt` on rows, `workspaces`/`shelvedWorkspaces` split, explicit event mapping, host-target and delete-dialog fallbacks) + tests.
+- [x] (2026-09-05 11:00Z) Milestone 4: `useArchiveWorkspaceFlow`, `useArchiveWorkspaceIntent` queue + `ArchiveWorkspaceMount`, and every entry point (sidebar button, sidebar menu, hotkey, palette archive + nav, page menu, bulk toolbar + bulk menu).
+- [x] (2026-09-05 11:45Z) Milestone 5: `V2WorkspacesArchived` + `ArchivedWorkspaceRow`, header Archived toggle with count, Display hidden in that mode, "History" rename, `WorkspaceArchivedState` deep link, `parseV2WorkspacesSearch` extracted and tested.
+- [x] (2026-09-05 12:10Z) i18n: 24 new messages translated in all 16 non-English locales (384 entries); `bun run check:i18n` exits 0.
+- [x] (2026-09-05 12:20Z) Gates: host-service `bun test` (all new suites green; the 3 known environment-only failures remain), desktop `bun test` (3523 pass; the known env-sensitive LeaderboardRank failure remains), root `bun run lint` clean, root `bun run typecheck` clean after the mobile fix below.
 - [ ] Manual verification matrix in a dev instance (Avi's call; see Validation).
 
 ## Surprises & Discoveries
@@ -49,8 +49,15 @@ None blocking. Product forks were settled in the brief (two rounds of live revie
 - Observation: `disposeSessionAndWait` is called by `disposeSessionsByWorkspaceId` for every non-`disposed` row, including a `suspended` one. With no in-memory session it falls to `closeDaemonSessionById`, which treats an unknown daemon session as success, so destroy still flips the row to `disposed` and deletes it.
   Evidence: `terminal.ts:2478-2525` and `isUnknownDaemonSessionError` handling in the kill path.
 - Observation: the bulk delete intent's target type is the full `DashboardSidebarWorkspace` (16 fields), but the dialog only reads `id`, `hostId`, `name`, `branch` off each target.
-  Evidence: grep over `DashboardSidebarBulkDeleteDialog/**` shows only those members accessed (to be re-verified when the type is narrowed).
+  Evidence: grep over `DashboardSidebarBulkDeleteDialog/**` shows only those members accessed; the narrowed type typechecks with no other change.
   Consequence: the intent's target type is narrowed to a `BulkDeleteWorkspaceTarget` pick so the Archived view can hand it `AccessibleV2Workspace` rows without fabricating sidebar-only fields.
+- Observation: `bun run generate` named the migration `0031_fat_barracuda.sql`. The previous migration (`0030_workspace_last_activity_at.sql`) was renamed by hand together with its journal tag, but the brief says never to hand-edit `drizzle/`, so the generated name is kept.
+  Evidence: `packages/host-service/drizzle/0031_fat_barracuda.sql` contains exactly `ALTER TABLE \`workspaces\` ADD \`shelved_at\` integer;`.
+- Observation: the root typecheck (not the desktop one) caught the Expo mobile app: its `HostWorkspaceRow` is the host router's `workspace.list` output type, so adding `shelvedAt` to the list row made it required in mobile's `CloudWorkspaceItem`, and its home list maps `workspace.list` rows straight through with no split.
+  Evidence: `@superset/mobile#typecheck` failed on `apps/mobile/hooks/useCloudWorkspaceItems/useCloudWorkspaceItems.ts(34,2)`.
+  Consequence: the cloud-row constructor sets `shelvedAt: null`, and `apps/mobile/hooks/useHostWorkspaces` filters `shelvedAt == null` so a workspace archived on the desktop is put away on the phone too (and comes back on unarchive). Recorded for Avi in the handoff as the one change outside the brief's two packages.
+- Observation: the "Restored" toast (with Open) was first shown for every unarchive source. From Undo the row simply reappears where it was, and from the deep-link state the route re-renders as the workspace itself, so the toast only makes sense from the Archived view.
+  Consequence: the flow shows it for `source === "workspaces-page"` only.
 
 ## Decision Log
 
@@ -84,10 +91,23 @@ None blocking. Product forks were settled in the brief (two rounds of live revie
 - Decision: the Archived view keeps the header's device, project, and Filter controls active and hides only the Display dropdown.
   Rationale: the brief hides Display (sort/history/lanes make no sense for a fixed-order list); the other controls narrow the archived list the same way they narrow the live one and cost nothing.
   Date/Author: 2026-09-05 / worker.
+- Decision: keep the drizzle-kit generated migration filename (`0031_fat_barracuda.sql`) instead of renaming it like `0030_workspace_last_activity_at.sql`.
+  Rationale: the brief says never to hand-edit `packages/host-service/drizzle/`, and a rename means editing the journal tag by hand. Avi can rename before merge if the team prefers descriptive names.
+  Date/Author: 2026-09-05 / worker.
+- Decision: the mobile app hides archived rows too.
+  Rationale: its list comes from the same `workspace.list`; an archived workspace reappearing on the phone would contradict "put away". A one-line filter, no UI. Flagged in the handoff because mobile is outside the brief's stated packages.
+  Date/Author: 2026-09-05 / worker.
+- Decision: the sidebar row's hover button and menu shortcut both key off `CLOSE_WORKSPACE`, whose label stays "Close Workspace" and whose description becomes "Archive the current workspace".
+  Rationale: the label is what the keyboard settings page lists and what users have learned; the description is where the new semantics are explained.
+  Date/Author: 2026-09-05 / worker.
 
 ## Outcomes & Retrospective
 
-To be written at closeout.
+Implemented end to end on branch `archive-delete-experience` in eight commits (plan; host shelve/unshelve; terminal suspend + reaper; renderer data-plane split; flow + every entry point; Archived view + deep link; i18n catalogs; mobile list filter), not pushed. Automated gates: root `bun run typecheck` and `bun run lint` exit 0; `bun run check:i18n` exits 0; host-service `bun test` passes every new suite (shelve router, attach planner, reaper planner, suspend-survives-sweep) with only the three pre-existing environment-only failures (unbundled pty-daemon, agent-launch config-dir leak); desktop `bun test` passes 3523 with only the pre-existing env-sensitive LeaderboardRank failure.
+
+What worked: grounding the terminal design in the reaper's stale-active sweep before writing code avoided the trap both prior attempts fell into; extracting `planTerminalAttach` made the attach policy testable without a daemon; one intent queue plus one mount kept the flow to a single instance while every surface still goes through it; running the root typecheck (not just the two packages') caught the mobile consumer.
+
+Not verified here: the manual matrix (same PTYs after Undo; post-grace unarchive respawns with the banner and offers the agent for resume; light/dark; offline remote rows; palette navigation) needs a dev instance of this worktree, never Avi's running app. Follow-ups recorded: CLI/MCP default filtering (rows now carry `shelvedAt`, still listed), and the bulk dialog's mount living at the sidebar root (a "Delete all" from the Archived view with the sidebar toggled closed shows its dialog only once the sidebar is back, the same limitation the sidebar's own bulk delete has).
 
 ## Context and Orientation
 
@@ -252,3 +272,5 @@ Renderer: `useHostWorkspaces().shelvedWorkspaces`; `useArchiveWorkspaceFlow()`; 
 Follow-up (not in this PR): `superset workspaces list` and MCP `workspaces_list` will receive `shelvedAt` on each row but keep listing archived rows; decide whether the CLI default should hide them, matching how tombstones stayed CLI-unaware.
 
 Revision note (2026-09-05 08:10Z): initial plan, written before implementation.
+
+Revision note (2026-09-05 12:30Z): closeout after implementation. Progress, Surprises & Discoveries (migration name, mobile consumer, Restored-toast scope), Decision Log, and Outcomes reflect the final state of the branch. The plan stays in the active folder until a PR exists; move it to `done/` with the PR.
