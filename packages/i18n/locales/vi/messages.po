@@ -14703,6 +14703,9 @@ msgstr "Biến"
 msgid "Vercel AI Gateway"
 msgstr "Vercel AI Gateway"
 
+msgid "Vercel AI Gateway rejected this key."
+msgstr "Vercel AI Gateway đã từ chối khóa này."
+
 msgid "Verified and saved"
 msgstr "Đã xác minh và lưu"
 

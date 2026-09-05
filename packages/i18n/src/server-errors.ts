@@ -31,6 +31,12 @@ export const serverErrorMessages: Record<
 				message: "Enter a value.",
 			}),
 		),
+	"serverError.agentCredential.gatewayRejectedKey": () =>
+		i18n._(
+			msg({
+				message: "Vercel AI Gateway rejected this key.",
+			}),
+		),
 	"serverError.agentCredential.openaiRejectedKey": () =>
 		i18n._(
 			msg({

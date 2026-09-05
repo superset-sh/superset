@@ -14703,6 +14703,9 @@ msgstr "Переменные"
 msgid "Vercel AI Gateway"
 msgstr "Vercel AI Gateway"
 
+msgid "Vercel AI Gateway rejected this key."
+msgstr "Vercel AI Gateway отклонил этот ключ."
+
 msgid "Verified and saved"
 msgstr "Проверено и сохранено"
 

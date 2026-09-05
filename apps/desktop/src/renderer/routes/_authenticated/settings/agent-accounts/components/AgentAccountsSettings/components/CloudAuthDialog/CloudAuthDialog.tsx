@@ -190,6 +190,7 @@ export function CloudAuthDialog({
 															kind: "api_key",
 															value,
 															baseUrl,
+															provider: provider.id,
 														})
 													}
 													provider={provider.id}

@@ -14703,6 +14703,9 @@ msgstr "Variabel"
 msgid "Vercel AI Gateway"
 msgstr "Vercel AI Gateway"
 
+msgid "Vercel AI Gateway rejected this key."
+msgstr "Vercel AI Gateway menolak kunci ini."
+
 msgid "Verified and saved"
 msgstr "Terverifikasi dan tersimpan"
 

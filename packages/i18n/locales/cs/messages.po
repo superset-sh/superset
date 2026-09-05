@@ -14703,6 +14703,9 @@ msgstr "Proměnné"
 msgid "Vercel AI Gateway"
 msgstr "Vercel AI Gateway"
 
+msgid "Vercel AI Gateway rejected this key."
+msgstr "Vercel AI Gateway tento klíč odmítl."
+
 msgid "Verified and saved"
 msgstr "Ověřeno a uloženo"
 

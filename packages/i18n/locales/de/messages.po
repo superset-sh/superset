@@ -14703,6 +14703,9 @@ msgstr "Variablen"
 msgid "Vercel AI Gateway"
 msgstr "Vercel AI Gateway"
 
+msgid "Vercel AI Gateway rejected this key."
+msgstr "Vercel AI Gateway hat diesen Schlüssel abgelehnt."
+
 msgid "Verified and saved"
 msgstr "Geprüft und gespeichert"
 

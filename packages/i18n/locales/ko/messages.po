@@ -14703,6 +14703,9 @@ msgstr "변수"
 msgid "Vercel AI Gateway"
 msgstr "Vercel AI Gateway"
 
+msgid "Vercel AI Gateway rejected this key."
+msgstr "Vercel AI Gateway에서 이 키를 거부했습니다."
+
 msgid "Verified and saved"
 msgstr "확인 후 저장됨"
 
