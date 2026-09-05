@@ -10,7 +10,7 @@ import {
 import { Button } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
 import { Label } from "@superset/ui/label";
-import { useEffect, useId } from "react";
+import { useEffect, useId, useRef } from "react";
 import { shouldConfirmDeleteDialogKey } from "../../utils/shouldConfirmDeleteDialogKey";
 
 interface DestroyConfirmPaneProps {
@@ -46,13 +46,20 @@ export function DestroyConfirmPane({
 	const checkboxId = useId();
 	const hasWarnings = hasChanges || hasUnpushedCommits;
 
+	// Read through a ref so a re-render while the dialog is open (checkbox
+	// toggle, warning banner) doesn't tear down and re-arm the listener.
+	const onConfirmRef = useRef(onConfirm);
+	useEffect(() => {
+		onConfirmRef.current = onConfirm;
+	}, [onConfirm]);
+
 	useEffect(() => {
 		if (!open || !canConfirm) return;
 
 		const handleKeyDown = (event: KeyboardEvent) => {
 			if (!shouldConfirmDeleteDialogKey(event)) return;
 			event.preventDefault();
-			onConfirm();
+			onConfirmRef.current();
 		};
 
 		// Arm after the current task: the Enter that selected "Delete" in a
@@ -66,7 +73,7 @@ export function DestroyConfirmPane({
 			clearTimeout(timer);
 			window.removeEventListener("keydown", handleKeyDown);
 		};
-	}, [canConfirm, onConfirm, open]);
+	}, [canConfirm, open]);
 
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
