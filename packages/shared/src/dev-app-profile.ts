@@ -135,7 +135,12 @@ export function isProfileLockHeld(profileDir: string): boolean {
 		return (error as NodeJS.ErrnoException).code !== "ENOENT";
 	}
 
-	const pid = Number(target.slice(target.lastIndexOf("-") + 1));
+	// Decimal only: Number() would read "0x10" as 16 and "1e3" as 1000, and
+	// probing an invented pid breaks the fail-closed contract above.
+	const separator = target.lastIndexOf("-");
+	const pidText = separator < 0 ? "" : target.slice(separator + 1);
+	if (!pidText || /\D/.test(pidText)) return true;
+	const pid = Number(pidText);
 	if (!Number.isInteger(pid) || pid <= 0) return true;
 	try {
 		process.kill(pid, 0);

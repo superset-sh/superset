@@ -2,7 +2,7 @@ import { existsSync, lstatSync, statSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { sanitizePromptForPty } from "@superset/shared/agent-prompt-launch";
 import { TRPCError } from "@trpc/server";
-import { and, eq, isNull } from "drizzle-orm";
+import { eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { pullRequests, workspaces } from "../../../db/schema";
 import { invalidateLabelCache } from "../../../ports/static-ports";
@@ -670,17 +670,21 @@ function sharesProfileWithLiveWorkspace(
 	// Defensive: rows written before the name column was backfilled carry ""
 	// and test fixtures carry nothing at all. Neither names a profile.
 	if (typeof local.name !== "string" || !local.name.trim()) return false;
+	const profileKey = local.name.trim();
 	try {
+		// Compared trimmed in JS rather than matched in SQL: the profile key is
+		// the trimmed name, so "foo" and " foo" share a directory that an
+		// equality match would miss. The row count here is per host, and this
+		// path already does far heavier work.
 		const rows = ctx.db.query.workspaces
 			.findMany({
-				columns: { id: true },
-				where: and(
-					eq(workspaces.name, local.name),
-					isNull(workspaces.archivedAt),
-				),
+				columns: { id: true, name: true },
+				where: isNull(workspaces.archivedAt),
 			})
 			.sync();
-		return rows.some((row) => row.id !== local.id);
+		return rows.some(
+			(row) => row.id !== local.id && row.name?.trim() === profileKey,
+		);
 	} catch (err) {
 		console.warn("[workspace-cleanup] profile name-sharing lookup failed", err);
 		return true;

@@ -213,6 +213,19 @@ describe("isProfileLockHeld", () => {
 		}
 	});
 
+	// Number() reads "0x10" as 16 and "1e3" as 1000 — probing an invented pid
+	// would break the fail-closed contract.
+	test("a non-decimal pid suffix counts as held", () => {
+		for (const suffix of ["0x10", "1e3", "+7", " 7", ""]) {
+			const p = profileWith(`host-${suffix}`);
+			try {
+				expect(isProfileLockHeld(p.dir)).toBe(true);
+			} finally {
+				p.cleanup();
+			}
+		}
+	});
+
 	test("a plain lock file (Windows shape) counts as held", () => {
 		const p = profileWith();
 		try {
