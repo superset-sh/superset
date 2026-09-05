@@ -24,6 +24,15 @@ export class WorkerTaskError extends Error {
 	}
 }
 
+/** `code` carried by the rejection a task gets when its budget expires. */
+export const WORKER_TASK_TIMEOUT_CODE = "WORKER_TASK_TIMEOUT";
+
+export function isWorkerTaskTimeout(error: unknown): boolean {
+	return (
+		error instanceof WorkerTaskError && error.code === WORKER_TASK_TIMEOUT_CODE
+	);
+}
+
 export class WorkerTaskAbortedError extends Error {
 	constructor(message = "Worker task aborted") {
 		super(message);
@@ -490,11 +499,14 @@ export class WorkerTaskRunner {
 		// that the budget expired, and the worker is retired right below, so
 		// this is the sole record of what was still running.
 		const phaseSuffix = task.phase ? ` in phase "${task.phase}"` : "";
+		const message = `[${this.name}] Task "${task.taskType}" timed out after ${task.timeoutMs}ms${phaseSuffix}`;
 		this.rejectTask(
 			taskId,
-			new WorkerTaskError(
-				`[${this.name}] Task "${task.taskType}" timed out after ${task.timeoutMs}ms${phaseSuffix}`,
-			),
+			new WorkerTaskError(message, {
+				name: "WorkerTaskTimeoutError",
+				message,
+				code: WORKER_TASK_TIMEOUT_CODE,
+			}),
 		);
 
 		if (task.slotId) {
