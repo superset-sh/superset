@@ -88,6 +88,13 @@ export const SETTINGS: SettingDefinition[] = [
 		defaultValue: true,
 	},
 	{
+		key: "showUsageInSidebar",
+		type: "boolean",
+		section: "behavior",
+		description: "Show a Usage button in the v2 home sidebar",
+		defaultValue: false,
+	},
+	{
 		key: "openLinksInApp",
 		type: "boolean",
 		section: "behavior",

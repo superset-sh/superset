@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `show_usage_in_sidebar` integer;
