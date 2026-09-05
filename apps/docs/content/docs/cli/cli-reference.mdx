@@ -49,22 +49,101 @@ lifecycle scripts. The legacy `presets` command name remains an alias.
 		{ flag: "--execution-mode <mode>", description: "new-tab, split-pane, new-tab-split-pane, or sequential." },
 		{ flag: "--hidden", description: "Do not show the script in the Scripts bar." },
 		{ flag: "--workspace-run", description: "Use the script for the matching project's Run action." },
+		{ flag: "--upsert", description: "Replace the script with this name instead of adding a duplicate. Fails if the name is already duplicated." },
 	]}
 >
 Add a terminal script to the desktop app on this machine. The desktop app must
 have been launched once so its local database exists, and the CLI must have an
 active organization so the script is imported into the correct v2 profile.
+When iterating on one script, pass `--upsert` so each revision replaces the
+last instead of piling up copies in the Scripts bar.
 
 ```bash
 superset scripts add --name dev --command "bun run dev"
 superset presets add --name services \
   --command "docker compose up" --command "bun run dev" \
   --execution-mode split-pane
+superset scripts add --name "Open in GitHub" --command "gh pr view --web" --upsert
 ```
 
 <CommandReturns>
 The created terminal script, including its generated ID.
 </CommandReturns>
+</Command>
+
+<Command
+	name="superset scripts list"
+	output={`Array<{
+  id: string;
+  name: string;
+  description?: string;
+  cwd: string;
+  commands: string[];
+  projectIds: string[] | null;
+  pinnedToBar?: boolean;
+  useAsWorkspaceRun?: boolean;
+  executionMode?: string;
+  status: "ready" | "importing" | "deleting";
+}>`}
+>
+List the terminal scripts on this machine with the id each other command
+takes. `status` is `importing` or `deleting` while a change is waiting for the
+desktop app to open or refocus with the same organization active. Scripts
+created in the desktop app's Settings are stored in the app profile only and
+do not appear here.
+
+```bash
+superset scripts list
+superset scripts list --json
+```
+</Command>
+
+<Command
+	name="superset scripts edit <id>"
+	args={[
+		{ name: "id", required: true, description: "Script ID from `superset scripts list`." },
+	]}
+	options={[
+		{ flag: "--name <name>", description: "New display name." },
+		{ flag: "--command <command...>", description: "Replace the commands. Repeat to launch multiple commands." },
+		{ flag: "--description <text>", description: "New description. Pass an empty string to clear it." },
+		{ flag: "--cwd <path>", description: "Workspace-relative working directory." },
+		{ flag: "--project <uuid...>", description: "Replace the project list. Mutually exclusive with --all-projects." },
+		{ flag: "--all-projects", description: "Make the script available in every project." },
+		{ flag: "--execution-mode <mode>", description: "new-tab, split-pane, new-tab-split-pane, or sequential." },
+		{ flag: "--hidden / --no-hidden", description: "Hide the script from the Scripts bar, or show it again." },
+		{ flag: "--workspace-run / --no-workspace-run", description: "Use the script as the project's Run action, or stop." },
+	]}
+	output="Terminal script"
+>
+Change fields on an existing script. Unspecified fields keep their values, and
+the desktop app updates its copy in place, so the script keeps its position in
+the Scripts bar. Edits made in the desktop app's Settings do not flow back to
+the CLI: an edit here replaces the app's copy with what `superset scripts list`
+shows plus your changes.
+
+```bash
+superset scripts edit <id> --command "gh pr view --web"
+superset scripts edit <id> --name "Open PR" --hidden
+superset scripts edit <id> --all-projects --no-hidden
+```
+</Command>
+
+<Command
+	name="superset scripts delete <id>"
+	args={[
+		{ name: "id", required: true, description: "Script ID from `superset scripts list`." },
+	]}
+	output="Terminal script"
+>
+Delete a script. A script the desktop app has not picked up yet disappears
+immediately. One it already shows is removed from the app the next time it
+opens or refocuses with the same organization active; until then it lists
+with status `deleting`.
+
+```bash
+superset scripts delete <id>
+```
 </Command>
 
 ---

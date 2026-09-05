@@ -61,6 +61,22 @@ superset scripts add \
   --execution-mode split-pane
 ```
 
+To change or remove a script from the same terminal, use its id from
+`superset scripts list`:
+
+```bash
+superset scripts list
+superset scripts edit <id> --command "gh pr view --web"
+superset scripts delete <id>
+```
+
+When you are iterating on one script, `superset scripts add --upsert` replaces
+the script with the same name instead of adding another copy to the Scripts
+bar. Changes made with the CLI reach the app the next time it opens or
+refocuses with the same organization active, and the running app picks them up
+immediately. Scripts created in Settings live in the app profile only, so they
+do not show up in `superset scripts list`.
+
 `superset presets add` remains an alias for compatibility. See the
 [CLI reference](/cli/cli-reference#scripts) for every option.
 
