@@ -100,13 +100,15 @@ describe("seedClaudeFolderTrust", () => {
 		expect(readFileSync(file, "utf-8")).toBe(content);
 	});
 
-	test("throws on a corrupt state file without clobbering it", async () => {
+	test("re-seeds a corrupt state file instead of stranding the trust", async () => {
+		// updateClaudeStateFile treats an unparsable file as empty state: a
+		// running Claude Code would overwrite it anyway, and refusing here
+		// would leave every session folder prompting for trust forever.
 		const file = join(dir, ".claude.json");
 		writeFileSync(file, "{not json");
-		await expect(
-			seedClaudeFolderTrust(file, "/tmp/session-d"),
-		).rejects.toThrow();
-		expect(readFileSync(file, "utf-8")).toBe("{not json");
+		await seedClaudeFolderTrust(file, "/tmp/session-d");
+		const state = JSON.parse(readFileSync(file, "utf-8"));
+		expect(state.projects["/tmp/session-d"].hasTrustDialogAccepted).toBe(true);
 	});
 
 	test("skips when the config dir itself does not exist", async () => {

@@ -1044,6 +1044,20 @@ async function getOrAdoptSession({
  * so embedded newlines reach a TUI agent (claude/codex) as literal newlines
  * rather than premature Enter presses.
  */
+/**
+ * Whether the session's terminal currently has bracketed paste enabled — the
+ * account engine's session mover uses it as one gate before typing a
+ * continue nudge, so text never lands at a bare shell prompt.
+ */
+export function isBracketedPasteActive(terminalId: string): boolean {
+	const session = sessions.get(terminalId);
+	return (
+		session !== undefined &&
+		!session.exited &&
+		session.modeTracker.isBracketedPasteActive()
+	);
+}
+
 export async function writeFramedInputToSession({
 	terminalId,
 	workspaceId,

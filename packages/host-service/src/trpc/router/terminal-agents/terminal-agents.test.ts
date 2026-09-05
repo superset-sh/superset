@@ -18,9 +18,11 @@ import {
 import { findResumeCandidateBinding } from "../../../terminal-agents/persistence";
 import type { AgentRunResult } from "../agents/agents";
 import {
+	killAndResumeTerminalAgent,
 	listAccountRestartCandidates,
 	type RestartAccountSessionsDeps,
 	type ResumeSessionDeps,
+	registerPendingNudge,
 	restartAccountSessions,
 	resumeTerminalAgentSession,
 } from "./terminal-agents";
@@ -44,8 +46,15 @@ function seedResumableBinding(
 		terminalId = "t1",
 		resumeArgs = ["--resume"],
 		lastEventType = "Stop" as "Stop" | "Attached",
+		agentSessionId,
+	}: {
+		terminalId?: string;
+		resumeArgs?: string[];
+		lastEventType?: "Stop" | "Attached";
+		agentSessionId?: string;
 	} = {},
 ) {
+	const sessionId = agentSessionId ?? `sess-${terminalId}`;
 	db.insert(hostAgentConfigs)
 		.values({
 			id: CLAUDE_CONFIG_ID,
@@ -56,6 +65,7 @@ function seedResumableBinding(
 			resumeArgsJson: JSON.stringify(resumeArgs),
 			displayOrder: 0,
 		})
+		.onConflictDoNothing()
 		.run();
 	db.insert(terminalSessions)
 		.values({
@@ -70,7 +80,7 @@ function seedResumableBinding(
 			terminalId,
 			workspaceId: "ws-1",
 			agentId: "claude",
-			agentSessionId: `sess-${terminalId}`,
+			agentSessionId: sessionId,
 			startedAt: 1,
 			lastEventAt: 2,
 			lastEventType,
@@ -485,5 +495,146 @@ describe("restartAccountSessions", () => {
 		expect(result).toEqual({ restartedTerminalIds: [] });
 		// The reaper finishes the kill; the session id must stay resumable.
 		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeDefined();
+	});
+});
+
+describe("pending nudge (KTD8)", () => {
+	it("launches with a registered nudge whichever caller wins the race", async () => {
+		const db = createTestDb();
+		seedResumableBinding(db);
+		let releaseLaunch = () => {};
+		const gate = new Promise<void>((resolveGate) => {
+			releaseLaunch = resolveGate;
+		});
+		const { deps, runCalls } = createDeps(db, async () => {
+			await gate;
+			return { kind: "terminal", sessionId: "t-new", label: "Claude" };
+		});
+
+		registerPendingNudge("ws-1", "t1", "Continue where you left off.");
+
+		const input = { workspaceId: "ws-1", terminalId: "t1" };
+		// The renderer's empty-prompt resume races the mover's; one launch wins.
+		const a = resumeTerminalAgentSession(deps, input);
+		const b = resumeTerminalAgentSession(deps, input);
+		releaseLaunch();
+		await Promise.all([a, b]);
+
+		expect(runCalls).toEqual([
+			{
+				workspaceId: "ws-1",
+				agent: CLAUDE_CONFIG_ID,
+				prompt: "Continue where you left off.",
+				resumeSessionId: "sess-t1",
+			},
+		]);
+	});
+
+	it("consumes the nudge exactly once", async () => {
+		const db = createTestDb();
+		seedResumableBinding(db, { terminalId: "t1" });
+		const { deps, runCalls } = createDeps(db);
+		registerPendingNudge("ws-1", "t1", "nudge");
+
+		await resumeTerminalAgentSession(deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+		// A second restart of the same terminal must not re-send the nudge.
+		seedResumableBinding(db, { terminalId: "t2" });
+		registerPendingNudge("ws-1", "t2", "");
+		await resumeTerminalAgentSession(deps, {
+			workspaceId: "ws-1",
+			terminalId: "t2",
+		});
+
+		expect(runCalls.map((call) => call.prompt)).toEqual(["nudge", ""]);
+	});
+
+	it("keeps the nudge pending when the launch fails", async () => {
+		const db = createTestDb();
+		seedResumableBinding(db);
+		let failNext = true;
+		const { deps, runCalls } = createDeps(db, () => {
+			if (failNext) {
+				failNext = false;
+				return Promise.reject(new Error("spawn failed"));
+			}
+			return Promise.resolve({
+				kind: "terminal",
+				sessionId: "t-new",
+				label: "Claude",
+			});
+		});
+		registerPendingNudge("ws-1", "t1", "nudge");
+
+		const input = { workspaceId: "ws-1", terminalId: "t1" };
+		await expect(resumeTerminalAgentSession(deps, input)).rejects.toThrow(
+			"spawn failed",
+		);
+		await resumeTerminalAgentSession(deps, input);
+
+		expect(runCalls.map((call) => call.prompt)).toEqual(["nudge", "nudge"]);
+	});
+
+	it("refuses a session id that is not a plain session token", async () => {
+		const db = createTestDb();
+		seedResumableBinding(db, { agentSessionId: 'x"; rm -rf ~; #' });
+		const { deps, runCalls } = createDeps(db);
+
+		const result = await resumeTerminalAgentSession(deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+
+		expect(result).toEqual({ resumed: false });
+		expect(runCalls).toEqual([]);
+		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeDefined();
+	});
+});
+
+describe("killAndResumeTerminalAgent", () => {
+	it("kills crash-style and relaunches with the nudge as the prompt", async () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedLiveBinding(db, { terminalId: "t1" });
+		const { deps, runCalls, disposedTerminals } = createDeps(db);
+
+		const result = await killAndResumeTerminalAgent(deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+			prompt: "nudge",
+		});
+
+		expect(result).toEqual({
+			resumed: true,
+			terminalId: "t-new",
+			label: "Claude",
+		});
+		expect(runCalls).toEqual([
+			{
+				workspaceId: "ws-1",
+				agent: CLAUDE_CONFIG_ID,
+				prompt: "nudge",
+				resumeSessionId: "sess-t1",
+			},
+		]);
+		// Killed before the relaunch, then swept again by the resume path's
+		// own cleanup — the second dispose lands on an already-dead terminal.
+		expect(disposedTerminals).toEqual(["t1", "t1"]);
+	});
+
+	it("restarts without a prompt when no nudge is given", async () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedLiveBinding(db, { terminalId: "t1" });
+		const { deps, runCalls } = createDeps(db);
+
+		await killAndResumeTerminalAgent(deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+
+		expect(runCalls.map((call) => call.prompt)).toEqual([""]);
 	});
 });
