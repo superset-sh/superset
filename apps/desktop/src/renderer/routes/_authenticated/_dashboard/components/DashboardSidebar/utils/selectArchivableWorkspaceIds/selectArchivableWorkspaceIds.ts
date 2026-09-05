@@ -1,10 +1,18 @@
 import type { DashboardSidebarWorkspace } from "../../types";
 
 /**
- * The subset of a selection that can be archived: main workspaces never
- * are, and cloud sandboxes keep their delete path. Shared by the selection
- * toolbar and the bulk row context menu so both agree.
+ * Whether a sidebar workspace can be archived: main workspaces never are,
+ * and cloud sandboxes keep their delete path. The one place the rule lives
+ * for sidebar-shaped rows (the archive flow re-checks against the host
+ * cache with `isSandboxHost`, since it sees host rows, not sidebar rows).
  */
+export function isArchivableWorkspace(
+	workspace: Pick<DashboardSidebarWorkspace, "type" | "hostType">,
+): boolean {
+	return workspace.type !== "main" && workspace.hostType !== "cloud";
+}
+
+/** The archivable subset of a selection, as ids. */
 export function selectArchivableWorkspaceIds(
 	workspaces: readonly Pick<
 		DashboardSidebarWorkspace,
@@ -12,9 +20,6 @@ export function selectArchivableWorkspaceIds(
 	>[],
 ): string[] {
 	return workspaces
-		.filter(
-			(workspace) =>
-				workspace.type !== "main" && workspace.hostType !== "cloud",
-		)
+		.filter(isArchivableWorkspace)
 		.map((workspace) => workspace.id);
 }

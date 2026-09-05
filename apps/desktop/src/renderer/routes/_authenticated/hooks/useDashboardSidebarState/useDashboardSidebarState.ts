@@ -275,8 +275,11 @@ function cleanupWorkspacePaneRuntimes(rows: PaneLifecycleRow[]): void {
 
 export function useDashboardSidebarState() {
 	const collections = useCollections();
-	const { workspaces: hostWorkspaces, cache: hostWorkspacesCache } =
-		useHostWorkspaces();
+	const {
+		workspaces: hostWorkspaces,
+		shelvedWorkspaces,
+		cache: hostWorkspacesCache,
+	} = useHostWorkspaces();
 	const { activeHostUrl } = useLocalHostService();
 	const { v2Workspaces } = useOptimisticActions();
 	const tagFolderContext = useTagFolderContext();
@@ -867,9 +870,11 @@ export function useDashboardSidebarState() {
 
 			// Untag every member on its host — the folder is the tag, so this
 			// is what actually deletes it. Members that carry the tag without a
-			// local row (filed from another machine) get untagged too.
+			// local row (filed from another machine) get untagged too, and so
+			// do archived members: a tag left on one would resurrect the folder
+			// the day it is unarchived.
 			if (folderTag !== null) {
-				for (const workspace of hostWorkspaces) {
+				for (const workspace of [...hostWorkspaces, ...shelvedWorkspaces]) {
 					if (workspace.projectId !== projectId) continue;
 					const tags = normalizeWorkspaceTags(workspace.tags);
 					if (!tags.includes(folderTag)) continue;
@@ -886,6 +891,7 @@ export function useDashboardSidebarState() {
 		[
 			collections,
 			hostWorkspaces,
+			shelvedWorkspaces,
 			removeTagSetting,
 			tagFolderContext,
 			writeWorkspaceTags,

@@ -37,10 +37,7 @@ export const V2WorkspaceRow = memo(function V2WorkspaceRow({
 	const isMainWorkspace = workspace.type === "main";
 	const DeviceIcon =
 		workspace.hostType === "local-device" ? LuLaptop : LuMonitor;
-	// The local device is the one running this app — it can't be offline from
-	// its own point of view, whatever presence says.
-	const isDeviceOffline =
-		!workspace.hostIsOnline && workspace.hostType !== "local-device";
+	const isDeviceOffline = workspace.hostIsOffline;
 	// Drives the name's hover-reveal for keyboard users: the row, not the
 	// name span, is what's actually tabbable.
 	const {

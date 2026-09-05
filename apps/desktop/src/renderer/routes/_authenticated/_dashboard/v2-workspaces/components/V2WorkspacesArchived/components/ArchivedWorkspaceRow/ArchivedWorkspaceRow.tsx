@@ -5,21 +5,10 @@ import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import type { ReactNode } from "react";
 import { LuArchive, LuArchiveRestore, LuTrash2 } from "react-icons/lu";
 import type { AccessibleV2Workspace } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
 import { PRIcon } from "renderer/screens/main/components/PRIcon/PRIcon";
-
-/**
- * `hostIsOnline` is cloud-relay presence, which a local-only device never
- * reports — the local device is reachable from its own app whatever
- * presence says (same rule as V2WorkspaceRow / V2WorkspaceContextMenu).
- */
-export function isArchivedWorkspaceHostOffline(
-	workspace: Pick<AccessibleV2Workspace, "hostType" | "hostIsOnline">,
-): boolean {
-	return workspace.hostType !== "local-device" && !workspace.hostIsOnline;
-}
+import { DisabledReason } from "./components/DisabledReason";
 
 interface ArchivedWorkspaceRowProps {
 	workspace: AccessibleV2Workspace;
@@ -36,7 +25,7 @@ export function ArchivedWorkspaceRow({
 	onDelete,
 }: ArchivedWorkspaceRowProps) {
 	const { t } = useLingui();
-	const offline = isArchivedWorkspaceHostOffline(workspace);
+	const offline = workspace.hostIsOffline;
 	const disabled = offline || isDeleting;
 	const name = workspace.name || workspace.branch;
 	const offlineReason = t({
@@ -150,27 +139,5 @@ export function ArchivedWorkspaceRow({
 				)}
 			</div>
 		</div>
-	);
-}
-
-/** A disabled button swallows pointer events, so the tooltip hangs off a
- * wrapping span instead. */
-function DisabledReason({
-	disabled,
-	reason,
-	children,
-}: {
-	disabled: boolean;
-	reason: string;
-	children: ReactNode;
-}) {
-	if (!disabled) return children;
-	return (
-		<Tooltip delayDuration={300}>
-			<TooltipTrigger asChild>
-				<span className="inline-flex">{children}</span>
-			</TooltipTrigger>
-			<TooltipContent side="top">{reason}</TooltipContent>
-		</Tooltip>
 	);
 }

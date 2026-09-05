@@ -2,22 +2,24 @@ import { Plural, Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	Empty,
+	EmptyContent,
 	EmptyDescription,
 	EmptyHeader,
 	EmptyMedia,
 	EmptyTitle,
 } from "@superset/ui/empty";
 import { useMemo } from "react";
-import { LuArchive } from "react-icons/lu";
+import { LuArchive, LuSearchX } from "react-icons/lu";
 import { useArchiveWorkspaceFlow } from "renderer/lib/workspaces/useArchiveWorkspaceFlow";
 import { useBulkDeleteWorkspacesIntent } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/stores/bulkDeleteWorkspacesIntent";
 import { useDeletingWorkspacesStore } from "renderer/routes/_authenticated/_dashboard/stores/deletingWorkspacesStore";
 import type { AccessibleV2Workspace } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
-import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 import {
-	ArchivedWorkspaceRow,
-	isArchivedWorkspaceHostOffline,
-} from "./components/ArchivedWorkspaceRow";
+	DEVICE_FILTER_THIS_DEVICE,
+	useV2WorkspacesFilterStore,
+} from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
+import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
+import { ArchivedWorkspaceRow } from "./components/ArchivedWorkspaceRow";
 
 interface V2WorkspacesArchivedProps {
 	/** User-archived rows (the page passes `includeShelved`), already
@@ -39,6 +41,20 @@ export function V2WorkspacesArchived({
 }: V2WorkspacesArchivedProps) {
 	const { unarchiveWorkspace } = useArchiveWorkspaceFlow();
 	const deletingIds = useDeletingWorkspacesStore((state) => state.deletingIds);
+	// The header's Archived badge counts every archived row in the device
+	// scope, while these rows have passed the shared search and filters — so
+	// an empty list under a non-zero badge needs to say why.
+	const hasActiveFilters = useV2WorkspacesFilterStore(
+		(state) =>
+			state.searchQuery.trim() !== "" ||
+			state.deviceFilter !== DEVICE_FILTER_THIS_DEVICE ||
+			state.projectFilters.length > 0 ||
+			state.prStateFilters.length > 0 ||
+			state.agentStatusFilters.length > 0 ||
+			state.creatorFilters.length > 0 ||
+			state.pinFilter !== "all",
+	);
+	const resetFilters = useV2WorkspacesFilterStore((state) => state.reset);
 
 	const sorted = useMemo(
 		() =>
@@ -46,8 +62,7 @@ export function V2WorkspacesArchived({
 		[workspaces],
 	);
 	const deletable = useMemo(
-		() =>
-			sorted.filter((workspace) => !isArchivedWorkspaceHostOffline(workspace)),
+		() => sorted.filter((workspace) => !workspace.hostIsOffline),
 		[sorted],
 	);
 
@@ -73,15 +88,30 @@ export function V2WorkspacesArchived({
 						variant="icon"
 						className="size-14 [&_svg:not([class*='size-'])]:size-7"
 					>
-						<LuArchive />
+						{hasActiveFilters ? <LuSearchX /> : <LuArchive />}
 					</EmptyMedia>
 					<EmptyTitle>
-						<Trans>No archived workspaces</Trans>
+						{hasActiveFilters ? (
+							<Trans>No archived workspaces match your filters</Trans>
+						) : (
+							<Trans>No archived workspaces</Trans>
+						)}
 					</EmptyTitle>
 					<EmptyDescription>
-						<Trans>Archived workspaces show up here.</Trans>
+						{hasActiveFilters ? (
+							<Trans>Try a different search term or another device.</Trans>
+						) : (
+							<Trans>Archived workspaces show up here.</Trans>
+						)}
 					</EmptyDescription>
 				</EmptyHeader>
+				{hasActiveFilters ? (
+					<EmptyContent>
+						<Button variant="outline" size="sm" onClick={() => resetFilters()}>
+							<Trans>Clear filters</Trans>
+						</Button>
+					</EmptyContent>
+				) : null}
 			</Empty>
 		);
 	}

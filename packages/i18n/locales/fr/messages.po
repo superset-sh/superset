@@ -1887,8 +1887,8 @@ msgstr "Archiver"
 msgid "Archive selected workspaces"
 msgstr "Archiver les espaces de travail sélectionnés"
 
-msgid "Archive the current workspace"
-msgstr "Archiver l'espace de travail actuel"
+msgid "Archive the current workspace (v1 and cloud workspaces: delete)"
+msgstr "Archiver l'espace de travail actuel (v1 et espaces de travail cloud : supprimer)"
 
 msgid "Archive workspace"
 msgstr "Archiver l'espace de travail"
@@ -7762,6 +7762,9 @@ msgstr "Magenta"
 msgid "Main"
 msgstr "Principal"
 
+msgid "Main and cloud workspaces can't be archived."
+msgstr "Les espaces de travail principaux et cloud ne peuvent pas être archivés."
+
 msgid "Main workspace"
 msgstr "Espace de travail principal"
 
@@ -8497,6 +8500,9 @@ msgstr "Aucune clé API pour l'instant."
 
 msgid "No archived workspaces"
 msgstr "Aucun espace de travail archivé"
+
+msgid "No archived workspaces match your filters"
+msgstr "Aucun espace de travail archivé ne correspond à vos filtres"
 
 msgid "No assignee"
 msgstr "Aucun assigné"

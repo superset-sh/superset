@@ -277,6 +277,11 @@ export function DashboardSidebarWorkspaceContextMenu({
 					>
 						<LuTrash2 className="size-4 mr-2 text-destructive" />
 						<Trans>Delete</Trans>
+						{/* Without an Archive item (cloud sandboxes) the hotkey still
+						    deletes; the shortcut must sit on what it does. */}
+						{!onArchive && showArchiveShortcut && (
+							<ContextMenuShortcut>{archiveHotkeyText}</ContextMenuShortcut>
+						)}
 					</ContextMenuItem>
 				) : null}
 			</ContextMenuContent>

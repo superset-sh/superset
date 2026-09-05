@@ -89,6 +89,12 @@ export interface AccessibleV2Workspace {
 	hostName: string;
 	hostIsOnline: boolean;
 	hostType: V2WorkspaceHostType;
+	/**
+	 * The one offline rule for rows: `hostIsOnline` is cloud-relay presence,
+	 * which the local device never reports about itself — it is reachable
+	 * from its own app whatever presence says.
+	 */
+	hostIsOffline: boolean;
 	isInSidebar: boolean;
 	pr: V2WorkspacePrSummary | null;
 	/** Highest-priority live agent status across the workspace's terminals. */
@@ -747,6 +753,7 @@ export function useAccessibleV2Workspaces(
 				hostName: row.hostName,
 				hostIsOnline: row.hostIsOnline,
 				hostType,
+				hostIsOffline: hostType !== "local-device" && !row.hostIsOnline,
 				isInSidebar,
 				pr,
 				agentStatus: agentActivityByWorkspaceId.get(row.id)?.status ?? "idle",

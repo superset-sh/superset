@@ -60,6 +60,7 @@ function V2WorkspacesPage() {
 	);
 	const pinFilter = useV2WorkspacesFilterStore((state) => state.pinFilter);
 	const viewMode = useV2WorkspacesFilterStore((state) => state.viewMode);
+	const setViewMode = useV2WorkspacesFilterStore((state) => state.setViewMode);
 	const archivedWindow = useV2WorkspacesFilterStore(
 		(state) => state.archivedWindow,
 	);
@@ -101,7 +102,25 @@ function V2WorkspacesPage() {
 				archivedWindow: search.archived,
 			}),
 		});
+		// The Archived view is somewhere you go, not a layout you keep: a bare
+		// return to the page (sidebar click) lands on the last List/Board
+		// choice, even if the previous visit ended on Archived.
+		const state = useV2WorkspacesFilterStore.getState();
+		if (search.view === undefined && state.viewMode === "archived") {
+			useV2WorkspacesFilterStore.setState({ viewMode: state.liveViewMode });
+		}
 	}
+
+	// In-app links to `?view=archived` (the undo toast, the palette, the
+	// archived deep-link state) can arrive while this page is already mounted,
+	// after the one-shot hydration above. Follow them. Store changes write the
+	// URL back below, so a matching value is a no-op and there is no loop.
+	useEffect(() => {
+		if (search.view === undefined) return;
+		if (search.view !== useV2WorkspacesFilterStore.getState().viewMode) {
+			setViewMode(search.view);
+		}
+	}, [search.view, setViewMode]);
 
 	// Debounced: each navigate() re-renders every router-state subscriber
 	// app-wide (the dashboard sidebar most expensively), so syncing per
@@ -174,9 +193,12 @@ function V2WorkspacesPage() {
 		creatorFilters,
 		pinFilter,
 		// Tombstones ride along so the live views' Merged/Deleted groups work
-		// (each scopes them by the shared History window); the Archived view
-		// instead lists the user-archived rows. Exactly one of the two.
-		includeArchived: !isArchivedView,
+		// (each scopes them by the shared History window). Kept on in the
+		// Archived view too: toggling it would disable and re-enable the
+		// tombstone queries and re-subscribe the host event bus on every
+		// switch, for rows that view never reads.
+		includeArchived: true,
+		// The Archived view lists the user-archived rows instead of the live ones.
 		includeShelved: isArchivedView,
 	});
 

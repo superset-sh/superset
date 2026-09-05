@@ -3,7 +3,9 @@
  * the policy is unit-testable without a pty-daemon; `resolveSessionForAttach`
  * in terminal.ts performs the chosen action.
  *
- *   - no row            → `missing`: the caller may create-on-attach.
+ * The no-row case (create-on-attach) stays with the caller; this decides the
+ * fate of an existing row only.
+ *
  *   - disposed / exited → `session-gone`: a deliberate kill or a pty death
  *                         the row already recorded; never revive.
  *   - suspended         → `respawn`: the reaper killed the pty because the
@@ -17,7 +19,6 @@
  *                         respawn if the daemon has lost it.
  */
 export type TerminalAttachPlan =
-	| { kind: "missing" }
 	| { kind: "session-gone"; error: string }
 	| { kind: "error"; error: string }
 	| { kind: "adopt"; workspaceId: string }
@@ -50,10 +51,9 @@ export function planTerminalAttach({
 	requestedWorkspaceId,
 }: {
 	terminalId: string;
-	record: TerminalAttachRecord | undefined;
+	record: TerminalAttachRecord;
 	requestedWorkspaceId: string | null;
 }): TerminalAttachPlan {
-	if (!record) return { kind: "missing" };
 	if (record.status === "disposed") {
 		return {
 			kind: "session-gone",

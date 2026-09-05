@@ -1,1 +1,4 @@
-export { selectArchivableWorkspaceIds } from "./selectArchivableWorkspaceIds";
+export {
+	isArchivableWorkspace,
+	selectArchivableWorkspaceIds,
+} from "./selectArchivableWorkspaceIds";

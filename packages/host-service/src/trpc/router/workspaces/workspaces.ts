@@ -20,6 +20,7 @@ import {
 	getLocalWorkspace,
 	insertLocalWorkspace,
 	toCloudShape,
+	unshelveLocalWorkspace,
 } from "../../../workspaces/local-workspace-store";
 import {
 	createCallerFactory,
@@ -183,7 +184,14 @@ function findExistingWorkspaceByBranch(
 			),
 		})
 		.sync();
-	return local ? toCloudShape(local, ctx.organizationId) : null;
+	if (!local) return null;
+	// A user-archived (shelved) row does satisfy idempotency — its worktree
+	// and branch are intact — but the caller asked to open this branch, so
+	// hand it back live rather than pointing them at an archived workspace.
+	if (local.shelvedAt != null) {
+		unshelveLocalWorkspace(ctx, local.id, "workspace-create");
+	}
+	return toCloudShape(local, ctx.organizationId);
 }
 
 interface PrMetadata {

@@ -37,11 +37,7 @@ export function useDestroyDialogState({
 }: UseDestroyDialogStateOptions) {
 	const { t } = useLingui();
 	const { destroy, inspect, hostTarget } = useDestroyWorkspace(workspaceId);
-	const {
-		workspaces: hostWorkspaces,
-		shelvedWorkspaces,
-		cache: hostWorkspacesCache,
-	} = useHostWorkspaces();
+	const { findWorkspace, cache: hostWorkspacesCache } = useHostWorkspaces();
 	const { navigateAwayFromWorkspace } = useNavigateAwayFromWorkspace();
 
 	const { preferences, setDeleteLocalBranch: setDeleteBranch } =
@@ -125,12 +121,8 @@ export function useDestroyDialogState({
 			navigateAwayFromWorkspace(workspaceId);
 			toast(`Deleting "${workspaceName}"...`);
 
-			// An archived row (deleted from the Archived view) lives in the
-			// shelved split, not the live list.
-			const hostId = (
-				hostWorkspaces.find((item) => item.id === workspaceId) ??
-				shelvedWorkspaces.find((item) => item.id === workspaceId)
-			)?.hostId;
+			// findWorkspace sees archived rows: deletes from the Archived view.
+			const hostId = findWorkspace(workspaceId)?.hostId;
 
 			try {
 				let result: DestroyWorkspaceSuccess;
@@ -190,8 +182,7 @@ export function useDestroyDialogState({
 			onOpenChange,
 			onDeleted,
 			navigateAwayFromWorkspace,
-			hostWorkspaces,
-			shelvedWorkspaces,
+			findWorkspace,
 			hostWorkspacesCache,
 			t,
 		],

@@ -14,6 +14,7 @@ import { useQuickCreateWorkspace } from "renderer/hooks/useQuickCreateWorkspace"
 import { useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { DashboardSidebar } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar";
+import { DashboardSidebarBulkDeleteMount } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkDeleteMount";
 import { DashboardSidebarPortsProvider } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/DashboardSidebarPortsProvider";
 import { PortForwardsProvider } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/PortForwardsProvider";
 import { useDevSeedV2Sidebar } from "renderer/routes/_authenticated/hooks/useDevSeedV2Sidebar";
@@ -292,6 +293,9 @@ function DashboardLayout() {
 				<RemotePortForwarder />
 				<div className="flex h-full w-full overflow-hidden">
 					<CommandPaletteHost />
+					{/* Outlives the sidebar (toggled closed) so a bulk delete filed from
+					    the Workspaces page's Archived view still shows its dialog. */}
+					<DashboardSidebarBulkDeleteMount />
 					{sidebarOutsideColumn && sidebarPanel}
 					<div className="flex flex-1 flex-col min-w-0 min-h-0">
 						{!hideTopBar && <TopBar />}

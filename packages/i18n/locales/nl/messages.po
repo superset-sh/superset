@@ -1887,8 +1887,8 @@ msgstr "Archiveren"
 msgid "Archive selected workspaces"
 msgstr "Geselecteerde werkruimtes archiveren"
 
-msgid "Archive the current workspace"
-msgstr "Huidige werkruimte archiveren"
+msgid "Archive the current workspace (v1 and cloud workspaces: delete)"
+msgstr "Huidige werkruimte archiveren (v1- en cloudwerkruimtes: verwijderen)"
 
 msgid "Archive workspace"
 msgstr "Werkruimte archiveren"
@@ -7762,6 +7762,9 @@ msgstr "Magenta"
 msgid "Main"
 msgstr "Main"
 
+msgid "Main and cloud workspaces can't be archived."
+msgstr "Hoofd- en cloudwerkruimtes kunnen niet worden gearchiveerd."
+
 msgid "Main workspace"
 msgstr "Hoofdwerkruimte"
 
@@ -8497,6 +8500,9 @@ msgstr "Nog geen API-sleutels."
 
 msgid "No archived workspaces"
 msgstr "Geen gearchiveerde werkruimtes"
+
+msgid "No archived workspaces match your filters"
+msgstr "Geen gearchiveerde werkruimtes voldoen aan je filters"
 
 msgid "No assignee"
 msgstr "Geen toegewezen persoon"

@@ -1887,8 +1887,8 @@ msgstr "Arşivle"
 msgid "Archive selected workspaces"
 msgstr "Seçili çalışma alanlarını arşivle"
 
-msgid "Archive the current workspace"
-msgstr "Geçerli çalışma alanını arşivle"
+msgid "Archive the current workspace (v1 and cloud workspaces: delete)"
+msgstr "Geçerli çalışma alanını arşivle (v1 ve bulut çalışma alanları: sil)"
 
 msgid "Archive workspace"
 msgstr "Çalışma alanını arşivle"
@@ -7762,6 +7762,9 @@ msgstr "Macenta"
 msgid "Main"
 msgstr "Ana"
 
+msgid "Main and cloud workspaces can't be archived."
+msgstr "Ana ve bulut çalışma alanları arşivlenemez."
+
 msgid "Main workspace"
 msgstr "Ana çalışma alanı"
 
@@ -8497,6 +8500,9 @@ msgstr "Henüz API anahtarı yok."
 
 msgid "No archived workspaces"
 msgstr "Arşivlenmiş çalışma alanı yok"
+
+msgid "No archived workspaces match your filters"
+msgstr "Filtrelerinizle eşleşen arşivlenmiş çalışma alanı yok"
 
 msgid "No assignee"
 msgstr "Atanan yok"

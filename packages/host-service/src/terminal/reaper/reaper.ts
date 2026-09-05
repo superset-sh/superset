@@ -7,6 +7,7 @@ import { getDaemonClient } from "../daemon-client-singleton.ts";
 import {
 	disposeSessionAndWait,
 	isLiveTerminalSession,
+	isTerminalSessionAttached,
 	suspendSessionAndWait,
 } from "../terminal.ts";
 
@@ -175,9 +176,11 @@ export function planPortScanSync({
  *
  * Dispose supersedes suspend: a row `shouldReapRow` already condemns is the
  * orphan pass's job. Only `active` rows qualify — an `exited` row has no pty
- * to kill and a `suspended` one is already done. Idempotent for free: a
- * suspended session's pty is dead, so it is absent from the next pass's
- * `liveSessions`; no separate "already suspended" marker is needed.
+ * to kill and a `suspended` one is already done. A session created after
+ * the shelve is deliberate new use (a CLI or automation opened it; creation
+ * also unarchives) and is never suspended by an older archive. Idempotent
+ * for free: a suspended session's pty is dead, so it is absent from the next
+ * pass's `liveSessions`; no separate "already suspended" marker is needed.
  */
 export function planShelvedSuspends({
 	liveSessions,
@@ -202,9 +205,44 @@ export function planShelvedSuspends({
 		const shelvedAt = shelvedWorkspaces.get(row.originWorkspaceId);
 		if (shelvedAt == null) continue;
 		if (now - shelvedAt < graceMs) continue;
+		if (row.createdAt != null && row.createdAt > shelvedAt) continue;
 		suspend.push(session.id);
 	}
 	return { suspend };
+}
+
+const SUSPEND_CONCURRENCY = 4;
+
+async function runWithConcurrency<T>(
+	items: readonly T[],
+	limit: number,
+	run: (item: T) => Promise<void>,
+): Promise<void> {
+	let next = 0;
+	const workers = Array.from(
+		{ length: Math.min(limit, items.length) },
+		async () => {
+			while (next < items.length) {
+				const item = items[next++] as T;
+				await run(item);
+			}
+		},
+	);
+	await Promise.all(workers);
+}
+
+/** Re-read one workspace's flag right before a kill: an unarchive that lands
+ * mid-pass must win over the plan computed at the start of the pass. */
+function isWorkspaceStillShelved(db: HostDb, workspaceId: string): boolean {
+	const row = db
+		.select({
+			shelvedAt: workspaces.shelvedAt,
+			archivedAt: workspaces.archivedAt,
+		})
+		.from(workspaces)
+		.where(eq(workspaces.id, workspaceId))
+		.get();
+	return row?.shelvedAt != null && row.archivedAt == null;
 }
 
 /** Shelved workspaces whose sessions are this sweep's to suspend. A
@@ -433,17 +471,30 @@ async function reapOrphanedSessions(
 			shelvedWorkspaces: loadShelvedWorkspaces(db),
 			now: Date.now(),
 		});
-		for (const terminalId of plan.suspend) {
-			try {
-				const result = await suspendSessionAndWait(terminalId, db);
-				if (result.suspended) suspended += 1;
-			} catch (err) {
-				console.warn("[host-service] terminal reaper: suspend failed", {
-					terminalId,
-					err,
-				});
-			}
-		}
+		// A bulk archive can hand one tick dozens of suspends, each a daemon
+		// round-trip with a 5s ceiling; a few at a time keeps a stalled daemon
+		// from turning the pass into minutes without flooding it.
+		await runWithConcurrency(
+			plan.suspend,
+			SUSPEND_CONCURRENCY,
+			async (terminalId) => {
+				// The plan is a snapshot; by the time this runs the user may have
+				// unarchived and reopened the workspace. Skip anything that is no
+				// longer shelved or that a renderer is attached to right now.
+				const workspaceId = rowById.get(terminalId)?.originWorkspaceId;
+				if (!workspaceId || !isWorkspaceStillShelved(db, workspaceId)) return;
+				if (isTerminalSessionAttached(terminalId)) return;
+				try {
+					const result = await suspendSessionAndWait(terminalId, db);
+					if (result.suspended) suspended += 1;
+				} catch (err) {
+					console.warn("[host-service] terminal reaper: suspend failed", {
+						terminalId,
+						err,
+					});
+				}
+			},
+		);
 	} catch (err) {
 		console.warn(
 			"[host-service] terminal reaper: shelved-suspend pass failed:",

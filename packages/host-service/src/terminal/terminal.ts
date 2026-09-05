@@ -47,6 +47,7 @@ import {
 	resolveDefaultAccountEnv,
 	resolveDefaultAccountTerminalEnv,
 } from "../trpc/router/usage/default-account.ts";
+import { unshelveLocalWorkspace } from "../workspaces/local-workspace-store.ts";
 import {
 	getTerminalWorkspaceMismatchError,
 	planTerminalAttach,
@@ -735,6 +736,12 @@ export function __resetSessionsForTesting(): void {
 export function isLiveTerminalSession(terminalId: string): boolean {
 	const session = sessions.get(terminalId);
 	return session !== undefined && !session.exited;
+}
+
+/** A renderer currently holds an open socket to this session. */
+export function isTerminalSessionAttached(terminalId: string): boolean {
+	const session = sessions.get(terminalId);
+	return session !== undefined && pruneAndCountOpenSockets(session) > 0;
 }
 
 /**
@@ -2743,6 +2750,21 @@ export async function createTerminalSessionInternal({
 		};
 	}
 
+	// Opening a new, listed terminal in an archived workspace (CLI, MCP, an
+	// automation) means someone is using it again: bring it back. Otherwise
+	// the shell would run hidden and the reaper's shelved-suspend pass would
+	// kill it on its next tick. Adoption and unlisted (teardown) sessions are
+	// not "use" and leave the flag alone. No `api` here, so this path emits
+	// no analytics; every user-facing unarchive goes through the router.
+	if (
+		!adoptOnly &&
+		listed &&
+		workspace.shelvedAt != null &&
+		eventBus !== undefined
+	) {
+		unshelveLocalWorkspace({ db, eventBus }, workspaceId, "terminal-create");
+	}
+
 	// Derive root path from the workspace's project. Session workspaces
 	// (null projectId) have no main repo; the session dir is the only root.
 	let rootPath = "";
@@ -3348,14 +3370,6 @@ export function registerWorkspaceTerminalRoute({
 					record,
 					requestedWorkspaceId,
 				});
-				if (plan.kind === "missing") {
-					// Unreachable: the no-row case returned above. Kept so the
-					// union stays exhaustive if the planner grows a case.
-					return {
-						error: `Terminal session "${terminalId}" not found; create it before connecting.`,
-						code: "session-gone",
-					};
-				}
 				if (plan.kind === "session-gone") {
 					return { error: plan.error, code: "session-gone" };
 				}

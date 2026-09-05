@@ -1887,8 +1887,8 @@ msgstr "Lưu trữ"
 msgid "Archive selected workspaces"
 msgstr "Lưu trữ các workspace đã chọn"
 
-msgid "Archive the current workspace"
-msgstr "Lưu trữ workspace hiện tại"
+msgid "Archive the current workspace (v1 and cloud workspaces: delete)"
+msgstr "Lưu trữ workspace hiện tại (workspace v1 và cloud: xóa)"
 
 msgid "Archive workspace"
 msgstr "Lưu trữ workspace"
@@ -7762,6 +7762,9 @@ msgstr "Đỏ tía"
 msgid "Main"
 msgstr "Main"
 
+msgid "Main and cloud workspaces can't be archived."
+msgstr "Không thể lưu trữ workspace chính và workspace cloud."
+
 msgid "Main workspace"
 msgstr "Workspace chính"
 
@@ -8497,6 +8500,9 @@ msgstr "Chưa có khóa API nào."
 
 msgid "No archived workspaces"
 msgstr "Không có workspace nào được lưu trữ"
+
+msgid "No archived workspaces match your filters"
+msgstr "Không có workspace đã lưu trữ nào khớp với bộ lọc của bạn"
 
 msgid "No assignee"
 msgstr "Không có người phụ trách"

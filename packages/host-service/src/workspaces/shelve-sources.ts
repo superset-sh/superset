@@ -18,6 +18,11 @@ export const UNARCHIVE_WORKSPACE_SOURCES = [
 	"undo-toast",
 	"workspaces-page",
 	"deep-link",
+	// A terminal opened in an archived workspace (CLI, MCP, automation): using
+	// the workspace brings it back rather than leaving a hidden running shell.
+	"terminal-create",
+	// `workspaces.create` asked for a branch/PR whose workspace is archived.
+	"workspace-create",
 ] as const;
 export type UnarchiveWorkspaceSource =
 	(typeof UNARCHIVE_WORKSPACE_SOURCES)[number];

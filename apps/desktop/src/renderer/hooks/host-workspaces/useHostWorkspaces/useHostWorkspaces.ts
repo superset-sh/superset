@@ -1,6 +1,6 @@
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { getHostEventBus } from "renderer/lib/host-event-bus";
@@ -67,6 +67,13 @@ export interface UseHostWorkspacesResult {
 	 * these; everything else sees only `workspaces`.
 	 */
 	shelvedWorkspaces: HostWorkspaceItem[];
+	/**
+	 * A row by id regardless of archive state — the one lookup every
+	 * by-id consumer that must still see archived rows (delete dialogs,
+	 * host resolution, the workspace route, the archive flow) should use,
+	 * instead of searching the two lists by hand.
+	 */
+	findWorkspace: (workspaceId: string) => HostWorkspaceItem | undefined;
 	/**
 	 * True once every host answered, failed, or served a snapshot. Gates
 	 * empty states only — existing rows always render (cache-first rule).
@@ -452,9 +459,21 @@ export function useHostWorkspacesSource(
 		};
 	}, [targets, queryClient]);
 
+	const byId = useMemo(() => {
+		const map = new Map<string, HostWorkspaceItem>();
+		for (const item of workspaces) map.set(item.id, item);
+		for (const item of shelvedWorkspaces) map.set(item.id, item);
+		return map;
+	}, [workspaces, shelvedWorkspaces]);
+	const findWorkspace = useCallback(
+		(workspaceId: string) => byId.get(workspaceId),
+		[byId],
+	);
+
 	return {
 		workspaces,
 		shelvedWorkspaces,
+		findWorkspace,
 		isReady,
 		hostsSettled: knownHostsSettled,
 		cache,

@@ -1887,8 +1887,8 @@ msgstr "Archivovat"
 msgid "Archive selected workspaces"
 msgstr "Archivovat vybrané pracovní prostory"
 
-msgid "Archive the current workspace"
-msgstr "Archivovat aktuální pracovní prostor"
+msgid "Archive the current workspace (v1 and cloud workspaces: delete)"
+msgstr "Archivovat aktuální pracovní prostor (v1 a cloudové pracovní prostory: smazat)"
 
 msgid "Archive workspace"
 msgstr "Archivovat pracovní prostor"
@@ -7762,6 +7762,9 @@ msgstr "Purpurová"
 msgid "Main"
 msgstr "Hlavní"
 
+msgid "Main and cloud workspaces can't be archived."
+msgstr "Hlavní a cloudové pracovní prostory nelze archivovat."
+
 msgid "Main workspace"
 msgstr "Hlavní pracovní prostor"
 
@@ -8497,6 +8500,9 @@ msgstr "Zatím žádné API klíče."
 
 msgid "No archived workspaces"
 msgstr "Žádné archivované pracovní prostory"
+
+msgid "No archived workspaces match your filters"
+msgstr "Žádné archivované pracovní prostory neodpovídají filtrům"
 
 msgid "No assignee"
 msgstr "Bez řešitele"

@@ -51,6 +51,11 @@ export function DashboardSidebarWorkspaceBulkContextMenu({
 	});
 	const openDeleteDialog = () =>
 		useBulkDeleteWorkspacesIntent.getState().request(selectedWorkspaces);
+
+	if (!scope) return children;
+
+	// Below the early return: this menu wraps every sidebar row, and the
+	// selection only matters for the one whose menu is open.
 	const archivableIds = selectArchivableWorkspaceIds(selectedWorkspaces);
 	const archiveSelection = () => {
 		if (archivableIds.length === 0) return;
@@ -59,8 +64,6 @@ export function DashboardSidebarWorkspaceBulkContextMenu({
 			.request({ workspaceIds: archivableIds, source: "bulk" });
 		clearSelection();
 	};
-
-	if (!scope) return children;
 
 	const count = selectedWorkspaces.length;
 

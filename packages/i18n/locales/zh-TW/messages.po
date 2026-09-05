@@ -1887,8 +1887,8 @@ msgstr "歸檔"
 msgid "Archive selected workspaces"
 msgstr "歸檔所選工作區"
 
-msgid "Archive the current workspace"
-msgstr "歸檔目前的工作區"
+msgid "Archive the current workspace (v1 and cloud workspaces: delete)"
+msgstr "歸檔目前的工作區（v1 和雲端工作區為刪除）"
 
 msgid "Archive workspace"
 msgstr "歸檔工作區"
@@ -7762,6 +7762,9 @@ msgstr "品紅"
 msgid "Main"
 msgstr "主處理程序"
 
+msgid "Main and cloud workspaces can't be archived."
+msgstr "主要工作區和雲端工作區無法歸檔。"
+
 msgid "Main workspace"
 msgstr "主工作區"
 
@@ -8497,6 +8500,9 @@ msgstr "暫無API金鑰。"
 
 msgid "No archived workspaces"
 msgstr "沒有已歸檔的工作區"
+
+msgid "No archived workspaces match your filters"
+msgstr "沒有符合篩選條件的已歸檔工作區"
 
 msgid "No assignee"
 msgstr "無負責人"

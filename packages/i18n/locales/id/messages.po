@@ -1887,8 +1887,8 @@ msgstr "Arsipkan"
 msgid "Archive selected workspaces"
 msgstr "Arsipkan workspace yang dipilih"
 
-msgid "Archive the current workspace"
-msgstr "Arsipkan workspace saat ini"
+msgid "Archive the current workspace (v1 and cloud workspaces: delete)"
+msgstr "Arsipkan workspace saat ini (workspace v1 dan cloud: hapus)"
 
 msgid "Archive workspace"
 msgstr "Arsipkan workspace"
@@ -7762,6 +7762,9 @@ msgstr "Magenta"
 msgid "Main"
 msgstr "Main"
 
+msgid "Main and cloud workspaces can't be archived."
+msgstr "Workspace utama dan cloud tidak dapat diarsipkan."
+
 msgid "Main workspace"
 msgstr "Workspace utama"
 
@@ -8497,6 +8500,9 @@ msgstr "Belum ada kunci API."
 
 msgid "No archived workspaces"
 msgstr "Tidak ada workspace yang diarsipkan"
+
+msgid "No archived workspaces match your filters"
+msgstr "Tidak ada workspace yang diarsipkan yang cocok dengan filter Anda"
 
 msgid "No assignee"
 msgstr "Tanpa penerima tugas"

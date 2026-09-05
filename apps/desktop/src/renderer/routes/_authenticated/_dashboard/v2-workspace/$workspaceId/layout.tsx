@@ -1,7 +1,7 @@
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useCloudWorkspaces } from "renderer/hooks/useCloudWorkspaces";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -52,33 +52,14 @@ function V2WorkspaceLayout() {
 		},
 	});
 
-	const {
-		workspaces: hostWorkspaces,
-		shelvedWorkspaces,
-		isReady,
-		hostsSettled,
-		cache,
-	} = useHostWorkspaces();
-	const workspace = useMemo(
-		() =>
-			workspaceId != null
-				? (hostWorkspaces.find((candidate) => candidate.id === workspaceId) ??
-					null)
-				: null,
-		[hostWorkspaces, workspaceId],
-	);
-	// A PR link, notification, or history entry can land on a workspace the
-	// user archived: it exists, it is just put away. Rendered as its own
-	// state below — not the workspace UI, not "not found".
-	const archivedWorkspace = useMemo(
-		() =>
-			workspaceId != null && workspace === null
-				? (shelvedWorkspaces.find(
-						(candidate) => candidate.id === workspaceId,
-					) ?? null)
-				: null,
-		[shelvedWorkspaces, workspace, workspaceId],
-	);
+	const { findWorkspace, isReady, hostsSettled, cache } = useHostWorkspaces();
+	const found = workspaceId != null ? findWorkspace(workspaceId) : undefined;
+	// A live row renders the workspace. A PR link, notification, or history
+	// entry can also land on a workspace the user archived: it exists, it is
+	// just put away, and renders its own state below — not the workspace UI,
+	// not "not found".
+	const workspace = found && found.shelvedAt == null ? found : null;
+	const archivedWorkspace = found && found.shelvedAt != null ? found : null;
 	// The open workspace's sandbox joins the fan-out as its own host, so a
 	// cloud workspace is found the same way as any other — but it has no
 	// v2_hosts row for the remote version gate to check.

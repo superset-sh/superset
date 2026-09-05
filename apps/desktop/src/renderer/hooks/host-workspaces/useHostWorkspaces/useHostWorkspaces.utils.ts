@@ -296,6 +296,21 @@ export function toHostWorkspaceItem(
 }
 
 /**
+ * The inverse of toHostWorkspaceItem: a merged item back in the cached row
+ * shape `upsertWorkspace` wants. The merge-time `hostReachable` decoration
+ * is dropped; the two row-only fields default the way an optimistic create
+ * does, since only a not-yet-served optimistic item can lack them.
+ */
+export function toHostWorkspaceRow(item: HostWorkspaceItem): HostWorkspaceRow {
+	const { hostReachable: _hostReachable, ...row } = item;
+	return {
+		...row,
+		worktreePath: row.worktreePath ?? "",
+		worktreeExists: row.worktreeExists ?? true,
+	};
+}
+
+/**
  * Split merged items into the live sidebar set and the user-archived set.
  * Both are live host rows (not tombstones); only `shelvedAt` tells them
  * apart. Every existing `.workspaces` consumer — sidebar, palette, hotkeys,

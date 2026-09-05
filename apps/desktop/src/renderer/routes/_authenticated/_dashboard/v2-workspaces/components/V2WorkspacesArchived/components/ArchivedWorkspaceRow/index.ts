@@ -1,4 +1,1 @@
-export {
-	ArchivedWorkspaceRow,
-	isArchivedWorkspaceHostOffline,
-} from "./ArchivedWorkspaceRow";
+export { ArchivedWorkspaceRow } from "./ArchivedWorkspaceRow";

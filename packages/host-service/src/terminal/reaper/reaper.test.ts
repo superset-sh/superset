@@ -619,6 +619,22 @@ describe("planShelvedSuspends", () => {
 		expect(plan.suspend).toEqual([]);
 	});
 
+	it("never suspends a session created after the shelve (deliberate new use)", () => {
+		// A CLI or automation opened this terminal in the archived workspace;
+		// creation also unarchives, but even racing that, an older archive must
+		// not reap a shell someone just started.
+		const plan = planShelvedSuspends({
+			liveSessions: [{ id: "old" }, { id: "new" }],
+			rowById: new Map([
+				["old", { ...activeRow, createdAt: PAST_GRACE - 10_000 }],
+				["new", { ...activeRow, createdAt: PAST_GRACE + 10_000 }],
+			]),
+			shelvedWorkspaces: new Map([["ws-1", PAST_GRACE]]),
+			now: NOW,
+		});
+		expect(plan.suspend).toEqual(["old"]);
+	});
+
 	it("skips rowless, workspace-less, and non-active rows", () => {
 		const plan = planShelvedSuspends({
 			liveSessions: [

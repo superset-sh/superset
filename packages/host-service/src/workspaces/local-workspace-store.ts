@@ -4,7 +4,7 @@ import hostServicePackageJson from "@superset/host-service/package.json" with {
 };
 import { getHostId } from "@superset/shared/host-info";
 import { normalizeWorkspaceTags } from "@superset/shared/workspace-tags";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import type { HostDb } from "../db";
 import { workspaces, workspaceTags } from "../db/schema";
 import type { EventBus } from "../events";
@@ -389,13 +389,17 @@ export function shelveLocalWorkspace(
 ): HostWorkspaceRow | undefined {
 	const existing = getLocalWorkspace(ctx.db, id);
 	if (!existing) return undefined;
-	if (existing.shelvedAt != null) return existing;
+	// Conditional write, not read-then-write: two archive requests landing in
+	// the same tick (hover button + hotkey, bulk + single) must broadcast and
+	// count exactly once.
 	const now = Date.now();
-	ctx.db
+	const changed = ctx.db
 		.update(workspaces)
 		.set({ shelvedAt: now, updatedAt: now })
-		.where(eq(workspaces.id, id))
-		.run();
+		.where(and(eq(workspaces.id, id), isNull(workspaces.shelvedAt)))
+		.returning({ id: workspaces.id })
+		.all();
+	if (changed.length === 0) return existing;
 	const row = getLocalWorkspace(ctx.db, id);
 	if (!row) return undefined;
 	emitWorkspaceChanged(ctx, "updated", row);
@@ -411,12 +415,13 @@ export function unshelveLocalWorkspace(
 ): HostWorkspaceRow | undefined {
 	const existing = getLocalWorkspace(ctx.db, id);
 	if (!existing) return undefined;
-	if (existing.shelvedAt == null) return existing;
-	ctx.db
+	const changed = ctx.db
 		.update(workspaces)
 		.set({ shelvedAt: null, updatedAt: Date.now() })
-		.where(eq(workspaces.id, id))
-		.run();
+		.where(and(eq(workspaces.id, id), isNotNull(workspaces.shelvedAt)))
+		.returning({ id: workspaces.id })
+		.all();
+	if (changed.length === 0) return existing;
 	const row = getLocalWorkspace(ctx.db, id);
 	if (!row) return undefined;
 	emitWorkspaceChanged(ctx, "updated", row);

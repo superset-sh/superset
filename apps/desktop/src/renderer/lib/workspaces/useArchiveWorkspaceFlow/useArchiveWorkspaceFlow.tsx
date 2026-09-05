@@ -1,32 +1,26 @@
 import { plural } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
+import type { AppRouter } from "@superset/host-service";
 import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback } from "react";
-import type {
-	HostWorkspaceItem,
-	HostWorkspaceRow,
-} from "renderer/hooks/host-workspaces/useHostWorkspaces";
+import type { inferRouterInputs } from "@trpc/server";
+import { useCallback, useRef } from "react";
+import type { HostWorkspaceItem } from "renderer/hooks/host-workspaces/useHostWorkspaces";
+import { toHostWorkspaceRow } from "renderer/hooks/host-workspaces/useHostWorkspaces/useHostWorkspaces.utils";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useNavigateAwayFromWorkspace } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useNavigateAwayFromWorkspace";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 
-/** Mirrors the host's `workspaceCleanup.shelve` input enum (typechecked at
- * the mutation call); analytics fire host-side with this value. */
-export type ArchiveWorkspaceSource =
-	| "sidebar"
-	| "sidebar-menu"
-	| "hotkey"
-	| "command-palette"
-	| "workspaces-page"
-	| "bulk";
+type WorkspaceCleanupInputs = inferRouterInputs<AppRouter>["workspaceCleanup"];
 
+/** The host owns these enums (packages/host-service/src/workspaces/shelve-sources.ts);
+ * analytics fire host-side with the value. Derived from the router so a new
+ * source is one edit, not two. */
+export type ArchiveWorkspaceSource = WorkspaceCleanupInputs["shelve"]["source"];
 export type UnarchiveWorkspaceSource =
-	| "undo-toast"
-	| "workspaces-page"
-	| "deep-link";
+	WorkspaceCleanupInputs["unshelve"]["source"];
 
 /** Longer than a slip needs, shorter than the host's suspend grace (60s),
  * so an Undo inside the toast always gets the very same terminals back. */
@@ -62,17 +56,6 @@ function archiveToastId(workspaceIds: string[]): string {
 	return `archive-${workspaceIds.join(",")}`;
 }
 
-/** The cached row shape `upsertWorkspace` wants, minus the merge-time
- * `hostReachable` decoration. */
-function toCachedRow(item: HostWorkspaceItem): HostWorkspaceRow {
-	const { hostReachable: _hostReachable, ...row } = item;
-	return {
-		...row,
-		worktreePath: row.worktreePath ?? "",
-		worktreeExists: row.worktreeExists ?? true,
-	};
-}
-
 /**
  * The single archive/unarchive flow. Every entry point reaches it through
  * ArchiveWorkspaceMount (see archive-workspace-intent); the Archived view
@@ -90,16 +73,22 @@ export function useArchiveWorkspaceFlow(): UseArchiveWorkspaceFlow {
 	const { t } = useLingui();
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
-	const { workspaces, shelvedWorkspaces, cache } = useHostWorkspaces();
+	const { findWorkspace, cache } = useHostWorkspaces();
 	const { navigateAwayFromWorkspace } = useNavigateAwayFromWorkspace();
 
 	// Resolved imperatively at call time (not bound to one id at render): the
-	// hotkey, the palette, and bulk selection only know the ids when they fire.
+	// hotkey, the palette, and bulk selection only know the ids when they
+	// fire. Through a ref so a callback captured earlier — the undo toast's
+	// onClick, seconds after the archive — reads the row as it is NOW (with
+	// its archive stamp), not as the list stood when the toast was raised;
+	// otherwise a failed undo would "roll back" to the pre-archive row and
+	// resurrect the workspace as live.
+	const findWorkspaceRef = useRef(findWorkspace);
+	findWorkspaceRef.current = findWorkspace;
 	const findRow = useCallback(
 		(workspaceId: string): HostWorkspaceItem | undefined =>
-			workspaces.find((workspace) => workspace.id === workspaceId) ??
-			shelvedWorkspaces.find((workspace) => workspace.id === workspaceId),
-		[workspaces, shelvedWorkspaces],
+			findWorkspaceRef.current(workspaceId),
+		[],
 	);
 
 	const openArchivedView = useCallback(() => {
@@ -122,7 +111,7 @@ export function useArchiveWorkspaceFlow(): UseArchiveWorkspaceFlow {
 				);
 				return false;
 			}
-			const captured = toCachedRow(row);
+			const captured = toHostWorkspaceRow(row);
 			cache.upsertWorkspace({ ...captured, shelvedAt: null });
 			try {
 				await getHostServiceClientByUrl(
@@ -163,18 +152,30 @@ export function useArchiveWorkspaceFlow(): UseArchiveWorkspaceFlow {
 		async ({ workspaceIds, source }) => {
 			const targets: { row: HostWorkspaceItem; hostUrl: string }[] = [];
 			let offline = 0;
+			let unarchivable = 0;
 			for (const workspaceId of new Set(workspaceIds)) {
 				const row = findRow(workspaceId);
 				if (!row || row.shelvedAt != null) continue;
 				// Never archivable: the project's own checkout, and cloud
 				// sandboxes, which keep their delete path.
-				if (row.type === "main" || cache.isSandboxHost(row.hostId)) continue;
+				if (row.type === "main" || cache.isSandboxHost(row.hostId)) {
+					unarchivable += 1;
+					continue;
+				}
 				const hostUrl = cache.resolveHostUrl(row.hostId);
 				if (!hostUrl) {
 					offline += 1;
 					continue;
 				}
 				targets.push({ row, hostUrl });
+			}
+			// Every entry point hides Archive for these, but a request that
+			// still arrives (a stale menu, a future caller) must not end in
+			// silence.
+			if (unarchivable > 0 && targets.length === 0 && offline === 0) {
+				toast.error(
+					t({ message: "Main and cloud workspaces can't be archived." }),
+				);
 			}
 			if (offline > 0) {
 				toast.error(
@@ -206,7 +207,7 @@ export function useArchiveWorkspaceFlow(): UseArchiveWorkspaceFlow {
 
 			const shelvedAt = Date.now();
 			const captured = new Map(
-				targets.map(({ row }) => [row.id, toCachedRow(row)] as const),
+				targets.map(({ row }) => [row.id, toHostWorkspaceRow(row)] as const),
 			);
 			for (const row of captured.values()) {
 				cache.upsertWorkspace({ ...row, shelvedAt });

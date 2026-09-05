@@ -75,6 +75,11 @@ export const V2_WORKSPACES_VIEW_MODES = ["list", "board", "archived"] as const;
 /** "archived" lists user-archived (reversible) workspaces — not the
  * Merged/Deleted tombstones, which the `archivedWindow` lookback controls. */
 export type V2WorkspacesViewMode = (typeof V2_WORKSPACES_VIEW_MODES)[number];
+/** The two layouts of the live list; the one that persists across visits. */
+export type V2WorkspacesLiveViewMode = Exclude<
+	V2WorkspacesViewMode,
+	"archived"
+>;
 
 export const V2_WORKSPACES_SORT_MODES = [
 	"activity",
@@ -135,6 +140,12 @@ interface V2WorkspacesFilterState {
 	/** Sidebar visibility: shown, hidden, or both ("all"). */
 	pinFilter: V2WorkspacesPinFilter;
 	viewMode: V2WorkspacesViewMode;
+	/**
+	 * The last List/Board choice. "archived" is a place you visit (a toast
+	 * link, the palette, the toggle), not a layout preference: it is never
+	 * persisted, and a bare return to the page lands on this instead.
+	 */
+	liveViewMode: V2WorkspacesLiveViewMode;
 	/** Row order inside status groups (both views). */
 	sortMode: V2WorkspacesSortMode;
 	/** How far back archived tombstones render (both views). */
@@ -169,6 +180,7 @@ export const useV2WorkspacesFilterStore = create<V2WorkspacesFilterState>()(
 			creatorFilters: [],
 			pinFilter: "all",
 			viewMode: "board",
+			liveViewMode: "board",
 			sortMode: "activity",
 			archivedWindow: "none",
 			hiddenLanes: [],
@@ -180,7 +192,12 @@ export const useV2WorkspacesFilterStore = create<V2WorkspacesFilterState>()(
 				set({ agentStatusFilters }),
 			setCreatorFilters: (creatorFilters) => set({ creatorFilters }),
 			setPinFilter: (pinFilter) => set({ pinFilter }),
-			setViewMode: (viewMode) => set({ viewMode }),
+			setViewMode: (viewMode) =>
+				set(
+					viewMode === "archived"
+						? { viewMode }
+						: { viewMode, liveViewMode: viewMode },
+				),
 			setSortMode: (sortMode) => set({ sortMode }),
 			setArchivedWindow: (archivedWindow) => set({ archivedWindow }),
 			toggleLane: (lane) =>
@@ -207,7 +224,11 @@ export const useV2WorkspacesFilterStore = create<V2WorkspacesFilterState>()(
 			// Fixed-size singleton: only the list/board choice survives reloads.
 			// Filters and search stay per-visit (a `?view=` deep link still wins
 			// — the page hydrates URL params over the rehydrated value on mount).
-			partialize: (state) => ({ viewMode: state.viewMode }),
+			// The archived view is never what a reload lands on.
+			partialize: (state) => ({
+				viewMode: state.liveViewMode,
+				liveViewMode: state.liveViewMode,
+			}),
 		},
 	),
 );

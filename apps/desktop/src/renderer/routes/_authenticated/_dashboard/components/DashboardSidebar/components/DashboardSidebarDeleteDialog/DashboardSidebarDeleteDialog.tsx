@@ -27,13 +27,9 @@ export function DashboardSidebarDeleteDialog({
 	onDeleted,
 }: DashboardSidebarDeleteDialogProps) {
 	const { t } = useLingui();
-	const { workspaces: hostWorkspaces, shelvedWorkspaces } = useHostWorkspaces();
-	// Deletes from the Archived view target rows that live in the shelved split.
-	const isSession =
-		(
-			hostWorkspaces.find((workspace) => workspace.id === workspaceId) ??
-			shelvedWorkspaces.find((workspace) => workspace.id === workspaceId)
-		)?.type === "session";
+	const { findWorkspace } = useHostWorkspaces();
+	// findWorkspace sees archived rows too: deletes from the Archived view.
+	const isSession = findWorkspace(workspaceId)?.type === "session";
 	const {
 		deleteBranch,
 		setDeleteBranch,

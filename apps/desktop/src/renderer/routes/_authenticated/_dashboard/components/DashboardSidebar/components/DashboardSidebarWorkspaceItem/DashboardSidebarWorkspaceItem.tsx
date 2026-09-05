@@ -23,6 +23,7 @@ import type {
 	DashboardSidebarWorkspace,
 	DashboardSidebarWorkspaceIndentation,
 } from "../../types";
+import { isArchivableWorkspace } from "../../utils/selectArchivableWorkspaceIds";
 import { DashboardSidebarCollapsedWorkspaceButton } from "./components/DashboardSidebarCollapsedWorkspaceButton";
 import { DashboardSidebarExpandedWorkspaceRow } from "./components/DashboardSidebarExpandedWorkspaceRow";
 import {
@@ -97,9 +98,7 @@ export function DashboardSidebarWorkspaceItem({
 	} = workspace;
 	const isMainWorkspace = workspace.type === "main";
 	const isSessionWorkspace = workspace.type === "session";
-	// Archive is host-local: main workspaces are never put away and cloud
-	// sandboxes keep their delete path.
-	const canArchive = !isMainWorkspace && hostType !== "cloud";
+	const canArchive = isArchivableWorkspace(workspace);
 	const { status: workspaceStatus, diffStats } = useSidebarWorkspaceStatus(id);
 	const {
 		cancelRename,

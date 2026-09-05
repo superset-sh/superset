@@ -17,6 +17,7 @@ import type { HostServiceContext } from "../../../types";
 import type { GitTaskEnv } from "../../../workers/tasks/git";
 import {
 	archiveLocalWorkspace,
+	getLocalWorkspace,
 	shelveLocalWorkspace,
 	trackWorkspaceDeleted,
 	unarchiveLocalWorkspace,
@@ -255,9 +256,7 @@ export const workspaceCleanupRouter = router({
 			}),
 		)
 		.mutation(({ ctx, input }) => {
-			const local = ctx.db.query.workspaces
-				.findFirst({ where: eq(workspaces.id, input.workspaceId) })
-				.sync();
+			const local = getLocalWorkspace(ctx.db, input.workspaceId);
 			assertShelvable(local, input.workspaceId);
 			const row = unshelveLocalWorkspace(ctx, input.workspaceId, input.source);
 			return { success: true as const, shelvedAt: row?.shelvedAt ?? null };

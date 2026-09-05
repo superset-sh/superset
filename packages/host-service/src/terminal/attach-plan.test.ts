@@ -4,16 +4,6 @@ import { planTerminalAttach } from "./attach-plan.ts";
 const TERMINAL_ID = "term-1";
 
 describe("planTerminalAttach", () => {
-	it("reports a missing row so the caller may create-on-attach", () => {
-		expect(
-			planTerminalAttach({
-				terminalId: TERMINAL_ID,
-				record: undefined,
-				requestedWorkspaceId: "ws-1",
-			}),
-		).toEqual({ kind: "missing" });
-	});
-
 	it("dead-ends disposed and exited rows with session-gone", () => {
 		for (const status of ["disposed", "exited"]) {
 			const plan = planTerminalAttach({

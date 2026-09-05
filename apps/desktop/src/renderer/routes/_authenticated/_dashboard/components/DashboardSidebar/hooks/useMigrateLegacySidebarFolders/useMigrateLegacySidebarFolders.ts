@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useHostTagFolders } from "renderer/hooks/host-projects/useHostTagFolders";
+import { toHostWorkspaceRow } from "renderer/hooks/host-workspaces/useHostWorkspaces/useHostWorkspaces.utils";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { isSidebarWorkspaceVisible } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
@@ -28,7 +29,12 @@ const sessionPushedSettings = new Set<string>();
  */
 export function useMigrateLegacySidebarFolders(): void {
 	const collections = useCollections();
-	const { workspaces: hostWorkspaces, cache, isReady } = useHostWorkspaces();
+	const {
+		workspaces: hostWorkspaces,
+		shelvedWorkspaces,
+		cache,
+		isReady,
+	} = useHostWorkspaces();
 	const { projects: hostProjects } = useHostProjects();
 	const { hostResults: tagFolderHostResults } = useHostTagFolders();
 	const runningRef = useRef(false);
@@ -82,8 +88,11 @@ export function useMigrateLegacySidebarFolders(): void {
 		const sections = Array.from(collections.v2SidebarSections.state.values());
 		if (!sections.some((section) => section.tag == null)) return;
 
+		// Archived rows included: the migration reads "no host row" as "deleted
+		// workspace" and drops the member, which an archived one is not.
+		const allHostWorkspaces = [...hostWorkspaces, ...shelvedWorkspaces];
 		const hostRowsById = new Map<string, MigrationHostRow>(
-			hostWorkspaces.map((workspace) => [
+			allHostWorkspaces.map((workspace) => [
 				workspace.id,
 				{
 					id: workspace.id,
@@ -109,7 +118,7 @@ export function useMigrateLegacySidebarFolders(): void {
 				})),
 				hostRowsById,
 				writeTags: async (workspaceId, tags) => {
-					const workspace = hostWorkspaces.find(
+					const workspace = allHostWorkspaces.find(
 						(item) => item.id === workspaceId,
 					);
 					if (!workspace) throw new Error("Workspace not found");
@@ -120,10 +129,8 @@ export function useMigrateLegacySidebarFolders(): void {
 						tags,
 					});
 					cache.upsertWorkspace({
-						...workspace,
+						...toHostWorkspaceRow(workspace),
 						tags,
-						worktreePath: workspace.worktreePath ?? "",
-						worktreeExists: workspace.worktreeExists ?? true,
 						updatedAt: new Date(),
 					});
 				},
@@ -151,5 +158,5 @@ export function useMigrateLegacySidebarFolders(): void {
 			.finally(() => {
 				runningRef.current = false;
 			});
-	}, [collections, hostWorkspaces, cache, isReady]);
+	}, [collections, hostWorkspaces, shelvedWorkspaces, cache, isReady]);
 }

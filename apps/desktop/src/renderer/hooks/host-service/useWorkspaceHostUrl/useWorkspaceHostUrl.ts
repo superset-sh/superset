@@ -33,14 +33,10 @@ export function useWorkspaceHostTarget(
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const relayUrl = useRelayUrl();
 
-	const { workspaces, shelvedWorkspaces, isReady } = useHostWorkspaces();
+	const { findWorkspace, isReady } = useHostWorkspaces();
 	// Archived rows still have a host: the Archived view's Unarchive/Delete
 	// and the deep-link state resolve their target through here.
-	const match = workspaceId
-		? (workspaces.find((w) => w.id === workspaceId) ??
-			shelvedWorkspaces.find((w) => w.id === workspaceId) ??
-			null)
-		: null;
+	const match = workspaceId ? (findWorkspace(workspaceId) ?? null) : null;
 
 	// A cloud workspace has no host row, so it never appears above. Its
 	// address and the two credentials it needs are brokered per access,

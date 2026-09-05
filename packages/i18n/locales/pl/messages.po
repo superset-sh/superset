@@ -1887,8 +1887,8 @@ msgstr "Archiwizuj"
 msgid "Archive selected workspaces"
 msgstr "Archiwizuj zaznaczone obszary robocze"
 
-msgid "Archive the current workspace"
-msgstr "Archiwizuj bieżący obszar roboczy"
+msgid "Archive the current workspace (v1 and cloud workspaces: delete)"
+msgstr "Archiwizuj bieżący obszar roboczy (v1 i chmurowe obszary robocze: usuń)"
 
 msgid "Archive workspace"
 msgstr "Archiwizuj obszar roboczy"
@@ -7762,6 +7762,9 @@ msgstr "Magenta"
 msgid "Main"
 msgstr "Główny"
 
+msgid "Main and cloud workspaces can't be archived."
+msgstr "Główne i chmurowe obszary robocze nie mogą być archiwizowane."
+
 msgid "Main workspace"
 msgstr "Główny obszar roboczy"
 
@@ -8497,6 +8500,9 @@ msgstr "Brak kluczy API."
 
 msgid "No archived workspaces"
 msgstr "Brak zarchiwizowanych obszarów roboczych"
+
+msgid "No archived workspaces match your filters"
+msgstr "Żaden zarchiwizowany obszar roboczy nie pasuje do filtrów"
 
 msgid "No assignee"
 msgstr "Brak przypisania"
