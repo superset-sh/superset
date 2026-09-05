@@ -14506,7 +14506,7 @@ msgid "Usage"
 msgstr "用量"
 
 msgid "Usage in sidebar"
-msgstr "侧边栏中的用量"
+msgstr "在侧边栏显示用量"
 
 msgid "Usage sections"
 msgstr "用量分区"

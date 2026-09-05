@@ -14506,7 +14506,7 @@ msgid "Usage"
 msgstr "使用量"
 
 msgid "Usage in sidebar"
-msgstr "サイドバーの使用量"
+msgstr "サイドバーに使用量を表示"
 
 msgid "Usage sections"
 msgstr "使用量セクション"
