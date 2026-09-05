@@ -31,9 +31,16 @@ const PORT_ACTIONS: LinkAction[] = ["pane", "newTab", "external"];
 
 interface LinksSettingsProps {
 	visibleItems?: SettingItemId[] | null;
+	/** Open the Custom apps "Add app" dialog on mount (deep link from Open in menus). */
+	openAddApp?: boolean;
+	onAddAppHandled?: () => void;
 }
 
-export function LinksSettings({ visibleItems }: LinksSettingsProps) {
+export function LinksSettings({
+	visibleItems,
+	openAddApp,
+	onAddAppHandled,
+}: LinksSettingsProps) {
 	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const {
@@ -219,7 +226,12 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 					/>
 				)}
 
-				{showCustomApps && <CustomAppsSection />}
+				{showCustomApps && (
+					<CustomAppsSection
+						openAddApp={openAddApp}
+						onAddAppHandled={onAddAppHandled}
+					/>
+				)}
 			</div>
 		</div>
 	);

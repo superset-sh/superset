@@ -8,8 +8,9 @@ import {
 	DropdownMenuSubTrigger,
 } from "@superset/ui/dropdown-menu";
 import { cn } from "@superset/ui/utils";
+import { useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { LuAppWindow, LuCopy } from "react-icons/lu";
+import { LuAppWindow, LuCopy, LuPlus } from "react-icons/lu";
 import jetbrainsIcon from "renderer/assets/app-icons/jetbrains.svg";
 import terminalIcon from "renderer/assets/app-icons/terminal.png";
 import vscodeIcon from "renderer/assets/app-icons/vscode.svg";
@@ -77,6 +78,19 @@ export function OpenInExternalDropdownItems({
 	copyPathLabelClassName,
 }: OpenInExternalDropdownItemsProps) {
 	const customApps = useCustomApps();
+	const navigate = useNavigate();
+	const addCustomApp = () =>
+		navigate({ to: "/settings/links", search: { addApp: true } });
+	const addCustomAppItem = (
+		<DropdownMenuItem onClick={addCustomApp} className={appItemClassName}>
+			<div className={cn("flex items-center gap-2", appContentClassName)}>
+				<LuPlus className={cn("size-4", appIconClassName)} />
+				<span className={appLabelClassName}>
+					<Trans>Add custom app…</Trans>
+				</span>
+			</div>
+		</DropdownMenuItem>
+	);
 
 	const renderAppOptions = (
 		apps: OpenInExternalAppOption[],
@@ -218,7 +232,9 @@ export function OpenInExternalDropdownItems({
 					{renderAppOptions(TERMINAL_OPTIONS, "terminal")}
 				</DropdownMenuSubContent>
 			</DropdownMenuSub>
-			{customApps.length > 0 && (
+			{customApps.length === 0 ? (
+				addCustomAppItem
+			) : (
 				<DropdownMenuSub>
 					<DropdownMenuSubTrigger className={subTriggerClassName}>
 						<div
@@ -238,6 +254,8 @@ export function OpenInExternalDropdownItems({
 						className={subContentClassName}
 					>
 						{renderAppOptions(customApps, "custom")}
+						<DropdownMenuSeparator />
+						{addCustomAppItem}
 					</DropdownMenuSubContent>
 				</DropdownMenuSub>
 			)}

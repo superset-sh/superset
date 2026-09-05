@@ -1284,6 +1284,9 @@ msgstr "명령 추가"
 msgid "Add comment"
 msgstr "코멘트 추가"
 
+msgid "Add custom app…"
+msgstr "사용자 지정 앱 추가…"
+
 msgid "Add custom audio"
 msgstr "사용자 지정 오디오 추가"
 
@@ -9070,9 +9073,6 @@ msgstr "{offScopeHostName}에 있음 — 여기서는 실행되지 않습니다"
 msgid "On click"
 msgstr "클릭 시"
 
-msgid "On macOS the bundle id is what launches the app, so it keeps working when the app bundle is renamed. The application name is the fallback, and the binary name on Linux."
-msgstr "macOS에서는 번들 ID로 앱을 실행하므로 앱 번들 이름이 바뀌어도 계속 동작합니다. 애플리케이션 이름은 대체 수단이며, Linux에서는 바이너리 이름입니다."
-
 msgid "On our radar. Order and scope may change."
 msgstr "지켜보고 있습니다. 순서와 범위는 바뀔 수 있습니다."
 
@@ -13026,6 +13026,9 @@ msgstr "Superset은 개발자의 로컬 머신에서 실행됩니다. 코드나 
 msgid "Superset started as a hackathon project in November 2025. It was a simple desktop app for managing worktrees."
 msgstr "Superset은 2025년 11월 해커톤 프로젝트로 시작했습니다. worktree를 관리하는 간단한 데스크톱 앱이었습니다."
 
+msgid "Superset tries the bundle id first, then the application name. A full .app path pins one install when several versions share a bundle id. On Linux the application name is the binary."
+msgstr "Superset는 번들 ID를 먼저 시도한 뒤 애플리케이션 이름을 시도합니다. 여러 버전이 같은 번들 ID를 공유할 때는 .app 전체 경로로 특정 설치를 고정할 수 있습니다. Linux에서는 애플리케이션 이름이 바이너리입니다."
+
 msgid "Superset UI"
 msgstr "Superset UI"
 
@@ -13414,8 +13417,8 @@ msgstr "해당 머신을 더 이상 사용할 수 없습니다"
 msgid "That name isn't allowed."
 msgstr "사용할 수 없는 이름입니다."
 
-msgid "The .app name as shown in Finder, without the extension."
-msgstr "Finder에 표시되는 .app 이름(확장자 제외)."
+msgid "The .app name as shown in Finder, or the full path to the .app when several versions are installed."
+msgstr "Finder에 표시되는 .app 이름, 또는 여러 버전이 설치된 경우 .app의 전체 경로."
 
 msgid "The 2026 bet"
 msgstr "2026년의 베팅"

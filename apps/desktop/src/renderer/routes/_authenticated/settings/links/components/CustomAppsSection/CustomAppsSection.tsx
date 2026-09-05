@@ -2,7 +2,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import type { CustomApp } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { HiOutlinePlus } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
@@ -24,7 +24,15 @@ type EditorState =
  * click actions above open. Same shell as the terminal scripts section:
  * a divided container with rows that open an editor dialog.
  */
-export function CustomAppsSection() {
+interface CustomAppsSectionProps {
+	openAddApp?: boolean;
+	onAddAppHandled?: () => void;
+}
+
+export function CustomAppsSection({
+	openAddApp,
+	onAddAppHandled,
+}: CustomAppsSectionProps) {
 	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const utils = electronTrpc.useUtils();
@@ -33,6 +41,14 @@ export function CustomAppsSection() {
 
 	const [editor, setEditor] = useState<EditorState>({ mode: "closed" });
 	const close = () => setEditor({ mode: "closed" });
+	const sectionRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		if (!openAddApp) return;
+		setEditor({ mode: "new" });
+		sectionRef.current?.scrollIntoView({ block: "center" });
+		onAddAppHandled?.();
+	}, [openAddApp, onAddAppHandled]);
 
 	const invalidate = () => {
 		utils.settings.getCustomApps.invalidate();
@@ -66,7 +82,7 @@ export function CustomAppsSection() {
 	const isSaving = createCustomApp.isPending || updateCustomApp.isPending;
 
 	return (
-		<div>
+		<div ref={sectionRef}>
 			<div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
 				<div className="flex items-start justify-between gap-3 p-4">
 					<div className="min-w-0">

@@ -1284,6 +1284,9 @@ msgstr "Adicionar comandos"
 msgid "Add comment"
 msgstr "Adicionar comentário"
 
+msgid "Add custom app…"
+msgstr "Adicionar aplicativo personalizado…"
+
 msgid "Add custom audio"
 msgstr "Adicionar áudio próprio"
 
@@ -9070,9 +9073,6 @@ msgstr "em {offScopeHostName} — não vai rodar aqui"
 msgid "On click"
 msgstr "Ao clicar"
 
-msgid "On macOS the bundle id is what launches the app, so it keeps working when the app bundle is renamed. The application name is the fallback, and the binary name on Linux."
-msgstr "No macOS, o bundle id é o que abre o aplicativo, então continua funcionando quando o pacote é renomeado. O nome do aplicativo é o reserva e, no Linux, o nome do binário."
-
 msgid "On our radar. Order and scope may change."
 msgstr "No nosso radar. Ordem e escopo podem mudar."
 
@@ -13026,6 +13026,9 @@ msgstr "O Superset roda localmente nas máquinas do seu time. Não guardamos seu
 msgid "Superset started as a hackathon project in November 2025. It was a simple desktop app for managing worktrees."
 msgstr "O Superset começou como um projeto de hackathon em novembro de 2025. Era um app de desktop simples para gerenciar worktrees."
 
+msgid "Superset tries the bundle id first, then the application name. A full .app path pins one install when several versions share a bundle id. On Linux the application name is the binary."
+msgstr "O Superset tenta primeiro o bundle id e depois o nome do aplicativo. Um caminho completo do .app fixa uma instalação quando várias versões compartilham o mesmo bundle id. No Linux, o nome do aplicativo é o binário."
+
 msgid "Superset UI"
 msgstr "Superset UI"
 
@@ -13414,8 +13417,8 @@ msgstr "Essa máquina não está mais disponível"
 msgid "That name isn't allowed."
 msgstr "Esse nome não é permitido."
 
-msgid "The .app name as shown in Finder, without the extension."
-msgstr "O nome do .app como aparece no Finder, sem a extensão."
+msgid "The .app name as shown in Finder, or the full path to the .app when several versions are installed."
+msgstr "O nome do .app como aparece no Finder, ou o caminho completo do .app quando há várias versões instaladas."
 
 msgid "The 2026 bet"
 msgstr "A aposta de 2026"

@@ -1284,6 +1284,9 @@ msgstr "Dodaj polecenia"
 msgid "Add comment"
 msgstr "Dodaj komentarz"
 
+msgid "Add custom app…"
+msgstr "Dodaj własną aplikację…"
+
 msgid "Add custom audio"
 msgstr "Dodaj własny dźwięk"
 
@@ -9070,9 +9073,6 @@ msgstr "na {offScopeHostName} — nie uruchomi się tutaj"
 msgid "On click"
 msgstr "Po kliknięciu"
 
-msgid "On macOS the bundle id is what launches the app, so it keeps working when the app bundle is renamed. The application name is the fallback, and the binary name on Linux."
-msgstr "W systemie macOS aplikację uruchamia bundle id, więc działa nadal po zmianie nazwy pakietu. Nazwa aplikacji jest rozwiązaniem zapasowym, a w Linuksie nazwą pliku binarnego."
-
 msgid "On our radar. Order and scope may change."
 msgstr "Mamy to na radarze. Kolejność i zakres mogą się zmienić."
 
@@ -13026,6 +13026,9 @@ msgstr "Superset działa lokalnie na maszynach Twoich programistów. Nie przecho
 msgid "Superset started as a hackathon project in November 2025. It was a simple desktop app for managing worktrees."
 msgstr "Superset zaczął się jako projekt hackathonowy w listopadzie 2025. Była to prosta aplikacja desktopowa do zarządzania worktree."
 
+msgid "Superset tries the bundle id first, then the application name. A full .app path pins one install when several versions share a bundle id. On Linux the application name is the binary."
+msgstr "Superset próbuje najpierw bundle id, potem nazwy aplikacji. Pełna ścieżka do .app wskazuje konkretną instalację, gdy kilka wersji dzieli ten sam bundle id. W Linuksie nazwa aplikacji to plik binarny."
+
 msgid "Superset UI"
 msgstr "Superset UI"
 
@@ -13414,8 +13417,8 @@ msgstr "Ta maszyna nie jest już dostępna"
 msgid "That name isn't allowed."
 msgstr "Taka nazwa jest niedozwolona."
 
-msgid "The .app name as shown in Finder, without the extension."
-msgstr "Nazwa pliku .app widoczna w Finderze, bez rozszerzenia."
+msgid "The .app name as shown in Finder, or the full path to the .app when several versions are installed."
+msgstr "Nazwa pliku .app widoczna w Finderze lub pełna ścieżka do .app, gdy zainstalowano kilka wersji."
 
 msgid "The 2026 bet"
 msgstr "Zakład na 2026"

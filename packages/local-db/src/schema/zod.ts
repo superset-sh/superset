@@ -235,7 +235,7 @@ const customAppFieldsSchema = z.object({
 	/** Menu label. */
 	label: z.string().trim().min(1).max(60),
 	/** macOS `.app` display name, e.g. "Xcode-26.5.0". Linux: binary name. */
-	appName: z.string().trim().min(1).max(200).optional(),
+	appName: z.string().trim().min(1).max(500).optional(),
 	/** macOS bundle id, e.g. "com.apple.dt.Xcode". Preferred over appName. */
 	bundleId: z.string().trim().min(1).max(200).optional(),
 });

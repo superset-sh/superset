@@ -1284,6 +1284,9 @@ msgstr "コマンドを追加"
 msgid "Add comment"
 msgstr "コメントを追加"
 
+msgid "Add custom app…"
+msgstr "カスタムアプリを追加…"
+
 msgid "Add custom audio"
 msgstr "カスタム音声を追加"
 
@@ -9070,9 +9073,6 @@ msgstr "{offScopeHostName}上 — ここでは実行されません"
 msgid "On click"
 msgstr "クリック時"
 
-msgid "On macOS the bundle id is what launches the app, so it keeps working when the app bundle is renamed. The application name is the fallback, and the binary name on Linux."
-msgstr "macOS ではバンドル ID でアプリを起動するため、アプリのバンドル名が変更されても動作し続けます。アプリケーション名は代替手段で、Linux ではバイナリ名になります。"
-
 msgid "On our radar. Order and scope may change."
 msgstr "視野には入っています。順序や範囲は変わる可能性があります。"
 
@@ -13026,6 +13026,9 @@ msgstr "Supersetは開発者のマシン上でローカルに動作します。�
 msgid "Superset started as a hackathon project in November 2025. It was a simple desktop app for managing worktrees."
 msgstr "Supersetは2025年11月、ハッカソンのプロジェクトとして始まりました。ワークツリーを管理するだけの、シンプルなデスクトップアプリでした。"
 
+msgid "Superset tries the bundle id first, then the application name. A full .app path pins one install when several versions share a bundle id. On Linux the application name is the binary."
+msgstr "Superset はまずバンドル ID、次にアプリケーション名を試します。複数のバージョンが同じバンドル ID を共有する場合は、.app のフルパスで特定のインストールを固定できます。Linux ではアプリケーション名がバイナリになります。"
+
 msgid "Superset UI"
 msgstr "Superset UI"
 
@@ -13414,8 +13417,8 @@ msgstr "そのマシンは利用できなくなりました"
 msgid "That name isn't allowed."
 msgstr "その名前は使用できません。"
 
-msgid "The .app name as shown in Finder, without the extension."
-msgstr "Finder に表示される .app の名前（拡張子なし）。"
+msgid "The .app name as shown in Finder, or the full path to the .app when several versions are installed."
+msgstr "Finder に表示される .app の名前。複数のバージョンがインストールされている場合は .app のフルパス。"
 
 msgid "The 2026 bet"
 msgstr "2026年の賭け"

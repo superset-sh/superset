@@ -96,9 +96,9 @@ export function CustomAppEditorDialog({
 						</DialogTitle>
 						<DialogDescription>
 							<Trans>
-								On macOS the bundle id is what launches the app, so it keeps
-								working when the app bundle is renamed. The application name is
-								the fallback, and the binary name on Linux.
+								Superset tries the bundle id first, then the application name. A
+								full .app path pins one install when several versions share a
+								bundle id. On Linux the application name is the binary.
 							</Trans>
 						</DialogDescription>
 					</DialogHeader>
@@ -139,7 +139,7 @@ export function CustomAppEditorDialog({
 							label={t({ message: "Application name" })}
 							hint={t({
 								message:
-									"The .app name as shown in Finder, without the extension.",
+									"The .app name as shown in Finder, or the full path to the .app when several versions are installed.",
 							})}
 						>
 							<Input

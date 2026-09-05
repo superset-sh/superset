@@ -268,7 +268,7 @@ const customAppSchema = z
 	.object({
 		id: customAppIdSchema,
 		label: z.string().trim().min(1).max(60),
-		appName: z.string().trim().min(1).max(200).optional(),
+		appName: z.string().trim().min(1).max(500).optional(),
 		bundleId: z.string().trim().min(1).max(200).optional(),
 	})
 	.refine((app) => Boolean(app.appName || app.bundleId));
@@ -276,7 +276,7 @@ const customAppSchema = z
 const customAppInputSchema = z
 	.object({
 		label: z.string().trim().min(1).max(60),
-		appName: z.string().trim().min(1).max(200).optional(),
+		appName: z.string().trim().min(1).max(500).optional(),
 		bundleId: z.string().trim().min(1).max(200).optional(),
 	})
 	.refine((app) => Boolean(app.appName || app.bundleId));

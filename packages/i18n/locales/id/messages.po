@@ -1284,6 +1284,9 @@ msgstr "Tambah perintah"
 msgid "Add comment"
 msgstr "Tambah komentar"
 
+msgid "Add custom app…"
+msgstr "Tambah aplikasi kustom…"
+
 msgid "Add custom audio"
 msgstr "Tambah audio kustom"
 
@@ -9070,9 +9073,6 @@ msgstr "di {offScopeHostName} — tidak akan berjalan di sini"
 msgid "On click"
 msgstr "Saat diklik"
 
-msgid "On macOS the bundle id is what launches the app, so it keeps working when the app bundle is renamed. The application name is the fallback, and the binary name on Linux."
-msgstr "Di macOS, bundle id yang menjalankan aplikasi, sehingga tetap berfungsi saat bundel aplikasi diganti namanya. Nama aplikasi adalah cadangan, dan di Linux adalah nama binari."
-
 msgid "On our radar. Order and scope may change."
 msgstr "Ada di radar kami. Urutan dan cakupannya bisa berubah."
 
@@ -13026,6 +13026,9 @@ msgstr "Superset berjalan lokal di mesin developer Anda. Kami tidak menyimpan ko
 msgid "Superset started as a hackathon project in November 2025. It was a simple desktop app for managing worktrees."
 msgstr "Superset bermula sebagai proyek hackathon pada November 2025. Waktu itu sekadar aplikasi desktop untuk mengelola worktree."
 
+msgid "Superset tries the bundle id first, then the application name. A full .app path pins one install when several versions share a bundle id. On Linux the application name is the binary."
+msgstr "Superset mencoba bundle id terlebih dahulu, lalu nama aplikasi. Jalur .app lengkap mengunci satu instalasi saat beberapa versi memakai bundle id yang sama. Di Linux, nama aplikasi adalah binari."
+
 msgid "Superset UI"
 msgstr "Superset UI"
 
@@ -13414,8 +13417,8 @@ msgstr "Mesin itu sudah tidak tersedia"
 msgid "That name isn't allowed."
 msgstr "Nama itu tidak diizinkan."
 
-msgid "The .app name as shown in Finder, without the extension."
-msgstr "Nama .app seperti yang ditampilkan di Finder, tanpa ekstensi."
+msgid "The .app name as shown in Finder, or the full path to the .app when several versions are installed."
+msgstr "Nama .app seperti yang ditampilkan di Finder, atau jalur lengkap ke .app jika beberapa versi terpasang."
 
 msgid "The 2026 bet"
 msgstr "Taruhan 2026"

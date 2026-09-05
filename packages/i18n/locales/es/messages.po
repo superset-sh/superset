@@ -1284,6 +1284,9 @@ msgstr "Añadir comandos"
 msgid "Add comment"
 msgstr "Añadir comentario"
 
+msgid "Add custom app…"
+msgstr "Añadir aplicación personalizada…"
+
 msgid "Add custom audio"
 msgstr "Añadir audio propio"
 
@@ -9070,9 +9073,6 @@ msgstr "en {offScopeHostName}: no se ejecutará aquí"
 msgid "On click"
 msgstr "Al hacer clic"
 
-msgid "On macOS the bundle id is what launches the app, so it keeps working when the app bundle is renamed. The application name is the fallback, and the binary name on Linux."
-msgstr "En macOS el bundle id es lo que lanza la aplicación, así que sigue funcionando aunque se renombre el paquete. El nombre de aplicación es el respaldo, y el nombre del binario en Linux."
-
 msgid "On our radar. Order and scope may change."
 msgstr "Lo tenemos en el radar. El orden y el alcance pueden cambiar."
 
@@ -13026,6 +13026,9 @@ msgstr "Superset se ejecuta localmente en los equipos de tus desarrolladores. No
 msgid "Superset started as a hackathon project in November 2025. It was a simple desktop app for managing worktrees."
 msgstr "Superset empezó como un proyecto de hackathon en noviembre de 2025. Era una sencilla app de escritorio para gestionar worktrees."
 
+msgid "Superset tries the bundle id first, then the application name. A full .app path pins one install when several versions share a bundle id. On Linux the application name is the binary."
+msgstr "Superset prueba primero el bundle id y luego el nombre de aplicación. Una ruta completa al .app fija una instalación concreta cuando varias versiones comparten el bundle id. En Linux el nombre de aplicación es el binario."
+
 msgid "Superset UI"
 msgstr "Superset UI"
 
@@ -13414,8 +13417,8 @@ msgstr "Esa máquina ya no está disponible"
 msgid "That name isn't allowed."
 msgstr "Ese nombre no está permitido."
 
-msgid "The .app name as shown in Finder, without the extension."
-msgstr "El nombre del .app tal como aparece en el Finder, sin la extensión."
+msgid "The .app name as shown in Finder, or the full path to the .app when several versions are installed."
+msgstr "El nombre del .app tal como aparece en el Finder, o la ruta completa al .app si hay varias versiones instaladas."
 
 msgid "The 2026 bet"
 msgstr "La apuesta de 2026"

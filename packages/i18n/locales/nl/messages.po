@@ -1284,6 +1284,9 @@ msgstr "Commando's toevoegen"
 msgid "Add comment"
 msgstr "Opmerking toevoegen"
 
+msgid "Add custom app…"
+msgstr "Aangepaste app toevoegen…"
+
 msgid "Add custom audio"
 msgstr "Eigen audio toevoegen"
 
@@ -9070,9 +9073,6 @@ msgstr "op {offScopeHostName} — draait hier niet"
 msgid "On click"
 msgstr "Bij klikken"
 
-msgid "On macOS the bundle id is what launches the app, so it keeps working when the app bundle is renamed. The application name is the fallback, and the binary name on Linux."
-msgstr "Op macOS start de bundle-id de app, dus die blijft werken als de app-bundel wordt hernoemd. De toepassingsnaam is de fallback en op Linux de naam van het binaire bestand."
-
 msgid "On our radar. Order and scope may change."
 msgstr "Op onze radar. Volgorde en omvang kunnen veranderen."
 
@@ -13026,6 +13026,9 @@ msgstr "Superset draait lokaal op de machines van je ontwikkelaars. We slaan je 
 msgid "Superset started as a hackathon project in November 2025. It was a simple desktop app for managing worktrees."
 msgstr "Superset begon in november 2025 als hackathonproject. Het was een simpele desktop-app om worktrees te beheren."
 
+msgid "Superset tries the bundle id first, then the application name. A full .app path pins one install when several versions share a bundle id. On Linux the application name is the binary."
+msgstr "Superset probeert eerst de bundle-id en daarna de toepassingsnaam. Een volledig .app-pad legt één installatie vast wanneer meerdere versies dezelfde bundle-id delen. Op Linux is de toepassingsnaam het binaire bestand."
+
 msgid "Superset UI"
 msgstr "Superset UI"
 
@@ -13414,8 +13417,8 @@ msgstr "Die machine is niet meer beschikbaar"
 msgid "That name isn't allowed."
 msgstr "Die naam is niet toegestaan."
 
-msgid "The .app name as shown in Finder, without the extension."
-msgstr "De .app-naam zoals in de Finder, zonder extensie."
+msgid "The .app name as shown in Finder, or the full path to the .app when several versions are installed."
+msgstr "De .app-naam zoals in de Finder, of het volledige pad naar de .app als er meerdere versies zijn geïnstalleerd."
 
 msgid "The 2026 bet"
 msgstr "De weddenschap voor 2026"

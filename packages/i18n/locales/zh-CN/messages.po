@@ -1284,6 +1284,9 @@ msgstr "添加命令"
 msgid "Add comment"
 msgstr "添加评论"
 
+msgid "Add custom app…"
+msgstr "添加自定义应用…"
+
 msgid "Add custom audio"
 msgstr "添加自定义音频"
 
@@ -9070,9 +9073,6 @@ msgstr "在{offScopeHostName}上，不会在这里运行"
 msgid "On click"
 msgstr "点击时"
 
-msgid "On macOS the bundle id is what launches the app, so it keeps working when the app bundle is renamed. The application name is the fallback, and the binary name on Linux."
-msgstr "在 macOS 上通过 bundle id 启动应用，因此应用包重命名后仍可正常工作。应用程序名称是后备方式，在 Linux 上则是可执行文件名。"
-
 msgid "On our radar. Order and scope may change."
 msgstr "在我们的视野内。顺序和范围可能会变。"
 
@@ -13026,6 +13026,9 @@ msgstr "Superset在你的开发者机器上本地运行。我们不存储你的�
 msgid "Superset started as a hackathon project in November 2025. It was a simple desktop app for managing worktrees."
 msgstr "Superset起初是2025年11月的一个黑客松项目，一个用来管理worktree的简单桌面应用。"
 
+msgid "Superset tries the bundle id first, then the application name. A full .app path pins one install when several versions share a bundle id. On Linux the application name is the binary."
+msgstr "Superset 会先尝试 bundle id，再尝试应用程序名称。当多个版本共用一个 bundle id 时，填写 .app 的完整路径可锁定某一个安装。在 Linux 上，应用程序名称即可执行文件。"
+
 msgid "Superset UI"
 msgstr "Superset UI"
 
@@ -13414,8 +13417,8 @@ msgstr "该机器已不可用"
 msgid "That name isn't allowed."
 msgstr "该名称不被允许。"
 
-msgid "The .app name as shown in Finder, without the extension."
-msgstr "Finder 中显示的 .app 名称，不含扩展名。"
+msgid "The .app name as shown in Finder, or the full path to the .app when several versions are installed."
+msgstr "Finder 中显示的 .app 名称；安装了多个版本时，填写 .app 的完整路径。"
 
 msgid "The 2026 bet"
 msgstr "2026年的赌注"

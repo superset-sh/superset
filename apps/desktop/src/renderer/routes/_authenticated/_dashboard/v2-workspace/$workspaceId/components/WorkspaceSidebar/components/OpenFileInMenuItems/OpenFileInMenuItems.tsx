@@ -1,17 +1,20 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	ContextMenuItem,
+	ContextMenuSeparator,
 	ContextMenuSub,
 	ContextMenuSubContent,
 	ContextMenuSubTrigger,
 } from "@superset/ui/context-menu";
 import {
 	DropdownMenuItem,
+	DropdownMenuSeparator,
 	DropdownMenuSub,
 	DropdownMenuSubContent,
 	DropdownMenuSubTrigger,
 } from "@superset/ui/dropdown-menu";
-import { AppWindow, ExternalLink } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { AppWindow, ExternalLink, Plus } from "lucide-react";
 import jetbrainsIcon from "renderer/assets/app-icons/jetbrains.svg";
 import vscodeIcon from "renderer/assets/app-icons/vscode.svg";
 import {
@@ -39,12 +42,14 @@ interface OpenFileInMenuItemsProps {
 const PRIMITIVES = {
 	context: {
 		Item: ContextMenuItem,
+		Separator: ContextMenuSeparator,
 		Sub: ContextMenuSub,
 		SubTrigger: ContextMenuSubTrigger,
 		SubContent: ContextMenuSubContent,
 	},
 	dropdown: {
 		Item: DropdownMenuItem,
+		Separator: DropdownMenuSeparator,
 		Sub: DropdownMenuSub,
 		SubTrigger: DropdownMenuSubTrigger,
 		SubContent: DropdownMenuSubContent,
@@ -70,7 +75,18 @@ export function OpenFileInMenuItems({
 	const isDark = useThemeStore((state) => state.activeTheme?.type === "dark");
 	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
 	const customApps = useCustomApps();
-	const { Item, Sub, SubTrigger, SubContent } = PRIMITIVES[menuType];
+	const { Item, Separator, Sub, SubTrigger, SubContent } = PRIMITIVES[menuType];
+	const navigate = useNavigate();
+	const addCustomAppItem = (
+		<Item
+			onSelect={() =>
+				navigate({ to: "/settings/links", search: { addApp: true } })
+			}
+		>
+			<Plus />
+			<Trans>Add custom app…</Trans>
+		</Item>
+	);
 
 	// Terminals are intentionally omitted — they open a directory, not a file.
 	const appRows = (apps: OpenInExternalAppOption[]) =>
@@ -118,7 +134,9 @@ export function OpenFileInMenuItems({
 						</Sub>
 					</SubContent>
 				</Sub>
-				{customApps.length > 0 && (
+				{customApps.length === 0 ? (
+					addCustomAppItem
+				) : (
 					<Sub>
 						<SubTrigger>
 							<div className="flex items-center gap-2">
@@ -128,7 +146,11 @@ export function OpenFileInMenuItems({
 								</span>
 							</div>
 						</SubTrigger>
-						<SubContent>{appRows(customApps)}</SubContent>
+						<SubContent>
+							{appRows(customApps)}
+							<Separator />
+							{addCustomAppItem}
+						</SubContent>
 					</Sub>
 				)}
 			</SubContent>

@@ -1284,6 +1284,9 @@ msgstr "Добавить команды"
 msgid "Add comment"
 msgstr "Добавить комментарий"
 
+msgid "Add custom app…"
+msgstr "Добавить своё приложение…"
+
 msgid "Add custom audio"
 msgstr "Добавить свой звук"
 
@@ -9070,9 +9073,6 @@ msgstr "на {offScopeHostName} — здесь не запустится"
 msgid "On click"
 msgstr "По клику"
 
-msgid "On macOS the bundle id is what launches the app, so it keeps working when the app bundle is renamed. The application name is the fallback, and the binary name on Linux."
-msgstr "В macOS приложение запускается по bundle id, поэтому оно работает даже после переименования пакета. Имя приложения — запасной вариант, а в Linux — имя исполняемого файла."
-
 msgid "On our radar. Order and scope may change."
 msgstr "У нас на радаре. Порядок и объём могут измениться."
 
@@ -13026,6 +13026,9 @@ msgstr "Superset работает локально на машинах ваши�
 msgid "Superset started as a hackathon project in November 2025. It was a simple desktop app for managing worktrees."
 msgstr "Superset начался как проект на хакатоне в ноябре 2025 года. Это было простое десктопное приложение для управления worktree."
 
+msgid "Superset tries the bundle id first, then the application name. A full .app path pins one install when several versions share a bundle id. On Linux the application name is the binary."
+msgstr "Superset сначала пробует bundle id, затем имя приложения. Полный путь к .app закрепляет конкретную установку, если несколько версий используют один bundle id. В Linux имя приложения — это исполняемый файл."
+
 msgid "Superset UI"
 msgstr "Superset UI"
 
@@ -13414,8 +13417,8 @@ msgstr "Эта машина больше недоступна"
 msgid "That name isn't allowed."
 msgstr "Такое имя недопустимо."
 
-msgid "The .app name as shown in Finder, without the extension."
-msgstr "Имя .app, как оно показано в Finder, без расширения."
+msgid "The .app name as shown in Finder, or the full path to the .app when several versions are installed."
+msgstr "Имя .app, как оно показано в Finder, или полный путь к .app, если установлено несколько версий."
 
 msgid "The 2026 bet"
 msgstr "Ставка на 2026"
