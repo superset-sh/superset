@@ -4,15 +4,16 @@
  * budget for every quota-capable agent. It replaces the process-wide
  * 5-minute cache the usage router used to keep.
  *
- * It is constructed unconditionally. With no engine (disabled, sandbox, or
- * a lock loser) nothing calls `refreshDue`, so `read` fetches on demand with
- * the 5-minute TTL — the behaviour the Usage page had before, by
- * construction. With the engine running, its tick calls `refreshDue` with a
- * per-agent schedule and the cadence becomes adaptive (R17, R18).
+ * It is constructed unconditionally. With no engine (disabled or sandbox)
+ * nothing calls `refreshDue`, so `read` fetches on demand with the 5-minute
+ * TTL — the behaviour the Usage page had before, by construction. With the
+ * engine running, its tick calls `refreshDue` with a per-agent schedule and
+ * the cadence becomes adaptive (R17, R18).
  *
- * The store knows nothing about the ownership lock: the engine passes
- * `onSnapshot` only while it owns the lock, and that mirror is what lock
- * losers read (KTD5).
+ * The store knows nothing about the ownership lock; the engine tells it which
+ * side of the lock it is on. The owner installs a snapshot sink and mirrors
+ * its entries into quota.json; a lock loser installs a snapshot source and
+ * serves that mirror instead of calling a provider at all (KTD5).
  */
 
 import { fetchAgyAccounts } from "../trpc/router/usage/agy-quota";
@@ -219,6 +220,10 @@ export class QuotaStore {
 	/** KTD5: installed by the lock owner so its store is mirrored into
 	 * quota.json for lock losers, and removed the moment it loses the lock. */
 	private snapshotSink: ((snapshot: QuotaStoreSnapshot) => void) | null = null;
+	/** KTD5: installed by a lock loser: the owner's mirror answers every read
+	 * and no provider is called. Null with no engine, or while this process
+	 * owns the lock. */
+	private snapshotSource: (() => QuotaStoreSnapshot | null) | null = null;
 
 	constructor(deps: QuotaStoreDeps = {}) {
 		this.deps = deps;
@@ -228,6 +233,16 @@ export class QuotaStore {
 	/** KTD5: only the engine that owns the host-wide lock installs a sink. */
 	setSnapshotSink(sink: ((snapshot: QuotaStoreSnapshot) => void) | null): void {
 		this.snapshotSink = sink;
+	}
+
+	/**
+	 * KTD5: only a lock loser installs a source. While one is set, `read`
+	 * serves the owner's mirror and performs no fetch and no discovery — every
+	 * host-service on this machine otherwise polls the same endpoints and
+	 * defeats the host-wide request budget.
+	 */
+	setSnapshotSource(source: (() => QuotaStoreSnapshot | null) | null): void {
+		this.snapshotSource = source;
 	}
 
 	entry(key: string): QuotaEntry | undefined {
@@ -263,6 +278,10 @@ export class QuotaStore {
 		options: { agents?: QuotaCapableAgent[]; forceRefresh?: boolean } = {},
 	): Promise<UsageAccount[]> {
 		const agents = options.agents ?? ALL_AGENTS;
+		// KTD5: a lock loser answers from the owner's mirror, forced refresh
+		// included — the owner is already polling on this machine's behalf.
+		const mirrored = this.readMirror(agents);
+		if (mirrored) return mirrored;
 		const now = this.now();
 		await Promise.all(
 			agents.map((agent) =>
@@ -495,11 +514,38 @@ export class QuotaStore {
 		}
 	}
 
-	private collect(agents: QuotaCapableAgent[]): UsageAccount[] {
+	/**
+	 * KTD5: the lock owner's `quota.json`, or — until it has published one —
+	 * whatever this store already knows. Never a fetch: a loser that fell back
+	 * to polling would multiply this machine's provider requests by the number
+	 * of host-services running on it.
+	 */
+	private readMirror(agents: QuotaCapableAgent[]): UsageAccount[] | null {
+		if (!this.snapshotSource) return null;
+		const snapshot = this.snapshotSource();
+		if (!snapshot) return this.collect(agents);
+		return this.collect(
+			agents,
+			snapshot.entries.map((entry) => ({
+				agent: entry.agent,
+				accounts: entry.accounts.map(reviveAccountDates),
+			})),
+		);
+	}
+
+	private collect(
+		agents: QuotaCapableAgent[],
+		from: Array<{
+			agent: QuotaCapableAgent;
+			accounts: UsageAccount[];
+		}> = this.entries(),
+	): UsageAccount[] {
 		const ordered = ALL_AGENTS.filter((agent) => agents.includes(agent));
 		const accounts: UsageAccount[] = [];
 		for (const agent of ordered) {
-			const forAgent = this.entries(agent).flatMap((entry) => entry.accounts);
+			const forAgent = from
+				.filter((entry) => entry.agent === agent)
+				.flatMap((entry) => entry.accounts);
 			// One Codex login reachable from several homes is one account.
 			accounts.push(
 				...(agent === "codex" ? dedupeCodexAccounts(forAgent) : forAgent),
@@ -582,6 +628,18 @@ export class QuotaStore {
 		this.deps.onSnapshot?.(snapshot);
 		this.snapshotSink?.(snapshot);
 	}
+}
+
+/** The mirror is JSON on disk, so its timestamps come back as strings. */
+function reviveAccountDates(account: UsageAccount): UsageAccount {
+	return {
+		...account,
+		fetchedAt: new Date(account.fetchedAt),
+		windows: account.windows.map((window) => ({
+			...window,
+			resetsAt: window.resetsAt === null ? null : new Date(window.resetsAt),
+		})),
+	};
 }
 
 function newEntry(

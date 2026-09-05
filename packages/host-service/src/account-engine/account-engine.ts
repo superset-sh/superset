@@ -44,6 +44,7 @@ import {
 	type DefaultAccountSelections,
 	getDefaultAccountSelections,
 	setDefaultAccountSelection,
+	setIdentityBindingRecorder,
 } from "../trpc/router/usage/default-account.ts";
 import {
 	claudeStatePath,
@@ -124,6 +125,7 @@ export interface EngineQuotaStore {
 	entry(key: string): QuotaEntry | undefined;
 	refreshDue(now: number, schedule: QuotaRefreshSchedule): Promise<void>;
 	setSnapshotSink(sink: ((snapshot: QuotaStoreSnapshot) => void) | null): void;
+	setSnapshotSource(source: (() => QuotaStoreSnapshot | null) | null): void;
 	snapshot(): QuotaStoreSnapshot;
 }
 
@@ -164,6 +166,9 @@ export interface AccountEngineDeps {
 	 * the active account on a first run (KTD4). */
 	readPointerSelections?: typeof getDefaultAccountSelections;
 	updateClaudeStateFile?: typeof updateClaudeStateFile;
+	/** KTD5: how the engine silences the discovery pass's unlocked write to
+	 * runtime.json while this instance is a lock loser. */
+	setBindingRecorder?: typeof setIdentityBindingRecorder;
 	/** The active Claude dir's path, without provisioning it. */
 	resolveActiveDir?: () => string;
 	readActiveIdentity?: (activeDir: string) => Promise<ActiveDirIdentity>;
@@ -181,6 +186,13 @@ export type SwitchOutcome =
 export type ManualSwitchOutcome =
 	| SwitchOutcome
 	| { ok: false; code: "lock-loser"; reason: string };
+
+/** KTD5: what every path that noticed the lock is gone returns. */
+const LOCK_LOSER: ManualSwitchOutcome = {
+	ok: false,
+	code: "lock-loser",
+	reason: "Another Superset instance on this machine owns account switching.",
+};
 
 export type SettingsOutcome =
 	| { ok: true; settings: EngineSettings }
@@ -215,6 +227,13 @@ interface PerformSwitchInput {
 	usedPercent: number | null;
 	now: number;
 	fallbackRestart?: boolean;
+	/**
+	 * KTD8: the terminal a limit hint named. The planned move leaves it alone
+	 * so `fallbackRestart` is the one that restarts it — a bare restart here
+	 * would consume its resume candidate and the continue nudge would never
+	 * be typed.
+	 */
+	excludeTerminalId?: string;
 }
 
 /** A history row of a completed switch, with every field the
@@ -319,10 +338,15 @@ export class AccountEngine {
 	private readonly readActiveIdentity: (
 		activeDir: string,
 	) => Promise<ActiveDirIdentity>;
+	private readonly setBindingRecorder: typeof setIdentityBindingRecorder;
 
 	/** This process's claim on the host-wide lock (KTD5). */
 	private readonly nonce = randomUUID();
 	private owner = false;
+	/** The ownership the wiring below (quota mirror, binding recorder) was
+	 * last set up for. Null until the first claim, so a loser that never owned
+	 * the lock still gets a loser's wiring. */
+	private ownershipApplied: boolean | null = null;
 	private ticker: ReturnType<typeof setInterval> | null = null;
 	private ticking = false;
 	private tickRequested = false;
@@ -336,12 +360,11 @@ export class AccountEngine {
 		| null = null;
 	/** Last engine-state broadcast per agent, so steady state is not resent. */
 	private readonly lastState = new Map<AccountAgent, string>();
-	/** A lock loser's view of the owner's active account, for KTD5's
-	 * runtime.json watch. `undefined` means "not observed yet". */
-	private readonly followedActiveIds = new Map<
-		AccountAgent,
-		string | null | undefined
-	>();
+	/** A lock loser's view of the owner's active account and selection, for
+	 * KTD5's runtime.json watch. Both halves: two Codex homes can share a null
+	 * provider identity, and only the selection tells them apart. `undefined`
+	 * means "not observed yet". */
+	private readonly followedActive = new Map<AccountAgent, string>();
 	/** Claude hints already acted on, keyed by the event that raised them. */
 	private readonly handledHints = new Set<string>();
 
@@ -369,6 +392,8 @@ export class AccountEngine {
 		this.resolveActiveDir = deps.resolveActiveDir ?? activeClaudeConfigDir;
 		this.readActiveIdentity =
 			deps.readActiveIdentity ?? readActiveClaudeIdentity;
+		this.setBindingRecorder =
+			deps.setBindingRecorder ?? setIdentityBindingRecorder;
 	}
 
 	// ── Lifecycle ──────────────────────────────────────────────────────
@@ -473,14 +498,7 @@ export class AccountEngine {
 		const now = this.now();
 		// KTD5: another instance holding the lock owns the credentials, so a
 		// swap here would sign its sessions out from under it.
-		if (!this.ensureOwnership(now)) {
-			return {
-				ok: false,
-				code: "lock-loser",
-				reason:
-					"Another Superset instance on this machine owns account switching.",
-			};
-		}
+		if (!this.ensureOwnership(now)) return LOCK_LOSER;
 		const settings = this.state.readSettings();
 		const runtime = this.state.readRuntime();
 		this.resolveActive(agent, runtime);
@@ -507,6 +525,16 @@ export class AccountEngine {
 				ok: false,
 				code: "no-target-login",
 				reason: "That account is signed out; sign in again before switching.",
+			};
+		}
+		// The dir is the user's, not Superset's: switching onto it would make
+		// it the owner of the next save-back and write a credential there.
+		if (!target.row.managed) {
+			return {
+				ok: false,
+				code: "invalid-target",
+				reason:
+					"Superset does not manage this login; it can be used but not switched onto.",
 			};
 		}
 		if (from && from.accountKey === target.row.accountKey) {
@@ -600,13 +628,21 @@ export class AccountEngine {
 			now,
 			this.schedule(settings, runtime, agents),
 		);
+		// The lease is three ticks long and every await above can outlast it:
+		// a provider request, an identity read, a session move. Another
+		// process reclaims a stale lock by renaming it away, so from here on
+		// each awaited boundary re-checks (and heartbeats) ownership, and a
+		// tick that lost it writes nothing more (KTD5).
+		if (!this.ensureOwnership(this.now())) return;
 
 		if (agents.includes("claude")) {
 			await this.reassertClaudeIdentity(runtime, now);
+			if (!this.ensureOwnership(this.now())) return;
 		}
 
 		for (const agent of agents) {
 			await this.evaluate(agent, settings[agent], rotation, runtime, now);
+			if (!this.ensureOwnership(this.now())) return;
 		}
 
 		// A quiet tick must not rewrite the file every interval: the state dir
@@ -624,23 +660,56 @@ export class AccountEngine {
 
 	private ensureOwnership(now: number): boolean {
 		const owner = this.state.claimLock(this.nonce, now, this.lockStaleMs);
-		if (owner !== this.owner) {
-			this.owner = owner;
-			// Only the owner mirrors its store into quota.json; a loser reads
-			// that mirror and must never overwrite it.
-			this.quotaStore.setSnapshotSink(
-				owner
-					? (snapshot) => this.state.writeQuotaSnapshot(snapshot, this.now())
-					: null,
+		this.owner = owner;
+		if (this.ownershipApplied === owner) return owner;
+		if (this.ownershipApplied === true) {
+			// Said once per loss: the lock went stale under a slow tick and
+			// another instance reclaimed it.
+			console.warn(
+				"[account-engine] another instance now owns the host lock; this tick stops here.",
 			);
 		}
+		this.ownershipApplied = owner;
+		this.applyOwnership(owner);
 		return owner;
 	}
 
+	/**
+	 * KTD5: everything that depends on which side of the lock this instance is
+	 * on. The owner mirrors its quota store into quota.json and is the only
+	 * one that records identity bindings; a loser reads that mirror instead of
+	 * calling providers, and writes no runtime state at all — discovery's
+	 * unlocked read-modify-write would otherwise put the owner's active
+	 * account back to what it was.
+	 */
+	private applyOwnership(owner: boolean): void {
+		this.quotaStore.setSnapshotSink(
+			owner
+				? (snapshot) => this.state.writeQuotaSnapshot(snapshot, this.now())
+				: null,
+		);
+		this.quotaStore.setSnapshotSource(
+			owner ? null : () => this.mirroredQuota(),
+		);
+		this.setBindingRecorder(owner ? null : () => {});
+	}
+
+	/** The owner's published quota mirror, or null until it publishes one. */
+	private mirroredQuota(): QuotaStoreSnapshot | null {
+		const data = this.state.readQuotaSnapshot()?.data as
+			| QuotaStoreSnapshot
+			| undefined;
+		return data && Array.isArray(data.entries) ? data : null;
+	}
+
 	private releaseOwnership(): void {
-		if (!this.owner) return;
 		this.owner = false;
+		this.ownershipApplied = null;
+		// Stopped, not demoted: the store goes back to serving on-demand reads
+		// the way it does with no engine at all.
 		this.quotaStore.setSnapshotSink(null);
+		this.quotaStore.setSnapshotSource(null);
+		this.setBindingRecorder(null);
 		this.state.releaseLock(this.nonce);
 	}
 
@@ -653,13 +722,46 @@ export class AccountEngine {
 	private async followOwner(agents: readonly AccountAgent[]): Promise<void> {
 		const runtime = this.state.readRuntime();
 		for (const agent of agents) {
-			const active = runtime.perAgent[agent].activeAccountId;
-			const seen = this.followedActiveIds.get(agent);
-			this.followedActiveIds.set(agent, active);
-			// The first observation is a baseline, not a switch.
-			if (seen === undefined || seen === active) continue;
+			const state = runtime.perAgent[agent];
+			const active = `${state.activeAccountId ?? ""}\u0000${
+				state.activeSelection ?? ""
+			}`;
+			const seen = this.followedActive.get(agent);
+			this.followedActive.set(agent, active);
+			if (seen === active) continue;
+			if (seen === undefined) {
+				// The first observation is not a baseline: this service may
+				// have started long after the owner switched, and its sessions
+				// would sit on the old account for as long as it runs.
+				await this.reconcile(agent, state);
+				continue;
+			}
 			await this.mover.onExternalSwitch(agent);
 		}
+	}
+
+	/**
+	 * KTD5: what a loser does the first time it sees the owner's state. A
+	 * Claude session runs on the shared active dir and picks the new login up
+	 * in place, so only Codex — whose account *is* its config dir — can be on
+	 * the wrong one. Rows already on the active home are left alone, and the
+	 * mover's idle rule still decides when each one moves.
+	 */
+	private async reconcile(
+		agent: AccountAgent,
+		state: RuntimeState["perAgent"][AccountAgent],
+	): Promise<void> {
+		if (agent !== "codex") return;
+		// A runtime the owner has never written names no account at all;
+		// there is nothing to reconcile against.
+		if (state.activeAccountId === null && state.activeSelection === null) {
+			return;
+		}
+		const stale = this.hostDeps
+			.listSessions(agent)
+			.filter((row) => row.configDir !== state.activeSelection);
+		if (stale.length === 0) return;
+		await this.mover.moveAtIdle(agent, stale);
 	}
 
 	// ── Accounts and scheduling ────────────────────────────────────────
@@ -679,6 +781,7 @@ export class AccountEngine {
 						label: labelOf(account),
 						credentialKind: account.credentialKind,
 						inRotation: account.inRotation,
+						managed: account.managed,
 						tokenState: entry.tokenState,
 						windows: account.windows,
 					},
@@ -836,9 +939,13 @@ export class AccountEngine {
 
 	private async performSwitch(
 		input: PerformSwitchInput,
-	): Promise<SwitchOutcome> {
+	): Promise<ManualSwitchOutcome> {
 		const { agent, runtime, now } = input;
 		const state = runtime.perAgent[agent];
+		// KTD5: the credential swap and the pointer write are host-wide, so
+		// the lease is re-checked immediately before them and again before the
+		// state they leave behind.
+		if (!this.ensureOwnership(this.now())) return LOCK_LOSER;
 		const result =
 			agent === "claude"
 				? await this.switchClaude(input)
@@ -853,6 +960,7 @@ export class AccountEngine {
 			return result;
 		}
 
+		if (!this.ensureOwnership(this.now())) return LOCK_LOSER;
 		state.activeAccountId = input.target.accountId;
 		state.activeSelection = input.target.selection;
 		state.cooldownUntil = now + input.settings.cooldownSeconds * 1000;
@@ -867,7 +975,12 @@ export class AccountEngine {
 		this.state.appendHistory(entry);
 		this.state.writeRuntime(runtime);
 		this.broadcast.switched(switchedPayload(entry));
-		await this.moveSessions(agent, result.activeDir ?? null);
+		if (!this.ensureOwnership(this.now())) return { ok: true };
+		await this.moveSessions(
+			agent,
+			result.activeDir ?? null,
+			input.excludeTerminalId ?? null,
+		);
 		return { ok: true };
 	}
 
@@ -915,10 +1028,22 @@ export class AccountEngine {
 		const result = await this.swap({
 			target: storeRef(input.target.selection),
 			ownerBinding,
+			// The binding as an identity, so the swap can refuse a save-back
+			// into the wrong dir after a `/login` inside a live session.
+			expectedOwnerAccountId: input.from?.accountId ?? null,
+			// A hand-exported dir is read, never written: the login it holds
+			// is not Superset's to save back.
+			ownerManaged: input.from?.managed ?? true,
 			activeDir,
 		});
-		if (!result.ok)
+		if (!result.ok) {
+			// Split state: the active dir holds the target's credential under
+			// the previous identity, so what we last wrote no longer describes
+			// it. Forget it, and the next tick reads the dir as externally
+			// changed rather than re-asserting a stale identity block (KTD3).
+			if (result.code === "split-state") this.lastWritten = null;
 			return { ok: false, code: result.code, reason: result.reason };
+		}
 
 		this.recordBinding(
 			input.runtime,
@@ -1009,8 +1134,11 @@ export class AccountEngine {
 	private async moveSessions(
 		agent: AccountAgent,
 		activeDir: string | null,
+		excludeTerminalId: string | null = null,
 	): Promise<void> {
-		const rows = this.hostDeps.listSessions(agent);
+		const rows = this.hostDeps
+			.listSessions(agent)
+			.filter((row) => row.terminalId !== excludeTerminalId);
 		const moving =
 			agent === "claude" && activeDir !== null
 				? rows.filter((row) => row.configDir !== activeDir)
@@ -1032,6 +1160,8 @@ export class AccountEngine {
 		if (!seen || seen.accountUuid === null || seen.accountUuid === expected) {
 			return;
 		}
+		// The read above is the awaited boundary; everything below writes.
+		if (!this.ensureOwnership(this.now())) return;
 
 		const written = this.lastWritten;
 		if (
@@ -1248,6 +1378,7 @@ export class AccountEngine {
 			usedPercent: worst?.usedPercent ?? null,
 			now,
 			fallbackRestart: true,
+			excludeTerminalId: row.terminalId,
 		});
 		if (outcome.ok) await this.mover.fallbackRestart(row);
 	}

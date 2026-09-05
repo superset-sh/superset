@@ -11,6 +11,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { EngineState } from "../../../account-engine/engine-state.ts";
 import type { HostDb } from "../../../db/index.ts";
 import {
 	activeClaudeConfigDirPath,
@@ -21,6 +22,7 @@ import {
 	readAccountEngineView,
 	recordIdentityBindings,
 	resolveDefaultAccountEnv,
+	setIdentityBindingRecorder,
 	syncDefaultAccountPointer,
 	syncDefaultAccountPointers,
 } from "./default-account.ts";
@@ -342,5 +344,56 @@ describe("active account semantics", () => {
 		expect(
 			JSON.parse(readFileSync(runtimePath, "utf8")).identityBindings,
 		).toEqual({ "uuid-a": "/home/u/.claude-a", "uuid-default": null });
+	});
+
+	// KTD5: discovery runs unlocked in every host-service, and writeRuntime
+	// replaces the whole file — so it must merge into the runtime as it stands
+	// at write time, never into the copy it started from.
+	it("merges bindings into the runtime as it stands when it writes", () => {
+		recordIdentityBindings([["uuid-a", "/home/u/.claude-a"]]);
+		function* discovered() {
+			yield ["uuid-b", "/home/u/.claude-b"] as const;
+			// The lock owner switches accounts while discovery is still
+			// walking profile dirs.
+			const state = new EngineState();
+			const live = state.readRuntime();
+			live.perAgent.claude.activeAccountId = "uuid-live";
+			live.perAgent.claude.cooldownUntil = 42;
+			state.writeRuntime(live);
+		}
+
+		recordIdentityBindings(discovered());
+
+		const runtime = JSON.parse(
+			readFileSync(join(stateDir(), "runtime.json"), "utf8"),
+		);
+		expect(runtime.perAgent.claude.activeAccountId).toBe("uuid-live");
+		expect(runtime.perAgent.claude.cooldownUntil).toBe(42);
+		expect(runtime.identityBindings).toEqual({
+			"uuid-a": "/home/u/.claude-a",
+			"uuid-b": "/home/u/.claude-b",
+		});
+	});
+
+	it("writes nothing while the engine holds discovery back (a lock loser)", () => {
+		recordIdentityBindings([["uuid-a", "/home/u/.claude-a"]]);
+		const runtimePath = join(stateDir(), "runtime.json");
+		const before = readFileSync(runtimePath, "utf8");
+
+		setIdentityBindingRecorder(() => {});
+		try {
+			recordIdentityBindings([["uuid-b", "/home/u/.claude-b"]]);
+		} finally {
+			setIdentityBindingRecorder(null);
+		}
+		expect(readFileSync(runtimePath, "utf8")).toBe(before);
+
+		recordIdentityBindings([["uuid-b", "/home/u/.claude-b"]]);
+		expect(
+			JSON.parse(readFileSync(runtimePath, "utf8")).identityBindings,
+		).toEqual({
+			"uuid-a": "/home/u/.claude-a",
+			"uuid-b": "/home/u/.claude-b",
+		});
 	});
 });

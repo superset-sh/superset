@@ -368,6 +368,23 @@ export function applyAccountEngineState(
 	};
 }
 
+export type IdentityBindingRecorder = (
+	bindings: Iterable<readonly [string, string | null]>,
+) => void;
+
+let identityBindingRecorder: IdentityBindingRecorder | null = null;
+
+/**
+ * KTD5: the account engine installs a recorder of its own while this
+ * host-service is a lock loser — a no-op, because only the owner may write
+ * runtime.json. Null restores the default writer below.
+ */
+export function setIdentityBindingRecorder(
+	recorder: IdentityBindingRecorder | null,
+): void {
+	identityBindingRecorder = recorder;
+}
+
 /**
  * KTD3 step 2: the swap primitive has to know which profile dir owns the
  * login currently in the active dir, so it can save the refreshed credential
@@ -378,23 +395,36 @@ export function applyAccountEngineState(
 export function recordIdentityBindings(
 	bindings: Iterable<readonly [string, string | null]>,
 ): void {
+	if (identityBindingRecorder) {
+		identityBindingRecorder(bindings);
+		return;
+	}
 	try {
 		const state = new EngineState();
 		if (state.readOnly) return;
-		const runtime = state.readRuntime();
-		let changed = false;
+		const updates = new Map<string, string | null>();
 		for (const [accountId, profileDir] of bindings) {
 			if (!accountId) continue;
-			if (
-				accountId in runtime.identityBindings &&
-				runtime.identityBindings[accountId] === profileDir
-			) {
-				continue;
-			}
-			runtime.identityBindings[accountId] = profileDir;
-			changed = true;
+			updates.set(accountId, profileDir);
 		}
-		if (changed) state.writeRuntime(runtime);
+		if (updates.size === 0) return;
+		// Re-read immediately before the write and merge into *that* copy:
+		// writeRuntime replaces the whole file, and the engine may have
+		// written an active account or a cooldown since discovery started.
+		const runtime = state.readRuntime();
+		const changed = [...updates].some(
+			([accountId, profileDir]) =>
+				!(accountId in runtime.identityBindings) ||
+				runtime.identityBindings[accountId] !== profileDir,
+		);
+		if (!changed) return;
+		state.writeRuntime({
+			...runtime,
+			identityBindings: {
+				...runtime.identityBindings,
+				...Object.fromEntries(updates),
+			},
+		});
 	} catch (error) {
 		console.warn("[host-service] recording identity bindings failed:", error);
 	}

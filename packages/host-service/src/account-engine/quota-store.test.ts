@@ -509,6 +509,58 @@ describe("QuotaStore snapshot mirror", () => {
 		expect(latest?.entries[0]?.tokenState).toBe("ok");
 	});
 
+	// KTD5: every host-service on the machine builds a store, so a loser that
+	// fetched would multiply this machine's provider requests.
+	it("serves a lock loser from the owner's mirror and calls no fetcher", async () => {
+		const owner = harness({ claudeSelections: [null, "/profiles/a"] });
+		await owner.store.read({ agents: ["claude"] });
+		// The mirror is JSON on disk by the time a loser reads it.
+		const published = JSON.parse(
+			JSON.stringify(owner.store.snapshot()),
+		) as QuotaStoreSnapshot;
+
+		const loser = harness({ claudeSelections: [null, "/profiles/a"] });
+		loser.store.setSnapshotSource(() => published);
+
+		const accounts = await loser.store.read({
+			agents: ["claude"],
+			forceRefresh: true,
+		});
+
+		expect(accounts.map((entry) => entry.selection)).toEqual([
+			null,
+			"/profiles/a",
+		]);
+		// The dates survive the round trip: the Usage page renders them.
+		expect(accounts[0]?.fetchedAt).toBeInstanceOf(Date);
+		expect(loser.calls).toEqual([]);
+	});
+
+	it("serves a lock loser its last-known entries until the owner publishes", async () => {
+		const h = harness({ claudeSelections: [null] });
+		await h.store.read({ agents: ["claude"] });
+		const before = h.calls.length;
+		h.store.setSnapshotSource(() => null);
+		h.advance(2 * QUOTA_TTL_MS);
+
+		const accounts = await h.store.read({ agents: ["claude"] });
+
+		expect(accounts.map((entry) => entry.selection)).toEqual([null]);
+		expect(h.calls).toHaveLength(before);
+	});
+
+	it("fetches again once it owns the lock", async () => {
+		const h = harness({ claudeSelections: [null] });
+		h.store.setSnapshotSource(() => null);
+		await h.store.read({ agents: ["claude"] });
+		expect(h.calls).toEqual([]);
+
+		h.store.setSnapshotSource(null);
+		await h.store.read({ agents: ["claude"] });
+
+		expect(h.callsFor(CLAUDE_DEFAULT)).toHaveLength(1);
+	});
+
 	it("uses the on-demand TTL when no schedule names the agent", async () => {
 		const h = harness({ claudeSelections: [null] });
 		await h.store.read({ agents: ["claude"] });

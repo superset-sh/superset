@@ -1,6 +1,8 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, it } from "bun:test";
 import { resolve } from "node:path";
+import type { AgentDefinitionId } from "@superset/shared/agent-catalog";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import type { HostDb } from "../../../db";
@@ -333,6 +335,12 @@ describe("resumeTerminalAgentSession", () => {
 
 const CODEX_CONFIG_ID = "00000000-0000-0000-0000-000000000002";
 
+/** A session pinned to a hand-exported `CLAUDE_CONFIG_DIR`: no Superset twin
+ * beside it, so `resolveAgentAccountDir` reports `managed: false` and the
+ * engine cannot move it. */
+const UNMANAGED_ENV = { CLAUDE_CONFIG_DIR: "/hand/exported/claude" };
+const UNMANAGED_DEFINITION_ID = "custom:claude-exported" as AgentDefinitionId;
+
 function seedAgentConfig(
 	db: HostDb,
 	{
@@ -342,6 +350,7 @@ function seedAgentConfig(
 		command = "claude",
 		resumeArgs = ["--resume"] as string[],
 		displayOrder = 0,
+		env = {} as Record<string, string>,
 	} = {},
 ) {
 	db.insert(hostAgentConfigs)
@@ -352,6 +361,7 @@ function seedAgentConfig(
 			command,
 			promptTransport: "argv",
 			resumeArgsJson: JSON.stringify(resumeArgs),
+			envJson: JSON.stringify(env),
 			displayOrder,
 		})
 		.run();
@@ -364,6 +374,7 @@ function seedLiveBinding(
 		agentId = "claude" as TerminalAgentId,
 		agentSessionId = `sess-${terminalId}` as string | null,
 		lastEventType = "Stop",
+		definitionId = undefined as AgentDefinitionId | undefined,
 	} = {},
 ) {
 	db.insert(terminalSessions)
@@ -380,6 +391,7 @@ function seedLiveBinding(
 			workspaceId: "ws-1",
 			agentId,
 			agentSessionId,
+			definitionId,
 			startedAt: 1,
 			lastEventAt: 2,
 			lastEventType,
@@ -464,7 +476,7 @@ describe("restartAccountSessions", () => {
 
 	it("kills each candidate crash-style, leaving a resume candidate behind", async () => {
 		const db = createTestDb();
-		seedAgentConfig(db);
+		seedAgentConfig(db, { env: UNMANAGED_ENV });
 		seedLiveBinding(db, { terminalId: "t1" });
 		seedLiveBinding(db, { terminalId: "t2" });
 		const { deps, disposedTerminals } = createRestartDeps(db);
@@ -482,9 +494,37 @@ describe("restartAccountSessions", () => {
 		});
 	});
 
-	it("keeps the resume candidate when the dispose fails", async () => {
+	// #28: the dialog counts only the sessions the engine cannot move, so the
+	// mutation must kill only those — a managed Claude session picked the
+	// swapped login up in place and restarting it would drop a live turn.
+	it("restarts only the sessions the engine could not move", async () => {
 		const db = createTestDb();
 		seedAgentConfig(db);
+		seedAgentConfig(db, {
+			id: UNMANAGED_DEFINITION_ID,
+			label: "Claude (exported)",
+			env: UNMANAGED_ENV,
+			displayOrder: 1,
+		});
+		seedLiveBinding(db, { terminalId: "t-managed" });
+		seedLiveBinding(db, {
+			terminalId: "t-unmanaged",
+			definitionId: UNMANAGED_DEFINITION_ID,
+		});
+		const { deps, disposedTerminals } = createRestartDeps(db);
+
+		const result = await restartAccountSessions(deps, "claude");
+
+		expect(result.restartedTerminalIds).toEqual(["t-unmanaged"]);
+		expect(disposedTerminals).toEqual(["t-unmanaged"]);
+		// The managed session was never marked ended, so nothing resumes it.
+		expect(findResumeCandidateBinding(db, "ws-1", "t-managed")).toBeUndefined();
+		expect(findResumeCandidateBinding(db, "ws-1", "t-unmanaged")).toBeDefined();
+	});
+
+	it("keeps the resume candidate when the dispose fails", async () => {
+		const db = createTestDb();
+		seedAgentConfig(db, { env: UNMANAGED_ENV });
 		seedLiveBinding(db, { terminalId: "t1" });
 		const { deps } = createRestartDeps(db, () =>
 			Promise.reject(new Error("daemon unreachable")),
@@ -575,6 +615,58 @@ describe("pending nudge (KTD8)", () => {
 		await resumeTerminalAgentSession(deps, input);
 
 		expect(runCalls.map((call) => call.prompt)).toEqual(["nudge", "nudge"]);
+	});
+
+	// A terminal id is a fresh UUID, so a nudge left behind on an exit that
+	// cannot consume it is unreachable for the life of the process.
+	it("drops the nudge on every exit that cannot consume it", async () => {
+		const input = { workspaceId: "ws-1", terminalId: "t1" };
+
+		// Nothing to claim: the candidate lost the race, or never existed.
+		const noCandidate = createTestDb();
+		const first = createDeps(noCandidate);
+		registerPendingNudge("ws-1", "t1", "nudge");
+		expect(await resumeTerminalAgentSession(first.deps, input)).toEqual({
+			resumed: false,
+		});
+		seedResumableBinding(noCandidate, { terminalId: "t1" });
+		await resumeTerminalAgentSession(first.deps, input);
+		expect(first.runCalls.map((call) => call.prompt)).toEqual([""]);
+
+		// Resume unsupported by the agent config.
+		const noResume = createTestDb();
+		seedResumableBinding(noResume, { terminalId: "t1", resumeArgs: [] });
+		const second = createDeps(noResume);
+		registerPendingNudge("ws-1", "t1", "nudge");
+		expect(await resumeTerminalAgentSession(second.deps, input)).toEqual({
+			resumed: false,
+		});
+		noResume
+			.update(hostAgentConfigs)
+			.set({ resumeArgsJson: JSON.stringify(["--resume"]) })
+			.where(eq(hostAgentConfigs.id, CLAUDE_CONFIG_ID))
+			.run();
+		await resumeTerminalAgentSession(second.deps, input);
+		expect(second.runCalls.map((call) => call.prompt)).toEqual([""]);
+
+		// A stored session id that could never become a `--resume` argument.
+		const malformed = createTestDb();
+		seedResumableBinding(malformed, {
+			terminalId: "t1",
+			agentSessionId: 'x"; rm -rf ~; #',
+		});
+		const third = createDeps(malformed);
+		registerPendingNudge("ws-1", "t1", "nudge");
+		expect(await resumeTerminalAgentSession(third.deps, input)).toEqual({
+			resumed: false,
+		});
+		malformed
+			.update(terminalAgentBindings)
+			.set({ agentSessionId: "sess-t1" })
+			.where(eq(terminalAgentBindings.terminalId, "t1"))
+			.run();
+		await resumeTerminalAgentSession(third.deps, input);
+		expect(third.runCalls.map((call) => call.prompt)).toEqual([""]);
 	});
 
 	it("refuses a session id that is not a plain session token", async () => {

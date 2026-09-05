@@ -7,15 +7,20 @@ import type {
 	AccountEngineStatePayload,
 	AccountSwitchedPayload,
 } from "../events/types.ts";
+import type { IdentityBindingRecorder } from "../trpc/router/usage/default-account.ts";
 import type {
 	UsageAccount,
 	UsageQuotaWindow,
 } from "../trpc/router/usage/types.ts";
 import { AccountEngine } from "./account-engine.ts";
-import type { ClaudeSwapResult } from "./claude-login-swap.ts";
+import type { ClaudeSwapResult, swapClaudeLogin } from "./claude-login-swap.ts";
 import { EngineState } from "./engine-state.ts";
 import type { AccountEngineHostDeps } from "./host-deps.ts";
-import type { QuotaEntry, QuotaRefreshSchedule } from "./quota-store.ts";
+import type {
+	QuotaEntry,
+	QuotaRefreshSchedule,
+	QuotaStoreSnapshot,
+} from "./quota-store.ts";
 import type { MovableSession } from "./session-mover.ts";
 import type { AccountAgent } from "./types.ts";
 
@@ -103,6 +108,11 @@ interface HarnessOptions {
 	activeDirThrows?: boolean;
 	/** The host pointer per agent, as `getDefaultAccountSelections` reads it. */
 	pointer?: { claudeConfigDir?: string | null; codexHome?: string | null };
+	/** Terminals `isAgentBusy` reports as mid-turn — a Codex limit hint. */
+	busyTerminals?: string[];
+	/** Runs inside the awaited quota refresh, where a slow tick can lose the
+	 * lock under itself (KTD5). */
+	onRefreshDue?: () => Promise<void> | void;
 }
 
 function harness(options: HarnessOptions = {}) {
@@ -118,6 +128,11 @@ function harness(options: HarnessOptions = {}) {
 	const restarted: MovableSession[] = [];
 	const externalSwitches: AccountAgent[] = [];
 	const identityWrites: string[] = [];
+	const snapshotSinks: Array<((snapshot: QuotaStoreSnapshot) => void) | null> =
+		[];
+	const snapshotSources: Array<(() => QuotaStoreSnapshot | null) | null> = [];
+	const bindingRecorders: Array<IdentityBindingRecorder | null> = [];
+	const swapInputs: Array<Parameters<typeof swapClaudeLogin>[0]> = [];
 	let clock = T0;
 	let entries = options.entries ?? [];
 	let sessions = options.sessions ?? [];
@@ -132,7 +147,8 @@ function harness(options: HarnessOptions = {}) {
 	const hostDeps = {
 		listSessions: (agent: AccountAgent) =>
 			sessions.filter((row) => row.agent === agent),
-		isAgentBusy: () => false,
+		isAgentBusy: (terminalId) =>
+			(options.busyTerminals ?? []).includes(terminalId),
 		isTerminalAlive: () => true,
 		killAndResume: async () => null,
 		sendToTerminal: async () => {},
@@ -154,8 +170,14 @@ function harness(options: HarnessOptions = {}) {
 			refreshDue: async (now, schedule) => {
 				calls.push("refreshDue");
 				schedules.push({ now, schedule });
+				await options.onRefreshDue?.();
 			},
-			setSnapshotSink: () => {},
+			setSnapshotSink: (sink) => {
+				snapshotSinks.push(sink);
+			},
+			setSnapshotSource: (source) => {
+				snapshotSources.push(source);
+			},
 			snapshot: () => ({ entries: [] }),
 		},
 		mover: {
@@ -189,8 +211,9 @@ function harness(options: HarnessOptions = {}) {
 			>) as unknown as typeof setInterval,
 		clearIntervalFn: (() => {}) as unknown as typeof clearInterval,
 		platform: options.platform ?? "linux",
-		swap: async () => {
+		swap: async (input) => {
 			calls.push("swap");
+			swapInputs.push(input);
 			const result = options.swapResult ?? {
 				ok: true,
 				identity: swapIdentity("acct-b"),
@@ -228,6 +251,11 @@ function harness(options: HarnessOptions = {}) {
 		updateClaudeStateFile: async (path) => {
 			identityWrites.push(path);
 		},
+		// Captured rather than installed: the real recorder is module state
+		// shared with every other test in this process.
+		setBindingRecorder: (recorder) => {
+			bindingRecorders.push(recorder);
+		},
 		resolveActiveDir: () => ACTIVE_DIR,
 		readActiveIdentity: async () => activeIdentity,
 	});
@@ -244,6 +272,10 @@ function harness(options: HarnessOptions = {}) {
 		restarted,
 		externalSwitches,
 		identityWrites,
+		swapInputs,
+		snapshotSinks,
+		snapshotSources,
+		bindingRecorders,
 		advance: (ms: number) => {
 			clock += ms;
 		},
@@ -603,6 +635,108 @@ describe("AccountEngine", () => {
 		expect(h.switched.at(-1)?.reasonKind).toBe("manual");
 	});
 
+	// KTD3: the swap's own owner guard only fires when the caller names the
+	// identity it believes the active dir holds.
+	it("names the owner account the swap must find in the active dir", async () => {
+		const h = harness({ entries: twoClaudeAccounts() });
+		enable(h.engine);
+
+		await h.engine.tick();
+
+		expect(h.swapInputs).toHaveLength(1);
+		expect(h.swapInputs[0]?.expectedOwnerAccountId).toBe("acct-a");
+		expect(h.swapInputs[0]?.ownerManaged).toBe(true);
+	});
+
+	// #11: a dir the user exported by hand is read, never written — the swap
+	// must not save the login it replaces back into it.
+	it("tells the swap not to write back into an unmanaged owner store", async () => {
+		const h = harness({
+			entries: [
+				entryFor(
+					usageAccount({
+						isDefault: true,
+						managed: false,
+						windows: [w("five_hour", "Session (5h)", 91)],
+					}),
+				),
+				entryFor(
+					usageAccount({
+						accountKey: "key-b",
+						accountId: "acct-b",
+						selection: "/profiles/b",
+						windows: [w("five_hour", "Session (5h)", 20)],
+					}),
+				),
+			],
+		});
+		enable(h.engine);
+
+		await h.engine.tick();
+
+		expect(h.swapInputs[0]?.ownerManaged).toBe(false);
+	});
+
+	// #11: the account is listed and usable, but nothing switches onto it.
+	it("refuses a manual switch onto a login Superset does not manage", async () => {
+		const h = harness({
+			entries: [
+				entryFor(usageAccount({ isDefault: true })),
+				entryFor(
+					usageAccount({
+						accountKey: "key-b",
+						accountId: "acct-b",
+						selection: "/profiles/b",
+						managed: false,
+					}),
+				),
+			],
+		});
+		enable(h.engine);
+
+		const result = await h.engine.switchManually("claude", "/profiles/b");
+
+		expect(result).toEqual({
+			ok: false,
+			code: "invalid-target",
+			reason:
+				"Superset does not manage this login; it can be used but not switched onto.",
+		});
+		expect(h.calls).not.toContain("swap");
+		expect(h.pointers).toEqual([]);
+	});
+
+	// #11: and the auto-switcher never picks it either.
+	it("never switches automatically onto an unmanaged login", async () => {
+		const h = harness({
+			entries: [
+				entryFor(
+					usageAccount({
+						isDefault: true,
+						windows: [w("five_hour", "Session (5h)", 96)],
+					}),
+				),
+				entryFor(
+					usageAccount({
+						accountKey: "key-b",
+						accountId: "acct-b",
+						selection: "/profiles/b",
+						managed: false,
+						windows: [w("five_hour", "Session (5h)", 5)],
+					}),
+				),
+			],
+		});
+		enable(h.engine);
+
+		await h.engine.tick();
+
+		expect(h.calls).not.toContain("swap");
+		expect(h.engine.status().claude.activeAccountId).toBe("acct-a");
+		// R22: no eligible account left, so the agent latches instead.
+		expect(h.engine.status().claude.exhausted).toBe(true);
+	});
+
 	it("switches Codex by pointer alone and moves its sessions", async () => {
 		const codex = (over: Partial<UsageAccount>) =>
 			usageAccount({ agent: "codex", ...over });
@@ -876,6 +1010,225 @@ describe("AccountEngine", () => {
 
 		expect(loser.externalSwitches).toEqual(["claude"]);
 		expect(loser.calls).not.toContain("swap");
+	});
+
+	// #22: the lease is three ticks long, and a slow tick can outlive it.
+	it("stops a tick that lost the lock mid-flight, before any swap or write", async () => {
+		const thief = harness();
+		const h = harness({
+			entries: twoClaudeAccounts(),
+			onRefreshDue: async () => {
+				// The provider call outlives the lease and another instance
+				// reclaims the stale lock while this tick is still running.
+				thief.advance(4 * MINUTE);
+				await thief.engine.tick();
+			},
+		});
+		enable(h.engine);
+
+		await h.engine.tick();
+
+		expect(h.calls).not.toContain("swap");
+		expect(h.calls).not.toContain("setPointer");
+		expect(h.calls).not.toContain("moveAtIdle");
+		expect(h.switched).toEqual([]);
+		expect(h.engineState.readHistory(10)).toEqual([]);
+		expect(h.engineState.readRuntime().perAgent.claude.activeAccountId).toBe(
+			null,
+		);
+		expect(h.engine.status().claude.lockOwner).toBe(false);
+		expect(thief.engine.status().claude.lockOwner).toBe(true);
+	});
+
+	// #7/#12: which side of the lock this instance is on decides where its
+	// quota comes from and whether it may write runtime.json at all.
+	it("points a lock loser at the owner's quota mirror and silences its binding writes", async () => {
+		const owner = harness({ entries: twoClaudeAccounts() });
+		await owner.engine.tick();
+		const loser = harness();
+		await loser.engine.tick();
+
+		expect(owner.snapshotSources.at(-1)).toBeNull();
+		expect(owner.bindingRecorders.at(-1)).toBeNull();
+		expect(owner.snapshotSinks.at(-1)).toBeInstanceOf(Function);
+
+		expect(loser.snapshotSinks.at(-1)).toBeNull();
+		expect(loser.bindingRecorders.at(-1)).toBeInstanceOf(Function);
+		// The owner publishes; the loser reads that mirror back, so its Usage
+		// query never reaches a provider.
+		const published = { entries: [] };
+		owner.snapshotSinks.at(-1)?.(published);
+		expect(loser.snapshotSources.at(-1)?.()).toEqual(published);
+	});
+
+	// #5: a stale-Start Codex row is busy enough to be a hint and idle enough
+	// to be moved, so the planned move used to eat the fallback's restart.
+	it("leaves the hinted Codex terminal to the fallback restart", async () => {
+		const codex = (over: Partial<UsageAccount>) =>
+			usageAccount({ agent: "codex", ...over });
+		const h = harness({
+			entries: [
+				entryFor(
+					codex({
+						isDefault: true,
+						selection: "/codex/a",
+						windows: [w("primary", "5h", 100)],
+					}),
+				),
+				entryFor(
+					codex({
+						accountKey: "key-b",
+						accountId: "acct-b",
+						selection: "/codex/b",
+						windows: [w("primary", "5h", 10)],
+					}),
+				),
+			],
+			sessions: [
+				movableSession({
+					agent: "codex",
+					configDir: "/codex/a",
+					lastEventType: "Start",
+				}),
+				movableSession({
+					agent: "codex",
+					terminalId: "term-2",
+					configDir: "/codex/a",
+				}),
+			],
+			busyTerminals: ["term-1"],
+		});
+		enable(h.engine, "codex");
+
+		await h.engine.handleLimitHints();
+
+		// The planned move takes every other row; the hinted one is restarted
+		// exactly once, by the fallback that carries the continue nudge.
+		expect(h.moved.at(-1)?.rows?.map((row) => row.terminalId)).toEqual([
+			"term-2",
+		]);
+		expect(h.calls.filter((call) => call === "fallbackRestart")).toHaveLength(
+			1,
+		);
+		expect(h.restarted.map((row) => row.terminalId)).toEqual(["term-1"]);
+	});
+
+	// #15: a hint is one hook event, and acting on it twice would act on the
+	// same stop twice.
+	it("acts on a repeated Claude hint only once", async () => {
+		const h = harness({
+			entries: [
+				entryFor(
+					usageAccount({
+						isDefault: true,
+						windows: [w("five_hour", "Session (5h)", 100)],
+					}),
+				),
+				entryFor(
+					usageAccount({
+						accountKey: "key-b",
+						accountId: "acct-b",
+						selection: "/profiles/b",
+						windows: [w("five_hour", "Session (5h)", 10)],
+					}),
+				),
+				entryFor(
+					usageAccount({
+						accountKey: "key-c",
+						accountId: "acct-c",
+						selection: "/profiles/c",
+						windows: [w("five_hour", "Session (5h)", 10)],
+					}),
+				),
+			],
+			sessions: [movableSession({ limitHintErrorType: "rate_limit" })],
+		});
+		enable(h.engine);
+
+		await h.engine.handleLimitHints();
+		// The same terminal, the same event: the second pass must not reach a
+		// gate at all, so it neither switches nor files a rejection.
+		await h.engine.handleLimitHints();
+
+		expect(h.calls.filter((call) => call === "swap")).toHaveLength(1);
+		expect(h.calls.filter((call) => call === "fallbackRestart")).toHaveLength(
+			1,
+		);
+		expect(h.restarted).toHaveLength(1);
+		expect(
+			h.engineState
+				.readHistory(10)
+				.filter((entry) => entry.reasonKind === "fallback-rejected"),
+		).toEqual([]);
+	});
+
+	// #17: a loser that starts after the owner switched used to take the new
+	// account as a baseline and leave its sessions on the old one forever.
+	it("moves a lock loser's Codex sessions onto the account the owner already chose", async () => {
+		const codex = (over: Partial<UsageAccount>) =>
+			usageAccount({ agent: "codex", ...over });
+		const owner = harness({
+			entries: [
+				entryFor(
+					codex({
+						isDefault: true,
+						selection: "/codex/a",
+						windows: [w("primary", "5h", 95)],
+					}),
+				),
+				entryFor(
+					codex({
+						accountKey: "key-b",
+						accountId: "acct-b",
+						selection: "/codex/b",
+						windows: [w("primary", "5h", 10)],
+					}),
+				),
+			],
+		});
+		enable(owner.engine, "codex");
+		await owner.engine.tick();
+		expect(owner.switched).toHaveLength(1);
+
+		const loser = harness({
+			sessions: [
+				movableSession({ agent: "codex", configDir: "/codex/a" }),
+				movableSession({
+					agent: "codex",
+					terminalId: "term-2",
+					configDir: "/codex/b",
+				}),
+			],
+		});
+		await loser.engine.tick();
+
+		expect(loser.engine.status().codex.lockOwner).toBe(false);
+		expect(loser.moved).toHaveLength(1);
+		expect(loser.moved[0]?.rows?.map((row) => row.terminalId)).toEqual([
+			"term-1",
+		]);
+		expect(loser.calls).not.toContain("swap");
+	});
+
+	it("follows a switch between two Codex homes that carry no identity", async () => {
+		const owner = harness();
+		await owner.engine.tick();
+
+		const loser = harness();
+		enable(loser.engine, "codex");
+		const runtime = loser.engineState.readRuntime();
+		runtime.perAgent.codex.activeSelection = "/codex/a";
+		loser.engineState.writeRuntime(runtime);
+		await loser.engine.tick();
+		expect(loser.externalSwitches).toEqual([]);
+
+		// Same null account id, different home: only the selection says a
+		// switch happened.
+		runtime.perAgent.codex.activeSelection = "/codex/b";
+		loser.engineState.writeRuntime(runtime);
+		await loser.engine.tick();
+
+		expect(loser.externalSwitches).toEqual(["codex"]);
 	});
 
 	it("broadcasts a needs-attention state from the mover", () => {

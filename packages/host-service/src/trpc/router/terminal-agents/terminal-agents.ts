@@ -83,8 +83,9 @@ const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
  * before it kills a session; whichever caller then wins the `resumeInflight`
  * coalescing — the mover's own resume or the renderer's empty-prompt
  * auto-resume — launches the agent with it, so the interrupted turn proceeds
- * without the user typing. Consumed exactly once, and restored when the
- * launch it was consumed for failed.
+ * without the user typing. Consumed exactly once, restored when the launch it
+ * was consumed for failed, and dropped on every other exit — a terminal id is
+ * a fresh UUID, so an entry left behind is unreachable for good.
  */
 const pendingNudges = new Map<string, string>();
 
@@ -162,7 +163,12 @@ export async function resumeTerminalAgentSession(
 			workspaceId,
 			terminalId,
 		);
-		if (!claimed?.agentSessionId) return { resumed: false };
+		if (!claimed?.agentSessionId) {
+			// Nothing left to resume under this id, and terminal ids are never
+			// reused: a nudge left queued here could never be looked up again.
+			pendingNudges.delete(key);
+			return { resumed: false };
+		}
 
 		const config = resolveHostAgentConfig(
 			deps.db,
@@ -172,6 +178,7 @@ export async function resumeTerminalAgentSession(
 			// Config gone or resume unsupported — leave the candidate intact
 			// rather than silently destroying the session id.
 			unclaimResumeCandidateBinding(deps.db, terminalId);
+			pendingNudges.delete(key);
 			return { resumed: false };
 		}
 
@@ -182,6 +189,7 @@ export async function resumeTerminalAgentSession(
 				{ terminalId },
 			);
 			unclaimResumeCandidateBinding(deps.db, terminalId);
+			pendingNudges.delete(key);
 			return { resumed: false };
 		}
 
@@ -334,7 +342,8 @@ export interface RestartAccountSessionsDeps {
 }
 
 /**
- * Relaunch every live `provider` agent onto the current default account.
+ * Relaunch every live `provider` agent the engine could not move — the ones
+ * pinned to a hand-exported config dir — onto the current default account.
  * Each candidate terminal is killed the way a crash would kill it — the
  * binding is marked "terminal-exited", never "disposed" — so the standard
  * auto-resume path relaunches the agent with its saved session id (or fresh,
@@ -356,7 +365,12 @@ export async function restartAccountSessions(
 		provider,
 	);
 	const restartedTerminalIds: string[] = [];
-	for (const { binding } of candidates) {
+	for (const { binding, managed } of candidates) {
+		// KTD12: the engine already moved every managed session — Claude picks
+		// the swapped login up in place, Codex restarts at idle — so killing
+		// one here would throw away a live turn. It is also the count the
+		// confirmation dialog showed, which filters the same way.
+		if (managed) continue;
 		deps.terminalAgentStore.markTerminalExited(binding.terminalId);
 		try {
 			await deps.disposeSession(binding.terminalId);
