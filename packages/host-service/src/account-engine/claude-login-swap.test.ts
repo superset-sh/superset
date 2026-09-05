@@ -627,6 +627,78 @@ describe("swapClaudeLogin on a file-backed store", () => {
 		expect(result).toMatchObject({ ok: false, code: "verify-failed" });
 	});
 
+	// The running CLI refreshes the login the swap just wrote before the
+	// read-back sees it. The swap did land — the dir holds the target's own
+	// token, one refresh newer — so undoing it would sign the caller out of
+	// the account it just asked for.
+	it("accepts a read-back the target's own session refreshed", async () => {
+		const f = fixture();
+		const deps: ClaudeSwapDeps = {
+			...f.deps,
+			fs: {
+				rename: async (from: string, to: string) => {
+					const { rename } = await import("node:fs/promises");
+					await rename(from, to);
+					if (to === join(f.activeDir, ".credentials.json")) {
+						writeCredentials(f.activeDir, {
+							claudeAiOauth: oauth("t-b-refreshed", 6_000),
+						});
+					}
+				},
+			},
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps,
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		if (!result.ok) throw new Error(result.reason);
+		expect(result.identity.accountUuid).toBe("uuid-b");
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-b-refreshed", 6_000),
+		);
+	});
+
+	// A `/login` landing between the write and the read-back leaves a third
+	// account in the active dir while the caller still believes the previous
+	// one is live: put the dir's own snapshot back rather than leave the two
+	// disagreeing.
+	it("rolls the write back when the dir verifies as another account", async () => {
+		const f = fixture();
+		const deps: ClaudeSwapDeps = {
+			...f.deps,
+			fs: {
+				readFile: async (path: string, encoding: "utf-8") => {
+					const { readFile } = await import("node:fs/promises");
+					// Only the verify step reads the active dir's identity here.
+					if (path === join(f.activeDir, ".claude.json")) {
+						writeCredentials(f.activeDir, {
+							claudeAiOauth: oauth("t-c", 9_000),
+						});
+						writeFileSync(path, JSON.stringify(identity("c")));
+					}
+					return readFile(path, encoding);
+				},
+			},
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps,
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "verify-failed" });
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+	});
+
 	it("replaces a symlinked .credentials.json with a real file", async () => {
 		const f = fixture();
 		const decoy = join(f.home, "decoy-credentials.json");
@@ -814,6 +886,30 @@ describe("swapClaudeLogin on a file-backed store", () => {
 
 		expect(result).toMatchObject({ ok: false, code: "target-changed" });
 		expect(readCredentials(f.activeDir)).toEqual(before);
+	});
+
+	// The caller's picture of the target is as old as its last poll: a profile
+	// re-authenticated as somebody else since then must not be swapped in
+	// under the account the caller asked for.
+	it("refuses a target signed in as an account the caller did not ask for", async () => {
+		const f = fixture();
+		const before = readCredentials(f.activeDir);
+		writeFileSync(
+			join(f.profileB, ".claude.json"),
+			JSON.stringify(identity("c")),
+		);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			expectedTargetAccountId: "uuid-b",
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "target-changed" });
+		expect(readCredentials(f.activeDir)).toEqual(before);
+		expect(readCredentials(f.profileA).claudeAiOauth).toEqual(oauth("t-a"));
 	});
 
 	it("refuses a target with no login and one with no identity", async () => {

@@ -267,6 +267,14 @@ function wouldRegress(stored: Oauth | undefined, incoming: Oauth): boolean {
 	return false;
 }
 
+/** True when `reread` is `written` after the running CLI refreshed it: the same
+ * login moved forward to a later expiry. Whose login it is is not this
+ * function's question — the identity file beside it answers that. */
+function isRefreshedLogin(written: Oauth, reread: Oauth | undefined): boolean {
+	if (!reread) return false;
+	return timestamp(reread, "expiresAt") > timestamp(written, "expiresAt");
+}
+
 function extractIdentity(
 	state: Record<string, unknown> | null,
 ): ClaudeSwapIdentity | null {
@@ -489,18 +497,20 @@ async function applyStoreWrite(
  * Each store is restored from its own bytes — writing one "freshest" login into
  * both would sign one of them in as the other — and a store that held no
  * credential before the swap has the one the swap created removed, rather than
- * left holding the target's login. Reports `write-failed` once the dir is whole
- * again, `split-state` when the restore failed too.
+ * left holding the target's login. Reports `code` — what went wrong before the
+ * rollback — once the dir is whole again, `split-state` when the restore failed
+ * too.
  */
 async function rollbackActiveWrite(
 	activeRead: ClaudeLoginRead,
 	written: StoreWritePlan,
 	activeDir: string,
 	reason: string,
+	code: "write-failed" | "verify-failed",
 	ctx: SwapContext,
 ): Promise<ClaudeSwapResult> {
 	if (!written.file && !written.keychain) {
-		return failure("write-failed", reason);
+		return failure(code, reason);
 	}
 	try {
 		if (written.file) {
@@ -531,7 +541,7 @@ async function rollbackActiveWrite(
 			`${reason}; ${activeDir} still holds the target login and could not be rolled back: ${errorText(rollbackError)}`,
 		);
 	}
-	return failure("write-failed", reason);
+	return failure(code, reason);
 }
 
 interface TargetLogin {
@@ -645,6 +655,7 @@ async function applyToActiveDir(
 			written,
 			activeDir,
 			`writing the login into ${activeDir} failed: ${errorText(error)}`,
+			"write-failed",
 			ctx,
 		);
 	}
@@ -663,28 +674,40 @@ async function applyToActiveDir(
 			written,
 			activeDir,
 			`writing the identity into ${activeDir} failed: ${errorText(error)}`,
+			"write-failed",
 			ctx,
 		);
 	}
 
 	const verifyRead = await readStore(activeRef, ctx);
-	if (hashOauth(oauthOf(verifyRead)) !== hash) {
-		return failure(
-			"verify-failed",
-			`${activeDir} did not read back as the target login`,
-		);
-	}
 	const verifyIdentity = await readIdentity(
 		join(activeDir, ".claude.json"),
 		ctx,
 	);
-	if (
-		JSON.stringify(verifyIdentity?.keys ?? null) !==
-		JSON.stringify(target.identity.keys)
-	) {
-		return failure(
+	const identityIsTarget =
+		JSON.stringify(verifyIdentity?.keys ?? null) ===
+		JSON.stringify(target.identity.keys);
+	const loginIsTarget =
+		hashOauth(oauthOf(verifyRead)) === hash ||
+		// A session running against the active dir can refresh the login the
+		// swap just wrote before the read-back sees it. That is still the
+		// target's own login, one refresh newer, and the identity beside it is
+		// what says so — the swap landed, so undoing it here would sign the
+		// caller out of the account it just asked for.
+		(target.identity.accountUuid !== null &&
+			verifyIdentity?.accountUuid === target.identity.accountUuid &&
+			isRefreshedLogin(oauth, oauthOf(verifyRead)));
+	if (!loginIsTarget || !identityIsTarget) {
+		// Unlike the write failures above, the dir now holds the target while
+		// the caller still believes the previous account is live; put its own
+		// snapshot back rather than leave the two disagreeing.
+		return rollbackActiveWrite(
+			activeRead,
+			written,
+			activeDir,
+			`${activeDir} did not read back as the target ${loginIsTarget ? "identity" : "login"}`,
 			"verify-failed",
-			`${activeDir} did not read back as the target identity`,
+			ctx,
 		);
 	}
 	return { ok: true, identity: target.identity };
@@ -701,6 +724,12 @@ async function applyToActiveDir(
  * the active dir before it writes. Optional so a caller that has no identity
  * to offer keeps today's behaviour.
  *
+ * `expectedTargetAccountId` is the other half: the account the caller believes
+ * `target` holds. Checked against the identity actually in the target's dir
+ * before anything is written, so a profile re-authenticated as someone else
+ * since the last poll is refused rather than swapped in. Optional on the same
+ * terms.
+ *
  * `ownerManaged: false` drops the save-back altogether: a config dir the user
  * exported by hand is Superset's to read, never to write, so the login it
  * owns is left where the CLI last put it rather than saved back here.
@@ -710,6 +739,8 @@ export async function swapClaudeLogin(input: {
 	ownerBinding: ClaudeLoginStoreRef | undefined;
 	/** The accountUuid `ownerBinding` stands for, when the caller knows it. */
 	expectedOwnerAccountId?: string | null;
+	/** The accountUuid `target` is expected to hold, when the caller knows it. */
+	expectedTargetAccountId?: string | null;
 	/** Whether Superset may write `ownerBinding`'s store. Default true. */
 	ownerManaged?: boolean;
 	activeDir: string;
@@ -726,6 +757,20 @@ export async function swapClaudeLogin(input: {
 
 	const loaded = await loadTarget(input.target, ctx);
 	if (!loaded.ok) return loaded.result;
+
+	// The caller's target claim is only as fresh as its last poll: a `/login`
+	// in that profile since then re-authenticated it as somebody else, and
+	// swapping it in would sign the session in as an account nobody asked for.
+	// An identity that names no account fails closed for the same reason.
+	if (
+		input.expectedTargetAccountId &&
+		loaded.target.identity.accountUuid !== input.expectedTargetAccountId
+	) {
+		return failure(
+			"target-changed",
+			`${storeDir(input.target, ctx)} is signed in as account ${loaded.target.identity.accountUuid ?? "none it names"}, not the expected ${input.expectedTargetAccountId}`,
+		);
+	}
 
 	const activeRef: ClaudeLoginStoreRef = {
 		kind: "profile",
