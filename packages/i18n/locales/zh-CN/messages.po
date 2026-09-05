@@ -213,8 +213,8 @@ msgid "{0, plural, one {# workspace} other {# workspaces}}"
 msgstr "{0, plural, one {#个工作区} other {#个工作区}}"
 
 #. placeholder {0}: shown?.count ?? 0
-msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
-msgstr "{0, plural, one {#个运行中的智能体仍在使用之前的账户。切换只对新启动生效。} other {#个运行中的智能体仍在使用之前的账户。切换只对新启动生效。}}"
+msgid "{0, plural, one {A running agent uses a config dir Superset does not manage, so the switch did not reach it.} other {# running agents use config dirs Superset does not manage, so the switch did not reach them.}}"
+msgstr "{0, plural, one {有一个正在运行的智能体使用了Superset未管理的配置目录，切换未生效。} other {有#个正在运行的智能体使用了Superset未管理的配置目录，切换未对它们生效。}}"
 
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
@@ -293,6 +293,11 @@ msgstr "{0} → {1}待更新"
 #. placeholder {0}: skill.name
 msgid "{0} actions"
 msgstr "{0}的操作"
+
+#. placeholder {0}: windowLabel(entry.windowId)
+#. placeholder {1}: formatPercent(entry.usedPercent / 100, { maximumFractionDigits: 0 })
+msgid "{0} at {1}"
+msgstr "{0}已用{1}"
 
 #. placeholder {0}: formatTokens(me.tokens - below.tokens)
 msgid "{0} behind you"
@@ -461,8 +466,20 @@ msgstr "占全部token的{0}% · {1}个token"
 msgid "{0}% of total cost · {1} tokens · * at API list rates"
 msgstr "占总费用的{0}% · {1}个token · * 按API标价计算"
 
+msgid "{accountLabel} is now the active {providerLabel} account."
+msgstr "{accountLabel}现在是{providerLabel}正在使用的账户。"
+
 msgid "{actual} so far · ~{projected} projected"
 msgstr "目前{actual} · 预计约{projected}"
+
+msgid "{agent} switched account"
+msgstr "{agent}已切换账户"
+
+msgid "{agent} switched from {fromLabel} to {toLabel}"
+msgstr "{agent}已从{fromLabel}切换到{toLabel}"
+
+msgid "{agent} switched to {toLabel}"
+msgstr "{agent}已切换到{toLabel}"
 
 msgid "{backgroundCount, plural, one {# background terminal session} other {# background terminal sessions}}"
 msgstr "{backgroundCount, plural, one {#个后台终端会话} other {#个后台终端会话}}"
@@ -488,6 +505,9 @@ msgstr "{configTitle}字号"
 
 msgid "{cookieCount} cookies — forget this site"
 msgstr "{cookieCount}个cookie——忘记此站点"
+
+msgid "{count, plural, one {# account switch while you were away} other {# account switches while you were away}}"
+msgstr "{count, plural, one {你离开期间发生了#次账户切换} other {你离开期间发生了#次账户切换}}"
 
 msgid "{count, plural, one {# Check Failed} other {# Checks Failed}}"
 msgstr "{count, plural, one {#项检查失败} other {#项检查失败}}"
@@ -656,6 +676,9 @@ msgstr "{minutes}分"
 msgid "{minutes}m ago"
 msgstr "{minutes}分钟前"
 
+msgid "{model} weekly window"
+msgstr "{model}每周时段"
+
 msgid "{modKey}↵ to create"
 msgstr "{modKey}↵创建"
 
@@ -814,6 +837,9 @@ msgstr "{updatedLabel}已恢复为默认值"
 
 msgid "{waiting} Waiting"
 msgstr "{waiting}人等待"
+
+msgid "{windowLabel} at {percent}"
+msgstr "{windowLabel}已用{percent}"
 
 msgid "{workspaceName}: host is unavailable"
 msgstr "{workspaceName}：主机不可用"
@@ -988,6 +1014,9 @@ msgstr "1个cookie——忘记此站点"
 msgid "1 hour"
 msgstr "1小时"
 
+msgid "1 minute"
+msgstr "1分钟"
+
 msgid "1 user"
 msgstr "1个用户"
 
@@ -1008,6 +1037,9 @@ msgstr "2个智能体 · 14个文件已更改"
 
 msgid "2 hours"
 msgstr "2小时"
+
+msgid "2 minutes"
+msgstr "2分钟"
 
 msgid "2021 to 2023"
 msgstr "2021至2023"
@@ -1036,6 +1068,9 @@ msgstr "每位工程师3条以上并行工作流"
 msgid "30 minutes"
 msgstr "30分钟"
 
+msgid "30 seconds"
+msgstr "30秒"
+
 msgid "30D"
 msgstr "30天"
 
@@ -1054,6 +1089,9 @@ msgstr "45 files · +82 −172"
 msgid "5 minutes"
 msgstr "5分钟"
 
+msgid "5-hour window"
+msgstr "5小时时段"
+
 msgid "55 call sites pass {code}"
 msgstr "55处调用传入{code}"
 
@@ -1065,6 +1103,9 @@ msgstr "7天"
 
 msgid "87.4K of 200K tokens used in this session."
 msgstr "本次会话已使用87.4K/200K个token。"
+
+msgid "A {agent} session needs attention"
+msgstr "有一个{agent}会话需要处理"
 
 msgid "A better in-app browser: preview your changes and click any element to send it to the agent as context."
 msgstr "更好用的应用内浏览器：预览改动，点击任意元素即可作为上下文发给智能体。"
@@ -1175,6 +1216,9 @@ msgstr "手风琴"
 msgid "Account"
 msgstr "账户"
 
+msgid "Account changed outside Superset"
+msgstr "账户在Superset之外被更改"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceNotResolvable"
 msgstr "账户安装仅解析第一方清单，因此来自 {marketplace} 的 {plugin} 暂时无法安装到你的账户。它仍安装在本机上。"
@@ -1206,6 +1250,13 @@ msgstr "激活率"
 
 msgid "Active"
 msgstr "启用中"
+
+msgctxt "account state"
+msgid "Active"
+msgstr "使用中"
+
+msgid "Active — every running and newly launched session of this agent uses this account."
+msgstr "使用中 — 该智能体所有正在运行和新启动的会话都使用这个账户。"
 
 #. placeholder {0}: formatDistanceToNowStrict(binding.lastEventAt, { addSuffix: true, })
 msgid "active {0}"
@@ -1402,6 +1453,10 @@ msgstr "对比main"
 msgid "Agent"
 msgstr "智能体"
 
+msgctxt "switch history column"
+msgid "Agent"
+msgstr "智能体"
+
 msgid "Agent Complete — {workspaceName}"
 msgstr "智能体已完成 — {workspaceName}"
 
@@ -1516,6 +1571,9 @@ msgstr "{0}项检查全部通过"
 #. placeholder {0}: summary.relevantChecks.length
 msgid "All {0} passed"
 msgstr "{0}全部通过"
+
+msgid "All {agent} accounts are at their limit"
+msgstr "{agent}的所有账户都已达到上限"
 
 msgid "All {versionCount} versions and their content are removed. Anyone with the link loses access."
 msgstr "全部{versionCount}个版本及其内容都会被移除。持有链接的人将失去访问权限。"
@@ -1734,6 +1792,12 @@ msgstr "匿名装配工"
 msgid "another device"
 msgstr "另一台设备"
 
+msgid "Another Superset instance on this machine owns account switching. Change this there."
+msgstr "本机上的另一个Superset实例掌管账户切换，请到那里更改。"
+
+msgid "Another Superset instance on this machine owns automatic switching. Change these settings there."
+msgstr "本机上的另一个Superset实例掌管自动切换，请到那里更改这些设置。"
+
 msgid "Answered"
 msgstr "已回答"
 
@@ -1847,6 +1911,9 @@ msgstr "适用于终端、聊天消息和任务浏览器中的URL。"
 
 msgid "Apply"
 msgstr "应用"
+
+msgid "Approaching the usage limit"
+msgstr "接近用量上限"
 
 msgid "Approve"
 msgstr "批准"
@@ -2051,6 +2118,19 @@ msgstr "自动化任务"
 
 msgid "Automate workspace setup for {projectName}"
 msgstr "为{projectName}自动化工作区初始化"
+
+msgctxt "account switch trigger"
+msgid "Automatic"
+msgstr "自动"
+
+msgid "Automatic account switching is not available on Windows. Switch accounts by hand instead."
+msgstr "Windows上无法自动切换账户，请手动切换。"
+
+msgid "Automatic switching may move sessions onto this account. Held-out accounts stay available to pick by hand."
+msgstr "自动切换可能会把会话移到这个账户上。被排除的账户仍可手动选择。"
+
+msgid "Automatic switching needs macOS or Linux. On Windows you can still switch the active {agentLabel} account by hand."
+msgstr "自动切换需要macOS或Linux。在Windows上你仍可手动切换当前使用的{agentLabel}账户。"
 
 msgid "Automation"
 msgstr "自动化"
@@ -2705,6 +2785,9 @@ msgstr "查看资源"
 
 msgid "Check the rendered prompt and launch output before saving"
 msgstr "保存前检查渲染后的提示词和启动输出"
+
+msgid "Check usage every"
+msgstr "检查用量的间隔"
 
 msgid "Check your connection and try again"
 msgstr "请检查网络连接后重试"
@@ -4336,9 +4419,6 @@ msgstr "默认浏览器"
 msgid "Default effort"
 msgstr "默认推理强度"
 
-msgid "Default for new agents"
-msgstr "新智能体的默认账户"
-
 msgid "Default location for new worktree workspaces on this host."
 msgstr "此主机上新建worktree工作区的默认位置。"
 
@@ -5184,6 +5264,10 @@ msgstr "每周五下午4点，根据本周合并的PR起草发布说明。"
 msgid "Every minute"
 msgstr "每分钟"
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Every running and newly launched {0} session uses the active account."
+msgstr "所有正在运行和新启动的{0}会话都使用当前账户。"
+
 msgid "Every star on <0>{repoSlug}</0>, plotted since launch."
 msgstr "<0>{repoSlug}</0>的每一个星标，自发布起绘制。"
 
@@ -5327,6 +5411,9 @@ msgstr "F4关卡 · {F4_GATE_SHARE}%"
 
 msgid "F4 gate crossed"
 msgstr "已越过F4关卡"
+
+msgid "Fable, Opus"
+msgstr "Fable, Opus"
 
 msgid "Factory 2026"
 msgstr "Factory 2026"
@@ -5799,6 +5886,9 @@ msgstr "上传标志失败"
 msgid "Failure"
 msgstr "失败"
 
+msgid "Fallback restart after a usage limit"
+msgstr "达到用量上限后的兜底重启"
+
 msgid "FAQ"
 msgstr "常见问题"
 
@@ -6164,6 +6254,10 @@ msgstr "基于"
 
 msgid "From"
 msgstr "从"
+
+msgctxt "switch history column"
+msgid "From"
+msgstr "原账户"
 
 msgid "from {price}/user/mo"
 msgstr "{price}/用户/月起"
@@ -6779,6 +6873,9 @@ msgstr "进行中"
 
 msgid "In Progress"
 msgstr "进行中"
+
+msgid "In rotation"
+msgstr "参与轮换"
 
 msgid "In the Superset desktop app, open <0>Settings → Appearance → Theme</0>."
 msgstr "在Superset桌面应用中打开<0>设置 → 外观 → 主题</0>。"
@@ -7398,6 +7495,12 @@ msgstr "喜欢用Superset开发吗？"
 msgid "Lime"
 msgstr "青柠色"
 
+msgid "Limit hit — session restarted"
+msgstr "已达上限 — 会话已重启"
+
+msgid "Limit report not confirmed — no switch"
+msgstr "上限报告未确认 — 未切换"
+
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
 msgid "Line {0}"
@@ -7650,6 +7753,9 @@ msgstr "退出登录"
 msgid "Log out?"
 msgstr "退出登录？"
 
+msgid "Login changed outside Superset"
+msgstr "登录信息在Superset之外被更改"
+
 msgid "Logins (cookies)"
 msgstr "登录信息（cookie）"
 
@@ -7698,14 +7804,14 @@ msgstr "主进程"
 msgid "Main workspace"
 msgstr "主工作区"
 
+msgid "Make active"
+msgstr "设为使用中"
+
+msgid "Make active — running sessions move to this account too."
+msgstr "设为使用中 — 正在运行的会话也会移到这个账户。"
+
 msgid "Make all panes equal size"
 msgstr "使所有窗格大小相同"
-
-msgid "Make default"
-msgstr "设为默认"
-
-msgid "Make default — launch new terminals and agents on this account."
-msgstr "设为默认——新终端和智能体将使用此账户启动。"
 
 msgid "Make the chip style the TooltipContent default"
 msgstr "把chip样式设为TooltipContent的默认样式"
@@ -7755,6 +7861,10 @@ msgstr "托管"
 msgid "Managed by your organization admin."
 msgstr "由你所在组织的管理员管理。"
 
+msgid "Manual"
+msgstr "手动"
+
+msgctxt "account switch trigger"
 msgid "Manual"
 msgstr "手动"
 
@@ -7954,6 +8064,9 @@ msgstr "2026年中"
 msgid "Mid 2027"
 msgstr "2027年中"
 
+msgid "min"
+msgstr "分钟"
+
 msgid "Mine"
 msgstr "我的"
 
@@ -8012,6 +8125,9 @@ msgstr "模型"
 msgid "Model context usage"
 msgstr "模型上下文用量"
 
+msgid "Model names whose weekly window also counts toward the threshold, separated by commas. Leave empty to watch only the account-wide windows."
+msgstr "以逗号分隔的模型名称，这些模型的每周时段也会计入阈值。留空则只监控账户整体的时段。"
+
 msgid "Model picker scoped to the selected agent"
 msgstr "限定在所选智能体范围内的模型选择器"
 
@@ -8020,6 +8136,9 @@ msgstr "模型选择器"
 
 msgid "Model volume"
 msgstr "模型用量"
+
+msgid "Model windows"
+msgstr "模型时段"
 
 msgid "Model-suggested code appears in a majority of new files."
 msgstr "多数新文件中出现了模型建议的代码。"
@@ -8087,6 +8206,9 @@ msgstr "更多{kindLower}主题"
 msgid "More actions"
 msgstr "更多操作"
 
+msgid "More headroom elsewhere"
+msgstr "别处余量更多"
+
 msgid "More pages"
 msgstr "更多页面"
 
@@ -8096,11 +8218,17 @@ msgstr "超过一半的合并变更由智能体撰写，且无任何人工修改
 msgid "most developers"
 msgstr "多数开发者"
 
+msgid "Most headroom"
+msgstr "余量最多的账户"
+
 msgid "Most of software history"
 msgstr "软件史的大部分时间"
 
 msgid "Move {count} to Group"
 msgstr "将{count}个移动到分组"
+
+msgid "Move running and new {agentLabel} sessions to another account before this one runs out."
+msgstr "在这个账户用完之前，把正在运行的和新的{agentLabel}会话移到另一个账户。"
 
 msgid "Move to group"
 msgstr "移动到分组"
@@ -8182,6 +8310,9 @@ msgstr "导航"
 msgid "Navigation Menu"
 msgstr "导航菜单"
 
+msgid "Near the limit"
+msgstr "接近上限"
+
 msgid "Need app-level wiring (form state, chart data, app shell)"
 msgstr "需要应用层的接线（表单状态、图表数据、应用外壳）"
 
@@ -8218,14 +8349,8 @@ msgstr "网络已变更"
 msgid "Never"
 msgstr "从未"
 
-msgid "New {providerLabel} agents will use {accountLabel}."
-msgstr "新的{providerLabel}智能体将使用{accountLabel}。"
-
 msgid "New agent"
 msgstr "新建智能体"
-
-msgid "New agent launches use this account. Relaunch a running agent to switch it."
-msgstr "新启动的智能体使用此账户。重新启动运行中的智能体才能切换。"
 
 msgid "New agent session"
 msgstr "新建智能体会话"
@@ -8381,6 +8506,9 @@ msgstr "此主机上没有{0}登录——登录后用量会显示在这里。"
 
 msgid "No access to this host"
 msgstr "没有此主机的访问权限"
+
+msgid "No account switches yet. Every switch, automatic or by hand, is listed here."
+msgstr "还没有账户切换记录。无论自动还是手动，每次切换都会列在这里。"
 
 msgid "No active enterprise accounts"
 msgstr "没有活跃的企业客户"
@@ -8944,6 +9072,10 @@ msgstr "尚未接收到事件：Microsoft Graph拒绝了通知订阅。请检查
 
 msgid "Not reviewed by you"
 msgstr "你还没有审查"
+
+#. placeholder {0}: engineErrorCode(failure)
+msgid "Not saved ({0}). The previous value still stands."
+msgstr "未保存（{0}）。仍沿用之前的值。"
 
 msgid "not set up"
 msgstr "未设置"
@@ -9719,6 +9851,10 @@ msgstr "输出结构"
 msgid "Output truncated"
 msgstr "输出已截断"
 
+msgctxt "account switch trigger"
+msgid "Outside Superset"
+msgstr "Superset之外"
+
 msgid "Overflow Fade"
 msgstr "溢出渐隐"
 
@@ -9902,6 +10038,9 @@ msgstr "每用户/月"
 
 msgid "Percent of total system RAM used by monitored Superset resources only (not all apps). A high share means Superset is a major contributor to system memory pressure; a low share means pressure is likely elsewhere."
 msgstr "仅受监控的Superset资源占系统总RAM的百分比（不含其他应用）。占比高说明Superset是系统内存压力的主要来源；占比低说明压力可能来自别处。"
+
+msgid "Percent used at which any window of the active account counts as near its limit."
+msgstr "当前账户的任一时段用量达到此百分比，即视为接近上限。"
 
 #. placeholder {0}: team.name
 msgid "Permanently remove <0>{0}</0> and all of its members. This can't be undone."
@@ -10143,6 +10282,9 @@ msgstr "预测阅读进度"
 
 msgid "Predictions about AI are cheap because nobody checks them. This page is a rubric, not a vibe: every gate below is either true or false of a real team shipping real software. We update it as gates open, and we do not move the goalposts."
 msgstr "关于AI的预测很廉价，因为没人回头核对。这个页面是一份评分表，不是一种感觉：下面每一道关卡，对一支真正在交付真实软件的团队来说，非真即假。关卡开启时我们会更新，但不会挪动球门。"
+
+msgid "Prefer the account whose weekly window resets soonest, so no quota expires unused"
+msgstr "优先选择每周时段最快重置的账户，不浪费额度"
 
 msgid "Preferences"
 msgstr "偏好设置"
@@ -10604,6 +10746,9 @@ msgstr "阅读并行编码智能体指南"
 msgid "Read the setup guide"
 msgstr "阅读设置指南"
 
+msgid "Reading switch history…"
+msgstr "正在读取切换记录…"
+
 msgid "Reading usage…"
 msgstr "正在读取用量…"
 
@@ -10742,9 +10887,6 @@ msgstr "相关文章"
 
 msgid "Relative path copied"
 msgstr "已复制相对路径"
-
-msgid "Relaunch running agents to switch them."
-msgstr "重新启动运行中的智能体才能切换。"
 
 msgid "Relay access enabled, connecting to the relay…"
 msgstr "已启用中继访问，正在连接中继…"
@@ -11145,6 +11287,9 @@ msgstr "已重启{restartedOrgCount}个主机服务"
 msgid "Restarted 1 host service"
 msgstr "已重启1个主机服务"
 
+msgid "Restarted and resumed"
+msgstr "已重启并恢复"
+
 msgid "Restarting agents on {accountLabel}."
 msgstr "正在{accountLabel}上重新启动智能体。"
 
@@ -11348,6 +11493,10 @@ msgstr "把智能体会话回滚到任意检查点，对话和文件改动一起
 msgid "Rotate device"
 msgstr "旋转设备"
 
+#. placeholder {0}: engineErrorCode(failure)
+msgid "Rotation not saved ({0})."
+msgstr "轮换设置未保存（{0}）。"
+
 msgid "Roundups"
 msgstr "综合评测"
 
@@ -11456,6 +11605,9 @@ msgstr "在已配对的设备上运行"
 
 msgid "Running on this device"
 msgstr "在此设备上运行"
+
+msgid "Running sessions move over without being relaunched."
+msgstr "正在运行的会话会直接迁移，无需重新启动。"
 
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "运行中的终端进程会继续，但重启应用后可能无法再看到较早的输出。"
@@ -12025,6 +12177,10 @@ msgstr "会话视图"
 msgid "Sessions"
 msgstr "会话"
 
+msgctxt "switch history column"
+msgid "Sessions"
+msgstr "会话"
+
 #. placeholder {0}: detail.sessions.length
 msgid "Sessions · top {0} by cost"
 msgstr "会话 · 按费用排名前{0}"
@@ -12048,6 +12204,9 @@ msgstr "设置密码"
 
 msgid "Set Run"
 msgstr "设置运行命令"
+
+msgid "Set up outside Superset. Its usage is shown, but switching never writes to this login."
+msgstr "在Superset之外设置。这里会显示它的用量，但切换绝不会写入这份登录信息。"
 
 msgid "Set up project on {hostName}"
 msgstr "在{hostName}上设置项目"
@@ -12353,6 +12512,9 @@ msgstr "登录失败"
 msgid "Signed in as <0>{userName}</0>"
 msgstr "已登录为<0>{userName}</0>"
 
+msgid "Signed in outside Superset, so switching leaves this login alone."
+msgstr "在Superset之外登录，因此切换不会动这份登录信息。"
+
 msgid "Signed out"
 msgstr "已退出登录"
 
@@ -12639,6 +12801,9 @@ msgstr "全部暂存"
 msgid "Staged"
 msgstr "已暂存"
 
+msgid "Stale token, still eligible"
+msgstr "令牌已过期，仍可使用"
+
 msgid "Standard action strip for pane headers"
 msgstr "面板标题栏的标准操作条"
 
@@ -12774,6 +12939,9 @@ msgstr "状态变更"
 
 msgid "Stay connected (refresh tokens)"
 msgstr "保持连接（刷新令牌）"
+
+msgid "Stay until the active account nears its limit, then move to the account with the most headroom"
+msgstr "一直用到当前账户接近上限，再切换到余量最多的账户"
 
 #. placeholder {0}: step === "workspace" ? 1 : 2
 msgid "Step {0} of 2"
@@ -13038,8 +13206,21 @@ msgstr "在GitHub上点个star来支持这个项目"
 msgid "Suspended"
 msgstr "已暂停"
 
+msgid "Switch accounts automatically"
+msgstr "自动切换账户"
+
 msgid "Switch agents. Keep your workflow"
 msgstr "换智能体，不换工作流"
+
+msgid "Switch at"
+msgstr "切换阈值"
+
+#. placeholder {0}: engineErrorCode(failure)
+msgid "Switch failed ({0}). The previous account is still active."
+msgstr "切换失败（{0}）。之前的账户仍在使用中。"
+
+msgid "Switch history"
+msgstr "切换记录"
 
 msgid "Switch host"
 msgstr "切换主机"
@@ -13109,6 +13290,15 @@ msgstr "切换到工作区8"
 
 msgid "Switch to Workspace 9"
 msgstr "切换到工作区9"
+
+msgid "Switched by the consume-first strategy"
+msgstr "按“先用完”策略切换"
+
+msgid "Switching resumes when a usage window resets."
+msgstr "用量时段重置后会恢复切换。"
+
+msgid "Switching…"
+msgstr "正在切换…"
 
 msgid "Sync"
 msgstr "同步"
@@ -13398,6 +13588,15 @@ msgstr "该名称不被允许。"
 msgid "The 2026 bet"
 msgstr "2026年的赌注"
 
+msgid "The access token is past its expiry but the sign-in is not — a fresh one is minted the next time the CLI runs."
+msgstr "访问令牌已过期，但登录本身没有 — 下次运行CLI时会重新签发。"
+
+msgid "The account engine is not running on this host, so {agentLabel} accounts cannot switch automatically."
+msgstr "这台主机上没有运行账户引擎，因此{agentLabel}账户无法自动切换。"
+
+msgid "The account engine is not running on this host."
+msgstr "这台主机上没有运行账户引擎。"
+
 msgid "the active organization"
 msgstr "当前组织"
 
@@ -13496,6 +13695,9 @@ msgstr "未来用于存放可复用的 Superset 智能体配置、提示词与�
 
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "该主机没有连接到Superset中继。如果就是此设备，请在“设置>远程访问”中打开“允许通过中继远程访问本设备”，然后重试。"
+
+msgid "The host rejected that value, so the previous one still stands."
+msgstr "主机拒绝了该值，仍沿用之前的值。"
 
 msgid "The human reads every line before it merges."
 msgstr "合并前人类会逐行阅读。"
@@ -13973,6 +14175,10 @@ msgstr "标题包含..."
 msgid "To"
 msgstr "到"
 
+msgctxt "switch history column"
+msgid "To"
+msgstr "新账户"
+
 msgid "Toast (Sonner)"
 msgstr "Toast（Sonner）"
 
@@ -14125,6 +14331,10 @@ msgstr "分类新议题"
 
 msgid "triaging 12 new issues…"
 msgstr "正在分类12个新议题…"
+
+msgctxt "switch history column"
+msgid "Trigger"
+msgstr "触发方式"
 
 msgid "Trigger alert()"
 msgstr "触发alert()"
@@ -14327,6 +14537,9 @@ msgctxt "person"
 msgid "Unknown"
 msgstr "未知"
 
+msgid "Unknown account"
+msgstr "未知账户"
+
 msgid "Unknown device"
 msgstr "未知设备"
 
@@ -14363,6 +14576,9 @@ msgstr "无限"
 
 msgid "Unlimited users"
 msgstr "用户数不限"
+
+msgid "Unmanaged"
+msgstr "非托管"
 
 msgid "Unmute notifications"
 msgstr "取消静音通知"
@@ -14557,6 +14773,9 @@ msgstr "用它修复卡住或无响应的终端。"
 msgid "Use this when calling the Superset API."
 msgstr "调用Superset API时使用。"
 
+msgid "Use up the soonest reset"
+msgstr "优先用完最快重置的"
+
 msgid "Use voice transcription and push-to-talk features."
 msgstr "使用语音转写和按住说话功能。"
 
@@ -14710,6 +14929,9 @@ msgstr "音量"
 msgid "VS Code"
 msgstr "VS Code"
 
+msgid "Wait between switches"
+msgstr "两次切换的间隔"
+
 msgid "Wait for workspace setup before starting agents"
 msgstr "启动智能体前等待工作区设置完成"
 
@@ -14848,6 +15070,9 @@ msgstr "每周发布说明"
 msgid "Weekly signup cohorts (Neon); cohorts younger than 30d excluded"
 msgstr "按周划分的注册同期群（Neon）；不足30天的同期群已排除"
 
+msgid "weekly window"
+msgstr "每周时段"
+
 msgid "Welcome back"
 msgstr "欢迎回来"
 
@@ -14902,6 +15127,10 @@ msgstr "企业版包含什么？"
 msgid "What's New"
 msgstr "最新动态"
 
+msgctxt "switch history column"
+msgid "When"
+msgstr "时间"
+
 msgid "When off, nothing else can reach the files and tools on this device. You can still connect out to remote sandboxes from here. <0>Learn more<1/></0>"
 msgstr "关闭后，其他设备无法访问本设备上的文件和工具。你仍可以从这里连接到远程沙箱。<0>了解更多<1/></0>"
 
@@ -14929,6 +15158,9 @@ msgstr "此终端脚本在哪些地方可用。"
 msgid "Where to look next"
 msgstr "接下来可以看这些"
 
+msgid "Which account to move to"
+msgstr "切换到哪个账户"
+
 msgid "Which agents are supported?"
 msgstr "支持哪些智能体？"
 
@@ -14937,6 +15169,10 @@ msgstr "支持哪些AI编码智能体？"
 
 msgid "Who can open this page from its link"
 msgstr "谁可以通过链接打开这个页面"
+
+msgctxt "switch history column"
+msgid "Why"
+msgstr "原因"
 
 msgid "Window"
 msgstr "窗口"
@@ -15183,6 +15419,9 @@ msgstr "你没有移除该成员的权限"
 
 msgid "You need to be part of an organization to use integrations."
 msgstr "你需要加入一个组织才能使用集成。"
+
+msgid "You picked this account"
+msgstr "你选择了这个账户"
 
 #. placeholder {0}: preview.rank
 #. placeholder {1}: preview.total

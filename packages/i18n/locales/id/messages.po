@@ -213,8 +213,8 @@ msgid "{0, plural, one {# workspace} other {# workspaces}}"
 msgstr "{0, plural, one {# workspace} other {# workspace}}"
 
 #. placeholder {0}: shown?.count ?? 0
-msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
-msgstr "{0, plural, one {# agen yang sedang berjalan masih memakai akun sebelumnya — pergantian hanya berlaku untuk peluncuran baru.} other {# agen yang sedang berjalan masih memakai akun sebelumnya — pergantian hanya berlaku untuk peluncuran baru.}}"
+msgid "{0, plural, one {A running agent uses a config dir Superset does not manage, so the switch did not reach it.} other {# running agents use config dirs Superset does not manage, so the switch did not reach them.}}"
+msgstr "{0, plural, one {# agen berjalan memakai direktori konfigurasi yang tidak dikelola Superset, jadi pergantian tidak sampai ke mereka.} other {# agen berjalan memakai direktori konfigurasi yang tidak dikelola Superset, jadi pergantian tidak sampai ke mereka.}}"
 
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
@@ -293,6 +293,11 @@ msgstr "{0} → {1} tertunda"
 #. placeholder {0}: skill.name
 msgid "{0} actions"
 msgstr "Aksi {0}"
+
+#. placeholder {0}: windowLabel(entry.windowId)
+#. placeholder {1}: formatPercent(entry.usedPercent / 100, { maximumFractionDigits: 0 })
+msgid "{0} at {1}"
+msgstr "{0}: {1}"
 
 #. placeholder {0}: formatTokens(me.tokens - below.tokens)
 msgid "{0} behind you"
@@ -461,8 +466,20 @@ msgstr "{0}% dari semua token · {1} token"
 msgid "{0}% of total cost · {1} tokens · * at API list rates"
 msgstr "{0}% dari total biaya · {1} token · * pada tarif daftar API"
 
+msgid "{accountLabel} is now the active {providerLabel} account."
+msgstr "{accountLabel} kini menjadi akun {providerLabel} yang aktif."
+
 msgid "{actual} so far · ~{projected} projected"
 msgstr "{actual} sejauh ini · ~{projected} diperkirakan"
+
+msgid "{agent} switched account"
+msgstr "{agent} mengganti akun"
+
+msgid "{agent} switched from {fromLabel} to {toLabel}"
+msgstr "{agent} beralih dari {fromLabel} ke {toLabel}"
+
+msgid "{agent} switched to {toLabel}"
+msgstr "{agent} beralih ke {toLabel}"
 
 msgid "{backgroundCount, plural, one {# background terminal session} other {# background terminal sessions}}"
 msgstr "{backgroundCount, plural, one {# sesi terminal latar belakang} other {# sesi terminal latar belakang}}"
@@ -488,6 +505,9 @@ msgstr "Ukuran font {configTitle}"
 
 msgid "{cookieCount} cookies — forget this site"
 msgstr "{cookieCount} cookie — lupakan situs ini"
+
+msgid "{count, plural, one {# account switch while you were away} other {# account switches while you were away}}"
+msgstr "{count, plural, one {# pergantian akun selagi Anda pergi} other {# pergantian akun selagi Anda pergi}}"
 
 msgid "{count, plural, one {# Check Failed} other {# Checks Failed}}"
 msgstr "{count, plural, one {# Check Gagal} other {# Check Gagal}}"
@@ -656,6 +676,9 @@ msgstr "{minutes}m"
 msgid "{minutes}m ago"
 msgstr "{minutes}m lalu"
 
+msgid "{model} weekly window"
+msgstr "periode mingguan {model}"
+
 msgid "{modKey}↵ to create"
 msgstr "{modKey}↵ untuk membuat"
 
@@ -814,6 +837,9 @@ msgstr "{updatedLabel} dipulihkan ke setelan bawaan"
 
 msgid "{waiting} Waiting"
 msgstr "{waiting} Menunggu"
+
+msgid "{windowLabel} at {percent}"
+msgstr "{windowLabel}: {percent}"
 
 msgid "{workspaceName}: host is unavailable"
 msgstr "{workspaceName}: host tidak tersedia"
@@ -988,6 +1014,9 @@ msgstr "1 cookie — lupakan situs ini"
 msgid "1 hour"
 msgstr "1 jam"
 
+msgid "1 minute"
+msgstr "1 menit"
+
 msgid "1 user"
 msgstr "1 pengguna"
 
@@ -1008,6 +1037,9 @@ msgstr "2 agen · 14 file berubah"
 
 msgid "2 hours"
 msgstr "2 jam"
+
+msgid "2 minutes"
+msgstr "2 menit"
 
 msgid "2021 to 2023"
 msgstr "2021 sampai 2023"
@@ -1036,6 +1068,9 @@ msgstr "3+ alur kerja bersamaan per engineer"
 msgid "30 minutes"
 msgstr "30 menit"
 
+msgid "30 seconds"
+msgstr "30 detik"
+
 msgid "30D"
 msgstr "30H"
 
@@ -1054,6 +1089,9 @@ msgstr "45 file · +82 −172"
 msgid "5 minutes"
 msgstr "5 menit"
 
+msgid "5-hour window"
+msgstr "periode 5 jam"
+
 msgid "55 call sites pass {code}"
 msgstr "55 titik pemanggilan meneruskan {code}"
 
@@ -1065,6 +1103,9 @@ msgstr "7H"
 
 msgid "87.4K of 200K tokens used in this session."
 msgstr "87,4 rb dari 200 rb token dipakai di sesi ini."
+
+msgid "A {agent} session needs attention"
+msgstr "Ada sesi {agent} yang butuh perhatian"
 
 msgid "A better in-app browser: preview your changes and click any element to send it to the agent as context."
 msgstr "Browser dalam aplikasi yang lebih baik: lihat pratinjau perubahan Anda dan klik elemen mana pun untuk mengirimkannya ke agen sebagai konteks."
@@ -1175,6 +1216,9 @@ msgstr "Accordion"
 msgid "Account"
 msgstr "Akun"
 
+msgid "Account changed outside Superset"
+msgstr "Akun diubah di luar Superset"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceNotResolvable"
 msgstr "Instalasi ke akun hanya menangani manifes internal, jadi {plugin} dari {marketplace} belum dapat dipasang ke akun Anda. Plugin tetap terpasang di mesin ini."
@@ -1206,6 +1250,13 @@ msgstr "tingkat aktivasi"
 
 msgid "Active"
 msgstr "Aktif"
+
+msgctxt "account state"
+msgid "Active"
+msgstr "Aktif"
+
+msgid "Active — every running and newly launched session of this agent uses this account."
+msgstr "Aktif — semua sesi agen ini yang berjalan dan yang baru dijalankan memakai akun ini."
 
 #. placeholder {0}: formatDistanceToNowStrict(binding.lastEventAt, { addSuffix: true, })
 msgid "active {0}"
@@ -1402,6 +1453,10 @@ msgstr "Terhadap Main"
 msgid "Agent"
 msgstr "Agen"
 
+msgctxt "switch history column"
+msgid "Agent"
+msgstr "Agen"
+
 msgid "Agent Complete — {workspaceName}"
 msgstr "Agen Selesai — {workspaceName}"
 
@@ -1516,6 +1571,9 @@ msgstr "Semua {0} check lulus"
 #. placeholder {0}: summary.relevantChecks.length
 msgid "All {0} passed"
 msgstr "Semua {0} lulus"
+
+msgid "All {agent} accounts are at their limit"
+msgstr "Semua akun {agent} sudah mencapai batas"
 
 msgid "All {versionCount} versions and their content are removed. Anyone with the link loses access."
 msgstr "Semua {versionCount} versi beserta isinya dihapus. Siapa pun yang punya tautannya kehilangan akses."
@@ -1734,6 +1792,12 @@ msgstr "Perakit Anonim"
 msgid "another device"
 msgstr "perangkat lain"
 
+msgid "Another Superset instance on this machine owns account switching. Change this there."
+msgstr "Instance Superset lain di mesin ini yang mengelola pergantian akun. Ubah di sana."
+
+msgid "Another Superset instance on this machine owns automatic switching. Change these settings there."
+msgstr "Instance Superset lain di mesin ini yang mengelola pergantian otomatis. Ubah pengaturan ini di sana."
+
 msgid "Answered"
 msgstr "Dijawab"
 
@@ -1847,6 +1911,9 @@ msgstr "Berlaku untuk URL di terminal, pesan chat, dan browser tugas."
 
 msgid "Apply"
 msgstr "Terapkan"
+
+msgid "Approaching the usage limit"
+msgstr "Mendekati batas penggunaan"
 
 msgid "Approve"
 msgstr "Setujui"
@@ -2051,6 +2118,19 @@ msgstr "Otomatiskan Tugas"
 
 msgid "Automate workspace setup for {projectName}"
 msgstr "Otomatiskan penyiapan workspace untuk {projectName}"
+
+msgctxt "account switch trigger"
+msgid "Automatic"
+msgstr "Otomatis"
+
+msgid "Automatic account switching is not available on Windows. Switch accounts by hand instead."
+msgstr "Pergantian akun otomatis tidak tersedia di Windows. Ganti akun secara manual."
+
+msgid "Automatic switching may move sessions onto this account. Held-out accounts stay available to pick by hand."
+msgstr "Pergantian otomatis bisa memindahkan sesi ke akun ini. Akun yang dikecualikan tetap bisa dipilih secara manual."
+
+msgid "Automatic switching needs macOS or Linux. On Windows you can still switch the active {agentLabel} account by hand."
+msgstr "Pergantian otomatis membutuhkan macOS atau Linux. Di Windows Anda tetap bisa mengganti akun {agentLabel} yang aktif secara manual."
 
 msgid "Automation"
 msgstr "Otomatisasi"
@@ -2705,6 +2785,9 @@ msgstr "Periksa Sumber Daya"
 
 msgid "Check the rendered prompt and launch output before saving"
 msgstr "Periksa prompt yang dirender dan output peluncuran sebelum menyimpan"
+
+msgid "Check usage every"
+msgstr "Periksa penggunaan setiap"
 
 msgid "Check your connection and try again"
 msgstr "Periksa koneksi Anda dan coba lagi"
@@ -4336,9 +4419,6 @@ msgstr "Browser bawaan"
 msgid "Default effort"
 msgstr "Effort bawaan"
 
-msgid "Default for new agents"
-msgstr "Bawaan untuk agen baru"
-
 msgid "Default location for new worktree workspaces on this host."
 msgstr "Lokasi bawaan untuk workspace worktree baru di host ini."
 
@@ -5184,6 +5264,10 @@ msgstr "Tiap Jumat jam 4 sore, susun draf catatan rilis dari PR yang di-merge mi
 msgid "Every minute"
 msgstr "Tiap menit"
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Every running and newly launched {0} session uses the active account."
+msgstr "Semua sesi {0} yang berjalan dan yang baru dijalankan memakai akun aktif."
+
 msgid "Every star on <0>{repoSlug}</0>, plotted since launch."
 msgstr "Tiap star di <0>{repoSlug}</0>, diplot sejak peluncuran."
 
@@ -5327,6 +5411,9 @@ msgstr "Gerbang F4 · {F4_GATE_SHARE}%"
 
 msgid "F4 gate crossed"
 msgstr "Gerbang F4 dilewati"
+
+msgid "Fable, Opus"
+msgstr "Fable, Opus"
 
 msgid "Factory 2026"
 msgstr "Factory 2026"
@@ -5799,6 +5886,9 @@ msgstr "Gagal mengunggah logo"
 msgid "Failure"
 msgstr "Gagal"
 
+msgid "Fallback restart after a usage limit"
+msgstr "Restart cadangan setelah batas penggunaan"
+
 msgid "FAQ"
 msgstr "FAQ"
 
@@ -6162,6 +6252,10 @@ msgstr "Pertanyaan<0/>yang sering diajukan"
 msgid "from"
 msgstr "dari"
 
+msgid "From"
+msgstr "Dari"
+
+msgctxt "switch history column"
 msgid "From"
 msgstr "Dari"
 
@@ -6779,6 +6873,9 @@ msgstr "Sedang dikerjakan"
 
 msgid "In Progress"
 msgstr "Sedang berjalan"
+
+msgid "In rotation"
+msgstr "Dalam rotasi"
 
 msgid "In the Superset desktop app, open <0>Settings → Appearance → Theme</0>."
 msgstr "Di aplikasi desktop Superset, buka <0>Pengaturan → Tampilan → Tema</0>."
@@ -7398,6 +7495,12 @@ msgstr "Suka membangun dengan Superset?"
 msgid "Lime"
 msgstr "Limau"
 
+msgid "Limit hit — session restarted"
+msgstr "Batas tercapai — sesi dijalankan ulang"
+
+msgid "Limit report not confirmed — no switch"
+msgstr "Laporan batas tidak terkonfirmasi — tidak ada pergantian"
+
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
 msgid "Line {0}"
@@ -7650,6 +7753,9 @@ msgstr "Keluar"
 msgid "Log out?"
 msgstr "Keluar?"
 
+msgid "Login changed outside Superset"
+msgstr "Sesi masuk diubah di luar Superset"
+
 msgid "Logins (cookies)"
 msgstr "Login (cookie)"
 
@@ -7698,14 +7804,14 @@ msgstr "Main"
 msgid "Main workspace"
 msgstr "Workspace utama"
 
+msgid "Make active"
+msgstr "Jadikan aktif"
+
+msgid "Make active — running sessions move to this account too."
+msgstr "Jadikan aktif — sesi yang sedang berjalan juga pindah ke akun ini."
+
 msgid "Make all panes equal size"
 msgstr "Samakan ukuran semua panel"
-
-msgid "Make default"
-msgstr "Jadikan bawaan"
-
-msgid "Make default — launch new terminals and agents on this account."
-msgstr "Jadikan bawaan — jalankan terminal dan agen baru dengan akun ini."
 
 msgid "Make the chip style the TooltipContent default"
 msgstr "Jadikan gaya chip sebagai bawaan TooltipContent"
@@ -7755,6 +7861,10 @@ msgstr "Terkelola"
 msgid "Managed by your organization admin."
 msgstr "Dikelola oleh admin organisasi Anda."
 
+msgid "Manual"
+msgstr "Manual"
+
+msgctxt "account switch trigger"
 msgid "Manual"
 msgstr "Manual"
 
@@ -7954,6 +8064,9 @@ msgstr "Pertengahan 2026"
 msgid "Mid 2027"
 msgstr "Pertengahan 2027"
 
+msgid "min"
+msgstr "menit"
+
 msgid "Mine"
 msgstr "Milik saya"
 
@@ -8012,6 +8125,9 @@ msgstr "Model"
 msgid "Model context usage"
 msgstr "Penggunaan konteks model"
 
+msgid "Model names whose weekly window also counts toward the threshold, separated by commas. Leave empty to watch only the account-wide windows."
+msgstr "Nama model yang periode mingguannya juga dihitung ke ambang batas, dipisah koma. Kosongkan untuk memantau hanya periode tingkat akun."
+
 msgid "Model picker scoped to the selected agent"
 msgstr "Pemilih model yang dibatasi pada agen yang dipilih"
 
@@ -8020,6 +8136,9 @@ msgstr "Pemilih Model"
 
 msgid "Model volume"
 msgstr "Volume model"
+
+msgid "Model windows"
+msgstr "Periode model"
 
 msgid "Model-suggested code appears in a majority of new files."
 msgstr "Kode saran model muncul di mayoritas file baru."
@@ -8087,6 +8206,9 @@ msgstr "Tema {kindLower} lainnya"
 msgid "More actions"
 msgstr "Aksi lainnya"
 
+msgid "More headroom elsewhere"
+msgstr "Sisa kuota lebih banyak di akun lain"
+
 msgid "More pages"
 msgstr "Halaman lainnya"
 
@@ -8096,11 +8218,17 @@ msgstr "Lebih dari separuh perubahan yang di-merge ditulis agen tanpa suntingan 
 msgid "most developers"
 msgstr "sebagian besar developer"
 
+msgid "Most headroom"
+msgstr "Sisa kuota terbanyak"
+
 msgid "Most of software history"
 msgstr "Sebagian besar sejarah perangkat lunak"
 
 msgid "Move {count} to Group"
 msgstr "Pindahkan {count} ke Grup"
+
+msgid "Move running and new {agentLabel} sessions to another account before this one runs out."
+msgstr "Memindahkan sesi {agentLabel} yang berjalan dan yang baru ke akun lain sebelum akun ini habis."
 
 msgid "Move to group"
 msgstr "Pindahkan ke grup"
@@ -8182,6 +8310,9 @@ msgstr "Navigasi"
 msgid "Navigation Menu"
 msgstr "Menu Navigasi"
 
+msgid "Near the limit"
+msgstr "Mendekati batas"
+
 msgid "Need app-level wiring (form state, chart data, app shell)"
 msgstr "Butuh perangkaian di level aplikasi (state form, data grafik, app shell)"
 
@@ -8218,14 +8349,8 @@ msgstr "Jaringan Berubah"
 msgid "Never"
 msgstr "Tidak pernah"
 
-msgid "New {providerLabel} agents will use {accountLabel}."
-msgstr "Agen {providerLabel} yang baru akan memakai {accountLabel}."
-
 msgid "New agent"
 msgstr "Agen baru"
-
-msgid "New agent launches use this account. Relaunch a running agent to switch it."
-msgstr "Peluncuran agen baru memakai akun ini. Jalankan ulang agen yang sedang berjalan untuk menggantinya."
 
 msgid "New agent session"
 msgstr "Sesi agen baru"
@@ -8381,6 +8506,9 @@ msgstr "Tidak ada login {0} di host ini — masuk dan penggunaannya akan muncul 
 
 msgid "No access to this host"
 msgstr "Tidak ada akses ke host ini"
+
+msgid "No account switches yet. Every switch, automatic or by hand, is listed here."
+msgstr "Belum ada pergantian akun. Setiap pergantian, otomatis maupun manual, tercantum di sini."
 
 msgid "No active enterprise accounts"
 msgstr "Tidak ada akun enterprise yang aktif"
@@ -8944,6 +9072,10 @@ msgstr "Belum menerima event: Microsoft Graph menolak langganan notifikasi. Peri
 
 msgid "Not reviewed by you"
 msgstr "Belum Anda review"
+
+#. placeholder {0}: engineErrorCode(failure)
+msgid "Not saved ({0}). The previous value still stands."
+msgstr "Tidak tersimpan ({0}). Nilai sebelumnya tetap berlaku."
 
 msgid "not set up"
 msgstr "belum disiapkan"
@@ -9719,6 +9851,10 @@ msgstr "Skema Output"
 msgid "Output truncated"
 msgstr "Output dipotong"
 
+msgctxt "account switch trigger"
+msgid "Outside Superset"
+msgstr "Di luar Superset"
+
 msgid "Overflow Fade"
 msgstr "Overflow Fade"
 
@@ -9902,6 +10038,9 @@ msgstr "per pengguna/bulan"
 
 msgid "Percent of total system RAM used by monitored Superset resources only (not all apps). A high share means Superset is a major contributor to system memory pressure; a low share means pressure is likely elsewhere."
 msgstr "Persentase total RAM sistem yang dipakai hanya oleh sumber daya Superset yang dipantau (bukan semua aplikasi). Porsi tinggi berarti Superset penyumbang utama tekanan memori sistem; porsi rendah berarti tekanannya kemungkinan dari tempat lain."
+
+msgid "Percent used at which any window of the active account counts as near its limit."
+msgstr "Persentase pemakaian saat periode mana pun dari akun aktif dianggap mendekati batasnya."
 
 #. placeholder {0}: team.name
 msgid "Permanently remove <0>{0}</0> and all of its members. This can't be undone."
@@ -10143,6 +10282,9 @@ msgstr "Progres prediksi"
 
 msgid "Predictions about AI are cheap because nobody checks them. This page is a rubric, not a vibe: every gate below is either true or false of a real team shipping real software. We update it as gates open, and we do not move the goalposts."
 msgstr "Prediksi soal AI itu murah karena tidak ada yang memeriksanya. Halaman ini adalah rubrik, bukan sekadar firasat: tiap gerbang di bawah ini benar atau salah untuk tim nyata yang merilis perangkat lunak nyata. Kami memperbaruinya saat gerbang terbuka, dan kami tidak memindahkan tiang gawang."
+
+msgid "Prefer the account whose weekly window resets soonest, so no quota expires unused"
+msgstr "Utamakan akun yang periode mingguannya paling cepat direset, agar tidak ada kuota yang hangus"
 
 msgid "Preferences"
 msgstr "Preferensi"
@@ -10604,6 +10746,9 @@ msgstr "Baca panduan agen coding paralel"
 msgid "Read the setup guide"
 msgstr "Baca panduan penyiapan"
 
+msgid "Reading switch history…"
+msgstr "Membaca riwayat pergantian…"
+
 msgid "Reading usage…"
 msgstr "Membaca penggunaan…"
 
@@ -10742,9 +10887,6 @@ msgstr "Tulisan Terkait"
 
 msgid "Relative path copied"
 msgstr "Path relatif disalin"
-
-msgid "Relaunch running agents to switch them."
-msgstr "Jalankan ulang agen yang sedang berjalan untuk menggantinya."
 
 msgid "Relay access enabled, connecting to the relay…"
 msgstr "Akses relay aktif, menghubungkan ke relay…"
@@ -11145,6 +11287,9 @@ msgstr "Memulai ulang {restartedOrgCount} layanan host"
 msgid "Restarted 1 host service"
 msgstr "Memulai ulang 1 layanan host"
 
+msgid "Restarted and resumed"
+msgstr "Dijalankan ulang dan dilanjutkan"
+
 msgid "Restarting agents on {accountLabel}."
 msgstr "Menjalankan ulang agen di {accountLabel}."
 
@@ -11348,6 +11493,10 @@ msgstr "Kembalikan sesi agen ke checkpoint mana pun, percakapan dan perubahan fi
 msgid "Rotate device"
 msgstr "Putar perangkat"
 
+#. placeholder {0}: engineErrorCode(failure)
+msgid "Rotation not saved ({0})."
+msgstr "Rotasi tidak tersimpan ({0})."
+
 msgid "Roundups"
 msgstr "Rangkuman"
 
@@ -11456,6 +11605,9 @@ msgstr "Berjalan di perangkat yang dipasangkan"
 
 msgid "Running on this device"
 msgstr "Berjalan di perangkat ini"
+
+msgid "Running sessions move over without being relaunched."
+msgstr "Sesi yang berjalan ikut pindah tanpa dijalankan ulang."
 
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Proses terminal yang berjalan tetap lanjut, tapi output lama mungkin tidak tersedia lagi setelah aplikasi dimulai ulang."
@@ -12025,6 +12177,10 @@ msgstr "Tampilan sesi"
 msgid "Sessions"
 msgstr "Sesi"
 
+msgctxt "switch history column"
+msgid "Sessions"
+msgstr "Sesi"
+
 #. placeholder {0}: detail.sessions.length
 msgid "Sessions · top {0} by cost"
 msgstr "Sesi · {0} teratas menurut biaya"
@@ -12048,6 +12204,9 @@ msgstr "Setel Kata Sandi"
 
 msgid "Set Run"
 msgstr "Setel Run"
+
+msgid "Set up outside Superset. Its usage is shown, but switching never writes to this login."
+msgstr "Disiapkan di luar Superset. Penggunaannya ditampilkan, tapi pergantian tidak pernah menulis ke sesi masuk ini."
 
 msgid "Set up project on {hostName}"
 msgstr "Siapkan proyek di {hostName}"
@@ -12353,6 +12512,9 @@ msgstr "Gagal masuk"
 msgid "Signed in as <0>{userName}</0>"
 msgstr "Masuk sebagai <0>{userName}</0>"
 
+msgid "Signed in outside Superset, so switching leaves this login alone."
+msgstr "Masuk di luar Superset, jadi pergantian tidak mengusik sesi masuk ini."
+
 msgid "Signed out"
 msgstr "Sudah keluar"
 
@@ -12639,6 +12801,9 @@ msgstr "Stage semua"
 msgid "Staged"
 msgstr "Sudah di-stage"
 
+msgid "Stale token, still eligible"
+msgstr "Token usang, tetap bisa dipakai"
+
 msgid "Standard action strip for pane headers"
 msgstr "Strip aksi standar untuk header panel"
 
@@ -12774,6 +12939,9 @@ msgstr "Status berubah"
 
 msgid "Stay connected (refresh tokens)"
 msgstr "Tetap terhubung (refresh token)"
+
+msgid "Stay until the active account nears its limit, then move to the account with the most headroom"
+msgstr "Bertahan sampai akun aktif mendekati batasnya, lalu pindah ke akun dengan sisa kuota terbanyak"
 
 #. placeholder {0}: step === "workspace" ? 1 : 2
 msgid "Step {0} of 2"
@@ -13038,8 +13206,21 @@ msgstr "Dukung proyek ini dengan star GitHub"
 msgid "Suspended"
 msgstr "Ditangguhkan"
 
+msgid "Switch accounts automatically"
+msgstr "Ganti akun otomatis"
+
 msgid "Switch agents. Keep your workflow"
 msgstr "Ganti agen. Pertahankan alur kerja Anda"
+
+msgid "Switch at"
+msgstr "Ganti pada"
+
+#. placeholder {0}: engineErrorCode(failure)
+msgid "Switch failed ({0}). The previous account is still active."
+msgstr "Pergantian gagal ({0}). Akun sebelumnya tetap aktif."
+
+msgid "Switch history"
+msgstr "Riwayat pergantian"
 
 msgid "Switch host"
 msgstr "Ganti host"
@@ -13109,6 +13290,15 @@ msgstr "Beralih ke Workspace 8"
 
 msgid "Switch to Workspace 9"
 msgstr "Beralih ke Workspace 9"
+
+msgid "Switched by the consume-first strategy"
+msgstr "Diganti oleh strategi habiskan-dulu"
+
+msgid "Switching resumes when a usage window resets."
+msgstr "Pergantian dilanjutkan saat salah satu periode penggunaan direset."
+
+msgid "Switching…"
+msgstr "Mengganti…"
 
 msgid "Sync"
 msgstr "Sinkronkan"
@@ -13398,6 +13588,15 @@ msgstr "Nama itu tidak diizinkan."
 msgid "The 2026 bet"
 msgstr "Taruhan 2026"
 
+msgid "The access token is past its expiry but the sign-in is not — a fresh one is minted the next time the CLI runs."
+msgstr "Token akses sudah lewat masa berlakunya, tapi sesi masuknya belum — token baru dibuat saat CLI berikutnya dijalankan."
+
+msgid "The account engine is not running on this host, so {agentLabel} accounts cannot switch automatically."
+msgstr "Engine akun tidak berjalan di host ini, jadi akun {agentLabel} tidak bisa berganti otomatis."
+
+msgid "The account engine is not running on this host."
+msgstr "Engine akun tidak berjalan di host ini."
+
 msgid "the active organization"
 msgstr "organisasi aktif"
 
@@ -13496,6 +13695,9 @@ msgstr "Rumah masa depan untuk konfigurasi agen Superset, prompt, dan panduan pe
 
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "Host tidak terhubung ke relay Superset. Kalau ini perangkatnya, aktifkan \"Izinkan akses jarak jauh ke perangkat ini melalui relay\" di Pengaturan > Akses Jarak Jauh, lalu coba lagi."
+
+msgid "The host rejected that value, so the previous one still stands."
+msgstr "Host menolak nilai itu, jadi nilai sebelumnya tetap berlaku."
 
 msgid "The human reads every line before it merges."
 msgstr "Manusia membaca tiap baris sebelum di-merge."
@@ -13973,6 +14175,10 @@ msgstr "Judul mengandung..."
 msgid "To"
 msgstr "Ke"
 
+msgctxt "switch history column"
+msgid "To"
+msgstr "Ke"
+
 msgid "Toast (Sonner)"
 msgstr "Toast (Sonner)"
 
@@ -14125,6 +14331,10 @@ msgstr "Triase issue baru"
 
 msgid "triaging 12 new issues…"
 msgstr "mentriase 12 issue baru…"
+
+msgctxt "switch history column"
+msgid "Trigger"
+msgstr "Pemicu"
 
 msgid "Trigger alert()"
 msgstr "Picu alert()"
@@ -14327,6 +14537,9 @@ msgctxt "person"
 msgid "Unknown"
 msgstr "Tidak diketahui"
 
+msgid "Unknown account"
+msgstr "Akun tidak diketahui"
+
 msgid "Unknown device"
 msgstr "Perangkat tidak diketahui"
 
@@ -14363,6 +14576,9 @@ msgstr "Tanpa batas"
 
 msgid "Unlimited users"
 msgstr "Pengguna tanpa batas"
+
+msgid "Unmanaged"
+msgstr "Tak terkelola"
 
 msgid "Unmute notifications"
 msgstr "Nyalakan notifikasi"
@@ -14557,6 +14773,9 @@ msgstr "Pakai ini untuk memperbaiki terminal yang macet atau tidak merespons."
 msgid "Use this when calling the Superset API."
 msgstr "Pakai ini saat memanggil API Superset."
 
+msgid "Use up the soonest reset"
+msgstr "Habiskan kuota yang paling cepat direset"
+
 msgid "Use voice transcription and push-to-talk features."
 msgstr "Memakai transkripsi suara dan fitur push-to-talk."
 
@@ -14710,6 +14929,9 @@ msgstr "Volume"
 msgid "VS Code"
 msgstr "VS Code"
 
+msgid "Wait between switches"
+msgstr "Jeda antar pergantian"
+
 msgid "Wait for workspace setup before starting agents"
 msgstr "Tunggu setup workspace sebelum menjalankan agen"
 
@@ -14848,6 +15070,9 @@ msgstr "Catatan rilis mingguan"
 msgid "Weekly signup cohorts (Neon); cohorts younger than 30d excluded"
 msgstr "Kohor pendaftaran mingguan (Neon); kohor yang lebih muda dari 30h dikecualikan"
 
+msgid "weekly window"
+msgstr "periode mingguan"
+
 msgid "Welcome back"
 msgstr "Selamat datang kembali"
 
@@ -14902,6 +15127,10 @@ msgstr "Apa saja yang termasuk di Enterprise?"
 msgid "What's New"
 msgstr "Apa yang Baru"
 
+msgctxt "switch history column"
+msgid "When"
+msgstr "Kapan"
+
 msgid "When off, nothing else can reach the files and tools on this device. You can still connect out to remote sandboxes from here. <0>Learn more<1/></0>"
 msgstr "Saat nonaktif, tidak ada yang bisa mengakses file dan alat di perangkat ini. Anda tetap bisa terhubung ke sandbox jarak jauh dari sini. <0>Pelajari lebih lanjut<1/></0>"
 
@@ -14929,6 +15158,9 @@ msgstr "Di mana skrip terminal ini tersedia."
 msgid "Where to look next"
 msgstr "Ke mana mencari berikutnya"
 
+msgid "Which account to move to"
+msgstr "Pindah ke akun yang mana"
+
 msgid "Which agents are supported?"
 msgstr "Agen mana saja yang didukung?"
 
@@ -14937,6 +15169,10 @@ msgstr "Agen coding AI mana saja yang didukung?"
 
 msgid "Who can open this page from its link"
 msgstr "Siapa yang bisa membuka halaman ini dari tautannya"
+
+msgctxt "switch history column"
+msgid "Why"
+msgstr "Alasan"
 
 msgid "Window"
 msgstr "Jendela"
@@ -15183,6 +15419,9 @@ msgstr "Anda tidak punya izin untuk menghapus anggota ini"
 
 msgid "You need to be part of an organization to use integrations."
 msgstr "Anda harus menjadi bagian dari sebuah organisasi untuk memakai integrasi."
+
+msgid "You picked this account"
+msgstr "Anda memilih akun ini"
 
 #. placeholder {0}: preview.rank
 #. placeholder {1}: preview.total
