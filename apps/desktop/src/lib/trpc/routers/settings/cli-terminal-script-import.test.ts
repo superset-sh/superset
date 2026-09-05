@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import type { TerminalPreset } from "@superset/local-db";
-import { clearImportedCliTerminalScripts } from "./cli-terminal-script-import";
+import {
+	acknowledgeCliTerminalScripts,
+	isPendingCliTerminalScript,
+} from "./cli-terminal-script-import";
 
 const pendingScript = (
 	overrides: Partial<TerminalPreset> = {},
@@ -14,14 +17,33 @@ const pendingScript = (
 	...overrides,
 });
 
-describe("clearImportedCliTerminalScripts", () => {
+describe("isPendingCliTerminalScript", () => {
+	test("matches import markers and delete tombstones for the organization", () => {
+		expect(isPendingCliTerminalScript(pendingScript(), "org-a")).toBe(true);
+		expect(
+			isPendingCliTerminalScript(
+				pendingScript({ cliImportPending: undefined, cliDeletePending: true }),
+				"org-a",
+			),
+		).toBe(true);
+		expect(isPendingCliTerminalScript(pendingScript(), "org-b")).toBe(false);
+		expect(
+			isPendingCliTerminalScript(
+				pendingScript({ cliImportPending: undefined }),
+				"org-a",
+			),
+		).toBe(false);
+	});
+});
+
+describe("acknowledgeCliTerminalScripts", () => {
 	test("keeps the row for v1 but drops the import markers", () => {
 		const regular = pendingScript({
 			id: "regular",
 			cliImportPending: undefined,
 			cliTargetOrganizationId: undefined,
 		});
-		const result = clearImportedCliTerminalScripts({
+		const result = acknowledgeCliTerminalScripts({
 			scripts: [pendingScript(), regular],
 			organizationId: "org-a",
 			ids: ["script-a"],
@@ -34,9 +56,25 @@ describe("clearImportedCliTerminalScripts", () => {
 		]);
 	});
 
+	test("drops delete tombstones entirely", () => {
+		const tombstone = pendingScript({
+			id: "gone",
+			cliImportPending: undefined,
+			cliDeletePending: true,
+		});
+		const result = acknowledgeCliTerminalScripts({
+			scripts: [pendingScript(), tombstone],
+			organizationId: "org-a",
+			ids: ["gone"],
+		});
+
+		expect(result.changed).toBe(true);
+		expect(result.scripts).toEqual([pendingScript()]);
+	});
+
 	test("preserves pending scripts for another organization", () => {
 		const script = pendingScript();
-		const result = clearImportedCliTerminalScripts({
+		const result = acknowledgeCliTerminalScripts({
 			scripts: [script],
 			organizationId: "org-b",
 			ids: [script.id],
@@ -47,7 +85,7 @@ describe("clearImportedCliTerminalScripts", () => {
 
 	test("ignores ids that are not pending", () => {
 		const script = pendingScript({ cliImportPending: undefined });
-		const result = clearImportedCliTerminalScripts({
+		const result = acknowledgeCliTerminalScripts({
 			scripts: [script],
 			organizationId: "org-a",
 			ids: [script.id],
