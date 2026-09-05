@@ -183,7 +183,12 @@ describe("account-engine state", () => {
 			const state = new EngineState();
 			expect(state.readSettings()).toEqual(defaultEngineSettings());
 			expect(state.readSettings()).toEqual(defaultEngineSettings());
-			expect(warn).toHaveBeenCalledTimes(1);
+			// console.warn is process-global: count only this module's warnings so
+			// an unrelated suite's async log line cannot fail the once-guard.
+			const ours = warn.mock.calls.filter((call) =>
+				String(call[0]).startsWith("[account-engine]"),
+			);
+			expect(ours).toHaveLength(1);
 		} finally {
 			warn.mockRestore();
 		}

@@ -131,7 +131,7 @@ export function AccountSwitchSubscriber({
 
 	useEffect(() => {
 		void showAwaySummary(hostUrl, loadHistory);
-	}, [hostUrl]);
+	}, [hostUrl, loadHistory]);
 
 	return null;
 }
