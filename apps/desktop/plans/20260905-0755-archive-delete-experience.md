@@ -33,6 +33,7 @@ None blocking. Product forks were settled in the brief (two rounds of live revie
 - [x] (2026-09-05 12:20Z) Gates: host-service `bun test` (all new suites green; the 3 known environment-only failures remain), desktop `bun test` (3523 pass; the known env-sensitive LeaderboardRank failure remains), root `bun run lint` clean, root `bun run typecheck` clean after the mobile fix below.
 - [x] (2026-09-05 17:00Z) Dev instance of this worktree booted with the refreshed `.env`; archive → undo round trip exercised live over CDP (80 → 79 → 80 sidebar rows, toast with Undo and the view link), Archived view rendered with a real archived row.
 - [x] (2026-09-05 18:20Z) Code review: eight angle reviewers plus the orchestrator's own pass (44 raw findings, 7 verified by the orchestrator) and their fixes committed as "fix: address review findings on the archive experience"; outcomes tabled on the review page and in Surprises below.
+- [x] (2026-09-05 18:40Z) A third, fresh-context reviewer (plan + diff only) reproduced the top findings and added one: the project-delete dialog counted only live worktrees; fixed, and the Workspaces-page Archive item is gated on sandbox hosts like the sidebar's.
 - [ ] Manual verification matrix in a dev instance (Avi's call; see Validation): the terminal-suspend and post-grace-unarchive scenarios remain unverified by hand.
 
 ## Surprises & Discoveries

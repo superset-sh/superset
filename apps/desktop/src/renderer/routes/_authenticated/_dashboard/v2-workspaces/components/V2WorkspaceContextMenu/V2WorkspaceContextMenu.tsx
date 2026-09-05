@@ -23,6 +23,7 @@ import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import type { AccessibleV2Workspace } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useArchiveWorkspaceIntent } from "renderer/stores/archive-workspace-intent";
 import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 
@@ -60,7 +61,12 @@ export function V2WorkspaceContextMenu({
 	const { ensureWorkspaceInSidebar, hideWorkspaceInSidebar } =
 		useDashboardSidebarState();
 	const { copyToClipboard } = useCopyToClipboard();
+	const { cache: hostWorkspacesCache } = useHostWorkspaces();
 	const isMainWorkspace = workspace.type === "main";
+	// Archive is host-local: main workspaces never archive and cloud
+	// sandboxes keep their delete path (the same rule the sidebar applies).
+	const canArchive =
+		!isMainWorkspace && !hostWorkspacesCache.isSandboxHost(workspace.hostId);
 
 	const open = useCallback(() => {
 		const go = () => navigateToV2Workspace(workspace.id, navigate);
@@ -184,10 +190,12 @@ export function V2WorkspaceContextMenu({
 				{!isMainWorkspace ? (
 					<>
 						<ContextMenuSeparator />
-						<ContextMenuItem onSelect={archive}>
-							<LuArchive className="size-4" />
-							<Trans>Archive</Trans>
-						</ContextMenuItem>
+						{canArchive ? (
+							<ContextMenuItem onSelect={archive}>
+								<LuArchive className="size-4" />
+								<Trans>Archive</Trans>
+							</ContextMenuItem>
+						) : null}
 						<ContextMenuItem
 							onSelect={openDeleteDialog}
 							className="text-destructive focus:text-destructive"
