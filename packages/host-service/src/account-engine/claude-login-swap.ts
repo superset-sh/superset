@@ -377,6 +377,21 @@ async function writeKeychainItem(
 	await ctx.exec(["-i"], `${command}\n`);
 }
 
+/** Removes an item a rollback has to un-create. No secret is involved, so this
+ * one goes through argv like the reads do. */
+async function deleteKeychainItem(
+	item: { service: string; account: string },
+	ctx: SwapContext,
+): Promise<void> {
+	await ctx.exec([
+		"delete-generic-password",
+		"-a",
+		item.account,
+		"-s",
+		item.service,
+	]);
+}
+
 interface StoreWritePlan {
 	file: boolean;
 	keychain: { service: string; account: string } | null;
@@ -469,10 +484,13 @@ async function applyStoreWrite(
 }
 
 /**
- * Puts the login the active dir held back into every store a failed write had
- * already reached, so a half-applied swap does not leave the dir serving two
- * accounts. Reports `write-failed` once the dir is whole again, `split-state`
- * when the restore failed too.
+ * Puts every store a failed write had already reached back to its own pre-swap
+ * snapshot, so a half-applied swap does not leave the dir serving two accounts.
+ * Each store is restored from its own bytes — writing one "freshest" login into
+ * both would sign one of them in as the other — and a store that held no
+ * credential before the swap has the one the swap created removed, rather than
+ * left holding the target's login. Reports `write-failed` once the dir is whole
+ * again, `split-state` when the restore failed too.
  */
 async function rollbackActiveWrite(
 	activeRead: ClaudeLoginRead,
@@ -481,12 +499,32 @@ async function rollbackActiveWrite(
 	reason: string,
 	ctx: SwapContext,
 ): Promise<ClaudeSwapResult> {
-	const restore = oauthOf(activeRead);
-	if ((!written.file && !written.keychain) || !restore) {
+	if (!written.file && !written.keychain) {
 		return failure("write-failed", reason);
 	}
 	try {
-		await applyStoreWrite(activeRead, written, restore, ctx);
+		if (written.file) {
+			if (activeRead.fileContent) {
+				await writeCredentialFile(
+					activeRead.credentialsPath,
+					activeRead.fileContent,
+					ctx,
+				);
+			} else {
+				await ctx.fs.unlink(activeRead.credentialsPath);
+			}
+		}
+		if (written.keychain) {
+			if (activeRead.keychainContent) {
+				await writeKeychainItem(
+					written.keychain,
+					activeRead.keychainContent,
+					ctx,
+				);
+			} else {
+				await deleteKeychainItem(written.keychain, ctx);
+			}
+		}
 	} catch (rollbackError) {
 		return failure(
 			"split-state",
@@ -700,17 +738,22 @@ export async function swapClaudeLogin(input: {
 	// The caller's owner claim is refreshed at most once a tick, so a `/login`
 	// run inside a live session leaves a login here that `ownerBinding` does
 	// not name. `wouldRegress` cannot catch that — expiry timestamps are
-	// unrelated across accounts — so compare the identities instead. A dir
-	// whose identity is missing or unreadable keeps today's behaviour.
-	if (input.expectedOwnerAccountId) {
+	// unrelated across accounts — so compare the identities instead. An
+	// identity that is missing or unreadable fails closed: an unnamed login
+	// saved into the owner's store signs the owner out just the same. A dir
+	// holding no credential at all has nothing to save back, so it proceeds.
+	if (input.expectedOwnerAccountId && previous) {
 		const activeIdentity = await readIdentity(
 			claudeStatePath(input.activeDir, ctx.homeDir),
 			ctx,
 		);
-		if (
-			activeIdentity?.accountUuid &&
-			activeIdentity.accountUuid !== input.expectedOwnerAccountId
-		) {
+		if (!activeIdentity?.accountUuid) {
+			return failure(
+				"owner-unknown",
+				`the login in ${input.activeDir} has no readable account identity, so it cannot be confirmed as the one bound to ${storeDir(ownerBinding, ctx)}`,
+			);
+		}
+		if (activeIdentity.accountUuid !== input.expectedOwnerAccountId) {
 			return failure(
 				"owner-unknown",
 				`the login in ${input.activeDir} belongs to account ${activeIdentity.accountUuid}, not the one bound to ${storeDir(ownerBinding, ctx)}`,

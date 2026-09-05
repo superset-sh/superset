@@ -1,7 +1,7 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, spyOn } from "bun:test";
 import {
-	chmodSync,
 	existsSync,
+	mkdirSync,
 	mkdtempSync,
 	readdirSync,
 	readFileSync,
@@ -96,23 +96,85 @@ describe("updateClaudeStateFile", () => {
 		expect(JSON.parse(readFileSync(file, "utf-8"))).toEqual({ userID: "u" });
 	});
 
-	// A file that cannot be read is not an empty file: the dir is still
-	// writable, so swallowing the error would replace the identity, the
-	// onboarding flag and every folder-trust entry with the mutation alone.
-	it("propagates a read failure instead of starting from empty state", async () => {
+	// The bytes a rescue saves are the only copy left, so two of them in the
+	// same millisecond must not share a name: the second used to fail EEXIST
+	// and be discarded as though the first had already saved it.
+	it("keeps both backups when two corrupt reads land in the same millisecond", async () => {
 		const dir = tempDir();
 		const file = join(dir, ".claude.json");
-		const before = JSON.stringify({ userID: "user-a", projects: {} });
-		writeFileSync(file, before);
-		chmodSync(file, 0o000);
+		const clock = spyOn(Date.prototype, "toISOString").mockReturnValue(
+			"2026-01-01T00:00:00.000Z",
+		);
+		try {
+			writeFileSync(file, "{first corrupt");
+			await updateClaudeStateFile(file, (state) => ({ ...state, userID: "a" }));
+			writeFileSync(file, "{second corrupt");
+			await updateClaudeStateFile(file, (state) => ({ ...state, userID: "b" }));
+		} finally {
+			clock.mockRestore();
+		}
+
+		const backups = readdirSync(dir)
+			.filter((name) => name.endsWith(".superset-swap-bak"))
+			.map((name) => readFileSync(join(dir, name), "utf-8"))
+			.sort();
+		expect(backups).toEqual(["{first corrupt", "{second corrupt"]);
+	});
+
+	// A dir quietly filling with backups is the failure this used to hide.
+	it("warns rather than fails when a backup cannot be pruned", async () => {
+		const dir = tempDir();
+		const file = join(dir, ".claude.json");
+		// Sorts oldest, so it is the entry the prune reaches for — and a
+		// non-empty directory is one `unlink` cannot remove, whoever runs it.
+		const stuck = join(dir, ".claude.json.0000-stuck.superset-swap-bak");
+		mkdirSync(stuck);
+		writeFileSync(join(stuck, "kept"), "x");
+		for (const stamp of ["2020-a", "2020-b"]) {
+			writeFileSync(
+				join(dir, `.claude.json.${stamp}.superset-swap-bak`),
+				stamp,
+			);
+		}
+		writeFileSync(file, "{not json");
+		const warn = console.warn;
+		const warnings: unknown[][] = [];
+		console.warn = (...args: unknown[]) => {
+			warnings.push(args);
+		};
+
+		try {
+			await updateClaudeStateFile(file, (state) => ({ ...state, userID: "u" }));
+		} finally {
+			console.warn = warn;
+		}
+
+		expect(warnings).toHaveLength(1);
+		expect(String(warnings[0]?.[0])).toContain(file);
+		expect(String(warnings[0]?.[1])).toContain(stuck);
+		expect(existsSync(stuck)).toBe(true);
+		expect(JSON.parse(readFileSync(file, "utf-8"))).toEqual({ userID: "u" });
+	});
+
+	// A file that cannot be read is not an empty file: swallowing the error
+	// would replace the identity, the onboarding flag and every folder-trust
+	// entry with the mutation alone. A regular file in the parent's place fails
+	// the read with ENOTDIR for every user, root included — unlike a chmod 000,
+	// which root walks straight through.
+	it("propagates a read failure instead of starting from empty state", async () => {
+		const dir = tempDir();
+		const blocker = join(dir, "not-a-dir");
+		writeFileSync(blocker, "regular file");
 
 		await expect(
-			updateClaudeStateFile(file, (state) => ({ ...state, userID: "u" })),
+			updateClaudeStateFile(join(blocker, ".claude.json"), (state) => ({
+				...state,
+				userID: "u",
+			})),
 		).rejects.toThrow();
 
-		chmodSync(file, 0o600);
-		expect(readFileSync(file, "utf-8")).toBe(before);
-		expect(readdirSync(dir)).toEqual([".claude.json"]);
+		expect(readFileSync(blocker, "utf-8")).toBe("regular file");
+		expect(readdirSync(dir)).toEqual(["not-a-dir"]);
 	});
 
 	it("leaves no temporary file behind and rewrites in place", async () => {

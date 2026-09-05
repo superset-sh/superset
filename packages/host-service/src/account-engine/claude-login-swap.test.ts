@@ -454,6 +454,26 @@ describe("swapClaudeLogin on a file-backed store", () => {
 		);
 	});
 
+	// Nothing to restore is not nothing to undo: leaving the credential the
+	// swap created behind signs the dir in as the target with the previous
+	// account's identity still on it.
+	it("removes the credential it created when there is none to restore", async () => {
+		const f = fixture();
+		rmSync(join(f.activeDir, ".credentials.json"));
+		rmSync(join(f.activeDir, ".claude.json"));
+		mkdirSync(join(f.activeDir, ".claude.json"));
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "write-failed" });
+		expect(readdirSync(f.activeDir)).not.toContain(".credentials.json");
+	});
+
 	it("reports split state when the rollback fails too", async () => {
 		const f = fixture();
 		rmSync(join(f.activeDir, ".claude.json"));
@@ -516,6 +536,49 @@ describe("swapClaudeLogin on a file-backed store", () => {
 		expect(result).toMatchObject({ ok: false, code: "owner-unknown" });
 		expect(readCredentials(f.profileA).claudeAiOauth).toEqual(oauth("t-a"));
 		expect(readCredentials(f.activeDir)).toEqual(before);
+	});
+
+	// An identity that cannot be read names no account, so the login beside it
+	// cannot be confirmed as the owner's — and saving a stranger's login into
+	// the owner's store signs the owner out just as surely as a known mismatch.
+	it("refuses the save-back when the active identity cannot be read", async () => {
+		const f = fixture();
+		writeFileSync(join(f.activeDir, ".claude.json"), "{not json");
+		const before = readCredentials(f.activeDir);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			expectedOwnerAccountId: "uuid-a",
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "owner-unknown" });
+		expect(readCredentials(f.profileA).claudeAiOauth).toEqual(oauth("t-a"));
+		expect(readCredentials(f.activeDir)).toEqual(before);
+	});
+
+	// ...unless there is no login there at all: nothing gets saved back, so an
+	// unreadable identity costs the owner nothing.
+	it("swaps on an unreadable identity when there is no login to save back", async () => {
+		const f = fixture();
+		rmSync(join(f.activeDir, ".credentials.json"));
+		writeFileSync(join(f.activeDir, ".claude.json"), "{not json");
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			expectedOwnerAccountId: "uuid-a",
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-b", 2_000),
+		);
+		expect(readCredentials(f.profileA).claudeAiOauth).toEqual(oauth("t-a"));
 	});
 
 	it("saves back as usual when the active identity is the expected owner", async () => {
@@ -1116,6 +1179,46 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 			JSON.parse(readFileSync(join(f.activeDir, ".claude.json"), "utf-8"))
 				.oauthAccount,
 		).toEqual(identity("a").oauthAccount);
+	});
+
+	// The two stores can hold two different logins. Rolling one "freshest"
+	// login into both signs whichever store it did not come from in as the
+	// wrong account, which is the state the rollback exists to prevent.
+	it("rolls each store back to its own pre-swap login", async () => {
+		const f = fixture();
+		const activeService = keychainServicesForConfigDir(
+			f.activeDir,
+		)[0] as string;
+		const account = claudeKeychainAccounts()[0] as string;
+		writeCredentials(f.activeDir, { claudeAiOauth: oauth("t-file", 5_000) });
+		const keychain = fakeKeychain([
+			{
+				service: activeService,
+				account,
+				secret: JSON.stringify({ claudeAiOauth: oauth("t-keychain", 4_000) }),
+			},
+		]);
+		// A directory in the state file's place fails the identity write.
+		rmSync(join(f.activeDir, ".claude.json"));
+		mkdirSync(join(f.activeDir, ".claude.json"));
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, darwin: true, exec: keychain.exec },
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "write-failed" });
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-file", 5_000),
+		);
+		expect(
+			JSON.parse(
+				keychain.items.find((item) => item.service === activeService)?.secret ??
+					"{}",
+			).claudeAiOauth,
+		).toEqual(oauth("t-keychain", 4_000));
 	});
 });
 

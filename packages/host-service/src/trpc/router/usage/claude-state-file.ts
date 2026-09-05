@@ -70,26 +70,33 @@ async function backupUnparsableState(
 	raw: string,
 ): Promise<void> {
 	const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-	try {
-		await writeFile(`${statePath}.${stamp}${BACKUP_MARKER}`, raw, {
+	// The uuid keeps two rescues in the same millisecond apart: sharing a name,
+	// the second would fail EEXIST and its bytes would be dropped as though the
+	// first backup already held them. The stamp still leads, so the names sort
+	// oldest-first for the prune below.
+	await writeFile(
+		`${statePath}.${stamp}.${randomUUID()}${BACKUP_MARKER}`,
+		raw,
+		{
 			mode: 0o600,
 			flag: "wx",
-		});
-	} catch (error) {
-		// A backup from this same millisecond already holds these bytes;
-		// anything else means the bytes are not safe yet, so do not overwrite.
-		if (errorCode(error) !== "EEXIST") throw error;
-	}
+		},
+	);
 	try {
 		const prefix = `${basename(statePath)}.`;
 		const existing = (await readdir(dirname(statePath)))
 			.filter((name) => name.startsWith(prefix) && name.endsWith(BACKUP_MARKER))
 			.sort();
 		for (const name of existing.slice(0, -MAX_BACKUPS_PER_DIR)) {
-			await unlink(join(dirname(statePath), name)).catch(() => {});
+			await unlink(join(dirname(statePath), name));
 		}
-	} catch {
-		// Pruning is best-effort.
+	} catch (error) {
+		// Pruning is best-effort — a backup left behind is not worth failing the
+		// write over — but a silent failure hides a dir filling up with them.
+		console.warn(
+			`Superset could not prune the state-file backups beside ${statePath}:`,
+			error,
+		);
 	}
 }
 
