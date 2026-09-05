@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useDeferredValue, useEffect, useRef } from "react";
+import { V2WorkspacesArchived } from "./components/V2WorkspacesArchived";
 import { V2WorkspacesBoard } from "./components/V2WorkspacesBoard";
 import { V2WorkspacesHeader } from "./components/V2WorkspacesHeader";
 import { V2WorkspacesList } from "./components/V2WorkspacesList";
@@ -8,33 +9,16 @@ import {
 	DEVICE_FILTER_THIS_DEVICE,
 	useV2WorkspacesFilterStore,
 	V2_WORKSPACES_AGENT_STATUS_FILTERS,
-	V2_WORKSPACES_ARCHIVED_WINDOWS,
-	V2_WORKSPACES_PIN_FILTERS,
 	V2_WORKSPACES_PR_STATE_FILTERS,
-	V2_WORKSPACES_VIEW_MODES,
 	type V2WorkspacesAgentStatusFilter,
-	type V2WorkspacesArchivedWindow,
-	type V2WorkspacesPinFilter,
 	type V2WorkspacesPrStateFilter,
-	type V2WorkspacesViewMode,
 } from "./stores/v2WorkspacesFilterStore";
+import {
+	parseV2WorkspacesSearch,
+	type V2WorkspacesSearch,
+} from "./utils/parseV2WorkspacesSearch";
 
-export type V2WorkspacesSearch = {
-	q?: string;
-	device?: string;
-	/** Comma-joined project ids; may include the `__sessions__` sentinel. */
-	projects?: string;
-	/** Comma-joined PR states. */
-	pr?: string;
-	/** Comma-joined agent statuses. */
-	agent?: string;
-	/** Comma-joined creator user ids. */
-	creators?: string;
-	/** Sidebar pin visibility; omitted = "all". */
-	pin?: V2WorkspacesPinFilter;
-	view?: V2WorkspacesViewMode;
-	archived?: V2WorkspacesArchivedWindow;
-};
+export type { V2WorkspacesSearch };
 
 function parseList<T extends string>(
 	raw: unknown,
@@ -51,37 +35,7 @@ export const Route = createFileRoute(
 	"/_authenticated/_dashboard/v2-workspaces/",
 )({
 	component: V2WorkspacesPage,
-	validateSearch: (search: Record<string, unknown>): V2WorkspacesSearch => ({
-		q: typeof search.q === "string" && search.q ? search.q : undefined,
-		device:
-			typeof search.device === "string" && search.device
-				? search.device
-				: undefined,
-		projects:
-			typeof search.projects === "string" && search.projects
-				? search.projects
-				: undefined,
-		pr: typeof search.pr === "string" && search.pr ? search.pr : undefined,
-		agent:
-			typeof search.agent === "string" && search.agent
-				? search.agent
-				: undefined,
-		creators:
-			typeof search.creators === "string" && search.creators
-				? search.creators
-				: undefined,
-		pin: V2_WORKSPACES_PIN_FILTERS.includes(search.pin as V2WorkspacesPinFilter)
-			? (search.pin as V2WorkspacesPinFilter)
-			: undefined,
-		view: V2_WORKSPACES_VIEW_MODES.includes(search.view as V2WorkspacesViewMode)
-			? (search.view as V2WorkspacesViewMode)
-			: undefined,
-		archived: V2_WORKSPACES_ARCHIVED_WINDOWS.includes(
-			search.archived as V2WorkspacesArchivedWindow,
-		)
-			? (search.archived as V2WorkspacesArchivedWindow)
-			: undefined,
-	}),
+	validateSearch: parseV2WorkspacesSearch,
 });
 
 function V2WorkspacesPage() {
@@ -201,9 +155,11 @@ function V2WorkspacesPage() {
 	// at background priority.
 	const deferredSearchQuery = useDeferredValue(searchQuery);
 
+	const isArchivedView = viewMode === "archived";
 	const {
 		all,
 		isReady,
+		shelvedCount,
 		hostOptions,
 		projectOptions,
 		creatorOptions,
@@ -217,9 +173,11 @@ function V2WorkspacesPage() {
 		agentStatusFilters,
 		creatorFilters,
 		pinFilter,
-		// Tombstones ride along so both views' Merged/Deleted groups work;
-		// each view scopes them by the shared archived window.
-		includeArchived: true,
+		// Tombstones ride along so the live views' Merged/Deleted groups work
+		// (each scopes them by the shared History window); the Archived view
+		// instead lists the user-archived rows. Exactly one of the two.
+		includeArchived: !isArchivedView,
+		includeShelved: isArchivedView,
 	});
 
 	// Re-rendering hundreds of rows takes hundreds of ms; deferring keeps
@@ -239,8 +197,14 @@ function V2WorkspacesPage() {
 				creatorOptions={creatorOptions}
 				hostsById={hostsById}
 				projectsById={projectsById}
+				archivedCount={shelvedCount}
 			/>
-			{viewMode === "board" ? (
+			{viewMode === "archived" ? (
+				<V2WorkspacesArchived
+					workspaces={deferredWorkspaces}
+					isReady={deferredIsReady}
+				/>
+			) : viewMode === "board" ? (
 				<V2WorkspacesBoard
 					workspaces={deferredWorkspaces}
 					isReady={deferredIsReady}

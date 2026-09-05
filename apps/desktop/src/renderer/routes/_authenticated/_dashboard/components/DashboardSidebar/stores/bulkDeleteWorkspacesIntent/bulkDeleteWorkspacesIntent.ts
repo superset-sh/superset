@@ -2,8 +2,18 @@ import type { DestroyWorkspaceError } from "renderer/hooks/host-service/useDestr
 import { create } from "zustand";
 import type { DashboardSidebarWorkspace } from "../../types";
 
+/**
+ * What the bulk dialog needs of a target: identity, host, and a display
+ * name. Narrower than a sidebar row so the Workspaces page's Archived view
+ * can hand its rows to the same dialog.
+ */
+export type BulkDeleteWorkspaceTarget = Pick<
+	DashboardSidebarWorkspace,
+	"id" | "hostId" | "name" | "branch"
+>;
+
 export interface BulkWorkspaceDeleteFailure {
-	workspace: DashboardSidebarWorkspace;
+	workspace: BulkDeleteWorkspaceTarget;
 	error: DestroyWorkspaceError;
 }
 
@@ -29,10 +39,10 @@ export type BulkDeleteWorkspacesPhase = "confirm" | "running" | "failed";
  */
 interface BulkDeleteWorkspacesIntentState {
 	requestId: number;
-	targets: DashboardSidebarWorkspace[];
+	targets: BulkDeleteWorkspaceTarget[];
 	phase: BulkDeleteWorkspacesPhase;
 	failures: BulkWorkspaceDeleteFailure[];
-	request: (targets: DashboardSidebarWorkspace[]) => void;
+	request: (targets: BulkDeleteWorkspaceTarget[]) => void;
 	markRunning: (requestId: number) => void;
 	markFailed: (
 		requestId: number,

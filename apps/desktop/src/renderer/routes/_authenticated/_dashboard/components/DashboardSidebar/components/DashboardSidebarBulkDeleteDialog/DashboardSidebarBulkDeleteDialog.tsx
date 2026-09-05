@@ -11,13 +11,13 @@ import { Button } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
 import { Label } from "@superset/ui/label";
 import { useId } from "react";
-import type { DashboardSidebarWorkspace } from "../../types";
+import type { BulkDeleteWorkspaceTarget } from "../../stores/bulkDeleteWorkspacesIntent";
 import { DashboardSidebarBulkDeleteFailures } from "./components/DashboardSidebarBulkDeleteFailures";
 import { useBulkWorkspaceDelete } from "./hooks/useBulkWorkspaceDelete";
 
 interface DashboardSidebarBulkDeleteDialogProps {
 	requestId: number;
-	workspaces: DashboardSidebarWorkspace[];
+	workspaces: BulkDeleteWorkspaceTarget[];
 	onDeleted: (workspaceIds: string[]) => void;
 }
 

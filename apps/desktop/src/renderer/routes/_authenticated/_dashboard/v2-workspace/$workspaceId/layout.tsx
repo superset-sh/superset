@@ -12,6 +12,7 @@ import { useSandboxAccess } from "renderer/routes/_authenticated/providers/Sandb
 import { useWorkspaceTransactionsStore } from "renderer/stores/workspace-creates";
 import { CloudWorkspaceProvisioningState } from "../components/CloudWorkspaceProvisioningState";
 import { StateScreenShell } from "../components/StateScreenShell";
+import { WorkspaceArchivedState } from "../components/WorkspaceArchivedState";
 import { WorkspaceCreateErrorState } from "../components/WorkspaceCreateErrorState";
 import { WorkspaceCreatingState } from "../components/WorkspaceCreatingState";
 import { WorkspaceHostIncompatibleState } from "../components/WorkspaceHostIncompatibleState";
@@ -53,6 +54,7 @@ function V2WorkspaceLayout() {
 
 	const {
 		workspaces: hostWorkspaces,
+		shelvedWorkspaces,
 		isReady,
 		hostsSettled,
 		cache,
@@ -64,6 +66,18 @@ function V2WorkspaceLayout() {
 					null)
 				: null,
 		[hostWorkspaces, workspaceId],
+	);
+	// A PR link, notification, or history entry can land on a workspace the
+	// user archived: it exists, it is just put away. Rendered as its own
+	// state below — not the workspace UI, not "not found".
+	const archivedWorkspace = useMemo(
+		() =>
+			workspaceId != null && workspace === null
+				? (shelvedWorkspaces.find(
+						(candidate) => candidate.id === workspaceId,
+					) ?? null)
+				: null,
+		[shelvedWorkspaces, workspace, workspaceId],
 	);
 	// The open workspace's sandbox joins the fan-out as its own host, so a
 	// cloud workspace is found the same way as any other — but it has no
@@ -105,7 +119,7 @@ function V2WorkspaceLayout() {
 	const missConfirmed = useWorkspaceMissVerdict(
 		{
 			workspaceId,
-			workspaceFound: workspace !== null,
+			workspaceFound: workspace !== null || archivedWorkspace !== null,
 			suspended: pendingTransaction !== null || failedEntry !== null,
 			hostsEnumerated: hostsSettled,
 			hasLiveTargets: cache.hasLiveTargets,
@@ -134,6 +148,17 @@ function V2WorkspaceLayout() {
 	}
 
 	if (!workspace) {
+		if (archivedWorkspace) {
+			return (
+				<StateScreenShell>
+					<WorkspaceArchivedState
+						workspaceId={archivedWorkspace.id}
+						workspaceName={archivedWorkspace.name}
+						branch={archivedWorkspace.branch}
+					/>
+				</StateScreenShell>
+			);
+		}
 		if (failedEntry) {
 			return (
 				<StateScreenShell>

@@ -12,10 +12,10 @@ import {
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences/useV2UserPreferences";
 import { useNavigateAwayFromWorkspace } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useNavigateAwayFromWorkspace";
 import {
+	type BulkDeleteWorkspaceTarget,
 	type BulkWorkspaceDeleteFailure,
 	useBulkDeleteWorkspacesIntent,
 } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/stores/bulkDeleteWorkspacesIntent";
-import type { DashboardSidebarWorkspace } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/types";
 import { useDeletingWorkspacesStore } from "renderer/routes/_authenticated/_dashboard/stores/deletingWorkspacesStore";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
@@ -27,14 +27,14 @@ import {
 
 interface UseBulkWorkspaceDeleteOptions {
 	requestId: number;
-	workspaces: DashboardSidebarWorkspace[];
+	workspaces: BulkDeleteWorkspaceTarget[];
 	onDeleted: (workspaceIds: string[]) => void;
 }
 
 export type { BulkWorkspaceDeleteFailure };
 
 export function bulkWorkspaceDestroyErrorMessage(
-	workspace: DashboardSidebarWorkspace,
+	workspace: BulkDeleteWorkspaceTarget,
 	error: DestroyWorkspaceError,
 ): string {
 	const workspaceName = workspace.name || workspace.branch;
@@ -87,7 +87,7 @@ export function useBulkWorkspaceDelete({
 	const inFlight = useRef(false);
 
 	const targetFor = useCallback(
-		(workspace: DashboardSidebarWorkspace) => {
+		(workspace: BulkDeleteWorkspaceTarget) => {
 			const hostUrl = hostWorkspacesCache.resolveHostUrl(workspace.hostId);
 			return {
 				workspaceId: workspace.id,
@@ -155,7 +155,7 @@ export function useBulkWorkspaceDelete({
 			skipTeardown,
 			retainedFailures,
 		}: {
-			targets: DashboardSidebarWorkspace[];
+			targets: BulkDeleteWorkspaceTarget[];
 			forceAll: boolean;
 			/** Only the teardown-failure retry pass abandons teardown; warned
 			 * (forced) deletes still run it. */
@@ -194,7 +194,7 @@ export function useBulkWorkspaceDelete({
 				const warnings: string[] = [];
 				let completedCount = 0;
 				const execution = await executeBulkWorkspaceDeleteTargets<
-					DashboardSidebarWorkspace,
+					BulkDeleteWorkspaceTarget,
 					DestroyWorkspaceSuccess,
 					DestroyWorkspaceError
 				>({

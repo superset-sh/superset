@@ -140,7 +140,10 @@ export function useArchiveWorkspaceFlow(): UseArchiveWorkspaceFlow {
 			}
 			if (open) {
 				void navigateToV2Workspace(workspaceId, navigate);
-			} else if (source !== "undo-toast") {
+			} else if (source === "workspaces-page") {
+				// Undo just puts the row back where it was; the deep-link state
+				// re-renders as the workspace itself. Only the Archived view
+				// leaves the user somewhere else, so only it offers Open.
 				toast(t({ message: `Restored "${name}"` }), {
 					id: `restore-${workspaceId}`,
 					action: {

@@ -26,6 +26,7 @@ import {
 	LuChevronDown,
 	LuFolder,
 	LuGitPullRequest,
+	LuHistory,
 	LuLaptop,
 	LuList,
 	LuListFilter,
@@ -109,6 +110,8 @@ interface V2WorkspacesHeaderProps {
 		{ hostName: string; isOnline: boolean; isLocal: boolean }
 	>;
 	projectsById: Map<string, { projectName: string; iconUrl: string | null }>;
+	/** User-archived workspaces in the current device scope (the Archived tab's badge). */
+	archivedCount: number;
 }
 
 /** Muted right-aligned summary of a submenu's current selection. */
@@ -126,6 +129,7 @@ export function V2WorkspacesHeader({
 	creatorOptions,
 	hostsById,
 	projectsById,
+	archivedCount,
 }: V2WorkspacesHeaderProps) {
 	const { t } = useLingui();
 	const searchQuery = useV2WorkspacesFilterStore((state) => state.searchQuery);
@@ -634,81 +638,86 @@ export function V2WorkspacesHeader({
 						</DropdownMenuContent>
 					</DropdownMenu>
 
-					<DropdownMenu modal={false}>
-						<DropdownMenuTrigger asChild>
-							<Button
-								variant="ghost"
-								size="sm"
-								className="h-8 gap-1.5 px-2 font-normal text-muted-foreground"
-							>
-								<LuArrowDownUp className="size-3.5" />
-								<span className="@max-2xl:hidden">
-									<Trans>Display</Trans>
-								</span>
-							</Button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent align="end" className="min-w-[12rem]">
-							<DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-								<Trans>Sort by</Trans>
-							</DropdownMenuLabel>
-							<DropdownMenuRadioGroup
-								value={sortMode}
-								onValueChange={(next) =>
-									setSortMode(next as V2WorkspacesSortMode)
-								}
-							>
-								{V2_WORKSPACES_SORT_MODES.map((mode) => (
-									<DropdownMenuRadioItem key={mode} value={mode}>
-										{i18n._(V2_WORKSPACES_SORT_LABELS[mode])}
-									</DropdownMenuRadioItem>
-								))}
-							</DropdownMenuRadioGroup>
-							<DropdownMenuSeparator />
-							<DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-								<span className="flex items-center gap-1.5">
-									<LuArchive className="size-3" />
-									<Trans>Archived</Trans>
-								</span>
-							</DropdownMenuLabel>
-							<DropdownMenuRadioGroup
-								value={archivedWindow}
-								onValueChange={(next) =>
-									setArchivedWindow(next as V2WorkspacesArchivedWindow)
-								}
-							>
-								{(
-									Object.keys(
-										ARCHIVED_WINDOW_LABELS,
-									) as V2WorkspacesArchivedWindow[]
-								).map((window) => (
-									<DropdownMenuRadioItem key={window} value={window}>
-										{i18n._(ARCHIVED_WINDOW_LABELS[window])}
-									</DropdownMenuRadioItem>
-								))}
-							</DropdownMenuRadioGroup>
-							{viewMode === "board" && (
-								<>
-									<DropdownMenuSeparator />
-									<DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-										<Trans>Lanes</Trans>
-									</DropdownMenuLabel>
-									{V2_WORKSPACES_BOARD_LANES.map((lane) => (
-										<DropdownMenuCheckboxItem
-											key={lane}
-											checked={!hiddenLanes.includes(lane)}
-											onCheckedChange={() => toggleLane(lane)}
-											onSelect={(event) => event.preventDefault()}
-										>
-											<span className="flex items-center gap-1.5">
-												<BoardColumnIcon column={lane} className="size-3" />
-												{i18n._(BOARD_COLUMN_LABELS[lane])}
-											</span>
-										</DropdownMenuCheckboxItem>
+					{/* Sort, History, and Lanes shape the live views; the archived list is a fixed order. */}
+					{viewMode !== "archived" ? (
+						<DropdownMenu modal={false}>
+							<DropdownMenuTrigger asChild>
+								<Button
+									variant="ghost"
+									size="sm"
+									className="h-8 gap-1.5 px-2 font-normal text-muted-foreground"
+								>
+									<LuArrowDownUp className="size-3.5" />
+									<span className="@max-2xl:hidden">
+										<Trans>Display</Trans>
+									</span>
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="end" className="min-w-[12rem]">
+								<DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+									<Trans>Sort by</Trans>
+								</DropdownMenuLabel>
+								<DropdownMenuRadioGroup
+									value={sortMode}
+									onValueChange={(next) =>
+										setSortMode(next as V2WorkspacesSortMode)
+									}
+								>
+									{V2_WORKSPACES_SORT_MODES.map((mode) => (
+										<DropdownMenuRadioItem key={mode} value={mode}>
+											{i18n._(V2_WORKSPACES_SORT_LABELS[mode])}
+										</DropdownMenuRadioItem>
 									))}
-								</>
-							)}
-						</DropdownMenuContent>
-					</DropdownMenu>
+								</DropdownMenuRadioGroup>
+								<DropdownMenuSeparator />
+								<DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+									{/* The Merged/Deleted tombstone lookback — an older, different
+								    concept from the Archived tab beside this menu. */}
+									<span className="flex items-center gap-1.5">
+										<LuHistory className="size-3" />
+										<Trans>History</Trans>
+									</span>
+								</DropdownMenuLabel>
+								<DropdownMenuRadioGroup
+									value={archivedWindow}
+									onValueChange={(next) =>
+										setArchivedWindow(next as V2WorkspacesArchivedWindow)
+									}
+								>
+									{(
+										Object.keys(
+											ARCHIVED_WINDOW_LABELS,
+										) as V2WorkspacesArchivedWindow[]
+									).map((window) => (
+										<DropdownMenuRadioItem key={window} value={window}>
+											{i18n._(ARCHIVED_WINDOW_LABELS[window])}
+										</DropdownMenuRadioItem>
+									))}
+								</DropdownMenuRadioGroup>
+								{viewMode === "board" && (
+									<>
+										<DropdownMenuSeparator />
+										<DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+											<Trans>Lanes</Trans>
+										</DropdownMenuLabel>
+										{V2_WORKSPACES_BOARD_LANES.map((lane) => (
+											<DropdownMenuCheckboxItem
+												key={lane}
+												checked={!hiddenLanes.includes(lane)}
+												onCheckedChange={() => toggleLane(lane)}
+												onSelect={(event) => event.preventDefault()}
+											>
+												<span className="flex items-center gap-1.5">
+													<BoardColumnIcon column={lane} className="size-3" />
+													{i18n._(BOARD_COLUMN_LABELS[lane])}
+												</span>
+											</DropdownMenuCheckboxItem>
+										))}
+									</>
+								)}
+							</DropdownMenuContent>
+						</DropdownMenu>
+					) : null}
 
 					{/* Matches TasksTopBar's TabsList treatment (borderless muted pill). */}
 					<fieldset
@@ -748,6 +757,27 @@ export function V2WorkspacesHeader({
 							<span className="@max-2xl:hidden">
 								<Trans>Board</Trans>
 							</span>
+						</button>
+						<button
+							type="button"
+							aria-pressed={viewMode === "archived"}
+							className={cn(
+								"flex h-7 items-center gap-1.5 rounded-sm px-2 text-xs transition-colors",
+								viewMode === "archived"
+									? "bg-background text-foreground shadow-sm"
+									: "text-muted-foreground hover:text-foreground",
+							)}
+							onClick={() => setViewMode("archived")}
+						>
+							<LuArchive className="size-3.5" />
+							<span className="@max-2xl:hidden">
+								<Trans>Archived</Trans>
+							</span>
+							{archivedCount > 0 ? (
+								<span className="tabular-nums text-muted-foreground">
+									{archivedCount}
+								</span>
+							) : null}
 						</button>
 					</fieldset>
 				</div>
