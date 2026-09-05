@@ -1,0 +1,159 @@
+import { afterAll, afterEach, describe, expect, mock, test } from "bun:test";
+import { GlobalRegistrator } from "@happy-dom/global-registrator";
+
+const alreadyRegistered = GlobalRegistrator.isRegistered;
+if (!alreadyRegistered) GlobalRegistrator.register();
+(
+	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
+
+const { act, cleanup, fireEvent, render, within } = await import(
+	"@testing-library/react"
+);
+const { AutoSwitchSettings } = await import("./AutoSwitchSettings");
+
+afterEach(cleanup);
+afterAll(async () => {
+	if (!alreadyRegistered) await GlobalRegistrator.unregister();
+});
+
+type Props = Parameters<typeof AutoSwitchSettings>[0];
+
+const SETTINGS: Props["settings"] = {
+	enabled: true,
+	thresholdPercent: 90,
+	strategy: "best",
+	modelWindows: [],
+	pollIntervalSeconds: 60,
+	cooldownSeconds: 300,
+};
+
+function setup(props: Partial<Props> = {}) {
+	const commits: Array<Partial<Props["settings"]>> = [];
+	const onCommit = mock((patch: Partial<Props["settings"]>) => {
+		commits.push(patch);
+		return Promise.resolve();
+	});
+	const view = render(
+		<AutoSwitchSettings
+			agentLabel="Claude Code"
+			settings={SETTINGS}
+			engineAvailable
+			platformSupported
+			lockOwner
+			disabled={false}
+			onCommit={onCommit}
+			{...props}
+		/>,
+	);
+	return {
+		commits,
+		onCommit,
+		ui: within(view.baseElement as HTMLElement),
+		view,
+	};
+}
+
+describe("AutoSwitchSettings controls", () => {
+	test("the threshold field sends the number the user typed", async () => {
+		const { commits, ui } = setup();
+		const field = ui.getByRole("spinbutton", {
+			name: "Switch at",
+		}) as HTMLInputElement;
+		await act(async () => {
+			fireEvent.change(field, { target: { value: "75" } });
+			fireEvent.blur(field);
+		});
+		expect(commits).toEqual([{ thresholdPercent: 75 }]);
+	});
+
+	test("a threshold past the ends is pulled back in range, not refused", async () => {
+		const { commits, ui } = setup();
+		const field = ui.getByRole("spinbutton", {
+			name: "Switch at",
+		}) as HTMLInputElement;
+		expect(field.getAttribute("min")).toBe("1");
+		expect(field.getAttribute("max")).toBe("100");
+		await act(async () => {
+			fireEvent.change(field, { target: { value: "150" } });
+			fireEvent.blur(field);
+		});
+		expect(commits).toEqual([{ thresholdPercent: 100 }]);
+		expect(ui.queryByRole("alert")).toBeNull();
+	});
+
+	test("a refusal reverts the control and says why", async () => {
+		const onCommit = mock(() => Promise.reject(new Error("invalid-settings")));
+		const view = render(
+			<AutoSwitchSettings
+				agentLabel="Claude Code"
+				settings={SETTINGS}
+				engineAvailable
+				platformSupported
+				lockOwner
+				disabled={false}
+				onCommit={onCommit}
+			/>,
+		);
+		const ui = within(view.baseElement as HTMLElement);
+		const field = ui.getByRole("spinbutton", {
+			name: "Switch at",
+		}) as HTMLInputElement;
+		await act(async () => {
+			fireEvent.change(field, { target: { value: "42" } });
+			fireEvent.blur(field);
+		});
+		expect(ui.getByRole("alert").textContent).toContain(
+			"previous one still stands",
+		);
+		expect(
+			(ui.getByRole("spinbutton", { name: "Switch at" }) as HTMLInputElement)
+				.value,
+		).toBe("90");
+	});
+
+	test("an offline host leaves every control untouchable", () => {
+		const { ui } = setup({ disabled: true });
+		expect(
+			(ui.getByRole("spinbutton", { name: "Switch at" }) as HTMLInputElement)
+				.disabled,
+		).toBe(true);
+		expect(
+			ui
+				.getByRole("switch", { name: "Switch accounts automatically" })
+				.hasAttribute("disabled"),
+		).toBe(true);
+	});
+
+	test("the detail controls stay out of the way until auto-switch is on", () => {
+		const { ui } = setup({ settings: { ...SETTINGS, enabled: false } });
+		expect(ui.queryByRole("spinbutton", { name: "Switch at" })).toBeNull();
+		expect(
+			ui.getByRole("switch", { name: "Switch accounts automatically" }),
+		).toBeTruthy();
+	});
+});
+
+describe("AutoSwitchSettings refusals", () => {
+	test("Windows gets the reason instead of a switch it cannot honour", () => {
+		const { ui, view } = setup({ platformSupported: false });
+		expect(ui.queryByRole("switch")).toBeNull();
+		expect(view.baseElement.textContent).toContain("needs macOS or Linux");
+	});
+
+	test("a host with no engine says so", () => {
+		const { ui, view } = setup({ engineAvailable: false });
+		expect(ui.queryByRole("switch")).toBeNull();
+		expect(view.baseElement.textContent).toContain(
+			"account engine is not running on this host",
+		);
+	});
+
+	test("a lock loser points at the instance that owns switching", () => {
+		const { ui, view } = setup({ lockOwner: false });
+		expect(ui.queryByRole("switch")).toBeNull();
+		expect(view.baseElement.textContent).toContain(
+			"Another Superset instance on this machine owns automatic switching",
+		);
+	});
+});

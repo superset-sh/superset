@@ -10,8 +10,9 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
+import { Switch } from "@superset/ui/switch";
 import { cn } from "@superset/ui/utils";
-import { useState } from "react";
+import { useId, useState } from "react";
 import {
 	LuCheck,
 	LuCircle,
@@ -23,12 +24,15 @@ import {
 	LuEyeOff,
 	LuPlus,
 	LuRefreshCw,
+	LuTriangleAlert,
 } from "react-icons/lu";
 import {
 	getPresetIcon,
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
+import type { AccountEngineAgentSettings } from "../../hooks/useAccountEngineSettings";
+import { useAccountEngineSettings } from "../../hooks/useAccountEngineSettings";
 import type {
 	UsageAccount,
 	UsageQuotaWindow,
@@ -36,15 +40,25 @@ import type {
 import { useHostUsageQuota } from "../../hooks/useHostUsageQuota";
 import { useRemoveUsageAccount } from "../../hooks/useRemoveUsageAccount";
 import { useRestartAgentSessions } from "../../hooks/useRestartAgentSessions";
+import { useSetAccountEngineSettings } from "../../hooks/useSetAccountEngineSettings";
+import { useSetAccountRotation } from "../../hooks/useSetAccountRotation";
 import { useSetDefaultUsageAccount } from "../../hooks/useSetDefaultUsageAccount";
+import { useSwitchHistory } from "../../hooks/useSwitchHistory";
+import { rotationKey } from "../../utils/rotationKey";
 import { LeaderboardCard } from "../LeaderboardCard";
 import { UsageHistorySection } from "../UsageHistorySection";
 import type { SwitchSignInTarget } from "./components/AddAccountDialog";
 import { AddAccountDialog } from "./components/AddAccountDialog";
+import { AutoSwitchSettings } from "./components/AutoSwitchSettings";
 import { RemoveAccountDialog } from "./components/RemoveAccountDialog";
 import type { RestartSessionsPrompt } from "./components/RestartSessionsDialog";
 import { RestartSessionsDialog } from "./components/RestartSessionsDialog";
+import { SwitchHistory } from "./components/SwitchHistory";
 import { API_BILLING_LINKS } from "./utils/apiBilling";
+import {
+	engineErrorCode,
+	engineErrorMessage,
+} from "./utils/engineErrorMessage";
 import { formatResetIn, formatResetLabel } from "./utils/formatResetIn";
 import { switchSignInCommand } from "./utils/switchSignInCommand";
 import type { ManagedAgent, QuotaAgent } from "./utils/visibleQuotaAgents";
@@ -111,34 +125,45 @@ function creditsLine(account: UsageAccount): string | null {
 	return null;
 }
 
-const DEFAULT_TITLE = msg({
+const ACTIVE_TITLE = msg({
 	message:
-		"New agent launches use this account. Relaunch a running agent to switch it.",
+		"Active — every running and newly launched session of this agent uses this account.",
 });
 
-function AccountCard({
+export function AccountCard({
 	account,
-	onMakeDefault,
+	onMakeActive,
+	onToggleRotation,
 	onSwitchSignIn,
 	onRemove,
+	isActivating,
 	isSwitching,
+	error,
 	selectable,
 	hideEmails,
 }: {
 	account: UsageAccount;
-	onMakeDefault: (() => void) | null;
+	onMakeActive: (() => void) | null;
+	/** R16. Null on agents the engine cannot switch. */
+	onToggleRotation: ((inRotation: boolean) => void) | null;
 	onSwitchSignIn: (() => void) | null;
 	/** Null on the system-default card — the main login is never removable. */
 	onRemove: (() => void) | null;
+	/** This card's own switch is waiting on the host. */
+	isActivating: boolean;
+	/** Some switch is in flight, so no card may start another. */
 	isSwitching: boolean;
+	/** A refusal to act on, shown on the card that asked for it. */
+	error: string | null;
 	/** True when the agent has several accounts, so the cards read as a
-	 * radio group: the default gets a check + accent border, the rest get a
+	 * radio group: the active one gets a check + accent border, the rest get a
 	 * selectable circle. */
 	selectable: boolean;
 	/** Replaces account emails so screenshots do not retain identifying pixels. */
 	hideEmails: boolean;
 }) {
 	const { t } = useLingui();
+	const rotationId = useId();
 	const credits = creditsLine(account);
 	const { copyToClipboard, copied } = useCopyToClipboard();
 	const expiredCommand =
@@ -163,10 +188,7 @@ function AccountCard({
 			<div className="flex items-baseline gap-1.5">
 				{selectable &&
 					(account.isDefault ? (
-						<span
-							className="shrink-0 self-center"
-							title={i18n._(DEFAULT_TITLE)}
-						>
+						<span className="shrink-0 self-center" title={i18n._(ACTIVE_TITLE)}>
 							<LuCircleCheck className="size-3.5 text-primary" />
 						</span>
 					) : (
@@ -176,9 +198,9 @@ function AccountCard({
 							disabled={isSwitching}
 							title={t({
 								message:
-									"Make default — launch new terminals and agents on this account.",
+									"Make active — running sessions move to this account too.",
 							})}
-							onClick={onMakeDefault ?? undefined}
+							onClick={onMakeActive ?? undefined}
 						>
 							<LuCircle className="size-3.5" />
 						</button>
@@ -203,6 +225,28 @@ function AccountCard({
 				{account.credentialKind === "api_key" && (
 					<span className="rounded bg-muted px-1 text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
 						<Trans>API</Trans>
+					</span>
+				)}
+				{account.status === "token_stale" && (
+					<span
+						className="whitespace-nowrap rounded bg-muted px-1 text-[9px] font-medium text-muted-foreground"
+						title={t({
+							message:
+								"The access token is past its expiry but the sign-in is not — a fresh one is minted the next time the CLI runs.",
+						})}
+					>
+						<Trans>Stale token, still eligible</Trans>
+					</span>
+				)}
+				{!account.managed && (
+					<span
+						className="rounded bg-muted px-1 text-[9px] font-medium uppercase tracking-wide text-muted-foreground"
+						title={t({
+							message:
+								"Set up outside Superset. Its usage is shown, but switching never writes to this login.",
+						})}
+					>
+						<Trans>Unmanaged</Trans>
 					</span>
 				)}
 				{account.status !== "ok" && account.status !== "token_stale" && (
@@ -312,40 +356,85 @@ function AccountCard({
 					{account.statusDetail ?? <Trans>Usage unavailable.</Trans>}
 				</div>
 			)}
-			{/* The radio + accent border already mark the default when the cards
-			    read as a group; the footer label only carries it for a lone card. */}
-			{((!account.isDefault && onMakeDefault !== null) ||
-				(!selectable && account.isDefault) ||
+			{/* One card per agent says "Active" in words — the accent border and
+			    radio only rank the cards against each other. */}
+			{(account.isDefault ||
+				onMakeActive !== null ||
+				onToggleRotation !== null ||
 				credits) && (
 				<div className="mt-2 flex items-center gap-2 border-t pt-1.5">
 					{account.isDefault ? (
-						!selectable && (
-							<span
-								className="inline-flex items-center gap-1 text-[10px] font-medium text-primary"
-								title={i18n._(DEFAULT_TITLE)}
-							>
-								<LuCircleCheck className="size-3" />
-								<Trans>Default for new agents</Trans>
-							</span>
-						)
-					) : onMakeDefault ? (
+						<span
+							className="inline-flex items-center gap-1 text-[10px] font-medium text-primary"
+							title={i18n._(ACTIVE_TITLE)}
+						>
+							<LuCircleCheck className="size-3" />
+							<Trans context="account state">Active</Trans>
+						</span>
+					) : onMakeActive ? (
 						<Button
 							variant="outline"
 							size="sm"
 							className="h-5 rounded px-1.5 text-[10px]"
 							disabled={isSwitching}
-							title={i18n._(DEFAULT_TITLE)}
-							onClick={onMakeDefault}
+							title={i18n._(ACTIVE_TITLE)}
+							onClick={onMakeActive}
 						>
-							<Trans>Make default</Trans>
+							{isActivating ? (
+								<Trans>Switching…</Trans>
+							) : (
+								<Trans>Make active</Trans>
+							)}
 						</Button>
 					) : null}
+					{onToggleRotation && (
+						<label
+							htmlFor={rotationId}
+							className="ml-auto flex shrink-0 items-center gap-1.5 text-[10px] text-muted-foreground"
+							title={t({
+								message:
+									"Automatic switching may move sessions onto this account. Held-out accounts stay available to pick by hand.",
+							})}
+						>
+							<Trans>In rotation</Trans>
+							<Switch
+								id={rotationId}
+								className="h-3.5 w-6 [&>[data-slot=switch-thumb]]:size-3"
+								aria-label={t({
+									message: "In rotation",
+								})}
+								checked={account.inRotation}
+								onCheckedChange={onToggleRotation}
+							/>
+						</label>
+					)}
 					{credits && (
-						<span className="ml-auto text-[10px] text-muted-foreground tabular-nums">
+						<span
+							className={cn(
+								"text-[10px] text-muted-foreground tabular-nums",
+								!onToggleRotation && "ml-auto",
+							)}
+						>
 							{credits}
 						</span>
 					)}
 				</div>
+			)}
+			{!account.managed && (
+				<p className="mt-1.5 text-[10px] text-muted-foreground">
+					<Trans>
+						Signed in outside Superset, so switching leaves this login alone.
+					</Trans>
+				</p>
+			)}
+			{error !== null && (
+				<p
+					role="alert"
+					className="mt-1.5 flex items-start gap-1.5 text-[11px] text-red-500"
+				>
+					<LuTriangleAlert className="mt-px size-3 shrink-0" />
+					<span>{error}</span>
+				</p>
 			)}
 		</div>
 	);
@@ -356,6 +445,10 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 	const quotaQuery = useHostUsageQuota(hostUrl);
 	const setDefault = useSetDefaultUsageAccount(hostUrl);
 	const removeAccount = useRemoveUsageAccount(hostUrl);
+	const engineQuery = useAccountEngineSettings(hostUrl);
+	const setEngineSettings = useSetAccountEngineSettings(hostUrl);
+	const setRotation = useSetAccountRotation(hostUrl);
+	const historyQuery = useSwitchHistory(hostUrl);
 	const isDark = useIsDarkTheme();
 	const [isRefreshing, setIsRefreshing] = useState(false);
 	const [hideEmails, setHideEmails] = useState(false);
@@ -367,31 +460,56 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 	const [removeTarget, setRemoveTarget] = useState<UsageAccount | null>(null);
 	const [restartPrompt, setRestartPrompt] =
 		useState<RestartSessionsPrompt | null>(null);
+	// Keyed by rotation key, so a card keeps its own refusal when several
+	// cards are touched in a row.
+	const [cardErrors, setCardErrors] = useState<Record<string, string>>({});
+	const [activatingKey, setActivatingKey] = useState<string | null>(null);
 	const { countRestartCandidates, restartMutation } =
 		useRestartAgentSessions(hostUrl);
 
 	const accounts = quotaQuery.data ?? [];
 	const isBusy = quotaQuery.isFetching || isRefreshing;
+	// No panel until the host has described its engine once — a placeholder
+	// with invented defaults would be a settings screen that lies.
+	const engineAgentSettings: Record<
+		ManagedAgent,
+		AccountEngineAgentSettings
+	> | null = engineQuery.data?.settings ?? null;
 
-	const showMadeDefaultToast = (
-		providerLabel: string,
-		accountLabel: string,
-	) => {
+	const showMadeActiveToast = (providerLabel: string, accountLabel: string) => {
 		toast.success(
 			t({
-				message: `New ${providerLabel} agents will use ${accountLabel}.`,
+				message: `${accountLabel} is now the active ${providerLabel} account.`,
 			}),
 			{
 				description: t({
-					message: "Relaunch running agents to switch them.",
+					message: "Running sessions move over without being relaunched.",
 				}),
 			},
 		);
 	};
 
-	// Running agents keep the previous account (their PTY env froze at
-	// spawn) — after a switch, offer to restart them onto the new one. When
-	// the host can't be asked, fall back to the plain toast.
+	/** Whatever the host refused with, said in words the user can act on. */
+	const switchFailureMessage = (failure: unknown): string =>
+		engineErrorMessage(failure) ??
+		t({
+			message: `Switch failed (${engineErrorCode(failure)}). The previous account is still active.`,
+		});
+
+	const setCardError = (key: string, message: string | null) => {
+		setCardErrors((errors) => {
+			if (message === null) {
+				if (!(key in errors)) return errors;
+				const { [key]: _cleared, ...rest } = errors;
+				return rest;
+			}
+			return { ...errors, [key]: message };
+		});
+	};
+
+	// Sessions the engine cannot hot-swap (Codex, and Claude sessions pinned
+	// outside the active dir) still need a restart — after a switch, offer it.
+	// When the host can't be asked, fall back to the plain toast.
 	const handleDefaultSwitched = async (
 		agent: ManagedAgent,
 		accountLabel: string,
@@ -412,22 +530,52 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 			});
 			return;
 		}
-		showMadeDefaultToast(providerLabel, accountLabel);
+		showMadeActiveToast(providerLabel, accountLabel);
 	};
 
-	const makeDefaultAccount = (account: UsageAccount) => {
+	// R2/F3: the host performs the switch, so a failure must leave the
+	// indicator where it was and say so on the card that asked.
+	const makeAccountActive = (account: UsageAccount) => {
 		if (!isManagedAgent(account.agent)) return;
 		const agent = account.agent;
+		const key = rotationKey(account);
+		setCardError(key, null);
+		setActivatingKey(key);
 		setDefault.mutate(
 			{ agent, selection: account.selection },
 			{
 				onSuccess: () => {
+					setActivatingKey(null);
 					void handleDefaultSwitched(
 						agent,
 						account.email ?? account.sourceLabel,
 					);
 				},
-				onError: (error) => toast.error(errorMessage(error)),
+				onError: (failure) => {
+					setActivatingKey(null);
+					setCardError(key, switchFailureMessage(failure));
+				},
+			},
+		);
+	};
+
+	const toggleAccountRotation = (
+		account: UsageAccount,
+		inRotation: boolean,
+	) => {
+		const key = rotationKey(account);
+		setCardError(key, null);
+		setRotation.mutate(
+			{ accountKey: key, inRotation },
+			{
+				onError: (failure) =>
+					setCardError(
+						key,
+						engineErrorMessage(failure) ??
+							t({
+								message: `Rotation not saved (${engineErrorCode(failure)}).`,
+							}),
+					),
 			},
 		);
 	};
@@ -436,7 +584,7 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 		if (!restartPrompt) return;
 		const { providerLabel, accountLabel } = restartPrompt;
 		setRestartPrompt(null);
-		showMadeDefaultToast(providerLabel, accountLabel);
+		showMadeActiveToast(providerLabel, accountLabel);
 	};
 
 	const confirmRestartSessions = () => {
@@ -548,6 +696,14 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 								</Button>
 							)}
 						</div>
+						{isManagedAgent(agent) && (
+							<p className="text-[10px] text-muted-foreground">
+								<Trans>
+									Every running and newly launched {AGENT_LABELS[agent]} session
+									uses the active account.
+								</Trans>
+							</p>
+						)}
 						{quotaQuery.isPending ? (
 							<div className="flex items-center gap-1.5 rounded-lg border border-dashed px-3 py-2 text-[11px] text-muted-foreground">
 								<LuRefreshCw className="size-3 animate-spin" />
@@ -566,9 +722,15 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 									<AccountCard
 										key={account.accountKey}
 										account={account}
-										onMakeDefault={
+										onMakeActive={
 											isManagedAgent(account.agent)
-												? () => makeDefaultAccount(account)
+												? () => makeAccountActive(account)
+												: null
+										}
+										onToggleRotation={
+											isManagedAgent(account.agent)
+												? (inRotation) =>
+														toggleAccountRotation(account, inRotation)
 												: null
 										}
 										onSwitchSignIn={
@@ -582,7 +744,9 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 												? () => setRemoveTarget(account)
 												: null
 										}
+										isActivating={activatingKey === rotationKey(account)}
 										isSwitching={setDefault.isPending}
+										error={cardErrors[rotationKey(account)] ?? null}
 										selectable={
 											isManagedAgent(agent) && agentAccounts.length > 1
 										}
@@ -590,6 +754,19 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 									/>
 								))}
 							</div>
+						)}
+						{engineAgentSettings && isManagedAgent(agent) && (
+							<AutoSwitchSettings
+								agentLabel={AGENT_LABELS[agent]}
+								settings={engineAgentSettings[agent]}
+								engineAvailable={engineQuery.data?.engineAvailable ?? false}
+								platformSupported={engineQuery.data?.platformSupported ?? false}
+								lockOwner={engineQuery.data?.lockOwner ?? false}
+								disabled={!hostUrl || engineQuery.isPending}
+								onCommit={(patch) =>
+									setEngineSettings.mutateAsync({ agent, patch })
+								}
+							/>
 						)}
 					</section>
 				);
@@ -655,6 +832,12 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 						.catch(() => {})
 						.finally(() => setIsRefreshing(false));
 				}}
+			/>
+
+			<SwitchHistory
+				entries={historyQuery.data?.entries ?? []}
+				isLoading={historyQuery.isPending && !!hostUrl}
+				agentLabels={{ claude: AGENT_LABELS.claude, codex: AGENT_LABELS.codex }}
 			/>
 
 			<UsageHistorySection hostUrl={hostUrl} />

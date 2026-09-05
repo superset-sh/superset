@@ -5,11 +5,13 @@ import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 export type RestartableUsageAgent = "claude" | "codex";
 
 /**
- * The account-switch restart flow. `countRestartCandidates` sizes the ask
- * (running agents keep the previous account because their PTY env froze at
- * spawn); the mutation kills each one crash-style so the standard
- * auto-resume relaunches it with its own session id — same conversation,
- * new default account.
+ * The post-switch restart flow for sessions the account engine cannot move:
+ * a config dir the user exported by hand (`managed: false`). Managed Claude
+ * sessions pick up the swapped login without relaunching, and managed Codex
+ * sessions are restarted by the engine when they go idle, so
+ * `countRestartCandidates` sizes the ask by the unmanaged rows only. The
+ * mutation kills each one crash-style so the standard auto-resume relaunches
+ * it with its own session id — same conversation, new active account.
  */
 export function useRestartAgentSessions(hostUrl: string | null) {
 	const countRestartCandidates = useCallback(
@@ -18,7 +20,8 @@ export function useRestartAgentSessions(hostUrl: string | null) {
 			const candidates = await getHostServiceClientByUrl(
 				hostUrl,
 			).terminalAgents.accountRestartCandidates.query({ provider: agent });
-			return candidates.length;
+			return candidates.filter((candidate) => candidate.managed === false)
+				.length;
 		},
 		[hostUrl],
 	);
