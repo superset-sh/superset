@@ -6,8 +6,8 @@ export function Footer() {
 	const currentYear = new Date().getFullYear();
 
 	return (
-		<footer className="mt-auto w-full border-t border-border/50 py-5">
-			<div className="mx-auto flex w-[95vw] max-w-screen-2xl items-center justify-between">
+		<footer className="w-full border-t border-border/50 py-5">
+			<div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4">
 				<p className="text-sm text-muted-foreground">
 					{i18n._({
 						...msg({

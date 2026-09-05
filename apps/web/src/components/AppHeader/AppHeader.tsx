@@ -1,7 +1,6 @@
 "use client";
 
 import type { MessageDescriptor } from "@lingui/core";
-import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { authClient } from "@superset/auth/client";
 import { i18n } from "@superset/i18n";
@@ -22,6 +21,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { useIsMobile } from "@superset/ui/hooks/use-mobile";
 import { toast } from "@superset/ui/sonner";
+import { cn } from "@superset/ui/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronDown, LogOut } from "lucide-react";
 import Link from "next/link";
@@ -30,20 +30,16 @@ import { useState } from "react";
 
 import { useTRPC } from "@/trpc/react";
 
-const navItems: { label: MessageDescriptor; href: string }[] = [
-	{
-		label: msg({ message: "Agents" }),
-		href: "/agents",
-	},
-	{
-		label: msg({
-			message: "Integrations",
-		}),
-		href: "/integrations",
-	},
-];
+export interface AppHeaderNavItem {
+	href: string;
+	label: MessageDescriptor;
+}
 
-export function AgentsHeader() {
+function isNavItemActive(pathname: string, href: string) {
+	return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+export function AppHeader({ navItems }: { navItems: AppHeaderNavItem[] }) {
 	const { t } = useLingui();
 	const { data: session } = authClient.useSession();
 	const router = useRouter();
@@ -82,7 +78,7 @@ export function AgentsHeader() {
 		message: string,
 		error: unknown,
 	) => {
-		console.error(`[AgentsHeader] ${context}`, error);
+		console.error(`[AppHeader] ${context}`, error);
 		toast.error(message);
 	};
 
@@ -232,6 +228,27 @@ export function AgentsHeader() {
 						<Trans>Account menu</Trans>
 					</DrawerTitle>
 					<div className="flex flex-col gap-1 p-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+						<nav className="flex flex-col gap-1">
+							{navItems.map((item) => {
+								const isActive = isNavItemActive(pathname, item.href);
+								return (
+									<Link
+										key={item.href}
+										href={item.href}
+										className={cn(
+											"rounded-md px-2 py-2 text-sm font-medium transition-colors",
+											isActive
+												? "bg-secondary text-foreground"
+												: "text-muted-foreground hover:bg-accent hover:text-foreground",
+										)}
+										onClick={() => setDrawerOpen(false)}
+									>
+										{i18n._(item.label)}
+									</Link>
+								);
+							})}
+						</nav>
+						<div className="my-1 h-px bg-border" />
 						<div className="flex flex-col space-y-1 px-2 py-1.5">
 							<div className="flex items-center gap-2">
 								<p className="text-sm font-medium">{user?.name}</p>
@@ -411,20 +428,18 @@ export function AgentsHeader() {
 
 				<nav className="hidden items-center gap-1 sm:flex">
 					{navItems.map((item) => {
-						const isActive =
-							item.href === "/agents"
-								? pathname === "/agents" || pathname.startsWith("/agents/")
-								: pathname.startsWith(item.href);
+						const isActive = isNavItemActive(pathname, item.href);
 
 						return (
 							<Link
 								key={item.href}
 								href={item.href}
-								className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+								className={cn(
+									"rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
 									isActive
 										? "bg-secondary text-foreground"
-										: "text-muted-foreground hover:text-foreground"
-								}`}
+										: "text-muted-foreground hover:text-foreground",
+								)}
 							>
 								{i18n._(item.label)}
 							</Link>

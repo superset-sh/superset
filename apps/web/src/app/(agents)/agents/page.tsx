@@ -4,16 +4,21 @@ import { Button } from "@superset/ui/button";
 import { Download } from "lucide-react";
 import { notFound } from "next/navigation";
 import { FaGithub } from "react-icons/fa";
+import { AppHeader, type AppHeaderNavItem } from "@/components/AppHeader";
 import { i18n } from "@/lib/i18n-server";
 import { ProductDemo } from "../../(dashboard-legacy)/components/ProductDemo";
 import { AgentPromptInput } from "../components/AgentPromptInput";
-import { AgentsHeader } from "../components/AgentsHeader";
 import { SessionList } from "../components/SessionList";
 import {
 	getDefaultMockWorkspace,
 	getMockSessionsByWorkspaceId,
 } from "../mock-data";
 import { getAgentsUiAccess } from "../utils/getAgentsUiAccess";
+
+const NAV_ITEMS: AppHeaderNavItem[] = [
+	{ href: "/agents", label: msg({ message: "Agents" }) },
+	{ href: "/integrations", label: msg({ message: "Integrations" }) },
+];
 
 export default async function AgentsPage() {
 	const { hasAgentsUiAccess } = await getAgentsUiAccess();
@@ -29,7 +34,7 @@ export default async function AgentsPage() {
 
 		return (
 			<>
-				<AgentsHeader />
+				<AppHeader navItems={NAV_ITEMS} />
 				<div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6">
 					<div className="flex flex-col gap-1 px-1">
 						<p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
