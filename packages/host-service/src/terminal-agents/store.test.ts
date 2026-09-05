@@ -597,3 +597,116 @@ describe("TerminalAgentStore", () => {
 		expect(lateArrival.persisted.has("t1")).toBe(true);
 	});
 });
+
+describe("TerminalAgentStore limit-stop signals", () => {
+	let store: TerminalAgentStore;
+
+	beforeEach(() => {
+		store = new TerminalAgentStore();
+	});
+
+	function start(occurredAt: number) {
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Start",
+			agentId: "claude",
+			occurredAt,
+		});
+	}
+
+	it("records the error class of a Failed event beside lastEventType", () => {
+		start(100);
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Failed",
+			errorType: "rate_limit",
+			occurredAt: 200,
+		});
+
+		const binding = store.get("t1");
+		expect(binding?.lastEventType).toBe("Failed");
+		expect(binding?.lastFailure).toEqual({ errorType: "rate_limit", at: 200 });
+	});
+
+	it("stamps the busy to stopped transition, and only on that move", () => {
+		start(100);
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Stop",
+			occurredAt: 200,
+		});
+		expect(store.get("t1")?.lastTransitionAt).toBe(200);
+
+		// Stop after Stop is not a transition: the timestamp must not move.
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Stop",
+			occurredAt: 300,
+		});
+		expect(store.get("t1")?.lastTransitionAt).toBe(200);
+
+		// A permission request is busy, so the next Stop is a fresh transition.
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "PermissionRequest",
+			occurredAt: 400,
+		});
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Failed",
+			occurredAt: 500,
+		});
+		expect(store.get("t1")?.lastTransitionAt).toBe(500);
+	});
+
+	it("keeps the last failure across later events and never invents one", () => {
+		start(100);
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Failed",
+			errorType: "rate_limit",
+			occurredAt: 200,
+		});
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Start",
+			occurredAt: 300,
+		});
+
+		expect(store.get("t1")?.lastFailure).toEqual({
+			errorType: "rate_limit",
+			at: 200,
+		});
+
+		// A Failed without an error class leaves the previous one alone.
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Failed",
+			occurredAt: 400,
+		});
+		expect(store.get("t1")?.lastFailure).toEqual({
+			errorType: "rate_limit",
+			at: 200,
+		});
+
+		// A different terminal never inherits it.
+		store.recordEvent({
+			terminalId: "t2",
+			workspaceId: WORKSPACE,
+			eventType: "Stop",
+			agentId: "claude",
+			occurredAt: 500,
+		});
+		expect(store.get("t2")?.lastFailure).toBeUndefined();
+		expect(store.get("t2")?.lastTransitionAt).toBeUndefined();
+	});
+});
