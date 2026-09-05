@@ -42,6 +42,16 @@ export const DISCOVERY_INTERVAL_MS = 5 * 60_000;
 export const IDLE_POLL_MS = 5 * 60_000;
 /** R17: accounts whose windows are spent. */
 export const EXHAUSTED_POLL_MS = 10 * 60_000;
+/**
+ * KTD5: how old the lock owner's mirror may be and still answer for an agent.
+ * A live owner republishes every time it polls, and its slowest cadence is
+ * {@link EXHAUSTED_POLL_MS} (R22's all-exhausted latch), so a snapshot older
+ * than that plus a tick's margin belongs to an owner that departed or stopped
+ * publishing. Serving that one anyway would freeze this host's account list at
+ * whatever it last said — accounts added since stay missing, removed ones stay
+ * as ghosts — and would suppress local discovery for those agents for good.
+ */
+export const MIRROR_MAX_AGE_MS = EXHAUSTED_POLL_MS + 2 * 60_000;
 /** First step of the 429 back-off; it doubles from here. */
 export const INITIAL_BACKOFF_MS = 60_000;
 export const MAX_BACKOFF_MS = 30 * 60_000;
@@ -129,6 +139,13 @@ export interface QuotaStoreSnapshotEntry {
 
 export interface QuotaStoreSnapshot {
 	entries: QuotaStoreSnapshotEntry[];
+	/**
+	 * When the publishing store built this snapshot, so a lock loser can bound
+	 * the age of what it serves ({@link MIRROR_MAX_AGE_MS}). Absent from a
+	 * mirror an older host-service wrote: an age nobody can tell is not one to
+	 * trust, so such a mirror is read past.
+	 */
+	writtenAt?: number;
 }
 
 /** What the engine tick tells the store about one agent (KTD10). */
@@ -295,6 +312,7 @@ export class QuotaStore {
 
 	snapshot(): QuotaStoreSnapshot {
 		return {
+			writtenAt: this.now(),
 			entries: this.entries().map((entry) => ({
 				key: entry.key,
 				agent: entry.agent,
@@ -590,6 +608,13 @@ export class QuotaStore {
 	 * polls only the other — so treating its silence as the answer would leave
 	 * the uncovered agent missing from every other host's Usage page for good.
 	 *
+	 * Coverage is also bounded in time: a snapshot older than
+	 * {@link MIRROR_MAX_AGE_MS} covers nothing, so every agent falls through to
+	 * the local read exactly as an uncovered one does. `quota.json` outlives
+	 * the owner that wrote it, and an owner that departed — or one that never
+	 * republishes because auto-switch is off — would otherwise keep answering
+	 * for this host forever with the accounts it happened to see.
+	 *
 	 * The mirror is JSON another process wrote, so one malformed entry is
 	 * dropped rather than allowed to throw out of every read on this host.
 	 */
@@ -600,6 +625,13 @@ export class QuotaStore {
 		const empty = { entries: [], covered: [] };
 		if (!this.snapshotSource) return empty;
 		const snapshot = this.snapshotSource();
+		const writtenAt = snapshot?.writtenAt;
+		if (
+			typeof writtenAt !== "number" ||
+			this.now() - writtenAt > MIRROR_MAX_AGE_MS
+		) {
+			return empty;
+		}
 		const mirrored: Array<{
 			agent: QuotaCapableAgent;
 			accounts: UsageAccount[];

@@ -84,6 +84,33 @@ function readCredentials(dir: string): Record<string, unknown> {
 	return JSON.parse(readFileSync(join(dir, ".credentials.json"), "utf-8"));
 }
 
+/** True once the swap's identity write has landed in this state file — the
+ * signal a read of it is the verify step's, not the pre-write snapshot's. */
+function namesB(statePath: string): boolean {
+	return readFileSync(statePath, "utf-8").includes("uuid-b");
+}
+
+/** Deps whose read-back of the active identity finds a third account: a
+ * `/login` landing between the identity write and the verify step. */
+function identityStolenAtVerify(activeDir: string): ClaudeSwapDeps["fs"] {
+	const state = join(activeDir, ".claude.json");
+	return {
+		readFile: async (path: string, encoding: "utf-8") => {
+			const { readFile } = await import("node:fs/promises");
+			if (path === state && namesB(state)) {
+				writeFileSync(
+					state,
+					JSON.stringify({
+						...JSON.parse(readFileSync(state, "utf-8")),
+						...identity("c"),
+					}),
+				);
+			}
+			return readFile(path, encoding);
+		},
+	};
+}
+
 function fixture(): Fixture {
 	const home = tempRoot("swap-home");
 	const superset = tempRoot("swap-superset");
@@ -674,8 +701,9 @@ describe("swapClaudeLogin on a file-backed store", () => {
 			fs: {
 				readFile: async (path: string, encoding: "utf-8") => {
 					const { readFile } = await import("node:fs/promises");
-					// Only the verify step reads the active dir's identity here.
-					if (path === join(f.activeDir, ".claude.json")) {
+					// Once the state file names the target, the identity write has
+					// landed and the read under way is the verify step's.
+					if (path === join(f.activeDir, ".claude.json") && namesB(path)) {
 						writeCredentials(f.activeDir, {
 							claudeAiOauth: oauth("t-c", 9_000),
 						});
@@ -697,6 +725,56 @@ describe("swapClaudeLogin on a file-backed store", () => {
 		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
 			oauth("t-a-refreshed", 5_000),
 		);
+	});
+
+	// The rollback runs after the identity block was written, so putting only
+	// the credential back would leave `.claude.json` naming the target: the
+	// previous login filed under the target's account, which is what a later
+	// ownership check and save-back read.
+	it("restores the previous identity when the verify step fails", async () => {
+		const f = fixture();
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, fs: identityStolenAtVerify(f.activeDir) },
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "verify-failed" });
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+		const state = JSON.parse(
+			readFileSync(join(f.activeDir, ".claude.json"), "utf-8"),
+		);
+		expect(state.oauthAccount).toEqual(identity("a").oauthAccount);
+		expect(state.userID).toBe("user-a");
+		expect(state.projects["/tmp/session"].hasTrustDialogAccepted).toBe(true);
+	});
+
+	it("removes the identity keys on rollback when the dir had none", async () => {
+		const f = fixture();
+		writeFileSync(
+			join(f.activeDir, ".claude.json"),
+			JSON.stringify({
+				projects: { "/tmp/session": { hasTrustDialogAccepted: true } },
+			}),
+		);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, fs: identityStolenAtVerify(f.activeDir) },
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "verify-failed" });
+		const state = JSON.parse(
+			readFileSync(join(f.activeDir, ".claude.json"), "utf-8"),
+		);
+		expect(state.oauthAccount).toBeUndefined();
+		expect(state.userID).toBeUndefined();
+		expect(state.projects["/tmp/session"].hasTrustDialogAccepted).toBe(true);
 	});
 
 	it("replaces a symlinked .credentials.json with a real file", async () => {

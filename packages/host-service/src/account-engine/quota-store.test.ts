@@ -10,6 +10,7 @@ import {
 	eligibleForSwitch,
 	IDLE_POLL_MS,
 	MAX_BACKOFF_MS,
+	MIRROR_MAX_AGE_MS,
 	QUOTA_TTL_MS,
 	type QuotaEntry,
 	QuotaStore,
@@ -643,6 +644,38 @@ describe("QuotaStore snapshot mirror", () => {
 		expect(loser.calls).toEqual([]);
 	});
 
+	// quota.json outlives the owner that wrote it: an owner that departed, or
+	// one whose auto-switch is off and never republishes, would otherwise keep
+	// answering for this host with the accounts it happened to see last.
+	it("reads for itself once the owner's mirror has gone stale", async () => {
+		const owner = harness({ claudeSelections: [null] });
+		await owner.store.read({ agents: ["claude"] });
+		const published = JSON.parse(
+			JSON.stringify(owner.store.snapshot()),
+		) as QuotaStoreSnapshot;
+
+		// A second profile appeared on this machine after the owner published.
+		const loser = harness({ claudeSelections: [null, "/profiles/a"] });
+		loser.store.setSnapshotSource(() => published);
+
+		// Inside the bound the mirror is still the answer.
+		const mirrored = await loser.store.read({ agents: ["claude"] });
+		expect(mirrored.map((entry) => entry.selection)).toEqual([null]);
+		expect(loser.calls).toEqual([]);
+
+		loser.advance(MIRROR_MAX_AGE_MS + 1);
+		const local = await loser.store.read({ agents: ["claude"] });
+
+		expect(local.map((entry) => entry.selection)).toEqual([
+			null,
+			"/profiles/a",
+		]);
+		expect(loser.calls.map((call) => call.key)).toEqual([
+			CLAUDE_DEFAULT,
+			CLAUDE_A,
+		]);
+	});
+
 	// An owner with auto-switch off polls nothing and publishes nothing, which
 	// is not the same as "this machine has no accounts": a loser that took the
 	// missing mirror for an answer would show an empty Usage page for good.
@@ -668,6 +701,7 @@ describe("QuotaStore snapshot mirror", () => {
 		const h = harness({ claudeSelections: [null, "/profiles/a"] });
 		// The owner mirrors another agent entirely — nothing for Claude.
 		h.store.setSnapshotSource(() => ({
+			writtenAt: T0,
 			entries: [
 				{
 					key: "grok",

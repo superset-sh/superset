@@ -311,6 +311,34 @@ async function readIdentity(
 	}
 }
 
+/**
+ * Exactly the keys an identity write replaces, as the state file holds them
+ * right now — the snapshot a rollback puts back. Unlike `readIdentity` this
+ * does not care whether they name an account: an empty result means the dir
+ * had no identity, and restoring it removes the target's.
+ */
+async function readIdentityKeys(
+	statePath: string,
+	ctx: SwapContext,
+): Promise<Record<string, unknown>> {
+	const keys: Record<string, unknown> = {};
+	try {
+		const parsed: unknown = JSON.parse(
+			await ctx.fs.readFile(statePath, "utf-8"),
+		);
+		if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+			return keys;
+		}
+		const state = parsed as Record<string, unknown>;
+		for (const key of CLAUDE_IDENTITY_KEYS) {
+			if (key in state) keys[key] = state[key];
+		}
+	} catch {
+		// An unreadable state file held no identity worth restoring.
+	}
+	return keys;
+}
+
 /** One 0600 timestamped copy per write, three kept per dir. Best-effort: a
  * failed backup must not stop a swap the user is waiting on. */
 async function backupCredentialFile(
@@ -497,7 +525,12 @@ async function applyStoreWrite(
  * Each store is restored from its own bytes — writing one "freshest" login into
  * both would sign one of them in as the other — and a store that held no
  * credential before the swap has the one the swap created removed, rather than
- * left holding the target's login. Reports `code` — what went wrong before the
+ * left holding the target's login. `previousIdentity` does the same for the
+ * `.claude.json` identity block once that has been written — the keys the dir
+ * held before, empty when it had none, and `null` when the identity write had
+ * not run yet and the file is still the dir's own. Both halves go back
+ * together: a credential restored under the target's name is the split the
+ * rollback exists to prevent. Reports `code` — what went wrong before the
  * rollback — once the dir is whole again, `split-state` when the restore failed
  * too.
  */
@@ -508,8 +541,9 @@ async function rollbackActiveWrite(
 	reason: string,
 	code: "write-failed" | "verify-failed",
 	ctx: SwapContext,
+	previousIdentity: Record<string, unknown> | null = null,
 ): Promise<ClaudeSwapResult> {
-	if (!written.file && !written.keychain) {
+	if (!written.file && !written.keychain && !previousIdentity) {
 		return failure(code, reason);
 	}
 	try {
@@ -534,6 +568,12 @@ async function rollbackActiveWrite(
 			} else {
 				await deleteKeychainItem(written.keychain, ctx);
 			}
+		}
+		if (previousIdentity) {
+			await updateClaudeStateFile(join(activeDir, ".claude.json"), (state) => {
+				for (const key of CLAUDE_IDENTITY_KEYS) delete state[key];
+				return { ...state, ...previousIdentity };
+			});
 		}
 	} catch (rollbackError) {
 		return failure(
@@ -659,6 +699,12 @@ async function applyToActiveDir(
 			ctx,
 		);
 	}
+	// Read before the write, so a rollback after it can put the dir's own
+	// identity back instead of leaving `.claude.json` naming the target.
+	const previousIdentity = await readIdentityKeys(
+		join(activeDir, ".claude.json"),
+		ctx,
+	);
 	try {
 		await updateClaudeStateFile(join(activeDir, ".claude.json"), (state) => {
 			for (const key of CLAUDE_IDENTITY_KEYS) delete state[key];
@@ -668,7 +714,9 @@ async function applyToActiveDir(
 		// The credential is already the target's while the identity still names
 		// the previous account — the exact state a later save-back reads as the
 		// previous account's own login. Undo the credential so the dir stays
-		// whole; the protocol is not transactional, this one step is.
+		// whole; the protocol is not transactional, this one step is. The
+		// identity needs no undo here: that write is tmp-then-rename, so a
+		// throw leaves the dir's own block in place.
 		return rollbackActiveWrite(
 			activeRead,
 			written,
@@ -700,7 +748,8 @@ async function applyToActiveDir(
 	if (!loginIsTarget || !identityIsTarget) {
 		// Unlike the write failures above, the dir now holds the target while
 		// the caller still believes the previous account is live; put its own
-		// snapshot back rather than leave the two disagreeing.
+		// snapshot back — identity included, since by here `.claude.json`
+		// names the target — rather than leave the two disagreeing.
 		return rollbackActiveWrite(
 			activeRead,
 			written,
@@ -708,6 +757,7 @@ async function applyToActiveDir(
 			`${activeDir} did not read back as the target ${loginIsTarget ? "identity" : "login"}`,
 			"verify-failed",
 			ctx,
+			previousIdentity,
 		);
 	}
 	return { ok: true, identity: target.identity };
