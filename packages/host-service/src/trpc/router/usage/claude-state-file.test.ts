@@ -229,6 +229,32 @@ describe("updateClaudeStateFile", () => {
 		expect(state.projects["/tmp/other"].hasTrustDialogAccepted).toBe(true);
 	});
 
+	// Two of Superset's own writers — a trust seed and the engine's identity
+	// re-assertion, say — can be in flight at once, and the fingerprint check
+	// cannot save them: both read the same bytes, both see an unchanged file
+	// just before their rename, and the second rename drops the first's
+	// mutation without either one failing. They queue per path instead.
+	it("applies both mutations when two updates run concurrently", async () => {
+		const file = join(tempDir(), ".claude.json");
+		writeFileSync(file, JSON.stringify({ userID: "user-a" }));
+
+		await Promise.all([
+			updateClaudeStateFile(file, (state) => ({
+				...state,
+				oauthAccount: { accountUuid: "uuid-b" },
+			})),
+			updateClaudeStateFile(file, (state) => ({
+				...state,
+				projects: { "/tmp/session": { hasTrustDialogAccepted: true } },
+			})),
+		]);
+
+		const state = JSON.parse(readFileSync(file, "utf-8"));
+		expect(state.userID).toBe("user-a");
+		expect(state.oauthAccount).toEqual({ accountUuid: "uuid-b" });
+		expect(state.projects["/tmp/session"].hasTrustDialogAccepted).toBe(true);
+	});
+
 	it("gives up rather than overwrite a file that keeps changing", async () => {
 		const dir = tempDir();
 		const file = join(dir, ".claude.json");

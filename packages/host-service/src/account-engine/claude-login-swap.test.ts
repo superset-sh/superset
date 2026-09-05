@@ -608,6 +608,34 @@ describe("swapClaudeLogin on a file-backed store", () => {
 		expect(readCredentials(f.profileA).claudeAiOauth).toEqual(oauth("t-a"));
 	});
 
+	// The other end of the same staleness: the owner's own profile was
+	// re-authenticated as C after discovery, so saving A's refreshed login into
+	// it destroys C's login and leaves it labelled as C's.
+	it("refuses the save-back when the owner store now holds another account", async () => {
+		const f = fixture();
+		writeCredentials(f.profileA, { claudeAiOauth: oauth("t-c", 3_000) });
+		writeFileSync(
+			join(f.profileA, ".claude.json"),
+			JSON.stringify(identity("c")),
+		);
+		const before = readCredentials(f.activeDir);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			expectedOwnerAccountId: "uuid-a",
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "owner-unknown" });
+		// C's login stands, and the swap never reached the active dir.
+		expect(readCredentials(f.profileA).claudeAiOauth).toEqual(
+			oauth("t-c", 3_000),
+		);
+		expect(readCredentials(f.activeDir)).toEqual(before);
+	});
+
 	it("saves back as usual when the active identity is the expected owner", async () => {
 		const f = fixture();
 

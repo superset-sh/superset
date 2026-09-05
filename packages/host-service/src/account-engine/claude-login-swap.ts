@@ -764,6 +764,30 @@ async function applyToActiveDir(
 }
 
 /**
+ * Why `ownerBinding`'s store cannot take the save-back: it names a different
+ * account than the caller expects, or it holds a login whose account cannot be
+ * read at all. Null when the write is safe — including when the caller offered
+ * no expectation, which keeps today's behaviour, and when the store is empty,
+ * since the save-back is what fills it.
+ */
+async function ownerStoreMismatch(
+	ownerBinding: ClaudeLoginStoreRef,
+	ownerRead: ClaudeLoginRead,
+	expectedOwnerAccountId: string | null | undefined,
+	ctx: SwapContext,
+): Promise<string | null> {
+	if (!expectedOwnerAccountId) return null;
+	const identity = await readIdentity(
+		claudeStatePath(configDirOf(ownerBinding), ctx.homeDir),
+		ctx,
+	);
+	const accountUuid = identity?.accountUuid ?? null;
+	if (accountUuid === expectedOwnerAccountId) return null;
+	if (accountUuid === null && !oauthOf(ownerRead)) return null;
+	return `${storeDir(ownerBinding, ctx)} is signed in as account ${accountUuid ?? "none it names"}, not the expected ${expectedOwnerAccountId}`;
+}
+
+/**
  * Puts `target`'s login in the active dir and saves the login it replaces
  * back to `ownerBinding`'s own store. `ownerBinding` names the account whose
  * login is in the active dir now; without it the swap refuses rather than
@@ -771,8 +795,10 @@ async function applyToActiveDir(
  *
  * `expectedOwnerAccountId` is that same claim as an identity: pass the owner's
  * accountUuid and the save-back is checked against the identity actually in
- * the active dir before it writes. Optional so a caller that has no identity
- * to offer keeps today's behaviour.
+ * the active dir, and again against the one in `ownerBinding`'s own store,
+ * before it writes — either side may have been re-authenticated as somebody
+ * else since discovery. Optional so a caller that has no identity to offer
+ * keeps today's behaviour.
  *
  * `expectedTargetAccountId` is the other half: the account the caller believes
  * `target` holds. Checked against the identity actually in the target's dir
@@ -864,6 +890,20 @@ export async function swapClaudeLogin(input: {
 		if (previous) {
 			const ownerRead = await readStore(ownerBinding, ctx);
 			if (!wouldRegress(oauthOf(ownerRead), previous)) {
+				// The other half of the same staleness: the caller's binding says
+				// whose store this is, but a `/login` in that profile since
+				// discovery re-authenticated it as somebody else, and saving the
+				// active login over it destroys that login and mislabels the
+				// survivor. Re-read the identity beside the store in the moment
+				// before the write. A store that holds a login but names no
+				// account is unreadable, not empty, and fails closed the same way.
+				const ownerCheck = await ownerStoreMismatch(
+					ownerBinding,
+					ownerRead,
+					input.expectedOwnerAccountId,
+					ctx,
+				);
+				if (ownerCheck) return failure("owner-unknown", ownerCheck);
 				const planned = await planStoreWrite(ownerBinding, ownerRead, ctx);
 				if (!planned.ok) return planned.result;
 				try {

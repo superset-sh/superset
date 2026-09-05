@@ -300,13 +300,15 @@ describe("account-engine state", () => {
 			return held;
 		};
 
-		owner.heartbeat("nonce-a", 2_000);
+		// The heartbeat landed on an inode the path no longer names, so it is
+		// no proof of ownership: it must report the loss itself rather than
+		// leaving the engine to believe it still owns the host until the next
+		// ownership check.
+		expect(owner.heartbeat("nonce-a", 2_000)).toBe(false);
 
 		expect(raced).toBe(true);
 		expect(JSON.parse(readFileSync(lockPath, "utf8")).nonce).toBe("nonce-b");
 		expect(rival.isOwner("nonce-b")).toBe(true);
-		// The loss is reported by the next ownership check, which re-reads the
-		// path and finds the foreign nonce on a fresh heartbeat.
 		expect(owner.isOwner("nonce-a")).toBe(false);
 		expect(owner.claimLock("nonce-a", 2_100)).toBe(false);
 		expect(readdirSync(dir).filter((name) => name.endsWith(".tmp"))).toEqual(

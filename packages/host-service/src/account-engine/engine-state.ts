@@ -439,8 +439,7 @@ export class EngineState {
 	 * overwritten, and both engines then believe they own the host. Writing
 	 * into the verified fd cannot do that — if a claimant renamed our inode
 	 * aside first, the refreshed record lands on that aside file, never on the
-	 * successor's lock, and the next ownership check (which re-reads the path)
-	 * reports the loss.
+	 * successor's lock, and the re-check after the write reports the loss.
 	 */
 	private refreshLock(nonce: string, record: LockRecord): boolean {
 		const target = join(this.dir, LOCK_FILE);
@@ -463,7 +462,12 @@ export class EngineState {
 			writeSync(fd, payload, 0, payload.length, 0);
 			ftruncateSync(fd, payload.length);
 			fsyncSync(fd);
-			return true;
+			// The heartbeat is only proof of ownership if the path still names
+			// the inode we wrote. A claimant that renamed our inode aside in the
+			// window above now owns the path, and our refresh landed on an
+			// unlinked file: report the loss here rather than telling the engine
+			// it still owns a host another engine has taken.
+			return this.holdsLock(fd, target, nonce);
 		} catch {
 			// A lock we can no longer open or write is a lock we no longer hold.
 			return false;

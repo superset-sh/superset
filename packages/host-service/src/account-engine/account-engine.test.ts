@@ -125,6 +125,9 @@ interface HarnessOptions {
 	onFallbackRestart?: () => Promise<void> | void;
 	/** KTD4: what a Codex home's auth.json names right now. */
 	codexIdentity?: (selection: string | null) => string | null;
+	/** Runs inside the awaited Codex identity read, where a slow read can
+	 * lose the lease under itself (KTD5). */
+	onCodexIdentity?: () => Promise<void> | void;
 	/** The account the seed reports it copied in. */
 	seedAccountId?: string;
 	/** Runs inside the on-demand quota read a manual switch falls back to. */
@@ -302,8 +305,19 @@ function harness(options: HarnessOptions = {}) {
 		},
 		resolveActiveDir: () => ACTIVE_DIR,
 		readActiveIdentity: async () => activeIdentity,
-		readCodexIdentity: async (selection) =>
-			options.codexIdentity?.(selection) ?? null,
+		// KTD4: a home is signed in as whoever discovery found in it, unless
+		// the test says otherwise.
+		readCodexIdentity: async (selection) => {
+			await options.onCodexIdentity?.();
+			return options.codexIdentity
+				? options.codexIdentity(selection)
+				: (entries
+						.flatMap((entry) => entry.accounts)
+						.find(
+							(account) =>
+								account.agent === "codex" && account.selection === selection,
+						)?.accountId ?? null);
+		},
 	});
 
 	return {
@@ -615,7 +629,8 @@ describe("AccountEngine", () => {
 
 		expect(h.calls).toEqual([
 			"corroborate",
-			"refreshDue",
+			// Gate 3 fetches nothing here: these numbers were read this very
+			// instant, and a hint does not pay for a read twice.
 			"seed",
 			"swap",
 			"setPointer",
@@ -668,8 +683,10 @@ describe("AccountEngine", () => {
 	});
 
 	// The other half of the same gate: the quota it is judged against is the
-	// one read after the screen corroborated, not the one from the last poll.
-	it("accepts a hint whose limit only shows in the refreshed quota", async () => {
+	// one read after the screen corroborated, not the one from the last poll —
+	// and the scheduled refresh performs no request at all while the active
+	// account's own poll is still ahead, which is when a hint arrives.
+	it("accepts a hint whose limit only shows in the forced refresh", async () => {
 		const spare = () =>
 			entryFor(
 				usageAccount({
@@ -678,27 +695,79 @@ describe("AccountEngine", () => {
 					selection: "/profiles/b",
 					windows: [w("five_hour", "Session (5h)", 10)],
 				}),
+				{ fetchedAt: T0 - MINUTE, nextPollAt: T0 + MINUTE },
 			);
-		const activeAt = (usedPercent: number) =>
+		const activeAt = (usedPercent: number, fetchedAt = T0 - MINUTE) =>
 			entryFor(
 				usageAccount({
 					isDefault: true,
 					windows: [w("five_hour", "Session (5h)", usedPercent)],
 				}),
+				// Polled a minute ago and not due again for another: nothing
+				// the schedule would fetch.
+				{ fetchedAt, nextPollAt: T0 + MINUTE },
 			);
 		const h = harness({
 			entries: [activeAt(80), spare()],
 			sessions: [movableSession({ limitHintErrorType: "rate_limit" })],
-			onRefreshDue: () => {
-				// The poll that lands between the hint and the decision: the
-				// account really did hit its limit since the last one.
-				h.setEntries([activeAt(100), spare()]);
+			onRead: () => {
+				// The read the hint forced: the account really did hit its
+				// limit since the last poll.
+				h.setEntries([activeAt(100, T0), spare()]);
 			},
 		});
 		enable(h.engine);
 
 		await h.engine.handleLimitHints();
 
+		expect(h.calls).toContain("read");
+		expect(h.switched.at(-1)?.reasonKind).toBe("fallback");
+		expect(h.restarted.map((row) => row.terminalId)).toEqual(["term-1"]);
+	});
+
+	// KTD10: a 429 targets the poller, so a hint may not fetch around it — and
+	// the numbers on hand are the ones the hint says are wrong, so it is left
+	// for the next pass instead of being written off against them.
+	it("leaves a corroborated hint retryable when nothing could be fetched", async () => {
+		const spare = () =>
+			entryFor(
+				usageAccount({
+					accountKey: "key-b",
+					accountId: "acct-b",
+					selection: "/profiles/b",
+					windows: [w("five_hour", "Session (5h)", 10)],
+				}),
+				{ fetchedAt: T0 - MINUTE, nextPollAt: T0 + MINUTE },
+			);
+		const active = (over: Partial<QuotaEntry> = {}) =>
+			entryFor(
+				usageAccount({
+					isDefault: true,
+					windows: [w("five_hour", "Session (5h)", 100)],
+				}),
+				{ fetchedAt: T0 - MINUTE, nextPollAt: T0 + MINUTE, ...over },
+			);
+		const h = harness({
+			entries: [active({ backoffMs: MINUTE }), spare()],
+			sessions: [movableSession({ limitHintErrorType: "rate_limit" })],
+			onRead: () => {
+				h.setEntries([active({ fetchedAt: T0 }), spare()]);
+			},
+		});
+		enable(h.engine);
+
+		await h.engine.handleLimitHints();
+
+		// The account is spent and a target is waiting, so only the back-off
+		// held this pass back — and it filed no rejection on the way.
+		expect(h.calls).toEqual(["corroborate"]);
+		expect(h.engineState.readHistory(10)).toEqual([]);
+
+		// The back-off is over: the same hook event is still there to act on.
+		h.setEntries([active(), spare()]);
+		await h.engine.handleLimitHints();
+
+		expect(h.calls).toContain("read");
 		expect(h.switched.at(-1)?.reasonKind).toBe("fallback");
 		expect(h.restarted.map((row) => row.terminalId)).toEqual(["term-1"]);
 	});
@@ -1017,6 +1086,73 @@ describe("AccountEngine", () => {
 		).toBe("target-changed");
 	});
 
+	/** The pair the Codex checks below decide between. */
+	function twoCodexHomes(): QuotaEntry[] {
+		const codex = (over: Partial<UsageAccount>) =>
+			usageAccount({ agent: "codex", ...over });
+		return [
+			entryFor(
+				codex({
+					isDefault: true,
+					selection: "/codex/a",
+					windows: [w("primary", "5h", 95)],
+				}),
+			),
+			entryFor(
+				codex({
+					accountKey: "key-b",
+					accountId: "acct-b",
+					selection: "/codex/b",
+					windows: [w("primary", "5h", 10)],
+				}),
+			),
+		];
+	}
+
+	// The same check, fail-closed: a home that names nobody at all is not the
+	// account the switch was decided for either, and the pointer used to move
+	// there anyway — onto a home with no confirmed login.
+	it("refuses a Codex switch onto a home that names no account", async () => {
+		const h = harness({
+			entries: twoCodexHomes(),
+			// A `codex logout`, an auth.json removed, or a read that failed.
+			codexIdentity: () => null,
+		});
+		enable(h.engine, "codex");
+
+		await h.engine.tick();
+
+		expect(h.pointers).toEqual([]);
+		expect(h.switched).toEqual([]);
+		expect(h.engine.status().codex.activeAccountId).toBe("acct-a");
+		expect(
+			h.engineStates.find((event) => event.lastSwitchFailure)?.lastSwitchFailure
+				?.code,
+		).toBe("target-changed");
+	});
+
+	// KTD5: the identity read is I/O and the lease is three ticks long, so the
+	// pointer — host-wide state — used to be published by an instance that had
+	// already lost the lock under its own check.
+	it("publishes no Codex pointer when the lock goes during the identity read", async () => {
+		const thief = harness();
+		const h = harness({
+			entries: twoCodexHomes(),
+			onCodexIdentity: async () => {
+				thief.advance(4 * MINUTE);
+				await thief.engine.tick();
+			},
+		});
+		enable(h.engine, "codex");
+
+		await h.engine.tick();
+
+		expect(h.pointers).toEqual([]);
+		expect(h.switched).toEqual([]);
+		expect(h.engine.status().codex.lockOwner).toBe(false);
+		expect(thief.engine.status().codex.lockOwner).toBe(true);
+	});
+
 	it("refuses to enable auto-switch on Windows", () => {
 		const h = harness({ platform: "win32" });
 
@@ -1291,6 +1427,43 @@ describe("AccountEngine", () => {
 		expect(h.engine.status().codex.exhausted).toBe(true);
 	});
 
+	// The record says which of the two homes the sessions are on. Resolving
+	// the active row by id alone took the first one and wrote that selection
+	// back over the record — before the collapse, which then kept the home
+	// nothing is running in.
+	it("keeps the recorded home when two of them hold one account", async () => {
+		const codex = (over: Partial<UsageAccount>) =>
+			usageAccount({ agent: "codex", accountId: "acct-x", ...over });
+		const h = harness({
+			entries: [
+				entryFor(
+					codex({
+						selection: "/codex/a",
+						windows: [w("primary", "5h", 95)],
+					}),
+					{ fetchedAt: T0 - MINUTE },
+				),
+				entryFor(
+					codex({
+						accountKey: "key-b",
+						selection: "/codex/b",
+						windows: [w("primary", "5h", 10)],
+					}),
+				),
+			],
+		});
+		enable(h.engine, "codex");
+		const runtime = h.engineState.readRuntime();
+		runtime.perAgent.codex.activeAccountId = "acct-x";
+		runtime.perAgent.codex.activeSelection = "/codex/b";
+		h.engineState.writeRuntime(runtime);
+
+		await h.engine.tick();
+
+		expect(h.engine.status().codex.activeSelection).toBe("/codex/b");
+		expect(h.engine.status().codex.exhausted).toBe(false);
+	});
+
 	// KTD5/R2: auto-switch is off on a fresh install, and the lock is what
 	// lets this instance act on the user's own commands at all.
 	it("claims the lock with every agent's auto-switch off", async () => {
@@ -1560,6 +1733,36 @@ describe("AccountEngine", () => {
 		expect(loser.snapshotSources.at(-1)?.()).toEqual(published);
 	});
 
+	// KTD3: discovery records identity bindings straight into runtime.json,
+	// and it runs inside the quota refresh the tick awaits. The write that
+	// closes the tick replaces the whole file, so it used to put back the copy
+	// read before that refresh — binding gone.
+	it("keeps a binding recorded while the tick awaited its quota", async () => {
+		const h = harness({
+			entries: [
+				entryFor(
+					usageAccount({
+						isDefault: true,
+						windows: [w("five_hour", "Session (5h)", 10)],
+					}),
+				),
+			],
+			onRefreshDue: () => {
+				const runtime = h.engineState.readRuntime();
+				runtime.identityBindings["acct-z"] = "/profiles/z";
+				h.engineState.writeRuntime(runtime);
+			},
+		});
+		enable(h.engine);
+
+		await h.engine.tick();
+
+		const runtime = h.engineState.readRuntime();
+		expect(runtime.identityBindings).toEqual({ "acct-z": "/profiles/z" });
+		// And what the tick itself decided is still on disk.
+		expect(runtime.perAgent.claude.activeAccountId).toBe("acct-a");
+	});
+
 	// #5: a stale-Start Codex row is busy enough to be a hint and idle enough
 	// to be moved, so the planned move used to eat the fallback's restart.
 	it("leaves the hinted Codex terminal to the fallback restart", async () => {
@@ -1740,6 +1943,34 @@ describe("AccountEngine", () => {
 		await loser.engine.tick();
 
 		expect(loser.engine.status().codex.lockOwner).toBe(false);
+		expect(loser.moved).toHaveLength(1);
+		expect(loser.moved[0]?.rows?.map((row) => row.terminalId)).toEqual([
+			"term-1",
+		]);
+		expect(loser.calls).not.toContain("swap");
+	});
+
+	// The Claude half of the same first observation: a row launched from a
+	// profile dir is pinned to the login that was in it, so it stays on the
+	// account the owner switched away from. Only a row already on the shared
+	// active dir picks the new login up in place.
+	it("moves a lock loser's Claude sessions off the dir the owner left", async () => {
+		const owner = harness({ entries: twoClaudeAccounts() });
+		enable(owner.engine);
+		await owner.engine.tick();
+		expect(owner.switched).toHaveLength(1);
+
+		// Started after the switch: its first observation is the owner's new
+		// account, and it has never seen the old one.
+		const loser = harness({
+			sessions: [
+				movableSession({ configDir: "/profiles/a" }),
+				movableSession({ terminalId: "term-2", configDir: ACTIVE_DIR }),
+			],
+		});
+		await loser.engine.tick();
+
+		expect(loser.engine.status().claude.lockOwner).toBe(false);
 		expect(loser.moved).toHaveLength(1);
 		expect(loser.moved[0]?.rows?.map((row) => row.terminalId)).toEqual([
 			"term-1",

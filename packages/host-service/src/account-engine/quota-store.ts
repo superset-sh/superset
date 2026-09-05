@@ -240,10 +240,16 @@ function carryLastKnownWindows(
 	if (account.status !== "token_stale" || account.windows.length > 0) {
 		return account;
 	}
-	const last = previous.find(
-		(candidate) =>
-			candidate.accountKey === account.accountKey ||
-			candidate.selection === account.selection,
+	// The provider's own account id decides this, not the profile dir: a
+	// re-login swaps the account behind an unchanged path, and matching on the
+	// path would hand account B the windows, extra usage and credits account A
+	// last read. The key/selection match is only for credentials that carry no
+	// identity at all (API-key logins), where there is nothing better.
+	const last = previous.find((candidate) =>
+		account.accountId !== null || candidate.accountId !== null
+			? candidate.accountId === account.accountId
+			: candidate.accountKey === account.accountKey ||
+				candidate.selection === account.selection,
 	);
 	if (!last || last.windows.length === 0) return account;
 	return {

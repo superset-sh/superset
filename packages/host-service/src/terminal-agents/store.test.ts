@@ -774,4 +774,47 @@ describe("TerminalAgentStore limit-stop signals", () => {
 		expect(store.get("t2")?.lastFailure).toBeUndefined();
 		expect(store.get("t2")?.lastTransitionAt).toBeUndefined();
 	});
+
+	// The hook router normalizes SessionStart to "Attached" before the store
+	// ever sees it, and a relaunched conversation resumes its own session id —
+	// so a session start must drop the previous run's evidence even though
+	// nothing about the session id changed.
+	it("drops the failure and transition when the session restarts as Attached", () => {
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Start",
+			agentId: "claude",
+			agentSessionId: "s1",
+			occurredAt: 100,
+		});
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Failed",
+			errorType: "rate_limit",
+			agentId: "claude",
+			agentSessionId: "s1",
+			occurredAt: 200,
+		});
+		expect(store.get("t1")?.lastFailure).toEqual({
+			errorType: "rate_limit",
+			at: 200,
+		});
+		expect(store.get("t1")?.lastTransitionAt).toBe(200);
+
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "claude",
+			agentSessionId: "s1",
+			occurredAt: 300,
+		});
+
+		expect(store.get("t1")?.lastFailure).toBeUndefined();
+		expect(store.get("t1")?.lastTransitionAt).toBeUndefined();
+		// The start still does not rewrite the lifecycle state it arrived after.
+		expect(store.get("t1")?.lastEventType).toBe("Failed");
+	});
 });

@@ -15,7 +15,7 @@ import {
 	unlink,
 	writeFile,
 } from "node:fs/promises";
-import { basename, dirname, join } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 
 export type ClaudeState = Record<string, unknown>;
 
@@ -30,6 +30,38 @@ const MAX_ATTEMPTS = 2;
 
 function errorCode(error: unknown): string | undefined {
 	return (error as NodeJS.ErrnoException | null)?.code;
+}
+
+/**
+ * One in-flight update per state path. POSIX has no compare-and-rename, so the
+ * fingerprint check cannot close the window between itself and the rename:
+ * two updates that read the same bytes both see an unchanged file and the
+ * second rename silently drops the first's mutation. Superset's own writers (a
+ * trust seed, a swap, the engine's identity re-assertion) are serialized here
+ * so they never interleave within one host-service; the running Claude Code
+ * CLI is outside this chain, which is what the fingerprint retry is for.
+ */
+const updateChains = new Map<string, Promise<void>>();
+
+function withStateFileLock<T>(
+	statePath: string,
+	run: () => Promise<T>,
+): Promise<T> {
+	// `resolve`, not `realpath`: the file need not exist yet, and every caller
+	// names it by an absolute path already.
+	const key = resolve(statePath);
+	const result = (updateChains.get(key) ?? Promise.resolve()).then(run);
+	// The queued promise must never reject — a failed update must not fail the
+	// next one — and the entry is dropped once nothing is waiting behind it.
+	const settled = result.then(
+		() => {},
+		() => {},
+	);
+	updateChains.set(key, settled);
+	void settled.then(() => {
+		if (updateChains.get(key) === settled) updateChains.delete(key);
+	});
+	return result;
 }
 
 /**
@@ -147,13 +179,23 @@ async function writeIfUnchanged(
  * recoverable rather than destroyed.
  *
  * Claude Code, a trust seed and a swap all write this file, so the
- * read-modify-write is guarded: the file is fingerprinted before the read and
- * again right before the rename, and a file that moved in between is re-read
- * and the mutation re-applied rather than replaced with the older snapshot —
- * which would sign the user out or drop every folder-trust entry written since
- * the read.
+ * read-modify-write is guarded twice: Superset's own writers queue behind each
+ * other per path, and against the CLI — which cannot be serialized — the file
+ * is fingerprinted before the read and again right before the rename, and a
+ * file that moved in between is re-read and the mutation re-applied rather
+ * than replaced with the older snapshot, which would sign the user out or drop
+ * every folder-trust entry written since the read.
  */
 export async function updateClaudeStateFile(
+	statePath: string,
+	mutate: (state: ClaudeState) => ClaudeState,
+): Promise<void> {
+	return withStateFileLock(statePath, () =>
+		applyStateUpdate(statePath, mutate),
+	);
+}
+
+async function applyStateUpdate(
 	statePath: string,
 	mutate: (state: ClaudeState) => ClaudeState,
 ): Promise<void> {

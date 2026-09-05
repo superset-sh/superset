@@ -175,20 +175,26 @@ export class TerminalAgentStore extends EventEmitter {
 			BUSY_EVENT_TYPES.has(prior.lastEventType) &&
 			STOPPED_EVENT_TYPES.has(lastEventType);
 
-		// A transition belongs to the session it happened in. A different agent
-		// session id in the same terminal starts over, exactly as `lastFailure`
-		// does — otherwise the engine dates a fresh session's evidence by the
-		// previous session's stop.
-		const carriedTransitionAt = sessionChanged
-			? undefined
-			: prior?.lastTransitionAt;
+		// A session start, whatever the agent called it: the hook router
+		// normalizes every flavour of SessionStart to "Attached"
+		// (events/map-event-type.ts), and a relaunch of the same conversation
+		// is reported as "Attached" too, keeping the session id it resumed. So
+		// "Attached" — never "SessionStart" — is the start this store sees.
+		const sessionStarted = eventType === "Attached";
+
+		// A transition belongs to the session it happened in. A session start
+		// or a different agent session id in the same terminal starts over,
+		// exactly as `lastFailure` does — otherwise the engine dates a fresh
+		// session's evidence by the previous session's stop.
+		const carriedTransitionAt =
+			sessionChanged || sessionStarted ? undefined : prior?.lastTransitionAt;
 
 		// A failure describes the turn it ended, so it is dropped the moment
-		// the session moves on: a new turn, or a different agent session in
-		// the same terminal. Carrying it forward leaves a rate-limit stop
-		// arming the engine's limit-stop fallback against a live session.
-		const turnStarted =
-			BUSY_EVENT_TYPES.has(eventType) || eventType === "SessionStart";
+		// the session moves on: a new turn, a session start, or a different
+		// agent session in the same terminal. Carrying it forward leaves a
+		// rate-limit stop arming the engine's limit-stop fallback against a
+		// live session.
+		const turnStarted = BUSY_EVENT_TYPES.has(eventType) || sessionStarted;
 		const lastFailure =
 			eventType === "Failed" && errorType
 				? { errorType, at: occurredAt }

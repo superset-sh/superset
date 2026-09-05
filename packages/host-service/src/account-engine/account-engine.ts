@@ -106,6 +106,14 @@ export const BASE_TICK_MS = 30_000;
 
 const AGENTS: readonly AccountAgent[] = ["claude", "codex"];
 const HOUR_MS = 3_600_000;
+/**
+ * KTD7: how recently the account a limit hint names must have been read for
+ * the hint to be judged on those numbers rather than on a fetch of its own.
+ * Below the fastest configured poll (R14's 30 seconds), so a hint arriving
+ * between two polls still forces one read, and above zero so a burst of hints
+ * on the same stop shares the one it forced.
+ */
+const HINT_QUOTA_FRESH_MS = 15_000;
 const CLAUDE_RATE_LIMIT_HINT = "rate_limit";
 const POLL_INTERVALS = new Set([30, 60, 120, 300]);
 
@@ -837,6 +845,17 @@ export class AccountEngine {
 		// A quiet tick must not rewrite the file every interval: the state dir
 		// is shared with the other Superset host-services on this machine.
 		if (JSON.stringify(runtime) !== runtimeBefore) {
+			// KTD3: discovery records identity bindings straight into
+			// runtime.json, and it ran inside the quota refresh this tick
+			// awaited — after `runtime` was read. `writeRuntime` replaces the
+			// whole file, so the bindings are taken from a fresh read before
+			// this tick's own decisions go back over it; the bindings this
+			// tick recorded itself are the newer ones and win.
+			const onDisk = this.state.readRuntime();
+			runtime.identityBindings = {
+				...onDisk.identityBindings,
+				...runtime.identityBindings,
+			};
 			this.state.writeRuntime(runtime);
 		}
 		for (const agent of agents) {
@@ -965,25 +984,30 @@ export class AccountEngine {
 	}
 
 	/**
-	 * KTD5: what a loser does the first time it sees the owner's state. A
-	 * Claude session runs on the shared active dir and picks the new login up
-	 * in place, so only Codex — whose account *is* its config dir — can be on
-	 * the wrong one. Rows already on the active home are left alone, and the
-	 * mover's idle rule still decides when each one moves.
+	 * KTD5: what a loser does the first time it sees the owner's state — the
+	 * same reconciliation `followExternalSwitch` does, because a service that
+	 * started after the owner switched has rows launched from the account it
+	 * switched away from. A Claude row already on the shared active dir picks
+	 * the new login up in place; one launched from a profile (or the system
+	 * default) is pinned to the old account, exactly like a Codex row on the
+	 * wrong home. The mover's idle rule still decides when each one moves.
 	 */
 	private async reconcile(
 		agent: AccountAgent,
 		state: RuntimeState["perAgent"][AccountAgent],
 	): Promise<void> {
-		if (agent !== "codex") return;
 		// A runtime the owner has never written names no account at all;
 		// there is nothing to reconcile against.
 		if (state.activeAccountId === null && state.activeSelection === null) {
 			return;
 		}
+		// Claude's account is the login inside the shared active dir; Codex's
+		// account *is* its config dir.
+		const active =
+			agent === "claude" ? this.resolveActiveDir() : state.activeSelection;
 		const stale = this.hostDeps
 			.listSessions(agent)
-			.filter((row) => row.configDir !== state.activeSelection);
+			.filter((row) => row.configDir !== active);
 		if (stale.length === 0) return;
 		await this.mover.moveAtIdle(agent, stale);
 	}
@@ -1038,8 +1062,27 @@ export class AccountEngine {
 		state: RuntimeState["perAgent"][AccountAgent],
 	): EngineAccount | undefined {
 		return state.activeAccountId !== null
-			? pool.find((item) => item.row.accountId === state.activeAccountId)
+			? this.rowForActiveId(pool, state)
 			: pool.find((item) => item.row.selection === state.activeSelection);
+	}
+
+	/**
+	 * The row for a recorded account id. One provider account can be reachable
+	 * from two dirs — two Codex homes signed into one ChatGPT login — and only
+	 * the recorded selection says which of them the sessions are on. The first
+	 * row is the fallback for a selection that names none of them.
+	 */
+	private rowForActiveId(
+		pool: EngineAccount[],
+		state: RuntimeState["perAgent"][AccountAgent],
+	): EngineAccount | undefined {
+		const matches = pool.filter(
+			(item) => item.row.accountId === state.activeAccountId,
+		);
+		return (
+			matches.find((item) => item.row.selection === state.activeSelection) ??
+			matches[0]
+		);
 	}
 
 	/** The engine's own record wins; then `isDefault`, then the host pointer. */
@@ -1056,9 +1099,11 @@ export class AccountEngine {
 		// right now would point the engine at a login sessions are not on, and
 		// `evaluate` already refuses to switch without a known active.
 		if (state.activeAccountId !== null) {
-			const known = pool.find(
-				(item) => item.row.accountId === state.activeAccountId,
-			);
+			// The recorded selection is what tells two dirs holding one account
+			// apart, and this runs before the decision pool collapses them: a
+			// first-match here would rewrite the record to the other dir and
+			// the collapse would then keep that one.
+			const known = this.rowForActiveId(pool, state);
 			if (known) state.activeSelection = known.row.selection;
 			return;
 		}
@@ -1455,13 +1500,13 @@ export class AccountEngine {
 
 	private async switchCodex(
 		input: PerformSwitchInput,
-	): Promise<SwitchOutcome & { activeDir?: string }> {
+	): Promise<ManualSwitchOutcome & { activeDir?: string }> {
 		// A Codex switch is the pointer alone, so the home's own auth.json is
 		// the last word on who this points at — and the decision's claim is
 		// only as fresh as the last poll. A `codex login` in that home since
 		// then re-authenticated it as somebody else, and publishing anyway
 		// would record the switch under an account nobody is signed in as.
-		// A home that names no account is nothing to contradict.
+		// A target that names no account is nothing to contradict.
 		const expected = input.target.accountId;
 		if (expected !== null) {
 			let seen: string | null = null;
@@ -1473,13 +1518,25 @@ export class AccountEngine {
 					error,
 				);
 			}
-			if (seen !== null && seen !== expected) {
+			// Fail closed on a home that names nobody at all — signed out,
+			// auth.json removed, unreadable. The expected account is exactly
+			// what could not be confirmed, and pointing the sessions at a home
+			// with no confirmed login is the failure this check exists for.
+			if (seen !== expected) {
+				const home = input.target.selection ?? "the default Codex home";
 				return {
 					ok: false,
 					code: "target-changed",
-					reason: `${input.target.selection ?? "the default Codex home"} is signed in as account ${seen}, not the expected ${expected}`,
+					reason:
+						seen === null
+							? `${home} names no signed-in account, so the expected ${expected} could not be confirmed`
+							: `${home} is signed in as account ${seen}, not the expected ${expected}`,
 				};
 			}
+			// KTD5: that read is I/O, and the lease is three ticks long. The
+			// pointer is host-wide state, so a switch that lost the lock while
+			// it was confirming the target publishes nothing.
+			if (!this.ensureOwnership(this.now())) return LOCK_LOSER;
 		}
 		try {
 			this.setPointer(this.db, "codex", input.target.selection);
@@ -1729,8 +1786,8 @@ export class AccountEngine {
 	/**
 	 * R8. A hint says which terminal to look at and nothing more. The gates
 	 * run cheapest-first: the local rate limits cost nothing, the terminal
-	 * snapshot costs no provider call, and the quota refresh goes through the
-	 * store so it honours the poll floor and the 429 back-off.
+	 * snapshot costs no provider call, and the quota read goes through the
+	 * store, behind a freshness floor and the 429 back-off.
 	 */
 	async handleLimitHints(now: number = this.now()): Promise<void> {
 		// A hint arrives on the store's change signal, which is nothing to do
@@ -1873,16 +1930,18 @@ export class AccountEngine {
 			return true;
 		}
 
-		// Gate 3: fresh numbers, through the store so a hint storm cannot
-		// become a fetch storm — and read *after* the screen corroborated,
-		// because a limit reached between two polls is still a real limit.
-		await this.quotaStore.refreshDue(
-			now,
-			this.schedule(allSettings, runtime, [agent]),
-		);
+		// Gate 3: fresh numbers, read *after* the screen corroborated, because
+		// a limit reached between two polls is still a real limit — which is
+		// also why the scheduled refresh is not enough here: it performs no
+		// request at all while the active account's own poll is still ahead.
+		const refreshed = await this.refreshForHint(agent, active.entry, now);
 		// KTD5: the lock went while the quota was in flight, so this pass acts
 		// on nothing — and the hint stays retryable for whoever owns it next.
 		if (!this.ensureOwnership(this.now())) return false;
+		// Nothing could be fetched — the endpoint is backing off, or the read
+		// failed. The numbers on hand are the ones this hint says are wrong,
+		// so it is left retryable rather than written off against them.
+		if (!refreshed) return false;
 
 		const pool = this.pool(agent, state.activeSelection);
 		const from = this.activeRow(pool, state) ?? active;
@@ -1927,6 +1986,41 @@ export class AccountEngine {
 			excludeTerminalId: row.terminalId,
 		});
 		return true;
+	}
+
+	/**
+	 * KTD7 gate 3's fetch: one forced read of the account the hinted session
+	 * runs on, and whether what it is about to be judged on is fresh at all.
+	 *
+	 * The tick's scheduled refresh performs no request until that account's
+	 * own poll comes due, which is the very window a hint arrives in. The read
+	 * still goes through the store, so a hint cannot walk around the back-off
+	 * a 429 put on the poller, and numbers this recent are ones a hint moments
+	 * ago already paid for — that floor is what keeps a hint storm from
+	 * becoming a fetch storm.
+	 */
+	private async refreshForHint(
+		agent: AccountAgent,
+		entry: QuotaEntry,
+		now: number,
+	): Promise<boolean> {
+		// A row discovery carries whole — signed out, API-billed — has no
+		// endpoint to call, so its numbers are as fresh as they ever get.
+		if (!entry.fetchable) return true;
+		if (
+			entry.fetchedAt !== null &&
+			now - entry.fetchedAt < HINT_QUOTA_FRESH_MS
+		) {
+			return true;
+		}
+		// KTD10: the back-off targets the poller, and a hint is not a way
+		// around it.
+		if (entry.backoffMs > 0 && entry.nextPollAt > now) return false;
+		const before = entry.fetchedAt;
+		await this.quotaStore.read({ agents: [agent], forceRefresh: true });
+		// Discovery can have replaced the entry object; the key survives it.
+		const fetchedAt = this.quotaStore.entry(entry.key)?.fetchedAt ?? null;
+		return fetchedAt !== null && fetchedAt !== before;
 	}
 
 	/** KTD7: a hint the gates turned down is recorded, never acted on. */

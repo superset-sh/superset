@@ -548,6 +548,41 @@ describe("QuotaStore resilience", () => {
 		expect(eligibleForSwitch(requireEntry(h.store, CLAUDE_DEFAULT))).toBe(true);
 	});
 
+	// A re-login puts a different provider account behind the same profile
+	// dir. The new account must start empty rather than inherit the previous
+	// account's windows, extra usage and credits.
+	it("carries nothing when a re-login changes the provider account id", async () => {
+		let reAuthed = false;
+		const h = harness({
+			claudeSelections: [null],
+			respondClaude: async (selection) => ({
+				account: reAuthed
+					? account("claude", selection, {
+							accountId: "acct-b",
+							status: "token_stale",
+							statusDetail: "Refreshes when Claude Code next runs.",
+							windows: [],
+						})
+					: account("claude", selection, {
+							accountId: "acct-a",
+							extraUsage: { usedCents: 500, limitCents: 2000 },
+							creditsBalance: 12,
+						}),
+				rateLimited: false,
+			}),
+		});
+
+		await h.store.read({ agents: ["claude"] });
+		reAuthed = true;
+		h.advance(QUOTA_TTL_MS);
+		const accounts = await h.store.read({ agents: ["claude"] });
+
+		expect(accounts[0]?.accountId).toBe("acct-b");
+		expect(accounts[0]?.windows).toEqual([]);
+		expect(accounts[0]?.extraUsage).toBeNull();
+		expect(accounts[0]?.creditsBalance).toBeNull();
+	});
+
 	it("reports an expired or signed-out account as ineligible", async () => {
 		const h = harness({
 			claudeSelections: [null],
