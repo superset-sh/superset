@@ -1319,6 +1319,7 @@
     "@xterm/addon-webgl@0.20.0-beta.297": "patches/@xterm%2Faddon-webgl@0.20.0-beta.297.patch",
     "metro@0.84.4": "patches/metro@0.84.4.patch",
     "node-pty@1.2.0-beta.14": "patches/node-pty@1.2.0-beta.14.patch",
+    "@xterm/xterm@6.1.0-beta.302": "patches/@xterm%2Fxterm@6.1.0-beta.302.patch",
   },
   "overrides": {
     "@tiptap/extension-dropcursor": "3.30.4",
