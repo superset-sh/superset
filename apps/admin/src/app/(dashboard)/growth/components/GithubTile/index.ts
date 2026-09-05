@@ -1,0 +1,1 @@
+export { GithubTile } from "./GithubTile";

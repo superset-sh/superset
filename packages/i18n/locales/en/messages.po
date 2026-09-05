@@ -358,6 +358,10 @@ msgstr "{0} is running host service {1} — this app needs {2} or newer. Update 
 msgid "{0} is set up on this machine, but not on your account"
 msgstr "{0} is set up on this machine, but not on your account"
 
+#. placeholder {0}: formatNumber(lastFullWeek)
+msgid "{0} last full week"
+msgstr "{0} last full week"
+
 #. placeholder {0}: v.toLocaleString()
 msgid "{0} mo"
 msgstr "{0} mo"
@@ -380,6 +384,15 @@ msgstr "{0} of {1} checks running"
 #. placeholder {0}: pullRequests.length
 msgid "{0} of {totalCount}"
 msgstr "{0} of {totalCount}"
+
+#. placeholder {0}: rate(teams, signups)
+msgid "{0} of accounts"
+msgstr "{0} of accounts"
+
+#. placeholder {0}: rate(downloaders, visitors)
+#. placeholder {0}: rate(signups, visitors)
+msgid "{0} of visitors"
+msgstr "{0} of visitors"
 
 #. placeholder {0}: plugin.interface.displayName
 msgid "{0} options"
@@ -424,6 +437,11 @@ msgstr "{0} to pass #{1}"
 msgid "{0} tokens in the last 30 days. Publishing as <0>{handle}</0>."
 msgstr "{0} tokens in the last 30 days. Publishing as <0>{handle}</0>."
 
+#. placeholder {0}: formatNumber(section.updatedRecently)
+#. placeholder {1}: formatNumber(data?.recentDays ?? 30)
+msgid "{0} touched in {1} days"
+msgstr "{0} touched in {1} days"
+
 #. placeholder {0}: displayName(variables.name)
 msgid "{0} uninstalled"
 msgstr "{0} uninstalled"
@@ -435,6 +453,10 @@ msgstr "{0} updated"
 #. placeholder {0}: file.path
 msgid "{0} was deleted in this change."
 msgstr "{0} was deleted in this change."
+
+#. placeholder {0}: formatNumber(option)
+msgid "{0} weeks"
+msgstr "{0} weeks"
 
 #. placeholder {0}: check.name
 #. placeholder {1}: took ? `, ${took}` : ""
@@ -679,6 +701,9 @@ msgstr "{name} is built in and cannot be replaced"
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} is not added"
+
+msgid "{nonBrandPct} of clicks"
+msgstr "{nonBrandPct} of clicks"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
@@ -1191,6 +1216,12 @@ msgstr "Account pending deletion"
 msgid "Acme Inc."
 msgstr "Acme Inc."
 
+msgid "Acquisition"
+msgstr "Acquisition"
+
+msgid "Acquisition, content, conversion, retention, and distribution in one place. Weekly charts cover the selected range; the current week is partial. Drag a tile by its top edge, resize from the corner."
+msgstr "Acquisition, content, conversion, retention, and distribution in one place. Weekly charts cover the selected range; the current week is partial. Drag a tile by its top edge, resize from the corner."
+
 msgid "Action"
 msgstr "Action"
 
@@ -1473,6 +1504,15 @@ msgstr "AI · Conversation"
 
 msgid "AI · Status"
 msgstr "AI · Status"
+
+msgid "AI agents reading the site, last {dayCount} days"
+msgstr "AI agents reading the site, last {dayCount} days"
+
+msgid "AI assistant referrals"
+msgstr "AI assistant referrals"
+
+msgid "AI assistants"
+msgstr "AI assistants"
 
 msgid "AI authentication failed. Please check your AI settings."
 msgstr "AI authentication failed. Please check your AI settings."
@@ -1800,6 +1840,9 @@ msgstr "anything"
 msgid "AP"
 msgstr "AP"
 
+msgid "Apache Superset"
+msgstr "Apache Superset"
+
 msgid "API"
 msgstr "API"
 
@@ -1922,6 +1965,9 @@ msgstr "Assigned"
 
 msgid "Assignee"
 msgstr "Assignee"
+
+msgid "Assistants that opened our pages in a real browser on someone's behalf. Crawlers that only fetch HTML never run analytics and are not counted."
+msgstr "Assistants that opened our pages in a real browser on someone's behalf. Crawlers that only fetch HTML never run analytics and are not counted."
 
 msgid "Assisted"
 msgstr "Assisted"
@@ -2112,6 +2158,9 @@ msgstr "Average time from previous"
 msgid "Avg monthly outflow per counterparty, last 3 complete months"
 msgstr "Avg monthly outflow per counterparty, last 3 complete months"
 
+msgid "avg position {avgPosition}"
+msgstr "avg position {avgPosition}"
+
 #. placeholder {0}: requestedReviewers.join(", ")
 msgid "Awaiting {0}"
 msgstr "Awaiting {0}"
@@ -2267,6 +2316,9 @@ msgstr "Blockquote"
 msgid "Blog"
 msgstr "Blog"
 
+msgid "Blog posts"
+msgstr "Blog posts"
+
 msgid "Blue"
 msgstr "Blue"
 
@@ -2293,6 +2345,9 @@ msgstr "Both Calendar and Gmail access are required. Please allow both when aske
 
 msgid "Bottom drawer, swipe-friendly on touch devices."
 msgstr "Bottom drawer, swipe-friendly on touch devices."
+
+msgid "Bounce"
+msgstr "Bounce"
 
 msgid "Box"
 msgstr "Box"
@@ -2339,6 +2394,9 @@ msgstr "Branches & naming"
 
 msgid "Branches..."
 msgstr "Branches..."
+
+msgid "brand"
+msgstr "brand"
 
 msgid "breadcrumb"
 msgstr "breadcrumb"
@@ -2913,6 +2971,12 @@ msgstr "Click to open on GitHub"
 msgid "Click two commits to define the range."
 msgstr "Click two commits to define the range."
 
+msgid "Click-through rate"
+msgstr "Click-through rate"
+
+msgid "Clicks"
+msgstr "Clicks"
+
 msgid "Clients"
 msgstr "Clients"
 
@@ -3238,6 +3302,9 @@ msgstr "Communication"
 msgid "Community"
 msgstr "Community"
 
+msgid "Community size from the public invite, refreshed every half hour."
+msgstr "Community size from the public invite, refreshed every half hour."
+
 msgid "Company"
 msgstr "Company"
 
@@ -3249,6 +3316,9 @@ msgstr "Company Metrics"
 
 msgid "Compare"
 msgstr "Compare"
+
+msgid "Compare pages"
+msgstr "Compare pages"
 
 msgid "Compare plans"
 msgstr "Compare plans"
@@ -3471,6 +3541,12 @@ msgstr "Contact Us"
 msgid "Contains this text..."
 msgstr "Contains this text..."
 
+msgid "Content"
+msgstr "Content"
+
+msgid "Content published or updated"
+msgstr "Content published or updated"
+
 msgid "Context"
 msgstr "Context"
 
@@ -3513,6 +3589,9 @@ msgstr "Conversation"
 
 msgid "Conversation · Message"
 msgstr "Conversation · Message"
+
+msgid "Conversion"
+msgstr "Conversion"
 
 msgid "Conversion from previous"
 msgstr "Conversion from previous"
@@ -4179,6 +4258,9 @@ msgstr "Creating..."
 msgid "Cross-feature components living outside packages/ui — check here before building a new one"
 msgstr "Cross-feature components living outside packages/ui — check here before building a new one"
 
+msgid "CTR"
+msgstr "CTR"
+
 msgid "Ctrl+click"
 msgstr "Ctrl+click"
 
@@ -4645,8 +4727,14 @@ msgstr "diff in new tab"
 msgid "Diff size"
 msgstr "Diff size"
 
+msgid "Direct"
+msgstr "Direct"
+
 msgid "Direct mode"
 msgstr "Direct mode"
+
+msgid "Directories, blogs, newsletters, and communities that sent visitors. Search, social, GitHub, and assistants are excluded so listings and links stand out."
+msgstr "Directories, blogs, newsletters, and communities that sent visitors. Search, social, GitHub, and assistants are excluded so listings and links stand out."
 
 msgid "Directory"
 msgstr "Directory"
@@ -4770,6 +4858,9 @@ msgstr "Display"
 msgid "Displays the mobile sidebar."
 msgstr "Displays the mobile sidebar."
 
+msgid "Distribution and community"
+msgstr "Distribution and community"
+
 msgid "Do anything"
 msgstr "Do anything"
 
@@ -4832,6 +4923,9 @@ msgstr "Download {name}"
 msgid "Download app"
 msgstr "Download app"
 
+msgid "Download clicks"
+msgstr "Download clicks"
+
 msgid "Download failed"
 msgstr "Download failed"
 
@@ -4890,6 +4984,9 @@ msgstr "Draft opened"
 
 msgid "drafted 3 support replies"
 msgstr "drafted 3 support replies"
+
+msgid "Drag to move"
+msgstr "Drag to move"
 
 msgid "Drag to reorder"
 msgstr "Drag to reorder"
@@ -5129,6 +5226,9 @@ msgstr "Enterprise"
 
 msgid "Enterprise ARR by account"
 msgstr "Enterprise ARR by account"
+
+msgid "Entries by section"
+msgstr "Entries by section"
 
 msgid "Environment"
 msgstr "Environment"
@@ -6153,6 +6253,9 @@ msgstr "Fork session"
 msgid "Fork session…"
 msgstr "Fork session…"
 
+msgid "Forks"
+msgstr "Forks"
+
 msgid "Form controls and field composition"
 msgstr "Form controls and field composition"
 
@@ -6179,6 +6282,12 @@ msgstr "From"
 
 msgid "from {price}/user/mo"
 msgstr "from {price}/user/mo"
+
+msgid "From a visit to a download to an account to a paying organization."
+msgstr "From a visit to a download to an account to a paying organization."
+
+msgid "From the public sitemap: compare pages, posts, and changelog entries by the week they were published or last revised."
+msgstr "From the public sitemap: compare pages, posts, and changelog entries by the week they were published or last revised."
 
 msgid "Front matter hidden — switch to Markdown to edit it"
 msgstr "Front matter hidden — switch to Markdown to edit it"
@@ -6344,6 +6453,9 @@ msgstr "Go to Superset"
 
 msgid "Google did not grant lasting access. Remove Superset from your Google account's third-party access and try again."
 msgstr "Google did not grant lasting access. Remove Superset from your Google account's third-party access and try again."
+
+msgid "Google Search Console"
+msgstr "Google Search Console"
 
 msgid "Grant the OS permissions Superset needs."
 msgstr "Grant the OS permissions Superset needs."
@@ -6620,6 +6732,9 @@ msgstr "How many hidden terminals stay fully loaded ({MIN_TERMINAL_PARKED_RUNTIM
 msgid "How much agent work engineers are actually running — tokens, cost, models and sessions, published by people who opted in."
 msgstr "How much agent work engineers are actually running — tokens, cost, models and sessions, published by people who opted in."
 
+msgid "How people reach superset.sh and the docs, and how much of it is search and assistants rather than the brand."
+msgstr "How people reach superset.sh and the docs, and how much of it is search and assistants rather than the brand."
+
 msgid "How the command opens."
 msgstr "How the command opens."
 
@@ -6771,6 +6886,9 @@ msgstr "Importing..."
 msgid "Importing…"
 msgstr "Importing…"
 
+msgid "Impressions"
+msgstr "Impressions"
+
 msgid "Improve the agent instructions"
 msgstr "Improve the agent instructions"
 
@@ -6913,6 +7031,9 @@ msgstr "Installed plugins came from {name}: {plugins}. Remove them first."
 
 msgid "Installing..."
 msgstr "Installing..."
+
+msgid "Installs"
+msgstr "Installs"
 
 msgid "Instructions"
 msgstr "Instructions"
@@ -8233,6 +8354,9 @@ msgstr "Never"
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "New {providerLabel} agents will use {accountLabel}."
 
+msgid "New accounts"
+msgstr "New accounts"
+
 msgid "New agent"
 msgstr "New agent"
 
@@ -8310,6 +8434,9 @@ msgstr "New tab + panes"
 
 msgid "New task"
 msgstr "New task"
+
+msgid "New teams"
+msgstr "New teams"
 
 msgid "New terminal"
 msgstr "New terminal"
@@ -8903,6 +9030,12 @@ msgstr "Nobody on your team has shared automations yet."
 msgid "Nobody reviews differently because of it."
 msgstr "Nobody reviews differently because of it."
 
+msgid "non-brand"
+msgstr "non-brand"
+
+msgid "Non-brand clicks"
+msgstr "Non-brand clicks"
+
 msgid "none (session)"
 msgstr "none (session)"
 
@@ -8932,6 +9065,9 @@ msgstr "Not connected"
 
 msgid "Not Connected"
 msgstr "Not Connected"
+
+msgid "Not connected: {unavailableReason}. Add a Google service account to the Search Console property and set GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT."
+msgstr "Not connected: {unavailableReason}. Add a Google service account to the Search Console property and set GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT."
 
 msgid "Not demoed here"
 msgstr "Not demoed here"
@@ -9123,6 +9259,9 @@ msgstr "online"
 
 msgid "Online"
 msgstr "Online"
+
+msgid "Online now"
+msgstr "Online now"
 
 msgid "Online Now"
 msgstr "Online Now"
@@ -9631,6 +9770,12 @@ msgstr "Orchestration chat"
 msgid "Orchestration guide"
 msgstr "Orchestration guide"
 
+msgid "Organic search"
+msgstr "Organic search"
+
+msgid "Organic search by engine"
+msgstr "Organic search by engine"
+
 msgid "Organization"
 msgstr "Organization"
 
@@ -9789,8 +9934,14 @@ msgstr "Page not found"
 msgid "Page Not Found"
 msgstr "Page Not Found"
 
+msgid "Page views"
+msgstr "Page views"
+
 msgid "Pages"
 msgstr "Pages"
+
+msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
+msgstr "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
 
 msgid "Pages this agent is watching for comments"
 msgstr "Pages this agent is watching for comments"
@@ -9803,6 +9954,9 @@ msgstr "Pagination"
 
 msgid "Paid churn — cohort survival"
 msgstr "Paid churn — cohort survival"
+
+msgid "Paid search"
+msgstr "Paid search"
 
 msgid "Palette"
 msgstr "Palette"
@@ -10096,6 +10250,9 @@ msgstr "Ports — {totalPortCount} live"
 
 msgid "Ports in top bar dropdown"
 msgstr "Ports in top bar dropdown"
+
+msgid "Position"
+msgstr "Position"
 
 msgid "Possible on good days. Supervision cost still grows too fast."
 msgstr "Possible on good days. Supervision cost still grows too fast."
@@ -10512,6 +10669,9 @@ msgstr "Put recurring work on a schedule"
 msgid "px"
 msgstr "px"
 
+msgid "Query"
+msgstr "Query"
+
 msgid "Question"
 msgstr "Question"
 
@@ -10735,6 +10895,9 @@ msgstr "Referenced, not demoed"
 msgid "References"
 msgstr "References"
 
+msgid "Referral"
+msgstr "Referral"
+
 msgid "Refresh"
 msgstr "Refresh"
 
@@ -10767,6 +10930,9 @@ msgstr "Relaunch running agents to switch them."
 
 msgid "Relay access enabled, connecting to the relay…"
 msgstr "Relay access enabled, connecting to the relay…"
+
+msgid "Release"
+msgstr "Release"
 
 msgid "Release…"
 msgstr "Release…"
@@ -11011,6 +11177,9 @@ msgstr "Repositories: {label}"
 msgid "Repository"
 msgstr "Repository"
 
+msgid "Repository reach and desktop release downloads. Installs are dmg and AppImage downloads; updates are the zip the auto-updater pulls, so they count existing users."
+msgstr "Repository reach and desktop release downloads. Installs are dmg and AppImage downloads; updates are the zip the auto-updater pulls, so they count existing users."
+
 msgid "Repository URL or path"
 msgstr "Repository URL or path"
 
@@ -11052,6 +11221,9 @@ msgstr "Reset editor"
 
 msgid "Reset GitHub star nag state"
 msgstr "Reset GitHub star nag state"
+
+msgid "Reset layout"
+msgstr "Reset layout"
 
 msgid "Reset location"
 msgstr "Reset location"
@@ -11222,6 +11394,9 @@ msgstr "Resume automation"
 #. placeholder {0}: candidate.agentLabel
 msgid "Resuming {0}…"
 msgstr "Resuming {0}…"
+
+msgid "Retention and revenue"
+msgstr "Retention and revenue"
 
 msgid "Retry"
 msgstr "Retry"
@@ -11672,6 +11847,9 @@ msgstr "Search GitHub issues…"
 
 msgid "Search history"
 msgstr "Search history"
+
+msgid "Search impressions and clicks for the last 28 days, with queries split into our brand, Apache Superset (not us), and everything else. Non-brand is the share SEO work exists to grow. Google delivers this data three days late."
+msgstr "Search impressions and clicks for the last 28 days, with queries split into our brand, Apache Superset (not us), and everything else. Non-brand is the share SEO work exists to grow. Google delivers this data three days late."
 
 msgid "Search in {frameTitle}…"
 msgstr "Search in {frameTitle}…"
@@ -12423,6 +12601,9 @@ msgstr "Single tab + panes"
 msgid "Single-select"
 msgstr "Single-select"
 
+msgid "Site"
+msgstr "Site"
+
 msgid "Site-wide telemetry · {range}"
 msgstr "Site-wide telemetry · {range}"
 
@@ -12512,6 +12693,9 @@ msgstr "SOC 2 Type II compliant. Request our report."
 
 msgid "SOC 2 Type II report"
 msgstr "SOC 2 Type II report"
+
+msgid "Social"
+msgstr "Social"
 
 msgid "Some files are not an accepted type and were not added."
 msgstr "Some files are not an accepted type and were not added."
@@ -13673,6 +13857,9 @@ msgstr "The Superset host service for {organization} stopped unexpectedly ({caus
 msgid "The Superset host service stopped unexpectedly ({cause}) and could not be restarted automatically."
 msgstr "The Superset host service stopped unexpectedly ({cause}) and could not be restarted automatically."
 
+msgid "The surfaces outside the site that carry the product: the repository, releases, and Discord."
+msgstr "The surfaces outside the site that carry the product: the repository, releases, and Discord."
+
 msgid "the target host"
 msgstr "the target host"
 
@@ -13989,6 +14176,9 @@ msgstr "Ticket to production under one day, median"
 msgid "Tier"
 msgstr "Tier"
 
+msgid "Time range"
+msgstr "Time range"
+
 msgid "Timed out waiting for the host to create the workspace."
 msgstr "Timed out waiting for the host to create the workspace."
 
@@ -14115,8 +14305,14 @@ msgstr "Tooltip on"
 msgid "tooltip-refactor.diff"
 msgstr "tooltip-refactor.diff"
 
+msgid "Top landing pages, last {dayCount} days"
+msgstr "Top landing pages, last {dayCount} days"
+
 msgid "Top models"
 msgstr "Top models"
+
+msgid "Top referring sites, last {dayCount} days"
+msgstr "Top referring sites, last {dayCount} days"
 
 msgid "Topic"
 msgstr "Topic"
@@ -14344,6 +14540,9 @@ msgstr "Unique users creating a real workspace per calendar week; current week d
 
 msgid "Unique users creating a real workspace, daily"
 msgstr "Unique users creating a real workspace, daily"
+
+msgid "Unique visitors starting a session on superset.sh or the docs each week, by how they arrived. AI assistants means a link inside ChatGPT, Claude, Gemini, or Perplexity."
+msgstr "Unique visitors starting a session on superset.sh or the docs each week, by how they arrived. AI assistants means a link inside ChatGPT, Claude, Gemini, or Perplexity."
 
 msgid "unknown"
 msgstr "unknown"
@@ -14736,6 +14935,18 @@ msgstr "View Superset repository on GitHub"
 msgid "View usage"
 msgstr "View usage"
 
+msgid "Visitors"
+msgstr "Visitors"
+
+msgid "Visitors by channel"
+msgstr "Visitors by channel"
+
+msgid "Visitors to downloads to accounts"
+msgstr "Visitors to downloads to accounts"
+
+msgid "Visitors whose session began on a link an assistant gave them. This is the number an AEO effort should move."
+msgstr "Visitors whose session began on a link an assistant gave them. This is the number an AEO effort should move."
+
 msgid "Volume"
 msgstr "Volume"
 
@@ -14754,6 +14965,9 @@ msgstr "Waiting for Review"
 msgid "Waiting for sign-in…"
 msgstr "Waiting for sign-in…"
 
+msgid "Waitlist signups"
+msgstr "Waitlist signups"
+
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 
@@ -14762,6 +14976,9 @@ msgstr "Warning"
 
 msgid "Warning occurred."
 msgstr "Warning occurred."
+
+msgid "Watchers"
+msgstr "Watchers"
 
 msgid "Wayfinding and disclosure"
 msgstr "Wayfinding and disclosure"
@@ -14835,6 +15052,10 @@ msgstr "Week"
 msgid "Week {week}"
 msgstr "Week {week}"
 
+#. placeholder {0}: formatDay(data?.weeks[last] ?? "")
+msgid "week of {0}"
+msgstr "week of {0}"
+
 msgid "Week of {formatted}"
 msgstr "Week of {formatted}"
 
@@ -14880,6 +15101,12 @@ msgstr "Weekly release notes"
 msgid "Weekly signup cohorts (Neon); cohorts younger than 30d excluded"
 msgstr "Weekly signup cohorts (Neon); cohorts younger than 30d excluded"
 
+msgid "Weekly site visitors (PostHog sessions), people who clicked download, accounts created (Neon, company emails excluded), and teams: organizations created that week that now have two or more members. Rates are for the last complete week."
+msgstr "Weekly site visitors (PostHog sessions), people who clicked download, accounts created (Neon, company emails excluded), and teams: organizations created that week that now have two or more members. Rates are for the last complete week."
+
+msgid "Weekly visitors arriving from a search results page. Search Console below says which queries they typed."
+msgstr "Weekly visitors arriving from a search results page. Search Console below says which queries they typed."
+
 msgid "Welcome back"
 msgstr "Welcome back"
 
@@ -14891,6 +15118,9 @@ msgstr "What builders say about Superset"
 
 msgid "What do you want to do?"
 msgstr "What do you want to do?"
+
+msgid "What Google shows us for and how much of it is not our own name."
+msgstr "What Google shows us for and how much of it is not our own name."
 
 msgid "What has to become true"
 msgstr "What has to become true"
@@ -14915,6 +15145,9 @@ msgstr "What should we build next?"
 
 msgid "What Superset is, who builds it, and who it's for. A San Francisco team of three ex-YC CTOs building the workspace for parallel coding agents."
 msgstr "What Superset is, who builds it, and who it's for. A San Francisco team of three ex-YC CTOs building the workspace for parallel coding agents."
+
+msgid "What the content is doing: which pages sessions start on, and how much is being published."
+msgstr "What the content is doing: which pages sessions start on, and how much is being published."
 
 msgid "What We're Building"
 msgstr "What We're Building"
@@ -14949,6 +15182,9 @@ msgstr "Where does my code run?"
 msgid "Where serious teams are"
 msgstr "Where serious teams are"
 
+msgid "Where sessions begin: the home page, a compare page, the docs, a post, or a changelog entry. Content that ranks shows up here before it shows up in signups."
+msgstr "Where sessions begin: the home page, a compare page, the docs, a post, or a changelog entry. Content that ranks shows up here before it shows up in signups."
+
 msgid "Where the industry is, honestly"
 msgstr "Where the industry is, honestly"
 
@@ -14961,6 +15197,9 @@ msgstr "Where this terminal script is available."
 msgid "Where to look next"
 msgstr "Where to look next"
 
+msgid "Whether the people acquired stay and what they pay."
+msgstr "Whether the people acquired stay and what they pay."
+
 msgid "Which agents are supported?"
 msgstr "Which agents are supported?"
 
@@ -14969,6 +15208,9 @@ msgstr "Which AI coding agents are supported?"
 
 msgid "Who can open this page from its link"
 msgstr "Who can open this page from its link"
+
+msgid "Whole site"
+msgstr "Whole site"
 
 msgid "Window"
 msgstr "Window"

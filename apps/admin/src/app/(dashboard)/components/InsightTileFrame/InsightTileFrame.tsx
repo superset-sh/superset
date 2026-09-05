@@ -26,6 +26,8 @@ interface InsightTileFrameProps {
 	onRefresh?: () => void;
 	isRefreshing?: boolean;
 	href?: string;
+	// Stretch to the parent's height (a grid cell) and let the body scroll.
+	fill?: boolean;
 	children: ReactNode;
 }
 
@@ -41,14 +43,15 @@ export function InsightTileFrame({
 	onRefresh,
 	isRefreshing,
 	href,
+	fill,
 	children,
 }: InsightTileFrameProps) {
 	const { t } = useLingui();
 
 	return (
-		<Card>
+		<Card className={cn(fill && "flex h-full flex-col")}>
 			<CardHeader>
-				<div className="flex items-center justify-between gap-2">
+				<div className="flex min-w-0 items-center justify-between gap-2">
 					{href ? (
 						<a
 							href={href}
@@ -92,7 +95,7 @@ export function InsightTileFrame({
 				</div>
 				{description ? <CardDescription>{description}</CardDescription> : null}
 			</CardHeader>
-			<CardContent>
+			<CardContent className={cn(fill && "min-h-0 flex-1 overflow-auto")}>
 				{isLoading ? (
 					<div className="space-y-3">
 						<Skeleton className="h-6 w-full" />
