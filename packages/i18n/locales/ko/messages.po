@@ -12137,6 +12137,9 @@ msgstr "이미 사용 중인 단축키"
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "앱을 종료할 때 확인 대화 상자를 표시합니다"
 
+msgid "Show a Usage button in the home sidebar, under Pull requests"
+msgstr "홈 사이드바의 풀 리퀘스트 아래에 사용량 버튼을 표시합니다"
+
 msgid "Show all {count}"
 msgstr "{count}개 모두 보기"
 
@@ -14501,6 +14504,9 @@ msgstr "URL에 쓰기 좋은 식별자로, 조직 안에서 고유해야 합니�
 
 msgid "Usage"
 msgstr "사용량"
+
+msgid "Usage in sidebar"
+msgstr "사이드바의 사용량"
 
 msgid "Usage sections"
 msgstr "사용량 섹션"

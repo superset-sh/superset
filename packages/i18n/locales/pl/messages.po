@@ -12137,6 +12137,9 @@ msgstr "Skrót jest już używany"
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Pokaż okno potwierdzenia przy zamykaniu aplikacji"
 
+msgid "Show a Usage button in the home sidebar, under Pull requests"
+msgstr "Pokazuj przycisk Zużycie na pasku bocznym strony głównej, pod pull requestami"
+
 msgid "Show all {count}"
 msgstr "Pokaż wszystkie ({count})"
 
@@ -14501,6 +14504,9 @@ msgstr "Identyfikator przyjazny adresom URL, unikalny w organizacji."
 
 msgid "Usage"
 msgstr "Zużycie"
+
+msgid "Usage in sidebar"
+msgstr "Zużycie na pasku bocznym"
 
 msgid "Usage sections"
 msgstr "Sekcje zużycia"

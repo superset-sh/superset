@@ -12137,6 +12137,9 @@ msgstr "Kısayol zaten kullanımda"
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Uygulamadan çıkarken onay penceresi göster"
 
+msgid "Show a Usage button in the home sidebar, under Pull requests"
+msgstr "Ana sayfa kenar çubuğunda, pull request'lerin altında bir Kullanım düğmesi göster"
+
 msgid "Show all {count}"
 msgstr "Tümünü göster ({count})"
 
@@ -14501,6 +14504,9 @@ msgstr "Kuruluşunuz içinde benzersiz, URL dostu tanımlayıcı."
 
 msgid "Usage"
 msgstr "Kullanım"
+
+msgid "Usage in sidebar"
+msgstr "Kenar çubuğunda kullanım"
 
 msgid "Usage sections"
 msgstr "Kullanım bölümleri"

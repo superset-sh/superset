@@ -12137,6 +12137,9 @@ msgstr "Pintasan sudah dipakai"
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Tampilkan dialog konfirmasi saat keluar dari aplikasi"
 
+msgid "Show a Usage button in the home sidebar, under Pull requests"
+msgstr "Tampilkan tombol Penggunaan di sidebar beranda, di bawah Pull request"
+
 msgid "Show all {count}"
 msgstr "Tampilkan semua {count}"
 
@@ -14501,6 +14504,9 @@ msgstr "Pengenal ramah URL, unik di dalam organisasi Anda."
 
 msgid "Usage"
 msgstr "Penggunaan"
+
+msgid "Usage in sidebar"
+msgstr "Penggunaan di sidebar"
 
 msgid "Usage sections"
 msgstr "Bagian penggunaan"

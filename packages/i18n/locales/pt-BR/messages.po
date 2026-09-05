@@ -12137,6 +12137,9 @@ msgstr "Atalho já em uso"
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Mostra uma confirmação ao encerrar o app"
 
+msgid "Show a Usage button in the home sidebar, under Pull requests"
+msgstr "Mostra um botão Uso na barra lateral inicial, abaixo de Pull requests"
+
 msgid "Show all {count}"
 msgstr "Mostrar todos os {count}"
 
@@ -14501,6 +14504,9 @@ msgstr "Identificador amigável para URL, único dentro da sua organização."
 
 msgid "Usage"
 msgstr "Uso"
+
+msgid "Usage in sidebar"
+msgstr "Uso na barra lateral"
 
 msgid "Usage sections"
 msgstr "Seções de uso"

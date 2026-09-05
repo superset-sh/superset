@@ -12137,6 +12137,9 @@ msgstr "Zkratka se už používá"
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Zobrazit před ukončením aplikace potvrzovací dialog"
 
+msgid "Show a Usage button in the home sidebar, under Pull requests"
+msgstr "Zobrazovat tlačítko Využití v postranním panelu domovské obrazovky pod pull requesty"
+
 msgid "Show all {count}"
 msgstr "Zobrazit všech {count}"
 
@@ -14501,6 +14504,9 @@ msgstr "Identifikátor vhodný do URL, jedinečný v rámci vaší organizace."
 
 msgid "Usage"
 msgstr "Využití"
+
+msgid "Usage in sidebar"
+msgstr "Využití v postranním panelu"
 
 msgid "Usage sections"
 msgstr "Sekce využití"
