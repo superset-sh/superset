@@ -31,7 +31,9 @@ None blocking. Product forks were settled in the brief (two rounds of live revie
 - [x] (2026-09-05 11:45Z) Milestone 5: `V2WorkspacesArchived` + `ArchivedWorkspaceRow`, header Archived toggle with count, Display hidden in that mode, "History" rename, `WorkspaceArchivedState` deep link, `parseV2WorkspacesSearch` extracted and tested.
 - [x] (2026-09-05 12:10Z) i18n: 24 new messages translated in all 16 non-English locales (384 entries); `bun run check:i18n` exits 0.
 - [x] (2026-09-05 12:20Z) Gates: host-service `bun test` (all new suites green; the 3 known environment-only failures remain), desktop `bun test` (3523 pass; the known env-sensitive LeaderboardRank failure remains), root `bun run lint` clean, root `bun run typecheck` clean after the mobile fix below.
-- [ ] Manual verification matrix in a dev instance (Avi's call; see Validation).
+- [x] (2026-09-05 17:00Z) Dev instance of this worktree booted with the refreshed `.env`; archive → undo round trip exercised live over CDP (80 → 79 → 80 sidebar rows, toast with Undo and the view link), Archived view rendered with a real archived row.
+- [x] (2026-09-05 18:20Z) Code review: eight angle reviewers plus the orchestrator's own pass (44 raw findings, 7 verified by the orchestrator) and their fixes committed as "fix: address review findings on the archive experience"; outcomes tabled on the review page and in Surprises below.
+- [ ] Manual verification matrix in a dev instance (Avi's call; see Validation): the terminal-suspend and post-grace-unarchive scenarios remain unverified by hand.
 
 ## Surprises & Discoveries
 
@@ -56,6 +58,17 @@ None blocking. Product forks were settled in the brief (two rounds of live revie
 - Observation: the root typecheck (not the desktop one) caught the Expo mobile app: its `HostWorkspaceRow` is the host router's `workspace.list` output type, so adding `shelvedAt` to the list row made it required in mobile's `CloudWorkspaceItem`, and its home list maps `workspace.list` rows straight through with no split.
   Evidence: `@superset/mobile#typecheck` failed on `apps/mobile/hooks/useCloudWorkspaceItems/useCloudWorkspaceItems.ts(34,2)`.
   Consequence: the cloud-row constructor sets `shelvedAt: null`, and `apps/mobile/hooks/useHostWorkspaces` filters `shelvedAt == null` so a workspace archived on the desktop is put away on the phone too (and comes back on unarchive). Recorded for Avi in the handoff as the one change outside the brief's two packages.
+- Observation (review round): a terminal created in an already-archived workspace by the CLI, MCP, or an automation would have been killed by the reaper on its next tick, because the grace was measured from the workspace's `shelvedAt`, nothing gated terminal creation on the flag, and `workspace.list` still returns archived rows to those callers.
+  Evidence: three reviewers and the orchestrator converged on `reaper.ts` `planShelvedSuspends`.
+  Consequence: `createTerminalSessionInternal` unarchives a shelved workspace when a listed, non-adopt terminal opens in it (source `terminal-create`); the planner never suspends a session created after the shelve; `workspaces.create` reusing an archived branch unarchives it (source `workspace-create`).
+- Observation (review round): the suspend pass ran off a snapshot; an unarchive landing mid-pass still got its just-reopened terminals killed.
+  Consequence: each suspend re-reads the workspace flag and skips sessions with an attached socket right before the kill, and suspends run four at a time.
+- Observation (review round): the undo toast's `onClick` closed over the archive-time `findRow`, whose list held the pre-archive row, so a failed undo "rolled back" to `shelvedAt: null` and resurrected the workspace as live.
+  Consequence: the flow resolves rows through a ref at click time.
+- Observation (review round): `?view=archived` was only read once per mount, so the toast link, palette command, and deep-link link did nothing when the Workspaces page was already open; and `viewMode: "archived"` was persisted, so one visit made Archived the default view.
+  Consequence: the page follows `search.view` after mount; the store keeps `liveViewMode` and persists that; a bare return to the page lands on it.
+- Observation (review round): `shelveLocalWorkspace` was read-then-write, so two requests in one tick could both broadcast and count; folder deletion and the legacy-folder migration iterated only live rows, leaving tags on archived members; the bulk-delete mount lived inside the sidebar, so "Delete all" from the Archived view did nothing while the sidebar was closed.
+  Consequence: conditional `UPDATE ... WHERE shelved_at IS NULL`; both loops include archived rows; the mount moved to the dashboard layout (the selection provider already prunes deleted ids).
 - Observation: the "Restored" toast (with Open) was first shown for every unarchive source. From Undo the row simply reappears where it was, and from the deep-link state the route re-renders as the workspace itself, so the toast only makes sense from the Archived view.
   Consequence: the flow shows it for `source === "workspaces-page"` only.
 
@@ -272,5 +285,7 @@ Renderer: `useHostWorkspaces().shelvedWorkspaces`; `useArchiveWorkspaceFlow()`; 
 Follow-up (not in this PR): `superset workspaces list` and MCP `workspaces_list` will receive `shelvedAt` on each row but keep listing archived rows; decide whether the CLI default should hide them, matching how tombstones stayed CLI-unaware.
 
 Revision note (2026-09-05 08:10Z): initial plan, written before implementation.
+
+Revision note (2026-09-05 18:25Z): review round folded in (see Surprises "review round" entries). Deferred with rationale: a server-side `includeShelved` flag on `workspace.list` (the brief keeps CLI defaults unchanged; unarchive-on-use removes the reaper hazard); the hotkey archiving without the old running-process prompt (archive is reversible and the agent is offered for resume, so a product call rather than a bug); sharing the reaper's status-flip transaction with `markTerminalSessionSuspended`; a batch shelve endpoint for bulk; the hover-button JSX duplication in the sidebar row; a second window still attached to an archived workspace when the reaper suspends it sees its pane close without reconnecting (same as dispose today).
 
 Revision note (2026-09-05 12:30Z): closeout after implementation. Progress, Surprises & Discoveries (migration name, mobile consumer, Restored-toast scope), Decision Log, and Outcomes reflect the final state of the branch. The plan stays in the active folder until a PR exists; move it to `done/` with the PR.
