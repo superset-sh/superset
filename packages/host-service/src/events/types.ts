@@ -1,5 +1,6 @@
 import type { DetectedPort } from "@superset/port-scanner";
 import type { AgentIdentity } from "@superset/shared/agent-identity";
+import type { WorkspaceTagAssignment } from "@superset/shared/workspace-tags";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
 import type { AgentLifecycleEventType } from "./map-event-type.ts";
 
@@ -88,8 +89,18 @@ export interface WorkspaceSnapshot {
 	 * writes (rename, tags, PR link).
 	 */
 	lastActivityAt: number | null;
-	/** Normalized, sorted tag set; sidebar folders derive from it. */
+	/**
+	 * Every tag on the workspace, normalized and sorted, whoever applied it.
+	 * Consumers that know who they are read `tagAssignments` instead.
+	 */
 	tags: string[];
+	/**
+	 * Each tag with the user who applied it. Tags are personal (see
+	 * `isWorkspaceTagVisibleTo`): a client keeps the ones it can see and
+	 * derives its sidebar folders from those. Absent from hosts that predate
+	 * the field.
+	 */
+	tagAssignments?: WorkspaceTagAssignment[];
 }
 
 export interface WorkspaceChangedMessage {

@@ -91,3 +91,42 @@ export const workspaceTagsInputSchema = z
 	});
 
 export type WorkspaceTagsInput = z.infer<typeof workspaceTagsInputSchema>;
+
+/** One tag on one workspace and who applied it (null = unknown/legacy). */
+export interface WorkspaceTagAssignment {
+	tag: string;
+	createdByUserId: string | null;
+}
+
+/**
+ * Tags are personal: a tag is shown to the user who applied it, so one
+ * person's sidebar grouping never appears in a teammate's. A tag with no
+ * known creator (written before tags had one, or by a caller that carries
+ * no user) stays visible to everyone, and a viewer with no identity sees
+ * everything — both keep single-user hosts behaving as before.
+ */
+export function isWorkspaceTagVisibleTo(
+	createdByUserId: string | null | undefined,
+	viewerUserId: string | null | undefined,
+): boolean {
+	return (
+		createdByUserId == null ||
+		viewerUserId == null ||
+		createdByUserId === viewerUserId
+	);
+}
+
+/** The normalized, sorted tag set a viewer sees on one workspace. */
+export function visibleWorkspaceTags(
+	assignments: readonly WorkspaceTagAssignment[] | null | undefined,
+	viewerUserId: string | null | undefined,
+): string[] {
+	if (assignments == null) return [];
+	return normalizeWorkspaceTags(
+		assignments
+			.filter((assignment) =>
+				isWorkspaceTagVisibleTo(assignment.createdByUserId, viewerUserId),
+			)
+			.map((assignment) => assignment.tag),
+	);
+}
