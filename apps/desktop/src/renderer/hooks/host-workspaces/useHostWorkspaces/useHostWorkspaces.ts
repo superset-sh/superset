@@ -240,6 +240,20 @@ export function useHostWorkspacesSource(
 	const { data: session } = authClient.useSession();
 	const currentUserId = session?.user?.id ?? null;
 
+	// Served rows are scoped to whoever asked (tags are personal), so rows
+	// fetched before the session resolved, or by the previous account, are
+	// not this user's view: refetch every host once the user is known.
+	const targetsRef = useRef(targets);
+	targetsRef.current = targets;
+	useEffect(() => {
+		if (currentUserId === null) return;
+		for (const target of targetsRef.current) {
+			void queryClient.invalidateQueries({
+				queryKey: getHostWorkspacesQueryKey(target),
+			});
+		}
+	}, [currentUserId, queryClient]);
+
 	// Live updates: each reachable host's workspace:changed patches its own
 	// cached list without a refetch.
 	//

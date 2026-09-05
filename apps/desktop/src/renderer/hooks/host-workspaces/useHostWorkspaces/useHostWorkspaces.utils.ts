@@ -230,6 +230,7 @@ export function applyWorkspaceChangedEvent(
 	},
 	host: { organizationId: string; machineId: string },
 	workspaceId: string,
+	/** Null while the session is unresolved — not "no identity". */
 	viewerUserId: string | null,
 ): HostWorkspaceRow[] | undefined {
 	if (event.eventType === "deleted") {
@@ -255,7 +256,11 @@ export function applyWorkspaceChangedEvent(
 		// A host that predates tag creators sends only the union and can't
 		// tell whose is whose; show it as before rather than nothing.
 		tags: snapshot.tagAssignments
-			? visibleWorkspaceTags(snapshot.tagAssignments, viewerUserId)
+			? viewerUserId === null
+				? // The session hasn't resolved yet: nobody's tags are ours to
+					// show (or persist), so keep what the row already had.
+					(existing?.tags ?? [])
+				: visibleWorkspaceTags(snapshot.tagAssignments, viewerUserId)
 			: (snapshot.tags ?? existing?.tags),
 		createdAt: new Date(snapshot.createdAt),
 		updatedAt: new Date(snapshot.updatedAt),

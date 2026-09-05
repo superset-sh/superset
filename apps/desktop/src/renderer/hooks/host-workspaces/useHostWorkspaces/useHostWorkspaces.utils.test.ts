@@ -150,6 +150,40 @@ describe("applyWorkspaceChangedEvent tags", () => {
 		expect(rows?.[0]?.tags).toEqual(["legacy", "mine"]);
 	});
 
+	it("shows nobody's tags while the session is unresolved", () => {
+		const initial = applyWorkspaceChangedEvent(
+			undefined,
+			{
+				eventType: "created",
+				workspace: makeSnapshot({
+					id: "w1",
+					tags: ["theirs"],
+					tagAssignments: [{ tag: "theirs", createdByUserId: "user-b" }],
+				}),
+			},
+			HOST,
+			"w1",
+			null,
+		);
+		expect(initial?.[0]?.tags).toEqual([]);
+		const cached = initial?.map((row) => ({ ...row, tags: ["cached"] }));
+		const updated = applyWorkspaceChangedEvent(
+			cached,
+			{
+				eventType: "updated",
+				workspace: makeSnapshot({
+					id: "w1",
+					tags: ["theirs"],
+					tagAssignments: [{ tag: "theirs", createdByUserId: "user-b" }],
+				}),
+			},
+			HOST,
+			"w1",
+			null,
+		);
+		expect(updated?.[0]?.tags).toEqual(["cached"]);
+	});
+
 	it("falls back to the union from a host that predates tag creators", () => {
 		const rows = applyWorkspaceChangedEvent(
 			undefined,

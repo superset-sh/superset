@@ -172,6 +172,25 @@ describe("workspace tags store", () => {
 			);
 		});
 
+		it("stamps the acting user when the row itself has no creator", () => {
+			const db = createTestDb();
+			const { eventBus } = createTestEventBus();
+			insertLocalWorkspace(
+				{ db, eventBus, userId: "user-a" },
+				{
+					id,
+					projectId: null,
+					worktreePath: `/tmp/${id}`,
+					branch: id,
+					name: id,
+					tags: ["adopted"],
+				},
+			);
+			expect(getWorkspaceTagAssignments(db, id)).toEqual([
+				{ tag: "adopted", createdByUserId: "user-a" },
+			]);
+		});
+
 		it("a creator-less tag is visible to everyone", () => {
 			const db = createTestDb();
 			const { eventBus } = createTestEventBus();

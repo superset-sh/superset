@@ -268,7 +268,11 @@ export function insertLocalWorkspace(
 			})
 			.run();
 		if (tags.length > 0) {
-			const createdByUserId = toStoredTagCreator(values.createdByUserId);
+			// Adoption paths don't stamp the row's creator, but the tags are
+			// still the acting user's — never let them fall through as public.
+			const createdByUserId = toStoredTagCreator(
+				values.createdByUserId ?? ctx.userId,
+			);
 			tx.insert(workspaceTags)
 				.values(
 					tags.map((tag) => ({
