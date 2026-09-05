@@ -123,7 +123,7 @@ export function SortableSectionHeader({
 					}
 					isCollapsed={section.isCollapsed}
 					isEditing={isRenaming}
-					isDraggable
+					isDraggable={!isChildDragDisabled}
 					indentation={indentation}
 					onToggleCollapse={() => onToggleCollapse(section.id)}
 					actions={
