@@ -18,8 +18,14 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
+import { EngineState } from "../../../account-engine/engine-state.ts";
+import type {
+	RotationState,
+	RuntimeState,
+} from "../../../account-engine/types.ts";
 import type { HostDb } from "../../../db/index.ts";
 import { hostSettings } from "../../../db/schema.ts";
+import type { UsageAccount } from "./types.ts";
 
 type SwitchableAccountAgent = "claude" | "codex";
 
@@ -67,6 +73,29 @@ function canonicalAccountHome(target: string): string {
 
 function defaultAccountPointerPath(agent: SwitchableAccountAgent): string {
 	return join(supersetHomeDir(), "state", POINTER_NAMES[agent]);
+}
+
+/**
+ * The Superset-owned Claude config dir logins are swapped into (KTD2). It is
+ * defined here rather than beside its provisioning because this module is the
+ * one the terminal env path loads, and it must not pull in the agent-setup
+ * surface; account-provisioning.ts re-exports it as activeClaudeConfigDir().
+ */
+export function activeClaudeConfigDirPath(): string {
+	return join(supersetHomeDir(), "accounts", "claude-active");
+}
+
+/**
+ * Whether the pointer names the active dir rather than a profile dir, which
+ * is what it names from the first swap onwards (KTD2). Compared by realpath,
+ * so a symlinked or unnormalised spelling still matches.
+ */
+export function isActiveClaudeDirPointer(selection: string | null): boolean {
+	if (!selection) return false;
+	return (
+		canonicalAccountHome(selection) ===
+		canonicalAccountHome(activeClaudeConfigDirPath())
+	);
 }
 
 function temporaryPointerPath(pointerPath: string): string {
@@ -200,17 +229,34 @@ export function getDefaultAccountSelections(
 		? codexPointer
 		: readDefaultAccountPointer("codex");
 
+	const claudeConfigDir = resolvedClaudePointer.exists
+		? resolvedClaudePointer.selection
+		: legacyClaudeConfigDir;
+
+	// KTD2: a swap repoints the pointer at the active dir without going
+	// through setDefaultAccountSelection, which leaves this org's copy naming
+	// a profile dir that no session runs on any more. Written once, when the
+	// two disagree.
+	if (
+		isActiveClaudeDirPointer(claudeConfigDir) &&
+		legacyClaudeConfigDir !== claudeConfigDir
+	) {
+		try {
+			writeDefaultAccountSetting(db, "claude", claudeConfigDir);
+		} catch {
+			// Best-effort: the pointer is authoritative either way.
+		}
+	}
+
 	return {
-		claudeConfigDir: resolvedClaudePointer.exists
-			? resolvedClaudePointer.selection
-			: legacyClaudeConfigDir,
+		claudeConfigDir,
 		codexHome: resolvedCodexPointer.exists
 			? resolvedCodexPointer.selection
 			: legacyCodexHome,
 	};
 }
 
-export function setDefaultAccountSelection(
+function writeDefaultAccountSetting(
 	db: HostDb,
 	agent: SwitchableAccountAgent,
 	selection: string | null,
@@ -223,7 +269,131 @@ export function setDefaultAccountSelection(
 		.values({ id: 1, ...values })
 		.onConflictDoUpdate({ target: hostSettings.id, set: values })
 		.run();
+}
+
+export function setDefaultAccountSelection(
+	db: HostDb,
+	agent: SwitchableAccountAgent,
+	selection: string | null,
+): void {
+	writeDefaultAccountSetting(db, agent, selection);
 	syncDefaultAccountPointer(agent, selection);
+}
+
+/**
+ * KTD4: which account each agent is running on, and the rotation flags that
+ * override the credential-kind default. The engine's recorded binding in
+ * runtime.json is the source of truth; until it has one (engine never ran, a
+ * lost runtime.json) the pointer keeps deciding, as it always has.
+ */
+export interface ActiveAgentBinding {
+	/** The active account's provider identity, or null when unrecorded. */
+	accountId: string | null;
+	/** Fallback rule: the selection the pointer names. Null once the pointer
+	 * names the active dir and the engine recorded no selection either. */
+	pointerSelection: string | null;
+}
+
+export interface AccountEngineView {
+	claude: ActiveAgentBinding;
+	codex: ActiveAgentBinding;
+	rotation: RotationState;
+}
+
+/** R16: the rotation flag's key. Identity first, so a profile dir that moves
+ * (or an account that changes dirs) keeps its toggle. */
+export function accountRotationKey(
+	account: Pick<UsageAccount, "agent" | "accountId" | "selection">,
+): string {
+	return `${account.agent}:${account.accountId ?? account.selection ?? "default"}`;
+}
+
+export function readAccountEngineView(db: HostDb): AccountEngineView {
+	const defaults = getDefaultAccountSelections(db);
+	let runtime: RuntimeState | null = null;
+	let rotation: RotationState = {};
+	try {
+		const state = new EngineState();
+		runtime = state.readRuntime();
+		rotation = state.readRotation();
+	} catch {
+		// Unreadable engine state falls back to the pointer rule below.
+	}
+	const claude = runtime?.perAgent.claude;
+	return {
+		claude: {
+			accountId: claude?.activeAccountId ?? null,
+			// The pointer names the active dir once a swap has run, and no
+			// account is discovered there (KTD4); the engine's own record of
+			// which selection it swapped in stands in for it.
+			pointerSelection: isActiveClaudeDirPointer(defaults.claudeConfigDir)
+				? (claude?.activeSelection ?? null)
+				: defaults.claudeConfigDir,
+		},
+		codex: {
+			accountId: runtime?.perAgent.codex.activeAccountId ?? null,
+			pointerSelection: defaults.codexHome,
+		},
+		rotation,
+	};
+}
+
+/** R1/R20: "active" means every running session of this agent is on it. */
+export function isActiveAccount(
+	account: UsageAccount,
+	view: AccountEngineView,
+): boolean {
+	if (account.agent !== "claude" && account.agent !== "codex") return false;
+	const binding = view[account.agent];
+	if (binding.accountId !== null)
+		return account.accountId === binding.accountId;
+	return account.selection === binding.pointerSelection;
+}
+
+/** Decorates a quota row with the state the store cannot cache: which account
+ * is active right now, and whether the user has held it out of rotation. */
+export function applyAccountEngineState(
+	account: UsageAccount,
+	view: AccountEngineView,
+): UsageAccount {
+	return {
+		...account,
+		isDefault: isActiveAccount(account, view),
+		inRotation:
+			view.rotation[accountRotationKey(account)] ?? account.inRotation,
+	};
+}
+
+/**
+ * KTD3 step 2: the swap primitive has to know which profile dir owns the
+ * login currently in the active dir, so it can save the refreshed credential
+ * back there. Discovery is the only pass that sees identity and dir together,
+ * so it records the pairing. A read-only state dir (KTD5) is skipped, and a
+ * failure never breaks discovery.
+ */
+export function recordIdentityBindings(
+	bindings: Iterable<readonly [string, string | null]>,
+): void {
+	try {
+		const state = new EngineState();
+		if (state.readOnly) return;
+		const runtime = state.readRuntime();
+		let changed = false;
+		for (const [accountId, profileDir] of bindings) {
+			if (!accountId) continue;
+			if (
+				accountId in runtime.identityBindings &&
+				runtime.identityBindings[accountId] === profileDir
+			) {
+				continue;
+			}
+			runtime.identityBindings[accountId] = profileDir;
+			changed = true;
+		}
+		if (changed) state.writeRuntime(runtime);
+	} catch (error) {
+		console.warn("[host-service] recording identity bindings failed:", error);
+	}
 }
 
 /**

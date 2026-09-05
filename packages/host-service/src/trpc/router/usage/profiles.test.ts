@@ -1,8 +1,9 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
 	mkdirSync,
 	mkdtempSync,
 	rmSync,
+	symlinkSync,
 	utimesSync,
 	writeFileSync,
 } from "node:fs";
@@ -101,6 +102,7 @@ describe("readCodexProfileKind", () => {
 		expect(await readCodexProfileKind(home)).toEqual({
 			credentialKind: "subscription",
 			loginFingerprint: null,
+			accountId: null,
 		});
 	});
 
@@ -118,6 +120,23 @@ describe("readCodexProfileKind", () => {
 			JSON.stringify({ auth_mode: "apikey", OPENAI_API_KEY: "sk-test" }),
 		);
 		expect(await readCodexProfileKind(home)).toBeNull();
+	});
+
+	// KTD4: the Codex account identity is auth.json's `tokens.account_id`.
+	it("reports the auth.json account id as the account identity", async () => {
+		const home = tempProfile();
+		writeFileSync(
+			join(home, "auth.json"),
+			JSON.stringify({
+				tokens: { access_token: "t", account_id: "acct-1" },
+			}),
+		);
+
+		expect(await readCodexProfileKind(home)).toEqual({
+			credentialKind: "subscription",
+			loginFingerprint: null,
+			accountId: "acct-1",
+		});
 	});
 });
 
@@ -159,6 +178,88 @@ describe("discoverClaudeProfiles", () => {
 			credentialKind: "subscription",
 			loginFingerprint: null,
 		});
+	});
+});
+
+/**
+ * KTD4: accounts are keyed by the provider's account identity, and the
+ * Superset-owned active dir is never one of them — it holds a copy of
+ * whichever account is active, so discovering it would double-list that
+ * account under the wrong dir.
+ */
+describe("discoverClaudeProfiles account identity", () => {
+	let previousSupersetHome: string | undefined;
+
+	beforeEach(() => {
+		previousSupersetHome = process.env.SUPERSET_HOME_DIR;
+	});
+
+	afterEach(() => {
+		if (previousSupersetHome === undefined) {
+			delete process.env.SUPERSET_HOME_DIR;
+		} else {
+			process.env.SUPERSET_HOME_DIR = previousSupersetHome;
+		}
+	});
+
+	it("carries the account id, so one token in two dirs is still two accounts", async () => {
+		const first = tempProfile();
+		const second = tempProfile();
+		writeFileSync(
+			join(first, ".claude.json"),
+			JSON.stringify({
+				oauthAccount: { emailAddress: "a@b.c", accountUuid: "uuid-a" },
+			}),
+		);
+		writeFileSync(
+			join(second, ".claude.json"),
+			JSON.stringify({
+				oauthAccount: { emailAddress: "d@e.f", accountUuid: "uuid-b" },
+			}),
+		);
+		// The just-swapped state: both dirs hold the same access token.
+		const credential = JSON.stringify({
+			claudeAiOauth: { accessToken: "shared-token" },
+		});
+		writeFileSync(join(first, ".credentials.json"), credential);
+		writeFileSync(join(second, ".credentials.json"), credential);
+
+		const profiles = await discoverClaudeProfiles([first, second]);
+
+		expect(profiles.map((profile) => profile.accountId)).toEqual([
+			"uuid-a",
+			"uuid-b",
+		]);
+	});
+
+	it("never lists the active dir, even under ~/.config or behind a symlink", async () => {
+		const root = tempProfile();
+		process.env.SUPERSET_HOME_DIR = join(root, ".config", "superset");
+		const activeDir = join(
+			root,
+			".config",
+			"superset",
+			"accounts",
+			"claude-active",
+		);
+		mkdirSync(activeDir, { recursive: true });
+		writeFileSync(
+			join(activeDir, ".claude.json"),
+			JSON.stringify({
+				oauthAccount: { emailAddress: "active@b.c", accountUuid: "uuid-live" },
+			}),
+		);
+		const alias = join(root, ".claude-active-alias");
+		symlinkSync(activeDir, alias);
+		const profile = tempProfile();
+		writeFileSync(
+			join(profile, ".claude.json"),
+			JSON.stringify({ oauthAccount: { accountUuid: "uuid-profile" } }),
+		);
+
+		const profiles = await discoverClaudeProfiles([activeDir, alias, profile]);
+
+		expect(profiles.map((entry) => entry.configDir)).toEqual([profile]);
 	});
 });
 

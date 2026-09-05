@@ -17,7 +17,9 @@ import {
 } from "./account-provisioning";
 import { readDefaultLoginEmail } from "./claude";
 import {
-	getDefaultAccountSelections,
+	applyAccountEngineState,
+	isActiveAccount,
+	readAccountEngineView,
 	setDefaultAccountSelection,
 } from "./default-account";
 import { countAgentPrsByDay } from "./history/agent-prs";
@@ -32,18 +34,13 @@ export const usageRouter = router({
 			const accounts = await ctx.runtime.quotaStore.read({
 				forceRefresh: input?.forceRefresh ?? false,
 			});
-			// isDefault is applied per query, not cached with the quota: changing
-			// the default must reflect immediately without re-hitting providers.
-			const defaults = getDefaultAccountSelections(ctx.db);
-			return accounts.map((account) => ({
-				...account,
-				isDefault:
-					account.agent === "claude"
-						? account.selection === defaults.claudeConfigDir
-						: account.agent === "codex"
-							? account.selection === defaults.codexHome
-							: false,
-			}));
+			// The active account and the rotation flags are applied per query,
+			// not cached with the quota: a switch or a toggle must reflect
+			// immediately without re-hitting providers.
+			const engineState = readAccountEngineView(ctx.db);
+			return accounts.map((account) =>
+				applyAccountEngineState(account, engineState),
+			);
 		}),
 
 	/**
@@ -146,9 +143,9 @@ export const usageRouter = router({
 	/**
 	 * Deletes a secondary profile: its dir plus, for Claude on macOS, its
 	 * scoped keychain items. The system default (selection null) is never
-	 * removable, and only currently discovered profiles are accepted. A
-	 * default pointer at the removed profile is cleared so agents fall back
-	 * to the system login instead of a dead dir.
+	 * removable, and only currently discovered profiles are accepted. R25:
+	 * the active account is what every running session is signed in as, so it
+	 * can only be removed once another account has become active.
 	 */
 	removeAccount: protectedProcedure
 		.input(
@@ -161,29 +158,27 @@ export const usageRouter = router({
 			const accounts = await ctx.runtime.quotaStore.read({
 				agents: [input.agent],
 			});
-			const known = accounts.some(
+			const target = accounts.find(
 				(account) =>
 					account.agent === input.agent &&
 					account.selection === input.selection,
 			);
-			if (!known) {
+			if (!target) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: `No removable ${input.agent} profile at ${input.selection}.`,
+				});
+			}
+			if (isActiveAccount(target, readAccountEngineView(ctx.db))) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `This is the active ${input.agent} account — switch to another account first, then remove it.`,
 				});
 			}
 			if (input.agent === "claude") {
 				await removeClaudeProfile(input.selection);
 			} else {
 				await removeCodexHome(input.selection);
-			}
-			const defaults = getDefaultAccountSelections(ctx.db);
-			const pointer =
-				input.agent === "claude"
-					? defaults.claudeConfigDir
-					: defaults.codexHome;
-			if (pointer === input.selection) {
-				setDefaultAccountSelection(ctx.db, input.agent, null);
 			}
 			// The store still lists the removed account; drop its entry so the
 			// next read re-discovers.

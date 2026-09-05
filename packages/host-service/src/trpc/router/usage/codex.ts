@@ -7,6 +7,7 @@
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { recordIdentityBindings } from "./default-account";
 import { type CodexHome, discoverCodexHomes } from "./profiles";
 import type { UsageAccount, UsageQuotaWindow } from "./types";
 
@@ -99,7 +100,7 @@ function mapWindows(usage: CodexUsageResponse): UsageQuotaWindow[] {
 }
 
 export async function fetchCodexAccounts(): Promise<UsageAccount[]> {
-	const homes = await discoverCodexHomes();
+	const homes = await recordCodexHomeBindings(await discoverCodexHomes());
 	// The first discovered home is what codex uses with no CODEX_HOME override
 	// (see discoverCodexHomes) — running on it needs no env injection.
 	const defaultHome = homes[0]?.home ?? null;
@@ -112,17 +113,40 @@ export async function fetchCodexAccounts(): Promise<UsageAccount[]> {
 }
 
 /**
- * Dedupe by account email — one login used from several homes is one
- * account; keep the first (default home wins).
+ * Dedupe by the ChatGPT account id auth.json carries (KTD4) — one login used
+ * from several homes is one account; keep the first (default home wins). The
+ * email is only a fallback: it comes from the usage endpoint, so a login
+ * whose fetch failed has none, and two such homes used to merge into one row.
  */
 export function dedupeCodexAccounts(accounts: UsageAccount[]): UsageAccount[] {
 	const seen = new Set<string>();
 	return accounts.filter((account) => {
-		const key = account.email ?? account.accountKey;
+		const key = account.accountId ?? account.email ?? account.accountKey;
 		if (seen.has(key)) return false;
 		seen.add(key);
 		return true;
 	});
+}
+
+/**
+ * KTD3 step 2: record which home each Codex identity lives in (null for the
+ * system-default home), the same pairing Claude discovery records.
+ */
+function recordCodexHomeBindings(homes: CodexHome[]): CodexHome[] {
+	const defaultHome = homes[0]?.home ?? null;
+	recordIdentityBindings(
+		homes.flatMap((home) =>
+			home.accountId
+				? [
+						[
+							home.accountId,
+							home.home === defaultHome ? null : home.home,
+						] as const,
+					]
+				: [],
+		),
+	);
+	return homes;
 }
 
 /**
@@ -133,7 +157,7 @@ export async function discoverCodexQuotaTargets(): Promise<{
 	selections: Array<string | null>;
 	staticAccounts: UsageAccount[];
 }> {
-	const homes = await discoverCodexHomes();
+	const homes = recordCodexHomeBindings(await discoverCodexHomes());
 	const defaultHome = homes[0]?.home ?? null;
 	const selections: Array<string | null> = [];
 	const staticAccounts: UsageAccount[] = [];
@@ -182,7 +206,11 @@ function codexAccountBase(home: CodexHome, isDefaultHome: boolean) {
 		sourceLabel: codexHome.replace(homedir(), "~"),
 		extraUsage: null,
 		selection: isDefaultHome ? null : codexHome,
-		// Decorated per-query from host settings; the quota cache outlives it.
+		accountId: home.accountId,
+		// R16: API-billed logins stay out of rotation. The toggle and the
+		// active badge are decorated per query; the quota cache outlives both.
+		inRotation: home.credentialKind === "subscription",
+		managed: true,
 		isDefault: false,
 		fetchedAt: new Date(),
 	};

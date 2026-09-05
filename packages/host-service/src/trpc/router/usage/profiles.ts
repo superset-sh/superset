@@ -23,11 +23,12 @@
 
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readdir, readFile, stat } from "node:fs/promises";
+import { readdir, readFile, realpath, stat } from "node:fs/promises";
 import { homedir, platform, userInfo } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 import { resolveAmbientCodexHome } from "@superset/agent-setup";
+import { activeClaudeConfigDirPath } from "./default-account.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -52,6 +53,9 @@ export interface ClaudeProfile {
 	/** `~`-relative label for display. */
 	sourceLabel: string;
 	email: string | null;
+	/** KTD4: `oauthAccount.accountUuid`, the identity that keys this account
+	 * across dirs. Null for an API-billed profile, which has no OAuth login. */
+	accountId: string | null;
 	credentialKind: ProfileCredentialKind;
 	/** API profiles only: changes when the login command completes again. */
 	loginFingerprint: string | null;
@@ -64,6 +68,10 @@ export interface CodexHome {
 	home: string;
 	sourceLabel: string;
 	credentialKind: ProfileCredentialKind;
+	/** KTD4: `tokens.account_id` from auth.json — the ChatGPT account this
+	 * home is signed in as. Null for an API-billed home, whose auth.json is
+	 * never opened. */
+	accountId: string | null;
 	/** API profiles only; derived from the marker, never from auth.json. */
 	loginFingerprint: string | null;
 }
@@ -118,9 +126,11 @@ interface ClaudeStateFile {
 	oauthAccount?: { emailAddress?: string; accountUuid?: string };
 }
 
-async function readClaudeIdentity(
+/** The OAuth identity a custom config dir keeps in its own `.claude.json`
+ * (the system default keeps its next door — see claudeStatePath). */
+export async function readClaudeIdentity(
 	configDir: string,
-): Promise<{ email: string | null } | null> {
+): Promise<{ email: string | null; accountId: string | null } | null> {
 	const statePath = join(configDir, ".claude.json");
 	try {
 		const info = await stat(statePath);
@@ -130,7 +140,10 @@ async function readClaudeIdentity(
 		);
 		const account = parsed.oauthAccount;
 		if (!account?.accountUuid && !account?.emailAddress) return null;
-		return { email: account.emailAddress ?? null };
+		return {
+			email: account.emailAddress ?? null,
+			accountId: account.accountUuid ?? null,
+		};
 	} catch {
 		return null;
 	}
@@ -152,6 +165,30 @@ export async function readApiBillingFingerprint(
 	}
 }
 
+/** Realpath, falling back to a plain resolve for a path that does not exist
+ * yet — the active dir is created lazily. */
+async function canonicalPath(path: string): Promise<string> {
+	try {
+		return await realpath(path);
+	} catch {
+		return resolve(path);
+	}
+}
+
+/**
+ * KTD4: the Superset-owned active dir (KTD2) holds a copy of whichever
+ * account is active, so discovering it would list that account twice — the
+ * second time under a dir that is nobody's login. Compared by realpath: the
+ * env may spell it differently, and $SUPERSET_HOME_DIR can itself sit under a
+ * scanned dir or behind a symlink.
+ */
+export async function isActiveClaudeConfigDir(dir: string): Promise<boolean> {
+	return (
+		(await canonicalPath(dir)) ===
+		(await canonicalPath(activeClaudeConfigDirPath()))
+	);
+}
+
 /**
  * Extra Claude profile dirs beyond the defaults. Default homes are excluded —
  * callers already cover `~/.claude` and `~/.config/claude`. `candidates`
@@ -167,10 +204,12 @@ export async function discoverClaudeProfiles(
 	]);
 	const started = Date.now();
 	const profiles: ClaudeProfile[] = [];
+	const activeDir = await canonicalPath(activeClaudeConfigDirPath());
 
 	for (const candidate of candidates ?? (await candidateDirectories())) {
 		if (Date.now() - started > SCAN_TIME_BUDGET_MS) break;
 		if (excluded.has(candidate)) continue;
+		if ((await canonicalPath(candidate)) === activeDir) continue;
 		const [identity, apiFingerprint] = await Promise.all([
 			readClaudeIdentity(candidate),
 			readApiBillingFingerprint(candidate, "claude"),
@@ -180,6 +219,7 @@ export async function discoverClaudeProfiles(
 			configDir: candidate,
 			sourceLabel: tildeLabel(candidate),
 			email: identity?.email ?? null,
+			accountId: identity?.accountId ?? null,
 			credentialKind: apiFingerprint ? "api_key" : "subscription",
 			loginFingerprint: apiFingerprint,
 			credentialsPath: join(candidate, ".credentials.json"),
@@ -448,7 +488,7 @@ export async function readClaudeLogin(
 }
 
 interface CodexAuthShape {
-	tokens?: { access_token?: string };
+	tokens?: { access_token?: string; account_id?: string };
 }
 
 /**
@@ -458,17 +498,28 @@ interface CodexAuthShape {
  */
 export async function readCodexProfileKind(
 	codexHome: string,
-): Promise<Pick<CodexHome, "credentialKind" | "loginFingerprint"> | null> {
+): Promise<Pick<
+	CodexHome,
+	"credentialKind" | "loginFingerprint" | "accountId"
+> | null> {
 	const apiFingerprint = await readApiBillingFingerprint(codexHome, "codex");
 	if (apiFingerprint) {
-		return { credentialKind: "api_key", loginFingerprint: apiFingerprint };
+		return {
+			credentialKind: "api_key",
+			loginFingerprint: apiFingerprint,
+			accountId: null,
+		};
 	}
 	try {
 		const parsed: CodexAuthShape = JSON.parse(
 			await readFile(join(codexHome, "auth.json"), "utf-8"),
 		);
 		return parsed.tokens?.access_token
-			? { credentialKind: "subscription", loginFingerprint: null }
+			? {
+					credentialKind: "subscription",
+					loginFingerprint: null,
+					accountId: parsed.tokens.account_id ?? null,
+				}
 			: null;
 	} catch {
 		// No parsable auth.json — not a Codex home.
@@ -493,6 +544,7 @@ export async function discoverCodexHomes(): Promise<CodexHome[]> {
 	const defaultKind = (await readCodexProfileKind(defaultHome)) ?? {
 		credentialKind: "subscription" as const,
 		loginFingerprint: null,
+		accountId: null,
 	};
 	const homes = new Map<string, CodexHome>([
 		[

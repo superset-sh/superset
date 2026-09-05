@@ -13,9 +13,12 @@
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { recordIdentityBindings } from "./default-account";
 import {
 	type ClaudeProfile,
 	discoverClaudeProfiles,
+	isActiveClaudeConfigDir,
+	readClaudeIdentity,
 	readKeychainSecrets,
 } from "./profiles";
 import type { UsageAccount, UsageQuotaWindow } from "./types";
@@ -38,6 +41,12 @@ export interface ClaudeOauthCredential {
 	selection: string | null;
 	/** Identity from the profile's own state file, when known. */
 	email?: string | null;
+	/** KTD4: `oauthAccount.accountUuid` — the provider's account identity,
+	 * which is what dedupes logins. Null when the state file names none. */
+	accountId: string | null;
+	/** False for a config dir the user exported by hand: Superset lists it
+	 * but never swaps a login into it. */
+	managed: boolean;
 }
 
 interface ClaudeCredentialFile {
@@ -76,6 +85,8 @@ function parseCredential(
 			accountKey,
 			sourceLabel,
 			selection,
+			accountId: null,
+			managed: true,
 		};
 	} catch {
 		return null;
@@ -168,16 +179,29 @@ export function pickFreshest<T extends ClaudeOauthCredential>(
 	return best;
 }
 
-/** Identity of the default login, readable even when its token is expired. */
-export async function readDefaultLoginEmail(): Promise<string | null> {
+/**
+ * Identity of the default login (KTD14: its state file is `~/.claude.json`,
+ * next door to its store), readable even when its token is expired.
+ */
+export async function readDefaultLoginIdentity(): Promise<{
+	email: string | null;
+	accountId: string | null;
+}> {
 	try {
 		const parsed = JSON.parse(
 			await readFile(join(homedir(), ".claude.json"), "utf-8"),
-		) as { oauthAccount?: { emailAddress?: string } };
-		return parsed.oauthAccount?.emailAddress ?? null;
+		) as { oauthAccount?: { emailAddress?: string; accountUuid?: string } };
+		return {
+			email: parsed.oauthAccount?.emailAddress ?? null,
+			accountId: parsed.oauthAccount?.accountUuid ?? null,
+		};
 	} catch {
-		return null;
+		return { email: null, accountId: null };
 	}
+}
+
+export async function readDefaultLoginEmail(): Promise<string | null> {
+	return (await readDefaultLoginIdentity()).email;
 }
 
 /** The one login slot the CLI uses with no CLAUDE_CONFIG_DIR override. */
@@ -198,8 +222,8 @@ function defaultCredentialCandidates(
 
 async function readDefaultCredential(): Promise<ClaudeOauthCredential | null> {
 	const home = homedir();
-	const [defaultEmail, keychainCredential, defaultFiles] = await Promise.all([
-		readDefaultLoginEmail(),
+	const [identity, keychainCredential, defaultFiles] = await Promise.all([
+		readDefaultLoginIdentity(),
 		readKeychainCredential(),
 		Promise.all(
 			defaultCredentialCandidates(home).map(({ path, sourceLabel }) =>
@@ -208,9 +232,10 @@ async function readDefaultCredential(): Promise<ClaudeOauthCredential | null> {
 		),
 	]);
 	const credential = pickFreshest([keychainCredential, ...defaultFiles]);
-	if (credential && !credential.email && defaultEmail) {
-		credential.email = defaultEmail;
+	if (credential && !credential.email && identity.email) {
+		credential.email = identity.email;
 	}
+	if (credential) credential.accountId = identity.accountId;
 	return credential;
 }
 
@@ -236,14 +261,16 @@ async function readProfileCredential(
 		}
 	}
 	const freshest = pickFreshest(candidates);
-	return freshest ? { ...freshest, email: profile.email } : null;
+	return freshest
+		? { ...freshest, email: profile.email, accountId: profile.accountId }
+		: null;
 }
 
 /**
  * Discovers Claude logins on this machine: the default config locations,
  * any CLAUDE_CONFIG_DIR entries (comma-list supported), auto-discovered
  * profile dirs (runway's multi-account model — see profiles.ts), and the
- * Claude Code Keychain items. Deduped by token.
+ * Claude Code Keychain items. Deduped by account identity (KTD4).
  *
  * The Keychain item, `~/.claude/.credentials.json`, and
  * `~/.config/claude/credentials.json` are ONE login slot: /login rewrites
@@ -257,21 +284,6 @@ async function discoverClaudeCredentials(): Promise<{
 	apiProfiles: Awaited<ReturnType<typeof discoverClaudeProfiles>>;
 }> {
 	const home = homedir();
-	const explicitCandidates: Array<{
-		path: string;
-		sourceLabel: string;
-		configDir: string;
-	}> = [];
-	for (const dir of (process.env.CLAUDE_CONFIG_DIR ?? "").split(",")) {
-		const configDir = dir.trim();
-		if (!configDir) continue;
-		explicitCandidates.push({
-			path: join(configDir, ".credentials.json"),
-			sourceLabel: configDir.replace(home, "~"),
-			configDir,
-		});
-	}
-
 	// API-billed profiles have no quota to fetch and their credentials stay
 	// unread; only subscription profiles go through the credential readers.
 	const allProfiles = await discoverClaudeProfiles();
@@ -281,29 +293,97 @@ async function discoverClaudeCredentials(): Promise<{
 	const apiProfiles = allProfiles.filter(
 		(profile) => profile.credentialKind === "api_key",
 	);
+	const discoveredDirs = new Set(
+		allProfiles.map((profile) => profile.configDir),
+	);
+
+	// CLAUDE_CONFIG_DIR entries profile discovery does not classify. One that
+	// it does classify is left to the profiled read: read from both, the same
+	// account would key on its id once and on its token the other time and
+	// list twice.
+	const explicitCandidates: Array<{
+		path: string;
+		sourceLabel: string;
+		configDir: string;
+	}> = [];
+	for (const dir of (process.env.CLAUDE_CONFIG_DIR ?? "").split(",")) {
+		const configDir = dir.trim();
+		if (!configDir || discoveredDirs.has(configDir)) continue;
+		// The host-service may itself be launched on the active dir; it holds a
+		// copy of the account that is active, not an account of its own (KTD4).
+		if (await isActiveClaudeConfigDir(configDir)) continue;
+		explicitCandidates.push({
+			path: join(configDir, ".credentials.json"),
+			sourceLabel: configDir.replace(home, "~"),
+			configDir,
+		});
+	}
+
 	const [defaultCredential, explicit, profiled] = await Promise.all([
 		readDefaultCredential(),
 		Promise.all(
-			explicitCandidates.map(({ path, sourceLabel, configDir }) =>
-				readCredentialFile(path, sourceLabel, configDir),
-			),
+			explicitCandidates.map(async ({ path, sourceLabel, configDir }) => {
+				const credential = await readCredentialFile(
+					path,
+					sourceLabel,
+					configDir,
+				);
+				if (!credential) return null;
+				const identity = await readClaudeIdentity(configDir);
+				return {
+					...credential,
+					email: identity?.email ?? null,
+					accountId: identity?.accountId ?? null,
+					// A dir the user exported by hand is Superset's to read,
+					// never to write: it is listed, but no swap targets it.
+					managed: false,
+				};
+			}),
 		),
 		Promise.all(profiles.map(readProfileCredential)),
 	]);
 
-	const byToken = new Map<string, ClaudeOauthCredential>();
-	for (const credential of [defaultCredential, ...explicit, ...profiled]) {
-		if (credential && !byToken.has(credential.accessToken)) {
-			byToken.set(credential.accessToken, credential);
-		}
-	}
+	const credentials = dedupeClaudeCredentials([
+		defaultCredential,
+		...explicit,
+		...profiled,
+	]);
+	// KTD3 step 2: the swap needs to know which dir owns each identity, and
+	// this is the only pass that sees both.
+	recordIdentityBindings(
+		credentials.flatMap((credential) =>
+			credential.accountId
+				? [[credential.accountId, credential.selection] as const]
+				: [],
+		),
+	);
 	// Profiles with an identity but no readable credential (logged out, or a
 	// login that died half-way) still surface so the UI can offer re-sign-in
 	// and removal — otherwise the dir exists but nothing shows it.
 	const signedOutProfiles = profiles.filter(
 		(_profile, index) => profiled[index] === null,
 	);
-	return { credentials: [...byToken.values()], signedOutProfiles, apiProfiles };
+	return { credentials, signedOutProfiles, apiProfiles };
+}
+
+/**
+ * One login per provider account (KTD4). A swap leaves the same access token
+ * in the active dir and in the owner's profile for a while, so the token only
+ * keys the logins that carry no account id — API-key logins, and a state file
+ * too old to name one.
+ */
+export function dedupeClaudeCredentials(
+	candidates: Array<ClaudeOauthCredential | null>,
+): ClaudeOauthCredential[] {
+	const byIdentity = new Map<string, ClaudeOauthCredential>();
+	for (const credential of candidates) {
+		if (!credential) continue;
+		const key = credential.accountId
+			? `id:${credential.accountId}`
+			: `token:${credential.accessToken}`;
+		if (!byIdentity.has(key)) byIdentity.set(key, credential);
+	}
+	return [...byIdentity.values()];
 }
 
 interface ClaudeUsageWindow {
@@ -411,7 +491,12 @@ async function fetchClaudeAccount(
 		plan: credential.subscriptionType,
 		creditsBalance: null,
 		selection: credential.selection,
-		// Decorated per-query from host settings; the quota cache outlives it.
+		accountId: credential.accountId,
+		// R16: subscription logins rotate by default; the per-account toggle
+		// and the active badge are decorated per query, since the quota cache
+		// outlives both.
+		inRotation: true,
+		managed: credential.managed,
 		isDefault: false,
 		fetchedAt: new Date(),
 	};
@@ -523,6 +608,10 @@ function claudeApiKeyAccount(profile: ClaudeProfile): UsageAccount {
 		creditsBalance: null,
 		extraUsage: null,
 		selection: profile.configDir,
+		accountId: profile.accountId,
+		// R16: rotating onto a pay-per-token login would spend money silently.
+		inRotation: false,
+		managed: true,
 		isDefault: false,
 		fetchedAt: new Date(),
 	};
@@ -544,6 +633,9 @@ function claudeSignedOutAccount(profile: ClaudeProfile): UsageAccount {
 		creditsBalance: null,
 		extraUsage: null,
 		selection: profile.configDir,
+		accountId: profile.accountId,
+		inRotation: true,
+		managed: true,
 		isDefault: false,
 		fetchedAt: new Date(),
 	};

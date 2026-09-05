@@ -1,6 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import type { ClaudeOauthCredential } from "./claude";
-import { classifyLapsedToken, pickFreshest } from "./claude";
+import {
+	classifyLapsedToken,
+	dedupeClaudeCredentials,
+	pickFreshest,
+} from "./claude";
 
 const now = Date.parse("2026-09-04T14:00:00Z");
 const hour = 60 * 60 * 1000;
@@ -56,6 +60,8 @@ function credential(
 		accountKey: overrides.accessToken,
 		sourceLabel: "test",
 		selection: null,
+		accountId: null,
+		managed: true,
 		...overrides,
 	};
 }
@@ -89,5 +95,58 @@ describe("pickFreshest", () => {
 		});
 		expect(pickFreshest([stale, live], now)).toBe(live);
 		expect(pickFreshest([live, later, null], now)).toBe(later);
+	});
+});
+
+/**
+ * KTD4: identity, not the access token, is what makes two logins one account.
+ * Right after a swap the active dir and the owner profile hold the same
+ * token, and an API-key login has no account id to key on at all.
+ */
+describe("dedupeClaudeCredentials", () => {
+	it("keeps two accounts that share one access token", () => {
+		const first = credential({
+			accessToken: "shared",
+			accountId: "uuid-a",
+			selection: "/home/u/.claude-a",
+		});
+		const second = credential({
+			accessToken: "shared",
+			accountId: "uuid-b",
+			selection: "/home/u/.claude-b",
+		});
+
+		expect(
+			dedupeClaudeCredentials([first, second]).map((one) => one.accountId),
+		).toEqual(["uuid-a", "uuid-b"]);
+	});
+
+	it("collapses one identity found in two dirs, keeping the first", () => {
+		const fromDefault = credential({
+			accessToken: "one",
+			accountId: "uuid-a",
+			selection: null,
+		});
+		const fromProfile = credential({
+			accessToken: "two",
+			accountId: "uuid-a",
+			selection: "/home/u/.claude-a",
+		});
+
+		expect(dedupeClaudeCredentials([fromDefault, fromProfile])).toEqual([
+			fromDefault,
+		]);
+	});
+
+	it("falls back to the token when there is no account id", () => {
+		const first = credential({ accessToken: "shared" });
+		const second = credential({ accessToken: "shared" });
+		const third = credential({ accessToken: "other" });
+
+		expect(
+			dedupeClaudeCredentials([first, second, third, null]).map(
+				(one) => one.accessToken,
+			),
+		).toEqual(["shared", "other"]);
 	});
 });
