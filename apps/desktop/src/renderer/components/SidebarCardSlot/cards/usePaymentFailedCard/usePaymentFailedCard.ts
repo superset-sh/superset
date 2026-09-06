@@ -8,9 +8,20 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { SidebarCardEntry } from "../../types";
 
 /**
- * Stripe keeps retrying for ~14 days before canceling, and access continues
- * for that whole window, so a failed charge is otherwise invisible in-app
- * until the plan abruptly disappears. Returns no `onDismiss` for that reason.
+ * Two states, because a failed charge is otherwise invisible in-app.
+ *
+ * `past_due` — Stripe is still retrying and access continues, so the card
+ * warns while paying the invoice still saves the subscription.
+ *
+ * `lapsed` — Stripe gave up, cancelled, and the organization dropped to free.
+ * Keying only on `past_due` meant the card vanished at exactly that moment:
+ * every one of the 87 organizations this happened to recorded zero
+ * `payment_failed_banner_shown`. They were never told, they just quietly lost
+ * their triggers. Paying the old invoice cannot undo it either — Stripe will
+ * not reactivate a cancelled subscription — so this state sends people to
+ * Billing to resubscribe instead of to the invoice.
+ *
+ * Neither state gets an `onDismiss`.
  */
 export function usePaymentFailedCard({
 	surface,
@@ -20,27 +31,33 @@ export function usePaymentFailedCard({
 	const { data: session } = authClient.useSession();
 	const { data: activePlan } = cloudTrpc.billing.activePlan.useQuery(undefined);
 	const isFailing = isPaymentFailingStatus(activePlan?.status);
+	// `lapsed` is decided server-side from rows activePlan already reads, so
+	// the two queries below stay off for everyone still paying and for
+	// everyone who never paid. Gating them on `plan === "free"` instead would
+	// put a Stripe round-trip on every app load for every past customer.
+	const mayHaveLapsed = activePlan?.lapsed === true;
+	const isRelevant = isFailing || mayHaveLapsed;
 	// Ownership is judged against the org being billed, which is the org THIS
 	// window shows. The session's active organization is shared by every
 	// window, so its membership could belong to whatever org another window
 	// last switched to. This list is scoped server-side by the window's org header.
 	const { data: members } = cloudTrpc.organization.listMembers.useQuery(
 		{ includeDeactivated: false },
-		{ enabled: isFailing },
+		{ enabled: isRelevant },
 	);
 	// The amount is the whole point of the card: "a payment failed" without it
 	// sends people hunting for a number the app never shows them.
 	const { data: outstandingInvoice } =
 		cloudTrpc.billing.outstandingInvoice.useQuery(undefined, {
-			enabled: isFailing,
+			enabled: isRelevant,
 		});
 	const openUrl = electronTrpc.external.openUrl.useMutation();
 	const navigate = useNavigate();
 
-	if (!isFailing) return null;
+	const hasLapsed = mayHaveLapsed && Boolean(outstandingInvoice);
 
-	// Non-owners are rejected by requireBillingOwner at the portal, so they get
-	// the warning without an action that would dead-end.
+	if (!isFailing && !hasLapsed) return null;
+
 	const isOwner =
 		members?.find((m) => m.userId === session?.user?.id)?.role === "owner";
 
@@ -48,7 +65,33 @@ export function usePaymentFailedCard({
 		? formatPrice(outstandingInvoice.amountDue, outstandingInvoice.currency)
 		: null;
 	const hostedInvoiceUrl = outstandingInvoice?.hostedInvoiceUrl ?? null;
+	const state = hasLapsed ? "lapsed" : "past_due";
 
+	// Lapsed: the subscription is gone and paying the old invoice will not
+	// bring it back, so the only honest action is starting a new one.
+	if (hasLapsed) {
+		return {
+			id: "payment-failed",
+			badge: "Action needed",
+			title: amount ? `Pro ended — ${amount} unpaid` : "Pro ended",
+			description: isOwner
+				? `We couldn't collect ${amount ?? "your last payment"}, so this organization is on the free plan and its triggers have stopped running. Restart Pro to turn them back on.`
+				: `This organization's last payment couldn't be collected, so it's on the free plan and its triggers have stopped running. Ask an owner to restart Pro.`,
+			actionLabel: isOwner ? "Restart Pro" : undefined,
+			onAction: isOwner
+				? () => {
+						track("payment_failed_banner_clicked", { surface, state });
+						navigate({ to: "/settings/billing" });
+					}
+				: undefined,
+			className: "border-warning/50",
+			onShown: () =>
+				track("payment_failed_banner_shown", { surface, isOwner, state }),
+		};
+	}
+
+	// Non-owners are rejected by requireBillingOwner at the portal, so they get
+	// the warning without an action that would dead-end.
 	const ownerDescription = amount
 		? `We couldn't charge ${amount}. Update your payment method to keep your plan.`
 		: "We couldn't charge your payment method. Update it to keep your plan.";
@@ -68,7 +111,7 @@ export function usePaymentFailedCard({
 			: undefined,
 		onAction: isOwner
 			? () => {
-					track("payment_failed_banner_clicked", { surface });
+					track("payment_failed_banner_clicked", { surface, state });
 					// Straight to the invoice when we have one — the billing portal
 					// is several clicks from the same place.
 					if (hostedInvoiceUrl) {
@@ -79,6 +122,7 @@ export function usePaymentFailedCard({
 				}
 			: undefined,
 		className: "border-warning/50",
-		onShown: () => track("payment_failed_banner_shown", { surface, isOwner }),
+		onShown: () =>
+			track("payment_failed_banner_shown", { surface, isOwner, state }),
 	};
 }
