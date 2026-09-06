@@ -372,10 +372,28 @@ export function shouldSwitch(input: ShouldSwitchInput): SwitchDecision {
 		(candidate) =>
 			!isNearLimit(scoreAccount(candidate, models), settings.thresholdPercent),
 	);
-	const best = pickBest(below, models);
+	// An API-billed login reports no windows by construction, and no windows
+	// scores a full 100 — the same "zero windows is not headroom" hazard
+	// isEligible already guards for a read that did not land. So it wins
+	// pickBest against any subscription account, and moving there proactively
+	// puts the user on per-token billing while the plan they pay for still has
+	// room. It stays a target of last resort: taken when the active account is
+	// at its limit and nothing else has room, never as a proactive upgrade.
+	const metered = below.filter(
+		(candidate) => candidate.credentialKind === "api_key",
+	);
+	const onPlan = below.filter(
+		(candidate) => candidate.credentialKind !== "api_key",
+	);
+	const best = pickBest(onPlan.length > 0 ? onPlan : metered, models);
 	if (!best) return stay(activeNearLimit);
 
 	if (activeNearLimit) return move(best, "threshold");
+
+	// Nothing on the plan has room, so the only candidate left is metered —
+	// and the active account is not at its limit yet, so there is nothing to
+	// buy by moving.
+	if (best.credentialKind === "api_key") return stay(false);
 
 	// R15: a proactive move has to be worth the prompt-cache rebuild it costs.
 	if (scoreAccount(best, models) >= activeScore + margin) {

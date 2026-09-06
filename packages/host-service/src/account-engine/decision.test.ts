@@ -335,6 +335,80 @@ describe("pickConsumeFirst", () => {
 describe("shouldSwitch", () => {
 	const runtime = { cooldownUntil: null, activeAccountId: "acct-a" };
 
+	// An API-billed login reports no windows, and no windows scores a full
+	// 100 — the same "zero windows is not headroom" hazard isEligible already
+	// guards for an unreadable account. Without this the engine moves onto
+	// per-token billing while the paid plan still has room, and can never move
+	// back, because nothing can beat 100 by the margin.
+	const metered = () =>
+		account({
+			accountId: "acct-api",
+			accountKey: "key-api",
+			selection: "/profiles/api",
+			credentialKind: "api_key",
+			windows: [],
+		});
+
+	it("never moves onto a metered account proactively", () => {
+		const decision = shouldSwitch({
+			settings: settings(),
+			active: account({
+				windows: [window_("five_hour", "Session (5h)", 20)],
+			}),
+			candidates: [metered()],
+			rotation: { "key-api": true },
+			runtime,
+			now: 0,
+		});
+
+		expect(decision).toEqual({ switch: false, allExhausted: false });
+	});
+
+	it("prefers a plan account over a metered one", () => {
+		const decision = shouldSwitch({
+			settings: settings(),
+			active: account({
+				windows: [window_("five_hour", "Session (5h)", 95)],
+			}),
+			candidates: [
+				metered(),
+				account({
+					accountId: "acct-b",
+					accountKey: "key-b",
+					selection: "/profiles/b",
+					windows: [window_("five_hour", "Session (5h)", 40)],
+				}),
+			],
+			rotation: { "key-api": true, "key-b": true },
+			runtime,
+			now: 0,
+		});
+
+		expect(decision.switch).toBe(true);
+		if (!decision.switch) throw new Error("expected a switch");
+		expect(decision.target.accountKey).toBe("key-b");
+	});
+
+	// Last resort, not never: at the limit with nothing else left, metered
+	// beats stopping.
+	it("takes a metered account when nothing on the plan has room", () => {
+		const decision = shouldSwitch({
+			settings: settings(),
+			active: account({
+				windows: [window_("five_hour", "Session (5h)", 95)],
+			}),
+			candidates: [metered()],
+			rotation: { "key-api": true },
+			runtime,
+			now: 0,
+		});
+
+		expect(decision.switch).toBe(true);
+		if (!decision.switch) throw new Error("expected a switch");
+		expect(decision.target.accountKey).toBe("key-api");
+		expect(decision.reasonKind).toBe("threshold");
+	});
+
 	it("stays put while auto-switch is off", () => {
 		const decision = shouldSwitch({
 			settings: settings({ enabled: false }),
