@@ -299,7 +299,10 @@ export function pickBest(
 	return best;
 }
 
-function longestPeriodResetAt(account: DecisionAccount): number | null {
+function longestPeriodResetAt(
+	account: DecisionAccount,
+	now: number,
+): number | null {
 	const prefixes = LONGEST_PERIOD_WINDOW_PREFIXES[account.agent];
 	let soonest: number | null = null;
 	for (const window of account.windows) {
@@ -312,6 +315,9 @@ function longestPeriodResetAt(account: DecisionAccount): number | null {
 		// the window matches `trpc/router/usage/agy-quota.ts`, which already
 		// normalises this same field for this same type.
 		if (!Number.isFinite(at)) continue;
+		// A reset already in the past is stale data, not the soonest reset: the
+		// window has rolled over and the account should be drained last.
+		if (at <= now) continue;
 		if (soonest === null || at < soonest) soonest = at;
 	}
 	return soonest;
@@ -325,11 +331,12 @@ function longestPeriodResetAt(account: DecisionAccount): number | null {
  */
 export function pickConsumeFirst(
 	accounts: readonly DecisionAccount[],
+	now: number,
 ): DecisionAccount | null {
 	let best: DecisionAccount | null = null;
 	let bestAt = Number.POSITIVE_INFINITY;
 	for (const account of accounts) {
-		const at = longestPeriodResetAt(account) ?? Number.POSITIVE_INFINITY;
+		const at = longestPeriodResetAt(account, now) ?? Number.POSITIVE_INFINITY;
 		// The tie also has to take the first candidate: when every reset is
 		// unknown every `at` is Infinity, and a tie-break that only ever
 		// replaces an existing `best` would pick nobody and report the agent
@@ -445,7 +452,7 @@ export function shouldSwitch(input: ShouldSwitchInput): SwitchDecision {
 		const rankable = preferRanked(withRoom, (candidate) =>
 			reportsNoWindows(candidate, models),
 		);
-		const target = pickConsumeFirst(preferRanked(rankable, isMetered));
+		const target = pickConsumeFirst(preferRanked(rankable, isMetered), now);
 		if (!target) return stay(activeNearLimit);
 		if (activeNearLimit) return move(target, "threshold");
 		// The last-resort tier is a fallback, not a gate: when the unrankable
@@ -460,9 +467,9 @@ export function shouldSwitch(input: ShouldSwitchInput): SwitchDecision {
 		// tick. An unknown reset sorts last on either side, as it does in
 		// pickConsumeFirst, so it never wins the comparison.
 		const activeResetAt =
-			longestPeriodResetAt(active) ?? Number.POSITIVE_INFINITY;
+			longestPeriodResetAt(active, now) ?? Number.POSITIVE_INFINITY;
 		const targetResetAt =
-			longestPeriodResetAt(target) ?? Number.POSITIVE_INFINITY;
+			longestPeriodResetAt(target, now) ?? Number.POSITIVE_INFINITY;
 		if (targetResetAt < activeResetAt) return move(target, "strategy");
 		return stay(false);
 	}

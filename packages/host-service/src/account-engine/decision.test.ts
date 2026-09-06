@@ -285,7 +285,7 @@ describe("pickConsumeFirst", () => {
 				window_("seven_day", "Weekly", 50, T0 + 6 * HOUR),
 			],
 		});
-		expect(pickConsumeFirst([a, b])?.accountKey).toBe("key-b");
+		expect(pickConsumeFirst([a, b], T0)?.accountKey).toBe("key-b");
 	});
 
 	it("sorts accounts with no longest-period reset last", () => {
@@ -294,7 +294,7 @@ describe("pickConsumeFirst", () => {
 			accountKey: "key-b",
 			windows: [window_("seven_day", "Weekly", 10, T0 + 2 * DAY)],
 		});
-		expect(pickConsumeFirst([unknown, known])?.accountKey).toBe("key-b");
+		expect(pickConsumeFirst([unknown, known], T0)?.accountKey).toBe("key-b");
 	});
 
 	// Some Claude plans report the weekly period only per model. Ignoring
@@ -312,7 +312,7 @@ describe("pickConsumeFirst", () => {
 			accountKey: "key-b",
 			windows: [window_("seven_day", "Weekly", 40, T0 + 5 * DAY)],
 		});
-		expect(pickConsumeFirst([scopedOnly, plainWeekly])?.accountKey).toBe(
+		expect(pickConsumeFirst([scopedOnly, plainWeekly], T0)?.accountKey).toBe(
 			"key-a",
 		);
 	});
@@ -329,7 +329,7 @@ describe("pickConsumeFirst", () => {
 			accountKey: "key-a",
 			windows: [window_("five_hour", "Session (5h)", 30)],
 		});
-		expect(pickConsumeFirst([b, a])?.accountKey).toBe("key-a");
+		expect(pickConsumeFirst([b, a], T0)?.accountKey).toBe("key-a");
 
 		const decision = shouldSwitch({
 			settings: settings({ strategy: "consume-first" }),
@@ -363,7 +363,9 @@ describe("pickConsumeFirst", () => {
 			accountKey: "key-b",
 			windows: [window_("seven_day", "Weekly", 40, T0 + 3 * DAY)],
 		});
-		expect(pickConsumeFirst([soonestIsPlain, later])?.accountKey).toBe("key-a");
+		expect(pickConsumeFirst([soonestIsPlain, later], T0)?.accountKey).toBe(
+			"key-a",
+		);
 	});
 });
 
@@ -986,5 +988,65 @@ describe("shouldSwitch", () => {
 		});
 		expect(decision).toMatchObject({ switch: true, reasonKind: "strategy" });
 		expect(decision.switch && decision.target.accountId).toBe("acct-b");
+	});
+
+	// A cached `resets_at` that has already elapsed — a carried window from a
+	// token_stale account, or the gap between a reset and the next poll — used
+	// to read as "resets soonest" and win, so the engine drained the account it
+	// had the least fresh data about.
+	it("consume-first: an elapsed weekly reset sorts last instead of soonest", () => {
+		const stay = shouldSwitch({
+			settings: settings({ strategy: "consume-first" }),
+			active: account({
+				windows: [
+					window_("five_hour", "Session (5h)", 40),
+					window_("seven_day", "Weekly", 40, T0 + 2 * HOUR),
+				],
+			}),
+			candidates: [
+				account({
+					accountId: "acct-b",
+					accountKey: "key-b",
+					windows: [
+						window_("five_hour", "Session (5h)", 10),
+						window_("seven_day", "Weekly", 10, T0 - 8 * DAY),
+					],
+				}),
+			],
+			rotation: {},
+			runtime,
+			now: T0,
+		});
+		expect(stay).toEqual({ switch: false, allExhausted: false });
+
+		const decision = shouldSwitch({
+			settings: settings({ strategy: "consume-first" }),
+			active: account({
+				windows: [window_("five_hour", "Session (5h)", 99)],
+			}),
+			candidates: [
+				account({
+					accountId: "acct-b",
+					accountKey: "key-b",
+					windows: [
+						window_("five_hour", "Session (5h)", 10),
+						window_("seven_day", "Weekly", 10, T0 - 8 * DAY),
+					],
+				}),
+				account({
+					accountId: "acct-c",
+					accountKey: "key-c",
+					windows: [
+						window_("five_hour", "Session (5h)", 10),
+						window_("seven_day", "Weekly", 10, T0 + 2 * HOUR),
+					],
+				}),
+			],
+			rotation: {},
+			runtime,
+			now: T0,
+		});
+		expect(decision).toMatchObject({ switch: true, reasonKind: "threshold" });
+		expect(decision.switch && decision.target.accountId).toBe("acct-c");
 	});
 });
