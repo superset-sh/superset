@@ -599,8 +599,11 @@ export class QuotaStore {
 		now: number,
 		schedule?: QuotaRefreshSchedule,
 	): Promise<void> {
-		const outcomes = await Promise.all(
+		const settled = await Promise.all(
 			entries.map((entry) => this.fetchEntry(entry, now)),
+		);
+		const outcomes = settled.filter(
+			(outcome): outcome is QuotaFetchOutcome => outcome !== null,
 		);
 		// Decided from the whole batch, so the endpoint's back-off does not
 		// depend on which fetch happened to settle last.
@@ -619,8 +622,11 @@ export class QuotaStore {
 	private fetchEntry(
 		entry: QuotaEntry,
 		now: number,
-	): Promise<QuotaFetchOutcome> {
-		if (entry.inflight) return entry.inflight;
+	): Promise<QuotaFetchOutcome | null> {
+		// A caller that joined an in-flight fetch shares its result but not its
+		// vote: two overlapping batches awaiting one 429 would otherwise each
+		// advance the endpoint ladder, spending two rungs on one response.
+		if (entry.inflight) return entry.inflight.then(() => null);
 		const promise = this.runFetch(entry, now).finally(() => {
 			entry.inflight = null;
 		});
@@ -722,10 +728,8 @@ export class QuotaStore {
 		if (!this.snapshotSource) return empty;
 		const snapshot = this.snapshotSource();
 		const writtenAt = snapshot?.writtenAt;
-		if (
-			typeof writtenAt !== "number" ||
-			this.now() - writtenAt > MIRROR_MAX_AGE_MS
-		) {
+		const now = this.now();
+		if (typeof writtenAt !== "number" || now - writtenAt > MIRROR_MAX_AGE_MS) {
 			return empty;
 		}
 		const mirrored: Array<{
@@ -737,6 +741,17 @@ export class QuotaStore {
 		for (const entry of snapshot?.entries ?? []) {
 			try {
 				if (!agents.includes(entry.agent)) continue;
+				// Per entry, not just per snapshot: `writtenAt` is refreshed by every
+				// emitSnapshot, including ones a different agent's poll triggered, so a
+				// row the owner never polls (grok/agy are not AccountAgents, so
+				// `refreshDue` cannot reach them) would ride a fresh snapshot forever
+				// with its original numbers, and no forced refresh could break out.
+				if (
+					entry.fetchedAt === null ||
+					now - entry.fetchedAt > MIRROR_MAX_AGE_MS
+				) {
+					continue;
+				}
 				mirrored.push({
 					agent: entry.agent,
 					accounts: entry.accounts.map(reviveAccountDates),

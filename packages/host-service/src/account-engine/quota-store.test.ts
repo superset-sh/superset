@@ -7,6 +7,7 @@ import {
 	BUDGET_MAX_REQUESTS,
 	budgetMaxRequests,
 	DISCOVERY_INTERVAL_MS,
+	EXHAUSTED_POLL_MS,
 	eligibleForSwitch,
 	IDLE_POLL_MS,
 	MAX_BACKOFF_MS,
@@ -691,6 +692,52 @@ describe("QuotaStore back-off", () => {
 		await h.store.refreshDue(h.now, schedule);
 		expect(requireEntry(h.store, CLAUDE_DEFAULT).backoffMs).toBe(0);
 	});
+
+	// Both entry points are live on one store: the engine's tick and the Usage
+	// page's Refresh. The second one to arrive joins the entry's in-flight
+	// fetch, and if it voted on the outcome too, one 429 would spend two rungs
+	// of the ladder — [2, 8, 30, 30] instead of [1, 2, 4, 8].
+	it("advances the ladder one rung per 429 when a refresh joins the tick's fetch", async () => {
+		let release = () => {};
+		let gate = Promise.resolve();
+		const h = harness({
+			claudeSelections: [null],
+			respondClaude: async (selection) => {
+				await gate;
+				return {
+					account: account("claude", selection, {
+						status: "unavailable",
+						statusDetail: "Usage endpoint returned 429.",
+						windows: [],
+					}),
+					rateLimited: true,
+				};
+			},
+		});
+		const schedule = {
+			claude: { activeKey: CLAUDE_DEFAULT, intervalMs: MINUTE },
+		};
+
+		const seen: number[] = [];
+		for (let round = 0; round < 4; round++) {
+			gate = new Promise<void>((resolve) => {
+				release = resolve;
+			});
+			const tick = h.store.refreshDue(h.now, schedule);
+			const refresh = h.store.read({ agents: ["claude"], forceRefresh: true });
+			// Let both batches reach the entry before the one request settles.
+			await new Promise((resolve) => setTimeout(resolve, 0));
+			release();
+			await Promise.all([tick, refresh]);
+			seen.push(requireEntry(h.store, CLAUDE_DEFAULT).backoffMs);
+			h.advance(requireEntry(h.store, CLAUDE_DEFAULT).nextPollAt - h.now);
+		}
+
+		// One request per round: the refresh really did join, so each rung was
+		// decided by a single 429.
+		expect(h.callsFor(CLAUDE_DEFAULT)).toHaveLength(4);
+		expect(seen).toEqual([MINUTE, 2 * MINUTE, 4 * MINUTE, 8 * MINUTE]);
+	});
 });
 
 describe("QuotaStore resilience", () => {
@@ -1040,6 +1087,75 @@ describe("QuotaStore snapshot mirror", () => {
 		await h.store.read({ agents: ["claude"] });
 
 		expect(h.callsFor(CLAUDE_DEFAULT)).toHaveLength(1);
+	});
+
+	// `writtenAt` is refreshed by every emitSnapshot, including ones another
+	// agent's poll triggered, so a row the owner never repolls — grok and
+	// antigravity are not AccountAgents, so `refreshDue` cannot reach them —
+	// rode a fresh snapshot forever with its original numbers, and not even a
+	// forced refresh could break out.
+	it("reads for itself when a mirror row is stale inside a fresh snapshot", async () => {
+		const h = harness();
+		h.store.setSnapshotSource(() => ({
+			// The snapshot is seconds old; the row inside it is hours old.
+			writtenAt: h.now - 5_000,
+			entries: [
+				{
+					key: "grok",
+					agent: "grok",
+					selection: null,
+					accounts: [
+						account("grok", null, {
+							windows: [
+								{
+									id: "five_hour",
+									label: "Session (5h)",
+									usedPercent: 5,
+									resetsAt: null,
+								},
+							],
+						}),
+					],
+					fetchedAt: h.now - (MIRROR_MAX_AGE_MS + 1),
+					tokenState: "ok",
+					lastError: null,
+				},
+			],
+		}));
+
+		const accounts = await h.store.read({
+			agents: ["grok"],
+			forceRefresh: true,
+		});
+
+		expect(h.calls.map((call) => call.key)).toEqual(["grok"]);
+		expect(accounts[0]?.windows[0]?.usedPercent).toBe(10);
+	});
+
+	// The other half of that bound: a row the owner does poll must still be
+	// served at the owner's slowest cadence, or every host falls back to
+	// fetching for itself and the mirror stops saving requests at all.
+	it("serves a mirror row the owner repolled at its slowest cadence", async () => {
+		const owner = harness({ claudeSelections: [null] });
+		await owner.store.read({ agents: ["claude"] });
+		// R22's all-exhausted latch is the slowest the owner ever polls, and it
+		// republishes each time it does.
+		owner.advance(EXHAUSTED_POLL_MS);
+		const published = JSON.parse(
+			JSON.stringify(owner.store.snapshot()),
+		) as QuotaStoreSnapshot;
+
+		const loser = harness({ claudeSelections: [null] });
+		loser.store.setSnapshotSource(() => published);
+		loser.advance(EXHAUSTED_POLL_MS);
+
+		const accounts = await loser.store.read({
+			agents: ["claude"],
+			forceRefresh: true,
+		});
+
+		expect(accounts.map((entry) => entry.selection)).toEqual([null]);
+		expect(loser.calls).toEqual([]);
 	});
 
 	it("uses the on-demand TTL when no schedule names the agent", async () => {
