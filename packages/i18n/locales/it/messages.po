@@ -15066,7 +15066,7 @@ msgid "Weekly signup cohorts (Neon); cohorts younger than 30d excluded"
 msgstr "Coorti di iscrizione settimanali (Neon); coorti più recenti di 30g escluse"
 
 msgid "weekly window"
-msgstr "finestra settimanale"
+msgstr "Finestra settimanale"
 
 msgid "Welcome back"
 msgstr "Bentornato"

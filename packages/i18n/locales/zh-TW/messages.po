@@ -214,7 +214,7 @@ msgstr "{0, plural, one {#個工作區} other {#個工作區}}"
 
 #. placeholder {0}: shown?.count ?? 0
 msgid "{0, plural, one {A running agent is pinned to its own config dir by its agent configuration, so it keeps the account signed in there.} other {# running agents are pinned to their own config dirs by their agent configuration, so they keep the accounts signed in there.}}"
-msgstr "{0, plural, one {有一個正在執行的代理程式被其代理程式設定固定到自己的設定目錄，因此仍使用該目錄登入的帳號。} other {有#個正在執行的代理程式被其代理程式設定固定到各自的設定目錄，因此仍使用這些目錄登入的帳號。}}"
+msgstr "{0, plural, one {有一個正在執行的代理程式被其代理程式設定固定到自己的設定目錄，因此仍使用該目錄登入的帳戶。} other {有#個正在執行的代理程式被其代理程式設定固定到各自的設定目錄，因此仍使用這些目錄登入的帳戶。}}"
 
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
@@ -12642,7 +12642,7 @@ msgid "SOC 2 Type II report"
 msgstr "SOC 2 Type II報告"
 
 msgid "Some {providerLabel} sessions stay on their own account"
-msgstr "部分{providerLabel}會話仍留在各自的帳號上"
+msgstr "部分{providerLabel}會話仍留在各自的帳戶上"
 
 msgid "Some files are not an accepted type and were not added."
 msgstr "部分檔案的型別不被允許，未新增。"

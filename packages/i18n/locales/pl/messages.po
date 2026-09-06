@@ -214,7 +214,7 @@ msgstr "{0, plural, one {# obszar roboczy} few {# obszary robocze} many {# obsza
 
 #. placeholder {0}: shown?.count ?? 0
 msgid "{0, plural, one {A running agent is pinned to its own config dir by its agent configuration, so it keeps the account signed in there.} other {# running agents are pinned to their own config dirs by their agent configuration, so they keep the accounts signed in there.}}"
-msgstr "{0, plural, one {Działający agent jest przypięty przez swoją konfigurację do własnego katalogu konfiguracji, więc zachowuje konto zalogowane w tym katalogu.} few {# działających agentów jest przypiętych przez swoją konfigurację do własnych katalogów konfiguracji, więc zachowują konta zalogowane w tych katalogach.} many {# działających agentów jest przypiętych przez swoją konfigurację do własnych katalogów konfiguracji, więc zachowują konta zalogowane w tych katalogach.} other {# działającego agenta jest przypiętego przez swoją konfigurację do własnych katalogów konfiguracji, więc zachowuje konto zalogowane w tym katalogu.}}"
+msgstr "{0, plural, one {Działający agent jest przypięty przez swoją konfigurację do własnego katalogu konfiguracji, więc zachowuje konto zalogowane w tym katalogu.} few {# działający agenci są przypięci przez swoją konfigurację do własnych katalogów konfiguracji, więc zachowują konta zalogowane w tych katalogach.} many {# działających agentów jest przypiętych przez swoją konfigurację do własnych katalogów konfiguracji, więc zachowują konta zalogowane w tych katalogach.} other {# działającego agenta jest przypiętego przez swoją konfigurację do własnych katalogów konfiguracji, więc zachowuje konto zalogowane w tym katalogu.}}"
 
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
