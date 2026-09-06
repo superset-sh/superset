@@ -10,10 +10,14 @@ import {
 const HOUR_MS = 3_600_000;
 const NOW = 1_700_000_000_000;
 
-function window(usedPercent: number): UsageQuotaWindow {
+function window(
+	usedPercent: number,
+	id = "five_hour",
+	label = "5-hour",
+): UsageQuotaWindow {
 	return {
-		id: "five_hour",
-		label: "5-hour",
+		id,
+		label,
 		usedPercent,
 		resetsAt: null,
 	};
@@ -168,9 +172,11 @@ describe("isCorroboratedLimitStop", () => {
 	it("corroborates a hint the host saw on screen with a spent window", () => {
 		expect(
 			isCorroboratedLimitStop({
+				agent: "claude",
 				hint: true,
 				snapshotMatch: true,
-				windows: [window(12), window(100)],
+				windows: [window(12), window(100, "seven_day", "Weekly")],
+				modelWindows: [],
 			}),
 		).toBe(true);
 	});
@@ -178,9 +184,11 @@ describe("isCorroboratedLimitStop", () => {
 	it("refuses a hint the snapshot does not show, even at 100%", () => {
 		expect(
 			isCorroboratedLimitStop({
+				agent: "claude",
 				hint: true,
 				snapshotMatch: false,
 				windows: [window(100)],
+				modelWindows: [],
 			}),
 		).toBe(false);
 	});
@@ -188,16 +196,20 @@ describe("isCorroboratedLimitStop", () => {
 	it("refuses when the account still has headroom", () => {
 		expect(
 			isCorroboratedLimitStop({
+				agent: "claude",
 				hint: true,
 				snapshotMatch: true,
 				windows: [window(20)],
+				modelWindows: [],
 			}),
 		).toBe(false);
 		expect(
 			isCorroboratedLimitStop({
+				agent: "claude",
 				hint: true,
 				snapshotMatch: true,
 				windows: [],
+				modelWindows: [],
 			}),
 		).toBe(false);
 	});
@@ -205,10 +217,47 @@ describe("isCorroboratedLimitStop", () => {
 	it("refuses without a hint at all", () => {
 		expect(
 			isCorroboratedLimitStop({
+				agent: "claude",
 				hint: false,
 				snapshotMatch: true,
 				windows: [window(100)],
+				modelWindows: [],
 			}),
 		).toBe(false);
+	});
+
+	// A spent model window for a model nobody configured is not evidence this
+	// turn stopped: the account-wide windows still have headroom, and the
+	// proactive path would not score that window either.
+	it("refuses a spent model window the user did not configure", () => {
+		expect(
+			isCorroboratedLimitStop({
+				agent: "claude",
+				hint: true,
+				snapshotMatch: true,
+				windows: [
+					window(20),
+					window(55, "seven_day", "Weekly"),
+					window(100, "weekly_scoped:Opus 4.5", "Weekly (Opus 4.5)"),
+				],
+				modelWindows: [],
+			}),
+		).toBe(false);
+	});
+
+	it("corroborates the same set once that model is configured", () => {
+		expect(
+			isCorroboratedLimitStop({
+				agent: "claude",
+				hint: true,
+				snapshotMatch: true,
+				windows: [
+					window(20),
+					window(55, "seven_day", "Weekly"),
+					window(100, "weekly_scoped:Opus 4.5", "Weekly (Opus 4.5)"),
+				],
+				modelWindows: ["Opus 4.5"],
+			}),
+		).toBe(true);
 	});
 });

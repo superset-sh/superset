@@ -2,6 +2,8 @@ import type {
 	QuotaCapableAgent,
 	UsageQuotaWindow,
 } from "../trpc/router/usage/types";
+import { windowsInScope } from "./decision.ts";
+import type { AccountAgent } from "./types.ts";
 
 /**
  * Turning a limit-stop *hint* into an action, as three pure gates (KTD7).
@@ -98,24 +100,36 @@ export function snapshotShowsLimit(
 }
 
 export interface CorroboratedLimitStopInput {
+	/** Whose windows these are — picks the agent's account-wide window ids. */
+	agent: AccountAgent;
 	/** The hint: a `Failed` event carrying `rate_limit`, or a Codex stall. */
 	hint: boolean;
 	/** What `snapshotShowsLimit` said about that terminal's screen. */
 	snapshotMatch: boolean;
 	/** The account's windows as the quota store last read them. */
 	windows: readonly UsageQuotaWindow[];
+	/** The models the user configured (R13), as the proactive path scores by. */
+	modelWindows: readonly string[];
 }
 
 /**
  * Gate 3, and the verdict. Every part must hold: the hint points at the
  * terminal, the host saw the limit text there, and the account really is
- * spent. An uncorroborated hint is not a limit stop.
+ * spent — an account-wide window, or a model window the user configured, is
+ * at 100%. Not *any* window: a model-scoped window for a model nobody
+ * configured says nothing about this turn, and scoring it here would let the
+ * fallback path switch on evidence the proactive path refuses to score.
+ * An uncorroborated hint is not a limit stop.
  */
 export function isCorroboratedLimitStop({
+	agent,
 	hint,
 	snapshotMatch,
 	windows,
+	modelWindows,
 }: CorroboratedLimitStopInput): boolean {
 	if (!hint || !snapshotMatch) return false;
-	return windows.some((window) => window.usedPercent >= 100);
+	return windowsInScope(agent, windows, modelWindows).some(
+		(window) => window.usedPercent >= 100,
+	);
 }
