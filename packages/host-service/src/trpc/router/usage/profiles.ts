@@ -153,26 +153,91 @@ interface ClaudeStateFile {
 	oauthAccount?: { emailAddress?: string; accountUuid?: string };
 }
 
+/** A read that found nothing, told apart from a read that failed. Most
+ * candidates are ordinary dot-dirs holding no such file at all, and those must
+ * not spoil the walk; a file that is there but unreadable must, because a
+ * caller that reaps whatever is missing would otherwise delete a live account
+ * over a torn write or a momentary EACCES. */
+interface ProfileRead<T> {
+	value: T | null;
+	unreadable: boolean;
+}
+
+/** ENOENT/ENOTDIR is the normal answer for a dir that simply has no such
+ * file. Anything else means we were denied or the read broke. */
+function absent(error: unknown): boolean {
+	const code = (error as NodeJS.ErrnoException).code ?? "";
+	return code === "ENOENT" || code === "ENOTDIR";
+}
+
+async function readClaudeIdentityWithStatus(
+	configDir: string,
+): Promise<ProfileRead<{ email: string | null; accountId: string | null }>> {
+	const statePath = join(configDir, ".claude.json");
+	let info: Awaited<ReturnType<typeof stat>>;
+	try {
+		info = await stat(statePath);
+	} catch (error) {
+		return { value: null, unreadable: !absent(error) };
+	}
+	// An oversized state file is a real one we choose not to parse, not a
+	// failure: a busy ~/.claude.json reaches tens of MB, and calling that
+	// unreadable would pin the walk incomplete and disable reaping forever.
+	if (!info.isFile() || info.size > MAX_STATE_FILE_BYTES) {
+		return { value: null, unreadable: false };
+	}
+	try {
+		const parsed: ClaudeStateFile = JSON.parse(
+			await readFile(statePath, "utf-8"),
+		);
+		const account = parsed.oauthAccount;
+		if (!account?.accountUuid && !account?.emailAddress) {
+			return { value: null, unreadable: false };
+		}
+		return {
+			value: {
+				email: account.emailAddress ?? null,
+				accountId: account.accountUuid ?? null,
+			},
+			unreadable: false,
+		};
+	} catch (error) {
+		// stat already said regular file, so a failure here is a denied read
+		// or a torn write — both of which hide a profile that exists.
+		return { value: null, unreadable: !absent(error) };
+	}
+}
+
 /** The OAuth identity a custom config dir keeps in its own `.claude.json`
  * (the system default keeps its next door — see claudeStatePath). */
 export async function readClaudeIdentity(
 	configDir: string,
 ): Promise<{ email: string | null; accountId: string | null } | null> {
-	const statePath = join(configDir, ".claude.json");
+	return (await readClaudeIdentityWithStatus(configDir)).value;
+}
+
+async function readApiBillingFingerprintWithStatus(
+	profileDir: string,
+	agent: "claude" | "codex",
+): Promise<ProfileRead<string>> {
+	const markerPath = join(profileDir, API_BILLING_MARKER);
+	let info: Awaited<ReturnType<typeof stat>>;
 	try {
-		const info = await stat(statePath);
-		if (!info.isFile() || info.size > MAX_STATE_FILE_BYTES) return null;
-		const parsed: ClaudeStateFile = JSON.parse(
-			await readFile(statePath, "utf-8"),
-		);
-		const account = parsed.oauthAccount;
-		if (!account?.accountUuid && !account?.emailAddress) return null;
+		info = await stat(markerPath);
+	} catch (error) {
+		return { value: null, unreadable: !absent(error) };
+	}
+	if (!info.isFile() || info.size > MAX_MARKER_BYTES) {
+		return { value: null, unreadable: false };
+	}
+	try {
+		const content = (await readFile(markerPath, "utf-8")).trim();
 		return {
-			email: account.emailAddress ?? null,
-			accountId: account.accountUuid ?? null,
+			value: content === agent ? `${info.mtimeMs}` : null,
+			unreadable: false,
 		};
-	} catch {
-		return null;
+	} catch (error) {
+		return { value: null, unreadable: !absent(error) };
 	}
 }
 
@@ -181,15 +246,7 @@ export async function readApiBillingFingerprint(
 	profileDir: string,
 	agent: "claude" | "codex",
 ): Promise<string | null> {
-	const markerPath = join(profileDir, API_BILLING_MARKER);
-	try {
-		const info = await stat(markerPath);
-		if (!info.isFile() || info.size > MAX_MARKER_BYTES) return null;
-		const content = (await readFile(markerPath, "utf-8")).trim();
-		return content === agent ? `${info.mtimeMs}` : null;
-	} catch {
-		return null;
-	}
+	return (await readApiBillingFingerprintWithStatus(profileDir, agent)).value;
 }
 
 /** Realpath, falling back to a plain resolve for a path that does not exist
@@ -237,6 +294,9 @@ export async function discoverClaudeProfilesWithStatus(
 	]);
 	const started = Date.now();
 	const profiles: ClaudeProfile[] = [];
+	// A candidate we could not read is a profile we may be hiding, so the walk
+	// stops claiming it saw everything — the reaper only deletes on a whole one.
+	let readFailed = false;
 	const activeDir = await canonicalPath(activeClaudeConfigDirPath());
 
 	const scan = candidates
@@ -248,10 +308,13 @@ export async function discoverClaudeProfilesWithStatus(
 		}
 		if (excluded.has(candidate)) continue;
 		if ((await canonicalPath(candidate)) === activeDir) continue;
-		const [identity, apiFingerprint] = await Promise.all([
-			readClaudeIdentity(candidate),
-			readApiBillingFingerprint(candidate, "claude"),
+		const [identityRead, apiRead] = await Promise.all([
+			readClaudeIdentityWithStatus(candidate),
+			readApiBillingFingerprintWithStatus(candidate, "claude"),
 		]);
+		if (identityRead.unreadable || apiRead.unreadable) readFailed = true;
+		const identity = identityRead.value;
+		const apiFingerprint = apiRead.value;
 		if (!identity && !apiFingerprint) continue;
 		profiles.push({
 			configDir: candidate,
@@ -264,7 +327,7 @@ export async function discoverClaudeProfilesWithStatus(
 			keychainServices: keychainServicesForConfigDir(candidate),
 		});
 	}
-	return { profiles, complete: scan.ok };
+	return { profiles, complete: scan.ok && !readFailed };
 }
 
 /** The profiles alone, for callers with nothing to reap on a short list. */
@@ -577,8 +640,15 @@ export async function readClaudeLogin(
 	for (const service of services) {
 		for (const hit of await readKeychainHits(service, access)) {
 			const parsed = parseCredentialJson(hit.secret);
-			if (!hasLogin(parsed)) continue;
-			if (!isFresherLogin(parsed, keychainContent)) continue;
+			// Recorded login or not, exactly as the file loop above does: a
+			// swap merges its siblings back and the rollback restores them,
+			// and both read this field. Skipping a login-less item leaves the
+			// write with nothing to merge, so it overwrites the item's
+			// mcpOAuth tokens — and a failed verify deletes the item outright.
+			if (!parsed) continue;
+			if (keychainContent && !hasLogin(parsed)) continue;
+			if (hasLogin(keychainContent) && !isFresherLogin(parsed, keychainContent))
+				continue;
 			keychainService = service;
 			keychainAccount = hit.account;
 			keychainContent = parsed;
@@ -612,35 +682,51 @@ interface CodexAuthShape {
  * marker is checked first so an API-billed home's auth.json (which holds
  * the raw key) is never opened.
  */
-export async function readCodexProfileKind(
-	codexHome: string,
-): Promise<Pick<
+type CodexProfileKind = Pick<
 	CodexHome,
 	"credentialKind" | "loginFingerprint" | "accountId"
-> | null> {
-	const apiFingerprint = await readApiBillingFingerprint(codexHome, "codex");
-	if (apiFingerprint) {
+>;
+
+async function readCodexProfileKindWithStatus(
+	codexHome: string,
+): Promise<ProfileRead<CodexProfileKind>> {
+	const apiRead = await readApiBillingFingerprintWithStatus(codexHome, "codex");
+	if (apiRead.value) {
 		return {
-			credentialKind: "api_key",
-			loginFingerprint: apiFingerprint,
-			accountId: null,
+			value: {
+				credentialKind: "api_key",
+				loginFingerprint: apiRead.value,
+				accountId: null,
+			},
+			unreadable: false,
 		};
 	}
+	const authPath = join(codexHome, "auth.json");
 	try {
 		const parsed: CodexAuthShape = JSON.parse(
-			await readFile(join(codexHome, "auth.json"), "utf-8"),
+			await readFile(authPath, "utf-8"),
 		);
-		return parsed.tokens?.access_token
-			? {
-					credentialKind: "subscription",
-					loginFingerprint: null,
-					accountId: parsed.tokens.account_id ?? null,
-				}
-			: null;
-	} catch {
-		// No parsable auth.json — not a Codex home.
-		return null;
+		return {
+			value: parsed.tokens?.access_token
+				? {
+						credentialKind: "subscription",
+						loginFingerprint: null,
+						accountId: parsed.tokens.account_id ?? null,
+					}
+				: null,
+			unreadable: apiRead.unreadable,
+		};
+	} catch (error) {
+		// A missing auth.json means this is not a Codex home; a denied or torn
+		// read means it may be one we are hiding.
+		return { value: null, unreadable: apiRead.unreadable || !absent(error) };
 	}
+}
+
+export async function readCodexProfileKind(
+	codexHome: string,
+): Promise<CodexProfileKind | null> {
+	return (await readCodexProfileKindWithStatus(codexHome)).value;
 }
 
 /**
@@ -698,7 +784,9 @@ export async function discoverCodexHomesWithStatus({
 	}
 	for (const candidate of scanned) {
 		if (homes.has(candidate)) continue;
-		const kind = await readCodexProfileKind(candidate);
+		const read = await readCodexProfileKindWithStatus(candidate);
+		if (read.unreadable) complete = false;
+		const kind = read.value;
 		if (!kind) continue;
 		homes.set(candidate, {
 			home: candidate,

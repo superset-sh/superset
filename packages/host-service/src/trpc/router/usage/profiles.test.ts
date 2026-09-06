@@ -300,6 +300,31 @@ describe("discoverClaudeProfilesWithStatus", () => {
 			}
 		});
 
+		it("is incomplete when a candidate's state file cannot be read", async () => {
+			if (process.getuid?.() === 0) return;
+			const { home, dirs } = homeWithTwoProfiles();
+			// An ordinary dot-dir holding no state file at all is the common
+			// case and must not spoil the walk.
+			mkdirSync(join(home, ".cache"));
+			const hidden = dirs[1] as string;
+			const clock = spyOn(Date, "now").mockReturnValue(0);
+			chmodSync(join(hidden, ".claude.json"), 0o000);
+			try {
+				const { profiles, complete } = await discoverClaudeProfilesWithStatus(
+					undefined,
+					home,
+				);
+
+				expect(profiles.map((profile) => profile.configDir)).not.toContain(
+					hidden,
+				);
+				expect(complete).toBe(false);
+			} finally {
+				chmodSync(join(hidden, ".claude.json"), 0o600);
+				clock.mockRestore();
+			}
+		});
+
 		it("stays complete when ~/.config is simply absent", async () => {
 			const home = tempProfile();
 			const only = join(home, ".claude-personal");
@@ -370,6 +395,30 @@ describe("discoverCodexHomesWithStatus", () => {
 		// The default home is still reported; only the scan for siblings failed.
 		expect(homes.map((entry) => entry.home)).toEqual([join(home, ".codex")]);
 		expect(complete).toBe(false);
+	});
+
+	it("is incomplete when a sibling home's auth.json cannot be read", async () => {
+		if (process.getuid?.() === 0) return;
+		const home = tempProfile();
+		const work = join(home, ".codex-work");
+		mkdirSync(work);
+		const auth = join(work, "auth.json");
+		writeFileSync(
+			auth,
+			JSON.stringify({ tokens: { access_token: "t", account_id: "acct" } }),
+		);
+		chmodSync(auth, 0o000);
+
+		try {
+			const { homes, complete } = await discoverCodexHomesWithStatus({
+				homeDir: home,
+			});
+
+			expect(homes.map((entry) => entry.home)).not.toContain(work);
+			expect(complete).toBe(false);
+		} finally {
+			chmodSync(auth, 0o600);
+		}
 	});
 });
 
@@ -516,6 +565,28 @@ describe("readClaudeLogin", () => {
 		expect(read.fileLogin).toEqual(oauth);
 		expect(read.credentialsPath).toBe(join(dir, ".credentials.json"));
 		expect(read.keychainService).toBeNull();
+	});
+
+	// A swap merges the item's siblings back and the rollback restores them,
+	// and both read keychainContent. Recording it only when it holds a login
+	// left the write with nothing to merge, so it overwrote the item's
+	// mcpOAuth tokens — and a failed verify deleted the item outright.
+	it("records a Keychain item that holds siblings but no login", async () => {
+		const dir = tempProfile();
+		const service = keychainServicesForConfigDir(dir)[0] as string;
+		const siblings = { mcpOAuth: { "a-server": { token: "m-1" } } };
+		const exec = async (args: string[]) => {
+			if (args.indexOf("-a") === -1) throw new Error("not found");
+			if (args[args.indexOf("-s") + 1] !== service) throw new Error("no item");
+			return { stdout: JSON.stringify(siblings), stderr: "" };
+		};
+
+		const read = await readClaudeLogin(dir, { darwin: true, exec });
+		expect(read.login).toBeNull();
+		expect(read.keychainLogin).toBeNull();
+		expect(read.keychainContent).toEqual(siblings);
+		expect(read.keychainService).toBe(service);
+		expect(read.keychainAccount).toBe(claudeKeychainAccounts()[0] ?? null);
 	});
 
 	it("falls back to the Keychain item and reports its service and account", async () => {
