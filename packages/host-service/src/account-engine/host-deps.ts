@@ -146,7 +146,7 @@ export function createAccountEngineHostDeps(
 			if (!workspaceId) return null;
 			const result = await snapshotSession({ terminalId, workspaceId, db });
 			if ("error" in result) return null;
-			return lastVisibleScreen(result.text, result.rows);
+			return lastVisibleScreen(result.text, result.rows - result.trimmedRows);
 		},
 
 		hasStartedAgent: (terminalId, agent) => {
