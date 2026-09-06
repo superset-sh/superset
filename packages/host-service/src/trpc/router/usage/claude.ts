@@ -13,7 +13,20 @@
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { discoverClaudeProfiles, readKeychainSecrets } from "./profiles";
+import {
+	activeClaudeConfigDirPath,
+	readActiveClaudeBinding,
+	recordIdentityBindings,
+} from "./default-account";
+import {
+	type ClaudeProfile,
+	discoverClaudeProfiles,
+	discoverClaudeProfilesWithStatus,
+	isActiveClaudeConfigDir,
+	keychainServicesForConfigDir,
+	readClaudeIdentity,
+	readKeychainSecrets,
+} from "./profiles";
 import type { UsageAccount, UsageQuotaWindow } from "./types";
 
 const CLAUDE_KEYCHAIN_SERVICE = "Claude Code-credentials";
@@ -34,6 +47,12 @@ export interface ClaudeOauthCredential {
 	selection: string | null;
 	/** Identity from the profile's own state file, when known. */
 	email?: string | null;
+	/** KTD4: `oauthAccount.accountUuid` — the provider's account identity,
+	 * which is what dedupes logins. Null when the state file names none. */
+	accountId: string | null;
+	/** False for a config dir the user exported by hand: Superset lists it
+	 * but never swaps a login into it. */
+	managed: boolean;
 }
 
 interface ClaudeCredentialFile {
@@ -72,6 +91,8 @@ function parseCredential(
 			accountKey,
 			sourceLabel,
 			selection,
+			accountId: null,
+			managed: true,
 		};
 	} catch {
 		return null;
@@ -164,23 +185,98 @@ export function pickFreshest<T extends ClaudeOauthCredential>(
 	return best;
 }
 
-/** Identity of the default login, readable even when its token is expired. */
-export async function readDefaultLoginEmail(): Promise<string | null> {
+/**
+ * Identity of the default login (KTD14: its state file is `~/.claude.json`,
+ * next door to its store), readable even when its token is expired.
+ */
+export async function readDefaultLoginIdentity(): Promise<{
+	email: string | null;
+	accountId: string | null;
+}> {
 	try {
 		const parsed = JSON.parse(
 			await readFile(join(homedir(), ".claude.json"), "utf-8"),
-		) as { oauthAccount?: { emailAddress?: string } };
-		return parsed.oauthAccount?.emailAddress ?? null;
+		) as { oauthAccount?: { emailAddress?: string; accountUuid?: string } };
+		return {
+			email: parsed.oauthAccount?.emailAddress ?? null,
+			accountId: parsed.oauthAccount?.accountUuid ?? null,
+		};
 	} catch {
-		return null;
+		return { email: null, accountId: null };
 	}
+}
+
+export async function readDefaultLoginEmail(): Promise<string | null> {
+	return (await readDefaultLoginIdentity()).email;
+}
+
+/** The one login slot the CLI uses with no CLAUDE_CONFIG_DIR override. */
+function defaultCredentialCandidates(
+	home: string,
+): Array<{ path: string; sourceLabel: string }> {
+	return [
+		{
+			path: join(home, ".claude", ".credentials.json"),
+			sourceLabel: "~/.claude",
+		},
+		{
+			path: join(home, ".config", "claude", "credentials.json"),
+			sourceLabel: "~/.config/claude",
+		},
+	];
+}
+
+async function readDefaultCredential(): Promise<ClaudeOauthCredential | null> {
+	const home = homedir();
+	const [identity, keychainCredential, defaultFiles] = await Promise.all([
+		readDefaultLoginIdentity(),
+		readKeychainCredential(),
+		Promise.all(
+			defaultCredentialCandidates(home).map(({ path, sourceLabel }) =>
+				readCredentialFile(path, sourceLabel, null),
+			),
+		),
+	]);
+	const credential = pickFreshest([keychainCredential, ...defaultFiles]);
+	if (credential && !credential.email && identity.email) {
+		credential.email = identity.email;
+	}
+	if (credential) credential.accountId = identity.accountId;
+	return credential;
+}
+
+async function readProfileCredential(
+	profile: ClaudeProfile,
+): Promise<ClaudeOauthCredential | null> {
+	const fromFile = await readCredentialFile(
+		profile.credentialsPath,
+		profile.sourceLabel,
+		profile.configDir,
+	);
+	const candidates: Array<ClaudeOauthCredential | null> = [fromFile];
+	for (const service of profile.keychainServices) {
+		for (const secret of await readKeychainSecrets(service)) {
+			candidates.push(
+				parseCredential(
+					secret,
+					profile.configDir,
+					profile.sourceLabel,
+					profile.configDir,
+				),
+			);
+		}
+	}
+	const freshest = pickFreshest(candidates);
+	return freshest
+		? { ...freshest, email: profile.email, accountId: profile.accountId }
+		: null;
 }
 
 /**
  * Discovers Claude logins on this machine: the default config locations,
  * any CLAUDE_CONFIG_DIR entries (comma-list supported), auto-discovered
  * profile dirs (runway's multi-account model — see profiles.ts), and the
- * Claude Code Keychain items. Deduped by token.
+ * Claude Code Keychain items. Deduped by account identity (KTD4).
  *
  * The Keychain item, `~/.claude/.credentials.json`, and
  * `~/.config/claude/credentials.json` are ONE login slot: /login rewrites
@@ -192,18 +288,29 @@ async function discoverClaudeCredentials(): Promise<{
 	credentials: ClaudeOauthCredential[];
 	signedOutProfiles: Awaited<ReturnType<typeof discoverClaudeProfiles>>;
 	apiProfiles: Awaited<ReturnType<typeof discoverClaudeProfiles>>;
+	/** False when the profile scan gave up on its time budget mid-walk, so
+	 * this list is a subset of the logins on disk. */
+	complete: boolean;
 }> {
 	const home = homedir();
-	const defaultCandidates: Array<{ path: string; sourceLabel: string }> = [
-		{
-			path: join(home, ".claude", ".credentials.json"),
-			sourceLabel: "~/.claude",
-		},
-		{
-			path: join(home, ".config", "claude", "credentials.json"),
-			sourceLabel: "~/.config/claude",
-		},
-	];
+	// API-billed profiles have no quota to fetch and their credentials stay
+	// unread; only subscription profiles go through the credential readers.
+	const { profiles: allProfiles, complete } =
+		await discoverClaudeProfilesWithStatus();
+	const profiles = allProfiles.filter(
+		(profile) => profile.credentialKind === "subscription",
+	);
+	const apiProfiles = allProfiles.filter(
+		(profile) => profile.credentialKind === "api_key",
+	);
+	const discoveredDirs = new Set(
+		allProfiles.map((profile) => profile.configDir),
+	);
+
+	// CLAUDE_CONFIG_DIR entries profile discovery does not classify. One that
+	// it does classify is left to the profiled read: read from both, the same
+	// account would key on its id once and on its token the other time and
+	// list twice.
 	const explicitCandidates: Array<{
 		path: string;
 		sourceLabel: string;
@@ -211,7 +318,10 @@ async function discoverClaudeCredentials(): Promise<{
 	}> = [];
 	for (const dir of (process.env.CLAUDE_CONFIG_DIR ?? "").split(",")) {
 		const configDir = dir.trim();
-		if (!configDir) continue;
+		if (!configDir || discoveredDirs.has(configDir)) continue;
+		// The host-service may itself be launched on the active dir; it holds a
+		// copy of the account that is active, not an account of its own (KTD4).
+		if (await isActiveClaudeConfigDir(configDir)) continue;
 		explicitCandidates.push({
 			path: join(configDir, ".credentials.json"),
 			sourceLabel: configDir.replace(home, "~"),
@@ -219,75 +329,71 @@ async function discoverClaudeCredentials(): Promise<{
 		});
 	}
 
-	const readProfileCredential = async (
-		profile: Awaited<ReturnType<typeof discoverClaudeProfiles>>[number],
-	): Promise<ClaudeOauthCredential | null> => {
-		const fromFile = await readCredentialFile(
-			profile.credentialsPath,
-			profile.sourceLabel,
-			profile.configDir,
-		);
-		const candidates: Array<ClaudeOauthCredential | null> = [fromFile];
-		for (const service of profile.keychainServices) {
-			for (const secret of await readKeychainSecrets(service)) {
-				candidates.push(
-					parseCredential(
-						secret,
-						profile.configDir,
-						profile.sourceLabel,
-						profile.configDir,
-					),
+	const [defaultCredential, explicit, profiled] = await Promise.all([
+		readDefaultCredential(),
+		Promise.all(
+			explicitCandidates.map(async ({ path, sourceLabel, configDir }) => {
+				const credential = await readCredentialFile(
+					path,
+					sourceLabel,
+					configDir,
 				);
-			}
-		}
-		const freshest = pickFreshest(candidates);
-		return freshest ? { ...freshest, email: profile.email } : null;
-	};
+				if (!credential) return null;
+				const identity = await readClaudeIdentity(configDir);
+				return {
+					...credential,
+					email: identity?.email ?? null,
+					accountId: identity?.accountId ?? null,
+					// A dir the user exported by hand is Superset's to read,
+					// never to write: it is listed, but no swap targets it.
+					managed: false,
+				};
+			}),
+		),
+		Promise.all(profiles.map(readProfileCredential)),
+	]);
 
-	// API-billed profiles have no quota to fetch and their credentials stay
-	// unread; only subscription profiles go through the credential readers.
-	const allProfiles = await discoverClaudeProfiles();
-	const profiles = allProfiles.filter(
-		(profile) => profile.credentialKind === "subscription",
+	const credentials = dedupeClaudeCredentials([
+		defaultCredential,
+		...explicit,
+		...profiled,
+	]);
+	// KTD3 step 2: the swap needs to know which dir owns each identity, and
+	// this is the only pass that sees both.
+	recordIdentityBindings(
+		credentials.flatMap((credential) =>
+			credential.accountId
+				? [[credential.accountId, credential.selection] as const]
+				: [],
+		),
 	);
-	const apiProfiles = allProfiles.filter(
-		(profile) => profile.credentialKind === "api_key",
-	);
-	const [defaultEmail, keychainCredential, defaultFiles, explicit, profiled] =
-		await Promise.all([
-			readDefaultLoginEmail(),
-			readKeychainCredential(),
-			Promise.all(
-				defaultCandidates.map(({ path, sourceLabel }) =>
-					readCredentialFile(path, sourceLabel, null),
-				),
-			),
-			Promise.all(
-				explicitCandidates.map(({ path, sourceLabel, configDir }) =>
-					readCredentialFile(path, sourceLabel, configDir),
-				),
-			),
-			Promise.all(profiles.map(readProfileCredential)),
-		]);
-
-	const defaultCredential = pickFreshest([keychainCredential, ...defaultFiles]);
-	if (defaultCredential && !defaultCredential.email && defaultEmail) {
-		defaultCredential.email = defaultEmail;
-	}
-
-	const byToken = new Map<string, ClaudeOauthCredential>();
-	for (const credential of [defaultCredential, ...explicit, ...profiled]) {
-		if (credential && !byToken.has(credential.accessToken)) {
-			byToken.set(credential.accessToken, credential);
-		}
-	}
 	// Profiles with an identity but no readable credential (logged out, or a
 	// login that died half-way) still surface so the UI can offer re-sign-in
 	// and removal — otherwise the dir exists but nothing shows it.
 	const signedOutProfiles = profiles.filter(
 		(_profile, index) => profiled[index] === null,
 	);
-	return { credentials: [...byToken.values()], signedOutProfiles, apiProfiles };
+	return { credentials, signedOutProfiles, apiProfiles, complete };
+}
+
+/**
+ * One login per provider account (KTD4). A swap leaves the same access token
+ * in the active dir and in the owner's profile for a while, so the token only
+ * keys the logins that carry no account id — API-key logins, and a state file
+ * too old to name one.
+ */
+export function dedupeClaudeCredentials(
+	candidates: Array<ClaudeOauthCredential | null>,
+): ClaudeOauthCredential[] {
+	const byIdentity = new Map<string, ClaudeOauthCredential>();
+	for (const credential of candidates) {
+		if (!credential) continue;
+		const key = credential.accountId
+			? `id:${credential.accountId}`
+			: `token:${credential.accessToken}`;
+		if (!byIdentity.has(key)) byIdentity.set(key, credential);
+	}
+	return [...byIdentity.values()];
 }
 
 interface ClaudeUsageWindow {
@@ -382,9 +488,11 @@ async function fetchClaudeProfileEmail(
 	}
 }
 
+/** `rateLimited` is the usage endpoint's 429, which backs off every poll on
+ * it (KTD10); callers that only want the row ignore it. */
 async function fetchClaudeAccount(
 	credential: ClaudeOauthCredential,
-): Promise<UsageAccount> {
+): Promise<{ account: UsageAccount; rateLimited: boolean }> {
 	const base = {
 		agent: "claude" as const,
 		credentialKind: "subscription" as const,
@@ -393,7 +501,12 @@ async function fetchClaudeAccount(
 		plan: credential.subscriptionType,
 		creditsBalance: null,
 		selection: credential.selection,
-		// Decorated per-query from host settings; the quota cache outlives it.
+		accountId: credential.accountId,
+		// R16: subscription logins rotate by default; the per-account toggle
+		// and the active badge are decorated per query, since the quota cache
+		// outlives both.
+		inRotation: true,
+		managed: credential.managed,
 		isDefault: false,
 		fetchedAt: new Date(),
 	};
@@ -401,13 +514,16 @@ async function fetchClaudeAccount(
 	const lapsed = classifyLapsedToken(credential);
 	if (lapsed !== "live") {
 		return {
-			...base,
-			email: credential.email ?? null,
-			status: lapsed,
-			statusDetail:
-				lapsed === "token_stale" ? STALE_TOKEN_DETAIL : EXPIRED_TOKEN_DETAIL,
-			windows: [],
-			extraUsage: null,
+			account: {
+				...base,
+				email: credential.email ?? null,
+				status: lapsed,
+				statusDetail:
+					lapsed === "token_stale" ? STALE_TOKEN_DETAIL : EXPIRED_TOKEN_DETAIL,
+				windows: [],
+				extraUsage: null,
+			},
+			rateLimited: false,
 		};
 	}
 
@@ -422,25 +538,32 @@ async function fetchClaudeAccount(
 			}),
 			fetchClaudeProfileEmail(credential.accessToken),
 		]);
+		const rateLimited = usageResponse.status === 429;
 
 		if (usageResponse.status === 401 || usageResponse.status === 403) {
 			return {
-				...base,
-				email: apiEmail ?? credential.email ?? null,
-				status: "token_expired",
-				statusDetail: EXPIRED_TOKEN_DETAIL,
-				windows: [],
-				extraUsage: null,
+				account: {
+					...base,
+					email: apiEmail ?? credential.email ?? null,
+					status: "token_expired",
+					statusDetail: EXPIRED_TOKEN_DETAIL,
+					windows: [],
+					extraUsage: null,
+				},
+				rateLimited,
 			};
 		}
 		if (!usageResponse.ok) {
 			return {
-				...base,
-				email: apiEmail ?? credential.email ?? null,
-				status: "unavailable",
-				statusDetail: `Usage endpoint returned ${usageResponse.status}.`,
-				windows: [],
-				extraUsage: null,
+				account: {
+					...base,
+					email: apiEmail ?? credential.email ?? null,
+					status: "unavailable",
+					statusDetail: `Usage endpoint returned ${usageResponse.status}.`,
+					windows: [],
+					extraUsage: null,
+				},
+				rateLimited,
 			};
 		}
 
@@ -457,78 +580,237 @@ async function fetchClaudeAccount(
 
 		if (windows.length === 0) {
 			return {
-				...base,
-				email: apiEmail ?? credential.email ?? null,
-				status: "unavailable",
-				statusDetail:
-					"No quota data returned (org-managed and education plans do not expose limits).",
-				windows: [],
-				extraUsage,
+				account: {
+					...base,
+					email: apiEmail ?? credential.email ?? null,
+					status: "unavailable",
+					statusDetail:
+						"No quota data returned (org-managed and education plans do not expose limits).",
+					windows: [],
+					extraUsage,
+				},
+				rateLimited,
 			};
 		}
 
 		return {
-			...base,
-			email: apiEmail ?? credential.email ?? null,
-			status: "ok",
-			statusDetail: null,
-			windows,
-			extraUsage,
+			account: {
+				...base,
+				email: apiEmail ?? credential.email ?? null,
+				status: "ok",
+				statusDetail: null,
+				windows,
+				extraUsage,
+			},
+			rateLimited,
 		};
 	} catch (error) {
 		return {
-			...base,
-			email: credential.email ?? null,
-			status: "unavailable",
-			statusDetail:
-				error instanceof Error ? error.message : "Failed to fetch usage.",
-			windows: [],
-			extraUsage: null,
+			account: {
+				...base,
+				email: credential.email ?? null,
+				status: "unavailable",
+				statusDetail:
+					error instanceof Error ? error.message : "Failed to fetch usage.",
+				windows: [],
+				extraUsage: null,
+			},
+			rateLimited: false,
 		};
 	}
+}
+
+/** The fields the two locally-built profile rows share; neither has a quota
+ * endpoint to call, so both are composed from the profile alone. */
+function claudeStaticAccountBase(profile: ClaudeProfile) {
+	return {
+		agent: "claude" as const,
+		accountKey: profile.configDir,
+		sourceLabel: profile.sourceLabel,
+		email: profile.email,
+		plan: null,
+		windows: [],
+		creditsBalance: null,
+		extraUsage: null,
+		selection: profile.configDir,
+		accountId: profile.accountId,
+		managed: true,
+		isDefault: false,
+		fetchedAt: new Date(),
+	};
+}
+
+/** An API-billed profile: no quota endpoint, so the card is built locally. */
+function claudeApiKeyAccount(profile: ClaudeProfile): UsageAccount {
+	return {
+		...claudeStaticAccountBase(profile),
+		credentialKind: "api_key",
+		status: "ok",
+		statusDetail:
+			"Billed per token through the Anthropic Console — no quota windows.",
+		// R16: rotating onto a pay-per-token login would spend money silently.
+		inRotation: false,
+	};
+}
+
+/** A profile with an identity but no readable credential. */
+function claudeSignedOutAccount(profile: ClaudeProfile): UsageAccount {
+	return {
+		...claudeStaticAccountBase(profile),
+		credentialKind: "subscription",
+		status: "signed_out",
+		statusDetail:
+			"Signed out — use Switch sign-in to reconnect, or Remove to delete this profile.",
+		inRotation: true,
+	};
 }
 
 export async function fetchClaudeAccounts(): Promise<UsageAccount[]> {
 	const { credentials, signedOutProfiles, apiProfiles } =
 		await discoverClaudeCredentials();
-	const accounts = await Promise.all(credentials.map(fetchClaudeAccount));
-	for (const profile of apiProfiles) {
-		accounts.push({
-			agent: "claude",
-			credentialKind: "api_key",
-			accountKey: profile.configDir,
-			sourceLabel: profile.sourceLabel,
-			email: profile.email,
-			plan: null,
-			status: "ok",
-			statusDetail:
-				"Billed per token through the Anthropic Console — no quota windows.",
-			windows: [],
-			creditsBalance: null,
-			extraUsage: null,
-			selection: profile.configDir,
-			isDefault: false,
-			fetchedAt: new Date(),
-		});
-	}
-	for (const profile of signedOutProfiles) {
-		accounts.push({
-			agent: "claude",
-			credentialKind: "subscription",
-			accountKey: profile.configDir,
-			sourceLabel: profile.sourceLabel,
-			email: profile.email,
-			plan: null,
-			status: "signed_out",
-			statusDetail:
-				"Signed out — use Switch sign-in to reconnect, or Remove to delete this profile.",
-			windows: [],
-			creditsBalance: null,
-			extraUsage: null,
-			selection: profile.configDir,
-			isDefault: false,
-			fetchedAt: new Date(),
-		});
-	}
+	const fetched = await Promise.all(
+		credentials.map((credential) => fetchClaudeAccount(credential)),
+	);
+	const accounts = fetched.map((result) => result.account);
+	accounts.push(...apiProfiles.map(claudeApiKeyAccount));
+	accounts.push(...signedOutProfiles.map(claudeSignedOutAccount));
 	return accounts;
+}
+
+/**
+ * The quota store's discovery pass (KTD10): which logins have a credential
+ * worth polling, and the rows that have no fetch of their own. `complete` is
+ * false when the profile scan ran out of time mid-walk — the store reaps
+ * entries missing from this result, and a truncated list is not proof an
+ * account is gone.
+ */
+export async function discoverClaudeQuotaTargets(): Promise<{
+	selections: Array<string | null>;
+	staticAccounts: UsageAccount[];
+	complete: boolean;
+}> {
+	const { credentials, signedOutProfiles, apiProfiles, complete } =
+		await discoverClaudeCredentials();
+	return {
+		selections: credentials.map((credential) => credential.selection),
+		staticAccounts: [
+			...apiProfiles.map(claudeApiKeyAccount),
+			...signedOutProfiles.map(claudeSignedOutAccount),
+		],
+		complete,
+	};
+}
+
+/** Exported for the store's refetch tests; call it through
+ * `fetchClaudeAccountForSelection`. */
+export async function readCredentialForConfigDir(
+	configDir: string,
+): Promise<ClaudeOauthCredential | null> {
+	const profile = (await discoverClaudeProfiles()).find(
+		(candidate) => candidate.configDir === configDir,
+	);
+	if (profile) {
+		return profile.credentialKind === "subscription"
+			? readProfileCredential(profile)
+			: null;
+	}
+	// A CLAUDE_CONFIG_DIR entry that profile discovery does not classify —
+	// the same row discoverClaudeCredentials builds by hand, and it has to be
+	// rebuilt the same way: dropping the identity would strand the store row
+	// without an account id, and defaulting `managed` to true would offer a
+	// hand-exported dir as a swap target.
+	const credential = await readCredentialFile(
+		join(configDir, ".credentials.json"),
+		configDir.replace(homedir(), "~"),
+		configDir,
+	);
+	if (!credential) return null;
+	const identity = await readClaudeIdentity(configDir);
+	return {
+		...credential,
+		email: identity?.email ?? null,
+		accountId: identity?.accountId ?? null,
+		managed: false,
+	};
+}
+
+/** Every store the active dir's login can live in: its credential file and,
+ * on macOS, a Keychain item keyed by the dir — the same pair a profile is read
+ * from. Only the token is wanted, so the identity fields are placeholders. */
+async function readActiveDirCredential(
+	activeDir: string,
+): Promise<ClaudeOauthCredential | null> {
+	const candidates = [
+		await readCredentialFile(
+			join(activeDir, ".credentials.json"),
+			activeDir,
+			activeDir,
+		),
+	];
+	for (const service of keychainServicesForConfigDir(activeDir)) {
+		for (const secret of await readKeychainSecrets(service)) {
+			candidates.push(parseCredential(secret, activeDir, activeDir, activeDir));
+		}
+	}
+	return pickFreshest(candidates);
+}
+
+/**
+ * KTD2/KTD3: running sessions read the active dir, so the CLI refreshes the
+ * access token *there* — the copy in the account's own store is only rewritten
+ * by the next swap. Polling that copy turns the active account `token_stale`
+ * about eight hours after a switch, which skips the usage endpoint and freezes
+ * its windows at their last-known values, and proactive switching and
+ * limit-stop corroboration then score it on frozen numbers. So the active
+ * account is polled with the token the active dir holds.
+ *
+ * Only the token moves: the row keeps reporting the account's own source,
+ * selection and managed flag. The active dir must name the same account — a
+ * `/login` or a swap since the engine recorded its binding leaves someone
+ * else's login there, and fetching that would file one account's quota under
+ * another's row.
+ */
+async function preferActiveDirToken(
+	credential: ClaudeOauthCredential,
+): Promise<ClaudeOauthCredential> {
+	if (!credential.accountId) return credential;
+	const active = readActiveClaudeBinding();
+	const isActive =
+		active.accountId !== null
+			? active.accountId === credential.accountId
+			: active.selection === credential.selection;
+	if (!isActive) return credential;
+
+	const activeDir = activeClaudeConfigDirPath();
+	const [fromActiveDir, identity] = await Promise.all([
+		readActiveDirCredential(activeDir),
+		readClaudeIdentity(activeDir),
+	]);
+	if (!fromActiveDir || identity?.accountId !== credential.accountId) {
+		return credential;
+	}
+	const merged: ClaudeOauthCredential = {
+		...credential,
+		accessToken: fromActiveDir.accessToken,
+		expiresAt: fromActiveDir.expiresAt,
+		refreshTokenExpiresAt: fromActiveDir.refreshTokenExpiresAt,
+	};
+	// The active dir is normally the fresher of the two, but a swap that saved
+	// this login back and moved on leaves it holding the older copy.
+	return pickFreshest([merged, credential]) ?? credential;
+}
+
+/**
+ * One login's quota, for the quota store's per-account cadence. `rateLimited`
+ * is the 429 that backs off every poll on this endpoint (KTD10).
+ */
+export async function fetchClaudeAccountForSelection(
+	selection: string | null,
+): Promise<{ account: UsageAccount | null; rateLimited: boolean }> {
+	const credential =
+		selection === null
+			? await readDefaultCredential()
+			: await readCredentialForConfigDir(selection);
+	if (!credential) return { account: null, rateLimited: false };
+	return fetchClaudeAccount(await preferActiveDirToken(credential));
 }

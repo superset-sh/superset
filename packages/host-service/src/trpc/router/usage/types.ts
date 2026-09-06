@@ -85,7 +85,21 @@ export interface UsageAccount {
 	 * CODEX_HOME) to run on this account. Null for the system-default login,
 	 * which needs no override. */
 	selection: string | null;
-	/** Whether newly launched agents use this account (host-wide default). */
+	/** The provider's own account identity (KTD4): Claude's
+	 * `oauthAccount.accountUuid`, Codex's `tokens.account_id`. This is what
+	 * keys an account across profile dirs — a login swap leaves the same token
+	 * in two dirs for a moment, and a dir is not an identity. Null when the
+	 * credential carries none (API-key logins). */
+	accountId: string | null;
+	/** R16: eligible for automatic switching. API-key (pay-per-token) logins
+	 * default out of rotation; the per-account toggle overrides this. */
+	inRotation: boolean;
+	/** Whether Superset can swap this login (a discovered profile dir or the
+	 * system default). False for a config dir the user exported by hand,
+	 * which Superset reports but never writes to. */
+	managed: boolean;
+	/** Whether this is the active account: what every running and newly
+	 * launched session of this agent uses (R1). */
 	isDefault: boolean;
 	fetchedAt: Date;
 }
