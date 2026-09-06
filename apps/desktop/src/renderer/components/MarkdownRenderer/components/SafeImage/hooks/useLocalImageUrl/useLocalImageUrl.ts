@@ -17,7 +17,12 @@ export function useLocalImageUrl(
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: revision is the retry signal — a moved disk revision re-reads the image
 	useEffect(() => {
-		if (!absolutePath || !readFile) return;
+		if (!absolutePath || !readFile) {
+			// Drop the blob once the source stops being a local file, rather
+			// than holding it until unmount.
+			setLoaded(undefined);
+			return;
+		}
 		let cancelled = false;
 		readFile(absolutePath).then(
 			(bytes) => {
