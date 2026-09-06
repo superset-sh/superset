@@ -132,6 +132,10 @@
 			"types": "./src/agent-definition.ts",
 			"default": "./src/agent-definition.ts"
 		},
+		"./account-rotation": {
+			"types": "./src/account-rotation.ts",
+			"default": "./src/account-rotation.ts"
+		},
 		"./agent-catalog": {
 			"types": "./src/agent-catalog.ts",
 			"default": "./src/agent-catalog.ts"
