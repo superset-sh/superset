@@ -186,8 +186,9 @@ export function isNearLimit(score: number, thresholdPercent: number): boolean {
  * R16/R23. Managed, in rotation and signed in. The rotation file wins over
  * the flag the account carries, because that file is what the user's toggle
  * writes. `accountRotationKey` is the spelling both the renderer and the
- * router use, so it is looked up first; the bare `accountId` and `accountKey`
- * follow it as legacy spellings a toggle may still be filed under.
+ * router use, so it is looked up first; the bare `accountId`, the
+ * `accountKey` and the selection-based spelling follow it as spellings a
+ * toggle may still be filed under.
  */
 export function isEligible(
 	account: DecisionAccount,
@@ -223,6 +224,14 @@ function rotationFlag(
 	}
 	if (account.accountKey in rotation)
 		return rotation[account.accountKey] === true;
+	// The same account spells its key on `selection` until its identity is
+	// read and on `accountId` after (an auth refresh writing `account_id`, a
+	// default-login read that failed once). A toggle filed under the older
+	// spelling still means what the user chose.
+	if (account.selection !== null) {
+		const selectionKey = `${account.agent}:${account.selection}`;
+		if (selectionKey in rotation) return rotation[selectionKey] === true;
+	}
 	return account.inRotation;
 }
 

@@ -190,6 +190,32 @@ describe("isEligible", () => {
 			true,
 		);
 	});
+
+	// A Codex home whose `auth.json` carries no `account_id` files its toggle
+	// under the selection; the next auth refresh writes the identity and the
+	// key becomes `codex:acct-x`. The account the user excluded must not walk
+	// back into rotation on that poll.
+	it("still honours a toggle filed under the selection before the identity was known", () => {
+		const codex = account({
+			agent: "codex",
+			accountId: "acct-x",
+			accountKey: "/home/u/.codex2/auth.json",
+			selection: "/home/u/.codex2",
+			credentialKind: "subscription",
+			inRotation: true,
+			windows: [
+				window_("primary", "5h", 10),
+				window_("secondary", "Weekly", 20),
+			],
+		});
+		expect(isEligible(codex, { "codex:/home/u/.codex2": false })).toBe(false);
+		expect(
+			isEligible(
+				{ ...codex, inRotation: false },
+				{ "codex:/home/u/.codex2": true },
+			),
+		).toBe(true);
+	});
 });
 
 describe("pickBest", () => {
