@@ -1,6 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useLingui } from "@lingui/react/macro";
-import type { AgentModelOption } from "@superset/shared/agent-models";
+import { splitModelCatalog } from "@superset/shared/agent-models";
 import { type Href, Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Pressable, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -11,33 +11,6 @@ import { useNewSessionPreferencesStore } from "@/screens/(authenticated)/(home)/
 import { OptionRow } from "@/screens/(authenticated)/components/OptionRow";
 import { useAgentLaunchPreferences } from "@/screens/(authenticated)/hooks/useAgentLaunchPreferences";
 import { SectionLabel } from "./components/SectionLabel";
-
-/**
- * The short list is everything up to and including the catalog's first
- * group — the aliases that track the newest release. Every later group is
- * a row of its own that opens that group's list: a dozen pinned versions
- * would bury the four picks almost everyone wants.
- */
-export function splitModelCatalog(models: AgentModelOption[]): {
-	inline: AgentModelOption[];
-	groups: string[];
-} {
-	const firstGroup = models.find((option) => option.group)?.group;
-	const inline = models.filter(
-		(option) => !option.group || option.group === firstGroup,
-	);
-	const groups: string[] = [];
-	for (const option of models) {
-		if (
-			option.group &&
-			option.group !== firstGroup &&
-			!groups.includes(option.group)
-		) {
-			groups.push(option.group);
-		}
-	}
-	return { inline, groups };
-}
 
 /**
  * An agent's launch settings on one screen: the model, with the older pinned
