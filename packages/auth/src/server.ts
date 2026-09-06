@@ -1299,11 +1299,15 @@ export const auth = betterAuth({
 							where: eq(subscriptions.referenceId, org.id),
 						});
 
+						// The invoice names the subscription this event is about, so it
+						// wins. The organization-level row is only a fallback: the lookup
+						// above is unordered and an organization that resubscribed has
+						// several, so preferring it can check — or notify Slack about —
+						// a subscription that has nothing to do with this invoice.
 						const stripeSubId =
-							subscription?.stripeSubscriptionId ??
 							(invoice.parent?.subscription_details?.subscription as
 								| string
-								| undefined);
+								| undefined) ?? subscription?.stripeSubscriptionId;
 
 						const isFinalAttempt = invoice.next_payment_attempt == null;
 						const isFirstAttempt = (invoice.attempt_count ?? 0) <= 1;
