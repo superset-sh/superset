@@ -96,9 +96,6 @@ function harness(overrides: Partial<SessionMoverDeps> = {}): Harness {
 const SPENT: UsageQuotaWindow[] = [
 	{ id: "five_hour", label: "5-hour", usedPercent: 100, resetsAt: null },
 ];
-const HEADROOM: UsageQuotaWindow[] = [
-	{ id: "five_hour", label: "5-hour", usedPercent: 20, resetsAt: null },
-];
 // Codex's account-wide ids are its own: a Claude-shaped `five_hour` is out of
 // scope for a Codex row and would prove nothing about that account.
 const CODEX_SPENT: UsageQuotaWindow[] = [
