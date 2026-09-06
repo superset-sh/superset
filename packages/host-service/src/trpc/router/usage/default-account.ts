@@ -18,7 +18,6 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
-import { accountRotationKey as sharedAccountRotationKey } from "@superset/shared/account-rotation";
 import { resolveRotationFlag } from "../../../account-engine/decision.ts";
 import { EngineState } from "../../../account-engine/engine-state.ts";
 import type {
@@ -310,15 +309,6 @@ export interface AccountEngineView {
 	claude: ActiveAgentBinding;
 	codex: ActiveAgentBinding;
 	rotation: RotationState;
-}
-
-/** R16: the rotation flag's key. Identity first, so a profile dir that moves
- * (or an account that changes dirs) keeps its toggle. Shared with the
- * renderer, which reads the same keys back. */
-export function accountRotationKey(
-	account: Pick<UsageAccount, "agent" | "accountId" | "selection">,
-): string {
-	return sharedAccountRotationKey(account);
 }
 
 export function readAccountEngineView(db: HostDb): AccountEngineView {

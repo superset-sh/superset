@@ -306,6 +306,12 @@ function longestPeriodResetAt(account: DecisionAccount): number | null {
 		if (window.resetsAt === null) continue;
 		if (!prefixes.some((prefix) => window.id.startsWith(prefix))) continue;
 		const at = window.resetsAt.getTime();
+		// An unparseable `resets_at` from the provider gives an Invalid Date, and
+		// its NaN would take the `soonest === null` pass and then lose every later
+		// comparison — leaving the account unrankable instead of unknown. Dropping
+		// the window matches `trpc/router/usage/agy-quota.ts`, which already
+		// normalises this same field for this same type.
+		if (!Number.isFinite(at)) continue;
 		if (soonest === null || at < soonest) soonest = at;
 	}
 	return soonest;

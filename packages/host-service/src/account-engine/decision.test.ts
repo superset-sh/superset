@@ -31,6 +31,15 @@ function window_(
 	};
 }
 
+/** A provider `resets_at` that did not parse: `getTime()` is NaN. */
+function invalidResetWindow_(
+	id: string,
+	label: string,
+	usedPercent: number,
+): UsageQuotaWindow {
+	return { id, label, usedPercent, resetsAt: new Date("not-a-date") };
+}
+
 function account(over: Partial<DecisionAccount> = {}): DecisionAccount {
 	return {
 		agent: "claude",
@@ -924,5 +933,58 @@ describe("shouldSwitch", () => {
 			now: T0,
 		});
 		expect(decision).toEqual({ switch: false, allExhausted: true });
+	});
+
+	// An unparseable `resets_at` made longestPeriodResetAt return NaN, and NaN
+	// loses every comparison in pickConsumeFirst — the account was never picked
+	// and the user was told every account was spent while this one had room.
+	it("consume-first: still switches onto an account whose weekly reset did not parse", () => {
+		const decision = shouldSwitch({
+			settings: settings({ strategy: "consume-first" }),
+			active: account({
+				windows: [window_("five_hour", "Session (5h)", 99)],
+			}),
+			candidates: [
+				account({
+					accountId: "acct-b",
+					accountKey: "key-b",
+					windows: [
+						window_("five_hour", "Session (5h)", 10),
+						invalidResetWindow_("seven_day", "Weekly", 10),
+					],
+				}),
+			],
+			rotation: {},
+			runtime,
+			now: T0,
+		});
+		expect(decision).toMatchObject({ switch: true, reasonKind: "threshold" });
+		expect(decision.switch && decision.target.accountId).toBe("acct-b");
+	});
+
+	// The unparseable window is listed first, so it must not stand in for the
+	// sibling that does report a reset on the same account.
+	it("consume-first: an unparseable reset does not poison a good sibling window", () => {
+		const decision = shouldSwitch({
+			settings: settings({ strategy: "consume-first" }),
+			active: account({
+				windows: [window_("seven_day", "Weekly", 40, T0 + 5 * DAY)],
+			}),
+			candidates: [
+				account({
+					accountId: "acct-b",
+					accountKey: "key-b",
+					windows: [
+						invalidResetWindow_("seven_day", "Weekly", 30),
+						window_("weekly_scoped:opus", "Weekly (Opus)", 30, T0 + 6 * HOUR),
+					],
+				}),
+			],
+			rotation: {},
+			runtime,
+			now: T0,
+		});
+		expect(decision).toMatchObject({ switch: true, reasonKind: "strategy" });
+		expect(decision.switch && decision.target.accountId).toBe("acct-b");
 	});
 });
