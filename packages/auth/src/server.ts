@@ -1431,6 +1431,7 @@ export const auth = betterAuth({
 									amount: formatPrice(invoice.amount_due, invoice.currency),
 									renewsAt: new Date(renewsAtSeconds * 1000),
 									seatCount: Math.max(1, seatCount),
+									isOwner: recipient.role === "owner",
 								}),
 							})),
 						);

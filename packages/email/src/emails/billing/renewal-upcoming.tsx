@@ -9,6 +9,8 @@ interface RenewalUpcomingEmailProps {
 	amount: string;
 	renewsAt: Date;
 	seatCount: number;
+	/** Payment methods are owner-only, so an admin gets told to ask one. */
+	isOwner?: boolean;
 }
 
 /**
@@ -26,6 +28,7 @@ export function RenewalUpcomingEmail({
 	amount = "$200.00",
 	renewsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
 	seatCount = 1,
+	isOwner = true,
 }: RenewalUpcomingEmailProps) {
 	const formattedRenewalDate = format(renewsAt, "MMMM d, yyyy");
 
@@ -58,9 +61,18 @@ export function RenewalUpcomingEmail({
 
 			<Text className="text-[15px] leading-6 text-foreground m-0 mb-4">
 				We'll charge the payment method on file. If that card has changed since
-				last year, update it before {formattedRenewalDate} so the renewal
-				doesn't fail — open Superset and go to{" "}
-				<strong>Settings → Billing</strong>.
+				last year,{" "}
+				{isOwner ? (
+					<>
+						update it before {formattedRenewalDate} so the renewal doesn't fail
+						— open Superset and go to <strong>Settings → Billing</strong>.
+					</>
+				) : (
+					<>
+						ask an owner to update it before {formattedRenewalDate} so the
+						renewal doesn't fail. Only owners can change the payment method.
+					</>
+				)}
 			</Text>
 
 			<Text className="text-[13px] leading-5 text-muted m-0">
