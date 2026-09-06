@@ -270,7 +270,9 @@ function daemonCloseFailed(result: unknown): boolean {
  *
  * `prompt` is registered before anything is killed, so the resume that
  * follows launches with it even if the renderer's auto-resume gets there
- * first. The binding is marked "terminal-exited", never "disposed", so it
+ * first — and when the resume it joins had already composed its prompt, this
+ * reports `{ resumed: false }` rather than a nudge that never went out. The
+ * binding is marked "terminal-exited", never "disposed", so it
  * stays a resume candidate; the old pty is disposed before the relaunch so
  * two processes never hold the same session id.
  *
@@ -292,7 +294,17 @@ export async function killAndResumeTerminalAgent(
 	// A resume already in flight has claimed the candidate and disposes the
 	// old terminal itself; joining it is what any other caller does.
 	const pending = resumeInflight.get(key);
-	if (pending) return pending;
+	if (pending) {
+		const joined = await pending;
+		// A resume reads the nudge before it is reachable through
+		// `resumeInflight`, so the one just joined carries ours only when it
+		// had not read one yet — the kill window reserved below. A nudge still
+		// pending after the join reached no launch: report it as needing
+		// attention instead of claiming a prompt that was never delivered, and
+		// leave the entry for the resume that follows the caller's retry.
+		if (prompt && pendingNudges.has(key)) return { resumed: false };
+		return joined;
+	}
 
 	let settle!: (result: ResumeResult) => void;
 	const reserved = new Promise<ResumeResult>((resolve) => {

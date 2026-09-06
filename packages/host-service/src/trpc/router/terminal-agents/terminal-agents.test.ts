@@ -778,6 +778,59 @@ describe("killAndResumeTerminalAgent", () => {
 		expect(racer.runCalls).toEqual([]);
 	});
 
+	// The pane died on its own in the window before the mover got here, so the
+	// renderer's auto-resume is already past the point where it reads a nudge:
+	// the one registered now cannot ride along on that launch.
+	it("does not claim a nudge the resume it joined had already passed", async () => {
+		const db = createTestDb();
+		seedResumableBinding(db, { terminalId: "t1" });
+		let releaseLaunch = () => {};
+		const gate = new Promise<void>((resolveGate) => {
+			releaseLaunch = resolveGate;
+		});
+		const racer = createDeps(db, async () => {
+			await gate;
+			return { kind: "terminal", sessionId: "t-new", label: "Claude" };
+		});
+		const mover = createDeps(db);
+
+		const raced = resumeTerminalAgentSession(racer.deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+		const killed = killAndResumeTerminalAgent(mover.deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+			prompt: "nudge",
+		});
+		releaseLaunch();
+		const [raceResult, killResult] = await Promise.all([raced, killed]);
+
+		expect(raceResult).toEqual({
+			resumed: true,
+			terminalId: "t-new",
+			label: "Claude",
+		});
+		// That launch went out with an empty prompt, so the mover must not
+		// report the restart as the one that delivered the nudge.
+		expect(racer.runCalls.map((call) => call.prompt)).toEqual([""]);
+		expect(mover.runCalls).toEqual([]);
+		expect(killResult).toEqual({ resumed: false });
+
+		// The nudge is still pending, so the resume that follows the caller's
+		// retry carries it — and consumes it there, leaving nothing behind.
+		db.update(terminalAgentBindings)
+			.set({ endReason: "terminal-exited" })
+			.where(eq(terminalAgentBindings.terminalId, "t1"))
+			.run();
+		const retry = createDeps(db);
+		await resumeTerminalAgentSession(retry.deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+		expect(retry.runCalls.map((call) => call.prompt)).toEqual(["nudge"]);
+	});
+
 	it("restarts without a prompt when no nudge is given", async () => {
 		const db = createTestDb();
 		seedAgentConfig(db);
