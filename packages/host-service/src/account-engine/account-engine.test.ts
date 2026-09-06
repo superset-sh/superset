@@ -285,6 +285,11 @@ function harness(options: HarnessOptions = {}) {
 			}
 			return ACTIVE_DIR;
 		},
+		// Injected for the same reason `ensureActiveDir` is: the real one
+		// shares session state into the caller's own ambient Codex home.
+		provisionCodex: async () => {
+			calls.push("provisionCodex");
+		},
 		setPointer: (_db, agent, selection) => {
 			calls.push("setPointer");
 			pointers.push({ agent, selection });
@@ -2106,13 +2111,16 @@ describe("AccountEngine", () => {
 	it("hands the lock back only once the tick in flight has finished", async () => {
 		const thief = harness();
 		const pending: Array<Promise<unknown>> = [];
+		// Recorded, not asserted, in here: `tick()` swallows anything this
+		// callback throws, so an expectation would fail open.
+		let thiefOwnedMidTick: boolean | null = null;
 		const h = harness({
 			entries: twoClaudeAccounts(),
 			onRefreshDue: async () => {
 				pending.push(h.engine.stop());
 				// Still held: this tick has not returned yet.
 				await thief.engine.tick();
-				expect(thief.engine.status().claude.lockOwner).toBe(false);
+				thiefOwnedMidTick = thief.engine.status().claude.lockOwner;
 			},
 		});
 		enable(h.engine);
@@ -2120,6 +2128,7 @@ describe("AccountEngine", () => {
 		await h.engine.tick();
 		await Promise.all(pending);
 
+		expect(thiefOwnedMidTick).toBe(false);
 		expect(h.calls).not.toContain("swap");
 		expect(h.engineState.readHistory(10)).toEqual([]);
 		expect(h.engineState.readRuntime().perAgent.claude.activeAccountId).toBe(
