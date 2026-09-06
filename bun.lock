@@ -647,6 +647,10 @@
         "wrangler": "4.118.0",
       },
     },
+    "apps/review-host": {
+      "name": "review-host",
+      "version": "0.0.0",
+    },
     "apps/streams": {
       "name": "streams",
       "version": "0.0.0",
@@ -918,6 +922,7 @@
         "@types/node": "24.12.0",
         "@types/react": "19.2.14",
         "@types/tailwindcss": "3.1.0",
+        "bun-types": "1.3.14",
         "react-email": "5.0.7",
         "typescript": "6.0.3",
       },
@@ -5964,6 +5969,8 @@
     "retry": ["retry@0.13.1", "", {}, "sha512-XQBQ3I8W1Cge0Seh+6gjj03LbmRFWuoszgK9ooCpwYIrhhoO80pfq4cUkU5DkknwfOfFteRwlZ56PYOGYyFWdg=="],
 
     "reusify": ["reusify@1.1.0", "", {}, "sha512-g6QUff04oZpHs0eG5p83rFLhHeV00ug/Yf9nZM6fLeUrPguBTkTQOdpAWWspMh55TZfVQDPaN3NQJfbVRAxdIw=="],
+
+    "review-host": ["review-host@workspace:apps/review-host"],
 
     "rimraf": ["rimraf@6.1.3", "", { "dependencies": { "glob": "^13.0.3", "package-json-from-dist": "^1.0.1" }, "bin": { "rimraf": "dist/esm/bin.mjs" } }, "sha512-LKg+Cr2ZF61fkcaK1UdkH2yEBBKnYjTyWzTJT6KNPcSPaiT7HSdhtMXQuN5wkTX0Xu72KQ1l8S42rlmexS2hSA=="],
 

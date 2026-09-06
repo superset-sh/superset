@@ -5,7 +5,10 @@ import {
 	subscriptions,
 	users,
 } from "@superset/db/schema";
-import { FeedbackReportEmail } from "@superset/email/emails/feedback-report";
+import {
+	FeedbackReportEmail,
+	feedbackReportText,
+} from "@superset/email/emails/feedback-report";
 import { ACTIVE_SUBSCRIPTION_STATUSES } from "@superset/shared/billing";
 import { COMPANY } from "@superset/shared/constants";
 import { Ratelimit } from "@upstash/ratelimit";
@@ -263,6 +266,25 @@ export const supportRouter = createTRPCRouter({
 				content: attachment.contentBase64,
 			}));
 
+			const report = {
+				type: input.type,
+				title: safeTitle,
+				body: input.body,
+				userName: safeName || undefined,
+				userEmail: user.email,
+				userId: user.id,
+				accountCreated: userRow?.createdAt?.toISOString(),
+				organizationName: orgRow
+					? sanitizeEmailBodyLine(orgRow.name)
+					: undefined,
+				organizationId: organizationId ?? undefined,
+				plan: planLabel,
+				appVersion: input.appVersion
+					? sanitizeEmailBodyLine(input.appVersion)
+					: undefined,
+				os: input.os ? sanitizeEmailBodyLine(input.os) : undefined,
+			};
+
 			try {
 				// Resend reports API failures via the resolved `error` field, not by
 				// throwing — without this check a rejected email would "succeed".
@@ -274,24 +296,11 @@ export const supportRouter = createTRPCRouter({
 					replyTo: user.email,
 					subject: `[Feedback: ${input.type}] ${safeTitle}`,
 					attachments,
-					react: FeedbackReportEmail({
-						type: input.type,
-						title: safeTitle,
-						body: input.body,
-						userName: safeName || undefined,
-						userEmail: user.email,
-						userId: user.id,
-						accountCreated: userRow?.createdAt?.toISOString(),
-						organizationName: orgRow
-							? sanitizeEmailBodyLine(orgRow.name)
-							: undefined,
-						organizationId: organizationId ?? undefined,
-						plan: planLabel,
-						appVersion: input.appVersion
-							? sanitizeEmailBodyLine(input.appVersion)
-							: undefined,
-						os: input.os ? sanitizeEmailBodyLine(input.os) : undefined,
-					}),
+					// Resend derives the text/plain part from the HTML and collapses
+					// the report's line breaks; supply it explicitly so Summary
+					// bullets survive in plain-text clients and quoted replies.
+					text: feedbackReportText(report),
+					react: FeedbackReportEmail(report),
 				});
 				if (error) throw error;
 			} catch (error) {

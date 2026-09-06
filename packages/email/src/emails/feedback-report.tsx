@@ -9,7 +9,7 @@ import {
 	Text,
 } from "@react-email/components";
 
-interface FeedbackReportEmailProps {
+export interface FeedbackReportEmailProps {
 	type: "bug" | "feature" | "general";
 	title: string;
 	body: string;
@@ -30,6 +30,67 @@ const TYPE_LABELS: Record<FeedbackReportEmailProps["type"], string> = {
 	general: "Feedback",
 };
 
+function formatReporter(userName: string | undefined, userEmail: string) {
+	return userName ? `${userName} <${userEmail}>` : userEmail;
+}
+
+function formatAccountSince(accountCreated: string | undefined) {
+	return accountCreated
+		? new Date(accountCreated).toLocaleDateString("en-US", {
+				year: "numeric",
+				month: "short",
+				day: "numeric",
+				// Pin the zone so the HTML and text parts agree wherever they render.
+				timeZone: "UTC",
+			})
+		: undefined;
+}
+
+/**
+ * Plain-text twin of the React email. Resend's automatic text conversion
+ * collapses the report's line breaks, which turns "Summary" bullets into one
+ * run-on paragraph in text-only clients and quoted replies.
+ */
+export function feedbackReportText({
+	type,
+	title,
+	body,
+	userName,
+	userEmail,
+	userId,
+	accountCreated,
+	organizationName,
+	organizationId,
+	plan,
+	appVersion,
+	os,
+}: FeedbackReportEmailProps): string {
+	const accountSince = formatAccountSince(accountCreated);
+	const divider = "-".repeat(40);
+	return [
+		`${TYPE_LABELS[type]} · ${plan}`,
+		"",
+		title,
+		"",
+		body,
+		"",
+		divider,
+		"",
+		`Reply to this email to respond to ${userName || "the reporter"} directly (${userEmail}).`,
+		"",
+		`Reporter: ${formatReporter(userName, userEmail)}`,
+		organizationName ? `Organization: ${organizationName}` : null,
+		accountSince ? `Customer since: ${accountSince}` : null,
+		`Environment: ${appVersion ?? "unknown version"} · ${os ?? "unknown OS"}`,
+		"",
+		divider,
+		"",
+		`User ID ${userId}${organizationId ? ` · Org ID ${organizationId}` : ""}`,
+	]
+		.filter((line) => line !== null)
+		.join("\n");
+}
+
 export function FeedbackReportEmail({
 	type = "bug",
 	title = "Terminal detaches on sleep",
@@ -44,14 +105,8 @@ export function FeedbackReportEmail({
 	appVersion = "1.20.0",
 	os = "darwin 25.6.0 arm64",
 }: FeedbackReportEmailProps) {
-	const reporter = userName ? `${userName} <${userEmail}>` : userEmail;
-	const accountSince = accountCreated
-		? new Date(accountCreated).toLocaleDateString("en-US", {
-				year: "numeric",
-				month: "short",
-				day: "numeric",
-			})
-		: undefined;
+	const reporter = formatReporter(userName, userEmail);
+	const accountSince = formatAccountSince(accountCreated);
 
 	return (
 		<Html>
