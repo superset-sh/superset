@@ -14,6 +14,12 @@ describe("windowLabel", () => {
 		expect(windowLabel("seven_day_sonnet")).toBe("Sonnet weekly window");
 	});
 
+	// Codex builds these ids from its own limit_name, so the name is right
+	// there in the id — leaving it whole showed the user "additional:gpt-5-high".
+	test("names a Codex extra limit by the provider's own name", () => {
+		expect(windowLabel("additional:gpt-5-high")).toBe("gpt-5-high");
+	});
+
 	test("falls back to the id it was given", () => {
 		expect(windowLabel("something_new")).toBe("something_new");
 	});
