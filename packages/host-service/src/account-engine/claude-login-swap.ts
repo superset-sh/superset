@@ -919,8 +919,10 @@ export async function swapClaudeLogin(input: {
 	// unrelated across accounts — so compare the identities instead. An
 	// identity that is missing or unreadable fails closed: an unnamed login
 	// saved into the owner's store signs the owner out just the same. A dir
-	// holding no credential at all has nothing to save back, so it proceeds.
-	if (previous) {
+	// holding no credential at all has nothing to save back, so it proceeds. An
+	// unmanaged owner is skipped for the same reason the write below is: the gate
+	// protects the save-back, and there is none.
+	if (input.ownerManaged !== false && previous) {
 		const activeCheck = await activeIdentityMismatch(
 			input.activeDir,
 			ownerBinding,
@@ -981,8 +983,21 @@ export async function swapClaudeLogin(input: {
 			);
 			if (movedCheck) return failure("owner-unknown", movedCheck);
 		}
-		if (!wouldRegress(oauthOf(ownerRead), current)) {
-			const planned = await planStoreWrite(ownerBinding, ownerRead, ctx);
+		// The destination read in the same moment as the payload: a session
+		// running against the owner's own store refreshes its token there too,
+		// and it is the same account, so `ownerStoreMismatch` never sees it.
+		// Judging the regress check — and the backup, and the sibling merge —
+		// on the snapshot from before that refresh overwrites the newer login
+		// and keeps a backup of bytes it did not overwrite.
+		const ownerNow = await readStore(ownerBinding, ctx);
+		if (ownerNow.fileUnreadable) {
+			return failure(
+				"invalid-owner",
+				`${ownerNow.credentialsPath} exists but could not be read; refusing to write over it`,
+			);
+		}
+		if (!wouldRegress(oauthOf(ownerNow), current)) {
+			const planned = await planStoreWrite(ownerBinding, ownerNow, ctx);
 			if (!planned.ok) return planned.result;
 			// The file write follows the store the login was read from, and for
 			// the system default that is either half of the one slot —
@@ -991,13 +1006,13 @@ export async function swapClaudeLogin(input: {
 			// moment before they do.
 			if (planned.plan.file) {
 				const pathInvalid = await validateDir(
-					dirname(ownerRead.credentialsPath),
+					dirname(ownerNow.credentialsPath),
 					ctx,
 				);
 				if (pathInvalid) return failure("invalid-owner", pathInvalid);
 			}
 			try {
-				await applyStoreWrite(ownerRead, planned.plan, current, ctx);
+				await applyStoreWrite(ownerNow, planned.plan, current, ctx);
 			} catch (error) {
 				return failure(
 					"write-failed",

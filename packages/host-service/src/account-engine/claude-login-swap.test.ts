@@ -315,6 +315,41 @@ describe("swapClaudeLogin on a file-backed store", () => {
 		);
 	});
 
+	// The active-identity gate protects the save-back, and an unmanaged owner
+	// has none — so an optional hint must not turn a swap that writes nothing
+	// into a refusal. Measured before this: `owner-unknown`, with the owner
+	// file byte-identical afterwards.
+	it("swaps for an unmanaged owner whose active identity does not match", async () => {
+		const f = fixture();
+		writeFileSync(
+			join(f.activeDir, ".claude.json"),
+			JSON.stringify(identity("c")),
+		);
+		const before = readFileSync(join(f.profileA, ".credentials.json"), "utf-8");
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			ownerManaged: false,
+			expectedOwnerAccountId: "uuid-a",
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-b", 2_000),
+		);
+		// Nothing landed in the owner's store, backup included.
+		expect(readFileSync(join(f.profileA, ".credentials.json"), "utf-8")).toBe(
+			before,
+		);
+		expect(readdirSync(f.profileA).sort()).toEqual([
+			".claude.json",
+			".credentials.json",
+		]);
+	});
+
 	it("never regresses an owner login that is already newer", async () => {
 		const f = fixture();
 		writeCredentials(f.profileA, {
@@ -764,6 +799,114 @@ describe("swapClaudeLogin on a file-backed store", () => {
 		expect(owner.mcpOAuth).toEqual({ "a-server": { token: "m-a" } });
 		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
 			oauth("t-b", 2_000),
+		);
+	});
+
+	/** Deps that refresh the owner's own store once, while the swap re-reads
+	 * the active login — the window between the owner read and the write. */
+	function ownerRefreshedMidWrite(f: Fixture): {
+		deps: ClaudeSwapDeps;
+		refreshed: () => boolean;
+	} {
+		const activeFile = join(f.activeDir, ".credentials.json");
+		let activeReads = 0;
+		let done = false;
+		return {
+			refreshed: () => done,
+			deps: {
+				...f.deps,
+				fs: {
+					readFile: async (path: string, encoding: "utf-8") => {
+						const { readFile } = await import("node:fs/promises");
+						// The second read of the active login is the save-back's
+						// payload re-read: a session against the owner's own dir
+						// refreshes it there in the same moment.
+						if (path === activeFile && ++activeReads === 2) {
+							done = true;
+							writeCredentials(f.profileA, {
+								claudeAiOauth: oauth("t-a-newer", 9_000),
+								mcpOAuth: { "a-server": { token: "m-a-rotated" } },
+							});
+						}
+						return readFile(path, encoding);
+					},
+				},
+			},
+		};
+	}
+
+	// The destination half of the same staleness, and the one that loses data:
+	// judged on the snapshot read before that refresh, the save-back overwrites
+	// the owner's newer token, rolls its mcpOAuth back, and keeps a backup of
+	// bytes it never overwrote. Same account throughout, so no identity gate
+	// can see it.
+	it("does not overwrite an owner login refreshed while the swap read on", async () => {
+		const f = fixture();
+		const { deps, refreshed } = ownerRefreshedMidWrite(f);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			expectedOwnerAccountId: "uuid-a",
+			activeDir: f.activeDir,
+			deps,
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		expect(refreshed()).toBe(true);
+		const owner = readCredentials(f.profileA);
+		// The newer login stands and its siblings are not rolled back...
+		expect(owner.claudeAiOauth).toEqual(oauth("t-a-newer", 9_000));
+		expect(owner.mcpOAuth).toEqual({ "a-server": { token: "m-a-rotated" } });
+		// ...and no backup of the bytes nothing overwrote is left behind.
+		expect(readdirSync(f.profileA).sort()).toEqual([
+			".claude.json",
+			".credentials.json",
+		]);
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-b", 2_000),
+		);
+	});
+
+	// The same re-read fails closed for the same reason the first one does:
+	// the write is a rename, so a store that went unreadable in between would
+	// be replaced by one this swap never saw.
+	it("refuses when the owner store stops being readable before the write", async () => {
+		const f = fixture();
+		const ownerFile = join(f.profileA, ".credentials.json");
+		let ownerReads = 0;
+		const deps: ClaudeSwapDeps = {
+			...f.deps,
+			fs: {
+				readFile: async (path: string, encoding: "utf-8") => {
+					const { readFile } = await import("node:fs/promises");
+					if (path === ownerFile && ++ownerReads > 1) {
+						const denied = new Error(
+							`EACCES: permission denied, open '${path}'`,
+						) as NodeJS.ErrnoException;
+						denied.code = "EACCES";
+						throw denied;
+					}
+					return readFile(path, encoding);
+				},
+			},
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			expectedOwnerAccountId: "uuid-a",
+			activeDir: f.activeDir,
+			deps,
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-owner" });
+		expect(readCredentials(f.profileA)).toEqual({
+			claudeAiOauth: oauth("t-a", 1_000),
+			mcpOAuth: { "a-server": { token: "m-a" } },
+		});
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
 		);
 	});
 
