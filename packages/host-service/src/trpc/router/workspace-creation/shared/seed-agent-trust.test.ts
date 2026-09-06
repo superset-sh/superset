@@ -105,15 +105,24 @@ describe("seedClaudeFolderTrust", () => {
 		expect(readFileSync(file, "utf-8")).toBe(content);
 	});
 
-	test("re-seeds a corrupt state file instead of stranding the trust", async () => {
-		// updateClaudeStateFile treats an unparsable file as empty state: a
-		// running Claude Code would overwrite it anyway, and refusing here
-		// would leave every session folder prompting for trust forever.
+	test("leaves a corrupt state file alone rather than rewriting it", async () => {
+		// updateClaudeStateFile starts an unparsable file from empty state, so
+		// seeding through one would drop the identity block and every other
+		// project's settings. A skipped seed costs one trust dialog; this
+		// would cost the login.
 		const file = join(dir, ".claude.json");
-		writeFileSync(file, "{not json");
+		writeFileSync(file, '{"oauthAccount":{"accountUuid":"u"},"projects":{');
 		await seedClaudeFolderTrust(file, "/tmp/session-d");
-		const state = JSON.parse(readFileSync(file, "utf-8"));
-		expect(state.projects["/tmp/session-d"].hasTrustDialogAccepted).toBe(true);
+		expect(readFileSync(file, "utf-8")).toBe(
+			'{"oauthAccount":{"accountUuid":"u"},"projects":{',
+		);
+	});
+
+	test("leaves a state file holding a bare null alone", async () => {
+		const file = join(dir, ".claude.json");
+		writeFileSync(file, "null");
+		await seedClaudeFolderTrust(file, "/tmp/session-e");
+		expect(readFileSync(file, "utf-8")).toBe("null");
 	});
 
 	test("skips when the config dir itself does not exist", async () => {

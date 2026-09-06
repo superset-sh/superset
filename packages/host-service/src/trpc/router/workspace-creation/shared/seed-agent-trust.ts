@@ -137,8 +137,8 @@ function claudeProjects(
  * Merge `projects[<path>].hasTrustDialogAccepted: true` into a Claude state
  * file, preserving every other key. The write goes through
  * `updateClaudeStateFile`, the one writer of that file — so a corrupt file is
- * re-seeded rather than stranding every session folder on the trust dialog,
- * and an account swap rewriting the identity block cannot race this one.
+ * left untouched rather than rewritten from empty state, and an account swap
+ * rewriting the identity block cannot race this one.
  * No-op when the entry is already trusted.
  */
 export async function seedClaudeFolderTrust(
@@ -151,13 +151,29 @@ export async function seedClaudeFolderTrust(
 		const current = await readFile(stateFile, "utf-8").then(
 			(raw) => {
 				try {
-					return JSON.parse(raw) as Record<string, unknown>;
+					const parsed: unknown = JSON.parse(raw);
+					return parsed !== null &&
+						typeof parsed === "object" &&
+						!Array.isArray(parsed)
+						? (parsed as Record<string, unknown>)
+						: null;
 				} catch {
-					return {};
+					return null;
 				}
 			},
-			() => ({}) as Record<string, unknown>,
+			() => null,
 		);
+		if (current === null) {
+			// Seeding trust is cosmetic — a skipped seed just shows the dialog
+			// once. Writing through a file we could not read is not: the update
+			// below starts from empty state, so the rewrite would drop the
+			// identity block, the onboarding flags and every other project's
+			// settings, signing the user out to save them one dialog.
+			console.warn(
+				`[agents.run] ${stateFile} is unreadable or not an object; leaving it alone rather than reseeding trust over it`,
+			);
+			return;
+		}
 		if (claudeProjects(current)[folderPath]?.hasTrustDialogAccepted === true) {
 			return;
 		}
