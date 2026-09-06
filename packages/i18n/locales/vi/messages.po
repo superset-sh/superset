@@ -19,6 +19,10 @@ msgstr " và "
 msgid "- className=\"rounded-sm border border-border bg-background …\""
 msgstr "- className=\"rounded-sm border border-border bg-background …\""
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectRow.selectedSuffix"
+msgstr ", đã chọn"
+
 msgid ", selected"
 msgstr ", đã chọn"
 
@@ -523,6 +527,10 @@ msgstr "{count, plural, one {# bình luận} other {# bình luận}}"
 msgid "{count, plural, one {# file} other {# files}}"
 msgstr "{count, plural, one {# tệp} other {# tệp}}"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.selectedCount"
+msgstr "{count, plural, one {# dự án} other {# dự án}}"
+
 msgid "{count, plural, one {# search} other {# searches}}"
 msgstr "{count, plural, one {# lượt tìm} other {# lượt tìm}}"
 
@@ -555,6 +563,10 @@ msgstr "{count, plural, one {Mỗi # tuần vào {day}} other {Mỗi # tuần v�
 
 msgid "{count, plural, one {Import # worktree} other {Import # worktrees}}"
 msgstr "{count, plural, one {Nhập # worktree} other {Nhập # worktree}}"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.moveToCollectionLabel"
+msgstr "{count, plural, one {Chuyển # dự án đã chọn vào một bộ sưu tập} other {Chuyển # dự án đã chọn vào một bộ sưu tập}}"
 
 msgid "{count, plural, one {Project opened} other {# projects opened}}"
 msgstr "{count, plural, one {Đã mở dự án} other {Đã mở # dự án}}"
@@ -2842,6 +2854,10 @@ msgstr "Chọn cách chế độ xem thay đổi mở từ thanh trên cùng"
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "Chọn cách mở đường dẫn tệp khi Cmd+nhấp trong terminal"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.chooseImage"
+msgstr "Chọn hình ảnh…"
+
 msgid "Choose what to clear from the in-app browser."
 msgstr "Chọn thứ cần xóa khỏi trình duyệt trong ứng dụng."
 
@@ -2890,6 +2906,10 @@ msgstr "Xóa danh sách"
 msgid "Clear notice preview"
 msgstr "Xóa bản xem trước thông báo"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.clearSelectionLabel"
+msgstr "Bỏ chọn dự án"
+
 msgid "Clear search"
 msgstr "Xóa tìm kiếm"
 
@@ -2903,6 +2923,10 @@ msgid "Clear Selection"
 msgstr "Bỏ chọn"
 
 msgid "Clear selection (Esc)"
+msgstr "Bỏ chọn (Esc)"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.clearSelection"
 msgstr "Bỏ chọn (Esc)"
 
 msgid "Clear Status"
@@ -4054,6 +4078,10 @@ msgstr "Không thể cập nhật pull request"
 msgid "Couldn't update thread"
 msgstr "Không thể cập nhật luồng"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.iconImageFailed"
+msgstr "Không thể sử dụng hình ảnh đó"
+
 msgid "Couldn’t verify"
 msgstr "Không kiểm chứng được"
 
@@ -4398,6 +4426,10 @@ msgstr "Debug"
 msgid "default"
 msgstr "mặc định"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.colorMenu.defaultColor"
+msgstr "Mặc định"
+
 msgid "Default"
 msgstr "Mặc định"
 
@@ -4493,6 +4525,10 @@ msgstr "Xóa tự động hóa?"
 
 msgid "Delete cloud workspace"
 msgstr "Xóa workspace cloud"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.delete"
+msgstr "Xóa bộ sưu tập"
 
 #. placeholder {0}: index + 1
 msgid "Delete command {0}"
@@ -8229,6 +8265,14 @@ msgstr "Gần như suốt lịch sử phần mềm"
 msgid "Move {count} to Group"
 msgstr "Chuyển {count} vào nhóm"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.moveToCollection"
+msgstr "Chuyển vào bộ sưu tập"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.moveToCollection"
+msgstr "Chuyển vào bộ sưu tập"
+
 msgid "Move to group"
 msgstr "Chuyển vào nhóm"
 
@@ -8371,6 +8415,18 @@ msgstr "Tab trình duyệt mới"
 
 msgid "New chat"
 msgstr "Chat mới"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.workspacesHeader.newCollection"
+msgstr "Bộ sưu tập mới"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.newCollection"
+msgstr "Bộ sưu tập mới"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.newCollection"
+msgstr "Bộ sưu tập mới…"
 
 msgid "New environment"
 msgstr "Environment mới"
@@ -10986,6 +11042,14 @@ msgstr "Gỡ {label}?"
 msgid "Remove attachment"
 msgstr "Xóa tệp đính kèm"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.removeFromCollection"
+msgstr "Xóa khỏi bộ sưu tập"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.removeFromCollection"
+msgstr "Xóa khỏi bộ sưu tập"
+
 msgid "Remove from Queue"
 msgstr "Bỏ khỏi hàng đợi"
 
@@ -10994,6 +11058,10 @@ msgstr "Gỡ khỏi thanh bên"
 
 msgid "Remove from Sidebar"
 msgstr "Gỡ khỏi thanh bên"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.removeIcon"
+msgstr "Xóa biểu tượng"
 
 msgid "Remove icon"
 msgstr "Gỡ biểu tượng"
@@ -11021,6 +11089,10 @@ msgstr "Gỡ liên kết PR"
 
 msgid "Remove script"
 msgstr "Gỡ script"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.removeFromCollectionLabel"
+msgstr "Xóa các dự án đã chọn khỏi bộ sưu tập của chúng"
 
 msgid "Remove team member?"
 msgstr "Gỡ thành viên khỏi nhóm?"
@@ -11063,6 +11135,10 @@ msgstr "Đổi tên"
 
 msgid "Rename branch"
 msgstr "Đổi tên nhánh"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.rename"
+msgstr "Đổi tên bộ sưu tập"
 
 msgid "Rename failed"
 msgstr "Đổi tên thất bại"
@@ -12121,6 +12197,10 @@ msgstr "Agent đã chọn không phải agent terminal"
 msgid "Selected issues span multiple repositories. Select issues from a single repository to run them."
 msgstr "Các issue đã chọn thuộc nhiều repository. Hãy chọn issue trong cùng một repository để chạy."
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.toolbarLabel"
+msgstr "Thao tác với dự án đã chọn"
+
 msgid "Selected workspace actions"
 msgstr "Hành động cho workspace đã chọn"
 
@@ -12229,6 +12309,14 @@ msgstr "Phiên"
 msgid "Sessions · top {0} by cost"
 msgstr "Phiên · {0} phiên tốn nhiều nhất"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.setColor"
+msgstr "Đặt màu bộ sưu tập"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.setIcon"
+msgstr "Đặt biểu tượng bộ sưu tập"
+
 #. placeholder {0}: color.name
 msgid "Set color to {0}"
 msgstr "Đặt màu thành {0}"
@@ -12274,7 +12362,16 @@ msgstr "Đang thiết lập ở nền..."
 msgid "Settings"
 msgstr "Cài đặt"
 
-msgid "Settings ({settingsHotkey})"
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.settingsAriaLabel"
+msgstr "Cài đặt"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.settingsTooltip"
+msgstr "Cài đặt"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.settingsTooltipWithHotkey"
 msgstr "Cài đặt ({settingsHotkey})"
 
 msgid "Settings → Remote Access → “Allow remote access to this device via relay”."
@@ -14736,6 +14833,10 @@ msgstr "Không có dữ liệu sử dụng."
 #. placeholder {0}: search.trim()
 msgid "Use “{0}”"
 msgstr "Dùng “{0}”"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.useEmojiIcon"
+msgstr "Dùng {emoji} làm biểu tượng bộ sưu tập"
 
 msgid "Use a workspace-relative path or an absolute folder."
 msgstr "Dùng đường dẫn tương đối với workspace hoặc một thư mục tuyệt đối."

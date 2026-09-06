@@ -5,8 +5,10 @@ import type {
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo } from "react";
 import { DeleteProjectDialog } from "renderer/routes/_authenticated/components/DeleteProjectDialog";
+import type { WorkspaceSelectionEvent } from "../../providers/DashboardSidebarSelectionProvider";
 import type { DashboardSidebarProject } from "../../types";
 import { getProjectChildrenWorkspaces } from "../../utils/projectChildren";
+import { useDashboardSidebarCollections } from "../DashboardSidebarCollectionContext";
 import { DashboardSidebarCollapsedProjectContent } from "./components/DashboardSidebarCollapsedProjectContent";
 import { DashboardSidebarExpandedProjectContent } from "./components/DashboardSidebarExpandedProjectContent";
 import { DashboardSidebarProjectContextMenu } from "./components/DashboardSidebarProjectContextMenu";
@@ -23,6 +25,9 @@ interface DashboardSidebarProjectSectionProps {
 	onToggleCollapse: (projectId: string) => void;
 	dragHandleListeners?: DraggableSyntheticListeners;
 	dragHandleAttributes?: DraggableAttributes;
+	/** Part of the sidebar's bulk project selection. */
+	isSelected?: boolean;
+	onSelectionClick?: (event: WorkspaceSelectionEvent) => boolean;
 }
 
 export function DashboardSidebarProjectSection({
@@ -34,6 +39,8 @@ export function DashboardSidebarProjectSection({
 	onToggleCollapse,
 	dragHandleListeners,
 	dragHandleAttributes,
+	isSelected = false,
+	onSelectionClick,
 }: DashboardSidebarProjectSectionProps) {
 	const flattenedCollapsedWorkspaces = useMemo(
 		() => getProjectChildrenWorkspaces(project.children),
@@ -69,6 +76,9 @@ export function DashboardSidebarProjectSection({
 	} = useDashboardSidebarProjectSectionActions({
 		project,
 	});
+
+	const { collections, moveProjectToCollection, createCollectionForProject } =
+		useDashboardSidebarCollections();
 
 	const totalWorkspaceCount = flattenedCollapsedWorkspaces.length;
 
@@ -107,6 +117,14 @@ export function DashboardSidebarProjectSection({
 				onHide={hideProject}
 				onDelete={canDeleteProject ? openDeleteDialog : null}
 				onRename={startRename}
+				collections={collections}
+				currentCollectionId={project.collectionId}
+				onMoveToCollection={(collectionId) =>
+					moveProjectToCollection(project.id, collectionId)
+				}
+				onCreateCollectionWithProject={() =>
+					createCollectionForProject(project.id)
+				}
 			>
 				<div className="mt-1 first:mt-0">
 					<DashboardSidebarCollapsedProjectContent
@@ -138,6 +156,14 @@ export function DashboardSidebarProjectSection({
 				onHide={hideProject}
 				onDelete={canDeleteProject ? openDeleteDialog : null}
 				onRename={startRename}
+				collections={collections}
+				currentCollectionId={project.collectionId}
+				onMoveToCollection={(collectionId) =>
+					moveProjectToCollection(project.id, collectionId)
+				}
+				onCreateCollectionWithProject={() =>
+					createCollectionForProject(project.id)
+				}
 			>
 				<DashboardSidebarProjectRow
 					projectName={project.name}
@@ -152,6 +178,8 @@ export function DashboardSidebarProjectSection({
 					onStartRename={startRename}
 					onToggleCollapse={() => onToggleCollapse(project.id)}
 					onNewWorkspace={handleNewWorkspace}
+					isSelected={isSelected}
+					onSelectionClick={onSelectionClick}
 					{...(dragHandleAttributes ?? {})}
 					{...(dragHandleListeners ?? {})}
 				/>

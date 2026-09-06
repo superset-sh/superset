@@ -46,6 +46,16 @@ import {
 	setSidebarProjectHidden,
 	tombstoneSidebarWorkspaceRecord,
 } from "./sidebarMutations";
+import {
+	createCollectionInState,
+	deleteCollectionInState,
+	moveProjectToCollectionInState,
+	renameCollectionInState,
+	reorderCollectionsInState,
+	setCollectionColorInState,
+	setCollectionIconInState,
+	toggleCollectionCollapsedInState,
+} from "./collectionMutations";
 
 type ProjectTopLevelItem = {
 	type: "workspace" | "section";
@@ -1037,7 +1047,65 @@ export function useDashboardSidebarState() {
 		[collections],
 	);
 
+	// Thin wrappers over the pure helpers in ./collectionMutations.
+
+	const createCollection = useCallback(
+		(options: { name?: string } = {}) =>
+			createCollectionInState(collections, options),
+		[collections],
+	);
+
+	const renameCollection = useCallback(
+		(collectionId: string, name: string) =>
+			renameCollectionInState(collections, collectionId, name),
+		[collections],
+	);
+
+	const toggleCollectionCollapsed = useCallback(
+		(collectionId: string) =>
+			toggleCollectionCollapsedInState(collections, collectionId),
+		[collections],
+	);
+
+	const setCollectionColor = useCallback(
+		(collectionId: string, color: string | null) =>
+			setCollectionColorInState(collections, collectionId, color),
+		[collections],
+	);
+
+	const setCollectionIcon = useCallback(
+		(collectionId: string, icon: string | null) =>
+			setCollectionIconInState(collections, collectionId, icon),
+		[collections],
+	);
+
+	const moveProjectToCollection = useCallback(
+		(projectId: string, collectionId: string | null) =>
+			moveProjectToCollectionInState(collections, projectId, collectionId),
+		[collections],
+	);
+
+	const deleteCollection = useCallback(
+		(collectionId: string) =>
+			deleteCollectionInState(collections, collectionId),
+		[collections],
+	);
+
+	const reorderCollections = useCallback(
+		(collectionIds: string[]) =>
+			reorderCollectionsInState(collections, collectionIds),
+		[collections],
+	);
+
 	return {
+		createCollection,
+		deleteCollection,
+		moveProjectToCollection,
+		renameCollection,
+		reorderCollections,
+		setCollectionColor,
+		setCollectionIcon,
+		toggleCollectionCollapsed,
 		createSection,
 		deleteSection,
 		ensureProjectInSidebar,

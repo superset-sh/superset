@@ -18,6 +18,8 @@ import {
 } from "react-icons/lu";
 import { useBulkWorkspaceMoveActions } from "../../hooks/useBulkWorkspaceMoveActions";
 import { useDashboardSidebarSelection } from "../../providers/DashboardSidebarSelectionProvider";
+import { useDashboardSidebarCollections } from "../DashboardSidebarCollectionContext";
+import { DashboardSidebarProjectBulkToolbar } from "./components/DashboardSidebarProjectBulkToolbar";
 import { useBulkDeleteWorkspacesIntent } from "../../stores/bulkDeleteWorkspacesIntent";
 import type {
 	DashboardSidebarProject,
@@ -34,7 +36,14 @@ export function DashboardSidebarBulkActions({
 	children,
 }: DashboardSidebarBulkActionsProps) {
 	const { t } = useLingui();
-	const { clearSelection, selectedProjectId } = useDashboardSidebarSelection();
+	const { clearSelection, selectedProjectId, selectedProjectIds } =
+		useDashboardSidebarSelection();
+	const { collections, moveProjectToCollection, createCollectionForProjects } =
+		useDashboardSidebarCollections();
+	const selectedProjects = useMemo(() => {
+		const selected = new Set(selectedProjectIds);
+		return projects.filter((project) => selected.has(project.id));
+	}, [projects, selectedProjectIds]);
 	const selectedProject = useMemo(
 		() => projects.find((project) => project.id === selectedProjectId) ?? null,
 		[projects, selectedProjectId],
@@ -73,6 +82,28 @@ export function DashboardSidebarBulkActions({
 		workspacesById,
 		sectionIdByWorkspaceId,
 	});
+
+	if (selectedProjects.length > 0) {
+		return (
+			<DashboardSidebarProjectBulkToolbar
+				selectedProjects={selectedProjects}
+				collections={collections}
+				onClearSelection={clearSelection}
+				onMoveToCollection={(collectionId) => {
+					for (const project of selectedProjects) {
+						moveProjectToCollection(project.id, collectionId);
+					}
+					clearSelection();
+				}}
+				onCreateCollection={() => {
+					createCollectionForProjects(
+						selectedProjects.map((project) => project.id),
+					);
+					clearSelection();
+				}}
+			/>
+		);
+	}
 
 	const openDeleteDialog = () =>
 		useBulkDeleteWorkspacesIntent.getState().request(selectedWorkspaces);

@@ -13,6 +13,7 @@ import {
 	useSidebarDnd,
 } from "../../hooks/useSidebarDnd";
 import type {
+	DashboardSidebarCollection,
 	DashboardSidebarPinnedWorkspace,
 	DashboardSidebarProject,
 	DashboardSidebarProjectChild,
@@ -27,6 +28,12 @@ interface DashboardSidebarDndProviderProps {
 	isSidebarCollapsed: boolean;
 	workspaceShortcutLabels: Map<string, string>;
 	onReorderProjects: (projectIds: string[]) => void;
+	/** Folders projects can be dropped into. Empty when none exist. */
+	collections: DashboardSidebarCollection[];
+	onMoveProjectToCollection: (
+		projectId: string,
+		collectionId: string | null,
+	) => void;
 	/**
 	 * True while `projects` is a sorted/filtered view rather than the manual
 	 * order — see useSidebarDnd's `disabled` option.
@@ -48,6 +55,8 @@ export function DashboardSidebarDndProvider({
 	isSidebarCollapsed,
 	workspaceShortcutLabels,
 	onReorderProjects,
+	collections,
+	onMoveProjectToCollection,
 	isDragDisabled = false,
 	children,
 }: DashboardSidebarDndProviderProps) {
@@ -64,6 +73,8 @@ export function DashboardSidebarDndProvider({
 		pinnedWorkspaces,
 		sessionChildren,
 		onReorderProjects,
+		collections,
+		onMoveProjectToCollection,
 		disabled: isDragDisabled,
 	});
 

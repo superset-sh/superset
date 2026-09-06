@@ -19,6 +19,10 @@ msgstr " 및 "
 msgid "- className=\"rounded-sm border border-border bg-background …\""
 msgstr "- className=\"rounded-sm border border-border bg-background …\""
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectRow.selectedSuffix"
+msgstr ", 선택됨"
+
 msgid ", selected"
 msgstr ", 선택됨"
 
@@ -523,6 +527,10 @@ msgstr "{count, plural, one {댓글 #개} other {댓글 #개}}"
 msgid "{count, plural, one {# file} other {# files}}"
 msgstr "{count, plural, one {파일 #개} other {파일 #개}}"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.selectedCount"
+msgstr "{count, plural, one {프로젝트 #개} other {프로젝트 #개}}"
+
 msgid "{count, plural, one {# search} other {# searches}}"
 msgstr "{count, plural, one {검색 #회} other {검색 #회}}"
 
@@ -555,6 +563,10 @@ msgstr "{count, plural, one {#주마다 {day}} other {#주마다 {day}}}"
 
 msgid "{count, plural, one {Import # worktree} other {Import # worktrees}}"
 msgstr "{count, plural, one {worktree #개 가져오기} other {worktree #개 가져오기}}"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.moveToCollectionLabel"
+msgstr "{count, plural, one {선택한 프로젝트 #개를 컬렉션으로 이동} other {선택한 프로젝트 #개를 컬렉션으로 이동}}"
 
 msgid "{count, plural, one {Project opened} other {# projects opened}}"
 msgstr "{count, plural, one {프로젝트 #개를 열었습니다} other {프로젝트 #개를 열었습니다}}"
@@ -2842,6 +2854,10 @@ msgstr "상단 바에서 변경 사항 보기를 여는 방식을 선택합니�
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "터미널에서 Cmd+클릭할 때 파일 경로를 여는 방식을 선택하세요"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.chooseImage"
+msgstr "이미지 선택…"
+
 msgid "Choose what to clear from the in-app browser."
 msgstr "인앱 브라우저에서 삭제할 항목을 선택하세요."
 
@@ -2890,6 +2906,10 @@ msgstr "목록 지우기"
 msgid "Clear notice preview"
 msgstr "알림 미리보기 지우기"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.clearSelectionLabel"
+msgstr "프로젝트 선택 해제"
+
 msgid "Clear search"
 msgstr "검색 지우기"
 
@@ -2903,6 +2923,10 @@ msgid "Clear Selection"
 msgstr "선택 해제"
 
 msgid "Clear selection (Esc)"
+msgstr "선택 해제 (Esc)"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.clearSelection"
 msgstr "선택 해제 (Esc)"
 
 msgid "Clear Status"
@@ -4054,6 +4078,10 @@ msgstr "풀 리퀘스트를 업데이트하지 못했습니다"
 msgid "Couldn't update thread"
 msgstr "스레드를 업데이트하지 못했습니다"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.iconImageFailed"
+msgstr "이 이미지를 사용할 수 없습니다"
+
 msgid "Couldn’t verify"
 msgstr "확인할 수 없음"
 
@@ -4398,6 +4426,10 @@ msgstr "디버그"
 msgid "default"
 msgstr "기본"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.colorMenu.defaultColor"
+msgstr "기본값"
+
 msgid "Default"
 msgstr "기본값"
 
@@ -4493,6 +4525,10 @@ msgstr "자동화를 삭제할까요?"
 
 msgid "Delete cloud workspace"
 msgstr "클라우드 워크스페이스 삭제"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.delete"
+msgstr "컬렉션 삭제"
 
 #. placeholder {0}: index + 1
 msgid "Delete command {0}"
@@ -8229,6 +8265,14 @@ msgstr "소프트웨어 역사의 대부분"
 msgid "Move {count} to Group"
 msgstr "{count}개를 그룹으로 이동"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.moveToCollection"
+msgstr "컬렉션으로 이동"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.moveToCollection"
+msgstr "컬렉션으로 이동"
+
 msgid "Move to group"
 msgstr "그룹으로 이동"
 
@@ -8371,6 +8415,18 @@ msgstr "새 브라우저 탭"
 
 msgid "New chat"
 msgstr "새 채팅"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.workspacesHeader.newCollection"
+msgstr "새 컬렉션"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.newCollection"
+msgstr "새 컬렉션"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.newCollection"
+msgstr "새 컬렉션…"
 
 msgid "New environment"
 msgstr "새 환경"
@@ -10986,6 +11042,14 @@ msgstr "{label}을(를) 제거할까요?"
 msgid "Remove attachment"
 msgstr "첨부 파일 제거"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.removeFromCollection"
+msgstr "컬렉션에서 제거"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.removeFromCollection"
+msgstr "컬렉션에서 제거"
+
 msgid "Remove from Queue"
 msgstr "대기열에서 제거"
 
@@ -10994,6 +11058,10 @@ msgstr "사이드바에서 제거"
 
 msgid "Remove from Sidebar"
 msgstr "사이드바에서 제거"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.removeIcon"
+msgstr "아이콘 제거"
 
 msgid "Remove icon"
 msgstr "아이콘 제거"
@@ -11021,6 +11089,10 @@ msgstr "PR 링크 제거"
 
 msgid "Remove script"
 msgstr "스크립트 제거"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.removeFromCollectionLabel"
+msgstr "선택한 프로젝트를 컬렉션에서 제거"
 
 msgid "Remove team member?"
 msgstr "팀 멤버를 제거할까요?"
@@ -11063,6 +11135,10 @@ msgstr "이름 변경"
 
 msgid "Rename branch"
 msgstr "브랜치 이름 변경"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.rename"
+msgstr "컬렉션 이름 변경"
 
 msgid "Rename failed"
 msgstr "이름 변경 실패"
@@ -12121,6 +12197,10 @@ msgstr "선택한 에이전트는 터미널 에이전트가 아닙니다"
 msgid "Selected issues span multiple repositories. Select issues from a single repository to run them."
 msgstr "선택한 이슈가 여러 리포지토리에 걸쳐 있습니다. 실행하려면 단일 리포지토리의 이슈만 선택하세요."
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.toolbarLabel"
+msgstr "선택한 프로젝트 작업"
+
 msgid "Selected workspace actions"
 msgstr "선택한 워크스페이스 작업"
 
@@ -12229,6 +12309,14 @@ msgstr "세션"
 msgid "Sessions · top {0} by cost"
 msgstr "세션 · 비용 상위 {0}개"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.setColor"
+msgstr "컬렉션 색상 설정"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.setIcon"
+msgstr "컬렉션 아이콘 설정"
+
 #. placeholder {0}: color.name
 msgid "Set color to {0}"
 msgstr "색상을 {0}(으)로 설정"
@@ -12274,7 +12362,16 @@ msgstr "백그라운드에서 설정하는 중..."
 msgid "Settings"
 msgstr "설정"
 
-msgid "Settings ({settingsHotkey})"
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.settingsAriaLabel"
+msgstr "설정"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.settingsTooltip"
+msgstr "설정"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.settingsTooltipWithHotkey"
 msgstr "설정 ({settingsHotkey})"
 
 msgid "Settings → Remote Access → “Allow remote access to this device via relay”."
@@ -14736,6 +14833,10 @@ msgstr "사용량을 볼 수 없습니다."
 #. placeholder {0}: search.trim()
 msgid "Use “{0}”"
 msgstr "“{0}” 사용"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.useEmojiIcon"
+msgstr "{emoji}을(를) 컬렉션 아이콘으로 사용"
 
 msgid "Use a workspace-relative path or an absolute folder."
 msgstr "워크스페이스 기준 상대 경로나 절대 경로 폴더를 사용하세요."

@@ -19,6 +19,10 @@ msgstr " e "
 msgid "- className=\"rounded-sm border border-border bg-background …\""
 msgstr "- className=\"rounded-sm border border-border bg-background …\""
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectRow.selectedSuffix"
+msgstr ", selezionato"
+
 msgid ", selected"
 msgstr ", selezionato"
 
@@ -523,6 +527,10 @@ msgstr "{count, plural, one {# commento} other {# commenti}}"
 msgid "{count, plural, one {# file} other {# files}}"
 msgstr "{count, plural, one {# file} other {# file}}"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.selectedCount"
+msgstr "{count, plural, one {# progetto} other {# progetti}}"
+
 msgid "{count, plural, one {# search} other {# searches}}"
 msgstr "{count, plural, one {# ricerca} other {# ricerche}}"
 
@@ -555,6 +563,10 @@ msgstr "{count, plural, one {Ogni # settimana di {day}} other {Ogni # settimane 
 
 msgid "{count, plural, one {Import # worktree} other {Import # worktrees}}"
 msgstr "{count, plural, one {Importa # worktree} other {Importa # worktree}}"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.moveToCollectionLabel"
+msgstr "{count, plural, one {Sposta # progetto selezionato in una raccolta} other {Sposta # progetti selezionati in una raccolta}}"
 
 msgid "{count, plural, one {Project opened} other {# projects opened}}"
 msgstr "{count, plural, one {Progetto aperto} other {# progetti aperti}}"
@@ -2842,6 +2854,10 @@ msgstr "Scegli come si apre la vista delle modifiche dalla barra superiore"
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "Scegli come aprire i percorsi dei file con Cmd+clic nel terminale"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.chooseImage"
+msgstr "Scegli un'immagine…"
+
 msgid "Choose what to clear from the in-app browser."
 msgstr "Scegli cosa cancellare dal browser interno."
 
@@ -2890,6 +2906,10 @@ msgstr "Svuota l'elenco"
 msgid "Clear notice preview"
 msgstr "Cancella anteprima avviso"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.clearSelectionLabel"
+msgstr "Annulla la selezione dei progetti"
+
 msgid "Clear search"
 msgstr "Cancella la ricerca"
 
@@ -2903,6 +2923,10 @@ msgid "Clear Selection"
 msgstr "Annulla la selezione"
 
 msgid "Clear selection (Esc)"
+msgstr "Annulla la selezione (Esc)"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.clearSelection"
 msgstr "Annulla la selezione (Esc)"
 
 msgid "Clear Status"
@@ -4054,6 +4078,10 @@ msgstr "Impossibile aggiornare la pull request"
 msgid "Couldn't update thread"
 msgstr "Impossibile aggiornare il thread"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.iconImageFailed"
+msgstr "Impossibile usare quell'immagine"
+
 msgid "Couldn’t verify"
 msgstr "Impossibile verificare"
 
@@ -4398,6 +4426,10 @@ msgstr "Debug"
 msgid "default"
 msgstr "predefinito"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.colorMenu.defaultColor"
+msgstr "Predefinito"
+
 msgid "Default"
 msgstr "Predefinito"
 
@@ -4493,6 +4525,10 @@ msgstr "Eliminare l'automazione?"
 
 msgid "Delete cloud workspace"
 msgstr "Elimina il workspace cloud"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.delete"
+msgstr "Elimina la raccolta"
 
 #. placeholder {0}: index + 1
 msgid "Delete command {0}"
@@ -8229,6 +8265,14 @@ msgstr "Quasi tutta la storia del software"
 msgid "Move {count} to Group"
 msgstr "Sposta {count} in un gruppo"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.moveToCollection"
+msgstr "Sposta in una raccolta"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.moveToCollection"
+msgstr "Sposta in una raccolta"
+
 msgid "Move to group"
 msgstr "Sposta in un gruppo"
 
@@ -8371,6 +8415,18 @@ msgstr "Nuova scheda del browser"
 
 msgid "New chat"
 msgstr "Nuova chat"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.workspacesHeader.newCollection"
+msgstr "Nuova raccolta"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.newCollection"
+msgstr "Nuova raccolta"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.newCollection"
+msgstr "Nuova raccolta…"
 
 msgid "New environment"
 msgstr "Nuovo ambiente"
@@ -10986,6 +11042,14 @@ msgstr "Rimuovere {label}?"
 msgid "Remove attachment"
 msgstr "Rimuovi allegato"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.removeFromCollection"
+msgstr "Rimuovi dalla raccolta"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.removeFromCollection"
+msgstr "Rimuovi dalla raccolta"
+
 msgid "Remove from Queue"
 msgstr "Rimuovi dalla coda"
 
@@ -10994,6 +11058,10 @@ msgstr "Rimuovi dalla barra laterale"
 
 msgid "Remove from Sidebar"
 msgstr "Rimuovi dalla barra laterale"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.removeIcon"
+msgstr "Rimuovi l'icona"
 
 msgid "Remove icon"
 msgstr "Rimuovi l'icona"
@@ -11021,6 +11089,10 @@ msgstr "Rimuovi il link alla PR"
 
 msgid "Remove script"
 msgstr "Rimuovi lo script"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.removeFromCollectionLabel"
+msgstr "Rimuovi i progetti selezionati dalle loro raccolte"
 
 msgid "Remove team member?"
 msgstr "Rimuovere il membro del team?"
@@ -11063,6 +11135,10 @@ msgstr "Rinomina"
 
 msgid "Rename branch"
 msgstr "Rinomina il branch"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.rename"
+msgstr "Rinomina la raccolta"
 
 msgid "Rename failed"
 msgstr "Rinomina non riuscita"
@@ -12121,6 +12197,10 @@ msgstr "L'agente selezionato non è un agente da terminale"
 msgid "Selected issues span multiple repositories. Select issues from a single repository to run them."
 msgstr "Le issue selezionate appartengono a più repository. Seleziona issue di un singolo repository per eseguirle."
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.toolbarLabel"
+msgstr "Azioni sui progetti selezionati"
+
 msgid "Selected workspace actions"
 msgstr "Azioni sui workspace selezionati"
 
@@ -12229,6 +12309,14 @@ msgstr "Sessioni"
 msgid "Sessions · top {0} by cost"
 msgstr "Sessioni · prime {0} per costo"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.setColor"
+msgstr "Imposta il colore della raccolta"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.setIcon"
+msgstr "Imposta l'icona della raccolta"
+
 #. placeholder {0}: color.name
 msgid "Set color to {0}"
 msgstr "Imposta il colore su {0}"
@@ -12274,7 +12362,16 @@ msgstr "Configurazione in background..."
 msgid "Settings"
 msgstr "Impostazioni"
 
-msgid "Settings ({settingsHotkey})"
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.settingsAriaLabel"
+msgstr "Impostazioni"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.settingsTooltip"
+msgstr "Impostazioni"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.settingsTooltipWithHotkey"
 msgstr "Impostazioni ({settingsHotkey})"
 
 msgid "Settings → Remote Access → “Allow remote access to this device via relay”."
@@ -14736,6 +14833,10 @@ msgstr "Utilizzo non disponibile."
 #. placeholder {0}: search.trim()
 msgid "Use “{0}”"
 msgstr "Usa “{0}”"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.useEmojiIcon"
+msgstr "Usa {emoji} come icona della raccolta"
 
 msgid "Use a workspace-relative path or an absolute folder."
 msgstr "Usa un percorso relativo al workspace o una cartella assoluta."

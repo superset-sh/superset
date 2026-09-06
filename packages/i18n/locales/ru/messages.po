@@ -19,6 +19,10 @@ msgstr " и "
 msgid "- className=\"rounded-sm border border-border bg-background …\""
 msgstr "- className=\"rounded-sm border border-border bg-background …\""
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectRow.selectedSuffix"
+msgstr ", выбрано"
+
 msgid ", selected"
 msgstr ", выбрана"
 
@@ -523,6 +527,10 @@ msgstr "{count, plural, one {# комментарий} few {# комментар
 msgid "{count, plural, one {# file} other {# files}}"
 msgstr "{count, plural, one {# файл} few {# файла} many {# файлов} other {# файла}}"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.selectedCount"
+msgstr "{count, plural, one {# проект} few {# проекта} many {# проектов} other {# проектов}}"
+
 msgid "{count, plural, one {# search} other {# searches}}"
 msgstr "{count, plural, one {# поиск} few {# поиска} many {# поисков} other {# поиска}}"
 
@@ -555,6 +563,10 @@ msgstr "{count, plural, one {Каждую # неделю: {day}} few {Кажды
 
 msgid "{count, plural, one {Import # worktree} other {Import # worktrees}}"
 msgstr "{count, plural, one {Импортировать # worktree} few {Импортировать # worktree} many {Импортировать # worktree} other {Импортировать # worktree}}"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.moveToCollectionLabel"
+msgstr "{count, plural, one {Переместить # выбранный проект в коллекцию} few {Переместить # выбранных проекта в коллекцию} many {Переместить # выбранных проектов в коллекцию} other {Переместить # выбранных проектов в коллекцию}}"
 
 msgid "{count, plural, one {Project opened} other {# projects opened}}"
 msgstr "{count, plural, one {Проект открыт} few {Открыто # проекта} many {Открыто # проектов} other {Открыто # проекта}}"
@@ -2842,6 +2854,10 @@ msgstr "Выберите, как открывается представлени
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "Выберите, как открывать пути файлов при Cmd+клике в терминале"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.chooseImage"
+msgstr "Выбрать изображение…"
+
 msgid "Choose what to clear from the in-app browser."
 msgstr "Выберите, что очистить во встроенном браузере."
 
@@ -2890,6 +2906,10 @@ msgstr "Очистить список"
 msgid "Clear notice preview"
 msgstr "Очистить предпросмотр уведомления"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.clearSelectionLabel"
+msgstr "Снять выделение проектов"
+
 msgid "Clear search"
 msgstr "Очистить поиск"
 
@@ -2903,6 +2923,10 @@ msgid "Clear Selection"
 msgstr "Снять выделение"
 
 msgid "Clear selection (Esc)"
+msgstr "Снять выделение (Esc)"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.clearSelection"
 msgstr "Снять выделение (Esc)"
 
 msgid "Clear Status"
@@ -4054,6 +4078,10 @@ msgstr "Не удалось обновить пул-реквест"
 msgid "Couldn't update thread"
 msgstr "Не удалось обновить ветку обсуждения"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.iconImageFailed"
+msgstr "Не удалось использовать это изображение"
+
 msgid "Couldn’t verify"
 msgstr "Не удалось проверить"
 
@@ -4398,6 +4426,10 @@ msgstr "Отладка"
 msgid "default"
 msgstr "по умолчанию"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.colorMenu.defaultColor"
+msgstr "По умолчанию"
+
 msgid "Default"
 msgstr "По умолчанию"
 
@@ -4493,6 +4525,10 @@ msgstr "Удалить автоматизацию?"
 
 msgid "Delete cloud workspace"
 msgstr "Удалить облачную рабочую область"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.delete"
+msgstr "Удалить коллекцию"
 
 #. placeholder {0}: index + 1
 msgid "Delete command {0}"
@@ -8229,6 +8265,14 @@ msgstr "Почти вся история софта"
 msgid "Move {count} to Group"
 msgstr "Переместить {count} в группу"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.moveToCollection"
+msgstr "Переместить в коллекцию"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.moveToCollection"
+msgstr "Переместить в коллекцию"
+
 msgid "Move to group"
 msgstr "Переместить в группу"
 
@@ -8371,6 +8415,18 @@ msgstr "Новая вкладка браузера"
 
 msgid "New chat"
 msgstr "Новый чат"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.workspacesHeader.newCollection"
+msgstr "Новая коллекция"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.newCollection"
+msgstr "Новая коллекция"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.newCollection"
+msgstr "Новая коллекция…"
 
 msgid "New environment"
 msgstr "Новое окружение"
@@ -10986,6 +11042,14 @@ msgstr "Удалить {label}?"
 msgid "Remove attachment"
 msgstr "Удалить вложение"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.removeFromCollection"
+msgstr "Убрать из коллекции"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.removeFromCollection"
+msgstr "Убрать из коллекции"
+
 msgid "Remove from Queue"
 msgstr "Убрать из очереди"
 
@@ -10994,6 +11058,10 @@ msgstr "Убрать из боковой панели"
 
 msgid "Remove from Sidebar"
 msgstr "Убрать из боковой панели"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.removeIcon"
+msgstr "Удалить значок"
 
 msgid "Remove icon"
 msgstr "Удалить иконку"
@@ -11021,6 +11089,10 @@ msgstr "Отвязать PR"
 
 msgid "Remove script"
 msgstr "Удалить скрипт"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.removeFromCollectionLabel"
+msgstr "Убрать выбранные проекты из их коллекций"
 
 msgid "Remove team member?"
 msgstr "Удалить участника команды?"
@@ -11063,6 +11135,10 @@ msgstr "Переименовать"
 
 msgid "Rename branch"
 msgstr "Переименовать ветку"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.rename"
+msgstr "Переименовать коллекцию"
 
 msgid "Rename failed"
 msgstr "Не удалось переименовать"
@@ -12121,6 +12197,10 @@ msgstr "Выбранный агент не является терминальн
 msgid "Selected issues span multiple repositories. Select issues from a single repository to run them."
 msgstr "Выбранные задачи относятся к разным репозиториям. Выберите задачи из одного репозитория, чтобы запустить их."
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.toolbarLabel"
+msgstr "Действия с выбранными проектами"
+
 msgid "Selected workspace actions"
 msgstr "Действия с выбранными рабочими областями"
 
@@ -12229,6 +12309,14 @@ msgstr "Сессии"
 msgid "Sessions · top {0} by cost"
 msgstr "Сессии · топ {0} по стоимости"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.setColor"
+msgstr "Задать цвет коллекции"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.setIcon"
+msgstr "Задать значок коллекции"
+
 #. placeholder {0}: color.name
 msgid "Set color to {0}"
 msgstr "Установить цвет {0}"
@@ -12274,7 +12362,16 @@ msgstr "Настройка в фоне..."
 msgid "Settings"
 msgstr "Настройки"
 
-msgid "Settings ({settingsHotkey})"
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.settingsAriaLabel"
+msgstr "Настройки"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.settingsTooltip"
+msgstr "Настройки"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.settingsTooltipWithHotkey"
 msgstr "Настройки ({settingsHotkey})"
 
 msgid "Settings → Remote Access → “Allow remote access to this device via relay”."
@@ -14736,6 +14833,10 @@ msgstr "Данные об использовании недоступны."
 #. placeholder {0}: search.trim()
 msgid "Use “{0}”"
 msgstr "Использовать «{0}»"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.useEmojiIcon"
+msgstr "Использовать {emoji} как значок коллекции"
 
 msgid "Use a workspace-relative path or an absolute folder."
 msgstr "Укажите путь относительно рабочей области или абсолютную папку."

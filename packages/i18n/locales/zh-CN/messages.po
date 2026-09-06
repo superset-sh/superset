@@ -19,6 +19,10 @@ msgstr "和"
 msgid "- className=\"rounded-sm border border-border bg-background …\""
 msgstr "- className=\"rounded-sm border border-border bg-background …\""
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectRow.selectedSuffix"
+msgstr "，已选中"
+
 msgid ", selected"
 msgstr "，已选中"
 
@@ -523,6 +527,10 @@ msgstr "{count, plural, one {#条评论} other {#条评论}}"
 msgid "{count, plural, one {# file} other {# files}}"
 msgstr "{count, plural, one {#个文件} other {#个文件}}"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.selectedCount"
+msgstr "{count, plural, one {#个项目} other {#个项目}}"
+
 msgid "{count, plural, one {# search} other {# searches}}"
 msgstr "{count, plural, one {#次搜索} other {#次搜索}}"
 
@@ -555,6 +563,10 @@ msgstr "{count, plural, one {每#周的{day}} other {每#周的{day}}}"
 
 msgid "{count, plural, one {Import # worktree} other {Import # worktrees}}"
 msgstr "{count, plural, one {导入#个worktree} other {导入#个worktree}}"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.moveToCollectionLabel"
+msgstr "{count, plural, one {把选中的#个项目移动到集合} other {把选中的#个项目移动到集合}}"
 
 msgid "{count, plural, one {Project opened} other {# projects opened}}"
 msgstr "{count, plural, one {已打开#个项目} other {已打开#个项目}}"
@@ -2842,6 +2854,10 @@ msgstr "选择从顶栏打开更改视图的方式"
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "选择在终端中Cmd+点击文件路径时的打开方式"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.chooseImage"
+msgstr "选择图片…"
+
 msgid "Choose what to clear from the in-app browser."
 msgstr "选择要从应用内浏览器清除的内容。"
 
@@ -2890,6 +2906,10 @@ msgstr "清空列表"
 msgid "Clear notice preview"
 msgstr "清除通知预览"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.clearSelectionLabel"
+msgstr "清除项目选择"
+
 msgid "Clear search"
 msgstr "清除搜索"
 
@@ -2904,6 +2924,10 @@ msgstr "清除选择"
 
 msgid "Clear selection (Esc)"
 msgstr "清除选择（Esc）"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.clearSelection"
+msgstr "清除选择 (Esc)"
 
 msgid "Clear Status"
 msgstr "清除状态"
@@ -4054,6 +4078,10 @@ msgstr "无法更新拉取请求"
 msgid "Couldn't update thread"
 msgstr "无法更新讨论"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.iconImageFailed"
+msgstr "无法使用该图片"
+
 msgid "Couldn’t verify"
 msgstr "无法确认"
 
@@ -4398,6 +4426,10 @@ msgstr "调试"
 msgid "default"
 msgstr "默认"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.colorMenu.defaultColor"
+msgstr "默认"
+
 msgid "Default"
 msgstr "默认"
 
@@ -4493,6 +4525,10 @@ msgstr "删除自动化？"
 
 msgid "Delete cloud workspace"
 msgstr "删除云端工作区"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.delete"
+msgstr "删除集合"
 
 #. placeholder {0}: index + 1
 msgid "Delete command {0}"
@@ -8229,6 +8265,14 @@ msgstr "软件史的大部分时间"
 msgid "Move {count} to Group"
 msgstr "将{count}个移动到分组"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.moveToCollection"
+msgstr "移动到集合"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.moveToCollection"
+msgstr "移动到集合"
+
 msgid "Move to group"
 msgstr "移动到分组"
 
@@ -8371,6 +8415,18 @@ msgstr "新建浏览器标签页"
 
 msgid "New chat"
 msgstr "新建聊天"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.workspacesHeader.newCollection"
+msgstr "新建集合"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.newCollection"
+msgstr "新建集合"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.newCollection"
+msgstr "新建集合…"
 
 msgid "New environment"
 msgstr "新建环境"
@@ -10986,6 +11042,14 @@ msgstr "移除{label}？"
 msgid "Remove attachment"
 msgstr "移除附件"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.removeFromCollection"
+msgstr "从集合中移除"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.removeFromCollection"
+msgstr "从集合中移除"
+
 msgid "Remove from Queue"
 msgstr "移出队列"
 
@@ -10994,6 +11058,10 @@ msgstr "从侧边栏移除"
 
 msgid "Remove from Sidebar"
 msgstr "从侧边栏移除"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.removeIcon"
+msgstr "移除图标"
 
 msgid "Remove icon"
 msgstr "移除图标"
@@ -11021,6 +11089,10 @@ msgstr "移除PR链接"
 
 msgid "Remove script"
 msgstr "移除脚本"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.removeFromCollectionLabel"
+msgstr "将选中的项目从其集合中移除"
 
 msgid "Remove team member?"
 msgstr "移除团队成员？"
@@ -11063,6 +11135,10 @@ msgstr "重命名"
 
 msgid "Rename branch"
 msgstr "重命名分支"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.rename"
+msgstr "重命名集合"
 
 msgid "Rename failed"
 msgstr "重命名失败"
@@ -12121,6 +12197,10 @@ msgstr "所选智能体不是终端智能体"
 msgid "Selected issues span multiple repositories. Select issues from a single repository to run them."
 msgstr "所选议题跨越多个仓库。请选择同一仓库中的议题后再运行。"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.toolbarLabel"
+msgstr "选中项目的操作"
+
 msgid "Selected workspace actions"
 msgstr "选中工作区的操作"
 
@@ -12229,6 +12309,14 @@ msgstr "会话"
 msgid "Sessions · top {0} by cost"
 msgstr "会话 · 按费用排名前{0}"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.setColor"
+msgstr "设置集合颜色"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.setIcon"
+msgstr "设置集合图标"
+
 #. placeholder {0}: color.name
 msgid "Set color to {0}"
 msgstr "将颜色设为{0}"
@@ -12274,7 +12362,16 @@ msgstr "正在后台配置..."
 msgid "Settings"
 msgstr "设置"
 
-msgid "Settings ({settingsHotkey})"
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.settingsAriaLabel"
+msgstr "设置"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.settingsTooltip"
+msgstr "设置"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.settingsTooltipWithHotkey"
 msgstr "设置（{settingsHotkey}）"
 
 msgid "Settings → Remote Access → “Allow remote access to this device via relay”."
@@ -14736,6 +14833,10 @@ msgstr "无法获取用量。"
 #. placeholder {0}: search.trim()
 msgid "Use “{0}”"
 msgstr "使用“{0}”"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.useEmojiIcon"
+msgstr "使用 {emoji} 作为集合图标"
 
 msgid "Use a workspace-relative path or an absolute folder."
 msgstr "使用相对于工作区的路径或绝对路径文件夹。"

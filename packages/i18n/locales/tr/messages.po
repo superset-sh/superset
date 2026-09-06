@@ -19,6 +19,10 @@ msgstr " ve "
 msgid "- className=\"rounded-sm border border-border bg-background …\""
 msgstr "- className=\"rounded-sm border border-border bg-background …\""
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectRow.selectedSuffix"
+msgstr ", seçili"
+
 msgid ", selected"
 msgstr ", seçili"
 
@@ -523,6 +527,10 @@ msgstr "{count, plural, one {# yorum} other {# yorum}}"
 msgid "{count, plural, one {# file} other {# files}}"
 msgstr "{count, plural, one {# dosya} other {# dosya}}"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.selectedCount"
+msgstr "{count, plural, one {# proje} other {# proje}}"
+
 msgid "{count, plural, one {# search} other {# searches}}"
 msgstr "{count, plural, one {# arama} other {# arama}}"
 
@@ -555,6 +563,10 @@ msgstr "{count, plural, one {# haftada bir {day}} other {# haftada bir {day}}}"
 
 msgid "{count, plural, one {Import # worktree} other {Import # worktrees}}"
 msgstr "{count, plural, one {# worktree'yi içe aktar} other {# worktree'yi içe aktar}}"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.moveToCollectionLabel"
+msgstr "{count, plural, one {Seçili # projeyi bir koleksiyona taşı} other {Seçili # projeyi bir koleksiyona taşı}}"
 
 msgid "{count, plural, one {Project opened} other {# projects opened}}"
 msgstr "{count, plural, one {Proje açıldı} other {# proje açıldı}}"
@@ -2842,6 +2854,10 @@ msgstr "Değişiklikler görünümünün üst çubuktan nasıl açılacağını 
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "Terminalde Cmd+tıkladığınızda dosya yollarının nasıl açılacağını seçin"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.chooseImage"
+msgstr "Görsel seç…"
+
 msgid "Choose what to clear from the in-app browser."
 msgstr "Uygulama içi tarayıcıdan neyin temizleneceğini seçin."
 
@@ -2890,6 +2906,10 @@ msgstr "Listeyi temizle"
 msgid "Clear notice preview"
 msgstr "Bildirim önizlemesini temizle"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.clearSelectionLabel"
+msgstr "Proje seçimini temizle"
+
 msgid "Clear search"
 msgstr "Aramayı temizle"
 
@@ -2903,6 +2923,10 @@ msgid "Clear Selection"
 msgstr "Seçimi temizle"
 
 msgid "Clear selection (Esc)"
+msgstr "Seçimi temizle (Esc)"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.clearSelection"
 msgstr "Seçimi temizle (Esc)"
 
 msgid "Clear Status"
@@ -4054,6 +4078,10 @@ msgstr "Pull request güncellenemedi"
 msgid "Couldn't update thread"
 msgstr "Konu güncellenemedi"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.iconImageFailed"
+msgstr "Bu görsel kullanılamadı"
+
 msgid "Couldn’t verify"
 msgstr "Doğrulanamadı"
 
@@ -4398,6 +4426,10 @@ msgstr "Hata ayıklama"
 msgid "default"
 msgstr "varsayılan"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.colorMenu.defaultColor"
+msgstr "Varsayılan"
+
 msgid "Default"
 msgstr "Varsayılan"
 
@@ -4493,6 +4525,10 @@ msgstr "Otomasyon silinsin mi?"
 
 msgid "Delete cloud workspace"
 msgstr "Bulut çalışma alanını sil"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.delete"
+msgstr "Koleksiyonu sil"
 
 #. placeholder {0}: index + 1
 msgid "Delete command {0}"
@@ -8229,6 +8265,14 @@ msgstr "Yazılım tarihinin çoğu"
 msgid "Move {count} to Group"
 msgstr "{count} öğeyi gruba taşı"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.moveToCollection"
+msgstr "Koleksiyona taşı"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.moveToCollection"
+msgstr "Koleksiyona taşı"
+
 msgid "Move to group"
 msgstr "Gruba taşı"
 
@@ -8371,6 +8415,18 @@ msgstr "Yeni tarayıcı sekmesi"
 
 msgid "New chat"
 msgstr "Yeni sohbet"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.workspacesHeader.newCollection"
+msgstr "Yeni koleksiyon"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.newCollection"
+msgstr "Yeni koleksiyon"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.newCollection"
+msgstr "Yeni koleksiyon…"
 
 msgid "New environment"
 msgstr "Yeni ortam"
@@ -10986,6 +11042,14 @@ msgstr "{label} kaldırılsın mı?"
 msgid "Remove attachment"
 msgstr "Eki kaldır"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.removeFromCollection"
+msgstr "Koleksiyondan çıkar"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.removeFromCollection"
+msgstr "Koleksiyondan çıkar"
+
 msgid "Remove from Queue"
 msgstr "Kuyruktan çıkar"
 
@@ -10994,6 +11058,10 @@ msgstr "Kenar çubuğundan kaldır"
 
 msgid "Remove from Sidebar"
 msgstr "Kenar çubuğundan kaldır"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.removeIcon"
+msgstr "Simgeyi kaldır"
 
 msgid "Remove icon"
 msgstr "Simgeyi kaldır"
@@ -11021,6 +11089,10 @@ msgstr "PR bağlantısını kaldır"
 
 msgid "Remove script"
 msgstr "Betiği kaldır"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.removeFromCollectionLabel"
+msgstr "Seçili projeleri koleksiyonlarından çıkar"
 
 msgid "Remove team member?"
 msgstr "Takım üyesi kaldırılsın mı?"
@@ -11063,6 +11135,10 @@ msgstr "Yeniden adlandır"
 
 msgid "Rename branch"
 msgstr "Dalı yeniden adlandır"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.rename"
+msgstr "Koleksiyonu yeniden adlandır"
 
 msgid "Rename failed"
 msgstr "Yeniden adlandırılamadı"
@@ -12121,6 +12197,10 @@ msgstr "Seçili ajan bir terminal ajanı değil"
 msgid "Selected issues span multiple repositories. Select issues from a single repository to run them."
 msgstr "Seçili issue'lar birden fazla depoya yayılıyor. Çalıştırmak için tek bir depodan issue seçin."
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.toolbarLabel"
+msgstr "Seçili proje işlemleri"
+
 msgid "Selected workspace actions"
 msgstr "Seçili çalışma alanı eylemleri"
 
@@ -12229,6 +12309,14 @@ msgstr "Oturumlar"
 msgid "Sessions · top {0} by cost"
 msgstr "Oturumlar · maliyete göre ilk {0}"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.setColor"
+msgstr "Koleksiyon rengini ayarla"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.setIcon"
+msgstr "Koleksiyon simgesini ayarla"
+
 #. placeholder {0}: color.name
 msgid "Set color to {0}"
 msgstr "Rengi şuna ayarla: {0}"
@@ -12274,7 +12362,16 @@ msgstr "Arka planda kuruluyor..."
 msgid "Settings"
 msgstr "Ayarlar"
 
-msgid "Settings ({settingsHotkey})"
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.settingsAriaLabel"
+msgstr "Ayarlar"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.settingsTooltip"
+msgstr "Ayarlar"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.settingsTooltipWithHotkey"
 msgstr "Ayarlar ({settingsHotkey})"
 
 msgid "Settings → Remote Access → “Allow remote access to this device via relay”."
@@ -14736,6 +14833,10 @@ msgstr "Kullanım bilgisi yok."
 #. placeholder {0}: search.trim()
 msgid "Use “{0}”"
 msgstr "“{0}” kullan"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.useEmojiIcon"
+msgstr "{emoji} simgesini koleksiyon simgesi olarak kullan"
 
 msgid "Use a workspace-relative path or an absolute folder."
 msgstr "Çalışma alanına göreli bir yol ya da mutlak bir klasör kullanın."

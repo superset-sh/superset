@@ -3,12 +3,14 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
+import { LuFolders } from "react-icons/lu";
 import {
 	VscFolderOpened,
 	VscGithubAlt,
@@ -33,6 +35,7 @@ interface DashboardSidebarWorkspacesHeaderProps {
 	onSortModeChange: (mode: SidebarProjectSortMode) => void;
 	filterQuery: string;
 	onFilterQueryChange: (query: string) => void;
+	onNewCollection: () => void;
 }
 
 export function DashboardSidebarWorkspacesHeader({
@@ -40,6 +43,7 @@ export function DashboardSidebarWorkspacesHeader({
 	onSortModeChange,
 	filterQuery,
 	onFilterQueryChange,
+	onNewCollection,
 }: DashboardSidebarWorkspacesHeaderProps) {
 	const { t } = useLingui();
 	const isSectionCollapsed = useSidebarSectionsCollapseStore(
@@ -177,6 +181,15 @@ export function DashboardSidebarWorkspacesHeader({
 					<DropdownMenuItem onSelect={() => openTemplateGallery()}>
 						<VscLayout className="size-4" />
 						<Trans>Start from a template</Trans>
+					</DropdownMenuItem>
+					<DropdownMenuSeparator />
+					{/* Sits directly under "Create new project"; the collection icon
+					    distinguishes the two. */}
+					<DropdownMenuItem onSelect={onNewCollection}>
+						<LuFolders className="size-4" />
+						<Trans id="dashboard.sidebar.workspacesHeader.newCollection">
+							New collection
+						</Trans>
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>

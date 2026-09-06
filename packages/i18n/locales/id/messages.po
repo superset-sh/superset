@@ -19,6 +19,10 @@ msgstr " dan "
 msgid "- className=\"rounded-sm border border-border bg-background …\""
 msgstr "- className=\"rounded-sm border border-border bg-background …\""
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectRow.selectedSuffix"
+msgstr ", terpilih"
+
 msgid ", selected"
 msgstr ", terpilih"
 
@@ -523,6 +527,10 @@ msgstr "{count, plural, one {# komentar} other {# komentar}}"
 msgid "{count, plural, one {# file} other {# files}}"
 msgstr "{count, plural, one {# file} other {# file}}"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.selectedCount"
+msgstr "{count, plural, one {# proyek} other {# proyek}}"
+
 msgid "{count, plural, one {# search} other {# searches}}"
 msgstr "{count, plural, one {# pencarian} other {# pencarian}}"
 
@@ -555,6 +563,10 @@ msgstr "{count, plural, one {Tiap # minggu pada {day}} other {Tiap # minggu pada
 
 msgid "{count, plural, one {Import # worktree} other {Import # worktrees}}"
 msgstr "{count, plural, one {Impor # worktree} other {Impor # worktree}}"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.moveToCollectionLabel"
+msgstr "{count, plural, one {Pindahkan # proyek terpilih ke koleksi} other {Pindahkan # proyek terpilih ke koleksi}}"
 
 msgid "{count, plural, one {Project opened} other {# projects opened}}"
 msgstr "{count, plural, one {Proyek dibuka} other {# proyek dibuka}}"
@@ -2842,6 +2854,10 @@ msgstr "Pilih cara membuka tampilan perubahan dari bilah atas"
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "Pilih cara membuka path file saat Cmd+klik di terminal"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.chooseImage"
+msgstr "Pilih gambar…"
+
 msgid "Choose what to clear from the in-app browser."
 msgstr "Pilih apa yang ingin dibersihkan dari browser dalam aplikasi."
 
@@ -2890,6 +2906,10 @@ msgstr "Bersihkan daftar"
 msgid "Clear notice preview"
 msgstr "Hapus pratinjau pemberitahuan"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.clearSelectionLabel"
+msgstr "Bersihkan pilihan proyek"
+
 msgid "Clear search"
 msgstr "Bersihkan pencarian"
 
@@ -2903,6 +2923,10 @@ msgid "Clear Selection"
 msgstr "Bersihkan Pilihan"
 
 msgid "Clear selection (Esc)"
+msgstr "Bersihkan pilihan (Esc)"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.clearSelection"
 msgstr "Bersihkan pilihan (Esc)"
 
 msgid "Clear Status"
@@ -4054,6 +4078,10 @@ msgstr "Tidak bisa memperbarui pull request"
 msgid "Couldn't update thread"
 msgstr "Tidak bisa memperbarui thread"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.iconImageFailed"
+msgstr "Tidak dapat menggunakan gambar itu"
+
 msgid "Couldn’t verify"
 msgstr "Tidak bisa memverifikasi"
 
@@ -4398,6 +4426,10 @@ msgstr "Debug"
 msgid "default"
 msgstr "bawaan"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.colorMenu.defaultColor"
+msgstr "Bawaan"
+
 msgid "Default"
 msgstr "Bawaan"
 
@@ -4493,6 +4525,10 @@ msgstr "Hapus otomatisasi?"
 
 msgid "Delete cloud workspace"
 msgstr "Hapus workspace cloud"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.delete"
+msgstr "Hapus koleksi"
 
 #. placeholder {0}: index + 1
 msgid "Delete command {0}"
@@ -8229,6 +8265,14 @@ msgstr "Sebagian besar sejarah perangkat lunak"
 msgid "Move {count} to Group"
 msgstr "Pindahkan {count} ke Grup"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.moveToCollection"
+msgstr "Pindahkan ke koleksi"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.moveToCollection"
+msgstr "Pindahkan ke koleksi"
+
 msgid "Move to group"
 msgstr "Pindahkan ke grup"
 
@@ -8371,6 +8415,18 @@ msgstr "Tab browser baru"
 
 msgid "New chat"
 msgstr "Chat baru"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.workspacesHeader.newCollection"
+msgstr "Koleksi baru"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.newCollection"
+msgstr "Koleksi baru"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.newCollection"
+msgstr "Koleksi baru…"
 
 msgid "New environment"
 msgstr "Environment baru"
@@ -10986,6 +11042,14 @@ msgstr "Hapus {label}?"
 msgid "Remove attachment"
 msgstr "Hapus lampiran"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.removeFromCollection"
+msgstr "Keluarkan dari koleksi"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.removeFromCollection"
+msgstr "Keluarkan dari koleksi"
+
 msgid "Remove from Queue"
 msgstr "Keluarkan dari Antrean"
 
@@ -10994,6 +11058,10 @@ msgstr "Hapus dari sidebar"
 
 msgid "Remove from Sidebar"
 msgstr "Hapus dari Sidebar"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.removeIcon"
+msgstr "Hapus ikon"
 
 msgid "Remove icon"
 msgstr "Hapus ikon"
@@ -11021,6 +11089,10 @@ msgstr "Hapus Tautan PR"
 
 msgid "Remove script"
 msgstr "Hapus skrip"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.removeFromCollectionLabel"
+msgstr "Keluarkan proyek terpilih dari koleksinya"
 
 msgid "Remove team member?"
 msgstr "Hapus anggota tim?"
@@ -11063,6 +11135,10 @@ msgstr "Ganti nama"
 
 msgid "Rename branch"
 msgstr "Ganti nama branch"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.rename"
+msgstr "Ganti nama koleksi"
 
 msgid "Rename failed"
 msgstr "Ganti nama gagal"
@@ -12121,6 +12197,10 @@ msgstr "Agen yang dipilih bukan agen terminal"
 msgid "Selected issues span multiple repositories. Select issues from a single repository to run them."
 msgstr "Issue yang dipilih tersebar di beberapa repositori. Pilih issue dari satu repositori untuk menjalankannya."
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.toolbarLabel"
+msgstr "Tindakan proyek terpilih"
+
 msgid "Selected workspace actions"
 msgstr "Aksi workspace terpilih"
 
@@ -12229,6 +12309,14 @@ msgstr "Sesi"
 msgid "Sessions · top {0} by cost"
 msgstr "Sesi · {0} teratas menurut biaya"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.setColor"
+msgstr "Setel warna koleksi"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.setIcon"
+msgstr "Setel ikon koleksi"
+
 #. placeholder {0}: color.name
 msgid "Set color to {0}"
 msgstr "Setel warna ke {0}"
@@ -12274,7 +12362,16 @@ msgstr "Menyiapkan di latar belakang..."
 msgid "Settings"
 msgstr "Pengaturan"
 
-msgid "Settings ({settingsHotkey})"
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.settingsAriaLabel"
+msgstr "Pengaturan"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.settingsTooltip"
+msgstr "Pengaturan"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.settingsTooltipWithHotkey"
 msgstr "Pengaturan ({settingsHotkey})"
 
 msgid "Settings → Remote Access → “Allow remote access to this device via relay”."
@@ -14736,6 +14833,10 @@ msgstr "Penggunaan tidak tersedia."
 #. placeholder {0}: search.trim()
 msgid "Use “{0}”"
 msgstr "Pakai “{0}”"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.useEmojiIcon"
+msgstr "Gunakan {emoji} sebagai ikon koleksi"
 
 msgid "Use a workspace-relative path or an absolute folder."
 msgstr "Pakai path relatif terhadap workspace atau folder absolut."

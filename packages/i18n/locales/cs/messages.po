@@ -19,6 +19,10 @@ msgstr " a "
 msgid "- className=\"rounded-sm border border-border bg-background …\""
 msgstr "- className=\"rounded-sm border border-border bg-background …\""
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectRow.selectedSuffix"
+msgstr ", vybráno"
+
 msgid ", selected"
 msgstr ", vybráno"
 
@@ -523,6 +527,10 @@ msgstr "{count, plural, one {# komentář} few {# komentáře} many {# komentá�
 msgid "{count, plural, one {# file} other {# files}}"
 msgstr "{count, plural, one {# soubor} few {# soubory} many {# souboru} other {# souborů}}"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.selectedCount"
+msgstr "{count, plural, one {# projekt} few {# projekty} many {# projektu} other {# projektů}}"
+
 msgid "{count, plural, one {# search} other {# searches}}"
 msgstr "{count, plural, one {# hledání} few {# hledání} many {# hledání} other {# hledání}}"
 
@@ -555,6 +563,10 @@ msgstr "{count, plural, one {Každý # týden, {day}} few {Každé # týdny, {da
 
 msgid "{count, plural, one {Import # worktree} other {Import # worktrees}}"
 msgstr "{count, plural, one {Importovat # worktree} few {Importovat # worktree} many {Importovat # worktree} other {Importovat # worktree}}"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.moveToCollectionLabel"
+msgstr "{count, plural, one {Přesunout # vybraný projekt do kolekce} few {Přesunout # vybrané projekty do kolekce} many {Přesunout # vybraného projektu do kolekce} other {Přesunout # vybraných projektů do kolekce}}"
 
 msgid "{count, plural, one {Project opened} other {# projects opened}}"
 msgstr "{count, plural, one {Projekt otevřen} few {# projekty otevřeny} many {# projektu otevřeno} other {# projektů otevřeno}}"
@@ -2842,6 +2854,10 @@ msgstr "Zvolte, jak se zobrazení změn otevírá z horní lišty"
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "Zvolte, jak se otevírají cesty k souborům při Cmd+kliknutí v terminálu"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.chooseImage"
+msgstr "Vybrat obrázek…"
+
 msgid "Choose what to clear from the in-app browser."
 msgstr "Vyberte, co se má z vestavěného prohlížeče vymazat."
 
@@ -2890,6 +2906,10 @@ msgstr "Vymazat seznam"
 msgid "Clear notice preview"
 msgstr "Vymazat náhled oznámení"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.clearSelectionLabel"
+msgstr "Zrušit výběr projektů"
+
 msgid "Clear search"
 msgstr "Zrušit hledání"
 
@@ -2903,6 +2923,10 @@ msgid "Clear Selection"
 msgstr "Zrušit výběr"
 
 msgid "Clear selection (Esc)"
+msgstr "Zrušit výběr (Esc)"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.clearSelection"
 msgstr "Zrušit výběr (Esc)"
 
 msgid "Clear Status"
@@ -4054,6 +4078,10 @@ msgstr "Pull request se nepodařilo aktualizovat"
 msgid "Couldn't update thread"
 msgstr "Nepodařilo se aktualizovat vlákno"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.iconImageFailed"
+msgstr "Tento obrázek se nepodařilo použít"
+
 msgid "Couldn’t verify"
 msgstr "Nelze ověřit"
 
@@ -4398,6 +4426,10 @@ msgstr "Debug"
 msgid "default"
 msgstr "výchozí"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.colorMenu.defaultColor"
+msgstr "Výchozí"
+
 msgid "Default"
 msgstr "Výchozí"
 
@@ -4493,6 +4525,10 @@ msgstr "Smazat automatizaci?"
 
 msgid "Delete cloud workspace"
 msgstr "Smazat cloudový pracovní prostor"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.delete"
+msgstr "Smazat kolekci"
 
 #. placeholder {0}: index + 1
 msgid "Delete command {0}"
@@ -8229,6 +8265,14 @@ msgstr "Většina historie softwaru"
 msgid "Move {count} to Group"
 msgstr "Přesunout {count} do skupiny"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.moveToCollection"
+msgstr "Přesunout do kolekce"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.moveToCollection"
+msgstr "Přesunout do kolekce"
+
 msgid "Move to group"
 msgstr "Přesunout do skupiny"
 
@@ -8371,6 +8415,18 @@ msgstr "Nová karta prohlížeče"
 
 msgid "New chat"
 msgstr "Nový chat"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.workspacesHeader.newCollection"
+msgstr "Nová kolekce"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.newCollection"
+msgstr "Nová kolekce"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.newCollection"
+msgstr "Nová kolekce…"
 
 msgid "New environment"
 msgstr "Nové prostředí"
@@ -10986,6 +11042,14 @@ msgstr "Odebrat {label}?"
 msgid "Remove attachment"
 msgstr "Odebrat přílohu"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.removeFromCollection"
+msgstr "Odebrat z kolekce"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.removeFromCollection"
+msgstr "Odebrat z kolekce"
+
 msgid "Remove from Queue"
 msgstr "Odebrat z fronty"
 
@@ -10994,6 +11058,10 @@ msgstr "Odebrat z postranního panelu"
 
 msgid "Remove from Sidebar"
 msgstr "Odebrat z postranního panelu"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.removeIcon"
+msgstr "Odebrat ikonu"
 
 msgid "Remove icon"
 msgstr "Odebrat ikonu"
@@ -11021,6 +11089,10 @@ msgstr "Odebrat propojení s PR"
 
 msgid "Remove script"
 msgstr "Odebrat skript"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.removeFromCollectionLabel"
+msgstr "Odebrat vybrané projekty z jejich kolekcí"
 
 msgid "Remove team member?"
 msgstr "Odebrat člena týmu?"
@@ -11063,6 +11135,10 @@ msgstr "Přejmenovat"
 
 msgid "Rename branch"
 msgstr "Přejmenovat větev"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.rename"
+msgstr "Přejmenovat kolekci"
 
 msgid "Rename failed"
 msgstr "Přejmenování selhalo"
@@ -12121,6 +12197,10 @@ msgstr "Vybraný agent není terminálový agent"
 msgid "Selected issues span multiple repositories. Select issues from a single repository to run them."
 msgstr "Vybrané issues patří do více repozitářů. Vyberte issues z jednoho repozitáře."
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.toolbarLabel"
+msgstr "Akce vybraných projektů"
+
 msgid "Selected workspace actions"
 msgstr "Akce pro vybrané pracovní prostory"
 
@@ -12229,6 +12309,14 @@ msgstr "Relace"
 msgid "Sessions · top {0} by cost"
 msgstr "Relace · top {0} podle nákladů"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.setColor"
+msgstr "Nastavit barvu kolekce"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.setIcon"
+msgstr "Nastavit ikonu kolekce"
+
 #. placeholder {0}: color.name
 msgid "Set color to {0}"
 msgstr "Nastavit barvu na {0}"
@@ -12274,7 +12362,16 @@ msgstr "Nastavuji na pozadí..."
 msgid "Settings"
 msgstr "Nastavení"
 
-msgid "Settings ({settingsHotkey})"
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.settingsAriaLabel"
+msgstr "Nastavení"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.settingsTooltip"
+msgstr "Nastavení"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.settingsTooltipWithHotkey"
 msgstr "Nastavení ({settingsHotkey})"
 
 msgid "Settings → Remote Access → “Allow remote access to this device via relay”."
@@ -14736,6 +14833,10 @@ msgstr "Využití není dostupné."
 #. placeholder {0}: search.trim()
 msgid "Use “{0}”"
 msgstr "Použít „{0}“"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.useEmojiIcon"
+msgstr "Použít {emoji} jako ikonu kolekce"
 
 msgid "Use a workspace-relative path or an absolute folder."
 msgstr "Použijte cestu relativní k pracovnímu prostoru nebo absolutní složku."

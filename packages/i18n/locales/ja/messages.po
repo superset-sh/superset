@@ -19,6 +19,10 @@ msgstr "と"
 msgid "- className=\"rounded-sm border border-border bg-background …\""
 msgstr "- className=\"rounded-sm border border-border bg-background …\""
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectRow.selectedSuffix"
+msgstr "、選択中"
+
 msgid ", selected"
 msgstr "、選択中"
 
@@ -523,6 +527,10 @@ msgstr "{count, plural, one {#件のコメント} other {#件のコメント}}"
 msgid "{count, plural, one {# file} other {# files}}"
 msgstr "{count, plural, one {#件のファイル} other {#件のファイル}}"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.selectedCount"
+msgstr "{count, plural, one {#件のプロジェクト} other {#件のプロジェクト}}"
+
 msgid "{count, plural, one {# search} other {# searches}}"
 msgstr "{count, plural, one {#件の検索} other {#件の検索}}"
 
@@ -555,6 +563,10 @@ msgstr "{count, plural, one {#週間ごと {day}} other {#週間ごと {day}}}"
 
 msgid "{count, plural, one {Import # worktree} other {Import # worktrees}}"
 msgstr "{count, plural, one {#件のワークツリーをインポート} other {#件のワークツリーをインポート}}"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.moveToCollectionLabel"
+msgstr "{count, plural, one {選択した#件のプロジェクトをコレクションに移動} other {選択した#件のプロジェクトをコレクションに移動}}"
 
 msgid "{count, plural, one {Project opened} other {# projects opened}}"
 msgstr "{count, plural, one {#件のプロジェクトを開きました} other {#件のプロジェクトを開きました}}"
@@ -2842,6 +2854,10 @@ msgstr "トップバーから変更ビューをどのように開くかを選択
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "ターミナルでCmd+クリックしたときのファイルパスの開き方"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.chooseImage"
+msgstr "画像を選択…"
+
 msgid "Choose what to clear from the in-app browser."
 msgstr "アプリ内ブラウザから消去する項目を選択してください。"
 
@@ -2890,6 +2906,10 @@ msgstr "リストをクリア"
 msgid "Clear notice preview"
 msgstr "通知プレビューをクリア"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.clearSelectionLabel"
+msgstr "プロジェクトの選択を解除"
+
 msgid "Clear search"
 msgstr "検索をクリア"
 
@@ -2903,6 +2923,10 @@ msgid "Clear Selection"
 msgstr "選択を解除"
 
 msgid "Clear selection (Esc)"
+msgstr "選択を解除 (Esc)"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.clearSelection"
 msgstr "選択を解除 (Esc)"
 
 msgid "Clear Status"
@@ -4054,6 +4078,10 @@ msgstr "プルリクエストを更新できませんでした"
 msgid "Couldn't update thread"
 msgstr "スレッドを更新できませんでした"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.iconImageFailed"
+msgstr "この画像は使用できませんでした"
+
 msgid "Couldn’t verify"
 msgstr "確認できませんでした"
 
@@ -4398,6 +4426,10 @@ msgstr "デバッグ"
 msgid "default"
 msgstr "デフォルト"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.colorMenu.defaultColor"
+msgstr "デフォルト"
+
 msgid "Default"
 msgstr "デフォルト"
 
@@ -4493,6 +4525,10 @@ msgstr "オートメーションを削除しますか?"
 
 msgid "Delete cloud workspace"
 msgstr "クラウドワークスペースを削除"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.delete"
+msgstr "コレクションを削除"
 
 #. placeholder {0}: index + 1
 msgid "Delete command {0}"
@@ -8229,6 +8265,14 @@ msgstr "ソフトウェアの歴史のほとんど"
 msgid "Move {count} to Group"
 msgstr "{count}件をグループへ移動"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.moveToCollection"
+msgstr "コレクションへ移動"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.moveToCollection"
+msgstr "コレクションへ移動"
+
 msgid "Move to group"
 msgstr "グループへ移動"
 
@@ -8371,6 +8415,18 @@ msgstr "新しいブラウザタブ"
 
 msgid "New chat"
 msgstr "新しいチャット"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.workspacesHeader.newCollection"
+msgstr "新規コレクション"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.newCollection"
+msgstr "新規コレクション"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.newCollection"
+msgstr "新規コレクション…"
 
 msgid "New environment"
 msgstr "新しい環境"
@@ -10986,6 +11042,14 @@ msgstr "{label}を削除しますか?"
 msgid "Remove attachment"
 msgstr "添付ファイルを削除"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.removeFromCollection"
+msgstr "コレクションから削除"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.removeFromCollection"
+msgstr "コレクションから削除"
+
 msgid "Remove from Queue"
 msgstr "キューから削除"
 
@@ -10994,6 +11058,10 @@ msgstr "サイドバーから削除"
 
 msgid "Remove from Sidebar"
 msgstr "サイドバーから削除"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.removeIcon"
+msgstr "アイコンを削除"
 
 msgid "Remove icon"
 msgstr "アイコンを削除"
@@ -11021,6 +11089,10 @@ msgstr "PRリンクを解除"
 
 msgid "Remove script"
 msgstr "スクリプトを削除"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.removeFromCollectionLabel"
+msgstr "選択したプロジェクトをコレクションから削除"
 
 msgid "Remove team member?"
 msgstr "チームメンバーを削除しますか?"
@@ -11063,6 +11135,10 @@ msgstr "名前を変更"
 
 msgid "Rename branch"
 msgstr "ブランチ名を変更"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.rename"
+msgstr "コレクション名を変更"
 
 msgid "Rename failed"
 msgstr "名前の変更に失敗しました"
@@ -12121,6 +12197,10 @@ msgstr "選択したエージェントはターミナルエージェントでは
 msgid "Selected issues span multiple repositories. Select issues from a single repository to run them."
 msgstr "選択したissueが複数のリポジトリにまたがっています。実行するには単一のリポジトリのissueを選択してください。"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectBulk.toolbarLabel"
+msgstr "選択したプロジェクトの操作"
+
 msgid "Selected workspace actions"
 msgstr "選択したワークスペースの操作"
 
@@ -12229,6 +12309,14 @@ msgstr "セッション"
 msgid "Sessions · top {0} by cost"
 msgstr "セッション · コスト上位{0}件"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.setColor"
+msgstr "コレクションの色を設定"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.setIcon"
+msgstr "コレクションのアイコンを設定"
+
 #. placeholder {0}: color.name
 msgid "Set color to {0}"
 msgstr "色を{0}に設定"
@@ -12274,7 +12362,16 @@ msgstr "バックグラウンドでセットアップ中..."
 msgid "Settings"
 msgstr "設定"
 
-msgid "Settings ({settingsHotkey})"
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.settingsAriaLabel"
+msgstr "設定"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.settingsTooltip"
+msgstr "設定"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.settingsTooltipWithHotkey"
 msgstr "設定 ({settingsHotkey})"
 
 msgid "Settings → Remote Access → “Allow remote access to this device via relay”."
@@ -14736,6 +14833,10 @@ msgstr "使用量を取得できません。"
 #. placeholder {0}: search.trim()
 msgid "Use “{0}”"
 msgstr "「{0}」を使用"
+
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.collectionMenu.useEmojiIcon"
+msgstr "{emoji} をコレクションのアイコンに使用"
 
 msgid "Use a workspace-relative path or an absolute folder."
 msgstr "ワークスペースからの相対パスか絶対パスのフォルダを指定します。"
