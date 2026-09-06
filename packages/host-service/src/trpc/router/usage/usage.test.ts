@@ -134,6 +134,52 @@ describe("usageRouter.removeAccount", () => {
 		expect(invalidate).not.toHaveBeenCalled();
 	});
 
+	// A row can own several dirs, and removal names one of them. Testing only
+	// the row's surviving selection let the live dir go: the identity branches
+	// catch it only once the engine has recorded an activeAccountId, which it
+	// never has on Windows, in a sandbox, or after a pointer migrated from the
+	// pre-engine setting — and deletion is rm -rf plus the keychain items.
+	it("refuses a duplicate dir that the pointer names", async () => {
+		// No engine record, as on a host that has never switched — so only the
+		// pointer says which dir is live.
+		writeRuntime(null as unknown as string, null as unknown as string);
+		const ctx = {
+			...context(),
+			db: {
+				select: () => ({
+					from: () => ({
+						get: () => ({
+							defaultClaudeConfigDir: ACTIVE_DIR,
+							defaultCodexHome: null,
+						}),
+					}),
+				}),
+				insert: () => ({
+					values: () => ({ onConflictDoUpdate: () => ({ run: () => {} }) }),
+				}),
+			} as unknown as HostDb,
+			runtime: {
+				quotaStore: {
+					read: async () => [
+						account({
+							accountId: "uuid-a",
+							selection: SPARE_DIR,
+							duplicateSelections: [ACTIVE_DIR],
+						}),
+					],
+					invalidate,
+				},
+			},
+		} as unknown as HostServiceContext;
+
+		await expect(
+			usageRouter
+				.createCaller(ctx)
+				.removeAccount({ agent: "claude", selection: ACTIVE_DIR }),
+		).rejects.toThrow(/switch/i);
+		expect(invalidate).not.toHaveBeenCalled();
+	});
+
 	it("removes an account that is not active and drops its store entry", async () => {
 		await usageRouter
 			.createCaller(context())

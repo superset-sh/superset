@@ -205,8 +205,22 @@ export const usageRouter = router({
 			}
 			const refuseIfActive = (account: UsageAccount): void => {
 				const engineStatus = ctx.runtime.accountEngine?.status()[input.agent];
+				const view = readAccountEngineView(ctx.db);
+				// The row can own more than one dir, and the request names one of
+				// them — so the guard has to test the dir being deleted, not just
+				// the row's surviving selection. Otherwise removing a duplicate
+				// dir that the pointer happens to name deletes the login every
+				// running session is signed in to: the identity branches below
+				// only catch it once the engine has recorded an activeAccountId,
+				// which it never has on Windows, in a sandbox, or after a pointer
+				// migrated from the pre-engine setting.
+				const requestedIsLive =
+					input.selection !== null &&
+					(input.selection === view[input.agent]?.pointerSelection ||
+						input.selection === engineStatus?.activeSelection);
 				const active =
-					isActiveAccount(account, readAccountEngineView(ctx.db)) ||
+					requestedIsLive ||
+					isActiveAccount(account, view) ||
 					(engineStatus?.activeAccountId != null &&
 						account.accountId === engineStatus.activeAccountId) ||
 					(engineStatus?.activeSelection != null &&
