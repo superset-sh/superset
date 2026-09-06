@@ -14,21 +14,23 @@ import {
 	ensureActiveClaudeDir,
 	provisionSelectedAccounts,
 } from "./account-provisioning.ts";
-import {
-	activeClaudeConfigDirPath,
-	syncDefaultAccountPointer,
-} from "./default-account.ts";
+import { syncDefaultAccountPointer } from "./default-account.ts";
 
-const db = {
-	select: () => ({
-		from: () => ({
-			get: () => ({ defaultClaudeConfigDir: null, defaultCodexHome: null }),
+function dbWith(
+	defaultClaudeConfigDir: string | null,
+	defaultCodexHome: string | null,
+): HostDb {
+	return {
+		select: () => ({
+			from: () => ({
+				get: () => ({ defaultClaudeConfigDir, defaultCodexHome }),
+			}),
 		}),
-	}),
-	insert: () => ({
-		values: () => ({ onConflictDoUpdate: () => ({ run: () => {} }) }),
-	}),
-} as unknown as HostDb;
+		insert: () => ({
+			values: () => ({ onConflictDoUpdate: () => ({ run: () => {} }) }),
+		}),
+	} as unknown as HostDb;
+}
 
 /**
  * KTD2: the pointer names the Superset-owned active dir once a swap has run,
@@ -55,28 +57,19 @@ describe("provisionSelectedAccounts", () => {
 		rmSync(home, { recursive: true, force: true });
 	});
 
-	/** What provisionClaudeProfile leaves behind in a dir it has provisioned. */
-	function markProvisioned(dir: string): void {
-		writeFileSync(join(dir, ".superset-profile.json"), "{}");
-	}
-
-	it("provisions every profile dir it owns, not only the one the pointer names", async () => {
-		const profile = join(home, "claude-work");
-		const codexProfile = join(home, "codex-work");
-		const activeDir = activeClaudeConfigDirPath();
-		for (const dir of [profile, codexProfile, activeDir]) {
-			mkdirSync(dir, { recursive: true });
-		}
-		markProvisioned(profile);
-		markProvisioned(codexProfile);
-		syncDefaultAccountPointer("claude", activeDir);
-		syncDefaultAccountPointer("codex", null);
+	// Provisioning moves a dir's session tree into ~/.claude and rewrites its
+	// settings, so the boot pass must reach only the account Superset was
+	// handed. Everything else is provisioned when it is selected.
+	it("provisions the pointer selection", async () => {
+		const selected = join(home, "claude-work");
+		const codexSelected = join(home, "codex-work");
+		for (const dir of [selected, codexSelected]) mkdirSync(dir);
+		syncDefaultAccountPointer("claude", selected);
+		syncDefaultAccountPointer("codex", codexSelected);
 
 		const claudeDirs: string[] = [];
 		const codexHomes: string[] = [];
-		await provisionSelectedAccounts(db, {
-			discoverClaudeDirs: async () => [profile],
-			discoverCodexDirs: async () => [codexProfile],
+		await provisionSelectedAccounts(dbWith(selected, codexSelected), {
 			provisionClaude: async (dir) => {
 				claudeDirs.push(dir);
 			},
@@ -85,41 +78,35 @@ describe("provisionSelectedAccounts", () => {
 			},
 		});
 
-		expect(claudeDirs.sort()).toEqual([activeDir, profile].sort());
-		expect(codexHomes).toEqual([codexProfile]);
+		expect(claudeDirs).toEqual([selected]);
+		expect(codexHomes).toEqual([codexSelected]);
 	});
 
-	// Discovery answers "what logins exist here", which is wider than "what
-	// Superset was handed". A ~/.claude-backup or a scratch copy has a
-	// .claude.json and so is discovered, but provisioning it at boot would
-	// move its sessions into the live home behind the user's back.
-	it("leaves a discovered dir Superset has never provisioned alone", async () => {
-		const untouched = join(home, "claude-backup");
-		const untouchedCodex = join(home, "codex-backup");
-		for (const dir of [untouched, untouchedCodex]) mkdirSync(dir);
+	// A ~/.claude-backup or a scratch copy is discoverable, and provisioning it
+	// would move its sessions into the live home behind the user's back.
+	it("never reaches a dir that is merely discoverable", async () => {
+		const selected = join(home, "claude-work");
+		const backup = join(home, ".claude-backup");
+		for (const dir of [selected, backup]) mkdirSync(dir);
+		syncDefaultAccountPointer("claude", selected);
 
 		const claudeDirs: string[] = [];
-		const codexHomes: string[] = [];
-		await provisionSelectedAccounts(db, {
-			discoverClaudeDirs: async () => [untouched],
-			discoverCodexDirs: async () => [untouchedCodex],
+		await provisionSelectedAccounts(dbWith(selected, null), {
 			provisionClaude: async (dir) => {
 				claudeDirs.push(dir);
 			},
-			provisionCodex: async (dir) => {
-				codexHomes.push(dir);
-			},
+			provisionCodex: async () => {},
 		});
 
-		expect(claudeDirs).toEqual([]);
-		expect(codexHomes).toEqual([]);
+		expect(claudeDirs).toEqual([selected]);
 	});
 
-	it("skips a profile dir that has vanished", async () => {
+	it("skips a selection that has vanished", async () => {
+		const gone = join(home, "gone");
+		syncDefaultAccountPointer("claude", gone);
+
 		const claudeDirs: string[] = [];
-		await provisionSelectedAccounts(db, {
-			discoverClaudeDirs: async () => [join(home, "gone")],
-			discoverCodexDirs: async () => [],
+		await provisionSelectedAccounts(dbWith(gone, null), {
 			provisionClaude: async (dir) => {
 				claudeDirs.push(dir);
 			},

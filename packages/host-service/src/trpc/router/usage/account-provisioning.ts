@@ -21,7 +21,6 @@ import {
 	getDefaultAccountSelections,
 	syncDefaultAccountPointers,
 } from "./default-account.ts";
-import { discoverClaudeProfiles, discoverCodexHomes } from "./profiles.ts";
 import {
 	shareClaudeSessionState,
 	shareCodexSessionState,
@@ -108,38 +107,27 @@ export async function provisionCodexAccount(codexHome: string): Promise<void> {
 /** Injectable so the boot pass can be tested without a real home dir or the
  * agent-setup provisioners running against it. */
 export interface ProvisionAccountsDeps {
-	discoverClaudeDirs?: () => Promise<string[]>;
-	discoverCodexDirs?: () => Promise<string[]>;
 	provisionClaude?: (configDir: string) => Promise<void>;
 	provisionCodex?: (codexHome: string) => Promise<void>;
 }
 
-/** Every Claude profile dir on this host. The active dir is not among them:
- * discovery excludes it (KTD4), and the pointer contributes it instead. */
-async function discoverClaudeProfileDirs(): Promise<string[]> {
-	return (await discoverClaudeProfiles()).map((profile) => profile.configDir);
-}
-
-/** Every Codex home except the system default, which is the share's source
- * and can never be its target (see session-share.ts). */
-async function discoverCodexProfileDirs(): Promise<string[]> {
-	const ambient = resolveAmbientCodexHome();
-	return (await discoverCodexHomes())
-		.map((home) => home.home)
-		.filter((home) => home !== ambient);
-}
-
 /**
- * Re-shares the default account's config into every account on this host.
- * Runs at host boot so a profile keeps up with skills, plugins, and settings
- * added since it was selected, and so one provisioned by an older build — or
- * by a switch that failed halfway — is repaired before the next agent
- * launches on it.
+ * Re-shares the default account's config into the selected account. Runs at
+ * host boot so the account agents actually launch on keeps up with skills,
+ * plugins and settings added since it was selected.
  *
- * Every discovered profile dir is provisioned, not only the one the pointer
- * names (KTD2): from the first login swap onwards the pointer names the
- * Superset-owned active dir, and provisioning only that would leave every
- * account added since without shared session history.
+ * Only the pointer selection, never discovery. Provisioning is not a read: it
+ * moves a dir's projects/, todos/ and sessions/ into ~/.claude and leaves
+ * symlinks behind, appends its history.jsonl to the live one, and rewrites its
+ * settings.json. Discovery answers "what logins exist on this host", so
+ * fanning out over it did that to dirs the user never handed over — a
+ * ~/.claude-backup, a scratch copy — and the displaced bytes are left in a
+ * .superset-merge sidecar nothing drains.
+ *
+ * Nothing is lost by narrowing, because every path that hands Superset an
+ * account already provisions that dir then and there: prepareAccount on the
+ * add-account flow, and setDefaultAccount on every switch. A dir that arrived
+ * outside the UI is provisioned the first time it is selected.
  */
 export async function provisionSelectedAccounts(
 	db: HostDb,
@@ -151,45 +139,14 @@ export async function provisionSelectedAccounts(
 	const { claudeConfigDir, codexHome } = getDefaultAccountSelections(db);
 	const provisionClaude = deps.provisionClaude ?? provisionClaudeAccount;
 	const provisionCodex = deps.provisionCodex ?? provisionCodexAccount;
-	// Discovery answers "what logins exist on this host", which is a wider
-	// question than "what has Superset been handed". Provisioning is not a
-	// read: it moves the dir's projects/, todos/ and sessions/ into ~/.claude
-	// and leaves symlinks behind, appends its history.jsonl to the live one,
-	// and rewrites its settings.json. Doing that at boot to a dir the user
-	// never selected — a ~/.claude-backup, a scratch copy — destroys the
-	// isolation the directory existed for, and the displaced bytes are left in
-	// a .superset-merge sidecar nothing ever drains.
-	//
-	// So the boot pass repairs what Superset already owns and nothing else: the
-	// pointer selection, and any discovered dir already carrying the
-	// provisioning ledger from a previous pass. A dir Superset has never
-	// touched is left to the user-initiated path, which provisions it the
-	// moment the account is actually selected.
-	// agent-setup's PROFILE_LEDGER_NAME, which provisionClaudeProfile writes
-	// into every dir it touches. Spelled out rather than imported because the
-	// name is not on that package's public surface.
-	const provisionedBefore = (dir: string): boolean =>
-		existsSync(join(dir, ".superset-profile.json"));
-	const claudeDirs = new Set([
-		...(claudeConfigDir ? [claudeConfigDir] : []),
-		...(await (deps.discoverClaudeDirs ?? discoverClaudeProfileDirs)()).filter(
-			provisionedBefore,
-		),
-	]);
-	const codexHomes = new Set([
-		...(codexHome ? [codexHome] : []),
-		...(await (deps.discoverCodexDirs ?? discoverCodexProfileDirs)()).filter(
-			provisionedBefore,
-		),
-	]);
 	const targets: Array<readonly [string, () => Promise<unknown>]> = [];
 	// A dir that has vanished is skipped, not recreated: agent launches
 	// already fall back to the system-default login in that case.
-	for (const dir of claudeDirs) {
-		if (existsSync(dir)) targets.push([dir, () => provisionClaude(dir)]);
+	if (claudeConfigDir && existsSync(claudeConfigDir)) {
+		targets.push([claudeConfigDir, () => provisionClaude(claudeConfigDir)]);
 	}
-	for (const dir of codexHomes) {
-		if (existsSync(dir)) targets.push([dir, () => provisionCodex(dir)]);
+	if (codexHome && existsSync(codexHome)) {
+		targets.push([codexHome, () => provisionCodex(codexHome)]);
 	}
 	for (const [dir, provision] of targets) {
 		try {
