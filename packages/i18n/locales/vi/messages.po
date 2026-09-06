@@ -1146,6 +1146,9 @@ msgstr "Một cái nhìn về những gì đang làm, những gì sắp tới v�
 msgid "A majority of production changes merge without any human reading the diff."
 msgstr "Phần lớn thay đổi lên production được merge mà không ai đọc diff."
 
+msgid "A model name can be at most {MAX_MODEL_NAME_LENGTH} characters. Shorten it and try again."
+msgstr "Tên mô hình chỉ được tối đa {MAX_MODEL_NAME_LENGTH} ký tự. Hãy rút ngắn và thử lại."
+
 msgid "A new version of Superset is required to continue. Please update to the latest version."
 msgstr "Cần phiên bản Superset mới để tiếp tục. Vui lòng cập nhật lên phiên bản mới nhất."
 
@@ -7353,6 +7356,9 @@ msgstr "Ngày cuối mỗi tháng"
 
 msgid "Last day of each month at {time}"
 msgstr "Ngày cuối mỗi tháng lúc {time}"
+
+msgid "Last read failed, so this list may be out of date. Reopen this page to try again."
+msgstr "Lần đọc gần nhất đã thất bại nên danh sách này có thể chưa được cập nhật. Hãy mở lại trang này để thử lại."
 
 msgid "Last run"
 msgstr "Chạy lần cuối"

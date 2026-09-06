@@ -1146,6 +1146,9 @@ msgstr "看看有什麼正在進行、接下來做什麼，以及{company}要走
 msgid "A majority of production changes merge without any human reading the diff."
 msgstr "多數生產變更在無人閱讀差異的情況下合併。"
 
+msgid "A model name can be at most {MAX_MODEL_NAME_LENGTH} characters. Shorten it and try again."
+msgstr "模型名稱最多 {MAX_MODEL_NAME_LENGTH} 個字元。請縮短後再試一次。"
+
 msgid "A new version of Superset is required to continue. Please update to the latest version."
 msgstr "需要新版本的Superset才能繼續。請更新到最新版本。"
 
@@ -7353,6 +7356,9 @@ msgstr "每月最後一天"
 
 msgid "Last day of each month at {time}"
 msgstr "每月最後一天{time}"
+
+msgid "Last read failed, so this list may be out of date. Reopen this page to try again."
+msgstr "上次讀取失敗，此清單可能不是最新的。重新開啟此頁面可再試一次。"
 
 msgid "Last run"
 msgstr "上次執行"

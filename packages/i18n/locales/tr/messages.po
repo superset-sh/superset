@@ -1146,6 +1146,9 @@ msgstr "Devam eden işlere, sırada olanlara ve {company} şirketinin gittiği y
 msgid "A majority of production changes merge without any human reading the diff."
 msgstr "Üretim değişikliklerinin çoğu, hiçbir insan farkı okumadan birleşir."
 
+msgid "A model name can be at most {MAX_MODEL_NAME_LENGTH} characters. Shorten it and try again."
+msgstr "Bir model adı en fazla {MAX_MODEL_NAME_LENGTH} karakter olabilir. Kısaltıp tekrar deneyin."
+
 msgid "A new version of Superset is required to continue. Please update to the latest version."
 msgstr "Devam etmek için Superset'in yeni bir sürümü gerekiyor. Lütfen en son sürüme güncelleyin."
 
@@ -7353,6 +7356,9 @@ msgstr "Her ayın son günü"
 
 msgid "Last day of each month at {time}"
 msgstr "Her ayın son günü saat {time}"
+
+msgid "Last read failed, so this list may be out of date. Reopen this page to try again."
+msgstr "Son okuma başarısız oldu, bu yüzden bu liste güncel olmayabilir. Yeniden denemek için bu sayfayı tekrar açın."
 
 msgid "Last run"
 msgstr "Son çalıştırma"

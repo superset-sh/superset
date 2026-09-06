@@ -1146,6 +1146,9 @@ msgstr "Взгляд на то, что в работе, что дальше и �
 msgid "A majority of production changes merge without any human reading the diff."
 msgstr "Большинство продакшен-изменений сливается без того, чтобы человек читал diff."
 
+msgid "A model name can be at most {MAX_MODEL_NAME_LENGTH} characters. Shorten it and try again."
+msgstr "Название модели может содержать не более {MAX_MODEL_NAME_LENGTH} символов. Сократите его и попробуйте снова."
+
 msgid "A new version of Superset is required to continue. Please update to the latest version."
 msgstr "Чтобы продолжить, нужна новая версия Superset. Обновитесь до последней версии."
 
@@ -7353,6 +7356,9 @@ msgstr "В последний день каждого месяца"
 
 msgid "Last day of each month at {time}"
 msgstr "В последний день каждого месяца в {time}"
+
+msgid "Last read failed, so this list may be out of date. Reopen this page to try again."
+msgstr "Последнее чтение не удалось, поэтому список может быть устаревшим. Откройте эту страницу заново, чтобы повторить попытку."
 
 msgid "Last run"
 msgstr "Последний запуск"

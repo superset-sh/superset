@@ -1146,6 +1146,9 @@ msgstr "Pohled na to, co je rozpracované, co přijde dál a kam {company} smě�
 msgid "A majority of production changes merge without any human reading the diff."
 msgstr "Většina produkčních změn se sloučí, aniž by kdokoli četl diff."
 
+msgid "A model name can be at most {MAX_MODEL_NAME_LENGTH} characters. Shorten it and try again."
+msgstr "Název modelu může mít nejvýše {MAX_MODEL_NAME_LENGTH} znaků. Zkraťte jej a zkuste to znovu."
+
 msgid "A new version of Superset is required to continue. Please update to the latest version."
 msgstr "Pro pokračování je potřeba novější verze Superset. Aktualizujte prosím na nejnovější verzi."
 
@@ -7353,6 +7356,9 @@ msgstr "Poslední den v měsíci"
 
 msgid "Last day of each month at {time}"
 msgstr "Poslední den v měsíci v {time}"
+
+msgid "Last read failed, so this list may be out of date. Reopen this page to try again."
+msgstr "Poslední načtení selhalo, takže tento seznam nemusí být aktuální. Zkuste to znovu otevřením této stránky."
 
 msgid "Last run"
 msgstr "Poslední běh"

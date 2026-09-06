@@ -1146,6 +1146,9 @@ msgstr "진행 중인 작업, 다음 순서, 그리고 {company}이(가) 향하�
 msgid "A majority of production changes merge without any human reading the diff."
 msgstr "프로덕션 변경의 과반이 사람이 차이를 읽지 않은 채 머지됩니다."
 
+msgid "A model name can be at most {MAX_MODEL_NAME_LENGTH} characters. Shorten it and try again."
+msgstr "모델 이름은 최대 {MAX_MODEL_NAME_LENGTH}자입니다. 줄인 뒤 다시 시도하세요."
+
 msgid "A new version of Superset is required to continue. Please update to the latest version."
 msgstr "계속하려면 새 버전의 Superset이 필요합니다. 최신 버전으로 업데이트해 주세요."
 
@@ -7353,6 +7356,9 @@ msgstr "매월 마지막 날"
 
 msgid "Last day of each month at {time}"
 msgstr "매월 마지막 날 {time}"
+
+msgid "Last read failed, so this list may be out of date. Reopen this page to try again."
+msgstr "마지막 읽기에 실패해 이 목록은 최신이 아닐 수 있습니다. 이 페이지를 다시 열면 다시 시도합니다."
 
 msgid "Last run"
 msgstr "마지막 실행"

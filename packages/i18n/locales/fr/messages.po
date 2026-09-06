@@ -1146,6 +1146,9 @@ msgstr "Un aperçu de ce qui est en cours, de ce qui arrive ensuite et de la dir
 msgid "A majority of production changes merge without any human reading the diff."
 msgstr "La majorité des changements en production sont fusionnés sans qu'aucun humain n'ait lu le diff."
 
+msgid "A model name can be at most {MAX_MODEL_NAME_LENGTH} characters. Shorten it and try again."
+msgstr "Un nom de modèle ne peut pas dépasser {MAX_MODEL_NAME_LENGTH} caractères. Raccourcissez-le et réessayez."
+
 msgid "A new version of Superset is required to continue. Please update to the latest version."
 msgstr "Une nouvelle version de Superset est requise pour continuer. Veuillez mettre à jour vers la dernière version."
 
@@ -7353,6 +7356,9 @@ msgstr "Dernier jour de chaque mois"
 
 msgid "Last day of each month at {time}"
 msgstr "Dernier jour de chaque mois à {time}"
+
+msgid "Last read failed, so this list may be out of date. Reopen this page to try again."
+msgstr "La dernière lecture a échoué, cette liste n'est donc peut-être pas à jour. Rouvrez cette page pour réessayer."
 
 msgid "Last run"
 msgstr "Dernière exécution"
