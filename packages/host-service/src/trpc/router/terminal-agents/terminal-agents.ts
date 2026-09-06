@@ -536,53 +536,6 @@ export interface AccountRestartCandidate {
 	managed: boolean;
 }
 
-export interface RestartAccountSessionsDeps {
-	db: HostDb;
-	terminalAgentStore: TerminalAgentStore;
-	disposeSession: (terminalId: string) => Promise<unknown>;
-}
-
-/**
- * Relaunch every live `provider` agent onto the current default account.
- * Each candidate terminal is killed the way a crash would kill it — the
- * binding is marked "terminal-exited", never "disposed" — so the standard
- * auto-resume path relaunches the agent with its saved session id (or fresh,
- * for one that never got a prompt), and the agent wrapper re-resolves the
- * account pointer at launch: same conversation, new account. Marking ended
- * precedes the dispose because the renderer re-checks for a resume candidate
- * on the socket close the dispose causes; the store's own "change" event
- * never reaches it. Panes that are not open resume when their workspace is
- * next viewed, like any other
- * dead-terminal candidate.
- */
-export async function restartAccountSessions(
-	deps: RestartAccountSessionsDeps,
-	provider: "claude" | "codex",
-): Promise<{ restartedTerminalIds: string[] }> {
-	await waitForTerminalBaseEnv();
-	const candidates = listAccountRestartCandidates(
-		deps.db,
-		deps.terminalAgentStore,
-		provider,
-	);
-	const restartedTerminalIds: string[] = [];
-	for (const { binding } of candidates) {
-		deps.terminalAgentStore.markTerminalExited(binding.terminalId);
-		try {
-			await deps.disposeSession(binding.terminalId);
-		} catch (error) {
-			// The reaper retries the kill; the binding stays a valid candidate.
-			console.warn(
-				"[terminal-agents] account-switch restart failed to dispose terminal",
-				{ terminalId: binding.terminalId, error },
-			);
-			continue;
-		}
-		restartedTerminalIds.push(binding.terminalId);
-	}
-	return { restartedTerminalIds };
-}
-
 function inflightKey(
 	workspaceId: string,
 	agentId: TerminalAgentId,
@@ -708,21 +661,6 @@ export const terminalAgentsRouter = router({
 				managed,
 			}));
 		}),
-
-	/** See {@link restartAccountSessions}. */
-	restartAccountSessions: protectedProcedure
-		.input(z.object({ provider: z.enum(["claude", "codex"]) }))
-		.mutation(({ ctx, input }) =>
-			restartAccountSessions(
-				{
-					db: ctx.db,
-					terminalAgentStore: ctx.terminalAgentStore,
-					disposeSession: (terminalId) =>
-						disposeSessionAndWait(terminalId, ctx.db),
-				},
-				input.provider,
-			),
-		),
 
 	/**
 	 * Seed a resume candidate for a terminal recreated by the v1→v2 pane
