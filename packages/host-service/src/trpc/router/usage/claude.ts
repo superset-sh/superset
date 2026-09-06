@@ -45,6 +45,9 @@ export interface ClaudeOauthCredential {
 	/** Config dir to inject as CLAUDE_CONFIG_DIR to run on this login; null
 	 * for the system-default login. */
 	selection: string | null;
+	/** Other config dirs holding this same login, filled in when the identity
+	 * dedupe drops one of them. */
+	duplicateSelections?: string[];
 	/** Identity from the profile's own state file, when known. */
 	email?: string | null;
 	/** KTD4: `oauthAccount.accountUuid` — the provider's account identity,
@@ -391,7 +394,20 @@ export function dedupeClaudeCredentials(
 		const key = credential.accountId
 			? `id:${credential.accountId}`
 			: `token:${credential.accessToken}`;
-		if (!byIdentity.has(key)) byIdentity.set(key, credential);
+		const kept = byIdentity.get(key);
+		if (!kept) {
+			byIdentity.set(key, credential);
+			continue;
+		}
+		// A dropped dir appears in no list this pass builds — not a credential,
+		// not a signed-out profile — so nothing would offer to remove the
+		// profile it still has on disk. The survivor carries it instead.
+		if (credential.selection !== null) {
+			kept.duplicateSelections = [
+				...(kept.duplicateSelections ?? []),
+				credential.selection,
+			];
+		}
 	}
 	return [...byIdentity.values()];
 }
@@ -501,6 +517,7 @@ async function fetchClaudeAccount(
 		plan: credential.subscriptionType,
 		creditsBalance: null,
 		selection: credential.selection,
+		duplicateSelections: credential.duplicateSelections,
 		accountId: credential.accountId,
 		// R16: subscription logins rotate by default; the per-account toggle
 		// and the active badge are decorated per query, since the quota cache

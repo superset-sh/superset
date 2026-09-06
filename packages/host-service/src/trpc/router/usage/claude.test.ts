@@ -148,6 +148,25 @@ describe("dedupeClaudeCredentials", () => {
 		]);
 	});
 
+	it("carries a dropped dir on the survivor, so it stays removable", () => {
+		const first = credential({
+			accessToken: "one",
+			accountId: "uuid-a",
+			selection: "/home/u/.claude-a",
+		});
+		const second = credential({
+			accessToken: "two",
+			accountId: "uuid-a",
+			selection: "/home/u/.claude-b",
+		});
+
+		expect(
+			dedupeClaudeCredentials([first, second]).map(
+				(one) => one.duplicateSelections,
+			),
+		).toEqual([["/home/u/.claude-b"]]);
+	});
+
 	it("falls back to the token when there is no account id", () => {
 		const first = credential({ accessToken: "shared" });
 		const second = credential({ accessToken: "shared" });

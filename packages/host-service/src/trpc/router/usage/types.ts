@@ -85,6 +85,10 @@ export interface UsageAccount {
 	 * CODEX_HOME) to run on this account. Null for the system-default login,
 	 * which needs no override. */
 	selection: string | null;
+	/** Other profile dirs holding this same login, dropped by the identity
+	 * dedupe (KTD4) so the account lists once. Absent in the normal case; the
+	 * removal path needs them because a dropped dir has no row of its own. */
+	duplicateSelections?: string[];
 	/** The provider's own account identity (KTD4): Claude's
 	 * `oauthAccount.accountUuid`, Codex's `tokens.account_id`. This is what
 	 * keys an account across profile dirs — a login swap leaves the same token
