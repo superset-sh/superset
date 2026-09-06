@@ -187,11 +187,16 @@ export function SwitchHistory({
 										className={cn(
 											"max-w-[12rem] truncate px-2 py-1",
 											hideEmails &&
+												entry.reasonKind !== "fallback-rejected" &&
 												entry.toLabel?.includes("@") &&
 												"select-none blur-[5px]",
 										)}
 									>
-										{accountLabel(entry.toLabel)}
+										{entry.reasonKind === "fallback-rejected" ? (
+											<span aria-hidden>—</span>
+										) : (
+											accountLabel(entry.toLabel)
+										)}
 									</TableCell>
 									<TableCell className="px-2 py-1 text-muted-foreground">
 										{reasonText(entry)}
