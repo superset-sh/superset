@@ -15,6 +15,7 @@ import {
 	resolveAmbientCodexHome,
 } from "@superset/agent-setup";
 import type { HostDb } from "../../../db/index.ts";
+import { updateClaudeStateFile } from "./claude-state-file.ts";
 import {
 	activeClaudeConfigDirPath,
 	getDefaultAccountSelections,
@@ -59,16 +60,37 @@ export function activeClaudeConfigDir(): string {
  * whose absence opens the first-boot wizard on the dir's first launch.
  */
 export async function ensureActiveClaudeDir(
-	options: { seedLogin?: (activeDir: string) => Promise<void> } = {},
+	options: {
+		seedLogin?: (activeDir: string) => Promise<void>;
+		/** Injectable for the same reason the boot pass injects its
+		 * provisioners: the real one shares session state into the caller's
+		 * own ~/.claude, which a test must not touch. */
+		provision?: (activeDir: string) => Promise<void>;
+	} = {},
 ): Promise<string> {
 	const dir = activeClaudeConfigDir();
 	await mkdir(dir, { recursive: true, mode: 0o700 });
 	await chmod(dir, 0o700);
 	// No state file means no login has ever been swapped into this dir.
-	if (options.seedLogin && !existsSync(join(dir, ".claude.json"))) {
+	const statePath = join(dir, ".claude.json");
+	if (options.seedLogin && !existsSync(statePath)) {
 		await options.seedLogin(dir);
 	}
-	await provisionClaudeAccount(dir);
+	// Provisioning forces `hasCompletedOnboarding` by merging into a state file
+	// that already exists, so a dir reaching it without one keeps neither. The
+	// first activation is exactly that case: it passes no `seedLogin` and the
+	// engine seeds identity afterwards, which writes only `oauthAccount` and
+	// `userID`. The dir is published to the pointer in between, so its first
+	// launch would open the first-boot wizard — where a stray Enter starts a
+	// login that silently rebinds the profile — until the next host restart
+	// re-provisioned it. Superset owns this dir, so the flag is ours to state.
+	if (!existsSync(statePath)) {
+		await updateClaudeStateFile(statePath, (state) => ({
+			...state,
+			hasCompletedOnboarding: true,
+		}));
+	}
+	await (options.provision ?? provisionClaudeAccount)(dir);
 	return dir;
 }
 
@@ -129,13 +151,36 @@ export async function provisionSelectedAccounts(
 	const { claudeConfigDir, codexHome } = getDefaultAccountSelections(db);
 	const provisionClaude = deps.provisionClaude ?? provisionClaudeAccount;
 	const provisionCodex = deps.provisionCodex ?? provisionCodexAccount;
+	// Discovery answers "what logins exist on this host", which is a wider
+	// question than "what has Superset been handed". Provisioning is not a
+	// read: it moves the dir's projects/, todos/ and sessions/ into ~/.claude
+	// and leaves symlinks behind, appends its history.jsonl to the live one,
+	// and rewrites its settings.json. Doing that at boot to a dir the user
+	// never selected — a ~/.claude-backup, a scratch copy — destroys the
+	// isolation the directory existed for, and the displaced bytes are left in
+	// a .superset-merge sidecar nothing ever drains.
+	//
+	// So the boot pass repairs what Superset already owns and nothing else: the
+	// pointer selection, and any discovered dir already carrying the
+	// provisioning ledger from a previous pass. A dir Superset has never
+	// touched is left to the user-initiated path, which provisions it the
+	// moment the account is actually selected.
+	// agent-setup's PROFILE_LEDGER_NAME, which provisionClaudeProfile writes
+	// into every dir it touches. Spelled out rather than imported because the
+	// name is not on that package's public surface.
+	const provisionedBefore = (dir: string): boolean =>
+		existsSync(join(dir, ".superset-profile.json"));
 	const claudeDirs = new Set([
 		...(claudeConfigDir ? [claudeConfigDir] : []),
-		...(await (deps.discoverClaudeDirs ?? discoverClaudeProfileDirs)()),
+		...(await (deps.discoverClaudeDirs ?? discoverClaudeProfileDirs)()).filter(
+			provisionedBefore,
+		),
 	]);
 	const codexHomes = new Set([
 		...(codexHome ? [codexHome] : []),
-		...(await (deps.discoverCodexDirs ?? discoverCodexProfileDirs)()),
+		...(await (deps.discoverCodexDirs ?? discoverCodexProfileDirs)()).filter(
+			provisionedBefore,
+		),
 	]);
 	const targets: Array<readonly [string, () => Promise<unknown>]> = [];
 	// A dir that has vanished is skipped, not recreated: agent launches
