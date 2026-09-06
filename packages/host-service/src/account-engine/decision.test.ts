@@ -216,6 +216,32 @@ describe("isEligible", () => {
 			),
 		).toBe(true);
 	});
+
+	// The system-default login has neither an id nor a selection, so its toggle
+	// is filed under `claude:default` — and a read of ~/.claude.json that
+	// failed once reports no id at all. Once the identity is read the key
+	// becomes `claude:acct-x`, and the account the user excluded must not walk
+	// back into rotation on that poll.
+	it("still honours a toggle filed under the default key before the identity was known", () => {
+		const identified = account({ accountId: "acct-x", selection: null });
+		expect(isEligible({ ...identified, inRotation: true }, {})).toBe(true);
+		expect(
+			isEligible(
+				{ ...identified, inRotation: true },
+				{
+					"claude:default": false,
+				},
+			),
+		).toBe(false);
+		expect(
+			isEligible(
+				{ ...identified, inRotation: false },
+				{
+					"claude:default": true,
+				},
+			),
+		).toBe(true);
+	});
 });
 
 describe("pickBest", () => {
@@ -407,6 +433,88 @@ describe("shouldSwitch", () => {
 		if (!decision.switch) throw new Error("expected a switch");
 		expect(decision.target.accountKey).toBe("key-api");
 		expect(decision.reasonKind).toBe("threshold");
+	});
+
+	// A stale access token skips the usage endpoint, and with no earlier read
+	// to carry from it lands on zero windows — a full 100, the same hazard as
+	// the metered login, on an account nobody could read.
+	const staleUnread = () =>
+		account({
+			accountId: "acct-stale",
+			accountKey: "key-stale",
+			selection: "/profiles/stale",
+			tokenState: "token_stale",
+			windows: [],
+		});
+
+	it("never moves onto an unread stale account over one it can score", () => {
+		const decision = shouldSwitch({
+			settings: settings(),
+			active: account({
+				windows: [window_("five_hour", "Session (5h)", 20)],
+			}),
+			candidates: [
+				staleUnread(),
+				account({
+					accountId: "acct-b",
+					accountKey: "key-b",
+					selection: "/profiles/b",
+					windows: [window_("five_hour", "Session (5h)", 5)],
+				}),
+			],
+			rotation: { "key-stale": true, "key-b": true },
+			runtime,
+			now: 0,
+		});
+
+		expect(decision).toMatchObject({ switch: true, reasonKind: "strategy" });
+		expect(decision.switch && decision.target.accountKey).toBe("key-b");
+	});
+
+	// Last resort, not never: at the limit with nothing else left, an account
+	// we could not read beats stopping.
+	it("takes an unread stale account when nothing scorable has room", () => {
+		const decision = shouldSwitch({
+			settings: settings(),
+			active: account({
+				windows: [window_("five_hour", "Session (5h)", 95)],
+			}),
+			candidates: [staleUnread()],
+			rotation: { "key-stale": true },
+			runtime,
+			now: 0,
+		});
+
+		expect(decision.switch).toBe(true);
+		if (!decision.switch) throw new Error("expected a switch");
+		expect(decision.target.accountKey).toBe("key-stale");
+		expect(decision.reasonKind).toBe("threshold");
+	});
+
+	// The metered login has no reset either, so it ties the plan account's
+	// absent weekly window at Infinity and wins the accountKey tie-break.
+	it("consume-first: prefers a plan account over a metered one", () => {
+		const decision = shouldSwitch({
+			settings: settings({ strategy: "consume-first" }),
+			active: account({
+				windows: [window_("five_hour", "Session (5h)", 95)],
+			}),
+			candidates: [
+				metered(),
+				account({
+					accountId: "acct-b",
+					accountKey: "key-b",
+					selection: "/profiles/b",
+					windows: [window_("five_hour", "Session (5h)", 40)],
+				}),
+			],
+			rotation: { "key-api": true, "key-b": true },
+			runtime,
+			now: T0,
+		});
+
+		expect(decision).toMatchObject({ switch: true, reasonKind: "threshold" });
+		expect(decision.switch && decision.target.accountKey).toBe("key-b");
 	});
 
 	it("stays put while auto-switch is off", () => {

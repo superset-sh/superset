@@ -224,14 +224,13 @@ function rotationFlag(
 	}
 	if (account.accountKey in rotation)
 		return rotation[account.accountKey] === true;
-	// The same account spells its key on `selection` until its identity is
-	// read and on `accountId` after (an auth refresh writing `account_id`, a
+	// The same account spells its key on `selection` — or on "default", for the
+	// system-default login, which has neither — until its identity is read, and
+	// on `accountId` after (an auth refresh writing `account_id`, a
 	// default-login read that failed once). A toggle filed under the older
 	// spelling still means what the user chose.
-	if (account.selection !== null) {
-		const selectionKey = `${account.agent}:${account.selection}`;
-		if (selectionKey in rotation) return rotation[selectionKey] === true;
-	}
+	const preIdentityKey = accountRotationKey({ ...account, accountId: null });
+	if (preIdentityKey in rotation) return rotation[preIdentityKey] === true;
 	return account.inRotation;
 }
 
@@ -299,6 +298,37 @@ export function pickConsumeFirst(
 }
 
 /**
+ * A target of last resort: an account the strategy cannot rank against the
+ * ones it can read, because the number it orders by is missing rather than
+ * good. `best` scores windows, so it is an account that reports none — an
+ * API-billed login by construction (R16), and a stale access token that
+ * skipped the usage endpoint with no earlier read to carry — which scores a
+ * full 100 and beats every account whose usage we actually know. consume-first
+ * ranks by the longest window's reset instead, so what it cannot rank is the
+ * metered login: no window means no reset, which ties every unknown reset at
+ * Infinity and wins the accountKey tie-break. Either would take the user off
+ * an account that still has room, so both strategies keep them for when the
+ * active account is at its limit and nothing else is left.
+ */
+function reportsNoWindows(account: DecisionAccount): boolean {
+	return account.windows.length === 0;
+}
+
+function isMetered(account: DecisionAccount): boolean {
+	return account.credentialKind === "api_key";
+}
+
+/** The candidates that are not a last resort — or all of them, when a last
+ * resort is all there is. */
+function preferRanked(
+	candidates: readonly DecisionAccount[],
+	lastResort: (account: DecisionAccount) => boolean,
+): readonly DecisionAccount[] {
+	const ranked = candidates.filter((candidate) => !lastResort(candidate));
+	return ranked.length > 0 ? ranked : candidates;
+}
+
+/**
  * The whole decision (R11 to R15). Returns the target and the reason, or the
  * reason there is none — `allExhausted` being the outcome R22 latches on.
  */
@@ -349,7 +379,11 @@ export function shouldSwitch(input: ShouldSwitchInput): SwitchDecision {
 					settings.thresholdPercent,
 				),
 		);
-		const target = pickConsumeFirst(withRoom);
+		// A metered login is the last resort here: with no reset to rank it by
+		// it ties every account whose weekly window is absent and wins the
+		// accountKey tie-break, moving the user onto per-token billing while the
+		// plan still has room. Drain it only when nothing on the plan is left.
+		const target = pickConsumeFirst(preferRanked(withRoom, isMetered));
 		if (!target) return stay(activeNearLimit);
 		if (activeNearLimit) return move(target, "threshold");
 		// R12: a proactive move only pays when the target's longest window
@@ -372,28 +406,21 @@ export function shouldSwitch(input: ShouldSwitchInput): SwitchDecision {
 		(candidate) =>
 			!isNearLimit(scoreAccount(candidate, models), settings.thresholdPercent),
 	);
-	// An API-billed login reports no windows by construction, and no windows
-	// scores a full 100 — the same "zero windows is not headroom" hazard
-	// isEligible already guards for a read that did not land. So it wins
-	// pickBest against any subscription account, and moving there proactively
-	// puts the user on per-token billing while the plan they pay for still has
-	// room. It stays a target of last resort: taken when the active account is
-	// at its limit and nothing else has room, never as a proactive upgrade.
-	const metered = below.filter(
-		(candidate) => candidate.credentialKind === "api_key",
-	);
-	const onPlan = below.filter(
-		(candidate) => candidate.credentialKind !== "api_key",
-	);
-	const best = pickBest(onPlan.length > 0 ? onPlan : metered, models);
+	// An account that reports no windows scores a full 100 — the same "zero
+	// windows is not headroom" hazard isEligible already guards for a read that
+	// did not land. It wins pickBest against every account we can actually
+	// read, whether it is an API-billed login (moving the user onto per-token
+	// billing while the plan they pay for still has room) or a stale token
+	// nobody could read. It stays a target of last resort.
+	const best = pickBest(preferRanked(below, reportsNoWindows), models);
 	if (!best) return stay(activeNearLimit);
 
 	if (activeNearLimit) return move(best, "threshold");
 
-	// Nothing on the plan has room, so the only candidate left is metered —
-	// and the active account is not at its limit yet, so there is nothing to
-	// buy by moving.
-	if (best.credentialKind === "api_key") return stay(false);
+	// Nothing we can score has room, so the only candidate left is one whose
+	// usage we cannot read — and the active account is not at its limit yet, so
+	// there is nothing to buy by moving.
+	if (reportsNoWindows(best)) return stay(false);
 
 	// R15: a proactive move has to be worth the prompt-cache rebuild it costs.
 	if (scoreAccount(best, models) >= activeScore + margin) {
