@@ -565,6 +565,52 @@ describe("QuotaStore adaptive cadence", () => {
 		expect(entry?.nextPollAt).toBe(h.now + 10 * MINUTE);
 	});
 
+	// R22: `nearestReset` never filters out a reset that has already gone by,
+	// and a failing or stale fetch leaves the old windows in the pool — so a
+	// latched agent hands the same elapsed wake to every tick. Clamping that to
+	// `now + 1` polled an already-exhausted endpoint on every one of them.
+	it("ignores a wake time that has already passed", async () => {
+		const h = harness({ claudeSelections: [null] });
+		const schedule = {
+			claude: {
+				activeKey: CLAUDE_DEFAULT,
+				intervalMs: EXHAUSTED_POLL_MS,
+				wakeAt: T0 - MINUTE,
+			},
+		};
+
+		await h.store.refreshDue(h.now, schedule);
+		expect(requireEntry(h.store, CLAUDE_DEFAULT).nextPollAt).toBe(
+			h.now + EXHAUSTED_POLL_MS,
+		);
+
+		h.advance(MINUTE);
+		await h.store.refreshDue(h.now, schedule);
+		expect(h.callsFor(CLAUDE_DEFAULT)).toHaveLength(1);
+	});
+
+	it("still wakes at a reset ahead of it, then returns to the cadence", async () => {
+		const h = harness({ claudeSelections: [null] });
+		const wakeAt = T0 + 2 * MINUTE;
+		const schedule = {
+			claude: {
+				activeKey: CLAUDE_DEFAULT,
+				intervalMs: EXHAUSTED_POLL_MS,
+				wakeAt,
+			},
+		};
+
+		await h.store.refreshDue(h.now, schedule);
+		expect(requireEntry(h.store, CLAUDE_DEFAULT).nextPollAt).toBe(wakeAt);
+
+		h.advance(2 * MINUTE);
+		await h.store.refreshDue(h.now, schedule);
+		expect(h.callsFor(CLAUDE_DEFAULT)).toHaveLength(2);
+		expect(requireEntry(h.store, CLAUDE_DEFAULT).nextPollAt).toBe(
+			h.now + EXHAUSTED_POLL_MS,
+		);
+	});
+
 	it("defers non-active entries first when the schedule exceeds the budget", async () => {
 		// One more account than the endpoint budget allows in one pass.
 		const budget = budgetMaxRequests(MINUTE);
@@ -1073,6 +1119,21 @@ describe("QuotaStore snapshot mirror", () => {
 		expect(latest?.entries.map((entry) => entry.key)).toEqual([CLAUDE_DEFAULT]);
 		expect(latest?.entries[0]?.accounts[0]?.selection).toBeNull();
 		expect(latest?.entries[0]?.tokenState).toBe("ok");
+	});
+
+	// The sink writes the mirror file, so a full or read-only disk throws out of
+	// a read whose fetch has already succeeded. The mirror is an optimisation
+	// for the other host-services; it is not the answer this read owes.
+	it("serves a read whose mirror write threw", async () => {
+		const h = harness({ claudeSelections: [null] });
+		h.store.setSnapshotSink(() => {
+			throw new Error("ENOSPC: no space left on device");
+		});
+
+		const accounts = await h.store.read({ agents: ["claude"] });
+
+		expect(accounts).toHaveLength(1);
+		expect(h.callsFor(CLAUDE_DEFAULT)).toHaveLength(1);
 	});
 
 	// KTD5: every host-service on the machine builds a store, so a loser that

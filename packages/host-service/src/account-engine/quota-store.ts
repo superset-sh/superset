@@ -311,6 +311,8 @@ export class QuotaStore {
 	private snapshotSource: (() => QuotaStoreSnapshot | null) | null = null;
 	/** Said once: a mirror this host cannot read is re-read every few seconds. */
 	private warnedMirrorShape = false;
+	/** Said once, for the same reason: the mirror is rewritten every tick. */
+	private warnedMirrorWrite = false;
 
 	constructor(deps: QuotaStoreDeps = {}) {
 		this.deps = deps;
@@ -853,9 +855,14 @@ export class QuotaStore {
 					: IDLE_POLL_MS;
 		const next = now + Math.max(base, entry.backoffMs);
 		const wakeAt = agentSchedule?.wakeAt;
+		// Only a wake still ahead of us shortens the cadence. `nearestReset` takes
+		// the soonest `resetsAt` in the pool without filtering out the past ones,
+		// and the pool keeps last-known windows through a failed or stale fetch —
+		// so a latched agent can emit the same elapsed `wakeAt` on every tick, and
+		// clamping to `now + 1` polled an already-exhausted endpoint every tick.
 		entry.nextPollAt =
-			wakeAt !== undefined && entry.backoffMs === 0
-				? Math.min(next, Math.max(wakeAt, now + 1))
+			wakeAt !== undefined && wakeAt > now && entry.backoffMs === 0
+				? Math.min(next, wakeAt)
 				: next;
 	}
 
@@ -920,8 +927,23 @@ export class QuotaStore {
 	private emitSnapshot(): void {
 		if (!this.deps.onSnapshot && !this.snapshotSink) return;
 		const snapshot = this.snapshot();
-		this.deps.onSnapshot?.(snapshot);
-		this.snapshotSink?.(snapshot);
+		try {
+			this.deps.onSnapshot?.(snapshot);
+			this.snapshotSink?.(snapshot);
+		} catch (error) {
+			// The sink writes quota.json, so a full or read-only disk throws here.
+			// The mirror is an optimisation for the other host-services on this
+			// machine: a host that cannot publish it still serves its own accounts
+			// rather than failing the fetch that already succeeded — and a frozen
+			// mirror uncovers its agent by age, so the losers read locally.
+			if (!this.warnedMirrorWrite) {
+				this.warnedMirrorWrite = true;
+				console.warn(
+					"[quota-store] could not publish the quota mirror:",
+					error,
+				);
+			}
+		}
 	}
 }
 
