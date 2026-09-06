@@ -67,13 +67,17 @@ describe("resolveAgentAccountDir", () => {
 		).toEqual({ configDir: null, managed: true });
 	});
 
-	it("treats a per-agent CLAUDE_CONFIG_DIR matching the injected twin as managed", () => {
+	// A hand-pinned dir that happens to equal today's selection is still
+	// hand-pinned: the config env wins at relaunch, so calling it managed
+	// would have the engine kill the session and resume it on the same
+	// account it was just switched away from, while telling the user it moved.
+	it("treats a per-agent CLAUDE_CONFIG_DIR equal to the selection as unmanaged", () => {
 		expect(
 			resolveAgentAccountDir(mockDb({ claude: profile }), {
 				family: "claude",
 				env: { CLAUDE_CONFIG_DIR: profile },
 			}),
-		).toEqual({ configDir: profile, managed: true });
+		).toEqual({ configDir: profile, managed: false });
 	});
 
 	it("treats a user-exported CLAUDE_CONFIG_DIR as unmanaged", () => {
@@ -121,6 +125,16 @@ describe("resolveAgentAccountDir", () => {
 				env: { CODEX_HOME: exported },
 			}),
 		).toEqual({ configDir: exported, managed: false });
+
+		// Codex never reports a null configDir, so the pin and the selection
+		// are compared as two concrete paths — the case that used to read as
+		// managed and get the session restarted onto the home it was already on.
+		expect(
+			resolveAgentAccountDir(mockDb({ codex: profile }), {
+				family: "codex",
+				env: { CODEX_HOME: profile },
+			}),
+		).toEqual({ configDir: profile, managed: false });
 	});
 
 	it("ignores a selection whose profile dir has vanished", () => {

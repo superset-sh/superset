@@ -86,12 +86,26 @@ export function resolveAgentAccountDir(
 		// governs the moment an account is selected.
 		return { configDir: null, managed: true };
 	}
-	// The twin is Superset's own marker, injected beside its selection and
-	// never part of an agent config's env. A config carrying one is a user
-	// pinning the pair by hand, so it names the session's account, not
-	// Superset — otherwise any config could forge its own twin and hand the
-	// engine permission to restart a pinned session onto another account.
-	if (input.env && vars.supersetTwin in input.env) {
+	// A config that names either var pinned this session by hand, so it owns
+	// the account and Superset does not. Testing only the value would call a
+	// pin "managed" whenever it happened to equal the current selection, and
+	// the engine would then kill and resume a session that comes back on the
+	// very account it was switched away from, because the launch wrapper keeps
+	// a config's own dir. The twin is Superset's own marker and never part of
+	// an agent config's env, so a config carrying one is forging it.
+	//
+	// One shape this answers conservatively rather than correctly: a config
+	// that sets the dir var AND the twin to the same value. The wrapper's gate
+	// treats that as "unset" and re-exports the pointer, so such a launch does
+	// follow the selection — but the wrapper compares against the twin frozen
+	// in the PTY at spawn, which this function cannot see, so the neighbouring
+	// shape (a config pinning only the dir var while the spawn-time selection
+	// happened to equal it) would stay wrong either way. Refusing to move a
+	// session is the safe direction, so both stay unmanaged.
+	if (
+		input.env &&
+		(vars.configDir in input.env || vars.supersetTwin in input.env)
+	) {
 		return { configDir, managed: false };
 	}
 	return {
