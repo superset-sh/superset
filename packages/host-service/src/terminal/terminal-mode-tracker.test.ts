@@ -302,3 +302,48 @@ describe("snapshot behind an alt screen", () => {
 		t.dispose();
 	});
 });
+
+describe("snapshot trimmedRows", () => {
+	// The snapshot pops trailing blank rows, so `text` is shorter than the
+	// viewport. A consumer that wants the visible screen has to slice
+	// `rows - trimmedRows` lines; slicing `rows` reaches into scrollback.
+	test("counts the trailing blank rows popped off the viewport", () => {
+		const t = createModeTracker(80, 6);
+		t.feed(enc.encode("alpha\r\nbeta\r\n"));
+
+		const snap = t.snapshot();
+		expect(snap.text).toBe("alpha\nbeta");
+		expect(snap.trimmedRows).toBe(4);
+		t.dispose();
+	});
+
+	test("is zero when the screen already ends at content", () => {
+		const t = createModeTracker(80, 3);
+		t.feed(enc.encode("one\r\ntwo\r\nthree"));
+
+		const snap = t.snapshot();
+		expect(snap.text).toBe("one\ntwo\nthree");
+		expect(snap.trimmedRows).toBe(0);
+		t.dispose();
+	});
+
+	test("marks how far a cleared screen sits above the trimmed end", () => {
+		const t = createModeTracker(80, 24);
+		for (let i = 1; i <= 40; i += 1) t.feed(enc.encode(`old-${i}\r\n`));
+		t.feed(enc.encode("\x1b[2J\x1b[H")); // a relaunch clearing the screen
+		t.feed(enc.encode("new-1\r\nnew-2\r\nnew-3"));
+
+		const snap = t.snapshot(800);
+		const lines = snap.text.split("\n");
+		expect(snap.trimmedRows).toBe(21);
+		// The last `rows` lines are mostly scrollback; the last
+		// `rows - trimmedRows` are the visible screen.
+		expect(lines.slice(-snap.rows)).toContain("old-17");
+		expect(lines.slice(-(snap.rows - snap.trimmedRows))).toEqual([
+			"new-1",
+			"new-2",
+			"new-3",
+		]);
+		t.dispose();
+	});
+});

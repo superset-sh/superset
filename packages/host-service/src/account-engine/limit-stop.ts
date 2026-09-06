@@ -67,6 +67,12 @@ const LIMIT_TEXT: Partial<Record<QuotaCapableAgent, RegExp>> = {
  * message sitting in that scrollback would corroborate a brand-new hint. Gate
  * 2 is meant to be evidence that this turn stopped, so it only ever sees the
  * screen. Matched in memory like every other snapshot text, never persisted.
+ *
+ * `rows` is the number of viewport rows STILL PRESENT in `screenText` — the
+ * terminal's row count minus the trailing blank rows the snapshot trimmed
+ * (`TerminalSnapshot.trimmedRows`) — NOT the terminal's row count. Passing the
+ * raw row count starts the window that many rows above the viewport top, so
+ * scrollback a TUI already scrolled past can corroborate a hint.
  */
 export function lastVisibleScreen(screenText: string, rows: number): string {
 	if (!Number.isFinite(rows) || rows <= 0) return screenText;
