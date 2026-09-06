@@ -141,9 +141,22 @@ fi
 # the worktrees were rebuilt as bare branches, and once when the demo repos lost
 # refs/remotes/origin/HEAD and the base could not resolve at all.
 if [ -n "$WS_JSON" ]; then
-  WS_IDS=$(printf '%s' "$WS_JSON" | python3 -c 'import json,sys
+  # These ids are interpolated into commands a remote shell parses, so anything
+  # that is not a plain uuid is dropped rather than escaped. workspace.adopt
+  # takes an unrestricted existingWorkspaceId, so the host database is not a
+  # trusted source of shell-safe strings.
+  WS_IDS=$(printf '%s' "$WS_JSON" | python3 -c 'import json,re,sys
 d = json.load(sys.stdin)["result"]["data"]["json"]
-print(" ".join(w["id"] for w in d if w.get("type") != "main"))' 2>/dev/null)
+ok = re.compile(r"\A[0-9a-fA-F-]{36}\Z")
+print(" ".join(w["id"] for w in d if w.get("type") != "main" and ok.match(w.get("id", ""))))' 2>/dev/null)
+  # Dropping one silently would hide a workspace from every probe below, which is
+  # the fail-open shape this script keeps getting wrong.
+  WS_NONMAIN=$(printf '%s' "$WS_JSON" | python3 -c 'import json,sys
+d = json.load(sys.stdin)["result"]["data"]["json"]
+print(sum(1 for w in d if w.get("type") != "main"))' 2>/dev/null)
+  WS_COUNT=$(printf '%s' "$WS_IDS" | wc -w | tr -d " ")
+  [ "$WS_COUNT" = "$WS_NONMAIN" ] || fail "$((WS_NONMAIN - WS_COUNT)) workspace(s) have an id that is not a uuid and were not checked"
+
   if [ -n "$WS_IDS" ]; then
     NODIFF=$(ssh_box "sudo sh -c 'for W in $WS_IDS; do n=\$(curl -s -m 15 -X POST -H \"Authorization: Bearer $SECRET\" -H \"content-type: application/json\" --data \"{\\\"json\\\":{\\\"workspaceId\\\":\\\"\$W\\\"}}\" http://127.0.0.1:48800/trpc/git.listCommits | grep -c hash); [ \"\$n\" = \"0\" ] && echo \$W; done'")
     [ -z "$NODIFF" ] && note "diffs: every demo workspace has one" \
@@ -156,16 +169,19 @@ fi
 # falling back to unauthenticated, even for a public repo. The token is a
 # fine-grained PAT and PATs expire — this one on 2026-10-05 — so check it
 # directly rather than waiting for a reviewer to find an empty chip.
-TOKEN_STATUS=$(ssh_box "sudo bash -c 'set -a; . /etc/superset-review-host.env 2>/dev/null; set +a; curl -s -o /dev/null -w \"%{http_code}\" -m 15 -H \"Authorization: Bearer \$GH_TOKEN\" https://api.github.com/repos/superset-sh/acme-demo/pulls/1'")
-case "$TOKEN_STATUS" in
-  200) note "github token: can read the demo pull request" ;;
-  401|403) fail "the GitHub token is rejected ($TOKEN_STATUS) — expired or revoked; the PR chip and the diff behind it are gone. Regenerate a fine-grained PAT (public repositories, read-only) and rewrite /etc/superset-review-host.env" ;;
-  "") fail "could not test the GitHub token" ;;
-  *) fail "GitHub returned $TOKEN_STATUS for the demo pull request" ;;
-esac
+for REPO in acme-demo acme-ios-demo; do
+  TOKEN_STATUS=$(ssh_box "sudo bash -c 'set -a; . /etc/superset-review-host.env 2>/dev/null; set +a; curl -s -o /dev/null -w \"%{http_code}\" -m 15 -H \"Authorization: Bearer \$GH_TOKEN\" https://api.github.com/repos/superset-sh/$REPO/pulls/1'")
+  case "$TOKEN_STATUS" in
+    200) note "github token: can read $REPO#1" ;;
+    401|403) fail "the GitHub token is rejected ($TOKEN_STATUS) — expired or revoked; the PR chip and the diff behind it are gone. Regenerate a fine-grained PAT (public repositories, read-only) and rewrite /etc/superset-review-host.env" ;;
+    "") fail "could not test the GitHub token against $REPO" ;;
+    *) fail "GitHub returned $TOKEN_STATUS for $REPO#1" ;;
+  esac
+done
 
-# One workspace per project should carry a linked pull request. The chip is the
-# only navigation to files-changed, so losing the link removes the diff even
+# Both demo projects carry a linked pull request — acme through acme-demo#1 and
+# acme-ios through acme-ios-demo#1. The chip is the only navigation to
+# files-changed, so losing a link removes the diff from that whole project even
 # though every other check still passes.
 if [ -n "$WS_IDS" ]; then
   IDS_JSON=$(printf '%s\n' $WS_IDS | python3 -c 'import json,sys; print(json.dumps([l.strip() for l in sys.stdin if l.strip()]))')
@@ -177,9 +193,10 @@ try:
 except Exception:
     print("")' 2>/dev/null)
   case "$LINKED" in
-    "") fail "could not read pull-request links" ;;
-    0)  fail "no workspace has a linked pull request — the chip is the only route to the diff the listing promises" ;;
-    *)  note "pull requests: $LINKED workspace(s) linked, so the diff is reachable" ;;
+    "")  fail "could not read pull-request links" ;;
+    0)   fail "no workspace has a linked pull request — the chip is the only route to the diff the listing promises" ;;
+    1)   fail "only one workspace has a linked pull request; one of the two demo projects has no route to a diff" ;;
+    *)   note "pull requests: $LINKED workspace(s) linked, so the diff is reachable in both projects" ;;
   esac
 fi
 

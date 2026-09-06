@@ -70,15 +70,24 @@ fi
 # only route to the diff the store listing promises. A `git init` here instead of
 # a clone leaves no origin, no refs/remotes/origin/HEAD, and therefore no diff
 # base and no PR — which is exactly what happened once.
+#
+# The guard is on the remote URL, not on .git: a host provisioned by the earlier
+# version already has /demo/acme-ios/.git from a `git init`, and a presence check
+# would leave that fabricated repo in place forever — no origin, no PR, exactly
+# the state this replaced.
 mkdir -p /demo
-if [ ! -d /demo/acme/.git ]; then
-  rm -rf /demo/acme
-  git clone -q https://github.com/superset-sh/acme-demo.git /demo/acme
-fi
-if [ ! -d /demo/acme-ios/.git ]; then
-  rm -rf /demo/acme-ios
-  git clone -q https://github.com/superset-sh/acme-ios-demo.git /demo/acme-ios
-fi
+clone_demo() {
+  DIR="$1"
+  URL="$2"
+  if [ "$(git -C "$DIR" remote get-url origin 2>/dev/null)" = "$URL" ]; then
+    git -C "$DIR" fetch -q origin
+    return
+  fi
+  rm -rf "$DIR"
+  git clone -q "$URL" "$DIR"
+}
+clone_demo /demo/acme https://github.com/superset-sh/acme-demo.git
+clone_demo /demo/acme-ios https://github.com/superset-sh/acme-ios-demo.git
 git config --global user.email "appreview@superset.sh"
 git config --global user.name "Superset"
 

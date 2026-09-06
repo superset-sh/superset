@@ -99,9 +99,14 @@ To rotate: create a fine-grained PAT with **Public repositories (read-only)** an
 no account permissions, then
 
 ```bash
-gcloud compute ssh superset-review-host --zone=us-west1-b --command \
-  'sudo sh -c "printf \"GH_TOKEN=%s\\n\" <token> > /etc/superset-review-host.env; chmod 600 /etc/superset-review-host.env; systemctl restart superset-review-host"'
+read -rs GH_TOKEN                       # paste the token; it never reaches the terminal
+printf 'GH_TOKEN=%s\n' "$GH_TOKEN" | gcloud compute ssh superset-review-host --zone=us-west1-b --command \
+  'sudo sh -c "cat > /etc/superset-review-host.env; chmod 600 /etc/superset-review-host.env; systemctl restart superset-review-host"'
+unset GH_TOKEN
 ```
+
+The token goes over stdin, not in the command line: an argument would land in your
+shell history locally and in `ps` output and the auth logs on the box.
 
 `check.sh` calls the API with it every run, so expiry surfaces as a FAIL rather
 than as a chip that quietly stops appearing.
