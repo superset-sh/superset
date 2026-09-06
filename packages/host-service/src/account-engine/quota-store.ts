@@ -91,6 +91,12 @@ export interface QuotaEntry {
 	agent: QuotaCapableAgent;
 	/** Profile dir; null for the system-default login and group entries. */
 	selection: string | null;
+	/**
+	 * Other config dirs holding this login, dropped by the identity dedupe
+	 * (KTD4). Kept on the entry because a fetch reads one selection at a time
+	 * and never sees them: only the discovery pass does.
+	 */
+	duplicateSelections?: string[];
 	accounts: UsageAccount[];
 	fetchedAt: number | null;
 	nextPollAt: number;
@@ -118,6 +124,12 @@ export interface QuotaDiscovery {
 	/** Rows with no fetch of their own (signed-out, API-key). */
 	staticAccounts: UsageAccount[];
 	/**
+	 * Dirs the identity dedupe dropped, by entry key: two dirs holding one
+	 * login collapse to one row, and the dropped dir is still on disk with a
+	 * profile to remove. Absent from a producer whose logins never collapse.
+	 */
+	duplicateSelections?: Record<string, string[]>;
+	/**
 	 * False when the pass stopped early and the result is a subset of what is
 	 * really there — `discoverClaudeProfiles` gives up on its scan-time budget
 	 * mid-walk, and a truncated list would otherwise reap every profile it did
@@ -131,6 +143,7 @@ export interface QuotaStoreSnapshotEntry {
 	key: string;
 	agent: QuotaCapableAgent;
 	selection: string | null;
+	duplicateSelections?: string[];
 	accounts: UsageAccount[];
 	fetchedAt: number | null;
 	tokenState: QuotaTokenState;
@@ -231,6 +244,20 @@ function isExhausted(entry: QuotaEntry): boolean {
 }
 
 /**
+ * A fetch rebuilds one selection at a time and knows nothing of the other dirs
+ * holding the same login, so the entry's copy goes back onto the row — without
+ * it the dropped dirs have no route to the Usage page and the profile they
+ * name cannot be removed.
+ */
+function withDuplicateSelections(
+	account: UsageAccount,
+	duplicateSelections: string[] | undefined,
+): UsageAccount {
+	if (!duplicateSelections) return account;
+	return { ...account, duplicateSelections };
+}
+
+/**
  * R23: the CLI refreshes a stale token on its next run, so the quota is
  * unreadable meanwhile — the account keeps the windows the last good read
  * saw instead of dropping to nothing.
@@ -325,7 +352,12 @@ export class QuotaStore {
 				key: entry.key,
 				agent: entry.agent,
 				selection: entry.selection,
-				accounts: entry.accounts,
+				duplicateSelections: entry.duplicateSelections,
+				// The mirror is the whole answer for a lock loser, so the dropped
+				// dirs travel on the accounts it serves too.
+				accounts: entry.accounts.map((account) =>
+					withDuplicateSelections(account, entry.duplicateSelections),
+				),
 				fetchedAt: entry.fetchedAt,
 				tokenState: entry.tokenState,
 				lastError: entry.lastError,
@@ -480,19 +512,21 @@ export class QuotaStore {
 			keep.add(key);
 			const existing = this.entryMap.get(key);
 			if (!existing) {
-				this.entryMap.set(
+				const entry = newEntry(
 					key,
-					newEntry(
-						key,
-						agent,
-						selection,
-						true,
-						now,
-						this.backoff.get(agent) ?? 0,
-					),
+					agent,
+					selection,
+					true,
+					now,
+					this.backoff.get(agent) ?? 0,
 				);
+				entry.duplicateSelections = targets.duplicateSelections?.[key];
+				this.entryMap.set(key, entry);
 				continue;
 			}
+			// Re-read every pass: a dir the user removed, or one that stopped
+			// sharing this login, must not linger on the row.
+			existing.duplicateSelections = targets.duplicateSelections?.[key];
 			// A signed-out profile is carried as a static row with no fetch of
 			// its own. Once the Switch sign-in flow restores its credential the
 			// discovery pass lists it as a selection again, so the row goes back
@@ -577,7 +611,10 @@ export class QuotaStore {
 		try {
 			const { accounts, rateLimited } = await this.fetchAccounts(entry);
 			entry.accounts = accounts.map((account) =>
-				carryLastKnownWindows(entry.accounts, account),
+				withDuplicateSelections(
+					carryLastKnownWindows(entry.accounts, account),
+					entry.duplicateSelections,
+				),
 			);
 			entry.fetchedAt = now;
 			entry.lastError = null;

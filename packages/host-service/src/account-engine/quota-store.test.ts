@@ -78,6 +78,9 @@ function harness(
 		codexSelections: options.codexSelections ?? ([] as Array<string | null>),
 		/** False stands for a scan that ran out of its time budget. */
 		claudeComplete: true,
+		claudeDuplicateSelections: undefined as
+			| Record<string, string[]>
+			| undefined,
 	};
 	const calls: Array<{ key: string; at: number }> = [];
 	const snapshots: QuotaStoreSnapshot[] = [];
@@ -87,6 +90,7 @@ function harness(
 			selections: state.claudeSelections,
 			staticAccounts: state.claudeStatic,
 			complete: state.claudeComplete,
+			duplicateSelections: state.claudeDuplicateSelections,
 		}),
 		discoverCodex: async () => ({
 			selections: state.codexSelections,
@@ -287,6 +291,32 @@ describe("QuotaStore discovery", () => {
 		h.advance(QUOTA_TTL_MS);
 		await h.store.read({ agents: ["claude"] });
 		expect(h.store.entry(CLAUDE_A)).toBeUndefined();
+	});
+
+	// KTD4: two dirs holding one login collapse to one row, and only this pass
+	// sees the dropped one — the fetch that rebuilds the row reads a single
+	// selection, so without the entry keeping it nothing can offer to remove
+	// the profile it left on disk.
+	it("carries the dirs the dedupe dropped onto the entry and its fetched row", async () => {
+		const h = harness({ claudeSelections: [null] });
+		h.state.claudeDuplicateSelections = { [CLAUDE_DEFAULT]: ["/profiles/b"] };
+
+		const accounts = await h.store.read({ agents: ["claude"] });
+
+		expect(requireEntry(h.store, CLAUDE_DEFAULT).duplicateSelections).toEqual([
+			"/profiles/b",
+		]);
+		expect(accounts[0]?.duplicateSelections).toEqual(["/profiles/b"]);
+
+		// A pass that no longer reports the dir clears it off the row.
+		h.state.claudeDuplicateSelections = {};
+		h.advance(DISCOVERY_INTERVAL_MS);
+		const refreshed = await h.store.read({ agents: ["claude"] });
+
+		expect(
+			requireEntry(h.store, CLAUDE_DEFAULT).duplicateSelections,
+		).toBeUndefined();
+		expect(refreshed[0]?.duplicateSelections).toBeUndefined();
 	});
 });
 
