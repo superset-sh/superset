@@ -279,6 +279,56 @@ describe("QuotaStore discovery", () => {
 		).toBe("ok");
 	});
 
+	// A fetch and the discovery pass overlap: the pass carried the profile whole
+	// as a signed-out row while the fetch was in flight, and that fetch — asking
+	// about a credential that is already gone — answers with no account. Writing
+	// it back emptied the row, so the profile vanished from the Usage page (no
+	// signed-out card, so no Switch sign-in and no Remove) until the next pass.
+	it("keeps a static row a discovery pass installed while a fetch was in flight", async () => {
+		let release = () => {};
+		const gate = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		const h = harness({
+			claudeSelections: [null, "/profiles/a"],
+			respondClaude: async (selection) => {
+				if (selection !== "/profiles/a") {
+					return { account: account("claude", selection), rateLimited: false };
+				}
+				await gate;
+				return { account: null, rateLimited: false };
+			},
+		});
+
+		const inflight = h.store.read({ agents: ["claude"] });
+		// Let the batch reach the entry before the discovery pass runs.
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		h.state.claudeSelections = [null];
+		h.state.claudeStatic = [
+			account("claude", "/profiles/a", {
+				status: "signed_out",
+				statusDetail: "Signed out",
+				windows: [],
+			}),
+		];
+		await h.store.read({ agents: ["claude"], forceRefresh: true });
+		expect(requireEntry(h.store, CLAUDE_A).tokenState).toBe("signed_out");
+
+		release();
+		await inflight;
+
+		const entry = requireEntry(h.store, CLAUDE_A);
+		expect(entry.tokenState).toBe("signed_out");
+		expect(entry.accounts).toHaveLength(1);
+		expect(entry.nextPollAt).toBe(Number.POSITIVE_INFINITY);
+		const accounts = await h.store.read({ agents: ["claude"] });
+		expect(accounts.map((a) => a.selection).sort()).toEqual([
+			"/profiles/a",
+			null,
+		] as Array<string | null>);
+	});
+
 	// discoverClaudeProfiles abandons its walk once the scan-time budget runs
 	// out, so a short list is not proof a profile is gone.
 	it("reaps nothing from a pass that reports itself incomplete", async () => {

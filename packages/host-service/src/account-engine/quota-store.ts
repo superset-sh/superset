@@ -656,6 +656,15 @@ export class QuotaStore {
 		this.recordRequest(entry.agent, now);
 		try {
 			const { accounts, rateLimited } = await this.fetchAccounts(entry);
+			// A discovery pass that ran while this fetch was in flight may have
+			// carried the row whole (signed out, API-billed): that row is the newer
+			// truth and this result is about a credential that is already gone.
+			// Writing it back would empty the row — no signed-out card on the Usage
+			// page, so no Switch sign-in and no Remove — until the next pass. The
+			// endpoint's answer still votes on the back-off.
+			if (!entry.fetchable) {
+				return { agent: entry.agent, ok: true, rateLimited, backedOff };
+			}
 			entry.accounts = accounts.map((account) =>
 				withDuplicateSelections(
 					carryLastKnownWindows(entry.accounts, account),
@@ -670,7 +679,13 @@ export class QuotaStore {
 			// AE10: the previous accounts stay; only `lastError` moves, and
 			// `fetchedAt` does not, so the next read retries instead of
 			// replaying the failure for the whole TTL.
-			entry.lastError = error instanceof Error ? error.message : String(error);
+			// Same as above: a row a discovery pass carried whole while this fetch
+			// was in flight must not be pinned with an error about a credential
+			// that is already gone.
+			if (entry.fetchable) {
+				entry.lastError =
+					error instanceof Error ? error.message : String(error);
+			}
 			return { agent: entry.agent, ok: false, rateLimited: false, backedOff };
 		}
 	}
@@ -821,6 +836,10 @@ export class QuotaStore {
 		now: number,
 		schedule?: QuotaRefreshSchedule,
 	): void {
+		// A static row polls never, and its `Infinity` must survive a fetch that
+		// was in flight when the discovery pass carried the row whole — as
+		// {@link applyBackoff} already leaves such a row alone.
+		if (!entry.fetchable) return;
 		const agentSchedule =
 			entry.agent === "claude" || entry.agent === "codex"
 				? (schedule?.[entry.agent] ?? this.lastSchedules.get(entry.agent))
