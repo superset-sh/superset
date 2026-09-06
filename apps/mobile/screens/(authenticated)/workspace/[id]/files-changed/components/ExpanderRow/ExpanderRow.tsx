@@ -55,9 +55,18 @@ export function ExpanderRow({
 			>
 				<Icon as={ChevronsDown} className="text-muted-foreground size-4" />
 			</PressableScale>
-			<Text className="text-muted-foreground flex-1 text-center text-[12px]">
-				<Plural value={hidden} one="# hidden line" other="# hidden lines" />
-			</Text>
+			{/* The chevrons step through EXPAND_CHUNK_LINES at a time; this opens
+			    the rest in one go. No accessibility label of its own — the count
+			    it already renders is what a screen reader should read out. */}
+			<PressableScale
+				className="flex-1 py-2"
+				hitSlop={6}
+				onPress={() => onExpand(row.path, [newStart, newEnd])}
+			>
+				<Text className="text-muted-foreground text-center text-[12px]">
+					<Plural value={hidden} one="# hidden line" other="# hidden lines" />
+				</Text>
+			</PressableScale>
 			<PressableScale
 				accessibilityLabel={t({
 					message: "Show lines before the change below",
