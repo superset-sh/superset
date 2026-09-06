@@ -1,4 +1,4 @@
-import { afterAll, afterEach, describe, expect, test } from "bun:test";
+import { afterAll, afterEach, describe, expect, mock, test } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
 
 // happy-dom over the preloaded plain-object document. Process-wide, so this
@@ -9,13 +9,77 @@ if (!alreadyRegistered) GlobalRegistrator.register();
 	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
 
+// The card errors live in `UsageView`'s own state, so they are only reachable
+// by rendering the whole view. Three modules stand in the way: the sections
+// above and below the cards reach for the router and the cloud API, and the
+// switch itself goes to the host. The accounts arrive through the seeded query
+// cache instead of a stubbed host client — `mock.module` is process-wide and
+// the sibling hook suites already own that module for the whole run.
+// Spread the real modules: a partial stub would strip their other exports from
+// every suite in the same run. Snapshot into plain objects: `mock.module`
+// rewrites the live namespace in place, so spreading the namespace itself in
+// `afterAll` would restore the stub.
+// The leaderboard card's module graph builds the IPC tRPC client at import
+// time, and only the preload exposes that bridge — a no-op stands in for it.
+(
+	globalThis as {
+		electronTRPC?: { sendMessage: () => void; onMessage: () => void };
+	}
+).electronTRPC = { sendMessage: () => {}, onMessage: () => {} };
+
+const realLeaderboardCard = { ...(await import("../LeaderboardCard")) };
+const realUsageHistorySection = {
+	...(await import("../UsageHistorySection")),
+};
+const realSetDefaultUsageAccount = {
+	...(await import("../../hooks/useSetDefaultUsageAccount")),
+};
+
+/** Selections the stubbed switch refuses, by engine code. */
+let switchRefusals: Record<string, string> = {};
+mock.module("../LeaderboardCard", () => ({ LeaderboardCard: () => null }));
+mock.module("../UsageHistorySection", () => ({
+	UsageHistorySection: () => null,
+}));
+mock.module("../../hooks/useSetDefaultUsageAccount", () => ({
+	useSetDefaultUsageAccount: () => ({
+		isPending: false,
+		mutate: (
+			{ selection }: { selection: string | null },
+			{
+				onSuccess,
+				onError,
+			}: { onSuccess: () => void; onError: (failure: unknown) => void },
+		) => {
+			const code = selection === null ? undefined : switchRefusals[selection];
+			if (code) onError(new Error(code));
+			else onSuccess();
+		},
+	}),
+}));
+
+const { QueryClient, QueryClientProvider } = await import(
+	"@tanstack/react-query"
+);
 const { cleanup, fireEvent, render, within } = await import(
 	"@testing-library/react"
 );
-const { AccountCard, sessionMoveNote } = await import("./UsageView");
+const { HOST_USAGE_QUOTA_QUERY_KEY } = await import(
+	"../../hooks/useHostUsageQuota"
+);
+const { AccountCard, sessionMoveNote, UsageView } = await import("./UsageView");
 
 afterEach(cleanup);
 afterAll(async () => {
+	// `mock.module` is process-wide and `mock.restore` does not undo it, so the
+	// real modules go back before the next suite in this run asks for them.
+	mock.module("../LeaderboardCard", () => ({ ...realLeaderboardCard }));
+	mock.module("../UsageHistorySection", () => ({
+		...realUsageHistorySection,
+	}));
+	mock.module("../../hooks/useSetDefaultUsageAccount", () => ({
+		...realSetDefaultUsageAccount,
+	}));
 	if (!alreadyRegistered) await GlobalRegistrator.unregister();
 });
 
@@ -194,5 +258,102 @@ describe("AccountCard account state", () => {
 				"Make active — running sessions move to this account too.",
 			),
 		).toBeNull();
+	});
+
+	// The same promise covers the ⋯ menu: "Switch sign-in…" writes this login
+	// and "Remove…" deletes its directory. With neither left there is nothing
+	// to open, so the menu itself goes too.
+	test("an unmanaged login offers no way to rewrite or delete it", () => {
+		const managed = renderCard(account(), {
+			onSwitchSignIn: () => {},
+			onRemove: () => {},
+		});
+		// Counts, not the elements: a failed assertion on a node serializes the
+		// whole card into the diff, which costs seconds.
+		expect(
+			managed.baseElement.querySelectorAll('[aria-haspopup="menu"]').length,
+		).toBe(1);
+		cleanup();
+		const view = renderCard(account({ managed: false }), {
+			onSwitchSignIn: () => {},
+			onRemove: () => {},
+		});
+		expect(
+			view.baseElement.querySelectorAll('[aria-haspopup="menu"]').length,
+		).toBe(0);
+	});
+});
+
+describe("UsageView card errors", () => {
+	// No host, so the seeded quota is all the page reads and none of the other
+	// queries on it fire.
+	function renderUsageView(accounts: Account[]) {
+		const queryClient = new QueryClient({
+			defaultOptions: { queries: { retry: false } },
+		});
+		queryClient.setQueryData([...HOST_USAGE_QUOTA_QUERY_KEY, null], accounts);
+		const view = render(
+			<QueryClientProvider client={queryClient}>
+				<UsageView hostUrl={null} />
+			</QueryClientProvider>,
+		);
+		const ui = within(view.baseElement as HTMLElement);
+		const cardFor = (email: string) =>
+			within(ui.getByText(email).closest(".group") as HTMLElement);
+		return cardFor;
+	}
+
+	// A refusal says the previous account is still active. Once another card's
+	// switch succeeds that is no longer true, and the two lines contradicted
+	// each other on screen until the user clicked the refused card again.
+	test("a successful switch clears the refusals it made untrue, and only those", () => {
+		const accounts = [
+			account({
+				isDefault: true,
+				accountKey: "claude:/p/a",
+				selection: "/p/a",
+				accountId: "uuid-a",
+			}),
+			account({
+				accountKey: "claude:/p/b",
+				selection: "/p/b",
+				accountId: "uuid-b",
+				email: "b@example.com",
+			}),
+			account({
+				accountKey: "claude:/p/c",
+				selection: "/p/c",
+				accountId: "uuid-c",
+				email: "c@example.com",
+			}),
+			account({
+				agent: "codex",
+				accountKey: "codex:/p/d",
+				selection: "/p/d",
+				accountId: "uuid-d",
+				sourceLabel: "~/.codex",
+				email: "d@example.com",
+			}),
+		];
+		switchRefusals = { "/p/b": "swap-verify-failed", "/p/d": "lock-loser" };
+		const cardFor = renderUsageView(accounts);
+
+		fireEvent.click(cardFor("b@example.com").getByText("Make active"));
+		expect(cardFor("b@example.com").getByRole("alert").textContent).toContain(
+			"swap-verify-failed",
+		);
+		fireEvent.click(cardFor("d@example.com").getByText("Make active"));
+		expect(cardFor("d@example.com").getByRole("alert").textContent).toContain(
+			"Another Superset instance",
+		);
+
+		fireEvent.click(cardFor("c@example.com").getByText("Make active"));
+		// A count, not the node: a failed assertion on an element serializes the
+		// whole card into the diff, which costs seconds.
+		expect(cardFor("b@example.com").queryAllByRole("alert")).toHaveLength(0);
+		// The Codex refusal is about a switch this one did not perform.
+		expect(cardFor("d@example.com").getByRole("alert").textContent).toContain(
+			"Another Superset instance",
+		);
 	});
 });

@@ -159,8 +159,8 @@ export function AccountCard({
 	account,
 	onMakeActive: makeActive,
 	onToggleRotation: toggleRotation,
-	onSwitchSignIn,
-	onRemove,
+	onSwitchSignIn: switchSignIn,
+	onRemove: remove,
 	isActivating,
 	isSwitching,
 	error,
@@ -191,10 +191,13 @@ export function AccountCard({
 	const rotationId = useId();
 	// A login set up outside Superset is ours to read, never to write — the
 	// engine refuses it as a switch target for the same reason — so the card
-	// offers no way to switch onto it or to put it in rotation. The
-	// "Unmanaged" badge and the line under the card say why.
+	// offers no way to switch onto it, to put it in rotation, to sign it in
+	// again, or to delete its directory. The "Unmanaged" badge and the line
+	// under the card say why.
 	const onMakeActive = account.managed ? makeActive : null;
 	const onToggleRotation = account.managed ? toggleRotation : null;
+	const onSwitchSignIn = account.managed ? switchSignIn : null;
+	const onRemove = account.managed ? remove : null;
 	const credits = creditsLine(account);
 	const { copyToClipboard, copied } = useCopyToClipboard();
 	const expiredCommand =
@@ -534,14 +537,33 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 		});
 	};
 
+	// A refusal says "the previous account is still active", so a switch that
+	// then succeeds makes it false. Only this agent's cards are cleared —
+	// another agent's refusal is about a switch this one did not perform.
+	const clearAgentCardErrors = (agent: ManagedAgent) => {
+		const switched = new Set(
+			accounts
+				.filter((candidate) => candidate.agent === agent)
+				.map((candidate) => rotationKey(candidate)),
+		);
+		setCardErrors((errors) => {
+			const kept = Object.entries(errors).filter(([key]) => !switched.has(key));
+			if (kept.length === Object.keys(errors).length) return errors;
+			return Object.fromEntries(kept);
+		});
+	};
+
 	// Sessions pinned to their own config dir by their agent configuration
 	// never move: that env wins over the host default at launch, so no
 	// relaunch would reach them — say so instead of promising otherwise.
 	// When the host can't be asked, fall back to the plain toast.
+	// Every successful switch lands here, so it is also where the refusals it
+	// just made untrue are dropped.
 	const handleDefaultSwitched = async (
 		agent: ManagedAgent,
 		accountLabel: string,
 	) => {
+		clearAgentCardErrors(agent);
 		const providerLabel = AGENT_LABELS[agent];
 		let candidateCount = 0;
 		try {
