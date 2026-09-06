@@ -192,6 +192,37 @@ describe("AutoSwitchSettings controls", () => {
 		expect(commits).toEqual([{ cooldownSeconds: 600 }]);
 	});
 
+	// A stored 90s shows as "2 min", so re-reading the field on blur would send
+	// 120s back. Only an edit is allowed to move the host's value.
+	test("tabbing through the cooldown field leaves an odd stored value alone", async () => {
+		const { commits, ui } = setup({
+			settings: { ...SETTINGS, cooldownSeconds: 90 },
+		});
+		const field = ui.getByRole("spinbutton", {
+			name: "Wait between switches",
+		}) as HTMLInputElement;
+		expect(field.value).toBe("2");
+		await act(async () => {
+			fireEvent.focus(field);
+			fireEvent.blur(field);
+		});
+		expect(commits).toEqual([]);
+	});
+
+	test("an edited cooldown still reaches the host from an odd stored value", async () => {
+		const { commits, ui } = setup({
+			settings: { ...SETTINGS, cooldownSeconds: 90 },
+		});
+		const field = ui.getByRole("spinbutton", {
+			name: "Wait between switches",
+		}) as HTMLInputElement;
+		await act(async () => {
+			fireEvent.change(field, { target: { value: "3" } });
+			fireEvent.blur(field);
+		});
+		expect(commits).toEqual([{ cooldownSeconds: 180 }]);
+	});
+
 	test("a refusal reverts the control and says why", async () => {
 		const onCommit = mock(() => Promise.reject(new Error("invalid-settings")));
 		const view = render(

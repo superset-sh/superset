@@ -81,9 +81,11 @@ export function AutoSwitchSettings({
 	const [modelsDraft, setModelsDraft] = useState<string | null>(null);
 
 	const confirmedModels = settings.modelWindows.join(", ");
+	const confirmedCooldownMinutes = String(
+		Math.round(settings.cooldownSeconds / 60),
+	);
 	const threshold = thresholdDraft ?? settings.thresholdPercent;
-	const cooldownMinutes =
-		cooldownDraft ?? String(Math.round(settings.cooldownSeconds / 60));
+	const cooldownMinutes = cooldownDraft ?? confirmedCooldownMinutes;
 	const models = modelsDraft ?? confirmedModels;
 
 	const commit = async (patch: Partial<AccountEngineAgentSettings>) => {
@@ -370,6 +372,14 @@ export function AutoSwitchSettings({
 											disabled={controlsDisabled}
 											onChange={(event) => setCooldownDraft(event.target.value)}
 											onBlur={() => {
+												// The field shows rounded minutes, so a stored 90s
+												// reads "2". Comparing what is on screen against what
+												// the host confirmed keeps a blur with no edit from
+												// writing that rounding back as 120s.
+												if (cooldownMinutes === confirmedCooldownMinutes) {
+													setCooldownDraft(null);
+													return;
+												}
 												const parsed = Number.parseInt(cooldownMinutes, 10);
 												if (Number.isNaN(parsed)) {
 													setCooldownDraft(null);
