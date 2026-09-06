@@ -5,8 +5,10 @@ import {
 	mkdtempSync,
 	readdirSync,
 	readFileSync,
+	renameSync,
 	rmSync,
 	statSync,
+	utimesSync,
 	writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -28,6 +30,40 @@ afterEach(() => {
 });
 
 describe("updateClaudeStateFile", () => {
+	// The guard has to notice a writer that replaced the file. mtime alone
+	// cannot: the plain Stats field is whole milliseconds and this cycle is
+	// far shorter, so a same-size rewrite in the same bucket used to be
+	// waved through and Superset's stale snapshot silently won. The CLI
+	// replaces the file rather than editing it, so the inode is the signal
+	// that survives any clock — this stages exactly that, with the mtime
+	// deliberately restored so nothing else can catch it.
+	it("notices a same-size replacement that kept the old mtime", async () => {
+		const dir = tempDir();
+		const statePath = join(dir, ".claude.json");
+		const original = JSON.stringify({ oauthAccount: { accountUuid: "aaa" } });
+		writeFileSync(statePath, original);
+		const before = statSync(statePath);
+		// Same byte length, so size cannot tell them apart either.
+		const foreign = JSON.stringify({ oauthAccount: { accountUuid: "bbb" } });
+		expect(foreign.length).toBe(original.length);
+
+		await expect(
+			updateClaudeStateFile(statePath, (state) => {
+				// Interpose the other writer inside the read-modify-write
+				// window, the way a live CLI refresh lands: tmp then rename.
+				const tmp = `${statePath}.foreign`;
+				writeFileSync(tmp, foreign);
+				renameSync(tmp, statePath);
+				utimesSync(statePath, before.atime, before.mtime);
+				return { ...state, seeded: true };
+			}),
+		).rejects.toThrow(/kept changing/);
+
+		// The other writer's bytes are still there — not overwritten by the
+		// snapshot Superset read before it.
+		expect(readFileSync(statePath, "utf-8")).toBe(foreign);
+	});
+
 	it("creates a missing state file owner-only", async () => {
 		const file = join(tempDir(), ".claude.json");
 		await updateClaudeStateFile(file, (state) => ({

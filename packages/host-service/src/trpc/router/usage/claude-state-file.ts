@@ -132,12 +132,19 @@ async function backupUnparsableState(
 	}
 }
 
-/** Mtime and size of the file this write is replacing, or null when there is
- * none — the fingerprint a concurrent writer changes. */
+/** Mtime, inode and size of the file this write is replacing, or null when
+ * there is none — the fingerprint a concurrent writer changes.
+ *
+ * Nanoseconds, not `mtimeMs`: the plain Stats field is truncated to whole
+ * milliseconds, and a read-modify-write cycle here is far shorter than that,
+ * so a concurrent same-size rewrite landed in the same bucket and the guard
+ * waved it through. The inode is in it too, because the writer we race is the
+ * Claude Code CLI and an atomic writer replaces the file rather than editing
+ * it in place — a new inode is the one signal that survives any clock. */
 async function stateFingerprint(statePath: string): Promise<string | null> {
 	try {
-		const info = await stat(statePath);
-		return `${info.mtimeMs}:${info.size}`;
+		const info = await stat(statePath, { bigint: true });
+		return `${info.mtimeNs}:${info.ino}:${info.size}`;
 	} catch (error) {
 		if (errorCode(error) === "ENOENT") return null;
 		throw error;
