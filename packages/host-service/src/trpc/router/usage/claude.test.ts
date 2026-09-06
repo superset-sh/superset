@@ -131,21 +131,57 @@ describe("dedupeClaudeCredentials", () => {
 		).toEqual(["uuid-a", "uuid-b"]);
 	});
 
-	it("collapses one identity found in two dirs, keeping the first", () => {
+	it("collapses one identity found in two dirs, keeping the freshest", () => {
+		// The walk always probes the system default before the sorted profile
+		// dirs, so keeping whichever it saw first let a lapsed ~/.claude
+		// shadow a live profile dir holding the same account.
 		const fromDefault = credential({
 			accessToken: "one",
 			accountId: "uuid-a",
 			selection: null,
+			expiresAt: now + hour,
+			refreshTokenExpiresAt: now + hour,
 		});
 		const fromProfile = credential({
 			accessToken: "two",
 			accountId: "uuid-a",
 			selection: "/home/u/.claude-a",
+			expiresAt: now + 10 * hour,
+			refreshTokenExpiresAt: now + 10 * hour,
 		});
 
-		expect(dedupeClaudeCredentials([fromDefault, fromProfile])).toEqual([
-			fromDefault,
-		]);
+		expect(
+			dedupeClaudeCredentials([fromDefault, fromProfile], now).map(
+				(one) => one.accessToken,
+			),
+		).toEqual(["two"]);
+	});
+
+	// One login in two dirs is one account but two run targets. When one is
+	// signed out and the other is not they are not interchangeable, and
+	// collapsing them hides either the truthful expired card or the working
+	// one — so both are listed and the user can move between them.
+	it("keeps both copies when one is live and the other has lapsed", () => {
+		const lapsed = credential({
+			accessToken: "stale",
+			accountId: "uuid-a",
+			selection: null,
+			expiresAt: now - 10 * hour,
+			refreshTokenExpiresAt: now - hour,
+		});
+		const live = credential({
+			accessToken: "live",
+			accountId: "uuid-a",
+			selection: "/home/u/.claude-a",
+			expiresAt: now + hour,
+			refreshTokenExpiresAt: now + 10 * hour,
+		});
+
+		expect(
+			dedupeClaudeCredentials([lapsed, live], now).map(
+				(one) => one.accessToken,
+			),
+		).toEqual(["stale", "live"]);
 	});
 
 	it("carries a dropped dir on the survivor, so it stays removable", () => {

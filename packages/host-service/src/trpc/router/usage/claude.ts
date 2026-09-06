@@ -409,29 +409,57 @@ async function discoverClaudeCredentials(homeDir?: string): Promise<{
  */
 export function dedupeClaudeCredentials(
 	candidates: Array<ClaudeOauthCredential | null>,
+	now = Date.now(),
 ): ClaudeOauthCredential[] {
-	const byIdentity = new Map<string, ClaudeOauthCredential>();
+	const out: ClaudeOauthCredential[] = [];
 	for (const credential of candidates) {
 		if (!credential) continue;
 		const key = credential.accountId
 			? `id:${credential.accountId}`
 			: `token:${credential.accessToken}`;
-		const kept = byIdentity.get(key);
-		if (!kept) {
-			byIdentity.set(key, credential);
+		const at = out.findIndex(
+			(one) =>
+				key ===
+				(one.accountId ? `id:${one.accountId}` : `token:${one.accessToken}`),
+		);
+		if (at === -1) {
+			out.push(credential);
 			continue;
 		}
+		const kept = out[at] as ClaudeOauthCredential;
+		// One login in two dirs is one account but two run targets, and when
+		// one copy is signed out and the other is not they are not
+		// interchangeable — collapsing them has to discard either the truthful
+		// expired card or the working one. Keep both and let the user move.
+		const keptState = classifyLapsedToken(kept, now);
+		const candidateState = classifyLapsedToken(credential, now);
+		if (
+			keptState !== candidateState &&
+			(keptState === "live" || candidateState === "live")
+		) {
+			out.push(credential);
+			continue;
+		}
+		// Otherwise the freshest survives: keeping whichever the walk saw first
+		// let a lapsed ~/.claude shadow a live profile dir, since the default
+		// is always probed before the sorted profile dirs.
+		const winner = pickFreshest([kept, credential], now) ?? kept;
+		const loser = winner === kept ? credential : kept;
 		// A dropped dir appears in no list this pass builds — not a credential,
 		// not a signed-out profile — so nothing would offer to remove the
-		// profile it still has on disk. The survivor carries it instead.
-		if (credential.selection !== null) {
-			kept.duplicateSelections = [
-				...(kept.duplicateSelections ?? []),
-				credential.selection,
-			];
-		}
+		// profile it still has on disk. The survivor carries it instead, and it
+		// carries the previous survivor's own dropped dirs with it.
+		const carried = [
+			...(winner.duplicateSelections ?? []),
+			...(loser.duplicateSelections ?? []),
+			...(loser.selection === null ? [] : [loser.selection]),
+		];
+		out[at] = {
+			...winner,
+			duplicateSelections: carried.length > 0 ? carried : undefined,
+		};
 	}
-	return [...byIdentity.values()];
+	return out;
 }
 
 interface ClaudeUsageWindow {

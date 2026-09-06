@@ -124,43 +124,47 @@ export async function fetchCodexAccounts(): Promise<UsageAccount[]> {
  * from the usage endpoint, so a login whose fetch failed has none, and two
  * such homes used to merge into one row.
  *
- * The default home no longer wins on position alone. auth.json carries the
- * account id even when the fetch failed, so an expired default and a working
- * sibling on the same account now collapse together — and keeping the first
- * would show "token expired" with no quota while a healthy login for that
- * account sits on disk. The survivor is the one that answered, and it carries
- * the dropped home in `duplicateSelections` so removal can still name it.
+ * Two homes on one account are one login but two run targets. When one is
+ * signed out and the other is not they are not interchangeable, and collapsing
+ * them has to hide something either way: keep the default and the panel says
+ * "token expired" while a healthy login sits on disk; keep the sibling and the
+ * `selection: null` row the active badge and the pointer fall back to is gone.
+ * So they collapse only when they agree, and both are listed when they do not.
  */
 function answered(account: UsageAccount): boolean {
 	return account.status === "ok";
 }
 
+function identityKey(account: UsageAccount): string {
+	return account.accountId ?? account.email ?? account.accountKey;
+}
+
 export function dedupeCodexAccounts(accounts: UsageAccount[]): UsageAccount[] {
-	const winners = new Map<string, UsageAccount>();
-	const order: string[] = [];
+	const out: UsageAccount[] = [];
 	for (const account of accounts) {
-		const key = account.accountId ?? account.email ?? account.accountKey;
-		const current = winners.get(key);
-		if (!current) {
-			winners.set(key, account);
-			order.push(key);
+		const key = identityKey(account);
+		const at = out.findIndex(
+			(one) => identityKey(one) === key && answered(one) === answered(account),
+		);
+		if (at === -1) {
+			out.push(account);
 			continue;
 		}
-		const [keep, dropped] =
-			!answered(current) && answered(account)
-				? [account, current]
-				: [current, account];
+		const kept = out[at] as UsageAccount;
+		// A dropped home appears in no list this pass builds, so nothing would
+		// offer to remove the dir it still has on disk. The survivor carries
+		// it, and carries the previous survivor's own dropped homes with it.
 		const carried = [
-			...(keep.duplicateSelections ?? []),
-			...(dropped.duplicateSelections ?? []),
-			...(dropped.selection === null ? [] : [dropped.selection]),
+			...(kept.duplicateSelections ?? []),
+			...(account.duplicateSelections ?? []),
+			...(account.selection === null ? [] : [account.selection]),
 		];
-		winners.set(key, {
-			...keep,
+		out[at] = {
+			...kept,
 			duplicateSelections: carried.length > 0 ? carried : undefined,
-		});
+		};
 	}
-	return order.map((key) => winners.get(key) as UsageAccount);
+	return out;
 }
 
 /**

@@ -52,10 +52,12 @@ describe("dedupeCodexAccounts", () => {
 	});
 
 	// auth.json carries the account id even when the fetch failed, so an
-	// expired default now collapses with a working sibling. Keeping the first
-	// would show "token expired" with no quota while a healthy login for that
-	// same account sits on disk.
-	it("keeps the home that answered, not the default that did not", () => {
+	// expired default now shares a key with a working sibling. They are one
+	// login but two run targets: collapsing to the default hides a healthy
+	// login behind "token expired", and collapsing to the sibling drops the
+	// selection:null row the active badge and the pointer fall back to. Both
+	// are listed, so the user can see the truth and move between them.
+	it("keeps both homes when one answered and the other did not", () => {
 		const accounts = dedupeCodexAccounts([
 			account({
 				accountId: "acct-1",
@@ -71,9 +73,11 @@ describe("dedupeCodexAccounts", () => {
 			}),
 		]);
 
-		expect(accounts).toHaveLength(1);
-		expect(accounts[0]?.selection).toBe("/home/u/.codex-work");
-		expect(accounts[0]?.status).toBe("ok");
+		expect(accounts.map((one) => one.selection)).toEqual([
+			null,
+			"/home/u/.codex-work",
+		]);
+		expect(accounts.map((one) => one.status)).toEqual(["token_expired", "ok"]);
 	});
 
 	// Without this the dropped home has no row to click and removeAccount
