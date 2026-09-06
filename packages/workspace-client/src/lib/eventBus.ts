@@ -22,7 +22,9 @@ type EventType =
 	| "workspace:create-settled"
 	| "project:changed"
 	| "tag-folders:changed"
-	| "page-watch:changed";
+	| "page-watch:changed"
+	| "account:switched"
+	| "account:engine-state";
 
 interface FsEventsPayload {
 	events: FsWatchEvent[];
@@ -122,6 +124,34 @@ export interface TagFoldersChangedPayload {
 	occurredAt: TagFoldersChangedMessage["occurredAt"];
 }
 
+type AccountSwitchedMessage = Extract<
+	ServerMessage,
+	{ type: "account:switched" }
+>;
+
+/**
+ * A completed account switch (R19, R21). Scoped by agent rather than by
+ * workspace: the active account is host-wide, so every workspace moves with
+ * it. Text is composed and translated here in the renderer — the host sends
+ * only ids, display labels and numbers (KTD6).
+ */
+export type AccountSwitchedPayload = Omit<
+	AccountSwitchedMessage,
+	"type" | "scope"
+>;
+
+type AccountEngineStateMessage = Extract<
+	ServerMessage,
+	{ type: "account:engine-state" }
+>;
+
+/** The engine's state for one agent: the active-account indicator, the
+ * exhaustion notice, and a switch that failed (R20, R22, R24). */
+export type AccountEngineStatePayload = Omit<
+	AccountEngineStateMessage,
+	"type" | "scope"
+>;
+
 type EventListener<T extends EventType> = T extends "fs:events"
 	? (workspaceId: string, payload: FsEventsPayload) => void
 	: T extends "git:changed"
@@ -150,7 +180,17 @@ type EventListener<T extends EventType> = T extends "fs:events"
 													workspaceId: string,
 													payload: PageWatchChangedPayload,
 												) => void
-											: never;
+											: T extends "account:switched"
+												? (
+														agent: string,
+														payload: AccountSwitchedPayload,
+													) => void
+												: T extends "account:engine-state"
+													? (
+															agent: string,
+															payload: AccountEngineStatePayload,
+														) => void
+													: never;
 
 interface ListenerEntry {
 	type: EventType;
@@ -286,7 +326,9 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 				? message.workspaceId
 				: message.type === "project:changed"
 					? message.projectId
-					: message.type === "tag-folders:changed"
+					: message.type === "tag-folders:changed" ||
+							message.type === "account:switched" ||
+							message.type === "account:engine-state"
 						? message.scope
 						: null;
 
@@ -370,6 +412,18 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 				settings: message.settings,
 				occurredAt: message.occurredAt,
 			});
+		} else if (message.type === "account:switched") {
+			const { type: _type, scope: _scope, ...payload } = message;
+			(entry.callback as EventListener<"account:switched">)(
+				message.scope,
+				payload,
+			);
+		} else if (message.type === "account:engine-state") {
+			const { type: _type, scope: _scope, ...payload } = message;
+			(entry.callback as EventListener<"account:engine-state">)(
+				message.scope,
+				payload,
+			);
 		}
 	}
 }

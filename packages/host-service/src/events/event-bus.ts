@@ -356,6 +356,32 @@ export class EventBus {
 	}
 
 	/**
+	 * Fan out one completed account switch (R19, R21). Broadcast to every
+	 * client: the active account is host-wide, so no workspace owns this. The
+	 * `scope` field carries the agent, and the client filter delivers it only
+	 * to listeners keyed by that agent or `"*"` (KTD6).
+	 */
+	broadcastAccountSwitched(
+		message: Omit<Extract<ServerMessage, { type: "account:switched" }>, "type">,
+	): void {
+		this.broadcast({ type: "account:switched", ...message });
+	}
+
+	/**
+	 * Fan out the account engine's state for one agent (R20, R22, R24), so
+	 * the Usage page indicator, the exhaustion notice and a failed switch all
+	 * reach an open page without a refetch.
+	 */
+	broadcastAccountEngineState(
+		message: Omit<
+			Extract<ServerMessage, { type: "account:engine-state" }>,
+			"type"
+		>,
+	): void {
+		this.broadcast({ type: "account:engine-state", ...message });
+	}
+
+	/**
 	 * Fan out port add/remove events discovered by the host-service scanner.
 	 * Renderer clients use this to patch their host snapshot immediately while
 	 * keeping a slow refetch as a reconnect fallback.
