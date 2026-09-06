@@ -237,7 +237,10 @@ export class EngineState {
 				`state dir ${this.dir} is owned by uid ${stats.uid}, not ${uid}`,
 			);
 		}
-		if ((stats.mode & 0o022) !== 0) {
+		// Skipped on win32 for the same reason the uid check above is: libuv
+		// reports every normal Windows dir as mode 0o666, replicating the owner
+		// bits into group and other, so this gate would refuse them all.
+		if (process.platform !== "win32" && (stats.mode & 0o022) !== 0) {
 			return this.refuse(
 				"mode",
 				`state dir ${this.dir} is group- or other-writable (mode ${(

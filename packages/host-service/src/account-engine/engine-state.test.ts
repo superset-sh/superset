@@ -483,6 +483,42 @@ describe("account-engine state", () => {
 		}
 	});
 
+	// Node reports a perfectly normal writable Windows dir as mode 0o666, so the
+	// group/other-writable gate is always true there: without the win32 skip the
+	// engine goes read-only on every Windows host and silently drops its writes.
+	it("stays writable on win32, where the mode bits carry no such meaning", () => {
+		const dir = join(home, "state", "account-engine");
+		mkdirSync(dir, { recursive: true, mode: 0o700 });
+		chmodSync(dir, 0o777);
+
+		const originalPlatform = process.platform;
+		Object.defineProperty(process, "platform", { value: "win32" });
+		const warn = spyOn(console, "warn").mockImplementation(() => {});
+		try {
+			const state = new EngineState();
+			expect(state.assertSafeStateDir()).toEqual({
+				readOnly: false,
+				reason: null,
+			});
+
+			const settings = defaultEngineSettings();
+			settings.claude.enabled = true;
+			state.writeSettings(settings);
+			expect(new EngineState().readSettings()).toEqual(settings);
+			// console.warn is process-global: count only this file's warning so
+			// another suite's late async log line cannot fail the assertion.
+			expect(
+				warn.mock.calls.filter((call) =>
+					String(call[0]).includes("group- or other-writable"),
+				),
+			).toEqual([]);
+		} finally {
+			warn.mockRestore();
+			Object.defineProperty(process, "platform", { value: originalPlatform });
+			chmodSync(dir, 0o700);
+		}
+	});
+
 	it("writes files 0600 inside a 0700 dir and leaves no tmp file behind", () => {
 		const state = new EngineState();
 		const dir = join(home, "state", "account-engine");
