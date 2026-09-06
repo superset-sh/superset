@@ -264,10 +264,15 @@ export class SessionMover {
 	 * A snapshot is taken only where the plan allows one: the terminal a
 	 * Claude hint names, or a busy Codex row while its account's window is at
 	 * or over 100%. Everything else answers false without reading a screen.
+	 *
+	 * `modelWindows` are the models the user configured, per call like
+	 * `windows` because the engine re-reads its settings every tick. Empty —
+	 * the shipped default — means only account-wide windows count as proof.
 	 */
 	async corroborateLimitStop(
 		row: MovableSession,
 		windows: readonly UsageQuotaWindow[],
+		modelWindows: readonly string[] = [],
 	): Promise<boolean> {
 		if (!this.maySnapshot(row, windows)) return false;
 
@@ -285,7 +290,13 @@ export class SessionMover {
 			});
 		}
 
-		return isCorroboratedLimitStop({ hint: true, snapshotMatch, windows });
+		return isCorroboratedLimitStop({
+			agent: row.agent,
+			hint: true,
+			snapshotMatch,
+			windows,
+			modelWindows,
+		});
 	}
 
 	private maySnapshot(

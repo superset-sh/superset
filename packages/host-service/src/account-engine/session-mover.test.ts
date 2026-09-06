@@ -99,6 +99,14 @@ const SPENT: UsageQuotaWindow[] = [
 const HEADROOM: UsageQuotaWindow[] = [
 	{ id: "five_hour", label: "5-hour", usedPercent: 20, resetsAt: null },
 ];
+// Codex's account-wide ids are its own: a Claude-shaped `five_hour` is out of
+// scope for a Codex row and would prove nothing about that account.
+const CODEX_SPENT: UsageQuotaWindow[] = [
+	{ id: "primary", label: "5-hour", usedPercent: 100, resetsAt: null },
+];
+const CODEX_HEADROOM: UsageQuotaWindow[] = [
+	{ id: "primary", label: "5-hour", usedPercent: 20, resetsAt: null },
+];
 
 describe("moveAtIdle", () => {
 	it("restarts an idle Codex row once, and never a mid-turn one (AE2)", async () => {
@@ -447,6 +455,60 @@ describe("corroborateLimitStop", () => {
 		expect(corroborated).toBe(true);
 	});
 
+	// The caller has to hand over windows the agent is actually scored on: a
+	// window whose id is neither account-wide nor a configured model is out of
+	// scope, so a stand-in id would silently strand every limit-stopped
+	// session instead of moving it.
+	it("scores a Claude row only on windows in scope", async () => {
+		const hinted = row({ agent: "claude", limitHintErrorType: "rate_limit" });
+		const limitScreen = () =>
+			Promise.resolve("You've hit your 5-hour limit · resets 3:45pm");
+
+		const outOfScope = harness({ snapshotTerminal: limitScreen });
+		expect(
+			await outOfScope.mover.corroborateLimitStop(hinted, [
+				{
+					id: "limit-hint",
+					label: "limit hint",
+					usedPercent: 100,
+					resetsAt: null,
+				},
+			]),
+		).toBe(false);
+
+		const accountWide = harness({ snapshotTerminal: limitScreen });
+		expect(await accountWide.mover.corroborateLimitStop(hinted, SPENT)).toBe(
+			true,
+		);
+	});
+
+	it("scores a spent model window only once the user configured it", async () => {
+		const hinted = row({ agent: "claude", limitHintErrorType: "rate_limit" });
+		const limitScreen = () =>
+			Promise.resolve("You've hit your 5-hour limit · resets 3:45pm");
+		const windows: UsageQuotaWindow[] = [
+			{ id: "five_hour", label: "5-hour", usedPercent: 20, resetsAt: null },
+			{
+				id: "weekly_scoped:Opus 4.5",
+				label: "Weekly (Opus 4.5)",
+				usedPercent: 100,
+				resetsAt: null,
+			},
+		];
+
+		const unconfigured = harness({ snapshotTerminal: limitScreen });
+		expect(await unconfigured.mover.corroborateLimitStop(hinted, windows)).toBe(
+			false,
+		);
+
+		const configured = harness({ snapshotTerminal: limitScreen });
+		expect(
+			await configured.mover.corroborateLimitStop(hinted, windows, [
+				"Opus 4.5",
+			]),
+		).toBe(true);
+	});
+
 	it("never snapshots an unhinted Claude row", async () => {
 		const h = harness();
 		expect(
@@ -464,17 +526,21 @@ describe("corroborateLimitStop", () => {
 				return Promise.resolve("You've hit your usage limit.");
 			},
 		});
-		expect(await spent.mover.corroborateLimitStop(row(), SPENT)).toBe(true);
+		expect(await spent.mover.corroborateLimitStop(row(), CODEX_SPENT)).toBe(
+			true,
+		);
 		expect(snapshotted).toEqual(["t1"]);
 
 		const belowCeiling = harness({ isAgentBusy: () => true });
-		expect(await belowCeiling.mover.corroborateLimitStop(row(), HEADROOM)).toBe(
-			false,
-		);
+		expect(
+			await belowCeiling.mover.corroborateLimitStop(row(), CODEX_HEADROOM),
+		).toBe(false);
 		expect(belowCeiling.snapshotCalls).toEqual([]);
 
 		const notBusy = harness({ isAgentBusy: () => false });
-		expect(await notBusy.mover.corroborateLimitStop(row(), SPENT)).toBe(false);
+		expect(await notBusy.mover.corroborateLimitStop(row(), CODEX_SPENT)).toBe(
+			false,
+		);
 		expect(notBusy.snapshotCalls).toEqual([]);
 	});
 
