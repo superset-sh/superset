@@ -240,6 +240,13 @@ function notifyExhaustion(
 	hostUrl: string,
 ): void {
 	const key = latchKey(hostUrl, payload.agent);
+	// With auto-switch off nothing polls this agent and nothing will switch, so
+	// the latched flag is stale and "switching resumes" would be a promise the
+	// engine cannot keep.
+	if (!payload.enabled) {
+		exhaustedAgents.delete(key);
+		return;
+	}
 	if (!payload.exhausted) {
 		exhaustedAgents.delete(key);
 		return;

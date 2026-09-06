@@ -362,6 +362,43 @@ describe("engine state notices", () => {
 		expect(shown).toHaveLength(2);
 	});
 
+	// With auto-switch off nothing polls the agent, so "switching resumes when a
+	// usage window resets" is a promise the engine cannot keep. The latch has to
+	// come off with it too, or turning auto-switch back on while the accounts are
+	// still exhausted says nothing at all.
+	test("an exhausted agent with auto-switch off stays silent, and is told again when it is turned back on", async () => {
+		await mountSubscriber("http://host-exhausted-disabled");
+
+		await emit(
+			"account:engine-state",
+			"claude",
+			engineState({ occurredAt: 5_101, enabled: false, exhausted: true }),
+		);
+		expect(shown).toEqual([]);
+
+		await emit(
+			"account:engine-state",
+			"claude",
+			engineState({ occurredAt: 5_102, exhausted: true }),
+		);
+		expect(shown).toHaveLength(1);
+		expect(shown[0]?.title).toBe("All Claude accounts are at their limit");
+
+		await emit(
+			"account:engine-state",
+			"claude",
+			engineState({ occurredAt: 5_103, enabled: false, exhausted: true }),
+		);
+		expect(shown).toHaveLength(1);
+
+		await emit(
+			"account:engine-state",
+			"claude",
+			engineState({ occurredAt: 5_104, exhausted: true }),
+		);
+		expect(shown).toHaveLength(2);
+	});
+
 	test("a session that could not be moved names its workspace", async () => {
 		await mountSubscriber("http://host-attention");
 
