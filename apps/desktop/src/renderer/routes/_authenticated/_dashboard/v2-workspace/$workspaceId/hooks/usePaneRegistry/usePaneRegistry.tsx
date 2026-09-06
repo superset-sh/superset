@@ -15,6 +15,7 @@ import {
 	Circle,
 	FileText,
 	GitCompareArrows,
+	GitPullRequest,
 	Globe,
 	MessageSquare,
 	Monitor,
@@ -56,6 +57,7 @@ import type {
 	FilePaneData,
 	PagePaneData,
 	PaneViewerData,
+	PullRequestPaneData,
 	TerminalPaneData,
 } from "../../types";
 import { focusOrAddTerminalPane } from "../../utils/focusTerminalPane";
@@ -73,6 +75,8 @@ import { FilePaneHeaderExtras } from "./components/FilePane/components/FilePaneH
 import { PagePane } from "./components/PagePane";
 import { PagePaneHeaderExtras } from "./components/PagePaneHeaderExtras";
 import { PagePaneTitle } from "./components/PagePaneTitle";
+import { PullRequestPane } from "./components/PullRequestPane";
+import { PullRequestPaneHeaderExtras } from "./components/PullRequestPane/components/PullRequestPaneHeaderExtras";
 import { TerminalPane } from "./components/TerminalPane";
 import { TerminalPaneHeaderExtras } from "./components/TerminalPane/components/TerminalPaneHeaderExtras";
 import { TerminalPaneIcon } from "./components/TerminalPane/components/TerminalPaneIcon";
@@ -370,8 +374,8 @@ export function usePaneRegistry({
 						onCreateNewAgentSession={createNewAgentSession}
 					/>
 				),
-				renderHeaderExtras: () => (
-					<DiffPaneHeaderExtras workspaceId={workspaceId} />
+				renderHeaderExtras: (ctx: RendererContext<PaneViewerData>) => (
+					<DiffPaneHeaderExtras workspaceId={workspaceId} store={ctx.store} />
 				),
 				contextMenuActions: (_ctx, defaults) =>
 					defaults.map((d) =>
@@ -722,6 +726,32 @@ export function usePaneRegistry({
 									...d,
 									label: t({
 										message: "Close Comment",
+									}),
+								}
+							: d,
+					),
+			},
+			"pull-request": {
+				getIcon: () => <GitPullRequest className="size-3.5" />,
+				getTitle: (pane) => {
+					const data = pane.data as PullRequestPaneData;
+					return t({ message: `Pull request #${data.prNumber}` });
+				},
+				renderPane: (ctx: RendererContext<PaneViewerData>) => (
+					<PullRequestPane data={ctx.pane.data as PullRequestPaneData} />
+				),
+				renderHeaderExtras: (ctx: RendererContext<PaneViewerData>) => (
+					<PullRequestPaneHeaderExtras
+						data={ctx.pane.data as PullRequestPaneData}
+					/>
+				),
+				contextMenuActions: (_ctx, defaults) =>
+					defaults.map((d) =>
+						d.key === "close-pane"
+							? {
+									...d,
+									label: t({
+										message: "Close Pull Request",
 									}),
 								}
 							: d,

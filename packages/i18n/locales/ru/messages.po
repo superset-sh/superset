@@ -3078,6 +3078,9 @@ msgstr "Закрыть предпросмотр"
 msgid "Close pull request"
 msgstr "Закрыть пул-реквест"
 
+msgid "Close Pull Request"
+msgstr "Закрыть пул-реквест"
+
 msgid "Close review filter"
 msgstr "Закрыть фильтр по ревью"
 
@@ -9513,6 +9516,9 @@ msgstr "Открыть в новой вкладке"
 msgid "Open in PostHog"
 msgstr "Открыть в PostHog"
 
+msgid "Open in Pull Requests"
+msgstr "Открыть в разделе «Пул-реквесты»"
+
 msgid "Open in Scira AI"
 msgstr "Открыть в Scira AI"
 
@@ -10610,6 +10616,7 @@ msgstr "Публикуется как <0>{handle}</0>. Только количе
 msgid "Pull request"
 msgstr "Пул-реквест"
 
+#. placeholder {0}: data.prNumber
 #. placeholder {0}: pullRequest.prNumber
 msgid "Pull request #{0}"
 msgstr "Пул-реквест #{0}"

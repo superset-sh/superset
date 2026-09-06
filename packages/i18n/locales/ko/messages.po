@@ -3078,6 +3078,9 @@ msgstr "미리보기 닫기"
 msgid "Close pull request"
 msgstr "풀 리퀘스트 닫기"
 
+msgid "Close Pull Request"
+msgstr "풀 리퀘스트 닫기"
+
 msgid "Close review filter"
 msgstr "리뷰 필터 닫기"
 
@@ -9513,6 +9516,9 @@ msgstr "새 탭에서 열기"
 msgid "Open in PostHog"
 msgstr "PostHog에서 열기"
 
+msgid "Open in Pull Requests"
+msgstr "풀 리퀘스트에서 열기"
+
 msgid "Open in Scira AI"
 msgstr "Scira AI에서 열기"
 
@@ -10610,6 +10616,7 @@ msgstr "<0>{handle}</0>(으)로 게시 중입니다. 토큰 수와 모델 이름
 msgid "Pull request"
 msgstr "풀 리퀘스트"
 
+#. placeholder {0}: data.prNumber
 #. placeholder {0}: pullRequest.prNumber
 msgid "Pull request #{0}"
 msgstr "풀 리퀘스트 #{0}"

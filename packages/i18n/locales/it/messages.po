@@ -3078,6 +3078,9 @@ msgstr "Chiudi l'anteprima"
 msgid "Close pull request"
 msgstr "Chiudi la pull request"
 
+msgid "Close Pull Request"
+msgstr "Chiudi la pull request"
+
 msgid "Close review filter"
 msgstr "Chiudi il filtro delle revisioni"
 
@@ -9513,6 +9516,9 @@ msgstr "Apri in una nuova scheda"
 msgid "Open in PostHog"
 msgstr "Apri in PostHog"
 
+msgid "Open in Pull Requests"
+msgstr "Apri in Pull request"
+
 msgid "Open in Scira AI"
 msgstr "Apri in Scira AI"
 
@@ -10610,6 +10616,7 @@ msgstr "Pubblichi come <0>{handle}</0>. Solo conteggi di token e nomi dei modell
 msgid "Pull request"
 msgstr "Pull request"
 
+#. placeholder {0}: data.prNumber
 #. placeholder {0}: pullRequest.prNumber
 msgid "Pull request #{0}"
 msgstr "Pull request #{0}"

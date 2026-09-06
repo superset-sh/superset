@@ -3078,6 +3078,9 @@ msgstr "關閉預覽"
 msgid "Close pull request"
 msgstr "關閉拉取請求"
 
+msgid "Close Pull Request"
+msgstr "關閉拉取請求"
+
 msgid "Close review filter"
 msgstr "關閉審查篩選"
 
@@ -9513,6 +9516,9 @@ msgstr "在新分頁中開啟"
 msgid "Open in PostHog"
 msgstr "在PostHog中開啟"
 
+msgid "Open in Pull Requests"
+msgstr "在拉取請求中開啟"
+
 msgid "Open in Scira AI"
 msgstr "在Scira AI中開啟"
 
@@ -10610,6 +10616,7 @@ msgstr "以<0>{handle}</0>的身份釋出。僅包含token數量和模型名稱�
 msgid "Pull request"
 msgstr "拉取請求"
 
+#. placeholder {0}: data.prNumber
 #. placeholder {0}: pullRequest.prNumber
 msgid "Pull request #{0}"
 msgstr "拉取請求#{0}"

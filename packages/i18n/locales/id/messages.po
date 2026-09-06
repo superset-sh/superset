@@ -3078,6 +3078,9 @@ msgstr "Tutup pratinjau"
 msgid "Close pull request"
 msgstr "Tutup pull request"
 
+msgid "Close Pull Request"
+msgstr "Tutup Pull Request"
+
 msgid "Close review filter"
 msgstr "Tutup filter review"
 
@@ -9513,6 +9516,9 @@ msgstr "Buka di Tab Baru"
 msgid "Open in PostHog"
 msgstr "Buka di PostHog"
 
+msgid "Open in Pull Requests"
+msgstr "Buka di Pull request"
+
 msgid "Open in Scira AI"
 msgstr "Buka di Scira AI"
 
@@ -10610,6 +10616,7 @@ msgstr "Dipublikasikan sebagai <0>{handle}</0>. Hanya jumlah token dan nama mode
 msgid "Pull request"
 msgstr "Pull request"
 
+#. placeholder {0}: data.prNumber
 #. placeholder {0}: pullRequest.prNumber
 msgid "Pull request #{0}"
 msgstr "Pull request #{0}"

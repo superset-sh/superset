@@ -3078,6 +3078,9 @@ msgstr "Önizlemeyi kapat"
 msgid "Close pull request"
 msgstr "Pull request'i kapat"
 
+msgid "Close Pull Request"
+msgstr "Pull request'i kapat"
+
 msgid "Close review filter"
 msgstr "İnceleme filtresini kapat"
 
@@ -9513,6 +9516,9 @@ msgstr "Yeni sekmede aç"
 msgid "Open in PostHog"
 msgstr "PostHog'da aç"
 
+msgid "Open in Pull Requests"
+msgstr "Pull request'lerde aç"
+
 msgid "Open in Scira AI"
 msgstr "Scira AI'da aç"
 
@@ -10610,6 +10616,7 @@ msgstr "<0>{handle}</0> adıyla yayımlanıyor. Yalnızca token sayıları ve mo
 msgid "Pull request"
 msgstr "Pull request"
 
+#. placeholder {0}: data.prNumber
 #. placeholder {0}: pullRequest.prNumber
 msgid "Pull request #{0}"
 msgstr "Pull request #{0}"

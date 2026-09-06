@@ -3078,6 +3078,9 @@ msgstr "Đóng xem trước"
 msgid "Close pull request"
 msgstr "Đóng pull request"
 
+msgid "Close Pull Request"
+msgstr "Đóng pull request"
+
 msgid "Close review filter"
 msgstr "Đóng bộ lọc review"
 
@@ -9513,6 +9516,9 @@ msgstr "Mở ở tab mới"
 msgid "Open in PostHog"
 msgstr "Mở trong PostHog"
 
+msgid "Open in Pull Requests"
+msgstr "Mở trong Pull request"
+
 msgid "Open in Scira AI"
 msgstr "Mở trong Scira AI"
 
@@ -10610,6 +10616,7 @@ msgstr "Đang đăng với tên <0>{handle}</0>. Chỉ số token và tên mô h
 msgid "Pull request"
 msgstr "Pull request"
 
+#. placeholder {0}: data.prNumber
 #. placeholder {0}: pullRequest.prNumber
 msgid "Pull request #{0}"
 msgstr "Pull request #{0}"
