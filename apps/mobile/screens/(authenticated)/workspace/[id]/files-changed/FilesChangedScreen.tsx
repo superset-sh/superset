@@ -532,10 +532,10 @@ export function FilesChangedScreen() {
 				case "hunk":
 					return (
 						<View
-							className="bg-sky-500/10 justify-center px-3"
+							className="bg-muted/40 justify-center px-3"
 							style={{ height: HUNK_ROW_HEIGHT }}
 						>
-							<Text className="text-sky-300/80 font-mono text-[12px]">
+							<Text className="text-muted-foreground font-mono text-[12px]">
 								{item.header}
 							</Text>
 						</View>
