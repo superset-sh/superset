@@ -11,15 +11,19 @@ import { hasHarnessSession } from "../../../terminal/harness-transcript";
 import {
 	createTerminalSessionInternal,
 	disposeSessionAndWait,
+	getSessionLastOutputAt,
 } from "../../../terminal/terminal";
 import type {
 	TerminalAgentBinding,
+	TerminalAgentEndReason,
 	TerminalAgentId,
 	TerminalAgentStore,
 } from "../../../terminal-agents";
 import {
 	claimResumeCandidateBinding,
 	findResumeCandidateBinding,
+	getTerminalAgentBindingAnyState,
+	listResumeCandidateBindings,
 	seedEndedTerminalAgentBinding,
 	unclaimResumeCandidateBinding,
 } from "../../../terminal-agents/persistence";
@@ -186,6 +190,83 @@ export async function resumeTerminalAgentSession(
 	}
 }
 
+export type ResumeAllResult =
+	| { terminalId: string; resumed: true; newTerminalId: string; label: string }
+	| { terminalId: string; resumed: false; error?: string };
+
+/**
+ * Resume every dead-but-resumable session in a workspace, one at a time.
+ * Each candidate goes through the same idempotent, atomically-claimed
+ * `resumeTerminalAgentSession` a single-terminal resume uses, so a bulk sweep
+ * carries no new race conditions beyond what that path already handles. A
+ * failure on one candidate is recorded and does not stop the rest — this is
+ * a best-effort sweep, not a transaction.
+ */
+export async function resumeAllTerminalAgentSessions(
+	deps: ResumeSessionDeps,
+	input: { workspaceId: string },
+): Promise<{ results: ResumeAllResult[] }> {
+	const candidates = listResumeCandidateBindings(deps.db, input.workspaceId);
+	const results: ResumeAllResult[] = [];
+	for (const binding of candidates) {
+		try {
+			const result = await resumeTerminalAgentSession(deps, {
+				workspaceId: input.workspaceId,
+				terminalId: binding.terminalId,
+			});
+			results.push(
+				result.resumed
+					? {
+							terminalId: binding.terminalId,
+							resumed: true,
+							newTerminalId: result.terminalId,
+							label: result.label,
+						}
+					: { terminalId: binding.terminalId, resumed: false },
+			);
+		} catch (error) {
+			results.push({
+				terminalId: binding.terminalId,
+				resumed: false,
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
+	}
+	return { results };
+}
+
+interface ResumeCandidateSummary {
+	terminalId: string;
+	agentId: TerminalAgentId;
+	definitionId: AgentDefinitionId | null;
+	agentSessionId: string;
+	endedAt: number | null;
+	agent: string;
+	agentLabel: string;
+	resumeSupported: boolean;
+}
+
+function toResumeCandidateSummary(
+	db: HostDb,
+	binding: TerminalAgentBinding,
+): ResumeCandidateSummary | null {
+	if (!binding.agentSessionId) return null;
+	const config = resolveHostAgentConfig(
+		db,
+		binding.definitionId ?? binding.agentId,
+	);
+	return {
+		terminalId: binding.terminalId,
+		agentId: binding.agentId,
+		definitionId: binding.definitionId ?? null,
+		agentSessionId: binding.agentSessionId,
+		endedAt: binding.endedAt ?? null,
+		agent: config?.id ?? binding.agentId,
+		agentLabel: config?.label ?? binding.agentId,
+		resumeSupported: (config?.resumeArgs.length ?? 0) > 0,
+	};
+}
+
 /**
  * Live agent sessions a default-account switch cannot reach: their PTY env
  * was frozen at spawn, so they keep the old login until relaunched. A
@@ -262,6 +343,184 @@ export async function restartAccountSessions(
 	return { restartedTerminalIds };
 }
 
+export type ExplainedAgentStatus =
+	| "working"
+	| "permission"
+	| "failed"
+	| "idle"
+	| "ended";
+
+export type TerminalAgentExplanation =
+	| { binding: null }
+	| {
+			binding: {
+				terminalId: string;
+				workspaceId: string;
+				agentId: TerminalAgentId;
+				agentSessionId: string | null;
+				definitionId: AgentDefinitionId | null;
+				startedAt: number;
+				lastEventAt: number;
+				lastEventType: string;
+				endedAt: number | null;
+				endReason: TerminalAgentEndReason | null;
+			};
+			derivedStatus: ExplainedAgentStatus;
+			sinceMs: number;
+			/**
+			 * Time since the terminal's PTY last actually produced output, from an
+			 * independent liveness source (see `getSessionLastOutputAt`) — never
+			 * from the hook events `binding`/`derivedStatus` are built from. `null`
+			 * when no such source is available (dep not supplied, unknown
+			 * terminal, or a cross-workspace lookup). This is additional evidence
+			 * for a human or script to weigh, not a verdict: it never changes
+			 * `derivedStatus`, and a long silence is not proof anything is wrong —
+			 * an agent can legitimately think quietly for a while.
+			 */
+			msSincePtyOutput: number | null;
+	  };
+
+export interface ExplainTerminalAgentDeps {
+	db: HostDb;
+	terminalAgentStore: TerminalAgentStore;
+	getPtyLastOutputAt?: (
+		terminalId: string,
+		workspaceId: string,
+	) => number | undefined;
+}
+
+/**
+ * Mirror of the desktop's deriveTerminalAgentStatus, minus seen-gating (the
+ * CLI has no "seen" concept, so a fresh Stop reads "idle" here where the
+ * desktop may still show "review" until the pane is viewed). "ended" is
+ * extra: ended rows never reach the desktop derivation at all — its live
+ * reads hide them — so ended is what "no status shown" derives from.
+ */
+function deriveExplainedStatus(
+	binding: TerminalAgentBinding,
+): ExplainedAgentStatus {
+	if (binding.endedAt !== undefined) return "ended";
+	if (binding.lastEventType === "Start") return "working";
+	if (binding.lastEventType === "PermissionRequest") return "permission";
+	if (binding.lastEventType === "Failed") return "failed";
+	return "idle";
+}
+
+/**
+ * The raw evidence behind a terminal's agent status indicator: the binding
+ * exactly as hook events left it — ended rows included, since "the session
+ * ended, and why" is itself part of the explanation — plus the status those
+ * events derive to. Statuses are hook self-reports with no liveness probe
+ * (interrupts fire no hook at all), so a wedged indicator explains itself
+ * here as a stale last event instead of requiring source-diving. `sinceMs`
+ * is computed on the host's clock so remote reads don't inherit skew.
+ */
+export function explainTerminalAgentBinding(
+	deps: ExplainTerminalAgentDeps,
+	input: { workspaceId: string; terminalId: string },
+	now: number = Date.now(),
+): TerminalAgentExplanation {
+	const live = deps.terminalAgentStore.get(input.terminalId);
+	const binding =
+		live && live.workspaceId === input.workspaceId
+			? live
+			: getTerminalAgentBindingAnyState(
+					deps.db,
+					input.workspaceId,
+					input.terminalId,
+				);
+	if (!binding) return { binding: null };
+
+	const lastOutputAt = deps.getPtyLastOutputAt?.(
+		binding.terminalId,
+		binding.workspaceId,
+	);
+
+	return {
+		binding: {
+			terminalId: binding.terminalId,
+			workspaceId: binding.workspaceId,
+			agentId: binding.agentId,
+			agentSessionId: binding.agentSessionId ?? null,
+			definitionId: binding.definitionId ?? null,
+			startedAt: binding.startedAt,
+			lastEventAt: binding.lastEventAt,
+			lastEventType: binding.lastEventType,
+			endedAt: binding.endedAt ?? null,
+			endReason: binding.endReason ?? null,
+		},
+		derivedStatus: deriveExplainedStatus(binding),
+		sinceMs: Math.max(0, now - binding.lastEventAt),
+		msSincePtyOutput:
+			lastOutputAt === undefined ? null : Math.max(0, now - lastOutputAt),
+	};
+}
+
+/** An explanation for a terminal that has (or had) an agent bound to it. */
+export type BoundTerminalAgentExplanation = Exclude<
+	TerminalAgentExplanation,
+	{ binding: null }
+>;
+
+/**
+ * Block until the terminal's derived status is one of `until`, answering the
+ * explanation at that moment. Returns at once when it already matches, so
+ * "prompt, then wait for idle" needs no polling loop around it. Every store
+ * change re-explains rather than reading the live map directly, because
+ * ending a session drops the live entry and only the persisted row knows it
+ * ended. NOT_FOUND when no agent ever bound to the terminal — a plain shell
+ * has nothing to wait for; TIMEOUT once the deadline passes without a match.
+ */
+export async function waitForTerminalAgentStatus(
+	deps: ExplainTerminalAgentDeps,
+	input: {
+		workspaceId: string;
+		terminalId: string;
+		until: ExplainedAgentStatus[];
+		timeoutMs: number;
+	},
+): Promise<BoundTerminalAgentExplanation> {
+	const { workspaceId, terminalId, until, timeoutMs } = input;
+	const explain = () =>
+		explainTerminalAgentBinding(deps, { workspaceId, terminalId });
+
+	const initial = explain();
+	if (initial.binding === null) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: `No agent binding recorded for terminal ${terminalId}`,
+		});
+	}
+	if (until.includes(initial.derivedStatus)) return initial;
+
+	const store = deps.terminalAgentStore;
+	return new Promise((resolve, reject) => {
+		const onChange = (changedWorkspaceId: string) => {
+			if (changedWorkspaceId !== workspaceId) return;
+			const current = explain();
+			if (current.binding === null) return;
+			if (!until.includes(current.derivedStatus)) return;
+			cleanup();
+			resolve(current);
+		};
+		const cleanup = () => {
+			clearTimeout(timer);
+			store.off("change", onChange);
+		};
+		const timer = setTimeout(() => {
+			cleanup();
+			reject(
+				new TRPCError({
+					code: "TIMEOUT",
+					message: `Timed out after ${timeoutMs}ms waiting for terminal ${terminalId} to reach one of: ${until.join(", ")}`,
+				}),
+			);
+		}, timeoutMs);
+
+		store.on("change", onChange);
+	});
+}
+
 function inflightKey(
 	workspaceId: string,
 	agentId: TerminalAgentId,
@@ -317,6 +576,43 @@ export const terminalAgentsRouter = router({
 			);
 		}),
 
+	/** See {@link explainTerminalAgentBinding}. */
+	explain: protectedProcedure
+		.input(z.object({ workspaceId: z.string(), terminalId: z.string() }))
+		.query(({ ctx, input }) =>
+			explainTerminalAgentBinding(
+				{
+					db: ctx.db,
+					terminalAgentStore: ctx.terminalAgentStore,
+					getPtyLastOutputAt: getSessionLastOutputAt,
+				},
+				input,
+			),
+		),
+
+	/** See {@link waitForTerminalAgentStatus}. */
+	wait: protectedProcedure
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				terminalId: z.string(),
+				until: z
+					.array(z.enum(["working", "permission", "failed", "idle", "ended"]))
+					.min(1),
+				timeoutMs: z.number().int().positive(),
+			}),
+		)
+		.mutation(({ ctx, input }) =>
+			waitForTerminalAgentStatus(
+				{
+					db: ctx.db,
+					terminalAgentStore: ctx.terminalAgentStore,
+					getPtyLastOutputAt: getSessionLastOutputAt,
+				},
+				input,
+			),
+		),
+
 	/**
 	 * The resumable agent session behind a dead terminal, if any: the binding
 	 * captured an agent session id and the terminal died under the agent
@@ -333,29 +629,46 @@ export const terminalAgentsRouter = router({
 				input.workspaceId,
 				input.terminalId,
 			);
-			if (!binding?.agentSessionId) return null;
-
-			const config = resolveHostAgentConfig(
-				ctx.db,
-				binding.definitionId ?? binding.agentId,
-			);
-			return {
-				terminalId: binding.terminalId,
-				agentId: binding.agentId,
-				definitionId: binding.definitionId ?? null,
-				agentSessionId: binding.agentSessionId,
-				endedAt: binding.endedAt ?? null,
-				agent: config?.id ?? binding.agentId,
-				agentLabel: config?.label ?? binding.agentId,
-				resumeSupported: (config?.resumeArgs.length ?? 0) > 0,
-			};
+			return binding ? toResumeCandidateSummary(ctx.db, binding) : null;
 		}),
+
+	/**
+	 * Every resumable dead session in the workspace — the bulk-check
+	 * counterpart to `resumeCandidate`, so a caller can decide what
+	 * `resumeAll` would act on before running it.
+	 */
+	resumeCandidates: protectedProcedure
+		.input(z.object({ workspaceId: z.string() }))
+		.query(({ ctx, input }) =>
+			listResumeCandidateBindings(ctx.db, input.workspaceId)
+				.map((binding) => toResumeCandidateSummary(ctx.db, binding))
+				.filter(
+					(summary): summary is ResumeCandidateSummary => summary !== null,
+				),
+		),
 
 	/** See {@link resumeTerminalAgentSession}. */
 	resume: protectedProcedure
 		.input(z.object({ workspaceId: z.string(), terminalId: z.string() }))
 		.mutation(({ ctx, input }) =>
 			resumeTerminalAgentSession(
+				{
+					db: ctx.db,
+					terminalAgentStore: ctx.terminalAgentStore,
+					runAgent: (runInput) => runAgentInWorkspace(ctx, runInput),
+					disposeSession: (terminalId) =>
+						disposeSessionAndWait(terminalId, ctx.db),
+					hasSession: (binding) => bindingHasHarnessSession(ctx.db, binding),
+				},
+				input,
+			),
+		),
+
+	/** See {@link resumeAllTerminalAgentSessions}. */
+	resumeAll: protectedProcedure
+		.input(z.object({ workspaceId: z.string() }))
+		.mutation(({ ctx, input }) =>
+			resumeAllTerminalAgentSessions(
 				{
 					db: ctx.db,
 					terminalAgentStore: ctx.terminalAgentStore,

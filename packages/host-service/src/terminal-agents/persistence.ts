@@ -120,6 +120,29 @@ export function markTerminalAgentBindingEnded(
 	return { workspaceId: row.workspaceId };
 }
 
+/**
+ * The terminal's binding row regardless of end state. Live reads hide ended
+ * rows by design; this is for introspection, where "the session ended, and
+ * here is why" is part of the answer.
+ */
+export function getTerminalAgentBindingAnyState(
+	db: HostDb,
+	workspaceId: string,
+	terminalId: string,
+): TerminalAgentBinding | undefined {
+	const row = db
+		.select(bindingColumns)
+		.from(terminalAgentBindings)
+		.where(
+			and(
+				eq(terminalAgentBindings.terminalId, terminalId),
+				eq(terminalAgentBindings.workspaceId, workspaceId),
+			),
+		)
+		.get();
+	return row ? rowToBinding(row) : undefined;
+}
+
 /** The agent session id a terminal's binding currently points at, if any. */
 export function getTerminalAgentBindingSessionId(
 	db: HostDb,
@@ -141,13 +164,19 @@ export function getTerminalAgentBindingSessionId(
  * fresh when there is no conversation to resume — see
  * resumeTerminalAgentSession.
  */
-function resumeCandidatePredicate(workspaceId: string, terminalId: string) {
+function workspaceResumeCandidatePredicate(workspaceId: string) {
 	return and(
-		eq(terminalAgentBindings.terminalId, terminalId),
 		eq(terminalAgentBindings.workspaceId, workspaceId),
 		isNotNull(terminalAgentBindings.endedAt),
 		eq(terminalAgentBindings.endReason, "terminal-exited"),
 		isNotNull(terminalAgentBindings.agentSessionId),
+	);
+}
+
+function resumeCandidatePredicate(workspaceId: string, terminalId: string) {
+	return and(
+		eq(terminalAgentBindings.terminalId, terminalId),
+		workspaceResumeCandidatePredicate(workspaceId),
 	);
 }
 
@@ -163,6 +192,23 @@ export function findResumeCandidateBinding(
 		.where(resumeCandidatePredicate(workspaceId, terminalId))
 		.get();
 	return row ? rowToBinding(row) : undefined;
+}
+
+/**
+ * Every resumable dead session in a workspace — the fleet-wide counterpart to
+ * `findResumeCandidateBinding`, for a bulk "resume everything" sweep instead
+ * of a per-terminal check.
+ */
+export function listResumeCandidateBindings(
+	db: HostDb,
+	workspaceId: string,
+): TerminalAgentBinding[] {
+	const rows = db
+		.select(bindingColumns)
+		.from(terminalAgentBindings)
+		.where(workspaceResumeCandidatePredicate(workspaceId))
+		.all();
+	return rows.map(rowToBinding);
 }
 
 /**
