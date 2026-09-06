@@ -6,7 +6,7 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import type { HostDb } from "../../../db";
-import { workspaces } from "../../../db/schema";
+import { terminalSessions, workspaces } from "../../../db/schema";
 import { hasHarnessSession } from "../../../terminal/harness-transcript";
 import {
 	createTerminalSessionInternal,
@@ -190,6 +190,30 @@ export async function resumeTerminalAgentSession(
 			);
 			unclaimResumeCandidateBinding(deps.db, terminalId);
 			pendingNudges.delete(key);
+			return { resumed: false };
+		}
+
+		const killPending = deps.db
+			.select({
+				status: terminalSessions.status,
+				disposeRequestedAt: terminalSessions.disposeRequestedAt,
+			})
+			.from(terminalSessions)
+			.where(eq(terminalSessions.id, terminalId))
+			.get();
+		if (
+			killPending?.status === "active" &&
+			killPending.disposeRequestedAt != null
+		) {
+			// A kill was requested and the daemon never confirmed it: the old
+			// pty may still be running this conversation, so resuming now
+			// would put two agents on it. Only this state is refused — a
+			// confirmed kill leaves the row "disposed", a crash or daemon loss
+			// leaves it "exited", and a v1->v2 seeded candidate never carries
+			// the stamp. The reaper retries the kill (it reaps any row with
+			// disposeRequestedAt set) and flips the row, after which this
+			// republishes and resumes normally with its nudge intact.
+			unclaimResumeCandidateBinding(deps.db, terminalId);
 			return { resumed: false };
 		}
 

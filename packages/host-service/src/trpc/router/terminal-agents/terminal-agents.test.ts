@@ -329,6 +329,59 @@ describe("resumeTerminalAgentSession", () => {
 		// The session id must survive: a config edit could re-enable resume.
 		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeDefined();
 	});
+
+	// A kill was requested and the daemon never confirmed it: the row stays
+	// `active` with the intent-to-kill stamp while the old pty may still be
+	// running the conversation. Resuming there launches a second agent on it.
+	it("does not resume a terminal whose requested kill was never confirmed", async () => {
+		const db = createTestDb();
+		seedResumableBinding(db);
+		db.update(terminalSessions)
+			.set({ status: "active", disposeRequestedAt: 100 })
+			.where(eq(terminalSessions.id, "t1"))
+			.run();
+		registerPendingNudge("ws-1", "t1", "nudge");
+		const { deps, runCalls, disposedTerminals } = createDeps(db);
+
+		const result = await resumeTerminalAgentSession(deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+
+		expect(result).toEqual({ resumed: false });
+		expect(runCalls).toEqual([]);
+		expect(disposedTerminals).toEqual([]);
+		// Nothing is destroyed: the candidate is republished for the resume
+		// that follows the reaper's retry.
+		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeDefined();
+
+		// The reaper's retry confirms the kill and flips the row.
+		db.update(terminalSessions)
+			.set({ status: "disposed" })
+			.where(eq(terminalSessions.id, "t1"))
+			.run();
+		const retry = createDeps(db);
+
+		const after = await resumeTerminalAgentSession(retry.deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+
+		expect(after).toEqual({
+			resumed: true,
+			terminalId: "t-new",
+			label: "Claude",
+		});
+		// The nudge outlived the refusal and rides the launch that follows.
+		expect(retry.runCalls).toEqual([
+			{
+				workspaceId: "ws-1",
+				agent: CLAUDE_CONFIG_ID,
+				prompt: "nudge",
+				resumeSessionId: "sess-t1",
+			},
+		]);
+	});
 });
 
 const CODEX_CONFIG_ID = "00000000-0000-0000-0000-000000000002";
