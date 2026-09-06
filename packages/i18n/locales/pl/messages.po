@@ -13042,6 +13042,9 @@ msgstr "Struktura, przewijanie i obsługa przepełnienia"
 msgid "Structured progress: chain of thought, tasks, plans"
 msgstr "Ustrukturyzowany postęp: tok rozumowania, zadania, plany"
 
+msgid "Subagent"
+msgstr "Subagent"
+
 msgid "Subject contains..."
 msgstr "Temat zawiera..."
 

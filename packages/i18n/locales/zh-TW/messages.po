@@ -13042,6 +13042,9 @@ msgstr "結構、滾動與溢位處理"
 msgid "Structured progress: chain of thought, tasks, plans"
 msgstr "結構化進度：思維鏈、任務、計劃"
 
+msgid "Subagent"
+msgstr "子代理程式"
+
 msgid "Subject contains..."
 msgstr "主題包含..."
 

@@ -13042,6 +13042,9 @@ msgstr "结构、滚动与溢出处理"
 msgid "Structured progress: chain of thought, tasks, plans"
 msgstr "结构化进度：思维链、任务、计划"
 
+msgid "Subagent"
+msgstr "子智能体"
+
 msgid "Subject contains..."
 msgstr "主题包含..."
 

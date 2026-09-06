@@ -13042,6 +13042,9 @@ msgstr "Struktur, penggulungan, dan penanganan overflow"
 msgid "Structured progress: chain of thought, tasks, plans"
 msgstr "Progres terstruktur: rantai pemikiran, tugas, rencana"
 
+msgid "Subagent"
+msgstr "Subagen"
+
 msgid "Subject contains..."
 msgstr "Subjek mengandung..."
 

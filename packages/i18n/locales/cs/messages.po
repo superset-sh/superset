@@ -13042,6 +13042,9 @@ msgstr "Struktura, posuv a práce s přetečením"
 msgid "Structured progress: chain of thought, tasks, plans"
 msgstr "Strukturovaný postup: řetězec úvah, úkoly, plány"
 
+msgid "Subagent"
+msgstr "Subagent"
+
 msgid "Subject contains..."
 msgstr "Předmět obsahuje..."
 

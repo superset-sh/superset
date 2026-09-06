@@ -13042,6 +13042,9 @@ msgstr "Cấu trúc, cuộn và xử lý tràn nội dung"
 msgid "Structured progress: chain of thought, tasks, plans"
 msgstr "Tiến độ có cấu trúc: chuỗi suy luận, tác vụ, kế hoạch"
 
+msgid "Subagent"
+msgstr "Agent con"
+
 msgid "Subject contains..."
 msgstr "Tiêu đề chứa..."
 

@@ -13042,6 +13042,9 @@ msgstr "Structure, défilement et gestion du débordement"
 msgid "Structured progress: chain of thought, tasks, plans"
 msgstr "Progression structurée : chaîne de raisonnement, tâches, plans"
 
+msgid "Subagent"
+msgstr "Sous-agent"
+
 msgid "Subject contains..."
 msgstr "L'objet contient..."
 

@@ -13042,6 +13042,9 @@ msgstr "構造、スクロール、オーバーフローの処理"
 msgid "Structured progress: chain of thought, tasks, plans"
 msgstr "構造化された進捗: 思考の連鎖、タスク、計画"
 
+msgid "Subagent"
+msgstr "サブエージェント"
+
 msgid "Subject contains..."
 msgstr "件名に含む..."
 

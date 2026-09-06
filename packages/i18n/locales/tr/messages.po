@@ -13042,6 +13042,9 @@ msgstr "Yapı, kaydırma ve taşma yönetimi"
 msgid "Structured progress: chain of thought, tasks, plans"
 msgstr "Yapılandırılmış ilerleme: düşünce zinciri, görevler, planlar"
 
+msgid "Subagent"
+msgstr "Alt ajan"
+
 msgid "Subject contains..."
 msgstr "Konu şunu içerir..."
 

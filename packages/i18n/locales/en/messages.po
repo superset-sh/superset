@@ -13042,6 +13042,9 @@ msgstr "Structure, scrolling, and overflow handling"
 msgid "Structured progress: chain of thought, tasks, plans"
 msgstr "Structured progress: chain of thought, tasks, plans"
 
+msgid "Subagent"
+msgstr "Subagent"
+
 msgid "Subject contains..."
 msgstr "Subject contains..."
 

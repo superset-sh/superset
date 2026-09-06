@@ -13042,6 +13042,9 @@ msgstr "Структура, прокрутка и обработка переп�
 msgid "Structured progress: chain of thought, tasks, plans"
 msgstr "Структурированный прогресс: цепочка рассуждений, задачи, планы"
 
+msgid "Subagent"
+msgstr "Субагент"
+
 msgid "Subject contains..."
 msgstr "Тема содержит..."
 

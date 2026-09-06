@@ -13042,6 +13042,9 @@ msgstr "Estrutura, rolagem e tratamento de overflow"
 msgid "Structured progress: chain of thought, tasks, plans"
 msgstr "Progresso estruturado: cadeia de raciocínio, tarefas, planos"
 
+msgid "Subagent"
+msgstr "Subagente"
+
 msgid "Subject contains..."
 msgstr "O assunto contém..."
 

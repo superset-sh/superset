@@ -13,6 +13,13 @@ import type { PaneStatus } from "shared/tabs-types";
  */
 export type RunningAgentStatus = PaneStatus;
 
+/** A subagent the bound agent spawned, as reported by its hooks. */
+export interface DashboardSidebarRunningSubagent {
+	id: string;
+	/** Harness agent type (`Explore`, `general-purpose`, a Codex role), when known. */
+	agentType: string | null;
+}
+
 export interface DashboardSidebarRunningAgent {
 	/** Stable key for React lists, derived from the notification source. */
 	sourceKey: string;
@@ -27,6 +34,8 @@ export interface DashboardSidebarRunningAgent {
 	startedAt: number;
 	/** Agent display name (e.g. "Claude"). */
 	label: string;
+	/** Live subagents under this agent, oldest first. */
+	subagents: DashboardSidebarRunningSubagent[];
 }
 
 /**
@@ -53,6 +62,10 @@ export function useDashboardSidebarWorkspaceRunningAgents(
 				status: statuses.get(binding.terminalId) ?? "idle",
 				startedAt: binding.startedAt,
 				label: AGENT_IDENTITY_LABELS[binding.agentId] ?? binding.agentId,
+				subagents: (binding.subagents ?? []).map((subagent) => ({
+					id: subagent.id,
+					agentType: subagent.agentType ?? null,
+				})),
 			});
 		}
 		agents.sort((a, b) => a.startedAt - b.startedAt);

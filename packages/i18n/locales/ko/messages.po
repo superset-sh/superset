@@ -13042,6 +13042,9 @@ msgstr "구조, 스크롤, 오버플로 처리"
 msgid "Structured progress: chain of thought, tasks, plans"
 msgstr "구조화된 진행 상황: 생각의 흐름, 작업, 계획"
 
+msgid "Subagent"
+msgstr "서브 에이전트"
+
 msgid "Subject contains..."
 msgstr "제목에 포함..."
 

@@ -1,4 +1,4 @@
-import { useLingui } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
@@ -44,20 +44,42 @@ export function DashboardSidebarAgentHoverRow({
 			: getStatusTooltip(agent.status);
 
 	return (
-		<div className="flex items-center gap-1.5 rounded-sm px-2 py-1 hover:bg-muted">
-			<button
-				type="button"
-				onClick={handleOpen}
-				className="flex min-w-0 flex-1 items-center gap-1.5 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-			>
-				<DashboardSidebarAgentAvatar agent={agent} />
-				<span className="min-w-0 truncate text-xs">{agent.label}</span>
-			</button>
-			<span
-				className={cn("shrink-0 text-[10px]", STATUS_TEXT_CLASS[agent.status])}
-			>
-				{statusLabel}
-			</span>
-		</div>
+		<>
+			<div className="flex items-center gap-1.5 rounded-sm px-2 py-1 hover:bg-muted">
+				<button
+					type="button"
+					onClick={handleOpen}
+					className="flex min-w-0 flex-1 items-center gap-1.5 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+				>
+					<DashboardSidebarAgentAvatar agent={agent} />
+					<span className="min-w-0 truncate text-xs">{agent.label}</span>
+				</button>
+				<span
+					className={cn(
+						"shrink-0 text-[10px]",
+						STATUS_TEXT_CLASS[agent.status],
+					)}
+				>
+					{statusLabel}
+				</span>
+			</div>
+			{agent.subagents.length > 0 && (
+				<div className="mb-1 ml-[15px] border-l border-border pl-2">
+					{agent.subagents.map((subagent) => (
+						<div
+							key={subagent.id}
+							className="flex items-center gap-1.5 rounded-sm px-1.5 py-0.5 text-muted-foreground hover:bg-muted"
+						>
+							<span className="min-w-0 flex-1 truncate text-xs">
+								{subagent.agentType ?? agent.label}
+							</span>
+							<span className="shrink-0 text-[10px]">
+								<Trans>Subagent</Trans>
+							</span>
+						</div>
+					))}
+				</div>
+			)}
+		</>
 	);
 }
