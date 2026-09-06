@@ -354,6 +354,26 @@ describe("active account semantics", () => {
 		expect(applyAccountEngineState(apiKey, flipped).inRotation).toBe(true);
 	});
 
+	// R16: the toggle was filed under the dir spelling, before the account's
+	// identity was ever read. The engine still honours it, so a row that
+	// resolved only the identity spelling drew an "In rotation" switch reading
+	// ON for an account the engine refuses to switch onto.
+	it("honours a toggle filed before the identity was read", () => {
+		writeFileSync(
+			join(stateDir(), "rotation.json"),
+			JSON.stringify({ "codex:/home/u/.codex2": false }),
+			{ mode: 0o600 },
+		);
+		const view = readAccountEngineView(trackingDb(null));
+		const known = account({
+			agent: "codex",
+			accountId: "acct-x",
+			selection: "/home/u/.codex2",
+		});
+
+		expect(applyAccountEngineState(known, view).inRotation).toBe(false);
+	});
+
 	it("records identity-to-dir bindings, and never on a read-only state dir", () => {
 		recordIdentityBindings([
 			["uuid-a", "/home/u/.claude-a"],

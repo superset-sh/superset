@@ -609,6 +609,34 @@ describe("shouldSwitch", () => {
 		expect(decision).toEqual({ switch: false, allExhausted: false });
 	});
 
+	// Mirror of the case above: the last-resort tier is a fallback, not a gate,
+	// so with that account as the only candidate consume-first is handed it too
+	// — and its scoped weekly window is a reset it ranks by, which beats the
+	// active account's unknown one and would carry the proactive move.
+	it("consume-first: never moves onto an account whose only window is an unconfigured model's", () => {
+		const decision = shouldSwitch({
+			settings: settings({ strategy: "consume-first" }),
+			active: account({
+				windows: [window_("five_hour", "Session (5h)", 20)],
+			}),
+			candidates: [
+				account({
+					accountId: "acct-scoped",
+					accountKey: "key-scoped",
+					selection: "/profiles/scoped",
+					windows: [
+						window_("weekly_scoped:Fable", "Weekly · Fable", 0, T0 + DAY),
+					],
+				}),
+			],
+			rotation: { "key-scoped": true },
+			runtime,
+			now: T0,
+		});
+
+		expect(decision).toEqual({ switch: false, allExhausted: false });
+	});
+
 	it("stays put while auto-switch is off", () => {
 		const decision = shouldSwitch({
 			settings: settings({ enabled: false }),

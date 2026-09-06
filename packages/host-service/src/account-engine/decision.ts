@@ -229,10 +229,43 @@ export function isEligible(
 	return rotationFlag(account, rotation);
 }
 
+/**
+ * R16: the flag `accountRotationKey` stands for. An account spells its key on
+ * `selection` — or on "default", for the system-default login, which has
+ * neither — until its identity is read, and on `accountId` after (an auth
+ * refresh writing `account_id`, a default-login read that failed once), so a
+ * toggle filed before that read is still what the user chose.
+ *
+ * It is exported because the row the renderer draws has to resolve the same
+ * spellings this decision does: a switch labelled "In rotation" reading ON for
+ * an account `isEligible` refuses is a UI that contradicts the engine.
+ */
+export function resolveRotationFlag(
+	account: {
+		agent: string;
+		accountId: string | null;
+		selection: string | null;
+	},
+	rotation: RotationState,
+	fallback: boolean,
+): boolean {
+	const key = accountRotationKey(account);
+	if (key in rotation) return rotation[key] === true;
+	const preIdentityKey = accountRotationKey({ ...account, accountId: null });
+	if (preIdentityKey in rotation) return rotation[preIdentityKey] === true;
+	return fallback;
+}
+
 function rotationFlag(
 	account: DecisionAccount,
 	rotation: RotationState,
 ): boolean {
+	// The key and pre-identity spellings are `resolveRotationFlag`'s pair — the
+	// row the renderer draws resolves the same two, so the toggle it shows
+	// cannot disagree with the eligibility decided here. The bare `accountId`
+	// and `accountKey` tiers are defensive and sit between them: no in-tree
+	// writer produces them, so they are only reached when neither of the pair
+	// is filed.
 	const key = accountRotationKey(account);
 	if (key in rotation) return rotation[key] === true;
 	if (account.accountId !== null && account.accountId in rotation) {
@@ -240,14 +273,7 @@ function rotationFlag(
 	}
 	if (account.accountKey in rotation)
 		return rotation[account.accountKey] === true;
-	// The same account spells its key on `selection` — or on "default", for the
-	// system-default login, which has neither — until its identity is read, and
-	// on `accountId` after (an auth refresh writing `account_id`, a
-	// default-login read that failed once). A toggle filed under the older
-	// spelling still means what the user chose.
-	const preIdentityKey = accountRotationKey({ ...account, accountId: null });
-	if (preIdentityKey in rotation) return rotation[preIdentityKey] === true;
-	return account.inRotation;
+	return resolveRotationFlag(account, rotation, account.inRotation);
 }
 
 /** The account with the most headroom; ties break on `accountKey` so the
@@ -416,6 +442,11 @@ export function shouldSwitch(input: ShouldSwitchInput): SwitchDecision {
 		const target = pickConsumeFirst(preferRanked(rankable, isMetered));
 		if (!target) return stay(activeNearLimit);
 		if (activeNearLimit) return move(target, "threshold");
+		// The last-resort tier is a fallback, not a gate: when the unrankable
+		// candidate is the only one, `preferRanked` hands it back anyway. The
+		// active account is not at its limit yet, so — exactly as `best` does —
+		// there is nothing to buy by moving onto an account we cannot rank.
+		if (reportsNoWindows(target, models)) return stay(false);
 		// R12: a proactive move only pays when the target's longest window
 		// really does reset before the active account's. Without this the pair
 		// swap every time the cooldown expires, since `eligible` excludes the

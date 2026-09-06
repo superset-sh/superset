@@ -19,6 +19,7 @@ import {
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { accountRotationKey as sharedAccountRotationKey } from "@superset/shared/account-rotation";
+import { resolveRotationFlag } from "../../../account-engine/decision.ts";
 import { EngineState } from "../../../account-engine/engine-state.ts";
 import type {
 	RotationState,
@@ -405,8 +406,7 @@ export function applyAccountEngineState(
 	return {
 		...account,
 		isDefault: isActiveAccount(account, view),
-		inRotation:
-			view.rotation[accountRotationKey(account)] ?? account.inRotation,
+		inRotation: resolveRotationFlag(account, view.rotation, account.inRotation),
 	};
 }
 
