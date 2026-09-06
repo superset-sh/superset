@@ -259,6 +259,10 @@
 		"./terminal-session-handoff": {
 			"types": "./src/terminal-session-handoff.ts",
 			"default": "./src/terminal-session-handoff.ts"
+		},
+		"./theme-colors": {
+			"types": "./src/themes/types.ts",
+			"default": "./src/themes/types.ts"
 		}
 	},
 	"scripts": {

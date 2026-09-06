@@ -1,9 +1,11 @@
+import { getDefaultTerminalColors } from "@superset/shared/theme-colors";
 import { memo, useMemo } from "react";
 import { Pressable, Text as RNText, View } from "react-native";
 import Animated, {
 	type SharedValue,
 	useAnimatedStyle,
 } from "react-native-reanimated";
+import { useUniwind } from "uniwind";
 import { useTheme } from "@/hooks/useTheme";
 import type { HunkSegment, LineRow } from "../../utils/buildListItems";
 import {
@@ -23,21 +25,29 @@ const SIGN = { add: "+ ", del: "− ", context: "  " } as const;
 // on. Rewriting to `hsla(H, S%, L%, a)` keeps the surfaces tied to the same
 // token as the text sitting on them.
 function withAlpha(color: string, alpha: number): string {
+	if (color.startsWith("#") && color.length === 7) {
+		const byte = Math.round(Math.min(Math.max(alpha, 0), 1) * 255);
+		return color + byte.toString(16).padStart(2, "0");
+	}
 	const parts = color.match(/-?[\d.]+%?/g);
 	if (!parts || parts.length < 3) return color;
 	return `hsla(${parts[0]}, ${parts[1]}, ${parts[2]}, ${alpha})`;
 }
 
-/** The desktop derives its diff palette from the same tokens — addition from
- * chart2, deletion from destructive, the gutter from mutedForeground — so the
- * two viewers stay in step instead of drifting on hand-picked hex. */
-function diffPalette(theme: {
-	chart2: string;
-	destructive: string;
-	foreground: string;
-	mutedForeground: string;
-}) {
-	const { chart2: addition, destructive: deletion, foreground } = theme;
+/** Sourced the way the desktop sources it: `getEditorTheme` takes addition and
+ * deletion from the terminal palette's bright green and red in dark, plain green
+ * and red in light, and only falls back to chart2/destructive for a theme that
+ * carries no terminal colours. Mobile has no terminal palette, so it reads the
+ * same xterm defaults the desktop lands on — chart2 is a teal and produced a
+ * visibly different diff from the one on the desktop. */
+function diffPalette(
+	theme: { foreground: string; mutedForeground: string },
+	mode: "light" | "dark",
+) {
+	const ansi = getDefaultTerminalColors(mode);
+	const addition = mode === "dark" ? ansi.brightGreen : ansi.green;
+	const deletion = mode === "dark" ? ansi.brightRed : ansi.red;
+	const { foreground } = theme;
 	return {
 		text: {
 			add: addition,
@@ -102,7 +112,8 @@ export const HunkSegmentCell = memo(function HunkSegmentCell({
 
 	const runs = useMemo(() => computeRuns(segment.lines), [segment.lines]);
 	const theme = useTheme();
-	const palette = useMemo(() => diffPalette(theme), [theme]);
+	const { theme: mode } = useUniwind();
+	const palette = useMemo(() => diffPalette(theme, mode), [theme, mode]);
 
 	return (
 		<Pressable
