@@ -200,5 +200,44 @@ except Exception:
   esac
 fi
 
+# One Claude session is deliberate, on the workspace that carries acme-demo#1.
+# The pull-request chip renders only when a terminal is open
+# (`showComposer = activeTerminalId !== null`), so with an empty box a reviewer
+# opens the app and there is no pull request anywhere on screen — the diff the
+# listing sells is reachable only by guessing. The resident session puts the chip
+# on the reviewer's first tap. A reboot takes it with it, so check for it.
+PR_WS=$(printf '%s' "$WS_JSON" | python3 -c 'import json,sys
+d = json.load(sys.stdin)["result"]["data"]["json"]
+print(next((w["id"] for w in d if w.get("name") == "Fix input overflow handling"), ""))' 2>/dev/null)
+SESSIONS=$(ssh_box "sudo curl -s -m 20 -G -H 'Authorization: Bearer $SECRET' --data-urlencode 'input={\"json\":{}}' http://127.0.0.1:48800/trpc/terminal.list")
+AGENTS=$(ssh_box "sudo curl -s -m 20 -G -H 'Authorization: Bearer $SECRET' --data-urlencode 'input={\"json\":{}}' http://127.0.0.1:48800/trpc/terminalAgents.list")
+if [ -z "$SESSIONS" ] || [ -z "$AGENTS" ] || [ -z "$PR_WS" ]; then
+  fail "could not read the session list; cannot tell whether the reviewer would see a pull request"
+else
+  RESIDENT=$(printf '%s' "$SESSIONS
+---
+$AGENTS
+---
+$PR_WS" | python3 -c 'import json,sys
+raw = sys.stdin.read().split("\n---\n")
+live = [t for t in json.loads(raw[0])["result"]["data"]["json"]["sessions"] if not t.get("exited")]
+agents = {a["terminalId"]: a.get("agentId") for a in json.loads(raw[1])["result"]["data"]["json"]}
+ws = raw[2].strip()
+here = [t for t in live if t["workspaceId"] == ws and agents.get(t["terminalId"]) == "claude"]
+print(len(here), len(live))' 2>/dev/null)
+  set -- $RESIDENT
+  HERE="${1:-}"
+  LIVE="${2:-}"
+  if [ -z "$HERE" ]; then
+    fail "the session probe did not parse; the resident Claude session is unverified"
+  elif [ "$HERE" = "0" ]; then
+    fail "no Claude session on 'Fix input overflow handling' — without it the pull-request chip never renders and a reviewer sees no pull request anywhere. Restore with agents.run {workspaceId, agent: \"claude\", prompt: \"\"}"
+  elif [ "$LIVE" != "1" ]; then
+    fail "$LIVE live sessions; steady state is exactly one, the Claude session on 'Fix input overflow handling'"
+  else
+    note "sessions: the resident Claude session is up, so the pull-request chip renders"
+  fi
+fi
+
 [ "$FAIL" -eq 0 ] && echo "OK — the review host is serving what the app expects" || echo "review host needs attention"
 exit "$FAIL"

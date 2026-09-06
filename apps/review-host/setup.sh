@@ -86,8 +86,18 @@ clone_demo() {
   rm -rf "$DIR"
   git clone -q "$URL" "$DIR"
 }
+
+# The resident Claude session recreates .local/ in its worktree forever, and an
+# untracked directory counts toward the home row's diff stat — the row read
+# +27 −2 against a pull request that says +26 −2. Excluding it locally keeps the
+# demo repositories themselves untouched.
+exclude_agent_residue() {
+  grep -qx '.local/' "$1/.git/info/exclude" 2>/dev/null || printf '.local/\n' >> "$1/.git/info/exclude"
+}
 clone_demo /demo/acme https://github.com/superset-sh/acme-demo.git
 clone_demo /demo/acme-ios https://github.com/superset-sh/acme-ios-demo.git
+exclude_agent_residue /demo/acme
+exclude_agent_residue /demo/acme-ios
 git config --global user.email "appreview@superset.sh"
 git config --global user.name "Superset"
 
