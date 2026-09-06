@@ -317,7 +317,24 @@ export async function killAndResumeTerminalAgent(
 		if (resumeInflight.get(key) === reserved) resumeInflight.delete(key);
 	};
 
-	deps.terminalAgentStore.markTerminalExited(terminalId);
+	try {
+		deps.terminalAgentStore.markTerminalExited(terminalId);
+	} catch (error) {
+		// The reservation is already visible, and this write can throw for
+		// real — it is a better-sqlite3 update behind a 5s busy timeout, and
+		// endBinding emits a change event that rethrows a listener's throw.
+		// Leaving without settling strands an unresolved promise under this
+		// key, so every later resume of the terminal awaits something that
+		// never completes: the pane spins forever with no error and no retry,
+		// for the life of the process.
+		handOver();
+		settle({ resumed: false });
+		console.warn("[terminal-agents] failed to record the kill before resume", {
+			terminalId,
+			error,
+		});
+		throw error;
+	}
 	let disposal: unknown;
 	try {
 		disposal = await deps.disposeSession(terminalId);

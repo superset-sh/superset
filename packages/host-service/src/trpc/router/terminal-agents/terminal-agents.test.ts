@@ -670,6 +670,50 @@ describe("pending nudge (KTD8)", () => {
 });
 
 describe("killAndResumeTerminalAgent", () => {
+	// The reservation is already visible when the kill is recorded, and that
+	// write can throw for real: it is a better-sqlite3 update behind a 5s busy
+	// timeout, and endBinding emits a change event that rethrows a listener's
+	// throw. Leaving without settling strands an unresolved promise under the
+	// key, and every later resume of that terminal then awaits something that
+	// never completes — the pane spins forever, for the life of the process.
+	it("releases the inflight reservation when recording the kill throws", async () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedLiveBinding(db, { terminalId: "t1" });
+		const { deps } = createDeps(db);
+		const store = deps.terminalAgentStore as unknown as {
+			markTerminalExited: (id: string) => void;
+		};
+		const real = store.markTerminalExited.bind(store);
+		let fail = true;
+		store.markTerminalExited = (id: string) => {
+			if (fail) throw new Error("db write failed");
+			real(id);
+		};
+
+		await expect(
+			killAndResumeTerminalAgent(deps, {
+				workspaceId: "ws-1",
+				terminalId: "t1",
+				prompt: "nudge",
+			}),
+		).rejects.toThrow(/db write failed/);
+
+		// The key must be free: a later resume has to run, not hang.
+		fail = false;
+		const after = await Promise.race([
+			resumeTerminalAgentSession(deps, {
+				workspaceId: "ws-1",
+				terminalId: "t1",
+			}),
+			new Promise<"hung">((resolve) =>
+				setTimeout(() => resolve("hung"), 1_000),
+			),
+		]);
+
+		expect(after).not.toBe("hung");
+	});
+
 	it("kills crash-style and relaunches with the nudge as the prompt", async () => {
 		const db = createTestDb();
 		seedAgentConfig(db);
