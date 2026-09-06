@@ -164,5 +164,24 @@ case "$TOKEN_STATUS" in
   *) fail "GitHub returned $TOKEN_STATUS for the demo pull request" ;;
 esac
 
+# One workspace per project should carry a linked pull request. The chip is the
+# only navigation to files-changed, so losing the link removes the diff even
+# though every other check still passes.
+if [ -n "$WS_IDS" ]; then
+  IDS_JSON=$(printf '%s\n' $WS_IDS | python3 -c 'import json,sys; print(json.dumps([l.strip() for l in sys.stdin if l.strip()]))')
+  LINKED=$(ssh_box "sudo curl -s -m 20 -X POST -H 'Authorization: Bearer $SECRET' -H 'content-type: application/json' --data '{\"json\":{\"workspaceIds\":$IDS_JSON}}' http://127.0.0.1:48800/trpc/pullRequests.historyByWorkspaces" \
+    | python3 -c 'import json,sys
+try:
+    d = json.load(sys.stdin)["result"]["data"]["json"]["workspaces"]
+    print(sum(1 for w in d if w.get("pullRequests")))
+except Exception:
+    print("")' 2>/dev/null)
+  case "$LINKED" in
+    "") fail "could not read pull-request links" ;;
+    0)  fail "no workspace has a linked pull request — the chip is the only route to the diff the listing promises" ;;
+    *)  note "pull requests: $LINKED workspace(s) linked, so the diff is reachable" ;;
+  esac
+fi
+
 [ "$FAIL" -eq 0 ] && echo "OK — the review host is serving what the app expects" || echo "review host needs attention"
 exit "$FAIL"

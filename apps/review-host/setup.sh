@@ -75,30 +75,12 @@ if [ ! -d /demo/acme/.git ]; then
   rm -rf /demo/acme
   git clone -q https://github.com/superset-sh/acme-demo.git /demo/acme
 fi
-if [ ! -d /demo/acme/.git ]; then
-  git config --global user.email "appreview@superset.sh"
-  git config --global user.name "Superset"
-  git config --global init.defaultBranch main
-  for repo in /demo/*; do
-    [ -d "$repo" ] || continue
-    git -C "$repo" init -q
-    git -C "$repo" add -A
-    git -C "$repo" commit -qm "Initial commit"
-  done
+if [ ! -d /demo/acme-ios/.git ]; then
+  rm -rf /demo/acme-ios
+  git clone -q https://github.com/superset-sh/acme-ios-demo.git /demo/acme-ios
 fi
-
-# The reviewer's whole reason for opening a workspace is the diff, and the diff
-# view resolves its base through refs/remotes/origin/HEAD (getDefaultBranchName)
-# and then origin/<default> (resolveBaseComparison). A repo created by `git init`
-# has neither, so every workspace shows an empty diff no matter what is committed
-# on the branch — which is exactly what happened when these repos stopped being
-# clones. Fabricate both refs locally; there is no remote to fetch from and
-# nothing should try, so the upstream stays a local branch.
-for repo in /demo/*; do
-  [ -d "$repo/.git" ] || continue
-  git -C "$repo" update-ref refs/remotes/origin/main "$(git -C "$repo" rev-parse main)"
-  git -C "$repo" symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/main
-done
+git config --global user.email "appreview@superset.sh"
+git config --global user.name "Superset"
 
 install -m0755 /opt/review-host/run.sh /opt/review-host/run.sh 2>/dev/null || true
 

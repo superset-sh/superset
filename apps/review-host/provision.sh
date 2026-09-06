@@ -43,7 +43,6 @@ echo "==> staging payload"
 PAYLOAD="$(mktemp -d)/payload"
 mkdir -p "$PAYLOAD/review-host" "$PAYLOAD/state"
 cp "$HERE"/{setup.sh,run.sh,watchdog.sh,update.sh,self-update.sh} "$PAYLOAD/review-host/"
-cp -R "$HERE/demo" "$PAYLOAD/demo"
 cp "$STATE_DIR/config.json" "$PAYLOAD/state/"
 # host.db carries the reviewer's projects and workspaces. Provisioning without
 # it produces a host that answers every check and shows an empty app, which is
@@ -65,7 +64,6 @@ set -e
 cd /tmp && rm -rf payload && tar -xzf payload.tgz
 sudo install -d -m0755 /opt/review-host /demo
 sudo install -m0755 payload/review-host/*.sh /opt/review-host/
-sudo cp -R payload/demo/. /demo/
 sudo install -d -m0700 /root/.superset /root/.superset/host/$REVIEW_ORG_ID
 sudo install -m0600 payload/state/config.json /root/.superset/config.json
 sudo sh -c 'cp /tmp/payload/state/host.db* /root/.superset/host/$REVIEW_ORG_ID/ 2>/dev/null; chmod 600 /root/.superset/host/$REVIEW_ORG_ID/host.db* 2>/dev/null' || true
