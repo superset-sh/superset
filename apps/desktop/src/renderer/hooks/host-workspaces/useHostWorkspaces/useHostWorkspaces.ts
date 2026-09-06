@@ -45,16 +45,17 @@ export interface HostWorkspacesCacheOps {
 	removeWorkspace: (hostId: string, workspaceId: string) => void;
 	/** Rollback hammer: refetch a host's list after a failed write. */
 	invalidateHost: (hostId: string) => void;
-	/** True once at least one host resolved to a reachable URL. */
-	hasLiveTargets: boolean;
 	/**
-	 * Force-refetch every reachable host's live list; resolves when all
-	 * settle (success or error). The workspace route's miss verdict awaits
-	 * this so "not found" is never declared from data older than the request
-	 * — the mirror converges through fire-and-forget events plus a slow
-	 * fallback refetch, so a just-created row can trail its own deep link.
+	 * Force-refetch every reachable host's live list; resolves once all
+	 * settle, to whether at least one host answered this request. The
+	 * workspace route's miss verdict awaits this so "not found" is never
+	 * declared from data older than the request — the mirror converges
+	 * through fire-and-forget events plus a slow fallback refetch, so a
+	 * just-created row can trail its own deep link — and never from a
+	 * request nobody answered: a wedged or unreachable host proves nothing
+	 * about the row.
 	 */
-	refetchAll: () => Promise<void>;
+	refetchAll: () => Promise<boolean>;
 }
 
 export interface UseHostWorkspacesResult {
@@ -440,17 +441,26 @@ export function useHostWorkspacesSource(
 					queryKey: getHostWorkspacesQueryKey(target),
 				});
 			},
-			hasLiveTargets: targets.some((target) => target.hostUrl !== null),
 			refetchAll: async () => {
+				const live = targets.filter((target) => target.hostUrl !== null);
+				const startedAt = Date.now();
 				await Promise.all(
-					targets
-						.filter((target) => target.hostUrl !== null)
-						.map((target) =>
-							queryClient.refetchQueries({
-								queryKey: getHostWorkspacesQueryKey(target),
-							}),
-						),
+					live.map((target) =>
+						queryClient.refetchQueries({
+							queryKey: getHostWorkspacesQueryKey(target),
+						}),
+					),
 				);
+				// refetchQueries resolves on error too; only a success stamped
+				// after this request began counts as an answer.
+				return live.some((target) => {
+					const state = queryClient.getQueryState(
+						getHostWorkspacesQueryKey(target),
+					);
+					return (
+						state?.status === "success" && state.dataUpdatedAt >= startedAt
+					);
+				});
 			},
 		};
 	}, [targets, queryClient]);

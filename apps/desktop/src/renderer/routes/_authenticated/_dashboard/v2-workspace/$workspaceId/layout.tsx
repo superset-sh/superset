@@ -107,14 +107,13 @@ function V2WorkspaceLayout() {
 	// trail its own deep link (missed broadcast, second host-service instance,
 	// stale boot snapshot), so the route forces a refetch and waits for it —
 	// bounded — before declaring the id missing.
-	const missConfirmed = useWorkspaceMissVerdict(
+	const verdict = useWorkspaceMissVerdict(
 		{
 			workspaceId,
 			workspaceFound: workspace !== null,
 			suspended: pendingTransaction !== null || failedEntry !== null,
 			hostsEnumerated: hostsSettled,
 			localHostDown,
-			hasLiveTargets: cache.hasLiveTargets,
 		},
 		cache.refetchAll,
 	);
@@ -153,8 +152,13 @@ function V2WorkspaceLayout() {
 		if (localHostDown) {
 			return <WorkspaceLocalHostPendingState hostId={machineId} />;
 		}
-		if (!missConfirmed) {
+		if (verdict === null) {
 			return <StateScreenShell>{null}</StateScreenShell>;
+		}
+		// The service has a port but nothing answered the refetch: wedged, not
+		// absent. Same screen, with the copy and restart control for that.
+		if (verdict === "unanswered") {
+			return <WorkspaceLocalHostPendingState hostId={machineId} unresponsive />;
 		}
 		return (
 			<StateScreenShell>

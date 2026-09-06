@@ -11,11 +11,10 @@ const base: MissVerdictInput = {
 	suspended: false,
 	hostsEnumerated: true,
 	localHostDown: false,
-	hasLiveTargets: true,
 };
 
 describe("planVerdictAction", () => {
-	it("opens a window for a routed, unfound, unsuspended id with live targets", () => {
+	it("opens a window for a routed, unfound, unsuspended id with the local host up", () => {
 		expect(planVerdictAction(base)).toBe("open-window");
 	});
 
@@ -37,51 +36,54 @@ describe("planVerdictAction", () => {
 
 	it("never judges while the local host-service has no port (starting, crash loop, gave up)", () => {
 		expect(planVerdictAction({ ...base, localHostDown: true })).toBe("none");
-		// Live remote hosts do not make the local service's rows readable.
-		expect(
-			planVerdictAction({
-				...base,
-				localHostDown: true,
-				hasLiveTargets: true,
-			}),
-		).toBe("none");
-	});
-
-	it("waits while no host is reachable at all", () => {
-		expect(planVerdictAction({ ...base, hasLiveTargets: false })).toBe("none");
 	});
 });
 
 describe("runVerdictWindow", () => {
-	it("settles when the refetch settles and cancels the cap", async () => {
+	it("reports an answer when the refetch resolves answered, and cancels the cap", async () => {
 		let capCancelled = false;
 		const schedule = () => () => {
 			capCancelled = true;
 		};
-		await runVerdictWindow(() => Promise.resolve(), 5_000, schedule);
+		const answered = await runVerdictWindow(
+			() => Promise.resolve(true),
+			5_000,
+			schedule,
+		);
+		expect(answered).toBe(true);
 		expect(capCancelled).toBe(true);
 	});
 
-	it("settles even when the refetch rejects", async () => {
-		await runVerdictWindow(
+	it("reports no answer when every host errored", async () => {
+		const answered = await runVerdictWindow(
+			() => Promise.resolve(false),
+			5_000,
+			() => () => {},
+		);
+		expect(answered).toBe(false);
+	});
+
+	it("reports no answer when the refetch rejects", async () => {
+		const answered = await runVerdictWindow(
 			() => Promise.reject(new Error("host unreachable")),
 			5_000,
 			() => () => {},
 		);
+		expect(answered).toBe(false);
 	});
 
-	it("settles at the cap when the refetch hangs", async () => {
+	it("reports no answer at the cap when the refetch hangs", async () => {
 		let fireCap = () => {};
 		const schedule = (fn: () => void) => {
 			fireCap = fn;
 			return () => {};
 		};
 		const window = runVerdictWindow(
-			() => new Promise<void>(() => {}),
+			() => new Promise<boolean>(() => {}),
 			5_000,
 			schedule,
 		);
 		fireCap();
-		await window;
+		expect(await window).toBe(false);
 	});
 });

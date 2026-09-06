@@ -9,16 +9,24 @@ import { StateScreenShell } from "../StateScreenShell";
 import { WorkspaceHostUnreachableState } from "../WorkspaceHostUnreachableState";
 
 /**
- * The workspace lives on this device but the local host service has no port
- * yet — it is starting, wedged, or stopped. The provider polls for it every 5s,
- * so hold a blank frame briefly (normal at boot) before saying anything.
+ * The workspace lives on this device but the local host service cannot serve
+ * it — no port yet (starting, stopped), or, with `unresponsive`, a port that
+ * answered nothing. The provider polls for the port every 5s, so hold a blank
+ * frame briefly (normal at boot) before saying anything; an unresponsive
+ * service has already been waited on, so that shows at once.
  */
 const LOCAL_HOST_GRACE_MS = 10_000;
 
-export function WorkspaceLocalHostPendingState({ hostId }: { hostId: string }) {
+export function WorkspaceLocalHostPendingState({
+	hostId,
+	unresponsive = false,
+}: {
+	hostId: string;
+	unresponsive?: boolean;
+}) {
 	const { t } = useLingui();
 	const { hostServiceStatus, activeOrganizationId } = useLocalHostService();
-	const showState = useDelayElapsed(true, LOCAL_HOST_GRACE_MS);
+	const showState = useDelayElapsed(true, LOCAL_HOST_GRACE_MS) || unresponsive;
 
 	const restart = electronTrpc.hostServiceCoordinator.restart.useMutation({
 		onError: (error) => {
@@ -41,9 +49,10 @@ export function WorkspaceLocalHostPendingState({ hostId }: { hostId: string }) {
 	// avoids — and "running" here means a healthy service whose port is still
 	// in flight. Both show progress instead of inviting a restart.
 	const isStarting =
-		hostServiceStatus === "starting" ||
-		hostServiceStatus === "running" ||
-		restart.isPending;
+		!unresponsive &&
+		(hostServiceStatus === "starting" ||
+			hostServiceStatus === "running" ||
+			restart.isPending);
 
 	return (
 		<StateScreenShell>
@@ -52,7 +61,11 @@ export function WorkspaceLocalHostPendingState({ hostId }: { hostId: string }) {
 				hostName={t({
 					message: "This device",
 				})}
-				detail={i18n._(LOCAL_HOST_SERVICE_DETAIL[hostServiceStatus])}
+				detail={i18n._(
+					LOCAL_HOST_SERVICE_DETAIL[
+						unresponsive ? "unknown" : hostServiceStatus
+					],
+				)}
 				isReconnecting={isStarting}
 				retryLabel={t({
 					message: "Restart host service",
