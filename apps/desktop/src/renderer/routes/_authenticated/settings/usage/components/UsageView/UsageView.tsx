@@ -198,6 +198,9 @@ export function AccountCard({
 	const onToggleRotation = account.managed ? toggleRotation : null;
 	const onSwitchSignIn = account.managed ? switchSignIn : null;
 	const onRemove = account.managed ? remove : null;
+	// Grok and Antigravity keep one login per machine, so "unmanaged" would be
+	// on every card of theirs and would warn about a switch that never existed.
+	const showsUnmanaged = !account.managed && isManagedAgent(account.agent);
 	const credits = creditsLine(account);
 	const { copyToClipboard, copied } = useCopyToClipboard();
 	const expiredCommand =
@@ -272,7 +275,7 @@ export function AccountCard({
 						<Trans>Stale token, still eligible</Trans>
 					</span>
 				)}
-				{!account.managed && (
+				{showsUnmanaged && (
 					<span
 						className="rounded bg-muted px-1 text-[9px] font-medium uppercase tracking-wide text-muted-foreground"
 						title={t({
@@ -454,7 +457,7 @@ export function AccountCard({
 					)}
 				</div>
 			)}
-			{!account.managed && (
+			{showsUnmanaged && (
 				<p className="mt-1.5 text-[10px] text-muted-foreground">
 					<Trans>
 						Signed in outside Superset, so switching leaves this login alone.
@@ -496,7 +499,9 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 		useState<RestartSessionsPrompt | null>(null);
 	// Keyed by rotation key, so a card keeps its own refusal when several
 	// cards are touched in a row.
-	const [cardErrors, setCardErrors] = useState<Record<string, string>>({});
+	const [cardErrors, setCardErrors] = useState<
+		Record<string, { kind: "switch" | "rotation"; message: string }>
+	>({});
 	const [activatingKey, setActivatingKey] = useState<string | null>(null);
 	const { countPinnedSessions } = usePinnedAgentSessions(hostUrl);
 
@@ -526,20 +531,26 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 			message: `Switch failed (${engineErrorCode(failure)}). The previous account is still active.`,
 		});
 
-	const setCardError = (key: string, message: string | null) => {
+	const setCardError = (
+		key: string,
+		kind: "switch" | "rotation",
+		message: string | null,
+	) => {
 		setCardErrors((errors) => {
 			if (message === null) {
 				if (!(key in errors)) return errors;
 				const { [key]: _cleared, ...rest } = errors;
 				return rest;
 			}
-			return { ...errors, [key]: message };
+			return { ...errors, [key]: { kind, message } };
 		});
 	};
 
 	// A refusal says "the previous account is still active", so a switch that
 	// then succeeds makes it false. Only this agent's cards are cleared —
-	// another agent's refusal is about a switch this one did not perform.
+	// another agent's refusal is about a switch this one did not perform. A
+	// rotation refusal says nothing about the active account, so it stays: the
+	// toggle it rolled back is still off the way the user did not ask for.
 	const clearAgentCardErrors = (agent: ManagedAgent) => {
 		const switched = new Set(
 			accounts
@@ -547,7 +558,9 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 				.map((candidate) => rotationKey(candidate)),
 		);
 		setCardErrors((errors) => {
-			const kept = Object.entries(errors).filter(([key]) => !switched.has(key));
+			const kept = Object.entries(errors).filter(
+				([key, entry]) => !(entry.kind === "switch" && switched.has(key)),
+			);
 			if (kept.length === Object.keys(errors).length) return errors;
 			return Object.fromEntries(kept);
 		});
@@ -589,7 +602,7 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 		if (!isManagedAgent(account.agent)) return;
 		const agent = account.agent;
 		const key = rotationKey(account);
-		setCardError(key, null);
+		setCardError(key, "switch", null);
 		setActivatingKey(key);
 		setDefault.mutate(
 			{ agent, selection: account.selection },
@@ -603,7 +616,7 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 				},
 				onError: (failure) => {
 					setActivatingKey(null);
-					setCardError(key, switchFailureMessage(failure));
+					setCardError(key, "switch", switchFailureMessage(failure));
 				},
 			},
 		);
@@ -614,13 +627,14 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 		inRotation: boolean,
 	) => {
 		const key = rotationKey(account);
-		setCardError(key, null);
+		setCardError(key, "rotation", null);
 		setRotation.mutate(
 			{ accountKey: key, inRotation },
 			{
 				onError: (failure) =>
 					setCardError(
 						key,
+						"rotation",
 						engineErrorMessage(failure) ??
 							t({
 								message: `Rotation not saved (${engineErrorCode(failure)}).`,
@@ -774,7 +788,7 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 										}
 										isActivating={activatingKey === rotationKey(account)}
 										isSwitching={setDefault.isPending}
-										error={cardErrors[rotationKey(account)] ?? null}
+										error={cardErrors[rotationKey(account)]?.message ?? null}
 										selectable={
 											isManagedAgent(agent) && agentAccounts.length > 1
 										}

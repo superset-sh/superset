@@ -61,7 +61,7 @@ mock.module("../../hooks/useSetDefaultUsageAccount", () => ({
 const { QueryClient, QueryClientProvider } = await import(
 	"@tanstack/react-query"
 );
-const { cleanup, fireEvent, render, within } = await import(
+const { cleanup, fireEvent, render, waitFor, within } = await import(
 	"@testing-library/react"
 );
 const { HOST_USAGE_QUOTA_QUERY_KEY } = await import(
@@ -260,6 +260,26 @@ describe("AccountCard account state", () => {
 		).toBeNull();
 	});
 
+	// Grok and Antigravity keep one login per machine, so every card of theirs
+	// is `managed: false`. The badge would then sit on a normal, only-possible
+	// login and warn about a switch mechanism those agents never had.
+	test("an agent with one login per machine is not called unmanaged", () => {
+		const view = renderCard(
+			account({
+				agent: "grok",
+				accountKey: "grok:default",
+				sourceLabel: "~/.grok",
+				email: "grok@example.com",
+				selection: null,
+				accountId: "uuid-grok",
+				managed: false,
+			}),
+		);
+		const text = view.baseElement.textContent ?? "";
+		expect(text).not.toContain("Unmanaged");
+		expect(text).not.toContain("switching leaves this login alone");
+	});
+
 	// The same promise covers the ⋯ menu: "Switch sign-in…" writes this login
 	// and "Remove…" deletes its directory. With neither left there is nothing
 	// to open, so the menu itself goes too.
@@ -355,5 +375,57 @@ describe("UsageView card errors", () => {
 		expect(cardFor("d@example.com").getByRole("alert").textContent).toContain(
 			"Another Superset instance",
 		);
+	});
+
+	// A rotation refusal says nothing about which account is active, so a
+	// switch elsewhere succeeding does not make it untrue. Erasing it left the
+	// rolled-back toggle reading "on" after the user turned it off, with
+	// nothing on screen left to say why.
+	test("a successful switch keeps a rotation refusal it did not make untrue", async () => {
+		const accounts = [
+			account({
+				isDefault: true,
+				accountKey: "claude:/p/a",
+				selection: "/p/a",
+				accountId: "uuid-a",
+			}),
+			account({
+				accountKey: "claude:/p/b",
+				selection: "/p/b",
+				accountId: "uuid-b",
+				email: "b@example.com",
+			}),
+			account({
+				accountKey: "claude:/p/c",
+				selection: "/p/c",
+				accountId: "uuid-c",
+				email: "c@example.com",
+			}),
+		];
+		switchRefusals = { "/p/b": "swap-verify-failed" };
+		const cardFor = renderUsageView(accounts);
+
+		// No host, so the rotation write refuses and the hook rolls the toggle
+		// back to where it was.
+		fireEvent.click(cardFor("a@example.com").getByRole("switch"));
+		await waitFor(() =>
+			expect(cardFor("a@example.com").getByRole("alert").textContent).toContain(
+				"Rotation not saved",
+			),
+		);
+		fireEvent.click(cardFor("b@example.com").getByText("Make active"));
+		expect(cardFor("b@example.com").getByRole("alert").textContent).toContain(
+			"swap-verify-failed",
+		);
+
+		fireEvent.click(cardFor("c@example.com").getByText("Make active"));
+		expect(cardFor("a@example.com").getByRole("alert").textContent).toContain(
+			"Rotation not saved",
+		);
+		expect(
+			cardFor("a@example.com").getByRole("switch").getAttribute("aria-checked"),
+		).toBe("true");
+		// The switch refusal the same switch did make untrue still goes.
+		expect(cardFor("b@example.com").queryAllByRole("alert")).toHaveLength(0);
 	});
 });
