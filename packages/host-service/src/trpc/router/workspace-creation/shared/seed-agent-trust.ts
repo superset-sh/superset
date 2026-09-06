@@ -78,9 +78,15 @@ function resolveTrustTarget(
 ): TrustTarget | null {
 	const family = resolveTrustFamily(config);
 	if (family === null) return null;
+	// Resolved once and handed to both readers below: resolving twice cost a
+	// second pointer-file read and opened a window where another host-service
+	// could switch the account between them. The tear always failed safe (a
+	// skipped seed), but there is no reason to leave it open.
+	const defaultEnv = resolveDefaultAccountEnv(db, family);
 	const { configDir } = resolveAgentAccountDir(db, {
 		family,
 		env: config.env,
+		defaultEnv,
 	});
 	// A dir the user pinned themselves is Superset's to read, never to write:
 	// the folder dialog showing once costs less than a host-service write into
@@ -97,7 +103,7 @@ function resolveTrustTarget(
 	// that sets its own SUPERSET_DEFAULT_* alongside a foreign dir would
 	// otherwise forge exactly the equality this test grants.
 	const selection =
-		resolveDefaultAccountEnv(db, family)[
+		defaultEnv[
 			family === "claude"
 				? "SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR"
 				: "SUPERSET_DEFAULT_CODEX_HOME"
@@ -160,10 +166,12 @@ function claudeProjects(
 
 /**
  * Merge `projects[<path>].hasTrustDialogAccepted: true` into a Claude state
- * file, preserving every other key. The write goes through
- * `updateClaudeStateFile`, the one writer of that file — so a corrupt file is
- * left untouched rather than rewritten from empty state, and an account swap
- * rewriting the identity block cannot race this one.
+ * file, preserving every other key. A pre-read leaves a corrupt or unreadable
+ * file alone rather than reseeding over it — `updateClaudeStateFile` would
+ * copy it aside and rewrite it from empty state, dropping the identity block
+ * and every other project's trust entry to save one dialog. The write itself
+ * goes through `updateClaudeStateFile`, the one writer of that file, so an
+ * account swap rewriting the identity block cannot race this one.
  * No-op when the entry is already trusted.
  */
 export async function seedClaudeFolderTrust(
