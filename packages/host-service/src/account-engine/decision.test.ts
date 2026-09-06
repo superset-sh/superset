@@ -581,6 +581,29 @@ describe("shouldSwitch", () => {
 		expect(decision).toEqual({ switch: false, allExhausted: false });
 	});
 
+	// A candidate that is itself at the threshold is one the engine would have
+	// to leave again on the next evaluation, and it still resets sooner, so the
+	// pair would swap back and forth on every cooldown expiry.
+	it("consume-first: skips an account already at the threshold", () => {
+		const decision = shouldSwitch({
+			settings: settings({ strategy: "consume-first" }),
+			active: account({
+				windows: [window_("seven_day", "Weekly", 50, T0 + 5 * DAY)],
+			}),
+			candidates: [
+				account({
+					accountId: "acct-b",
+					accountKey: "key-b",
+					windows: [window_("seven_day", "Weekly", 90, T0 + DAY)],
+				}),
+			],
+			rotation: {},
+			runtime,
+			now: T0,
+		});
+		expect(decision).toEqual({ switch: false, allExhausted: false });
+	});
+
 	it("skips candidates held out of rotation", () => {
 		const decision = shouldSwitch({
 			settings: settings(),

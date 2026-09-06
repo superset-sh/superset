@@ -339,10 +339,15 @@ export function shouldSwitch(input: ShouldSwitchInput): SwitchDecision {
 	});
 
 	if (settings.strategy === "consume-first") {
-		// R12/KTD11: the floor is the margin — an account with less headroom
-		// than that has nothing left to drain.
+		// R12/KTD11: the floor is the user's threshold, the same rule that
+		// decides when to leave — an account already at it has nothing left to
+		// drain, and landing on it would only be a move straight back off it.
 		const withRoom = eligible.filter(
-			(candidate) => scoreAccount(candidate, models) >= margin,
+			(candidate) =>
+				!isNearLimit(
+					scoreAccount(candidate, models),
+					settings.thresholdPercent,
+				),
 		);
 		const target = pickConsumeFirst(withRoom);
 		if (!target) return stay(activeNearLimit);
