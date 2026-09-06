@@ -3818,6 +3818,9 @@ msgstr "Không thể tải environment"
 msgid "Could not load environments."
 msgstr "Không thể tải environments."
 
+msgid "Could not load image"
+msgstr "Không thể tải ảnh"
+
 msgid "Could not load plugins. Check your connection and try again."
 msgstr "Không tải được plugin. Hãy kiểm tra kết nối và thử lại."
 

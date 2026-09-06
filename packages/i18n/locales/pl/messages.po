@@ -3818,6 +3818,9 @@ msgstr "Nie udało się wczytać środowisk"
 msgid "Could not load environments."
 msgstr "Nie udało się wczytać środowisk."
 
+msgid "Could not load image"
+msgstr "Nie udało się załadować obrazu"
+
 msgid "Could not load plugins. Check your connection and try again."
 msgstr "Nie udało się wczytać wtyczek. Sprawdź połączenie i spróbuj ponownie."
 

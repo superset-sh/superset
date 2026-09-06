@@ -3818,6 +3818,9 @@ msgstr "Nepodařilo se načíst prostředí"
 msgid "Could not load environments."
 msgstr "Nepodařilo se načíst prostředí."
 
+msgid "Could not load image"
+msgstr "Obrázek se nepodařilo načíst"
+
 msgid "Could not load plugins. Check your connection and try again."
 msgstr "Pluginy se nepodařilo načíst. Zkontrolujte připojení a zkuste to znovu."
 

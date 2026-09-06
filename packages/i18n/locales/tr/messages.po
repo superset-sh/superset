@@ -3818,6 +3818,9 @@ msgstr "Ortamlar yüklenemedi"
 msgid "Could not load environments."
 msgstr "Ortamlar yüklenemedi."
 
+msgid "Could not load image"
+msgstr "Görsel yüklenemedi"
+
 msgid "Could not load plugins. Check your connection and try again."
 msgstr "Eklentiler yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin."
 

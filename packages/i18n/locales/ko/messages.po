@@ -3818,6 +3818,9 @@ msgstr "환경을 불러오지 못했습니다"
 msgid "Could not load environments."
 msgstr "환경을 불러오지 못했습니다."
 
+msgid "Could not load image"
+msgstr "이미지를 불러올 수 없음"
+
 msgid "Could not load plugins. Check your connection and try again."
 msgstr "플러그인을 불러오지 못했습니다. 연결을 확인하고 다시 시도하세요."
 

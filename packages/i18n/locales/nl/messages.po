@@ -3818,6 +3818,9 @@ msgstr "Kan omgevingen niet laden"
 msgid "Could not load environments."
 msgstr "Kon omgevingen niet laden."
 
+msgid "Could not load image"
+msgstr "Afbeelding kon niet worden geladen"
+
 msgid "Could not load plugins. Check your connection and try again."
 msgstr "Plugins konden niet worden geladen. Controleer je verbinding en probeer het opnieuw."
 

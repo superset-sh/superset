@@ -3818,6 +3818,9 @@ msgstr "No se pudieron cargar los entornos"
 msgid "Could not load environments."
 msgstr "No se pudieron cargar los entornos."
 
+msgid "Could not load image"
+msgstr "No se pudo cargar la imagen"
+
 msgid "Could not load plugins. Check your connection and try again."
 msgstr "No se pudieron cargar los plugins. Comprueba tu conexión e inténtalo de nuevo."
 
