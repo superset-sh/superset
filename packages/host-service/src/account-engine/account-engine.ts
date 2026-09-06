@@ -454,6 +454,9 @@ export class AccountEngine {
 	private readonly followedActive = new Map<AccountAgent, string>();
 	/** Claude hints already acted on, keyed by the event that raised them. */
 	private readonly handledHints = new Set<string>();
+	/** The identity bindings this tick recorded itself, so its write can
+	 * re-apply exactly those over the runtime as it stands on disk (KTD3). */
+	private readonly tickBindings = new Set<string>();
 
 	constructor(deps: AccountEngineDeps) {
 		this.deps = deps;
@@ -807,6 +810,8 @@ export class AccountEngine {
 
 		const runtime = this.state.readRuntime();
 		const runtimeBefore = JSON.stringify(runtime);
+		// Only what this tick records below is its own to write back.
+		this.tickBindings.clear();
 		// The active account is resolved first: the poll schedule, the
 		// identity re-assertion and the decision all key off it.
 		for (const agent of agents) await this.resolveActive(agent, runtime);
@@ -849,13 +854,17 @@ export class AccountEngine {
 			// runtime.json, and it ran inside the quota refresh this tick
 			// awaited — after `runtime` was read. `writeRuntime` replaces the
 			// whole file, so the bindings are taken from a fresh read before
-			// this tick's own decisions go back over it; the bindings this
-			// tick recorded itself are the newer ones and win.
+			// this tick's own decisions go back over it, and only the ones this
+			// tick recorded itself are re-applied. Not the whole in-memory map:
+			// discovery also *retires* a binding when a dir is re-authenticated
+			// as somebody else, and spreading the copy this tick started from
+			// back over the file would resurrect the one it just deleted.
 			const onDisk = this.state.readRuntime();
-			runtime.identityBindings = {
-				...onDisk.identityBindings,
-				...runtime.identityBindings,
-			};
+			const bindings = { ...onDisk.identityBindings };
+			for (const accountUuid of this.tickBindings) {
+				bindings[accountUuid] = runtime.identityBindings[accountUuid] ?? null;
+			}
+			runtime.identityBindings = bindings;
 			this.state.writeRuntime(runtime);
 		}
 		for (const agent of agents) {
@@ -1597,6 +1606,7 @@ export class AccountEngine {
 	): void {
 		if (accountUuid === null) return;
 		runtime.identityBindings[accountUuid] = selection;
+		this.tickBindings.add(accountUuid);
 	}
 
 	/**
