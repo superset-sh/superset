@@ -149,10 +149,13 @@ async function main(): Promise<void> {
 				manifestReclaimTimer.unref();
 			}
 
-			if (env.RELAY_URL && env.ORGANIZATION_ID) {
+			// The coordinator strips RELAY_URL when Remote Access is off. The
+			// host still registers with the cloud so hosts list and the
+			// automations UI can see it; only the tunnel is skipped (#7223).
+			if (env.ORGANIZATION_ID) {
 				void connectRelay({
 					api,
-					relayUrl: env.RELAY_URL,
+					relayUrl: env.RELAY_URL ?? null,
 					localPort: info.port,
 					organizationId: env.ORGANIZATION_ID,
 					authProvider,

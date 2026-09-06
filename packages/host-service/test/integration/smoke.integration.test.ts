@@ -19,6 +19,7 @@ describe("host-service smoke", () => {
 			status: "ok",
 			cloudRegistered: false,
 			registrationError: null,
+			relayEnabled: null,
 		});
 	});
 
@@ -28,6 +29,7 @@ describe("host-service smoke", () => {
 			status: "ok",
 			cloudRegistered: false,
 			registrationError: null,
+			relayEnabled: null,
 		});
 	});
 

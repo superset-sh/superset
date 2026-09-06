@@ -10,8 +10,13 @@ import { TunnelClient } from "./tunnel-client";
 
 export interface ConnectRelayOptions {
 	api: ApiClient;
-	/** Fallback when the API can't be reached; the API's answer wins. */
-	relayUrl: string;
+	/**
+	 * Fallback when the API can't be reached; the API's answer wins. `null`
+	 * means the host was started without a relay URL (Remote Access off): it
+	 * still registers with the cloud so `hosts list` and the desktop can see
+	 * it, but no tunnel is opened.
+	 */
+	relayUrl: string | null;
 	localPort: number;
 	organizationId: string;
 	authProvider: JwtApiAuthProvider;
@@ -51,6 +56,10 @@ export async function connectRelay(
 	// failure at boot permanently stranding the host as locally-healthy but
 	// cloud-invisible (issue #6415) — so retry with backoff until it lands,
 	// and record the outcome where health.check can report it.
+	//
+	// Registration does not depend on the relay: gating it on RELAY_URL left
+	// every desktop with Remote Access off silently unregistered (issue
+	// #7223). Only the tunnel below needs a relay URL.
 	for (let attempt = 0; ; attempt++) {
 		try {
 			const host = await options.api.host.ensure.mutate({
@@ -58,10 +67,18 @@ export async function connectRelay(
 				machineId: getHostId(),
 				name: getHostName(),
 			});
-			recordRegistrationSuccess();
+			recordRegistrationSuccess({ relayEnabled: options.relayUrl !== null });
 			console.log(`[host-service] registered as host ${host.machineId}`);
 
-			const relayUrl = await resolveRelayUrl(options.api, options.relayUrl);
+			if (options.relayUrl === null) {
+				console.log(
+					"[host-service] relay disabled (no RELAY_URL: Remote Access is off) — not connecting; this host shows offline in hosts list and automations can't run on it until Remote Access is turned on",
+				);
+				return null;
+			}
+
+			const fallbackRelayUrl = options.relayUrl;
+			const relayUrl = await resolveRelayUrl(options.api, fallbackRelayUrl);
 			console.log(`[host-service] relay: ${relayUrl}`);
 
 			const clientOptions = {
@@ -70,7 +87,7 @@ export async function connectRelay(
 				getAuthToken: () => options.authProvider.getJwt(),
 				localPort: options.localPort,
 				hostServiceSecret: options.hostServiceSecret,
-				resolveRelayUrl: () => resolveRelayUrl(options.api, options.relayUrl),
+				resolveRelayUrl: () => resolveRelayUrl(options.api, fallbackRelayUrl),
 			};
 
 			const tunnel = new TunnelClient(clientOptions);

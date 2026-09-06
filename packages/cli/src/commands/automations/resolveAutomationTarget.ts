@@ -1,6 +1,7 @@
 import { CLIError } from "@superset/cli-framework";
 import { getHostId } from "@superset/shared/host-info";
 import type { ApiClient } from "../../lib/api-client";
+import { checkLocalHostHealth, type HostHealth } from "../../lib/host/health";
 import { resolveHostTarget } from "../../lib/host-target";
 import { findWorkspaceOnHost } from "../../lib/host-workspaces";
 
@@ -18,8 +19,11 @@ export async function resolveAutomationTarget(args: {
 	hostId?: string;
 	workspaceId?: string;
 	projectId?: string;
+	/** Health of this machine's host-service; injectable for tests. */
+	checkLocalHost?: (organizationId: string) => Promise<HostHealth | null>;
 }): Promise<{ targetHostId: string; v2ProjectId: string | null }> {
 	const targetHostId = args.hostId ?? getHostId();
+	const checkLocalHost = args.checkLocalHost ?? checkLocalHostHealth;
 
 	// The cloud rejects automations whose target host has no v2Hosts row
 	// (the host-service registers one at startup, and that registration can
@@ -38,6 +42,20 @@ export async function resolveAutomationTarget(args: {
 				? "Run: superset hosts list"
 				: "Restart the host service (superset stop && superset start), then check: superset hosts list",
 		);
+	}
+
+	// Runs dispatch through the relay, so a registered host with Remote
+	// Access off would accept the automation and then skip every run as
+	// offline. Only this machine's host-service can tell that apart from a
+	// transient disconnect, so ask it (#7223).
+	if (!args.hostId) {
+		const local = await checkLocalHost(args.organizationId);
+		if (local?.relayEnabled === false) {
+			throw new CLIError(
+				"Remote Access is off for this machine, so automations can't run on it",
+				"Turn it on in the Superset app under Settings → Remote Access, then retry",
+			);
+		}
 	}
 
 	if (args.workspaceId) {

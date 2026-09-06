@@ -134,10 +134,13 @@ async function main(): Promise<void> {
 		// agent's terminal the way they would on their own machine.
 		void launchSandboxAgent();
 
-		if (env.RELAY_URL && env.SUPERSET_HOST_RUN_MODE !== "sandbox") {
+		// Register with the cloud even without a relay URL (Remote Access off)
+		// so the host exists server-side; only the tunnel needs RELAY_URL
+		// (#7223). Sandboxes never register — see SUPERSET_HOST_RUN_MODE.
+		if (env.SUPERSET_HOST_RUN_MODE !== "sandbox") {
 			void connectRelay({
 				api,
-				relayUrl: env.RELAY_URL,
+				relayUrl: env.RELAY_URL ?? null,
 				localPort: info.port,
 				organizationId: env.ORGANIZATION_ID,
 				authProvider,

@@ -3,49 +3,9 @@ import { getHostId } from "@superset/shared/host-info";
 import { formatDistanceToNowStrict } from "date-fns";
 import type { ApiClient } from "../../lib/api-client";
 import { command } from "../../lib/command";
+import { checkHostHealth } from "../../lib/host/health";
 import { isProcessAlive, readManifest } from "../../lib/host/manifest";
 import { resolveOrganizationFromContext } from "../../lib/resolve-org";
-
-type HealthResult = {
-	healthy: boolean;
-	/** undefined = host-service predates the field (pre-#6415). */
-	cloudRegistered?: boolean;
-	registrationError?: string | null;
-};
-
-async function checkHealth(
-	endpoint: string,
-	authToken: string,
-): Promise<HealthResult> {
-	const controller = new AbortController();
-	const timeout = setTimeout(() => controller.abort(), 2_000);
-	try {
-		const res = await fetch(`${endpoint}/trpc/health.check`, {
-			signal: controller.signal,
-			headers: { Authorization: `Bearer ${authToken}` },
-		});
-		if (!res.ok) return { healthy: false };
-		const body = (await res.json()) as {
-			result?: { data?: { json?: Record<string, unknown> } };
-		};
-		const payload = body.result?.data?.json;
-		return {
-			healthy: true,
-			cloudRegistered:
-				typeof payload?.cloudRegistered === "boolean"
-					? payload.cloudRegistered
-					: undefined,
-			registrationError:
-				typeof payload?.registrationError === "string"
-					? payload.registrationError
-					: undefined,
-		};
-	} catch {
-		return { healthy: false };
-	} finally {
-		clearTimeout(timeout);
-	}
-}
 
 async function fetchHostName(
 	api: ApiClient,
@@ -103,7 +63,7 @@ export default command({
 		}
 
 		const [health, cloudHost] = await Promise.all([
-			checkHealth(manifest.endpoint, manifest.authToken),
+			checkHostHealth(manifest.endpoint, manifest.authToken),
 			fetchHostName(ctx.api, organization.id, localHostId),
 		]);
 		const uptime = formatDistanceToNowStrict(new Date(manifest.startedAt));
@@ -115,12 +75,19 @@ export default command({
 		const cloudRegistered =
 			health.cloudRegistered ??
 			(cloudHost.listed === null ? undefined : cloudHost.listed);
-		const registrationWarning =
-			health.healthy && cloudRegistered === false
+		// Remote Access off is a setting, not a failure: the host registers but
+		// never opens the relay tunnel, so it shows offline and automations
+		// can't reach it (#7223). Say that instead of the registration hints,
+		// which would send the user chasing a retry that isn't happening.
+		const registrationWarning = !health.healthy
+			? ""
+			: cloudRegistered === false
 				? `\nWarning: not registered with the cloud for ${organization.name}${
 						health.registrationError ? ` (${health.registrationError})` : ""
 					} — hosts list and automations won't see this machine\nHint: check host-service.log; registration retries automatically, or run: superset stop && superset start`
-				: "";
+				: health.relayEnabled === false
+					? "\nWarning: Remote Access is off for this machine — it shows offline in hosts list and automations can't run on it\nHint: turn it on in the Superset app under Settings → Remote Access"
+					: "";
 
 		return {
 			data: {
@@ -135,6 +102,9 @@ export default command({
 				...(cloudRegistered === undefined ? {} : { cloudRegistered }),
 				...(health.registrationError
 					? { registrationError: health.registrationError }
+					: {}),
+				...(typeof health.relayEnabled === "boolean"
+					? { relayEnabled: health.relayEnabled }
 					: {}),
 				uptimeSec: Math.floor((Date.now() - manifest.startedAt) / 1000),
 			},

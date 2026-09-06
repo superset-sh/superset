@@ -5,12 +5,14 @@ export const healthRouter = router({
 	check: publicProcedure.query(() => {
 		// A locally-healthy host that failed cloud registration is invisible
 		// to hosts list/automations with no symptom of its own — expose the
-		// registration outcome so `superset status` can report it (#6415).
+		// registration outcome so `superset status` can report it (#6415),
+		// and whether the relay is off by configuration (#7223).
 		const registration = getRegistrationState();
 		return {
 			status: "ok" as const,
 			cloudRegistered: registration.registered,
 			registrationError: registration.lastError,
+			relayEnabled: registration.relayEnabled,
 		};
 	}),
 });
