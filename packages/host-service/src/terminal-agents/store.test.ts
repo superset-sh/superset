@@ -725,17 +725,21 @@ describe("TerminalAgentStore limit-stop signals", () => {
 			eventType: "Failed",
 			occurredAt: 250,
 		});
-		// Neither does an event that is not turn progress.
+		// Neither does an event that is not turn progress: the router folds
+		// Claude Code's idle Notification hook into "PermissionRequest", so
+		// idle noise must not read as a new turn.
 		store.recordEvent({
 			terminalId: "t1",
 			workspaceId: WORKSPACE,
-			eventType: "Notification",
+			eventType: "PermissionRequest",
 			occurredAt: 275,
 		});
 		expect(store.get("t1")?.lastFailure).toEqual({
 			errorType: "rate_limit",
 			at: 200,
 		});
+		// The class and the date of the stop stay together.
+		expect(store.get("t1")?.lastTransitionAt).toBe(200);
 
 		// A new turn drops it.
 		store.recordEvent({
@@ -775,11 +779,12 @@ describe("TerminalAgentStore limit-stop signals", () => {
 		expect(store.get("t2")?.lastTransitionAt).toBeUndefined();
 	});
 
-	// The hook router normalizes SessionStart to "Attached" before the store
-	// ever sees it, and a relaunched conversation resumes its own session id —
-	// so a session start must drop the previous run's evidence even though
-	// nothing about the session id changed.
-	it("drops the failure and transition when the session restarts as Attached", () => {
+	// The hook router normalizes every SessionStart to "Attached", including
+	// the wrapper's delayed launch report and Claude's resume/compact/clear —
+	// so an "Attached" inside a session that already failed is not a restart.
+	// Dropping the evidence there would leave the row saying the turn failed
+	// with no failure class and no date, and the engine would never fall back.
+	it("keeps the failure and transition when Attached lands inside the same session", () => {
 		store.recordEvent({
 			terminalId: "t1",
 			workspaceId: WORKSPACE,
@@ -812,9 +817,58 @@ describe("TerminalAgentStore limit-stop signals", () => {
 			occurredAt: 300,
 		});
 
-		expect(store.get("t1")?.lastFailure).toBeUndefined();
-		expect(store.get("t1")?.lastTransitionAt).toBeUndefined();
+		expect(store.get("t1")?.lastFailure).toEqual({
+			errorType: "rate_limit",
+			at: 200,
+		});
+		expect(store.get("t1")?.lastTransitionAt).toBe(200);
 		// The start still does not rewrite the lifecycle state it arrived after.
 		expect(store.get("t1")?.lastEventType).toBe("Failed");
+	});
+
+	// A real restart does start over: a first-ever "Attached" has no state to
+	// preserve, and a different agent session id is a different run.
+	it("drops the failure and transition when the session genuinely restarts", () => {
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "claude",
+			agentSessionId: "s1",
+			occurredAt: 100,
+		});
+		expect(store.get("t1")?.lastFailure).toBeUndefined();
+		expect(store.get("t1")?.lastTransitionAt).toBeUndefined();
+
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Start",
+			agentId: "claude",
+			agentSessionId: "s1",
+			occurredAt: 200,
+		});
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Failed",
+			errorType: "rate_limit",
+			agentId: "claude",
+			agentSessionId: "s1",
+			occurredAt: 300,
+		});
+		expect(store.get("t1")?.lastTransitionAt).toBe(300);
+
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "claude",
+			agentSessionId: "s2",
+			occurredAt: 400,
+		});
+
+		expect(store.get("t1")?.lastFailure).toBeUndefined();
+		expect(store.get("t1")?.lastTransitionAt).toBeUndefined();
 	});
 });

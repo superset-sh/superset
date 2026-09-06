@@ -180,7 +180,13 @@ export class TerminalAgentStore extends EventEmitter {
 		// (events/map-event-type.ts), and a relaunch of the same conversation
 		// is reported as "Attached" too, keeping the session id it resumed. So
 		// "Attached" — never "SessionStart" — is the start this store sees.
-		const sessionStarted = eventType === "Attached";
+		// But only when it really starts something: an "Attached" whose
+		// lifecycle state was preserved above arrived *inside* a session that
+		// already moved on (the wrapper's delayed launch report, a
+		// resume/compact/clear SessionStart), and clearing there would leave
+		// the row saying the turn failed with no failure class and no date.
+		const sessionStarted =
+			eventType === "Attached" && preservedLifecycleState === undefined;
 
 		// A transition belongs to the session it happened in. A session start
 		// or a different agent session id in the same terminal starts over,
@@ -194,7 +200,13 @@ export class TerminalAgentStore extends EventEmitter {
 		// agent session in the same terminal. Carrying it forward leaves a
 		// rate-limit stop arming the engine's limit-stop fallback against a
 		// live session.
-		const turnStarted = BUSY_EVENT_TYPES.has(eventType) || sessionStarted;
+		// Only "Start" begins a turn. "PermissionRequest" is busy for
+		// `stoppedNow` above, but the router also folds Claude Code's idle
+		// Notification hook into it (events/map-event-type.ts) — treating that
+		// as a new turn erases the failure a minute after the stop with no
+		// turn having begun. A real mid-turn prompt follows a "Start" that
+		// already cleared it.
+		const turnStarted = eventType === "Start" || sessionStarted;
 		const lastFailure =
 			eventType === "Failed" && errorType
 				? { errorType, at: occurredAt }
