@@ -35,7 +35,8 @@ export function windowLabel(windowId: string): string {
 	// like the brand model names above, so it is not translated. Without this
 	// the raw id reaches the user as "additional:gpt-5-high".
 	if (windowId.startsWith(ADDITIONAL_PREFIX)) {
-		return windowId.slice(ADDITIONAL_PREFIX.length);
+		const name = windowId.slice(ADDITIONAL_PREFIX.length);
+		if (name) return name;
 	}
 	return windowId;
 }

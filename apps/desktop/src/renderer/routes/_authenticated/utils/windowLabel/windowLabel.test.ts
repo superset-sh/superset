@@ -20,6 +20,12 @@ describe("windowLabel", () => {
 		expect(windowLabel("additional:gpt-5-high")).toBe("gpt-5-high");
 	});
 
+	// An unnamed extra limit still has to name something: both callers read
+	// "<label> at <percent>", and an empty label leaves " at 91%".
+	test("keeps the id when a Codex extra limit has no name", () => {
+		expect(windowLabel("additional:")).toBe("additional:");
+	});
+
 	test("falls back to the id it was given", () => {
 		expect(windowLabel("something_new")).toBe("something_new");
 	});
