@@ -481,6 +481,112 @@ describe("QuotaStore back-off", () => {
 		expect(h.store.entry(CLAUDE_A)?.backoffMs).toBe(0);
 		expect(h.store.entry(CLAUDE_DEFAULT)?.nextPollAt).toBe(h.now + MINUTE);
 	});
+
+	// KTD10: the Usage page refetches every five minutes and its Refresh
+	// button forces a read; both would otherwise walk straight through a
+	// back-off the engine's tick is respecting, since the TTL knows nothing
+	// about it.
+	it("sends nothing from read while the endpoint is backing off, and still serves the last-known accounts", async () => {
+		let rateLimited = true;
+		const h = harness({
+			claudeSelections: [null, "/profiles/a"],
+			respondClaude: async (selection) => {
+				if (selection === "/profiles/a" && rateLimited) {
+					return {
+						account: account("claude", selection, {
+							status: "unavailable",
+							statusDetail: "Usage endpoint returned 429.",
+							windows: [],
+						}),
+						rateLimited: true,
+					};
+				}
+				return { account: account("claude", selection), rateLimited: false };
+			},
+		});
+		const schedule = {
+			claude: { activeKey: CLAUDE_DEFAULT, intervalMs: MINUTE },
+		};
+
+		// Climb the ladder until the back-off outlasts the TTL, so a read
+		// inside it is stale by the TTL and forbidden by the back-off.
+		await h.store.refreshDue(h.now, schedule);
+		for (let round = 0; round < 3; round++) {
+			h.advance(requireEntry(h.store, CLAUDE_A).nextPollAt - h.now);
+			await h.store.refreshDue(h.now, schedule);
+		}
+		expect(requireEntry(h.store, CLAUDE_DEFAULT).backoffMs).toBe(8 * MINUTE);
+		const sent = h.calls.length;
+
+		h.advance(QUOTA_TTL_MS);
+		const stale = await h.store.read({ agents: ["claude"] });
+		expect(h.calls).toHaveLength(sent);
+		expect(stale).toHaveLength(2);
+		expect(
+			stale.find((entry) => entry.selection === null)?.windows[0]?.usedPercent,
+		).toBe(10);
+
+		const forced = await h.store.read({
+			agents: ["claude"],
+			forceRefresh: true,
+		});
+		expect(h.calls).toHaveLength(sent);
+		expect(forced).toHaveLength(2);
+
+		// Once the back-off has run out the on-demand path fetches as before.
+		rateLimited = false;
+		h.advance(requireEntry(h.store, CLAUDE_DEFAULT).nextPollAt - h.now);
+		await h.store.read({ agents: ["claude"] });
+		expect(h.calls).toHaveLength(sent + 2);
+	});
+
+	// A profile discovered mid-back-off is due immediately if it is seeded at
+	// zero, and its success would then clear a ladder it never sat out.
+	it("holds a profile discovered mid-back-off and keeps the endpoint's ladder", async () => {
+		let rateLimited = true;
+		const h = harness({
+			claudeSelections: [null],
+			respondClaude: async (selection) => {
+				if (rateLimited) {
+					return {
+						account: account("claude", selection, {
+							status: "unavailable",
+							statusDetail: "Usage endpoint returned 429.",
+							windows: [],
+						}),
+						rateLimited: true,
+					};
+				}
+				return { account: account("claude", selection), rateLimited: false };
+			},
+		});
+		const schedule = {
+			claude: { activeKey: CLAUDE_DEFAULT, intervalMs: MINUTE },
+		};
+
+		await h.store.refreshDue(h.now, schedule);
+		for (let round = 0; round < 3; round++) {
+			h.advance(requireEntry(h.store, CLAUDE_DEFAULT).nextPollAt - h.now);
+			await h.store.refreshDue(h.now, schedule);
+		}
+		expect(requireEntry(h.store, CLAUDE_DEFAULT).backoffMs).toBe(8 * MINUTE);
+
+		// The endpoint has recovered, but nothing knows that yet: the new
+		// profile must not be the one to find out.
+		rateLimited = false;
+		h.state.claudeSelections = [null, "/profiles/a"];
+		h.advance(DISCOVERY_INTERVAL_MS);
+		await h.store.refreshDue(h.now, schedule);
+
+		expect(h.callsFor(CLAUDE_A)).toHaveLength(0);
+		expect(requireEntry(h.store, CLAUDE_A).backoffMs).toBe(8 * MINUTE);
+		expect(requireEntry(h.store, CLAUDE_DEFAULT).backoffMs).toBe(8 * MINUTE);
+
+		// The entry that did sit the back-off out ends it.
+		h.advance(requireEntry(h.store, CLAUDE_DEFAULT).nextPollAt - h.now);
+		await h.store.refreshDue(h.now, schedule);
+		expect(requireEntry(h.store, CLAUDE_DEFAULT).backoffMs).toBe(0);
+	});
 });
 
 describe("QuotaStore resilience", () => {

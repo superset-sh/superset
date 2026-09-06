@@ -183,6 +183,8 @@ interface QuotaFetchOutcome {
 	agent: QuotaCapableAgent;
 	ok: boolean;
 	rateLimited: boolean;
+	/** The entry was under the endpoint's back-off when it was fetched. */
+	backedOff: boolean;
 }
 
 const ALL_AGENTS: QuotaCapableAgent[] = ["claude", "codex", "grok", "agy"];
@@ -360,6 +362,10 @@ export class QuotaStore {
 			.filter(
 				(entry) =>
 					entry.fetchable &&
+					// The endpoint's back-off outranks both the TTL and the Usage
+					// page's Refresh: the entry is still served below with its
+					// last-known accounts, only the request is withheld.
+					!this.heldByBackoff(entry, now) &&
 					(options.forceRefresh ||
 						entry.fetchedAt === null ||
 						now - entry.fetchedAt >= QUOTA_TTL_MS),
@@ -431,7 +437,10 @@ export class QuotaStore {
 		if (GROUP_AGENTS.includes(agent)) {
 			const key = quotaEntryKey(agent, null);
 			if (!this.entryMap.has(key)) {
-				this.entryMap.set(key, newEntry(key, agent, null, true, now));
+				this.entryMap.set(
+					key,
+					newEntry(key, agent, null, true, now, this.backoff.get(agent) ?? 0),
+				);
 			}
 			return;
 		}
@@ -471,7 +480,17 @@ export class QuotaStore {
 			keep.add(key);
 			const existing = this.entryMap.get(key);
 			if (!existing) {
-				this.entryMap.set(key, newEntry(key, agent, selection, true, now));
+				this.entryMap.set(
+					key,
+					newEntry(
+						key,
+						agent,
+						selection,
+						true,
+						now,
+						this.backoff.get(agent) ?? 0,
+					),
+				);
 				continue;
 			}
 			// A signed-out profile is carried as a static row with no fetch of
@@ -491,7 +510,8 @@ export class QuotaStore {
 			keep.add(key);
 			const entry =
 				this.entryMap.get(key) ??
-				newEntry(key, agent, account.selection, false, now);
+				// A static row has no fetch of its own, so no back-off to sit out.
+				newEntry(key, agent, account.selection, false, now, 0);
 			entry.fetchable = false;
 			entry.accounts = [account];
 			entry.fetchedAt = now;
@@ -525,7 +545,7 @@ export class QuotaStore {
 			const forAgent = outcomes.filter((outcome) => outcome.agent === agent);
 			if (forAgent.some((outcome) => outcome.rateLimited)) {
 				this.applyBackoff(agent, now);
-			} else if (forAgent.some((outcome) => outcome.ok)) {
+			} else if (forAgent.some((outcome) => outcome.ok && outcome.backedOff)) {
 				this.clearBackoff(agent);
 			}
 		}
@@ -549,6 +569,10 @@ export class QuotaStore {
 		entry: QuotaEntry,
 		now: number,
 	): Promise<QuotaFetchOutcome> {
+		// Whether the endpoint's back-off covered this entry, read before the
+		// fetch that may clear it: an entry carrying no back-off of its own
+		// never sat one out, so its success must not end the endpoint's.
+		const backedOff = entry.backoffMs > 0;
 		this.recordRequest(entry.agent, now);
 		try {
 			const { accounts, rateLimited } = await this.fetchAccounts(entry);
@@ -558,13 +582,13 @@ export class QuotaStore {
 			entry.fetchedAt = now;
 			entry.lastError = null;
 			entry.tokenState = deriveTokenState(entry.accounts);
-			return { agent: entry.agent, ok: true, rateLimited };
+			return { agent: entry.agent, ok: true, rateLimited, backedOff };
 		} catch (error) {
 			// AE10: the previous accounts stay; only `lastError` moves, and
 			// `fetchedAt` does not, so the next read retries instead of
 			// replaying the failure for the whole TTL.
 			entry.lastError = error instanceof Error ? error.message : String(error);
-			return { agent: entry.agent, ok: false, rateLimited: false };
+			return { agent: entry.agent, ok: false, rateLimited: false, backedOff };
 		}
 	}
 
@@ -712,6 +736,17 @@ export class QuotaStore {
 				: next;
 	}
 
+	/**
+	 * KTD10: an entry the endpoint's back-off still covers. `refreshDue`
+	 * honours it through `nextPollAt`, which {@link applyBackoff} pushes past
+	 * the back-off for every entry on the endpoint; `read` has to ask for it,
+	 * because neither its TTL nor a forced refresh looks at `nextPollAt` — and
+	 * a back-off only the engine's tick respects holds nothing back.
+	 */
+	private heldByBackoff(entry: QuotaEntry, now: number): boolean {
+		return (this.backoff.get(entry.agent) ?? 0) > 0 && entry.nextPollAt > now;
+	}
+
 	/** KTD10: a 429 targets the poller, so every entry on that endpoint waits. */
 	private applyBackoff(agent: QuotaCapableAgent, now: number): void {
 		const current = this.backoff.get(agent) ?? 0;
@@ -782,6 +817,13 @@ function newEntry(
 	selection: string | null,
 	fetchable: boolean,
 	now: number,
+	/**
+	 * KTD10: the endpoint's back-off when the entry appeared. A profile
+	 * discovered mid-back-off starts inside it like every other entry on that
+	 * endpoint; seeded at zero it would be due at once and probe the endpoint
+	 * a 429 just told the store to leave alone.
+	 */
+	backoffMs: number,
 ): QuotaEntry {
 	return {
 		key,
@@ -789,8 +831,8 @@ function newEntry(
 		selection,
 		accounts: [],
 		fetchedAt: null,
-		nextPollAt: now,
-		backoffMs: 0,
+		nextPollAt: now + backoffMs,
+		backoffMs,
 		lastError: null,
 		tokenState: "unavailable",
 		fetchable,
