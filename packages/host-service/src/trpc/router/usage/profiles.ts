@@ -109,7 +109,7 @@ export function keychainServicesForConfigDir(configDir: string): string[] {
  */
 async function listSubdirectories(
 	dir: string,
-): Promise<{ paths: string[]; ok: boolean }> {
+): Promise<{ paths: string[]; ok: boolean; missing: boolean }> {
 	try {
 		const entries = await readdir(dir, { withFileTypes: true });
 		return {
@@ -117,26 +117,36 @@ async function listSubdirectories(
 				.filter((entry) => entry.isDirectory())
 				.map((entry) => join(dir, entry.name)),
 			ok: true,
+			missing: false,
 		};
-	} catch {
-		return { paths: [], ok: false };
+	} catch (error) {
+		// "Not there" and "there but unreadable" are different answers: the
+		// first is an ordinary empty result, the second is a failed scan.
+		const code = (error as NodeJS.ErrnoException).code ?? "";
+		return {
+			paths: [],
+			ok: false,
+			missing: code === "ENOENT" || code === "ENOTDIR",
+		};
 	}
 }
 
 /** `ok` is false when the home dir itself could not be listed: an empty
  * candidate list is then a failed scan, not proof that every profile is gone.
  * A missing `~/.config` is ordinary and does not count. */
-async function candidateDirectories(): Promise<{
+async function candidateDirectories(home: string): Promise<{
 	paths: string[];
 	ok: boolean;
 }> {
-	const home = homedir();
 	const homeListing = await listSubdirectories(home);
 	const dotDirs = homeListing.paths.filter((path) =>
 		path.slice(home.length + 1).startsWith("."),
 	);
-	const configDirs = (await listSubdirectories(join(home, ".config"))).paths;
-	return { paths: [...dotDirs, ...configDirs].sort(), ok: homeListing.ok };
+	const configListing = await listSubdirectories(join(home, ".config"));
+	return {
+		paths: [...dotDirs, ...configListing.paths].sort(),
+		ok: homeListing.ok && (configListing.ok || configListing.missing),
+	};
 }
 
 interface ClaudeStateFile {
@@ -218,8 +228,9 @@ export async function isActiveClaudeConfigDir(dir: string): Promise<boolean> {
  */
 export async function discoverClaudeProfilesWithStatus(
 	candidates?: string[],
+	homeDir?: string,
 ): Promise<{ profiles: ClaudeProfile[]; complete: boolean }> {
-	const home = homedir();
+	const home = homeDir ?? homedir();
 	const excluded = new Set([
 		join(home, ".claude"),
 		join(home, ".config", "claude"),
@@ -230,7 +241,7 @@ export async function discoverClaudeProfilesWithStatus(
 
 	const scan = candidates
 		? { paths: candidates, ok: true }
-		: await candidateDirectories();
+		: await candidateDirectories(home);
 	for (const candidate of scan.paths) {
 		if (Date.now() - started > SCAN_TIME_BUDGET_MS) {
 			return { profiles, complete: false };

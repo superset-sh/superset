@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import {
+	chmodSync,
 	mkdirSync,
 	mkdtempSync,
 	rmSync,
@@ -234,6 +235,92 @@ describe("discoverClaudeProfilesWithStatus", () => {
 		} finally {
 			clock.mockRestore();
 		}
+	});
+
+	// `complete` feeds the quota store's reaper, so the walk must only claim
+	// it saw everything when it really did. `~/.config` that is absent is an
+	// ordinary empty result; `~/.config` that is there but unreadable hides
+	// every profile under it, and reporting that as complete reaps them.
+	describe("with the whole home walk", () => {
+		function homeWithTwoProfiles(): { home: string; dirs: string[] } {
+			const home = tempProfile();
+			const dirs = [
+				join(home, ".claude-personal"),
+				join(home, ".config", "claude-work"),
+			];
+			for (const dir of dirs) {
+				mkdirSync(dir, { recursive: true });
+				writeFileSync(
+					join(dir, ".claude.json"),
+					JSON.stringify({ oauthAccount: { emailAddress: "a@b.c" } }),
+				);
+			}
+			return { home, dirs: dirs.sort() };
+		}
+
+		it("finds profiles under ~/.config and reports a whole walk", async () => {
+			const { home, dirs } = homeWithTwoProfiles();
+			const clock = spyOn(Date, "now").mockReturnValue(0);
+			try {
+				const { profiles, complete } = await discoverClaudeProfilesWithStatus(
+					undefined,
+					home,
+				);
+
+				expect(profiles.map((profile) => profile.configDir).sort()).toEqual(
+					dirs,
+				);
+				expect(complete).toBe(true);
+			} finally {
+				clock.mockRestore();
+			}
+		});
+
+		it("is incomplete when ~/.config exists but cannot be read", async () => {
+			// root ignores the mode bits, so the denial this asserts on cannot
+			// be staged; skipping beats passing without having tested anything.
+			if (process.getuid?.() === 0) return;
+			const { home } = homeWithTwoProfiles();
+			const config = join(home, ".config");
+			const clock = spyOn(Date, "now").mockReturnValue(0);
+			chmodSync(config, 0o000);
+			try {
+				const { profiles, complete } = await discoverClaudeProfilesWithStatus(
+					undefined,
+					home,
+				);
+
+				expect(profiles.map((profile) => profile.configDir)).toEqual([
+					join(home, ".claude-personal"),
+				]);
+				expect(complete).toBe(false);
+			} finally {
+				chmodSync(config, 0o755);
+				clock.mockRestore();
+			}
+		});
+
+		it("stays complete when ~/.config is simply absent", async () => {
+			const home = tempProfile();
+			const only = join(home, ".claude-personal");
+			mkdirSync(only);
+			writeFileSync(
+				join(only, ".claude.json"),
+				JSON.stringify({ oauthAccount: { emailAddress: "a@b.c" } }),
+			);
+			const clock = spyOn(Date, "now").mockReturnValue(0);
+			try {
+				const { profiles, complete } = await discoverClaudeProfilesWithStatus(
+					undefined,
+					home,
+				);
+
+				expect(profiles.map((profile) => profile.configDir)).toEqual([only]);
+				expect(complete).toBe(true);
+			} finally {
+				clock.mockRestore();
+			}
+		});
 	});
 });
 
