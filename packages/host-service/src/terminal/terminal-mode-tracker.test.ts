@@ -346,4 +346,21 @@ describe("snapshot trimmedRows", () => {
 		]);
 		t.dispose();
 	});
+
+	test("stops counting at a screenful when trimming runs into scrollback", () => {
+		const t = createModeTracker(80, 24);
+		for (let i = 1; i <= 10; i += 1) t.feed(enc.encode(`old-${i}\r\n`));
+		t.feed(enc.encode("You've hit your usage limit.\r\n"));
+		// Blank rows scroll the limit line up, so the trailing run of blanks is
+		// longer than the viewport before the clear even lands.
+		for (let i = 0; i < 30; i += 1) t.feed(enc.encode("\r\n"));
+		t.feed(enc.encode("\x1b[2J\x1b[H"));
+
+		const snap = t.snapshot(800);
+		// Not the raw pop count (31 here): `rows - trimmedRows` is a window into
+		// the visible screen and must never go negative.
+		expect(snap.trimmedRows).toBe(snap.rows);
+		expect(snap.rows - snap.trimmedRows).toBe(0);
+		t.dispose();
+	});
 });

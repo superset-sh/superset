@@ -73,9 +73,15 @@ const LIMIT_TEXT: Partial<Record<QuotaCapableAgent, RegExp>> = {
  * (`TerminalSnapshot.trimmedRows`) — NOT the terminal's row count. Passing the
  * raw row count starts the window that many rows above the viewport top, so
  * scrollback a TUI already scrolled past can corroborate a hint.
+ *
+ * Zero rows is the ordinary result of a cleared screen, and it means the
+ * screen is blank: no visible text, so nothing here can corroborate anything.
  */
 export function lastVisibleScreen(screenText: string, rows: number): string {
-	if (!Number.isFinite(rows) || rows <= 0) return screenText;
+	// A window of zero (or less) rows means nothing is on screen: no visible
+	// text can corroborate anything. Only a non-finite row count is "unknown".
+	if (!Number.isFinite(rows)) return screenText;
+	if (rows <= 0) return "";
 	const lines = screenText.split("\n");
 	return lines.length <= rows ? screenText : lines.slice(-rows).join("\n");
 }

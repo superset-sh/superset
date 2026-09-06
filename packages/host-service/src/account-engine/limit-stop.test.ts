@@ -134,10 +134,33 @@ describe("lastVisibleScreen", () => {
 		);
 	});
 
-	it("returns the text unchanged when it already fits, or rows is unusable", () => {
+	it("returns the text unchanged when it already fits, or rows is unknown", () => {
 		expect(lastVisibleScreen("one\ntwo", 5)).toBe("one\ntwo");
-		expect(lastVisibleScreen("one\ntwo", 0)).toBe("one\ntwo");
 		expect(lastVisibleScreen("one\ntwo", Number.NaN)).toBe("one\ntwo");
+	});
+
+	// `rows` is what survived trimming, so zero is a blank screen — not an
+	// unknown viewport. Failing open there would let scrollback corroborate.
+	it("returns nothing when no viewport rows are left on screen", () => {
+		expect(lastVisibleScreen("one\ntwo", 0)).toBe("");
+		expect(lastVisibleScreen("one\ntwo", -3)).toBe("");
+	});
+
+	it("refuses a limit line left in scrollback under a cleared screen", () => {
+		// The shape a cleared screen produces: every viewport row trimmed away,
+		// so the window `rows - trimmedRows` is zero.
+		const snapshot = {
+			text: ["$ codex", "You've hit your usage limit.", "$ clear"].join("\n"),
+			rows: 24,
+			trimmedRows: 24,
+		};
+		expect(snapshotShowsLimit("codex", snapshot.text)).toBe(true);
+		expect(
+			snapshotShowsLimit(
+				"codex",
+				lastVisibleScreen(snapshot.text, snapshot.rows - snapshot.trimmedRows),
+			),
+		).toBe(false);
 	});
 });
 
