@@ -139,16 +139,32 @@ function matchesModel(
 	});
 }
 
+/**
+ * The windows a decision may judge an account by: the agent's account-wide
+ * windows, plus per-model windows for models the user actually configured. A
+ * model-scoped window for an unconfigured model is not evidence about the
+ * account — the proactive path has always excluded it, and the limit-stop
+ * fallback has to agree or the two paths disagree about whether the same
+ * account is spent.
+ */
+export function windowsInScope(
+	agent: AccountAgent,
+	windows: readonly UsageQuotaWindow[],
+	modelWindows: readonly string[],
+): readonly UsageQuotaWindow[] {
+	const accountWide = ACCOUNT_WIDE_WINDOW_IDS[agent];
+	return windows.filter(
+		(window) =>
+			accountWide.includes(window.id) || matchesModel(window, modelWindows),
+	);
+}
+
 /** The windows this account is scored on: account-wide plus configured. */
 export function relevantWindows(
 	account: DecisionAccount,
 	modelWindows: readonly string[],
-): UsageQuotaWindow[] {
-	const accountWide = ACCOUNT_WIDE_WINDOW_IDS[account.agent];
-	return account.windows.filter(
-		(window) =>
-			accountWide.includes(window.id) || matchesModel(window, modelWindows),
-	);
+): readonly UsageQuotaWindow[] {
+	return windowsInScope(account.agent, account.windows, modelWindows);
 }
 
 /** The window with the least headroom — what a switch notification names. */
@@ -426,8 +442,16 @@ export function shouldSwitch(input: ShouldSwitchInput): SwitchDecision {
 	// read, whether it is an API-billed login (moving the user onto per-token
 	// billing while the plan they pay for still has room) or a stale token
 	// nobody could read. It stays a target of last resort.
+	//
+	// Two last resorts, in this order, as consume-first has: every unrankable
+	// candidate ties at 100, so flattening them into one bucket would let the
+	// alphabetical tie-break put the user on per-token billing while an
+	// unrankable plan login was available.
 	const best = pickBest(
-		preferRanked(below, (candidate) => reportsNoWindows(candidate, models)),
+		preferRanked(
+			preferRanked(below, (candidate) => reportsNoWindows(candidate, models)),
+			isMetered,
+		),
 		models,
 	);
 	if (!best) return stay(activeNearLimit);

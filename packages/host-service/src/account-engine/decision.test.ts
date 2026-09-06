@@ -565,6 +565,25 @@ describe("shouldSwitch", () => {
 		expect(decision.switch && decision.target.accountKey).toBe("key-stale");
 	});
 
+	// Mirror of the consume-first case: `best` ties every unrankable candidate at
+	// 100, so without the metered tier the accountKey tie-break puts the user on
+	// per-token billing while an unread plan login was available.
+	it("best: takes an unread plan account before a metered one", () => {
+		const decision = shouldSwitch({
+			settings: settings(),
+			active: account({
+				windows: [window_("five_hour", "Session (5h)", 95)],
+			}),
+			candidates: [metered(), staleUnread()],
+			rotation: { "key-api": true, "key-stale": true },
+			runtime,
+			now: T0,
+		});
+
+		expect(decision).toMatchObject({ switch: true, reasonKind: "threshold" });
+		expect(decision.switch && decision.target.accountKey).toBe("key-stale");
+	});
+
 	// One window, and it is scoped to a model the user did not configure, so
 	// nothing scores it: a full 100 that beats every account we can read, from
 	// an account whose usage we know nothing about.
