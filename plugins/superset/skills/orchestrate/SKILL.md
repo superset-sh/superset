@@ -12,8 +12,8 @@ Coordinate terminal agents with Superset's workspace, agent, and terminal comman
 ## Establish the control surface
 
 1. Run `superset auth whoami --json`.
-2. Run `superset terminals --help` and require `list`, `read`, `send`, and `close`.
-3. If those commands are absent, run `superset update` and recheck. Do not invent or substitute unsupported orchestration commands.
+2. Run `superset terminals --help` and require `list`, `read`, `send`, and `close`. Note separately whether `wait` and `send-keys` are present — they unlock the blocking-wait and stuck-worker recovery patterns below, but basic orchestration does not require them.
+3. If any of the required commands are absent, run `superset update` and recheck. Do not invent or substitute unsupported orchestration commands.
 4. Resolve the workspace, host, and terminal-capable agent before dispatching:
 
 ```bash
@@ -129,7 +129,34 @@ superset terminals send \
   --json
 ```
 
-Poll at a measured cadence and read all running workers in each pass. Prefer several short monitoring passes over one long blocking shell loop so progress and user updates remain visible.
+When `wait` is present, block on one worker settling instead of hand-rolling a poll loop for it:
+
+```bash
+superset terminals wait \
+  --workspace <workspace-id> \
+  --host <host-id> \
+  --terminal <terminal-id> \
+  --until idle,permission,failed,ended \
+  --timeout 300000 \
+  --json
+```
+
+This returns as soon as that worker reaches one of the listed states, or fails clearly on timeout — it does not prove the result is correct, so still read the terminal afterward and check for the completion or blocked envelope. Give each active worker its own `wait` (run them as separate background invocations of your own tooling) rather than blocking on one worker at a time in sequence, so a slow or timed-out worker doesn't delay reading ones that already finished.
+
+Without `wait`, poll at a measured cadence and read all running workers in each pass. Prefer several short monitoring passes over one long blocking shell loop so progress and user updates remain visible.
+
+A worker whose status hasn't moved in an unusually long time — most often one that was interrupted, since an interrupt fires no completion hook — can be nudged back to an accurate status with `send-keys` when it's present, which clears a stuck status as a side effect of the keystroke:
+
+```bash
+superset terminals send-keys \
+  --workspace <workspace-id> \
+  --host <host-id> \
+  --terminal <terminal-id> \
+  --keys esc \
+  --json
+```
+
+Re-read the terminal afterward rather than assuming the nudge alone resolved the task.
 
 ## Advance the workflow
 
