@@ -1,6 +1,6 @@
 import type { RendererContext } from "@superset/panes";
 import { useParams } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	getDispatchChord,
 	type HotkeyId,
@@ -52,6 +52,11 @@ export function usePersistentWebview({
 	ctx,
 }: UsePersistentWebviewOptions) {
 	const placeholderRef = useRef<HTMLDivElement | null>(null);
+	// The registry's host layer above this pane's webview; pane UI that must
+	// cover the page portals into it. Null until attached.
+	const [overlayContainer, setOverlayContainer] = useState<HTMLElement | null>(
+		null,
+	);
 	const ctxRef = useRef(ctx);
 	ctxRef.current = ctx;
 	// Workspace scoping for the browser bridge (CLI/agent control). Panes only
@@ -92,9 +97,11 @@ export function usePersistentWebview({
 				});
 			},
 		);
+		setOverlayContainer(browserRuntimeRegistry.getOverlayContainer(paneId));
 
 		return () => {
 			browserRuntimeRegistry.detach(paneId);
+			setOverlayContainer(null);
 		};
 	}, [paneId, workspaceId]);
 
@@ -225,6 +232,7 @@ export function usePersistentWebview({
 
 	return {
 		placeholderRef,
+		overlayContainer,
 		goBack,
 		goForward,
 		reload,

@@ -27,6 +27,16 @@ export interface PersistableBrowserState {
 
 interface RegistryEntry {
 	webview: Electron.WebviewTag;
+	/**
+	 * Host layer painted directly above this pane's webview, mirroring its
+	 * rect and visibility. The webview is hoisted to a body-level container,
+	 * so nothing inside the pane tree can paint over it: the pane tree is its
+	 * own stacking context (isolated so resize handles stay under dialogs),
+	 * and z-index never crosses one. Pane UI that must cover the page (the
+	 * design-mode composer, find bar, load-error and blank states) portals
+	 * in here instead of competing from inside the tree.
+	 */
+	overlay: HTMLDivElement;
 	state: BrowserRuntimeState;
 	onPersist: ((state: PersistableBrowserState) => void) | null;
 	/** Owning workspace — sent on register so the main process scopes pane ops. */
@@ -185,6 +195,7 @@ class BrowserRuntimeRegistryImpl {
 			style.visibility = "hidden";
 			style.opacity = "";
 		}
+		entry.overlay.style.visibility = "hidden";
 	}
 
 	private setWindowDragPassthrough(passthrough: boolean) {
@@ -230,11 +241,17 @@ class BrowserRuntimeRegistryImpl {
 	private updateLayout(entry: RegistryEntry) {
 		if (!entry.placeholder) return;
 		const rect = entry.placeholder.getBoundingClientRect();
-		const w = entry.webview;
-		w.style.top = `${rect.top}px`;
-		w.style.left = `${rect.left}px`;
-		w.style.width = `${rect.width}px`;
-		w.style.height = `${rect.height}px`;
+		for (const style of [entry.webview.style, entry.overlay.style]) {
+			style.top = `${rect.top}px`;
+			style.left = `${rect.left}px`;
+			style.width = `${rect.width}px`;
+			style.height = `${rect.height}px`;
+		}
+	}
+
+	/** Host layer above the pane's webview; null until the pane has attached. */
+	getOverlayContainer(paneId: string): HTMLElement | null {
+		return this.entries.get(paneId)?.overlay ?? null;
 	}
 
 	private notify(paneId: string) {
@@ -314,8 +331,22 @@ class BrowserRuntimeRegistryImpl {
 		webview.style.pointerEvents = "auto";
 		webview.src = sanitizeUrl(initialUrl);
 
+		// Click-through by default so the page stays interactive; whatever is
+		// portalled in opts back into pointer events itself. z-index 1 keeps it
+		// above every webview in the container, including ones appended later.
+		const overlay = document.createElement("div");
+		overlay.style.position = "fixed";
+		overlay.style.top = "0";
+		overlay.style.left = "0";
+		overlay.style.width = "0";
+		overlay.style.height = "0";
+		overlay.style.zIndex = "1";
+		overlay.style.pointerEvents = "none";
+		overlay.style.visibility = "hidden";
+
 		const entry: RegistryEntry = {
 			webview,
+			overlay,
 			state: { ...EMPTY_STATE, currentUrl: initialUrl },
 			onPersist: null,
 			workspaceId,
@@ -503,6 +534,7 @@ class BrowserRuntimeRegistryImpl {
 			entry = this.createEntry(paneId, initialUrl, workspaceId);
 			this.entries.set(paneId, entry);
 			root.appendChild(entry.webview);
+			root.appendChild(entry.overlay);
 		} else {
 			// A reused pane can move between workspaces (the attach effect keys on
 			// workspaceId). Keep the registration's workspace current so main-side
@@ -541,6 +573,7 @@ class BrowserRuntimeRegistryImpl {
 		this.updateLayout(entry);
 		entry.webview.style.visibility = "visible";
 		entry.webview.style.opacity = "";
+		entry.overlay.style.visibility = "visible";
 		this.applyPointerPassthrough();
 	}
 
@@ -593,6 +626,7 @@ class BrowserRuntimeRegistryImpl {
 		entry.resizeObserver?.disconnect();
 		entry.detachHandlers();
 		entry.webview.remove();
+		entry.overlay.remove();
 		this.entries.delete(paneId);
 		this.listenersByPaneId.delete(paneId);
 		this.foundInPageListenersByPaneId.delete(paneId);
