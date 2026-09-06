@@ -33,13 +33,18 @@ export function resolveLocalImagePath(
 	if (/^file:/i.test(trimmed)) {
 		path = fileUrlToPath(trimmed);
 		filesystemAbsolute = true;
-	} else if (WINDOWS_DRIVE_PATH.test(trimmed)) {
-		path = trimmed;
-		filesystemAbsolute = true;
-	} else if (SCHEME_PREFIX.test(trimmed)) {
-		return null;
 	} else {
-		path = percentDecode(trimmed.split(/[?#]/, 1)[0] ?? "");
+		// markdown-it percent-encodes whatever it doesn't consider URL-safe,
+		// backslashes included, so decode before looking at the shape.
+		const bare = percentDecode(trimmed.split(/[?#]/, 1)[0] ?? "");
+		if (WINDOWS_DRIVE_PATH.test(bare)) {
+			path = bare;
+			filesystemAbsolute = true;
+		} else if (SCHEME_PREFIX.test(bare)) {
+			return null;
+		} else {
+			path = bare;
+		}
 	}
 	if (!path) return null;
 

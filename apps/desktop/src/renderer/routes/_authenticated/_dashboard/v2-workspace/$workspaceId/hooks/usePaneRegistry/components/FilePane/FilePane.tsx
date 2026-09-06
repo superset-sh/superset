@@ -182,6 +182,11 @@ export function FilePane({ context, workspaceId }: FilePaneProps) {
 					documentDirectory={getPathDirectory(document.absolutePath)}
 					rootPath={workspaceQuery.data?.worktreePath ?? undefined}
 					readFile={readFile}
+					revision={
+						"revision" in document.content
+							? document.content.revision
+							: undefined
+					}
 				>
 					<ViewRenderer
 						document={document}

@@ -48,6 +48,8 @@ describe("resolveLocalImagePath", () => {
 		["..\\assets\\logo.png", "C:\\repo\\assets\\logo.png"],
 		["/img/x.png", "C:\\repo\\img\\x.png"],
 		["D:\\other\\x.png", "D:\\other\\x.png"],
+		["C:\\repo\\image.png?raw=true#top", "C:\\repo\\image.png"],
+		["C:%5Crepo%5Cx.png", "C:\\repo\\x.png"],
 		["file:///C:/Users/me/x.png", "C:\\Users\\me\\x.png"],
 		["../../../../x.png", "C:\\x.png"],
 	])("keeps Windows separators and drive roots for %s", (source, expected) => {

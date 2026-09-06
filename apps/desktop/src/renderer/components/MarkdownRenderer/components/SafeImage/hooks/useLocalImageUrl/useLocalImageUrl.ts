@@ -11,22 +11,23 @@ type LocalImageState =
 export function useLocalImageUrl(
 	absolutePath: string | null,
 	readFile: MarkdownResources["readFile"] | undefined,
+	revision: string | undefined,
 ): LocalImageState {
 	const [loaded, setLoaded] = useState<{ path: string; url: string | null }>();
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: revision is the retry signal — a moved disk revision re-reads the image
 	useEffect(() => {
 		if (!absolutePath || !readFile) return;
 		let cancelled = false;
-		let objectUrl: string | null = null;
 		readFile(absolutePath).then(
 			(bytes) => {
 				if (cancelled) return;
-				objectUrl = URL.createObjectURL(
+				const url = URL.createObjectURL(
 					new Blob([bytes as BlobPart], {
 						type: getImageMimeType(absolutePath) ?? "image/png",
 					}),
 				);
-				setLoaded({ path: absolutePath, url: objectUrl });
+				setLoaded({ path: absolutePath, url });
 			},
 			() => {
 				if (!cancelled) setLoaded({ path: absolutePath, url: null });
@@ -34,9 +35,16 @@ export function useLocalImageUrl(
 		);
 		return () => {
 			cancelled = true;
-			if (objectUrl) URL.revokeObjectURL(objectUrl);
 		};
-	}, [absolutePath, readFile]);
+	}, [absolutePath, readFile, revision]);
+
+	// The previous URL stays valid until the next read lands, so a re-read
+	// swaps images without a broken frame in between.
+	useEffect(() => {
+		const url = loaded?.url;
+		if (!url) return;
+		return () => URL.revokeObjectURL(url);
+	}, [loaded]);
 
 	if (!absolutePath || loaded?.path !== absolutePath) {
 		return { status: "loading" };

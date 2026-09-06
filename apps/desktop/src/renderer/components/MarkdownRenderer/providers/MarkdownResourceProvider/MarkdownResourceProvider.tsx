@@ -7,6 +7,12 @@ export interface MarkdownResources {
 	rootPath?: string;
 	/** Read a file on the workspace's filesystem — local disk or a cloud sandbox. */
 	readFile: (absolutePath: string) => Promise<Uint8Array>;
+	/**
+	 * The markdown file's on-disk revision. Images are read again when it
+	 * moves (save, reload, external change), so one that was missing or
+	 * replaced shows up without reopening the pane.
+	 */
+	revision?: string;
 }
 
 const MarkdownResourceContext = createContext<MarkdownResources | null>(null);
@@ -21,11 +27,12 @@ export function MarkdownResourceProvider({
 	documentDirectory,
 	rootPath,
 	readFile,
+	revision,
 	children,
 }: MarkdownResources & { children: ReactNode }) {
 	const value = useMemo(
-		() => ({ documentDirectory, rootPath, readFile }),
-		[documentDirectory, rootPath, readFile],
+		() => ({ documentDirectory, rootPath, readFile, revision }),
+		[documentDirectory, rootPath, readFile, revision],
 	);
 	return (
 		<MarkdownResourceContext.Provider value={value}>
