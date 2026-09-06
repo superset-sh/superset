@@ -11,6 +11,14 @@ import { basename, join } from "node:path";
 import { boolean, CLIError, string } from "@superset/cli-framework";
 import { ApiHttpError } from "../../../lib/api-client";
 import { command } from "../../../lib/command";
+import { env, isDesktopBundled } from "../../../lib/env";
+import { checkHostHealth } from "../../../lib/host/health";
+import {
+	hostServiceLogPath,
+	isProcessAlive,
+	readManifest,
+} from "../../../lib/host/manifest";
+import { resolveOrganizationFromContext } from "../../../lib/resolve-org";
 
 /**
  * The tRPC route is a Vercel function, and Vercel rejects request bodies
@@ -89,21 +97,72 @@ function describeRejection(
 	return null;
 }
 
-function collectDiagnostics(): FeedbackAttachment | null {
+/** electron-log's default main.log location for the desktop app. */
+function appLogPath(): string {
+	const home = os.homedir();
+	switch (process.platform) {
+		case "darwin":
+			return join(home, "Library", "Logs", "Superset", "main.log");
+		case "win32":
+			return join(
+				process.env.APPDATA ?? join(home, "AppData", "Roaming"),
+				"Superset",
+				"logs",
+				"main.log",
+			);
+		default:
+			return join(
+				process.env.XDG_CONFIG_HOME ?? join(home, ".config"),
+				"Superset",
+				"logs",
+				"main.log",
+			);
+	}
+}
+
+async function describeHostService(
+	organizationId: string | undefined,
+): Promise<string> {
+	const manifest = organizationId ? readManifest(organizationId) : null;
+	if (!manifest) return "Host service: not running";
+	// A crashed host leaves its manifest behind; don't probe a dead endpoint
+	// and call it "not responding".
+	if (!isProcessAlive(manifest.pid)) {
+		return `Host service: not running (stale manifest, pid ${manifest.pid} is dead)`;
+	}
+	const health = await checkHostHealth(manifest.endpoint, manifest.authToken);
+	if (!health.healthy) return "Host service: running but not responding";
+	const parts = [
+		`version ${health.version ?? "unknown"}`,
+		`cloudRegistered=${health.cloudRegistered ?? "unknown"}`,
+	];
+	if (health.registrationError) {
+		parts.push(`registrationError=${health.registrationError}`);
+	}
+	return `Host service: ${parts.join(", ")}`;
+}
+
+async function collectDiagnostics(
+	organizationId: string | undefined,
+): Promise<FeedbackAttachment> {
 	const lines = [
 		`Collected: ${new Date().toISOString()}`,
-		`CLI version: ${process.env.SUPERSET_VERSION ?? "dev"}`,
+		`CLI version: ${env.VERSION} (${isDesktopBundled() ? "bundled with the desktop app" : "standalone"})`,
 		`OS: ${os.platform()} ${os.release()} ${os.arch()}`,
+		await describeHostService(organizationId),
 	];
-	const logPath = join(os.homedir(), "Library", "Logs", "Superset", "main.log");
-	if (process.platform === "darwin" && existsSync(logPath)) {
-		lines.push(
-			"",
-			`--- last ${DIAGNOSTICS_LOG_TAIL_LINES} lines of ${logPath} ---`,
-			readTail(logPath),
-		);
-	} else {
-		lines.push("", "(no app log found on this machine)");
+	const logPaths = [appLogPath()];
+	if (organizationId) logPaths.push(hostServiceLogPath(organizationId));
+	for (const logPath of logPaths) {
+		if (existsSync(logPath)) {
+			lines.push(
+				"",
+				`--- last ${DIAGNOSTICS_LOG_TAIL_LINES} lines of ${logPath} ---`,
+				readTail(logPath),
+			);
+		} else {
+			lines.push("", `(no log at ${logPath})`);
+		}
 	}
 	return {
 		filename: "feedback-diagnostics.txt",
@@ -177,7 +236,7 @@ export default command({
 			`Comma-separated file paths to attach (screenshots, logs; ${ATTACHMENT_LIMIT_LABEL} total, a lone larger file is cut to its tail)`,
 		),
 		diagnostics: boolean().desc(
-			"Attach a diagnostics bundle (CLI version, OS, last 200 app log lines)",
+			"Attach a diagnostics bundle (versions, OS, last 200 lines of the app and host-service logs)",
 		),
 	},
 	run: async ({ ctx, options }) => {
@@ -211,8 +270,16 @@ export default command({
 			contentBase64: readTailBytes(file.path, file.bytes).toString("base64"),
 		}));
 		if (options.diagnostics) {
-			const bundle = collectDiagnostics();
-			if (bundle) attachments.push(bundle);
+			// Best effort: an unreachable API must not block a report, so fall
+			// back to the org id stored locally.
+			const organizationId = await resolveOrganizationFromContext(
+				ctx.api,
+				ctx.config.organizationId,
+				undefined,
+			)
+				.then((organization) => organization.id)
+				.catch(() => ctx.config.organizationId);
+			attachments.push(await collectDiagnostics(organizationId));
 		}
 		if (attachments.length > 5) {
 			throw new CLIError("At most 5 attachments per submission");
@@ -223,7 +290,7 @@ export default command({
 				type: options.type,
 				title: options.title,
 				body,
-				appVersion: process.env.SUPERSET_VERSION ?? "dev",
+				appVersion: env.VERSION,
 				os: `${os.platform()} ${os.release()} ${os.arch()}`,
 				attachments: attachments.length > 0 ? attachments : undefined,
 			});
@@ -241,7 +308,7 @@ export default command({
 		return {
 			data: { submitted: true, attachments: attachments.length },
 			message:
-				"Feedback sent to the Superset team. A copy was CC'd to your account email; replies land there too.",
+				"Feedback sent to the Superset team. A copy was CC'd to your account email; reply there with any follow-up so it stays on the same thread.",
 		};
 	},
 });

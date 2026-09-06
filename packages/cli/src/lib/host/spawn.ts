@@ -14,6 +14,7 @@ import {
 	ensureManifestDir,
 	type HostServiceManifest,
 	hostDbPath,
+	hostServiceLogPath,
 	writeManifest,
 } from "./manifest";
 import { getRelayUrl } from "./relay-url";
@@ -118,9 +119,10 @@ export async function spawnHostService(
 	// Daemon output goes to the same per-org host-service.log the desktop
 	// writes — with stdio ignored, a failed cloud registration was logged
 	// nowhere on CLI-only installs (issue #6415).
+	if (options.daemon) ensureManifestDir(options.organizationId);
 	const logFd = options.daemon
 		? openRotatingLogFd(
-				join(ensureManifestDir(options.organizationId), "host-service.log"),
+				hostServiceLogPath(options.organizationId),
 				MAX_HOST_LOG_BYTES,
 			)
 		: -1;
