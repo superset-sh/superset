@@ -10,8 +10,8 @@ const base: MissVerdictInput = {
 	workspaceFound: false,
 	suspended: false,
 	hostsEnumerated: true,
+	localHostDown: false,
 	hasLiveTargets: true,
-	mirrorSettled: true,
 };
 
 describe("planVerdictAction", () => {
@@ -35,24 +35,20 @@ describe("planVerdictAction", () => {
 		expect(planVerdictAction({ ...base, hostsEnumerated: false })).toBe("none");
 	});
 
-	it("waits while no host is reachable and the mirror has not settled (boot)", () => {
+	it("never judges while the local host-service has no port (starting, crash loop, gave up)", () => {
+		expect(planVerdictAction({ ...base, localHostDown: true })).toBe("none");
+		// Live remote hosts do not make the local service's rows readable.
 		expect(
 			planVerdictAction({
 				...base,
-				hasLiveTargets: false,
-				mirrorSettled: false,
+				localHostDown: true,
+				hasLiveTargets: true,
 			}),
 		).toBe("none");
 	});
 
-	it("declares an immediate miss when offline with a settled mirror", () => {
-		expect(
-			planVerdictAction({
-				...base,
-				hasLiveTargets: false,
-				mirrorSettled: true,
-			}),
-		).toBe("immediate-miss");
+	it("waits while no host is reachable at all", () => {
+		expect(planVerdictAction({ ...base, hasLiveTargets: false })).toBe("none");
 	});
 });
 

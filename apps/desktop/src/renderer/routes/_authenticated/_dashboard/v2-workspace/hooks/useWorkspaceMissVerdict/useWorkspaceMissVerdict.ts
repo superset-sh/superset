@@ -18,29 +18,27 @@ export interface MissVerdictInput {
 	 * then would flash not-found right after boot or an org switch.
 	 */
 	hostsEnumerated: boolean;
+	/**
+	 * The local host-service has no port: starting, crashed and respawning, or
+	 * given up. Its workspaces are unreadable for the duration, so a miss
+	 * proves nothing — the route shows the service's own pending state, which
+	 * says what is actually wrong and offers a restart. Judging here is how a
+	 * host-service crash loop read as "Workspace not found".
+	 */
+	localHostDown: boolean;
 	/** At least one host resolved to a reachable URL. */
 	hasLiveTargets: boolean;
-	/**
-	 * Every host answered, errored, or served a snapshot
-	 * (useHostWorkspaces.isReady). With no live targets AND a settled mirror,
-	 * absence is already authoritative (offline with snapshots); before
-	 * settlement it means boot — keep waiting.
-	 */
-	mirrorSettled: boolean;
 }
 
-export type MissVerdictAction = "none" | "immediate-miss" | "open-window";
+export type MissVerdictAction = "none" | "open-window";
 
 /** Pure decision: what a verdict pass should do for the current input. */
 export function planVerdictAction(input: MissVerdictInput): MissVerdictAction {
 	if (!input.workspaceId || input.workspaceFound || input.suspended) {
 		return "none";
 	}
-	if (!input.hostsEnumerated) {
+	if (!input.hostsEnumerated || input.localHostDown || !input.hasLiveTargets) {
 		return "none";
-	}
-	if (!input.hasLiveTargets) {
-		return input.mirrorSettled ? "immediate-miss" : "none";
 	}
 	return "open-window";
 }
@@ -82,8 +80,8 @@ function scheduleTimeout(fn: () => void, ms: number): () => void {
  * host-service instance, stale boot snapshot). Verdict rule: not-found only
  * after a refetch that started after this route asked has settled without the
  * row (or the cap expired) — never from pre-existing cache state alone, and
- * independent of `isReady`'s blank-shell hold (one hanging host can pin that
- * false for minutes).
+ * never while the local host-service is down (its rows cannot be read, so
+ * absence is not evidence).
  *
  * The window is cancelled whenever the input changes (navigation, row
  * arrival), and the verdict is keyed by id and reset on navigation, so a
@@ -100,8 +98,8 @@ export function useWorkspaceMissVerdict(
 		workspaceFound,
 		suspended,
 		hostsEnumerated,
+		localHostDown,
 		hasLiveTargets,
-		mirrorSettled,
 	} = input;
 	/** The workspaceId whose miss was confirmed by a completed window. */
 	const [missedId, setMissedId] = useState<string | null>(null);
@@ -118,14 +116,10 @@ export function useWorkspaceMissVerdict(
 			workspaceFound,
 			suspended,
 			hostsEnumerated,
+			localHostDown,
 			hasLiveTargets,
-			mirrorSettled,
 		});
 		if (action === "none" || workspaceId === null) return;
-		if (action === "immediate-miss") {
-			setMissedId(workspaceId);
-			return;
-		}
 		let cancelled = false;
 		void runVerdictWindow(refetchAll, capMs).then(() => {
 			if (cancelled) return;
@@ -139,8 +133,8 @@ export function useWorkspaceMissVerdict(
 		workspaceFound,
 		suspended,
 		hostsEnumerated,
+		localHostDown,
 		hasLiveTargets,
-		mirrorSettled,
 		refetchAll,
 		capMs,
 	]);

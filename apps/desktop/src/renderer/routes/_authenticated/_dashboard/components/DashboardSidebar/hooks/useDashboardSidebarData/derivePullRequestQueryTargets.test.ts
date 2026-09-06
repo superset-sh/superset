@@ -102,6 +102,28 @@ describe("derivePullRequestQueryTargets", () => {
 		expect(targets[0]?.machineId).toBe(MACHINE_ID);
 	});
 
+	it("synthesizes the null-URL local target when the host list is empty and the host-service is down", () => {
+		// Same survival rule for the row-less local host: without it every
+		// chip on this device cleared for the length of a restart.
+		const targets = derivePullRequestQueryTargets({
+			activeHostUrl: null,
+			hosts: [],
+			machineId: MACHINE_ID,
+			relayUrl: RELAY_URL,
+			workspaces: [{ id: "ws-1", hostId: MACHINE_ID }],
+			fallbackOrganizationId: "org-1",
+		});
+		expect(targets).toEqual([
+			{
+				organizationId: "org-1",
+				machineId: MACHINE_ID,
+				hostType: "local-device",
+				hostUrl: null,
+				workspaceIds: ["ws-1"],
+			},
+		]);
+	});
+
 	it("omits offline remote hosts", () => {
 		const targets = derivePullRequestQueryTargets({
 			activeHostUrl: LOCAL_HOST_URL,

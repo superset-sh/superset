@@ -4,9 +4,9 @@ import { toast } from "@superset/ui/sonner";
 import { useDelayElapsed } from "renderer/hooks/useDelayElapsed";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { StateScreenShell } from "../../../../components/StateScreenShell";
-import { WorkspaceHostUnreachableState } from "../../../../components/WorkspaceHostUnreachableState";
 import { LOCAL_HOST_SERVICE_DETAIL } from "../../utils/localHostServiceDetail";
+import { StateScreenShell } from "../StateScreenShell";
+import { WorkspaceHostUnreachableState } from "../WorkspaceHostUnreachableState";
 
 /**
  * The workspace lives on this device but the local host service has no port

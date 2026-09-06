@@ -82,14 +82,12 @@ export function derivePullRequestQueryTargets({
 		];
 	});
 
-	// If the local v2Hosts row hasn't synced via Electric yet, the loop above
-	// won't include it — synthesize a local target from machineId + activeHostUrl
-	// when there are local-host workspaces visible.
-	if (
-		machineId &&
-		activeHostUrl &&
-		!targets.some((target) => target.machineId === machineId)
-	) {
+	// If the local v2Hosts row is missing (fresh install, a user not yet
+	// linked to the host), the loop above won't include it — synthesize a
+	// local target from machineId when there are local-host workspaces
+	// visible. A null URL while the host-service has no port keeps the cached
+	// chips through a restart, as the hosts-row branch above already does.
+	if (machineId && !targets.some((target) => target.machineId === machineId)) {
 		const localWorkspaceIds = workspaceIdsByHostId.get(machineId);
 		if (localWorkspaceIds && localWorkspaceIds.length > 0) {
 			targets.push({
