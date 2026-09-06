@@ -78,6 +78,17 @@ fi
 # a false completion notification.
 [ -z "$EVENT_TYPE" ] && exit 0
 
+# Claude Code's StopFailure carries the API error class in "error". Forward
+# only that field, only on StopFailure — an agent's own words (a Stop whose
+# last_assistant_message quotes {"error":"rate_limit"}) must never look like
+# a limit stop. The value reaches an unauthenticated endpoint, so take one
+# line, strip control characters and hard-truncate here; the receiver bounds
+# it again against a fixed enum. last_assistant_message is never forwarded.
+ERROR_TYPE=""
+if [ "$EVENT_TYPE" = "StopFailure" ]; then
+  ERROR_TYPE=$(echo "$INPUT" | grep -oE '"error"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | grep -oE '"[^"]*"$' | tr -d '"' | tr -d '\000-\037' | cut -c1-64)
+fi
+
 DEBUG_HOOKS_ENABLED="0"
 if [ -n "$SUPERSET_DEBUG_HOOKS" ]; then
   case "$SUPERSET_DEBUG_HOOKS" in
@@ -121,7 +132,9 @@ json_escape() {
 # then every org manifest's endpoint. Only the host that owns this terminal
 # answers "ignored":false; probing the other orgs' hosts is a harmless no-op.
 if [ -n "$SUPERSET_TERMINAL_ID" ]; then
-  PAYLOAD="{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"agent\":{\"agentId\":\"$(json_escape "$SUPERSET_AGENT_ID")\",\"sessionId\":\"$(json_escape "$SESSION_ID")\"}}}"
+  ERROR_TYPE_FIELD=""
+  [ -n "$ERROR_TYPE" ] && ERROR_TYPE_FIELD=",\"errorType\":\"$(json_escape "$ERROR_TYPE")\""
+  PAYLOAD="{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\"$ERROR_TYPE_FIELD,\"agent\":{\"agentId\":\"$(json_escape "$SUPERSET_AGENT_ID")\",\"sessionId\":\"$(json_escape "$SESSION_ID")\"}}}"
 
   HOOK_CANDIDATE_URLS="$SUPERSET_HOST_AGENT_HOOK_URL"
   for MANIFEST_FILE in "${SUPERSET_HOME_DIR:-$HOME/.superset}"/host/*/manifest.json; do

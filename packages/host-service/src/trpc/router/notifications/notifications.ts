@@ -17,9 +17,29 @@ const agentIdentityInput = z
 	})
 	.optional();
 
+/**
+ * Claude Code's `StopFailure` error classes. The hook forwards this field
+ * only for that event; anything off this list is dropped rather than stored,
+ * so an unauthenticated caller cannot stash free text on a terminal.
+ */
+const stopFailureErrorTypes = [
+	"authentication_failed",
+	"oauth_org_not_allowed",
+	"account_on_hold",
+	"billing_error",
+	"rate_limit",
+	"overloaded",
+	"invalid_request",
+	"model_not_found",
+	"server_error",
+	"unknown",
+	"max_output_tokens",
+] as const;
+
 const hookInput = z.object({
 	terminalId: z.string().optional(),
 	eventType: z.string().optional(),
+	errorType: z.enum(stopFailureErrorTypes).optional().catch(undefined),
 	agent: agentIdentityInput,
 });
 
@@ -80,9 +100,15 @@ export const notificationsRouter = router({
 	 * the terminal's workspace, and fan out over the WS event bus.
 	 *
 	 * Intentionally unauthenticated: a caller can only trigger a chime, a
-	 * sidebar indicator, and the idempotent forward-only "linked task →
-	 * In Progress" nudge for a real workspace. Reusing the host-service PSK
-	 * would leak it into every agent shell's env for zero practical gain.
+	 * sidebar indicator, the idempotent forward-only "linked task →
+	 * In Progress" nudge for a real workspace, and — via a `Failed` event's
+	 * `errorType` — a *hint* that the account engine may follow with a
+	 * corroborated fallback restart. The hint alone never restarts anything:
+	 * the engine also requires the limit text on the terminal's own screen
+	 * and a spent quota window it read itself (KTD7), so a forged hook costs
+	 * a rejected-hint history entry and nothing else. Reusing the
+	 * host-service PSK would leak it into every agent shell's env for zero
+	 * practical gain.
 	 */
 	hook: publicProcedure.input(hookInput).mutation(async ({ ctx, input }) => {
 		const eventType = mapEventType(input.eventType);
@@ -119,6 +145,7 @@ export const notificationsRouter = router({
 			terminalId: input.terminalId,
 			workspaceId: terminalSession.originWorkspaceId,
 			eventType,
+			...(input.errorType ? { errorType: input.errorType } : {}),
 			...(agent?.agentId ? { agentId: agent.agentId } : {}),
 			...(agent?.sessionId ? { agentSessionId: agent.sessionId } : {}),
 			...(agent?.definitionId ? { definitionId: agent.definitionId } : {}),
