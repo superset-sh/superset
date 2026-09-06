@@ -282,7 +282,7 @@ describe("fallbackRestart", () => {
 	});
 
 	it("sends nothing and asks for attention when Codex died to a shell prompt", async () => {
-		const h = harness({ hasStartedAgent: () => false });
+		const h = harness({ nudgeMaxAttempts: 1, hasStartedAgent: () => false });
 		await h.mover.fallbackRestart(row({ terminalId: "tx" }));
 		await h.runTimers();
 
@@ -297,13 +297,22 @@ describe("fallbackRestart", () => {
 		]);
 	});
 
-	it("holds the nudge while bracketed paste is off, then delivers on the retry", async () => {
+	// The first attempt runs before the shell has even been handed
+	// `codex resume`, so bracketed paste is necessarily off and that attempt is
+	// always spent. Delivery has to wait for Codex's TUI, whenever it arrives.
+	it("holds the nudge while bracketed paste is off, then delivers when it comes on", async () => {
 		let bracketed = false;
 		const h = harness({ isBracketedPasteActive: () => bracketed });
 
 		await h.mover.fallbackRestart(row({ terminalId: "tx" }));
 		expect(h.sendCalls).toEqual([]);
-		expect(h.timers.map((timer) => timer.delay)).toEqual([30_000]);
+		expect(h.timers.map((timer) => timer.delay)).toEqual([2_000]);
+
+		// Several polls go by with Codex still booting.
+		await h.runTimers();
+		await h.runTimers();
+		expect(h.sendCalls).toEqual([]);
+		expect(h.attention).toEqual([]);
 
 		bracketed = true;
 		await h.runTimers();
@@ -313,20 +322,16 @@ describe("fallbackRestart", () => {
 		expect(h.attention).toEqual([]);
 	});
 
-	it("retries a failed write exactly once, then gives up", async () => {
-		let fail = true;
+	it("gives up and asks for attention once the poll is exhausted", async () => {
 		const h = harness({
-			sendToTerminal: () => {
-				if (fail) {
-					fail = false;
-					return Promise.reject(new Error("write failed"));
-				}
-				return Promise.reject(new Error("write failed again"));
-			},
+			nudgeMaxAttempts: 2,
+			sendToTerminal: () => Promise.reject(new Error("write failed")),
 		});
 
 		await h.mover.fallbackRestart(row({ terminalId: "tx" }));
 		expect(h.timers).toHaveLength(1);
+		await h.runTimers();
+		expect(h.attention).toEqual([]);
 		await h.runTimers();
 
 		expect(h.timers).toHaveLength(0);

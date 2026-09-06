@@ -35,7 +35,20 @@ export const CONTINUE_NUDGE =
 export const STALE_START_MS = 15 * 60_000;
 
 /** KTD8: the single retry for a Codex nudge that could not be delivered. */
-export const NUDGE_RETRY_MS = 30_000;
+export const NUDGE_RETRY_MS = 2_000;
+
+/**
+ * How many times the gates are re-checked, so the ceiling stays about a
+ * minute. Polling rather than one late retry: the first attempt runs the
+ * instant the new pty exists, before the shell has even been handed the
+ * launch command, so bracketed paste cannot be on yet and that attempt is
+ * always spent. A single retry then had to guess when Codex would be up.
+ *
+ * Bounded on purpose — a bare shell prompt raises the same paste bit as
+ * Codex's TUI, so a long poll would eventually type the nudge into a pane
+ * whose agent had exited.
+ */
+export const NUDGE_MAX_ATTEMPTS = 30;
 
 /** How much of an unmatched snapshot the debug flag may reveal (KTD7). */
 const DEBUG_EXCERPT_CHARS = 200;
@@ -101,6 +114,8 @@ export interface SessionMoverDeps {
 	setTimeoutFn?: typeof setTimeout;
 	staleStartMs?: number;
 	nudgeRetryMs?: number;
+	/** Injected so a test can exhaust the poll without real time. */
+	nudgeMaxAttempts?: number;
 }
 
 export interface MoveResult {
@@ -118,6 +133,7 @@ export class SessionMover {
 	private readonly setTimeoutFn: typeof setTimeout;
 	private readonly staleStartMs: number;
 	private readonly nudgeRetryMs: number;
+	private readonly nudgeMaxAttempts: number;
 	/**
 	 * Rows waiting for their turn to end, per agent: the terminal ids that were
 	 * mid-turn when the switch reached them. Remembering the ids (rather than
@@ -135,6 +151,7 @@ export class SessionMover {
 		this.setTimeoutFn = deps.setTimeoutFn ?? setTimeout;
 		this.staleStartMs = deps.staleStartMs ?? STALE_START_MS;
 		this.nudgeRetryMs = deps.nudgeRetryMs ?? NUDGE_RETRY_MS;
+		this.nudgeMaxAttempts = deps.nudgeMaxAttempts ?? NUDGE_MAX_ATTEMPTS;
 	}
 
 	/**
@@ -215,7 +232,12 @@ export class SessionMover {
 		if (!resumed) return false;
 		if (row.agent === "claude") return true;
 
-		await this.deliverNudge(row, resumed.terminalId, nudge, true);
+		await this.deliverNudge(
+			row,
+			resumed.terminalId,
+			nudge,
+			this.nudgeMaxAttempts,
+		);
 		return true;
 	}
 
@@ -313,20 +335,26 @@ export class SessionMover {
 	}
 
 	/**
-	 * Type the nudge into a resumed Codex session, once every gate holds. A
-	 * gate that does not hold (or a write that fails) buys one retry
-	 * `nudgeRetryMs` later with the gates re-checked; after that the session
-	 * needs a human.
+	 * Type the nudge into a resumed Codex session, once every gate holds. The
+	 * gates are re-checked every `nudgeRetryMs` until they do or the attempts
+	 * run out, after which the session needs a human.
+	 *
+	 * Polled rather than tried twice: the first attempt runs the instant the
+	 * new pty exists, and at that point the shell has not yet been handed
+	 * `codex resume` — the launch command waits on the shell-ready marker —
+	 * so bracketed paste is necessarily off and that attempt is always spent.
+	 * With one retry left, delivery then depended on Codex being up at exactly
+	 * that moment, and a slow boot dropped the nudge for good.
 	 */
 	private async deliverNudge(
 		row: MovableSession,
 		terminalId: string,
 		nudge: string,
-		mayRetry: boolean,
+		attemptsLeft: number,
 	): Promise<void> {
 		if (await this.tryNudge(row, terminalId, nudge)) return;
 
-		if (!mayRetry) {
+		if (attemptsLeft <= 0) {
 			this.deps.onNeedsAttention({
 				agent: row.agent,
 				workspaceId: row.workspaceId,
@@ -337,7 +365,7 @@ export class SessionMover {
 		}
 
 		this.setTimeoutFn(() => {
-			void this.deliverNudge(row, terminalId, nudge, false);
+			void this.deliverNudge(row, terminalId, nudge, attemptsLeft - 1);
 		}, this.nudgeRetryMs);
 	}
 
