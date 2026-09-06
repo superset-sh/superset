@@ -389,9 +389,8 @@ export class QuotaStore {
 				this.ensureEntries(agent, now, options.forceRefresh ?? false),
 			),
 		);
-		const stale = uncovered
-			.flatMap((agent) => this.entries(agent))
-			.filter(
+		const stale = uncovered.flatMap((agent) => {
+			const ready = this.entries(agent).filter(
 				(entry) =>
 					entry.fetchable &&
 					// The endpoint's back-off outranks both the TTL and the Usage
@@ -402,6 +401,30 @@ export class QuotaStore {
 						entry.fetchedAt === null ||
 						now - entry.fetchedAt >= QUOTA_TTL_MS),
 			);
+			// The same per-endpoint budget refreshDue obeys. Without it a
+			// Refresh on a host with many profiles fired one request per stale
+			// entry at once — the burst that earns the 429 — and the requests it
+			// recorded then deferred the active account's own poll for the rest
+			// of the window. The active entry goes first for the same reason it
+			// does there, and what does not fit is served from its last-known
+			// accounts, which is the contract the back-off already uses.
+			// Only the switchable agents are ever scheduled, so the rest simply
+			// have no recorded interval and fall to the default budget.
+			const schedule =
+				agent === "claude" || agent === "codex"
+					? this.lastSchedules.get(agent)
+					: undefined;
+			const activeKey = schedule?.activeKey;
+			const budget = budgetMaxRequests(schedule?.intervalMs);
+			const room = budget - this.requestsInWindow(agent, now);
+			return ready
+				.sort(
+					(a, b) =>
+						Number(b.key === activeKey) - Number(a.key === activeKey) ||
+						a.nextPollAt - b.nextPollAt,
+				)
+				.slice(0, Math.max(0, room));
+		});
 		if (stale.length > 0) {
 			await this.runBatch(stale, now);
 			this.emitSnapshot();
@@ -536,7 +559,13 @@ export class QuotaStore {
 			if (!existing.fetchable) {
 				existing.fetchable = true;
 				existing.fetchedAt = null;
-				existing.nextPollAt = now;
+				// Seeded from the endpoint back-off exactly as newEntry is: a row
+				// re-armed mid-back-off would otherwise probe a rate-limited
+				// endpoint immediately, earn a fresh 429, and push every other
+				// account's recovery out by the full interval again.
+				const backoff = this.backoff.get(agent) ?? 0;
+				existing.backoffMs = backoff;
+				existing.nextPollAt = now + backoff;
 			}
 		}
 		for (const account of targets.staticAccounts) {

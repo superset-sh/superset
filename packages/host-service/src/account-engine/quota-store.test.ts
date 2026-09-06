@@ -361,6 +361,80 @@ describe("QuotaStore adaptive cadence", () => {
 		}
 	});
 
+	// read() serves the Usage page, and it recorded its requests into the same
+	// window refreshDue reads — so a Refresh on a many-profile host fired one
+	// request per stale entry at once, which is both the burst that earns a 429
+	// and the reason the active account's own poll then slipped a whole window.
+	it("keeps a Usage-page refresh inside the per-endpoint budget", async () => {
+		const h = harness({
+			claudeSelections: [
+				null,
+				"/profiles/a",
+				"/profiles/b",
+				"/profiles/c",
+				"/profiles/d",
+				"/profiles/e",
+				"/profiles/f",
+				"/profiles/g",
+				"/profiles/h",
+			],
+		});
+		const schedule = {
+			claude: { activeKey: CLAUDE_DEFAULT, intervalMs: MINUTE },
+		};
+		// Teach the store the cadence, so read() knows which entry is active,
+		// then let the window clear so the refresh has the full budget.
+		await h.store.refreshDue(h.now, schedule);
+		h.advance(6 * MINUTE);
+		const primed = h.calls.length;
+
+		await h.store.read({ agents: ["claude"], forceRefresh: true });
+
+		const burst = h.calls.slice(primed);
+		expect(burst.length).toBeLessThanOrEqual(budgetMaxRequests(MINUTE));
+		// Nine selections are stale; the cap is what stops all nine going out.
+		expect(burst.length).toBeLessThan(9);
+		// The account sessions run on is the one that must not be withheld.
+		expect(burst.some((call) => call.key === CLAUDE_DEFAULT)).toBe(true);
+	});
+
+	// A row re-armed while the endpoint is backed off must inherit that
+	// back-off: probing early earns a fresh 429 and pushes every other
+	// account's recovery out by the whole interval again.
+	it("re-arms a signed-out row behind the endpoint back-off", async () => {
+		const h = harness({
+			claudeSelections: [null],
+			claudeStatic: [
+				account("claude", "/profiles/a", { status: "signed_out", windows: [] }),
+			],
+			respondClaude: async (selection) => ({
+				account: account("claude", selection, {
+					status: "unavailable",
+					statusDetail: "Usage endpoint returned 429.",
+					windows: [],
+				}),
+				rateLimited: true,
+			}),
+		});
+
+		await h.store.read({ agents: ["claude"], forceRefresh: true });
+		expect(requireEntry(h.store, CLAUDE_DEFAULT).backoffMs).toBeGreaterThan(0);
+
+		// The Switch sign-in flow restores the credential, so the next
+		// discovery pass lists the static row as a fetchable selection again.
+		h.state.claudeSelections = [null, "/profiles/a"];
+		h.state.claudeStatic = [];
+		h.advance(MINUTE);
+		const before = h.calls.length;
+		await h.store.read({ agents: ["claude"], forceRefresh: true });
+
+		const rearmedKey = quotaEntryKey("claude", "/profiles/a");
+		expect(h.calls.slice(before).map((call) => call.key)).not.toContain(
+			rearmedKey,
+		);
+		expect(requireEntry(h.store, rearmedKey).backoffMs).toBeGreaterThan(0);
+	});
+
 	// The budget is what the configured cadence costs plus a couple of slots
 	// for the other accounts; a flat six would silently cap a 30-second poll at
 	// four requests per window and never honour the setting at all.
