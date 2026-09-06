@@ -193,7 +193,14 @@ export const HunkSegmentCell = memo(function HunkSegmentCell({
 											allowFontScaling={false}
 											// biome-ignore lint/suspicious/noArrayIndexKey: tokens are static per line
 											key={tokenIndex}
-											style={token.color ? { color: token.color } : undefined}
+											// Falls back to the line's plain colour, never to
+											// nothing: the ancestor sets no colour, so an
+											// uncoloured token inherits React Native's default
+											// black and vanishes into the diff background. Shiki
+											// leaves tokens uncoloured for every language it has
+											// no grammar for, which is every extension missing
+											// from languageForPath.
+											style={{ color: token.color ?? PLAIN_COLOR[line.type] }}
 										>
 											{token.content}
 										</RNText>
