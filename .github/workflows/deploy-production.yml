@@ -505,10 +505,44 @@ jobs:
             --env SECRETS_ENCRYPTION_KEY=$SECRETS_ENCRYPTION_KEY \
             --env ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY
 
+  # Every relay deploy restarts every Durable Object, which drops the control
+  # socket of every connected host at once. Only deploy when the push touches
+  # something the relay bundle is built from.
+  relay-changes:
+    name: Detect Relay Changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      relay: ${{ steps.filter.outputs.relay }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Filter changed paths
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            relay:
+              - 'apps/relay/**'
+              - 'packages/shared/src/tunnel-protocol.ts'
+              - 'packages/shared/src/host-routing.ts'
+              - 'patches/**'
+              - '.github/workflows/deploy-production.yml'
+
   deploy-relay:
     name: Deploy Relay to Cloudflare
     runs-on: ubuntu-latest
     environment: production
+    needs: relay-changes
+    # Fail open: a broken detector must not leave a stale relay in production.
+    if: >-
+      !cancelled() && (
+        github.event_name == 'workflow_dispatch'
+        || needs.relay-changes.result != 'success'
+        || needs.relay-changes.outputs.relay == 'true'
+      )
 
     steps:
       - name: Checkout repository
