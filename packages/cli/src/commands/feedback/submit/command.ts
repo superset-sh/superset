@@ -106,6 +106,55 @@ function collectDiagnostics(): FeedbackAttachment | null {
 	};
 }
 
+export interface AttachmentUploadPlan {
+	files: { path: string; filename: string; bytes: number }[];
+	/** Lines to print before uploading, one per truncated file. */
+	notices: string[];
+}
+
+/** Base64 spends 4 chars per 3 bytes, rounded up to the last group. */
+function base64CharsFor(bytes: number): number {
+	return Math.ceil(bytes / 3) * 4;
+}
+
+/**
+ * Decides what to send from file sizes alone, before any file is read. A lone
+ * file over the budget is cut to its tail (logs are the common case and the
+ * newest bytes are what matter). Several files that together overflow are
+ * rejected here, so nothing is read or encoded only to be thrown away.
+ */
+export function planAttachmentUploads(
+	requested: { path: string; filename: string; size: number }[],
+): AttachmentUploadPlan {
+	const files = requested.map((file) => ({
+		...file,
+		bytes: Math.min(file.size, MAX_ATTACHMENT_TOTAL_BYTES),
+	}));
+	const totalChars = files.reduce(
+		(sum, file) => sum + base64CharsFor(file.bytes),
+		0,
+	);
+	if (totalChars > MAX_ATTACHMENT_TOTAL_BASE64_CHARS) {
+		throw new CLIError(
+			`Attachments exceed the ${ATTACHMENT_LIMIT_LABEL} total limit: ${files.map((file) => file.filename).join(", ")}`,
+			"Attach fewer files, or one file at a time so its tail is kept",
+		);
+	}
+	return {
+		files: files.map(({ path, filename, bytes }) => ({
+			path,
+			filename,
+			bytes,
+		})),
+		notices: files
+			.filter((file) => file.bytes < file.size)
+			.map(
+				(file) =>
+					`Truncated ${file.filename} to its last ${file.bytes} bytes (${ATTACHMENT_LIMIT_LABEL} attachment limit)\n`,
+			),
+	};
+}
+
 export default command({
 	description:
 		"Submit feedback privately to the Superset team (sent from your account so we can reply)",
@@ -139,36 +188,23 @@ export default command({
 			throw new CLIError("Provide the report via --body or --body-file");
 		}
 
-		const attachments: FeedbackAttachment[] = [];
-		const truncated: string[] = [];
-		let totalBase64Chars = 0;
-		for (const rawPath of options.attach?.split(",") ?? []) {
-			const path = rawPath.trim();
-			if (!path) continue;
-			if (!existsSync(path)) {
-				throw new CLIError(`Attachment not found: ${path}`);
-			}
-			// A lone oversized file is usually a log, and its tail is what
-			// matters, so keep the newest bytes instead of failing.
-			const size = statSync(path).size;
-			const bytes = Math.min(size, MAX_ATTACHMENT_TOTAL_BYTES);
-			if (bytes < size) {
-				truncated.push(
-					`Truncated ${basename(path)} to its last ${bytes} bytes (${ATTACHMENT_LIMIT_LABEL} attachment limit)\n`,
-				);
-			}
-			const contentBase64 = readTailBytes(path, bytes).toString("base64");
-			// Base64 is what travels, and the body limit is on encoded size.
-			totalBase64Chars += contentBase64.length;
-			attachments.push({ filename: basename(path), contentBase64 });
-		}
-		if (totalBase64Chars > MAX_ATTACHMENT_TOTAL_BASE64_CHARS) {
-			throw new CLIError(
-				`Attachments exceed the ${ATTACHMENT_LIMIT_LABEL} total limit: ${attachments.map((a) => a.filename).join(", ")}`,
-				"Attach fewer files, or one file at a time so its tail is kept",
-			);
-		}
-		for (const line of truncated) process.stderr.write(line);
+		// Everything is sized before anything is read: a list that cannot fit
+		// is rejected without reading or encoding a byte of it.
+		const requested = (options.attach?.split(",") ?? [])
+			.map((rawPath) => rawPath.trim())
+			.filter(Boolean)
+			.map((path) => {
+				if (!existsSync(path)) {
+					throw new CLIError(`Attachment not found: ${path}`);
+				}
+				return { path, filename: basename(path), size: statSync(path).size };
+			});
+		const plan = planAttachmentUploads(requested);
+		for (const line of plan.notices) process.stderr.write(line);
+		const attachments: FeedbackAttachment[] = plan.files.map((file) => ({
+			filename: file.filename,
+			contentBase64: readTailBytes(file.path, file.bytes).toString("base64"),
+		}));
 		if (options.diagnostics) {
 			const bundle = collectDiagnostics();
 			if (bundle) attachments.push(bundle);
