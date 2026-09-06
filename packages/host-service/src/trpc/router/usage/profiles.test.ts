@@ -666,6 +666,44 @@ describe("readClaudeLogin", () => {
 		expect(blocked.fileUnreadable).toBe(true);
 	});
 
+	// Only the store a write would target matters. The system default has two
+	// candidate paths, and blocking on the one we would not write meant a user
+	// with a leftover ~/.config/claude could not switch accounts at all — with
+	// an error naming the file that was fine.
+	it("ignores a torn sibling when the chosen store is intact", async () => {
+		const home = tempProfile();
+		mkdirSync(join(home, ".claude"));
+		mkdirSync(join(home, ".config", "claude"), { recursive: true });
+		writeFileSync(
+			join(home, ".claude", ".credentials.json"),
+			JSON.stringify({
+				claudeAiOauth: {
+					accessToken: "good",
+					refreshToken: "r",
+					expiresAt: 9999,
+				},
+			}),
+		);
+		writeFileSync(join(home, ".config", "claude", "credentials.json"), "{half");
+
+		const read = await readClaudeLogin(null, { darwin: false, homeDir: home });
+		expect(read.credentialsPath).toBe(
+			join(home, ".claude", ".credentials.json"),
+		);
+		expect(read.login?.claudeAiOauth?.accessToken).toBe("good");
+		expect(read.fileUnreadable).toBe(false);
+	});
+
+	it("stays unreadable when no candidate could be read", async () => {
+		const home = tempProfile();
+		mkdirSync(join(home, ".claude"));
+		writeFileSync(join(home, ".claude", ".credentials.json"), "{half");
+
+		const read = await readClaudeLogin(null, { darwin: false, homeDir: home });
+		expect(read.login).toBeNull();
+		expect(read.fileUnreadable).toBe(true);
+	});
+
 	it("treats a missing credential file as absent, not unreadable", async () => {
 		const read = await readClaudeLogin(tempProfile(), { darwin: false });
 		expect(read.fileContent).toBeNull();

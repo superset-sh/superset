@@ -502,11 +502,13 @@ export interface ClaudeLoginRead {
 	keychainContent: ClaudeCredentialJson | null;
 	keychainLogin: ClaudeCredentialJson | null;
 	/**
-	 * A credential file is there but could not be read or parsed — denied,
-	 * mid-rewrite, or an I/O error. Distinct from "no file", which is an
-	 * ordinary signed-out profile: a caller that writes must fail closed on
-	 * this, because renaming over the path needs only directory permission
-	 * and would replace an intact store it never saw.
+	 * The store a write would target — `credentialsPath` — is there but could
+	 * not be read or parsed: denied, mid-rewrite, or an I/O error. Distinct
+	 * from "no file", which is an ordinary signed-out profile: a caller that
+	 * writes must fail closed on this, because renaming over the path needs
+	 * only directory permission and would replace an intact store it never
+	 * saw. Also true when nothing was readable at all, since the path then
+	 * falls back to the first candidate.
 	 */
 	fileUnreadable: boolean;
 }
@@ -642,14 +644,17 @@ export async function readClaudeLogin(
 		: claudeDefaultCredentialPaths(access.homeDir ?? homedir());
 	let credentialsPath = paths[0] as string;
 	let fileContent: ClaudeCredentialJson | null = null;
-	let fileUnreadable = false;
+	// Per path, not one flag for the read: the system default has two
+	// candidate paths and only the chosen one is ever written, so a torn
+	// sibling must not make an intact store look unwritable.
+	const unreadable = new Set<string>();
 	for (const path of paths) {
 		const raw = await read(path, "utf-8").then(
 			(text) => text,
 			(error: unknown) => {
 				// Missing is ordinary; denied, torn or EIO means a store we
 				// cannot see is sitting there.
-				if (!absent(error)) fileUnreadable = true;
+				if (!absent(error)) unreadable.add(path);
 				return null;
 			},
 		);
@@ -658,7 +663,7 @@ export async function readClaudeLogin(
 		// Bytes we read but could not parse are a store mid-rewrite, not an
 		// absent one.
 		if (!parsed) {
-			fileUnreadable = true;
+			unreadable.add(path);
 			continue;
 		}
 		if (fileContent && !hasLogin(parsed)) continue;
@@ -711,7 +716,12 @@ export async function readClaudeLogin(
 		keychainAccount,
 		keychainContent,
 		keychainLogin,
-		fileUnreadable,
+		// A non-chosen candidate is never renamed over, so only the write
+		// target counts — unless nothing was readable, in which case the
+		// target is the first candidate and the store there is still unseen.
+		fileUnreadable:
+			unreadable.has(credentialsPath) ||
+			(fileContent === null && unreadable.size > 0),
 	};
 }
 
