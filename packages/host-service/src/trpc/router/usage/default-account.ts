@@ -57,7 +57,9 @@ function ambientCodexHome(): string {
 	return join(homedir(), ".codex");
 }
 
-function canonicalAccountHome(target: string): string {
+/** Realpath, falling back to a plain resolve for a path that does not exist
+ * yet: two spellings of the same account home must compare equal. */
+export function canonicalAccountHome(target: string): string {
 	try {
 		return realpathSync(target);
 	} catch {
@@ -67,6 +69,29 @@ function canonicalAccountHome(target: string): string {
 
 function defaultAccountPointerPath(agent: SwitchableAccountAgent): string {
 	return join(supersetHomeDir(), "state", POINTER_NAMES[agent]);
+}
+
+/**
+ * The Superset-owned Claude config dir logins are swapped into (KTD2). It is
+ * defined here rather than beside its provisioning because this module is the
+ * one the terminal env path loads, and it must not pull in the agent-setup
+ * surface; account-provisioning.ts re-exports it as activeClaudeConfigDir().
+ */
+export function activeClaudeConfigDirPath(): string {
+	return join(supersetHomeDir(), "accounts", "claude-active");
+}
+
+/**
+ * Whether the pointer names the active dir rather than a profile dir, which
+ * is what it names from the first swap onwards (KTD2). Compared by realpath,
+ * so a symlinked or unnormalised spelling still matches.
+ */
+export function isActiveClaudeDirPointer(selection: string | null): boolean {
+	if (!selection) return false;
+	return (
+		canonicalAccountHome(selection) ===
+		canonicalAccountHome(activeClaudeConfigDirPath())
+	);
 }
 
 function temporaryPointerPath(pointerPath: string): string {
