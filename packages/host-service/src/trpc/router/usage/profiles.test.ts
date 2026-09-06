@@ -423,6 +423,34 @@ describe("discoverCodexHomesWithStatus", () => {
 		expect(complete).toBe(false);
 	});
 
+	// The mirror of the Claude walk's rule. The default home reaches this with
+	// no name filter at all, so one unsearchable dir would pin complete:false
+	// and disable reaping for the whole codex agent.
+	it("stays complete when a ~/.codex* dir cannot be searched", async () => {
+		if (process.getuid?.() === 0) return;
+		const home = tempProfile();
+		const def = join(home, ".codex");
+		mkdirSync(def);
+		writeFileSync(
+			join(def, "auth.json"),
+			JSON.stringify({ tokens: { access_token: "t", account_id: "acct" } }),
+		);
+		const opaque = join(home, ".codex-old");
+		mkdirSync(opaque);
+		chmodSync(opaque, 0o000);
+
+		try {
+			const { homes, complete } = await discoverCodexHomesWithStatus({
+				homeDir: home,
+			});
+
+			expect(homes.map((entry) => entry.home)).toContain(def);
+			expect(complete).toBe(true);
+		} finally {
+			chmodSync(opaque, 0o755);
+		}
+	});
+
 	it("is incomplete when the default home's auth.json cannot be read", async () => {
 		if (process.getuid?.() === 0) return;
 		const home = tempProfile();
@@ -652,12 +680,51 @@ describe("readClaudeLogin", () => {
 		expect(read.fileUnreadable).toBe(true);
 	});
 
-	// The winner must be the store a save-back agrees is newest, or the swap's
-	// non-regression check evaluates the wrong copy and overwrites a refresh
-	// token that is still valid.
-	it("prefers the store with the newer refresh token, not just expiresAt", async () => {
+	// expiresAt moves forward on every refresh and every login, so it is the
+	// write clock and orders the two stores; the refresh token's expiry only
+	// moves when the token rotates, so it breaks ties. Asking whether EITHER
+	// is newer is not an ordering — for {500,100} and {400,900} both
+	// directions hold and the winner was whichever was probed last.
+	it("breaks a tie on expiresAt with the newer refresh token", async () => {
 		const dir = tempProfile();
 		const service = keychainServicesForConfigDir(dir)[0] as string;
+		writeFileSync(
+			join(dir, ".credentials.json"),
+			JSON.stringify({
+				claudeAiOauth: {
+					accessToken: "FILE",
+					refreshToken: "r",
+					expiresAt: 400,
+					refreshTokenExpiresAt: 100,
+				},
+			}),
+		);
+		const exec = async (args: string[]) => {
+			if (args.indexOf("-a") === -1) throw new Error("not found");
+			if (args[args.indexOf("-s") + 1] !== service) throw new Error("no item");
+			return {
+				stdout: JSON.stringify({
+					claudeAiOauth: {
+						accessToken: "KEYCHAIN",
+						refreshToken: "r",
+						expiresAt: 400,
+						refreshTokenExpiresAt: 9999,
+					},
+				}),
+				stderr: "",
+			};
+		};
+
+		const read = await readClaudeLogin(dir, { darwin: true, exec });
+		expect(read.source).toBe("keychain");
+		expect(read.login?.claudeAiOauth?.accessToken).toBe("KEYCHAIN");
+	});
+
+	it("orders on expiresAt before the refresh token's expiry", async () => {
+		const dir = tempProfile();
+		const service = keychainServicesForConfigDir(dir)[0] as string;
+		// The file is the later snapshot even though the keychain copy holds a
+		// refresh token that outlives it.
 		writeFileSync(
 			join(dir, ".credentials.json"),
 			JSON.stringify({
@@ -686,8 +753,8 @@ describe("readClaudeLogin", () => {
 		};
 
 		const read = await readClaudeLogin(dir, { darwin: true, exec });
-		expect(read.source).toBe("keychain");
-		expect(read.login?.claudeAiOauth?.accessToken).toBe("KEYCHAIN");
+		expect(read.source).toBe("file");
+		expect(read.login?.claudeAiOauth?.accessToken).toBe("FILE");
 	});
 
 	it("records a Keychain item that holds siblings but no login", async () => {

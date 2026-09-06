@@ -557,17 +557,32 @@ function loginTimestamp(
 }
 
 /**
- * Whether `candidate` is the newer of two copies of one login, by the same
- * two expiries claude-login-swap's non-regression check uses — so the store
- * this read names is the store a save-back would agree is newest.
+ * Whether `candidate` is the newer of two copies of one login.
+ *
+ * Ordered on `expiresAt` first, `refreshTokenExpiresAt` only as the tiebreak.
+ * The CLI rewrites `claudeAiOauth` wholesale on every refresh and every login,
+ * and `expiresAt` is the field that moves forward on all of them, so it is the
+ * write clock; the refresh token's expiry moves only when the token rotates.
+ * Asking whether EITHER is newer is not an ordering at all — for
+ * {500,100} and {400,900} both directions are true, so the winner was whichever
+ * happened to be probed second.
+ *
+ * This deliberately does NOT match claude-login-swap's non-regression check,
+ * which stays a disjunction: "which snapshot is later" and "is it safe to write
+ * over this one" are different questions, and refusing a write whenever the two
+ * stores disagree on either axis is the right answer for the write.
  */
 function isFresherLogin(
 	candidate: ClaudeCredentialJson | null,
 	current: ClaudeCredentialJson | null,
 ): boolean {
 	if (!current) return true;
-	return ["expiresAt", "refreshTokenExpiresAt"].some(
-		(key) => loginTimestamp(candidate, key) > loginTimestamp(current, key),
+	const expires = loginTimestamp(candidate, "expiresAt");
+	const currentExpires = loginTimestamp(current, "expiresAt");
+	if (expires !== currentExpires) return expires > currentExpires;
+	return (
+		loginTimestamp(candidate, "refreshTokenExpiresAt") >
+		loginTimestamp(current, "refreshTokenExpiresAt")
 	);
 }
 
@@ -681,10 +696,8 @@ export async function readClaudeLogin(
 
 	const fileLogin = hasLogin(fileContent) ? fileContent : null;
 	const keychainLogin = hasLogin(keychainContent) ? keychainContent : null;
-	// The same comparator the within-store loops use, and the one
-	// claude-login-swap's non-regression check evaluates: picking by
-	// expiresAt alone could name the store with the OLDER refresh token, and
-	// a save-back would then overwrite a refresh token that is still valid.
+	// The same ordering the within-store loops use, so the store this read
+	// names is the later snapshot rather than whichever half was probed last.
 	const keychainWins =
 		keychainLogin !== null &&
 		(fileLogin === null || isFresherLogin(keychainLogin, fileLogin));
@@ -731,6 +744,20 @@ async function readCodexProfileKindWithStatus(
 		};
 	}
 	const authPath = join(codexHome, "auth.json");
+	let info: Awaited<ReturnType<typeof stat>>;
+	try {
+		info = await stat(authPath);
+	} catch {
+		// Same rule as the Claude walk: a dir we cannot even search is not a
+		// home we are hiding, and counting it as unreadable would pin the walk
+		// incomplete for the life of the process and disable reaping for the
+		// whole agent. The default home comes through here with no name filter
+		// at all, so this is not only about ~/.codex* siblings.
+		return { value: null, unreadable: apiRead.unreadable };
+	}
+	if (!info.isFile()) {
+		return { value: null, unreadable: apiRead.unreadable };
+	}
 	try {
 		const parsed: CodexAuthShape = JSON.parse(
 			await readFile(authPath, "utf-8"),
