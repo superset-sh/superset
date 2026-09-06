@@ -120,18 +120,47 @@ export async function fetchCodexAccounts(): Promise<UsageAccount[]> {
 
 /**
  * Dedupe by the ChatGPT account id auth.json carries (KTD4) — one login used
- * from several homes is one account; keep the first (default home wins). The
- * email is only a fallback: it comes from the usage endpoint, so a login
- * whose fetch failed has none, and two such homes used to merge into one row.
+ * from several homes is one account. The email is only a fallback: it comes
+ * from the usage endpoint, so a login whose fetch failed has none, and two
+ * such homes used to merge into one row.
+ *
+ * The default home no longer wins on position alone. auth.json carries the
+ * account id even when the fetch failed, so an expired default and a working
+ * sibling on the same account now collapse together — and keeping the first
+ * would show "token expired" with no quota while a healthy login for that
+ * account sits on disk. The survivor is the one that answered, and it carries
+ * the dropped home in `duplicateSelections` so removal can still name it.
  */
+function answered(account: UsageAccount): boolean {
+	return account.status === "ok";
+}
+
 export function dedupeCodexAccounts(accounts: UsageAccount[]): UsageAccount[] {
-	const seen = new Set<string>();
-	return accounts.filter((account) => {
+	const winners = new Map<string, UsageAccount>();
+	const order: string[] = [];
+	for (const account of accounts) {
 		const key = account.accountId ?? account.email ?? account.accountKey;
-		if (seen.has(key)) return false;
-		seen.add(key);
-		return true;
-	});
+		const current = winners.get(key);
+		if (!current) {
+			winners.set(key, account);
+			order.push(key);
+			continue;
+		}
+		const [keep, dropped] =
+			!answered(current) && answered(account)
+				? [account, current]
+				: [current, account];
+		const carried = [
+			...(keep.duplicateSelections ?? []),
+			...(dropped.duplicateSelections ?? []),
+			...(dropped.selection === null ? [] : [dropped.selection]),
+		];
+		winners.set(key, {
+			...keep,
+			duplicateSelections: carried.length > 0 ? carried : undefined,
+		});
+	}
+	return order.map((key) => winners.get(key) as UsageAccount);
 }
 
 /**

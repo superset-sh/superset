@@ -424,6 +424,43 @@ describe("discoverClaudeQuotaTargets", () => {
 	// by the default read, once keyed on the same token by the explicit read,
 	// which finds no <dir>/.claude.json because the default slot keeps its
 	// state next door at ~/.claude.json.
+	// The explicit row is built managed:false and wins the dedupe (explicit
+	// comes first), so an alternate spelling of a dir discovery already found
+	// silently strips that account's Make-active and rotation controls.
+	it("skips an alternate spelling of an already-discovered dir", async () => {
+		setIdentityBindingRecorder(() => {});
+		const home = mkdtempSync(join(tmpdir(), "superset-claude-spelling-"));
+		const profile = join(home, ".claude-work");
+		mkdirSync(profile);
+		writeFileSync(
+			join(profile, ".claude.json"),
+			JSON.stringify({ oauthAccount: { accountUuid: "uuid-work" } }),
+		);
+		writeFileSync(
+			join(profile, ".credentials.json"),
+			JSON.stringify({
+				claudeAiOauth: {
+					accessToken: "tok-work",
+					refreshToken: "r",
+					expiresAt: Date.now() + hour,
+				},
+			}),
+		);
+		const previous = process.env.CLAUDE_CONFIG_DIR;
+		process.env.CLAUDE_CONFIG_DIR = `${profile}/`;
+
+		try {
+			const targets = await discoverClaudeQuotaTargets(home);
+
+			expect(targets.selections).toEqual([profile]);
+			expect(targets.staticAccounts).toEqual([]);
+		} finally {
+			if (previous === undefined) delete process.env.CLAUDE_CONFIG_DIR;
+			else process.env.CLAUDE_CONFIG_DIR = previous;
+			rmSync(home, { recursive: true, force: true });
+		}
+	});
+
 	it("does not list the default slot again when CLAUDE_CONFIG_DIR names it", async () => {
 		setIdentityBindingRecorder(() => {});
 		const home = mkdtempSync(join(tmpdir(), "superset-claude-default-slot-"));

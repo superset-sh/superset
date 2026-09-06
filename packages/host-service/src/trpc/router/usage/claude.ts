@@ -193,13 +193,13 @@ export function pickFreshest<T extends ClaudeOauthCredential>(
  * Identity of the default login (KTD14: its state file is `~/.claude.json`,
  * next door to its store), readable even when its token is expired.
  */
-export async function readDefaultLoginIdentity(): Promise<{
+export async function readDefaultLoginIdentity(homeDir?: string): Promise<{
 	email: string | null;
 	accountId: string | null;
 }> {
 	try {
 		const parsed = JSON.parse(
-			await readFile(join(homedir(), ".claude.json"), "utf-8"),
+			await readFile(join(homeDir ?? homedir(), ".claude.json"), "utf-8"),
 		) as { oauthAccount?: { emailAddress?: string; accountUuid?: string } };
 		return {
 			email: parsed.oauthAccount?.emailAddress ?? null,
@@ -230,10 +230,12 @@ function defaultCredentialCandidates(
 	];
 }
 
-async function readDefaultCredential(): Promise<ClaudeOauthCredential | null> {
-	const home = homedir();
+async function readDefaultCredential(
+	homeDir?: string,
+): Promise<ClaudeOauthCredential | null> {
+	const home = homeDir ?? homedir();
 	const [identity, keychainCredential, defaultFiles] = await Promise.all([
-		readDefaultLoginIdentity(),
+		readDefaultLoginIdentity(home),
 		readKeychainCredential(),
 		Promise.all(
 			defaultCredentialCandidates(home).map(({ path, sourceLabel }) =>
@@ -300,15 +302,20 @@ async function discoverClaudeCredentials(homeDir?: string): Promise<{
 	// API-billed profiles have no quota to fetch and their credentials stay
 	// unread; only subscription profiles go through the credential readers.
 	const { profiles: allProfiles, complete } =
-		await discoverClaudeProfilesWithStatus();
+		await discoverClaudeProfilesWithStatus(undefined, home);
 	const profiles = allProfiles.filter(
 		(profile) => profile.credentialKind === "subscription",
 	);
 	const apiProfiles = allProfiles.filter(
 		(profile) => profile.credentialKind === "api_key",
 	);
+	// Canonical on both sides, like the two guards below: a trailing slash or
+	// a symlinked spelling of an already-discovered dir would otherwise be
+	// re-added as an explicit candidate. It wins the dedupe (explicit comes
+	// first) and it is built managed:false, so the real profile silently loses
+	// its Make-active and rotation controls.
 	const discoveredDirs = new Set(
-		allProfiles.map((profile) => profile.configDir),
+		allProfiles.map((profile) => canonicalAccountHome(profile.configDir)),
 	);
 
 	// CLAUDE_CONFIG_DIR entries profile discovery does not classify. One that
@@ -333,8 +340,10 @@ async function discoverClaudeCredentials(homeDir?: string): Promise<{
 	);
 	for (const dir of (process.env.CLAUDE_CONFIG_DIR ?? "").split(",")) {
 		const configDir = dir.trim();
-		if (!configDir || discoveredDirs.has(configDir)) continue;
-		if (defaultSlots.has(canonicalAccountHome(configDir))) continue;
+		if (!configDir) continue;
+		const canonical = canonicalAccountHome(configDir);
+		if (discoveredDirs.has(canonical)) continue;
+		if (defaultSlots.has(canonical)) continue;
 		// The host-service may itself be launched on the active dir; it holds a
 		// copy of the account that is active, not an account of its own (KTD4).
 		if (await isActiveClaudeConfigDir(configDir)) continue;
@@ -346,7 +355,7 @@ async function discoverClaudeCredentials(homeDir?: string): Promise<{
 	}
 
 	const [defaultCredential, explicit, profiled] = await Promise.all([
-		readDefaultCredential(),
+		readDefaultCredential(home),
 		Promise.all(
 			explicitCandidates.map(async ({ path, sourceLabel, configDir }) => {
 				const credential = await readCredentialFile(

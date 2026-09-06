@@ -51,6 +51,46 @@ describe("dedupeCodexAccounts", () => {
 		expect(accounts[0]?.selection).toBeNull();
 	});
 
+	// auth.json carries the account id even when the fetch failed, so an
+	// expired default now collapses with a working sibling. Keeping the first
+	// would show "token expired" with no quota while a healthy login for that
+	// same account sits on disk.
+	it("keeps the home that answered, not the default that did not", () => {
+		const accounts = dedupeCodexAccounts([
+			account({
+				accountId: "acct-1",
+				selection: null,
+				status: "token_expired",
+			}),
+			account({
+				accountId: "acct-1",
+				selection: "/home/u/.codex-work",
+				accountKey: "/home/u/.codex-work/auth.json",
+				email: "a@b.c",
+				status: "ok",
+			}),
+		]);
+
+		expect(accounts).toHaveLength(1);
+		expect(accounts[0]?.selection).toBe("/home/u/.codex-work");
+		expect(accounts[0]?.status).toBe("ok");
+	});
+
+	// Without this the dropped home has no row to click and removeAccount
+	// refuses its path outright.
+	it("carries the dropped home so removal can still name it", () => {
+		const accounts = dedupeCodexAccounts([
+			account({ accountId: "acct-1", selection: null, email: "a@b.c" }),
+			account({
+				accountId: "acct-1",
+				selection: "/home/u/.codex-work",
+				accountKey: "/home/u/.codex-work/auth.json",
+			}),
+		]);
+
+		expect(accounts[0]?.duplicateSelections).toEqual(["/home/u/.codex-work"]);
+	});
+
 	it("keeps two account ids apart even when the email is unknown", () => {
 		const accounts = dedupeCodexAccounts([
 			account({ accountId: "acct-1", selection: null }),
