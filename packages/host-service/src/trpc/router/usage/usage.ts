@@ -194,7 +194,8 @@ export const usageRouter = router({
 			const target = accounts.find(
 				(account) =>
 					account.agent === input.agent &&
-					account.selection === input.selection,
+					(account.selection === input.selection ||
+						account.duplicateSelections?.includes(input.selection) === true),
 			);
 			if (!target) {
 				throw new TRPCError({
@@ -228,7 +229,8 @@ export const usageRouter = router({
 				).find(
 					(account) =>
 						account.agent === input.agent &&
-						account.selection === input.selection,
+						(account.selection === input.selection ||
+							account.duplicateSelections?.includes(input.selection) === true),
 				);
 				refuseIfActive(current ?? target);
 				if (input.agent === "claude") {
