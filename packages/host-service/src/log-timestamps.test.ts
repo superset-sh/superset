@@ -36,11 +36,19 @@ describe("installConsoleTimestamps", () => {
 
 		installConsoleTimestamps(fake, () => NOW);
 		fake.log("[host-service] starting");
+		fake.info("[host-service] info");
 		fake.warn("[git] slow", { ms: 15_000 });
 		fake.error(new Error("x"));
+		fake.debug("[host-service] debug");
 
 		expect(calls.log).toEqual([
 			["2026-09-05T20:39:15.000Z [host-service] starting"],
+		]);
+		expect(calls.info).toEqual([
+			["2026-09-05T20:39:15.000Z [host-service] info"],
+		]);
+		expect(calls.debug).toEqual([
+			["2026-09-05T20:39:15.000Z [host-service] debug"],
 		]);
 		expect(calls.warn).toEqual([
 			["2026-09-05T20:39:15.000Z [git] slow", { ms: 15_000 }],
