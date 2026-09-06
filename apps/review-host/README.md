@@ -83,6 +83,29 @@ Both only ever move forward, `update.sh` rolls back unless the new build answers
 a newer installed build. The reason for all of that is that this box went 21 days
 stale unnoticed, which is what the outside-in `check.sh` now also watches for.
 
+## The GitHub token expires 2026-10-05
+
+The pull-request chip is the reviewer's **only** route to the diff — every
+navigation to `files-changed` comes from `PullRequestScreen` — and the listing
+promises diff review, so an expired token silently removes the headline feature.
+
+`ctx.github()` throws `NO_GITHUB_TOKEN` rather than falling back to
+unauthenticated, so a token is required even though `acme-demo` is public. It
+lives in `/etc/superset-review-host.env` (`0600`, root) and the unit reads it via
+`EnvironmentFile=-`, so it stays out of world-readable unit files, out of
+`gh auth login`, and out of the demo worktrees.
+
+To rotate: create a fine-grained PAT with **Public repositories (read-only)** and
+no account permissions, then
+
+```bash
+gcloud compute ssh superset-review-host --zone=us-west1-b --command \
+  'sudo sh -c "printf \"GH_TOKEN=%s\\n\" <token> > /etc/superset-review-host.env; chmod 600 /etc/superset-review-host.env; systemctl restart superset-review-host"'
+```
+
+`check.sh` calls the API with it every run, so expiry surfaces as a FAIL rather
+than as a chip that quietly stops appearing.
+
 ## Why there is no health check on the port
 
 host-service binds `127.0.0.1` only (1.26.0; 1.22.0 bound `0.0.0.0`). Nothing

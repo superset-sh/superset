@@ -151,5 +151,18 @@ print(" ".join(w["id"] for w in d if w.get("type") != "main"))' 2>/dev/null)
   fi
 fi
 
+# The pull-request chip is the reviewer's only route to the diff, and it needs a
+# GitHub token on the box: ctx.github() throws NO_GITHUB_TOKEN rather than
+# falling back to unauthenticated, even for a public repo. The token is a
+# fine-grained PAT and PATs expire — this one on 2026-10-05 — so check it
+# directly rather than waiting for a reviewer to find an empty chip.
+TOKEN_STATUS=$(ssh_box "sudo bash -c 'set -a; . /etc/superset-review-host.env 2>/dev/null; set +a; curl -s -o /dev/null -w \"%{http_code}\" -m 15 -H \"Authorization: Bearer \$GH_TOKEN\" https://api.github.com/repos/superset-sh/acme-demo/pulls/1'")
+case "$TOKEN_STATUS" in
+  200) note "github token: can read the demo pull request" ;;
+  401|403) fail "the GitHub token is rejected ($TOKEN_STATUS) — expired or revoked; the PR chip and the diff behind it are gone. Regenerate a fine-grained PAT (public repositories, read-only) and rewrite /etc/superset-review-host.env" ;;
+  "") fail "could not test the GitHub token" ;;
+  *) fail "GitHub returned $TOKEN_STATUS for the demo pull request" ;;
+esac
+
 [ "$FAIL" -eq 0 ] && echo "OK — the review host is serving what the app expects" || echo "review host needs attention"
 exit "$FAIL"
