@@ -32,6 +32,8 @@ const MIN_COOLDOWN_MINUTES = 1;
 const MAX_COOLDOWN_MINUTES = 60;
 /** The host's own cap on model windows (`.max(8)` on the settings schema). */
 const MAX_MODEL_WINDOWS = 8;
+/** The host's own cap on one model name (`.max(64)` on the same schema). */
+const MAX_MODEL_NAME_LENGTH = 64;
 
 function clamp(value: number, min: number, max: number): number {
 	return Math.min(max, Math.max(min, value));
@@ -76,7 +78,7 @@ export function AutoSwitchSettings({
 	const [error, setError] = useState<string | null>(null);
 	// Drafts only exist between a keystroke and the host's answer; `null`
 	// means "show what the host confirmed".
-	const [thresholdDraft, setThresholdDraft] = useState<number | null>(null);
+	const [thresholdDraft, setThresholdDraft] = useState<string | null>(null);
 	const [cooldownDraft, setCooldownDraft] = useState<string | null>(null);
 	const [modelsDraft, setModelsDraft] = useState<string | null>(null);
 
@@ -84,7 +86,15 @@ export function AutoSwitchSettings({
 	const confirmedCooldownMinutes = String(
 		Math.round(settings.cooldownSeconds / 60),
 	);
-	const threshold = thresholdDraft ?? settings.thresholdPercent;
+	const confirmedThreshold = String(settings.thresholdPercent);
+	const threshold = thresholdDraft ?? confirmedThreshold;
+	const parsedThreshold = Number.parseInt(threshold, 10);
+	// The slider has no way to show an empty or half-typed field, so it stays
+	// on the last number that parses rather than dragging itself to the
+	// minimum while someone is still typing.
+	const sliderThreshold = Number.isNaN(parsedThreshold)
+		? settings.thresholdPercent
+		: clamp(parsedThreshold, MIN_THRESHOLD, MAX_THRESHOLD);
 	const cooldownMinutes = cooldownDraft ?? confirmedCooldownMinutes;
 	const models = modelsDraft ?? confirmedModels;
 
@@ -177,15 +187,15 @@ export function AutoSwitchSettings({
 										min={MIN_THRESHOLD}
 										max={MAX_THRESHOLD}
 										step={1}
-										value={[threshold]}
+										value={[sliderThreshold]}
 										disabled={controlsDisabled}
 										onValueChange={([next]) =>
-											setThresholdDraft(next ?? threshold)
+											setThresholdDraft(String(next ?? sliderThreshold))
 										}
 										onValueCommit={([next]) =>
 											void commit({
 												thresholdPercent: clamp(
-													next ?? threshold,
+													next ?? sliderThreshold,
 													MIN_THRESHOLD,
 													MAX_THRESHOLD,
 												),
@@ -199,23 +209,28 @@ export function AutoSwitchSettings({
 										min={MIN_THRESHOLD}
 										max={MAX_THRESHOLD}
 										className="h-6 w-14 px-1.5 text-[11px] tabular-nums"
-										value={String(threshold)}
+										value={threshold}
 										disabled={controlsDisabled}
-										onChange={(event) => {
-											const next = Number.parseInt(event.target.value, 10);
-											setThresholdDraft(
-												Number.isNaN(next) ? MIN_THRESHOLD : next,
-											);
-										}}
-										onBlur={() =>
+										onChange={(event) => setThresholdDraft(event.target.value)}
+										onBlur={() => {
+											// Tabbing through the field is not an edit, so it must
+											// not write the host's own value back to it.
+											if (threshold === confirmedThreshold) {
+												setThresholdDraft(null);
+												return;
+											}
+											if (Number.isNaN(parsedThreshold)) {
+												setThresholdDraft(null);
+												return;
+											}
 											void commit({
 												thresholdPercent: clamp(
-													threshold,
+													parsedThreshold,
 													MIN_THRESHOLD,
 													MAX_THRESHOLD,
 												),
-											})
-										}
+											});
+										}}
 									/>
 									<span className="text-[11px] text-muted-foreground">%</span>
 								</div>
@@ -292,13 +307,25 @@ export function AutoSwitchSettings({
 											setModelsDraft(null);
 											return;
 										}
-										void commit({
-											modelWindows: models
-												.split(",")
-												.map((name) => name.trim())
-												.filter((name) => name.length > 0)
-												.slice(0, MAX_MODEL_WINDOWS),
-										});
+										const names = models
+											.split(",")
+											.map((name) => name.trim())
+											.filter((name) => name.length > 0)
+											.slice(0, MAX_MODEL_WINDOWS);
+										// The host refuses a longer name with a schema error no
+										// one can read, so say the rule here and keep what was
+										// typed so it can be shortened.
+										if (
+											names.some((name) => name.length > MAX_MODEL_NAME_LENGTH)
+										) {
+											setError(
+												t({
+													message: `A model name can be at most ${MAX_MODEL_NAME_LENGTH} characters. Shorten it and try again.`,
+												}),
+											);
+											return;
+										}
+										void commit({ modelWindows: names });
 									}}
 								/>
 								<p className="text-[10px] text-muted-foreground">

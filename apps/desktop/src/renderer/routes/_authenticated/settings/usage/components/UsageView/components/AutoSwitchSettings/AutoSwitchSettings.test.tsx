@@ -82,6 +82,72 @@ describe("AutoSwitchSettings controls", () => {
 		expect(ui.queryByRole("alert")).toBeNull();
 	});
 
+	// Select-all then type: the field has to hold "" for the keystroke in
+	// between, or the digit lands after a coerced 1 and 15 is what is sent.
+	test("a cleared threshold field keeps what is typed instead of snapping to 1", async () => {
+		const { commits, ui } = setup();
+		const field = ui.getByRole("spinbutton", {
+			name: "Switch at",
+		}) as HTMLInputElement;
+		await act(async () => {
+			fireEvent.change(field, { target: { value: "" } });
+		});
+		expect(
+			(ui.getByRole("spinbutton", { name: "Switch at" }) as HTMLInputElement)
+				.value,
+		).toBe("");
+		await act(async () => {
+			// A keystroke appends to whatever the controlled field is showing,
+			// so a field forced back to 1 turns the "5" into 15.
+			fireEvent.change(field, { target: { value: `${field.value}5` } });
+		});
+		expect(
+			(ui.getByRole("spinbutton", { name: "Switch at" }) as HTMLInputElement)
+				.value,
+		).toBe("5");
+		await act(async () => {
+			fireEvent.blur(field);
+		});
+		expect(commits).toEqual([{ thresholdPercent: 5 }]);
+	});
+
+	// Tabbing through is not an edit, so it must not write settings back.
+	test("tabbing through the threshold field sends nothing", async () => {
+		const { commits, ui } = setup();
+		const field = ui.getByRole("spinbutton", {
+			name: "Switch at",
+		}) as HTMLInputElement;
+		await act(async () => {
+			fireEvent.focus(field);
+			fireEvent.blur(field);
+		});
+		expect(commits).toEqual([]);
+		expect(ui.queryByRole("alert")).toBeNull();
+	});
+
+	// The host refuses a name past 64 characters with a schema error whose
+	// JSON is no use on screen, so the panel states the rule itself.
+	test("a model name past the host's cap is refused in words, not schema JSON", async () => {
+		const { commits, ui } = setup();
+		const field = ui.getByRole("textbox", {
+			name: "Model windows",
+		}) as HTMLInputElement;
+		await act(async () => {
+			fireEvent.change(field, { target: { value: `Opus, ${"m".repeat(65)}` } });
+			fireEvent.blur(field);
+		});
+		expect(commits).toEqual([]);
+		const alert = ui.getByRole("alert").textContent ?? "";
+		expect(alert).toContain("at most 64 characters");
+		expect(alert).not.toContain("{");
+		expect(alert).not.toContain("too_big");
+		// What was typed stays put so the long name can be shortened.
+		expect(
+			(ui.getByRole("textbox", { name: "Model windows" }) as HTMLInputElement)
+				.value,
+		).toContain("Opus");
+	});
+
 	// R14: the host accepts 60 to 3600 seconds, so the control must not offer
 	// a number outside it.
 	test("the cooldown field only offers minutes the host accepts", async () => {
