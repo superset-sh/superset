@@ -17,11 +17,13 @@ fi
 # payload alone must never dispatch.
 [ -n "$SUPERSET_TERMINAL_ID" ] || [ -n "$SUPERSET_TAB_ID" ] || exit 0
 
-# Claude Code (and forks sharing its hook schema) set agent_id only when the
-# hook fires inside a subagent (Task tool). Subagent activity must not drive
-# terminal-level agent status or notifications — only the main loop counts.
+# Claude Code and Codex set agent_id only when the hook fires inside a
+# subagent (Task tool / spawn_agent). Subagent activity must not drive
+# terminal-level agent status, notifications, or the session id binding —
+# only the main loop counts. It is forwarded separately so the host can keep
+# a per-terminal roster of live subagents (see notifications.hook).
 SUBAGENT_ID=$(echo "$INPUT" | grep -oE '"agent_id"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
-[ -n "$SUBAGENT_ID" ] && exit 0
+SUBAGENT_TYPE=$(echo "$INPUT" | grep -oE '"agent_type"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
 
 HOOK_SESSION_ID=$(echo "$INPUT" | grep -oE '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
 if [ -z "$HOOK_SESSION_ID" ]; then
@@ -88,13 +90,48 @@ elif [ "$SUPERSET_ENV" = "development" ] || [ "$NODE_ENV" = "development" ]; the
 fi
 
 if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
-  echo "[notify-hook] event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID" >&2
+  echo "[notify-hook] event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID subagentId=$SUBAGENT_ID sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID" >&2
 fi
 
 debug_log() {
   [ "$DEBUG_HOOKS_ENABLED" = "1" ] || return 0
   printf '%s [notify-hook] %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date)" "$*" >> "${SUPERSET_HOOK_DEBUG_LOG:-/tmp/superset-agent-hooks.log}" 2>/dev/null || true
 }
+
+json_escape() {
+  printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
+}
+
+# Subagent events go to the host-service roster only: no v1 fallback, no
+# session id (a Codex child's session_id is its own thread, never the
+# terminal's resumable session), and the raw event name so the host can tell
+# a start from a stop.
+if [ -n "$SUBAGENT_ID" ]; then
+  debug_log "subagent event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID subagentId=$SUBAGENT_ID subagentType=$SUBAGENT_TYPE"
+  [ -n "$SUPERSET_TERMINAL_ID" ] || exit 0
+  PAYLOAD="{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"subagent\":{\"id\":\"$(json_escape "$SUBAGENT_ID")\",\"type\":\"$(json_escape "$SUBAGENT_TYPE")\"}}}"
+  HOOK_CANDIDATE_URLS="$SUPERSET_HOST_AGENT_HOOK_URL"
+  for MANIFEST_FILE in "${SUPERSET_HOME_DIR:-$HOME/.superset}"/host/*/manifest.json; do
+    [ -f "$MANIFEST_FILE" ] || continue
+    MANIFEST_ENDPOINT=$(grep -oE '"endpoint"[[:space:]]*:[[:space:]]*"[^"]*"' "$MANIFEST_FILE" | head -1 | grep -oE '"[^"]*"$' | tr -d '"')
+    [ -n "$MANIFEST_ENDPOINT" ] || continue
+    HOOK_CANDIDATE_URLS="$HOOK_CANDIDATE_URLS $MANIFEST_ENDPOINT/trpc/notifications.hook"
+  done
+  SEEN_HOOK_URLS=""
+  for HOOK_URL in $HOOK_CANDIDATE_URLS; do
+    case " $SEEN_HOOK_URLS " in *" $HOOK_URL "*) continue ;; esac
+    SEEN_HOOK_URLS="$SEEN_HOOK_URLS $HOOK_URL"
+    BODY=$(curl -sX POST "$HOOK_URL" \
+      --connect-timeout 2 --max-time 5 \
+      -H "Content-Type: application/json" \
+      -d "$PAYLOAD" 2>/dev/null)
+    debug_log "subagent host-service url=$HOOK_URL body=$BODY"
+    case "$BODY" in
+      *'"ignored":false'*|*'"ignored": false'*) exit 0 ;;
+    esac
+  done
+  exit 0
+fi
 
 debug_log "event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID tabId=$SUPERSET_TAB_ID"
 
@@ -107,10 +144,6 @@ case "$V1_EVENT_TYPE" in
     V1_EVENT_TYPE="Stop"
     ;;
 esac
-
-json_escape() {
-  printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
-}
 
 # Resolve the host-service endpoint at call time. SUPERSET_HOST_AGENT_HOOK_URL
 # is frozen into the agent's env at terminal creation; after a host-service

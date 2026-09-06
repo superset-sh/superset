@@ -34,6 +34,9 @@ function createContext(
 	broadcastAgentLifecycle: ReturnType<
 		typeof mock<(event: BroadcastedAgentLifecycleEvent) => void>
 	>;
+	broadcastAgentBindingsChanged: ReturnType<
+		typeof mock<(event: { workspaceId: string; occurredAt: number }) => void>
+	>;
 	findFirst: ReturnType<typeof mock>;
 	taskStart: ReturnType<
 		typeof mock<(input: { id: string }) => Promise<unknown>>
@@ -42,6 +45,9 @@ function createContext(
 } {
 	const broadcastAgentLifecycle = mock(
 		(_event: BroadcastedAgentLifecycleEvent) => {},
+	);
+	const broadcastAgentBindingsChanged = mock(
+		(_event: { workspaceId: string; occurredAt: number }) => {},
 	);
 	const findFirst = mock(() => ({
 		sync: () =>
@@ -82,6 +88,7 @@ function createContext(
 		},
 		eventBus: {
 			broadcastAgentLifecycle,
+			broadcastAgentBindingsChanged,
 			broadcastWorkspaceChanged: () => {},
 		},
 		terminalAgentStore,
@@ -90,6 +97,7 @@ function createContext(
 	return {
 		ctx,
 		broadcastAgentLifecycle,
+		broadcastAgentBindingsChanged,
 		findFirst,
 		taskStart,
 		terminalAgentStore,
@@ -161,6 +169,45 @@ function createDbContext({
 }
 
 describe("notificationsRouter.hook", () => {
+	it("routes subagent events to the roster without a lifecycle broadcast or session capture", async () => {
+		const {
+			ctx,
+			broadcastAgentLifecycle,
+			broadcastAgentBindingsChanged,
+			terminalAgentStore,
+		} = createContext("workspace-1");
+		const caller = notificationsRouter.createCaller(ctx);
+		await caller.hook({
+			terminalId: "terminal-1",
+			eventType: "Start",
+			agent: { agentId: "claude", sessionId: "root" },
+		});
+
+		const result = await caller.hook({
+			terminalId: "terminal-1",
+			eventType: "SubagentStart",
+			subagent: { id: "a1", type: "Explore" },
+		});
+
+		expect(result).toEqual({ success: true, ignored: false });
+		expect(broadcastAgentLifecycle).toHaveBeenCalledTimes(1);
+		expect(broadcastAgentBindingsChanged).toHaveBeenCalledTimes(1);
+		const binding = terminalAgentStore.get("terminal-1");
+		expect(binding?.agentSessionId).toBe("root");
+		expect(binding?.lastEventType).toBe("Start");
+		expect(binding?.subagents?.map((s) => [s.id, s.agentType])).toEqual([
+			["a1", "Explore"],
+		]);
+
+		await caller.hook({
+			terminalId: "terminal-1",
+			eventType: "SubagentStop",
+			subagent: { id: "a1" },
+		});
+		expect(terminalAgentStore.get("terminal-1")?.subagents).toBeUndefined();
+		expect(broadcastAgentLifecycle).toHaveBeenCalledTimes(1);
+	});
+
 	it("derives workspaceId from terminalId before broadcasting", async () => {
 		const { ctx, broadcastAgentLifecycle, findFirst } =
 			createContext("workspace-1");

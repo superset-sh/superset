@@ -4,6 +4,7 @@ import type {
 	TerminalAgentBinding,
 	TerminalAgentEndReason,
 	TerminalAgentId,
+	TerminalSubagent,
 } from "./types";
 
 interface RecordEventInput {
@@ -13,6 +14,16 @@ interface RecordEventInput {
 	agentId?: TerminalAgentId;
 	agentSessionId?: string;
 	definitionId?: AgentDefinitionId;
+	occurredAt: number;
+}
+
+interface RecordSubagentEventInput {
+	terminalId: string;
+	workspaceId: string;
+	/** Raw hook event name (`SubagentStart`, `PostToolUse`, `SubagentStop`, …). */
+	eventType: string;
+	subagentId: string;
+	agentType?: string;
 	occurredAt: number;
 }
 
@@ -36,6 +47,16 @@ const END_EVENT_REASONS = new Map<string, TerminalAgentEndReason>([
  * upsert would erase `endedAt`/`endReason` and destroy the resume candidate.
  */
 const END_STRAGGLER_WINDOW_MS = 30_000;
+
+/** Subagent hook events that mean the child finished its turn. */
+const SUBAGENT_END_EVENTS = new Set(["SubagentStop", "Stop", "SessionEnd"]);
+
+/**
+ * A subagent whose SubagentStop never arrived (parent interrupted, hook
+ * dropped) must not sit in the roster forever. Live children re-assert on
+ * every tool call, so anything quiet this long is gone.
+ */
+const SUBAGENT_STALE_MS = 10 * 60_000;
 
 export interface TerminalAgentBindingPersistence {
 	load(): TerminalAgentBinding[];
@@ -82,6 +103,10 @@ export interface TerminalAgentBindingPersistence {
  */
 export class TerminalAgentStore extends EventEmitter {
 	private readonly byTerminal = new Map<string, TerminalAgentBinding>();
+	private readonly subagentsByTerminal = new Map<
+		string,
+		Map<string, TerminalSubagent>
+	>();
 	private readonly persistence: TerminalAgentBindingPersistence | undefined;
 
 	constructor(persistence?: TerminalAgentBindingPersistence) {
@@ -146,6 +171,11 @@ export class TerminalAgentStore extends EventEmitter {
 			agentSessionId !== undefined &&
 			prior.agentSessionId !== agentSessionId;
 
+		// A new agent or session in the terminal orphans the old roster.
+		if (prior === undefined || sessionChanged) {
+			this.subagentsByTerminal.delete(terminalId);
+		}
+
 		// "Attached" is a session-liveness signal, not lifecycle progress. The
 		// wrapper's launch report is delayed and can land after the session
 		// already advanced past it (working, a Stop that makes the row a
@@ -170,6 +200,43 @@ export class TerminalAgentStore extends EventEmitter {
 
 		this.byTerminal.set(terminalId, next);
 		this.persistence?.upsert(next);
+		this.emit("change", workspaceId);
+	}
+
+	/**
+	 * A hook fired inside a subagent of the terminal's agent. Any event keeps
+	 * the child live (lost SubagentStarts self-heal on its next tool call);
+	 * a stop drops it. Never touches the parent binding's lifecycle state.
+	 */
+	recordSubagentEvent(input: RecordSubagentEventInput): void {
+		const { terminalId, workspaceId, eventType, subagentId, agentType } = input;
+		const occurredAt = input.occurredAt;
+		const roster = this.subagentsByTerminal.get(terminalId);
+
+		if (SUBAGENT_END_EVENTS.has(eventType)) {
+			if (!roster?.delete(subagentId)) return;
+			if (roster.size === 0) this.subagentsByTerminal.delete(terminalId);
+			this.emit("change", workspaceId);
+			return;
+		}
+
+		// A child can only run under a live parent; a straggler after the
+		// terminal ended must not recreate a roster for it.
+		if (!this.byTerminal.has(terminalId)) return;
+
+		const existing = roster?.get(subagentId);
+		const nextType = agentType ?? existing?.agentType;
+		const next: TerminalSubagent = {
+			id: subagentId,
+			...(nextType ? { agentType: nextType } : {}),
+			startedAt: existing?.startedAt ?? occurredAt,
+			lastEventAt: occurredAt,
+		};
+		if (roster) {
+			roster.set(subagentId, next);
+		} else {
+			this.subagentsByTerminal.set(terminalId, new Map([[subagentId, next]]));
+		}
 		this.emit("change", workspaceId);
 	}
 
@@ -210,7 +277,8 @@ export class TerminalAgentStore extends EventEmitter {
 	}
 
 	get(terminalId: string): TerminalAgentBinding | undefined {
-		return this.byTerminal.get(terminalId);
+		const binding = this.byTerminal.get(terminalId);
+		return binding && this.withSubagents(binding);
 	}
 
 	listByWorkspace(
@@ -218,7 +286,9 @@ export class TerminalAgentStore extends EventEmitter {
 		filter?: TerminalAgentBindingListFilter,
 	): TerminalAgentBinding[] {
 		if (this.persistence?.listLiveByWorkspace) {
-			return this.persistence.listLiveByWorkspace(workspaceId, filter);
+			return this.persistence
+				.listLiveByWorkspace(workspaceId, filter)
+				.map((binding) => this.withSubagents(binding));
 		}
 		const out: TerminalAgentBinding[] = [];
 		for (const binding of this.byTerminal.values()) {
@@ -226,16 +296,41 @@ export class TerminalAgentStore extends EventEmitter {
 			if (filter?.agentId && binding.agentId !== filter.agentId) continue;
 			if (filter?.definitionId && binding.definitionId !== filter.definitionId)
 				continue;
-			out.push(binding);
+			out.push(this.withSubagents(binding));
 		}
 		return out;
 	}
 
 	list(): TerminalAgentBinding[] {
 		if (this.persistence?.listLive) {
-			return this.persistence.listLive();
+			return this.persistence
+				.listLive()
+				.map((binding) => this.withSubagents(binding));
 		}
-		return [...this.byTerminal.values()];
+		return [...this.byTerminal.values()].map((binding) =>
+			this.withSubagents(binding),
+		);
+	}
+
+	/**
+	 * Attach the terminal's live subagents to a binding read. Stale entries
+	 * are dropped here rather than on a timer so the store stays passive.
+	 */
+	private withSubagents(binding: TerminalAgentBinding): TerminalAgentBinding {
+		const roster = this.subagentsByTerminal.get(binding.terminalId);
+		if (!roster) return binding;
+		const cutoff = Date.now() - SUBAGENT_STALE_MS;
+		for (const [id, subagent] of roster) {
+			if (subagent.lastEventAt < cutoff) roster.delete(id);
+		}
+		if (roster.size === 0) {
+			this.subagentsByTerminal.delete(binding.terminalId);
+			return binding;
+		}
+		return {
+			...binding,
+			subagents: [...roster.values()].sort((a, b) => a.startedAt - b.startedAt),
+		};
 	}
 
 	findActive(
@@ -275,6 +370,7 @@ export class TerminalAgentStore extends EventEmitter {
 	): void {
 		const existing = this.byTerminal.get(terminalId);
 		this.byTerminal.delete(terminalId);
+		this.subagentsByTerminal.delete(terminalId);
 
 		let marked: { workspaceId: string } | undefined;
 		if (this.persistence?.markEnded) {
