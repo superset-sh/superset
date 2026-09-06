@@ -50,7 +50,9 @@ describe("updateClaudeStateFile", () => {
 			expect(said).toContain(statePath);
 			expect(said).toContain(".superset-swap-bak");
 			// The path it names is the copy that actually holds the old bytes.
-			const named = said.split(" ").find((word) => word.includes(".superset-swap-bak"));
+			const named = said
+				.split(" ")
+				.find((word) => word.includes(".superset-swap-bak"));
 			expect(readFileSync((named ?? "").replace(/[.]$/, ""), "utf-8")).toBe(
 				"{half-writ",
 			);
@@ -66,12 +68,41 @@ describe("updateClaudeStateFile", () => {
 	// replaces the file rather than editing it, so the inode is the signal
 	// that survives any clock — this stages exactly that, with the mtime
 	// deliberately restored so nothing else can catch it.
+	// The other half of the fingerprint. An in-place rewrite keeps the inode,
+	// so only the timestamp can tell it apart — and it has to be nanoseconds,
+	// since the whole read-modify-write cycle fits inside one millisecond.
+	it("notices a same-size rewrite that kept the inode", async () => {
+		const dir = tempDir();
+		const statePath = join(dir, ".claude.json");
+		const original = JSON.stringify({ oauthAccount: { accountUuid: "aaa" } });
+		writeFileSync(statePath, original);
+		const foreign = JSON.stringify({ oauthAccount: { accountUuid: "bbb" } });
+		expect(foreign.length).toBe(original.length);
+		const inodeBefore = statSync(statePath).ino;
+
+		await expect(
+			updateClaudeStateFile(statePath, (state) => {
+				// No rename: the same file, rewritten where it sits.
+				writeFileSync(statePath, foreign);
+				return { ...state, seeded: true };
+			}),
+		).rejects.toThrow(/kept changing/);
+
+		expect(statSync(statePath).ino).toBe(inodeBefore);
+		expect(readFileSync(statePath, "utf-8")).toBe(foreign);
+	});
+
 	it("notices a same-size replacement that kept the old mtime", async () => {
 		const dir = tempDir();
 		const statePath = join(dir, ".claude.json");
 		const original = JSON.stringify({ oauthAccount: { accountUuid: "aaa" } });
 		writeFileSync(statePath, original);
-		const before = statSync(statePath);
+		// A whole-second mtime, so restoring it below reproduces the timestamp
+		// to the nanosecond. Restoring from a millisecond-precision Date would
+		// leave mtimeNs different and the guard would fire on the clock alone,
+		// never exercising the inode.
+		const stamp = 1_700_000_000;
+		utimesSync(statePath, stamp, stamp);
 		// Same byte length, so size cannot tell them apart either.
 		const foreign = JSON.stringify({ oauthAccount: { accountUuid: "bbb" } });
 		expect(foreign.length).toBe(original.length);
@@ -83,7 +114,7 @@ describe("updateClaudeStateFile", () => {
 				const tmp = `${statePath}.foreign`;
 				writeFileSync(tmp, foreign);
 				renameSync(tmp, statePath);
-				utimesSync(statePath, before.atime, before.mtime);
+				utimesSync(statePath, stamp, stamp);
 				return { ...state, seeded: true };
 			}),
 		).rejects.toThrow(/kept changing/);
