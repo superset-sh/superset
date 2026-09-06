@@ -118,6 +118,25 @@ describe("seedClaudeFolderTrust", () => {
 		);
 	});
 
+	// A zero-byte file is what a touch, a truncated write, or a full disk
+	// during someone else's write leaves behind. The writer treats it as empty
+	// state, so refusing it here would strand every session on the dialog.
+	test("seeds through an empty state file", async () => {
+		const file = join(dir, ".claude.json");
+		writeFileSync(file, "");
+		await seedClaudeFolderTrust(file, "/tmp/session-f");
+		const state = JSON.parse(readFileSync(file, "utf-8"));
+		expect(state.projects["/tmp/session-f"].hasTrustDialogAccepted).toBe(true);
+	});
+
+	test("seeds through a whitespace-only state file", async () => {
+		const file = join(dir, ".claude.json");
+		writeFileSync(file, "  \n ");
+		await seedClaudeFolderTrust(file, "/tmp/session-g");
+		const state = JSON.parse(readFileSync(file, "utf-8"));
+		expect(state.projects["/tmp/session-g"].hasTrustDialogAccepted).toBe(true);
+	});
+
 	test("leaves a state file holding a bare null alone", async () => {
 		const file = join(dir, ".claude.json");
 		writeFileSync(file, "null");

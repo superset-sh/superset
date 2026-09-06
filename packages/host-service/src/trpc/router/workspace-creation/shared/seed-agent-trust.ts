@@ -150,6 +150,11 @@ export async function seedClaudeFolderTrust(
 		// byte as Claude Code wrote it.
 		const current = await readFile(stateFile, "utf-8").then(
 			(raw) => {
+				// An empty file is empty state, not damage — updateClaudeStateFile
+				// says the same (`raw.trim() !== ""`), so refusing here would
+				// strand every session on the trust dialog over a zero-byte file
+				// the writer would have filled in safely.
+				if (raw.trim() === "") return {};
 				try {
 					const parsed: unknown = JSON.parse(raw);
 					return parsed !== null &&
