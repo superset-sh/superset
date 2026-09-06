@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import {
 	chmodSync,
+	existsSync,
 	mkdirSync,
 	mkdtempSync,
 	readdirSync,
@@ -1047,6 +1048,85 @@ describe("swapClaudeLogin on a file-backed store", () => {
 		expect(readCredentials(f.activeDir)).toEqual(before);
 	});
 
+	// `readIdentity` collapses EACCES, EIO and a torn `.claude.json` into "no
+	// identity", and nothing downstream re-checks: the verify step compares the
+	// read-back against the keys the swap itself just wrote, so it always
+	// matches. Measured before this guard: a target `/login`-ing to C mid-swap
+	// with its identity unreadable returned ok:true with C's token installed
+	// under B's name.
+	it("aborts when the target's identity cannot be re-read mid-swap", async () => {
+		const f = fixture();
+		const before = readCredentials(f.activeDir);
+		const targetState = join(f.profileB, ".claude.json");
+		let identityReads = 0;
+		const deps: ClaudeSwapDeps = {
+			...f.deps,
+			fs: {
+				readFile: async (path: string, encoding: "utf-8") => {
+					const { readFile } = await import("node:fs/promises");
+					// The first read is loadTarget's; the mid-swap re-read is denied.
+					if (path === targetState && identityReads++ >= 1) {
+						throw Object.assign(new Error("EACCES: permission denied"), {
+							code: "EACCES",
+						});
+					}
+					return readFile(path, encoding);
+				},
+			},
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps,
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "target-changed" });
+		expect(readCredentials(f.activeDir)).toEqual(before);
+	});
+
+	// Accounts the CLI recorded without an accountUuid still have to be told
+	// apart: the uuid pair is the preferred comparison, the email is the one
+	// that is there.
+	it("aborts when the target's identity changes email with no uuid to compare", async () => {
+		const f = fixture();
+		const before = readCredentials(f.activeDir);
+		const emailOnly = (name: string) => ({
+			oauthAccount: { emailAddress: `${name}@example.com` },
+		});
+		writeFileSync(
+			join(f.profileB, ".claude.json"),
+			JSON.stringify(emailOnly("b")),
+		);
+		let reads = 0;
+		const deps: ClaudeSwapDeps = {
+			...f.deps,
+			fs: {
+				readFile: async (path: string, encoding: "utf-8") => {
+					const { readFile } = await import("node:fs/promises");
+					if (path === join(f.profileB, ".credentials.json") && reads++ === 1) {
+						writeFileSync(
+							join(f.profileB, ".claude.json"),
+							JSON.stringify(emailOnly("c")),
+						);
+					}
+					return readFile(path, encoding);
+				},
+			},
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps,
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "target-changed" });
+		expect(readCredentials(f.activeDir)).toEqual(before);
+	});
+
 	// The caller's picture of the target is as old as its last poll: a profile
 	// re-authenticated as somebody else since then must not be swapped in
 	// under the account the caller asked for.
@@ -1187,6 +1267,88 @@ describe("swapClaudeLogin with the system-default account", () => {
 		// No credential, no tmp file and no backup landed in the unsafe dir.
 		expect(readdirSync(configDir)).toEqual(["credentials.json"]);
 		expect(readCredentials(f.activeDir)).toEqual(before);
+	});
+
+	// The mirror of the owner case above: the same 0770 dir was refused as an
+	// owner store and read from as a target, so one directory was at once too
+	// unsafe to write and safe enough to take a login out of. Measured before
+	// this guard: ok:true with the planted token installed.
+	it("refuses a target whose half of the default slot is group-writable", async () => {
+		const f = fixture();
+		const configDir = makeDir(join(f.home, ".config", "claude"));
+		writeFileSync(
+			join(configDir, "credentials.json"),
+			JSON.stringify({ claudeAiOauth: oauth("t-planted", 9_000) }),
+			{ mode: 0o600 },
+		);
+		writeFileSync(
+			join(f.home, ".claude.json"),
+			JSON.stringify(identity("sys")),
+		);
+		chmodSync(configDir, 0o770);
+		const before = readCredentials(f.activeDir);
+
+		const result = await swapClaudeLogin({
+			target: SYSTEM_DEFAULT,
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-target" });
+		expect(readCredentials(f.activeDir)).toEqual(before);
+	});
+
+	// `~/.claude` is not where the login has to live, so its absence is not a
+	// reason to refuse the dir the login was actually read from.
+	it("swaps in a default login that lives only in ~/.config/claude", async () => {
+		const f = fixture();
+		rmSync(f.systemDefault, { recursive: true, force: true });
+		const configDir = makeDir(join(f.home, ".config", "claude"));
+		writeFileSync(
+			join(configDir, "credentials.json"),
+			JSON.stringify({ claudeAiOauth: oauth("t-sys", 1_000) }),
+			{ mode: 0o600 },
+		);
+		writeFileSync(
+			join(f.home, ".claude.json"),
+			JSON.stringify(identity("sys")),
+		);
+
+		const result = await swapClaudeLogin({
+			target: SYSTEM_DEFAULT,
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		if (!result.ok) throw new Error(result.reason);
+		expect(result.identity.accountUuid).toBe("uuid-sys");
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-sys", 1_000),
+		);
+	});
+
+	// The owner gate belongs to the save-back: with no login in the active dir
+	// there is nothing to save, so a missing `~/.claude` is not in the way.
+	it("does not judge the owner dir when there is no login to save back", async () => {
+		const f = fixture();
+		rmSync(f.systemDefault, { recursive: true, force: true });
+		rmSync(join(f.activeDir, ".credentials.json"));
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: SYSTEM_DEFAULT,
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-b", 2_000),
+		);
+		expect(existsSync(f.systemDefault)).toBe(false);
 	});
 });
 

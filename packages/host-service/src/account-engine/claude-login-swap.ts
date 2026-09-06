@@ -596,8 +596,6 @@ async function loadTarget(
 ): Promise<
 	{ ok: true; target: TargetLogin } | { ok: false; result: ClaudeSwapResult }
 > {
-	const invalid = await validateDir(storeDir(ref, ctx), ctx);
-	if (invalid) return { ok: false, result: failure("invalid-target", invalid) };
 	const read = await readStore(ref, ctx);
 	const oauth = oauthOf(read);
 	if (!oauth) {
@@ -608,6 +606,14 @@ async function loadTarget(
 				`${storeDir(ref, ctx)} holds no Claude login`,
 			),
 		};
+	}
+	// The login can come from either half of the system default's one slot, and
+	// `~/.config/claude` is a dir `storeDir` never names — validate the one it
+	// actually came from. A Keychain-only login has no dir to validate.
+	if (read.fileLogin) {
+		const invalid = await validateDir(dirname(read.credentialsPath), ctx);
+		if (invalid)
+			return { ok: false, result: failure("invalid-target", invalid) };
 	}
 	const identity = await readIdentity(
 		claudeStatePath(configDirOf(ref), ctx.homeDir),
@@ -658,14 +664,20 @@ async function applyToActiveDir(
 			claudeStatePath(configDirOf(target.ref), ctx.homeDir),
 			ctx,
 		);
-		if (
-			target.identity.accountUuid &&
-			freshIdentity?.accountUuid &&
-			freshIdentity.accountUuid !== target.identity.accountUuid
-		) {
+		if (!freshIdentity) {
 			return failure(
 				"target-changed",
-				`${storeDir(target.ref, ctx)} was signed in as account ${freshIdentity.accountUuid} while the swap read it`,
+				`${storeDir(target.ref, ctx)}'s account identity could not be read while the swap read its login`,
+			);
+		}
+		const sameAccount =
+			target.identity.accountUuid && freshIdentity.accountUuid
+				? freshIdentity.accountUuid === target.identity.accountUuid
+				: freshIdentity.emailAddress === target.identity.emailAddress;
+		if (!sameAccount) {
+			return failure(
+				"target-changed",
+				`${storeDir(target.ref, ctx)} was signed in as account ${freshIdentity.accountUuid ?? freshIdentity.emailAddress ?? "none it names"} while the swap read it`,
 			);
 		}
 		const freshHash = hashOauth(fresh);
@@ -894,58 +906,61 @@ export async function swapClaudeLogin(input: {
 
 	// An unmanaged owner is never validated and never written: the dir is not
 	// Superset's, so neither its permissions nor its backups are its business.
-	if (input.ownerManaged !== false) {
-		const ownerInvalid = await validateDir(storeDir(ownerBinding, ctx), ctx);
+	// Nor is an owner with no login to save back: the gate belongs to the
+	// write, so a dir nothing lands in is never judged on where it could land.
+	if (input.ownerManaged !== false && previous) {
+		const ownerRead = await readStore(ownerBinding, ctx);
+		const ownerInvalid = await validateDir(
+			dirname(ownerRead.credentialsPath),
+			ctx,
+		);
 		if (ownerInvalid) return failure("invalid-owner", ownerInvalid);
-		if (previous) {
-			const ownerRead = await readStore(ownerBinding, ctx);
-			// A credential file that is there but unreadable reads as absent,
-			// and writing goes through a rename, which needs only directory
-			// permission — so the save-back would replace an intact store it
-			// never saw, with no backup and no way to know it had regressed.
-			if (ownerRead.fileUnreadable) {
-				return failure(
-					"invalid-owner",
-					`${ownerRead.credentialsPath} exists but could not be read; refusing to write over it`,
-				);
-			}
-			if (!wouldRegress(oauthOf(ownerRead), previous)) {
-				// The other half of the same staleness: the caller's binding says
-				// whose store this is, but a `/login` in that profile since
-				// discovery re-authenticated it as somebody else, and saving the
-				// active login over it destroys that login and mislabels the
-				// survivor. Re-read the identity beside the store in the moment
-				// before the write. A store that holds a login but names no
-				// account is unreadable, not empty, and fails closed the same way.
-				const ownerCheck = await ownerStoreMismatch(
-					ownerBinding,
-					ownerRead,
-					input.expectedOwnerAccountId,
+		// A credential file that is there but unreadable reads as absent,
+		// and writing goes through a rename, which needs only directory
+		// permission — so the save-back would replace an intact store it
+		// never saw, with no backup and no way to know it had regressed.
+		if (ownerRead.fileUnreadable) {
+			return failure(
+				"invalid-owner",
+				`${ownerRead.credentialsPath} exists but could not be read; refusing to write over it`,
+			);
+		}
+		if (!wouldRegress(oauthOf(ownerRead), previous)) {
+			// The other half of the same staleness: the caller's binding says
+			// whose store this is, but a `/login` in that profile since
+			// discovery re-authenticated it as somebody else, and saving the
+			// active login over it destroys that login and mislabels the
+			// survivor. Re-read the identity beside the store in the moment
+			// before the write. A store that holds a login but names no
+			// account is unreadable, not empty, and fails closed the same way.
+			const ownerCheck = await ownerStoreMismatch(
+				ownerBinding,
+				ownerRead,
+				input.expectedOwnerAccountId,
+				ctx,
+			);
+			if (ownerCheck) return failure("owner-unknown", ownerCheck);
+			const planned = await planStoreWrite(ownerBinding, ownerRead, ctx);
+			if (!planned.ok) return planned.result;
+			// The file write follows the store the login was read from, and for
+			// the system default that is either half of the one slot —
+			// `~/.config/claude` is a dir `storeDir` never names. Validate the
+			// dir the credential and its backups actually land in, in the
+			// moment before they do.
+			if (planned.plan.file) {
+				const pathInvalid = await validateDir(
+					dirname(ownerRead.credentialsPath),
 					ctx,
 				);
-				if (ownerCheck) return failure("owner-unknown", ownerCheck);
-				const planned = await planStoreWrite(ownerBinding, ownerRead, ctx);
-				if (!planned.ok) return planned.result;
-				// The file write follows the store the login was read from, and for
-				// the system default that is either half of the one slot —
-				// `~/.config/claude` is a dir `storeDir` never names. Validate the
-				// dir the credential and its backups actually land in, in the
-				// moment before they do.
-				if (planned.plan.file) {
-					const pathInvalid = await validateDir(
-						dirname(ownerRead.credentialsPath),
-						ctx,
-					);
-					if (pathInvalid) return failure("invalid-owner", pathInvalid);
-				}
-				try {
-					await applyStoreWrite(ownerRead, planned.plan, previous, ctx);
-				} catch (error) {
-					return failure(
-						"write-failed",
-						`saving the previous login back to ${storeDir(ownerBinding, ctx)} failed: ${errorText(error)}`,
-					);
-				}
+				if (pathInvalid) return failure("invalid-owner", pathInvalid);
+			}
+			try {
+				await applyStoreWrite(ownerRead, planned.plan, previous, ctx);
+			} catch (error) {
+				return failure(
+					"write-failed",
+					`saving the previous login back to ${storeDir(ownerBinding, ctx)} failed: ${errorText(error)}`,
+				);
 			}
 		}
 	}
