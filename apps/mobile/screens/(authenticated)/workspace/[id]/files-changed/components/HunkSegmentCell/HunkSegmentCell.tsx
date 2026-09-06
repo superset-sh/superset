@@ -4,6 +4,7 @@ import Animated, {
 	type SharedValue,
 	useAnimatedStyle,
 } from "react-native-reanimated";
+import { useTheme } from "@/hooks/useTheme";
 import type { HunkSegment, LineRow } from "../../utils/buildListItems";
 import {
 	DIFF_FONT_SIZE,
@@ -18,17 +19,47 @@ const MONO_STYLE = {
 
 const SIGN = { add: "+ ", del: "− ", context: "  " } as const;
 
-const PLAIN_COLOR = {
-	add: "#4ade80",
-	del: "#f87171",
-	context: "rgba(232,234,237,0.8)",
-} as const;
+// THEME tokens are all `hsl(H S% L%)`, which React Native cannot take an alpha
+// on. Rewriting to `hsla(H, S%, L%, a)` keeps the surfaces tied to the same
+// token as the text sitting on them.
+function withAlpha(color: string, alpha: number): string {
+	const parts = color.match(/-?[\d.]+%?/g);
+	if (!parts || parts.length < 3) return color;
+	return `hsla(${parts[0]}, ${parts[1]}, ${parts[2]}, ${alpha})`;
+}
 
-const SIGN_COLOR = {
-	add: "#e8eaed",
-	del: "#e8eaed",
-	context: "transparent",
-} as const;
+/** The desktop derives its diff palette from the same tokens — addition from
+ * chart2, deletion from destructive, the gutter from mutedForeground — so the
+ * two viewers stay in step instead of drifting on hand-picked hex. */
+function diffPalette(theme: {
+	chart2: string;
+	destructive: string;
+	foreground: string;
+	mutedForeground: string;
+}) {
+	const { chart2: addition, destructive: deletion, foreground } = theme;
+	return {
+		text: {
+			add: addition,
+			del: deletion,
+			context: withAlpha(foreground, 0.8),
+		},
+		sign: { add: foreground, del: foreground, context: "transparent" },
+		gutterText: {
+			add: foreground,
+			del: foreground,
+			context: theme.mutedForeground,
+		},
+		gutterSurface: {
+			add: withAlpha(addition, 0.25),
+			del: withAlpha(deletion, 0.25),
+		},
+		rowSurface: {
+			add: withAlpha(addition, 0.1),
+			del: withAlpha(deletion, 0.1),
+		},
+	};
+}
 
 interface StripeRun {
 	type: "add" | "del";
@@ -70,6 +101,8 @@ export const HunkSegmentCell = memo(function HunkSegmentCell({
 	}));
 
 	const runs = useMemo(() => computeRuns(segment.lines), [segment.lines]);
+	const theme = useTheme();
+	const palette = useMemo(() => diffPalette(theme), [theme]);
 
 	return (
 		<Pressable
@@ -98,8 +131,8 @@ export const HunkSegmentCell = memo(function HunkSegmentCell({
 						height: run.length * DIFF_LINE_HEIGHT,
 						backgroundColor:
 							run.type === "add"
-								? "rgba(34,197,94,0.25)"
-								: "rgba(239,68,68,0.25)",
+								? palette.gutterSurface.add
+								: palette.gutterSurface.del,
 					}}
 				/>
 			))}
@@ -115,8 +148,8 @@ export const HunkSegmentCell = memo(function HunkSegmentCell({
 						height: run.length * DIFF_LINE_HEIGHT,
 						backgroundColor:
 							run.type === "add"
-								? "rgba(34,197,94,0.1)"
-								: "rgba(239,68,68,0.1)",
+								? palette.rowSurface.add
+								: palette.rowSurface.del,
 					}}
 				/>
 			))}
@@ -133,10 +166,7 @@ export const HunkSegmentCell = memo(function HunkSegmentCell({
 						<RNText
 							allowFontScaling={false}
 							key={line.key}
-							style={{
-								color:
-									line.type === "context" ? "rgba(154,163,175,0.6)" : "#e8eaed",
-							}}
+							style={{ color: palette.gutterText[line.type] }}
 						>
 							{(line.newLineNumber ?? line.oldLineNumber ?? "") +
 								(index < segment.lines.length - 1 ? "\n" : "")}
@@ -167,13 +197,13 @@ export const HunkSegmentCell = memo(function HunkSegmentCell({
 									<RNText allowFontScaling={false} key={line.key}>
 										<RNText
 											allowFontScaling={false}
-											style={{ color: SIGN_COLOR[line.type] }}
+											style={{ color: palette.sign[line.type] }}
 										>
 											{SIGN[line.type]}
 										</RNText>
 										<RNText
 											allowFontScaling={false}
-											style={{ color: PLAIN_COLOR[line.type] }}
+											style={{ color: palette.text[line.type] }}
 										>
 											{line.text + newline}
 										</RNText>
@@ -184,7 +214,7 @@ export const HunkSegmentCell = memo(function HunkSegmentCell({
 								<RNText allowFontScaling={false} key={line.key}>
 									<RNText
 										allowFontScaling={false}
-										style={{ color: SIGN_COLOR[line.type] }}
+										style={{ color: palette.sign[line.type] }}
 									>
 										{SIGN[line.type]}
 									</RNText>
@@ -200,7 +230,7 @@ export const HunkSegmentCell = memo(function HunkSegmentCell({
 											// leaves tokens uncoloured for every language it has
 											// no grammar for, which is every extension missing
 											// from languageForPath.
-											style={{ color: token.color ?? PLAIN_COLOR[line.type] }}
+											style={{ color: token.color ?? palette.text[line.type] }}
 										>
 											{token.content}
 										</RNText>
