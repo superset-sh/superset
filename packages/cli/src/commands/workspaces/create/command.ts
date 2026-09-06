@@ -7,8 +7,8 @@ import { createCloudWorkspace } from "./createCloudWorkspace";
 export default command({
 	description: "Create a workspace on a host, or a cloud sandbox with --cloud",
 	options: {
-		host: string().desc("Target host machineId"),
-		local: boolean().desc("Target this machine"),
+		host: string().desc("Target host machineId (required unless --local)"),
+		local: boolean().desc("Target this machine (required unless --host)"),
 		cloud: boolean().desc(
 			"Provision a cloud sandbox instead of using one of your machines",
 		),

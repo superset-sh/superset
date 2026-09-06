@@ -17,8 +17,8 @@ export default command({
 		"Adopt an existing project on a host (clone its repo or import a folder)",
 	args: [positional("id").desc("Project UUID to adopt")],
 	options: {
-		host: string().desc("Target host machineId"),
-		local: boolean().desc("Target this machine"),
+		host: string().desc("Target host machineId (required unless --local)"),
+		local: boolean().desc("Target this machine (required unless --host)"),
 		project: string().desc("Project UUID to adopt"),
 		path: string().desc(
 			"Existing local repo path on the target host (alias for --import)",

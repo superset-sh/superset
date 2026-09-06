@@ -5,8 +5,8 @@ import { requireHostTarget, resolveHostTarget } from "../../../lib/host-target";
 export default command({
 	description: "List agents configured on a host",
 	options: {
-		host: string().desc("Target host machineId"),
-		local: boolean().desc("Target this machine"),
+		host: string().desc("Target host machineId (required unless --local)"),
+		local: boolean().desc("Target this machine (required unless --host)"),
 	},
 	display: (data) =>
 		table(
