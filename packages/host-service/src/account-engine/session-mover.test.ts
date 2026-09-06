@@ -154,6 +154,60 @@ describe("moveAtIdle", () => {
 		expect(codex.killCalls).toHaveLength(1);
 	});
 
+	// The row's event fields are a snapshot taken before the swap and before
+	// every restart this pass has already done, so a session that is mid-turn
+	// right now can still read as a stale `Start`. Busyness is resolved live;
+	// staleness has to be too, or a live turn is killed as "no event for 15
+	// minutes" and comes back with the conversation and no prompt.
+	it("defers a Codex row the snapshot calls stale but that is live seconds ago", async () => {
+		const h = harness({
+			isAgentBusy: () => true,
+			lastAgentEvent: () => ({ type: "Start", at: NOW - 2_000 }),
+		});
+		await h.mover.moveAtIdle("codex", [
+			row({ lastEventType: "Start", lastEventAt: NOW - 20 * 60_000 }),
+		]);
+		expect(h.killCalls).toEqual([]);
+	});
+
+	it("defers a row live on a permission request under a stale snapshot", async () => {
+		const h = harness({
+			isAgentBusy: () => true,
+			lastAgentEvent: () => ({ type: "PermissionRequest", at: NOW - 2_000 }),
+		});
+		await h.mover.moveAtIdle("codex", [
+			row({ lastEventType: "Start", lastEventAt: NOW - 20 * 60_000 }),
+		]);
+		expect(h.killCalls).toEqual([]);
+	});
+
+	// The dep is optional so this layer stays self-contained: with no live
+	// source wired up, the snapshot is still what decides.
+	it("falls back to the snapshot when no live event source is wired", async () => {
+		const stale = harness({ isAgentBusy: () => true });
+		await stale.mover.moveAtIdle("codex", [
+			row({ lastEventType: "Start", lastEventAt: NOW - 20 * 60_000 }),
+		]);
+		expect(stale.killCalls).toHaveLength(1);
+
+		const fresh = harness({ isAgentBusy: () => true });
+		await fresh.mover.moveAtIdle("codex", [
+			row({ lastEventType: "Start", lastEventAt: NOW - 2_000 }),
+		]);
+		expect(fresh.killCalls).toEqual([]);
+	});
+
+	it("still moves a Codex row that is stale live as well as in the snapshot", async () => {
+		const h = harness({
+			isAgentBusy: () => true,
+			lastAgentEvent: () => ({ type: "Start", at: NOW - STALE_START_MS - 1 }),
+		});
+		await h.mover.moveAtIdle("codex", [
+			row({ lastEventType: "Start", lastEventAt: NOW - 20 * 60_000 }),
+		]);
+		expect(h.killCalls).toHaveLength(1);
+	});
+
 	it("never touches an unmanaged (user-exported) row", async () => {
 		const h = harness();
 		await h.mover.moveAtIdle("claude", [

@@ -88,6 +88,8 @@ export interface SessionMoverDeps {
 	/** Live rows for one agent, pre-classified by `resolveAgentAccountDir`. */
 	listSessions(agent: AccountAgent): MovableSession[];
 	isAgentBusy(terminalId: string): boolean;
+	/** Live last agent event for a row; the snapshot's copy can be minutes old. */
+	lastAgentEvent?(terminalId: string): { type: string; at: number } | undefined;
 	isTerminalAlive(terminalId: string): boolean;
 	/**
 	 * Kill crash-style and resume in a fresh terminal, launching with `prompt`
@@ -307,12 +309,20 @@ export class SessionMover {
 	 * its long `Start` is a live turn and killing it would throw the turn away.
 	 * A pending permission request is always busy: killing it would discard a
 	 * decision the user is about to make.
+	 *
+	 * Staleness is read live, like busyness: the row's own event fields are a
+	 * snapshot taken before the swap and before every restart this pass has
+	 * already done, so by the time a later row is judged they can be minutes
+	 * behind a session that is mid-turn right now.
 	 */
 	private isIdle(row: MovableSession): boolean {
 		if (!this.deps.isAgentBusy(row.terminalId)) return true;
 		if (row.agent !== "codex") return false;
-		if (row.lastEventType !== "Start") return false;
-		return this.now() - row.lastEventAt >= this.staleStartMs;
+		const live = this.deps.lastAgentEvent?.(row.terminalId);
+		const type = live?.type ?? row.lastEventType;
+		const at = live?.at ?? row.lastEventAt;
+		if (type !== "Start") return false;
+		return this.now() - at >= this.staleStartMs;
 	}
 
 	private async restart(
