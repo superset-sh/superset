@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { TRPCClientError } from "@trpc/client";
+import { ApiHttpError } from "../../../lib/api-client";
 import submitCommand, {
 	MAX_ATTACHMENT_TOTAL_BASE64_CHARS,
 	MAX_ATTACHMENT_TOTAL_BYTES,
@@ -13,6 +15,7 @@ interface SubmittedAttachment {
 }
 
 let submitted: { attachments?: SubmittedAttachment[] } | undefined;
+let reject: (() => Error) | undefined;
 let dir: string;
 let stderr: string[];
 let stderrSpy: ReturnType<typeof spyOn>;
@@ -24,6 +27,7 @@ function invoke(attach: string[]) {
 				support: {
 					submitFeedback: {
 						mutate: async (input: typeof submitted) => {
+							if (reject) throw reject();
 							submitted = input;
 						},
 					},
@@ -57,6 +61,7 @@ function writeFixture(name: string, content: Buffer): string {
 beforeEach(() => {
 	dir = mkdtempSync(join(tmpdir(), "superset-feedback-"));
 	submitted = undefined;
+	reject = undefined;
 	stderr = [];
 	stderrSpy = spyOn(process.stderr, "write").mockImplementation(((
 		chunk: string | Uint8Array,
@@ -132,5 +137,62 @@ describe("feedback submit attachments", () => {
 		expect(error.message).toContain("host-service.log");
 		expect(error.message).toContain("main.log");
 		expect(submitted).toBeUndefined();
+	});
+
+	test("surfaces a 413 from the platform with its status, text, and the limit hint", async () => {
+		const path = writeFixture("small.log", patterned(1024));
+		// What httpBatchLink throws when the response body is not JSON: the
+		// fetch wrapper's error rides along as the cause.
+		reject = () =>
+			TRPCClientError.from(
+				new ApiHttpError(
+					413,
+					"Request Entity Too Large",
+					"Request Entity Too Large / FUNCTION_PAYLOAD_TOO_LARGE / sfo1::abc-123",
+				),
+			);
+
+		const error = await invoke([path]).catch((thrown) => thrown);
+
+		expect(error.name).toBe("CLIError");
+		expect(error.message).toContain("HTTP 413");
+		expect(error.message).toContain("FUNCTION_PAYLOAD_TOO_LARGE");
+		expect(error.message).toContain("sfo1::abc-123");
+		expect(error.suggestion).toContain("3.2 MB");
+	});
+
+	test("surfaces a tRPC error with its status and the server's message", async () => {
+		const path = writeFixture("small.log", patterned(1024));
+		reject = () =>
+			TRPCClientError.from({
+				error: {
+					message: "Attachments exceed the 10MB total limit",
+					code: -32600,
+					data: { code: "BAD_REQUEST", httpStatus: 400 },
+				},
+			} as never);
+
+		const error = await invoke([path]).catch((thrown) => thrown);
+
+		expect(error.name).toBe("CLIError");
+		expect(error.message).toContain("HTTP 400");
+		expect(error.message).toContain("Attachments exceed the 10MB total limit");
+		expect(error.suggestion).toBeUndefined();
+	});
+
+	test("leaves an expired session to the runner's own wording", async () => {
+		const path = writeFixture("small.log", patterned(1024));
+		const unauthorized = TRPCClientError.from({
+			error: {
+				message: "Not authenticated. Please sign in.",
+				code: -32001,
+				data: { code: "UNAUTHORIZED", httpStatus: 401 },
+			},
+		} as never);
+		reject = () => unauthorized;
+
+		const error = await invoke([path]).catch((thrown) => thrown);
+
+		expect(error).toBe(unauthorized);
 	});
 });

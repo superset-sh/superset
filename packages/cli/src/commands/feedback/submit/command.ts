@@ -9,6 +9,7 @@ import {
 import os from "node:os";
 import { basename, join } from "node:path";
 import { boolean, CLIError, string } from "@superset/cli-framework";
+import { ApiHttpError } from "../../../lib/api-client";
 import { command } from "../../../lib/command";
 
 /**
@@ -55,6 +56,32 @@ function readTail(filePath: string): string {
 		.split("\n")
 		.slice(-DIAGNOSTICS_LOG_TAIL_LINES)
 		.join("\n");
+}
+
+/**
+ * A rejection with an HTTP status behind it, whether tRPC produced it or the
+ * platform in front of the API did (Vercel's 413 arrives as the `cause` of a
+ * "Failed to parse JSON" error). Anything else, such as an expired session or
+ * an unreachable API, keeps the runner's own wording.
+ */
+function describeRejection(
+	error: unknown,
+): { status: number; message: string } | null {
+	if (!(error instanceof Error)) return null;
+	if (error.cause instanceof ApiHttpError) {
+		const { status, statusText, body } = error.cause;
+		return { status, message: body || statusText };
+	}
+	const trpc = error as Error & {
+		data?: { code?: string; httpStatus?: number };
+	};
+	if (
+		typeof trpc.data?.httpStatus === "number" &&
+		trpc.data.code !== "UNAUTHORIZED"
+	) {
+		return { status: trpc.data.httpStatus, message: error.message };
+	}
+	return null;
 }
 
 function collectDiagnostics(): FeedbackAttachment | null {
@@ -150,14 +177,25 @@ export default command({
 			throw new CLIError("At most 5 attachments per submission");
 		}
 
-		await ctx.api.support.submitFeedback.mutate({
-			type: options.type,
-			title: options.title,
-			body,
-			appVersion: process.env.SUPERSET_VERSION ?? "dev",
-			os: `${os.platform()} ${os.release()} ${os.arch()}`,
-			attachments: attachments.length > 0 ? attachments : undefined,
-		});
+		try {
+			await ctx.api.support.submitFeedback.mutate({
+				type: options.type,
+				title: options.title,
+				body,
+				appVersion: process.env.SUPERSET_VERSION ?? "dev",
+				os: `${os.platform()} ${os.release()} ${os.arch()}`,
+				attachments: attachments.length > 0 ? attachments : undefined,
+			});
+		} catch (error) {
+			const rejection = describeRejection(error);
+			if (!rejection) throw error;
+			throw new CLIError(
+				`The server rejected the feedback (HTTP ${rejection.status}): ${rejection.message}`,
+				rejection.status === 413
+					? `The request was over the API's 4.5 MB body cap. Attachments must total under ${ATTACHMENT_LIMIT_LABEL}; attach fewer or smaller files, or a single log so its tail is kept`
+					: undefined,
+			);
+		}
 
 		return {
 			data: { submitted: true, attachments: attachments.length },
