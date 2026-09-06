@@ -309,9 +309,17 @@ export function pickConsumeFirst(
  * Infinity and wins the accountKey tie-break. Either would take the user off
  * an account that still has room, so both strategies keep them for when the
  * active account is at its limit and nothing else is left.
+ *
+ * It asks `relevantWindows`, not `windows`, because the score is what makes an
+ * account unrankable: an account whose only window is model-scoped for a model
+ * the user did not configure reports one window and is still scored on none, so
+ * it too scores a full 100 with nothing behind it.
  */
-function reportsNoWindows(account: DecisionAccount): boolean {
-	return account.windows.length === 0;
+function reportsNoWindows(
+	account: DecisionAccount,
+	modelWindows: readonly string[],
+): boolean {
+	return relevantWindows(account, modelWindows).length === 0;
 }
 
 function isMetered(account: DecisionAccount): boolean {
@@ -379,11 +387,17 @@ export function shouldSwitch(input: ShouldSwitchInput): SwitchDecision {
 					settings.thresholdPercent,
 				),
 		);
-		// A metered login is the last resort here: with no reset to rank it by
-		// it ties every account whose weekly window is absent and wins the
-		// accountKey tie-break, moving the user onto per-token billing while the
-		// plan still has room. Drain it only when nothing on the plan is left.
-		const target = pickConsumeFirst(preferRanked(withRoom, isMetered));
+		// Two last resorts, in this order. Both tie every unknown reset at
+		// Infinity and win the accountKey tie-break, so either would take the
+		// user off an account that still has room. The tiers are nested rather
+		// than one `a || b` predicate because the order matters: a plan account
+		// we merely could not rank still beats moving the user onto per-token
+		// billing, and flattening them would put both in the same bucket and let
+		// the alphabetical tie-break choose the metered login.
+		const rankable = preferRanked(withRoom, (candidate) =>
+			reportsNoWindows(candidate, models),
+		);
+		const target = pickConsumeFirst(preferRanked(rankable, isMetered));
 		if (!target) return stay(activeNearLimit);
 		if (activeNearLimit) return move(target, "threshold");
 		// R12: a proactive move only pays when the target's longest window
@@ -412,7 +426,10 @@ export function shouldSwitch(input: ShouldSwitchInput): SwitchDecision {
 	// read, whether it is an API-billed login (moving the user onto per-token
 	// billing while the plan they pay for still has room) or a stale token
 	// nobody could read. It stays a target of last resort.
-	const best = pickBest(preferRanked(below, reportsNoWindows), models);
+	const best = pickBest(
+		preferRanked(below, (candidate) => reportsNoWindows(candidate, models)),
+		models,
+	);
 	if (!best) return stay(activeNearLimit);
 
 	if (activeNearLimit) return move(best, "threshold");
@@ -420,7 +437,7 @@ export function shouldSwitch(input: ShouldSwitchInput): SwitchDecision {
 	// Nothing we can score has room, so the only candidate left is one whose
 	// usage we cannot read — and the active account is not at its limit yet, so
 	// there is nothing to buy by moving.
-	if (reportsNoWindows(best)) return stay(false);
+	if (reportsNoWindows(best, models)) return stay(false);
 
 	// R15: a proactive move has to be worth the prompt-cache rebuild it costs.
 	if (scoreAccount(best, models) >= activeScore + margin) {

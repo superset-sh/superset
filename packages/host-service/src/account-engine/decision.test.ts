@@ -517,6 +517,79 @@ describe("shouldSwitch", () => {
 		expect(decision.switch && decision.target.accountKey).toBe("key-b");
 	});
 
+	// consume-first ranks by the longest window's reset, and an account nobody
+	// could read has none: it ties the readable account's absent weekly window
+	// at Infinity and wins the accountKey tie-break, moving the user onto an
+	// unread login while 80 points of headroom sit next to it.
+	it("consume-first: prefers an account it can read over an unread stale one", () => {
+		const decision = shouldSwitch({
+			settings: settings({ strategy: "consume-first" }),
+			active: account({
+				windows: [window_("five_hour", "Session (5h)", 95)],
+			}),
+			candidates: [
+				staleUnread(),
+				account({
+					accountId: "acct-z",
+					accountKey: "key-z",
+					selection: "/profiles/z",
+					windows: [window_("five_hour", "Session (5h)", 20)],
+				}),
+			],
+			rotation: { "key-stale": true, "key-z": true },
+			runtime,
+			now: T0,
+		});
+
+		expect(decision).toMatchObject({ switch: true, reasonKind: "threshold" });
+		expect(decision.switch && decision.target.accountKey).toBe("key-z");
+	});
+
+	// The two last resorts are ordered, not one bucket: an unrankable plan
+	// account still beats per-token billing. Folding them into a single
+	// predicate leaves both unranked and lets the accountKey tie-break put the
+	// user on the metered login.
+	it("consume-first: drains an unread plan account before a metered one", () => {
+		const decision = shouldSwitch({
+			settings: settings({ strategy: "consume-first" }),
+			active: account({
+				windows: [window_("five_hour", "Session (5h)", 95)],
+			}),
+			candidates: [metered(), staleUnread()],
+			rotation: { "key-api": true, "key-stale": true },
+			runtime,
+			now: T0,
+		});
+
+		expect(decision).toMatchObject({ switch: true, reasonKind: "threshold" });
+		expect(decision.switch && decision.target.accountKey).toBe("key-stale");
+	});
+
+	// One window, and it is scoped to a model the user did not configure, so
+	// nothing scores it: a full 100 that beats every account we can read, from
+	// an account whose usage we know nothing about.
+	it("never moves onto an account whose only window is an unconfigured model's", () => {
+		const decision = shouldSwitch({
+			settings: settings(),
+			active: account({
+				windows: [window_("five_hour", "Session (5h)", 20)],
+			}),
+			candidates: [
+				account({
+					accountId: "acct-scoped",
+					accountKey: "key-scoped",
+					selection: "/profiles/scoped",
+					windows: [window_("weekly_scoped:Fable", "Weekly · Fable", 0)],
+				}),
+			],
+			rotation: { "key-scoped": true },
+			runtime,
+			now: 0,
+		});
+
+		expect(decision).toEqual({ switch: false, allExhausted: false });
+	});
+
 	it("stays put while auto-switch is off", () => {
 		const decision = shouldSwitch({
 			settings: settings({ enabled: false }),
