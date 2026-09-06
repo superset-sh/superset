@@ -377,4 +377,44 @@ describe("discoverClaudeQuotaTargets", () => {
 			clock.mockRestore();
 		}
 	});
+
+	// The store rebuilds a row one selection at a time, so a dir the dedupe
+	// dropped only reaches it if this pass hands it over — keyed the way the
+	// store keys its entries.
+	it("hands over the dirs the dedupe dropped, by store entry key", async () => {
+		setIdentityBindingRecorder(() => {});
+		const first = mkdtempSync(join(tmpdir(), "superset-claude-dupe-a-"));
+		const second = mkdtempSync(join(tmpdir(), "superset-claude-dupe-b-"));
+		const roots = [first, second];
+		for (const dir of roots) {
+			writeFileSync(
+				join(dir, ".credentials.json"),
+				JSON.stringify({
+					claudeAiOauth: {
+						accessToken: `t-${dir}`,
+						refreshToken: "r",
+						expiresAt: Date.now() + hour,
+					},
+				}),
+			);
+			writeFileSync(
+				join(dir, ".claude.json"),
+				JSON.stringify({ oauthAccount: { accountUuid: "uuid-shared" } }),
+			);
+		}
+		const previous = process.env.CLAUDE_CONFIG_DIR;
+		process.env.CLAUDE_CONFIG_DIR = `${first},${second}`;
+
+		try {
+			const targets = await discoverClaudeQuotaTargets();
+
+			expect(targets.selections).toContain(first);
+			expect(targets.selections).not.toContain(second);
+			expect(targets.duplicateSelections[`claude:${first}`]).toEqual([second]);
+		} finally {
+			if (previous === undefined) delete process.env.CLAUDE_CONFIG_DIR;
+			else process.env.CLAUDE_CONFIG_DIR = previous;
+			for (const root of roots) rmSync(root, { recursive: true, force: true });
+		}
+	});
 });

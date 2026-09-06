@@ -705,9 +705,22 @@ export async function discoverClaudeQuotaTargets(): Promise<{
 	selections: Array<string | null>;
 	staticAccounts: UsageAccount[];
 	complete: boolean;
+	/** Dirs the identity dedupe dropped, by store entry key. The store
+	 * refetches one selection at a time, and that read never sees the other
+	 * dirs holding the same login, so the survivor's row would come back
+	 * without them and strand a profile nothing can remove. */
+	duplicateSelections: Record<string, string[]>;
 }> {
 	const { credentials, signedOutProfiles, apiProfiles, complete } =
 		await discoverClaudeCredentials();
+	const duplicateSelections: Record<string, string[]> = {};
+	for (const credential of credentials) {
+		if (!credential.duplicateSelections?.length) continue;
+		// `quotaEntryKey("claude", selection)` spelled out: the store sits
+		// above this module, and the system-default login keys on "default".
+		duplicateSelections[`claude:${credential.selection ?? "default"}`] =
+			credential.duplicateSelections;
+	}
 	return {
 		selections: credentials.map((credential) => credential.selection),
 		staticAccounts: [
@@ -715,6 +728,7 @@ export async function discoverClaudeQuotaTargets(): Promise<{
 			...signedOutProfiles.map(claudeSignedOutAccount),
 		],
 		complete,
+		duplicateSelections,
 	};
 }
 
