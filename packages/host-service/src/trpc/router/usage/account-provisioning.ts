@@ -141,7 +141,9 @@ export interface ProvisionAccountsDeps {
  *
  * Nothing is lost by narrowing, because every path that hands Superset an
  * account already provisions that dir then and there: prepareAccount on the
- * add-account flow, and setDefaultAccount on every switch. A dir that arrived
+ * add-account flow, setDefaultAccount on every switch the user makes, and the
+ * account engine's own switch — ensureActiveClaudeDir for Claude,
+ * provisionCodexAccount for Codex (account-engine.ts). A dir that arrived
  * outside the UI is provisioned the first time it is selected.
  */
 export async function provisionSelectedAccounts(

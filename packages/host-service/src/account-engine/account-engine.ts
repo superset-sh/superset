@@ -39,6 +39,7 @@ import type {
 import {
 	activeClaudeConfigDir,
 	ensureActiveClaudeDir,
+	provisionCodexAccount,
 } from "../trpc/router/usage/account-provisioning.ts";
 import { updateClaudeStateFile } from "../trpc/router/usage/claude-state-file.ts";
 import { readCodexSelectionAccountId } from "../trpc/router/usage/codex.ts";
@@ -201,6 +202,9 @@ export interface AccountEngineDeps {
 	swap?: typeof swapClaudeLogin;
 	seed?: typeof seedActiveClaudeLogin;
 	ensureActiveDir?: typeof ensureActiveClaudeDir;
+	/** Injected for the same reason `ensureActiveDir` is: the real one shares
+	 * session state into the caller's own ambient Codex home. */
+	provisionCodex?: typeof provisionCodexAccount;
 	setPointer?: typeof setDefaultAccountSelection;
 	/** The host pointer the agent wrappers resolve on every launch. It seeds
 	 * the active account on a first run (KTD4). */
@@ -392,6 +396,7 @@ export class AccountEngine {
 	private readonly swap: typeof swapClaudeLogin;
 	private readonly seed: typeof seedActiveClaudeLogin;
 	private readonly ensureActiveDir: typeof ensureActiveClaudeDir;
+	private readonly provisionCodex: typeof provisionCodexAccount;
 	private readonly setPointer: typeof setDefaultAccountSelection;
 	private readonly readPointerSelections: typeof getDefaultAccountSelections;
 	private readonly writeClaudeState: typeof updateClaudeStateFile;
@@ -475,6 +480,7 @@ export class AccountEngine {
 		this.swap = deps.swap ?? swapClaudeLogin;
 		this.seed = deps.seed ?? seedActiveClaudeLogin;
 		this.ensureActiveDir = deps.ensureActiveDir ?? ensureActiveClaudeDir;
+		this.provisionCodex = deps.provisionCodex ?? provisionCodexAccount;
 		this.setPointer = deps.setPointer ?? setDefaultAccountSelection;
 		this.readPointerSelections =
 			deps.readPointerSelections ?? getDefaultAccountSelections;
@@ -1551,6 +1557,23 @@ export class AccountEngine {
 			this.setPointer(this.db, "codex", input.target.selection);
 		} catch (error) {
 			return { ok: false, code: "pointer-failed", reason: errorText(error) };
+		}
+		// A Codex home is a whole config root, not just a login, and an
+		// auto-switch can land on one that never passed the add-account flow —
+		// any `~/.codex*` dir with a parsable auth.json is rotatable. Without
+		// provisioning it, sessions do not pool into the ambient home, so the
+		// mover's `codex resume` cannot find the rollout it just moved.
+		// Best-effort — the pointer is already written, and provisioning
+		// retries on the next switch and at host boot.
+		if (input.target.selection !== null) {
+			try {
+				await this.provisionCodex(input.target.selection);
+			} catch (error) {
+				console.warn(
+					`[account-engine] provisioning the Codex home ${input.target.selection} failed (continuing):`,
+					error,
+				);
+			}
 		}
 		return { ok: true };
 	}
