@@ -174,12 +174,18 @@ function configDirOf(ref: ClaudeLoginStoreRef): string | null {
 	return ref.kind === "profile" ? ref.dir : null;
 }
 
-function isInside(path: string, base: string): boolean {
-	// `resolve` drops a trailing separator — a $SUPERSET_HOME_DIR spelled
-	// `~/.superset/` would otherwise be inside nothing — and normalizes the
-	// rest, so the prefix check compares like with like.
-	const root = resolve(base);
-	return path === root || path.startsWith(`${root}${sep}`);
+async function isInside(
+	real: string,
+	base: string,
+	ctx: SwapContext,
+): Promise<boolean> {
+	// Both sides canonical: the candidate was resolved above, so a base spelled
+	// through a symlink (`/home` -> `/var/home`, `~/.superset` on another
+	// volume) has to be resolved too or nothing is ever inside it. `resolve` is
+	// the fallback for a root that does not exist yet, and drops a trailing
+	// separator either way.
+	const root = await ctx.fs.realpath(base).catch(() => resolve(base));
+	return real === root || real.startsWith(`${root}${sep}`);
 }
 
 /**
@@ -203,7 +209,10 @@ async function validateDir(
 	if (!info?.isDirectory()) return `${dir} is not a directory`;
 	if (info.uid !== ctx.uid) return `${dir} is not owned by this user`;
 	if ((info.mode & 0o022) !== 0) return `${dir} is group- or other-writable`;
-	if (!isInside(real, ctx.homeDir) && !isInside(real, ctx.supersetHomeDir)) {
+	if (
+		!(await isInside(real, ctx.homeDir, ctx)) &&
+		!(await isInside(real, ctx.supersetHomeDir, ctx))
+	) {
 		return `${dir} is outside the home and Superset home dirs`;
 	}
 	return null;
@@ -786,6 +795,32 @@ async function applyToActiveDir(
 }
 
 /**
+ * Why the login sitting in the active dir cannot be the one `ownerBinding`
+ * names: it carries no readable account identity, or one that is somebody
+ * else's. Null when the save-back is safe, including when the caller offered
+ * no expectation, which keeps today's behaviour.
+ */
+async function activeIdentityMismatch(
+	activeDir: string,
+	ownerBinding: ClaudeLoginStoreRef,
+	expectedOwnerAccountId: string | null | undefined,
+	ctx: SwapContext,
+): Promise<string | null> {
+	if (!expectedOwnerAccountId) return null;
+	const activeIdentity = await readIdentity(
+		claudeStatePath(activeDir, ctx.homeDir),
+		ctx,
+	);
+	if (!activeIdentity?.accountUuid) {
+		return `the login in ${activeDir} has no readable account identity, so it cannot be confirmed as the one bound to ${storeDir(ownerBinding, ctx)}`;
+	}
+	if (activeIdentity.accountUuid !== expectedOwnerAccountId) {
+		return `the login in ${activeDir} belongs to account ${activeIdentity.accountUuid}, not the one bound to ${storeDir(ownerBinding, ctx)}`;
+	}
+	return null;
+}
+
+/**
  * Why `ownerBinding`'s store cannot take the save-back: it names a different
  * account than the caller expects, or it holds a login whose account cannot be
  * read at all. Null when the write is safe — including when the caller offered
@@ -885,23 +920,14 @@ export async function swapClaudeLogin(input: {
 	// identity that is missing or unreadable fails closed: an unnamed login
 	// saved into the owner's store signs the owner out just the same. A dir
 	// holding no credential at all has nothing to save back, so it proceeds.
-	if (input.expectedOwnerAccountId && previous) {
-		const activeIdentity = await readIdentity(
-			claudeStatePath(input.activeDir, ctx.homeDir),
+	if (previous) {
+		const activeCheck = await activeIdentityMismatch(
+			input.activeDir,
+			ownerBinding,
+			input.expectedOwnerAccountId,
 			ctx,
 		);
-		if (!activeIdentity?.accountUuid) {
-			return failure(
-				"owner-unknown",
-				`the login in ${input.activeDir} has no readable account identity, so it cannot be confirmed as the one bound to ${storeDir(ownerBinding, ctx)}`,
-			);
-		}
-		if (activeIdentity.accountUuid !== input.expectedOwnerAccountId) {
-			return failure(
-				"owner-unknown",
-				`the login in ${input.activeDir} belongs to account ${activeIdentity.accountUuid}, not the one bound to ${storeDir(ownerBinding, ctx)}`,
-			);
-		}
+		if (activeCheck) return failure("owner-unknown", activeCheck);
 	}
 
 	// An unmanaged owner is never validated and never written: the dir is not
@@ -925,21 +951,37 @@ export async function swapClaudeLogin(input: {
 				`${ownerRead.credentialsPath} exists but could not be read; refusing to write over it`,
 			);
 		}
-		if (!wouldRegress(oauthOf(ownerRead), previous)) {
-			// The other half of the same staleness: the caller's binding says
-			// whose store this is, but a `/login` in that profile since
-			// discovery re-authenticated it as somebody else, and saving the
-			// active login over it destroys that login and mislabels the
-			// survivor. Re-read the identity beside the store in the moment
-			// before the write. A store that holds a login but names no
-			// account is unreadable, not empty, and fails closed the same way.
-			const ownerCheck = await ownerStoreMismatch(
+		// The other half of the same staleness: the caller's binding says whose
+		// store this is, but a `/login` in that profile since discovery
+		// re-authenticated it as somebody else, and saving the active login over
+		// it destroys that login and mislabels the survivor. Re-read the identity
+		// beside the store in the moment before the write. A store that holds a
+		// login but names no account is unreadable, not empty, and fails closed
+		// the same way. Judged before `wouldRegress`, not inside it: a `/login` in
+		// the owner profile is exactly what makes its store look newer, so nesting
+		// this skipped the check in the case it exists to catch.
+		const ownerCheck = await ownerStoreMismatch(
+			ownerBinding,
+			ownerRead,
+			input.expectedOwnerAccountId,
+			ctx,
+		);
+		if (ownerCheck) return failure("owner-unknown", ownerCheck);
+		// The login this saves back, as it stands in the moment before the write: a
+		// session refreshed it while the owner store was read, and saving the value
+		// from before that write loses the rotated refresh token.
+		const current = oauthOf(await readStore(activeRef, ctx)) ?? previous;
+		// A login that moved may be a different account's, not just a newer token.
+		if (hashOauth(current) !== hashOauth(previous)) {
+			const movedCheck = await activeIdentityMismatch(
+				input.activeDir,
 				ownerBinding,
-				ownerRead,
 				input.expectedOwnerAccountId,
 				ctx,
 			);
-			if (ownerCheck) return failure("owner-unknown", ownerCheck);
+			if (movedCheck) return failure("owner-unknown", movedCheck);
+		}
+		if (!wouldRegress(oauthOf(ownerRead), current)) {
 			const planned = await planStoreWrite(ownerBinding, ownerRead, ctx);
 			if (!planned.ok) return planned.result;
 			// The file write follows the store the login was read from, and for
@@ -955,7 +997,7 @@ export async function swapClaudeLogin(input: {
 				if (pathInvalid) return failure("invalid-owner", pathInvalid);
 			}
 			try {
-				await applyStoreWrite(ownerRead, planned.plan, previous, ctx);
+				await applyStoreWrite(ownerRead, planned.plan, current, ctx);
 			} catch (error) {
 				return failure(
 					"write-failed",

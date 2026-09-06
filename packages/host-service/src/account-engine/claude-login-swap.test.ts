@@ -690,6 +690,83 @@ describe("swapClaudeLogin on a file-backed store", () => {
 		expect(readCredentials(f.activeDir)).toEqual(before);
 	});
 
+	// The same broken binding, with the stray `/login` in the owner profile
+	// left holding the newer expiry — which is the usual shape, since a fresh
+	// login wins on at least one of the two timestamps `wouldRegress` ORs.
+	// Measured before this gate was hoisted: ok:true, and A's only live
+	// credential survived nowhere but a `.superset-swap-bak` copy.
+	it("refuses the save-back when the owner store is another account's and looks newer", async () => {
+		const f = fixture();
+		writeCredentials(f.profileA, { claudeAiOauth: oauth("t-c", 9_000) });
+		writeFileSync(
+			join(f.profileA, ".claude.json"),
+			JSON.stringify(identity("c")),
+		);
+		const before = readCredentials(f.activeDir);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			expectedOwnerAccountId: "uuid-a",
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "owner-unknown" });
+		expect(readCredentials(f.profileA).claudeAiOauth).toEqual(
+			oauth("t-c", 9_000),
+		);
+		// A's login is still live in the active dir, not only in a backup.
+		expect(readCredentials(f.activeDir)).toEqual(before);
+		expect(readdirSync(f.activeDir).sort()).toEqual([
+			".claude.json",
+			".credentials.json",
+		]);
+	});
+
+	// Reads, two validateDir calls and — on darwin — a Keychain probe sit
+	// between the read of the active login and the owner write, and a session
+	// refreshing in that window rotates the refresh token. Saving the value
+	// read before it loses that token.
+	it("saves the login the active dir holds when the owner write runs", async () => {
+		const f = fixture();
+		let refreshed = false;
+		const deps: ClaudeSwapDeps = {
+			...f.deps,
+			fs: {
+				readFile: async (path: string, encoding: "utf-8") => {
+					const { readFile } = await import("node:fs/promises");
+					// The CLI refreshes the active login while the owner store is read.
+					if (path === join(f.profileA, ".credentials.json") && !refreshed) {
+						refreshed = true;
+						writeCredentials(f.activeDir, {
+							claudeAiOauth: oauth("t-a-rotated", 7_000),
+							mcpOAuth: { "active-server": { token: "m-active" } },
+						});
+					}
+					return readFile(path, encoding);
+				},
+			},
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			expectedOwnerAccountId: "uuid-a",
+			activeDir: f.activeDir,
+			deps,
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		expect(refreshed).toBe(true);
+		const owner = readCredentials(f.profileA);
+		expect(owner.claudeAiOauth).toEqual(oauth("t-a-rotated", 7_000));
+		expect(owner.mcpOAuth).toEqual({ "a-server": { token: "m-a" } });
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-b", 2_000),
+		);
+	});
+
 	it("saves back as usual when the active identity is the expected owner", async () => {
 		const f = fixture();
 
@@ -912,6 +989,38 @@ describe("swapClaudeLogin on a file-backed store", () => {
 
 	// $SUPERSET_HOME_DIR is a user-supplied string: spelled with a trailing
 	// slash it used to make every dir under it "outside the Superset home".
+	// `/home` is a symlink on ostree hosts and $SUPERSET_HOME_DIR can name a
+	// symlinked volume: the candidate is realpath'd, so a base left unresolved
+	// put every dir "outside the home and Superset home dirs" and no swap or
+	// seed could ever run.
+	it("accepts dirs under a home and Superset home spelled through symlinks", async () => {
+		const f = fixture();
+		const links = tempRoot("swap-links");
+		const homeLink = join(links, "home");
+		const supersetLink = join(links, "superset");
+		symlinkSync(f.home, homeLink);
+		symlinkSync(f.superset, supersetLink);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(join(homeLink, ".claude-b")),
+			ownerBinding: asProfile(join(homeLink, ".claude-a")),
+			activeDir: join(supersetLink, "accounts", "claude-active"),
+			deps: {
+				...f.deps,
+				homeDir: homeLink,
+				supersetHomeDir: supersetLink,
+			},
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-b", 2_000),
+		);
+		expect(readCredentials(f.profileA).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+	});
+
 	it("accepts an active dir under a Superset home spelled with a trailing slash", async () => {
 		const f = fixture();
 
