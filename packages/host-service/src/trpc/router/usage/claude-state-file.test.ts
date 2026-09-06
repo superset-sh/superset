@@ -30,6 +30,35 @@ afterEach(() => {
 });
 
 describe("updateClaudeStateFile", () => {
+	// Replacing the file means the account identity, the onboarding flags and
+	// every project's settings go. Failing to prune an old rescue already
+	// warned; discarding the live state said nothing, and the copy that makes
+	// it recoverable is a dot-suffixed sibling nobody would think to look for.
+	it("says so when it replaces state it could not parse", async () => {
+		const dir = tempDir();
+		const statePath = join(dir, ".claude.json");
+		writeFileSync(statePath, "{half-writ");
+		const warn = spyOn(console, "warn").mockImplementation(() => {});
+
+		try {
+			await updateClaudeStateFile(statePath, (state) => ({
+				...state,
+				seeded: true,
+			}));
+
+			const said = warn.mock.calls.map((call) => String(call[0])).join("\n");
+			expect(said).toContain(statePath);
+			expect(said).toContain(".superset-swap-bak");
+			// The path it names is the copy that actually holds the old bytes.
+			const named = said.split(" ").find((word) => word.includes(".superset-swap-bak"));
+			expect(readFileSync((named ?? "").replace(/[.]$/, ""), "utf-8")).toBe(
+				"{half-writ",
+			);
+		} finally {
+			warn.mockRestore();
+		}
+	});
+
 	// The guard has to notice a writer that replaced the file. mtime alone
 	// cannot: the plain Stats field is whole milliseconds and this cycle is
 	// far shorter, so a same-size rewrite in the same bucket used to be
@@ -185,9 +214,14 @@ describe("updateClaudeStateFile", () => {
 			console.warn = warn;
 		}
 
-		expect(warnings).toHaveLength(1);
-		expect(String(warnings[0]?.[0])).toContain(file);
-		expect(String(warnings[0]?.[1])).toContain(stuck);
+		// The unparsable state is warned about separately, so pick the prune
+		// warning out rather than assuming it is the only one.
+		const prune = warnings.find((args) =>
+			String(args[0]).includes("could not prune"),
+		);
+		expect(prune).toBeDefined();
+		expect(String(prune?.[0])).toContain(file);
+		expect(String(prune?.[1])).toContain(stuck);
 		expect(existsSync(stuck)).toBe(true);
 		expect(JSON.parse(readFileSync(file, "utf-8"))).toEqual({ userID: "u" });
 	});

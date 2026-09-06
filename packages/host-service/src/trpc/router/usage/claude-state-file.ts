@@ -102,18 +102,23 @@ async function backupUnparsableState(
 	raw: string,
 ): Promise<void> {
 	const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+	const backupPath = `${statePath}.${stamp}.${randomUUID()}${BACKUP_MARKER}`;
+	// Everything in the file is about to be replaced by state built from {} —
+	// the account identity, the onboarding flags, every project's settings.
+	// Failing to prune an old rescue already warns; discarding the live state
+	// said nothing at all, and the copy that makes it recoverable is a
+	// dot-suffixed sibling the user has no reason to know exists.
+	console.warn(
+		`Superset could not parse ${statePath}; its previous contents were copied to ${backupPath} before being replaced.`,
+	);
 	// The uuid keeps two rescues in the same millisecond apart: sharing a name,
 	// the second would fail EEXIST and its bytes would be dropped as though the
 	// first backup already held them. The stamp still leads, so the names sort
 	// oldest-first for the prune below.
-	await writeFile(
-		`${statePath}.${stamp}.${randomUUID()}${BACKUP_MARKER}`,
-		raw,
-		{
-			mode: 0o600,
-			flag: "wx",
-		},
-	);
+	await writeFile(backupPath, raw, {
+		mode: 0o600,
+		flag: "wx",
+	});
 	try {
 		const prefix = `${basename(statePath)}.`;
 		const existing = (await readdir(dirname(statePath)))
