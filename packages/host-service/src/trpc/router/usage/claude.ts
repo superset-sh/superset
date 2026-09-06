@@ -440,10 +440,20 @@ export function dedupeClaudeCredentials(
 			out.push(credential);
 			continue;
 		}
-		// Otherwise the freshest survives: keeping whichever the walk saw first
-		// let a lapsed ~/.claude shadow a live profile dir, since the default
-		// is always probed before the sorted profile dirs.
-		const winner = pickFreshest([kept, credential], now) ?? kept;
+		// Both copies are equally usable here, so which one survives is about
+		// which row the rest of the system needs. The default slot is the one
+		// a null pointer and the active badge fall back to, and
+		// duplicateSelections has no room for a null selection — collapsing
+		// onto the profile dir would leave ~/.claude with no row at all.
+		// Otherwise the freshest survives: keeping whichever the walk saw
+		// first let a stale copy shadow a newer one, since the default is
+		// always probed before the sorted profile dirs.
+		const winner =
+			kept.selection === null
+				? kept
+				: credential.selection === null
+					? credential
+					: (pickFreshest([kept, credential], now) ?? kept);
 		const loser = winner === kept ? credential : kept;
 		// A dropped dir appears in no list this pass builds — not a credential,
 		// not a signed-out profile — so nothing would offer to remove the

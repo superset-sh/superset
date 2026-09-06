@@ -131,10 +131,10 @@ describe("dedupeClaudeCredentials", () => {
 		).toEqual(["uuid-a", "uuid-b"]);
 	});
 
-	it("collapses one identity found in two dirs, keeping the freshest", () => {
-		// The walk always probes the system default before the sorted profile
-		// dirs, so keeping whichever it saw first let a lapsed ~/.claude
-		// shadow a live profile dir holding the same account.
+	// Both copies are usable, so the row that survives is the one the rest of
+	// the system needs: the default slot is what a null pointer and the active
+	// badge fall back to, and duplicateSelections has no room for a null.
+	it("collapses onto the default slot when both copies are live", () => {
 		const fromDefault = credential({
 			accessToken: "one",
 			accountId: "uuid-a",
@@ -150,11 +150,33 @@ describe("dedupeClaudeCredentials", () => {
 			refreshTokenExpiresAt: now + 10 * hour,
 		});
 
-		expect(
-			dedupeClaudeCredentials([fromDefault, fromProfile], now).map(
-				(one) => one.accessToken,
-			),
-		).toEqual(["two"]);
+		const kept = dedupeClaudeCredentials([fromDefault, fromProfile], now);
+		expect(kept.map((one) => one.accessToken)).toEqual(["one"]);
+		expect(kept[0]?.selection).toBeNull();
+		expect(kept[0]?.duplicateSelections).toEqual(["/home/u/.claude-a"]);
+	});
+
+	// Between two profile dirs there is no default to preserve, so the newer
+	// snapshot wins — first-seen let a stale copy shadow a fresher one.
+	it("collapses two profile dirs onto the freshest", () => {
+		const older = credential({
+			accessToken: "old",
+			accountId: "uuid-a",
+			selection: "/home/u/.claude-a",
+			expiresAt: now + hour,
+			refreshTokenExpiresAt: now + hour,
+		});
+		const newer = credential({
+			accessToken: "new",
+			accountId: "uuid-a",
+			selection: "/home/u/.claude-b",
+			expiresAt: now + 10 * hour,
+			refreshTokenExpiresAt: now + 10 * hour,
+		});
+
+		const kept = dedupeClaudeCredentials([older, newer], now);
+		expect(kept.map((one) => one.accessToken)).toEqual(["new"]);
+		expect(kept[0]?.duplicateSelections).toEqual(["/home/u/.claude-a"]);
 	});
 
 	// One login in two dirs is one account but two run targets. When one is
@@ -422,6 +444,10 @@ describe("discoverClaudeQuotaTargets", () => {
 		const first = mkdtempSync(join(tmpdir(), "superset-claude-dupe-a-"));
 		const second = mkdtempSync(join(tmpdir(), "superset-claude-dupe-b-"));
 		const roots = [first, second];
+		// One expiry for both: two calls to Date.now() can land a millisecond
+		// apart, and the dedupe keeps the fresher copy, so a per-dir value
+		// made which dir survived a coin flip.
+		const expiresAt = Date.now() + hour;
 		for (const dir of roots) {
 			writeFileSync(
 				join(dir, ".credentials.json"),
@@ -429,7 +455,7 @@ describe("discoverClaudeQuotaTargets", () => {
 					claudeAiOauth: {
 						accessToken: `t-${dir}`,
 						refreshToken: "r",
-						expiresAt: Date.now() + hour,
+						expiresAt,
 					},
 				}),
 			);
