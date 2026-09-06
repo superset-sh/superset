@@ -15,6 +15,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import {
 	activeClaudeConfigDirPath,
+	canonicalAccountHome,
 	readActiveClaudeBinding,
 	recordIdentityBindings,
 } from "./default-account";
@@ -287,7 +288,7 @@ async function readProfileCredential(
  * only the freshest of the three surfaces (a stale sibling would otherwise
  * render as a phantom expired account).
  */
-async function discoverClaudeCredentials(): Promise<{
+async function discoverClaudeCredentials(homeDir?: string): Promise<{
 	credentials: ClaudeOauthCredential[];
 	signedOutProfiles: Awaited<ReturnType<typeof discoverClaudeProfiles>>;
 	apiProfiles: Awaited<ReturnType<typeof discoverClaudeProfiles>>;
@@ -295,7 +296,7 @@ async function discoverClaudeCredentials(): Promise<{
 	 * this list is a subset of the logins on disk. */
 	complete: boolean;
 }> {
-	const home = homedir();
+	const home = homeDir ?? homedir();
 	// API-billed profiles have no quota to fetch and their credentials stay
 	// unread; only subscription profiles go through the credential readers.
 	const { profiles: allProfiles, complete } =
@@ -319,9 +320,21 @@ async function discoverClaudeCredentials(): Promise<{
 		sourceLabel: string;
 		configDir: string;
 	}> = [];
+	// Profile discovery permanently excludes the CLI's own default slots, so
+	// they never reach discoveredDirs — and exporting CLAUDE_CONFIG_DIR at its
+	// documented default value is ordinary. Without this the default login is
+	// listed twice: readDefaultCredential keys it on its account id, while the
+	// explicit read finds no <dir>/.claude.json (the default slot keeps state
+	// next door at ~/.claude.json) and keys the same token on `token:`.
+	const defaultSlots = new Set(
+		[join(home, ".claude"), join(home, ".config", "claude")].map(
+			canonicalAccountHome,
+		),
+	);
 	for (const dir of (process.env.CLAUDE_CONFIG_DIR ?? "").split(",")) {
 		const configDir = dir.trim();
 		if (!configDir || discoveredDirs.has(configDir)) continue;
+		if (defaultSlots.has(canonicalAccountHome(configDir))) continue;
 		// The host-service may itself be launched on the active dir; it holds a
 		// copy of the account that is active, not an account of its own (KTD4).
 		if (await isActiveClaudeConfigDir(configDir)) continue;
@@ -701,7 +714,7 @@ export async function fetchClaudeAccounts(): Promise<UsageAccount[]> {
  * entries missing from this result, and a truncated list is not proof an
  * account is gone.
  */
-export async function discoverClaudeQuotaTargets(): Promise<{
+export async function discoverClaudeQuotaTargets(homeDir?: string): Promise<{
 	selections: Array<string | null>;
 	staticAccounts: UsageAccount[];
 	complete: boolean;
@@ -712,7 +725,7 @@ export async function discoverClaudeQuotaTargets(): Promise<{
 	duplicateSelections: Record<string, string[]>;
 }> {
 	const { credentials, signedOutProfiles, apiProfiles, complete } =
-		await discoverClaudeCredentials();
+		await discoverClaudeCredentials(homeDir);
 	const duplicateSelections: Record<string, string[]> = {};
 	for (const credential of credentials) {
 		if (!credential.duplicateSelections?.length) continue;

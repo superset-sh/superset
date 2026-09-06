@@ -417,4 +417,44 @@ describe("discoverClaudeQuotaTargets", () => {
 			for (const root of roots) rmSync(root, { recursive: true, force: true });
 		}
 	});
+
+	// Exporting CLAUDE_CONFIG_DIR at its documented default value is ordinary,
+	// and profile discovery permanently excludes the default slots — so without
+	// a guard here the one login is listed twice: once keyed on its account id
+	// by the default read, once keyed on the same token by the explicit read,
+	// which finds no <dir>/.claude.json because the default slot keeps its
+	// state next door at ~/.claude.json.
+	it("does not list the default slot again when CLAUDE_CONFIG_DIR names it", async () => {
+		setIdentityBindingRecorder(() => {});
+		const home = mkdtempSync(join(tmpdir(), "superset-claude-default-slot-"));
+		const slot = join(home, ".claude");
+		mkdirSync(slot);
+		writeFileSync(
+			join(slot, ".credentials.json"),
+			JSON.stringify({
+				claudeAiOauth: {
+					accessToken: "tok-default",
+					refreshToken: "r",
+					expiresAt: Date.now() + hour,
+				},
+			}),
+		);
+		// The default slot's state lives beside the dir, not inside it.
+		writeFileSync(
+			join(home, ".claude.json"),
+			JSON.stringify({ oauthAccount: { accountUuid: "uuid-default" } }),
+		);
+		const previous = process.env.CLAUDE_CONFIG_DIR;
+		process.env.CLAUDE_CONFIG_DIR = slot;
+
+		try {
+			expect((await discoverClaudeQuotaTargets(home)).selections).not.toContain(
+				slot,
+			);
+		} finally {
+			if (previous === undefined) delete process.env.CLAUDE_CONFIG_DIR;
+			else process.env.CLAUDE_CONFIG_DIR = previous;
+			rmSync(home, { recursive: true, force: true });
+		}
+	});
 });
