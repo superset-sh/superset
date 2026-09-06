@@ -616,6 +616,28 @@ describe("away summary", () => {
 		expect(toasts).toEqual(["2 account switches while you were away"]);
 	});
 
+	// The cap keeps the hosts whose last switch is newest, so the host with the
+	// oldest one is the entry dropped — including when it is the host doing the
+	// writing, which used to mean its marker was never stored and it summarised
+	// the same weeks-old switches on every launch.
+	test("a host whose switches are the oldest still persists its marker", async () => {
+		const stored: Record<string, number> = {};
+		for (let index = 0; index < 8; index += 1) {
+			stored[`http://host-away-cap-${index}`] = 90_000 + index;
+		}
+		localStorage.setItem(
+			"superset.accountSwitch.lastSeenAt",
+			JSON.stringify(stored),
+		);
+		historyEntries = [{ at: 12_000, agent: "claude", reasonKind: "threshold" }];
+
+		await mountSubscriber("http://host-away-cap-oldest");
+
+		const watermarks = readWatermarks() as Record<string, number>;
+		expect(watermarks["http://host-away-cap-oldest"]).toBe(12_000);
+		expect(Object.keys(watermarks)).toHaveLength(8);
+	});
+
 	test("an unreachable host is left to try again, without a toast", async () => {
 		historyError = new Error("connection refused");
 

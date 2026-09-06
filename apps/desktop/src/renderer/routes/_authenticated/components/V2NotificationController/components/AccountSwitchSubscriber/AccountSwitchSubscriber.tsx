@@ -30,7 +30,7 @@ const AWAY_SUMMARY_LIMIT = 50;
  * subscriber mounts per host, so a renderer-wide number let a second host's
  * newer timestamp swallow the first host's summary. Bounded: a
  * `{ [hostUrl]: epochMs }` map capped to `MAX_WATERMARK_HOSTS` entries, the
- * newest kept.
+ * host being written plus the newest of the rest.
  */
 const LAST_SEEN_AT_KEY = "superset.accountSwitch.lastSeenAt";
 const MAX_WATERMARK_HOSTS = 8;
@@ -412,18 +412,30 @@ function rememberLastSeenAt(hostUrl: string, ...timestamps: number[]): void {
 	if (newest <= (watermarks[hostUrl] ?? 0)) return;
 	watermarks[hostUrl] = newest;
 	try {
-		localStorage.setItem(LAST_SEEN_AT_KEY, JSON.stringify(cap(watermarks)));
+		localStorage.setItem(
+			LAST_SEEN_AT_KEY,
+			JSON.stringify(cap(watermarks, hostUrl)),
+		);
 	} catch {
 		// A blocked or full localStorage only costs a repeated summary.
 	}
 }
 
 /** Keeps the newest few hosts: the key must not grow with every host this
- * renderer has ever connected to. */
-function cap(watermarks: Record<string, number>): Record<string, number> {
+ * renderer has ever connected to. `written` is the host this write is for and
+ * always survives — it is the oldest entry exactly when its own switches are
+ * the least recent, and evicting it means its watermark is never stored at all
+ * and it summarises the same old switches on every launch. */
+function cap(
+	watermarks: Record<string, number>,
+	written: string,
+): Record<string, number> {
 	const entries = Object.entries(watermarks);
 	if (entries.length <= MAX_WATERMARK_HOSTS) return watermarks;
-	return Object.fromEntries(
-		entries.sort(([, a], [, b]) => b - a).slice(0, MAX_WATERMARK_HOSTS),
-	);
+	const kept = entries
+		.filter(([host]) => host !== written)
+		.sort(([, a], [, b]) => b - a)
+		.slice(0, MAX_WATERMARK_HOSTS - 1);
+	kept.push([written, watermarks[written]]);
+	return Object.fromEntries(kept);
 }
