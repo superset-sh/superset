@@ -46,7 +46,9 @@ export function SwitchHistory({
 	});
 
 	const accountLabel = (label: string | null): string =>
-		hideEmails && label ? hiddenEmail : (label ?? unknownAccount);
+		hideEmails && label?.includes("@")
+			? hiddenEmail
+			: (label ?? unknownAccount);
 
 	const reasonText = (entry: SwitchHistoryEntry): string => {
 		switch (entry.reasonKind) {
@@ -102,11 +104,19 @@ export function SwitchHistory({
 			<span className="text-xs font-medium">
 				<Trans>Switch history</Trans>
 			</span>
+			{isError && entries.length > 0 ? (
+				<div className="rounded-lg border border-dashed px-3 py-2 text-[11px] text-muted-foreground">
+					<Trans>
+						Last read failed, so this list may be out of date. Reopen this page
+						to try again.
+					</Trans>
+				</div>
+			) : null}
 			{isLoading ? (
 				<div className="rounded-lg border border-dashed px-3 py-2 text-[11px] text-muted-foreground">
 					<Trans>Reading switch history…</Trans>
 				</div>
-			) : isError ? (
+			) : isError && entries.length === 0 ? (
 				<div className="rounded-lg border border-dashed px-3 py-2 text-[11px] text-muted-foreground">
 					<Trans>
 						History is unavailable right now. Reopen this page to try again.
@@ -148,9 +158,9 @@ export function SwitchHistory({
 							</TableRow>
 						</TableHeader>
 						<TableBody>
-							{entries.map((entry) => (
+							{entries.map((entry, index) => (
 								<TableRow
-									key={`${entry.at}-${entry.agent}-${entry.reasonKind}`}
+									key={`${entry.at}-${entry.agent}-${entry.reasonKind}-${index}`}
 								>
 									<TableCell className="whitespace-nowrap px-2 py-1 text-muted-foreground tabular-nums">
 										{formatDateTime(entry.at, {
@@ -166,7 +176,9 @@ export function SwitchHistory({
 									<TableCell
 										className={cn(
 											"max-w-[12rem] truncate px-2 py-1 text-muted-foreground",
-											hideEmails && entry.fromLabel && "select-none blur-[5px]",
+											hideEmails &&
+												entry.fromLabel?.includes("@") &&
+												"select-none blur-[5px]",
 										)}
 									>
 										{accountLabel(entry.fromLabel)}
@@ -174,7 +186,9 @@ export function SwitchHistory({
 									<TableCell
 										className={cn(
 											"max-w-[12rem] truncate px-2 py-1",
-											hideEmails && entry.toLabel && "select-none blur-[5px]",
+											hideEmails &&
+												entry.toLabel?.includes("@") &&
+												"select-none blur-[5px]",
 										)}
 									>
 										{accountLabel(entry.toLabel)}

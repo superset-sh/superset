@@ -42,11 +42,11 @@ const newer: Entry = {
 	fallbackRestart: true,
 };
 
-function renderHistory(
+function history(
 	entries: Entry[],
 	props: Partial<Parameters<typeof SwitchHistory>[0]> = {},
 ) {
-	const view = render(
+	return (
 		<SwitchHistory
 			entries={entries}
 			isLoading={false}
@@ -54,8 +54,15 @@ function renderHistory(
 			agentLabels={AGENT_LABELS}
 			hideEmails={false}
 			{...props}
-		/>,
+		/>
 	);
+}
+
+function renderHistory(
+	entries: Entry[],
+	props: Partial<Parameters<typeof SwitchHistory>[0]> = {},
+) {
+	const view = render(history(entries, props));
 	return within(view.baseElement as HTMLElement);
 }
 
@@ -87,13 +94,67 @@ describe("SwitchHistory", () => {
 		expect(ui.getByText(/History is unavailable right now/)).toBeTruthy();
 	});
 
+	// Two switches recorded in the same tick share every other field: a key
+	// built from them alone collides and React drops or reorders a row.
+	test("a refresh keeps every entry recorded in the same tick", () => {
+		const tick = (id: string): Entry => ({
+			...older,
+			toAccountId: id,
+			toLabel: `${id}@example.com`,
+		});
+		const view = render(history([tick("c"), tick("d")]));
+		// A refresh prepends a switch from a later tick.
+		view.rerender(history([newer, tick("c"), tick("d")]));
+		const ui = within(view.baseElement as HTMLElement);
+		const rows = ui.getAllByRole("row").slice(1);
+		// The "To" column, in order: every entry is there, newest first.
+		expect(
+			rows.map((row) => within(row).getAllByRole("cell")[3]?.textContent),
+		).toEqual(["b@example.com", "c@example.com", "d@example.com"]);
+	});
+
+	// A refetch that fails still leaves the rows we already read: replacing
+	// them with an error hides history the user can still be shown.
+	test("a failed refetch keeps the rows it already has", () => {
+		const ui = renderHistory([newer, older], { isError: true });
+		expect(ui.getAllByRole("row").slice(1)).toHaveLength(2);
+		expect(ui.getByText(/Last read failed/)).toBeTruthy();
+		expect(ui.queryByText(/History is unavailable right now/)).toBeNull();
+	});
+
 	test("hidden emails are hidden in the table too", () => {
 		const ui = renderHistory([newer], { hideEmails: true });
 		const row = ui.getAllByRole("row")[1];
 		expect(row?.textContent).not.toContain("a@example.com");
 		expect(row?.textContent).not.toContain("b@example.com");
 		expect(ui.getAllByText("Email hidden")).toHaveLength(2);
+		const cells = within(row as HTMLElement).getAllByRole("cell");
+		expect(cells[2]?.className).toContain("blur");
+		expect(cells[3]?.className).toContain("blur");
 		// The rest of the row still reads.
 		expect(row?.textContent).toContain("Claude Code");
+	});
+
+	// Config-dir accounts have no email to hide: masking them makes two
+	// distinct accounts read as the same "Email hidden".
+	test("hiding emails leaves path labels readable and distinct", () => {
+		const ui = renderHistory(
+			[
+				{
+					...older,
+					fromLabel: "~/.codex-work",
+					toLabel: "~/.codex-personal",
+				},
+			],
+			{ hideEmails: true },
+		);
+		const row = ui.getAllByRole("row")[1];
+		expect(row?.textContent).toContain("~/.codex-work");
+		expect(row?.textContent).toContain("~/.codex-personal");
+		expect(ui.queryByText("Email hidden")).toBeNull();
+		// Nothing to hide, so nothing is blurred either.
+		const cells = within(row as HTMLElement).getAllByRole("cell");
+		expect(cells[2]?.className).not.toContain("blur");
+		expect(cells[3]?.className).not.toContain("blur");
 	});
 });
