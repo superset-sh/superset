@@ -324,17 +324,29 @@ async function readIdentity(
  * Exactly the keys an identity write replaces, as the state file holds them
  * right now — the snapshot a rollback puts back. Unlike `readIdentity` this
  * does not care whether they name an account: an empty result means the dir
- * had no identity, and restoring it removes the target's.
+ * had no identity, and restoring it removes the target's. `null` is the third
+ * answer, and the reason the two are told apart: a file that is there but
+ * could not be read is not an empty one, and taking a torn or denied read for
+ * "no identity" would have the rollback delete the dir's own account instead
+ * of putting it back. The line falls exactly where `updateClaudeStateFile`
+ * puts it, since that is what performs the restore: the states it starts from
+ * `{}` are the ones an empty snapshot restores faithfully, and the read it
+ * throws on is the one nothing can be restored from.
  */
 async function readIdentityKeys(
 	statePath: string,
 	ctx: SwapContext,
-): Promise<Record<string, unknown>> {
+): Promise<Record<string, unknown> | null> {
 	const keys: Record<string, unknown> = {};
+	let raw: string;
 	try {
-		const parsed: unknown = JSON.parse(
-			await ctx.fs.readFile(statePath, "utf-8"),
-		);
+		raw = await ctx.fs.readFile(statePath, "utf-8");
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code !== "ENOENT") return null;
+		return keys;
+	}
+	try {
+		const parsed: unknown = JSON.parse(raw);
 		if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
 			return keys;
 		}
@@ -343,7 +355,9 @@ async function readIdentityKeys(
 			if (key in state) keys[key] = state[key];
 		}
 	} catch {
-		// An unreadable state file held no identity worth restoring.
+		// Bytes that do not parse are the bytes the restore copies aside and
+		// starts from empty state, so the dir really has no identity keys to put
+		// back — unlike a failed read, which puts nothing back at all.
 	}
 	return keys;
 }
@@ -736,6 +750,20 @@ async function applyToActiveDir(
 		join(activeDir, ".claude.json"),
 		ctx,
 	);
+	// No snapshot, no identity write: the rollback restores what this read
+	// returned, so writing on a read that failed would have it delete the dir's
+	// own account rather than put it back — a credential with no identity, which
+	// every later swap refuses as an owner it cannot name.
+	if (previousIdentity === null) {
+		return rollbackActiveWrite(
+			activeRead,
+			written,
+			activeDir,
+			`${join(activeDir, ".claude.json")} exists but could not be read; refusing to write an identity a rollback could not put back`,
+			"write-failed",
+			ctx,
+		);
+	}
 	try {
 		await updateClaudeStateFile(join(activeDir, ".claude.json"), (state) => {
 			for (const key of CLAUDE_IDENTITY_KEYS) delete state[key];
@@ -1011,12 +1039,27 @@ export async function swapClaudeLogin(input: {
 				);
 				if (pathInvalid) return failure("invalid-owner", pathInvalid);
 			}
+			// The owner's dir has the same two stores as the active one, and the
+			// same halfway failure: the file lands first, so a Keychain error after
+			// it leaves the owner holding the rotated login in one store and the
+			// pre-rotation one in the other, while the caller is told nothing landed.
+			const ownerWritten: StoreWritePlan = { file: false, keychain: null };
 			try {
-				await applyStoreWrite(ownerNow, planned.plan, current, ctx);
+				await applyStoreWrite(
+					ownerNow,
+					planned.plan,
+					current,
+					ctx,
+					ownerWritten,
+				);
 			} catch (error) {
-				return failure(
-					"write-failed",
+				return rollbackActiveWrite(
+					ownerNow,
+					ownerWritten,
+					storeDir(ownerBinding, ctx),
 					`saving the previous login back to ${storeDir(ownerBinding, ctx)} failed: ${errorText(error)}`,
+					"write-failed",
+					ctx,
 				);
 			}
 		}

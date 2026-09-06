@@ -1079,6 +1079,57 @@ describe("swapClaudeLogin on a file-backed store", () => {
 		expect(state.projects["/tmp/session"].hasTrustDialogAccepted).toBe(true);
 	});
 
+	// A read of `.claude.json` that fails transiently — EIO, or one that lost
+	// the race with the CLI's own atomic rewrite — is not a dir holding no
+	// identity. Measured before this guard: the swap wrote the target's identity
+	// over a snapshot it never took, and the verify-failed rollback then deleted
+	// `oauthAccount`/`userID` and put nothing back, leaving a credential with no
+	// identity that every later swap refuses as `owner-unknown` until a human
+	// runs `/login`.
+	it("keeps the dir's own identity when the pre-write read of it fails", async () => {
+		const f = fixture();
+		const state = join(f.activeDir, ".claude.json");
+		const stolen = identityStolenAtVerify(f.activeDir) as {
+			readFile: (path: string, encoding: "utf-8") => Promise<string>;
+		};
+		let reads = 0;
+		const deps: ClaudeSwapDeps = {
+			...f.deps,
+			fs: {
+				readFile: async (path: string, encoding: "utf-8") => {
+					// Only the snapshot read the rollback depends on. Every read after
+					// it succeeds, so the unguarded code got as far as writing the
+					// identity and then rolled it back to nothing.
+					if (path === state && ++reads === 1) {
+						throw Object.assign(new Error("EIO: i/o error, read"), {
+							code: "EIO",
+						});
+					}
+					return stolen.readFile(path, encoding);
+				},
+			},
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps,
+		});
+
+		expect(result.ok).toBe(false);
+		// The pin: the dir still names the account it was signed in as.
+		const stateFile = JSON.parse(readFileSync(state, "utf-8"));
+		expect(stateFile.oauthAccount).toEqual(identity("a").oauthAccount);
+		expect(stateFile.userID).toBe("user-a");
+		expect(stateFile.projects["/tmp/session"].hasTrustDialogAccepted).toBe(
+			true,
+		);
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+	});
+
 	it("replaces a symlinked .credentials.json with a real file", async () => {
 		const f = fixture();
 		const decoy = join(f.home, "decoy-credentials.json");
@@ -1930,6 +1981,59 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 					"{}",
 			).claudeAiOauth,
 		).toEqual(oauth("t-keychain", 4_000));
+	});
+
+	// The owner's dir has the same two stores, and `applyStoreWrite` lands the
+	// file first. Measured before the save-back had a rollback: the caller was
+	// told `write-failed` — which reads as "nothing landed" — while the owner's
+	// file held the rotated login and its Keychain item still held the
+	// pre-rotation one, leaving the CLI free to serve either.
+	it("rolls the owner file back when the Keychain half of the save-back fails", async () => {
+		const f = fixture();
+		const ownerService = keychainServicesForConfigDir(f.profileA)[0] as string;
+		const account = claudeKeychainAccounts()[0] as string;
+		const ownerSecret = JSON.stringify({ claudeAiOauth: oauth("t-a", 1_000) });
+		const keychain = fakeKeychain([
+			{ service: ownerService, account, secret: ownerSecret },
+		]);
+		const exec = async (args: string[], stdin?: string) => {
+			// The save-back's own write, named by the login it carries: the active
+			// dir's is written later and carries the target's.
+			if (args[0] === "-i" && stdin?.includes("t-a-refreshed")) {
+				throw new Error(
+					"SecKeychainItemModifyContent: write permissions error",
+				);
+			}
+			return keychain.exec(args, stdin);
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, darwin: true, exec },
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "write-failed" });
+		const ownerItem = keychain.items.find(
+			(item) => item.service === ownerService,
+		);
+		// Each of the owner's two stores holds the login it held before, siblings
+		// included...
+		expect(readCredentials(f.profileA)).toEqual({
+			claudeAiOauth: oauth("t-a", 1_000),
+			mcpOAuth: { "a-server": { token: "m-a" } },
+		});
+		expect(ownerItem?.secret).toBe(ownerSecret);
+		// ...so the two agree, which is the point: one store rotated and the
+		// other not is the split `write-failed` tells the caller did not happen.
+		expect(readCredentials(f.profileA).claudeAiOauth).toEqual(
+			JSON.parse(ownerItem?.secret ?? "{}").claudeAiOauth,
+		);
+		// And the swap stopped before the active dir, as the code says.
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
 	});
 });
 
