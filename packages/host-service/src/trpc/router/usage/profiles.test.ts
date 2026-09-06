@@ -325,6 +325,32 @@ describe("discoverClaudeProfilesWithStatus", () => {
 			}
 		});
 
+		// Most dot-dirs in a home have nothing to do with Claude. One the user
+		// cannot search would otherwise pin complete:false for the life of the
+		// process and disable reaping entirely.
+		it("stays complete when an unrelated dot-dir cannot be searched", async () => {
+			if (process.getuid?.() === 0) return;
+			const { home, dirs } = homeWithTwoProfiles();
+			const opaque = join(home, ".docker");
+			mkdirSync(opaque);
+			const clock = spyOn(Date, "now").mockReturnValue(0);
+			chmodSync(opaque, 0o000);
+			try {
+				const { profiles, complete } = await discoverClaudeProfilesWithStatus(
+					undefined,
+					home,
+				);
+
+				expect(profiles.map((profile) => profile.configDir).sort()).toEqual(
+					dirs,
+				);
+				expect(complete).toBe(true);
+			} finally {
+				chmodSync(opaque, 0o755);
+				clock.mockRestore();
+			}
+		});
+
 		it("stays complete when ~/.config is simply absent", async () => {
 			const home = tempProfile();
 			const only = join(home, ".claude-personal");
@@ -395,6 +421,31 @@ describe("discoverCodexHomesWithStatus", () => {
 		// The default home is still reported; only the scan for siblings failed.
 		expect(homes.map((entry) => entry.home)).toEqual([join(home, ".codex")]);
 		expect(complete).toBe(false);
+	});
+
+	it("is incomplete when the default home's auth.json cannot be read", async () => {
+		if (process.getuid?.() === 0) return;
+		const home = tempProfile();
+		const def = join(home, ".codex");
+		mkdirSync(def);
+		const auth = join(def, "auth.json");
+		writeFileSync(
+			auth,
+			JSON.stringify({ tokens: { access_token: "t", account_id: "acct" } }),
+		);
+		chmodSync(auth, 0o000);
+
+		try {
+			const { complete } = await discoverCodexHomesWithStatus({
+				homeDir: home,
+			});
+
+			// Reporting it as a subscription home signed in as nobody, on a
+			// walk that claims it saw everything, is the failure here.
+			expect(complete).toBe(false);
+		} finally {
+			chmodSync(auth, 0o600);
+		}
 	});
 
 	it("is incomplete when a sibling home's auth.json cannot be read", async () => {
@@ -571,6 +622,74 @@ describe("readClaudeLogin", () => {
 	// and both read keychainContent. Recording it only when it holds a login
 	// left the write with nothing to merge, so it overwrote the item's
 	// mcpOAuth tokens — and a failed verify deleted the item outright.
+	// Renaming over the path needs only directory permission, so a caller that
+	// cannot tell "denied" from "absent" replaces an intact store it never saw.
+	it("reports a credential file that is present but unreadable", async () => {
+		const denied = Object.assign(new Error("denied"), { code: "EACCES" });
+		const read = async () => {
+			throw denied;
+		};
+
+		const blocked = await readClaudeLogin(tempProfile(), {
+			darwin: false,
+			readFile: read as never,
+		});
+		expect(blocked.fileContent).toBeNull();
+		expect(blocked.fileUnreadable).toBe(true);
+	});
+
+	it("treats a missing credential file as absent, not unreadable", async () => {
+		const read = await readClaudeLogin(tempProfile(), { darwin: false });
+		expect(read.fileContent).toBeNull();
+		expect(read.fileUnreadable).toBe(false);
+	});
+
+	it("counts a credential file it cannot parse as unreadable", async () => {
+		const dir = tempProfile();
+		writeFileSync(join(dir, ".credentials.json"), "{half-writ");
+
+		const read = await readClaudeLogin(dir, { darwin: false });
+		expect(read.fileUnreadable).toBe(true);
+	});
+
+	// The winner must be the store a save-back agrees is newest, or the swap's
+	// non-regression check evaluates the wrong copy and overwrites a refresh
+	// token that is still valid.
+	it("prefers the store with the newer refresh token, not just expiresAt", async () => {
+		const dir = tempProfile();
+		const service = keychainServicesForConfigDir(dir)[0] as string;
+		writeFileSync(
+			join(dir, ".credentials.json"),
+			JSON.stringify({
+				claudeAiOauth: {
+					accessToken: "FILE",
+					refreshToken: "r",
+					expiresAt: 500,
+					refreshTokenExpiresAt: 100,
+				},
+			}),
+		);
+		const exec = async (args: string[]) => {
+			if (args.indexOf("-a") === -1) throw new Error("not found");
+			if (args[args.indexOf("-s") + 1] !== service) throw new Error("no item");
+			return {
+				stdout: JSON.stringify({
+					claudeAiOauth: {
+						accessToken: "KEYCHAIN",
+						refreshToken: "r",
+						expiresAt: 400,
+						refreshTokenExpiresAt: 9999,
+					},
+				}),
+				stderr: "",
+			};
+		};
+
+		const read = await readClaudeLogin(dir, { darwin: true, exec });
+		expect(read.source).toBe("keychain");
+		expect(read.login?.claudeAiOauth?.accessToken).toBe("KEYCHAIN");
+	});
+
 	it("records a Keychain item that holds siblings but no login", async () => {
 		const dir = tempProfile();
 		const service = keychainServicesForConfigDir(dir)[0] as string;

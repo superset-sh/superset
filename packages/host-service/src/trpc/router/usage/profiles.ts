@@ -177,8 +177,15 @@ async function readClaudeIdentityWithStatus(
 	let info: Awaited<ReturnType<typeof stat>>;
 	try {
 		info = await stat(statePath);
-	} catch (error) {
-		return { value: null, unreadable: !absent(error) };
+	} catch {
+		// Every dot-dir in the home is a candidate, most of them nothing to do
+		// with Claude. A dir we cannot even search (a root-owned 0700 left by
+		// sudo, a dead FUSE mount) would otherwise pin the walk incomplete for
+		// the life of the process and disable reaping entirely — far worse
+		// than missing a profile, which the next pass re-adds. The CLI could
+		// not use such a dir as a CLAUDE_CONFIG_DIR either, so it hides
+		// nothing usable.
+		return { value: null, unreadable: false };
 	}
 	// An oversized state file is a real one we choose not to parse, not a
 	// failure: a busy ~/.claude.json reaches tens of MB, and calling that
@@ -224,8 +231,10 @@ async function readApiBillingFingerprintWithStatus(
 	let info: Awaited<ReturnType<typeof stat>>;
 	try {
 		info = await stat(markerPath);
-	} catch (error) {
-		return { value: null, unreadable: !absent(error) };
+	} catch {
+		// Same reasoning as readClaudeIdentityWithStatus: an unsearchable dir
+		// is not a profile we are hiding.
+		return { value: null, unreadable: false };
 	}
 	if (!info.isFile() || info.size > MAX_MARKER_BYTES) {
 		return { value: null, unreadable: false };
@@ -492,6 +501,14 @@ export interface ClaudeLoginRead {
 	keychainAccount: string | null;
 	keychainContent: ClaudeCredentialJson | null;
 	keychainLogin: ClaudeCredentialJson | null;
+	/**
+	 * A credential file is there but could not be read or parsed — denied,
+	 * mid-rewrite, or an I/O error. Distinct from "no file", which is an
+	 * ordinary signed-out profile: a caller that writes must fail closed on
+	 * this, because renaming over the path needs only directory permission
+	 * and would replace an intact store it never saw.
+	 */
+	fileUnreadable: boolean;
 }
 
 function parseCredentialJson(raw: string): ClaudeCredentialJson | null {
@@ -528,12 +545,6 @@ function hasLogin(content: ClaudeCredentialJson | null): boolean {
 		refreshToken === undefined ||
 		(typeof refreshToken === "string" && refreshToken !== "")
 	);
-}
-
-function expiry(content: ClaudeCredentialJson | null): number {
-	const oauth = content?.claudeAiOauth;
-	const value = (oauth as { expiresAt?: unknown } | undefined)?.expiresAt;
-	return typeof value === "number" ? value : 0;
 }
 
 function loginTimestamp(
@@ -616,12 +627,25 @@ export async function readClaudeLogin(
 		: claudeDefaultCredentialPaths(access.homeDir ?? homedir());
 	let credentialsPath = paths[0] as string;
 	let fileContent: ClaudeCredentialJson | null = null;
+	let fileUnreadable = false;
 	for (const path of paths) {
-		const parsed = await read(path, "utf-8").then(
-			parseCredentialJson,
-			() => null,
+		const raw = await read(path, "utf-8").then(
+			(text) => text,
+			(error: unknown) => {
+				// Missing is ordinary; denied, torn or EIO means a store we
+				// cannot see is sitting there.
+				if (!absent(error)) fileUnreadable = true;
+				return null;
+			},
 		);
-		if (!parsed) continue;
+		if (raw === null) continue;
+		const parsed = parseCredentialJson(raw);
+		// Bytes we read but could not parse are a store mid-rewrite, not an
+		// absent one.
+		if (!parsed) {
+			fileUnreadable = true;
+			continue;
+		}
 		if (fileContent && !hasLogin(parsed)) continue;
 		if (hasLogin(fileContent) && !isFresherLogin(parsed, fileContent)) continue;
 		credentialsPath = path;
@@ -657,9 +681,13 @@ export async function readClaudeLogin(
 
 	const fileLogin = hasLogin(fileContent) ? fileContent : null;
 	const keychainLogin = hasLogin(keychainContent) ? keychainContent : null;
+	// The same comparator the within-store loops use, and the one
+	// claude-login-swap's non-regression check evaluates: picking by
+	// expiresAt alone could name the store with the OLDER refresh token, and
+	// a save-back would then overwrite a refresh token that is still valid.
 	const keychainWins =
 		keychainLogin !== null &&
-		(fileLogin === null || expiry(keychainLogin) > expiry(fileLogin));
+		(fileLogin === null || isFresherLogin(keychainLogin, fileLogin));
 	return {
 		login: keychainWins ? keychainLogin : fileLogin,
 		source: keychainWins ? "keychain" : "file",
@@ -670,6 +698,7 @@ export async function readClaudeLogin(
 		keychainAccount,
 		keychainContent,
 		keychainLogin,
+		fileUnreadable,
 	};
 }
 
@@ -757,7 +786,11 @@ export async function discoverCodexHomesWithStatus({
 }> {
 	const home = homeDir ?? homedir();
 	const defaultHome = resolveAmbientCodexHome(home);
-	const defaultKind = (await readCodexProfileKind(defaultHome)) ?? {
+	// Status-preserving, like every sibling below: an unreadable default
+	// auth.json would otherwise be published as a subscription home signed in
+	// as nobody, while the walk still claimed it saw everything.
+	const defaultRead = await readCodexProfileKindWithStatus(defaultHome);
+	const defaultKind = defaultRead.value ?? {
 		credentialKind: "subscription" as const,
 		loginFingerprint: null,
 		accountId: null,
@@ -773,11 +806,11 @@ export async function discoverCodexHomesWithStatus({
 		],
 	]);
 
-	let complete = true;
+	let complete = !defaultRead.unreadable;
 	let scanned = candidates;
 	if (!scanned) {
 		const listing = await listSubdirectories(home);
-		complete = listing.ok;
+		complete &&= listing.ok;
 		scanned = listing.paths.filter((path) =>
 			path.slice(home.length + 1).startsWith(".codex"),
 		);
