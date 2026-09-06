@@ -119,16 +119,15 @@ export class SessionMover {
 	private readonly staleStartMs: number;
 	private readonly nudgeRetryMs: number;
 	/**
-	 * Rows waiting for their turn to end, per agent: terminal id → the account
-	 * dir the row was on when it was deferred. Remembering the ids (rather than
+	 * Rows waiting for their turn to end, per agent: the terminal ids that were
+	 * mid-turn when the switch reached them. Remembering the ids (rather than
 	 * only the agent) is what keeps the next store change from re-scanning and
-	 * restarting rows that are already on the new account; remembering the dir
-	 * is how a row that has since moved off it is recognised.
+	 * restarting rows that are already on the new account; still being listed
+	 * under that id is how a row that has not moved yet is recognised, because
+	 * a restart ends the binding and brings the session back on a fresh
+	 * terminal.
 	 */
-	private readonly deferred = new Map<
-		AccountAgent,
-		Map<string, string | null>
-	>();
+	private readonly deferred = new Map<AccountAgent, Set<string>>();
 
 	constructor(deps: SessionMoverDeps) {
 		this.deps = deps;
@@ -149,7 +148,7 @@ export class SessionMover {
 	): Promise<MoveResult> {
 		const movedTerminalIds: string[] = [];
 		const deferredTerminalIds: string[] = [];
-		const waiting = new Map<string, string | null>();
+		const waiting = new Set<string>();
 
 		for (const row of rows) {
 			// KTD12: a session the user pinned to their own config dir is
@@ -157,7 +156,7 @@ export class SessionMover {
 			if (!row.managed) continue;
 			if (!this.isIdle(row)) {
 				deferredTerminalIds.push(row.terminalId);
-				waiting.set(row.terminalId, row.configDir);
+				waiting.add(row.terminalId);
 				continue;
 			}
 			const resumed = await this.restart(row);
@@ -184,18 +183,17 @@ export class SessionMover {
 	 * Retry the rows that were mid-turn when the store changes — only those.
 	 * A full re-scan here would restart every idle managed row again, including
 	 * the sessions this switch already moved onto the new account. A remembered
-	 * row that has vanished, or whose account dir has changed since (it is on
-	 * the new account already), is dropped instead of restarted.
+	 * row that is no longer listed under its terminal id is dropped instead of
+	 * restarted: it has either been relaunched already — a restart ends the
+	 * binding and resumes on a fresh terminal — or it is gone. Its `configDir`
+	 * cannot say which, because every row re-resolves it from the host pointer
+	 * the switch has already moved.
 	 */
 	async handleStoreChange(_workspaceId: string): Promise<void> {
 		for (const [agent, waiting] of [...this.deferred]) {
 			const rows = this.deps
 				.listSessions(agent)
-				.filter(
-					(row) =>
-						waiting.has(row.terminalId) &&
-						waiting.get(row.terminalId) === row.configDir,
-				);
+				.filter((row) => waiting.has(row.terminalId));
 			if (rows.length === 0) {
 				this.deferred.delete(agent);
 				continue;

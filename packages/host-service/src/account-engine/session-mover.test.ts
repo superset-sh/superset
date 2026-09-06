@@ -209,9 +209,32 @@ describe("moveAtIdle", () => {
 		let busy = true;
 		const h = harness({
 			isAgentBusy: () => busy,
-			// It comes back idle, but on the dir the switch moved everything to.
+			// A row that really moved is gone from the list under its old id: the
+			// restart ends its binding and the session comes back on a fresh
+			// terminal.
 			listSessions: () => [
-				row({ lastEventType: "Stop", configDir: "/accounts/claude-active" }),
+				row({ terminalId: "t1-new", lastEventType: "Stop" }),
+			],
+		});
+
+		await h.mover.moveAtIdle("codex", [
+			row({ terminalId: "t1", lastEventType: "Start" }),
+		]);
+		busy = false;
+		await h.mover.handleStoreChange("ws-1");
+
+		expect(h.killCalls).toEqual([]);
+	});
+
+	// `configDir` is what a *new* launch would resolve to right now, so once the
+	// switch has written the host pointer every listed row reads as the new dir
+	// — including the ones still waiting for their turn to end.
+	it("restarts a deferred row whose configDir now reads as the new account", async () => {
+		let busy = true;
+		const h = harness({
+			isAgentBusy: () => busy,
+			listSessions: () => [
+				row({ lastEventType: "Stop", configDir: "/accounts/codex-active" }),
 			],
 		});
 
@@ -221,7 +244,7 @@ describe("moveAtIdle", () => {
 		busy = false;
 		await h.mover.handleStoreChange("ws-1");
 
-		expect(h.killCalls).toEqual([]);
+		expect(h.killCalls).toEqual([{ workspaceId: "ws-1", terminalId: "t1" }]);
 	});
 
 	it("moves this host's own rows on an external switch, touching no swap", async () => {
