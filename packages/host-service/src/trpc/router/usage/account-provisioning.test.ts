@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import {
 	existsSync,
 	mkdirSync,
@@ -15,6 +15,7 @@ import {
 	provisionSelectedAccounts,
 } from "./account-provisioning.ts";
 import { syncDefaultAccountPointer } from "./default-account.ts";
+import * as profiles from "./profiles.ts";
 
 function dbWith(
 	defaultClaudeConfigDir: string | null,
@@ -82,23 +83,31 @@ describe("provisionSelectedAccounts", () => {
 		expect(codexHomes).toEqual([codexSelected]);
 	});
 
-	// A ~/.claude-backup or a scratch copy is discoverable, and provisioning it
-	// would move its sessions into the live home behind the user's back.
-	it("never reaches a dir that is merely discoverable", async () => {
+	// The contract is that discovery is never consulted here at all —
+	// provisioning moves a dir's session tree into ~/.claude, so it must reach
+	// only the account Superset was handed. Asserting on a fixture directory
+	// cannot pin that: discovery scans the real homedir(), not the test's temp
+	// root, so such a test passes even with the fan-out restored. Spy on the
+	// module instead.
+	it("never consults discovery", async () => {
 		const selected = join(home, "claude-work");
-		const backup = join(home, ".claude-backup");
-		for (const dir of [selected, backup]) mkdirSync(dir);
+		mkdirSync(selected);
 		syncDefaultAccountPointer("claude", selected);
+		const claudeSpy = spyOn(profiles, "discoverClaudeProfiles");
+		const codexSpy = spyOn(profiles, "discoverCodexHomes");
 
-		const claudeDirs: string[] = [];
-		await provisionSelectedAccounts(dbWith(selected, null), {
-			provisionClaude: async (dir) => {
-				claudeDirs.push(dir);
-			},
-			provisionCodex: async () => {},
-		});
+		try {
+			await provisionSelectedAccounts(dbWith(selected, null), {
+				provisionClaude: async () => {},
+				provisionCodex: async () => {},
+			});
 
-		expect(claudeDirs).toEqual([selected]);
+			expect(claudeSpy).not.toHaveBeenCalled();
+			expect(codexSpy).not.toHaveBeenCalled();
+		} finally {
+			claudeSpy.mockRestore();
+			codexSpy.mockRestore();
+		}
 	});
 
 	it("skips a selection that has vanished", async () => {
