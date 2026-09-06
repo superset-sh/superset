@@ -1968,6 +1968,7 @@ describe("AccountEngine", () => {
 		// Started after the switch: its first observation is the owner's new
 		// account, and it has never seen the old one.
 		const loser = harness({
+			pointer: { claudeConfigDir: ACTIVE_DIR },
 			sessions: [
 				movableSession({ configDir: "/profiles/a" }),
 				movableSession({ terminalId: "term-2", configDir: ACTIVE_DIR }),
@@ -2068,7 +2069,7 @@ describe("AccountEngine", () => {
 				entryFor(
 					usageAccount({
 						isDefault: true,
-						windows: [w("five_hour", "Session (5h)", 30)],
+						windows: [w("five_hour", "Session (5h)", 10)],
 					}),
 				),
 				entryFor(
@@ -2076,7 +2077,7 @@ describe("AccountEngine", () => {
 						accountKey: "key-b",
 						accountId: "acct-b",
 						selection: "/profiles/b",
-						windows: [w("five_hour", "Session (5h)", 10)],
+						windows: [w("five_hour", "Session (5h)", 30)],
 					}),
 				),
 			],
@@ -2098,9 +2099,10 @@ describe("AccountEngine", () => {
 
 		release();
 		await tick;
-		await Promise.all(pending);
+		expect(await pending[0]).toEqual({ ok: true });
 
-		expect(h.calls.indexOf("swap")).toBeGreaterThan(
+		expect(h.switched.map((row) => row.reasonKind)).toEqual(["manual"]);
+		expect(h.calls.indexOf("seed")).toBeGreaterThan(
 			h.calls.indexOf("refresh-done"),
 		);
 		expect(h.engine.status().claude.activeAccountId).toBe("acct-b");
