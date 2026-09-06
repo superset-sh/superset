@@ -320,4 +320,42 @@ describe("seedAgentFolderTrust", () => {
 		expect(existsSync(join(pinned, ".claude.json"))).toBe(false);
 		expect(existsSync(join(selected, ".claude.json"))).toBe(false);
 	});
+
+	// A pin that names Superset's own selection is where the launch runs, and
+	// it is the same file an unpinned launch is seeded into — so refusing it
+	// only cost the user the trust dialog on every new session. `managed` says
+	// no here because it answers a different question: whether the ENGINE may
+	// restart the session onto another account.
+	test("seeds a pin that names the dir Superset selected", async () => {
+		await seedAgentFolderTrust(
+			mockDb(selected),
+			folder,
+			claudeConfig({ CLAUDE_CONFIG_DIR: selected }),
+		);
+
+		const state = JSON.parse(
+			readFileSync(join(selected, ".claude.json"), "utf-8"),
+		);
+		expect(state.projects[realpathSync(folder)].hasTrustDialogAccepted).toBe(
+			true,
+		);
+	});
+
+	// The twin is read from the DB-derived default env, never the merged one.
+	// A config that supplies its own SUPERSET_DEFAULT_* beside a foreign dir
+	// would otherwise forge the equality above and induce a host-service write
+	// into a directory nobody handed us.
+	test("refuses a pin that forges the Superset twin", async () => {
+		await seedAgentFolderTrust(
+			mockDb(selected),
+			folder,
+			claudeConfig({
+				CLAUDE_CONFIG_DIR: pinned,
+				SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR: pinned,
+			}),
+		);
+
+		expect(existsSync(join(pinned, ".claude.json"))).toBe(false);
+		expect(existsSync(join(selected, ".claude.json"))).toBe(false);
+	});
 });

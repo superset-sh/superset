@@ -31,6 +31,10 @@ import { dirname, join, resolve } from "node:path";
 import type { HostDb } from "../../../../db";
 import { resolveAgentAccountDir } from "../../usage/agent-account-dir";
 import { updateClaudeStateFile } from "../../usage/claude-state-file";
+import {
+	canonicalAccountHome,
+	resolveDefaultAccountEnv,
+} from "../../usage/default-account";
 
 type TrustFamily = "claude" | "codex";
 
@@ -74,14 +78,35 @@ function resolveTrustTarget(
 ): TrustTarget | null {
 	const family = resolveTrustFamily(config);
 	if (family === null) return null;
-	const { configDir, managed } = resolveAgentAccountDir(db, {
+	const { configDir } = resolveAgentAccountDir(db, {
 		family,
 		env: config.env,
 	});
 	// A dir the user pinned themselves is Superset's to read, never to write:
 	// the folder dialog showing once costs less than a host-service write into
 	// a config dir nobody handed us. (KTD12.)
-	if (!managed) return null;
+	//
+	// `managed` is the wrong question to ask for that, though — it answers
+	// "may the engine restart this session onto another account?", and it is
+	// deliberately false for any config that merely NAMES the dir var, even
+	// when the value it names is the dir Superset itself selected. That dir is
+	// one we write on every unpinned launch, so refusing it stranded the trust
+	// dialog on every new session of a pinned-to-the-selection agent.
+	//
+	// The twin is read from the DEFAULT env, never the merged one: a config
+	// that sets its own SUPERSET_DEFAULT_* alongside a foreign dir would
+	// otherwise forge exactly the equality this test grants.
+	const selection =
+		resolveDefaultAccountEnv(db, family)[
+			family === "claude"
+				? "SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR"
+				: "SUPERSET_DEFAULT_CODEX_HOME"
+		] ?? null;
+	const supersetChose =
+		configDir === null ||
+		(selection !== null &&
+			canonicalAccountHome(configDir) === canonicalAccountHome(selection));
+	if (!supersetChose) return null;
 	if (family === "claude") {
 		return {
 			family,
