@@ -8,6 +8,7 @@ import submitCommand, {
 	MAX_ATTACHMENT_TOTAL_BASE64_CHARS,
 	MAX_ATTACHMENT_TOTAL_BYTES,
 	planAttachmentUploads,
+	readTailBytes,
 } from "./command";
 
 interface SubmittedAttachment {
@@ -153,6 +154,15 @@ describe("feedback submit attachments", () => {
 		expect(error.message).toContain("total limit");
 		expect(error.message).not.toContain("EACCES");
 		expect(submitted).toBeUndefined();
+	});
+
+	test("readTailBytes clamps to a file that shrank since it was planned", () => {
+		const path = writeFixture("rotated.log", patterned(1_000));
+		// Planned at a larger size, read after rotation left 1,000 bytes.
+		const tail = readTailBytes(path, 50_000);
+		expect(tail.length).toBe(1_000);
+		expect(Buffer.compare(tail, patterned(1_000))).toBe(0);
+		expect(readTailBytes(path, 0).length).toBe(0);
 	});
 
 	test("planAttachmentUploads works from sizes alone", () => {

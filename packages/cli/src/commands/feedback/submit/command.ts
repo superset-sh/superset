@@ -35,14 +35,19 @@ interface FeedbackAttachment {
 	contentBase64: string;
 }
 
-/** The last `length` bytes of a file, without reading the rest into memory. */
-function readTailBytes(filePath: string, length: number): Buffer {
+/**
+ * The last `length` bytes of a file, without reading the rest into memory.
+ * The file is sized again here: a live log can shrink or rotate between the
+ * planning stat and this read, so the tail is clamped to what exists now and
+ * a short read is honored rather than padded.
+ */
+export function readTailBytes(filePath: string, length: number): Buffer {
 	const size = statSync(filePath).size;
-	const buffer = Buffer.alloc(length);
+	const wanted = Math.min(length, size);
+	const buffer = Buffer.alloc(wanted);
 	const fd = openSync(filePath, "r");
 	try {
-		// A log rotated between the size check and the read comes back short.
-		const read = readSync(fd, buffer, 0, length, size - length);
+		const read = readSync(fd, buffer, 0, wanted, size - wanted);
 		return buffer.subarray(0, read);
 	} finally {
 		closeSync(fd);
