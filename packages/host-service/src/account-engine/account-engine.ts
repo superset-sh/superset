@@ -134,7 +134,7 @@ const STOP_DRAIN_MS = 10_000;
  */
 const SNAPSHOT_ONLY_WINDOWS: readonly UsageQuotaWindow[] = [
 	{
-		id: "limit-hint",
+		id: "five_hour",
 		label: "limit hint",
 		usedPercent: 100,
 		resetsAt: null,
@@ -177,6 +177,7 @@ export interface EngineSessionMover {
 	corroborateLimitStop(
 		row: MovableSession,
 		windows: readonly UsageQuotaWindow[],
+		modelWindows: readonly string[],
 	): Promise<boolean>;
 	onExternalSwitch(agent: AccountAgent): Promise<MoveResult>;
 }
@@ -2002,6 +2003,7 @@ export class AccountEngine {
 		const corroborated = await this.mover.corroborateLimitStop(
 			row,
 			agent === "claude" ? SNAPSHOT_ONLY_WINDOWS : active.account.windows,
+			settings.modelWindows,
 		);
 		if (!corroborated) {
 			this.recordRejectedHint(agent, active.row, now);
