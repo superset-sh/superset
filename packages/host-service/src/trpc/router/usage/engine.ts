@@ -105,8 +105,9 @@ export function engineView(
  */
 export function writableEngine(engine: AccountEngine | null): AccountEngine {
 	if (!engine) throw engineError("engine-unavailable");
-	const status = engine.status().claude;
-	if (status.platformSupported && !status.lockOwner) {
+	// The lock can have been released since the last tick, so re-read it
+	// from disk the way the engine's own mutations do.
+	if (engine.status().claude.platformSupported && !engine.ownsLock()) {
 		throw engineError("lock-loser");
 	}
 	return engine;
@@ -147,8 +148,8 @@ export const usageEngineRouter = router({
 		.mutation(({ ctx, input }): { rotation: RotationState } => {
 			const engine = writableEngine(ctx.runtime.accountEngine);
 			const outcome = engine.setRotation(input.accountKey, input.inRotation);
-			// The engine re-reads the lock from disk, so it can refuse where
-			// `writableEngine`'s cached flag still said yes.
+			// The gate and the mutation are two separate disk reads, so the
+			// engine can still refuse a lock lost in between.
 			if (!outcome.ok) throw engineError(outcome.code);
 			return { rotation: outcome.rotation };
 		}),

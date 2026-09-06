@@ -309,6 +309,7 @@ describe("usageRouter.setDefaultAccount", () => {
 			runtime: {
 				accountEngine: {
 					status,
+					ownsLock: () => true,
 					switchManually: async (agent: string, selection: string | null) => {
 						switched.push({ agent, selection });
 						return { ok: true as const };

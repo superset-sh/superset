@@ -16,7 +16,10 @@ const NOW = 1_700_000_000_000;
 
 interface FakeOptions {
 	platformSupported?: boolean;
+	/** The cached flag `status()` reports, refreshed only on a tick. */
 	lockOwner?: boolean;
+	/** What `ownsLock()` reads from disk now; defaults to the cached flag. */
+	ownsLock?: boolean;
 	settings?: EngineSettings;
 	history?: HistoryEntry[];
 	/** Make the engine's own validation reject the patch (SettingsOutcome). */
@@ -31,6 +34,7 @@ interface FakeOptions {
 function fakeEngine(options: FakeOptions = {}) {
 	const platformSupported = options.platformSupported ?? true;
 	const lockOwner = options.lockOwner ?? true;
+	const ownsLock = options.ownsLock ?? lockOwner;
 	let settings: EngineSettings = options.settings ?? defaultEngineSettings();
 	let rotation: RotationState = {};
 	const history: HistoryEntry[] = [...(options.history ?? [])];
@@ -97,6 +101,7 @@ function fakeEngine(options: FakeOptions = {}) {
 			});
 			return { claude: of("claude"), codex: of("codex") };
 		},
+		ownsLock: () => ownsLock,
 		switchManually,
 	};
 
@@ -324,6 +329,45 @@ describe("a lock loser", () => {
 		expect(view.settings.codex.enabled).toBe(true);
 		const history = await caller.engine.history();
 		expect(history.entries).toHaveLength(1);
+	});
+});
+
+/** KTD5: the lock moves between ticks, so a write gates on disk, not cache. */
+describe("a stale cached lockOwner", () => {
+	it("allows mutations once the lock is free on disk again", async () => {
+		const fake = fakeEngine({ lockOwner: false, ownsLock: true });
+		const caller = usageRouter.createCaller(context(fake.engine));
+
+		const view = await caller.engine.setSettings({
+			agent: "claude",
+			patch: { thresholdPercent: 85 },
+		});
+		expect(view.settings.claude.thresholdPercent).toBe(85);
+
+		const rotation = await caller.engine.setRotation({
+			accountKey: "claude:uuid-b",
+			inRotation: false,
+		});
+		expect(rotation).toEqual({ rotation: { "claude:uuid-b": false } });
+
+		await caller.setDefaultAccount({ agent: "claude", selection: null });
+		expect(fake.switchManually).toHaveBeenCalledWith("claude", null);
+	});
+
+	it("still refuses once the lock is lost on disk, cache notwithstanding", async () => {
+		const fake = fakeEngine({ lockOwner: true, ownsLock: false });
+		const caller = usageRouter.createCaller(context(fake.engine));
+
+		for (const call of [
+			caller.engine.setSettings({ agent: "claude", patch: { enabled: true } }),
+			caller.engine.setRotation({ accountKey: "claude:x", inRotation: true }),
+			caller.setDefaultAccount({ agent: "claude", selection: null }),
+		]) {
+			const error = await errorOf(call);
+			expect(error.code).toBe("PRECONDITION_FAILED");
+			expect(error.message).toBe("lock-loser");
+		}
+		expect(fake.switchManually).not.toHaveBeenCalled();
 	});
 });
 
