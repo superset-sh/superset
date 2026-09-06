@@ -56,6 +56,9 @@ export interface HostDepsInput {
 export interface AccountEngineHostDeps {
 	listSessions(agent: AccountAgent): MovableSession[];
 	isAgentBusy(terminalId: string): boolean;
+	/** KTD8: the mover's idle rule reads staleness live, not from the row it
+	 * was handed — that snapshot is as old as the switch it came from. */
+	lastAgentEvent?(terminalId: string): { type: string; at: number } | undefined;
 	isTerminalAlive(terminalId: string): boolean;
 	killAndResume(input: {
 		workspaceId: string;
@@ -111,6 +114,13 @@ export function createAccountEngineHostDeps(
 
 		isAgentBusy: (terminalId) =>
 			agentIsBusy(terminalAgentStore.get(terminalId)?.lastEventType),
+
+		lastAgentEvent: (terminalId) => {
+			const binding = terminalAgentStore.get(terminalId);
+			return binding === undefined
+				? undefined
+				: { type: binding.lastEventType, at: binding.lastEventAt };
+		},
 
 		isTerminalAlive: isLiveTerminalSession,
 

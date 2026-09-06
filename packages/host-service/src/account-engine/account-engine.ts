@@ -459,9 +459,11 @@ export class AccountEngine {
 	private readonly followedActive = new Map<AccountAgent, string>();
 	/** Claude hints already acted on, keyed by the event that raised them. */
 	private readonly handledHints = new Set<string>();
-	/** The identity bindings this tick recorded itself, so its write can
-	 * re-apply exactly those over the runtime as it stands on disk (KTD3). */
-	private readonly tickBindings = new Set<string>();
+	/** The identity bindings this instance's current operation recorded
+	 * itself, so its write can re-apply exactly those over the runtime as it
+	 * stands on disk (KTD3). Cleared by whichever operation takes a fresh
+	 * runtime snapshot. */
+	private readonly recordedBindings = new Set<string>();
 
 	constructor(deps: AccountEngineDeps) {
 		this.deps = deps;
@@ -686,6 +688,10 @@ export class AccountEngine {
 		if (!this.ensureOwnership(now)) return LOCK_LOSER;
 		const settings = this.state.readSettings();
 		const runtime = this.state.readRuntime();
+		// A snapshot of its own: a binding a previous tick recorded is not
+		// this switch's to write back, and re-applying one would resurrect a
+		// binding discovery has since retired.
+		this.recordedBindings.clear();
 		let pool = this.pool(agent);
 		if (!pool.some((item) => item.row.selection === selection)) {
 			// R3: with auto-switch off nothing has ever polled this agent, so
@@ -732,7 +738,7 @@ export class AccountEngine {
 		if (from && from.accountKey === target.row.accountKey) {
 			state.cooldownUntil = now + settings[agent].cooldownSeconds * 1000;
 			state.exhaustedNotifiedAt = null;
-			this.state.writeRuntime(runtime);
+			this.persistRuntime(runtime);
 			this.broadcastState(agent, settings[agent], runtime, now);
 			return { ok: true };
 		}
@@ -817,7 +823,7 @@ export class AccountEngine {
 		const runtime = this.state.readRuntime();
 		const runtimeBefore = JSON.stringify(runtime);
 		// Only what this tick records below is its own to write back.
-		this.tickBindings.clear();
+		this.recordedBindings.clear();
 		// The active account is resolved first: the poll schedule, the
 		// identity re-assertion and the decision all key off it.
 		for (const agent of agents) await this.resolveActive(agent, runtime);
@@ -856,22 +862,7 @@ export class AccountEngine {
 		// A quiet tick must not rewrite the file every interval: the state dir
 		// is shared with the other Superset host-services on this machine.
 		if (JSON.stringify(runtime) !== runtimeBefore) {
-			// KTD3: discovery records identity bindings straight into
-			// runtime.json, and it ran inside the quota refresh this tick
-			// awaited — after `runtime` was read. `writeRuntime` replaces the
-			// whole file, so the bindings are taken from a fresh read before
-			// this tick's own decisions go back over it, and only the ones this
-			// tick recorded itself are re-applied. Not the whole in-memory map:
-			// discovery also *retires* a binding when a dir is re-authenticated
-			// as somebody else, and spreading the copy this tick started from
-			// back over the file would resurrect the one it just deleted.
-			const onDisk = this.state.readRuntime();
-			const bindings = { ...onDisk.identityBindings };
-			for (const accountUuid of this.tickBindings) {
-				bindings[accountUuid] = runtime.identityBindings[accountUuid] ?? null;
-			}
-			runtime.identityBindings = bindings;
-			this.state.writeRuntime(runtime);
+			this.persistRuntime(runtime);
 		}
 		for (const agent of agents) {
 			this.broadcastState(agent, live[agent], runtime, now);
@@ -884,6 +875,28 @@ export class AccountEngine {
 			runtime,
 			rotation: liveRotation,
 		});
+	}
+
+	/**
+	 * KTD3: every runtime write goes through here. Discovery records identity
+	 * bindings straight into `runtime.json` and runs unlocked in every
+	 * host-service on this machine, so it lands between the read this snapshot
+	 * came from and this write — inside the quota refresh a tick awaits, which
+	 * is before its own switch, not only after it. `writeRuntime` replaces the
+	 * whole file, so the bindings are taken from a fresh read and only the ones
+	 * recorded here are re-applied over them. Not the whole in-memory map:
+	 * discovery also *retires* a binding when a dir is re-authenticated as
+	 * somebody else, and spreading the copy this snapshot started from back
+	 * over the file would resurrect the one it just deleted.
+	 */
+	private persistRuntime(runtime: RuntimeState): void {
+		const onDisk = this.state.readRuntime();
+		const bindings = { ...onDisk.identityBindings };
+		for (const accountUuid of this.recordedBindings) {
+			bindings[accountUuid] = runtime.identityBindings[accountUuid] ?? null;
+		}
+		runtime.identityBindings = bindings;
+		this.state.writeRuntime(runtime);
 	}
 
 	// ── Ownership (KTD5) ───────────────────────────────────────────────
@@ -1020,6 +1033,21 @@ export class AccountEngine {
 		// account *is* its config dir.
 		const active =
 			agent === "claude" ? this.resolveActiveDir() : state.activeSelection;
+		if (agent === "claude") {
+			// Before the owner's first Claude switch the pointer still names a
+			// profile dir, and every unpinned row resolves to it — so they all
+			// read as stale against the active dir, and the restart lands them
+			// back on the same profile. Nothing is on the wrong login until the
+			// pointer names the active dir.
+			let pointer: string | null;
+			try {
+				pointer = this.readPointerSelections(this.db).claudeConfigDir;
+			} catch {
+				return;
+			}
+			if (pointer === null || active === null || !samePath(pointer, active))
+				return;
+		}
 		const stale = this.hostDeps
 			.listSessions(agent)
 			.filter((row) => row.configDir !== active);
@@ -1343,7 +1371,7 @@ export class AccountEngine {
 				error,
 			);
 		}
-		this.state.writeRuntime(runtime);
+		this.persistRuntime(runtime);
 		this.broadcast.switched(switchedPayload(entry));
 		if (!this.ensureOwnership(this.now())) return { ok: true };
 		await this.moveSessions(
@@ -1629,7 +1657,7 @@ export class AccountEngine {
 	): void {
 		if (accountUuid === null) return;
 		runtime.identityBindings[accountUuid] = selection;
-		this.tickBindings.add(accountUuid);
+		this.recordedBindings.add(accountUuid);
 	}
 
 	/**
@@ -1788,7 +1816,21 @@ export class AccountEngine {
 			usedPercent: null,
 			fallbackRestart: false,
 		};
-		this.state.appendHistory(entry);
+		try {
+			this.state.appendHistory(entry);
+		} catch (error) {
+			// The login already changed behind us. A row that could not be
+			// appended is a lost line in a log, not a reason to drop the
+			// adoption and skip this tick's decision — the throw escapes to
+			// `tick()`, which warns and resets its flag, so nothing is
+			// persisted and the same adoption is retried every tick until the
+			// history write succeeds. (`writeRuntime` is rename-based and
+			// still succeeds in that state.)
+			console.warn(
+				"[account-engine] could not record the adopted login in history:",
+				error,
+			);
+		}
 		this.broadcast.switched(switchedPayload(entry));
 	}
 
@@ -1868,6 +1910,9 @@ export class AccountEngine {
 		const agents = AGENTS.filter((agent) => settings[agent].enabled);
 		if (agents.length === 0) return null;
 		if (!this.ensureOwnership(now)) return null;
+		// As in `runManualSwitch`: this pass reads its own runtime, so only
+		// what it records below is its to re-apply.
+		this.recordedBindings.clear();
 		return {
 			settings,
 			agents,
@@ -1997,7 +2042,7 @@ export class AccountEngine {
 			// R8/R22: no eligible account, so no restart — a relaunch onto a
 			// spent account would just stop again.
 			state.exhaustedNotifiedAt ??= now;
-			this.state.writeRuntime(runtime);
+			this.persistRuntime(runtime);
 			this.broadcastState(agent, settings, runtime, now);
 			return true;
 		}

@@ -117,7 +117,24 @@ describe("AccountEngine runtime writes", () => {
 		rmSync(home, { recursive: true, force: true });
 	});
 
-	it("keeps the bindings discovery wrote under the tick, and the one it retired stays retired", async () => {
+	/** Discovery, holding no lock, records what it just found and retires the
+	 * claim /profiles/b's previous account had on it. */
+	function concurrentDiscoveryWrite(state: EngineState): void {
+		const live = state.readRuntime();
+		delete live.identityBindings["acct-old"];
+		live.identityBindings["acct-c"] = "/profiles/c";
+		state.writeRuntime(live);
+	}
+
+	/**
+	 * One switch-due tick, with the concurrent discovery write injected at
+	 * `injectAt`: `refresh-due` is where discovery really runs — inside the
+	 * quota refresh, before this tick's own switch writes — and `move` is
+	 * after that write, on the tick's last await.
+	 */
+	async function tickWithDiscoveryWriteAt(
+		injectAt: "refresh-due" | "move",
+	): Promise<Record<string, string | null>> {
 		const state = new EngineState();
 		const seedRuntime = state.readRuntime();
 		// The binding discovery is about to retire: /profiles/b has been
@@ -142,20 +159,16 @@ describe("AccountEngine runtime writes", () => {
 				entries: () => twoClaudeAccounts(),
 				entry: () => undefined,
 				read: async () => [],
-				refreshDue: async () => {},
+				refreshDue: async () => {
+					if (injectAt === "refresh-due") concurrentDiscoveryWrite(state);
+				},
 				setSnapshotSink: () => {},
 				setSnapshotSource: () => {},
 				snapshot: () => ({ entries: [] }),
 			},
 			mover: {
-				// The session move is the tick's last await before it writes.
-				// Discovery, holding no lock, records what it just found and
-				// retires the claim /profiles/b's previous account had on it.
 				moveAtIdle: async () => {
-					const live = state.readRuntime();
-					delete live.identityBindings["acct-old"];
-					live.identityBindings["acct-c"] = "/profiles/c";
-					state.writeRuntime(live);
+					if (injectAt === "move") concurrentDiscoveryWrite(state);
 					return { movedTerminalIds: [], deferredTerminalIds: [] };
 				},
 				fallbackRestart: async () => true,
@@ -214,12 +227,30 @@ describe("AccountEngine runtime writes", () => {
 				"utf8",
 			),
 		) as { identityBindings: Record<string, string | null> };
+		return written.identityBindings;
+	}
+
+	it("keeps the bindings discovery wrote under the tick, and the one it retired stays retired", async () => {
+		const bindings = await tickWithDiscoveryWriteAt("move");
+
 		// This tick's own binding, and the one discovery recorded under it.
-		expect(written.identityBindings["acct-b"]).toBe("/profiles/b");
-		expect(written.identityBindings["acct-c"]).toBe("/profiles/c");
+		expect(bindings["acct-b"]).toBe("/profiles/b");
+		expect(bindings["acct-c"]).toBe("/profiles/c");
 		// Retired while the tick ran, and the tick's write must not bring it
 		// back: the next swap would save acct-b's refreshed credential into
 		// what it believes is acct-old's store.
-		expect("acct-old" in written.identityBindings).toBe(false);
+		expect("acct-old" in bindings).toBe(false);
+	});
+
+	it("keeps them when discovery writes where it really runs — inside the quota refresh, before the switch", async () => {
+		// `performSwitch` writes the runtime itself, before the move the other
+		// test injects at, so a bare write there clobbers discovery's add and
+		// resurrects its retirement — and the tick's later merged write only
+		// re-reads the file it already lost.
+		const bindings = await tickWithDiscoveryWriteAt("refresh-due");
+
+		expect(bindings["acct-b"]).toBe("/profiles/b");
+		expect(bindings["acct-c"]).toBe("/profiles/c");
+		expect("acct-old" in bindings).toBe(false);
 	});
 });
