@@ -74,9 +74,13 @@ export function usePaymentFailedCard({
 			id: "payment-failed",
 			badge: "Action needed",
 			title: amount ? `Pro ended — ${amount} unpaid` : "Pro ended",
+			// Stated as two facts rather than one cause. A voluntary cancellation
+			// can also leave its closing invoice unpaid, and telling someone who
+			// chose to leave that a failed charge is why they lost Pro would be
+			// the same wrong-reason bug this card exists to stop.
 			description: isOwner
-				? `We couldn't collect ${amount ?? "your last payment"}, so this organization is on the free plan and its triggers have stopped running. Restart Pro to turn them back on.`
-				: `This organization's last payment couldn't be collected, so it's on the free plan and its triggers have stopped running. Ask an owner to restart Pro.`,
+				? `This organization is on the free plan and its triggers have stopped running.${amount ? ` ${amount} from the last billing period was never collected.` : ""} Restart Pro to turn them back on.`
+				: `This organization is on the free plan and its triggers have stopped running.${amount ? ` ${amount} from the last billing period was never collected.` : ""} Ask an owner to restart Pro.`,
 			actionLabel: isOwner ? "Restart Pro" : undefined,
 			onAction: isOwner
 				? () => {
