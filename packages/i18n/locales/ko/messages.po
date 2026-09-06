@@ -5130,6 +5130,9 @@ msgstr "편집기 및 워크플로"
 msgid "Editor typography"
 msgstr "편집기 타이포그래피"
 
+msgid "Effort"
+msgstr "추론 강도"
+
 msgid "Electron/tRPC-coupled, so referenced rather than rendered. Badge = import sites today; high counts are promotion candidates for packages/ui"
 msgstr "Electron/tRPC에 묶여 있어 렌더링하지 않고 참조만 합니다. 배지는 현재 import 지점 수이며, 수가 많으면 packages/ui로 승격할 후보입니다"
 

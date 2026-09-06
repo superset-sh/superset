@@ -16,6 +16,7 @@ interface NativeComposerViewProps {
 	backdrop?: ComposerBackdrop;
 	attachments?: ComposerAttachment[];
 	selectedModel?: ComposerMenuOption;
+	launchOptions?: ComposerMenuOption[];
 	headerChips?: ComposerMenuOption[];
 	quickKeys?: ComposerQuickKey[];
 	sessionTabs?: ComposerSessionTab[];
@@ -30,6 +31,7 @@ interface NativeComposerViewProps {
 	onAttachmentsPress?: () => void;
 	onDictationError?: (event: { nativeEvent: { message: string } }) => void;
 	onModelPress?: () => void;
+	onLaunchOptionPress?: (event: { nativeEvent: { id: string } }) => void;
 	onChipPress?: (event: { nativeEvent: { id: string } }) => void;
 	onQuickKeyPress?: (event: { nativeEvent: { id: string } }) => void;
 	onSessionTabPress?: (event: { nativeEvent: { id: string } }) => void;
@@ -270,6 +272,12 @@ interface ComposerBaseProps {
 	 * the real pickers are `formSheet` routes with searchable lists.
 	 */
 	selectedModel?: ComposerMenuOption;
+	/**
+	 * The selected agent's launch settings, drawn after it as their own
+	 * chevron buttons — model, effort. Each reports its id on press; the
+	 * lists stay in React Native like the agent's. Omit for agents with none.
+	 */
+	launchOptions?: ComposerMenuOption[];
 	/** Frame 4's header row. Empty on the session surface (frame 13). */
 	headerChips?: ComposerMenuOption[];
 	/**
@@ -317,6 +325,7 @@ interface ComposerBaseProps {
 	 */
 	onDictationError?: (message: string) => void;
 	onModelPress?: () => void;
+	onLaunchOptionPress?: (id: string) => void;
 	onChipPress?: (id: string) => void;
 	onQuickKeyPress?: (id: string) => void;
 	/** A tab was tapped — attach that session. */
@@ -398,6 +407,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 			backdrop = "dim",
 			attachments,
 			selectedModel,
+			launchOptions,
 			headerChips,
 			quickKeys,
 			sessionTabs,
@@ -411,6 +421,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 			onAttachmentsPress,
 			onDictationError,
 			onModelPress,
+			onLaunchOptionPress,
 			onChipPress,
 			onQuickKeyPress,
 			onSessionTabPress,
@@ -445,6 +456,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 				backdrop={backdrop}
 				attachments={attachments}
 				selectedModel={selectedModel}
+				launchOptions={launchOptions}
 				headerChips={headerChips}
 				quickKeys={quickKeys}
 				sessionTabs={sessionTabs}
@@ -463,6 +475,9 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 					onDictationError?.(event.nativeEvent.message)
 				}
 				onModelPress={onModelPress}
+				onLaunchOptionPress={(event) =>
+					onLaunchOptionPress?.(event.nativeEvent.id)
+				}
 				onChipPress={(event) => onChipPress?.(event.nativeEvent.id)}
 				onQuickKeyPress={(event) => onQuickKeyPress?.(event.nativeEvent.id)}
 				onSessionTabPress={(event) => onSessionTabPress?.(event.nativeEvent.id)}

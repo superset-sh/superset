@@ -5130,6 +5130,9 @@ msgstr "編輯器與工作流"
 msgid "Editor typography"
 msgstr "編輯器排版"
 
+msgid "Effort"
+msgstr "推理強度"
+
 msgid "Electron/tRPC-coupled, so referenced rather than rendered. Badge = import sites today; high counts are promotion candidates for packages/ui"
 msgstr "與Electron/tRPC耦合，因此只做引用而不實際渲染。徽章=目前的匯入處數量；數量高的可以考慮提升到packages/ui"
 

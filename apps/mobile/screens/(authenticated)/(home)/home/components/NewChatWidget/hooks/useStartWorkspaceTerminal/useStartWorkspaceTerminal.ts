@@ -32,10 +32,15 @@ export function useStartWorkspaceTerminal(workspaces: HostWorkspaceItem[]) {
 			target,
 			message,
 			agentId,
+			model,
+			effort,
 		}: {
 			target: WorkspaceTerminalTarget;
 			message: PromptInputMessage;
 			agentId: string;
+			/** Null launches the agent's own default. */
+			model: string | null;
+			effort: string | null;
 		}) => {
 			const workspace = workspaces.find(
 				(item) => item.id === target.workspaceId,
@@ -54,6 +59,8 @@ export function useStartWorkspaceTerminal(workspaces: HostWorkspaceItem[]) {
 				workspaceId: target.workspaceId,
 				agent: agentId,
 				prompt: text,
+				model: model ?? undefined,
+				effort: effort ?? undefined,
 			});
 			if (result.kind !== "terminal") {
 				throw new Error(`${result.label} did not start a terminal session`);
@@ -64,9 +71,14 @@ export function useStartWorkspaceTerminal(workspaces: HostWorkspaceItem[]) {
 				hostId: target.hostId,
 			};
 		},
-		onSuccess: ({ workspaceId, terminalId, hostId }, { agentId }) => {
+		onSuccess: (
+			{ workspaceId, terminalId, hostId },
+			{ agentId, model, effort },
+		) => {
 			posthog.capture("agent_session_launch", {
 				agent_type: agentId,
+				model,
+				effort,
 				workspace_id: workspaceId,
 				result: "launched",
 			});

@@ -5130,6 +5130,9 @@ msgstr "Düzenleyici ve iş akışı"
 msgid "Editor typography"
 msgstr "Düzenleyici tipografisi"
 
+msgid "Effort"
+msgstr "Çaba"
+
 msgid "Electron/tRPC-coupled, so referenced rather than rendered. Badge = import sites today; high counts are promotion candidates for packages/ui"
 msgstr "Electron/tRPC'ye bağlı olduğu için işlenmek yerine referans veriliyor. Rozet = bugünkü içe aktarma noktaları; yüksek sayılar packages/ui'ye taşınma adayıdır"
 

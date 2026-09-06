@@ -5130,6 +5130,9 @@ msgstr "Trình soạn thảo & Quy trình"
 msgid "Editor typography"
 msgstr "Kiểu chữ trình soạn thảo"
 
+msgid "Effort"
+msgstr "Mức nỗ lực"
+
 msgid "Electron/tRPC-coupled, so referenced rather than rendered. Badge = import sites today; high counts are promotion candidates for packages/ui"
 msgstr "Gắn với Electron/tRPC nên chỉ được nhắc tới chứ không dựng. Badge = số nơi import hiện tại; số cao là ứng viên đưa lên packages/ui"
 

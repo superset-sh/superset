@@ -5130,6 +5130,9 @@ msgstr "エディタとワークフロー"
 msgid "Editor typography"
 msgstr "エディタのタイポグラフィ"
 
+msgid "Effort"
+msgstr "エフォート"
+
 msgid "Electron/tRPC-coupled, so referenced rather than rendered. Badge = import sites today; high counts are promotion candidates for packages/ui"
 msgstr "Electron/tRPCに依存するため、描画せず参照のみです。バッジは現在のインポート箇所数で、数が多いものはpackages/uiへの昇格候補です"
 

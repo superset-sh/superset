@@ -12,6 +12,7 @@ public final class ComposerModule: Module {
         "onAttachmentsPress",
         "onDictationError",
         "onModelPress",
+        "onLaunchOptionPress",
         "onChipPress",
         "onQuickKeyPress",
         "onSessionTabPress",
@@ -56,6 +57,12 @@ public final class ComposerModule: Module {
       Prop("selectedModel") { (view: ComposerAnchorView, model: ComposerMenuOption?) in
         withAnimation(ComposerMetrics.controlSwap) {
           view.overlay.model.selectedModel = model
+        }
+      }
+
+      Prop("launchOptions") { (view: ComposerAnchorView, options: [ComposerMenuOption]) in
+        withAnimation(ComposerMetrics.controlSwap) {
+          view.overlay.model.launchOptions = options
         }
       }
 
@@ -177,6 +184,7 @@ final class ComposerAnchorView: ExpoView {
   private let onAttachmentsPress = EventDispatcher()
   private let onDictationError = EventDispatcher()
   private let onModelPress = EventDispatcher()
+  private let onLaunchOptionPress = EventDispatcher()
   private let onChipPress = EventDispatcher()
   private let onQuickKeyPress = EventDispatcher()
   private let onSessionTabPress = EventDispatcher()
@@ -201,6 +209,9 @@ final class ComposerAnchorView: ExpoView {
       self?.onDictationError(["message": message])
     }
     overlay.model.onModelPress = { [weak self] in self?.onModelPress([:]) }
+    overlay.model.onLaunchOptionPress = { [weak self] id in
+      self?.onLaunchOptionPress(["id": id])
+    }
     overlay.model.onQuickKeyPress = { [weak self] id in
       self?.onQuickKeyPress(["id": id])
     }

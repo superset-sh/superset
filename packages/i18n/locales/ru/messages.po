@@ -5130,6 +5130,9 @@ msgstr "Редактор и процесс"
 msgid "Editor typography"
 msgstr "Типографика редактора"
 
+msgid "Effort"
+msgstr "Уровень усилий"
+
 msgid "Electron/tRPC-coupled, so referenced rather than rendered. Badge = import sites today; high counts are promotion candidates for packages/ui"
 msgstr "Завязаны на Electron/tRPC, поэтому только упомянуты, а не отрисованы. Значок = количество мест импорта сегодня; высокие значения — кандидаты на переезд в packages/ui"
 

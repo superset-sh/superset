@@ -5130,6 +5130,9 @@ msgstr "Edytor i workflow"
 msgid "Editor typography"
 msgstr "Typografia edytora"
 
+msgid "Effort"
+msgstr "Wysiłek"
+
 msgid "Electron/tRPC-coupled, so referenced rather than rendered. Badge = import sites today; high counts are promotion candidates for packages/ui"
 msgstr "Powiązane z Electronem/tRPC, więc tylko wymienione, nie renderowane. Plakietka = obecne miejsca importu; wysokie liczby to kandydaci do przeniesienia do packages/ui"
 
