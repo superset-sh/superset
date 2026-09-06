@@ -79,6 +79,8 @@ function harness(
 		codexSelections: options.codexSelections ?? ([] as Array<string | null>),
 		/** False stands for a scan that ran out of its time budget. */
 		claudeComplete: true,
+		/** A discovery pass that keeps throwing: local I/O that stopped working. */
+		claudeDiscoveryFails: false,
 		claudeDuplicateSelections: undefined as
 			| Record<string, string[]>
 			| undefined,
@@ -87,12 +89,15 @@ function harness(
 	const snapshots: QuotaStoreSnapshot[] = [];
 	const store = new QuotaStore({
 		now: () => clock,
-		discoverClaude: async () => ({
-			selections: state.claudeSelections,
-			staticAccounts: state.claudeStatic,
-			complete: state.claudeComplete,
-			duplicateSelections: state.claudeDuplicateSelections,
-		}),
+		discoverClaude: async () => {
+			if (state.claudeDiscoveryFails) throw new Error("profile scan failed");
+			return {
+				selections: state.claudeSelections,
+				staticAccounts: state.claudeStatic,
+				complete: state.claudeComplete,
+				duplicateSelections: state.claudeDuplicateSelections,
+			};
+		},
 		discoverCodex: async () => ({
 			selections: state.codexSelections,
 			staticAccounts: [],
@@ -532,6 +537,65 @@ describe("QuotaStore adaptive cadence", () => {
 		expect(deferred[0]?.key).not.toBe(CLAUDE_DEFAULT);
 		expect(deferred[0]?.nextPollAt).toBeGreaterThan(h.now);
 	});
+
+	// The deferred entry lands on the same nextPollAt as the ones just fetched
+	// — the request window is empty by then, so deferForBudget resolves to now
+	// plus a window — and a stable sort handed the slots back to the same
+	// winners every round. The last profile was then never fetched at all:
+	// missing from the Usage page, never scored, never a switch target.
+	it("eventually fetches every selection when they outnumber the budget", async () => {
+		const budget = budgetMaxRequests(MINUTE);
+		const h = harness({
+			claudeSelections: [
+				null,
+				...Array.from({ length: budget }, (_, index) => `/profiles/${index}`),
+			],
+		});
+		const schedule = {
+			claude: { activeKey: CLAUDE_DEFAULT, intervalMs: MINUTE },
+		};
+		const last = quotaEntryKey("claude", `/profiles/${budget - 1}`);
+
+		// Half an hour of the engine's 30-second tick.
+		for (let tick = 0; tick < 60; tick++) {
+			await h.store.refreshDue(h.now, schedule);
+			h.advance(30_000);
+		}
+
+		expect(requireEntry(h.store, last).fetchedAt).not.toBeNull();
+		expect(
+			h.store
+				.entries("claude")
+				.filter((entry) => entry.fetchedAt === null)
+				.map((entry) => entry.key),
+		).toEqual([]);
+	});
+
+	// The same tie on the Usage page's Refresh: the never-fetched profile shares
+	// its nextPollAt with the entries the tick just read, so without the
+	// tiebreak the budget goes to those and it is left out of the batch again.
+	it("spends a forced refresh's budget on the never-fetched profile first", async () => {
+		const budget = budgetMaxRequests(MINUTE);
+		const h = harness({
+			claudeSelections: [
+				null,
+				...Array.from({ length: budget }, (_, index) => `/profiles/${index}`),
+			],
+		});
+
+		await h.store.refreshDue(h.now, {
+			claude: { activeKey: CLAUDE_DEFAULT, intervalMs: MINUTE },
+		});
+		const starved = h.store
+			.entries("claude")
+			.find((entry) => entry.fetchedAt === null);
+		expect(starved).toBeDefined();
+
+		h.advance(QUOTA_TTL_MS);
+		await h.store.read({ agents: ["claude"], forceRefresh: true });
+
+		expect(starved?.fetchedAt).not.toBeNull();
+	});
 });
 
 describe("QuotaStore back-off", () => {
@@ -691,6 +755,58 @@ describe("QuotaStore back-off", () => {
 		h.advance(requireEntry(h.store, CLAUDE_DEFAULT).nextPollAt - h.now);
 		await h.store.refreshDue(h.now, schedule);
 		expect(requireEntry(h.store, CLAUDE_DEFAULT).backoffMs).toBe(0);
+	});
+
+	// A 429 makes every entry on the endpoint wait, but assigning the new
+	// nextPollAt outright pulled entries that were waiting longer *forward* —
+	// so one rate-limited selection produced a burst at the very endpoint that
+	// had just asked for a pause.
+	it("never pulls another entry's poll earlier when one selection is 429ed", async () => {
+		let rateLimited = false;
+		const h = harness({
+			claudeSelections: [null, "/profiles/a", "/profiles/b"],
+			respondClaude: async (selection) => ({
+				account: account("claude", selection, {
+					windows: [
+						{
+							id: "five_hour",
+							label: "Session (5h)",
+							usedPercent: 100,
+							resetsAt: null,
+						},
+					],
+				}),
+				rateLimited: rateLimited && selection === null,
+			}),
+		});
+		const schedule = {
+			claude: { activeKey: CLAUDE_DEFAULT, intervalMs: MINUTE },
+		};
+
+		await h.store.refreshDue(h.now, schedule);
+		// Both secondaries are spent, so they are not due for ten minutes.
+		expect(requireEntry(h.store, CLAUDE_A).nextPollAt).toBe(
+			T0 + EXHAUSTED_POLL_MS,
+		);
+
+		rateLimited = true;
+		h.advance(MINUTE);
+		await h.store.refreshDue(h.now, schedule);
+
+		expect(requireEntry(h.store, CLAUDE_A).nextPollAt).toBe(
+			T0 + EXHAUSTED_POLL_MS,
+		);
+		expect(requireEntry(h.store, CLAUDE_B).nextPollAt).toBe(
+			T0 + EXHAUSTED_POLL_MS,
+		);
+
+		// A minute later only the account sessions run on is due.
+		const sent = h.calls.length;
+		h.advance(MINUTE);
+		await h.store.refreshDue(h.now, schedule);
+		expect(h.calls.slice(sent).map((call) => call.key)).toEqual([
+			CLAUDE_DEFAULT,
+		]);
 	});
 
 	// Both entry points are live on one store: the engine's tick and the Usage
@@ -1130,6 +1246,79 @@ describe("QuotaStore snapshot mirror", () => {
 
 		expect(h.calls.map((call) => call.key)).toEqual(["grok"]);
 		expect(accounts[0]?.windows[0]?.usedPercent).toBe(10);
+	});
+
+	// A row whose own fetch keeps throwing keeps its previous accounts and does
+	// not move its fetchedAt (AE10). Counting its agent as covered anyway
+	// dropped that account from every non-owner host, with no local read to
+	// replace it and no forced refresh to break out, while the owner still
+	// showed it.
+	it("reads for itself when a mirrored row's fetch has been failing", async () => {
+		const owner = harness({
+			claudeSelections: [null, "/profiles/a"],
+			respondClaude: async (selection) => {
+				if (selection === "/profiles/a") throw new Error("endpoint refused");
+				return { account: account("claude", selection), rateLimited: false };
+			},
+		});
+		await owner.store.read({ agents: ["claude"] });
+		const published = JSON.parse(
+			JSON.stringify(owner.store.snapshot()),
+		) as QuotaStoreSnapshot;
+		expect(
+			published.entries.find((entry) => entry.key === CLAUDE_A)?.fetchedAt,
+		).toBeNull();
+
+		const loser = harness({ claudeSelections: [null, "/profiles/a"] });
+		loser.store.setSnapshotSource(() => published);
+
+		const accounts = await loser.store.read({ agents: ["claude"] });
+
+		expect(accounts.map((entry) => entry.selection)).toEqual([
+			null,
+			"/profiles/a",
+		]);
+		expect(loser.calls.map((call) => call.key)).toEqual([
+			CLAUDE_DEFAULT,
+			CLAUDE_A,
+		]);
+	});
+
+	// The likelier trigger: a static row takes its fetchedAt only from the
+	// discovery pass, so one local I/O failure strands every one of them at
+	// once while the fetchable rows keep republishing a fresh snapshot.
+	it("reads for itself when failed discovery stranded a mirrored static row", async () => {
+		const signedOut = account("claude", "/profiles/a", {
+			status: "signed_out",
+			windows: [],
+		});
+		const owner = harness({
+			claudeSelections: [null],
+			claudeStatic: [signedOut],
+		});
+		await owner.store.read({ agents: ["claude"] });
+
+		owner.state.claudeDiscoveryFails = true;
+		owner.advance(MIRROR_MAX_AGE_MS + MINUTE);
+		await owner.store.read({ agents: ["claude"], forceRefresh: true });
+		const published = JSON.parse(
+			JSON.stringify(owner.store.snapshot()),
+		) as QuotaStoreSnapshot;
+
+		const loser = harness({
+			claudeSelections: [null],
+			claudeStatic: [signedOut],
+		});
+		loser.store.setSnapshotSource(() => published);
+		loser.advance(MIRROR_MAX_AGE_MS + MINUTE);
+
+		const accounts = await loser.store.read({ agents: ["claude"] });
+
+		expect(accounts.map((entry) => entry.selection)).toEqual([
+			null,
+			"/profiles/a",
+		]);
+		expect(loser.calls.map((call) => call.key)).toEqual([CLAUDE_DEFAULT]);
 	});
 
 	// The other half of that bound: a row the owner does poll must still be

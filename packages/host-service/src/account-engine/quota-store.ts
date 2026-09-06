@@ -421,7 +421,8 @@ export class QuotaStore {
 				.sort(
 					(a, b) =>
 						Number(b.key === activeKey) - Number(a.key === activeKey) ||
-						a.nextPollAt - b.nextPollAt,
+						a.nextPollAt - b.nextPollAt ||
+						(a.fetchedAt ?? 0) - (b.fetchedAt ?? 0),
 				)
 				.slice(0, Math.max(0, room));
 		});
@@ -455,7 +456,17 @@ export class QuotaStore {
 					const rank =
 						Number(b.key === agentSchedule.activeKey) -
 						Number(a.key === agentSchedule.activeKey);
-					return rank !== 0 ? rank : a.nextPollAt - b.nextPollAt;
+					// A never-fetched entry breaks the nextPollAt tie: with more
+					// selections than the budget allows, deferForBudget lands the
+					// deferred one on the same nextPollAt as the entries just
+					// fetched, and a stable sort would then hand the slots to the
+					// same winners every window — leaving the last profile with
+					// fetchedAt null for good.
+					return (
+						rank ||
+						a.nextPollAt - b.nextPollAt ||
+						(a.fetchedAt ?? 0) - (b.fetchedAt ?? 0)
+					);
 				});
 			const budget = budgetMaxRequests(agentSchedule.intervalMs);
 			let used = this.requestsInWindow(agent, now);
@@ -737,6 +748,8 @@ export class QuotaStore {
 			accounts: UsageAccount[];
 		}> = [];
 		const covered = new Set<QuotaCapableAgent>();
+		/** Agents with at least one stale row; see the return below. */
+		const staleAgents = new Set<QuotaCapableAgent>();
 		let dropped = 0;
 		for (const entry of snapshot?.entries ?? []) {
 			try {
@@ -750,6 +763,7 @@ export class QuotaStore {
 					entry.fetchedAt === null ||
 					now - entry.fetchedAt > MIRROR_MAX_AGE_MS
 				) {
+					staleAgents.add(entry.agent);
 					continue;
 				}
 				mirrored.push({
@@ -769,7 +783,16 @@ export class QuotaStore {
 				}; ignoring them`,
 			);
 		}
-		return { entries: mirrored, covered: [...covered] };
+		// Coverage is per agent, so one stale row uncovers the whole agent: the
+		// accounts behind that row are not in the mirror's answer, and marking
+		// the agent answered anyway would drop them from this host with no local
+		// read to bring them back. Its mirrored rows go too, or the local read
+		// that now runs would duplicate them.
+		const fresh = [...covered].filter((agent) => !staleAgents.has(agent));
+		return {
+			entries: mirrored.filter((entry) => fresh.includes(entry.agent)),
+			covered: fresh,
+		};
 	}
 
 	private collect(
@@ -839,7 +862,10 @@ export class QuotaStore {
 		for (const entry of this.entries(agent)) {
 			if (!entry.fetchable) continue;
 			entry.backoffMs = next;
-			entry.nextPollAt = now + next;
+			// A floor, like scheduleNext and deferForBudget use: a 429 on one
+			// selection must never pull another entry's poll earlier, or the
+			// endpoint that just rate-limited gets a burst instead of a pause.
+			entry.nextPollAt = Math.max(entry.nextPollAt, now + next);
 		}
 	}
 
