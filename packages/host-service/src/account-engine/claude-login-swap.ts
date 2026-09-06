@@ -906,6 +906,18 @@ export async function swapClaudeLogin(input: {
 				if (ownerCheck) return failure("owner-unknown", ownerCheck);
 				const planned = await planStoreWrite(ownerBinding, ownerRead, ctx);
 				if (!planned.ok) return planned.result;
+				// The file write follows the store the login was read from, and for
+				// the system default that is either half of the one slot —
+				// `~/.config/claude` is a dir `storeDir` never names. Validate the
+				// dir the credential and its backups actually land in, in the
+				// moment before they do.
+				if (planned.plan.file) {
+					const pathInvalid = await validateDir(
+						dirname(ownerRead.credentialsPath),
+						ctx,
+					);
+					if (pathInvalid) return failure("invalid-owner", pathInvalid);
+				}
 				try {
 					await applyStoreWrite(ownerRead, planned.plan, previous, ctx);
 				} catch (error) {

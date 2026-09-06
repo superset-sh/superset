@@ -1093,6 +1093,48 @@ describe("swapClaudeLogin with the system-default account", () => {
 			oauth("t-sys-refreshed", 5_000),
 		);
 	});
+
+	it("refuses when the login's own half of the default slot is group-writable", async () => {
+		const f = fixture();
+		// The CLI keeps this login in `~/.config/claude`, the other half of the
+		// one default slot, so that — not `~/.claude` — is where a save-back
+		// and its backups land.
+		const configDir = makeDir(join(f.home, ".config", "claude"));
+		const configCredentials = join(configDir, "credentials.json");
+		writeFileSync(
+			configCredentials,
+			JSON.stringify({ claudeAiOauth: oauth("t-sys", 1_000) }),
+			{ mode: 0o600 },
+		);
+		writeFileSync(
+			join(f.home, ".claude.json"),
+			JSON.stringify(identity("sys")),
+		);
+		writeCredentials(f.activeDir, {
+			claudeAiOauth: oauth("t-sys-refreshed", 5_000),
+		});
+		writeFileSync(
+			join(f.activeDir, ".claude.json"),
+			JSON.stringify(identity("sys")),
+		);
+		chmodSync(configDir, 0o770);
+		const before = readCredentials(f.activeDir);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: SYSTEM_DEFAULT,
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-owner" });
+		expect(
+			JSON.parse(readFileSync(configCredentials, "utf-8")).claudeAiOauth,
+		).toEqual(oauth("t-sys", 1_000));
+		// No credential, no tmp file and no backup landed in the unsafe dir.
+		expect(readdirSync(configDir)).toEqual(["credentials.json"]);
+		expect(readCredentials(f.activeDir)).toEqual(before);
+	});
 });
 
 interface KeychainItem {
