@@ -182,7 +182,20 @@ export class SessionMover {
 
 		// `rows` is the whole set this pass considered, so what it did not defer
 		// is not waiting on anything any more.
-		if (waiting.size > 0) this.deferred.set(agent, waiting);
+		// Only the rows this pass actually looked at are re-decided. Callers
+		// hand in a pre-filtered list — and after the first switch an unpinned
+		// row re-resolves to the active dir, so that list is routinely empty on
+		// later passes. Replacing the whole set then forgot a session deferred
+		// mid-turn by an earlier pass, and it kept running on the account the
+		// engine had switched away from until the user restarted it by hand.
+		const considered = new Set(rows.map((row) => row.terminalId));
+		const next = new Set(
+			[...(this.deferred.get(agent) ?? [])].filter(
+				(terminalId) => !considered.has(terminalId),
+			),
+		);
+		for (const terminalId of waiting) next.add(terminalId);
+		if (next.size > 0) this.deferred.set(agent, next);
 		else this.deferred.delete(agent);
 
 		return { movedTerminalIds, deferredTerminalIds };

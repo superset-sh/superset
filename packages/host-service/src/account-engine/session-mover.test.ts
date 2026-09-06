@@ -205,6 +205,30 @@ describe("moveAtIdle", () => {
 		expect(h.killCalls.map((call) => call.terminalId)).toEqual(["t1", "t2"]);
 	});
 
+	// Callers hand in a pre-filtered list, and after the first switch an
+	// unpinned row re-resolves to the active dir and drops out of it — so a
+	// later pass routinely sees an empty list. Replacing the whole set then
+	// forgot the row deferred mid-turn, and it kept running on the account the
+	// engine had switched away from.
+	it("keeps a deferral the next pass never looked at", async () => {
+		let busy = true;
+		const deferredRow = row({ terminalId: "t1", lastEventType: "Start" });
+		const h = harness({
+			isAgentBusy: () => busy,
+			listSessions: () => [row({ terminalId: "t1", lastEventType: "Stop" })],
+		});
+
+		await h.mover.moveAtIdle("codex", [deferredRow]);
+		expect(h.killCalls).toEqual([]);
+
+		// A second switch whose filtered list no longer contains t1.
+		await h.mover.moveAtIdle("codex", []);
+
+		busy = false;
+		await h.mover.handleStoreChange("ws-1");
+		expect(h.killCalls.map((call) => call.terminalId)).toEqual(["t1"]);
+	});
+
 	it("drops a deferred row that has since moved onto the new account", async () => {
 		let busy = true;
 		const h = harness({
