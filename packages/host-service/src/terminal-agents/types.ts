@@ -23,6 +23,16 @@ export type TerminalAgentEndReason =
 	| "disposed";
 
 /**
+ * The failure class a `Failed` event carried, when the hook forwarded one
+ * (Claude Code's `StopFailure` error). In-memory only — it is a hint for the
+ * account engine's limit-stop corroboration, never persisted or displayed.
+ */
+export interface TerminalAgentFailure {
+	errorType: string;
+	at: number;
+}
+
+/**
  * One agent process bound to a terminal. Created on the first hook event we
  * receive for the terminal. When the agent or terminal ends the row is kept
  * with `endedAt`/`endReason` set (so `agentSessionId` survives for resume)
@@ -38,6 +48,11 @@ export interface TerminalAgentBinding {
 	startedAt: number;
 	lastEventAt: number;
 	lastEventType: string;
+	/** Last failure reported for this terminal, if any. */
+	lastFailure?: TerminalAgentFailure;
+	/** When the agent last moved from busy (Start/PermissionRequest) to
+	 * stopped (Stop/Failed) — the moment a limit stop would have happened. */
+	lastTransitionAt?: number;
 	endedAt?: number;
 	endReason?: TerminalAgentEndReason;
 }
