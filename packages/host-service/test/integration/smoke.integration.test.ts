@@ -17,6 +17,7 @@ describe("host-service smoke", () => {
 		const result = await host.unauthenticatedTrpc.health.check.query();
 		expect(result).toEqual({
 			status: "ok",
+			version: expect.stringMatching(/^\d+\.\d+\.\d+/),
 			cloudRegistered: false,
 			registrationError: null,
 		});
@@ -26,6 +27,7 @@ describe("host-service smoke", () => {
 		const result = await host.trpc.health.check.query();
 		expect(result).toEqual({
 			status: "ok",
+			version: expect.stringMatching(/^\d+\.\d+\.\d+/),
 			cloudRegistered: false,
 			registrationError: null,
 		});
