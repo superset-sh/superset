@@ -156,6 +156,59 @@ const asProfile = (dir: string) => ({ kind: "profile" as const, dir });
 const SYSTEM_DEFAULT = { kind: "system-default" as const };
 
 describe("swapClaudeLogin on a file-backed store", () => {
+	// Writing goes through a rename, which needs only directory permission, so
+	// a credential file that is present but unreadable would be replaced by a
+	// store the swap never saw — measured before this guard: the owner came
+	// back holding an OLDER login, its mcpOAuth siblings gone, no backup taken,
+	// and ok:true returned.
+	it("refuses to write over an owner store it could not read", async () => {
+		if (process.getuid?.() === 0) return;
+		const f = fixture();
+		const ownerFile = join(f.profileA, ".credentials.json");
+		chmodSync(ownerFile, 0o000);
+
+		try {
+			const result = await swapClaudeLogin({
+				target: asProfile(f.profileB),
+				ownerBinding: asProfile(f.profileA),
+				activeDir: f.activeDir,
+				deps: f.deps,
+			});
+
+			expect(result).toMatchObject({ ok: false, code: "invalid-owner" });
+		} finally {
+			chmodSync(ownerFile, 0o600);
+		}
+		// The store it could not read is exactly as it was.
+		expect(readCredentials(f.profileA)).toEqual({
+			claudeAiOauth: oauth("t-a", 1_000),
+			mcpOAuth: { "a-server": { token: "m-a" } },
+		});
+	});
+
+	it("refuses to write over an active store it could not read", async () => {
+		if (process.getuid?.() === 0) return;
+		const f = fixture();
+		const activeFile = join(f.activeDir, ".credentials.json");
+		chmodSync(activeFile, 0o000);
+
+		try {
+			const result = await swapClaudeLogin({
+				target: asProfile(f.profileB),
+				ownerBinding: asProfile(f.profileA),
+				activeDir: f.activeDir,
+				deps: f.deps,
+			});
+
+			expect(result).toMatchObject({ ok: false, code: "invalid-active-dir" });
+		} finally {
+			chmodSync(activeFile, 0o600);
+		}
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+	});
+
 	it("moves the target login in and keeps the active dir's other state", async () => {
 		const f = fixture();
 

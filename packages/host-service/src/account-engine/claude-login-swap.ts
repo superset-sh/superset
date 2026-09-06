@@ -554,7 +554,7 @@ async function rollbackActiveWrite(
 					activeRead.fileContent,
 					ctx,
 				);
-			} else {
+			} else if (!activeRead.fileUnreadable) {
 				await ctx.fs.unlink(activeRead.credentialsPath);
 			}
 		}
@@ -682,6 +682,16 @@ async function applyToActiveDir(
 
 	const activeRef: ClaudeLoginStoreRef = { kind: "profile", dir: activeDir };
 	const activeRead = await readStore(activeRef, ctx);
+	// The write below goes through a rename, which needs only directory
+	// permission — so a credential file that is there but unreadable would be
+	// replaced by a store this swap never saw, and the rollback would have
+	// nothing to put back.
+	if (activeRead.fileUnreadable) {
+		return failure(
+			"invalid-active-dir",
+			`${activeRead.credentialsPath} exists but could not be read; refusing to write over it`,
+		);
+	}
 	const planned = await planStoreWrite(activeRef, activeRead, ctx);
 	if (!planned.ok) return planned.result;
 	// A plan naming two stores can fail on the second with the first already
@@ -889,6 +899,16 @@ export async function swapClaudeLogin(input: {
 		if (ownerInvalid) return failure("invalid-owner", ownerInvalid);
 		if (previous) {
 			const ownerRead = await readStore(ownerBinding, ctx);
+			// A credential file that is there but unreadable reads as absent,
+			// and writing goes through a rename, which needs only directory
+			// permission — so the save-back would replace an intact store it
+			// never saw, with no backup and no way to know it had regressed.
+			if (ownerRead.fileUnreadable) {
+				return failure(
+					"invalid-owner",
+					`${ownerRead.credentialsPath} exists but could not be read; refusing to write over it`,
+				);
+			}
 			if (!wouldRegress(oauthOf(ownerRead), previous)) {
 				// The other half of the same staleness: the caller's binding says
 				// whose store this is, but a `/login` in that profile since
