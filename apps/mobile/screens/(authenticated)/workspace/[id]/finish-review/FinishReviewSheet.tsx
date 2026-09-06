@@ -75,8 +75,9 @@ export function FinishReviewSheet() {
 	const agentConfig = agentConfigs.data?.find(
 		(config) => config.presetId === agentId,
 	);
+	// The preset id stands in until the configs answer (see NewChatWidget).
 	const launch = useAgentLaunchPreferences(
-		agentConfig ? agentLaunchPresetId(agentConfig) : null,
+		agentConfig ? agentLaunchPresetId(agentConfig) : agentId,
 	);
 
 	const terminalRows = useMemo(

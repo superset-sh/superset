@@ -19,6 +19,8 @@ export function OptionRow({
 	return (
 		<Pressable
 			onPress={onPress}
+			accessibilityRole="button"
+			accessibilityState={{ selected: isSelected }}
 			className="flex-row items-center gap-2.5 py-2.5"
 			ph-label={phLabel}
 		>

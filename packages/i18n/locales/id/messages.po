@@ -5131,7 +5131,7 @@ msgid "Editor typography"
 msgstr "Tipografi editor"
 
 msgid "Effort"
-msgstr "Effort"
+msgstr "Upaya"
 
 msgid "Electron/tRPC-coupled, so referenced rather than rendered. Badge = import sites today; high counts are promotion candidates for packages/ui"
 msgstr "Terikat Electron/tRPC, jadi dirujuk alih-alih dirender. Badge = jumlah tempat impor saat ini; angka tinggi adalah kandidat untuk dipromosikan ke packages/ui"

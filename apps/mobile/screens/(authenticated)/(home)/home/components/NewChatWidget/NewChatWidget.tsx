@@ -135,10 +135,13 @@ export function NewChatWidget({
 		: agentId;
 	const agentIconUri = useAgentIconUri(selectedAgent?.iconId ?? agentId);
 	// Remembered per launch preset; null means the agent's own default and
-	// nothing rides the launch.
+	// nothing rides the launch. Until the host's configs answer the preset id
+	// stands in for the launch preset, so a send made before they arrive
+	// still carries the pick — the two only differ for a config whose
+	// executable is not its preset's.
 	const launchPresetId = selectedAgent
 		? agentLaunchPresetId(selectedAgent)
-		: null;
+		: agentId;
 	const launch = useAgentLaunchPreferences(launchPresetId);
 	const model = launch.model?.id ?? null;
 	const effort = launch.effort?.id ?? null;
