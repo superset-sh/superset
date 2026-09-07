@@ -1577,23 +1577,24 @@ export class AccountEngine {
 							: `${home} is signed in as account ${seen}, not the expected ${expected}`,
 				};
 			}
-			// KTD5: that read is I/O, and the lease is three ticks long. The
-			// pointer is host-wide state, so a switch that lost the lock while
-			// it was confirming the target publishes nothing.
-			if (!this.ensureOwnership(this.now())) return LOCK_LOSER;
-		}
-		try {
-			this.setPointer(this.db, "codex", input.target.selection);
-		} catch (error) {
-			return { ok: false, code: "pointer-failed", reason: errorText(error) };
 		}
 		// A Codex home is a whole config root, not just a login, and an
 		// auto-switch can land on one that never passed the add-account flow —
 		// any `~/.codex*` dir with a parsable auth.json is rotatable. Without
 		// provisioning it, sessions do not pool into the ambient home, so the
 		// mover's `codex resume` cannot find the rollout it just moved.
-		// Best-effort — the pointer is already written, and provisioning
-		// retries on the next switch and at host boot.
+		// Best-effort — provisioning retries on the next switch and at host
+		// boot, so a failed share must not fail the switch.
+		//
+		// R24: it runs *before* the pointer, because the pointer write is the
+		// Codex switch itself — it is what every new Codex terminal reads as
+		// its CODEX_HOME — and a switch that does not complete has to leave it
+		// untouched. Anything awaited after the write can lose the lease at the
+		// check that records the switch, which would leave the pointer on the
+		// target while `runtime.json` still names the previous account, and
+		// nothing reconciles the two afterwards. `provisionCodexAccount` takes
+		// the home directly and never reads the pointer, so it does not need
+		// the pointer moved first.
 		if (input.target.selection !== null) {
 			try {
 				await this.provisionCodex(input.target.selection);
@@ -1603,6 +1604,18 @@ export class AccountEngine {
 					error,
 				);
 			}
+		}
+		// KTD5: the identity read and the provision above are I/O, and the
+		// lease is three ticks long. The pointer is host-wide state, so it is
+		// written only by a switch that still owns the lock, and nothing is
+		// awaited between here and the post-swap check that records it. A
+		// stale-lease reclaim landing inside that window is still seen at that
+		// check after the write — no ordering prevents it, only the lease.
+		if (!this.ensureOwnership(this.now())) return LOCK_LOSER;
+		try {
+			this.setPointer(this.db, "codex", input.target.selection);
+		} catch (error) {
+			return { ok: false, code: "pointer-failed", reason: errorText(error) };
 		}
 		return { ok: true };
 	}

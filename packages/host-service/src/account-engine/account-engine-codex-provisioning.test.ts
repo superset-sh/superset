@@ -200,9 +200,43 @@ describe("AccountEngine Codex switches", () => {
 
 		const outcome = await engine.switchManually("codex", "/homes/b");
 
-		// The pointer is already written: a failed share must not report a
-		// switch that plainly happened as failed.
+		// The share is best-effort and runs before the pointer: a home that
+		// could not be shared must not report a switch that did happen as
+		// failed, and the pointer still moves.
 		expect(outcome.ok).toBe(true);
 		expect(pointerWrites).toEqual(["/homes/b"]);
+	});
+
+	it("writes no pointer when the lock is lost while the home is provisioned", async () => {
+		const state = new EngineState();
+		// What this host believes before the switch: sessions are on home A.
+		const before = state.readRuntime();
+		before.perAgent.codex.activeAccountId = "codex-acct-a";
+		before.perAgent.codex.activeSelection = "/homes/a";
+		state.writeRuntime(before);
+
+		const pointerWrites: Array<string | null> = [];
+		const stops: Array<Promise<void>> = [];
+		const engine = buildEngine(state, {
+			// Another instance takes the host lock while the share is in flight.
+			provisionCodex: async () => {
+				stops.push(engine.stop());
+			},
+			pointerWrites,
+		});
+
+		const outcome = await engine.switchManually("codex", "/homes/b");
+		await Promise.all(stops);
+
+		expect(outcome).toMatchObject({ ok: false, code: "lock-loser" });
+		// R24: a switch that did not complete changes nothing at all. The
+		// pointer is the Codex switch — it is what the next terminal reads as
+		// CODEX_HOME — so a pointer on B against a runtime naming A is a host
+		// nothing on any path reconciles.
+		expect(pointerWrites).toEqual([]);
+		const after = state.readRuntime().perAgent.codex;
+		expect(after.activeSelection).toBe("/homes/a");
+		expect(after.activeAccountId).toBe("codex-acct-a");
+		expect(state.readHistory()).toEqual([]);
 	});
 });
