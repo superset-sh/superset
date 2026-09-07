@@ -408,8 +408,10 @@ export class QuotaStore {
 			// entry at once — the burst that earns the 429 — and the requests it
 			// recorded then deferred the active account's own poll for the rest
 			// of the window. The active entry goes first for the same reason it
-			// does there, and what does not fit is served from its last-known
-			// accounts, which is the contract the back-off already uses.
+			// does there, and a row that does not fit is served from its
+			// last-known accounts, which is the contract the back-off already
+			// uses — except for a row that has nothing to serve, which goes out
+			// past the budget (below).
 			// Only the switchable agents are ever scheduled, so the rest simply
 			// have no recorded interval and fall to the default budget.
 			const schedule =
@@ -419,14 +421,29 @@ export class QuotaStore {
 			const activeKey = schedule?.activeKey;
 			const budget = budgetMaxRequests(schedule?.intervalMs);
 			const room = budget - this.requestsInWindow(agent, now);
-			return ready
-				.sort(
-					(a, b) =>
-						Number(b.key === activeKey) - Number(a.key === activeKey) ||
-						a.nextPollAt - b.nextPollAt ||
-						(a.fetchedAt ?? 0) - (b.fetchedAt ?? 0),
-				)
-				.slice(0, Math.max(0, room));
+			// An entry with nothing to serve cannot be "served from its
+			// last-known accounts": deferring it drops the profile off the
+			// answer entirely, with no row and no error. Those go out past the
+			// budget — one request per profile, once — while a row that already
+			// failed carries a lastError and queues with the rest.
+			const unserved = ready.filter(
+				(entry) =>
+					entry.fetchedAt === null &&
+					entry.accounts.length === 0 &&
+					entry.lastError === null,
+			);
+			const rest = ready.filter((entry) => !unserved.includes(entry));
+			return [
+				...unserved,
+				...rest
+					.sort(
+						(a, b) =>
+							Number(b.key === activeKey) - Number(a.key === activeKey) ||
+							a.nextPollAt - b.nextPollAt ||
+							(a.fetchedAt ?? 0) - (b.fetchedAt ?? 0),
+					)
+					.slice(0, Math.max(0, room - unserved.length)),
+			];
 		});
 		if (stale.length > 0) {
 			await this.runBatch(stale, now);

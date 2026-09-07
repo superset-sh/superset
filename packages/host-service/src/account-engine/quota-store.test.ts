@@ -196,6 +196,23 @@ describe("QuotaStore on demand (engine disabled)", () => {
 		expect(h.callsFor(CLAUDE_DEFAULT)).toHaveLength(1);
 	});
 
+	it("answers with every profile on the first read, even past the budget", async () => {
+		// More selections than the default budget allows in one window. A
+		// never-fetched entry has no last-known accounts to be served from, so
+		// deferring it would drop the profile off the answer entirely.
+		const selections = Array.from(
+			{ length: BUDGET_MAX_REQUESTS + 3 },
+			(_, index) => `/profiles/${index}`,
+		);
+		const h = harness({ claudeSelections: selections });
+
+		const first = await h.store.read({ agents: ["claude"] });
+
+		expect(first).toHaveLength(selections.length);
+		expect(h.calls).toHaveLength(selections.length);
+		expect(first.map((a) => a.selection).sort()).toEqual([...selections].sort());
+	});
+
 	it("serves grok and antigravity as group entries and never schedules them", async () => {
 		const h = harness();
 		const accounts = await h.store.read();
