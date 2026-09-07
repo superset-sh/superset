@@ -1188,7 +1188,28 @@ export async function swapClaudeLogin(input: {
 		// The login this saves back, as it stands in the moment before the write: a
 		// session refreshed it while the owner store was read, and saving the value
 		// from before that write loses the rotated refresh token.
-		const current = oauthOf(await readStore(activeRef, ctx)) ?? previous;
+		//
+		// Both halves, because `?? previous` only ever defended a read that
+		// returned NOTHING: `login` is set from whichever half answered, so a
+		// read that lost one comes back truthy with the survivor and the
+		// fallback never fires. The survivor can be the staler of the two, and
+		// saving it back writes the owner's store to a login this same swap
+		// read past — while the active dir moves on to the target, leaving the
+		// newer one in no store at all. `wouldRegress` cannot see it: it weighs
+		// the owner's own copy against this payload, never against `previous`.
+		// The read question again, so `anyFileCandidateUnreadable` rather than
+		// `fileUnreadable` — nothing is written to this dir here.
+		const activeNow = await readStore(activeRef, ctx);
+		if (activeNow.keychainUnreadable || activeNow.anyFileCandidateUnreadable) {
+			const unread = activeNow.keychainUnreadable
+				? `${keychainStoreName(activeNow, activeRef, ctx)}'s Keychain item`
+				: fileStoreName(activeNow, activeRef, ctx);
+			return failure(
+				"invalid-active-dir",
+				`${unread} exists but could not be read while the swap re-read ${input.activeDir}; refusing to save back a login that may be the older of the two`,
+			);
+		}
+		const current = oauthOf(activeNow) ?? previous;
 		// A login that moved may be a different account's, not just a newer token.
 		if (hashOauth(current) !== hashOauth(previous)) {
 			const movedCheck = await activeIdentityMismatch(

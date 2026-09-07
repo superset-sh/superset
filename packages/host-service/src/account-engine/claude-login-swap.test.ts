@@ -2344,6 +2344,132 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
 	});
 
+	// The payload the save-back writes is re-read in the moment before that
+	// write, and that read has the same two halves as every other: here the
+	// active dir's file answered when the swap took the login it was about to
+	// replace, and stopped answering before the payload read, leaving the
+	// staler Keychain half as the only survivor. `?? previous` defends a read
+	// that returned nothing at all, never one that returned half. Measured
+	// before this guard: {"ok":true}, the owner's store holding the
+	// PRE-ROTATION login, and the active Keychain item then overwritten with
+	// the target's — so the rotated login was left in no store at all.
+	// `wouldRegress` cannot catch it: it weighs the owner's own copy against
+	// the payload, never against the login this same swap read a moment
+	// earlier.
+	it("refuses when the payload re-read of the active dir loses a half", async () => {
+		const f = fixture();
+		writeCredentials(f.activeDir, {
+			claudeAiOauth: oauth("t-a-rotated", 5_000),
+			mcpOAuth: { "active-server": { token: "m-active" } },
+		});
+		const activeService = keychainServicesForConfigDir(
+			f.activeDir,
+		)[0] as string;
+		const account = claudeKeychainAccounts()[0] as string;
+		const secret = JSON.stringify({
+			claudeAiOauth: oauth("t-a-pre-rotation", 2_000),
+		});
+		const keychain = fakeKeychain([
+			{ service: activeService, account, secret },
+		]);
+		// Transient, and aimed at the payload read alone: the first probe is
+		// the read of the login being replaced and it answers, and so does
+		// every probe after this one, so the swap is degraded in exactly the
+		// one moment the fallback looks at.
+		let probes = 0;
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: {
+				...f.deps,
+				darwin: true,
+				exec: keychain.exec,
+				fs: {
+					readFile: deniedAfter(
+						join(f.activeDir, ".credentials.json"),
+						() => ++probes === 2,
+					),
+				},
+			},
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-active-dir" });
+		// The owner holds the login the fixture left it, siblings and all...
+		expect(readCredentials(f.profileA)).toEqual({
+			claudeAiOauth: oauth("t-a", 1_000),
+			mcpOAuth: { "a-server": { token: "m-a" } },
+		});
+		// ...with no backup slot spent, so nothing was written there at all.
+		expect(readdirSync(f.profileA).sort()).toEqual([
+			".claude.json",
+			".credentials.json",
+		]);
+		// And the rotated login is still where the swap found it.
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-a-rotated", 5_000),
+		);
+		expect(keychain.items).toEqual([
+			{ service: activeService, account, secret },
+		]);
+		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
+	});
+
+	// The same half lost, this time for good. The later guards do catch it —
+	// `applyToActiveDir` re-reads the active dir and refuses — but only after
+	// the save-back has already written the owner's store, which is the trace
+	// a swap nobody performs must not leave. Measured before this guard:
+	// `invalid-active-dir`, and the owner's credential replaced with the
+	// pre-rotation login and a backup slot spent for it.
+	it("writes nothing to the owner when the active dir's file stops answering", async () => {
+		const f = fixture();
+		writeCredentials(f.activeDir, {
+			claudeAiOauth: oauth("t-a-rotated", 5_000),
+			mcpOAuth: { "active-server": { token: "m-active" } },
+		});
+		const activeService = keychainServicesForConfigDir(
+			f.activeDir,
+		)[0] as string;
+		const account = claudeKeychainAccounts()[0] as string;
+		const secret = JSON.stringify({
+			claudeAiOauth: oauth("t-a-pre-rotation", 2_000),
+		});
+		const keychain = fakeKeychain([
+			{ service: activeService, account, secret },
+		]);
+		let probes = 0;
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: {
+				...f.deps,
+				darwin: true,
+				exec: keychain.exec,
+				fs: {
+					readFile: deniedAfter(
+						join(f.activeDir, ".credentials.json"),
+						() => ++probes >= 2,
+					),
+				},
+			},
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-active-dir" });
+		expect(readCredentials(f.profileA)).toEqual({
+			claudeAiOauth: oauth("t-a", 1_000),
+			mcpOAuth: { "a-server": { token: "m-a" } },
+		});
+		expect(readdirSync(f.profileA).sort()).toEqual([
+			".claude.json",
+			".credentials.json",
+		]);
+		expect(keychain.items).toEqual([
+			{ service: activeService, account, secret },
+		]);
+		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
+	});
+
 	// The save-back lands in the owner's Keychain item through the same write
 	// and the same delete-on-rollback, so it fails closed the same way.
 	it("refuses the save-back when the owner's Keychain item cannot be read", async () => {
