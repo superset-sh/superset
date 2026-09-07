@@ -5,6 +5,7 @@ import { COMPANY } from "@superset/shared/constants";
 import Link from "next/link";
 import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
+import { TbCloud } from "react-icons/tb";
 import { DownloadButton } from "../DownloadButton";
 import { WaitlistModal } from "../WaitlistModal";
 import { BoidsBackground } from "./components/BoidsBackground";
@@ -119,6 +120,13 @@ export function HeroSection() {
 								<Trans>View on GitHub</Trans>
 								<FaGithub className="size-4" />
 							</button>
+							<div className="flex items-center gap-2 border border-border bg-background px-4 py-2.5 text-sm text-muted-foreground sm:px-6 sm:py-3 sm:text-base">
+								<TbCloud className="size-4 shrink-0" aria-hidden="true" />
+								<Trans>Cloud</Trans>
+								<span className="whitespace-nowrap rounded-[2px] border border-border px-2 py-0.5 font-mono text-xs">
+									<Trans>Coming soon</Trans>
+								</span>
+							</div>
 						</div>
 						<HeroReassurance />
 					</div>
