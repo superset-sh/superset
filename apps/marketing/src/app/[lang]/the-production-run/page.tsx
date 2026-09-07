@@ -33,13 +33,13 @@ export const metadata: Metadata = {
 		title: "The Production Run | Superset",
 		description: DESCRIPTION,
 		url: "/the-production-run",
-		images: ["/opengraph-image"],
+		images: ["/og-image.png"],
 	},
 	twitter: {
 		card: "summary_large_image",
 		title: "The Production Run | Superset",
 		description: DESCRIPTION,
-		images: ["/opengraph-image"],
+		images: ["/og-image.png"],
 	},
 };
 

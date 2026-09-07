@@ -42,7 +42,7 @@ export async function generateMetadata(): Promise<Metadata> {
 			),
 			description,
 			url: localeUrl(lang, "/join-us"),
-			images: ["/opengraph-image"],
+			images: ["/og-image.png"],
 		},
 		twitter: {
 			card: "summary_large_image",
@@ -52,7 +52,7 @@ export async function generateMetadata(): Promise<Metadata> {
 				}),
 			),
 			description,
-			images: ["/opengraph-image"],
+			images: ["/og-image.png"],
 		},
 	};
 }

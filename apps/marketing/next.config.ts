@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { withSentryConfig } from "@sentry/nextjs";
+import { SUPPORTED_LOCALES } from "@superset/i18n/locales";
 import { config as dotenvConfig } from "dotenv";
 import type { NextConfig } from "next";
 
@@ -131,6 +132,18 @@ const config: NextConfig = {
 		const docsUrl =
 			process.env.NEXT_PUBLIC_DOCS_URL || "https://docs.superset.sh";
 		return [
+			// These URLs were advertised before discovery files were excluded
+			// from locale expansion. Keep existing inbound links working.
+			{
+				source: `/:lang(${SUPPORTED_LOCALES.join("|")})/llms.txt`,
+				destination: "/llms.txt",
+				permanent: true,
+			},
+			{
+				source: "/opengraph-image",
+				destination: "/og-image.png",
+				permanent: true,
+			},
 			{
 				source: "/about",
 				destination: "/team",

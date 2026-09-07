@@ -48,13 +48,13 @@ export async function generateMetadata(): Promise<Metadata> {
 			title: `${title} | ${COMPANY.NAME}`,
 			description,
 			url: localeUrl(lang, "/leaderboard"),
-			images: ["/opengraph-image"],
+			images: ["/og-image.png"],
 		},
 		twitter: {
 			card: "summary_large_image",
 			title: `${title} | ${COMPANY.NAME}`,
 			description,
-			images: ["/opengraph-image"],
+			images: ["/og-image.png"],
 		},
 	};
 }

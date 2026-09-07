@@ -41,7 +41,7 @@ export async function generateMetadata(): Promise<Metadata> {
 			),
 			description,
 			url: localeUrl(lang, "/factory-2026"),
-			images: ["/opengraph-image"],
+			images: ["/og-image.png"],
 		},
 		twitter: {
 			card: "summary_large_image",
@@ -51,7 +51,7 @@ export async function generateMetadata(): Promise<Metadata> {
 				}),
 			),
 			description,
-			images: ["/opengraph-image"],
+			images: ["/og-image.png"],
 		},
 	};
 }

@@ -1,4 +1,4 @@
-import { SUPPORTED_LOCALES } from "@superset/i18n";
+import { getLocaleMessages, SUPPORTED_LOCALES } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Inter } from "next/font/google";
@@ -117,6 +117,7 @@ export default async function RootLayout({
 	children: React.ReactNode;
 }>) {
 	const locale = await initServerI18n();
+	const messages = await getLocaleMessages(locale);
 
 	return (
 		<html
@@ -151,7 +152,7 @@ export default async function RootLayout({
 				</Script>
 			</head>
 			<body className="overscroll-none font-sans">
-				<Providers locale={locale}>
+				<Providers locale={locale} messages={messages}>
 					<Header
 						ctaButtons={<CTAButtons />}
 						starCounter={<GitHubStarCounter />}
