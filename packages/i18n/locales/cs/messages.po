@@ -9338,6 +9338,9 @@ msgstr "Otevřít web {0}"
 msgid "Open {filePath}"
 msgstr "Otevřít {filePath}"
 
+msgid "Open {parentLabel}"
+msgstr "Otevřít {parentLabel}"
+
 msgid "Open {path} in file pane"
 msgstr "Otevřít {path} v panelu souboru"
 

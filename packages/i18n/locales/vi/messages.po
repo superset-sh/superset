@@ -9338,6 +9338,9 @@ msgstr "Mở website {0}"
 msgid "Open {filePath}"
 msgstr "Mở {filePath}"
 
+msgid "Open {parentLabel}"
+msgstr "Mở {parentLabel}"
+
 msgid "Open {path} in file pane"
 msgstr "Mở {path} trong khung tệp"
 

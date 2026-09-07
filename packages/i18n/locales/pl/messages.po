@@ -9338,6 +9338,9 @@ msgstr "Otwórz stronę {0}"
 msgid "Open {filePath}"
 msgstr "Otwórz {filePath}"
 
+msgid "Open {parentLabel}"
+msgstr "Otwórz {parentLabel}"
+
 msgid "Open {path} in file pane"
 msgstr "Otwórz {path} w panelu plików"
 

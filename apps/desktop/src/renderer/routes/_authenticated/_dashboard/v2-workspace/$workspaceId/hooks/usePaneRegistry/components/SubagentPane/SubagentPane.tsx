@@ -1,12 +1,16 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { AGENT_IDENTITY_LABELS } from "@superset/shared/agent-catalog";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useEffect, useRef } from "react";
+import { LuCornerLeftUp } from "react-icons/lu";
 import type { SubagentPaneData } from "../../../../types";
 import { SubagentTranscriptRow } from "./components/SubagentTranscriptRow";
 
 interface SubagentPaneProps {
 	data: SubagentPaneData;
+	/** Focus the parent agent's terminal pane. */
+	onOpenParent: () => void;
 }
 
 /** How often to re-read the child's transcript while it is still running. */
@@ -19,7 +23,9 @@ const LIVE_POLL_MS = 1_000;
  * Nothing about the transcript is persisted in the pane layout — only the
  * pointer in {@link SubagentPaneData}.
  */
-export function SubagentPane({ data }: SubagentPaneProps) {
+export function SubagentPane({ data, onOpenParent }: SubagentPaneProps) {
+	const { t } = useLingui();
+	const parentLabel = AGENT_IDENTITY_LABELS[data.agentId] ?? data.agentId;
 	const query = workspaceTrpc.terminalAgents.subagentTranscript.useQuery(
 		{ terminalId: data.terminalId, subagentId: data.subagentId },
 		{
@@ -54,6 +60,15 @@ export function SubagentPane({ data }: SubagentPaneProps) {
 	return (
 		<div className="flex min-h-0 min-w-0 flex-1 flex-col">
 			<div className="flex shrink-0 items-center gap-2 border-b px-3 py-1.5 text-xs">
+				<button
+					type="button"
+					onClick={onOpenParent}
+					title={t({ message: `Open ${parentLabel}` })}
+					className="flex shrink-0 items-center gap-1 rounded-sm px-1 py-0.5 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+				>
+					<LuCornerLeftUp className="size-3" />
+					<span>{parentLabel}</span>
+				</button>
 				<span className="min-w-0 flex-1 truncate font-medium">
 					{title ?? <Trans>Subagent</Trans>}
 				</span>

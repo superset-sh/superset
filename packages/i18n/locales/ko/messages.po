@@ -9338,6 +9338,9 @@ msgstr "{0} 웹사이트 열기"
 msgid "Open {filePath}"
 msgstr "{filePath} 열기"
 
+msgid "Open {parentLabel}"
+msgstr "{parentLabel} 열기"
+
 msgid "Open {path} in file pane"
 msgstr "파일 패널에서 {path} 열기"
 

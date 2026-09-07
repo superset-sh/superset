@@ -9338,6 +9338,9 @@ msgstr "Website van {0} openen"
 msgid "Open {filePath}"
 msgstr "{filePath} openen"
 
+msgid "Open {parentLabel}"
+msgstr "{parentLabel} openen"
+
 msgid "Open {path} in file pane"
 msgstr "{path} openen in bestandspaneel"
 

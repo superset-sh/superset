@@ -732,11 +732,21 @@ export function usePaneRegistry({
 			},
 			subagent: {
 				getIcon: () => <LuBot className="size-3.5" />,
-				getTitle: (pane) =>
-					(pane.data as SubagentPaneData).agentType ??
-					t({ message: "Subagent" }),
+				getTitle: (pane) => {
+					const { agentType } = pane.data as SubagentPaneData;
+					const label = t({ message: "Subagent" });
+					return agentType ? `${label} · ${agentType}` : label;
+				},
 				renderPane: (ctx: RendererContext<PaneViewerData>) => (
-					<SubagentPane data={ctx.pane.data as SubagentPaneData} />
+					<SubagentPane
+						data={ctx.pane.data as SubagentPaneData}
+						onOpenParent={() =>
+							focusOrAddTerminalPane(
+								ctx.store,
+								(ctx.pane.data as SubagentPaneData).terminalId,
+							)
+						}
+					/>
 				),
 			},
 			...(isPagesEnabled

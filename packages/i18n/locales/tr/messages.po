@@ -9338,6 +9338,9 @@ msgstr "{0} web sitesini aç"
 msgid "Open {filePath}"
 msgstr "Aç: {filePath}"
 
+msgid "Open {parentLabel}"
+msgstr "{parentLabel} aç"
+
 msgid "Open {path} in file pane"
 msgstr "{path} dosyasını dosya bölmesinde aç"
 

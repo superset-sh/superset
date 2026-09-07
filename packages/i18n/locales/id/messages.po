@@ -9338,6 +9338,9 @@ msgstr "Buka situs web {0}"
 msgid "Open {filePath}"
 msgstr "Buka {filePath}"
 
+msgid "Open {parentLabel}"
+msgstr "Buka {parentLabel}"
+
 msgid "Open {path} in file pane"
 msgstr "Buka {path} di panel file"
 

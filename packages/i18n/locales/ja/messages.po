@@ -9338,6 +9338,9 @@ msgstr "{0} のウェブサイトを開く"
 msgid "Open {filePath}"
 msgstr "{filePath}を開く"
 
+msgid "Open {parentLabel}"
+msgstr "{parentLabel} を開く"
+
 msgid "Open {path} in file pane"
 msgstr "{path}をファイルペインで開く"
 

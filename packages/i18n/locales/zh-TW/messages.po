@@ -9338,6 +9338,9 @@ msgstr "開啟 {0} 官網"
 msgid "Open {filePath}"
 msgstr "開啟{filePath}"
 
+msgid "Open {parentLabel}"
+msgstr "開啟 {parentLabel}"
+
 msgid "Open {path} in file pane"
 msgstr "在檔案面板中開啟{path}"
 
