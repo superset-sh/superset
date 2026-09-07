@@ -250,6 +250,32 @@ describe("eventBus", () => {
 		expect(host.clientCount()).toBe(0);
 	});
 
+	it("a handle minted before its connection was torn down binds to the live connection, not the dead one", async () => {
+		const host = makeHostServer();
+		// Minted with no hold yet — a WorkspaceHostGate's useMemo during the
+		// render that switches workspaces, while the outgoing tree still holds
+		// the connection.
+		const early = getEventBus(host.hostUrl, () => "tok");
+		const outgoing = getEventBus(host.hostUrl, () => "tok");
+		const release = outgoing.on("git:changed", "*", () => {});
+		cleanups.push(() => host.server.stop(true));
+		await waitFor(() => host.clientCount() === 1);
+
+		// The outgoing tree's cleanup runs before the incoming tree's effects
+		// and is the last hold: the connection closes and leaves the registry.
+		release();
+		await waitFor(() => host.clientCount() === 0);
+
+		// The incoming gate now takes its hold through the early handle. Bound
+		// to the dead entry, it would sit on a socket that never dials again
+		// and report "closed" for as long as it stayed mounted.
+		cleanups.push(early.retain());
+		cleanups.push(early.subscribeConnectionStatus(() => {}));
+		await waitFor(() => early.getConnectionStatus().state === "open");
+		expect(host.clientCount()).toBe(1);
+		expect(host.upgrades.length).toBe(2);
+	});
+
 	it("a git:watch the host rejects for its cap is re-sent by the next watchGit", async () => {
 		const host = makeHostServer();
 		const bus = getEventBus(host.hostUrl, () => "tok");

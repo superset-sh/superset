@@ -539,7 +539,17 @@ export function getEventBus(
 	 */
 	getUrlParams?: () => Record<string, string> | null,
 ): EventBusHandle {
-	const state = getOrCreateConnection(hostUrl, getWsToken, getUrlParams);
+	// Resolve the connection per call, never once at creation. A handle is
+	// typically minted during render (a useMemo) and only takes its hold in an
+	// effect; when the connection's last holder releases in between — the
+	// outgoing tree of a workspace switch cleaning up in the same commit — the
+	// entry minted against is closed and gone from the registry. A handle
+	// bound to it would pin its caller to a socket that never dials again and
+	// report "closed" for as long as it stayed mounted, behind a workspace
+	// whose other subscribers were already live on a fresh connection.
+	const live = () => getOrCreateConnection(hostUrl, getWsToken, getUrlParams);
+	// Release paths must not mint a connection nobody will ever hold.
+	const peek = () => connections.get(hostUrl);
 
 	return {
 		on<T extends EventType>(
@@ -552,6 +562,7 @@ export function getEventBus(
 				workspaceId,
 				callback: listener as (...args: unknown[]) => void,
 			};
+			const state = live();
 			state.listeners.add(entry);
 
 			return () => {
@@ -561,6 +572,7 @@ export function getEventBus(
 		},
 
 		watchFs(workspaceId: string): void {
+			const state = live();
 			const count = state.fsWatchedWorkspaces.get(workspaceId) ?? 0;
 			state.fsWatchedWorkspaces.set(workspaceId, count + 1);
 			if (count === 0) {
@@ -569,17 +581,13 @@ export function getEventBus(
 		},
 
 		unwatchFs(workspaceId: string): void {
+			const state = peek();
+			if (!state) return;
 			const count = state.fsWatchedWorkspaces.get(workspaceId) ?? 0;
 			if (count <= 1) {
 				state.fsWatchedWorkspaces.delete(workspaceId);
 				sendCommand(state, { type: "fs:unwatch", workspaceId });
-				// getEventBus() above always creates the connection if it didn't
-				// already exist — a caller that only ever intends to release
-				// interest (a cleanup effect running after this connection's
-				// last retainer already tore it down) would otherwise mint a
-				// fresh, unretained, unlistened-to connection here and leave it
-				// dangling forever, since nothing else will ever call this again
-				// for it. Mirrors on()'s and retain()'s cleanup.
+				// Mirrors on()'s and retain()'s cleanup: a watch is a hold too.
 				maybeCleanupConnection(hostUrl);
 			} else {
 				state.fsWatchedWorkspaces.set(workspaceId, count - 1);
@@ -587,6 +595,7 @@ export function getEventBus(
 		},
 
 		watchGit(workspaceId: string): void {
+			const state = live();
 			const count = state.gitWatchedWorkspaces.get(workspaceId) ?? 0;
 			state.gitWatchedWorkspaces.set(workspaceId, count + 1);
 			if (count === 0) {
@@ -595,12 +604,12 @@ export function getEventBus(
 		},
 
 		unwatchGit(workspaceId: string): void {
+			const state = peek();
+			if (!state) return;
 			const count = state.gitWatchedWorkspaces.get(workspaceId) ?? 0;
 			if (count <= 1) {
 				state.gitWatchedWorkspaces.delete(workspaceId);
 				sendCommand(state, { type: "git:unwatch", workspaceId });
-				// See unwatchFs's comment: a release-only call can otherwise mint
-				// and permanently strand a fresh, never-retained connection.
 				maybeCleanupConnection(hostUrl);
 			} else {
 				state.gitWatchedWorkspaces.set(workspaceId, count - 1);
@@ -608,6 +617,7 @@ export function getEventBus(
 		},
 
 		watchFsFile(workspaceId: string, absolutePath: string): void {
+			const state = live();
 			const key = fileWatchKey(workspaceId, absolutePath);
 			const count = state.fsWatchedFiles.get(key) ?? 0;
 			state.fsWatchedFiles.set(key, count + 1);
@@ -621,6 +631,8 @@ export function getEventBus(
 		},
 
 		unwatchFsFile(workspaceId: string, absolutePath: string): void {
+			const state = peek();
+			if (!state) return;
 			const key = fileWatchKey(workspaceId, absolutePath);
 			const count = state.fsWatchedFiles.get(key) ?? 0;
 			if (count <= 1) {
@@ -630,8 +642,6 @@ export function getEventBus(
 					workspaceId,
 					absolutePath,
 				});
-				// See unwatchFs's comment: a release-only call can otherwise mint
-				// and permanently strand a fresh, never-retained connection.
 				maybeCleanupConnection(hostUrl);
 			} else {
 				state.fsWatchedFiles.set(key, count - 1);
@@ -643,6 +653,7 @@ export function getEventBus(
 		 * Returns a release function.
 		 */
 		retain(): () => void {
+			const state = live();
 			state.refCount++;
 			return () => {
 				state.refCount = Math.max(0, state.refCount - 1);
@@ -651,10 +662,11 @@ export function getEventBus(
 		},
 
 		getConnectionStatus(): HostConnectionStatus {
-			return state.status;
+			return live().status;
 		},
 
 		subscribeConnectionStatus(listener: ConnectionStatusListener): () => void {
+			const state = live();
 			state.statusListeners.add(listener);
 			return () => {
 				state.statusListeners.delete(listener);
@@ -663,6 +675,7 @@ export function getEventBus(
 		},
 
 		reconnect(): void {
+			const state = live();
 			// The synthetic close partysocket dispatches lands first, so publish
 			// "connecting" after it — otherwise the retry reads as a fresh failure.
 			state.socket.reconnect(1000, "manual reconnect");
