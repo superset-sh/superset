@@ -173,13 +173,23 @@ export function createAccountEngineHostDeps(
 }
 
 /**
+ * How often the deferred rows are re-checked with no store event to prompt it.
+ */
+const HEARTBEAT_MS = 60_000;
+
+/**
  * Retry the sessions that were mid-turn whenever the store changes: such a row
  * moves at its next `Stop` (R7), and the store's per-workspace `change` event
- * is the only notice of that.
+ * is the usual notice of that.
  */
 export function subscribeSessionMoverToStore(
 	store: TerminalAgentStore,
 	mover: SessionMover,
+	/** Injected so a test can fire the heartbeat without real time. */
+	timers: {
+		setIntervalFn?: typeof setInterval;
+		clearIntervalFn?: typeof clearInterval;
+	} = {},
 ): () => void {
 	const onChange = (workspaceId: string) => {
 		// Detached on purpose — the store's emit must not wait on a restart —
@@ -196,7 +206,20 @@ export function subscribeSessionMoverToStore(
 		});
 	};
 	store.on("change", onChange);
+
+	// The store is the only trigger otherwise, and a host where no terminal
+	// agent runs at all emits nothing for the whole staleness window — so a
+	// Codex row deferred mid-turn would sit on the old account indefinitely.
+	// A timer is safe here because it re-enters the same `handleStoreChange` ->
+	// `moveAtIdle` -> `isIdle` path: a busy Claude row is never idle, and a
+	// Codex row qualifies only once it has been parked on `Start` for
+	// `STALE_START_MS`. It changes when the question is asked, never the
+	// answer, so it cannot move a genuinely mid-turn session.
+	const setIntervalFn = timers.setIntervalFn ?? setInterval;
+	const heartbeat = setIntervalFn(() => onChange("heartbeat"), HEARTBEAT_MS);
+
 	return () => {
 		store.off("change", onChange);
+		(timers.clearIntervalFn ?? clearInterval)(heartbeat);
 	};
 }
