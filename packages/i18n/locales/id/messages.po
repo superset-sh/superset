@@ -284,6 +284,10 @@ msgstr "{0} – {1} · perkiraan tarif API dari log sesi lokal"
 msgid "{0} — try the Superset tray menu > Host Service > Restart."
 msgstr "{0} — coba menu tray Superset > Host Service > Restart."
 
+#. placeholder {0}: host.version
+msgid "{0} · behind"
+msgstr "{0} · tertinggal"
+
 #. placeholder {0}: creator.name
 msgid "{0} (you)"
 msgstr "{0} (Anda)"
@@ -611,6 +615,9 @@ msgstr "{count, plural, one {Memakai # sumber} other {Memakai # sumber}}"
 
 msgid "{count} GitHub stars"
 msgstr "{count} star GitHub"
+
+msgid "{count} hosts run an older host service than this app"
+msgstr "{count} host menjalankan layanan host yang lebih lama dari aplikasi ini"
 
 msgid "{count}/day"
 msgstr "{count}/hari"
@@ -1937,6 +1944,9 @@ msgstr "Setara API"
 msgid "API-equivalent cost"
 msgstr "Biaya setara API"
 
+msgid "app {appVersion}"
+msgstr "aplikasi {appVersion}"
+
 msgid "App display language"
 msgstr "Bahasa tampilan aplikasi"
 
@@ -2011,6 +2021,9 @@ msgstr "Argv yang dipakai untuk menjalankan agen."
 
 msgid "Artifact"
 msgstr "Artifact"
+
+msgid "As last reported. The host must be online to update."
+msgstr "Sesuai laporan terakhir. Host harus online untuk memperbarui."
 
 msgid "ascending"
 msgstr "menaik"
@@ -2552,6 +2565,12 @@ msgstr "Daftar berpoin"
 #. placeholder {0}: versions.expected
 msgid "bundled {0}"
 msgstr "bawaan {0}"
+
+msgid "Bundled with the Superset app on this device."
+msgstr "Disertakan bersama aplikasi Superset di perangkat ini."
+
+msgid "Bundled with the Superset app on this device. Updates with the app."
+msgstr "Disertakan bersama aplikasi Superset di perangkat ini. Diperbarui bersama aplikasi."
 
 msgid "Burn by vendor (Mercury)"
 msgstr "Burn per vendor (Mercury)"
@@ -3963,6 +3982,9 @@ msgstr "Tidak dapat menjangkau desktop."
 msgid "Could not reach the host to load this pull request."
 msgstr "Tidak bisa menjangkau host untuk memuat pull request ini."
 
+msgid "Could not reach the host to start the update. Check that it is online and try again."
+msgstr "Tidak dapat menjangkau host untuk memulai pembaruan. Pastikan host online lalu coba lagi."
+
 msgid "Could not reach this workspace's machine"
 msgstr "Tidak bisa menjangkau mesin workspace ini"
 
@@ -3983,6 +4005,9 @@ msgstr "Tidak bisa mencatat workspace cloud"
 
 msgid "Could not reopen"
 msgstr "Tidak bisa membuka lagi"
+
+msgid "Could not restart the host service"
+msgstr "Tidak dapat memulai ulang layanan host"
 
 msgid "Could not send"
 msgstr "Tidak bisa mengirim"
@@ -4809,6 +4834,9 @@ msgstr "Developer"
 msgid "Developers"
 msgstr "Developer"
 
+msgid "Development build"
+msgstr "Build pengembangan"
+
 msgid "Device: {selectedLabel}"
 msgstr "Perangkat: {selectedLabel}"
 
@@ -5077,6 +5105,9 @@ msgstr "Unduh file tema"
 
 msgid "downloaded"
 msgstr "terunduh"
+
+msgid "Downloading"
+msgstr "Mengunduh"
 
 msgid "Downloading..."
 msgstr "Mengunduh..."
@@ -6812,6 +6843,9 @@ msgstr "Host tidak ditemukan di organisasi ini"
 msgid "Host not found in this organization."
 msgstr "Host tidak ditemukan di organisasi ini."
 
+msgid "Host service"
+msgstr "Layanan host"
+
 msgid "Host Service"
 msgstr "Host Service"
 
@@ -6827,8 +6861,15 @@ msgstr "Layanan host tidak berjalan"
 msgid "Host service is starting…"
 msgstr "Layanan host sedang dimulai…"
 
+msgid "Host service restarted"
+msgstr "Layanan host dimulai ulang"
+
 msgid "Host service unavailable"
 msgstr "Layanan host tidak tersedia"
+
+#. placeholder {0}: update.progress.target
+msgid "Host service updated to {0}"
+msgstr "Layanan host diperbarui ke {0}"
 
 msgid "Host settings"
 msgstr "Pengaturan host"
@@ -7193,6 +7234,9 @@ msgstr "Terpasang"
 msgid "serverError.plugins.marketplaceHasInstalls"
 msgstr "Plugin yang terpasang berasal dari {name}: {plugins}. Hapus dulu."
 
+msgid "Installed via"
+msgstr "Diinstal melalui"
+
 msgid "Installing..."
 msgstr "Memasang..."
 
@@ -7553,6 +7597,9 @@ msgstr "Hari terakhir tiap bulan pukul {time}"
 
 msgid "Last run"
 msgstr "Run terakhir"
+
+msgid "Last seen"
+msgstr "Terakhir terlihat"
 
 msgid "Last updated"
 msgstr "Terakhir diperbarui"
@@ -8509,6 +8556,12 @@ msgstr "Perlu izin"
 msgid "Needs review"
 msgstr "Perlu review"
 
+msgid "needs update"
+msgstr "perlu diperbarui"
+
+msgid "Needs update"
+msgstr "Perlu diperbarui"
+
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -8640,6 +8693,12 @@ msgstr "Workspace baru di {name}"
 
 msgid "New-user activation"
 msgstr "Aktivasi pengguna baru"
+
+msgid "Newer than this app"
+msgstr "Lebih baru dari aplikasi ini"
+
+msgid "Newer than this app. Everything works; update the app to match."
+msgstr "Lebih baru dari aplikasi ini. Semua berfungsi; perbarui aplikasi agar sesuai."
 
 msgid "News & Updates"
 msgstr "Berita & Pembaruan"
@@ -11552,11 +11611,17 @@ msgstr "Memulai ulang {restartedOrgCount} layanan host"
 msgid "Restarted 1 host service"
 msgstr "Memulai ulang 1 layanan host"
 
+msgid "Restarting"
+msgstr "Memulai ulang"
+
 msgid "Restarting agents on {accountLabel}."
 msgstr "Menjalankan ulang agen di {accountLabel}."
 
 msgid "Restarting host services…"
 msgstr "Memulai ulang layanan host…"
+
+msgid "Restarting…"
+msgstr "Memulai ulang…"
 
 msgid "Restore"
 msgstr "Pulihkan"
@@ -11879,11 +11944,17 @@ msgstr "Menjalankan perintah lokal di mesin Anda"
 msgid "Runs failed earlier this week, but nothing is failing right now"
 msgstr "Ada run yang gagal awal minggu ini, tapi sekarang tidak ada yang gagal"
 
+msgid "Runs inside the Superset app on that device, so updating it means updating the app there."
+msgstr "Berjalan di dalam aplikasi Superset di perangkat itu, jadi memperbaruinya berarti memperbarui aplikasi di sana."
+
 msgid "Runs land in a workspace. Review the diff, merge what's good."
 msgstr "Run mendarat di sebuah workspace. Review diff-nya, merge yang bagus."
 
 msgid "Runway"
 msgstr "Runway"
+
+msgid "Same version as this app."
+msgstr "Versi yang sama dengan aplikasi ini."
 
 msgid "SAML SSO & SCIM provisioning"
 msgstr "SAML SSO & provisioning SCIM"
@@ -13379,6 +13450,9 @@ msgstr "Aplikasi Superset"
 msgid "Superset cannot reach api.github.com from this machine. Pull request status retries at {until}."
 msgstr "Superset tidak dapat menjangkau api.github.com dari mesin ini. Status pull request akan dicoba lagi pada {until}."
 
+msgid "Superset CLI"
+msgstr "Superset CLI"
+
 msgid "Superset components"
 msgstr "Komponen Superset"
 
@@ -13878,6 +13952,9 @@ msgstr "Agen memegang tugas dari tiket sampai diff. Manusia mereview hasilnya, b
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "Agen yang disetel untuk menjalankan otomatisasi ini sudah tidak ada di host-nya — agen host itu mungkin telah direset atau dihapus. Pilih ulang agen di pengaturan otomatisasi."
 
+msgid "The app is on {appVersion} but attached to a host service started by something else, likely an older CLI or another Superset build. Restarting replaces it with this app's copy."
+msgstr "Aplikasi berada di {appVersion} tetapi terhubung ke layanan host yang dimulai oleh hal lain, kemungkinan CLI lama atau build Superset lain. Memulai ulang akan menggantinya dengan salinan dari aplikasi ini."
+
 msgid "The associated device isn't reachable right now"
 msgstr "Perangkat terkait tidak bisa dijangkau saat ini"
 
@@ -13962,8 +14039,24 @@ msgstr "Workspace lengkap. Jalankan agen secara paralel, simpan masing-masing di
 msgid "The future home for reusable Superset agent configs, prompts, and setup guides."
 msgstr "Rumah masa depan untuk konfigurasi agen Superset, prompt, dan panduan penyiapan yang dapat digunakan ulang."
 
+#. placeholder {0}: info.version
+msgid "The host came back on {0}, not {targetVersion}."
+msgstr "Host kembali dengan {0}, bukan {targetVersion}."
+
+msgid "The host did not come back within fifteen minutes."
+msgstr "Host tidak kembali dalam lima belas menit."
+
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "Host tidak terhubung ke relay Superset. Kalau ini perangkatnya, aktifkan \"Izinkan akses jarak jauh ke perangkat ini melalui relay\" di Pengaturan > Akses Jarak Jauh, lalu coba lagi."
+
+msgid "The host reported a failed update."
+msgstr "Host melaporkan pembaruan yang gagal."
+
+msgid "The host service restarts once the download is verified. Terminals reconnect on their own; the previous build is kept until the new one answers."
+msgstr "Layanan host dimulai ulang setelah unduhan diverifikasi. Terminal tersambung kembali sendiri; build sebelumnya disimpan sampai yang baru merespons."
+
+msgid "The host went back to its previous build."
+msgstr "Host kembali ke build sebelumnya."
 
 msgid "The human reads every line before it merges."
 msgstr "Manusia membaca tiap baris sebelum di-merge."
@@ -14221,6 +14314,12 @@ msgstr "Instalasi GitHub ini sudah terhubung ke organisasi Superset lain. Putusk
 msgid "This host"
 msgstr "Host ini"
 
+msgid "This host has not reported a version yet."
+msgstr "Host ini belum melaporkan versi."
+
+msgid "This host is behind the app you are using. Workspaces still open, but newer features may fail on it."
+msgstr "Host ini tertinggal dari aplikasi yang Anda gunakan. Workspace masih terbuka, tetapi fitur baru mungkin gagal di sana."
+
 msgid "This host needs an update"
 msgstr "Host ini perlu diperbarui"
 
@@ -14420,8 +14519,8 @@ msgstr "Catatan workspace ini masih ada, tapi folder worktree-nya sudah tidak ad
 msgid "This workspace's host is offline"
 msgstr "Host workspace ini sedang offline"
 
-msgid "This workspace's host is on an older version of Superset than this client supports. Update the Superset app on that device to reconnect."
-msgstr "Host workspace ini memakai versi Superset yang lebih lama daripada yang didukung klien ini. Perbarui aplikasi Superset di perangkat itu untuk tersambung lagi."
+msgid "This workspace's host runs an older host service than this app supports. Update it to reconnect; the workspace and its files are untouched."
+msgstr "Host workspace ini menjalankan layanan host yang lebih lama dari yang didukung aplikasi ini. Perbarui untuk tersambung kembali; workspace dan berkasnya tidak tersentuh."
 
 msgid "Thorough reasoning effort"
 msgstr "Upaya penalaran menyeluruh"
@@ -14560,6 +14659,12 @@ msgstr "Terlalu banyak laporan dukungan. Coba lagi nanti."
 
 msgid "Too many untitled items here already."
 msgstr "Sudah terlalu banyak item tanpa judul di sini."
+
+msgid "Too old for this app to talk to. Update the Superset app on that device to reconnect."
+msgstr "Terlalu lama untuk berkomunikasi dengan aplikasi ini. Perbarui aplikasi Superset di perangkat itu untuk tersambung kembali."
+
+msgid "Too old for this app to talk to. Workspaces on this host will not open until it is updated."
+msgstr "Terlalu lama untuk berkomunikasi dengan aplikasi ini. Workspace di host ini tidak akan terbuka sampai diperbarui."
 
 msgid "Tools"
 msgstr "Alat"
@@ -14937,6 +15042,9 @@ msgstr "Berikutnya"
 msgid "Up Next"
 msgstr "Berikutnya"
 
+msgid "Up to date"
+msgstr "Terbaru"
+
 msgid "Update"
 msgstr "Perbarui"
 
@@ -14958,6 +15066,9 @@ msgstr "Perbarui daemon"
 msgid "Update Error"
 msgstr "Kesalahan Pembaruan"
 
+msgid "Update host service"
+msgstr "Perbarui layanan host"
+
 msgid "Update naming instructions"
 msgstr "Perbarui instruksi penamaan"
 
@@ -14968,8 +15079,14 @@ msgstr "Perbarui instruksi penamaan untuk {0}"
 msgid "Update Required"
 msgstr "Pembaruan Diperlukan"
 
+msgid "Update Superset on that device. In-app updates require a supported standalone install and a released app version."
+msgstr "Perbarui Superset di perangkat tersebut. Pembaruan dari aplikasi memerlukan instalasi mandiri yang didukung dan versi aplikasi yang telah dirilis."
+
 msgid "update the branch prefix"
 msgstr "memperbarui prefix branch"
+
+msgid "Updated"
+msgstr "Diperbarui"
 
 msgid "Updated {date}"
 msgstr "Diperbarui {date}"
@@ -14977,8 +15094,16 @@ msgstr "Diperbarui {date}"
 msgid "Updated {updatedRelative}"
 msgstr "Diperbarui {updatedRelative}"
 
+#. placeholder {0}: previousVersion ?? "?"
+msgid "Updated just now from {0}."
+msgstr "Baru saja diperbarui dari {0}."
+
 msgid "Updates"
 msgstr "Pembaruan"
+
+#. placeholder {0}: update.progress.target
+msgid "Updating to {0}"
+msgstr "Memperbarui ke {0}"
 
 msgid "Updating…"
 msgstr "Memperbarui…"
@@ -14998,6 +15123,9 @@ msgstr "Unggah file"
 
 msgid "Upload image…"
 msgstr "Unggah gambar…"
+
+msgid "Uptime"
+msgstr "Waktu aktif"
 
 msgid "Uptime SLA"
 msgstr "SLA uptime"
@@ -15159,6 +15287,9 @@ msgstr "Riwayat versi"
 
 msgid "Version not found"
 msgstr "Versi tidak ditemukan"
+
+msgid "Version unknown"
+msgstr "Versi tidak diketahui"
 
 msgid "Video"
 msgstr "Video"

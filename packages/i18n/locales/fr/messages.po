@@ -284,6 +284,10 @@ msgstr "{0} – {1} · estimation au tarif API à partir des journaux de session
 msgid "{0} — try the Superset tray menu > Host Service > Restart."
 msgstr "{0} — essayez le menu de la barre d'état Superset > Service hôte > Redémarrer."
 
+#. placeholder {0}: host.version
+msgid "{0} · behind"
+msgstr "{0} · en retard"
+
 #. placeholder {0}: creator.name
 msgid "{0} (you)"
 msgstr "{0} (vous)"
@@ -611,6 +615,9 @@ msgstr "{count, plural, one {# source utilisée} other {# sources utilisées}}"
 
 msgid "{count} GitHub stars"
 msgstr "{count} étoiles GitHub"
+
+msgid "{count} hosts run an older host service than this app"
+msgstr "{count} hôtes exécutent un service d'hôte plus ancien que cette application"
 
 msgid "{count}/day"
 msgstr "{count}/jour"
@@ -1937,6 +1944,9 @@ msgstr "équivalent API"
 msgid "API-equivalent cost"
 msgstr "Coût équivalent API"
 
+msgid "app {appVersion}"
+msgstr "app {appVersion}"
+
 msgid "App display language"
 msgstr "Langue d'affichage de l'application"
 
@@ -2011,6 +2021,9 @@ msgstr "Argv utilisé pour lancer l'agent."
 
 msgid "Artifact"
 msgstr "Artifact"
+
+msgid "As last reported. The host must be online to update."
+msgstr "Dernière valeur signalée. L'hôte doit être en ligne pour être mis à jour."
 
 msgid "ascending"
 msgstr "croissant"
@@ -2552,6 +2565,12 @@ msgstr "Liste à puces"
 #. placeholder {0}: versions.expected
 msgid "bundled {0}"
 msgstr "fournie {0}"
+
+msgid "Bundled with the Superset app on this device."
+msgstr "Fourni avec l'application Superset sur cet appareil."
+
+msgid "Bundled with the Superset app on this device. Updates with the app."
+msgstr "Fourni avec l'application Superset sur cet appareil. Se met à jour avec l'application."
 
 msgid "Burn by vendor (Mercury)"
 msgstr "Burn par fournisseur (Mercury)"
@@ -3963,6 +3982,9 @@ msgstr "Impossible de joindre le bureau."
 msgid "Could not reach the host to load this pull request."
 msgstr "Impossible de joindre l'hôte pour charger cette pull request."
 
+msgid "Could not reach the host to start the update. Check that it is online and try again."
+msgstr "Impossible de joindre l'hôte pour lancer la mise à jour. Vérifiez qu'il est en ligne et réessayez."
+
 msgid "Could not reach this workspace's machine"
 msgstr "Impossible de joindre la machine de cet espace de travail"
 
@@ -3983,6 +4005,9 @@ msgstr "Impossible d'enregistrer l'espace de travail cloud"
 
 msgid "Could not reopen"
 msgstr "Impossible de rouvrir"
+
+msgid "Could not restart the host service"
+msgstr "Impossible de redémarrer le service d'hôte"
 
 msgid "Could not send"
 msgstr "Échec de l'envoi"
@@ -4809,6 +4834,9 @@ msgstr "Développeur"
 msgid "Developers"
 msgstr "Développeurs"
 
+msgid "Development build"
+msgstr "Version de développement"
+
 msgid "Device: {selectedLabel}"
 msgstr "Appareil : {selectedLabel}"
 
@@ -5077,6 +5105,9 @@ msgstr "Télécharger le fichier de thème"
 
 msgid "downloaded"
 msgstr "téléchargée"
+
+msgid "Downloading"
+msgstr "Téléchargement"
 
 msgid "Downloading..."
 msgstr "Téléchargement..."
@@ -6812,6 +6843,9 @@ msgstr "Hôte introuvable dans cette organisation"
 msgid "Host not found in this organization."
 msgstr "Hôte introuvable dans cette organisation."
 
+msgid "Host service"
+msgstr "Service d'hôte"
+
 msgid "Host Service"
 msgstr "Service hôte"
 
@@ -6827,8 +6861,15 @@ msgstr "Le service de l'hôte n'est pas en cours d'exécution"
 msgid "Host service is starting…"
 msgstr "Le service hôte démarre…"
 
+msgid "Host service restarted"
+msgstr "Service d'hôte redémarré"
+
 msgid "Host service unavailable"
 msgstr "Service hôte indisponible"
+
+#. placeholder {0}: update.progress.target
+msgid "Host service updated to {0}"
+msgstr "Service d'hôte mis à jour vers {0}"
 
 msgid "Host settings"
 msgstr "Paramètres de l'hôte"
@@ -7193,6 +7234,9 @@ msgstr "Installés"
 msgid "serverError.plugins.marketplaceHasInstalls"
 msgstr "Des plugins installés proviennent de {name} : {plugins}. Retirez-les d'abord."
 
+msgid "Installed via"
+msgstr "Installé via"
+
 msgid "Installing..."
 msgstr "Installation..."
 
@@ -7553,6 +7597,9 @@ msgstr "Dernier jour de chaque mois à {time}"
 
 msgid "Last run"
 msgstr "Dernière exécution"
+
+msgid "Last seen"
+msgstr "Vu pour la dernière fois"
 
 msgid "Last updated"
 msgstr "Dernière mise à jour"
@@ -8509,6 +8556,12 @@ msgstr "Autorisation requise"
 msgid "Needs review"
 msgstr "Revue requise"
 
+msgid "needs update"
+msgstr "mise à jour requise"
+
+msgid "Needs update"
+msgstr "Mise à jour requise"
+
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -8640,6 +8693,12 @@ msgstr "Nouvel espace de travail dans {name}"
 
 msgid "New-user activation"
 msgstr "Activation des nouveaux utilisateurs"
+
+msgid "Newer than this app"
+msgstr "Plus récent que cette application"
+
+msgid "Newer than this app. Everything works; update the app to match."
+msgstr "Plus récent que cette application. Tout fonctionne ; mettez l'application à jour pour l'aligner."
 
 msgid "News & Updates"
 msgstr "Actualités et nouveautés"
@@ -11552,11 +11611,17 @@ msgstr "{restartedOrgCount} services d'hôte redémarrés"
 msgid "Restarted 1 host service"
 msgstr "1 service d'hôte redémarré"
 
+msgid "Restarting"
+msgstr "Redémarrage"
+
 msgid "Restarting agents on {accountLabel}."
 msgstr "Redémarrage des agents sur {accountLabel}."
 
 msgid "Restarting host services…"
 msgstr "Redémarrage des services de l'hôte…"
+
+msgid "Restarting…"
+msgstr "Redémarrage…"
 
 msgid "Restore"
 msgstr "Restaurer"
@@ -11879,11 +11944,17 @@ msgstr "Exécute une commande locale sur votre machine"
 msgid "Runs failed earlier this week, but nothing is failing right now"
 msgstr "Des exécutions ont échoué plus tôt cette semaine, mais rien n'échoue actuellement"
 
+msgid "Runs inside the Superset app on that device, so updating it means updating the app there."
+msgstr "S'exécute dans l'application Superset de cet appareil ; le mettre à jour revient à mettre à jour l'application là-bas."
+
 msgid "Runs land in a workspace. Review the diff, merge what's good."
 msgstr "Les exécutions arrivent dans un espace de travail. Passez le diff en revue, fusionnez ce qui convient."
 
 msgid "Runway"
 msgstr "Runway"
+
+msgid "Same version as this app."
+msgstr "Même version que cette application."
 
 msgid "SAML SSO & SCIM provisioning"
 msgstr "SSO SAML et provisionnement SCIM"
@@ -13379,6 +13450,9 @@ msgstr "Application Superset"
 msgid "Superset cannot reach api.github.com from this machine. Pull request status retries at {until}."
 msgstr "Superset ne parvient pas à joindre api.github.com depuis cette machine. L'état des pull requests sera réessayé à {until}."
 
+msgid "Superset CLI"
+msgstr "CLI Superset"
+
 msgid "Superset components"
 msgstr "Composants Superset"
 
@@ -13878,6 +13952,9 @@ msgstr "L'agent prend en charge une tâche du ticket au diff. L'humain relit le 
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "L'agent que cette automatisation devait exécuter n'existe plus sur son hôte — les agents de l'hôte ont peut-être été réinitialisés ou supprimés. Sélectionnez à nouveau un agent dans les paramètres de l'automatisation."
 
+msgid "The app is on {appVersion} but attached to a host service started by something else, likely an older CLI or another Superset build. Restarting replaces it with this app's copy."
+msgstr "L'application est en {appVersion} mais reliée à un service d'hôte lancé par autre chose, probablement une ancienne CLI ou une autre version de Superset. Le redémarrage le remplace par la copie de cette application."
+
 msgid "The associated device isn't reachable right now"
 msgstr "L'appareil associé n'est pas joignable pour le moment"
 
@@ -13962,8 +14039,24 @@ msgstr "L'espace de travail complet. Exécutez des agents en parallèle, gardez 
 msgid "The future home for reusable Superset agent configs, prompts, and setup guides."
 msgstr "Le futur point de rassemblement des configs d'agents, prompts et guides d'installation réutilisables pour Superset."
 
+#. placeholder {0}: info.version
+msgid "The host came back on {0}, not {targetVersion}."
+msgstr "L'hôte est revenu en {0}, pas en {targetVersion}."
+
+msgid "The host did not come back within fifteen minutes."
+msgstr "L’hôte n’est pas redevenu disponible dans les quinze minutes."
+
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "L'hôte n'est pas connecté au relais Superset. S'il s'agit de cet appareil, activez « Autoriser l'accès distant à cet appareil via le relais » dans Paramètres > Accès distant, puis réessayez."
+
+msgid "The host reported a failed update."
+msgstr "L'hôte a signalé un échec de la mise à jour."
+
+msgid "The host service restarts once the download is verified. Terminals reconnect on their own; the previous build is kept until the new one answers."
+msgstr "Le service d'hôte redémarre une fois le téléchargement vérifié. Les terminaux se reconnectent d'eux-mêmes ; la version précédente est conservée jusqu'à ce que la nouvelle réponde."
+
+msgid "The host went back to its previous build."
+msgstr "L'hôte est revenu à sa version précédente."
 
 msgid "The human reads every line before it merges."
 msgstr "L'humain lit chaque ligne avant la fusion."
@@ -14221,6 +14314,12 @@ msgstr "Cette installation GitHub est déjà connectée à une autre organisatio
 msgid "This host"
 msgstr "Cet hôte"
 
+msgid "This host has not reported a version yet."
+msgstr "Cet hôte n'a pas encore signalé de version."
+
+msgid "This host is behind the app you are using. Workspaces still open, but newer features may fail on it."
+msgstr "Cet hôte est en retard sur l'application que vous utilisez. Les espaces de travail s'ouvrent toujours, mais les fonctionnalités récentes peuvent échouer."
+
 msgid "This host needs an update"
 msgstr "Cet hôte doit être mis à jour"
 
@@ -14420,8 +14519,8 @@ msgstr "L'enregistrement de cet espace de travail existe toujours, mais son doss
 msgid "This workspace's host is offline"
 msgstr "L'hôte de cet espace de travail est hors ligne"
 
-msgid "This workspace's host is on an older version of Superset than this client supports. Update the Superset app on that device to reconnect."
-msgstr "L'hôte de cet espace de travail utilise une version de Superset plus ancienne que celle prise en charge par ce client. Mettez à jour l'application Superset sur cet appareil pour vous reconnecter."
+msgid "This workspace's host runs an older host service than this app supports. Update it to reconnect; the workspace and its files are untouched."
+msgstr "L'hôte de cet espace de travail exécute un service d'hôte plus ancien que ce que cette application prend en charge. Mettez-le à jour pour vous reconnecter ; l'espace de travail et ses fichiers sont intacts."
 
 msgid "Thorough reasoning effort"
 msgstr "Effort de raisonnement approfondi"
@@ -14560,6 +14659,12 @@ msgstr "Trop de rapports au support. Réessayez plus tard."
 
 msgid "Too many untitled items here already."
 msgstr "Il y a déjà trop d'éléments sans titre ici."
+
+msgid "Too old for this app to talk to. Update the Superset app on that device to reconnect."
+msgstr "Trop ancien pour que cette application puisse communiquer avec lui. Mettez à jour l'application Superset sur cet appareil pour vous reconnecter."
+
+msgid "Too old for this app to talk to. Workspaces on this host will not open until it is updated."
+msgstr "Trop ancien pour que cette application puisse communiquer avec lui. Les espaces de travail de cet hôte ne s'ouvriront pas tant qu'il ne sera pas mis à jour."
 
 msgid "Tools"
 msgstr "Outils"
@@ -14937,6 +15042,9 @@ msgstr "À venir"
 msgid "Up Next"
 msgstr "Juste après"
 
+msgid "Up to date"
+msgstr "À jour"
+
 msgid "Update"
 msgstr "Mettre à jour"
 
@@ -14958,6 +15066,9 @@ msgstr "Mettre à jour le démon"
 msgid "Update Error"
 msgstr "Erreur de mise à jour"
 
+msgid "Update host service"
+msgstr "Mettre à jour le service d'hôte"
+
 msgid "Update naming instructions"
 msgstr "Mettre à jour les instructions de nommage"
 
@@ -14968,8 +15079,14 @@ msgstr "Mettre à jour les instructions de nommage pour {0}"
 msgid "Update Required"
 msgstr "Mise à jour requise"
 
+msgid "Update Superset on that device. In-app updates require a supported standalone install and a released app version."
+msgstr "Mettez à jour Superset sur cet appareil. Les mises à jour depuis l’application nécessitent une installation autonome compatible et une version publiée de l’application."
+
 msgid "update the branch prefix"
 msgstr "mettre à jour le préfixe de branche"
+
+msgid "Updated"
+msgstr "Mis à jour"
 
 msgid "Updated {date}"
 msgstr "Mis à jour le {date}"
@@ -14977,8 +15094,16 @@ msgstr "Mis à jour le {date}"
 msgid "Updated {updatedRelative}"
 msgstr "Mis à jour {updatedRelative}"
 
+#. placeholder {0}: previousVersion ?? "?"
+msgid "Updated just now from {0}."
+msgstr "Mis à jour à l'instant depuis {0}."
+
 msgid "Updates"
 msgstr "Mises à jour"
+
+#. placeholder {0}: update.progress.target
+msgid "Updating to {0}"
+msgstr "Mise à jour vers {0}"
 
 msgid "Updating…"
 msgstr "Mise à jour…"
@@ -14998,6 +15123,9 @@ msgstr "Envoyer des fichiers"
 
 msgid "Upload image…"
 msgstr "Envoyer une image…"
+
+msgid "Uptime"
+msgstr "Temps de fonctionnement"
 
 msgid "Uptime SLA"
 msgstr "SLA de disponibilité"
@@ -15159,6 +15287,9 @@ msgstr "Historique des versions"
 
 msgid "Version not found"
 msgstr "Version introuvable"
+
+msgid "Version unknown"
+msgstr "Version inconnue"
 
 msgid "Video"
 msgstr "Vidéo"

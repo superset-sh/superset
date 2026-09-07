@@ -284,6 +284,10 @@ msgstr "{0} – {1} · ước tính theo giá API từ log phiên cục bộ"
 msgid "{0} — try the Superset tray menu > Host Service > Restart."
 msgstr "{0} — hãy thử menu khay Superset > Dịch vụ host > Khởi động lại."
 
+#. placeholder {0}: host.version
+msgid "{0} · behind"
+msgstr "{0} · cũ"
+
 #. placeholder {0}: creator.name
 msgid "{0} (you)"
 msgstr "{0} (bạn)"
@@ -611,6 +615,9 @@ msgstr "{count, plural, one {Đã dùng # nguồn} other {Đã dùng # nguồn}}
 
 msgid "{count} GitHub stars"
 msgstr "{count} star GitHub"
+
+msgid "{count} hosts run an older host service than this app"
+msgstr "{count} máy chủ đang chạy dịch vụ máy chủ cũ hơn ứng dụng này"
 
 msgid "{count}/day"
 msgstr "{count}/ngày"
@@ -1937,6 +1944,9 @@ msgstr "quy đổi theo API"
 msgid "API-equivalent cost"
 msgstr "Chi phí quy đổi theo API"
 
+msgid "app {appVersion}"
+msgstr "ứng dụng {appVersion}"
+
 msgid "App display language"
 msgstr "Ngôn ngữ hiển thị của ứng dụng"
 
@@ -2011,6 +2021,9 @@ msgstr "Argv dùng để khởi chạy agent."
 
 msgid "Artifact"
 msgstr "Artifact"
+
+msgid "As last reported. The host must be online to update."
+msgstr "Theo báo cáo gần nhất. Máy chủ phải trực tuyến để cập nhật."
 
 msgid "ascending"
 msgstr "tăng dần"
@@ -2552,6 +2565,12 @@ msgstr "Danh sách dấu đầu dòng"
 #. placeholder {0}: versions.expected
 msgid "bundled {0}"
 msgstr "đi kèm {0}"
+
+msgid "Bundled with the Superset app on this device."
+msgstr "Đi kèm với ứng dụng Superset trên thiết bị này."
+
+msgid "Bundled with the Superset app on this device. Updates with the app."
+msgstr "Đi kèm với ứng dụng Superset trên thiết bị này. Cập nhật cùng với ứng dụng."
 
 msgid "Burn by vendor (Mercury)"
 msgstr "Đốt tiền theo nhà cung cấp (Mercury)"
@@ -3963,6 +3982,9 @@ msgstr "Không thể kết nối tới màn hình nền."
 msgid "Could not reach the host to load this pull request."
 msgstr "Không kết nối được tới host để tải pull request này."
 
+msgid "Could not reach the host to start the update. Check that it is online and try again."
+msgstr "Không thể kết nối tới máy chủ để bắt đầu cập nhật. Hãy kiểm tra máy chủ đang trực tuyến rồi thử lại."
+
 msgid "Could not reach this workspace's machine"
 msgstr "Không kết nối được tới máy của workspace này"
 
@@ -3983,6 +4005,9 @@ msgstr "Không thể ghi nhận workspace trên cloud"
 
 msgid "Could not reopen"
 msgstr "Không thể mở lại"
+
+msgid "Could not restart the host service"
+msgstr "Không thể khởi động lại dịch vụ máy chủ"
 
 msgid "Could not send"
 msgstr "Không thể gửi"
@@ -4809,6 +4834,9 @@ msgstr "Lập trình viên"
 msgid "Developers"
 msgstr "Lập trình viên"
 
+msgid "Development build"
+msgstr "Bản dựng phát triển"
+
 msgid "Device: {selectedLabel}"
 msgstr "Thiết bị: {selectedLabel}"
 
@@ -5077,6 +5105,9 @@ msgstr "Tải tệp chủ đề"
 
 msgid "downloaded"
 msgstr "đã tải"
+
+msgid "Downloading"
+msgstr "Đang tải xuống"
 
 msgid "Downloading..."
 msgstr "Đang tải xuống..."
@@ -6812,6 +6843,9 @@ msgstr "Không tìm thấy host trong tổ chức này"
 msgid "Host not found in this organization."
 msgstr "Không tìm thấy host trong tổ chức này."
 
+msgid "Host service"
+msgstr "Dịch vụ máy chủ"
+
 msgid "Host Service"
 msgstr "Dịch vụ host"
 
@@ -6827,8 +6861,15 @@ msgstr "Dịch vụ host không chạy"
 msgid "Host service is starting…"
 msgstr "Dịch vụ host đang khởi động…"
 
+msgid "Host service restarted"
+msgstr "Đã khởi động lại dịch vụ máy chủ"
+
 msgid "Host service unavailable"
 msgstr "Dịch vụ host không khả dụng"
+
+#. placeholder {0}: update.progress.target
+msgid "Host service updated to {0}"
+msgstr "Dịch vụ máy chủ đã được cập nhật lên {0}"
 
 msgid "Host settings"
 msgstr "Cài đặt host"
@@ -7193,6 +7234,9 @@ msgstr "Đã cài"
 msgid "serverError.plugins.marketplaceHasInstalls"
 msgstr "Các plugin đã cài đến từ {name}: {plugins}. Hãy gỡ chúng trước."
 
+msgid "Installed via"
+msgstr "Cài đặt qua"
+
 msgid "Installing..."
 msgstr "Đang cài đặt..."
 
@@ -7553,6 +7597,9 @@ msgstr "Ngày cuối mỗi tháng lúc {time}"
 
 msgid "Last run"
 msgstr "Chạy lần cuối"
+
+msgid "Last seen"
+msgstr "Lần cuối trực tuyến"
 
 msgid "Last updated"
 msgstr "Cập nhật lần cuối"
@@ -8509,6 +8556,12 @@ msgstr "Cần cấp quyền"
 msgid "Needs review"
 msgstr "Cần review"
 
+msgid "needs update"
+msgstr "cần cập nhật"
+
+msgid "Needs update"
+msgstr "Cần cập nhật"
+
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -8640,6 +8693,12 @@ msgstr "Workspace mới trong {name}"
 
 msgid "New-user activation"
 msgstr "Kích hoạt người dùng mới"
+
+msgid "Newer than this app"
+msgstr "Mới hơn ứng dụng này"
+
+msgid "Newer than this app. Everything works; update the app to match."
+msgstr "Mới hơn ứng dụng này. Mọi thứ vẫn hoạt động; hãy cập nhật ứng dụng cho khớp."
 
 msgid "News & Updates"
 msgstr "Tin tức & Cập nhật"
@@ -11552,11 +11611,17 @@ msgstr "Đã khởi động lại {restartedOrgCount} dịch vụ host"
 msgid "Restarted 1 host service"
 msgstr "Đã khởi động lại 1 dịch vụ host"
 
+msgid "Restarting"
+msgstr "Đang khởi động lại"
+
 msgid "Restarting agents on {accountLabel}."
 msgstr "Đang khởi động lại các agent trên {accountLabel}."
 
 msgid "Restarting host services…"
 msgstr "Đang khởi động lại dịch vụ host…"
+
+msgid "Restarting…"
+msgstr "Đang khởi động lại…"
 
 msgid "Restore"
 msgstr "Khôi phục"
@@ -11879,11 +11944,17 @@ msgstr "Chạy một lệnh cục bộ trên máy bạn"
 msgid "Runs failed earlier this week, but nothing is failing right now"
 msgstr "Có lần chạy thất bại đầu tuần này, nhưng hiện không có gì đang lỗi"
 
+msgid "Runs inside the Superset app on that device, so updating it means updating the app there."
+msgstr "Chạy bên trong ứng dụng Superset trên thiết bị đó, nên cập nhật nó nghĩa là cập nhật ứng dụng ở đó."
+
 msgid "Runs land in a workspace. Review the diff, merge what's good."
 msgstr "Kết quả chạy nằm trong một workspace. Xem diff, merge những gì tốt."
 
 msgid "Runway"
 msgstr "Runway"
+
+msgid "Same version as this app."
+msgstr "Cùng phiên bản với ứng dụng này."
 
 msgid "SAML SSO & SCIM provisioning"
 msgstr "SAML SSO & cấp phát SCIM"
@@ -13379,6 +13450,9 @@ msgstr "Ứng dụng Superset"
 msgid "Superset cannot reach api.github.com from this machine. Pull request status retries at {until}."
 msgstr "Superset không thể kết nối tới api.github.com từ máy này. Trạng thái pull request sẽ được thử lại lúc {until}."
 
+msgid "Superset CLI"
+msgstr "Superset CLI"
+
 msgid "Superset components"
 msgstr "Các thành phần Superset"
 
@@ -13878,6 +13952,9 @@ msgstr "Agent làm chủ một tác vụ từ ticket đến diff. Con người r
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "Agent mà tự động hóa này được đặt để chạy không còn tồn tại trên host của nó — agent của host có thể đã bị đặt lại hoặc gỡ bỏ. Hãy chọn lại agent trong cài đặt của tự động hóa."
 
+msgid "The app is on {appVersion} but attached to a host service started by something else, likely an older CLI or another Superset build. Restarting replaces it with this app's copy."
+msgstr "Ứng dụng đang ở {appVersion} nhưng kết nối với dịch vụ máy chủ do thứ khác khởi động, có thể là CLI cũ hoặc bản dựng Superset khác. Khởi động lại sẽ thay thế nó bằng bản của ứng dụng này."
+
 msgid "The associated device isn't reachable right now"
 msgstr "Hiện không kết nối được tới thiết bị liên quan"
 
@@ -13962,8 +14039,24 @@ msgstr "Toàn bộ workspace. Chạy nhiều agent song song, giữ mỗi agent 
 msgid "The future home for reusable Superset agent configs, prompts, and setup guides."
 msgstr "Nơi sẽ chứa các cấu hình agent, prompt và hướng dẫn thiết lập Superset có thể tái sử dụng."
 
+#. placeholder {0}: info.version
+msgid "The host came back on {0}, not {targetVersion}."
+msgstr "Máy chủ đã trở lại với {0}, không phải {targetVersion}."
+
+msgid "The host did not come back within fifteen minutes."
+msgstr "Máy chủ không hoạt động trở lại trong vòng mười lăm phút."
+
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "Host chưa kết nối tới relay của Superset. Nếu đó là thiết bị này, hãy bật \"Cho phép truy cập từ xa vào thiết bị này qua relay\" trong Cài đặt > Truy cập từ xa, rồi thử lại."
+
+msgid "The host reported a failed update."
+msgstr "Máy chủ báo cáo cập nhật thất bại."
+
+msgid "The host service restarts once the download is verified. Terminals reconnect on their own; the previous build is kept until the new one answers."
+msgstr "Dịch vụ máy chủ sẽ khởi động lại sau khi xác minh bản tải xuống. Các terminal tự kết nối lại; bản dựng cũ được giữ cho đến khi bản mới phản hồi."
+
+msgid "The host went back to its previous build."
+msgstr "Máy chủ đã quay lại bản dựng trước."
 
 msgid "The human reads every line before it merges."
 msgstr "Con người đọc từng dòng trước khi merge."
@@ -14221,6 +14314,12 @@ msgstr "Bản cài đặt GitHub này đã kết nối với một tổ chức S
 msgid "This host"
 msgstr "Host này"
 
+msgid "This host has not reported a version yet."
+msgstr "Máy chủ này chưa báo cáo phiên bản."
+
+msgid "This host is behind the app you are using. Workspaces still open, but newer features may fail on it."
+msgstr "Máy chủ này cũ hơn ứng dụng bạn đang dùng. Workspace vẫn mở được nhưng các tính năng mới có thể lỗi."
+
 msgid "This host needs an update"
 msgstr "Host này cần được cập nhật"
 
@@ -14420,8 +14519,8 @@ msgstr "Bản ghi workspace này vẫn còn, nhưng thư mục worktree của n�
 msgid "This workspace's host is offline"
 msgstr "Host của workspace này đang ngoại tuyến"
 
-msgid "This workspace's host is on an older version of Superset than this client supports. Update the Superset app on that device to reconnect."
-msgstr "Host của workspace này đang chạy phiên bản Superset cũ hơn mức client này hỗ trợ. Hãy cập nhật ứng dụng Superset trên thiết bị đó để kết nối lại."
+msgid "This workspace's host runs an older host service than this app supports. Update it to reconnect; the workspace and its files are untouched."
+msgstr "Máy chủ của workspace này chạy dịch vụ máy chủ cũ hơn mức ứng dụng hỗ trợ. Hãy cập nhật để kết nối lại; workspace và các tệp không bị ảnh hưởng."
 
 msgid "Thorough reasoning effort"
 msgstr "Mức suy luận kỹ lưỡng"
@@ -14560,6 +14659,12 @@ msgstr "Quá nhiều báo cáo hỗ trợ. Hãy thử lại sau."
 
 msgid "Too many untitled items here already."
 msgstr "Đã có quá nhiều mục chưa đặt tên ở đây."
+
+msgid "Too old for this app to talk to. Update the Superset app on that device to reconnect."
+msgstr "Quá cũ để ứng dụng này giao tiếp. Hãy cập nhật ứng dụng Superset trên thiết bị đó để kết nối lại."
+
+msgid "Too old for this app to talk to. Workspaces on this host will not open until it is updated."
+msgstr "Quá cũ để ứng dụng này giao tiếp. Các workspace trên máy chủ này sẽ không mở cho đến khi được cập nhật."
 
 msgid "Tools"
 msgstr "Tool"
@@ -14937,6 +15042,9 @@ msgstr "Sắp tới"
 msgid "Up Next"
 msgstr "Sắp tới"
 
+msgid "Up to date"
+msgstr "Mới nhất"
+
 msgid "Update"
 msgstr "Cập nhật"
 
@@ -14958,6 +15066,9 @@ msgstr "Cập nhật daemon"
 msgid "Update Error"
 msgstr "Lỗi cập nhật"
 
+msgid "Update host service"
+msgstr "Cập nhật dịch vụ máy chủ"
+
 msgid "Update naming instructions"
 msgstr "Cập nhật quy tắc đặt tên"
 
@@ -14968,8 +15079,14 @@ msgstr "Cập nhật quy tắc đặt tên cho {0}"
 msgid "Update Required"
 msgstr "Cần cập nhật"
 
+msgid "Update Superset on that device. In-app updates require a supported standalone install and a released app version."
+msgstr "Cập nhật Superset trên thiết bị đó. Cập nhật từ ứng dụng yêu cầu bản cài đặt độc lập được hỗ trợ và phiên bản ứng dụng đã phát hành."
+
 msgid "update the branch prefix"
 msgstr "cập nhật tiền tố nhánh"
+
+msgid "Updated"
+msgstr "Đã cập nhật"
 
 msgid "Updated {date}"
 msgstr "Cập nhật {date}"
@@ -14977,8 +15094,16 @@ msgstr "Cập nhật {date}"
 msgid "Updated {updatedRelative}"
 msgstr "Cập nhật {updatedRelative}"
 
+#. placeholder {0}: previousVersion ?? "?"
+msgid "Updated just now from {0}."
+msgstr "Vừa cập nhật từ {0}."
+
 msgid "Updates"
 msgstr "Cập nhật"
+
+#. placeholder {0}: update.progress.target
+msgid "Updating to {0}"
+msgstr "Đang cập nhật lên {0}"
 
 msgid "Updating…"
 msgstr "Đang cập nhật…"
@@ -14998,6 +15123,9 @@ msgstr "Tải tệp lên"
 
 msgid "Upload image…"
 msgstr "Tải ảnh lên…"
+
+msgid "Uptime"
+msgstr "Thời gian hoạt động"
 
 msgid "Uptime SLA"
 msgstr "SLA thời gian hoạt động"
@@ -15159,6 +15287,9 @@ msgstr "Lịch sử phiên bản"
 
 msgid "Version not found"
 msgstr "Không tìm thấy phiên bản"
+
+msgid "Version unknown"
+msgstr "Không rõ phiên bản"
 
 msgid "Video"
 msgstr "Video"

@@ -284,6 +284,10 @@ msgstr "{0} – {1} · odhad v sazbách API z lokálních logů relací"
 msgid "{0} — try the Superset tray menu > Host Service > Restart."
 msgstr "{0} — zkuste nabídku Superset v liště > Host Service > Restart."
 
+#. placeholder {0}: host.version
+msgid "{0} · behind"
+msgstr "{0} · zastaralý"
+
 #. placeholder {0}: creator.name
 msgid "{0} (you)"
 msgstr "{0} (vy)"
@@ -611,6 +615,9 @@ msgstr "{count, plural, one {Použit # zdroj} few {Použity # zdroje} many {Pou�
 
 msgid "{count} GitHub stars"
 msgstr "{count} hvězd na GitHubu"
+
+msgid "{count} hosts run an older host service than this app"
+msgstr "{count} hostitelů používá starší službu hostitele než tato aplikace"
 
 msgid "{count}/day"
 msgstr "{count}/den"
@@ -1937,6 +1944,9 @@ msgstr "ekvivalent API"
 msgid "API-equivalent cost"
 msgstr "Náklady v přepočtu na API"
 
+msgid "app {appVersion}"
+msgstr "aplikace {appVersion}"
+
 msgid "App display language"
 msgstr "Jazyk aplikace"
 
@@ -2011,6 +2021,9 @@ msgstr "Argv použité ke spuštění agenta."
 
 msgid "Artifact"
 msgstr "Artefakt"
+
+msgid "As last reported. The host must be online to update."
+msgstr "Podle posledního hlášení. Hostitel musí být online, aby se mohl aktualizovat."
 
 msgid "ascending"
 msgstr "vzestupně"
@@ -2552,6 +2565,12 @@ msgstr "Odrážkový seznam"
 #. placeholder {0}: versions.expected
 msgid "bundled {0}"
 msgstr "dodáváno {0}"
+
+msgid "Bundled with the Superset app on this device."
+msgstr "Součást aplikace Superset na tomto zařízení."
+
+msgid "Bundled with the Superset app on this device. Updates with the app."
+msgstr "Součást aplikace Superset na tomto zařízení. Aktualizuje se spolu s aplikací."
 
 msgid "Burn by vendor (Mercury)"
 msgstr "Burn podle dodavatele (Mercury)"
@@ -3963,6 +3982,9 @@ msgstr "K ploše se nepodařilo připojit."
 msgid "Could not reach the host to load this pull request."
 msgstr "Nepodařilo se spojit s hostem a načíst tento pull request."
 
+msgid "Could not reach the host to start the update. Check that it is online and try again."
+msgstr "Nepodařilo se spojit s hostitelem a zahájit aktualizaci. Zkontrolujte, že je online, a zkuste to znovu."
+
 msgid "Could not reach this workspace's machine"
 msgstr "Nepodařilo se spojit s počítačem tohoto pracovního prostoru"
 
@@ -3983,6 +4005,9 @@ msgstr "Nepodařilo se zaznamenat cloudový pracovní prostor"
 
 msgid "Could not reopen"
 msgstr "Nepodařilo se znovu otevřít"
+
+msgid "Could not restart the host service"
+msgstr "Službu hostitele se nepodařilo restartovat"
 
 msgid "Could not send"
 msgstr "Nepodařilo se odeslat"
@@ -4809,6 +4834,9 @@ msgstr "Vývojář"
 msgid "Developers"
 msgstr "Vývojáři"
 
+msgid "Development build"
+msgstr "Vývojové sestavení"
+
 msgid "Device: {selectedLabel}"
 msgstr "Zařízení: {selectedLabel}"
 
@@ -5077,6 +5105,9 @@ msgstr "Stáhnout soubor motivu"
 
 msgid "downloaded"
 msgstr "staženo"
+
+msgid "Downloading"
+msgstr "Stahování"
 
 msgid "Downloading..."
 msgstr "Stahuji..."
@@ -6812,6 +6843,9 @@ msgstr "Host v této organizaci nenalezen"
 msgid "Host not found in this organization."
 msgstr "Host v této organizaci nenalezen."
 
+msgid "Host service"
+msgstr "Služba hostitele"
+
 msgid "Host Service"
 msgstr "Host Service"
 
@@ -6827,8 +6861,15 @@ msgstr "Služba hosta neběží"
 msgid "Host service is starting…"
 msgstr "Host service se spouští…"
 
+msgid "Host service restarted"
+msgstr "Služba hostitele byla restartována"
+
 msgid "Host service unavailable"
 msgstr "Host service není dostupná"
+
+#. placeholder {0}: update.progress.target
+msgid "Host service updated to {0}"
+msgstr "Služba hostitele aktualizována na {0}"
 
 msgid "Host settings"
 msgstr "Nastavení hosta"
@@ -7193,6 +7234,9 @@ msgstr "Nainstalované"
 msgid "serverError.plugins.marketplaceHasInstalls"
 msgstr "Nainstalované pluginy pocházejí z {name}: {plugins}. Nejprve je odeberte."
 
+msgid "Installed via"
+msgstr "Nainstalováno přes"
+
 msgid "Installing..."
 msgstr "Instaluji..."
 
@@ -7553,6 +7597,9 @@ msgstr "Poslední den v měsíci v {time}"
 
 msgid "Last run"
 msgstr "Poslední běh"
+
+msgid "Last seen"
+msgstr "Naposledy viděn"
 
 msgid "Last updated"
 msgstr "Naposledy aktualizováno"
@@ -8509,6 +8556,12 @@ msgstr "Vyžaduje oprávnění"
 msgid "Needs review"
 msgstr "Vyžaduje revizi"
 
+msgid "needs update"
+msgstr "vyžaduje aktualizaci"
+
+msgid "Needs update"
+msgstr "Vyžaduje aktualizaci"
+
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -8640,6 +8693,12 @@ msgstr "Nový pracovní prostor v {name}"
 
 msgid "New-user activation"
 msgstr "Aktivace nových uživatelů"
+
+msgid "Newer than this app"
+msgstr "Novější než tato aplikace"
+
+msgid "Newer than this app. Everything works; update the app to match."
+msgstr "Novější než tato aplikace. Vše funguje; aktualizujte aplikaci, aby verze odpovídaly."
 
 msgid "News & Updates"
 msgstr "Novinky a aktualizace"
@@ -11552,11 +11611,17 @@ msgstr "Restartováno {restartedOrgCount} host services"
 msgid "Restarted 1 host service"
 msgstr "Restartována 1 host service"
 
+msgid "Restarting"
+msgstr "Restartování"
+
 msgid "Restarting agents on {accountLabel}."
 msgstr "Restartuji agenty na {accountLabel}."
 
 msgid "Restarting host services…"
 msgstr "Restartuji služby hosta…"
+
+msgid "Restarting…"
+msgstr "Restartování…"
 
 msgid "Restore"
 msgstr "Obnovit"
@@ -11879,11 +11944,17 @@ msgstr "Spouští lokální příkaz na vašem počítači"
 msgid "Runs failed earlier this week, but nothing is failing right now"
 msgstr "Dříve tento týden běhy selhaly, ale teď nic neselhává"
 
+msgid "Runs inside the Superset app on that device, so updating it means updating the app there."
+msgstr "Běží uvnitř aplikace Superset na tom zařízení, takže aktualizace znamená aktualizovat tam aplikaci."
+
 msgid "Runs land in a workspace. Review the diff, merge what's good."
 msgstr "Běhy skončí v pracovním prostoru. Projděte rozdíly a slučte, co je dobré."
 
 msgid "Runway"
 msgstr "Runway"
+
+msgid "Same version as this app."
+msgstr "Stejná verze jako tato aplikace."
 
 msgid "SAML SSO & SCIM provisioning"
 msgstr "SAML SSO a provisioning přes SCIM"
@@ -13379,6 +13450,9 @@ msgstr "Aplikace Superset"
 msgid "Superset cannot reach api.github.com from this machine. Pull request status retries at {until}."
 msgstr "Superset se z tohoto počítače nemůže připojit k api.github.com. Stav pull requestů se znovu zkusí načíst v {until}."
 
+msgid "Superset CLI"
+msgstr "Superset CLI"
+
 msgid "Superset components"
 msgstr "Komponenty Superset"
 
@@ -13878,6 +13952,9 @@ msgstr "Agent vlastní úkol od ticketu po diff. Člověk reviduje výsledek, ne
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "Agent, se kterým měla tato automatizace běžet, už na svém hostu neexistuje — agenti hosta mohli být resetováni nebo odebráni. Vyberte v nastavení automatizace jiného agenta."
 
+msgid "The app is on {appVersion} but attached to a host service started by something else, likely an older CLI or another Superset build. Restarting replaces it with this app's copy."
+msgstr "Aplikace je ve verzi {appVersion}, ale připojená ke službě hostitele spuštěné něčím jiným, pravděpodobně starší CLI nebo jiným sestavením Superset. Restart ji nahradí kopií této aplikace."
+
 msgid "The associated device isn't reachable right now"
 msgstr "Přidružené zařízení teď není dostupné"
 
@@ -13962,8 +14039,24 @@ msgstr "Kompletní pracovní prostor. Spouštějte agenty paralelně, každého 
 msgid "The future home for reusable Superset agent configs, prompts, and setup guides."
 msgstr "Budoucí domov pro znovupoužitelné konfigurace agentů, prompty a průvodce nastavením pro Superset."
 
+#. placeholder {0}: info.version
+msgid "The host came back on {0}, not {targetVersion}."
+msgstr "Hostitel se vrátil s verzí {0}, ne {targetVersion}."
+
+msgid "The host did not come back within fifteen minutes."
+msgstr "Hostitel se neobnovil do patnácti minut."
+
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "Host není připojený k Superset relay. Pokud jde o toto zařízení, zapněte „Povolit vzdálený přístup k tomuto zařízení přes relay“ v Nastavení > Vzdálený přístup a zkuste to znovu."
+
+msgid "The host reported a failed update."
+msgstr "Hostitel nahlásil neúspěšnou aktualizaci."
+
+msgid "The host service restarts once the download is verified. Terminals reconnect on their own; the previous build is kept until the new one answers."
+msgstr "Služba hostitele se restartuje po ověření stažení. Terminály se připojí samy; předchozí sestavení zůstane, dokud nové neodpoví."
+
+msgid "The host went back to its previous build."
+msgstr "Hostitel se vrátil k předchozímu sestavení."
 
 msgid "The human reads every line before it merges."
 msgstr "Člověk přečte každý řádek, než se sloučí."
@@ -14221,6 +14314,12 @@ msgstr "Tato instalace GitHubu je už připojená k jiné organizaci Superset. O
 msgid "This host"
 msgstr "Tento host"
 
+msgid "This host has not reported a version yet."
+msgstr "Tento hostitel zatím nenahlásil verzi."
+
+msgid "This host is behind the app you are using. Workspaces still open, but newer features may fail on it."
+msgstr "Tento hostitel zaostává za aplikací, kterou používáte. Pracovní prostory se stále otevřou, ale novější funkce na něm mohou selhat."
+
 msgid "This host needs an update"
 msgstr "Tento host potřebuje aktualizaci"
 
@@ -14420,8 +14519,8 @@ msgstr "Záznam tohoto pracovního prostoru pořád existuje, ale jeho složka w
 msgid "This workspace's host is offline"
 msgstr "Host tohoto pracovního prostoru je offline"
 
-msgid "This workspace's host is on an older version of Superset than this client supports. Update the Superset app on that device to reconnect."
-msgstr "Host tohoto pracovního prostoru má starší verzi Superset, než tento klient podporuje. Aktualizujte na tom zařízení aplikaci Superset a připojte se znovu."
+msgid "This workspace's host runs an older host service than this app supports. Update it to reconnect; the workspace and its files are untouched."
+msgstr "Hostitel tohoto pracovního prostoru používá starší službu hostitele, než tato aplikace podporuje. Aktualizujte ji pro opětovné připojení; pracovní prostor a jeho soubory zůstanou nedotčené."
 
 msgid "Thorough reasoning effort"
 msgstr "Důkladné uvažování"
@@ -14560,6 +14659,12 @@ msgstr "Příliš mnoho hlášení na podporu. Zkuste to později."
 
 msgid "Too many untitled items here already."
 msgstr "Tady už je nepojmenovaných položek příliš mnoho."
+
+msgid "Too old for this app to talk to. Update the Superset app on that device to reconnect."
+msgstr "Příliš staré pro komunikaci s touto aplikací. Aktualizujte aplikaci Superset na tom zařízení pro opětovné připojení."
+
+msgid "Too old for this app to talk to. Workspaces on this host will not open until it is updated."
+msgstr "Příliš staré pro komunikaci s touto aplikací. Pracovní prostory na tomto hostiteli se neotevřou, dokud nebude aktualizován."
 
 msgid "Tools"
 msgstr "Nástroje"
@@ -14937,6 +15042,9 @@ msgstr "Další na řadě"
 msgid "Up Next"
 msgstr "Další na řadě"
 
+msgid "Up to date"
+msgstr "Aktuální"
+
 msgid "Update"
 msgstr "Aktualizovat"
 
@@ -14958,6 +15066,9 @@ msgstr "Aktualizovat démona"
 msgid "Update Error"
 msgstr "Chyba aktualizace"
 
+msgid "Update host service"
+msgstr "Aktualizovat službu hostitele"
+
 msgid "Update naming instructions"
 msgstr "Upravit pravidla pojmenování"
 
@@ -14968,8 +15079,14 @@ msgstr "Upravit pravidla pojmenování pro {0}"
 msgid "Update Required"
 msgstr "Vyžadována aktualizace"
 
+msgid "Update Superset on that device. In-app updates require a supported standalone install and a released app version."
+msgstr "Aktualizujte Superset na daném zařízení. Aktualizace z aplikace vyžadují podporovanou samostatnou instalaci a vydanou verzi aplikace."
+
 msgid "update the branch prefix"
 msgstr "aktualizovat prefix větve"
+
+msgid "Updated"
+msgstr "Aktualizováno"
 
 msgid "Updated {date}"
 msgstr "Aktualizováno {date}"
@@ -14977,8 +15094,16 @@ msgstr "Aktualizováno {date}"
 msgid "Updated {updatedRelative}"
 msgstr "Aktualizováno {updatedRelative}"
 
+#. placeholder {0}: previousVersion ?? "?"
+msgid "Updated just now from {0}."
+msgstr "Právě aktualizováno z {0}."
+
 msgid "Updates"
 msgstr "Aktualizace"
+
+#. placeholder {0}: update.progress.target
+msgid "Updating to {0}"
+msgstr "Aktualizace na {0}"
 
 msgid "Updating…"
 msgstr "Aktualizuji…"
@@ -14998,6 +15123,9 @@ msgstr "Nahrát soubory"
 
 msgid "Upload image…"
 msgstr "Nahrát obrázek…"
+
+msgid "Uptime"
+msgstr "Doba běhu"
 
 msgid "Uptime SLA"
 msgstr "SLA na dostupnost"
@@ -15159,6 +15287,9 @@ msgstr "Historie verzí"
 
 msgid "Version not found"
 msgstr "Verze nenalezena"
+
+msgid "Version unknown"
+msgstr "Neznámá verze"
 
 msgid "Video"
 msgstr "Video"

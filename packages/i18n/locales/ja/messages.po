@@ -284,6 +284,10 @@ msgstr "{0} – {1} · ローカルセッションログからのAPI定価換算
 msgid "{0} — try the Superset tray menu > Host Service > Restart."
 msgstr "{0} — Supersetのトレイメニュー > ホストサービス > 再起動をお試しください。"
 
+#. placeholder {0}: host.version
+msgid "{0} · behind"
+msgstr "{0} · 古い"
+
 #. placeholder {0}: creator.name
 msgid "{0} (you)"
 msgstr "{0}（自分）"
@@ -611,6 +615,9 @@ msgstr "{count, plural, one {#件のソースを使用} other {#件のソース�
 
 msgid "{count} GitHub stars"
 msgstr "GitHubスター{count}件"
+
+msgid "{count} hosts run an older host service than this app"
+msgstr "{count}台のホストがこのアプリより古いホストサービスを実行しています"
 
 msgid "{count}/day"
 msgstr "{count}/日"
@@ -1937,6 +1944,9 @@ msgstr "API換算"
 msgid "API-equivalent cost"
 msgstr "API換算のコスト"
 
+msgid "app {appVersion}"
+msgstr "アプリ {appVersion}"
+
 msgid "App display language"
 msgstr "アプリの表示言語"
 
@@ -2011,6 +2021,9 @@ msgstr "エージェントの起動に使うargv。"
 
 msgid "Artifact"
 msgstr "Artifact"
+
+msgid "As last reported. The host must be online to update."
+msgstr "最後に報告された値です。更新するにはホストがオンラインである必要があります。"
 
 msgid "ascending"
 msgstr "昇順"
@@ -2552,6 +2565,12 @@ msgstr "箇条書きリスト"
 #. placeholder {0}: versions.expected
 msgid "bundled {0}"
 msgstr "バンドル版 {0}"
+
+msgid "Bundled with the Superset app on this device."
+msgstr "このデバイスのSupersetアプリに同梱されています。"
+
+msgid "Bundled with the Superset app on this device. Updates with the app."
+msgstr "このデバイスのSupersetアプリに同梱されています。アプリと一緒に更新されます。"
 
 msgid "Burn by vendor (Mercury)"
 msgstr "ベンダー別バーン(Mercury)"
@@ -3963,6 +3982,9 @@ msgstr "デスクトップに接続できませんでした。"
 msgid "Could not reach the host to load this pull request."
 msgstr "このプルリクエストを読み込むためのホストに接続できませんでした。"
 
+msgid "Could not reach the host to start the update. Check that it is online and try again."
+msgstr "更新を開始するためにホストに接続できませんでした。オンラインであることを確認して、もう一度お試しください。"
+
 msgid "Could not reach this workspace's machine"
 msgstr "このワークスペースのマシンに接続できませんでした"
 
@@ -3983,6 +4005,9 @@ msgstr "クラウドワークスペースを記録できませんでした"
 
 msgid "Could not reopen"
 msgstr "再オープンできませんでした"
+
+msgid "Could not restart the host service"
+msgstr "ホストサービスを再起動できませんでした"
 
 msgid "Could not send"
 msgstr "送信できませんでした"
@@ -4809,6 +4834,9 @@ msgstr "開発者"
 msgid "Developers"
 msgstr "開発者"
 
+msgid "Development build"
+msgstr "開発ビルド"
+
 msgid "Device: {selectedLabel}"
 msgstr "デバイス: {selectedLabel}"
 
@@ -5077,6 +5105,9 @@ msgstr "テーマファイルをダウンロード"
 
 msgid "downloaded"
 msgstr "ダウンロード済み"
+
+msgid "Downloading"
+msgstr "ダウンロード中"
 
 msgid "Downloading..."
 msgstr "ダウンロード中..."
@@ -6812,6 +6843,9 @@ msgstr "この組織にホストが見つかりません"
 msgid "Host not found in this organization."
 msgstr "この組織にホストが見つかりません。"
 
+msgid "Host service"
+msgstr "ホストサービス"
+
 msgid "Host Service"
 msgstr "ホストサービス"
 
@@ -6827,8 +6861,15 @@ msgstr "ホストサービスが実行されていません"
 msgid "Host service is starting…"
 msgstr "ホストサービスを起動中…"
 
+msgid "Host service restarted"
+msgstr "ホストサービスを再起動しました"
+
 msgid "Host service unavailable"
 msgstr "ホストサービスが利用できません"
+
+#. placeholder {0}: update.progress.target
+msgid "Host service updated to {0}"
+msgstr "ホストサービスを{0}に更新しました"
 
 msgid "Host settings"
 msgstr "ホスト設定"
@@ -7193,6 +7234,9 @@ msgstr "インストール済み"
 msgid "serverError.plugins.marketplaceHasInstalls"
 msgstr "インストール済みのプラグインが {name} 由来です: {plugins}。先に削除してください。"
 
+msgid "Installed via"
+msgstr "インストール方法"
+
 msgid "Installing..."
 msgstr "インストール中..."
 
@@ -7553,6 +7597,9 @@ msgstr "毎月末日 {time}"
 
 msgid "Last run"
 msgstr "最終実行"
+
+msgid "Last seen"
+msgstr "最終確認"
 
 msgid "Last updated"
 msgstr "最終更新"
@@ -8509,6 +8556,12 @@ msgstr "許可が必要"
 msgid "Needs review"
 msgstr "レビューが必要"
 
+msgid "needs update"
+msgstr "要更新"
+
+msgid "Needs update"
+msgstr "要更新"
+
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -8640,6 +8693,12 @@ msgstr "{name} に新規ワークスペース"
 
 msgid "New-user activation"
 msgstr "新規ユーザーのアクティベーション"
+
+msgid "Newer than this app"
+msgstr "このアプリより新しい"
+
+msgid "Newer than this app. Everything works; update the app to match."
+msgstr "このアプリより新しいバージョンです。動作に問題はありません。アプリを更新して合わせてください。"
 
 msgid "News & Updates"
 msgstr "ニュースとアップデート"
@@ -11552,11 +11611,17 @@ msgstr "{restartedOrgCount}件のホストサービスを再起動しました"
 msgid "Restarted 1 host service"
 msgstr "1件のホストサービスを再起動しました"
 
+msgid "Restarting"
+msgstr "再起動中"
+
 msgid "Restarting agents on {accountLabel}."
 msgstr "{accountLabel}でエージェントを再起動しています。"
 
 msgid "Restarting host services…"
 msgstr "ホストサービスを再起動中…"
+
+msgid "Restarting…"
+msgstr "再起動中…"
 
 msgid "Restore"
 msgstr "復元"
@@ -11879,11 +11944,17 @@ msgstr "マシン上でローカルコマンドを実行します"
 msgid "Runs failed earlier this week, but nothing is failing right now"
 msgstr "今週これまでに失敗した実行がありますが、現在失敗しているものはありません"
 
+msgid "Runs inside the Superset app on that device, so updating it means updating the app there."
+msgstr "そのデバイスのSupersetアプリ内で動作しているため、更新するにはそのデバイスのアプリを更新する必要があります。"
+
 msgid "Runs land in a workspace. Review the diff, merge what's good."
 msgstr "実行結果はワークスペースに入ります。差分を確認し、良いものをマージしてください。"
 
 msgid "Runway"
 msgstr "ランウェイ"
+
+msgid "Same version as this app."
+msgstr "このアプリと同じバージョンです。"
 
 msgid "SAML SSO & SCIM provisioning"
 msgstr "SAML SSOとSCIMプロビジョニング"
@@ -13379,6 +13450,9 @@ msgstr "Supersetアプリ"
 msgid "Superset cannot reach api.github.com from this machine. Pull request status retries at {until}."
 msgstr "このマシンから api.github.com に接続できません。プルリクエストの状態は {until} に再取得します。"
 
+msgid "Superset CLI"
+msgstr "Superset CLI"
+
 msgid "Superset components"
 msgstr "Superset コンポーネント"
 
@@ -13878,6 +13952,9 @@ msgstr "エージェントがチケットから差分までタスクを引き受
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "このオートメーションに設定されていたエージェントは、ホスト上に存在しなくなりました — ホストのエージェントがリセットまたは削除された可能性があります。オートメーションの設定でエージェントを選び直してください。"
 
+msgid "The app is on {appVersion} but attached to a host service started by something else, likely an older CLI or another Superset build. Restarting replaces it with this app's copy."
+msgstr "アプリは{appVersion}ですが、別のもの（古いCLIや別のSupersetビルドの可能性）が起動したホストサービスに接続しています。再起動するとこのアプリのコピーに置き換わります。"
+
 msgid "The associated device isn't reachable right now"
 msgstr "関連デバイスに現在接続できません"
 
@@ -13962,8 +14039,24 @@ msgstr "フル機能のワークスペース。エージェントを並列実行
 msgid "The future home for reusable Superset agent configs, prompts, and setup guides."
 msgstr "再利用可能なSupersetエージェント設定、プロンプト、セットアップガイドの今後の公開場所。"
 
+#. placeholder {0}: info.version
+msgid "The host came back on {0}, not {targetVersion}."
+msgstr "ホストは{targetVersion}ではなく{0}で復帰しました。"
+
+msgid "The host did not come back within fifteen minutes."
+msgstr "ホストが15分以内に復帰しませんでした。"
+
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "ホストがSupersetリレーに接続されていません。このデバイスの場合は、設定 > リモートアクセスで「リレー経由でこのデバイスへのリモートアクセスを許可」をオンにしてから再試行してください。"
+
+msgid "The host reported a failed update."
+msgstr "ホストが更新の失敗を報告しました。"
+
+msgid "The host service restarts once the download is verified. Terminals reconnect on their own; the previous build is kept until the new one answers."
+msgstr "ダウンロードの検証後にホストサービスが再起動します。ターミナルは自動的に再接続され、新しいビルドが応答するまで以前のビルドは保持されます。"
+
+msgid "The host went back to its previous build."
+msgstr "ホストは以前のビルドに戻りました。"
 
 msgid "The human reads every line before it merges."
 msgstr "人間がマージ前に全行を読む。"
@@ -14221,6 +14314,12 @@ msgstr "このGitHubインストールは別のSuperset組織にすでに接続�
 msgid "This host"
 msgstr "このホスト"
 
+msgid "This host has not reported a version yet."
+msgstr "このホストはまだバージョンを報告していません。"
+
+msgid "This host is behind the app you are using. Workspaces still open, but newer features may fail on it."
+msgstr "このホストは使用中のアプリより古いバージョンです。ワークスペースは開けますが、新しい機能は動作しない可能性があります。"
+
 msgid "This host needs an update"
 msgstr "このホストは更新が必要です"
 
@@ -14420,8 +14519,8 @@ msgstr "このワークスペースの記録は残っていますが、ワーク
 msgid "This workspace's host is offline"
 msgstr "このワークスペースのホストはオフラインです"
 
-msgid "This workspace's host is on an older version of Superset than this client supports. Update the Superset app on that device to reconnect."
-msgstr "このワークスペースのホストは、このクライアントが対応するより古いバージョンのSupersetを実行しています。そのデバイスのSupersetアプリを更新して再接続してください。"
+msgid "This workspace's host runs an older host service than this app supports. Update it to reconnect; the workspace and its files are untouched."
+msgstr "このワークスペースのホストは、このアプリが対応するより古いホストサービスを実行しています。更新して再接続してください。ワークスペースとファイルはそのまま残ります。"
 
 msgid "Thorough reasoning effort"
 msgstr "徹底的な推論"
@@ -14560,6 +14659,12 @@ msgstr "サポートへの報告が多すぎます。しばらくしてからお
 
 msgid "Too many untitled items here already."
 msgstr "ここには無題のアイテムが多すぎます。"
+
+msgid "Too old for this app to talk to. Update the Superset app on that device to reconnect."
+msgstr "古すぎてこのアプリと通信できません。そのデバイスのSupersetアプリを更新して再接続してください。"
+
+msgid "Too old for this app to talk to. Workspaces on this host will not open until it is updated."
+msgstr "古すぎてこのアプリと通信できません。更新するまでこのホストのワークスペースは開けません。"
 
 msgid "Tools"
 msgstr "ツール"
@@ -14937,6 +15042,9 @@ msgstr "次の実行"
 msgid "Up Next"
 msgstr "次に着手"
 
+msgid "Up to date"
+msgstr "最新"
+
 msgid "Update"
 msgstr "更新"
 
@@ -14958,6 +15066,9 @@ msgstr "デーモンを更新"
 msgid "Update Error"
 msgstr "アップデートエラー"
 
+msgid "Update host service"
+msgstr "ホストサービスを更新"
+
 msgid "Update naming instructions"
 msgstr "命名指示を更新"
 
@@ -14968,8 +15079,14 @@ msgstr "{0}の命名指示を更新"
 msgid "Update Required"
 msgstr "アップデートが必要です"
 
+msgid "Update Superset on that device. In-app updates require a supported standalone install and a released app version."
+msgstr "そのデバイスで Superset を更新してください。アプリ内からの更新には、対応するスタンドアロンインストールとリリース済みのアプリバージョンが必要です。"
+
 msgid "update the branch prefix"
 msgstr "ブランチのプレフィックスを更新する"
+
+msgid "Updated"
+msgstr "更新済み"
 
 msgid "Updated {date}"
 msgstr "{date}に更新"
@@ -14977,8 +15094,16 @@ msgstr "{date}に更新"
 msgid "Updated {updatedRelative}"
 msgstr "{updatedRelative}に更新"
 
+#. placeholder {0}: previousVersion ?? "?"
+msgid "Updated just now from {0}."
+msgstr "{0}からたった今更新しました。"
+
 msgid "Updates"
 msgstr "アップデート"
+
+#. placeholder {0}: update.progress.target
+msgid "Updating to {0}"
+msgstr "{0}に更新中"
 
 msgid "Updating…"
 msgstr "更新中…"
@@ -14998,6 +15123,9 @@ msgstr "ファイルをアップロード"
 
 msgid "Upload image…"
 msgstr "画像をアップロード…"
+
+msgid "Uptime"
+msgstr "稼働時間"
 
 msgid "Uptime SLA"
 msgstr "稼働率SLA"
@@ -15159,6 +15287,9 @@ msgstr "バージョン履歴"
 
 msgid "Version not found"
 msgstr "バージョンが見つかりません"
+
+msgid "Version unknown"
+msgstr "バージョン不明"
 
 msgid "Video"
 msgstr "動画"

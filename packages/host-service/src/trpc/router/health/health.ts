@@ -1,10 +1,9 @@
-import hostServicePackageJson from "@superset/host-service/package.json" with {
-	type: "json",
-};
+import {
+	getHostInstallSource,
+	HOST_SERVICE_VERSION,
+} from "../../../install-source";
 import { getRegistrationState } from "../../../tunnel/registration-state";
 import { publicProcedure, router } from "../../index";
-
-const HOST_SERVICE_VERSION: string = hostServicePackageJson.version;
 
 export const healthRouter = router({
 	check: publicProcedure.query(() => {
@@ -17,6 +16,7 @@ export const healthRouter = router({
 			// The desktop app spawns its own bundled build, so this doubles as
 			// the app version for a standalone CLI collecting diagnostics.
 			version: HOST_SERVICE_VERSION,
+			installSource: getHostInstallSource(),
 			cloudRegistered: registration.registered,
 			registrationError: registration.lastError,
 		};

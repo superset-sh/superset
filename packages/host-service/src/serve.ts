@@ -16,10 +16,11 @@ import { provisionAgentIntegrations } from "./runtime/agent-provisioning";
 import { resolveBrowserBridgeFromEnv } from "./runtime/browser-bridge/env";
 import { applyLoginShellEnvToProcess } from "./runtime/login-shell-env";
 import { installProcessSafetyNet, installUpgradeSocketGuard } from "./safety";
+import { configureSelfUpdater } from "./self-update";
 import { captureFatalStartupError, initSentry } from "./sentry";
 import { startTerminalBaseEnvResolution } from "./terminal/env";
 import { startTerminalReaper } from "./terminal/reaper";
-import { connectRelay } from "./tunnel";
+import { connectRelay, type TunnelClient } from "./tunnel";
 
 async function main(): Promise<void> {
 	installConsoleTimestamps();
@@ -116,6 +117,8 @@ async function main(): Promise<void> {
 		process.on("SIGTERM", () => void devShutdown("SIGTERM"));
 	}
 
+	const relayAbort = new AbortController();
+	let tunnelPromise: Promise<TunnelClient | null> = Promise.resolve(null);
 	const hostname =
 		env.SUPERSET_HOST_RUN_MODE === "sandbox" ? undefined : "127.0.0.1";
 	const listen = { fetch: app.fetch, port: env.PORT, hostname };
@@ -135,7 +138,8 @@ async function main(): Promise<void> {
 		void launchSandboxAgent();
 
 		if (env.RELAY_URL && env.SUPERSET_HOST_RUN_MODE !== "sandbox") {
-			void connectRelay({
+			tunnelPromise = connectRelay({
+				signal: relayAbort.signal,
 				api,
 				relayUrl: env.RELAY_URL,
 				localPort: info.port,
@@ -147,6 +151,30 @@ async function main(): Promise<void> {
 	});
 	installUpgradeSocketGuard(server);
 	injectWebSocket(server);
+
+	// Standalone only: this process owns its listener and relay socket, so it
+	// can hand the port to a successor build (system.update). The desktop
+	// entry never registers this and its host-service stays non-updatable.
+	configureSelfUpdater({
+		stopServing: async () => {
+			// Cancel registration retries before replacing this process.
+			relayAbort.abort();
+			const tunnel = await Promise.race([
+				tunnelPromise,
+				new Promise<null>((resolve) => setTimeout(() => resolve(null), 1_000)),
+			]);
+			tunnel?.close();
+			const httpServer = server as unknown as {
+				closeAllConnections?: () => void;
+				close: (callback: () => void) => void;
+			};
+			httpServer.closeAllConnections?.();
+			await Promise.race([
+				new Promise<void>((resolve) => httpServer.close(() => resolve())),
+				new Promise<void>((resolve) => setTimeout(resolve, 3_000)),
+			]);
+		},
+	});
 }
 
 void main().catch(async (error) => {

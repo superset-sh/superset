@@ -284,6 +284,10 @@ msgstr "{0} – {1} · 根據本地會話日誌按API價格估算"
 msgid "{0} — try the Superset tray menu > Host Service > Restart."
 msgstr "{0} — 請嘗試Superset托盤選單 > 主機服務 > 重啟。"
 
+#. placeholder {0}: host.version
+msgid "{0} · behind"
+msgstr "{0} · 落後"
+
 #. placeholder {0}: creator.name
 msgid "{0} (you)"
 msgstr "{0}（你）"
@@ -611,6 +615,9 @@ msgstr "{count, plural, one {使用了#個來源} other {使用了#個來源}}"
 
 msgid "{count} GitHub stars"
 msgstr "{count}個GitHub星標"
+
+msgid "{count} hosts run an older host service than this app"
+msgstr "{count} 台主機執行的主機服務比此應用程式舊"
 
 msgid "{count}/day"
 msgstr "{count}/天"
@@ -1937,6 +1944,9 @@ msgstr "按API價折算"
 msgid "API-equivalent cost"
 msgstr "API 等價費用"
 
+msgid "app {appVersion}"
+msgstr "應用程式 {appVersion}"
+
 msgid "App display language"
 msgstr "應用顯示語言"
 
@@ -2011,6 +2021,9 @@ msgstr "用於啟動代理程式的argv。"
 
 msgid "Artifact"
 msgstr "Artifact"
+
+msgid "As last reported. The host must be online to update."
+msgstr "上次回報的版本。主機必須在線上才能更新。"
 
 msgid "ascending"
 msgstr "升序"
@@ -2552,6 +2565,12 @@ msgstr "專案符號列表"
 #. placeholder {0}: versions.expected
 msgid "bundled {0}"
 msgstr "內建{0}"
+
+msgid "Bundled with the Superset app on this device."
+msgstr "隨此裝置上的 Superset 應用程式一起提供。"
+
+msgid "Bundled with the Superset app on this device. Updates with the app."
+msgstr "隨此裝置上的 Superset 應用程式一起提供，並隨應用程式一起更新。"
 
 msgid "Burn by vendor (Mercury)"
 msgstr "按供應商統計的支出（Mercury）"
@@ -3963,6 +3982,9 @@ msgstr "無法連線至桌面。"
 msgid "Could not reach the host to load this pull request."
 msgstr "無法連線到主機以載入此拉取請求。"
 
+msgid "Could not reach the host to start the update. Check that it is online and try again."
+msgstr "無法連線主機以開始更新。請確認主機在線上後重試。"
+
 msgid "Could not reach this workspace's machine"
 msgstr "無法連線到這個工作區所在的機器"
 
@@ -3983,6 +4005,9 @@ msgstr "無法記錄雲端工作區"
 
 msgid "Could not reopen"
 msgstr "無法重新開啟"
+
+msgid "Could not restart the host service"
+msgstr "無法重新啟動主機服務"
 
 msgid "Could not send"
 msgstr "無法傳送"
@@ -4809,6 +4834,9 @@ msgstr "開發者"
 msgid "Developers"
 msgstr "開發者"
 
+msgid "Development build"
+msgstr "開發版本"
+
 msgid "Device: {selectedLabel}"
 msgstr "裝置：{selectedLabel}"
 
@@ -5077,6 +5105,9 @@ msgstr "下載主題檔案"
 
 msgid "downloaded"
 msgstr "已下載"
+
+msgid "Downloading"
+msgstr "下載中"
 
 msgid "Downloading..."
 msgstr "正在下載..."
@@ -6812,6 +6843,9 @@ msgstr "在此組織中未找到該主機"
 msgid "Host not found in this organization."
 msgstr "在此組織中找不到該主機。"
 
+msgid "Host service"
+msgstr "主機服務"
+
 msgid "Host Service"
 msgstr "主機服務"
 
@@ -6827,8 +6861,15 @@ msgstr "主機服務未執行"
 msgid "Host service is starting…"
 msgstr "主機服務正在啟動…"
 
+msgid "Host service restarted"
+msgstr "主機服務已重新啟動"
+
 msgid "Host service unavailable"
 msgstr "主機服務不可用"
+
+#. placeholder {0}: update.progress.target
+msgid "Host service updated to {0}"
+msgstr "主機服務已更新至 {0}"
 
 msgid "Host settings"
 msgstr "主機設定"
@@ -7193,6 +7234,9 @@ msgstr "已安裝"
 msgid "serverError.plugins.marketplaceHasInstalls"
 msgstr "已安裝的外掛來自 {name}：{plugins}。請先移除它們。"
 
+msgid "Installed via"
+msgstr "安裝方式"
+
 msgid "Installing..."
 msgstr "正在安裝..."
 
@@ -7553,6 +7597,9 @@ msgstr "每月最後一天{time}"
 
 msgid "Last run"
 msgstr "上次執行"
+
+msgid "Last seen"
+msgstr "最後上線"
 
 msgid "Last updated"
 msgstr "最後更新"
@@ -8509,6 +8556,12 @@ msgstr "需要授權"
 msgid "Needs review"
 msgstr "待審查"
 
+msgid "needs update"
+msgstr "需要更新"
+
+msgid "Needs update"
+msgstr "需要更新"
+
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -8640,6 +8693,12 @@ msgstr "在 {name} 中新建工作區"
 
 msgid "New-user activation"
 msgstr "新使用者啟用"
+
+msgid "Newer than this app"
+msgstr "比此應用程式新"
+
+msgid "Newer than this app. Everything works; update the app to match."
+msgstr "比此應用程式新。一切正常；請更新應用程式以匹配。"
 
 msgid "News & Updates"
 msgstr "新聞與更新"
@@ -11552,11 +11611,17 @@ msgstr "已重啟{restartedOrgCount}個主機服務"
 msgid "Restarted 1 host service"
 msgstr "已重啟1個主機服務"
 
+msgid "Restarting"
+msgstr "重新啟動中"
+
 msgid "Restarting agents on {accountLabel}."
 msgstr "正在{accountLabel}上重新啟動代理程式。"
 
 msgid "Restarting host services…"
 msgstr "正在重啟主機服務…"
+
+msgid "Restarting…"
+msgstr "重新啟動中…"
 
 msgid "Restore"
 msgstr "恢復"
@@ -11879,11 +11944,17 @@ msgstr "在你的機器上執行本地命令"
 msgid "Runs failed earlier this week, but nothing is failing right now"
 msgstr "本週早些時候有執行失敗，但現在沒有失敗的"
 
+msgid "Runs inside the Superset app on that device, so updating it means updating the app there."
+msgstr "在該裝置的 Superset 應用程式內執行，因此更新它就是更新該裝置上的應用程式。"
+
 msgid "Runs land in a workspace. Review the diff, merge what's good."
 msgstr "執行結果會落在一個工作區裡。審查差異，把合適的合併進去。"
 
 msgid "Runway"
 msgstr "現金跑道"
+
+msgid "Same version as this app."
+msgstr "與此應用程式版本相同。"
 
 msgid "SAML SSO & SCIM provisioning"
 msgstr "SAML SSO與SCIM帳號開通"
@@ -13379,6 +13450,9 @@ msgstr "Superset應用程式"
 msgid "Superset cannot reach api.github.com from this machine. Pull request status retries at {until}."
 msgstr "Superset 無法從此電腦連線至 api.github.com。提取請求狀態將於 {until} 重試。"
 
+msgid "Superset CLI"
+msgstr "Superset CLI"
+
 msgid "Superset components"
 msgstr "Superset 元件"
 
@@ -13878,6 +13952,9 @@ msgstr "代理程式從工單一路負責到差異。人類審查結果，而不
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "這個自動化原本要執行的代理程式在它的主機上已不存在，該主機的代理程式可能被重置或刪除了。請在自動化的設定中重新選擇一個代理程式。"
 
+msgid "The app is on {appVersion} but attached to a host service started by something else, likely an older CLI or another Superset build. Restarting replaces it with this app's copy."
+msgstr "應用程式版本為 {appVersion}，但連接的是由其他程式（可能是舊版 CLI 或另一個 Superset 版本）啟動的主機服務。重新啟動會將其替換為此應用程式自帶的副本。"
+
 msgid "The associated device isn't reachable right now"
 msgstr "關聯的裝置現在連不上"
 
@@ -13962,8 +14039,24 @@ msgstr "完整的工作區。平行執行多個 agent，讓每個 agent 各自�
 msgid "The future home for reusable Superset agent configs, prompts, and setup guides."
 msgstr "未來可重複使用的 Superset 代理設定、提示詞與設定指南的集散地。"
 
+#. placeholder {0}: info.version
+msgid "The host came back on {0}, not {targetVersion}."
+msgstr "主機以 {0} 而非 {targetVersion} 恢復。"
+
+msgid "The host did not come back within fifteen minutes."
+msgstr "主機未在十五分鐘內恢復。"
+
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "該主機沒有連線到Superset中繼。如果就是此裝置，請在「設定>遠端存取」中開啟「允許遠端存取通過中繼存取此裝置」，然後重試。"
+
+msgid "The host reported a failed update."
+msgstr "主機回報更新失敗。"
+
+msgid "The host service restarts once the download is verified. Terminals reconnect on their own; the previous build is kept until the new one answers."
+msgstr "下載驗證完成後主機服務會重新啟動。終端機會自動重新連線；在新版本回應之前會保留先前的版本。"
+
+msgid "The host went back to its previous build."
+msgstr "主機已回退到先前的版本。"
 
 msgid "The human reads every line before it merges."
 msgstr "合併前人類會逐行閱讀。"
@@ -14221,6 +14314,12 @@ msgstr "這個GitHub安裝已連線到另一個Superset組織。請先在那裡�
 msgid "This host"
 msgstr "此主機"
 
+msgid "This host has not reported a version yet."
+msgstr "此主機尚未回報版本。"
+
+msgid "This host is behind the app you are using. Workspaces still open, but newer features may fail on it."
+msgstr "此主機落後於你正在使用的應用程式。工作區仍可開啟，但較新的功能可能無法使用。"
+
 msgid "This host needs an update"
 msgstr "此主機需要更新"
 
@@ -14420,8 +14519,8 @@ msgstr "此工作區記錄仍然存在，但它的worktree資料夾已不在此�
 msgid "This workspace's host is offline"
 msgstr "此工作區的主機已離線"
 
-msgid "This workspace's host is on an older version of Superset than this client supports. Update the Superset app on that device to reconnect."
-msgstr "此工作區所在主機的Superset版本低於此客戶端支援的版本。請在該裝置上更新Superset應用程式以重新連線。"
+msgid "This workspace's host runs an older host service than this app supports. Update it to reconnect; the workspace and its files are untouched."
+msgstr "此工作區的主機執行的主機服務版本低於此應用程式支援的版本。更新後即可重新連線；工作區及其檔案不受影響。"
 
 msgid "Thorough reasoning effort"
 msgstr "深入的推理投入"
@@ -14560,6 +14659,12 @@ msgstr "支援請求次數過多。請稍後重試。"
 
 msgid "Too many untitled items here already."
 msgstr "這裡未命名的項已經太多了。"
+
+msgid "Too old for this app to talk to. Update the Superset app on that device to reconnect."
+msgstr "版本太舊，此應用程式無法與其通訊。更新該裝置上的 Superset 應用程式以重新連線。"
+
+msgid "Too old for this app to talk to. Workspaces on this host will not open until it is updated."
+msgstr "版本太舊，此應用程式無法與其通訊。更新之前，此主機上的工作區無法開啟。"
 
 msgid "Tools"
 msgstr "工具"
@@ -14937,6 +15042,9 @@ msgstr "即將執行"
 msgid "Up Next"
 msgstr "即將開始"
 
+msgid "Up to date"
+msgstr "已是最新"
+
 msgid "Update"
 msgstr "更新"
 
@@ -14958,6 +15066,9 @@ msgstr "更新守護程式"
 msgid "Update Error"
 msgstr "更新出錯"
 
+msgid "Update host service"
+msgstr "更新主機服務"
+
 msgid "Update naming instructions"
 msgstr "更新命名規則"
 
@@ -14968,8 +15079,14 @@ msgstr "更新{0}的命名規則"
 msgid "Update Required"
 msgstr "需要更新"
 
+msgid "Update Superset on that device. In-app updates require a supported standalone install and a released app version."
+msgstr "請在該裝置上更新 Superset。應用程式內更新需要受支援的獨立安裝和已發佈的應用程式版本。"
+
 msgid "update the branch prefix"
 msgstr "更新分支字首"
+
+msgid "Updated"
+msgstr "已更新"
 
 msgid "Updated {date}"
 msgstr "更新於{date}"
@@ -14977,8 +15094,16 @@ msgstr "更新於{date}"
 msgid "Updated {updatedRelative}"
 msgstr "更新於{updatedRelative}"
 
+#. placeholder {0}: previousVersion ?? "?"
+msgid "Updated just now from {0}."
+msgstr "剛剛從 {0} 更新。"
+
 msgid "Updates"
 msgstr "更新"
+
+#. placeholder {0}: update.progress.target
+msgid "Updating to {0}"
+msgstr "正在更新至 {0}"
 
 msgid "Updating…"
 msgstr "正在更新…"
@@ -14998,6 +15123,9 @@ msgstr "上傳檔案"
 
 msgid "Upload image…"
 msgstr "上傳圖片…"
+
+msgid "Uptime"
+msgstr "運作時間"
 
 msgid "Uptime SLA"
 msgstr "可用性SLA"
@@ -15159,6 +15287,9 @@ msgstr "版本歷史"
 
 msgid "Version not found"
 msgstr "未找到版本"
+
+msgid "Version unknown"
+msgstr "版本未知"
 
 msgid "Video"
 msgstr "影片"

@@ -664,6 +664,12 @@ export const v2Hosts = pgTable(
 		// User-defined command run locally to wake/start this host (e.g. resume a
 		// cloud sandbox, start a VM). Null when the host has no wake command.
 		wakeCommand: text("wake_command"),
+		// Reported by the host-service at registration (`host.ensure`), which
+		// runs once per process, so these describe the build currently serving
+		// the host. Null for hosts that registered before they were reported.
+		version: text(),
+		platform: text(),
+		installSource: text("install_source"),
 		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
 			onDelete: "set null",
 		}),

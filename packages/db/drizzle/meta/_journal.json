@@ -771,6 +771,13 @@
       "when": 1788593305453,
       "tag": "0109_move_participants_to_public_profiles",
       "breakpoints": true
+    },
+    {
+      "idx": 110,
+      "version": "7",
+      "when": 1788808109667,
+      "tag": "0110_add_v2_hosts_version_columns",
+      "breakpoints": true
     }
   ]
 }

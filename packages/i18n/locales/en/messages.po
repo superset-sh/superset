@@ -284,6 +284,10 @@ msgstr "{0} – {1} · API-rate estimate from local session logs"
 msgid "{0} — try the Superset tray menu > Host Service > Restart."
 msgstr "{0} — try the Superset tray menu > Host Service > Restart."
 
+#. placeholder {0}: host.version
+msgid "{0} · behind"
+msgstr "{0} · behind"
+
 #. placeholder {0}: creator.name
 msgid "{0} (you)"
 msgstr "{0} (you)"
@@ -611,6 +615,9 @@ msgstr "{count, plural, one {Used # source} other {Used # sources}}"
 
 msgid "{count} GitHub stars"
 msgstr "{count} GitHub stars"
+
+msgid "{count} hosts run an older host service than this app"
+msgstr "{count} hosts run an older host service than this app"
 
 msgid "{count}/day"
 msgstr "{count}/day"
@@ -1937,6 +1944,9 @@ msgstr "API-equivalent"
 msgid "API-equivalent cost"
 msgstr "API-equivalent cost"
 
+msgid "app {appVersion}"
+msgstr "app {appVersion}"
+
 msgid "App display language"
 msgstr "App display language"
 
@@ -2011,6 +2021,9 @@ msgstr "Argv used to launch the agent."
 
 msgid "Artifact"
 msgstr "Artifact"
+
+msgid "As last reported. The host must be online to update."
+msgstr "As last reported. The host must be online to update."
 
 msgid "ascending"
 msgstr "ascending"
@@ -2552,6 +2565,12 @@ msgstr "Bulleted list"
 #. placeholder {0}: versions.expected
 msgid "bundled {0}"
 msgstr "bundled {0}"
+
+msgid "Bundled with the Superset app on this device."
+msgstr "Bundled with the Superset app on this device."
+
+msgid "Bundled with the Superset app on this device. Updates with the app."
+msgstr "Bundled with the Superset app on this device. Updates with the app."
 
 msgid "Burn by vendor (Mercury)"
 msgstr "Burn by vendor (Mercury)"
@@ -3963,6 +3982,9 @@ msgstr "Could not reach the desktop."
 msgid "Could not reach the host to load this pull request."
 msgstr "Could not reach the host to load this pull request."
 
+msgid "Could not reach the host to start the update. Check that it is online and try again."
+msgstr "Could not reach the host to start the update. Check that it is online and try again."
+
 msgid "Could not reach this workspace's machine"
 msgstr "Could not reach this workspace's machine"
 
@@ -3983,6 +4005,9 @@ msgstr "Could not record cloud workspace"
 
 msgid "Could not reopen"
 msgstr "Could not reopen"
+
+msgid "Could not restart the host service"
+msgstr "Could not restart the host service"
 
 msgid "Could not send"
 msgstr "Could not send"
@@ -4809,6 +4834,9 @@ msgstr "Developer"
 msgid "Developers"
 msgstr "Developers"
 
+msgid "Development build"
+msgstr "Development build"
+
 msgid "Device: {selectedLabel}"
 msgstr "Device: {selectedLabel}"
 
@@ -5077,6 +5105,9 @@ msgstr "Download theme file"
 
 msgid "downloaded"
 msgstr "downloaded"
+
+msgid "Downloading"
+msgstr "Downloading"
 
 msgid "Downloading..."
 msgstr "Downloading..."
@@ -6812,6 +6843,9 @@ msgstr "Host not found in this organization"
 msgid "Host not found in this organization."
 msgstr "Host not found in this organization."
 
+msgid "Host service"
+msgstr "Host service"
+
 msgid "Host Service"
 msgstr "Host Service"
 
@@ -6827,8 +6861,15 @@ msgstr "Host service is not running"
 msgid "Host service is starting…"
 msgstr "Host service is starting…"
 
+msgid "Host service restarted"
+msgstr "Host service restarted"
+
 msgid "Host service unavailable"
 msgstr "Host service unavailable"
+
+#. placeholder {0}: update.progress.target
+msgid "Host service updated to {0}"
+msgstr "Host service updated to {0}"
 
 msgid "Host settings"
 msgstr "Host settings"
@@ -7193,6 +7234,9 @@ msgstr "Installed"
 msgid "serverError.plugins.marketplaceHasInstalls"
 msgstr "Installed plugins came from {name}: {plugins}. Remove them first."
 
+msgid "Installed via"
+msgstr "Installed via"
+
 msgid "Installing..."
 msgstr "Installing..."
 
@@ -7553,6 +7597,9 @@ msgstr "Last day of each month at {time}"
 
 msgid "Last run"
 msgstr "Last run"
+
+msgid "Last seen"
+msgstr "Last seen"
 
 msgid "Last updated"
 msgstr "Last updated"
@@ -8509,6 +8556,12 @@ msgstr "Needs permission"
 msgid "Needs review"
 msgstr "Needs review"
 
+msgid "needs update"
+msgstr "needs update"
+
+msgid "Needs update"
+msgstr "Needs update"
+
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -8640,6 +8693,12 @@ msgstr "New workspace in {name}"
 
 msgid "New-user activation"
 msgstr "New-user activation"
+
+msgid "Newer than this app"
+msgstr "Newer than this app"
+
+msgid "Newer than this app. Everything works; update the app to match."
+msgstr "Newer than this app. Everything works; update the app to match."
 
 msgid "News & Updates"
 msgstr "News & Updates"
@@ -11552,11 +11611,17 @@ msgstr "Restarted {restartedOrgCount} host services"
 msgid "Restarted 1 host service"
 msgstr "Restarted 1 host service"
 
+msgid "Restarting"
+msgstr "Restarting"
+
 msgid "Restarting agents on {accountLabel}."
 msgstr "Restarting agents on {accountLabel}."
 
 msgid "Restarting host services…"
 msgstr "Restarting host services…"
+
+msgid "Restarting…"
+msgstr "Restarting…"
 
 msgid "Restore"
 msgstr "Restore"
@@ -11879,11 +11944,17 @@ msgstr "Runs a local command on your machine"
 msgid "Runs failed earlier this week, but nothing is failing right now"
 msgstr "Runs failed earlier this week, but nothing is failing right now"
 
+msgid "Runs inside the Superset app on that device, so updating it means updating the app there."
+msgstr "Runs inside the Superset app on that device, so updating it means updating the app there."
+
 msgid "Runs land in a workspace. Review the diff, merge what's good."
 msgstr "Runs land in a workspace. Review the diff, merge what's good."
 
 msgid "Runway"
 msgstr "Runway"
+
+msgid "Same version as this app."
+msgstr "Same version as this app."
 
 msgid "SAML SSO & SCIM provisioning"
 msgstr "SAML SSO & SCIM provisioning"
@@ -13379,6 +13450,9 @@ msgstr "Superset App"
 msgid "Superset cannot reach api.github.com from this machine. Pull request status retries at {until}."
 msgstr "Superset cannot reach api.github.com from this machine. Pull request status retries at {until}."
 
+msgid "Superset CLI"
+msgstr "Superset CLI"
+
 msgid "Superset components"
 msgstr "Superset components"
 
@@ -13878,6 +13952,9 @@ msgstr "The agent owns a task from ticket to diff. The human reviews the result,
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 
+msgid "The app is on {appVersion} but attached to a host service started by something else, likely an older CLI or another Superset build. Restarting replaces it with this app's copy."
+msgstr "The app is on {appVersion} but attached to a host service started by something else, likely an older CLI or another Superset build. Restarting replaces it with this app's copy."
+
 msgid "The associated device isn't reachable right now"
 msgstr "The associated device isn't reachable right now"
 
@@ -13962,8 +14039,24 @@ msgstr "The full workspace. Run agents in parallel, keep each one in its own wor
 msgid "The future home for reusable Superset agent configs, prompts, and setup guides."
 msgstr "The future home for reusable Superset agent configs, prompts, and setup guides."
 
+#. placeholder {0}: info.version
+msgid "The host came back on {0}, not {targetVersion}."
+msgstr "The host came back on {0}, not {targetVersion}."
+
+msgid "The host did not come back within fifteen minutes."
+msgstr "The host did not come back within fifteen minutes."
+
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
+
+msgid "The host reported a failed update."
+msgstr "The host reported a failed update."
+
+msgid "The host service restarts once the download is verified. Terminals reconnect on their own; the previous build is kept until the new one answers."
+msgstr "The host service restarts once the download is verified. Terminals reconnect on their own; the previous build is kept until the new one answers."
+
+msgid "The host went back to its previous build."
+msgstr "The host went back to its previous build."
 
 msgid "The human reads every line before it merges."
 msgstr "The human reads every line before it merges."
@@ -14221,6 +14314,12 @@ msgstr "This GitHub installation is already connected to another Superset organi
 msgid "This host"
 msgstr "This host"
 
+msgid "This host has not reported a version yet."
+msgstr "This host has not reported a version yet."
+
+msgid "This host is behind the app you are using. Workspaces still open, but newer features may fail on it."
+msgstr "This host is behind the app you are using. Workspaces still open, but newer features may fail on it."
+
 msgid "This host needs an update"
 msgstr "This host needs an update"
 
@@ -14420,8 +14519,8 @@ msgstr "This workspace record still exists, but its worktree folder is no longer
 msgid "This workspace's host is offline"
 msgstr "This workspace's host is offline"
 
-msgid "This workspace's host is on an older version of Superset than this client supports. Update the Superset app on that device to reconnect."
-msgstr "This workspace's host is on an older version of Superset than this client supports. Update the Superset app on that device to reconnect."
+msgid "This workspace's host runs an older host service than this app supports. Update it to reconnect; the workspace and its files are untouched."
+msgstr "This workspace's host runs an older host service than this app supports. Update it to reconnect; the workspace and its files are untouched."
 
 msgid "Thorough reasoning effort"
 msgstr "Thorough reasoning effort"
@@ -14560,6 +14659,12 @@ msgstr "Too many support reports. Try again later."
 
 msgid "Too many untitled items here already."
 msgstr "Too many untitled items here already."
+
+msgid "Too old for this app to talk to. Update the Superset app on that device to reconnect."
+msgstr "Too old for this app to talk to. Update the Superset app on that device to reconnect."
+
+msgid "Too old for this app to talk to. Workspaces on this host will not open until it is updated."
+msgstr "Too old for this app to talk to. Workspaces on this host will not open until it is updated."
 
 msgid "Tools"
 msgstr "Tools"
@@ -14937,6 +15042,9 @@ msgstr "Up next"
 msgid "Up Next"
 msgstr "Up Next"
 
+msgid "Up to date"
+msgstr "Up to date"
+
 msgid "Update"
 msgstr "Update"
 
@@ -14958,6 +15066,9 @@ msgstr "Update daemon"
 msgid "Update Error"
 msgstr "Update Error"
 
+msgid "Update host service"
+msgstr "Update host service"
+
 msgid "Update naming instructions"
 msgstr "Update naming instructions"
 
@@ -14968,8 +15079,14 @@ msgstr "Update naming instructions for {0}"
 msgid "Update Required"
 msgstr "Update Required"
 
+msgid "Update Superset on that device. In-app updates require a supported standalone install and a released app version."
+msgstr "Update Superset on that device. In-app updates require a supported standalone install and a released app version."
+
 msgid "update the branch prefix"
 msgstr "update the branch prefix"
+
+msgid "Updated"
+msgstr "Updated"
 
 msgid "Updated {date}"
 msgstr "Updated {date}"
@@ -14977,8 +15094,16 @@ msgstr "Updated {date}"
 msgid "Updated {updatedRelative}"
 msgstr "Updated {updatedRelative}"
 
+#. placeholder {0}: previousVersion ?? "?"
+msgid "Updated just now from {0}."
+msgstr "Updated just now from {0}."
+
 msgid "Updates"
 msgstr "Updates"
+
+#. placeholder {0}: update.progress.target
+msgid "Updating to {0}"
+msgstr "Updating to {0}"
 
 msgid "Updating…"
 msgstr "Updating…"
@@ -14998,6 +15123,9 @@ msgstr "Upload files"
 
 msgid "Upload image…"
 msgstr "Upload image…"
+
+msgid "Uptime"
+msgstr "Uptime"
 
 msgid "Uptime SLA"
 msgstr "Uptime SLA"
@@ -15159,6 +15287,9 @@ msgstr "Version history"
 
 msgid "Version not found"
 msgstr "Version not found"
+
+msgid "Version unknown"
+msgstr "Version unknown"
 
 msgid "Video"
 msgstr "Video"

@@ -74,3 +74,7 @@ or the value arrives empty.
 - [ ] Root `.env`, and the team told
 - [ ] `deploy-production.yml`: `env:` block **and** `--env`
 - [ ] `deploy-preview.yml`: same two
+
+## Launcher-owned runtime values
+
+`SUPERSET_HOST_INSTALL_SOURCE` is set by the desktop coordinator (`desktop`) or standalone CLI spawner (`cli`) on the host child process. A checkout may set `dev`; absent/unrecognized values report `unknown`. This is install provenance, not an API deployment setting: do not put it in shared `.env` templates or deployment secrets. The host ignores login-shell values for this key. In-place updates additionally require a standalone entrypoint and a valid install layout.

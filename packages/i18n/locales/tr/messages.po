@@ -284,6 +284,10 @@ msgstr "{0} – {1} · yerel oturum günlüklerinden API tarifesi tahmini"
 msgid "{0} — try the Superset tray menu > Host Service > Restart."
 msgstr "{0} — Superset tepsi menüsünde Host hizmeti > Yeniden başlat yolunu deneyin."
 
+#. placeholder {0}: host.version
+msgid "{0} · behind"
+msgstr "{0} · eski"
+
 #. placeholder {0}: creator.name
 msgid "{0} (you)"
 msgstr "{0} (siz)"
@@ -611,6 +615,9 @@ msgstr "{count, plural, one {# kaynak kullanıldı} other {# kaynak kullanıldı
 
 msgid "{count} GitHub stars"
 msgstr "{count} GitHub yıldızı"
+
+msgid "{count} hosts run an older host service than this app"
+msgstr "{count} ana makine bu uygulamadan daha eski bir ana makine hizmeti çalıştırıyor"
 
 msgid "{count}/day"
 msgstr "{count}/gün"
@@ -1937,6 +1944,9 @@ msgstr "API eşdeğeri"
 msgid "API-equivalent cost"
 msgstr "API eşdeğeri maliyet"
 
+msgid "app {appVersion}"
+msgstr "uygulama {appVersion}"
+
 msgid "App display language"
 msgstr "Uygulama görüntüleme dili"
 
@@ -2011,6 +2021,9 @@ msgstr "Ajanı başlatmak için kullanılan argv."
 
 msgid "Artifact"
 msgstr "Artifact"
+
+msgid "As last reported. The host must be online to update."
+msgstr "Son bildirildiği gibi. Güncellemek için ana makine çevrimiçi olmalı."
 
 msgid "ascending"
 msgstr "artan"
@@ -2552,6 +2565,12 @@ msgstr "Madde işaretli liste"
 #. placeholder {0}: versions.expected
 msgid "bundled {0}"
 msgstr "birlikte gelen {0}"
+
+msgid "Bundled with the Superset app on this device."
+msgstr "Bu cihazdaki Superset uygulamasıyla birlikte gelir."
+
+msgid "Bundled with the Superset app on this device. Updates with the app."
+msgstr "Bu cihazdaki Superset uygulamasıyla birlikte gelir. Uygulamayla birlikte güncellenir."
 
 msgid "Burn by vendor (Mercury)"
 msgstr "Tedarikçiye göre harcama (Mercury)"
@@ -3963,6 +3982,9 @@ msgstr "Masaüstüne ulaşılamadı."
 msgid "Could not reach the host to load this pull request."
 msgstr "Bu pull request'i yüklemek için host'a erişilemedi."
 
+msgid "Could not reach the host to start the update. Check that it is online and try again."
+msgstr "Güncellemeyi başlatmak için ana makineye ulaşılamadı. Çevrimiçi olduğundan emin olup tekrar deneyin."
+
 msgid "Could not reach this workspace's machine"
 msgstr "Bu çalışma alanının makinesine erişilemedi"
 
@@ -3983,6 +4005,9 @@ msgstr "Bulut çalışma alanı kaydedilemedi"
 
 msgid "Could not reopen"
 msgstr "Yeniden açılamadı"
+
+msgid "Could not restart the host service"
+msgstr "Ana makine hizmeti yeniden başlatılamadı"
 
 msgid "Could not send"
 msgstr "Gönderilemedi"
@@ -4809,6 +4834,9 @@ msgstr "Geliştirici"
 msgid "Developers"
 msgstr "Geliştiriciler"
 
+msgid "Development build"
+msgstr "Geliştirme derlemesi"
+
 msgid "Device: {selectedLabel}"
 msgstr "Cihaz: {selectedLabel}"
 
@@ -5077,6 +5105,9 @@ msgstr "Tema dosyasını indir"
 
 msgid "downloaded"
 msgstr "indirildi"
+
+msgid "Downloading"
+msgstr "İndiriliyor"
 
 msgid "Downloading..."
 msgstr "İndiriliyor..."
@@ -6812,6 +6843,9 @@ msgstr "Bu kuruluşta host bulunamadı"
 msgid "Host not found in this organization."
 msgstr "Bu kuruluşta host bulunamadı."
 
+msgid "Host service"
+msgstr "Ana makine hizmeti"
+
 msgid "Host Service"
 msgstr "Host hizmeti"
 
@@ -6827,8 +6861,15 @@ msgstr "Host hizmeti çalışmıyor"
 msgid "Host service is starting…"
 msgstr "Host hizmeti başlatılıyor…"
 
+msgid "Host service restarted"
+msgstr "Ana makine hizmeti yeniden başlatıldı"
+
 msgid "Host service unavailable"
 msgstr "Host hizmeti kullanılamıyor"
+
+#. placeholder {0}: update.progress.target
+msgid "Host service updated to {0}"
+msgstr "Ana makine hizmeti {0} sürümüne güncellendi"
 
 msgid "Host settings"
 msgstr "Host ayarları"
@@ -7193,6 +7234,9 @@ msgstr "Kurulu"
 msgid "serverError.plugins.marketplaceHasInstalls"
 msgstr "Kurulu eklentiler {name} kaynağından geldi: {plugins}. Önce onları kaldırın."
 
+msgid "Installed via"
+msgstr "Kurulum yolu"
+
 msgid "Installing..."
 msgstr "Kuruluyor..."
 
@@ -7553,6 +7597,9 @@ msgstr "Her ayın son günü saat {time}"
 
 msgid "Last run"
 msgstr "Son çalıştırma"
+
+msgid "Last seen"
+msgstr "Son görülme"
 
 msgid "Last updated"
 msgstr "Son güncelleme"
@@ -8509,6 +8556,12 @@ msgstr "İzin gerekiyor"
 msgid "Needs review"
 msgstr "İnceleme gerekiyor"
 
+msgid "needs update"
+msgstr "güncelleme gerekli"
+
+msgid "Needs update"
+msgstr "Güncelleme gerekli"
+
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -8640,6 +8693,12 @@ msgstr "{name} içinde yeni çalışma alanı"
 
 msgid "New-user activation"
 msgstr "Yeni kullanıcı aktivasyonu"
+
+msgid "Newer than this app"
+msgstr "Bu uygulamadan daha yeni"
+
+msgid "Newer than this app. Everything works; update the app to match."
+msgstr "Bu uygulamadan daha yeni. Her şey çalışıyor; eşitlemek için uygulamayı güncelleyin."
 
 msgid "News & Updates"
 msgstr "Haberler ve güncellemeler"
@@ -11552,11 +11611,17 @@ msgstr "{restartedOrgCount} host hizmeti yeniden başlatıldı"
 msgid "Restarted 1 host service"
 msgstr "1 host hizmeti yeniden başlatıldı"
 
+msgid "Restarting"
+msgstr "Yeniden başlatılıyor"
+
 msgid "Restarting agents on {accountLabel}."
 msgstr "Ajanlar {accountLabel} üzerinde yeniden başlatılıyor."
 
 msgid "Restarting host services…"
 msgstr "Host hizmetleri yeniden başlatılıyor…"
+
+msgid "Restarting…"
+msgstr "Yeniden başlatılıyor…"
 
 msgid "Restore"
 msgstr "Geri yükle"
@@ -11879,11 +11944,17 @@ msgstr "Makinenizde yerel bir komut çalıştırır"
 msgid "Runs failed earlier this week, but nothing is failing right now"
 msgstr "Bu hafta daha önce çalıştırmalar başarısız oldu, ancak şu anda başarısız olan yok"
 
+msgid "Runs inside the Superset app on that device, so updating it means updating the app there."
+msgstr "O cihazdaki Superset uygulamasının içinde çalışır; bu yüzden güncellemek, oradaki uygulamayı güncellemek demektir."
+
 msgid "Runs land in a workspace. Review the diff, merge what's good."
 msgstr "Çalıştırmalar bir çalışma alanına düşer. Farkı inceleyin, iyi olanı birleştirin."
 
 msgid "Runway"
 msgstr "Nakit ömrü"
+
+msgid "Same version as this app."
+msgstr "Bu uygulamayla aynı sürüm."
 
 msgid "SAML SSO & SCIM provisioning"
 msgstr "SAML SSO ve SCIM sağlama"
@@ -13379,6 +13450,9 @@ msgstr "Superset uygulaması"
 msgid "Superset cannot reach api.github.com from this machine. Pull request status retries at {until}."
 msgstr "Superset bu makineden api.github.com adresine ulaşamıyor. Pull request durumu saat {until} itibarıyla yeniden denenecek."
 
+msgid "Superset CLI"
+msgstr "Superset CLI"
+
 msgid "Superset components"
 msgstr "Superset bileşenleri"
 
@@ -13878,6 +13952,9 @@ msgstr "Ajan, bir görevi biletten farka kadar sahiplenir. İnsan tuş vuruşlar
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "Bu otomasyonun çalıştırılacağı ajan, host'unda artık yok — host'un ajanları sıfırlanmış veya kaldırılmış olabilir. Otomasyonun ayarlarından yeni bir ajan seçin."
 
+msgid "The app is on {appVersion} but attached to a host service started by something else, likely an older CLI or another Superset build. Restarting replaces it with this app's copy."
+msgstr "Uygulama {appVersion} sürümünde, ancak başka bir şeyin (muhtemelen eski bir CLI veya başka bir Superset derlemesi) başlattığı bir ana makine hizmetine bağlı. Yeniden başlatmak onu bu uygulamanın kopyasıyla değiştirir."
+
 msgid "The associated device isn't reachable right now"
 msgstr "İlgili cihaza şu anda erişilemiyor"
 
@@ -13962,8 +14039,24 @@ msgstr "Eksiksiz çalışma alanı. Ajanları paralel çalıştırın, her birin
 msgid "The future home for reusable Superset agent configs, prompts, and setup guides."
 msgstr "Yeniden kullanılabilir Superset ajan yapılandırmaları, istemleri ve kurulum kılavuzları için gelecekteki adres."
 
+#. placeholder {0}: info.version
+msgid "The host came back on {0}, not {targetVersion}."
+msgstr "Ana makine {targetVersion} yerine {0} ile geri döndü."
+
+msgid "The host did not come back within fifteen minutes."
+msgstr "Ana makine on beş dakika içinde geri gelmedi."
+
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "Host, Superset rölesine bağlı değil. Bu cihazsa Ayarlar > Uzaktan erişim bölümünde \"Uzaktan erişimnın bu cihaza röle üzerinden erişmesine izin ver\" seçeneğini açıp yeniden deneyin."
+
+msgid "The host reported a failed update."
+msgstr "Ana makine başarısız bir güncelleme bildirdi."
+
+msgid "The host service restarts once the download is verified. Terminals reconnect on their own; the previous build is kept until the new one answers."
+msgstr "İndirme doğrulandıktan sonra ana makine hizmeti yeniden başlar. Terminaller kendiliğinden yeniden bağlanır; yeni derleme yanıt verene kadar önceki derleme korunur."
+
+msgid "The host went back to its previous build."
+msgstr "Ana makine önceki derlemesine geri döndü."
 
 msgid "The human reads every line before it merges."
 msgstr "İnsan, birleştirilmeden önce her satırı okur."
@@ -14221,6 +14314,12 @@ msgstr "Bu GitHub kurulumu zaten başka bir Superset kuruluşuna bağlı. Oradak
 msgid "This host"
 msgstr "Bu host"
 
+msgid "This host has not reported a version yet."
+msgstr "Bu ana makine henüz bir sürüm bildirmedi."
+
+msgid "This host is behind the app you are using. Workspaces still open, but newer features may fail on it."
+msgstr "Bu ana makine kullandığınız uygulamanın gerisinde. Çalışma alanları hâlâ açılıyor ama yeni özellikler üzerinde çalışmayabilir."
+
 msgid "This host needs an update"
 msgstr "Bu host'un güncellenmesi gerekiyor"
 
@@ -14420,8 +14519,8 @@ msgstr "Bu çalışma alanı kaydı hâlâ var, ancak worktree klasörü artık 
 msgid "This workspace's host is offline"
 msgstr "Bu çalışma alanının host'u çevrimdışı"
 
-msgid "This workspace's host is on an older version of Superset than this client supports. Update the Superset app on that device to reconnect."
-msgstr "Bu çalışma alanının host'u, bu istemcinin desteklediğinden daha eski bir Superset sürümünde. Yeniden bağlanmak için o cihazdaki Superset uygulamasını güncelleyin."
+msgid "This workspace's host runs an older host service than this app supports. Update it to reconnect; the workspace and its files are untouched."
+msgstr "Bu çalışma alanının ana makinesi, bu uygulamanın desteklediğinden daha eski bir ana makine hizmeti çalıştırıyor. Yeniden bağlanmak için güncelleyin; çalışma alanı ve dosyaları olduğu gibi kalır."
 
 msgid "Thorough reasoning effort"
 msgstr "Kapsamlı akıl yürütme çabası"
@@ -14560,6 +14659,12 @@ msgstr "Çok fazla destek bildirimi. Daha sonra yeniden deneyin."
 
 msgid "Too many untitled items here already."
 msgstr "Burada zaten çok fazla adsız öğe var."
+
+msgid "Too old for this app to talk to. Update the Superset app on that device to reconnect."
+msgstr "Bu uygulamanın iletişim kuramayacağı kadar eski. Yeniden bağlanmak için o cihazdaki Superset uygulamasını güncelleyin."
+
+msgid "Too old for this app to talk to. Workspaces on this host will not open until it is updated."
+msgstr "Bu uygulamanın iletişim kuramayacağı kadar eski. Güncellenene kadar bu ana makinedeki çalışma alanları açılmayacak."
 
 msgid "Tools"
 msgstr "Araçlar"
@@ -14937,6 +15042,9 @@ msgstr "Sırada"
 msgid "Up Next"
 msgstr "Sırada"
 
+msgid "Up to date"
+msgstr "Güncel"
+
 msgid "Update"
 msgstr "Güncelle"
 
@@ -14958,6 +15066,9 @@ msgstr "Daemon'u güncelle"
 msgid "Update Error"
 msgstr "Güncelleme hatası"
 
+msgid "Update host service"
+msgstr "Ana makine hizmetini güncelle"
+
 msgid "Update naming instructions"
 msgstr "Adlandırma yönergelerini güncelle"
 
@@ -14968,8 +15079,14 @@ msgstr "{0} için adlandırma yönergelerini güncelle"
 msgid "Update Required"
 msgstr "Güncelleme gerekli"
 
+msgid "Update Superset on that device. In-app updates require a supported standalone install and a released app version."
+msgstr "Superset’i o cihazda güncelleyin. Uygulama içinden güncelleme için desteklenen bağımsız bir kurulum ve yayımlanmış bir uygulama sürümü gerekir."
+
 msgid "update the branch prefix"
 msgstr "dal ön ekini güncelleme"
+
+msgid "Updated"
+msgstr "Güncellendi"
 
 msgid "Updated {date}"
 msgstr "Güncelleme: {date}"
@@ -14977,8 +15094,16 @@ msgstr "Güncelleme: {date}"
 msgid "Updated {updatedRelative}"
 msgstr "Güncelleme {updatedRelative}"
 
+#. placeholder {0}: previousVersion ?? "?"
+msgid "Updated just now from {0}."
+msgstr "Az önce {0} sürümünden güncellendi."
+
 msgid "Updates"
 msgstr "Güncellemeler"
+
+#. placeholder {0}: update.progress.target
+msgid "Updating to {0}"
+msgstr "{0} sürümüne güncelleniyor"
 
 msgid "Updating…"
 msgstr "Güncelleniyor…"
@@ -14998,6 +15123,9 @@ msgstr "Dosya yükle"
 
 msgid "Upload image…"
 msgstr "Görsel yükle…"
+
+msgid "Uptime"
+msgstr "Çalışma süresi"
 
 msgid "Uptime SLA"
 msgstr "Çalışma süresi SLA'sı"
@@ -15159,6 +15287,9 @@ msgstr "Sürüm geçmişi"
 
 msgid "Version not found"
 msgstr "Sürüm bulunamadı"
+
+msgid "Version unknown"
+msgstr "Sürüm bilinmiyor"
 
 msgid "Video"
 msgstr "Video"

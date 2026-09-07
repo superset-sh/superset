@@ -14,6 +14,7 @@ import {
 	buildHostRoutingKey,
 	parseHostRoutingKey,
 } from "@superset/shared/host-routing";
+import { HOST_INSTALL_SOURCES } from "@superset/shared/host-version";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
@@ -73,6 +74,9 @@ export const hostRouter = {
 					name: v2Hosts.name,
 					wakeCommand: v2Hosts.wakeCommand,
 					organizationId: v2Hosts.organizationId,
+					version: v2Hosts.version,
+					platform: v2Hosts.platform,
+					installSource: v2Hosts.installSource,
 				})
 				.from(v2Hosts)
 				.innerJoin(
@@ -110,6 +114,9 @@ export const hostRouter = {
 						?.online ?? false,
 				wakeCommand: row.wakeCommand,
 				organizationId: row.organizationId,
+				version: row.version,
+				platform: row.platform,
+				installSource: row.installSource,
 			}));
 		}),
 
@@ -119,6 +126,13 @@ export const hostRouter = {
 				organizationId: z.string().uuid(),
 				machineId: z.string().min(1),
 				name: z.string().min(1),
+				// The build serving this host. A host-service reports these once
+				// per process, at registration; a restart re-registers, so they
+				// stay exact without any heartbeat. Optional so host-services that
+				// predate the fields keep registering.
+				version: z.string().min(1).max(64).optional(),
+				platform: z.string().min(1).max(32).optional(),
+				installSource: z.enum(HOST_INSTALL_SOURCES).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -130,6 +144,11 @@ export const hostRouter = {
 				});
 			}
 
+			const reported = {
+				version: input.version ?? null,
+				platform: input.platform ?? null,
+				installSource: input.installSource ?? null,
+			};
 			const [inserted] = await db
 				.insert(v2Hosts)
 				.values({
@@ -137,20 +156,37 @@ export const hostRouter = {
 					machineId: input.machineId,
 					name: input.name,
 					createdByUserId: ctx.userId,
+					...reported,
 				})
 				.onConflictDoNothing({
 					target: [v2Hosts.organizationId, v2Hosts.machineId],
 				})
 				.returning();
 
+			// An existing row keeps its name (the user may have renamed it) but
+			// takes the freshly reported build. Only a host-service that reports
+			// a version writes here, so an older one can't blank the columns.
 			const host =
 				inserted ??
-				(await db.query.v2Hosts.findFirst({
-					where: and(
-						eq(v2Hosts.organizationId, input.organizationId),
-						eq(v2Hosts.machineId, input.machineId),
-					),
-				}));
+				(input.version
+					? (
+							await db
+								.update(v2Hosts)
+								.set(reported)
+								.where(
+									and(
+										eq(v2Hosts.organizationId, input.organizationId),
+										eq(v2Hosts.machineId, input.machineId),
+									),
+								)
+								.returning()
+						)[0]
+					: await db.query.v2Hosts.findFirst({
+							where: and(
+								eq(v2Hosts.organizationId, input.organizationId),
+								eq(v2Hosts.machineId, input.machineId),
+							),
+						}));
 
 			if (!host) {
 				throw userError({
