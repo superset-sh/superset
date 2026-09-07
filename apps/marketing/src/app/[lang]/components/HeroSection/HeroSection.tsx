@@ -8,6 +8,7 @@ import { FaGithub } from "react-icons/fa";
 import { DownloadButton } from "../DownloadButton";
 import { WaitlistModal } from "../WaitlistModal";
 import { BoidsBackground } from "./components/BoidsBackground";
+import { HeroReassurance } from "./components/HeroReassurance";
 import { ProductDemo } from "./components/ProductDemo";
 import { TypewriterText } from "./components/TypewriterText";
 
@@ -103,7 +104,10 @@ export function HeroSection() {
 						</div>
 
 						<div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 mt-6 sm:mt-8">
-							<DownloadButton onJoinWaitlist={() => setIsWaitlistOpen(true)} />
+							<DownloadButton
+								source="hero"
+								onJoinWaitlist={() => setIsWaitlistOpen(true)}
+							/>
 							<button
 								type="button"
 								className="px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-normal bg-background border border-border text-foreground hover:bg-muted transition-colors flex items-center gap-2"
@@ -116,6 +120,7 @@ export function HeroSection() {
 								<FaGithub className="size-4" />
 							</button>
 						</div>
+						<HeroReassurance />
 					</div>
 
 					<div className="relative w-full mt-20 sm:mt-32 lg:mt-40">

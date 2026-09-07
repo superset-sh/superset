@@ -2,6 +2,7 @@ import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import { formatCount, formatTokens, formatUsd } from "../../utils/formatUsage";
+import { MeterBar } from "../MeterBar";
 
 const PALETTE = [
 	"#d25611",
@@ -83,15 +84,7 @@ export function ModelBars({
 								{row.display}
 							</span>
 						</div>
-						<div className="h-1 bg-foreground/[0.06] rounded-full overflow-hidden">
-							<div
-								className="h-full"
-								style={{
-									width: `${max > 0 ? (row.value / max) * 100 : 0}%`,
-									backgroundColor: color,
-								}}
-							/>
-						</div>
+						<MeterBar value={max > 0 ? row.value / max : 0} color={color} />
 					</div>
 				);
 			})}

@@ -90,6 +90,9 @@ msgstr "(devre dışı)"
 msgid "(external)"
 msgstr "(harici)"
 
+msgid "(no output)"
+msgstr "(çıktı yok)"
+
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — hide details} other {# active ports — hide details}}"
 msgstr "{0, plural, one {# etkin port — ayrıntıları gizle} other {# etkin port — ayrıntıları gizle}}"
@@ -199,6 +202,10 @@ msgstr "{0, plural, one {# oturum çalışıyor} other {# oturum çalışıyor}}
 msgid "{0, plural, one {# skipped} other {# skipped}}"
 msgstr "{0, plural, one {# atlandı} other {# atlandı}}"
 
+#. placeholder {0}: subagents.length
+msgid "{0, plural, one {# subagent} other {# subagents}}"
+msgstr "{0, plural, one {# alt ajan} other {# alt ajan}}"
+
 #. placeholder {0}: TASKS.length
 msgid "{0, plural, one {# task} other {# tasks}}"
 msgstr "{0, plural, one {# görev} other {# görev}}"
@@ -293,6 +300,11 @@ msgstr "{0} → {1} bekliyor"
 #. placeholder {0}: skill.name
 msgid "{0} actions"
 msgstr "{0} eylemleri"
+
+#. placeholder {0}: left.name
+#. placeholder {1}: right.name
+msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
+msgstr "{0} ve {1} bu işi terminal dinozorları olarak çözüyor. Kazananı istatistikler belirliyor."
 
 #. placeholder {0}: formatTokens(me.tokens - below.tokens)
 msgid "{0} behind you"
@@ -437,6 +449,16 @@ msgstr "#{1} sırasını geçmek için {0}"
 msgid "{0} tokens in the last 30 days. Publishing as <0>{handle}</0>."
 msgstr "Son 30 günde {0} token. <0>{handle}</0> olarak yayınlanıyor."
 
+#. placeholder {0}: formatTokens(cell.tokens)
+#. placeholder {1}: cell.day
+msgid "{0} tokens on {1}"
+msgstr "{1} tarihinde {0} token"
+
+#. placeholder {0}: formatTokens(calendar.total)
+#. placeholder {1}: String(calendar.activeDays)
+msgid "{0} tokens over {1} active days"
+msgstr "{1} aktif günde {0} token"
+
 #. placeholder {0}: formatNumber(section.updatedRecently)
 #. placeholder {1}: formatNumber(data?.recentDays ?? 30)
 msgid "{0} touched in {1} days"
@@ -450,6 +472,11 @@ msgstr "{0} kaldırıldı"
 msgid "{0} updated"
 msgstr "{0} güncellendi"
 
+#. placeholder {0}: left.name
+#. placeholder {1}: right.name
+msgid "{0} vs {1}"
+msgstr "{0} - {1}"
+
 #. placeholder {0}: file.path
 msgid "{0} was deleted in this change."
 msgstr "{0} bu değişiklikte silindi."
@@ -458,10 +485,25 @@ msgstr "{0} bu değişiklikte silindi."
 msgid "{0} weeks"
 msgstr "{0} hafta"
 
+#. placeholder {0}: winner?.name
+#. placeholder {1}: result.events.length
+msgid "{0} wins in {1} turns"
+msgstr "{0}, {1} turda kazanıyor"
+
+#. placeholder {0}: winner?.name
+#. placeholder {1}: result.events.length
+msgid "{0} wins on damage after {1} turns"
+msgstr "{1} turun ardından {0} hasar üstünlüğüyle kazanıyor"
+
 #. placeholder {0}: check.name
 #. placeholder {1}: took ? `, ${took}` : ""
 msgid "{0}, {outcome}{1}"
 msgstr "{0}, {outcome}{1}"
+
+#. placeholder {0}: String(met)
+#. placeholder {1}: String(gaps.length)
+msgid "{0}/{1}"
+msgstr "{0}/{1}"
 
 #. placeholder {0}: tally.passed
 #. placeholder {1}: tally.total
@@ -472,6 +514,11 @@ msgstr "{0}/{1} kontrol geçiyor"
 #. placeholder {1}: summary.total
 msgid "{0}/{1} tests passed"
 msgstr "{0}/{1} test geçti"
+
+#. placeholder {0}: String(bio.length)
+#. placeholder {1}: String(BIO_MAX)
+msgid "{0}/{1}. Links are stripped."
+msgstr "{0}/{1}. Bağlantılar kaldırılır."
 
 #. placeholder {0}: Math.round(100 * shareOfTotal)
 #. placeholder {1}: formatTokens(detail.tokens)
@@ -669,6 +716,10 @@ msgstr "{localHostName} (bu cihaz)"
 msgid "{matchCount, plural, one {{0}} other {{1}}}"
 msgstr "{matchCount, plural, one {{0}} other {{1}}}"
 
+#. placeholder {0}: gaps.length
+msgid "{met} of {0} objectives carrying for {nextLabel} — {laggingLabels} furthest behind."
+msgstr "{0} hedeften {met} tanesi {nextLabel} için üzerine düşeni yapıyor — en geride {laggingLabels} var."
+
 msgid "{minimumContrast}:1 contrast"
 msgstr "{minimumContrast}:1 kontrast"
 
@@ -792,6 +843,9 @@ msgstr "{skipped, plural, one {# atlandı} other {# atlandı}}"
 msgid "{starCount} stars and counting"
 msgstr "{starCount} yıldız ve artıyor"
 
+msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
+msgstr "{subagentCount, plural, one {# alt ajan çalışıyor} other {# alt ajan çalışıyor}}"
+
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {# çalışma alanı oluşturuldu, {failCount} başarısız} other {# çalışma alanı oluşturuldu, {failCount} başarısız}}"
 
@@ -806,6 +860,9 @@ msgstr "{teardownFailureCount, plural, one {Yine de sil, etkilenen çalışma al
 
 msgid "{teardownFailureCount, plural, one {Delete anyway} other {Delete # anyway}}"
 msgstr "{teardownFailureCount, plural, one {Yine de sil} other {Yine de # tanesini sil}}"
+
+msgid "{threshold, plural, one {# agent PR merged} other {# agent PRs merged}}"
+msgstr "{threshold, plural, one {# ajan PR'ı birleştirildi} other {# ajan PR'ı birleştirildi}}"
 
 msgid "{toolName} interrupted"
 msgstr "{toolName} kesildi"
@@ -851,9 +908,6 @@ msgstr "{worktreeCount, plural, one {Bu, projeyi ve # çalışma alanını eriş
 
 msgid "{years}y ago"
 msgstr "{years}y önce"
-
-msgid "@{profileHandle} · rank #{rank} of {total}"
-msgstr "@{profileHandle} · {total} içinde #{rank}"
 
 msgid "@superset"
 msgstr "@superset"
@@ -1207,6 +1261,9 @@ msgstr "Hesap silinmeyi bekliyor."
 msgid "Account pending deletion"
 msgstr "Hesap silinmeyi bekliyor"
 
+msgid "Achievements"
+msgstr "Başarımlar"
+
 msgid "Acme Inc."
 msgstr "Acme Inc."
 
@@ -1238,6 +1295,12 @@ msgstr "etkin {0}"
 
 msgid "Active agent sessions."
 msgstr "Etkin ajan oturumları."
+
+msgid "active days"
+msgstr "aktif gün"
+
+msgid "Active days in the last 30"
+msgstr "Son 30 gündeki aktif gün sayısı"
 
 msgid "Active organization required to create an API key"
 msgstr "API anahtarı oluşturmak için etkin bir kuruluş gerekir"
@@ -1445,6 +1508,12 @@ msgstr "Ajan başlatma yapılandırması"
 msgid "Agent picker (Claude, Codex, Cursor…) used by every session-creation flow"
 msgstr "Her oturum oluşturma akışının kullandığı ajan seçici (Claude, Codex, Cursor…)"
 
+msgid "agent PRs merged"
+msgstr "birleştirilen ajan PR'ları"
+
+msgid "Agent PRs merged per week"
+msgstr "Haftada birleştirilen ajan PR'ları"
+
 msgid "Agent review at parity with human review"
 msgstr "İnsan incelemesiyle aynı düzeyde ajan incelemesi"
 
@@ -1469,9 +1538,6 @@ msgstr "Ajan oturumu başladı"
 msgid "agent settings"
 msgstr "ajan ayarları"
 
-msgid "Agent usage, ranked"
-msgstr "Ajan kullanımı, sıralandı"
-
 msgid "Agents"
 msgstr "Ajanlar"
 
@@ -1483,6 +1549,9 @@ msgstr "Ajanlar rutin biletleri görev ortasında müdahale olmadan tamamlar."
 
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Ajanlar kendi önizlemelerini yükler, arayüzü kullanır ve işi incelemeye hazır işaretlemeden önce ekran görüntüsü kanıtı ekler."
+
+msgid "Agents running at once"
+msgstr "Aynı anda çalışan ajanlar"
 
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Superset liderlik tablosundaki her geliştiricinin toplam ajan kullanımı — token, maliyet, önbellek davranışı ve insanların gerçekte tercih ettiği modeller."
@@ -1547,6 +1616,10 @@ msgstr "Tümü ({0}) →"
 msgid "All {0} checks passed"
 msgstr "{0} kontrolün tümü geçti"
 
+#. placeholder {0}: gaps.length
+msgid "All {0} objectives are carrying their weight for {nextLabel}."
+msgstr "{0} hedefin tamamı {nextLabel} için üzerine düşeni yapıyor."
+
 #. placeholder {0}: summary.relevantChecks.length
 msgid "All {0} passed"
 msgstr "Tümü geçti ({0})"
@@ -1593,6 +1666,9 @@ msgstr "Tümü geçerli sekmede"
 
 msgid "All in current tab (split panes)"
 msgstr "Tümü geçerli sekmede (bölünmüş bölmeler)"
+
+msgid "All objectives cleared. Top rung, nothing left to reach for."
+msgstr "Tüm hedefler geçildi. En üst basamak, ulaşılacak başka bir şey yok."
 
 msgid "All of the organization's data will be permanently deleted — this cannot be undone."
 msgstr "Kuruluşun tüm verileri kalıcı olarak silinecek — bu geri alınamaz."
@@ -1858,6 +1934,9 @@ msgstr "API anahtarları"
 msgid "API-equivalent"
 msgstr "API eşdeğeri"
 
+msgid "API-equivalent cost"
+msgstr "API eşdeğeri maliyet"
+
 msgid "App display language"
 msgstr "Uygulama görüntüleme dili"
 
@@ -1971,6 +2050,9 @@ msgstr "at"
 
 msgid "At least one team we can name, ours included, passes every F4 gate for a full quarter and publishes the numbers."
 msgstr "Adını verebileceğimiz en az bir takım, bizimki de dahil, tam bir çeyrek boyunca her F4 eşiğini geçer ve sayıları yayımlar."
+
+msgid "at once"
+msgstr "aynı anda"
 
 msgid "Attached"
 msgstr "Bağlı"
@@ -2294,6 +2376,9 @@ msgstr "İkili dosya değişti"
 
 msgid "Binary file hidden"
 msgstr "İkili dosya gizlendi"
+
+msgid "Bio"
+msgstr "Hakkında"
 
 msgid "Block"
 msgstr "Blok"
@@ -2923,6 +3008,9 @@ msgstr "Çalışma alanı seçimini temizle"
 msgid "Cleared {succeededLabels} — could not clear {failedLabels}"
 msgstr "{succeededLabels} temizlendi — {failedLabels} temizlenemedi"
 
+msgid "Cleared Operator inside the Run 01 window"
+msgstr "Run 01 penceresinde Operator tamamlandı"
+
 msgid "Cleared terminal history"
 msgstr "Terminal geçmişi temizlendi"
 
@@ -3505,6 +3593,9 @@ msgstr "Bağlantı zaman aşımına uğradı"
 msgid "Connections"
 msgstr "Bağlantılar"
 
+msgid "consecutive active days"
+msgstr "art arda aktif gün"
+
 msgid "Consent finished but Microsoft did not issue a token for the tenant."
 msgstr "Onay tamamlandı ancak Microsoft kiracı için token vermedi."
 
@@ -3571,6 +3662,9 @@ msgstr "GitHub ile devam et"
 
 msgid "Continue with Google"
 msgstr "Google ile devam et"
+
+msgid "Contributions"
+msgstr "Katkılar"
 
 msgid "Control how your local machine is reachable from elsewhere"
 msgstr "Yerel makinenize dışarıdan nasıl erişileceğini kontrol edin"
@@ -3660,6 +3754,9 @@ msgstr "Kopyalanamadı"
 msgid "Copy failed. Select the text and copy it manually."
 msgstr "Kopyalanamadı. Metni seçip elle kopyalayın."
 
+msgid "copy fight link"
+msgstr "dövüş bağlantısını kopyala"
+
 msgid "Copy file name"
 msgstr "Dosya adını kopyala"
 
@@ -3679,6 +3776,9 @@ msgid "Copy key"
 msgstr "Anahtarı kopyala"
 
 msgid "Copy link"
+msgstr "Bağlantıyı kopyala"
+
+msgid "Copy Link"
 msgstr "Bağlantıyı kopyala"
 
 msgid "Copy Link Address"
@@ -3753,6 +3853,9 @@ msgstr "Yapılandırma kopyalanıyor"
 
 msgid "Cost"
 msgstr "Maliyet"
+
+msgid "Cost per merged PR"
+msgstr "Birleştirilen PR başına maliyet"
 
 msgid "Cost to you: $0"
 msgstr "Size maliyeti: $0"
@@ -3973,6 +4076,9 @@ msgstr "Pull request'ler yüklenemedi: {msg}"
 
 msgid "Couldn't load review comments"
 msgstr "İnceleme yorumları yüklenemedi"
+
+msgid "Couldn't load your profile, so editing is disabled."
+msgstr "Profilin yüklenemedi, bu yüzden düzenleme devre dışı."
 
 msgid "Couldn't merge pull request"
 msgstr "Pull request birleştirilemedi"
@@ -4389,6 +4495,15 @@ msgstr "Tarih aralığı"
 msgid "Day"
 msgstr "Gün"
 
+msgid "Day One"
+msgstr "Birinci gün"
+
+msgid "days running three agents at once"
+msgstr "aynı anda üç ajan çalıştırılan gün sayısı"
+
+msgid "days running two agents at once"
+msgstr "aynı anda iki ajan çalıştırılan gün sayısı"
+
 msgid "Deactivated"
 msgstr "Devre dışı"
 
@@ -4409,12 +4524,6 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 
 msgid "Default ({defaultWorktreePath})"
 msgstr "Varsayılan ({defaultWorktreePath})"
-
-msgid "default browser"
-msgstr "varsayılan tarayıcı"
-
-msgid "Default Browser"
-msgstr "Varsayılan tarayıcı"
 
 msgid "Default effort"
 msgstr "Varsayılan çaba"
@@ -4627,6 +4736,9 @@ msgstr "Reddet"
 
 msgid "Dependencies"
 msgstr "Bağımlılıklar"
+
+msgid "Depth"
+msgstr "Derinlik"
 
 msgid "descending"
 msgstr "azalan"
@@ -4947,6 +5059,9 @@ msgstr "Başlangıç dosyasını indir"
 msgid "Download Superset"
 msgstr "Superset'i indir"
 
+msgid "Download Superset and publish yours"
+msgstr "Superset'i indir ve kendi verilerini yayımla"
+
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "Download Superset at <0>{0}/download</0>."
 msgstr "Superset'i <0>{0}/download</0> adresinden indirin."
@@ -5087,6 +5202,16 @@ msgstr "2027 başı"
 msgid "Early 2028"
 msgstr "2028 başı"
 
+#. placeholder {0}: formatDate(new Date(`${awardedOn}T00:00:00Z`), { day: "numeric", month: "short", year: "numeric", timeZone: "UTC", })
+msgid "Earned {0}"
+msgstr "{0} tarihinde kazanıldı"
+
+msgid "Earned {name}"
+msgstr "{name} kazanıldı"
+
+msgid "Earned {name} ×{tier}"
+msgstr "{name} ×{tier} kazanıldı"
+
 msgid "Edit"
 msgstr "Düzenle"
 
@@ -5132,6 +5257,9 @@ msgstr "Düzenleyici ve iş akışı"
 
 msgid "Editor typography"
 msgstr "Düzenleyici tipografisi"
+
+msgid "Efficient"
+msgstr "Verimli"
 
 msgid "Effort"
 msgstr "Çaba"
@@ -5287,6 +5415,9 @@ msgstr "Her {day} saat {time}"
 msgid "Every agent runs in its own Git worktree, so ten agents can work on ten branches of one repo without conflicts. You watch, review, and merge them all from one window."
 msgstr "Her ajan kendi Git worktree'sinde çalışır, böylece on ajan tek bir deponun on dalında çakışma olmadan çalışabilir. Hepsini tek bir pencereden izler, inceler ve birleştirirsiniz."
 
+msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
+msgstr "Her eksen bir sonraki katman için üzerine düşeni yapıyor. Bunu sürdür, katman kendiliğinden gelir."
+
 msgid "Every Friday at 4pm, draft release notes from this week's merged PRs"
 msgstr "Her cuma 16.00'da bu haftanın birleştirilen PR'larından sürüm notları taslağı hazırla"
 
@@ -5295,6 +5426,9 @@ msgstr "Her cuma 16.00'da bu haftanın birleştirilen PR'larından sürüm notla
 
 msgid "Every minute"
 msgstr "Her dakika"
+
+msgid "Every objective is carrying its weight for the next rung. Measured over the trailing 30 days."
+msgstr "Tüm hedefler bir sonraki basamak için üzerine düşeni yapıyor. Son 30 gün üzerinden ölçülür."
 
 msgid "Every star on <0>{repoSlug}</0>, plotted since launch."
 msgstr "<0>{repoSlug}</0> üzerindeki her yıldız, lansmandan bu yana grafikte."
@@ -5424,6 +5558,12 @@ msgstr "Harici"
 
 msgid "External Application"
 msgstr "Harici uygulama"
+
+msgid "external browser"
+msgstr "harici tarayıcı"
+
+msgid "External Browser"
+msgstr "Harici Tarayıcı"
 
 msgid "External editor"
 msgstr "Harici düzenleyici"
@@ -6070,6 +6210,9 @@ msgstr "Finder"
 msgid "Finish review"
 msgstr "İncelemeyi bitir"
 
+msgid "Finished"
+msgstr "Tamamlandı"
+
 msgid "finished · worked for 7s"
 msgstr "bitti · 7 sn çalıştı"
 
@@ -6271,6 +6414,9 @@ msgstr "Ücretsiz"
 msgid "Free for everyone"
 msgstr "Herkes için ücretsiz"
 
+msgid "Free plan available · No credit card required"
+msgstr "Ücretsiz plan mevcut · Kredi kartı gerekmez"
+
 msgid "Frequently<0/>asked questions"
 msgstr "Sık sorulan<0/>sorular"
 
@@ -6403,11 +6549,26 @@ msgstr "GitHub kurulumu bulunamadı"
 msgid "GitHub integration"
 msgstr "GitHub entegrasyonu"
 
+msgid "GitHub is refusing API calls for this machine's credential until {until}. Existing pull request links stay; new pull requests appear once the limit resets."
+msgstr "GitHub, bu makinenin kimlik bilgileriyle yapılan API çağrılarını reddediyor; sınır saat {until} itibarıyla sıfırlanır. Mevcut pull request bağlantıları korunur; yeni pull request'ler sınır sıfırlandığında görünür."
+
 msgid "GitHub issues"
 msgstr "GitHub issue'ları"
 
+msgid "GitHub rate limit reached"
+msgstr "GitHub istek sınırına ulaşıldı"
+
 msgid "GitHub refused the merge"
 msgstr "GitHub birleştirmeyi reddetti"
+
+msgid "GitHub rejected this machine's credentials, so pull requests cannot be detected. Run \"gh auth login\" or fix GITHUB_TOKEN; the next retry is at {until}."
+msgstr "GitHub bu makinenin kimlik bilgilerini reddetti, bu yüzden pull request'ler algılanamıyor. \"gh auth login\" komutunu çalıştırın veya GITHUB_TOKEN değerini düzeltin; sonraki deneme saat {until} itibarıyla yapılacak."
+
+msgid "GitHub sign-in needed"
+msgstr "GitHub oturumu açmanız gerekiyor"
+
+msgid "GitHub unreachable"
+msgstr "GitHub'a ulaşılamıyor"
 
 msgid "GitHub username"
 msgstr "GitHub kullanıcı adı"
@@ -6741,6 +6902,9 @@ msgstr "Komutun nasıl açılacağı."
 msgid "How the prompt is delivered to the process."
 msgstr "İstemin sürece nasıl iletileceği."
 
+msgid "How tiers work →"
+msgstr "Katmanlar nasıl işler →"
+
 msgid "How to install {name} in Superset"
 msgstr "{name} teması Superset'e nasıl kurulur"
 
@@ -6749,6 +6913,9 @@ msgstr "https://"
 
 msgid "https://github.com/owner/repo.git or /path/to/repo"
 msgstr "https://github.com/owner/repo.git veya /path/to/repo"
+
+msgid "Human"
+msgstr "İnsan"
 
 msgid "Human mode:"
 msgstr "İnsan modu:"
@@ -6915,12 +7082,6 @@ msgstr "Superset masaüstü uygulamasında <0>Ayarlar → Görünüm → Tema</0
 
 msgid "In the Superset desktop app, open Settings → Remote Access and turn on “Allow remote access to this device via relay”."
 msgstr "Superset masaüstü uygulamasında Ayarlar → Uzaktan erişim bölümünü açın ve “Bu cihaza röle üzerinden uzaktan erişime izin ver” seçeneğini açın."
-
-msgid "in-app browser"
-msgstr "uygulama içi tarayıcı"
-
-msgid "In-App Browser"
-msgstr "Uygulama içi tarayıcı"
 
 msgid "In-app PR merge"
 msgstr "Uygulama içi PR birleştirme"
@@ -7492,6 +7653,9 @@ msgstr "Takımdan ayrılındı"
 msgid "Legal"
 msgstr "Yasal"
 
+msgid "Less"
+msgstr "Az"
+
 msgid "less than a minute ago"
 msgstr "bir dakikadan az önce"
 
@@ -7578,6 +7742,9 @@ msgstr "Klonlamayı etkinleştirmek için önce projeye bir GitHub deposu bağla
 
 msgid "Link by Stripe"
 msgstr "Link by Stripe"
+
+msgid "link copied"
+msgstr "bağlantı kopyalandı"
 
 msgid "Link copied"
 msgstr "Bağlantı kopyalandı"
@@ -7962,6 +8129,9 @@ msgstr "MCP sunucusu"
 
 msgid "Mean"
 msgstr "Ortalama"
+
+msgid "Measured over the trailing 30 days"
+msgstr "Son 30 gün üzerinden ölçülür"
 
 msgid "Measuring resource usage…"
 msgstr "Kaynak kullanımı ölçülüyor…"
@@ -8372,8 +8542,8 @@ msgstr "Yeni otomasyon"
 msgid "New Browser"
 msgstr "Yeni tarayıcı"
 
-msgid "New Browser Tab"
-msgstr "Yeni tarayıcı sekmesi"
+msgid "new challengers"
+msgstr "yeni rakipler"
 
 msgid "New chat"
 msgstr "Yeni sohbet"
@@ -8507,6 +8677,9 @@ msgstr "Yeni nesil sohbet"
 
 msgid "Next:"
 msgstr "Sonraki:"
+
+msgid "Next: {nextLabel}"
+msgstr "Sonraki: {nextLabel}"
 
 msgid "Nice, open a PR when ready."
 msgstr "Güzel, hazır olduğunda bir PR aç."
@@ -9024,6 +9197,9 @@ msgstr "Hayır. Ajanlarınız bağımsız kalır; Superset onların etrafındaki
 msgid "Nobody has joined the board yet."
 msgstr "Tabloya henüz kimse katılmadı."
 
+msgid "Nobody here by that name."
+msgstr "Bu isimde kimse yok."
+
 msgid "Nobody on your team has shared automations yet."
 msgstr "Takımınızdan henüz kimse otomasyon paylaşmadı."
 
@@ -9248,6 +9424,12 @@ msgstr "Bir mühendis, bir iş günü boyunca 3 veya daha fazla ajan iş akış�
 msgid "One human drives at most one agent at a time."
 msgstr "Bir insan aynı anda en fazla bir ajanı yönetir."
 
+msgid "One line about how you work"
+msgstr "Nasıl çalıştığını bir satırda anlat"
+
+msgid "One of the first hundred on the board"
+msgstr "Tablodaki ilk yüz kişiden biri"
+
 msgid "one of the selected repositories"
 msgstr "seçili depolardan biri"
 
@@ -9296,6 +9478,9 @@ msgstr "Faturalandırmayı yalnızca sahipler yönetebilir"
 msgid "Only owners can update organization settings"
 msgstr "Kuruluş ayarlarını yalnızca sahipler güncelleyebilir"
 
+msgid "Only people who opted in appear here."
+msgstr "Burada yalnızca katılmayı seçenler görünür."
+
 msgid "Only the author can edit a comment"
 msgstr "Bir yorumu yalnızca yazarı düzenleyebilir"
 
@@ -9337,6 +9522,9 @@ msgstr "{0} web sitesini aç"
 
 msgid "Open {filePath}"
 msgstr "Aç: {filePath}"
+
+msgid "Open {parentLabel}"
+msgstr "{parentLabel} aç"
 
 msgid "Open {path} in file pane"
 msgstr "{path} dosyasını dosya bölmesinde aç"
@@ -9471,9 +9659,6 @@ msgstr "Geçerli sekmede aç"
 msgid "Open in Cursor"
 msgstr "Cursor'da aç"
 
-msgid "Open in default browser"
-msgstr "Varsayılan tarayıcıda aç"
-
 msgid "Open in Desktop App"
 msgstr "Masaüstü uygulamasında aç"
 
@@ -9489,6 +9674,9 @@ msgstr "Düzenleyicide aç"
 msgid "Open in Editor"
 msgstr "Düzenleyicide aç"
 
+msgid "Open in external browser"
+msgstr "Harici tarayıcıda aç"
+
 msgid "Open in File pane"
 msgstr "Dosya bölmesinde aç"
 
@@ -9501,14 +9689,8 @@ msgstr "Finder'da aç"
 msgid "Open in GitHub"
 msgstr "GitHub'da aç"
 
-msgid "Open in in-app browser"
-msgstr "Uygulama içi tarayıcıda aç"
-
 msgid "Open in Linear"
 msgstr "Linear'da aç"
-
-msgid "Open in new browser tab"
-msgstr "Yeni tarayıcı sekmesinde aç"
 
 msgid "Open in new tab"
 msgstr "Yeni sekmede aç"
@@ -10066,6 +10248,15 @@ msgstr "Bekleyen davetler"
 msgid "People with access"
 msgstr "Erişimi olan kişiler"
 
+msgid "per merged PR"
+msgstr "birleştirilen PR başına"
+
+msgid "per merged PR, lower is better"
+msgstr "birleştirilen PR başına, düşük olan daha iyi"
+
+msgid "per session"
+msgstr "oturum başına"
+
 msgid "per user/month"
 msgstr "kullanıcı/ay başına"
 
@@ -10142,6 +10333,9 @@ msgstr "{hostName} üzerindeki proje worktree klasörünü seçin."
 msgid "Pick the worktree folder on {hostName}."
 msgstr "{hostName} üzerindeki worktree klasörünü seçin."
 
+msgid "Pick two developers, watch their agent usage stats fight it out as terminal dinosaurs. Same two handles always produce the same fight."
+msgstr "İki geliştirici seç ve ajan kullanım istatistiklerinin terminal dinozorları olarak dövüşmesini izle. Aynı iki kullanıcı adı her zaman aynı dövüşü üretir."
+
 msgid "Pick your agent for a one-line install, or copy the config by hand. Every client, including OAuth and API key setup, is covered in the <0>full MCP server docs</0>."
 msgstr "Tek satırlık kurulum için ajanınızı seçin veya yapılandırmayı elle kopyalayın. OAuth ve API anahtarı kurulumu dahil her istemci, <0>tam MCP sunucusu belgelerinde</0> anlatılıyor."
 
@@ -10184,6 +10378,9 @@ msgstr "Tooltip yeniden düzenlemesi planlanıyor"
 
 msgid "Plans"
 msgstr "Planlar"
+
+msgid "Plant Floor"
+msgstr "Üretim sahası"
 
 msgid "Plant Manager"
 msgstr "Fabrika müdürü"
@@ -10591,6 +10788,9 @@ msgstr "Sağlayıcı: {0}"
 msgid "Provisioning failed and the sandbox was torn down. Nothing is running, and this workspace can't be opened — create a new one to try again."
 msgstr "Sağlama başarısız oldu ve sandbox kaldırıldı. Hiçbir şey çalışmıyor ve bu çalışma alanı açılamaz — yeniden denemek için yeni bir tane oluşturun."
 
+msgid "PRs a week"
+msgstr "haftada PR"
+
 msgid "Public"
 msgstr "Herkese açık"
 
@@ -10734,6 +10934,9 @@ msgstr "RAM payı"
 
 msgid "Rank"
 msgstr "Sıra"
+
+msgid "rank #{rank} of {total}"
+msgstr "{total} kişi içinde {rank}. sıra"
 
 msgid "Rank by"
 msgstr "Sıralama ölçütü"
@@ -10957,6 +11160,9 @@ msgstr "Proje taşınsın mı?"
 
 msgid "Relocating…"
 msgstr "Taşınıyor…"
+
+msgid "rematch"
+msgstr "rövanş"
 
 msgid "remote"
 msgstr "uzak"
@@ -11567,6 +11773,9 @@ msgstr "{0} otomasyonunu şimdi çalıştır"
 msgid "Run {runNumber}"
 msgstr "Run {runNumber}"
 
+msgid "Run 01"
+msgstr "Run 01"
+
 msgid "Run 10+ parallel coding agents on your machine."
 msgstr "Makinenizde 10+ paralel kodlama ajanı çalıştırın."
 
@@ -11702,6 +11911,9 @@ msgstr "Kaydedilemedi: {message}"
 msgid "Save preferences"
 msgstr "Tercihleri kaydet"
 
+msgid "Save profile"
+msgstr "Profili kaydet"
+
 msgid "save the agent"
 msgstr "ajanı kaydetme"
 
@@ -11760,6 +11972,10 @@ msgstr "SCIM sağlama"
 msgid "Scope"
 msgstr "Kapsam"
 
+#. placeholder {0}: String(MIN_ACTIVE_DAYS)
+msgid "Scoring starts once the board can see {0} days of usage."
+msgstr "Puanlama, tablo {0} günlük kullanım gördüğünde başlar."
+
 msgid "Screenshot copied to clipboard"
 msgstr "Ekran görüntüsü panoya kopyalandı"
 
@@ -11817,6 +12033,12 @@ msgstr "Dal ara..."
 
 msgid "Search changed files"
 msgstr "Değişen dosyaları ara"
+
+msgid "Search developers"
+msgstr "Geliştirici ara"
+
+msgid "Search developers by handle or name"
+msgstr "Geliştiricileri kullanıcı adına veya ada göre ara"
 
 msgid "Search docs..."
 msgstr "Belgelerde ara..."
@@ -12301,6 +12523,9 @@ msgstr "Kurulum betiği"
 msgid "shadcn/ui tooltip recipe"
 msgstr "shadcn/ui tooltip tarifi"
 
+msgid "Shade is relative to this developer's busiest day"
+msgstr "Renk koyuluğu bu geliştiricinin en yoğun gününe göredir"
+
 msgid "Share"
 msgstr "Paylaş"
 
@@ -12336,6 +12561,9 @@ msgstr "Shiki ile vurgulanmış, isteğe bağlı satır numaralarıyla"
 
 msgid "Shimmer · Shimmer Label"
 msgstr "Shimmer · Shimmer etiketi"
+
+msgid "Ship It"
+msgstr "Teslim edildi"
 
 msgid "Shortcut already in use"
 msgstr "Kısayol zaten kullanımda"
@@ -12773,6 +13001,9 @@ msgstr "Seyrek checkout"
 msgid "Specific"
 msgstr "Belirli"
 
+msgid "Spend"
+msgstr "Harcama"
+
 msgid "Split"
 msgstr "Böl"
 
@@ -12788,8 +13019,14 @@ msgstr "Aşağı böl"
 msgid "Split Horizontally"
 msgstr "Yatay böl"
 
+msgid "split pane"
+msgstr "bölünmüş bölme"
+
 msgid "Split pane"
 msgstr "Bölünmüş bölme"
+
+msgid "Split Pane"
+msgstr "Bölünmüş Bölme"
 
 msgid "Split Pane Auto"
 msgstr "Bölmeyi otomatik böl"
@@ -13045,6 +13282,12 @@ msgstr "Yapı, kaydırma ve taşma yönetimi"
 msgid "Structured progress: chain of thought, tasks, plans"
 msgstr "Yapılandırılmış ilerleme: düşünce zinciri, görevler, planlar"
 
+msgid "Subagent"
+msgstr "Alt ajan"
+
+msgid "Subagents"
+msgstr "Alt ajanlar"
+
 msgid "Subject contains..."
 msgstr "Konu şunu içerir..."
 
@@ -13105,6 +13348,9 @@ msgstr "Özet"
 msgid "sun 11:00"
 msgstr "paz 11.00"
 
+msgid "Super Fights"
+msgstr "Süper Dövüşler"
+
 msgid "superseded"
 msgstr "geçersiz kılındı"
 
@@ -13122,6 +13368,9 @@ msgstr "Superset uygulaması"
 
 msgid "Superset App"
 msgstr "Superset uygulaması"
+
+msgid "Superset cannot reach api.github.com from this machine. Pull request status retries at {until}."
+msgstr "Superset bu makineden api.github.com adresine ulaşamıyor. Pull request durumu saat {until} itibarıyla yeniden denenecek."
 
 msgid "Superset components"
 msgstr "Superset bileşenleri"
@@ -13246,6 +13495,9 @@ msgstr "Projeyi bir GitHub yıldızıyla destekleyin"
 
 msgid "Suspended"
 msgstr "Askıya alındı"
+
+msgid "Sustain"
+msgstr "Süreklilik"
 
 msgid "Switch agents. Keep your workflow"
 msgstr "Ajan değiştirin. İş akışınızı koruyun"
@@ -13896,11 +14148,17 @@ msgstr "Bu komutlar bir çalışma alanı oluşturulduğunda otomatik olarak ça
 msgid "These ports are still in use"
 msgstr "Bu portlar hâlâ kullanımda"
 
+msgid "Thinking"
+msgstr "Düşünme"
+
 msgid "Thinking about the approach"
 msgstr "Yaklaşım üzerine düşünülüyor"
 
 msgid "Thinking..."
 msgstr "Düşünülüyor..."
+
+msgid "Thirty"
+msgstr "Otuz"
 
 msgid "This action is irreversible."
 msgstr "Bu işlem geri alınamaz."
@@ -14075,6 +14333,9 @@ msgstr "Bu slug zaten alınmış"
 
 msgid "This stops every Teams trigger in your organization and removes the notification subscriptions from your tenant. You can reconnect at any time."
 msgstr "Bu işlem kuruluşunuzdaki tüm Teams tetikleyicilerini durdurur ve bildirim aboneliklerini kiracınızdan kaldırır. İstediğiniz zaman yeniden bağlanabilirsiniz."
+
+msgid "This subagent is no longer tracked by the host. Its transcript stays on disk under the agent's session directory."
+msgstr "Bu alt ajan artık ana makine tarafından izlenmiyor. Dökümü, ajanın oturum dizininde diskte kalır."
 
 msgid "This terminal has no output to hand over yet."
 msgstr "Bu terminalde henüz devredilecek çıktı yok."
@@ -14263,6 +14524,12 @@ msgstr "Token kullanımı"
 msgid "Tokens"
 msgstr "Token"
 
+msgid "Tokens per session"
+msgstr "Oturum başına token"
+
+msgid "tokens per session, trailing 30 days"
+msgstr "oturum başına token, son 30 gün"
+
 msgid "Too many feedback submissions. Try again later."
 msgstr "Çok fazla geri bildirim gönderimi. Daha sonra yeniden deneyin."
 
@@ -14311,11 +14578,17 @@ msgstr "En çok kullanılan modeller"
 msgid "Top referring sites, last {dayCount} days"
 msgstr "En çok yönlendiren siteler, son {dayCount} gün"
 
+msgid "Top tier. Nothing left to clear."
+msgstr "En üst katman. Geçilecek başka bir şey kalmadı."
+
 msgid "Topic"
 msgstr "Konu"
 
 msgid "Total"
 msgstr "Toplam"
+
+msgid "Total agent sessions"
+msgstr "Toplam ajan oturumu"
 
 msgid "total cash"
 msgstr "toplam nakit"
@@ -14325,6 +14598,9 @@ msgstr "Toplam maliyet"
 
 msgid "Total spend"
 msgstr "Toplam harcama"
+
+msgid "Total tokens published"
+msgstr "Yayımlanan toplam token"
 
 msgid "Track and manage tasks synced from Linear. Stay on top of your work without leaving Superset."
 msgstr "Linear'dan eşitlenen görevleri izleyin ve yönetin. Superset'ten çıkmadan işinize hâkim olun."
@@ -14404,6 +14680,9 @@ msgstr "Tur başarısız{0}"
 
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Slack konuşmalarını göreve dönüştürün, çalışma alanınızdan ajan çalıştırın ve takım arkadaşlarınızı işin başladığı yerde haberdar edin."
+
+msgid "Two Hands"
+msgstr "İki el"
 
 msgid "Type"
 msgstr "Tür"
@@ -14609,6 +14888,10 @@ msgstr "Push edilmemiş"
 
 msgid "Unranked"
 msgstr "Sırasız"
+
+#. placeholder {0}: String(MIN_ACTIVE_DAYS)
+msgid "Unranked until {0} days carry usage."
+msgstr "{0} gün kullanım birikene kadar sıralama dışısın."
 
 msgid "Unresolve"
 msgstr "Çözümü geri al"
@@ -14836,6 +15119,9 @@ msgstr "v2ProjectId, çalışma alanının projesiyle eşleşmiyor"
 msgid "Variables"
 msgstr "Değişkenler"
 
+msgid "Verified through sign-in"
+msgstr "Oturum açma ile doğrulandı"
+
 msgid "Verify Kbd stays visible inside tooltips"
 msgstr "Kbd'nin tooltip'ler içinde görünür kaldığını doğrula"
 
@@ -14953,6 +15239,11 @@ msgstr "VS Code"
 msgid "Wait for workspace setup before starting agents"
 msgstr "Ajanları başlatmadan önce çalışma alanı kurulumunu bekle"
 
+#. placeholder {0}: names.a
+#. placeholder {1}: names.b
+msgid "waiting for {0} and {1}…"
+msgstr "{0} ve {1} bekleniyor…"
+
 msgid "Waiting for Checks"
 msgstr "Kontroller bekleniyor"
 
@@ -14961,6 +15252,9 @@ msgstr "İnceleme bekleniyor"
 
 msgid "Waiting for sign-in…"
 msgstr "Oturum açma bekleniyor…"
+
+msgid "Waiting for the subagent's first message…"
+msgstr "Alt ajanın ilk mesajı bekleniyor…"
 
 msgid "Waitlist signups"
 msgstr "Bekleme listesi kayıtları"
@@ -15194,6 +15488,9 @@ msgstr "Bu terminal betiğinin nerede kullanılabilir olduğu."
 msgid "Where to look next"
 msgstr "Sırada nereye bakmalı"
 
+msgid "Where you actually are"
+msgstr "Gerçekte nerede olduğun"
+
 msgid "Whether the people acquired stay and what they pay."
 msgstr "Edinilen kişiler kalıyor mu ve ne ödüyorlar."
 
@@ -15208,6 +15505,12 @@ msgstr "Bu sayfayı bağlantısından kimlerin açabileceği"
 
 msgid "Whole site"
 msgstr "Tüm site"
+
+msgid "Whole Task"
+msgstr "Tüm görev"
+
+msgid "Width"
+msgstr "Genişlik"
 
 msgid "Window"
 msgstr "Pencere"
@@ -15386,6 +15689,9 @@ msgstr "Dosya yazılıyor..."
 msgid "Wrote"
 msgstr "Yazıldı"
 
+msgid "X handle"
+msgstr "X kullanıcı adı"
+
 msgid "xs · sm · default · lg · icon-xs → icon-lg"
 msgstr "xs · sm · default · lg · icon-xs → icon-lg"
 
@@ -15436,6 +15742,10 @@ msgstr "<0>{currentPlanLabel} planındasınız</0>. Sorularınız varsa veya pla
 
 msgid "You are the only owner of an organization that has other members. Transfer ownership or delete the organization first."
 msgstr "Başka üyeleri olan bir kuruluşun tek sahibisiniz. Önce sahipliği devredin veya kuruluşu silin."
+
+#. placeholder {0}: String(MIN_ACTIVE_DAYS)
+msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
+msgstr "{0} gün kullanım birikene kadar sıralama dışısın. Tablo bütün resmi gördüğünde puanlama başlar."
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Bu işlemi geri alamazsınız. Terminal bölmelerinde \"Process exited\" görünür ve yeniden başlatılabilirler."
@@ -15514,6 +15824,9 @@ msgstr "Kodunuz varsayılan olarak yerelde kalır; bağlı hizmetler üzerinde a
 msgid "Your download starts automatically. If it didn't, grab it here."
 msgstr "İndirme otomatik olarak başlıyor. Başlamadıysa buradan indirin."
 
+msgid "Your GitHub link comes from the account you signed in with, so it shows as verified and cannot be edited here."
+msgstr "GitHub bağlantın oturum açtığın hesaptan gelir, bu yüzden doğrulanmış görünür ve burada düzenlenemez."
+
 msgid "Your name"
 msgstr "Adınız"
 
@@ -15527,8 +15840,15 @@ msgstr "Kuruluşunuzun planı, {0} adresinde sahibi tarafından yönetiliyor."
 msgid "Your rank"
 msgstr "Sıralamanız"
 
+#. placeholder {0}: String(gaps.length)
+msgid "Your rung is a weighted score across the {0} objectives measured for you, so a strong one offsets a weak one. Measured over the trailing 30 days."
+msgstr "Basamağın, senin için ölçülen {0} hedefin ağırlıklı puanıdır; güçlü bir hedef zayıf olanı dengeler. Son 30 gün üzerinden ölçülür."
+
 msgid "Your Slack account has been linked to Superset. You can close this tab and return to Slack."
 msgstr "Slack hesabınız Superset'e bağlandı. Bu sekmeyi kapatıp Slack'e dönebilirsiniz."
+
+msgid "Your stats, settled in combat"
+msgstr "İstatistiklerin, dövüşte belli olsun"
 
 msgid "Your subscription has been activated. You can now access all Pro features."
 msgstr "Aboneliğiniz etkinleştirildi. Artık tüm Pro özelliklerine erişebilirsiniz."
@@ -15541,6 +15861,10 @@ msgstr "Superset indirmeniz başlıyor."
 
 msgid "Your terminal sessions won't be interrupted."
 msgstr "Terminal oturumlarınız kesintiye uğramaz."
+
+#. placeholder {0}: String(gaps.length)
+msgid "Your tier is a weighted score across the {0} axes measured for you, so a strong axis offsets a weak one. The axes below are the ones lagging."
+msgstr "Seviyen, senin için ölçülen {0} eksenin ağırlıklı puanıdır; güçlü bir eksen zayıf olanı dengeler. Aşağıdakiler geride kalan eksenler."
 
 msgid "Your tokens"
 msgstr "Token'larınız"

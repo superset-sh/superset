@@ -1,5 +1,10 @@
 import { TRPCError } from "@trpc/server";
 import type { GitCredentialProvider } from "../../../../runtime/git/types";
+import {
+	isGithubAuthError,
+	isGithubRateLimitError,
+	parseRateLimitReset,
+} from "../../../../runtime/pull-requests/utils/github-errors";
 import type { ResolvedGithubRepo } from "./project-helpers";
 
 /** A requested project paired with the repo its local remote points at. */
@@ -166,51 +171,6 @@ export function formatRepoList(projectRepos: ProjectRepo[]): string {
 		.join(", ");
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && value !== null;
-}
-
-function errorText(error: unknown): string {
-	if (typeof error === "string") return error;
-	if (!isRecord(error)) return "";
-	const parts: string[] = [];
-	if (typeof error.message === "string") parts.push(error.message);
-	// execFile errors carry the gh CLI's stderr separately from `message`.
-	if (typeof error.stderr === "string") parts.push(error.stderr);
-	return parts.join("\n");
-}
-
-/**
- * REST rate-limit failures are 403/429 responses whose message mentions
- * "rate limit"; gh CLI failures surface the same text without a status.
- */
-export function isGithubRateLimitError(error: unknown): boolean {
-	if (!/rate limit/i.test(errorText(error))) return false;
-	const status =
-		isRecord(error) && typeof error.status === "number" ? error.status : null;
-	return status === null || status === 403 || status === 429;
-}
-
-function parseRateLimitReset(error: unknown): Date | null {
-	if (isRecord(error) && isRecord(error.response)) {
-		const headers = error.response.headers;
-		if (isRecord(headers)) {
-			const header = headers["x-ratelimit-reset"];
-			const epoch =
-				typeof header === "number"
-					? header
-					: typeof header === "string"
-						? Number.parseInt(header, 10)
-						: Number.NaN;
-			if (Number.isFinite(epoch) && epoch > 0) return new Date(epoch * 1000);
-		}
-	}
-	const match = errorText(error).match(/x-ratelimit-reset[:=\s]+(\d{9,11})/i);
-	const epochText = match?.[1];
-	if (epochText) return new Date(Number.parseInt(epochText, 10) * 1000);
-	return null;
-}
-
 export function githubRateLimitError(error: unknown): TRPCError {
 	const resetAt = parseRateLimitReset(error);
 	const resetSuffix = resetAt
@@ -221,16 +181,6 @@ export function githubRateLimitError(error: unknown): TRPCError {
 		message: `GitHub API rate limit exceeded. Try again in a few minutes.${resetSuffix}`,
 		cause: error,
 	});
-}
-
-/**
- * Rejected-credential failures: Octokit throws a 401 RequestError ("Bad
- * credentials"); the gh CLI prints the same text (or "HTTP 401") with no
- * status field.
- */
-export function isGithubAuthError(error: unknown): boolean {
-	if (isRecord(error) && error.status === 401) return true;
-	return /bad credentials|\bHTTP 401\b/i.test(errorText(error));
 }
 
 /**
@@ -252,13 +202,4 @@ export function githubRequestError(
 		});
 	}
 	return error;
-}
-
-/**
- * Multi-repo direct lookups skip repos that simply don't have the number:
- * Octokit throws a 404; gh prints "Could not resolve to a PullRequest…".
- */
-export function isGithubNotFoundError(error: unknown): boolean {
-	if (isRecord(error) && error.status === 404) return true;
-	return /could not resolve to|\bnot found\b|HTTP 404/i.test(errorText(error));
 }

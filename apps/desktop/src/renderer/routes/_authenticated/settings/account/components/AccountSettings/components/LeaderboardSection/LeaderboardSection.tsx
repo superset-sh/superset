@@ -18,6 +18,7 @@ import { useLeaderboardOptIn } from "renderer/routes/_authenticated/hooks/useLea
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
+import { ProfileFields } from "./components/ProfileFields";
 
 export function LeaderboardSection() {
 	const { t } = useLingui();
@@ -78,6 +79,8 @@ export function LeaderboardSection() {
 					}}
 				/>
 			</div>
+
+			{optedIn && handle && <ProfileFields handle={handle} />}
 
 			<LeaderboardJoinDialog
 				open={joinOpen}

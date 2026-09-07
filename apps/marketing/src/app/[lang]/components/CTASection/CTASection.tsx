@@ -20,7 +20,10 @@ export function CTASection() {
 						<Trans>Bring your agents together.</Trans>
 					</h2>
 					<div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
-						<DownloadButton onJoinWaitlist={() => setIsWaitlistOpen(true)} />
+						<DownloadButton
+							source="footer"
+							onJoinWaitlist={() => setIsWaitlistOpen(true)}
+						/>
 						<button
 							type="button"
 							className="px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-normal bg-background border border-border text-foreground hover:bg-muted transition-colors flex items-center gap-2"

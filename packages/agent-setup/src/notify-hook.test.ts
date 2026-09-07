@@ -70,7 +70,7 @@ async function runNotifyHookAsync(
 
 /** Fake host-service answering notifications.hook like the real router. */
 function fakeHostService(ignored: boolean) {
-	const requests: Array<{ json: { terminalId?: string } }> = [];
+	const requests: Array<{ json: Record<string, unknown> }> = [];
 	const server = Bun.serve({
 		port: 0,
 		fetch: async (req) => {
@@ -104,19 +104,132 @@ function writeHookManifest(home: string, orgId: string, endpoint: string) {
 
 describe("getNotifyScriptContent", () => {
 	it("bumps the notify hook marker when hook semantics change", () => {
-		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v9");
+		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v14");
 	});
 
-	it("ignores hooks fired inside a subagent (agent_id present)", () => {
-		const result = runNotifyHook({
-			hook_event_name: "PostToolUse",
-			session_id: "main-session",
-			agent_id: "a251e067cfdbabec7",
-			agent_type: "general-purpose",
-		});
+	it("forwards hooks fired inside a subagent (agent_id present) to the host roster only", async () => {
+		const host = fakeHostService(false);
+		try {
+			const result = await runNotifyHookAsync(
+				{
+					hook_event_name: "SubagentStart",
+					session_id: "child-thread",
+					transcript_path: "/tmp/sessions/child-thread.jsonl",
+					agent_id: "a251e067cfdbabec7",
+					agent_type: "general-purpose",
+				},
+				{ SUPERSET_HOST_AGENT_HOOK_URL: `${host.url}/trpc/notifications.hook` },
+			);
+			expect(result.exitCode).toBe(0);
+			expect(host.requests).toEqual([
+				{
+					json: {
+						terminalId: "terminal-test",
+						eventType: "SubagentStart",
+						subagent: {
+							id: "a251e067cfdbabec7",
+							type: "general-purpose",
+							sessionId: "child-thread",
+							transcriptPath: "/tmp/sessions/child-thread.jsonl",
+							agentTranscriptPath: "",
+						},
+					},
+				},
+			]);
+			// The child's session id rides inside `subagent` only, never as the
+			// terminal's agent identity.
+			expect(host.requests[0]?.json.agent).toBeUndefined();
+		} finally {
+			host.stop();
+		}
+	});
+
+	it("accepts camelCase aliases in a subagent hook payload", async () => {
+		const host = fakeHostService(false);
+		try {
+			const result = await runNotifyHookAsync(
+				{
+					hookEventName: "SubagentStop",
+					sessionId: "child-thread",
+					transcriptPath: "/tmp/sessions/parent.jsonl",
+					agentTranscriptPath: "/tmp/sessions/child.jsonl",
+					agentId: "child-1",
+					agentType: "Explore",
+				},
+				{ SUPERSET_HOST_AGENT_HOOK_URL: `${host.url}/trpc/notifications.hook` },
+			);
+			expect(result.exitCode).toBe(0);
+			expect(host.requests).toEqual([
+				{
+					json: {
+						terminalId: "terminal-test",
+						eventType: "SubagentStop",
+						subagent: {
+							id: "child-1",
+							type: "Explore",
+							sessionId: "child-thread",
+							transcriptPath: "/tmp/sessions/parent.jsonl",
+							agentTranscriptPath: "/tmp/sessions/child.jsonl",
+						},
+					},
+				},
+			]);
+		} finally {
+			host.stop();
+		}
+	});
+
+	it("takes the first match when a field recurs in nested objects", async () => {
+		// Claude's SubagentStop repeats agent_type inside background_tasks; a
+		// second match used to join with a newline and break the JSON body.
+		const host = fakeHostService(false);
+		try {
+			const result = await runNotifyHookAsync(
+				{
+					hook_event_name: "SubagentStop",
+					session_id: "parent",
+					transcript_path: "/tmp/sessions/parent.jsonl",
+					agent_transcript_path:
+						"/tmp/sessions/parent/subagents/agent-a1.jsonl",
+					agent_id: "a1",
+					agent_type: "Explore",
+					background_tasks: [
+						{
+							id: "b1",
+							type: "subagent",
+							agent_type: "Plan",
+							status: "running",
+						},
+					],
+				},
+				{ SUPERSET_HOST_AGENT_HOOK_URL: `${host.url}/trpc/notifications.hook` },
+			);
+			expect(result.exitCode).toBe(0);
+			expect(host.requests).toHaveLength(1);
+			expect(host.requests[0]?.json.subagent).toEqual({
+				id: "a1",
+				type: "Explore",
+				sessionId: "parent",
+				transcriptPath: "/tmp/sessions/parent.jsonl",
+				agentTranscriptPath: "/tmp/sessions/parent/subagents/agent-a1.jsonl",
+			});
+		} finally {
+			host.stop();
+		}
+	});
+
+	it("does not dispatch subagent hooks anywhere without a terminal id", () => {
+		const result = runNotifyHook(
+			{
+				hook_event_name: "PostToolUse",
+				session_id: "main-session",
+				agent_id: "a251e067cfdbabec7",
+			},
+			{ SUPERSET_TERMINAL_ID: "", SUPERSET_TAB_ID: "tab-1" },
+		);
 
 		expect(result.exitCode).toBe(0);
-		expect(result.stderr.toString()).toBe("");
+		expect(result.stderr.toString()).not.toContain("dispatched");
 	});
 
 	it("still dispatches main-loop hooks without agent_id", () => {
@@ -142,12 +255,20 @@ describe("getNotifyScriptContent", () => {
 	it("emits the v2 host-service payload with full agent identity", () => {
 		const script = readNotifyHookTemplate();
 
-		expect(script).toContain('HOOK_SESSION_ID=$(echo "$INPUT"');
 		expect(script).toContain(
-			'PAYLOAD="{\\"json\\":{\\"terminalId\\":\\"$(json_escape "$SUPERSET_TERMINAL_ID")\\",\\"eventType\\":\\"$(json_escape "$EVENT_TYPE")\\",\\"agent\\":{\\"agentId\\":\\"$(json_escape "$SUPERSET_AGENT_ID")\\",\\"sessionId\\":\\"$(json_escape "$SESSION_ID")\\"}}}"',
+			"HOOK_SESSION_ID=$(json_field session_id sessionId)",
 		);
 		expect(script).toContain(
-			"event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID",
+			'dispatch_to_host "{\\"json\\":{\\"terminalId\\":\\"$(json_escape "$SUPERSET_TERMINAL_ID")\\",\\"eventType\\":\\"$(json_escape "$EVENT_TYPE")\\",\\"agent\\":{\\"agentId\\":\\"$(json_escape "$SUPERSET_AGENT_ID")\\",\\"sessionId\\":\\"$(json_escape "$SESSION_ID")\\"}}}"',
+		);
+		// One dispatcher serves both the agent and subagent payloads.
+		expect(script.split('dispatch_to_host "').length - 1).toBe(2);
+		expect(
+			script.split('HOOK_CANDIDATE_URLS="$SUPERSET_HOST_AGENT_HOOK_URL"')
+				.length - 1,
+		).toBe(1);
+		expect(script).toContain(
+			"event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID subagentId=$SUBAGENT_ID sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID",
 		);
 		expect(script).toContain('V1_EVENT_TYPE="$EVENT_TYPE"');
 		expect(script).toContain('V1_EVENT_TYPE="Stop"');

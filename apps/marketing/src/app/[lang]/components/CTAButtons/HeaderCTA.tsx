@@ -42,6 +42,7 @@ export function HeaderCTA({ isLoggedIn, dashboardUrl }: HeaderCTAProps) {
 		<>
 			{dashboardLink}
 			<DownloadButton
+				source="header"
 				size="sm"
 				onJoinWaitlist={() => setIsWaitlistOpen(true)}
 			/>

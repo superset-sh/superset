@@ -24,6 +24,14 @@
 			"types": "./src/lib/r2.ts",
 			"default": "./src/lib/r2.ts"
 		},
+		"./leaderboard-reserved-handles": {
+			"types": "./src/router/leaderboard/reserved-handles.ts",
+			"default": "./src/router/leaderboard/reserved-handles.ts"
+		},
+		"./leaderboard-achievements": {
+			"types": "./src/router/leaderboard/achievements.ts",
+			"default": "./src/router/leaderboard/achievements.ts"
+		},
 		"./leaderboard-queries": {
 			"types": "./src/router/leaderboard/queries.ts",
 			"default": "./src/router/leaderboard/queries.ts"
@@ -90,6 +98,7 @@
 		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
 		"@superset/email": "workspace:*",
+		"@superset/i18n": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@t3-oss/env-core": "0.13.11",
 		"@trpc/server": "11.16.0",

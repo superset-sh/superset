@@ -347,6 +347,20 @@ export const terminalAgentsRouter = router({
 			});
 		}),
 
+	/**
+	 * The transcript behind a subagent row, for the subagent pane. Reads
+	 * only a path the roster recorded from the child's own hook events;
+	 * `transcript` is null while the child has not flushed its first record.
+	 */
+	subagentTranscript: protectedProcedure
+		.input(z.object({ terminalId: z.string(), subagentId: z.string() }))
+		.query(({ ctx, input }) =>
+			ctx.terminalAgentStore.getSubagentTranscript(
+				input.terminalId,
+				input.subagentId,
+			),
+		),
+
 	findActive: protectedProcedure
 		.input(
 			z.object({

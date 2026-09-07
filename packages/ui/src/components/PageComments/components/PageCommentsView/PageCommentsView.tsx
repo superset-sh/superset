@@ -24,6 +24,11 @@ interface PageCommentsViewProps {
 	title: string;
 	initialScrollY?: number;
 	onScrollYChange?: (y: number) => void;
+	/**
+	 * A press inside the frame. It never bubbles into the host document, so a
+	 * host that focuses on click (a pane) hears about it here instead.
+	 */
+	onFramePointerDown?: () => void;
 }
 
 export function PageCommentsView({
@@ -31,10 +36,13 @@ export function PageCommentsView({
 	title,
 	initialScrollY,
 	onScrollYChange,
+	onFramePointerDown,
 }: PageCommentsViewProps) {
 	const scrollYRef = useRef(initialScrollY ?? 0);
 	const onScrollYChangeRef = useRef(onScrollYChange);
 	onScrollYChangeRef.current = onScrollYChange;
+	const onFramePointerDownRef = useRef(onFramePointerDown);
+	onFramePointerDownRef.current = onFramePointerDown;
 	const frameRef = useRef<HTMLIFrameElement>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [container, setContainer] = useState({ width: 0, height: 0 });
@@ -147,6 +155,7 @@ export function PageCommentsView({
 			}
 			if (data.type === "hover") setHoverRect(data.rect);
 			if (data.type === "pointer-down") {
+				onFramePointerDownRef.current?.();
 				notifyFramePointerDown();
 				if (!submitting) {
 					discardDraft();

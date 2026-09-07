@@ -19,6 +19,10 @@ export { installProcessSafetyNet, installUpgradeSocketGuard } from "./safety";
 export { captureFatalStartupError, initSentry } from "./sentry";
 export { startTerminalReaper } from "./terminal/reaper";
 export type {
+	SubagentTranscript,
+	SubagentTranscriptEntry,
+} from "./terminal-agents";
+export type {
 	DeleteInProgressCause,
 	TeardownFailureCause,
 } from "./trpc/error-types";

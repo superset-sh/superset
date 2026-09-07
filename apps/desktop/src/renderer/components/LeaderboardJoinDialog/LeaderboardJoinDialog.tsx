@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { handleSchema } from "@superset/trpc/leaderboard-schema";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -13,8 +14,6 @@ import { Label } from "@superset/ui/label";
 import { useEffect, useState } from "react";
 import { RankTeaser } from "./components/RankTeaser";
 import type { LeaderboardPreview } from "./types";
-
-const HANDLE_PATTERN = /^[a-z0-9](?:[a-z0-9]|-(?=[a-z0-9])){1,38}$/;
 
 interface LeaderboardJoinDialogProps {
 	open: boolean;
@@ -44,7 +43,7 @@ export function LeaderboardJoinDialog({
 	}, [edited, suggestedHandle]);
 
 	const trimmed = handle.trim().toLowerCase();
-	const valid = HANDLE_PATTERN.test(trimmed);
+	const valid = handleSchema.safeParse(trimmed).success;
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>

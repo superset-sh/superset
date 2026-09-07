@@ -27,6 +27,7 @@ import { useSidebarSectionsCollapseStore } from "renderer/stores/sidebar-section
 import { DashboardSidebarBulkActions } from "./components/DashboardSidebarBulkActions";
 import { DashboardSidebarBulkDeleteMount } from "./components/DashboardSidebarBulkDeleteMount";
 import { DashboardSidebarCloudSection } from "./components/DashboardSidebarCloudSection";
+import { DashboardSidebarGithubNotice } from "./components/DashboardSidebarGithubNotice";
 import { DashboardSidebarHeader } from "./components/DashboardSidebarHeader";
 import { DashboardSidebarHiddenProjects } from "./components/DashboardSidebarHiddenProjects";
 import { DashboardSidebarHoverCardOverlay } from "./components/DashboardSidebarHoverCardOverlay";
@@ -139,6 +140,7 @@ export function DashboardSidebar({
 		pinnedWorkspaces,
 		sessionWorkspaces,
 		sessionChildren,
+		githubStatus,
 		refreshWorkspacePullRequest,
 		toggleProjectCollapsed,
 	} = useDashboardSidebarData();
@@ -384,6 +386,9 @@ export function DashboardSidebar({
 													/>
 												</DashboardSidebarBulkActions>
 											</div>
+										)}
+										{!isCollapsed && !workspacesListCollapsed && (
+											<DashboardSidebarGithubNotice status={githubStatus} />
 										)}
 										{(isCollapsed || !workspacesListCollapsed) && (
 											<SortableContext

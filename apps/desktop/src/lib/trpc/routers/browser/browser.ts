@@ -3,9 +3,9 @@ import { session } from "electron";
 import {
 	type BrowserOpenRequest,
 	browserManager,
-	type ForwardedKey,
 } from "main/lib/browser/browser-manager";
 import { screenshotManager } from "main/lib/browser/screenshot-manager";
+import type { ForwardedKey } from "shared/hotkey-chord";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
@@ -247,6 +247,24 @@ export const createBrowserRouter = () => {
 					};
 				});
 			}),
+
+		// Keystrokes intercepted while one of the calling window's own iframes
+		// had focus (a page pane, the PDF viewer). Scoped to that window: a
+		// replay must land in the renderer whose frame swallowed the key.
+		onHostKeyForward: publicProcedure.subscription(({ ctx }) => {
+			return observable<ForwardedKey>((emit) => {
+				const wc = ctx.senderWindow?.webContents;
+				if (!wc) return () => {};
+				const channel = `host-key-forward:${wc.id}`;
+				const handler = (key: ForwardedKey) => {
+					emit.next(key);
+				};
+				browserManager.on(channel, handler);
+				return () => {
+					browserManager.off(channel, handler);
+				};
+			});
+		}),
 
 		// External open requests (CLI/agents via the browser bridge). A global
 		// renderer hook consumes these and routes them through the same

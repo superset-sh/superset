@@ -27,6 +27,7 @@ interface PageViewerProps {
 	commentsEnabled: boolean;
 	onCommentsEnabledChange: (enabled: boolean) => void;
 	onResolved?: (page: ResolvedPage) => void;
+	onFramePointerDown?: () => void;
 }
 
 export function PageViewer({
@@ -36,6 +37,7 @@ export function PageViewer({
 	commentsEnabled,
 	onCommentsEnabledChange,
 	onResolved,
+	onFramePointerDown,
 }: PageViewerProps) {
 	const { t } = useLingui();
 	const { data: session } = authClient.useSession();
@@ -113,6 +115,7 @@ export function PageViewer({
 						title={resolvedTitle}
 						initialScrollY={scrollPositions.get(scrollKey) ?? 0}
 						onScrollYChange={(y) => scrollPositions.set(scrollKey, y)}
+						onFramePointerDown={onFramePointerDown}
 					/>
 				</div>
 				{commentsEnabled ? (

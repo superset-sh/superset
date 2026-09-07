@@ -66,13 +66,17 @@ export function getClaudeGlobalSettingsJsonPath(): string {
 }
 
 // StopFailure is the API-error hook; it fires while the session stays alive,
-// unlike Stop.
+// unlike Stop. SubagentStart/SubagentStop feed the per-terminal subagent
+// roster; the notify script routes them by their agent_id, never as the
+// terminal's own lifecycle.
 const CLAUDE_MANAGED_EVENTS: Record<string, { matcher?: string }> = {
 	SessionStart: {},
 	SessionEnd: {},
 	UserPromptSubmit: {},
 	Stop: {},
 	StopFailure: {},
+	SubagentStart: {},
+	SubagentStop: {},
 	PostToolUse: { matcher: "*" },
 	PostToolUseFailure: { matcher: "*" },
 	PermissionRequest: { matcher: "*" },
@@ -154,12 +158,16 @@ export function getCodexGlobalHooksJsonPath(): string {
 	return path.join(os.homedir(), ".codex", "hooks.json");
 }
 
+// SubagentStart/SubagentStop fire for spawn_agent children (multi_agent is
+// on by default); the notify script forwards them to the subagent roster.
 const CODEX_MANAGED_EVENTS: Record<string, { matcher?: string }> = {
 	SessionStart: {},
 	SessionEnd: {},
 	UserPromptSubmit: {},
 	Stop: {},
 	Interrupt: {},
+	SubagentStart: {},
+	SubagentStop: {},
 };
 
 function codexHooksSpec(

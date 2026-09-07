@@ -33,3 +33,8 @@ export {
 	resolveHotkeyFromEvent,
 	serializeBinding,
 } from "./utils";
+export {
+	FORWARDED_HOTKEYS,
+	getForwardableChords,
+	replayForwardedKey,
+} from "./utils/forwardedHotkeys";
