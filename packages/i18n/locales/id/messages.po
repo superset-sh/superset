@@ -3768,6 +3768,9 @@ msgstr "Salin kunci"
 msgid "Copy link"
 msgstr "Salin tautan"
 
+msgid "Copy Link"
+msgstr "Salin tautan"
+
 msgid "Copy Link Address"
 msgstr "Salin Alamat Tautan"
 
@@ -4511,12 +4514,6 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 
 msgid "Default ({defaultWorktreePath})"
 msgstr "Bawaan ({defaultWorktreePath})"
-
-msgid "default browser"
-msgstr "browser bawaan"
-
-msgid "Default Browser"
-msgstr "Browser bawaan"
 
 msgid "Default effort"
 msgstr "Effort bawaan"
@@ -5551,6 +5548,12 @@ msgstr "Eksternal"
 
 msgid "External Application"
 msgstr "Aplikasi Eksternal"
+
+msgid "external browser"
+msgstr "browser eksternal"
+
+msgid "External Browser"
+msgstr "Browser Eksternal"
 
 msgid "External editor"
 msgstr "Editor eksternal"
@@ -7049,12 +7052,6 @@ msgstr "Di aplikasi desktop Superset, buka <0>Pengaturan → Tampilan → Tema</
 msgid "In the Superset desktop app, open Settings → Remote Access and turn on “Allow remote access to this device via relay”."
 msgstr "Di aplikasi desktop Superset, buka Pengaturan → Akses Jarak Jauh dan aktifkan “Izinkan akses jarak jauh ke perangkat ini melalui relay”."
 
-msgid "in-app browser"
-msgstr "browser dalam aplikasi"
-
-msgid "In-App Browser"
-msgstr "Browser dalam aplikasi"
-
 msgid "In-app PR merge"
 msgstr "Merge PR di dalam aplikasi"
 
@@ -8514,9 +8511,6 @@ msgstr "Otomatisasi baru"
 msgid "New Browser"
 msgstr "Browser Baru"
 
-msgid "New Browser Tab"
-msgstr "Tab browser baru"
-
 msgid "new challengers"
 msgstr "penantang baru"
 
@@ -9631,9 +9625,6 @@ msgstr "Buka di tab saat ini"
 msgid "Open in Cursor"
 msgstr "Buka di Cursor"
 
-msgid "Open in default browser"
-msgstr "Buka di browser bawaan"
-
 msgid "Open in Desktop App"
 msgstr "Buka di Aplikasi Desktop"
 
@@ -9649,6 +9640,9 @@ msgstr "Buka di editor"
 msgid "Open in Editor"
 msgstr "Buka di Editor"
 
+msgid "Open in external browser"
+msgstr "Buka di browser eksternal"
+
 msgid "Open in File pane"
 msgstr "Buka di panel File"
 
@@ -9661,14 +9655,8 @@ msgstr "Buka di Finder"
 msgid "Open in GitHub"
 msgstr "Buka di GitHub"
 
-msgid "Open in in-app browser"
-msgstr "Buka di browser dalam aplikasi"
-
 msgid "Open in Linear"
 msgstr "Buka di Linear"
-
-msgid "Open in new browser tab"
-msgstr "Buka di tab browser baru"
 
 msgid "Open in new tab"
 msgstr "Buka di tab baru"
@@ -12997,8 +12985,14 @@ msgstr "Bagi ke Bawah"
 msgid "Split Horizontally"
 msgstr "Bagi Horizontal"
 
+msgid "split pane"
+msgstr "panel terpisah"
+
 msgid "Split pane"
 msgstr "Panel terbagi"
+
+msgid "Split Pane"
+msgstr "Panel Terpisah"
 
 msgid "Split Pane Auto"
 msgstr "Bagi Panel Otomatis"

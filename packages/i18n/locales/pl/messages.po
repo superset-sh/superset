@@ -3768,6 +3768,9 @@ msgstr "Kopiuj klucz"
 msgid "Copy link"
 msgstr "Kopiuj link"
 
+msgid "Copy Link"
+msgstr "Kopiuj link"
+
 msgid "Copy Link Address"
 msgstr "Kopiuj adres linku"
 
@@ -4511,12 +4514,6 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 
 msgid "Default ({defaultWorktreePath})"
 msgstr "Domyślny ({defaultWorktreePath})"
-
-msgid "default browser"
-msgstr "domyślna przeglądarka"
-
-msgid "Default Browser"
-msgstr "Domyślna przeglądarka"
 
 msgid "Default effort"
 msgstr "Domyślny wysiłek"
@@ -5551,6 +5548,12 @@ msgstr "Zewnętrzny"
 
 msgid "External Application"
 msgstr "Aplikacja zewnętrzna"
+
+msgid "external browser"
+msgstr "zewnętrzna przeglądarka"
+
+msgid "External Browser"
+msgstr "Zewnętrzna przeglądarka"
 
 msgid "External editor"
 msgstr "Zewnętrzny edytor"
@@ -7049,12 +7052,6 @@ msgstr "W aplikacji Superset otwórz <0>Ustawienia → Wygląd → Motyw</0>."
 msgid "In the Superset desktop app, open Settings → Remote Access and turn on “Allow remote access to this device via relay”."
 msgstr "W aplikacji Superset na komputerze otwórz Ustawienia → Dostęp zdalny i włącz „Zezwól na zdalny dostęp do tego urządzenia przez przekaźnik”."
 
-msgid "in-app browser"
-msgstr "przeglądarka w aplikacji"
-
-msgid "In-App Browser"
-msgstr "Przeglądarka w aplikacji"
-
 msgid "In-app PR merge"
 msgstr "Scalanie PR w aplikacji"
 
@@ -8514,9 +8511,6 @@ msgstr "Nowa automatyzacja"
 msgid "New Browser"
 msgstr "Nowa przeglądarka"
 
-msgid "New Browser Tab"
-msgstr "Nowa karta przeglądarki"
-
 msgid "new challengers"
 msgstr "nowi przeciwnicy"
 
@@ -9631,9 +9625,6 @@ msgstr "Otwórz w bieżącej karcie"
 msgid "Open in Cursor"
 msgstr "Otwórz w Cursor"
 
-msgid "Open in default browser"
-msgstr "Otwórz w domyślnej przeglądarce"
-
 msgid "Open in Desktop App"
 msgstr "Otwórz w aplikacji desktopowej"
 
@@ -9649,6 +9640,9 @@ msgstr "Otwórz w edytorze"
 msgid "Open in Editor"
 msgstr "Otwórz w edytorze"
 
+msgid "Open in external browser"
+msgstr "Otwórz w zewnętrznej przeglądarce"
+
 msgid "Open in File pane"
 msgstr "Otwórz w panelu Plik"
 
@@ -9661,14 +9655,8 @@ msgstr "Otwórz w Finderze"
 msgid "Open in GitHub"
 msgstr "Otwórz w GitHub"
 
-msgid "Open in in-app browser"
-msgstr "Otwórz w przeglądarce w aplikacji"
-
 msgid "Open in Linear"
 msgstr "Otwórz w Linear"
-
-msgid "Open in new browser tab"
-msgstr "Otwórz w nowej karcie przeglądarki"
 
 msgid "Open in new tab"
 msgstr "Otwórz w nowej karcie"
@@ -12997,7 +12985,13 @@ msgstr "Podziel w dół"
 msgid "Split Horizontally"
 msgstr "Podziel poziomo"
 
+msgid "split pane"
+msgstr "podzielony panel"
+
 msgid "Split pane"
+msgstr "Podzielony panel"
+
+msgid "Split Pane"
 msgstr "Podzielony panel"
 
 msgid "Split Pane Auto"

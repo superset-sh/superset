@@ -27,6 +27,7 @@ import {
 	LuClipboardCopy,
 	LuEraser,
 	LuExternalLink,
+	LuLink,
 	LuPower,
 } from "react-icons/lu";
 import { useWorkspaceHostTarget } from "renderer/hooks/host-service/useWorkspaceHostUrl";
@@ -475,21 +476,7 @@ export function usePaneRegistry({
 					/>
 				),
 				contextMenuActions: (_ctx, defaults) => {
-					const hasLink = (ctx: RendererContext<PaneViewerData>) =>
-						Boolean(terminalContextMenuLinkStore.get(ctx.pane.id)?.link);
 					const terminalActions: ContextMenuActionConfig<PaneViewerData>[] = [
-						{
-							key: "open-link-in",
-							label: t({ message: "Open in" }),
-							icon: <LuExternalLink />,
-							hidden: (ctx) => !hasLink(ctx),
-							children: openInActions,
-						},
-						{
-							key: "sep-open-link-in",
-							type: "separator",
-							hidden: (ctx) => !hasLink(ctx),
-						},
 						{
 							key: "copy",
 							label: t({ message: "Copy" }),
@@ -566,16 +553,68 @@ export function usePaneRegistry({
 						{ key: "sep-terminal-defaults", type: "separator" },
 					];
 
-					const modifiedDefaults = defaults.map((d) =>
-						d.key === "close-pane"
-							? {
-									...d,
-									label: t({
-										message: "Close Terminal",
-									}),
-								}
-							: d,
-					);
+					// Only present when the right-click landed on a link. "Open in"
+					// covers what "Split with New Browser" did for a URL, so the terminal
+					// menu drops that default rather than offering both.
+					const linkAt = (ctx: RendererContext<PaneViewerData>) =>
+						terminalContextMenuLinkStore.get(ctx.pane.id)?.link ?? null;
+					const copyableLinkText = (
+						ctx: RendererContext<PaneViewerData>,
+					): string | null => {
+						const link = linkAt(ctx);
+						if (!link) return null;
+						return link.kind === "url" ? link.url : (link.resolvedPath ?? null);
+					};
+					const linkActions: ContextMenuActionConfig<PaneViewerData>[] = [
+						{
+							key: "open-link-in",
+							label: t({ message: "Open in" }),
+							icon: <LuExternalLink />,
+							hidden: (ctx) => !linkAt(ctx),
+							children: openInActions,
+						},
+						{
+							key: "copy-link",
+							label: t({ message: "Copy Link" }),
+							icon: <LuLink />,
+							hidden: (ctx) => linkAt(ctx)?.kind !== "url",
+							onSelect: (ctx) => {
+								const text = copyableLinkText(ctx);
+								if (text) navigator.clipboard.writeText(text);
+							},
+						},
+						{
+							key: "copy-path",
+							label: t({ message: "Copy Path" }),
+							icon: <LuLink />,
+							hidden: (ctx) => {
+								const link = linkAt(ctx);
+								return link?.kind !== "file" || !link.resolvedPath;
+							},
+							onSelect: (ctx) => {
+								const text = copyableLinkText(ctx);
+								if (text) navigator.clipboard.writeText(text);
+							},
+						},
+						{
+							key: "sep-open-link-in",
+							type: "separator",
+							hidden: (ctx) => !linkAt(ctx),
+						},
+					];
+
+					const modifiedDefaults = defaults
+						.filter((d) => d.key !== "split-with-browser")
+						.map((d) =>
+							d.key === "close-pane"
+								? {
+										...d,
+										label: t({
+											message: "Close Terminal",
+										}),
+									}
+								: d,
+						);
 
 					const killAction: ContextMenuActionConfig<PaneViewerData> = {
 						key: "kill-terminal-session",
@@ -596,6 +635,7 @@ export function usePaneRegistry({
 
 					return [
 						...terminalActions,
+						...linkActions,
 						...modifiedDefaults,
 						{ key: "sep-terminal-kill", type: "separator" },
 						killAction,

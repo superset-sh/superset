@@ -3768,6 +3768,9 @@ msgstr "Kopírovat klíč"
 msgid "Copy link"
 msgstr "Kopírovat odkaz"
 
+msgid "Copy Link"
+msgstr "Kopírovat odkaz"
+
 msgid "Copy Link Address"
 msgstr "Kopírovat adresu odkazu"
 
@@ -4511,12 +4514,6 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 
 msgid "Default ({defaultWorktreePath})"
 msgstr "Výchozí ({defaultWorktreePath})"
-
-msgid "default browser"
-msgstr "výchozí prohlížeč"
-
-msgid "Default Browser"
-msgstr "Výchozí prohlížeč"
 
 msgid "Default effort"
 msgstr "Výchozí úsilí"
@@ -5551,6 +5548,12 @@ msgstr "Externí"
 
 msgid "External Application"
 msgstr "Externí aplikace"
+
+msgid "external browser"
+msgstr "externí prohlížeč"
+
+msgid "External Browser"
+msgstr "Externí prohlížeč"
 
 msgid "External editor"
 msgstr "Externí editor"
@@ -7049,12 +7052,6 @@ msgstr "V desktopové aplikaci Superset otevřete <0>Nastavení → Vzhled → M
 msgid "In the Superset desktop app, open Settings → Remote Access and turn on “Allow remote access to this device via relay”."
 msgstr "V desktopové aplikaci Superset otevřete Nastavení → Vzdálený přístup a zapněte „Povolit vzdálený přístup k tomuto zařízení přes relay“."
 
-msgid "in-app browser"
-msgstr "vestavěný prohlížeč"
-
-msgid "In-App Browser"
-msgstr "Vestavěný prohlížeč"
-
 msgid "In-app PR merge"
 msgstr "Slučování PR přímo v aplikaci"
 
@@ -8514,9 +8511,6 @@ msgstr "Nová automatizace"
 msgid "New Browser"
 msgstr "Nový prohlížeč"
 
-msgid "New Browser Tab"
-msgstr "Nová karta prohlížeče"
-
 msgid "new challengers"
 msgstr "noví vyzyvatelé"
 
@@ -9631,9 +9625,6 @@ msgstr "Otevřít v aktuální kartě"
 msgid "Open in Cursor"
 msgstr "Otevřít v Cursor"
 
-msgid "Open in default browser"
-msgstr "Otevřít ve výchozím prohlížeči"
-
 msgid "Open in Desktop App"
 msgstr "Otevřít v desktopové aplikaci"
 
@@ -9649,6 +9640,9 @@ msgstr "Otevřít v editoru"
 msgid "Open in Editor"
 msgstr "Otevřít v editoru"
 
+msgid "Open in external browser"
+msgstr "Otevřít v externím prohlížeči"
+
 msgid "Open in File pane"
 msgstr "Otevřít v panelu souboru"
 
@@ -9661,14 +9655,8 @@ msgstr "Otevřít ve Finderu"
 msgid "Open in GitHub"
 msgstr "Otevřít na GitHubu"
 
-msgid "Open in in-app browser"
-msgstr "Otevřít ve vestavěném prohlížeči"
-
 msgid "Open in Linear"
 msgstr "Otevřít v Linearu"
-
-msgid "Open in new browser tab"
-msgstr "Otevřít na nové kartě prohlížeče"
 
 msgid "Open in new tab"
 msgstr "Otevřít na nové kartě"
@@ -12997,7 +12985,13 @@ msgstr "Rozdělit dolů"
 msgid "Split Horizontally"
 msgstr "Rozdělit vodorovně"
 
+msgid "split pane"
+msgstr "rozdělený panel"
+
 msgid "Split pane"
+msgstr "Rozdělený panel"
+
+msgid "Split Pane"
 msgstr "Rozdělený panel"
 
 msgid "Split Pane Auto"

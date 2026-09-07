@@ -3768,6 +3768,9 @@ msgstr "Copy key"
 msgid "Copy link"
 msgstr "Copy link"
 
+msgid "Copy Link"
+msgstr "Copy Link"
+
 msgid "Copy Link Address"
 msgstr "Copy Link Address"
 
@@ -4511,12 +4514,6 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 
 msgid "Default ({defaultWorktreePath})"
 msgstr "Default ({defaultWorktreePath})"
-
-msgid "default browser"
-msgstr "default browser"
-
-msgid "Default Browser"
-msgstr "Default Browser"
 
 msgid "Default effort"
 msgstr "Default effort"
@@ -5551,6 +5548,12 @@ msgstr "External"
 
 msgid "External Application"
 msgstr "External Application"
+
+msgid "external browser"
+msgstr "external browser"
+
+msgid "External Browser"
+msgstr "External Browser"
 
 msgid "External editor"
 msgstr "External editor"
@@ -7049,12 +7052,6 @@ msgstr "In the Superset desktop app, open <0>Settings → Appearance → Theme</
 msgid "In the Superset desktop app, open Settings → Remote Access and turn on “Allow remote access to this device via relay”."
 msgstr "In the Superset desktop app, open Settings → Remote Access and turn on “Allow remote access to this device via relay”."
 
-msgid "in-app browser"
-msgstr "in-app browser"
-
-msgid "In-App Browser"
-msgstr "In-App Browser"
-
 msgid "In-app PR merge"
 msgstr "In-app PR merge"
 
@@ -8514,9 +8511,6 @@ msgstr "New automation"
 msgid "New Browser"
 msgstr "New Browser"
 
-msgid "New Browser Tab"
-msgstr "New Browser Tab"
-
 msgid "new challengers"
 msgstr "new challengers"
 
@@ -9631,9 +9625,6 @@ msgstr "Open in current tab"
 msgid "Open in Cursor"
 msgstr "Open in Cursor"
 
-msgid "Open in default browser"
-msgstr "Open in default browser"
-
 msgid "Open in Desktop App"
 msgstr "Open in Desktop App"
 
@@ -9649,6 +9640,9 @@ msgstr "Open in editor"
 msgid "Open in Editor"
 msgstr "Open in Editor"
 
+msgid "Open in external browser"
+msgstr "Open in external browser"
+
 msgid "Open in File pane"
 msgstr "Open in File pane"
 
@@ -9661,14 +9655,8 @@ msgstr "Open in Finder"
 msgid "Open in GitHub"
 msgstr "Open in GitHub"
 
-msgid "Open in in-app browser"
-msgstr "Open in in-app browser"
-
 msgid "Open in Linear"
 msgstr "Open in Linear"
-
-msgid "Open in new browser tab"
-msgstr "Open in new browser tab"
 
 msgid "Open in new tab"
 msgstr "Open in new tab"
@@ -12997,8 +12985,14 @@ msgstr "Split Down"
 msgid "Split Horizontally"
 msgstr "Split Horizontally"
 
+msgid "split pane"
+msgstr "split pane"
+
 msgid "Split pane"
 msgstr "Split pane"
+
+msgid "Split Pane"
+msgstr "Split Pane"
 
 msgid "Split Pane Auto"
 msgstr "Split Pane Auto"

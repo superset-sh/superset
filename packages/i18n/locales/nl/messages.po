@@ -3768,6 +3768,9 @@ msgstr "Sleutel kopiëren"
 msgid "Copy link"
 msgstr "Link kopiëren"
 
+msgid "Copy Link"
+msgstr "Link kopiëren"
+
 msgid "Copy Link Address"
 msgstr "Linkadres kopiëren"
 
@@ -4511,12 +4514,6 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 
 msgid "Default ({defaultWorktreePath})"
 msgstr "Standaard ({defaultWorktreePath})"
-
-msgid "default browser"
-msgstr "standaardbrowser"
-
-msgid "Default Browser"
-msgstr "Standaardbrowser"
 
 msgid "Default effort"
 msgstr "Standaard-effort"
@@ -5551,6 +5548,12 @@ msgstr "Extern"
 
 msgid "External Application"
 msgstr "Externe applicatie"
+
+msgid "external browser"
+msgstr "externe browser"
+
+msgid "External Browser"
+msgstr "Externe browser"
 
 msgid "External editor"
 msgstr "Externe editor"
@@ -7049,12 +7052,6 @@ msgstr "Open in de Superset-desktopapp <0>Instellingen → Uiterlijk → Thema</
 msgid "In the Superset desktop app, open Settings → Remote Access and turn on “Allow remote access to this device via relay”."
 msgstr "Open in de Superset-desktopapp Instellingen → Externe toegang en zet “Externe toegang tot dit apparaat via de relay toestaan” aan."
 
-msgid "in-app browser"
-msgstr "ingebouwde browser"
-
-msgid "In-App Browser"
-msgstr "Ingebouwde browser"
-
 msgid "In-app PR merge"
 msgstr "PR's mergen in de app"
 
@@ -8514,9 +8511,6 @@ msgstr "Nieuwe automatisering"
 msgid "New Browser"
 msgstr "Nieuwe browser"
 
-msgid "New Browser Tab"
-msgstr "Nieuw browsertabblad"
-
 msgid "new challengers"
 msgstr "nieuwe uitdagers"
 
@@ -9631,9 +9625,6 @@ msgstr "Openen in huidig tabblad"
 msgid "Open in Cursor"
 msgstr "Openen in Cursor"
 
-msgid "Open in default browser"
-msgstr "Openen in standaardbrowser"
-
 msgid "Open in Desktop App"
 msgstr "Openen in desktop-app"
 
@@ -9649,6 +9640,9 @@ msgstr "Openen in editor"
 msgid "Open in Editor"
 msgstr "Openen in editor"
 
+msgid "Open in external browser"
+msgstr "Openen in externe browser"
+
 msgid "Open in File pane"
 msgstr "Openen in bestandspaneel"
 
@@ -9661,14 +9655,8 @@ msgstr "Openen in Finder"
 msgid "Open in GitHub"
 msgstr "Openen in GitHub"
 
-msgid "Open in in-app browser"
-msgstr "Openen in ingebouwde browser"
-
 msgid "Open in Linear"
 msgstr "Openen in Linear"
-
-msgid "Open in new browser tab"
-msgstr "Openen in nieuw browsertabblad"
 
 msgid "Open in new tab"
 msgstr "Openen in nieuw tabblad"
@@ -12997,7 +12985,13 @@ msgstr "Naar beneden splitsen"
 msgid "Split Horizontally"
 msgstr "Horizontaal splitsen"
 
+msgid "split pane"
+msgstr "gesplitst paneel"
+
 msgid "Split pane"
+msgstr "Gesplitst paneel"
+
+msgid "Split Pane"
 msgstr "Gesplitst paneel"
 
 msgid "Split Pane Auto"

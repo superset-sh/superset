@@ -3768,6 +3768,9 @@ msgstr "Copiar chave"
 msgid "Copy link"
 msgstr "Copiar link"
 
+msgid "Copy Link"
+msgstr "Copiar link"
+
 msgid "Copy Link Address"
 msgstr "Copiar endereço do link"
 
@@ -4511,12 +4514,6 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 
 msgid "Default ({defaultWorktreePath})"
 msgstr "Padrão ({defaultWorktreePath})"
-
-msgid "default browser"
-msgstr "navegador padrão"
-
-msgid "Default Browser"
-msgstr "Navegador padrão"
 
 msgid "Default effort"
 msgstr "Esforço padrão"
@@ -5551,6 +5548,12 @@ msgstr "Externo"
 
 msgid "External Application"
 msgstr "Aplicativo externo"
+
+msgid "external browser"
+msgstr "navegador externo"
+
+msgid "External Browser"
+msgstr "Navegador externo"
 
 msgid "External editor"
 msgstr "Editor externo"
@@ -7049,12 +7052,6 @@ msgstr "No app de desktop do Superset, abra <0>Configurações → Aparência �
 msgid "In the Superset desktop app, open Settings → Remote Access and turn on “Allow remote access to this device via relay”."
 msgstr "No app de desktop do Superset, abra Configurações → Acesso remoto e ative “Permitir acesso remoto a este dispositivo via relay”."
 
-msgid "in-app browser"
-msgstr "navegador do app"
-
-msgid "In-App Browser"
-msgstr "Navegador do app"
-
 msgid "In-app PR merge"
 msgstr "Merge de PR dentro do app"
 
@@ -8514,9 +8511,6 @@ msgstr "Nova automação"
 msgid "New Browser"
 msgstr "Novo navegador"
 
-msgid "New Browser Tab"
-msgstr "Nova aba do navegador"
-
 msgid "new challengers"
 msgstr "novos desafiantes"
 
@@ -9631,9 +9625,6 @@ msgstr "Abrir na aba atual"
 msgid "Open in Cursor"
 msgstr "Abrir no Cursor"
 
-msgid "Open in default browser"
-msgstr "Abrir no navegador padrão"
-
 msgid "Open in Desktop App"
 msgstr "Abrir no app de desktop"
 
@@ -9649,6 +9640,9 @@ msgstr "Abrir no editor"
 msgid "Open in Editor"
 msgstr "Abrir no editor"
 
+msgid "Open in external browser"
+msgstr "Abrir no navegador externo"
+
 msgid "Open in File pane"
 msgstr "Abrir no painel de Arquivos"
 
@@ -9661,14 +9655,8 @@ msgstr "Abrir no Finder"
 msgid "Open in GitHub"
 msgstr "Abrir no GitHub"
 
-msgid "Open in in-app browser"
-msgstr "Abrir no navegador do app"
-
 msgid "Open in Linear"
 msgstr "Abrir no Linear"
-
-msgid "Open in new browser tab"
-msgstr "Abrir em nova aba do navegador"
 
 msgid "Open in new tab"
 msgstr "Abrir em nova aba"
@@ -12997,7 +12985,13 @@ msgstr "Dividir para baixo"
 msgid "Split Horizontally"
 msgstr "Dividir na horizontal"
 
+msgid "split pane"
+msgstr "painel dividido"
+
 msgid "Split pane"
+msgstr "Painel dividido"
+
+msgid "Split Pane"
 msgstr "Painel dividido"
 
 msgid "Split Pane Auto"

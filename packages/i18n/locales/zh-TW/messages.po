@@ -3768,6 +3768,9 @@ msgstr "複製金鑰"
 msgid "Copy link"
 msgstr "複製連結"
 
+msgid "Copy Link"
+msgstr "複製連結"
+
 msgid "Copy Link Address"
 msgstr "複製連結地址"
 
@@ -4511,12 +4514,6 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 
 msgid "Default ({defaultWorktreePath})"
 msgstr "預設（{defaultWorktreePath}）"
-
-msgid "default browser"
-msgstr "預設瀏覽器"
-
-msgid "Default Browser"
-msgstr "預設瀏覽器"
 
 msgid "Default effort"
 msgstr "預設推理強度"
@@ -5551,6 +5548,12 @@ msgstr "外部"
 
 msgid "External Application"
 msgstr "外部應用"
+
+msgid "external browser"
+msgstr "外部瀏覽器"
+
+msgid "External Browser"
+msgstr "外部瀏覽器"
 
 msgid "External editor"
 msgstr "外部編輯器"
@@ -7049,12 +7052,6 @@ msgstr "在Superset桌面應用程式中開啟<0>設定 → 外觀 → 主題</0
 msgid "In the Superset desktop app, open Settings → Remote Access and turn on “Allow remote access to this device via relay”."
 msgstr "在Superset桌面應用程式中開啟「設定 → 遠端存取」，開啟「允許遠端工作區通過中繼存取此裝置」。"
 
-msgid "in-app browser"
-msgstr "應用程式內瀏覽器"
-
-msgid "In-App Browser"
-msgstr "應用程式內瀏覽器"
-
 msgid "In-app PR merge"
 msgstr "應用程式內合併PR"
 
@@ -8514,9 +8511,6 @@ msgstr "新建自動化"
 msgid "New Browser"
 msgstr "新建瀏覽器"
 
-msgid "New Browser Tab"
-msgstr "新瀏覽器分頁"
-
 msgid "new challengers"
 msgstr "換對手"
 
@@ -9631,9 +9625,6 @@ msgstr "在目前分頁開啟"
 msgid "Open in Cursor"
 msgstr "在Cursor中開啟"
 
-msgid "Open in default browser"
-msgstr "在預設瀏覽器中開啟"
-
 msgid "Open in Desktop App"
 msgstr "在桌面應用程式中開啟"
 
@@ -9649,6 +9640,9 @@ msgstr "在編輯器中開啟"
 msgid "Open in Editor"
 msgstr "在編輯器中開啟"
 
+msgid "Open in external browser"
+msgstr "在外部瀏覽器中開啟"
+
 msgid "Open in File pane"
 msgstr "在「檔案」面板中開啟"
 
@@ -9661,14 +9655,8 @@ msgstr "在Finder中開啟"
 msgid "Open in GitHub"
 msgstr "在GitHub中開啟"
 
-msgid "Open in in-app browser"
-msgstr "在應用程式內瀏覽器中開啟"
-
 msgid "Open in Linear"
 msgstr "在Linear中開啟"
-
-msgid "Open in new browser tab"
-msgstr "在新瀏覽器分頁中開啟"
 
 msgid "Open in new tab"
 msgstr "在新分頁開啟"
@@ -12997,8 +12985,14 @@ msgstr "向下拆分"
 msgid "Split Horizontally"
 msgstr "水平拆分"
 
+msgid "split pane"
+msgstr "分割窗格"
+
 msgid "Split pane"
 msgstr "拆分窗格"
+
+msgid "Split Pane"
+msgstr "分割窗格"
 
 msgid "Split Pane Auto"
 msgstr "自動拆分窗格"

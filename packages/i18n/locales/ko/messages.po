@@ -3768,6 +3768,9 @@ msgstr "키 복사"
 msgid "Copy link"
 msgstr "링크 복사"
 
+msgid "Copy Link"
+msgstr "링크 복사"
+
 msgid "Copy Link Address"
 msgstr "링크 주소 복사"
 
@@ -4511,12 +4514,6 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 
 msgid "Default ({defaultWorktreePath})"
 msgstr "기본값({defaultWorktreePath})"
-
-msgid "default browser"
-msgstr "기본 브라우저"
-
-msgid "Default Browser"
-msgstr "기본 브라우저"
 
 msgid "Default effort"
 msgstr "기본 강도"
@@ -5551,6 +5548,12 @@ msgstr "외부"
 
 msgid "External Application"
 msgstr "외부 애플리케이션"
+
+msgid "external browser"
+msgstr "외부 브라우저"
+
+msgid "External Browser"
+msgstr "외부 브라우저"
 
 msgid "External editor"
 msgstr "외부 편집기"
@@ -7049,12 +7052,6 @@ msgstr "Superset 데스크톱 앱에서 <0>설정 → 모양 → 테마</0>를 �
 msgid "In the Superset desktop app, open Settings → Remote Access and turn on “Allow remote access to this device via relay”."
 msgstr "Superset 데스크톱 앱에서 설정 → 원격 액세스을 열고 “릴레이를 통해 이 기기에 원격 액세스 허용”을 켜세요."
 
-msgid "in-app browser"
-msgstr "앱 내 브라우저"
-
-msgid "In-App Browser"
-msgstr "앱 내 브라우저"
-
 msgid "In-app PR merge"
 msgstr "앱 내 PR 머지"
 
@@ -8514,9 +8511,6 @@ msgstr "새 자동화"
 msgid "New Browser"
 msgstr "새 브라우저"
 
-msgid "New Browser Tab"
-msgstr "새 브라우저 탭"
-
 msgid "new challengers"
 msgstr "새 도전자"
 
@@ -9631,9 +9625,6 @@ msgstr "현재 탭에서 열기"
 msgid "Open in Cursor"
 msgstr "Cursor에서 열기"
 
-msgid "Open in default browser"
-msgstr "기본 브라우저에서 열기"
-
 msgid "Open in Desktop App"
 msgstr "데스크톱 앱에서 열기"
 
@@ -9649,6 +9640,9 @@ msgstr "에디터에서 열기"
 msgid "Open in Editor"
 msgstr "에디터에서 열기"
 
+msgid "Open in external browser"
+msgstr "외부 브라우저에서 열기"
+
 msgid "Open in File pane"
 msgstr "파일 패널에서 열기"
 
@@ -9661,14 +9655,8 @@ msgstr "Finder에서 열기"
 msgid "Open in GitHub"
 msgstr "GitHub에서 열기"
 
-msgid "Open in in-app browser"
-msgstr "앱 내 브라우저에서 열기"
-
 msgid "Open in Linear"
 msgstr "Linear에서 열기"
-
-msgid "Open in new browser tab"
-msgstr "새 브라우저 탭에서 열기"
 
 msgid "Open in new tab"
 msgstr "새 탭에서 열기"
@@ -12997,7 +12985,13 @@ msgstr "아래로 분할"
 msgid "Split Horizontally"
 msgstr "가로로 분할"
 
+msgid "split pane"
+msgstr "분할 패널"
+
 msgid "Split pane"
+msgstr "분할 패널"
+
+msgid "Split Pane"
 msgstr "분할 패널"
 
 msgid "Split Pane Auto"

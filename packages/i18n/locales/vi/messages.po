@@ -3768,6 +3768,9 @@ msgstr "Sao chép khóa"
 msgid "Copy link"
 msgstr "Sao chép liên kết"
 
+msgid "Copy Link"
+msgstr "Sao chép liên kết"
+
 msgid "Copy Link Address"
 msgstr "Sao chép địa chỉ liên kết"
 
@@ -4511,12 +4514,6 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 
 msgid "Default ({defaultWorktreePath})"
 msgstr "Mặc định ({defaultWorktreePath})"
-
-msgid "default browser"
-msgstr "trình duyệt mặc định"
-
-msgid "Default Browser"
-msgstr "Trình duyệt mặc định"
 
 msgid "Default effort"
 msgstr "Mức nỗ lực mặc định"
@@ -5551,6 +5548,12 @@ msgstr "Bên ngoài"
 
 msgid "External Application"
 msgstr "Ứng dụng bên ngoài"
+
+msgid "external browser"
+msgstr "trình duyệt ngoài"
+
+msgid "External Browser"
+msgstr "Trình duyệt ngoài"
 
 msgid "External editor"
 msgstr "Trình soạn thảo ngoài"
@@ -7049,12 +7052,6 @@ msgstr "Trong ứng dụng Superset trên máy tính, mở <0>Cài đặt → Gi
 msgid "In the Superset desktop app, open Settings → Remote Access and turn on “Allow remote access to this device via relay”."
 msgstr "Trong ứng dụng Superset trên máy tính, mở Cài đặt → Truy cập từ xa và bật “Cho phép truy cập từ xa vào thiết bị này qua relay”."
 
-msgid "in-app browser"
-msgstr "trình duyệt trong ứng dụng"
-
-msgid "In-App Browser"
-msgstr "Trình duyệt của ứng dụng"
-
 msgid "In-app PR merge"
 msgstr "Merge PR ngay trong ứng dụng"
 
@@ -8514,9 +8511,6 @@ msgstr "Tự động hóa mới"
 msgid "New Browser"
 msgstr "Trình duyệt mới"
 
-msgid "New Browser Tab"
-msgstr "Tab trình duyệt mới"
-
 msgid "new challengers"
 msgstr "đối thủ mới"
 
@@ -9631,9 +9625,6 @@ msgstr "Mở ở tab hiện tại"
 msgid "Open in Cursor"
 msgstr "Mở trong Cursor"
 
-msgid "Open in default browser"
-msgstr "Mở trong trình duyệt mặc định"
-
 msgid "Open in Desktop App"
 msgstr "Mở trong ứng dụng máy tính"
 
@@ -9649,6 +9640,9 @@ msgstr "Mở trong editor"
 msgid "Open in Editor"
 msgstr "Mở trong editor"
 
+msgid "Open in external browser"
+msgstr "Mở trong trình duyệt ngoài"
+
 msgid "Open in File pane"
 msgstr "Mở trong khung Tệp"
 
@@ -9661,14 +9655,8 @@ msgstr "Mở trong Finder"
 msgid "Open in GitHub"
 msgstr "Mở trong GitHub"
 
-msgid "Open in in-app browser"
-msgstr "Mở trong trình duyệt của ứng dụng"
-
 msgid "Open in Linear"
 msgstr "Mở trong Linear"
-
-msgid "Open in new browser tab"
-msgstr "Mở ở tab trình duyệt mới"
 
 msgid "Open in new tab"
 msgstr "Mở ở tab mới"
@@ -12997,8 +12985,14 @@ msgstr "Chia xuống"
 msgid "Split Horizontally"
 msgstr "Chia theo chiều ngang"
 
+msgid "split pane"
+msgstr "khung chia"
+
 msgid "Split pane"
 msgstr "Chia khung"
+
+msgid "Split Pane"
+msgstr "Khung chia"
 
 msgid "Split Pane Auto"
 msgstr "Chia khung tự động"

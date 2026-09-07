@@ -3768,6 +3768,9 @@ msgstr "キーをコピー"
 msgid "Copy link"
 msgstr "リンクをコピー"
 
+msgid "Copy Link"
+msgstr "リンクをコピー"
+
 msgid "Copy Link Address"
 msgstr "リンクアドレスをコピー"
 
@@ -4511,12 +4514,6 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 
 msgid "Default ({defaultWorktreePath})"
 msgstr "デフォルト({defaultWorktreePath})"
-
-msgid "default browser"
-msgstr "既定のブラウザ"
-
-msgid "Default Browser"
-msgstr "既定のブラウザ"
 
 msgid "Default effort"
 msgstr "デフォルトのエフォート"
@@ -5551,6 +5548,12 @@ msgstr "外部"
 
 msgid "External Application"
 msgstr "外部アプリケーション"
+
+msgid "external browser"
+msgstr "外部ブラウザ"
+
+msgid "External Browser"
+msgstr "外部ブラウザ"
 
 msgid "External editor"
 msgstr "外部エディタ"
@@ -7049,12 +7052,6 @@ msgstr "Supersetデスクトップアプリで<0>設定 → 外観 → テーマ
 msgid "In the Superset desktop app, open Settings → Remote Access and turn on “Allow remote access to this device via relay”."
 msgstr "Supersetデスクトップアプリで設定 → リモートアクセスを開き、「リレー経由でこのデバイスへのリモートアクセスを許可」をオンにしてください。"
 
-msgid "in-app browser"
-msgstr "アプリ内ブラウザ"
-
-msgid "In-App Browser"
-msgstr "アプリ内ブラウザ"
-
 msgid "In-app PR merge"
 msgstr "アプリ内でのPRマージ"
 
@@ -8514,9 +8511,6 @@ msgstr "新規オートメーション"
 msgid "New Browser"
 msgstr "新規ブラウザ"
 
-msgid "New Browser Tab"
-msgstr "新しいブラウザタブ"
-
 msgid "new challengers"
 msgstr "別の対戦相手"
 
@@ -9631,9 +9625,6 @@ msgstr "現在のタブで開く"
 msgid "Open in Cursor"
 msgstr "Cursorで開く"
 
-msgid "Open in default browser"
-msgstr "既定のブラウザで開く"
-
 msgid "Open in Desktop App"
 msgstr "デスクトップアプリで開く"
 
@@ -9649,6 +9640,9 @@ msgstr "エディタで開く"
 msgid "Open in Editor"
 msgstr "エディタで開く"
 
+msgid "Open in external browser"
+msgstr "外部ブラウザで開く"
+
 msgid "Open in File pane"
 msgstr "ファイルペインで開く"
 
@@ -9661,14 +9655,8 @@ msgstr "Finderで開く"
 msgid "Open in GitHub"
 msgstr "GitHubで開く"
 
-msgid "Open in in-app browser"
-msgstr "アプリ内ブラウザで開く"
-
 msgid "Open in Linear"
 msgstr "Linearで開く"
-
-msgid "Open in new browser tab"
-msgstr "新しいブラウザタブで開く"
 
 msgid "Open in new tab"
 msgstr "新しいタブで開く"
@@ -12997,7 +12985,13 @@ msgstr "下に分割"
 msgid "Split Horizontally"
 msgstr "水平に分割"
 
+msgid "split pane"
+msgstr "分割ペイン"
+
 msgid "Split pane"
+msgstr "分割ペイン"
+
+msgid "Split Pane"
 msgstr "分割ペイン"
 
 msgid "Split Pane Auto"

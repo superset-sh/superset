@@ -3768,6 +3768,9 @@ msgstr "Copiar la clave"
 msgid "Copy link"
 msgstr "Copiar enlace"
 
+msgid "Copy Link"
+msgstr "Copiar enlace"
+
 msgid "Copy Link Address"
 msgstr "Copiar la dirección del enlace"
 
@@ -4511,12 +4514,6 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 
 msgid "Default ({defaultWorktreePath})"
 msgstr "Predeterminada ({defaultWorktreePath})"
-
-msgid "default browser"
-msgstr "navegador predeterminado"
-
-msgid "Default Browser"
-msgstr "Navegador predeterminado"
 
 msgid "Default effort"
 msgstr "Esfuerzo predeterminado"
@@ -5551,6 +5548,12 @@ msgstr "Externo"
 
 msgid "External Application"
 msgstr "Aplicación externa"
+
+msgid "external browser"
+msgstr "navegador externo"
+
+msgid "External Browser"
+msgstr "Navegador externo"
 
 msgid "External editor"
 msgstr "Editor externo"
@@ -7049,12 +7052,6 @@ msgstr "En la app de escritorio de Superset, abre <0>Configuración → Aparienc
 msgid "In the Superset desktop app, open Settings → Remote Access and turn on “Allow remote access to this device via relay”."
 msgstr "En la app de escritorio de Superset, abre Configuración → Acceso remoto y activa “Permitir el acceso remoto a este dispositivo a través del relay”."
 
-msgid "in-app browser"
-msgstr "navegador integrado"
-
-msgid "In-App Browser"
-msgstr "Navegador integrado"
-
 msgid "In-app PR merge"
 msgstr "Fusión de PR desde la app"
 
@@ -8514,9 +8511,6 @@ msgstr "Nueva automatización"
 msgid "New Browser"
 msgstr "Nuevo navegador"
 
-msgid "New Browser Tab"
-msgstr "Pestaña nueva del navegador"
-
 msgid "new challengers"
 msgstr "nuevos rivales"
 
@@ -9631,9 +9625,6 @@ msgstr "Abrir en la pestaña actual"
 msgid "Open in Cursor"
 msgstr "Abrir en Cursor"
 
-msgid "Open in default browser"
-msgstr "Abrir en el navegador predeterminado"
-
 msgid "Open in Desktop App"
 msgstr "Abrir en la app de escritorio"
 
@@ -9649,6 +9640,9 @@ msgstr "Abrir en el editor"
 msgid "Open in Editor"
 msgstr "Abrir en el editor"
 
+msgid "Open in external browser"
+msgstr "Abrir en el navegador externo"
+
 msgid "Open in File pane"
 msgstr "Abrir en el panel de archivos"
 
@@ -9661,14 +9655,8 @@ msgstr "Abrir en Finder"
 msgid "Open in GitHub"
 msgstr "Abrir en GitHub"
 
-msgid "Open in in-app browser"
-msgstr "Abrir en el navegador integrado"
-
 msgid "Open in Linear"
 msgstr "Abrir en Linear"
-
-msgid "Open in new browser tab"
-msgstr "Abrir en una pestaña nueva del navegador"
 
 msgid "Open in new tab"
 msgstr "Abrir en una pestaña nueva"
@@ -12997,8 +12985,14 @@ msgstr "Dividir hacia abajo"
 msgid "Split Horizontally"
 msgstr "Dividir horizontalmente"
 
+msgid "split pane"
+msgstr "panel dividido"
+
 msgid "Split pane"
 msgstr "Dividir panel"
+
+msgid "Split Pane"
+msgstr "Panel dividido"
 
 msgid "Split Pane Auto"
 msgstr "Dividir panel automáticamente"
