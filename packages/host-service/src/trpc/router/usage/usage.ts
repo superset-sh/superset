@@ -247,6 +247,14 @@ export const usageRouter = router({
 							account.duplicateSelections?.includes(input.selection) === true),
 				);
 				refuseIfActive(current ?? target);
+				// The lane serialises this host-service only. Re-read the lock from
+				// disk here, the way every engine mutation re-checks at an awaited
+				// boundary — a switch that has swapped but not yet persisted its
+				// runtime is invisible to the check above, and the owner is the one
+				// that made it.
+				if (ctx.runtime.accountEngine?.ownsLock() === false) {
+					throw engineError("lock-loser");
+				}
 				if (input.agent === "claude") {
 					await removeClaudeProfile(input.selection);
 				} else {
@@ -256,9 +264,10 @@ export const usageRouter = router({
 			// On the engine's mutation lane, so a switch already queued there
 			// finishes before the re-check reads the active account, and one
 			// that arrives later waits for the delete. This serialises within
-			// one host-service; across processes the lock owner's
-			// `ensureOwnership` is what stops another instance switching under
-			// us. A sandbox has no engine and keeps the unserialised path.
+			// one host-service only; across processes nothing stops the lock
+			// owner switching under us, which is why the delete re-reads the
+			// lock above. A sandbox has no engine and keeps the unserialised
+			// path.
 			const engine = ctx.runtime.accountEngine;
 			await (engine
 				? engine.runExclusive(recheckAndDelete)

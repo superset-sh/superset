@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import {
+	existsSync,
 	mkdirSync,
 	mkdtempSync,
 	readFileSync,
@@ -268,6 +269,74 @@ describe("usageRouter.removeAccount", () => {
 				.removeAccount({ agent: "claude", selection: SPARE_DIR }),
 		).rejects.toThrow("lock-loser");
 		expect(invalidate).not.toHaveBeenCalled();
+	});
+
+	// The lock can be lost while the removal waits on the lane, and the owner
+	// that took it swaps onto the dir before it persists the runtime this
+	// call reads — so the active-account re-check above cannot see the switch.
+	// Only re-reading the lock immediately before the rm catches it.
+	function lockContext(profile: string, ownsLock: () => boolean) {
+		const ctx = context();
+		const agentStatus = { activeAccountId: null, activeSelection: null };
+		(ctx.runtime as unknown as { accountEngine: unknown }).accountEngine = {
+			status: () => ({ claude: agentStatus, codex: agentStatus }),
+			ownsLock,
+			runExclusive: <T>(fn: () => Promise<T>) => fn(),
+		};
+		(
+			ctx.runtime.quotaStore as unknown as {
+				read: () => Promise<UsageAccount[]>;
+			}
+		).read = async () => [
+			account({ accountId: "uuid-a", selection: ACTIVE_DIR }),
+			account({ accountId: "uuid-b", selection: profile }),
+		];
+		return ctx;
+	}
+
+	it("refuses a removal whose lock is lost while it waits on the lane", async () => {
+		// Under the home dir so the removal guards accept it; a real dir so
+		// the assertion is that it survived, not that it never existed.
+		const profile = mkdtempSync(join(homedir(), ".claude-usage-router-lock-"));
+		try {
+			let owns = true;
+			const ctx = lockContext(profile, () => owns);
+			// The owner takes the lock while this removal sits on the lane.
+			(
+				ctx.runtime as unknown as {
+					accountEngine: {
+						runExclusive: <T>(fn: () => Promise<T>) => Promise<T>;
+					};
+				}
+			).accountEngine.runExclusive = async (fn) => {
+				owns = false;
+				return await fn();
+			};
+
+			await expect(
+				usageRouter
+					.createCaller(ctx)
+					.removeAccount({ agent: "claude", selection: profile }),
+			).rejects.toThrow("lock-loser");
+			expect(existsSync(profile)).toBe(true);
+			expect(invalidate).not.toHaveBeenCalled();
+		} finally {
+			rmSync(profile, { recursive: true, force: true });
+		}
+	});
+
+	it("removes the profile when the lock is still held at the delete", async () => {
+		const profile = mkdtempSync(join(homedir(), ".claude-usage-router-lock-"));
+		try {
+			await usageRouter
+				.createCaller(lockContext(profile, () => true))
+				.removeAccount({ agent: "claude", selection: profile });
+
+			expect(existsSync(profile)).toBe(false);
+			expect(invalidate).toHaveBeenCalledWith(quotaEntryKey("claude", profile));
+		} finally {
+			rmSync(profile, { recursive: true, force: true });
+		}
 	});
 });
 
