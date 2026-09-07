@@ -1068,6 +1068,15 @@ async function activeIdentityMismatch(
  * read at all. Null when the write is safe — including when the caller offered
  * no expectation, which keeps today's behaviour, and when the store is empty,
  * since the save-back is what fills it.
+ *
+ * "Empty" is a READ question, so it is asked with the read flag: a
+ * system-default owner is one slot with two candidate paths, and a slot whose
+ * readable half holds no login while the half nobody could read holds one is
+ * not an empty slot — taking it for one waves the caller's expectation through
+ * on the store where it matters most. `anyFileCandidateUnreadable`, not
+ * `fileUnreadable`, which is false by construction whenever a readable
+ * candidate answered. Absent files set neither flag, so an ordinary default
+ * living in one half of its slot is still empty, and still filled.
  */
 async function ownerStoreMismatch(
 	ownerBinding: ClaudeLoginStoreRef,
@@ -1082,7 +1091,13 @@ async function ownerStoreMismatch(
 	);
 	const accountUuid = identity?.accountUuid ?? null;
 	if (accountUuid === expectedOwnerAccountId) return null;
-	if (accountUuid === null && !oauthOf(ownerRead)) return null;
+	if (
+		accountUuid === null &&
+		!oauthOf(ownerRead) &&
+		!ownerRead.anyFileCandidateUnreadable
+	) {
+		return null;
+	}
 	return `${storeDir(ownerBinding, ctx)} is signed in as account ${accountUuid ?? "none it names"}, not the expected ${expectedOwnerAccountId}`;
 }
 
@@ -1344,6 +1359,26 @@ export async function swapClaudeLogin(input: {
 				return failure(
 					"invalid-owner",
 					`${keychainStoreName(ownerNow, ownerBinding, ctx)}'s Keychain item exists but could not be read; refusing to write over it`,
+				);
+			}
+			// And the READ question of that same re-read, which the four write
+			// questions above cannot ask: `fileUnreadable` is false by construction
+			// whenever the readable candidate won, so a system-default owner — the
+			// one ref with two candidate paths — whose OTHER half went unread
+			// arrives here looking perfectly intact. That half may hold the copy
+			// the CLI actually rotated, and saving the active dir's login over the
+			// half that did answer leaves ONE Claude slot holding two different
+			// logins, with the live token in the half nobody read. `wouldRegress`
+			// cannot stand in: it weighs this payload against the copy that
+			// answered, never against the one that did not. Inside the regress
+			// block with the others and never above it — a save-back the regress
+			// check skips writes nothing to this dir, which is what round 26 moved
+			// these guards here for — and asked of `ownerNow`, the snapshot this
+			// write merges and the rollback restores from.
+			if (ownerNow.anyFileCandidateUnreadable) {
+				return failure(
+					"invalid-owner",
+					`${fileStoreName(ownerNow, ownerBinding, ctx)} exists but could not be read; refusing to save back into ${storeDir(ownerBinding, ctx)}'s other half, which may hold the newer login`,
 				);
 			}
 			const planned = await planStoreWrite(ownerBinding, ownerNow, ctx);

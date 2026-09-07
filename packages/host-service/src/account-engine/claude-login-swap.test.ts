@@ -2287,6 +2287,139 @@ describe("swapClaudeLogin with the system-default account", () => {
 		);
 		expect(existsSync(f.systemDefault)).toBe(false);
 	});
+
+	// The save-back asks four WRITE questions of the owner's store, and
+	// `wouldRegress` — which of the two copies is newer — is a READ question
+	// none of them cover. Measured before this guard: with the rotated login
+	// in an unreadable `~/.config/claude` and the older copy in `~/.claude`,
+	// the swap returned ok:true and wrote the active dir's copy over the half
+	// that answered — one Claude slot holding two different logins, the live
+	// token in the half nobody read.
+	it("refuses the save-back when the default slot's other half went unread", async () => {
+		if (process.getuid?.() === 0) return;
+		const f = fixture();
+		writeCredentials(f.systemDefault, {
+			claudeAiOauth: oauth("t-sys-old", 1_000),
+			mcpOAuth: { "sys-server": { token: "m-sys" } },
+		});
+		const configDir = makeDir(join(f.home, ".config", "claude"));
+		const newerHalf = join(configDir, "credentials.json");
+		writeFileSync(
+			newerHalf,
+			JSON.stringify({ claudeAiOauth: oauth("t-sys-new", 9_000) }),
+			{ mode: 0o600 },
+		);
+		chmodSync(newerHalf, 0o000);
+		writeFileSync(
+			join(f.home, ".claude.json"),
+			JSON.stringify(identity("sys")),
+		);
+		writeCredentials(f.activeDir, {
+			claudeAiOauth: oauth("t-sys-refreshed", 5_000),
+		});
+		writeFileSync(
+			join(f.activeDir, ".claude.json"),
+			JSON.stringify(identity("sys")),
+		);
+		const before = readCredentials(f.activeDir);
+
+		try {
+			const result = await swapClaudeLogin({
+				target: asProfile(f.profileB),
+				ownerBinding: SYSTEM_DEFAULT,
+				activeDir: f.activeDir,
+				deps: f.deps,
+			});
+
+			expect(result).toMatchObject({ ok: false, code: "invalid-owner" });
+			if (result.ok) throw new Error("expected a refusal");
+			// The half nobody could read, which is the file the user has to
+			// repair — not the one that answered.
+			expect(result.reason).toContain(newerHalf);
+		} finally {
+			chmodSync(newerHalf, 0o600);
+		}
+		// No split slot: the half that answered still holds its own login and
+		// its siblings, and the active dir was never swapped.
+		expect(readCredentials(f.systemDefault)).toEqual({
+			claudeAiOauth: oauth("t-sys-old", 1_000),
+			mcpOAuth: { "sys-server": { token: "m-sys" } },
+		});
+		expect(readCredentials(f.activeDir)).toEqual(before);
+	});
+
+	// The same invariant one step earlier: `ownerStoreMismatch` waves an empty
+	// store through because the save-back is what fills it, and a slot whose
+	// readable half holds no login while the half nobody read holds one is not
+	// an empty slot. Measured before this guard: the caller's expectation was
+	// skipped on exactly the store it was offered for.
+	it("does not take a half-read default slot for an empty one", async () => {
+		if (process.getuid?.() === 0) return;
+		const f = fixture();
+		// `~/.claude` parses and holds no login — the half the CLI signed out
+		// of — while the login sits in the half that will not open.
+		writeCredentials(f.systemDefault, {
+			mcpOAuth: { "sys-server": { token: "m-sys" } },
+		});
+		const configDir = makeDir(join(f.home, ".config", "claude"));
+		const unreadHalf = join(configDir, "credentials.json");
+		writeFileSync(
+			unreadHalf,
+			JSON.stringify({ claudeAiOauth: oauth("t-sys", 9_000) }),
+			{ mode: 0o600 },
+		);
+		chmodSync(unreadHalf, 0o000);
+
+		try {
+			const result = await swapClaudeLogin({
+				target: asProfile(f.profileB),
+				ownerBinding: SYSTEM_DEFAULT,
+				expectedOwnerAccountId: "uuid-a",
+				activeDir: f.activeDir,
+				deps: f.deps,
+			});
+
+			expect(result).toMatchObject({ ok: false, code: "owner-unknown" });
+			if (result.ok) throw new Error("expected a refusal");
+			expect(result.reason).toContain("uuid-a");
+		} finally {
+			chmodSync(unreadHalf, 0o600);
+		}
+		// The expectation was asked before anything was written, so the half
+		// that answered still holds only its siblings.
+		expect(readCredentials(f.systemDefault)).toEqual({
+			mcpOAuth: { "sys-server": { token: "m-sys" } },
+		});
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+	});
+
+	// The legitimate shape neither guard may touch: a default living in one
+	// half of its slot sets no unread flag, so the store is empty, the
+	// expectation is waved through, and the save-back is what fills it.
+	it("still fills an empty default slot the save-back is meant to fill", async () => {
+		const f = fixture();
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: SYSTEM_DEFAULT,
+			expectedOwnerAccountId: "uuid-a",
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		expect(readCredentials(f.systemDefault).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+		expect(readFileSync(join(f.home, ".claude.json"), "utf-8")).toContain(
+			"uuid-a",
+		);
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-b", 2_000),
+		);
+	});
 });
 
 interface KeychainItem {
