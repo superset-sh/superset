@@ -370,3 +370,9 @@
 		margin: 0;
 	}
 }
+
+/* Embedded documents hit-test ahead of the host; while a host gesture is in
+   flight they yield to it. See renderer/lib/pointer-passthrough.ts. */
+html[data-pointer-passthrough] iframe {
+	pointer-events: none;
+}

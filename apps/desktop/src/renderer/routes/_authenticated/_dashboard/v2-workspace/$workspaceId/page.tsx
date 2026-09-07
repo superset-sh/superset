@@ -38,7 +38,6 @@ import { WorkspaceEmptyState } from "./components/WorkspaceEmptyState";
 import { WorkspaceMissingWorktreeState } from "./components/WorkspaceMissingWorktreeState";
 import { WorkspaceSidebar } from "./components/WorkspaceSidebar";
 import { useAutoAdoptBackgroundSessions } from "./hooks/useAutoAdoptBackgroundSessions";
-import { useBrowserShellInteractionPassthrough } from "./hooks/useBrowserShellInteractionPassthrough";
 import { useClearActivePaneAttention } from "./hooks/useClearActivePaneAttention";
 import { useConsumeAutomationRunLink } from "./hooks/useConsumeAutomationRunLink";
 import { useConsumeOpenUrlRequest } from "./hooks/useConsumeOpenUrlRequest";
@@ -50,6 +49,7 @@ import { usePagePaneIntentOpener } from "./hooks/usePagePaneIntentOpener";
 import { usePaneRegistry } from "./hooks/usePaneRegistry";
 import { renderBrowserTabIcon } from "./hooks/usePaneRegistry/components/BrowserPane";
 import { useRunWorkspaceCreationPresets } from "./hooks/useRunWorkspaceCreationPresets";
+import { useShellInteractionPassthrough } from "./hooks/useShellInteractionPassthrough";
 import { useSlotElement } from "./hooks/useSlotElement";
 import { useTabCloseGuard } from "./hooks/useTabCloseGuard";
 import { useV2PresetExecution } from "./hooks/useV2PresetExecution";
@@ -272,7 +272,7 @@ function V2WorkspaceContent() {
 	const sidebarWidth = v2UserPreferences.rightSidebarWidth ?? 340;
 	const [isSidebarResizing, setIsSidebarResizing] = useState(false);
 	const { onSidebarResizeDragging, onWorkspaceInteractionStateChange } =
-		useBrowserShellInteractionPassthrough({ sidebarOpen });
+		useShellInteractionPassthrough({ sidebarOpen });
 	const handleSidebarResizingChange = useCallback(
 		(resizing: boolean) => {
 			setIsSidebarResizing(resizing);

@@ -1,46 +1,14 @@
 import type { RendererContext } from "@superset/panes";
 import { useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-	getDispatchChord,
-	type HotkeyId,
-	resolveHotkeyFromEvent,
-	useHotkeyOverridesStore,
-	useKeyboardPreferencesStore,
-} from "renderer/hotkeys";
-import { useKeyboardLayoutStore } from "renderer/hotkeys/stores/keyboardLayoutStore";
+import { replayForwardedKey } from "renderer/hotkeys";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type {
 	BrowserPaneData,
 	PaneViewerData,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
-import { canonicalizeChord } from "shared/hotkey-chord";
 import { browserRuntimeRegistry } from "../../browserRuntimeRegistry";
 import { DEFAULT_BROWSER_URL } from "../../constants";
-
-// Hotkeys the pane replays onto the host document when the guest forwards a
-// keystroke. Scoped to tab switching and zoom: no registered menu accelerator
-// (so replaying can't double-fire) and not page shortcuts. The main process is
-// synced these chords so it suppresses + forwards only them — see the
-// forwardable-chord sync below.
-const FORWARDABLE_HOTKEYS = new Set<HotkeyId>([
-	"ZOOM_IN",
-	"ZOOM_OUT",
-	"ZOOM_RESET",
-	"PREV_TAB",
-	"NEXT_TAB",
-	"PREV_TAB_ALT",
-	"NEXT_TAB_ALT",
-	"JUMP_TO_TAB_1",
-	"JUMP_TO_TAB_2",
-	"JUMP_TO_TAB_3",
-	"JUMP_TO_TAB_4",
-	"JUMP_TO_TAB_5",
-	"JUMP_TO_TAB_6",
-	"JUMP_TO_TAB_7",
-	"JUMP_TO_TAB_8",
-	"JUMP_TO_TAB_9",
-]);
 
 interface UsePersistentWebviewOptions {
 	paneId: string;
@@ -149,30 +117,11 @@ export function usePersistentWebview({
 				},
 			},
 		);
-		// Replay forwarded chords onto the host document so react-hotkeys-hook
-		// picks them up. Re-gated to tab-switch hotkeys in case the main set lags.
+		// Chords the main process suppressed in the focused guest, replayed
+		// onto the host document so react-hotkeys-hook picks them up.
 		const keyForwardSub = electronTrpcClient.browser.onKeyForward.subscribe(
 			{ paneId },
-			{
-				onData: (key) => {
-					const init: KeyboardEventInit = {
-						key: key.key,
-						code: key.code,
-						metaKey: key.meta,
-						ctrlKey: key.control,
-						altKey: key.alt,
-						shiftKey: key.shift,
-						bubbles: true,
-						cancelable: true,
-					};
-					const id = resolveHotkeyFromEvent(new KeyboardEvent("keydown", init));
-					if (!id || !FORWARDABLE_HOTKEYS.has(id)) return;
-					document.dispatchEvent(new KeyboardEvent("keydown", init));
-					// keyup balances react-hotkeys-hook's pressed-key set; without it
-					// the key stays stuck as "pressed".
-					document.dispatchEvent(new KeyboardEvent("keyup", init));
-				},
-			},
+			{ onData: replayForwardedKey },
 		);
 		return () => {
 			newWindowSub.unsubscribe();
@@ -182,34 +131,6 @@ export function usePersistentWebview({
 			keyForwardSub.unsubscribe();
 		};
 	}, [paneId]);
-
-	// Sync the main process's forwardable-chord set with the current bindings,
-	// recomputing on the same remap / layout / preference changes that rebuild
-	// `resolveHotkeyFromEvent`'s index.
-	useEffect(() => {
-		const push = () => {
-			const chords = [...FORWARDABLE_HOTKEYS]
-				.map((id) => getDispatchChord(id))
-				.filter((chord): chord is string => chord !== null)
-				.map(canonicalizeChord);
-			electronTrpcClient.browser.setForwardableChords
-				.mutate({ chords })
-				.catch((error) => {
-					// Stale main-process suppression means webview tab-switch hotkeys
-					// silently stop working — leave a trace.
-					console.warn("[browser] failed to sync forwardable chords", error);
-				});
-		};
-		push();
-		const unsubs = [
-			useHotkeyOverridesStore.subscribe(push),
-			useKeyboardLayoutStore.subscribe(push),
-			useKeyboardPreferencesStore.subscribe(push),
-		];
-		return () => {
-			for (const unsub of unsubs) unsub();
-		};
-	}, []);
 
 	const goBack = useCallback(() => {
 		browserRuntimeRegistry.goBack(paneId);

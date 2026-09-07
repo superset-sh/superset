@@ -1,3 +1,4 @@
+import { pointerPassthrough } from "renderer/lib/pointer-passthrough";
 import { selectRuntimesToEvict } from "renderer/lib/terminal/terminal-runtime-eviction";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { BrowserLoadError } from "shared/tabs-types";
@@ -86,14 +87,6 @@ class BrowserRuntimeRegistryImpl {
 	private pendingEviction: ReturnType<typeof setTimeout> | null = null;
 	private rootContainer: HTMLDivElement | null = null;
 	private globalListenersInstalled = false;
-	private windowDragPassthrough = false;
-	private shellInteractionPassthrough = false;
-	// Panes whose host popover (the toolbar's overflow menu) is open. The
-	// webview swallows pointer events, so a click on the page would never
-	// reach the document listener Radix dismisses on; passing the click
-	// through to the host lets it dismiss the popover instead, as in a real
-	// browser. Keyed by pane so one pane closing can't drop another's.
-	private hostPopoverOpenPaneIds = new Set<string>();
 	// Panes an agent is driving (live CDP session or in-flight capture, fed
 	// by the main process). Parked presentable instead of hidden — a
 	// visibility-hidden webview gets no compositor frames, so CDP
@@ -138,26 +131,17 @@ class BrowserRuntimeRegistryImpl {
 		return root;
 	}
 
+	constructor() {
+		// Webviews are hoisted to <body>, out of reach of the stylesheet rule
+		// that handles iframes, so the passthrough state is mirrored onto them.
+		pointerPassthrough.subscribe((active) =>
+			this.applyPointerPassthrough(active),
+		);
+	}
+
 	private installGlobalListeners() {
 		if (this.globalListenersInstalled) return;
 		this.globalListenersInstalled = true;
-
-		window.addEventListener(
-			"dragstart",
-			() => this.setWindowDragPassthrough(true),
-			true,
-		);
-		window.addEventListener(
-			"dragend",
-			() => this.setWindowDragPassthrough(false),
-			true,
-		);
-		window.addEventListener(
-			"drop",
-			() => this.setWindowDragPassthrough(false),
-			true,
-		);
-		window.addEventListener("blur", () => this.setWindowDragPassthrough(false));
 
 		window.addEventListener("resize", () => {
 			for (const entry of this.entries.values()) {
@@ -198,40 +182,7 @@ class BrowserRuntimeRegistryImpl {
 		entry.overlay.style.visibility = "hidden";
 	}
 
-	private setWindowDragPassthrough(passthrough: boolean) {
-		const wasActive = this.isPointerPassthroughActive();
-		this.windowDragPassthrough = passthrough;
-		this.applyPointerPassthroughIfChanged(wasActive);
-	}
-
-	setShellInteractionPassthrough(passthrough: boolean): void {
-		const wasActive = this.isPointerPassthroughActive();
-		this.shellInteractionPassthrough = passthrough;
-		this.applyPointerPassthroughIfChanged(wasActive);
-	}
-
-	setHostPopoverOpen(paneId: string, open: boolean): void {
-		const wasActive = this.isPointerPassthroughActive();
-		if (open) this.hostPopoverOpenPaneIds.add(paneId);
-		else this.hostPopoverOpenPaneIds.delete(paneId);
-		this.applyPointerPassthroughIfChanged(wasActive);
-	}
-
-	private isPointerPassthroughActive() {
-		return (
-			this.windowDragPassthrough ||
-			this.shellInteractionPassthrough ||
-			this.hostPopoverOpenPaneIds.size > 0
-		);
-	}
-
-	private applyPointerPassthroughIfChanged(wasActive: boolean) {
-		const isActive = this.isPointerPassthroughActive();
-		if (wasActive !== isActive) this.applyPointerPassthrough();
-	}
-
-	private applyPointerPassthrough() {
-		const passthrough = this.isPointerPassthroughActive();
+	private applyPointerPassthrough(passthrough: boolean) {
 		for (const entry of this.entries.values()) {
 			if (!entry.visible) continue;
 			entry.webview.style.pointerEvents = passthrough ? "none" : "auto";
@@ -574,7 +525,7 @@ class BrowserRuntimeRegistryImpl {
 		entry.webview.style.visibility = "visible";
 		entry.webview.style.opacity = "";
 		entry.overlay.style.visibility = "visible";
-		this.applyPointerPassthrough();
+		this.applyPointerPassthrough(pointerPassthrough.active);
 	}
 
 	detach(paneId: string): void {

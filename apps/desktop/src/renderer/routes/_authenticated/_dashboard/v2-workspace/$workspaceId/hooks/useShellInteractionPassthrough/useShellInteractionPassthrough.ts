@@ -1,19 +1,27 @@
 import type { WorkspaceInteractionState } from "@superset/panes";
 import { useCallback, useEffect, useRef } from "react";
-import { browserRuntimeRegistry } from "../usePaneRegistry/components/BrowserPane";
+import { pointerPassthrough } from "renderer/lib/pointer-passthrough";
 
-interface UseBrowserShellInteractionPassthroughArgs {
+const SOURCE = "shell-resize";
+
+interface UseShellInteractionPassthroughArgs {
 	sidebarOpen: boolean;
 }
 
-export function useBrowserShellInteractionPassthrough({
+/**
+ * A split or sidebar resize tracks the pointer on the host document; a
+ * hoisted webview under the pointer would swallow the moves and stall the
+ * drag, so embeds yield to the gesture for its duration.
+ */
+export function useShellInteractionPassthrough({
 	sidebarOpen,
-}: UseBrowserShellInteractionPassthroughArgs) {
+}: UseShellInteractionPassthroughArgs) {
 	const workspaceResizeActiveRef = useRef(false);
 	const sidebarResizeActiveRef = useRef(false);
 
 	const syncBrowserShellInteractionPassthrough = useCallback(() => {
-		browserRuntimeRegistry.setShellInteractionPassthrough(
+		pointerPassthrough.set(
+			SOURCE,
 			workspaceResizeActiveRef.current || sidebarResizeActiveRef.current,
 		);
 	}, []);
@@ -37,7 +45,7 @@ export function useBrowserShellInteractionPassthrough({
 	const clearBrowserShellInteractionPassthrough = useCallback(() => {
 		workspaceResizeActiveRef.current = false;
 		sidebarResizeActiveRef.current = false;
-		browserRuntimeRegistry.setShellInteractionPassthrough(false);
+		pointerPassthrough.set(SOURCE, false);
 	}, []);
 
 	useEffect(() => {

@@ -470,6 +470,7 @@ export async function createPlatformWindow({
 	}
 
 	ipcHandler?.attachWindow(window);
+	browserManager.registerHostWindow(window.webContents);
 
 	// macOS Sequoia+: occluded/minimized windows can lose compositor layers
 	if (PLATFORM.IS_MAC) {

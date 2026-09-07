@@ -15,6 +15,11 @@ mock.module("renderer/lib/trpc-client", () => ({
 	},
 }));
 
+(
+	document.documentElement as unknown as Record<string, unknown>
+).toggleAttribute = mock(() => {});
+
+const { pointerPassthrough } = await import("renderer/lib/pointer-passthrough");
 const { browserRuntimeRegistry } = await import("./browserRuntimeRegistry");
 
 describe("browserRuntimeRegistry detached persistence", () => {
@@ -126,41 +131,32 @@ describe("browserRuntimeRegistry detached persistence", () => {
 	});
 });
 
-describe("browserRuntimeRegistry host popover passthrough", () => {
-	test("keeps webviews passed through until the last open popover closes", () => {
-		const makeEntry = () => ({
+describe("browserRuntimeRegistry pointer passthrough", () => {
+	test("mirrors the passthrough state onto visible webviews only", () => {
+		const makeEntry = (visible: boolean) => ({
 			webview: { style: { pointerEvents: "auto" } },
 			overlay: { style: {} },
-			visible: true,
+			visible,
 		});
-		const a = makeEntry();
-		const b = makeEntry();
+		const shown = makeEntry(true);
+		const parked = makeEntry(false);
 		const registryInternals = browserRuntimeRegistry as unknown as {
 			entries: Map<string, ReturnType<typeof makeEntry>>;
 		};
-		registryInternals.entries.set("popover-pane-a", a);
-		registryInternals.entries.set("popover-pane-b", b);
+		registryInternals.entries.set("passthrough-shown", shown);
+		registryInternals.entries.set("passthrough-parked", parked);
 
 		try {
-			browserRuntimeRegistry.setHostPopoverOpen("popover-pane-a", true);
-			browserRuntimeRegistry.setHostPopoverOpen("popover-pane-b", true);
-			expect(a.webview.style.pointerEvents).toBe("none");
-			expect(b.webview.style.pointerEvents).toBe("none");
+			pointerPassthrough.set("test-gesture", true);
+			expect(shown.webview.style.pointerEvents).toBe("none");
+			expect(parked.webview.style.pointerEvents).toBe("auto");
 
-			// One pane closing (or unmounting) must not restore pointer events
-			// while another pane's popover is still open.
-			browserRuntimeRegistry.setHostPopoverOpen("popover-pane-b", false);
-			expect(a.webview.style.pointerEvents).toBe("none");
-			expect(b.webview.style.pointerEvents).toBe("none");
-
-			browserRuntimeRegistry.setHostPopoverOpen("popover-pane-a", false);
-			expect(a.webview.style.pointerEvents).toBe("auto");
-			expect(b.webview.style.pointerEvents).toBe("auto");
+			pointerPassthrough.set("test-gesture", false);
+			expect(shown.webview.style.pointerEvents).toBe("auto");
 		} finally {
-			browserRuntimeRegistry.setHostPopoverOpen("popover-pane-a", false);
-			browserRuntimeRegistry.setHostPopoverOpen("popover-pane-b", false);
-			registryInternals.entries.delete("popover-pane-a");
-			registryInternals.entries.delete("popover-pane-b");
+			pointerPassthrough.set("test-gesture", false);
+			registryInternals.entries.delete("passthrough-shown");
+			registryInternals.entries.delete("passthrough-parked");
 		}
 	});
 });
