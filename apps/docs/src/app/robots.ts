@@ -6,8 +6,10 @@ export default function robots(): MetadataRoute.Robots {
 		rules: [
 			{
 				userAgent: "*",
+				// No /_next/ block: Google needs build assets (CSS, JS, fonts) to
+				// render pages, and blocking them triggers Search Console reports.
 				allow: "/",
-				disallow: ["/api/", "/_next/", "/llms.mdx/", "/llms-full.txt"],
+				disallow: ["/api/", "/llms.mdx/", "/llms-full.txt"],
 			},
 		],
 		sitemap: `${COMPANY.DOCS_URL}/sitemap.xml`,
