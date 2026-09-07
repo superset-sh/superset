@@ -22,39 +22,38 @@ fi
 # terminal-level agent status, notifications, or the session id binding —
 # only the main loop counts. It is forwarded separately so the host can keep
 # a per-terminal roster of live subagents (see notifications.hook).
-SUBAGENT_ID=$(echo "$INPUT" | grep -oE '"agent_id"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
-SUBAGENT_TYPE=$(echo "$INPUT" | grep -oE '"agent_type"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+# Snake_case is the Claude schema shared by Codex and most forks; camelCase
+# covers harnesses that serialize like Grok. Add an alias here, nothing
+# downstream cares which spelling arrived.
+json_field() {
+  for KEY in "$@"; do
+    VALUE=$(echo "$INPUT" | grep -oE "\"$KEY\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" | grep -oE '"[^"]*"$' | tr -d '"')
+    [ -n "$VALUE" ] && { printf '%s' "$VALUE"; return; }
+  done
+}
+SUBAGENT_ID=$(json_field agent_id agentId)
+SUBAGENT_TYPE=$(json_field agent_type agentType)
 # transcript_path is the file the hook ran against (Claude: the parent
 # session; Codex: the child's own rollout); agent_transcript_path is the
 # child's transcript on SubagentStop. The host derives the child's file from
 # them so the subagent pane can follow it.
-TRANSCRIPT_PATH=$(echo "$INPUT" | grep -oE '"transcript_path"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
-AGENT_TRANSCRIPT_PATH=$(echo "$INPUT" | grep -oE '"agent_transcript_path"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+TRANSCRIPT_PATH=$(json_field transcript_path transcriptPath)
+AGENT_TRANSCRIPT_PATH=$(json_field agent_transcript_path agentTranscriptPath)
 
-HOOK_SESSION_ID=$(echo "$INPUT" | grep -oE '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
-if [ -z "$HOOK_SESSION_ID" ]; then
-  # Grok's envelope is camelCase.
-  HOOK_SESSION_ID=$(echo "$INPUT" | grep -oE '"sessionId"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
-fi
-RESOURCE_ID=$(echo "$INPUT" | grep -oE '"resourceId"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
-if [ -z "$RESOURCE_ID" ]; then
-  RESOURCE_ID=$(echo "$INPUT" | grep -oE '"resource_id"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
-fi
+HOOK_SESSION_ID=$(json_field session_id sessionId)
+RESOURCE_ID=$(json_field resourceId resource_id)
 SESSION_ID=${RESOURCE_ID:-$HOOK_SESSION_ID}
 if [ -z "$SESSION_ID" ]; then
   # Codex's legacy notify callback (agent-turn-complete) carries the
   # resumable id as thread-id — the same id `codex resume` takes.
-  SESSION_ID=$(echo "$INPUT" | grep -oE '"thread[-_]id"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+  SESSION_ID=$(json_field thread-id thread_id)
 fi
 
 # Claude/Mastra/Droid/Kimi use "hook_event_name"; Grok uses camelCase
 # "hookEventName" (snake_case values, mapped server-side); Codex uses "type".
-EVENT_TYPE=$(echo "$INPUT" | grep -oE '"hook_event_name"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+EVENT_TYPE=$(json_field hook_event_name hookEventName)
 if [ -z "$EVENT_TYPE" ]; then
-  EVENT_TYPE=$(echo "$INPUT" | grep -oE '"hookEventName"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
-fi
-if [ -z "$EVENT_TYPE" ]; then
-  CODEX_TYPE=$(echo "$INPUT" | grep -oE '"type"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+  CODEX_TYPE=$(json_field type)
   case "$CODEX_TYPE" in
     agent-turn-complete|task_complete) EVENT_TYPE="Stop" ;;
     task_started) EVENT_TYPE="Start" ;;
@@ -71,7 +70,7 @@ fi
 # --always-approve so tool approvals rarely prompt). Keep the case pattern
 # in sync with GROK_BLOCKING_NOTIFICATION_TYPES in agent-wrappers-grok.ts.
 if [ "$EVENT_TYPE" = "notification" ]; then
-  NOTIFICATION_TYPE=$(echo "$INPUT" | grep -oE '"notificationType"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+  NOTIFICATION_TYPE=$(json_field notificationType notification_type)
   case "$NOTIFICATION_TYPE" in
     permission_prompt|elicitation_dialog) EVENT_TYPE="PermissionRequest" ;;
     *) exit 0 ;;

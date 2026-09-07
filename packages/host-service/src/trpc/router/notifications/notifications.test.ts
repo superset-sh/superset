@@ -208,6 +208,48 @@ describe("notificationsRouter.hook", () => {
 		expect(broadcastAgentLifecycle).toHaveBeenCalledTimes(1);
 	});
 
+	it("resolves transcript paths with the parent binding's harness", async () => {
+		const { ctx, terminalAgentStore } = createContext("workspace-1");
+		const caller = notificationsRouter.createCaller(ctx);
+
+		await caller.hook({
+			terminalId: "terminal-claude",
+			eventType: "Start",
+			agent: { agentId: "claude", sessionId: "parent" },
+		});
+		await caller.hook({
+			terminalId: "terminal-claude",
+			eventType: "SubagentStart",
+			subagent: {
+				id: "child",
+				sessionId: "parent",
+				transcriptPath: "/sessions/parent.jsonl",
+			},
+		});
+
+		await caller.hook({
+			terminalId: "terminal-codex",
+			eventType: "Start",
+			agent: { agentId: "codex", sessionId: "parent" },
+		});
+		await caller.hook({
+			terminalId: "terminal-codex",
+			eventType: "SubagentStart",
+			subagent: {
+				id: "child",
+				sessionId: "parent",
+				transcriptPath: "/sessions/parent.jsonl",
+			},
+		});
+
+		expect(
+			terminalAgentStore.get("terminal-claude")?.subagents?.[0]?.transcriptPath,
+		).toBe("/sessions/parent/subagents/agent-child.jsonl");
+		expect(
+			terminalAgentStore.get("terminal-codex")?.subagents?.[0]?.transcriptPath,
+		).toBe("/sessions/parent.jsonl");
+	});
+
 	it("derives workspaceId from terminalId before broadcasting", async () => {
 		const { ctx, broadcastAgentLifecycle, findFirst } =
 			createContext("workspace-1");

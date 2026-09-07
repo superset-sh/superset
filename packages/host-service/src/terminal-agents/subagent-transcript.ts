@@ -1,5 +1,4 @@
 import fs from "node:fs";
-import path from "node:path";
 
 /**
  * One row of a subagent transcript as the subagent pane renders it. Both
@@ -26,33 +25,6 @@ export interface SubagentTranscript {
 /** Tail this much of a large transcript; the pane wants the recent story. */
 const MAX_READ_BYTES = 2 * 1024 * 1024;
 const MAX_ENTRY_CHARS = 4000;
-
-/**
- * The child's transcript path from what a hook event carries. Claude's
- * hooks run against the parent session file (`<dir>/<sessionId>.jsonl`)
- * while the child writes `<dir>/<sessionId>/subagents/agent-<id>.jsonl`;
- * Codex's child hooks run against the child's own rollout, and SubagentStop
- * names the child directly for both.
- */
-export function resolveSubagentTranscriptPath(input: {
-	subagentId: string;
-	sessionId?: string;
-	transcriptPath?: string;
-	agentTranscriptPath?: string;
-}): string | undefined {
-	if (input.agentTranscriptPath) return input.agentTranscriptPath;
-	const { transcriptPath, sessionId, subagentId } = input;
-	if (!transcriptPath) return undefined;
-	if (sessionId && path.basename(transcriptPath) === `${sessionId}.jsonl`) {
-		return path.join(
-			path.dirname(transcriptPath),
-			sessionId,
-			"subagents",
-			`agent-${subagentId}.jsonl`,
-		);
-	}
-	return transcriptPath;
-}
 
 function clip(text: string): string {
 	return text.length > MAX_ENTRY_CHARS
@@ -330,34 +302,14 @@ export function parseCodexRolloutTranscript(text: string): {
 	return { entries, description };
 }
 
-function isClaudeSubagentPath(transcriptPath: string): boolean {
-	return path.basename(path.dirname(transcriptPath)) === "subagents";
-}
-
 /**
- * Claude writes `agent-<id>.meta.json` beside the transcript with the Task
- * description the parent gave the child.
+ * The tail of a transcript file, at most {@link MAX_READ_BYTES}, with the
+ * partial first line of a tailed read dropped. Null when the file does not
+ * exist yet.
  */
-function readClaudeDescription(transcriptPath: string): string | undefined {
-	const metaPath = transcriptPath.replace(/\.jsonl$/, ".meta.json");
-	try {
-		const meta = JSON.parse(fs.readFileSync(metaPath, "utf8"));
-		return isRecord(meta) && typeof meta.description === "string"
-			? meta.description
-			: undefined;
-	} catch {
-		return undefined;
-	}
-}
-
-/**
- * Read and parse a child transcript, tailing very large files. Returns null
- * when the file does not exist yet — a child that has not flushed its first
- * record — so the pane can keep polling.
- */
-export function readSubagentTranscript(
+export function readTranscriptTail(
 	transcriptPath: string,
-): SubagentTranscript | null {
+): { text: string; size: number; mtimeMs: number } | null {
 	let stat: fs.Stats;
 	try {
 		stat = fs.statSync(transcriptPath);
@@ -374,24 +326,6 @@ export function readSubagentTranscript(
 	} finally {
 		fs.closeSync(fd);
 	}
-	if (start > 0) {
-		// Drop the partial first line of a tailed read.
-		text = text.slice(text.indexOf("\n") + 1);
-	}
-
-	if (isClaudeSubagentPath(transcriptPath)) {
-		return {
-			entries: parseClaudeSubagentTranscript(text),
-			description: readClaudeDescription(transcriptPath),
-			size: stat.size,
-			mtimeMs: stat.mtimeMs,
-		};
-	}
-	const parsed = parseCodexRolloutTranscript(text);
-	return {
-		entries: parsed.entries,
-		description: parsed.description,
-		size: stat.size,
-		mtimeMs: stat.mtimeMs,
-	};
+	if (start > 0) text = text.slice(text.indexOf("\n") + 1);
+	return { text, size: stat.size, mtimeMs: stat.mtimeMs };
 }

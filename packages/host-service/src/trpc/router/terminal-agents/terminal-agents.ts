@@ -23,7 +23,7 @@ import {
 	seedEndedTerminalAgentBinding,
 	unclaimResumeCandidateBinding,
 } from "../../../terminal-agents/persistence";
-import { readSubagentTranscript } from "../../../terminal-agents/subagent-transcript";
+import { readSubagentTranscript } from "../../../terminal-agents/subagent-harnesses";
 import { protectedProcedure, router } from "../../index";
 import {
 	type AgentRunResult,
@@ -313,10 +313,13 @@ export const terminalAgentsRouter = router({
 				input.subagentId,
 			);
 			if (!subagent) return null;
+			const parentAgentId = ctx.terminalAgentStore.get(
+				input.terminalId,
+			)?.agentId;
 			return {
 				subagent,
 				transcript: subagent.transcriptPath
-					? readSubagentTranscript(subagent.transcriptPath)
+					? readSubagentTranscript(parentAgentId, subagent.transcriptPath)
 					: null,
 			};
 		}),

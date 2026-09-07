@@ -127,7 +127,12 @@ export const notificationsRouter = router({
 		// out as an invalidation so the sidebar refetches bindings.
 		if (subagentId) {
 			const agentType = trimOrUndefined(input.subagent?.type);
-			const transcriptPath = resolveSubagentTranscriptPath({
+			// The parent binding's harness decides where the child's transcript
+			// lives; the hook only reports the paths it ran against.
+			const parentAgentId = ctx.terminalAgentStore.get(
+				input.terminalId,
+			)?.agentId;
+			const transcriptPath = resolveSubagentTranscriptPath(parentAgentId, {
 				subagentId,
 				sessionId: trimOrUndefined(input.subagent?.sessionId),
 				transcriptPath: trimOrUndefined(input.subagent?.transcriptPath),

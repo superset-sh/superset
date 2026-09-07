@@ -1,12 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import {
 	parseClaudeSubagentTranscript,
 	parseCodexRolloutTranscript,
-	readSubagentTranscript,
-	resolveSubagentTranscriptPath,
 } from "./subagent-transcript";
 
 const claudeLines = [
@@ -145,67 +140,5 @@ describe("parseCodexRolloutTranscript", () => {
 			["tool_result", "", "#!/bin/bash"],
 			["assistant", "", "It is a bash hook."],
 		]);
-	});
-});
-
-describe("resolveSubagentTranscriptPath", () => {
-	it("prefers the explicit child transcript from SubagentStop", () => {
-		expect(
-			resolveSubagentTranscriptPath({
-				subagentId: "a1",
-				sessionId: "s1",
-				transcriptPath: "/p/s1.jsonl",
-				agentTranscriptPath: "/p/s1/subagents/agent-a1.jsonl",
-			}),
-		).toBe("/p/s1/subagents/agent-a1.jsonl");
-	});
-
-	it("derives Claude's child file from the parent session transcript", () => {
-		expect(
-			resolveSubagentTranscriptPath({
-				subagentId: "a1",
-				sessionId: "s1",
-				transcriptPath: "/p/s1.jsonl",
-			}),
-		).toBe("/p/s1/subagents/agent-a1.jsonl");
-	});
-
-	it("keeps a Codex child's own rollout as is", () => {
-		expect(
-			resolveSubagentTranscriptPath({
-				subagentId: "child",
-				sessionId: "child",
-				transcriptPath:
-					"/codex/sessions/rollout-2026-09-06T06-39-08-child.jsonl",
-			}),
-		).toBe("/codex/sessions/rollout-2026-09-06T06-39-08-child.jsonl");
-	});
-});
-
-describe("readSubagentTranscript", () => {
-	it("returns null before the child has written anything", () => {
-		expect(readSubagentTranscript("/nonexistent/agent-x.jsonl")).toBeNull();
-	});
-
-	it("reads a Claude child transcript with its meta description", () => {
-		const dir = path.join(
-			mkdtempSync(path.join(tmpdir(), "subagent-transcript-")),
-			"s1",
-			"subagents",
-		);
-		mkdirSync(dir, { recursive: true });
-		const file = path.join(dir, "agent-a1.jsonl");
-		writeFileSync(
-			file,
-			claudeLines.map((line) => JSON.stringify(line)).join("\n"),
-		);
-		writeFileSync(
-			path.join(dir, "agent-a1.meta.json"),
-			JSON.stringify({ agentType: "Explore", description: "Count files" }),
-		);
-		const transcript = readSubagentTranscript(file);
-		expect(transcript?.description).toBe("Count files");
-		expect(transcript?.entries).toHaveLength(5);
-		expect(transcript?.size).toBeGreaterThan(0);
 	});
 });

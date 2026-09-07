@@ -104,7 +104,7 @@ function writeHookManifest(home: string, orgId: string, endpoint: string) {
 
 describe("getNotifyScriptContent", () => {
 	it("bumps the notify hook marker when hook semantics change", () => {
-		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v11");
+		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v12");
 	});
 
 	it("forwards hooks fired inside a subagent (agent_id present) to the host roster only", async () => {
@@ -139,6 +139,41 @@ describe("getNotifyScriptContent", () => {
 			// The child's session id rides inside `subagent` only, never as the
 			// terminal's agent identity.
 			expect(host.requests[0]?.json.agent).toBeUndefined();
+		} finally {
+			host.stop();
+		}
+	});
+
+	it("accepts camelCase aliases in a subagent hook payload", async () => {
+		const host = fakeHostService(false);
+		try {
+			const result = await runNotifyHookAsync(
+				{
+					hookEventName: "SubagentStop",
+					sessionId: "child-thread",
+					transcriptPath: "/tmp/sessions/parent.jsonl",
+					agentTranscriptPath: "/tmp/sessions/child.jsonl",
+					agentId: "child-1",
+					agentType: "Explore",
+				},
+				{ SUPERSET_HOST_AGENT_HOOK_URL: `${host.url}/trpc/notifications.hook` },
+			);
+			expect(result.exitCode).toBe(0);
+			expect(host.requests).toEqual([
+				{
+					json: {
+						terminalId: "terminal-test",
+						eventType: "SubagentStop",
+						subagent: {
+							id: "child-1",
+							type: "Explore",
+							sessionId: "child-thread",
+							transcriptPath: "/tmp/sessions/parent.jsonl",
+							agentTranscriptPath: "/tmp/sessions/child.jsonl",
+						},
+					},
+				},
+			]);
 		} finally {
 			host.stop();
 		}
@@ -181,7 +216,9 @@ describe("getNotifyScriptContent", () => {
 	it("emits the v2 host-service payload with full agent identity", () => {
 		const script = readNotifyHookTemplate();
 
-		expect(script).toContain('HOOK_SESSION_ID=$(echo "$INPUT"');
+		expect(script).toContain(
+			"HOOK_SESSION_ID=$(json_field session_id sessionId)",
+		);
 		expect(script).toContain(
 			'PAYLOAD="{\\"json\\":{\\"terminalId\\":\\"$(json_escape "$SUPERSET_TERMINAL_ID")\\",\\"eventType\\":\\"$(json_escape "$EVENT_TYPE")\\",\\"agent\\":{\\"agentId\\":\\"$(json_escape "$SUPERSET_AGENT_ID")\\",\\"sessionId\\":\\"$(json_escape "$SESSION_ID")\\"}}}"',
 		);
