@@ -1,6 +1,8 @@
 /**
  * KTD3: someone ran `/login` inside a session, so the active dir holds a
- * credential this host did not write. The tick adopts it — and the history row
+ * credential this host did not write — behind a switch this host *did* write,
+ * which is what tells the two readings apart. The tick adopts it — and the
+ * history row
  * that records the adoption is a log line, not the adoption itself. A history
  * file that cannot be appended to (a full disk, a state dir gone read-only for
  * this process) must not cost the tick its decision: without the guard the
@@ -15,7 +17,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { HostDb } from "../db/index.ts";
 import type { UsageAccount } from "../trpc/router/usage/types.ts";
-import { AccountEngine } from "./account-engine.ts";
+import { AccountEngine, type ActiveDirIdentity } from "./account-engine.ts";
 import type { ClaudeSwapResult } from "./claude-login-swap.ts";
 import { EngineState } from "./engine-state.ts";
 import type { AccountEngineHostDeps } from "./host-deps.ts";
@@ -24,17 +26,23 @@ import type { HistoryEntry } from "./types.ts";
 
 const T0 = 1_800_000_000_000;
 const ACTIVE_DIR = "/superset-home/accounts/claude-active";
-/** This tick adopts a login rather than swapping one in. */
-const NO_SWAP: ClaudeSwapResult = {
+/** Nothing is seeded here: the active dir already holds a login. */
+const NO_SEED: ClaudeSwapResult = {
 	ok: false,
 	code: "owner-unknown",
-	reason: "no login to swap in this test",
+	reason: "no login to seed in this test",
 };
 
-/** The state dir with an unwritable history file; everything else works. */
+/**
+ * The state dir whose history file stops taking rows — from `failing` on, so
+ * the switch that gives this host a `lastWritten` still records itself.
+ */
 class UnwritableHistory extends EngineState {
-	override appendHistory(_entry: HistoryEntry): void {
-		throw new Error("ENOSPC: no space left on device");
+	failing = false;
+
+	override appendHistory(entry: HistoryEntry): void {
+		if (this.failing) throw new Error("ENOSPC: no space left on device");
+		super.appendHistory(entry);
 	}
 }
 
@@ -84,8 +92,8 @@ function entryFor(account: UsageAccount): QuotaEntry {
 	};
 }
 
-/** Both well under the threshold: nothing here is due a switch. */
-function twoClaudeAccounts(): QuotaEntry[] {
+/** All well under the threshold: nothing here is due a switch. */
+function threeClaudeAccounts(): QuotaEntry[] {
 	return [
 		entryFor(usageAccount({})),
 		entryFor(
@@ -94,6 +102,14 @@ function twoClaudeAccounts(): QuotaEntry[] {
 				accountId: "acct-b",
 				selection: "/profiles/b",
 				email: "b@example.com",
+			}),
+		),
+		entryFor(
+			usageAccount({
+				accountKey: "key-c",
+				accountId: "acct-c",
+				selection: "/profiles/c",
+				email: "c@example.com",
 			}),
 		),
 	];
@@ -118,10 +134,15 @@ describe("adopting a login the host did not write", () => {
 	it("keeps the adoption when the history row cannot be written", async () => {
 		const state = new UnwritableHistory();
 		const runtime = state.readRuntime();
-		// What this host believes is active; the dir now holds acct-b's login.
+		// What this host believes is active before its own switch.
 		runtime.perAgent.claude.activeAccountId = "acct-a";
 		runtime.perAgent.claude.activeSelection = "/profiles/a";
 		state.writeRuntime(runtime);
+		// What the active dir holds; the switch below moves it, and the
+		// `/login` moves it again.
+		const dir: { current: ActiveDirIdentity } = {
+			current: { accountUuid: "acct-a", credentialHash: "hash-a" },
+		};
 
 		const switched: { toAccountId: string | null }[] = [];
 		const engine = new AccountEngine({
@@ -138,7 +159,7 @@ describe("adopting a login the host did not write", () => {
 				isBracketedPasteActive: () => true,
 			} satisfies AccountEngineHostDeps,
 			quotaStore: {
-				entries: () => twoClaudeAccounts(),
+				entries: () => threeClaudeAccounts(),
 				entry: () => undefined,
 				read: async () => [],
 				refreshDue: async () => {},
@@ -171,8 +192,18 @@ describe("adopting a login the host did not write", () => {
 				>) as unknown as typeof setInterval,
 			clearIntervalFn: (() => {}) as unknown as typeof clearInterval,
 			platform: "linux",
-			swap: async () => NO_SWAP,
-			seed: async () => NO_SWAP,
+			swap: async () => {
+				dir.current = { accountUuid: "acct-b", credentialHash: "hash-b" };
+				return {
+					ok: true,
+					identity: {
+						accountUuid: "acct-b",
+						emailAddress: null,
+						keys: { oauthAccount: { accountUuid: "acct-b" } },
+					},
+				};
+			},
+			seed: async () => NO_SEED,
 			ensureActiveDir: async () => ACTIVE_DIR,
 			setPointer: () => {},
 			readPointerSelections: () => ({
@@ -182,19 +213,26 @@ describe("adopting a login the host did not write", () => {
 			updateClaudeStateFile: async () => {},
 			setBindingRecorder: () => {},
 			resolveActiveDir: () => ACTIVE_DIR,
-			// A `/login` inside a session: a credential this host never wrote.
-			readActiveIdentity: async () => ({
-				accountUuid: "acct-b",
-				credentialHash: "hash-b",
-			}),
+			readActiveIdentity: async () => dir.current,
 			readCodexIdentity: async () => null,
 		});
 		expect(engine.setSettings("claude", { enabled: true }).ok).toBe(true);
+		// This host's own switch, so it knows what it last wrote — without that
+		// the tick below parks instead of adopting.
+		expect((await engine.switchManually("claude", "/profiles/b")).ok).toBe(
+			true,
+		);
+		// A `/login` inside a session: a credential this host never wrote.
+		dir.current = { accountUuid: "acct-c", credentialHash: "hash-c" };
+		state.failing = true;
 
 		await engine.tick();
 
 		// The bus tells the desktop which login it is on now.
-		expect(switched).toEqual([{ toAccountId: "acct-b" }]);
+		expect(switched).toEqual([
+			{ toAccountId: "acct-b" },
+			{ toAccountId: "acct-c" },
+		]);
 		// And the adoption is persisted, so the next tick does not repeat it.
 		const written = JSON.parse(
 			readFileSync(
@@ -202,6 +240,6 @@ describe("adopting a login the host did not write", () => {
 				"utf8",
 			),
 		) as { perAgent: { claude: { activeAccountId: string | null } } };
-		expect(written.perAgent.claude.activeAccountId).toBe("acct-b");
+		expect(written.perAgent.claude.activeAccountId).toBe("acct-c");
 	});
 });

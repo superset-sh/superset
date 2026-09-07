@@ -1793,6 +1793,25 @@ export class AccountEngine {
 		if (!this.ensureOwnership(this.now())) return;
 
 		const written = this.lastWritten;
+		// Nothing was written by *this* process: a host-service restart clears
+		// `lastWritten`, and it stays in memory on purpose — it holds a digest
+		// of the credential, which `runtime.json` may not carry, and it is a
+		// per-process fact in a host-wide file. Without it the two readings
+		// below cannot be told apart, so adopting here would name whoever
+		// `.claude.json` says while the dir may still hold the credential of
+		// the account this host recorded — and the next swap would save that
+		// credential back into the adopted account's store. Park instead, the
+		// way an ambiguous pair does: nothing is adopted, `activeAccountId`
+		// stands, and the next swap reads the dir and writes nothing back.
+		if (written === null) {
+			this.parkClaudeIdentity(
+				"[account-engine] the active Claude dir changed while this host was not running; not adopting it until its identity and credential agree.",
+				settings,
+				runtime,
+				now,
+			);
+			return;
+		}
 		// The credential is still the one we wrote, so only the identity block
 		// drifted: a running Claude Code rewrote `.claude.json` from memory.
 		const identityOnly =
@@ -1814,17 +1833,13 @@ export class AccountEngine {
 		if (ambiguous) {
 			// Re-assert nothing, adopt nothing, and let the next swap read the
 			// dir without saving anything back — a wrong guess either way writes
-			// one account's credential into the other's profile. Said once, and
-			// polling carries on until the pair agree again.
-			if (!this.claudeIdentityIndeterminate) {
-				this.claudeIdentityIndeterminate = true;
-				console.warn(
-					"[account-engine] the active Claude dir's identity and credential disagree; not re-asserting until they settle.",
-				);
-				this.broadcastState("claude", settings, runtime, now, {
-					lastSwitchFailure: { code: "owner-unknown", at: now },
-				});
-			}
+			// one account's credential into the other's profile.
+			this.parkClaudeIdentity(
+				"[account-engine] the active Claude dir's identity and credential disagree; not re-asserting until they settle.",
+				settings,
+				runtime,
+				now,
+			);
 			return;
 		}
 		if (written !== null && identityOnly) {
@@ -1894,6 +1909,26 @@ export class AccountEngine {
 			);
 		}
 		this.broadcast.switched(switchedPayload(entry));
+	}
+
+	/**
+	 * KTD3: nothing local says whose credential is in the active dir, so the
+	 * engine re-asserts nothing and adopts nothing until the dir's identity and
+	 * credential agree again — and the next swap reads it without saving
+	 * anything back. Said once; polling carries on.
+	 */
+	private parkClaudeIdentity(
+		warning: string,
+		settings: AutoSwitchSettings,
+		runtime: RuntimeState,
+		now: number,
+	): void {
+		if (this.claudeIdentityIndeterminate) return;
+		this.claudeIdentityIndeterminate = true;
+		console.warn(warning);
+		this.broadcastState("claude", settings, runtime, now, {
+			lastSwitchFailure: { code: "owner-unknown", at: now },
+		});
 	}
 
 	/**
