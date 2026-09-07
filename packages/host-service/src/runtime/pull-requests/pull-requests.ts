@@ -1215,7 +1215,8 @@ export class PullRequestRuntimeManager {
 	// caused a self-perpetuating storm under rate-limit / abuse-detection
 	// responses: the failure invalidated the cache, the next 20s tick
 	// retried, hit the same 403, and re-evicted. Network blips heal at the
-	// next TTL boundary instead.
+	// next TTL boundary instead. Gate-held calls are the exception: they never
+	// reached GitHub, and must retry as soon as another lookup restores access.
 	private cachedGitHubFetch<T>(
 		cache: Map<
 			string,
@@ -1249,7 +1250,12 @@ export class PullRequestRuntimeManager {
 			() => {
 				entry.consecutiveFailures = 0;
 			},
-			() => {
+			(error: unknown) => {
+				if (error instanceof GitHubUnreachableError) {
+					// Do not remove a newer bypass-cache request for the same key.
+					if (cache.get(cacheKey) === entry) cache.delete(cacheKey);
+					return;
+				}
 				// Re-anchor at the failure: a fetch that out-lives its own backoff
 				// window before rejecting must not be retried immediately.
 				entry.fetchedAt = Date.now();
@@ -1465,6 +1471,7 @@ export class PullRequestRuntimeManager {
 							),
 							fetchPullRequestChecks(octokit, repo, node.headRefOid),
 						]);
+						this.githubGate.recordSuccess();
 						reviewDecisionByNumber.set(node.number, reviewDecision);
 						checksByNumber.set(node.number, checks);
 					} catch (error) {
@@ -1510,6 +1517,7 @@ export class PullRequestRuntimeManager {
 								node.number,
 							),
 						);
+						this.githubGate.recordSuccess();
 					} catch (error) {
 						this.noteGitHubFailure(error);
 						console.warn(

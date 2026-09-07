@@ -126,12 +126,11 @@ describe("GitHubReachabilityGate", () => {
 	});
 
 	test("caps the hold at 30 minutes", () => {
-		const gate = new GitHubReachabilityGate({ now: () => 0 });
 		let block = 0;
 		let now = 0;
-		const gate2 = new GitHubReachabilityGate({ now: () => now });
+		const gate = new GitHubReachabilityGate({ now: () => now });
 		for (let i = 0; i < 12; i++) {
-			block = gate2.recordFailure(dns())?.holdMs ?? 0;
+			block = gate.recordFailure(dns())?.holdMs ?? 0;
 			now += block;
 		}
 		expect(block).toBe(30 * 60_000);
