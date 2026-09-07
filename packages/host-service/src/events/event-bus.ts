@@ -11,7 +11,12 @@ import { portManager } from "../ports/port-manager.ts";
 import { getLabelsForWorkspace } from "../ports/static-ports.ts";
 import type { WorkspaceFilesystemManager } from "../runtime/filesystem/index.ts";
 import type { GitWatcher } from "./git-watcher.ts";
-import type { ClientMessage, ServerMessage } from "./types.ts";
+import type {
+	ClientMessage,
+	DistributiveOmit,
+	ServerMessage,
+	TerminalLifecycleMessage,
+} from "./types.ts";
 
 type WsSocket = {
 	send: (data: string) => void;
@@ -47,9 +52,12 @@ type WorkspaceChangedListener = (
 	message: Omit<Extract<ServerMessage, { type: "workspace:changed" }>, "type">,
 ) => void;
 
-type TerminalLifecycleListener = (
-	message: Omit<Extract<ServerMessage, { type: "terminal:lifecycle" }>, "type">,
-) => void;
+export type TerminalLifecycleEvent = DistributiveOmit<
+	TerminalLifecycleMessage,
+	"type"
+>;
+
+type TerminalLifecycleListener = (message: TerminalLifecycleEvent) => void;
 
 function sendMessage(socket: WsSocket, message: ServerMessage): void {
 	if (socket.readyState !== 1) return;
@@ -248,12 +256,7 @@ export class EventBus {
 	 * status can otherwise get stuck when a terminal exits while its pane is not
 	 * mounted and therefore cannot observe the terminal websocket `exit` packet.
 	 */
-	broadcastTerminalLifecycle(
-		message: Omit<
-			Extract<ServerMessage, { type: "terminal:lifecycle" }>,
-			"type"
-		>,
-	): void {
+	broadcastTerminalLifecycle(message: TerminalLifecycleEvent): void {
 		for (const listener of this.terminalLifecycleListeners) {
 			try {
 				listener(message);

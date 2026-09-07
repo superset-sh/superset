@@ -63,6 +63,9 @@ export const terminalAgentBindings = sqliteTable(
 		// = deliberately killed (pane close, CLI kill) — never resumable.
 		endedAt: integer("ended_at"),
 		endReason: text("end_reason"),
+		// The terminal a "resumed" binding's session was relaunched into, so a
+		// pane that missed the relaunch can follow it there.
+		resumedIntoTerminalId: text("resumed_into_terminal_id"),
 	},
 	(table) => [
 		index("terminal_agent_bindings_workspace_id_idx").on(table.workspaceId),

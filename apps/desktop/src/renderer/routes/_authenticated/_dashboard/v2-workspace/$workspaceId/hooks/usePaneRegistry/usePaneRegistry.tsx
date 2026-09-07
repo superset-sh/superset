@@ -24,10 +24,12 @@ import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useMemo } from "react";
 import {
 	LuArrowDownToLine,
+	LuBot,
 	LuClipboard,
 	LuClipboardCopy,
 	LuEraser,
 	LuExternalLink,
+	LuLink,
 	LuPower,
 } from "react-icons/lu";
 import { useWorkspaceHostTarget } from "renderer/hooks/host-service/useWorkspaceHostUrl";
@@ -49,18 +51,24 @@ import {
 	getDocument,
 	useSharedFileDocument,
 } from "../../state/fileDocumentStore";
-import type {
-	BrowserPaneData,
-	ChatV3PaneData,
-	CommentPaneData,
-	DevtoolsPaneData,
-	FilePaneData,
-	PagePaneData,
-	PaneViewerData,
-	PullRequestPaneData,
-	TerminalPaneData,
+import {
+	type BrowserPaneData,
+	type ChatV3PaneData,
+	type CommentPaneData,
+	type DevtoolsPaneData,
+	type FilePaneData,
+	type PagePaneData,
+	type PaneViewerData,
+	type PullRequestPaneData,
+	SUBAGENT_PANE_KIND,
+	type SubagentPaneData,
+	type TerminalPaneData,
 } from "../../types";
-import { focusOrAddTerminalPane } from "../../utils/focusTerminalPane";
+import {
+	findTerminalPaneLocation,
+	focusOrAddTerminalPane,
+} from "../../utils/focusTerminalPane";
+import { openSubagentPaneInStore } from "../../utils/openSubagentPaneInStore";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
 import { BrowserPane, BrowserPaneToolbar } from "./components/BrowserPane";
 import { ChatV3Pane } from "./components/ChatV3Pane";
@@ -77,6 +85,7 @@ import { PagePaneHeaderExtras } from "./components/PagePaneHeaderExtras";
 import { PagePaneTitle } from "./components/PagePaneTitle";
 import { PullRequestPane } from "./components/PullRequestPane";
 import { PullRequestPaneHeaderExtras } from "./components/PullRequestPane/components/PullRequestPaneHeaderExtras";
+import { SubagentPane } from "./components/SubagentPane";
 import { TerminalPane } from "./components/TerminalPane";
 import { TerminalPaneHeaderExtras } from "./components/TerminalPane/components/TerminalPaneHeaderExtras";
 import { TerminalPaneIcon } from "./components/TerminalPane/components/TerminalPaneIcon";
@@ -439,6 +448,13 @@ export function usePaneRegistry({
 				},
 				onAfterClose: (pane) => {
 					const { terminalId } = pane.data as TerminalPaneData;
+					// Another pane still shows this terminal (one that followed a
+					// resumed session while its adopted duplicate closes): only
+					// this pane's runtime goes, the session stays.
+					if (findTerminalPaneLocation(store.getState(), terminalId)) {
+						terminalRuntimeRegistry.release(terminalId, pane.id);
+						return;
+					}
 					if (consumeTerminalBackgroundIntent(terminalId)) {
 						terminalRuntimeRegistry.release(terminalId);
 						return;
@@ -467,6 +483,9 @@ export function usePaneRegistry({
 							terminalId={terminalId}
 							terminalInstanceId={ctx.pane.id}
 							onCreateNewAgentSession={createNewAgentSession}
+							onOpenSubagent={(data) =>
+								openSubagentPaneInStore(ctx.store, data)
+							}
 						/>
 					);
 				},
@@ -479,21 +498,7 @@ export function usePaneRegistry({
 					/>
 				),
 				contextMenuActions: (_ctx, defaults) => {
-					const hasLink = (ctx: RendererContext<PaneViewerData>) =>
-						Boolean(terminalContextMenuLinkStore.get(ctx.pane.id)?.link);
 					const terminalActions: ContextMenuActionConfig<PaneViewerData>[] = [
-						{
-							key: "open-link-in",
-							label: t({ message: "Open in" }),
-							icon: <LuExternalLink />,
-							hidden: (ctx) => !hasLink(ctx),
-							children: openInActions,
-						},
-						{
-							key: "sep-open-link-in",
-							type: "separator",
-							hidden: (ctx) => !hasLink(ctx),
-						},
 						{
 							key: "copy",
 							label: t({ message: "Copy" }),
@@ -570,16 +575,72 @@ export function usePaneRegistry({
 						{ key: "sep-terminal-defaults", type: "separator" },
 					];
 
-					const modifiedDefaults = defaults.map((d) =>
-						d.key === "close-pane"
-							? {
-									...d,
-									label: t({
-										message: "Close Terminal",
-									}),
-								}
-							: d,
-					);
+					// Only present when the right-click landed on a link. "Open in"
+					// covers what "Split with New Browser" did for a URL, so the terminal
+					// menu drops that default rather than offering both.
+					const linkAt = (ctx: RendererContext<PaneViewerData>) =>
+						terminalContextMenuLinkStore.get(ctx.pane.id)?.link ?? null;
+					// A URL, or a file/folder the host resolved. A file link that never
+					// resolved has nowhere to open and nothing to copy, so the section
+					// stays hidden rather than showing an empty submenu.
+					const copyableLinkText = (
+						ctx: RendererContext<PaneViewerData>,
+					): string | null => {
+						const link = linkAt(ctx);
+						if (!link) return null;
+						return link.kind === "url" ? link.url : (link.resolvedPath ?? null);
+					};
+					const copyLinkText = (ctx: RendererContext<PaneViewerData>) => {
+						const text = copyableLinkText(ctx);
+						if (!text) return;
+						navigator.clipboard.writeText(text).catch(() => {
+							toast.error(t({ message: "Copy failed" }));
+						});
+					};
+					const linkActions: ContextMenuActionConfig<PaneViewerData>[] = [
+						{
+							key: "open-link-in",
+							label: t({ message: "Open in" }),
+							icon: <LuExternalLink />,
+							hidden: (ctx) => !copyableLinkText(ctx),
+							children: openInActions,
+						},
+						{
+							key: "copy-link",
+							label: t({ message: "Copy Link" }),
+							icon: <LuLink />,
+							hidden: (ctx) => linkAt(ctx)?.kind !== "url",
+							onSelect: copyLinkText,
+						},
+						{
+							key: "copy-path",
+							label: t({ message: "Copy Path" }),
+							icon: <LuLink />,
+							hidden: (ctx) => {
+								const link = linkAt(ctx);
+								return link?.kind !== "file" || !link.resolvedPath;
+							},
+							onSelect: copyLinkText,
+						},
+						{
+							key: "sep-open-link-in",
+							type: "separator",
+							hidden: (ctx) => !copyableLinkText(ctx),
+						},
+					];
+
+					const modifiedDefaults = defaults
+						.filter((d) => d.key !== "split-with-browser")
+						.map((d) =>
+							d.key === "close-pane"
+								? {
+										...d,
+										label: t({
+											message: "Close Terminal",
+										}),
+									}
+								: d,
+						);
 
 					const killAction: ContextMenuActionConfig<PaneViewerData> = {
 						key: "kill-terminal-session",
@@ -600,6 +661,7 @@ export function usePaneRegistry({
 
 					return [
 						...terminalActions,
+						...linkActions,
 						...modifiedDefaults,
 						{ key: "sep-terminal-kill", type: "separator" },
 						killAction,
@@ -757,6 +819,25 @@ export function usePaneRegistry({
 							: d,
 					),
 			},
+			[SUBAGENT_PANE_KIND]: {
+				getIcon: () => <LuBot className="size-3.5" />,
+				getTitle: (pane) => {
+					const { agentType } = pane.data as SubagentPaneData;
+					const label = t({ message: "Subagent" });
+					return agentType ? `${label} · ${agentType}` : label;
+				},
+				renderPane: (ctx: RendererContext<PaneViewerData>) => (
+					<SubagentPane
+						data={ctx.pane.data as SubagentPaneData}
+						onOpenParent={() =>
+							focusOrAddTerminalPane(
+								ctx.store,
+								(ctx.pane.data as SubagentPaneData).terminalId,
+							)
+						}
+					/>
+				),
+			},
 			...(isPagesEnabled
 				? {
 						page: {
@@ -783,6 +864,7 @@ export function usePaneRegistry({
 									onDataChange={(data) =>
 										ctx.actions.updateData(data as PaneViewerData)
 									}
+									onFocus={ctx.actions.focus}
 								/>
 							),
 							contextMenuActions: (_ctx, defaults) =>
@@ -815,6 +897,7 @@ export function usePaneRegistry({
 			},
 		}),
 		[
+			store,
 			workspaceId,
 			isChatV3Enabled,
 			isPagesEnabled,

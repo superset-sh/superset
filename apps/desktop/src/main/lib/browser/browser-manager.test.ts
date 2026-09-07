@@ -374,6 +374,68 @@ describe("forced CDP detach", () => {
 	});
 });
 
+describe("host window key forwarding", () => {
+	type BeforeInput = (
+		event: { preventDefault: () => void },
+		input: Record<string, unknown>,
+	) => void;
+
+	function makeHostWindow(focusedFrame: { parent: object | null } | null) {
+		let handler: BeforeInput | null = null;
+		const wc = {
+			id: 4242,
+			focusedFrame,
+			on: (event: string, listener: BeforeInput) => {
+				if (event === "before-input-event") handler = listener;
+			},
+		};
+		browserManager.registerHostWindow(wc as unknown as Electron.WebContents);
+		const press = (input: Record<string, unknown>) => {
+			const event = { preventDefault: mock(() => {}) };
+			handler?.(event, { type: "keyDown", ...input });
+			return event.preventDefault.mock.calls.length > 0;
+		};
+		return { wc, press };
+	}
+
+	const cmdW = {
+		key: "w",
+		code: "KeyW",
+		meta: true,
+		control: false,
+		alt: false,
+		shift: false,
+	};
+
+	test("suppresses and forwards a forwardable chord while a subframe has focus", () => {
+		browserManager.setForwardableChords(["meta+w"]);
+		const { wc, press } = makeHostWindow({ parent: {} });
+		const forwarded: unknown[] = [];
+		const listener = (key: unknown) => forwarded.push(key);
+		browserManager.on(`host-key-forward:${wc.id}`, listener);
+		try {
+			expect(press(cmdW)).toBe(true);
+			expect(forwarded).toEqual([cmdW]);
+			// Not a forwardable chord: the page keeps it.
+			expect(press({ ...cmdW, key: "c", code: "KeyC" })).toBe(false);
+			expect(forwarded).toHaveLength(1);
+		} finally {
+			browserManager.off(`host-key-forward:${wc.id}`, listener);
+			browserManager.setForwardableChords([]);
+		}
+	});
+
+	test("leaves keystrokes alone while the top frame (or nothing) has focus", () => {
+		browserManager.setForwardableChords(["meta+w"]);
+		try {
+			expect(makeHostWindow({ parent: null }).press(cmdW)).toBe(false);
+			expect(makeHostWindow(null).press(cmdW)).toBe(false);
+		} finally {
+			browserManager.setForwardableChords([]);
+		}
+	});
+});
+
 describe("window.open handling", () => {
 	function openDetails(
 		overrides: Partial<Electron.HandlerDetails>,

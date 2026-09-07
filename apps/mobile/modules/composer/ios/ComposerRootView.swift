@@ -640,11 +640,20 @@ struct ComposerRootView: View {
       .onTapGesture { expand() }
   }
 
+  /// The agent, then its launch settings: `✱ Claude ⌄ · Opus ⌄ · High ⌄`.
   private var modelPicker: some View {
-    ComposerModelPicker(
-      selected: model.selectedModel,
-      onPress: { model.onModelPress?() }
-    )
+    HStack(spacing: ComposerMetrics.chipSpacing) {
+      ComposerModelPicker(
+        selected: model.selectedModel,
+        onPress: { model.onModelPress?() }
+      )
+      ForEach(model.launchOptions) { option in
+        ComposerLaunchOptionButton(
+          option: option,
+          onPress: { model.onLaunchOptionPress?(option.id) }
+        )
+      }
+    }
     .padding(.leading, ComposerMetrics.pickerGap - ComposerMetrics.rowSpacing)
     .padding(.trailing, ComposerMetrics.textInset)
   }

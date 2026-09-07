@@ -23,6 +23,9 @@ export interface PendingWorkspaceCreateInput {
 	branchLabel: string | null;
 	agentId: string;
 	agentLabel: string;
+	/** Null launches the agent's own default. */
+	model: string | null;
+	effort: string | null;
 	message: PromptInputMessage;
 }
 

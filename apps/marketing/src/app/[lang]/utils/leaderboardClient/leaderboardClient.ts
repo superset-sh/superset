@@ -20,3 +20,21 @@ export const leaderboardClient = createTRPCClient<AppRouter>({
 		}),
 	],
 });
+
+/**
+ * Signed-in reader for `leaderboard.viewer`. The session cookie is scoped to the
+ * parent domain (`crossSubDomainCookies` in packages/auth), and the API allows
+ * the marketing origin with `Access-Control-Allow-Credentials`, so the browser
+ * carries the cookie to the API on its own — the same thing apps/web does. No
+ * `next` option here: this response is per-user and must never be cached.
+ */
+export const viewerClient = createTRPCClient<AppRouter>({
+	links: [
+		httpBatchLink({
+			url: `${env.NEXT_PUBLIC_API_URL}/api/trpc`,
+			transformer: superjson,
+			fetch: (url, options) =>
+				fetch(url, { ...options, credentials: "include", cache: "no-store" }),
+		}),
+	],
+});

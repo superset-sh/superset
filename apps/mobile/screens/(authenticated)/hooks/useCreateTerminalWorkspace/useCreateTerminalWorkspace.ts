@@ -48,7 +48,7 @@ export function useCreateTerminalWorkspace() {
 
 	return useMutation({
 		mutationFn: async ({ replace, ...input }: CreateTerminalWorkspaceArgs) => {
-			const { target, baseBranch, agentId, message } = input;
+			const { target, baseBranch, agentId, model, effort, message } = input;
 			const workspaceId = randomUUID();
 			startPending({
 				workspaceId,
@@ -85,6 +85,8 @@ export function useCreateTerminalWorkspace() {
 							prompt: message.text.trim(),
 							attachmentIds:
 								attachmentIds.length > 0 ? attachmentIds : undefined,
+							model: model ?? undefined,
+							effort: effort ?? undefined,
 						},
 					],
 				};
@@ -117,6 +119,8 @@ export function useCreateTerminalWorkspace() {
 					source: "mobile_composer",
 					base_branch: baseBranch,
 					agent: agentId,
+					model,
+					effort,
 				});
 				return { workspaceId };
 			} catch (error) {

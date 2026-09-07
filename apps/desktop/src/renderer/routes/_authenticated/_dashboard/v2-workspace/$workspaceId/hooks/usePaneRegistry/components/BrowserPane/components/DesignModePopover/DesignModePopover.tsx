@@ -175,7 +175,7 @@ export function DesignModePopover({
 	};
 
 	return (
-		<div className="absolute z-20" style={style}>
+		<div className="pointer-events-auto absolute z-20" style={style}>
 			<form
 				className="overflow-hidden rounded-xl border border-border/80 bg-popover text-popover-foreground shadow-[0_4px_16px_-4px_rgba(0,0,0,0.25),0_2px_4px_-2px_rgba(0,0,0,0.12)]"
 				onSubmit={(e) => {

@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { TbDots } from "react-icons/tb";
 import { ImportHistoryDialog } from "renderer/components/ImportHistoryDialog";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
+import { pointerPassthrough } from "renderer/lib/pointer-passthrough";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import {
 	BROWSER_ZOOM,
@@ -72,9 +73,14 @@ export function BrowserOverflowMenu({
 	const [isClearDataOpen, setIsClearDataOpen] = useState(false);
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+	// The webview swallows pointer events, so a click on the page would never
+	// reach the document listener Radix dismisses on; passing the click
+	// through to the host lets it dismiss the menu instead, as in a real
+	// browser. Keyed by pane so one pane closing can't drop another's.
 	useEffect(() => {
-		browserRuntimeRegistry.setHostPopoverOpen(paneId, isMenuOpen);
-		return () => browserRuntimeRegistry.setHostPopoverOpen(paneId, false);
+		const source = `host-popover:${paneId}`;
+		pointerPassthrough.set(source, isMenuOpen);
+		return () => pointerPassthrough.set(source, false);
 	}, [paneId, isMenuOpen]);
 
 	const handlePrint = () => browserRuntimeRegistry.print(paneId);

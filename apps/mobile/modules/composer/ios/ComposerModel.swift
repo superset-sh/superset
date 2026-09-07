@@ -38,6 +38,10 @@ final class ComposerModel {
   /// `ComposerModelPicker`.
   var selectedModel: ComposerMenuOption?
 
+  /// Per-agent launch settings drawn after the agent — model, effort — each a
+  /// chevron button reporting its id. Empty for agents that have none.
+  var launchOptions: [ComposerMenuOption] = []
+
   /// A submit is in flight. The caller owns this — only it knows when delivery
   /// finished — and while it is true the send button shows a spinner and the
   /// mic gets out of the way.
@@ -112,6 +116,7 @@ final class ComposerModel {
   /// round trip.
   @ObservationIgnored var onDictationError: ((String) -> Void)?
   @ObservationIgnored var onModelPress: (() -> Void)?
+  @ObservationIgnored var onLaunchOptionPress: ((String) -> Void)?
   @ObservationIgnored var onChipPress: ((String) -> Void)?
   @ObservationIgnored var onQuickKeyPress: ((String) -> Void)?
   /// The session strip reports by id and knows nothing else. Selecting swaps

@@ -1,5 +1,8 @@
 import { afterAll, afterEach, describe, expect, mock, test } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
+// The marketing origin is env-derived: a developer's local .env repoints it at
+// a dev server, so assert the links the component builds, not a literal host.
+import { COMPANY } from "@superset/shared/constants";
 
 // happy-dom is process-wide; unregister in afterAll so the shared mock
 // document is restored for the other renderer suites.
@@ -51,8 +54,8 @@ describe("LeaderboardRank", () => {
 		const links = [...container.querySelectorAll("a")].map((a) =>
 			a.getAttribute("href"),
 		);
-		expect(links).toContain("https://superset.sh/user/kiet");
-		expect(links).toContain("https://superset.sh/leaderboard");
+		expect(links).toContain(`${COMPANY.MARKETING_URL}/user/kiet`);
+		expect(links).toContain(`${COMPANY.MARKETING_URL}/leaderboard`);
 		expect(getByText("kiet")).toBeTruthy();
 	});
 

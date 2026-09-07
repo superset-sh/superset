@@ -1,8 +1,10 @@
 import { db, dbWs } from "@superset/db/client";
 import {
+	handles,
 	leaderboardDaily,
 	leaderboardDailyFactory,
-	leaderboardParticipants,
+	profileAwards,
+	publicProfiles,
 	userIdentities,
 	users,
 } from "@superset/db/schema";
@@ -19,8 +21,28 @@ import {
 } from "../../trpc";
 import { requireActiveOrgMembership } from "../utils/active-org";
 import { isUniqueViolation } from "../utils/unique-violation";
+import {
+	CATALOG_VERSION,
+	DAY_ONE_COHORT,
+	RUN_01,
+	totalAwardableRows,
+} from "./achievements";
+import {
+	type AwardInput,
+	type EarnedAward,
+	evaluateAwards,
+	longestStreak,
+} from "./awards";
 import { type LeaderboardPeriod, resolveDayRange } from "./periods";
-import { getParticipant, getStandings, getStats } from "./queries";
+import {
+	getParticipant,
+	getStandingFor,
+	getStandings,
+	getStats,
+	getViewerProfile,
+	listPublicHandles,
+	searchParticipants,
+} from "./queries";
 import {
 	joinSchema,
 	MAX_HOSTS_PER_USER,
@@ -28,7 +50,10 @@ import {
 	PUBLISH_WINDOW_DAYS,
 	participantSchema,
 	previewRankSchema,
+	profileSchema,
 	publishSchema,
+	searchSchema,
+	standingForSchema,
 	standingsSchema,
 	windowSchema,
 } from "./schema";
@@ -106,7 +131,7 @@ async function enforceHostBudget(
 	hostId: string,
 ): Promise<void> {
 	await tx.execute(
-		sql`select 1 from leaderboard_participants where user_id = ${userId} for update`,
+		sql`select 1 from public_profiles where user_id = ${userId} for update`,
 	);
 
 	const seen = await tx.execute<{ hosts: number }>(sql`
@@ -192,13 +217,13 @@ function slugHandle(raw: string): string | null {
 	return slug.length >= 2 ? slug : null;
 }
 
-const HANDLE_CONSTRAINT = "leaderboard_participants_handle_unique";
+const HANDLE_CONSTRAINT = "handles_pkey";
 
 async function requireParticipant(userId: string) {
 	const [row] = await db
 		.select()
-		.from(leaderboardParticipants)
-		.where(eq(leaderboardParticipants.userId, userId))
+		.from(publicProfiles)
+		.where(eq(publicProfiles.userId, userId))
 		.limit(1);
 
 	if (!row || row.revokedAt) {
@@ -216,9 +241,9 @@ async function requireParticipant(userId: string) {
  * through a JS number silently loses precision past 2^53, which would corrupt
  * all-time standings rather than fail loudly.
  */
-async function recomputeTotals(userId: string): Promise<void> {
+export async function recomputeTotals(userId: string): Promise<void> {
 	await db.execute(sql`
-		update leaderboard_participants p set
+		update public_profiles p set
 			tokens = t.tokens,
 			usd = t.usd,
 			sessions = t.sessions,
@@ -261,7 +286,7 @@ function tierWindowStart(now: Date = new Date()): string {
 	return start.toISOString().slice(0, 10);
 }
 
-async function recomputeTier(userId: string): Promise<void> {
+export async function recomputeTier(userId: string): Promise<void> {
 	const from = tierWindowStart();
 
 	const [factoryRows, tokenRows, current] = await Promise.all([
@@ -296,9 +321,9 @@ async function recomputeTier(userId: string): Promise<void> {
 			)
 			.groupBy(leaderboardDaily.day),
 		db
-			.select({ tier: leaderboardParticipants.tier })
-			.from(leaderboardParticipants)
-			.where(eq(leaderboardParticipants.userId, userId))
+			.select({ tier: publicProfiles.tier })
+			.from(publicProfiles)
+			.where(eq(publicProfiles.userId, userId))
 			.limit(1),
 	]);
 
@@ -320,7 +345,7 @@ async function recomputeTier(userId: string): Promise<void> {
 	const result = computeTier(rows, (current[0]?.tier ?? 0) as Tier);
 
 	await db
-		.update(leaderboardParticipants)
+		.update(publicProfiles)
 		.set({
 			tier: result.tier,
 			tierComputedAt: new Date(),
@@ -330,7 +355,173 @@ async function recomputeTier(userId: string): Promise<void> {
 			axisOutput: result.axisOutput.toFixed(2),
 			axisCost: result.axisCost.toFixed(2),
 		})
-		.where(eq(leaderboardParticipants.userId, userId));
+		.where(eq(publicProfiles.userId, userId));
+}
+
+async function collectAwardInput(userId: string): Promise<AwardInput | null> {
+	const [profile] = await db
+		.select({
+			axisDepth: publicProfiles.axisDepth,
+			axisCost: publicProfiles.axisCost,
+			optedInAt: publicProfiles.optedInAt,
+			tokens: publicProfiles.tokens,
+			usd: publicProfiles.usd,
+			sessions: publicProfiles.sessions,
+		})
+		.from(publicProfiles)
+		.where(eq(publicProfiles.userId, userId))
+		.limit(1);
+
+	if (!profile) return null;
+
+	const [factory, days, cohort] = await Promise.all([
+		db
+			.select({
+				day: leaderboardDailyFactory.day,
+				parallelSessions: sql<string>`max(${leaderboardDailyFactory.parallelSessions})`,
+				agentPrsMerged: sql<number>`sum(${leaderboardDailyFactory.agentPrsMerged})::int`,
+			})
+			.from(leaderboardDailyFactory)
+			.where(eq(leaderboardDailyFactory.userId, userId))
+			.groupBy(leaderboardDailyFactory.day),
+		db
+			.selectDistinct({ day: leaderboardDaily.day })
+			.from(leaderboardDaily)
+			.where(eq(leaderboardDaily.userId, userId)),
+		db
+			.select({ ahead: sql<number>`count(*)::int` })
+			.from(publicProfiles)
+			.where(lte(publicProfiles.optedInAt, profile.optedInAt)),
+	]);
+
+	const runTier = await runWindowTier(userId);
+
+	return {
+		lifetimeAgentPrs: factory.reduce((sum, row) => sum + row.agentPrsMerged, 0),
+		daysAtWidth2: factory.filter((row) => Number(row.parallelSessions) >= 2)
+			.length,
+		daysAtWidth3: factory.filter((row) => Number(row.parallelSessions) >= 3)
+			.length,
+		axisDepth: Number(profile.axisDepth),
+		axisCost: Number(profile.axisCost),
+		longestStreak: longestStreak(days.map((row) => row.day)),
+		clearedRun01: runTier >= RUN_01.tier ? 1 : 0,
+		isDayOne: Number(cohort[0]?.ahead ?? 0) <= DAY_ONE_COHORT ? 1 : 0,
+		tokens: Number(profile.tokens),
+		usd: Number(profile.usd),
+		sessions: Number(profile.sessions),
+		on: utcDayKey(Date.now()),
+	};
+}
+
+async function runWindowTier(userId: string): Promise<number> {
+	const today = utcDayKey(Date.now());
+	if (today < RUN_01.from) return 0;
+
+	const [factoryRows, tokenRows] = await Promise.all([
+		db
+			.select({
+				day: leaderboardDailyFactory.day,
+				sessions: sql<number>`coalesce(sum(${leaderboardDailyFactory.sessions}), 0)::int`,
+				parallelSessions: sql<string>`coalesce(max(${leaderboardDailyFactory.parallelSessions}), 0)`,
+				agentPrsMerged: sql<number>`coalesce(max(${leaderboardDailyFactory.agentPrsMerged}), 0)::int`,
+				agentPrsAllHosts: sql<number>`coalesce(sum(${leaderboardDailyFactory.agentPrsMerged}), 0)::int`,
+			})
+			.from(leaderboardDailyFactory)
+			.where(
+				and(
+					eq(leaderboardDailyFactory.userId, userId),
+					gte(leaderboardDailyFactory.day, RUN_01.from),
+					lte(leaderboardDailyFactory.day, RUN_01.to),
+				),
+			)
+			.groupBy(leaderboardDailyFactory.day),
+		db
+			.select({
+				day: leaderboardDaily.day,
+				tokens: sql<number>`coalesce(sum(${leaderboardDaily.tokens}), 0)::bigint`,
+				usd: sql<string>`coalesce(sum(${leaderboardDaily.usdEstimate}), 0)`,
+			})
+			.from(leaderboardDaily)
+			.where(
+				and(
+					eq(leaderboardDaily.userId, userId),
+					gte(leaderboardDaily.day, RUN_01.from),
+					lte(leaderboardDaily.day, RUN_01.to),
+				),
+			)
+			.groupBy(leaderboardDaily.day),
+	]);
+
+	const usdByDay = new Map(tokenRows.map((row) => [row.day, Number(row.usd)]));
+	const tokensByDay = new Map(
+		tokenRows.map((row) => [row.day, Number(row.tokens)]),
+	);
+
+	const rows: FactoryDayRow[] = factoryRows.map((row) => ({
+		day: row.day,
+		tokens: tokensByDay.get(row.day) ?? 0,
+		sessions: Number(row.sessions),
+		parallelSessions: Number(row.parallelSessions),
+		agentPrsMerged: Number(row.agentPrsMerged),
+		agentPrsAllHosts: Number(row.agentPrsAllHosts),
+		usd: usdByDay.get(row.day) ?? 0,
+	}));
+
+	return computeTier(rows).tier;
+}
+
+export async function recomputeAwards(userId: string): Promise<EarnedAward[]> {
+	const today = utcDayKey(Date.now());
+
+	const [state] = await db
+		.select({
+			version: publicProfiles.awardsCatalogVersion,
+			held: sql<number>`(
+				select count(*)::int from ${profileAwards}
+				where ${profileAwards.userId} = ${publicProfiles.userId}
+			)`,
+		})
+		.from(publicProfiles)
+		.where(eq(publicProfiles.userId, userId))
+		.limit(1);
+
+	if (!state) return [];
+
+	const current = state.version >= CATALOG_VERSION;
+	if (current && Number(state.held) >= totalAwardableRows(today)) return [];
+
+	const input = await collectAwardInput(userId);
+	if (!input) return [];
+
+	if (!current) {
+		await db
+			.update(publicProfiles)
+			.set({ awardsCatalogVersion: CATALOG_VERSION })
+			.where(eq(publicProfiles.userId, userId));
+	}
+
+	const earned = evaluateAwards(input);
+	if (earned.length === 0) return [];
+
+	const inserted = await db
+		.insert(profileAwards)
+		.values(
+			earned.map((award) => ({
+				userId,
+				slug: award.slug,
+				tier: award.tier,
+				value: award.value.toFixed(4),
+				awardedOn: input.on,
+			})),
+		)
+		.onConflictDoNothing({
+			target: [profileAwards.userId, profileAwards.slug, profileAwards.tier],
+		})
+		.returning({ slug: profileAwards.slug, tier: profileAwards.tier });
+
+	const fresh = new Set(inserted.map((row) => `${row.slug}:${row.tier}`));
+	return earned.filter((award) => fresh.has(`${award.slug}:${award.tier}`));
 }
 
 async function rankFor(
@@ -350,7 +541,7 @@ async function rankFor(
 			select
 				count(*) filter (where p.tokens > ${tokens})::int as ahead,
 				count(*)::int as total
-			from leaderboard_participants p
+			from public_profiles p
 			join auth.users u on u.id = p.user_id
 			where ${eligible} and p.tokens > 0
 		`);
@@ -365,7 +556,7 @@ async function rankFor(
 		with totals as (
 			select d.user_id, sum(d.tokens) as tokens
 			from leaderboard_daily d
-			join leaderboard_participants p on p.user_id = d.user_id
+			join public_profiles p on p.user_id = d.user_id
 			join auth.users u on u.id = p.user_id
 			where d.day between ${range.from} and ${range.to} and ${eligible}
 			group by d.user_id
@@ -392,9 +583,9 @@ export const leaderboardRouter = createTRPCRouter({
 			);
 
 			const [taken] = await db
-				.select({ userId: leaderboardParticipants.userId })
-				.from(leaderboardParticipants)
-				.where(eq(leaderboardParticipants.handle, input.handle))
+				.select({ userId: handles.userId })
+				.from(handles)
+				.where(eq(handles.handle, input.handle))
 				.limit(1);
 
 			if (taken && taken.userId !== userId) {
@@ -407,27 +598,61 @@ export const leaderboardRouter = createTRPCRouter({
 
 			const organizationId = await requireActiveOrgMembership(ctx);
 
+			const [github] = await db
+				.select({ handle: userIdentities.handle })
+				.from(userIdentities)
+				.where(
+					and(
+						eq(userIdentities.userId, userId),
+						eq(userIdentities.provider, "github"),
+					),
+				)
+				.limit(1);
+
 			try {
-				const [row] = await db
-					.insert(leaderboardParticipants)
-					.values({
-						userId,
-						handle: input.handle,
-						visibility: input.visibility,
-						organizationId,
-					})
-					.onConflictDoUpdate({
-						target: leaderboardParticipants.userId,
-						set: {
+				return await dbWs.transaction(async (tx) => {
+					const [owned] = await tx
+						.select({ handle: handles.handle })
+						.from(handles)
+						.where(eq(handles.userId, userId))
+						.limit(1);
+
+					if (!owned) {
+						await tx.insert(handles).values({
+							handle: input.handle,
+							ownerType: "user",
+							userId,
+						});
+					} else if (owned.handle !== input.handle) {
+						await tx
+							.update(handles)
+							.set({ handle: input.handle })
+							.where(eq(handles.userId, userId));
+					}
+
+					const [row] = await tx
+						.insert(publicProfiles)
+						.values({
+							userId,
 							handle: input.handle,
 							visibility: input.visibility,
 							organizationId,
-							optedInAt: new Date(),
-						},
-					})
-					.returning();
+							githubHandle: github?.handle ?? null,
+						})
+						.onConflictDoUpdate({
+							target: publicProfiles.userId,
+							set: {
+								handle: input.handle,
+								visibility: input.visibility,
+								organizationId,
+								githubHandle: github?.handle ?? null,
+								optedInAt: new Date(),
+							},
+						})
+						.returning();
 
-				return row;
+					return row;
+				});
 			} catch (error) {
 				if (isUniqueViolation(error, HANDLE_CONSTRAINT)) {
 					throw userError({
@@ -469,9 +694,9 @@ export const leaderboardRouter = createTRPCRouter({
 		if (!suggestion) return { handle: null, taken: false, source: null };
 
 		const [clash] = await db
-			.select({ userId: leaderboardParticipants.userId })
-			.from(leaderboardParticipants)
-			.where(eq(leaderboardParticipants.handle, suggestion))
+			.select({ userId: handles.userId })
+			.from(handles)
+			.where(eq(handles.handle, suggestion))
 			.limit(1);
 
 		return {
@@ -481,14 +706,37 @@ export const leaderboardRouter = createTRPCRouter({
 		};
 	}),
 
+	updateProfile: protectedProcedure
+		.input(profileSchema)
+		.mutation(async ({ ctx, input }) => {
+			const userId = ctx.session.user.id;
+			await requireParticipant(userId);
+
+			const [row] = await db
+				.update(publicProfiles)
+				.set({
+					bio: input.bio || null,
+					xHandle: input.xHandle || null,
+					websiteUrl: input.websiteUrl || null,
+				})
+				.where(eq(publicProfiles.userId, userId))
+				.returning({
+					bio: publicProfiles.bio,
+					xHandle: publicProfiles.xHandle,
+					websiteUrl: publicProfiles.websiteUrl,
+				});
+
+			return row ?? null;
+		}),
+
 	setVisibility: protectedProcedure
 		.input(joinSchema.pick({ visibility: true }))
 		.mutation(async ({ ctx, input }) => {
 			await requireParticipant(ctx.session.user.id);
 			await db
-				.update(leaderboardParticipants)
+				.update(publicProfiles)
 				.set({ visibility: input.visibility })
-				.where(eq(leaderboardParticipants.userId, ctx.session.user.id));
+				.where(eq(publicProfiles.userId, ctx.session.user.id));
 			return { success: true };
 		}),
 
@@ -501,9 +749,7 @@ export const leaderboardRouter = createTRPCRouter({
 			await tx
 				.delete(leaderboardDailyFactory)
 				.where(eq(leaderboardDailyFactory.userId, userId));
-			await tx
-				.delete(leaderboardParticipants)
-				.where(eq(leaderboardParticipants.userId, userId));
+			await tx.delete(publicProfiles).where(eq(publicProfiles.userId, userId));
 		});
 		return { success: true };
 	}),
@@ -520,7 +766,7 @@ export const leaderboardRouter = createTRPCRouter({
 			await requireParticipant(userId);
 
 			if (input.days.length === 0 && input.factoryDays.length === 0) {
-				return { written: 0, days: 0 };
+				return { written: 0, days: 0, awarded: [] as EarnedAward[] };
 			}
 
 			assertDaysInWindow(input.days);
@@ -611,11 +857,15 @@ export const leaderboardRouter = createTRPCRouter({
 
 			await recomputeTotals(userId);
 			await recomputeTier(userId);
+			const awarded =
+				rows.length > 0 || input.factoryDays.length > 0
+					? await recomputeAwards(userId)
+					: [];
 			const distinctDays = new Set([
 				...input.days.map((day) => day.day),
 				...input.factoryDays.map((day) => day.day),
 			]).size;
-			return { written: rows.length, days: distinctDays };
+			return { written: rows.length, days: distinctDays, awarded };
 		}),
 
 	standings: protectedProcedure
@@ -634,6 +884,27 @@ export const leaderboardRouter = createTRPCRouter({
 			await enforcePublicRead(ctx.headers);
 			return await getStats(input);
 		}),
+
+		handles: publicProcedure.query(async ({ ctx }) => {
+			await enforcePublicRead(ctx.headers);
+			return await listPublicHandles();
+		}),
+
+		standing: publicProcedure
+			.input(standingForSchema)
+			.query(async ({ ctx, input }) => {
+				await enforcePublicRead(ctx.headers);
+				const { handle, ...window } = input;
+				return getStandingFor(handle, window);
+			}),
+
+		search: publicProcedure
+			.input(searchSchema)
+			.query(async ({ ctx, input }) => {
+				await enforcePublicRead(ctx.headers);
+				const { query, ...window } = input;
+				return await searchParticipants(query, window);
+			}),
 
 		participant: publicProcedure
 			.input(participantSchema)
@@ -676,12 +947,16 @@ export const leaderboardRouter = createTRPCRouter({
 			};
 		}),
 
+	viewer: protectedProcedure.query(({ ctx }) =>
+		getViewerProfile(ctx.session.user.id),
+	),
+
 	me: protectedProcedure.input(meSchema).query(async ({ ctx, input }) => {
 		const userId = ctx.session.user.id;
 		const [row] = await db
 			.select()
-			.from(leaderboardParticipants)
-			.where(eq(leaderboardParticipants.userId, userId))
+			.from(publicProfiles)
+			.where(eq(publicProfiles.userId, userId))
 			.limit(1);
 
 		if (!row || row.revokedAt) return null;

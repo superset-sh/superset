@@ -26,7 +26,7 @@ let mockedHomeDir = path.join(TEST_ROOT, "home");
 
 mock.module("./notify-hook", () => ({
 	NOTIFY_SCRIPT_NAME: "notify.sh",
-	NOTIFY_SCRIPT_MARKER: "# Superset agent notification hook v9",
+	NOTIFY_SCRIPT_MARKER: "# Superset agent notification hook v14",
 	getNotifyScriptPath: () => path.join(TEST_HOOKS_DIR, "notify.sh"),
 	getNotifyScriptContent: () => "#!/bin/bash\nexit 0\n",
 	createNotifyScript: () => {},
@@ -1432,6 +1432,8 @@ describe("agent-wrappers codex hooks.json", () => {
 			"UserPromptSubmit",
 			"Stop",
 			"Interrupt",
+			"SubagentStart",
+			"SubagentStop",
 		] as const) {
 			const hooks = parsed.hooks[eventName];
 			expect(Array.isArray(hooks)).toBe(true);
@@ -1639,6 +1641,8 @@ describe("agent-wrappers codex hooks.json", () => {
 			"UserPromptSubmit",
 			"Stop",
 			"Interrupt",
+			"SubagentStart",
+			"SubagentStop",
 		] as const) {
 			const hooks = parsed.hooks[eventName];
 			expect(Array.isArray(hooks)).toBe(true);

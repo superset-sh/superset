@@ -19,6 +19,11 @@ import {
 } from "@/screens/(authenticated)/(home)/home/hooks/useHostTerminals";
 import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
 import {
+	agentLaunchPresetId,
+	useAgentLaunchPreferences,
+} from "@/screens/(authenticated)/hooks/useAgentLaunchPreferences";
+import { useHostAgentConfigs } from "@/screens/(authenticated)/hooks/useHostAgentConfigs";
+import {
 	type DraftComment,
 	NO_COMMENTS,
 	useDraftCommentsStore,
@@ -63,6 +68,17 @@ export function FinishReviewSheet() {
 	);
 	const startWorkspaceTerminal = useStartWorkspaceTerminal(widgetWorkspaces);
 	const agentId = useNewSessionPreferencesStore((state) => state.agentId);
+	const agentConfigs = useHostAgentConfigs({
+		machineId: host?.machineId ?? null,
+		hostUrl: host ? hostServiceUrl(host.organizationId, host.machineId) : null,
+	});
+	const agentConfig = agentConfigs.data?.find(
+		(config) => config.presetId === agentId,
+	);
+	// The preset id stands in until the configs answer (see NewChatWidget).
+	const launch = useAgentLaunchPreferences(
+		agentConfig ? agentLaunchPresetId(agentConfig) : agentId,
+	);
 
 	const terminalRows = useMemo(
 		() => (workspaceId ? (terminalsByWorkspace.get(workspaceId) ?? []) : []),
@@ -92,6 +108,8 @@ export function FinishReviewSheet() {
 						},
 						message: { text: prompt, attachments: [] },
 						agentId,
+						model: launch.model?.id ?? null,
+						effort: launch.effort?.id ?? null,
 					},
 					{
 						onSuccess: () => {

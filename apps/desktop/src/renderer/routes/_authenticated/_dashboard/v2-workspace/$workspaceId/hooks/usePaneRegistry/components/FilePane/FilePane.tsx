@@ -1,9 +1,15 @@
 import { useLingui } from "@lingui/react/macro";
 import type { RendererContext } from "@superset/panes";
 import { alert } from "@superset/ui/atoms/Alert";
+import { useWorkspaceClient, workspaceTrpc } from "@superset/workspace-client";
 import { useCallback, useEffect } from "react";
+import { MarkdownResourceProvider } from "renderer/components/MarkdownRenderer/providers/MarkdownResourceProvider";
 import { getBaseName } from "renderer/lib/pathBasename";
-import { useSharedFileDocument } from "../../../../state/fileDocumentStore";
+import { getPathDirectory } from "shared/absolute-paths";
+import {
+	decodeBase64,
+	useSharedFileDocument,
+} from "../../../../state/fileDocumentStore";
 import type { FilePaneData, PaneViewerData } from "../../../../types";
 import { ErrorState } from "./components/ErrorState";
 import { LoadingState } from "./components/LoadingState";
@@ -25,6 +31,27 @@ export function FilePane({ context, workspaceId }: FilePaneProps) {
 		workspaceId,
 		absolutePath: filePath,
 	});
+
+	// Images a markdown file points at load through the workspace
+	// filesystem, so they work for cloud sandboxes and never put a raw path
+	// in the DOM. Root-relative ones need the worktree path, host-only data
+	// the cloud-shaped workspace row doesn't carry.
+	const { trpcClient } = useWorkspaceClient();
+	const workspaceQuery = workspaceTrpc.workspace.get.useQuery({
+		id: workspaceId,
+	});
+	const readFile = useCallback(
+		async (absolutePath: string) => {
+			const result = await trpcClient.filesystem.readFile.query({
+				workspaceId,
+				absolutePath,
+			});
+			return typeof result.content === "string"
+				? decodeBase64(result.content)
+				: result.content;
+		},
+		[trpcClient, workspaceId],
+	);
 
 	// Follow the underlying file if it's renamed on disk — the store migrates
 	// the entry, document.absolutePath returns the new path, and we reconcile
@@ -151,15 +178,26 @@ export function FilePane({ context, workspaceId }: FilePaneProps) {
 				/>
 			)}
 			<div className="min-h-0 min-w-0 flex-1">
-				<ViewRenderer
-					document={document}
-					filePath={filePath}
-					workspaceId={workspaceId}
-					paneId={context.pane.id}
-					isActive={context.isActive}
-					onChangeView={handleChangeView}
-					onForceView={handleForceView}
-				/>
+				<MarkdownResourceProvider
+					documentDirectory={getPathDirectory(document.absolutePath)}
+					rootPath={workspaceQuery.data?.worktreePath ?? undefined}
+					readFile={readFile}
+					revision={
+						"revision" in document.content
+							? document.content.revision
+							: undefined
+					}
+				>
+					<ViewRenderer
+						document={document}
+						filePath={filePath}
+						workspaceId={workspaceId}
+						paneId={context.pane.id}
+						isActive={context.isActive}
+						onChangeView={handleChangeView}
+						onForceView={handleForceView}
+					/>
+				</MarkdownResourceProvider>
 			</div>
 		</div>
 	);
