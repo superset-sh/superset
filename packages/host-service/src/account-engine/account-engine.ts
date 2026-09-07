@@ -70,6 +70,7 @@ import {
 	pickBest,
 	scoreAccount,
 	shouldSwitch,
+	windowsInScope,
 	worstWindow,
 } from "./decision.ts";
 import { DEFAULT_LOCK_STALE_MS, type EngineState } from "./engine-state.ts";
@@ -2041,9 +2042,14 @@ export class AccountEngine {
 
 		const pool = this.pool(agent, state.activeSelection);
 		const from = this.activeRow(pool, state) ?? active;
-		if (!from.row.windows.some((window) => window.usedPercent >= 100)) {
-			// The screen said "limit" but the account has room: a stale screen,
-			// or a limit that has already reset.
+		if (
+			!windowsInScope(agent, from.row.windows, settings.modelWindows).some(
+				(window) => window.usedPercent >= 100,
+			)
+		) {
+			// The screen said "limit" but the account has room in the windows
+			// the proactive path scores: a stale screen, or a limit that has
+			// already reset.
 			this.recordRejectedHint(agent, from.row, now);
 			return true;
 		}

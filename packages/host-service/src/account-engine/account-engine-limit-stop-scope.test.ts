@@ -304,6 +304,32 @@ describe("a limit stop through the engine's own corroboration call", () => {
 		expect(h.engine.history()).toEqual([]);
 	});
 
+	it("ignores a spent Claude model window for a model nobody configured", async () => {
+		const h = buildEngine({
+			agent: "claude",
+			entries: pool("claude", [
+				{ id: "five_hour", label: "Session", usedPercent: 30, resetsAt: null },
+				{ id: "seven_day", label: "Weekly", usedPercent: 30, resetsAt: null },
+				{
+					id: "seven_day_opus",
+					label: "Weekly (Opus)",
+					usedPercent: 100,
+					resetsAt: null,
+				},
+			]),
+			modelWindows: [],
+		});
+
+		await h.engine.handleLimitHints(T0);
+
+		// Claude's gate 2 is asked with the stand-in, so gate 3 is the only
+		// place the account's real windows are judged — and it has to scope
+		// them. Otherwise the switch is reasoned by a window at 30%.
+		expect(h.engine.history().map((row) => row.reasonKind)).toEqual([
+			"fallback-rejected",
+		]);
+	});
+
 	it("acts on that same window once the user configured its model", async () => {
 		const h = buildEngine({
 			agent: "codex",
