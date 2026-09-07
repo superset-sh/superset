@@ -2043,6 +2043,76 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 		);
 	});
 
+	// The same item, read whole this time, holding bytes we cannot make sense
+	// of — a bare token, a store caught mid-rewrite. Measured before this
+	// guard: it read as an absent item, the guard passed, and the write landed
+	// on the very name Claude Code files its own item under, replacing it in
+	// place with no backup; a failed verify then deleted it outright.
+	it("refuses to write when the active dir's Keychain secret cannot be parsed", async () => {
+		const f = fixture();
+		rmSync(join(f.activeDir, ".credentials.json"));
+		const activeService = keychainServicesForConfigDir(
+			f.activeDir,
+		)[0] as string;
+		const account = claudeKeychainAccounts()[0] as string;
+		const secret = "sk-ant-oat01-BARE";
+		const keychain = fakeKeychain([
+			{ service: activeService, account, secret },
+		]);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, darwin: true, exec: keychain.exec },
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-active-dir" });
+		// The item whose bytes we could not read is byte-identical, and still there.
+		expect(keychain.items).toEqual([
+			{ service: activeService, account, secret },
+		]);
+		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
+		expect(
+			keychain.calls.some((call) => call.args[0] === "delete-generic-password"),
+		).toBe(false);
+	});
+
+	// The save-back half of the same unparseable item.
+	it("refuses the save-back when the owner's Keychain secret cannot be parsed", async () => {
+		const f = fixture();
+		const ownerService = keychainServicesForConfigDir(f.profileA)[0] as string;
+		const account = claudeKeychainAccounts()[0] as string;
+		const secret = "sk-ant-oat01-BARE";
+		const keychain = fakeKeychain([
+			{ service: ownerService, account, secret },
+		]);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, darwin: true, exec: keychain.exec },
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-owner" });
+		expect(keychain.items).toEqual([
+			{ service: ownerService, account, secret },
+		]);
+		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
+		expect(
+			keychain.calls.some((call) => call.args[0] === "delete-generic-password"),
+		).toBe(false);
+		// Nothing landed in either dir: the swap stopped before the active write.
+		expect(readCredentials(f.profileA)).toEqual({
+			claudeAiOauth: oauth("t-a", 1_000),
+			mcpOAuth: { "a-server": { token: "m-a" } },
+		});
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+	});
+
 	it("refuses when the account attribute stays ambiguous", async () => {
 		const f = fixture();
 		rmSync(join(f.activeDir, ".credentials.json"));

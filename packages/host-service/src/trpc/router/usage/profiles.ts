@@ -555,7 +555,8 @@ export interface ClaudeLoginRead {
 	/**
 	 * A Keychain probe for this dir rejected for a reason that is not an absent
 	 * item: a denied or unanswered prompt, the 5s timeout, a `security` that
-	 * could not run. `keychainContent` is then null for the same reason a
+	 * could not run, or a secret read whole whose bytes would not parse.
+	 * `keychainContent` is then null for the same reason a
 	 * signed-out profile's is, and telling them apart is the caller's only
 	 * defence: `add-generic-password -U` replaces an item's data in place with
 	 * no backup and no sibling merge, and a rollback DELETES the item it
@@ -745,7 +746,14 @@ export async function readClaudeLogin(
 			// and both read this field. Skipping a login-less item leaves the
 			// write with nothing to merge, so it overwrites the item's
 			// mcpOAuth tokens — and a failed verify deletes the item outright.
-			if (!parsed) continue;
+			// Bytes we read but could not parse, exactly as the file loop
+			// above does: an item mid-rewrite, or holding a shape we do not
+			// know, is not an absent one — the write would replace it in
+			// place with no backup and the rollback would delete it.
+			if (!parsed) {
+				keychainUnreadable = true;
+				continue;
+			}
 			if (keychainContent && !hasLogin(parsed)) continue;
 			if (hasLogin(keychainContent) && !isFresherLogin(parsed, keychainContent))
 				continue;

@@ -898,6 +898,48 @@ describe("readClaudeLogin", () => {
 		}
 	});
 
+	// Bytes that came back whole but would not parse are the same danger as a
+	// probe that never answered: the item is there, the write replaces it in
+	// place with no backup, and the rollback deletes it.
+	it("reports an unparseable Keychain secret as unreadable, not absent", async () => {
+		const dir = tempProfile();
+		const service = keychainServicesForConfigDir(dir)[0] as string;
+		const exec = async (args: string[]) => {
+			if (args.indexOf("-a") === -1) throw new Error("not found");
+			if (args[args.indexOf("-s") + 1] !== service)
+				throw new Error(
+					"The specified item could not be found in the keychain.",
+				);
+			// An item holding a bare token rather than the JSON object.
+			return { stdout: "sk-ant-oat01-BARE\n", stderr: "" };
+		};
+
+		const read = await readClaudeLogin(dir, { darwin: true, exec });
+		expect(read.keychainUnreadable).toBe(true);
+		expect(read.keychainContent).toBeNull();
+	});
+
+	// The permitted half of the same guard: an item that parses but records no
+	// login is an ordinary state — it is the write target and its siblings are
+	// merged — so it must not be mistaken for one we could not read.
+	it("reports a parseable Keychain item with no login as readable", async () => {
+		const dir = tempProfile();
+		const service = keychainServicesForConfigDir(dir)[0] as string;
+		const siblings = { mcpOAuth: { "a-server": { token: "m-1" } } };
+		const exec = async (args: string[]) => {
+			if (args.indexOf("-a") === -1) throw new Error("not found");
+			if (args[args.indexOf("-s") + 1] !== service)
+				throw new Error(
+					"The specified item could not be found in the keychain.",
+				);
+			return { stdout: JSON.stringify(siblings), stderr: "" };
+		};
+
+		const read = await readClaudeLogin(dir, { darwin: true, exec });
+		expect(read.keychainUnreadable).toBe(false);
+		expect(read.keychainContent).toEqual(siblings);
+	});
+
 	it("points a null selection at the system-default store", async () => {
 		const home = tempProfile();
 		mkdirSync(join(home, ".claude"));
