@@ -14,6 +14,7 @@ import type {
 } from "../trpc/router/usage/types.ts";
 import { AccountEngine } from "./account-engine.ts";
 import type {
+	ClaudeLoginStoreRef,
 	ClaudeSwapResult,
 	seedActiveClaudeLogin,
 	swapClaudeLogin,
@@ -158,6 +159,7 @@ function harness(options: HarnessOptions = {}) {
 	const restarted: MovableSession[] = [];
 	const externalSwitches: AccountAgent[] = [];
 	const identityWrites: string[] = [];
+	const identityStates: Array<Record<string, unknown>> = [];
 	const snapshotSinks: Array<((snapshot: QuotaStoreSnapshot) => void) | null> =
 		[];
 	const snapshotSources: Array<(() => QuotaStoreSnapshot | null) | null> = [];
@@ -173,6 +175,16 @@ function harness(options: HarnessOptions = {}) {
 		credentialHash: string | null;
 	} = { accountUuid: "acct-a", credentialHash: "hash-a" };
 	let seeded = false;
+
+	// A swap or a seed reports the account the *requested* store holds: a fixed
+	// answer would file one account's credential under another's dir.
+	const storedIdentity = (ref: ClaudeLoginStoreRef) => {
+		const selection = ref.kind === "profile" ? ref.dir : null;
+		const account = entries
+			.flatMap((entry) => entry.accounts)
+			.find((item) => item.agent === "claude" && item.selection === selection);
+		return swapIdentity(account?.accountId ?? null);
+	};
 
 	const engineState = new EngineState();
 
@@ -257,7 +269,7 @@ function harness(options: HarnessOptions = {}) {
 			const result = options.swapResults?.[swapInputs.length - 1] ??
 				options.swapResult ?? {
 					ok: true,
-					identity: swapIdentity("acct-b"),
+					identity: storedIdentity(input.target),
 				};
 			if (result.ok) {
 				activeIdentity = {
@@ -272,7 +284,9 @@ function harness(options: HarnessOptions = {}) {
 			seedInputs.push(input);
 			return {
 				ok: true,
-				identity: swapIdentity(options.seedAccountId ?? "acct-a"),
+				identity: options.seedAccountId
+					? swapIdentity(options.seedAccountId)
+					: storedIdentity(input.source),
 			};
 		},
 		ensureActiveDir: async (opts) => {
@@ -300,8 +314,9 @@ function harness(options: HarnessOptions = {}) {
 			claudeConfigDir: options.pointer?.claudeConfigDir ?? null,
 			codexHome: options.pointer?.codexHome ?? null,
 		}),
-		updateClaudeStateFile: async (path) => {
+		updateClaudeStateFile: async (path, mutate) => {
 			identityWrites.push(path);
+			identityStates.push(mutate({ hasTrustDialogAccepted: true }));
 		},
 		// Captured rather than installed: the real recorder is module state
 		// shared with every other test in this process.
@@ -337,6 +352,7 @@ function harness(options: HarnessOptions = {}) {
 		restarted,
 		externalSwitches,
 		identityWrites,
+		identityStates,
 		swapInputs,
 		seedInputs,
 		reads,
@@ -362,7 +378,7 @@ function harness(options: HarnessOptions = {}) {
 	};
 }
 
-function swapIdentity(accountUuid: string) {
+function swapIdentity(accountUuid: string | null) {
 	return {
 		accountUuid,
 		emailAddress: null,
@@ -1217,6 +1233,9 @@ describe("AccountEngine", () => {
 		await h.engine.tick();
 
 		expect(h.identityWrites).toEqual([join(ACTIVE_DIR, ".claude.json")]);
+		expect(h.identityStates).toEqual([
+			{ hasTrustDialogAccepted: true, oauthAccount: { accountUuid: "acct-b" } },
+		]);
 		expect(h.engine.status().claude.activeAccountId).toBe("acct-b");
 	});
 
@@ -2453,6 +2472,7 @@ describe("app wiring", () => {
 		const start = source.indexOf(guard);
 		expect(start).toBeGreaterThan(-1);
 		const end = source.indexOf("\n\t}\n", start);
+		expect(end).toBeGreaterThan(start);
 		const guarded = source.slice(start, end);
 		expect(guarded).toContain("new AccountEngine(");
 		expect(source.split("new AccountEngine(")).toHaveLength(2);
