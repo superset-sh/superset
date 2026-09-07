@@ -2649,6 +2649,9 @@ msgstr "我可以用自己的API金鑰嗎？"
 msgid "Can you standardize the tooltips across the app?"
 msgstr "能把整個應用的tooltip樣式統一一下嗎？"
 
+msgid "Can't connect right now"
+msgstr "目前無法連線"
+
 msgid "Can't open remote workspace paths in an external editor"
 msgstr "無法在外部編輯器中開啟遠端工作區路徑"
 
@@ -2842,6 +2845,9 @@ msgstr "檢視資源"
 
 msgid "Check the rendered prompt and launch output before saving"
 msgstr "儲存前檢查渲染後的提示詞和啟動輸出"
+
+msgid "Check your access under Settings > Security on that device."
+msgstr "請在該裝置的「設定 > 安全性」中檢查你的存取權限。"
 
 msgid "Check your connection and try again"
 msgstr "請檢查網路連線後重試"
@@ -3562,9 +3568,6 @@ msgstr "已連線。登入被取消，因此在你重新連線之前，按「我
 msgid "Connecting"
 msgstr "連線中"
 
-msgid "Connecting to {hostName}…"
-msgstr "正在連線到 {hostName}…"
-
 msgid "Connecting to the desktop…"
 msgstr "正在連線至桌面…"
 
@@ -4033,6 +4036,9 @@ msgstr "無法關注此頁面"
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "無法確認加星狀態，請檢查是否已安裝並登入GitHub CLI（`gh`），以及網路是否連通"
 
+msgid "Couldn't connect (error {status}). Please try again."
+msgstr "無法連線（錯誤 {status}）。請重試。"
+
 msgid "Couldn't copy branch name"
 msgstr "無法複製分支名"
 
@@ -4096,9 +4102,6 @@ msgstr "無法釋出回覆"
 #. placeholder {1}: first.message
 msgid "Couldn't reach cloud for {0}: {1}"
 msgstr "無法為{0}連線雲端：{1}"
-
-msgid "Couldn't reach the relay service. Check this machine's network connection — the other device is probably fine."
-msgstr "無法連線到中繼服務。請檢查本機的網路連線 — 另一臺裝置很可能沒有問題。"
 
 msgid "Couldn't read this terminal's context."
 msgstr "無法讀取這個終端的上下文。"
@@ -4939,9 +4942,6 @@ msgstr "斷開Slack連線？"
 
 msgid "Disconnected"
 msgstr "已斷開"
-
-msgid "Disconnected from {hostName}"
-msgstr "已與 {hostName} 中斷連線"
 
 msgid "Disconnecting..."
 msgstr "正在斷開連線..."
@@ -6827,9 +6827,6 @@ msgstr "主機服務已崩潰"
 msgid "Host service is not running"
 msgstr "主機服務未執行"
 
-msgid "Host service is restarting…"
-msgstr "主機服務正在重新啟動…"
-
 msgid "Host service is starting…"
 msgstr "主機服務正在啟動…"
 
@@ -6844,9 +6841,6 @@ msgstr "主機不可用"
 
 msgid "Host unavailable: {hostName}"
 msgstr "主機不可用：{hostName}"
-
-msgid "Host unreachable"
-msgstr "主機無法連線"
 
 msgid "Hosted in the cloud"
 msgstr "託管在雲端"
@@ -8015,6 +8009,9 @@ msgstr "設為預設"
 
 msgid "Make default — launch new terminals and agents on this account."
 msgstr "設為預設——新終端和代理程式將使用此帳戶啟動。"
+
+msgid "Make sure the device is awake, online, and running Superset."
+msgstr "請確認裝置未進入睡眠模式、已連上網路且正在執行 Superset。"
 
 msgid "Make the chip style the TooltipContent default"
 msgstr "把chip樣式設為TooltipContent的預設樣式"
@@ -10407,6 +10404,9 @@ msgstr "播放{label}"
 msgid "Play a sound when tasks complete"
 msgstr "任務完成時播放聲音"
 
+msgid "Please check your internet connection and try again."
+msgstr "請檢查網路連線後重試。"
+
 msgid "Please enter a project name"
 msgstr "請輸入專案名稱"
 
@@ -10418,6 +10418,9 @@ msgstr "請選擇專案位置"
 
 msgid "Please select an organization"
 msgstr "請選擇一個組織"
+
+msgid "Please try again, or restart Superset on that device."
+msgstr "請重試，或在該裝置上重新啟動 Superset。"
 
 msgid "Please try signing in again from the desktop app."
 msgstr "請從桌面應用程式重新登入。"
@@ -11083,9 +11086,6 @@ msgstr "需要重新連線"
 msgid "Reconnecting"
 msgstr "正在重新連線"
 
-msgid "Reconnecting to {hostName}…"
-msgstr "正在重新連線到 {hostName}…"
-
 msgid "Reconnecting…"
 msgstr "正在重新連線…"
 
@@ -11562,6 +11562,9 @@ msgstr "正在{accountLabel}上重新啟動代理程式。"
 
 msgid "Restarting host services…"
 msgstr "正在重啟主機服務…"
+
+msgid "Restarting…"
+msgstr "正在重新啟動…"
 
 msgid "Restore"
 msgstr "恢復"
@@ -13199,6 +13202,9 @@ msgstr "正在啟動{agentLabel}"
 msgid "Starting cloud workspace"
 msgstr "正在啟動雲端工作區"
 
+msgid "Starting up. This should only take a moment."
+msgstr "正在啟動，請稍等片刻。"
+
 msgid "Starting workspace"
 msgstr "正在啟動工作區"
 
@@ -13850,12 +13856,6 @@ msgstr "多行文字框"
 msgid "Thanks for reaching out"
 msgstr "感謝聯絡"
 
-msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
-msgstr "該裝置線上，但無法建立連線 — 通常是中繼路由問題，而非裝置本身。請重試；若持續如此，請在該裝置上重啟Superset。"
-
-msgid "That device isn't connected to the relay. Check it's awake, online, and running Superset — it reconnects on its own once it is."
-msgstr "該裝置未連線到中繼。請檢查它是否已喚醒、聯網並正在執行Superset — 一旦就緒它會自行重新連線。"
-
 msgid "That handle is taken."
 msgstr "該使用者名稱已被佔用。"
 
@@ -13891,9 +13891,6 @@ msgstr "最好的代理程式會變。<0/>你的工作流不該變。"
 
 msgid "The Codex sign-in"
 msgstr "Codex登入"
-
-msgid "The connection failed (relay status {status}). Retry, and if it persists restart Superset on that device."
-msgstr "連線失敗（中繼狀態{status}）。請重試；若持續如此，請在該裝置上重啟Superset。"
 
 msgid "The connection timed out"
 msgstr "連線已逾時"
@@ -13997,9 +13994,6 @@ msgstr "連結可能有誤、頁面可能已被刪除，或者你沒有存取權
 msgid "The linked agent is missing or disabled. Showing the snapshot."
 msgstr "關聯的代理程式已丟失或被停用。正在顯示快照。"
 
-msgid "The local host service is still starting up. It should be ready in a few seconds."
-msgstr "本地主機服務仍在啟動中。應該在幾秒內就緒。"
-
 msgid "The local host service is unavailable for {organization} on {device}. Status: {status}. {recovery}"
 msgstr "{device}上{organization}的本地主機服務不可用。狀態：{status}。{recovery}"
 
@@ -14011,9 +14005,6 @@ msgstr "本地主機服務未執行，因此此裝置上沒有任何服務能提
 
 msgid "The local host service just came up. Reconnecting to it now."
 msgstr "本地主機服務剛剛啟動。正在重新連線。"
-
-msgid "The local host service stopped answering. Retry first; if that doesn't take, restart it from the Superset tray menu > Host Service > Restart."
-msgstr "本地主機服務已停止響應。請先重試；若無效，請從Superset托盤選單 > 主機服務 > 重啟中重啟它。"
 
 msgid "The majority of merged agent PRs need review only, with zero human edits."
 msgstr "多數已合併的代理程式PR只需審查，無需任何人工修改。"
@@ -14053,9 +14044,6 @@ msgstr "Superset背後的團隊。"
 
 msgid "The recovery period has ended. Contact support@superset.sh."
 msgstr "恢復期已結束。請聯絡support@superset.sh。"
-
-msgid "The relay couldn't reach that device right now. This is usually temporary — retrying in a moment normally works."
-msgstr "中繼此刻無法連上該裝置。這通常是暫時的 — 稍後重試一般就能成功。"
 
 msgid "The remote branch has diverged. Pull before continuing."
 msgstr "遠端分支已分叉。請先拉取再繼續。"
@@ -14413,9 +14401,6 @@ msgstr "這將終止該會話及其底層處理程序。"
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "這將取消暫存並還原所有已暫存的更改。已暫存的新檔案將被刪除。此操作無法復原。"
 
-msgid "This workspace lives on a device Superset can't reach right now. Terminals, files, and agents stay put — they come back as soon as the connection does."
-msgstr "此工作區位於Superset目前無法連線的裝置上。終端、檔案和代理程式都會保持原樣 — 連線一恢復它們就會回來。"
-
 msgid "This workspace may have been removed, or you no longer have access to it."
 msgstr "此工作區可能已被移除，或者你不再擁有它的存取權限。"
 
@@ -14664,6 +14649,9 @@ msgstr "試試其他搜尋詞或其他裝置。"
 
 msgid "Try again"
 msgstr "重試"
+
+msgid "Try again, or restart the host service from the Superset tray menu."
+msgstr "請重試，或從 Superset 系統匣選單重新啟動主機服務。"
 
 msgid "Try again. If the problem continues, reload Superset."
 msgstr "請重試。如果問題持續，請重新載入Superset。"
@@ -15301,6 +15289,9 @@ msgstr "我們無法從你的支付方式扣款。請更新支付方式以保留
 msgid "We couldn't detect a package manager or environment config."
 msgstr "我們沒有檢測到包管理器或環境配置。"
 
+msgid "We couldn't reach the device. Please try again in a moment."
+msgstr "暫時無法連上裝置，請稍後重試。"
+
 msgid "We do not forecast full self-driving in 2026 or 2027. The honest unknowns: whether agent review holds up against adversarial complexity, whether specification can replace code reading as the trust anchor at scale, and whether compute economics keep the overnight shift cheaper than the humans it augments. F5 is a rubric entry so we recognize it when we see it, not a promise."
 msgstr "我們不預測2026或2027年實現完全自動駕駛。誠實地講，未知數有三個：代理程式審查能否扛住對抗性的複雜度；規格說明能否在大規模場景下取代讀程式碼，成為信任的錨點；以及算力成本能否讓夜班始終比它所增強的人力更便宜。F5寫進評分表，是為了在它出現時能認出來，而不是一個承諾。"
 
@@ -15312,6 +15303,9 @@ msgstr "下載連結已傳送至{submittedEmail}。"
 
 msgid "We'll be in touch shortly."
 msgstr "我們會盡快與你聯絡。"
+
+msgid "We'll bring you back as soon as we reconnect."
+msgstr "連線恢復後，你就能回到工作區。"
 
 msgid "We'll get back to you shortly."
 msgstr "我們會盡快回復你。"
@@ -15764,9 +15758,6 @@ msgstr "此操作無法復原。終端窗格會顯示「處理程序已退出」
 
 msgid "You don't have access to this host"
 msgstr "你沒有此主機的存取權限"
-
-msgid "You don't have access to this host. If it's your own device, turn on relay access there under Settings > Security."
-msgstr "你沒有此主機的存取權限。如果這是你自己的裝置，請在該裝置的設定 > 安全中開啟中繼存取。"
 
 msgid "You don't have access to this terminal."
 msgstr "你沒有此終端的存取權限。"

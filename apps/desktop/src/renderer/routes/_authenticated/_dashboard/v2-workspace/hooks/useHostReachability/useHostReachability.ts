@@ -75,7 +75,7 @@ function describeFailure(
 		return i18n._(
 			msg({
 				message:
-					"The local host service stopped answering. Retry first; if that doesn't take, restart it from the Superset tray menu > Host Service > Restart.",
+					"Try again, or restart the host service from the Superset tray menu.",
 			}),
 		);
 	}
@@ -84,47 +84,41 @@ function describeFailure(
 	if (!probe) {
 		return i18n._(
 			msg({
-				message:
-					"Couldn't reach the relay service. Check this machine's network connection — the other device is probably fine.",
+				message: "Please check your internet connection and try again.",
 			}),
 		);
 	}
 	if (probe.status === 503) {
 		return i18n._(
 			msg({
-				message:
-					"That device isn't connected to the relay. Check it's awake, online, and running Superset — it reconnects on its own once it is.",
+				message: "Make sure the device is awake, online, and running Superset.",
 			}),
 		);
 	}
 	if (probe.status === 401 || probe.status === 403) {
 		return i18n._(
 			msg({
-				message:
-					"You don't have access to this host. If it's your own device, turn on relay access there under Settings > Security.",
+				message: "Check your access under Settings > Security on that device.",
 			}),
 		);
 	}
 	if (probe.status === 502 || probe.status === 504) {
 		return i18n._(
 			msg({
-				message:
-					"The relay couldn't reach that device right now. This is usually temporary — retrying in a moment normally works.",
+				message: "We couldn't reach the device. Please try again in a moment.",
 			}),
 		);
 	}
 	if (probe.status === 200) {
 		return i18n._(
 			msg({
-				message:
-					"That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device.",
+				message: "Please try again, or restart Superset on that device.",
 			}),
 		);
 	}
 	return i18n._({
 		...msg({
-			message:
-				"The connection failed (relay status {status}). Retry, and if it persists restart Superset on that device.",
+			message: "Couldn't connect (error {status}). Please try again.",
 		}),
 		values: { status: probe.status },
 	});

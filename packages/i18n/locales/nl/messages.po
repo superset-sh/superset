@@ -2649,6 +2649,9 @@ msgstr "Kan ik mijn eigen API-sleutels gebruiken?"
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Kun je de tooltips in de hele app standaardiseren?"
 
+msgid "Can't connect right now"
+msgstr "Verbinden lukt nu even niet"
+
 msgid "Can't open remote workspace paths in an external editor"
 msgstr "Paden van externe werkruimtes kunnen niet in een externe editor worden geopend"
 
@@ -2842,6 +2845,9 @@ msgstr "Resources controleren"
 
 msgid "Check the rendered prompt and launch output before saving"
 msgstr "Bekijk de gerenderde prompt en startuitvoer voordat je opslaat"
+
+msgid "Check your access under Settings > Security on that device."
+msgstr "Controleer je toegang onder Instellingen > Beveiliging op dat apparaat."
 
 msgid "Check your connection and try again"
 msgstr "Controleer je verbinding en probeer het opnieuw"
@@ -3562,9 +3568,6 @@ msgstr "Verbonden. Het inloggen is geannuleerd, dus triggers met \"Ik\" komen ni
 msgid "Connecting"
 msgstr "Verbinden"
 
-msgid "Connecting to {hostName}…"
-msgstr "Verbinden met {hostName}…"
-
 msgid "Connecting to the desktop…"
 msgstr "Verbinden met het bureaublad…"
 
@@ -4033,6 +4036,9 @@ msgstr "Kon deze pagina niet volgen"
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Kan de sterstatus niet bevestigen — controleer of de GitHub-CLI (`gh`) is geïnstalleerd, of je bent ingelogd en of je een netwerkverbinding hebt"
 
+msgid "Couldn't connect (error {status}). Please try again."
+msgstr "Verbinden mislukt (fout {status}). Probeer het opnieuw."
+
 msgid "Couldn't copy branch name"
 msgstr "Kan branchnaam niet kopiëren"
 
@@ -4096,9 +4102,6 @@ msgstr "Kan antwoord niet plaatsen"
 #. placeholder {1}: first.message
 msgid "Couldn't reach cloud for {0}: {1}"
 msgstr "Kan de cloud niet bereiken voor {0}: {1}"
-
-msgid "Couldn't reach the relay service. Check this machine's network connection — the other device is probably fine."
-msgstr "Kan de relayservice niet bereiken. Controleer de netwerkverbinding van deze machine — met het andere apparaat is waarschijnlijk niets mis."
 
 msgid "Couldn't read this terminal's context."
 msgstr "De context van deze terminal kon niet worden gelezen."
@@ -4939,9 +4942,6 @@ msgstr "Slack loskoppelen?"
 
 msgid "Disconnected"
 msgstr "Verbinding verbroken"
-
-msgid "Disconnected from {hostName}"
-msgstr "Verbinding met {hostName} verbroken"
 
 msgid "Disconnecting..."
 msgstr "Verbinding verbreken..."
@@ -6827,9 +6827,6 @@ msgstr "Hostservice gecrasht"
 msgid "Host service is not running"
 msgstr "De hostservice draait niet"
 
-msgid "Host service is restarting…"
-msgstr "Hostservice wordt opnieuw gestart…"
-
 msgid "Host service is starting…"
 msgstr "De hostservice start op…"
 
@@ -6844,9 +6841,6 @@ msgstr "Host niet beschikbaar"
 
 msgid "Host unavailable: {hostName}"
 msgstr "Host niet beschikbaar: {hostName}"
-
-msgid "Host unreachable"
-msgstr "Host onbereikbaar"
 
 msgid "Hosted in the cloud"
 msgstr "Gehost in de cloud"
@@ -8015,6 +8009,9 @@ msgstr "Standaard maken"
 
 msgid "Make default — launch new terminals and agents on this account."
 msgstr "Standaard maken — start nieuwe terminals en agents op dit account."
+
+msgid "Make sure the device is awake, online, and running Superset."
+msgstr "Zorg dat het apparaat wakker en online is en dat Superset erop draait."
 
 msgid "Make the chip style the TooltipContent default"
 msgstr "Maak de chipstijl de standaard voor TooltipContent"
@@ -10407,6 +10404,9 @@ msgstr "{label} afspelen"
 msgid "Play a sound when tasks complete"
 msgstr "Speel een geluid af wanneer taken klaar zijn"
 
+msgid "Please check your internet connection and try again."
+msgstr "Controleer je internetverbinding en probeer het opnieuw."
+
 msgid "Please enter a project name"
 msgstr "Voer een projectnaam in"
 
@@ -10418,6 +10418,9 @@ msgstr "Kies een projectlocatie"
 
 msgid "Please select an organization"
 msgstr "Kies een organisatie"
+
+msgid "Please try again, or restart Superset on that device."
+msgstr "Probeer het opnieuw of herstart Superset op dat apparaat."
 
 msgid "Please try signing in again from the desktop app."
 msgstr "Probeer opnieuw in te loggen vanuit de desktop-app."
@@ -11083,9 +11086,6 @@ msgstr "Opnieuw verbinden vereist"
 msgid "Reconnecting"
 msgstr "Opnieuw verbinden"
 
-msgid "Reconnecting to {hostName}…"
-msgstr "Opnieuw verbinden met {hostName}…"
-
 msgid "Reconnecting…"
 msgstr "Opnieuw verbinden…"
 
@@ -11562,6 +11562,9 @@ msgstr "Agents worden herstart op {accountLabel}."
 
 msgid "Restarting host services…"
 msgstr "Hostservices herstarten…"
+
+msgid "Restarting…"
+msgstr "Bezig met herstarten…"
 
 msgid "Restore"
 msgstr "Herstellen"
@@ -13199,6 +13202,9 @@ msgstr "{agentLabel} starten"
 msgid "Starting cloud workspace"
 msgstr "Cloudwerkruimte starten"
 
+msgid "Starting up. This should only take a moment."
+msgstr "Bezig met starten. Dit duurt maar even."
+
 msgid "Starting workspace"
 msgstr "Werkruimte starten"
 
@@ -13850,12 +13856,6 @@ msgstr "Textarea"
 msgid "Thanks for reaching out"
 msgstr "Bedankt voor je bericht"
 
-msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
-msgstr "Dat apparaat is online, maar de verbinding kon niet tot stand komen — meestal ligt dat aan de relayrouting en niet aan het apparaat zelf. Probeer het opnieuw; blijft het misgaan, herstart Superset dan op dat apparaat."
-
-msgid "That device isn't connected to the relay. Check it's awake, online, and running Superset — it reconnects on its own once it is."
-msgstr "Dat apparaat is niet met de relay verbonden. Controleer of het wakker en online is en of Superset draait — daarna verbindt het vanzelf opnieuw."
-
 msgid "That handle is taken."
 msgstr "Die handle is al bezet."
 
@@ -13891,9 +13891,6 @@ msgstr "De beste agent verandert.<0/>Jouw workflow niet."
 
 msgid "The Codex sign-in"
 msgstr "De Codex-login"
-
-msgid "The connection failed (relay status {status}). Retry, and if it persists restart Superset on that device."
-msgstr "De verbinding is mislukt (relaystatus {status}). Probeer het opnieuw; blijft het misgaan, herstart Superset dan op dat apparaat."
 
 msgid "The connection timed out"
 msgstr "De verbinding is verlopen"
@@ -13997,9 +13994,6 @@ msgstr "De link klopt mogelijk niet, de pagina is verwijderd, of je hebt er geen
 msgid "The linked agent is missing or disabled. Showing the snapshot."
 msgstr "De gekoppelde agent ontbreekt of staat uit. De snapshot wordt getoond."
 
-msgid "The local host service is still starting up. It should be ready in a few seconds."
-msgstr "De lokale hostservice start nog op. Over een paar seconden zou hij klaar moeten zijn."
-
 msgid "The local host service is unavailable for {organization} on {device}. Status: {status}. {recovery}"
 msgstr "De lokale hostservice is niet beschikbaar voor {organization} op {device}. Status: {status}. {recovery}"
 
@@ -14011,9 +14005,6 @@ msgstr "De lokale hostservice draait niet, dus niets op dit apparaat kan de werk
 
 msgid "The local host service just came up. Reconnecting to it now."
 msgstr "De lokale hostservice is net gestart. Er wordt nu opnieuw verbinding mee gemaakt."
-
-msgid "The local host service stopped answering. Retry first; if that doesn't take, restart it from the Superset tray menu > Host Service > Restart."
-msgstr "De lokale hostservice reageert niet meer. Probeer het eerst opnieuw; helpt dat niet, herstart hem dan via het Superset-menu in de menubalk > Hostservice > Opnieuw starten."
 
 msgid "The majority of merged agent PRs need review only, with zero human edits."
 msgstr "De meeste gemergede agent-PR's hoeven alleen gereviewd te worden, zonder menselijke bewerkingen."
@@ -14053,9 +14044,6 @@ msgstr "De mensen achter Superset."
 
 msgid "The recovery period has ended. Contact support@superset.sh."
 msgstr "De herstelperiode is voorbij. Neem contact op via support@superset.sh."
-
-msgid "The relay couldn't reach that device right now. This is usually temporary — retrying in a moment normally works."
-msgstr "De relay kon dat apparaat nu niet bereiken. Dat is meestal tijdelijk — zo meteen opnieuw proberen werkt vaak."
 
 msgid "The remote branch has diverged. Pull before continuing."
 msgstr "De remote branch is uiteengelopen. Pull voordat je verdergaat."
@@ -14413,9 +14401,6 @@ msgstr "Hiermee worden de sessie en het onderliggende proces beëindigd."
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Hiermee worden alle gestagede wijzigingen ge-unstaged en teruggedraaid. Gestagede nieuwe bestanden worden verwijderd. Dit kan niet ongedaan worden gemaakt."
 
-msgid "This workspace lives on a device Superset can't reach right now. Terminals, files, and agents stay put — they come back as soon as the connection does."
-msgstr "Deze werkruimte staat op een apparaat dat Superset nu niet kan bereiken. Terminals, bestanden en agents blijven staan — ze komen terug zodra de verbinding er weer is."
-
 msgid "This workspace may have been removed, or you no longer have access to it."
 msgstr "Deze werkruimte is mogelijk verwijderd, of je hebt er geen toegang meer toe."
 
@@ -14664,6 +14649,9 @@ msgstr "Probeer een andere zoekterm of een ander apparaat."
 
 msgid "Try again"
 msgstr "Opnieuw proberen"
+
+msgid "Try again, or restart the host service from the Superset tray menu."
+msgstr "Probeer het opnieuw of herstart de hostservice via het Superset-menu in het systeemvak."
 
 msgid "Try again. If the problem continues, reload Superset."
 msgstr "Probeer het opnieuw. Blijft het misgaan, herlaad dan Superset."
@@ -15301,6 +15289,9 @@ msgstr "We konden je betaalmethode niet belasten. Werk die bij om dit plan te be
 msgid "We couldn't detect a package manager or environment config."
 msgstr "We konden geen package manager of omgevingsconfiguratie detecteren."
 
+msgid "We couldn't reach the device. Please try again in a moment."
+msgstr "We konden het apparaat niet bereiken. Probeer het zo nog eens."
+
 msgid "We do not forecast full self-driving in 2026 or 2027. The honest unknowns: whether agent review holds up against adversarial complexity, whether specification can replace code reading as the trust anchor at scale, and whether compute economics keep the overnight shift cheaper than the humans it augments. F5 is a rubric entry so we recognize it when we see it, not a promise."
 msgstr "We voorspellen geen volledige zelfsturing in 2026 of 2027. De eerlijke onbekenden: of agentreview standhoudt tegen vijandige complexiteit, of specificatie op schaal het lezen van code kan vervangen als vertrouwensanker, en of de rekeneconomie de nachtploeg goedkoper houdt dan de mensen die zij aanvult. F5 staat in de rubric zodat we het herkennen als we het zien, niet als belofte."
 
@@ -15312,6 +15303,9 @@ msgstr "We hebben de downloadlink naar {submittedEmail} gestuurd."
 
 msgid "We'll be in touch shortly."
 msgstr "We nemen snel contact op."
+
+msgid "We'll bring you back as soon as we reconnect."
+msgstr "Zodra de verbinding terug is, kun je hier verder."
 
 msgid "We'll get back to you shortly."
 msgstr "We nemen snel contact met je op."
@@ -15764,9 +15758,6 @@ msgstr "Dit kun je niet ongedaan maken. Terminalpanelen tonen \"Process exited\"
 
 msgid "You don't have access to this host"
 msgstr "Je hebt geen toegang tot deze host"
-
-msgid "You don't have access to this host. If it's your own device, turn on relay access there under Settings > Security."
-msgstr "Je hebt geen toegang tot deze host. Is het je eigen apparaat, zet daar dan relaytoegang aan bij Instellingen > Beveiliging."
 
 msgid "You don't have access to this terminal."
 msgstr "Je hebt geen toegang tot deze terminal."

@@ -2649,6 +2649,9 @@ msgstr "Bisakah saya memakai kunci API saya sendiri?"
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Bisakah kamu menyeragamkan tooltip di seluruh aplikasi?"
 
+msgid "Can't connect right now"
+msgstr "Belum bisa terhubung"
+
 msgid "Can't open remote workspace paths in an external editor"
 msgstr "Tidak bisa membuka path workspace jarak jauh di editor eksternal"
 
@@ -2842,6 +2845,9 @@ msgstr "Periksa Sumber Daya"
 
 msgid "Check the rendered prompt and launch output before saving"
 msgstr "Periksa prompt yang dirender dan output peluncuran sebelum menyimpan"
+
+msgid "Check your access under Settings > Security on that device."
+msgstr "Periksa akses Anda di Pengaturan > Keamanan pada perangkat tersebut."
 
 msgid "Check your connection and try again"
 msgstr "Periksa koneksi Anda dan coba lagi"
@@ -3562,9 +3568,6 @@ msgstr "Terhubung. Proses masuk dibatalkan, jadi pemicu oleh \"Saya\" tidak akan
 msgid "Connecting"
 msgstr "Menghubungkan"
 
-msgid "Connecting to {hostName}…"
-msgstr "Menghubungkan ke {hostName}…"
-
 msgid "Connecting to the desktop…"
 msgstr "Menghubungkan ke desktop…"
 
@@ -4033,6 +4036,9 @@ msgstr "Tidak bisa memantau halaman ini"
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Tidak bisa memastikan status star — pastikan GitHub CLI (`gh`) terpasang, sudah masuk, dan Anda punya koneksi jaringan"
 
+msgid "Couldn't connect (error {status}). Please try again."
+msgstr "Tidak dapat terhubung (kesalahan {status}). Coba lagi."
+
 msgid "Couldn't copy branch name"
 msgstr "Tidak bisa menyalin nama branch"
 
@@ -4096,9 +4102,6 @@ msgstr "Tidak bisa mengirim balasan"
 #. placeholder {1}: first.message
 msgid "Couldn't reach cloud for {0}: {1}"
 msgstr "Tidak bisa menjangkau cloud untuk {0}: {1}"
-
-msgid "Couldn't reach the relay service. Check this machine's network connection — the other device is probably fine."
-msgstr "Tidak bisa menjangkau layanan relay. Periksa koneksi jaringan mesin ini — perangkat yang satunya kemungkinan baik-baik saja."
 
 msgid "Couldn't read this terminal's context."
 msgstr "Konteks terminal ini tidak bisa dibaca."
@@ -4939,9 +4942,6 @@ msgstr "Putuskan Slack?"
 
 msgid "Disconnected"
 msgstr "Terputus"
-
-msgid "Disconnected from {hostName}"
-msgstr "Terputus dari {hostName}"
 
 msgid "Disconnecting..."
 msgstr "Memutuskan..."
@@ -6827,9 +6827,6 @@ msgstr "Layanan host crash"
 msgid "Host service is not running"
 msgstr "Layanan host tidak berjalan"
 
-msgid "Host service is restarting…"
-msgstr "Layanan host sedang dimulai ulang…"
-
 msgid "Host service is starting…"
 msgstr "Layanan host sedang dimulai…"
 
@@ -6844,9 +6841,6 @@ msgstr "Host tidak tersedia"
 
 msgid "Host unavailable: {hostName}"
 msgstr "Host tidak tersedia: {hostName}"
-
-msgid "Host unreachable"
-msgstr "Host tidak terjangkau"
 
 msgid "Hosted in the cloud"
 msgstr "Dihosting di cloud"
@@ -8015,6 +8009,9 @@ msgstr "Jadikan bawaan"
 
 msgid "Make default — launch new terminals and agents on this account."
 msgstr "Jadikan bawaan — jalankan terminal dan agen baru dengan akun ini."
+
+msgid "Make sure the device is awake, online, and running Superset."
+msgstr "Pastikan perangkat aktif, terhubung ke internet, dan menjalankan Superset."
 
 msgid "Make the chip style the TooltipContent default"
 msgstr "Jadikan gaya chip sebagai bawaan TooltipContent"
@@ -10407,6 +10404,9 @@ msgstr "Putar {label}"
 msgid "Play a sound when tasks complete"
 msgstr "Bunyikan suara saat tugas selesai"
 
+msgid "Please check your internet connection and try again."
+msgstr "Periksa koneksi internet Anda dan coba lagi."
+
 msgid "Please enter a project name"
 msgstr "Silakan masukkan nama proyek"
 
@@ -10418,6 +10418,9 @@ msgstr "Silakan pilih lokasi proyek"
 
 msgid "Please select an organization"
 msgstr "Silakan pilih sebuah organisasi"
+
+msgid "Please try again, or restart Superset on that device."
+msgstr "Coba lagi, atau mulai ulang Superset di perangkat tersebut."
 
 msgid "Please try signing in again from the desktop app."
 msgstr "Silakan coba masuk lagi dari aplikasi desktop."
@@ -11083,9 +11086,6 @@ msgstr "Perlu dihubungkan ulang"
 msgid "Reconnecting"
 msgstr "Menyambungkan ulang"
 
-msgid "Reconnecting to {hostName}…"
-msgstr "Menyambungkan ulang ke {hostName}…"
-
 msgid "Reconnecting…"
 msgstr "Menyambungkan ulang…"
 
@@ -11562,6 +11562,9 @@ msgstr "Menjalankan ulang agen di {accountLabel}."
 
 msgid "Restarting host services…"
 msgstr "Memulai ulang layanan host…"
+
+msgid "Restarting…"
+msgstr "Memulai ulang…"
 
 msgid "Restore"
 msgstr "Pulihkan"
@@ -13199,6 +13202,9 @@ msgstr "Memulai {agentLabel}"
 msgid "Starting cloud workspace"
 msgstr "Memulai workspace cloud"
 
+msgid "Starting up. This should only take a moment."
+msgstr "Sedang memulai. Ini hanya perlu sebentar."
+
 msgid "Starting workspace"
 msgstr "Memulai workspace"
 
@@ -13850,12 +13856,6 @@ msgstr "Textarea"
 msgid "Thanks for reaching out"
 msgstr "Terima kasih sudah menghubungi"
 
-msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
-msgstr "Perangkat itu online tapi koneksinya tidak bisa dibangun — biasanya soal perutean relay, bukan perangkatnya. Coba lagi, dan kalau terus terjadi mulai ulang Superset di perangkat itu."
-
-msgid "That device isn't connected to the relay. Check it's awake, online, and running Superset — it reconnects on its own once it is."
-msgstr "Perangkat itu tidak terhubung ke relay. Pastikan perangkatnya menyala, online, dan menjalankan Superset — perangkat akan tersambung sendiri setelah itu."
-
 msgid "That handle is taken."
 msgstr "Handle itu sudah dipakai."
 
@@ -13891,9 +13891,6 @@ msgstr "Agen terbaik akan berganti.<0/>Alur kerja Anda tidak perlu."
 
 msgid "The Codex sign-in"
 msgstr "Sesi masuk Codex"
-
-msgid "The connection failed (relay status {status}). Retry, and if it persists restart Superset on that device."
-msgstr "Koneksinya gagal (status relay {status}). Coba lagi, dan kalau terus terjadi mulai ulang Superset di perangkat itu."
 
 msgid "The connection timed out"
 msgstr "Koneksinya kehabisan waktu"
@@ -13997,9 +13994,6 @@ msgstr "Tautannya mungkin salah, halamannya mungkin sudah dihapus, atau Anda mun
 msgid "The linked agent is missing or disabled. Showing the snapshot."
 msgstr "Agen yang ditautkan hilang atau nonaktif. Menampilkan snapshot."
 
-msgid "The local host service is still starting up. It should be ready in a few seconds."
-msgstr "Layanan host lokal masih dimulai. Seharusnya siap dalam beberapa detik."
-
 msgid "The local host service is unavailable for {organization} on {device}. Status: {status}. {recovery}"
 msgstr "Layanan host lokal tidak tersedia untuk {organization} di {device}. Status: {status}. {recovery}"
 
@@ -14011,9 +14005,6 @@ msgstr "Layanan host lokal tidak berjalan, jadi tidak ada yang bisa melayani wor
 
 msgid "The local host service just came up. Reconnecting to it now."
 msgstr "Layanan host lokal baru saja aktif. Menyambungkan kembali sekarang."
-
-msgid "The local host service stopped answering. Retry first; if that doesn't take, restart it from the Superset tray menu > Host Service > Restart."
-msgstr "Layanan host lokal berhenti merespons. Coba lagi dulu; kalau tidak berhasil, mulai ulang dari menu tray Superset > Host Service > Restart."
 
 msgid "The majority of merged agent PRs need review only, with zero human edits."
 msgstr "Mayoritas PR agen yang di-merge hanya perlu direview, tanpa suntingan manusia."
@@ -14053,9 +14044,6 @@ msgstr "Orang-orang di balik Superset."
 
 msgid "The recovery period has ended. Contact support@superset.sh."
 msgstr "Masa pemulihan sudah berakhir. Hubungi support@superset.sh."
-
-msgid "The relay couldn't reach that device right now. This is usually temporary — retrying in a moment normally works."
-msgstr "Relay tidak bisa menjangkau perangkat itu saat ini. Ini biasanya sementara — coba lagi sebentar lagi biasanya berhasil."
 
 msgid "The remote branch has diverged. Pull before continuing."
 msgstr "Branch remote sudah menyimpang. Lakukan pull sebelum melanjutkan."
@@ -14413,9 +14401,6 @@ msgstr "Ini akan menghentikan sesi beserta proses di baliknya."
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Ini akan meng-unstage dan mengembalikan semua perubahan yang di-stage. File baru yang di-stage akan dihapus. Ini tidak bisa dibatalkan."
 
-msgid "This workspace lives on a device Superset can't reach right now. Terminals, files, and agents stay put — they come back as soon as the connection does."
-msgstr "Workspace ini ada di perangkat yang tidak bisa dijangkau Superset saat ini. Terminal, file, dan agen tetap di tempatnya — semuanya kembali begitu koneksinya pulih."
-
 msgid "This workspace may have been removed, or you no longer have access to it."
 msgstr "Workspace ini mungkin sudah dihapus, atau Anda sudah tidak punya akses ke sana."
 
@@ -14664,6 +14649,9 @@ msgstr "Coba kata kunci lain atau perangkat lain."
 
 msgid "Try again"
 msgstr "Coba lagi"
+
+msgid "Try again, or restart the host service from the Superset tray menu."
+msgstr "Coba lagi, atau mulai ulang layanan host dari menu Superset di baki sistem."
 
 msgid "Try again. If the problem continues, reload Superset."
 msgstr "Coba lagi. Kalau masih bermasalah, muat ulang Superset."
@@ -15301,6 +15289,9 @@ msgstr "Kami tidak bisa menagih metode pembayaran Anda. Perbarui untuk mempertah
 msgid "We couldn't detect a package manager or environment config."
 msgstr "Kami tidak menemukan package manager atau konfigurasi environment."
 
+msgid "We couldn't reach the device. Please try again in a moment."
+msgstr "Perangkat tidak dapat dijangkau. Coba lagi sebentar lagi."
+
 msgid "We do not forecast full self-driving in 2026 or 2027. The honest unknowns: whether agent review holds up against adversarial complexity, whether specification can replace code reading as the trust anchor at scale, and whether compute economics keep the overnight shift cheaper than the humans it augments. F5 is a rubric entry so we recognize it when we see it, not a promise."
 msgstr "Kami tidak memperkirakan full self-driving pada 2026 atau 2027. Yang jujur belum diketahui: apakah review oleh agen bertahan menghadapi kompleksitas yang bermusuhan, apakah spesifikasi bisa menggantikan pembacaan kode sebagai jangkar kepercayaan dalam skala besar, dan apakah ekonomi komputasi menjaga shift malam tetap lebih murah daripada manusia yang dibantunya. F5 adalah entri rubrik supaya kami mengenalinya saat melihatnya, bukan sebuah janji."
 
@@ -15312,6 +15303,9 @@ msgstr "Kami mengirim tautan unduhan ke {submittedEmail}."
 
 msgid "We'll be in touch shortly."
 msgstr "Kami akan segera menghubungi Anda."
+
+msgid "We'll bring you back as soon as we reconnect."
+msgstr "Anda akan kembali begitu koneksi tersambung lagi."
 
 msgid "We'll get back to you shortly."
 msgstr "Kami akan segera menghubungi Anda kembali."
@@ -15764,9 +15758,6 @@ msgstr "Tindakan ini tidak bisa dibatalkan. Panel terminal akan menampilkan \"Pr
 
 msgid "You don't have access to this host"
 msgstr "Anda tidak punya akses ke host ini"
-
-msgid "You don't have access to this host. If it's your own device, turn on relay access there under Settings > Security."
-msgstr "Anda tidak punya akses ke host ini. Kalau ini perangkat Anda sendiri, aktifkan akses relay di sana lewat Pengaturan > Keamanan."
 
 msgid "You don't have access to this terminal."
 msgstr "Anda tidak punya akses ke terminal ini."

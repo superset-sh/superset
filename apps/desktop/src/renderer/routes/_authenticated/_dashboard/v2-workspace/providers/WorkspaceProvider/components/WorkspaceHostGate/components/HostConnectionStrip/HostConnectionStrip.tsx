@@ -27,12 +27,12 @@ export function HostConnectionStrip({
 	const { t } = useLingui();
 	const isDialing = isReconnecting || isLocalRestartInFlight;
 	const label = isLocalRestartInFlight
-		? t({ message: "Host service is restarting…" })
+		? t({ message: "Restarting…" })
 		: !isReconnecting
-			? t({ message: `Disconnected from ${hostName}` })
+			? t({ message: "Disconnected" })
 			: hasConnected
-				? t({ message: `Reconnecting to ${hostName}…` })
-				: t({ message: `Connecting to ${hostName}…` });
+				? t({ message: "Reconnecting…" })
+				: t({ message: "Connecting…" });
 
 	return (
 		<div

@@ -2649,6 +2649,9 @@ msgstr "제 API 키를 사용할 수 있나요?"
 msgid "Can you standardize the tooltips across the app?"
 msgstr "앱 전반의 툴팁을 표준화해 줄 수 있나요?"
 
+msgid "Can't connect right now"
+msgstr "지금은 연결할 수 없어요"
+
 msgid "Can't open remote workspace paths in an external editor"
 msgstr "원격 워크스페이스 경로는 외부 에디터에서 열 수 없습니다"
 
@@ -2842,6 +2845,9 @@ msgstr "리소스 확인"
 
 msgid "Check the rendered prompt and launch output before saving"
 msgstr "저장하기 전에 렌더링된 프롬프트와 실행 결과를 확인하세요"
+
+msgid "Check your access under Settings > Security on that device."
+msgstr "해당 기기의 설정 > 보안에서 접근 권한을 확인해 주세요."
 
 msgid "Check your connection and try again"
 msgstr "연결 상태를 확인하고 다시 시도하세요"
@@ -3562,9 +3568,6 @@ msgstr "연결되었습니다. 로그인이 취소되어, 다시 연결하기 �
 msgid "Connecting"
 msgstr "연결 중"
 
-msgid "Connecting to {hostName}…"
-msgstr "{hostName}에 연결하는 중…"
-
 msgid "Connecting to the desktop…"
 msgstr "데스크톱에 연결하는 중…"
 
@@ -4033,6 +4036,9 @@ msgstr "이 페이지를 감시할 수 없습니다"
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "스타 상태를 확인하지 못했습니다 — GitHub CLI(`gh`)가 설치되어 로그인되어 있는지, 네트워크에 연결되어 있는지 확인하세요"
 
+msgid "Couldn't connect (error {status}). Please try again."
+msgstr "연결하지 못했어요(오류 {status}). 다시 시도해 주세요."
+
 msgid "Couldn't copy branch name"
 msgstr "브랜치 이름을 복사하지 못했습니다"
 
@@ -4096,9 +4102,6 @@ msgstr "답글을 게시하지 못했습니다"
 #. placeholder {1}: first.message
 msgid "Couldn't reach cloud for {0}: {1}"
 msgstr "{0}에 대해 클라우드에 연결할 수 없습니다: {1}"
-
-msgid "Couldn't reach the relay service. Check this machine's network connection — the other device is probably fine."
-msgstr "릴레이 서비스에 연결하지 못했습니다. 이 컴퓨터의 네트워크 연결을 확인하세요. 상대 기기는 아마 문제가 없을 것입니다."
 
 msgid "Couldn't read this terminal's context."
 msgstr "이 터미널의 컨텍스트를 읽을 수 없습니다."
@@ -4939,9 +4942,6 @@ msgstr "Slack 연결을 해제할까요?"
 
 msgid "Disconnected"
 msgstr "연결 끊김"
-
-msgid "Disconnected from {hostName}"
-msgstr "{hostName}과의 연결이 끊어졌습니다"
 
 msgid "Disconnecting..."
 msgstr "연결 해제 중..."
@@ -6827,9 +6827,6 @@ msgstr "호스트 서비스 충돌"
 msgid "Host service is not running"
 msgstr "호스트 서비스가 실행 중이 아닙니다"
 
-msgid "Host service is restarting…"
-msgstr "호스트 서비스를 다시 시작하는 중…"
-
 msgid "Host service is starting…"
 msgstr "호스트 서비스를 시작하는 중…"
 
@@ -6844,9 +6841,6 @@ msgstr "호스트를 사용할 수 없음"
 
 msgid "Host unavailable: {hostName}"
 msgstr "호스트를 사용할 수 없음: {hostName}"
-
-msgid "Host unreachable"
-msgstr "호스트에 연결할 수 없음"
 
 msgid "Hosted in the cloud"
 msgstr "클라우드에서 호스팅됨"
@@ -8015,6 +8009,9 @@ msgstr "기본값으로 설정"
 
 msgid "Make default — launch new terminals and agents on this account."
 msgstr "기본값으로 설정 — 새 터미널과 에이전트를 이 계정으로 실행합니다."
+
+msgid "Make sure the device is awake, online, and running Superset."
+msgstr "기기가 절전 모드가 아니고 온라인 상태이며 Superset이 실행 중인지 확인해 주세요."
 
 msgid "Make the chip style the TooltipContent default"
 msgstr "칩 스타일을 TooltipContent 기본값으로 만들기"
@@ -10407,6 +10404,9 @@ msgstr "{label} 재생"
 msgid "Play a sound when tasks complete"
 msgstr "작업이 완료되면 소리를 재생합니다"
 
+msgid "Please check your internet connection and try again."
+msgstr "인터넷 연결을 확인하고 다시 시도해 주세요."
+
 msgid "Please enter a project name"
 msgstr "프로젝트 이름을 입력하세요"
 
@@ -10418,6 +10418,9 @@ msgstr "프로젝트 위치를 선택하세요"
 
 msgid "Please select an organization"
 msgstr "조직을 선택해 주세요"
+
+msgid "Please try again, or restart Superset on that device."
+msgstr "다시 시도하거나 해당 기기에서 Superset을 다시 시작해 주세요."
 
 msgid "Please try signing in again from the desktop app."
 msgstr "데스크톱 앱에서 다시 로그인해 주세요."
@@ -11083,9 +11086,6 @@ msgstr "다시 연결 필요"
 msgid "Reconnecting"
 msgstr "다시 연결하는 중"
 
-msgid "Reconnecting to {hostName}…"
-msgstr "{hostName}에 다시 연결하는 중…"
-
 msgid "Reconnecting…"
 msgstr "다시 연결하는 중…"
 
@@ -11562,6 +11562,9 @@ msgstr "{accountLabel}에서 에이전트를 다시 시작하는 중입니다."
 
 msgid "Restarting host services…"
 msgstr "호스트 서비스를 재시작하는 중…"
+
+msgid "Restarting…"
+msgstr "다시 시작 중…"
 
 msgid "Restore"
 msgstr "복원"
@@ -13199,6 +13202,9 @@ msgstr "{agentLabel} 시작 중"
 msgid "Starting cloud workspace"
 msgstr "클라우드 워크스페이스 시작 중"
 
+msgid "Starting up. This should only take a moment."
+msgstr "시작 중이에요. 잠시만 기다려 주세요."
+
 msgid "Starting workspace"
 msgstr "워크스페이스 시작 중"
 
@@ -13850,12 +13856,6 @@ msgstr "텍스트 영역"
 msgid "Thanks for reaching out"
 msgstr "연락해 주셔서 감사합니다"
 
-msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
-msgstr "해당 기기는 온라인이지만 연결을 맺지 못했습니다. 보통 기기 자체보다는 릴레이 라우팅 문제입니다. 다시 시도하고, 계속되면 해당 기기에서 Superset을 다시 시작하세요."
-
-msgid "That device isn't connected to the relay. Check it's awake, online, and running Superset — it reconnects on its own once it is."
-msgstr "해당 기기가 릴레이에 연결되어 있지 않습니다. 기기가 깨어 있고 온라인이며 Superset이 실행 중인지 확인하세요. 조건이 갖춰지면 스스로 다시 연결됩니다."
-
 msgid "That handle is taken."
 msgstr "이미 사용 중인 핸들입니다."
 
@@ -13891,9 +13891,6 @@ msgstr "최고의 에이전트는 바뀝니다.<0/>워크플로는 그럴 필요
 
 msgid "The Codex sign-in"
 msgstr "Codex 로그인"
-
-msgid "The connection failed (relay status {status}). Retry, and if it persists restart Superset on that device."
-msgstr "연결에 실패했습니다(릴레이 상태 {status}). 다시 시도하고, 계속되면 해당 기기에서 Superset을 다시 시작하세요."
 
 msgid "The connection timed out"
 msgstr "연결 시간이 초과되었습니다"
@@ -13997,9 +13994,6 @@ msgstr "링크가 잘못되었거나, 페이지가 삭제되었거나, 접근 �
 msgid "The linked agent is missing or disabled. Showing the snapshot."
 msgstr "연결된 에이전트가 없거나 비활성화되어 있습니다. 스냅샷을 표시합니다."
 
-msgid "The local host service is still starting up. It should be ready in a few seconds."
-msgstr "로컬 호스트 서비스가 아직 시작하는 중입니다. 몇 초 안에 준비될 것입니다."
-
 msgid "The local host service is unavailable for {organization} on {device}. Status: {status}. {recovery}"
 msgstr "{device}의 {organization}에 대해 로컬 호스트 서비스를 사용할 수 없습니다. 상태: {status}. {recovery}"
 
@@ -14011,9 +14005,6 @@ msgstr "로컬 호스트 서비스가 실행 중이 아니어서 이 기기에�
 
 msgid "The local host service just came up. Reconnecting to it now."
 msgstr "로컬 호스트 서비스가 방금 올라왔습니다. 지금 다시 연결하는 중입니다."
-
-msgid "The local host service stopped answering. Retry first; if that doesn't take, restart it from the Superset tray menu > Host Service > Restart."
-msgstr "로컬 호스트 서비스가 응답을 멈췄습니다. 먼저 다시 시도하고, 해결되지 않으면 Superset 트레이 메뉴 > Host Service > Restart에서 다시 시작하세요."
 
 msgid "The majority of merged agent PRs need review only, with zero human edits."
 msgstr "머지된 에이전트 PR의 대부분이 사람의 수정 없이 리뷰만으로 끝납니다."
@@ -14053,9 +14044,6 @@ msgstr "Superset을 만드는 사람들."
 
 msgid "The recovery period has ended. Contact support@superset.sh."
 msgstr "복구 기간이 끝났습니다. support@superset.sh로 문의하세요."
-
-msgid "The relay couldn't reach that device right now. This is usually temporary — retrying in a moment normally works."
-msgstr "릴레이가 지금 해당 기기에 연결하지 못했습니다. 보통 일시적인 문제이며, 잠시 후 다시 시도하면 대개 해결됩니다."
 
 msgid "The remote branch has diverged. Pull before continuing."
 msgstr "원격 브랜치가 갈라졌습니다. 계속하기 전에 pull하세요."
@@ -14413,9 +14401,6 @@ msgstr "이 세션과 그 하위 프로세스를 종료합니다."
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "스테이징된 변경 사항을 모두 스테이징 해제하고 되돌립니다. 스테이징된 새 파일은 삭제됩니다. 되돌릴 수 없습니다."
 
-msgid "This workspace lives on a device Superset can't reach right now. Terminals, files, and agents stay put — they come back as soon as the connection does."
-msgstr "이 워크스페이스는 Superset이 지금 연결할 수 없는 기기에 있습니다. 터미널, 파일, 에이전트는 그대로 남아 있으며 연결이 복구되면 바로 돌아옵니다."
-
 msgid "This workspace may have been removed, or you no longer have access to it."
 msgstr "이 워크스페이스가 제거되었거나 더 이상 접근 권한이 없을 수 있습니다."
 
@@ -14664,6 +14649,9 @@ msgstr "다른 검색어를 쓰거나 다른 기기를 선택해 보세요."
 
 msgid "Try again"
 msgstr "다시 시도"
+
+msgid "Try again, or restart the host service from the Superset tray menu."
+msgstr "다시 시도하거나 Superset 트레이 메뉴에서 호스트 서비스를 다시 시작해 주세요."
 
 msgid "Try again. If the problem continues, reload Superset."
 msgstr "다시 시도하세요. 문제가 계속되면 Superset을 다시 불러오세요."
@@ -15301,6 +15289,9 @@ msgstr "결제 수단으로 청구하지 못했습니다. 이 플랜을 유지�
 msgid "We couldn't detect a package manager or environment config."
 msgstr "패키지 매니저나 환경 설정을 감지하지 못했습니다."
 
+msgid "We couldn't reach the device. Please try again in a moment."
+msgstr "기기에 연결하지 못했어요. 잠시 후 다시 시도해 주세요."
+
 msgid "We do not forecast full self-driving in 2026 or 2027. The honest unknowns: whether agent review holds up against adversarial complexity, whether specification can replace code reading as the trust anchor at scale, and whether compute economics keep the overnight shift cheaper than the humans it augments. F5 is a rubric entry so we recognize it when we see it, not a promise."
 msgstr "2026년이나 2027년에 완전 자율 주행이 실현되리라고 예측하지는 않습니다. 솔직히 알 수 없는 부분이 있습니다. 에이전트 리뷰가 적대적인 복잡도를 견뎌 낼지, 대규모에서 명세가 코드 읽기를 대신해 신뢰의 기준이 될 수 있을지, 그리고 연산 비용이 야간 근무를 그것이 보완하는 사람보다 계속 저렴하게 유지할지입니다. F5는 약속이 아니라, 실제로 도달했을 때 알아보기 위한 평가 항목입니다."
 
@@ -15312,6 +15303,9 @@ msgstr "{submittedEmail}으로 다운로드 링크를 보냈습니다."
 
 msgid "We'll be in touch shortly."
 msgstr "곧 연락드리겠습니다."
+
+msgid "We'll bring you back as soon as we reconnect."
+msgstr "다시 연결되면 원래 화면으로 돌아갈게요."
 
 msgid "We'll get back to you shortly."
 msgstr "곧 회신드리겠습니다."
@@ -15764,9 +15758,6 @@ msgstr "이 작업은 되돌릴 수 없습니다. 터미널 패널에 \"Process 
 
 msgid "You don't have access to this host"
 msgstr "이 호스트에 접근할 권한이 없습니다"
-
-msgid "You don't have access to this host. If it's your own device, turn on relay access there under Settings > Security."
-msgstr "이 호스트에 접근할 권한이 없습니다. 본인 기기라면 해당 기기의 설정 > 보안에서 릴레이 접근을 켜세요."
 
 msgid "You don't have access to this terminal."
 msgstr "이 터미널에 접근할 권한이 없습니다."

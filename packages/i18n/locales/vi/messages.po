@@ -2649,6 +2649,9 @@ msgstr "Tôi có thể dùng khóa API của mình không?"
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Bạn chuẩn hóa tooltip trên toàn ứng dụng được không?"
 
+msgid "Can't connect right now"
+msgstr "Chưa thể kết nối lúc này"
+
 msgid "Can't open remote workspace paths in an external editor"
 msgstr "Không thể mở đường dẫn workspace từ xa trong trình soạn thảo ngoài"
 
@@ -2842,6 +2845,9 @@ msgstr "Kiểm tra tài nguyên"
 
 msgid "Check the rendered prompt and launch output before saving"
 msgstr "Kiểm tra prompt đã dựng và kết quả khởi chạy trước khi lưu"
+
+msgid "Check your access under Settings > Security on that device."
+msgstr "Kiểm tra quyền truy cập của bạn trong Cài đặt > Bảo mật trên thiết bị đó."
 
 msgid "Check your connection and try again"
 msgstr "Kiểm tra kết nối và thử lại"
@@ -3562,9 +3568,6 @@ msgstr "Đã kết nối. Việc đăng nhập bị hủy nên các trigger theo
 msgid "Connecting"
 msgstr "Đang kết nối"
 
-msgid "Connecting to {hostName}…"
-msgstr "Đang kết nối tới {hostName}…"
-
 msgid "Connecting to the desktop…"
 msgstr "Đang kết nối tới màn hình nền…"
 
@@ -4033,6 +4036,9 @@ msgstr "Không thể theo dõi trang này"
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Không xác nhận được trạng thái sao — hãy kiểm tra GitHub CLI (`gh`) đã cài, đã đăng nhập và bạn có kết nối mạng"
 
+msgid "Couldn't connect (error {status}). Please try again."
+msgstr "Không thể kết nối (lỗi {status}). Vui lòng thử lại."
+
 msgid "Couldn't copy branch name"
 msgstr "Không thể sao chép tên nhánh"
 
@@ -4096,9 +4102,6 @@ msgstr "Không thể đăng trả lời"
 #. placeholder {1}: first.message
 msgid "Couldn't reach cloud for {0}: {1}"
 msgstr "Không kết nối được tới cloud cho {0}: {1}"
-
-msgid "Couldn't reach the relay service. Check this machine's network connection — the other device is probably fine."
-msgstr "Không kết nối được tới dịch vụ relay. Hãy kiểm tra kết nối mạng của máy này — thiết bị kia có lẽ vẫn ổn."
 
 msgid "Couldn't read this terminal's context."
 msgstr "Không đọc được ngữ cảnh của terminal này."
@@ -4939,9 +4942,6 @@ msgstr "Ngắt kết nối Slack?"
 
 msgid "Disconnected"
 msgstr "Đã ngắt kết nối"
-
-msgid "Disconnected from {hostName}"
-msgstr "Đã ngắt kết nối khỏi {hostName}"
 
 msgid "Disconnecting..."
 msgstr "Đang ngắt kết nối..."
@@ -6827,9 +6827,6 @@ msgstr "Dịch vụ host đã crash"
 msgid "Host service is not running"
 msgstr "Dịch vụ host không chạy"
 
-msgid "Host service is restarting…"
-msgstr "Dịch vụ host đang khởi động lại…"
-
 msgid "Host service is starting…"
 msgstr "Dịch vụ host đang khởi động…"
 
@@ -6844,9 +6841,6 @@ msgstr "Host không khả dụng"
 
 msgid "Host unavailable: {hostName}"
 msgstr "Host không khả dụng: {hostName}"
-
-msgid "Host unreachable"
-msgstr "Không kết nối được host"
 
 msgid "Hosted in the cloud"
 msgstr "Chạy trên cloud"
@@ -8015,6 +8009,9 @@ msgstr "Đặt làm mặc định"
 
 msgid "Make default — launch new terminals and agents on this account."
 msgstr "Đặt làm mặc định — mở terminal và agent mới trên tài khoản này."
+
+msgid "Make sure the device is awake, online, and running Superset."
+msgstr "Đảm bảo thiết bị không ở chế độ ngủ, có kết nối mạng và đang chạy Superset."
 
 msgid "Make the chip style the TooltipContent default"
 msgstr "Đặt kiểu chip làm mặc định cho TooltipContent"
@@ -10407,6 +10404,9 @@ msgstr "Phát {label}"
 msgid "Play a sound when tasks complete"
 msgstr "Phát âm thanh khi tác vụ hoàn tất"
 
+msgid "Please check your internet connection and try again."
+msgstr "Vui lòng kiểm tra kết nối internet rồi thử lại."
+
 msgid "Please enter a project name"
 msgstr "Vui lòng nhập tên dự án"
 
@@ -10418,6 +10418,9 @@ msgstr "Vui lòng chọn vị trí dự án"
 
 msgid "Please select an organization"
 msgstr "Vui lòng chọn một tổ chức"
+
+msgid "Please try again, or restart Superset on that device."
+msgstr "Vui lòng thử lại hoặc khởi động lại Superset trên thiết bị đó."
 
 msgid "Please try signing in again from the desktop app."
 msgstr "Vui lòng thử đăng nhập lại từ ứng dụng máy tính."
@@ -11083,9 +11086,6 @@ msgstr "Cần kết nối lại"
 msgid "Reconnecting"
 msgstr "Đang kết nối lại"
 
-msgid "Reconnecting to {hostName}…"
-msgstr "Đang kết nối lại tới {hostName}…"
-
 msgid "Reconnecting…"
 msgstr "Đang kết nối lại…"
 
@@ -11562,6 +11562,9 @@ msgstr "Đang khởi động lại các agent trên {accountLabel}."
 
 msgid "Restarting host services…"
 msgstr "Đang khởi động lại dịch vụ host…"
+
+msgid "Restarting…"
+msgstr "Đang khởi động lại…"
 
 msgid "Restore"
 msgstr "Khôi phục"
@@ -13199,6 +13202,9 @@ msgstr "Đang khởi động {agentLabel}"
 msgid "Starting cloud workspace"
 msgstr "Đang khởi động workspace trên cloud"
 
+msgid "Starting up. This should only take a moment."
+msgstr "Đang khởi động. Sẽ chỉ mất một lát."
+
 msgid "Starting workspace"
 msgstr "Đang khởi động workspace"
 
@@ -13850,12 +13856,6 @@ msgstr "Textarea"
 msgid "Thanks for reaching out"
 msgstr "Cảm ơn bạn đã liên hệ"
 
-msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
-msgstr "Thiết bị đó đang trực tuyến nhưng không thiết lập được kết nối — thường là do định tuyến relay chứ không phải bản thân thiết bị. Hãy thử lại, và nếu vẫn vậy thì khởi động lại Superset trên thiết bị đó."
-
-msgid "That device isn't connected to the relay. Check it's awake, online, and running Superset — it reconnects on its own once it is."
-msgstr "Thiết bị đó chưa kết nối tới relay. Hãy kiểm tra máy đã bật, có mạng và đang chạy Superset — nó sẽ tự kết nối lại khi sẵn sàng."
-
 msgid "That handle is taken."
 msgstr "Tên định danh đó đã có người dùng."
 
@@ -13891,9 +13891,6 @@ msgstr "Agent tốt nhất sẽ thay đổi.<0/>Quy trình của bạn thì khô
 
 msgid "The Codex sign-in"
 msgstr "Lần đăng nhập Codex"
-
-msgid "The connection failed (relay status {status}). Retry, and if it persists restart Superset on that device."
-msgstr "Kết nối thất bại (trạng thái relay {status}). Hãy thử lại, và nếu vẫn vậy thì khởi động lại Superset trên thiết bị đó."
 
 msgid "The connection timed out"
 msgstr "Kết nối đã quá thời gian"
@@ -13997,9 +13994,6 @@ msgstr "Liên kết có thể sai, trang có thể đã bị xóa, hoặc bạn 
 msgid "The linked agent is missing or disabled. Showing the snapshot."
 msgstr "Agent được liên kết không còn hoặc đã bị tắt. Đang hiện bản lưu tạm."
 
-msgid "The local host service is still starting up. It should be ready in a few seconds."
-msgstr "Dịch vụ host cục bộ vẫn đang khởi động. Sẽ sẵn sàng trong vài giây."
-
 msgid "The local host service is unavailable for {organization} on {device}. Status: {status}. {recovery}"
 msgstr "Dịch vụ host cục bộ không khả dụng cho {organization} trên {device}. Trạng thái: {status}. {recovery}"
 
@@ -14011,9 +14005,6 @@ msgstr "Dịch vụ host cục bộ không chạy nên không có gì trên thi�
 
 msgid "The local host service just came up. Reconnecting to it now."
 msgstr "Dịch vụ host cục bộ vừa khởi động. Đang kết nối lại tới nó."
-
-msgid "The local host service stopped answering. Retry first; if that doesn't take, restart it from the Superset tray menu > Host Service > Restart."
-msgstr "Dịch vụ host cục bộ đã ngừng phản hồi. Hãy thử lại trước; nếu không được, khởi động lại từ menu khay Superset > Dịch vụ host > Khởi động lại."
 
 msgid "The majority of merged agent PRs need review only, with zero human edits."
 msgstr "Phần lớn PR của agent được merge chỉ cần review, không có chỉnh sửa của con người."
@@ -14053,9 +14044,6 @@ msgstr "Những người đứng sau Superset."
 
 msgid "The recovery period has ended. Contact support@superset.sh."
 msgstr "Thời hạn khôi phục đã kết thúc. Hãy liên hệ support@superset.sh."
-
-msgid "The relay couldn't reach that device right now. This is usually temporary — retrying in a moment normally works."
-msgstr "Hiện relay không kết nối được tới thiết bị đó. Việc này thường chỉ tạm thời — thử lại sau giây lát là được."
 
 msgid "The remote branch has diverged. Pull before continuing."
 msgstr "Nhánh remote đã rẽ nhánh khác. Hãy pull trước khi tiếp tục."
@@ -14413,9 +14401,6 @@ msgstr "Thao tác này sẽ kết thúc phiên và tiến trình bên dưới n�
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Thao tác này sẽ bỏ stage và hoàn nguyên toàn bộ thay đổi đã stage. Các tệp mới đã stage sẽ bị xóa. Không thể hoàn tác."
 
-msgid "This workspace lives on a device Superset can't reach right now. Terminals, files, and agents stay put — they come back as soon as the connection does."
-msgstr "Workspace này nằm trên một thiết bị mà Superset hiện không kết nối được. Terminal, tệp và agent vẫn nguyên đó — chúng trở lại ngay khi có kết nối."
-
 msgid "This workspace may have been removed, or you no longer have access to it."
 msgstr "Workspace này có thể đã bị gỡ, hoặc bạn không còn quyền truy cập."
 
@@ -14664,6 +14649,9 @@ msgstr "Hãy thử từ khóa khác hoặc thiết bị khác."
 
 msgid "Try again"
 msgstr "Thử lại"
+
+msgid "Try again, or restart the host service from the Superset tray menu."
+msgstr "Thử lại hoặc khởi động lại dịch vụ máy chủ từ menu Superset ở khay hệ thống."
 
 msgid "Try again. If the problem continues, reload Superset."
 msgstr "Hãy thử lại. Nếu vẫn lỗi, tải lại Superset."
@@ -15301,6 +15289,9 @@ msgstr "Chúng tôi không thể trừ tiền từ phương thức thanh toán c
 msgid "We couldn't detect a package manager or environment config."
 msgstr "Chúng tôi không phát hiện được trình quản lý gói hay cấu hình môi trường."
 
+msgid "We couldn't reach the device. Please try again in a moment."
+msgstr "Không thể kết nối với thiết bị. Vui lòng thử lại sau giây lát."
+
 msgid "We do not forecast full self-driving in 2026 or 2027. The honest unknowns: whether agent review holds up against adversarial complexity, whether specification can replace code reading as the trust anchor at scale, and whether compute economics keep the overnight shift cheaper than the humans it augments. F5 is a rubric entry so we recognize it when we see it, not a promise."
 msgstr "Chúng tôi không dự báo tự vận hành hoàn toàn vào năm 2026 hay 2027. Những ẩn số thành thật: liệu agent review có trụ được trước độ phức tạp đối kháng hay không, liệu đặc tả có thay được việc đọc code làm chỗ dựa niềm tin ở quy mô lớn hay không, và liệu kinh tế điện toán có giữ cho ca đêm rẻ hơn những con người mà nó hỗ trợ hay không. F5 là một mục trong thang chấm để ta nhận ra khi nó xảy ra, không phải một lời hứa."
 
@@ -15312,6 +15303,9 @@ msgstr "Chúng tôi đã gửi liên kết tải tới {submittedEmail}."
 
 msgid "We'll be in touch shortly."
 msgstr "Chúng tôi sẽ liên hệ sớm."
+
+msgid "We'll bring you back as soon as we reconnect."
+msgstr "Bạn sẽ quay lại ngay khi kết nối được khôi phục."
 
 msgid "We'll get back to you shortly."
 msgstr "Chúng tôi sẽ phản hồi sớm."
@@ -15764,9 +15758,6 @@ msgstr "Không thể hoàn tác thao tác này. Các khung terminal sẽ hiện 
 
 msgid "You don't have access to this host"
 msgstr "Bạn không có quyền truy cập host này"
-
-msgid "You don't have access to this host. If it's your own device, turn on relay access there under Settings > Security."
-msgstr "Bạn không có quyền truy cập host này. Nếu đó là thiết bị của bạn, hãy bật truy cập relay ở đó trong Cài đặt > Bảo mật."
 
 msgid "You don't have access to this terminal."
 msgstr "Bạn không có quyền truy cập terminal này."
