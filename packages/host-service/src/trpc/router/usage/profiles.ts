@@ -553,6 +553,19 @@ export interface ClaudeLoginRead {
 	 */
 	fileUnreadable: boolean;
 	/**
+	 * ANY candidate path was there and could not be read, chosen or not. This
+	 * is the READ question, where `fileUnreadable` above is the WRITE question:
+	 * the system default's one slot has two candidate paths and only the chosen
+	 * one is ever renamed over, so a torn sibling leaves the write target
+	 * perfectly writable — but it may have held the NEWER login, which makes
+	 * `login` here possibly the older of the two. A caller deciding WHICH login
+	 * to move must fail closed on this one; a caller deciding whether it may
+	 * write over `credentialsPath` still asks `fileUnreadable`, and asking this
+	 * one there would refuse writes that are safe. For a profile dir, which has
+	 * a single candidate, the two always agree.
+	 */
+	anyFileCandidateUnreadable: boolean;
+	/**
 	 * A Keychain probe for this dir rejected for a reason that is not an absent
 	 * item: a denied or unanswered prompt, the 5s timeout, a `security` that
 	 * could not run, or a secret read whole whose bytes would not parse.
@@ -786,6 +799,9 @@ export async function readClaudeLogin(
 		fileUnreadable:
 			unreadable.has(credentialsPath) ||
 			(fileContent === null && unreadable.size > 0),
+		// The same set, asked the other question: a candidate we could not
+		// read may have held the newer half of this one slot.
+		anyFileCandidateUnreadable: unreadable.size > 0,
 		keychainUnreadable,
 	};
 }

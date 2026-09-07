@@ -644,17 +644,24 @@ async function loadTarget(
 		};
 	}
 	// The read returns the fresher of the target's two stores, but only of the
-	// halves it could read: the other half may hold a newer login, and taking
-	// the one this read did see for the target's current login swaps a STALE
-	// credential into the active dir and reports it as success. Only the store
-	// that did not supply the login is judged — an absent item does not set
-	// these flags, and a Keychain-only target has no file candidate.
-	if (read.source === "file" ? read.keychainUnreadable : read.fileUnreadable) {
+	// halves it could read: any half it could not may hold a newer login, and
+	// taking the one this read did see for the target's current login swaps a
+	// STALE credential into the active dir and reports it as success. Every
+	// unread half counts, not just the one on the other side of the winner: a
+	// store that supplied the login can still have a second candidate — the
+	// other half of the system default's one slot, a second Keychain spelling —
+	// that went unread and held the newer copy. `anyFileCandidateUnreadable`,
+	// not `fileUnreadable`, is the read question: `fileUnreadable` asks whether
+	// a WRITE may land on `credentialsPath` and is false by construction
+	// whenever the file half won. An absent file and an absent Keychain item
+	// set neither flag, so a Keychain-only profile and a default living in one
+	// half of its slot still swap.
+	if (read.keychainUnreadable || read.anyFileCandidateUnreadable) {
 		return {
 			ok: false,
 			result: failure(
 				"invalid-target",
-				read.source === "file"
+				read.keychainUnreadable
 					? `${keychainStoreName(read, ref, ctx)}'s Keychain item exists but could not be read; refusing to swap in ${storeDir(ref, ctx)}'s file login, which may be the older of the two`
 					: `${read.credentialsPath} exists but could not be read; refusing to swap in ${storeDir(ref, ctx)}'s Keychain login, which may be the older of the two`,
 			),

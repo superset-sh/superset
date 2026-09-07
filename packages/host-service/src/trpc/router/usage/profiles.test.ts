@@ -727,6 +727,59 @@ describe("readClaudeLogin", () => {
 		expect(read.fileUnreadable).toBe(false);
 	});
 
+	// The read question beside the write question, on the same slot: the
+	// chosen store is intact so `fileUnreadable` must stay false — narrowing
+	// the write guards is how this file produced a P0 — while a caller that
+	// only wants to know whether the login it got may be the older of the two
+	// halves is told that it may.
+	it("flags a losing candidate it could not read without calling the write target unreadable", async () => {
+		const home = tempProfile();
+		mkdirSync(join(home, ".claude"));
+		mkdirSync(join(home, ".config", "claude"), { recursive: true });
+		writeFileSync(
+			join(home, ".claude", ".credentials.json"),
+			JSON.stringify({
+				claudeAiOauth: { accessToken: "good", refreshToken: "r", expiresAt: 1 },
+			}),
+		);
+		writeFileSync(join(home, ".config", "claude", "credentials.json"), "{half");
+
+		const read = await readClaudeLogin(null, { darwin: false, homeDir: home });
+		expect(read.credentialsPath).toBe(
+			join(home, ".claude", ".credentials.json"),
+		);
+		// Still writable, so a write over it is still allowed.
+		expect(read.fileUnreadable).toBe(false);
+		// But the half nobody read may have held the newer copy.
+		expect(read.anyFileCandidateUnreadable).toBe(true);
+	});
+
+	// Absence is not unreadability on either side, or a default living in one
+	// half of its slot with no Keychain item could never be swapped in.
+	it("leaves both read flags false when a half is merely absent", async () => {
+		const home = tempProfile();
+		mkdirSync(join(home, ".config", "claude"), { recursive: true });
+		writeFileSync(
+			join(home, ".config", "claude", "credentials.json"),
+			JSON.stringify(oauth),
+		);
+		// errSecItemNotFound: no item under the default service.
+		const exec = async () => {
+			throw Object.assign(new Error("Command failed: security"), { code: 44 });
+		};
+
+		const read = await readClaudeLogin(null, {
+			darwin: true,
+			exec,
+			homeDir: home,
+		});
+		expect(read.login).toEqual(oauth);
+		// `~/.claude` is not there and the Keychain item is not there.
+		expect(read.anyFileCandidateUnreadable).toBe(false);
+		expect(read.keychainUnreadable).toBe(false);
+		expect(read.fileUnreadable).toBe(false);
+	});
+
 	it("stays unreadable when no candidate could be read", async () => {
 		const home = tempProfile();
 		mkdirSync(join(home, ".claude"));
@@ -772,7 +825,10 @@ describe("readClaudeLogin", () => {
 		);
 		const exec = async (args: string[]) => {
 			if (args.indexOf("-a") === -1) throw new Error("not found");
-			if (args[args.indexOf("-s") + 1] !== service) throw new Error("The specified item could not be found in the keychain.");
+			if (args[args.indexOf("-s") + 1] !== service)
+				throw new Error(
+					"The specified item could not be found in the keychain.",
+				);
 			return {
 				stdout: JSON.stringify({
 					claudeAiOauth: {
@@ -809,7 +865,10 @@ describe("readClaudeLogin", () => {
 		);
 		const exec = async (args: string[]) => {
 			if (args.indexOf("-a") === -1) throw new Error("not found");
-			if (args[args.indexOf("-s") + 1] !== service) throw new Error("The specified item could not be found in the keychain.");
+			if (args[args.indexOf("-s") + 1] !== service)
+				throw new Error(
+					"The specified item could not be found in the keychain.",
+				);
 			return {
 				stdout: JSON.stringify({
 					claudeAiOauth: {
@@ -834,7 +893,10 @@ describe("readClaudeLogin", () => {
 		const siblings = { mcpOAuth: { "a-server": { token: "m-1" } } };
 		const exec = async (args: string[]) => {
 			if (args.indexOf("-a") === -1) throw new Error("not found");
-			if (args[args.indexOf("-s") + 1] !== service) throw new Error("The specified item could not be found in the keychain.");
+			if (args[args.indexOf("-s") + 1] !== service)
+				throw new Error(
+					"The specified item could not be found in the keychain.",
+				);
 			return { stdout: JSON.stringify(siblings), stderr: "" };
 		};
 
@@ -852,7 +914,10 @@ describe("readClaudeLogin", () => {
 		const exec = async (args: string[]) => {
 			const accountIndex = args.indexOf("-a");
 			if (accountIndex === -1) throw new Error("not found");
-			if (args[args.indexOf("-s") + 1] !== service) throw new Error("The specified item could not be found in the keychain.");
+			if (args[args.indexOf("-s") + 1] !== service)
+				throw new Error(
+					"The specified item could not be found in the keychain.",
+				);
 			return { stdout: JSON.stringify(oauth), stderr: "" };
 		};
 
@@ -1006,7 +1071,10 @@ describe("readClaudeLogin", () => {
 			},
 		};
 		const exec = async (args: string[]) => {
-			if (args.indexOf("-a") === -1) throw new Error("The specified item could not be found in the keychain.");
+			if (args.indexOf("-a") === -1)
+				throw new Error(
+					"The specified item could not be found in the keychain.",
+				);
 			const service = args[args.indexOf("-s") + 1];
 			if (service === first)
 				return { stdout: JSON.stringify(stale), stderr: "" };

@@ -1691,6 +1691,50 @@ describe("swapClaudeLogin with the system-default account", () => {
 		expect(readCredentials(f.activeDir)).toEqual(before);
 	});
 
+	// The two halves of the default slot are two candidates for ONE login, and
+	// the swap only reads them — so an unreadable half is not "a store we may
+	// not write over", it is "a copy that may be the newer one". Measured
+	// before this guard: `~/.claude` answered with the OLD login, the newer
+	// `~/.config/claude` half was chmod-000, and the swap returned ok:true with
+	// that old login installed and nothing in the result to say a half went
+	// unread.
+	it("refuses a system-default target whose other half of the slot could not be read", async () => {
+		if (process.getuid?.() === 0) return;
+		const f = fixture();
+		writeCredentials(f.systemDefault, {
+			claudeAiOauth: oauth("t-sys-old", 1_000),
+		});
+		const configDir = makeDir(join(f.home, ".config", "claude"));
+		const newerHalf = join(configDir, "credentials.json");
+		writeFileSync(
+			newerHalf,
+			JSON.stringify({ claudeAiOauth: oauth("t-sys-new", 9_000) }),
+			{ mode: 0o600 },
+		);
+		chmodSync(newerHalf, 0o000);
+		writeFileSync(
+			join(f.home, ".claude.json"),
+			JSON.stringify(identity("sys")),
+		);
+		const before = readCredentials(f.activeDir);
+
+		try {
+			const result = await swapClaudeLogin({
+				target: SYSTEM_DEFAULT,
+				ownerBinding: asProfile(f.profileA),
+				activeDir: f.activeDir,
+				deps: f.deps,
+			});
+
+			expect(result).toMatchObject({ ok: false, code: "invalid-target" });
+		} finally {
+			chmodSync(newerHalf, 0o600);
+		}
+		// The stale half never reached the active dir, and the save-back that
+		// runs after the target loads never started.
+		expect(readCredentials(f.activeDir)).toEqual(before);
+	});
+
 	// `~/.claude` is not where the login has to live, so its absence is not a
 	// reason to refuse the dir the login was actually read from.
 	it("swaps in a default login that lives only in ~/.config/claude", async () => {
@@ -2156,6 +2200,40 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 		expect(readdirSync(configDir)).toEqual(["credentials.json"]);
 	});
 
+	// Every spelling of a dir is a candidate for the same item, so the store
+	// that SUPPLIED the login can itself have a half nobody read. Measured
+	// before this guard: the first spelling's probe was denied, the second
+	// answered with a stale item, and the swap took that stale login as the
+	// target's current one — ok:true, with the read reporting the failure
+	// nobody looked at.
+	it("refuses a Keychain-sourced target when another spelling's probe failed", async () => {
+		const f = fixture();
+		rmSync(join(f.profileB, ".credentials.json"));
+		const spellings = keychainServicesForConfigDir(f.profileB);
+		const denied = spellings[0] as string;
+		const answering = spellings[1] as string;
+		const account = claudeKeychainAccounts()[0] as string;
+		const secret = JSON.stringify({ claudeAiOauth: oauth("t-b-stale", 1_000) });
+		const keychain = fakeKeychain([{ service: answering, account, secret }], {
+			failRead: (args) => args[args.indexOf("-s") + 1] === denied,
+		});
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, darwin: true, exec: keychain.exec },
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-target" });
+		// The active dir still holds the owner's login, not B's stale item.
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
+		expect(keychain.items).toEqual([{ service: answering, account, secret }]);
+	});
+
 	// The seed reads its source through the same loadTarget, so a first use
 	// cannot land the staler half either.
 	it("refuses to seed from a source whose Keychain item cannot be read", async () => {
@@ -2180,6 +2258,34 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 		expect(result).toMatchObject({ ok: false, code: "invalid-target" });
 		expect(readdirSync(fresh)).not.toContain(".credentials.json");
 		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
+	});
+
+	// And the seed's mirror of the supplying-store case: the spelling that
+	// answered is the one the seed would copy, so a sibling spelling nobody
+	// read still means the first login this machine ever gets may be stale.
+	it("refuses to seed when another spelling of the source could not be read", async () => {
+		const f = fixture();
+		const fresh = makeDir(join(f.superset, "accounts", "fresh-active"));
+		rmSync(join(f.profileB, ".credentials.json"));
+		const spellings = keychainServicesForConfigDir(f.profileB);
+		const denied = spellings[0] as string;
+		const answering = spellings[1] as string;
+		const account = claudeKeychainAccounts()[0] as string;
+		const secret = JSON.stringify({ claudeAiOauth: oauth("t-b-stale", 1_000) });
+		const keychain = fakeKeychain([{ service: answering, account, secret }], {
+			failRead: (args) => args[args.indexOf("-s") + 1] === denied,
+		});
+
+		const result = await seedActiveClaudeLogin({
+			source: asProfile(f.profileB),
+			activeDir: fresh,
+			deps: { ...f.deps, darwin: true, exec: keychain.exec },
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-target" });
+		expect(readdirSync(fresh)).not.toContain(".credentials.json");
+		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
+		expect(keychain.items).toEqual([{ service: answering, account, secret }]);
 	});
 
 	// The same item, read whole this time, holding bytes we cannot make sense
