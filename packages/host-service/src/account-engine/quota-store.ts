@@ -398,6 +398,16 @@ export class QuotaStore {
 					// The endpoint's back-off outranks both the TTL and the Usage
 					// page's Refresh: the entry is still served below with its
 					// last-known accounts, only the request is withheld.
+					// Known hole, left open on purpose: an entry created during a
+					// back-off has nothing to serve, and it is dropped here before
+					// the `unserved` bypass below can see it, so that profile is
+					// missing from the answer until the back-off clears (~26 min
+					// typical, ~55 min worst; self-healing, no user action). Do not
+					// move the bypass above this filter — that re-opens the 429
+					// protection pinned by "holds a profile discovered mid-back-off
+					// and keeps the endpoint's ladder" and "re-arms a signed-out row
+					// behind the endpoint back-off". A real fix needs a "waiting on
+					// rate limit" row shape the Usage layer does not have yet.
 					!this.heldByBackoff(entry, now) &&
 					(options.forceRefresh ||
 						entry.fetchedAt === null ||
@@ -680,9 +690,20 @@ export class QuotaStore {
 			// truth and this result is about a credential that is already gone.
 			// Writing it back would empty the row — no signed-out card on the Usage
 			// page, so no Switch sign-in and no Remove — until the next pass. The
-			// endpoint's answer still votes on the back-off.
+			// endpoint's answer still votes on the back-off — but it votes on the
+			// same test the guard below uses: a static row that reached no
+			// provider is no evidence the endpoint recovered, and voting it as
+			// one collapses the ladder the 429s just climbed.
 			if (!entry.fetchable) {
-				return { agent: entry.agent, ok: true, rateLimited, backedOff };
+				return {
+					agent: entry.agent,
+					ok:
+						rateLimited ||
+						accounts.length > 0 ||
+						GROUP_AGENTS.includes(entry.agent),
+					rateLimited,
+					backedOff,
+				};
 			}
 			// A per-selection row stands for one login the discovery pass found, so
 			// zero accounts is never "correctly nothing" — it is a credential that
@@ -805,6 +826,14 @@ export class QuotaStore {
 				// row the owner never polls (grok/agy are not AccountAgents, so
 				// `refreshDue` cannot reach them) would ride a fresh snapshot forever
 				// with its original numbers, and no forced refresh could break out.
+				// Accepted imprecision: MIRROR_MAX_AGE_MS budgets for the owner's
+				// poll cadence, but a static row's `fetchedAt` only moves on a
+				// discovery pass, so under the all-exhausted latch such a row can
+				// read as stale (worst measured 13.5 min against the 12-min bound)
+				// while the owner is perfectly healthy. The cost is extra polling
+				// on correct data. If it is ever worth closing, the least-bad
+				// remedy is for `discover()` to `emitSnapshot()` when a pass
+				// changed something.
 				if (
 					entry.fetchedAt === null ||
 					now - entry.fetchedAt > MIRROR_MAX_AGE_MS

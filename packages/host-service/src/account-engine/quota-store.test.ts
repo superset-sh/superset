@@ -1191,6 +1191,71 @@ describe("QuotaStore resilience", () => {
 		expect(requireEntry(h.store, CLAUDE_DEFAULT).backoffMs).toBe(MINUTE);
 	});
 
+	// The same rule under the overlap staged in "keeps a static row a discovery
+	// pass installed while a fetch was in flight": the pass turns the row static
+	// while the fetch is out, and that fetch — asking about a credential that is
+	// already gone — comes back empty. Voting it as a success collapsed the
+	// ladder the 429s had just climbed, so the next 429 restarted the climb at
+	// INITIAL_BACKOFF_MS instead of doubling.
+	it("keeps the ladder when a discovery pass turns a row static mid-fetch", async () => {
+		let mode: "429" | "gone" = "429";
+		let release = () => {};
+		const gate = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		const h = harness({
+			claudeSelections: ["/profiles/a"],
+			respondClaude: async (selection) => {
+				if (mode === "429") {
+					return {
+						account: account("claude", selection, {
+							status: "unavailable",
+							statusDetail: "Usage endpoint returned 429.",
+							windows: [],
+						}),
+						rateLimited: true,
+					};
+				}
+				await gate;
+				return { account: null, rateLimited: false };
+			},
+		});
+		const schedule = { claude: { activeKey: CLAUDE_A, intervalMs: MINUTE } };
+
+		await h.store.refreshDue(h.now, schedule);
+		expect(requireEntry(h.store, CLAUDE_A).backoffMs).toBe(MINUTE);
+		for (const rung of [2, 4, 8]) {
+			h.advance(requireEntry(h.store, CLAUDE_A).nextPollAt - h.now);
+			await h.store.refreshDue(h.now, schedule);
+			expect(requireEntry(h.store, CLAUDE_A).backoffMs).toBe(rung * MINUTE);
+		}
+
+		mode = "gone";
+		h.advance(requireEntry(h.store, CLAUDE_A).nextPollAt - h.now);
+		const inflight = h.store.refreshDue(h.now, schedule);
+		// Let the batch reach the entry before the discovery pass runs.
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(h.callsFor(CLAUDE_A)).toHaveLength(5);
+
+		h.state.claudeSelections = [];
+		h.state.claudeStatic = [
+			account("claude", "/profiles/a", {
+				status: "signed_out",
+				statusDetail: "Signed out",
+				windows: [],
+			}),
+		];
+		await h.store.read({ agents: ["claude"], forceRefresh: true });
+		expect(requireEntry(h.store, CLAUDE_A).fetchable).toBe(false);
+
+		release();
+		await inflight;
+
+		// clearBackoff is the only writer of either back-off, so the rung still
+		// standing on the entry is the endpoint's ladder still standing too.
+		expect(requireEntry(h.store, CLAUDE_A).backoffMs).toBe(8 * MINUTE);
+	});
+
 	// The exemption: a group agent's one row holds every account of that agent,
 	// so "no ~/.grok/auth.json" is a correct empty row and must still be written.
 	it("writes a group agent's genuinely empty row", async () => {
