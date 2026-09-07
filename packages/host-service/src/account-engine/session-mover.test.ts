@@ -423,6 +423,28 @@ describe("fallbackRestart", () => {
 		]);
 	});
 
+	// A pane the user closed while Codex was still booting is gone, not slow.
+	// Unlike the readiness gates it is not worth another 30 polls, and the
+	// notification at the end of them would point at a terminal that no longer
+	// exists.
+	it("ends the poll and says nothing when the resumed terminal is closed", async () => {
+		let alive = true;
+		const h = harness({
+			isBracketedPasteActive: () => false,
+			isTerminalAlive: () => alive,
+		});
+
+		await h.mover.fallbackRestart(row({ terminalId: "tx" }));
+		expect(h.timers).toHaveLength(1);
+
+		alive = false;
+		await h.runTimers();
+
+		expect(h.timers).toHaveLength(0);
+		expect(h.sendCalls).toEqual([]);
+		expect(h.attention).toEqual([]);
+	});
+
 	it("asks for attention when the resume itself produced no terminal", async () => {
 		const h = harness({ killAndResume: () => Promise.resolve(null) });
 		await h.mover.fallbackRestart(row({ agent: "claude", terminalId: "tc" }));

@@ -395,6 +395,16 @@ export class SessionMover {
 		nudge: string,
 		attemptsLeft: number,
 	): Promise<void> {
+		// The one condition that ends the poll instead of retrying it. Liveness
+		// is true from the moment the pty is created — before the resume that
+		// hands back this terminalId has even returned, long before the shell
+		// marker or Codex's TUI — and only ever goes false on exit or dispose.
+		// So false here means the pane is gone, never "not yet", which is
+		// exactly what the two readiness gates below do mean. Ending silently:
+		// the user closed that pane on purpose, and a notification asking them
+		// to rescue it would point at a terminal that no longer exists.
+		if (!this.deps.isTerminalAlive(terminalId)) return;
+
 		if (await this.tryNudge(row, terminalId, nudge)) return;
 
 		if (attemptsLeft <= 0) {
@@ -419,7 +429,6 @@ export class SessionMover {
 	): Promise<boolean> {
 		if (!this.deps.hasStartedAgent(terminalId, row.agent)) return false;
 		if (!this.deps.isBracketedPasteActive(terminalId)) return false;
-		if (!this.deps.isTerminalAlive(terminalId)) return false;
 		try {
 			await this.deps.sendToTerminal({
 				workspaceId: row.workspaceId,
