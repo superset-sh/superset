@@ -1,5 +1,5 @@
-import type { AgentIdentityId } from "@superset/shared/agent-catalog";
 import type { WorkspaceStore } from "@superset/panes";
+import type { AgentIdentityId } from "@superset/shared/agent-catalog";
 import { useEffect, useRef } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { PaneViewerData } from "../../types";

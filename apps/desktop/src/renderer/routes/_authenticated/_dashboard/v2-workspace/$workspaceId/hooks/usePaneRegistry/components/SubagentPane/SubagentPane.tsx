@@ -50,7 +50,7 @@ export function SubagentPane({ data, onOpenParent }: SubagentPaneProps) {
 	const lastEntryId = entries[entries.length - 1]?.id;
 	useEffect(() => {
 		const el = scrollRef.current;
-		if (!el || !stickToBottomRef.current) return;
+		if (!el || !stickToBottomRef.current || lastEntryId === undefined) return;
 		el.scrollTop = el.scrollHeight;
 	}, [lastEntryId]);
 
