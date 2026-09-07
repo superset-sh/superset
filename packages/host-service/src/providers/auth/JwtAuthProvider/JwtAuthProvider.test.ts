@@ -376,3 +376,37 @@ describe("JwtApiAuthProvider with config-backed host auth", () => {
 		expect(fetchMock).not.toHaveBeenCalled();
 	});
 });
+
+describe("JwtApiAuthProvider source-token rotation", () => {
+	test("does not reuse a minted JWT after the source API key rotates", async () => {
+		let apiKey = "sk_live_old";
+		const seenApiKeys: string[] = [];
+		const fetchMock = mockFetch(async (input, init) => {
+			const request =
+				input instanceof Request ? input : new Request(input.toString(), init);
+			seenApiKeys.push(request.headers.get("x-api-key") ?? "");
+			return Response.json({
+				token:
+					request.headers.get("x-api-key") === "sk_live_new"
+						? "minted.new.jwt"
+						: "minted.old.jwt",
+			});
+		});
+		const authProvider = new JwtApiAuthProvider({
+			getSessionToken: async () => apiKey,
+			apiUrl: API_URL,
+		});
+
+		await expect(authProvider.getHeaders()).resolves.toEqual({
+			Authorization: "Bearer minted.old.jwt",
+		});
+
+		apiKey = "sk_live_new";
+
+		await expect(authProvider.getHeaders()).resolves.toEqual({
+			Authorization: "Bearer minted.new.jwt",
+		});
+		expect(seenApiKeys).toEqual(["sk_live_old", "sk_live_new"]);
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+	});
+});
