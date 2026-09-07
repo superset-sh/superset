@@ -678,6 +678,43 @@ describe("swapClaudeLogin on a file-backed store", () => {
 		expect(readCredentials(f.profileA).claudeAiOauth).toEqual(oauth("t-a"));
 	});
 
+	// The same unsafe dir, with the owner's own login FRESHER than the active
+	// dir's — so `wouldRegress` skips the save-back and nothing is written into
+	// that dir at all. Measured before the guards moved into the write: the
+	// caller got `invalid-owner` and no rotation, refused over a store this swap
+	// was never going to touch.
+	it("swaps into an unsafe owner dir's account when the save-back is skipped", async () => {
+		const f = fixture();
+		writeCredentials(f.profileA, {
+			claudeAiOauth: oauth("t-a-newest", 9_000),
+			mcpOAuth: { "a-server": { token: "m-a" } },
+		});
+		const ownerBytes = readFileSync(
+			join(f.profileA, ".credentials.json"),
+			"utf-8",
+		);
+		const ownerFiles = readdirSync(f.profileA).sort();
+		chmodSync(f.profileA, 0o770);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-b", 2_000),
+		);
+		// Byte-identical, and not a backup or tmp file beside it: the save-back
+		// really did write nothing, which is what makes judging the dir moot.
+		expect(readFileSync(join(f.profileA, ".credentials.json"), "utf-8")).toBe(
+			ownerBytes,
+		);
+		expect(readdirSync(f.profileA).sort()).toEqual(ownerFiles);
+	});
+
 	it("refuses a symlinked active dir and skips the save-back", async () => {
 		const f = fixture();
 		const real = makeDir(join(f.superset, "accounts", "real-active"));
@@ -2715,6 +2752,78 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 			claudeAiOauth: oauth("t-a", 1_000),
 			mcpOAuth: { "a-server": { token: "m-a" } },
 		});
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+	});
+
+	// The Keychain half of the same skipped save-back: the probe on the owner's
+	// item times out while its file half — the one that answers — is fresher
+	// than the active dir's login, so nothing is written there either.
+	it("swaps when the owner's Keychain probe fails and the save-back is skipped", async () => {
+		const f = fixture();
+		writeCredentials(f.profileA, {
+			claudeAiOauth: oauth("t-a-newest", 9_000),
+			mcpOAuth: { "a-server": { token: "m-a" } },
+		});
+		const ownerService = keychainServicesForConfigDir(f.profileA)[0] as string;
+		const account = claudeKeychainAccounts()[0] as string;
+		const secret = JSON.stringify({ claudeAiOauth: oauth("t-a", 1_000) });
+		const keychain = fakeKeychain([{ service: ownerService, account, secret }], {
+			failRead: (args) => args[args.indexOf("-s") + 1] === ownerService,
+		});
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, darwin: true, exec: keychain.exec },
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-b", 2_000),
+		);
+		// The item nothing could read is also the item nothing wrote.
+		expect(keychain.items).toEqual([{ service: ownerService, account, secret }]);
+		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
+		expect(readCredentials(f.profileA).claudeAiOauth).toEqual(
+			oauth("t-a-newest", 9_000),
+		);
+	});
+
+	// And the save-back that DOES run into an unsafe dir, in the shape the
+	// credential's own dir check cannot see: a keychain-only owner plans no file
+	// write, so that check is skipped — while the identity write still lands a
+	// `.claude.json` in the dir. Measured with the dir gate left on the file
+	// plan alone: ok:true, the item written, and `.claude.json` created in a
+	// group-writable dir.
+	it("refuses an unsafe dir for a keychain-only owner the save-back would fill", async () => {
+		const f = fixture();
+		rmSync(join(f.profileA, ".credentials.json"));
+		rmSync(join(f.profileA, ".claude.json"));
+		const ownerService = keychainServicesForConfigDir(f.profileA)[0] as string;
+		const account = claudeKeychainAccounts()[0] as string;
+		const secret = JSON.stringify({ claudeAiOauth: oauth("t-a", 1_000) });
+		const keychain = fakeKeychain([{ service: ownerService, account, secret }]);
+		chmodSync(f.profileA, 0o770);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, darwin: true, exec: keychain.exec },
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-owner" });
+		if (result.ok) throw new Error("expected a refusal");
+		expect(result.reason).toContain("group- or other-writable");
+		// Nothing was created in the unsafe dir — the identity write is what
+		// would have created it.
+		expect(existsSync(join(f.profileA, ".claude.json"))).toBe(false);
+		expect(readdirSync(f.profileA)).toEqual([]);
+		expect(keychain.items).toEqual([{ service: ownerService, account, secret }]);
+		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
 		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
 			oauth("t-a-refreshed", 5_000),
 		);

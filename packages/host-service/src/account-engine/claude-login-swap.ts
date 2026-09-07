@@ -1209,32 +1209,9 @@ export async function swapClaudeLogin(input: {
 			ctx,
 		);
 		if (activeCheck) return failure("owner-unknown", activeCheck);
+		// Read here, not lower, because `ownerStoreMismatch` below consumes it.
+		// What it says about writing is asked inside the write block.
 		const ownerRead = await readStore(ownerBinding, ctx);
-		const ownerInvalid = await validateDir(
-			dirname(ownerRead.credentialsPath),
-			ctx,
-		);
-		if (ownerInvalid) return failure("invalid-owner", ownerInvalid);
-		// A credential file that is there but unreadable reads as absent,
-		// and writing goes through a rename, which needs only directory
-		// permission — so the save-back would replace an intact store it
-		// never saw, with no backup and no way to know it had regressed.
-		if (ownerRead.fileUnreadable) {
-			return failure(
-				"invalid-owner",
-				`${ownerRead.credentialsPath} exists but could not be read; refusing to write over it`,
-			);
-		}
-		// The save-back reaches the same write, so it needs the same Keychain
-		// guard: an item that could not be read is not an absent one, and taking
-		// it for absent overwrites the owner's login in place without a backup
-		// and has the rollback delete it.
-		if (ownerRead.keychainUnreadable) {
-			return failure(
-				"invalid-owner",
-				`${keychainStoreName(ownerRead, ownerBinding, ctx)}'s Keychain item exists but could not be read; refusing to write over it`,
-			);
-		}
 		// The other half of the same staleness: the caller's binding says whose
 		// store this is, but a `/login` in that profile since discovery
 		// re-authenticated it as somebody else, and saving the active login over
@@ -1293,21 +1270,6 @@ export async function swapClaudeLogin(input: {
 		// on the snapshot from before that refresh overwrites the newer login
 		// and keeps a backup of bytes it did not overwrite.
 		const ownerNow = await readStore(ownerBinding, ctx);
-		if (ownerNow.fileUnreadable) {
-			return failure(
-				"invalid-owner",
-				`${ownerNow.credentialsPath} exists but could not be read; refusing to write over it`,
-			);
-		}
-		// And on the re-read too: this is the snapshot the write merges and the
-		// rollback restores from, so a probe that failed only now is the one that
-		// would destroy the item.
-		if (ownerNow.keychainUnreadable) {
-			return failure(
-				"invalid-owner",
-				`${keychainStoreName(ownerNow, ownerBinding, ctx)}'s Keychain item exists but could not be read; refusing to write over it`,
-			);
-		}
 		// And the identity question again, of that same re-read, for the reason
 		// the active dir asks it twice: a store that moved may be a different
 		// account's, not just a newer token. `ownerStoreMismatch` above judged
@@ -1325,8 +1287,61 @@ export async function swapClaudeLogin(input: {
 		);
 		if (ownerNowCheck) return failure("owner-unknown", ownerNowCheck);
 		if (!wouldRegress(oauthOf(ownerNow), current)) {
+			// Every judgement on the owner's store belongs to the write, so all
+			// of them are made here rather than above `wouldRegress`: a save-back
+			// the regress check skips writes NOTHING to that dir — no credential,
+			// no backup, no identity — and refusing the whole rotation over a
+			// store nothing was going to touch is a refusal the user cannot act
+			// on, since the dir is fine for the swap actually asked for.
+			//
+			// This relaxes nothing the rounds that added these guards closed:
+			// they move earlier-in-the-write, never later than it, and the two
+			// directions fail closed into each other. A store that half answered
+			// leaves `oauthOf(ownerNow)` absent or stale, which makes
+			// `wouldRegress` FALSE — which is exactly the path that arrives here
+			// and refuses.
+			//
+			// A credential file that is there but unreadable reads as absent, and
+			// writing goes through a rename, which needs only directory
+			// permission — so the save-back would replace an intact store it
+			// never saw, with no backup and no way to know it had regressed.
+			if (ownerRead.fileUnreadable) {
+				return failure(
+					"invalid-owner",
+					`${ownerRead.credentialsPath} exists but could not be read; refusing to write over it`,
+				);
+			}
+			// The save-back reaches the same write, so it needs the same Keychain
+			// guard: an item that could not be read is not an absent one, and
+			// taking it for absent overwrites the owner's login in place without a
+			// backup and has the rollback delete it.
+			if (ownerRead.keychainUnreadable) {
+				return failure(
+					"invalid-owner",
+					`${keychainStoreName(ownerRead, ownerBinding, ctx)}'s Keychain item exists but could not be read; refusing to write over it`,
+				);
+			}
+			// And of the re-read, both halves: this is the snapshot the write
+			// merges and the rollback restores from, so a read that failed only
+			// now is the one that would destroy the store.
+			if (ownerNow.fileUnreadable) {
+				return failure(
+					"invalid-owner",
+					`${ownerNow.credentialsPath} exists but could not be read; refusing to write over it`,
+				);
+			}
+			if (ownerNow.keychainUnreadable) {
+				return failure(
+					"invalid-owner",
+					`${keychainStoreName(ownerNow, ownerBinding, ctx)}'s Keychain item exists but could not be read; refusing to write over it`,
+				);
+			}
 			const planned = await planStoreWrite(ownerBinding, ownerNow, ctx);
 			if (!planned.ok) return planned.result;
+			const ownerStatePath = claudeStatePath(
+				configDirOf(ownerBinding),
+				ctx.homeDir,
+			);
 			// The file write follows the store the login was read from, and for
 			// the system default that is either half of the one slot —
 			// `~/.config/claude` is a dir `storeDir` never names. Validate the
@@ -1339,6 +1354,22 @@ export async function swapClaudeLogin(input: {
 				);
 				if (pathInvalid) return failure("invalid-owner", pathInvalid);
 			}
+			// The identity write lands somewhere else, and the check above cannot
+			// stand in for it in either direction. For the system default the two
+			// dirs differ — the credential may live in `~/.config/claude` while
+			// `.claude.json` sits in `$HOME` — which is why the check above is not
+			// simply made unconditional. And a keychain-only owner plans no file
+			// write at all, so gating on `plan.file` alone would leave the state
+			// file's dir unjudged and let this create a `.claude.json` in a
+			// group-writable dir. Asked whenever that write runs, and before
+			// anything lands, so a refusal still writes nothing.
+			if (Object.keys(activeIdentity).length > 0) {
+				const stateDirInvalid = await validateDir(
+					dirname(ownerStatePath),
+					ctx,
+				);
+				if (stateDirInvalid) return failure("invalid-owner", stateDirInvalid);
+			}
 			// A login is two halves here exactly as it is in the active dir, and
 			// the save-back wrote only one. `ownerStoreMismatch` waves an empty
 			// owner store through because "the save-back is what fills it" — and
@@ -1350,10 +1381,6 @@ export async function swapClaudeLogin(input: {
 			// failed, for the reason the active dir does: the identity write below
 			// deletes these keys by name before it writes, so running it on a read
 			// that returned nothing would drop an account this could not put back.
-			const ownerStatePath = claudeStatePath(
-				configDirOf(ownerBinding),
-				ctx.homeDir,
-			);
 			const ownerIdentityBefore = await readIdentityKeys(ownerStatePath, ctx);
 			if (ownerIdentityBefore === null) {
 				return failure(
