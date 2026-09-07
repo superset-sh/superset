@@ -7,6 +7,7 @@ import {
 	readdirSync,
 	readFileSync,
 	realpathSync,
+	renameSync,
 	rmSync,
 	statSync,
 	symlinkSync,
@@ -722,6 +723,59 @@ describe("swapClaudeLogin on a file-backed store", () => {
 
 		expect(result).toMatchObject({ ok: false, code: "invalid-active-dir" });
 		expect(readCredentials(f.activeDir)).toEqual(before);
+	});
+
+	// The active dir is judged once at entry and the credential lands a hundred
+	// lines of I/O later. Substituting a symlink to a dir outside both roots
+	// anywhere in that window put `.credentials.json`, `.claude.json` and a
+	// backup of the token outside containment, with the swap reporting ok:true
+	// while the real dir still held the old login.
+	it("re-validates the active dir in the moment before the credential write", async () => {
+		const f = fixture();
+		const outside = tempRoot("swap-outside");
+		writeCredentials(outside, { claudeAiOauth: oauth("t-outside", 1_000) });
+		writeFileSync(join(outside, ".claude.json"), JSON.stringify(identity("c")));
+		const outsideBefore = readdirSync(outside).sort();
+		const realActive = join(f.superset, "accounts", "real-active");
+		let targetReads = 0;
+		const deps: ClaudeSwapDeps = {
+			...f.deps,
+			fs: {
+				readFile: async (path: string, encoding: "utf-8") => {
+					const { readFile } = await import("node:fs/promises");
+					// The re-read of the source, which is the first I/O after the
+					// entry validation: the dir is swapped for a link out of the
+					// tree in that moment.
+					if (
+						path === join(f.profileB, ".credentials.json") &&
+						++targetReads === 2
+					) {
+						renameSync(f.activeDir, realActive);
+						symlinkSync(outside, f.activeDir);
+					}
+					return readFile(path, encoding);
+				},
+			},
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps,
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-active-dir" });
+		// Nothing of the target's landed out of the tree — no credential, no
+		// identity, and no backup carrying the token it replaced.
+		expect(readdirSync(outside).sort()).toEqual(outsideBefore);
+		expect(readCredentials(outside).claudeAiOauth).toEqual(
+			oauth("t-outside", 1_000),
+		);
+		// And the dir the swap was actually pointed at is as it was.
+		expect(readCredentials(realActive).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
 	});
 
 	it("retries once when the source changes under it", async () => {

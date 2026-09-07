@@ -874,6 +874,26 @@ async function applyToActiveDir(
 	}
 	const planned = await planStoreWrite(activeRef, activeRead, ctx);
 	if (!planned.ok) return planned.result;
+	// The dir was judged at the top of this function, and the target re-read,
+	// the active re-read and — on darwin — a Keychain prompt have run since.
+	// Validate the dir the credential and its backups actually land in, in the
+	// moment before they do, as the save-back does. `activeRef` is always a
+	// profile, so this is `activeDir` itself.
+	//
+	// The honest limit: this narrows the window from two store reads and a
+	// Keychain prompt to a few syscalls, and does NOT close the TOCTOU — only
+	// opening the dir once and writing through that fd (`openat`) would, and
+	// nothing here does. Nor is it a privilege boundary: only a process running
+	// as this user can substitute the dir, and that process can already read the
+	// credential. It restores the invariant `validateDir` states — re-run
+	// immediately before every write — and nobody should read it as a guarantee.
+	if (planned.plan.file) {
+		const pathInvalid = await validateDir(
+			dirname(activeRead.credentialsPath),
+			ctx,
+		);
+		if (pathInvalid) return failure("invalid-active-dir", pathInvalid);
+	}
 	// A plan naming two stores can fail on the second with the first already
 	// holding the target: the CLI would then serve whichever it prefers.
 	const written: StoreWritePlan = { file: false, keychain: null };
