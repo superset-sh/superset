@@ -66,6 +66,7 @@ import {
 	type PromptCardsVariant,
 	useNewWorkspacePromptCardsVariant,
 } from "../../hooks/useNewWorkspacePromptCardsVariant";
+import { useProjectHostDefault } from "../../hooks/useProjectHostDefault";
 import { DevicePicker } from "../DashboardNewWorkspaceForm/components/DevicePicker";
 import { CLOUD_HOST_ID } from "../DashboardNewWorkspaceForm/components/DevicePicker/DevicePicker";
 import { useWorkspaceHostOptions } from "../DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
@@ -163,6 +164,9 @@ export function NewWorkspaceScreen({
 	);
 	const setLastHostId = useV2WorkspaceCreateDefaultsStore(
 		(state) => state.setLastHostId,
+	);
+	const setHostIdForProject = useV2WorkspaceCreateDefaultsStore(
+		(state) => state.setHostIdForProject,
 	);
 	const samplePromptsDismissed = useV2WorkspaceCreateDefaultsStore(
 		(state) => state.samplePromptsDismissed,
@@ -378,6 +382,16 @@ export function NewWorkspaceScreen({
 			updateDraft({ hostId: persistedHostId });
 		}
 	}, [isOpen, updateDraft]);
+	const applyHostId = useCallback(
+		(hostId: string) => updateDraft({ hostId }),
+		[updateDraft],
+	);
+	useProjectHostDefault({
+		isOpen,
+		projectId,
+		isSession: draft.isSession,
+		onSelectHostId: applyHostId,
+	});
 
 	// Reset baseBranch on project or host change, defaulting to the user's
 	// last selected branch for that project — the draft store is global, so a
@@ -1024,6 +1038,11 @@ export function NewWorkspaceScreen({
 								hostId={draft.hostId}
 								onSelectHostId={(next) => {
 									setLastHostId(next);
+									// A session has no project to hang the choice on, so
+									// it only moves the global default.
+									if (projectId && !draft.isSession) {
+										setHostIdForProject(projectId, next);
+									}
 									updateDraft({ hostId: next });
 								}}
 							/>
