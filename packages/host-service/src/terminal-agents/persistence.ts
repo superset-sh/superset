@@ -166,6 +166,49 @@ export function findResumeCandidateBinding(
 }
 
 /**
+ * Where the session that ran in `terminalId` lives now, if that terminal's
+ * binding was consumed by a resume: the newest binding in the workspace
+ * that carries the same agent session id. A resumed launch records the
+ * session id on its binding at spawn (`bindResumedSession`), so the link
+ * exists before the agent's first hook fires, and following the newest
+ * binding rather than the next one survives a chain of resumes. Lets a pane
+ * that was not mounted when the "resumed" lifecycle event fired — another
+ * tab, another workspace, another client — still find its way there.
+ */
+export function findResumedSuccessorBinding(
+	db: HostDb,
+	workspaceId: string,
+	terminalId: string,
+): TerminalAgentBinding | undefined {
+	const resumed = db
+		.select({ agentSessionId: terminalAgentBindings.agentSessionId })
+		.from(terminalAgentBindings)
+		.where(
+			and(
+				eq(terminalAgentBindings.terminalId, terminalId),
+				eq(terminalAgentBindings.workspaceId, workspaceId),
+				eq(terminalAgentBindings.endReason, "resumed"),
+				isNotNull(terminalAgentBindings.agentSessionId),
+			),
+		)
+		.get();
+	if (!resumed?.agentSessionId) return undefined;
+	const row = db
+		.select(bindingColumns)
+		.from(terminalAgentBindings)
+		.where(
+			and(
+				eq(terminalAgentBindings.workspaceId, workspaceId),
+				eq(terminalAgentBindings.agentSessionId, resumed.agentSessionId),
+				ne(terminalAgentBindings.terminalId, terminalId),
+			),
+		)
+		.orderBy(desc(terminalAgentBindings.startedAt))
+		.get();
+	return row ? rowToBinding(row) : undefined;
+}
+
+/**
  * Atomically consume a resume candidate by flipping its end reason to
  * "resumed". The UPDATE is guarded by the full candidate predicate, so of any
  * number of concurrent claimers exactly one gets the binding back — the rest

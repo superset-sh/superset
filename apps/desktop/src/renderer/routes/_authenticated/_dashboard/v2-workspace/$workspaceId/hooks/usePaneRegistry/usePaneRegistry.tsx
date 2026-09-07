@@ -37,7 +37,10 @@ import {
 	confirmCloseTerminals,
 	probeTerminalRunning,
 } from "renderer/lib/terminal/confirm-close-terminals";
-import { consumeTerminalBackgroundIntent } from "renderer/lib/terminal/terminal-background-intents";
+import {
+	consumeTerminalBackgroundIntent,
+	consumeTerminalHandoffIntent,
+} from "renderer/lib/terminal/terminal-background-intents";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -435,6 +438,7 @@ export function usePaneRegistry({
 				},
 				onAfterClose: (pane) => {
 					const { terminalId } = pane.data as TerminalPaneData;
+					if (consumeTerminalHandoffIntent(terminalId)) return;
 					if (consumeTerminalBackgroundIntent(terminalId)) {
 						terminalRuntimeRegistry.release(terminalId);
 						return;

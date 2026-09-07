@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
 	getAutomationRunLinkConsumeKey,
+	resolveAutomationRunLinkTarget,
 	terminalSessionBelongsToWorkspace,
 } from "./useConsumeAutomationRunLink";
 
@@ -54,5 +55,44 @@ describe("automation run link ownership checks", () => {
 				workspaceId: "workspace-b",
 			}),
 		).toBe(false);
+	});
+});
+
+describe("resolveAutomationRunLinkTarget", () => {
+	it("opens the linked terminal while it is alive", () => {
+		expect(
+			resolveAutomationRunLinkTarget({
+				terminalId: "terminal-a",
+				linkedTerminalIsLive: true,
+				successor: undefined,
+			}),
+		).toBe("terminal-a");
+	});
+
+	it("follows a restarted agent to the terminal its session moved into", () => {
+		expect(
+			resolveAutomationRunLinkTarget({
+				terminalId: "terminal-a",
+				linkedTerminalIsLive: false,
+				successor: "terminal-b",
+			}),
+		).toBe("terminal-b");
+	});
+
+	it("waits for the successor lookup, then gives up on a dead link", () => {
+		expect(
+			resolveAutomationRunLinkTarget({
+				terminalId: "terminal-a",
+				linkedTerminalIsLive: false,
+				successor: undefined,
+			}),
+		).toBeUndefined();
+		expect(
+			resolveAutomationRunLinkTarget({
+				terminalId: "terminal-a",
+				linkedTerminalIsLive: false,
+				successor: null,
+			}),
+		).toBeNull();
 	});
 });
