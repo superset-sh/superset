@@ -393,7 +393,7 @@ export function claudeKeychainAccounts(
  * client filed under a different name.
  */
 export async function readKeychainSecrets(service: string): Promise<string[]> {
-	return (await readKeychainHits(service)).map((hit) => hit.secret);
+	return (await readKeychainHits(service)).hits.map((hit) => hit.secret);
 }
 
 /**
@@ -427,19 +427,53 @@ export interface KeychainHit {
 	secret: string;
 }
 
+export interface KeychainProbe {
+	hits: KeychainHit[];
+	/**
+	 * A scope rejected for a reason that is not an absent item, so an item may
+	 * be sitting under this service unread. Empty `hits` then means "we could
+	 * not look", never "there is nothing there".
+	 */
+	failed: boolean;
+}
+
+/** `security`'s exit status for errSecItemNotFound. */
+const KEYCHAIN_ITEM_NOT_FOUND = 44;
+
+/**
+ * Whether a rejected lookup means the item is not there. `security` exits 44
+ * and prints "could not be found" for an absent item and nothing else does:
+ * the 5s timeout kills the process, a denied or unanswered Keychain prompt
+ * exits 51, and a `security` that cannot run rejects with an errno. Anything
+ * unrecognised is a failure, not an absence — the whole point of asking is
+ * that mistaking one for the other lets a caller write over, and a rollback
+ * delete, an item nobody read.
+ */
+function keychainItemAbsent(error: unknown): boolean {
+	if ((error as { code?: unknown })?.code === KEYCHAIN_ITEM_NOT_FOUND) {
+		return true;
+	}
+	const message = error instanceof Error ? error.message : "";
+	return /could not be found|not found/i.test(message);
+}
+
 /**
  * The same probe readKeychainSecrets has always done, but reporting which
  * account attribute matched: a login swap writes back into the item it read,
  * and `add-generic-password` filed under the wrong `-a` creates a second item
- * instead of updating the CLI's own.
+ * instead of updating the CLI's own. A scope that failed rather than missed is
+ * reported too, since the two are indistinguishable in `hits`.
  */
 export async function readKeychainHits(
 	service: string,
 	access: KeychainAccess = {},
-): Promise<KeychainHit[]> {
-	if (!(access.darwin ?? platform() === "darwin")) return [];
+): Promise<KeychainProbe> {
+	if (!(access.darwin ?? platform() === "darwin")) {
+		return { hits: [], failed: false };
+	}
 	const exec = access.exec ?? runSecurity;
 	const hits: KeychainHit[] = [];
+	let failed = false;
 	const scopes: Array<string | null> = [...claudeKeychainAccounts(), null];
 	for (const account of scopes) {
 		try {
@@ -454,11 +488,12 @@ export async function readKeychainHits(
 			if (secret && !hits.some((hit) => hit.secret === secret)) {
 				hits.push({ account, secret });
 			}
-		} catch {
-			// No item under this scope.
+		} catch (error) {
+			// No item under this scope — or a probe that never got to look.
+			if (!keychainItemAbsent(error)) failed = true;
 		}
 	}
-	return hits;
+	return { hits, failed };
 }
 
 /**
@@ -517,6 +552,16 @@ export interface ClaudeLoginRead {
 	 * falls back to the first candidate.
 	 */
 	fileUnreadable: boolean;
+	/**
+	 * A Keychain probe for this dir rejected for a reason that is not an absent
+	 * item: a denied or unanswered prompt, the 5s timeout, a `security` that
+	 * could not run. `keychainContent` is then null for the same reason a
+	 * signed-out profile's is, and telling them apart is the caller's only
+	 * defence: `add-generic-password -U` replaces an item's data in place with
+	 * no backup and no sibling merge, and a rollback DELETES the item it
+	 * believes was not there. A caller that writes must fail closed on this.
+	 */
+	keychainUnreadable: boolean;
 }
 
 function parseCredentialJson(raw: string): ClaudeCredentialJson | null {
@@ -684,11 +729,16 @@ export async function readClaudeLogin(
 	let keychainService: string | null = null;
 	let keychainAccount: string | null = null;
 	let keychainContent: ClaudeCredentialJson | null = null;
+	let keychainUnreadable = false;
 	// Every spelling is probed, never just the first that hits: a dir the user
 	// re-spelled leaves a stale item filed under the old hash, and stopping
 	// there would swap that old login in and name it as the write target.
 	for (const service of services) {
-		for (const hit of await readKeychainHits(service, access)) {
+		const probe = await readKeychainHits(service, access);
+		// Any spelling: the item the write would land in can be under any of
+		// them, so one unreadable service makes the whole picture unreliable.
+		if (probe.failed) keychainUnreadable = true;
+		for (const hit of probe.hits) {
 			const parsed = parseCredentialJson(hit.secret);
 			// Recorded login or not, exactly as the file loop above does: a
 			// swap merges its siblings back and the rollback restores them,
@@ -728,6 +778,7 @@ export async function readClaudeLogin(
 		fileUnreadable:
 			unreadable.has(credentialsPath) ||
 			(fileContent === null && unreadable.size > 0),
+		keychainUnreadable,
 	};
 }
 

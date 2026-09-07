@@ -1749,7 +1749,30 @@ interface KeychainItem {
 	secret: string;
 }
 
-function fakeKeychain(items: KeychainItem[]) {
+/** What `security` rejects with when the item is not there: exit 44,
+ * errSecItemNotFound. */
+function itemNotFound(): Error {
+	const error = new Error(
+		"security: SecKeychainSearchCopyNext: The specified item could not be found in the keychain.",
+	);
+	Object.assign(error, { code: 44 });
+	return error;
+}
+
+/** What a denied or unanswered Keychain prompt, or the 5s timeout, rejects
+ * with: no exit status, and nothing about a missing item. */
+function readDenied(): Error {
+	const error = new Error("Command failed: security find-generic-password");
+	Object.assign(error, { killed: true, signal: "SIGTERM" });
+	return error;
+}
+
+function fakeKeychain(
+	items: KeychainItem[],
+	/** Makes a read reject the way a timeout or a denied prompt does, so a
+	 * caller can be held to the difference between "no item" and "no answer". */
+	{ failRead }: { failRead?: (args: string[]) => boolean } = {},
+) {
 	const calls: Array<{ args: string[]; stdin?: string }> = [];
 	const unquote = (token: string) =>
 		token.startsWith('"')
@@ -1779,12 +1802,18 @@ function fakeKeychain(items: KeychainItem[]) {
 		const service = args[args.indexOf("-s") + 1];
 		const accountIndex = args.indexOf("-a");
 		const account = accountIndex === -1 ? null : args[accountIndex + 1];
-		const hit = items.find(
-			(item) =>
-				item.service === service &&
-				(account === null || item.account === account),
-		);
-		if (!hit) throw new Error("The specified item could not be found");
+		const matches = (item: KeychainItem) =>
+			item.service === service &&
+			(account === null || item.account === account);
+		if (args[0] === "delete-generic-password") {
+			const index = items.findIndex(matches);
+			if (index === -1) throw itemNotFound();
+			items.splice(index, 1);
+			return { stdout: "", stderr: "" };
+		}
+		if (failRead?.(args)) throw readDenied();
+		const hit = items.find(matches);
+		if (!hit) throw itemNotFound();
 		if (args.includes("-g")) {
 			return {
 				stdout: `password: "${hit.secret}"\n`,
@@ -1933,6 +1962,85 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 			mcpOAuth: { "active-server": { token: "m-active" } },
 			claudeAiOauth: oauth("t-b", 2_000),
 		});
+	});
+
+	// A denied or unanswered Keychain prompt, and the 5s timeout, reject the
+	// same probe an absent item does. Measured before this guard: the write
+	// took the empty read for an empty Keychain, `add-generic-password -U`
+	// replaced the user's real login in place — mcpOAuth siblings and all, no
+	// backup — and the verify, reading through the same failure, rolled back by
+	// DELETING the item. `{"ok":false,"code":"verify-failed"}` and an empty
+	// Keychain, from a login nothing had ever read.
+	it("refuses to write when the active dir's Keychain item cannot be read", async () => {
+		const f = fixture();
+		rmSync(join(f.activeDir, ".credentials.json"));
+		const activeService = keychainServicesForConfigDir(
+			f.activeDir,
+		)[0] as string;
+		const account = claudeKeychainAccounts()[0] as string;
+		const secret = JSON.stringify({
+			claudeAiOauth: oauth("t-a-refreshed", 5_000),
+			mcpOAuth: { "active-server": { token: "m-active" } },
+		});
+		const keychain = fakeKeychain(
+			[{ service: activeService, account, secret }],
+			{
+				failRead: (args) => args[args.indexOf("-s") + 1] === activeService,
+			},
+		);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, darwin: true, exec: keychain.exec },
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-active-dir" });
+		// The item nobody could read is byte-identical, and still there.
+		expect(keychain.items).toEqual([
+			{ service: activeService, account, secret },
+		]);
+		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
+		expect(
+			keychain.calls.some((call) => call.args[0] === "delete-generic-password"),
+		).toBe(false);
+	});
+
+	// The save-back lands in the owner's Keychain item through the same write
+	// and the same delete-on-rollback, so it fails closed the same way.
+	it("refuses the save-back when the owner's Keychain item cannot be read", async () => {
+		const f = fixture();
+		const ownerService = keychainServicesForConfigDir(f.profileA)[0] as string;
+		const account = claudeKeychainAccounts()[0] as string;
+		const secret = JSON.stringify({ claudeAiOauth: oauth("t-a", 1_000) });
+		const keychain = fakeKeychain(
+			[{ service: ownerService, account, secret }],
+			{
+				failRead: (args) => args[args.indexOf("-s") + 1] === ownerService,
+			},
+		);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, darwin: true, exec: keychain.exec },
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-owner" });
+		expect(keychain.items).toEqual([
+			{ service: ownerService, account, secret },
+		]);
+		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
+		// Nothing landed in either dir: the swap stopped before the active write.
+		expect(readCredentials(f.profileA)).toEqual({
+			claudeAiOauth: oauth("t-a", 1_000),
+			mcpOAuth: { "a-server": { token: "m-a" } },
+		});
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
 	});
 
 	it("refuses when the account attribute stays ambiguous", async () => {
@@ -2112,6 +2220,12 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 					"{}",
 			).claudeAiOauth,
 		).toEqual(oauth("t-keychain", 4_000));
+		// The fake really deletes now, so "restored" is a claim it can fail: a
+		// rollback that took the item for absent would have removed it instead.
+		expect(keychain.items).toHaveLength(1);
+		expect(
+			keychain.calls.some((call) => call.args[0] === "delete-generic-password"),
+		).toBe(false);
 	});
 
 	// The owner's dir has the same two stores, and `applyStoreWrite` lands the

@@ -634,7 +634,10 @@ describe("readKeychainHits", () => {
 
 	it("is empty off macOS and never shells out", async () => {
 		const { exec, calls } = fakeSecurity([{ account: "avi", secret: "s" }]);
-		expect(await readKeychainHits("svc", { exec, darwin: false })).toEqual([]);
+		expect(await readKeychainHits("svc", { exec, darwin: false })).toEqual({
+			hits: [],
+			failed: false,
+		});
 		expect(calls).toEqual([]);
 	});
 
@@ -642,16 +645,20 @@ describe("readKeychainHits", () => {
 		const { exec } = fakeSecurity([
 			{ account: process.env.USER ?? "avi", secret: '{"claudeAiOauth":{}}' },
 		]);
-		const hits = await readKeychainHits("svc", { exec, darwin: true });
+		const { hits, failed } = await readKeychainHits("svc", {
+			exec,
+			darwin: true,
+		});
 
 		expect(hits).toHaveLength(1);
 		expect(hits[0]?.account).toBe(process.env.USER ?? "avi");
 		expect(hits[0]?.secret).toBe('{"claudeAiOauth":{}}');
+		expect(failed).toBe(false);
 	});
 
 	it("marks a secret only the unscoped probe found as unattributed", async () => {
 		const { exec } = fakeSecurity([{ account: "someone-else", secret: "s" }]);
-		const hits = await readKeychainHits("svc", { exec, darwin: true });
+		const { hits } = await readKeychainHits("svc", { exec, darwin: true });
 
 		expect(hits).toEqual([{ account: null, secret: "s" }]);
 	});
@@ -765,7 +772,7 @@ describe("readClaudeLogin", () => {
 		);
 		const exec = async (args: string[]) => {
 			if (args.indexOf("-a") === -1) throw new Error("not found");
-			if (args[args.indexOf("-s") + 1] !== service) throw new Error("no item");
+			if (args[args.indexOf("-s") + 1] !== service) throw new Error("The specified item could not be found in the keychain.");
 			return {
 				stdout: JSON.stringify({
 					claudeAiOauth: {
@@ -802,7 +809,7 @@ describe("readClaudeLogin", () => {
 		);
 		const exec = async (args: string[]) => {
 			if (args.indexOf("-a") === -1) throw new Error("not found");
-			if (args[args.indexOf("-s") + 1] !== service) throw new Error("no item");
+			if (args[args.indexOf("-s") + 1] !== service) throw new Error("The specified item could not be found in the keychain.");
 			return {
 				stdout: JSON.stringify({
 					claudeAiOauth: {
@@ -827,7 +834,7 @@ describe("readClaudeLogin", () => {
 		const siblings = { mcpOAuth: { "a-server": { token: "m-1" } } };
 		const exec = async (args: string[]) => {
 			if (args.indexOf("-a") === -1) throw new Error("not found");
-			if (args[args.indexOf("-s") + 1] !== service) throw new Error("no item");
+			if (args[args.indexOf("-s") + 1] !== service) throw new Error("The specified item could not be found in the keychain.");
 			return { stdout: JSON.stringify(siblings), stderr: "" };
 		};
 
@@ -845,7 +852,7 @@ describe("readClaudeLogin", () => {
 		const exec = async (args: string[]) => {
 			const accountIndex = args.indexOf("-a");
 			if (accountIndex === -1) throw new Error("not found");
-			if (args[args.indexOf("-s") + 1] !== service) throw new Error("no item");
+			if (args[args.indexOf("-s") + 1] !== service) throw new Error("The specified item could not be found in the keychain.");
 			return { stdout: JSON.stringify(oauth), stderr: "" };
 		};
 
@@ -855,6 +862,40 @@ describe("readClaudeLogin", () => {
 		expect(read.fileLogin).toBeNull();
 		expect(read.keychainService).toBe(service);
 		expect(read.keychainAccount).toBe(claudeKeychainAccounts()[0] ?? null);
+	});
+
+	// A probe rejects both when the item is not there and when nobody answered
+	// its prompt or the 5s timeout killed it, and either way keychainContent is
+	// null. A caller that writes has to tell them apart: the write replaces the
+	// item in place with no backup, and the rollback deletes it.
+	it("reports a Keychain probe that failed for anything but an absent item", async () => {
+		const exec = async () => {
+			const error = new Error("Command failed: security find-generic-password");
+			Object.assign(error, { killed: true, signal: "SIGTERM" });
+			throw error;
+		};
+
+		const read = await readClaudeLogin(tempProfile(), { darwin: true, exec });
+		expect(read.keychainUnreadable).toBe(true);
+		expect(read.keychainContent).toBeNull();
+	});
+
+	it("reports an absent Keychain item as read, not as unreadable", async () => {
+		const byStatus = async () => {
+			// errSecItemNotFound, which is all `security -w` prints on stderr.
+			throw Object.assign(new Error("Command failed: security"), { code: 44 });
+		};
+		const byMessage = async () => {
+			throw new Error(
+				"security: SecKeychainSearchCopyNext: The specified item could not be found in the keychain.",
+			);
+		};
+
+		for (const exec of [byStatus, byMessage]) {
+			const read = await readClaudeLogin(tempProfile(), { darwin: true, exec });
+			expect(read.keychainUnreadable).toBe(false);
+			expect(read.keychainContent).toBeNull();
+		}
 	});
 
 	it("points a null selection at the system-default store", async () => {
@@ -923,7 +964,7 @@ describe("readClaudeLogin", () => {
 			},
 		};
 		const exec = async (args: string[]) => {
-			if (args.indexOf("-a") === -1) throw new Error("no unscoped item");
+			if (args.indexOf("-a") === -1) throw new Error("The specified item could not be found in the keychain.");
 			const service = args[args.indexOf("-s") + 1];
 			if (service === first)
 				return { stdout: JSON.stringify(stale), stderr: "" };

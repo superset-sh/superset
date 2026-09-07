@@ -170,6 +170,16 @@ function storeDir(ref: ClaudeLoginStoreRef, ctx: SwapContext): string {
 	return ref.kind === "profile" ? ref.dir : join(ctx.homeDir, ".claude");
 }
 
+/** How a refusal names the Keychain store: the service the read located, or
+ * the dir it was probing for when no probe got far enough to name one. */
+function keychainStoreName(
+	read: ClaudeLoginRead,
+	ref: ClaudeLoginStoreRef,
+	ctx: SwapContext,
+): string {
+	return read.keychainService ?? storeDir(ref, ctx);
+}
+
 function configDirOf(ref: ClaudeLoginStoreRef): string | null {
 	return ref.kind === "profile" ? ref.dir : null;
 }
@@ -730,6 +740,16 @@ async function applyToActiveDir(
 			`${activeRead.credentialsPath} exists but could not be read; refusing to write over it`,
 		);
 	}
+	// The Keychain half of the same guard, and the worse half: an unread item
+	// reads exactly like an absent one, `add-generic-password -U` then replaces
+	// its data in place with no backup and none of its siblings, and the
+	// rollback, seeing the same null, deletes it outright.
+	if (activeRead.keychainUnreadable) {
+		return failure(
+			"invalid-active-dir",
+			`${keychainStoreName(activeRead, activeRef, ctx)}'s Keychain item exists but could not be read; refusing to write over it`,
+		);
+	}
 	// Snapshot the dir's own identity BEFORE any write lands: once the target's
 	// credential is on disk a running session can rewrite `.claude.json` with
 	// the target's identity, and a snapshot taken then is the target's, not the
@@ -983,6 +1003,16 @@ export async function swapClaudeLogin(input: {
 				`${ownerRead.credentialsPath} exists but could not be read; refusing to write over it`,
 			);
 		}
+		// The save-back reaches the same write, so it needs the same Keychain
+		// guard: an item that could not be read is not an absent one, and taking
+		// it for absent overwrites the owner's login in place without a backup
+		// and has the rollback delete it.
+		if (ownerRead.keychainUnreadable) {
+			return failure(
+				"invalid-owner",
+				`${keychainStoreName(ownerRead, ownerBinding, ctx)}'s Keychain item exists but could not be read; refusing to write over it`,
+			);
+		}
 		// The other half of the same staleness: the caller's binding says whose
 		// store this is, but a `/login` in that profile since discovery
 		// re-authenticated it as somebody else, and saving the active login over
@@ -1024,6 +1054,15 @@ export async function swapClaudeLogin(input: {
 			return failure(
 				"invalid-owner",
 				`${ownerNow.credentialsPath} exists but could not be read; refusing to write over it`,
+			);
+		}
+		// And on the re-read too: this is the snapshot the write merges and the
+		// rollback restores from, so a probe that failed only now is the one that
+		// would destroy the item.
+		if (ownerNow.keychainUnreadable) {
+			return failure(
+				"invalid-owner",
+				`${keychainStoreName(ownerNow, ownerBinding, ctx)}'s Keychain item exists but could not be read; refusing to write over it`,
 			);
 		}
 		if (!wouldRegress(oauthOf(ownerNow), current)) {
