@@ -109,19 +109,24 @@ export class GitHubReachabilityGate {
 	}
 
 	/**
-	 * Records a failed call. Returns the hold window it opened when the error
-	 * was a transport failure, or null when the error means GitHub answered
-	 * and the gate should stay out of it.
+	 * Records a failed call. Returns null when the error means GitHub answered
+	 * and the gate should stay out of it. For a transport failure it returns
+	 * the hold in force: `opened` is true only for the failure that opened it.
+	 * Lookups run concurrently, so several can pass `assertReachable()` before
+	 * the first one fails; the later failures belong to the same outage and
+	 * must neither extend the hold nor log again.
 	 */
-	recordFailure(error: unknown): number | null {
+	recordFailure(error: unknown): { opened: boolean; holdMs: number } | null {
 		if (!isGitHubUnreachableError(error)) return null;
+		const remaining = this.retryAfterMs();
+		if (remaining > 0) return { opened: false, holdMs: remaining };
 		this.streak += 1;
 		const block = Math.min(
 			BASE_BLOCK_MS * 2 ** (this.streak - 1),
 			MAX_BLOCK_MS,
 		);
 		this.blockedUntil = this.now() + block;
-		return block;
+		return { opened: true, holdMs: block };
 	}
 
 	recordSuccess(): void {

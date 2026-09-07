@@ -32,7 +32,10 @@ import type {
 	GitHubPullRequestNode,
 	GitHubPullRequestReviewDecision,
 } from "./utils/github-query/types";
-import { GitHubReachabilityGate } from "./utils/github-reachability";
+import {
+	GitHubReachabilityGate,
+	GitHubUnreachableError,
+} from "./utils/github-reachability";
 import {
 	type ChecksStatus,
 	coerceChecksStatus,
@@ -1162,8 +1165,12 @@ export class PullRequestRuntimeManager {
 		context: Record<string, unknown>,
 		viaGh: () => Promise<T>,
 		viaOctokit: () => Promise<T>,
+		options: { probe?: boolean } = {},
 	): Promise<T> {
-		this.githubGate.assertReachable();
+		// An explicit refresh (PR just created, user asked) is allowed through a
+		// hold: it is one call, and its success is what reopens the gate early
+		// once the network is back.
+		if (!options.probe) this.githubGate.assertReachable();
 		try {
 			const result = await viaGh();
 			this.githubGate.recordSuccess();
@@ -1185,14 +1192,21 @@ export class PullRequestRuntimeManager {
 		}
 	}
 
-	/** Trips the gate on a transport failure and says so once per hold. */
+	/**
+	 * Records a failure with the gate. True for a transport failure, in which
+	 * case the caller skips its Octokit fallback. Logs only for the failure
+	 * that opened a hold; the concurrent failures of the same outage are silent.
+	 */
 	private noteGitHubFailure(error: unknown): boolean {
-		const holdMs = this.githubGate.recordFailure(error);
-		if (holdMs === null) return false;
-		console.warn(
-			`[host-service:pull-request-runtime] GitHub unreachable; holding GitHub lookups for ${Math.round(holdMs / 1000)}s`,
-			{ error },
-		);
+		if (error instanceof GitHubUnreachableError) return true;
+		const hold = this.githubGate.recordFailure(error);
+		if (hold === null) return false;
+		if (hold.opened) {
+			console.warn(
+				`[host-service:pull-request-runtime] GitHub unreachable; holding GitHub lookups for ${Math.round(hold.holdMs / 1000)}s`,
+				{ error },
+			);
+		}
 		return true;
 	}
 
@@ -1280,6 +1294,7 @@ export class PullRequestRuntimeManager {
 							{ owner: repo.owner, name: repo.name },
 							head,
 						),
+					{ probe: options.bypassCache === true },
 				),
 		);
 	}
@@ -1310,6 +1325,7 @@ export class PullRequestRuntimeManager {
 							owner: repo.owner,
 							name: repo.name,
 						}),
+					{ probe: options.bypassCache === true },
 				),
 		);
 	}
@@ -1421,6 +1437,7 @@ export class PullRequestRuntimeManager {
 		await Promise.all(
 			Array.from(latestByKey.values()).map(async (node) => {
 				try {
+					this.githubGate.assertReachable();
 					const [reviewDecision, checks] = await Promise.all([
 						fetchPullRequestReviewDecisionFromGh(
 							this.execGh,
@@ -1430,9 +1447,13 @@ export class PullRequestRuntimeManager {
 						),
 						fetchPullRequestChecksFromGh(this.execGh, repo, node.headRefOid),
 					]);
+					this.githubGate.recordSuccess();
 					reviewDecisionByNumber.set(node.number, reviewDecision);
 					checksByNumber.set(node.number, checks);
 				} catch (ghError) {
+					// A held gate or a transport failure: Octokit would hit the same
+					// network. Last-known review, checks, and queue state stand.
+					if (this.noteGitHubFailure(ghError)) return;
 					try {
 						const octokit = await getOctokit();
 						const [reviewDecision, checks] = await Promise.all([
@@ -1447,6 +1468,7 @@ export class PullRequestRuntimeManager {
 						reviewDecisionByNumber.set(node.number, reviewDecision);
 						checksByNumber.set(node.number, checks);
 					} catch (error) {
+						this.noteGitHubFailure(error);
 						console.warn(
 							"[host-service:pull-request-runtime] Failed to fetch PR review/check state",
 							{
@@ -1467,6 +1489,7 @@ export class PullRequestRuntimeManager {
 				// review/checks fetch above would let that failure stale their data.
 				if (node.state !== "OPEN" || node.isDraft) return;
 				try {
+					this.githubGate.assertReachable();
 					mergeQueueByNumber.set(
 						node.number,
 						await fetchPullRequestMergeQueueStateFromGh(
@@ -1475,7 +1498,9 @@ export class PullRequestRuntimeManager {
 							node.number,
 						),
 					);
+					this.githubGate.recordSuccess();
 				} catch (ghError) {
+					if (this.noteGitHubFailure(ghError)) return;
 					try {
 						mergeQueueByNumber.set(
 							node.number,
@@ -1486,6 +1511,7 @@ export class PullRequestRuntimeManager {
 							),
 						);
 					} catch (error) {
+						this.noteGitHubFailure(error);
 						console.warn(
 							"[host-service:pull-request-runtime] Failed to fetch PR merge-queue state",
 							{

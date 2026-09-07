@@ -964,6 +964,163 @@ describe("PullRequestRuntimeManager refresh", () => {
 		}
 	});
 
+	test("concurrent failures of one outage open a single hold and log once", async () => {
+		const t0 = Date.now();
+		setSystemTime(new Date(t0));
+		const warns: string[] = [];
+		const originalWarn = console.warn;
+		console.warn = (...args: unknown[]) => {
+			warns.push(String(args[0]));
+		};
+		try {
+			const db = createRealDb();
+			seedProject(db);
+			let ghAttempts = 0;
+			const manager = createManager(db, {
+				execGh: async () => {
+					ghAttempts += 1;
+					await new Promise((resolve) => setTimeout(resolve, 5));
+					throw Object.assign(new Error("Command failed"), {
+						stderr:
+							"error connecting to api.github.com\ncheck your internet connection",
+					});
+				},
+				github: (async () => {
+					throw new Error("octokit must not run");
+				}) as never,
+			});
+			const repoOf = (name: string) => ({
+				provider: "github" as const,
+				owner: REPO.owner,
+				name,
+				url: `https://github.com/${REPO.owner}/${name}.git`,
+				remoteName: "origin",
+				defaultBranch: "main",
+			});
+			const fetchOpenPrs = openPullRequestsSweeper(manager);
+
+			// Six repos refresh at once: all pass the gate before the first fails.
+			await Promise.all(
+				["a", "b", "c", "d", "e", "f"].map((name) =>
+					fetchOpenPrs(repoOf(name)).catch(() => {}),
+				),
+			);
+			expect(ghAttempts).toBe(6);
+			expect(
+				warns.filter((w) => w.includes("GitHub unreachable")),
+			).toHaveLength(1);
+
+			// One outage, one streak: the hold is the base minute, not the cap.
+			setSystemTime(new Date(t0 + 61_000));
+			await fetchOpenPrs(repoOf("g")).catch(() => {});
+			expect(ghAttempts).toBe(7);
+		} finally {
+			console.warn = originalWarn;
+			setSystemTime();
+		}
+	});
+
+	test("an explicit refresh probes through an active hold", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		let ghAttempts = 0;
+		const manager = createManager(db, {
+			execGh: async () => {
+				ghAttempts += 1;
+				throw Object.assign(new Error("x"), { code: "ENOTFOUND" });
+			},
+			github: (async () => {
+				throw new Error("octokit must not run");
+			}) as never,
+		});
+		const repoOf = (name: string) => ({
+			provider: "github" as const,
+			owner: REPO.owner,
+			name,
+			url: `https://github.com/${REPO.owner}/${name}.git`,
+			remoteName: "origin",
+			defaultBranch: "main",
+		});
+		const accessible = manager as unknown as {
+			getCachedOpenPullRequests(
+				repo: ReturnType<typeof repoOf>,
+				options?: { bypassCache?: boolean },
+			): Promise<unknown[]>;
+		};
+		await withSilencedWarnings(async () => {
+			await accessible.getCachedOpenPullRequests(repoOf("a")).catch(() => {});
+			expect(ghAttempts).toBe(1);
+			// Polling is held.
+			await accessible.getCachedOpenPullRequests(repoOf("b")).catch(() => {});
+			expect(ghAttempts).toBe(1);
+			// A user-driven refresh is not: it is the probe that can reopen the gate.
+			await accessible
+				.getCachedOpenPullRequests(repoOf("c"), { bypassCache: true })
+				.catch(() => {});
+			expect(ghAttempts).toBe(2);
+		});
+	});
+
+	test("detail lookups are held during an outage even with a warm head cache", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedWorkspace(db, {
+			id: "ws",
+			branch: "fix/sidebar",
+			headSha: "abc123",
+			upstreamOwner: REPO.owner,
+			upstreamRepo: REPO.name,
+			upstreamBranch: "fix/sidebar",
+		});
+		let online = true;
+		let ghAttempts = 0;
+		let octokitAttempts = 0;
+		const route = routeGh({
+			"fix/sidebar": makePrNode({
+				number: 7,
+				headRef: "fix/sidebar",
+				headSha: "abc123",
+			}),
+		});
+		const manager = createManager(db, {
+			git: defaultBranchGit("main"),
+			execGh: async (args) => {
+				ghAttempts += 1;
+				if (!online) {
+					throw Object.assign(new Error("Command failed"), {
+						stderr: "error connecting to api.github.com",
+					});
+				}
+				return route(args);
+			},
+			github: (async () => {
+				octokitAttempts += 1;
+				throw new Error("octokit must not run during an outage");
+			}) as never,
+		});
+		const accessible = manager as unknown as {
+			refreshProject(projectId: string): Promise<void>;
+		};
+
+		// Warm every cache while online: head lookup, reviews, checks, queue.
+		await withSilencedWarnings(() => accessible.refreshProject(PROJECT_ID));
+		expect(getWorkspace(db, "ws")?.pullRequestId).not.toBeNull();
+		const warmAttempts = ghAttempts;
+
+		// The network dies. The head lookup is cached, so the detail calls are
+		// the only gh spawns this refresh would make: the first trips the gate.
+		online = false;
+		await withSilencedWarnings(() => accessible.refreshProject(PROJECT_ID));
+		expect(ghAttempts).toBeGreaterThan(warmAttempts);
+		expect(octokitAttempts).toBe(0);
+		const heldAttempts = ghAttempts;
+
+		// While held, a refresh spawns nothing at all.
+		await withSilencedWarnings(() => accessible.refreshProject(PROJECT_ID));
+		expect(ghAttempts).toBe(heldAttempts);
+		expect(octokitAttempts).toBe(0);
+	});
+
 	test("still falls back to Octokit when gh fails but GitHub answered", async () => {
 		const db = createRealDb();
 		seedProject(db);

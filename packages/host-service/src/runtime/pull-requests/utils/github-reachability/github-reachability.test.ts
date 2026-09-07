@@ -87,20 +87,53 @@ describe("GitHubReachabilityGate", () => {
 		const gate = new GitHubReachabilityGate({ now: () => now });
 		expect(() => gate.assertReachable()).not.toThrow();
 
-		expect(gate.recordFailure(dns())).toBe(60_000);
+		expect(gate.recordFailure(dns())).toEqual({ opened: true, holdMs: 60_000 });
 		expect(() => gate.assertReachable()).toThrow(GitHubUnreachableError);
 		expect(gate.retryAfterMs()).toBe(60_000);
 
 		now += 60_000;
 		expect(() => gate.assertReachable()).not.toThrow();
-		expect(gate.recordFailure(dns())).toBe(120_000);
-		expect(gate.recordFailure(dns())).toBe(240_000);
+		expect(gate.recordFailure(dns())).toEqual({
+			opened: true,
+			holdMs: 120_000,
+		});
+		now += 120_000;
+		expect(gate.recordFailure(dns())).toEqual({
+			opened: true,
+			holdMs: 240_000,
+		});
+	});
+
+	test("failures that land while a hold is active neither extend it nor reopen it", () => {
+		let now = 0;
+		const gate = new GitHubReachabilityGate({ now: () => now });
+		expect(gate.recordFailure(dns())).toEqual({ opened: true, holdMs: 60_000 });
+		// Five concurrent lookups that were already in flight all fail too.
+		for (let i = 0; i < 5; i++) {
+			now += 100;
+			expect(gate.recordFailure(dns())).toEqual({
+				opened: false,
+				holdMs: 60_000 - now,
+			});
+		}
+		expect(gate.retryAfterMs()).toBe(60_000 - now);
+		// The streak is still one: the next window is two minutes, not the cap.
+		now = 60_000;
+		expect(gate.recordFailure(dns())).toEqual({
+			opened: true,
+			holdMs: 120_000,
+		});
 	});
 
 	test("caps the hold at 30 minutes", () => {
 		const gate = new GitHubReachabilityGate({ now: () => 0 });
 		let block = 0;
-		for (let i = 0; i < 12; i++) block = gate.recordFailure(dns()) ?? 0;
+		let now = 0;
+		const gate2 = new GitHubReachabilityGate({ now: () => now });
+		for (let i = 0; i < 12; i++) {
+			block = gate2.recordFailure(dns())?.holdMs ?? 0;
+			now += block;
+		}
 		expect(block).toBe(30 * 60_000);
 	});
 
@@ -115,11 +148,12 @@ describe("GitHubReachabilityGate", () => {
 		expect(() => gate.assertReachable()).not.toThrow();
 
 		gate.recordFailure(dns());
+		now = 60_000;
 		gate.recordFailure(dns());
 		gate.recordSuccess();
 		expect(() => gate.assertReachable()).not.toThrow();
 		// A fresh streak starts from the base window again.
-		now = 10;
-		expect(gate.recordFailure(dns())).toBe(60_000);
+		now = 60_010;
+		expect(gate.recordFailure(dns())).toEqual({ opened: true, holdMs: 60_000 });
 	});
 });
