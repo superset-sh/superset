@@ -14,8 +14,10 @@ filters exclude known internal users from analysis; anonymous employees cannot
 reliably be recognized.
 
 Control hides the reassurance; test shows “Free plan available · No credit card
-required” in the visitor's language. Both arms reserve identical space so the test
-isolates the copy. All other homepage styling is shared. Assignment freezes per
+required” in the visitor's language, positioned in the existing gap below the
+CTAs. Control preserves the shipped layout exactly; the test adds only this copy.
+The headline, buttons, product demo and customer logos keep their existing styling
+and behavior. Assignment freezes per
 mount, flags are read without exposure, and the rendered arm emits the standard
 PostHog exposure event once it is fully in view. Missing/disabled flags and opted-out
 visitors see control without enrollment.

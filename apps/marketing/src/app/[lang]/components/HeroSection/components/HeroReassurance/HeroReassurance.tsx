@@ -61,20 +61,22 @@ export function HeroReassurance() {
 
 	const showReassurance = assignment?.variant === "test";
 	return (
-		<p
-			ref={ref}
-			data-experiment="marketing-hero-free-plan-reassurance"
-			data-variant={assignment?.variant ?? "unassigned"}
-			className="mt-3 max-w-sm text-pretty text-xs leading-relaxed text-muted-foreground sm:text-sm"
-		>
-			{/* Both arms reserve the same space, isolating copy from layout changes
-			    and avoiding a shift when the lazily loaded flags resolve. */}
-			<span
-				className={showReassurance ? undefined : "invisible"}
-				aria-hidden={!showReassurance}
+		<div className="relative w-full">
+			<p
+				ref={ref}
+				data-experiment="marketing-hero-free-plan-reassurance"
+				data-variant={assignment?.variant ?? "unassigned"}
+				className="absolute inset-x-0 top-3 mx-auto max-w-sm text-pretty text-xs leading-relaxed text-muted-foreground sm:text-sm"
 			>
-				<Trans>Free plan available · No credit card required</Trans>
-			</span>
-		</p>
+				{/* Use the existing gap below the CTAs so control matches the shipped
+			    layout and resolving the flag never moves the product preview. */}
+				<span
+					className={showReassurance ? undefined : "invisible"}
+					aria-hidden={!showReassurance}
+				>
+					<Trans>Free plan available · No credit card required</Trans>
+				</span>
+			</p>
+		</div>
 	);
 }
