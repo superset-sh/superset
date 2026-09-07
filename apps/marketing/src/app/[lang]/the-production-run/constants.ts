@@ -298,14 +298,18 @@ export function runStateAt(months: number): RunState {
 	};
 }
 
-export function monthLabel(months: number): string {
+export function monthLabel(months: number, locale?: string): string {
 	const date = new Date(Date.UTC(2026, 7, 1));
 	date.setUTCMonth(date.getUTCMonth() + Math.round(months));
-	return formatDate(date, {
-		month: "short",
-		year: "numeric",
-		timeZone: "UTC",
-	});
+	return formatDate(
+		date,
+		{
+			month: "short",
+			year: "numeric",
+			timeZone: "UTC",
+		},
+		locale,
+	);
 }
 
 export interface RunTarget {

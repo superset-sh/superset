@@ -25,7 +25,7 @@ function formatTokens(value: number): string {
 }
 
 export function RunSimulator() {
-	const { t } = useLingui();
+	const { t, i18n } = useLingui();
 	const [months, setMonths] = useState(0);
 	const [playing, setPlaying] = useState(false);
 	const frame = useRef<number | null>(null);
@@ -81,7 +81,7 @@ export function RunSimulator() {
 				<div className="p-5 md:p-6 border-b md:border-b-0 md:border-r border-border">
 					<div className="flex items-baseline justify-between gap-3">
 						<span className="text-sm font-mono text-foreground">
-							{monthLabel(state.months)}
+							{monthLabel(state.months, i18n.locale)}
 						</span>
 						<span className="text-[11px] font-mono text-muted-foreground">
 							{state.months <= RUN_MONTHS

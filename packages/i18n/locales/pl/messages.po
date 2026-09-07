@@ -5205,7 +5205,7 @@ msgstr "Początek 2027"
 msgid "Early 2028"
 msgstr "Początek 2028"
 
-#. placeholder {0}: formatDate(new Date(`${awardedOn}T00:00:00Z`), { day: "numeric", month: "short", year: "numeric", timeZone: "UTC", })
+#. placeholder {0}: formatDate( new Date(`${awardedOn}T00:00:00Z`), { day: "numeric", month: "short", year: "numeric", timeZone: "UTC", }, i18n.locale, )
 msgid "Earned {0}"
 msgstr "Zdobyto {0}"
 

@@ -17,16 +17,24 @@ const LEVEL_ALPHA = [0.06, 0.28, 0.5, 0.72, 1];
 
 const WEEKDAY_SAMPLES = ["2024-01-01", "2024-01-03", "2024-01-05"] as const;
 
-const weekdayRows = () =>
+const weekdayRows = (locale: string) =>
 	WEEKDAY_SAMPLES.map((day) => ({
-		label: formatDate(new Date(`${day}T00:00:00Z`), {
-			weekday: "short",
-			timeZone: "UTC",
-		}),
+		label: formatDate(
+			new Date(`${day}T00:00:00Z`),
+			{
+				weekday: "short",
+				timeZone: "UTC",
+			},
+			locale,
+		),
 		offset: CELL + GAP,
 	}));
 
-function monthLabel(weeks: CalendarCell[][], index: number): string {
+function monthLabel(
+	weeks: CalendarCell[][],
+	index: number,
+	locale: string,
+): string {
 	const first = weeks[index]?.[0];
 	if (!first) return "";
 
@@ -34,10 +42,14 @@ function monthLabel(weeks: CalendarCell[][], index: number): string {
 	const previous = weeks[index - 1]?.[0]?.day.slice(0, 7);
 	if (month === previous) return "";
 
-	return formatDate(new Date(`${first.day}T00:00:00Z`), {
-		month: "short",
-		timeZone: "UTC",
-	});
+	return formatDate(
+		new Date(`${first.day}T00:00:00Z`),
+		{
+			month: "short",
+			timeZone: "UTC",
+		},
+		locale,
+	);
 }
 
 interface ContributionGraphProps {
@@ -51,7 +63,7 @@ export function ContributionGraph({
 	endDay,
 	rgb,
 }: ContributionGraphProps) {
-	const { t } = useLingui();
+	const { t, i18n } = useLingui();
 	const [active, setActive] = useState<CalendarCell | null>(null);
 	const calendar = buildCalendar(daily, endDay);
 
@@ -87,7 +99,7 @@ export function ContributionGraph({
 						className="flex flex-col shrink-0 pr-1"
 						style={{ gap: GAP, marginTop: CELL + GAP }}
 					>
-						{weekdayRows().map((row) => (
+						{weekdayRows(i18n.locale).map((row) => (
 							<span
 								key={row.label}
 								className="font-mono text-[0.55rem] uppercase tracking-[0.08em] text-muted-foreground/50 leading-none"
@@ -109,7 +121,7 @@ export function ContributionGraph({
 									className="font-mono text-[0.55rem] uppercase tracking-[0.08em] text-muted-foreground/50 leading-none whitespace-nowrap"
 									style={{ height: CELL }}
 								>
-									{monthLabel(calendar.weeks, index)}
+									{monthLabel(calendar.weeks, index, i18n.locale)}
 								</span>
 								{week.map((cell) =>
 									cell.inRange ? (
@@ -153,6 +165,7 @@ export function ContributionGraph({
 								year: "numeric",
 								timeZone: "UTC",
 							},
+							i18n.locale,
 						)}`
 					) : (
 						<Trans>

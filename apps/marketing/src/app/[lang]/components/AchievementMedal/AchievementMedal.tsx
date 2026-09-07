@@ -23,7 +23,7 @@ export function AchievementMedal({
 	tier,
 	awardedOn,
 }: AchievementMedalProps) {
-	const { t } = useLingui();
+	const { t, i18n } = useLingui();
 	const def = CATALOG_BY_SLUG[slug];
 	const copy = ACHIEVEMENT_COPY[slug];
 	if (!def?.art || !copy) return null;
@@ -78,12 +78,16 @@ export function AchievementMedal({
 				<p className="font-mono text-[0.56rem] uppercase tracking-[0.09em] text-muted-foreground/60 mt-2.5 border-t border-border pt-2">
 					<Trans>
 						Earned{" "}
-						{formatDate(new Date(`${awardedOn}T00:00:00Z`), {
-							day: "numeric",
-							month: "short",
-							year: "numeric",
-							timeZone: "UTC",
-						})}
+						{formatDate(
+							new Date(`${awardedOn}T00:00:00Z`),
+							{
+								day: "numeric",
+								month: "short",
+								year: "numeric",
+								timeZone: "UTC",
+							},
+							i18n.locale,
+						)}
 					</Trans>
 				</p>
 			</HoverCardContent>
