@@ -1190,6 +1190,59 @@ describe("swapClaudeLogin on a file-backed store", () => {
 		);
 	});
 
+	// The same refreshed login as above, with the identity file — the half that
+	// says WHOSE refresh it was — refusing the verify read once. Measured
+	// before the retry: `verify-failed`, and the dir was rolled back to the
+	// previous account's login even though the swap had landed correctly, on
+	// nothing worse than a `.claude.json` that would not open for one read.
+	it("does not roll a refreshed login back over a briefly unreadable identity", async () => {
+		const f = fixture();
+		const state = join(f.activeDir, ".claude.json");
+		let refusals = 0;
+		const deps: ClaudeSwapDeps = {
+			...f.deps,
+			fs: {
+				readFile: async (path: string, encoding: "utf-8") => {
+					const { readFile } = await import("node:fs/promises");
+					// Once the state file names the target, the identity write has
+					// landed and the read under way is the verify step's. Only the
+					// first of those is refused; the retry gets an answer.
+					if (path === state && namesB(state) && refusals++ === 0) {
+						throw Object.assign(new Error("EIO: i/o error, read"), {
+							code: "EIO",
+						});
+					}
+					return readFile(path, encoding);
+				},
+				rename: async (from: string, to: string) => {
+					const { rename } = await import("node:fs/promises");
+					await rename(from, to);
+					if (to === join(f.activeDir, ".credentials.json")) {
+						writeCredentials(f.activeDir, {
+							claudeAiOauth: oauth("t-b-refreshed", 6_000),
+						});
+					}
+				},
+			},
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps,
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		expect(refusals).toBeGreaterThan(0);
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-b-refreshed", 6_000),
+		);
+		expect(JSON.parse(readFileSync(state, "utf-8")).oauthAccount).toEqual(
+			identity("b").oauthAccount,
+		);
+	});
+
 	// A `/login` landing between the write and the read-back leaves a third
 	// account in the active dir while the caller still believes the previous
 	// one is live: put the dir's own snapshot back rather than leave the two
@@ -3238,6 +3291,158 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 		expect(
 			keychain.calls.some((call) => call.args[0] === "delete-generic-password"),
 		).toBe(false);
+	});
+
+	/**
+	 * Refuses one whole read-back round of `service` — every scope
+	 * `readKeychainHits` probes — the way a denied prompt or the 5s timeout
+	 * does, and answers every round after it. The unscoped probe is the last of
+	 * a round, so it is what closes the refusal.
+	 */
+	function denyOneReadRound(
+		service: string,
+		open: () => boolean,
+	): (args: string[]) => boolean {
+		let closed = false;
+		return (args) => {
+			if (closed || !open()) return false;
+			if (args[args.indexOf("-s") + 1] !== service) return false;
+			if (!args.includes("-a")) closed = true;
+			return true;
+		};
+	}
+
+	// The verify read-back is a read like any other: a denied prompt or the 5s
+	// timeout answers nothing, and reading that as "the item does not hold the
+	// target" undid a swap that had landed. Measured before the retry, with the
+	// session rotating the login the swap wrote: the item came back holding
+	// `t-a-refreshed` — the PREVIOUS account's login, written over the target's
+	// rotated token — and the caller was told `verify-failed`. The only
+	// difference from the rotation the tolerance accepts was whether the
+	// read-back got an answer.
+	it("retries a verify read the Keychain refused and keeps the rotation", async () => {
+		const f = fixture();
+		rmSync(join(f.activeDir, ".credentials.json"));
+		const activeService = keychainServicesForConfigDir(
+			f.activeDir,
+		)[0] as string;
+		const account = claudeKeychainAccounts()[0] as string;
+		let landed = false;
+		let refusals = 0;
+		const deny = denyOneReadRound(activeService, () => landed);
+		const keychain = fakeKeychain(
+			[
+				{
+					service: activeService,
+					account,
+					secret: JSON.stringify({
+						claudeAiOauth: oauth("t-a-refreshed", 5_000),
+					}),
+				},
+			],
+			{
+				failRead: (args) => {
+					const refuse = deny(args);
+					if (refuse) refusals++;
+					return refuse;
+				},
+			},
+		);
+		const exec = async (args: string[], stdin?: string) => {
+			const out = await keychain.exec(args, stdin);
+			// The write of the target's login into the active item, and the
+			// session rotating it a moment later — still the target's own login,
+			// one refresh newer.
+			if (args[0] === "-i" && stdin?.includes("t-b") && !landed) {
+				const item = keychain.items.find(
+					(entry) => entry.service === activeService,
+				);
+				if (item) {
+					item.secret = JSON.stringify({
+						claudeAiOauth: oauth("t-b-ROTATED", 6_000),
+					});
+				}
+				landed = true;
+			}
+			return out;
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, darwin: true, exec },
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		// The read-back really was refused, so the retry is what answered.
+		expect(refusals).toBeGreaterThan(0);
+		// The rotation survives: the retry saw it, so nothing was rolled back
+		// over it.
+		expect(
+			JSON.parse(
+				keychain.items.find((item) => item.service === activeService)?.secret ??
+					"{}",
+			).claudeAiOauth,
+		).toEqual(oauth("t-b-ROTATED", 6_000));
+		expect(
+			keychain.calls.some((call) => call.args[0] === "delete-generic-password"),
+		).toBe(false);
+	});
+
+	// The twin where the item never comes back: the retry gets the same
+	// silence, and the rollback stays — an unreadable store cannot tell the
+	// target's own rotation from a third account's `/login`, and reporting `ok`
+	// on the second would hand the caller a session signed in as a stranger.
+	// What the caller is told changes though: nothing read back at all, so
+	// naming the item is what gets it unlocked.
+	it("names the unreadable item when the verify read never answers", async () => {
+		const f = fixture();
+		rmSync(join(f.activeDir, ".credentials.json"));
+		const activeService = keychainServicesForConfigDir(
+			f.activeDir,
+		)[0] as string;
+		const account = claudeKeychainAccounts()[0] as string;
+		const previous = JSON.stringify({
+			claudeAiOauth: oauth("t-a-refreshed", 5_000),
+		});
+		let landed = false;
+		const keychain = fakeKeychain(
+			[{ service: activeService, account, secret: previous }],
+			{
+				failRead: (args) =>
+					landed && args[args.indexOf("-s") + 1] === activeService,
+			},
+		);
+		const exec = async (args: string[], stdin?: string) => {
+			const out = await keychain.exec(args, stdin);
+			if (args[0] === "-i" && stdin?.includes("t-b")) landed = true;
+			return out;
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, darwin: true, exec },
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "verify-failed" });
+		if (result.ok) throw new Error("expected the swap to fail");
+		// The item the user has to unlock, not a third account that never
+		// landed.
+		expect(result.reason).toContain(activeService);
+		expect(result.reason).toContain("could not be read");
+		expect(result.reason).not.toContain("did not read back as the target");
+		// And the rollback still ran: the dir holds its own pre-swap login
+		// again, in the item it already had.
+		expect(
+			JSON.parse(
+				keychain.items.find((item) => item.service === activeService)?.secret ??
+					"{}",
+			).claudeAiOauth,
+		).toEqual(oauth("t-a-refreshed", 5_000));
+		expect(keychain.items).toHaveLength(1);
 	});
 
 	// The owner's dir has the same two stores, and `applyStoreWrite` lands the

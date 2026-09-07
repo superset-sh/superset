@@ -911,11 +911,25 @@ async function applyToActiveDir(
 		);
 	}
 
-	const verifyRead = await readStore(activeRef, ctx);
-	const verifyIdentity = await readIdentity(
-		join(activeDir, ".claude.json"),
-		ctx,
-	);
+	// A read-back that could not read is not a read-back that disagreed, and
+	// both halves are read again once before either decides anything — the same
+	// retry the source re-read above uses for a moving target. A torn read, an
+	// item caught mid-rewrite, or one probe that timed out answers on the second
+	// look, which is the whole window for most of them. The identity is retried
+	// with the credential because it is what the refresh tolerance below leans
+	// on: a `.claude.json` that briefly would not open leaves the tolerance
+	// unable to name the account, and a login the target's own session merely
+	// refreshed gets rolled back for it.
+	let verifyRead = await readStore(activeRef, ctx);
+	let verifyIdentity = await readIdentity(join(activeDir, ".claude.json"), ctx);
+	if (
+		verifyRead.keychainUnreadable ||
+		verifyRead.anyFileCandidateUnreadable ||
+		verifyIdentity === null
+	) {
+		verifyRead = await readStore(activeRef, ctx);
+		verifyIdentity = await readIdentity(join(activeDir, ".claude.json"), ctx);
+	}
 	const identityIsTarget =
 		JSON.stringify(verifyIdentity?.keys ?? null) ===
 		JSON.stringify(target.identity.keys);
@@ -930,6 +944,24 @@ async function applyToActiveDir(
 			verifyIdentity?.accountUuid === target.identity.accountUuid &&
 			isRefreshedLogin(oauth, oauthOf(verifyRead)));
 	if (!loginIsTarget || !identityIsTarget) {
+		// A store still unreadable after the retry rolls back too, and that is a
+		// deliberate trade rather than an oversight: nothing was read, so this
+		// cannot tell "the target, one refresh newer" from "a third account's
+		// `/login` landed in this window" — and reporting `ok` on the second
+		// hands the caller a session signed in as a stranger, which is the one
+		// thing the verify step exists to catch. The rollback puts back bytes
+		// this swap read itself before the write, so it destroys no store it
+		// never saw; what it costs is a rotation this swap could not see, and
+		// the target may need a fresh `/login`. Not `split-state`: the write
+		// landed whole and the rollback is running normally.
+		const storeUnreadable =
+			verifyRead.keychainUnreadable || verifyRead.anyFileCandidateUnreadable;
+		// Naming the item beats "did not read back as the target login" when
+		// nothing read back at all: the user unlocks or repairs it instead of
+		// hunting for a third account that never landed.
+		const unread = verifyRead.keychainUnreadable
+			? `${keychainStoreName(verifyRead, activeRef, ctx)}'s Keychain item`
+			: fileStoreName(verifyRead, activeRef, ctx);
 		// Unlike the write failures above, the dir now holds the target while
 		// the caller still believes the previous account is live; put its own
 		// snapshot back — identity included, since by here `.claude.json`
@@ -938,7 +970,9 @@ async function applyToActiveDir(
 			activeRead,
 			written,
 			activeDir,
-			`${activeDir} did not read back as the target ${loginIsTarget ? "identity" : "login"}`,
+			storeUnreadable
+				? `${unread} exists but could not be read while the swap verified ${activeDir}; rolling the write back rather than reporting a login nothing could see`
+				: `${activeDir} did not read back as the target ${loginIsTarget ? "identity" : "login"}`,
 			"verify-failed",
 			ctx,
 			previousIdentity,
