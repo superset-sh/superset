@@ -593,7 +593,11 @@ async function applyStoreWrite(
  * left holding the target's login. `previousIdentity` does the same for the
  * `.claude.json` identity block once that has been written — the keys the dir
  * held before, empty when it had none, and `null` when the identity write had
- * not run yet and the file is still the dir's own. Both halves go back
+ * not run yet and the file is still the dir's own. It carries the path it was
+ * read from rather than letting this join `.claude.json` onto the dir above:
+ * that dir is the CREDENTIAL's, and for a system-default store the identity
+ * lives next door at `~/.claude.json`, so joining would put the restore in a
+ * file the identity write never touched. Both halves go back
  * together: a credential restored under the target's name is the split the
  * rollback exists to prevent. Reports `code` — what went wrong before the
  * rollback — once the dir is whole again, `split-state` when the restore failed
@@ -606,11 +610,22 @@ async function rollbackActiveWrite(
 	reason: string,
 	code: "write-failed" | "verify-failed",
 	ctx: SwapContext,
-	previousIdentity: Record<string, unknown> | null = null,
+	previousIdentity: {
+		statePath: string;
+		keys: Record<string, unknown>;
+	} | null = null,
 ): Promise<ClaudeSwapResult> {
 	if (!written.file && !written.keychain && !previousIdentity) {
 		return failure(code, reason);
 	}
+	// Every other write in this file re-validates its dir immediately before it
+	// lands; these do not, deliberately. A restore puts back bytes this swap
+	// read out of that same dir moments ago, and refusing it because the dir
+	// turned unsafe in between would leave the target's login sitting there
+	// under the previous account's name — turning a failure the caller can
+	// retry into `split-state`, which nothing here can reconcile. Putting a
+	// dir back as it was is the one write worth making into a dir that may no
+	// longer be safe.
 	try {
 		if (written.file) {
 			if (activeRead.fileContent) {
@@ -635,9 +650,9 @@ async function rollbackActiveWrite(
 			}
 		}
 		if (previousIdentity) {
-			await updateClaudeStateFile(join(activeDir, ".claude.json"), (state) => {
+			await updateClaudeStateFile(previousIdentity.statePath, (state) => {
 				for (const key of CLAUDE_IDENTITY_KEYS) delete state[key];
-				return { ...state, ...previousIdentity };
+				return { ...state, ...previousIdentity.keys };
 			});
 		}
 	} catch (rollbackError) {
@@ -989,6 +1004,17 @@ async function applyToActiveDir(
 	// gets rolled back for it. Deciding first takes none of that away: a store
 	// nothing read yields no matching login, and an identity nothing read no
 	// matching identity, so every pair this retry exists for falls through to it.
+	//
+	// Both halves are replaced wholesale, so a half the FIRST pair confirmed is
+	// thrown away and asked again. That is the defensible direction rather than
+	// an oversight: carrying a confirmed half forward would judge the second
+	// read's login against the first read's identity, and a third account's
+	// `/login` landing between the two reads would be over-ACCEPTED as the
+	// target's. Only the exact-hash branch of `readsAsTarget` is
+	// identity-independent — the refresh tolerance is bound to the pair it was
+	// read with — so the pair has to stay a pair. What this costs is a rotation
+	// this swap could not see; what the other direction costs is a session
+	// signed in as a stranger.
 	if (
 		verifyRead.keychainUnreadable ||
 		verifyRead.anyFileCandidateUnreadable ||
@@ -1030,7 +1056,7 @@ async function applyToActiveDir(
 				: `${activeDir} did not read back as the target ${verdict.login ? "identity" : "login"}`,
 			"verify-failed",
 			ctx,
-			previousIdentity,
+			{ statePath: join(activeDir, ".claude.json"), keys: previousIdentity },
 		);
 	}
 	return { ok: true, identity: target.identity };
@@ -1514,6 +1540,14 @@ export async function swapClaudeLogin(input: {
 		}
 	}
 
+	// The window this protocol does not close: between the payload read above
+	// and the overwrite below sit the owner's two writes and, on darwin, a
+	// Keychain prompt the user may sit on. A `/login` that lands in the active
+	// dir inside it is overwritten by the target and saved back to nobody — the
+	// swap has already decided which login it is carrying. Closing it needs an
+	// expectation of what the active dir must still hold at the moment of the
+	// write, which the seed path — no owner, no binding — cannot supply, so it
+	// is written down here rather than guarded.
 	return applyToActiveDir(loaded.target, input.activeDir, ctx);
 }
 
