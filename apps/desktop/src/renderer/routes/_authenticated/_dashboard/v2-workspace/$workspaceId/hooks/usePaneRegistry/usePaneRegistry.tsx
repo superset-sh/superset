@@ -558,6 +558,9 @@ export function usePaneRegistry({
 					// menu drops that default rather than offering both.
 					const linkAt = (ctx: RendererContext<PaneViewerData>) =>
 						terminalContextMenuLinkStore.get(ctx.pane.id)?.link ?? null;
+					// A URL, or a file/folder the host resolved. A file link that never
+					// resolved has nowhere to open and nothing to copy, so the section
+					// stays hidden rather than showing an empty submenu.
 					const copyableLinkText = (
 						ctx: RendererContext<PaneViewerData>,
 					): string | null => {
@@ -565,12 +568,19 @@ export function usePaneRegistry({
 						if (!link) return null;
 						return link.kind === "url" ? link.url : (link.resolvedPath ?? null);
 					};
+					const copyLinkText = (ctx: RendererContext<PaneViewerData>) => {
+						const text = copyableLinkText(ctx);
+						if (!text) return;
+						navigator.clipboard.writeText(text).catch(() => {
+							toast.error(t({ message: "Copy failed" }));
+						});
+					};
 					const linkActions: ContextMenuActionConfig<PaneViewerData>[] = [
 						{
 							key: "open-link-in",
 							label: t({ message: "Open in" }),
 							icon: <LuExternalLink />,
-							hidden: (ctx) => !linkAt(ctx),
+							hidden: (ctx) => !copyableLinkText(ctx),
 							children: openInActions,
 						},
 						{
@@ -578,10 +588,7 @@ export function usePaneRegistry({
 							label: t({ message: "Copy Link" }),
 							icon: <LuLink />,
 							hidden: (ctx) => linkAt(ctx)?.kind !== "url",
-							onSelect: (ctx) => {
-								const text = copyableLinkText(ctx);
-								if (text) navigator.clipboard.writeText(text);
-							},
+							onSelect: copyLinkText,
 						},
 						{
 							key: "copy-path",
@@ -591,15 +598,12 @@ export function usePaneRegistry({
 								const link = linkAt(ctx);
 								return link?.kind !== "file" || !link.resolvedPath;
 							},
-							onSelect: (ctx) => {
-								const text = copyableLinkText(ctx);
-								if (text) navigator.clipboard.writeText(text);
-							},
+							onSelect: copyLinkText,
 						},
 						{
 							key: "sep-open-link-in",
 							type: "separator",
-							hidden: (ctx) => !linkAt(ctx),
+							hidden: (ctx) => !copyableLinkText(ctx),
 						},
 					];
 
