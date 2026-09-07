@@ -7,6 +7,11 @@ import {
 	InvalidDueDateRangeError,
 	normalizeDueDateRange,
 } from "@superset/db/task-list-query";
+import {
+	taskHadSlugLike,
+	taskSlugLookupOrder,
+	taskSlugMatches,
+} from "@superset/db/task-slug-lookup";
 import { getCurrentTxid } from "@superset/db/utils";
 import {
 	generateBaseTaskSlug,
@@ -101,11 +106,12 @@ async function getTaskBySlug(
 		.from(tasks)
 		.where(
 			and(
-				eq(tasks.slug, slug),
 				eq(tasks.organizationId, organizationId),
 				isNull(tasks.deletedAt),
+				taskSlugMatches(slug),
 			),
 		)
+		.orderBy(...taskSlugLookupOrder(slug))
 		.limit(1);
 
 	return task ?? null;
@@ -213,18 +219,21 @@ async function createTask(
 					: null;
 
 				const baseSlug = generateBaseTaskSlug(input.title);
-				const existingSlugs = await tx
-					.select({ slug: tasks.slug })
+				const existingTasks = await tx
+					.select({ slug: tasks.slug, previousSlugs: tasks.previousSlugs })
 					.from(tasks)
 					.where(
 						and(
 							eq(tasks.organizationId, organizationId),
-							ilike(tasks.slug, `${baseSlug}%`),
+							or(
+								ilike(tasks.slug, `${baseSlug}%`),
+								taskHadSlugLike(`${baseSlug}%`),
+							),
 						),
 					);
 				const slug = generateUniqueTaskSlug(
 					baseSlug,
-					existingSlugs.map((task) => task.slug),
+					existingTasks.flatMap((task) => [task.slug, ...task.previousSlugs]),
 				);
 
 				const [task] = await tx

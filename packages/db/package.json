@@ -32,6 +32,10 @@
 			"types": "./src/task-list-query.ts",
 			"default": "./src/task-list-query.ts"
 		},
+		"./task-slug-lookup": {
+			"types": "./src/task-slug-lookup.ts",
+			"default": "./src/task-slug-lookup.ts"
+		},
 		"./utils": {
 			"types": "./src/utils/index.ts",
 			"default": "./src/utils/index.ts"
@@ -41,6 +45,7 @@
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"push": "drizzle-kit push",
 		"migrate": "drizzle-kit migrate",
+		"backfill:task-previous-slugs": "bun run src/scripts/backfill-task-previous-slugs.ts",
 		"studio": "drizzle-kit studio",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},

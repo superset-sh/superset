@@ -128,6 +128,10 @@ export const tasks = pgTable(
 
 		// Core fields
 		slug: text().notNull(),
+		// Slugs this task used to have. A slug is the task's URL, and a Linear
+		// push replaces a title slug with the issue key, so links shared before
+		// that still have to resolve.
+		previousSlugs: text("previous_slugs").array().notNull().default([]),
 		title: text().notNull(),
 		description: text(),
 		statusId: uuid("status_id")
