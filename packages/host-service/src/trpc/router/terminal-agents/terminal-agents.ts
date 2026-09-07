@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import type { HostDb } from "../../../db";
 import { workspaces } from "../../../db/schema";
+import type { EventBus } from "../../../events";
 import { hasHarnessSession } from "../../../terminal/harness-transcript";
 import {
 	createTerminalSessionInternal,
@@ -20,6 +21,7 @@ import type {
 import {
 	claimResumeCandidateBinding,
 	findResumeCandidateBinding,
+	findResumedSuccessorBinding,
 	seedEndedTerminalAgentBinding,
 	unclaimResumeCandidateBinding,
 } from "../../../terminal-agents/persistence";
@@ -64,6 +66,8 @@ export interface ResumeSessionDeps {
 	 * progressed past "Attached".
 	 */
 	hasSession: (binding: TerminalAgentBinding) => boolean | null;
+	/** Tells panes on the dead terminal where the session went. */
+	eventBus: Pick<EventBus, "broadcastTerminalLifecycle">;
 }
 
 const resumeInflight = new Map<string, Promise<ResumeResult>>();
@@ -171,6 +175,18 @@ export async function resumeTerminalAgentSession(
 		});
 		deps.terminalAgentStore.markTerminalDisposed(terminalId);
 
+		// Every pane on the dead terminal follows the session — the one whose
+		// mutation this is, panes in other windows, and panes whose host-side
+		// restart never went through a renderer at all.
+		deps.eventBus.broadcastTerminalLifecycle({
+			workspaceId,
+			terminalId,
+			eventType: "resumed",
+			resumedTerminalId: result.sessionId,
+			label: result.label,
+			occurredAt: Date.now(),
+		});
+
 		return {
 			resumed: true,
 			terminalId: result.sessionId,
@@ -216,27 +232,25 @@ export function listAccountRestartCandidates(
 	return out;
 }
 
-export interface RestartAccountSessionsDeps {
-	db: HostDb;
-	terminalAgentStore: TerminalAgentStore;
-	disposeSession: (terminalId: string) => Promise<unknown>;
-}
-
 /**
- * Relaunch every live `provider` agent onto the current default account.
- * Each candidate terminal is killed the way a crash would kill it — the
- * binding is marked "terminal-exited", never "disposed" — so the standard
- * auto-resume path relaunches the agent with its saved session id (or fresh,
- * for one that never got a prompt), and the agent wrapper re-resolves the
- * account pointer at launch: same conversation, new account. Marking ended
- * precedes the dispose because the renderer re-checks for a resume candidate
- * on the socket close the dispose causes; the store's own "change" event
- * never reaches it. Panes that are not open resume when their workspace is
- * next viewed, like any other
- * dead-terminal candidate.
+ * Relaunch every live `provider` agent onto the current default account,
+ * without waiting for a pane to notice. Each candidate is killed, then
+ * resumed here on the host through {@link resumeTerminalAgentSession}: same
+ * conversation in a fresh terminal whose agent wrapper re-resolves the
+ * account pointer at launch. Panes still open on the old terminal follow
+ * the "resumed" lifecycle event; a session with no pane anywhere (launched
+ * from the CLI, or in a workspace this client never opened) gets one from
+ * background-session adoption the next time its workspace is viewed. Doing
+ * the resume renderer-side instead would leave such a session stranded: its
+ * terminal is dead, so nothing lists it and nothing ever asks to resume it.
+ *
+ * A candidate whose kill fails is left running for the reaper to finish;
+ * its binding stays "terminal-exited", so any pane on it still resumes it
+ * the old way. A relaunch that throws is un-claimed by the resume path and
+ * likewise stays a candidate.
  */
 export async function restartAccountSessions(
-	deps: RestartAccountSessionsDeps,
+	deps: ResumeSessionDeps,
 	provider: "claude" | "codex",
 ): Promise<{ restartedTerminalIds: string[] }> {
 	const candidates = listAccountRestartCandidates(
@@ -246,13 +260,27 @@ export async function restartAccountSessions(
 	);
 	const restartedTerminalIds: string[] = [];
 	for (const { binding } of candidates) {
+		// Ended crash-style ("terminal-exited", never "disposed") so the
+		// binding is a resume candidate for the relaunch below — and, should
+		// the relaunch fail, for any pane that asks later.
 		deps.terminalAgentStore.markTerminalExited(binding.terminalId);
 		try {
 			await deps.disposeSession(binding.terminalId);
 		} catch (error) {
-			// The reaper retries the kill; the binding stays a valid candidate.
 			console.warn(
 				"[terminal-agents] account-switch restart failed to dispose terminal",
+				{ terminalId: binding.terminalId, error },
+			);
+			continue;
+		}
+		try {
+			await resumeTerminalAgentSession(deps, {
+				workspaceId: binding.workspaceId,
+				terminalId: binding.terminalId,
+			});
+		} catch (error) {
+			console.warn(
+				"[terminal-agents] account-switch restart failed to relaunch agent",
 				{ terminalId: binding.terminalId, error },
 			);
 			continue;
@@ -260,6 +288,28 @@ export async function restartAccountSessions(
 		restartedTerminalIds.push(binding.terminalId);
 	}
 	return { restartedTerminalIds };
+}
+
+/**
+ * The terminal now hosting the session that was resumed out of
+ * `terminalId`, for a pane that missed the "resumed" lifecycle event. See
+ * {@link findResumedSuccessorBinding}.
+ */
+export function findResumedSuccessor(
+	db: HostDb,
+	workspaceId: string,
+	terminalId: string,
+): { terminalId: string; label: string } | null {
+	const successor = findResumedSuccessorBinding(db, workspaceId, terminalId);
+	if (!successor) return null;
+	const config = resolveHostAgentConfig(
+		db,
+		successor.definitionId ?? successor.agentId,
+	);
+	return {
+		terminalId: successor.terminalId,
+		label: config?.label ?? successor.agentId,
+	};
 }
 
 function inflightKey(
@@ -351,6 +401,13 @@ export const terminalAgentsRouter = router({
 			};
 		}),
 
+	/** See {@link findResumedSuccessor}. */
+	resumedSuccessor: protectedProcedure
+		.input(z.object({ workspaceId: z.string(), terminalId: z.string() }))
+		.query(({ ctx, input }) =>
+			findResumedSuccessor(ctx.db, input.workspaceId, input.terminalId),
+		),
+
 	/** See {@link resumeTerminalAgentSession}. */
 	resume: protectedProcedure
 		.input(z.object({ workspaceId: z.string(), terminalId: z.string() }))
@@ -363,6 +420,7 @@ export const terminalAgentsRouter = router({
 					disposeSession: (terminalId) =>
 						disposeSessionAndWait(terminalId, ctx.db),
 					hasSession: (binding) => bindingHasHarnessSession(ctx.db, binding),
+					eventBus: ctx.eventBus,
 				},
 				input,
 			),
@@ -394,8 +452,11 @@ export const terminalAgentsRouter = router({
 				{
 					db: ctx.db,
 					terminalAgentStore: ctx.terminalAgentStore,
+					runAgent: (runInput) => runAgentInWorkspace(ctx, runInput),
 					disposeSession: (terminalId) =>
 						disposeSessionAndWait(terminalId, ctx.db),
+					hasSession: (binding) => bindingHasHarnessSession(ctx.db, binding),
+					eventBus: ctx.eventBus,
 				},
 				input.provider,
 			),

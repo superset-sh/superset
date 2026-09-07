@@ -47,9 +47,17 @@ type WorkspaceChangedListener = (
 	message: Omit<Extract<ServerMessage, { type: "workspace:changed" }>, "type">,
 ) => void;
 
-type TerminalLifecycleListener = (
-	message: Omit<Extract<ServerMessage, { type: "terminal:lifecycle" }>, "type">,
-) => void;
+/** `Omit` that keeps a union a union instead of collapsing it. */
+type DistributiveOmit<T, K extends keyof T> = T extends unknown
+	? Omit<T, K>
+	: never;
+
+export type TerminalLifecycleEvent = DistributiveOmit<
+	Extract<ServerMessage, { type: "terminal:lifecycle" }>,
+	"type"
+>;
+
+type TerminalLifecycleListener = (message: TerminalLifecycleEvent) => void;
 
 function sendMessage(socket: WsSocket, message: ServerMessage): void {
 	if (socket.readyState !== 1) return;
@@ -248,12 +256,7 @@ export class EventBus {
 	 * status can otherwise get stuck when a terminal exits while its pane is not
 	 * mounted and therefore cannot observe the terminal websocket `exit` packet.
 	 */
-	broadcastTerminalLifecycle(
-		message: Omit<
-			Extract<ServerMessage, { type: "terminal:lifecycle" }>,
-			"type"
-		>,
-	): void {
+	broadcastTerminalLifecycle(message: TerminalLifecycleEvent): void {
 		for (const listener of this.terminalLifecycleListeners) {
 			try {
 				listener(message);

@@ -47,15 +47,30 @@ export interface AgentBindingsChangedMessage {
 	occurredAt: number;
 }
 
-export interface TerminalLifecycleMessage {
-	type: "terminal:lifecycle";
-	workspaceId: string;
-	terminalId: string;
-	eventType: "exit";
-	exitCode: number;
-	signal: number;
-	occurredAt: number;
-}
+export type TerminalLifecycleMessage =
+	| {
+			type: "terminal:lifecycle";
+			workspaceId: string;
+			terminalId: string;
+			eventType: "exit";
+			exitCode: number;
+			signal: number;
+			occurredAt: number;
+	  }
+	/**
+	 * The agent session that was running in `terminalId` now lives in
+	 * `resumedTerminalId`. Panes still pointed at the dead terminal follow
+	 * it there instead of showing an exited shell.
+	 */
+	| {
+			type: "terminal:lifecycle";
+			workspaceId: string;
+			terminalId: string;
+			eventType: "resumed";
+			resumedTerminalId: string;
+			label: string;
+			occurredAt: number;
+	  };
 
 export interface PortChangedMessage {
 	type: "port:changed";

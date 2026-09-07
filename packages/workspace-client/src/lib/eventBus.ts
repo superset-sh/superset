@@ -48,13 +48,16 @@ export interface AgentBindingsChangedPayload {
 	occurredAt: number;
 }
 
-export interface TerminalLifecyclePayload {
-	eventType: "exit";
-	terminalId: string;
-	exitCode: number;
-	signal: number;
-	occurredAt: number;
-}
+type TerminalLifecycleMessage = Extract<
+	ServerMessage,
+	{ type: "terminal:lifecycle" }
+>;
+
+export type TerminalLifecyclePayload = TerminalLifecycleMessage extends infer M
+	? M extends TerminalLifecycleMessage
+		? Omit<M, "type" | "workspaceId">
+		: never
+	: never;
 
 type PortChangedMessage = Extract<ServerMessage, { type: "port:changed" }>;
 
@@ -322,15 +325,10 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 				{ occurredAt: message.occurredAt },
 			);
 		} else if (message.type === "terminal:lifecycle") {
+			const { type: _type, workspaceId, ...payload } = message;
 			(entry.callback as EventListener<"terminal:lifecycle">)(
-				message.workspaceId,
-				{
-					eventType: message.eventType,
-					terminalId: message.terminalId,
-					exitCode: message.exitCode,
-					signal: message.signal,
-					occurredAt: message.occurredAt,
-				},
+				workspaceId,
+				payload,
 			);
 		} else if (message.type === "page-watch:changed") {
 			(entry.callback as EventListener<"page-watch:changed">)(
