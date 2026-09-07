@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { WorkspaceSnapshotPayload } from "@superset/workspace-client";
 import {
 	applyWorkspaceChangedEvent,
+	deriveHostWorkspacesQueryTargets,
 	isEventBusReopen,
 	mergeHostWorkspaces,
 	toHostWorkspaceItem,
@@ -239,5 +240,52 @@ describe("toHostWorkspaceItem", () => {
 			lastActivityAt: null,
 			hostReachable: false,
 		});
+	});
+});
+
+describe("deriveHostWorkspacesQueryTargets", () => {
+	it("keeps a null-URL local target while the host-service has no port, even with no host row", () => {
+		// The target is what the cached rows and the IndexedDB snapshot hang
+		// off. A user whose host list is empty (no v2_hosts row, or not yet
+		// linked to it) used to lose the target the moment the host-service
+		// restarted — every local workspace vanished and the open one read as
+		// "not found" until the service was back.
+		const targets = deriveHostWorkspacesQueryTargets({
+			activeHostUrl: null,
+			hosts: [],
+			machineId: HOST.machineId,
+			relayUrl: "https://relay.test",
+			fallbackOrganizationId: HOST.organizationId,
+		});
+		expect(targets).toEqual([
+			{
+				machineId: HOST.machineId,
+				organizationId: HOST.organizationId,
+				hostUrl: null,
+				isLocal: true,
+			},
+		]);
+	});
+
+	it("does not synthesize a second local target when the host row exists", () => {
+		const targets = deriveHostWorkspacesQueryTargets({
+			activeHostUrl: null,
+			hosts: [{ ...HOST, isOnline: true }],
+			machineId: HOST.machineId,
+			relayUrl: "https://relay.test",
+		});
+		expect(targets).toHaveLength(1);
+		expect(targets[0]?.hostUrl).toBeNull();
+	});
+
+	it("synthesizes nothing without a machine id", () => {
+		expect(
+			deriveHostWorkspacesQueryTargets({
+				activeHostUrl: null,
+				hosts: [],
+				machineId: null,
+				relayUrl: "https://relay.test",
+			}),
+		).toEqual([]);
 	});
 });

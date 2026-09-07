@@ -14,9 +14,9 @@ import {
 } from "renderer/lib/host-service-auth";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { WorkspaceLocalHostPendingState } from "../../components/WorkspaceLocalHostPendingState";
 import { WorkspaceTrpcProvider } from "../WorkspaceTrpcProvider";
 import { WorkspaceHostGate } from "./components/WorkspaceHostGate";
-import { WorkspaceLocalHostPendingState } from "./components/WorkspaceLocalHostPendingState";
 
 interface WorkspaceContextValue {
 	workspace: HostShapedWorkspace;

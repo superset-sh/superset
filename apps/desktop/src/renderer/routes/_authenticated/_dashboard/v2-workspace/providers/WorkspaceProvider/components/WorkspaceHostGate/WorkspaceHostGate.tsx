@@ -8,7 +8,7 @@ import { useLocalHostService } from "renderer/routes/_authenticated/providers/Lo
 import { StateScreenShell } from "../../../../components/StateScreenShell";
 import { WorkspaceHostUnreachableState } from "../../../../components/WorkspaceHostUnreachableState";
 import { useHostReachability } from "../../../../hooks/useHostReachability";
-import { LOCAL_HOST_SERVICE_DETAIL } from "../../utils/localHostServiceDetail";
+import { LOCAL_HOST_SERVICE_DETAIL } from "../../../../utils/localHostServiceDetail";
 
 const HOST_LIST_STALE_MS = 30_000;
 

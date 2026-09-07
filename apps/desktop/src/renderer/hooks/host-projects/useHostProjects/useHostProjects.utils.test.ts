@@ -1,6 +1,7 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, it, test } from "bun:test";
 import {
 	applyProjectChangedEvent,
+	deriveHostProjectsQueryTargets,
 	normalizeHostProjectRow,
 } from "./useHostProjects.utils";
 
@@ -51,5 +52,28 @@ describe("old-host tag settings compatibility", () => {
 			"project",
 		);
 		expect(next?.[0]?.tagSettings).toEqual(tagSettings);
+	});
+});
+
+describe("deriveHostProjectsQueryTargets", () => {
+	it("keeps a null-URL local target while the host-service has no port, even with no host row", () => {
+		// Same rule as deriveHostWorkspacesQueryTargets: the target keys the
+		// cached rows and the snapshot, so it must outlive a restart or the
+		// sidebar's project list clears for the length of the outage.
+		const targets = deriveHostProjectsQueryTargets({
+			activeHostUrl: null,
+			hosts: [],
+			machineId: "machine-1",
+			relayUrl: "https://relay.test",
+			fallbackOrganizationId: "org-1",
+		});
+		expect(targets).toEqual([
+			{
+				machineId: "machine-1",
+				organizationId: "org-1",
+				hostUrl: null,
+				isLocal: true,
+			},
+		]);
 	});
 });

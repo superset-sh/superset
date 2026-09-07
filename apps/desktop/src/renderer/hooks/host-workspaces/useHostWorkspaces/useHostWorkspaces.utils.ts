@@ -135,12 +135,12 @@ export function deriveHostWorkspacesQueryTargets({
 	});
 
 	// The local host may not have a v2_hosts row yet (fresh install, stale
-	// Electric); it is still queryable directly.
-	if (
-		machineId &&
-		activeHostUrl &&
-		!targets.some((target) => target.machineId === machineId)
-	) {
+	// host list, a user not yet linked to the host); it is still queryable
+	// directly. Kept while the host-service has no port too (starting, crashed,
+	// respawning): the target is what the cached rows and the IndexedDB
+	// snapshot hang off, so dropping it would clear every local workspace for
+	// the length of the outage and let the open one read as "not found".
+	if (machineId && !targets.some((target) => target.machineId === machineId)) {
 		targets.push({
 			machineId,
 			organizationId: hosts[0]?.organizationId ?? fallbackOrganizationId ?? "",

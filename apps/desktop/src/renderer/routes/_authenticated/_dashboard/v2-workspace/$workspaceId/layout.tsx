@@ -8,6 +8,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useSandboxAccess } from "renderer/routes/_authenticated/providers/SandboxAccessProvider";
 import { useWorkspaceTransactionsStore } from "renderer/stores/workspace-creates";
 import { CloudWorkspaceProvisioningState } from "../components/CloudWorkspaceProvisioningState";
@@ -15,6 +16,7 @@ import { StateScreenShell } from "../components/StateScreenShell";
 import { WorkspaceCreateErrorState } from "../components/WorkspaceCreateErrorState";
 import { WorkspaceCreatingState } from "../components/WorkspaceCreatingState";
 import { WorkspaceHostIncompatibleState } from "../components/WorkspaceHostIncompatibleState";
+import { WorkspaceLocalHostPendingState } from "../components/WorkspaceLocalHostPendingState";
 import { WorkspaceNotFoundState } from "../components/WorkspaceNotFoundState";
 import { useRemoteHostStatus } from "../hooks/useRemoteHostStatus";
 import { useWorkspaceMissVerdict } from "../hooks/useWorkspaceMissVerdict";
@@ -53,10 +55,13 @@ function V2WorkspaceLayout() {
 
 	const {
 		workspaces: hostWorkspaces,
-		isReady,
 		hostsSettled,
 		cache,
 	} = useHostWorkspaces();
+	// No port = the local host-service is starting, crashed and respawning, or
+	// gave up. Its rows are unreadable until it is back.
+	const { machineId, activeHostUrl } = useLocalHostService();
+	const localHostDown = activeHostUrl === null;
 	const workspace = useMemo(
 		() =>
 			workspaceId != null
@@ -102,14 +107,13 @@ function V2WorkspaceLayout() {
 	// trail its own deep link (missed broadcast, second host-service instance,
 	// stale boot snapshot), so the route forces a refetch and waits for it —
 	// bounded — before declaring the id missing.
-	const missConfirmed = useWorkspaceMissVerdict(
+	const verdict = useWorkspaceMissVerdict(
 		{
 			workspaceId,
 			workspaceFound: workspace !== null,
 			suspended: pendingTransaction !== null || failedEntry !== null,
 			hostsEnumerated: hostsSettled,
-			hasLiveTargets: cache.hasLiveTargets,
-			mirrorSettled: isReady,
+			localHostDown,
 		},
 		cache.refetchAll,
 	);
@@ -141,8 +145,20 @@ function V2WorkspaceLayout() {
 				</StateScreenShell>
 			);
 		}
-		if (!missConfirmed) {
+		// A row this device cannot currently serve is not a missing row. This
+		// is the screen a host-service crash loop lands on: it names the
+		// service, shows its state, and offers the restart — where "not found"
+		// told the user their workspace was gone while it sat in host.db.
+		if (localHostDown) {
+			return <WorkspaceLocalHostPendingState hostId={machineId} />;
+		}
+		if (verdict === null) {
 			return <StateScreenShell>{null}</StateScreenShell>;
+		}
+		// The service has a port but nothing answered the refetch: wedged, not
+		// absent. Same screen, with the copy and restart control for that.
+		if (verdict === "unanswered") {
+			return <WorkspaceLocalHostPendingState hostId={machineId} unresponsive />;
 		}
 		return (
 			<StateScreenShell>

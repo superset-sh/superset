@@ -126,11 +126,11 @@ export function deriveHostProjectsQueryTargets({
 		};
 	});
 
-	if (
-		machineId &&
-		activeHostUrl &&
-		!targets.some((target) => target.machineId === machineId)
-	) {
+	// The local host may have no v2_hosts row (fresh install, a user not yet
+	// linked to the host). Synthesized even while the host-service has no port:
+	// the target keys the cached rows and the snapshot, which must outlive a
+	// restart. See deriveHostWorkspacesQueryTargets.
+	if (machineId && !targets.some((target) => target.machineId === machineId)) {
 		targets.push({
 			machineId,
 			organizationId: hosts[0]?.organizationId ?? fallbackOrganizationId ?? "",
