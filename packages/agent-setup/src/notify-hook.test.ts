@@ -104,7 +104,7 @@ function writeHookManifest(home: string, orgId: string, endpoint: string) {
 
 describe("getNotifyScriptContent", () => {
 	it("bumps the notify hook marker when hook semantics change", () => {
-		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v13");
+		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v14");
 	});
 
 	it("forwards hooks fired inside a subagent (agent_id present) to the host roster only", async () => {
@@ -174,6 +174,45 @@ describe("getNotifyScriptContent", () => {
 					},
 				},
 			]);
+		} finally {
+			host.stop();
+		}
+	});
+
+	it("takes the first match when a field recurs in nested objects", async () => {
+		// Claude's SubagentStop repeats agent_type inside background_tasks; a
+		// second match used to join with a newline and break the JSON body.
+		const host = fakeHostService(false);
+		try {
+			const result = await runNotifyHookAsync(
+				{
+					hook_event_name: "SubagentStop",
+					session_id: "parent",
+					transcript_path: "/tmp/sessions/parent.jsonl",
+					agent_transcript_path:
+						"/tmp/sessions/parent/subagents/agent-a1.jsonl",
+					agent_id: "a1",
+					agent_type: "Explore",
+					background_tasks: [
+						{
+							id: "b1",
+							type: "subagent",
+							agent_type: "Plan",
+							status: "running",
+						},
+					],
+				},
+				{ SUPERSET_HOST_AGENT_HOOK_URL: `${host.url}/trpc/notifications.hook` },
+			);
+			expect(result.exitCode).toBe(0);
+			expect(host.requests).toHaveLength(1);
+			expect(host.requests[0]?.json.subagent).toEqual({
+				id: "a1",
+				type: "Explore",
+				sessionId: "parent",
+				transcriptPath: "/tmp/sessions/parent.jsonl",
+				agentTranscriptPath: "/tmp/sessions/parent/subagents/agent-a1.jsonl",
+			});
 		} finally {
 			host.stop();
 		}

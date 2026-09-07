@@ -25,9 +25,12 @@ fi
 # Snake_case is the Claude schema shared by Codex and most forks; camelCase
 # covers harnesses that serialize like Grok. Add an alias here, nothing
 # downstream cares which spelling arrived.
+# First match only: a key can recur in nested objects (Claude's SubagentStop
+# repeats agent_type inside background_tasks), and a multi-line value would
+# break the JSON payload built from it.
 json_field() {
   for KEY in "$@"; do
-    VALUE=$(echo "$INPUT" | grep -oE "\"$KEY\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" | grep -oE '"[^"]*"$' | tr -d '"')
+    VALUE=$(echo "$INPUT" | grep -oE "\"$KEY\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" | head -n 1 | grep -oE '"[^"]*"$' | tr -d '"')
     [ -n "$VALUE" ] && { printf '%s' "$VALUE"; return; }
   done
 }
