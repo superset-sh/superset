@@ -1372,22 +1372,53 @@ describe("QuotaStore snapshot mirror", () => {
 	});
 
 	// The mirror is JSON another process wrote; one bad row must not fail
-	// every Usage query on this host.
-	it("drops malformed mirror entries and serves the rest", async () => {
+	// every Usage query on this host. The accounts behind the dropped row are
+	// not in the mirror's answer either, so the agent is uncovered exactly as a
+	// stale row's is and this host reads it for itself — otherwise
+	// `/profiles/a` would vanish here for as long as the owner republished it.
+	it("drops a malformed mirror entry and re-reads that agent locally", async () => {
 		const owner = harness({ claudeSelections: [null] });
 		await owner.store.read({ agents: ["claude"] });
 		const published = JSON.parse(
 			JSON.stringify(owner.store.snapshot()),
 		) as QuotaStoreSnapshot;
 		published.entries.unshift({
-			key: "claude:/profiles/broken",
+			key: "claude:/profiles/a",
 			agent: "claude",
-			selection: "/profiles/broken",
+			selection: "/profiles/a",
 			accounts: [null as unknown as UsageAccount],
 			fetchedAt: T0,
 			tokenState: "ok",
 			lastError: null,
 		});
+
+		const loser = harness({ claudeSelections: [null, "/profiles/a"] });
+		loser.store.setSnapshotSource(() => published);
+
+		const accounts = await loser.store.read({ agents: ["claude"] });
+
+		expect(accounts.map((entry) => entry.selection)).toEqual([
+			null,
+			"/profiles/a",
+		]);
+		expect(loser.calls.map((call) => call.key)).toEqual([
+			quotaEntryKey("claude", null),
+			quotaEntryKey("claude", "/profiles/a"),
+		]);
+	});
+
+	// A row that is not an object at all: reading `entry.agent` throws, and the
+	// catch must not throw again reading it a second time, or the whole read
+	// fails on this host.
+	it("survives a null mirror row", async () => {
+		const owner = harness({ claudeSelections: [null] });
+		await owner.store.read({ agents: ["claude"] });
+		const published = JSON.parse(
+			JSON.stringify(owner.store.snapshot()),
+		) as QuotaStoreSnapshot;
+		published.entries.unshift(
+			null as unknown as QuotaStoreSnapshot["entries"][number],
+		);
 
 		const loser = harness({ claudeSelections: [null] });
 		loser.store.setSnapshotSource(() => published);
@@ -1395,7 +1426,6 @@ describe("QuotaStore snapshot mirror", () => {
 		const accounts = await loser.store.read({ agents: ["claude"] });
 
 		expect(accounts.map((entry) => entry.selection)).toEqual([null]);
-		expect(loser.calls).toEqual([]);
 	});
 
 	it("fetches again once it owns the lock", async () => {

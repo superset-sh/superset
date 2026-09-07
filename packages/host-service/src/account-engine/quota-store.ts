@@ -819,6 +819,13 @@ export class QuotaStore {
 				covered.add(entry.agent);
 			} catch {
 				dropped++;
+				// A dropped row's accounts are not in the mirror's answer either,
+				// so its agent is uncovered exactly as a stale row's is. The agent
+				// is re-read defensively: the row is malformed by definition, and
+				// throwing here would escape the catch that exists to keep one bad
+				// row from failing every read on this host.
+				const agent = (entry as { agent?: QuotaCapableAgent } | null)?.agent;
+				if (agent && agents.includes(agent)) staleAgents.add(agent);
 			}
 		}
 		if (dropped > 0 && !this.warnedMirrorShape) {
