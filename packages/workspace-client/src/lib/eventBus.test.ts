@@ -88,6 +88,8 @@ describe("eventBus", () => {
 		const claude: Array<[string, { toAccountId: string | null }]> = [];
 		const codex: string[] = [];
 		const anyAgent: string[] = [];
+		const engineCodex: Array<[string, { activeAccountId: string | null }]> = [];
+		const engineClaude: string[] = [];
 		cleanups.push(
 			bus.on("account:switched", "claude", (agent, payload) =>
 				claude.push([agent, payload]),
@@ -98,6 +100,16 @@ describe("eventBus", () => {
 		);
 		cleanups.push(
 			bus.on("account:engine-state", "*", (agent) => anyAgent.push(agent)),
+		);
+		cleanups.push(
+			bus.on("account:engine-state", "codex", (agent, payload) =>
+				engineCodex.push([agent, payload]),
+			),
+		);
+		cleanups.push(
+			bus.on("account:engine-state", "claude", (agent) =>
+				engineClaude.push(agent),
+			),
 		);
 		cleanups.push(() => host.server.stop(true));
 
@@ -128,11 +140,19 @@ describe("eventBus", () => {
 			occurredAt: 2,
 		});
 
-		await waitFor(() => claude.length === 1 && anyAgent.length === 1);
+		await waitFor(
+			() =>
+				claude.length === 1 &&
+				anyAgent.length === 1 &&
+				engineCodex.length === 1,
+		);
 		expect(codex).toEqual([]);
+		expect(engineClaude).toEqual([]);
 		expect(claude[0]?.[0]).toBe("claude");
 		expect(claude[0]?.[1].toAccountId).toBe("acct-b");
 		expect(anyAgent).toEqual(["codex"]);
+		expect(engineCodex[0]?.[0]).toBe("codex");
+		expect(engineCodex[0]?.[1].activeAccountId).toBe("acct-c");
 	});
 
 	it("shares one connection per hostUrl across handles", async () => {
