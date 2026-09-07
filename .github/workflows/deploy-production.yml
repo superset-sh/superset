@@ -8,6 +8,10 @@ on:
 env:
   VERCEL_CLI_VERSION: 50.22.1
 
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
 jobs:
   deploy-database:
     name: Deploy Database Migrations
