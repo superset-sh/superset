@@ -239,19 +239,21 @@ export class SessionMover {
 	 * R8: bring a limit-stopped session back and tell it to continue. Claude
 	 * takes the nudge as its launch prompt; Codex is typed to, because its
 	 * resume takes no prompt — and only once the three KTD8 gates hold.
+	 *
+	 * The nudge is not a parameter: it is {@link CONTINUE_NUDGE} and nothing
+	 * else, so no hook payload and no terminal screen can reach a launch prompt
+	 * (KTD8). An optional one with a safe default is only an invitation to
+	 * interpolate.
 	 */
-	async fallbackRestart(
-		row: MovableSession,
-		nudge: string = CONTINUE_NUDGE,
-	): Promise<boolean> {
-		const resumed = await this.restart(row, nudge);
+	async fallbackRestart(row: MovableSession): Promise<boolean> {
+		const resumed = await this.restart(row, CONTINUE_NUDGE);
 		if (!resumed) return false;
 		if (row.agent === "claude") return true;
 
 		await this.deliverNudge(
 			row,
 			resumed.terminalId,
-			nudge,
+			CONTINUE_NUDGE,
 			this.nudgeMaxAttempts,
 		);
 		return true;
