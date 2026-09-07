@@ -209,11 +209,13 @@ export class TerminalAgentStore extends EventEmitter {
 		// `prior` still holds the old one is discarded. Deliberate — missing a
 		// switch beats killing a live session.
 		// Only "Start" begins a turn. "PermissionRequest" is busy for
-		// `stoppedNow` above, but the router also folds Claude Code's idle
-		// Notification hook into it (events/map-event-type.ts) — treating that
-		// as a new turn erases the failure a minute after the stop with no
-		// turn having begun. A real mid-turn prompt follows a "Start" that
-		// already cleared it.
+		// `stoppedNow` above but is not a turn boundary: "PreToolUse" folds
+		// into it (events/map-event-type.ts) and always follows a "Start" that
+		// already cleared the failure. That fold also covers an idle
+		// "Notification", which would erase the failure a minute after the stop
+		// with no turn having begun — but this repo's Claude wrapper never
+		// registers that hook (CLAUDE_MANAGED_EVENTS), so it is unreachable for
+		// the agents the engine acts on.
 		const turnStarted = eventType === "Start" || sessionStarted;
 		const lastFailure =
 			eventType === "Failed" && errorType && !sessionChanged
