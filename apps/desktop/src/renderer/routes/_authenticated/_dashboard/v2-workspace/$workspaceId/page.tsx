@@ -42,6 +42,7 @@ import { useBrowserShellInteractionPassthrough } from "./hooks/useBrowserShellIn
 import { useClearActivePaneAttention } from "./hooks/useClearActivePaneAttention";
 import { useConsumeAutomationRunLink } from "./hooks/useConsumeAutomationRunLink";
 import { useConsumeOpenUrlRequest } from "./hooks/useConsumeOpenUrlRequest";
+import { useConsumeSubagentLink } from "./hooks/useConsumeSubagentLink";
 import { useCreatePendingMigratedTerminals } from "./hooks/useCreatePendingMigratedTerminals";
 import { useDefaultContextMenuActions } from "./hooks/useDefaultContextMenuActions";
 import { useDefaultPaneActions } from "./hooks/useDefaultPaneActions";
@@ -68,6 +69,11 @@ import type { V2WorkspaceUrlOpenTarget } from "./utils/openUrlInV2Workspace";
 interface WorkspaceSearch {
 	terminalId?: string;
 	focusRequestId?: string;
+	/** Deep link from the sidebar's agents chip into a subagent transcript. */
+	subagentTerminalId?: string;
+	subagentId?: string;
+	subagentAgentId?: string;
+	subagentType?: string;
 	openUrl?: string;
 	openUrlTarget?: V2WorkspaceUrlOpenTarget;
 	openUrlRequestId?: string;
@@ -91,6 +97,10 @@ export const Route = createFileRoute(
 	validateSearch: (raw: Record<string, unknown>): WorkspaceSearch => ({
 		terminalId: parseNonEmptyString(raw.terminalId),
 		focusRequestId: parseNonEmptyString(raw.focusRequestId),
+		subagentTerminalId: parseNonEmptyString(raw.subagentTerminalId),
+		subagentId: parseNonEmptyString(raw.subagentId),
+		subagentAgentId: parseNonEmptyString(raw.subagentAgentId),
+		subagentType: parseNonEmptyString(raw.subagentType),
 		openUrl: parseNonEmptyString(raw.openUrl),
 		openUrlTarget: parseOpenUrlTarget(raw.openUrlTarget),
 		openUrlRequestId: parseNonEmptyString(raw.openUrlRequestId),
@@ -130,6 +140,10 @@ function V2WorkspaceContent() {
 	const {
 		terminalId,
 		focusRequestId,
+		subagentTerminalId,
+		subagentId,
+		subagentAgentId,
+		subagentType,
 		openUrl,
 		openUrlTarget,
 		openUrlRequestId,
@@ -167,6 +181,15 @@ function V2WorkspaceContent() {
 		store,
 		workspaceId,
 		terminalId,
+		focusRequestId,
+	});
+	useConsumeSubagentLink({
+		store,
+		isLayoutReady,
+		terminalId: subagentTerminalId,
+		subagentId,
+		agentId: subagentAgentId,
+		agentType: subagentType,
 		focusRequestId,
 	});
 	useCreatePendingMigratedTerminals({ workspaceId, isLayoutReady });

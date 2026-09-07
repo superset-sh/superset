@@ -90,6 +90,9 @@ msgstr "(nonaktif)"
 msgid "(external)"
 msgstr "(eksternal)"
 
+msgid "(no output)"
+msgstr "(tidak ada keluaran)"
+
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — hide details} other {# active ports — hide details}}"
 msgstr "{0, plural, one {# port aktif — sembunyikan detail} other {# port aktif — sembunyikan detail}}"
@@ -6063,6 +6066,9 @@ msgstr "Finder"
 
 msgid "Finish review"
 msgstr "Selesaikan review"
+
+msgid "Finished"
+msgstr "Selesai"
 
 msgid "finished · worked for 7s"
 msgstr "selesai · bekerja 7 dtk"
@@ -13896,6 +13902,9 @@ msgstr "Perintah ini berjalan otomatis saat workspace dibuat. <0>Baca dokumentas
 msgid "These ports are still in use"
 msgstr "Port ini masih dipakai"
 
+msgid "Thinking"
+msgstr "Pemikiran"
+
 msgid "Thinking about the approach"
 msgstr "Memikirkan pendekatannya"
 
@@ -14075,6 +14084,9 @@ msgstr "Slug ini sudah dipakai"
 
 msgid "This stops every Teams trigger in your organization and removes the notification subscriptions from your tenant. You can reconnect at any time."
 msgstr "Ini menghentikan setiap pemicu Teams di organisasi Anda dan menghapus langganan notifikasi dari tenant Anda. Anda bisa menghubungkan ulang kapan saja."
+
+msgid "This subagent is no longer tracked by the host. Its transcript stays on disk under the agent's session directory."
+msgstr "Subagen ini tidak lagi dilacak oleh host. Transkripnya tetap tersimpan di disk pada direktori sesi agen."
 
 msgid "This terminal has no output to hand over yet."
 msgstr "Terminal ini belum punya keluaran untuk diserahkan."
@@ -14961,6 +14973,9 @@ msgstr "Menunggu Review"
 
 msgid "Waiting for sign-in…"
 msgstr "Menunggu proses masuk…"
+
+msgid "Waiting for the subagent's first message…"
+msgstr "Menunggu pesan pertama dari subagen…"
 
 msgid "Waitlist signups"
 msgstr "Pendaftaran daftar tunggu"

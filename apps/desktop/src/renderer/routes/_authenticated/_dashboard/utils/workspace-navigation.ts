@@ -11,6 +11,10 @@ export interface WorkspaceSearchParams {
 export interface V2WorkspaceSearchParams {
 	terminalId?: string;
 	focusRequestId?: string;
+	subagentTerminalId?: string;
+	subagentId?: string;
+	subagentAgentId?: string;
+	subagentType?: string;
 	openUrl?: string;
 	openUrlTarget?: "current-tab" | "new-tab";
 	openUrlRequestId?: string;

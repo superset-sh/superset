@@ -41,6 +41,10 @@ export interface TerminalSubagent {
 	agentType?: string;
 	startedAt: number;
 	lastEventAt: number;
+	/** The child's own transcript on disk, once a hook event revealed it. */
+	transcriptPath?: string;
+	/** Set once the child reported its stop; such entries leave `subagents`. */
+	endedAt?: number;
 }
 
 export interface TerminalAgentBinding {

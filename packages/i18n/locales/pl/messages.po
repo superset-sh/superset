@@ -90,6 +90,9 @@ msgstr "(wyłączona)"
 msgid "(external)"
 msgstr "(zewnętrzny)"
 
+msgid "(no output)"
+msgstr "(brak wyniku)"
+
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — hide details} other {# active ports — hide details}}"
 msgstr "{0, plural, one {# aktywny port — ukryj szczegóły} few {# aktywne porty — ukryj szczegóły} many {# aktywnych portów — ukryj szczegóły} other {# aktywnego portu — ukryj szczegóły}}"
@@ -6063,6 +6066,9 @@ msgstr "Finder"
 
 msgid "Finish review"
 msgstr "Zakończ przegląd"
+
+msgid "Finished"
+msgstr "Zakończono"
 
 msgid "finished · worked for 7s"
 msgstr "zakończono · pracował 7 s"
@@ -13896,6 +13902,9 @@ msgstr "Te polecenia uruchamiają się automatycznie przy tworzeniu obszaru robo
 msgid "These ports are still in use"
 msgstr "Te porty są nadal używane"
 
+msgid "Thinking"
+msgstr "Rozumowanie"
+
 msgid "Thinking about the approach"
 msgstr "Myślenie nad podejściem"
 
@@ -14075,6 +14084,9 @@ msgstr "Ten slug jest już zajęty"
 
 msgid "This stops every Teams trigger in your organization and removes the notification subscriptions from your tenant. You can reconnect at any time."
 msgstr "Zatrzyma to wszystkie wyzwalacze Teams w Twojej organizacji i usunie subskrypcje powiadomień z tenanta. Możesz połączyć ponownie w dowolnej chwili."
+
+msgid "This subagent is no longer tracked by the host. Its transcript stays on disk under the agent's session directory."
+msgstr "Ten subagent nie jest już śledzony przez hosta. Jego zapis pozostaje na dysku w katalogu sesji agenta."
 
 msgid "This terminal has no output to hand over yet."
 msgstr "Ten terminal nie ma jeszcze danych do przekazania."
@@ -14961,6 +14973,9 @@ msgstr "Oczekiwanie na przegląd"
 
 msgid "Waiting for sign-in…"
 msgstr "Oczekiwanie na logowanie…"
+
+msgid "Waiting for the subagent's first message…"
+msgstr "Oczekiwanie na pierwszą wiadomość subagenta…"
 
 msgid "Waitlist signups"
 msgstr "Zapisy na listę oczekujących"

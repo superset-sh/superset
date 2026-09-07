@@ -23,6 +23,7 @@ import {
 	seedEndedTerminalAgentBinding,
 	unclaimResumeCandidateBinding,
 } from "../../../terminal-agents/persistence";
+import { readSubagentTranscript } from "../../../terminal-agents/subagent-transcript";
 import { protectedProcedure, router } from "../../index";
 import {
 	type AgentRunResult,
@@ -297,6 +298,27 @@ export const terminalAgentsRouter = router({
 				...(agentId ? { agentId } : {}),
 				...(definitionId ? { definitionId } : {}),
 			});
+		}),
+
+	/**
+	 * The transcript behind a subagent row, for the subagent pane. Reads
+	 * only a path the roster recorded from the child's own hook events;
+	 * `transcript` is null while the child has not flushed its first record.
+	 */
+	subagentTranscript: protectedProcedure
+		.input(z.object({ terminalId: z.string(), subagentId: z.string() }))
+		.query(({ ctx, input }) => {
+			const subagent = ctx.terminalAgentStore.getSubagent(
+				input.terminalId,
+				input.subagentId,
+			);
+			if (!subagent) return null;
+			return {
+				subagent,
+				transcript: subagent.transcriptPath
+					? readSubagentTranscript(subagent.transcriptPath)
+					: null,
+			};
 		}),
 
 	findActive: protectedProcedure

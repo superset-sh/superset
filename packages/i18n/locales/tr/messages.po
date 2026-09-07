@@ -90,6 +90,9 @@ msgstr "(devre dışı)"
 msgid "(external)"
 msgstr "(harici)"
 
+msgid "(no output)"
+msgstr "(çıktı yok)"
+
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — hide details} other {# active ports — hide details}}"
 msgstr "{0, plural, one {# etkin port — ayrıntıları gizle} other {# etkin port — ayrıntıları gizle}}"
@@ -6063,6 +6066,9 @@ msgstr "Finder"
 
 msgid "Finish review"
 msgstr "İncelemeyi bitir"
+
+msgid "Finished"
+msgstr "Tamamlandı"
 
 msgid "finished · worked for 7s"
 msgstr "bitti · 7 sn çalıştı"
@@ -13896,6 +13902,9 @@ msgstr "Bu komutlar bir çalışma alanı oluşturulduğunda otomatik olarak ça
 msgid "These ports are still in use"
 msgstr "Bu portlar hâlâ kullanımda"
 
+msgid "Thinking"
+msgstr "Düşünme"
+
 msgid "Thinking about the approach"
 msgstr "Yaklaşım üzerine düşünülüyor"
 
@@ -14075,6 +14084,9 @@ msgstr "Bu slug zaten alınmış"
 
 msgid "This stops every Teams trigger in your organization and removes the notification subscriptions from your tenant. You can reconnect at any time."
 msgstr "Bu işlem kuruluşunuzdaki tüm Teams tetikleyicilerini durdurur ve bildirim aboneliklerini kiracınızdan kaldırır. İstediğiniz zaman yeniden bağlanabilirsiniz."
+
+msgid "This subagent is no longer tracked by the host. Its transcript stays on disk under the agent's session directory."
+msgstr "Bu alt ajan artık ana makine tarafından izlenmiyor. Dökümü, ajanın oturum dizininde diskte kalır."
 
 msgid "This terminal has no output to hand over yet."
 msgstr "Bu terminalde henüz devredilecek çıktı yok."
@@ -14961,6 +14973,9 @@ msgstr "İnceleme bekleniyor"
 
 msgid "Waiting for sign-in…"
 msgstr "Oturum açma bekleniyor…"
+
+msgid "Waiting for the subagent's first message…"
+msgstr "Alt ajanın ilk mesajı bekleniyor…"
 
 msgid "Waitlist signups"
 msgstr "Bekleme listesi kayıtları"

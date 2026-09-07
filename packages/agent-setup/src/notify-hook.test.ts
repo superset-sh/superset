@@ -104,7 +104,7 @@ function writeHookManifest(home: string, orgId: string, endpoint: string) {
 
 describe("getNotifyScriptContent", () => {
 	it("bumps the notify hook marker when hook semantics change", () => {
-		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v10");
+		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v11");
 	});
 
 	it("forwards hooks fired inside a subagent (agent_id present) to the host roster only", async () => {
@@ -114,6 +114,7 @@ describe("getNotifyScriptContent", () => {
 				{
 					hook_event_name: "SubagentStart",
 					session_id: "child-thread",
+					transcript_path: "/tmp/sessions/child-thread.jsonl",
 					agent_id: "a251e067cfdbabec7",
 					agent_type: "general-purpose",
 				},
@@ -125,12 +126,19 @@ describe("getNotifyScriptContent", () => {
 					json: {
 						terminalId: "terminal-test",
 						eventType: "SubagentStart",
-						subagent: { id: "a251e067cfdbabec7", type: "general-purpose" },
+						subagent: {
+							id: "a251e067cfdbabec7",
+							type: "general-purpose",
+							sessionId: "child-thread",
+							transcriptPath: "/tmp/sessions/child-thread.jsonl",
+							agentTranscriptPath: "",
+						},
 					},
 				},
 			]);
-			// The child's own session id must never reach the binding.
-			expect(JSON.stringify(host.requests)).not.toContain("child-thread");
+			// The child's session id rides inside `subagent` only, never as the
+			// terminal's agent identity.
+			expect(host.requests[0]?.json.agent).toBeUndefined();
 		} finally {
 			host.stop();
 		}

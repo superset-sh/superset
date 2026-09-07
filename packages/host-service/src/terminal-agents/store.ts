@@ -24,6 +24,7 @@ interface RecordSubagentEventInput {
 	eventType: string;
 	subagentId: string;
 	agentType?: string;
+	transcriptPath?: string;
 	occurredAt: number;
 }
 
@@ -57,6 +58,12 @@ const SUBAGENT_END_EVENTS = new Set(["SubagentStop", "Stop", "SessionEnd"]);
  * every tool call, so anything quiet this long is gone.
  */
 const SUBAGENT_STALE_MS = 10 * 60_000;
+
+/**
+ * Finished children stay addressable (their transcript pane may still be
+ * open) for this long after their stop, then drop out of memory.
+ */
+const SUBAGENT_ENDED_RETENTION_MS = 60 * 60_000;
 
 export interface TerminalAgentBindingPersistence {
 	load(): TerminalAgentBinding[];
@@ -209,13 +216,26 @@ export class TerminalAgentStore extends EventEmitter {
 	 * a stop drops it. Never touches the parent binding's lifecycle state.
 	 */
 	recordSubagentEvent(input: RecordSubagentEventInput): void {
-		const { terminalId, workspaceId, eventType, subagentId, agentType } = input;
+		const {
+			terminalId,
+			workspaceId,
+			eventType,
+			subagentId,
+			agentType,
+			transcriptPath,
+		} = input;
 		const occurredAt = input.occurredAt;
 		const roster = this.subagentsByTerminal.get(terminalId);
+		const existing = roster?.get(subagentId);
 
 		if (SUBAGENT_END_EVENTS.has(eventType)) {
-			if (!roster?.delete(subagentId)) return;
-			if (roster.size === 0) this.subagentsByTerminal.delete(terminalId);
+			if (!existing || existing.endedAt !== undefined) return;
+			roster?.set(subagentId, {
+				...existing,
+				...(transcriptPath ? { transcriptPath } : {}),
+				lastEventAt: occurredAt,
+				endedAt: occurredAt,
+			});
 			this.emit("change", workspaceId);
 			return;
 		}
@@ -224,12 +244,17 @@ export class TerminalAgentStore extends EventEmitter {
 		// terminal ended must not recreate a roster for it.
 		if (!this.byTerminal.has(terminalId)) return;
 
-		const existing = roster?.get(subagentId);
 		const nextType = agentType ?? existing?.agentType;
+		const nextPath = transcriptPath ?? existing?.transcriptPath;
 		const next: TerminalSubagent = {
 			id: subagentId,
 			...(nextType ? { agentType: nextType } : {}),
-			startedAt: existing?.startedAt ?? occurredAt,
+			...(nextPath ? { transcriptPath: nextPath } : {}),
+			// A stopped child that speaks again (Codex send_input) is live again.
+			startedAt:
+				existing && existing.endedAt === undefined
+					? existing.startedAt
+					: occurredAt,
 			lastEventAt: occurredAt,
 		};
 		if (roster) {
@@ -238,6 +263,19 @@ export class TerminalAgentStore extends EventEmitter {
 			this.subagentsByTerminal.set(terminalId, new Map([[subagentId, next]]));
 		}
 		this.emit("change", workspaceId);
+	}
+
+	/**
+	 * A child by id, live or recently ended, for the subagent transcript pane.
+	 * Only paths the roster recorded are ever read, so the renderer cannot
+	 * point the host at an arbitrary file.
+	 */
+	getSubagent(
+		terminalId: string,
+		subagentId: string,
+	): TerminalSubagent | undefined {
+		this.pruneSubagents(terminalId);
+		return this.subagentsByTerminal.get(terminalId)?.get(subagentId);
 	}
 
 	markTerminalExited(terminalId: string): void {
@@ -317,20 +355,37 @@ export class TerminalAgentStore extends EventEmitter {
 	 * are dropped here rather than on a timer so the store stays passive.
 	 */
 	private withSubagents(binding: TerminalAgentBinding): TerminalAgentBinding {
-		const roster = this.subagentsByTerminal.get(binding.terminalId);
+		const roster = this.pruneSubagents(binding.terminalId);
 		if (!roster) return binding;
-		const cutoff = Date.now() - SUBAGENT_STALE_MS;
+		const live = [...roster.values()]
+			.filter((subagent) => subagent.endedAt === undefined)
+			.sort((a, b) => a.startedAt - b.startedAt);
+		return live.length > 0 ? { ...binding, subagents: live } : binding;
+	}
+
+	/**
+	 * Drop children that went quiet without a stop, and ended children past
+	 * their retention. Runs on read rather than on a timer so the store stays
+	 * passive.
+	 */
+	private pruneSubagents(
+		terminalId: string,
+	): Map<string, TerminalSubagent> | undefined {
+		const roster = this.subagentsByTerminal.get(terminalId);
+		if (!roster) return undefined;
+		const now = Date.now();
 		for (const [id, subagent] of roster) {
-			if (subagent.lastEventAt < cutoff) roster.delete(id);
+			const expired =
+				subagent.endedAt === undefined
+					? subagent.lastEventAt < now - SUBAGENT_STALE_MS
+					: subagent.endedAt < now - SUBAGENT_ENDED_RETENTION_MS;
+			if (expired) roster.delete(id);
 		}
 		if (roster.size === 0) {
-			this.subagentsByTerminal.delete(binding.terminalId);
-			return binding;
+			this.subagentsByTerminal.delete(terminalId);
+			return undefined;
 		}
-		return {
-			...binding,
-			subagents: [...roster.values()].sort((a, b) => a.startedAt - b.startedAt),
-		};
+		return roster;
 	}
 
 	findActive(

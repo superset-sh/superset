@@ -90,6 +90,9 @@ msgstr "(desativado)"
 msgid "(external)"
 msgstr "(externo)"
 
+msgid "(no output)"
+msgstr "(sem saída)"
+
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — hide details} other {# active ports — hide details}}"
 msgstr "{0, plural, one {# porta ativa — ocultar detalhes} other {# portas ativas — ocultar detalhes}}"
@@ -6063,6 +6066,9 @@ msgstr "Finder"
 
 msgid "Finish review"
 msgstr "Concluir revisão"
+
+msgid "Finished"
+msgstr "Concluído"
 
 msgid "finished · worked for 7s"
 msgstr "terminou · trabalhou por 7s"
@@ -13896,6 +13902,9 @@ msgstr "Esses comandos rodam automaticamente quando uma área de trabalho é cri
 msgid "These ports are still in use"
 msgstr "Estas portas ainda estão em uso"
 
+msgid "Thinking"
+msgstr "Raciocínio"
+
 msgid "Thinking about the approach"
 msgstr "Pensando na abordagem"
 
@@ -14075,6 +14084,9 @@ msgstr "Este slug já está em uso"
 
 msgid "This stops every Teams trigger in your organization and removes the notification subscriptions from your tenant. You can reconnect at any time."
 msgstr "Isso para todos os gatilhos do Teams na sua organização e remove as assinaturas de notificação do seu tenant. Você pode reconectar quando quiser."
+
+msgid "This subagent is no longer tracked by the host. Its transcript stays on disk under the agent's session directory."
+msgstr "Este subagente não é mais rastreado pelo host. A transcrição continua no disco, no diretório de sessão do agente."
 
 msgid "This terminal has no output to hand over yet."
 msgstr "Este terminal ainda não tem saída para repassar."
@@ -14961,6 +14973,9 @@ msgstr "Aguardando revisão"
 
 msgid "Waiting for sign-in…"
 msgstr "Aguardando o login…"
+
+msgid "Waiting for the subagent's first message…"
+msgstr "Aguardando a primeira mensagem do subagente…"
 
 msgid "Waitlist signups"
 msgstr "Inscrições na lista de espera"

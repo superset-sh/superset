@@ -5,6 +5,7 @@ import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard
 import { getStatusTooltip } from "renderer/screens/main/components/StatusIndicator";
 import type {
 	DashboardSidebarRunningAgent,
+	DashboardSidebarRunningSubagent,
 	RunningAgentStatus,
 } from "../../../../hooks/useDashboardSidebarWorkspaceRunningAgents";
 import { DashboardSidebarAgentAvatar } from "../DashboardSidebarAgentAvatar";
@@ -38,6 +39,19 @@ export function DashboardSidebarAgentHoverRow({
 		});
 	};
 
+	/** Opens the child's live transcript as a pane in the workspace. */
+	const handleOpenSubagent = (subagent: DashboardSidebarRunningSubagent) => {
+		void navigateToV2Workspace(workspaceId, navigate, {
+			search: {
+				subagentTerminalId: agent.terminalId,
+				subagentId: subagent.id,
+				subagentAgentId: agent.agentId,
+				...(subagent.agentType ? { subagentType: subagent.agentType } : {}),
+				focusRequestId: crypto.randomUUID(),
+			},
+		});
+	};
+
 	const statusLabel =
 		agent.status === "idle"
 			? t({ message: "Idle" })
@@ -66,9 +80,11 @@ export function DashboardSidebarAgentHoverRow({
 			{agent.subagents.length > 0 && (
 				<div className="mb-1 ml-[15px] border-l border-border pl-2">
 					{agent.subagents.map((subagent) => (
-						<div
+						<button
 							key={subagent.id}
-							className="flex items-center gap-1.5 rounded-sm px-1.5 py-0.5 text-muted-foreground hover:bg-muted"
+							type="button"
+							onClick={() => handleOpenSubagent(subagent)}
+							className="flex w-full items-center gap-1.5 rounded-sm px-1.5 py-0.5 text-left text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 						>
 							<span className="min-w-0 flex-1 truncate text-xs">
 								{subagent.agentType ?? agent.label}
@@ -76,7 +92,7 @@ export function DashboardSidebarAgentHoverRow({
 							<span className="shrink-0 text-[10px]">
 								<Trans>Subagent</Trans>
 							</span>
-						</div>
+						</button>
 					))}
 				</div>
 			)}

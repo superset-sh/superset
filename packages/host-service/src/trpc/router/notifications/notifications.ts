@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { terminalSessions, workspaces } from "../../../db/schema";
 import { mapEventType } from "../../../events";
+import { resolveSubagentTranscriptPath } from "../../../terminal-agents";
 import type { HostServiceContext } from "../../../types";
 import { touchLocalWorkspaceActivity } from "../../../workspaces/local-workspace-store";
 import { publicProcedure, router } from "../../index";
@@ -23,6 +24,10 @@ const subagentInput = z
 	.object({
 		id: z.string(),
 		type: z.string().optional(),
+		/** The child's hook session id — a Codex child's own thread id. */
+		sessionId: z.string().optional(),
+		transcriptPath: z.string().optional(),
+		agentTranscriptPath: z.string().optional(),
 	})
 	.optional();
 
@@ -122,12 +127,21 @@ export const notificationsRouter = router({
 		// out as an invalidation so the sidebar refetches bindings.
 		if (subagentId) {
 			const agentType = trimOrUndefined(input.subagent?.type);
+			const transcriptPath = resolveSubagentTranscriptPath({
+				subagentId,
+				sessionId: trimOrUndefined(input.subagent?.sessionId),
+				transcriptPath: trimOrUndefined(input.subagent?.transcriptPath),
+				agentTranscriptPath: trimOrUndefined(
+					input.subagent?.agentTranscriptPath,
+				),
+			});
 			ctx.terminalAgentStore.recordSubagentEvent({
 				terminalId: input.terminalId,
 				workspaceId: terminalSession.originWorkspaceId,
 				eventType: input.eventType ?? "",
 				subagentId,
 				...(agentType ? { agentType } : {}),
+				...(transcriptPath ? { transcriptPath } : {}),
 				occurredAt,
 			});
 			ctx.eventBus.broadcastAgentBindingsChanged({

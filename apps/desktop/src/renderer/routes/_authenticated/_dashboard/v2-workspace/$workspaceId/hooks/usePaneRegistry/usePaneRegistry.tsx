@@ -23,6 +23,7 @@ import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useMemo } from "react";
 import {
 	LuArrowDownToLine,
+	LuBot,
 	LuClipboard,
 	LuClipboardCopy,
 	LuEraser,
@@ -56,6 +57,7 @@ import type {
 	FilePaneData,
 	PagePaneData,
 	PaneViewerData,
+	SubagentPaneData,
 	TerminalPaneData,
 } from "../../types";
 import { focusOrAddTerminalPane } from "../../utils/focusTerminalPane";
@@ -73,6 +75,7 @@ import { FilePaneHeaderExtras } from "./components/FilePane/components/FilePaneH
 import { PagePane } from "./components/PagePane";
 import { PagePaneHeaderExtras } from "./components/PagePaneHeaderExtras";
 import { PagePaneTitle } from "./components/PagePaneTitle";
+import { SubagentPane } from "./components/SubagentPane";
 import { TerminalPane } from "./components/TerminalPane";
 import { TerminalPaneHeaderExtras } from "./components/TerminalPane/components/TerminalPaneHeaderExtras";
 import { TerminalPaneIcon } from "./components/TerminalPane/components/TerminalPaneIcon";
@@ -726,6 +729,15 @@ export function usePaneRegistry({
 								}
 							: d,
 					),
+			},
+			subagent: {
+				getIcon: () => <LuBot className="size-3.5" />,
+				getTitle: (pane) =>
+					(pane.data as SubagentPaneData).agentType ??
+					t({ message: "Subagent" }),
+				renderPane: (ctx: RendererContext<PaneViewerData>) => (
+					<SubagentPane data={ctx.pane.data as SubagentPaneData} />
+				),
 			},
 			...(isPagesEnabled
 				? {

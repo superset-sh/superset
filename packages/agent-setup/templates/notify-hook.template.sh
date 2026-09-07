@@ -24,6 +24,12 @@ fi
 # a per-terminal roster of live subagents (see notifications.hook).
 SUBAGENT_ID=$(echo "$INPUT" | grep -oE '"agent_id"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
 SUBAGENT_TYPE=$(echo "$INPUT" | grep -oE '"agent_type"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+# transcript_path is the file the hook ran against (Claude: the parent
+# session; Codex: the child's own rollout); agent_transcript_path is the
+# child's transcript on SubagentStop. The host derives the child's file from
+# them so the subagent pane can follow it.
+TRANSCRIPT_PATH=$(echo "$INPUT" | grep -oE '"transcript_path"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+AGENT_TRANSCRIPT_PATH=$(echo "$INPUT" | grep -oE '"agent_transcript_path"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
 
 HOOK_SESSION_ID=$(echo "$INPUT" | grep -oE '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
 if [ -z "$HOOK_SESSION_ID" ]; then
@@ -109,7 +115,7 @@ json_escape() {
 if [ -n "$SUBAGENT_ID" ]; then
   debug_log "subagent event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID subagentId=$SUBAGENT_ID subagentType=$SUBAGENT_TYPE"
   [ -n "$SUPERSET_TERMINAL_ID" ] || exit 0
-  PAYLOAD="{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"subagent\":{\"id\":\"$(json_escape "$SUBAGENT_ID")\",\"type\":\"$(json_escape "$SUBAGENT_TYPE")\"}}}"
+  PAYLOAD="{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"subagent\":{\"id\":\"$(json_escape "$SUBAGENT_ID")\",\"type\":\"$(json_escape "$SUBAGENT_TYPE")\",\"sessionId\":\"$(json_escape "$HOOK_SESSION_ID")\",\"transcriptPath\":\"$(json_escape "$TRANSCRIPT_PATH")\",\"agentTranscriptPath\":\"$(json_escape "$AGENT_TRANSCRIPT_PATH")\"}}}"
   HOOK_CANDIDATE_URLS="$SUPERSET_HOST_AGENT_HOOK_URL"
   for MANIFEST_FILE in "${SUPERSET_HOME_DIR:-$HOME/.superset}"/host/*/manifest.json; do
     [ -f "$MANIFEST_FILE" ] || continue
