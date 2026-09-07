@@ -554,6 +554,94 @@ describe("swapClaudeLogin on a file-backed store", () => {
 		).toEqual(identity("a"));
 	});
 
+	// Half an identity is not an identity. `.claude.json` holds `userID` and no
+	// `oauthAccount`, so the keys read back are non-empty while naming nobody —
+	// and key count, which is what the save-back used to ask, called that an
+	// identity worth copying. Measured before this: {"ok":true} with the owner's
+	// own `oauthAccount` DELETED and only `{"userID":"user-a"}` left behind, so
+	// the very next swap back into it answered `no-target-identity`.
+	it("keeps the owner's identity when the active dir has a userID and no account", async () => {
+		const f = fixture();
+		writeFileSync(
+			join(f.activeDir, ".claude.json"),
+			JSON.stringify({ userID: "user-a", hasCompletedOnboarding: true }),
+		);
+
+		const away = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		expect(away).toMatchObject({ ok: true });
+		expect(readCredentials(f.profileA).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+		// The owner's own identity is untouched, not half-replaced with keys
+		// that name nobody.
+		expect(
+			JSON.parse(readFileSync(join(f.profileA, ".claude.json"), "utf-8")),
+		).toEqual(identity("a"));
+
+		// The consequence, end to end: the account the save-back filled is still
+		// reachable by the protocol that wrote it.
+		const back = await swapClaudeLogin({
+			target: asProfile(f.profileA),
+			ownerBinding: asProfile(f.profileB),
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		expect(back).toMatchObject({ ok: true });
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+	});
+
+	// The same shape without the race: `oauthAccount` is present and carries no
+	// string `accountUuid` or `emailAddress`, which is a block that names nobody
+	// from a file nothing had to interleave with. Two keys read back, both
+	// worthless, and the old key-count test copied them over the owner's.
+	it("keeps the owner's identity when the active oauthAccount names nobody", async () => {
+		const f = fixture();
+		writeFileSync(
+			join(f.activeDir, ".claude.json"),
+			JSON.stringify({
+				oauthAccount: { organizationName: "Acme" },
+				userID: "user-a",
+				hasCompletedOnboarding: true,
+			}),
+		);
+
+		const away = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		expect(away).toMatchObject({ ok: true });
+		expect(readCredentials(f.profileA).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+		expect(
+			JSON.parse(readFileSync(join(f.profileA, ".claude.json"), "utf-8")),
+		).toEqual(identity("a"));
+
+		const back = await swapClaudeLogin({
+			target: asProfile(f.profileA),
+			ownerBinding: asProfile(f.profileB),
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		expect(back).toMatchObject({ ok: true });
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+	});
+
 	it("never writes into an unmanaged owner store", async () => {
 		const f = fixture();
 		const before = readFileSync(join(f.profileA, ".credentials.json"), "utf-8");

@@ -343,6 +343,19 @@ function extractIdentity(
 }
 
 /**
+ * Whether an identity snapshot names an account, which is the question every
+ * gate below means to ask — never how many keys it has. A `.claude.json` can
+ * hold `userID` alone, or an `oauthAccount` carrying neither a string
+ * `accountUuid` nor `emailAddress`: keys that count and name nobody. Copying
+ * those over an owner deletes the identity it already had, since the write
+ * removes `CLAUDE_IDENTITY_KEYS` by name before merging, and the owner's login
+ * comes back reachable by no swap at all.
+ */
+function namesAccount(keys: Record<string, unknown>): boolean {
+	return extractIdentity(keys) !== null;
+}
+
+/**
  * The identity `.claude.json` answers with, and whether the file refused the
  * read outright. One read, two answers: `readIdentity` below folds them into
  * the single `null` all but one of its callers want, and the verify step keeps
@@ -1515,7 +1528,7 @@ export async function swapClaudeLogin(input: {
 			// file's dir unjudged and let this create a `.claude.json` in a
 			// group-writable dir. Asked whenever that write runs, and before
 			// anything lands, so a refusal still writes nothing.
-			if (Object.keys(activeIdentity).length > 0) {
+			if (namesAccount(activeIdentity)) {
 				const stateDirInvalid = await validateDir(
 					dirname(ownerStatePath),
 					ctx,
@@ -1541,8 +1554,9 @@ export async function swapClaudeLogin(input: {
 				);
 			}
 			// The identity that belongs with the login being saved is the one
-			// beside it in the active dir, read in the pre-flight above. No keys
-			// means the active dir names no account — which `activeIdentityMismatch`
+			// beside it in the active dir, read in the pre-flight above. An identity
+			// naming no account — which includes keys that are present and name
+			// nobody, not only none at all — is one `activeIdentityMismatch`
 			// already refuses whenever the caller offered an expectation, so
 			// reaching here means it offered none, and the credential goes back
 			// alone exactly as it does today rather than the save-back erasing the
@@ -1550,10 +1564,7 @@ export async function swapClaudeLogin(input: {
 			// keep: then "alone" is the stranded store again, reached this time
 			// with no I/O error anywhere, and the owner's login ends up reachable
 			// by nothing while the active dir is given the target's.
-			if (
-				Object.keys(activeIdentity).length === 0 &&
-				Object.keys(ownerIdentityBefore).length === 0
-			) {
+			if (!namesAccount(activeIdentity) && !namesAccount(ownerIdentityBefore)) {
 				return failure(
 					"owner-unknown",
 					`${input.activeDir} names no account and neither does ${storeDir(ownerBinding, ctx)}; refusing to save back a login no identity would name`,
@@ -1582,7 +1593,7 @@ export async function swapClaudeLogin(input: {
 					ctx,
 				);
 			}
-			if (Object.keys(activeIdentity).length > 0) {
+			if (namesAccount(activeIdentity)) {
 				try {
 					// The same read-modify-write `applyToActiveDir` uses, so the
 					// owner's onboarding flag and per-project trust survive being
