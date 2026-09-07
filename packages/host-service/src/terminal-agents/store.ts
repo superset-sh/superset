@@ -202,7 +202,12 @@ export class TerminalAgentStore extends EventEmitter {
 		// the session moves on: a new turn, a session start, or a different
 		// agent session in the same terminal. Carrying it forward leaves a
 		// rate-limit stop arming the engine's limit-stop fallback against a
-		// live session.
+		// live session. The same holds for a failure arriving late *from* a
+		// session that already moved on, so it is not recorded either.
+		// The trade: if the store missed a new session's earlier events, a
+		// "Failed" that is the first event seen for the new session while
+		// `prior` still holds the old one is discarded. Deliberate — missing a
+		// switch beats killing a live session.
 		// Only "Start" begins a turn. "PermissionRequest" is busy for
 		// `stoppedNow` above, but the router also folds Claude Code's idle
 		// Notification hook into it (events/map-event-type.ts) — treating that
@@ -211,7 +216,7 @@ export class TerminalAgentStore extends EventEmitter {
 		// already cleared it.
 		const turnStarted = eventType === "Start" || sessionStarted;
 		const lastFailure =
-			eventType === "Failed" && errorType
+			eventType === "Failed" && errorType && !sessionChanged
 				? { errorType, at: occurredAt }
 				: turnStarted || sessionChanged
 					? undefined

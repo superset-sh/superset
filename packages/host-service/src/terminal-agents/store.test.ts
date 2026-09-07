@@ -871,4 +871,112 @@ describe("TerminalAgentStore limit-stop signals", () => {
 		expect(store.get("t1")?.lastFailure).toBeUndefined();
 		expect(store.get("t1")?.lastTransitionAt).toBeUndefined();
 	});
+
+	// A "Failed" that outlives its own session must not arm the engine
+	// against the session that replaced it: the row the late event lands on
+	// belongs to s2, and the engine's limit-stop gates only ask whether the
+	// account is spent, never which session the hint came from.
+	it("does not record a failure that arrives from a session already moved on", () => {
+		const persisted = new Map<string, TerminalAgentBinding>();
+		const persistence: TerminalAgentBindingPersistence = {
+			load: () => [],
+			upsert: (binding) => {
+				persisted.set(binding.terminalId, binding);
+			},
+			delete: (terminalId) => {
+				persisted.delete(terminalId);
+			},
+			markEnded: (terminalId) => {
+				const row = persisted.get(terminalId);
+				if (!row) return undefined;
+				return { workspaceId: row.workspaceId };
+			},
+			getEnded: () => ({ endedAt: 300, agentSessionId: "s1" }),
+		};
+		const persistentStore = new TerminalAgentStore(persistence);
+
+		persistentStore.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "claude",
+			agentSessionId: "s1",
+			occurredAt: 100,
+		});
+		persistentStore.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Start",
+			agentId: "claude",
+			agentSessionId: "s1",
+			occurredAt: 200,
+		});
+		// s1 ends, and the terminal is taken over by a new session.
+		persistentStore.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Detached",
+			occurredAt: 300,
+		});
+		persistentStore.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "claude",
+			agentSessionId: "s2",
+			occurredAt: 400,
+		});
+		expect(persistentStore.get("t1")?.agentSessionId).toBe("s2");
+
+		// s1's rate-limit failure surfaces late, onto s2's live row.
+		persistentStore.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Failed",
+			errorType: "rate_limit",
+			agentId: "claude",
+			agentSessionId: "s1",
+			occurredAt: 500,
+		});
+
+		expect(persistentStore.get("t1")?.lastEventType).toBe("Failed");
+		expect(persistentStore.get("t1")?.lastFailure).toBeUndefined();
+	});
+
+	// The control: the same failure, from the session that is actually live,
+	// is still recorded — the guard is about whose failure it is, not about
+	// suppressing failures near a session boundary.
+	it("still records a failure that belongs to the live session", () => {
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "claude",
+			agentSessionId: "s1",
+			occurredAt: 100,
+		});
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Start",
+			agentId: "claude",
+			agentSessionId: "s1",
+			occurredAt: 200,
+		});
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Failed",
+			errorType: "rate_limit",
+			agentId: "claude",
+			agentSessionId: "s1",
+			occurredAt: 300,
+		});
+
+		expect(store.get("t1")?.lastFailure).toEqual({
+			errorType: "rate_limit",
+			at: 300,
+		});
+		expect(store.get("t1")?.lastTransitionAt).toBe(300);
+	});
 });
