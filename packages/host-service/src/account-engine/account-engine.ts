@@ -1696,7 +1696,10 @@ export class AccountEngine {
 		);
 		if (dirs.size !== 1) return undefined;
 		const dir = [...dirs][0] ?? null;
-		runtime.identityBindings[accountId] = dir;
+		// Inferred, never recorded: `recordBinding` is what a binding this host
+		// actually observed goes through, and persisting a pool snapshot over the
+		// file `persistRuntime` freshly reads would resurrect a binding discovery
+		// retired. Re-inferring on the next swap costs a set lookup.
 		return storeRef(dir);
 	}
 
