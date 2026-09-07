@@ -148,6 +148,68 @@ describe("AutoSwitchSettings controls", () => {
 		).toContain("Opus");
 	});
 
+	// Putting the field back the way it was is not an edit, so it commits
+	// nothing — but the complaint about the value that is gone must go too.
+	test("restoring the model field clears the complaint about what was typed", async () => {
+		const { commits, ui } = setup({
+			settings: { ...SETTINGS, modelWindows: ["Opus"] },
+		});
+		const field = ui.getByRole("textbox", {
+			name: "Model windows",
+		}) as HTMLInputElement;
+		await act(async () => {
+			fireEvent.change(field, { target: { value: "m".repeat(65) } });
+			fireEvent.blur(field);
+		});
+		expect(ui.getByRole("alert").textContent).toContain(
+			"at most 64 characters",
+		);
+		await act(async () => {
+			fireEvent.change(field, { target: { value: "Opus" } });
+			fireEvent.blur(field);
+		});
+		expect(commits).toEqual([]);
+		expect(ui.queryByRole("alert")).toBeNull();
+	});
+
+	// A one-line field is finished with Enter; doing nothing looks like it saved.
+	test("Enter sends the threshold instead of doing nothing", async () => {
+		const { commits, ui } = setup();
+		const field = ui.getByRole("spinbutton", {
+			name: "Switch at",
+		}) as HTMLInputElement;
+		await act(async () => {
+			field.focus();
+			fireEvent.change(field, { target: { value: "75" } });
+			fireEvent.keyDown(field, { key: "Enter" });
+		});
+		expect(commits).toEqual([{ thresholdPercent: 75 }]);
+	});
+
+	test("Enter sends the model windows and the cooldown too", async () => {
+		const { commits, ui } = setup();
+		const models = ui.getByRole("textbox", {
+			name: "Model windows",
+		}) as HTMLInputElement;
+		await act(async () => {
+			models.focus();
+			fireEvent.change(models, { target: { value: "Opus" } });
+			fireEvent.keyDown(models, { key: "Enter" });
+		});
+		const cooldown = ui.getByRole("spinbutton", {
+			name: "Wait between switches",
+		}) as HTMLInputElement;
+		await act(async () => {
+			cooldown.focus();
+			fireEvent.change(cooldown, { target: { value: "10" } });
+			fireEvent.keyDown(cooldown, { key: "Enter" });
+		});
+		expect(commits).toEqual([
+			{ modelWindows: ["Opus"] },
+			{ cooldownSeconds: 600 },
+		]);
+	});
+
 	// R14: the host accepts 60 to 3600 seconds, so the control must not offer
 	// a number outside it.
 	test("the cooldown field only offers minutes the host accepts", async () => {

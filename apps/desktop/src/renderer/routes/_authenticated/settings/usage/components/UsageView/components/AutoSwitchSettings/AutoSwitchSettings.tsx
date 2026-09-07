@@ -212,6 +212,12 @@ export function AutoSwitchSettings({
 										value={threshold}
 										disabled={controlsDisabled}
 										onChange={(event) => setThresholdDraft(event.target.value)}
+										// Enter is how a one-line field is finished; blurring
+										// runs the same commit path a tab or a click already
+										// does, so it answers instead of doing nothing.
+										onKeyDown={(event) => {
+											if (event.key === "Enter") event.currentTarget.blur();
+										}}
 										onBlur={() => {
 											// Tabbing through the field is not an edit, so it must
 											// not write the host's own value back to it.
@@ -302,7 +308,14 @@ export function AutoSwitchSettings({
 									value={models}
 									disabled={controlsDisabled}
 									onChange={(event) => setModelsDraft(event.target.value)}
+									onKeyDown={(event) => {
+										if (event.key === "Enter") event.currentTarget.blur();
+									}}
 									onBlur={() => {
+										// Putting the field back the way it was clears the
+										// complaint about what used to be in it, the same way
+										// `commit` clears it before writing.
+										setError(null);
 										if (models === confirmedModels) {
 											setModelsDraft(null);
 											return;
@@ -398,6 +411,9 @@ export function AutoSwitchSettings({
 											value={cooldownMinutes}
 											disabled={controlsDisabled}
 											onChange={(event) => setCooldownDraft(event.target.value)}
+											onKeyDown={(event) => {
+												if (event.key === "Enter") event.currentTarget.blur();
+											}}
 											onBlur={() => {
 												// The field shows rounded minutes, so a stored 90s
 												// reads "2". Comparing what is on screen against what
