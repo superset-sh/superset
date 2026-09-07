@@ -12,7 +12,6 @@ import { Popover, PopoverAnchor, PopoverContent } from "@superset/ui/popover";
 import { toast } from "@superset/ui/sonner";
 import { Textarea } from "@superset/ui/textarea";
 import { workspaceTrpc } from "@superset/workspace-client";
-import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	VscChevronDown,
@@ -21,7 +20,6 @@ import {
 	VscLoading,
 	VscRepoPush,
 } from "react-icons/vsc";
-import { usePullRequestsSplitViewStore } from "renderer/routes/_authenticated/_dashboard/pull-requests/stores/pullRequestsSplitViewStore";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useWorkspaceGitStatus } from "../../../../providers/WorkspaceGitStatusProvider";
 import type { BranchSyncStatus } from "../../utils/getPRFlowState";
@@ -35,6 +33,8 @@ interface ShipControlProps {
 	 * actions collapse into the chevron menu so the control keeps one face.
 	 */
 	compact?: boolean;
+	/** Opens the PR summary pane, offered by the "PR created" toast. */
+	onOpenPullRequest: (prNumber: number) => void;
 }
 
 /**
@@ -52,9 +52,9 @@ export function ShipControl({
 	sync,
 	onRefresh,
 	compact = false,
+	onOpenPullRequest,
 }: ShipControlProps) {
 	const { t } = useLingui();
-	const navigate = useNavigate();
 	const { workspace } = useWorkspace();
 	const status = useWorkspaceGitStatus();
 	const projectId = workspace.projectId;
@@ -253,16 +253,7 @@ export function ShipControl({
 						label: t({
 							message: "Open",
 						}),
-						onClick: () => {
-							if (projectId == null) return;
-							// Same pair the PR badge's own click performs.
-							usePullRequestsSplitViewStore.getState().expandDetail();
-							void navigate({
-								to: "/pull-requests/$prNumber",
-								params: { prNumber: String(created.number) },
-								search: { project: projectId },
-							});
-						},
+						onClick: () => onOpenPullRequest(created.number),
 					},
 				},
 			);
