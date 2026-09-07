@@ -791,6 +791,87 @@ describe("shouldSwitch", () => {
 		expect(decision).toEqual({ switch: false, allExhausted: true });
 	});
 
+	// The ACTIVE account's own token, which the decision never used to read. An
+	// expired or signed-out login reports no windows, and no windows scores a
+	// full 100: never near its limit, and unbeatable by the margin, so the
+	// agent stayed pinned to the one account it could not use.
+	it("moves off an active login whose token has expired", () => {
+		const decision = shouldSwitch({
+			settings: settings(),
+			active: account({ tokenState: "token_expired", windows: [] }),
+			candidates: [
+				account({
+					accountId: "acct-b",
+					accountKey: "key-b",
+					selection: "/profiles/b",
+					windows: [window_("five_hour", "Session (5h)", 10)],
+				}),
+			],
+			rotation: {},
+			runtime,
+			now: T0,
+		});
+
+		expect(decision).toMatchObject({ switch: true, reasonKind: "threshold" });
+		if (!decision.switch) throw new Error("expected a switch");
+		expect(decision.target.accountKey).toBe("key-b");
+	});
+
+	it("reports all-exhausted when the signed-out active has nowhere to go", () => {
+		const decision = shouldSwitch({
+			settings: settings(),
+			active: account({ tokenState: "signed_out", windows: [] }),
+			candidates: [],
+			rotation: {},
+			runtime,
+			now: T0,
+		});
+		expect(decision).toEqual({ switch: false, allExhausted: true });
+	});
+
+	// That guard is deliberately narrower than isEligible's three states, and
+	// these two tests are what keep it that way. For a CANDIDATE, unreadable
+	// means "do not gamble on it"; for the SOURCE, it means "do not act on an
+	// absence of data". A stale access token is the self-healing case — the CLI
+	// renews it from a still-valid refresh token on its next run — and
+	// `unavailable` is any non-2xx from the usage endpoint, so treating either
+	// as unusable would move users off a perfectly healthy active account.
+	const activeWithToken = (tokenState: DecisionAccount["tokenState"]) =>
+		shouldSwitch({
+			settings: settings(),
+			active: account({
+				tokenState,
+				windows: [window_("five_hour", "Session (5h)", 20)],
+			}),
+			candidates: [
+				account({
+					accountId: "acct-b",
+					accountKey: "key-b",
+					selection: "/profiles/b",
+					windows: [window_("five_hour", "Session (5h)", 40)],
+				}),
+			],
+			rotation: {},
+			runtime,
+			now: T0,
+		});
+
+	it("stays on an active login whose access token is merely stale", () => {
+		expect(activeWithToken("token_stale")).toEqual({
+			switch: false,
+			allExhausted: false,
+		});
+		expect(activeWithToken("token_stale")).toEqual(activeWithToken("ok"));
+	});
+
+	it("stays on an active login whose quota read did not land", () => {
+		expect(activeWithToken("unavailable")).toEqual({
+			switch: false,
+			allExhausted: false,
+		});
+		expect(activeWithToken("unavailable")).toEqual(activeWithToken("ok"));
+	});
+
 	// AE4 end to end.
 	it("consume-first: switches below the threshold to the sooner reset", () => {
 		const decision = shouldSwitch({

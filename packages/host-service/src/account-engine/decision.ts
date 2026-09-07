@@ -430,7 +430,21 @@ export function shouldSwitch(input: ShouldSwitchInput): SwitchDecision {
 			isEligible(candidate, rotation),
 	);
 
-	const activeScore = scoreAccount(active, models);
+	// An account we cannot sign into reports no windows, and no windows scores
+	// a full 100 — which would read as "all the headroom in the world" and pin
+	// the user on the one account that cannot run anything. Score it 0 instead,
+	// so the threshold branch fires and `stay` latches allExhausted when there
+	// is nowhere to go.
+	//
+	// Deliberately two states, where `isEligible` refuses three: for a
+	// CANDIDATE, unreadable means "do not gamble on it"; for the SOURCE, it
+	// means "do not act on an absence of data". `token_stale` is the normal
+	// self-healing case — the CLI renews from a still-valid refresh token on its
+	// next run — and `unavailable` is any non-2xx from the usage endpoint, so
+	// adding either here would move users off healthy active accounts.
+	const activeUsable =
+		active.tokenState !== "token_expired" && active.tokenState !== "signed_out";
+	const activeScore = activeUsable ? scoreAccount(active, models) : 0;
 	const activeNearLimit = isNearLimit(activeScore, settings.thresholdPercent);
 	const worst = worstWindow(active, models);
 	const move = (
