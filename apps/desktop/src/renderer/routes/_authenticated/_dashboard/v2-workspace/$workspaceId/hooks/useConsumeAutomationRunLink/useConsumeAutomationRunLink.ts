@@ -54,13 +54,16 @@ export function useConsumeAutomationRunLink({
 			refetchOnWindowFocus: false,
 		},
 	);
-	const targetTerminalId = resolveAutomationRunLinkTarget({
-		terminalId,
-		linkedTerminalIsLive,
-		successor: successorQuery.isSuccess
-			? (successorQuery.data?.terminalId ?? null)
-			: undefined,
-	});
+	const targetTerminalId =
+		terminalId == null
+			? undefined
+			: resolveAutomationRunLinkTarget({
+					terminalId,
+					linkedTerminalIsLive,
+					successor: successorQuery.isSuccess
+						? (successorQuery.data?.terminalId ?? null)
+						: undefined,
+				});
 	useEffect(() => {
 		if (!terminalId) return;
 		// undefined = still resolving; null = resolved to nothing.
