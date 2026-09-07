@@ -113,6 +113,27 @@ function identityStolenAtVerify(activeDir: string): ClaudeSwapDeps["fs"] {
 	};
 }
 
+/** A `readFile` that denies exactly one path, and only once `denied()` turns
+ * true: a store that answered while the target was loaded and stopped
+ * answering before the swap re-read it. */
+function deniedAfter(
+	path: string,
+	denied: () => boolean,
+): NonNullable<ClaudeSwapDeps["fs"]>["readFile"] {
+	return async (target: string, encoding: "utf-8") => {
+		if (target === path && denied()) {
+			throw Object.assign(
+				new Error(`EACCES: permission denied, open '${target}'`),
+				{
+					code: "EACCES",
+				},
+			);
+		}
+		const { readFile } = await import("node:fs/promises");
+		return readFile(target, encoding);
+	};
+}
+
 function fixture(): Fixture {
 	const home = tempRoot("swap-home");
 	const superset = tempRoot("swap-superset");
@@ -2328,6 +2349,192 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 			oauth("t-a-refreshed", 5_000),
 		);
 		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
+	});
+
+	// The window `loadTarget`'s guard cannot see: both of the target's halves
+	// answered while it was loaded, and the Keychain probe started failing only
+	// after. The swap re-reads the target right before the write and ADOPTS what
+	// it gets, so the staler file half arrived looking like an ordinary mid-swap
+	// refresh. Measured before this guard: {ok:true} with `t-b-old` — the older
+	// of B's two logins — written into the active dir.
+	it("refuses a target whose Keychain half stops answering mid-swap", async () => {
+		const f = fixture();
+		writeCredentials(f.profileB, { claudeAiOauth: oauth("t-b-old", 1_000) });
+		const targetService = keychainServicesForConfigDir(f.profileB)[0] as string;
+		const activeService = keychainServicesForConfigDir(
+			f.activeDir,
+		)[0] as string;
+		const account = claudeKeychainAccounts()[0] as string;
+		const secret = JSON.stringify({ claudeAiOauth: oauth("t-b-new", 9_000) });
+		// The active dir is read only once `loadTarget` has returned, so its
+		// probe is the moment the target's Keychain stops answering.
+		let pastLoad = false;
+		const keychain = fakeKeychain(
+			[{ service: targetService, account, secret }],
+			{
+				failRead: (args) => {
+					const service = args[args.indexOf("-s") + 1];
+					if (service === activeService) pastLoad = true;
+					return pastLoad && service === targetService;
+				},
+			},
+		);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, darwin: true, exec: keychain.exec },
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-target" });
+		if (result.ok) throw new Error("expected a refusal");
+		expect(result.reason).toContain(`${targetService}'s Keychain item`);
+		// Neither of B's logins landed: the owner's is still there.
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
+		expect(keychain.items).toEqual([
+			{ service: targetService, account, secret },
+		]);
+	});
+
+	// The mirror, so the guard is not Keychain-only: the Keychain half wins the
+	// first read and keeps answering, while the target's credential file — which
+	// may hold the newer login by the time the swap re-reads — stops being
+	// readable after `loadTarget`.
+	it("refuses a target whose file half stops answering mid-swap", async () => {
+		const f = fixture();
+		writeCredentials(f.profileB, { claudeAiOauth: oauth("t-b-old", 1_000) });
+		const targetFile = join(f.profileB, ".credentials.json");
+		const targetService = keychainServicesForConfigDir(f.profileB)[0] as string;
+		const activeService = keychainServicesForConfigDir(
+			f.activeDir,
+		)[0] as string;
+		const account = claudeKeychainAccounts()[0] as string;
+		const secret = JSON.stringify({ claudeAiOauth: oauth("t-b-new", 9_000) });
+		let pastLoad = false;
+		const keychain = fakeKeychain(
+			[{ service: targetService, account, secret }],
+			{
+				failRead: (args) => {
+					if (args[args.indexOf("-s") + 1] === activeService) pastLoad = true;
+					return false;
+				},
+			},
+		);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: {
+				...f.deps,
+				darwin: true,
+				exec: keychain.exec,
+				fs: { readFile: deniedAfter(targetFile, () => pastLoad) },
+			},
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-target" });
+		if (result.ok) throw new Error("expected a refusal");
+		expect(result.reason).toContain(targetFile);
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
+	});
+
+	// Both halves gone at once is not a signed-out target either: the re-read
+	// returns no login, and reporting `no-target-login` would send the user to
+	// run `/login` in a profile that is still signed in behind a locked store.
+	it("refuses rather than reports a signed-out target when both halves go unread mid-swap", async () => {
+		const f = fixture();
+		writeCredentials(f.profileB, { claudeAiOauth: oauth("t-b-old", 1_000) });
+		const targetFile = join(f.profileB, ".credentials.json");
+		const targetService = keychainServicesForConfigDir(f.profileB)[0] as string;
+		const activeService = keychainServicesForConfigDir(
+			f.activeDir,
+		)[0] as string;
+		const account = claudeKeychainAccounts()[0] as string;
+		const secret = JSON.stringify({ claudeAiOauth: oauth("t-b-new", 9_000) });
+		let pastLoad = false;
+		const keychain = fakeKeychain(
+			[{ service: targetService, account, secret }],
+			{
+				failRead: (args) => {
+					const service = args[args.indexOf("-s") + 1];
+					if (service === activeService) pastLoad = true;
+					return pastLoad && service === targetService;
+				},
+			},
+		);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: {
+				...f.deps,
+				darwin: true,
+				exec: keychain.exec,
+				fs: { readFile: deniedAfter(targetFile, () => pastLoad) },
+			},
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-target" });
+		if (result.ok) throw new Error("expected a refusal");
+		expect(result.reason).toContain(`${targetService}'s Keychain item`);
+		expect(result.reason).not.toContain("lost its login");
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
+	});
+
+	// The other side of the same window, and what the guard must not cost: an
+	// ordinary refresh in the target leaves BOTH halves readable, so the loop
+	// still adopts the newer login and swaps it in.
+	it("swaps in a dual-store target's login refreshed mid-swap", async () => {
+		const f = fixture();
+		writeCredentials(f.profileB, { claudeAiOauth: oauth("t-b-old", 1_000) });
+		const targetService = keychainServicesForConfigDir(f.profileB)[0] as string;
+		const activeService = keychainServicesForConfigDir(
+			f.activeDir,
+		)[0] as string;
+		const account = claudeKeychainAccounts()[0] as string;
+		const keychain = fakeKeychain([
+			{
+				service: targetService,
+				account,
+				secret: JSON.stringify({ claudeAiOauth: oauth("t-b-kc", 2_000) }),
+			},
+		]);
+		// The target's own session refreshes its Keychain login in the same
+		// window the failing probes above open.
+		let refreshed = false;
+		const exec = async (args: string[], stdin?: string) => {
+			if (!refreshed && args[args.indexOf("-s") + 1] === activeService) {
+				refreshed = true;
+				(keychain.items[0] as KeychainItem).secret = JSON.stringify({
+					claudeAiOauth: oauth("t-b-refreshed", 9_000),
+				});
+			}
+			return keychain.exec(args, stdin);
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, darwin: true, exec },
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-b-refreshed", 9_000),
+		);
 	});
 
 	// Only the store the login CAME FROM is validated. The system default's

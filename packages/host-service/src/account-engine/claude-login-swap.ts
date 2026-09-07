@@ -768,7 +768,27 @@ async function applyToActiveDir(
 	let oauth = target.oauth;
 	let hash = hashOauth(oauth);
 	for (let attempt = 0; ; attempt++) {
-		const fresh = oauthOf(await readStore(target.ref, ctx));
+		const read = await readStore(target.ref, ctx);
+		// `loadTarget` judged the halves of ITS read; this is a second read of
+		// the same store, and it gets the same question because the loop ADOPTS
+		// what this one returns. A probe that starts failing only after
+		// `loadTarget` leaves the fresher half unseen while the staler one still
+		// answers: the hash mismatch reads as an ordinary refresh, the stale
+		// login is adopted, the next attempt confirms it, and the swap writes it
+		// back as `ok`. `sameAccount` cannot catch that — a degraded read of the
+		// same account is still the same account. Placed before the `!fresh`
+		// branch, so a store whose BOTH halves went unread is named as one
+		// nothing could be read from rather than as one that "lost its login".
+		if (read.keychainUnreadable || read.anyFileCandidateUnreadable) {
+			const unread = read.keychainUnreadable
+				? `${keychainStoreName(read, target.ref, ctx)}'s Keychain item`
+				: fileStoreName(read, target.ref, ctx);
+			return failure(
+				"invalid-target",
+				`${unread} exists but could not be read while the swap re-read ${storeDir(target.ref, ctx)}; refusing to swap in a login that may be the older of the two`,
+			);
+		}
+		const fresh = oauthOf(read);
 		if (!fresh) {
 			return failure(
 				"no-target-login",
