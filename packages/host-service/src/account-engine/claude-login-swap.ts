@@ -1160,6 +1160,38 @@ export async function swapClaudeLogin(input: {
 				);
 				if (pathInvalid) return failure("invalid-owner", pathInvalid);
 			}
+			// A login is two halves here exactly as it is in the active dir, and
+			// the save-back wrote only one. `ownerStoreMismatch` waves an empty
+			// owner store through because "the save-back is what fills it" — and
+			// what it filled it with was a credential no `.claude.json` names,
+			// which is the one store shape this protocol refuses in both
+			// directions: `no-target-identity` when the user swaps back into it,
+			// `owner-unknown` when it is named as the owner. Snapshot the owner's
+			// own block before anything lands, and fail closed on a read that
+			// failed, for the reason the active dir does: the identity write below
+			// deletes these keys by name before it writes, so running it on a read
+			// that returned nothing would drop an account this could not put back.
+			const ownerStatePath = claudeStatePath(
+				configDirOf(ownerBinding),
+				ctx.homeDir,
+			);
+			const ownerIdentityBefore = await readIdentityKeys(ownerStatePath, ctx);
+			if (ownerIdentityBefore === null) {
+				return failure(
+					"invalid-owner",
+					`${ownerStatePath} exists but could not be read; refusing to write an identity over it`,
+				);
+			}
+			// The identity that belongs with the login being saved is the one
+			// beside it in the active dir. No keys means the active dir names no
+			// account — which `activeIdentityMismatch` already refuses whenever the
+			// caller offered an expectation, so reaching here means it offered
+			// none, and the credential goes back alone exactly as it does today
+			// rather than the save-back erasing the owner's own identity.
+			const activeIdentity = await readIdentityKeys(
+				join(input.activeDir, ".claude.json"),
+				ctx,
+			);
 			// The owner's dir has the same two stores as the active one, and the
 			// same halfway failure: the file lands first, so a Keychain error after
 			// it leaves the owner holding the rotated login in one store and the
@@ -1182,6 +1214,42 @@ export async function swapClaudeLogin(input: {
 					"write-failed",
 					ctx,
 				);
+			}
+			if (activeIdentity && Object.keys(activeIdentity).length > 0) {
+				try {
+					// The same read-modify-write `applyToActiveDir` uses, so the
+					// owner's onboarding flag and per-project trust survive being
+					// given back its account.
+					await updateClaudeStateFile(ownerStatePath, (state) => {
+						for (const key of CLAUDE_IDENTITY_KEYS) delete state[key];
+						return { ...state, ...activeIdentity };
+					});
+				} catch (error) {
+					// Take the credential back out: an owner holding a login its
+					// state file cannot name is the shape both later swaps refuse,
+					// so half a save-back is worse than none.
+					//
+					// No `previousIdentity` here, deliberately, and for the reason
+					// `applyToActiveDir` passes none from its own identity-write
+					// catch: `updateClaudeStateFile` is tmp-then-rename, so a throw
+					// left the owner's block exactly as `ownerIdentityBefore` read
+					// it and there is nothing to put back. Passing it would also be
+					// worse than useless twice over — whatever made this write throw
+					// makes the restore throw on the same file, turning a rollback
+					// that DID undo the credential into `split-state`, whose meaning
+					// ("putting the previous login back failed too") would be untrue;
+					// and an empty snapshot is `{}`, which is truthy, so the restore
+					// would create a `.claude.json` in an owner dir the save-back
+					// never otherwise writes.
+					return rollbackActiveWrite(
+						ownerNow,
+						ownerWritten,
+						storeDir(ownerBinding, ctx),
+						`saving the previous login's identity back to ${storeDir(ownerBinding, ctx)} failed: ${errorText(error)}`,
+						"write-failed",
+						ctx,
+					);
+				}
 			}
 		}
 	}

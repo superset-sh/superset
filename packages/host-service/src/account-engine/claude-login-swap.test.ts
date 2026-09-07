@@ -270,6 +270,17 @@ describe("swapClaudeLogin on a file-backed store", () => {
 
 	it("saves the active dir's refreshed login back to its owner only", async () => {
 		const f = fixture();
+		// The owner's state file is short the half of its identity the active
+		// dir still carries, so the save-back's identity write is observable
+		// rather than a rewrite of bytes that already matched. Its onboarding
+		// flag is here to be preserved through the same read-modify-write.
+		writeFileSync(
+			join(f.profileA, ".claude.json"),
+			JSON.stringify({
+				oauthAccount: identity("a").oauthAccount,
+				hasCompletedOnboarding: true,
+			}),
+		);
 
 		await swapClaudeLogin({
 			target: asProfile(f.profileB),
@@ -281,7 +292,141 @@ describe("swapClaudeLogin on a file-backed store", () => {
 		const owner = readCredentials(f.profileA);
 		expect(owner.claudeAiOauth).toEqual(oauth("t-a-refreshed", 5_000));
 		expect(owner.mcpOAuth).toEqual({ "a-server": { token: "m-a" } });
-		// The owner's identity file is never rewritten by a swap.
+		// The login goes back with the identity that names it: a credential
+		// saved on its own leaves a store this protocol refuses in both
+		// directions, `no-target-identity` as a target and `owner-unknown` as
+		// an owner.
+		const ownerState = JSON.parse(
+			readFileSync(join(f.profileA, ".claude.json"), "utf-8"),
+		);
+		expect(ownerState.oauthAccount).toEqual(identity("a").oauthAccount);
+		expect(ownerState.userID).toBe("user-a");
+		expect(ownerState.hasCompletedOnboarding).toBe(true);
+	});
+
+	// An owner store with nothing in it is waved through the identity gate
+	// because "the save-back is what fills it" — and the save-back filled it
+	// with a credential alone. Measured before this: the owner came back
+	// holding `.credentials.json` and no `.claude.json` at all, which is the
+	// one store shape this protocol refuses in BOTH directions.
+	it("fills an empty owner store with the login and its identity", async () => {
+		const f = fixture();
+		const owner = makeDir(join(f.home, ".claude-owner-empty"));
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(owner),
+			expectedOwnerAccountId: "uuid-a",
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		expect(readCredentials(owner).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+		const ownerState = JSON.parse(
+			readFileSync(join(owner, ".claude.json"), "utf-8"),
+		);
+		expect(ownerState.oauthAccount).toEqual(identity("a").oauthAccount);
+		expect(ownerState.userID).toBe("user-a");
+	});
+
+	// The consequence, end to end: the user swaps away from an account whose
+	// profile dir was empty and then swaps back to it. Measured before the fix:
+	// `no-target-identity`, so the save-back had made the account unreachable
+	// by the very protocol that wrote it.
+	it("swaps back into an owner store the save-back filled", async () => {
+		const f = fixture();
+		const owner = makeDir(join(f.home, ".claude-owner-empty"));
+
+		const away = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(owner),
+			expectedOwnerAccountId: "uuid-a",
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+		expect(away).toMatchObject({ ok: true });
+
+		const back = await swapClaudeLogin({
+			target: asProfile(owner),
+			ownerBinding: asProfile(f.profileB),
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		expect(back).toMatchObject({ ok: true });
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+		expect(
+			JSON.parse(readFileSync(join(f.activeDir, ".claude.json"), "utf-8"))
+				.oauthAccount,
+		).toEqual(identity("a").oauthAccount);
+	});
+
+	// The rollback partner of the two above: the credential lands and the
+	// identity beside it does not, which is exactly the half-written store the
+	// fix exists to stop being created. Take the credential back out rather
+	// than leave the owner in it. `.claude.json` is a DIRECTORY here, so the
+	// real read-modify-write throws EISDIR while the swap's own injected read
+	// of the same path answers.
+	it("removes the saved-back credential when the owner identity write fails", async () => {
+		const f = fixture();
+		const owner = makeDir(join(f.home, ".claude-owner-empty"));
+		mkdirSync(join(owner, ".claude.json"));
+		const deps: ClaudeSwapDeps = {
+			...f.deps,
+			fs: {
+				readFile: async (path: string, encoding: "utf-8") => {
+					if (path === join(owner, ".claude.json")) return "{}";
+					const { readFile } = await import("node:fs/promises");
+					return readFile(path, encoding);
+				},
+			},
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(owner),
+			expectedOwnerAccountId: "uuid-a",
+			activeDir: f.activeDir,
+			deps,
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "write-failed" });
+		if (result.ok) throw new Error("expected a refusal");
+		expect(result.reason).toContain("identity");
+		// Empty, not credential-only: the login it could not name is gone with it.
+		expect(readdirSync(owner)).not.toContain(".credentials.json");
+		// And the active dir never moved on to the target.
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+	});
+
+	// The other side of the same coin: a caller that offered no owner
+	// expectation and an active dir naming no account still gets its login
+	// saved back. There is no identity to copy, so writing one would blank the
+	// owner's own rather than fill it, and refusing would turn a swap that
+	// works today into a new failure.
+	it("saves the credential alone when the active identity cannot be read", async () => {
+		const f = fixture();
+		rmSync(join(f.activeDir, ".claude.json"));
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		expect(readCredentials(f.profileA).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+		// The owner's own identity is untouched, not replaced with nothing.
 		expect(
 			JSON.parse(readFileSync(join(f.profileA, ".claude.json"), "utf-8")),
 		).toEqual(identity("a"));
@@ -784,6 +929,12 @@ describe("swapClaudeLogin on a file-backed store", () => {
 	// read before it loses that token.
 	it("saves the login the active dir holds when the owner write runs", async () => {
 		const f = fixture();
+		// Short the same half as above, so the identity that lands beside the
+		// rotated login is observably the active dir's and not what was here.
+		writeFileSync(
+			join(f.profileA, ".claude.json"),
+			JSON.stringify({ oauthAccount: identity("a").oauthAccount }),
+		);
 		let refreshed = false;
 		const deps: ClaudeSwapDeps = {
 			...f.deps,
@@ -816,6 +967,13 @@ describe("swapClaudeLogin on a file-backed store", () => {
 		const owner = readCredentials(f.profileA);
 		expect(owner.claudeAiOauth).toEqual(oauth("t-a-rotated", 7_000));
 		expect(owner.mcpOAuth).toEqual({ "a-server": { token: "m-a" } });
+		// And the identity lands with it, so the store the rotated login went
+		// into is one a later swap can still name.
+		const ownerState = JSON.parse(
+			readFileSync(join(f.profileA, ".claude.json"), "utf-8"),
+		);
+		expect(ownerState.oauthAccount).toEqual(identity("a").oauthAccount);
+		expect(ownerState.userID).toBe("user-a");
 		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
 			oauth("t-b", 2_000),
 		);
@@ -1120,7 +1278,14 @@ describe("swapClaudeLogin on a file-backed store", () => {
 					// Only the snapshot read the rollback depends on. Every read after
 					// it succeeds, so the unguarded code got as far as writing the
 					// identity and then rolled it back to nothing.
-					if (path === state && ++reads === 1) {
+					//
+					// THE ORDINAL IS LOAD-BEARING: it names the pre-write snapshot
+					// `applyToActiveDir` takes, and the save-back reads this same path
+					// one step earlier to copy the identity into the owner's store.
+					// That earlier read is the first, the snapshot is the second, and
+					// aiming at the wrong one leaves this test passing while pinning
+					// nothing. Add a reader before step 4 and this number moves.
+					if (path === state && ++reads === 2) {
 						throw Object.assign(new Error("EIO: i/o error, read"), {
 							code: "EIO",
 						});
