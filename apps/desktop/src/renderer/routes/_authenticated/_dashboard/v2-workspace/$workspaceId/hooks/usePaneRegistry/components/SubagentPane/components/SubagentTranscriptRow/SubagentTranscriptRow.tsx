@@ -24,7 +24,9 @@ export function SubagentTranscriptRow({ entry }: SubagentTranscriptRowProps) {
 					<div className="mb-0.5 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
 						<Trans>Prompt</Trans>
 					</div>
-					<pre className="whitespace-pre-wrap font-sans text-xs">{entry.text}</pre>
+					<pre className="whitespace-pre-wrap font-sans text-xs">
+						{entry.text}
+					</pre>
 				</div>
 			);
 		case "assistant":
