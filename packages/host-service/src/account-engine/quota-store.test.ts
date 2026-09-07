@@ -1107,6 +1107,89 @@ describe("QuotaStore resilience", () => {
 		expect(entry.lastError).toBeNull();
 		expect(eligibleForSwitch(entry)).toBe(false);
 	});
+
+	// Every branch that yields no account for a per-selection row returns before
+	// the request — an unreadable credential, a locked keychain — so an empty
+	// result is a failure that never threw, and writing it back would drop the
+	// account off the Usage page with nothing on screen to explain it.
+	it("keeps the last-known accounts when a fetch returns no account at all", async () => {
+		let unreadable = false;
+		const h = harness({
+			claudeSelections: [null],
+			respondClaude: async (selection) =>
+				unreadable
+					? { account: null, rateLimited: false }
+					: { account: account("claude", selection), rateLimited: false },
+		});
+
+		await h.store.read({ agents: ["claude"] });
+		const fetchedAt = requireEntry(h.store, CLAUDE_DEFAULT).fetchedAt;
+
+		unreadable = true;
+		h.advance(QUOTA_TTL_MS);
+		const accounts = await h.store.read({ agents: ["claude"] });
+
+		expect(accounts).toHaveLength(1);
+		expect(accounts[0]?.windows[0]?.usedPercent).toBe(10);
+		const entry = requireEntry(h.store, CLAUDE_DEFAULT);
+		expect(entry.lastError).not.toBeNull();
+		// `fetchedAt` stands still, so the next read retries instead of waiting
+		// out the TTL after the credential is readable again.
+		expect(entry.fetchedAt).toBe(fetchedAt);
+
+		unreadable = false;
+		const recovered = await h.store.read({ agents: ["claude"] });
+		expect(recovered).toHaveLength(1);
+		expect(requireEntry(h.store, CLAUDE_DEFAULT).lastError).toBeNull();
+	});
+
+	// A result that reached no provider is no evidence the endpoint recovered.
+	it("does not clear the endpoint back-off with an empty result", async () => {
+		let mode: "429" | "unreadable" = "429";
+		const h = harness({
+			claudeSelections: [null],
+			respondClaude: async (selection) =>
+				mode === "429"
+					? {
+							account: account("claude", selection, {
+								status: "unavailable",
+								statusDetail: "Usage endpoint returned 429.",
+								windows: [],
+							}),
+							rateLimited: true,
+						}
+					: { account: null, rateLimited: false },
+		});
+		const schedule = {
+			claude: { activeKey: CLAUDE_DEFAULT, intervalMs: MINUTE },
+		};
+
+		await h.store.refreshDue(h.now, schedule);
+		expect(requireEntry(h.store, CLAUDE_DEFAULT).backoffMs).toBe(MINUTE);
+
+		mode = "unreadable";
+		h.advance(requireEntry(h.store, CLAUDE_DEFAULT).nextPollAt - h.now);
+		await h.store.refreshDue(h.now, schedule);
+
+		expect(requireEntry(h.store, CLAUDE_DEFAULT).backoffMs).toBe(MINUTE);
+	});
+
+	// The exemption: a group agent's one row holds every account of that agent,
+	// so "no ~/.grok/auth.json" is a correct empty row and must still be written.
+	it("writes a group agent's genuinely empty row", async () => {
+		const store = new QuotaStore({
+			now: () => T0,
+			fetchGrok: async () => [],
+		});
+
+		const accounts = await store.read({ agents: ["grok"] });
+
+		expect(accounts).toEqual([]);
+		const entry = requireEntry(store, quotaEntryKey("grok", null));
+		expect(entry.accounts).toEqual([]);
+		expect(entry.fetchedAt).toBe(T0);
+		expect(entry.lastError).toBeNull();
+	});
 });
 
 describe("QuotaStore snapshot mirror", () => {

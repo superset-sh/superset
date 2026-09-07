@@ -667,6 +667,18 @@ export class QuotaStore {
 			if (!entry.fetchable) {
 				return { agent: entry.agent, ok: true, rateLimited, backedOff };
 			}
+			// A per-selection row stands for one login the discovery pass found, so
+			// zero accounts is never "correctly nothing" — it is a credential that
+			// could not be read, and every such branch returns before any request.
+			// Treat it as the catch path does: keep the last-known accounts, leave
+			// `fetchedAt` where it is so the next read retries, and never vote a
+			// request that never happened as the success that ends the endpoint's
+			// back-off. Group agents are the exception: their one row holds every
+			// account of that agent, so [] really is none.
+			if (accounts.length === 0 && !GROUP_AGENTS.includes(entry.agent)) {
+				entry.lastError = "the credential could not be read";
+				return { agent: entry.agent, ok: false, rateLimited, backedOff };
+			}
 			entry.accounts = accounts.map((account) =>
 				withDuplicateSelections(
 					carryLastKnownWindows(entry.accounts, account),
