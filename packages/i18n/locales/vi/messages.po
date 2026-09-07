@@ -6401,6 +6401,9 @@ msgstr "Free"
 msgid "Free for everyone"
 msgstr "Miễn phí cho tất cả"
 
+msgid "Free plan available · No credit card required"
+msgstr "Có gói miễn phí · Không cần thẻ tín dụng"
+
 msgid "Frequently<0/>asked questions"
 msgstr "Câu hỏi<0/>thường gặp"
 

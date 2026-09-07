@@ -6401,6 +6401,9 @@ msgstr "Gratis"
 msgid "Free for everyone"
 msgstr "Gratis untuk semua orang"
 
+msgid "Free plan available · No credit card required"
+msgstr "Paket gratis tersedia · Tanpa kartu kredit"
+
 msgid "Frequently<0/>asked questions"
 msgstr "Pertanyaan<0/>yang sering diajukan"
 

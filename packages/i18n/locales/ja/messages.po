@@ -6401,6 +6401,9 @@ msgstr "Free"
 msgid "Free for everyone"
 msgstr "誰でも無料"
 
+msgid "Free plan available · No credit card required"
+msgstr "無料プランあり · クレジットカード不要"
+
 msgid "Frequently<0/>asked questions"
 msgstr "よくある<0/>ご質問"
 

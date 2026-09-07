@@ -6401,6 +6401,9 @@ msgstr "무료"
 msgid "Free for everyone"
 msgstr "누구나 무료"
 
+msgid "Free plan available · No credit card required"
+msgstr "무료 요금제 제공 · 신용카드가 필요 없습니다"
+
 msgid "Frequently<0/>asked questions"
 msgstr "자주 묻는<0/>질문"
 

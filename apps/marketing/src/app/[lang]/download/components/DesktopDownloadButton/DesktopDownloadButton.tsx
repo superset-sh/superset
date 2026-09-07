@@ -44,7 +44,10 @@ export function DesktopDownloadButton({
 	return (
 		<a
 			href={desktopUrlFor(platform)}
-			onClick={() => track("download_manual_clicked", { platform })}
+			onClick={() => {
+				track("download_manual_clicked", { platform });
+				track("download_started", { platform, trigger: "manual" });
+			}}
 			className={`group inline-flex items-center gap-2 bg-foreground px-4 py-2.5 text-background text-sm transition-colors hover:bg-brand hover:text-white ${className}`}
 		>
 			<Trans>Download for {platformName}</Trans>

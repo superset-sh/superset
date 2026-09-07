@@ -6401,6 +6401,9 @@ msgstr "Бесплатно"
 msgid "Free for everyone"
 msgstr "Бесплатно для всех"
 
+msgid "Free plan available · No credit card required"
+msgstr "Есть бесплатный тариф · Карта не нужна"
+
 msgid "Frequently<0/>asked questions"
 msgstr "Частые<0/>вопросы"
 

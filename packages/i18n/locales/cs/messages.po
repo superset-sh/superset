@@ -6401,6 +6401,9 @@ msgstr "Free"
 msgid "Free for everyone"
 msgstr "Zdarma pro všechny"
 
+msgid "Free plan available · No credit card required"
+msgstr "K dispozici je bezplatný tarif · Bez platební karty"
+
 msgid "Frequently<0/>asked questions"
 msgstr "Často<0/>kladené otázky"
 

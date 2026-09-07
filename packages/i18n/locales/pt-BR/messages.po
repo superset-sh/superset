@@ -6401,6 +6401,9 @@ msgstr "Grátis"
 msgid "Free for everyone"
 msgstr "Grátis para todo mundo"
 
+msgid "Free plan available · No credit card required"
+msgstr "Plano gratuito disponível · Sem cartão de crédito"
+
 msgid "Frequently<0/>asked questions"
 msgstr "Perguntas<0/>frequentes"
 

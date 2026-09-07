@@ -6401,6 +6401,9 @@ msgstr "免费版"
 msgid "Free for everyone"
 msgstr "对所有人免费"
 
+msgid "Free plan available · No credit card required"
+msgstr "提供免费套餐 · 无需信用卡"
+
 msgid "Frequently<0/>asked questions"
 msgstr "常见<0/>问题"
 

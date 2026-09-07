@@ -111,3 +111,4 @@ plans/local/
 packages/i18n/locales/*/messages.ts
 
 .gstack/
+.vercel/

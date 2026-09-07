@@ -15,12 +15,11 @@ export function SelectorPill({
 		<button
 			type="button"
 			aria-pressed={active}
-			onMouseEnter={onSelect}
 			onClick={onSelect}
-			className={`group relative flex items-center shrink-0 lg:w-full px-4 py-2 lg:py-2.5 text-left text-xs sm:text-sm whitespace-nowrap cursor-pointer transition-colors duration-200 ${
+			className={`group relative flex items-center shrink-0 lg:w-full min-h-11 px-4 py-2 lg:py-2.5 text-left text-xs sm:text-sm whitespace-nowrap cursor-pointer transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
 				active
-					? "text-foreground"
-					: "text-muted-foreground hover:text-foreground/80"
+					? "bg-brand/10 text-foreground"
+					: "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
 			}`}
 		>
 			{/* Active marker: ember bar on the left edge, same as the app's sidebar */}

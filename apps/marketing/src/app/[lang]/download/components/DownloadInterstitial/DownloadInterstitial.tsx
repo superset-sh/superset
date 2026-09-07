@@ -66,13 +66,13 @@ export function DownloadInterstitial({
 		if (!canAutoDownload) return;
 
 		const url = desktopUrlFor(platform);
-		track("download_started", { platform, archSource });
 
 		// Latched in the callback, not here: if `platform` resolved again before
 		// the timer fired, latching early would strand the pending redirect on
 		// the stale URL. Cleanup cancels it so the newest platform wins.
 		const timer = window.setTimeout(() => {
 			firedRef.current = true;
+			track("download_started", { platform, archSource, trigger: "auto" });
 			window.location.href = url;
 		}, AUTO_DOWNLOAD_DELAY_MS);
 		return () => window.clearTimeout(timer);
