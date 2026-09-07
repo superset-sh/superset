@@ -73,7 +73,7 @@ export function Workspace<TData>({
 
 	const closeTab = async (tabId: string) => {
 		const tab = store.getState().getTab(tabId);
-		if (!tab) return;
+		if (!tab || tab.pinned) return;
 		if (onBeforeCloseTab) {
 			const allowed = await onBeforeCloseTab(tab);
 			if (!allowed) return;
@@ -113,6 +113,9 @@ export function Workspace<TData>({
 				}}
 				onRenameTab={(tabId, title) =>
 					store.getState().setTabTitleOverride({ tabId, titleOverride: title })
+				}
+				onSetTabPinned={(tabId, pinned) =>
+					store.getState().setTabPinned({ tabId, pinned })
 				}
 				onReorderTab={(tabId, toIndex) =>
 					store.getState().reorderTab({ tabId, toIndex })

@@ -27,6 +27,7 @@ export interface Pane<TData> {
 export interface Tab<TData> {
 	id: string;
 	titleOverride?: string;
+	pinned?: boolean;
 	createdAt: number;
 	activePaneId: string | null;
 	layout: LayoutNode;
