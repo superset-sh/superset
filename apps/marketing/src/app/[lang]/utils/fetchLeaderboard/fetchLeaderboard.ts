@@ -114,5 +114,10 @@ export async function fetchSearch(
 export async function fetchPublicHandles(): Promise<
 	Array<{ handle: string; lastPublishedAt: Date | null }>
 > {
-	return await leaderboardClient.leaderboard.public.handles.query();
+	try {
+		return await leaderboardClient.leaderboard.public.handles.query();
+	} catch (error) {
+		console.error("[marketing/leaderboard] handles error:", error);
+		return [];
+	}
 }
