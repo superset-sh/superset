@@ -383,20 +383,20 @@ export function pickConsumeFirst(
  * the user did not configure reports one window and is still scored on none, so
  * it too scores a full 100 with nothing behind it.
  */
-function reportsNoWindows(
+export function reportsNoWindows(
 	account: DecisionAccount,
 	modelWindows: readonly string[],
 ): boolean {
 	return relevantWindows(account, modelWindows).length === 0;
 }
 
-function isMetered(account: DecisionAccount): boolean {
+export function isMetered(account: DecisionAccount): boolean {
 	return account.credentialKind === "api_key";
 }
 
 /** The candidates that are not a last resort — or all of them, when a last
  * resort is all there is. */
-function preferRanked(
+export function preferRanked(
 	candidates: readonly DecisionAccount[],
 	lastResort: (account: DecisionAccount) => boolean,
 ): readonly DecisionAccount[] {
