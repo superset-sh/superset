@@ -146,7 +146,7 @@ async function readProcNetFile(
 	return listeners;
 }
 
-function createLimiter(
+export function createLimiter(
 	concurrency: number,
 ): <T>(fn: () => Promise<T>) => Promise<T> {
 	let active = 0;
@@ -289,4 +289,61 @@ export async function getListeningPortsLinuxProcfs(
 		if (signal?.aborted) throw err;
 		return [];
 	}
+}
+
+/** Keep /proc/<pid>/environ reads bounded across all scanned PIDs. */
+const ENVIRON_READ_CONCURRENCY = 64;
+
+/**
+ * Linux-only: read `/proc/<pid>/environ` for each pid and pick the first
+ * value found for any of `keys` (in priority order). A pid whose environment
+ * can't be read (exited, or owned by another user) maps to null.
+ */
+export async function readEnvValuesLinuxProcfs(
+	pids: number[],
+	keys: readonly string[],
+	signal?: AbortSignal,
+): Promise<Map<number, string | null>> {
+	const values = new Map<number, string | null>();
+	const limit = createLimiter(ENVIRON_READ_CONCURRENCY);
+	await Promise.all(
+		pids.map((pid) =>
+			limit(async () => {
+				signal?.throwIfAborted();
+				let content: string;
+				try {
+					content = await fs.readFile(`/proc/${pid}/environ`, "utf-8");
+				} catch {
+					values.set(pid, null);
+					return;
+				}
+				values.set(pid, pickEnvValue(content.split("\0"), keys));
+			}),
+		),
+	);
+	return values;
+}
+
+/**
+ * First `KEY=value` entry matching `keys` in priority order, or null.
+ * Shared by the procfs and `ps -E` readers.
+ */
+export function pickEnvValue(
+	entries: Iterable<string>,
+	keys: readonly string[],
+): string | null {
+	const found = new Map<string, string>();
+	for (const entry of entries) {
+		const eq = entry.indexOf("=");
+		if (eq <= 0) continue;
+		const key = entry.slice(0, eq);
+		if (!keys.includes(key) || found.has(key)) continue;
+		const value = entry.slice(eq + 1);
+		if (value) found.set(key, value);
+	}
+	for (const key of keys) {
+		const value = found.get(key);
+		if (value !== undefined) return value;
+	}
+	return null;
 }

@@ -1,8 +1,10 @@
 import { EventEmitter } from "node:events";
+import { DetachedProcessResolver } from "./detached.ts";
 import {
+	buildProcessTrees,
 	getListeningPortsForPids,
-	getProcessTreesForPids,
 	type PortInfo,
+	readProcessTable,
 } from "./scanner.ts";
 import type { DetectedPort } from "./types.ts";
 
@@ -141,6 +143,7 @@ export class PortManager extends EventEmitter {
 	/** Aborts any in-flight scan children (lsof/netstat) on teardown. */
 	private scanAbort: AbortController | null = null;
 	private readonly killFn: KillFn;
+	private readonly detachedResolver = new DetachedProcessResolver();
 
 	constructor(options: PortManagerOptions) {
 		super();
@@ -304,7 +307,9 @@ export class PortManager extends EventEmitter {
 		}
 		if (dueSessions.length === 0) return;
 
-		const trees = await getProcessTreesForPids(
+		const table = await readProcessTable();
+		const trees = buildProcessTrees(
+			table,
 			dueSessions.map((session) => session.pid),
 		);
 		for (const { terminalId, pid } of dueSessions) {
@@ -323,6 +328,38 @@ export class PortManager extends EventEmitter {
 			const { workspaceId } = entry;
 			scanState.terminalPortMap.set(terminalId, { workspaceId, pids });
 			this.addTerminalPids({ terminalId, workspaceId, pids, scanState });
+		}
+
+		await this.collectDetachedPids(scanState, table);
+	}
+
+	/**
+	 * Servers that agents start detached (setsid, reparented to PID 1) are not
+	 * in any session tree, but still carry the terminal's id in their
+	 * environment. Fold them into their owning session's pid set so the port
+	 * scan and kill both see them.
+	 */
+	private async collectDetachedPids(
+		scanState: ScanState,
+		table: Awaited<ReturnType<typeof readProcessTable>>,
+	): Promise<void> {
+		if (scanState.terminalPortMap.size === 0) return;
+		const detached = await this.detachedResolver.resolve({
+			table,
+			excludePids: scanState.allPids,
+			terminalIds: new Set(scanState.terminalPortMap.keys()),
+			signal: this.ensureScanAbort().signal,
+		});
+		for (const [pid, terminalId] of detached) {
+			const owner = scanState.terminalPortMap.get(terminalId);
+			if (!owner) continue;
+			owner.pids.push(pid);
+			this.addTerminalPids({
+				terminalId,
+				workspaceId: owner.workspaceId,
+				pids: [pid],
+				scanState,
+			});
 		}
 	}
 
