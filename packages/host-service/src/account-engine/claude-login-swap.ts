@@ -963,16 +963,20 @@ export async function swapClaudeLogin(input: {
 	if (activeInvalid) return failure("invalid-active-dir", activeInvalid);
 	const previous = oauthOf(await readStore(activeRef, ctx));
 
-	// The caller's owner claim is refreshed at most once a tick, so a `/login`
-	// run inside a live session leaves a login here that `ownerBinding` does
-	// not name. `wouldRegress` cannot catch that — expiry timestamps are
-	// unrelated across accounts — so compare the identities instead. An
-	// identity that is missing or unreadable fails closed: an unnamed login
-	// saved into the owner's store signs the owner out just the same. A dir
-	// holding no credential at all has nothing to save back, so it proceeds. An
-	// unmanaged owner is skipped for the same reason the write below is: the gate
-	// protects the save-back, and there is none.
+	// An unmanaged owner is never validated and never written: the dir is not
+	// Superset's, so neither its permissions nor its backups are its business.
+	// Nor is an owner with no login to save back: the gate belongs to the
+	// write, so a dir nothing lands in is never judged on where it could land.
 	if (input.ownerManaged !== false && previous) {
+		// The caller's owner claim is refreshed at most once a tick, so a `/login`
+		// run inside a live session leaves a login here that `ownerBinding` does
+		// not name. `wouldRegress` cannot catch that — expiry timestamps are
+		// unrelated across accounts — so compare the identities instead. An
+		// identity that is missing or unreadable fails closed: an unnamed login
+		// saved into the owner's store signs the owner out just the same. A dir
+		// holding no credential at all has nothing to save back, so it proceeds. An
+		// unmanaged owner is skipped for the same reason the write below is: the gate
+		// protects the save-back, and there is none.
 		const activeCheck = await activeIdentityMismatch(
 			input.activeDir,
 			ownerBinding,
@@ -980,13 +984,6 @@ export async function swapClaudeLogin(input: {
 			ctx,
 		);
 		if (activeCheck) return failure("owner-unknown", activeCheck);
-	}
-
-	// An unmanaged owner is never validated and never written: the dir is not
-	// Superset's, so neither its permissions nor its backups are its business.
-	// Nor is an owner with no login to save back: the gate belongs to the
-	// write, so a dir nothing lands in is never judged on where it could land.
-	if (input.ownerManaged !== false && previous) {
 		const ownerRead = await readStore(ownerBinding, ctx);
 		const ownerInvalid = await validateDir(
 			dirname(ownerRead.credentialsPath),
