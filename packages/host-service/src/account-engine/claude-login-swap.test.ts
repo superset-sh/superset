@@ -15,6 +15,7 @@ import {
 import { tmpdir } from "node:os";
 import { join, sep } from "node:path";
 import {
+	CLAUDE_DEFAULT_KEYCHAIN_SERVICE,
 	claudeKeychainAccounts,
 	keychainServicesForConfigDir,
 } from "../trpc/router/usage/profiles";
@@ -2107,6 +2108,52 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 			oauth("t-a-refreshed", 5_000),
 		);
 		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
+	});
+
+	// Only the store the login CAME FROM is validated. The system default's
+	// file half can sit in `~/.config/claude` — an ordinary dotfiles dir, group
+	// -writable or a symlink — while the Keychain holds the fresher login the
+	// swap actually takes. That dir supplies nothing here and receives nothing
+	// (the target store is only ever read), so judging it refused a swap over
+	// a directory the swap never touches.
+	it("swaps in a Keychain-sourced default whose ~/.config/claude half is unsafe", async () => {
+		const f = fixture();
+		const configDir = makeDir(join(f.home, ".config", "claude"));
+		const configCredentials = join(configDir, "credentials.json");
+		writeFileSync(
+			configCredentials,
+			JSON.stringify({ claudeAiOauth: oauth("t-sys-file", 1_000) }),
+			{ mode: 0o600 },
+		);
+		writeFileSync(
+			join(f.home, ".claude.json"),
+			JSON.stringify(identity("sys")),
+		);
+		chmodSync(configDir, 0o770);
+		const keychain = fakeKeychain([
+			{
+				service: CLAUDE_DEFAULT_KEYCHAIN_SERVICE,
+				account: claudeKeychainAccounts()[0] as string,
+				secret: JSON.stringify({ claudeAiOauth: oauth("t-sys-kc", 9_000) }),
+			},
+		]);
+		const fileBefore = readFileSync(configCredentials, "utf-8");
+
+		const result = await swapClaudeLogin({
+			target: SYSTEM_DEFAULT,
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, darwin: true, exec: keychain.exec },
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-sys-kc", 9_000),
+		);
+		// The half the login did not come from is byte-identical, with no tmp
+		// file and no backup left beside it.
+		expect(readFileSync(configCredentials, "utf-8")).toBe(fileBefore);
+		expect(readdirSync(configDir)).toEqual(["credentials.json"]);
 	});
 
 	// The seed reads its source through the same loadTarget, so a first use

@@ -663,7 +663,7 @@ async function loadTarget(
 	// The login can come from either half of the system default's one slot, and
 	// `~/.config/claude` is a dir `storeDir` never names — validate the one it
 	// actually came from. A Keychain-only login has no dir to validate.
-	if (read.fileLogin) {
+	if (read.source === "file") {
 		const invalid = await validateDir(dirname(read.credentialsPath), ctx);
 		if (invalid)
 			return { ok: false, result: failure("invalid-target", invalid) };
