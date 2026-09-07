@@ -13592,6 +13592,9 @@ msgstr "La apuesta de 2026"
 msgid "The access token is past its expiry but the sign-in is not — a fresh one is minted the next time the CLI runs."
 msgstr "El token de acceso ha caducado, pero el inicio de sesión no: se emitirá uno nuevo la próxima vez que se ejecute la CLI."
 
+msgid "The account engine cannot use its state directory. Make it owner-only (chmod 700), or point SUPERSET_HOME_DIR at a filesystem that supports Unix permissions."
+msgstr "El motor de cuentas no puede usar su directorio de estado. Hazlo accesible solo para el propietario (chmod 700), o apunta SUPERSET_HOME_DIR a un sistema de archivos compatible con los permisos de Unix."
+
 msgid "The account engine is not running on this host, so {agentLabel} accounts cannot switch automatically."
 msgstr "El motor de cuentas no se está ejecutando en este host, así que las cuentas de {agentLabel} no pueden cambiar automáticamente."
 

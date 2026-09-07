@@ -13592,6 +13592,9 @@ msgstr "Canh bạc 2026"
 msgid "The access token is past its expiry but the sign-in is not — a fresh one is minted the next time the CLI runs."
 msgstr "Token truy cập đã quá hạn nhưng đăng nhập thì chưa — token mới sẽ được cấp ở lần chạy CLI kế tiếp."
 
+msgid "The account engine cannot use its state directory. Make it owner-only (chmod 700), or point SUPERSET_HOME_DIR at a filesystem that supports Unix permissions."
+msgstr "Bộ máy tài khoản không thể sử dụng thư mục trạng thái của nó. Hãy đặt quyền chỉ chủ sở hữu truy cập (chmod 700), hoặc trỏ SUPERSET_HOME_DIR tới hệ thống tệp hỗ trợ quyền Unix."
+
 msgid "The account engine is not running on this host, so {agentLabel} accounts cannot switch automatically."
 msgstr "Engine tài khoản không chạy trên host này, nên tài khoản {agentLabel} không thể tự đổi."
 

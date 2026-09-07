@@ -13592,6 +13592,9 @@ msgstr "2026년의 베팅"
 msgid "The access token is past its expiry but the sign-in is not — a fresh one is minted the next time the CLI runs."
 msgstr "액세스 토큰은 만료되었지만 로그인은 유효합니다 — 다음에 CLI를 실행할 때 새 토큰이 발급됩니다."
 
+msgid "The account engine cannot use its state directory. Make it owner-only (chmod 700), or point SUPERSET_HOME_DIR at a filesystem that supports Unix permissions."
+msgstr "계정 엔진이 상태 디렉터리를 사용할 수 없습니다. 소유자만 접근할 수 있게 하거나(chmod 700), Unix 권한을 지원하는 파일 시스템으로 SUPERSET_HOME_DIR을 지정하세요."
+
 msgid "The account engine is not running on this host, so {agentLabel} accounts cannot switch automatically."
 msgstr "이 호스트에서 계정 엔진이 실행되고 있지 않아 {agentLabel} 계정을 자동으로 전환할 수 없습니다."
 

@@ -13592,6 +13592,9 @@ msgstr "2026 bahsi"
 msgid "The access token is past its expiry but the sign-in is not — a fresh one is minted the next time the CLI runs."
 msgstr "Erişim token'ının süresi doldu ama oturumun süresi dolmadı — CLI bir sonraki çalıştığında yenisi üretilir."
 
+msgid "The account engine cannot use its state directory. Make it owner-only (chmod 700), or point SUPERSET_HOME_DIR at a filesystem that supports Unix permissions."
+msgstr "Hesap motoru durum dizinini kullanamıyor. Dizini yalnızca sahibine açık hale getirin (chmod 700) veya SUPERSET_HOME_DIR değişkenini Unix izinlerini destekleyen bir dosya sistemine yönlendirin."
+
 msgid "The account engine is not running on this host, so {agentLabel} accounts cannot switch automatically."
 msgstr "Hesap motoru bu host üzerinde çalışmıyor, bu yüzden {agentLabel} hesapları otomatik değiştirilemez."
 

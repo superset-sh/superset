@@ -13592,6 +13592,9 @@ msgstr "Ставка на 2026"
 msgid "The access token is past its expiry but the sign-in is not — a fresh one is minted the next time the CLI runs."
 msgstr "Срок действия токена доступа истёк, но не срок самого входа — новый токен будет выпущен при следующем запуске CLI."
 
+msgid "The account engine cannot use its state directory. Make it owner-only (chmod 700), or point SUPERSET_HOME_DIR at a filesystem that supports Unix permissions."
+msgstr "Движок аккаунтов не может использовать свой каталог состояния. Сделайте его доступным только владельцу (chmod 700) или укажите в SUPERSET_HOME_DIR файловую систему с поддержкой прав Unix."
+
 msgid "The account engine is not running on this host, so {agentLabel} accounts cannot switch automatically."
 msgstr "Движок аккаунтов не запущен на этом хосте, поэтому аккаунты {agentLabel} не могут переключаться автоматически."
 
