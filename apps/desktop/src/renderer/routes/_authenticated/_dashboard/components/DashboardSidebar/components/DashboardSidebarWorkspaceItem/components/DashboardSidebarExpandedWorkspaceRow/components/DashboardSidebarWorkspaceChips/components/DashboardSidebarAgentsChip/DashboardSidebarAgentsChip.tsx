@@ -32,6 +32,11 @@ export function DashboardSidebarAgentsChip({
 	const { isOpen, onOpenChange, onPointerEnter, onPointerLeave, toggleOpen } =
 		useDashboardSidebarChipHoverSuppression();
 
+	const subagentCount = agents.reduce(
+		(total, agent) => total + agent.subagents.length,
+		0,
+	);
+
 	const primaryAgent = agents.reduce((best, agent) => {
 		if (STATUS_PRIORITY[agent.status] !== STATUS_PRIORITY[best.status]) {
 			return STATUS_PRIORITY[agent.status] > STATUS_PRIORITY[best.status]
@@ -89,6 +94,11 @@ export function DashboardSidebarAgentsChip({
 					>
 						<DashboardSidebarAgentAvatar agent={primaryAgent} />
 						<span className="shrink-0">{agents.length}</span>
+						{subagentCount > 0 && (
+							<span className="shrink-0 font-normal text-muted-foreground">
+								+{subagentCount}
+							</span>
+						)}
 					</button>
 				</Badge>
 			</HoverCardTrigger>

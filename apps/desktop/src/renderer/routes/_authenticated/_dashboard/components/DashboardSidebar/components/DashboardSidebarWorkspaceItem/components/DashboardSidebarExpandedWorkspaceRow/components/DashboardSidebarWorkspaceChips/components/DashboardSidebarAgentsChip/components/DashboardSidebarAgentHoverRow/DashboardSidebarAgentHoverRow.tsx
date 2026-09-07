@@ -67,6 +67,11 @@ export function DashboardSidebarAgentHoverRow({
 				>
 					<DashboardSidebarAgentAvatar agent={agent} />
 					<span className="min-w-0 truncate text-xs">{agent.label}</span>
+					{agent.subagents.length > 0 && (
+						<span className="shrink-0 text-[10px] text-muted-foreground">
+							+{agent.subagents.length}
+						</span>
+					)}
 				</button>
 				<span
 					className={cn(
