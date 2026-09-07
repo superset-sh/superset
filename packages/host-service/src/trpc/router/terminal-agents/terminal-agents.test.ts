@@ -654,9 +654,10 @@ describe("pending nudge (KTD8)", () => {
 		expect(runCalls.map((call) => call.prompt)).toEqual(["nudge", "nudge"]);
 	});
 
-	// A terminal id is a fresh UUID, so a nudge left behind on an exit that
-	// cannot consume it is unreachable for the life of the process.
-	it("drops the nudge on every exit that cannot consume it", async () => {
+	// Dropped only where nothing is left to resume under this id: terminal ids
+	// are never reused, so that nudge could never be looked up again. An exit
+	// that republishes the candidate under the same id keeps its nudge.
+	it("drops the nudge only when the candidate is gone, keeps it when it is republished", async () => {
 		const input = { workspaceId: "ws-1", terminalId: "t1" };
 
 		// Nothing to claim: the candidate lost the race, or never existed.
@@ -684,7 +685,7 @@ describe("pending nudge (KTD8)", () => {
 			.where(eq(hostAgentConfigs.id, CLAUDE_CONFIG_ID))
 			.run();
 		await resumeTerminalAgentSession(second.deps, input);
-		expect(second.runCalls.map((call) => call.prompt)).toEqual([""]);
+		expect(second.runCalls.map((call) => call.prompt)).toEqual(["nudge"]);
 
 		// A stored session id that could never become a `--resume` argument.
 		const malformed = createTestDb();
@@ -703,7 +704,7 @@ describe("pending nudge (KTD8)", () => {
 			.where(eq(terminalAgentBindings.terminalId, "t1"))
 			.run();
 		await resumeTerminalAgentSession(third.deps, input);
-		expect(third.runCalls.map((call) => call.prompt)).toEqual([""]);
+		expect(third.runCalls.map((call) => call.prompt)).toEqual(["nudge"]);
 	});
 
 	it("refuses a session id that is not a plain session token", async () => {

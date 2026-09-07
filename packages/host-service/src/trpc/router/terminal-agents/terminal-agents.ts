@@ -84,8 +84,12 @@ const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
  * coalescing — the mover's own resume or the renderer's empty-prompt
  * auto-resume — launches the agent with it, so the interrupted turn proceeds
  * without the user typing. Consumed exactly once, restored when the launch it
- * was consumed for failed, and dropped on every other exit — a terminal id is
- * a fresh UUID, so an entry left behind is unreachable for good.
+ * was consumed for failed, and dropped only where nothing is left to resume
+ * under that id — a terminal id is a fresh UUID, so that entry is unreachable
+ * for good. An exit that un-claims and republishes the candidate under the
+ * same terminal id keeps its nudge: the retry arrives on that id and still
+ * nudges. Residual, accepted: a cold respawn rebinding the same terminal id to
+ * a new session would deliver it a stale nudge.
  */
 const pendingNudges = new Map<string, string>();
 
@@ -178,7 +182,6 @@ export async function resumeTerminalAgentSession(
 			// Config gone or resume unsupported — leave the candidate intact
 			// rather than silently destroying the session id.
 			unclaimResumeCandidateBinding(deps.db, terminalId);
-			pendingNudges.delete(key);
 			return { resumed: false };
 		}
 
@@ -189,7 +192,6 @@ export async function resumeTerminalAgentSession(
 				{ terminalId },
 			);
 			unclaimResumeCandidateBinding(deps.db, terminalId);
-			pendingNudges.delete(key);
 			return { resumed: false };
 		}
 
