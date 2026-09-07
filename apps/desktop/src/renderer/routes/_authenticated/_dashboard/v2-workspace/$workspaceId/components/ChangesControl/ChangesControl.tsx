@@ -91,7 +91,6 @@ export const ChangesControl = memo(function ChangesControl({
 					sync={flowState.sync}
 					onRefresh={onRetry}
 					compact={visibleStats != null}
-					onOpenPullRequest={onOpenPullRequest}
 				/>
 			) : (
 				<PRStatusGroup

@@ -12,6 +12,7 @@ import { Popover, PopoverAnchor, PopoverContent } from "@superset/ui/popover";
 import { toast } from "@superset/ui/sonner";
 import { Textarea } from "@superset/ui/textarea";
 import { workspaceTrpc } from "@superset/workspace-client";
+import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	VscChevronDown,
@@ -20,7 +21,9 @@ import {
 	VscLoading,
 	VscRepoPush,
 } from "react-icons/vsc";
+import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
+import { usePullRequestPaneIntent } from "renderer/stores/pull-request-pane-intent";
 import { useWorkspaceGitStatus } from "../../../../providers/WorkspaceGitStatusProvider";
 import type { BranchSyncStatus } from "../../utils/getPRFlowState";
 
@@ -33,8 +36,6 @@ interface ShipControlProps {
 	 * actions collapse into the chevron menu so the control keeps one face.
 	 */
 	compact?: boolean;
-	/** Opens the PR summary pane, offered by the "PR created" toast. */
-	onOpenPullRequest: (prNumber: number) => void;
 }
 
 /**
@@ -52,9 +53,9 @@ export function ShipControl({
 	sync,
 	onRefresh,
 	compact = false,
-	onOpenPullRequest,
 }: ShipControlProps) {
 	const { t } = useLingui();
+	const navigate = useNavigate();
 	const { workspace } = useWorkspace();
 	const status = useWorkspaceGitStatus();
 	const projectId = workspace.projectId;
@@ -253,7 +254,16 @@ export function ShipControl({
 						label: t({
 							message: "Open",
 						}),
-						onClick: () => onOpenPullRequest(created.number),
+						// The toast outlives this page: the user may have switched
+						// workspaces by the time they click. A workspace-scoped intent
+						// plus navigation lands the pane in the right store either way.
+						onClick: () => {
+							usePullRequestPaneIntent.getState().request({
+								workspaceId,
+								prNumber: created.number,
+							});
+							void navigateToV2Workspace(workspaceId, navigate);
+						},
 					},
 				},
 			);
