@@ -257,6 +257,7 @@ export class PullRequestRuntimeManager {
 			promise: Promise<PullRequestDetails>;
 			fetchedAt: number;
 			consecutiveFailures: number;
+			fingerprint?: string;
 		}
 	>();
 	private readonly openPullRequestsCache = new Map<
@@ -1294,13 +1295,25 @@ export class PullRequestRuntimeManager {
 	private cachedGitHubFetch<T>(
 		cache: Map<
 			string,
-			{ promise: Promise<T>; fetchedAt: number; consecutiveFailures: number }
+			{
+				promise: Promise<T>;
+				fetchedAt: number;
+				consecutiveFailures: number;
+				fingerprint?: string;
+			}
 		>,
 		cacheKey: string,
-		options: { bypassCache?: boolean },
+		options: { bypassCache?: boolean; fingerprint?: string },
 		fetcher: () => Promise<T>,
 	): Promise<T> {
-		const cached = cache.get(cacheKey);
+		const existing = cache.get(cacheKey);
+		// A fingerprint names the version of the thing cached (a PR's head
+		// SHA): a different one is a miss and a fresh failure streak, while
+		// the key stays bounded by identity rather than growing per version.
+		const cached =
+			existing && existing.fingerprint === options.fingerprint
+				? existing
+				: undefined;
 		if (!options.bypassCache && cached) {
 			const ttl = Math.min(
 				REPO_PULL_REQUEST_CACHE_TTL_MS * 2 ** cached.consecutiveFailures,
@@ -1317,6 +1330,7 @@ export class PullRequestRuntimeManager {
 			promise: fetcher(),
 			fetchedAt: Date.now(),
 			consecutiveFailures: cached?.consecutiveFailures ?? 0,
+			fingerprint: options.fingerprint,
 		};
 		// The rejection observer also silences unhandledRejection warnings;
 		// real consumers observe it via their own await on the cached promise.
@@ -1386,9 +1400,10 @@ export class PullRequestRuntimeManager {
 		node: GitHubPullRequestNode,
 		options: { bypassCache?: boolean } = {},
 	): Promise<PullRequestDetails> {
-		// Keyed by head SHA so a new push refetches at once; approvals and
-		// check runs on the same SHA ride the TTL.
-		const cacheKey = `${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}#${node.number}@${node.headRefOid}`;
+		// One entry per PR; the head SHA is its fingerprint, so a new push
+		// refetches at once while approvals and check runs on the same SHA
+		// ride the TTL.
+		const cacheKey = `${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}#${node.number}`;
 		const context = {
 			owner: repo.owner,
 			name: repo.name,
@@ -1397,7 +1412,7 @@ export class PullRequestRuntimeManager {
 		return this.cachedGitHubFetch(
 			this.pullRequestDetailsCache,
 			cacheKey,
-			options,
+			{ ...options, fingerprint: node.headRefOid },
 			async () => {
 				const [reviewDecision, checks] = await this.fetchFromGitHub(
 					"PR review/check lookup",

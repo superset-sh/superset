@@ -2120,6 +2120,51 @@ describe("PullRequestRuntimeManager GitHub traffic", () => {
 		});
 	});
 
+	test("a new push refetches details at once and keeps one cache entry per PR", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedWorkspace(db, {
+			id: "ws",
+			branch: "feature",
+			headSha: "sha-1",
+			upstreamOwner: REPO.owner,
+			upstreamRepo: REPO.name,
+			upstreamBranch: "feature",
+		});
+		let headSha = "sha-1";
+		const counts: Record<string, number> = {};
+		const manager = createManager(db, {
+			execGh: async (args) =>
+				ghAnsweringPr(
+					makePrNode({ number: 7, headRef: "feature", headSha }),
+					counts,
+				)(args),
+		});
+		const refreshProject = projectRefresher(manager);
+		const cache = (
+			manager as unknown as { pullRequestDetailsCache: Map<string, unknown> }
+		).pullRequestDetailsCache;
+
+		await refreshProject(PROJECT_ID);
+		expect(counts.reviews).toBe(1);
+		expect(cache.size).toBe(1);
+
+		// Same SHA inside the TTL: the head is re-read (bypass) but the
+		// details are served from cache.
+		await manager.refreshPullRequestsByWorkspaces(["ws"]);
+		expect(counts["head-lookup"]).toBe(2);
+		expect(counts.reviews).toBe(2);
+
+		// A push moves the head: once the head is re-read, details refetch
+		// even inside the TTL, and the old version does not linger as a second
+		// entry.
+		headSha = "sha-2";
+		await manager.refreshPullRequestsByWorkspaces(["ws"]);
+		expect(counts.reviews).toBe(3);
+		expect(cache.size).toBe(1);
+		expect(getPrByNumber(db, 7)?.headSha).toBe("sha-2");
+	});
+
 	test("a rate limit holds every lookup until the reset, keeps old links, and is reported", async () => {
 		const t0 = 1_700_000_000_000;
 		setSystemTime(new Date(t0));

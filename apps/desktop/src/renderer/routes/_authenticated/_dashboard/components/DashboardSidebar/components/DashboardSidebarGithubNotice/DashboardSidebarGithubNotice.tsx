@@ -43,10 +43,13 @@ export function DashboardSidebarGithubNotice({
 	return (
 		<Tooltip>
 			<TooltipTrigger asChild>
-				<div className="mx-2 mt-1 flex h-7 items-center gap-2 rounded-md pl-2 pr-1 text-[13px] text-amber-600 dark:text-amber-400">
+				<button
+					type="button"
+					className="mx-2 mt-1 flex h-7 w-[calc(100%-1rem)] items-center gap-2 rounded-md pl-2 pr-1 text-left text-[13px] text-amber-600 dark:text-amber-400"
+				>
 					<LuTriangleAlert className="size-4 shrink-0" />
 					<span className="min-w-0 flex-1 truncate">{copy.title}</span>
-				</div>
+				</button>
 			</TooltipTrigger>
 			<TooltipContent side="right" className="max-w-72 text-wrap-pretty">
 				{copy.detail}
