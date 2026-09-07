@@ -12,6 +12,82 @@ if (process.env.NODE_ENV !== "production") {
 	});
 }
 
+const isProduction = process.env.NODE_ENV === "production";
+// The leaderboard/fight/stats pages call the API from the browser
+// (leaderboardClient). Hard-coded prod fallback so the header stays correct
+// even if NEXT_PUBLIC_API_URL isn't in the build env.
+const apiOrigin = process.env.NEXT_PUBLIC_API_URL
+	? new URL(process.env.NEXT_PUBLIC_API_URL).origin
+	: isProduction
+		? "https://api.superset.sh"
+		: null;
+
+// Third parties this site actually loads (probed against production):
+// - Google Ads gtag + Reddit pixel, injected in [lang]/layout.tsx
+// - Cloudflare Web Analytics, injected at the edge by the Cloudflare proxy
+// - Work at a Startup job board (+ its hCaptcha) on /join-us
+// - PostHog goes through the same-origin /ingest rewrite; ui_host is listed
+//   so the toolbar can still connect.
+// - Sentry browser SDK reports to *.ingest.sentry.io
+const googleAdsScripts = [
+	"https://www.googletagmanager.com",
+	"https://www.googleadservices.com",
+	"https://googleads.g.doubleclick.net",
+	"https://www.google.com",
+];
+const hcaptcha = ["https://hcaptcha.com", "https://*.hcaptcha.com"];
+
+const contentSecurityPolicy = [
+	"default-src 'self'",
+	"base-uri 'self'",
+	[
+		"connect-src 'self'",
+		apiOrigin,
+		"https://*.ingest.sentry.io",
+		"https://*.sentry.io",
+		"https://us.posthog.com",
+		"https://cloudflareinsights.com",
+		"https://www.google.com",
+		"https://www.googleadservices.com",
+		"https://googleads.g.doubleclick.net",
+		"https://ad.doubleclick.net",
+		"https://alb.reddit.com",
+		"https://www.workatastartup.com",
+		...hcaptcha,
+		!isProduction && "ws:",
+		!isProduction && "wss:",
+	]
+		.filter(Boolean)
+		.join(" "),
+	"font-src 'self' data: https://fonts.gstatic.com https://www.workatastartup.com",
+	"form-action 'self'",
+	"frame-ancestors 'none'",
+	[
+		"frame-src",
+		"https://td.doubleclick.net",
+		"https://www.googletagmanager.com",
+		...hcaptcha,
+	].join(" "),
+	"img-src 'self' data: blob: https:",
+	"object-src 'none'",
+	[
+		"script-src 'self' 'unsafe-inline'",
+		...googleAdsScripts,
+		"https://www.redditstatic.com",
+		"https://static.cloudflareinsights.com",
+		"https://www.workatastartup.com",
+		...hcaptcha,
+		!isProduction && "'unsafe-eval'",
+	]
+		.filter(Boolean)
+		.join(" "),
+	[
+		"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+		...hcaptcha,
+	].join(" "),
+	"worker-src 'self' blob:",
+].join("; ");
+
 const config: NextConfig = {
 	reactStrictMode: true,
 	reactCompiler: true,
@@ -98,6 +174,7 @@ const config: NextConfig = {
 			{
 				source: "/(.*)",
 				headers: [
+					{ key: "Content-Security-Policy", value: contentSecurityPolicy },
 					{ key: "X-Content-Type-Options", value: "nosniff" },
 					{ key: "X-Frame-Options", value: "DENY" },
 					{
