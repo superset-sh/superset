@@ -1064,7 +1064,29 @@ export async function swapClaudeLogin(input: {
 	};
 	const activeInvalid = await validateDir(input.activeDir, ctx);
 	if (activeInvalid) return failure("invalid-active-dir", activeInvalid);
-	const previous = oauthOf(await readStore(activeRef, ctx));
+	// `applyToActiveDir` asks these same two questions of its OWN re-read, and
+	// has to: it is shared with the seed, which never comes through here. But it
+	// asks them only after the save-back below has already written the owner's
+	// store, so a swap that ends in `invalid-active-dir` had mutated a dir it
+	// then declined to swap — the owner's credential replaced, its `.claude.json`
+	// given the active dir's identity, and one of its three backup slots spent.
+	// Asked here, of the read this already takes, a refused swap writes nothing.
+	// The harm was bounded, since `wouldRegress` only ever moves the owner store
+	// forward, but a swap nobody performs must leave no trace.
+	const activePreviousRead = await readStore(activeRef, ctx);
+	if (activePreviousRead.fileUnreadable) {
+		return failure(
+			"invalid-active-dir",
+			`${activePreviousRead.credentialsPath} exists but could not be read; refusing to write over it`,
+		);
+	}
+	if (activePreviousRead.keychainUnreadable) {
+		return failure(
+			"invalid-active-dir",
+			`${keychainStoreName(activePreviousRead, activeRef, ctx)}'s Keychain item exists but could not be read; refusing to write over it`,
+		);
+	}
+	const previous = oauthOf(activePreviousRead);
 
 	// An unmanaged owner is never validated and never written: the dir is not
 	// Superset's, so neither its permissions nor its backups are its business.

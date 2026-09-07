@@ -2249,6 +2249,48 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 		).toBe(false);
 	});
 
+	// The same denied item, with the active dir's credential file left in place
+	// so there IS a login to save back — which is what makes the refusal cost
+	// something. Measured before the guards were hoisted: `invalid-active-dir`
+	// came back, and the owner's credential had already been replaced, its
+	// `.claude.json` had gained the active dir's identity, and a backup slot
+	// had been spent. No file-half twin is needed: an active `.credentials.json`
+	// that cannot be read leaves `previous` undefined, so nothing saves back.
+	it("writes nothing to the owner when the active dir's Keychain item cannot be read", async () => {
+		const f = fixture();
+		const activeService = keychainServicesForConfigDir(
+			f.activeDir,
+		)[0] as string;
+		const account = claudeKeychainAccounts()[0] as string;
+		const secret = JSON.stringify({ claudeAiOauth: oauth("t-a-newer", 9_000) });
+		const keychain = fakeKeychain(
+			[{ service: activeService, account, secret }],
+			{ failRead: (args) => args[args.indexOf("-s") + 1] === activeService },
+		);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, darwin: true, exec: keychain.exec },
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-active-dir" });
+		// The owner store is exactly as the fixture left it, backups included.
+		expect(readCredentials(f.profileA)).toEqual({
+			claudeAiOauth: oauth("t-a", 1_000),
+			mcpOAuth: { "a-server": { token: "m-a" } },
+		});
+		expect(
+			JSON.parse(readFileSync(join(f.profileA, ".claude.json"), "utf-8")),
+		).toEqual(identity("a"));
+		expect(readdirSync(f.profileA).sort()).toEqual([
+			".claude.json",
+			".credentials.json",
+		]);
+		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
+	});
+
 	// The save-back lands in the owner's Keychain item through the same write
 	// and the same delete-on-rollback, so it fails closed the same way.
 	it("refuses the save-back when the owner's Keychain item cannot be read", async () => {
@@ -2938,6 +2980,42 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 		expect(
 			keychain.calls.some((call) => call.args[0] === "delete-generic-password"),
 		).toBe(false);
+	});
+
+	// The unparseable half of the same hoist: the active dir keeps its
+	// credential file, so the save-back has a login to write and the refusal
+	// has something to cost.
+	it("writes nothing to the owner when the active dir's Keychain secret cannot be parsed", async () => {
+		const f = fixture();
+		const activeService = keychainServicesForConfigDir(
+			f.activeDir,
+		)[0] as string;
+		const account = claudeKeychainAccounts()[0] as string;
+		const secret = "sk-ant-oat01-BARE";
+		const keychain = fakeKeychain([
+			{ service: activeService, account, secret },
+		]);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, darwin: true, exec: keychain.exec },
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-active-dir" });
+		expect(readCredentials(f.profileA)).toEqual({
+			claudeAiOauth: oauth("t-a", 1_000),
+			mcpOAuth: { "a-server": { token: "m-a" } },
+		});
+		expect(
+			JSON.parse(readFileSync(join(f.profileA, ".claude.json"), "utf-8")),
+		).toEqual(identity("a"));
+		expect(readdirSync(f.profileA).sort()).toEqual([
+			".claude.json",
+			".credentials.json",
+		]);
+		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
 	});
 
 	// The save-back half of the same unparseable item.
