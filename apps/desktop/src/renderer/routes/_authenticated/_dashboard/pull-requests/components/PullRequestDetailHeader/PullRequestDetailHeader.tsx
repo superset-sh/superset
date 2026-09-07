@@ -88,7 +88,6 @@ interface PullRequestDetailHeaderProps {
 	 * already the workspace's own and a second one would be a duplicate.
 	 */
 	showStartWorkspace?: boolean;
-	className?: string;
 }
 
 /**
@@ -96,6 +95,7 @@ interface PullRequestDetailHeaderProps {
  * Workspace, the merge menu with its confirmation, and the state/author/
  * branch/age meta row. Renders skeletons while the detail loads and a bare
  * "#N" when it fails, so the surrounding layout holds still either way.
+ * Renders as a fragment so the host decides the column it sits in.
  */
 export function PullRequestDetailHeader({
 	projectId,
@@ -105,7 +105,6 @@ export function PullRequestDetailHeader({
 	data,
 	isLoading,
 	showStartWorkspace = true,
-	className,
 }: PullRequestDetailHeaderProps) {
 	const { t } = useLingui();
 	const mergeMethodLabels: Record<MergeMethod, string> = {
@@ -249,7 +248,7 @@ export function PullRequestDetailHeader({
 		createdAtMs === null ? null : formatRelativeTime(createdAtMs);
 
 	return (
-		<div className={cn("flex shrink-0 flex-col", className)}>
+		<>
 			<div className="flex flex-wrap items-start justify-between gap-3 px-4 pb-3">
 				{isLoading ? (
 					<Skeleton className="h-6 w-72 max-w-full" />
@@ -571,6 +570,6 @@ export function PullRequestDetailHeader({
 					</EnterEnabledAlertDialogContent>
 				</AlertDialog>
 			)}
-		</div>
+		</>
 	);
 }

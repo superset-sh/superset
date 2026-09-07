@@ -41,16 +41,17 @@ export function PullRequestPane({ data }: PullRequestPaneProps) {
 
 	return (
 		<div className="@container flex h-full w-full min-h-0 min-w-0 flex-col">
-			<PullRequestDetailHeader
-				className="border-b border-border pt-3"
-				projectId={projectId}
-				hostId={workspace.hostId}
-				hostUrl={hostUrl}
-				prNumber={data.prNumber}
-				data={detail.data}
-				isLoading={detail.isLoading}
-				showStartWorkspace={false}
-			/>
+			<div className="flex shrink-0 flex-col border-b border-border pt-3">
+				<PullRequestDetailHeader
+					projectId={projectId}
+					hostId={workspace.hostId}
+					hostUrl={hostUrl}
+					prNumber={data.prNumber}
+					data={detail.data}
+					isLoading={detail.isLoading}
+					showStartWorkspace={false}
+				/>
+			</div>
 			{resolved.status === "fallback" ? (
 				<WorkItemDetailState
 					message={resolved.message}
