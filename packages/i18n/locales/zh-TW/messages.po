@@ -13220,6 +13220,7 @@ msgstr "切換門檻"
 
 #. placeholder {0}: engineErrorCode(failure)
 #. placeholder {0}: failure.code
+#. placeholder {0}: rawErrorMessage(error)
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "切換失敗（{0}）。之前的帳戶仍在使用中。"
 
@@ -14749,9 +14750,6 @@ msgstr "每個任務都可以用Claude Code、Codex、OpenCode或任何編碼代
 
 msgid "Use Claude Code, Codex, or any coding agent. Choose per task or run several side by side."
 msgstr "使用Claude Code、Codex或任何編碼代理程式。按任務選擇，或讓多個並行執行。"
-
-msgid "Use for new agents"
-msgstr "用於新代理程式"
 
 msgid "Use global default"
 msgstr "使用全域性預設值"

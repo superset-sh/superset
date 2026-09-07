@@ -13220,6 +13220,7 @@ msgstr "전환 기준"
 
 #. placeholder {0}: engineErrorCode(failure)
 #. placeholder {0}: failure.code
+#. placeholder {0}: rawErrorMessage(error)
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "전환하지 못했습니다({0}). 이전 계정이 그대로 활성 상태입니다."
 
@@ -14749,9 +14750,6 @@ msgstr "작업마다 Claude Code, Codex, OpenCode 등 어떤 코딩 에이전트
 
 msgid "Use Claude Code, Codex, or any coding agent. Choose per task or run several side by side."
 msgstr "Claude Code, Codex 등 어떤 코딩 에이전트든 사용하세요. 작업마다 고르거나 여러 개를 나란히 돌리세요."
-
-msgid "Use for new agents"
-msgstr "새 에이전트에 사용"
 
 msgid "Use global default"
 msgstr "전역 기본값 사용"

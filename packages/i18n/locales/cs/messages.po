@@ -13220,6 +13220,7 @@ msgstr "Přepnout při"
 
 #. placeholder {0}: engineErrorCode(failure)
 #. placeholder {0}: failure.code
+#. placeholder {0}: rawErrorMessage(error)
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "Přepnutí selhalo ({0}). Předchozí účet je stále aktivní."
 
@@ -14749,9 +14750,6 @@ msgstr "Pro každý úkol použijte Claude Code, Codex, OpenCode nebo libovolné
 
 msgid "Use Claude Code, Codex, or any coding agent. Choose per task or run several side by side."
 msgstr "Použijte Claude Code, Codex nebo libovolného kódovacího agenta. Vyberte podle úkolu nebo jich spusťte několik vedle sebe."
-
-msgid "Use for new agents"
-msgstr "Použít pro nové agenty"
 
 msgid "Use global default"
 msgstr "Použít globální výchozí"

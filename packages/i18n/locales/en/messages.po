@@ -13220,6 +13220,7 @@ msgstr "Switch at"
 
 #. placeholder {0}: engineErrorCode(failure)
 #. placeholder {0}: failure.code
+#. placeholder {0}: rawErrorMessage(error)
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "Switch failed ({0}). The previous account is still active."
 
@@ -14749,9 +14750,6 @@ msgstr "Use Claude Code, Codex, OpenCode, or any coding agent for each task. You
 
 msgid "Use Claude Code, Codex, or any coding agent. Choose per task or run several side by side."
 msgstr "Use Claude Code, Codex, or any coding agent. Choose per task or run several side by side."
-
-msgid "Use for new agents"
-msgstr "Use for new agents"
 
 msgid "Use global default"
 msgstr "Use global default"

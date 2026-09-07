@@ -13220,6 +13220,7 @@ msgstr "Geçiş eşiği"
 
 #. placeholder {0}: engineErrorCode(failure)
 #. placeholder {0}: failure.code
+#. placeholder {0}: rawErrorMessage(error)
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "Geçiş başarısız ({0}). Önceki hesap hâlâ etkin."
 
@@ -14749,9 +14750,6 @@ msgstr "Her görev için Claude Code, Codex, OpenCode veya herhangi bir kodlama 
 
 msgid "Use Claude Code, Codex, or any coding agent. Choose per task or run several side by side."
 msgstr "Claude Code, Codex veya herhangi bir kodlama ajanını kullanın. Göreve göre seçin ya da birkaçını yan yana çalıştırın."
-
-msgid "Use for new agents"
-msgstr "Yeni ajanlar için kullan"
 
 msgid "Use global default"
 msgstr "Genel varsayılanı kullan"

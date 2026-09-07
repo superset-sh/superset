@@ -13220,6 +13220,7 @@ msgstr "Ganti pada"
 
 #. placeholder {0}: engineErrorCode(failure)
 #. placeholder {0}: failure.code
+#. placeholder {0}: rawErrorMessage(error)
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "Pergantian gagal ({0}). Akun sebelumnya tetap aktif."
 
@@ -14749,9 +14750,6 @@ msgstr "Pakai Claude Code, Codex, OpenCode, atau agen coding apa pun untuk tiap 
 
 msgid "Use Claude Code, Codex, or any coding agent. Choose per task or run several side by side."
 msgstr "Pakai Claude Code, Codex, atau agen coding apa pun. Pilih per tugas atau jalankan beberapa berdampingan."
-
-msgid "Use for new agents"
-msgstr "Pakai untuk agen baru"
 
 msgid "Use global default"
 msgstr "Pakai bawaan global"

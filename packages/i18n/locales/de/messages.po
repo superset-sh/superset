@@ -13220,6 +13220,7 @@ msgstr "Wechseln bei"
 
 #. placeholder {0}: engineErrorCode(failure)
 #. placeholder {0}: failure.code
+#. placeholder {0}: rawErrorMessage(error)
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "Wechsel fehlgeschlagen ({0}). Das vorherige Konto ist weiterhin aktiv."
 
@@ -14749,9 +14750,6 @@ msgstr "Nutze Claude Code, Codex, OpenCode oder einen beliebigen Coding-Agenten 
 
 msgid "Use Claude Code, Codex, or any coding agent. Choose per task or run several side by side."
 msgstr "Nutze Claude Code, Codex oder einen beliebigen Coding-Agenten. Wähle pro Aufgabe oder lass mehrere nebeneinander laufen."
-
-msgid "Use for new agents"
-msgstr "Für neue Agenten verwenden"
 
 msgid "Use global default"
 msgstr "Globalen Standard verwenden"

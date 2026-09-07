@@ -13220,6 +13220,7 @@ msgstr "Wisselen bij"
 
 #. placeholder {0}: engineErrorCode(failure)
 #. placeholder {0}: failure.code
+#. placeholder {0}: rawErrorMessage(error)
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "Wisselen mislukt ({0}). Het vorige account is nog actief."
 
@@ -14749,9 +14750,6 @@ msgstr "Gebruik Claude Code, Codex, OpenCode of welke coding agent dan ook voor 
 
 msgid "Use Claude Code, Codex, or any coding agent. Choose per task or run several side by side."
 msgstr "Gebruik Claude Code, Codex of welke coding agent dan ook. Kies per taak of laat er meerdere naast elkaar draaien."
-
-msgid "Use for new agents"
-msgstr "Gebruiken voor nieuwe agents"
 
 msgid "Use global default"
 msgstr "Globale standaard gebruiken"

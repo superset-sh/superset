@@ -13220,6 +13220,7 @@ msgstr "切り替えるしきい値"
 
 #. placeholder {0}: engineErrorCode(failure)
 #. placeholder {0}: failure.code
+#. placeholder {0}: rawErrorMessage(error)
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "切り替えに失敗しました({0})。以前のアカウントがそのままアクティブです。"
 
@@ -14749,9 +14750,6 @@ msgstr "タスクごとにClaude Code、Codex、OpenCode、その他どのコー
 
 msgid "Use Claude Code, Codex, or any coding agent. Choose per task or run several side by side."
 msgstr "Claude Code、Codex、その他どのコーディングエージェントでも使えます。タスクごとに選ぶことも、複数を並べて実行することもできます。"
-
-msgid "Use for new agents"
-msgstr "新規エージェントに使用"
 
 msgid "Use global default"
 msgstr "グローバルのデフォルトを使用"

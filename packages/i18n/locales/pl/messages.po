@@ -13220,6 +13220,7 @@ msgstr "Przełącz przy"
 
 #. placeholder {0}: engineErrorCode(failure)
 #. placeholder {0}: failure.code
+#. placeholder {0}: rawErrorMessage(error)
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "Przełączenie nie powiodło się ({0}). Poprzednie konto pozostaje aktywne."
 
@@ -14749,9 +14750,6 @@ msgstr "Używaj Claude Code, Codex, OpenCode albo dowolnego agenta kodującego d
 
 msgid "Use Claude Code, Codex, or any coding agent. Choose per task or run several side by side."
 msgstr "Używaj Claude Code, Codex albo dowolnego agenta kodującego. Wybieraj per zadanie lub uruchamiaj kilku obok siebie."
-
-msgid "Use for new agents"
-msgstr "Używaj dla nowych agentów"
 
 msgid "Use global default"
 msgstr "Użyj domyślnego globalnego"
