@@ -33,7 +33,6 @@ import {
 	readFile,
 	realpath,
 	rename,
-	stat,
 	unlink,
 	writeFile,
 } from "node:fs/promises";
@@ -93,7 +92,6 @@ export type ClaudeSwapResult =
  * the Keychain path off macOS) are unit-testable. */
 export interface SwapFileSystem {
 	lstat(path: string): Promise<Stats>;
-	stat(path: string): Promise<Stats>;
 	realpath(path: string): Promise<string>;
 	readFile(path: string, encoding: "utf-8"): Promise<string>;
 	writeFile(
@@ -137,7 +135,6 @@ function buildContext(deps: ClaudeSwapDeps = {}): SwapContext {
 	return {
 		fs: {
 			lstat,
-			stat,
 			realpath,
 			readFile,
 			writeFile,
