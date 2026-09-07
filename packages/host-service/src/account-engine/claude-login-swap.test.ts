@@ -549,22 +549,39 @@ describe("swapClaudeLogin on a file-backed store", () => {
 		).toEqual(identity("a").oauthAccount);
 	});
 
-	// AE13 again, one step later: a credential written while the identity was
-	// not is the state a later save-back reads as the previous account's login.
-	it("rolls the credential back when the identity write fails", async () => {
+	// AE13 again, one step earlier: a `.claude.json` the swap cannot read is a
+	// snapshot the rollback could not put back, so the refusal is pre-flight.
+	// Measured before it moved: the target's login landed in the live active
+	// dir and only the rollback took it back out.
+	it("refuses an unreadable identity before writing the credential", async () => {
 		const f = fixture();
 		// A directory in the state file's place fails every read and rename.
 		rmSync(join(f.activeDir, ".claude.json"));
 		mkdirSync(join(f.activeDir, ".claude.json"));
+		const renamedTo: string[] = [];
+		const deps: ClaudeSwapDeps = {
+			...f.deps,
+			fs: {
+				rename: async (from: string, to: string) => {
+					renamedTo.push(to);
+					const { rename } = await import("node:fs/promises");
+					await rename(from, to);
+				},
+			},
+		};
 
 		const result = await swapClaudeLogin({
 			target: asProfile(f.profileB),
 			ownerBinding: asProfile(f.profileA),
 			activeDir: f.activeDir,
-			deps: f.deps,
+			deps,
 		});
 
 		expect(result).toMatchObject({ ok: false, code: "write-failed" });
+		// The pin: no write to undo. Every store write lands by rename, so the
+		// live credential never being a rename target is the whole claim — the
+		// content check below passes on the write-then-roll-back version too.
+		expect(renamedTo).not.toContain(join(f.activeDir, ".credentials.json"));
 		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
 			oauth("t-a-refreshed", 5_000),
 		);
@@ -576,28 +593,29 @@ describe("swapClaudeLogin on a file-backed store", () => {
 	it("removes the credential it created when there is none to restore", async () => {
 		const f = fixture();
 		rmSync(join(f.activeDir, ".credentials.json"));
-		rmSync(join(f.activeDir, ".claude.json"));
-		mkdirSync(join(f.activeDir, ".claude.json"));
 
 		const result = await swapClaudeLogin({
 			target: asProfile(f.profileB),
 			ownerBinding: asProfile(f.profileA),
 			activeDir: f.activeDir,
-			deps: f.deps,
+			deps: { ...f.deps, fs: identityStolenAtVerify(f.activeDir) },
 		});
 
-		expect(result).toMatchObject({ ok: false, code: "write-failed" });
+		expect(result).toMatchObject({ ok: false, code: "verify-failed" });
 		expect(readdirSync(f.activeDir)).not.toContain(".credentials.json");
 	});
 
 	it("reports split state when the rollback fails too", async () => {
 		const f = fixture();
-		rmSync(join(f.activeDir, ".claude.json"));
-		mkdirSync(join(f.activeDir, ".claude.json"));
+		const stolen = identityStolenAtVerify(f.activeDir) as {
+			readFile: (path: string, encoding: "utf-8") => Promise<string>;
+		};
 		let credentialWrites = 0;
 		const deps: ClaudeSwapDeps = {
 			...f.deps,
 			fs: {
+				// The verify step finds a third account, so the swap rolls back.
+				readFile: stolen.readFile,
 				writeFile: async (
 					path: string,
 					data: string,
@@ -1093,6 +1111,7 @@ describe("swapClaudeLogin on a file-backed store", () => {
 			readFile: (path: string, encoding: "utf-8") => Promise<string>;
 		};
 		let reads = 0;
+		const renamedTo: string[] = [];
 		const deps: ClaudeSwapDeps = {
 			...f.deps,
 			fs: {
@@ -1107,6 +1126,11 @@ describe("swapClaudeLogin on a file-backed store", () => {
 					}
 					return stolen.readFile(path, encoding);
 				},
+				rename: async (from: string, to: string) => {
+					renamedTo.push(to);
+					const { rename } = await import("node:fs/promises");
+					await rename(from, to);
+				},
 			},
 		};
 
@@ -1118,6 +1142,9 @@ describe("swapClaudeLogin on a file-backed store", () => {
 		});
 
 		expect(result.ok).toBe(false);
+		// The refusal is pre-flight, so the target's login never reached the
+		// live credential — nothing was written for a rollback to undo.
+		expect(renamedTo).not.toContain(join(f.activeDir, ".credentials.json"));
 		// The pin: the dir still names the account it was signed in as.
 		const stateFile = JSON.parse(readFileSync(state, "utf-8"));
 		expect(stateFile.oauthAccount).toEqual(identity("a").oauthAccount);
@@ -2061,18 +2088,21 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 				secret: JSON.stringify({ claudeAiOauth: oauth("t-keychain", 4_000) }),
 			},
 		]);
-		// A directory in the state file's place fails the identity write.
-		rmSync(join(f.activeDir, ".claude.json"));
-		mkdirSync(join(f.activeDir, ".claude.json"));
-
 		const result = await swapClaudeLogin({
 			target: asProfile(f.profileB),
 			ownerBinding: asProfile(f.profileA),
 			activeDir: f.activeDir,
-			deps: { ...f.deps, darwin: true, exec: keychain.exec },
+			deps: {
+				...f.deps,
+				darwin: true,
+				exec: keychain.exec,
+				// A third account landing at the verify step is what rolls both
+				// stores back, with each one's own pre-swap login to put back.
+				fs: identityStolenAtVerify(f.activeDir),
+			},
 		});
 
-		expect(result).toMatchObject({ ok: false, code: "write-failed" });
+		expect(result).toMatchObject({ ok: false, code: "verify-failed" });
 		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
 			oauth("t-file", 5_000),
 		);

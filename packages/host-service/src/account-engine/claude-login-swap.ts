@@ -738,6 +738,17 @@ async function applyToActiveDir(
 		join(activeDir, ".claude.json"),
 		ctx,
 	);
+	// No snapshot, no identity write: the rollback restores what this read
+	// returned, so writing on a read that failed would have it delete the dir's
+	// own account rather than put it back — a credential with no identity, which
+	// every later swap refuses as an owner it cannot name. Refuse pre-flight, so
+	// the target's credential never lands in a dir this swap cannot restore.
+	if (previousIdentity === null) {
+		return failure(
+			"write-failed",
+			`${join(activeDir, ".claude.json")} exists but could not be read; refusing to write an identity a rollback could not put back`,
+		);
+	}
 	const planned = await planStoreWrite(activeRef, activeRead, ctx);
 	if (!planned.ok) return planned.result;
 	// A plan naming two stores can fail on the second with the first already
@@ -751,20 +762,6 @@ async function applyToActiveDir(
 			written,
 			activeDir,
 			`writing the login into ${activeDir} failed: ${errorText(error)}`,
-			"write-failed",
-			ctx,
-		);
-	}
-	// No snapshot, no identity write: the rollback restores what this read
-	// returned, so writing on a read that failed would have it delete the dir's
-	// own account rather than put it back — a credential with no identity, which
-	// every later swap refuses as an owner it cannot name.
-	if (previousIdentity === null) {
-		return rollbackActiveWrite(
-			activeRead,
-			written,
-			activeDir,
-			`${join(activeDir, ".claude.json")} exists but could not be read; refusing to write an identity a rollback could not put back`,
 			"write-failed",
 			ctx,
 		);
