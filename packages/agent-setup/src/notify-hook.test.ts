@@ -424,7 +424,7 @@ describe("StopFailure error forwarding", () => {
 		const esc = "\u001b";
 		const huge = "x".repeat(100_000);
 		// Hand-built so the control characters survive into the fixture.
-		const raw = `{"hook_event_name":"StopFailure","session_id":"s1","error":"rate_limit${esc}[31m and a backslash \\\\ and a quote \\" and padding well past the sixty-four character truncation\nnewline","last_assistant_message":"${huge}"}`;
+		const raw = `{"hook_event_name":"StopFailure","session_id":"s1","error":"rate_limit${esc}[31m and padding well past the sixty-four character truncation and a backslash \\\\ and a quote \\"\nnewline","last_assistant_message":"${huge}"}`;
 
 		const { requests, rawBodies } = await capturePost(raw);
 
