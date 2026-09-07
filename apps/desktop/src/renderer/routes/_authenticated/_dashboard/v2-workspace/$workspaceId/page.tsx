@@ -205,6 +205,7 @@ function V2WorkspaceContent() {
 		toggleChangesPane,
 		openCommentPane,
 		openPagePane,
+		openPullRequestPane,
 	} = useWorkspacePaneOpeners({
 		store,
 		launcher,
@@ -457,6 +458,7 @@ function V2WorkspaceContent() {
 								onSelectFile={openFilePaneFromTreeClick}
 								onSelectDiffFile={openDiffPane}
 								onOpenComment={openCommentPane}
+								onOpenPullRequest={openPullRequestPane}
 								onSearch={handleQuickOpen}
 								selectedFilePath={selectedFilePath}
 								selectedDiffTarget={diffPaneTarget}

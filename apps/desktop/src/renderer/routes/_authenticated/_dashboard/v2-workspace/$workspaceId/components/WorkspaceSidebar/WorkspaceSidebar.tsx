@@ -49,6 +49,8 @@ interface WorkspaceSidebarProps {
 		changeKey?: string,
 	) => void;
 	onOpenComment?: (comment: CommentPaneData) => void;
+	/** Opens the linked PR's summary pane; the Review tab's title falls back to GitHub without it. */
+	onOpenPullRequest?: (prNumber: number) => void;
 	onSearch?: () => void;
 	selectedFilePath?: string;
 	/** The diff pane's current file, highlighted in the Changes tab. */
@@ -63,6 +65,7 @@ export function WorkspaceSidebar({
 	onSelectFile,
 	onSelectDiffFile,
 	onOpenComment,
+	onOpenPullRequest,
 	onSearch,
 	selectedFilePath,
 	selectedDiffTarget,
@@ -133,6 +136,7 @@ export function WorkspaceSidebar({
 	const reviewTab = useReviewTab({
 		workspaceId,
 		onOpenComment,
+		onOpenPullRequest,
 		onOpenInDiff: onSelectDiffFile
 			? (path, line, openInNewTab, side) => {
 					// Force annotations on so the user lands on the comment, not an empty line.

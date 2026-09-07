@@ -21,6 +21,7 @@ import {
 	openChangesPaneInStore,
 } from "../../utils/openChangesPaneInStore";
 import { openPagePaneInStore } from "../../utils/openPagePaneInStore";
+import { openPullRequestPaneInStore } from "../../utils/openPullRequestPaneInStore";
 import {
 	getWorkspaceSidebarTab,
 	setWorkspaceSidebarTab,
@@ -59,6 +60,8 @@ export function useWorkspacePaneOpeners({
 	toggleChangesPane: () => void;
 	openCommentPane: (comment: CommentPaneData) => void;
 	openPagePane: (page: PagePaneData) => void;
+	/** Focus or open the pane showing the workspace's linked PR summary. */
+	openPullRequestPane: (prNumber: number) => void;
 } {
 	const openDiffPane = useCallback(
 		(
@@ -240,6 +243,13 @@ export function useWorkspacePaneOpeners({
 		[store],
 	);
 
+	const openPullRequestPane = useCallback(
+		(prNumber: number) => {
+			openPullRequestPaneInStore(store, prNumber);
+		},
+		[store],
+	);
+
 	return {
 		openDiffPane,
 		addTerminalTab,
@@ -249,5 +259,6 @@ export function useWorkspacePaneOpeners({
 		toggleChangesPane,
 		openCommentPane,
 		openPagePane,
+		openPullRequestPane,
 	};
 }
