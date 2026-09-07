@@ -663,6 +663,28 @@ async function loadTarget(
 > {
 	const read = await readStore(ref, ctx);
 	const oauth = oauthOf(read);
+	// A store nobody could read is not a signed-out one. The `!oauth` return
+	// below runs before the unread-half guard further down, so a profile whose
+	// only store was locked came back as `no-target-login` — byte-identical to
+	// a dir the user really is signed out of, sending them to run `/login`
+	// instead of unlocking the item that already holds their account. Its own
+	// branch rather than a reorder: with nothing read, `read.source` falls back
+	// to "file" (no Keychain login means the Keychain cannot win), so the guard
+	// below would tell a Keychain-only profile with no credential file that its
+	// FILE login "may be the older of the two". Nothing was read, so there is no
+	// login to be older than, and the tail is dropped with the claim.
+	if (!oauth && (read.keychainUnreadable || read.anyFileCandidateUnreadable)) {
+		const unread = read.keychainUnreadable
+			? `${keychainStoreName(read, ref, ctx)}'s Keychain item`
+			: fileStoreName(read, ref, ctx);
+		return {
+			ok: false,
+			result: failure(
+				"invalid-target",
+				`${unread} exists but could not be read, and no login was read from ${storeDir(ref, ctx)} at all; refusing to treat it as signed out`,
+			),
+		};
+	}
 	if (!oauth) {
 		return {
 			ok: false,

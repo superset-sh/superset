@@ -2386,6 +2386,75 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 		expect(keychain.items).toEqual([{ service: answering, account, secret }]);
 	});
 
+	// The unread-half guard sat BELOW the `!oauth` return, so a target whose
+	// only store could not be read at all fell out as `no-target-login` —
+	// byte-identical to a profile the user really is signed out of, which sends
+	// them to run `/login` and overwrite the account still sitting in the locked
+	// item. And a bare reorder is not the fix: with nothing read, `read.source`
+	// falls back to "file", so the guard's tail would name a "file login" this
+	// Keychain-only profile does not have.
+	it("refuses a Keychain-only target whose every spelling went unread", async () => {
+		const f = fixture();
+		rmSync(join(f.profileB, ".credentials.json"));
+		const spellings = keychainServicesForConfigDir(f.profileB);
+		const keychain = fakeKeychain([], {
+			failRead: (args) =>
+				spellings.includes(args[args.indexOf("-s") + 1] as string),
+		});
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, darwin: true, exec: keychain.exec },
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-target" });
+		if (result.ok) throw new Error("expected a refusal");
+		// The spellings nobody could read, named so they can be unlocked.
+		for (const spelling of spellings) {
+			expect(result.reason).toContain(spelling);
+		}
+		// Not a login nothing read, and not the signed-out wording.
+		expect(result.reason).not.toContain("file login");
+		expect(result.reason).not.toContain("holds no Claude login");
+		// The active dir still holds the owner's login, and the save-back that
+		// runs after the target loads never started.
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
+	});
+
+	// The seed reads its source through the same loadTarget, so a first use of
+	// this machine cannot be told its only account is signed out either.
+	it("refuses to seed from a Keychain-only source whose every spelling went unread", async () => {
+		const f = fixture();
+		const fresh = makeDir(join(f.superset, "accounts", "fresh-active"));
+		rmSync(join(f.profileB, ".credentials.json"));
+		const spellings = keychainServicesForConfigDir(f.profileB);
+		const keychain = fakeKeychain([], {
+			failRead: (args) =>
+				spellings.includes(args[args.indexOf("-s") + 1] as string),
+		});
+
+		const result = await seedActiveClaudeLogin({
+			source: asProfile(f.profileB),
+			activeDir: fresh,
+			deps: { ...f.deps, darwin: true, exec: keychain.exec },
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-target" });
+		if (result.ok) throw new Error("expected a refusal");
+		for (const spelling of spellings) {
+			expect(result.reason).toContain(spelling);
+		}
+		expect(result.reason).not.toContain("file login");
+		expect(result.reason).not.toContain("holds no Claude login");
+		expect(readdirSync(fresh)).not.toContain(".credentials.json");
+		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
+	});
+
 	// A refusal is only actionable if it names the item to unlock or delete.
 	// Measured before this: with one spelling holding a clean parseable item
 	// and another spelling's probe failing, the reason named the CLEAN one —
