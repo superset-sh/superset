@@ -1,7 +1,9 @@
 import type {
 	AgentLifecycleEventType,
 	ClientMessage,
+	DistributiveOmit,
 	ServerMessage,
+	TerminalLifecycleMessage,
 } from "@superset/host-service/events";
 import type { AgentIdentity } from "@superset/shared/agent-identity";
 import { DIAL_TIMEOUT_MS } from "@superset/shared/tunnel-protocol";
@@ -48,16 +50,10 @@ export interface AgentBindingsChangedPayload {
 	occurredAt: number;
 }
 
-type TerminalLifecycleMessage = Extract<
-	ServerMessage,
-	{ type: "terminal:lifecycle" }
+export type TerminalLifecyclePayload = DistributiveOmit<
+	TerminalLifecycleMessage,
+	"type" | "workspaceId"
 >;
-
-export type TerminalLifecyclePayload = TerminalLifecycleMessage extends infer M
-	? M extends TerminalLifecycleMessage
-		? Omit<M, "type" | "workspaceId">
-		: never
-	: never;
 
 type PortChangedMessage = Extract<ServerMessage, { type: "port:changed" }>;
 

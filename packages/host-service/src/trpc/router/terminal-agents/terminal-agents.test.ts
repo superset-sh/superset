@@ -15,7 +15,10 @@ import {
 	type TerminalAgentId,
 	TerminalAgentStore,
 } from "../../../terminal-agents";
-import { findResumeCandidateBinding } from "../../../terminal-agents/persistence";
+import {
+	findResumeCandidateBinding,
+	findResumedSuccessorTerminalId,
+} from "../../../terminal-agents/persistence";
 import type { AgentRunResult } from "../agents/agents";
 import {
 	findResumedSuccessor,
@@ -120,12 +123,10 @@ function createDeps(
 				label: "Claude",
 			} satisfies AgentRunResult);
 		},
-		disposeSession:
-			disposeSession ??
-			((terminalId) => {
-				disposedTerminals.push(terminalId);
-				return Promise.resolve();
-			}),
+		disposeSession: (terminalId) => {
+			disposedTerminals.push(terminalId);
+			return disposeSession?.(terminalId) ?? Promise.resolve();
+		},
 		hasSession,
 		eventBus: {
 			broadcastTerminalLifecycle: (message) => {
@@ -415,6 +416,51 @@ function createStore(db: HostDb): TerminalAgentStore {
 	return new TerminalAgentStore(new SqliteTerminalAgentBindingPersistence(db));
 }
 
+describe("findResumedSuccessorTerminalId", () => {
+	it("follows a chain of resumes to the newest terminal", () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		for (const [terminalId, resumedInto] of [
+			["t1", "t2"],
+			["t2", "t3"],
+			["t3", null],
+		] as const) {
+			db.insert(terminalSessions)
+				.values({
+					id: terminalId,
+					status: resumedInto ? "disposed" : "active",
+					originWorkspaceId: "ws-1",
+					createdAt: 1,
+				})
+				.run();
+			db.insert(terminalAgentBindings)
+				.values({
+					terminalId,
+					workspaceId: "ws-1",
+					agentId: "claude",
+					agentSessionId: "sess",
+					startedAt: 1,
+					lastEventAt: 2,
+					lastEventType: "Stop",
+					...(resumedInto
+						? {
+								endedAt: 3,
+								endReason: "resumed",
+								resumedIntoTerminalId: resumedInto,
+							}
+						: {}),
+				})
+				.run();
+		}
+
+		expect(findResumedSuccessorTerminalId(db, "ws-1", "t1")).toBe("t3");
+		expect(findResumedSuccessorTerminalId(db, "ws-1", "t2")).toBe("t3");
+		expect(findResumedSuccessorTerminalId(db, "ws-1", "t3")).toBeUndefined();
+		// Another workspace's terminal id is not followed.
+		expect(findResumedSuccessorTerminalId(db, "ws-2", "t1")).toBeUndefined();
+	});
+});
+
 describe("listAccountRestartCandidates", () => {
 	it("lists live provider sessions with a resumable conversation, nothing else", () => {
 		const db = createTestDb();
@@ -525,38 +571,22 @@ describe("restartAccountSessions", () => {
 		});
 	});
 
-	it("lets a pane that missed the event find the relaunched terminal", async () => {
+	it("lets a pane that missed the event find the relaunched terminal, even for a never-prompted session launched fresh", async () => {
 		const db = createTestDb();
 		seedAgentConfig(db);
-		seedLiveBinding(db, { terminalId: "t1" });
-		const { deps } = createDeps(db, {
-			runAgent: (input) => {
-				// What the real launch does: the new terminal's binding carries
-				// the resumed session id from spawn.
-				deps.terminalAgentStore.recordEvent({
-					terminalId: "t-new",
-					workspaceId: input.workspaceId,
-					eventType: "Attached",
-					agentId: "claude",
-					agentSessionId: input.resumeSessionId,
-					occurredAt: Date.now(),
-				});
-				return Promise.resolve({
-					kind: "terminal",
-					sessionId: "t-new",
-					label: "Claude",
-				} satisfies AgentRunResult);
-			},
-		});
+		seedLiveBinding(db, { terminalId: "t1", lastEventType: "Attached" });
+		// No transcript: the relaunch is fresh, so the new terminal will get
+		// a new session id — the link must not depend on sharing the old one.
+		const { deps, runCalls } = createDeps(db, { hasSession: () => false });
 		expect(findResumedSuccessor(db, "ws-1", "t1")).toBeNull();
 
 		await restartAccountSessions(deps, "claude");
 
+		expect(runCalls[0]?.resumeSessionId).toBeUndefined();
 		expect(findResumedSuccessor(db, "ws-1", "t1")).toEqual({
 			terminalId: "t-new",
 			label: "Claude",
 		});
-		// Only a consumed candidate has a successor; the live one is itself.
 		expect(findResumedSuccessor(db, "ws-1", "t-new")).toBeNull();
 	});
 

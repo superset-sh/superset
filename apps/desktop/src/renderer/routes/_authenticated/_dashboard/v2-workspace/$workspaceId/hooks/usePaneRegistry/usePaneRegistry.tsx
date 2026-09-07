@@ -37,10 +37,7 @@ import {
 	confirmCloseTerminals,
 	probeTerminalRunning,
 } from "renderer/lib/terminal/confirm-close-terminals";
-import {
-	consumeTerminalBackgroundIntent,
-	consumeTerminalHandoffIntent,
-} from "renderer/lib/terminal/terminal-background-intents";
+import { consumeTerminalBackgroundIntent } from "renderer/lib/terminal/terminal-background-intents";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -61,7 +58,10 @@ import type {
 	PaneViewerData,
 	TerminalPaneData,
 } from "../../types";
-import { focusOrAddTerminalPane } from "../../utils/focusTerminalPane";
+import {
+	findTerminalPaneLocation,
+	focusOrAddTerminalPane,
+} from "../../utils/focusTerminalPane";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
 import { BrowserPane, BrowserPaneToolbar } from "./components/BrowserPane";
 import { ChatV3Pane } from "./components/ChatV3Pane";
@@ -438,7 +438,13 @@ export function usePaneRegistry({
 				},
 				onAfterClose: (pane) => {
 					const { terminalId } = pane.data as TerminalPaneData;
-					if (consumeTerminalHandoffIntent(terminalId)) return;
+					// Another pane still shows this terminal (one that followed a
+					// resumed session while its adopted duplicate closes): only
+					// this pane's runtime goes, the session stays.
+					if (findTerminalPaneLocation(store.getState(), terminalId)) {
+						terminalRuntimeRegistry.release(terminalId, pane.id);
+						return;
+					}
 					if (consumeTerminalBackgroundIntent(terminalId)) {
 						terminalRuntimeRegistry.release(terminalId);
 						return;
@@ -789,6 +795,7 @@ export function usePaneRegistry({
 			},
 		}),
 		[
+			store,
 			workspaceId,
 			isChatV3Enabled,
 			isPagesEnabled,

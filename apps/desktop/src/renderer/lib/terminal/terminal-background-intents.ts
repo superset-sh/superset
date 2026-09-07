@@ -1,5 +1,4 @@
 const backgroundTerminalIds = new Set<string>();
-const handoffTerminalIds = new Set<string>();
 const backgroundTerminalMarkersByWorkspace = new Map<string, Set<string>>();
 const markerListeners = new Set<() => void>();
 
@@ -35,19 +34,6 @@ export function markTerminalForBackground(
 
 export function consumeTerminalBackgroundIntent(terminalId: string): boolean {
 	return backgroundTerminalIds.delete(terminalId);
-}
-
-/**
- * The pane about to close is not this terminal's last: another pane in the
- * workspace already shows it, so closing must neither kill the session nor
- * release its runtime — the surviving pane owns both.
- */
-export function markTerminalForHandoff(terminalId: string): void {
-	handoffTerminalIds.add(terminalId);
-}
-
-export function consumeTerminalHandoffIntent(terminalId: string): boolean {
-	return handoffTerminalIds.delete(terminalId);
 }
 
 /** Non-consuming check — is this terminal about to be backgrounded (kept alive) rather than killed? */

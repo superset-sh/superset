@@ -21,7 +21,9 @@ import type {
 import {
 	claimResumeCandidateBinding,
 	findResumeCandidateBinding,
-	findResumedSuccessorBinding,
+	findResumedSuccessorTerminalId,
+	getTerminalAgentBinding,
+	markResumeCandidateResumedInto,
 	seedEndedTerminalAgentBinding,
 	unclaimResumeCandidateBinding,
 } from "../../../terminal-agents/persistence";
@@ -165,6 +167,8 @@ export async function resumeTerminalAgentSession(
 			throw error;
 		}
 
+		markResumeCandidateResumedInto(deps.db, terminalId, result.sessionId);
+
 		// The replaced terminal is dead (or a respawned empty shell nobody
 		// asked for) — drop it now that the session lives elsewhere.
 		await deps.disposeSession(terminalId).catch((cleanupError) => {
@@ -243,11 +247,6 @@ export function listAccountRestartCandidates(
  * background-session adoption the next time its workspace is viewed. Doing
  * the resume renderer-side instead would leave such a session stranded: its
  * terminal is dead, so nothing lists it and nothing ever asks to resume it.
- *
- * A candidate whose kill fails is left running for the reaper to finish;
- * its binding stays "terminal-exited", so any pane on it still resumes it
- * the old way. A relaunch that throws is un-claimed by the resume path and
- * likewise stays a candidate.
  */
 export async function restartAccountSessions(
 	deps: ResumeSessionDeps,
@@ -262,27 +261,20 @@ export async function restartAccountSessions(
 	for (const { binding } of candidates) {
 		// Ended crash-style ("terminal-exited", never "disposed") so the
 		// binding is a resume candidate for the relaunch below — and, should
-		// the relaunch fail, for any pane that asks later.
+		// either step fail, for any pane that asks later (a failed relaunch
+		// is un-claimed by the resume path; a failed kill is the reaper's).
 		deps.terminalAgentStore.markTerminalExited(binding.terminalId);
 		try {
 			await deps.disposeSession(binding.terminalId);
-		} catch (error) {
-			console.warn(
-				"[terminal-agents] account-switch restart failed to dispose terminal",
-				{ terminalId: binding.terminalId, error },
-			);
-			continue;
-		}
-		try {
 			await resumeTerminalAgentSession(deps, {
 				workspaceId: binding.workspaceId,
 				terminalId: binding.terminalId,
 			});
 		} catch (error) {
-			console.warn(
-				"[terminal-agents] account-switch restart failed to relaunch agent",
-				{ terminalId: binding.terminalId, error },
-			);
+			console.warn("[terminal-agents] account-switch restart failed", {
+				terminalId: binding.terminalId,
+				error,
+			});
 			continue;
 		}
 		restartedTerminalIds.push(binding.terminalId);
@@ -292,23 +284,29 @@ export async function restartAccountSessions(
 
 /**
  * The terminal now hosting the session that was resumed out of
- * `terminalId`, for a pane that missed the "resumed" lifecycle event. See
- * {@link findResumedSuccessorBinding}.
+ * `terminalId`, for a pane that missed the "resumed" lifecycle event. The
+ * label comes from the origin binding: a fresh relaunch (a session that was
+ * never prompted) has no binding of its own until the agent's first hook.
  */
 export function findResumedSuccessor(
 	db: HostDb,
 	workspaceId: string,
 	terminalId: string,
 ): { terminalId: string; label: string } | null {
-	const successor = findResumedSuccessorBinding(db, workspaceId, terminalId);
-	if (!successor) return null;
+	const successorTerminalId = findResumedSuccessorTerminalId(
+		db,
+		workspaceId,
+		terminalId,
+	);
+	const origin = getTerminalAgentBinding(db, terminalId);
+	if (!successorTerminalId || !origin) return null;
 	const config = resolveHostAgentConfig(
 		db,
-		successor.definitionId ?? successor.agentId,
+		origin.definitionId ?? origin.agentId,
 	);
 	return {
-		terminalId: successor.terminalId,
-		label: config?.label ?? successor.agentId,
+		terminalId: successorTerminalId,
+		label: config?.label ?? origin.agentId,
 	};
 }
 

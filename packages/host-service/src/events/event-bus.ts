@@ -11,7 +11,12 @@ import { portManager } from "../ports/port-manager.ts";
 import { getLabelsForWorkspace } from "../ports/static-ports.ts";
 import type { WorkspaceFilesystemManager } from "../runtime/filesystem/index.ts";
 import type { GitWatcher } from "./git-watcher.ts";
-import type { ClientMessage, ServerMessage } from "./types.ts";
+import type {
+	ClientMessage,
+	DistributiveOmit,
+	ServerMessage,
+	TerminalLifecycleMessage,
+} from "./types.ts";
 
 type WsSocket = {
 	send: (data: string) => void;
@@ -47,13 +52,8 @@ type WorkspaceChangedListener = (
 	message: Omit<Extract<ServerMessage, { type: "workspace:changed" }>, "type">,
 ) => void;
 
-/** `Omit` that keeps a union a union instead of collapsing it. */
-type DistributiveOmit<T, K extends keyof T> = T extends unknown
-	? Omit<T, K>
-	: never;
-
 export type TerminalLifecycleEvent = DistributiveOmit<
-	Extract<ServerMessage, { type: "terminal:lifecycle" }>,
+	TerminalLifecycleMessage,
 	"type"
 >;
 

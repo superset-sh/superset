@@ -47,30 +47,34 @@ export interface AgentBindingsChangedMessage {
 	occurredAt: number;
 }
 
+interface TerminalLifecycleBase {
+	type: "terminal:lifecycle";
+	workspaceId: string;
+	terminalId: string;
+	occurredAt: number;
+}
+
 export type TerminalLifecycleMessage =
-	| {
-			type: "terminal:lifecycle";
-			workspaceId: string;
-			terminalId: string;
+	| (TerminalLifecycleBase & {
 			eventType: "exit";
 			exitCode: number;
 			signal: number;
-			occurredAt: number;
-	  }
+	  })
 	/**
 	 * The agent session that was running in `terminalId` now lives in
 	 * `resumedTerminalId`. Panes still pointed at the dead terminal follow
 	 * it there instead of showing an exited shell.
 	 */
-	| {
-			type: "terminal:lifecycle";
-			workspaceId: string;
-			terminalId: string;
+	| (TerminalLifecycleBase & {
 			eventType: "resumed";
 			resumedTerminalId: string;
 			label: string;
-			occurredAt: number;
-	  };
+	  });
+
+/** `Omit` that keeps a union a union instead of collapsing it. */
+export type DistributiveOmit<T, K extends keyof T> = T extends unknown
+	? Omit<T, K>
+	: never;
 
 export interface PortChangedMessage {
 	type: "port:changed";

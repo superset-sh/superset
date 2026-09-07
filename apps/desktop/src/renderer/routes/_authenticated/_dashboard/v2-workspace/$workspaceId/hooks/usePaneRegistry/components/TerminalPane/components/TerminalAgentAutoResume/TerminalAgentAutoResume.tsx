@@ -8,7 +8,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTerminalResumeCandidate } from "renderer/hooks/host-service/useTerminalResumeCandidate";
 import { useTerminalResumedSuccessor } from "renderer/hooks/host-service/useTerminalResumedSuccessor";
 import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
-import { markTerminalForHandoff } from "renderer/lib/terminal/terminal-background-intents";
 import type { ConnectionState } from "renderer/lib/terminal/terminal-runtime-registry";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import type {
@@ -80,23 +79,18 @@ export function TerminalAgentAutoResume({
 
 	const followResumedSession = useCallback(
 		(resumedTerminalId: string, label: string) => {
+			terminalRuntimeRegistry.dispose(terminalId);
 			const state = ctx.store.getState();
 			// Background-session adoption may already have given the new
-			// terminal a pane of its own while this one was unmounted. Two
-			// panes on one session would be noise: beside this pane, the
-			// other is on screen and wins; in another tab, this pane keeps
-			// its place and title and the adopted tab goes — handed off, so
-			// its close neither kills the session nor releases the runtime
-			// this pane is about to mount.
+			// terminal a pane of its own while this one was unmounted. Beside
+			// this pane it is on screen and wins; in another tab this pane
+			// keeps its place and title and the adopted one closes — the
+			// registry's close hook sees this pane still holds the terminal
+			// and only releases the closing pane's runtime.
 			const existing = findTerminalPaneLocation(state, resumedTerminalId);
-			if (existing && existing.paneId !== ctx.pane.id) {
-				if (existing.tabId === ctx.tab.id) {
-					terminalRuntimeRegistry.dispose(terminalId);
-					void ctx.actions.close();
-					return;
-				}
-				markTerminalForHandoff(resumedTerminalId);
-				state.closePane(existing);
+			if (existing?.tabId === ctx.tab.id && existing.paneId !== ctx.pane.id) {
+				state.closePane({ tabId: ctx.tab.id, paneId: ctx.pane.id });
+				return;
 			}
 			state.setPaneData({
 				paneId: ctx.pane.id,
@@ -107,7 +101,9 @@ export function TerminalAgentAutoResume({
 				paneId: ctx.pane.id,
 				titleOverride: label,
 			});
-			terminalRuntimeRegistry.dispose(terminalId);
+			if (existing && existing.paneId !== ctx.pane.id) {
+				state.closePane(existing);
+			}
 		},
 		[ctx, terminalId],
 	);
@@ -118,7 +114,9 @@ export function TerminalAgentAutoResume({
 		followResumedSession(payload.resumedTerminalId, payload.label);
 	});
 
-	const { successor } = useTerminalResumedSuccessor(workspaceId, terminalId);
+	const successor = useTerminalResumedSuccessor(workspaceId, terminalId, {
+		enabled: connectionState !== "open",
+	});
 	useEffect(() => {
 		if (!successor) return;
 		followResumedSession(successor.terminalId, successor.label);

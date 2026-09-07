@@ -232,6 +232,13 @@
       "when": 1788629868602,
       "tag": "0032_tag_folder_creator",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "6",
+      "when": 1788765042633,
+      "tag": "0033_binding_resumed_into",
+      "breakpoints": true
     }
   ]
 }

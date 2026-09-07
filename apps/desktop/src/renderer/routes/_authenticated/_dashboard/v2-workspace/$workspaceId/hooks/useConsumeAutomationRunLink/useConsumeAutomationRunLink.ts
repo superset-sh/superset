@@ -54,20 +54,14 @@ export function useConsumeAutomationRunLink({
 			refetchOnWindowFocus: false,
 		},
 	);
-	const targetTerminalId =
-		terminalId == null
-			? undefined
-			: resolveAutomationRunLinkTarget({
-					terminalId,
-					linkedTerminalIsLive,
-					successor: successorQuery.isSuccess
-						? (successorQuery.data?.terminalId ?? null)
-						: undefined,
-				});
+	// undefined = still resolving; null = nothing to open.
+	const targetTerminalId = linkedTerminalIsLive
+		? terminalId
+		: successorQuery.isSuccess
+			? (successorQuery.data?.terminalId ?? null)
+			: undefined;
 	useEffect(() => {
-		if (!terminalId) return;
-		// undefined = still resolving; null = resolved to nothing.
-		if (targetTerminalId === undefined) return;
+		if (!terminalId || targetTerminalId === undefined) return;
 		const key = getAutomationRunLinkConsumeKey({
 			type: "terminal",
 			id: terminalId,
@@ -77,7 +71,7 @@ export function useConsumeAutomationRunLink({
 		consumedRef.current.add(key);
 		if (targetTerminalId === null) {
 			console.warn(
-				"[automation-run-link] Ignoring terminal link for another workspace",
+				"[automation-run-link] Ignoring terminal link: not in this workspace and not resumed elsewhere",
 				{ terminalId, workspaceId },
 			);
 			return;
@@ -113,22 +107,4 @@ export function terminalSessionBelongsToWorkspace({
 		(session) =>
 			session.terminalId === terminalId && session.workspaceId === workspaceId,
 	);
-}
-
-/**
- * The terminal a run link should land on: the linked one while it lives,
- * otherwise the terminal its session was resumed into. `undefined` while the
- * successor is still being looked up; `null` once there is nothing to open.
- */
-export function resolveAutomationRunLinkTarget({
-	terminalId,
-	linkedTerminalIsLive,
-	successor,
-}: {
-	terminalId: string;
-	linkedTerminalIsLive: boolean;
-	successor: string | null | undefined;
-}): string | null | undefined {
-	if (linkedTerminalIsLive) return terminalId;
-	return successor;
 }

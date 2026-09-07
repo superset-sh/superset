@@ -54,8 +54,15 @@ export function useTerminalResumeCandidate(
 		void queryClient.invalidateQueries({ queryKey });
 	}, [queryClient, queryKey]);
 
-	useWorkspaceEvent("agent:lifecycle", workspaceId, invalidate, enabled);
-	useWorkspaceEvent("terminal:lifecycle", workspaceId, invalidate, enabled);
+	// Lifecycle events name their terminal; the other panes' agents are noise.
+	const onOwnLifecycle = useCallback(
+		(payload: { terminalId: string }) => {
+			if (payload.terminalId === terminalId) invalidate();
+		},
+		[invalidate, terminalId],
+	);
+	useWorkspaceEvent("agent:lifecycle", workspaceId, onOwnLifecycle, enabled);
+	useWorkspaceEvent("terminal:lifecycle", workspaceId, onOwnLifecycle, enabled);
 
 	return { candidate: data ?? null, invalidate };
 }

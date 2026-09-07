@@ -166,44 +166,60 @@ export function findResumeCandidateBinding(
 }
 
 /**
- * Where the session that ran in `terminalId` lives now, if that terminal's
- * binding was consumed by a resume: the newest binding in the workspace
- * that carries the same agent session id. A resumed launch records the
- * session id on its binding at spawn (`bindResumedSession`), so the link
- * exists before the agent's first hook fires, and following the newest
- * binding rather than the next one survives a chain of resumes. Lets a pane
- * that was not mounted when the "resumed" lifecycle event fired — another
- * tab, another workspace, another client — still find its way there.
+ * Record where a consumed candidate's session was relaunched, so a pane
+ * that was not mounted for the "resumed" lifecycle event can still find
+ * it. Written by the resume path once the launch has a terminal id.
  */
-export function findResumedSuccessorBinding(
+export function markResumeCandidateResumedInto(
+	db: HostDb,
+	terminalId: string,
+	resumedIntoTerminalId: string,
+): void {
+	db.update(terminalAgentBindings)
+		.set({ resumedIntoTerminalId })
+		.where(eq(terminalAgentBindings.terminalId, terminalId))
+		.run();
+}
+
+const MAX_RESUME_HOPS = 16;
+
+/**
+ * The terminal now hosting the session that was resumed out of
+ * `terminalId`, following a chain of resumes to its end. Undefined when the
+ * binding was never consumed by a resume.
+ */
+export function findResumedSuccessorTerminalId(
 	db: HostDb,
 	workspaceId: string,
 	terminalId: string,
+): string | undefined {
+	let current = terminalId;
+	for (let hop = 0; hop < MAX_RESUME_HOPS; hop++) {
+		const next = db
+			.select({ next: terminalAgentBindings.resumedIntoTerminalId })
+			.from(terminalAgentBindings)
+			.where(
+				and(
+					eq(terminalAgentBindings.terminalId, current),
+					eq(terminalAgentBindings.workspaceId, workspaceId),
+					eq(terminalAgentBindings.endReason, "resumed"),
+				),
+			)
+			.get()?.next;
+		if (!next) break;
+		current = next;
+	}
+	return current === terminalId ? undefined : current;
+}
+
+export function getTerminalAgentBinding(
+	db: HostDb,
+	terminalId: string,
 ): TerminalAgentBinding | undefined {
-	const resumed = db
-		.select({ agentSessionId: terminalAgentBindings.agentSessionId })
-		.from(terminalAgentBindings)
-		.where(
-			and(
-				eq(terminalAgentBindings.terminalId, terminalId),
-				eq(terminalAgentBindings.workspaceId, workspaceId),
-				eq(terminalAgentBindings.endReason, "resumed"),
-				isNotNull(terminalAgentBindings.agentSessionId),
-			),
-		)
-		.get();
-	if (!resumed?.agentSessionId) return undefined;
 	const row = db
 		.select(bindingColumns)
 		.from(terminalAgentBindings)
-		.where(
-			and(
-				eq(terminalAgentBindings.workspaceId, workspaceId),
-				eq(terminalAgentBindings.agentSessionId, resumed.agentSessionId),
-				ne(terminalAgentBindings.terminalId, terminalId),
-			),
-		)
-		.orderBy(desc(terminalAgentBindings.startedAt))
+		.where(eq(terminalAgentBindings.terminalId, terminalId))
 		.get();
 	return row ? rowToBinding(row) : undefined;
 }
