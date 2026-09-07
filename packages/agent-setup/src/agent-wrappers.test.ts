@@ -26,7 +26,7 @@ let mockedHomeDir = path.join(TEST_ROOT, "home");
 
 mock.module("./notify-hook", () => ({
 	NOTIFY_SCRIPT_NAME: "notify.sh",
-	NOTIFY_SCRIPT_MARKER: "# Superset agent notification hook v14",
+	NOTIFY_SCRIPT_MARKER: "# Superset agent notification hook v15",
 	getNotifyScriptPath: () => path.join(TEST_HOOKS_DIR, "notify.sh"),
 	getNotifyScriptContent: () => "#!/bin/bash\nexit 0\n",
 	createNotifyScript: () => {},
@@ -264,7 +264,7 @@ describe("agent-wrappers copilot", () => {
 		expect(wrapper).not.toContain("-c 'notify=");
 		expect(wrapper).toContain('export SUPERSET_AGENT_ID="codex"');
 
-		expect(wrapper).toContain("# Superset agent-wrapper v4");
+		expect(wrapper).toContain("# Superset agent-wrapper v5");
 
 		// Native hooks remain enabled, but the process-scoped TUI session log is
 		// the reliable Start signal for installed Codex TUI builds.
@@ -746,7 +746,7 @@ exit 0
 		expect(plugin).toContain('amp.on("agent.end"');
 		expect(plugin).toContain('notify("Stop", event)');
 		expect(plugin).toContain('import { spawn } from "node:child_process"');
-		expect(plugin).toContain('SUPERSET_AGENT_ID: "amp"');
+		expect(plugin).toContain('SUPERSET_HOOK_HARNESS: "amp"');
 		expect(plugin).toContain("[superset-amp-plugin]");
 		expect(plugin).toContain("SUPERSET_HOME_DIR");
 	});
@@ -792,7 +792,7 @@ exit 0
 		const content2 = requireContent(getCursorHooksJsonContent(currentHookPath));
 
 		const parsed = JSON.parse(content) as {
-			hooks: Record<string, Array<{ command: string }>>;
+			hooks: Record<string, Array<{ command: string; matcher?: string }>>;
 		};
 		const beforeSubmitPrompt = parsed.hooks.beforeSubmitPrompt;
 
@@ -822,6 +822,20 @@ exit 0
 		).toBe(true);
 		expect(Array.isArray(parsed.hooks.beforeShellExecution)).toBe(true);
 		expect(Array.isArray(parsed.hooks.beforeMCPExecution)).toBe(true);
+		for (const event of ["postToolUse", "postToolUseFailure"]) {
+			expect(parsed.hooks[event]).toEqual([
+				{ command: `${currentHookPath} Start`, matcher: "^(Shell|MCP:.+)$" },
+			]);
+			const matcher = new RegExp(
+				requireContent(parsed.hooks[event][0]?.matcher ?? null),
+			);
+			for (const tool of ["Shell", "MCP:audit_echo"]) {
+				expect(matcher.test(tool)).toBe(true);
+			}
+			for (const tool of ["Read", "Edit", "Task", "ShellOther", "OtherMCP:x"]) {
+				expect(matcher.test(tool)).toBe(false);
+			}
+		}
 		expect(JSON.parse(content2)).toEqual(JSON.parse(content));
 	});
 
@@ -951,9 +965,9 @@ exit 0
 	});
 
 	it("bumps hook script markers when hook semantics change", () => {
-		expect(COPILOT_HOOK_MARKER).toBe("# Superset copilot hook v5");
-		expect(CURSOR_HOOK_MARKER).toBe("# Superset cursor hook v7");
-		expect(GEMINI_HOOK_MARKER).toBe("# Superset gemini hook v6");
+		expect(COPILOT_HOOK_MARKER).toBe("# Superset copilot hook v6");
+		expect(CURSOR_HOOK_MARKER).toBe("# Superset cursor hook v8");
+		expect(GEMINI_HOOK_MARKER).toBe("# Superset gemini hook v7");
 	});
 
 	it("replaces stale Mastra hook commands from old superset paths", () => {
@@ -1850,7 +1864,7 @@ describe("vibe hooks.toml", () => {
 		expect(out).toContain(VIBE_HOOKS_MARKER_END);
 		expect(out).toContain('type = "before_tool"');
 		expect(out).toContain('type = "post_agent_turn"');
-		expect(out).toContain("SUPERSET_AGENT_ID=vibe");
+		expect(out).toContain("SUPERSET_HOOK_HARNESS=vibe");
 	});
 	it("preserves user hooks and is idempotent", () => {
 		const user =
@@ -1950,7 +1964,7 @@ describe("kimi config.toml", () => {
 		]) {
 			expect(out).toContain(`event = "${event}"`);
 		}
-		expect(out).toContain("SUPERSET_AGENT_ID=kimi");
+		expect(out).toContain("SUPERSET_HOOK_HARNESS=kimi");
 	});
 
 	it("preserves user config and replaces the managed block idempotently", () => {
@@ -2030,7 +2044,9 @@ describe("grok hooks json", () => {
 				hooks: Array<{ type: string; command: string }>;
 			}>;
 			expect(definition.hooks[0].type).toBe("command");
-			expect(definition.hooks[0].command).toContain("SUPERSET_AGENT_ID=grok");
+			expect(definition.hooks[0].command).toContain(
+				"SUPERSET_HOOK_HARNESS=grok",
+			);
 		}
 		expect(parsed.hooks.Notification[0].matcher).toBe(
 			`^(${GROK_BLOCKING_NOTIFICATION_TYPES.join("|")})$`,
@@ -2425,7 +2441,7 @@ describe("agent-wrappers omp", () => {
 		);
 		expect(content).toContain("pi.on(eventName");
 		expect(content).toContain("fire(hookEventName)");
-		expect(content).toContain('SUPERSET_AGENT_ID: "omp"');
+		expect(content).toContain('SUPERSET_HOOK_HARNESS: "omp"');
 	});
 
 	it("installs the Oh My Pi extension into the global ~/.omp/agent/extensions directory", () => {
