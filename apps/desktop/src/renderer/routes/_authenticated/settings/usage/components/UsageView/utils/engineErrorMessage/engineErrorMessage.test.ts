@@ -9,6 +9,9 @@ describe("engineErrorMessage", () => {
 		expect(engineErrorMessage(new Error("lock-loser"))).toContain(
 			"Another Superset instance",
 		);
+		expect(engineErrorMessage(new Error("engine-state-unusable"))).toContain(
+			"cannot use its state directory",
+		);
 		expect(engineErrorMessage(new Error("engine-unavailable"))).toContain(
 			"not running on this host",
 		);

@@ -16,6 +16,10 @@ const ENGINE_CODE_MESSAGES = {
 		message:
 			"Another Superset instance on this machine owns account switching. Change this there.",
 	}),
+	"engine-state-unusable": msg({
+		message:
+			"The account engine cannot use its state directory. Make it owner-only (chmod 700), or point SUPERSET_HOME_DIR at a filesystem that supports Unix permissions.",
+	}),
 	"engine-unavailable": msg({
 		message: "The account engine is not running on this host.",
 	}),
