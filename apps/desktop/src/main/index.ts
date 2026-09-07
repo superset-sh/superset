@@ -35,6 +35,7 @@ import { isUpdateReadyToInstall, setupAutoUpdater } from "./lib/auto-updater";
 import { startBrowserBridge } from "./lib/browser/browser-bridge";
 import { downloadManager } from "./lib/browser/download-manager";
 import { installBundledCliShim } from "./lib/bundled-cli";
+import { installDevRunnerExit } from "./lib/dev-runner-exit";
 import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
@@ -340,61 +341,20 @@ process.on("unhandledRejection", (reason) => {
 	console.error("[main] Unhandled rejection:", reason);
 });
 
-// Without these handlers, Electron may not quit when electron-vite sends SIGTERM
 if (process.env.NODE_ENV === "development") {
-	const DEV_EXIT_DEADLINE_MS = 5_000;
-	let signalHandled = false;
-	const handleTerminationSignal = (signal: string) => {
-		if (signalHandled) return;
-		signalHandled = true;
-		isQuitting = true;
-		console.log(`[main] Received ${signal}, quitting...`);
-		// Teardown can hang on a dead daemon socket; never let that keep an
-		// orphaned dev Electron alive.
-		setTimeout(() => {
-			console.log("[main] Teardown deadline reached, exiting");
-			app.exit(0);
-		}, DEV_EXIT_DEADLINE_MS);
-		getHostServiceCoordinator().stopAll();
-		void Promise.allSettled([teardownTerminalHost()]).finally(() => {
-			console.log("[main] Teardown complete, exiting");
-			app.exit(0);
-		});
-	};
-
-	process.on("SIGTERM", () => handleTerminationSignal("SIGTERM"));
-	process.on("SIGINT", () => handleTerminationSignal("SIGINT"));
-
-	// electron-vite (or turbo above it) owns our stdout/stderr pipes. When it
-	// dies without signalling us, the next write fails with EPIPE. Without a
-	// listener that surfaces as an uncaughtException, whose logging writes to
-	// the same dead pipe and throws again: an unbounded loop that pins a core
-	// until someone kills the process. Treat it as the dev runner going away.
-	const handleStdioError = (error: NodeJS.ErrnoException) => {
-		if (error.code === "EPIPE") handleTerminationSignal("stdio-closed");
-	};
-	process.stdout.on("error", handleStdioError);
-	process.stderr.on("error", handleStdioError);
-
-	// Fallback: electron-vite may exit without signaling the child Electron process
-	const parentPid = process.ppid;
-	const isParentAlive = (): boolean => {
-		try {
-			process.kill(parentPid, 0);
-			return true;
-		} catch {
-			return false;
-		}
-	};
-
-	const parentCheckInterval = setInterval(() => {
-		if (!isParentAlive()) {
-			console.log("[main] Parent process exited, quitting...");
-			clearInterval(parentCheckInterval);
-			handleTerminationSignal("parent-exit");
-		}
-	}, 1000);
-	parentCheckInterval.unref();
+	installDevRunnerExit({
+		parentPid: process.ppid,
+		stdio: [process.stdout, process.stderr],
+		subscribeSignal: (signal, handler) => {
+			process.on(signal, handler);
+		},
+		markQuitting: () => {
+			isQuitting = true;
+		},
+		stopHostServices: () => getHostServiceCoordinator().stopAll(),
+		teardownTerminalHost,
+		exit: (code) => app.exit(code),
+	});
 }
 
 // Chromium refuses to cache any single entry larger than about an eighth
