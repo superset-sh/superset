@@ -44,9 +44,19 @@ export function useSetAccountRotation(hostUrl: string | null) {
 			}
 			return { previous };
 		},
-		onError: (_error, _input, context) => {
-			if (context?.previous) {
-				queryClient.setQueryData(quotaKey, context.previous);
+		onError: (_error, input, context) => {
+			// Put back only this account's flag, on top of whatever the cache holds
+			// now: toggles run in parallel, so restoring the whole snapshot would
+			// revert an account the user flipped while this call was in flight.
+			const restored = context?.previous?.find(
+				(account) => rotationKey(account) === input.accountKey,
+			)?.inRotation;
+			const current = queryClient.getQueryData<UsageAccount[]>(quotaKey);
+			if (current && restored !== undefined) {
+				queryClient.setQueryData(
+					quotaKey,
+					withRotation(current, input.accountKey, restored),
+				);
 			}
 		},
 		onSettled: () => {
