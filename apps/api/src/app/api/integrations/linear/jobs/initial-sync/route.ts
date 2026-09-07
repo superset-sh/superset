@@ -1,6 +1,7 @@
 import type { LinearClient } from "@linear/sdk";
 import { buildConflictUpdateColumns, db } from "@superset/db";
 import { members, taskStatuses, tasks, users } from "@superset/db/schema";
+import { retireTaskSlugOnConflict } from "@superset/db/task-slug-lookup";
 import { getLinearClient } from "@superset/trpc/integrations/linear";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import chunk from "lodash.chunk";
@@ -189,6 +190,7 @@ async function performInitialSync(
 						"externalCycleName",
 						"lastSyncedAt",
 					]),
+					previousSlugs: retireTaskSlugOnConflict(),
 					syncError: null,
 				},
 			});

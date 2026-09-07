@@ -8,6 +8,7 @@ import {
 	tasks,
 	users,
 } from "@superset/db/schema";
+import { retireTaskSlug } from "@superset/db/task-slug-lookup";
 import {
 	getLinearClient,
 	mapPriorityToLinear,
@@ -230,6 +231,7 @@ async function syncTaskToLinear(
 			.update(tasks)
 			.set({
 				slug: issue.identifier,
+				previousSlugs: retireTaskSlug(issue.identifier),
 				externalProvider: "linear",
 				externalId: issue.id,
 				externalKey: issue.identifier,

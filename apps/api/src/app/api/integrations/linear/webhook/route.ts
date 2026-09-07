@@ -16,6 +16,7 @@ import {
 	users,
 	webhookEvents,
 } from "@superset/db/schema";
+import { retireTaskSlugOnConflict } from "@superset/db/task-slug-lookup";
 import {
 	getLinearClient,
 	isLinearAuthError,
@@ -425,7 +426,11 @@ async function processIssueEvent(
 					tasks.externalProvider,
 					tasks.externalId,
 				],
-				set: { ...taskData, syncError: null },
+				set: {
+					...taskData,
+					previousSlugs: retireTaskSlugOnConflict(),
+					syncError: null,
+				},
 				// The read above can go stale before this runs, and two deliveries
 				// for one issue can race here.
 				setWhere: sql`${tasks.externalUpdatedAt} IS NULL OR ${tasks.externalUpdatedAt} < excluded.external_updated_at`,

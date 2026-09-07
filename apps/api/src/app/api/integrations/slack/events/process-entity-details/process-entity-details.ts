@@ -1,6 +1,10 @@
 import type { SlackEvent } from "@slack/types";
 import { db } from "@superset/db/client";
 import { integrationConnections, tasks } from "@superset/db/schema";
+import {
+	taskSlugLookupOrder,
+	taskSlugMatches,
+} from "@superset/db/task-slug-lookup";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { createSlackClient } from "../utils/slack-client";
 import {
@@ -82,8 +86,9 @@ export async function processEntityDetails({
 	const task = await db.query.tasks.findFirst({
 		where: and(
 			eq(tasks.organizationId, connection.organizationId),
-			eq(tasks.slug, taskSlug),
+			taskSlugMatches(taskSlug),
 		),
+		orderBy: taskSlugLookupOrder(taskSlug),
 		with: {
 			status: true,
 			assignee: true,

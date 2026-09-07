@@ -7,6 +7,7 @@ function createTask(id: string, title = `Task ${id}`): TaskWithStatus {
 		id,
 		title,
 		slug: `TASK-${id}`,
+		previousSlugs: [],
 		organizationId: "org-1",
 		statusId: "status-1",
 		description: null,
