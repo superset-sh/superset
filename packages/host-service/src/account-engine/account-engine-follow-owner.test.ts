@@ -54,6 +54,8 @@ function loser(input: {
 	pointer: { claudeConfigDir: string | null; codexHome: string | null };
 	active: { accountId: string | null; selection: string | null };
 	agent?: "claude" | "codex";
+	/** The pty daemon down for one tick, and healthy after it. */
+	throwOnFirstList?: boolean;
 }): Harness {
 	const state = new EngineState();
 	// The owner. Claimed here so this engine's own claim loses.
@@ -65,12 +67,18 @@ function loser(input: {
 	state.writeRuntime(runtime);
 
 	const moved: MovableSession[][] = [];
+	let lists = 0;
 	const engine = new AccountEngine({
 		engineState: state,
 		db: {} as HostDb,
 		hostDeps: {
-			listSessions: (forAgent) =>
-				input.sessions.filter((row) => row.agent === forAgent),
+			listSessions: (forAgent) => {
+				lists += 1;
+				if (input.throwOnFirstList && lists === 1) {
+					throw new Error("the pty daemon is not answering");
+				}
+				return input.sessions.filter((row) => row.agent === forAgent);
+			},
 			isAgentBusy: () => false,
 			isTerminalAlive: () => true,
 			killAndResume: async () => null,
@@ -186,6 +194,34 @@ describe("a lock loser's first reconcile", () => {
 			active: { accountId: "acct-b", selection: "/codex/b" },
 			agent: "codex",
 		});
+
+		await engine.tick();
+
+		expect(moved.flat().map((row) => row.terminalId)).toEqual(["term-3"]);
+	});
+
+	it("retries the follow on the next tick when the first one throws", async () => {
+		// Marking the agent followed before the move ran means one failed
+		// listing costs the follow for the life of the process: every later
+		// tick reads the same value back and skips it, and the loser's
+		// sessions stay on the account the owner switched off.
+		const { engine, moved } = loser({
+			sessions: [
+				session({
+					agent: "codex",
+					terminalId: "term-3",
+					configDir: "/codex/a",
+				}),
+			],
+			pointer: { claudeConfigDir: "/profiles/a", codexHome: "/codex/a" },
+			active: { accountId: "acct-b", selection: "/codex/b" },
+			agent: "codex",
+			throwOnFirstList: true,
+		});
+
+		await engine.tick();
+
+		expect(moved).toEqual([]);
 
 		await engine.tick();
 

@@ -1023,16 +1023,25 @@ export class AccountEngine {
 				state.activeSelection ?? ""
 			}`;
 			const seen = this.followedActive.get(agent);
-			this.followedActive.set(agent, active);
 			if (seen === active) continue;
 			if (seen === undefined) {
 				// The first observation is not a baseline: this service may
 				// have started long after the owner switched, and its sessions
 				// would sit on the old account for as long as it runs.
 				await this.reconcile(agent, state);
-				continue;
+			} else {
+				await this.followExternalSwitch(agent);
 			}
-			await this.followExternalSwitch(agent);
+			// Marked followed only once the move ran. Marking first loses the
+			// follow for the life of the process when the move throws — one
+			// bad `listSessions` and every later tick sees the value already
+			// recorded and skips it. Known cost of the retry: a throw partway
+			// through `followExternalSwitch`'s non-Claude branch can restart a
+			// row twice, because `onExternalSwitch` re-lists unfiltered.
+			// (`reconcile`'s rows resolve to the active dir once moved and are
+			// filtered out.) Narrowing that takes a remembered failed value
+			// and a `finally`, which costs more than the double restart.
+			this.followedActive.set(agent, active);
 		}
 	}
 
@@ -1187,15 +1196,16 @@ export class AccountEngine {
 		// substituting a plausible row for an account we simply cannot see
 		// right now would point the engine at a login sessions are not on, and
 		// `evaluate` already refuses to switch without a known active.
-		if (state.activeAccountId !== null) {
-			// The recorded selection is what tells two dirs holding one account
-			// apart, and this runs before the decision pool collapses them: a
-			// first-match here would rewrite the record to the other dir and
-			// the collapse would then keep that one.
-			const known = this.rowForActiveId(pool, state);
-			if (known) state.activeSelection = known.row.selection;
-			return;
-		}
+		// The recorded selection is half of that record, and nothing here may
+		// rewrite it: `rowForActiveId`'s first-match fallback names the sibling
+		// dir holding the same account as soon as the recorded one drops out of
+		// the pool, `persistRuntime` writes that guess to disk, and nothing
+		// puts it back — a manual switch onto the account the Usage tab names
+		// takes the same-account no-op. Only a row matching both halves
+		// confirms the record, and such a row has nothing to write. The
+		// fallback belongs in `activeRow`, where a decision needs some row for
+		// the account and nothing is persisted.
+		if (state.activeAccountId !== null) return;
 		if (state.activeSelection !== null) return;
 		const chosen =
 			pool.find((item) => item.account.isDefault) ??
