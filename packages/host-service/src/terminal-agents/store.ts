@@ -41,7 +41,10 @@ const END_STRAGGLER_WINDOW_MS = 30_000;
 
 // The agent is mid-turn on these; anything else is idle or session-lifetime
 // noise. A busy row moving to a stopped one is the moment a limit stop would
-// have happened, which is what the account engine dates its evidence by.
+// have happened, and this records it. Nothing reads it yet: the engine
+// corroborates a limit stop against the screen and the quota windows, not by
+// date. Kept because the record is only correct if it is kept correctly, and
+// the rules below are the ones a later dating consumer would need.
 const BUSY_EVENT_TYPES = new Set(["Start", "PermissionRequest"]);
 const STOPPED_EVENT_TYPES = new Set(["Stop", "Failed"]);
 
@@ -168,8 +171,8 @@ export class TerminalAgentStore extends EventEmitter {
 		const lastEventType = preservedLifecycleState ?? eventType;
 
 		// Only a real busy → stopped move stamps the transition: a second Stop
-		// leaves the first one's timestamp in place, so the engine dates the
-		// stop it is investigating, not the last hook it happened to receive.
+		// leaves the first one's timestamp in place, so the moment recorded is
+		// the stop itself, not the last hook that happened to arrive after it.
 		const stoppedNow =
 			prior !== undefined &&
 			BUSY_EVENT_TYPES.has(prior.lastEventType) &&
@@ -190,8 +193,8 @@ export class TerminalAgentStore extends EventEmitter {
 
 		// A transition belongs to the session it happened in. A session start
 		// or a different agent session id in the same terminal starts over,
-		// exactly as `lastFailure` does — otherwise the engine dates a fresh
-		// session's evidence by the previous session's stop.
+		// exactly as `lastFailure` does — otherwise a fresh session would carry
+		// the previous session's stop as its own recorded moment.
 		const carriedTransitionAt =
 			sessionChanged || sessionStarted ? undefined : prior?.lastTransitionAt;
 
