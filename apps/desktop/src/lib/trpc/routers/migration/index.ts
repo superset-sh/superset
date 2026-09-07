@@ -11,6 +11,12 @@ import { eq, isNotNull, isNull } from "drizzle-orm";
 import { SUPERSET_HOME_DIR } from "main/lib/app-environment";
 import { appState } from "main/lib/app-state";
 import { localDb } from "main/lib/local-db";
+import {
+	prewarmTerminalRuntime,
+	reconcileDaemonSessions,
+} from "main/lib/terminal";
+import { v1RuntimeRetirement } from "main/lib/v1-runtime-retirement";
+import { getOrg } from "main/lib/window-registry/window-registry";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
@@ -23,7 +29,33 @@ const ledgerEntrySchema = z.object({
 });
 
 export const createMigrationRouter = () => {
+	let reconciled = false;
 	return router({
+		reportV1Runtime: publicProcedure
+			.input(
+				z.object({
+					organizationId: z.string().min(1),
+					migratedAtBoot: z.boolean(),
+					v2Enabled: z.boolean(),
+				}),
+			)
+			.mutation(async ({ ctx, input }) => {
+				if (
+					!ctx.senderWindow ||
+					getOrg(ctx.senderWindow.id) !== input.organizationId
+				)
+					return { retired: false };
+				const retired = await v1RuntimeRetirement.report(
+					ctx.senderWindow.id,
+					input,
+				);
+				if (!input.migratedAtBoot && !reconciled) {
+					reconciled = true;
+					await reconcileDaemonSessions();
+					if (!input.v2Enabled) prewarmTerminalRuntime();
+				}
+				return { retired };
+			}),
 		readV1Projects: publicProcedure.query(() => {
 			// Only surface pinned projects. v1's `hideProject` nulls tab_order
 			// when the last workspace in a project is deleted, effectively

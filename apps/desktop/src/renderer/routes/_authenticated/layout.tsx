@@ -41,6 +41,7 @@ import {
 	V2FlipWelcome,
 } from "renderer/routes/_authenticated/components/V1FlipNotice";
 import { V1ImportModal } from "renderer/routes/_authenticated/components/V1ImportModal";
+import { V1RuntimeLifecycle } from "renderer/routes/_authenticated/components/V1RuntimeLifecycle";
 import { useZoomHotkeys } from "renderer/routes/_authenticated/hooks/useZoomHotkeys";
 import { WorkspaceInitEffects } from "renderer/screens/main/components/WorkspaceInitEffects";
 import { useSettingsStore } from "renderer/stores/settings-state";
@@ -320,6 +321,7 @@ function AuthenticatedLayout() {
 									<V1FlipNotice />
 								)}
 								<V1AutoMigration />
+								<V1RuntimeLifecycle />
 								<WorkspaceInitEffects />
 								{isV2CloudEnabled ? (
 									<DashboardNewWorkspaceModal />
