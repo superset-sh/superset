@@ -963,6 +963,14 @@ describe("swapClaudeLogin on a file-backed store", () => {
 		expect(readdirSync(f.activeDir)).not.toContain(".credentials.json");
 	});
 
+	// The residual cost of restoring the identity first, pinned rather than
+	// left implicit: the identity goes back and the credential then cannot, so
+	// the dir is left holding the TARGET's credential under the PREVIOUS
+	// account's name. That is the half of the trade this order gives up — the
+	// other order gives up the far likelier failure, an identity restore that
+	// throws on a file the live CLI also writes, and leaves the same split with
+	// the two sides swapped. Both are `split-state`; only the on-disk pair
+	// differs, so this test asserts the pair and not just the code.
 	it("reports split state when the rollback fails too", async () => {
 		const f = fixture();
 		const stolen = identityStolenAtVerify(f.activeDir) as {
@@ -1004,6 +1012,142 @@ describe("swapClaudeLogin on a file-backed store", () => {
 		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
 			oauth("t-b", 2_000),
 		);
+		// The identity restore ran first and succeeded, so `.claude.json` is the
+		// previous account's again while the credential above is still the
+		// target's: the split this order accepts.
+		const state = JSON.parse(
+			readFileSync(join(f.activeDir, ".claude.json"), "utf-8"),
+		);
+		expect(state.oauthAccount).toEqual(identity("a").oauthAccount);
+		expect(state.userID).toBe("user-a");
+	});
+
+	// The window the probe below cannot close: `.claude.json` answers the
+	// rollback's probe and stops answering before `updateClaudeStateFile` reads
+	// it for real. Restoring the identity FIRST is what keeps the dir whole
+	// here — measured with the credential restored first, this left the
+	// previous account's login beside the target's identity, the exact shape a
+	// later save-back reads as the previous account's own.
+	it("leaves the dir whole as the target when the identity restore fails", async () => {
+		if (process.getuid?.() === 0) return;
+		const f = fixture();
+		const state = join(f.activeDir, ".claude.json");
+		let stolen: string | null = null;
+		const deps: ClaudeSwapDeps = {
+			...f.deps,
+			fs: {
+				readFile: async (path: string, encoding: "utf-8") => {
+					const { readFile } = await import("node:fs/promises");
+					// Once the identity write has landed, a third account's
+					// `/login` takes the dir and the file stops opening in the same
+					// breath. Every later read through the deps answers from the
+					// bytes captured here — the verify step sees the stranger and
+					// the rollback's probe gets an answer — so only
+					// `updateClaudeStateFile`, which reads the real file, is denied.
+					if (path === state && stolen === null && namesB(state)) {
+						stolen = JSON.stringify({
+							...JSON.parse(readFileSync(state, "utf-8")),
+							...identity("c"),
+						});
+						chmodSync(state, 0o000);
+					}
+					if (path === state && stolen !== null) return stolen;
+					return readFile(path, encoding);
+				},
+			},
+		};
+
+		let result: Awaited<ReturnType<typeof swapClaudeLogin>>;
+		try {
+			result = await swapClaudeLogin({
+				target: asProfile(f.profileB),
+				ownerBinding: asProfile(f.profileA),
+				activeDir: f.activeDir,
+				deps,
+			});
+		} finally {
+			chmodSync(state, 0o600);
+		}
+
+		expect(result).toMatchObject({ ok: false, code: "split-state" });
+		if (result.ok) throw new Error("expected a refusal");
+		// The claim the message makes is the state the dir is actually in.
+		expect(result.reason).toContain(
+			"still holds the target login and could not be rolled back",
+		);
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-b", 2_000),
+		);
+		expect(JSON.parse(readFileSync(state, "utf-8")).oauthAccount).toEqual(
+			identity("b").oauthAccount,
+		);
+	});
+
+	// The measured shape: both writes land, then `.claude.json` will not open
+	// for the verify read. The identity restore would fail on that same file,
+	// so the rollback is refused whole rather than performed halfway —
+	// measured before the probe, the credential WAS rolled back and the
+	// identity was not, leaving the previous account's login under the
+	// target's name while the message claimed nothing had been rolled back.
+	it("does not start a rollback the unreadable identity would abort", async () => {
+		const f = fixture();
+		const state = join(f.activeDir, ".claude.json");
+		const credentials = join(f.activeDir, ".credentials.json");
+		const renamedTo: string[] = [];
+		let denied = false;
+		const deps: ClaudeSwapDeps = {
+			...f.deps,
+			fs: {
+				readFile: async (path: string, encoding: "utf-8") => {
+					if (path === state) {
+						if (!denied && namesB(state)) denied = true;
+						if (denied) {
+							throw Object.assign(
+								new Error(`EACCES: permission denied, open '${state}'`),
+								{ code: "EACCES" },
+							);
+						}
+					}
+					const { readFile } = await import("node:fs/promises");
+					return readFile(path, encoding);
+				},
+				rename: async (from: string, to: string) => {
+					renamedTo.push(to);
+					const { rename } = await import("node:fs/promises");
+					await rename(from, to);
+				},
+			},
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps,
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "split-state" });
+		if (result.ok) throw new Error("expected a refusal");
+		// Named as unreadable, not as a disagreement: the user has a file to
+		// repair rather than a third account to hunt for.
+		expect(result.reason).toContain(
+			`${state} exists but could not be read while the swap verified`,
+		);
+		expect(result.reason).toContain(
+			"still holds the target login and was not rolled back",
+		);
+		expect(result.reason).not.toContain(
+			"did not read back as the target identity",
+		);
+		// No half-rollback: the forward write is the only rename onto the
+		// credential, and the dir is still coherently the target's.
+		expect(renamedTo.filter((path) => path === credentials)).toHaveLength(1);
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-b", 2_000),
+		);
+		const left = JSON.parse(readFileSync(state, "utf-8"));
+		expect(left.oauthAccount).toEqual(identity("b").oauthAccount);
+		expect(left.userID).toBe("user-b");
 	});
 
 	// A `/login` inside a live session leaves an account in the active dir that

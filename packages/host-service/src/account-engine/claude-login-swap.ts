@@ -342,21 +342,48 @@ function extractIdentity(
 	return { accountUuid, emailAddress, keys };
 }
 
+/**
+ * The identity `.claude.json` answers with, and whether the file refused the
+ * read outright. One read, two answers: `readIdentity` below folds them into
+ * the single `null` all but one of its callers want, and the verify step keeps
+ * the pair because "nothing could be read" and "somebody else's account is in
+ * there" are different things to put in front of a user — the first is a
+ * permissions or IO fault on a file this can name, the second points at a
+ * third account that landed in the dir. Absent and unparsable are answers, not
+ * failures, so they read as readable: the same line `readIdentityKeys` draws.
+ */
+async function readIdentityFile(
+	statePath: string,
+	ctx: SwapContext,
+): Promise<{ identity: ClaudeSwapIdentity | null; unreadable: boolean }> {
+	let raw: string;
+	try {
+		raw = await ctx.fs.readFile(statePath, "utf-8");
+	} catch (error) {
+		return {
+			identity: null,
+			unreadable: (error as NodeJS.ErrnoException).code !== "ENOENT",
+		};
+	}
+	try {
+		const parsed: unknown = JSON.parse(raw);
+		if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+			return { identity: null, unreadable: false };
+		}
+		return {
+			identity: extractIdentity(parsed as Record<string, unknown>),
+			unreadable: false,
+		};
+	} catch {
+		return { identity: null, unreadable: false };
+	}
+}
+
 async function readIdentity(
 	statePath: string,
 	ctx: SwapContext,
 ): Promise<ClaudeSwapIdentity | null> {
-	try {
-		const parsed: unknown = JSON.parse(
-			await ctx.fs.readFile(statePath, "utf-8"),
-		);
-		if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-			return null;
-		}
-		return extractIdentity(parsed as Record<string, unknown>);
-	} catch {
-		return null;
-	}
+	return (await readIdentityFile(statePath, ctx)).identity;
 }
 
 /**
@@ -601,7 +628,7 @@ async function applyStoreWrite(
  * together: a credential restored under the target's name is the split the
  * rollback exists to prevent. Reports `code` — what went wrong before the
  * rollback — once the dir is whole again, `split-state` when the restore failed
- * too.
+ * too or was refused before it could start.
  */
 async function rollbackActiveWrite(
 	activeRead: ClaudeLoginRead,
@@ -618,6 +645,26 @@ async function rollbackActiveWrite(
 	if (!written.file && !written.keychain && !previousIdentity) {
 		return failure(code, reason);
 	}
+	// A rollback that cannot finish does not start. `updateClaudeStateFile`
+	// rethrows every read failure that is not ENOENT, so a `.claude.json` that
+	// will not open takes the identity restore down with it — and the verify
+	// path arrives here precisely when that file would not read, since an
+	// identity nothing could read is one of the ways the read-back disagrees.
+	// Probe it the way `readIdentityKeys` did before the write, and refuse the
+	// whole rollback rather than perform half of one: the dir is then left
+	// whole as the TARGET, which is a state the caller can act on, instead of
+	// the previous account's credential filed under the target's name, which
+	// nothing can reconcile. Costs one read; the window between this read and
+	// the restore is not closed, and a file that turns unreadable inside it
+	// only degrades to the behaviour below.
+	if (previousIdentity) {
+		if ((await readIdentityKeys(previousIdentity.statePath, ctx)) === null) {
+			return failure(
+				"split-state",
+				`${reason}; ${activeDir} still holds the target login and was not rolled back: putting the identity back needs ${previousIdentity.statePath}, which could not be read, and restoring only the credential would leave the dir serving two accounts`,
+			);
+		}
+	}
 	// Every other write in this file re-validates its dir immediately before it
 	// lands; these do not, deliberately. A restore puts back bytes this swap
 	// read out of that same dir moments ago, and refusing it because the dir
@@ -626,7 +673,30 @@ async function rollbackActiveWrite(
 	// retry into `split-state`, which nothing here can reconcile. Putting a
 	// dir back as it was is the one write worth making into a dir that may no
 	// longer be safe.
+	//
+	// The identity goes back FIRST and the credential second, and the honest
+	// accounting is that this MOVES the failure mode rather than removing it.
+	// Either order has a half that can throw with the other already restored;
+	// what changes is which pair the dir is left holding. Identity-first, a
+	// throw leaves the dir coherent as the target and the message below —
+	// "still holds the target login and could not be rolled back" — literally
+	// true; the case it gives up is an identity restored and a credential that
+	// then fails, which lands on the target's credential under the previous
+	// account's name. Credential-first inverts both. It is worth the trade
+	// because the halves are not equally fragile: the identity restore reads
+	// and rewrites a file the live CLI writes too — any non-ENOENT read error
+	// propagates, and `applyStateUpdate` gives up after `MAX_ATTEMPTS = 2`
+	// against exactly the contention a swap races — while the credential
+	// restore is a tmp-then-rename of bytes this swap already read, into a dir
+	// it validated and wrote successfully moments ago. The likely failure now
+	// aborts before anything else moved.
 	try {
+		if (previousIdentity) {
+			await updateClaudeStateFile(previousIdentity.statePath, (state) => {
+				for (const key of CLAUDE_IDENTITY_KEYS) delete state[key];
+				return { ...state, ...previousIdentity.keys };
+			});
+		}
 		if (written.file) {
 			if (activeRead.fileContent) {
 				await writeCredentialFile(
@@ -648,12 +718,6 @@ async function rollbackActiveWrite(
 			} else {
 				await deleteKeychainItem(written.keychain, ctx);
 			}
-		}
-		if (previousIdentity) {
-			await updateClaudeStateFile(previousIdentity.statePath, (state) => {
-				for (const key of CLAUDE_IDENTITY_KEYS) delete state[key];
-				return { ...state, ...previousIdentity.keys };
-			});
 		}
 	} catch (rollbackError) {
 		return failure(
@@ -979,8 +1043,11 @@ async function applyToActiveDir(
 				isRefreshedLogin(oauth, oauthOf(read))),
 	});
 	let verifyRead = await readStore(activeRef, ctx);
-	let verifyIdentity = await readIdentity(join(activeDir, ".claude.json"), ctx);
-	let verdict = readsAsTarget(verifyRead, verifyIdentity);
+	let verifyIdentity = await readIdentityFile(
+		join(activeDir, ".claude.json"),
+		ctx,
+	);
+	let verdict = readsAsTarget(verifyRead, verifyIdentity.identity);
 	// Decided on the first pair, not on the flags it carries: a read that
 	// answered the target's login AND the target's identity has confirmed the
 	// swap, whatever else it could not see. On darwin any spelling that times
@@ -1018,11 +1085,14 @@ async function applyToActiveDir(
 	if (
 		verifyRead.keychainUnreadable ||
 		verifyRead.anyFileCandidateUnreadable ||
-		verifyIdentity === null
+		verifyIdentity.identity === null
 	) {
 		verifyRead = await readStore(activeRef, ctx);
-		verifyIdentity = await readIdentity(join(activeDir, ".claude.json"), ctx);
-		verdict = readsAsTarget(verifyRead, verifyIdentity);
+		verifyIdentity = await readIdentityFile(
+			join(activeDir, ".claude.json"),
+			ctx,
+		);
+		verdict = readsAsTarget(verifyRead, verifyIdentity.identity);
 	}
 	if (!verdict.login || !verdict.identity) {
 		// A store still unreadable after the retry rolls back too, and that is a
@@ -1043,6 +1113,15 @@ async function applyToActiveDir(
 		const unread = verifyRead.keychainUnreadable
 			? `${keychainStoreName(verifyRead, activeRef, ctx)}'s Keychain item`
 			: fileStoreName(verifyRead, activeRef, ctx);
+		// The identity half of the same courtesy, and the half that was getting
+		// it wrong: a `.claude.json` that would not open failed the identity
+		// check, and the message then said the dir "did not read back as the
+		// target identity" — which sends the user hunting for a third account
+		// that never landed instead of at the permissions or IO fault on a file
+		// this can name. Only a read that FAILED counts; absent or unparsable
+		// really is a disagreement, and still reads as one.
+		const statePath = join(activeDir, ".claude.json");
+		const identityUnreadable = !verdict.identity && verifyIdentity.unreadable;
 		// Unlike the write failures above, the dir now holds the target while
 		// the caller still believes the previous account is live; put its own
 		// snapshot back — identity included, since by here `.claude.json`
@@ -1053,10 +1132,12 @@ async function applyToActiveDir(
 			activeDir,
 			storeUnreadable
 				? `${unread} exists but could not be read while the swap verified ${activeDir}; rolling the write back rather than reporting a login nothing could see`
-				: `${activeDir} did not read back as the target ${verdict.login ? "identity" : "login"}`,
+				: identityUnreadable
+					? `${statePath} exists but could not be read while the swap verified ${activeDir}, so the swap could not be confirmed`
+					: `${activeDir} did not read back as the target ${verdict.login ? "identity" : "login"}`,
 			"verify-failed",
 			ctx,
-			{ statePath: join(activeDir, ".claude.json"), keys: previousIdentity },
+			{ statePath, keys: previousIdentity },
 		);
 	}
 	return { ok: true, identity: target.identity };
