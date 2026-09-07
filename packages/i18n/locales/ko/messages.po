@@ -6533,11 +6533,26 @@ msgstr "GitHub 설치를 찾을 수 없습니다"
 msgid "GitHub integration"
 msgstr "GitHub 연동"
 
+msgid "GitHub is refusing API calls for this machine's credential until {until}. Existing pull request links stay; new pull requests appear once the limit resets."
+msgstr "GitHub가 {until}까지 이 컴퓨터의 자격 증명으로 보내는 API 호출을 거부하고 있습니다. 기존 풀 리퀘스트 링크는 유지되며, 새 풀 리퀘스트는 한도가 초기화된 후 표시됩니다."
+
 msgid "GitHub issues"
 msgstr "GitHub 이슈"
 
+msgid "GitHub rate limit reached"
+msgstr "GitHub 요청 한도에 도달했습니다"
+
 msgid "GitHub refused the merge"
 msgstr "GitHub가 머지를 거부했습니다"
+
+msgid "GitHub rejected this machine's credentials, so pull requests cannot be detected. Run \"gh auth login\" or fix GITHUB_TOKEN; the next retry is at {until}."
+msgstr "GitHub가 이 컴퓨터의 자격 증명을 거부하여 풀 리퀘스트를 감지할 수 없습니다. \"gh auth login\"을 실행하거나 GITHUB_TOKEN을 수정하세요. 다음 재시도는 {until}입니다."
+
+msgid "GitHub sign-in needed"
+msgstr "GitHub 로그인이 필요합니다"
+
+msgid "GitHub unreachable"
+msgstr "GitHub에 연결할 수 없습니다"
 
 msgid "GitHub username"
 msgstr "GitHub 사용자 이름"
@@ -13328,6 +13343,9 @@ msgstr "Superset 앱"
 
 msgid "Superset App"
 msgstr "Superset 앱"
+
+msgid "Superset cannot reach api.github.com from this machine. Pull request status retries at {until}."
+msgstr "이 컴퓨터에서 api.github.com에 연결할 수 없습니다. 풀 리퀘스트 상태는 {until}에 다시 시도합니다."
 
 msgid "Superset components"
 msgstr "Superset 컴포넌트"

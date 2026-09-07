@@ -6533,11 +6533,26 @@ msgstr "Установка GitHub не найдена"
 msgid "GitHub integration"
 msgstr "Интеграция с GitHub"
 
+msgid "GitHub is refusing API calls for this machine's credential until {until}. Existing pull request links stay; new pull requests appear once the limit resets."
+msgstr "GitHub отклоняет вызовы API с учётными данными этого компьютера до {until}. Существующие ссылки на pull request сохраняются; новые pull request появятся после сброса лимита."
+
 msgid "GitHub issues"
 msgstr "Задачи GitHub"
 
+msgid "GitHub rate limit reached"
+msgstr "Достигнут лимит запросов GitHub"
+
 msgid "GitHub refused the merge"
 msgstr "GitHub отклонил слияние"
+
+msgid "GitHub rejected this machine's credentials, so pull requests cannot be detected. Run \"gh auth login\" or fix GITHUB_TOKEN; the next retry is at {until}."
+msgstr "GitHub отклонил учётные данные этого компьютера, поэтому pull request не могут быть обнаружены. Выполните \"gh auth login\" или исправьте GITHUB_TOKEN; следующая попытка в {until}."
+
+msgid "GitHub sign-in needed"
+msgstr "Требуется вход в GitHub"
+
+msgid "GitHub unreachable"
+msgstr "GitHub недоступен"
 
 msgid "GitHub username"
 msgstr "Имя пользователя GitHub"
@@ -13328,6 +13343,9 @@ msgstr "Приложение Superset"
 
 msgid "Superset App"
 msgstr "Приложение Superset"
+
+msgid "Superset cannot reach api.github.com from this machine. Pull request status retries at {until}."
+msgstr "Superset не может подключиться к api.github.com с этого компьютера. Состояние pull request будет запрошено повторно в {until}."
 
 msgid "Superset components"
 msgstr "Компоненты Superset"

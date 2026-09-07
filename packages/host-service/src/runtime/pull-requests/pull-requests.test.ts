@@ -11,7 +11,7 @@ import * as schema from "../../db/schema";
 import { pullRequests, workspaces } from "../../db/schema";
 import type { WorkspaceChangedMessage } from "../../events/types";
 import { PullRequestRuntimeManager } from "./pull-requests";
-import { GitHubReachabilityGate } from "./utils/github-reachability";
+import { GitHubAvailabilityGate } from "./utils/github-availability";
 import type { WorkspaceRefsSnapshot } from "./utils/workspace-refs";
 
 // All tests run the real manager against a real, migrated, in-memory SQLite
@@ -1109,7 +1109,7 @@ describe("PullRequestRuntimeManager refresh", () => {
 		});
 	});
 
-	test("detail lookups are held during an outage even with a warm head cache", async () => {
+	test("a transport failure on a detail lookup trips the gate, and polling then spawns nothing", async () => {
 		const db = createRealDb();
 		seedProject(db);
 		seedWorkspace(db, {
@@ -1120,7 +1120,7 @@ describe("PullRequestRuntimeManager refresh", () => {
 			upstreamRepo: REPO.name,
 			upstreamBranch: "fix/sidebar",
 		});
-		let online = true;
+		let detailsOnline = true;
 		let ghAttempts = 0;
 		let octokitAttempts = 0;
 		const route = routeGh({
@@ -1134,7 +1134,8 @@ describe("PullRequestRuntimeManager refresh", () => {
 			git: defaultBranchGit("main"),
 			execGh: async (args) => {
 				ghAttempts += 1;
-				if (!online) {
+				const isHeadLookup = args.some((arg) => arg.startsWith("head="));
+				if (!detailsOnline && !isHeadLookup) {
 					throw Object.assign(new Error("Command failed"), {
 						stderr: "error connecting to api.github.com",
 					});
@@ -1146,31 +1147,35 @@ describe("PullRequestRuntimeManager refresh", () => {
 				throw new Error("octokit must not run during an outage");
 			}) as never,
 		});
-		const accessible = manager as unknown as {
-			refreshProject(projectId: string): Promise<void>;
-		};
+		const refreshProject = projectRefresher(manager);
 
 		// Warm every cache while online: head lookup, reviews, checks, queue.
-		await withSilencedWarnings(() => accessible.refreshProject(PROJECT_ID));
+		await withSilencedWarnings(() => refreshProject(PROJECT_ID));
 		expect(getWorkspace(db, "ws")?.pullRequestId).not.toBeNull();
 		const warmAttempts = ghAttempts;
 
-		// The network dies. The head lookup is cached, so the detail calls are
-		// the only gh spawns this refresh would make: the first trips the gate.
-		online = false;
-		await withSilencedWarnings(() => accessible.refreshProject(PROJECT_ID));
+		// The network dies under the detail calls. The user's refresh re-reads
+		// the head (still answering) and then the first detail call trips the
+		// gate; Octokit is skipped because it would hit the same network.
+		detailsOnline = false;
+		await withSilencedWarnings(() =>
+			manager.refreshPullRequestsByWorkspaces(["ws"]),
+		);
 		expect(ghAttempts).toBeGreaterThan(warmAttempts);
 		expect(octokitAttempts).toBe(0);
+		expect(manager.getGithubStatus()?.reason).toBe("unreachable");
 		const heldAttempts = ghAttempts;
 
-		// While held, a refresh spawns nothing at all.
-		await withSilencedWarnings(() => accessible.refreshProject(PROJECT_ID));
+		// While held, polling spawns nothing at all.
+		await withSilencedWarnings(() => refreshProject(PROJECT_ID));
 		expect(ghAttempts).toBe(heldAttempts);
 		expect(octokitAttempts).toBe(0);
 	});
 
-	for (const recoveredDetail of ["checks", "queue"] as const) {
-		test(`successful Octokit ${recoveredDetail} fallback resets the outage streak`, async () => {
+	test("a successful Octokit fallback resets the outage streak", async () => {
+		const t0 = 1_700_000_000_000;
+		setSystemTime(new Date(t0));
+		try {
 			const db = createRealDb();
 			seedProject(db);
 			seedWorkspace(db, {
@@ -1181,14 +1186,13 @@ describe("PullRequestRuntimeManager refresh", () => {
 				upstreamRepo: REPO.name,
 				upstreamBranch: "fix/sidebar",
 			});
-			let warming = true;
-			const route = routeGh({
-				"fix/sidebar": makePrNode({
-					number: 7,
-					headRef: "fix/sidebar",
-					headSha: "abc123",
-				}),
+			const node = makePrNode({
+				number: 7,
+				headRef: "fix/sidebar",
+				headSha: "abc123",
 			});
+			let warming = true;
+			const route = routeGh({ "fix/sidebar": node });
 			const manager = createManager(db, {
 				git: defaultBranchGit("main"),
 				execGh: async (args) => {
@@ -1198,46 +1202,45 @@ describe("PullRequestRuntimeManager refresh", () => {
 				github: (async () => ({
 					rest: {
 						pulls: {
-							listReviews: async () => {
-								if (recoveredDetail !== "checks")
-									throw new Error("reviews unavailable");
-								return { data: [] };
-							},
+							list: async () => ({ data: [node] }),
+							listReviews: async () => ({ data: [] }),
 						},
 						checks: { listForRef: async () => ({ data: { check_runs: [] } }) },
 						repos: { listCommitStatusesForRef: async () => ({ data: [] }) },
 					},
-					graphql: async () => {
-						if (recoveredDetail !== "queue")
-							throw new Error("queue unavailable");
-						return { repository: { pullRequest: { mergeQueueEntry: null } } };
-					},
+					graphql: async () => ({
+						repository: { pullRequest: { mergeQueueEntry: null } },
+					}),
 				})) as never,
 			});
 			let now = 0;
-			const gate = new GitHubReachabilityGate({ now: () => now });
+			const gate = new GitHubAvailabilityGate({ now: () => now });
 			const accessible = manager as unknown as {
-				githubGate: GitHubReachabilityGate;
-				refreshProject(projectId: string): Promise<void>;
+				githubGate: GitHubAvailabilityGate;
 			};
 			accessible.githubGate = gate;
-			await withSilencedWarnings(() => accessible.refreshProject(PROJECT_ID));
+			const refreshProject = projectRefresher(manager);
+			await withSilencedWarnings(() => refreshProject(PROJECT_ID));
 			expect(getWorkspace(db, "ws")?.pullRequestId).not.toBeNull();
 			warming = false;
 			const offline = Object.assign(new Error("offline"), {
 				code: "ENOTFOUND",
 			});
 			gate.recordFailure(offline);
-			// Advance only the gate clock so the head cache stays warm.
-			// Only the selected Octokit detail fallback can reset the streak.
+			// Past the hold and the caches: gh answers 403, Octokit answers, and
+			// that success is what resets the streak to the base window.
 			now = 61_000;
-			await withSilencedWarnings(() => accessible.refreshProject(PROJECT_ID));
+			setSystemTime(new Date(t0 + 61_000));
+			await withSilencedWarnings(() => refreshProject(PROJECT_ID));
 			expect(gate.recordFailure(offline)).toEqual({
+				reason: "unreachable",
 				opened: true,
 				holdMs: 60_000,
 			});
-		});
-	}
+		} finally {
+			setSystemTime();
+		}
+	});
 
 	test("still falls back to Octokit when gh fails but GitHub answered", async () => {
 		const db = createRealDb();
@@ -2018,5 +2021,363 @@ describe("PullRequestRuntimeManager workspace PR history", () => {
 
 		const history = await manager.getPullRequestHistoryByWorkspaces(["ws"]);
 		expect(history[0]?.pullRequests.map((pr) => pr.number)).toEqual([101]);
+	});
+});
+
+// Typed handle on the private timer-path refresh (no bypass), so a test can
+// tell a cached answer from a refetch.
+function projectRefresher(manager: PullRequestRuntimeManager) {
+	const accessible = manager as unknown as {
+		refreshProject(projectId: string): Promise<void>;
+	};
+	return accessible.refreshProject.bind(accessible);
+}
+
+// gh answers for one open PR: the head lookup / open sweep return the node,
+// and the four detail calls return empty but well-formed payloads.
+function ghAnsweringPr(
+	node: ReturnType<typeof makePrNode>,
+	counts: Record<string, number>,
+) {
+	return async (args: string[]) => {
+		const path = args.find((arg) => arg.startsWith("repos/")) ?? "";
+		const kind =
+			args[1] === "graphql"
+				? "merge-queue"
+				: path.endsWith("/reviews")
+					? "reviews"
+					: path.endsWith("/check-runs")
+						? "check-runs"
+						: path.endsWith("/statuses")
+							? "statuses"
+							: "head-lookup";
+		counts[kind] = (counts[kind] ?? 0) + 1;
+		switch (kind) {
+			case "head-lookup":
+				return [node];
+			case "reviews":
+			case "statuses":
+				return [];
+			case "check-runs":
+				return { check_runs: [] };
+			default:
+				return {
+					data: { repository: { pullRequest: { mergeQueueEntry: null } } },
+				};
+		}
+	};
+}
+
+describe("PullRequestRuntimeManager GitHub traffic", () => {
+	test("caches review/check/merge-queue lookups per PR head across refreshes", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedWorkspace(db, {
+			id: "ws",
+			branch: "feature",
+			headSha: "abc123",
+			upstreamOwner: REPO.owner,
+			upstreamRepo: REPO.name,
+			upstreamBranch: "feature",
+		});
+		const counts: Record<string, number> = {};
+		const manager = createManager(db, {
+			execGh: ghAnsweringPr(
+				makePrNode({ number: 7, headRef: "feature", headSha: "abc123" }),
+				counts,
+			),
+		});
+		const refreshProject = projectRefresher(manager);
+
+		await refreshProject(PROJECT_ID);
+		expect(getWorkspace(db, "ws")?.pullRequestId).toBeTruthy();
+		expect(counts).toEqual({
+			"head-lookup": 1,
+			reviews: 1,
+			"check-runs": 1,
+			statuses: 1,
+			"merge-queue": 1,
+		});
+
+		// A second timer sweep inside the TTL costs nothing.
+		await refreshProject(PROJECT_ID);
+		expect(counts).toEqual({
+			"head-lookup": 1,
+			reviews: 1,
+			"check-runs": 1,
+			statuses: 1,
+			"merge-queue": 1,
+		});
+
+		// The user's explicit refresh bypasses the cache and pays once more.
+		await manager.refreshPullRequestsByWorkspaces(["ws"]);
+		expect(counts).toEqual({
+			"head-lookup": 2,
+			reviews: 2,
+			"check-runs": 2,
+			statuses: 2,
+			"merge-queue": 2,
+		});
+	});
+
+	test("a rate limit holds every lookup until the reset, keeps old links, and is reported", async () => {
+		const t0 = 1_700_000_000_000;
+		setSystemTime(new Date(t0));
+		try {
+			const db = createRealDb();
+			seedProject(db);
+			seedPullRequest(db, {
+				id: "pr-old",
+				prNumber: 41,
+				headBranch: "older",
+				headSha: "old-sha",
+			});
+			seedWorkspace(db, {
+				id: "ws-old",
+				branch: "older",
+				headSha: "old-sha",
+				upstreamOwner: REPO.owner,
+				upstreamRepo: REPO.name,
+				upstreamBranch: "older",
+				pullRequestId: "pr-old",
+			});
+			seedWorkspace(db, {
+				id: "ws-new",
+				branch: "newer",
+				headSha: "new-sha",
+				upstreamOwner: REPO.owner,
+				upstreamRepo: REPO.name,
+				upstreamBranch: "newer",
+			});
+			let ghSpawns = 0;
+			let quotaSpent = true;
+			const counts: Record<string, number> = {};
+			const answer = ghAnsweringPr(
+				makePrNode({ number: 42, headRef: "newer", headSha: "new-sha" }),
+				counts,
+			);
+			const manager = createManager(db, {
+				execGh: async (args) => {
+					ghSpawns += 1;
+					if (!quotaSpent) return answer(args);
+					throw Object.assign(new Error("Command failed: gh api"), {
+						code: 1,
+						stderr:
+							"gh: API rate limit exceeded for user ID 1. If you reach out to GitHub Support for help…",
+					});
+				},
+				github: async () => {
+					throw Object.assign(
+						new Error("API rate limit exceeded for user ID 1."),
+						{
+							status: 403,
+							response: {
+								headers: {
+									"x-ratelimit-reset": String(Math.floor(t0 / 1000) + 600),
+								},
+							},
+						},
+					);
+				},
+			});
+			expect(manager.getGithubStatus()).toBeNull();
+
+			await withSilencedWarnings(() =>
+				manager.refreshPullRequestsByWorkspaces(["ws-old", "ws-new"]),
+			);
+			// The older link survives; the newer PR cannot be linked yet.
+			expect(getWorkspace(db, "ws-old")?.pullRequestId).toBe("pr-old");
+			expect(getWorkspace(db, "ws-new")?.pullRequestId).toBeNull();
+			expect(manager.getGithubStatus()).toEqual({
+				reason: "rate-limited",
+				since: t0,
+				until: t0 + 605_000,
+			});
+
+			// Polling spawns nothing while the hold lasts.
+			const spawnsBeforeHold = ghSpawns;
+			await withSilencedWarnings(() => projectRefresher(manager)(PROJECT_ID));
+			expect(ghSpawns).toBe(spawnsBeforeHold);
+			// An explicit refresh probes once per workspace and, still limited,
+			// leaves the hold and the links exactly as they were.
+			await withSilencedWarnings(() =>
+				manager.refreshPullRequestsByWorkspaces(["ws-old", "ws-new"]),
+			);
+			expect(ghSpawns).toBe(spawnsBeforeHold + 2);
+			expect(manager.getGithubStatus()?.until).toBe(t0 + 605_000);
+			expect(getWorkspace(db, "ws-old")?.pullRequestId).toBe("pr-old");
+
+			// Past the reset the sweep runs again and links the newer PR.
+			setSystemTime(new Date(t0 + 606_000));
+			quotaSpent = false;
+			expect(manager.getGithubStatus()).toBeNull();
+			await manager.refreshPullRequestsByWorkspaces(["ws-new"]);
+			expect(getWorkspace(db, "ws-new")?.pullRequestId).toBeTruthy();
+			expect(getPrByNumber(db, 42)?.headBranch).toBe("newer");
+			expect(manager.getGithubStatus()).toBeNull();
+		} finally {
+			setSystemTime();
+		}
+	});
+
+	test("the first sweep after a hold fetches instead of serving the held rejection", async () => {
+		const t0 = 1_700_000_000_000;
+		setSystemTime(new Date(t0));
+		const db = createRealDb();
+		seedProject(db);
+		seedWorkspace(db, {
+			id: "ws",
+			branch: "feature",
+			headSha: "abc123",
+			upstreamOwner: REPO.owner,
+			upstreamRepo: REPO.name,
+			upstreamBranch: "feature",
+		});
+		let ghSpawns = 0;
+		let quotaSpent = true;
+		const answer = ghAnsweringPr(
+			makePrNode({ number: 9, headRef: "feature", headSha: "abc123" }),
+			{},
+		);
+		const manager = createManager(db, {
+			execGh: async (args) => {
+				ghSpawns += 1;
+				if (!quotaSpent) return answer(args);
+				throw Object.assign(new Error("Command failed: gh api"), {
+					code: 1,
+					stderr: "gh: API rate limit exceeded for user ID 1.",
+				});
+			},
+			github: async () => {
+				throw Object.assign(new Error("API rate limit exceeded"), {
+					status: 403,
+				});
+			},
+		});
+		try {
+			const refreshProject = projectRefresher(manager);
+
+			// Trip the gate, then let several timer sweeps hit the hold: each
+			// would otherwise cache a rejection with a doubling TTL.
+			await withSilencedWarnings(() => refreshProject(PROJECT_ID));
+			expect(manager.getGithubStatus()?.reason).toBe("rate-limited");
+			for (let i = 1; i <= 3; i++) {
+				setSystemTime(new Date(t0 + i * 61_000));
+				await withSilencedWarnings(() => refreshProject(PROJECT_ID));
+			}
+			const spawnsDuringHold = ghSpawns;
+
+			// Just past the 5-minute hold, the timer path must ask GitHub again.
+			setSystemTime(new Date(t0 + 5 * 60_000 + 1));
+			quotaSpent = false;
+			await refreshProject(PROJECT_ID);
+			expect(ghSpawns).toBeGreaterThan(spawnsDuringHold);
+			expect(getWorkspace(db, "ws")?.pullRequestId).toBeTruthy();
+			expect(manager.getGithubStatus()).toBeNull();
+		} finally {
+			setSystemTime();
+			manager.stop();
+		}
+	});
+
+	test("a single workspace's refresh fetches only its own ref and leaves the others' links alone", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedPullRequest(db, {
+			id: "pr-a",
+			prNumber: 1,
+			headBranch: "a",
+			headSha: "sha-a",
+		});
+		seedPullRequest(db, {
+			id: "pr-b",
+			prNumber: 2,
+			headBranch: "b",
+			headSha: "sha-b",
+		});
+		for (const [id, branch, pullRequestId] of [
+			["ws-a", "a", "pr-a"],
+			["ws-b", "b", "pr-b"],
+			["ws-c", "c", null],
+		] as const) {
+			seedWorkspace(db, {
+				id,
+				branch,
+				headSha: `sha-${branch}`,
+				upstreamOwner: REPO.owner,
+				upstreamRepo: REPO.name,
+				upstreamBranch: branch,
+				pullRequestId,
+			});
+		}
+		const headsLookedUp: string[] = [];
+		const manager = createManager(db, {
+			execGh: async (args) => {
+				const head = args.find((arg) => arg.startsWith("head="));
+				if (head) {
+					headsLookedUp.push(head.slice("head=".length));
+					return head.endsWith(":c")
+						? [makePrNode({ number: 3, headRef: "c", headSha: "sha-c" })]
+						: [];
+				}
+				if (args.some((arg) => arg.startsWith("state=open"))) return [];
+				if (args[1] === "graphql")
+					return {
+						data: { repository: { pullRequest: { mergeQueueEntry: null } } },
+					};
+				if (args.some((arg) => arg.includes("/check-runs")))
+					return { check_runs: [] };
+				return [];
+			},
+		});
+
+		// The user's refresh of ws-c (and a git event in it) costs one head lookup.
+		await manager.refreshPullRequestsByWorkspaces(["ws-c"]);
+		expect(headsLookedUp).toEqual([`${REPO.owner}:c`]);
+		expect(getWorkspace(db, "ws-c")?.pullRequestId).toBeTruthy();
+		// ws-a and ws-b were not fetched, so nothing could have cleared them.
+		expect(getWorkspace(db, "ws-a")?.pullRequestId).toBe("pr-a");
+		expect(getWorkspace(db, "ws-b")?.pullRequestId).toBe("pr-b");
+
+		// The project-wide sweep still covers everyone (c is still cached).
+		headsLookedUp.length = 0;
+		await projectRefresher(manager)(PROJECT_ID);
+		expect([...headsLookedUp].sort()).toEqual([
+			`${REPO.owner}:a`,
+			`${REPO.owner}:b`,
+		]);
+	});
+
+	test("a missing or rejected credential is reported as an auth hold", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedWorkspace(db, {
+			id: "ws",
+			branch: "feature",
+			headSha: "abc123",
+			upstreamOwner: REPO.owner,
+			upstreamRepo: REPO.name,
+			upstreamBranch: "feature",
+		});
+		const manager = createManager(db, {
+			execGh: async () => {
+				throw Object.assign(new Error("Command failed: gh api"), {
+					code: 1,
+					stderr:
+						"To get started with GitHub CLI, please run:  gh auth login\nAlternatively, populate the GH_TOKEN environment variable with a GitHub API authentication token.",
+				});
+			},
+			github: async () => {
+				throw Object.assign(new Error("No GitHub credentials found"), {
+					cause: { kind: "NO_GITHUB_TOKEN" },
+				});
+			},
+		});
+
+		await withSilencedWarnings(() =>
+			manager.refreshPullRequestsByWorkspaces(["ws"]),
+		);
+		expect(manager.getGithubStatus()?.reason).toBe("auth");
+		expect(getWorkspace(db, "ws")?.pullRequestId).toBeNull();
 	});
 });

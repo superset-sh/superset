@@ -6533,11 +6533,26 @@ msgstr "Instalace GitHubu nenalezena"
 msgid "GitHub integration"
 msgstr "Integrace s GitHubem"
 
+msgid "GitHub is refusing API calls for this machine's credential until {until}. Existing pull request links stay; new pull requests appear once the limit resets."
+msgstr "GitHub odmítá volání API pro přihlašovací údaje tohoto počítače do {until}. Stávající odkazy na pull requesty zůstávají; nové pull requesty se objeví po obnovení limitu."
+
 msgid "GitHub issues"
 msgstr "GitHub issues"
 
+msgid "GitHub rate limit reached"
+msgstr "Dosažen limit požadavků GitHubu"
+
 msgid "GitHub refused the merge"
 msgstr "GitHub sloučení odmítl"
+
+msgid "GitHub rejected this machine's credentials, so pull requests cannot be detected. Run \"gh auth login\" or fix GITHUB_TOKEN; the next retry is at {until}."
+msgstr "GitHub odmítl přihlašovací údaje tohoto počítače, takže pull requesty nelze detekovat. Spusťte \"gh auth login\" nebo opravte GITHUB_TOKEN; další pokus proběhne v {until}."
+
+msgid "GitHub sign-in needed"
+msgstr "Je vyžadováno přihlášení ke GitHubu"
+
+msgid "GitHub unreachable"
+msgstr "GitHub je nedostupný"
 
 msgid "GitHub username"
 msgstr "GitHub uživatelské jméno"
@@ -13328,6 +13343,9 @@ msgstr "Aplikace Superset"
 
 msgid "Superset App"
 msgstr "Aplikace Superset"
+
+msgid "Superset cannot reach api.github.com from this machine. Pull request status retries at {until}."
+msgstr "Superset se z tohoto počítače nemůže připojit k api.github.com. Stav pull requestů se znovu zkusí načíst v {until}."
 
 msgid "Superset components"
 msgstr "Komponenty Superset"

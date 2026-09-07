@@ -6533,11 +6533,26 @@ msgstr "Instalasi GitHub tidak ditemukan"
 msgid "GitHub integration"
 msgstr "Integrasi GitHub"
 
+msgid "GitHub is refusing API calls for this machine's credential until {until}. Existing pull request links stay; new pull requests appear once the limit resets."
+msgstr "GitHub menolak panggilan API untuk kredensial mesin ini hingga {until}. Tautan pull request yang ada tetap dipertahankan; pull request baru akan muncul setelah batasnya diatur ulang."
+
 msgid "GitHub issues"
 msgstr "Issue GitHub"
 
+msgid "GitHub rate limit reached"
+msgstr "Batas laju GitHub tercapai"
+
 msgid "GitHub refused the merge"
 msgstr "GitHub menolak merge-nya"
+
+msgid "GitHub rejected this machine's credentials, so pull requests cannot be detected. Run \"gh auth login\" or fix GITHUB_TOKEN; the next retry is at {until}."
+msgstr "GitHub menolak kredensial mesin ini, sehingga pull request tidak dapat dideteksi. Jalankan \"gh auth login\" atau perbaiki GITHUB_TOKEN; percobaan berikutnya pada {until}."
+
+msgid "GitHub sign-in needed"
+msgstr "Perlu masuk ke GitHub"
+
+msgid "GitHub unreachable"
+msgstr "GitHub tidak dapat dijangkau"
 
 msgid "GitHub username"
 msgstr "Username GitHub"
@@ -13328,6 +13343,9 @@ msgstr "Aplikasi Superset"
 
 msgid "Superset App"
 msgstr "Aplikasi Superset"
+
+msgid "Superset cannot reach api.github.com from this machine. Pull request status retries at {until}."
+msgstr "Superset tidak dapat menjangkau api.github.com dari mesin ini. Status pull request akan dicoba lagi pada {until}."
 
 msgid "Superset components"
 msgstr "Komponen Superset"

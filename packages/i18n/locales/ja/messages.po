@@ -6533,11 +6533,26 @@ msgstr "GitHubのインストールが見つかりません"
 msgid "GitHub integration"
 msgstr "GitHub連携"
 
+msgid "GitHub is refusing API calls for this machine's credential until {until}. Existing pull request links stay; new pull requests appear once the limit resets."
+msgstr "GitHub はこのマシンの認証情報による API 呼び出しを {until} まで拒否しています。既存のプルリクエストのリンクは保持され、新しいプルリクエストは制限がリセットされた後に表示されます。"
+
 msgid "GitHub issues"
 msgstr "GitHub issue"
 
+msgid "GitHub rate limit reached"
+msgstr "GitHub のレート制限に達しました"
+
 msgid "GitHub refused the merge"
 msgstr "GitHubがマージを拒否しました"
+
+msgid "GitHub rejected this machine's credentials, so pull requests cannot be detected. Run \"gh auth login\" or fix GITHUB_TOKEN; the next retry is at {until}."
+msgstr "GitHub がこのマシンの認証情報を拒否したため、プルリクエストを検出できません。\"gh auth login\" を実行するか GITHUB_TOKEN を修正してください。次回の再試行は {until} です。"
+
+msgid "GitHub sign-in needed"
+msgstr "GitHub へのサインインが必要です"
+
+msgid "GitHub unreachable"
+msgstr "GitHub に接続できません"
 
 msgid "GitHub username"
 msgstr "GitHubのユーザー名"
@@ -13328,6 +13343,9 @@ msgstr "Supersetアプリ"
 
 msgid "Superset App"
 msgstr "Supersetアプリ"
+
+msgid "Superset cannot reach api.github.com from this machine. Pull request status retries at {until}."
+msgstr "このマシンから api.github.com に接続できません。プルリクエストの状態は {until} に再取得します。"
 
 msgid "Superset components"
 msgstr "Superset コンポーネント"

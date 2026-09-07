@@ -6533,11 +6533,26 @@ msgstr "GitHub kurulumu bulunamadı"
 msgid "GitHub integration"
 msgstr "GitHub entegrasyonu"
 
+msgid "GitHub is refusing API calls for this machine's credential until {until}. Existing pull request links stay; new pull requests appear once the limit resets."
+msgstr "GitHub, bu makinenin kimlik bilgileriyle yapılan API çağrılarını {until} saatine kadar reddediyor. Mevcut pull request bağlantıları korunur; yeni pull request'ler sınır sıfırlandığında görünür."
+
 msgid "GitHub issues"
 msgstr "GitHub issue'ları"
 
+msgid "GitHub rate limit reached"
+msgstr "GitHub istek sınırına ulaşıldı"
+
 msgid "GitHub refused the merge"
 msgstr "GitHub birleştirmeyi reddetti"
+
+msgid "GitHub rejected this machine's credentials, so pull requests cannot be detected. Run \"gh auth login\" or fix GITHUB_TOKEN; the next retry is at {until}."
+msgstr "GitHub bu makinenin kimlik bilgilerini reddetti, bu yüzden pull request'ler algılanamıyor. \"gh auth login\" komutunu çalıştırın veya GITHUB_TOKEN değerini düzeltin; sonraki deneme {until} saatinde."
+
+msgid "GitHub sign-in needed"
+msgstr "GitHub oturumu açmanız gerekiyor"
+
+msgid "GitHub unreachable"
+msgstr "GitHub'a ulaşılamıyor"
 
 msgid "GitHub username"
 msgstr "GitHub kullanıcı adı"
@@ -13328,6 +13343,9 @@ msgstr "Superset uygulaması"
 
 msgid "Superset App"
 msgstr "Superset uygulaması"
+
+msgid "Superset cannot reach api.github.com from this machine. Pull request status retries at {until}."
+msgstr "Superset bu makineden api.github.com adresine ulaşamıyor. Pull request durumu {until} saatinde yeniden denenecek."
 
 msgid "Superset components"
 msgstr "Superset bileşenleri"

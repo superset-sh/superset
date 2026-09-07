@@ -6533,11 +6533,26 @@ msgstr "未找到GitHub安装"
 msgid "GitHub integration"
 msgstr "GitHub集成"
 
+msgid "GitHub is refusing API calls for this machine's credential until {until}. Existing pull request links stay; new pull requests appear once the limit resets."
+msgstr "GitHub 在 {until} 之前拒绝此计算机凭据的 API 调用。现有的拉取请求链接会保留；新的拉取请求将在限制重置后显示。"
+
 msgid "GitHub issues"
 msgstr "GitHub议题"
 
+msgid "GitHub rate limit reached"
+msgstr "已达到 GitHub 速率限制"
+
 msgid "GitHub refused the merge"
 msgstr "GitHub拒绝了此次合并"
+
+msgid "GitHub rejected this machine's credentials, so pull requests cannot be detected. Run \"gh auth login\" or fix GITHUB_TOKEN; the next retry is at {until}."
+msgstr "GitHub 拒绝了此计算机的凭据，因此无法检测拉取请求。请运行 \"gh auth login\" 或修正 GITHUB_TOKEN；下次重试时间为 {until}。"
+
+msgid "GitHub sign-in needed"
+msgstr "需要登录 GitHub"
+
+msgid "GitHub unreachable"
+msgstr "无法连接 GitHub"
 
 msgid "GitHub username"
 msgstr "GitHub用户名"
@@ -13328,6 +13343,9 @@ msgstr "Superset应用"
 
 msgid "Superset App"
 msgstr "Superset应用"
+
+msgid "Superset cannot reach api.github.com from this machine. Pull request status retries at {until}."
+msgstr "Superset 无法从此计算机访问 api.github.com。拉取请求状态将在 {until} 重试。"
 
 msgid "Superset components"
 msgstr "Superset 组件"
