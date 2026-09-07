@@ -2043,6 +2043,98 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 		);
 	});
 
+	// The read side of the same difference: the target's fresher login is in a
+	// Keychain item behind a denied prompt, and the staler file half answers.
+	// Measured before this guard: {"ok":true} and the STALE file credential in
+	// the active dir, with nothing in the result to say a store went unread.
+	it("refuses a target whose Keychain item cannot be read", async () => {
+		const f = fixture();
+		const targetService = keychainServicesForConfigDir(f.profileB)[0] as string;
+		const account = claudeKeychainAccounts()[0] as string;
+		const secret = JSON.stringify({ claudeAiOauth: oauth("t-b-fresh", 9_000) });
+		const keychain = fakeKeychain(
+			[{ service: targetService, account, secret }],
+			{
+				failRead: (args) => args[args.indexOf("-s") + 1] === targetService,
+			},
+		);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, darwin: true, exec: keychain.exec },
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-target" });
+		// The active dir still holds the owner's login, not B's staler file one.
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
+		expect(keychain.items).toEqual([
+			{ service: targetService, account, secret },
+		]);
+	});
+
+	// The mirror: the login answers from the Keychain while the target's
+	// credential file is there but unreadable, so the file may be the fresher.
+	it("refuses a target whose credential file cannot be read", async () => {
+		if (process.getuid?.() === 0) return;
+		const f = fixture();
+		const targetFile = join(f.profileB, ".credentials.json");
+		chmodSync(targetFile, 0o000);
+		const targetService = keychainServicesForConfigDir(f.profileB)[0] as string;
+		const account = claudeKeychainAccounts()[0] as string;
+		const secret = JSON.stringify({ claudeAiOauth: oauth("t-b-kc", 3_000) });
+		const keychain = fakeKeychain([
+			{ service: targetService, account, secret },
+		]);
+
+		try {
+			const result = await swapClaudeLogin({
+				target: asProfile(f.profileB),
+				ownerBinding: asProfile(f.profileA),
+				activeDir: f.activeDir,
+				deps: { ...f.deps, darwin: true, exec: keychain.exec },
+			});
+
+			expect(result).toMatchObject({ ok: false, code: "invalid-target" });
+		} finally {
+			chmodSync(targetFile, 0o600);
+		}
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
+	});
+
+	// The seed reads its source through the same loadTarget, so a first use
+	// cannot land the staler half either.
+	it("refuses to seed from a source whose Keychain item cannot be read", async () => {
+		const f = fixture();
+		const fresh = makeDir(join(f.superset, "accounts", "fresh-active"));
+		const targetService = keychainServicesForConfigDir(f.profileB)[0] as string;
+		const account = claudeKeychainAccounts()[0] as string;
+		const secret = JSON.stringify({ claudeAiOauth: oauth("t-b-fresh", 9_000) });
+		const keychain = fakeKeychain(
+			[{ service: targetService, account, secret }],
+			{
+				failRead: (args) => args[args.indexOf("-s") + 1] === targetService,
+			},
+		);
+
+		const result = await seedActiveClaudeLogin({
+			source: asProfile(f.profileB),
+			activeDir: fresh,
+			deps: { ...f.deps, darwin: true, exec: keychain.exec },
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-target" });
+		expect(readdirSync(fresh)).not.toContain(".credentials.json");
+		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
+	});
+
 	// The same item, read whole this time, holding bytes we cannot make sense
 	// of — a bare token, a store caught mid-rewrite. Measured before this
 	// guard: it read as an absent item, the guard passed, and the write landed

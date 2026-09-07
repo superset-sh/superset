@@ -643,6 +643,23 @@ async function loadTarget(
 			),
 		};
 	}
+	// The read returns the fresher of the target's two stores, but only of the
+	// halves it could read: the other half may hold a newer login, and taking
+	// the one this read did see for the target's current login swaps a STALE
+	// credential into the active dir and reports it as success. Only the store
+	// that did not supply the login is judged — an absent item does not set
+	// these flags, and a Keychain-only target has no file candidate.
+	if (read.source === "file" ? read.keychainUnreadable : read.fileUnreadable) {
+		return {
+			ok: false,
+			result: failure(
+				"invalid-target",
+				read.source === "file"
+					? `${keychainStoreName(read, ref, ctx)}'s Keychain item exists but could not be read; refusing to swap in ${storeDir(ref, ctx)}'s file login, which may be the older of the two`
+					: `${read.credentialsPath} exists but could not be read; refusing to swap in ${storeDir(ref, ctx)}'s Keychain login, which may be the older of the two`,
+			),
+		};
+	}
 	// The login can come from either half of the system default's one slot, and
 	// `~/.config/claude` is a dir `storeDir` never names — validate the one it
 	// actually came from. A Keychain-only login has no dir to validate.
