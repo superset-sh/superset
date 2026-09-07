@@ -963,6 +963,58 @@ describe("readClaudeLogin", () => {
 		}
 	});
 
+	// `keychainService` is whichever spelling held the freshest item that DID
+	// parse, so a refusal that named it pointed the user at the one item that
+	// needed nothing done to it. The failing spellings are recorded separately
+	// because they are the ones there is something to do about.
+	it("names the spelling whose probe failed, not the one it read", async () => {
+		const dir = tempProfile();
+		const spellings = keychainServicesForConfigDir(dir);
+		const denied = spellings[0] as string;
+		const answering = spellings[1] as string;
+		const exec = async (args: string[]) => {
+			if (args[args.indexOf("-s") + 1] === denied) {
+				// A denied or unanswered prompt, or the 5s timeout.
+				throw Object.assign(new Error("Command failed: security"), {
+					killed: true,
+					signal: "SIGTERM",
+				});
+			}
+			if (args.indexOf("-a") === -1) {
+				throw new Error(
+					"The specified item could not be found in the keychain.",
+				);
+			}
+			return { stdout: `${JSON.stringify(oauth)}\n`, stderr: "" };
+		};
+
+		const read = await readClaudeLogin(dir, { darwin: true, exec });
+		expect(read.keychainService).toBe(answering);
+		expect(read.keychainUnreadable).toBe(true);
+		expect(read.keychainUnreadableServices).toEqual([denied]);
+	});
+
+	it("names the spelling whose item would not parse", async () => {
+		const dir = tempProfile();
+		const spellings = keychainServicesForConfigDir(dir);
+		const torn = spellings[0] as string;
+		const answering = spellings[1] as string;
+		const exec = async (args: string[]) => {
+			if (args.indexOf("-a") === -1) {
+				throw new Error(
+					"The specified item could not be found in the keychain.",
+				);
+			}
+			return args[args.indexOf("-s") + 1] === torn
+				? { stdout: "sk-ant-oat01-BARE\n", stderr: "" }
+				: { stdout: `${JSON.stringify(oauth)}\n`, stderr: "" };
+		};
+
+		const read = await readClaudeLogin(dir, { darwin: true, exec });
+		expect(read.keychainService).toBe(answering);
+		expect(read.keychainUnreadableServices).toEqual([torn]);
+	});
+
 	// Bytes that came back whole but would not parse are the same danger as a
 	// probe that never answered: the item is there, the write replaces it in
 	// place with no backup, and the rollback deletes it.

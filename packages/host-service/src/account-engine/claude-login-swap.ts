@@ -170,13 +170,23 @@ function storeDir(ref: ClaudeLoginStoreRef, ctx: SwapContext): string {
 	return ref.kind === "profile" ? ref.dir : join(ctx.homeDir, ".claude");
 }
 
-/** How a refusal names the Keychain store: the service the read located, or
- * the dir it was probing for when no probe got far enough to name one. */
+/**
+ * How a refusal names the Keychain store: the spelling whose item it could not
+ * read, which is the item the user has to unlock or delete. NOT
+ * `keychainService` — that is whichever spelling held the freshest item that
+ * DID parse, so naming it pointed the user at the one thing that was fine, and
+ * when nothing parsed it fell through to naming a directory, which holds no
+ * Keychain item at all. Both fallbacks stay for a caller that names the store
+ * with nothing unread.
+ */
 function keychainStoreName(
 	read: ClaudeLoginRead,
 	ref: ClaudeLoginStoreRef,
 	ctx: SwapContext,
 ): string {
+	if (read.keychainUnreadableServices.length > 0) {
+		return read.keychainUnreadableServices.join(", ");
+	}
 	return read.keychainService ?? storeDir(ref, ctx);
 }
 

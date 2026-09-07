@@ -576,6 +576,14 @@ export interface ClaudeLoginRead {
 	 * believes was not there. A caller that writes must fail closed on this.
 	 */
 	keychainUnreadable: boolean;
+	/**
+	 * The spellings `keychainUnreadable` is true FOR — the items a user would
+	 * have to unlock or delete. Not `keychainService`, which names whichever
+	 * spelling held the freshest item that did parse: a refusal that named
+	 * that one pointed at the item it read fine, and when nothing parsed there
+	 * was no name at all. Empty exactly when `keychainUnreadable` is false.
+	 */
+	keychainUnreadableServices: string[];
 }
 
 function parseCredentialJson(raw: string): ClaudeCredentialJson | null {
@@ -744,6 +752,9 @@ export async function readClaudeLogin(
 	let keychainAccount: string | null = null;
 	let keychainContent: ClaudeCredentialJson | null = null;
 	let keychainUnreadable = false;
+	// Which spelling, not just whether: a refusal has to name the item the
+	// user must unlock or delete, and that is never the one that answered.
+	const keychainUnreadableServices = new Set<string>();
 	// Every spelling is probed, never just the first that hits: a dir the user
 	// re-spelled leaves a stale item filed under the old hash, and stopping
 	// there would swap that old login in and name it as the write target.
@@ -751,7 +762,10 @@ export async function readClaudeLogin(
 		const probe = await readKeychainHits(service, access);
 		// Any spelling: the item the write would land in can be under any of
 		// them, so one unreadable service makes the whole picture unreliable.
-		if (probe.failed) keychainUnreadable = true;
+		if (probe.failed) {
+			keychainUnreadable = true;
+			keychainUnreadableServices.add(service);
+		}
 		for (const hit of probe.hits) {
 			const parsed = parseCredentialJson(hit.secret);
 			// Recorded login or not, exactly as the file loop above does: a
@@ -765,6 +779,7 @@ export async function readClaudeLogin(
 			// place with no backup and the rollback would delete it.
 			if (!parsed) {
 				keychainUnreadable = true;
+				keychainUnreadableServices.add(service);
 				continue;
 			}
 			if (keychainContent && !hasLogin(parsed)) continue;
@@ -803,6 +818,7 @@ export async function readClaudeLogin(
 		// read may have held the newer half of this one slot.
 		anyFileCandidateUnreadable: unreadable.size > 0,
 		keychainUnreadable,
+		keychainUnreadableServices: [...keychainUnreadableServices],
 	};
 }
 

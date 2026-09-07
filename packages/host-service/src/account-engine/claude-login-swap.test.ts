@@ -2288,6 +2288,78 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 		expect(keychain.items).toEqual([{ service: answering, account, secret }]);
 	});
 
+	// A refusal is only actionable if it names the item to unlock or delete.
+	// Measured before this: with one spelling holding a clean parseable item
+	// and another spelling's probe failing, the reason named the CLEAN one —
+	// `read.keychainService` is whichever spelling answered — so the reason
+	// pointed at the one item nothing was wrong with.
+	it("names the active dir's unread spelling, not the one it read", async () => {
+		const f = fixture();
+		rmSync(join(f.activeDir, ".credentials.json"));
+		const spellings = keychainServicesForConfigDir(f.activeDir);
+		const readable = spellings[0] as string;
+		const stale = spellings[1] as string;
+		const keychain = fakeKeychain(
+			[
+				{
+					service: readable,
+					account: claudeKeychainAccounts()[0] as string,
+					secret: JSON.stringify({
+						claudeAiOauth: oauth("t-a-refreshed", 5_000),
+					}),
+				},
+			],
+			{ failRead: (args) => args[args.indexOf("-s") + 1] === stale },
+		);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			// The owner is not Superset's to write, so this stops at the
+			// active dir's own guard rather than the save-back's.
+			ownerManaged: false,
+			activeDir: f.activeDir,
+			deps: { ...f.deps, darwin: true, exec: keychain.exec },
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-active-dir" });
+		if (result.ok) throw new Error("expected a refusal");
+		expect(result.reason).toContain(stale);
+		expect(result.reason).not.toContain(readable);
+		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
+	});
+
+	// The save-back's half of the same naming.
+	it("names the owner's unread spelling, not the one it read", async () => {
+		const f = fixture();
+		const spellings = keychainServicesForConfigDir(f.profileA);
+		const readable = spellings[0] as string;
+		const stale = spellings[1] as string;
+		const keychain = fakeKeychain(
+			[
+				{
+					service: readable,
+					account: claudeKeychainAccounts()[0] as string,
+					secret: JSON.stringify({ claudeAiOauth: oauth("t-a", 1_000) }),
+				},
+			],
+			{ failRead: (args) => args[args.indexOf("-s") + 1] === stale },
+		);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, darwin: true, exec: keychain.exec },
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-owner" });
+		if (result.ok) throw new Error("expected a refusal");
+		expect(result.reason).toContain(stale);
+		expect(result.reason).not.toContain(readable);
+		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
+	});
+
 	// The same item, read whole this time, holding bytes we cannot make sense
 	// of — a bare token, a store caught mid-rewrite. Measured before this
 	// guard: it read as an absent item, the guard passed, and the write landed
@@ -2313,6 +2385,12 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 		});
 
 		expect(result).toMatchObject({ ok: false, code: "invalid-active-dir" });
+		if (result.ok) throw new Error("expected a refusal");
+		// The item that would not parse, named. Nothing parsed at all here, so
+		// the reason used to fall back to naming the DIR — which holds no
+		// Keychain item, so it named nothing the user could act on.
+		expect(result.reason).toContain(activeService);
+		expect(result.reason).not.toContain(f.activeDir);
 		// The item whose bytes we could not read is byte-identical, and still there.
 		expect(keychain.items).toEqual([
 			{ service: activeService, account, secret },
@@ -2341,6 +2419,10 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 		});
 
 		expect(result).toMatchObject({ ok: false, code: "invalid-owner" });
+		if (result.ok) throw new Error("expected a refusal");
+		// The offending item, not the dir it was probed for.
+		expect(result.reason).toContain(ownerService);
+		expect(result.reason).not.toContain(f.profileA);
 		expect(keychain.items).toEqual([
 			{ service: ownerService, account, secret },
 		]);
