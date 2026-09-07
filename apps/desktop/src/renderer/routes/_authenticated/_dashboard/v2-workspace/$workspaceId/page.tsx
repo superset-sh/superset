@@ -17,6 +17,10 @@ import { SidebarToggle } from "renderer/routes/_authenticated/_dashboard/compone
 import { RightSidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/RightSidebarToggle";
 import { TopBarPortsDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/TopBarPortsDropdown";
 import { WindowControls } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/WindowControls";
+import {
+	parseSubagentSearch,
+	type SubagentLinkParams,
+} from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { getV2NotificationSourcesForTab } from "renderer/stores/v2-notifications";
@@ -70,10 +74,7 @@ interface WorkspaceSearch {
 	terminalId?: string;
 	focusRequestId?: string;
 	/** Deep link from the sidebar's agents chip into a subagent transcript. */
-	subagentTerminalId?: string;
-	subagentId?: string;
-	subagentAgentId?: string;
-	subagentType?: string;
+	subagentLink?: SubagentLinkParams;
 	openUrl?: string;
 	openUrlTarget?: V2WorkspaceUrlOpenTarget;
 	openUrlRequestId?: string;
@@ -97,10 +98,7 @@ export const Route = createFileRoute(
 	validateSearch: (raw: Record<string, unknown>): WorkspaceSearch => ({
 		terminalId: parseNonEmptyString(raw.terminalId),
 		focusRequestId: parseNonEmptyString(raw.focusRequestId),
-		subagentTerminalId: parseNonEmptyString(raw.subagentTerminalId),
-		subagentId: parseNonEmptyString(raw.subagentId),
-		subagentAgentId: parseNonEmptyString(raw.subagentAgentId),
-		subagentType: parseNonEmptyString(raw.subagentType),
+		subagentLink: parseSubagentSearch(raw),
 		openUrl: parseNonEmptyString(raw.openUrl),
 		openUrlTarget: parseOpenUrlTarget(raw.openUrlTarget),
 		openUrlRequestId: parseNonEmptyString(raw.openUrlRequestId),
@@ -140,10 +138,7 @@ function V2WorkspaceContent() {
 	const {
 		terminalId,
 		focusRequestId,
-		subagentTerminalId,
-		subagentId,
-		subagentAgentId,
-		subagentType,
+		subagentLink,
 		openUrl,
 		openUrlTarget,
 		openUrlRequestId,
@@ -186,10 +181,7 @@ function V2WorkspaceContent() {
 	useConsumeSubagentLink({
 		store,
 		isLayoutReady,
-		terminalId: subagentTerminalId,
-		subagentId,
-		agentId: subagentAgentId,
-		agentType: subagentType,
+		link: subagentLink,
 		focusRequestId,
 	});
 	useCreatePendingMigratedTerminals({ workspaceId, isLayoutReady });

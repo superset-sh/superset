@@ -3,11 +3,6 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { terminalSessions, workspaces } from "../../../db/schema";
 import { mapEventType } from "../../../events";
-import {
-	isTrustedTranscriptPath,
-	resolveSubagentTranscriptPath,
-	subagentBelongsToParent,
-} from "../../../terminal-agents";
 import type { HostServiceContext } from "../../../types";
 import { touchLocalWorkspaceActivity } from "../../../workspaces/local-workspace-store";
 import { publicProcedure, router } from "../../index";
@@ -131,36 +126,25 @@ export const notificationsRouter = router({
 		// out as an invalidation so the sidebar refetches bindings.
 		if (subagentId) {
 			const agentType = trimOrUndefined(input.subagent?.type);
-			// The parent binding's harness decides where the child's transcript
-			// lives; the hook only reports the paths it ran against.
-			const parent = ctx.terminalAgentStore.get(input.terminalId);
-			const hint = {
-				subagentId,
-				sessionId: trimOrUndefined(input.subagent?.sessionId),
-				transcriptPath: trimOrUndefined(input.subagent?.transcriptPath),
-				agentTranscriptPath: trimOrUndefined(
-					input.subagent?.agentTranscriptPath,
-				),
-			};
-			if (
-				!subagentBelongsToParent(parent?.agentId, hint, parent?.agentSessionId)
-			) {
-				return { success: true, ignored: true as const };
-			}
-			const resolvedPath = resolveSubagentTranscriptPath(parent?.agentId, hint);
-			const transcriptPath =
-				resolvedPath && isTrustedTranscriptPath(resolvedPath)
-					? resolvedPath
-					: undefined;
-			ctx.terminalAgentStore.recordSubagentEvent({
+			const recorded = ctx.terminalAgentStore.recordSubagentHook({
 				terminalId: input.terminalId,
 				workspaceId: terminalSession.originWorkspaceId,
 				eventType: input.eventType ?? "",
 				subagentId,
 				...(agentType ? { agentType } : {}),
-				...(transcriptPath ? { transcriptPath } : {}),
+				hint: {
+					subagentId,
+					sessionId: trimOrUndefined(input.subagent?.sessionId),
+					transcriptPath: trimOrUndefined(input.subagent?.transcriptPath),
+					agentTranscriptPath: trimOrUndefined(
+						input.subagent?.agentTranscriptPath,
+					),
+				},
 				occurredAt,
 			});
+			if (!recorded) {
+				return { success: true, ignored: true as const };
+			}
 			ctx.eventBus.broadcastAgentBindingsChanged({
 				workspaceId: terminalSession.originWorkspaceId,
 				occurredAt,

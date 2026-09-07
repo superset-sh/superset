@@ -1,7 +1,10 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
-import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import {
+	buildSubagentSearch,
+	navigateToV2Workspace,
+} from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { getStatusTooltip } from "renderer/screens/main/components/StatusIndicator";
 import type {
 	DashboardSidebarRunningAgent,
@@ -43,10 +46,12 @@ export function DashboardSidebarAgentHoverRow({
 	const handleOpenSubagent = (subagent: DashboardSidebarRunningSubagent) => {
 		void navigateToV2Workspace(workspaceId, navigate, {
 			search: {
-				subagentTerminalId: agent.terminalId,
-				subagentId: subagent.id,
-				subagentAgentId: agent.agentId,
-				...(subagent.agentType ? { subagentType: subagent.agentType } : {}),
+				...buildSubagentSearch({
+					terminalId: agent.terminalId,
+					subagentId: subagent.id,
+					agentId: agent.agentId,
+					...(subagent.agentType ? { agentType: subagent.agentType } : {}),
+				}),
 				focusRequestId: crypto.randomUUID(),
 			},
 		});

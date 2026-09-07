@@ -1,8 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import {
-	parseClaudeSubagentTranscript,
-	parseCodexRolloutTranscript,
-} from "./subagent-transcript";
+import { parseClaudeSubagentTranscript } from "./subagent-harnesses/claude";
+import { parseCodexRolloutTranscript } from "./subagent-harnesses/codex";
 
 const claudeLines = [
 	{

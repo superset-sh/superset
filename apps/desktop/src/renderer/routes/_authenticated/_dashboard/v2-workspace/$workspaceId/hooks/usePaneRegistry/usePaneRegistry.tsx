@@ -49,16 +49,17 @@ import {
 	getDocument,
 	useSharedFileDocument,
 } from "../../state/fileDocumentStore";
-import type {
-	BrowserPaneData,
-	ChatV3PaneData,
-	CommentPaneData,
-	DevtoolsPaneData,
-	FilePaneData,
-	PagePaneData,
-	PaneViewerData,
-	SubagentPaneData,
-	TerminalPaneData,
+import {
+	type BrowserPaneData,
+	type ChatV3PaneData,
+	type CommentPaneData,
+	type DevtoolsPaneData,
+	type FilePaneData,
+	type PagePaneData,
+	type PaneViewerData,
+	SUBAGENT_PANE_KIND,
+	type SubagentPaneData,
+	type TerminalPaneData,
 } from "../../types";
 import { focusOrAddTerminalPane } from "../../utils/focusTerminalPane";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
@@ -730,7 +731,7 @@ export function usePaneRegistry({
 							: d,
 					),
 			},
-			subagent: {
+			[SUBAGENT_PANE_KIND]: {
 				getIcon: () => <LuBot className="size-3.5" />,
 				getTitle: (pane) => {
 					const { agentType } = pane.data as SubagentPaneData;

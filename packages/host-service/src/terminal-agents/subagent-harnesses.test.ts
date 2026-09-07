@@ -3,11 +3,17 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
+	getSubagentHarness,
 	isTrustedTranscriptPath,
 	readSubagentTranscript,
-	resolveSubagentTranscriptPath,
-	subagentBelongsToParent,
 } from "./subagent-harnesses";
+
+const resolveSubagentTranscriptPath = (
+	agentId: string,
+	hint: Parameters<
+		ReturnType<typeof getSubagentHarness>["resolveTranscriptPath"]
+	>[0],
+) => getSubagentHarness(agentId).resolveTranscriptPath(hint);
 
 describe("resolveSubagentTranscriptPath", () => {
 	it("prefers Claude's explicit child transcript from SubagentStop", () => {
@@ -72,7 +78,9 @@ describe("readSubagentTranscript", () => {
 			}),
 		);
 
-		expect(readSubagentTranscript("codex", file)?.entries).toEqual([
+		expect(
+			readSubagentTranscript(getSubagentHarness("codex"), file)?.entries,
+		).toEqual([
 			{
 				id: "m1",
 				kind: "assistant",
@@ -103,7 +111,10 @@ describe("readSubagentTranscript", () => {
 			JSON.stringify({ description: "Count files" }),
 		);
 
-		const transcript = readSubagentTranscript("claude", file);
+		const transcript = readSubagentTranscript(
+			getSubagentHarness("claude"),
+			file,
+		);
 		expect(transcript?.description).toBe("Count files");
 		expect(transcript?.entries).toHaveLength(1);
 		expect(transcript?.size).toBeGreaterThan(0);
@@ -125,7 +136,8 @@ describe("readSubagentTranscript", () => {
 		);
 
 		expect(
-			readSubagentTranscript("future-agent", file)?.entries[0],
+			readSubagentTranscript(getSubagentHarness("future-agent"), file)
+				?.entries[0],
 		).toMatchObject({
 			kind: "assistant",
 			text: "Generic answer",
@@ -134,33 +146,38 @@ describe("readSubagentTranscript", () => {
 
 	it("returns null before the child has written anything", () => {
 		expect(
-			readSubagentTranscript("claude", "/nonexistent/agent-x.jsonl"),
+			readSubagentTranscript(
+				getSubagentHarness("claude"),
+				"/nonexistent/agent-x.jsonl",
+			),
 		).toBeNull();
 	});
 });
 
-describe("subagentBelongsToParent", () => {
+describe("belongsToParentSession", () => {
 	it("rejects a Claude child event that names a previous parent session", () => {
 		const hint = { subagentId: "a1", sessionId: "s1" };
-		expect(subagentBelongsToParent("claude", hint, "s2")).toBe(false);
-		expect(subagentBelongsToParent("claude", hint, "s1")).toBe(true);
+		const claude = getSubagentHarness("claude");
+		expect(claude.belongsToParentSession(hint, "s2")).toBe(false);
+		expect(claude.belongsToParentSession(hint, "s1")).toBe(true);
 	});
 
-	it("accepts when the harness cannot tell or the parent has no session yet", () => {
+	it("accepts when the harness cannot tell", () => {
 		expect(
-			subagentBelongsToParent(
-				"codex",
+			getSubagentHarness("codex").belongsToParentSession(
 				{ subagentId: "c1", sessionId: "child" },
 				"root",
 			),
 		).toBe(true);
-		expect(
-			subagentBelongsToParent(
-				"claude",
-				{ subagentId: "a1", sessionId: "s1" },
-				undefined,
-			),
-		).toBe(true);
+	});
+});
+
+describe("defineSubagentHarness defaults", () => {
+	it("gives an unregistered harness the shared stop events and no description", () => {
+		const harness = getSubagentHarness("future-agent");
+		expect(harness.isStopEvent("SubagentStop")).toBe(true);
+		expect(harness.isStopEvent("PostToolUse")).toBe(false);
+		expect(harness.readDescription("/x.jsonl")).toBeUndefined();
 	});
 });
 

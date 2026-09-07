@@ -23,7 +23,6 @@ import {
 	seedEndedTerminalAgentBinding,
 	unclaimResumeCandidateBinding,
 } from "../../../terminal-agents/persistence";
-import { readSubagentTranscript } from "../../../terminal-agents/subagent-harnesses";
 import { protectedProcedure, router } from "../../index";
 import {
 	type AgentRunResult,
@@ -307,22 +306,12 @@ export const terminalAgentsRouter = router({
 	 */
 	subagentTranscript: protectedProcedure
 		.input(z.object({ terminalId: z.string(), subagentId: z.string() }))
-		.query(({ ctx, input }) => {
-			const subagent = ctx.terminalAgentStore.getSubagent(
+		.query(({ ctx, input }) =>
+			ctx.terminalAgentStore.getSubagentTranscript(
 				input.terminalId,
 				input.subagentId,
-			);
-			if (!subagent) return null;
-			const parentAgentId = ctx.terminalAgentStore.get(
-				input.terminalId,
-			)?.agentId;
-			return {
-				subagent,
-				transcript: subagent.transcriptPath
-					? readSubagentTranscript(parentAgentId, subagent.transcriptPath)
-					: null,
-			};
-		}),
+			),
+		),
 
 	findActive: protectedProcedure
 		.input(

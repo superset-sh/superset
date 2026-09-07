@@ -17,7 +17,7 @@ export type RunningAgentStatus = PaneStatus;
 export interface DashboardSidebarRunningSubagent {
 	id: string;
 	/** Harness agent type (`Explore`, `general-purpose`, a Codex role), when known. */
-	agentType: string | null;
+	agentType?: string;
 }
 
 export interface DashboardSidebarRunningAgent {
@@ -64,7 +64,7 @@ export function useDashboardSidebarWorkspaceRunningAgents(
 				label: AGENT_IDENTITY_LABELS[binding.agentId] ?? binding.agentId,
 				subagents: (binding.subagents ?? []).map((subagent) => ({
 					id: subagent.id,
-					agentType: subagent.agentType ?? null,
+					...(subagent.agentType ? { agentType: subagent.agentType } : {}),
 				})),
 			});
 		}

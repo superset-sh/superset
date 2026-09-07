@@ -5,16 +5,16 @@ export type {
 } from "./store";
 export { TerminalAgentStore } from "./store";
 export type {
+	ParsedSubagentTranscript,
 	SubagentHarness,
 	SubagentTranscriptHint,
 } from "./subagent-harnesses";
 export {
+	defineSubagentHarness,
 	getSubagentHarness,
 	isTrustedTranscriptPath,
 	readSubagentTranscript,
-	resolveSubagentTranscriptPath,
 	SUBAGENT_HARNESSES,
-	subagentBelongsToParent,
 } from "./subagent-harnesses";
 export type {
 	SubagentTranscript,

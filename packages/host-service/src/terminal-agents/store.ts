@@ -1,5 +1,12 @@
 import { EventEmitter } from "node:events";
 import type { AgentDefinitionId } from "@superset/shared/agent-catalog";
+import {
+	getSubagentHarness,
+	isTrustedTranscriptPath,
+	readSubagentTranscript,
+	type SubagentTranscriptHint,
+} from "./subagent-harnesses";
+import type { SubagentTranscript } from "./subagent-transcript";
 import type {
 	TerminalAgentBinding,
 	TerminalAgentEndReason,
@@ -28,6 +35,17 @@ interface RecordSubagentEventInput {
 	occurredAt: number;
 }
 
+interface RecordSubagentHookInput {
+	terminalId: string;
+	workspaceId: string;
+	/** Raw hook event name from the child. */
+	eventType: string;
+	subagentId: string;
+	agentType?: string;
+	hint: SubagentTranscriptHint;
+	occurredAt: number;
+}
+
 export interface TerminalAgentBindingListFilter {
 	agentId?: TerminalAgentId;
 	definitionId?: AgentDefinitionId;
@@ -48,9 +66,6 @@ const END_EVENT_REASONS = new Map<string, TerminalAgentEndReason>([
  * upsert would erase `endedAt`/`endReason` and destroy the resume candidate.
  */
 const END_STRAGGLER_WINDOW_MS = 30_000;
-
-/** Subagent hook events that mean the child finished its turn. */
-const SUBAGENT_END_EVENTS = new Set(["SubagentStop", "Stop", "SessionEnd"]);
 
 /**
  * A subagent whose SubagentStop never arrived (parent interrupted, hook
@@ -234,7 +249,10 @@ export class TerminalAgentStore extends EventEmitter {
 		const roster = this.subagentsByTerminal.get(terminalId);
 		const existing = roster?.get(subagentId);
 
-		if (SUBAGENT_END_EVENTS.has(eventType)) {
+		const harness = getSubagentHarness(
+			this.byTerminal.get(terminalId)?.agentId,
+		);
+		if (harness.isStopEvent(eventType)) {
 			if (!existing || existing.endedAt !== undefined) return;
 			roster?.set(subagentId, {
 				...existing,
@@ -274,6 +292,64 @@ export class TerminalAgentStore extends EventEmitter {
 			this.subagentsByTerminal.set(terminalId, new Map([[subagentId, next]]));
 		}
 		this.emit("change", workspaceId);
+	}
+
+	/**
+	 * A hook event that fired inside a subagent, straight from the hook
+	 * endpoint. The parent binding's harness decides whether the event
+	 * belongs to the current session and where the child's transcript
+	 * lives; the path is kept only when it passes the trust check, since the
+	 * endpoint is unauthenticated. Returns false when the event was dropped.
+	 */
+	recordSubagentHook(input: RecordSubagentHookInput): boolean {
+		const parent = this.byTerminal.get(input.terminalId);
+		const harness = getSubagentHarness(parent?.agentId);
+		if (
+			parent?.agentSessionId &&
+			!harness.belongsToParentSession(input.hint, parent.agentSessionId)
+		) {
+			return false;
+		}
+		const resolvedPath = harness.resolveTranscriptPath(input.hint);
+		const transcriptPath =
+			resolvedPath && isTrustedTranscriptPath(resolvedPath)
+				? resolvedPath
+				: undefined;
+		this.recordSubagentEvent({
+			terminalId: input.terminalId,
+			workspaceId: input.workspaceId,
+			eventType: input.eventType,
+			subagentId: input.subagentId,
+			...(input.agentType ? { agentType: input.agentType } : {}),
+			...(transcriptPath ? { transcriptPath } : {}),
+			occurredAt: input.occurredAt,
+		});
+		return true;
+	}
+
+	/**
+	 * A child's transcript for the pane: the roster entry plus its parsed
+	 * transcript, or null when the child is unknown. `transcript` is null
+	 * while the child has not flushed its first record.
+	 */
+	getSubagentTranscript(
+		terminalId: string,
+		subagentId: string,
+	): {
+		subagent: TerminalSubagent;
+		transcript: SubagentTranscript | null;
+	} | null {
+		const subagent = this.getSubagent(terminalId, subagentId);
+		if (!subagent) return null;
+		const harness = getSubagentHarness(
+			this.byTerminal.get(terminalId)?.agentId,
+		);
+		return {
+			subagent,
+			transcript: subagent.transcriptPath
+				? readSubagentTranscript(harness, subagent.transcriptPath)
+				: null,
+		};
 	}
 
 	/**

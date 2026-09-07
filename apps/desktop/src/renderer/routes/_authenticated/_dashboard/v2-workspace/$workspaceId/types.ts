@@ -71,6 +71,8 @@ export interface DesktopPaneData {
  * Pointer to one subagent's transcript. The transcript itself is fetched
  * from the host on every read; only this pointer is persisted.
  */
+export const SUBAGENT_PANE_KIND = "subagent";
+
 export interface SubagentPaneData {
 	terminalId: string;
 	subagentId: string;

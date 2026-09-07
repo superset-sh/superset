@@ -107,14 +107,21 @@ json_escape() {
   printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
 }
 
-# Subagent events go to the host-service roster only: no v1 fallback, no
-# session id (a Codex child's session_id is its own thread, never the
-# terminal's resumable session), and the raw event name so the host can tell
-# a start from a stop.
-if [ -n "$SUBAGENT_ID" ]; then
-  debug_log "subagent event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID subagentId=$SUBAGENT_ID subagentType=$SUBAGENT_TYPE"
-  [ -n "$SUPERSET_TERMINAL_ID" ] || exit 0
-  PAYLOAD="{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"subagent\":{\"id\":\"$(json_escape "$SUBAGENT_ID")\",\"type\":\"$(json_escape "$SUBAGENT_TYPE")\",\"sessionId\":\"$(json_escape "$HOOK_SESSION_ID")\",\"transcriptPath\":\"$(json_escape "$TRANSCRIPT_PATH")\",\"agentTranscriptPath\":\"$(json_escape "$AGENT_TRANSCRIPT_PATH")\"}}}"
+# Resolve the host-service endpoint at call time. SUPERSET_HOST_AGENT_HOOK_URL
+# is frozen into the agent's env at terminal creation; after a host-service
+# restart on a new port it would point at a dead socket forever (a live
+# process's env can't change). Each org's manifest
+# (~/.superset/host/<orgId>/manifest.json) is rewritten with the live endpoint
+# on every start, so it never goes stale. Try the env URL first (fast path),
+# then every org manifest's endpoint. Only the host that owns this terminal
+# answers "ignored":false; probing the other orgs' hosts is a harmless no-op.
+#
+# Sets HOOK_ACCEPTED=1 when an owning host took the event and
+# HOOK_DELIVERED_2XX=1 when any host answered 2xx.
+dispatch_to_host() {
+  DISPATCH_PAYLOAD="$1"
+  HOOK_ACCEPTED="0"
+  HOOK_DELIVERED_2XX="0"
   HOOK_CANDIDATE_URLS="$SUPERSET_HOST_AGENT_HOOK_URL"
   for MANIFEST_FILE in "${SUPERSET_HOME_DIR:-$HOME/.superset}"/host/*/manifest.json; do
     [ -f "$MANIFEST_FILE" ] || continue
@@ -122,19 +129,44 @@ if [ -n "$SUBAGENT_ID" ]; then
     [ -n "$MANIFEST_ENDPOINT" ] || continue
     HOOK_CANDIDATE_URLS="$HOOK_CANDIDATE_URLS $MANIFEST_ENDPOINT/trpc/notifications.hook"
   done
+
   SEEN_HOOK_URLS=""
   for HOOK_URL in $HOOK_CANDIDATE_URLS; do
     case " $SEEN_HOOK_URLS " in *" $HOOK_URL "*) continue ;; esac
     SEEN_HOOK_URLS="$SEEN_HOOK_URLS $HOOK_URL"
-    BODY=$(curl -sX POST "$HOOK_URL" \
+
+    RESPONSE=$(curl -sX POST "$HOOK_URL" \
       --connect-timeout 2 --max-time 5 \
       -H "Content-Type: application/json" \
-      -d "$PAYLOAD" 2>/dev/null)
-    debug_log "subagent host-service url=$HOOK_URL body=$BODY"
+      -d "$DISPATCH_PAYLOAD" \
+      -w "|%{http_code}" 2>/dev/null)
+    STATUS_CODE="${RESPONSE##*|}"
+    BODY="${RESPONSE%|*}"
+
+    if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
+      echo "[notify-hook] host-service dispatched status=$STATUS_CODE url=$HOOK_URL" >&2
+    fi
+    debug_log "host-service status=$STATUS_CODE url=$HOOK_URL body=$BODY"
+
+    # "ignored":false means the owning host accepted and fanned out the event.
     case "$BODY" in
-      *'"ignored":false'*|*'"ignored": false'*) exit 0 ;;
+      *'"ignored":false'*|*'"ignored": false'*) HOOK_ACCEPTED="1"; return 0 ;;
+    esac
+    case "$STATUS_CODE" in
+      2*) HOOK_DELIVERED_2XX="1" ;;
     esac
   done
+  return 0
+}
+
+# Subagent events go to the host-service roster only: no v1 fallback, no
+# session id (a Codex child's session_id is its own thread, never the
+# terminal's resumable session), and the raw event name so the host can tell
+# a start from a stop.
+if [ -n "$SUBAGENT_ID" ]; then
+  debug_log "subagent event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID subagentId=$SUBAGENT_ID subagentType=$SUBAGENT_TYPE"
+  [ -n "$SUPERSET_TERMINAL_ID" ] || exit 0
+  dispatch_to_host "{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"subagent\":{\"id\":\"$(json_escape "$SUBAGENT_ID")\",\"type\":\"$(json_escape "$SUBAGENT_TYPE")\",\"sessionId\":\"$(json_escape "$HOOK_SESSION_ID")\",\"transcriptPath\":\"$(json_escape "$TRANSCRIPT_PATH")\",\"agentTranscriptPath\":\"$(json_escape "$AGENT_TRANSCRIPT_PATH")\"}}}"
   exit 0
 fi
 
@@ -150,53 +182,9 @@ case "$V1_EVENT_TYPE" in
     ;;
 esac
 
-# Resolve the host-service endpoint at call time. SUPERSET_HOST_AGENT_HOOK_URL
-# is frozen into the agent's env at terminal creation; after a host-service
-# restart on a new port it would point at a dead socket forever (a live
-# process's env can't change). Each org's manifest
-# (~/.superset/host/<orgId>/manifest.json) is rewritten with the live endpoint
-# on every start, so it never goes stale. Try the env URL first (fast path),
-# then every org manifest's endpoint. Only the host that owns this terminal
-# answers "ignored":false; probing the other orgs' hosts is a harmless no-op.
 if [ -n "$SUPERSET_TERMINAL_ID" ]; then
-  PAYLOAD="{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"agent\":{\"agentId\":\"$(json_escape "$SUPERSET_AGENT_ID")\",\"sessionId\":\"$(json_escape "$SESSION_ID")\"}}}"
-
-  HOOK_CANDIDATE_URLS="$SUPERSET_HOST_AGENT_HOOK_URL"
-  for MANIFEST_FILE in "${SUPERSET_HOME_DIR:-$HOME/.superset}"/host/*/manifest.json; do
-    [ -f "$MANIFEST_FILE" ] || continue
-    MANIFEST_ENDPOINT=$(grep -oE '"endpoint"[[:space:]]*:[[:space:]]*"[^"]*"' "$MANIFEST_FILE" | head -1 | grep -oE '"[^"]*"$' | tr -d '"')
-    [ -n "$MANIFEST_ENDPOINT" ] || continue
-    HOOK_CANDIDATE_URLS="$HOOK_CANDIDATE_URLS $MANIFEST_ENDPOINT/trpc/notifications.hook"
-  done
-
-  HOOK_DELIVERED_2XX="0"
-  SEEN_HOOK_URLS=""
-  for HOOK_URL in $HOOK_CANDIDATE_URLS; do
-    case " $SEEN_HOOK_URLS " in *" $HOOK_URL "*) continue ;; esac
-    SEEN_HOOK_URLS="$SEEN_HOOK_URLS $HOOK_URL"
-
-    RESPONSE=$(curl -sX POST "$HOOK_URL" \
-      --connect-timeout 2 --max-time 5 \
-      -H "Content-Type: application/json" \
-      -d "$PAYLOAD" \
-      -w "|%{http_code}" 2>/dev/null)
-    STATUS_CODE="${RESPONSE##*|}"
-    BODY="${RESPONSE%|*}"
-
-    if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
-      echo "[notify-hook] host-service dispatched status=$STATUS_CODE url=$HOOK_URL" >&2
-    fi
-    debug_log "host-service status=$STATUS_CODE url=$HOOK_URL"
-
-    # "ignored":false means the owning host accepted and fanned out the event.
-    case "$BODY" in
-      *'"ignored":false'*|*'"ignored": false'*) exit 0 ;;
-    esac
-    case "$STATUS_CODE" in
-      2*) HOOK_DELIVERED_2XX="1" ;;
-    esac
-  done
-
+  dispatch_to_host "{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"agent\":{\"agentId\":\"$(json_escape "$SUPERSET_AGENT_ID")\",\"sessionId\":\"$(json_escape "$SESSION_ID")\"}}}"
+  [ "$HOOK_ACCEPTED" = "1" ] && exit 0
   # Delivered somewhere (2xx) but no host owned the terminal: keep the
   # pre-existing "any 2xx wins" behavior and skip the v1 fallback.
   [ "$HOOK_DELIVERED_2XX" = "1" ] && exit 0
