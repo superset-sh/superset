@@ -3562,6 +3562,9 @@ msgstr "Conectado. Se canceló el inicio de sesión, así que los disparadores p
 msgid "Connecting"
 msgstr "Conectando"
 
+msgid "Connecting to {hostName}…"
+msgstr "Conectando a {hostName}…"
+
 msgid "Connecting to the desktop…"
 msgstr "Conectando con el escritorio…"
 
@@ -4936,6 +4939,9 @@ msgstr "¿Desconectar Slack?"
 
 msgid "Disconnected"
 msgstr "Desconectado"
+
+msgid "Disconnected from {hostName}"
+msgstr "Desconectado de {hostName}"
 
 msgid "Disconnecting..."
 msgstr "Desconectando..."
@@ -6820,6 +6826,9 @@ msgstr "El servicio del host falló"
 
 msgid "Host service is not running"
 msgstr "El servicio del host no está en ejecución"
+
+msgid "Host service is restarting…"
+msgstr "El servicio de host se está reiniciando…"
 
 msgid "Host service is starting…"
 msgstr "El servicio del host está iniciándose…"
@@ -11073,6 +11082,9 @@ msgstr "Hay que volver a conectar"
 
 msgid "Reconnecting"
 msgstr "Reconectando"
+
+msgid "Reconnecting to {hostName}…"
+msgstr "Reconectando a {hostName}…"
 
 msgid "Reconnecting…"
 msgstr "Reconectando…"

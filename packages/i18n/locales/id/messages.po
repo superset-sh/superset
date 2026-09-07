@@ -3562,6 +3562,9 @@ msgstr "Terhubung. Proses masuk dibatalkan, jadi pemicu oleh \"Saya\" tidak akan
 msgid "Connecting"
 msgstr "Menghubungkan"
 
+msgid "Connecting to {hostName}…"
+msgstr "Menghubungkan ke {hostName}…"
+
 msgid "Connecting to the desktop…"
 msgstr "Menghubungkan ke desktop…"
 
@@ -4936,6 +4939,9 @@ msgstr "Putuskan Slack?"
 
 msgid "Disconnected"
 msgstr "Terputus"
+
+msgid "Disconnected from {hostName}"
+msgstr "Terputus dari {hostName}"
 
 msgid "Disconnecting..."
 msgstr "Memutuskan..."
@@ -6820,6 +6826,9 @@ msgstr "Layanan host crash"
 
 msgid "Host service is not running"
 msgstr "Layanan host tidak berjalan"
+
+msgid "Host service is restarting…"
+msgstr "Layanan host sedang dimulai ulang…"
 
 msgid "Host service is starting…"
 msgstr "Layanan host sedang dimulai…"
@@ -11073,6 +11082,9 @@ msgstr "Perlu dihubungkan ulang"
 
 msgid "Reconnecting"
 msgstr "Menyambungkan ulang"
+
+msgid "Reconnecting to {hostName}…"
+msgstr "Menyambungkan ulang ke {hostName}…"
 
 msgid "Reconnecting…"
 msgstr "Menyambungkan ulang…"

@@ -3562,6 +3562,9 @@ msgstr "接続しました。サインインがキャンセルされたため、
 msgid "Connecting"
 msgstr "接続中"
 
+msgid "Connecting to {hostName}…"
+msgstr "{hostName}に接続中…"
+
 msgid "Connecting to the desktop…"
 msgstr "デスクトップに接続しています…"
 
@@ -4936,6 +4939,9 @@ msgstr "Slackの接続を解除しますか?"
 
 msgid "Disconnected"
 msgstr "切断されました"
+
+msgid "Disconnected from {hostName}"
+msgstr "{hostName}から切断されました"
 
 msgid "Disconnecting..."
 msgstr "接続を解除中..."
@@ -6820,6 +6826,9 @@ msgstr "ホストサービスがクラッシュしました"
 
 msgid "Host service is not running"
 msgstr "ホストサービスが実行されていません"
+
+msgid "Host service is restarting…"
+msgstr "ホストサービスを再起動中…"
 
 msgid "Host service is starting…"
 msgstr "ホストサービスを起動中…"
@@ -11073,6 +11082,9 @@ msgstr "再接続が必要です"
 
 msgid "Reconnecting"
 msgstr "再接続中"
+
+msgid "Reconnecting to {hostName}…"
+msgstr "{hostName}に再接続中…"
 
 msgid "Reconnecting…"
 msgstr "再接続中…"

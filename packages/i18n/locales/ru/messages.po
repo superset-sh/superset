@@ -3562,6 +3562,9 @@ msgstr "Подключено. Вход был отменён, поэтому т�
 msgid "Connecting"
 msgstr "Подключение"
 
+msgid "Connecting to {hostName}…"
+msgstr "Подключение к {hostName}…"
+
 msgid "Connecting to the desktop…"
 msgstr "Подключение к рабочему столу…"
 
@@ -4936,6 +4939,9 @@ msgstr "Отключить Slack?"
 
 msgid "Disconnected"
 msgstr "Отключено"
+
+msgid "Disconnected from {hostName}"
+msgstr "Соединение с {hostName} разорвано"
 
 msgid "Disconnecting..."
 msgstr "Отключение..."
@@ -6820,6 +6826,9 @@ msgstr "Служба хоста аварийно завершилась"
 
 msgid "Host service is not running"
 msgstr "Служба хоста не запущена"
+
+msgid "Host service is restarting…"
+msgstr "Служба хоста перезапускается…"
 
 msgid "Host service is starting…"
 msgstr "Служба хоста запускается…"
@@ -11073,6 +11082,9 @@ msgstr "Требуется переподключение"
 
 msgid "Reconnecting"
 msgstr "Переподключение"
+
+msgid "Reconnecting to {hostName}…"
+msgstr "Переподключение к {hostName}…"
 
 msgid "Reconnecting…"
 msgstr "Переподключение…"

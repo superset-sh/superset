@@ -3562,6 +3562,9 @@ msgstr "Conectado. O login foi cancelado, então gatilhos de \"Eu\" não vão co
 msgid "Connecting"
 msgstr "Conectando"
 
+msgid "Connecting to {hostName}…"
+msgstr "Conectando a {hostName}…"
+
 msgid "Connecting to the desktop…"
 msgstr "Conectando à área de trabalho…"
 
@@ -4936,6 +4939,9 @@ msgstr "Desconectar o Slack?"
 
 msgid "Disconnected"
 msgstr "Desconectado"
+
+msgid "Disconnected from {hostName}"
+msgstr "Desconectado de {hostName}"
 
 msgid "Disconnecting..."
 msgstr "Desconectando..."
@@ -6820,6 +6826,9 @@ msgstr "O serviço do host travou"
 
 msgid "Host service is not running"
 msgstr "O serviço do host não está em execução"
+
+msgid "Host service is restarting…"
+msgstr "O serviço do host está reiniciando…"
 
 msgid "Host service is starting…"
 msgstr "O serviço do host está iniciando…"
@@ -11073,6 +11082,9 @@ msgstr "Precisa reconectar"
 
 msgid "Reconnecting"
 msgstr "Reconectando"
+
+msgid "Reconnecting to {hostName}…"
+msgstr "Reconectando a {hostName}…"
 
 msgid "Reconnecting…"
 msgstr "Reconectando…"

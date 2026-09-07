@@ -3562,6 +3562,9 @@ msgstr "Verbunden. Die Anmeldung wurde abgebrochen, daher passen Trigger mit \"I
 msgid "Connecting"
 msgstr "Verbindet"
 
+msgid "Connecting to {hostName}…"
+msgstr "Verbindung zu {hostName} wird hergestellt…"
+
 msgid "Connecting to the desktop…"
 msgstr "Verbindung zum Desktop wird hergestellt …"
 
@@ -4936,6 +4939,9 @@ msgstr "Slack trennen?"
 
 msgid "Disconnected"
 msgstr "Getrennt"
+
+msgid "Disconnected from {hostName}"
+msgstr "Verbindung zu {hostName} getrennt"
 
 msgid "Disconnecting..."
 msgstr "Wird getrennt..."
@@ -6820,6 +6826,9 @@ msgstr "Host-Dienst abgestürzt"
 
 msgid "Host service is not running"
 msgstr "Host-Dienst läuft nicht"
+
+msgid "Host service is restarting…"
+msgstr "Der Host-Dienst wird neu gestartet…"
 
 msgid "Host service is starting…"
 msgstr "Der Host-Dienst startet…"
@@ -11073,6 +11082,9 @@ msgstr "Neu verbinden erforderlich"
 
 msgid "Reconnecting"
 msgstr "Verbindet neu"
+
+msgid "Reconnecting to {hostName}…"
+msgstr "Verbindung zu {hostName} wird wiederhergestellt…"
 
 msgid "Reconnecting…"
 msgstr "Verbindung wird wiederhergestellt…"

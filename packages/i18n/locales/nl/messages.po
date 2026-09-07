@@ -3562,6 +3562,9 @@ msgstr "Verbonden. Het inloggen is geannuleerd, dus triggers met \"Ik\" komen ni
 msgid "Connecting"
 msgstr "Verbinden"
 
+msgid "Connecting to {hostName}…"
+msgstr "Verbinden met {hostName}…"
+
 msgid "Connecting to the desktop…"
 msgstr "Verbinden met het bureaublad…"
 
@@ -4936,6 +4939,9 @@ msgstr "Slack loskoppelen?"
 
 msgid "Disconnected"
 msgstr "Verbinding verbroken"
+
+msgid "Disconnected from {hostName}"
+msgstr "Verbinding met {hostName} verbroken"
 
 msgid "Disconnecting..."
 msgstr "Verbinding verbreken..."
@@ -6820,6 +6826,9 @@ msgstr "Hostservice gecrasht"
 
 msgid "Host service is not running"
 msgstr "De hostservice draait niet"
+
+msgid "Host service is restarting…"
+msgstr "Hostservice wordt opnieuw gestart…"
 
 msgid "Host service is starting…"
 msgstr "De hostservice start op…"
@@ -11073,6 +11082,9 @@ msgstr "Opnieuw verbinden vereist"
 
 msgid "Reconnecting"
 msgstr "Opnieuw verbinden"
+
+msgid "Reconnecting to {hostName}…"
+msgstr "Opnieuw verbinden met {hostName}…"
 
 msgid "Reconnecting…"
 msgstr "Opnieuw verbinden…"

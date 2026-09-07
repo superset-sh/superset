@@ -3562,6 +3562,9 @@ msgstr "Đã kết nối. Việc đăng nhập bị hủy nên các trigger theo
 msgid "Connecting"
 msgstr "Đang kết nối"
 
+msgid "Connecting to {hostName}…"
+msgstr "Đang kết nối tới {hostName}…"
+
 msgid "Connecting to the desktop…"
 msgstr "Đang kết nối tới màn hình nền…"
 
@@ -4936,6 +4939,9 @@ msgstr "Ngắt kết nối Slack?"
 
 msgid "Disconnected"
 msgstr "Đã ngắt kết nối"
+
+msgid "Disconnected from {hostName}"
+msgstr "Đã ngắt kết nối khỏi {hostName}"
 
 msgid "Disconnecting..."
 msgstr "Đang ngắt kết nối..."
@@ -6820,6 +6826,9 @@ msgstr "Dịch vụ host đã crash"
 
 msgid "Host service is not running"
 msgstr "Dịch vụ host không chạy"
+
+msgid "Host service is restarting…"
+msgstr "Dịch vụ host đang khởi động lại…"
 
 msgid "Host service is starting…"
 msgstr "Dịch vụ host đang khởi động…"
@@ -11073,6 +11082,9 @@ msgstr "Cần kết nối lại"
 
 msgid "Reconnecting"
 msgstr "Đang kết nối lại"
+
+msgid "Reconnecting to {hostName}…"
+msgstr "Đang kết nối lại tới {hostName}…"
 
 msgid "Reconnecting…"
 msgstr "Đang kết nối lại…"

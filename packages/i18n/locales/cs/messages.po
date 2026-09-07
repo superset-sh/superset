@@ -3562,6 +3562,9 @@ msgstr "Připojeno. Přihlášení bylo zrušeno, takže spouštěče „Já“ 
 msgid "Connecting"
 msgstr "Připojuji"
 
+msgid "Connecting to {hostName}…"
+msgstr "Připojování k {hostName}…"
+
 msgid "Connecting to the desktop…"
 msgstr "Připojování k ploše…"
 
@@ -4936,6 +4939,9 @@ msgstr "Odpojit Slack?"
 
 msgid "Disconnected"
 msgstr "Odpojeno"
+
+msgid "Disconnected from {hostName}"
+msgstr "Odpojeno od {hostName}"
 
 msgid "Disconnecting..."
 msgstr "Odpojuji..."
@@ -6820,6 +6826,9 @@ msgstr "Host service spadla"
 
 msgid "Host service is not running"
 msgstr "Služba hosta neběží"
+
+msgid "Host service is restarting…"
+msgstr "Host service se restartuje…"
 
 msgid "Host service is starting…"
 msgstr "Host service se spouští…"
@@ -11073,6 +11082,9 @@ msgstr "Nutné znovu připojit"
 
 msgid "Reconnecting"
 msgstr "Připojuji znovu"
+
+msgid "Reconnecting to {hostName}…"
+msgstr "Opětovné připojování k {hostName}…"
 
 msgid "Reconnecting…"
 msgstr "Připojuji znovu…"

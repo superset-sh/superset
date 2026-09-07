@@ -3562,6 +3562,9 @@ msgstr "Connected. Sign-in was cancelled, so triggers by \"Me\" will not match y
 msgid "Connecting"
 msgstr "Connecting"
 
+msgid "Connecting to {hostName}…"
+msgstr "Connecting to {hostName}…"
+
 msgid "Connecting to the desktop…"
 msgstr "Connecting to the desktop…"
 
@@ -4936,6 +4939,9 @@ msgstr "Disconnect Slack?"
 
 msgid "Disconnected"
 msgstr "Disconnected"
+
+msgid "Disconnected from {hostName}"
+msgstr "Disconnected from {hostName}"
 
 msgid "Disconnecting..."
 msgstr "Disconnecting..."
@@ -6820,6 +6826,9 @@ msgstr "Host service crashed"
 
 msgid "Host service is not running"
 msgstr "Host service is not running"
+
+msgid "Host service is restarting…"
+msgstr "Host service is restarting…"
 
 msgid "Host service is starting…"
 msgstr "Host service is starting…"
@@ -11073,6 +11082,9 @@ msgstr "Reconnect required"
 
 msgid "Reconnecting"
 msgstr "Reconnecting"
+
+msgid "Reconnecting to {hostName}…"
+msgstr "Reconnecting to {hostName}…"
 
 msgid "Reconnecting…"
 msgstr "Reconnecting…"

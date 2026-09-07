@@ -3562,6 +3562,9 @@ msgstr "Connecté. La connexion ayant été annulée, les déclencheurs « Moi �
 msgid "Connecting"
 msgstr "Connexion"
 
+msgid "Connecting to {hostName}…"
+msgstr "Connexion à {hostName}…"
+
 msgid "Connecting to the desktop…"
 msgstr "Connexion au bureau…"
 
@@ -4936,6 +4939,9 @@ msgstr "Déconnecter Slack ?"
 
 msgid "Disconnected"
 msgstr "Déconnecté"
+
+msgid "Disconnected from {hostName}"
+msgstr "Déconnecté de {hostName}"
 
 msgid "Disconnecting..."
 msgstr "Déconnexion..."
@@ -6820,6 +6826,9 @@ msgstr "Le service hôte a planté"
 
 msgid "Host service is not running"
 msgstr "Le service de l'hôte n'est pas en cours d'exécution"
+
+msgid "Host service is restarting…"
+msgstr "Le service hôte redémarre…"
 
 msgid "Host service is starting…"
 msgstr "Le service hôte démarre…"
@@ -11073,6 +11082,9 @@ msgstr "Reconnexion requise"
 
 msgid "Reconnecting"
 msgstr "Reconnexion"
+
+msgid "Reconnecting to {hostName}…"
+msgstr "Reconnexion à {hostName}…"
 
 msgid "Reconnecting…"
 msgstr "Reconnexion…"

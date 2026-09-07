@@ -3562,6 +3562,9 @@ msgstr "已連線。登入被取消，因此在你重新連線之前，按「我
 msgid "Connecting"
 msgstr "連線中"
 
+msgid "Connecting to {hostName}…"
+msgstr "正在連線到 {hostName}…"
+
 msgid "Connecting to the desktop…"
 msgstr "正在連線至桌面…"
 
@@ -4936,6 +4939,9 @@ msgstr "斷開Slack連線？"
 
 msgid "Disconnected"
 msgstr "已斷開"
+
+msgid "Disconnected from {hostName}"
+msgstr "已與 {hostName} 中斷連線"
 
 msgid "Disconnecting..."
 msgstr "正在斷開連線..."
@@ -6820,6 +6826,9 @@ msgstr "主機服務已崩潰"
 
 msgid "Host service is not running"
 msgstr "主機服務未執行"
+
+msgid "Host service is restarting…"
+msgstr "主機服務正在重新啟動…"
 
 msgid "Host service is starting…"
 msgstr "主機服務正在啟動…"
@@ -11073,6 +11082,9 @@ msgstr "需要重新連線"
 
 msgid "Reconnecting"
 msgstr "正在重新連線"
+
+msgid "Reconnecting to {hostName}…"
+msgstr "正在重新連線到 {hostName}…"
 
 msgid "Reconnecting…"
 msgstr "正在重新連線…"

@@ -3562,6 +3562,9 @@ msgstr "Bağlandı. Oturum açma iptal edildiği için \"Ben\" tetikleyicileri, 
 msgid "Connecting"
 msgstr "Bağlanılıyor"
 
+msgid "Connecting to {hostName}…"
+msgstr "{hostName} bağlantısı kuruluyor…"
+
 msgid "Connecting to the desktop…"
 msgstr "Masaüstüne bağlanılıyor…"
 
@@ -4936,6 +4939,9 @@ msgstr "Slack bağlantısı kesilsin mi?"
 
 msgid "Disconnected"
 msgstr "Bağlantı kesildi"
+
+msgid "Disconnected from {hostName}"
+msgstr "{hostName} bağlantısı kesildi"
 
 msgid "Disconnecting..."
 msgstr "Bağlantı kesiliyor..."
@@ -6820,6 +6826,9 @@ msgstr "Host hizmeti çöktü"
 
 msgid "Host service is not running"
 msgstr "Host hizmeti çalışmıyor"
+
+msgid "Host service is restarting…"
+msgstr "Host hizmeti yeniden başlatılıyor…"
 
 msgid "Host service is starting…"
 msgstr "Host hizmeti başlatılıyor…"
@@ -11073,6 +11082,9 @@ msgstr "Yeniden bağlanmak gerekiyor"
 
 msgid "Reconnecting"
 msgstr "Yeniden bağlanılıyor"
+
+msgid "Reconnecting to {hostName}…"
+msgstr "{hostName} bağlantısı yeniden kuruluyor…"
 
 msgid "Reconnecting…"
 msgstr "Yeniden bağlanılıyor…"

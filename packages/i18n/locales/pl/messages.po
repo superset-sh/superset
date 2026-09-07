@@ -3562,6 +3562,9 @@ msgstr "Połączono. Logowanie zostało anulowane, więc wyzwalacze „Ja” nie
 msgid "Connecting"
 msgstr "Łączenie"
 
+msgid "Connecting to {hostName}…"
+msgstr "Łączenie z {hostName}…"
+
 msgid "Connecting to the desktop…"
 msgstr "Łączenie z pulpitem…"
 
@@ -4936,6 +4939,9 @@ msgstr "Rozłączyć Slack?"
 
 msgid "Disconnected"
 msgstr "Rozłączono"
+
+msgid "Disconnected from {hostName}"
+msgstr "Rozłączono z {hostName}"
 
 msgid "Disconnecting..."
 msgstr "Rozłączanie..."
@@ -6820,6 +6826,9 @@ msgstr "Awaria usługi hosta"
 
 msgid "Host service is not running"
 msgstr "Usługa hosta nie działa"
+
+msgid "Host service is restarting…"
+msgstr "Usługa hosta uruchamia się ponownie…"
 
 msgid "Host service is starting…"
 msgstr "Usługa hosta się uruchamia…"
@@ -11073,6 +11082,9 @@ msgstr "Wymagane ponowne połączenie"
 
 msgid "Reconnecting"
 msgstr "Ponowne łączenie"
+
+msgid "Reconnecting to {hostName}…"
+msgstr "Ponowne łączenie z {hostName}…"
 
 msgid "Reconnecting…"
 msgstr "Ponowne łączenie…"

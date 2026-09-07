@@ -1,9 +1,22 @@
 import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import type { HostConnectionStatus } from "@superset/workspace-client";
-import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
+import {
+	useCallback,
+	useEffect,
+	useMemo,
+	useState,
+	useSyncExternalStore,
+} from "react";
 import { useDelayElapsed } from "renderer/hooks/useDelayElapsed";
 import { getHostEventBus } from "renderer/lib/host-event-bus";
+
+/**
+ * How long the host has to stay down before the workspace says anything at
+ * all. Under this a dropped socket is indistinguishable from an ordinary
+ * redial, and announcing it would flicker a notice on every relay blip.
+ */
+const DEGRADED_GRACE_MS = 2_000;
 
 /**
  * How long the host has to stay unreachable before the workspace hands over to
@@ -15,19 +28,39 @@ import { getHostEventBus } from "renderer/lib/host-event-bus";
 const UNREACHABLE_GRACE_MS = 10_000;
 
 /**
- * While the screen is up, dial on this cadence instead of riding the socket's
+ * While the host is down, dial on this cadence instead of riding the socket's
  * own backoff. That backoff grows to 30s, so a host that came back could sit
  * behind "Reconnecting…" for half a minute — measured at 20.7s — which reads
  * as broken next to copy promising the workspace returns with the connection.
- * Only runs while the takeover is visible, so it can't hammer a healthy host.
+ * Only runs while the host is down, so it can't hammer a healthy host.
  */
 const REDIAL_INTERVAL_MS = 5_000;
 
+export interface HostReachabilityOptions {
+	/**
+	 * How long the host may stay down before `isUnreachable`. Callers that know
+	 * the outage is expected and self-healing (the local host service mid-
+	 * restart) hold the takeover longer; `isDegraded` keeps the user informed
+	 * in the meantime.
+	 */
+	unreachableAfterMs?: number;
+}
+
 export interface HostReachability {
+	/**
+	 * Down long enough to say so, not long enough to take the screen over.
+	 * Panes stay usable; show a non-blocking notice.
+	 */
+	isDegraded: boolean;
 	/** Sustained loss of the host connection — safe to take the screen over. */
 	isUnreachable: boolean;
 	/** A dial is in flight right now (auto-backoff or a manual retry). */
 	isReconnecting: boolean;
+	/**
+	 * The socket has opened at least once for this caller, so a drop is a
+	 * reconnect rather than a first connection that hasn't landed yet.
+	 */
+	hasConnected: boolean;
 	/** What the relay preflight says is wrong. Only read while unreachable. */
 	detail: string;
 	/** Dial now instead of waiting out the backoff. */
@@ -103,7 +136,10 @@ function describeFailure(
  * so it reflects what the UI can actually do rather than the cloud's `isOnline`
  * flag (which drifts through relay redeploys and API blips).
  */
-export function useHostReachability(hostUrl: string): HostReachability {
+export function useHostReachability(
+	hostUrl: string,
+	{ unreachableAfterMs = UNREACHABLE_GRACE_MS }: HostReachabilityOptions = {},
+): HostReachability {
 	const bus = useMemo(() => getHostEventBus(hostUrl), [hostUrl]);
 	// Hold the connection open for as long as this screen is mounted: the
 	// panes that normally keep the bus alive are gone once we take over, and a
@@ -116,18 +152,31 @@ export function useHostReachability(hostUrl: string): HostReachability {
 	);
 
 	const isDown = status.state !== "open";
-	const isUnreachable = useDelayElapsed(isDown, UNREACHABLE_GRACE_MS);
+	const [hasConnected, setHasConnected] = useState(false);
+	useEffect(() => {
+		if (!isDown) setHasConnected(true);
+	}, [isDown]);
+
+	const isDegraded = useDelayElapsed(isDown, DEGRADED_GRACE_MS);
+	const graceElapsed = useDelayElapsed(isDown, unreachableAfterMs);
+	// A 403 preflight is definitive — the relay only 403s a verified token, so
+	// no amount of redialling changes the answer. Waiting out the grace there
+	// only delays telling the user they lack access.
+	const isUnreachable =
+		graceElapsed || (isDown && status.probe?.status === 403);
 	const isRelayHost = /\/hosts\/[^/]+/.test(hostUrl);
 
 	useEffect(() => {
-		if (!isUnreachable) return;
+		if (!isDegraded) return;
 		const timer = window.setInterval(() => bus.reconnect(), REDIAL_INTERVAL_MS);
 		return () => window.clearInterval(timer);
-	}, [isUnreachable, bus]);
+	}, [isDegraded, bus]);
 
 	return {
+		isDegraded,
 		isUnreachable,
 		isReconnecting: isDown && status.state !== "closed",
+		hasConnected,
 		detail: describeFailure(status, isRelayHost),
 		retry: () => bus.reconnect(),
 	};

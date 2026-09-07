@@ -3562,6 +3562,9 @@ msgstr "Collegato. L'accesso è stato annullato, quindi i trigger su \"Io\" non 
 msgid "Connecting"
 msgstr "Connessione"
 
+msgid "Connecting to {hostName}…"
+msgstr "Connessione a {hostName}…"
+
 msgid "Connecting to the desktop…"
 msgstr "Connessione al desktop…"
 
@@ -4936,6 +4939,9 @@ msgstr "Scollegare Slack?"
 
 msgid "Disconnected"
 msgstr "Disconnesso"
+
+msgid "Disconnected from {hostName}"
+msgstr "Disconnesso da {hostName}"
 
 msgid "Disconnecting..."
 msgstr "Disconnessione..."
@@ -6820,6 +6826,9 @@ msgstr "Il servizio host è andato in crash"
 
 msgid "Host service is not running"
 msgstr "Il servizio host non è in esecuzione"
+
+msgid "Host service is restarting…"
+msgstr "Il servizio host si sta riavviando…"
 
 msgid "Host service is starting…"
 msgstr "Il servizio host si sta avviando…"
@@ -11073,6 +11082,9 @@ msgstr "È necessario ricollegarsi"
 
 msgid "Reconnecting"
 msgstr "Riconnessione"
+
+msgid "Reconnecting to {hostName}…"
+msgstr "Riconnessione a {hostName}…"
 
 msgid "Reconnecting…"
 msgstr "Riconnessione…"
