@@ -6,6 +6,7 @@ export {
 	CommentModeButton,
 	CommentModeToggle,
 } from "./components/CommentModeToggle";
+export { CommentsPanelToggle } from "./components/CommentsPanelToggle";
 export { CommentsSidebar } from "./components/CommentsSidebar";
 export { PageCommentsView } from "./components/PageCommentsView";
 export {

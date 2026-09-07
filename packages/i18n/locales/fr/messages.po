@@ -765,6 +765,9 @@ msgstr "{noun, select, repository {Indiquez au moins un dépôt.} channel {Indiq
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {# appareil est hors ligne et conserve sa copie.} other {# appareils sont hors ligne et conservent leur copie.}}"
 
+msgid "{openCount, plural, one {# open comment} other {# open comments}}"
+msgstr "{openCount, plural, one {# commentaire ouvert} other {# commentaires ouverts}}"
+
 msgid "{openCount} open"
 msgstr "{openCount} ouvertes"
 
@@ -813,6 +816,9 @@ msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{received} sur {total}"
+
+msgid "{rest, plural, one {# reply} other {# replies}}"
+msgstr "{rest, plural, one {# réponse} other {# réponses}}"
 
 msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
 msgstr "{retried, plural, one {Nouvelle tentative pour # automatisation} other {Nouvelle tentative pour # automatisations}}"
@@ -3119,6 +3125,9 @@ msgstr "Fermer le chat"
 
 msgid "Close Comment"
 msgstr "Fermer le commentaire"
+
+msgid "Close comments"
+msgstr "Fermer les commentaires"
 
 msgid "Close Diff"
 msgstr "Fermer le diff"
@@ -6760,6 +6769,9 @@ msgstr "Masquer la liste des pull requests"
 msgid "Hide pull request preview"
 msgstr "Masquer l'aperçu de la pull request"
 
+msgid "Hide resolved ({resolvedCount})"
+msgstr "Masquer les commentaires résolus ({resolvedCount})"
+
 msgid "Hide review comments"
 msgstr "Masquer les commentaires de revue"
 
@@ -7848,6 +7860,9 @@ msgstr "Indicateurs de chargement et d'activité en cours"
 msgid "Loading changes..."
 msgstr "Chargement des modifications..."
 
+msgid "Loading comments…"
+msgstr "Chargement des commentaires…"
+
 msgid "Loading contributors…"
 msgstr "Chargement des contributeurs…"
 
@@ -8806,6 +8821,9 @@ msgstr "Aucun contenu de commentaire"
 msgid "No comments yet."
 msgstr "Aucun commentaire pour le moment."
 
+msgid "No comments yet. Turn on comment mode and click anything on the page to start one."
+msgstr "Aucun commentaire pour l’instant. Activez le mode commentaire et cliquez sur n’importe quel élément de la page pour en commencer un."
+
 msgid "No commits on this branch yet."
 msgstr "Aucun commit sur cette branche pour l'instant."
 
@@ -9268,6 +9286,9 @@ msgstr "Pas maintenant"
 
 msgid "Not on the leaderboard. Opt in first."
 msgstr "Absent du classement. Inscrivez-vous d'abord."
+
+msgid "Not on this version"
+msgstr "Absent de cette version"
 
 msgid "Not receiving events yet: Microsoft Graph refused the notification subscriptions. Check the app's admin consent and protected API approval, then reconnect."
 msgstr "Aucun événement reçu pour l'instant : Microsoft Graph a refusé les abonnements aux notifications. Vérifiez le consentement administrateur de l'application et l'approbation des API protégées, puis reconnectez-vous."
@@ -12593,6 +12614,9 @@ msgstr "Afficher les vérifications"
 msgid "Show closed"
 msgstr "Afficher les fermées"
 
+msgid "Show comments"
+msgstr "Afficher les commentaires"
+
 msgid "Show CPU and memory usage in the top bar"
 msgstr "Afficher l'utilisation du processeur et de la mémoire dans la barre supérieure"
 
@@ -12673,6 +12697,9 @@ msgstr "Afficher la liste des pull requests"
 
 msgid "Show pull request preview"
 msgstr "Afficher l'aperçu de la pull request"
+
+msgid "Show resolved ({resolvedCount})"
+msgstr "Afficher les commentaires résolus ({resolvedCount})"
 
 msgid "Show review comments"
 msgstr "Afficher les commentaires de revue"
@@ -15446,6 +15473,9 @@ msgstr "Ce qu'est Superset, qui le construit et à qui il s'adresse. Une équipe
 
 msgid "What the content is doing: which pages sessions start on, and how much is being published."
 msgstr "Ce que fait le contenu : sur quelles pages les sessions commencent, et combien est publié."
+
+msgid "What these were written against is no longer on the page, so they have no pin."
+msgstr "Ce à quoi ils se rapportaient ne figure plus sur la page, ils n’ont donc pas de repère."
 
 msgid "What We're Building"
 msgstr "Ce que nous construisons"

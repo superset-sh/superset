@@ -8,8 +8,9 @@ import {
 } from "@superset/shared/page-comments-runtime";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useComments } from "../../providers/CommentProvider";
+import { initialsOf } from "../../utils/initialsOf";
 import { CommentBubble, pinClassName } from "./components/CommentBubble";
-import { CommentPopover, initialsOf } from "./components/CommentPopover";
+import { CommentPopover } from "./components/CommentPopover";
 import { PageFrame } from "./components/PageFrame";
 import {
 	PIN_SIZE,

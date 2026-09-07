@@ -765,6 +765,9 @@ msgstr "{noun, select, repository {Zadejte alespoň jeden repozitář.} channel 
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {# zařízení je offline a ponechá si svou kopii.} few {# zařízení jsou offline a ponechají si svou kopii.} many {# zařízení je offline a ponechá si svou kopii.} other {# zařízení je offline a ponechá si svou kopii.}}"
 
+msgid "{openCount, plural, one {# open comment} other {# open comments}}"
+msgstr "{openCount, plural, one {# otevřený komentář} few {# otevřené komentáře} many {# otevřené komentáře} other {# otevřených komentářů}}"
+
 msgid "{openCount} open"
 msgstr "{openCount} otevřených"
 
@@ -813,6 +816,9 @@ msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{received} z {total}"
+
+msgid "{rest, plural, one {# reply} other {# replies}}"
+msgstr "{rest, plural, one {# odpověď} few {# odpovědi} many {# odpovědi} other {# odpovědí}}"
 
 msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
 msgstr "{retried, plural, one {Opakuji # automatizaci} few {Opakuji # automatizace} many {Opakuji # automatizace} other {Opakuji # automatizací}}"
@@ -3119,6 +3125,9 @@ msgstr "Zavřít chat"
 
 msgid "Close Comment"
 msgstr "Zavřít komentář"
+
+msgid "Close comments"
+msgstr "Zavřít komentáře"
 
 msgid "Close Diff"
 msgstr "Zavřít diff"
@@ -6760,6 +6769,9 @@ msgstr "Skrýt seznam pull requestů"
 msgid "Hide pull request preview"
 msgstr "Skrýt náhled pull requestu"
 
+msgid "Hide resolved ({resolvedCount})"
+msgstr "Skrýt vyřešené ({resolvedCount})"
+
 msgid "Hide review comments"
 msgstr "Skrýt komentáře z revize"
 
@@ -7848,6 +7860,9 @@ msgstr "Indikátory načítání a probíhající aktivity"
 msgid "Loading changes..."
 msgstr "Načítám změny..."
 
+msgid "Loading comments…"
+msgstr "Načítání komentářů…"
+
 msgid "Loading contributors…"
 msgstr "Načítám přispěvatele…"
 
@@ -8806,6 +8821,9 @@ msgstr "Bez textu komentáře"
 msgid "No comments yet."
 msgstr "Zatím žádné komentáře."
 
+msgid "No comments yet. Turn on comment mode and click anything on the page to start one."
+msgstr "Zatím žádné komentáře. Zapněte režim komentářů a kliknutím na cokoli na stránce začněte."
+
 msgid "No commits on this branch yet."
 msgstr "V této větvi zatím nejsou žádné commity."
 
@@ -9268,6 +9286,9 @@ msgstr "Teď ne"
 
 msgid "Not on the leaderboard. Opt in first."
 msgstr "Nejste v žebříčku. Nejprve se zapojte."
+
+msgid "Not on this version"
+msgstr "Není v této verzi"
 
 msgid "Not receiving events yet: Microsoft Graph refused the notification subscriptions. Check the app's admin consent and protected API approval, then reconnect."
 msgstr "Zatím nepřicházejí žádné události: Microsoft Graph odmítl odběry oznámení. Zkontrolujte souhlas administrátora a schválení chráněného API, pak se připojte znovu."
@@ -12593,6 +12614,9 @@ msgstr "Zobrazit kontroly"
 msgid "Show closed"
 msgstr "Zobrazit uzavřené"
 
+msgid "Show comments"
+msgstr "Zobrazit komentáře"
+
 msgid "Show CPU and memory usage in the top bar"
 msgstr "Zobrazovat využití CPU a paměti v horní liště"
 
@@ -12673,6 +12697,9 @@ msgstr "Zobrazit seznam pull requestů"
 
 msgid "Show pull request preview"
 msgstr "Zobrazit náhled pull requestu"
+
+msgid "Show resolved ({resolvedCount})"
+msgstr "Zobrazit vyřešené ({resolvedCount})"
 
 msgid "Show review comments"
 msgstr "Zobrazit komentáře z revize"
@@ -15446,6 +15473,9 @@ msgstr "Co je Superset, kdo ho staví a pro koho je. Sanfranciský tým tří b�
 
 msgid "What the content is doing: which pages sessions start on, and how much is being published."
 msgstr "Co obsah dělá: na kterých stránkách relace začínají a kolik se publikuje."
+
+msgid "What these were written against is no longer on the page, so they have no pin."
+msgstr "To, k čemu byly napsané, už na stránce není, takže nemají značku."
 
 msgid "What We're Building"
 msgstr "Co stavíme"

@@ -765,6 +765,9 @@ msgstr "{noun, select, repository {Geef minstens één repository op.} channel {
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {# apparaat is offline en behoudt zijn kopie.} other {# apparaten zijn offline en behouden hun kopie.}}"
 
+msgid "{openCount, plural, one {# open comment} other {# open comments}}"
+msgstr "{openCount, plural, one {# open opmerking} other {# open opmerkingen}}"
+
 msgid "{openCount} open"
 msgstr "{openCount} open"
 
@@ -813,6 +816,9 @@ msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{received} van {total}"
+
+msgid "{rest, plural, one {# reply} other {# replies}}"
+msgstr "{rest, plural, one {# reactie} other {# reacties}}"
 
 msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
 msgstr "{retried, plural, one {# automatisering opnieuw uitvoeren} other {# automatiseringen opnieuw uitvoeren}}"
@@ -3119,6 +3125,9 @@ msgstr "Chat sluiten"
 
 msgid "Close Comment"
 msgstr "Opmerking sluiten"
+
+msgid "Close comments"
+msgstr "Opmerkingen sluiten"
 
 msgid "Close Diff"
 msgstr "Diff sluiten"
@@ -6760,6 +6769,9 @@ msgstr "Lijst met pull requests verbergen"
 msgid "Hide pull request preview"
 msgstr "Voorbeeld van pull request verbergen"
 
+msgid "Hide resolved ({resolvedCount})"
+msgstr "Opgeloste verbergen ({resolvedCount})"
+
 msgid "Hide review comments"
 msgstr "Reviewopmerkingen verbergen"
 
@@ -7848,6 +7860,9 @@ msgstr "Laad- en activiteitsindicatoren"
 msgid "Loading changes..."
 msgstr "Wijzigingen laden..."
 
+msgid "Loading comments…"
+msgstr "Opmerkingen laden…"
+
 msgid "Loading contributors…"
 msgstr "Contributors laden…"
 
@@ -8806,6 +8821,9 @@ msgstr "Geen tekst in de opmerking"
 msgid "No comments yet."
 msgstr "Nog geen opmerkingen."
 
+msgid "No comments yet. Turn on comment mode and click anything on the page to start one."
+msgstr "Nog geen opmerkingen. Zet de opmerkingsmodus aan en klik op iets op de pagina om er een te beginnen."
+
 msgid "No commits on this branch yet."
 msgstr "Nog geen commits op deze branch."
 
@@ -9268,6 +9286,9 @@ msgstr "Niet nu"
 
 msgid "Not on the leaderboard. Opt in first."
 msgstr "Niet op de ranglijst. Doe eerst mee."
+
+msgid "Not on this version"
+msgstr "Niet in deze versie"
 
 msgid "Not receiving events yet: Microsoft Graph refused the notification subscriptions. Check the app's admin consent and protected API approval, then reconnect."
 msgstr "Er komen nog geen gebeurtenissen binnen: Microsoft Graph heeft de meldingsabonnementen geweigerd. Controleer de beheerderstoestemming en de goedkeuring van de beveiligde API van de app, en verbind opnieuw."
@@ -12593,6 +12614,9 @@ msgstr "Checks tonen"
 msgid "Show closed"
 msgstr "Gesloten tonen"
 
+msgid "Show comments"
+msgstr "Opmerkingen tonen"
+
 msgid "Show CPU and memory usage in the top bar"
 msgstr "Toon CPU- en geheugengebruik in de bovenbalk"
 
@@ -12673,6 +12697,9 @@ msgstr "Lijst met pull requests tonen"
 
 msgid "Show pull request preview"
 msgstr "Voorbeeld van pull request tonen"
+
+msgid "Show resolved ({resolvedCount})"
+msgstr "Opgeloste tonen ({resolvedCount})"
 
 msgid "Show review comments"
 msgstr "Reviewopmerkingen tonen"
@@ -15446,6 +15473,9 @@ msgstr "Wat Superset is, wie het bouwt en voor wie het bedoeld is. Een team uit 
 
 msgid "What the content is doing: which pages sessions start on, and how much is being published."
 msgstr "Wat de content doet: op welke pagina's sessies beginnen en hoeveel er wordt gepubliceerd."
+
+msgid "What these were written against is no longer on the page, so they have no pin."
+msgstr "Waar deze op sloegen staat niet meer op de pagina, dus ze hebben geen markering."
 
 msgid "What We're Building"
 msgstr "Wat we bouwen"

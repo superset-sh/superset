@@ -765,6 +765,9 @@ msgstr "{noun, select, repository {Especifica al menos un repositorio.} channel 
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {# dispositivo está sin conexión y conserva su copia.} other {# dispositivos están sin conexión y conservan su copia.}}"
 
+msgid "{openCount, plural, one {# open comment} other {# open comments}}"
+msgstr "{openCount, plural, one {# comentario abierto} other {# comentarios abiertos}}"
+
 msgid "{openCount} open"
 msgstr "{openCount} abiertas"
 
@@ -813,6 +816,9 @@ msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{received} de {total}"
+
+msgid "{rest, plural, one {# reply} other {# replies}}"
+msgstr "{rest, plural, one {# respuesta} other {# respuestas}}"
 
 msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
 msgstr "{retried, plural, one {Reintentando # automatización} other {Reintentando # automatizaciones}}"
@@ -3119,6 +3125,9 @@ msgstr "Cerrar el chat"
 
 msgid "Close Comment"
 msgstr "Cerrar el comentario"
+
+msgid "Close comments"
+msgstr "Cerrar los comentarios"
 
 msgid "Close Diff"
 msgstr "Cerrar el diff"
@@ -6760,6 +6769,9 @@ msgstr "Ocultar la lista de pull requests"
 msgid "Hide pull request preview"
 msgstr "Ocultar la vista previa de la pull request"
 
+msgid "Hide resolved ({resolvedCount})"
+msgstr "Ocultar los resueltos ({resolvedCount})"
+
 msgid "Hide review comments"
 msgstr "Ocultar los comentarios de revisión"
 
@@ -7848,6 +7860,9 @@ msgstr "Indicadores de carga y de actividad en curso"
 msgid "Loading changes..."
 msgstr "Cargando los cambios..."
 
+msgid "Loading comments…"
+msgstr "Cargando los comentarios…"
+
 msgid "Loading contributors…"
 msgstr "Cargando colaboradores…"
 
@@ -8806,6 +8821,9 @@ msgstr "Sin cuerpo del comentario"
 msgid "No comments yet."
 msgstr "Aún no hay comentarios."
 
+msgid "No comments yet. Turn on comment mode and click anything on the page to start one."
+msgstr "Aún no hay comentarios. Activa el modo de comentarios y haz clic en cualquier elemento de la página para empezar uno."
+
 msgid "No commits on this branch yet."
 msgstr "Aún no hay commits en esta rama."
 
@@ -9268,6 +9286,9 @@ msgstr "Ahora no"
 
 msgid "Not on the leaderboard. Opt in first."
 msgstr "No estás en la clasificación. Únete primero."
+
+msgid "Not on this version"
+msgstr "No está en esta versión"
 
 msgid "Not receiving events yet: Microsoft Graph refused the notification subscriptions. Check the app's admin consent and protected API approval, then reconnect."
 msgstr "Aún no se reciben eventos: Microsoft Graph rechazó las suscripciones de notificaciones. Revisa el consentimiento de administrador de la app y la aprobación de API protegidas, y vuelve a conectarlo."
@@ -12593,6 +12614,9 @@ msgstr "Mostrar comprobaciones"
 msgid "Show closed"
 msgstr "Mostrar cerrados"
 
+msgid "Show comments"
+msgstr "Mostrar los comentarios"
+
 msgid "Show CPU and memory usage in the top bar"
 msgstr "Mostrar el uso de CPU y memoria en la barra superior"
 
@@ -12673,6 +12697,9 @@ msgstr "Mostrar la lista de pull requests"
 
 msgid "Show pull request preview"
 msgstr "Mostrar la vista previa de la pull request"
+
+msgid "Show resolved ({resolvedCount})"
+msgstr "Mostrar los resueltos ({resolvedCount})"
 
 msgid "Show review comments"
 msgstr "Mostrar los comentarios de revisión"
@@ -15446,6 +15473,9 @@ msgstr "Qué es Superset, quién lo construye y para quién es. Un equipo de San
 
 msgid "What the content is doing: which pages sessions start on, and how much is being published."
 msgstr "Qué está haciendo el contenido: en qué páginas empiezan las sesiones y cuánto se publica."
+
+msgid "What these were written against is no longer on the page, so they have no pin."
+msgstr "Aquello sobre lo que se escribieron ya no está en la página, así que no tienen marcador."
 
 msgid "What We're Building"
 msgstr "Lo que estamos construyendo"

@@ -68,6 +68,13 @@ interface CommentContextValue extends CommentStore {
 	notifyFramePointerDown: () => void;
 	enabled: boolean;
 	toggleEnabled: () => void;
+	/**
+	 * Whether the thread list is showing. Separate from `enabled`, which is
+	 * pin-placement mode: on a narrow viewport the list is a sheet you open to
+	 * read, and reading should not arm the page for a stray tap.
+	 */
+	panelOpen: boolean;
+	setPanelOpen: (open: boolean) => void;
 	draft: CommentDraft | null;
 	openDraft: (draft: CommentDraft) => void;
 	discardDraft: () => void;
@@ -130,6 +137,7 @@ export function CommentProvider({
 		[controlledEnabled, onEnabledChange],
 	);
 	const [draft, setDraft] = useState<CommentDraft | null>(null);
+	const [panelOpen, setPanelOpen] = useState(false);
 	const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
 	const [hoverRect, setHoverRect] = useState<FrameRect | null>(null);
 	const [rects, setRectState] = useState<Record<string, FrameRect | null>>({});
@@ -257,6 +265,8 @@ export function CommentProvider({
 			notifyFramePointerDown,
 			enabled,
 			toggleEnabled,
+			panelOpen,
+			setPanelOpen,
 			draft,
 			openDraft,
 			discardDraft,
@@ -283,6 +293,7 @@ export function CommentProvider({
 			notifyFramePointerDown,
 			enabled,
 			toggleEnabled,
+			panelOpen,
 			draft,
 			openDraft,
 			discardDraft,

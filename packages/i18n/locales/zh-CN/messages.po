@@ -765,6 +765,9 @@ msgstr "{noun, select, repository {请至少指定一个仓库。} channel {请�
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {# 台设备处于离线状态，将保留其副本。} other {# 台设备处于离线状态，将保留其副本。}}"
 
+msgid "{openCount, plural, one {# open comment} other {# open comments}}"
+msgstr "{openCount, plural, one {#条未解决评论} other {#条未解决评论}}"
+
 msgid "{openCount} open"
 msgstr "{openCount}项已开启"
 
@@ -813,6 +816,9 @@ msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{received}/{total}"
+
+msgid "{rest, plural, one {# reply} other {# replies}}"
+msgstr "{rest, plural, one {#条回复} other {#条回复}}"
 
 msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
 msgstr "{retried, plural, one {正在重试#个自动化} other {正在重试#个自动化}}"
@@ -3118,6 +3124,9 @@ msgid "Close Chat"
 msgstr "关闭聊天"
 
 msgid "Close Comment"
+msgstr "关闭评论"
+
+msgid "Close comments"
 msgstr "关闭评论"
 
 msgid "Close Diff"
@@ -6760,6 +6769,9 @@ msgstr "隐藏拉取请求列表"
 msgid "Hide pull request preview"
 msgstr "隐藏拉取请求预览"
 
+msgid "Hide resolved ({resolvedCount})"
+msgstr "隐藏已解决 ({resolvedCount})"
+
 msgid "Hide review comments"
 msgstr "隐藏审查评论"
 
@@ -7848,6 +7860,9 @@ msgstr "加载状态与进行中活动的指示器"
 msgid "Loading changes..."
 msgstr "正在加载更改..."
 
+msgid "Loading comments…"
+msgstr "正在加载评论…"
+
 msgid "Loading contributors…"
 msgstr "正在加载贡献者…"
 
@@ -8806,6 +8821,9 @@ msgstr "没有评论正文"
 msgid "No comments yet."
 msgstr "暂无评论。"
 
+msgid "No comments yet. Turn on comment mode and click anything on the page to start one."
+msgstr "还没有评论。开启评论模式，点击页面上的任意元素即可开始。"
+
 msgid "No commits on this branch yet."
 msgstr "此分支上还没有提交。"
 
@@ -9268,6 +9286,9 @@ msgstr "暂不"
 
 msgid "Not on the leaderboard. Opt in first."
 msgstr "不在排行榜中。请先加入。"
+
+msgid "Not on this version"
+msgstr "不在此版本中"
 
 msgid "Not receiving events yet: Microsoft Graph refused the notification subscriptions. Check the app's admin consent and protected API approval, then reconnect."
 msgstr "尚未接收到事件：Microsoft Graph拒绝了通知订阅。请检查应用的管理员同意和受保护API的审批，然后重新连接。"
@@ -12593,6 +12614,9 @@ msgstr "显示检查"
 msgid "Show closed"
 msgstr "显示已关闭"
 
+msgid "Show comments"
+msgstr "显示评论"
+
 msgid "Show CPU and memory usage in the top bar"
 msgstr "在顶栏显示CPU和内存用量"
 
@@ -12673,6 +12697,9 @@ msgstr "显示拉取请求列表"
 
 msgid "Show pull request preview"
 msgstr "显示拉取请求预览"
+
+msgid "Show resolved ({resolvedCount})"
+msgstr "显示已解决 ({resolvedCount})"
 
 msgid "Show review comments"
 msgstr "显示评审评论"
@@ -15446,6 +15473,9 @@ msgstr "Superset 是什么、由谁打造、为谁而建。一支由三位前 YC
 
 msgid "What the content is doing: which pages sessions start on, and how much is being published."
 msgstr "内容的表现：会话从哪些页面开始，以及发布了多少。"
+
+msgid "What these were written against is no longer on the page, so they have no pin."
+msgstr "这些评论所针对的内容已不在页面上，因此没有标记。"
 
 msgid "What We're Building"
 msgstr "我们正在构建什么"

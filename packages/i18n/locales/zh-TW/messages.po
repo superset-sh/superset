@@ -765,6 +765,9 @@ msgstr "{noun, select, repository {請至少指定一個倉庫。} channel {請�
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {# 台裝置處於離線狀態，將保留其副本。} other {# 台裝置處於離線狀態，將保留其副本。}}"
 
+msgid "{openCount, plural, one {# open comment} other {# open comments}}"
+msgstr "{openCount, plural, one {#條未解決評論} other {#條未解決評論}}"
+
 msgid "{openCount} open"
 msgstr "{openCount}項已開啟"
 
@@ -813,6 +816,9 @@ msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{received}/{total}"
+
+msgid "{rest, plural, one {# reply} other {# replies}}"
+msgstr "{rest, plural, one {#條回覆} other {#條回覆}}"
 
 msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
 msgstr "{retried, plural, one {正在重試#個自動化} other {正在重試#個自動化}}"
@@ -3118,6 +3124,9 @@ msgid "Close Chat"
 msgstr "關閉聊天"
 
 msgid "Close Comment"
+msgstr "關閉評論"
+
+msgid "Close comments"
 msgstr "關閉評論"
 
 msgid "Close Diff"
@@ -6760,6 +6769,9 @@ msgstr "隱藏拉取請求列表"
 msgid "Hide pull request preview"
 msgstr "隱藏拉取請求預覽"
 
+msgid "Hide resolved ({resolvedCount})"
+msgstr "隱藏已解決 ({resolvedCount})"
+
 msgid "Hide review comments"
 msgstr "隱藏審查評論"
 
@@ -7848,6 +7860,9 @@ msgstr "載入狀態與進行中活動的指示器"
 msgid "Loading changes..."
 msgstr "正在載入更改..."
 
+msgid "Loading comments…"
+msgstr "正在載入評論…"
+
 msgid "Loading contributors…"
 msgstr "正在載入貢獻者…"
 
@@ -8806,6 +8821,9 @@ msgstr "沒有評論正文"
 msgid "No comments yet."
 msgstr "暫無評論。"
 
+msgid "No comments yet. Turn on comment mode and click anything on the page to start one."
+msgstr "還沒有評論。開啟評論模式，點擊頁面上的任何元素即可開始。"
+
 msgid "No commits on this branch yet."
 msgstr "此分支上還沒有提交。"
 
@@ -9268,6 +9286,9 @@ msgstr "暫不"
 
 msgid "Not on the leaderboard. Opt in first."
 msgstr "不在排行榜中。請先加入。"
+
+msgid "Not on this version"
+msgstr "不在此版本中"
 
 msgid "Not receiving events yet: Microsoft Graph refused the notification subscriptions. Check the app's admin consent and protected API approval, then reconnect."
 msgstr "尚未接收到事件：Microsoft Graph拒絕了通知訂閱。請檢查應用的管理員同意和受保護API的審批，然後重新連線。"
@@ -12593,6 +12614,9 @@ msgstr "顯示檢查"
 msgid "Show closed"
 msgstr "顯示已關閉"
 
+msgid "Show comments"
+msgstr "顯示評論"
+
 msgid "Show CPU and memory usage in the top bar"
 msgstr "在頂欄顯示CPU和記憶體用量"
 
@@ -12673,6 +12697,9 @@ msgstr "顯示拉取請求列表"
 
 msgid "Show pull request preview"
 msgstr "顯示拉取請求預覽"
+
+msgid "Show resolved ({resolvedCount})"
+msgstr "顯示已解決 ({resolvedCount})"
 
 msgid "Show review comments"
 msgstr "顯示評審評論"
@@ -15446,6 +15473,9 @@ msgstr "Superset 是什麼、由誰打造、為誰而做。一支由三位前 YC
 
 msgid "What the content is doing: which pages sessions start on, and how much is being published."
 msgstr "內容的表現：工作階段從哪些頁面開始，以及發佈了多少。"
+
+msgid "What these were written against is no longer on the page, so they have no pin."
+msgstr "這些評論所針對的內容已不在頁面上，因此沒有標記。"
 
 msgid "What We're Building"
 msgstr "我們正在構建什麼"

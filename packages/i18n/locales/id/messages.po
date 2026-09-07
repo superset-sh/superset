@@ -765,6 +765,9 @@ msgstr "{noun, select, repository {Tentukan minimal satu repositori.} channel {T
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {# perangkat sedang offline dan tetap menyimpan salinannya.} other {# perangkat sedang offline dan tetap menyimpan salinannya.}}"
 
+msgid "{openCount, plural, one {# open comment} other {# open comments}}"
+msgstr "{openCount, plural, one {# komentar terbuka} other {# komentar terbuka}}"
+
 msgid "{openCount} open"
 msgstr "{openCount} terbuka"
 
@@ -813,6 +816,9 @@ msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{received} dari {total}"
+
+msgid "{rest, plural, one {# reply} other {# replies}}"
+msgstr "{rest, plural, one {# balasan} other {# balasan}}"
 
 msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
 msgstr "{retried, plural, one {Mencoba ulang # otomatisasi} other {Mencoba ulang # otomatisasi}}"
@@ -3119,6 +3125,9 @@ msgstr "Tutup Chat"
 
 msgid "Close Comment"
 msgstr "Tutup Komentar"
+
+msgid "Close comments"
+msgstr "Tutup komentar"
 
 msgid "Close Diff"
 msgstr "Tutup Diff"
@@ -6760,6 +6769,9 @@ msgstr "Sembunyikan daftar pull request"
 msgid "Hide pull request preview"
 msgstr "Sembunyikan pratinjau pull request"
 
+msgid "Hide resolved ({resolvedCount})"
+msgstr "Sembunyikan yang selesai ({resolvedCount})"
+
 msgid "Hide review comments"
 msgstr "Sembunyikan komentar review"
 
@@ -7848,6 +7860,9 @@ msgstr "Indikator pemuatan dan aktivitas yang sedang berjalan"
 msgid "Loading changes..."
 msgstr "Memuat perubahan..."
 
+msgid "Loading comments…"
+msgstr "Memuat komentar…"
+
 msgid "Loading contributors…"
 msgstr "Memuat kontributor…"
 
@@ -8806,6 +8821,9 @@ msgstr "Tidak ada isi komentar"
 msgid "No comments yet."
 msgstr "Belum ada komentar."
 
+msgid "No comments yet. Turn on comment mode and click anything on the page to start one."
+msgstr "Belum ada komentar. Aktifkan mode komentar lalu klik apa pun di halaman untuk memulai."
+
 msgid "No commits on this branch yet."
 msgstr "Belum ada commit di branch ini."
 
@@ -9268,6 +9286,9 @@ msgstr "Nanti saja"
 
 msgid "Not on the leaderboard. Opt in first."
 msgstr "Tidak ada di papan peringkat. Ikut serta dulu."
+
+msgid "Not on this version"
+msgstr "Tidak ada di versi ini"
 
 msgid "Not receiving events yet: Microsoft Graph refused the notification subscriptions. Check the app's admin consent and protected API approval, then reconnect."
 msgstr "Belum menerima event: Microsoft Graph menolak langganan notifikasi. Periksa persetujuan admin aplikasi dan persetujuan protected API, lalu hubungkan ulang."
@@ -12593,6 +12614,9 @@ msgstr "Tampilkan check"
 msgid "Show closed"
 msgstr "Tampilkan yang ditutup"
 
+msgid "Show comments"
+msgstr "Tampilkan komentar"
+
 msgid "Show CPU and memory usage in the top bar"
 msgstr "Tampilkan penggunaan CPU dan memori di bilah atas"
 
@@ -12673,6 +12697,9 @@ msgstr "Tampilkan daftar pull request"
 
 msgid "Show pull request preview"
 msgstr "Tampilkan pratinjau pull request"
+
+msgid "Show resolved ({resolvedCount})"
+msgstr "Tampilkan yang selesai ({resolvedCount})"
 
 msgid "Show review comments"
 msgstr "Tampilkan komentar review"
@@ -15446,6 +15473,9 @@ msgstr "Apa itu Superset, siapa yang membangunnya, dan untuk siapa. Tim San Fran
 
 msgid "What the content is doing: which pages sessions start on, and how much is being published."
 msgstr "Apa yang dilakukan konten: di halaman mana sesi dimulai, dan seberapa banyak yang dipublikasikan."
+
+msgid "What these were written against is no longer on the page, so they have no pin."
+msgstr "Yang menjadi acuannya sudah tidak ada di halaman, jadi tidak punya penanda."
 
 msgid "What We're Building"
 msgstr "Yang Sedang Kami Bangun"

@@ -765,6 +765,9 @@ msgstr "{noun, select, repository {Укажите хотя бы один реп�
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {# устройство офлайн и сохранит свою копию.} few {# устройства офлайн и сохранят свои копии.} many {# устройств офлайн и сохранят свои копии.} other {# устройства офлайн и сохранят свои копии.}}"
 
+msgid "{openCount, plural, one {# open comment} other {# open comments}}"
+msgstr "{openCount, plural, one {# открытый комментарий} few {# открытых комментария} many {# открытых комментариев} other {# открытого комментария}}"
+
 msgid "{openCount} open"
 msgstr "{openCount} открыто"
 
@@ -813,6 +816,9 @@ msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{received} из {total}"
+
+msgid "{rest, plural, one {# reply} other {# replies}}"
+msgstr "{rest, plural, one {# ответ} few {# ответа} many {# ответов} other {# ответа}}"
 
 msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
 msgstr "{retried, plural, one {Повторяем # автоматизацию} few {Повторяем # автоматизации} many {Повторяем # автоматизаций} other {Повторяем # автоматизации}}"
@@ -3119,6 +3125,9 @@ msgstr "Закрыть чат"
 
 msgid "Close Comment"
 msgstr "Закрыть комментарий"
+
+msgid "Close comments"
+msgstr "Закрыть комментарии"
 
 msgid "Close Diff"
 msgstr "Закрыть diff"
@@ -6760,6 +6769,9 @@ msgstr "Скрыть список пул-реквестов"
 msgid "Hide pull request preview"
 msgstr "Скрыть предпросмотр пул-реквеста"
 
+msgid "Hide resolved ({resolvedCount})"
+msgstr "Скрыть закрытые ({resolvedCount})"
+
 msgid "Hide review comments"
 msgstr "Скрыть комментарии ревью"
 
@@ -7848,6 +7860,9 @@ msgstr "Индикаторы загрузки и текущей активнос
 msgid "Loading changes..."
 msgstr "Загрузка изменений..."
 
+msgid "Loading comments…"
+msgstr "Загрузка комментариев…"
+
 msgid "Loading contributors…"
 msgstr "Загрузка контрибьюторов…"
 
@@ -8806,6 +8821,9 @@ msgstr "Нет текста комментария"
 msgid "No comments yet."
 msgstr "Комментариев пока нет."
 
+msgid "No comments yet. Turn on comment mode and click anything on the page to start one."
+msgstr "Комментариев пока нет. Включите режим комментирования и нажмите на любой элемент страницы, чтобы начать."
+
 msgid "No commits on this branch yet."
 msgstr "В этой ветке пока нет коммитов."
 
@@ -9268,6 +9286,9 @@ msgstr "Не сейчас"
 
 msgid "Not on the leaderboard. Opt in first."
 msgstr "Вас нет в рейтинге. Сначала присоединитесь."
+
+msgid "Not on this version"
+msgstr "Нет в этой версии"
 
 msgid "Not receiving events yet: Microsoft Graph refused the notification subscriptions. Check the app's admin consent and protected API approval, then reconnect."
 msgstr "События пока не приходят: Microsoft Graph отклонил подписки на уведомления. Проверьте согласие администратора и одобрение защищённого API, затем переподключитесь."
@@ -12593,6 +12614,9 @@ msgstr "Показать проверки"
 msgid "Show closed"
 msgstr "Показать закрытые"
 
+msgid "Show comments"
+msgstr "Показать комментарии"
+
 msgid "Show CPU and memory usage in the top bar"
 msgstr "Показывать загрузку CPU и памяти в верхней панели"
 
@@ -12673,6 +12697,9 @@ msgstr "Показать список пул-реквестов"
 
 msgid "Show pull request preview"
 msgstr "Показать предпросмотр пул-реквеста"
+
+msgid "Show resolved ({resolvedCount})"
+msgstr "Показать закрытые ({resolvedCount})"
 
 msgid "Show review comments"
 msgstr "Показать комментарии ревью"
@@ -15446,6 +15473,9 @@ msgstr "Что такое Superset, кто его создаёт и для ко�
 
 msgid "What the content is doing: which pages sessions start on, and how much is being published."
 msgstr "Что делает контент: с каких страниц начинаются сессии и сколько публикуется."
+
+msgid "What these were written against is no longer on the page, so they have no pin."
+msgstr "Того, к чему они были написаны, больше нет на странице, поэтому у них нет метки."
 
 msgid "What We're Building"
 msgstr "Что мы строим"
