@@ -730,6 +730,14 @@ async function applyToActiveDir(
 			`${activeRead.credentialsPath} exists but could not be read; refusing to write over it`,
 		);
 	}
+	// Snapshot the dir's own identity BEFORE any write lands: once the target's
+	// credential is on disk a running session can rewrite `.claude.json` with
+	// the target's identity, and a snapshot taken then is the target's, not the
+	// dir's own.
+	const previousIdentity = await readIdentityKeys(
+		join(activeDir, ".claude.json"),
+		ctx,
+	);
 	const planned = await planStoreWrite(activeRef, activeRead, ctx);
 	if (!planned.ok) return planned.result;
 	// A plan naming two stores can fail on the second with the first already
@@ -747,12 +755,6 @@ async function applyToActiveDir(
 			ctx,
 		);
 	}
-	// Read before the write, so a rollback after it can put the dir's own
-	// identity back instead of leaving `.claude.json` naming the target.
-	const previousIdentity = await readIdentityKeys(
-		join(activeDir, ".claude.json"),
-		ctx,
-	);
 	// No snapshot, no identity write: the rollback restores what this read
 	// returned, so writing on a read that failed would have it delete the dir's
 	// own account rather than put it back — a credential with no identity, which

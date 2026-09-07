@@ -1130,6 +1130,67 @@ describe("swapClaudeLogin on a file-backed store", () => {
 		);
 	});
 
+	// The snapshot the rollback puts back has to be taken before the credential
+	// write: a session running against the active dir picks the target's
+	// credential up the moment it lands and rewrites `.claude.json` with the
+	// target's identity, so a snapshot read after the write is the target's,
+	// not the dir's own. Measured before the fix: verify failed, the rollback
+	// put A's credential back under B's name, and every later swap refused that
+	// dir as `owner-unknown` until a human ran `/login`.
+	it("snapshots the dir's own identity before the credential write", async () => {
+		const f = fixture();
+		const state = join(f.activeDir, ".claude.json");
+		const rewrite = (block: Record<string, unknown>): void => {
+			writeFileSync(
+				state,
+				JSON.stringify({
+					...JSON.parse(readFileSync(state, "utf-8")),
+					...block,
+				}),
+			);
+		};
+		const deps: ClaudeSwapDeps = {
+			...f.deps,
+			fs: {
+				readFile: async (path: string, encoding: "utf-8") => {
+					const { readFile } = await import("node:fs/promises");
+					if (path === state) {
+						const live = readCredentials(f.activeDir).claudeAiOauth as {
+							accessToken?: string;
+						};
+						if (live.accessToken === "t-b" && !namesB(state)) {
+							// The session's own rewrite: it can only name B once B's
+							// credential is on disk, so a snapshot taken before the write
+							// never sees it.
+							rewrite(identity("b"));
+						} else if (namesB(state)) {
+							// A `/login` after the identity write, so the verify step fails
+							// and the rollback is what the dir is left holding.
+							rewrite(identity("c"));
+						}
+					}
+					return readFile(path, encoding);
+				},
+			},
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps,
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "verify-failed" });
+		// The pin: the owner's credential under the owner's own name, not B's.
+		const stateFile = JSON.parse(readFileSync(state, "utf-8"));
+		expect(stateFile.oauthAccount).toEqual(identity("a").oauthAccount);
+		expect(stateFile.userID).toBe("user-a");
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+	});
+
 	it("replaces a symlinked .credentials.json with a real file", async () => {
 		const f = fixture();
 		const decoy = join(f.home, "decoy-credentials.json");
