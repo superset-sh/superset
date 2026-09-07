@@ -1807,6 +1807,46 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 		).toEqual(oauth("t-b", 2_000));
 	});
 
+	// A CLI run without USER leaves an item holding only MCP tokens, filed
+	// under a name the active dir's own probes never guess. It is still the
+	// item the read located and the item whose siblings the write merges, so
+	// the login has to land in it — addressing a freshly computed name instead
+	// puts the mcpOAuth of one item into a second one the CLI never reads.
+	it("writes into the item the read found even when it holds no login", async () => {
+		const f = fixture();
+		rmSync(join(f.activeDir, ".credentials.json"));
+		const activeService = keychainServicesForConfigDir(
+			f.activeDir,
+		)[0] as string;
+		const keychain = fakeKeychain([
+			{
+				service: activeService,
+				account: "legacy-account",
+				secret: JSON.stringify({
+					mcpOAuth: { "active-server": { token: "m-active" } },
+				}),
+			},
+		]);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, darwin: true, exec: keychain.exec },
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		expect(keychain.items).toHaveLength(1);
+		expect(keychain.items[0]).toMatchObject({
+			service: activeService,
+			account: "legacy-account",
+		});
+		expect(JSON.parse(keychain.items[0]?.secret ?? "{}")).toEqual({
+			mcpOAuth: { "active-server": { token: "m-active" } },
+			claudeAiOauth: oauth("t-b", 2_000),
+		});
+	});
+
 	it("refuses when the account attribute stays ambiguous", async () => {
 		const f = fixture();
 		rmSync(join(f.activeDir, ".credentials.json"));

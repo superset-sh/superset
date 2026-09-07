@@ -470,7 +470,10 @@ async function planStoreWrite(
 > {
 	const file =
 		read.fileLogin !== null || (!ctx.darwin && read.keychainLogin === null);
-	if (read.keychainLogin !== null && read.keychainService) {
+	// The item the read located, login in it or not: `applyStoreWrite` merges
+	// its bytes, so addressing anything else writes one item's siblings into
+	// another. The computed spelling below is for a dir with no item at all.
+	if (read.keychainContent !== null && read.keychainService) {
 		const account =
 			read.keychainAccount ??
 			(await readKeychainAccountAttribute(read.keychainService, {
