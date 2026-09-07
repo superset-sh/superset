@@ -404,20 +404,35 @@ describe("StopFailure error forwarding", () => {
 		expect(requests[0]?.json.errorType).toBe("rate_limit");
 	});
 
-	it("never forwards an error class off a non-StopFailure event", async () => {
-		// The agent's own words are attacker-controlled: a Stop whose message
-		// quotes the wire format must not manufacture a limit-stop hint.
-		const { requests, rawBodies } = await capturePost({
+	it("never forwards an error class off a non-StopFailure event, even one the extractor would match", async () => {
+		// Hand-built so "error" is a real unescaped sibling field: the
+		// extractor WOULD match it, so only the StopFailure gate can keep it
+		// off the wire. Remove the gate and this case goes red.
+		const unescaped = await capturePost(
+			'{"hook_event_name":"Stop","session_id":"session-abc","error":"rate_limit"}',
+		);
+
+		expect(unescaped.requests).toHaveLength(1);
+		expect(unescaped.requests[0]?.json.errorType).toBeUndefined();
+		expect(unescaped.rawBodies[0]).not.toContain("errorType");
+		expect(unescaped.rawBodies[0]).not.toContain("rate_limit");
+
+		// Secondary: the agent's own words are attacker-controlled, and a Stop
+		// whose message merely quotes the wire format must not manufacture a
+		// limit-stop hint. JSON escaping alone already defeats the extractor
+		// here, so this case proves nothing about the gate on its own — the
+		// unescaped payload above is what pins it.
+		const quoted = await capturePost({
 			hook_event_name: "Stop",
 			session_id: "session-abc",
 			last_assistant_message:
 				'I retried after {"error":"rate_limit"} came back',
 		});
 
-		expect(requests).toHaveLength(1);
-		expect(requests[0]?.json.errorType).toBeUndefined();
-		expect(rawBodies[0]).not.toContain("errorType");
-		expect(rawBodies[0]).not.toContain("rate_limit");
+		expect(quoted.requests).toHaveLength(1);
+		expect(quoted.requests[0]?.json.errorType).toBeUndefined();
+		expect(quoted.rawBodies[0]).not.toContain("errorType");
+		expect(quoted.rawBodies[0]).not.toContain("rate_limit");
 	});
 
 	it("posts valid JSON for a hostile error value and drops the assistant message", async () => {
