@@ -1,7 +1,10 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, spyOn } from "bun:test";
+import nodeFs from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import type { Readable } from "node:stream";
+import fg from "fast-glob";
 import type { SearchPatchEvent } from "./search";
 import {
 	collectSearchIndexPaths,
@@ -267,6 +270,72 @@ describe("collectSearchIndexPaths", () => {
 			expect(full.truncated).toBe(false);
 		} finally {
 			await fs.rm(rootPath, { recursive: true, force: true });
+		}
+	});
+
+	it("destroys the directory walk at the cap instead of running it to completion", async () => {
+		const rootPath = await createTempRoot();
+		const DIRS = 400;
+		const FILES = 3;
+		for (let d = 0; d < DIRS; d++) {
+			const dir = path.join(rootPath, `dir-${d}`);
+			await fs.mkdir(dir);
+			for (let f = 0; f < FILES; f++) {
+				await fs.writeFile(path.join(dir, `file-${f}.txt`), "x");
+			}
+		}
+
+		// search.ts looks `fg.stream` up on the fast-glob module object at call
+		// time, so a spy here can route the walk through a counting readdir and
+		// keep a handle on the stream the walk consumes.
+		let readdirCalls = 0;
+		const countingReaddir = ((...args: unknown[]) => {
+			readdirCalls++;
+			return (nodeFs.readdir as (...a: unknown[]) => void)(...args);
+		}) as typeof nodeFs.readdir;
+		const originalStream = fg.stream;
+		const streams: Readable[] = [];
+		const streamSpy = spyOn(fg, "stream").mockImplementation(
+			(source, options) => {
+				const stream = originalStream(source, {
+					...options,
+					fs: { readdir: countingReaddir },
+				});
+				streams.push(stream as Readable);
+				return stream;
+			},
+		);
+		try {
+			const full = await collectSearchIndexPaths(rootPath, {
+				includeHidden: false,
+			});
+			expect(full.paths).toHaveLength(DIRS * FILES);
+			expect(full.truncated).toBe(false);
+			const fullReaddirs = readdirCalls;
+			expect(fullReaddirs).toBe(DIRS + 1);
+			expect(streams[0]?.readableEnded).toBe(true);
+
+			readdirCalls = 0;
+			const capped = await collectSearchIndexPaths(rootPath, {
+				includeHidden: false,
+				maxEntries: FILES,
+			});
+			expect(capped.paths).toHaveLength(FILES);
+			expect(capped.truncated).toBe(true);
+			const cappedReaddirs = readdirCalls;
+
+			// The stream was torn down early, not read to its natural end.
+			expect(streams[1]?.destroyed).toBe(true);
+			expect(streams[1]?.readableEnded).toBe(false);
+
+			// Directories still in flight when the cap hit (bounded by fast-glob's
+			// concurrency, the CPU count) may finish, but the walker opens no
+			// more: the count is frozen, not merely lagging.
+			await new Promise((resolve) => setTimeout(resolve, 150));
+			expect(readdirCalls).toBe(cappedReaddirs);
+			expect(cappedReaddirs).toBeLessThan(fullReaddirs / 2);
+		} finally {
+			streamSpy.mockRestore();
 		}
 	});
 });
