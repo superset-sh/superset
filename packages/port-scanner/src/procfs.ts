@@ -312,8 +312,12 @@ export async function readEnvValuesLinuxProcfs(
 				signal?.throwIfAborted();
 				let content: string;
 				try {
-					content = await fs.readFile(`/proc/${pid}/environ`, "utf-8");
-				} catch {
+					content = await fs.readFile(`/proc/${pid}/environ`, {
+						encoding: "utf-8",
+						signal,
+					});
+				} catch (err) {
+					if (signal?.aborted) throw err;
 					values.set(pid, null);
 					return;
 				}

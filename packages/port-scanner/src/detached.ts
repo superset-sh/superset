@@ -6,11 +6,6 @@ export type TerminalEnvReader = (
 	signal?: AbortSignal,
 ) => Promise<Map<number, string | null>>;
 
-interface CacheEntry {
-	ppid: number;
-	terminalId: string | null;
-}
-
 /** Bound the ancestor walk; a real process chain is never this deep. */
 const MAX_ANCESTOR_DEPTH = 64;
 
@@ -24,14 +19,14 @@ const MAX_ANCESTOR_DEPTH = 64;
  * The ppid walk from the terminal's shell can't see it, but every descendant
  * still carries SUPERSET_TERMINAL_ID.
  *
- * Environment is read once per pid and cached — a process's environment is
- * fixed at exec — and re-read only when the pid leaves the table or changes
- * parent (reparenting, or pid reuse). A pid whose own environment is
+ * Environment is read afresh each scan. PID and PPID alone cannot identify a
+ * process instance: a PID may be reused with the same parent between scans.
+ * Without a stable instance identifier, caching could assign an unrelated
+ * listener to a terminal and expose it for termination. A pid whose environment is
  * unreadable inherits the nearest ancestor's id, which covers processes that
  * clobber their argv area on macOS (see readTerminalIdsFromEnv).
  */
 export class DetachedProcessResolver {
-	private readonly cache = new Map<number, CacheEntry>();
 	private readonly readEnv: TerminalEnvReader;
 
 	constructor(readEnv: TerminalEnvReader = readTerminalIdsFromEnv) {
@@ -59,24 +54,13 @@ export class DetachedProcessResolver {
 		const ppidByPid = new Map<number, number>();
 		for (const { pid, ppid } of table) ppidByPid.set(pid, ppid);
 
-		for (const [pid, entry] of this.cache) {
-			const ppid = ppidByPid.get(pid);
-			if (ppid === undefined || ppid !== entry.ppid) this.cache.delete(pid);
-		}
-
-		const uncached: number[] = [];
-		for (const { pid } of table) {
-			if (excludePids.has(pid) || this.cache.has(pid)) continue;
-			uncached.push(pid);
-		}
-		if (uncached.length > 0) {
-			const read = await this.readEnv(uncached, signal);
-			for (const pid of uncached) {
-				const ppid = ppidByPid.get(pid);
-				if (ppid === undefined) continue;
-				this.cache.set(pid, { ppid, terminalId: read.get(pid) ?? null });
-			}
-		}
+		const candidates = table
+			.filter(({ pid }) => !excludePids.has(pid))
+			.map(({ pid }) => pid);
+		const terminalIdByPid =
+			candidates.length > 0
+				? await this.readEnv(candidates, signal)
+				: new Map<number, string | null>();
 
 		const memo = new Map<number, string | null>();
 		const lookup = (startPid: number): string | null => {
@@ -90,7 +74,7 @@ export class DetachedProcessResolver {
 					break;
 				}
 				path.push(pid);
-				const terminalId = this.cache.get(pid)?.terminalId ?? null;
+				const terminalId = terminalIdByPid.get(pid) ?? null;
 				if (terminalId !== null) {
 					found = terminalId;
 					break;

@@ -39,7 +39,7 @@ export async function runTolerant(
 			) {
 				throw err;
 			}
-			if ("stdout" in execErr) {
+			if (typeof execErr.code === "number" && "stdout" in execErr) {
 				return String(execErr.stdout ?? "");
 			}
 		}

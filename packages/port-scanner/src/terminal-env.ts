@@ -17,7 +17,7 @@ const PS_PID_BATCH = 200;
 
 /**
  * Above this many pids, one whole-table `ps -ax` is cheaper than `-p` lookups
- * (a cold cache on a busy machine is ~1500 pids: ~80ms for the table, ~400ms
+ * (a scan on a busy machine is ~1500 pids: ~80ms for the table, ~400ms
  * via -p batches).
  */
 const PS_WHOLE_TABLE_THRESHOLD = PS_PID_BATCH;

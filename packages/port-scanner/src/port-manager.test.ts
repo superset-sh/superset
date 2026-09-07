@@ -764,7 +764,7 @@ describe("PortManager — detached servers (agent background processes)", () => 
 		expect(spy.getListeningPortsForPids).toBe(0);
 	});
 
-	it("reads each pid's environment once and re-reads only newcomers", async () => {
+	it("refreshes detached environments each scan, including newcomers", async () => {
 		detachedServerTable();
 		manager.upsertSession(TERMINAL, "ws1", 1000);
 
@@ -772,14 +772,43 @@ describe("PortManager — detached servers (agent background processes)", () => 
 		expect(spy.envReads).toBe(1);
 
 		await manager.forceScan();
-		expect(spy.envReads).toBe(1);
+		expect(spy.envReads).toBe(2);
 
 		processTable.push({ pid: 5002, ppid: 5000 });
 		await manager.forceScan();
-		expect(spy.envReads).toBe(2);
-		expect(spy.lastEnvReadPids).toEqual([5002]);
+		expect(spy.envReads).toBe(3);
+		expect(spy.lastEnvReadPids).toEqual([5000, 5001, 7000, 5002]);
 		// The newcomer inherits its parent's terminal even with no env of its own.
 		expect(spy.lastListeningPids).toContain(5002);
+	});
+
+	it("removes a reused PID from the old terminal's ports and kill controls", async () => {
+		detachedServerTable();
+		const killed: number[] = [];
+		manager = new PortManager({
+			killFn: async ({ pid }) => {
+				killed.push(pid);
+				return { success: true };
+			},
+		});
+		manager.upsertSession(TERMINAL, "ws1", 1000);
+		listeningPorts = [
+			{ port: 3000, pid: 5000, address: "127.0.0.1", processName: "node" },
+		];
+		await manager.forceScan();
+		expect(manager.getAllPorts()).toHaveLength(1);
+
+		// A new listener reuses both PID and parent between process snapshots.
+		terminalIdEnv.set(5000, null);
+		await manager.forceScan();
+		expect(manager.getAllPorts()).toHaveLength(0);
+		expect(spy.lastListeningPids).not.toContain(5000);
+		await manager.killPort({
+			terminalId: TERMINAL,
+			workspaceId: "ws1",
+			port: 3000,
+		});
+		expect(killed).toEqual([]);
 	});
 
 	it("kills a detached server through the port's own pid", async () => {

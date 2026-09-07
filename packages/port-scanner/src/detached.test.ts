@@ -102,7 +102,7 @@ describe("DetachedProcessResolver", () => {
 		expect(reads).toHaveLength(0);
 	});
 
-	it("caches environment per pid and evicts on exit or reparent", async () => {
+	it("refreshes environment each scan and follows exits and reparenting", async () => {
 		const { resolver, reads, env } = harness(new Map([[500, TERMINAL]]));
 		const args = { excludePids: tree, terminalIds: new Set([TERMINAL]) };
 
@@ -110,7 +110,7 @@ describe("DetachedProcessResolver", () => {
 		expect(reads).toHaveLength(1);
 
 		await resolver.resolve({ table, ...args });
-		expect(reads).toHaveLength(1);
+		expect(reads).toHaveLength(2);
 
 		// 900 exits, 901 appears, and 501's parent dies so it reparents to 1.
 		const next = table
@@ -119,10 +119,39 @@ describe("DetachedProcessResolver", () => {
 			.concat([{ pid: 901, ppid: 1 }]);
 		env.set(501, TERMINAL);
 		const resolved = await resolver.resolve({ table: next, ...args });
-		expect(reads).toHaveLength(2);
-		expect(reads[1]).toEqual([501, 901]);
+		expect(reads).toHaveLength(3);
+		expect(reads[2]).toEqual([1, 50, 501, 502, 901]);
 		expect(resolved.get(501)).toBe(TERMINAL);
 		expect(resolved.get(502)).toBe(TERMINAL);
+	});
+
+	it("does not retain ownership when a PID is reused with the same parent", async () => {
+		const { resolver, reads, env } = harness(new Map([[500, TERMINAL]]));
+		const args = {
+			table,
+			excludePids: tree,
+			terminalIds: new Set([TERMINAL, OTHER]),
+		};
+		expect((await resolver.resolve(args)).get(502)).toBe(TERMINAL);
+
+		// PID 500 exits and is reused between snapshots, still parented to PID 1.
+		env.set(500, OTHER);
+		const replaced = await resolver.resolve(args);
+		expect(replaced.get(500)).toBe(OTHER);
+		expect(replaced.get(502)).toBe(OTHER);
+		expect(reads).toHaveLength(2);
+
+		// Another replacement has no terminal owner at all.
+		env.delete(500);
+		expect((await resolver.resolve(args)).size).toBe(0);
+	});
+
+	it("retries an unreadable environment on the next scan", async () => {
+		const { resolver, env } = harness(new Map());
+		const args = { table, excludePids: tree, terminalIds: new Set([TERMINAL]) };
+		expect((await resolver.resolve(args)).size).toBe(0);
+		env.set(500, TERMINAL);
+		expect((await resolver.resolve(args)).get(500)).toBe(TERMINAL);
 	});
 
 	it("passes the abort signal to the reader", async () => {
