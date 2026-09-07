@@ -2,12 +2,23 @@ import {
 	createFsHostService,
 	type FsHostService,
 	FsWatcherManager,
-	getSearchIndex,
 } from "@superset/workspace-fs/host";
 import { eq } from "drizzle-orm";
 import type { HostDb } from "../../db/index.ts";
 import { projects, workspaces } from "../../db/schema.ts";
 import { listGitIgnoredDirs } from "../git/index.ts";
+import { forbiddenRootReason } from "./watch-root-policy.ts";
+
+/**
+ * Stand-in for a root that must not be watched (see forbiddenRootReason):
+ * subscriptions attach and never deliver, so consumers see a quiet tree
+ * instead of an error on every boot. The refusal is logged once, where the
+ * service is created.
+ */
+const unwatchedRoot: Pick<FsWatcherManager, "subscribe" | "close"> = {
+	subscribe: async () => async () => {},
+	close: async () => {},
+};
 
 export interface WorkspaceFilesystemManagerOptions {
 	db: HostDb;
@@ -97,13 +108,21 @@ export class WorkspaceFilesystemManager {
 	private getServiceForRootPath(rootPath: string): FsHostService {
 		let service = this.serviceCache.get(rootPath);
 		if (!service) {
+			const forbidden = forbiddenRootReason(rootPath);
+			if (forbidden) {
+				console.warn("[workspace-fs] not watching this root", {
+					rootPath,
+					reason: forbidden,
+				});
+			}
 			service = createFsHostService({
 				rootPath,
-				watcherManager: this.watcherManager,
+				watcherManager: forbidden ? unwatchedRoot : this.watcherManager,
 			});
 			this.serviceCache.set(rootPath, service);
-			// Pre-warm search index so first search is instant
-			getSearchIndex({ rootPath, includeHidden: false }).catch(() => {});
+			// No index pre-warm here: this runs for every workspace at boot (the
+			// git-watcher attaches to each), so it walked every root whether or
+			// not anyone would search it. The first search pays the walk instead.
 		}
 		return service;
 	}

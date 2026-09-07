@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import type { SearchPatchEvent } from "./search";
 import {
+	collectSearchIndexPaths,
 	invalidateAllSearchIndexes,
 	patchSearchIndexesForRoot,
 	searchFiles,
@@ -240,5 +241,32 @@ describe("searchFiles", () => {
 		expect(paths).toContain(flatPath);
 		expect(paths).toContain(nestedPath);
 		expect(paths).toHaveLength(2);
+	});
+});
+
+describe("collectSearchIndexPaths", () => {
+	it("stops the walk at the entry cap and reports truncation", async () => {
+		const rootPath = await fs.mkdtemp(
+			path.join(os.tmpdir(), "workspace-fs-index-cap-"),
+		);
+		try {
+			for (let i = 0; i < 12; i++) {
+				await fs.writeFile(path.join(rootPath, `file-${i}.txt`), "x");
+			}
+			const capped = await collectSearchIndexPaths(rootPath, {
+				includeHidden: false,
+				maxEntries: 5,
+			});
+			expect(capped.paths).toHaveLength(5);
+			expect(capped.truncated).toBe(true);
+
+			const full = await collectSearchIndexPaths(rootPath, {
+				includeHidden: false,
+			});
+			expect(full.paths).toHaveLength(12);
+			expect(full.truncated).toBe(false);
+		} finally {
+			await fs.rm(rootPath, { recursive: true, force: true });
+		}
 	});
 });

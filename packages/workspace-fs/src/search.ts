@@ -314,22 +314,66 @@ function matchesPathFilters(
 	return true;
 }
 
-async function buildSearchIndex({
-	rootPath,
-	includeHidden,
-}: SearchIndexKeyOptions): Promise<SearchIndexEntry[]> {
-	const normalizedRootPath = normalizeAbsolutePath(rootPath);
-	const entries = await fg("**/*", {
-		cwd: normalizedRootPath,
+/**
+ * Entry cap for one index. A root that is a home directory, or otherwise holds
+ * most of a machine's files, used to walk straight to the V8 heap limit here:
+ * the host-service died with "JavaScript heap out of memory" inside the
+ * readdir callback about 110 s after boot, on every boot, for as long as such
+ * a project existed. Past the cap the walk stops and the index is served
+ * truncated — search still answers for the files it saw, and the root is
+ * logged once so the truncation is diagnosable.
+ */
+export const MAX_SEARCH_INDEX_ENTRIES = 200_000;
+
+/**
+ * Walk `rootPath` for index candidates, stopping at `maxEntries`. Exported for
+ * tests; production goes through getSearchIndex.
+ */
+export async function collectSearchIndexPaths(
+	rootPath: string,
+	options: { includeHidden: boolean; maxEntries?: number },
+): Promise<{ paths: string[]; truncated: boolean }> {
+	const maxEntries = options.maxEntries ?? MAX_SEARCH_INDEX_ENTRIES;
+	const stream = fg.stream("**/*", {
+		cwd: rootPath,
 		onlyFiles: true,
-		dot: includeHidden,
+		dot: options.includeHidden,
 		followSymbolicLinks: false,
 		unique: true,
 		suppressErrors: true,
 		ignore: DEFAULT_IGNORE_PATTERNS,
 	});
+	const paths: string[] = [];
+	let truncated = false;
+	// Breaking out of for-await returns the stream, which destroys the
+	// underlying directory walk rather than letting it run to the end.
+	for await (const entry of stream) {
+		if (paths.length >= maxEntries) {
+			truncated = true;
+			break;
+		}
+		paths.push(String(entry));
+	}
+	return { paths, truncated };
+}
 
-	return entries.map((relativePath) =>
+async function buildSearchIndex({
+	rootPath,
+	includeHidden,
+}: SearchIndexKeyOptions): Promise<SearchIndexEntry[]> {
+	const normalizedRootPath = normalizeAbsolutePath(rootPath);
+	const { paths, truncated } = await collectSearchIndexPaths(
+		normalizedRootPath,
+		{ includeHidden },
+	);
+	if (truncated) {
+		console.warn("[workspace-fs/search] index truncated at the entry cap", {
+			rootPath: normalizedRootPath,
+			maxEntries: MAX_SEARCH_INDEX_ENTRIES,
+		});
+	}
+
+	return paths.map((relativePath) =>
 		createSearchIndexEntry(normalizedRootPath, relativePath),
 	);
 }

@@ -4,6 +4,10 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { projects } from "../../../db/schema";
 import { emitProjectChanged } from "../../../projects/local-project-store";
+import {
+	type ForbiddenRootReason,
+	forbiddenRootReason,
+} from "../../../runtime/filesystem/watch-root-policy";
 import type { HostServiceContext } from "../../../types";
 import { ensureMainWorkspaceStrict } from "./utils/ensure-main-workspace";
 import { persistLocalProject } from "./utils/persist-project";
@@ -133,6 +137,20 @@ async function resolveOrInitLocalRepo(
 	return root ? resolveLocalRepo(root) : initLocalRepoInPlace(repoPath);
 }
 
+function importRefusalMessage(
+	reason: ForbiddenRootReason,
+	repoPath: string,
+): string {
+	switch (reason) {
+		case "home-directory":
+			return `${repoPath} is your home directory. Superset would watch and index everything under it; pick the repository folder itself.`;
+		case "filesystem-root":
+			return `${repoPath} is the root of the disk. Pick the repository folder itself.`;
+		case "contains-superset-home":
+			return `${repoPath} contains Superset's own data folder, so every workspace would be watched twice. Pick the repository folder itself.`;
+	}
+}
+
 export async function createFromImportLocal(
 	ctx: HostServiceContext,
 	args: { name: string; repoPath: string; initIfNeeded?: boolean },
@@ -141,6 +159,16 @@ export async function createFromImportLocal(
 		args.repoPath,
 		args.initIfNeeded ?? false,
 	);
+	// A root the host-service refuses to watch is not a project either: it
+	// would sit in the sidebar with no live status and, before the watch
+	// policy existed, took the host-service down on every boot.
+	const forbidden = forbiddenRootReason(resolved.repoPath);
+	if (forbidden) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message: importRefusalMessage(forbidden, resolved.repoPath),
+		});
+	}
 
 	// Idempotency guard: importing a repo that is already a project on this
 	// device returns the existing project instead of minting a duplicate

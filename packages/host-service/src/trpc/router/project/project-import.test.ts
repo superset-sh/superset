@@ -166,3 +166,26 @@ describe("createFromImportLocal idempotency", () => {
 		expect(rows[0]?.icon).toBe("none");
 	});
 });
+
+describe("createFromImportLocal root policy", () => {
+	it("refuses a repository that contains Superset's own data folder", async () => {
+		const repoPath = await createTempGitRepo();
+		const previous = process.env.SUPERSET_HOME_DIR;
+		process.env.SUPERSET_HOME_DIR = join(repoPath, ".superset");
+		try {
+			const db = createTestDb();
+			const { api } = createRecordingApiStub();
+			const ctx = createTestContext(db, api);
+			await expect(
+				createFromImportLocal(ctx, { name: "home", repoPath }),
+			).rejects.toMatchObject({
+				code: "PRECONDITION_FAILED",
+				message: expect.stringContaining("Superset's own data folder"),
+			});
+			expect(db.select().from(projects).all()).toHaveLength(0);
+		} finally {
+			if (previous === undefined) delete process.env.SUPERSET_HOME_DIR;
+			else process.env.SUPERSET_HOME_DIR = previous;
+		}
+	});
+});
