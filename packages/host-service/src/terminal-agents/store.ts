@@ -226,6 +226,16 @@ export class TerminalAgentStore extends EventEmitter {
 			terminalId,
 			workspaceId,
 			agentId: nextAgentId,
+			// Any id that arrives wins, because arrival order is the only order
+			// there is: the hook payload carries no sequence and `occurredAt` is
+			// stamped on receipt, so a straggler always looks newer. A late event
+			// from a session this terminal already moved on from therefore rewrites
+			// this row's identity, and that id is what a resume would target. No
+			// guard fixes it from here — rejecting an id seen before breaks the
+			// user's own `--resume` in this pane (see the "Attached" note above),
+			// and rejecting a differing id on anything but "Attached" breaks Codex,
+			// whose TUI fires nothing until the first turn, leaving a pane with no
+			// resume candidate at all. It needs an origin-side sequence in the hook.
 			agentSessionId: agentSessionId ?? prior?.agentSessionId,
 			definitionId: definitionId ?? prior?.definitionId,
 			startedAt:
