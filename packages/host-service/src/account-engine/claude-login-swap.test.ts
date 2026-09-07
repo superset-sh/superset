@@ -453,6 +453,106 @@ describe("swapClaudeLogin on a file-backed store", () => {
 		).toEqual(identity("a"));
 	});
 
+	// The read that names the login being saved has a third answer: `null`,
+	// for a `.claude.json` that is there but could not be read. The identity
+	// write skips itself on it exactly as it does on an empty one — but only
+	// after the credential has already landed. Measured before this: the swap
+	// ended in `write-failed` (the active dir's own snapshot guard refuses the
+	// same unreadable file a step later, on every run) with the owner store
+	// already holding a credential no `.claude.json` names — the shape this
+	// protocol refuses in both directions, `no-target-identity` swapping into
+	// it and `owner-unknown` naming it as the owner.
+	it("writes nothing to the owner when the active identity could not be read", async () => {
+		const f = fixture();
+		const owner = makeDir(join(f.home, ".claude-owner-empty"));
+		const state = join(f.activeDir, ".claude.json");
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(owner),
+			activeDir: f.activeDir,
+			deps: {
+				...f.deps,
+				fs: {
+					readFile: async (path: string, encoding: "utf-8") => {
+						if (path === state) {
+							throw Object.assign(new Error("EIO: i/o error, read"), {
+								code: "EIO",
+							});
+						}
+						const { readFile } = await import("node:fs/promises");
+						return readFile(path, encoding);
+					},
+				},
+			},
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "write-failed" });
+		// Empty, not credential-only: the refusal comes before the write.
+		expect(readdirSync(owner)).toEqual([]);
+		// And the login the owner was to be given is still in the active dir.
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+	});
+
+	// The same stranded store with no I/O error anywhere, which is what makes
+	// it the more reachable half: the active dir's `.claude.json` is simply
+	// absent, so the identity read comes back empty rather than null, and an
+	// owner that names no account of its own has nothing to keep instead.
+	// Measured before this: {"ok":true}, with the owner left holding a
+	// credential no identity names while the active dir moved on to the
+	// target — the login reachable from neither.
+	it("refuses the save-back when neither the active dir nor the owner names an account", async () => {
+		const f = fixture();
+		const owner = makeDir(join(f.home, ".claude-owner-empty"));
+		rmSync(join(f.activeDir, ".claude.json"));
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(owner),
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "owner-unknown" });
+		expect(readdirSync(owner)).toEqual([]);
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+	});
+
+	// Where the line falls, and it must not move: an active dir naming no
+	// account is only a problem when the owner names none either. This one
+	// does, so its credential goes back alone and it keeps its own identity —
+	// the same as the absent-file case above, from a state file that is there
+	// and simply holds no identity keys.
+	it("saves the credential alone when the active state file names no account", async () => {
+		const f = fixture();
+		writeFileSync(
+			join(f.activeDir, ".claude.json"),
+			JSON.stringify({
+				projects: { "/tmp/session": { hasTrustDialogAccepted: true } },
+			}),
+		);
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		expect(readCredentials(f.profileA).claudeAiOauth).toEqual(
+			oauth("t-a-refreshed", 5_000),
+		);
+		// The owner's own identity is untouched, not replaced with nothing.
+		expect(
+			JSON.parse(readFileSync(join(f.profileA, ".claude.json"), "utf-8")),
+		).toEqual(identity("a"));
+	});
+
 	it("never writes into an unmanaged owner store", async () => {
 		const f = fixture();
 		const before = readFileSync(join(f.profileA, ".credentials.json"), "utf-8");

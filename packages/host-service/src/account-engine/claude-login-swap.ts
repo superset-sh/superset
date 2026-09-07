@@ -1121,6 +1121,27 @@ export async function swapClaudeLogin(input: {
 		);
 	}
 	const previous = oauthOf(activePreviousRead);
+	// The identity that belongs with that login, read in the same pre-flight
+	// and for the same reason. `readIdentityKeys` answers `null` for a
+	// `.claude.json` that is there but could not be read, and the save-back
+	// below took that for "no identity to copy" — skipping the identity write
+	// AFTER its credential write had landed, which left the owner holding a
+	// credential no state file names. Nothing falls open by refusing here: the
+	// snapshot `applyToActiveDir` takes of this same file refuses the same read
+	// a few steps later, on every run, so the swap already ended in
+	// `write-failed`; all this changes is that it now ends there before
+	// anything is written. Read once and reused below, because the pre-write
+	// snapshot is pinned as the SECOND read of this path.
+	const activeIdentity = await readIdentityKeys(
+		join(input.activeDir, ".claude.json"),
+		ctx,
+	);
+	if (activeIdentity === null) {
+		return failure(
+			"write-failed",
+			`${join(input.activeDir, ".claude.json")} exists but could not be read; refusing to save back a login nothing could name`,
+		);
+	}
 
 	// An unmanaged owner is never validated and never written: the dir is not
 	// Superset's, so neither its permissions nor its backups are its business.
@@ -1280,15 +1301,24 @@ export async function swapClaudeLogin(input: {
 				);
 			}
 			// The identity that belongs with the login being saved is the one
-			// beside it in the active dir. No keys means the active dir names no
-			// account — which `activeIdentityMismatch` already refuses whenever the
-			// caller offered an expectation, so reaching here means it offered
-			// none, and the credential goes back alone exactly as it does today
-			// rather than the save-back erasing the owner's own identity.
-			const activeIdentity = await readIdentityKeys(
-				join(input.activeDir, ".claude.json"),
-				ctx,
-			);
+			// beside it in the active dir, read in the pre-flight above. No keys
+			// means the active dir names no account — which `activeIdentityMismatch`
+			// already refuses whenever the caller offered an expectation, so
+			// reaching here means it offered none, and the credential goes back
+			// alone exactly as it does today rather than the save-back erasing the
+			// owner's own identity. Unless the owner has no identity of its own to
+			// keep: then "alone" is the stranded store again, reached this time
+			// with no I/O error anywhere, and the owner's login ends up reachable
+			// by nothing while the active dir is given the target's.
+			if (
+				Object.keys(activeIdentity).length === 0 &&
+				Object.keys(ownerIdentityBefore).length === 0
+			) {
+				return failure(
+					"owner-unknown",
+					`${input.activeDir} names no account and neither does ${storeDir(ownerBinding, ctx)}; refusing to save back a login no identity would name`,
+				);
+			}
 			// The owner's dir has the same two stores as the active one, and the
 			// same halfway failure: the file lands first, so a Keychain error after
 			// it leaves the owner holding the rotated login in one store and the
@@ -1312,7 +1342,7 @@ export async function swapClaudeLogin(input: {
 					ctx,
 				);
 			}
-			if (activeIdentity && Object.keys(activeIdentity).length > 0) {
+			if (Object.keys(activeIdentity).length > 0) {
 				try {
 					// The same read-modify-write `applyToActiveDir` uses, so the
 					// owner's onboarding flag and per-project trust survive being
