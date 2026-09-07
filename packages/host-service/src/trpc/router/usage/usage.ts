@@ -22,7 +22,12 @@ import {
 	readAccountEngineView,
 	setDefaultAccountSelection,
 } from "./default-account";
-import { engineError, usageEngineRouter, writableEngine } from "./engine";
+import {
+	engineError,
+	engineStateUnusable,
+	usageEngineRouter,
+	writableEngine,
+} from "./engine";
 import { countAgentPrsByDay } from "./history/agent-prs";
 import { removeClaudeProfile, removeCodexHome } from "./profile-remove";
 import { discoverClaudeProfiles, discoverCodexHomes } from "./profiles";
@@ -114,7 +119,16 @@ export const usageRouter = router({
 			// repoints is not. On Windows, picking the login new sessions
 			// launch on still works exactly as it did before the engine
 			// existed — the panel says so, so it must be true.
-			if (engine && !engine.status()[input.agent].platformSupported) {
+			// The same is true of a host whose engine state dir is unusable: no
+			// engine sharing that dir can claim the lock, so there is no hot
+			// swap to be had — but the pointer is a DB write that needs no
+			// state dir, so choosing which login new sessions launch on still
+			// works. Only the swap of already-running sessions is lost.
+			if (
+				engine &&
+				(!engine.status()[input.agent].platformSupported ||
+					engineStateUnusable())
+			) {
 				if (input.selection !== null) {
 					// Only accept a discovered login: the value lands in a shell
 					// env overlay, and a typo'd dir would boot agents signed out.
@@ -185,7 +199,21 @@ export const usageRouter = router({
 			// this profile at any moment, and a deleted profile dir is not
 			// recoverable — so removal happens on the owner or not at all. A
 			// sandbox has no engine and keeps the unserialised path.
-			if (ctx.runtime.accountEngine?.ownsLock() === false) {
+			// An unusable state dir answers false to the same question, and
+			// there the hazard is absent rather than present: no engine
+			// sharing that dir can claim the lock, so none can switch onto
+			// this profile. Refusing on it would make the profile permanently
+			// undeletable; `refuseIfActive` below is what actually guards the
+			// rm, and it reads the pointer and the runtime, not the lock. The
+			// dir is host configuration rather than a racing lock, so it is
+			// read once per request while the lock itself is re-read below.
+			let unusable: boolean | undefined;
+			const foreignLockHeld = (): boolean => {
+				if (ctx.runtime.accountEngine?.ownsLock() !== false) return false;
+				if (unusable === undefined) unusable = engineStateUnusable();
+				return !unusable;
+			};
+			if (foreignLockHeld()) {
 				throw engineError("lock-loser");
 			}
 			const accounts = await ctx.runtime.quotaStore.read({
@@ -252,7 +280,7 @@ export const usageRouter = router({
 				// boundary — a switch that has swapped but not yet persisted its
 				// runtime is invisible to the check above, and the owner is the one
 				// that made it.
-				if (ctx.runtime.accountEngine?.ownsLock() === false) {
+				if (foreignLockHeld()) {
 					throw engineError("lock-loser");
 				}
 				if (input.agent === "claude") {

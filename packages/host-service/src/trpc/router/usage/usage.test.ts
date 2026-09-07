@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import {
+	chmodSync,
 	existsSync,
 	mkdirSync,
 	mkdtempSync,
@@ -338,6 +339,26 @@ describe("usageRouter.removeAccount", () => {
 			rmSync(profile, { recursive: true, force: true });
 		}
 	});
+
+	// An engine that cannot use its state dir claims no lock, so `ownsLock()`
+	// is false with nothing whatsoever holding the lock — and every engine
+	// sharing that dir is in the same position, so none can switch onto this
+	// profile. Refusing here left the profile undeletable for good.
+	it("removes the profile when the engine state dir is unusable", async () => {
+		const profile = mkdtempSync(join(homedir(), ".claude-usage-router-perm-"));
+		try {
+			chmodSync(join(home, "state", "account-engine"), 0o777);
+
+			await usageRouter
+				.createCaller(lockContext(profile, () => false))
+				.removeAccount({ agent: "claude", selection: profile });
+
+			expect(existsSync(profile)).toBe(false);
+			expect(invalidate).toHaveBeenCalledWith(quotaEntryKey("claude", profile));
+		} finally {
+			rmSync(profile, { recursive: true, force: true });
+		}
+	});
 });
 
 /**
@@ -427,6 +448,28 @@ describe("usageRouter.setDefaultAccount", () => {
 				.setDefaultAccount({ agent: "claude", selection: SPARE_DIR }),
 		).rejects.toThrow(/refresh usage and pick again/);
 		expect(switched).toEqual([]);
+	});
+
+	// Same host, opposite endpoint: the swap of running sessions is gone, but
+	// which login new sessions launch on is a pointer write that needs no
+	// state dir, so it takes the branch Windows already takes.
+	it("writes the pointer itself when the engine state dir is unusable", async () => {
+		const { ctx, switched, written } = context({ platformSupported: true });
+		mkdirSync(join(home, "state", "account-engine"), {
+			recursive: true,
+			mode: 0o777,
+		});
+		chmodSync(join(home, "state", "account-engine"), 0o777);
+
+		await usageRouter
+			.createCaller(ctx)
+			.setDefaultAccount({ agent: "claude", selection: null });
+
+		expect(switched).toEqual([]);
+		expect(written).toEqual([{ id: 1, defaultClaudeConfigDir: null }]);
+		expect(
+			readFileSync(join(home, "state", "default-claude-config-dir"), "utf8"),
+		).toBe("");
 	});
 
 	it("goes through the engine where it can swap", async () => {

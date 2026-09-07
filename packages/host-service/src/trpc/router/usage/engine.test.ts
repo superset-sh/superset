@@ -1,4 +1,7 @@
-import { describe, expect, it, mock } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { TRPCError } from "@trpc/server";
 import type { AccountEngine } from "../../../account-engine/account-engine.ts";
 import { defaultEngineSettings } from "../../../account-engine/engine-state.ts";
@@ -13,6 +16,29 @@ import type { HostServiceContext } from "../../../types.ts";
 import { usageRouter } from "./usage.ts";
 
 const NOW = 1_700_000_000_000;
+
+// The router reads the engine's state dir to tell a lock loser from a host
+// whose state dir it cannot use, so every test here needs a Superset home of
+// its own — never the developer's real one.
+let home: string;
+let previousHome: string | undefined;
+
+function stateDir(): string {
+	return join(home, "state", "account-engine");
+}
+
+beforeEach(() => {
+	previousHome = process.env.SUPERSET_HOME_DIR;
+	home = mkdtempSync(join(tmpdir(), "superset-usage-engine-"));
+	process.env.SUPERSET_HOME_DIR = home;
+	mkdirSync(stateDir(), { recursive: true, mode: 0o700 });
+});
+
+afterEach(() => {
+	if (previousHome === undefined) delete process.env.SUPERSET_HOME_DIR;
+	else process.env.SUPERSET_HOME_DIR = previousHome;
+	rmSync(home, { recursive: true, force: true });
+});
 
 interface FakeOptions {
 	platformSupported?: boolean;
@@ -329,6 +355,29 @@ describe("a lock loser", () => {
 		expect(view.settings.codex.enabled).toBe(true);
 		const history = await caller.engine.history();
 		expect(history.entries).toHaveLength(1);
+	});
+});
+
+/**
+ * An engine whose state dir is unsafe claims no lock, so it answers false to
+ * the same `ownsLock()` a genuine loser does — with nobody holding anything.
+ * These two writes do land in that dir, so they still refuse; what changes is
+ * that the user is told which of the two hosts they are on.
+ */
+describe("an unusable engine state dir", () => {
+	it("refuses state writes with engine-state-unusable, not lock-loser", async () => {
+		chmodSync(stateDir(), 0o777);
+		const fake = fakeEngine({ ownsLock: false });
+		const caller = usageRouter.createCaller(context(fake.engine));
+
+		for (const call of [
+			caller.engine.setSettings({ agent: "claude", patch: { enabled: true } }),
+			caller.engine.setRotation({ accountKey: "claude:x", inRotation: true }),
+		]) {
+			const error = await errorOf(call);
+			expect(error.code).toBe("PRECONDITION_FAILED");
+			expect(error.message).toBe("engine-state-unusable");
+		}
 	});
 });
 

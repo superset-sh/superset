@@ -4,7 +4,10 @@ import type {
 	AccountEngine,
 	AgentEngineStatus,
 } from "../../../account-engine/account-engine.ts";
-import { defaultEngineSettings } from "../../../account-engine/engine-state.ts";
+import {
+	defaultEngineSettings,
+	EngineState,
+} from "../../../account-engine/engine-state.ts";
 import type {
 	AccountAgent,
 	EngineSettings,
@@ -25,12 +28,29 @@ export const ENGINE_ERROR_CODES = [
 	"lock-loser",
 	"engine-unavailable",
 	"invalid-settings",
+	"engine-state-unusable",
 ] as const;
 
 export type UsageEngineErrorCode = (typeof ENGINE_ERROR_CODES)[number];
 
 export function engineError(code: UsageEngineErrorCode | string): TRPCError {
 	return new TRPCError({ code: "PRECONDITION_FAILED", message: code });
+}
+
+/**
+ * Whether the engine's state dir is one it refuses to write — not ours, not a
+ * directory, or writable by anyone else. The engine answers the same question
+ * before every write and degrades instead of throwing, but it keeps its
+ * `EngineState` private, so the router asks the dir itself.
+ *
+ * It matters here because `ownsLock()` is false in this case too, for a reason
+ * that is the opposite of a lock loser: no engine sharing this dir can claim
+ * the lock, so none of them can switch either. The specific reason is logged
+ * once by `assertSafeStateDir`; the UI turns the code into the sentence that
+ * names the path and the fix.
+ */
+export function engineStateUnusable(): boolean {
+	return new EngineState().assertSafeStateDir().readOnly;
 }
 
 /** What every settings call answers with: the state the panel renders from. */
@@ -108,7 +128,13 @@ export function writableEngine(engine: AccountEngine | null): AccountEngine {
 	// The lock can have been released since the last tick, so re-read it
 	// from disk the way the engine's own mutations do.
 	if (engine.status().claude.platformSupported && !engine.ownsLock()) {
-		throw engineError("lock-loser");
+		// Two different hosts answer false here, and telling the user the
+		// wrong one sends them looking for a rival instance that does not
+		// exist. These writes land in the state dir, so an unusable one is
+		// still a refusal — just an honest, actionable one.
+		throw engineError(
+			engineStateUnusable() ? "engine-state-unusable" : "lock-loser",
+		);
 	}
 	return engine;
 }
