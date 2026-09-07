@@ -62,6 +62,7 @@ import {
 	type TerminalPaneData,
 } from "../../types";
 import { focusOrAddTerminalPane } from "../../utils/focusTerminalPane";
+import { openSubagentPaneInStore } from "../../utils/openSubagentPaneInStore";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
 import { BrowserPane, BrowserPaneToolbar } from "./components/BrowserPane";
 import { ChatV3Pane } from "./components/ChatV3Pane";
@@ -467,6 +468,9 @@ export function usePaneRegistry({
 							terminalId={terminalId}
 							terminalInstanceId={ctx.pane.id}
 							onCreateNewAgentSession={createNewAgentSession}
+							onOpenSubagent={(data) =>
+								openSubagentPaneInStore(ctx.store, data)
+							}
 						/>
 					);
 				},

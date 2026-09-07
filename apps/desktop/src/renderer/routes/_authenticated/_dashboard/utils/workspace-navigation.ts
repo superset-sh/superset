@@ -46,7 +46,19 @@ function nonEmptyString(value: unknown): string | undefined {
 	return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
-/** The subagent link in a raw search object, or undefined when absent or malformed. */
+/** The link's own fields from a raw search object, sanitized, for validateSearch. */
+export function readSubagentSearch(
+	raw: Record<string, unknown>,
+): SubagentLinkSearchParams {
+	return {
+		subagentTerminalId: nonEmptyString(raw.subagentTerminalId),
+		subagentId: nonEmptyString(raw.subagentId),
+		subagentAgentId: nonEmptyString(raw.subagentAgentId),
+		subagentType: nonEmptyString(raw.subagentType),
+	};
+}
+
+/** The subagent link in a search object, or undefined when absent or malformed. */
 export function parseSubagentSearch(
 	raw: Record<string, unknown>,
 ): SubagentLinkParams | undefined {

@@ -202,6 +202,10 @@ msgstr "{0, plural, one {# Sitzung aktiv} other {# Sitzungen aktiv}}"
 msgid "{0, plural, one {# skipped} other {# skipped}}"
 msgstr "{0, plural, one {# übersprungen} other {# übersprungen}}"
 
+#. placeholder {0}: subagents.length
+msgid "{0, plural, one {# subagent} other {# subagents}}"
+msgstr "{0, plural, one {# Subagent} other {# Subagenten}}"
+
 #. placeholder {0}: TASKS.length
 msgid "{0, plural, one {# task} other {# tasks}}"
 msgstr "{0, plural, one {# Aufgabe} other {# Aufgaben}}"
@@ -13056,6 +13060,9 @@ msgstr "Strukturierter Fortschritt: Gedankenkette, Aufgaben, Pläne"
 
 msgid "Subagent"
 msgstr "Subagent"
+
+msgid "Subagents"
+msgstr "Subagenten"
 
 msgid "Subject contains..."
 msgstr "Betreff enthält..."

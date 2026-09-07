@@ -202,6 +202,10 @@ msgstr "{0, plural, one {# сессия работает} few {# сессии р
 msgid "{0, plural, one {# skipped} other {# skipped}}"
 msgstr "{0, plural, one {# пропущено} few {# пропущено} many {# пропущено} other {# пропущено}}"
 
+#. placeholder {0}: subagents.length
+msgid "{0, plural, one {# subagent} other {# subagents}}"
+msgstr "{0, plural, one {# субагент} few {# субагента} many {# субагентов} other {# субагента}}"
+
 #. placeholder {0}: TASKS.length
 msgid "{0, plural, one {# task} other {# tasks}}"
 msgstr "{0, plural, one {# задача} few {# задачи} many {# задач} other {# задачи}}"
@@ -13056,6 +13060,9 @@ msgstr "Структурированный прогресс: цепочка ра
 
 msgid "Subagent"
 msgstr "Субагент"
+
+msgid "Subagents"
+msgstr "Субагенты"
 
 msgid "Subject contains..."
 msgstr "Тема содержит..."

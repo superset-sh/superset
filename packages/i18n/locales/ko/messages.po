@@ -202,6 +202,10 @@ msgstr "{0, plural, one {세션 #개 실행 중} other {세션 #개 실행 중}}
 msgid "{0, plural, one {# skipped} other {# skipped}}"
 msgstr "{0, plural, one {#개 건너뜀} other {#개 건너뜀}}"
 
+#. placeholder {0}: subagents.length
+msgid "{0, plural, one {# subagent} other {# subagents}}"
+msgstr "{0, plural, other {서브 에이전트 #개}}"
+
 #. placeholder {0}: TASKS.length
 msgid "{0, plural, one {# task} other {# tasks}}"
 msgstr "{0, plural, one {작업 #개} other {작업 #개}}"
@@ -13055,6 +13059,9 @@ msgid "Structured progress: chain of thought, tasks, plans"
 msgstr "구조화된 진행 상황: 생각의 흐름, 작업, 계획"
 
 msgid "Subagent"
+msgstr "서브 에이전트"
+
+msgid "Subagents"
 msgstr "서브 에이전트"
 
 msgid "Subject contains..."

@@ -202,6 +202,10 @@ msgstr "{0, plural, one {běží # relace} few {běží # relace} many {běží 
 msgid "{0, plural, one {# skipped} other {# skipped}}"
 msgstr "{0, plural, one {# přeskočeno} few {# přeskočeno} many {# přeskočeno} other {# přeskočeno}}"
 
+#. placeholder {0}: subagents.length
+msgid "{0, plural, one {# subagent} other {# subagents}}"
+msgstr "{0, plural, one {# subagent} few {# subagenti} many {# subagenta} other {# subagentů}}"
+
 #. placeholder {0}: TASKS.length
 msgid "{0, plural, one {# task} other {# tasks}}"
 msgstr "{0, plural, one {# úkol} few {# úkoly} many {# úkolu} other {# úkolů}}"
@@ -13056,6 +13060,9 @@ msgstr "Strukturovaný postup: řetězec úvah, úkoly, plány"
 
 msgid "Subagent"
 msgstr "Subagent"
+
+msgid "Subagents"
+msgstr "Subagenti"
 
 msgid "Subject contains..."
 msgstr "Předmět obsahuje..."

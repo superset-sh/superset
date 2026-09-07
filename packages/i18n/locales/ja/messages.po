@@ -202,6 +202,10 @@ msgstr "{0, plural, one {#件のセッションが実行中} other {#件のセ�
 msgid "{0, plural, one {# skipped} other {# skipped}}"
 msgstr "{0, plural, one {#件スキップ} other {#件スキップ}}"
 
+#. placeholder {0}: subagents.length
+msgid "{0, plural, one {# subagent} other {# subagents}}"
+msgstr "{0, plural, other {サブエージェント # 件}}"
+
 #. placeholder {0}: TASKS.length
 msgid "{0, plural, one {# task} other {# tasks}}"
 msgstr "{0, plural, one {#件のタスク} other {#件のタスク}}"
@@ -13055,6 +13059,9 @@ msgid "Structured progress: chain of thought, tasks, plans"
 msgstr "構造化された進捗: 思考の連鎖、タスク、計画"
 
 msgid "Subagent"
+msgstr "サブエージェント"
+
+msgid "Subagents"
 msgstr "サブエージェント"
 
 msgid "Subject contains..."

@@ -202,6 +202,10 @@ msgstr "{0, plural, one {# oturum çalışıyor} other {# oturum çalışıyor}}
 msgid "{0, plural, one {# skipped} other {# skipped}}"
 msgstr "{0, plural, one {# atlandı} other {# atlandı}}"
 
+#. placeholder {0}: subagents.length
+msgid "{0, plural, one {# subagent} other {# subagents}}"
+msgstr "{0, plural, one {# alt ajan} other {# alt ajan}}"
+
 #. placeholder {0}: TASKS.length
 msgid "{0, plural, one {# task} other {# tasks}}"
 msgstr "{0, plural, one {# görev} other {# görev}}"
@@ -13056,6 +13060,9 @@ msgstr "Yapılandırılmış ilerleme: düşünce zinciri, görevler, planlar"
 
 msgid "Subagent"
 msgstr "Alt ajan"
+
+msgid "Subagents"
+msgstr "Alt ajanlar"
 
 msgid "Subject contains..."
 msgstr "Konu şunu içerir..."
