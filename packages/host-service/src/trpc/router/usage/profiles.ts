@@ -441,12 +441,19 @@ export interface KeychainProbe {
 const KEYCHAIN_ITEM_NOT_FOUND = 44;
 
 /**
- * Whether a rejected lookup means the item is not there. `security` exits 44
- * and prints "could not be found" for an absent item and nothing else does:
- * the 5s timeout kills the process, a denied or unanswered Keychain prompt
- * exits 51, and a `security` that cannot run rejects with an errno. Anything
- * unrecognised is a failure, not an absence — the whole point of asking is
- * that mistaking one for the other lets a caller write over, and a rollback
+ * Whether a rejected lookup means the item is not there. The exit code is the
+ * signal: `security` returns the OSStatus truncated to its low byte, so an
+ * absent item is exactly 44 (errSecItemNotFound, -25300). The wording alone
+ * decides nothing, because other keychain-level failures print the same
+ * phrase under a different code — errSecNoSuchKeychain (-25294) exits 50 with
+ * "The specified keychain could not be found", errSecNoDefaultKeychain
+ * (-25307) exits 37 with "A default keychain could not be found" — and both
+ * mean we could not look, not that nothing is there. The message check below
+ * is a narrow backstop for a rejection that carries no code at all, matched
+ * against the errSecItemNotFound wording only. Everything else, including a
+ * timeout that kills the process, a denied prompt (51), and a `security` that
+ * cannot run at all, is a failure, not an absence — the whole point of asking
+ * is that mistaking one for the other lets a caller write over, and a rollback
  * delete, an item nobody read.
  */
 function keychainItemAbsent(error: unknown): boolean {
@@ -454,7 +461,7 @@ function keychainItemAbsent(error: unknown): boolean {
 		return true;
 	}
 	const message = error instanceof Error ? error.message : "";
-	return /could not be found|not found/i.test(message);
+	return /item could not be found/i.test(message);
 }
 
 /**

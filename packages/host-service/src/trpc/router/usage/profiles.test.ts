@@ -824,7 +824,10 @@ describe("readClaudeLogin", () => {
 			}),
 		);
 		const exec = async (args: string[]) => {
-			if (args.indexOf("-a") === -1) throw new Error("not found");
+			if (args.indexOf("-a") === -1)
+				throw new Error(
+					"The specified item could not be found in the keychain.",
+				);
 			if (args[args.indexOf("-s") + 1] !== service)
 				throw new Error(
 					"The specified item could not be found in the keychain.",
@@ -864,7 +867,10 @@ describe("readClaudeLogin", () => {
 			}),
 		);
 		const exec = async (args: string[]) => {
-			if (args.indexOf("-a") === -1) throw new Error("not found");
+			if (args.indexOf("-a") === -1)
+				throw new Error(
+					"The specified item could not be found in the keychain.",
+				);
 			if (args[args.indexOf("-s") + 1] !== service)
 				throw new Error(
 					"The specified item could not be found in the keychain.",
@@ -892,7 +898,10 @@ describe("readClaudeLogin", () => {
 		const service = keychainServicesForConfigDir(dir)[0] as string;
 		const siblings = { mcpOAuth: { "a-server": { token: "m-1" } } };
 		const exec = async (args: string[]) => {
-			if (args.indexOf("-a") === -1) throw new Error("not found");
+			if (args.indexOf("-a") === -1)
+				throw new Error(
+					"The specified item could not be found in the keychain.",
+				);
 			if (args[args.indexOf("-s") + 1] !== service)
 				throw new Error(
 					"The specified item could not be found in the keychain.",
@@ -913,7 +922,10 @@ describe("readClaudeLogin", () => {
 		const service = keychainServicesForConfigDir(dir)[0] as string;
 		const exec = async (args: string[]) => {
 			const accountIndex = args.indexOf("-a");
-			if (accountIndex === -1) throw new Error("not found");
+			if (accountIndex === -1)
+				throw new Error(
+					"The specified item could not be found in the keychain.",
+				);
 			if (args[args.indexOf("-s") + 1] !== service)
 				throw new Error(
 					"The specified item could not be found in the keychain.",
@@ -1022,7 +1034,10 @@ describe("readClaudeLogin", () => {
 		const dir = tempProfile();
 		const service = keychainServicesForConfigDir(dir)[0] as string;
 		const exec = async (args: string[]) => {
-			if (args.indexOf("-a") === -1) throw new Error("not found");
+			if (args.indexOf("-a") === -1)
+				throw new Error(
+					"The specified item could not be found in the keychain.",
+				);
 			if (args[args.indexOf("-s") + 1] !== service)
 				throw new Error(
 					"The specified item could not be found in the keychain.",
@@ -1044,7 +1059,10 @@ describe("readClaudeLogin", () => {
 		const service = keychainServicesForConfigDir(dir)[0] as string;
 		const siblings = { mcpOAuth: { "a-server": { token: "m-1" } } };
 		const exec = async (args: string[]) => {
-			if (args.indexOf("-a") === -1) throw new Error("not found");
+			if (args.indexOf("-a") === -1)
+				throw new Error(
+					"The specified item could not be found in the keychain.",
+				);
 			if (args[args.indexOf("-s") + 1] !== service)
 				throw new Error(
 					"The specified item could not be found in the keychain.",
@@ -1055,6 +1073,45 @@ describe("readClaudeLogin", () => {
 		const read = await readClaudeLogin(dir, { darwin: true, exec });
 		expect(read.keychainUnreadable).toBe(false);
 		expect(read.keychainContent).toEqual(siblings);
+	});
+
+	// `security` truncates the OSStatus to its low byte, and two keychain-level
+	// failures print the same "could not be found" English as an absent item
+	// under a different code. Reading the phrase instead of the code sorts them
+	// as "nothing there", which is the exact mistake that lets a write replace
+	// an item nobody read and the rollback delete it.
+	it("reports a missing keychain (errSecNoSuchKeychain) as unreadable, not absent", async () => {
+		const dir = tempProfile();
+		const service = keychainServicesForConfigDir(dir)[0] as string;
+		const exec = async () => {
+			throw Object.assign(
+				new Error(
+					"security: SecKeychainSearchCreateFromAttributes: The specified keychain could not be found.",
+				),
+				{ code: 50 },
+			);
+		};
+
+		const read = await readClaudeLogin(dir, { darwin: true, exec });
+		expect(read.keychainUnreadable).toBe(true);
+		expect(read.keychainUnreadableServices).toContain(service);
+	});
+
+	it("reports a missing default keychain (errSecNoDefaultKeychain) as unreadable, not absent", async () => {
+		const dir = tempProfile();
+		const service = keychainServicesForConfigDir(dir)[0] as string;
+		const exec = async () => {
+			throw Object.assign(
+				new Error(
+					"security: SecKeychainSearchCreateFromAttributes: A default keychain could not be found.",
+				),
+				{ code: 37 },
+			);
+		};
+
+		const read = await readClaudeLogin(dir, { darwin: true, exec });
+		expect(read.keychainUnreadable).toBe(true);
+		expect(read.keychainUnreadableServices).toContain(service);
 	});
 
 	it("points a null selection at the system-default store", async () => {
