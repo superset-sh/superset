@@ -618,9 +618,10 @@ interface TerminalSession {
 	hiddenSockets: Set<TerminalSocket>;
 
 	/**
-	 * Tail of the in-flight follow-up send (writeFramedInputToSession).
-	 * Serializes text + delayed-Enter sequences so concurrent sends can't
-	 * interleave inside another send's Enter window.
+	 * Tail of the in-flight write into this session's stdin — a follow-up send
+	 * (writeFramedInputToSession) or the queued launch command. Serializes
+	 * text + delayed-Enter sequences so concurrent writes can't interleave
+	 * inside another one's Enter window.
 	 */
 	followUpWriteChain?: Promise<void>;
 }
@@ -2211,7 +2212,20 @@ function queueInitialCommand(
 		session.exited ||
 		session.shellReadyState === "cancelled" ||
 		sessions.get(session.terminalId) !== session;
-	void session.shellReadyPromise.then(() => {
+	// The launch's text and its delayed Enter ride the same per-session chain
+	// as follow-up sends. Without it a concurrent write — the session mover's
+	// nudge on a limit-stop resume is one — lands in the gap between them and
+	// is submitted by this Enter, so the shell runs the nudge text appended to
+	// the launch command and the agent never starts. Assigned synchronously,
+	// not inside the `then`, so the chain also covers the wait for shell-ready,
+	// which is where a resume's first poll actually arrives. Every branch below
+	// returns, so the chain settles with this callback; nothing holds it for
+	// the shell-ready timeout. Residual, narrower and pre-existing: a write
+	// landing after this Enter but before the agent's TUI reads stdin still
+	// goes into a process that is still booting.
+	const previous = session.followUpWriteChain ?? Promise.resolve();
+	const launch = previous.then(async () => {
+		await session.shellReadyPromise;
 		if (isDefunct()) return;
 		const stagedPaths: string[] = [];
 		// Enter never sent — a staged script/prompt file won't run or be
@@ -2298,12 +2312,15 @@ function queueInitialCommand(
 			dropStagedFiles();
 			return;
 		}
-		setTimeout(() => {
-			if (isDefunct() || !tryTypeToPty(session, "\r")) {
-				dropStagedFiles();
-			}
-		}, INITIAL_COMMAND_ENTER_DELAY_MS);
+		await new Promise((r) => setTimeout(r, INITIAL_COMMAND_ENTER_DELAY_MS));
+		if (isDefunct() || !tryTypeToPty(session, "\r")) {
+			dropStagedFiles();
+		}
 	});
+	session.followUpWriteChain = launch.then(
+		() => undefined,
+		() => undefined,
+	);
 }
 
 interface DaemonCloseResult {
