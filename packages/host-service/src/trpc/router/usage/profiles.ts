@@ -566,6 +566,16 @@ export interface ClaudeLoginRead {
 	 */
 	anyFileCandidateUnreadable: boolean;
 	/**
+	 * The candidate paths `anyFileCandidateUnreadable` is true FOR — the files
+	 * a user would have to unlock or repair. Not `credentialsPath`, which names
+	 * the store a write would target: that is the candidate that WON, so it is
+	 * the readable one whenever the file half supplied the login, and when
+	 * nothing was readable it falls back to the first candidate, which may
+	 * simply be absent. Empty exactly when `anyFileCandidateUnreadable` is
+	 * false.
+	 */
+	unreadableFileCandidates: string[];
+	/**
 	 * A Keychain probe for this dir rejected for a reason that is not an absent
 	 * item: a denied or unanswered prompt, the 5s timeout, a `security` that
 	 * could not run, or a secret read whole whose bytes would not parse.
@@ -817,6 +827,7 @@ export async function readClaudeLogin(
 		// The same set, asked the other question: a candidate we could not
 		// read may have held the newer half of this one slot.
 		anyFileCandidateUnreadable: unreadable.size > 0,
+		unreadableFileCandidates: [...unreadable],
 		keychainUnreadable,
 		keychainUnreadableServices: [...keychainUnreadableServices],
 	};

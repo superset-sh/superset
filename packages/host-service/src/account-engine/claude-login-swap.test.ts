@@ -1727,6 +1727,17 @@ describe("swapClaudeLogin with the system-default account", () => {
 			});
 
 			expect(result).toMatchObject({ ok: false, code: "invalid-target" });
+			if (result.ok) throw new Error("expected a refusal");
+			// The half that could not be read, not the one that won: naming
+			// `credentialsPath` named the file this read opened fine.
+			expect(result.reason).toContain(newerHalf);
+			expect(result.reason).not.toContain(
+				join(f.systemDefault, ".credentials.json"),
+			);
+			// And the login that would have been installed came out of the
+			// FILE half, so the tail says so.
+			expect(result.reason).toContain(`${f.systemDefault}'s file login`);
+			expect(result.reason).not.toContain("Keychain login");
 		} finally {
 			chmodSync(newerHalf, 0o600);
 		}
@@ -2226,12 +2237,99 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 		});
 
 		expect(result).toMatchObject({ ok: false, code: "invalid-target" });
+		if (result.ok) throw new Error("expected a refusal");
+		// The unread spelling in the head, and the login that would have been
+		// installed in the tail — which came out of the Keychain, not a file
+		// this profile does not have.
+		expect(result.reason).toContain(`${denied}'s Keychain item`);
+		expect(result.reason).toContain(`${f.profileB}'s Keychain login`);
+		expect(result.reason).not.toContain("file login");
 		// The active dir still holds the owner's login, not B's stale item.
 		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
 			oauth("t-a-refreshed", 5_000),
 		);
 		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
 		expect(keychain.items).toEqual([{ service: answering, account, secret }]);
+	});
+
+	// A refusal says two things: what could not be read, and what would have
+	// been swapped in. They are different questions once a store can supply
+	// the login AND have an unread half, and deriving the second from the
+	// first named the wrong store. Here the Keychain half is the unread one
+	// and the FILE half supplied the login.
+	it("names the file login it would have swapped in when the Keychain half went unread", async () => {
+		const f = fixture();
+		writeCredentials(f.systemDefault, { claudeAiOauth: oauth("t-sys", 1_000) });
+		writeFileSync(
+			join(f.home, ".claude.json"),
+			JSON.stringify(identity("sys")),
+		);
+		const keychain = fakeKeychain([], {
+			failRead: (args) =>
+				args[args.indexOf("-s") + 1] === CLAUDE_DEFAULT_KEYCHAIN_SERVICE,
+		});
+
+		const result = await swapClaudeLogin({
+			target: SYSTEM_DEFAULT,
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, darwin: true, exec: keychain.exec },
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-target" });
+		if (result.ok) throw new Error("expected a refusal");
+		expect(result.reason).toContain(
+			`${CLAUDE_DEFAULT_KEYCHAIN_SERVICE}'s Keychain item`,
+		);
+		expect(result.reason).toContain(`${f.systemDefault}'s file login`);
+		expect(result.reason).not.toContain("Keychain login");
+	});
+
+	// The mirror: the Keychain supplied the login and a file candidate is the
+	// unread one, so the head names that file and the tail says Keychain.
+	it("names the Keychain login it would have swapped in when a file half went unread", async () => {
+		if (process.getuid?.() === 0) return;
+		const f = fixture();
+		const configDir = makeDir(join(f.home, ".config", "claude"));
+		const unreadHalf = join(configDir, "credentials.json");
+		writeFileSync(
+			unreadHalf,
+			JSON.stringify({ claudeAiOauth: oauth("t-sys-file", 9_000) }),
+			{ mode: 0o600 },
+		);
+		chmodSync(unreadHalf, 0o000);
+		writeFileSync(
+			join(f.home, ".claude.json"),
+			JSON.stringify(identity("sys")),
+		);
+		const keychain = fakeKeychain([
+			{
+				service: CLAUDE_DEFAULT_KEYCHAIN_SERVICE,
+				account: claudeKeychainAccounts()[0] as string,
+				secret: JSON.stringify({ claudeAiOauth: oauth("t-sys-kc", 1_000) }),
+			},
+		]);
+
+		try {
+			const result = await swapClaudeLogin({
+				target: SYSTEM_DEFAULT,
+				ownerBinding: asProfile(f.profileA),
+				activeDir: f.activeDir,
+				deps: { ...f.deps, darwin: true, exec: keychain.exec },
+			});
+
+			expect(result).toMatchObject({ ok: false, code: "invalid-target" });
+			if (result.ok) throw new Error("expected a refusal");
+			expect(result.reason).toContain(unreadHalf);
+			// Never the winning candidate, which here is not even there.
+			expect(result.reason).not.toContain(
+				join(f.systemDefault, ".credentials.json"),
+			);
+			expect(result.reason).toContain(`${f.systemDefault}'s Keychain login`);
+			expect(result.reason).not.toContain("file login");
+		} finally {
+			chmodSync(unreadHalf, 0o600);
+		}
 	});
 
 	// The seed reads its source through the same loadTarget, so a first use
@@ -2407,9 +2505,7 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 		const ownerService = keychainServicesForConfigDir(f.profileA)[0] as string;
 		const account = claudeKeychainAccounts()[0] as string;
 		const secret = "sk-ant-oat01-BARE";
-		const keychain = fakeKeychain([
-			{ service: ownerService, account, secret },
-		]);
+		const keychain = fakeKeychain([{ service: ownerService, account, secret }]);
 
 		const result = await swapClaudeLogin({
 			target: asProfile(f.profileB),

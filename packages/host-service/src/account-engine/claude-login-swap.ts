@@ -190,6 +190,25 @@ function keychainStoreName(
 	return read.keychainService ?? storeDir(ref, ctx);
 }
 
+/**
+ * The file half of `keychainStoreName`: the candidate path the read could not
+ * open, which is the file the user has to unlock or repair. NOT
+ * `credentialsPath` — that is the candidate that WON, so it is the readable
+ * one whenever the file half supplied the login, and when nothing was readable
+ * it falls back to the first candidate, which may simply be absent. The dir is
+ * the fallback rather than a path this could not know.
+ */
+function fileStoreName(
+	read: ClaudeLoginRead,
+	ref: ClaudeLoginStoreRef,
+	ctx: SwapContext,
+): string {
+	if (read.unreadableFileCandidates.length > 0) {
+		return read.unreadableFileCandidates.join(", ");
+	}
+	return storeDir(ref, ctx);
+}
+
 function configDirOf(ref: ClaudeLoginStoreRef): string | null {
 	return ref.kind === "profile" ? ref.dir : null;
 }
@@ -667,13 +686,21 @@ async function loadTarget(
 	// set neither flag, so a Keychain-only profile and a default living in one
 	// half of its slot still swap.
 	if (read.keychainUnreadable || read.anyFileCandidateUnreadable) {
+		// Two different questions, so two different selections. What could not
+		// be read is what the user has to go look at; what would have been
+		// swapped in is `read.source`, and once a store can supply the login
+		// AND have an unread half the two come apart. Deriving both from the
+		// same flag said "refusing to swap in <dir>'s Keychain login" of a
+		// login that came out of a file, and the reverse.
+		const unread = read.keychainUnreadable
+			? `${keychainStoreName(read, ref, ctx)}'s Keychain item`
+			: fileStoreName(read, ref, ctx);
+		const supplied = read.source === "file" ? "file" : "Keychain";
 		return {
 			ok: false,
 			result: failure(
 				"invalid-target",
-				read.keychainUnreadable
-					? `${keychainStoreName(read, ref, ctx)}'s Keychain item exists but could not be read; refusing to swap in ${storeDir(ref, ctx)}'s file login, which may be the older of the two`
-					: `${read.credentialsPath} exists but could not be read; refusing to swap in ${storeDir(ref, ctx)}'s Keychain login, which may be the older of the two`,
+				`${unread} exists but could not be read; refusing to swap in ${storeDir(ref, ctx)}'s ${supplied} login, which may be the older of the two`,
 			),
 		};
 	}
