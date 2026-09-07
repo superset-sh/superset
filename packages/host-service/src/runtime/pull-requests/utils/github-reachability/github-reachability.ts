@@ -38,10 +38,12 @@ const UNREACHABLE_CODES = new Set([
 	"UND_ERR_SOCKET",
 ]);
 
-// `gh` reports transport failures as prose on stderr. These are Go's net
-// package phrasings, stable across gh releases.
+// `gh` reports transport failures as prose on stderr. A resolver failure is
+// wrapped by gh itself ("error connecting to <host> / check your internet
+// connection", verified on gh 2.98); the rest are Go's net package phrasings
+// that surface for refused, reset, and timed-out connections.
 const UNREACHABLE_STDERR =
-	/no such host|dial tcp|i\/o timeout|connect timeout|tls handshake timeout|network is unreachable|connection refused|connection reset|getaddrinfo/i;
+	/error connecting to|check your internet connection|no such host|dial tcp|i\/o timeout|connect timeout|tls handshake timeout|network is unreachable|connection refused|connection reset|getaddrinfo/i;
 
 const MAX_CAUSE_DEPTH = 8;
 
