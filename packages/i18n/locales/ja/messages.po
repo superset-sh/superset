@@ -795,6 +795,9 @@ msgstr "{skipped, plural, one {#件スキップ} other {#件スキップ}}"
 msgid "{starCount} stars and counting"
 msgstr "スター{starCount}件、まだ増えています"
 
+msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
+msgstr "{subagentCount, plural, other {# 件のサブエージェントが実行中}}"
+
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {#件のワークスペースを作成、{failCount}件失敗} other {#件のワークスペースを作成、{failCount}件失敗}}"
 
@@ -9339,7 +9342,7 @@ msgid "Open {filePath}"
 msgstr "{filePath}を開く"
 
 msgid "Open {parentLabel}"
-msgstr "{parentLabel} を開く"
+msgstr "{parentLabel}を開く"
 
 msgid "Open {path} in file pane"
 msgstr "{path}をファイルペインで開く"

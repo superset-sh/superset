@@ -1,5 +1,6 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, it, mock } from "bun:test";
+import { homedir } from "node:os";
 import { resolve } from "node:path";
 import type { AgentIdentity } from "@superset/shared/agent-identity";
 import { eq } from "drizzle-orm";
@@ -223,7 +224,7 @@ describe("notificationsRouter.hook", () => {
 			subagent: {
 				id: "child",
 				sessionId: "parent",
-				transcriptPath: "/sessions/parent.jsonl",
+				transcriptPath: `${homedir()}/sessions/parent.jsonl`,
 			},
 		});
 
@@ -238,16 +239,51 @@ describe("notificationsRouter.hook", () => {
 			subagent: {
 				id: "child",
 				sessionId: "parent",
-				transcriptPath: "/sessions/parent.jsonl",
+				transcriptPath: `${homedir()}/sessions/parent.jsonl`,
 			},
 		});
 
 		expect(
 			terminalAgentStore.get("terminal-claude")?.subagents?.[0]?.transcriptPath,
-		).toBe("/sessions/parent/subagents/agent-child.jsonl");
+		).toBe(`${homedir()}/sessions/parent/subagents/agent-child.jsonl`);
 		expect(
 			terminalAgentStore.get("terminal-codex")?.subagents?.[0]?.transcriptPath,
-		).toBe("/sessions/parent.jsonl");
+		).toBe(`${homedir()}/sessions/parent.jsonl`);
+	});
+
+	it("drops a Claude child event that names the parent's previous session", async () => {
+		const { ctx, terminalAgentStore } = createContext("workspace-1");
+		const caller = notificationsRouter.createCaller(ctx);
+		await caller.hook({
+			terminalId: "terminal-1",
+			eventType: "Start",
+			agent: { agentId: "claude", sessionId: "s2" },
+		});
+		const result = await caller.hook({
+			terminalId: "terminal-1",
+			eventType: "SubagentStart",
+			subagent: { id: "old-child", sessionId: "s1" },
+		});
+		expect(result).toEqual({ success: true, ignored: true });
+		expect(terminalAgentStore.get("terminal-1")?.subagents).toBeUndefined();
+	});
+
+	it("keeps only transcript paths that look like harness files under home", async () => {
+		const { ctx, terminalAgentStore } = createContext("workspace-1");
+		const caller = notificationsRouter.createCaller(ctx);
+		await caller.hook({
+			terminalId: "terminal-1",
+			eventType: "Start",
+			agent: { agentId: "codex", sessionId: "root" },
+		});
+		await caller.hook({
+			terminalId: "terminal-1",
+			eventType: "SubagentStart",
+			subagent: { id: "c1", transcriptPath: "/etc/passwd" },
+		});
+		expect(
+			terminalAgentStore.get("terminal-1")?.subagents?.[0]?.transcriptPath,
+		).toBeUndefined();
 	});
 
 	it("derives workspaceId from terminalId before broadcasting", async () => {

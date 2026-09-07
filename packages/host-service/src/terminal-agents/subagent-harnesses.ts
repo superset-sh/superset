@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import type { AgentIdentityId } from "@superset/shared/agent-catalog";
 import {
@@ -32,6 +33,16 @@ export interface SubagentTranscriptHint {
  * used as given and the file format is detected per line.
  */
 export interface SubagentHarness {
+	/**
+	 * Whether a child event belongs to the parent binding's current session.
+	 * Only harnesses whose child hooks carry the parent's session id can
+	 * tell; the default accepts, and the roster's session-change clear
+	 * handles the rest.
+	 */
+	belongsToParentSession?(
+		hint: SubagentTranscriptHint,
+		parentSessionId: string,
+	): boolean;
 	resolveTranscriptPath(hint: SubagentTranscriptHint): string | undefined;
 	parseTranscript(text: string): {
 		entries: SubagentTranscriptEntry[];
@@ -55,6 +66,8 @@ const pathAsGiven = (hint: SubagentTranscriptHint): string | undefined =>
  * `agent-<id>.meta.json` sidecar carrying the Task description.
  */
 const claudeHarness: SubagentHarness = {
+	belongsToParentSession: (hint, parentSessionId) =>
+		!hint.sessionId || hint.sessionId === parentSessionId,
 	resolveTranscriptPath(hint) {
 		if (hint.agentTranscriptPath) return hint.agentTranscriptPath;
 		const { transcriptPath, sessionId, subagentId } = hint;
@@ -134,12 +147,44 @@ export function getSubagentHarness(
 	);
 }
 
+/**
+ * A child event that names a different parent session than the binding
+ * holds is a straggler from before the terminal's session changed; it must
+ * not recreate the old child under the new session.
+ */
+export function subagentBelongsToParent(
+	agentId: string | undefined,
+	hint: SubagentTranscriptHint,
+	parentSessionId: string | undefined,
+): boolean {
+	if (!parentSessionId) return true;
+	const check = getSubagentHarness(agentId).belongsToParentSession;
+	return check ? check(hint, parentSessionId) : true;
+}
+
 /** The child's transcript path for the parent binding's harness. */
 export function resolveSubagentTranscriptPath(
 	agentId: string | undefined,
 	hint: SubagentTranscriptHint,
 ): string | undefined {
 	return getSubagentHarness(agentId).resolveTranscriptPath(hint);
+}
+
+/**
+ * The hook endpoint is unauthenticated, so a transcript path is only kept
+ * when it looks like a harness transcript the host may read: absolute,
+ * `.jsonl`, and under the user's home after normalization.
+ */
+export function isTrustedTranscriptPath(
+	transcriptPath: string,
+	home: string = os.homedir(),
+): boolean {
+	const normalized = path.normalize(transcriptPath);
+	return (
+		path.isAbsolute(normalized) &&
+		normalized.endsWith(".jsonl") &&
+		(normalized === home || normalized.startsWith(home + path.sep))
+	);
 }
 
 /**

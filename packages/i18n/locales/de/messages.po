@@ -795,6 +795,9 @@ msgstr "{skipped, plural, one {# übersprungen} other {# übersprungen}}"
 msgid "{starCount} stars and counting"
 msgstr "{starCount} Stars und es werden mehr"
 
+msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
+msgstr "{subagentCount, plural, one {# Subagent läuft} other {# Subagenten laufen}}"
+
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {# Arbeitsbereich erstellt, {failCount} fehlgeschlagen} other {# Arbeitsbereiche erstellt, {failCount} fehlgeschlagen}}"
 

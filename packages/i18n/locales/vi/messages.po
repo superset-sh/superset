@@ -795,6 +795,9 @@ msgstr "{skipped, plural, one {# bỏ qua} other {# bỏ qua}}"
 msgid "{starCount} stars and counting"
 msgstr "{starCount} star và còn tăng"
 
+msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
+msgstr "{subagentCount, plural, other {# agent con đang chạy}}"
+
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {Đã tạo # workspace, {failCount} thất bại} other {Đã tạo # workspace, {failCount} thất bại}}"
 

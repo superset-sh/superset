@@ -795,6 +795,9 @@ msgstr "{skipped, plural, one {#项已跳过} other {#项已跳过}}"
 msgid "{starCount} stars and counting"
 msgstr "{starCount}个星标，还在增长"
 
+msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
+msgstr "{subagentCount, plural, other {# 个子智能体运行中}}"
+
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {已创建#个工作区，{failCount}个失败} other {已创建#个工作区，{failCount}个失败}}"
 

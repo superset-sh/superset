@@ -63,7 +63,7 @@ export function SubagentTranscriptRow({ entry }: SubagentTranscriptRowProps) {
 				<pre
 					className={cn(
 						"whitespace-pre-wrap font-mono text-[11px] text-muted-foreground",
-						!long && "max-h-40 overflow-hidden",
+						!long && "max-h-40 overflow-y-auto",
 					)}
 				>
 					{entry.text || <Trans>(no output)</Trans>}

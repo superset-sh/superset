@@ -795,6 +795,9 @@ msgstr "{skipped, plural, one {# pominięty} few {# pominięte} many {# pominię
 msgid "{starCount} stars and counting"
 msgstr "{starCount} gwiazdek i rośnie"
 
+msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
+msgstr "{subagentCount, plural, one {# subagent działa} few {# subagenty działają} many {# subagentów działa} other {# subagenta działa}}"
+
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {Utworzono # obszar roboczy, {failCount} nieudanych} few {Utworzono # obszary robocze, {failCount} nieudanych} many {Utworzono # obszarów roboczych, {failCount} nieudanych} other {Utworzono # obszaru roboczego, {failCount} nieudanych}}"
 

@@ -3,7 +3,11 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { terminalSessions, workspaces } from "../../../db/schema";
 import { mapEventType } from "../../../events";
-import { resolveSubagentTranscriptPath } from "../../../terminal-agents";
+import {
+	isTrustedTranscriptPath,
+	resolveSubagentTranscriptPath,
+	subagentBelongsToParent,
+} from "../../../terminal-agents";
 import type { HostServiceContext } from "../../../types";
 import { touchLocalWorkspaceActivity } from "../../../workspaces/local-workspace-store";
 import { publicProcedure, router } from "../../index";
@@ -129,17 +133,25 @@ export const notificationsRouter = router({
 			const agentType = trimOrUndefined(input.subagent?.type);
 			// The parent binding's harness decides where the child's transcript
 			// lives; the hook only reports the paths it ran against.
-			const parentAgentId = ctx.terminalAgentStore.get(
-				input.terminalId,
-			)?.agentId;
-			const transcriptPath = resolveSubagentTranscriptPath(parentAgentId, {
+			const parent = ctx.terminalAgentStore.get(input.terminalId);
+			const hint = {
 				subagentId,
 				sessionId: trimOrUndefined(input.subagent?.sessionId),
 				transcriptPath: trimOrUndefined(input.subagent?.transcriptPath),
 				agentTranscriptPath: trimOrUndefined(
 					input.subagent?.agentTranscriptPath,
 				),
-			});
+			};
+			if (
+				!subagentBelongsToParent(parent?.agentId, hint, parent?.agentSessionId)
+			) {
+				return { success: true, ignored: true as const };
+			}
+			const resolvedPath = resolveSubagentTranscriptPath(parent?.agentId, hint);
+			const transcriptPath =
+				resolvedPath && isTrustedTranscriptPath(resolvedPath)
+					? resolvedPath
+					: undefined;
 			ctx.terminalAgentStore.recordSubagentEvent({
 				terminalId: input.terminalId,
 				workspaceId: terminalSession.originWorkspaceId,

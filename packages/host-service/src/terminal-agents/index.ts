@@ -4,9 +4,17 @@ export type {
 	TerminalAgentBindingPersistence,
 } from "./store";
 export { TerminalAgentStore } from "./store";
+export type {
+	SubagentHarness,
+	SubagentTranscriptHint,
+} from "./subagent-harnesses";
 export {
+	getSubagentHarness,
+	isTrustedTranscriptPath,
 	readSubagentTranscript,
 	resolveSubagentTranscriptPath,
+	SUBAGENT_HARNESSES,
+	subagentBelongsToParent,
 } from "./subagent-harnesses";
 export type {
 	SubagentTranscript,

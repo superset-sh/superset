@@ -29,10 +29,14 @@ export function SubagentPane({ data, onOpenParent }: SubagentPaneProps) {
 	const query = workspaceTrpc.terminalAgents.subagentTranscript.useQuery(
 		{ terminalId: data.terminalId, subagentId: data.subagentId },
 		{
-			refetchInterval: (result) =>
-				result.state.data?.subagent.endedAt === undefined
+			// Poll only while the host still reports the child as running; an
+			// unavailable (null) or ended child is read once.
+			refetchInterval: (result) => {
+				const data = result.state.data;
+				return data && data.subagent.endedAt === undefined
 					? LIVE_POLL_MS
-					: false,
+					: false;
+			},
 			refetchOnWindowFocus: true,
 			staleTime: 0,
 		},

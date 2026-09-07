@@ -103,7 +103,9 @@ export function parseClaudeSubagentTranscript(
 	text: string,
 ): SubagentTranscriptEntry[] {
 	const entries: SubagentTranscriptEntry[] = [];
+	let lineNumber = 0;
 	for (const line of text.split("\n")) {
+		lineNumber += 1;
 		if (!line.trim()) continue;
 		let record: unknown;
 		try {
@@ -116,7 +118,8 @@ export function parseClaudeSubagentTranscript(
 		if (!message) continue;
 		const type = record.type;
 		if (type !== "user" && type !== "assistant") continue;
-		const baseId = typeof record.uuid === "string" ? record.uuid : "";
+		const baseId =
+			typeof record.uuid === "string" ? record.uuid : `line-${lineNumber}`;
 		const timestamp = parseTimestamp(record.timestamp);
 		const content = message.content;
 
@@ -124,7 +127,7 @@ export function parseClaudeSubagentTranscript(
 			if (content.trim()) {
 				entries.push({
 					id: baseId,
-					kind: "user",
+					kind: type === "assistant" ? "assistant" : "user",
 					text: clip(content),
 					timestamp,
 				});
@@ -311,18 +314,23 @@ export function readTranscriptTail(
 	transcriptPath: string,
 ): { text: string; size: number; mtimeMs: number } | null {
 	let stat: fs.Stats;
+	let fd: number;
 	try {
 		stat = fs.statSync(transcriptPath);
+		fd = fs.openSync(transcriptPath, "r");
 	} catch {
 		return null;
 	}
 	const start = Math.max(0, stat.size - MAX_READ_BYTES);
-	const fd = fs.openSync(transcriptPath, "r");
 	let text: string;
 	try {
+		// The child appends between stat and read; trust the bytes actually
+		// read rather than the sampled size.
 		const buffer = Buffer.alloc(stat.size - start);
-		fs.readSync(fd, buffer, 0, buffer.length, start);
-		text = buffer.toString("utf8");
+		const bytesRead = fs.readSync(fd, buffer, 0, buffer.length, start);
+		text = buffer.toString("utf8", 0, bytesRead);
+	} catch {
+		return null;
 	} finally {
 		fs.closeSync(fd);
 	}

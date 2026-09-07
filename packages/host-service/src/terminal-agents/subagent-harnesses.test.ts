@@ -3,8 +3,10 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
+	isTrustedTranscriptPath,
 	readSubagentTranscript,
 	resolveSubagentTranscriptPath,
+	subagentBelongsToParent,
 } from "./subagent-harnesses";
 
 describe("resolveSubagentTranscriptPath", () => {
@@ -134,5 +136,54 @@ describe("readSubagentTranscript", () => {
 		expect(
 			readSubagentTranscript("claude", "/nonexistent/agent-x.jsonl"),
 		).toBeNull();
+	});
+});
+
+describe("subagentBelongsToParent", () => {
+	it("rejects a Claude child event that names a previous parent session", () => {
+		const hint = { subagentId: "a1", sessionId: "s1" };
+		expect(subagentBelongsToParent("claude", hint, "s2")).toBe(false);
+		expect(subagentBelongsToParent("claude", hint, "s1")).toBe(true);
+	});
+
+	it("accepts when the harness cannot tell or the parent has no session yet", () => {
+		expect(
+			subagentBelongsToParent(
+				"codex",
+				{ subagentId: "c1", sessionId: "child" },
+				"root",
+			),
+		).toBe(true);
+		expect(
+			subagentBelongsToParent(
+				"claude",
+				{ subagentId: "a1", sessionId: "s1" },
+				undefined,
+			),
+		).toBe(true);
+	});
+});
+
+describe("isTrustedTranscriptPath", () => {
+	it("keeps absolute .jsonl paths under home and drops the rest", () => {
+		const home = "/home/u";
+		expect(
+			isTrustedTranscriptPath(
+				"/home/u/.claude/projects/p/s/subagents/agent-a.jsonl",
+				home,
+			),
+		).toBe(true);
+		expect(
+			isTrustedTranscriptPath(
+				"/home/u/.codex/sessions/2026/09/06/rollout-x.jsonl",
+				home,
+			),
+		).toBe(true);
+		expect(isTrustedTranscriptPath("/etc/passwd", home)).toBe(false);
+		expect(isTrustedTranscriptPath("/home/u/../root/x.jsonl", home)).toBe(
+			false,
+		);
+		expect(isTrustedTranscriptPath("relative/x.jsonl", home)).toBe(false);
+		expect(isTrustedTranscriptPath("/home/u/notes.txt", home)).toBe(false);
 	});
 });

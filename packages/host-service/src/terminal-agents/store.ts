@@ -65,6 +65,12 @@ const SUBAGENT_STALE_MS = 10 * 60_000;
  */
 const SUBAGENT_ENDED_RETENTION_MS = 60 * 60_000;
 
+/**
+ * The hook endpoint is unauthenticated, so bound what one terminal's roster
+ * can hold; the oldest entry makes room for a new child.
+ */
+const MAX_SUBAGENTS_PER_TERMINAL = 64;
+
 export interface TerminalAgentBindingPersistence {
 	load(): TerminalAgentBinding[];
 	upsert(binding: TerminalAgentBinding): void;
@@ -259,6 +265,11 @@ export class TerminalAgentStore extends EventEmitter {
 		};
 		if (roster) {
 			roster.set(subagentId, next);
+			while (roster.size > MAX_SUBAGENTS_PER_TERMINAL) {
+				const oldest = roster.keys().next().value;
+				if (oldest === undefined) break;
+				roster.delete(oldest);
+			}
 		} else {
 			this.subagentsByTerminal.set(terminalId, new Map([[subagentId, next]]));
 		}

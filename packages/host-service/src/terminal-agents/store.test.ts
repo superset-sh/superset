@@ -160,6 +160,23 @@ describe("TerminalAgentStore", () => {
 			expect(store.get("t1")?.subagents).toBeUndefined();
 		});
 
+		it("caps the roster per terminal, dropping the oldest child", () => {
+			attach();
+			for (let i = 0; i < 70; i += 1) {
+				store.recordSubagentEvent({
+					terminalId: "t1",
+					workspaceId: WORKSPACE,
+					eventType: "SubagentStart",
+					subagentId: `a${i}`,
+					occurredAt: NOW + 200 + i,
+				});
+			}
+			const ids = store.get("t1")?.subagents?.map((s) => s.id) ?? [];
+			expect(ids).toHaveLength(64);
+			expect(ids[0]).toBe("a6");
+			expect(ids[ids.length - 1]).toBe("a69");
+		});
+
 		it("emits change on roster mutations only", () => {
 			attach();
 			const changes: string[] = [];
