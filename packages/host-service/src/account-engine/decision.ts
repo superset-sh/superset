@@ -239,6 +239,19 @@ export function isEligible(
  * It is exported because the row the renderer draws has to resolve the same
  * spellings this decision does: a switch labelled "In rotation" reading ON for
  * an account `isEligible` refuses is a UI that contradicts the engine.
+ *
+ * It resolves the rotation PREFERENCE — key spellings only — and is deliberately
+ * not an eligibility check. `isEligible` also refuses an unmanaged dir and a
+ * token that is expired, signed out or unreadable; none of those belong here,
+ * because this value is the choice the user saved, not what the engine would do
+ * this second. Gating on them would make a toggle someone set ON read OFF while
+ * a token happened to be expired, and flip back later on its own.
+ *
+ * Those gates are the card's job and are already discharged there: the toggle is
+ * not rendered at all for an unmanaged row, which carries the "Unmanaged" badge
+ * and footer line instead, and an unusable token shows its own status badge. See
+ * `an unmanaged login offers no way to switch onto it` and `an unmanaged login
+ * says Superset will not touch it` in the usage view's tests.
  */
 export function resolveRotationFlag(
 	account: {
