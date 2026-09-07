@@ -1166,6 +1166,66 @@ describe("swapClaudeLogin on a file-backed store", () => {
 		);
 	});
 
+	// The same window, and the half no timestamp can catch: the owner store is
+	// not refreshed but signed in again, as somebody else. The identity gate ran
+	// against the read from before it, and `wouldRegress` only ever compares
+	// expiries — so measured before this: ok:true, and C's store came back a
+	// chimera holding A's token under A's name beside C's own mcpOAuth.
+	it("refuses the save-back when the owner store is signed in again mid-swap", async () => {
+		const f = fixture();
+		const activeFile = join(f.activeDir, ".credentials.json");
+		const activeBefore = readCredentials(f.activeDir);
+		let activeReads = 0;
+		const deps: ClaudeSwapDeps = {
+			...f.deps,
+			fs: {
+				readFile: async (path: string, encoding: "utf-8") => {
+					const { readFile } = await import("node:fs/promises");
+					// The payload re-read of the active login, same as above: a
+					// `/login` as C lands in the owner's dir in that moment.
+					if (path === activeFile && ++activeReads === 2) {
+						writeCredentials(f.profileA, {
+							claudeAiOauth: oauth("t-c", 1_000),
+							mcpOAuth: { "c-server": { token: "m-c" } },
+						});
+						writeFileSync(
+							join(f.profileA, ".claude.json"),
+							JSON.stringify(identity("c")),
+						);
+					}
+					return readFile(path, encoding);
+				},
+			},
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			expectedOwnerAccountId: "uuid-a",
+			activeDir: f.activeDir,
+			deps,
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "owner-unknown" });
+		if (result.ok) throw new Error("expected a refusal");
+		expect(result.reason).toContain("uuid-c");
+		// C's login and C's name both stand, with no backup of either.
+		expect(readCredentials(f.profileA)).toEqual({
+			claudeAiOauth: oauth("t-c", 1_000),
+			mcpOAuth: { "c-server": { token: "m-c" } },
+		});
+		expect(
+			JSON.parse(readFileSync(join(f.profileA, ".claude.json"), "utf-8"))
+				.oauthAccount,
+		).toEqual(identity("c").oauthAccount);
+		expect(readdirSync(f.profileA).sort()).toEqual([
+			".claude.json",
+			".credentials.json",
+		]);
+		// And the active dir never moved on to the target.
+		expect(readCredentials(f.activeDir)).toEqual(activeBefore);
+	});
+
 	// The same re-read fails closed for the same reason the first one does:
 	// the write is a rename, so a store that went unreadable in between would
 	// be replaced by one this swap never saw.

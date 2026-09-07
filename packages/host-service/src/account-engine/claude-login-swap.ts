@@ -1263,6 +1263,22 @@ export async function swapClaudeLogin(input: {
 				`${keychainStoreName(ownerNow, ownerBinding, ctx)}'s Keychain item exists but could not be read; refusing to write over it`,
 			);
 		}
+		// And the identity question again, of that same re-read, for the reason
+		// the active dir asks it twice: a store that moved may be a different
+		// account's, not just a newer token. `ownerStoreMismatch` above judged
+		// the read from before this window, so a `/login` in the owner profile
+		// inside it left the write aimed at somebody else's store — and
+		// `wouldRegress` cannot stand in, since it weighs two expiry timestamps
+		// and never sees an account. An owner that was empty and is still empty
+		// answers null here exactly as it did there, so the save-back that fills
+		// an empty store is untouched.
+		const ownerNowCheck = await ownerStoreMismatch(
+			ownerBinding,
+			ownerNow,
+			input.expectedOwnerAccountId,
+			ctx,
+		);
+		if (ownerNowCheck) return failure("owner-unknown", ownerNowCheck);
 		if (!wouldRegress(oauthOf(ownerNow), current)) {
 			const planned = await planStoreWrite(ownerBinding, ownerNow, ctx);
 			if (!planned.ok) return planned.result;
