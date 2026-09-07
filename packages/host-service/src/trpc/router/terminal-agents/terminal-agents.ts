@@ -3,7 +3,7 @@ import {
 	BUILTIN_AGENT_IDS,
 } from "@superset/shared/agent-catalog";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import type { HostDb } from "../../../db";
 import { terminalSessions, workspaces } from "../../../db/schema";
@@ -287,6 +287,35 @@ function daemonCloseFailed(result: unknown): boolean {
 }
 
 /**
+ * Write the durable intent-to-kill stamp for a dispose that threw. The real
+ * disposer stamps as its first statement, so a throw can mean the pty was
+ * never touched — and by then the binding is already a claimable resume
+ * candidate. Only this stamp makes the kill-pending guard in
+ * `resumeTerminalAgentSession` refuse a resume onto a pty that may still be
+ * running the conversation, and only it makes the reaper retry the kill.
+ * First request time wins, like `disposeSessionAndWait`. Best-effort: a
+ * failure here must not mask the dispose error the caller is reporting.
+ */
+function stampDisposeRequested(db: HostDb, terminalId: string): void {
+	try {
+		db.update(terminalSessions)
+			.set({ disposeRequestedAt: Date.now() })
+			.where(
+				and(
+					eq(terminalSessions.id, terminalId),
+					isNull(terminalSessions.disposeRequestedAt),
+				),
+			)
+			.run();
+	} catch (error) {
+		console.warn("[terminal-agents] failed to stamp the requested kill", {
+			terminalId,
+			error,
+		});
+	}
+}
+
+/**
  * Kill one live agent session the way a crash would and bring it straight
  * back with its conversation — the account engine's mover (KTD8).
  *
@@ -365,8 +394,14 @@ export async function killAndResumeTerminalAgent(
 	try {
 		disposal = await deps.disposeSession(terminalId);
 	} catch (error) {
-		// The reaper finishes the kill and the nudge stays pending, so the
-		// candidate can still be resumed with it.
+		// The dispose can throw before it stamps its own intent to kill, and
+		// the binding is already a claimable candidate: stamp it here, before
+		// the reservation is released, so the kill-pending guard refuses a
+		// resume onto a pty that may still be running. The reaper then retries
+		// the kill (it reaps any stamped row) and flips the row out of
+		// "active", after which the candidate republishes with its nudge
+		// still pending and resumes normally.
+		stampDisposeRequested(deps.db, terminalId);
 		handOver();
 		settle({ resumed: false });
 		console.warn("[terminal-agents] failed to kill terminal before resume", {

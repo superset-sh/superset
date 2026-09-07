@@ -768,6 +768,56 @@ describe("killAndResumeTerminalAgent", () => {
 		expect(after).not.toBe("hung");
 	});
 
+	// The real disposer stamps its intent to kill as its first statement, so a
+	// throw can mean the pty was never touched — while the binding is already
+	// a claimable resume candidate. Without a stamp of our own the kill-pending
+	// guard passes and a second agent launches with `--resume` on the
+	// conversation the live pty is still running.
+	it("stamps the requested kill when the dispose throws, so no resume is admitted", async () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedLiveBinding(db, { terminalId: "t1" });
+		const { deps } = createDeps(db);
+		deps.disposeSession = () => Promise.reject(new Error("dispose failed"));
+
+		await expect(
+			killAndResumeTerminalAgent(deps, {
+				workspaceId: "ws-1",
+				terminalId: "t1",
+				prompt: "nudge",
+			}),
+		).rejects.toThrow(/dispose failed/);
+
+		const refused = createDeps(db);
+		const after = await resumeTerminalAgentSession(refused.deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+
+		expect(after).toEqual({ resumed: false });
+		expect(refused.runCalls).toEqual([]);
+
+		// Nothing is lost: the reaper retries the kill and flips the row, and
+		// the candidate republishes with its nudge intact.
+		db.update(terminalSessions)
+			.set({ status: "disposed" })
+			.where(eq(terminalSessions.id, "t1"))
+			.run();
+		const retry = createDeps(db);
+
+		const resumed = await resumeTerminalAgentSession(retry.deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+
+		expect(resumed).toEqual({
+			resumed: true,
+			terminalId: "t-new",
+			label: "Claude",
+		});
+		expect(retry.runCalls.map((call) => call.prompt)).toEqual(["nudge"]);
+	});
+
 	it("kills crash-style and relaunches with the nudge as the prompt", async () => {
 		const db = createTestDb();
 		seedAgentConfig(db);
