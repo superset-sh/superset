@@ -110,10 +110,13 @@ interface SessionEntry {
 }
 
 interface ScanState {
-	terminalPortMap: Map<string, { workspaceId: string; pids: number[] }>;
+	terminalPortMap: Map<
+		string,
+		{ workspaceId: string; pids: number[]; session: SessionEntry }
+	>;
 	pidOwnerMap: Map<number, { terminalId: string; workspaceId: string }>;
 	allPids: Set<number>;
-	emptyTreeTerminals: Set<string>;
+	emptyTreeTerminals: Map<string, SessionEntry>;
 }
 
 /**
@@ -161,11 +164,16 @@ export class PortManager extends EventEmitter {
 		pid: number | null,
 	): void {
 		const existing = this.sessions.get(terminalId);
-		if (existing && existing.pid === pid) {
+		if (
+			existing &&
+			existing.pid === pid &&
+			existing.workspaceId === workspaceId
+		) {
 			// Re-upserts (e.g. the reaper's periodic sync of unattached daemon
 			// sessions) must not reset the idle clock.
 			existing.workspaceId = workspaceId;
 		} else {
+			this.removePortsForTerminal(terminalId);
 			this.sessions.set(terminalId, {
 				workspaceId,
 				pid,
@@ -273,14 +281,14 @@ export class PortManager extends EventEmitter {
 		return {
 			terminalPortMap: new Map<
 				string,
-				{ workspaceId: string; pids: number[] }
+				{ workspaceId: string; pids: number[]; session: SessionEntry }
 			>(),
 			pidOwnerMap: new Map<
 				number,
 				{ terminalId: string; workspaceId: string }
 			>(),
 			allPids: new Set<number>(),
-			emptyTreeTerminals: new Set<string>(),
+			emptyTreeTerminals: new Map<string, SessionEntry>(),
 		};
 	}
 
@@ -299,11 +307,15 @@ export class PortManager extends EventEmitter {
 		force: boolean,
 	): Promise<void> {
 		const now = Date.now();
-		const dueSessions: { terminalId: string; pid: number }[] = [];
+		const dueSessions: {
+			terminalId: string;
+			pid: number;
+			session: SessionEntry;
+		}[] = [];
 		for (const [terminalId, entry] of this.sessions) {
 			if (entry.pid === null) continue;
 			if (!force && !this.isSessionDue(entry, now)) continue;
-			dueSessions.push({ terminalId, pid: entry.pid });
+			dueSessions.push({ terminalId, pid: entry.pid, session: entry });
 		}
 		if (dueSessions.length === 0) return;
 
@@ -312,21 +324,24 @@ export class PortManager extends EventEmitter {
 			table,
 			dueSessions.map((session) => session.pid),
 		);
-		for (const { terminalId, pid } of dueSessions) {
+		for (const { terminalId, pid, session } of dueSessions) {
 			const entry = this.sessions.get(terminalId);
 			// The session may have been replaced (new pid) or unregistered while
 			// the table read was in flight; its tree is stale — don't apply it.
-			if (!entry || entry.pid !== pid) continue;
-			entry.lastScannedAt = now;
+			if (entry !== session) continue;
 
 			const pids = trees.get(pid) ?? [];
 			if (pids.length === 0) {
 				// Root pid absent from the process table — the session exited.
-				scanState.emptyTreeTerminals.add(terminalId);
+				scanState.emptyTreeTerminals.set(terminalId, entry);
 				continue;
 			}
 			const { workspaceId } = entry;
-			scanState.terminalPortMap.set(terminalId, { workspaceId, pids });
+			scanState.terminalPortMap.set(terminalId, {
+				workspaceId,
+				pids,
+				session: entry,
+			});
 			this.addTerminalPids({ terminalId, workspaceId, pids, scanState });
 		}
 
@@ -418,14 +433,20 @@ export class PortManager extends EventEmitter {
 		terminalPortMap: ScanState["terminalPortMap"];
 		portsByTerminal: Map<string, PortInfo[]>;
 	}): void {
-		for (const [terminalId, { workspaceId }] of terminalPortMap) {
+		for (const [terminalId, { workspaceId, session }] of terminalPortMap) {
+			if (this.sessions.get(terminalId) !== session) continue;
+			session.lastScannedAt = Date.now();
 			const portInfos = portsByTerminal.get(terminalId) ?? [];
 			this.updatePortsForTerminal({ terminalId, workspaceId, portInfos });
 		}
 	}
 
-	private clearEmptyTreeTerminals(emptyTreeTerminals: Set<string>): void {
-		for (const terminalId of emptyTreeTerminals) {
+	private clearEmptyTreeTerminals(
+		emptyTreeTerminals: Map<string, SessionEntry>,
+	): void {
+		for (const [terminalId, session] of emptyTreeTerminals) {
+			if (this.sessions.get(terminalId) !== session) continue;
+			session.lastScannedAt = Date.now();
 			this.removePortsForTerminal(terminalId);
 		}
 	}
@@ -584,10 +605,10 @@ export class PortManager extends EventEmitter {
 	/**
 	 * Kill the process listening on a tracked port.
 	 * Refuses to kill the terminal's own shell — that would close the terminal.
-	 * A dev server is always a descendant (different PID), so `killFn` with the
-	 * port's owning PID correctly tears down the server without touching the shell.
+	 * Tree descendants and detached servers must still have matching ownership
+	 * and a matching listening socket immediately before invoking the kill function.
 	 */
-	killPort({
+	async killPort({
 		terminalId,
 		workspaceId,
 		port,
@@ -629,6 +650,65 @@ export class PortManager extends EventEmitter {
 			});
 		}
 
+		const session = this.sessions.get(terminalId);
+		if (
+			!session ||
+			session.pid === null ||
+			session.workspaceId !== workspaceId
+		) {
+			return { success: false };
+		}
+
+		// Do not use forceScan here: it can return early when another scan is
+		// already running. Validate this request directly, independent of idle cadence.
+		const signal = this.ensureScanAbort().signal;
+		try {
+			const table = await readProcessTable();
+			// Another close request may already have stopped a shared server.
+			// A missing PID needs no signal; do not turn "Close all" into an error.
+			if (!table.some(({ pid }) => pid === detectedPort.pid))
+				return { success: true };
+			const roots = [...this.sessions.values()].flatMap(({ pid }) =>
+				pid === null ? [] : [pid],
+			);
+			if (roots.includes(detectedPort.pid)) return { success: false };
+			const trees = buildProcessTrees(table, roots);
+			const tree = trees.get(session.pid);
+			if (!tree) return { success: false };
+			if (!tree.includes(detectedPort.pid)) {
+				const owners = await this.detachedResolver.resolve({
+					table,
+					excludePids: new Set([...trees.values()].flat()),
+					terminalIds: new Set([terminalId]),
+					signal,
+				});
+				if (owners.get(detectedPort.pid) !== terminalId)
+					return { success: false };
+			}
+			const listeners = await getListeningPortsForPids(
+				[detectedPort.pid],
+				signal,
+			);
+			const stillListening = listeners.some(
+				(info) =>
+					info.pid === detectedPort.pid &&
+					info.port === port &&
+					info.address === detectedPort.address &&
+					info.processName === detectedPort.processName,
+			);
+			if (
+				!stillListening ||
+				signal.aborted ||
+				this.sessions.get(terminalId) !== session ||
+				this.ports.get(key) !== detectedPort
+			)
+				return { success: false };
+		} catch {
+			// Inspection failures must never authorize a destructive operation.
+			return { success: false };
+		}
+		// PID-based OS signalling is not atomic with inspection; this narrows the
+		// stale-observation window but cannot replace a kernel process handle.
 		return this.killFn({ pid: detectedPort.pid });
 	}
 }

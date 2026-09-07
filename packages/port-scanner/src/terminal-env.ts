@@ -16,9 +16,8 @@ export const TERMINAL_ID_ENV_KEYS = [
 const PS_PID_BATCH = 200;
 
 /**
- * Above this many pids, one whole-table `ps -ax` is cheaper than `-p` lookups
- * (a scan on a busy machine is ~1500 pids: ~80ms for the table, ~400ms
- * via -p batches).
+ * Above this many pids, whole-table `ps -ax` reads avoid spawning a separate
+ * command/environment pair for each batch on busy machines.
  */
 const PS_WHOLE_TABLE_THRESHOLD = PS_PID_BATCH;
 
@@ -45,18 +44,21 @@ export async function readTerminalIdsFromEnv(
 	if (pids.length === 0) return values;
 
 	const platform = os.platform();
+	// A failed snapshot is not evidence that every detached server exited.
+	// Let the manager preserve its last successful result and retry the scan.
 	let read: Map<number, string | null>;
 	try {
-		if (platform === "linux") {
-			read = await readEnvValuesLinuxProcfs(pids, TERMINAL_ID_ENV_KEYS, signal);
-		} else if (platform === "darwin") {
-			read = await readTerminalIdsDarwin(pids, signal);
-		} else {
-			read = new Map();
-		}
-	} catch (err) {
-		if (signal?.aborted) throw err;
-		read = new Map();
+		read =
+			platform === "linux"
+				? await readEnvValuesLinuxProcfs(pids, TERMINAL_ID_ENV_KEYS, signal)
+				: platform === "darwin"
+					? await readTerminalIdsDarwin(pids, signal)
+					: new Map<number, string | null>();
+	} catch {
+		// execFile errors can carry stdout containing complete environments.
+		// Never let those values reach the manager's error logger.
+		signal?.throwIfAborted();
+		throw new Error("Process environment inspection failed");
 	}
 
 	for (const pid of pids) values.set(pid, read.get(pid) ?? null);
@@ -77,13 +79,18 @@ async function readTerminalIdsDarwin(
 	};
 	if (pids.length > PS_WHOLE_TABLE_THRESHOLD) {
 		const wanted = new Set(pids);
+		const commands = await runTolerant(
+			"ps",
+			["-ww", "-axo", "pid=,command="],
+			options,
+		);
 		const output = await runTolerant(
 			"ps",
 			["-Eww", "-axo", "pid=,command="],
 			options,
 		);
 		const values = new Map<number, string | null>();
-		for (const [pid, value] of parsePsEnvOutput(output)) {
+		for (const [pid, value] of parsePsEnvOutput(output, commands)) {
 			if (wanted.has(pid)) values.set(pid, value);
 		}
 		return values;
@@ -92,12 +99,17 @@ async function readTerminalIdsDarwin(
 	const values = new Map<number, string | null>();
 	for (let i = 0; i < pids.length; i += PS_PID_BATCH) {
 		const batch = pids.slice(i, i + PS_PID_BATCH);
+		const commands = await runTolerant(
+			"ps",
+			["-ww", "-o", "pid=,command=", "-p", batch.join(",")],
+			options,
+		);
 		const output = await runTolerant(
 			"ps",
 			["-Eww", "-o", "pid=,command=", "-p", batch.join(",")],
 			options,
 		);
-		for (const [pid, value] of parsePsEnvOutput(output)) {
+		for (const [pid, value] of parsePsEnvOutput(output, commands)) {
 			values.set(pid, value);
 		}
 	}
@@ -105,12 +117,20 @@ async function readTerminalIdsDarwin(
 }
 
 /**
- * Parse `ps -Eww -o pid=,command=` output into pid → terminal id. The command
- * column is argv followed by `KEY=value` environment entries, all
- * space-separated; the ids are UUIDs, so scanning whitespace-split tokens for
- * the keys is unambiguous. Exported for tests.
+ * Strip the separately observed argv before inspecting `ps -Eww`'s appended
+ * environment. Arguments can mention terminal IDs without owning a terminal.
+ * If the observed argv prefix does not match, fail closed for that PID. This is a best-effort
+ * attribution hint, not a security boundary: ps does not escape environment values.
  */
-export function parsePsEnvOutput(output: string): Map<number, string | null> {
+export function parsePsEnvOutput(
+	output: string,
+	commandOutput: string,
+): Map<number, string | null> {
+	const commands = new Map<number, string>();
+	for (const line of commandOutput.split("\n")) {
+		const match = line.match(/^\s*(\d+)\s+(.*)$/);
+		if (match?.[1] && match[2]) commands.set(Number(match[1]), match[2]);
+	}
 	const values = new Map<number, string | null>();
 	for (const line of output.split("\n")) {
 		const match = line.match(/^\s*(\d+)\s+(.*)$/);
@@ -119,7 +139,15 @@ export function parsePsEnvOutput(output: string): Map<number, string | null> {
 		const rest = match[2];
 		if (pidStr === undefined || rest === undefined) continue;
 		const pid = Number.parseInt(pidStr, 10);
-		values.set(pid, pickEnvValue(rest.split(/\s+/), TERMINAL_ID_ENV_KEYS));
+		const command = commands.get(pid);
+		const environment =
+			command && rest.startsWith(`${command} `)
+				? rest.slice(command.length + 1)
+				: "";
+		values.set(
+			pid,
+			pickEnvValue(environment.split(/\s+/), TERMINAL_ID_ENV_KEYS),
+		);
 	}
 	return values;
 }

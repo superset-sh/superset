@@ -43,7 +43,10 @@ describe("parsePsEnvOutput", () => {
 			" 80076 next-server (v16.2.11)",
 			"    12 /sbin/launchd",
 		].join("\n");
-		const parsed = parsePsEnvOutput(output);
+		const parsed = parsePsEnvOutput(
+			output,
+			" 79737 bun run dev\n 80076 next-server (v16.2.11)\n 12 /sbin/launchd",
+		);
 		expect(parsed.get(79737)).toBe(TERMINAL);
 		expect(parsed.get(80076)).toBeNull();
 		expect(parsed.get(12)).toBeNull();
@@ -51,22 +54,98 @@ describe("parsePsEnvOutput", () => {
 	});
 
 	it("does not mistake a command argument for the variable", () => {
-		// `env SUPERSET_TERMINAL_ID=x cmd` is semantically the same intent, so it
-		// is accepted; a mere substring is not.
+		const commands =
+			" 1 grep --SUPERSET_TERMINAL_ID=abc file\n 2 node app.js SUPERSET_TERMINAL_ID=abc\n";
+		const parsed = parsePsEnvOutput(commands, commands);
+		expect(parsed.get(1)).toBeNull();
+		expect(parsed.get(2)).toBeNull();
+	});
+
+	it("uses the real environment even when argv mentions a different terminal", () => {
+		expect(
+			parsePsEnvOutput(
+				" 1 node app.js SUPERSET_TERMINAL_ID=fake SUPERSET_TERMINAL_ID=real",
+				" 1 node app.js SUPERSET_TERMINAL_ID=fake",
+			).get(1),
+		).toBe("real");
+	});
+
+	it("fails closed when the command changes or was not observed", () => {
 		const parsed = parsePsEnvOutput(
-			" 1 grep --SUPERSET_TERMINAL_ID=abc file\n 2 env SUPERSET_TERMINAL_ID=abc node\n",
+			" 1 new-command SUPERSET_TERMINAL_ID=term\n 2 node SUPERSET_TERMINAL_ID=term",
+			" 1 old-command",
 		);
 		expect(parsed.get(1)).toBeNull();
-		expect(parsed.get(2)).toBe("abc");
+		expect(parsed.get(2)).toBeNull();
 	});
 
 	it("handles empty output", () => {
-		expect(parsePsEnvOutput("").size).toBe(0);
+		expect(parsePsEnvOutput("", "").size).toBe(0);
 	});
 });
 
 describe("readTerminalIdsFromEnv (real processes)", () => {
 	const supported = os.platform() === "darwin" || os.platform() === "linux";
+
+	it.skipIf(os.platform() !== "darwin")(
+		"propagates a failed ps snapshot instead of returning null owners",
+		async () => {
+			const previousPath = process.env.PATH;
+			try {
+				process.env.PATH = "/nonexistent-superset-test-bin";
+				await expect(readTerminalIdsFromEnv([process.pid])).rejects.toThrow();
+			} finally {
+				if (previousPath === undefined) delete process.env.PATH;
+				else process.env.PATH = previousPath;
+			}
+		},
+	);
+
+	it.skipIf(!supported)(
+		"ignores an argument-only ID in both targeted and whole-table reads",
+		async () => {
+			const fake = Bun.spawn(
+				[
+					process.execPath,
+					"-e",
+					"setTimeout(() => {}, 10000)",
+					`SUPERSET_TERMINAL_ID=${TERMINAL}`,
+				],
+				{
+					env: { SUPERSET_TERMINAL_ID: "", SUPERSET_PANE_ID: "" },
+					stdout: "ignore",
+					stderr: "ignore",
+				},
+			);
+			const real = Bun.spawn(
+				[
+					process.execPath,
+					"-e",
+					"setTimeout(() => {}, 10000)",
+					"SUPERSET_TERMINAL_ID=argument-only",
+				],
+				{
+					env: { SUPERSET_TERMINAL_ID: TERMINAL, SUPERSET_PANE_ID: "" },
+					stdout: "ignore",
+					stderr: "ignore",
+				},
+			);
+			try {
+				for (const pids of [
+					[fake.pid, real.pid],
+					[...Array<number>(201).fill(fake.pid), real.pid],
+				]) {
+					const ids = await readTerminalIdsFromEnv(pids);
+					expect(ids.get(fake.pid)).toBeNull();
+					expect(ids.get(real.pid)).toBe(TERMINAL);
+				}
+			} finally {
+				fake.kill();
+				real.kill();
+				await Promise.all([fake.exited, real.exited]);
+			}
+		},
+	);
 
 	it.skipIf(!supported)(
 		"reads the id from a child spawned with it and null from one without",

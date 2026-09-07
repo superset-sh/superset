@@ -36,6 +36,45 @@ const table = [
 const tree = new Set([100, 101]);
 
 describe("DetachedProcessResolver", () => {
+	it("fails closed when an unreadable listener loses its last readable ancestor", async () => {
+		const { resolver, env } = harness(new Map([[500, TERMINAL]]));
+		const args = { excludePids: tree, terminalIds: new Set([TERMINAL]) };
+		expect((await resolver.resolve({ table, ...args })).get(501)).toBe(
+			TERMINAL,
+		);
+		env.delete(500);
+		const orphaned = table
+			.filter((row) => row.pid !== 500)
+			.map((row) => (row.pid === 501 ? { ...row, ppid: 1 } : row));
+		// Without readable provenance, guessing would risk attributing another process.
+		expect((await resolver.resolve({ table: orphaned, ...args })).size).toBe(0);
+	});
+
+	it("resolves a large snapshot once per scan without mixing terminal owners", async () => {
+		const rows = Array.from({ length: 10000 }, (_, i) => ({
+			pid: i + 1000,
+			ppid: i % 2 === 0 ? 500 : 600,
+		}));
+		const largeTable = [{ pid: 500, ppid: 1 }, { pid: 600, ppid: 1 }, ...rows];
+		const { resolver, reads } = harness(
+			new Map([
+				[500, TERMINAL],
+				[600, OTHER],
+			]),
+		);
+		const args = {
+			table: largeTable,
+			excludePids: new Set<number>(),
+			terminalIds: new Set([TERMINAL, OTHER]),
+		};
+		for (let scan = 0; scan < 3; scan++) {
+			const result = await resolver.resolve(args);
+			expect(result.size).toBe(10002);
+			for (const row of rows)
+				expect(result.get(row.pid)).toBe(row.ppid === 500 ? TERMINAL : OTHER);
+		}
+		expect(reads).toHaveLength(3);
+	});
 	it("attributes an orphaned root and its descendants via the root's environment", async () => {
 		const { resolver } = harness(new Map([[500, TERMINAL]]));
 		const resolved = await resolver.resolve({
