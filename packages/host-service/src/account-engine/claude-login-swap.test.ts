@@ -3785,6 +3785,72 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 		expect(keychain.items).toHaveLength(1);
 	});
 
+	// A read-back can carry the target's login and the target's identity and
+	// STILL be flagged: on darwin any spelling that times out sets the flag even
+	// while the file half serves the login. That pair confirmed the swap, so
+	// re-reading it can only trade a confirming answer for a worse one.
+	// Measured before the decision moved ahead of the flags, with the
+	// credential's second post-write read denied: `verify-failed`, and the
+	// active dir rolled back to the PREVIOUS account's login — a swap that had
+	// verified, undone by a read nobody needed to take.
+	it("keeps a first verify read that confirmed, flag on it or not", async () => {
+		const f = fixture();
+		const credentials = join(f.activeDir, ".credentials.json");
+		const stale = keychainServicesForConfigDir(f.activeDir)[1] as string;
+		// The write has landed once the dir holds the target's login, so every
+		// read from here is the verify step's.
+		const landed = () =>
+			existsSync(credentials) &&
+			readFileSync(credentials, "utf-8").includes("t-b");
+		let refusals = 0;
+		let postWriteReads = 0;
+		const keychain = fakeKeychain([], {
+			failRead: (args) => {
+				if (args[args.indexOf("-s") + 1] !== stale || !landed()) return false;
+				refusals++;
+				return true;
+			},
+		});
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: {
+				...f.deps,
+				darwin: true,
+				exec: keychain.exec,
+				fs: {
+					readFile: async (path: string, encoding: "utf-8") => {
+						const { readFile } = await import("node:fs/promises");
+						if (path === credentials && landed()) {
+							postWriteReads++;
+							// The half that answered the first read stops answering on
+							// the second — the whole point of not taking a second.
+							if (postWriteReads > 1) {
+								throw Object.assign(new Error("EIO: i/o error, read"), {
+									code: "EIO",
+								});
+							}
+						}
+						return readFile(path, encoding);
+					},
+				},
+			},
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		if (!result.ok) throw new Error(result.reason);
+		expect(result.identity.accountUuid).toBe("uuid-b");
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-b", 2_000),
+		);
+		// The first pair really was flagged, so the flag is not what decided it.
+		expect(refusals).toBeGreaterThan(0);
+		// And it really was the only read: a second one was armed to fail.
+		expect(postWriteReads).toBe(1);
+	});
+
 	// The owner's dir has the same two stores, and `applyStoreWrite` lands the
 	// file first. Measured before the save-back had a rollback: the caller was
 	// told `write-failed` — which reads as "nothing landed" — while the owner's

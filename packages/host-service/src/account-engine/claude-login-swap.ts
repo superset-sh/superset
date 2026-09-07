@@ -931,17 +931,54 @@ async function applyToActiveDir(
 		);
 	}
 
+	// What one read-back pair says about the swap, each half on its own so the
+	// refusal below can still name which one disagreed. Both are judged from
+	// the same pair because the refresh tolerance leans on the identity to say
+	// whose refresh it was.
+	const readsAsTarget = (
+		read: ClaudeLoginRead,
+		identityRead: ClaudeSwapIdentity | null,
+	): { login: boolean; identity: boolean } => ({
+		identity:
+			JSON.stringify(identityRead?.keys ?? null) ===
+			JSON.stringify(target.identity.keys),
+		login:
+			hashOauth(oauthOf(read)) === hash ||
+			// A session running against the active dir can refresh the login the
+			// swap just wrote before the read-back sees it. That is still the
+			// target's own login, one refresh newer, and the identity beside it is
+			// what says so — the swap landed, so undoing it here would sign the
+			// caller out of the account it just asked for.
+			(target.identity.accountUuid !== null &&
+				identityRead?.accountUuid === target.identity.accountUuid &&
+				isRefreshedLogin(oauth, oauthOf(read))),
+	});
+	let verifyRead = await readStore(activeRef, ctx);
+	let verifyIdentity = await readIdentity(join(activeDir, ".claude.json"), ctx);
+	let verdict = readsAsTarget(verifyRead, verifyIdentity);
+	// Decided on the first pair, not on the flags it carries: a read that
+	// answered the target's login AND the target's identity has confirmed the
+	// swap, whatever else it could not see. On darwin any spelling that times
+	// out flags the whole read while the login is still served by another
+	// spelling or by the file half, and re-reading a pair that already
+	// confirmed can only replace it with a worse one — the second look is where
+	// a half that answered stops answering, and the rollback that follows undoes
+	// a swap this step had verified. It also saves a store read and a Keychain
+	// prompt on the path every swap takes.
+	if (verdict.login && verdict.identity) {
+		return { ok: true, identity: target.identity };
+	}
 	// A read-back that could not read is not a read-back that disagreed, and
 	// both halves are read again once before either decides anything — the same
 	// retry the source re-read above uses for a moving target. A torn read, an
 	// item caught mid-rewrite, or one probe that timed out answers on the second
 	// look, which is the whole window for most of them. The identity is retried
-	// with the credential because it is what the refresh tolerance below leans
-	// on: a `.claude.json` that briefly would not open leaves the tolerance
-	// unable to name the account, and a login the target's own session merely
-	// refreshed gets rolled back for it.
-	let verifyRead = await readStore(activeRef, ctx);
-	let verifyIdentity = await readIdentity(join(activeDir, ".claude.json"), ctx);
+	// with the credential because it is what the refresh tolerance leans on: a
+	// `.claude.json` that briefly would not open leaves the tolerance unable to
+	// name the account, and a login the target's own session merely refreshed
+	// gets rolled back for it. Deciding first takes none of that away: a store
+	// nothing read yields no matching login, and an identity nothing read no
+	// matching identity, so every pair this retry exists for falls through to it.
 	if (
 		verifyRead.keychainUnreadable ||
 		verifyRead.anyFileCandidateUnreadable ||
@@ -949,21 +986,9 @@ async function applyToActiveDir(
 	) {
 		verifyRead = await readStore(activeRef, ctx);
 		verifyIdentity = await readIdentity(join(activeDir, ".claude.json"), ctx);
+		verdict = readsAsTarget(verifyRead, verifyIdentity);
 	}
-	const identityIsTarget =
-		JSON.stringify(verifyIdentity?.keys ?? null) ===
-		JSON.stringify(target.identity.keys);
-	const loginIsTarget =
-		hashOauth(oauthOf(verifyRead)) === hash ||
-		// A session running against the active dir can refresh the login the
-		// swap just wrote before the read-back sees it. That is still the
-		// target's own login, one refresh newer, and the identity beside it is
-		// what says so — the swap landed, so undoing it here would sign the
-		// caller out of the account it just asked for.
-		(target.identity.accountUuid !== null &&
-			verifyIdentity?.accountUuid === target.identity.accountUuid &&
-			isRefreshedLogin(oauth, oauthOf(verifyRead)));
-	if (!loginIsTarget || !identityIsTarget) {
+	if (!verdict.login || !verdict.identity) {
 		// A store still unreadable after the retry rolls back too, and that is a
 		// deliberate trade rather than an oversight: nothing was read, so this
 		// cannot tell "the target, one refresh newer" from "a third account's
@@ -992,7 +1017,7 @@ async function applyToActiveDir(
 			activeDir,
 			storeUnreadable
 				? `${unread} exists but could not be read while the swap verified ${activeDir}; rolling the write back rather than reporting a login nothing could see`
-				: `${activeDir} did not read back as the target ${loginIsTarget ? "identity" : "login"}`,
+				: `${activeDir} did not read back as the target ${verdict.login ? "identity" : "login"}`,
 			"verify-failed",
 			ctx,
 			previousIdentity,
