@@ -217,6 +217,7 @@ export function subscribeSessionMoverToStore(
 	// answer, so it cannot move a genuinely mid-turn session.
 	const setIntervalFn = timers.setIntervalFn ?? setInterval;
 	const heartbeat = setIntervalFn(() => onChange("heartbeat"), HEARTBEAT_MS);
+	heartbeat.unref?.();
 
 	return () => {
 		store.off("change", onChange);

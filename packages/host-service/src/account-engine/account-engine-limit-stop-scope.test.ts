@@ -330,6 +330,93 @@ describe("a limit stop through the engine's own corroboration call", () => {
 		]);
 	});
 
+	it("ranks the fallback's target the way the proactive path ranks it", async () => {
+		// Every candidate here has room, so the only question is which one the
+		// fallback lands on — and it has to be the one `shouldSwitch` would
+		// pick from the same set. Both last resorts outscore the plan account
+		// on raw headroom, so a bare `pickBest` takes one of them.
+		const h = buildEngine({
+			agent: "claude",
+			entries: [
+				entryFor(
+					account({
+						windows: [
+							{
+								id: "five_hour",
+								label: "Session",
+								usedPercent: 100,
+								resetsAt: null,
+							},
+						],
+						isDefault: true,
+						selection: "/dirs/a",
+					}),
+				),
+				// Scores a full 100 on nothing: its only window is scoped to a
+				// model nobody configured.
+				entryFor(
+					account({
+						accountKey: "b",
+						accountId: "acct-b",
+						email: "b@example.com",
+						selection: "/dirs/b",
+						windows: [
+							{
+								id: "seven_day_opus",
+								label: "Weekly (Opus)",
+								usedPercent: 5,
+								resetsAt: null,
+							},
+						],
+					}),
+				),
+				// Readable and nearly empty, but per-token billed.
+				entryFor(
+					account({
+						accountKey: "c",
+						accountId: "acct-c",
+						email: "c@example.com",
+						selection: "/dirs/c",
+						credentialKind: "api_key",
+						inRotation: true,
+						windows: [
+							{
+								id: "five_hour",
+								label: "Session",
+								usedPercent: 10,
+								resetsAt: null,
+							},
+						],
+					}),
+				),
+				// The plan the user pays for, with real room left.
+				entryFor(
+					account({
+						accountKey: "d",
+						accountId: "acct-d",
+						email: "d@example.com",
+						selection: "/dirs/d",
+						windows: [
+							{
+								id: "five_hour",
+								label: "Session",
+								usedPercent: 70,
+								resetsAt: null,
+							},
+						],
+					}),
+				),
+			],
+			modelWindows: [],
+		});
+
+		await h.engine.handleLimitHints(T0);
+
+		expect(h.engine.history().map((row) => row.toAccountId)).toEqual([
+			"acct-d",
+		]);
+	});
+
 	it("acts on that same window once the user configured its model", async () => {
 		const h = buildEngine({
 			agent: "codex",

@@ -191,4 +191,38 @@ describe("a lock loser's first reconcile", () => {
 
 		expect(moved.flat().map((row) => row.terminalId)).toEqual(["term-3"]);
 	});
+
+	it("moves nothing when the tick is released after stop()", async () => {
+		// The same Codex row as above, so the only difference is the shutdown.
+		// A stopped engine answers false to `ensureOwnership`, which this path
+		// reads as "another instance owns the lock" — so a tick still queued on
+		// the mutation lane when the quit lands would end the shutdown by
+		// restarting every managed terminal into a service on its way out.
+		const { engine, moved } = loser({
+			sessions: [
+				session({
+					agent: "codex",
+					terminalId: "term-3",
+					configDir: "/codex/a",
+				}),
+			],
+			pointer: { claudeConfigDir: "/profiles/a", codexHome: "/codex/a" },
+			active: { accountId: "acct-b", selection: "/codex/b" },
+			agent: "codex",
+		});
+
+		let release = () => {};
+		const held = new Promise<void>((done) => {
+			release = done;
+		});
+		// A user action holding the lane, the interval fires behind it, the
+		// quit lands, and only then does the lane let go.
+		const lane = engine.runExclusive(() => held);
+		const queued = engine.tick();
+		const stopping = engine.stop();
+		release();
+		await Promise.all([lane, queued, stopping]);
+
+		expect(moved).toEqual([]);
+	});
 });

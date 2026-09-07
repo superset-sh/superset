@@ -68,6 +68,7 @@ import {
 	isEligible,
 	isNearLimit,
 	pickBest,
+	relevantWindows,
 	scoreAccount,
 	shouldSwitch,
 	windowsInScope,
@@ -327,6 +328,42 @@ function errorText(error: unknown): string {
 
 function labelOf(account: UsageAccount): string | null {
 	return account.email ?? account.sourceLabel ?? null;
+}
+
+/**
+ * The two last-resort tiers `shouldSwitch` ranks its candidates by, so the
+ * limit-stop fallback lands on the same target the proactive path would pick
+ * from the same set (decision.ts, `best`). They live here rather than being
+ * imported because `decision.ts` keeps them private and belongs to another
+ * layer; the order is what matters and is the order it applies them in.
+ *
+ * An account whose relevant windows are empty scores a full 100 headroom with
+ * nothing behind it — a stale read, or a login whose only window is scoped to
+ * a model the user never configured — so it wins `pickBest` against every
+ * account we can actually read. It stays a target of last resort, and an
+ * API-billed login the tier below it: flattening the two would let the
+ * alphabetical tie-break put the user on per-token billing while a plan login
+ * with room was available.
+ */
+function reportsNoWindows(
+	account: DecisionAccount,
+	modelWindows: readonly string[],
+): boolean {
+	return relevantWindows(account, modelWindows).length === 0;
+}
+
+function isMetered(account: DecisionAccount): boolean {
+	return account.credentialKind === "api_key";
+}
+
+/** The candidates that are not a last resort — or all of them, when a last
+ * resort is all there is. */
+function preferRanked(
+	candidates: readonly DecisionAccount[],
+	lastResort: (account: DecisionAccount) => boolean,
+): readonly DecisionAccount[] {
+	const ranked = candidates.filter((candidate) => !lastResort(candidate));
+	return ranked.length > 0 ? ranked : candidates;
 }
 
 /** The default identity read: the state file names the account, the
@@ -800,6 +837,13 @@ export class AccountEngine {
 	}
 
 	private async runTick(now: number): Promise<void> {
+		// A tick queued behind the mutation lane can be released after `stop()`
+		// has already run. `ensureOwnership` answers false for a stopped
+		// engine, and the follower path below reads that false as "another
+		// instance owns the lock" — so without this the shutdown ends by
+		// restarting every managed terminal onto a service that is disposing
+		// its db handle and its event bus.
+		if (this.stopped) return;
 		if (!this.platformSupported()) return;
 		const settings = this.state.readSettings();
 		const agents = AGENTS.filter((agent) => settings[agent].enabled);
@@ -2061,7 +2105,19 @@ export class AccountEngine {
 					settings.thresholdPercent,
 				),
 		);
-		const target = pickBest(usable, settings.modelWindows);
+		// Ranked exactly as the proactive path ranks the same set: a bare
+		// `pickBest` here would take the metered login or the one it cannot
+		// rank over a plan account with real room, and the two paths would
+		// disagree about where the same limit stop should land.
+		const target = pickBest(
+			preferRanked(
+				preferRanked(usable, (candidate) =>
+					reportsNoWindows(candidate, settings.modelWindows),
+				),
+				isMetered,
+			),
+			settings.modelWindows,
+		);
 		if (!target) {
 			// R8/R22: no eligible account, so no restart — a relaunch onto a
 			// spent account would just stop again.
