@@ -3615,6 +3615,106 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 		}
 	});
 
+	// The re-validation that closes the window between the write step's own
+	// check and the write was gated on `plan.file` — a flag a Keychain-backed
+	// active dir, which is the ordinary macOS shape, never sets. Measured with
+	// that gate in place: `ok:true`, the target's login replacing the item in
+	// place, and `uuid-b` written into a dir that had become world-writable
+	// while the swap re-read the source.
+	it("re-validates a keychain-only active dir before the write", async () => {
+		const f = fixture();
+		rmSync(join(f.activeDir, ".credentials.json"));
+		rmSync(join(f.activeDir, ".claude.json"));
+		const activeService = keychainServicesForConfigDir(
+			f.activeDir,
+		)[0] as string;
+		const account = claudeKeychainAccounts()[0] as string;
+		const activeSecret = JSON.stringify({
+			claudeAiOauth: oauth("t-a-refreshed", 5_000),
+			mcpOAuth: { "active-server": { token: "m-active" } },
+		});
+		const keychain = fakeKeychain([
+			{ service: activeService, account, secret: activeSecret },
+		]);
+		let targetReads = 0;
+		const deps: ClaudeSwapDeps = {
+			...f.deps,
+			darwin: true,
+			exec: keychain.exec,
+			fs: {
+				readFile: async (path: string, encoding: "utf-8") => {
+					const { readFile } = await import("node:fs/promises");
+					// The re-read of the source, which is the first I/O after the
+					// write step judged the dir.
+					if (
+						path === join(f.profileB, ".credentials.json") &&
+						++targetReads === 2
+					) {
+						chmodSync(f.activeDir, 0o777);
+					}
+					return readFile(path, encoding);
+				},
+			},
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps,
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-active-dir" });
+		// The item still holds exactly what it held — no Keychain write ran.
+		expect(
+			keychain.items.find((item) => item.service === activeService)?.secret,
+		).toBe(activeSecret);
+		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
+		// And the identity write, which lands in this same dir whatever the
+		// plan says, never created a `.claude.json` in it.
+		expect(readdirSync(f.activeDir)).toEqual([]);
+	});
+
+	// The same moment for a dir whose login lives in a file, which is what the
+	// `plan.file` gate did cover: it refused then and refuses now.
+	it("re-validates a file-backed active dir before the write", async () => {
+		const f = fixture();
+		const keychain = fakeKeychain([]);
+		const before = readCredentials(f.activeDir);
+		let targetReads = 0;
+		const deps: ClaudeSwapDeps = {
+			...f.deps,
+			darwin: true,
+			exec: keychain.exec,
+			fs: {
+				readFile: async (path: string, encoding: "utf-8") => {
+					const { readFile } = await import("node:fs/promises");
+					if (
+						path === join(f.profileB, ".credentials.json") &&
+						++targetReads === 2
+					) {
+						chmodSync(f.activeDir, 0o777);
+					}
+					return readFile(path, encoding);
+				},
+			},
+		};
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps,
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "invalid-active-dir" });
+		expect(readCredentials(f.activeDir)).toEqual(before);
+		expect(keychain.items).toEqual([]);
+		expect(readFileSync(join(f.activeDir, ".claude.json"), "utf-8")).toContain(
+			"uuid-a",
+		);
+	});
+
 	it("updates both stores when a file and a Keychain item hold a login", async () => {
 		const f = fixture();
 		const activeService = keychainServicesForConfigDir(

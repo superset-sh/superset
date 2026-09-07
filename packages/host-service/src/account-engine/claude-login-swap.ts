@@ -877,8 +877,23 @@ async function applyToActiveDir(
 	// The dir was judged at the top of this function, and the target re-read,
 	// the active re-read and — on darwin — a Keychain prompt have run since.
 	// Validate the dir the credential and its backups actually land in, in the
-	// moment before they do, as the save-back does. `activeRef` is always a
-	// profile, so this is `activeDir` itself.
+	// moment before they do, as the save-back does.
+	//
+	// Unconditional, and NOT gated on `planned.plan.file`, because that flag
+	// only correlates with a write into this dir — the gate has to be the
+	// write's own condition. Two writes land here and this is the dir for both:
+	// `activeRef` is always a profile, so the credential goes to `activeDir`
+	// itself, and unlike the owner's — whose `.claude.json` can live a
+	// directory away, which is why the save-back's twin of this check is split
+	// in two — the identity write goes to `activeDir/.claude.json`, and it runs
+	// on every path through here. Gating on `plan.file` left the ordinary macOS
+	// shape, a Keychain-backed active dir, with NEITHER write judged: the login
+	// went into the item and the target's identity into a dir that had become
+	// group-writable in the window above. Nothing safe is refused by asking
+	// always — `planStoreWrite` cannot answer `{file:false, keychain:null}` and
+	// the identity write always runs, so every path through this point writes
+	// something. Asked before `applyStoreWrite`, so a refusal still writes
+	// nothing.
 	//
 	// The honest limit: this narrows the window from two store reads and a
 	// Keychain prompt to a few syscalls, and does NOT close the TOCTOU — only
@@ -887,13 +902,8 @@ async function applyToActiveDir(
 	// as this user can substitute the dir, and that process can already read the
 	// credential. It restores the invariant `validateDir` states — re-run
 	// immediately before every write — and nobody should read it as a guarantee.
-	if (planned.plan.file) {
-		const pathInvalid = await validateDir(
-			dirname(activeRead.credentialsPath),
-			ctx,
-		);
-		if (pathInvalid) return failure("invalid-active-dir", pathInvalid);
-	}
+	const pathInvalid = await validateDir(activeDir, ctx);
+	if (pathInvalid) return failure("invalid-active-dir", pathInvalid);
 	// A plan naming two stores can fail on the second with the first already
 	// holding the target: the CLI would then serve whichever it prefers.
 	const written: StoreWritePlan = { file: false, keychain: null };
