@@ -18,6 +18,7 @@ describe("host-service smoke", () => {
 		expect(result).toEqual({
 			status: "ok",
 			version: expect.stringMatching(/^\d+\.\d+\.\d+/),
+			installSource: expect.stringMatching(/^(cli|desktop|dev|unknown)$/),
 			cloudRegistered: false,
 			registrationError: null,
 		});
@@ -28,6 +29,7 @@ describe("host-service smoke", () => {
 		expect(result).toEqual({
 			status: "ok",
 			version: expect.stringMatching(/^\d+\.\d+\.\d+/),
+			installSource: expect.stringMatching(/^(cli|desktop|dev|unknown)$/),
 			cloudRegistered: false,
 			registrationError: null,
 		});
