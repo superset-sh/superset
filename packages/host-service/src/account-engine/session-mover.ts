@@ -15,6 +15,7 @@
  */
 
 import type { UsageQuotaWindow } from "../trpc/router/usage/types.ts";
+import { windowsInScope } from "./decision.ts";
 import { isCorroboratedLimitStop, snapshotShowsLimit } from "./limit-stop.ts";
 import type { AccountAgent } from "./types.ts";
 
@@ -263,7 +264,8 @@ export class SessionMover {
 	 *
 	 * A snapshot is taken only where the plan allows one: the terminal a
 	 * Claude hint names, or a busy Codex row while its account's window is at
-	 * or over 100%. Everything else answers false without reading a screen.
+	 * or over 100% in a window the proactive path scores. Everything else
+	 * answers false without reading a screen.
 	 *
 	 * `modelWindows` are the models the user configured, per call like
 	 * `windows` because the engine re-reads its settings every tick. Empty —
@@ -274,7 +276,7 @@ export class SessionMover {
 		windows: readonly UsageQuotaWindow[],
 		modelWindows: readonly string[] = [],
 	): Promise<boolean> {
-		if (!this.maySnapshot(row, windows)) return false;
+		if (!this.maySnapshot(row, windows, modelWindows)) return false;
 
 		const screenText = await this.deps.snapshotTerminal(row.terminalId);
 		const snapshotMatch =
@@ -302,15 +304,20 @@ export class SessionMover {
 	private maySnapshot(
 		row: MovableSession,
 		windows: readonly UsageQuotaWindow[],
+		modelWindows: readonly string[],
 	): boolean {
 		if (row.agent === "claude") {
 			// Only the terminal the hook's hint named.
 			return row.limitHintErrorType === CLAUDE_LIMIT_HINT;
 		}
 		// Codex has no hint of its own: a stall is one, so the row must be busy
-		// and the account already spent before a screen is read at all.
+		// and the account already spent before a screen is read at all. Spent is
+		// scored on the same windows as gate 3, or an out-of-scope window parked
+		// at 100% would read a screen every tick that gate 3 then rejects.
 		if (!this.deps.isAgentBusy(row.terminalId)) return false;
-		return windows.some((window) => window.usedPercent >= 100);
+		return windowsInScope(row.agent, windows, modelWindows).some(
+			(window) => window.usedPercent >= 100,
+		);
 	}
 
 	/**

@@ -541,6 +541,64 @@ describe("corroborateLimitStop", () => {
 		expect(notBusy.snapshotCalls).toEqual([]);
 	});
 
+	// The pre-gate has to score the same windows as gate 3 does, or an
+	// unconfigured model's window parked at 100% reads a busy Codex row's
+	// screen every tick — a Codex hint is deliberately never deduped — for a
+	// verdict gate 3 always rejects.
+	it("never snapshots a busy Codex row for an unconfigured model's spent window", async () => {
+		const modelSpent: UsageQuotaWindow[] = [
+			{ id: "primary", label: "5-hour", usedPercent: 20, resetsAt: null },
+			{
+				id: "gpt-5-pro",
+				label: "Weekly (GPT-5 Pro)",
+				usedPercent: 100,
+				resetsAt: null,
+			},
+		];
+		const limitScreen = () => Promise.resolve("You've hit your usage limit.");
+
+		const unconfiguredSnapshots: string[] = [];
+		const unconfigured = harness({
+			isAgentBusy: () => true,
+			snapshotTerminal: (terminalId) => {
+				unconfiguredSnapshots.push(terminalId);
+				return limitScreen();
+			},
+		});
+		expect(
+			await unconfigured.mover.corroborateLimitStop(row(), modelSpent),
+		).toBe(false);
+		expect(unconfiguredSnapshots).toEqual([]);
+
+		const configuredSnapshots: string[] = [];
+		const configured = harness({
+			isAgentBusy: () => true,
+			snapshotTerminal: (terminalId) => {
+				configuredSnapshots.push(terminalId);
+				return limitScreen();
+			},
+		});
+		expect(
+			await configured.mover.corroborateLimitStop(row(), modelSpent, [
+				"GPT-5 Pro",
+			]),
+		).toBe(true);
+		expect(configuredSnapshots).toEqual(["t1"]);
+
+		const accountWideSnapshots: string[] = [];
+		const accountWide = harness({
+			isAgentBusy: () => true,
+			snapshotTerminal: (terminalId) => {
+				accountWideSnapshots.push(terminalId);
+				return limitScreen();
+			},
+		});
+		expect(
+			await accountWide.mover.corroborateLimitStop(row(), CODEX_SPENT),
+		).toBe(true);
+		expect(accountWideSnapshots).toEqual(["t1"]);
+	});
+
 	it("logs no screen text for an unmatched snapshot with the debug flag off", async () => {
 		const secret = "sk-ant-not-a-limit-message";
 		const h = harness({
