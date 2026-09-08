@@ -353,6 +353,25 @@ function namesAccount(keys: Record<string, unknown>): boolean {
 }
 
 /**
+ * Whether two identity snapshots of the same file name the same account — by
+ * `accountUuid` when both carry one and by email otherwise, the same test
+ * `applyToActiveDir` applies to its target re-read. Two snapshots that name
+ * nobody are the same nobody: nothing moved under the swap. One that names an
+ * account where the other named none did move, and counts as a change.
+ */
+function namesSameAccount(
+	before: Record<string, unknown>,
+	after: Record<string, unknown>,
+): boolean {
+	const left = extractIdentity(before);
+	const right = extractIdentity(after);
+	if (!left || !right) return !left && !right;
+	return left.accountUuid && right.accountUuid
+		? left.accountUuid === right.accountUuid
+		: left.emailAddress === right.emailAddress;
+}
+
+/**
  * The identity `.claude.json` answers with, and whether the file refused the
  * read outright. One read, two answers: `readIdentity` below folds them into
  * the single `null` all but one of its callers want, and the verify step keeps
@@ -1038,9 +1057,17 @@ async function applyToActiveDir(
 		read: ClaudeLoginRead,
 		identityRead: ClaudeSwapIdentity | null,
 	): { login: boolean; identity: boolean } => ({
+		// `stableStringify`, not `JSON.stringify`, for the reason the credential
+		// half already hashes that way: the nested `oauthAccount` object is
+		// written by whoever rewrote `.claude.json` last, and its key order is
+		// theirs. A reorder that changes no value read as a disagreement here,
+		// and the retry below does not fire for a half that answered — so the
+		// swap rolled back a landing it had performed correctly and restored the
+		// PREVIOUS account. Values are still compared, at every depth, so a third
+		// account's `/login` in this window is caught exactly as before.
 		identity:
-			JSON.stringify(identityRead?.keys ?? null) ===
-			JSON.stringify(target.identity.keys),
+			stableStringify(identityRead?.keys ?? null) ===
+			stableStringify(target.identity.keys),
 		login:
 			hashOauth(oauthOf(read)) === hash ||
 			// A session running against the active dir can refresh the login the
@@ -1396,7 +1423,8 @@ export async function swapClaudeLogin(input: {
 		}
 		const current = oauthOf(activeNow) ?? previous;
 		// A login that moved may be a different account's, not just a newer token.
-		if (hashOauth(current) !== hashOauth(previous)) {
+		const loginMoved = hashOauth(current) !== hashOauth(previous);
+		if (loginMoved) {
 			const movedCheck = await activeIdentityMismatch(
 				input.activeDir,
 				ownerBinding,
@@ -1497,6 +1525,43 @@ export async function swapClaudeLogin(input: {
 					"invalid-owner",
 					`${fileStoreName(ownerNow, ownerBinding, ctx)} exists but could not be read; refusing to save back into ${storeDir(ownerBinding, ctx)}'s other half, which may hold the newer login`,
 				);
+			}
+			// The pair this is about to write, asked whether it is a pair at all.
+			// `current` was re-read a few lines up; `activeIdentity` is the
+			// pre-flight snapshot the identity write below copies — so a `/login`
+			// landing between the two hands the owner a stranger's credential
+			// under the owner's own name, and reports `ok`. `activeIdentityMismatch`
+			// above cannot catch it: with no `expectedOwnerAccountId` it returns
+			// null without reading anything, which is every first swap and every
+			// swap after a lost `runtime.json`. This asks the dir's two reads about
+			// each other instead of about the caller, so it needs no expectation —
+			// the same self-consistency `applyToActiveDir` gets from `sameAccount`.
+			// Only when the login moved: an unmoved credential is the one that was
+			// read beside `activeIdentity` in the first place, so the pair is whole
+			// by construction and no second read is spent.
+			//
+			// Inside the regress block with the other write guards and never above
+			// it — a save-back the regress check skips writes nothing to this dir,
+			// and refusing a swap over a pair nobody was going to write is the
+			// refusal the user cannot act on. Scoped to the write, it cannot.
+			if (loginMoved) {
+				const activeStatePath = join(input.activeDir, ".claude.json");
+				const activeIdentityNow = await readIdentityKeys(activeStatePath, ctx);
+				// Unreadable fails closed for the reason the pre-flight read of this
+				// same file does: an identity nothing can name cannot confirm whose
+				// login is being saved.
+				if (activeIdentityNow === null) {
+					return failure(
+						"owner-unknown",
+						`${activeStatePath} exists but could not be read while the swap saved its login back; refusing to save back a login nothing could name`,
+					);
+				}
+				if (!namesSameAccount(activeIdentity, activeIdentityNow)) {
+					return failure(
+						"owner-unknown",
+						`${input.activeDir} was signed in as account ${extractIdentity(activeIdentityNow)?.accountUuid ?? extractIdentity(activeIdentityNow)?.emailAddress ?? "none it names"} while the swap read its login; refusing to save that login back to ${storeDir(ownerBinding, ctx)} under another account's identity`,
+					);
+				}
 			}
 			const planned = await planStoreWrite(ownerBinding, ownerNow, ctx);
 			if (!planned.ok) return planned.result;

@@ -114,6 +114,55 @@ function identityStolenAtVerify(activeDir: string): ClaudeSwapDeps["fs"] {
 	};
 }
 
+/** The verify step's read of the active identity finds the same account with
+ * its nested `oauthAccount` keys written in a different order — a rewrite by
+ * the live CLI that changed no value. */
+function identityReorderedAtVerify(activeDir: string): ClaudeSwapDeps["fs"] {
+	const state = join(activeDir, ".claude.json");
+	return {
+		readFile: async (path: string, encoding: "utf-8") => {
+			const { readFile } = await import("node:fs/promises");
+			if (path === state && namesB(state)) {
+				writeFileSync(
+					state,
+					JSON.stringify({
+						...JSON.parse(readFileSync(state, "utf-8")),
+						oauthAccount: {
+							emailAddress: "b@example.com",
+							accountUuid: "uuid-b",
+						},
+					}),
+				);
+			}
+			return readFile(path, encoding);
+		},
+	};
+}
+
+/** A `/login` as a third account landing in the active dir between the
+ * save-back's first read of its credential and its second: the login the swap
+ * carries back to the owner is C's, while the identity it would file it under
+ * was read before and is the owner's own. */
+function loginLandsAfterPreflight(activeDir: string): ClaudeSwapDeps["fs"] {
+	const credentials = join(activeDir, ".credentials.json");
+	let reads = 0;
+	return {
+		readFile: async (path: string, encoding: "utf-8") => {
+			if (path === credentials && ++reads === 2) {
+				writeCredentials(activeDir, {
+					claudeAiOauth: oauth("t-c-stranger", 7_000),
+				});
+				writeFileSync(
+					join(activeDir, ".claude.json"),
+					JSON.stringify(identity("c")),
+				);
+			}
+			const { readFile } = await import("node:fs/promises");
+			return readFile(path, encoding);
+		},
+	};
+}
+
 /** A `readFile` that denies exactly one path, and only once `denied()` turns
  * true: a store that answered while the target was loaded and stopped
  * answering before the swap re-read it. */
@@ -706,6 +755,74 @@ describe("swapClaudeLogin on a file-backed store", () => {
 		]);
 	});
 
+	// The save-back read the credential twice and the identity once, so a
+	// `/login` between them paired a stranger's token with the owner's name.
+	// With no `expectedOwnerAccountId` — every first swap, and every swap after
+	// a lost `runtime.json` — nothing asked the question at all. Measured before
+	// this: the owner store came back holding `t-c-stranger` under `uuid-a`,
+	// reported `ok`.
+	it("refuses a save-back whose login moved to another account", async () => {
+		const f = fixture();
+		const before = readFileSync(join(f.profileA, ".credentials.json"), "utf-8");
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, fs: loginLandsAfterPreflight(f.activeDir) },
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "owner-unknown" });
+		// The stranger's login is not in the owner's store, and neither is a
+		// backup of the one it would have replaced.
+		expect(readFileSync(join(f.profileA, ".credentials.json"), "utf-8")).toBe(
+			before,
+		);
+		expect(readdirSync(f.profileA).sort()).toEqual([
+			".claude.json",
+			".credentials.json",
+		]);
+		expect(
+			JSON.parse(readFileSync(join(f.profileA, ".claude.json"), "utf-8"))
+				.oauthAccount,
+		).toEqual(identity("a").oauthAccount);
+	});
+
+	// The guard above belongs to the WRITE, and this is what pins it there: an
+	// owner store already holding the newer login is one the save-back skips
+	// entirely, so the same moved login must not turn a swap that writes nothing
+	// into a refusal. Move the check above `wouldRegress` and this goes red —
+	// which is the rounds 21-23 failure mode, a refusal over a dir nothing was
+	// going to touch.
+	it("swaps when the regress check skips a save-back whose login moved", async () => {
+		const f = fixture();
+		writeCredentials(f.profileA, {
+			claudeAiOauth: oauth("t-a-newest", 9_000),
+			mcpOAuth: { "a-server": { token: "m-a" } },
+		});
+		const before = readFileSync(join(f.profileA, ".credentials.json"), "utf-8");
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, fs: loginLandsAfterPreflight(f.activeDir) },
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-b", 2_000),
+		);
+		// Nothing landed in the owner's store, backup included.
+		expect(readFileSync(join(f.profileA, ".credentials.json"), "utf-8")).toBe(
+			before,
+		);
+		expect(readdirSync(f.profileA).sort()).toEqual([
+			".claude.json",
+			".credentials.json",
+		]);
+	});
+
 	it("never regresses an owner login that is already newer", async () => {
 		const f = fixture();
 		writeCredentials(f.profileA, {
@@ -1049,6 +1166,36 @@ describe("swapClaudeLogin on a file-backed store", () => {
 
 		expect(result).toMatchObject({ ok: false, code: "verify-failed" });
 		expect(readdirSync(f.activeDir)).not.toContain(".credentials.json");
+	});
+
+	// The identity halves were compared as raw JSON while the credential halves
+	// were hashed key-order-stably, so a live CLI rewriting `.claude.json` with
+	// the same account's keys in a different order read as a third account
+	// landing. The retry does not fire for a half that answered, so control went
+	// straight to the rollback: a swap that had landed correctly was undone and
+	// the PREVIOUS account put back, reported `verify-failed`. The test above
+	// pins the other direction — `identityStolenAtVerify` changes a VALUE, and
+	// still fails verify.
+	it("verifies an identity whose keys only changed order", async () => {
+		const f = fixture();
+
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: { ...f.deps, fs: identityReorderedAtVerify(f.activeDir) },
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		// The swap stands: the target's login and the target's account, not the
+		// previous one restored over them.
+		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
+			oauth("t-b", 2_000),
+		);
+		expect(
+			JSON.parse(readFileSync(join(f.activeDir, ".claude.json"), "utf-8"))
+				.oauthAccount,
+		).toEqual(identity("b").oauthAccount);
 	});
 
 	// The residual cost of restoring the identity first, pinned rather than
