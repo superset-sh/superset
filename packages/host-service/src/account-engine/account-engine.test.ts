@@ -124,6 +124,7 @@ interface HarnessOptions {
 	/** Runs inside the awaited fallback restart — a kill, a relaunch and a
 	 * typed nudge, all of which can outlast the lease (KTD5). */
 	onFallbackRestart?: () => Promise<void> | void;
+	onMoveAtIdle?: () => Promise<void> | void;
 	/** KTD4: what a Codex home's auth.json names right now. */
 	codexIdentity?: (selection: string | null) => string | null;
 	/** Runs inside the awaited Codex identity read, where a slow read can
@@ -234,6 +235,7 @@ function harness(options: HarnessOptions = {}) {
 			moveAtIdle: async (agent, rows) => {
 				calls.push("moveAtIdle");
 				moved.push({ agent, rows });
+				await options.onMoveAtIdle?.();
 				return { movedTerminalIds: [], deferredTerminalIds: [] };
 			},
 			fallbackRestart: async (row) => {
@@ -511,6 +513,47 @@ describe("AccountEngine", () => {
 		});
 		expect(h.engine.status().claude.cooldownUntil).toBe(T0 + 5 * MINUTE);
 		expect(h.engine.status().claude.activeAccountId).toBe("acct-b");
+	});
+
+	it("starts the full cooldown after slow session movement completes", async () => {
+		const h = harness({
+			entries: twoClaudeAccounts(),
+			sessions: [movableSession()],
+			onMoveAtIdle: () => h.advance(2 * MINUTE),
+		});
+		await h.engine.switchManually("claude", "/profiles/b");
+		expect(h.moved).toHaveLength(1);
+		expect(h.engine.status().claude.cooldownUntil).toBe(T0 + 7 * MINUTE);
+	});
+
+	it("retries the completed movement's cooldown write without repeating its event or movement", async () => {
+		const h = harness({
+			entries: twoClaudeAccounts(),
+			sessions: [movableSession()],
+			onMoveAtIdle: () => {
+				h.advance(2 * MINUTE);
+				const write = h.engineState.writeRuntime.bind(h.engineState);
+				let fail = true;
+				h.engineState.writeRuntime = (runtime) => {
+					if (fail) {
+						fail = false;
+						throw new Error("cooldown write failed");
+					}
+					write(runtime);
+				};
+			},
+		});
+		await expect(
+			h.engine.switchManually("claude", "/profiles/b"),
+		).rejects.toThrow("cooldown write failed");
+		expect(h.moved).toHaveLength(1);
+		expect(h.switched).toHaveLength(1);
+		h.advance(MINUTE);
+		await h.engine.handleLimitHints();
+		expect(h.engine.status().claude.cooldownUntil).toBe(T0 + 7 * MINUTE);
+		expect(h.moved).toHaveLength(1);
+		expect(h.switched).toHaveLength(1);
+		expect(h.engine.history()).toHaveLength(1);
 	});
 
 	// AE6.
@@ -2244,6 +2287,7 @@ describe("AccountEngine", () => {
 			dir: "/profiles/b",
 		});
 		expect(h.swapInputs[1]?.expectedOwnerAccountId).toBe("acct-b");
+		expect(h.swapInputs[1]?.expectedTargetAccountId).toBe("acct-a");
 		expect(h.switched).toEqual([]);
 		expect(h.engine.status().claude.activeAccountId).toBe("acct-a");
 		expect(
@@ -2281,13 +2325,16 @@ describe("AccountEngine", () => {
 		expect(thief.engine.status().claude.lockOwner).toBe(true);
 	});
 
-	it("reports split state when the pointer fails and the login cannot go back", async () => {
+	it.each([
+		"write-failed",
+		"target-changed",
+	] as const)("reports split state when rollback refuses with %s", async (code) => {
 		const h = harness({
 			entries: twoClaudeAccounts(),
 			setPointerThrows: true,
 			swapResults: [
 				{ ok: true, identity: swapIdentity("acct-b") },
-				{ ok: false, code: "write-failed", reason: "store is read-only" },
+				{ ok: false, code, reason: "previous login cannot be restored" },
 			],
 		});
 		enable(h.engine);

@@ -917,10 +917,9 @@ async function applyToActiveDir(
 				`${storeDir(target.ref, ctx)}'s account identity could not be read while the swap read its login`,
 			);
 		}
-		const sameAccount =
-			target.identity.accountUuid && freshIdentity.accountUuid
-				? freshIdentity.accountUuid === target.identity.accountUuid
-				: freshIdentity.emailAddress === target.identity.emailAddress;
+		const sameAccount = target.identity.accountUuid
+			? freshIdentity.accountUuid === target.identity.accountUuid
+			: freshIdentity.emailAddress === target.identity.emailAddress;
 		if (!sameAccount) {
 			return failure(
 				"target-changed",

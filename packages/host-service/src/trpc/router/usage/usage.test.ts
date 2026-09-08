@@ -13,8 +13,8 @@ import { join } from "node:path";
 import type { AccountEngine } from "../../../account-engine/account-engine.ts";
 import { createLocalAccountService } from "../../../account-engine/account-service.ts";
 import {
-	quotaEntryKey,
 	type QuotaStore,
+	quotaEntryKey,
 } from "../../../account-engine/quota-store.ts";
 import type { HostDb } from "../../../db/index.ts";
 import type { HostServiceContext } from "../../../types.ts";

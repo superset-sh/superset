@@ -1602,6 +1602,15 @@ export class AccountEngine {
 				input.excludeTerminalId ?? null,
 				launched,
 			);
+			if (!this.ensureOwnership(this.now())) return;
+			state.cooldownUntil = this.now() + input.settings.cooldownSeconds * 1000;
+			// Movement already completed. A failed final write retries only
+			// this timestamp, never the switch event or the session movement.
+			this.pendingSwitchCommit = async () => {
+				this.persistRuntime(runtime, recordedBindings);
+				this.pendingSwitchCommit = null;
+			};
+			await this.pendingSwitchCommit();
 		};
 		if (!(await this.retrySwitchCommit())) return LOCK_LOSER;
 		return { ok: true };
@@ -1991,6 +2000,7 @@ export class AccountEngine {
 			target: storeRef(from.selection),
 			ownerBinding: storeRef(input.target.selection),
 			expectedOwnerAccountId: input.target.accountId,
+			expectedTargetAccountId: from.accountId,
 			ownerManaged: input.target.managed,
 			activeDir,
 		});

@@ -2347,6 +2347,55 @@ describe("swapClaudeLogin on a file-backed store", () => {
 		expect(readCredentials(f.activeDir)).toEqual(before);
 	});
 
+	it("rejects a changed OAuth when the known target UUID disappears despite the same email", async () => {
+		const f = fixture();
+		const before = readCredentials(f.activeDir);
+		let reads = 0;
+		const deps: ClaudeSwapDeps = {
+			...f.deps,
+			fs: {
+				readFile: async (path: string, encoding: "utf-8") => {
+					const { readFile } = await import("node:fs/promises");
+					if (path === join(f.profileB, ".credentials.json") && reads++ === 1) {
+						writeCredentials(f.profileB, {
+							claudeAiOauth: oauth("t-c", 9_000),
+						});
+						writeFileSync(
+							join(f.profileB, ".claude.json"),
+							JSON.stringify({
+								oauthAccount: { emailAddress: "b@example.com" },
+							}),
+						);
+					}
+					return readFile(path, encoding);
+				},
+			},
+		};
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps,
+		});
+		expect(result).toMatchObject({ ok: false, code: "target-changed" });
+		expect(readCredentials(f.activeDir)).toEqual(before);
+	});
+
+	it("retains support for an unchanged email-only legacy target", async () => {
+		const f = fixture();
+		writeFileSync(
+			join(f.profileB, ".claude.json"),
+			JSON.stringify({ oauthAccount: { emailAddress: "b@example.com" } }),
+		);
+		const result = await swapClaudeLogin({
+			target: asProfile(f.profileB),
+			ownerBinding: asProfile(f.profileA),
+			activeDir: f.activeDir,
+			deps: f.deps,
+		});
+		expect(result).toMatchObject({ ok: true });
+	});
+
 	// Accounts the CLI recorded without an accountUuid still have to be told
 	// apart: the uuid pair is the preferred comparison, the email is the one
 	// that is there.
