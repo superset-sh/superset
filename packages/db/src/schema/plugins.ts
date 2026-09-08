@@ -133,3 +133,37 @@ export const pluginMarketplaces = pgTable(
 
 export type InsertPluginMarketplace = typeof pluginMarketplaces.$inferInsert;
 export type SelectPluginMarketplace = typeof pluginMarketplaces.$inferSelect;
+
+export const pluginOauthClients = pgTable(
+	"plugin_oauth_clients",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+
+		issuer: text().notNull(),
+		redirectUri: text("redirect_uri").notNull(),
+
+		clientId: text("client_id").notNull(),
+		clientSecret: text("client_secret"),
+		clientSecretExpiresAt: timestamp("client_secret_expires_at"),
+
+		registrationAccessToken: text("registration_access_token"),
+		registrationClientUri: text("registration_client_uri"),
+
+		tokenEndpointAuthMethod: text("token_endpoint_auth_method"),
+
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at")
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		uniqueIndex("plugin_oauth_clients_issuer_redirect_unique").on(
+			table.issuer,
+			table.redirectUri,
+		),
+	],
+);
+
+export type InsertPluginOauthClient = typeof pluginOauthClients.$inferInsert;
+export type SelectPluginOauthClient = typeof pluginOauthClients.$inferSelect;

@@ -202,6 +202,62 @@ export const FIRST_PARTY_MANIFESTS = {
 			}
 		]
 	} as const,
+	"notion": {
+		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+		"name": "notion",
+		"version": "1.0.0",
+		"description": "Search, read, and write your Notion workspace: pages, databases, and comments.",
+		"author": {
+			"name": "Superset",
+			"url": "https://superset.sh"
+		},
+		"homepage": "https://docs.superset.sh",
+		"repository": "https://github.com/superset-sh/superset",
+		"license": "MIT",
+		"keywords": [
+			"notion",
+			"docs",
+			"notes",
+			"knowledge-base",
+			"wiki"
+		],
+		"extensions": {
+			"superset": {
+				"interface": {
+					"displayName": "Notion",
+					"category": "Productivity",
+					"icon": "notion"
+				},
+				"auth": [
+					{
+						"type": "oauth2",
+						"label": "OAuth 2.0",
+						"provider": "notion",
+						"client": "dynamic",
+						"bind": {
+							"headers": {
+								"Authorization": "Bearer ${config.access_token}"
+							}
+						}
+					}
+				],
+				"mcp": {
+					"type": "streamable-http",
+					"url": "https://mcp.notion.com/mcp"
+				}
+			}
+		},
+		"skills": [
+			{
+				"name": "find-in-notion",
+				"description": "Find what the workspace already says before you answer or write — search Notion, tell the canonical page from the stale copy, and cite what you used. Use when the user asks what's in Notion, refers to a doc, spec, or meeting note, or asks a question the workspace probably already answers."
+			},
+			{
+				"name": "write-to-notion",
+				"description": "Write a page into Notion that someone else can find and trust — pick the right parent, check for the page that already exists, and structure it for a reader who was not in this conversation. Use when the user says to write up, document, save, or capture something in Notion, or to update an existing page."
+			}
+		]
+	} as const,
 } as const;
 
 export type FirstPartyPluginName = keyof typeof FIRST_PARTY_MANIFESTS;

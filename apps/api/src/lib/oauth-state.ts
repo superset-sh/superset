@@ -22,6 +22,7 @@ export const pluginStateSchema = z.object({
 	pluginName: z.string().min(1),
 	authMethod: z.string().min(1).default("oauth2"),
 	inputs: z.record(z.string(), z.string()).default({}),
+	codeVerifier: z.string().optional(),
 	timestamp: z.number(),
 });
 

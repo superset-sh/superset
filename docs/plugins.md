@@ -59,6 +59,25 @@ that must not change under them.
   probe that names the connected account, and `bind`, which says how the
   credential is attached to outbound calls. `${config.access_token}` and `${inputs.<name>}`
   placeholders are resolved server-side by `apps/api/src/lib/plugins/manifest.ts`.
+  `authorization_params` and `token_params` add provider-specific parameters to those two requests
+  (Notion's `owner=user`, Google's `access_type=offline`).
+
+### OAuth with no client to register
+
+`"client": "dynamic"` on an oauth2 method drops `authorization_url`, `token_url`, and
+`requires_env` entirely: the API takes all three from the MCP server at connect time. It reads
+`/.well-known/oauth-protected-resource` for the server the `mcp.url` names, follows that to the
+authorization server's metadata for the endpoints, and then gets a client identity one of two ways:
+
+- the server advertises `client_id_metadata_document_supported`, so the client id is the URL of a
+  document we host at `/api/plugins/<name>/client-metadata` — nothing is registered or stored; or
+- the server offers a `registration_endpoint`, so we register once per authorization server
+  (RFC 7591) and keep the result in `plugin_oauth_clients`, keyed by issuer and redirect URI so
+  every user shares one registration.
+
+Either way the flow is PKCE with a `resource` indicator, and refresh happens before dispatch. This
+is what lets a hosted MCP server be installable without anyone registering an OAuth app first —
+Notion is the first plugin to use it.
 - `mcpServers` — server name → config, the same shape as an `.mcp.json` value. The name lands
   verbatim as a config key in agent CLIs.
 

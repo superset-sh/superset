@@ -1,6 +1,7 @@
 import { auth } from "@superset/auth/server";
 import {
 	authMethod,
+	decryptSecret,
 	exchangeCode,
 	installedPlugin,
 	manifestAuth,
@@ -65,6 +66,12 @@ export async function GET(
 			authSpec,
 			{ inputs: state.inputs },
 			code,
+			{
+				manifest: install.manifest,
+				...(state.codeVerifier
+					? { codeVerifier: await decryptSecret(state.codeVerifier) }
+					: {}),
+			},
 		);
 
 		const identity = await resolveIdentity(

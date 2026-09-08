@@ -1,0 +1,10 @@
+{
+	"name": "@superset-plugins/notion",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"publish": "superset plugins publish notion",
+		"check": "superset plugins validate plugins/notion"
+	}
+}

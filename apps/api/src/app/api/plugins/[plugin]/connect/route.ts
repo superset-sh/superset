@@ -3,6 +3,8 @@ import {
 	AmbiguousPluginError,
 	authMethod,
 	buildAuthorizationUrl,
+	createCodeVerifier,
+	encryptSecret,
 	installedManifest,
 	manifestAuth,
 } from "@superset/trpc/integrations/plugins";
@@ -94,16 +96,23 @@ export async function GET(
 		}
 	}
 
-	const state = createSignedState({
-		userId: session.user.id,
-		pluginName: plugin,
-		authMethod: authSpec.type,
-		inputs,
-	});
+	const codeVerifier = createCodeVerifier(authSpec);
 
 	try {
+		const state = createSignedState({
+			userId: session.user.id,
+			pluginName: plugin,
+			authMethod: authSpec.type,
+			inputs,
+			...(codeVerifier
+				? { codeVerifier: await encryptSecret(codeVerifier) }
+				: {}),
+		});
 		return Response.redirect(
-			buildAuthorizationUrl(plugin, authSpec, { inputs }, state),
+			await buildAuthorizationUrl(plugin, authSpec, { inputs }, state, {
+				manifest,
+				codeVerifier,
+			}),
 		);
 	} catch (error) {
 		return Response.json(

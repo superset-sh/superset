@@ -135,8 +135,11 @@ export async function publishPlugin(
 
 function checkAuth(plugin: ResolvedPlugin): CheckIssue[] {
 	const name = plugin.manifest.name;
-	const methods = supersetExtension(plugin.manifest)?.auth;
+	const extension = supersetExtension(plugin.manifest);
+	const methods = extension?.auth;
 	if (!methods) return [];
+
+	const mcpUrl = extension?.mcp?.url;
 
 	const issues: CheckIssue[] = [];
 	if (!Array.isArray(methods)) {
@@ -153,7 +156,27 @@ function checkAuth(plugin: ResolvedPlugin): CheckIssue[] {
 
 		const inputs = new Set((auth.inputs ?? []).map((input) => input.name));
 
-		if (auth.type === "oauth2") {
+		if (auth.type === "oauth2" && auth.client === "dynamic") {
+			if (!mcpUrl) {
+				issues.push({
+					name,
+					problem:
+						'oauth2 auth with client "dynamic" needs an mcp url to discover its authorization server from',
+				});
+			}
+			for (const [field, value] of Object.entries({
+				authorization_url: auth.authorization_url,
+				token_url: auth.token_url,
+				requires_env: auth.requires_env?.length ? auth.requires_env : undefined,
+			})) {
+				if (value) {
+					issues.push({
+						name,
+						problem: `oauth2 auth with client "dynamic" gets its client and endpoints from the server; drop ${field}`,
+					});
+				}
+			}
+		} else if (auth.type === "oauth2") {
 			if (!auth.authorization_url || !auth.token_url) {
 				issues.push({
 					name,

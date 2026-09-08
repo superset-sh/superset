@@ -138,6 +138,32 @@ export async function upsertConnection(
 	return row;
 }
 
+export async function updateConnectionTokens(
+	connectionId: string,
+	tokens: {
+		accessToken: string;
+		refreshToken: string | null;
+		expiresAt: Date | null;
+		scopes: string[] | null;
+	},
+): Promise<SelectPluginConnection> {
+	const [row] = await db
+		.update(pluginConnections)
+		.set({
+			accessToken: await encryptSecret(tokens.accessToken),
+			...(tokens.refreshToken
+				? { refreshToken: await encryptSecret(tokens.refreshToken) }
+				: {}),
+			tokenExpiresAt: tokens.expiresAt,
+			...(tokens.scopes ? { scopes: tokens.scopes } : {}),
+		})
+		.where(eq(pluginConnections.id, connectionId))
+		.returning();
+
+	if (!row) throw new Error("Failed to persist refreshed connection");
+	return row;
+}
+
 export async function listConnections(
 	userId: string,
 	pluginName?: string,

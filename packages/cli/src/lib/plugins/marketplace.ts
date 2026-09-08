@@ -71,6 +71,10 @@ export interface PluginAuthMethod {
 	requires_env?: string[];
 	identity?: AuthIdentity;
 	bind?: PluginBind;
+	client?: "static" | "dynamic";
+	pkce?: boolean;
+	authorization_params?: Record<string, string>;
+	token_params?: Record<string, string>;
 }
 
 export type PluginAuth = PluginAuthMethod[];

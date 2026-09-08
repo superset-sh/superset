@@ -26,6 +26,16 @@
 			"category": "productivity",
 			"source": "./plugins/linear",
 			"version": "1.4.0"
+		},
+		{
+			"name": "notion",
+			"description": "Search, read, and write your Notion workspace: pages, databases, and comments.",
+			"author": {
+				"name": "Superset"
+			},
+			"category": "productivity",
+			"source": "./plugins/notion",
+			"version": "1.0.0"
 		}
 	],
 	"featured": ["github", "linear"],

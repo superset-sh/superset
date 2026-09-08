@@ -74,6 +74,28 @@ export function GET() {
 				description:
 					"api_key only: which input holds the secret. It becomes ${config.access_token}, so `bind` is identical for both auth types.",
 			},
+			client: {
+				enum: ["static", "dynamic"],
+				default: "static",
+				description:
+					'oauth2 only: where the client identity comes from. "static" reads the client id and secret named in requires_env and uses the declared endpoints. "dynamic" takes both from the MCP server at connect time — its protected-resource and authorization-server metadata name the endpoints, and the client is either a hosted client id metadata document or an RFC 7591 registration, whichever the server advertises. A dynamic method declares no authorization_url, token_url, or requires_env.',
+			},
+			pkce: {
+				type: "boolean",
+				description:
+					'Send a PKCE challenge on the authorize request. Always on for client "dynamic", which has no secret to authenticate with.',
+			},
+			authorization_params: {
+				type: "object",
+				additionalProperties: { type: "string" },
+				description:
+					"Extra query parameters for the authorize request — Notion's `owner=user`, Google's `access_type=offline`.",
+			},
+			token_params: {
+				type: "object",
+				additionalProperties: { type: "string" },
+				description: "Extra form parameters for the token request.",
+			},
 			authorization_url: { type: "string" },
 			token_url: { type: "string" },
 			scopes: { type: "array", items: { type: "string" } },
@@ -115,7 +137,14 @@ export function GET() {
 		},
 		allOf: [
 			{
-				if: { properties: { type: { const: "oauth2" } } },
+				if: {
+					properties: { type: { const: "oauth2" } },
+					required: ["type"],
+					not: {
+						properties: { client: { const: "dynamic" } },
+						required: ["client"],
+					},
+				},
 				// biome-ignore lint/suspicious/noThenProperty: JSON Schema's conditional keyword, not a thenable
 				then: { required: ["authorization_url", "token_url"] },
 			},
