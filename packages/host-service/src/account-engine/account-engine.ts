@@ -1338,6 +1338,16 @@ export class AccountEngine {
 			agent === "claude" ? selections.claudeConfigDir : selections.codexHome;
 		const match = pool.find((item) => item.row.selection === selection);
 		if (match) return match;
+		if (agent === "claude" && selection !== null) {
+			const duplicate = pool.find((item) =>
+				item.entry.duplicateSelections?.includes(selection),
+			);
+			if (duplicate) {
+				// Discovery may retain a fresher sibling after this pointer was
+				// selected. Its quota names the account, not a replacement path.
+				return { ...duplicate, row: { ...duplicate.row, selection } };
+			}
+		}
 		// After any Claude switch the pointer names Superset's own active dir,
 		// which is never a pool row — so a host that lost runtime.json would
 		// find no account here at all. The dir's own identity says which one

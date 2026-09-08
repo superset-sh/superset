@@ -1097,6 +1097,39 @@ describe("AccountEngine: the all-exhausted latch", () => {
 });
 
 describe("AccountEngine: the first tick after a boot", () => {
+	for (const withDefault of [false, true]) {
+		it(`resolves a deduplicated pointer without replacing its selection (default=${withDefault})`, async () => {
+			const representative = entryFor(accountB({ windows: window(20) }));
+			representative.duplicateSelections = ["/profiles/original"];
+			const h = harness({
+				cold: true,
+				noActiveRecord: true,
+				pointer: { claudeConfigDir: "/profiles/original", codexHome: null },
+				entries: [
+					...(withDefault
+						? [entryFor(usageAccount({ selection: null, windows: window(99) }))]
+						: []),
+					representative,
+				],
+				readActiveIdentity: async () => ({
+					accountUuid: "acct-b",
+					credentialHash: "hash-b",
+				}),
+			});
+			try {
+				await h.engine.tick();
+				await h.engine.tick();
+				expect(h.runtime().activeAccountId).toBe("acct-b");
+				expect(h.runtime().activeSelection).toBe("/profiles/original");
+				expect(h.swapped).toEqual([]);
+				expect(h.state.readHistory()).toEqual([]);
+				expect(representative.accounts[0]?.selection).toBe("/profiles/b");
+			} finally {
+				h.cleanup();
+			}
+		});
+	}
+
 	it("resolves the active login once discovery has filled the pool, not off an empty one", async () => {
 		// A cold store — `refreshDue` runs the discovery pass, so nothing is in
 		// the pool until it has — on a host that records no active login yet.
