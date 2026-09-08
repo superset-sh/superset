@@ -1818,6 +1818,9 @@ msgstr "メインのチェックアウトに触れずにエージェントを動
 msgid "An unknown error occurred"
 msgstr "不明なエラーが発生しました"
 
+msgid "An update is ready to install."
+msgstr "アップデートをインストールする準備ができました。"
+
 msgid "Animate the active terminal cursor."
 msgstr "アクティブなターミナルカーソルをアニメーションします。"
 
@@ -2293,6 +2296,9 @@ msgstr "ページ"
 msgid "Back to tasks"
 msgstr "タスクに戻る"
 
+msgid "Back to the leaderboard"
+msgstr "リーダーボードに戻る"
+
 msgid "Background"
 msgstr "背景"
 
@@ -2668,6 +2674,9 @@ msgstr "自分のAPIキーを使えますか?"
 msgid "Can you standardize the tooltips across the app?"
 msgstr "アプリ全体のtooltipを統一できますか?"
 
+msgid "Can't connect right now"
+msgstr "現在接続できません"
+
 msgid "Can't open remote workspace paths in an external editor"
 msgstr "リモートワークスペースのパスは外部エディタで開けません"
 
@@ -2861,6 +2870,9 @@ msgstr "リソースを確認"
 
 msgid "Check the rendered prompt and launch output before saving"
 msgstr "保存前にレンダリングされたプロンプトと起動出力を確認"
+
+msgid "Check your access under Settings > Security on that device."
+msgstr "そのデバイスの「設定」>「セキュリティ」でアクセス権を確認してください。"
 
 msgid "Check your connection and try again"
 msgstr "接続を確認してもう一度お試しください"
@@ -4058,6 +4070,9 @@ msgstr "このページを監視できませんでした"
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "スター状態を確認できませんでした — GitHub CLI (`gh`) がインストール・サインイン済みで、ネットワーク接続があることを確認してください"
 
+msgid "Couldn't connect (error {status}). Please try again."
+msgstr "接続できませんでした（エラー {status}）。もう一度お試しください。"
+
 msgid "Couldn't copy branch name"
 msgstr "ブランチ名をコピーできませんでした"
 
@@ -4121,9 +4136,6 @@ msgstr "返信を投稿できませんでした"
 #. placeholder {1}: first.message
 msgid "Couldn't reach cloud for {0}: {1}"
 msgstr "{0}のクラウドに接続できませんでした: {1}"
-
-msgid "Couldn't reach the relay service. Check this machine's network connection — the other device is probably fine."
-msgstr "リレーサービスに到達できませんでした。このマシンのネットワーク接続を確認してください — 相手のデバイスはおそらく問題ありません。"
 
 msgid "Couldn't read this terminal's context."
 msgstr "このターミナルのコンテキストを読み取れませんでした。"
@@ -5236,7 +5248,7 @@ msgstr "2027年前半"
 msgid "Early 2028"
 msgstr "2028年前半"
 
-#. placeholder {0}: formatDate(new Date(`${awardedOn}T00:00:00Z`), { day: "numeric", month: "short", year: "numeric", timeZone: "UTC", })
+#. placeholder {0}: formatDate( new Date(`${awardedOn}T00:00:00Z`), { day: "numeric", month: "short", year: "numeric", timeZone: "UTC", }, i18n.locale, )
 msgid "Earned {0}"
 msgstr "獲得日: {0}"
 
@@ -6880,9 +6892,6 @@ msgstr "ホストが利用できません"
 msgid "Host unavailable: {hostName}"
 msgstr "ホストが利用できません: {hostName}"
 
-msgid "Host unreachable"
-msgstr "ホストに接続できません"
-
 msgid "Hosted in the cloud"
 msgstr "クラウドでホスト"
 
@@ -8056,6 +8065,9 @@ msgstr "デフォルトにする"
 
 msgid "Make default — launch new terminals and agents on this account."
 msgstr "デフォルトにする — 新しいターミナルとエージェントをこのアカウントで起動します。"
+
+msgid "Make sure the device is awake, online, and running Superset."
+msgstr "デバイスがスリープ状態ではなく、オンラインで Superset が起動していることを確認してください。"
 
 msgid "Make the chip style the TooltipContent default"
 msgstr "チップスタイルをTooltipContentのデフォルトにする"
@@ -10463,6 +10475,9 @@ msgstr "{label}を再生"
 msgid "Play a sound when tasks complete"
 msgstr "タスク完了時にサウンドを再生"
 
+msgid "Please check your internet connection and try again."
+msgstr "インターネット接続を確認して、もう一度お試しください。"
+
 msgid "Please enter a project name"
 msgstr "プロジェクト名を入力してください"
 
@@ -10474,6 +10489,9 @@ msgstr "プロジェクトの場所を選択してください"
 
 msgid "Please select an organization"
 msgstr "組織を選択してください"
+
+msgid "Please try again, or restart Superset on that device."
+msgstr "もう一度試すか、そのデバイスで Superset を再起動してください。"
 
 msgid "Please try signing in again from the desktop app."
 msgstr "デスクトップアプリからもう一度サインインしてください。"
@@ -13265,6 +13283,9 @@ msgstr "{agentLabel}を起動中"
 msgid "Starting cloud workspace"
 msgstr "クラウドワークスペースを開始中"
 
+msgid "Starting up. This should only take a moment."
+msgstr "起動中です。まもなく準備が整います。"
+
 msgid "Starting workspace"
 msgstr "ワークスペースを開始中"
 
@@ -13919,12 +13940,6 @@ msgstr "Textarea"
 msgid "Thanks for reaching out"
 msgstr "お問い合わせありがとうございます"
 
-msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
-msgstr "そのデバイスはオンラインですが、接続を確立できませんでした — 通常はデバイス自体ではなくリレーのルーティングが原因です。再試行し、解消しない場合はそのデバイスでSupersetを再起動してください。"
-
-msgid "That device isn't connected to the relay. Check it's awake, online, and running Superset — it reconnects on its own once it is."
-msgstr "そのデバイスはリレーに接続されていません。スリープしていないか、オンラインか、Supersetが動作しているかを確認してください — 条件が整えば自動的に再接続します。"
-
 msgid "That handle is taken."
 msgstr "そのハンドルは使用済みです。"
 
@@ -13963,9 +13978,6 @@ msgstr "最良のエージェントは変わります。<0/>ワークフロー�
 
 msgid "The Codex sign-in"
 msgstr "Codexのサインイン"
-
-msgid "The connection failed (relay status {status}). Retry, and if it persists restart Superset on that device."
-msgstr "接続に失敗しました(リレーのステータス{status})。再試行し、解消しない場合はそのデバイスでSupersetを再起動してください。"
 
 msgid "The connection timed out"
 msgstr "接続がタイムアウトしました"
@@ -14085,9 +14097,6 @@ msgstr "リンクが間違っているか、ページが削除されたか、ア
 msgid "The linked agent is missing or disabled. Showing the snapshot."
 msgstr "リンクされたエージェントが見つからないか無効です。スナップショットを表示しています。"
 
-msgid "The local host service is still starting up. It should be ready in a few seconds."
-msgstr "ローカルのホストサービスはまだ起動中です。数秒で準備できます。"
-
 msgid "The local host service is unavailable for {organization} on {device}. Status: {status}. {recovery}"
 msgstr "{device}の{organization}でローカルのホストサービスが利用できません。ステータス: {status}。{recovery}"
 
@@ -14099,9 +14108,6 @@ msgstr "ローカルのホストサービスが実行されていないため、
 
 msgid "The local host service just came up. Reconnecting to it now."
 msgstr "ローカルのホストサービスが起動しました。今すぐ再接続します。"
-
-msgid "The local host service stopped answering. Retry first; if that doesn't take, restart it from the Superset tray menu > Host Service > Restart."
-msgstr "ローカルのホストサービスが応答しなくなりました。まず再試行し、解消しない場合はSupersetのトレイメニュー > ホストサービス > 再起動から再起動してください。"
 
 msgid "The majority of merged agent PRs need review only, with zero human edits."
 msgstr "マージされたエージェントのPRの過半数が、レビューのみで済み、人間の編集がゼロである。"
@@ -14141,9 +14147,6 @@ msgstr "Supersetを作っている人たち。"
 
 msgid "The recovery period has ended. Contact support@superset.sh."
 msgstr "復元期間は終了しました。support@superset.shまでご連絡ください。"
-
-msgid "The relay couldn't reach that device right now. This is usually temporary — retrying in a moment normally works."
-msgstr "リレーは現在そのデバイスに到達できませんでした。通常は一時的なもので、少し待って再試行すれば解消します。"
 
 msgid "The remote branch has diverged. Pull before continuing."
 msgstr "リモートブランチが分岐しています。続ける前にpullしてください。"
@@ -14395,6 +14398,9 @@ msgstr "このプラグインにアカウントは不要です — スキルは�
 msgid "This port is still in use"
 msgstr "このポートはまだ使用中です"
 
+msgid "This profile is busy right now"
+msgstr "このプロフィールは現在混み合っています"
+
 msgid "This project is no longer available on your devices."
 msgstr "このプロジェクトはお使いのデバイスでは利用できなくなりました。"
 
@@ -14506,9 +14512,6 @@ msgstr "セッションとその基盤プロセスを終了します。"
 
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "ステージ済みの変更をすべてステージ解除して元に戻します。ステージ済みの新規ファイルは削除されます。元に戻せません。"
-
-msgid "This workspace lives on a device Superset can't reach right now. Terminals, files, and agents stay put — they come back as soon as the connection does."
-msgstr "このワークスペースは、Supersetが現在接続できないデバイス上にあります。ターミナル、ファイル、エージェントはそのまま残り、接続が回復し次第戻ります。"
 
 msgid "This workspace may have been removed, or you no longer have access to it."
 msgstr "このワークスペースは削除されたか、アクセス権がなくなった可能性があります。"
@@ -14648,6 +14651,9 @@ msgstr "このアカウントで公開しているマシンが多すぎます。
 msgid "Too many messages. Please try again later."
 msgstr "メッセージが多すぎます。しばらくしてからお試しください。"
 
+msgid "Too many people are looking at once. Try again shortly."
+msgstr "同時に閲覧している人が多すぎます。しばらくしてからもう一度お試しください。"
+
 msgid "Too many prompt submissions. Try again later."
 msgstr "プロンプトの送信が多すぎます。しばらくしてからお試しください。"
 
@@ -14764,6 +14770,9 @@ msgstr "別の検索語や別のデバイスを試してください。"
 
 msgid "Try again"
 msgstr "再試行"
+
+msgid "Try again, or restart the host service from the Superset tray menu."
+msgstr "もう一度試すか、Superset のトレイメニューからホストサービスを再起動してください。"
 
 msgid "Try again. If the problem continues, reload Superset."
 msgstr "もう一度お試しください。問題が続く場合はSupersetを再読み込みしてください。"
@@ -15276,6 +15285,9 @@ msgstr "バージョン{0}"
 msgid "Version {version}"
 msgstr "バージョン{version}"
 
+msgid "Version {version} installs the next time you restart."
+msgstr "バージョン{version}は次回の再起動時にインストールされます。"
+
 msgid "Version {version} is the latest version."
 msgstr "バージョン{version}が最新です。"
 
@@ -15427,6 +15439,9 @@ msgstr "お客様の支払い方法に請求できませんでした。このプ
 msgid "We couldn't detect a package manager or environment config."
 msgstr "パッケージマネージャーや環境設定を検出できませんでした。"
 
+msgid "We couldn't reach the device. Please try again in a moment."
+msgstr "デバイスに接続できませんでした。少し待ってからもう一度お試しください。"
+
 msgid "We do not forecast full self-driving in 2026 or 2027. The honest unknowns: whether agent review holds up against adversarial complexity, whether specification can replace code reading as the trust anchor at scale, and whether compute economics keep the overnight shift cheaper than the humans it augments. F5 is a rubric entry so we recognize it when we see it, not a promise."
 msgstr "2026年や2027年に完全自動運転が実現するとは予測していません。正直なところ未知数なのは、エージェントによるレビューが敵対的な複雑さに耐えられるか、仕様が大規模な場面でコードを読むことに代わる信頼の拠り所になれるか、そして計算コストの経済性が夜間シフトを人間より安く保てるかです。F5はルーブリック上の項目であり、実現したときにそれと分かるようにしてあるだけで、約束ではありません。"
 
@@ -15438,6 +15453,9 @@ msgstr "{submittedEmail}にダウンロードリンクを送信しました。"
 
 msgid "We'll be in touch shortly."
 msgstr "折り返しご連絡します。"
+
+msgid "We'll bring you back as soon as we reconnect."
+msgstr "再接続でき次第、元の画面に戻ります。"
 
 msgid "We'll get back to you shortly."
 msgstr "折り返しご連絡します。"
@@ -15890,9 +15908,6 @@ msgstr "この操作は元に戻せません。ターミナルペインに「Pro
 
 msgid "You don't have access to this host"
 msgstr "このホストへのアクセス権がありません"
-
-msgid "You don't have access to this host. If it's your own device, turn on relay access there under Settings > Security."
-msgstr "このホストへのアクセス権がありません。自分のデバイスであれば、そのデバイスの設定 > セキュリティでリレーアクセスを有効にしてください。"
 
 msgid "You don't have access to this terminal."
 msgstr "このターミナルへのアクセス権がありません。"

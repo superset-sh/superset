@@ -21,7 +21,7 @@ interface TierObjectivesProps {
 }
 
 export function TierObjectives({ tier, axes }: TierObjectivesProps) {
-	const { t } = useLingui();
+	const { t, i18n } = useLingui();
 	const unranked = tier <= 0;
 	const gaps = unranked ? [rankingGap(axes)] : scoredGaps(axes, tier as Tier);
 	const atTop = tier >= 4;
@@ -32,6 +32,8 @@ export function TierObjectives({ tier, axes }: TierObjectivesProps) {
 
 	const laggingLabels = formatList(
 		laggingGaps(gaps, 2).map((gap) => t(AXIS_LABELS[gap.axis]).toLowerCase()),
+		undefined,
+		i18n.locale,
 	);
 
 	return (

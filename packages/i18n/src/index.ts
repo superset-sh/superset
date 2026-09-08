@@ -85,12 +85,16 @@ export function inferLocaleWithSource(): {
 	return { locale: DEFAULT_LOCALE, source: "system" };
 }
 
+/** Returns a request's catalog without changing the active global locale. */
+export async function getLocaleMessages(locale: SupportedLocale) {
+	const load = CATALOGS[locale];
+	return load ? (await load()).messages : enMessages;
+}
+
 /** Loads a catalog without activating it. Resolves immediately if cached. */
 export async function loadLocale(locale: SupportedLocale): Promise<void> {
 	if (loaded.has(locale)) return;
-	const load = CATALOGS[locale];
-	if (!load) return;
-	const { messages } = await load();
+	const messages = await getLocaleMessages(locale);
 	i18n.load(locale, messages);
 	loaded.add(locale);
 }

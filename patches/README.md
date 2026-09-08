@@ -162,14 +162,30 @@ silently do nothing. Clearing to `MACH_PORT_NULL` does not cost the user their
 own crash logs — macOS still writes its usual report to
 `~/Library/Logs/DiagnosticReports`.
 
-The boundary is process ancestry, not a tag or heuristic: only processes
-launched *into a pty* are detached. Electron's own main, renderer, GPU and
-utility processes, and the node children the app spawns with
-`child_process.spawn` (host-service, pty daemon — the renderer/node OOM family
-this was measured against), are not spawned through node-pty and keep reporting
-exactly as before. The known, accepted gap is that a Superset binary a user runs
-*themselves* in a terminal (e.g. the bundled `superset` CLI) is on the detached
-side.
+The boundary is process ancestry, not a tag or heuristic. Two launch points
+detach a subtree, and both go through this helper:
+
+- **pty children.** Everything launched into a terminal.
+- **host-service and everything under it.** `host-service-coordinator.ts`
+  launches host-service through the same `spawn-helper`
+  (`spawn-helper "" <electron> host-service.js`), so its login-shell env probe,
+  git and the hooks git runs, `gh`, the agent CLIs it runs for workspace naming
+  and chat, and the pty daemon it supervises all start without the port. Measured
+  2026-09-07, two weeks after the pty patch shipped (1.24.2): about half of the
+  minidumps from patched releases were still foreign, and the host-service tree
+  was the one remaining path our code reaches. host-service's own crashes keep
+  reaching Sentry through the coordinator's exit handler (`host-service crashed
+  (signal …)`, with the output tail), which already carried ~6x more events than
+  its minidumps did. The pty daemon's native crashes are no longer captured by
+  anything.
+
+Electron's own main, renderer, GPU and utility processes, and the terminal-host
+daemon (its only children are the pty subprocesses, which go through node-pty),
+keep reporting exactly as before. Two paths stay leaky and are not ours to fix
+here: Squirrel.Mac unzips updates with an in-process `ditto`, and a detached
+daemon started by a pre-1.24.2 install keeps its old handler until the machine
+reboots. A Superset binary a user runs *themselves* in a terminal (e.g. the
+bundled `superset` CLI) is on the detached side.
 
 `spawn-helper` is compiled from this source by the node-gyp rebuild that
 `bun run install:deps` and electron-builder's `npmRebuild` perform, and
@@ -193,5 +209,6 @@ bun test apps/desktop/src/pty-crash-ports-patch.test.ts
 
 **Removing:** upstream could do this properly for every embedder by setting the
 ports on the spawn attributes it already builds in `pty_posix_spawn`
-(`posix_spawnattr_setexceptionports_np`). If node-pty ships that, drop the patch
-and the `patchedDependencies` entry.
+(`posix_spawnattr_setexceptionports_np`). If node-pty ships that, the pty side
+no longer needs the patch, but `host-service-coordinator.ts` still needs a
+port-clearing exec trampoline; keep the patched helper (or ship our own) for it.

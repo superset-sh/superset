@@ -1818,6 +1818,9 @@ msgstr "Izolovaný git worktree, kde agent běží, aniž by sáhl na váš hlav
 msgid "An unknown error occurred"
 msgstr "Došlo k neznámé chybě"
 
+msgid "An update is ready to install."
+msgstr "Aktualizace je připravena k instalaci."
+
 msgid "Animate the active terminal cursor."
 msgstr "Animovat kurzor v aktivním terminálu."
 
@@ -2293,6 +2296,9 @@ msgstr "Zpět na stránky"
 msgid "Back to tasks"
 msgstr "Zpět na úkoly"
 
+msgid "Back to the leaderboard"
+msgstr "Zpět na žebříček"
+
 msgid "Background"
 msgstr "Pozadí"
 
@@ -2668,6 +2674,9 @@ msgstr "Můžu použít vlastní API klíče?"
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Můžeš sjednotit tooltipy napříč aplikací?"
 
+msgid "Can't connect right now"
+msgstr "Teď se nelze připojit"
+
 msgid "Can't open remote workspace paths in an external editor"
 msgstr "Cesty vzdáleného pracovního prostoru nejde otevřít v externím editoru"
 
@@ -2861,6 +2870,9 @@ msgstr "Zkontrolovat prostředky"
 
 msgid "Check the rendered prompt and launch output before saving"
 msgstr "Před uložením zkontrolujte vykreslený prompt a výstup spuštění"
+
+msgid "Check your access under Settings > Security on that device."
+msgstr "Zkontrolujte svůj přístup v Nastavení > Zabezpečení na daném zařízení."
 
 msgid "Check your connection and try again"
 msgstr "Zkontrolujte připojení a zkuste to znovu"
@@ -4058,6 +4070,9 @@ msgstr "Tuto stránku se nepodařilo sledovat"
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Nepodařilo se ověřit stav hvězdy — zkontrolujte, že je nainstalované GitHub CLI (`gh`), že jste přihlášeni a že máte připojení k síti"
 
+msgid "Couldn't connect (error {status}). Please try again."
+msgstr "Připojení se nezdařilo (chyba {status}). Zkuste to znovu."
+
 msgid "Couldn't copy branch name"
 msgstr "Název větve se nepodařilo zkopírovat"
 
@@ -4121,9 +4136,6 @@ msgstr "Nepodařilo se odeslat odpověď"
 #. placeholder {1}: first.message
 msgid "Couldn't reach cloud for {0}: {1}"
 msgstr "Nepodařilo se spojit s cloudem pro {0}: {1}"
-
-msgid "Couldn't reach the relay service. Check this machine's network connection — the other device is probably fine."
-msgstr "Na službu relay se nepodařilo dosáhnout. Zkontrolujte síťové připojení tohoto počítače — druhé zařízení je nejspíš v pořádku."
 
 msgid "Couldn't read this terminal's context."
 msgstr "Kontext tohoto terminálu se nepodařilo načíst."
@@ -5236,7 +5248,7 @@ msgstr "Zač. 2027"
 msgid "Early 2028"
 msgstr "Zač. 2028"
 
-#. placeholder {0}: formatDate(new Date(`${awardedOn}T00:00:00Z`), { day: "numeric", month: "short", year: "numeric", timeZone: "UTC", })
+#. placeholder {0}: formatDate( new Date(`${awardedOn}T00:00:00Z`), { day: "numeric", month: "short", year: "numeric", timeZone: "UTC", }, i18n.locale, )
 msgid "Earned {0}"
 msgstr "Získáno {0}"
 
@@ -6880,9 +6892,6 @@ msgstr "Host není dostupný"
 msgid "Host unavailable: {hostName}"
 msgstr "Host není dostupný: {hostName}"
 
-msgid "Host unreachable"
-msgstr "Host je nedostupný"
-
 msgid "Hosted in the cloud"
 msgstr "Hostováno v cloudu"
 
@@ -8056,6 +8065,9 @@ msgstr "Nastavit jako výchozí"
 
 msgid "Make default — launch new terminals and agents on this account."
 msgstr "Nastavit jako výchozí — nové terminály a agenty spouštět na tomto účtu."
+
+msgid "Make sure the device is awake, online, and running Superset."
+msgstr "Ujistěte se, že je zařízení probuzené, online a běží na něm Superset."
 
 msgid "Make the chip style the TooltipContent default"
 msgstr "Udělat ze stylu čipu výchozí TooltipContent"
@@ -10463,6 +10475,9 @@ msgstr "Přehrát {label}"
 msgid "Play a sound when tasks complete"
 msgstr "Přehrát zvuk po dokončení úkolů"
 
+msgid "Please check your internet connection and try again."
+msgstr "Zkontrolujte připojení k internetu a zkuste to znovu."
+
 msgid "Please enter a project name"
 msgstr "Zadejte prosím název projektu"
 
@@ -10474,6 +10489,9 @@ msgstr "Vyberte prosím umístění projektu"
 
 msgid "Please select an organization"
 msgstr "Vyberte prosím organizaci"
+
+msgid "Please try again, or restart Superset on that device."
+msgstr "Zkuste to znovu nebo na daném zařízení restartujte Superset."
 
 msgid "Please try signing in again from the desktop app."
 msgstr "Zkuste se prosím znovu přihlásit z desktopové aplikace."
@@ -11621,7 +11639,7 @@ msgid "Restarting host services…"
 msgstr "Restartuji služby hosta…"
 
 msgid "Restarting…"
-msgstr "Restartování…"
+msgstr "Restartuje se…"
 
 msgid "Restore"
 msgstr "Obnovit"
@@ -13265,6 +13283,9 @@ msgstr "Spouštím {agentLabel}"
 msgid "Starting cloud workspace"
 msgstr "Spouštím cloudový pracovní prostor"
 
+msgid "Starting up. This should only take a moment."
+msgstr "Spouští se. Mělo by to trvat jen chvilku."
+
 msgid "Starting workspace"
 msgstr "Spouštím pracovní prostor"
 
@@ -13919,12 +13940,6 @@ msgstr "Textové pole"
 msgid "Thanks for reaching out"
 msgstr "Díky, že jste se ozvali"
 
-msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
-msgstr "To zařízení je online, ale spojení se nepodařilo navázat — obvykle jde o směrování relay, ne o zařízení samotné. Zkuste to znovu, a pokud potíže přetrvávají, restartujte na něm Superset."
-
-msgid "That device isn't connected to the relay. Check it's awake, online, and running Superset — it reconnects on its own once it is."
-msgstr "To zařízení není připojené k relay. Ověřte, že je vzhůru, online a běží na něm Superset — jakmile bude, připojí se samo."
-
 msgid "That handle is taken."
 msgstr "Tato přezdívka je obsazená."
 
@@ -13963,9 +13978,6 @@ msgstr "Nejlepší agent se změní.<0/>Vaše workflow ne."
 
 msgid "The Codex sign-in"
 msgstr "Přihlášení do Codexu"
-
-msgid "The connection failed (relay status {status}). Retry, and if it persists restart Superset on that device."
-msgstr "Spojení selhalo (stav relay {status}). Zkuste to znovu, a pokud potíže přetrvávají, restartujte na tom zařízení Superset."
 
 msgid "The connection timed out"
 msgstr "Vypršel časový limit spojení"
@@ -14085,9 +14097,6 @@ msgstr "Odkaz může být špatný, stránka mohla být smazána, nebo k ní nem
 msgid "The linked agent is missing or disabled. Showing the snapshot."
 msgstr "Propojený agent chybí nebo je vypnutý. Zobrazuje se snímek."
 
-msgid "The local host service is still starting up. It should be ready in a few seconds."
-msgstr "Místní host service se pořád spouští. Za pár vteřin by měla být připravená."
-
 msgid "The local host service is unavailable for {organization} on {device}. Status: {status}. {recovery}"
 msgstr "Místní host service není dostupná pro {organization} na {device}. Stav: {status}. {recovery}"
 
@@ -14099,9 +14108,6 @@ msgstr "Místní host service neběží, takže pracovní prostor nemá na tomto
 
 msgid "The local host service just came up. Reconnecting to it now."
 msgstr "Místní host service právě naběhla. Připojuji se k ní."
-
-msgid "The local host service stopped answering. Retry first; if that doesn't take, restart it from the Superset tray menu > Host Service > Restart."
-msgstr "Místní host service přestala odpovídat. Nejdřív to zkuste znovu; pokud to nepomůže, restartujte ji v nabídce Superset v liště > Host Service > Restart."
 
 msgid "The majority of merged agent PRs need review only, with zero human edits."
 msgstr "Většina sloučených PR od agentů potřebuje jen revizi, bez jediné lidské úpravy."
@@ -14141,9 +14147,6 @@ msgstr "Lidé za Supersetem."
 
 msgid "The recovery period has ended. Contact support@superset.sh."
 msgstr "Lhůta pro obnovení skončila. Napište na support@superset.sh."
-
-msgid "The relay couldn't reach that device right now. This is usually temporary — retrying in a moment normally works."
-msgstr "Relay na to zařízení právě teď nedosáhne. Obvykle je to dočasné — za chvíli to zkuste znovu."
 
 msgid "The remote branch has diverged. Pull before continuing."
 msgstr "Vzdálená větev se rozešla. Před pokračováním udělejte pull."
@@ -14395,6 +14398,9 @@ msgstr "Tento plugin nevyžaduje účet — jeho Skills jsou připraveny k použ
 msgid "This port is still in use"
 msgstr "Tento port se stále používá"
 
+msgid "This profile is busy right now"
+msgstr "Tento profil je právě přetížený"
+
 msgid "This project is no longer available on your devices."
 msgstr "Tento projekt už na vašich zařízeních není dostupný."
 
@@ -14506,9 +14512,6 @@ msgstr "Tímto se ukončí relace i její proces."
 
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Tímto zrušíte přípravu a vrátíte všechny připravené změny. Připravené nové soubory budou smazány. Tuto akci nelze vrátit zpět."
-
-msgid "This workspace lives on a device Superset can't reach right now. Terminals, files, and agents stay put — they come back as soon as the connection does."
-msgstr "Tento pracovní prostor je na zařízení, na které Superset právě nedosáhne. Terminály, soubory i agenti zůstávají, kde jsou — vrátí se, jakmile se obnoví spojení."
 
 msgid "This workspace may have been removed, or you no longer have access to it."
 msgstr "Tento pracovní prostor mohl být odstraněn, nebo k němu už nemáte přístup."
@@ -14648,6 +14651,9 @@ msgstr "Pro tento účet zveřejňuje příliš mnoho počítačů."
 msgid "Too many messages. Please try again later."
 msgstr "Příliš mnoho zpráv. Zkuste to prosím později."
 
+msgid "Too many people are looking at once. Try again shortly."
+msgstr "Dívá se na něj příliš mnoho lidí najednou. Zkuste to za chvíli znovu."
+
 msgid "Too many prompt submissions. Try again later."
 msgstr "Příliš mnoho odeslaných promptů. Zkuste to později."
 
@@ -14764,6 +14770,9 @@ msgstr "Zkuste jiný hledaný výraz nebo jiné zařízení."
 
 msgid "Try again"
 msgstr "Zkusit znovu"
+
+msgid "Try again, or restart the host service from the Superset tray menu."
+msgstr "Zkuste to znovu nebo restartujte službu hostitele z nabídky Superset v systémové liště."
 
 msgid "Try again. If the problem continues, reload Superset."
 msgstr "Zkuste to znovu. Pokud potíže přetrvávají, načtěte Superset znovu."
@@ -15276,6 +15285,9 @@ msgstr "Verze {0}"
 msgid "Version {version}"
 msgstr "Verze {version}"
 
+msgid "Version {version} installs the next time you restart."
+msgstr "Verze {version} se nainstaluje při příštím restartu."
+
 msgid "Version {version} is the latest version."
 msgstr "Verze {version} je nejnovější."
 
@@ -15427,6 +15439,9 @@ msgstr "Nepodařilo se strhnout platbu z vašeho způsobu platby. Aktualizujte h
 msgid "We couldn't detect a package manager or environment config."
 msgstr "Nepodařilo se rozpoznat správce balíčků ani konfiguraci prostředí."
 
+msgid "We couldn't reach the device. Please try again in a moment."
+msgstr "K zařízení se nepodařilo připojit. Zkuste to za chvíli znovu."
+
 msgid "We do not forecast full self-driving in 2026 or 2027. The honest unknowns: whether agent review holds up against adversarial complexity, whether specification can replace code reading as the trust anchor at scale, and whether compute economics keep the overnight shift cheaper than the humans it augments. F5 is a rubric entry so we recognize it when we see it, not a promise."
 msgstr "Neslibujeme plnou autonomii v roce 2026 ani 2027. Poctivé neznámé: zda obstojí revize agentem proti nepřátelské složitosti, zda specifikace ve velkém nahradí čtení kódu jako kotvu důvěry a zda ekonomika výpočtů udrží noční směnu levnější než lidi, které doplňuje. F5 je položka v rubrice, abychom ji poznali, až ji uvidíme — ne slib."
 
@@ -15438,6 +15453,9 @@ msgstr "Odkaz ke stažení jsme poslali na {submittedEmail}."
 
 msgid "We'll be in touch shortly."
 msgstr "Brzy se vám ozveme."
+
+msgid "We'll bring you back as soon as we reconnect."
+msgstr "Jakmile se spojení obnoví, vrátíme vás zpět."
 
 msgid "We'll get back to you shortly."
 msgstr "Brzy se vám ozveme."
@@ -15890,9 +15908,6 @@ msgstr "Tuto akci nelze vrátit zpět. Panely terminálu zobrazí „Proces skon
 
 msgid "You don't have access to this host"
 msgstr "K tomuto hostu nemáte přístup"
-
-msgid "You don't have access to this host. If it's your own device, turn on relay access there under Settings > Security."
-msgstr "K tomuto hostu nemáte přístup. Pokud je to vaše zařízení, zapněte na něm přístup přes relay v Nastavení > Zabezpečení."
 
 msgid "You don't have access to this terminal."
 msgstr "K tomuto terminálu nemáte přístup."

@@ -15,4 +15,5 @@ export {
 	fetchStanding,
 	fetchStandings,
 	fetchStats,
+	isRateLimited,
 } from "./fetchLeaderboard";

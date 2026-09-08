@@ -180,7 +180,9 @@ export const gitDiffPatchTask = defineWorkerTask<
 			commitHash,
 			fromHash,
 		});
-		const patch = await buildDiffPatch(git, {
+		const patch = await buildDiffPatch({
+			cwd: worktreePath,
+			env: gitEnv,
 			category,
 			refs,
 			paths,

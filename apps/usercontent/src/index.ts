@@ -457,7 +457,6 @@ app.notFound(() => notFound());
 // Exceptions only; no-op until SENTRY_DSN is set.
 const sentryOptions = (env: UsercontentEnv): Sentry.CloudflareOptions => ({
 	dsn: env.SENTRY_DSN,
-	tracesSampleRate: 0,
 	sendDefaultPii: false,
 	integrations: (defaults) =>
 		defaults.filter((integration) => integration.name !== "Console"),

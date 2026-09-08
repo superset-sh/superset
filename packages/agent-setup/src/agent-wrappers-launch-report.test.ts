@@ -70,6 +70,10 @@ async function runWrapper(
 			PATH: `${path.dirname(scenario.wrapperPath)}:${path.join(scenario.root, "bin")}:${process.env.PATH ?? ""}`,
 			SUPERSET_TERMINAL_ID: "terminal-test",
 			SUPERSET_HOME_DIR: scenario.supersetHome,
+			// This test process may itself run under an agent wrapper (a Claude
+			// session running `bun test`), whose identity would make every
+			// launch look nested.
+			SUPERSET_AGENT_ID: "",
 			...envOverrides,
 		},
 		stdout: "ignore",
@@ -121,6 +125,21 @@ describe("wrapper launch report", () => {
 		expect(readNotifyLog(fastExit)).toBe("");
 		expect(readNotifyLog(helpFlag)).toBe("");
 		expect(readNotifyLog(outsideSuperset)).toBe("");
+	}, 15000);
+
+	it("keeps an outer agent's identity and stays silent when launched nested", async () => {
+		// Claude's Bash tool running `codex exec`: the terminal's agent is
+		// still Claude, so the inner wrapper must neither relabel the process
+		// tree nor report a second launch.
+		const nested = setupScenario(
+			`printf '%s' "$SUPERSET_AGENT_ID" > "$SUPERSET_HOME_DIR/identity"; sleep ${(REPORT_DELAY_MS + 1200) / 1000}`,
+		);
+		await runWrapper(nested, ["chat"], { SUPERSET_AGENT_ID: "claude" });
+
+		expect(
+			readFileSync(path.join(nested.supersetHome, "identity"), "utf-8"),
+		).toBe("claude");
+		expect(readNotifyLog(nested)).toBe("");
 	}, 15000);
 
 	it("only injects the launch report for wrappers with an agent identity", () => {

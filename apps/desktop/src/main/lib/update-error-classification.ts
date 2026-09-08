@@ -1,5 +1,6 @@
 const ENVIRONMENT_ERRNO_CODES = [
 	"ENOENT",
+	"ENOTDIR",
 	"EACCES",
 	"EPERM",
 	"EBUSY",
@@ -29,6 +30,20 @@ const UPDATER_DEFECT_PATTERNS = [
 	"no files provided",
 ];
 
+// Replacing a bundle the user cannot write to needs an admin authorization,
+// and Squirrel.Mac reports the prompt being cancelled (-60006) or refused
+// (-60005) as an NSOSStatusErrorDomain error. Foundation localises the prose
+// around it, so match the domain's name and the number, never the words. Any
+// other OSStatus keeps reporting: a signing failure wears the same sentence.
+const AUTHORIZATION_OSSTATUS = /OSStatus\D*-6000[56](?!\d)/;
+
+// A server error from the release-artifact download is the CDN, not the
+// artifact. A 4xx stays reported: an asset that is not there is ours to
+// publish. Only the packaged app counts; a 5xx while fetching the feed
+// (latest-mac.yml) is a different failure and keeps reporting.
+const DOWNLOAD_SERVER_ERROR =
+	/^Cannot download ".*\.(?:zip|dmg|exe|AppImage|deb|rpm)", status 5\d\d(?!\d)/;
+
 // Update failures owned by the user's machine, not by us. A full volume is the
 // common one, and neither staging tool gives us a code to match: `ditto` prints
 // an errno-free line and Squirrel forwards NSError text localised to the user's
@@ -54,7 +69,9 @@ export function isEnvironmentUpdateError(
 	}
 	if (
 		lowerMessage.includes("read-only volume") ||
-		lowerMessage.includes("the request timed out")
+		lowerMessage.includes("the request timed out") ||
+		AUTHORIZATION_OSSTATUS.test(message) ||
+		DOWNLOAD_SERVER_ERROR.test(message)
 	) {
 		return true;
 	}

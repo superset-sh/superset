@@ -63,7 +63,13 @@ function isManagedOrPartialHookTable(lines: string[]): boolean {
 	}
 
 	const commandLine = lines.find((line) => /^\s*command\s*=/.test(line));
-	return !commandLine || commandLine.includes("SUPERSET_AGENT_ID=kimi");
+	// SUPERSET_AGENT_ID=kimi is the pre-v5 command shape; still recognized
+	// so an upgrade replaces those blocks instead of stacking a second one.
+	return (
+		!commandLine ||
+		commandLine.includes("SUPERSET_HOOK_HARNESS=kimi") ||
+		commandLine.includes("SUPERSET_AGENT_ID=kimi")
+	);
 }
 
 const KIMI_TOML_SPEC: ManagedTomlBlockSpec = {

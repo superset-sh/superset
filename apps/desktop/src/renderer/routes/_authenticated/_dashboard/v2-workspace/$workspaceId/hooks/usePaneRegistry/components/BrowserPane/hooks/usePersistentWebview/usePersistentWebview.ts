@@ -64,6 +64,9 @@ export function usePersistentWebview({
 					faviconUrl,
 				});
 			},
+			() => {
+				void ctxRef.current.actions.close();
+			},
 		);
 		setOverlayContainer(browserRuntimeRegistry.getOverlayContainer(paneId));
 

@@ -18,6 +18,7 @@ import { getWorkspacePath } from "../workspaces/utils/worktree";
 import {
 	type ExternalApp,
 	getAppCommand,
+	pathIsMissing,
 	RelativePathWithoutCwdError,
 	resolvePath,
 	spawnAsync,
@@ -79,6 +80,19 @@ async function openPathInApp(
 	filePath: string,
 	app: ExternalApp,
 ): Promise<void> {
+	// Paths reach here from terminal links, diff rows and workspace rows, any
+	// of which can name something an agent has since deleted or a worktree that
+	// has been removed. Whether it is still there is ours to answer, so answer
+	// it before handing the path to another program: otherwise the miss comes
+	// back as an opaque non-zero exit (macOS `open` writes "The file <path>
+	// does not exist"), which we can only report as a 500 (DESKTOP-15).
+	if (await pathIsMissing(filePath)) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "This file no longer exists.",
+		});
+	}
+
 	if (app === "finder") {
 		shell.showItemInFolder(filePath);
 		return;

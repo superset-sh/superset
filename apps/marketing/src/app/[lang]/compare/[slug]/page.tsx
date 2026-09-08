@@ -101,7 +101,7 @@ export async function generateMetadata({
 	const url = localeUrl(lang, `/compare/${slug}`);
 
 	return {
-		title: `${page.title} | ${COMPANY.NAME}`,
+		title: page.title,
 		description: page.description,
 		...(page.keywords.length > 0 && { keywords: page.keywords }),
 		alternates: localizedAlternates(lang, `/compare/${slug}`),

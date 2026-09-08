@@ -21,7 +21,6 @@ export function initSentry(): void {
 		Sentry.init({
 			dsn: env.SENTRY_DSN_DESKTOP,
 			environment: env.NODE_ENV,
-			tracesSampleRate: 0,
 			sendDefaultPii: false,
 			// One machine repeating one failure should not crowd out everyone
 			// else's rare ones, nor spend the org's quota getting there.

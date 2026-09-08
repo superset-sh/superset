@@ -1818,6 +1818,9 @@ msgstr "一个隔离的git worktree，智能体在其中运行，不会动到你
 msgid "An unknown error occurred"
 msgstr "发生未知错误"
 
+msgid "An update is ready to install."
+msgstr "更新已准备好安装。"
+
 msgid "Animate the active terminal cursor."
 msgstr "让当前终端光标闪烁。"
 
@@ -2293,6 +2296,9 @@ msgstr "返回页面"
 msgid "Back to tasks"
 msgstr "返回任务"
 
+msgid "Back to the leaderboard"
+msgstr "返回排行榜"
+
 msgid "Background"
 msgstr "背景"
 
@@ -2668,6 +2674,9 @@ msgstr "我可以用自己的API密钥吗？"
 msgid "Can you standardize the tooltips across the app?"
 msgstr "能把整个应用的tooltip样式统一一下吗？"
 
+msgid "Can't connect right now"
+msgstr "暂时无法连接"
+
 msgid "Can't open remote workspace paths in an external editor"
 msgstr "无法在外部编辑器中打开远程工作区路径"
 
@@ -2861,6 +2870,9 @@ msgstr "查看资源"
 
 msgid "Check the rendered prompt and launch output before saving"
 msgstr "保存前检查渲染后的提示词和启动输出"
+
+msgid "Check your access under Settings > Security on that device."
+msgstr "请在该设备的“设置 > 安全”中检查你的访问权限。"
 
 msgid "Check your connection and try again"
 msgstr "请检查网络连接后重试"
@@ -4058,6 +4070,9 @@ msgstr "无法关注此页面"
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "无法确认加星状态，请检查是否已安装并登录GitHub CLI（`gh`），以及网络是否连通"
 
+msgid "Couldn't connect (error {status}). Please try again."
+msgstr "无法连接（错误 {status}）。请重试。"
+
 msgid "Couldn't copy branch name"
 msgstr "无法复制分支名"
 
@@ -4121,9 +4136,6 @@ msgstr "无法发布回复"
 #. placeholder {1}: first.message
 msgid "Couldn't reach cloud for {0}: {1}"
 msgstr "无法为{0}连接云端：{1}"
-
-msgid "Couldn't reach the relay service. Check this machine's network connection — the other device is probably fine."
-msgstr "无法连接到中继服务。请检查本机的网络连接 — 另一台设备很可能没有问题。"
 
 msgid "Couldn't read this terminal's context."
 msgstr "无法读取该终端的上下文。"
@@ -5236,7 +5248,7 @@ msgstr "2027年初"
 msgid "Early 2028"
 msgstr "2028年初"
 
-#. placeholder {0}: formatDate(new Date(`${awardedOn}T00:00:00Z`), { day: "numeric", month: "short", year: "numeric", timeZone: "UTC", })
+#. placeholder {0}: formatDate( new Date(`${awardedOn}T00:00:00Z`), { day: "numeric", month: "short", year: "numeric", timeZone: "UTC", }, i18n.locale, )
 msgid "Earned {0}"
 msgstr "获得于 {0}"
 
@@ -6880,9 +6892,6 @@ msgstr "主机不可用"
 msgid "Host unavailable: {hostName}"
 msgstr "主机不可用：{hostName}"
 
-msgid "Host unreachable"
-msgstr "主机无法连接"
-
 msgid "Hosted in the cloud"
 msgstr "托管在云端"
 
@@ -8056,6 +8065,9 @@ msgstr "设为默认"
 
 msgid "Make default — launch new terminals and agents on this account."
 msgstr "设为默认——新终端和智能体将使用此账户启动。"
+
+msgid "Make sure the device is awake, online, and running Superset."
+msgstr "请确认设备未休眠、已联网且正在运行 Superset。"
 
 msgid "Make the chip style the TooltipContent default"
 msgstr "把chip样式设为TooltipContent的默认样式"
@@ -10463,6 +10475,9 @@ msgstr "播放{label}"
 msgid "Play a sound when tasks complete"
 msgstr "任务完成时播放声音"
 
+msgid "Please check your internet connection and try again."
+msgstr "请检查网络连接后重试。"
+
 msgid "Please enter a project name"
 msgstr "请输入项目名称"
 
@@ -10474,6 +10489,9 @@ msgstr "请选择项目位置"
 
 msgid "Please select an organization"
 msgstr "请选择一个组织"
+
+msgid "Please try again, or restart Superset on that device."
+msgstr "请重试，或在该设备上重启 Superset。"
 
 msgid "Please try signing in again from the desktop app."
 msgstr "请从桌面应用重新登录。"
@@ -11621,7 +11639,7 @@ msgid "Restarting host services…"
 msgstr "正在重启主机服务…"
 
 msgid "Restarting…"
-msgstr "重启中…"
+msgstr "正在重启…"
 
 msgid "Restore"
 msgstr "恢复"
@@ -13265,6 +13283,9 @@ msgstr "正在启动{agentLabel}"
 msgid "Starting cloud workspace"
 msgstr "正在启动云端工作区"
 
+msgid "Starting up. This should only take a moment."
+msgstr "正在启动，请稍等片刻。"
+
 msgid "Starting workspace"
 msgstr "正在启动工作区"
 
@@ -13919,12 +13940,6 @@ msgstr "多行文本框"
 msgid "Thanks for reaching out"
 msgstr "感谢联系"
 
-msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
-msgstr "该设备在线，但无法建立连接 — 通常是中继路由问题，而非设备本身。请重试；若持续如此，请在该设备上重启Superset。"
-
-msgid "That device isn't connected to the relay. Check it's awake, online, and running Superset — it reconnects on its own once it is."
-msgstr "该设备未连接到中继。请检查它是否已唤醒、联网并正在运行Superset — 一旦就绪它会自行重新连接。"
-
 msgid "That handle is taken."
 msgstr "该用户名已被占用。"
 
@@ -13963,9 +13978,6 @@ msgstr "最好的智能体会变。<0/>你的工作流不该变。"
 
 msgid "The Codex sign-in"
 msgstr "Codex登录"
-
-msgid "The connection failed (relay status {status}). Retry, and if it persists restart Superset on that device."
-msgstr "连接失败（中继状态{status}）。请重试；若持续如此，请在该设备上重启Superset。"
 
 msgid "The connection timed out"
 msgstr "连接已超时"
@@ -14085,9 +14097,6 @@ msgstr "链接可能有误、页面可能已被删除，或者你没有访问权
 msgid "The linked agent is missing or disabled. Showing the snapshot."
 msgstr "关联的智能体已丢失或被禁用。正在显示快照。"
 
-msgid "The local host service is still starting up. It should be ready in a few seconds."
-msgstr "本地主机服务仍在启动中。应该在几秒内就绪。"
-
 msgid "The local host service is unavailable for {organization} on {device}. Status: {status}. {recovery}"
 msgstr "{device}上{organization}的本地主机服务不可用。状态：{status}。{recovery}"
 
@@ -14099,9 +14108,6 @@ msgstr "本地主机服务未运行，因此此设备上没有任何服务能提
 
 msgid "The local host service just came up. Reconnecting to it now."
 msgstr "本地主机服务刚刚启动。正在重新连接。"
-
-msgid "The local host service stopped answering. Retry first; if that doesn't take, restart it from the Superset tray menu > Host Service > Restart."
-msgstr "本地主机服务已停止响应。请先重试；若无效，请从Superset托盘菜单 > 主机服务 > 重启中重启它。"
 
 msgid "The majority of merged agent PRs need review only, with zero human edits."
 msgstr "多数已合并的智能体PR只需审查，无需任何人工修改。"
@@ -14141,9 +14147,6 @@ msgstr "Superset背后的团队。"
 
 msgid "The recovery period has ended. Contact support@superset.sh."
 msgstr "恢复期已结束。请联系support@superset.sh。"
-
-msgid "The relay couldn't reach that device right now. This is usually temporary — retrying in a moment normally works."
-msgstr "中继此刻无法连上该设备。这通常是暂时的 — 稍后重试一般就能成功。"
 
 msgid "The remote branch has diverged. Pull before continuing."
 msgstr "远程分支已分叉。请先拉取再继续。"
@@ -14395,6 +14398,9 @@ msgstr "此插件无需账户 — 它的技能可直接使用。"
 msgid "This port is still in use"
 msgstr "此端口仍在使用中"
 
+msgid "This profile is busy right now"
+msgstr "此个人主页当前繁忙"
+
 msgid "This project is no longer available on your devices."
 msgstr "这个项目在你的设备上已不可用。"
 
@@ -14506,9 +14512,6 @@ msgstr "这将终止该会话及其底层进程。"
 
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "这将取消暂存并还原所有已暂存的更改。已暂存的新文件将被删除。此操作无法撤销。"
-
-msgid "This workspace lives on a device Superset can't reach right now. Terminals, files, and agents stay put — they come back as soon as the connection does."
-msgstr "此工作区位于Superset当前无法连接的设备上。终端、文件和智能体都会保持原样 — 连接一恢复它们就会回来。"
 
 msgid "This workspace may have been removed, or you no longer have access to it."
 msgstr "此工作区可能已被移除，或者你不再拥有它的访问权限。"
@@ -14648,6 +14651,9 @@ msgstr "此账户发布数据的机器过多。"
 msgid "Too many messages. Please try again later."
 msgstr "消息过多。请稍后重试。"
 
+msgid "Too many people are looking at once. Try again shortly."
+msgstr "同时查看的人太多了，请稍后再试。"
+
 msgid "Too many prompt submissions. Try again later."
 msgstr "提示词提交次数过多。请稍后重试。"
 
@@ -14764,6 +14770,9 @@ msgstr "试试其他搜索词或其他设备。"
 
 msgid "Try again"
 msgstr "重试"
+
+msgid "Try again, or restart the host service from the Superset tray menu."
+msgstr "请重试，或从 Superset 托盘菜单重启主机服务。"
 
 msgid "Try again. If the problem continues, reload Superset."
 msgstr "请重试。如果问题持续，请重新加载Superset。"
@@ -15276,6 +15285,9 @@ msgstr "版本{0}"
 msgid "Version {version}"
 msgstr "版本{version}"
 
+msgid "Version {version} installs the next time you restart."
+msgstr "版本{version}将在下次重启时安装。"
+
 msgid "Version {version} is the latest version."
 msgstr "版本{version}已是最新版本。"
 
@@ -15427,6 +15439,9 @@ msgstr "我们无法从你的支付方式扣款。请更新支付方式以保留
 msgid "We couldn't detect a package manager or environment config."
 msgstr "我们没有检测到包管理器或环境配置。"
 
+msgid "We couldn't reach the device. Please try again in a moment."
+msgstr "暂时无法连接到设备，请稍后重试。"
+
 msgid "We do not forecast full self-driving in 2026 or 2027. The honest unknowns: whether agent review holds up against adversarial complexity, whether specification can replace code reading as the trust anchor at scale, and whether compute economics keep the overnight shift cheaper than the humans it augments. F5 is a rubric entry so we recognize it when we see it, not a promise."
 msgstr "我们不预测2026或2027年实现完全自动驾驶。诚实地讲，未知数有三个：智能体审查能否扛住对抗性的复杂度；规格说明能否在大规模场景下取代读代码，成为信任的锚点；以及算力成本能否让夜班始终比它所增强的人力更便宜。F5写进评分表，是为了在它出现时能认出来，而不是一个承诺。"
 
@@ -15438,6 +15453,9 @@ msgstr "下载链接已发送至{submittedEmail}。"
 
 msgid "We'll be in touch shortly."
 msgstr "我们会尽快与你联系。"
+
+msgid "We'll bring you back as soon as we reconnect."
+msgstr "连接恢复后，我们会立即带你回到工作区。"
 
 msgid "We'll get back to you shortly."
 msgstr "我们会尽快回复你。"
@@ -15890,9 +15908,6 @@ msgstr "此操作无法撤销。终端窗格会显示“进程已退出”，之
 
 msgid "You don't have access to this host"
 msgstr "你没有此主机的访问权限"
-
-msgid "You don't have access to this host. If it's your own device, turn on relay access there under Settings > Security."
-msgstr "你没有此主机的访问权限。如果这是你自己的设备，请在该设备的设置 > 安全中开启中继访问。"
 
 msgid "You don't have access to this terminal."
 msgstr "你没有此终端的访问权限。"

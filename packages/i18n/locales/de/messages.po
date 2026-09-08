@@ -1818,6 +1818,9 @@ msgstr "Ein isolierter Git-Worktree, in dem ein Agent arbeitet, ohne dein Haupt-
 msgid "An unknown error occurred"
 msgstr "Ein unbekannter Fehler ist aufgetreten"
 
+msgid "An update is ready to install."
+msgstr "Ein Update ist bereit zur Installation."
+
 msgid "Animate the active terminal cursor."
 msgstr "Den aktiven Terminal-Cursor animieren."
 
@@ -2293,6 +2296,9 @@ msgstr "Zurück zu Seiten"
 msgid "Back to tasks"
 msgstr "Zurück zu Aufgaben"
 
+msgid "Back to the leaderboard"
+msgstr "Zurück zum Leaderboard"
+
 msgid "Background"
 msgstr "Hintergrund"
 
@@ -2668,6 +2674,9 @@ msgstr "Kann ich meine eigenen API-Schlüssel nutzen?"
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Kannst du die Tooltips in der ganzen App vereinheitlichen?"
 
+msgid "Can't connect right now"
+msgstr "Verbindung gerade nicht möglich"
+
 msgid "Can't open remote workspace paths in an external editor"
 msgstr "Pfade aus Remote-Arbeitsbereichen lassen sich nicht im externen Editor öffnen"
 
@@ -2861,6 +2870,9 @@ msgstr "Ressourcen prüfen"
 
 msgid "Check the rendered prompt and launch output before saving"
 msgstr "Prüfe den gerenderten Prompt und die Startausgabe vor dem Speichern"
+
+msgid "Check your access under Settings > Security on that device."
+msgstr "Prüfe deinen Zugriff auf dem Gerät unter Einstellungen > Sicherheit."
 
 msgid "Check your connection and try again"
 msgstr "Prüfe deine Verbindung und versuche es erneut"
@@ -4058,6 +4070,9 @@ msgstr "Seite ließ sich nicht beobachten"
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Der Star-Status ließ sich nicht bestätigen — prüfe, ob die GitHub-CLI (`gh`) installiert und angemeldet ist und ob du eine Netzwerkverbindung hast"
 
+msgid "Couldn't connect (error {status}). Please try again."
+msgstr "Verbindung fehlgeschlagen (Fehler {status}). Bitte versuche es erneut."
+
 msgid "Couldn't copy branch name"
 msgstr "Branch-Name konnte nicht kopiert werden"
 
@@ -4121,9 +4136,6 @@ msgstr "Antwort konnte nicht gesendet werden"
 #. placeholder {1}: first.message
 msgid "Couldn't reach cloud for {0}: {1}"
 msgstr "Cloud für {0} nicht erreichbar: {1}"
-
-msgid "Couldn't reach the relay service. Check this machine's network connection — the other device is probably fine."
-msgstr "Der Relay-Dienst war nicht erreichbar. Prüfe die Netzwerkverbindung dieses Rechners — das andere Gerät ist wahrscheinlich in Ordnung."
 
 msgid "Couldn't read this terminal's context."
 msgstr "Der Kontext dieses Terminals konnte nicht gelesen werden."
@@ -5236,7 +5248,7 @@ msgstr "Anfang 2027"
 msgid "Early 2028"
 msgstr "Anfang 2028"
 
-#. placeholder {0}: formatDate(new Date(`${awardedOn}T00:00:00Z`), { day: "numeric", month: "short", year: "numeric", timeZone: "UTC", })
+#. placeholder {0}: formatDate( new Date(`${awardedOn}T00:00:00Z`), { day: "numeric", month: "short", year: "numeric", timeZone: "UTC", }, i18n.locale, )
 msgid "Earned {0}"
 msgstr "Erhalten am {0}"
 
@@ -6880,9 +6892,6 @@ msgstr "Host nicht verfügbar"
 msgid "Host unavailable: {hostName}"
 msgstr "Host nicht verfügbar: {hostName}"
 
-msgid "Host unreachable"
-msgstr "Host nicht erreichbar"
-
 msgid "Hosted in the cloud"
 msgstr "In der Cloud gehostet"
 
@@ -8056,6 +8065,9 @@ msgstr "Als Standard festlegen"
 
 msgid "Make default — launch new terminals and agents on this account."
 msgstr "Als Standard festlegen — neue Terminals und Agenten mit diesem Konto starten."
+
+msgid "Make sure the device is awake, online, and running Superset."
+msgstr "Stelle sicher, dass das Gerät wach und online ist und Superset darauf läuft."
 
 msgid "Make the chip style the TooltipContent default"
 msgstr "Den Chip-Stil zum TooltipContent-Standard machen"
@@ -10463,6 +10475,9 @@ msgstr "{label} abspielen"
 msgid "Play a sound when tasks complete"
 msgstr "Einen Ton abspielen, wenn Aufgaben fertig sind"
 
+msgid "Please check your internet connection and try again."
+msgstr "Bitte prüfe deine Internetverbindung und versuche es erneut."
+
 msgid "Please enter a project name"
 msgstr "Bitte gib einen Projektnamen ein"
 
@@ -10474,6 +10489,9 @@ msgstr "Bitte wähle einen Projektort"
 
 msgid "Please select an organization"
 msgstr "Bitte wähle eine Organisation"
+
+msgid "Please try again, or restart Superset on that device."
+msgstr "Bitte versuche es erneut oder starte Superset auf dem Gerät neu."
 
 msgid "Please try signing in again from the desktop app."
 msgstr "Bitte melde dich erneut aus der Desktop-App an."
@@ -13265,6 +13283,9 @@ msgstr "{agentLabel} wird gestartet"
 msgid "Starting cloud workspace"
 msgstr "Cloud-Arbeitsbereich wird gestartet"
 
+msgid "Starting up. This should only take a moment."
+msgstr "Wird gestartet. Das dauert nur einen Moment."
+
 msgid "Starting workspace"
 msgstr "Arbeitsbereich wird gestartet"
 
@@ -13919,12 +13940,6 @@ msgstr "Textarea"
 msgid "Thanks for reaching out"
 msgstr "Danke für deine Nachricht"
 
-msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
-msgstr "Dieses Gerät ist online, aber die Verbindung kam nicht zustande — meist liegt es am Relay-Routing, nicht am Gerät selbst. Versuche es erneut; bleibt es dabei, starte Superset auf diesem Gerät neu."
-
-msgid "That device isn't connected to the relay. Check it's awake, online, and running Superset — it reconnects on its own once it is."
-msgstr "Dieses Gerät ist nicht mit dem Relay verbunden. Prüfe, ob es wach und online ist und Superset läuft — dann verbindet es sich von selbst wieder."
-
 msgid "That handle is taken."
 msgstr "Dieses Handle ist bereits vergeben."
 
@@ -13963,9 +13978,6 @@ msgstr "Der beste Agent wird wechseln.<0/>Dein Workflow nicht."
 
 msgid "The Codex sign-in"
 msgstr "Die Codex-Anmeldung"
-
-msgid "The connection failed (relay status {status}). Retry, and if it persists restart Superset on that device."
-msgstr "Die Verbindung ist fehlgeschlagen (Relay-Status {status}). Versuche es erneut; bleibt es dabei, starte Superset auf diesem Gerät neu."
 
 msgid "The connection timed out"
 msgstr "Zeitüberschreitung bei der Verbindung"
@@ -14085,9 +14097,6 @@ msgstr "Der Link ist womöglich falsch, die Seite wurde gelöscht, oder du hast 
 msgid "The linked agent is missing or disabled. Showing the snapshot."
 msgstr "Der verknüpfte Agent fehlt oder ist deaktiviert. Angezeigt wird der Snapshot."
 
-msgid "The local host service is still starting up. It should be ready in a few seconds."
-msgstr "Der lokale Host-Dienst startet noch. In ein paar Sekunden sollte er bereit sein."
-
 msgid "The local host service is unavailable for {organization} on {device}. Status: {status}. {recovery}"
 msgstr "Der lokale Host-Dienst ist für {organization} auf {device} nicht verfügbar. Status: {status}. {recovery}"
 
@@ -14099,9 +14108,6 @@ msgstr "Der lokale Host-Dienst läuft nicht, daher kann nichts auf diesem Gerät
 
 msgid "The local host service just came up. Reconnecting to it now."
 msgstr "Der lokale Host-Dienst ist gerade hochgekommen. Die Verbindung wird jetzt hergestellt."
-
-msgid "The local host service stopped answering. Retry first; if that doesn't take, restart it from the Superset tray menu > Host Service > Restart."
-msgstr "Der lokale Host-Dienst antwortet nicht mehr. Versuche es zuerst erneut; hilft das nicht, starte ihn über das Superset-Menü in der Menüleiste > Host Service > Restart neu."
 
 msgid "The majority of merged agent PRs need review only, with zero human edits."
 msgstr "Die Mehrheit der gemergten Agenten-PRs braucht nur Review, ohne menschliche Bearbeitung."
@@ -14141,9 +14147,6 @@ msgstr "Die Menschen hinter Superset."
 
 msgid "The recovery period has ended. Contact support@superset.sh."
 msgstr "Die Wiederherstellungsfrist ist abgelaufen. Wende dich an support@superset.sh."
-
-msgid "The relay couldn't reach that device right now. This is usually temporary — retrying in a moment normally works."
-msgstr "Der Relay konnte dieses Gerät gerade nicht erreichen. Das ist meist vorübergehend — ein erneuter Versuch klappt normalerweise."
 
 msgid "The remote branch has diverged. Pull before continuing."
 msgstr "Der Remote-Branch ist auseinandergelaufen. Pull erst, bevor du weitermachst."
@@ -14395,6 +14398,9 @@ msgstr "Dieses Plugin braucht kein Konto — seine Skills sind sofort einsatzber
 msgid "This port is still in use"
 msgstr "Dieser Port ist noch in Benutzung"
 
+msgid "This profile is busy right now"
+msgstr "Dieses Profil ist gerade stark ausgelastet"
+
 msgid "This project is no longer available on your devices."
 msgstr "Dieses Projekt ist auf deinen Geräten nicht mehr verfügbar."
 
@@ -14506,9 +14512,6 @@ msgstr "Damit werden die Sitzung und ihr zugrunde liegender Prozess beendet."
 
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Damit werden alle gestageden Änderungen aus dem Index genommen und zurückgesetzt. Gestagede neue Dateien werden gelöscht. Das lässt sich nicht rückgängig machen."
-
-msgid "This workspace lives on a device Superset can't reach right now. Terminals, files, and agents stay put — they come back as soon as the connection does."
-msgstr "Dieser Arbeitsbereich liegt auf einem Gerät, das Superset gerade nicht erreicht. Terminals, Dateien und Agenten bleiben, wo sie sind — sie kommen zurück, sobald die Verbindung wieder steht."
 
 msgid "This workspace may have been removed, or you no longer have access to it."
 msgstr "Dieser Arbeitsbereich wurde möglicherweise entfernt, oder du hast keinen Zugriff mehr darauf."
@@ -14648,6 +14651,9 @@ msgstr "Zu viele Rechner veröffentlichen für dieses Konto."
 msgid "Too many messages. Please try again later."
 msgstr "Zu viele Nachrichten. Bitte versuche es später erneut."
 
+msgid "Too many people are looking at once. Try again shortly."
+msgstr "Zu viele Personen sehen es sich gleichzeitig an. Versuche es gleich noch einmal."
+
 msgid "Too many prompt submissions. Try again later."
 msgstr "Zu viele eingereichte Prompts. Versuche es später erneut."
 
@@ -14764,6 +14770,9 @@ msgstr "Versuche einen anderen Suchbegriff oder ein anderes Gerät."
 
 msgid "Try again"
 msgstr "Erneut versuchen"
+
+msgid "Try again, or restart the host service from the Superset tray menu."
+msgstr "Versuche es erneut oder starte den Host-Dienst über das Superset-Menü in der Taskleiste neu."
 
 msgid "Try again. If the problem continues, reload Superset."
 msgstr "Versuche es erneut. Wenn das Problem bleibt, lade Superset neu."
@@ -15276,6 +15285,9 @@ msgstr "Version {0}"
 msgid "Version {version}"
 msgstr "Version {version}"
 
+msgid "Version {version} installs the next time you restart."
+msgstr "Version {version} wird beim nächsten Neustart installiert."
+
 msgid "Version {version} is the latest version."
 msgstr "Version {version} ist die neueste Version."
 
@@ -15427,6 +15439,9 @@ msgstr "Wir konnten deine Zahlungsmethode nicht belasten. Aktualisiere sie, um d
 msgid "We couldn't detect a package manager or environment config."
 msgstr "Wir konnten keinen Paketmanager und keine Umgebungskonfiguration erkennen."
 
+msgid "We couldn't reach the device. Please try again in a moment."
+msgstr "Wir konnten das Gerät nicht erreichen. Bitte versuche es gleich noch einmal."
+
 msgid "We do not forecast full self-driving in 2026 or 2027. The honest unknowns: whether agent review holds up against adversarial complexity, whether specification can replace code reading as the trust anchor at scale, and whether compute economics keep the overnight shift cheaper than the humans it augments. F5 is a rubric entry so we recognize it when we see it, not a promise."
 msgstr "Wir prognostizieren für 2026 oder 2027 kein vollständig autonomes Fahren. Die ehrlichen Unbekannten: ob Agenten-Review gegen bösartige Komplexität standhält, ob Spezifikation das Lesen von Code als Vertrauensanker im großen Maßstab ersetzen kann und ob die Rechenökonomie die Nachtschicht billiger hält als die Menschen, die sie ergänzt. F5 ist ein Rubrikeintrag, damit wir es erkennen, wenn wir es sehen — kein Versprechen."
 
@@ -15438,6 +15453,9 @@ msgstr "Wir haben den Download-Link an {submittedEmail} geschickt."
 
 msgid "We'll be in touch shortly."
 msgstr "Wir melden uns in Kürze."
+
+msgid "We'll bring you back as soon as we reconnect."
+msgstr "Sobald die Verbindung wieder steht, geht es hier weiter."
 
 msgid "We'll get back to you shortly."
 msgstr "Wir melden uns in Kürze bei dir."
@@ -15890,9 +15908,6 @@ msgstr "Das lässt sich nicht rückgängig machen. Terminal-Bereiche zeigen dann
 
 msgid "You don't have access to this host"
 msgstr "Du hast keinen Zugriff auf diesen Host"
-
-msgid "You don't have access to this host. If it's your own device, turn on relay access there under Settings > Security."
-msgstr "Du hast keinen Zugriff auf diesen Host. Wenn es dein eigenes Gerät ist, aktiviere dort den Relay-Zugriff unter Einstellungen > Sicherheit."
 
 msgid "You don't have access to this terminal."
 msgstr "Du hast keinen Zugriff auf dieses Terminal."

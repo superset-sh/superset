@@ -25,6 +25,7 @@ import { createServer, type Server, Socket } from "node:net";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { SUPERSET_DIR_NAME } from "shared/constants";
+import { isTerminalSpawnFailedError } from "../lib/terminal/errors";
 import {
 	type CancelCreateOrAttachRequest,
 	type ClearScrollbackRequest,
@@ -44,6 +45,7 @@ import {
 	type SignalRequest,
 	type TerminalErrorEvent,
 	type TerminalExitEvent,
+	type TerminalSpawnFailureCause,
 	type WriteRequest,
 } from "../lib/terminal-host/types";
 import { setupTerminalHostSignalHandlers } from "./signal-handlers";
@@ -161,8 +163,14 @@ function sendSuccess(socket: Socket, id: string, payload: unknown) {
 	sendResponse(socket, { id, ok: true, payload });
 }
 
-function sendError(socket: Socket, id: string, code: string, message: string) {
-	sendResponse(socket, { id, ok: false, error: { code, message } });
+function sendError(
+	socket: Socket,
+	id: string,
+	code: string,
+	message: string,
+	cause?: TerminalSpawnFailureCause,
+) {
+	sendResponse(socket, { id, ok: false, error: { code, message, cause } });
 }
 
 // =============================================================================
@@ -334,7 +342,13 @@ const handlers: Record<string, RequestHandler> = {
 			);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : "Unknown error";
-			sendError(socket, id, "CREATE_ATTACH_FAILED", message);
+			sendError(
+				socket,
+				id,
+				"CREATE_ATTACH_FAILED",
+				message,
+				isTerminalSpawnFailedError(error) ? error.cause : undefined,
+			);
 			log("error", `Failed to create/attach session: ${message}`);
 		}
 	},

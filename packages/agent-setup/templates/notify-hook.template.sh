@@ -17,6 +17,31 @@ fi
 # payload alone must never dispatch.
 [ -n "$SUPERSET_TERMINAL_ID" ] || [ -n "$SUPERSET_TAB_ID" ] || exit 0
 
+# Which agent this event belongs to. A Superset wrapper exports
+# SUPERSET_AGENT_ID for the process it launches (first-wins, so a CLI an
+# agent runs from a tool call keeps the terminal's identity), and every
+# hook config Superset writes inlines SUPERSET_HOOK_HARNESS, the harness
+# whose config fired. The two can disagree: cursor-agent replays
+# ~/.claude/settings.json, so Claude's config fires inside a Cursor session;
+# and Claude's Bash tool running `codex exec` fires Codex's config under a
+# Claude terminal. Neither is this terminal's lifecycle — the replay is
+# covered by Cursor's own hooks and the nested run belongs to a child
+# process — so a foreign harness's event is dropped rather than allowed to
+# relabel the terminal (and hand its session id to the wrong agent's
+# resume). A config firing with no wrapper identity at all names the agent
+# itself: the binary was resolved from the system PATH.
+AGENT_ID="$SUPERSET_AGENT_ID"
+if [ -z "$AGENT_ID" ]; then
+  # cursor-agent stamps CURSOR_AGENT/CURSOR_CLI/CURSOR_VERSION into its env;
+  # without a wrapper that is the only sign Claude's config is being replayed.
+  if [ "$SUPERSET_HOOK_HARNESS" = "claude" ] && { [ -n "$CURSOR_AGENT" ] || [ -n "$CURSOR_CLI" ] || [ -n "$CURSOR_VERSION" ]; }; then
+    exit 0
+  fi
+  AGENT_ID="$SUPERSET_HOOK_HARNESS"
+elif [ -n "$SUPERSET_HOOK_HARNESS" ] && [ "$SUPERSET_HOOK_HARNESS" != "$AGENT_ID" ]; then
+  exit 0
+fi
+
 # Claude Code and Codex set agent_id only when the hook fires inside a
 # subagent (Task tool / spawn_agent). Subagent activity must not drive
 # terminal-level agent status, notifications, or the session id binding —
@@ -98,7 +123,7 @@ elif [ "$SUPERSET_ENV" = "development" ] || [ "$NODE_ENV" = "development" ]; the
 fi
 
 if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
-  echo "[notify-hook] event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID subagentId=$SUBAGENT_ID sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID" >&2
+  echo "[notify-hook] event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$AGENT_ID subagentId=$SUBAGENT_ID sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID" >&2
 fi
 
 debug_log() {
@@ -167,13 +192,13 @@ dispatch_to_host() {
 # terminal's resumable session), and the raw event name so the host can tell
 # a start from a stop.
 if [ -n "$SUBAGENT_ID" ]; then
-  debug_log "subagent event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID subagentId=$SUBAGENT_ID subagentType=$SUBAGENT_TYPE"
+  debug_log "subagent event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$AGENT_ID subagentId=$SUBAGENT_ID subagentType=$SUBAGENT_TYPE"
   [ -n "$SUPERSET_TERMINAL_ID" ] || exit 0
   dispatch_to_host "{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"subagent\":{\"id\":\"$(json_escape "$SUBAGENT_ID")\",\"type\":\"$(json_escape "$SUBAGENT_TYPE")\",\"sessionId\":\"$(json_escape "$HOOK_SESSION_ID")\",\"transcriptPath\":\"$(json_escape "$TRANSCRIPT_PATH")\",\"agentTranscriptPath\":\"$(json_escape "$AGENT_TRANSCRIPT_PATH")\"}}}"
   exit 0
 fi
 
-debug_log "event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID tabId=$SUPERSET_TAB_ID"
+debug_log "event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$AGENT_ID sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID tabId=$SUPERSET_TAB_ID"
 
 V1_EVENT_TYPE="$EVENT_TYPE"
 case "$V1_EVENT_TYPE" in
@@ -186,7 +211,7 @@ case "$V1_EVENT_TYPE" in
 esac
 
 if [ -n "$SUPERSET_TERMINAL_ID" ]; then
-  dispatch_to_host "{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"agent\":{\"agentId\":\"$(json_escape "$SUPERSET_AGENT_ID")\",\"sessionId\":\"$(json_escape "$SESSION_ID")\"}}}"
+  dispatch_to_host "{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"agent\":{\"agentId\":\"$(json_escape "$AGENT_ID")\",\"sessionId\":\"$(json_escape "$SESSION_ID")\"}}}"
   [ "$HOOK_ACCEPTED" = "1" ] && exit 0
   # Delivered somewhere (2xx) but no host owned the terminal: keep the
   # pre-existing "any 2xx wins" behavior and skip the v1 fallback.
@@ -211,7 +236,7 @@ if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
     --data-urlencode "resourceId=$RESOURCE_ID" \
     --data-urlencode "eventType=$V1_EVENT_TYPE" \
     --data-urlencode "rawEventType=$EVENT_TYPE" \
-    --data-urlencode "agentId=$SUPERSET_AGENT_ID" \
+    --data-urlencode "agentId=$AGENT_ID" \
     --data-urlencode "env=$SUPERSET_ENV" \
     --data-urlencode "version=$SUPERSET_HOOK_VERSION" \
     -o /dev/null -w "%{http_code}" 2>/dev/null)
@@ -230,7 +255,7 @@ else
     --data-urlencode "resourceId=$RESOURCE_ID" \
     --data-urlencode "eventType=$V1_EVENT_TYPE" \
     --data-urlencode "rawEventType=$EVENT_TYPE" \
-    --data-urlencode "agentId=$SUPERSET_AGENT_ID" \
+    --data-urlencode "agentId=$AGENT_ID" \
     --data-urlencode "env=$SUPERSET_ENV" \
     --data-urlencode "version=$SUPERSET_HOOK_VERSION" \
     > /dev/null 2>&1

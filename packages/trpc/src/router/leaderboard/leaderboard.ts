@@ -33,6 +33,7 @@ import {
 	evaluateAwards,
 	longestStreak,
 } from "./awards";
+import { isInternalRead } from "./internal-read";
 import { type LeaderboardPeriod, resolveDayRange } from "./periods";
 import {
 	getParticipant,
@@ -183,6 +184,7 @@ function assertDaysInWindow(days: readonly { day: string }[]): void {
 
 async function enforcePublicRead(headers: Headers): Promise<void> {
 	if (!publicReadRateLimit) return;
+	if (isInternalRead(headers, env.LEADERBOARD_INTERNAL_TOKEN)) return;
 	const ip =
 		headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
 		headers.get("x-real-ip") ||

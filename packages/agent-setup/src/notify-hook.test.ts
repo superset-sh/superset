@@ -104,7 +104,7 @@ function writeHookManifest(home: string, orgId: string, endpoint: string) {
 
 describe("getNotifyScriptContent", () => {
 	it("bumps the notify hook marker when hook semantics change", () => {
-		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v14");
+		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v15");
 	});
 
 	it("forwards hooks fired inside a subagent (agent_id present) to the host roster only", async () => {
@@ -259,7 +259,7 @@ describe("getNotifyScriptContent", () => {
 			"HOOK_SESSION_ID=$(json_field session_id sessionId)",
 		);
 		expect(script).toContain(
-			'dispatch_to_host "{\\"json\\":{\\"terminalId\\":\\"$(json_escape "$SUPERSET_TERMINAL_ID")\\",\\"eventType\\":\\"$(json_escape "$EVENT_TYPE")\\",\\"agent\\":{\\"agentId\\":\\"$(json_escape "$SUPERSET_AGENT_ID")\\",\\"sessionId\\":\\"$(json_escape "$SESSION_ID")\\"}}}"',
+			'dispatch_to_host "{\\"json\\":{\\"terminalId\\":\\"$(json_escape "$SUPERSET_TERMINAL_ID")\\",\\"eventType\\":\\"$(json_escape "$EVENT_TYPE")\\",\\"agent\\":{\\"agentId\\":\\"$(json_escape "$AGENT_ID")\\",\\"sessionId\\":\\"$(json_escape "$SESSION_ID")\\"}}}"',
 		);
 		// One dispatcher serves both the agent and subagent payloads.
 		expect(script.split('dispatch_to_host "').length - 1).toBe(2);
@@ -268,7 +268,7 @@ describe("getNotifyScriptContent", () => {
 				.length - 1,
 		).toBe(1);
 		expect(script).toContain(
-			"event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID subagentId=$SUBAGENT_ID sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID",
+			"event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$AGENT_ID subagentId=$SUBAGENT_ID sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID",
 		);
 		expect(script).toContain('V1_EVENT_TYPE="$EVENT_TYPE"');
 		expect(script).toContain('V1_EVENT_TYPE="Stop"');
@@ -389,8 +389,8 @@ describe("per-agent hook scripts dispatch to v2", () => {
 
 	for (const [template, agentIdVar] of [
 		["cursor-hook.template.sh", "AGENT_ID"],
-		["copilot-hook.template.sh", "SUPERSET_AGENT_ID"],
-		["gemini-hook.template.sh", "SUPERSET_AGENT_ID"],
+		["copilot-hook.template.sh", "AGENT_ID"],
+		["gemini-hook.template.sh", "AGENT_ID"],
 	] as const) {
 		it(`${template} posts v2 first and falls back to v1`, () => {
 			const script = readFileSync(getTemplatePath(template), "utf-8");
@@ -479,5 +479,239 @@ describe("call-time endpoint resolution (frozen-port healing)", () => {
 			envHost.stop();
 			manifestHost.stop();
 		}
+	});
+});
+
+describe("agent identity precedence", () => {
+	const stop = { hook_event_name: "Stop", session_id: "s1" };
+
+	async function dispatched(
+		envOverrides: Record<string, string>,
+		input: Record<string, unknown> = stop,
+	) {
+		const host = fakeHostService(false);
+		try {
+			const result = await runNotifyHookAsync(input, {
+				SUPERSET_HOST_AGENT_HOOK_URL: `${host.url}/trpc/notifications.hook`,
+				SUPERSET_HOOK_HARNESS: "",
+				CURSOR_AGENT: "",
+				CURSOR_CLI: "",
+				CURSOR_VERSION: "",
+				...envOverrides,
+			});
+			expect(result.exitCode).toBe(0);
+			return host.requests.map((request) => request.json);
+		} finally {
+			host.stop();
+		}
+	}
+
+	it("reports the wrapper's identity when its own harness's hook config fires", async () => {
+		expect(
+			await dispatched({
+				SUPERSET_AGENT_ID: "codex",
+				SUPERSET_HOOK_HARNESS: "codex",
+			}),
+		).toEqual([
+			{
+				terminalId: "terminal-test",
+				eventType: "Stop",
+				agent: { agentId: "codex", sessionId: "s1" },
+			},
+		]);
+	});
+
+	it("reports the wrapper's identity for the wrapper's own launch report", async () => {
+		expect(
+			await dispatched(
+				{ SUPERSET_AGENT_ID: "opencode" },
+				{ hook_event_name: "SessionStart" },
+			),
+		).toEqual([
+			{
+				terminalId: "terminal-test",
+				eventType: "SessionStart",
+				agent: { agentId: "opencode", sessionId: "" },
+			},
+		]);
+	});
+
+	it.each([
+		"opencode",
+		"",
+	])("captures OpenCode's resumable session with wrapper identity %j", async (wrapperIdentity) => {
+		expect(
+			await dispatched(
+				{
+					SUPERSET_AGENT_ID: wrapperIdentity,
+					SUPERSET_HOOK_HARNESS: "opencode",
+				},
+				{ hook_event_name: "Stop", session_id: "ses_opencode" },
+			),
+		).toEqual([
+			{
+				terminalId: "terminal-test",
+				eventType: "Stop",
+				agent: { agentId: "opencode", sessionId: "ses_opencode" },
+			},
+		]);
+	});
+
+	it("drops a nested OpenCode plugin's lifecycle and session ID", async () => {
+		expect(
+			await dispatched(
+				{
+					SUPERSET_AGENT_ID: "claude",
+					SUPERSET_HOOK_HARNESS: "opencode",
+				},
+				{ hook_event_name: "Stop", session_id: "ses_child" },
+			),
+		).toEqual([]);
+	});
+
+	it("names the agent from the hook config when no wrapper exported an identity", async () => {
+		// The binary was resolved from the system PATH: the config that
+		// fired is the only identity there is.
+		expect(
+			await dispatched({
+				SUPERSET_AGENT_ID: "",
+				SUPERSET_HOOK_HARNESS: "claude",
+			}),
+		).toEqual([
+			{
+				terminalId: "terminal-test",
+				eventType: "Stop",
+				agent: { agentId: "claude", sessionId: "s1" },
+			},
+		]);
+	});
+
+	it("drops another harness's hook config firing under the terminal's agent", async () => {
+		// Claude's Bash tool running `codex exec`: Codex's config fires with
+		// the Claude wrapper's identity still exported. The Codex thread id
+		// must not become the Claude terminal's resumable session.
+		expect(
+			await dispatched({
+				SUPERSET_AGENT_ID: "claude",
+				SUPERSET_HOOK_HARNESS: "codex",
+			}),
+		).toEqual([]);
+		expect(
+			await dispatched(
+				{ SUPERSET_AGENT_ID: "claude", SUPERSET_HOOK_HARNESS: "codex" },
+				{
+					hook_event_name: "SubagentStart",
+					agent_id: "child-1",
+					session_id: "child-thread",
+				},
+			),
+		).toEqual([]);
+	});
+
+	it("drops Claude's hook config replayed by cursor-agent", async () => {
+		// cursor-agent loads ~/.claude/settings.json and fires Claude's hooks
+		// with its own event names; the Cursor session id and identity ride
+		// cursor-hook.sh instead. Verified on cursor-agent 2026.09.02.
+		const replay = { hook_event_name: "sessionStart", session_id: "cursor-1" };
+		expect(
+			await dispatched(
+				{
+					SUPERSET_AGENT_ID: "cursor-agent",
+					SUPERSET_HOOK_HARNESS: "claude",
+					CURSOR_AGENT: "1",
+					CURSOR_VERSION: "2026.09.02-c22c1a3",
+				},
+				replay,
+			),
+		).toEqual([]);
+		// Launched without the wrapper, Cursor's env is the only tell.
+		for (const tell of ["CURSOR_AGENT", "CURSOR_CLI", "CURSOR_VERSION"]) {
+			expect(
+				await dispatched(
+					{
+						SUPERSET_AGENT_ID: "",
+						SUPERSET_HOOK_HARNESS: "claude",
+						[tell]: "1",
+					},
+					replay,
+				),
+			).toEqual([]);
+		}
+	});
+});
+
+describe("cursor-hook.template.sh identity", () => {
+	function renderCursorHook(): string {
+		return readFileSync(getTemplatePath("cursor-hook.template.sh"), "utf-8")
+			.replaceAll("{{MARKER}}", "# test hook")
+			.replaceAll("{{DEFAULT_PORT}}", "48763");
+	}
+
+	async function runCursorHook(
+		eventArg: string,
+		envOverrides: Record<string, string>,
+	) {
+		const host = fakeHostService(false);
+		try {
+			const proc = Bun.spawn({
+				cmd: ["bash", "-c", renderCursorHook(), "cursor-hook.sh", eventArg],
+				env: hookEnv({
+					SUPERSET_HOST_AGENT_HOOK_URL: `${host.url}/trpc/notifications.hook`,
+					CURSOR_AGENT: "",
+					CURSOR_CLI: "",
+					...envOverrides,
+				}),
+				stdin: Buffer.from(JSON.stringify({ session_id: "cursor-1" })),
+				stdout: "pipe",
+				stderr: "pipe",
+			});
+			const [exitCode, stdout] = await Promise.all([
+				proc.exited,
+				new Response(proc.stdout).text(),
+			]);
+			expect(exitCode).toBe(0);
+			return { stdout, requests: host.requests.map((request) => request.json) };
+		} finally {
+			host.stop();
+		}
+	}
+
+	it("reports the wrapper's cursor-agent identity", async () => {
+		expect(
+			(await runCursorHook("Stop", { SUPERSET_AGENT_ID: "cursor-agent" }))
+				.requests,
+		).toEqual([
+			{
+				terminalId: "terminal-test",
+				eventType: "Stop",
+				agent: { agentId: "cursor-agent", sessionId: "cursor-1" },
+			},
+		]);
+	});
+
+	it("tells cursor-agent from the IDE Composer when launched without the wrapper", async () => {
+		const cli = await runCursorHook("Stop", {
+			SUPERSET_AGENT_ID: "",
+			CURSOR_AGENT: "1",
+		});
+		expect(cli.requests[0]?.agent).toEqual({
+			agentId: "cursor-agent",
+			sessionId: "cursor-1",
+		});
+		const composer = await runCursorHook("Stop", { SUPERSET_AGENT_ID: "" });
+		expect(composer.requests[0]?.agent).toEqual({
+			agentId: "cursor-composer",
+			sessionId: "cursor-1",
+		});
+	});
+
+	it("drops events from cursor-agent running under another agent, after auto-approving", async () => {
+		const nested = await runCursorHook("PermissionRequest", {
+			SUPERSET_AGENT_ID: "claude",
+			CURSOR_AGENT: "1",
+		});
+		// The approval must still reach cursor-agent or the tool call hangs.
+		expect(nested.stdout).toBe('{"continue":true}\n');
+		expect(nested.requests).toEqual([]);
 	});
 });

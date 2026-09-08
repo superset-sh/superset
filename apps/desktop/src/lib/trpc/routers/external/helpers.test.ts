@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import {
 	getAppCommand,
+	pathIsMissing,
 	RelativePathWithoutCwdError,
 	resolvePath,
 	stripPathWrappers,
@@ -745,5 +747,54 @@ describe("resolvePath guards against process.cwd() fallback", () => {
 		expect(resolvePath("src/index.ts", "/workspace")).toBe(
 			"/workspace/src/index.ts",
 		);
+	});
+});
+
+describe("pathIsMissing", () => {
+	let tmpDir: string;
+
+	beforeEach(async () => {
+		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "external-helpers-"));
+	});
+
+	afterEach(async () => {
+		await fs.rm(tmpDir, { recursive: true, force: true });
+	});
+
+	test("an absent path is missing", async () => {
+		expect(await pathIsMissing(path.join(tmpDir, "gone.ts"))).toBe(true);
+	});
+
+	test("an existing file is not missing", async () => {
+		const file = path.join(tmpDir, "present.ts");
+		await fs.writeFile(file, "");
+		expect(await pathIsMissing(file)).toBe(false);
+	});
+
+	test("an existing directory is not missing", async () => {
+		// openInApp opens workspace worktrees, not just files.
+		expect(await pathIsMissing(tmpDir)).toBe(false);
+	});
+
+	test("a path below a file is missing (ENOTDIR)", async () => {
+		const file = path.join(tmpDir, "present.ts");
+		await fs.writeFile(file, "");
+		expect(await pathIsMissing(path.join(file, "child.ts"))).toBe(true);
+	});
+
+	test("a symlink to a deleted target is missing", async () => {
+		const target = path.join(tmpDir, "target.ts");
+		const link = path.join(tmpDir, "link.ts");
+		await fs.writeFile(target, "");
+		await fs.symlink(target, link);
+		await fs.rm(target);
+		// The editor cannot open it either — `open` reports it as nonexistent.
+		expect(await pathIsMissing(link)).toBe(true);
+	});
+
+	test("a stat failure that is not absence does not count as missing", async () => {
+		// ENAMETOOLONG: we cannot tell whether the path is there, so the app
+		// still gets to try and its failure still reports.
+		expect(await pathIsMissing(`/${"a".repeat(5000)}`)).toBe(false);
 	});
 });

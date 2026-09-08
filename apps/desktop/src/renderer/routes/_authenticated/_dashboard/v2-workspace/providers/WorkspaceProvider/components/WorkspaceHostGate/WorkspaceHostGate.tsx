@@ -9,11 +9,21 @@ import { StateScreenShell } from "../../../../components/StateScreenShell";
 import { WorkspaceHostUnreachableState } from "../../../../components/WorkspaceHostUnreachableState";
 import { useHostReachability } from "../../../../hooks/useHostReachability";
 import { LOCAL_HOST_SERVICE_DETAIL } from "../../utils/localHostServiceDetail";
+import { HostConnectionStrip } from "./components/HostConnectionStrip";
 
 const HOST_LIST_STALE_MS = 30_000;
 
 /**
- * Covers the workspace with the unreachable screen while its host is down.
+ * A local host-service restart is back in a few seconds and the strip covers
+ * it. Only a restart that runs this long deserves the takeover — and by then
+ * "restart it from the tray" is advice worth giving.
+ */
+const LOCAL_RESTART_TAKEOVER_MS = 30_000;
+
+/**
+ * Tells the workspace what its host connection is doing, in two steps. A host
+ * that has been down for a couple of seconds gets a non-blocking strip over
+ * live, usable panes; one that stays down gets the unreachable takeover.
  * Overlays rather than replaces: panes keep their live state (terminal
  * scrollback, unsaved editor documents, in-flight agent sessions) so a dropped
  * connection costs nothing once the host is back.
@@ -27,8 +37,6 @@ export function WorkspaceHostGate({
 }) {
 	const { t } = useLingui();
 	const hostUrl = useWorkspaceHostUrl();
-	const { isUnreachable, isReconnecting, detail, retry } =
-		useHostReachability(hostUrl);
 	const { machineId, hostServiceStatus } = useLocalHostService();
 
 	// A local host that dropped because the coordinator is mid-restart is not
@@ -38,6 +46,18 @@ export function WorkspaceHostGate({
 	// and for that the default advice stands.
 	const isLocalRestartInFlight =
 		workspace.hostId === machineId && hostServiceStatus === "starting";
+	const {
+		isDegraded,
+		isUnreachable,
+		isReconnecting,
+		hasConnected,
+		detail,
+		retry,
+	} = useHostReachability(hostUrl, {
+		unreachableAfterMs: isLocalRestartInFlight
+			? LOCAL_RESTART_TAKEOVER_MS
+			: undefined,
+	});
 	const { data: hostRows = [] } = cloudTrpc.v2Host.list.useQuery(undefined, {
 		staleTime: HOST_LIST_STALE_MS,
 	});
@@ -66,8 +86,19 @@ export function WorkspaceHostGate({
 			<div className="flex min-h-0 min-w-0 flex-1" inert={isUnreachable}>
 				{children}
 			</div>
+			{isDegraded && !isUnreachable ? (
+				<HostConnectionStrip
+					hostName={hostName}
+					isReconnecting={isReconnecting}
+					hasConnected={hasConnected}
+					isLocalRestartInFlight={isLocalRestartInFlight}
+					onRetry={retry}
+				/>
+			) : null}
+			{/* Translucent on purpose: the panes are still there, and letting them
+			    show through says so better than the copy can. */}
 			{isUnreachable ? (
-				<div className="absolute inset-0 z-50 bg-background">
+				<div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm">
 					<StateScreenShell>
 						<WorkspaceHostUnreachableState
 							hostId={workspace.hostId}

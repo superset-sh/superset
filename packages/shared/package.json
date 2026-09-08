@@ -60,6 +60,10 @@
 			"types": "./src/sentry-throttle.ts",
 			"default": "./src/sentry-throttle.ts"
 		},
+		"./sqlite-migrations": {
+			"types": "./src/sqlite-migrations/index.ts",
+			"default": "./src/sqlite-migrations/index.ts"
+		},
 		"./slash-commands": {
 			"types": "./src/slash-commands.ts",
 			"default": "./src/slash-commands.ts"
@@ -279,6 +283,7 @@
 		"@lingui/core": "6.6.0",
 		"@superset/i18n": "workspace:*",
 		"culori": "4.0.2",
+		"drizzle-orm": "0.45.2",
 		"friendly-words": "1.3.1",
 		"rrule": "2.8.1",
 		"semver": "7.7.4",

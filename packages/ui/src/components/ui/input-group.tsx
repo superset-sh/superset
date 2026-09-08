@@ -72,12 +72,18 @@ function InputGroupAddon({
 			data-align={align}
 			className={cn(inputGroupAddonVariants({ align }), className)}
 			onClick={(e) => {
+				// React portal clicks still bubble through the addon. Focusing the
+				// composer here would steal focus from (and dismiss) its popovers.
+				if (!e.currentTarget.contains(e.target as Node)) {
+					return;
+				}
 				if ((e.target as HTMLElement).closest("button")) {
 					return;
 				}
 				const parent = e.currentTarget.parentElement;
 				const focusTarget =
 					parent?.querySelector<HTMLElement>("input") ??
+					parent?.querySelector<HTMLElement>("textarea") ??
 					parent?.querySelector<HTMLElement>("[contenteditable]");
 				focusTarget?.focus();
 			}}

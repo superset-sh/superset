@@ -2,10 +2,10 @@ import { randomUUID } from "node:crypto";
 import { chmodSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import * as schema from "@superset/local-db";
+import { runMigrations } from "@superset/shared/sqlite-migrations";
 
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
-import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { app } from "electron";
 import { validate as uuidValidate, version as uuidVersion } from "uuid";
 import { env } from "../../env.main";
@@ -96,7 +96,7 @@ console.log(`[local-db] Running migrations from: ${migrationsFolder}`);
 export const localDb = drizzle(sqlite, { schema });
 
 try {
-	migrate(localDb, { migrationsFolder });
+	runMigrations(localDb, migrationsFolder);
 } catch (error) {
 	console.error("[local-db] Migration failed:", error);
 }

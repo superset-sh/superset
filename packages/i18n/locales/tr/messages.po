@@ -1818,6 +1818,9 @@ msgstr "Ajanın, ana checkout'unuza dokunmadan çalıştığı yalıtılmış bi
 msgid "An unknown error occurred"
 msgstr "Bilinmeyen bir hata oluştu"
 
+msgid "An update is ready to install."
+msgstr "Yüklenmeye hazır bir güncelleme var."
+
 msgid "Animate the active terminal cursor."
 msgstr "Etkin terminal imlecini canlandır."
 
@@ -2293,6 +2296,9 @@ msgstr "Sayfalara dön"
 msgid "Back to tasks"
 msgstr "Görevlere dön"
 
+msgid "Back to the leaderboard"
+msgstr "Lider tablosuna dön"
+
 msgid "Background"
 msgstr "Arka plan"
 
@@ -2668,6 +2674,9 @@ msgstr "Kendi API anahtarlarımı kullanabilir miyim?"
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Uygulama genelindeki tooltip'leri standartlaştırabilir misin?"
 
+msgid "Can't connect right now"
+msgstr "Şu anda bağlanamıyoruz"
+
 msgid "Can't open remote workspace paths in an external editor"
 msgstr "Uzak çalışma alanı yolları harici düzenleyicide açılamaz"
 
@@ -2861,6 +2870,9 @@ msgstr "Kaynakları denetle"
 
 msgid "Check the rendered prompt and launch output before saving"
 msgstr "Kaydetmeden önce oluşturulan istemi ve başlatma çıktısını kontrol edin"
+
+msgid "Check your access under Settings > Security on that device."
+msgstr "O cihazda Ayarlar > Güvenlik bölümünden erişiminizi kontrol edin."
 
 msgid "Check your connection and try again"
 msgstr "Bağlantınızı kontrol edip yeniden deneyin"
@@ -4058,6 +4070,9 @@ msgstr "Bu sayfa izlenemedi"
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Yıldız durumu doğrulanamadı — GitHub CLI'nin (`gh`) kurulu ve oturum açmış olduğunu ve ağ bağlantınızın bulunduğunu kontrol edin"
 
+msgid "Couldn't connect (error {status}). Please try again."
+msgstr "Bağlanılamadı (hata {status}). Lütfen tekrar deneyin."
+
 msgid "Couldn't copy branch name"
 msgstr "Dal adı kopyalanamadı"
 
@@ -4121,9 +4136,6 @@ msgstr "Yanıt gönderilemedi"
 #. placeholder {1}: first.message
 msgid "Couldn't reach cloud for {0}: {1}"
 msgstr "{0} için buluta erişilemedi: {1}"
-
-msgid "Couldn't reach the relay service. Check this machine's network connection — the other device is probably fine."
-msgstr "Röle hizmetine erişilemedi. Bu makinenin ağ bağlantısını kontrol edin — diğer cihazda büyük olasılıkla sorun yok."
 
 msgid "Couldn't read this terminal's context."
 msgstr "Bu terminalin bağlamı okunamadı."
@@ -5236,7 +5248,7 @@ msgstr "2027 başı"
 msgid "Early 2028"
 msgstr "2028 başı"
 
-#. placeholder {0}: formatDate(new Date(`${awardedOn}T00:00:00Z`), { day: "numeric", month: "short", year: "numeric", timeZone: "UTC", })
+#. placeholder {0}: formatDate( new Date(`${awardedOn}T00:00:00Z`), { day: "numeric", month: "short", year: "numeric", timeZone: "UTC", }, i18n.locale, )
 msgid "Earned {0}"
 msgstr "{0} tarihinde kazanıldı"
 
@@ -6880,9 +6892,6 @@ msgstr "Host kullanılamıyor"
 msgid "Host unavailable: {hostName}"
 msgstr "Host kullanılamıyor: {hostName}"
 
-msgid "Host unreachable"
-msgstr "Host'a erişilemiyor"
-
 msgid "Hosted in the cloud"
 msgstr "Bulutta barındırılıyor"
 
@@ -8056,6 +8065,9 @@ msgstr "Varsayılan yap"
 
 msgid "Make default — launch new terminals and agents on this account."
 msgstr "Varsayılan yap — yeni terminalleri ve ajanları bu hesapta başlat."
+
+msgid "Make sure the device is awake, online, and running Superset."
+msgstr "Cihazın uyanık, çevrimiçi ve Superset’in çalışır durumda olduğundan emin olun."
 
 msgid "Make the chip style the TooltipContent default"
 msgstr "Çip stilini TooltipContent varsayılanı yap"
@@ -10463,6 +10475,9 @@ msgstr "Oynat: {label}"
 msgid "Play a sound when tasks complete"
 msgstr "Görevler tamamlandığında bir ses çal"
 
+msgid "Please check your internet connection and try again."
+msgstr "Lütfen internet bağlantınızı kontrol edip tekrar deneyin."
+
 msgid "Please enter a project name"
 msgstr "Lütfen bir proje adı girin"
 
@@ -10474,6 +10489,9 @@ msgstr "Lütfen bir proje konumu seçin"
 
 msgid "Please select an organization"
 msgstr "Lütfen bir kuruluş seçin"
+
+msgid "Please try again, or restart Superset on that device."
+msgstr "Lütfen tekrar deneyin veya o cihazda Superset’i yeniden başlatın."
 
 msgid "Please try signing in again from the desktop app."
 msgstr "Lütfen masaüstü uygulamasından yeniden oturum açmayı deneyin."
@@ -13265,6 +13283,9 @@ msgstr "{agentLabel} başlatılıyor"
 msgid "Starting cloud workspace"
 msgstr "Bulut çalışma alanı başlatılıyor"
 
+msgid "Starting up. This should only take a moment."
+msgstr "Başlatılıyor. Yalnızca kısa bir süre alacaktır."
+
 msgid "Starting workspace"
 msgstr "Çalışma alanı başlatılıyor"
 
@@ -13919,12 +13940,6 @@ msgstr "Metin alanı"
 msgid "Thanks for reaching out"
 msgstr "Bize ulaştığınız için teşekkürler"
 
-msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
-msgstr "O cihaz çevrimiçi ancak bağlantı kurulamadı — bu genellikle cihazdan değil, röle yönlendirmesinden kaynaklanır. Yeniden deneyin; sorun sürerse o cihazda Superset'i yeniden başlatın."
-
-msgid "That device isn't connected to the relay. Check it's awake, online, and running Superset — it reconnects on its own once it is."
-msgstr "O cihaz röleye bağlı değil. Uyanık, çevrimiçi ve Superset çalışır durumda olduğunu kontrol edin — olduğunda kendiliğinden yeniden bağlanır."
-
 msgid "That handle is taken."
 msgstr "Bu kullanıcı adı alınmış."
 
@@ -13963,9 +13978,6 @@ msgstr "En iyi ajan değişecek.<0/>İş akışınız değişmemeli."
 
 msgid "The Codex sign-in"
 msgstr "Codex oturumu"
-
-msgid "The connection failed (relay status {status}). Retry, and if it persists restart Superset on that device."
-msgstr "Bağlantı başarısız oldu (röle durumu {status}). Yeniden deneyin; sorun sürerse o cihazda Superset'i yeniden başlatın."
 
 msgid "The connection timed out"
 msgstr "Bağlantı zaman aşımına uğradı"
@@ -14085,9 +14097,6 @@ msgstr "Bağlantı yanlış olabilir, sayfa silinmiş olabilir ya da erişiminiz
 msgid "The linked agent is missing or disabled. Showing the snapshot."
 msgstr "Bağlı ajan eksik veya devre dışı. Anlık görüntü gösteriliyor."
 
-msgid "The local host service is still starting up. It should be ready in a few seconds."
-msgstr "Yerel host hizmeti hâlâ başlatılıyor. Birkaç saniye içinde hazır olmalı."
-
 msgid "The local host service is unavailable for {organization} on {device}. Status: {status}. {recovery}"
 msgstr "{device} üzerinde {organization} için yerel host hizmeti kullanılamıyor. Durum: {status}. {recovery}"
 
@@ -14099,9 +14108,6 @@ msgstr "Yerel host hizmeti çalışmıyor, bu yüzden bu cihazda hiçbir şey ç
 
 msgid "The local host service just came up. Reconnecting to it now."
 msgstr "Yerel host hizmeti yeni açıldı. Şimdi ona yeniden bağlanılıyor."
-
-msgid "The local host service stopped answering. Retry first; if that doesn't take, restart it from the Superset tray menu > Host Service > Restart."
-msgstr "Yerel host hizmeti yanıt vermeyi bıraktı. Önce yeniden deneyin; işe yaramazsa Superset tepsi menüsünde Host hizmeti > Yeniden başlat yolundan yeniden başlatın."
 
 msgid "The majority of merged agent PRs need review only, with zero human edits."
 msgstr "Birleştirilen ajan PR'larının çoğu yalnızca inceleme gerektirir, hiç insan düzenlemesi olmaz."
@@ -14141,9 +14147,6 @@ msgstr "Superset'in arkasındaki insanlar."
 
 msgid "The recovery period has ended. Contact support@superset.sh."
 msgstr "Kurtarma süresi sona erdi. support@superset.sh adresine yazın."
-
-msgid "The relay couldn't reach that device right now. This is usually temporary — retrying in a moment normally works."
-msgstr "Röle şu anda o cihaza ulaşamadı. Bu genellikle geçicidir — birazdan yeniden denemek çoğunlukla işe yarar."
 
 msgid "The remote branch has diverged. Pull before continuing."
 msgstr "Uzak dal ayrıştı. Devam etmeden önce pull yapın."
@@ -14395,6 +14398,9 @@ msgstr "Bu eklenti hesap gerektirmez — Becerileri kullanıma hazır."
 msgid "This port is still in use"
 msgstr "Bu port hâlâ kullanımda"
 
+msgid "This profile is busy right now"
+msgstr "Bu profil şu anda yoğun"
+
 msgid "This project is no longer available on your devices."
 msgstr "Bu proje artık cihazlarınızda kullanılamıyor."
 
@@ -14506,9 +14512,6 @@ msgstr "Bu işlem oturumu ve altındaki süreci sonlandırır."
 
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Bu işlem, hazırlanmış tüm değişiklikleri hazırlıktan çıkarır ve geri alır. Hazırlanmış yeni dosyalar silinir. Bu geri alınamaz."
-
-msgid "This workspace lives on a device Superset can't reach right now. Terminals, files, and agents stay put — they come back as soon as the connection does."
-msgstr "Bu çalışma alanı, Superset'in şu anda erişemediği bir cihazda bulunuyor. Terminaller, dosyalar ve ajanlar yerinde kalır — bağlantı geri geldiğinde onlar da geri gelir."
 
 msgid "This workspace may have been removed, or you no longer have access to it."
 msgstr "Bu çalışma alanı kaldırılmış olabilir ya da artık erişiminiz olmayabilir."
@@ -14648,6 +14651,9 @@ msgstr "Bu hesap için çok fazla makine yayın yapıyor."
 msgid "Too many messages. Please try again later."
 msgstr "Çok fazla mesaj. Lütfen daha sonra yeniden deneyin."
 
+msgid "Too many people are looking at once. Try again shortly."
+msgstr "Aynı anda çok fazla kişi bakıyor. Kısa süre sonra tekrar deneyin."
+
 msgid "Too many prompt submissions. Try again later."
 msgstr "Çok fazla istem gönderimi. Daha sonra yeniden deneyin."
 
@@ -14764,6 +14770,9 @@ msgstr "Farklı bir arama terimi veya başka bir cihaz deneyin."
 
 msgid "Try again"
 msgstr "Yeniden dene"
+
+msgid "Try again, or restart the host service from the Superset tray menu."
+msgstr "Tekrar deneyin veya sistem tepsisindeki Superset menüsünden ana makine hizmetini yeniden başlatın."
 
 msgid "Try again. If the problem continues, reload Superset."
 msgstr "Yeniden deneyin. Sorun sürerse Superset'i yeniden yükleyin."
@@ -15276,6 +15285,9 @@ msgstr "Sürüm {0}"
 msgid "Version {version}"
 msgstr "Sürüm {version}"
 
+msgid "Version {version} installs the next time you restart."
+msgstr "{version} sürümü bir sonraki yeniden başlatmada yüklenecek."
+
 msgid "Version {version} is the latest version."
 msgstr "{version} sürümü en son sürümdür."
 
@@ -15427,6 +15439,9 @@ msgstr "Ödeme yönteminizden tahsilat yapamadık. Bu planı sürdürmek için g
 msgid "We couldn't detect a package manager or environment config."
 msgstr "Bir paket yöneticisi veya ortam yapılandırması bulamadık."
 
+msgid "We couldn't reach the device. Please try again in a moment."
+msgstr "Cihaza ulaşamadık. Lütfen birazdan tekrar deneyin."
+
 msgid "We do not forecast full self-driving in 2026 or 2027. The honest unknowns: whether agent review holds up against adversarial complexity, whether specification can replace code reading as the trust anchor at scale, and whether compute economics keep the overnight shift cheaper than the humans it augments. F5 is a rubric entry so we recognize it when we see it, not a promise."
 msgstr "2026 veya 2027'de tam otonomi öngörmüyoruz. Dürüst bilinmezler şunlar: ajan incelemesinin düşmanca karmaşıklık karşısında dayanıp dayanmayacağı, spesifikasyonun ölçekte kod okumanın yerini güven çıpası olarak alıp alamayacağı ve işlem ekonomisinin gece vardiyasını desteklediği insanlardan ucuz tutup tutmayacağı. F5, gördüğümüzde tanıyabilelim diye bir değerlendirme maddesidir, bir vaat değil."
 
@@ -15438,6 +15453,9 @@ msgstr "İndirme bağlantısını {submittedEmail} adresine gönderdik."
 
 msgid "We'll be in touch shortly."
 msgstr "Kısa süre içinde sizinle iletişime geçeceğiz."
+
+msgid "We'll bring you back as soon as we reconnect."
+msgstr "Bağlantı yeniden kurulur kurulmaz kaldığınız yere döneceksiniz."
 
 msgid "We'll get back to you shortly."
 msgstr "Kısa süre içinde size döneceğiz."
@@ -15890,9 +15908,6 @@ msgstr "Bu işlemi geri alamazsınız. Terminal bölmelerinde \"Process exited\"
 
 msgid "You don't have access to this host"
 msgstr "Bu host'a erişiminiz yok"
-
-msgid "You don't have access to this host. If it's your own device, turn on relay access there under Settings > Security."
-msgstr "Bu host'a erişiminiz yok. Kendi cihazınızsa orada Ayarlar > Güvenlik bölümünden röle erişimini açın."
 
 msgid "You don't have access to this terminal."
 msgstr "Bu terminale erişiminiz yok."
