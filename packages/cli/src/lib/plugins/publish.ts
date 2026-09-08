@@ -174,17 +174,12 @@ function checkAuth(plugin: ResolvedPlugin): CheckIssue[] {
 						'oauth2 auth with client "dynamic" needs an mcp url to discover its authorization server from',
 				});
 			}
-			for (const [field, value] of Object.entries({
-				authorization_url: auth.authorization_url,
-				token_url: auth.token_url,
-				requires_env: auth.requires_env?.length ? auth.requires_env : undefined,
-			})) {
-				if (value) {
-					issues.push({
-						name,
-						problem: `oauth2 auth with client "dynamic" gets its client and endpoints from the server; drop ${field}`,
-					});
-				}
+			if (auth.requires_env?.length) {
+				issues.push({
+					name,
+					problem:
+						'oauth2 auth with client "dynamic" gets its client from the server; drop requires_env',
+				});
 			}
 		} else if (auth.type === "oauth2") {
 			if (!auth.authorization_url || !auth.token_url) {

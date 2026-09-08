@@ -346,7 +346,7 @@ export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
 	},
 	{
 		name: "slack",
-		version: "1.2.0",
+		version: "1.2.1",
 		description: "Read and send messages in your workspace",
 		interface: { displayName: "Slack", category: "Communication" },
 		auth: [{ type: "oauth2" }],
@@ -354,7 +354,7 @@ export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
 	},
 	{
 		name: "gmail",
-		version: "1.1.0",
+		version: "1.1.1",
 		description: "Read, search, send, and organize mail in your Gmail account",
 		interface: { displayName: "Gmail", category: "Communication" },
 		auth: [{ type: "oauth2" }],

@@ -5,6 +5,6 @@
 	"type": "module",
 	"scripts": {
 		"publish": "superset plugins publish notion",
-		"check": "superset plugins validate plugins/notion"
+		"check": "superset plugins validate ."
 	}
 }

@@ -1,5 +1,5 @@
 import { pluginOauthClients } from "@superset/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNotNull, lte } from "drizzle-orm";
 import { env } from "../../env";
 import { decryptOptional, encryptOptional } from "./crypto";
 import type { DiscoveredServer } from "./discovery";
@@ -160,16 +160,24 @@ async function register(
 				registrationClientUri: payload.registration_client_uri ?? null,
 				tokenEndpointAuthMethod: method,
 			},
+			setWhere: and(
+				isNotNull(pluginOauthClients.clientSecretExpiresAt),
+				lte(pluginOauthClients.clientSecretExpiresAt, new Date()),
+			),
 		});
 
-	return {
-		clientId: payload.client_id,
-		...(payload.client_secret ? { clientSecret: payload.client_secret } : {}),
-		...(authenticationFor(method)
-			? { authentication: authenticationFor(method) }
-			: {}),
-	};
+	return (
+		(await storedClient(server.issuer, redirectUri)) ?? {
+			clientId: payload.client_id,
+			...(payload.client_secret ? { clientSecret: payload.client_secret } : {}),
+			...(authenticationFor(method)
+				? { authentication: authenticationFor(method) }
+				: {}),
+		}
+	);
 }
+
+const registering = new Map<string, Promise<ClientIdentity>>();
 
 export async function resolveClientIdentity(
 	pluginName: string,
@@ -183,7 +191,16 @@ export async function resolveClientIdentity(
 
 	const existing = await storedClient(server.issuer, redirectUri);
 	if (existing) return existing;
-	return await register(pluginName, server, auth, redirectUri);
+
+	const key = `${server.issuer}\n${redirectUri}`;
+	const pending = registering.get(key);
+	if (pending) return await pending;
+
+	const attempt = register(pluginName, server, auth, redirectUri).finally(() =>
+		registering.delete(key),
+	);
+	registering.set(key, attempt);
+	return await attempt;
 }
 
 export async function forgetClient(

@@ -19,16 +19,22 @@ mock.module("./crypto", () => ({
 mock.module("drizzle-orm", () => ({
 	and: (...parts: unknown[]) => parts,
 	eq: (...parts: unknown[]) => parts,
+	isNotNull: (...parts: unknown[]) => parts,
+	lte: (...parts: unknown[]) => parts,
 }));
 
 const stored: Record<string, unknown>[] = [];
 const inserted: Record<string, unknown>[] = [];
 
 function chain() {
+	let pending: Record<string, unknown> | undefined;
 	const node: Record<string, unknown> = {
 		limit: async () => stored,
-		onConflictDoUpdate: async () => undefined,
+		onConflictDoUpdate: async () => {
+			if (pending && stored.length === 0) stored.push(pending);
+		},
 		values: (row: Record<string, unknown>) => {
+			pending = row;
 			inserted.push(row);
 			return node;
 		},
@@ -54,7 +60,7 @@ mock.module("@superset/db/schema", () => ({
 const { buildAuthorizationUrl } = await import("./oauth");
 
 interface Route {
-	body: unknown;
+	body: unknown | (() => unknown);
 	status?: number;
 }
 
@@ -73,7 +79,11 @@ function serve(map: Record<string, Route>) {
 		});
 		const route = routes[url];
 		if (!route) return new Response("no route", { status: 404 });
-		return new Response(JSON.stringify(route.body), {
+		const body =
+			typeof route.body === "function"
+				? (route.body as () => unknown)()
+				: route.body;
+		return new Response(JSON.stringify(body), {
 			status: route.status ?? 200,
 			headers: { "content-type": "application/json" },
 		});
@@ -177,6 +187,87 @@ describe('oauth2 with client "dynamic"', () => {
 		]);
 		expect(inserted[0]?.clientId).toBe("registered-id");
 		expect(inserted[0]?.clientSecret).toBe("enc:registered-secret");
+	});
+
+	test("concurrent connects converge on one registered client", async () => {
+		const mcpUrl = "https://race.test/mcp";
+		let issued = 0;
+		serve({
+			"https://race.test/.well-known/oauth-protected-resource/mcp": {
+				body: {
+					resource: "https://race.test/mcp",
+					authorization_servers: ["https://race.test"],
+				},
+			},
+			"https://race.test/.well-known/oauth-authorization-server": {
+				body: {
+					issuer: "https://race.test",
+					authorization_endpoint: "https://race.test/authorize",
+					token_endpoint: "https://race.test/token",
+					registration_endpoint: "https://race.test/register",
+					token_endpoint_auth_methods_supported: ["client_secret_post"],
+				},
+			},
+			"https://race.test/register": {
+				body: () => {
+					issued += 1;
+					return {
+						client_id: `registered-${issued}`,
+						client_secret: `secret-${issued}`,
+					};
+				},
+				status: 201,
+			},
+		});
+
+		const connect = () =>
+			buildAuthorizationUrl("notion", auth, { inputs: {} }, "state", {
+				manifest: manifest(mcpUrl),
+				codeVerifier: "verifier",
+			});
+		const [first, second] = await Promise.all([connect(), connect()]);
+
+		expect(new URL(first).searchParams.get("client_id")).toBe(
+			new URL(second).searchParams.get("client_id"),
+		);
+		expect(issued).toBe(1);
+		expect(stored[0]?.clientId).toBe("registered-1");
+	});
+
+	test("a later connect reuses the persisted client, not its own registration", async () => {
+		stored.push({
+			clientId: "persisted-id",
+			clientSecret: "enc:persisted-secret",
+			clientSecretExpiresAt: null,
+			tokenEndpointAuthMethod: "client_secret_post",
+		});
+		const mcpUrl = "https://reuse.test/mcp";
+		serve({
+			"https://reuse.test/.well-known/oauth-protected-resource/mcp": {
+				body: {
+					resource: "https://reuse.test/mcp",
+					authorization_servers: ["https://reuse.test"],
+				},
+			},
+			"https://reuse.test/.well-known/oauth-authorization-server": {
+				body: {
+					issuer: "https://reuse.test",
+					authorization_endpoint: "https://reuse.test/authorize",
+					token_endpoint: "https://reuse.test/token",
+					registration_endpoint: "https://reuse.test/register",
+				},
+			},
+		});
+
+		const url = new URL(
+			await buildAuthorizationUrl("notion", auth, { inputs: {} }, "state", {
+				manifest: manifest(mcpUrl),
+				codeVerifier: "verifier",
+			}),
+		);
+
+		expect(url.searchParams.get("client_id")).toBe("persisted-id");
+		expect(requests.some((r) => r.url.endsWith("/register"))).toBe(false);
 	});
 
 	test("says what is missing when the plugin declares no mcp url", async () => {

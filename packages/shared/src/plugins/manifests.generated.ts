@@ -261,7 +261,7 @@ export const FIRST_PARTY_MANIFESTS = {
 	"slack": {
 		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
 		"name": "slack",
-		"version": "1.2.0",
+		"version": "1.2.1",
 		"description": "Search, read, and post across your Slack workspace: channels, DMs, and threads.",
 		"author": {
 			"name": "Superset",
@@ -339,7 +339,7 @@ export const FIRST_PARTY_MANIFESTS = {
 				"server": {
 					"path": "plugins/slack/server/index.mjs",
 					"integrity": "sha256-v6jbpX7Wl57RBS2IU1mk2s4qrnnYIf68AUF3GtV3gxw=",
-					"ref": "slack@1.2.0"
+					"ref": "slack@1.2.1"
 				}
 			}
 		},
@@ -348,7 +348,7 @@ export const FIRST_PARTY_MANIFESTS = {
 	"gmail": {
 		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
 		"name": "gmail",
-		"version": "1.1.0",
+		"version": "1.1.1",
 		"description": "Read, search, send, and organize mail in your Gmail account.",
 		"author": {
 			"name": "Superset",
@@ -414,7 +414,7 @@ export const FIRST_PARTY_MANIFESTS = {
 				"server": {
 					"path": "plugins/gmail/server/index.mjs",
 					"integrity": "sha256-Jo2zdoNIpkSHQOadaOpu5tF7DGG5WKA2bAFjYd7nPBE=",
-					"ref": "gmail@1.1.0"
+					"ref": "gmail@1.1.1"
 				}
 			}
 		},

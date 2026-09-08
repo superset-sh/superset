@@ -1,7 +1,7 @@
 {
 	"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
 	"name": "slack",
-	"version": "1.2.0",
+	"version": "1.2.1",
 	"description": "Search, read, and post across your Slack workspace: channels, DMs, and threads.",
 	"author": {
 		"name": "Superset",
