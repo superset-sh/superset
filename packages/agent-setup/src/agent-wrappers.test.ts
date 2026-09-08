@@ -236,6 +236,11 @@ describe("agent-wrappers opencode", () => {
 		await event("permission.asked", { sessionID: "root" });
 		await event("session.idle", { sessionID: "root" });
 		await event("session.idle", { sessionID: "root" });
+		// Idle is still the same resumable conversation. Unrelated session
+		// creation/deletion must not replace or end its host binding.
+		await event("session.created", { info: { id: "other-after-stop" } });
+		await event("permission.asked", { sessionID: "other-after-stop" });
+		await event("session.deleted", { info: { id: "other-after-stop" } });
 		await event("session.deleted", { info: { id: "child", parentID: "root" } });
 		await event("session.deleted", { info: { id: "root" } });
 

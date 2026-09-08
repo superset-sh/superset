@@ -34,7 +34,7 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
 
   // State tracking for deduplication and session-scoping
   let currentState = 'idle'; // 'idle' | 'busy'
-  let rootSessionID = null;  // The session we're tracking (first busy session)
+  let rootSessionID = null;  // Retained while idle for the host's resume binding
   let stopSent = false;      // Prevent duplicate Stop notifications
 
   const log = (...args) => {
@@ -106,8 +106,9 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
    * Only sends Start if transitioning from idle and session matches root.
    */
   const handleBusy = async (sessionID) => {
-    // If we don't have a root session yet, this becomes our root
-    if (!rootSessionID) {
+    // A new busy root after an idle turn is a conversation switch. Merely
+    // creating or deleting another session is not evidence of a switch.
+    if (!rootSessionID || currentState === 'idle') {
       rootSessionID = sessionID;
       log('Root session set:', rootSessionID);
     }
@@ -131,7 +132,7 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
   /**
    * Handles state transition to idle/stopped.
    * Only sends Stop once per busy period and only for root session.
-   * Resets rootSessionID after Stop so we can track new sessions.
+   * Retains rootSessionID while idle so unrelated events cannot steal resume.
    */
   const handleStop = async (sessionID, reason) => {
     // Only process events for our root session (if we have one)
@@ -146,9 +147,6 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
       stopSent = true;
       log('Stopping, reason:', reason);
       await notify('Stop', sessionID);
-      // Reset rootSessionID so we can track a new session if OpenCode starts another conversation
-      rootSessionID = null;
-      log('Reset rootSessionID for next session');
     } else {
       log('Skipping Stop - state:', currentState, 'stopSent:', stopSent, 'reason:', reason);
     }
@@ -173,6 +171,7 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
         // — by the time deletion fires the session is gone from list().
         if (sessionID) childSessionCache.set(sessionID, isChild);
         if (!isChild) {
+          if (!rootSessionID) rootSessionID = sessionID;
           await notify("SessionStart", sessionID);
         }
         return;
@@ -186,6 +185,11 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
             : await isChildSession(sessionID);
         if (!isChild) {
           await notify("SessionEnd", sessionID);
+          if (rootSessionID === sessionID) {
+            rootSessionID = null;
+            currentState = 'idle';
+            stopSent = true;
+          }
         }
         if (sessionID) childSessionCache.delete(sessionID);
         return;
