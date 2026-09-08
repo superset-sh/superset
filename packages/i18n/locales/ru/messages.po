@@ -15570,6 +15570,9 @@ msgstr "С подписью"
 msgid "with or without attachments"
 msgstr "с вложениями или без"
 
+msgid "Work email"
+msgstr "Рабочая электронная почта"
+
 msgid "Work from tickets"
 msgstr "Работа из тикетов"
 

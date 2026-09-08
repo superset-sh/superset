@@ -15570,6 +15570,9 @@ msgstr "ラベルあり"
 msgid "with or without attachments"
 msgstr "添付の有無を問わず"
 
+msgid "Work email"
+msgstr "勤務先のメールアドレス"
+
 msgid "Work from tickets"
 msgstr "チケットから作業を始める"
 

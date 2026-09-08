@@ -15570,6 +15570,9 @@ msgstr "Avec libellé"
 msgid "with or without attachments"
 msgstr "avec ou sans pièce jointe"
 
+msgid "Work email"
+msgstr "E-mail professionnel"
+
 msgid "Work from tickets"
 msgstr "Travailler depuis les tickets"
 

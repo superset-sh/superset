@@ -15570,6 +15570,9 @@ msgstr "Met label"
 msgid "with or without attachments"
 msgstr "met of zonder bijlagen"
 
+msgid "Work email"
+msgstr "Zakelijk e-mailadres"
+
 msgid "Work from tickets"
 msgstr "Werken vanuit tickets"
 

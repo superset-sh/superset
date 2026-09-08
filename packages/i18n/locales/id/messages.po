@@ -15570,6 +15570,9 @@ msgstr "Dengan label"
 msgid "with or without attachments"
 msgstr "dengan atau tanpa lampiran"
 
+msgid "Work email"
+msgstr "Email kerja"
+
 msgid "Work from tickets"
 msgstr "Bekerja dari tiket"
 

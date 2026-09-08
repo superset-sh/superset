@@ -94,7 +94,7 @@ export function ContactForm({ intent = "contact" }: ContactFormProps) {
 						htmlFor="contact-email"
 						className="block text-sm text-muted-foreground mb-1.5"
 					>
-						<Trans>Email</Trans>
+						{isCloudSignup ? <Trans>Work email</Trans> : <Trans>Email</Trans>}
 					</label>
 					<input
 						id="contact-email"

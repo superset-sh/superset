@@ -15570,6 +15570,9 @@ msgstr "Etiketli"
 msgid "with or without attachments"
 msgstr "ekli veya eksiz"
 
+msgid "Work email"
+msgstr "İş e-postası"
+
 msgid "Work from tickets"
 msgstr "Biletlerden çalışma"
 

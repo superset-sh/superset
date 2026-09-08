@@ -15570,6 +15570,9 @@ msgstr "带标签"
 msgid "with or without attachments"
 msgstr "有无附件均可"
 
+msgid "Work email"
+msgstr "工作邮箱"
+
 msgid "Work from tickets"
 msgstr "从工单开始工作"
 

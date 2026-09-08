@@ -15570,6 +15570,9 @@ msgstr "With label"
 msgid "with or without attachments"
 msgstr "with or without attachments"
 
+msgid "Work email"
+msgstr "Work email"
+
 msgid "Work from tickets"
 msgstr "Work from tickets"
 

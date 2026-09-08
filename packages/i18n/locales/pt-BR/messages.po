@@ -15570,6 +15570,9 @@ msgstr "Com rótulo"
 msgid "with or without attachments"
 msgstr "com ou sem anexos"
 
+msgid "Work email"
+msgstr "E-mail profissional"
+
 msgid "Work from tickets"
 msgstr "Trabalhar a partir de tickets"
 

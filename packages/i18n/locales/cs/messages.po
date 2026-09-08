@@ -15570,6 +15570,9 @@ msgstr "S popiskem"
 msgid "with or without attachments"
 msgstr "s přílohou i bez ní"
 
+msgid "Work email"
+msgstr "Pracovní e-mail"
+
 msgid "Work from tickets"
 msgstr "Práce z ticketů"
 

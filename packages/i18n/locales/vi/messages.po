@@ -15570,6 +15570,9 @@ msgstr "Có nhãn"
 msgid "with or without attachments"
 msgstr "có hoặc không có tệp đính kèm"
 
+msgid "Work email"
+msgstr "Email công việc"
+
 msgid "Work from tickets"
 msgstr "Làm việc từ ticket"
 
