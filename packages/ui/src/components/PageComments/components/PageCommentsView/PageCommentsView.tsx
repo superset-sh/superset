@@ -60,6 +60,7 @@ export function PageCommentsView({
 		discardDraft,
 		activeThreadId,
 		setActiveThreadId,
+		panelOpen,
 		hoverRect,
 		setHoverRect,
 		rects,
@@ -117,7 +118,10 @@ export function PageCommentsView({
 		[frameOrigin],
 	);
 
-	const popoverOpen = Boolean(draft || activeThreadId);
+	const popoverThread = panelOpen
+		? null
+		: threads.find((thread) => thread.id === activeThreadId);
+	const popoverOpen = Boolean(draft || popoverThread);
 	useEffect(() => {
 		const element = containerRef.current;
 		if (!element) return;
@@ -217,8 +221,7 @@ export function PageCommentsView({
 	);
 	const stackIndex = useMemo(() => stackPins(pins), [pins]);
 
-	const activeThread = threads.find((thread) => thread.id === activeThreadId);
-	const activePoint = activeThread ? pinPoints.get(activeThread.id) : null;
+	const activePoint = popoverThread ? pinPoints.get(popoverThread.id) : null;
 	const draftPoint = draft ? pinPointOf(draft.rect, draft.anchor) : null;
 
 	return (
@@ -297,21 +300,21 @@ export function PageCommentsView({
 					/>
 				) : null}
 
-				{activeThread && activePoint ? (
+				{popoverThread && activePoint ? (
 					<CommentPopover
-						key={activeThread.id}
+						key={popoverThread.id}
 						point={activePoint}
 						container={container}
-						thread={activeThread}
+						thread={popoverThread}
 						onDismiss={() => setActiveThreadId(null)}
-						onSubmit={(body) => addReply(activeThread.id, body)}
+						onSubmit={(body) => addReply(popoverThread.id, body)}
 						onEdit={(commentId, body) =>
-							editComment(activeThread.id, commentId, body)
+							editComment(popoverThread.id, commentId, body)
 						}
 						onToggleResolved={() =>
-							setResolved(activeThread.id, !activeThread.resolved)
+							setResolved(popoverThread.id, !popoverThread.resolved)
 						}
-						onDelete={() => deleteThread(activeThread.id)}
+						onDelete={() => deleteThread(popoverThread.id)}
 					/>
 				) : null}
 			</div>

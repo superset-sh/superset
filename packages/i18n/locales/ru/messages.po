@@ -669,6 +669,9 @@ msgstr "{hidden, plural, one {# скрытая строка} few {# скрыты
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {Показать # скрытую строку} few {Показать # скрытые строки} many {Показать # скрытых строк} other {Показать # скрытых строк}}"
 
+msgid "{hidden, plural, one {Show # reply} other {Show # replies}}"
+msgstr "{hidden, plural, one {Показать # ответ} few {Показать # ответа} many {Показать # ответов} other {Показать # ответа}}"
+
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {Показать ещё # кадр} few {Показать ещё # кадра} many {Показать ещё # кадров} other {Показать ещё # кадра}}"
 
@@ -765,9 +768,6 @@ msgstr "{noun, select, repository {Укажите хотя бы один реп�
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {# устройство офлайн и сохранит свою копию.} few {# устройства офлайн и сохранят свои копии.} many {# устройств офлайн и сохранят свои копии.} other {# устройства офлайн и сохранят свои копии.}}"
 
-msgid "{openCount, plural, one {# open comment} other {# open comments}}"
-msgstr "{openCount, plural, one {# открытый комментарий} few {# открытых комментария} many {# открытых комментариев} other {# открытого комментария}}"
-
 msgid "{openCount} open"
 msgstr "{openCount} открыто"
 
@@ -816,9 +816,6 @@ msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{received} из {total}"
-
-msgid "{rest, plural, one {# reply} other {# replies}}"
-msgstr "{rest, plural, one {# ответ} few {# ответа} many {# ответов} other {# ответа}}"
 
 msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
 msgstr "{retried, plural, one {Повторяем # автоматизацию} few {Повторяем # автоматизации} many {Повторяем # автоматизаций} other {Повторяем # автоматизации}}"
@@ -1647,6 +1644,9 @@ msgstr "Все проверки пройдены"
 
 msgid "All checks skipped or cancelled"
 msgstr "Все проверки пропущены или отменены"
+
+msgid "All comments"
+msgstr "Все комментарии"
 
 msgid "All commits"
 msgstr "Все коммиты"
@@ -12605,6 +12605,9 @@ msgstr "Показать все {count}"
 msgid "Show all automations again"
 msgstr "Снова показать все автоматизации"
 
+msgid "Show all comments"
+msgstr "Показать все комментарии"
+
 msgid "Show all lines"
 msgstr "Показать все строки"
 
@@ -12613,9 +12616,6 @@ msgstr "Показать проверки"
 
 msgid "Show closed"
 msgstr "Показать закрытые"
-
-msgid "Show comments"
-msgstr "Показать комментарии"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "Показывать загрузку CPU и памяти в верхней панели"

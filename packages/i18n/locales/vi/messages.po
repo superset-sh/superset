@@ -669,6 +669,9 @@ msgstr "{hidden, plural, one {# dòng ẩn} other {# dòng ẩn}}"
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {Hiện # dòng ẩn} other {Hiện # dòng ẩn}}"
 
+msgid "{hidden, plural, one {Show # reply} other {Show # replies}}"
+msgstr "{hidden, plural, one {Hiển thị # phản hồi} other {Hiển thị # phản hồi}}"
+
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {Hiện thêm # frame} other {Hiện thêm # frame}}"
 
@@ -765,9 +768,6 @@ msgstr "{noun, select, repository {Hãy chỉ định ít nhất một repo.} ch
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {# thiết bị đang ngoại tuyến và sẽ giữ lại bản sao của mình.} other {# thiết bị đang ngoại tuyến và sẽ giữ lại bản sao của mình.}}"
 
-msgid "{openCount, plural, one {# open comment} other {# open comments}}"
-msgstr "{openCount, plural, one {# bình luận đang mở} other {# bình luận đang mở}}"
-
 msgid "{openCount} open"
 msgstr "{openCount} còn mở"
 
@@ -816,9 +816,6 @@ msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{received} trên {total}"
-
-msgid "{rest, plural, one {# reply} other {# replies}}"
-msgstr "{rest, plural, one {# phản hồi} other {# phản hồi}}"
 
 msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
 msgstr "{retried, plural, one {Đang thử lại # tự động hóa} other {Đang thử lại # tự động hóa}}"
@@ -1647,6 +1644,9 @@ msgstr "Tất cả check đã qua"
 
 msgid "All checks skipped or cancelled"
 msgstr "Tất cả check bị bỏ qua hoặc hủy"
+
+msgid "All comments"
+msgstr "Tất cả bình luận"
 
 msgid "All commits"
 msgstr "Tất cả commit"
@@ -12605,6 +12605,9 @@ msgstr "Hiện tất cả {count}"
 msgid "Show all automations again"
 msgstr "Hiện lại tất cả tự động hóa"
 
+msgid "Show all comments"
+msgstr "Hiển thị tất cả bình luận"
+
 msgid "Show all lines"
 msgstr "Hiện tất cả các dòng"
 
@@ -12613,9 +12616,6 @@ msgstr "Hiện check"
 
 msgid "Show closed"
 msgstr "Hiện issue đã đóng"
-
-msgid "Show comments"
-msgstr "Hiện bình luận"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "Hiện mức dùng CPU và bộ nhớ trên thanh trên cùng"

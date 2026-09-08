@@ -669,6 +669,9 @@ msgstr "{hidden, plural, one {非表示の#行} other {非表示の#行}}"
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {非表示の#行を表示} other {非表示の#行を表示}}"
 
+msgid "{hidden, plural, one {Show # reply} other {Show # replies}}"
+msgstr "{hidden, plural, one {#件の返信を表示} other {#件の返信を表示}}"
+
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {さらに#件のフレームを表示} other {さらに#件のフレームを表示}}"
 
@@ -765,9 +768,6 @@ msgstr "{noun, select, repository {リポジトリを1つ以上指定してく�
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {#台のデバイスがオフラインのため、そのコピーは残ります。} other {#台のデバイスがオフラインのため、そのコピーは残ります。}}"
 
-msgid "{openCount, plural, one {# open comment} other {# open comments}}"
-msgstr "{openCount, plural, one {未解決のコメント#件} other {未解決のコメント#件}}"
-
 msgid "{openCount} open"
 msgstr "{openCount}件通過"
 
@@ -816,9 +816,6 @@ msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{received}/{total}"
-
-msgid "{rest, plural, one {# reply} other {# replies}}"
-msgstr "{rest, plural, one {#件の返信} other {#件の返信}}"
 
 msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
 msgstr "{retried, plural, one {#件のオートメーションを再試行中} other {#件のオートメーションを再試行中}}"
@@ -1647,6 +1644,9 @@ msgstr "すべてのチェックが成功"
 
 msgid "All checks skipped or cancelled"
 msgstr "すべてのチェックがスキップまたはキャンセルされました"
+
+msgid "All comments"
+msgstr "すべてのコメント"
 
 msgid "All commits"
 msgstr "すべてのコミット"
@@ -12605,6 +12605,9 @@ msgstr "{count}件すべて表示"
 msgid "Show all automations again"
 msgstr "すべてのオートメーションを再表示"
 
+msgid "Show all comments"
+msgstr "すべてのコメントを表示"
+
 msgid "Show all lines"
 msgstr "すべての行を表示"
 
@@ -12613,9 +12616,6 @@ msgstr "チェックを表示"
 
 msgid "Show closed"
 msgstr "クローズ済みも表示"
-
-msgid "Show comments"
-msgstr "コメントを表示"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "トップバーにCPUとメモリ使用量を表示"

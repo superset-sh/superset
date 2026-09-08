@@ -669,6 +669,9 @@ msgstr "{hidden, plural, one {# baris tersembunyi} other {# baris tersembunyi}}"
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {Tampilkan # baris tersembunyi} other {Tampilkan # baris tersembunyi}}"
 
+msgid "{hidden, plural, one {Show # reply} other {Show # replies}}"
+msgstr "{hidden, plural, one {Tampilkan # balasan} other {Tampilkan # balasan}}"
+
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {Tampilkan # frame lagi} other {Tampilkan # frame lagi}}"
 
@@ -765,9 +768,6 @@ msgstr "{noun, select, repository {Tentukan minimal satu repositori.} channel {T
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {# perangkat sedang offline dan tetap menyimpan salinannya.} other {# perangkat sedang offline dan tetap menyimpan salinannya.}}"
 
-msgid "{openCount, plural, one {# open comment} other {# open comments}}"
-msgstr "{openCount, plural, one {# komentar terbuka} other {# komentar terbuka}}"
-
 msgid "{openCount} open"
 msgstr "{openCount} terbuka"
 
@@ -816,9 +816,6 @@ msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{received} dari {total}"
-
-msgid "{rest, plural, one {# reply} other {# replies}}"
-msgstr "{rest, plural, one {# balasan} other {# balasan}}"
 
 msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
 msgstr "{retried, plural, one {Mencoba ulang # otomatisasi} other {Mencoba ulang # otomatisasi}}"
@@ -1647,6 +1644,9 @@ msgstr "Semua Check Lulus"
 
 msgid "All checks skipped or cancelled"
 msgstr "Semua check dilewati atau dibatalkan"
+
+msgid "All comments"
+msgstr "Semua komentar"
 
 msgid "All commits"
 msgstr "Semua commit"
@@ -12605,6 +12605,9 @@ msgstr "Tampilkan semua {count}"
 msgid "Show all automations again"
 msgstr "Tampilkan lagi semua otomatisasi"
 
+msgid "Show all comments"
+msgstr "Tampilkan semua komentar"
+
 msgid "Show all lines"
 msgstr "Tampilkan semua baris"
 
@@ -12613,9 +12616,6 @@ msgstr "Tampilkan check"
 
 msgid "Show closed"
 msgstr "Tampilkan yang ditutup"
-
-msgid "Show comments"
-msgstr "Tampilkan komentar"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "Tampilkan penggunaan CPU dan memori di bilah atas"

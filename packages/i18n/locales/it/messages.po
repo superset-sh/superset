@@ -669,6 +669,9 @@ msgstr "{hidden, plural, one {# riga nascosta} other {# righe nascoste}}"
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {Mostra # riga nascosta} other {Mostra # righe nascoste}}"
 
+msgid "{hidden, plural, one {Show # reply} other {Show # replies}}"
+msgstr "{hidden, plural, one {Mostra # risposta} other {Mostra # risposte}}"
+
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {Mostra # altro frame} other {Mostra altri # frame}}"
 
@@ -765,9 +768,6 @@ msgstr "{noun, select, repository {Specifica almeno un repository.} channel {Spe
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {# dispositivo è offline e conserva la sua copia.} other {# dispositivi sono offline e conservano la loro copia.}}"
 
-msgid "{openCount, plural, one {# open comment} other {# open comments}}"
-msgstr "{openCount, plural, one {# commento aperto} other {# commenti aperti}}"
-
 msgid "{openCount} open"
 msgstr "{openCount} aperti"
 
@@ -816,9 +816,6 @@ msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{received} di {total}"
-
-msgid "{rest, plural, one {# reply} other {# replies}}"
-msgstr "{rest, plural, one {# risposta} other {# risposte}}"
 
 msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
 msgstr "{retried, plural, one {Nuovo tentativo per # automazione} other {Nuovo tentativo per # automazioni}}"
@@ -1647,6 +1644,9 @@ msgstr "Tutti i controlli superati"
 
 msgid "All checks skipped or cancelled"
 msgstr "Tutti i controlli saltati o annullati"
+
+msgid "All comments"
+msgstr "Tutti i commenti"
 
 msgid "All commits"
 msgstr "Tutti i commit"
@@ -12605,6 +12605,9 @@ msgstr "Mostra tutti i {count}"
 msgid "Show all automations again"
 msgstr "Mostra di nuovo tutte le automazioni"
 
+msgid "Show all comments"
+msgstr "Mostra tutti i commenti"
+
 msgid "Show all lines"
 msgstr "Mostra tutte le righe"
 
@@ -12613,9 +12616,6 @@ msgstr "Mostra i controlli"
 
 msgid "Show closed"
 msgstr "Mostra chiuse"
-
-msgid "Show comments"
-msgstr "Mostra i commenti"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "Mostra l'uso di CPU e memoria nella barra superiore"

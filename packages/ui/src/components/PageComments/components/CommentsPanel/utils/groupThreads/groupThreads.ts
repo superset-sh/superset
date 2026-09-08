@@ -1,4 +1,5 @@
 import type { FrameRect } from "@superset/shared/page-comments-runtime";
+import { startOfDay } from "date-fns";
 import type { CommentThread } from "../../../../providers/CommentProvider";
 
 export interface GroupedThreads {
@@ -38,4 +39,25 @@ export function newestActivity(thread: CommentThread): number {
 		if (comment.createdAt > newest) newest = comment.createdAt;
 	}
 	return newest;
+}
+
+export interface DayGroup {
+	day: number;
+	threads: CommentThread[];
+}
+
+export function groupByDay(threads: CommentThread[]): DayGroup[] {
+	const byDay = new Map<number, CommentThread[]>();
+	for (const thread of threads) {
+		const day = startOfDay(newestActivity(thread)).getTime();
+		const group = byDay.get(day);
+		if (group) group.push(thread);
+		else byDay.set(day, [thread]);
+	}
+	return [...byDay.entries()]
+		.sort(([a], [b]) => b - a)
+		.map(([day, group]) => ({
+			day,
+			threads: group.sort((a, b) => newestActivity(b) - newestActivity(a)),
+		}));
 }

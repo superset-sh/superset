@@ -669,6 +669,9 @@ msgstr "{hidden, plural, one {숨겨진 #줄} other {숨겨진 #줄}}"
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {숨겨진 #줄 보기} other {숨겨진 #줄 보기}}"
 
+msgid "{hidden, plural, one {Show # reply} other {Show # replies}}"
+msgstr "{hidden, plural, one {답글 #개 표시} other {답글 #개 표시}}"
+
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {프레임 #개 더 보기} other {프레임 #개 더 보기}}"
 
@@ -765,9 +768,6 @@ msgstr "{noun, select, repository {리포지토리를 하나 이상 지정하세
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {기기 #대가 오프라인 상태이며 사본을 그대로 유지합니다.} other {기기 #대가 오프라인 상태이며 사본을 그대로 유지합니다.}}"
 
-msgid "{openCount, plural, one {# open comment} other {# open comments}}"
-msgstr "{openCount, plural, one {미해결 댓글 #개} other {미해결 댓글 #개}}"
-
 msgid "{openCount} open"
 msgstr "{openCount}개 열림"
 
@@ -816,9 +816,6 @@ msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{total} 중 {received}"
-
-msgid "{rest, plural, one {# reply} other {# replies}}"
-msgstr "{rest, plural, one {답글 #개} other {답글 #개}}"
 
 msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
 msgstr "{retried, plural, one {자동화 #개를 다시 시도하는 중} other {자동화 #개를 다시 시도하는 중}}"
@@ -1647,6 +1644,9 @@ msgstr "모든 검사 통과"
 
 msgid "All checks skipped or cancelled"
 msgstr "모든 검사를 건너뛰었거나 취소함"
+
+msgid "All comments"
+msgstr "모든 댓글"
 
 msgid "All commits"
 msgstr "모든 커밋"
@@ -12605,6 +12605,9 @@ msgstr "{count}개 모두 보기"
 msgid "Show all automations again"
 msgstr "모든 자동화 다시 표시"
 
+msgid "Show all comments"
+msgstr "모든 댓글 표시"
+
 msgid "Show all lines"
 msgstr "모든 줄 표시"
 
@@ -12613,9 +12616,6 @@ msgstr "검사 표시"
 
 msgid "Show closed"
 msgstr "닫힌 항목 표시"
-
-msgid "Show comments"
-msgstr "댓글 표시"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "상단 바에 CPU와 메모리 사용량을 표시합니다"

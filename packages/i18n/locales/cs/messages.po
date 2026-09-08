@@ -669,6 +669,9 @@ msgstr "{hidden, plural, one {# skrytý řádek} few {# skryté řádky} many {#
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {Zobrazit # skrytý řádek} few {Zobrazit # skryté řádky} many {Zobrazit # skrytého řádku} other {Zobrazit # skrytých řádků}}"
 
+msgid "{hidden, plural, one {Show # reply} other {Show # replies}}"
+msgstr "{hidden, plural, one {Zobrazit # odpověď} few {Zobrazit # odpovědi} many {Zobrazit # odpovědi} other {Zobrazit # odpovědí}}"
+
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {Zobrazit ještě # rámec} few {Zobrazit ještě # rámce} many {Zobrazit ještě # rámce} other {Zobrazit ještě # rámců}}"
 
@@ -765,9 +768,6 @@ msgstr "{noun, select, repository {Zadejte alespoň jeden repozitář.} channel 
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {# zařízení je offline a ponechá si svou kopii.} few {# zařízení jsou offline a ponechají si svou kopii.} many {# zařízení je offline a ponechá si svou kopii.} other {# zařízení je offline a ponechá si svou kopii.}}"
 
-msgid "{openCount, plural, one {# open comment} other {# open comments}}"
-msgstr "{openCount, plural, one {# otevřený komentář} few {# otevřené komentáře} many {# otevřené komentáře} other {# otevřených komentářů}}"
-
 msgid "{openCount} open"
 msgstr "{openCount} otevřených"
 
@@ -816,9 +816,6 @@ msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{received} z {total}"
-
-msgid "{rest, plural, one {# reply} other {# replies}}"
-msgstr "{rest, plural, one {# odpověď} few {# odpovědi} many {# odpovědi} other {# odpovědí}}"
 
 msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
 msgstr "{retried, plural, one {Opakuji # automatizaci} few {Opakuji # automatizace} many {Opakuji # automatizace} other {Opakuji # automatizací}}"
@@ -1647,6 +1644,9 @@ msgstr "Všechny kontroly prošly"
 
 msgid "All checks skipped or cancelled"
 msgstr "Všechny kontroly přeskočeny nebo zrušeny"
+
+msgid "All comments"
+msgstr "Všechny komentáře"
 
 msgid "All commits"
 msgstr "Všechny commity"
@@ -12605,6 +12605,9 @@ msgstr "Zobrazit všech {count}"
 msgid "Show all automations again"
 msgstr "Zobrazit znovu všechny automatizace"
 
+msgid "Show all comments"
+msgstr "Zobrazit všechny komentáře"
+
 msgid "Show all lines"
 msgstr "Zobrazit všechny řádky"
 
@@ -12613,9 +12616,6 @@ msgstr "Zobrazit kontroly"
 
 msgid "Show closed"
 msgstr "Zobrazit uzavřené"
-
-msgid "Show comments"
-msgstr "Zobrazit komentáře"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "Zobrazovat využití CPU a paměti v horní liště"

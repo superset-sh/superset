@@ -1,25 +1,27 @@
 "use client";
 
-import { Plural, Trans, useLingui } from "@lingui/react/macro";
-import { MessageSquare, X } from "lucide-react";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { formatDate } from "@superset/i18n/format";
+import { differenceInCalendarDays } from "date-fns";
+import { X } from "lucide-react";
 import { type ReactNode, useMemo, useState } from "react";
 import { cn } from "../../../../lib/utils";
 import { Button } from "../../../ui/button";
 import { useComments } from "../../providers/CommentProvider";
-import { SidebarThread } from "./components/SidebarThread";
-import { groupThreads, newestActivity } from "./utils/groupThreads";
+import { PanelThread } from "./components/PanelThread";
+import { groupByDay, groupThreads, newestActivity } from "./utils/groupThreads";
 
-interface CommentsSidebarProps {
+interface CommentsPanelProps {
 	servedVersion?: number | null;
 	header?: ReactNode;
 	className?: string;
 }
 
-export function CommentsSidebar({
+export function CommentsPanel({
 	servedVersion = null,
 	header,
 	className,
-}: CommentsSidebarProps) {
+}: CommentsPanelProps) {
 	const { t } = useLingui();
 	const {
 		threads,
@@ -42,8 +44,18 @@ export function CommentsSidebar({
 		[threads, rects, rectsReady, showResolved],
 	);
 
+	if (!panelOpen) return null;
+
 	const sort = (list: typeof anchored) =>
 		[...list].sort((a, b) => newestActivity(b) - newestActivity(a));
+
+	const dayLabel = (day: number) => {
+		const age = differenceInCalendarDays(Date.now(), day);
+		if (age <= 0) return t({ message: "Today" });
+		if (age === 1) return t({ message: "Yesterday" });
+		if (age < 7) return formatDate(day, { weekday: "long" });
+		return formatDate(day);
+	};
 
 	const resolvedCount = threads.length - openCount;
 	const empty = anchored.length === 0 && unanchored.length === 0;
@@ -52,8 +64,7 @@ export function CommentsSidebar({
 		thread,
 		active: activeThreadId === thread.id,
 		servedVersion,
-		onSelect: () =>
-			setActiveThreadId(activeThreadId === thread.id ? null : thread.id),
+		onSelect: () => setActiveThreadId(thread.id),
 		onReply: (body: string) => addReply(thread.id, body),
 		onEdit: (commentId: string, body: string) =>
 			editComment(thread.id, commentId, body),
@@ -65,25 +76,18 @@ export function CommentsSidebar({
 		<aside
 			data-comment-ui=""
 			className={cn(
-				// Mobile is a full-screen sheet over the page, opened from the
-				// header. The rail only exists once there is width to spare: at
-				// 300px fixed it left a phone about 90px of page.
-				"fixed inset-0 z-50 flex-col bg-background",
-				panelOpen ? "flex" : "hidden",
-				"md:static md:z-auto md:flex md:w-[300px] md:shrink-0 md:border-l",
+				"absolute inset-0 z-50 flex flex-col bg-background",
+				"md:inset-auto md:top-3 md:right-3 md:bottom-3 md:z-40",
+				"md:h-fit md:max-h-[calc(100%-1.5rem)] md:w-[340px]",
+				"md:rounded-xl md:border md:shadow-lg",
 				className,
 			)}
 		>
 			{header ? <div className="border-b p-3">{header}</div> : null}
 
-			<div className="flex items-center gap-2 border-b px-3 py-2 md:py-2">
-				<MessageSquare className="size-3.5 shrink-0 text-muted-foreground" />
-				<span className="text-xs font-medium">
-					<Plural
-						value={openCount}
-						one="# open comment"
-						other="# open comments"
-					/>
+			<div className="flex items-center gap-2 px-3 py-2.5">
+				<span className="font-medium text-sm">
+					<Trans>All comments</Trans>
 				</span>
 				{resolvedCount > 0 ? (
 					<Button
@@ -103,35 +107,42 @@ export function CommentsSidebar({
 					size="icon"
 					variant="ghost"
 					aria-label={t({ message: "Close comments" })}
-					className={cn("size-7 md:hidden", resolvedCount > 0 ? "" : "ml-auto")}
+					className={cn("size-7", resolvedCount > 0 ? "" : "ml-auto")}
 					onClick={() => setPanelOpen(false)}
 				>
 					<X className="size-4" />
 				</Button>
 			</div>
 
-			<div className="flex-1 overflow-y-auto p-2">
+			<div className="flex-1 overflow-y-auto px-2 pb-2">
 				{isLoading ? (
-					<p className="p-2 text-xs text-muted-foreground">
+					<p className="p-2 text-muted-foreground text-xs">
 						<Trans>Loading comments…</Trans>
 					</p>
 				) : empty ? (
-					<p className="p-2 text-xs text-muted-foreground">
+					<p className="p-2 text-muted-foreground text-xs">
 						<Trans>
 							No comments yet. Turn on comment mode and click anything on the
 							page to start one.
 						</Trans>
 					</p>
 				) : (
-					<div className="flex flex-col gap-1">
-						{sort(anchored).map((thread) => (
-							<SidebarThread key={thread.id} {...threadProps(thread)} />
+					<div className="flex flex-col gap-3">
+						{groupByDay(anchored).map((group) => (
+							<div key={group.day} className="flex flex-col gap-2">
+								<span className="px-1.5 text-muted-foreground text-xs">
+									{dayLabel(group.day)}
+								</span>
+								{group.threads.map((thread) => (
+									<PanelThread key={thread.id} {...threadProps(thread)} />
+								))}
+							</div>
 						))}
 
 						{unanchored.length > 0 ? (
-							<>
-								<div className="px-2.5 pt-3 pb-1">
-									<span className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+							<div className="flex flex-col gap-2">
+								<div className="px-1.5">
+									<span className="font-medium text-[10px] text-muted-foreground uppercase tracking-wide">
 										<Trans>Not on this version</Trans>
 									</span>
 									<p className="pt-0.5 text-[10px] text-muted-foreground">
@@ -142,9 +153,9 @@ export function CommentsSidebar({
 									</p>
 								</div>
 								{sort(unanchored).map((thread) => (
-									<SidebarThread key={thread.id} {...threadProps(thread)} />
+									<PanelThread key={thread.id} {...threadProps(thread)} />
 								))}
-							</>
+							</div>
 						) : null}
 					</div>
 				)}

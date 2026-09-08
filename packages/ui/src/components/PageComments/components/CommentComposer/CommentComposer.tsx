@@ -12,6 +12,7 @@ interface CommentComposerProps {
 	/** A reply composer names its thread; a draft composer starts one. */
 	isReply: boolean;
 	onSubmit: (body: string) => void | Promise<void>;
+	onFocus?: () => void;
 	autoFocus?: boolean;
 	ref?: Ref<HTMLTextAreaElement>;
 	className?: string;
@@ -20,6 +21,7 @@ interface CommentComposerProps {
 export function CommentComposer({
 	isReply,
 	onSubmit,
+	onFocus,
 	autoFocus,
 	ref,
 	className,
@@ -46,7 +48,10 @@ export function CommentComposer({
 				autoFocus={autoFocus}
 				value={value}
 				onChange={(event) => setValue(event.target.value)}
-				onFocus={() => setFocused(true)}
+				onFocus={() => {
+					setFocused(true);
+					onFocus?.();
+				}}
 				onBlur={() => setFocused(false)}
 				onKeyDown={(event) => {
 					if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {

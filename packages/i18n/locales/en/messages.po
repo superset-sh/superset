@@ -669,6 +669,9 @@ msgstr "{hidden, plural, one {# hidden line} other {# hidden lines}}"
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 
+msgid "{hidden, plural, one {Show # reply} other {Show # replies}}"
+msgstr "{hidden, plural, one {Show # reply} other {Show # replies}}"
+
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 
@@ -765,9 +768,6 @@ msgstr "{noun, select, repository {Specify at least one repository.} channel {Sp
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 
-msgid "{openCount, plural, one {# open comment} other {# open comments}}"
-msgstr "{openCount, plural, one {# open comment} other {# open comments}}"
-
 msgid "{openCount} open"
 msgstr "{openCount} open"
 
@@ -816,9 +816,6 @@ msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{received} of {total}"
-
-msgid "{rest, plural, one {# reply} other {# replies}}"
-msgstr "{rest, plural, one {# reply} other {# replies}}"
 
 msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
 msgstr "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
@@ -1647,6 +1644,9 @@ msgstr "All Checks Passed"
 
 msgid "All checks skipped or cancelled"
 msgstr "All checks skipped or cancelled"
+
+msgid "All comments"
+msgstr "All comments"
 
 msgid "All commits"
 msgstr "All commits"
@@ -12605,6 +12605,9 @@ msgstr "Show all {count}"
 msgid "Show all automations again"
 msgstr "Show all automations again"
 
+msgid "Show all comments"
+msgstr "Show all comments"
+
 msgid "Show all lines"
 msgstr "Show all lines"
 
@@ -12613,9 +12616,6 @@ msgstr "Show checks"
 
 msgid "Show closed"
 msgstr "Show closed"
-
-msgid "Show comments"
-msgstr "Show comments"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "Show CPU and memory usage in the top bar"

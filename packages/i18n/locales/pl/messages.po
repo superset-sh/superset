@@ -669,6 +669,9 @@ msgstr "{hidden, plural, one {# ukryty wiersz} few {# ukryte wiersze} many {# uk
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {Pokaż # ukryty wiersz} few {Pokaż # ukryte wiersze} many {Pokaż # ukrytych wierszy} other {Pokaż # ukrytego wiersza}}"
 
+msgid "{hidden, plural, one {Show # reply} other {Show # replies}}"
+msgstr "{hidden, plural, one {Pokaż # odpowiedź} few {Pokaż # odpowiedzi} many {Pokaż # odpowiedzi} other {Pokaż # odpowiedzi}}"
+
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {Pokaż # kolejną ramkę} few {Pokaż # kolejne ramki} many {Pokaż # kolejnych ramek} other {Pokaż # kolejnej ramki}}"
 
@@ -765,9 +768,6 @@ msgstr "{noun, select, repository {Podaj co najmniej jedno repozytorium.} channe
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {# urządzenie jest offline i zachowa swoją kopię.} few {# urządzenia są offline i zachowają swoje kopie.} many {# urządzeń jest offline i zachowa swoje kopie.} other {# urządzenia jest offline i zachowa swoje kopie.}}"
 
-msgid "{openCount, plural, one {# open comment} other {# open comments}}"
-msgstr "{openCount, plural, one {# otwarty komentarz} few {# otwarte komentarze} many {# otwartych komentarzy} other {# otwartego komentarza}}"
-
 msgid "{openCount} open"
 msgstr "{openCount} otwartych"
 
@@ -816,9 +816,6 @@ msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{received} z {total}"
-
-msgid "{rest, plural, one {# reply} other {# replies}}"
-msgstr "{rest, plural, one {# odpowiedź} few {# odpowiedzi} many {# odpowiedzi} other {# odpowiedzi}}"
 
 msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
 msgstr "{retried, plural, one {Ponawianie # automatyzacji} few {Ponawianie # automatyzacji} many {Ponawianie # automatyzacji} other {Ponawianie # automatyzacji}}"
@@ -1647,6 +1644,9 @@ msgstr "Wszystkie kontrole przeszły"
 
 msgid "All checks skipped or cancelled"
 msgstr "Wszystkie kontrole pominięte lub anulowane"
+
+msgid "All comments"
+msgstr "Wszystkie komentarze"
 
 msgid "All commits"
 msgstr "Wszystkie commity"
@@ -12605,6 +12605,9 @@ msgstr "Pokaż wszystkie ({count})"
 msgid "Show all automations again"
 msgstr "Pokaż ponownie wszystkie automatyzacje"
 
+msgid "Show all comments"
+msgstr "Pokaż wszystkie komentarze"
+
 msgid "Show all lines"
 msgstr "Pokaż wszystkie wiersze"
 
@@ -12613,9 +12616,6 @@ msgstr "Pokaż kontrole"
 
 msgid "Show closed"
 msgstr "Pokaż zamknięte"
-
-msgid "Show comments"
-msgstr "Pokaż komentarze"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "Pokazuj zużycie CPU i pamięci na górnym pasku"

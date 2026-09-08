@@ -669,6 +669,9 @@ msgstr "{hidden, plural, one {#行已隐藏} other {#行已隐藏}}"
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {显示#行隐藏内容} other {显示#行隐藏内容}}"
 
+msgid "{hidden, plural, one {Show # reply} other {Show # replies}}"
+msgstr "{hidden, plural, one {显示 # 条回复} other {显示 # 条回复}}"
+
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {再显示#个栈帧} other {再显示#个栈帧}}"
 
@@ -765,9 +768,6 @@ msgstr "{noun, select, repository {请至少指定一个仓库。} channel {请�
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {# 台设备处于离线状态，将保留其副本。} other {# 台设备处于离线状态，将保留其副本。}}"
 
-msgid "{openCount, plural, one {# open comment} other {# open comments}}"
-msgstr "{openCount, plural, one {#条未解决评论} other {#条未解决评论}}"
-
 msgid "{openCount} open"
 msgstr "{openCount}项已开启"
 
@@ -816,9 +816,6 @@ msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{received}/{total}"
-
-msgid "{rest, plural, one {# reply} other {# replies}}"
-msgstr "{rest, plural, one {#条回复} other {#条回复}}"
 
 msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
 msgstr "{retried, plural, one {正在重试#个自动化} other {正在重试#个自动化}}"
@@ -1647,6 +1644,9 @@ msgstr "全部检查通过"
 
 msgid "All checks skipped or cancelled"
 msgstr "所有检查已跳过或取消"
+
+msgid "All comments"
+msgstr "全部评论"
 
 msgid "All commits"
 msgstr "所有提交"
@@ -12605,6 +12605,9 @@ msgstr "显示全部{count}条"
 msgid "Show all automations again"
 msgstr "重新显示所有自动化"
 
+msgid "Show all comments"
+msgstr "显示全部评论"
+
 msgid "Show all lines"
 msgstr "显示所有行"
 
@@ -12613,9 +12616,6 @@ msgstr "显示检查"
 
 msgid "Show closed"
 msgstr "显示已关闭"
-
-msgid "Show comments"
-msgstr "显示评论"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "在顶栏显示CPU和内存用量"

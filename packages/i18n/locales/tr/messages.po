@@ -669,6 +669,9 @@ msgstr "{hidden, plural, one {# gizli satır} other {# gizli satır}}"
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {# gizli satırı göster} other {# gizli satırı göster}}"
 
+msgid "{hidden, plural, one {Show # reply} other {Show # replies}}"
+msgstr "{hidden, plural, one {# yanıtı göster} other {# yanıtı göster}}"
+
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {# çerçeve daha göster} other {# çerçeve daha göster}}"
 
@@ -765,9 +768,6 @@ msgstr "{noun, select, repository {En az bir depo belirtin.} channel {En az bir 
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {# cihaz çevrimdışı ve kopyasını koruyor.} other {# cihaz çevrimdışı ve kopyalarını koruyor.}}"
 
-msgid "{openCount, plural, one {# open comment} other {# open comments}}"
-msgstr "{openCount, plural, one {# açık yorum} other {# açık yorum}}"
-
 msgid "{openCount} open"
 msgstr "{openCount} açık"
 
@@ -816,9 +816,6 @@ msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{total} içinden {received}"
-
-msgid "{rest, plural, one {# reply} other {# replies}}"
-msgstr "{rest, plural, one {# yanıt} other {# yanıt}}"
 
 msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
 msgstr "{retried, plural, one {# otomasyon yeniden deneniyor} other {# otomasyon yeniden deneniyor}}"
@@ -1647,6 +1644,9 @@ msgstr "Tüm kontroller geçti"
 
 msgid "All checks skipped or cancelled"
 msgstr "Tüm kontroller atlandı veya iptal edildi"
+
+msgid "All comments"
+msgstr "Tüm yorumlar"
 
 msgid "All commits"
 msgstr "Tüm commit'ler"
@@ -12605,6 +12605,9 @@ msgstr "Tümünü göster ({count})"
 msgid "Show all automations again"
 msgstr "Tüm otomasyonları yeniden göster"
 
+msgid "Show all comments"
+msgstr "Tüm yorumları göster"
+
 msgid "Show all lines"
 msgstr "Tüm satırları göster"
 
@@ -12613,9 +12616,6 @@ msgstr "Kontrolleri göster"
 
 msgid "Show closed"
 msgstr "Kapalıları göster"
-
-msgid "Show comments"
-msgstr "Yorumları göster"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "Üst çubukta CPU ve bellek kullanımını göster"

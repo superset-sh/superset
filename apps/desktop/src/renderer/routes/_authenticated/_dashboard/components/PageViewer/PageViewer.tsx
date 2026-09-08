@@ -1,7 +1,8 @@
 import { useLingui } from "@lingui/react/macro";
 import {
+	AllCommentsButton,
 	CommentProvider,
-	CommentsSidebar,
+	CommentsPanel,
 	PageCommentsView,
 } from "@superset/ui/page-comments";
 import { Spinner } from "@superset/ui/spinner";
@@ -108,7 +109,7 @@ export function PageViewer({
 				image: session?.user.image ?? null,
 			}}
 		>
-			<div className="flex h-full w-full">
+			<div className="relative flex h-full w-full">
 				<div className="min-h-0 min-w-0 flex-1">
 					<PageCommentsView
 						src={pull.data.viewUrl}
@@ -118,9 +119,8 @@ export function PageViewer({
 						onFramePointerDown={onFramePointerDown}
 					/>
 				</div>
-				{commentsEnabled ? (
-					<CommentsSidebar servedVersion={pull.data?.version ?? null} />
-				) : null}
+				<AllCommentsButton />
+				<CommentsPanel servedVersion={pull.data?.version ?? null} />
 			</div>
 		</CommentProvider>
 	);

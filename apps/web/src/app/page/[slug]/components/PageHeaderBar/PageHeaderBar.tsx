@@ -2,7 +2,6 @@
 
 import {
 	CommentModeToggle,
-	CommentsPanelToggle,
 	PageHeader,
 	type PageHeaderPage,
 	type PageHeaderVersion,
@@ -50,7 +49,6 @@ export function PageHeaderBar({
 						initialAgentId={watchAgentId}
 					/>
 					<CommentModeToggle />
-					<CommentsPanelToggle />
 				</>
 			}
 			onSetVisibility={async (visibility) => {

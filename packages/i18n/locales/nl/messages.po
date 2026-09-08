@@ -669,6 +669,9 @@ msgstr "{hidden, plural, one {# verborgen regel} other {# verborgen regels}}"
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {# verborgen regel tonen} other {# verborgen regels tonen}}"
 
+msgid "{hidden, plural, one {Show # reply} other {Show # replies}}"
+msgstr "{hidden, plural, one {# reactie tonen} other {# reacties tonen}}"
+
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {# frame meer tonen} other {# frames meer tonen}}"
 
@@ -765,9 +768,6 @@ msgstr "{noun, select, repository {Geef minstens één repository op.} channel {
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {# apparaat is offline en behoudt zijn kopie.} other {# apparaten zijn offline en behouden hun kopie.}}"
 
-msgid "{openCount, plural, one {# open comment} other {# open comments}}"
-msgstr "{openCount, plural, one {# open opmerking} other {# open opmerkingen}}"
-
 msgid "{openCount} open"
 msgstr "{openCount} open"
 
@@ -816,9 +816,6 @@ msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{received} van {total}"
-
-msgid "{rest, plural, one {# reply} other {# replies}}"
-msgstr "{rest, plural, one {# reactie} other {# reacties}}"
 
 msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
 msgstr "{retried, plural, one {# automatisering opnieuw uitvoeren} other {# automatiseringen opnieuw uitvoeren}}"
@@ -1647,6 +1644,9 @@ msgstr "Alle checks geslaagd"
 
 msgid "All checks skipped or cancelled"
 msgstr "Alle checks overgeslagen of geannuleerd"
+
+msgid "All comments"
+msgstr "Alle opmerkingen"
 
 msgid "All commits"
 msgstr "Alle commits"
@@ -12605,6 +12605,9 @@ msgstr "Alle {count} tonen"
 msgid "Show all automations again"
 msgstr "Weer alle automatiseringen tonen"
 
+msgid "Show all comments"
+msgstr "Alle opmerkingen tonen"
+
 msgid "Show all lines"
 msgstr "Alle regels tonen"
 
@@ -12613,9 +12616,6 @@ msgstr "Checks tonen"
 
 msgid "Show closed"
 msgstr "Gesloten tonen"
-
-msgid "Show comments"
-msgstr "Opmerkingen tonen"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "Toon CPU- en geheugengebruik in de bovenbalk"

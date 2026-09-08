@@ -669,6 +669,9 @@ msgstr "{hidden, plural, one {# ligne masquée} other {# lignes masquées}}"
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {Afficher # ligne masquée} other {Afficher # lignes masquées}}"
 
+msgid "{hidden, plural, one {Show # reply} other {Show # replies}}"
+msgstr "{hidden, plural, one {Afficher # réponse} other {Afficher # réponses}}"
+
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {Afficher # frame de plus} other {Afficher # frames de plus}}"
 
@@ -765,9 +768,6 @@ msgstr "{noun, select, repository {Indiquez au moins un dépôt.} channel {Indiq
 msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
 msgstr "{offlineHostCount, plural, one {# appareil est hors ligne et conserve sa copie.} other {# appareils sont hors ligne et conservent leur copie.}}"
 
-msgid "{openCount, plural, one {# open comment} other {# open comments}}"
-msgstr "{openCount, plural, one {# commentaire ouvert} other {# commentaires ouverts}}"
-
 msgid "{openCount} open"
 msgstr "{openCount} ouvertes"
 
@@ -816,9 +816,6 @@ msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{received} sur {total}"
-
-msgid "{rest, plural, one {# reply} other {# replies}}"
-msgstr "{rest, plural, one {# réponse} other {# réponses}}"
 
 msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
 msgstr "{retried, plural, one {Nouvelle tentative pour # automatisation} other {Nouvelle tentative pour # automatisations}}"
@@ -1647,6 +1644,9 @@ msgstr "Toutes les vérifications ont réussi"
 
 msgid "All checks skipped or cancelled"
 msgstr "Toutes les vérifications ont été ignorées ou annulées"
+
+msgid "All comments"
+msgstr "Tous les commentaires"
 
 msgid "All commits"
 msgstr "Tous les commits"
@@ -12605,6 +12605,9 @@ msgstr "Afficher les {count}"
 msgid "Show all automations again"
 msgstr "Afficher à nouveau toutes les automatisations"
 
+msgid "Show all comments"
+msgstr "Afficher tous les commentaires"
+
 msgid "Show all lines"
 msgstr "Afficher toutes les lignes"
 
@@ -12613,9 +12616,6 @@ msgstr "Afficher les vérifications"
 
 msgid "Show closed"
 msgstr "Afficher les fermées"
-
-msgid "Show comments"
-msgstr "Afficher les commentaires"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "Afficher l'utilisation du processeur et de la mémoire dans la barre supérieure"

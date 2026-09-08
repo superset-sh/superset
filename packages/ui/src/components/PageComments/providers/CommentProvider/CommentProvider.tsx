@@ -137,7 +137,7 @@ export function CommentProvider({
 		[controlledEnabled, onEnabledChange],
 	);
 	const [draft, setDraft] = useState<CommentDraft | null>(null);
-	const [panelOpen, setPanelOpen] = useState(false);
+	const [panelOpen, setPanelOpenState] = useState(false);
 	const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
 	const [hoverRect, setHoverRect] = useState<FrameRect | null>(null);
 	const [rects, setRectState] = useState<Record<string, FrameRect | null>>({});
@@ -157,6 +157,11 @@ export function CommentProvider({
 			return !previous;
 		});
 	}, [setEnabled]);
+
+	const setPanelOpen = useCallback((open: boolean) => {
+		setPanelOpenState(open);
+		if (!open) setActiveThreadId(null);
+	}, []);
 
 	const openDraft = useCallback((next: CommentDraft) => {
 		setActiveThreadId(null);
@@ -294,6 +299,7 @@ export function CommentProvider({
 			enabled,
 			toggleEnabled,
 			panelOpen,
+			setPanelOpen,
 			draft,
 			openDraft,
 			discardDraft,

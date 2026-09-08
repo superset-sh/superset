@@ -18,6 +18,8 @@ import { relativeTime } from "../../utils/relativeTime";
 
 interface CommentListProps {
 	thread: CommentThread;
+	anchorText?: string;
+	onAnchorClick?: () => void;
 	onEdit?: (commentId: string, body: string) => void | Promise<void>;
 	onToggleResolved?: () => void;
 	onDelete?: () => void;
@@ -26,6 +28,8 @@ interface CommentListProps {
 
 export function CommentList({
 	thread,
+	anchorText,
+	onAnchorClick,
 	onEdit,
 	onToggleResolved,
 	onDelete,
@@ -51,119 +55,138 @@ export function CommentList({
 
 	return (
 		<div className={cn("flex flex-col", className)}>
-			{thread.comments.map((comment) => {
+			{thread.comments.map((comment, index) => {
 				const author = commentAuthor(comment);
 				return (
 					<div
 						key={comment.id}
-						className="group/comment flex flex-col gap-1 px-3.5 py-2 first:pt-3.5 last:pb-3.5"
+						className="group/comment flex gap-2.5 px-3.5 pb-2 first:pt-3.5 last:pb-3.5"
 					>
-						<div className="flex h-7 items-center gap-2.5">
-							<Avatar className="size-7">
-								<AvatarImage src={author.image ?? undefined} alt="" />
-								<AvatarFallback className="text-[11px]">
-									{author.isAgent ? (
-										<Bot className="size-3.5" />
-									) : (
-										initialsOf(author.name)
-									)}
-								</AvatarFallback>
-							</Avatar>
-							<div className="flex min-w-0 items-baseline gap-2">
-								<span className="truncate font-medium text-sm">
-									{author.name}
-								</span>
-								<span className="truncate text-muted-foreground text-xs">
-									{relativeTime(comment.createdAt)}
-								</span>
-							</div>
-							{/* Actions stay out of the way until the comment is hovered
-							    or focused, so a thread reads as prose. */}
-							<div className="ml-auto flex items-center gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover/comment:opacity-100">
-								{onEdit ? (
-									<IconButton
-										label={t({ message: "Edit comment" })}
-										onClick={() => {
-											setEditingId(comment.id);
-											setEditValue(comment.body);
-										}}
-									>
-										<Pencil className="size-3.5" />
-									</IconButton>
-								) : null}
-								{onToggleResolved ? (
-									<IconButton
-										label={
-											thread.resolved
-												? t({ message: "Reopen thread" })
-												: t({ message: "Resolve thread" })
-										}
-										onClick={onToggleResolved}
-										disabled={threadBusy}
-									>
-										{thread.resolved ? (
-											<RotateCcw className="size-3.5" />
-										) : (
-											<Check className="size-3.5" />
-										)}
-									</IconButton>
-								) : null}
-								{onDelete ? (
-									<IconButton
-										label={t({ message: "Delete thread" })}
-										onClick={onDelete}
-										disabled={threadBusy}
-									>
-										{threadBusy ? (
-											<Loader2 className="size-3.5 animate-spin" />
-										) : (
-											<Trash2 className="size-3.5" />
-										)}
-									</IconButton>
-								) : null}
-							</div>
-						</div>
-						{editingId === comment.id ? (
-							<div className="flex flex-col gap-2 pl-[38px]">
-								<Textarea
-									value={editValue}
-									onChange={(event) => setEditValue(event.target.value)}
-									className="min-h-16 resize-none rounded-[13px] border-[0.5px] bg-foreground/[0.02] p-2.5 text-sm shadow-none focus-visible:ring-0 dark:bg-foreground/[0.02]"
-								/>
-								<div className="flex gap-2">
-									<Button
-										size="sm"
-										onClick={() => commitEdit(comment)}
-										disabled={submitting}
-									>
-										{submitting ? (
-											<>
+						<Avatar className="size-7 shrink-0">
+							<AvatarImage src={author.image ?? undefined} alt="" />
+							<AvatarFallback className="text-[11px]">
+								{author.isAgent ? (
+									<Bot className="size-3.5" />
+								) : (
+									initialsOf(author.name)
+								)}
+							</AvatarFallback>
+						</Avatar>
+
+						<div className="flex min-w-0 flex-1 flex-col gap-1 pb-1">
+							<div className="flex h-7 items-center gap-2.5">
+								<div className="flex min-w-0 items-baseline gap-2">
+									<span className="truncate font-medium text-sm">
+										{author.name}
+									</span>
+									<span className="truncate text-muted-foreground text-xs">
+										{relativeTime(comment.createdAt)}
+									</span>
+								</div>
+								<div className="ml-auto flex items-center gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover/comment:opacity-100">
+									{onEdit ? (
+										<IconButton
+											label={t({ message: "Edit comment" })}
+											onClick={() => {
+												setEditingId(comment.id);
+												setEditValue(comment.body);
+											}}
+										>
+											<Pencil className="size-3.5" />
+										</IconButton>
+									) : null}
+									{onToggleResolved ? (
+										<IconButton
+											label={
+												thread.resolved
+													? t({ message: "Reopen thread" })
+													: t({ message: "Resolve thread" })
+											}
+											onClick={onToggleResolved}
+											disabled={threadBusy}
+										>
+											{thread.resolved ? (
+												<RotateCcw className="size-3.5" />
+											) : (
+												<Check className="size-3.5" />
+											)}
+										</IconButton>
+									) : null}
+									{onDelete ? (
+										<IconButton
+											label={t({ message: "Delete thread" })}
+											onClick={onDelete}
+											disabled={threadBusy}
+										>
+											{threadBusy ? (
 												<Loader2 className="size-3.5 animate-spin" />
-												<Trans>Saving…</Trans>
-											</>
-										) : (
-											<Trans>Save</Trans>
-										)}
-									</Button>
-									<Button
-										size="sm"
-										variant="ghost"
-										onClick={() => setEditingId(null)}
-										disabled={submitting}
-									>
-										<Trans>Cancel</Trans>
-									</Button>
+											) : (
+												<Trash2 className="size-3.5" />
+											)}
+										</IconButton>
+									) : null}
 								</div>
 							</div>
-						) : (
-							<p className="whitespace-pre-wrap pl-[38px] text-sm">
-								{comment.body}
-							</p>
-						)}
+							{index === 0 && anchorText ? (
+								<Quote onClick={onAnchorClick}>{anchorText}</Quote>
+							) : null}
+							{editingId === comment.id ? (
+								<div className="flex flex-col gap-2">
+									<Textarea
+										value={editValue}
+										onChange={(event) => setEditValue(event.target.value)}
+										className="min-h-16 resize-none rounded-[13px] border-[0.5px] bg-foreground/[0.02] p-2.5 text-sm shadow-none focus-visible:ring-0 dark:bg-foreground/[0.02]"
+									/>
+									<div className="flex gap-2">
+										<Button
+											size="sm"
+											onClick={() => commitEdit(comment)}
+											disabled={submitting}
+										>
+											{submitting ? (
+												<>
+													<Loader2 className="size-3.5 animate-spin" />
+													<Trans>Saving…</Trans>
+												</>
+											) : (
+												<Trans>Save</Trans>
+											)}
+										</Button>
+										<Button
+											size="sm"
+											variant="ghost"
+											onClick={() => setEditingId(null)}
+											disabled={submitting}
+										>
+											<Trans>Cancel</Trans>
+										</Button>
+									</div>
+								</div>
+							) : (
+								<p className="whitespace-pre-wrap text-sm">{comment.body}</p>
+							)}
+						</div>
 					</div>
 				);
 			})}
 		</div>
+	);
+}
+
+function Quote({
+	children,
+	onClick,
+}: {
+	children: string;
+	onClick?: () => void;
+}) {
+	const className =
+		"line-clamp-2 border-l-2 border-primary pl-2 text-left text-muted-foreground text-sm italic";
+	if (!onClick) return <p className={className}>{children}</p>;
+	return (
+		<button type="button" onClick={onClick} className={className}>
+			{children}
+		</button>
 	);
 }
 
