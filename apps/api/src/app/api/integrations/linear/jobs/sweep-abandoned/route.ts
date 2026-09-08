@@ -75,6 +75,32 @@ const MAX_ROWS = 500;
 const MAX_CONSECUTIVE_PUBLISH_FAILURES = 3;
 
 /**
+ * How long a run may spend publishing before it leaves the rest to the next
+ * run.
+ *
+ * `singleFlight` holds its advisory lock inside the transaction on `tx`, and
+ * every re-queue below is an HTTP publish made off that connection, so the
+ * connection sits `idle in transaction` for as long as this loop runs. Two
+ * clocks end a run that overruns and both end it the same way: `maxDuration`
+ * above kills the invocation at sixty seconds, and Postgres closes an
+ * idle-in-transaction connection at five minutes, taking the lock with it
+ * while the run is still going. Either way the write-back below never commits,
+ * so deliveries that *were* handed to QStash go uncounted and are re-queued
+ * again next run without ever spending one of their five attempts — a delivery
+ * that can never be given up on, which is the one thing that counter exists to
+ * prevent.
+ *
+ * `MAX_CONSECUTIVE_PUBLISH_FAILURES` bounds publishes that fail, and gets
+ * there first when they do — three of them is nine seconds at worst. This
+ * bounds publishes that merely go slow, which is what actually runs a run out
+ * of time and which that breaker never sees. Thirty seconds, plus at most one
+ * `PUBLISH_TIMEOUT_MS` of overshoot on the publish in flight when the budget
+ * expires, ends a run by thirty-three of `maxDuration`'s sixty and leaves the
+ * write-back and the commit the rest.
+ */
+const PUBLISH_BUDGET_MS = 30_000;
+
+/**
  * Re-queues Linear deliveries that were accepted but never carried through,
  * and gives up on the ones that have had enough attempts.
  *
@@ -111,6 +137,8 @@ export async function POST(request: Request): Promise<Response> {
 	// deliveries twice, and a run is held open across its QStash publishes, so
 	// the lock also bounds this route to a single connection.
 	const attempt = await singleFlight("linear.sweep-abandoned", async (tx) => {
+		// The lock is held from here, so the budget is measured from here too.
+		const startedAt = Date.now();
 		const { rows } = await tx.execute<AbandonedRow>(sql`
 			WITH band AS MATERIALIZED (
 				SELECT id, provider, status, event_id, received_at, retry_count
@@ -167,6 +195,13 @@ export async function POST(request: Request): Promise<Response> {
 		const failed: string[] = [];
 		let consecutiveFailures = 0;
 		for (const { observedRetryCount, ...work } of plan.requeue) {
+			// Leaving the rest unexamined is the trade `MAX_REQUEUES` and
+			// `MAX_ROWS` already make, and it stops in the right order: the band
+			// is read oldest first, so what goes unpublished is its youngest —
+			// rows that entered most recently and still pass under later runs
+			// before they age out. Nothing is written for them, so the next run
+			// finds them exactly as they were.
+			if (Date.now() - startedAt >= PUBLISH_BUDGET_MS) break;
 			try {
 				await enqueueLinearDelivery(work);
 				requeued.push({ observedRetryCount, ...work });
@@ -223,6 +258,10 @@ export async function POST(request: Request): Promise<Response> {
 			requeued: requeued.length,
 			abandoned: plan.exhausted.length,
 			failed: failed.length,
+			// Planned re-queues this run never attempted, whether it stopped on
+			// the budget or on the failure breaker. Without this a run that stops
+			// early is indistinguishable from one that found nothing more to do.
+			deferred: plan.requeue.length - requeued.length - failed.length,
 			truncated: rows.length === MAX_ROWS,
 		};
 	});
@@ -231,7 +270,11 @@ export async function POST(request: Request): Promise<Response> {
 	// skipped by standing down.
 	if (!attempt.ran) return Response.json({ skipped: "already running" });
 
-	if (attempt.result.requeued > 0 || attempt.result.abandoned > 0) {
+	if (
+		attempt.result.requeued > 0 ||
+		attempt.result.abandoned > 0 ||
+		attempt.result.deferred > 0
+	) {
 		console.log("[linear/sweep-abandoned]", attempt.result);
 	}
 	return Response.json(attempt.result);
