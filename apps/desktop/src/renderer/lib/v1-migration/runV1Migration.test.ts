@@ -157,6 +157,8 @@ class FakeHost {
 				list: { query: async () => this.folders },
 				upsert: {
 					mutate: async (args: FakeHost["folders"][number]) => {
+						if (args.displayName.length > 200)
+							throw new Error("Display name too long");
 						this.folders = this.folders.filter(
 							(f) => f.scope !== args.scope || f.tag !== args.tag,
 						);
@@ -648,6 +650,18 @@ describe("v1 groups to tags", () => {
 		});
 		expect(host.folders).toHaveLength(1);
 		expect(host.workspaces[0].tags).toEqual(["review"]);
+	});
+
+	test("imports unbounded v1 group names within the host display-name limit", async () => {
+		const { ipc, host } = await setup();
+		const original = `Long ${"x".repeat(220)}`;
+		ipc.groups[0].name = original;
+		expect((await run(ipc, host)).settings.failed).toBe(0);
+		expect(host.folders[0].displayName).toBe(original.slice(0, 200));
+		expect(ipc.groups[0].name).toBe(original);
+		expect(host.workspaces[0].tags).toEqual([host.folders[0].tag]);
+		await run(ipc, host);
+		expect(host.folders).toHaveLength(1);
 	});
 
 	test("skips groups belonging to projects that were not migrated", async () => {

@@ -95,7 +95,9 @@ export async function migrateV1Groups({
 				await hostClient.tagFolders.upsert.mutate({
 					scope,
 					tag,
-					displayName: group.name.trim() || tag,
+					// v1 names were unbounded; the host accepts at most 200 chars.
+					// Keep the original in v1 and the local presentation row.
+					displayName: group.name.trim().slice(0, 200) || tag,
 					color: group.color,
 					tabOrder: group.tabOrder,
 				});
