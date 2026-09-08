@@ -56,6 +56,26 @@
 			"category": "communication",
 			"source": "./plugins/gmail",
 			"version": "1.0.0"
+		},
+		{
+			"name": "google-docs",
+			"description": "Read and edit Google Docs: pull a document's contents and write changes back.",
+			"author": {
+				"name": "Superset"
+			},
+			"category": "productivity",
+			"source": "./plugins/google-docs",
+			"version": "1.0.0"
+		},
+		{
+			"name": "google-sheets",
+			"description": "Read and edit Google Sheets: values, formulas, and sheet structure.",
+			"author": {
+				"name": "Superset"
+			},
+			"category": "productivity",
+			"source": "./plugins/google-sheets",
+			"version": "1.0.0"
 		}
 	],
 	"featured": ["github", "linear"],

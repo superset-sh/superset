@@ -1,10 +1,13 @@
-import { db } from "@superset/db/client";
 import { pluginOauthClients } from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";
 import { env } from "../../env";
 import { decryptOptional, encryptOptional } from "./crypto";
 import type { DiscoveredServer } from "./discovery";
 import { credentialFetch, type PluginAuthMethod } from "./manifest";
+
+async function database() {
+	return (await import("@superset/db/client")).db;
+}
 
 export interface ClientIdentity {
 	clientId: string;
@@ -40,7 +43,7 @@ async function storedClient(
 	issuer: string,
 	redirectUri: string,
 ): Promise<ClientIdentity | null> {
-	const [row] = await db
+	const [row] = await (await database())
 		.select()
 		.from(pluginOauthClients)
 		.where(
@@ -131,7 +134,7 @@ async function register(
 			? new Date(payload.client_secret_expires_at * 1000)
 			: null;
 
-	await db
+	await (await database())
 		.insert(pluginOauthClients)
 		.values({
 			issuer: server.issuer,
@@ -190,7 +193,7 @@ export async function forgetClient(
 	issuer: string,
 	redirectUri: string,
 ): Promise<void> {
-	await db
+	await (await database())
 		.delete(pluginOauthClients)
 		.where(
 			and(
