@@ -14,6 +14,7 @@ import { join } from "node:path";
 import {
 	DEFAULT_LOCK_STALE_MS,
 	defaultEngineSettings,
+	defaultRuntimeState,
 	EngineState,
 } from "./engine-state.ts";
 import type { HistoryEntry } from "./types.ts";
@@ -477,6 +478,52 @@ describe("account-engine state", () => {
 			chmodSync(dir, 0o700);
 			expect(new EngineState().readSettings()).toEqual(defaultEngineSettings());
 			expect(new EngineState().readHistory(10)).toEqual([]);
+		} finally {
+			chmodSync(dir, 0o700);
+			warn.mockRestore();
+		}
+	});
+
+	// Read-only is not containment on its own: it stops the engine overwriting
+	// the file, which is what would keep a planted one authoritative. A dir
+	// someone else can write must not be read either.
+	it("ignores files planted under a state dir writable by others", () => {
+		const dir = join(home, "state", "account-engine");
+		mkdirSync(dir, { recursive: true, mode: 0o700 });
+		const planted = defaultEngineSettings();
+		planted.claude.enabled = true;
+		planted.claude.thresholdPercent = 5;
+		writeFileSync(join(dir, "settings.json"), JSON.stringify(planted));
+		const runtime = defaultRuntimeState();
+		runtime.identityBindings = { "acct-a": "/tmp/attacker-profile" };
+		writeFileSync(join(dir, "runtime.json"), JSON.stringify(runtime));
+		writeFileSync(
+			join(dir, "history.jsonl"),
+			`${JSON.stringify(historyEntry({ toLabel: "planted" }))}\n`,
+		);
+		chmodSync(dir, 0o777);
+
+		const warn = spyOn(console, "warn").mockImplementation(() => {});
+		try {
+			const state = new EngineState();
+			expect(state.assertSafeStateDir().readOnly).toBe(true);
+			expect(state.readSettings()).toEqual(defaultEngineSettings());
+			expect(state.readRuntime().identityBindings).toEqual({});
+			expect(state.readHistory(10)).toEqual([]);
+			expect(state.readQuotaSnapshot()).toBeNull();
+
+			// Control: the same bytes are still on disk and are honoured again
+			// once the dir is ours alone, so the reads above were refused by the
+			// safety gate, not by a missing or unparsable file.
+			chmodSync(dir, 0o700);
+			const safe = new EngineState();
+			expect(safe.readSettings().claude.thresholdPercent).toBe(5);
+			expect(safe.readRuntime().identityBindings).toEqual({
+				"acct-a": "/tmp/attacker-profile",
+			});
+			expect(safe.readHistory(10).map((entry) => entry.toLabel)).toEqual([
+				"planted",
+			]);
 		} finally {
 			chmodSync(dir, 0o700);
 			warn.mockRestore();

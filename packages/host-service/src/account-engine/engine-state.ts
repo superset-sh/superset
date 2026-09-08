@@ -301,6 +301,7 @@ export class EngineState {
 
 	/** Newest first; malformed lines are skipped, not fatal. */
 	readHistory(limit = 50): HistoryEntry[] {
+		if (this.assertSafeStateDir().readOnly) return [];
 		const raw = this.readText(HISTORY_FILE);
 		if (raw === null) return [];
 		const lines = raw.split("\n");
@@ -551,6 +552,10 @@ export class EngineState {
 		schema: z.ZodType<T>,
 		fallback: () => F,
 	): T | F {
+		// A dir someone else can write is refused for reads too, not just for
+		// writes: the planted file is the half that gets acted on, and staying
+		// read-only is exactly what would keep it authoritative.
+		if (this.assertSafeStateDir().readOnly) return fallback();
 		const raw = this.readText(name);
 		if (raw === null) return fallback();
 		const parsed = this.parseJson(name, raw);
