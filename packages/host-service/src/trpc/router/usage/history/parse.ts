@@ -16,7 +16,6 @@
 
 import { createReadStream } from "node:fs";
 import { basename } from "node:path";
-import { createInterface } from "node:readline";
 import type { UsageAgent } from "../types";
 import type { LogFile } from "./logs";
 
@@ -64,16 +63,56 @@ export function toSessionLabel(text: unknown): string | null {
 		: line;
 }
 
+/** Longest line handed to a parser. Real transcript lines top out in the
+ * single-digit MB (5.8 MB was the largest across 90 days of heavy Claude and
+ * Codex use), so anything past this is a corrupt or foreign file, not usage.
+ * The bound is what keeps a data file from killing the worker: V8 refuses
+ * strings past ~512 MB, and node:readline buffered a newline-free run
+ * without limit, throwing `RangeError: Invalid string length` from inside
+ * the stream's data callback — unreachable by any try/catch around the
+ * iteration, so it took the worker thread down and hung the inline retry. */
+export const MAX_LINE_LENGTH = 32 * 1024 * 1024;
+
+/** Calls `onLine` for every `\n`-terminated line of a UTF-8 file (a trailing
+ * `\r` is stripped). A line longer than MAX_LINE_LENGTH is skipped and the
+ * file continues at the next newline. */
 export async function forEachLine(
 	path: string,
 	onLine: (line: string) => void,
 ): Promise<void> {
+	let pending = "";
+	let skipping = false;
+	const emit = (line: string) => {
+		onLine(line.endsWith("\r") ? line.slice(0, -1) : line);
+	};
 	try {
-		const rl = createInterface({
-			input: createReadStream(path, { encoding: "utf-8" }),
-			crlfDelay: Number.POSITIVE_INFINITY,
-		});
-		for await (const line of rl) onLine(line);
+		const chunks = createReadStream(path, {
+			encoding: "utf-8",
+		}) as AsyncIterable<string>;
+		for await (const chunk of chunks) {
+			let start = 0;
+			for (
+				let end = chunk.indexOf("\n");
+				end !== -1;
+				end = chunk.indexOf("\n", start)
+			) {
+				if (skipping) {
+					skipping = false;
+				} else {
+					const line = pending + chunk.slice(start, end);
+					pending = "";
+					if (line.length <= MAX_LINE_LENGTH) emit(line);
+				}
+				start = end + 1;
+			}
+			if (skipping) continue;
+			pending += chunk.slice(start);
+			if (pending.length > MAX_LINE_LENGTH) {
+				pending = "";
+				skipping = true;
+			}
+		}
+		if (!skipping && pending) emit(pending);
 	} catch {
 		// Unreadable or vanished mid-scan — skip the file.
 	}
