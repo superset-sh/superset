@@ -303,30 +303,20 @@ export async function exchangeCode(
 		options.manifest,
 	);
 
-	const tokens = await withClientRetry(
-		pluginName,
-		auth,
-		endpoints,
-		async (current) =>
-			await postToken(
-				requireTokenEndpoint(pluginName, current),
-				await authorizationCodeRequest({
-					code,
-					redirectURI: redirectUri(pluginName),
-					options: providerOptions(pluginName, current.identity),
-					...(options.codeVerifier
-						? { codeVerifier: options.codeVerifier }
-						: {}),
-					...(current.identity.authentication
-						? { authentication: current.identity.authentication }
-						: {}),
-					...(current.resource ? { resource: current.resource } : {}),
-					additionalParams: auth.token_params ?? {},
-				}),
-				"token_url",
-			),
-		scope,
-		options.manifest,
+	const tokens = await postToken(
+		requireTokenEndpoint(pluginName, endpoints),
+		await authorizationCodeRequest({
+			code,
+			redirectURI: redirectUri(pluginName),
+			options: providerOptions(pluginName, endpoints.identity),
+			...(options.codeVerifier ? { codeVerifier: options.codeVerifier } : {}),
+			...(endpoints.identity.authentication
+				? { authentication: endpoints.identity.authentication }
+				: {}),
+			...(endpoints.resource ? { resource: endpoints.resource } : {}),
+			additionalParams: auth.token_params ?? {},
+		}),
+		"token_url",
 	);
 
 	return exchanged(tokens, auth);

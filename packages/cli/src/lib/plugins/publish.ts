@@ -156,6 +156,16 @@ function checkAuth(plugin: ResolvedPlugin): CheckIssue[] {
 
 		const inputs = new Set((auth.inputs ?? []).map((input) => input.name));
 
+		if (auth.type === "oauth2") {
+			const secrets = (auth.inputs ?? []).filter((input) => input.secret);
+			if (secrets.length) {
+				issues.push({
+					name,
+					problem: `oauth2 inputs cannot be secret (${secrets.map((i) => i.name).join(", ")}); they travel in the authorize URL`,
+				});
+			}
+		}
+
 		if (auth.type === "oauth2" && auth.client === "dynamic") {
 			if (!mcpUrl) {
 				issues.push({
@@ -181,14 +191,6 @@ function checkAuth(plugin: ResolvedPlugin): CheckIssue[] {
 				issues.push({
 					name,
 					problem: "oauth2 auth needs both authorization_url and token_url",
-				});
-			}
-
-			const secrets = (auth.inputs ?? []).filter((input) => input.secret);
-			if (secrets.length) {
-				issues.push({
-					name,
-					problem: `oauth2 inputs cannot be secret (${secrets.map((i) => i.name).join(", ")}); they travel in the authorize URL`,
 				});
 			}
 

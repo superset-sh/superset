@@ -128,7 +128,9 @@ async function register(
 		);
 	}
 
-	const method = payload.token_endpoint_auth_method ?? tokenEndpointAuthMethod;
+	const method = payload.client_secret
+		? (payload.token_endpoint_auth_method ?? tokenEndpointAuthMethod)
+		: "none";
 	const expiresAt =
 		payload.client_secret_expires_at && payload.client_secret_expires_at > 0
 			? new Date(payload.client_secret_expires_at * 1000)
