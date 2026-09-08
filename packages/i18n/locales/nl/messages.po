@@ -13594,7 +13594,7 @@ msgid "The access token is past its expiry but the sign-in is not — a fresh on
 msgstr "Het toegangstoken is verlopen, maar de login niet — er wordt een nieuw token aangemaakt zodra de CLI weer draait."
 
 msgid "The account engine cannot use its state directory. Make it owner-only (chmod 700), or point SUPERSET_HOME_DIR at a filesystem that supports Unix permissions."
-msgstr "De accountengine kan zijn statusmap niet gebruiken. Maak de map alleen toegankelijk voor de eigenaar (chmod 700) of laat SUPERSET_HOME_DIR naar een bestandssysteem wijzen dat Unix-rechten ondersteunt."
+msgstr "De account-engine kan zijn statusmap niet gebruiken. Maak de map alleen toegankelijk voor de eigenaar (chmod 700) of laat SUPERSET_HOME_DIR naar een bestandssysteem wijzen dat Unix-rechten ondersteunt."
 
 msgid "The account engine is not running on this host, so {agentLabel} accounts cannot switch automatically."
 msgstr "De account-engine draait niet op deze host, dus {agentLabel}-accounts kunnen niet automatisch wisselen."

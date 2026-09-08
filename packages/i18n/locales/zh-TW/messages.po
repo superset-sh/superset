@@ -13594,7 +13594,7 @@ msgid "The access token is past its expiry but the sign-in is not — a fresh on
 msgstr "存取權杖已過期，但登入本身沒有 — 下次執行CLI時會重新簽發。"
 
 msgid "The account engine cannot use its state directory. Make it owner-only (chmod 700), or point SUPERSET_HOME_DIR at a filesystem that supports Unix permissions."
-msgstr "帳號引擎無法使用其狀態目錄。請將該目錄設為僅擁有者可存取（chmod 700），或將 SUPERSET_HOME_DIR 指向支援 Unix 權限的檔案系統。"
+msgstr "帳戶引擎無法使用其狀態目錄。請將該目錄設為僅擁有者可存取（chmod 700），或將 SUPERSET_HOME_DIR 指向支援 Unix 權限的檔案系統。"
 
 msgid "The account engine is not running on this host, so {agentLabel} accounts cannot switch automatically."
 msgstr "這台主機上沒有執行帳戶引擎，因此{agentLabel}帳戶無法自動切換。"

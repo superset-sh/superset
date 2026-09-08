@@ -13594,7 +13594,7 @@ msgid "The access token is past its expiry but the sign-in is not — a fresh on
 msgstr "Token akses sudah lewat masa berlakunya, tapi sesi masuknya belum — token baru dibuat saat CLI berikutnya dijalankan."
 
 msgid "The account engine cannot use its state directory. Make it owner-only (chmod 700), or point SUPERSET_HOME_DIR at a filesystem that supports Unix permissions."
-msgstr "Mesin akun tidak dapat menggunakan direktori statusnya. Jadikan hanya bisa diakses pemiliknya (chmod 700), atau arahkan SUPERSET_HOME_DIR ke sistem berkas yang mendukung izin Unix."
+msgstr "Engine akun tidak dapat menggunakan direktori statusnya. Jadikan hanya bisa diakses pemiliknya (chmod 700), atau arahkan SUPERSET_HOME_DIR ke sistem berkas yang mendukung izin Unix."
 
 msgid "The account engine is not running on this host, so {agentLabel} accounts cannot switch automatically."
 msgstr "Engine akun tidak berjalan di host ini, jadi akun {agentLabel} tidak bisa berganti otomatis."

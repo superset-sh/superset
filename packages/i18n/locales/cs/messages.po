@@ -13597,10 +13597,10 @@ msgid "The account engine cannot use its state directory. Make it owner-only (ch
 msgstr "Engine účtů nemůže použít svůj adresář se stavem. Zpřístupněte ho jen vlastníkovi (chmod 700), nebo nasměrujte SUPERSET_HOME_DIR na souborový systém, který podporuje unixová oprávnění."
 
 msgid "The account engine is not running on this host, so {agentLabel} accounts cannot switch automatically."
-msgstr "Modul účtů na tomto hostu neběží, takže účty {agentLabel} se nemohou přepínat automaticky."
+msgstr "Engine účtů na tomto hostu neběží, takže účty {agentLabel} se nemohou přepínat automaticky."
 
 msgid "The account engine is not running on this host."
-msgstr "Modul účtů na tomto hostu neběží."
+msgstr "Engine účtů na tomto hostu neběží."
 
 msgid "the active organization"
 msgstr "aktivní organizaci"
