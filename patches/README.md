@@ -119,23 +119,42 @@ applied — duplicated output on a resize during heavy output.
 2. That continuation lives in a new `_resumeAfterAsync`, which also cancels a
    scheduled write loop so it cannot touch the paused chunk before the handler
    settles.
+3. `RenderDebouncer` (DESKTOP-27 / DESKTOP-CS; also `src/browser/RenderDebouncer.ts`):
+   `dispose()` cancelled the pending frame but left the viewport and decoration
+   refresh callbacks queued for it, and `refresh()` or `addRefreshCallback()` on
+   the disposed debouncer re-armed a frame that ran them against the renderer
+   slot `dispose()` had already emptied — "Cannot read properties of undefined
+   (reading 'dimensions')" from requestAnimationFrame. `Terminal.dispose()`
+   does this to itself: it disposes the core before the addons, and
+   `@xterm/addon-ligatures` deregisters its character joiner on dispose, which
+   xterm answers with a full `refresh()`. The debouncer now records disposal,
+   drops the queued callbacks, ignores refresh and callback requests, and stops
+   running callbacks once one of them disposes the terminal. Still present on
+   upstream master.
 
-**Guard test:** `apps/desktop/src/xterm-flushsync-patch.test.ts` asserts the
-patch markers in both bundles and reproduces the failure against the real
+**Guard tests:** `apps/desktop/src/xterm-flushsync-patch.test.ts` asserts the
+hunk 1–2 markers in both bundles and reproduces the failure against the real
 build: an image chunk plus a text chunk, then `resize()`, must not throw and
 must render both once the handler settles.
+`apps/desktop/src/xterm-render-debouncer-patch.test.ts` does the same for
+hunk 3: markers, then a real terminal opened under happy-dom with a
+joiner-holding addon, disposed with a viewport sync queued — no frame may be
+scheduled and nothing may throw.
 
 **Regenerating after a version bump** (~10 min), unless upstream has absorbed
-it (check `WriteBuffer.flushSync` for `_asyncPending` or an equivalent guard;
-then delete the patch, the `patchedDependencies` entry, and update the test):
+it (check `WriteBuffer.flushSync` for `_asyncPending` or an equivalent guard,
+and `RenderDebouncer.dispose` for a disposed flag or callback clearing; drop
+whichever hunks upstream carries, and delete the patch, the
+`patchedDependencies` entry, and the tests only once both are gone):
 
 ```bash
 bun patch @xterm/xterm@<new-version>
-# edit node_modules/@xterm/xterm per the two changes above — in both lib
+# edit node_modules/@xterm/xterm per the three changes above — in both lib
 # bundles find `flushSync(){` and the `if(<promise>){...}` branch inside
-# `_innerWrite`; mirror the edits in src/common/input/WriteBuffer.ts
+# `_innerWrite`, and the class holding `_runRefreshCallbacks(){`; mirror the
+# edits in src/common/input/WriteBuffer.ts and src/browser/RenderDebouncer.ts
 bun patch --commit 'node_modules/@xterm/xterm'
-bun test apps/desktop/src/xterm-flushsync-patch.test.ts
+bun test apps/desktop/src/xterm-flushsync-patch.test.ts apps/desktop/src/xterm-render-debouncer-patch.test.ts
 ```
 
 ## node-pty (`node-pty@<version>.patch`)
