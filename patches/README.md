@@ -157,6 +157,52 @@ bun patch --commit 'node_modules/@xterm/xterm'
 bun test apps/desktop/src/xterm-flushsync-patch.test.ts apps/desktop/src/xterm-render-debouncer-patch.test.ts
 ```
 
+## trpc-electron (`trpc-electron@<version>.patch`)
+
+**Why:** DESKTOP-16T / DESKTOP-K8. `createIPCHandler` attaches a
+`did-start-navigation` listener to every window's webContents to abort the
+subscriptions belonging to the frame that is navigating away, and reads
+`frame.routingId` unconditionally. Electron types that field as
+`WebFrameMain | null` — "May be `null` if accessed after the frame has either
+navigated or been destroyed" — and reading *any* property of a `WebFrameMain`
+whose render frame has been disposed throws `Render frame was disposed before
+WebFrameMain could be accessed`. trpc-electron was written against Electron 25,
+where `frame` was non-nullable, and is unmaintained (0.1.2 is the latest
+release, published 2025-01-06).
+
+A frame torn down as its navigation starts therefore throws out of
+`webContents.emit` in the main process: an unhandled `fatal` in Sentry, and no
+subscription is aborted for that navigation (the throw happens while building
+the argument object). Verified against Electron 41.10.3 — the runtime from the
+reports — that a disposed frame answers `isDestroyed() === true` without
+throwing while `routingId` throws that exact message. Rare: two events in 90
+days, one under a main-frame `reloadIgnoringCache()` from the app menu.
+
+**What it changes** (`dist/main.mjs`, `dist/main.cjs`, and
+`src/main/createIPCHandler.ts` for readability — bundles are what run; the
+production stack traces come from `dist/main.mjs`): the
+`did-start-navigation` listener skips cleanup when `frame` is null or
+`frame.isDestroyed()`. There is nothing to scope the cleanup to in that case,
+and those subscriptions are reaped by the existing `destroyed` handler when the
+webContents goes away — which is already what happens today, minus the throw.
+
+**Guard test:** `apps/desktop/src/trpc-electron-frame-patch.test.ts`.
+
+**Regenerating after a version bump** (~5 min):
+
+```bash
+bun patch trpc-electron@<new-version>
+# in node_modules/trpc-electron, in the did-start-navigation listener of both
+# dist bundles and src/main/createIPCHandler.ts, require the frame to be
+# non-null and !frame.isDestroyed() before reading frame.routingId
+bun patch --commit 'node_modules/trpc-electron'
+bun test apps/desktop/src/trpc-electron-frame-patch.test.ts
+```
+
+**Removing:** delete the patch, the `patchedDependencies` entry and the guard
+test if trpc-electron ever ships a release that handles a missing frame, or if
+the app stops depending on it.
+
 ## node-pty (`node-pty@<version>.patch`)
 
 **Why:** DESKTOP-101 / DESKTOP-107 / DESKTOP-10J. The desktop main process
