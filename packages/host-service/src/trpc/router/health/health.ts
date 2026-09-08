@@ -13,6 +13,7 @@ export const healthRouter = router({
 		const registration = getRegistrationState();
 		return {
 			status: "ok" as const,
+			pid: process.pid,
 			// The desktop app spawns its own bundled build, so this doubles as
 			// the app version for a standalone CLI collecting diagnostics.
 			version: HOST_SERVICE_VERSION,

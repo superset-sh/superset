@@ -87,7 +87,13 @@ function harness(overrides: Partial<SelfUpdaterDeps> = {}): Harness {
 		spawnHost: (bin) => {
 			h.spawned.push(bin);
 			h.calls.push("spawn");
-			return { pid: 222, kill: () => void h.killed++ };
+			return {
+				pid: 222,
+				kill: async () => {
+					h.killed++;
+				},
+				isRunning: () => true,
+			};
 		},
 		pollHealth: async () => {
 			h.calls.push("poll");
@@ -226,7 +232,7 @@ describe("SelfUpdater", () => {
 		const h = harness({
 			pollHealth: async () => {
 				polls++;
-				return polls === 1 ? null : { version: "1.22.0" };
+				return polls === 1 ? null : { version: "1.22.0", pid: 222 };
 			},
 		});
 		h.updater.start({ version: "1.27.0" });
@@ -259,7 +265,7 @@ describe("SelfUpdater", () => {
 		expect(h.exitCode).toBe(1);
 		expect(
 			JSON.parse(readFileSync(updateMarkerPath(h.stateDir), "utf8")).outcome,
-		).toBe("rolled-back");
+		).toBe("failed");
 	});
 
 	test("rolls back when a healthy successor reports the wrong version", async () => {
@@ -267,6 +273,7 @@ describe("SelfUpdater", () => {
 		const h = harness({
 			pollHealth: async () => ({
 				version: ++polls === 1 ? "1.26.0" : "1.22.0",
+				pid: 222,
 			}),
 		});
 		h.updater.start({ version: "1.27.0" });
@@ -277,6 +284,63 @@ describe("SelfUpdater", () => {
 			outcome: "rolled-back",
 		});
 		expect(h.updater.status().lastResult?.error).toContain("expected 1.27.0");
+	});
+
+	test.each([
+		{ version: "1.27.0", pid: 222 },
+		{ version: "1.22.0", pid: 999 },
+		{ version: "1.22.0" },
+	])("does not accept rollback health from the wrong process/version: %j", async (restoredHealth) => {
+		let polls = 0;
+		const h = harness({
+			pollHealth: async () => (++polls === 1 ? null : restoredHealth),
+		});
+		h.updater.start({ version: "1.27.0" });
+		await settle(h);
+		expect(h.exitCode).toBe(1);
+		expect(h.updater.status().lastResult?.outcome).toBe("failed");
+		expect(
+			JSON.parse(readFileSync(join(h.stateDir, "manifest.json"), "utf8")).pid,
+		).toBe(111);
+	});
+	test("waits for successor exit before replacing its install", async () => {
+		let release!: () => void;
+		const stopped = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		let polls = 0;
+		const h = harness({
+			spawnHost: () => ({
+				pid: 222,
+				isRunning: () => true,
+				kill: () => stopped,
+			}),
+			pollHealth: async () =>
+				++polls === 1 ? null : { version: "1.22.0", pid: 222 },
+		});
+		h.updater.start({ version: "1.27.0" });
+		await new Promise((resolve) => setTimeout(resolve, 20));
+		expect(readFileSync(join(h.root, "lib/version"), "utf8")).toBe("new");
+		release();
+		await settle(h);
+		expect(readFileSync(join(h.root, "lib/version"), "utf8")).toBe("old");
+		expect(h.exitCode).toBe(0);
+	});
+	test("does not accept a healthy response for a restored child that has already exited", async () => {
+		let polls = 0;
+		const h = harness({
+			spawnHost: () => ({
+				pid: 222,
+				isRunning: () => false,
+				kill: async () => {},
+			}),
+			pollHealth: async () =>
+				++polls === 1 ? null : { version: "1.22.0", pid: 222 },
+		});
+		h.updater.start({ version: "1.27.0" });
+		await settle(h);
+		expect(h.exitCode).toBe(1);
+		expect(h.updater.status().lastResult?.outcome).toBe("failed");
 	});
 
 	test("releases the install lock after a failed download", async () => {
@@ -302,9 +366,9 @@ describe("SelfUpdater", () => {
 		const h = harness({
 			spawnHost: () => {
 				if (++spawns === 1) throw new Error("missing executable");
-				return { pid: 333, kill() {} };
+				return { pid: 333, async kill() {}, isRunning: () => true };
 			},
-			pollHealth: async () => ({ version: "1.22.0" }),
+			pollHealth: async () => ({ version: "1.22.0", pid: 333 }),
 		});
 		h.updater.start({ version: "1.27.0" });
 		await settle(h);

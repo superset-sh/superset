@@ -1,3 +1,4 @@
+import { getHostId } from "@superset/shared/host-info";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { getSelfUpdater, SelfUpdateError } from "../../../self-update";
@@ -23,7 +24,25 @@ export const systemRouter = router({
 				force: z.boolean().optional(),
 			}),
 		)
-		.mutation(({ input }) => {
+		.mutation(async ({ ctx, input }) => {
+			if (!ctx.userId)
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "An authenticated host owner is required to update",
+				});
+			const access = await ctx.api.host.authorizeUpdate.query(
+				{
+					organizationId: ctx.organizationId,
+					machineId: getHostId(),
+					userId: ctx.userId,
+				},
+				{ signal: AbortSignal.timeout(10_000) },
+			);
+			if (!access.allowed)
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only a host owner can update this host",
+				});
 			try {
 				return getSelfUpdater().start(input);
 			} catch (error) {

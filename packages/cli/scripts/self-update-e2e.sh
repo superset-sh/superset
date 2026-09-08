@@ -10,7 +10,7 @@
 #             points at the successor, the backup is gone, and the running
 #             build is the requested release (downloaded from GitHub).
 #
-# Neither scenario touches the cloud or the relay: RELAY_URL is unset so the
+# Neither scenario touches the production cloud or the relay: RELAY_URL is unset so the
 # host never registers, HOME is a scratch dir so agent provisioning never
 # writes to the real profile, and the loopback PSK is the only auth used.
 #
@@ -28,11 +28,13 @@ ORG="00000000-0000-4000-8000-0000000000aa"
 SECRET="e2e-secret"
 HSPID=""
 DECOY=""
+API_PID=""
 
 log() { echo "[self-update-e2e] $*" >&2; }
 fail() { log "FAIL: $*"; exit 1; }
 
 cleanup() {
+  [[ -n "$API_PID" ]] && kill "$API_PID" 2>/dev/null || true
   [[ -n "$DECOY" ]] && kill "$DECOY" 2>/dev/null || true
   pkill -f "$SCRATCH" 2>/dev/null || true
   rm -rf "$SCRATCH"
@@ -43,6 +45,26 @@ new_port() {
   "$DIST/lib/node" -e 'const s=require("net").createServer();s.listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})'
 }
 
+# Local authorization fixture. The lifecycle test uses real host/CLI binaries;
+# cloud owner/member enforcement is covered separately by router tests.
+CLOUD_PORT="$(new_port)"
+cat >"$SCRATCH/auth-api.cjs" <<'JS'
+const http = require("node:http");
+const port = Number(process.argv[2]);
+const organizationId = process.argv[3];
+http.createServer((req,res) => {
+ const url = new URL(req.url,"http://localhost");
+ if (url.pathname !== "/api/trpc/host.authorizeUpdate") {res.writeHead(404);res.end();return;}
+ const input=JSON.parse(url.searchParams.get("input"));
+ const data=input["0"]?.json ?? input.json;
+ const allowed=req.headers.authorization === "Bearer e2e.owner.jwt" && data.organizationId === organizationId && data.userId === "e2e-owner";
+ const result={result:{data:{json:{allowed}}}};
+ res.setHeader("content-type","application/json");res.end(JSON.stringify(url.searchParams.has("batch")?[result]:result));
+}).listen(port,"127.0.0.1");
+JS
+"$DIST/lib/node" "$SCRATCH/auth-api.cjs" "$CLOUD_PORT" "$ORG" &
+API_PID=$!
+
 # boot_host <root> <state-dir> <port> <logfile>
 boot_host() {
   local root="$1" state="$2" port="$3" logfile="$4"
@@ -50,8 +72,8 @@ boot_host() {
   env -i \
     PATH=/usr/sbin:/usr/bin:/sbin:/bin \
     HOME="$TEST_HOME" SHELL=/bin/bash \
-    ORGANIZATION_ID="$ORG" AUTH_TOKEN="e2e-token" \
-    SUPERSET_API_URL="https://api.superset.sh" \
+    ORGANIZATION_ID="$ORG" AUTH_TOKEN="e2e.owner.jwt" \
+    SUPERSET_API_URL="http://127.0.0.1:$CLOUD_PORT" \
     PORT="$port" HOST_SERVICE_PORT="$port" HOST_SERVICE_SECRET="$SECRET" \
     HOST_DB_PATH="$state/host.db" \
     HOST_MIGRATIONS_FOLDER="$root/share/migrations" \
@@ -77,7 +99,7 @@ await_healthy() {
 }
 
 start_update() {
-  curl -fsS -m 10 -X POST -H "Authorization: Bearer $SECRET" -H "content-type: application/json" \
+  curl -fsS -m 15 -X POST -H "x-superset-user-id: e2e-owner" -H "Authorization: Bearer $SECRET" -H "content-type: application/json" \
     "http://127.0.0.1:$1/trpc/system.update" -d "{\"json\":{\"version\":\"$TARGET\",\"force\":true}}"
 }
 
@@ -111,14 +133,15 @@ await_healthy "$PORT_A" || { cat "$SCRATCH/a/host.log" >&2; fail "host A never h
 log "host A healthy on $PORT_A (pid $HSPID), version $(health "$PORT_A" | json_field result.data.json.version), installSource $(health "$PORT_A" | json_field result.data.json.installSource)"
 
 # The decoy grabs the port the moment the old process releases it, so the
-# successor can start but never bind; the updater sees only 503s.
+# successor can start but never bind. Release before the 90-second timeout
+# so the restored build can bind; it must prove its own PID and version.
 "$DIST/lib/node" -e '
   const port = Number(process.argv[1]);
   const http = require("http");
   const tryListen = () => {
     const s = http.createServer((_, res) => { res.statusCode = 503; res.end("decoy"); });
     s.on("error", () => setTimeout(tryListen, 50));
-    s.listen(port, "127.0.0.1");
+    s.listen(port, "127.0.0.1", () => setTimeout(() => s.close(() => process.exit(0)), 88_000));
   };
   tryListen();
   setTimeout(() => process.exit(0), 400_000);
@@ -140,8 +163,10 @@ grep -q "rolling back" "$SCRATCH/a/host.log" || { tail -30 "$SCRATCH/a/host.log"
 [[ -e "$ROOT_A.bak" ]] && fail "backup left behind after rollback"
 [[ -e "$ROOT_A.failed" ]] && fail "failed tree left behind after rollback"
 [[ "$(hash_tree "$ROOT_A")" == "$ORIGINAL_HASH" ]] || fail "install root was not restored to the original tree"
+RESTORED_PID="$(json_field pid <"$STATE_A/manifest.json")"
+[[ "$(health "$PORT_A" | json_field result.data.json.pid)" == "$RESTORED_PID" ]] || fail "rollback health is not the restored process"
+log "rollback OK: tree restored, marker rolled-back, restored PID verified"
 pkill -f "$ROOT_A" 2>/dev/null || true
-log "rollback OK: tree restored, marker rolled-back"
 
 # ── Scenario 2: success ─────────────────────────────────────────────────
 log "=== scenario: success ==="

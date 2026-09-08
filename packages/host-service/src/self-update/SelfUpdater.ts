@@ -51,7 +51,8 @@ export interface CliUpdateResult {
 
 export interface SpawnedHost {
 	pid: number;
-	kill(): void;
+	kill(): Promise<void>;
+	isRunning(): boolean;
 }
 
 /**
@@ -76,7 +77,7 @@ export interface SelfUpdaterDeps {
 		port: number,
 		secret: string,
 		timeoutMs: number,
-	): Promise<{ version: string } | null>;
+	): Promise<{ version: string; pid?: number } | null>;
 	/** Stop listening and drop the relay so the successor can take the port. */
 	stopServing(): Promise<void>;
 	exit(code: number): void;
@@ -223,7 +224,7 @@ export class SelfUpdater {
 		await this.deps.stopServing();
 		const hostBin = join(root, "bin", "superset-host");
 		let successor: SpawnedHost | null = null;
-		let health: { version: string } | null = null;
+		let health: { version: string; pid?: number } | null = null;
 		try {
 			successor = this.deps.spawnHost(hostBin);
 			if (successor.pid > 0)
@@ -235,7 +236,11 @@ export class SelfUpdater {
 		} catch (error) {
 			this.deps.log(`[self-update] successor failed: ${String(error)}`);
 		}
-		if (successor && health?.version === to) {
+		if (
+			successor?.isRunning() &&
+			health?.version === to &&
+			(health.pid === undefined || health.pid === successor.pid)
+		) {
 			this.writeManifestPid(successor.pid);
 			await rm(`${root}.bak`, { recursive: true, force: true });
 			this.writeMarker({
@@ -253,7 +258,7 @@ export class SelfUpdater {
 		}
 
 		this.deps.log("[self-update] successor never answered; rolling back");
-		successor?.kill();
+		await successor?.kill();
 		const error = health
 			? `The new build answered on ${health.version}, expected ${to}`
 			: `The new build did not answer within ${SUCCESSOR_HEALTH_TIMEOUT_MS / 1000}s`;
@@ -272,7 +277,7 @@ export class SelfUpdater {
 			await rm(failed, { recursive: true, force: true });
 		}
 		let restored: SpawnedHost | null = null;
-		let restoredHealth: { version: string } | null = null;
+		let restoredHealth: { version: string; pid?: number } | null = null;
 		try {
 			restored = this.deps.spawnHost(hostBin);
 			if (restored.pid > 0)
@@ -284,21 +289,27 @@ export class SelfUpdater {
 		} catch (error) {
 			this.deps.log(`[self-update] rollback failed: ${String(error)}`);
 		}
-		if (restored && restoredHealth) this.writeManifestPid(restored.pid);
+		const rollbackHealthy =
+			restored?.isRunning() === true &&
+			restoredHealth?.version === from &&
+			restoredHealth.pid === restored.pid;
+		if (rollbackHealthy && restored) this.writeManifestPid(restored.pid);
 		this.writeMarker({
-			outcome: "rolled-back",
+			outcome: rollbackHealthy ? "rolled-back" : "failed",
 			from,
 			to,
 			at: Date.now(),
-			error,
+			error: rollbackHealthy
+				? error
+				: `${error}; rollback did not return the expected process on ${from}`,
 		});
 		this.deps.log(
-			restoredHealth
-				? `[self-update] rolled back to ${restoredHealth.version} (pid ${restored?.pid})`
+			rollbackHealthy
+				? `[self-update] rolled back to ${from} (pid ${restored?.pid})`
 				: "[self-update] rollback did not come up either; check the log",
 		);
 		this.unlock();
-		this.deps.exit(restoredHealth ? 0 : 1);
+		this.deps.exit(rollbackHealthy ? 0 : 1);
 	}
 
 	private readMarker(): LastUpdateResult | null {
@@ -416,12 +427,38 @@ export function spawnDetachedHost(hostBin: string): SpawnedHost {
 		// Startup failure is observed by the health probe and triggers rollback.
 	});
 	child.unref();
+	const isRunning = () =>
+		child.pid !== undefined &&
+		child.exitCode === null &&
+		child.signalCode === null;
+	const waitForExit = (timeoutMs: number) =>
+		new Promise<boolean>((resolve) => {
+			if (!isRunning()) {
+				resolve(true);
+				return;
+			}
+			const done = () => {
+				clearTimeout(timer);
+				resolve(true);
+			};
+			const timer = setTimeout(() => {
+				child.off("exit", done);
+				resolve(false);
+			}, timeoutMs);
+			child.once("exit", done);
+		});
 	return {
 		pid: child.pid ?? 0,
-		kill: () => {
-			try {
-				child.kill("SIGTERM");
-			} catch {}
+		isRunning,
+		kill: async () => {
+			if (!isRunning()) return;
+			child.kill("SIGTERM");
+			if (await waitForExit(5_000)) return;
+			child.kill("SIGKILL");
+			if (!(await waitForExit(5_000)))
+				throw new Error(
+					"Failed successor did not exit; refusing to replace its install",
+				);
 		},
 	};
 }
@@ -430,7 +467,7 @@ export async function pollHostHealth(
 	port: number,
 	secret: string,
 	timeoutMs: number,
-): Promise<{ version: string } | null> {
+): Promise<{ version: string; pid?: number } | null> {
 	const deadline = Date.now() + timeoutMs;
 	while (Date.now() < deadline) {
 		try {
@@ -443,11 +480,18 @@ export async function pollHostHealth(
 			);
 			if (response.ok) {
 				const body = (await response.json()) as {
-					result?: { data?: { json?: { status?: string; version?: string } } };
+					result?: {
+						data?: {
+							json?: { status?: string; version?: string; pid?: number };
+						};
+					};
 				};
 				const health = body.result?.data?.json;
 				if (health?.status === "ok" && typeof health.version === "string") {
-					return { version: health.version };
+					return {
+						version: health.version,
+						...(typeof health.pid === "number" ? { pid: health.pid } : {}),
+					};
 				}
 			}
 		} catch {
