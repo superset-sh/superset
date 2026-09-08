@@ -38,7 +38,7 @@ export type SwitchReasonKind =
 	| "fallback-rejected"
 	| "external";
 
-/** R21: one switch history row. Labels are display strings, never emails. */
+/** R21: one switch history row. Labels are the account's display identity, usually the provider email, which is why the Usage page offers "Hide emails". */
 export interface HistoryEntry {
 	at: number;
 	agent: AccountAgent;
