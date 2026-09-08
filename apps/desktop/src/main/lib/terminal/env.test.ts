@@ -298,6 +298,19 @@ describe("env", () => {
 				expect(result.BASH_ENV).toBe("/Users/test/.superset-dev/bash/rcfile");
 			});
 
+			it("should include X11/Wayland display vars (clipboard image paste, #5003)", () => {
+				const env = {
+					DISPLAY: ":0",
+					XAUTHORITY: "/tmp/xauth_abc123",
+					WAYLAND_DISPLAY: "wayland-0",
+					PATH: "/usr/bin",
+				};
+				const result = buildSafeEnv(env);
+				expect(result.DISPLAY).toBe(":0");
+				expect(result.XAUTHORITY).toBe("/tmp/xauth_abc123");
+				expect(result.WAYLAND_DISPLAY).toBe("wayland-0");
+			});
+
 			it("should include proxy vars (both cases)", () => {
 				const env = {
 					HTTP_PROXY: "http://proxy:8080",
