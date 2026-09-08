@@ -40,6 +40,8 @@ interface RegistryEntry {
 	overlay: HTMLDivElement;
 	state: BrowserRuntimeState;
 	onPersist: ((state: PersistableBrowserState) => void) | null;
+	/** Asks the pane to close itself; fired when the guest closes itself. */
+	onClose: (() => void) | null;
 	/** Owning workspace — sent on register so the main process scopes pane ops. */
 	workspaceId: string;
 	webContentsId: number | null;
@@ -300,6 +302,7 @@ class BrowserRuntimeRegistryImpl {
 			overlay,
 			state: { ...EMPTY_STATE, currentUrl: initialUrl },
 			onPersist: null,
+			onClose: null,
 			workspaceId,
 			webContentsId: null,
 			detachHandlers: () => {},
@@ -337,19 +340,23 @@ class BrowserRuntimeRegistryImpl {
 			});
 		};
 
+		// URL and title come from the events that carry them, never from
+		// `getURL()`/`getTitle()`: those are synchronous calls into the guest,
+		// and the guest can already be gone when a queued event is handled. A
+		// page that calls `window.close()` is destroyed by Electron the moment
+		// it asks, while the did-stop-loading it emitted first is still in
+		// flight, so a read in that handler throws "Invalid guestInstanceId".
+		// The title resets on each committed navigation and arrives through
+		// page-title-updated, so a page with no <title> shows the pane's URL
+		// fallback instead of Chromium's synthesized one.
 		const handleDidStopLoading = () => {
-			const url = webview.getURL() ?? "";
-			const title = webview.getTitle() ?? "";
-			this.setState(paneId, {
-				isLoading: false,
-				currentUrl: url,
-				pageTitle: title,
-			});
+			this.setState(paneId, { isLoading: false });
 			this.refreshNavState(paneId);
 			this.refreshZoomState(paneId);
-			if (url && url !== "about:blank") {
+			const { currentUrl, pageTitle, faviconUrl } = entry.state;
+			if (currentUrl && currentUrl !== "about:blank") {
 				electronTrpcClient.browserHistory.upsert
-					.mutate({ url, title, faviconUrl: entry.state.faviconUrl })
+					.mutate({ url: currentUrl, title: pageTitle, faviconUrl })
 					.catch((err) => {
 						console.error("[browserRuntimeRegistry] upsert history:", err);
 					});
@@ -358,11 +365,9 @@ class BrowserRuntimeRegistryImpl {
 		};
 
 		const handleDidNavigate = (e: Electron.DidNavigateEvent) => {
-			const url = e.url ?? "";
-			const title = webview.getTitle() ?? "";
 			this.setState(paneId, {
-				currentUrl: url,
-				pageTitle: title,
+				currentUrl: e.url ?? "",
+				pageTitle: "",
 				isLoading: false,
 			});
 			this.refreshNavState(paneId);
@@ -370,9 +375,7 @@ class BrowserRuntimeRegistryImpl {
 		};
 
 		const handleDidNavigateInPage = (e: Electron.DidNavigateInPageEvent) => {
-			const url = e.url ?? "";
-			const title = webview.getTitle() ?? "";
-			this.setState(paneId, { currentUrl: url, pageTitle: title });
+			this.setState(paneId, { currentUrl: e.url ?? "" });
 			this.refreshNavState(paneId);
 		};
 
@@ -397,8 +400,13 @@ class BrowserRuntimeRegistryImpl {
 
 		const handleDidFailLoad = (e: Electron.DidFailLoadEvent) => {
 			if (e.errorCode === -3) return; // ERR_ABORTED
+			// A failed main-frame load commits Chromium's error page without a
+			// did-navigate, so the address comes from the failure itself.
 			this.setState(paneId, {
 				isLoading: false,
+				...(e.isMainFrame
+					? { currentUrl: e.validatedURL ?? "", pageTitle: "" }
+					: {}),
 				error: {
 					code: e.errorCode ?? 0,
 					description: e.errorDescription ?? "",
@@ -409,6 +417,18 @@ class BrowserRuntimeRegistryImpl {
 
 		const handleFoundInPage = (e: Electron.FoundInPageEvent) => {
 			this.notifyFoundInPage(paneId, e.result);
+		};
+
+		// The guest webContents is gone: Electron destroys a guest whose page
+		// calls `window.close()` (a sign-in flow finishing, a page closing
+		// itself). The element cannot be revived — every guest method now throws
+		// "Invalid guestInstanceId" — so the entry goes with it and the pane
+		// closes, as a browser closes a tab whose page closed itself.
+		const handleDestroyed = () => {
+			if (this.entries.get(paneId) !== entry) return;
+			const onClose = entry.onClose;
+			this.destroy(paneId);
+			onClose?.();
 		};
 
 		webview.addEventListener("dom-ready", handleDomReady);
@@ -438,6 +458,7 @@ class BrowserRuntimeRegistryImpl {
 			"found-in-page",
 			handleFoundInPage as EventListener,
 		);
+		webview.addEventListener("destroyed", handleDestroyed);
 
 		entry.detachHandlers = () => {
 			webview.removeEventListener("dom-ready", handleDomReady);
@@ -467,6 +488,7 @@ class BrowserRuntimeRegistryImpl {
 				"found-in-page",
 				handleFoundInPage as EventListener,
 			);
+			webview.removeEventListener("destroyed", handleDestroyed);
 		};
 
 		return entry;
@@ -478,6 +500,7 @@ class BrowserRuntimeRegistryImpl {
 		initialUrl: string,
 		workspaceId: string,
 		onPersist: (state: PersistableBrowserState) => void,
+		onClose: () => void,
 	): void {
 		const root = this.ensureRootContainer();
 		let entry = this.entries.get(paneId);
@@ -510,6 +533,7 @@ class BrowserRuntimeRegistryImpl {
 			this.refreshNavState(paneId);
 		}
 		entry.onPersist = onPersist;
+		entry.onClose = onClose;
 		entry.placeholder = placeholder;
 		entry.visible = true;
 		entry.lastUsedAt = ++this.useSeq;
@@ -574,6 +598,7 @@ class BrowserRuntimeRegistryImpl {
 		const entry = this.entries.get(paneId);
 		if (!entry) return;
 		entry.onPersist = null;
+		entry.onClose = null;
 		entry.resizeObserver?.disconnect();
 		entry.detachHandlers();
 		entry.webview.remove();
