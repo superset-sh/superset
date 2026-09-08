@@ -18,7 +18,7 @@ export function injectScriptTag(html: string, src: string): string {
  * reads. Walk the document skipping those spans, and take the first real one.
  */
 const HEAD_OR_SKIP =
-	/<!--|<(script|style|textarea|title)(?=[\s/>])|<head(?=[\s>])[^>]*>/gi;
+	/<!--|<(script|style|textarea|title)(?=[\s/>])|<head(?=[\s>])(?:[^>"']|"[^"]*"|'[^']*')*>/gi;
 
 function findHeadTag(html: string): { index: number; length: number } | null {
 	HEAD_OR_SKIP.lastIndex = 0;

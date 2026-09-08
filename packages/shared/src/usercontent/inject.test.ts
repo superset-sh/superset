@@ -65,6 +65,13 @@ describe("injectStylesheetLink", () => {
 		);
 	});
 
+	test("reads past a > inside a quoted head attribute", () => {
+		const html = '<head data-value=">"><p>hi</p></head>';
+		expect(injectStylesheetLink(html, HREF)).toBe(
+			`<head data-value=">">${LINK}<p>hi</p></head>`,
+		);
+	});
+
 	test("falls back when the only head is inside a comment", () => {
 		const html = "<!DOCTYPE html><!-- <head> --><p>hi</p>";
 		expect(injectStylesheetLink(html, HREF)).toBe(
