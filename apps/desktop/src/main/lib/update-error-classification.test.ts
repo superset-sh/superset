@@ -204,6 +204,24 @@ describe("isEnvironmentUpdateError", () => {
 		);
 	});
 
+	test("keeps reporting a server error while fetching the feed itself", () => {
+		expect(
+			isEnvironmentUpdateError(
+				'Cannot download "https://github.com/superset-sh/superset/releases/latest/download/latest-mac.yml", status 502: Bad Gateway',
+				ROOMY_VOLUME,
+			),
+		).toBe(false);
+	});
+
+	test("does not take the ShipIt name alone as proof of a staging failure", () => {
+		expect(
+			isEnvironmentUpdateError(
+				"ditto: /Applications/ShipIt Tools/Superset.app/Contents/Resources/app.asar: No such file or directory",
+				ROOMY_VOLUME,
+			),
+		).toBe(false);
+	});
+
 	test("classifies a staged copy that lost a file under ShipIt's directory", () => {
 		expect(
 			isEnvironmentUpdateError(DITTO_STAGING_FILE_MISSING, ROOMY_VOLUME),

@@ -41,9 +41,16 @@ const AUTHORIZATION_OSSTATUS = /OSStatus\D*-6000[56](?!\d)/;
 // disabled it. Nothing but this sentence reaches us for it.
 const LAUNCHD_JOB_DISABLED = "the command is disabled and cannot be executed";
 
-// A server error from the release download is the CDN, not the artifact. A
-// 4xx stays reported: an asset that is not there is ours to publish.
-const DOWNLOAD_SERVER_ERROR = /^Cannot download ".*", status 5\d\d(?!\d)/;
+// A server error from the release-artifact download is the CDN, not the
+// artifact. A 4xx stays reported: an asset that is not there is ours to
+// publish. Only the packaged app counts; a 5xx while fetching the feed
+// (latest-mac.yml) is a different failure and keeps reporting.
+const DOWNLOAD_SERVER_ERROR =
+	/^Cannot download ".*\.(?:zip|dmg|exe|AppImage|deb|rpm)", status 5\d\d(?!\d)/;
+
+// Squirrel.Mac stages every update under this cache directory, one
+// `update.<id>` directory per attempt.
+const SHIPIT_STAGING_PATH = /\/com\.superset\.desktop\.shipit\/update\.[^/]+\//;
 
 // Update failures owned by the user's machine, not by us. A full volume is the
 // common one, and neither staging tool gives us a code to match: `ditto` prints
@@ -83,7 +90,7 @@ export function isEnvironmentUpdateError(
 	// and the download it was unpacked from is cleared on error.
 	if (
 		lowerMessage.startsWith("ditto:") &&
-		lowerMessage.includes("shipit") &&
+		SHIPIT_STAGING_PATH.test(lowerMessage) &&
 		lowerMessage.includes("no such file or directory")
 	) {
 		return true;
