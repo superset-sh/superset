@@ -999,9 +999,6 @@ msgstr "<0>vs</0> <1/>"
 msgid "~{stars} projected this week"
 msgstr "~{stars} diperkirakan minggu ini"
 
-msgid "~{totalSeconds}s typical"
-msgstr "~{totalSeconds} dtk biasanya"
-
 msgid "~{TYPICAL_SECONDS}s typical"
 msgstr "~{TYPICAL_SECONDS} dtk biasanya"
 
@@ -1385,6 +1382,9 @@ msgstr "Tambah audio kustom"
 msgid "Add description..."
 msgstr "Tambah deskripsi..."
 
+msgid "Add file"
+msgstr "Tambahkan file"
+
 msgid "Add file comment"
 msgstr "Tambah komentar file"
 
@@ -1562,6 +1562,9 @@ msgstr "Agen memuat pratinjaunya sendiri, mengendalikan UI, dan melampirkan bukt
 
 msgid "Agents running at once"
 msgstr "Agen yang berjalan sekaligus"
+
+msgid "Agents will start when setup finishes."
+msgstr "Agen akan dimulai setelah penyiapan selesai."
 
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Agregat penggunaan agen dari seluruh developer di papan peringkat Superset — token, biaya, perilaku cache, dan model yang benar-benar dipakai orang."
@@ -2771,6 +2774,9 @@ msgstr "Rantai Pemikiran"
 msgid "Change avatar"
 msgstr "Ganti avatar"
 
+msgid "Change base branch"
+msgstr "Ubah branch dasar"
+
 msgid "Change location"
 msgstr "Ubah lokasi"
 
@@ -3375,9 +3381,6 @@ msgstr "Perintah..."
 msgid "Commands"
 msgstr "Perintah"
 
-msgid "Commands run for workspace setup, teardown, and the Run button."
-msgstr "Perintah yang dijalankan untuk setup workspace, teardown, dan tombol Run."
-
 msgid "Comment"
 msgstr "Komentar"
 
@@ -3891,9 +3894,6 @@ msgstr "Salin riwayat penjelajahan dan login Anda dari browser lain ke Superset.
 msgid "Copy your key now — you won't be able to see it again."
 msgstr "Salin kunci Anda sekarang — Anda tidak akan bisa melihatnya lagi."
 
-msgid "Copying configuration"
-msgstr "Menyalin konfigurasi"
-
 msgid "Cost"
 msgstr "Biaya"
 
@@ -4257,6 +4257,9 @@ msgstr "Buat akun"
 msgid "Create failed: {message}"
 msgstr "Gagal membuat: {message}"
 
+msgid "Create from this commit"
+msgstr "Buat dari commit ini"
+
 msgid "Create merge commit"
 msgstr "Buat merge commit"
 
@@ -4369,9 +4372,6 @@ msgstr "membuat"
 
 msgid "Creating"
 msgstr "Membuat"
-
-msgid "Creating git worktree"
-msgstr "Membuat worktree git"
 
 msgid "Creating PR..."
 msgstr "Membuat PR…"
@@ -4570,6 +4570,9 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 
 msgid "Default ({defaultWorktreePath})"
 msgstr "Bawaan ({defaultWorktreePath})"
+
+msgid "Default base branch"
+msgstr "Branch dasar default"
 
 msgid "Default effort"
 msgstr "Effort bawaan"
@@ -4836,6 +4839,9 @@ msgstr "Terlepas"
 
 msgid "Details"
 msgstr "Detail"
+
+msgid "Detected setup command"
+msgstr "Perintah penyiapan terdeteksi"
 
 msgid "Dev"
 msgstr "Dev"
@@ -6220,9 +6226,6 @@ msgstr "Filter"
 msgid "Filters, {activeFilterCount} active"
 msgstr "Filter, {activeFilterCount} aktif"
 
-msgid "Finalizing setup"
-msgstr "Merampungkan penyiapan"
-
 msgid "Find a small bug and fix it…"
 msgstr "Cari bug kecil dan perbaiki…"
 
@@ -7172,9 +7175,6 @@ msgstr "Inisialisasi Git"
 msgid "Initialize Git Repository?"
 msgstr "Inisialisasi Repositori Git?"
 
-msgid "Initializing session"
-msgstr "Menginisialisasi sesi"
-
 msgid "Initializing..."
 msgstr "Menginisialisasi..."
 
@@ -7823,6 +7823,9 @@ msgstr "Tautkan tugas"
 msgid "Linked {slug} to workspace"
 msgstr "{slug} ditautkan ke workspace"
 
+msgid "Linking shared files…"
+msgstr "Menautkan file bersama…"
+
 msgid "Links"
 msgstr "Tautan"
 
@@ -7981,6 +7984,9 @@ msgstr "Memuat..."
 
 msgid "Loading…"
 msgstr "Memuat…"
+
+msgid "Local"
+msgstr "Lokal"
 
 msgid "Local Device"
 msgstr "Perangkat Lokal"
@@ -9534,6 +9540,9 @@ msgstr "Hanya pemilik host yang bisa mengubah lokasi ini."
 msgid "Only host owners can delete this host"
 msgstr "Hanya pemilik host yang bisa menghapus host ini"
 
+msgid "Only ignored files on this host can be shared."
+msgstr "Hanya file yang diabaikan pada host ini yang dapat dibagikan."
+
 msgid "Only organization owners can delete this project."
 msgstr "Hanya pemilik organisasi yang bisa menghapus proyek ini."
 
@@ -10602,6 +10611,9 @@ msgstr "Preferensi"
 msgid "Prefix"
 msgstr "Prefix"
 
+msgid "Prepare new workspaces on this host before agents start."
+msgstr "Siapkan ruang kerja baru pada host ini sebelum agen dimulai."
+
 msgid "Preparing"
 msgstr "Menyiapkan"
 
@@ -10760,9 +10772,6 @@ msgstr "Proyek diimpor dan dipilih."
 
 msgid "Project is already at that location"
 msgstr "Proyek sudah berada di lokasi itu"
-
-msgid "Project lifecycle scripts"
-msgstr "Skrip lifecycle proyek"
 
 msgid "Project name"
 msgstr "Nama proyek"
@@ -11230,9 +11239,6 @@ msgstr "Muat ulang aplikasi"
 msgid "Reload Superset to refresh the workspace list."
 msgstr "Muat ulang Superset untuk menyegarkan daftar workspace."
 
-msgid "Reload window"
-msgstr "Muat ulang jendela"
-
 msgid "Relocate"
 msgstr "Pindahkan"
 
@@ -11256,6 +11262,12 @@ msgstr "Akses jarak jauh"
 
 msgid "Remote Access"
 msgstr "Akses Jarak Jauh"
+
+msgid "Remote base → shared files → setup → ready"
+msgstr "Dasar remote → file bersama → penyiapan → siap"
+
+msgid "Remote branches are refreshed before each new workspace. Local branches use the commit on this host."
+msgstr "Branch remote diperbarui sebelum setiap ruang kerja baru. Branch lokal menggunakan commit pada host ini."
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "Server MCP remote — terhubung lewat HTTP"
@@ -11463,6 +11475,9 @@ msgstr "Repositori: {label}"
 
 msgid "Repository"
 msgstr "Repositori"
+
+msgid "Repository default"
+msgstr "Default repositori"
 
 msgid "Repository reach and desktop release downloads. Installs are dmg and AppImage downloads; updates are the zip the auto-updater pulls, so they count existing users."
 msgstr "Jangkauan repositori dan unduhan rilis desktop. Instalasi adalah unduhan dmg dan AppImage; pembaruan adalah zip yang diambil pembaru otomatis, jadi menghitung pengguna yang sudah ada."
@@ -11712,6 +11727,9 @@ msgstr "Coba lagi dalam beberapa detik; kalau terus terjadi, mulai ulang Superse
 msgid "Retry in a few seconds."
 msgstr "Coba lagi dalam beberapa detik."
 
+msgid "Retry setup"
+msgstr "Coba ulang penyiapan"
+
 msgid "Retrying…"
 msgstr "Mencoba lagi…"
 
@@ -11949,6 +11967,9 @@ msgstr "Berjalan di perangkat yang dipasangkan"
 
 msgid "Running on this device"
 msgstr "Berjalan di perangkat ini"
+
+msgid "Running setup…"
+msgstr "Menjalankan penyiapan…"
 
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Proses terminal yang berjalan tetap lanjut, tapi output lama mungkin tidak tersedia lagi setelah aplikasi dimulai ulang."
@@ -12439,6 +12460,9 @@ msgstr "Agen yang dipilih tidak tersedia di host ini"
 msgid "Selected agent isn't a terminal agent"
 msgstr "Agen yang dipilih bukan agen terminal"
 
+msgid "Selected files link to the root checkout. Edits are shared across workspaces."
+msgstr "File yang dipilih ditautkan ke checkout utama. Perubahan dibagikan antar ruang kerja."
+
 msgid "Selected issues span multiple repositories. Select issues from a single repository to run them."
 msgstr "Issue yang dipilih tersebar di beberapa repositori. Pilih issue dari satu repositori untuk menjalankannya."
 
@@ -12637,6 +12661,9 @@ msgstr "Komponen aplikasi bersama"
 msgid "Shared component library."
 msgstr "Pustaka komponen bersama."
 
+msgid "Shared files"
+msgstr "File bersama"
+
 msgid "Shared theme JSON files you can import into Superset."
 msgstr "File JSON tema bersama yang bisa Anda impor ke Superset."
 
@@ -12774,6 +12801,9 @@ msgstr "Tampilkan Bilah Skrip"
 
 msgid "Show sessions"
 msgstr "Tampilkan sesi"
+
+msgid "Show setup suggestion"
+msgstr "Tampilkan saran penyiapan"
 
 msgid "Show status and send notifications for this agent."
 msgstr "Tampilkan status dan kirim notifikasi untuk agen ini."
@@ -12966,6 +12996,9 @@ msgstr "Lewati Semua"
 
 msgid "Skip for now"
 msgstr "Lewati dulu"
+
+msgid "Skip this file once"
+msgstr "Lewati file ini sekali"
 
 msgid "Skipped"
 msgstr "Dilewati"
@@ -13279,6 +13312,9 @@ msgstr "Memulai"
 
 msgid "Starting {agentLabel}"
 msgstr "Memulai {agentLabel}"
+
+msgid "Starting agents…"
+msgstr "Memulai agen…"
 
 msgid "Starting cloud workspace"
 msgstr "Memulai workspace cloud"
@@ -13687,9 +13723,6 @@ msgstr "Sinkronkan Repositori"
 
 msgid "Sync started"
 msgstr "Sinkronisasi dimulai"
-
-msgid "Syncing with remote"
-msgstr "Menyinkronkan dengan remote"
 
 msgid "Syncing..."
 msgstr "Menyinkronkan..."
@@ -14280,6 +14313,9 @@ msgstr "Ini menutup setiap sesi terminal — di workspace ini maupun yang lain �
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "Ini menutup setiap sesi terminal untuk organisasi Anda{runningCountSuffix} dan menjalankan daemon yang baru."
+
+msgid "This commit may be behind the remote. Use it for this workspace only."
+msgstr "Commit ini mungkin tertinggal dari remote. Gunakan hanya untuk ruang kerja ini."
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Ini menghapus scrollback tersimpan yang dipakai untuk pemulihan setelah reboot/crash."
@@ -15176,11 +15212,17 @@ msgstr "Pakai Agen Apa Pun"
 msgid "Use as workspace run"
 msgstr "Pakai sebagai run workspace"
 
+msgid "Use cached base"
+msgstr "Gunakan dasar dalam cache"
+
 msgid "Use Claude Code, Codex, OpenCode, or any coding agent for each task. Your workspaces, branches, and review flow stay the same."
 msgstr "Pakai Claude Code, Codex, OpenCode, atau agen coding apa pun untuk tiap tugas. Workspace, branch, dan alur review Anda tetap sama."
 
 msgid "Use Claude Code, Codex, or any coding agent. Choose per task or run several side by side."
 msgstr "Pakai Claude Code, Codex, atau agen coding apa pun. Pilih per tugas atau jalankan beberapa berdampingan."
+
+msgid "Use command"
+msgstr "Gunakan perintah"
 
 msgid "Use for new agents"
 msgstr "Pakai untuk agen baru"
@@ -15269,9 +15311,6 @@ msgstr "Pastikan Kbd tetap terlihat di dalam tooltip"
 msgid "Verify your identity"
 msgstr "Memverifikasi identitas Anda"
 
-msgid "Verifying base branch"
-msgstr "Memverifikasi branch dasar"
-
 msgid "Version"
 msgstr "Versi"
 
@@ -15349,6 +15388,9 @@ msgstr "Lihat lowongan"
 
 msgid "View open roles on Y Combinator"
 msgstr "Lihat lowongan di Y Combinator"
+
+msgid "View output"
+msgstr "Lihat output"
 
 msgid "View pull request"
 msgstr "Lihat pull request"
@@ -15769,6 +15811,12 @@ msgstr "Run workspace: {workspaceRunState}"
 
 msgid "Workspace settings"
 msgstr "Pengaturan workspace"
+
+msgid "Workspace setup"
+msgstr "Penyiapan ruang kerja"
+
+msgid "Workspace setup needs attention"
+msgstr "Penyiapan ruang kerja perlu ditangani"
 
 msgid "Workspace worktree not available"
 msgstr "Worktree workspace tidak tersedia"

@@ -1,7 +1,10 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { formatDateTime } from "@superset/i18n/format";
 import { Button } from "@superset/ui/button";
+import { Input } from "@superset/ui/input";
 import { useNavigate } from "@tanstack/react-router";
 import { AlertCircle, GitBranch } from "lucide-react";
+import { useState } from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { FailedWorkspaceCreateRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
@@ -21,10 +24,22 @@ export function WorkspaceCreateErrorState({
 	const name = entry.input.name;
 	const branch = "branch" in entry.input ? entry.input.branch : undefined;
 
-	const handleRetry = () => {
+	const [base, setBase] = useState("");
+	const recovery = entry.baseRefRecovery;
+	const handleRetry = (useCached = false) => {
 		const { workspaceId, completed } = submit({
 			hostId: entry.hostId,
-			snapshot: entry.input,
+			snapshot:
+				entry.input.projectId === null
+					? entry.input
+					: {
+							...entry.input,
+							...(base.trim() && { baseBranch: base.trim() }),
+							cachedBase:
+								useCached && recovery?.commit
+									? { ref: recovery.ref, commit: recovery.commit }
+									: undefined,
+						},
 		});
 		void completed.then((outcome) => {
 			if (outcome.ok && outcome.workspaceId !== workspaceId) {
@@ -88,8 +103,50 @@ export function WorkspaceCreateErrorState({
 					</p>
 				</div>
 
+				{recovery && (
+					<div className="w-full space-y-3">
+						<label htmlFor="recovery-base" className="block space-y-2 text-sm">
+							<span>
+								<Trans>Change base branch</Trans>
+							</span>
+							<Input
+								id="recovery-base"
+								value={base}
+								onChange={(event) => setBase(event.target.value)}
+								placeholder="origin/main"
+							/>
+						</label>
+						{recovery.commit && (
+							<details className="text-xs text-muted-foreground">
+								<summary className="cursor-pointer">
+									<Trans>Use cached base</Trans>
+								</summary>
+								<p className="my-2 break-all">
+									{recovery.ref} · {recovery.commit.slice(0, 8)}
+									{recovery.commitTime && (
+										<> · {formatDateTime(recovery.commitTime)}</>
+									)}
+								</p>
+								<p className="mb-2">
+									<Trans>
+										This commit may be behind the remote. Use it for this
+										workspace only.
+									</Trans>
+								</p>
+								<Button
+									size="sm"
+									variant="outline"
+									disabled={Boolean(base.trim())}
+									onClick={() => handleRetry(true)}
+								>
+									<Trans>Create from this commit</Trans>
+								</Button>
+							</details>
+						)}
+					</div>
+				)}
 				<div className="flex items-center gap-2">
-					<Button size="sm" onClick={handleRetry}>
+					<Button size="sm" onClick={() => handleRetry()}>
 						<Trans>Try again</Trans>
 					</Button>
 					<Button size="sm" variant="ghost" onClick={handleDismiss}>

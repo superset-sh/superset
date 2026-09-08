@@ -220,6 +220,11 @@ export interface WorkspaceCreateSettledMessage {
 	agents: WorkspaceCreateAgentLaunch[];
 	alreadyExists: boolean;
 	error?: string;
+	baseRefRecovery?: {
+		ref: string;
+		commit: string | null;
+		commitTime: number | null;
+	};
 	occurredAt: number;
 }
 

@@ -999,9 +999,6 @@ msgstr "<0>vs</0> <1/>"
 msgid "~{stars} projected this week"
 msgstr "이번 주 예상 ~{stars}개"
 
-msgid "~{totalSeconds}s typical"
-msgstr "보통 약 {totalSeconds}초"
-
 msgid "~{TYPICAL_SECONDS}s typical"
 msgstr "보통 약 {TYPICAL_SECONDS}초"
 
@@ -1385,6 +1382,9 @@ msgstr "사용자 지정 오디오 추가"
 msgid "Add description..."
 msgstr "설명 추가..."
 
+msgid "Add file"
+msgstr "파일 추가"
+
 msgid "Add file comment"
 msgstr "파일 코멘트 추가"
 
@@ -1562,6 +1562,9 @@ msgstr "에이전트가 직접 미리 보기를 띄우고, UI를 조작하고, �
 
 msgid "Agents running at once"
 msgstr "동시에 실행 중인 에이전트"
+
+msgid "Agents will start when setup finishes."
+msgstr "설정이 완료되면 에이전트가 시작됩니다."
 
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Superset 리더보드에 참여한 모든 개발자의 에이전트 사용량 집계 — 토큰, 비용, 캐시 동작, 그리고 실제로 많이 쓰이는 모델입니다."
@@ -2771,6 +2774,9 @@ msgstr "생각의 흐름"
 msgid "Change avatar"
 msgstr "아바타 변경"
 
+msgid "Change base branch"
+msgstr "기준 브랜치 변경"
+
 msgid "Change location"
 msgstr "위치 변경"
 
@@ -3375,9 +3381,6 @@ msgstr "명령..."
 msgid "Commands"
 msgstr "명령"
 
-msgid "Commands run for workspace setup, teardown, and the Run button."
-msgstr "워크스페이스 설정, 정리, 실행 버튼에 사용되는 명령입니다."
-
 msgid "Comment"
 msgstr "코멘트"
 
@@ -3891,9 +3894,6 @@ msgstr "다른 브라우저의 방문 기록과 로그인 정보를 Superset으�
 msgid "Copy your key now — you won't be able to see it again."
 msgstr "지금 키를 복사하세요 — 다시 볼 수 없습니다."
 
-msgid "Copying configuration"
-msgstr "설정 복사 중"
-
 msgid "Cost"
 msgstr "비용"
 
@@ -4257,6 +4257,9 @@ msgstr "계정 만들기"
 msgid "Create failed: {message}"
 msgstr "생성 실패: {message}"
 
+msgid "Create from this commit"
+msgstr "이 커밋에서 생성"
+
 msgid "Create merge commit"
 msgstr "머지 커밋 만들기"
 
@@ -4369,9 +4372,6 @@ msgstr "생성 중"
 
 msgid "Creating"
 msgstr "만드는 중"
-
-msgid "Creating git worktree"
-msgstr "git worktree 만드는 중"
 
 msgid "Creating PR..."
 msgstr "PR 생성 중…"
@@ -4570,6 +4570,9 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 
 msgid "Default ({defaultWorktreePath})"
 msgstr "기본값({defaultWorktreePath})"
+
+msgid "Default base branch"
+msgstr "기본 기준 브랜치"
 
 msgid "Default effort"
 msgstr "기본 강도"
@@ -4836,6 +4839,9 @@ msgstr "분리됨"
 
 msgid "Details"
 msgstr "세부 정보"
+
+msgid "Detected setup command"
+msgstr "감지된 설정 명령"
 
 msgid "Dev"
 msgstr "개발"
@@ -6220,9 +6226,6 @@ msgstr "필터"
 msgid "Filters, {activeFilterCount} active"
 msgstr "필터, {activeFilterCount}개 적용됨"
 
-msgid "Finalizing setup"
-msgstr "설정 마무리 중"
-
 msgid "Find a small bug and fix it…"
 msgstr "작은 버그를 찾아서 고치기…"
 
@@ -7172,9 +7175,6 @@ msgstr "Git 초기화"
 msgid "Initialize Git Repository?"
 msgstr "Git 저장소를 초기화할까요?"
 
-msgid "Initializing session"
-msgstr "세션 초기화 중"
-
 msgid "Initializing..."
 msgstr "초기화하는 중..."
 
@@ -7823,6 +7823,9 @@ msgstr "작업 연결"
 msgid "Linked {slug} to workspace"
 msgstr "{slug}을(를) 워크스페이스에 연결했습니다"
 
+msgid "Linking shared files…"
+msgstr "공유 파일 연결 중…"
+
 msgid "Links"
 msgstr "링크"
 
@@ -7981,6 +7984,9 @@ msgstr "불러오는 중..."
 
 msgid "Loading…"
 msgstr "불러오는 중…"
+
+msgid "Local"
+msgstr "로컬"
 
 msgid "Local Device"
 msgstr "로컬 기기"
@@ -9534,6 +9540,9 @@ msgstr "호스트 소유자만 이 위치를 변경할 수 있습니다."
 msgid "Only host owners can delete this host"
 msgstr "호스트 소유자만 이 호스트를 삭제할 수 있습니다"
 
+msgid "Only ignored files on this host can be shared."
+msgstr "이 호스트에서 무시된 파일만 공유할 수 있습니다."
+
 msgid "Only organization owners can delete this project."
 msgstr "조직 소유자만 이 프로젝트를 삭제할 수 있습니다."
 
@@ -10602,6 +10611,9 @@ msgstr "환경설정"
 msgid "Prefix"
 msgstr "접두사"
 
+msgid "Prepare new workspaces on this host before agents start."
+msgstr "에이전트가 시작되기 전에 이 호스트에서 새 워크스페이스를 준비합니다."
+
 msgid "Preparing"
 msgstr "준비 중"
 
@@ -10760,9 +10772,6 @@ msgstr "프로젝트를 가져와 선택했습니다."
 
 msgid "Project is already at that location"
 msgstr "프로젝트가 이미 그 위치에 있습니다"
-
-msgid "Project lifecycle scripts"
-msgstr "프로젝트 라이프사이클 스크립트"
 
 msgid "Project name"
 msgstr "프로젝트 이름"
@@ -11230,9 +11239,6 @@ msgstr "앱 다시 로드"
 msgid "Reload Superset to refresh the workspace list."
 msgstr "워크스페이스 목록을 새로 고치려면 Superset을 다시 불러오세요."
 
-msgid "Reload window"
-msgstr "창 다시 로드"
-
 msgid "Relocate"
 msgstr "이동"
 
@@ -11256,6 +11262,12 @@ msgstr "원격 접속"
 
 msgid "Remote Access"
 msgstr "원격 액세스"
+
+msgid "Remote base → shared files → setup → ready"
+msgstr "원격 기준 → 공유 파일 → 설정 → 준비 완료"
+
+msgid "Remote branches are refreshed before each new workspace. Local branches use the commit on this host."
+msgstr "새 워크스페이스를 만들기 전에 원격 브랜치를 갱신합니다. 로컬 브랜치는 이 호스트의 커밋을 사용합니다."
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "원격 MCP 서버 — HTTP로 연결합니다"
@@ -11463,6 +11475,9 @@ msgstr "리포지토리: {label}"
 
 msgid "Repository"
 msgstr "리포지토리"
+
+msgid "Repository default"
+msgstr "저장소 기본값"
 
 msgid "Repository reach and desktop release downloads. Installs are dmg and AppImage downloads; updates are the zip the auto-updater pulls, so they count existing users."
 msgstr "저장소 도달 범위와 데스크톱 릴리스 다운로드. 설치는 dmg와 AppImage 다운로드, 업데이트는 자동 업데이터가 받는 zip으로 기존 사용자를 집계합니다."
@@ -11712,6 +11727,9 @@ msgstr "몇 초 후 다시 시도하고, 계속되면 Superset을 재시작하�
 msgid "Retry in a few seconds."
 msgstr "몇 초 후 다시 시도하세요."
 
+msgid "Retry setup"
+msgstr "설정 재시도"
+
 msgid "Retrying…"
 msgstr "다시 시도하는 중…"
 
@@ -11949,6 +11967,9 @@ msgstr "페어링된 기기에서 실행 중"
 
 msgid "Running on this device"
 msgstr "이 기기에서 실행 중"
+
+msgid "Running setup…"
+msgstr "설정 실행 중…"
 
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "실행 중인 터미널 프로세스는 계속되지만, 앱을 다시 시작한 뒤에는 이전 출력을 볼 수 없을 수 있습니다."
@@ -12439,6 +12460,9 @@ msgstr "선택한 에이전트를 이 호스트에서 사용할 수 없습니다
 msgid "Selected agent isn't a terminal agent"
 msgstr "선택한 에이전트는 터미널 에이전트가 아닙니다"
 
+msgid "Selected files link to the root checkout. Edits are shared across workspaces."
+msgstr "선택한 파일은 루트 체크아웃에 연결됩니다. 편집 내용은 워크스페이스 간에 공유됩니다."
+
 msgid "Selected issues span multiple repositories. Select issues from a single repository to run them."
 msgstr "선택한 이슈가 여러 리포지토리에 걸쳐 있습니다. 실행하려면 단일 리포지토리의 이슈만 선택하세요."
 
@@ -12637,6 +12661,9 @@ msgstr "공용 앱 컴포넌트"
 msgid "Shared component library."
 msgstr "공유 컴포넌트 라이브러리입니다."
 
+msgid "Shared files"
+msgstr "공유 파일"
+
 msgid "Shared theme JSON files you can import into Superset."
 msgstr "Superset으로 가져올 수 있는 공유 테마 JSON 파일입니다."
 
@@ -12774,6 +12801,9 @@ msgstr "스크립트 바 표시"
 
 msgid "Show sessions"
 msgstr "세션 표시"
+
+msgid "Show setup suggestion"
+msgstr "설정 제안 표시"
 
 msgid "Show status and send notifications for this agent."
 msgstr "이 에이전트의 상태를 표시하고 알림을 보냅니다."
@@ -12966,6 +12996,9 @@ msgstr "모두 건너뛰기"
 
 msgid "Skip for now"
 msgstr "지금은 건너뛰기"
+
+msgid "Skip this file once"
+msgstr "이번에만 이 파일 건너뛰기"
 
 msgid "Skipped"
 msgstr "건너뜀"
@@ -13279,6 +13312,9 @@ msgstr "시작 중"
 
 msgid "Starting {agentLabel}"
 msgstr "{agentLabel} 시작 중"
+
+msgid "Starting agents…"
+msgstr "에이전트 시작 중…"
 
 msgid "Starting cloud workspace"
 msgstr "클라우드 워크스페이스 시작 중"
@@ -13687,9 +13723,6 @@ msgstr "리포지토리 동기화"
 
 msgid "Sync started"
 msgstr "동기화를 시작했습니다"
-
-msgid "Syncing with remote"
-msgstr "원격과 동기화하는 중"
 
 msgid "Syncing..."
 msgstr "동기화하는 중..."
@@ -14280,6 +14313,9 @@ msgstr "이 워크스페이스를 포함한 모든 워크스페이스의 터미�
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "조직의 모든 터미널 세션{runningCountSuffix}이 닫히고 새 데몬이 시작됩니다."
+
+msgid "This commit may be behind the remote. Use it for this workspace only."
+msgstr "이 커밋은 원격보다 뒤처져 있을 수 있습니다. 이 워크스페이스에만 사용합니다."
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "재부팅/충돌 복구에 사용하는 저장된 스크롤백을 삭제합니다."
@@ -15176,11 +15212,17 @@ msgstr "어떤 에이전트든 사용"
 msgid "Use as workspace run"
 msgstr "워크스페이스 실행으로 사용"
 
+msgid "Use cached base"
+msgstr "캐시된 기준 사용"
+
 msgid "Use Claude Code, Codex, OpenCode, or any coding agent for each task. Your workspaces, branches, and review flow stay the same."
 msgstr "작업마다 Claude Code, Codex, OpenCode 등 어떤 코딩 에이전트든 사용하세요. 워크스페이스, 브랜치, 리뷰 흐름은 그대로입니다."
 
 msgid "Use Claude Code, Codex, or any coding agent. Choose per task or run several side by side."
 msgstr "Claude Code, Codex 등 어떤 코딩 에이전트든 사용하세요. 작업마다 고르거나 여러 개를 나란히 돌리세요."
+
+msgid "Use command"
+msgstr "명령 사용"
 
 msgid "Use for new agents"
 msgstr "새 에이전트에 사용"
@@ -15269,9 +15311,6 @@ msgstr "툴팁 안에서 Kbd가 계속 보이는지 확인"
 msgid "Verify your identity"
 msgstr "신원 확인"
 
-msgid "Verifying base branch"
-msgstr "기준 브랜치 확인 중"
-
 msgid "Version"
 msgstr "버전"
 
@@ -15349,6 +15388,9 @@ msgstr "채용 중인 직무 보기"
 
 msgid "View open roles on Y Combinator"
 msgstr "Y Combinator에서 채용 공고 보기"
+
+msgid "View output"
+msgstr "출력 보기"
 
 msgid "View pull request"
 msgstr "풀 리퀘스트 보기"
@@ -15769,6 +15811,12 @@ msgstr "워크스페이스 실행: {workspaceRunState}"
 
 msgid "Workspace settings"
 msgstr "워크스페이스 설정"
+
+msgid "Workspace setup"
+msgstr "워크스페이스 설정"
+
+msgid "Workspace setup needs attention"
+msgstr "워크스페이스 설정에 조치가 필요합니다"
 
 msgid "Workspace worktree not available"
 msgstr "워크스페이스 worktree를 사용할 수 없습니다"

@@ -999,9 +999,6 @@ msgstr "<0>vs</0> <1/>"
 msgid "~{stars} projected this week"
 msgstr "~{stars} previste questa settimana"
 
-msgid "~{totalSeconds}s typical"
-msgstr "~{totalSeconds}s tipici"
-
 msgid "~{TYPICAL_SECONDS}s typical"
 msgstr "~{TYPICAL_SECONDS}s tipici"
 
@@ -1385,6 +1382,9 @@ msgstr "Aggiungi un audio personalizzato"
 msgid "Add description..."
 msgstr "Aggiungi una descrizione..."
 
+msgid "Add file"
+msgstr "Aggiungi file"
+
 msgid "Add file comment"
 msgstr "Aggiungi un commento al file"
 
@@ -1562,6 +1562,9 @@ msgstr "Gli agenti caricano la propria anteprima, guidano l'interfaccia e allega
 
 msgid "Agents running at once"
 msgstr "Agenti in esecuzione in parallelo"
+
+msgid "Agents will start when setup finishes."
+msgstr "Gli agenti si avvieranno al termine della configurazione."
 
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Utilizzo aggregato degli agenti di tutti gli sviluppatori nella classifica di Superset — token, costi, comportamento della cache e quali modelli vengono davvero usati."
@@ -2771,6 +2774,9 @@ msgstr "Catena di pensiero"
 msgid "Change avatar"
 msgstr "Cambia avatar"
 
+msgid "Change base branch"
+msgstr "Cambia branch di base"
+
 msgid "Change location"
 msgstr "Cambia posizione"
 
@@ -3375,9 +3381,6 @@ msgstr "Comando..."
 msgid "Commands"
 msgstr "Comandi"
 
-msgid "Commands run for workspace setup, teardown, and the Run button."
-msgstr "Comandi eseguiti per il setup del workspace, il teardown e il pulsante Esegui."
-
 msgid "Comment"
 msgstr "Commenta"
 
@@ -3891,9 +3894,6 @@ msgstr "Copia in Superset la cronologia di navigazione e gli accessi da un altro
 msgid "Copy your key now — you won't be able to see it again."
 msgstr "Copia la chiave adesso — non potrai più vederla."
 
-msgid "Copying configuration"
-msgstr "Copia della configurazione"
-
 msgid "Cost"
 msgstr "Costo"
 
@@ -4257,6 +4257,9 @@ msgstr "Crea un account"
 msgid "Create failed: {message}"
 msgstr "Creazione non riuscita: {message}"
 
+msgid "Create from this commit"
+msgstr "Crea da questo commit"
+
 msgid "Create merge commit"
 msgstr "Crea un commit di merge"
 
@@ -4369,9 +4372,6 @@ msgstr "creazione"
 
 msgid "Creating"
 msgstr "Creazione"
-
-msgid "Creating git worktree"
-msgstr "Creazione del worktree git"
 
 msgid "Creating PR..."
 msgstr "Creazione della PR…"
@@ -4570,6 +4570,9 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 
 msgid "Default ({defaultWorktreePath})"
 msgstr "Predefinita ({defaultWorktreePath})"
+
+msgid "Default base branch"
+msgstr "Branch di base predefinito"
 
 msgid "Default effort"
 msgstr "Effort predefinito"
@@ -4836,6 +4839,9 @@ msgstr "Scollegata"
 
 msgid "Details"
 msgstr "Dettagli"
+
+msgid "Detected setup command"
+msgstr "Comando di configurazione rilevato"
 
 msgid "Dev"
 msgstr "Dev"
@@ -6220,9 +6226,6 @@ msgstr "Filtri"
 msgid "Filters, {activeFilterCount} active"
 msgstr "Filtri, {activeFilterCount} attivi"
 
-msgid "Finalizing setup"
-msgstr "Completamento della configurazione"
-
 msgid "Find a small bug and fix it…"
 msgstr "Trova un piccolo bug e correggilo…"
 
@@ -7172,9 +7175,6 @@ msgstr "Inizializza Git"
 msgid "Initialize Git Repository?"
 msgstr "Inizializzare il repository Git?"
 
-msgid "Initializing session"
-msgstr "Inizializzazione della sessione"
-
 msgid "Initializing..."
 msgstr "Inizializzazione..."
 
@@ -7823,6 +7823,9 @@ msgstr "Collega un task"
 msgid "Linked {slug} to workspace"
 msgstr "{slug} collegato al workspace"
 
+msgid "Linking shared files…"
+msgstr "Collegamento dei file condivisi…"
+
 msgid "Links"
 msgstr "Link"
 
@@ -7981,6 +7984,9 @@ msgstr "Caricamento..."
 
 msgid "Loading…"
 msgstr "Caricamento…"
+
+msgid "Local"
+msgstr "Locale"
 
 msgid "Local Device"
 msgstr "Dispositivo locale"
@@ -9534,6 +9540,9 @@ msgstr "Solo i proprietari dell'host possono cambiare questa posizione."
 msgid "Only host owners can delete this host"
 msgstr "Solo i proprietari dell'host possono eliminarlo"
 
+msgid "Only ignored files on this host can be shared."
+msgstr "È possibile condividere solo i file ignorati su questo host."
+
 msgid "Only organization owners can delete this project."
 msgstr "Solo i proprietari dell'organizzazione possono eliminare questo progetto."
 
@@ -10602,6 +10611,9 @@ msgstr "Preferenze"
 msgid "Prefix"
 msgstr "Prefisso"
 
+msgid "Prepare new workspaces on this host before agents start."
+msgstr "Prepara i nuovi spazi di lavoro su questo host prima di avviare gli agenti."
+
 msgid "Preparing"
 msgstr "Preparazione"
 
@@ -10760,9 +10772,6 @@ msgstr "Progetto importato e selezionato."
 
 msgid "Project is already at that location"
 msgstr "Il progetto si trova già in quella posizione"
-
-msgid "Project lifecycle scripts"
-msgstr "Script di ciclo di vita del progetto"
 
 msgid "Project name"
 msgstr "Nome del progetto"
@@ -11230,9 +11239,6 @@ msgstr "Ricarica l'app"
 msgid "Reload Superset to refresh the workspace list."
 msgstr "Ricarica Superset per aggiornare l'elenco dei workspace."
 
-msgid "Reload window"
-msgstr "Ricarica la finestra"
-
 msgid "Relocate"
 msgstr "Sposta"
 
@@ -11256,6 +11262,12 @@ msgstr "Accesso remoto"
 
 msgid "Remote Access"
 msgstr "Accesso remoto"
+
+msgid "Remote base → shared files → setup → ready"
+msgstr "Base remota → file condivisi → configurazione → pronto"
+
+msgid "Remote branches are refreshed before each new workspace. Local branches use the commit on this host."
+msgstr "I branch remoti vengono aggiornati prima di ogni nuovo spazio di lavoro. I branch locali usano il commit su questo host."
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "Server MCP remoto — si connette via HTTP"
@@ -11463,6 +11475,9 @@ msgstr "Repository: {label}"
 
 msgid "Repository"
 msgstr "Repository"
+
+msgid "Repository default"
+msgstr "Predefinito del repository"
 
 msgid "Repository reach and desktop release downloads. Installs are dmg and AppImage downloads; updates are the zip the auto-updater pulls, so they count existing users."
 msgstr "Portata del repository e download delle release desktop. Le installazioni sono download di dmg e AppImage; gli aggiornamenti sono lo zip scaricato dall'auto-updater, quindi contano utenti esistenti."
@@ -11712,6 +11727,9 @@ msgstr "Riprova tra qualche secondo; se persiste, riavvia Superset."
 msgid "Retry in a few seconds."
 msgstr "Riprova tra qualche secondo."
 
+msgid "Retry setup"
+msgstr "Riprova la configurazione"
+
 msgid "Retrying…"
 msgstr "Nuovo tentativo…"
 
@@ -11949,6 +11967,9 @@ msgstr "In esecuzione su un dispositivo abbinato"
 
 msgid "Running on this device"
 msgstr "In esecuzione su questo dispositivo"
+
+msgid "Running setup…"
+msgstr "Configurazione in corso…"
 
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "I processi del terminale in esecuzione continuano, ma l'output più vecchio potrebbe non essere più disponibile dopo il riavvio dell'app."
@@ -12439,6 +12460,9 @@ msgstr "L'agente selezionato non è disponibile su questo host"
 msgid "Selected agent isn't a terminal agent"
 msgstr "L'agente selezionato non è un agente da terminale"
 
+msgid "Selected files link to the root checkout. Edits are shared across workspaces."
+msgstr "I file selezionati sono collegati al checkout radice. Le modifiche sono condivise tra gli spazi di lavoro."
+
 msgid "Selected issues span multiple repositories. Select issues from a single repository to run them."
 msgstr "Le issue selezionate appartengono a più repository. Seleziona issue di un singolo repository per eseguirle."
 
@@ -12637,6 +12661,9 @@ msgstr "Componenti condivisi dell'app"
 msgid "Shared component library."
 msgstr "Libreria di componenti condivisa."
 
+msgid "Shared files"
+msgstr "File condivisi"
+
 msgid "Shared theme JSON files you can import into Superset."
 msgstr "File JSON di temi condivisi che puoi importare in Superset."
 
@@ -12774,6 +12801,9 @@ msgstr "Mostra la barra degli script"
 
 msgid "Show sessions"
 msgstr "Mostra le sessioni"
+
+msgid "Show setup suggestion"
+msgstr "Mostra suggerimento di configurazione"
 
 msgid "Show status and send notifications for this agent."
 msgstr "Mostra lo stato e invia notifiche per questo agente."
@@ -12966,6 +12996,9 @@ msgstr "Salta tutto"
 
 msgid "Skip for now"
 msgstr "Salta per ora"
+
+msgid "Skip this file once"
+msgstr "Salta questo file solo questa volta"
 
 msgid "Skipped"
 msgstr "Saltati"
@@ -13279,6 +13312,9 @@ msgstr "Avvio"
 
 msgid "Starting {agentLabel}"
 msgstr "Avvio di {agentLabel}"
+
+msgid "Starting agents…"
+msgstr "Avvio degli agenti…"
 
 msgid "Starting cloud workspace"
 msgstr "Avvio del workspace cloud"
@@ -13687,9 +13723,6 @@ msgstr "Sincronizza i repository"
 
 msgid "Sync started"
 msgstr "Sincronizzazione avviata"
-
-msgid "Syncing with remote"
-msgstr "Sincronizzazione con il remote"
 
 msgid "Syncing..."
 msgstr "Sincronizzazione..."
@@ -14280,6 +14313,9 @@ msgstr "Questo chiude tutte le sessioni del terminale — in questo workspace e 
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "Questo chiude tutte le sessioni del terminale della tua organizzazione{runningCountSuffix} e avvia un daemon nuovo."
+
+msgid "This commit may be behind the remote. Use it for this workspace only."
+msgstr "Questo commit potrebbe essere indietro rispetto al remoto. Usalo solo per questo spazio di lavoro."
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Questo elimina lo scrollback salvato usato per il ripristino dopo riavvio o crash."
@@ -15176,11 +15212,17 @@ msgstr "Usa qualsiasi agente"
 msgid "Use as workspace run"
 msgstr "Usa come esecuzione del workspace"
 
+msgid "Use cached base"
+msgstr "Usa base nella cache"
+
 msgid "Use Claude Code, Codex, OpenCode, or any coding agent for each task. Your workspaces, branches, and review flow stay the same."
 msgstr "Usa Claude Code, Codex, OpenCode o qualsiasi agente di programmazione per ogni task. I tuoi workspace, i branch e il flusso di revisione restano gli stessi."
 
 msgid "Use Claude Code, Codex, or any coding agent. Choose per task or run several side by side."
 msgstr "Usa Claude Code, Codex o qualsiasi agente di programmazione. Scegli per ogni task o falli girare affiancati."
+
+msgid "Use command"
+msgstr "Usa comando"
 
 msgid "Use for new agents"
 msgstr "Usa per i nuovi agenti"
@@ -15269,9 +15311,6 @@ msgstr "Verifica che Kbd resti visibile dentro i tooltip"
 msgid "Verify your identity"
 msgstr "Verificare la tua identità"
 
-msgid "Verifying base branch"
-msgstr "Verifica del branch di base"
-
 msgid "Version"
 msgstr "Versione"
 
@@ -15349,6 +15388,9 @@ msgstr "Vedi le posizioni aperte"
 
 msgid "View open roles on Y Combinator"
 msgstr "Vedi le posizioni aperte su Y Combinator"
+
+msgid "View output"
+msgstr "Visualizza output"
 
 msgid "View pull request"
 msgstr "Vedi la pull request"
@@ -15769,6 +15811,12 @@ msgstr "Esecuzione del workspace: {workspaceRunState}"
 
 msgid "Workspace settings"
 msgstr "Impostazioni del workspace"
+
+msgid "Workspace setup"
+msgstr "Configurazione dello spazio di lavoro"
+
+msgid "Workspace setup needs attention"
+msgstr "La configurazione dello spazio di lavoro richiede attenzione"
 
 msgid "Workspace worktree not available"
 msgstr "Worktree del workspace non disponibile"

@@ -40,6 +40,7 @@ import { V2WorkspaceOpenInButton } from "./components/V2WorkspaceOpenInButton";
 import { V2WorkspaceRunButton } from "./components/V2WorkspaceRunButton";
 import { WorkspaceEmptyState } from "./components/WorkspaceEmptyState";
 import { WorkspaceMissingWorktreeState } from "./components/WorkspaceMissingWorktreeState";
+import { WorkspaceSetupStatus } from "./components/WorkspaceSetupStatus";
 import { WorkspaceSidebar } from "./components/WorkspaceSidebar";
 import { useAutoAdoptBackgroundSessions } from "./hooks/useAutoAdoptBackgroundSessions";
 import { useClearActivePaneAttention } from "./hooks/useClearActivePaneAttention";
@@ -371,6 +372,7 @@ function V2WorkspaceContent() {
 						className="flex min-h-0 min-w-[320px] flex-1 flex-col overflow-hidden"
 						data-workspace-id={workspaceId}
 					>
+						<WorkspaceSetupStatus key={workspaceId} workspaceId={workspaceId} />
 						<Workspace<PaneViewerData>
 							key={workspaceId}
 							registry={paneRegistry}

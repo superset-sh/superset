@@ -1,74 +1,124 @@
 import {
+	asLocalRef,
 	asRemoteRef,
 	type ResolvedRef,
+	resolveDefaultBranchName,
 	resolveUpstream,
 } from "../../../../runtime/git/refs";
 import type { BaseRefFetchTarget } from "../../git/utils/base-ref-freshness";
 import type { GitClient } from "../shared/types";
-import { resolveStartPoint } from "./resolve-start-point";
 
 export type BaseRefFetcher = (target: BaseRefFetchTarget) => Promise<unknown>;
+export interface CachedBase {
+	ref: string;
+	commit: string;
+}
+export class BaseRefreshError extends Error {
+	constructor(
+		public readonly ref: string,
+		public readonly cachedCommit: string | null,
+		public readonly cachedCommitTime: number | null,
+		cause: unknown,
+	) {
+		super(`Could not refresh ${ref}. Retry or choose another base.`, { cause });
+		this.name = "BaseRefreshError";
+	}
+}
+async function commitAt(git: GitClient, ref: string): Promise<string | null> {
+	return git
+		.raw(["rev-parse", "--verify", `${ref}^{commit}`])
+		.then((out) =>
+			/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(out.trim()) ? out.trim() : null,
+		)
+		.catch(() => null);
+}
 
-/**
- * Resolve the start point a *new* branch should fork from. No
- * `resolveRef(branch)` check — callers are responsible for guaranteeing
- * the branch name is fresh (e.g. via `deduplicateBranchName`). Useful
- * when the branch name is being chosen at the same time the start point
- * is resolved (auto-gen + AI naming path), so it can run in parallel
- * with the LLM call.
- *
- * Local refs of *any* base branch go stale — not just the default. If
- * `main` gets `git fetch`ed regularly but a shared branch like
- * `mirror-flier` hasn't been touched in weeks, forking from local
- * `mirror-flier` silently produces a workspace weeks behind current
- * work. So we upgrade local→remote-tracking + fetch whenever the base
- * has a configured upstream, regardless of whether it's the default.
- */
+/** New branches pin the fetched commit. Existing-branch attachment bypasses this. */
 export async function resolveNewBranchStartPoint(
 	git: GitClient,
 	baseBranch: string | undefined,
-	// Callers on the host-service event loop pass a worker-pool-backed
-	// fetcher so the network fetch doesn't spawn/drain in-process.
 	fetchRemoteRef: BaseRefFetcher = (target) =>
-		git.fetch([target.remote, target.branch, "--quiet", "--no-tags"]),
+		git.fetch([
+			"--quiet",
+			"--no-tags",
+			target.remote,
+			`+refs/heads/${target.branch}:refs/remotes/${target.remote}/${target.branch}`,
+		]),
+	cachedBase?: CachedBase,
 ): Promise<ResolvedRef> {
-	let startPoint = await resolveStartPoint(git, baseBranch);
-
-	if (startPoint.kind === "local") {
-		const upstream = await resolveUpstream(git, startPoint.shortName);
-		if (upstream) {
-			const remoteRef = asRemoteRef(upstream.remote, upstream.remoteBranch);
-			// `--quiet` confuses simple-git's `raw` (resolves on missing
-			// refs with empty stdout). Drop it; verify a sha was printed.
-			const remoteExists = await git
-				.raw(["rev-parse", "--verify", `${remoteRef}^{commit}`])
-				.then((out) => /^[0-9a-f]{40,}/.test(out.trim()))
-				.catch(() => false);
-			if (remoteExists) {
-				startPoint = {
-					kind: "remote-tracking",
-					fullRef: remoteRef,
-					shortName: upstream.remoteBranch,
-					remote: upstream.remote,
-					remoteShortName: `${upstream.remote}/${upstream.remoteBranch}`,
-				};
-			}
-		}
+	const branch = baseBranch?.trim() || (await resolveDefaultBranchName(git));
+	if (branch.startsWith("refs/heads/")) {
+		const commit = await commitAt(git, branch);
+		if (!commit) throw new Error(`Local base branch does not exist: ${branch}`);
+		return {
+			kind: "local",
+			fullRef: asLocalRef(branch.slice(11)),
+			shortName: branch.slice(11),
+			commit,
+		};
 	}
-
-	if (startPoint.kind === "remote-tracking") {
+	const remotes = (await git.raw(["remote"]))
+		.trim()
+		.split("\n")
+		.filter(Boolean);
+	const qualified = branch.replace(/^refs\/remotes\//, "");
+	const remote = remotes.find((name) => qualified.startsWith(`${name}/`));
+	let target: BaseRefFetchTarget | null = remote
+		? { remote, branch: qualified.slice(remote.length + 1) }
+		: null;
+	if (!target) {
+		const local = await commitAt(git, asLocalRef(branch));
+		const upstream = local ? await resolveUpstream(git, branch) : null;
+		if (upstream)
+			target = { remote: upstream.remote, branch: upstream.remoteBranch };
+		else if ((!baseBranch || !local) && remotes.includes("origin"))
+			target = { remote: "origin", branch };
+		else if (local)
+			return {
+				kind: "local",
+				fullRef: asLocalRef(branch),
+				shortName: branch,
+				commit: local,
+			};
+		else if (!baseBranch && remotes.length === 0) return { kind: "head" };
+		else throw new Error(`Base branch does not exist: ${branch}`);
+	}
+	const fullRef = asRemoteRef(target.remote, target.branch);
+	const ref = `${target.remote}/${target.branch}`;
+	let commit: string | null;
+	if (cachedBase) {
+		commit = await commitAt(git, fullRef);
+		if (cachedBase.ref !== ref || commit !== cachedBase.commit)
+			throw new Error(
+				"The cached base changed. Retry to review the current base.",
+			);
+	} else {
 		try {
-			await fetchRemoteRef({
-				remote: startPoint.remote,
-				branch: startPoint.shortName,
-			});
-		} catch (err) {
-			console.warn(
-				`[workspaces.create] fetch ${startPoint.remoteShortName} failed:`,
-				err,
+			await fetchRemoteRef(target);
+			commit = await commitAt(git, fullRef);
+			if (!commit) throw new Error("Fetched base could not be resolved");
+		} catch (cause) {
+			const cachedCommit = await commitAt(git, fullRef);
+			const seconds = cachedCommit
+				? await git
+						.raw(["show", "-s", "--format=%ct", cachedCommit])
+						.then(Number)
+						.catch(() => NaN)
+				: NaN;
+			throw new BaseRefreshError(
+				ref,
+				cachedCommit,
+				Number.isFinite(seconds) ? seconds * 1000 : null,
+				cause,
 			);
 		}
 	}
-
-	return startPoint;
+	return {
+		kind: "remote-tracking",
+		fullRef,
+		shortName: target.branch,
+		remote: target.remote,
+		remoteShortName: ref,
+		commit: commit ?? undefined,
+	};
 }

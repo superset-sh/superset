@@ -12,6 +12,7 @@ import {
 	text,
 	uniqueIndex,
 } from "drizzle-orm/sqlite-core";
+import type { WorkspaceSetupState } from "../runtime/workspace-setup/types";
 
 export const terminalSessions = sqliteTable(
 	"terminal_sessions",
@@ -100,6 +101,15 @@ export const projects = sqliteTable(
 		// this project (e.g. "include the Linear ticket id in the branch name").
 		// Null means the default naming behavior.
 		namingInstructions: text("naming_instructions"),
+		defaultBaseRef: text("default_base_ref"),
+		sharedFilePaths: text("shared_file_paths", { mode: "json" }).$type<
+			string[]
+		>(),
+		setupSuggestionDismissed: integer("setup_suggestion_dismissed", {
+			mode: "boolean",
+		})
+			.notNull()
+			.default(false),
 		// Empty string means "not yet backfilled" — the startup sweep targets
 		// these rows (name from cloud legacy row if reachable, else basename).
 		name: text().notNull().default(""),
@@ -378,3 +388,10 @@ export const workspacePullRequests = sqliteTable(
 		index("workspace_pull_requests_workspace_idx").on(table.workspaceId),
 	],
 );
+
+export const workspaceSetupRuns = sqliteTable("workspace_setup_runs", {
+	workspaceId: text("workspace_id")
+		.primaryKey()
+		.references(() => workspaces.id, { onDelete: "cascade" }),
+	state: text("state", { mode: "json" }).notNull().$type<WorkspaceSetupState>(),
+});

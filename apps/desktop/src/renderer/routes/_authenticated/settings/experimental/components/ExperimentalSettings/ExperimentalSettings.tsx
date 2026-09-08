@@ -219,7 +219,9 @@ export function ExperimentalSettings({
 						/>
 					</div>
 				)}
-				{showWaitForSetupBeforeAgent && <WaitForSetupBeforeAgentSetting />}
+				{showWaitForSetupBeforeAgent && !isV2CloudEnabled && (
+					<WaitForSetupBeforeAgentSetting />
+				)}
 			</div>
 		</div>
 	);

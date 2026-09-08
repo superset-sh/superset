@@ -12,6 +12,10 @@ import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import { createGitEnvResolver } from "../../../runtime/git";
 import { type ResolvedRef, resolveRef } from "../../../runtime/git/refs";
+import {
+	getSetupState,
+	runWorkspaceSetup,
+} from "../../../runtime/workspace-setup/service";
 import type { HostServiceContext } from "../../../types";
 import { getHostWorkerPool } from "../../../workers/host-worker-pool";
 import { gitFetchBaseRefTask } from "../../../workers/tasks/git";
@@ -27,10 +31,7 @@ import {
 	protectedProcedure,
 	router,
 } from "../../index";
-import {
-	buildTerminalAgentLaunch,
-	validateAgentLaunchOptions,
-} from "../agents";
+import { validateAgentLaunchOptions } from "../agents";
 import { ensureMainWorkspace } from "../project/utils/ensure-main-workspace";
 import { getHostWorktreeBaseDir } from "../settings/worktree-location";
 import { createSession } from "../workspace-creation/procedures/create-session";
@@ -51,7 +52,6 @@ import {
 	requireLocalProject,
 	requireProjectRepoPath,
 } from "../workspace-creation/shared/local-project";
-import { startSetupTerminalIfPresent } from "../workspace-creation/shared/setup-terminal";
 import {
 	addWorktreeWithSparseCheckout,
 	parseSparseCheckoutPaths,
@@ -78,6 +78,8 @@ import {
 import { derivePrLocalBranchName } from "../workspace-creation/utils/pr-branch-name";
 import {
 	type BaseRefFetcher,
+	BaseRefreshError,
+	type CachedBase,
 	resolveNewBranchStartPoint,
 } from "../workspace-creation/utils/resolve-new-branch-start-point";
 import { deduplicateBranchName } from "../workspace-creation/utils/sanitize-branch";
@@ -100,12 +102,15 @@ const createInputSchema = z
 		skipBranchPrefix: z.boolean().optional(),
 		pr: z.number().int().positive().optional(),
 		baseBranch: z.string().min(1).optional(),
+		cachedBase: z
+			.object({
+				ref: z.string().min(1),
+				commit: z.string().regex(/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/),
+			})
+			.optional(),
 		taskId: z.string().uuid().optional(),
 		agents: z.array(agentLaunchSchema).optional(),
-		// Desktop "Wait for workspace setup before starting agents" setting,
-		// sent per-request. When true and setup commands resolve, a single
-		// terminal sugar agent is chained behind them in the setup terminal
-		// (`setup && agent`) instead of launching in parallel.
+		// Accepted for older clients; new workspaces always wait for setup.
 		waitForSetupBeforeAgents: z.boolean().optional(),
 		command: z.string().min(1).optional(),
 		namingPrompt: z.string().min(1).optional(),
@@ -296,6 +301,7 @@ async function planBranchSource(
 	branch: string,
 	baseBranch: string | undefined,
 	fetchRemoteRef?: BaseRefFetcher,
+	cachedBase?: CachedBase,
 ): Promise<BranchSourcePlan> {
 	const resolved = await resolveRef(git, branch);
 
@@ -324,6 +330,7 @@ async function planBranchSource(
 		git,
 		baseBranch,
 		fetchRemoteRef,
+		cachedBase,
 	);
 	return { branch, startPoint, usedExistingBranch: false };
 }
@@ -404,11 +411,12 @@ export async function addBranchWorktree(args: {
 	// ahead/behind counts pointing at the branch's own upstream once
 	// push.autoSetupRemote sets it on first push.
 	const startPointArg =
-		plan.startPoint.kind === "head"
+		plan.startPoint.commit ??
+		(plan.startPoint.kind === "head"
 			? "HEAD"
 			: plan.startPoint.kind === "remote-tracking"
 				? plan.startPoint.remoteShortName
-				: plan.startPoint.shortName;
+				: plan.startPoint.shortName);
 	await addWorktreeWithSparseCheckout({
 		git,
 		worktreeArgs: [
@@ -595,6 +603,10 @@ export const workspacesRouter = router({
 			let resolvedBranch: string;
 			let worktreePath: string | undefined;
 			let alreadyExists = false;
+			let createdWorktree = false;
+			let creationBase:
+				| { ref: string; commit: string; usedCache: boolean }
+				| undefined;
 			let workspaceRow: CloudWorkspace;
 
 			if (input.pr !== undefined) {
@@ -724,6 +736,7 @@ export const workspacesRouter = router({
 										sparsePaths,
 										logPrefix: "[workspaces.create]",
 									});
+									createdWorktree = true;
 								} catch (err) {
 									throw new TRPCError({
 										code: "CONFLICT",
@@ -768,6 +781,7 @@ export const workspacesRouter = router({
 										sparsePaths,
 										logPrefix: "[workspaces.create]",
 									});
+									createdWorktree = true;
 								} catch (err) {
 									if (worktreeAddStarted || materialized?.createdBranch) {
 										await rollbackPreparedPr();
@@ -866,8 +880,9 @@ export const workspacesRouter = router({
 						planBranchSource(
 							git,
 							resolvedBranch,
-							input.baseBranch,
+							input.baseBranch ?? localProject.defaultBaseRef ?? undefined,
 							fetchBaseRefOffLoop,
+							input.cachedBase,
 						),
 						listBranchNames(ctx, repoPath),
 					]);
@@ -901,8 +916,9 @@ export const workspacesRouter = router({
 					const [startPoint, existing] = await Promise.all([
 						resolveNewBranchStartPoint(
 							git,
-							input.baseBranch,
+							input.baseBranch ?? localProject.defaultBaseRef ?? undefined,
 							fetchBaseRefOffLoop,
+							input.cachedBase,
 						),
 						listBranchNames(ctx, repoPath),
 					]);
@@ -925,6 +941,16 @@ export const workspacesRouter = router({
 					};
 				}
 
+				if (
+					!plan.usedExistingBranch &&
+					plan.startPoint.kind !== "head" &&
+					plan.startPoint.commit
+				)
+					creationBase = {
+						ref: plan.startPoint.fullRef,
+						commit: plan.startPoint.commit,
+						usedCache: Boolean(input.cachedBase),
+					};
 				const existing = findExistingWorkspaceByBranch(
 					ctx,
 					input.projectId,
@@ -998,6 +1024,7 @@ export const workspacesRouter = router({
 								worktreePath,
 								sparsePaths,
 							});
+							createdWorktree = true;
 						} catch (err) {
 							// Branch is already claimed by another worktree that the
 							// pre-check missed (auto-gen path, or a race). Adopt at
@@ -1121,97 +1148,56 @@ export const workspacesRouter = router({
 			const terminalsResult: Array<{ terminalId: string; label?: string }> = [];
 			const sugarLaunches = input.agents ?? [];
 
-			// Wait-for-setup gate: chain a single terminal agent behind the setup
-			// commands in the setup terminal, so the agent starts only after setup
-			// succeeds and no second terminal is created. Multi-agent launches keep
-			// the parallel path, mirroring the renderer's v1 gating. Build the agent
-			// command up-front; if it fails (unknown agent, missing attachment) fall
-			// back to the parallel dispatch, which surfaces the error in the agents
-			// result.
-			let chainAgent: { fullCommand: string; label: string } | null = null;
-			const soleLaunch = sugarLaunches.length === 1 ? sugarLaunches[0] : null;
-			if (!alreadyExists && input.waitForSetupBeforeAgents && soleLaunch) {
-				try {
-					chainAgent = buildTerminalAgentLaunch(ctx.db, {
-						workspaceId: workspaceRow.id,
-						agent: soleLaunch.agent,
-						prompt: soleLaunch.prompt,
-						attachmentIds: soleLaunch.attachmentIds,
-						model: soleLaunch.model,
-						effort: soleLaunch.effort,
-						mode: soleLaunch.mode,
-					});
-				} catch (err) {
-					console.warn(
-						"[workspaces.create] wait-for-setup chain unavailable, dispatching agent in parallel:",
-						err,
-					);
-				}
-			}
-
-			// Not chaining? Then the agent and the setup script are independent —
-			// that is what this path means — so launch the agent first. Its
-			// session is the one the user came for, and every client's tab order
-			// follows creation order, which had been handing the first slot to a
-			// setup shell nobody asked to look at.
-			const earlyAgentsResult =
-				chainAgent === null && sugarLaunches.length > 0
-					? await dispatchSugarAgents(ctx, workspaceRow.id, sugarLaunches)
-					: null;
-
-			let chainedAgentResult: AgentLaunchResult | null = null;
-			if (!alreadyExists && input.runSetup !== false) {
-				const { terminal, warning, chained } =
-					await startSetupTerminalIfPresent({
-						ctx,
-						workspaceId: workspaceRow.id,
-						...(chainAgent ? { chainCommand: chainAgent.fullCommand } : {}),
-					});
-				if (warning) {
-					console.warn(`[workspaces.create] setup warning: ${warning}`);
-				}
-				if (terminal) {
-					terminalsResult.push({
-						terminalId: terminal.id,
-						label: terminal.label,
-					});
-				}
-				if (chained && chainAgent && terminal) {
-					chainedAgentResult = {
-						ok: true,
-						kind: "terminal",
-						sessionId: terminal.id,
-						label: chainAgent.label,
-					};
-				}
-			}
-
-			const [agentsResult, commandResult] = await Promise.all([
-				earlyAgentsResult ??
-					dispatchSugarAgents(
-						ctx,
-						workspaceRow.id,
-						chainedAgentResult ? [] : sugarLaunches,
-					),
-				input.command
-					? startCommandTerminal({
-							ctx,
-							workspaceId: workspaceRow.id,
-							command: input.command,
-						})
-					: Promise.resolve(null),
-			]);
-
-			if (commandResult?.warning) {
-				console.warn(
-					`[workspaces.create] command warning: ${commandResult.warning}`,
+			let agentsResult: AgentLaunchResult[] = [];
+			const existingSetup = getSetupState(ctx, workspaceRow.id);
+			if (!alreadyExists && createdWorktree) {
+				const { state, agents, terminals } = await runWorkspaceSetup(
+					ctx,
+					workspaceRow.id,
+					{
+						status: "linking",
+						base: creationBase,
+						step: "files",
+						files: localProject.sharedFilePaths ?? [],
+						skippedFiles: [],
+						agents: sugarLaunches,
+						commandAfterSetup: input.command,
+						runSetup: input.runSetup !== false,
+						startedAt: Date.now(),
+						updatedAt: Date.now(),
+					},
 				);
-			}
-			if (commandResult?.terminal) {
-				terminalsResult.push({
-					terminalId: commandResult.terminal.id,
-					label: commandResult.terminal.label,
-				});
+				agentsResult = agents;
+				terminalsResult.push(...terminals);
+				if (state.terminalId)
+					terminalsResult.push({
+						terminalId: state.terminalId,
+						label: "Workspace Setup",
+					});
+			} else if (existingSetup && existingSetup.status !== "ready") {
+				agentsResult = sugarLaunches.map(() => ({
+					ok: false,
+					error:
+						"Workspace setup must finish before another agent can start. Open the workspace to retry setup.",
+				}));
+			} else {
+				agentsResult = await dispatchSugarAgents(
+					ctx,
+					workspaceRow.id,
+					sugarLaunches,
+				);
+				if (input.command) {
+					const result = await startCommandTerminal({
+						ctx,
+						workspaceId: workspaceRow.id,
+						command: input.command,
+					});
+					if (result.terminal)
+						terminalsResult.push({
+							terminalId: result.terminal.id,
+							label: result.terminal.label,
+						});
+				}
 			}
 
 			// Work is starting on the linked task — move it to In Progress.
@@ -1234,9 +1220,7 @@ export const workspacesRouter = router({
 			return {
 				workspace: workspaceRow,
 				terminals: terminalsResult,
-				agents: chainedAgentResult
-					? [chainedAgentResult, ...agentsResult]
-					: agentsResult,
+				agents: agentsResult,
 				alreadyExists,
 				txid: extractCreateTxid(workspaceRow),
 			};
@@ -1286,9 +1270,22 @@ export const workspacesRouter = router({
 						`[workspaces.createEnqueued] create failed for workspace ${workspaceId} (project ${input.projectId})`,
 						error,
 					);
+					const refreshError =
+						error instanceof BaseRefreshError
+							? error
+							: error?.cause instanceof BaseRefreshError
+								? error.cause
+								: null;
 					ctx.eventBus.broadcastWorkspaceCreateSettled({
 						workspaceId,
 						ok: false,
+						...(refreshError && {
+							baseRefRecovery: {
+								ref: refreshError.ref,
+								commit: refreshError.cachedCommit,
+								commitTime: refreshError.cachedCommitTime,
+							},
+						}),
 						canonicalWorkspaceId: null,
 						projectId: null,
 						terminals: [],

@@ -999,9 +999,6 @@ msgstr "<0>vs</0> <1/>"
 msgid "~{stars} projected this week"
 msgstr "今週は約{stars}の見込み"
 
-msgid "~{totalSeconds}s typical"
-msgstr "通常 約{totalSeconds}秒"
-
 msgid "~{TYPICAL_SECONDS}s typical"
 msgstr "通常約{TYPICAL_SECONDS}秒"
 
@@ -1385,6 +1382,9 @@ msgstr "カスタム音声を追加"
 msgid "Add description..."
 msgstr "説明を追加..."
 
+msgid "Add file"
+msgstr "ファイルを追加"
+
 msgid "Add file comment"
 msgstr "ファイルにコメントを追加"
 
@@ -1562,6 +1562,9 @@ msgstr "エージェントが自らプレビューを開き、UIを操作し、�
 
 msgid "Agents running at once"
 msgstr "同時に動かしているエージェント数"
+
+msgid "Agents will start when setup finishes."
+msgstr "セットアップが完了するとエージェントが起動します。"
 
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Supersetリーダーボード上の全開発者を横断したエージェント利用の集計 — トークン、コスト、キャッシュの挙動、実際に選ばれているモデル。"
@@ -2771,6 +2774,9 @@ msgstr "思考プロセス"
 msgid "Change avatar"
 msgstr "アバターを変更"
 
+msgid "Change base branch"
+msgstr "ベースブランチを変更"
+
 msgid "Change location"
 msgstr "場所を変更"
 
@@ -3375,9 +3381,6 @@ msgstr "コマンド..."
 msgid "Commands"
 msgstr "コマンド"
 
-msgid "Commands run for workspace setup, teardown, and the Run button."
-msgstr "ワークスペースのセットアップ、ティアダウン、実行ボタンで実行されるコマンド。"
-
 msgid "Comment"
 msgstr "コメント"
 
@@ -3891,9 +3894,6 @@ msgstr "別のブラウザから閲覧履歴とログイン情報をSupersetに�
 msgid "Copy your key now — you won't be able to see it again."
 msgstr "キーを今すぐコピーしてください — 後で再表示することはできません。"
 
-msgid "Copying configuration"
-msgstr "設定をコピー中"
-
 msgid "Cost"
 msgstr "コスト"
 
@@ -4257,6 +4257,9 @@ msgstr "アカウントを作成"
 msgid "Create failed: {message}"
 msgstr "作成に失敗しました: {message}"
 
+msgid "Create from this commit"
+msgstr "このコミットから作成"
+
 msgid "Create merge commit"
 msgstr "マージコミットを作成"
 
@@ -4369,9 +4372,6 @@ msgstr "作成中"
 
 msgid "Creating"
 msgstr "作成中"
-
-msgid "Creating git worktree"
-msgstr "git worktreeを作成中"
 
 msgid "Creating PR..."
 msgstr "PRを作成中…"
@@ -4570,6 +4570,9 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 
 msgid "Default ({defaultWorktreePath})"
 msgstr "デフォルト({defaultWorktreePath})"
+
+msgid "Default base branch"
+msgstr "既定のベースブランチ"
 
 msgid "Default effort"
 msgstr "デフォルトのエフォート"
@@ -4836,6 +4839,9 @@ msgstr "切断中"
 
 msgid "Details"
 msgstr "詳細"
+
+msgid "Detected setup command"
+msgstr "検出されたセットアップコマンド"
 
 msgid "Dev"
 msgstr "開発"
@@ -6220,9 +6226,6 @@ msgstr "フィルター"
 msgid "Filters, {activeFilterCount} active"
 msgstr "フィルター、{activeFilterCount}件適用中"
 
-msgid "Finalizing setup"
-msgstr "セットアップを完了中"
-
 msgid "Find a small bug and fix it…"
 msgstr "小さなバグを見つけて修正…"
 
@@ -7172,9 +7175,6 @@ msgstr "Gitを初期化"
 msgid "Initialize Git Repository?"
 msgstr "Gitリポジトリを初期化しますか?"
 
-msgid "Initializing session"
-msgstr "セッションを初期化中"
-
 msgid "Initializing..."
 msgstr "初期化中..."
 
@@ -7823,6 +7823,9 @@ msgstr "タスクをリンク"
 msgid "Linked {slug} to workspace"
 msgstr "{slug}をワークスペースにリンクしました"
 
+msgid "Linking shared files…"
+msgstr "共有ファイルをリンク中…"
+
 msgid "Links"
 msgstr "リンク"
 
@@ -7981,6 +7984,9 @@ msgstr "読み込み中..."
 
 msgid "Loading…"
 msgstr "読み込み中…"
+
+msgid "Local"
+msgstr "ローカル"
 
 msgid "Local Device"
 msgstr "ローカルデバイス"
@@ -9534,6 +9540,9 @@ msgstr "この場所を変更できるのはホストのオーナーのみです
 msgid "Only host owners can delete this host"
 msgstr "このホストを削除できるのはホストのオーナーのみです"
 
+msgid "Only ignored files on this host can be shared."
+msgstr "このホストで無視されているファイルのみ共有できます。"
+
 msgid "Only organization owners can delete this project."
 msgstr "このプロジェクトを削除できるのは組織のオーナーのみです。"
 
@@ -10602,6 +10611,9 @@ msgstr "環境設定"
 msgid "Prefix"
 msgstr "プレフィックス"
 
+msgid "Prepare new workspaces on this host before agents start."
+msgstr "エージェントの起動前に、このホストで新しいワークスペースを準備します。"
+
 msgid "Preparing"
 msgstr "準備中"
 
@@ -10760,9 +10772,6 @@ msgstr "プロジェクトをインポートして選択しました。"
 
 msgid "Project is already at that location"
 msgstr "プロジェクトはすでにその場所にあります"
-
-msgid "Project lifecycle scripts"
-msgstr "プロジェクトのライフサイクルスクリプト"
 
 msgid "Project name"
 msgstr "プロジェクト名"
@@ -11230,9 +11239,6 @@ msgstr "アプリを再読み込み"
 msgid "Reload Superset to refresh the workspace list."
 msgstr "Supersetを再読み込みしてワークスペース一覧を更新してください。"
 
-msgid "Reload window"
-msgstr "ウィンドウを再読み込み"
-
 msgid "Relocate"
 msgstr "移動"
 
@@ -11256,6 +11262,12 @@ msgstr "リモートアクセス"
 
 msgid "Remote Access"
 msgstr "リモートアクセス"
+
+msgid "Remote base → shared files → setup → ready"
+msgstr "リモートベース → 共有ファイル → セットアップ → 準備完了"
+
+msgid "Remote branches are refreshed before each new workspace. Local branches use the commit on this host."
+msgstr "新しいワークスペースの作成前にリモートブランチを更新します。ローカルブランチは、このホストのコミットを使用します。"
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "リモートMCPサーバー — HTTP経由で接続"
@@ -11463,6 +11475,9 @@ msgstr "リポジトリ: {label}"
 
 msgid "Repository"
 msgstr "リポジトリ"
+
+msgid "Repository default"
+msgstr "リポジトリの既定値"
 
 msgid "Repository reach and desktop release downloads. Installs are dmg and AppImage downloads; updates are the zip the auto-updater pulls, so they count existing users."
 msgstr "リポジトリの広がりとデスクトップリリースのダウンロード。インストールは dmg と AppImage のダウンロード、アップデートは自動更新が取得する zip で、既存ユーザーを数えます。"
@@ -11712,6 +11727,9 @@ msgstr "数秒後に再試行してください。解消しない場合はSupers
 msgid "Retry in a few seconds."
 msgstr "数秒後に再試行してください。"
 
+msgid "Retry setup"
+msgstr "セットアップを再試行"
+
 msgid "Retrying…"
 msgstr "再試行中…"
 
@@ -11949,6 +11967,9 @@ msgstr "ペアリング済みデバイスで実行中"
 
 msgid "Running on this device"
 msgstr "このデバイスで実行中"
+
+msgid "Running setup…"
+msgstr "セットアップを実行中…"
 
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "実行中のターミナルプロセスは継続しますが、アプリ再起動後に古い出力が利用できなくなる場合があります。"
@@ -12439,6 +12460,9 @@ msgstr "選択したエージェントはこのホストで利用できません
 msgid "Selected agent isn't a terminal agent"
 msgstr "選択したエージェントはターミナルエージェントではありません"
 
+msgid "Selected files link to the root checkout. Edits are shared across workspaces."
+msgstr "選択したファイルはルートのチェックアウトにリンクします。編集内容はワークスペース間で共有されます。"
+
 msgid "Selected issues span multiple repositories. Select issues from a single repository to run them."
 msgstr "選択したissueが複数のリポジトリにまたがっています。実行するには単一のリポジトリのissueを選択してください。"
 
@@ -12637,6 +12661,9 @@ msgstr "共有アプリコンポーネント"
 msgid "Shared component library."
 msgstr "共有コンポーネントライブラリ。"
 
+msgid "Shared files"
+msgstr "共有ファイル"
+
 msgid "Shared theme JSON files you can import into Superset."
 msgstr "Supersetにインポートできる、共有されたテーマJSONファイル。"
 
@@ -12774,6 +12801,9 @@ msgstr "スクリプトバーを表示"
 
 msgid "Show sessions"
 msgstr "セッションを表示"
+
+msgid "Show setup suggestion"
+msgstr "セットアップの提案を表示"
 
 msgid "Show status and send notifications for this agent."
 msgstr "このエージェントのステータス表示と通知を有効にします。"
@@ -12966,6 +12996,9 @@ msgstr "すべてスキップ"
 
 msgid "Skip for now"
 msgstr "今はスキップ"
+
+msgid "Skip this file once"
+msgstr "今回のみこのファイルをスキップ"
 
 msgid "Skipped"
 msgstr "スキップ"
@@ -13279,6 +13312,9 @@ msgstr "起動中"
 
 msgid "Starting {agentLabel}"
 msgstr "{agentLabel}を起動中"
+
+msgid "Starting agents…"
+msgstr "エージェントを起動中…"
 
 msgid "Starting cloud workspace"
 msgstr "クラウドワークスペースを開始中"
@@ -13687,9 +13723,6 @@ msgstr "リポジトリを同期"
 
 msgid "Sync started"
 msgstr "同期を開始しました"
-
-msgid "Syncing with remote"
-msgstr "リモートと同期中"
 
 msgid "Syncing..."
 msgstr "同期中..."
@@ -14280,6 +14313,9 @@ msgstr "このワークスペースと他のワークスペースのすべての
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "組織のすべてのターミナルセッション{runningCountSuffix}を閉じ、新しいデーモンを起動します。"
+
+msgid "This commit may be behind the remote. Use it for this workspace only."
+msgstr "このコミットはリモートより古い可能性があります。このワークスペースにのみ使用します。"
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "再起動やクラッシュからの復旧に使う保存済みスクロールバックを削除します。"
@@ -15176,11 +15212,17 @@ msgstr "好きなエージェントを使う"
 msgid "Use as workspace run"
 msgstr "ワークスペースの実行に使用"
 
+msgid "Use cached base"
+msgstr "キャッシュ済みベースを使用"
+
 msgid "Use Claude Code, Codex, OpenCode, or any coding agent for each task. Your workspaces, branches, and review flow stay the same."
 msgstr "タスクごとにClaude Code、Codex、OpenCode、その他どのコーディングエージェントでも使えます。ワークスペース、ブランチ、レビューの流れはそのままです。"
 
 msgid "Use Claude Code, Codex, or any coding agent. Choose per task or run several side by side."
 msgstr "Claude Code、Codex、その他どのコーディングエージェントでも使えます。タスクごとに選ぶことも、複数を並べて実行することもできます。"
+
+msgid "Use command"
+msgstr "コマンドを使用"
 
 msgid "Use for new agents"
 msgstr "新規エージェントに使用"
@@ -15269,9 +15311,6 @@ msgstr "tooltip内でKbdが見えたままか確認する"
 msgid "Verify your identity"
 msgstr "本人確認"
 
-msgid "Verifying base branch"
-msgstr "ベースブランチを確認中"
-
 msgid "Version"
 msgstr "バージョン"
 
@@ -15349,6 +15388,9 @@ msgstr "募集中の職種を見る"
 
 msgid "View open roles on Y Combinator"
 msgstr "Y Combinatorで募集中のポジションを見る"
+
+msgid "View output"
+msgstr "出力を表示"
 
 msgid "View pull request"
 msgstr "プルリクエストを表示"
@@ -15769,6 +15811,12 @@ msgstr "ワークスペース実行: {workspaceRunState}"
 
 msgid "Workspace settings"
 msgstr "ワークスペース設定"
+
+msgid "Workspace setup"
+msgstr "ワークスペースのセットアップ"
+
+msgid "Workspace setup needs attention"
+msgstr "ワークスペースのセットアップに対応が必要です"
 
 msgid "Workspace worktree not available"
 msgstr "ワークスペースのworktreeを利用できません"

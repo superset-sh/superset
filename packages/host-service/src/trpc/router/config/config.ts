@@ -104,9 +104,15 @@ export const configRouter = router({
 					const parsed = JSON.parse(readFileSync(configPath, "utf-8"));
 					if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
 						existing = parsed as Record<string, unknown>;
+					} else {
+						throw new Error("Config must be a JSON object");
 					}
 				} catch {
-					existing = {};
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"Fix the existing .superset/config.json before saving setup commands.",
+					});
 				}
 			}
 

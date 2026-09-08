@@ -254,7 +254,12 @@ export function useSubmitWorkspace(
 							? true
 							: undefined,
 					pr: isPrCheckout ? draft.linkedPR?.prNumber : undefined,
-					baseBranch: draft.baseBranch ?? undefined,
+					baseBranch: draft.baseBranch
+						? draft.baseBranchSource === "local" &&
+							!draft.baseBranch.startsWith("refs/")
+							? `refs/heads/${draft.baseBranch}`
+							: draft.baseBranch
+						: undefined,
 					taskId: linkedTaskId,
 					agents,
 					namingPrompt:
