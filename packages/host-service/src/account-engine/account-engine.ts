@@ -1921,6 +1921,26 @@ export class AccountEngine {
 		const adopted = pool.find(
 			(item) => item.row.accountId === seen.accountUuid,
 		);
+		// A login this host knows no store for: the ordinary result of a
+		// `/login` into a brand-new account inside the active dir, which
+		// discovery never scans. Adopting it would point `activeAccountId` at
+		// an account with no pool row, and every later tick then finds no
+		// active row and decides nothing while every manual switch is refused
+		// as `owner-unknown` — permanently, because the adoption clears
+		// `lastWritten` below and no discovery can ever produce that row. Park
+		// instead: `activeAccountId` stays on a row that exists, so switching
+		// still works, and the next swap reads the dir and writes nothing back,
+		// so the unstorable login is discarded rather than saved into the
+		// previous account's store.
+		if (!adopted) {
+			this.parkClaudeIdentity(
+				"[account-engine] the active Claude dir holds a login this host has no account for; not adopting it.",
+				settings,
+				runtime,
+				now,
+			);
+			return;
+		}
 		const from = pool.find((item) => item.row.accountId === expected);
 		state.activeAccountId = seen.accountUuid;
 		state.activeSelection = adopted?.row.selection ?? null;

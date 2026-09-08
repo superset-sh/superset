@@ -296,6 +296,42 @@ describe("an active dir whose identity drifted", () => {
 		).toHaveLength(1);
 	});
 
+	it("parks on a login it has no account for rather than adopting it", async () => {
+		// A `/login` inside a session, into an account that lives in no profile
+		// dir. `discoverClaudeProfiles` skips the active dir, so that account
+		// has no pool row and never will: adopting it would leave
+		// `activeAccountId` naming a row that does not exist, and from then on
+		// every tick finds no active row and every manual switch is refused as
+		// `owner-unknown`, with nothing that can undo it.
+		const h = harness();
+		expect((await h.engine.switchManually("claude", "/profiles/b")).ok).toBe(
+			true,
+		);
+		h.dir.current = { accountUuid: "acct-z", credentialHash: "hash-z" };
+
+		await h.engine.tick();
+
+		// Nothing adopted: the only switch on the bus is the manual one, and the
+		// runtime still names an account the pool has.
+		expect(h.switched.map((payload) => payload.toAccountId)).toEqual([
+			"acct-b",
+		]);
+		expect(persistedActive(h.state)).toBe("acct-b");
+		expect(h.state.readRuntime().perAgent.claude.activeSelection).toBe(
+			"/profiles/b",
+		);
+		expect(
+			h.states.filter(
+				(payload) => payload.lastSwitchFailure?.code === "owner-unknown",
+			),
+		).toHaveLength(1);
+
+		// The point of the park: switching still works afterwards.
+		expect((await h.engine.switchManually("claude", "/profiles/a")).ok).toBe(
+			true,
+		);
+	});
+
 	it("still adopts a third account's login after it has written the dir", async () => {
 		// CONTROL. A `/login` inside a session, on a host that wrote this dir:
 		// the block names neither the recorded account nor the one the switch
