@@ -55,6 +55,19 @@ const exhaustedAgents = new Set<string>();
  * reasoning. */
 const needsAttentionKeys = new Map<string, string>();
 
+/**
+ * The switch-failure code the user was last told about, per host and agent.
+ * The engine mints a fresh `at` on every failed attempt and re-broadcasts on
+ * every poll, so the timestamp cannot carry this dedupe — keying on it meant a
+ * failure that keeps failing raised a native notification per poll, forever.
+ *
+ * Cleared on a positive recovery signal only: a completed switch for that host
+ * and agent, or a different code. Never on `lastSwitchFailure` being absent
+ * from a payload — the steady-state broadcast routinely omits it, so clearing
+ * on absence would re-arm the storm on the next tick.
+ */
+const lastFailureCodes = new Map<string, string>();
+
 /** Per-host, per-agent latch key for the engine-state notices. */
 function latchKey(hostUrl: string, agent: AccountAgent): string {
 	return `${hostUrl}|${agent}`;
@@ -109,6 +122,10 @@ export function AccountSwitchSubscriber({
 			void invalidateAccountQueries(queryClient, hostUrl);
 			rememberLastSeenAt(hostUrl, payload.at);
 			liveSwitchesDuringSummary.get(hostUrl)?.add(payload.at);
+			// Switching works again for this agent, whoever made it happen, so
+			// the next failure is news. The only positive recovery signal there
+			// is: the engine never announces that a failure stopped.
+			lastFailureCodes.delete(latchKey(hostUrl, payload.agent));
 
 			if (!markSwitchSeen(`${hostUrl}:${payload.agent}:${payload.at}`)) return;
 			const content = getSwitchNotification(payload);
@@ -296,18 +313,25 @@ function notifyNeedsAttention(
 /**
  * R24: an automatic switch the engine could not make. The previous login is
  * still in place, so the user has to know a limit is no longer being routed
- * around. One notice per `(hostUrl, agent, code, at)`, so a repeated failure
- * with a new timestamp is told again while the same broadcast replayed is not,
- * and one host's failure never silences another host's.
+ * around. Told once per run of the same code per host and agent: the engine
+ * retries every poll and fails the same way every time, so re-notifying on the
+ * new timestamp would be a notification a minute with no way to stop it. A
+ * different code, or a switch that finally lands, makes the next one news
+ * again, and one host's failure never silences another host's.
  */
 function notifySwitchFailure(
 	payload: AccountEngineStatePayload,
 	hostUrl: string,
 ): void {
 	const failure = payload.lastSwitchFailure;
+	// Deliberately no `delete` here: absence is not recovery, it is a
+	// broadcast that carried no failure field.
 	if (!failure) return;
+	const latch = latchKey(hostUrl, payload.agent);
+	if (lastFailureCodes.get(latch) === failure.code) return;
 	const key = `failure:${hostUrl}:${payload.agent}:${failure.code}:${failure.at}`;
 	if (!markSwitchSeen(key)) return;
+	lastFailureCodes.set(latch, failure.code);
 
 	const agent = getAgentLabel(payload.agent);
 	showNative({

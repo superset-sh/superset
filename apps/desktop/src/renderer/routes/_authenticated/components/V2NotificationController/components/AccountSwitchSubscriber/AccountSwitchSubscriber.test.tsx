@@ -478,7 +478,7 @@ describe("engine state notices", () => {
 });
 
 describe("switch failures", () => {
-	test("a failed automatic switch is told once, and again when it recurs", async () => {
+	test("a persistent failure is told once, and again only after a successful switch or a different code", async () => {
 		await mountSubscriber("http://host-switch-failure");
 		const failure = { code: "verify-failed" as const, at: 8_000 };
 
@@ -502,15 +502,66 @@ describe("switch failures", () => {
 			},
 		]);
 
+		// The engine retries every poll and mints a fresh `at` each time. That
+		// is the same unchanged problem, not news, so it stays at one notice
+		// however long it goes on.
+		for (const at of [8_500, 9_000, 9_500]) {
+			await emit(
+				"account:engine-state",
+				"claude",
+				engineState({
+					occurredAt: at + 1,
+					lastSwitchFailure: { code: "verify-failed", at },
+				}),
+			);
+		}
+		expect(shown).toHaveLength(1);
+
+		// A broadcast that carries no failure is not a recovery signal — the
+		// steady-state one routinely omits the field — so it must not re-arm.
+		await emit(
+			"account:engine-state",
+			"claude",
+			engineState({ occurredAt: 9_600, cooldownUntil: 9_900 }),
+		);
 		await emit(
 			"account:engine-state",
 			"claude",
 			engineState({
-				occurredAt: 8_003,
-				lastSwitchFailure: { code: "verify-failed", at: 8_500 },
+				occurredAt: 9_700,
+				lastSwitchFailure: { code: "verify-failed", at: 9_650 },
+			}),
+		);
+		expect(shown).toHaveLength(1);
+
+		// A different code is a different thing to tell the user.
+		await emit(
+			"account:engine-state",
+			"claude",
+			engineState({
+				occurredAt: 9_800,
+				lastSwitchFailure: { code: "no-target-login", at: 9_750 },
 			}),
 		);
 		expect(shown).toHaveLength(2);
+
+		// A switch that lands is the recovery signal. A manual one still
+		// counts and raises no notice of its own, so the next failure of the
+		// original kind is news again.
+		await emit(
+			"account:switched",
+			"claude",
+			switched({ at: 9_850, reasonKind: "manual" }),
+		);
+		await emit(
+			"account:engine-state",
+			"claude",
+			engineState({
+				occurredAt: 9_900,
+				lastSwitchFailure: { code: "no-target-login", at: 9_860 },
+			}),
+		);
+		expect(shown).toHaveLength(3);
 	});
 
 	test("two hosts reporting the same failure both notify", async () => {
