@@ -17,7 +17,10 @@ export const REVALIDATE_SECONDS = 300;
 function serverReadHeaders(): Record<string, string> {
 	if (typeof window !== "undefined") return {};
 	const headers: Record<string, string> = {};
-	if (env.LEADERBOARD_INTERNAL_TOKEN) {
+	if (
+		env.LEADERBOARD_INTERNAL_TOKEN &&
+		isPrivateTransport(env.NEXT_PUBLIC_API_URL)
+	) {
 		headers[INTERNAL_READ_HEADER] = env.LEADERBOARD_INTERNAL_TOKEN;
 	}
 	if (env.VERCEL_GIT_COMMIT_SHA) {
@@ -26,10 +29,23 @@ function serverReadHeaders(): Record<string, string> {
 	return headers;
 }
 
+// The token travels in a custom header, which fetch keeps on a cross-origin
+// redirect, so it only goes over TLS or to a loopback dev server.
+function isPrivateTransport(apiUrl: string): boolean {
+	const { protocol, hostname } = new URL(apiUrl);
+	return (
+		protocol === "https:" ||
+		hostname === "localhost" ||
+		hostname === "127.0.0.1"
+	);
+}
+
 /**
  * Reader for `leaderboard.public.*`. tRPC sends queries as GET, so the URLs
  * stay stable and cacheable by the CDN; the `next` option makes the ISR pages
- * revalidate on the same window and is ignored in the browser.
+ * revalidate on the same window and is ignored in the browser. Server-side
+ * reads refuse redirects: our own API never redirects a tRPC GET, and
+ * following one would carry the internal token to wherever it pointed.
  */
 export const leaderboardClient = createTRPCClient<AppRouter>({
 	links: [
@@ -38,7 +54,11 @@ export const leaderboardClient = createTRPCClient<AppRouter>({
 			transformer: superjson,
 			headers: serverReadHeaders,
 			fetch: (url, options) =>
-				fetch(url, { ...options, next: { revalidate: REVALIDATE_SECONDS } }),
+				fetch(url, {
+					...options,
+					...(typeof window === "undefined" ? { redirect: "error" } : {}),
+					next: { revalidate: REVALIDATE_SECONDS },
+				}),
 		}),
 	],
 });

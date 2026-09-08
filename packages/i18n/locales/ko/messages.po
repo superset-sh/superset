@@ -14300,7 +14300,7 @@ msgid "This port is still in use"
 msgstr "이 포트는 아직 사용 중입니다"
 
 msgid "This profile is busy right now"
-msgstr "이 프로필은 지금 혼잡합니다"
+msgstr "이 프로필은 지금 이용자가 많습니다"
 
 msgid "This project is no longer available on your devices."
 msgstr "이 프로젝트는 더 이상 내 기기에서 사용할 수 없습니다."
