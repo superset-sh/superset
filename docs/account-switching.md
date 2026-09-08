@@ -7,9 +7,12 @@ Acceptance cases are the maintainer's macOS reproductions from issuecomment-5576
 - A machine account-owner process owns quota polling, credential writes, active-account pointers and settings. Organization host services use an authenticated local connection to it. Shutting down one organization does not transfer credential ownership to another organization engine. The owner exits after 30 seconds with no connected organizations; test runners never spawn it automatically.
 - Provider parsing produces a model-scoped limit observation. Claude's structured rate_limit hook arms terminal observation; visible text remains compatibility evidence because hook ingress is not authenticated. Codex TUI fallback requires a stalled session, exhausted quota and a visible banner. App-server structured signals require a different execution transport and are not claimed for arbitrary TUI processes.
 - Recovery decisions use the affected model, independently of proactive model preferences. Unknown model means considering every reported quota window. Missing corresponding destination windows and unavailable/stale reads cannot establish headroom. Refreshes target individual account entries and retain request budgets/backoff.
+- A completed credential/pointer change and its pending recovery are persisted before restarting a session, so an owner replacement inherits the new account.
 - A wait is bound to its terminal, event and account. It remains retryable through cooldown and provider reset, and is discarded when that session/event no longer exists. Other sessions cannot consume it. The UI names the model and reset time, offers refresh, and explains /model in the terminal.
 - Session folder-trust updates also run in the owner and share its per-file state queue with identity writes. They do not re-enter the engine operation queue, because recovery can call back into trust seeding while a switch is in progress. External Claude writes remain guarded by fingerprint retries.
 - The machine owner routes terminal actions to the owning organization. Local session checks run immediately before restarting; credentials never enter session commands or events.
+
+When the owner state directory is known to be unusable and no owner connection is live, the host retains read-only quota access and validated manual pointer selection. This path never starts automatic recovery, provisions credentials, or enables rotation. Ordinary connection failures do not activate this fallback.
 
 ## Reuse assessment
 

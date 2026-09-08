@@ -1,6 +1,7 @@
 import { createConnection } from "node:net";
 import type { AccountEngineBroadcast } from "../account-engine.ts";
 import type { AccountService } from "../account-service.ts";
+import { EngineState } from "../engine-state.ts";
 import type { AccountEngineHostDeps } from "../host-deps.ts";
 import type { MovableSession } from "../session-mover.ts";
 import { readOwnerManifest, spawnAccountOwner } from "./lifecycle.ts";
@@ -9,6 +10,7 @@ import { executeSessionCommand, snapshotSessions } from "./sessions.ts";
 
 export function createMachineAccountClient(input: {
 	organizationId: string;
+	localFallback?: AccountService;
 	hostDeps: AccountEngineHostDeps;
 	broadcast: AccountEngineBroadcast;
 	subscribe(onChange: () => void): () => void;
@@ -17,6 +19,8 @@ export function createMachineAccountClient(input: {
 	let rpc: AccountRpc | null = null;
 	let connecting: Promise<AccountRpc> | null = null;
 	let lastSpawn = 0;
+	const state = new EngineState();
+	const stateUnsafe = () => state.assertSafeStateDir().readOnly;
 	const localCommands = new Set<Promise<unknown>>();
 	const pendingResumes = new Map<string, MovableSession>();
 	const provisional = new Map<
@@ -49,10 +53,12 @@ export function createMachineAccountClient(input: {
 	const connect = async (): Promise<AccountRpc> => {
 		if (stopped) throw new Error("account-client-stopped");
 		if (rpc && !rpc.socket.destroyed) return rpc;
+		if (stateUnsafe()) throw new Error("engine-state-unusable");
 		if (connecting) return connecting;
 		connecting = (async () => {
 			const deadline = Date.now() + 15_000;
 			while (!stopped && Date.now() < deadline) {
+				if (stateUnsafe()) throw new Error("engine-state-unusable");
 				const manifest = readOwnerManifest();
 				if (manifest) {
 					const socket = createConnection({
@@ -155,8 +161,31 @@ export function createMachineAccountClient(input: {
 		get: (_target, method) => {
 			// Avoid thenable assimilation of the proxy itself.
 			if (method === "then" || typeof method !== "string") return undefined;
-			return async (...args: unknown[]) =>
-				(await connect()).request(`service:${method}`, args);
+			return async (...args: unknown[]) => {
+				if (stopped) throw new Error("account-client-stopped");
+				if ((!rpc || rpc.socket.destroyed) && stateUnsafe()) {
+					// Only pointer selection and reads are safe without an owner.
+					// Never provision/remove credentials or enable rotation here.
+					if (
+						input.localFallback &&
+						[
+							"readUsage",
+							"status",
+							"getSettings",
+							"history",
+							"ownsLock",
+							"switchManually",
+						].includes(method)
+					) {
+						const fallback = input.localFallback[
+							method as keyof AccountService
+						] as (...values: unknown[]) => Promise<unknown>;
+						return fallback(...args);
+					}
+					throw new Error("engine-state-unusable");
+				}
+				return (await connect()).request(`service:${method}`, args);
+			};
 		},
 	});
 	return {

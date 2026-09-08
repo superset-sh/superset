@@ -167,9 +167,8 @@ export function createLocalAccountService(
 			// state dir, so choosing which login new sessions launch on still
 			// works. Only the swap of already-running sessions is lost.
 			if (
-				engine &&
-				(!engine.status()[input.agent].platformSupported ||
-					engineStateUnusable())
+				(engine && !engine.status()[input.agent].platformSupported) ||
+				engineStateUnusable()
 			) {
 				if (input.selection !== null) {
 					// Only accept a discovered login: the value lands in a shell
@@ -177,7 +176,7 @@ export function createLocalAccountService(
 					const accounts = await quotaStore.read({
 						agents: [input.agent],
 					});
-					const known = accounts.some(
+					const known = accounts.find(
 						(account) =>
 							account.agent === input.agent &&
 							account.selection === input.selection,
@@ -188,6 +187,17 @@ export function createLocalAccountService(
 							message: `No ${input.agent} login found at ${input.selection} — refresh usage and pick again.`,
 						});
 					}
+					if (
+						known.status === "token_expired" ||
+						known.status === "signed_out"
+					) {
+						throw engineError("no-target-login");
+					}
+				}
+				// Discovery awaited I/O: a repaired state directory must return
+				// control to the machine owner before any pointer is published.
+				if (!engine && !engineStateUnusable()) {
+					throw engineError("engine-unavailable");
 				}
 				pointers.setSelection(input.agent, input.selection);
 			} else {
@@ -206,7 +216,7 @@ export function createLocalAccountService(
 			// hooks — and, for Claude, the shared session history. Best-effort —
 			// a failed share must not undo the switch, and provisioning retries
 			// on the next switch and at host boot.
-			if (input.selection !== null) {
+			if (input.selection !== null && engine) {
 				try {
 					const selection = input.selection;
 					await exclusive(async () => {

@@ -6,6 +6,7 @@ import { TRPCError } from "@trpc/server";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { createLocalAccountService } from "./account-engine/account-service.ts";
 import { createAccountEngineHostDeps } from "./account-engine/host-deps.ts";
 import { createMachineAccountClient } from "./account-engine/machine-owner/client.ts";
 import { QuotaStore } from "./account-engine/quota-store.ts";
@@ -290,6 +291,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		// pointers remain authoritative; the owner handles all later writes.
 		syncDefaultAccountPointers(db);
 		const client = createMachineAccountClient({
+			localFallback: createLocalAccountService(null, quotaStore),
 			organizationId: config.organizationId,
 			hostDeps: engineHostDeps,
 			broadcast: {
