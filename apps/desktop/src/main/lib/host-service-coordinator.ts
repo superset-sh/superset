@@ -232,6 +232,17 @@ export function parseEtime(etime: string): number | null {
  * tail; pty-daemon's are not reported at all after this. The helper is built
  * by the native rebuild alongside pty.node, so it is resolved the way node-pty
  * resolves it and the plain spawn is kept for a tree without the build.
+ *
+ * Two properties of the helper this relies on, both checked on macOS:
+ * - Before exec it runs `close(open(ttyname(STDIN_FILENO), O_RDWR))` to attach
+ *   a pty's controlling terminal. The spawn below gives it /dev/null as stdin,
+ *   for which ttyname() returns NULL (ENOTTY), and open(NULL) fails with
+ *   EFAULT instead of faulting, so the step is inert. It could only act if
+ *   stdin were a terminal, and even then this spawn creates no new session,
+ *   so the terminal would not be acquired.
+ * - A failed execvp exits 1, so a helper that cannot run electron surfaces
+ *   through handleChildExit as a nonzero exit rather than silently; the plain
+ *   spawn fallback only needs to cover the helper not being built.
  */
 function crashPortClearingLauncher(): string | null {
 	if (process.platform !== "darwin") return null;
