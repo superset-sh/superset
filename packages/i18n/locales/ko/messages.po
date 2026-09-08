@@ -1233,6 +1233,9 @@ msgstr "초대 수락"
 msgid "Accept terms"
 msgstr "약관 동의"
 
+msgid "Access denied"
+msgstr "접근이 거부되었습니다"
+
 msgid "Access your email address"
 msgstr "이메일 주소 접근"
 

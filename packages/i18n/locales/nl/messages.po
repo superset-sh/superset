@@ -1233,6 +1233,9 @@ msgstr "Uitnodiging accepteren"
 msgid "Accept terms"
 msgstr "Voorwaarden accepteren"
 
+msgid "Access denied"
+msgstr "Toegang geweigerd"
+
 msgid "Access your email address"
 msgstr "Je e-mailadres inzien"
 

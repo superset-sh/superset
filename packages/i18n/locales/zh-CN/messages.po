@@ -1233,6 +1233,9 @@ msgstr "接受邀请"
 msgid "Accept terms"
 msgstr "接受条款"
 
+msgid "Access denied"
+msgstr "访问被拒绝"
+
 msgid "Access your email address"
 msgstr "访问你的邮箱地址"
 

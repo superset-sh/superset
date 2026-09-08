@@ -1233,6 +1233,9 @@ msgstr "Принять приглашение"
 msgid "Accept terms"
 msgstr "Принять условия"
 
+msgid "Access denied"
+msgstr "Доступ запрещён"
+
 msgid "Access your email address"
 msgstr "получить доступ к вашему адресу email"
 

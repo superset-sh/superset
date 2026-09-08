@@ -18,33 +18,11 @@ import { getHostEventBus } from "renderer/lib/host-event-bus";
  */
 const DEGRADED_GRACE_MS = 2_000;
 
-/**
- * How long the host has to stay unreachable before the workspace hands over to
- * the unreachable screen. The socket reconnects on its own backoff, so a relay
- * redeploy, a laptop lid, or a half-open TCP flap resolves well inside this
- * window — taking the screen over for those would be the false-positive that
- * got the earlier cloud-presence gate reverted twice (#4430, #4727).
- */
-const UNREACHABLE_GRACE_MS = 10_000;
-
-export interface HostReachabilityOptions {
-	/**
-	 * How long the host may stay down before `isUnreachable`. Callers that know
-	 * the outage is expected and self-healing (the local host service mid-
-	 * restart) hold the takeover longer; `isDegraded` keeps the user informed
-	 * in the meantime.
-	 */
-	unreachableAfterMs?: number;
-}
-
 export interface HostReachability {
-	/**
-	 * Down long enough to say so, not long enough to take the screen over.
-	 * Panes stay usable; show a non-blocking notice.
-	 */
+	/** Down long enough to show a non-blocking notice. */
 	isDegraded: boolean;
-	/** Sustained loss of the host connection — safe to take the screen over. */
-	isUnreachable: boolean;
+	/** The relay definitively rejected access; report this without a grace period. */
+	isAccessDenied: boolean;
 	/** A dial is in flight right now (auto-backoff or a manual retry). */
 	isReconnecting: boolean;
 	/**
@@ -52,7 +30,7 @@ export interface HostReachability {
 	 * reconnect rather than a first connection that hasn't landed yet.
 	 */
 	hasConnected: boolean;
-	/** What the relay preflight says is wrong. Only read while unreachable. */
+	/** What the relay preflight says is wrong. Shown on demand in connection details. */
 	detail: string;
 	/** Dial now instead of waiting out the backoff. */
 	retry: () => void;
@@ -121,14 +99,9 @@ function describeFailure(
  * so it reflects what the UI can actually do rather than the cloud's `isOnline`
  * flag (which drifts through relay redeploys and API blips).
  */
-export function useHostReachability(
-	hostUrl: string,
-	{ unreachableAfterMs = UNREACHABLE_GRACE_MS }: HostReachabilityOptions = {},
-): HostReachability {
+export function useHostReachability(hostUrl: string): HostReachability {
 	const bus = useMemo(() => getHostEventBus(hostUrl), [hostUrl]);
-	// Hold the connection open for as long as this screen is mounted: the
-	// panes that normally keep the bus alive are gone once we take over, and a
-	// closed socket would never observe the host coming back.
+	// Keep observing recovery even when no pane subscribes to host events.
 	useEffect(() => bus.retain(), [bus]);
 
 	const status = useSyncExternalStore(
@@ -143,17 +116,13 @@ export function useHostReachability(
 	}, [isDown]);
 
 	const isDegraded = useDelayElapsed(isDown, DEGRADED_GRACE_MS);
-	const graceElapsed = useDelayElapsed(isDown, unreachableAfterMs);
-	// A 403 preflight is definitive — the relay only 403s a verified token, so
-	// no amount of redialling changes the answer. Waiting out the grace there
-	// only delays telling the user they lack access.
-	const isUnreachable =
-		graceElapsed || (isDown && status.probe?.status === 403);
+	// A 403 is definitive: redialling cannot restore missing permissions.
+	const isAccessDenied = isDown && status.probe?.status === 403;
 	const isRelayHost = /\/hosts\/[^/]+/.test(hostUrl);
 
 	return {
 		isDegraded,
-		isUnreachable,
+		isAccessDenied,
 		isReconnecting: isDown && status.state !== "closed",
 		hasConnected,
 		detail: describeFailure(status, isRelayHost),

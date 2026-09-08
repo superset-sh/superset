@@ -1233,6 +1233,9 @@ msgstr "Einladung annehmen"
 msgid "Accept terms"
 msgstr "Bedingungen akzeptieren"
 
+msgid "Access denied"
+msgstr "Zugriff verweigert"
+
 msgid "Access your email address"
 msgstr "Auf deine E-Mail-Adresse zugreifen"
 

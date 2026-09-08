@@ -1233,6 +1233,9 @@ msgstr "招待を承諾"
 msgid "Accept terms"
 msgstr "利用規約に同意する"
 
+msgid "Access denied"
+msgstr "アクセスが拒否されました"
+
 msgid "Access your email address"
 msgstr "メールアドレスへのアクセス"
 

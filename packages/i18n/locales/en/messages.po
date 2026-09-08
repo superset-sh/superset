@@ -1233,6 +1233,9 @@ msgstr "Accept invitation"
 msgid "Accept terms"
 msgstr "Accept terms"
 
+msgid "Access denied"
+msgstr "Access denied"
+
 msgid "Access your email address"
 msgstr "Access your email address"
 

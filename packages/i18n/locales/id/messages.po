@@ -1233,6 +1233,9 @@ msgstr "Terima undangan"
 msgid "Accept terms"
 msgstr "Terima ketentuan"
 
+msgid "Access denied"
+msgstr "Akses ditolak"
+
 msgid "Access your email address"
 msgstr "Mengakses alamat email Anda"
 

@@ -1233,6 +1233,9 @@ msgstr "Chấp nhận lời mời"
 msgid "Accept terms"
 msgstr "Chấp nhận điều khoản"
 
+msgid "Access denied"
+msgstr "Truy cập bị từ chối"
+
 msgid "Access your email address"
 msgstr "Truy cập địa chỉ email của bạn"
 

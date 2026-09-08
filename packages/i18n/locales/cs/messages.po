@@ -1233,6 +1233,9 @@ msgstr "Přijmout pozvánku"
 msgid "Accept terms"
 msgstr "Přijmout podmínky"
 
+msgid "Access denied"
+msgstr "Přístup odepřen"
+
 msgid "Access your email address"
 msgstr "číst vaši e-mailovou adresu"
 
