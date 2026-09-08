@@ -906,7 +906,11 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 
 			<SwitchHistory
 				entries={historyQuery.data?.entries ?? []}
-				isLoading={historyQuery.isPending && !!hostUrl}
+				// A disabled query stays pending, so with no host this is still
+				// "not read yet" — the same state the quota sections above show as
+				// "Reading usage…". Gating it on `hostUrl` turned it into an empty
+				// table claiming no switch ever happened.
+				isLoading={historyQuery.isPending}
 				isError={historyQuery.isError}
 				agentLabels={{ claude: AGENT_LABELS.claude, codex: AGENT_LABELS.codex }}
 				hideEmails={hideEmails}

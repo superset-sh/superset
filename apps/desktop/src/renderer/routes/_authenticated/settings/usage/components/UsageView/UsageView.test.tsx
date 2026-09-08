@@ -566,3 +566,25 @@ describe("UsageView card errors", () => {
 		expect(cardFor("a@example.com").queryAllByRole("alert")).toHaveLength(0);
 	});
 });
+
+describe("UsageView switch history", () => {
+	// `useSwitchHistory` is disabled without a host, and a disabled query stays
+	// pending with `isError` false. Gating the loading state on `hostUrl` made
+	// the section fall through to its empty branch and assert that no switch
+	// ever happened, about a read that never ran — while the quota sections
+	// above it were still saying "Reading usage…" for the same reason.
+	test("an unread history says so instead of claiming nothing happened", () => {
+		const queryClient = new QueryClient({
+			defaultOptions: { queries: { retry: false } },
+		});
+		queryClient.setQueryData([...HOST_USAGE_QUOTA_QUERY_KEY, null], []);
+		const view = render(
+			<QueryClientProvider client={queryClient}>
+				<UsageView hostUrl={null} />
+			</QueryClientProvider>,
+		);
+		const text = view.baseElement.textContent ?? "";
+		expect(text).toContain("Reading switch history…");
+		expect(text).not.toContain("No account switches yet");
+	});
+});
