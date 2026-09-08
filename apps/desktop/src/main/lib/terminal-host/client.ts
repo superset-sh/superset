@@ -33,7 +33,10 @@ import {
 import { app } from "electron";
 import { SUPERSET_DIR_NAME } from "shared/constants";
 import { throwIfAborted } from "../terminal/abort";
-import { TerminalAttachCanceledError } from "../terminal/errors";
+import {
+	TerminalAttachCanceledError,
+	TerminalSpawnFailedError,
+} from "../terminal/errors";
 import {
 	type CancelCreateOrAttachRequest,
 	type ClearScrollbackRequest,
@@ -727,6 +730,8 @@ export class TerminalHostClient extends EventEmitter {
 
 				if (message.ok) {
 					pending.resolve(message.payload);
+				} else if (message.error.cause) {
+					pending.reject(new TerminalSpawnFailedError(message.error.cause));
 				} else {
 					pending.reject(
 						new Error(`${message.error.code}: ${message.error.message}`),
