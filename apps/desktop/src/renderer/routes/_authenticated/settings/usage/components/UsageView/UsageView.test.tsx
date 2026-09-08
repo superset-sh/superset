@@ -70,6 +70,9 @@ const { cleanup, fireEvent, render, waitFor, within } = await import(
 const { HOST_USAGE_QUOTA_QUERY_KEY } = await import(
 	"../../hooks/useHostUsageQuota"
 );
+const { ACCOUNT_ENGINE_QUERY_KEY } = await import(
+	"../../hooks/useAccountEngineSettings"
+);
 const { AccountCard, sessionMoveNote, UsageView } = await import("./UsageView");
 
 afterEach(() => {
@@ -149,6 +152,19 @@ describe("post-switch confirmation", () => {
 		);
 		for (const agent of ["claude", "codex"] as const) {
 			expect(sessionMoveNote(agent)).not.toContain("without being relaunched");
+		}
+	});
+
+	// KTD13: on win32 `usage.setDefaultAccount` takes the pointer-only branch
+	// ("Only the swap of already-running sessions is lost") and still resolves
+	// success, so this same confirmation ran and told the user their running
+	// sessions had already moved. They never relaunched, and every live session
+	// kept spending the old account's quota.
+	test("a host that cannot swap live sessions says to restart them", () => {
+		for (const agent of ["claude", "codex"] as const) {
+			expect(sessionMoveNote(agent, false)).toBe(
+				"New sessions use it; sessions already running keep the previous login until you restart them.",
+			);
 		}
 	});
 });
@@ -586,5 +602,72 @@ describe("UsageView switch history", () => {
 		const text = view.baseElement.textContent ?? "";
 		expect(text).toContain("Reading switch history…");
 		expect(text).not.toContain("No account switches yet");
+	});
+});
+
+describe("UsageView on a host that cannot swap live sessions", () => {
+	// Only the fields the view reads; the panel below it is not what this is
+	// about.
+	function renderOnWindowsHost() {
+		const queryClient = new QueryClient({
+			defaultOptions: { queries: { retry: false } },
+		});
+		queryClient.setQueryData(
+			[...HOST_USAGE_QUOTA_QUERY_KEY, null],
+			[
+				account({ isDefault: true }),
+				account({
+					accountKey: "claude:/p/b",
+					selection: "/p/b",
+					accountId: "uuid-b",
+					email: "b@example.com",
+				}),
+			],
+		);
+		queryClient.setQueryData([...ACCOUNT_ENGINE_QUERY_KEY, null], {
+			engineAvailable: true,
+			platformSupported: false,
+			lockOwner: true,
+			settings: null,
+		});
+		return render(
+			<QueryClientProvider client={queryClient}>
+				<UsageView hostUrl={null} />
+			</QueryClientProvider>,
+		);
+	}
+
+	test("the section says new sessions only, not that running ones moved", () => {
+		const view = renderOnWindowsHost();
+		const text = view.baseElement.textContent ?? "";
+		expect(text).toContain(
+			"Newly launched Claude Code sessions use the active account; ones already running keep the previous login until you restart them.",
+		);
+		expect(text).not.toContain("Every running and newly launched");
+	});
+
+	test("the card titles make the same promise the host keeps", () => {
+		const view = renderOnWindowsHost();
+		const ui = within(view.baseElement as HTMLElement);
+		expect(
+			ui.queryAllByTitle(
+				"Active — every newly launched session of this agent uses this account; ones already running keep the previous login until you restart them.",
+			).length,
+		).toBeGreaterThan(0);
+		expect(
+			ui.queryAllByTitle(
+				"Make active — sessions launched from now on use this account.",
+			).length,
+		).toBeGreaterThan(0);
+		expect(
+			ui.queryAllByTitle(
+				"Active — every running and newly launched session of this agent uses this account.",
+			),
+		).toHaveLength(0);
+		expect(
+			ui.queryAllByTitle(
+				"Make active — running sessions move to this account too.",
+			),
+		).toHaveLength(0);
 	});
 });

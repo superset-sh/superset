@@ -134,7 +134,27 @@ function creditsLine(account: UsageAccount): string | null {
  * (`SessionMover.moveAtIdle`), so the confirmation must not promise that
  * nothing is relaunched.
  */
-export function sessionMoveNote(agent: ManagedAgent): string {
+export function sessionMoveNote(
+	agent: ManagedAgent,
+	/**
+	 * KTD13. Absent means the host has not said otherwise, so the POSIX
+	 * promise stands: only a host that answered `platformSupported: false`
+	 * loses the live swap, and a read that has not landed must not send a
+	 * macOS user off to relaunch.
+	 */
+	movesRunningSessions = true,
+): string {
+	// win32: `usage.setDefaultAccount` writes only the default-account
+	// pointer, which agents read at launch, so the sessions already running
+	// keep the previous login until they are restarted by hand.
+	if (!movesRunningSessions) {
+		return i18n._(
+			msg({
+				message:
+					"New sessions use it; sessions already running keep the previous login until you restart them.",
+			}),
+		);
+	}
 	return agent === "claude"
 		? i18n._(
 				msg({
@@ -155,6 +175,12 @@ const ACTIVE_TITLE = msg({
 		"Active — every running and newly launched session of this agent uses this account.",
 });
 
+/** The same title where the switch reaches new launches only (KTD13). */
+const ACTIVE_TITLE_NEW_SESSIONS_ONLY = msg({
+	message:
+		"Active — every newly launched session of this agent uses this account; ones already running keep the previous login until you restart them.",
+});
+
 export function AccountCard({
 	account,
 	onMakeActive: makeActive,
@@ -166,6 +192,7 @@ export function AccountCard({
 	error,
 	selectable,
 	hideEmails,
+	movesRunningSessions = true,
 }: {
 	account: UsageAccount;
 	onMakeActive: (() => void) | null;
@@ -186,9 +213,15 @@ export function AccountCard({
 	selectable: boolean;
 	/** Replaces account emails so screenshots do not retain identifying pixels. */
 	hideEmails: boolean;
+	/** False once the host has said the switch reaches new launches only
+	 * (KTD13, win32). Absent means it has not said so, so the promise stands. */
+	movesRunningSessions?: boolean;
 }) {
 	const { t } = useLingui();
 	const rotationId = useId();
+	const activeTitle = i18n._(
+		movesRunningSessions ? ACTIVE_TITLE : ACTIVE_TITLE_NEW_SESSIONS_ONLY,
+	);
 	// A login set up outside Superset is ours to read, never to write — the
 	// engine refuses it as a switch target for the same reason — so the card
 	// offers no way to switch onto it, to put it in rotation, to sign it in
@@ -225,7 +258,7 @@ export function AccountCard({
 			<div className="flex items-baseline gap-1.5">
 				{selectable &&
 					(account.isDefault ? (
-						<span className="shrink-0 self-center" title={i18n._(ACTIVE_TITLE)}>
+						<span className="shrink-0 self-center" title={activeTitle}>
 							<LuCircleCheck className="size-3.5 text-primary" />
 						</span>
 					) : onMakeActive ? (
@@ -233,10 +266,17 @@ export function AccountCard({
 							type="button"
 							className="shrink-0 self-center text-muted-foreground/50 transition-colors hover:text-primary disabled:pointer-events-none"
 							disabled={isSwitching}
-							title={t({
-								message:
-									"Make active — running sessions move to this account too.",
-							})}
+							title={
+								movesRunningSessions
+									? t({
+											message:
+												"Make active — running sessions move to this account too.",
+										})
+									: t({
+											message:
+												"Make active — sessions launched from now on use this account.",
+										})
+							}
 							onClick={onMakeActive}
 						>
 							<LuCircle className="size-3.5" />
@@ -403,7 +443,7 @@ export function AccountCard({
 					{account.isDefault ? (
 						<span
 							className="inline-flex items-center gap-1 text-[10px] font-medium text-primary"
-							title={i18n._(ACTIVE_TITLE)}
+							title={activeTitle}
 						>
 							<LuCircleCheck className="size-3" />
 							<Trans context="account state">Active</Trans>
@@ -414,7 +454,7 @@ export function AccountCard({
 							size="sm"
 							className="h-5 rounded px-1.5 text-[10px]"
 							disabled={isSwitching}
-							title={i18n._(ACTIVE_TITLE)}
+							title={activeTitle}
 							onClick={onMakeActive}
 						>
 							{isActivating ? (
@@ -527,6 +567,13 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 		ManagedAgent,
 		AccountEngineAgentSettings
 	> | null = engineQuery.data?.settings ?? null;
+	// KTD13: on win32 the host writes only the default-account pointer, which
+	// agents read at launch, and its own comment says "Only the swap of
+	// already-running sessions is lost" — yet the mutation still resolves
+	// success, so every line promising the live swap has to know. `!== false`
+	// and not `?? false`: a read that has not landed is not a Windows host,
+	// and telling everyone else to relaunch would be its own falsehood.
+	const movesRunningSessions = engineQuery.data?.platformSupported !== false;
 
 	const showMadeActiveToast = (agent: ManagedAgent, accountLabel: string) => {
 		const providerLabel = AGENT_LABELS[agent];
@@ -534,7 +581,7 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 			t({
 				message: `${accountLabel} is now the active ${providerLabel} account.`,
 			}),
-			{ description: sessionMoveNote(agent) },
+			{ description: sessionMoveNote(agent, movesRunningSessions) },
 		);
 	};
 
@@ -767,10 +814,18 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 						</div>
 						{isManagedAgent(agent) && (
 							<p className="text-[10px] text-muted-foreground">
-								<Trans>
-									Every running and newly launched {AGENT_LABELS[agent]} session
-									uses the active account.
-								</Trans>
+								{movesRunningSessions ? (
+									<Trans>
+										Every running and newly launched {AGENT_LABELS[agent]}{" "}
+										session uses the active account.
+									</Trans>
+								) : (
+									<Trans>
+										Newly launched {AGENT_LABELS[agent]} sessions use the active
+										account; ones already running keep the previous login until
+										you restart them.
+									</Trans>
+								)}
 							</p>
 						)}
 						{quotaQuery.isPending ? (
@@ -821,6 +876,7 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 											isManagedAgent(agent) && agentAccounts.length > 1
 										}
 										hideEmails={hideEmails}
+										movesRunningSessions={movesRunningSessions}
 									/>
 								))}
 							</div>
