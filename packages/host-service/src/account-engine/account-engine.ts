@@ -549,7 +549,13 @@ export class AccountEngine {
 		// Claimed at boot rather than a tick later: until this host owns the
 		// lock every account mutation the Usage page sends is refused, and the
 		// first tick is a whole interval away (KTD5).
-		if (this.platformSupported()) this.ensureOwnership(this.now());
+		try {
+			if (this.platformSupported()) this.ensureOwnership(this.now());
+		} catch (error) {
+			// Optional account automation must not prevent the host from booting.
+			// The guarded tick retries ownership if the state directory recovers.
+			console.warn("[account-engine] startup lock acquisition failed:", error);
+		}
 		this.ticker = this.setIntervalFn(() => {
 			void this.tick();
 		}, this.tickIntervalMs);

@@ -7,7 +7,13 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	mkdtempSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { HostDb } from "../db/index.ts";
@@ -174,6 +180,42 @@ describe("AccountEngine Codex switches", () => {
 		if (previousHome === undefined) delete process.env.SUPERSET_HOME_DIR;
 		else process.env.SUPERSET_HOME_DIR = previousHome;
 		rmSync(home, { recursive: true, force: true });
+	});
+
+	it("contains startup lock errors and retries through the guarded tick", async () => {
+		const state = new EngineState();
+		const claimLock = state.claimLock.bind(state);
+		let claims = 0;
+		let writable = false;
+		state.claimLock = (...args) => {
+			claims++;
+			if (!writable) throw new Error("EACCES: state directory is not writable");
+			return claimLock(...args);
+		};
+		const pointerWrites: Array<string | null> = [];
+		const engine = buildEngine(state, {
+			pointerWrites,
+			provisionCodex: async () => {
+				throw new Error("Disabled automation must not provision accounts");
+			},
+		});
+		try {
+			expect(state.readSettings().codex.enabled).toBe(false);
+			expect(state.readSettings().claude.enabled).toBe(false);
+			expect(() => engine.start()).not.toThrow();
+			expect(claims).toBe(1);
+			await engine.tick();
+			expect(claims).toBe(2);
+			expect(existsSync(join(state.dir, "engine.lock"))).toBe(false);
+			writable = true;
+			await engine.tick();
+			expect(claims).toBeGreaterThan(2);
+			expect(existsSync(join(state.dir, "engine.lock"))).toBe(true);
+			expect(pointerWrites).toEqual([]);
+			expect(state.readHistory()).toEqual([]);
+		} finally {
+			await engine.stop();
+		}
 	});
 
 	for (const mode of ["automatic", "manual"] as const) {
