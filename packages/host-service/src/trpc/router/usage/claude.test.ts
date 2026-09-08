@@ -185,6 +185,37 @@ describe("dedupeClaudeCredentials", () => {
 		expect(kept[0]?.duplicateSelections).toEqual(["/home/u/.claude-a"]);
 	});
 
+	// A hand-exported dir is built managed:false and is offered first, so
+	// without a managed rule it is always the incumbent and a tie keeps it —
+	// the real profile dir loses its row and with it Make-active and rotation,
+	// and the binding that tells a swap where to save back follows it into a
+	// dir Superset may only read.
+	it("keeps the managed dir when an unmanaged copy ties with it", () => {
+		const exported = credential({
+			accessToken: "exported",
+			accountId: "uuid-a",
+			selection: "/work/claude-cfg",
+			expiresAt: now + hour,
+			refreshTokenExpiresAt: now + 10 * hour,
+			managed: false,
+		});
+		const profile = credential({
+			accessToken: "profile",
+			accountId: "uuid-a",
+			selection: "/home/u/.claude-work",
+			expiresAt: now + hour,
+			refreshTokenExpiresAt: now + 10 * hour,
+		});
+
+		const kept = dedupeClaudeCredentials([exported, profile], now);
+		expect(kept).toHaveLength(1);
+		expect(kept[0]).toMatchObject({
+			selection: "/home/u/.claude-work",
+			managed: true,
+			duplicateSelections: ["/work/claude-cfg"],
+		});
+	});
+
 	// One login in two dirs is one account but two run targets. When one is
 	// signed out and the other is not they are not interchangeable, and
 	// collapsing them hides either the truthful expired card or the working
@@ -483,6 +514,65 @@ describe("discoverClaudeQuotaTargets", () => {
 			if (previous === undefined) delete process.env.CLAUDE_CONFIG_DIR;
 			else process.env.CLAUDE_CONFIG_DIR = previous;
 			for (const root of roots) rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	// A binding tells the swap which dir owns a login so it can save the
+	// refreshed credential back there, and recording one retires every other
+	// account's claim on that dir. A hand-exported dir is Superset's to read
+	// and never to write, so it must never be bound — otherwise exporting a
+	// copy of an account silently repoints it away from the profile dir that
+	// owns it. The system-default login is still bound.
+	it("binds the default login but never a hand-exported dir", async () => {
+		const recorded: Array<readonly [string, string | null]> = [];
+		setIdentityBindingRecorder((bindings) => {
+			for (const binding of bindings) recorded.push(binding);
+		});
+		const home = mkdtempSync(join(tmpdir(), "superset-claude-binding-"));
+		// Outside the home scan, the way a dir the user exported by hand is.
+		const exported = mkdtempSync(join(tmpdir(), "superset-claude-exported-"));
+		mkdirSync(join(home, ".claude"));
+		writeFileSync(
+			join(home, ".claude.json"),
+			JSON.stringify({ oauthAccount: { accountUuid: "uuid-default" } }),
+		);
+		const oauth = (accessToken: string) => ({
+			claudeAiOauth: {
+				accessToken,
+				refreshToken: "r",
+				expiresAt: Date.now() + hour,
+			},
+		});
+		writeFileSync(
+			join(home, ".claude", ".credentials.json"),
+			JSON.stringify(oauth("tok-default")),
+		);
+		writeFileSync(
+			join(exported, ".credentials.json"),
+			JSON.stringify(oauth("tok-exported")),
+		);
+		writeFileSync(
+			join(exported, ".claude.json"),
+			JSON.stringify({ oauthAccount: { accountUuid: "uuid-exported" } }),
+		);
+		const previous = process.env.CLAUDE_CONFIG_DIR;
+		process.env.CLAUDE_CONFIG_DIR = exported;
+
+		try {
+			const targets = await discoverClaudeQuotaTargets(home);
+
+			// The exported dir is still listed — it is readable, just not writable.
+			expect(targets.selections).toContain(exported);
+			expect(recorded).toContainEqual(["uuid-default", null]);
+			expect(recorded.map(([accountId]) => accountId)).not.toContain(
+				"uuid-exported",
+			);
+		} finally {
+			if (previous === undefined) delete process.env.CLAUDE_CONFIG_DIR;
+			else process.env.CLAUDE_CONFIG_DIR = previous;
+			for (const root of [home, exported]) {
+				rmSync(root, { recursive: true, force: true });
+			}
 		}
 	});
 

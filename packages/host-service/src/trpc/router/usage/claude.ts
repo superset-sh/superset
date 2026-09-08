@@ -459,10 +459,14 @@ async function discoverClaudeCredentials(homeDir?: string): Promise<{
 		...profiled,
 	]);
 	// KTD3 step 2: the swap needs to know which dir owns each identity, and
-	// this is the only pass that sees both.
+	// this is the only pass that sees both. Only managed dirs are bound: the
+	// binding is what tells the swap where to save a refreshed credential
+	// back, and a dir the user exported by hand is Superset's to read, never
+	// to write — binding it would repoint an account away from the profile
+	// dir that owns it the moment a copy of that login appears there.
 	recordIdentityBindings(
 		credentials.flatMap((credential) =>
-			credential.accountId
+			credential.accountId && credential.managed
 				? [[credential.accountId, credential.selection] as const]
 				: [],
 		),
@@ -532,12 +536,20 @@ export function dedupeClaudeCredentials(
 		// Otherwise the freshest survives: keeping whichever the walk saw
 		// first let a stale copy shadow a newer one, since the default is
 		// always probed before the sorted profile dirs.
+		// Between a managed profile dir and a hand-exported one the managed row
+		// has to survive whatever the tokens say: only it carries Make-active
+		// and rotation, so collapsing onto the unmanaged copy strips the
+		// account of both controls and leaves a dir no swap may write to.
 		const winner =
 			kept.selection === null
 				? kept
 				: credential.selection === null
 					? credential
-					: (pickFreshest([kept, credential], now) ?? kept);
+					: kept.managed !== credential.managed
+						? kept.managed
+							? kept
+							: credential
+						: (pickFreshest([kept, credential], now) ?? kept);
 		const loser = winner === kept ? credential : kept;
 		// A dropped dir appears in no list this pass builds — not a credential,
 		// not a signed-out profile — so nothing would offer to remove the
