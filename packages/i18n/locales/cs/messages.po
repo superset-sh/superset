@@ -1261,6 +1261,9 @@ msgctxt "account state"
 msgid "Active"
 msgstr "Aktivní"
 
+msgid "Active — every newly launched session of this agent uses this account; ones already running keep the previous login until you restart them."
+msgstr "Aktivní — nové relace tohoto agenta používají tento účet; spuštěné relace zachovají předchozí přihlášení až do restartu."
+
 msgid "Active — every running and newly launched session of this agent uses this account."
 msgstr "Aktivní — každá běžící i nově spuštěná relace tohoto agenta používá tento účet."
 
@@ -1800,9 +1803,6 @@ msgstr "jiné zařízení"
 
 msgid "Another Superset instance on this machine owns account switching. Change this there."
 msgstr "Přepínání účtů řídí jiná instance Supersetu na tomto počítači. Změňte to tam."
-
-msgid "Another Superset instance on this machine owns automatic switching. Change these settings there."
-msgstr "Automatické přepínání řídí jiná instance Supersetu na tomto počítači. Změňte tato nastavení tam."
 
 msgid "Answered"
 msgstr "Zodpovězeno"
@@ -7819,6 +7819,9 @@ msgstr "Nastavit jako aktivní"
 msgid "Make active — running sessions move to this account too."
 msgstr "Nastavit jako aktivní — běžící relace přejdou na tento účet také."
 
+msgid "Make active — sessions launched from now on use this account."
+msgstr "Aktivovat — nově spuštěné relace budou používat tento účet."
+
 msgid "Make all panes equal size"
 msgstr "Nastavit všem panelům stejnou velikost"
 
@@ -8224,6 +8227,9 @@ msgstr "Další stránky"
 msgid "More than half of merged changes are written by agents with zero human edits."
 msgstr "Víc než polovinu sloučených změn napíší agenti bez jediné lidské úpravy."
 
+msgid "More than one saved login matched that account, so Superset would not guess which to use."
+msgstr "Účtu odpovídá více uložených přihlášení. Superset žádné nevybral naslepo."
+
 msgid "most developers"
 msgstr "většina vývojářů"
 
@@ -8415,6 +8421,9 @@ msgstr "Nová vydání a novinky v produktu."
 msgid "New session"
 msgstr "Nová relace"
 
+msgid "New sessions use it; sessions already running keep the previous login until you restart them."
+msgstr "Nové relace jej používají; spuštěné zachovají předchozí přihlášení až do restartu."
+
 msgid "New stars"
 msgstr "Nové hvězdy"
 
@@ -8463,6 +8472,10 @@ msgstr "Nový pracovní prostor v {name}"
 msgid "New-user activation"
 msgstr "Aktivace nových uživatelů"
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Newly launched {0} sessions use the active account; ones already running keep the previous login until you restart them."
+msgstr "Nové relace {0} používají aktivní účet; spuštěné zachovají předchozí přihlášení až do restartu."
+
 msgid "News & Updates"
 msgstr "Novinky a aktualizace"
 
@@ -8480,6 +8493,9 @@ msgstr "Další komentář"
 
 msgid "Next match"
 msgstr "Další shoda"
+
+msgid "Next reset: {resetTime}"
+msgstr "Další obnovení: {resetTime}"
 
 #. placeholder {0}: formatDateTimeInTimezone( new Date(automation.nextRunAt), automation.timezone ?? "UTC", )
 msgid "Next run {0}"
@@ -8663,6 +8679,9 @@ msgstr "Zatím žádná zařízení"
 
 msgid "No downloads yet"
 msgstr "Zatím žádná stahování"
+
+msgid "No eligible account has confirmed headroom. This session will stay stopped while quota is checked again. To continue with another model, use /model in the affected terminal."
+msgstr "Žádný způsobilý účet nemá potvrzenou volnou kapacitu. Tato relace zůstane zastavená, dokud se kvóta znovu neověří. Chcete-li pokračovat s jiným modelem, použijte /model v příslušném terminálu."
 
 msgid "No emoji found"
 msgstr "Žádné emoji nenalezeno"
@@ -9121,6 +9140,10 @@ msgstr "Na {pathname} nic není."
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Za posledních 30 dní zatím nebylo nic publikováno. Vaše pozice se objeví, jakmile se synchronizuje využití z tohoto počítače; publikujete jako <0>{handle}</0>."
+
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Nothing to switch to yet: this needs another {0} account with In rotation turned on."
+msgstr "Zatím není kam přepnout: je potřeba další účet {0} se zapnutou rotací."
 
 msgid "Notice"
 msgstr "Upozornění"
@@ -11188,6 +11211,9 @@ msgstr "Obnovit umístění"
 msgid "Reset terminal"
 msgstr "Obnovit terminál"
 
+msgid "Reset time unavailable. You can refresh quota or wait for the next check."
+msgstr "Čas obnovení není k dispozici. Můžete obnovit kvótu nebo počkat na další kontrolu."
+
 msgid "Reset to default"
 msgstr "Obnovit výchozí"
 
@@ -13094,6 +13120,9 @@ msgstr "Komponenty Superset"
 msgid "Superset could not complete sign-in. Please try again."
 msgstr "Superset nedokázal dokončit přihlášení. Zkuste to prosím znovu."
 
+msgid "Superset could not tell which account is signed in, so it left the current one in place."
+msgstr "Superset nerozpoznal přihlášený účet a ponechal aktuální."
+
 msgid "Superset CPU"
 msgstr "CPU Superset"
 
@@ -13219,7 +13248,6 @@ msgid "Switch at"
 msgstr "Přepnout při"
 
 #. placeholder {0}: engineErrorCode(failure)
-#. placeholder {0}: failure.code
 #. placeholder {0}: rawErrorMessage(error)
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "Přepnutí selhalo ({0}). Předchozí účet je stále aktivní."
@@ -13569,6 +13597,9 @@ msgstr "Textové pole"
 msgid "Thanks for reaching out"
 msgstr "Díky, že jste se ozvali"
 
+msgid "That account is not one this host can see, so the previous account is still active."
+msgstr "Tento host účet nevidí. Předchozí účet zůstává aktivní."
+
 msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
 msgstr "To zařízení je online, ale spojení se nepodařilo navázat — obvykle jde o směrování relay, ne o zařízení samotné. Zkuste to znovu, a pokud potíže přetrvávají, restartujte na něm Superset."
 
@@ -13602,6 +13633,21 @@ msgstr "Engine účtů na tomto hostu neběží, takže účty {agentLabel} se n
 msgid "The account engine is not running on this host."
 msgstr "Engine účtů na tomto hostu neběží."
 
+msgid "The account it tried to switch to has no saved identity, so the previous account is still active."
+msgstr "Cílový účet nemá uloženou identitu. Předchozí účet zůstává aktivní."
+
+msgid "The account it tried to switch to has no saved login. Sign in to it once and switching can use it."
+msgstr "Cílový účet nemá uložené přihlášení. Jednou se přihlaste, aby jej přepínání mohlo používat."
+
+msgid "The account it tried to switch to is not usable, so the previous account is still active."
+msgstr "Cílový účet nelze použít. Předchozí účet zůstává aktivní."
+
+msgid "The account it was switching to changed while switching, so the switch was abandoned."
+msgstr "Cílový účet se během přepínání změnil. Přepínání bylo zrušeno."
+
+msgid "The active account could not be updated, so the previous account is still active."
+msgstr "Aktivní účet nelze aktualizovat. Předchozí účet zůstává aktivní."
+
 msgid "the active organization"
 msgstr "aktivní organizaci"
 
@@ -13613,6 +13659,12 @@ msgstr "Agent vlastní úkol od ticketu po diff. Člověk reviduje výsledek, ne
 
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "Agent, se kterým měla tato automatizace běžet, už na svém hostu neexistuje — agenti hosta mohli být resetováni nebo odebráni. Vyberte v nastavení automatizace jiného agenta."
+
+msgid "The agent's account folder could not be reached, so the previous account is still active."
+msgstr "Složka účtu agenta není dostupná. Předchozí účet zůstává aktivní."
+
+msgid "The agent's account folder is not in a usable state, so the previous account is still active."
+msgstr "Složka účtu agenta není použitelná. Předchozí účet zůstává aktivní."
 
 msgid "The associated device isn't reachable right now"
 msgstr "Přidružené zařízení teď není dostupné"
@@ -13758,6 +13810,12 @@ msgstr "Název vaší organizace nebo týmu"
 msgid "The network connection changed"
 msgstr "Síťové připojení se změnilo"
 
+msgid "The new login could not be saved, so the previous account is still active."
+msgstr "Nové přihlášení nelze uložit. Předchozí účet zůstává aktivní."
+
+msgid "The new login could not be verified, so the previous account was put back."
+msgstr "Nové přihlášení nelze ověřit. Předchozí účet byl obnoven."
+
 msgid "The overnight shift"
 msgstr "Noční směna"
 
@@ -13825,8 +13883,17 @@ msgstr "Samořídící softwarová továrna"
 msgid "The server could not be found"
 msgstr "Server se nepodařilo najít"
 
+msgid "The shared account service is unavailable. Try refreshing usage."
+msgstr "Sdílená služba účtů není dostupná. Zkuste obnovit využití."
+
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "Přihlašovací odkaz byl neúplný. Zkuste to prosím znovu."
+
+msgid "The signed-in account changed while switching, so the switch was abandoned."
+msgstr "Přihlášený účet se během přepínání změnil. Přepínání bylo zrušeno."
+
+msgid "The signed-in account could not be identified, so nothing was changed."
+msgstr "Přihlášený účet nelze rozpoznat. Nic se nezměnilo."
 
 msgid "The site's certificate authority is not trusted"
 msgstr "Certifikační autorita webu není důvěryhodná"
@@ -13851,6 +13918,12 @@ msgstr "Host service Superset pro {organization} se nečekaně zastavila ({cause
 
 msgid "The Superset host service stopped unexpectedly ({cause}) and could not be restarted automatically."
 msgstr "Host service Superset se nečekaně zastavila ({cause}) a nešlo ji automaticky restartovat."
+
+msgid "The switch did not go through. The previous account is still active."
+msgstr "Přepnutí se nezdařilo. Předchozí účet zůstává aktivní."
+
+msgid "The switch stopped halfway. Open Usage to check which account is signed in."
+msgstr "Přepínání se přerušilo. Otevřete Využití a zkontrolujte přihlášený účet."
 
 msgid "the target host"
 msgstr "cílový host"
@@ -14939,6 +15012,9 @@ msgstr "Před spuštěním agentů počkat na setup pracovního prostoru"
 
 msgid "Waiting for Checks"
 msgstr "Čeká na kontroly"
+
+msgid "Waiting for confirmed quota"
+msgstr "Čekání na potvrzenou kvótu"
 
 msgid "Waiting for Review"
 msgstr "Čeká na revizi"

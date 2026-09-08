@@ -1261,6 +1261,9 @@ msgctxt "account state"
 msgid "Active"
 msgstr "使用中"
 
+msgid "Active — every newly launched session of this agent uses this account; ones already running keep the previous login until you restart them."
+msgstr "已啟用 — 此代理的新工作階段使用此帳戶；執行中的工作階段在重新啟動前保留先前的登入。"
+
 msgid "Active — every running and newly launched session of this agent uses this account."
 msgstr "使用中 — 該代理程式所有正在執行和新啟動的會話都使用這個帳戶。"
 
@@ -1800,9 +1803,6 @@ msgstr "另一臺裝置"
 
 msgid "Another Superset instance on this machine owns account switching. Change this there."
 msgstr "本機上的另一個Superset執行個體掌管帳戶切換，請到那裡變更。"
-
-msgid "Another Superset instance on this machine owns automatic switching. Change these settings there."
-msgstr "本機上的另一個Superset執行個體掌管自動切換，請到那裡變更這些設定。"
 
 msgid "Answered"
 msgstr "已回答"
@@ -7819,6 +7819,9 @@ msgstr "設為使用中"
 msgid "Make active — running sessions move to this account too."
 msgstr "設為使用中 — 正在執行的會話也會移到這個帳戶。"
 
+msgid "Make active — sessions launched from now on use this account."
+msgstr "設為使用中帳戶 — 從現在起啟動的工作階段使用此帳戶。"
+
 msgid "Make all panes equal size"
 msgstr "使所有窗格大小相同"
 
@@ -8224,6 +8227,9 @@ msgstr "更多頁面"
 msgid "More than half of merged changes are written by agents with zero human edits."
 msgstr "超過一半的合併變更由代理程式撰寫，且無任何人工修改。"
 
+msgid "More than one saved login matched that account, so Superset would not guess which to use."
+msgstr "多個已儲存的登入符合該帳戶，Superset 未猜測應使用哪一個。"
+
 msgid "most developers"
 msgstr "多數開發者"
 
@@ -8415,6 +8421,9 @@ msgstr "新版本與產品更新。"
 msgid "New session"
 msgstr "新建會話"
 
+msgid "New sessions use it; sessions already running keep the previous login until you restart them."
+msgstr "新工作階段使用此帳戶；執行中的工作階段在重新啟動前保留先前的登入。"
+
 msgid "New stars"
 msgstr "新增星標"
 
@@ -8463,6 +8472,10 @@ msgstr "在 {name} 中新建工作區"
 msgid "New-user activation"
 msgstr "新使用者啟用"
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Newly launched {0} sessions use the active account; ones already running keep the previous login until you restart them."
+msgstr "新的 {0} 工作階段使用使用中帳戶；執行中的工作階段在重新啟動前保留先前的登入。"
+
 msgid "News & Updates"
 msgstr "新聞與更新"
 
@@ -8480,6 +8493,9 @@ msgstr "下一條評論"
 
 msgid "Next match"
 msgstr "下一個匹配"
+
+msgid "Next reset: {resetTime}"
+msgstr "下次重設：{resetTime}"
 
 #. placeholder {0}: formatDateTimeInTimezone( new Date(automation.nextRunAt), automation.timezone ?? "UTC", )
 msgid "Next run {0}"
@@ -8663,6 +8679,9 @@ msgstr "還沒有裝置"
 
 msgid "No downloads yet"
 msgstr "暫無下載"
+
+msgid "No eligible account has confirmed headroom. This session will stay stopped while quota is checked again. To continue with another model, use /model in the affected terminal."
+msgstr "尚未確認任何符合條件的帳戶有剩餘額度。重新檢查額度期間，此工作階段將保持停止。若要使用其他模型繼續，請在對應終端機中使用 /model。"
 
 msgid "No emoji found"
 msgstr "未找到表情"
@@ -9121,6 +9140,10 @@ msgstr "{pathname}下沒有任何內容。"
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "最近 30 天尚未發佈任何資料。這台機器的用量同步後即會顯示你的排名，將以 <0>{handle}</0> 發佈。"
+
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Nothing to switch to yet: this needs another {0} account with In rotation turned on."
+msgstr "暫無可切換帳戶：需要另一個啟用輪替的 {0} 帳戶。"
 
 msgid "Notice"
 msgstr "提示"
@@ -11188,6 +11211,9 @@ msgstr "重置位置"
 msgid "Reset terminal"
 msgstr "重置終端"
 
+msgid "Reset time unavailable. You can refresh quota or wait for the next check."
+msgstr "重設時間未知。您可以重新整理額度或等待下次檢查。"
+
 msgid "Reset to default"
 msgstr "恢復預設"
 
@@ -13094,6 +13120,9 @@ msgstr "Superset元件"
 msgid "Superset could not complete sign-in. Please try again."
 msgstr "Superset無法完成登入。請重試。"
 
+msgid "Superset could not tell which account is signed in, so it left the current one in place."
+msgstr "Superset 無法確定已登入的帳戶，因此保留了目前帳戶。"
+
 msgid "Superset CPU"
 msgstr "Superset CPU"
 
@@ -13219,7 +13248,6 @@ msgid "Switch at"
 msgstr "切換門檻"
 
 #. placeholder {0}: engineErrorCode(failure)
-#. placeholder {0}: failure.code
 #. placeholder {0}: rawErrorMessage(error)
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "切換失敗（{0}）。之前的帳戶仍在使用中。"
@@ -13569,6 +13597,9 @@ msgstr "多行文字框"
 msgid "Thanks for reaching out"
 msgstr "感謝聯絡"
 
+msgid "That account is not one this host can see, so the previous account is still active."
+msgstr "此主機看不到該帳戶。先前的帳戶仍在使用中。"
+
 msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
 msgstr "該裝置線上，但無法建立連線 — 通常是中繼路由問題，而非裝置本身。請重試；若持續如此，請在該裝置上重啟Superset。"
 
@@ -13602,6 +13633,21 @@ msgstr "這台主機上沒有執行帳戶引擎，因此{agentLabel}帳戶無法
 msgid "The account engine is not running on this host."
 msgstr "這台主機上沒有執行帳戶引擎。"
 
+msgid "The account it tried to switch to has no saved identity, so the previous account is still active."
+msgstr "目標帳戶沒有已儲存的身分資訊。先前的帳戶仍在使用中。"
+
+msgid "The account it tried to switch to has no saved login. Sign in to it once and switching can use it."
+msgstr "目標帳戶沒有已儲存的登入。登入一次後即可切換至此帳戶。"
+
+msgid "The account it tried to switch to is not usable, so the previous account is still active."
+msgstr "目標帳戶無法使用。先前的帳戶仍在使用中。"
+
+msgid "The account it was switching to changed while switching, so the switch was abandoned."
+msgstr "切換期間目標帳戶發生變化，因此已放棄切換。"
+
+msgid "The active account could not be updated, so the previous account is still active."
+msgstr "無法更新使用中帳戶。先前的帳戶仍在使用中。"
+
 msgid "the active organization"
 msgstr "目前組織"
 
@@ -13613,6 +13659,12 @@ msgstr "代理程式從工單一路負責到差異。人類審查結果，而不
 
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "這個自動化原本要執行的代理程式在它的主機上已不存在，該主機的代理程式可能被重置或刪除了。請在自動化的設定中重新選擇一個代理程式。"
+
+msgid "The agent's account folder could not be reached, so the previous account is still active."
+msgstr "無法存取代理的帳戶資料夾。先前的帳戶仍在使用中。"
+
+msgid "The agent's account folder is not in a usable state, so the previous account is still active."
+msgstr "代理的帳戶資料夾無法使用。先前的帳戶仍在使用中。"
 
 msgid "The associated device isn't reachable right now"
 msgstr "關聯的裝置現在連不上"
@@ -13758,6 +13810,12 @@ msgstr "你的組織或團隊的名稱"
 msgid "The network connection changed"
 msgstr "網路連線已變更"
 
+msgid "The new login could not be saved, so the previous account is still active."
+msgstr "無法儲存新登入。先前的帳戶仍在使用中。"
+
+msgid "The new login could not be verified, so the previous account was put back."
+msgstr "無法驗證新登入，因此已還原先前的帳戶。"
+
 msgid "The overnight shift"
 msgstr "夜班"
 
@@ -13825,8 +13883,17 @@ msgstr "自動駕駛的軟體工廠"
 msgid "The server could not be found"
 msgstr "找不到伺服器"
 
+msgid "The shared account service is unavailable. Try refreshing usage."
+msgstr "共用帳戶服務無法使用。請嘗試重新整理使用量。"
+
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "登入連結不完整。請重試。"
+
+msgid "The signed-in account changed while switching, so the switch was abandoned."
+msgstr "切換期間已登入的帳戶發生變化，因此已放棄切換。"
+
+msgid "The signed-in account could not be identified, so nothing was changed."
+msgstr "無法識別已登入的帳戶。未進行任何變更。"
 
 msgid "The site's certificate authority is not trusted"
 msgstr "該站點的證書頒發機構不受信任"
@@ -13851,6 +13918,12 @@ msgstr "{organization}的Superset主機服務意外停止（{cause}），且無�
 
 msgid "The Superset host service stopped unexpectedly ({cause}) and could not be restarted automatically."
 msgstr "Superset主機服務意外停止（{cause}），且無法自動重啟。"
+
+msgid "The switch did not go through. The previous account is still active."
+msgstr "切換未成功。先前的帳戶仍在使用中。"
+
+msgid "The switch stopped halfway. Open Usage to check which account is signed in."
+msgstr "切換中途停止。開啟「使用量」查看已登入的帳戶。"
 
 msgid "the target host"
 msgstr "目標主機"
@@ -14939,6 +15012,9 @@ msgstr "啟動代理程式前等待工作區設定完成"
 
 msgid "Waiting for Checks"
 msgstr "等待檢查"
+
+msgid "Waiting for confirmed quota"
+msgstr "等待確認可用額度"
 
 msgid "Waiting for Review"
 msgstr "等待審查"

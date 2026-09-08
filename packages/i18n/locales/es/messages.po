@@ -1261,6 +1261,9 @@ msgctxt "account state"
 msgid "Active"
 msgstr "Activa"
 
+msgid "Active — every newly launched session of this agent uses this account; ones already running keep the previous login until you restart them."
+msgstr "Activo: las nuevas sesiones de este agente usan esta cuenta; las que ya están en ejecución mantienen el inicio de sesión anterior hasta que las reinicies."
+
 msgid "Active — every running and newly launched session of this agent uses this account."
 msgstr "Activa — todas las sesiones de este agente, en ejecución o recién iniciadas, usan esta cuenta."
 
@@ -1800,9 +1803,6 @@ msgstr "otro dispositivo"
 
 msgid "Another Superset instance on this machine owns account switching. Change this there."
 msgstr "Otra instancia de Superset en este equipo controla el cambio de cuenta. Cámbialo allí."
-
-msgid "Another Superset instance on this machine owns automatic switching. Change these settings there."
-msgstr "Otra instancia de Superset en este equipo controla el cambio automático. Cambia esa configuración allí."
 
 msgid "Answered"
 msgstr "Respondido"
@@ -7819,6 +7819,9 @@ msgstr "Activar"
 msgid "Make active — running sessions move to this account too."
 msgstr "Activar — las sesiones en ejecución también pasan a esta cuenta."
 
+msgid "Make active — sessions launched from now on use this account."
+msgstr "Activar: las sesiones iniciadas a partir de ahora usan esta cuenta."
+
 msgid "Make all panes equal size"
 msgstr "Igualar el tamaño de todos los paneles"
 
@@ -8224,6 +8227,9 @@ msgstr "Más páginas"
 msgid "More than half of merged changes are written by agents with zero human edits."
 msgstr "Más de la mitad de los cambios fusionados los escriben agentes sin ninguna edición humana."
 
+msgid "More than one saved login matched that account, so Superset would not guess which to use."
+msgstr "Varias credenciales guardadas coincidían con esa cuenta, así que Superset no eligió al azar."
+
 msgid "most developers"
 msgstr "la mayoría de los desarrolladores"
 
@@ -8415,6 +8421,9 @@ msgstr "Nuevas versiones y novedades del producto."
 msgid "New session"
 msgstr "Nueva sesión"
 
+msgid "New sessions use it; sessions already running keep the previous login until you restart them."
+msgstr "Las nuevas sesiones la usan; las que ya están en ejecución mantienen el inicio de sesión anterior hasta que las reinicies."
+
 msgid "New stars"
 msgstr "Estrellas nuevas"
 
@@ -8463,6 +8472,10 @@ msgstr "Nuevo espacio de trabajo en {name}"
 msgid "New-user activation"
 msgstr "Activación de usuarios nuevos"
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Newly launched {0} sessions use the active account; ones already running keep the previous login until you restart them."
+msgstr "Las nuevas sesiones de {0} usan la cuenta activa; las que ya están en ejecución mantienen el inicio de sesión anterior hasta que las reinicies."
+
 msgid "News & Updates"
 msgstr "Novedades y actualizaciones"
 
@@ -8480,6 +8493,9 @@ msgstr "Comentario siguiente"
 
 msgid "Next match"
 msgstr "Coincidencia siguiente"
+
+msgid "Next reset: {resetTime}"
+msgstr "Próximo restablecimiento: {resetTime}"
 
 #. placeholder {0}: formatDateTimeInTimezone( new Date(automation.nextRunAt), automation.timezone ?? "UTC", )
 msgid "Next run {0}"
@@ -8663,6 +8679,9 @@ msgstr "Aún no hay dispositivos"
 
 msgid "No downloads yet"
 msgstr "Aún no hay descargas"
+
+msgid "No eligible account has confirmed headroom. This session will stay stopped while quota is checked again. To continue with another model, use /model in the affected terminal."
+msgstr "Ninguna cuenta elegible tiene capacidad disponible confirmada. Esta sesión permanecerá detenida mientras se vuelve a comprobar la cuota. Para continuar con otro modelo, usa /model en el terminal afectado."
 
 msgid "No emoji found"
 msgstr "No se encontraron emojis"
@@ -9121,6 +9140,10 @@ msgstr "No hay nada en {pathname}."
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Aún no has publicado nada en los últimos 30 días. Tu puesto aparecerá cuando se sincronice el uso de esta máquina, publicando como <0>{handle}</0>."
+
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Nothing to switch to yet: this needs another {0} account with In rotation turned on."
+msgstr "Aún no hay una cuenta alternativa: se necesita otra cuenta de {0} con la rotación activada."
 
 msgid "Notice"
 msgstr "Aviso"
@@ -11188,6 +11211,9 @@ msgstr "Restablecer ubicación"
 msgid "Reset terminal"
 msgstr "Restablecer el terminal"
 
+msgid "Reset time unavailable. You can refresh quota or wait for the next check."
+msgstr "Hora de restablecimiento no disponible. Puedes actualizar la cuota o esperar la próxima comprobación."
+
 msgid "Reset to default"
 msgstr "Restablecer al predeterminado"
 
@@ -13094,6 +13120,9 @@ msgstr "Componentes de Superset"
 msgid "Superset could not complete sign-in. Please try again."
 msgstr "Superset no pudo completar el inicio de sesión. Inténtalo de nuevo."
 
+msgid "Superset could not tell which account is signed in, so it left the current one in place."
+msgstr "Superset no pudo identificar la cuenta conectada y conservó la actual."
+
 msgid "Superset CPU"
 msgstr "CPU de Superset"
 
@@ -13219,7 +13248,6 @@ msgid "Switch at"
 msgstr "Cambiar al"
 
 #. placeholder {0}: engineErrorCode(failure)
-#. placeholder {0}: failure.code
 #. placeholder {0}: rawErrorMessage(error)
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "El cambio falló ({0}). La cuenta anterior sigue activa."
@@ -13569,6 +13597,9 @@ msgstr "Área de texto"
 msgid "Thanks for reaching out"
 msgstr "Gracias por escribirnos"
 
+msgid "That account is not one this host can see, so the previous account is still active."
+msgstr "Este host no puede ver esa cuenta. La cuenta anterior sigue activa."
+
 msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
 msgstr "Ese dispositivo está en línea, pero no se pudo establecer la conexión: suele ser cosa del enrutado del relay, no del dispositivo. Reinténtalo y, si persiste, reinicia Superset en ese dispositivo."
 
@@ -13602,6 +13633,21 @@ msgstr "El motor de cuentas no se está ejecutando en este host, así que las cu
 msgid "The account engine is not running on this host."
 msgstr "El motor de cuentas no se está ejecutando en este host."
 
+msgid "The account it tried to switch to has no saved identity, so the previous account is still active."
+msgstr "La cuenta de destino no tiene una identidad guardada. La cuenta anterior sigue activa."
+
+msgid "The account it tried to switch to has no saved login. Sign in to it once and switching can use it."
+msgstr "La cuenta de destino no tiene credenciales guardadas. Inicia sesión una vez para poder usarla."
+
+msgid "The account it tried to switch to is not usable, so the previous account is still active."
+msgstr "La cuenta de destino no se puede usar. La cuenta anterior sigue activa."
+
+msgid "The account it was switching to changed while switching, so the switch was abandoned."
+msgstr "La cuenta de destino cambió durante el cambio. Se canceló la operación."
+
+msgid "The active account could not be updated, so the previous account is still active."
+msgstr "No se pudo actualizar la cuenta activa. La cuenta anterior sigue activa."
+
 msgid "the active organization"
 msgstr "la organización activa"
 
@@ -13613,6 +13659,12 @@ msgstr "El agente se encarga de una tarea desde el ticket hasta el diff. La pers
 
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "El agente con el que se configuró esta automatización ya no existe en su host: puede que los agentes del host se hayan restablecido o eliminado. Vuelve a seleccionar un agente en la configuración de la automatización."
+
+msgid "The agent's account folder could not be reached, so the previous account is still active."
+msgstr "No se pudo acceder a la carpeta de la cuenta del agente. La cuenta anterior sigue activa."
+
+msgid "The agent's account folder is not in a usable state, so the previous account is still active."
+msgstr "La carpeta de la cuenta del agente no se puede usar. La cuenta anterior sigue activa."
 
 msgid "The associated device isn't reachable right now"
 msgstr "El dispositivo asociado no está accesible ahora mismo"
@@ -13758,6 +13810,12 @@ msgstr "El nombre de la organización o equipo"
 msgid "The network connection changed"
 msgstr "Cambió la conexión de red"
 
+msgid "The new login could not be saved, so the previous account is still active."
+msgstr "No se pudieron guardar las nuevas credenciales. La cuenta anterior sigue activa."
+
+msgid "The new login could not be verified, so the previous account was put back."
+msgstr "No se pudieron verificar las nuevas credenciales. Se restauró la cuenta anterior."
+
 msgid "The overnight shift"
 msgstr "El turno de noche"
 
@@ -13825,8 +13883,17 @@ msgstr "La fábrica de software autónoma"
 msgid "The server could not be found"
 msgstr "No se encontró el servidor"
 
+msgid "The shared account service is unavailable. Try refreshing usage."
+msgstr "El servicio de cuentas compartido no está disponible. Intenta actualizar el uso."
+
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "El enlace de inicio de sesión estaba incompleto. Inténtalo de nuevo."
+
+msgid "The signed-in account changed while switching, so the switch was abandoned."
+msgstr "La cuenta conectada cambió durante la operación. Se canceló el cambio."
+
+msgid "The signed-in account could not be identified, so nothing was changed."
+msgstr "No se pudo identificar la cuenta conectada. No se modificó nada."
 
 msgid "The site's certificate authority is not trusted"
 msgstr "La autoridad de certificación del sitio no es de confianza"
@@ -13851,6 +13918,12 @@ msgstr "El servicio del host de Superset de {organization} se detuvo de forma in
 
 msgid "The Superset host service stopped unexpectedly ({cause}) and could not be restarted automatically."
 msgstr "El servicio del host de Superset se detuvo de forma inesperada ({cause}) y no se pudo reiniciar automáticamente."
+
+msgid "The switch did not go through. The previous account is still active."
+msgstr "El cambio no se completó. La cuenta anterior sigue activa."
+
+msgid "The switch stopped halfway. Open Usage to check which account is signed in."
+msgstr "El cambio se interrumpió. Abre Uso para comprobar qué cuenta está conectada."
 
 msgid "the target host"
 msgstr "el host de destino"
@@ -14939,6 +15012,9 @@ msgstr "Esperar a la configuración del espacio de trabajo antes de iniciar los 
 
 msgid "Waiting for Checks"
 msgstr "Esperando las comprobaciones"
+
+msgid "Waiting for confirmed quota"
+msgstr "Esperando cuota confirmada"
 
 msgid "Waiting for Review"
 msgstr "Esperando la revisión"

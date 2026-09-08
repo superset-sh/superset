@@ -1261,6 +1261,9 @@ msgctxt "account state"
 msgid "Active"
 msgstr "アクティブ"
 
+msgid "Active — every newly launched session of this agent uses this account; ones already running keep the previous login until you restart them."
+msgstr "アクティブ — このエージェントの新しいセッションはこのアカウントを使います。実行中のセッションは再起動するまで以前のログインを保持します。"
+
 msgid "Active — every running and newly launched session of this agent uses this account."
 msgstr "アクティブ — このエージェントの実行中および新しく起動するセッションはすべてこのアカウントを使用します。"
 
@@ -1800,9 +1803,6 @@ msgstr "別のデバイス"
 
 msgid "Another Superset instance on this machine owns account switching. Change this there."
 msgstr "このマシンの別のSupersetインスタンスがアカウントの切り替えを管理しています。変更はそちらで行ってください。"
-
-msgid "Another Superset instance on this machine owns automatic switching. Change these settings there."
-msgstr "このマシンの別のSupersetインスタンスが自動切り替えを管理しています。これらの設定はそちらで変更してください。"
 
 msgid "Answered"
 msgstr "回答済み"
@@ -7819,6 +7819,9 @@ msgstr "アクティブにする"
 msgid "Make active — running sessions move to this account too."
 msgstr "アクティブにする — 実行中のセッションもこのアカウントに移ります。"
 
+msgid "Make active — sessions launched from now on use this account."
+msgstr "アクティブにする — これ以降に開始するセッションはこのアカウントを使います。"
+
 msgid "Make all panes equal size"
 msgstr "すべてのペインを同じサイズにする"
 
@@ -8224,6 +8227,9 @@ msgstr "その他のページ"
 msgid "More than half of merged changes are written by agents with zero human edits."
 msgstr "マージされた変更の半数超が、人間の編集なしにエージェントによって書かれる。"
 
+msgid "More than one saved login matched that account, so Superset would not guess which to use."
+msgstr "このアカウントに一致する保存済みログインが複数あるため、Supersetは推測で選択しませんでした。"
+
 msgid "most developers"
 msgstr "大半の開発者"
 
@@ -8415,6 +8421,9 @@ msgstr "新しいリリースと製品アップデート。"
 msgid "New session"
 msgstr "新規セッション"
 
+msgid "New sessions use it; sessions already running keep the previous login until you restart them."
+msgstr "新しいセッションはこのアカウントを使います。実行中のセッションは再起動するまで以前のログインを保持します。"
+
 msgid "New stars"
 msgstr "新規スター"
 
@@ -8463,6 +8472,10 @@ msgstr "{name} に新規ワークスペース"
 msgid "New-user activation"
 msgstr "新規ユーザーのアクティベーション"
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Newly launched {0} sessions use the active account; ones already running keep the previous login until you restart them."
+msgstr "新しい{0}セッションはアクティブなアカウントを使います。実行中のセッションは再起動するまで以前のログインを保持します。"
+
 msgid "News & Updates"
 msgstr "ニュースとアップデート"
 
@@ -8480,6 +8493,9 @@ msgstr "次のコメント"
 
 msgid "Next match"
 msgstr "次の一致"
+
+msgid "Next reset: {resetTime}"
+msgstr "次のリセット: {resetTime}"
 
 #. placeholder {0}: formatDateTimeInTimezone( new Date(automation.nextRunAt), automation.timezone ?? "UTC", )
 msgid "Next run {0}"
@@ -8663,6 +8679,9 @@ msgstr "デバイスはまだありません"
 
 msgid "No downloads yet"
 msgstr "ダウンロードはまだありません"
+
+msgid "No eligible account has confirmed headroom. This session will stay stopped while quota is checked again. To continue with another model, use /model in the affected terminal."
+msgstr "対象のアカウントで利用枠の空きが確認できません。利用枠を再確認する間、このセッションは停止したままになります。別のモデルで続けるには、対象のターミナルで /model を使ってください。"
 
 msgid "No emoji found"
 msgstr "絵文字が見つかりません"
@@ -9121,6 +9140,10 @@ msgstr "{pathname}には何もありません。"
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "直近30日に公開された実績はまだありません。このマシンの利用状況が同期されるとランクが表示されます(<0>{handle}</0>として公開)。"
+
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Nothing to switch to yet: this needs another {0} account with In rotation turned on."
+msgstr "切り替え先がありません。ローテーションを有効にした別の{0}アカウントが必要です。"
 
 msgid "Notice"
 msgstr "お知らせ"
@@ -11188,6 +11211,9 @@ msgstr "場所をリセット"
 msgid "Reset terminal"
 msgstr "ターミナルをリセット"
 
+msgid "Reset time unavailable. You can refresh quota or wait for the next check."
+msgstr "リセット時刻は不明です。利用枠を更新するか、次の確認をお待ちください。"
+
 msgid "Reset to default"
 msgstr "デフォルトに戻す"
 
@@ -13094,6 +13120,9 @@ msgstr "Supersetコンポーネント"
 msgid "Superset could not complete sign-in. Please try again."
 msgstr "Supersetはサインインを完了できませんでした。もう一度お試しください。"
 
+msgid "Superset could not tell which account is signed in, so it left the current one in place."
+msgstr "Supersetはログイン中のアカウントを判別できず、現在のアカウントを保持しました。"
+
 msgid "Superset CPU"
 msgstr "Superset CPU"
 
@@ -13219,7 +13248,6 @@ msgid "Switch at"
 msgstr "切り替えるしきい値"
 
 #. placeholder {0}: engineErrorCode(failure)
-#. placeholder {0}: failure.code
 #. placeholder {0}: rawErrorMessage(error)
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "切り替えに失敗しました({0})。以前のアカウントがそのままアクティブです。"
@@ -13569,6 +13597,9 @@ msgstr "Textarea"
 msgid "Thanks for reaching out"
 msgstr "お問い合わせありがとうございます"
 
+msgid "That account is not one this host can see, so the previous account is still active."
+msgstr "このホストからそのアカウントは見えません。以前のアカウントが引き続きアクティブです。"
+
 msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
 msgstr "そのデバイスはオンラインですが、接続を確立できませんでした — 通常はデバイス自体ではなくリレーのルーティングが原因です。再試行し、解消しない場合はそのデバイスでSupersetを再起動してください。"
 
@@ -13602,6 +13633,21 @@ msgstr "このホストではアカウントエンジンが動作していない
 msgid "The account engine is not running on this host."
 msgstr "このホストではアカウントエンジンが動作していません。"
 
+msgid "The account it tried to switch to has no saved identity, so the previous account is still active."
+msgstr "切り替え先に保存済みのID情報がありません。以前のアカウントが引き続きアクティブです。"
+
+msgid "The account it tried to switch to has no saved login. Sign in to it once and switching can use it."
+msgstr "切り替え先に保存済みログインがありません。一度ログインすると切り替えに使えます。"
+
+msgid "The account it tried to switch to is not usable, so the previous account is still active."
+msgstr "切り替え先は使用できません。以前のアカウントが引き続きアクティブです。"
+
+msgid "The account it was switching to changed while switching, so the switch was abandoned."
+msgstr "切り替え中に対象アカウントが変わったため、切り替えを中止しました。"
+
+msgid "The active account could not be updated, so the previous account is still active."
+msgstr "アクティブなアカウントを更新できませんでした。以前のアカウントが引き続きアクティブです。"
+
 msgid "the active organization"
 msgstr "アクティブな組織"
 
@@ -13613,6 +13659,12 @@ msgstr "エージェントがチケットから差分までタスクを引き受
 
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "このオートメーションに設定されていたエージェントは、ホスト上に存在しなくなりました — ホストのエージェントがリセットまたは削除された可能性があります。オートメーションの設定でエージェントを選び直してください。"
+
+msgid "The agent's account folder could not be reached, so the previous account is still active."
+msgstr "エージェントのアカウントフォルダーにアクセスできません。以前のアカウントが引き続きアクティブです。"
+
+msgid "The agent's account folder is not in a usable state, so the previous account is still active."
+msgstr "エージェントのアカウントフォルダーを使用できません。以前のアカウントが引き続きアクティブです。"
 
 msgid "The associated device isn't reachable right now"
 msgstr "関連デバイスに現在接続できません"
@@ -13758,6 +13810,12 @@ msgstr "組織またはチームの名前"
 msgid "The network connection changed"
 msgstr "ネットワーク接続が変更されました"
 
+msgid "The new login could not be saved, so the previous account is still active."
+msgstr "新しいログインを保存できませんでした。以前のアカウントが引き続きアクティブです。"
+
+msgid "The new login could not be verified, so the previous account was put back."
+msgstr "新しいログインを確認できなかったため、以前のアカウントを復元しました。"
+
 msgid "The overnight shift"
 msgstr "夜間シフト"
 
@@ -13825,8 +13883,17 @@ msgstr "自動運転するソフトウェア工場"
 msgid "The server could not be found"
 msgstr "サーバーが見つかりませんでした"
 
+msgid "The shared account service is unavailable. Try refreshing usage."
+msgstr "共有アカウントサービスを利用できません。使用量の更新をお試しください。"
+
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "サインインリンクが不完全でした。もう一度お試しください。"
+
+msgid "The signed-in account changed while switching, so the switch was abandoned."
+msgstr "切り替え中にログイン中のアカウントが変わったため、切り替えを中止しました。"
+
+msgid "The signed-in account could not be identified, so nothing was changed."
+msgstr "ログイン中のアカウントを特定できませんでした。変更はありません。"
 
 msgid "The site's certificate authority is not trusted"
 msgstr "サイトの認証局が信頼されていません"
@@ -13851,6 +13918,12 @@ msgstr "{organization}のSupersetホストサービスが予期せず停止し (
 
 msgid "The Superset host service stopped unexpectedly ({cause}) and could not be restarted automatically."
 msgstr "Supersetのホストサービスが予期せず停止し ({cause})、自動的に再起動できませんでした。"
+
+msgid "The switch did not go through. The previous account is still active."
+msgstr "切り替えに失敗しました。以前のアカウントが引き続きアクティブです。"
+
+msgid "The switch stopped halfway. Open Usage to check which account is signed in."
+msgstr "切り替えが途中で停止しました。「使用量」を開き、ログイン中のアカウントを確認してください。"
 
 msgid "the target host"
 msgstr "対象ホスト"
@@ -14939,6 +15012,9 @@ msgstr "エージェント起動前にワークスペースのセットアップ
 
 msgid "Waiting for Checks"
 msgstr "チェックを待機中"
+
+msgid "Waiting for confirmed quota"
+msgstr "確認済みの利用枠を待機中"
 
 msgid "Waiting for Review"
 msgstr "レビューを待機中"

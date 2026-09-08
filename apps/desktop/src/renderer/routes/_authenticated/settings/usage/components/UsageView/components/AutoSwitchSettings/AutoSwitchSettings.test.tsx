@@ -627,11 +627,57 @@ describe("AutoSwitchSettings refusals", () => {
 		);
 	});
 
-	test("a lock loser points at the instance that owns switching", () => {
+	test("an unavailable shared service offers a refresh", () => {
 		const { ui, view } = setup({ lockOwner: false });
 		expect(ui.queryByRole("switch")).toBeNull();
 		expect(view.baseElement.textContent).toContain(
-			"Another Superset instance on this machine owns automatic switching",
+			"The shared account service is unavailable",
 		);
+	});
+});
+
+describe("waiting for quota", () => {
+	test("names the affected model without claiming all accounts are exhausted", () => {
+		const { ui, commits } = setup({
+			waiting: { model: "Opus", resetAt: null },
+		});
+		const status = ui.getByRole("status");
+		expect(status.textContent).toContain("Waiting for confirmed quota");
+		expect(status.textContent).toContain("Opus");
+		expect(status.textContent).toContain(
+			"No eligible account has confirmed headroom",
+		);
+		expect(status.textContent).toContain("/model");
+		expect(status.textContent).toContain("Reset time unavailable");
+		expect(commits).toEqual([]);
+	});
+	test("shows a known reset and clears the message when waiting ends", () => {
+		const { ui, view } = setup({
+			waiting: { model: null, resetAt: 1_800_000_000_000 },
+		});
+		expect(ui.getByRole("status").textContent).toContain("Next reset:");
+		expect(ui.getByRole("status").textContent).not.toContain(
+			"Reset time unavailable",
+		);
+		view.rerender(
+			<AutoSwitchSettings
+				agentLabel="Codex"
+				settings={SETTINGS}
+				engineAvailable
+				platformSupported
+				lockOwner
+				disabled={false}
+				onCommit={async () => {}}
+				waiting={null}
+			/>,
+		);
+		expect(ui.queryByRole("status")).toBeNull();
+	});
+	test("does not display stale waiting state once switching is disabled", () => {
+		const { ui } = setup({
+			settings: { ...SETTINGS, enabled: false },
+			waiting: { model: "Opus", resetAt: null },
+		});
+		expect(ui.queryByRole("status")).toBeNull();
 	});
 });

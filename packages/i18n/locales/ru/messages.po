@@ -1261,6 +1261,9 @@ msgctxt "account state"
 msgid "Active"
 msgstr "Активен"
 
+msgid "Active — every newly launched session of this agent uses this account; ones already running keep the previous login until you restart them."
+msgstr "Активен — новые сеансы этого агента используют этот аккаунт; запущенные сеансы сохраняют прежний вход до перезапуска."
+
 msgid "Active — every running and newly launched session of this agent uses this account."
 msgstr "Активен — все работающие и вновь запускаемые сессии этого агента используют этот аккаунт."
 
@@ -1800,9 +1803,6 @@ msgstr "другое устройство"
 
 msgid "Another Superset instance on this machine owns account switching. Change this there."
 msgstr "Переключением аккаунтов управляет другой экземпляр Superset на этой машине. Меняйте это там."
-
-msgid "Another Superset instance on this machine owns automatic switching. Change these settings there."
-msgstr "Автоматическим переключением управляет другой экземпляр Superset на этой машине. Меняйте эти настройки там."
 
 msgid "Answered"
 msgstr "Отвечено"
@@ -7819,6 +7819,9 @@ msgstr "Сделать активным"
 msgid "Make active — running sessions move to this account too."
 msgstr "Сделать активным — работающие сессии тоже перейдут на этот аккаунт."
 
+msgid "Make active — sessions launched from now on use this account."
+msgstr "Сделать активным — новые сеансы будут использовать этот аккаунт."
+
 msgid "Make all panes equal size"
 msgstr "Сделать все панели одинакового размера"
 
@@ -8224,6 +8227,9 @@ msgstr "Ещё страницы"
 msgid "More than half of merged changes are written by agents with zero human edits."
 msgstr "Больше половины объединённых изменений написаны агентами без правок человека."
 
+msgid "More than one saved login matched that account, so Superset would not guess which to use."
+msgstr "Аккаунту соответствует несколько сохранённых входов. Superset не стал выбирать наугад."
+
 msgid "most developers"
 msgstr "большинство разработчиков"
 
@@ -8415,6 +8421,9 @@ msgstr "Новые релизы и обновления продукта."
 msgid "New session"
 msgstr "Новая сессия"
 
+msgid "New sessions use it; sessions already running keep the previous login until you restart them."
+msgstr "Новые сеансы используют его; запущенные сохраняют прежний вход до перезапуска."
+
 msgid "New stars"
 msgstr "Новые звёзды"
 
@@ -8463,6 +8472,10 @@ msgstr "Новая рабочая область в {name}"
 msgid "New-user activation"
 msgstr "Активация новых пользователей"
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Newly launched {0} sessions use the active account; ones already running keep the previous login until you restart them."
+msgstr "Новые сеансы {0} используют активный аккаунт; запущенные сохраняют прежний вход до перезапуска."
+
 msgid "News & Updates"
 msgstr "Новости и обновления"
 
@@ -8480,6 +8493,9 @@ msgstr "Следующий комментарий"
 
 msgid "Next match"
 msgstr "Следующее совпадение"
+
+msgid "Next reset: {resetTime}"
+msgstr "Следующий сброс: {resetTime}"
 
 #. placeholder {0}: formatDateTimeInTimezone( new Date(automation.nextRunAt), automation.timezone ?? "UTC", )
 msgid "Next run {0}"
@@ -8663,6 +8679,9 @@ msgstr "Устройств пока нет"
 
 msgid "No downloads yet"
 msgstr "Загрузок пока нет"
+
+msgid "No eligible account has confirmed headroom. This session will stay stopped while quota is checked again. To continue with another model, use /model in the affected terminal."
+msgstr "Ни у одного подходящего аккаунта не подтверждён запас квоты. Сеанс останется остановленным, пока квота проверяется снова. Чтобы продолжить с другой моделью, используйте /model в соответствующем терминале."
 
 msgid "No emoji found"
 msgstr "Эмодзи не найдены"
@@ -9121,6 +9140,10 @@ msgstr "По адресу {pathname} ничего нет."
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "За последние 30 дней ещё ничего не опубликовано. Ваше место появится, как только синхронизируется использование с этой машины; публикация как <0>{handle}</0>."
+
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Nothing to switch to yet: this needs another {0} account with In rotation turned on."
+msgstr "Пока некуда переключаться: нужен другой аккаунт {0} с включённой ротацией."
 
 msgid "Notice"
 msgstr "Уведомление"
@@ -11188,6 +11211,9 @@ msgstr "Сбросить расположение"
 msgid "Reset terminal"
 msgstr "Сбросить терминал"
 
+msgid "Reset time unavailable. You can refresh quota or wait for the next check."
+msgstr "Время сброса неизвестно. Можно обновить квоту или дождаться следующей проверки."
+
 msgid "Reset to default"
 msgstr "Сбросить к значению по умолчанию"
 
@@ -13094,6 +13120,9 @@ msgstr "Компоненты Superset"
 msgid "Superset could not complete sign-in. Please try again."
 msgstr "Superset не смог завершить вход. Попробуйте ещё раз."
 
+msgid "Superset could not tell which account is signed in, so it left the current one in place."
+msgstr "Superset не смог определить, какой аккаунт вошёл в систему, и сохранил текущий."
+
 msgid "Superset CPU"
 msgstr "CPU Superset"
 
@@ -13219,7 +13248,6 @@ msgid "Switch at"
 msgstr "Переключать при"
 
 #. placeholder {0}: engineErrorCode(failure)
-#. placeholder {0}: failure.code
 #. placeholder {0}: rawErrorMessage(error)
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "Не удалось переключить ({0}). Прежний аккаунт остаётся активным."
@@ -13569,6 +13597,9 @@ msgstr "Текстовое поле"
 msgid "Thanks for reaching out"
 msgstr "Спасибо, что написали"
 
+msgid "That account is not one this host can see, so the previous account is still active."
+msgstr "Этот хост не видит аккаунт. Прежний аккаунт остаётся активным."
+
 msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
 msgstr "Это устройство в сети, но соединение установить не удалось — обычно дело в маршрутизации реле, а не в самом устройстве. Повторите, а если не помогает — перезапустите Superset на том устройстве."
 
@@ -13602,6 +13633,21 @@ msgstr "Движок аккаунтов не запущен на этом хос
 msgid "The account engine is not running on this host."
 msgstr "Движок аккаунтов не запущен на этом хосте."
 
+msgid "The account it tried to switch to has no saved identity, so the previous account is still active."
+msgstr "У целевого аккаунта нет сохранённых данных личности. Прежний аккаунт остаётся активным."
+
+msgid "The account it tried to switch to has no saved login. Sign in to it once and switching can use it."
+msgstr "У целевого аккаунта нет сохранённого входа. Войдите в него один раз, чтобы использовать переключение."
+
+msgid "The account it tried to switch to is not usable, so the previous account is still active."
+msgstr "Целевой аккаунт недоступен для использования. Прежний аккаунт остаётся активным."
+
+msgid "The account it was switching to changed while switching, so the switch was abandoned."
+msgstr "Целевой аккаунт изменился во время переключения. Переключение отменено."
+
+msgid "The active account could not be updated, so the previous account is still active."
+msgstr "Не удалось обновить активный аккаунт. Прежний аккаунт остаётся активным."
+
 msgid "the active organization"
 msgstr "активная организация"
 
@@ -13613,6 +13659,12 @@ msgstr "Агент ведёт задачу от тикета до diff. Чело
 
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "Агента, на котором должна была запускаться эта автоматизация, больше нет на его хосте — возможно, агенты хоста были сброшены или удалены. Выберите агента заново в настройках автоматизации."
+
+msgid "The agent's account folder could not be reached, so the previous account is still active."
+msgstr "Папка аккаунта агента недоступна. Прежний аккаунт остаётся активным."
+
+msgid "The agent's account folder is not in a usable state, so the previous account is still active."
+msgstr "Папка аккаунта агента непригодна для использования. Прежний аккаунт остаётся активным."
 
 msgid "The associated device isn't reachable right now"
 msgstr "Связанное устройство сейчас недоступно"
@@ -13758,6 +13810,12 @@ msgstr "Название организации или команды"
 msgid "The network connection changed"
 msgstr "Сетевое соединение изменилось"
 
+msgid "The new login could not be saved, so the previous account is still active."
+msgstr "Не удалось сохранить новый вход. Прежний аккаунт остаётся активным."
+
+msgid "The new login could not be verified, so the previous account was put back."
+msgstr "Не удалось проверить новый вход. Прежний аккаунт восстановлен."
+
 msgid "The overnight shift"
 msgstr "Ночная смена"
 
@@ -13825,8 +13883,17 @@ msgstr "Самоуправляемая софтверная фабрика"
 msgid "The server could not be found"
 msgstr "Не удалось найти сервер"
 
+msgid "The shared account service is unavailable. Try refreshing usage."
+msgstr "Общая служба аккаунтов недоступна. Попробуйте обновить данные использования."
+
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "Ссылка для входа была неполной. Попробуйте ещё раз."
+
+msgid "The signed-in account changed while switching, so the switch was abandoned."
+msgstr "Вошедший в систему аккаунт изменился во время переключения. Переключение отменено."
+
+msgid "The signed-in account could not be identified, so nothing was changed."
+msgstr "Не удалось определить вошедший аккаунт. Ничего не изменено."
 
 msgid "The site's certificate authority is not trusted"
 msgstr "Удостоверяющий центр сайта не является доверенным"
@@ -13851,6 +13918,12 @@ msgstr "Служба хоста Superset для {organization} неожидан�
 
 msgid "The Superset host service stopped unexpectedly ({cause}) and could not be restarted automatically."
 msgstr "Служба хоста Superset неожиданно остановилась ({cause}), и её не удалось перезапустить автоматически."
+
+msgid "The switch did not go through. The previous account is still active."
+msgstr "Переключение не выполнено. Прежний аккаунт остаётся активным."
+
+msgid "The switch stopped halfway. Open Usage to check which account is signed in."
+msgstr "Переключение прервано. Откройте раздел использования, чтобы проверить вошедший аккаунт."
 
 msgid "the target host"
 msgstr "целевой хост"
@@ -14939,6 +15012,9 @@ msgstr "Ждать настройки рабочей области перед �
 
 msgid "Waiting for Checks"
 msgstr "Ожидание проверок"
+
+msgid "Waiting for confirmed quota"
+msgstr "Ожидание подтверждённой квоты"
 
 msgid "Waiting for Review"
 msgstr "Ожидание ревью"

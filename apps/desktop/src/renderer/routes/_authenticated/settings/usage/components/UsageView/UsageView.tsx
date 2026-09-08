@@ -913,6 +913,7 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 								<AutoSwitchSettings
 									agentLabel={AGENT_LABELS[agent]}
 									settings={engineAgentSettings[agent]}
+									waiting={engineQuery.data?.status?.[agent]?.waiting}
 									engineAvailable={engineQuery.data?.engineAvailable ?? false}
 									platformSupported={
 										engineQuery.data?.platformSupported ?? false
@@ -929,6 +930,7 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 								    legitimately configured before the second account
 								    exists, so this says so rather than hiding the panel. */}
 								{!autoSwitchBlocked &&
+									!engineQuery.data?.status?.[agent]?.waiting &&
 									switchCandidateCount(agentAccounts) === 0 && (
 										<p className="px-2.5 text-[11px] text-muted-foreground">
 											<Trans>

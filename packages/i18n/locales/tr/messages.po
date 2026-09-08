@@ -1261,6 +1261,9 @@ msgctxt "account state"
 msgid "Active"
 msgstr "Etkin"
 
+msgid "Active — every newly launched session of this agent uses this account; ones already running keep the previous login until you restart them."
+msgstr "Etkin — bu aracının yeni oturumları bu hesabı kullanır; çalışan oturumlar yeniden başlatılana kadar önceki girişi korur."
+
 msgid "Active — every running and newly launched session of this agent uses this account."
 msgstr "Etkin — bu ajanın çalışan ve yeni başlatılan tüm oturumları bu hesabı kullanır."
 
@@ -1800,9 +1803,6 @@ msgstr "başka bir cihaz"
 
 msgid "Another Superset instance on this machine owns account switching. Change this there."
 msgstr "Bu makinedeki başka bir Superset örneği hesap değiştirmeyi yönetiyor. Bunu oradan değiştirin."
-
-msgid "Another Superset instance on this machine owns automatic switching. Change these settings there."
-msgstr "Bu makinedeki başka bir Superset örneği otomatik geçişi yönetiyor. Bu ayarları oradan değiştirin."
 
 msgid "Answered"
 msgstr "Yanıtlandı"
@@ -7819,6 +7819,9 @@ msgstr "Etkin yap"
 msgid "Make active — running sessions move to this account too."
 msgstr "Etkin yap — çalışan oturumlar da bu hesaba geçer."
 
+msgid "Make active — sessions launched from now on use this account."
+msgstr "Etkinleştir — bundan sonra açılan oturumlar bu hesabı kullanır."
+
 msgid "Make all panes equal size"
 msgstr "Tüm bölmeleri eşit boyuta getir"
 
@@ -8224,6 +8227,9 @@ msgstr "Daha fazla sayfa"
 msgid "More than half of merged changes are written by agents with zero human edits."
 msgstr "Birleştirilen değişikliklerin yarısından fazlası, hiç insan düzenlemesi olmadan ajanlar tarafından yazılır."
 
+msgid "More than one saved login matched that account, so Superset would not guess which to use."
+msgstr "Bu hesapla birden fazla kayıtlı giriş eşleşti. Superset hangisini kullanacağını tahmin etmedi."
+
 msgid "most developers"
 msgstr "çoğu geliştirici"
 
@@ -8415,6 +8421,9 @@ msgstr "Yeni sürümler ve ürün güncellemeleri."
 msgid "New session"
 msgstr "Yeni oturum"
 
+msgid "New sessions use it; sessions already running keep the previous login until you restart them."
+msgstr "Yeni oturumlar bunu kullanır; çalışan oturumlar yeniden başlatılana kadar önceki girişi korur."
+
 msgid "New stars"
 msgstr "Yeni yıldızlar"
 
@@ -8463,6 +8472,10 @@ msgstr "{name} içinde yeni çalışma alanı"
 msgid "New-user activation"
 msgstr "Yeni kullanıcı aktivasyonu"
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Newly launched {0} sessions use the active account; ones already running keep the previous login until you restart them."
+msgstr "Yeni {0} oturumları etkin hesabı kullanır; çalışan oturumlar yeniden başlatılana kadar önceki girişi korur."
+
 msgid "News & Updates"
 msgstr "Haberler ve güncellemeler"
 
@@ -8480,6 +8493,9 @@ msgstr "Sonraki yorum"
 
 msgid "Next match"
 msgstr "Sonraki eşleşme"
+
+msgid "Next reset: {resetTime}"
+msgstr "Sonraki sıfırlama: {resetTime}"
 
 #. placeholder {0}: formatDateTimeInTimezone( new Date(automation.nextRunAt), automation.timezone ?? "UTC", )
 msgid "Next run {0}"
@@ -8663,6 +8679,9 @@ msgstr "Henüz cihaz yok"
 
 msgid "No downloads yet"
 msgstr "Henüz indirme yok"
+
+msgid "No eligible account has confirmed headroom. This session will stay stopped while quota is checked again. To continue with another model, use /model in the affected terminal."
+msgstr "Uygun hesapların hiçbirinde kullanılabilir kota doğrulanmadı. Kota yeniden kontrol edilirken bu oturum durdurulmuş kalacak. Başka bir modelle devam etmek için ilgili terminalde /model kullanın."
 
 msgid "No emoji found"
 msgstr "Emoji bulunamadı"
@@ -9121,6 +9140,10 @@ msgstr "{pathname} yolunda bir şey yok."
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Son 30 günde henüz hiçbir şey yayınlanmadı. Bu makinedeki kullanım eşitlendiğinde sıralamanız görünür; <0>{handle}</0> olarak yayınlanıyor."
+
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Nothing to switch to yet: this needs another {0} account with In rotation turned on."
+msgstr "Henüz geçilecek hesap yok: rotasyonu açık başka bir {0} hesabı gerekiyor."
 
 msgid "Notice"
 msgstr "Bildirim"
@@ -11188,6 +11211,9 @@ msgstr "Konumu sıfırla"
 msgid "Reset terminal"
 msgstr "Terminali sıfırla"
 
+msgid "Reset time unavailable. You can refresh quota or wait for the next check."
+msgstr "Sıfırlama zamanı bilinmiyor. Kotayı yenileyebilir veya sonraki kontrolü bekleyebilirsiniz."
+
 msgid "Reset to default"
 msgstr "Varsayılana sıfırla"
 
@@ -13094,6 +13120,9 @@ msgstr "Superset Bileşenleri"
 msgid "Superset could not complete sign-in. Please try again."
 msgstr "Superset oturum açmayı tamamlayamadı. Lütfen yeniden deneyin."
 
+msgid "Superset could not tell which account is signed in, so it left the current one in place."
+msgstr "Superset giriş yapılan hesabı belirleyemedi ve mevcut hesabı korudu."
+
 msgid "Superset CPU"
 msgstr "Superset CPU"
 
@@ -13219,7 +13248,6 @@ msgid "Switch at"
 msgstr "Geçiş eşiği"
 
 #. placeholder {0}: engineErrorCode(failure)
-#. placeholder {0}: failure.code
 #. placeholder {0}: rawErrorMessage(error)
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "Geçiş başarısız ({0}). Önceki hesap hâlâ etkin."
@@ -13569,6 +13597,9 @@ msgstr "Metin alanı"
 msgid "Thanks for reaching out"
 msgstr "Bize ulaştığınız için teşekkürler"
 
+msgid "That account is not one this host can see, so the previous account is still active."
+msgstr "Bu ana makine hesabı göremiyor. Önceki hesap etkin kalıyor."
+
 msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
 msgstr "O cihaz çevrimiçi ancak bağlantı kurulamadı — bu genellikle cihazdan değil, röle yönlendirmesinden kaynaklanır. Yeniden deneyin; sorun sürerse o cihazda Superset'i yeniden başlatın."
 
@@ -13602,6 +13633,21 @@ msgstr "Hesap motoru bu host üzerinde çalışmıyor, bu yüzden {agentLabel} h
 msgid "The account engine is not running on this host."
 msgstr "Hesap motoru bu host üzerinde çalışmıyor."
 
+msgid "The account it tried to switch to has no saved identity, so the previous account is still active."
+msgstr "Hedef hesabın kayıtlı kimliği yok. Önceki hesap etkin kalıyor."
+
+msgid "The account it tried to switch to has no saved login. Sign in to it once and switching can use it."
+msgstr "Hedef hesabın kayıtlı girişi yok. Geçişte kullanabilmek için bir kez giriş yapın."
+
+msgid "The account it tried to switch to is not usable, so the previous account is still active."
+msgstr "Hedef hesap kullanılamıyor. Önceki hesap etkin kalıyor."
+
+msgid "The account it was switching to changed while switching, so the switch was abandoned."
+msgstr "Hedef hesap geçiş sırasında değişti. Geçiş iptal edildi."
+
+msgid "The active account could not be updated, so the previous account is still active."
+msgstr "Etkin hesap güncellenemedi. Önceki hesap etkin kalıyor."
+
 msgid "the active organization"
 msgstr "etkin kuruluş"
 
@@ -13613,6 +13659,12 @@ msgstr "Ajan, bir görevi biletten farka kadar sahiplenir. İnsan tuş vuruşlar
 
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "Bu otomasyonun çalıştırılacağı ajan, host'unda artık yok — host'un ajanları sıfırlanmış veya kaldırılmış olabilir. Otomasyonun ayarlarından yeni bir ajan seçin."
+
+msgid "The agent's account folder could not be reached, so the previous account is still active."
+msgstr "Aracının hesap klasörüne erişilemiyor. Önceki hesap etkin kalıyor."
+
+msgid "The agent's account folder is not in a usable state, so the previous account is still active."
+msgstr "Aracının hesap klasörü kullanılamıyor. Önceki hesap etkin kalıyor."
 
 msgid "The associated device isn't reachable right now"
 msgstr "İlgili cihaza şu anda erişilemiyor"
@@ -13758,6 +13810,12 @@ msgstr "Kuruluşunuzun veya takımınızın adı"
 msgid "The network connection changed"
 msgstr "Ağ bağlantısı değişti"
 
+msgid "The new login could not be saved, so the previous account is still active."
+msgstr "Yeni giriş kaydedilemedi. Önceki hesap etkin kalıyor."
+
+msgid "The new login could not be verified, so the previous account was put back."
+msgstr "Yeni giriş doğrulanamadı. Önceki hesap geri yüklendi."
+
 msgid "The overnight shift"
 msgstr "Gece vardiyası"
 
@@ -13825,8 +13883,17 @@ msgstr "Kendi kendini süren yazılım fabrikası"
 msgid "The server could not be found"
 msgstr "Sunucu bulunamadı"
 
+msgid "The shared account service is unavailable. Try refreshing usage."
+msgstr "Paylaşılan hesap hizmeti kullanılamıyor. Kullanımı yenilemeyi deneyin."
+
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "Oturum açma bağlantısı eksikti. Lütfen yeniden deneyin."
+
+msgid "The signed-in account changed while switching, so the switch was abandoned."
+msgstr "Giriş yapılan hesap geçiş sırasında değişti. Geçiş iptal edildi."
+
+msgid "The signed-in account could not be identified, so nothing was changed."
+msgstr "Giriş yapılan hesap belirlenemedi. Hiçbir şey değiştirilmedi."
 
 msgid "The site's certificate authority is not trusted"
 msgstr "Sitenin sertifika yetkilisine güvenilmiyor"
@@ -13851,6 +13918,12 @@ msgstr "{organization} için Superset host hizmeti beklenmedik şekilde durdu ({
 
 msgid "The Superset host service stopped unexpectedly ({cause}) and could not be restarted automatically."
 msgstr "Superset host hizmeti beklenmedik şekilde durdu ({cause}) ve otomatik olarak yeniden başlatılamadı."
+
+msgid "The switch did not go through. The previous account is still active."
+msgstr "Geçiş tamamlanamadı. Önceki hesap etkin kalıyor."
+
+msgid "The switch stopped halfway. Open Usage to check which account is signed in."
+msgstr "Geçiş yarıda durdu. Giriş yapılan hesabı kontrol etmek için Kullanım bölümünü açın."
 
 msgid "the target host"
 msgstr "hedef host"
@@ -14939,6 +15012,9 @@ msgstr "Ajanları başlatmadan önce çalışma alanı kurulumunu bekle"
 
 msgid "Waiting for Checks"
 msgstr "Kontroller bekleniyor"
+
+msgid "Waiting for confirmed quota"
+msgstr "Doğrulanmış kota bekleniyor"
 
 msgid "Waiting for Review"
 msgstr "İnceleme bekleniyor"

@@ -1261,6 +1261,9 @@ msgctxt "account state"
 msgid "Active"
 msgstr "Đang hoạt động"
 
+msgid "Active — every newly launched session of this agent uses this account; ones already running keep the previous login until you restart them."
+msgstr "Đang hoạt động — các phiên mới của tác nhân này dùng tài khoản này; phiên đang chạy giữ đăng nhập cũ cho đến khi khởi động lại."
+
 msgid "Active — every running and newly launched session of this agent uses this account."
 msgstr "Đang hoạt động — mọi phiên đang chạy và mới khởi chạy của agent này đều dùng tài khoản này."
 
@@ -1800,9 +1803,6 @@ msgstr "thiết bị khác"
 
 msgid "Another Superset instance on this machine owns account switching. Change this there."
 msgstr "Một phiên bản Superset khác trên máy này đang quản lý việc đổi tài khoản. Hãy thay đổi ở đó."
-
-msgid "Another Superset instance on this machine owns automatic switching. Change these settings there."
-msgstr "Một phiên bản Superset khác trên máy này đang quản lý việc chuyển tự động. Hãy đổi các cài đặt này ở đó."
 
 msgid "Answered"
 msgstr "Đã trả lời"
@@ -7819,6 +7819,9 @@ msgstr "Kích hoạt"
 msgid "Make active — running sessions move to this account too."
 msgstr "Kích hoạt — các phiên đang chạy cũng chuyển sang tài khoản này."
 
+msgid "Make active — sessions launched from now on use this account."
+msgstr "Đặt làm hoạt động — các phiên bắt đầu từ bây giờ dùng tài khoản này."
+
 msgid "Make all panes equal size"
 msgstr "Làm mọi khung bằng nhau"
 
@@ -8224,6 +8227,9 @@ msgstr "Thêm trang"
 msgid "More than half of merged changes are written by agents with zero human edits."
 msgstr "Hơn một nửa thay đổi được merge do agent viết mà không có chỉnh sửa của con người."
 
+msgid "More than one saved login matched that account, so Superset would not guess which to use."
+msgstr "Có nhiều thông tin đăng nhập đã lưu khớp tài khoản này. Superset không chọn ngẫu nhiên."
+
 msgid "most developers"
 msgstr "phần lớn lập trình viên"
 
@@ -8415,6 +8421,9 @@ msgstr "Các bản phát hành mới và cập nhật sản phẩm."
 msgid "New session"
 msgstr "Phiên mới"
 
+msgid "New sessions use it; sessions already running keep the previous login until you restart them."
+msgstr "Các phiên mới dùng tài khoản này; phiên đang chạy giữ đăng nhập cũ cho đến khi khởi động lại."
+
 msgid "New stars"
 msgstr "Star mới"
 
@@ -8463,6 +8472,10 @@ msgstr "Workspace mới trong {name}"
 msgid "New-user activation"
 msgstr "Kích hoạt người dùng mới"
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Newly launched {0} sessions use the active account; ones already running keep the previous login until you restart them."
+msgstr "Các phiên {0} mới dùng tài khoản đang hoạt động; phiên đang chạy giữ đăng nhập cũ cho đến khi khởi động lại."
+
 msgid "News & Updates"
 msgstr "Tin tức & Cập nhật"
 
@@ -8480,6 +8493,9 @@ msgstr "Bình luận tiếp theo"
 
 msgid "Next match"
 msgstr "Kết quả kế tiếp"
+
+msgid "Next reset: {resetTime}"
+msgstr "Lần đặt lại tiếp theo: {resetTime}"
 
 #. placeholder {0}: formatDateTimeInTimezone( new Date(automation.nextRunAt), automation.timezone ?? "UTC", )
 msgid "Next run {0}"
@@ -8663,6 +8679,9 @@ msgstr "Chưa có thiết bị nào"
 
 msgid "No downloads yet"
 msgstr "Chưa có lượt tải xuống nào"
+
+msgid "No eligible account has confirmed headroom. This session will stay stopped while quota is checked again. To continue with another model, use /model in the affected terminal."
+msgstr "Chưa có tài khoản đủ điều kiện nào được xác nhận còn hạn mức. Phiên này sẽ tiếp tục dừng trong khi hạn mức được kiểm tra lại. Để tiếp tục với mô hình khác, hãy dùng /model trong cửa sổ dòng lệnh tương ứng."
 
 msgid "No emoji found"
 msgstr "Không tìm thấy emoji"
@@ -9121,6 +9140,10 @@ msgstr "Không có gì ở {pathname}."
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Chưa có gì được công khai trong 30 ngày qua. Thứ hạng của bạn sẽ xuất hiện khi dữ liệu sử dụng từ máy này đồng bộ, công khai dưới tên <0>{handle}</0>."
+
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Nothing to switch to yet: this needs another {0} account with In rotation turned on."
+msgstr "Chưa có tài khoản để chuyển: cần tài khoản {0} khác đã bật luân phiên."
 
 msgid "Notice"
 msgstr "Thông báo"
@@ -11188,6 +11211,9 @@ msgstr "Đặt lại vị trí"
 msgid "Reset terminal"
 msgstr "Đặt lại terminal"
 
+msgid "Reset time unavailable. You can refresh quota or wait for the next check."
+msgstr "Chưa có thời gian đặt lại. Bạn có thể làm mới hạn mức hoặc chờ lần kiểm tra tiếp theo."
+
 msgid "Reset to default"
 msgstr "Đặt lại về mặc định"
 
@@ -13094,6 +13120,9 @@ msgstr "Component của Superset"
 msgid "Superset could not complete sign-in. Please try again."
 msgstr "Superset không hoàn tất được việc đăng nhập. Vui lòng thử lại."
 
+msgid "Superset could not tell which account is signed in, so it left the current one in place."
+msgstr "Superset không xác định được tài khoản đã đăng nhập nên giữ nguyên tài khoản hiện tại."
+
 msgid "Superset CPU"
 msgstr "CPU của Superset"
 
@@ -13219,7 +13248,6 @@ msgid "Switch at"
 msgstr "Đổi khi đạt"
 
 #. placeholder {0}: engineErrorCode(failure)
-#. placeholder {0}: failure.code
 #. placeholder {0}: rawErrorMessage(error)
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "Đổi tài khoản thất bại ({0}). Tài khoản trước đó vẫn đang hoạt động."
@@ -13569,6 +13597,9 @@ msgstr "Textarea"
 msgid "Thanks for reaching out"
 msgstr "Cảm ơn bạn đã liên hệ"
 
+msgid "That account is not one this host can see, so the previous account is still active."
+msgstr "Máy chủ này không thấy tài khoản đó. Tài khoản trước vẫn hoạt động."
+
 msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
 msgstr "Thiết bị đó đang trực tuyến nhưng không thiết lập được kết nối — thường là do định tuyến relay chứ không phải bản thân thiết bị. Hãy thử lại, và nếu vẫn vậy thì khởi động lại Superset trên thiết bị đó."
 
@@ -13602,6 +13633,21 @@ msgstr "Engine tài khoản không chạy trên host này, nên tài khoản {ag
 msgid "The account engine is not running on this host."
 msgstr "Engine tài khoản không chạy trên host này."
 
+msgid "The account it tried to switch to has no saved identity, so the previous account is still active."
+msgstr "Tài khoản đích chưa có danh tính được lưu. Tài khoản trước vẫn hoạt động."
+
+msgid "The account it tried to switch to has no saved login. Sign in to it once and switching can use it."
+msgstr "Tài khoản đích chưa có thông tin đăng nhập được lưu. Hãy đăng nhập một lần để có thể chuyển sang."
+
+msgid "The account it tried to switch to is not usable, so the previous account is still active."
+msgstr "Tài khoản đích không dùng được. Tài khoản trước vẫn hoạt động."
+
+msgid "The account it was switching to changed while switching, so the switch was abandoned."
+msgstr "Tài khoản đích thay đổi trong lúc chuyển. Thao tác chuyển đã bị hủy."
+
+msgid "The active account could not be updated, so the previous account is still active."
+msgstr "Không cập nhật được tài khoản đang hoạt động. Tài khoản trước vẫn hoạt động."
+
 msgid "the active organization"
 msgstr "tổ chức đang hoạt động"
 
@@ -13613,6 +13659,12 @@ msgstr "Agent làm chủ một tác vụ từ ticket đến diff. Con người r
 
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "Agent mà tự động hóa này được đặt để chạy không còn tồn tại trên host của nó — agent của host có thể đã bị đặt lại hoặc gỡ bỏ. Hãy chọn lại agent trong cài đặt của tự động hóa."
+
+msgid "The agent's account folder could not be reached, so the previous account is still active."
+msgstr "Không truy cập được thư mục tài khoản của tác nhân. Tài khoản trước vẫn hoạt động."
+
+msgid "The agent's account folder is not in a usable state, so the previous account is still active."
+msgstr "Thư mục tài khoản của tác nhân không dùng được. Tài khoản trước vẫn hoạt động."
 
 msgid "The associated device isn't reachable right now"
 msgstr "Hiện không kết nối được tới thiết bị liên quan"
@@ -13758,6 +13810,12 @@ msgstr "Tên tổ chức hoặc nhóm của bạn"
 msgid "The network connection changed"
 msgstr "Kết nối mạng đã thay đổi"
 
+msgid "The new login could not be saved, so the previous account is still active."
+msgstr "Không lưu được đăng nhập mới. Tài khoản trước vẫn hoạt động."
+
+msgid "The new login could not be verified, so the previous account was put back."
+msgstr "Không xác minh được đăng nhập mới. Tài khoản trước đã được khôi phục."
+
 msgid "The overnight shift"
 msgstr "Ca đêm"
 
@@ -13825,8 +13883,17 @@ msgstr "Nhà máy phần mềm tự vận hành"
 msgid "The server could not be found"
 msgstr "Không tìm thấy server"
 
+msgid "The shared account service is unavailable. Try refreshing usage."
+msgstr "Dịch vụ tài khoản dùng chung không khả dụng. Hãy thử làm mới dữ liệu sử dụng."
+
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "Liên kết đăng nhập không đầy đủ. Vui lòng thử lại."
+
+msgid "The signed-in account changed while switching, so the switch was abandoned."
+msgstr "Tài khoản đã đăng nhập thay đổi trong lúc chuyển. Thao tác chuyển đã bị hủy."
+
+msgid "The signed-in account could not be identified, so nothing was changed."
+msgstr "Không xác định được tài khoản đã đăng nhập. Không có thay đổi nào."
 
 msgid "The site's certificate authority is not trusted"
 msgstr "Tổ chức cấp chứng chỉ của trang không được tin cậy"
@@ -13851,6 +13918,12 @@ msgstr "Dịch vụ host Superset cho {organization} đã dừng bất ngờ ({c
 
 msgid "The Superset host service stopped unexpectedly ({cause}) and could not be restarted automatically."
 msgstr "Dịch vụ host Superset đã dừng bất ngờ ({cause}) và không tự khởi động lại được."
+
+msgid "The switch did not go through. The previous account is still active."
+msgstr "Không chuyển được tài khoản. Tài khoản trước vẫn hoạt động."
+
+msgid "The switch stopped halfway. Open Usage to check which account is signed in."
+msgstr "Thao tác chuyển bị gián đoạn. Mở mục Sử dụng để kiểm tra tài khoản đã đăng nhập."
 
 msgid "the target host"
 msgstr "host đích"
@@ -14939,6 +15012,9 @@ msgstr "Chờ setup workspace xong rồi mới khởi động agent"
 
 msgid "Waiting for Checks"
 msgstr "Đang chờ check"
+
+msgid "Waiting for confirmed quota"
+msgstr "Đang chờ hạn mức được xác nhận"
 
 msgid "Waiting for Review"
 msgstr "Đang chờ review"

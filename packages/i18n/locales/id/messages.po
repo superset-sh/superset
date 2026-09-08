@@ -1261,6 +1261,9 @@ msgctxt "account state"
 msgid "Active"
 msgstr "Aktif"
 
+msgid "Active — every newly launched session of this agent uses this account; ones already running keep the previous login until you restart them."
+msgstr "Aktif — sesi baru agen ini menggunakan akun ini; sesi yang berjalan tetap memakai login sebelumnya sampai dimulai ulang."
+
 msgid "Active — every running and newly launched session of this agent uses this account."
 msgstr "Aktif — semua sesi agen ini yang berjalan dan yang baru dijalankan memakai akun ini."
 
@@ -1800,9 +1803,6 @@ msgstr "perangkat lain"
 
 msgid "Another Superset instance on this machine owns account switching. Change this there."
 msgstr "Instance Superset lain di mesin ini yang mengelola pergantian akun. Ubah di sana."
-
-msgid "Another Superset instance on this machine owns automatic switching. Change these settings there."
-msgstr "Instance Superset lain di mesin ini yang mengelola pergantian otomatis. Ubah pengaturan ini di sana."
 
 msgid "Answered"
 msgstr "Dijawab"
@@ -7819,6 +7819,9 @@ msgstr "Jadikan aktif"
 msgid "Make active — running sessions move to this account too."
 msgstr "Jadikan aktif — sesi yang sedang berjalan juga pindah ke akun ini."
 
+msgid "Make active — sessions launched from now on use this account."
+msgstr "Aktifkan — sesi yang dimulai setelah ini menggunakan akun ini."
+
 msgid "Make all panes equal size"
 msgstr "Samakan ukuran semua panel"
 
@@ -8224,6 +8227,9 @@ msgstr "Halaman lainnya"
 msgid "More than half of merged changes are written by agents with zero human edits."
 msgstr "Lebih dari separuh perubahan yang di-merge ditulis agen tanpa suntingan manusia."
 
+msgid "More than one saved login matched that account, so Superset would not guess which to use."
+msgstr "Beberapa login tersimpan cocok dengan akun tersebut. Superset tidak menebak mana yang digunakan."
+
 msgid "most developers"
 msgstr "sebagian besar developer"
 
@@ -8415,6 +8421,9 @@ msgstr "Rilis baru dan pembaruan produk."
 msgid "New session"
 msgstr "Sesi baru"
 
+msgid "New sessions use it; sessions already running keep the previous login until you restart them."
+msgstr "Sesi baru menggunakannya; sesi yang berjalan tetap memakai login sebelumnya sampai dimulai ulang."
+
 msgid "New stars"
 msgstr "Star baru"
 
@@ -8463,6 +8472,10 @@ msgstr "Workspace baru di {name}"
 msgid "New-user activation"
 msgstr "Aktivasi pengguna baru"
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Newly launched {0} sessions use the active account; ones already running keep the previous login until you restart them."
+msgstr "Sesi {0} baru menggunakan akun aktif; sesi yang berjalan tetap memakai login sebelumnya sampai dimulai ulang."
+
 msgid "News & Updates"
 msgstr "Berita & Pembaruan"
 
@@ -8480,6 +8493,9 @@ msgstr "Komentar berikutnya"
 
 msgid "Next match"
 msgstr "Kecocokan berikutnya"
+
+msgid "Next reset: {resetTime}"
+msgstr "Reset berikutnya: {resetTime}"
 
 #. placeholder {0}: formatDateTimeInTimezone( new Date(automation.nextRunAt), automation.timezone ?? "UTC", )
 msgid "Next run {0}"
@@ -8663,6 +8679,9 @@ msgstr "Belum ada perangkat"
 
 msgid "No downloads yet"
 msgstr "Belum ada unduhan"
+
+msgid "No eligible account has confirmed headroom. This session will stay stopped while quota is checked again. To continue with another model, use /model in the affected terminal."
+msgstr "Belum ada akun yang memenuhi syarat dengan sisa kuota terkonfirmasi. Sesi ini akan tetap berhenti selama kuota diperiksa kembali. Untuk melanjutkan dengan model lain, gunakan /model di terminal terkait."
 
 msgid "No emoji found"
 msgstr "Emoji tidak ditemukan"
@@ -9121,6 +9140,10 @@ msgstr "Tidak ada apa pun di {pathname}."
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Belum ada yang dipublikasikan dalam 30 hari terakhir. Peringkat Anda muncul setelah penggunaan dari mesin ini tersinkron, dipublikasikan sebagai <0>{handle}</0>."
+
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Nothing to switch to yet: this needs another {0} account with In rotation turned on."
+msgstr "Belum ada akun tujuan: diperlukan akun {0} lain dengan rotasi diaktifkan."
 
 msgid "Notice"
 msgstr "Pemberitahuan"
@@ -11188,6 +11211,9 @@ msgstr "Reset lokasi"
 msgid "Reset terminal"
 msgstr "Reset terminal"
 
+msgid "Reset time unavailable. You can refresh quota or wait for the next check."
+msgstr "Waktu reset tidak tersedia. Anda dapat menyegarkan kuota atau menunggu pemeriksaan berikutnya."
+
 msgid "Reset to default"
 msgstr "Reset ke bawaan"
 
@@ -13094,6 +13120,9 @@ msgstr "Komponen Superset"
 msgid "Superset could not complete sign-in. Please try again."
 msgstr "Superset tidak bisa menyelesaikan proses masuk. Silakan coba lagi."
 
+msgid "Superset could not tell which account is signed in, so it left the current one in place."
+msgstr "Superset tidak dapat mengenali akun yang masuk dan mempertahankan akun saat ini."
+
 msgid "Superset CPU"
 msgstr "CPU Superset"
 
@@ -13219,7 +13248,6 @@ msgid "Switch at"
 msgstr "Ganti pada"
 
 #. placeholder {0}: engineErrorCode(failure)
-#. placeholder {0}: failure.code
 #. placeholder {0}: rawErrorMessage(error)
 msgid "Switch failed ({0}). The previous account is still active."
 msgstr "Pergantian gagal ({0}). Akun sebelumnya tetap aktif."
@@ -13569,6 +13597,9 @@ msgstr "Textarea"
 msgid "Thanks for reaching out"
 msgstr "Terima kasih sudah menghubungi"
 
+msgid "That account is not one this host can see, so the previous account is still active."
+msgstr "Host ini tidak dapat melihat akun tersebut. Akun sebelumnya tetap aktif."
+
 msgid "That device is online but the connection couldn't be established — usually relay routing rather than the device itself. Retry, and if it persists restart Superset on that device."
 msgstr "Perangkat itu online tapi koneksinya tidak bisa dibangun — biasanya soal perutean relay, bukan perangkatnya. Coba lagi, dan kalau terus terjadi mulai ulang Superset di perangkat itu."
 
@@ -13602,6 +13633,21 @@ msgstr "Engine akun tidak berjalan di host ini, jadi akun {agentLabel} tidak bis
 msgid "The account engine is not running on this host."
 msgstr "Engine akun tidak berjalan di host ini."
 
+msgid "The account it tried to switch to has no saved identity, so the previous account is still active."
+msgstr "Akun tujuan tidak memiliki identitas tersimpan. Akun sebelumnya tetap aktif."
+
+msgid "The account it tried to switch to has no saved login. Sign in to it once and switching can use it."
+msgstr "Akun tujuan tidak memiliki login tersimpan. Masuk sekali agar akun dapat digunakan untuk peralihan."
+
+msgid "The account it tried to switch to is not usable, so the previous account is still active."
+msgstr "Akun tujuan tidak dapat digunakan. Akun sebelumnya tetap aktif."
+
+msgid "The account it was switching to changed while switching, so the switch was abandoned."
+msgstr "Akun tujuan berubah selama peralihan. Peralihan dibatalkan."
+
+msgid "The active account could not be updated, so the previous account is still active."
+msgstr "Akun aktif tidak dapat diperbarui. Akun sebelumnya tetap aktif."
+
 msgid "the active organization"
 msgstr "organisasi aktif"
 
@@ -13613,6 +13659,12 @@ msgstr "Agen memegang tugas dari tiket sampai diff. Manusia mereview hasilnya, b
 
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "Agen yang disetel untuk menjalankan otomatisasi ini sudah tidak ada di host-nya — agen host itu mungkin telah direset atau dihapus. Pilih ulang agen di pengaturan otomatisasi."
+
+msgid "The agent's account folder could not be reached, so the previous account is still active."
+msgstr "Folder akun agen tidak dapat diakses. Akun sebelumnya tetap aktif."
+
+msgid "The agent's account folder is not in a usable state, so the previous account is still active."
+msgstr "Folder akun agen tidak dapat digunakan. Akun sebelumnya tetap aktif."
 
 msgid "The associated device isn't reachable right now"
 msgstr "Perangkat terkait tidak bisa dijangkau saat ini"
@@ -13758,6 +13810,12 @@ msgstr "Nama organisasi atau tim Anda"
 msgid "The network connection changed"
 msgstr "Koneksi jaringan berubah"
 
+msgid "The new login could not be saved, so the previous account is still active."
+msgstr "Login baru tidak dapat disimpan. Akun sebelumnya tetap aktif."
+
+msgid "The new login could not be verified, so the previous account was put back."
+msgstr "Login baru tidak dapat diverifikasi. Akun sebelumnya dipulihkan."
+
 msgid "The overnight shift"
 msgstr "Shift malam"
 
@@ -13825,8 +13883,17 @@ msgstr "Pabrik perangkat lunak yang menyetir sendiri"
 msgid "The server could not be found"
 msgstr "Servernya tidak ditemukan"
 
+msgid "The shared account service is unavailable. Try refreshing usage."
+msgstr "Layanan akun bersama tidak tersedia. Coba segarkan penggunaan."
+
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "Tautan masuk tidak lengkap. Silakan coba lagi."
+
+msgid "The signed-in account changed while switching, so the switch was abandoned."
+msgstr "Akun yang masuk berubah selama peralihan. Peralihan dibatalkan."
+
+msgid "The signed-in account could not be identified, so nothing was changed."
+msgstr "Akun yang masuk tidak dapat dikenali. Tidak ada yang diubah."
 
 msgid "The site's certificate authority is not trusted"
 msgstr "Certificate authority situs ini tidak tepercaya"
@@ -13851,6 +13918,12 @@ msgstr "Layanan host Superset untuk {organization} berhenti tak terduga ({cause}
 
 msgid "The Superset host service stopped unexpectedly ({cause}) and could not be restarted automatically."
 msgstr "Layanan host Superset berhenti tak terduga ({cause}) dan tidak bisa dimulai ulang otomatis."
+
+msgid "The switch did not go through. The previous account is still active."
+msgstr "Peralihan tidak berhasil. Akun sebelumnya tetap aktif."
+
+msgid "The switch stopped halfway. Open Usage to check which account is signed in."
+msgstr "Peralihan terhenti. Buka Penggunaan untuk memeriksa akun yang masuk."
 
 msgid "the target host"
 msgstr "host tujuan"
@@ -14939,6 +15012,9 @@ msgstr "Tunggu setup workspace sebelum menjalankan agen"
 
 msgid "Waiting for Checks"
 msgstr "Menunggu Check"
+
+msgid "Waiting for confirmed quota"
+msgstr "Menunggu kuota terkonfirmasi"
 
 msgid "Waiting for Review"
 msgstr "Menunggu Review"

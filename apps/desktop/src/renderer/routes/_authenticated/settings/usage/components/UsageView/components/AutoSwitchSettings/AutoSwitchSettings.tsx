@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { formatDateTime } from "@superset/i18n/format";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import {
@@ -43,6 +44,7 @@ interface AutoSwitchSettingsProps {
 	/** "Claude Code" / "Codex", as the account sections title them. */
 	agentLabel: string;
 	settings: AccountEngineAgentSettings;
+	waiting?: { model: string | null; resetAt: number | null } | null;
 	/** False in a cloud sandbox and on hosts running no engine (KTD1). */
 	engineAvailable: boolean;
 	/** False on win32 (KTD13). */
@@ -66,6 +68,7 @@ interface AutoSwitchSettingsProps {
 export function AutoSwitchSettings({
 	agentLabel,
 	settings,
+	waiting,
 	engineAvailable,
 	platformSupported,
 	lockOwner,
@@ -144,12 +147,13 @@ export function AutoSwitchSettings({
 		</Trans>
 	) : !lockOwner ? (
 		<Trans>
-			Another Superset instance on this machine owns automatic switching. Change
-			these settings there.
+			The shared account service is unavailable. Try refreshing usage.
 		</Trans>
 	) : null;
 
 	const controlsDisabled = disabled || pending;
+	const resetTime =
+		waiting?.resetAt != null ? formatDateTime(waiting.resetAt) : null;
 
 	return (
 		<div className="rounded-lg border bg-card/40 p-2.5">
@@ -182,6 +186,31 @@ export function AutoSwitchSettings({
 							before this one runs out.
 						</Trans>
 					</p>
+					{settings.enabled && waiting && (
+						<output className="mt-2 block rounded-md border p-2 text-[11px]">
+							<span className="block font-medium">
+								<Trans>Waiting for confirmed quota</Trans>
+								{waiting.model && <> ({waiting.model})</>}
+							</span>
+							<span className="block mt-1 text-muted-foreground">
+								<Trans>
+									No eligible account has confirmed headroom. This session will
+									stay stopped while quota is checked again. To continue with
+									another model, use /model in the affected terminal.
+								</Trans>
+							</span>
+							<span className="block mt-1 text-muted-foreground">
+								{resetTime ? (
+									<Trans>Next reset: {resetTime}</Trans>
+								) : (
+									<Trans>
+										Reset time unavailable. You can refresh quota or wait for
+										the next check.
+									</Trans>
+								)}
+							</span>
+						</output>
+					)}
 					{settings.enabled && (
 						<div className="mt-2.5 grid gap-3 border-t pt-2.5 md:grid-cols-2">
 							<div className="flex flex-col gap-1">
