@@ -14003,9 +14003,6 @@ msgstr "Agen terbaik akan berganti.<0/>Alur kerja Anda tidak perlu."
 msgid "The Codex sign-in"
 msgstr "Sesi masuk Codex"
 
-msgid "The connection dropped."
-msgstr "Koneksi terputus."
-
 msgid "The connection timed out"
 msgstr "Koneksinya kehabisan waktu"
 
@@ -14189,9 +14186,6 @@ msgstr "Folder repositori itu sendiri tetap dipertahankan."
 
 msgid "The request failed."
 msgstr "Permintaan gagal."
-
-msgid "The request timed out."
-msgstr "Permintaan kehabisan waktu."
 
 msgid "The response: agents review agents, and humans sample instead of reading everything. Trust is earned statistically, not per diff."
 msgstr "Jawabannya: agen mereview agen, dan manusia mengambil sampel alih-alih membaca semuanya. Kepercayaan dibangun secara statistik, bukan per diff."

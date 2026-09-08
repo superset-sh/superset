@@ -14003,9 +14003,6 @@ msgstr "최고의 에이전트는 바뀝니다.<0/>워크플로는 그럴 필요
 msgid "The Codex sign-in"
 msgstr "Codex 로그인"
 
-msgid "The connection dropped."
-msgstr "연결이 끊어졌습니다."
-
 msgid "The connection timed out"
 msgstr "연결 시간이 초과되었습니다"
 
@@ -14189,9 +14186,6 @@ msgstr "저장소 폴더 자체는 유지됩니다."
 
 msgid "The request failed."
 msgstr "요청이 실패했습니다."
-
-msgid "The request timed out."
-msgstr "요청 시간이 초과되었습니다."
 
 msgid "The response: agents review agents, and humans sample instead of reading everything. Trust is earned statistically, not per diff."
 msgstr "그 대응은 이렇습니다. 에이전트가 에이전트를 리뷰하고, 사람은 전부 읽는 대신 표본만 확인합니다. 신뢰는 차이 하나하나가 아니라 통계적으로 쌓입니다."

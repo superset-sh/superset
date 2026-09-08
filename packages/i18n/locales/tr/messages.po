@@ -14003,9 +14003,6 @@ msgstr "En iyi ajan değişecek.<0/>İş akışınız değişmemeli."
 msgid "The Codex sign-in"
 msgstr "Codex oturumu"
 
-msgid "The connection dropped."
-msgstr "Bağlantı koptu."
-
 msgid "The connection timed out"
 msgstr "Bağlantı zaman aşımına uğradı"
 
@@ -14189,9 +14186,6 @@ msgstr "Depo klasörünün kendisi korunur."
 
 msgid "The request failed."
 msgstr "İstek başarısız oldu."
-
-msgid "The request timed out."
-msgstr "İstek zaman aşımına uğradı."
 
 msgid "The response: agents review agents, and humans sample instead of reading everything. Trust is earned statistically, not per diff."
 msgstr "Yanıt şu: ajanlar ajanları inceler, insanlar da her şeyi okumak yerine örnekleme yapar. Güven fark fark değil, istatistiksel olarak kazanılır."

@@ -14003,9 +14003,6 @@ msgstr "Agent tốt nhất sẽ thay đổi.<0/>Quy trình của bạn thì khô
 msgid "The Codex sign-in"
 msgstr "Lần đăng nhập Codex"
 
-msgid "The connection dropped."
-msgstr "Kết nối đã bị ngắt."
-
 msgid "The connection timed out"
 msgstr "Kết nối đã quá thời gian"
 
@@ -14189,9 +14186,6 @@ msgstr "Thư mục kho lưu trữ vẫn được giữ nguyên."
 
 msgid "The request failed."
 msgstr "Yêu cầu thất bại."
-
-msgid "The request timed out."
-msgstr "Yêu cầu đã hết thời gian chờ."
 
 msgid "The response: agents review agents, and humans sample instead of reading everything. Trust is earned statistically, not per diff."
 msgstr "Cách phản ứng: agent review agent, còn con người lấy mẫu thay vì đọc tất cả. Niềm tin được xây bằng thống kê, không phải theo từng diff."

@@ -14003,9 +14003,6 @@ msgstr "Le meilleur agent changera.<0/>Pas votre façon de travailler."
 msgid "The Codex sign-in"
 msgstr "La connexion Codex"
 
-msgid "The connection dropped."
-msgstr "La connexion a été interrompue."
-
 msgid "The connection timed out"
 msgstr "Le délai de connexion a été dépassé"
 
@@ -14189,9 +14186,6 @@ msgstr "Le dossier du dépôt lui-même est conservé."
 
 msgid "The request failed."
 msgstr "La requête a échoué."
-
-msgid "The request timed out."
-msgstr "La requête a expiré."
 
 msgid "The response: agents review agents, and humans sample instead of reading everything. Trust is earned statistically, not per diff."
 msgstr "La réponse : les agents relisent les agents, et les humains échantillonnent au lieu de tout lire. La confiance se gagne statistiquement, pas diff par diff."

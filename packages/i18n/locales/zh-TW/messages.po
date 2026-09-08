@@ -14003,9 +14003,6 @@ msgstr "最好的代理程式會變。<0/>你的工作流不該變。"
 msgid "The Codex sign-in"
 msgstr "Codex登入"
 
-msgid "The connection dropped."
-msgstr "連線已中斷。"
-
 msgid "The connection timed out"
 msgstr "連線已逾時"
 
@@ -14189,9 +14186,6 @@ msgstr "儲存庫資料夾本身會保留。"
 
 msgid "The request failed."
 msgstr "請求失敗。"
-
-msgid "The request timed out."
-msgstr "要求逾時。"
 
 msgid "The response: agents review agents, and humans sample instead of reading everything. Trust is earned statistically, not per diff."
 msgstr "應對辦法是：讓代理程式審查代理程式，人類改為抽樣而不是通讀。信任靠統計建立，而不是逐個差異建立。"

@@ -14003,9 +14003,6 @@ msgstr "Der beste Agent wird wechseln.<0/>Dein Workflow nicht."
 msgid "The Codex sign-in"
 msgstr "Die Codex-Anmeldung"
 
-msgid "The connection dropped."
-msgstr "Die Verbindung wurde unterbrochen."
-
 msgid "The connection timed out"
 msgstr "Zeitüberschreitung bei der Verbindung"
 
@@ -14189,9 +14186,6 @@ msgstr "Der Repository-Ordner selbst bleibt erhalten."
 
 msgid "The request failed."
 msgstr "Die Anfrage ist fehlgeschlagen."
-
-msgid "The request timed out."
-msgstr "Zeitüberschreitung bei der Anfrage."
 
 msgid "The response: agents review agents, and humans sample instead of reading everything. Trust is earned statistically, not per diff."
 msgstr "Die Antwort: Agenten reviewen Agenten, und Menschen prüfen Stichproben, statt alles zu lesen. Vertrauen entsteht statistisch, nicht pro Diff."

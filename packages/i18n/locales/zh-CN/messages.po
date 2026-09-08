@@ -14003,9 +14003,6 @@ msgstr "最好的智能体会变。<0/>你的工作流不该变。"
 msgid "The Codex sign-in"
 msgstr "Codex登录"
 
-msgid "The connection dropped."
-msgstr "连接已中断。"
-
 msgid "The connection timed out"
 msgstr "连接已超时"
 
@@ -14189,9 +14186,6 @@ msgstr "仓库文件夹本身会保留。"
 
 msgid "The request failed."
 msgstr "请求失败。"
-
-msgid "The request timed out."
-msgstr "请求超时。"
 
 msgid "The response: agents review agents, and humans sample instead of reading everything. Trust is earned statistically, not per diff."
 msgstr "应对办法是：让智能体审查智能体，人类改为抽样而不是通读。信任靠统计建立，而不是逐个差异建立。"

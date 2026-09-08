@@ -14003,9 +14003,6 @@ msgstr "Nejlepší agent se změní.<0/>Vaše workflow ne."
 msgid "The Codex sign-in"
 msgstr "Přihlášení do Codexu"
 
-msgid "The connection dropped."
-msgstr "Spojení bylo přerušeno."
-
 msgid "The connection timed out"
 msgstr "Vypršel časový limit spojení"
 
@@ -14189,9 +14186,6 @@ msgstr "Samotná složka repozitáře zůstane zachována."
 
 msgid "The request failed."
 msgstr "Požadavek selhal."
-
-msgid "The request timed out."
-msgstr "Vypršel časový limit požadavku."
 
 msgid "The response: agents review agents, and humans sample instead of reading everything. Trust is earned statistically, not per diff."
 msgstr "Odpověď: agenti revidují agenty a lidé místo čtení všeho jen vzorkují. Důvěra se získává statisticky, ne u jednotlivého diffu."

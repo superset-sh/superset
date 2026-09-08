@@ -14003,9 +14003,6 @@ msgstr "De beste agent verandert.<0/>Jouw workflow niet."
 msgid "The Codex sign-in"
 msgstr "De Codex-login"
 
-msgid "The connection dropped."
-msgstr "De verbinding is verbroken."
-
 msgid "The connection timed out"
 msgstr "De verbinding is verlopen"
 
@@ -14189,9 +14186,6 @@ msgstr "De repositorymap zelf blijft behouden."
 
 msgid "The request failed."
 msgstr "Het verzoek is mislukt."
-
-msgid "The request timed out."
-msgstr "De aanvraag is verlopen."
 
 msgid "The response: agents review agents, and humans sample instead of reading everything. Trust is earned statistically, not per diff."
 msgstr "Het antwoord: agents reviewen agents, en mensen nemen steekproeven in plaats van alles te lezen. Vertrouwen wordt statistisch verdiend, niet per diff."

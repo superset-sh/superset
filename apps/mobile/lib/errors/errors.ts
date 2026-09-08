@@ -3,90 +3,62 @@ import { msg } from "@lingui/core/macro";
 import * as Sentry from "@sentry/react-native";
 import { i18n } from "@superset/i18n";
 import { errorMessage, rawErrorMessage } from "@superset/i18n/errors";
+import { TRPCClientError } from "@trpc/client";
+import * as Network from "expo-network";
 import { Alert } from "react-native";
+import { TransportError } from "./transport-fetch";
 
 /**
- * A failure that happened in transport: the request never reached a server, or
- * the answer never came back. The outcome is therefore unknown — the work may
- * have completed anyway.
+ * A failure that never got a server response, so the outcome is unknown — the
+ * work may have completed anyway.
  */
-export type TransportFailureKind =
-	| "connection-lost"
-	| "timed-out"
-	| "offline"
-	| "unreachable";
+export type TransportFailureKind = "offline" | "unreachable";
 
 /**
- * Expo's fetch prefixes every rejection with `fetch failed: ` (expo/src/winter/
- * fetch/FetchErrors.ts); React Native's XHR-backed fetch says `Network request
- * failed`. Both mean the same thing and neither is localized, so this is the
- * definition of "transport failure" — not the description text below.
+ * Latest reachability, kept current by a listener so the classifier can stay
+ * synchronous. Started at import like the PostHog client's super properties:
+ * the first failure can arrive before any provider effect has run.
+ *
+ * `isInternetReachable` is tri-state — undefined means "not determined yet",
+ * and only an explicit false is offline.
  */
-const TRANSPORT_SIGNATURE = /fetch failed:|network request failed/;
-
-/**
- * Refines the kind. iOS hands Expo an NSError and `UnexpectedException` keeps
- * only its `localizedDescription` (expo-modules-core/ios/Core/Exceptions/
- * UnexpectedException.swift), so the NSURLError code — -1005, -1001, -1009 —
- * does not survive into JavaScript and the kind has to be read off the text.
- * iOS localizes that text, so a non-English device falls through to
- * `unreachable`; its copy has to stand on its own for that reason.
- */
-const KIND_SIGNATURES: readonly [TransportFailureKind, RegExp][] = [
-	// -1009 NSURLErrorNotConnectedToInternet
-	["offline", /internet connection appears to be offline/],
-	// -1001 NSURLErrorTimedOut
-	["timed-out", /request timed out/],
-	// -1005 NSURLErrorNetworkConnectionLost
-	["connection-lost", /network connection was lost/],
-];
-
-/**
- * An internal frame that must never reach a user: `(at ExpoModulesCore/
- * Promise.swift:56)`, a bare exception class name, a bundler path. Applied as
- * a backstop to messages this module would otherwise pass through, so a leak
- * shape nobody has seen yet still degrades to the generic copy.
- */
-const INTERNAL_FRAME = /\(at [^\s)]+:\d+\)|ExpoModulesCore|[A-Z]\w*Exception:/;
-
-const TRANSPORT_COPY: Record<TransportFailureKind, MessageDescriptor> = {
-	"connection-lost": msg({ message: "The connection dropped." }),
-	"timed-out": msg({ message: "The request timed out." }),
-	offline: msg({ message: "No internet connection." }),
-	unreachable: msg({ message: "Could not reach the server." }),
-};
-
-// Deliberately the same message id `errorMessage()` already falls back to, so
-// it is translated in every catalog rather than adding a near-duplicate.
-const GENERIC = msg({ message: "Something went wrong. Please try again." });
-
-/** Every message in the `cause` chain, lowercased, for signature matching. */
-function chainText(error: unknown): string {
-	const seen = new Set<unknown>();
-	const parts: string[] = [];
-	let current: unknown = error;
-	while (current && !seen.has(current)) {
-		seen.add(current);
-		parts.push(rawErrorMessage(current));
-		current = (current as { cause?: unknown }).cause;
-	}
-	return parts.join(" ").toLowerCase();
-}
+let deviceOffline = false;
+Network.addNetworkStateListener((state) => {
+	deviceOffline = state.isInternetReachable === false;
+});
+void Network.getNetworkStateAsync()
+	.then((state) => {
+		deviceOffline = state.isInternetReachable === false;
+	})
+	.catch(() => {
+		// Reachability is a refinement, not a gate: without it every transport
+		// failure simply reads as "could not reach the server".
+	});
 
 /**
  * The transport failure behind an error, or null when the server did answer
- * and the error is its own. Callers that distinguish "this definitely failed"
- * from "we never found out" branch on null.
+ * and the error is its own.
+ *
+ * tRPC only populates `data` from a parsed error envelope, so its absence
+ * means the transport failed rather than the server refusing. That is the
+ * whole check — the same predicate the desktop's host-service links use
+ * (`isConnectionError` in packages/workspace-client/src/lib/hostServiceLinks).
+ *
+ * It has to be structural, because iOS tells us nothing else. Expo rejects a
+ * failed fetch with URLSession's raw NSError (ExpoFetchModule.swift), and
+ * `Promise.reject` wraps any non-Exception in `UnexpectedException`, which
+ * keeps only `localizedDescription` (expo-modules-core Promise.swift:57). The
+ * NSURLError code — -1005, -1001, -1009 — never reaches JavaScript, and the
+ * description that does is localized by iOS. There is nothing there to read.
  */
 export function transportFailureKind(
 	error: unknown,
 ): TransportFailureKind | null {
-	const text = chainText(error);
-	if (!TRANSPORT_SIGNATURE.test(text)) return null;
-	for (const [kind, signature] of KIND_SIGNATURES) {
-		if (signature.test(text)) return kind;
-	}
-	return "unreachable";
+	const transport =
+		error instanceof TransportError ||
+		(error instanceof TRPCClientError && error.data == null);
+	if (!transport) return null;
+	return deviceOffline ? "offline" : "unreachable";
 }
 
 /** Whether the outcome of the request is unknown rather than known-failed. */
@@ -95,17 +67,37 @@ export function isTransportError(error: unknown): boolean {
 }
 
 /**
+ * An error thrown by an Expo native module rather than by our server. Its
+ * message is the Swift exception's debugDescription — "UnexpectedException:
+ * … (at ExpoModulesCore/Promise.swift:56)" — which is a diagnostic, never
+ * user copy. Every Expo exception carries an `ERR_*` code (see
+ * `errorCodeFromString` in expo-modules-core CodedError.swift), so one is
+ * identifiable without reading the message.
+ */
+function isExpoNativeError(error: unknown): boolean {
+	const code = (error as { code?: unknown } | null | undefined)?.code;
+	return typeof code === "string" && code.startsWith("ERR_");
+}
+
+const TRANSPORT_COPY: Record<TransportFailureKind, MessageDescriptor> = {
+	offline: msg({ message: "No internet connection." }),
+	unreachable: msg({ message: "Could not reach the server." }),
+};
+
+// Deliberately the same message id `errorMessage()` already falls back to, so
+// it is translated in every catalog rather than adding a near-duplicate.
+const GENERIC = msg({ message: "Something went wrong. Please try again." });
+
+/**
  * What to show a user for a caught error. A transport failure becomes plain
  * copy; anything else keeps the server's own message, which is usually the
  * useful part (GitHub's reason for refusing a merge, a host's refusal to
- * delete). Never an Expo or Swift frame either way.
+ * delete).
  */
 export function errorCopy(error: unknown): string {
 	const kind = transportFailureKind(error);
 	if (kind) return i18n._(TRANSPORT_COPY[kind]);
-	// Matched on the raw message, never on errorMessage() output: that is
-	// display-only and potentially translated (AGENTS.md, packages/i18n).
-	if (INTERNAL_FRAME.test(rawErrorMessage(error))) return i18n._(GENERIC);
+	if (isExpoNativeError(error)) return i18n._(GENERIC);
 	return errorMessage(error);
 }
 

@@ -14003,9 +14003,6 @@ msgstr "Il miglior agente cambierà.<0/>Il tuo flusso di lavoro no."
 msgid "The Codex sign-in"
 msgstr "L'accesso Codex"
 
-msgid "The connection dropped."
-msgstr "La connessione è caduta."
-
 msgid "The connection timed out"
 msgstr "La connessione è scaduta"
 
@@ -14189,9 +14186,6 @@ msgstr "La cartella del repository viene mantenuta."
 
 msgid "The request failed."
 msgstr "La richiesta non è riuscita."
-
-msgid "The request timed out."
-msgstr "La richiesta è scaduta."
 
 msgid "The response: agents review agents, and humans sample instead of reading everything. Trust is earned statistically, not per diff."
 msgstr "La risposta: gli agenti rivedono gli agenti e gli umani campionano invece di leggere tutto. La fiducia si guadagna statisticamente, non diff per diff."

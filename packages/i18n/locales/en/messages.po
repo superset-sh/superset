@@ -14003,9 +14003,6 @@ msgstr "The best agent will change.<0/>Your workflow shouldn't."
 msgid "The Codex sign-in"
 msgstr "The Codex sign-in"
 
-msgid "The connection dropped."
-msgstr "The connection dropped."
-
 msgid "The connection timed out"
 msgstr "The connection timed out"
 
@@ -14189,9 +14186,6 @@ msgstr "The repository folder itself is kept."
 
 msgid "The request failed."
 msgstr "The request failed."
-
-msgid "The request timed out."
-msgstr "The request timed out."
 
 msgid "The response: agents review agents, and humans sample instead of reading everything. Trust is earned statistically, not per diff."
 msgstr "The response: agents review agents, and humans sample instead of reading everything. Trust is earned statistically, not per diff."

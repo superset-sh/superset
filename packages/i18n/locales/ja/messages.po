@@ -14003,9 +14003,6 @@ msgstr "最良のエージェントは変わります。<0/>ワークフロー�
 msgid "The Codex sign-in"
 msgstr "Codexのサインイン"
 
-msgid "The connection dropped."
-msgstr "接続が切断されました。"
-
 msgid "The connection timed out"
 msgstr "接続がタイムアウトしました"
 
@@ -14189,9 +14186,6 @@ msgstr "リポジトリのフォルダ自体は残ります。"
 
 msgid "The request failed."
 msgstr "リクエストに失敗しました。"
-
-msgid "The request timed out."
-msgstr "リクエストがタイムアウトしました。"
 
 msgid "The response: agents review agents, and humans sample instead of reading everything. Trust is earned statistically, not per diff."
 msgstr "その答えは、エージェントがエージェントをレビューし、人間はすべてを読む代わりに抜き取りで確認することです。信頼は差分ごとではなく、統計的に積み上げられます。"
