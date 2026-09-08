@@ -753,6 +753,35 @@ describe("discoverClaudeQuotaTargets", () => {
 			}
 		});
 
+		// The slot's stores are copies of one login, so a failure in one of
+		// them once another has produced a credential costs token freshness at
+		// worst — the row is listed and its identity comes from ~/.claude.json
+		// regardless. Spoiling `complete` there would disable reaping for the
+		// life of a machine whose Keychain probe fails every pass.
+		it("stays complete when one store fails but another yields the login", async () => {
+			// root ignores the mode bits, so the denial this asserts on cannot
+			// be staged; skipping beats passing without having tested anything.
+			if (process.getuid?.() === 0) return;
+			const home = stageHome(store);
+			// The slot's other half, which the CLI writes whichever it prefers.
+			const second = join(home, ".config", "claude");
+			mkdirSync(second, { recursive: true });
+			const unreadable = join(second, "credentials.json");
+			writeFileSync(unreadable, store);
+			chmodSync(unreadable, 0o000);
+			const clock = spyOn(Date, "now").mockReturnValue(0);
+			try {
+				const targets = await discoverClaudeQuotaTargets(home);
+
+				expect(targets.selections).toEqual([null]);
+				expect(targets.complete).toBe(true);
+			} finally {
+				chmodSync(unreadable, 0o600);
+				clock.mockRestore();
+				rmSync(home, { recursive: true, force: true });
+			}
+		});
+
 		// The guard that matters: "not signed in" is not "unreadable". A home
 		// with no default store at all is the ordinary state of a user who only
 		// uses profile dirs, and pinning it incomplete would disable reaping

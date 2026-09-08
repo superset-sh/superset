@@ -319,9 +319,17 @@ async function readDefaultCredential(
 	if (credential) credential.accountId = identity.accountId;
 	return {
 		value: credential,
+		// Only a slot that yielded nothing is unreadable. The stores are three
+		// copies of one login and the row's identity comes from
+		// ~/.claude.json either way, so once any of them produced a credential
+		// a failure in another costs token freshness at worst — it cannot hide
+		// an account. Reporting it anyway pins `complete` false, and a machine
+		// where the Keychain probe always fails (locked, denied, or the exec
+		// timeout) would then disable the quota store's reaper for good.
 		unreadable:
-			keychainCredential.unreadable ||
-			defaultFiles.some((file) => file.unreadable),
+			credential === null &&
+			(keychainCredential.unreadable ||
+				defaultFiles.some((file) => file.unreadable)),
 	};
 }
 
