@@ -248,6 +248,9 @@ export class FsWatcherManager {
 	private readonly overflowRescanMaxMs: number;
 	private readonly overflowBackoffResetMs: number;
 	private readonly watchers = new Map<string, WatcherState>();
+	// Git and file consumers can request the same root before native attach resolves.
+	private readonly pendingWatchers = new Map<string, Promise<WatcherState>>();
+	private generation = 0;
 	/**
 	 * One-shot dedup so a single ENOSPC report doesn't spam logs across every
 	 * watcher creation that follows it. Mirrors VS Code's `enospcErrorLogged`
@@ -282,15 +285,36 @@ export class FsWatcherManager {
 		let state = this.watchers.get(absolutePath);
 
 		if (!state) {
-			state = await this.createWatcher(absolutePath);
-			this.watchers.set(absolutePath, state);
+			let pending = this.pendingWatchers.get(absolutePath);
+			if (!pending) {
+				const generation = this.generation;
+				pending = this.createWatcher(absolutePath).then(async (created) => {
+					if (generation !== this.generation) {
+						await this.disposeWatcherState(created);
+						throw new Error("Filesystem watcher closed during attachment");
+					}
+					this.watchers.set(absolutePath, created);
+					return created;
+				});
+				this.pendingWatchers.set(absolutePath, pending);
+			}
+			try {
+				state = await pending;
+			} finally {
+				if (this.pendingWatchers.get(absolutePath) === pending) {
+					this.pendingWatchers.delete(absolutePath);
+				}
+			}
 		}
 
+		if (this.watchers.get(absolutePath) !== state) {
+			throw new Error("Filesystem watcher closed during attachment");
+		}
 		state.listeners.add(listener);
 
 		return async () => {
 			const currentState = this.watchers.get(absolutePath);
-			if (!currentState) {
+			if (currentState !== state) {
 				return;
 			}
 
@@ -307,9 +331,15 @@ export class FsWatcherManager {
 	}
 
 	async close(): Promise<void> {
+		this.generation += 1;
+		const pending = Array.from(this.pendingWatchers.values());
+		this.pendingWatchers.clear();
 		const states = Array.from(this.watchers.values());
 		this.watchers.clear();
-		await Promise.all(states.map((state) => this.disposeWatcherState(state)));
+		await Promise.all([
+			Promise.allSettled(pending),
+			...states.map((state) => this.disposeWatcherState(state)),
+		]);
 	}
 
 	private async disposeWatcherState(state: WatcherState): Promise<void> {

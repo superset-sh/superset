@@ -397,3 +397,34 @@ describe("targeted resource events", () => {
 		watcher.close();
 	});
 });
+
+describe("worktree events requiring broad invalidation", () => {
+	beforeEach(() => jest.useFakeTimers());
+	afterEach(() => jest.useRealTimers());
+
+	for (const event of [
+		{
+			kind: "update" as const,
+			absolutePath: "/repo/.gitignore",
+			isDirectory: false,
+		},
+		{ kind: "delete" as const, absolutePath: "/repo/deleted-directory" },
+	]) {
+		test(`invalidates cached descendants after ${event.absolutePath}`, () => {
+			const watcher = createWatcher();
+			const events: GitChangedEvent[] = [];
+			watcher.onChanged((event) => events.push(event));
+			(watcher as unknown as { interest: Map<string, number> }).interest.set(
+				"ws",
+				1,
+			);
+			try {
+				watcher.notifyWorktreeEvents("ws", "/repo", [event]);
+				jest.advanceTimersByTime(DEBOUNCE_MS);
+				expect(events).toEqual([{ workspaceId: "ws" }]);
+			} finally {
+				watcher.close();
+			}
+		});
+	}
+});
