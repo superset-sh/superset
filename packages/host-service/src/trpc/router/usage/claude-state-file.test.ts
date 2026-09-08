@@ -11,6 +11,7 @@ import {
 	utimesSync,
 	writeFileSync,
 } from "node:fs";
+import * as fsPromises from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { updateClaudeStateFile } from "./claude-state-file";
@@ -190,6 +191,68 @@ describe("updateClaudeStateFile", () => {
 		);
 		expect(statSync(backup).mode & 0o777).toBe(0o600);
 		expect(JSON.parse(readFileSync(file, "utf-8"))).toEqual({ userID: "u" });
+	});
+
+	// A CLI rewriting the file non-atomically hands us a torn read, and the
+	// retry then writes the settled file — nothing was discarded, so a rescue
+	// of those half-written bytes is a permanent file the user has to wonder
+	// about, a "could not parse" warning about a file that was fine, and one
+	// of the three backup slots that a genuinely corrupt state file needs.
+	it("keeps no backup of a torn read the retry recovered from", async () => {
+		const dir = tempDir();
+		const file = join(dir, ".claude.json");
+		const torn = '{"userID":"user-a","hasCompletedOn';
+		writeFileSync(file, torn);
+		const settled = JSON.stringify({
+			userID: "user-a",
+			hasCompletedOnboarding: true,
+		});
+		const realReadFile = fsPromises.readFile.bind(fsPromises);
+		let tornReadDone = false;
+		// The CLI's write lands between the read and the backup — the only
+		// place a torn read can settle, and not reachable from the mutator,
+		// which runs after the backup would already have been written.
+		const readFile = spyOn(fsPromises, "readFile").mockImplementation((async (
+			path: Parameters<typeof realReadFile>[0],
+			options: Parameters<typeof realReadFile>[1],
+		) => {
+			const bytes = await realReadFile(path, options);
+			if (!tornReadDone && String(path) === file) {
+				tornReadDone = true;
+				const tmp = `${file}.cli`;
+				writeFileSync(tmp, settled);
+				renameSync(tmp, file);
+			}
+			return bytes;
+		}) as unknown as typeof fsPromises.readFile);
+		const warn = spyOn(console, "warn").mockImplementation(() => {});
+
+		try {
+			await updateClaudeStateFile(file, (state) => ({
+				...state,
+				seeded: true,
+			}));
+
+			expect(tornReadDone).toBe(true);
+			expect(
+				warn.mock.calls.filter((call) =>
+					String(call[0]).includes("could not parse"),
+				),
+			).toHaveLength(0);
+		} finally {
+			readFile.mockRestore();
+			warn.mockRestore();
+		}
+
+		expect(
+			readdirSync(dir).filter((name) => name.endsWith(".superset-swap-bak")),
+		).toEqual([]);
+		// The retry still wrote, on top of the settled bytes.
+		expect(JSON.parse(readFileSync(file, "utf-8"))).toEqual({
+			userID: "user-a",
+			hasCompletedOnboarding: true,
+			seeded: true,
+		});
 	});
 
 	// The bytes a rescue saves are the only copy left, so two of them in the

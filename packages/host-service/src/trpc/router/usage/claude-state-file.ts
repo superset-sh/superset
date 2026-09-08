@@ -221,7 +221,16 @@ async function applyStateUpdate(
 		if (raw !== null && raw.trim() !== "") {
 			const parsed = parseState(raw);
 			if (parsed) state = parsed;
-			else await backupUnparsableState(statePath, raw);
+			// Only bytes this attempt would actually discard are worth
+			// rescuing. A file that already moved since `before` is one
+			// writeIfUnchanged will refuse to replace, so a copy of it would
+			// be a permanent backup of a torn read nothing ever lost — and
+			// those junk copies evict a genuine rescue from the three kept
+			// per dir. Skipping it changes nothing else: the attempt is
+			// abandoned on the same `before` a moment later.
+			else if ((await stateFingerprint(statePath)) === before) {
+				await backupUnparsableState(statePath, raw);
+			}
 		}
 		if (await writeIfUnchanged(statePath, mutate(state), before)) return;
 		if (attempt >= MAX_ATTEMPTS) {
