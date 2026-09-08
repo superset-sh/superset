@@ -20,22 +20,40 @@ import { GlobalRegistrator } from "@happy-dom/global-registrator";
 // a real DOM. Globals are process-wide, so unregister in afterAll.
 const alreadyRegistered = GlobalRegistrator.isRegistered;
 if (!alreadyRegistered) GlobalRegistrator.register();
-afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
-});
 
 // The DOM renderer measures glyphs through a 2d context happy-dom does not
 // implement (it prefers OffscreenCanvas when present); widths only need to be
-// finite for this test.
+// finite for this test. The stub lives on happy-dom's prototypes, which outlive
+// this file when another file registered the window first, so it is restored
+// in afterAll rather than left for whichever test runs next.
 const context2d = { font: "", measureText: () => ({ width: 8 }) };
+const stubbedCanvases: Array<{
+	prototype: object;
+	descriptor: PropertyDescriptor | undefined;
+}> = [];
 for (const canvas of [
 	globalThis.OffscreenCanvas,
 	globalThis.HTMLCanvasElement,
 ]) {
 	if (!canvas) continue;
-	(canvas.prototype as unknown as { getContext: () => unknown }).getContext =
-		() => context2d;
+	stubbedCanvases.push({
+		prototype: canvas.prototype,
+		descriptor: Object.getOwnPropertyDescriptor(canvas.prototype, "getContext"),
+	});
+	Object.defineProperty(canvas.prototype, "getContext", {
+		configurable: true,
+		writable: true,
+		value: () => context2d,
+	});
 }
+
+afterAll(async () => {
+	for (const { prototype, descriptor } of stubbedCanvases) {
+		if (descriptor) Object.defineProperty(prototype, "getContext", descriptor);
+		else delete (prototype as { getContext?: unknown }).getContext;
+	}
+	if (!alreadyRegistered) await GlobalRegistrator.unregister();
+});
 
 const { Terminal } = await import("@xterm/xterm");
 
