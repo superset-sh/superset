@@ -96,14 +96,23 @@ interface DiffSection {
 	truncated: boolean;
 }
 
-/** Cuts a diff that was stopped mid-stream back to its last complete file
- * section. The renderer parses the patch into `diff --git` sections and shows
- * a placeholder for any file it finds none for; half a section would instead
- * render as a diff silently missing its hunks. Every content line is prefixed
- * (` `, `+`, `-`), so `diff --git ` at the start of a line is always a real
- * header, and the section it opens is the one that was cut. */
-function dropIncompleteFileSection(patch: string): string {
-	const lastHeader = patch.lastIndexOf("\ndiff --git ");
+/** What every file's section in a patch opens with. Every content line is
+ * prefixed (` `, `+`, `-`), so this at the start of a line is always a real
+ * header rather than diffed content. */
+const SECTION_HEADER = "diff --git ";
+
+/** What of a diff stopped mid-stream can be shown: whole file sections only.
+ * The renderer parses the patch into sections and shows a placeholder for any
+ * file it finds none for, whereas half a section would render as a diff
+ * silently missing its hunks.
+ *
+ * `overflow` is the first of the bytes the budget refused. When those begin
+ * the next file's section, the cut landed exactly on a boundary and
+ * everything read is already whole — dropping the last section there would
+ * put a file that was fully read behind a placeholder. */
+function keepCompleteSections(patch: string, overflow: string): string {
+	if (overflow.startsWith(SECTION_HEADER)) return patch;
+	const lastHeader = patch.lastIndexOf(`\n${SECTION_HEADER}`);
 	// No earlier header: the single section this output started is the
 	// incomplete one, and nothing of it can be shown.
 	if (lastHeader === -1) return "";
@@ -137,13 +146,26 @@ function runDiff(
 		const chunks: Buffer[] = [];
 		let stderr = "";
 		let truncated = false;
+		// Just enough of what the budget refused to tell a cut that landed on
+		// a section boundary from one that landed inside a section. Whatever
+		// git had already written is still readable after the kill; a shorter
+		// overflow than this only costs the last section.
+		let overflow = "";
+		const keepOverflow = (chunk: Buffer) => {
+			const wanted = SECTION_HEADER.length - overflow.length;
+			if (wanted > 0) overflow += chunk.subarray(0, wanted).toString("utf8");
+		};
 
 		child.stdout.on("data", (chunk: Buffer) => {
-			if (truncated) return;
+			if (truncated) {
+				keepOverflow(chunk);
+				return;
+			}
 			const granted = budget.take(chunk.byteLength);
 			if (granted > 0) chunks.push(chunk.subarray(0, granted));
 			if (granted === chunk.byteLength) return;
 			truncated = true;
+			keepOverflow(chunk.subarray(granted));
 			// Nothing more will be kept, and diffing the rest of a huge tree
 			// costs minutes of CPU whose output is thrown away.
 			child.kill("SIGKILL");
@@ -158,7 +180,7 @@ function runDiff(
 		child.once("close", (code) => {
 			const patch = Buffer.concat(chunks).toString("utf8");
 			if (truncated) {
-				resolve({ patch: dropIncompleteFileSection(patch), truncated });
+				resolve({ patch: keepCompleteSections(patch, overflow), truncated });
 				return;
 			}
 			// simple-git's own rule, kept so the same failures reject as

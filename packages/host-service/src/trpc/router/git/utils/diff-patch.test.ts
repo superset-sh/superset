@@ -73,6 +73,39 @@ describe("buildDiffPatch", () => {
 		expect(full.slice(bounded.length).startsWith("diff --git ")).toBe(true);
 	});
 
+	test("a bound expiring exactly between two sections keeps both", async () => {
+		for (const name of ["a.txt", "b.txt", "c.txt"]) {
+			await writeFile(join(repo, name), lines(400, "old"));
+		}
+		await git.add(["."]);
+		await git.commit("initial");
+		for (const name of ["a.txt", "b.txt", "c.txt"]) {
+			await writeFile(join(repo, name), lines(400, "new"));
+		}
+
+		const request = {
+			cwd: repo,
+			env: ENV,
+			category: "unstaged" as const,
+			refs: {},
+		};
+		const full = await buildDiffPatch(request);
+		// Every byte here is ASCII, so a string offset is a byte offset: this
+		// is exactly where the third file's section begins.
+		const thirdSection = full.lastIndexOf("\ndiff --git ") + 1;
+
+		const bounded = await buildDiffPatch({
+			...request,
+			maxBytes: thirdSection,
+		});
+
+		// The read stopped with nothing incomplete in hand, so both sections
+		// it holds are whole and neither may be dropped.
+		expect(bounded).toBe(full.slice(0, thirdSection));
+		expect(bounded).toContain("diff --git a/b.txt b/b.txt");
+		expect(bounded).not.toContain("c.txt");
+	});
+
 	test("an untracked file past the bound leaves the tracked patch intact", async () => {
 		await writeFile(join(repo, "tracked.txt"), "one\ntwo\nthree\n");
 		await git.add(["tracked.txt"]);
