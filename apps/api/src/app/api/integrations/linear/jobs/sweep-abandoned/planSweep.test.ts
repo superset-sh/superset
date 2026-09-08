@@ -102,3 +102,23 @@ describe("planSweep", () => {
 		);
 	});
 });
+
+describe("planSweep write-back fencing", () => {
+	test("carries the count the row was read at, so the write-back can fence on it", () => {
+		const plan = planSweep([row({ retry_count: 3 })], LIMITS);
+
+		expect(plan.requeue[0]?.observedRetryCount).toBe(3);
+	});
+
+	test("the queue message carries only what the consumer needs", () => {
+		const plan = planSweep([row()], LIMITS);
+		const { observedRetryCount, ...work } = plan.requeue[0] ?? {};
+
+		expect(observedRetryCount).toBe(0);
+		expect(Object.keys(work).sort()).toEqual([
+			"deliveryId",
+			"receivedAt",
+			"webhookEventId",
+		]);
+	});
+});

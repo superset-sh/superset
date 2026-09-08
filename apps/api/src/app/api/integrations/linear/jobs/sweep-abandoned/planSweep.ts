@@ -15,8 +15,15 @@ export type AbandonedRow = {
 export interface SweepPlan {
 	/** Given up on: enough attempts have been spent to stop trying. */
 	exhausted: string[];
-	/** To hand back to QStash, already resolved to what the consumer needs. */
+	/**
+	 * To hand back to QStash, already resolved to what the consumer needs, plus
+	 * the `retry_count` the row was read at. That count is carried so the
+	 * write-back can fence on it: the consumer increments the same column when
+	 * it fails, and an unfenced increment on top of the consumer's would spend
+	 * two of a delivery's attempts for one.
+	 */
 	requeue: Array<{
+		observedRetryCount: number;
 		webhookEventId: string;
 		receivedAt: Date;
 		deliveryId: string | null;
@@ -60,6 +67,7 @@ export function planSweep(
 		}
 
 		plan.requeue.push({
+			observedRetryCount: row.retry_count,
 			webhookEventId: row.id,
 			receivedAt: toDate(row.received_at),
 			deliveryId,

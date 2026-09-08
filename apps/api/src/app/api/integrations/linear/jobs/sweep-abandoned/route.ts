@@ -1,5 +1,5 @@
 import { webhookEvents } from "@superset/db/schema";
-import { inArray, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, sql } from "drizzle-orm";
 
 import { singleFlight } from "@/lib/singleFlight";
 import { verifyQstashRequest } from "@/lib/verifyQstash";
@@ -61,6 +61,18 @@ const MAX_REQUEUES = 50;
  * against `MAX_REQUEUES` so the give-up marking still sees rows past the cap.
  */
 const MAX_ROWS = 500;
+
+/**
+ * Publishes to give up on in a row before abandoning the run.
+ *
+ * Failures here are not row-specific — the message is a fixed-shape pointer, so
+ * a publish fails because QStash is unreachable or refusing, which the next row
+ * will discover too. Without this, an outage costs 50 doomed publishes at two
+ * attempts each, which can outrun `maxDuration` and kill the run before the
+ * write-back below commits — leaving deliveries that *were* published
+ * uncounted, to be published again next run.
+ */
+const MAX_CONSECUTIVE_PUBLISH_FAILURES = 3;
 
 /**
  * Re-queues Linear deliveries that were accepted but never carried through,
@@ -127,9 +139,14 @@ export async function POST(request: Request): Promise<Response> {
 			);
 		}
 
-		// Marked before anything is re-queued, and to a status the sweep does not
-		// select, so a delivery nothing can process stops being carried around the
-		// loop and stays visible as what it is.
+		// Fenced on the state the row was read in, not just its id. A consumer
+		// re-queued by an earlier run can still be mid-flight — it has up to
+		// `maxDuration` 300s — and commit `processed` between the select above and
+		// this update. Writing `abandoned` over that would record the opposite of
+		// what happened, and because `abandoned` is a state the consumer refuses,
+		// it would also buy a duplicate fan-out from the next redelivery. Under
+		// read-committed the predicate is re-checked against the newer row, so the
+		// update simply does not land.
 		if (plan.exhausted.length > 0) {
 			await tx
 				.update(webhookEvents)
@@ -137,33 +154,68 @@ export async function POST(request: Request): Promise<Response> {
 					status: "abandoned",
 					error: `Abandoned after ${MAX_ATTEMPTS} attempts`,
 				})
-				.where(inArray(webhookEvents.id, plan.exhausted));
+				.where(
+					and(
+						inArray(webhookEvents.id, plan.exhausted),
+						inArray(webhookEvents.status, ["pending", "failed"]),
+						gte(webhookEvents.retryCount, MAX_ATTEMPTS),
+					),
+				);
 		}
 
-		const requeued: string[] = [];
+		const requeued: typeof plan.requeue = [];
 		const failed: string[] = [];
-		for (const work of plan.requeue) {
+		let consecutiveFailures = 0;
+		for (const { observedRetryCount, ...work } of plan.requeue) {
 			try {
 				await enqueueLinearDelivery(work);
-				requeued.push(work.webhookEventId);
+				requeued.push({ observedRetryCount, ...work });
+				consecutiveFailures = 0;
 			} catch (error) {
 				// Left exactly as it was, so the next run tries it again. Publishing
 				// before counting the attempt is deliberate: a re-queue that never
 				// happened must not spend one of the delivery's five.
 				console.error("[linear/sweep-abandoned] re-queue failed:", error);
 				failed.push(work.webhookEventId);
+				consecutiveFailures += 1;
+				if (consecutiveFailures >= MAX_CONSECUTIVE_PUBLISH_FAILURES) {
+					console.error(
+						"[linear/sweep-abandoned] giving up this run after",
+						consecutiveFailures,
+						"consecutive publish failures",
+					);
+					break;
+				}
 			}
 		}
 
-		// Counted only for deliveries actually handed back to QStash. The consumer
-		// is idempotent, so the cost of a duplicate is one query per connection
-		// that already finished; the cost of losing count is a delivery that is
-		// retried forever.
-		if (requeued.length > 0) {
+		// Counted only for deliveries actually handed back to QStash, and only
+		// where the row still holds the count it was read at.
+		//
+		// The consumer increments this same column when it marks a delivery
+		// failed, and a consumer started by the first publish of this loop can
+		// finish before the last one returns. Without the fence both increments
+		// land and one re-queue spends two of the delivery's five attempts — so a
+		// delivery gives up early during exactly the incident the attempts exist
+		// for. Grouped by the observed count so this stays one statement per
+		// distinct value, of which there are at most `MAX_ATTEMPTS`.
+		const byObservedCount = new Map<number, string[]>();
+		for (const item of requeued) {
+			const ids = byObservedCount.get(item.observedRetryCount) ?? [];
+			ids.push(item.webhookEventId);
+			byObservedCount.set(item.observedRetryCount, ids);
+		}
+		for (const [observed, ids] of byObservedCount) {
 			await tx
 				.update(webhookEvents)
 				.set({ retryCount: sql`${webhookEvents.retryCount} + 1` })
-				.where(inArray(webhookEvents.id, requeued));
+				.where(
+					and(
+						inArray(webhookEvents.id, ids),
+						inArray(webhookEvents.status, ["pending", "failed"]),
+						eq(webhookEvents.retryCount, observed),
+					),
+				);
 		}
 
 		return {
