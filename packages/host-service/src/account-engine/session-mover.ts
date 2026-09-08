@@ -35,7 +35,14 @@ export const CONTINUE_NUDGE =
  */
 export const STALE_START_MS = 15 * 60_000;
 
-/** KTD8: the single retry for a Codex nudge that could not be delivered. */
+/**
+ * KTD8: how long the nudge poll waits between attempts, not a one-off retry —
+ * it is spent up to {@link NUDGE_MAX_ATTEMPTS} times, so this constant sets the
+ * ceiling (about a minute today). Raising it stretches that ceiling
+ * proportionally, and a longer poll is a longer window in which a bare shell
+ * prompt — which raises the same bracketed-paste bit as Codex's TUI — can be
+ * the thing that receives the nudge.
+ */
 export const NUDGE_RETRY_MS = 2_000;
 
 /**
@@ -50,6 +57,22 @@ export const NUDGE_RETRY_MS = 2_000;
  * whose agent had exited.
  */
 export const NUDGE_MAX_ATTEMPTS = 30;
+
+/**
+ * How many times a planned move re-tries a resume that came back empty before
+ * giving the row to the user. Three, because the usual cause is momentary —
+ * the pty or the store is mid-write while the switch lands — and each retry
+ * rides a later store change, so three spans real time without spanning much
+ * of it.
+ *
+ * Bounded because retries are not free and nothing else stops them: every
+ * attempt kills and disposes the session again, and a permanently refused
+ * candidate (a session id the resume will never accept, say) stays listed
+ * under the same terminal id, so it would be re-offered on every store change
+ * forever. A count is the only bound available — the resume reports failure as
+ * a bare null, with no way to say whether trying again could work.
+ */
+export const MAX_RESUME_ATTEMPTS = 3;
 
 /** How much of an unmatched snapshot the debug flag may reveal (KTD7). */
 const DEBUG_EXCERPT_CHARS = 200;
@@ -124,7 +147,10 @@ export interface SessionMoverDeps {
 export interface MoveResult {
 	/** Terminals whose restart was launched. */
 	movedTerminalIds: string[];
-	/** Terminals still mid-turn; retried on the store's next change. */
+	/**
+	 * Terminals this pass did not move — still mid-turn, or a resume that came
+	 * back empty and has attempts left; retried on the store's next change.
+	 */
 	deferredTerminalIds: string[];
 }
 
@@ -147,6 +173,11 @@ export class SessionMover {
 	 * terminal.
 	 */
 	private readonly deferred = new Map<AccountAgent, Set<string>>();
+	/**
+	 * Resumes already spent on a deferred row, per terminal id. Kept here and
+	 * not on the row, because the row is a fresh snapshot on every pass.
+	 */
+	private readonly resumeAttempts = new Map<string, number>();
 
 	constructor(deps: SessionMoverDeps) {
 		this.deps = deps;
@@ -180,7 +211,28 @@ export class SessionMover {
 				continue;
 			}
 			const resumed = await this.restart(row);
-			if (resumed) movedTerminalIds.push(row.terminalId);
+			if (resumed) {
+				movedTerminalIds.push(row.terminalId);
+				this.resumeAttempts.delete(row.terminalId);
+				continue;
+			}
+
+			// A resume that came back empty keeps the row waiting, because
+			// nothing else would ever offer it again: the row is in this pass's
+			// `considered` set, so it drops out of the carried-over deferrals,
+			// and every other entry point filters on a `configDir` that already
+			// reads as the active account. Bounded by
+			// {@link MAX_RESUME_ATTEMPTS}, and the user is told once, on the
+			// attempt that gives up.
+			const attempts = (this.resumeAttempts.get(row.terminalId) ?? 0) + 1;
+			if (attempts < MAX_RESUME_ATTEMPTS) {
+				this.resumeAttempts.set(row.terminalId, attempts);
+				deferredTerminalIds.push(row.terminalId);
+				waiting.add(row.terminalId);
+				continue;
+			}
+			this.resumeAttempts.delete(row.terminalId);
+			this.reportResumeFailed(row);
 		}
 
 		// `rows` is the whole set this pass considered, so what it did not defer
@@ -229,6 +281,8 @@ export class SessionMover {
 				.filter((row) => waiting.has(row.terminalId));
 			if (rows.length === 0) {
 				this.deferred.delete(agent);
+				for (const terminalId of waiting)
+					this.resumeAttempts.delete(terminalId);
 				continue;
 			}
 			await this.moveAtIdle(agent, rows);
@@ -247,7 +301,10 @@ export class SessionMover {
 	 */
 	async fallbackRestart(row: MovableSession): Promise<boolean> {
 		const resumed = await this.restart(row, CONTINUE_NUDGE);
-		if (!resumed) return false;
+		if (!resumed) {
+			this.reportResumeFailed(row);
+			return false;
+		}
 		if (row.agent === "claude") return true;
 
 		await this.deliverNudge(
@@ -366,15 +423,22 @@ export class SessionMover {
 				error,
 			});
 		}
-		if (resumed) return resumed;
+		return resumed;
+	}
 
+	/**
+	 * R8's give-up signal. Fired by the caller rather than by `restart` itself,
+	 * because the planned move retries first and must report only on the
+	 * attempt that gives up; a fallback restart has no second attempt, so its
+	 * first failure is that attempt.
+	 */
+	private reportResumeFailed(row: MovableSession): void {
 		this.deps.onNeedsAttention({
 			agent: row.agent,
 			workspaceId: row.workspaceId,
 			terminalId: row.terminalId,
 			reason: "resume-failed",
 		});
-		return null;
 	}
 
 	/**

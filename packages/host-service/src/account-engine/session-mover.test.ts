@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { UsageQuotaWindow } from "../trpc/router/usage/types.ts";
 import {
 	CONTINUE_NUDGE,
+	MAX_RESUME_ATTEMPTS,
 	type MovableSession,
 	type NeedsAttentionEvent,
 	SessionMover,
@@ -286,6 +287,76 @@ describe("moveAtIdle", () => {
 		busy = false;
 		await h.mover.handleStoreChange("ws-1");
 		expect(h.killCalls.map((call) => call.terminalId)).toEqual(["t1"]);
+	});
+
+	// A resume that comes back empty used to abandon the row for good: the pass
+	// considered it, so it fell out of the carried-over deferrals, and no other
+	// entry point re-offers a row whose configDir already reads as the active
+	// account.
+	it("retries a resume that came back empty on the next store change", async () => {
+		const attempts: string[] = [];
+		let refuse = true;
+		const h = harness({
+			listSessions: () => [row({ lastEventType: "Stop" })],
+			killAndResume: (input) => {
+				attempts.push(input.terminalId);
+				return Promise.resolve(
+					refuse ? null : { terminalId: `${input.terminalId}-new` },
+				);
+			},
+		});
+
+		const result = await h.mover.moveAtIdle("codex", [
+			row({ lastEventType: "Stop" }),
+		]);
+		expect(result).toEqual({
+			movedTerminalIds: [],
+			deferredTerminalIds: ["t1"],
+		});
+		expect(h.attention).toEqual([]);
+
+		refuse = false;
+		await h.mover.handleStoreChange("ws-1");
+		expect(attempts).toEqual(["t1", "t1"]);
+		expect(h.attention).toEqual([]);
+
+		// It moved, so the store's next change leaves it alone.
+		await h.mover.handleStoreChange("ws-1");
+		expect(attempts).toEqual(["t1", "t1"]);
+	});
+
+	// Bounded: every attempt kills and disposes the session again, and a row
+	// the resume will never accept stays listed under the same terminal id.
+	it("gives up after the attempts run out, asking for attention once", async () => {
+		const attempts: string[] = [];
+		const h = harness({
+			listSessions: () => [row({ lastEventType: "Stop" })],
+			killAndResume: (input) => {
+				attempts.push(input.terminalId);
+				return Promise.resolve(null);
+			},
+		});
+
+		await h.mover.moveAtIdle("codex", [row({ lastEventType: "Stop" })]);
+		for (let pass = 1; pass < MAX_RESUME_ATTEMPTS; pass += 1) {
+			await h.mover.handleStoreChange("ws-1");
+		}
+
+		expect(attempts).toHaveLength(MAX_RESUME_ATTEMPTS);
+		expect(h.attention).toEqual([
+			{
+				agent: "codex",
+				workspaceId: "ws-1",
+				terminalId: "t1",
+				reason: "resume-failed",
+			},
+		]);
+
+		// Given up on: no further kills, and the user is not told twice.
+		await h.mover.handleStoreChange("ws-1");
+		await h.mover.handleStoreChange("ws-1");
+		expect(attempts).toHaveLength(MAX_RESUME_ATTEMPTS);
+		expect(h.attention).toHaveLength(1);
 	});
 
 	it("drops a deferred row that has since moved onto the new account", async () => {
