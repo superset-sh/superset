@@ -549,13 +549,13 @@ msgid "{agent} could not switch accounts"
 msgstr "{agent} kon niet van account wisselen"
 
 msgid "{agent} switched account"
-msgstr "{agent} is van account gewisseld"
+msgstr "{agent} heeft van account gewisseld"
 
 msgid "{agent} switched from {fromLabel} to {toLabel}"
-msgstr "{agent} is gewisseld van {fromLabel} naar {toLabel}"
+msgstr "{agent} is overgestapt van {fromLabel} naar {toLabel}"
 
 msgid "{agent} switched to {toLabel}"
-msgstr "{agent} is gewisseld naar {toLabel}"
+msgstr "{agent} is overgestapt naar {toLabel}"
 
 msgid "{backgroundCount, plural, one {# background terminal session} other {# background terminal sessions}}"
 msgstr "{backgroundCount, plural, one {# terminalsessie op de achtergrond} other {# terminalsessies op de achtergrond}}"
@@ -1924,9 +1924,6 @@ msgstr "Anonieme Assembleur"
 msgid "another device"
 msgstr "een ander apparaat"
 
-msgid "Another Superset instance on this machine owns account switching. Change this there."
-msgstr "Een andere Superset-instantie op deze machine beheert het wisselen van accounts. Wijzig dit daar."
-
 msgid "Answered"
 msgstr "Beantwoord"
 
@@ -2961,7 +2958,7 @@ msgid "Check the rendered prompt and launch output before saving"
 msgstr "Bekijk de gerenderde prompt en startuitvoer voordat je opslaat"
 
 msgid "Check usage every"
-msgstr "Gebruik controleren elke"
+msgstr "Gebruik controleren: elke"
 
 msgid "Check your access under Settings > Security on that device."
 msgstr "Controleer je toegang onder Instellingen > Beveiliging op dat apparaat."
@@ -15507,7 +15504,7 @@ msgid "Use this when calling the Superset API."
 msgstr "Gebruik dit bij het aanroepen van de Superset-API."
 
 msgid "Use up the soonest reset"
-msgstr "Eerst de vroegste reset opmaken"
+msgstr "Gebruik eerst het account met de eerstvolgende reset"
 
 msgid "Use voice transcription and push-to-talk features."
 msgstr "Spraaktranscriptie en push-to-talk gebruiken."

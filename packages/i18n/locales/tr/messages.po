@@ -1699,7 +1699,7 @@ msgid "All {0} passed"
 msgstr "Tümü geçti ({0})"
 
 msgid "All {agent} accounts are at their limit"
-msgstr "Tüm {agent} hesapları limitine ulaştı"
+msgstr "Tüm {agent} hesapları limitlerine ulaştı"
 
 msgid "All {versionCount} versions and their content are removed. Anyone with the link loses access."
 msgstr "{versionCount} sürümün tamamı ve içerikleri kaldırılır. Bağlantıya sahip herkes erişimini kaybeder."
@@ -1923,9 +1923,6 @@ msgstr "Anonim Montajcı"
 
 msgid "another device"
 msgstr "başka bir cihaz"
-
-msgid "Another Superset instance on this machine owns account switching. Change this there."
-msgstr "Bu makinedeki başka bir Superset örneği hesap değiştirmeyi yönetiyor. Bunu oradan değiştirin."
 
 msgid "Answered"
 msgstr "Yanıtlandı"

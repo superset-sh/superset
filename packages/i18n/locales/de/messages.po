@@ -1924,9 +1924,6 @@ msgstr "Anonymer Monteur"
 msgid "another device"
 msgstr "ein anderes Gerät"
 
-msgid "Another Superset instance on this machine owns account switching. Change this there."
-msgstr "Eine andere Superset-Instanz auf diesem Rechner steuert den Kontowechsel. Ändere das dort."
-
 msgid "Answered"
 msgstr "Beantwortet"
 
@@ -2961,7 +2958,7 @@ msgid "Check the rendered prompt and launch output before saving"
 msgstr "Prüfe den gerenderten Prompt und die Startausgabe vor dem Speichern"
 
 msgid "Check usage every"
-msgstr "Nutzung prüfen alle"
+msgstr "Nutzung prüfen: alle"
 
 msgid "Check your access under Settings > Security on that device."
 msgstr "Prüfe deinen Zugriff auf dem Gerät unter Einstellungen > Sicherheit."
@@ -8506,7 +8503,7 @@ msgid "Model context usage"
 msgstr "Kontextnutzung des Modells"
 
 msgid "Model names whose weekly window also counts toward the threshold, separated by commas. Leave empty to watch only the account-wide windows."
-msgstr "Modellnamen, deren Wochenfenster ebenfalls auf den Schwellenwert zählt, durch Kommas getrennt. Leer lassen, um nur die kontoweiten Fenster zu überwachen."
+msgstr "Modellnamen, deren Wochenfenster ebenfalls bei der Schwellenwertberechnung berücksichtigt werden, durch Kommas getrennt. Leer lassen, um nur die kontoweiten Fenster zu überwachen."
 
 msgid "Model picker scoped to the selected agent"
 msgstr "Modellauswahl, begrenzt auf den gewählten Agenten"
@@ -8611,7 +8608,7 @@ msgid "Move {count} to Group"
 msgstr "{count} in Gruppe verschieben"
 
 msgid "Move running and new {agentLabel} sessions to another account before this one runs out."
-msgstr "Laufende und neue {agentLabel}-Sitzungen auf ein anderes Konto verschieben, bevor dieses aufgebraucht ist."
+msgstr "Laufende und neue {agentLabel}-Sitzungen auf ein anderes Konto verschieben, bevor dessen Kontingent aufgebraucht ist."
 
 msgid "Move to group"
 msgstr "In Gruppe verschieben"
@@ -15507,7 +15504,7 @@ msgid "Use this when calling the Superset API."
 msgstr "Nutze das beim Aufruf der Superset-API."
 
 msgid "Use up the soonest reset"
-msgstr "Frühesten Reset zuerst aufbrauchen"
+msgstr "Zuerst das Kontingent mit dem frühesten Reset aufbrauchen"
 
 msgid "Use voice transcription and push-to-talk features."
 msgstr "Sprachtranskription und Push-to-Talk nutzen."

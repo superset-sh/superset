@@ -1924,9 +1924,6 @@ msgstr "Анонимный сборщик"
 msgid "another device"
 msgstr "другое устройство"
 
-msgid "Another Superset instance on this machine owns account switching. Change this there."
-msgstr "Переключением аккаунтов управляет другой экземпляр Superset на этой машине. Меняйте это там."
-
 msgid "Answered"
 msgstr "Отвечено"
 
@@ -8922,7 +8919,7 @@ msgid "No access to this host"
 msgstr "Нет доступа к этому хосту"
 
 msgid "No account switches yet. Every switch, automatic or by hand, is listed here."
-msgstr "Переключений аккаунтов пока нет. Здесь появляется каждое переключение — автоматическое или вручную."
+msgstr "Переключений аккаунтов пока нет. Здесь появляется каждое переключение — автоматическое или ручное."
 
 msgid "No active enterprise accounts"
 msgstr "Нет активных enterprise-аккаунтов"
@@ -11801,7 +11798,7 @@ msgid "Restarted 1 host service"
 msgstr "Перезапущена 1 служба хоста"
 
 msgid "Restarted and resumed"
-msgstr "Перезапущены и продолжены"
+msgstr "Перезапущены и возобновлены"
 
 msgid "Restarting"
 msgstr "Перезапуск"
@@ -12759,7 +12756,7 @@ msgid "Set Run"
 msgstr "Задать запуск"
 
 msgid "Set up outside Superset. Its usage is shown, but switching never writes to this login."
-msgstr "Настроен вне Superset. Использование показывается, но переключение никогда не пишет в этот вход."
+msgstr "Настроен вне Superset. Использование показывается, но переключение не затрагивает этот вход."
 
 msgid "Set up project on {hostName}"
 msgstr "Настроить проект на {hostName}"
@@ -13816,7 +13813,7 @@ msgstr "Переключать при"
 #. placeholder {0}: engineErrorCode(failure)
 #. placeholder {0}: rawErrorMessage(error)
 msgid "Switch failed ({0}). The previous account is still active."
-msgstr "Не удалось переключить ({0}). Прежний аккаунт остаётся активным."
+msgstr "Не удалось выполнить переключение ({0}). Предыдущий аккаунт всё ещё активен."
 
 msgid "Switch history"
 msgstr "История переключений"

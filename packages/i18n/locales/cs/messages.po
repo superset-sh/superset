@@ -1924,9 +1924,6 @@ msgstr "Anonymní montér"
 msgid "another device"
 msgstr "jiné zařízení"
 
-msgid "Another Superset instance on this machine owns account switching. Change this there."
-msgstr "Přepínání účtů řídí jiná instance Supersetu na tomto počítači. Změňte to tam."
-
 msgid "Answered"
 msgstr "Zodpovězeno"
 

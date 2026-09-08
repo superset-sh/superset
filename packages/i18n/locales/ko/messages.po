@@ -1924,9 +1924,6 @@ msgstr "익명의 조립공"
 msgid "another device"
 msgstr "다른 기기"
 
-msgid "Another Superset instance on this machine owns account switching. Change this there."
-msgstr "이 컴퓨터의 다른 Superset 인스턴스가 계정 전환을 관리합니다. 거기에서 변경하세요."
-
 msgid "Answered"
 msgstr "응답함"
 

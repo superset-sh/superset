@@ -1924,9 +1924,6 @@ msgstr "Assembleur anonyme"
 msgid "another device"
 msgstr "un autre appareil"
 
-msgid "Another Superset instance on this machine owns account switching. Change this there."
-msgstr "Une autre instance de Superset sur cette machine gère le changement de compte. Modifiez-le à cet endroit."
-
 msgid "Answered"
 msgstr "Répondu"
 
@@ -12759,7 +12756,7 @@ msgid "Set Run"
 msgstr "Définir l'exécution"
 
 msgid "Set up outside Superset. Its usage is shown, but switching never writes to this login."
-msgstr "Configuré en dehors de Superset. Son utilisation est affichée, mais un changement n'écrit jamais dans cette connexion."
+msgstr "Configuré en dehors de Superset. Son utilisation est affichée, mais le changement de compte ne modifie jamais cette connexion."
 
 msgid "Set up project on {hostName}"
 msgstr "Configurer le projet sur {hostName}"
@@ -14321,7 +14318,7 @@ msgid "The host isn't connected to the Superset relay. If it's this device, turn
 msgstr "L'hôte n'est pas connecté au relais Superset. S'il s'agit de cet appareil, activez « Autoriser l'accès distant à cet appareil via le relais » dans Paramètres > Accès distant, puis réessayez."
 
 msgid "The host rejected that value, so the previous one still stands."
-msgstr "L'hôte a rejeté cette valeur, la précédente reste donc en vigueur."
+msgstr "L'hôte a rejeté cette valeur ; la précédente reste donc en vigueur."
 
 msgid "The host reported a failed update."
 msgstr "L'hôte a signalé un échec de la mise à jour."

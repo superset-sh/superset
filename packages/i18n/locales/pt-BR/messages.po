@@ -1924,9 +1924,6 @@ msgstr "Montador Anônimo"
 msgid "another device"
 msgstr "outro dispositivo"
 
-msgid "Another Superset instance on this machine owns account switching. Change this there."
-msgstr "Outra instância do Superset nesta máquina controla a troca de contas. Altere por lá."
-
 msgid "Answered"
 msgstr "Respondido"
 
@@ -6191,7 +6188,7 @@ msgid "Failure"
 msgstr "Falha"
 
 msgid "Fallback restart after a usage limit"
-msgstr "Reinício de emergência após um limite de uso"
+msgstr "Reinício alternativo após um limite de uso"
 
 msgid "FAQ"
 msgstr "FAQ"
@@ -15507,7 +15504,7 @@ msgid "Use this when calling the Superset API."
 msgstr "Use isto ao chamar a API do Superset."
 
 msgid "Use up the soonest reset"
-msgstr "Consumir o reset mais próximo"
+msgstr "Usar primeiro a conta cujo reset está mais próximo"
 
 msgid "Use voice transcription and push-to-talk features."
 msgstr "Usar transcrição de voz e o recurso de apertar para falar."

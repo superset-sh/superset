@@ -1924,9 +1924,6 @@ msgstr "Anonimowy Monter"
 msgid "another device"
 msgstr "inne urządzenie"
 
-msgid "Another Superset instance on this machine owns account switching. Change this there."
-msgstr "Przełączaniem kont zarządza inna instancja Supersetu na tym komputerze. Zmień to tam."
-
 msgid "Answered"
 msgstr "Odpowiedziano"
 

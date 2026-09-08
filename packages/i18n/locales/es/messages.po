@@ -1924,9 +1924,6 @@ msgstr "Ensamblador anónimo"
 msgid "another device"
 msgstr "otro dispositivo"
 
-msgid "Another Superset instance on this machine owns account switching. Change this there."
-msgstr "Otra instancia de Superset en este equipo controla el cambio de cuenta. Cámbialo allí."
-
 msgid "Answered"
 msgstr "Respondido"
 

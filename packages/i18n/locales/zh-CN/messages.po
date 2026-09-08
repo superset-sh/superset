@@ -1924,9 +1924,6 @@ msgstr "匿名装配工"
 msgid "another device"
 msgstr "另一台设备"
 
-msgid "Another Superset instance on this machine owns account switching. Change this there."
-msgstr "本机上的另一个Superset实例掌管账户切换，请到那里更改。"
-
 msgid "Answered"
 msgstr "已回答"
 
@@ -13376,7 +13373,7 @@ msgid "Staged"
 msgstr "已暂存"
 
 msgid "Stale token, still eligible"
-msgstr "令牌已过期，仍可使用"
+msgstr "令牌已过期，但账户仍符合切换条件"
 
 msgid "Standard action strip for pane headers"
 msgstr "面板标题栏的标准操作条"
@@ -14182,7 +14179,7 @@ msgid "The 2026 bet"
 msgstr "2026年的赌注"
 
 msgid "The access token is past its expiry but the sign-in is not — a fresh one is minted the next time the CLI runs."
-msgstr "访问令牌已过期，但登录本身没有 — 下次运行CLI时会重新签发。"
+msgstr "访问令牌已过期，但登录仍然有效——下次运行 CLI 时会重新签发。"
 
 msgid "The account engine cannot use its state directory. Make it owner-only (chmod 700), or point SUPERSET_HOME_DIR at a filesystem that supports Unix permissions."
 msgstr "账户引擎无法使用其状态目录。请将该目录设为仅所有者可访问（chmod 700），或将 SUPERSET_HOME_DIR 指向支持 Unix 权限的文件系统。"
@@ -15507,7 +15504,7 @@ msgid "Use this when calling the Superset API."
 msgstr "调用Superset API时使用。"
 
 msgid "Use up the soonest reset"
-msgstr "优先用完最快重置的"
+msgstr "优先用完最快重置的账户额度"
 
 msgid "Use voice transcription and push-to-talk features."
 msgstr "使用语音转写和按住说话功能。"

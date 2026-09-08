@@ -1924,9 +1924,6 @@ msgstr "Thợ lắp ráp ẩn danh"
 msgid "another device"
 msgstr "thiết bị khác"
 
-msgid "Another Superset instance on this machine owns account switching. Change this there."
-msgstr "Một phiên bản Superset khác trên máy này đang quản lý việc đổi tài khoản. Hãy thay đổi ở đó."
-
 msgid "Answered"
 msgstr "Đã trả lời"
 
@@ -13376,7 +13373,7 @@ msgid "Staged"
 msgstr "Đã stage"
 
 msgid "Stale token, still eligible"
-msgstr "Token cũ, vẫn dùng được"
+msgstr "Token cũ, tài khoản vẫn đủ điều kiện"
 
 msgid "Standard action strip for pane headers"
 msgstr "Dải hành động chuẩn cho tiêu đề khung"

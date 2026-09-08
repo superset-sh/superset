@@ -1924,9 +1924,6 @@ msgstr "Perakit Anonim"
 msgid "another device"
 msgstr "perangkat lain"
 
-msgid "Another Superset instance on this machine owns account switching. Change this there."
-msgstr "Instance Superset lain di mesin ini yang mengelola pergantian akun. Ubah di sana."
-
 msgid "Answered"
 msgstr "Dijawab"
 
@@ -13376,7 +13373,7 @@ msgid "Staged"
 msgstr "Sudah di-stage"
 
 msgid "Stale token, still eligible"
-msgstr "Token usang, tetap bisa dipakai"
+msgstr "Token usang, masih memenuhi syarat"
 
 msgid "Standard action strip for pane headers"
 msgstr "Strip aksi standar untuk header panel"

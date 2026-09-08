@@ -1924,9 +1924,6 @@ msgstr "匿名の組立工"
 msgid "another device"
 msgstr "別のデバイス"
 
-msgid "Another Superset instance on this machine owns account switching. Change this there."
-msgstr "このマシンの別のSupersetインスタンスがアカウントの切り替えを管理しています。変更はそちらで行ってください。"
-
 msgid "Answered"
 msgstr "回答済み"
 
