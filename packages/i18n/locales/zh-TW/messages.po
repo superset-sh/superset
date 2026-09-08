@@ -12614,7 +12614,7 @@ msgid "Share"
 msgstr "分享"
 
 msgid "Share designs and reports. Let your agent handle the feedback."
-msgstr "分享設計和報告，讓你的智慧體處理回饋。"
+msgstr "分享設計和報告，讓你的代理程式處理回饋。"
 
 msgid "Share page"
 msgstr "分享頁面"

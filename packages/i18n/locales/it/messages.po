@@ -12614,7 +12614,7 @@ msgid "Share"
 msgstr "Condividi"
 
 msgid "Share designs and reports. Let your agent handle the feedback."
-msgstr "Condividi progetti e report. Lascia che il tuo agente gestisca i feedback."
+msgstr "Condividi design e report. Lascia che il tuo agente gestisca il feedback."
 
 msgid "Share page"
 msgstr "Condividi la pagina"

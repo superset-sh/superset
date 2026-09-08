@@ -12614,7 +12614,7 @@ msgid "Share"
 msgstr "Chia sẻ"
 
 msgid "Share designs and reports. Let your agent handle the feedback."
-msgstr "Chia sẻ thiết kế và báo cáo. Để tác nhân của bạn xử lý phản hồi."
+msgstr "Chia sẻ thiết kế và báo cáo. Hãy để agent của bạn xử lý phản hồi."
 
 msgid "Share page"
 msgstr "Chia sẻ trang"

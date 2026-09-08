@@ -11,12 +11,15 @@ import { PAGE_AGENT_PROMPT } from "./constants";
 export function useCreatePageWithAgent() {
 	const { t } = useLingui();
 	const navigate = useNavigate();
-	const { machineId, activeHostUrl } = useLocalHostService();
-	const { agents: agentChoices } = useV2AgentChoices(activeHostUrl);
+	const { machineId, activeHostUrl, hostServiceStatus } = useLocalHostService();
+	const { agents: agentChoices, isFetched: agentsFetched } =
+		useV2AgentChoices(activeHostUrl);
 	const { submit: submitWorkspaceCreate } = useWorkspaceCreates();
 	const [creatingWithAgent, setCreatingWithAgent] = useState(false);
+	const isReady =
+		!!activeHostUrl && hostServiceStatus === "running" && agentsFetched;
 	const handleCreateWithAgent = () => {
-		if (creatingWithAgent) return;
+		if (creatingWithAgent || !isReady) return;
 		if (!machineId) {
 			toast.error(
 				t({
@@ -52,8 +55,13 @@ export function useCreatePageWithAgent() {
 		navigate({
 			to: "/v2-workspace/$workspaceId",
 			params: { workspaceId },
-		}).catch(() => {});
+		}).catch((error) => {
+			console.error("[CreatePageWithAgent] failed to open workspace", error);
+		});
 	};
 
-	return { creatingWithAgent, handleCreateWithAgent };
+	return {
+		creatingWithAgent: creatingWithAgent || !isReady,
+		handleCreateWithAgent,
+	};
 }
