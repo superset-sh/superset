@@ -1811,6 +1811,9 @@ msgstr "에이전트가 메인 체크아웃을 건드리지 않고 실행되는 
 msgid "An unknown error occurred"
 msgstr "알 수 없는 오류가 발생했습니다"
 
+msgid "An update is ready to install."
+msgstr "설치할 업데이트가 준비되었습니다."
+
 msgid "Animate the active terminal cursor."
 msgstr "활성 터미널 커서를 깜박이게 합니다."
 
@@ -15156,6 +15159,9 @@ msgstr "버전 {0}"
 
 msgid "Version {version}"
 msgstr "버전 {version}"
+
+msgid "Version {version} installs the next time you restart."
+msgstr "버전 {version}은 다음에 재시작할 때 설치됩니다."
 
 msgid "Version {version} is the latest version."
 msgstr "버전 {version}이 최신 버전입니다."

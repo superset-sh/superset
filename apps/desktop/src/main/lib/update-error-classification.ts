@@ -37,10 +37,6 @@ const UPDATER_DEFECT_PATTERNS = [
 // other OSStatus keeps reporting: a signing failure wears the same sentence.
 const AUTHORIZATION_OSSTATUS = /OSStatus\D*-6000[56](?!\d)/;
 
-// launchd refusing to start the ShipIt job because the user or their MDM
-// disabled it. Nothing but this sentence reaches us for it.
-const LAUNCHD_JOB_DISABLED = "the command is disabled and cannot be executed";
-
 // A server error from the release-artifact download is the CDN, not the
 // artifact. A 4xx stays reported: an asset that is not there is ours to
 // publish. Only the packaged app counts; a 5xx while fetching the feed
@@ -78,7 +74,6 @@ export function isEnvironmentUpdateError(
 	if (
 		lowerMessage.includes("read-only volume") ||
 		lowerMessage.includes("the request timed out") ||
-		lowerMessage.includes(LAUNCHD_JOB_DISABLED) ||
 		AUTHORIZATION_OSSTATUS.test(message) ||
 		DOWNLOAD_SERVER_ERROR.test(message)
 	) {

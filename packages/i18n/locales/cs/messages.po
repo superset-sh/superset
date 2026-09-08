@@ -1811,6 +1811,9 @@ msgstr "Izolovaný git worktree, kde agent běží, aniž by sáhl na váš hlav
 msgid "An unknown error occurred"
 msgstr "Došlo k neznámé chybě"
 
+msgid "An update is ready to install."
+msgstr "Aktualizace je připravena k instalaci."
+
 msgid "Animate the active terminal cursor."
 msgstr "Animovat kurzor v aktivním terminálu."
 
@@ -15156,6 +15159,9 @@ msgstr "Verze {0}"
 
 msgid "Version {version}"
 msgstr "Verze {version}"
+
+msgid "Version {version} installs the next time you restart."
+msgstr "Verze {version} se nainstaluje při příštím restartu."
 
 msgid "Version {version} is the latest version."
 msgstr "Verze {version} je nejnovější."

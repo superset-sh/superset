@@ -1811,6 +1811,9 @@ msgstr "メインのチェックアウトに触れずにエージェントを動
 msgid "An unknown error occurred"
 msgstr "不明なエラーが発生しました"
 
+msgid "An update is ready to install."
+msgstr "アップデートをインストールする準備ができました。"
+
 msgid "Animate the active terminal cursor."
 msgstr "アクティブなターミナルカーソルをアニメーションします。"
 
@@ -15156,6 +15159,9 @@ msgstr "バージョン{0}"
 
 msgid "Version {version}"
 msgstr "バージョン{version}"
+
+msgid "Version {version} installs the next time you restart."
+msgstr "バージョン{version}は次回の再起動時にインストールされます。"
 
 msgid "Version {version} is the latest version."
 msgstr "バージョン{version}が最新です。"

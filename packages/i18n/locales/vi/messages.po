@@ -1811,6 +1811,9 @@ msgstr "Một git worktree riêng biệt nơi agent chạy mà không đụng t�
 msgid "An unknown error occurred"
 msgstr "Đã xảy ra lỗi không xác định"
 
+msgid "An update is ready to install."
+msgstr "Đã có bản cập nhật sẵn sàng để cài đặt."
+
 msgid "Animate the active terminal cursor."
 msgstr "Cho con trỏ terminal đang hoạt động nhấp nháy."
 
@@ -15156,6 +15159,9 @@ msgstr "Phiên bản {0}"
 
 msgid "Version {version}"
 msgstr "Phiên bản {version}"
+
+msgid "Version {version} installs the next time you restart."
+msgstr "Phiên bản {version} sẽ được cài đặt trong lần khởi động lại tiếp theo."
 
 msgid "Version {version} is the latest version."
 msgstr "Phiên bản {version} là phiên bản mới nhất."

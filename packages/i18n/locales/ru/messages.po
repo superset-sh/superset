@@ -1811,6 +1811,9 @@ msgstr "Изолированный git worktree, где агент работа�
 msgid "An unknown error occurred"
 msgstr "Произошла неизвестная ошибка"
 
+msgid "An update is ready to install."
+msgstr "Обновление готово к установке."
+
 msgid "Animate the active terminal cursor."
 msgstr "Анимировать курсор активного терминала."
 
@@ -15156,6 +15159,9 @@ msgstr "Версия {0}"
 
 msgid "Version {version}"
 msgstr "Версия {version}"
+
+msgid "Version {version} installs the next time you restart."
+msgstr "Версия {version} установится при следующем перезапуске."
 
 msgid "Version {version} is the latest version."
 msgstr "Версия {version} — самая свежая."

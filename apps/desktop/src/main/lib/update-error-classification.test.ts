@@ -40,7 +40,10 @@ const AUTHORIZATION_DENIED_EN =
 	"The operation couldn’t be completed. (OSStatus error -60005.)";
 const AUTHORIZATION_DENIED_DE =
 	"Der Vorgang konnte nicht abgeschlossen werden. (OSStatus-Fehler -60005.)";
-const LAUNCHD_JOB_DISABLED = "The command is disabled and cannot be executed";
+// ReactiveObjC's RACCommand refusing an execute while Squirrel.Mac is already
+// staging an update. Ours, not the machine's.
+const SQUIRREL_CHECK_REENTERED =
+	"The command is disabled and cannot be executed";
 const CACHE_PATH_IS_A_FILE =
 	"ENOTDIR: not a directory, mkdir '/Users/<user>/Library/Caches/@supersetdesktop-updater/pending'";
 const DOWNLOAD_GATEWAY_TIMEOUT =
@@ -173,10 +176,10 @@ describe("isEnvironmentUpdateError", () => {
 		}
 	});
 
-	test("classifies launchd refusing a disabled ShipIt job", () => {
-		expect(isEnvironmentUpdateError(LAUNCHD_JOB_DISABLED, ROOMY_VOLUME)).toBe(
-			true,
-		);
+	test("keeps reporting a re-entered Squirrel staging command", () => {
+		expect(
+			isEnvironmentUpdateError(SQUIRREL_CHECK_REENTERED, ROOMY_VOLUME),
+		).toBe(false);
 	});
 
 	test("classifies a file sitting where the updater cache must be", () => {

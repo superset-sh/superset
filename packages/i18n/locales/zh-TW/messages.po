@@ -1811,6 +1811,9 @@ msgstr "一個隔離的git worktree，代理程式在其中執行，不會動到
 msgid "An unknown error occurred"
 msgstr "發生未知錯誤"
 
+msgid "An update is ready to install."
+msgstr "更新已準備好安裝。"
+
 msgid "Animate the active terminal cursor."
 msgstr "讓目前終端游標閃爍。"
 
@@ -15156,6 +15159,9 @@ msgstr "版本{0}"
 
 msgid "Version {version}"
 msgstr "版本{version}"
+
+msgid "Version {version} installs the next time you restart."
+msgstr "版本{version}將在下次重新啟動時安裝。"
 
 msgid "Version {version} is the latest version."
 msgstr "版本{version}已是最新版本。"

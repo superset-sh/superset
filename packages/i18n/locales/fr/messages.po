@@ -1811,6 +1811,9 @@ msgstr "Un worktree git isolé où un agent s'exécute sans toucher à votre cop
 msgid "An unknown error occurred"
 msgstr "Une erreur inconnue est survenue"
 
+msgid "An update is ready to install."
+msgstr "Une mise à jour est prête à être installée."
+
 msgid "Animate the active terminal cursor."
 msgstr "Animer le curseur du terminal actif."
 
@@ -15156,6 +15159,9 @@ msgstr "Version {0}"
 
 msgid "Version {version}"
 msgstr "Version {version}"
+
+msgid "Version {version} installs the next time you restart."
+msgstr "La version {version} s'installera au prochain redémarrage."
 
 msgid "Version {version} is the latest version."
 msgstr "La version {version} est la dernière version."

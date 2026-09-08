@@ -1811,6 +1811,9 @@ msgstr "Worktree git terisolasi tempat agen berjalan tanpa menyentuh checkout ut
 msgid "An unknown error occurred"
 msgstr "Terjadi kesalahan yang tidak diketahui"
 
+msgid "An update is ready to install."
+msgstr "Pembaruan siap dipasang."
+
 msgid "Animate the active terminal cursor."
 msgstr "Animasikan kursor terminal yang aktif."
 
@@ -15156,6 +15159,9 @@ msgstr "Versi {0}"
 
 msgid "Version {version}"
 msgstr "Versi {version}"
+
+msgid "Version {version} installs the next time you restart."
+msgstr "Versi {version} akan dipasang saat Anda memulai ulang berikutnya."
 
 msgid "Version {version} is the latest version."
 msgstr "Versi {version} adalah versi terbaru."

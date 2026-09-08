@@ -1811,6 +1811,9 @@ msgstr "Izolowany worktree gita, w którym agent pracuje bez dotykania Twojego g
 msgid "An unknown error occurred"
 msgstr "Wystąpił nieznany błąd"
 
+msgid "An update is ready to install."
+msgstr "Aktualizacja jest gotowa do zainstalowania."
+
 msgid "Animate the active terminal cursor."
 msgstr "Animuj kursor w aktywnym terminalu."
 
@@ -15156,6 +15159,9 @@ msgstr "Wersja {0}"
 
 msgid "Version {version}"
 msgstr "Wersja {version}"
+
+msgid "Version {version} installs the next time you restart."
+msgstr "Wersja {version} zainstaluje się przy następnym ponownym uruchomieniu."
 
 msgid "Version {version} is the latest version."
 msgstr "Wersja {version} jest najnowsza."
