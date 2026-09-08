@@ -13,8 +13,7 @@ const ENGINE_CODE_MESSAGES = {
 			"Automatic account switching is not available on Windows. Switch accounts by hand instead.",
 	}),
 	"lock-loser": msg({
-		message:
-			"Another Superset instance on this machine owns account switching. Change this there.",
+		message: "The shared account service is unavailable. Try refreshing usage.",
 	}),
 	"engine-state-unusable": msg({
 		message:

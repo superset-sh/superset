@@ -9,8 +9,8 @@ type RouterOutputs = inferRouterOutputs<AppRouter>;
  * Per-agent settings plus the runtime state the panel renders from:
  * `engineAvailable` is false when the host runs no engine at all (a cloud
  * sandbox, KTD1), `platformSupported` false on win32 (KTD13), and `lockOwner`
- * false when another Superset instance on this machine holds the engine lock
- * (KTD5) — settings there, not here.
+ * false when the shared account service does not hold the engine lease
+ * (KTD5). All local organizations use that same service.
  */
 export type AccountEngineSnapshot =
 	RouterOutputs["usage"]["engine"]["getSettings"];

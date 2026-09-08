@@ -49,7 +49,7 @@ interface AutoSwitchSettingsProps {
 	engineAvailable: boolean;
 	/** False on win32 (KTD13). */
 	platformSupported: boolean;
-	/** False when another Superset instance holds the engine lock (KTD5). */
+	/** Whether the shared account service currently owns the engine lease. */
 	lockOwner: boolean;
 	/** Host offline or the settings read still in flight. */
 	disabled: boolean;

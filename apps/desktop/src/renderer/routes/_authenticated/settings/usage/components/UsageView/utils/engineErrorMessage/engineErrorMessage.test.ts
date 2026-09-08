@@ -7,7 +7,7 @@ describe("engineErrorMessage", () => {
 			"Windows",
 		);
 		expect(engineErrorMessage(new Error("lock-loser"))).toContain(
-			"Another Superset instance",
+			"The shared account service is unavailable",
 		);
 		expect(engineErrorMessage(new Error("engine-state-unusable"))).toContain(
 			"cannot use its state directory",

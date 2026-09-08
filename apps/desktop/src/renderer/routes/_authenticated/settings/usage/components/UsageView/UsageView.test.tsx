@@ -64,7 +64,7 @@ mock.module("../../hooks/useSetDefaultUsageAccount", () => ({
 const { QueryClient, QueryClientProvider } = await import(
 	"@tanstack/react-query"
 );
-const { cleanup, fireEvent, render, waitFor, within } = await import(
+const { act, cleanup, fireEvent, render, waitFor, within } = await import(
 	"@testing-library/react"
 );
 const { HOST_USAGE_QUOTA_QUERY_KEY } = await import(
@@ -429,7 +429,7 @@ describe("UsageView card errors", () => {
 		);
 		fireEvent.click(cardFor("d@example.com").getByText("Make active"));
 		expect(cardFor("d@example.com").getByRole("alert").textContent).toContain(
-			"Another Superset instance",
+			"The shared account service is unavailable",
 		);
 
 		fireEvent.click(cardFor("c@example.com").getByText("Make active"));
@@ -438,7 +438,7 @@ describe("UsageView card errors", () => {
 		expect(cardFor("b@example.com").queryAllByRole("alert")).toHaveLength(0);
 		// The Codex refusal is about a switch this one did not perform.
 		expect(cardFor("d@example.com").getByRole("alert").textContent).toContain(
-			"Another Superset instance",
+			"The shared account service is unavailable",
 		);
 	});
 
@@ -472,7 +472,9 @@ describe("UsageView card errors", () => {
 
 		// No host, so the rotation write refuses and the hook rolls the toggle
 		// back to where it was.
-		fireEvent.click(cardFor("a@example.com").getByRole("switch"));
+		await act(async () => {
+			fireEvent.click(cardFor("a@example.com").getByRole("switch"));
+		});
 		await waitFor(() =>
 			expect(cardFor("a@example.com").getByRole("alert").textContent).toContain(
 				"Rotation not saved",
@@ -570,8 +572,10 @@ describe("UsageView card errors", () => {
 
 		// No host, so both rotation writes refuse. The second click lands while
 		// the first is still in flight, which is the case that lost it.
-		fireEvent.click(cardFor("a@example.com").getByRole("switch"));
-		fireEvent.click(cardFor("b@example.com").getByRole("switch"));
+		await act(async () => {
+			fireEvent.click(cardFor("a@example.com").getByRole("switch"));
+			fireEvent.click(cardFor("b@example.com").getByRole("switch"));
+		});
 
 		await waitFor(() =>
 			expect(cardFor("a@example.com").getByRole("alert").textContent).toContain(
@@ -590,7 +594,9 @@ describe("UsageView card errors", () => {
 		const cardFor = renderUsageView(duplicateAccountIdAccounts());
 
 		// No host, so the rotation write refuses.
-		fireEvent.click(cardFor("live@example.com").getByRole("switch"));
+		await act(async () => {
+			fireEvent.click(cardFor("live@example.com").getByRole("switch"));
+		});
 		await waitFor(() =>
 			expect(
 				cardFor("live@example.com").getByRole("alert").textContent,
