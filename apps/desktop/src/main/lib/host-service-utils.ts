@@ -98,6 +98,19 @@ export async function pollHealthCheck(
 }
 
 /**
+ * Lookahead asserting the home directory ended a path segment: end of input, or
+ * a separator. Both separators are accepted — `os.homedir()` is `C:\Users\...`
+ * on Windows and paths under it get logged with either — and widening the
+ * lookahead can only ever refuse more matches, never admit one.
+ */
+const PATH_SEGMENT_END = "(?=$|[/\\\\])";
+
+/** So a HOME containing regex metacharacters cannot change what matches. */
+function escapeRegExp(literal: string): string {
+	return literal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
  * Strip secrets and the user's home directory out of a child's output tail
  * before it is attached to a crash report.
  *
@@ -111,6 +124,12 @@ export async function pollHealthCheck(
  * tail is the only evidence a hard kill (SIGSEGV, OOM) leaves behind, so a
  * matcher that reached past what it named would redact the diagnosis along
  * with the name.
+ *
+ * The home directory matches only at a path-segment boundary. `/Users/ada` is a
+ * literal substring of `/Users/adam/project` — a *different* account's path,
+ * outside this home — and rewriting that to `~m/project` would corrupt exactly
+ * what this is here to protect. `/Users/ada-old` left by a migration and a
+ * second account on the machine both produce it.
  */
 export function redactCrashTail(
 	tail: string,
@@ -127,7 +146,10 @@ export function redactCrashTail(
 	// A root is its own parent. It also prefixes nearly every absolute path in
 	// the tail, so substituting one would erase the report.
 	if (homeDir && path.dirname(homeDir) !== homeDir) {
-		redacted = redacted.split(homeDir).join("~");
+		redacted = redacted.replace(
+			new RegExp(`${escapeRegExp(homeDir)}${PATH_SEGMENT_END}`, "g"),
+			"~",
+		);
 	}
 	return redacted;
 }
