@@ -10,6 +10,7 @@ import type { TreeBookkeeping } from "../../utils/treeBookkeeping";
 import { purgeDirectory, rekeyDirectory } from "../../utils/treeBookkeeping";
 import {
 	asDirectoryHandle,
+	expandedPathsForRefresh,
 	lookupDirectory,
 	resolveDeleteTreePath,
 	stripTrailingSlash,
@@ -358,11 +359,7 @@ export function useFilesTabBridge({
 				}
 			}
 			model.resetPaths(Array.from(freshPaths), {
-				initialExpandedPaths: [...freshLoadedDirs]
-					.filter(
-						(dir) => dir && lookupDirectory(model, `${dir}/`)?.isExpanded(),
-					)
-					.map((dir) => `${dir}/`),
+				initialExpandedPaths: expandedPathsForRefresh(model, freshPaths),
 			});
 		} finally {
 			setIsRefreshing(false);

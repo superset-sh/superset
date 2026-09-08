@@ -1,6 +1,7 @@
 export {
 	asDirectoryHandle,
 	basename,
+	expandedPathsForRefresh,
 	lookupDirectory,
 	parentRel,
 	resolveDeleteTreePath,

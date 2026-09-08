@@ -162,7 +162,7 @@ it("observes a directory without walking descendants, survives deletion, and sto
 		pollMs: 40,
 	});
 	disposers.push(dispose);
-	await new Promise((resolve) => setTimeout(resolve, 100));
+	await dispose.ready;
 	await fs.writeFile(path.join(directory, "new.txt"), "new");
 	await waitFor(
 		events,
@@ -173,7 +173,10 @@ it("observes a directory without walking descendants, survives deletion, and sto
 	await new Promise((resolve) => setTimeout(resolve, 150));
 	expect(events).toEqual([]);
 	await fs.rm(directory, { recursive: true });
-	await waitFor(events, (event) => event.kind === "delete");
+	await waitFor(
+		events,
+		(event) => event.kind === "delete" && event.isDirectory === true,
+	);
 	events.length = 0;
 	await fs.mkdir(directory);
 	await waitFor(
@@ -185,4 +188,23 @@ it("observes a directory without walking descendants, survives deletion, and sto
 	await fs.writeFile(path.join(directory, "after.txt"), "after");
 	await new Promise((resolve) => setTimeout(resolve, 150));
 	expect(events).toEqual([]);
+});
+
+it("catches up an initial read that predates resource watch attachment", async () => {
+	const file = await createTempFile();
+	const initial = await fs.readFile(file, "utf8");
+	await fs.writeFile(file, "changed before attach");
+	const events: FsWatchEvent[] = [];
+	const dispose = watchSingleFile(file, (event) => events.push(event), {
+		emitInitialState: true,
+	});
+	disposers.push(dispose);
+	await dispose.ready;
+	expect(initial).toBe("initial");
+	expect(events).toContainEqual({
+		kind: "update",
+		absolutePath: file,
+		isDirectory: false,
+	});
+	expect(await fs.readFile(file, "utf8")).toBe("changed before attach");
 });

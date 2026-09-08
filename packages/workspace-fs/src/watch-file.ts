@@ -7,9 +7,13 @@ const RECREATION_POLL_MS = 2_000;
 
 export interface WatchSingleFileOptions {
 	debounceMs?: number;
+	/** Re-read consumers after attach to cover changes since their initial read. */
+	emitInitialState?: boolean;
 	/** How often to poll for the file to (re)appear while it's absent. */
 	pollMs?: number;
 }
+
+export type ResourceWatchDisposer = (() => void) & { ready: Promise<void> };
 
 /**
  * Targeted watch on one file, for paths the recursive workspace watcher
@@ -27,7 +31,7 @@ export function watchSingleFile(
 	absolutePath: string,
 	onEvent: (event: FsWatchEvent) => void,
 	options: WatchSingleFileOptions = {},
-): () => void {
+): ResourceWatchDisposer {
 	const debounceMs = options.debounceMs ?? DEBOUNCE_MS;
 	const pollMs = options.pollMs ?? RECREATION_POLL_MS;
 
@@ -144,25 +148,27 @@ export function watchSingleFile(
 				emit(existed ? "update" : "create", false);
 			} else {
 				const existed = exists;
+				const wasDirectory = dirMtimeMs !== null;
 				exists = false;
+				dirMtimeMs = null;
 				closeWatcher();
 				startPolling();
 				if (existed) {
-					emit("delete", false);
+					emit("delete", wasDirectory);
 				}
 			}
 		} finally {
 			settling = false;
-		}
-		if (settleQueued) {
-			settleQueued = false;
-			scheduleSettle();
+			if (settleQueued) {
+				settleQueued = false;
+				scheduleSettle();
+			}
 		}
 	};
 
-	// Initial attach: no emit — the caller already has the file's current
-	// state (or its absence). Just start watching/polling from it.
-	void (async () => {
+	// Attach before an optional catch-up notification, so a caller whose
+	// initial read raced this subscription can re-read without another gap.
+	const ready = (async () => {
 		const stats = await stat(absolutePath).catch(() => null);
 		if (disposed) return;
 		exists = stats !== null;
@@ -172,15 +178,21 @@ export function watchSingleFile(
 		} else if (!stats || !installWatcher(stats.ino)) {
 			startPolling();
 		}
+		if (options.emitInitialState) {
+			emit(stats ? "update" : "delete", stats?.isDirectory() ?? false);
+		}
 	})();
 
-	return () => {
-		disposed = true;
-		if (debounceTimer) {
-			clearTimeout(debounceTimer);
-			debounceTimer = null;
-		}
-		stopPolling();
-		closeWatcher();
-	};
+	return Object.assign(
+		() => {
+			disposed = true;
+			if (debounceTimer) {
+				clearTimeout(debounceTimer);
+				debounceTimer = null;
+			}
+			stopPolling();
+			closeWatcher();
+		},
+		{ ready },
+	);
 }

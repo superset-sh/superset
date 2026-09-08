@@ -1,6 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import { FileTree } from "@pierre/trees";
-import { lookupDirectory, resolveDeleteTreePath } from "./treePath";
+import {
+	expandedPathsForRefresh,
+	lookupDirectory,
+	resolveDeleteTreePath,
+} from "./treePath";
 
 describe("resolveDeleteTreePath", () => {
 	it("infers a tracked directory when watcher metadata is absent", () => {
@@ -62,4 +66,20 @@ describe("lookupDirectory", () => {
 		const model = treeHoldingBuildAsAFile();
 		expect(lookupDirectory(model, "src/out/keep.ts")).toBeNull();
 	});
+});
+
+it("preserves pending expanded folders while excluding removed and collapsed folders", () => {
+	const model = new FileTree({
+		paths: ["pending/", "removed/", "closed/"],
+		initialExpansion: "closed",
+	});
+	lookupDirectory(model, "pending/")?.expand();
+	lookupDirectory(model, "removed/")?.expand();
+	const fresh = ["pending/", "closed/"];
+	model.resetPaths(fresh, {
+		initialExpandedPaths: expandedPathsForRefresh(model, fresh),
+	});
+	expect(lookupDirectory(model, "pending/")?.isExpanded()).toBe(true);
+	expect(lookupDirectory(model, "closed/")?.isExpanded()).toBe(false);
+	expect(lookupDirectory(model, "removed/")).toBeNull();
 });

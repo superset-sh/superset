@@ -276,6 +276,7 @@ export function createFsHostService(
 
 		async searchContent(input) {
 			const matches = await searchContent({
+				indexMaxAgeMs: options.searchIndexMaxAgeMs,
 				rootPath,
 				query: input.query,
 				includeHidden: input.includeHidden,

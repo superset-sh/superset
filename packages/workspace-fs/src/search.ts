@@ -131,6 +131,7 @@ export interface RunRipgrepOptions {
 }
 
 export interface SearchContentOptions {
+	indexMaxAgeMs?: number;
 	rootPath: string;
 	query: string;
 	includeHidden?: boolean;
@@ -506,7 +507,7 @@ async function searchContentWithRipgrep({
 	excludePattern,
 	limit,
 	runRipgrep,
-}: Required<Omit<SearchContentOptions, "runRipgrep">> & {
+}: Required<Omit<SearchContentOptions, "runRipgrep" | "indexMaxAgeMs">> & {
 	runRipgrep: NonNullable<SearchContentOptions["runRipgrep"]>;
 }): Promise<InternalContentMatch[]> {
 	const safeLimit = safeSearchLimit(limit);
@@ -952,6 +953,7 @@ export async function searchFiles({
 }
 
 export async function searchContent({
+	indexMaxAgeMs,
 	rootPath,
 	query,
 	includeHidden = true,
@@ -982,7 +984,11 @@ export async function searchContent({
 			runRipgrep,
 		});
 	} catch {
-		const index = await getSearchIndex({ rootPath, includeHidden });
+		const index = await getSearchIndex({
+			rootPath,
+			includeHidden,
+			maxAgeMs: indexMaxAgeMs,
+		});
 		internalMatches = await searchContentWithScan({
 			index,
 			query: trimmedQuery,

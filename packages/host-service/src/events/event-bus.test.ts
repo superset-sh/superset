@@ -106,13 +106,17 @@ describe("EventBus fs:watch-file", () => {
 		const root = await fs.realpath(
 			await fs.mkdtemp(path.join(os.tmpdir(), "eb-watchfile-")),
 		);
+		const gitEvents: unknown[][] = [];
 		const eventBus = new EventBus({
 			db: {} as unknown as HostDb,
 			filesystem: {
 				resolveWorkspaceRoot: () => root,
 				isPathPrunedFromWatch: () => pruned,
 			} as unknown as WorkspaceFilesystemManager,
-			gitWatcher: { onChanged: () => () => {} } as unknown as GitWatcher,
+			gitWatcher: {
+				onChanged: () => () => {},
+				notifyWorktreeEvents: (...args: unknown[]) => gitEvents.push(args),
+			} as unknown as GitWatcher,
 		});
 		const sent: Array<{ type: string; events?: unknown[] }> = [];
 		const socket = {
@@ -123,7 +127,7 @@ describe("EventBus fs:watch-file", () => {
 			close() {},
 		};
 		eventBus.handleOpen(socket);
-		return { root, eventBus, socket, sent, fs, path };
+		return { root, eventBus, socket, sent, fs, path, gitEvents };
 	}
 
 	it("dedupes duplicate watch commands (one unwatch stops delivery)", async () => {
@@ -197,6 +201,61 @@ describe("EventBus fs:watch-file", () => {
 		eventBus.handleClose(socket);
 		await fs.rm(root, { recursive: true, force: true });
 	}, 15_000);
+
+	it("forwards a targeted edit to Git consumers as well as the editor", async () => {
+		const { root, eventBus, socket, sent, fs, path, gitEvents } =
+			await createFileWatchHarness(true);
+		const file = path.join(root, "editor.txt");
+		try {
+			await fs.writeFile(file, "initial");
+			eventBus.handleMessage(
+				socket,
+				JSON.stringify({
+					type: "fs:watch-file",
+					workspaceId: "ws-1",
+					absolutePath: file,
+				}),
+			);
+			const waitForEvent = async () => {
+				const deadline = Date.now() + 3000;
+				while (!gitEvents.length && Date.now() < deadline)
+					await new Promise((resolve) => setTimeout(resolve, 10));
+				expect(gitEvents.length).toBeGreaterThan(0);
+			};
+			await waitForEvent(); // Initial catch-up proves the resource has attached.
+			gitEvents.length = 0;
+			sent.length = 0;
+			await fs.writeFile(`${file}.tmp`, "atomic edit");
+			await fs.rename(`${file}.tmp`, file);
+			await waitForEvent();
+			expect(gitEvents[0]).toEqual([
+				"ws-1",
+				root,
+				[{ kind: "update", absolutePath: file, isDirectory: false }],
+			]);
+			expect(sent.some((message) => message.type === "fs:events")).toBe(true);
+		} finally {
+			eventBus.handleClose(socket);
+			await fs.rm(root, { recursive: true, force: true });
+		}
+	});
+
+	it("covered paths do not consume the targeted-watch budget", async () => {
+		const { root, eventBus, socket, sent, fs } =
+			await createFileWatchHarness(false);
+		for (let i = 0; i < 300; i++)
+			eventBus.handleMessage(
+				socket,
+				JSON.stringify({
+					type: "fs:watch-file",
+					workspaceId: "ws-1",
+					absolutePath: `${root}/covered-${i}`,
+				}),
+			);
+		expect(sent.filter((message) => message.type === "error")).toEqual([]);
+		eventBus.handleClose(socket);
+		await fs.rm(root, { recursive: true, force: true });
+	});
 
 	it("rejects paths outside the workspace root", async () => {
 		const { root, eventBus, socket, sent, fs } =

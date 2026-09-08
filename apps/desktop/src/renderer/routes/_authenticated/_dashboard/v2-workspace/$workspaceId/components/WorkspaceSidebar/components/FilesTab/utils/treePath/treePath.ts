@@ -85,3 +85,13 @@ export function lookupDirectory(
 		return null;
 	}
 }
+
+/** Preserve expansion even when a directory's first listing is still pending. */
+export function expandedPathsForRefresh(
+	model: FileTree,
+	freshPaths: Iterable<string>,
+): string[] {
+	return [...freshPaths].filter(
+		(path) => path.endsWith("/") && lookupDirectory(model, path)?.isExpanded(),
+	);
+}

@@ -410,3 +410,22 @@ it("keeps the index bounded after a stream of file creations", async () => {
 		MAX_SEARCH_INDEX_ENTRIES,
 	);
 });
+
+it("expires the fallback content index when unwatched descendants change", async () => {
+	const rootPath = await createTempRoot();
+	const options = {
+		rootPath,
+		query: "needle",
+		indexMaxAgeMs: 0,
+		runRipgrep: async () => {
+			throw new Error("rg unavailable");
+		},
+	};
+	expect(await searchContent(options)).toEqual([]);
+	await fs.mkdir(path.join(rootPath, "deep"));
+	await fs.writeFile(path.join(rootPath, "deep", "new.txt"), "needle");
+	await new Promise((resolve) => setTimeout(resolve, 2));
+	expect(
+		(await searchContent(options)).map((match) => match.relativePath),
+	).toEqual(["deep/new.txt"]);
+});

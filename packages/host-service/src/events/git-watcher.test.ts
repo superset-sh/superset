@@ -354,3 +354,46 @@ describe("GitWatcher adaptive debounce", () => {
 		expect(events).toEqual([{ workspaceId: "workspace-1" }]);
 	});
 });
+
+describe("targeted resource events", () => {
+	test("reach Git consumers, honor ignore rules, and stop without interest", async () => {
+		const watcher = createWatcher();
+		const events: GitChangedEvent[] = [];
+		watcher.onChanged((event) => events.push(event));
+		// Set interest without attaching native watchers: exercise the real dispatcher.
+		(watcher as unknown as { interest: Map<string, number> }).interest.set(
+			"ws",
+			1,
+		);
+		const state = internals(watcher).getOrCreateIgnoredDirsState("ws");
+		state.dirs = new Set(["ignored"]);
+		watcher.notifyWorktreeEvents("ws", "/repo", [
+			{
+				kind: "update",
+				absolutePath: "/repo/deep/editor.ts",
+				isDirectory: false,
+			},
+			{
+				kind: "update",
+				absolutePath: "/repo/ignored/output.js",
+				isDirectory: false,
+			},
+		]);
+		await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_MS + 100));
+		expect(events).toHaveLength(1);
+		expect(events[0]?.paths).toEqual(["deep/editor.ts"]);
+		watcher.notifyWorktreeEvents("ws", "/repo", [
+			{ kind: "update", absolutePath: "/repo/deep", isDirectory: true },
+		]);
+		await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_MS + 100));
+		expect(events).toHaveLength(2);
+		expect(events[1]?.paths).toBeUndefined();
+		watcher.unwatchWorkspace("ws");
+		watcher.notifyWorktreeEvents("ws", "/repo", [
+			{ kind: "update", absolutePath: "/repo/late.ts", isDirectory: false },
+		]);
+		await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_MS + 100));
+		expect(events).toHaveLength(2);
+		watcher.close();
+	});
+});
