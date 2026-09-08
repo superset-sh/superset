@@ -2280,6 +2280,9 @@ msgstr "Back to pages"
 msgid "Back to tasks"
 msgstr "Back to tasks"
 
+msgid "Back to the leaderboard"
+msgstr "Back to the leaderboard"
+
 msgid "Background"
 msgstr "Background"
 
@@ -14296,6 +14299,9 @@ msgstr "This plugin needs no account — its skills are ready to use."
 msgid "This port is still in use"
 msgstr "This port is still in use"
 
+msgid "This profile is busy right now"
+msgstr "This profile is busy right now"
+
 msgid "This project is no longer available on your devices."
 msgstr "This project is no longer available on your devices."
 
@@ -14548,6 +14554,9 @@ msgstr "Too many machines publishing for this account."
 
 msgid "Too many messages. Please try again later."
 msgstr "Too many messages. Please try again later."
+
+msgid "Too many people are looking at once. Try again shortly."
+msgstr "Too many people are looking at once. Try again shortly."
 
 msgid "Too many prompt submissions. Try again later."
 msgstr "Too many prompt submissions. Try again later."

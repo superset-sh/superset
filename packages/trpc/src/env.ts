@@ -46,6 +46,11 @@ export const env = createEnv({
 		NEXT_PUBLIC_WEB_URL: z.string().url(),
 		KV_REST_API_URL: z.string().url().optional(),
 		KV_REST_API_TOKEN: z.string().optional(),
+		// Shared with apps/marketing. Its server-side leaderboard reads present
+		// it to skip the per-IP anonymous limiter, which would otherwise count
+		// every marketing render as one visitor (Vercel shares egress IPs).
+		// Absent means every read is anonymous and rate-limited.
+		LEADERBOARD_INTERNAL_TOKEN: z.string().min(1).optional(),
 		// Blaxel (cloud workspace sandboxes).
 		BLAXEL_API_KEY: z.string().min(1),
 		BLAXEL_WORKSPACE: z.string().min(1),

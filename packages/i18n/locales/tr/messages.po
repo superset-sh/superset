@@ -2280,6 +2280,9 @@ msgstr "Sayfalara dön"
 msgid "Back to tasks"
 msgstr "Görevlere dön"
 
+msgid "Back to the leaderboard"
+msgstr "Lider tablosuna dön"
+
 msgid "Background"
 msgstr "Arka plan"
 
@@ -14296,6 +14299,9 @@ msgstr "Bu eklenti hesap gerektirmez — Becerileri kullanıma hazır."
 msgid "This port is still in use"
 msgstr "Bu port hâlâ kullanımda"
 
+msgid "This profile is busy right now"
+msgstr "Bu profil şu anda yoğun"
+
 msgid "This project is no longer available on your devices."
 msgstr "Bu proje artık cihazlarınızda kullanılamıyor."
 
@@ -14548,6 +14554,9 @@ msgstr "Bu hesap için çok fazla makine yayın yapıyor."
 
 msgid "Too many messages. Please try again later."
 msgstr "Çok fazla mesaj. Lütfen daha sonra yeniden deneyin."
+
+msgid "Too many people are looking at once. Try again shortly."
+msgstr "Aynı anda çok fazla kişi bakıyor. Kısa süre sonra tekrar deneyin."
 
 msgid "Too many prompt submissions. Try again later."
 msgstr "Çok fazla istem gönderimi. Daha sonra yeniden deneyin."

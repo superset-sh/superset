@@ -2280,6 +2280,9 @@ msgstr "페이지로 돌아가기"
 msgid "Back to tasks"
 msgstr "작업으로 돌아가기"
 
+msgid "Back to the leaderboard"
+msgstr "리더보드로 돌아가기"
+
 msgid "Background"
 msgstr "배경"
 
@@ -14296,6 +14299,9 @@ msgstr "이 플러그인은 계정이 필요 없습니다 — 스킬을 바로 �
 msgid "This port is still in use"
 msgstr "이 포트는 아직 사용 중입니다"
 
+msgid "This profile is busy right now"
+msgstr "이 프로필은 지금 혼잡합니다"
+
 msgid "This project is no longer available on your devices."
 msgstr "이 프로젝트는 더 이상 내 기기에서 사용할 수 없습니다."
 
@@ -14548,6 +14554,9 @@ msgstr "이 계정에서 게시 중인 컴퓨터가 너무 많습니다."
 
 msgid "Too many messages. Please try again later."
 msgstr "메시지가 너무 많습니다. 잠시 후 다시 시도해 주세요."
+
+msgid "Too many people are looking at once. Try again shortly."
+msgstr "동시에 보는 사람이 너무 많습니다. 잠시 후 다시 시도해 주세요."
 
 msgid "Too many prompt submissions. Try again later."
 msgstr "프롬프트 제출이 너무 많습니다. 나중에 다시 시도하세요."

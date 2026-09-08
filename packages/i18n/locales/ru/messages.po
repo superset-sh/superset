@@ -2280,6 +2280,9 @@ msgstr "К страницам"
 msgid "Back to tasks"
 msgstr "К задачам"
 
+msgid "Back to the leaderboard"
+msgstr "Вернуться к рейтингу"
+
 msgid "Background"
 msgstr "Фон"
 
@@ -14296,6 +14299,9 @@ msgstr "Этому плагину не нужен аккаунт — его На
 msgid "This port is still in use"
 msgstr "Этот порт ещё используется"
 
+msgid "This profile is busy right now"
+msgstr "Этот профиль сейчас перегружен"
+
 msgid "This project is no longer available on your devices."
 msgstr "Этот проект больше недоступен на ваших устройствах."
 
@@ -14548,6 +14554,9 @@ msgstr "Слишком много машин публикуют данные д�
 
 msgid "Too many messages. Please try again later."
 msgstr "Слишком много сообщений. Попробуйте позже."
+
+msgid "Too many people are looking at once. Try again shortly."
+msgstr "Слишком много людей смотрят его одновременно. Повторите попытку чуть позже."
 
 msgid "Too many prompt submissions. Try again later."
 msgstr "Слишком много отправленных промптов. Попробуйте позже."

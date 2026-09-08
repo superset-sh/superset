@@ -2280,6 +2280,9 @@ msgstr "Kembali ke halaman"
 msgid "Back to tasks"
 msgstr "Kembali ke tugas"
 
+msgid "Back to the leaderboard"
+msgstr "Kembali ke papan peringkat"
+
 msgid "Background"
 msgstr "Latar belakang"
 
@@ -14296,6 +14299,9 @@ msgstr "Plugin ini tidak memerlukan akun — Skill-nya siap dipakai."
 msgid "This port is still in use"
 msgstr "Port ini masih dipakai"
 
+msgid "This profile is busy right now"
+msgstr "Profil ini sedang sibuk"
+
 msgid "This project is no longer available on your devices."
 msgstr "Proyek ini sudah tidak tersedia di perangkat Anda."
 
@@ -14548,6 +14554,9 @@ msgstr "Terlalu banyak mesin yang mempublikasikan untuk akun ini."
 
 msgid "Too many messages. Please try again later."
 msgstr "Terlalu banyak pesan. Silakan coba lagi nanti."
+
+msgid "Too many people are looking at once. Try again shortly."
+msgstr "Terlalu banyak orang yang melihat sekaligus. Coba lagi sebentar lagi."
 
 msgid "Too many prompt submissions. Try again later."
 msgstr "Terlalu banyak prompt yang dikirim. Coba lagi nanti."

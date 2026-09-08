@@ -77,6 +77,13 @@ export async function fetchParticipant(
 	}
 }
 
+/** The API's public limiter refused the read; the caller decides what to render. */
+export function isRateLimited(error: unknown): boolean {
+	return (
+		error instanceof TRPCClientError && error.data?.code === "TOO_MANY_REQUESTS"
+	);
+}
+
 export async function fetchStanding(
 	handle: string,
 	options: MetricQuery = {},

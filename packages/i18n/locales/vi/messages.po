@@ -2280,6 +2280,9 @@ msgstr "Quay lại danh sách trang"
 msgid "Back to tasks"
 msgstr "Quay lại tác vụ"
 
+msgid "Back to the leaderboard"
+msgstr "Quay lại bảng xếp hạng"
+
 msgid "Background"
 msgstr "Nền"
 
@@ -14296,6 +14299,9 @@ msgstr "Plugin này không cần tài khoản — các Skill của nó đã sẵ
 msgid "This port is still in use"
 msgstr "Cổng này vẫn đang được dùng"
 
+msgid "This profile is busy right now"
+msgstr "Hồ sơ này hiện đang quá tải"
+
 msgid "This project is no longer available on your devices."
 msgstr "Dự án này không còn khả dụng trên các thiết bị của bạn."
 
@@ -14548,6 +14554,9 @@ msgstr "Quá nhiều máy đang đăng dữ liệu cho tài khoản này."
 
 msgid "Too many messages. Please try again later."
 msgstr "Quá nhiều tin nhắn. Vui lòng thử lại sau."
+
+msgid "Too many people are looking at once. Try again shortly."
+msgstr "Có quá nhiều người đang xem cùng lúc. Vui lòng thử lại sau giây lát."
 
 msgid "Too many prompt submissions. Try again later."
 msgstr "Quá nhiều lượt gửi prompt. Hãy thử lại sau."

@@ -2280,6 +2280,9 @@ msgstr "Terug naar pagina's"
 msgid "Back to tasks"
 msgstr "Terug naar taken"
 
+msgid "Back to the leaderboard"
+msgstr "Terug naar de ranglijst"
+
 msgid "Background"
 msgstr "Achtergrond"
 
@@ -14296,6 +14299,9 @@ msgstr "Deze plugin heeft geen account nodig — de Skills zijn meteen klaar voo
 msgid "This port is still in use"
 msgstr "Deze poort is nog in gebruik"
 
+msgid "This profile is busy right now"
+msgstr "Dit profiel is momenteel druk bezet"
+
 msgid "This project is no longer available on your devices."
 msgstr "Dit project is niet meer beschikbaar op je apparaten."
 
@@ -14548,6 +14554,9 @@ msgstr "Te veel machines publiceren voor dit account."
 
 msgid "Too many messages. Please try again later."
 msgstr "Te veel berichten. Probeer het later opnieuw."
+
+msgid "Too many people are looking at once. Try again shortly."
+msgstr "Te veel mensen bekijken het tegelijk. Probeer het zo opnieuw."
 
 msgid "Too many prompt submissions. Try again later."
 msgstr "Te veel promptinzendingen. Probeer het later opnieuw."

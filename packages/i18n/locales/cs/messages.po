@@ -2280,6 +2280,9 @@ msgstr "Zpět na stránky"
 msgid "Back to tasks"
 msgstr "Zpět na úkoly"
 
+msgid "Back to the leaderboard"
+msgstr "Zpět na žebříček"
+
 msgid "Background"
 msgstr "Pozadí"
 
@@ -14296,6 +14299,9 @@ msgstr "Tento plugin nevyžaduje účet — jeho Skills jsou připraveny k použ
 msgid "This port is still in use"
 msgstr "Tento port se stále používá"
 
+msgid "This profile is busy right now"
+msgstr "Tento profil je právě přetížený"
+
 msgid "This project is no longer available on your devices."
 msgstr "Tento projekt už na vašich zařízeních není dostupný."
 
@@ -14548,6 +14554,9 @@ msgstr "Pro tento účet zveřejňuje příliš mnoho počítačů."
 
 msgid "Too many messages. Please try again later."
 msgstr "Příliš mnoho zpráv. Zkuste to prosím později."
+
+msgid "Too many people are looking at once. Try again shortly."
+msgstr "Dívá se na něj příliš mnoho lidí najednou. Zkuste to za chvíli znovu."
 
 msgid "Too many prompt submissions. Try again later."
 msgstr "Příliš mnoho odeslaných promptů. Zkuste to později."

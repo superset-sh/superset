@@ -20,7 +20,6 @@ import { TierTube } from "@/app/[lang]/components/TierTube";
 import { TokenSplitBar } from "@/app/[lang]/components/TokenSplitBar";
 import { localeUrl, localizedAlternates } from "@/app/[lang]/metadata";
 import { avatarUrl } from "@/app/[lang]/utils/avatarUrl";
-import { fetchParticipant } from "@/app/[lang]/utils/fetchLeaderboard";
 import {
 	dayCount,
 	formatCount,
@@ -31,8 +30,10 @@ import {
 import { initServerI18n } from "@/app/i18n-server";
 import { AchievementShelf } from "./components/AchievementShelf";
 import { ProfileLinks } from "./components/ProfileLinks";
+import { ProfileUnavailable } from "./components/ProfileUnavailable";
 import { ShareButtons } from "./components/ShareButtons";
 import { ViewToggle } from "./components/ViewToggle";
+import { loadProfile } from "./utils/loadProfile";
 
 const pixel = Silkscreen({
 	weight: ["400", "700"],
@@ -51,12 +52,16 @@ export async function generateMetadata({
 }: PageProps): Promise<Metadata> {
 	const lang = await initServerI18n();
 	const { handle } = await params;
-	const profile = await fetchParticipant(handle, { period: "all" });
+	const lookup = await loadProfile(handle);
 
-	if (!profile) {
+	if (lookup.state === "missing") {
 		return { title: "Not found", robots: { index: false } };
 	}
+	if (lookup.state === "rate-limited") {
+		return { title: "Try again shortly", robots: { index: false } };
+	}
 
+	const { profile } = lookup;
 	const who = profile.name ?? `@${profile.handle}`;
 	const title = `${who} · #${profile.rank} on the ${COMPANY.NAME} leaderboard`;
 	const description = `${formatTokens(profile.allTime.tokens)} tokens and ${formatUsd(
@@ -91,10 +96,12 @@ export default async function UserProfilePage({ params }: PageProps) {
 
 	const { t } = useLingui();
 	const { handle } = await params;
-	const profile = await fetchParticipant(handle, { period: "all" });
+	const lookup = await loadProfile(handle);
 
-	if (!profile) notFound();
+	if (lookup.state === "missing") notFound();
+	if (lookup.state === "rate-limited") return <ProfileUnavailable />;
 
+	const { profile } = lookup;
 	const colors = buildModelColors([profile.models]);
 	const shareUrl = `${COMPANY.MARKETING_URL.replace(/\/$/, "")}/${profile.handle}`;
 	const company = COMPANY.NAME;

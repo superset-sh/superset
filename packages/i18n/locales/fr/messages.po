@@ -2280,6 +2280,9 @@ msgstr "Retour aux pages"
 msgid "Back to tasks"
 msgstr "Retour aux tâches"
 
+msgid "Back to the leaderboard"
+msgstr "Retour au classement"
+
 msgid "Background"
 msgstr "Arrière-plan"
 
@@ -14296,6 +14299,9 @@ msgstr "Ce plugin ne nécessite aucun compte — ses compétences sont prêtes �
 msgid "This port is still in use"
 msgstr "Ce port est toujours utilisé"
 
+msgid "This profile is busy right now"
+msgstr "Ce profil est très sollicité en ce moment"
+
 msgid "This project is no longer available on your devices."
 msgstr "Ce projet n'est plus disponible sur vos appareils."
 
@@ -14548,6 +14554,9 @@ msgstr "Trop de machines publient pour ce compte."
 
 msgid "Too many messages. Please try again later."
 msgstr "Trop de messages. Veuillez réessayer plus tard."
+
+msgid "Too many people are looking at once. Try again shortly."
+msgstr "Trop de personnes le consultent en même temps. Réessayez dans un instant."
 
 msgid "Too many prompt submissions. Try again later."
 msgstr "Trop de prompts envoyés. Réessayez plus tard."

@@ -2280,6 +2280,9 @@ msgstr "返回页面"
 msgid "Back to tasks"
 msgstr "返回任务"
 
+msgid "Back to the leaderboard"
+msgstr "返回排行榜"
+
 msgid "Background"
 msgstr "背景"
 
@@ -14296,6 +14299,9 @@ msgstr "此插件无需账户 — 它的技能可直接使用。"
 msgid "This port is still in use"
 msgstr "此端口仍在使用中"
 
+msgid "This profile is busy right now"
+msgstr "此个人主页当前繁忙"
+
 msgid "This project is no longer available on your devices."
 msgstr "这个项目在你的设备上已不可用。"
 
@@ -14548,6 +14554,9 @@ msgstr "此账户发布数据的机器过多。"
 
 msgid "Too many messages. Please try again later."
 msgstr "消息过多。请稍后重试。"
+
+msgid "Too many people are looking at once. Try again shortly."
+msgstr "同时查看的人太多了，请稍后再试。"
 
 msgid "Too many prompt submissions. Try again later."
 msgstr "提示词提交次数过多。请稍后重试。"

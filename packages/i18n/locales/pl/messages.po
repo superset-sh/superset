@@ -2280,6 +2280,9 @@ msgstr "Wróć do stron"
 msgid "Back to tasks"
 msgstr "Wróć do zadań"
 
+msgid "Back to the leaderboard"
+msgstr "Wróć do rankingu"
+
 msgid "Background"
 msgstr "Tło"
 
@@ -14296,6 +14299,9 @@ msgstr "Ta wtyczka nie wymaga konta — jej Umiejętności są gotowe do użycia
 msgid "This port is still in use"
 msgstr "Ten port jest nadal używany"
 
+msgid "This profile is busy right now"
+msgstr "Ten profil jest teraz przeciążony"
+
 msgid "This project is no longer available on your devices."
 msgstr "Ten projekt nie jest już dostępny na Twoich urządzeniach."
 
@@ -14548,6 +14554,9 @@ msgstr "Zbyt wiele maszyn publikuje dla tego konta."
 
 msgid "Too many messages. Please try again later."
 msgstr "Zbyt wiele wiadomości. Spróbuj ponownie później."
+
+msgid "Too many people are looking at once. Try again shortly."
+msgstr "Zbyt wiele osób ogląda go jednocześnie. Spróbuj ponownie za chwilę."
 
 msgid "Too many prompt submissions. Try again later."
 msgstr "Zbyt wiele wysłanych promptów. Spróbuj ponownie później."

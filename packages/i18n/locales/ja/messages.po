@@ -2280,6 +2280,9 @@ msgstr "ページ"
 msgid "Back to tasks"
 msgstr "タスクに戻る"
 
+msgid "Back to the leaderboard"
+msgstr "リーダーボードに戻る"
+
 msgid "Background"
 msgstr "背景"
 
@@ -14296,6 +14299,9 @@ msgstr "このプラグインにアカウントは不要です — スキルは�
 msgid "This port is still in use"
 msgstr "このポートはまだ使用中です"
 
+msgid "This profile is busy right now"
+msgstr "このプロフィールは現在混み合っています"
+
 msgid "This project is no longer available on your devices."
 msgstr "このプロジェクトはお使いのデバイスでは利用できなくなりました。"
 
@@ -14548,6 +14554,9 @@ msgstr "このアカウントで公開しているマシンが多すぎます。
 
 msgid "Too many messages. Please try again later."
 msgstr "メッセージが多すぎます。しばらくしてからお試しください。"
+
+msgid "Too many people are looking at once. Try again shortly."
+msgstr "同時に閲覧している人が多すぎます。しばらくしてからもう一度お試しください。"
 
 msgid "Too many prompt submissions. Try again later."
 msgstr "プロンプトの送信が多すぎます。しばらくしてからお試しください。"

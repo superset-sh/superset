@@ -6,6 +6,13 @@ const dayKey = z.string().refine(isDayKey, "Expected a real YYYY-MM-DD date");
 
 export const MAX_TOKENS_PER_ROW_FIELD = 50_000_000_000;
 
+/**
+ * Carries LEADERBOARD_INTERNAL_TOKEN on marketing's server-side reads of
+ * `leaderboard.public.*`. Lives here, not next to the matcher, so the
+ * browser bundle that shares the tRPC client never imports node:crypto.
+ */
+export const INTERNAL_READ_HEADER = "x-leaderboard-internal-token";
+
 const tokenCount = z.number().int().min(0).max(MAX_TOKENS_PER_ROW_FIELD);
 
 export const handleSchema = z
