@@ -29,6 +29,10 @@ import {
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import type { HostDb } from "../../../../db";
+import {
+	getTerminalBaseEnv,
+	waitForTerminalBaseEnv,
+} from "../../../../terminal/env";
 import { resolveAgentAccountDir } from "../../usage/agent-account-dir";
 import { updateClaudeStateFile } from "../../usage/claude-state-file";
 import {
@@ -85,6 +89,7 @@ function resolveTrustTarget(
 	const defaultEnv = resolveDefaultAccountEnv(db, family);
 	const { configDir } = resolveAgentAccountDir(db, {
 		family,
+		shellEnv: getTerminalBaseEnv(),
 		env: config.env,
 		defaultEnv,
 	});
@@ -303,6 +308,7 @@ export async function seedAgentFolderTrust(
 	config: { presetId: string; command: string; env: Record<string, string> },
 ): Promise<void> {
 	try {
+		await waitForTerminalBaseEnv();
 		const target = resolveTrustTarget(db, config);
 		if (target === null) return;
 		const normalized = normalizeFolderPath(folderPath);

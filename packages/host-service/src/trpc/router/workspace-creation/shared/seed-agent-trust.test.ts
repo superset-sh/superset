@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import {
 	chmodSync,
 	existsSync,
@@ -13,6 +13,9 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { HostDb } from "../../../../db";
+import * as terminalEnv from "../../../../terminal/env";
+import { initTerminalBaseEnv } from "../../../../terminal/env";
+import * as accountDir from "../../usage/agent-account-dir";
 import {
 	resolveTrustFamily,
 	seedAgentFolderTrust,
@@ -23,6 +26,7 @@ import {
 let dir: string;
 
 beforeEach(() => {
+	initTerminalBaseEnv({});
 	dir = mkdtempSync(join(tmpdir(), "seed-agent-trust-"));
 });
 
@@ -297,6 +301,65 @@ describe("seedAgentFolderTrust", () => {
 		presetId: "claude",
 		command: "claude",
 		env,
+	});
+
+	test("waits for the cold-start shell snapshot before seeding", async () => {
+		terminalEnv.resetTerminalBaseEnvForTests();
+		let release!: () => void;
+		const ready = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		const wait = spyOn(
+			terminalEnv,
+			"waitForTerminalBaseEnv",
+		).mockImplementation(async () => {
+			await ready;
+			initTerminalBaseEnv({});
+		});
+		const seeding = seedAgentFolderTrust(
+			mockDb(selected),
+			folder,
+			claudeConfig({}),
+		);
+		try {
+			expect(wait).toHaveBeenCalledTimes(1);
+			expect(existsSync(join(selected, ".claude.json"))).toBe(false);
+			release();
+			await seeding;
+			expect(
+				JSON.parse(readFileSync(join(selected, ".claude.json"), "utf8"))
+					.projects[realpathSync(folder)].hasTrustDialogAccepted,
+			).toBe(true);
+		} finally {
+			release();
+			await seeding;
+			wait.mockRestore();
+			initTerminalBaseEnv({});
+		}
+	});
+
+	test("passes the shell snapshot to classification and leaves its foreign dir untouched", async () => {
+		initTerminalBaseEnv({ CLAUDE_CONFIG_DIR: pinned });
+		const classify = spyOn(
+			accountDir,
+			"resolveAgentAccountDir",
+		).mockReturnValue({
+			configDir: pinned,
+			managed: false,
+		});
+		try {
+			await seedAgentFolderTrust(mockDb(null), folder, claudeConfig({}));
+			expect(classify).toHaveBeenCalledWith(
+				expect.anything(),
+				expect.objectContaining({
+					shellEnv: { CLAUDE_CONFIG_DIR: pinned },
+				}),
+			);
+			expect(existsSync(join(pinned, ".claude.json"))).toBe(false);
+		} finally {
+			classify.mockRestore();
+			initTerminalBaseEnv({});
+		}
 	});
 
 	test("seeds the Superset-selected config dir", async () => {
