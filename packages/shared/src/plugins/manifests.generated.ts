@@ -239,8 +239,8 @@ export const FIRST_PARTY_MANIFESTS = {
 	"slack": {
 		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
 		"name": "slack",
-		"version": "1.0.0",
-		"description": "Search and post across your Slack workspace: channels, DMs, and threads.",
+		"version": "1.2.0",
+		"description": "Search, read, and post across your Slack workspace: channels, DMs, and threads.",
 		"author": {
 			"name": "Superset",
 			"url": "https://superset.sh"
@@ -273,15 +273,24 @@ export const FIRST_PARTY_MANIFESTS = {
 						"scopes": [
 							"channels:history",
 							"channels:read",
+							"channels:write",
 							"groups:history",
 							"groups:read",
+							"groups:write",
 							"im:history",
 							"im:read",
+							"im:write",
 							"mpim:history",
 							"mpim:read",
+							"mpim:write",
 							"chat:write",
+							"reactions:read",
+							"reactions:write",
 							"users:read",
-							"search:read.public"
+							"users:read.email",
+							"users:write",
+							"search:read",
+							"team:read"
 						],
 						"scope_separator": ",",
 						"token_request_auth_method": "client_secret_post",
@@ -305,9 +314,10 @@ export const FIRST_PARTY_MANIFESTS = {
 						}
 					}
 				],
-				"mcp": {
-					"type": "streamable-http",
-					"url": "https://mcp.slack.com/mcp"
+				"server": {
+					"path": "plugins/slack/server/index.mjs",
+					"integrity": "sha256-v6jbpX7Wl57RBS2IU1mk2s4qrnnYIf68AUF3GtV3gxw=",
+					"ref": "slack@1.2.0"
 				}
 			}
 		},
@@ -316,8 +326,8 @@ export const FIRST_PARTY_MANIFESTS = {
 	"gmail": {
 		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
 		"name": "gmail",
-		"version": "1.0.0",
-		"description": "Read, search, and draft mail in your Gmail account.",
+		"version": "1.1.0",
+		"description": "Read, search, send, and organize mail in your Gmail account.",
 		"author": {
 			"name": "Superset",
 			"url": "https://superset.sh"
@@ -351,7 +361,11 @@ export const FIRST_PARTY_MANIFESTS = {
 							"openid",
 							"email",
 							"https://www.googleapis.com/auth/gmail.readonly",
-							"https://www.googleapis.com/auth/gmail.compose"
+							"https://www.googleapis.com/auth/gmail.compose",
+							"https://www.googleapis.com/auth/gmail.modify",
+							"https://www.googleapis.com/auth/gmail.labels",
+							"https://www.googleapis.com/auth/gmail.settings.basic",
+							"https://mail.google.com/"
 						],
 						"scope_separator": " ",
 						"token_request_auth_method": "client_secret_post",
@@ -372,171 +386,13 @@ export const FIRST_PARTY_MANIFESTS = {
 							},
 							"id": "$.sub",
 							"label": "$.email"
-						},
-						"bind": {
-							"headers": {
-								"Authorization": "Bearer ${config.access_token}"
-							}
 						}
 					}
 				],
-				"mcp": {
-					"type": "streamable-http",
-					"url": "https://gmailmcp.googleapis.com/mcp/v1"
-				}
-			}
-		},
-		"skills": []
-	} as const,
-	"google-docs": {
-		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
-		"name": "google-docs",
-		"version": "1.0.0",
-		"description": "Read and edit Google Docs: pull a document's contents and write changes back.",
-		"author": {
-			"name": "Superset",
-			"url": "https://superset.sh"
-		},
-		"homepage": "https://docs.superset.sh",
-		"repository": "https://github.com/superset-sh/superset",
-		"license": "MIT",
-		"keywords": [
-			"google docs",
-			"docs",
-			"documents",
-			"google",
-			"writing"
-		],
-		"extensions": {
-			"superset": {
-				"interface": {
-					"displayName": "Google Docs",
-					"category": "Productivity",
-					"icon": "google-docs"
-				},
-				"auth": [
-					{
-						"type": "oauth2",
-						"label": "OAuth 2.0",
-						"provider": "google",
-						"pkce": true,
-						"authorization_url": "https://accounts.google.com/o/oauth2/v2/auth",
-						"token_url": "https://oauth2.googleapis.com/token",
-						"scopes": [
-							"openid",
-							"email",
-							"https://www.googleapis.com/auth/drive.readonly",
-							"https://www.googleapis.com/auth/drive.file",
-							"https://www.googleapis.com/auth/documents.readonly",
-							"https://www.googleapis.com/auth/documents"
-						],
-						"scope_separator": " ",
-						"token_request_auth_method": "client_secret_post",
-						"token_expiration_buffer": 300,
-						"authorization_params": {
-							"access_type": "offline",
-							"prompt": "consent"
-						},
-						"requires_env": [
-							"PLUGIN_GOOGLE_CLIENT_ID",
-							"PLUGIN_GOOGLE_CLIENT_SECRET"
-						],
-						"identity": {
-							"url": "https://openidconnect.googleapis.com/v1/userinfo",
-							"method": "GET",
-							"headers": {
-								"Authorization": "Bearer ${config.access_token}"
-							},
-							"id": "$.sub",
-							"label": "$.email"
-						},
-						"bind": {
-							"headers": {
-								"Authorization": "Bearer ${config.access_token}"
-							}
-						}
-					}
-				],
-				"mcp": {
-					"type": "streamable-http",
-					"url": "https://docsmcp.googleapis.com/mcp/v1"
-				}
-			}
-		},
-		"skills": []
-	} as const,
-	"google-sheets": {
-		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
-		"name": "google-sheets",
-		"version": "1.0.0",
-		"description": "Read and edit Google Sheets: values, formulas, and sheet structure.",
-		"author": {
-			"name": "Superset",
-			"url": "https://superset.sh"
-		},
-		"homepage": "https://docs.superset.sh",
-		"repository": "https://github.com/superset-sh/superset",
-		"license": "MIT",
-		"keywords": [
-			"google sheets",
-			"sheets",
-			"spreadsheets",
-			"google",
-			"data"
-		],
-		"extensions": {
-			"superset": {
-				"interface": {
-					"displayName": "Google Sheets",
-					"category": "Productivity",
-					"icon": "google-sheets"
-				},
-				"auth": [
-					{
-						"type": "oauth2",
-						"label": "OAuth 2.0",
-						"provider": "google",
-						"pkce": true,
-						"authorization_url": "https://accounts.google.com/o/oauth2/v2/auth",
-						"token_url": "https://oauth2.googleapis.com/token",
-						"scopes": [
-							"openid",
-							"email",
-							"https://www.googleapis.com/auth/drive.readonly",
-							"https://www.googleapis.com/auth/drive.file",
-							"https://www.googleapis.com/auth/spreadsheets.readonly",
-							"https://www.googleapis.com/auth/spreadsheets"
-						],
-						"scope_separator": " ",
-						"token_request_auth_method": "client_secret_post",
-						"token_expiration_buffer": 300,
-						"authorization_params": {
-							"access_type": "offline",
-							"prompt": "consent"
-						},
-						"requires_env": [
-							"PLUGIN_GOOGLE_CLIENT_ID",
-							"PLUGIN_GOOGLE_CLIENT_SECRET"
-						],
-						"identity": {
-							"url": "https://openidconnect.googleapis.com/v1/userinfo",
-							"method": "GET",
-							"headers": {
-								"Authorization": "Bearer ${config.access_token}"
-							},
-							"id": "$.sub",
-							"label": "$.email"
-						},
-						"bind": {
-							"headers": {
-								"Authorization": "Bearer ${config.access_token}"
-							}
-						}
-					}
-				],
-				"mcp": {
-					"type": "streamable-http",
-					"url": "https://sheetsmcp.googleapis.com/mcp/v1"
+				"server": {
+					"path": "plugins/gmail/server/index.mjs",
+					"integrity": "sha256-Jo2zdoNIpkSHQOadaOpu5tF7DGG5WKA2bAFjYd7nPBE=",
+					"ref": "gmail@1.1.0"
 				}
 			}
 		},

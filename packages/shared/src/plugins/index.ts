@@ -355,39 +355,11 @@ export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
 	},
 	{
 		name: "gmail",
-		version: "1.0.0",
-		description: "Read, search, and draft mail in your Gmail account",
+		version: "1.1.0",
+		description: "Read, search, send, and organize mail in your Gmail account",
 		interface: { displayName: "Gmail", category: "Communication" },
 		auth: [{ type: "oauth2" }],
-		mcpServers: {
-			gmail: { type: "http", url: "https://gmailmcp.googleapis.com/mcp/v1" },
-		},
-	},
-	{
-		name: "google-docs",
-		version: "1.0.0",
-		description: "Read and edit Google Docs",
-		interface: { displayName: "Google Docs", category: "Productivity" },
-		auth: [{ type: "oauth2" }],
-		mcpServers: {
-			"google-docs": {
-				type: "http",
-				url: "https://docsmcp.googleapis.com/mcp/v1",
-			},
-		},
-	},
-	{
-		name: "google-sheets",
-		version: "1.0.0",
-		description: "Read and edit Google Sheets",
-		interface: { displayName: "Google Sheets", category: "Productivity" },
-		auth: [{ type: "oauth2" }],
-		mcpServers: {
-			"google-sheets": {
-				type: "http",
-				url: "https://sheetsmcp.googleapis.com/mcp/v1",
-			},
-		},
+		mcpServers: {},
 	},
 	{
 		name: "vercel",

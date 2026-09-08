@@ -1,8 +1,8 @@
 {
 	"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
 	"name": "slack",
-	"version": "1.0.0",
-	"description": "Search and post across your Slack workspace: channels, DMs, and threads.",
+	"version": "1.2.0",
+	"description": "Search, read, and post across your Slack workspace: channels, DMs, and threads.",
 	"author": {
 		"name": "Superset",
 		"url": "https://superset.sh"
@@ -29,15 +29,24 @@
 					"scopes": [
 						"channels:history",
 						"channels:read",
+						"channels:write",
 						"groups:history",
 						"groups:read",
+						"groups:write",
 						"im:history",
 						"im:read",
+						"im:write",
 						"mpim:history",
 						"mpim:read",
+						"mpim:write",
 						"chat:write",
+						"reactions:read",
+						"reactions:write",
 						"users:read",
-						"search:read.public"
+						"users:read.email",
+						"users:write",
+						"search:read",
+						"team:read"
 					],
 					"scope_separator": ",",
 					"token_request_auth_method": "client_secret_post",
@@ -60,11 +69,7 @@
 						}
 					}
 				}
-			],
-			"mcp": {
-				"type": "streamable-http",
-				"url": "https://mcp.slack.com/mcp"
-			}
+			]
 		}
 	}
 }
