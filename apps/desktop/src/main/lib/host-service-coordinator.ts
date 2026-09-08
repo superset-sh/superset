@@ -221,6 +221,37 @@ export function parseEtime(etime: string): number | null {
 	);
 }
 
+/**
+ * macOS inherits the task's Mach exception ports across fork and exec, so a
+ * plain spawn hands host-service, and every git, hook, login shell and agent
+ * CLI it launches, the port Crashpad registered in this process: their crashes
+ * upload as Superset minidumps carrying an unrelated program's memory. node-pty's
+ * spawn-helper (patched, see patches/README.md) clears those ports before exec,
+ * and launching host-service through it detaches the whole subtree. host-service's
+ * own crashes are reported by handleChildExit with the exit signal and output
+ * tail; pty-daemon's are not reported at all after this. The helper is built
+ * by the native rebuild alongside pty.node, so it is resolved the way node-pty
+ * resolves it and the plain spawn is kept for a tree without the build.
+ */
+function crashPortClearingLauncher(): string | null {
+	if (process.platform !== "darwin") return null;
+	let helper: string;
+	try {
+		helper = path
+			.join(
+				path.dirname(require.resolve("node-pty")),
+				"..",
+				"build",
+				"Release",
+				"spawn-helper",
+			)
+			.replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
+	} catch {
+		return null;
+	}
+	return fs.existsSync(helper) ? helper : null;
+}
+
 function isValidPort(port: number | null | undefined): port is number {
 	return (
 		typeof port === "number" &&
@@ -846,9 +877,19 @@ export class HostServiceCoordinator extends EventEmitter {
 		// lines must not.
 		logStream?.on("error", () => {});
 
+		const launcher = crashPortClearingLauncher();
+		if (process.platform === "darwin" && !launcher) {
+			log.warn(
+				`[host-service:${organizationId}] node-pty spawn-helper not built; the child will inherit this process's crash handler`,
+			);
+		}
+		// spawn-helper's first argument is a cwd to chdir into; empty keeps ours.
+		const [command, args] = launcher
+			? [launcher, ["", process.execPath, this.scriptPath]]
+			: [process.execPath, [this.scriptPath]];
 		let child: ReturnType<typeof childProcess.spawn>;
 		try {
-			child = childProcess.spawn(process.execPath, [this.scriptPath], {
+			child = childProcess.spawn(command, args, {
 				detached: false,
 				stdio: ["ignore", "pipe", "pipe"],
 				env: childEnv,
