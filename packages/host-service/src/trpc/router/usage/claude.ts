@@ -136,14 +136,11 @@ const KEYCHAIN_ITEM_NOT_FOUND = 44;
 /** The default login's Keychain item: the freshest of the items sharing its
  * service, since a sibling without a Claude login can sit beside it. */
 async function readKeychainCredential(): Promise<DefaultSlotRead> {
-	// readKeychainHits reports every `security` failure as "no item under this
-	// scope", which for the default slot means a locked Keychain, a denied
-	// prompt or the 5s exec timeout reads as "signed out" — on macOS the
-	// default login can live in the Keychain alone. The probe runs through our
-	// own exec so those are told apart from a genuine miss; off macOS nothing
-	// runs at all.
+	// Preserve the default slot's strict exit-code check as well as the
+	// probe's failure flag: a locked Keychain, denied prompt or timeout is
+	// unreadable, not signed out. Off macOS the probe runs nothing.
 	let unreadable = false;
-	const hits = await readKeychainHits(CLAUDE_KEYCHAIN_SERVICE, {
+	const { hits, failed } = await readKeychainHits(CLAUDE_KEYCHAIN_SERVICE, {
 		exec: async (args, stdin) => {
 			try {
 				return await runSecurity(args, stdin);
@@ -166,7 +163,7 @@ async function readKeychainCredential(): Promise<DefaultSlotRead> {
 				),
 			),
 		),
-		unreadable,
+		unreadable: unreadable || failed,
 	};
 }
 
