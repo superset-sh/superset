@@ -12,6 +12,11 @@ interface V2WorkspaceCreateDefaultsState {
 	lastProjectId: string | null;
 	baseBranchesByProjectId: Record<string, V2WorkspaceCreateBaseBranchDefault>;
 	lastHostId: string | null;
+	/**
+	 * Host each project was last created on. `lastHostId` stays the fallback
+	 * for projects that have no entry yet and for project-less sessions.
+	 */
+	hostIdsByProjectId: Record<string, string>;
 	/** User closed the sample-prompt suggestions on the create surface. */
 	samplePromptsDismissed: boolean;
 
@@ -23,6 +28,7 @@ interface V2WorkspaceCreateDefaultsState {
 	) => void;
 	clearBaseBranchDefault: (projectId: string) => void;
 	setLastHostId: (hostId: string | null) => void;
+	setHostIdForProject: (projectId: string, hostId: string | null) => void;
 	setSamplePromptsDismissed: (dismissed: boolean) => void;
 }
 
@@ -34,6 +40,7 @@ export const useV2WorkspaceCreateDefaultsStore =
 					lastProjectId: null,
 					baseBranchesByProjectId: {},
 					lastHostId: null,
+					hostIdsByProjectId: {},
 					samplePromptsDismissed: false,
 
 					setLastProjectId: (projectId) => set({ lastProjectId: projectId }),
@@ -58,6 +65,25 @@ export const useV2WorkspaceCreateDefaultsStore =
 						}),
 
 					setLastHostId: (hostId) => set({ lastHostId: hostId }),
+
+					// A null host means "local device" on a machine whose id
+					// hasn't resolved — too ambiguous to remember, so it drops
+					// the project back to the global default.
+					setHostIdForProject: (projectId, hostId) =>
+						set((state) => {
+							if (hostId === null) {
+								if (!(projectId in state.hostIdsByProjectId)) return state;
+								const next = { ...state.hostIdsByProjectId };
+								delete next[projectId];
+								return { hostIdsByProjectId: next };
+							}
+							return {
+								hostIdsByProjectId: {
+									...state.hostIdsByProjectId,
+									[projectId]: hostId,
+								},
+							};
+						}),
 
 					setSamplePromptsDismissed: (dismissed) =>
 						set({ samplePromptsDismissed: dismissed }),

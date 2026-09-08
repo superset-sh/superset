@@ -126,6 +126,9 @@ export function PromptGroup({
 	const setLastHostId = useV2WorkspaceCreateDefaultsStore(
 		(state) => state.setLastHostId,
 	);
+	const setHostIdForProject = useV2WorkspaceCreateDefaultsStore(
+		(state) => state.setHostIdForProject,
+	);
 	const handleGoToSetup = useCallback(() => {
 		if (!selectedProject?.id) return;
 		const targetProjectId = selectedProject.id;
@@ -784,6 +787,11 @@ export function PromptGroup({
 						hostId={hostId}
 						onSelectHostId={(next) => {
 							setLastHostId(next);
+							// A session has no project to hang the choice on, so it
+							// only moves the global default.
+							if (projectId && !isSessionSelected) {
+								setHostIdForProject(projectId, next);
+							}
 							updateDraft({ hostId: next });
 						}}
 					/>

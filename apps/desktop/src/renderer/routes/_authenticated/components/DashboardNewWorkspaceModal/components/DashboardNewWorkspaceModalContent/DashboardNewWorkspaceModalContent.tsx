@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { resolveProjectIconUrl } from "renderer/hooks/host-projects/resolveProjectIconUrl";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
 import { useDashboardNewWorkspaceDraft } from "../../DashboardNewWorkspaceDraftContext";
+import { useProjectHostDefault } from "../../hooks/useProjectHostDefault";
 import { PromptGroup } from "../DashboardNewWorkspaceForm/PromptGroup";
 import { useSelectedHostProjectIds } from "./hooks/useSelectedHostProjectIds";
 
@@ -134,6 +135,17 @@ export function DashboardNewWorkspaceModalContent({
 		selectSession,
 		updateDraft,
 	]);
+
+	const applyHostId = useCallback(
+		(hostId: string) => updateDraft({ hostId }),
+		[updateDraft],
+	);
+	useProjectHostDefault({
+		isOpen,
+		projectId: draft.selectedProjectId,
+		isSession: draft.isSession,
+		onSelectHostId: applyHostId,
+	});
 
 	const selectedProject = recentProjects.find(
 		(project) => project.id === draft.selectedProjectId,
