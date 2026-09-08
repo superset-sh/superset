@@ -63,6 +63,27 @@ if (!workerResult.success) {
 	process.exit(1);
 }
 
+const ownerResult = await Bun.build({
+	entrypoints: ["src/account-engine/machine-owner/entry.ts"],
+	plugins: [linguiMacroPlugin],
+	target: "node",
+	outdir,
+	naming: "account-owner.js",
+	format: "esm",
+	define: { "process.env.NODE_ENV": JSON.stringify("production") },
+	external: [
+		"better-sqlite3",
+		"node-pty",
+		"@parcel/watcher",
+		"puppeteer-core",
+		"chromium-bidi",
+	],
+});
+if (!ownerResult.success) {
+	console.error("[host-service] account-owner build failed:", ownerResult.logs);
+	process.exit(1);
+}
+
 console.log(
 	`[host-service] bundled to ${outdir}/host-service.js + ${outdir}/host-worker.js`,
 );

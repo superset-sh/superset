@@ -220,8 +220,8 @@ msgid "{0, plural, one {# workspace} other {# workspaces}}"
 msgstr "{0, plural, one {#個工作區} other {#個工作區}}"
 
 #. placeholder {0}: shown?.count ?? 0
-msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
-msgstr "{0, plural, one {#個執行中的代理程式仍在使用先前的帳戶。切換只對新啟動生效。} other {#個執行中的代理程式仍在使用先前的帳戶。切換只對新啟動生效。}}"
+msgid "{0, plural, one {A running agent is pinned to its own config dir by its agent configuration, so it keeps the account signed in there.} other {# running agents are pinned to their own config dirs by their agent configuration, so they keep the accounts signed in there.}}"
+msgstr "{0, plural, one {有一個正在執行的代理程式被其代理程式設定固定到自己的設定目錄，因此仍使用該目錄登入的帳戶。} other {有#個正在執行的代理程式被其代理程式設定固定到各自的設定目錄，因此仍使用這些目錄登入的帳戶。}}"
 
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
@@ -309,6 +309,11 @@ msgstr "{0}的操作"
 #. placeholder {1}: right.name
 msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
 msgstr "{0}與{1}化身終端恐龍一決勝負。數據決定輸贏。"
+
+#. placeholder {0}: windowLabel(entry.windowId)
+#. placeholder {1}: formatPercent(entry.usedPercent / 100, { maximumFractionDigits: 0 })
+msgid "{0} at {1}"
+msgstr "{0}已用{1}"
 
 #. placeholder {0}: formatTokens(me.tokens - below.tokens)
 msgid "{0} behind you"
@@ -534,8 +539,23 @@ msgstr "佔全部token的{0}% · {1}個token"
 msgid "{0}% of total cost · {1} tokens · * at API list rates"
 msgstr "佔總費用的{0}% · {1}個token · * 按API標價計算"
 
+msgid "{accountLabel} is now the active {providerLabel} account."
+msgstr "{accountLabel}現在是{providerLabel}正在使用的帳戶。"
+
 msgid "{actual} so far · ~{projected} projected"
 msgstr "目前{actual} · 預計約{projected}"
+
+msgid "{agent} could not switch accounts"
+msgstr "{agent}無法切換帳戶"
+
+msgid "{agent} switched account"
+msgstr "{agent}已切換帳戶"
+
+msgid "{agent} switched from {fromLabel} to {toLabel}"
+msgstr "{agent}已從{fromLabel}切換到{toLabel}"
+
+msgid "{agent} switched to {toLabel}"
+msgstr "{agent}已切換到{toLabel}"
 
 msgid "{backgroundCount, plural, one {# background terminal session} other {# background terminal sessions}}"
 msgstr "{backgroundCount, plural, one {#個背景終端會話} other {#個背景終端會話}}"
@@ -561,6 +581,9 @@ msgstr "{configTitle}字型大小"
 
 msgid "{cookieCount} cookies — forget this site"
 msgstr "{cookieCount}個cookie——忘記此站點"
+
+msgid "{count, plural, one {# account switch while you were away} other {# account switches while you were away}}"
+msgstr "{count, plural, one {你離開期間發生了#次帳戶切換} other {你離開期間發生了#次帳戶切換}}"
 
 msgid "{count, plural, one {# Check Failed} other {# Checks Failed}}"
 msgstr "{count, plural, one {#項檢查失敗} other {#項檢查失敗}}"
@@ -736,6 +759,9 @@ msgstr "{minutes}分"
 msgid "{minutes}m ago"
 msgstr "{minutes}分鐘前"
 
+msgid "{model} weekly window"
+msgstr "{model}每週時段"
+
 msgid "{modKey}↵ to create"
 msgstr "{modKey}↵建立"
 
@@ -904,6 +930,9 @@ msgstr "{updatedLabel}已恢復為預設值"
 msgid "{waiting} Waiting"
 msgstr "{waiting}人等待"
 
+msgid "{windowLabel} at {percent}"
+msgstr "{windowLabel}已用{percent}"
+
 msgid "{workspaceName}: host is unavailable"
 msgstr "{workspaceName}：主機不可用"
 
@@ -1071,6 +1100,9 @@ msgstr "1個cookie——忘記此站點"
 msgid "1 hour"
 msgstr "1小時"
 
+msgid "1 minute"
+msgstr "1分鐘"
+
 msgid "1 user"
 msgstr "1個使用者"
 
@@ -1091,6 +1123,9 @@ msgstr "2個代理程式 · 14個檔案已更改"
 
 msgid "2 hours"
 msgstr "2小時"
+
+msgid "2 minutes"
+msgstr "2分鐘"
 
 msgid "2021 to 2023"
 msgstr "2021至2023"
@@ -1119,6 +1154,9 @@ msgstr "每位工程師3條以上並行工作流"
 msgid "30 minutes"
 msgstr "30分鐘"
 
+msgid "30 seconds"
+msgstr "30秒"
+
 msgid "30D"
 msgstr "30天"
 
@@ -1137,6 +1175,9 @@ msgstr "45 files · +82 −172"
 msgid "5 minutes"
 msgstr "5分鐘"
 
+msgid "5-hour window"
+msgstr "5小時時段"
+
 msgid "55 call sites pass {code}"
 msgstr "55 個呼叫位置傳入 {code}"
 
@@ -1148,6 +1189,9 @@ msgstr "7天"
 
 msgid "87.4K of 200K tokens used in this session."
 msgstr "本次會話已使用87.4K/200K個token。"
+
+msgid "A {agent} session needs attention"
+msgstr "有一個{agent}會話需要處理"
 
 msgid "A better in-app browser: preview your changes and click any element to send it to the agent as context."
 msgstr "更好用的應用程式內瀏覽器：預覽改動，點選任意元素即可作為上下文發給代理程式。"
@@ -1184,6 +1228,9 @@ msgstr "看看有什麼正在進行、接下來做什麼，以及{company}要走
 
 msgid "A majority of production changes merge without any human reading the diff."
 msgstr "多數生產變更在無人閱讀差異的情況下合併。"
+
+msgid "A model name can be at most {MAX_MODEL_NAME_LENGTH} characters. Shorten it and try again."
+msgstr "模型名稱最多 {MAX_MODEL_NAME_LENGTH} 個字元。請縮短後再試一次。"
 
 msgid "A new version of Superset is required to continue. Please update to the latest version."
 msgstr "需要新版本的Superset才能繼續。請更新到最新版本。"
@@ -1261,6 +1308,9 @@ msgstr "手風琴"
 msgid "Account"
 msgstr "帳戶"
 
+msgid "Account changed outside Superset"
+msgstr "帳戶在Superset之外被變更"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceNotResolvable"
 msgstr "帳戶安裝僅解析第一方資訊清單，因此來自 {marketplace} 的 {plugin} 尚無法安裝到你的帳戶。它仍安裝在本機上。"
@@ -1298,6 +1348,16 @@ msgstr "啟用率"
 
 msgid "Active"
 msgstr "啟用中"
+
+msgctxt "account state"
+msgid "Active"
+msgstr "使用中"
+
+msgid "Active — every newly launched session of this agent uses this account; ones already running keep the previous login until you restart them."
+msgstr "已啟用 — 此代理的新工作階段使用此帳戶；執行中的工作階段在重新啟動前保留先前的登入。"
+
+msgid "Active — every running and newly launched session of this agent uses this account."
+msgstr "使用中 — 該代理程式所有正在執行和新啟動的會話都使用這個帳戶。"
 
 #. placeholder {0}: formatDistanceToNowStrict(binding.lastEventAt, { addSuffix: true, })
 msgid "active {0}"
@@ -1500,6 +1560,10 @@ msgstr "對比main"
 msgid "Agent"
 msgstr "代理程式"
 
+msgctxt "switch history column"
+msgid "Agent"
+msgstr "代理程式"
+
 msgid "Agent Complete — {workspaceName}"
 msgstr "代理程式已完成 — {workspaceName}"
 
@@ -1633,6 +1697,9 @@ msgstr "全部 {0} 項目標都在為 {nextLabel} 出力。"
 #. placeholder {0}: summary.relevantChecks.length
 msgid "All {0} passed"
 msgstr "{0}全部通過"
+
+msgid "All {agent} accounts are at their limit"
+msgstr "{agent}的所有帳戶都已達到上限"
 
 msgid "All {versionCount} versions and their content are removed. Anyone with the link loses access."
 msgstr "全部{versionCount}個版本及其內容都會被移除。持有連結的人將失去存取權限。"
@@ -1980,6 +2047,9 @@ msgstr "適用於終端、聊天訊息和任務瀏覽器中的URL。"
 msgid "Apply"
 msgstr "應用"
 
+msgid "Approaching the usage limit"
+msgstr "接近用量上限"
+
 msgid "Approve"
 msgstr "批准"
 
@@ -2192,6 +2262,19 @@ msgstr "自動化任務"
 
 msgid "Automate workspace setup for {projectName}"
 msgstr "為{projectName}自動化工作區初始化"
+
+msgctxt "account switch trigger"
+msgid "Automatic"
+msgstr "自動"
+
+msgid "Automatic account switching is not available on Windows. Switch accounts by hand instead."
+msgstr "Windows上無法自動切換帳戶，請手動切換。"
+
+msgid "Automatic switching may move sessions onto this account. Held-out accounts stay available to pick by hand."
+msgstr "自動切換可能會把會話移到這個帳戶上。被排除的帳戶仍可手動選擇。"
+
+msgid "Automatic switching needs macOS or Linux. On Windows you can still switch the active {agentLabel} account by hand."
+msgstr "自動切換需要macOS或Linux。在Windows上你仍可手動切換目前使用的{agentLabel}帳戶。"
 
 msgid "Automation"
 msgstr "自動化"
@@ -2873,6 +2956,9 @@ msgstr "檢視資源"
 
 msgid "Check the rendered prompt and launch output before saving"
 msgstr "儲存前檢查渲染後的提示詞和啟動輸出"
+
+msgid "Check usage every"
+msgstr "檢查用量的間隔"
 
 msgid "Check your access under Settings > Security on that device."
 msgstr "請在該裝置的「設定 > 安全性」中檢查你的存取權限。"
@@ -4571,9 +4657,6 @@ msgstr "預設（{defaultWorktreePath}）"
 msgid "Default effort"
 msgstr "預設推理強度"
 
-msgid "Default for new agents"
-msgstr "新代理程式的預設帳戶"
-
 msgid "Default location for new worktree workspaces on this host."
 msgstr "此主機上新建worktree工作區的預設位置。"
 
@@ -5230,9 +5313,6 @@ msgstr "每條各佔一個新分頁"
 msgid "Each morning at 8am, look at yesterday's failed CI runs, diagnose the most common failure, and open a fix PR."
 msgstr "每天早上8點，檢視昨天失敗的CI執行，診斷最常見的失敗原因，並提一個修復PR。"
 
-msgid "Each session resumes where it left off."
-msgstr "每個會話都會從中斷處繼續。"
-
 msgid "Each surface has its own typography. Changes appear immediately in the live previews."
 msgstr "每個介面都有各自的排版設定。更改會立即體現在即時預覽中。"
 
@@ -5479,6 +5559,10 @@ msgstr "每分鐘"
 msgid "Every objective is carrying its weight for the next rung. Measured over the trailing 30 days."
 msgstr "所有目標都在為下一階發力。以最近 30 天計算。"
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Every running and newly launched {0} session uses the active account."
+msgstr "所有正在執行和新啟動的{0}會話都使用目前的帳戶。"
+
 msgid "Every star on <0>{repoSlug}</0>, plotted since launch."
 msgstr "<0>{repoSlug}</0>的每一個星標，自發布起繪製。"
 
@@ -5628,6 +5712,9 @@ msgstr "F4關卡 · {F4_GATE_SHARE}%"
 
 msgid "F4 gate crossed"
 msgstr "已越過F4關卡"
+
+msgid "Fable, Opus"
+msgstr "Fable, Opus"
 
 msgid "Factory 2026"
 msgstr "Factory 2026"
@@ -6100,6 +6187,9 @@ msgstr "上傳標誌失敗"
 msgid "Failure"
 msgstr "失敗"
 
+msgid "Fallback restart after a usage limit"
+msgstr "達到用量上限後的備援重啟"
+
 msgid "FAQ"
 msgstr "常見問題"
 
@@ -6475,6 +6565,10 @@ msgstr "基於"
 msgid "From"
 msgstr "從"
 
+msgctxt "switch history column"
+msgid "From"
+msgstr "原帳戶"
+
 msgid "from {price}/user/mo"
 msgstr "{price}/使用者/月起"
 
@@ -6827,6 +6921,9 @@ msgstr "歷史"
 msgid "History"
 msgstr "歷史"
 
+msgid "History is unavailable right now. Reopen this page to try again."
+msgstr "暫時無法取得記錄。重新開啟此頁面可再試一次。"
+
 msgid "Home"
 msgstr "首頁"
 
@@ -7132,6 +7229,9 @@ msgstr "進行中"
 
 msgid "In Progress"
 msgstr "進行中"
+
+msgid "In rotation"
+msgstr "參與輪替"
 
 msgid "In the Superset desktop app, open <0>Settings → Appearance → Theme</0>."
 msgstr "在Superset桌面應用程式中開啟<0>設定 → 外觀 → 主題</0>。"
@@ -7607,6 +7707,9 @@ msgstr "每月最後一天"
 msgid "Last day of each month at {time}"
 msgstr "每月最後一天{time}"
 
+msgid "Last read failed, so this list may be out of date. Reopen this page to try again."
+msgstr "上次讀取失敗，此清單可能不是最新的。重新開啟此頁面可再試一次。"
+
 msgid "Last run"
 msgstr "上次執行"
 
@@ -7756,6 +7859,12 @@ msgstr "喜歡用Superset開發嗎？"
 
 msgid "Lime"
 msgstr "萊姆綠"
+
+msgid "Limit hit — session restarted"
+msgstr "已達上限 — 會話已重啟"
+
+msgid "Limit report not confirmed — no switch"
+msgstr "上限回報未確認 — 未切換"
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
@@ -8012,6 +8121,9 @@ msgstr "登出"
 msgid "Log out?"
 msgstr "登出？"
 
+msgid "Login changed outside Superset"
+msgstr "登入資訊在Superset之外被變更"
+
 msgid "Logins (cookies)"
 msgstr "登入資訊（cookie）"
 
@@ -8060,14 +8172,17 @@ msgstr "主處理程序"
 msgid "Main workspace"
 msgstr "主工作區"
 
+msgid "Make active"
+msgstr "設為使用中"
+
+msgid "Make active — running sessions move to this account too."
+msgstr "設為使用中 — 正在執行的會話也會移到這個帳戶。"
+
+msgid "Make active — sessions launched from now on use this account."
+msgstr "設為使用中帳戶 — 從現在起啟動的工作階段使用此帳戶。"
+
 msgid "Make all panes equal size"
 msgstr "使所有窗格大小相同"
-
-msgid "Make default"
-msgstr "設為預設"
-
-msgid "Make default — launch new terminals and agents on this account."
-msgstr "設為預設——新終端和代理程式將使用此帳戶啟動。"
 
 msgid "Make sure the device is awake, online, and running Superset."
 msgstr "請確認裝置未進入睡眠模式、已連上網路且正在執行 Superset。"
@@ -8120,6 +8235,10 @@ msgstr "託管"
 msgid "Managed by your organization admin."
 msgstr "由你所在組織的管理員管理。"
 
+msgid "Manual"
+msgstr "手動"
+
+msgctxt "account switch trigger"
 msgid "Manual"
 msgstr "手動"
 
@@ -8322,6 +8441,9 @@ msgstr "2026年中"
 msgid "Mid 2027"
 msgstr "2027年中"
 
+msgid "min"
+msgstr "分鐘"
+
 msgid "Mine"
 msgstr "我的"
 
@@ -8380,6 +8502,9 @@ msgstr "模型"
 msgid "Model context usage"
 msgstr "模型上下文用量"
 
+msgid "Model names whose weekly window also counts toward the threshold, separated by commas. Leave empty to watch only the account-wide windows."
+msgstr "以逗號分隔的模型名稱，這些模型的每週時段也會計入門檻。留空則只監控帳戶整體的時段。"
+
 msgid "Model picker scoped to the selected agent"
 msgstr "限定在所選代理程式範圍內的模型選擇器"
 
@@ -8388,6 +8513,9 @@ msgstr "模型選擇器"
 
 msgid "Model volume"
 msgstr "模型用量"
+
+msgid "Model windows"
+msgstr "模型時段"
 
 msgid "Model-suggested code appears in a majority of new files."
 msgstr "多數新檔案中出現了模型建議的程式碼。"
@@ -8455,20 +8583,32 @@ msgstr "更多{kindLower}主題"
 msgid "More actions"
 msgstr "更多操作"
 
+msgid "More headroom elsewhere"
+msgstr "別處餘量更多"
+
 msgid "More pages"
 msgstr "更多頁面"
 
 msgid "More than half of merged changes are written by agents with zero human edits."
 msgstr "超過一半的合併變更由代理程式撰寫，且無任何人工修改。"
 
+msgid "More than one saved login matched that account, so Superset would not guess which to use."
+msgstr "多個已儲存的登入符合該帳戶，Superset 未猜測應使用哪一個。"
+
 msgid "most developers"
 msgstr "多數開發者"
+
+msgid "Most headroom"
+msgstr "餘量最多的帳戶"
 
 msgid "Most of software history"
 msgstr "軟體史的大部分時間"
 
 msgid "Move {count} to Group"
 msgstr "將{count}個移動到群組"
+
+msgid "Move running and new {agentLabel} sessions to another account before this one runs out."
+msgstr "在這個帳戶用完之前，把正在執行的和新的{agentLabel}會話移到另一個帳戶。"
 
 msgid "Move to group"
 msgstr "移動到群組"
@@ -8550,6 +8690,9 @@ msgstr "導航"
 msgid "Navigation Menu"
 msgstr "導航選單"
 
+msgid "Near the limit"
+msgstr "接近上限"
+
 msgid "Need app-level wiring (form state, chart data, app shell)"
 msgstr "需要應用層的接線（表單狀態、圖表資料、應用程式外殼）"
 
@@ -8592,17 +8735,11 @@ msgstr "網路已變更"
 msgid "Never"
 msgstr "從未"
 
-msgid "New {providerLabel} agents will use {accountLabel}."
-msgstr "新的{providerLabel}代理程式將使用{accountLabel}。"
-
 msgid "New accounts"
 msgstr "新帳號"
 
 msgid "New agent"
 msgstr "新建代理程式"
-
-msgid "New agent launches use this account. Relaunch a running agent to switch it."
-msgstr "新啟動的代理程式使用此帳戶。重新啟動執行中的代理程式才能切換。"
 
 msgid "New agent session"
 msgstr "新建代理程式會話"
@@ -8657,6 +8794,9 @@ msgstr "新版本與產品更新。"
 
 msgid "New session"
 msgstr "新建會話"
+
+msgid "New sessions use it; sessions already running keep the previous login until you restart them."
+msgstr "新工作階段使用此帳戶；執行中的工作階段在重新啟動前保留先前的登入。"
 
 msgid "New stars"
 msgstr "新增星標"
@@ -8715,6 +8855,10 @@ msgstr "比此應用程式新"
 msgid "Newer than this app. Everything works; update the app to match."
 msgstr "比此應用程式新。一切正常；請更新應用程式以匹配。"
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Newly launched {0} sessions use the active account; ones already running keep the previous login until you restart them."
+msgstr "新的 {0} 工作階段使用使用中帳戶；執行中的工作階段在重新啟動前保留先前的登入。"
+
 msgid "News & Updates"
 msgstr "新聞與更新"
 
@@ -8732,6 +8876,9 @@ msgstr "下一條評論"
 
 msgid "Next match"
 msgstr "下一個匹配"
+
+msgid "Next reset: {resetTime}"
+msgstr "下次重設：{resetTime}"
 
 #. placeholder {0}: formatDateTimeInTimezone( new Date(automation.nextRunAt), automation.timezone ?? "UTC", )
 msgid "Next run {0}"
@@ -8770,6 +8917,9 @@ msgstr "此主機上沒有{0}登入——登入後用量會顯示在這裡。"
 
 msgid "No access to this host"
 msgstr "沒有此主機的存取權限"
+
+msgid "No account switches yet. Every switch, automatic or by hand, is listed here."
+msgstr "還沒有帳戶切換記錄。無論自動還是手動，每次切換都會列在這裡。"
 
 msgid "No active enterprise accounts"
 msgstr "沒有活躍的企業客戶"
@@ -8915,6 +9065,9 @@ msgstr "還沒有裝置"
 
 msgid "No downloads yet"
 msgstr "暫無下載"
+
+msgid "No eligible account has confirmed headroom. This session will stay stopped while quota is checked again. To continue with another model, use /model in the affected terminal."
+msgstr "尚未確認任何符合條件的帳戶有剩餘額度。重新檢查額度期間，此工作階段將保持停止。若要使用其他模型繼續，請在對應終端機中使用 /model。"
 
 msgid "No emoji found"
 msgstr "未找到表情"
@@ -9349,6 +9502,10 @@ msgstr "尚未接收到事件：Microsoft Graph拒絕了通知訂閱。請檢查
 msgid "Not reviewed by you"
 msgstr "你還沒有審查"
 
+#. placeholder {0}: engineErrorCode(failure)
+msgid "Not saved ({0}). The previous value still stands."
+msgstr "未儲存（{0}）。仍沿用之前的值。"
+
 msgid "not set up"
 msgstr "未設定"
 
@@ -9384,6 +9541,10 @@ msgstr "{pathname}下沒有任何內容。"
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "最近 30 天尚未發佈任何資料。這台機器的用量同步後即會顯示你的排名，將以 <0>{handle}</0> 發佈。"
+
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Nothing to switch to yet: this needs another {0} account with In rotation turned on."
+msgstr "暫無可切換帳戶：需要另一個啟用輪替的 {0} 帳戶。"
 
 msgid "Notice"
 msgstr "提示"
@@ -10141,6 +10302,10 @@ msgstr "輸出結構"
 msgid "Output truncated"
 msgstr "輸出已截斷"
 
+msgctxt "account switch trigger"
+msgid "Outside Superset"
+msgstr "Superset之外"
+
 msgid "Overflow Fade"
 msgstr "溢位漸隱"
 
@@ -10342,6 +10507,9 @@ msgstr "每使用者/月"
 
 msgid "Percent of total system RAM used by monitored Superset resources only (not all apps). A high share means Superset is a major contributor to system memory pressure; a low share means pressure is likely elsewhere."
 msgstr "僅受監控的Superset資源佔系統總RAM的百分比（不含其他應用程式）。佔比高說明Superset是系統記憶體壓力的主要來源；佔比低說明壓力可能來自別處。"
+
+msgid "Percent used at which any window of the active account counts as near its limit."
+msgstr "目前帳戶的任一時段用量達到此百分比，即視為接近上限。"
 
 #. placeholder {0}: team.name
 msgid "Permanently remove <0>{0}</0> and all of its members. This can't be undone."
@@ -10598,6 +10766,9 @@ msgstr "預測閱讀進度"
 
 msgid "Predictions about AI are cheap because nobody checks them. This page is a rubric, not a vibe: every gate below is either true or false of a real team shipping real software. We update it as gates open, and we do not move the goalposts."
 msgstr "關於AI的預測很廉價，因為沒人回頭核對。這個頁面是一份評分表，不是一種感覺：下面每一道關卡，對一支真正在交付真實軟體的團隊來說，非真即假。關卡開啟時我們會更新，但不會挪動球門。"
+
+msgid "Prefer the account whose weekly window resets soonest, so no quota expires unused"
+msgstr "優先選擇每週時段最快重置的帳戶，不浪費額度"
 
 msgid "Preferences"
 msgstr "偏好設定"
@@ -11073,6 +11244,9 @@ msgstr "閱讀並行編碼代理程式指南"
 msgid "Read the setup guide"
 msgstr "閱讀設定指南"
 
+msgid "Reading switch history…"
+msgstr "正在讀取切換記錄…"
+
 msgid "Reading usage…"
 msgstr "正在讀取用量…"
 
@@ -11214,9 +11388,6 @@ msgstr "相關文章"
 
 msgid "Relative path copied"
 msgstr "已複製相對路徑"
-
-msgid "Relaunch running agents to switch them."
-msgstr "重新啟動執行中的代理程式才能切換。"
 
 msgid "Relay access enabled, connecting to the relay…"
 msgstr "已啟用中繼存取，正在連線中繼…"
@@ -11524,6 +11695,9 @@ msgstr "重置位置"
 msgid "Reset terminal"
 msgstr "重置終端"
 
+msgid "Reset time unavailable. You can refresh quota or wait for the next check."
+msgstr "重設時間未知。您可以重新整理額度或等待下次檢查。"
+
 msgid "Reset to default"
 msgstr "恢復預設"
 
@@ -11602,9 +11776,6 @@ msgstr "重啟所有終端？"
 msgid "Restart and close sessions"
 msgstr "重啟並關閉會話"
 
-msgid "Restart and resume"
-msgstr "重新啟動並繼續"
-
 msgid "Restart Browser"
 msgstr "重啟瀏覽器"
 
@@ -11613,12 +11784,6 @@ msgstr "重啟守護程式"
 
 msgid "Restart host service"
 msgstr "重啟主機服務"
-
-msgid "Restart now to move them to {accountLabel}; each session picks its conversation back up where it left off."
-msgstr "立即重新啟動即可移至{accountLabel}；每個會話都會從中斷處繼續對話。"
-
-msgid "Restart running {providerLabel} agents?"
-msgstr "要重新啟動執行中的{providerLabel}代理程式嗎？"
 
 msgid "Restart terminal daemon?"
 msgstr "重啟終端守護程式？"
@@ -11632,11 +11797,11 @@ msgstr "已重啟{restartedOrgCount}個主機服務"
 msgid "Restarted 1 host service"
 msgstr "已重啟1個主機服務"
 
+msgid "Restarted and resumed"
+msgstr "已重啟並恢復"
+
 msgid "Restarting"
 msgstr "重新啟動中"
-
-msgid "Restarting agents on {accountLabel}."
-msgstr "正在{accountLabel}上重新啟動代理程式。"
 
 msgid "Restarting host services…"
 msgstr "正在重啟主機服務…"
@@ -11844,6 +12009,10 @@ msgstr "把代理程式會話回滾到任意檢查點，對話和檔案改動一
 msgid "Rotate device"
 msgstr "旋轉裝置"
 
+#. placeholder {0}: engineErrorCode(failure)
+msgid "Rotation not saved ({0})."
+msgstr "輪替設定未儲存（{0}）。"
+
 msgid "Roundups"
 msgstr "綜合評測"
 
@@ -11955,6 +12124,12 @@ msgstr "在已配對的裝置上執行"
 
 msgid "Running on this device"
 msgstr "在此裝置上執行"
+
+msgid "Running sessions move over when they go idle, resuming where they left off."
+msgstr "正在執行的會話會在閒置時切換過去，並從中斷處繼續。"
+
+msgid "Running sessions pick up the new login in place; ones on their own profile restart when they go idle."
+msgstr "正在執行的會話會就地使用新的登入資訊；使用自有設定檔的會話會在閒置時重新啟動。"
 
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "執行中的終端處理程序會繼續，但重啟應用後可能無法再看到較早的輸出。"
@@ -12552,6 +12727,10 @@ msgstr "會話檢視"
 msgid "Sessions"
 msgstr "會話"
 
+msgctxt "switch history column"
+msgid "Sessions"
+msgstr "會話"
+
 #. placeholder {0}: detail.sessions.length
 msgid "Sessions · top {0} by cost"
 msgstr "會話 · 按費用排名前{0}"
@@ -12575,6 +12754,9 @@ msgstr "設定密碼"
 
 msgid "Set Run"
 msgstr "設定執行命令"
+
+msgid "Set up outside Superset. Its usage is shown, but switching never writes to this login."
+msgstr "在Superset之外設定。這裡會顯示它的用量，但切換絕不會寫入這份登入資訊。"
 
 msgid "Set up project on {hostName}"
 msgstr "在{hostName}上設定專案"
@@ -12886,6 +13068,9 @@ msgstr "登入失敗"
 msgid "Signed in as <0>{userName}</0>"
 msgstr "已登入為<0>{userName}</0>"
 
+msgid "Signed in outside Superset, so switching leaves this login alone."
+msgstr "在Superset之外登入，因此切換不會動這份登入資訊。"
+
 msgid "Signed out"
 msgstr "已登出"
 
@@ -13023,6 +13208,9 @@ msgstr "SOC 2 Type II報告"
 
 msgid "Social"
 msgstr "社群媒體"
+
+msgid "Some {providerLabel} sessions stay on their own account"
+msgstr "部分{providerLabel}會話仍留在各自的帳戶上"
 
 msgid "Some files are not an accepted type and were not added."
 msgstr "部分檔案的型別不被允許，未新增。"
@@ -13184,6 +13372,9 @@ msgstr "全部暫存"
 msgid "Staged"
 msgstr "已暫存"
 
+msgid "Stale token, still eligible"
+msgstr "權杖已過期，仍符合切換資格"
+
 msgid "Standard action strip for pane headers"
 msgstr "面板標題欄的標準操作條"
 
@@ -13322,6 +13513,9 @@ msgstr "狀態變更"
 
 msgid "Stay connected (refresh tokens)"
 msgstr "保持連線（重新整理權杖）"
+
+msgid "Stay until the active account nears its limit, then move to the account with the most headroom"
+msgstr "一直用到目前帳戶接近上限，再切換到餘量最多的帳戶"
 
 #. placeholder {0}: step === "workspace" ? 1 : 2
 msgid "Step {0} of 2"
@@ -13486,6 +13680,9 @@ msgstr "Superset元件"
 msgid "Superset could not complete sign-in. Please try again."
 msgstr "Superset無法完成登入。請重試。"
 
+msgid "Superset could not tell which account is signed in, so it left the current one in place."
+msgstr "Superset 無法確定已登入的帳戶，因此保留了目前帳戶。"
+
 msgid "Superset CPU"
 msgstr "Superset CPU"
 
@@ -13604,8 +13801,22 @@ msgstr "已暫停"
 msgid "Sustain"
 msgstr "持續"
 
+msgid "Switch accounts automatically"
+msgstr "自動切換帳戶"
+
 msgid "Switch agents. Keep your workflow"
 msgstr "換代理程式，不換工作流"
+
+msgid "Switch at"
+msgstr "切換門檻"
+
+#. placeholder {0}: engineErrorCode(failure)
+#. placeholder {0}: rawErrorMessage(error)
+msgid "Switch failed ({0}). The previous account is still active."
+msgstr "切換失敗（{0}）。之前的帳戶仍在使用中。"
+
+msgid "Switch history"
+msgstr "切換記錄"
 
 msgid "Switch host"
 msgstr "切換主機"
@@ -13675,6 +13886,12 @@ msgstr "切換到工作區8"
 
 msgid "Switch to Workspace 9"
 msgstr "切換到工作區9"
+
+msgid "Switching resumes when a usage window resets."
+msgstr "用量時段重置後會恢復切換。"
+
+msgid "Switching…"
+msgstr "正在切換…"
 
 msgid "Sync"
 msgstr "同步"
@@ -13943,6 +14160,9 @@ msgstr "多行文字框"
 msgid "Thanks for reaching out"
 msgstr "感謝聯絡"
 
+msgid "That account is not one this host can see, so the previous account is still active."
+msgstr "此主機看不到該帳戶。先前的帳戶仍在使用中。"
+
 msgid "That handle is taken."
 msgstr "該使用者名稱已被佔用。"
 
@@ -13958,6 +14178,33 @@ msgstr "該名稱不被允許。"
 msgid "The 2026 bet"
 msgstr "2026年的賭注"
 
+msgid "The access token is past its expiry but the sign-in is not — a fresh one is minted the next time the CLI runs."
+msgstr "存取權杖已過期，但登入本身沒有 — 下次執行CLI時會重新簽發。"
+
+msgid "The account engine cannot use its state directory. Make it owner-only (chmod 700), or point SUPERSET_HOME_DIR at a filesystem that supports Unix permissions."
+msgstr "帳戶引擎無法使用其狀態目錄。請將該目錄設為僅擁有者可存取（chmod 700），或將 SUPERSET_HOME_DIR 指向支援 Unix 權限的檔案系統。"
+
+msgid "The account engine is not running on this host, so {agentLabel} accounts cannot switch automatically."
+msgstr "這台主機上沒有執行帳戶引擎，因此{agentLabel}帳戶無法自動切換。"
+
+msgid "The account engine is not running on this host."
+msgstr "這台主機上沒有執行帳戶引擎。"
+
+msgid "The account it tried to switch to has no saved identity, so the previous account is still active."
+msgstr "目標帳戶沒有已儲存的身分資訊。先前的帳戶仍在使用中。"
+
+msgid "The account it tried to switch to has no saved login. Sign in to it once and switching can use it."
+msgstr "目標帳戶沒有已儲存的登入。登入一次後即可切換至此帳戶。"
+
+msgid "The account it tried to switch to is not usable, so the previous account is still active."
+msgstr "目標帳戶無法使用。先前的帳戶仍在使用中。"
+
+msgid "The account it was switching to changed while switching, so the switch was abandoned."
+msgstr "切換期間目標帳戶發生變化，因此已放棄切換。"
+
+msgid "The active account could not be updated, so the previous account is still active."
+msgstr "無法更新使用中帳戶。先前的帳戶仍在使用中。"
+
 msgid "the active organization"
 msgstr "目前組織"
 
@@ -13969,6 +14216,12 @@ msgstr "代理程式從工單一路負責到差異。人類審查結果，而不
 
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "這個自動化原本要執行的代理程式在它的主機上已不存在，該主機的代理程式可能被重置或刪除了。請在自動化的設定中重新選擇一個代理程式。"
+
+msgid "The agent's account folder could not be reached, so the previous account is still active."
+msgstr "無法存取代理的帳戶資料夾。先前的帳戶仍在使用中。"
+
+msgid "The agent's account folder is not in a usable state, so the previous account is still active."
+msgstr "代理的帳戶資料夾無法使用。先前的帳戶仍在使用中。"
 
 msgid "The app is on {appVersion} but attached to a host service started by something else, likely an older CLI or another Superset build. Restarting replaces it with this app's copy."
 msgstr "應用程式版本為 {appVersion}，但連接的是由其他程式（可能是舊版 CLI 或另一個 Superset 版本）啟動的主機服務。重新啟動會將其替換為此應用程式自帶的副本。"
@@ -14064,6 +14317,9 @@ msgstr "主機未在十五分鐘內恢復。"
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "該主機沒有連線到Superset中繼。如果就是此裝置，請在「設定>遠端存取」中開啟「允許遠端存取通過中繼存取此裝置」，然後重試。"
 
+msgid "The host rejected that value, so the previous one still stands."
+msgstr "主機拒絕了該值，仍沿用之前的值。"
+
 msgid "The host reported a failed update."
 msgstr "主機回報更新失敗。"
 
@@ -14120,6 +14376,12 @@ msgstr "你的組織或團隊的名稱"
 
 msgid "The network connection changed"
 msgstr "網路連線已變更"
+
+msgid "The new login could not be saved, so the previous account is still active."
+msgstr "無法儲存新登入。先前的帳戶仍在使用中。"
+
+msgid "The new login could not be verified, so the previous account was put back."
+msgstr "無法驗證新登入，因此已還原先前的帳戶。"
 
 msgid "The overnight shift"
 msgstr "夜班"
@@ -14185,8 +14447,17 @@ msgstr "自動駕駛的軟體工廠"
 msgid "The server could not be found"
 msgstr "找不到伺服器"
 
+msgid "The shared account service is unavailable. Try refreshing usage."
+msgstr "共用帳戶服務無法使用。請嘗試重新整理使用量。"
+
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "登入連結不完整。請重試。"
+
+msgid "The signed-in account changed while switching, so the switch was abandoned."
+msgstr "切換期間已登入的帳戶發生變化，因此已放棄切換。"
+
+msgid "The signed-in account could not be identified, so nothing was changed."
+msgstr "無法識別已登入的帳戶。未進行任何變更。"
 
 msgid "The site's certificate authority is not trusted"
 msgstr "該站點的證書頒發機構不受信任"
@@ -14214,6 +14485,12 @@ msgstr "Superset主機服務意外停止（{cause}），且無法自動重啟。
 
 msgid "The surfaces outside the site that carry the product: the repository, releases, and Discord."
 msgstr "站外承載產品的管道：儲存庫、發行版本與 Discord。"
+
+msgid "The switch did not go through. The previous account is still active."
+msgstr "切換未成功。先前的帳戶仍在使用中。"
+
+msgid "The switch stopped halfway. Open Usage to check which account is signed in."
+msgstr "切換中途停止。開啟「使用量」查看已登入的帳戶。"
 
 msgid "the target host"
 msgstr "目標主機"
@@ -14561,6 +14838,10 @@ msgstr "標題包含..."
 msgid "To"
 msgstr "到"
 
+msgctxt "switch history column"
+msgid "To"
+msgstr "新帳戶"
+
 msgid "Toast (Sonner)"
 msgstr "Toast（Sonner）"
 
@@ -14743,6 +15024,10 @@ msgstr "分類新議題"
 
 msgid "triaging 12 new issues…"
 msgstr "正在分類12個新議題…"
+
+msgctxt "switch history column"
+msgid "Trigger"
+msgstr "觸發方式"
 
 msgid "Trigger alert()"
 msgstr "觸發alert()"
@@ -14954,6 +15239,9 @@ msgctxt "person"
 msgid "Unknown"
 msgstr "未知"
 
+msgid "Unknown account"
+msgstr "未知帳戶"
+
 msgid "Unknown device"
 msgstr "未知裝置"
 
@@ -14990,6 +15278,9 @@ msgstr "無限"
 
 msgid "Unlimited users"
 msgstr "使用者數不限"
+
+msgid "Unmanaged"
+msgstr "非受管"
 
 msgid "Unmute notifications"
 msgstr "取消靜音通知"
@@ -15160,6 +15451,9 @@ msgstr "URL友好的識別符號，在你的組織內唯一。"
 msgid "Usage"
 msgstr "用量"
 
+msgid "Usage limit reached"
+msgstr "已達使用上限"
+
 msgid "Usage sections"
 msgstr "用量分區"
 
@@ -15188,9 +15482,6 @@ msgstr "每個任務都可以用Claude Code、Codex、OpenCode或任何編碼代
 msgid "Use Claude Code, Codex, or any coding agent. Choose per task or run several side by side."
 msgstr "使用Claude Code、Codex或任何編碼代理程式。按任務選擇，或讓多個並行執行。"
 
-msgid "Use for new agents"
-msgstr "用於新代理程式"
-
 msgid "Use global default"
 msgstr "使用全域性預設值"
 
@@ -15214,6 +15505,9 @@ msgstr "用它修復卡住或無響應的終端。"
 
 msgid "Use this when calling the Superset API."
 msgstr "呼叫Superset API時使用。"
+
+msgid "Use up the soonest reset"
+msgstr "優先用完最快重置的帳戶額度"
 
 msgid "Use voice transcription and push-to-talk features."
 msgstr "使用語音轉寫和按住說話功能。"
@@ -15389,6 +15683,9 @@ msgstr "音量"
 msgid "VS Code"
 msgstr "VS Code"
 
+msgid "Wait between switches"
+msgstr "兩次切換的間隔"
+
 msgid "Wait for workspace setup before starting agents"
 msgstr "啟動代理程式前等待工作區設定完成"
 
@@ -15399,6 +15696,9 @@ msgstr "正在等待 {0} 和 {1}…"
 
 msgid "Waiting for Checks"
 msgstr "等待檢查"
+
+msgid "Waiting for confirmed quota"
+msgstr "等待確認可用額度"
 
 msgid "Waiting for Review"
 msgstr "等待審查"
@@ -15557,6 +15857,9 @@ msgstr "每週網站訪客（PostHog 工作階段）、點擊下載的人、建�
 msgid "Weekly visitors arriving from a search results page. Search Console below says which queries they typed."
 msgstr "每週從搜尋結果頁到達的訪客。他們輸入的查詢字詞見下方 Search Console。"
 
+msgid "weekly window"
+msgstr "每週時段"
+
 msgid "Welcome back"
 msgstr "歡迎回來"
 
@@ -15617,6 +15920,10 @@ msgstr "企業版包含什麼？"
 msgid "What's New"
 msgstr "最新動態"
 
+msgctxt "switch history column"
+msgid "When"
+msgstr "時間"
+
 msgid "When off, nothing else can reach the files and tools on this device. You can still connect out to remote sandboxes from here. <0>Learn more<1/></0>"
 msgstr "關閉後，任何其他來源都無法存取此裝置上的檔案和工具。你仍可從這裡連線到遠端沙箱。<0>瞭解更多<1/></0>"
 
@@ -15653,6 +15960,9 @@ msgstr "你的真實位置"
 msgid "Whether the people acquired stay and what they pay."
 msgstr "獲得的使用者是否留下，以及付了多少。"
 
+msgid "Which account to move to"
+msgstr "切換到哪個帳戶"
+
 msgid "Which agents are supported?"
 msgstr "支援哪些代理程式？"
 
@@ -15667,6 +15977,10 @@ msgstr "整站"
 
 msgid "Whole Task"
 msgstr "整任務"
+
+msgctxt "switch history column"
+msgid "Why"
+msgstr "原因"
 
 msgid "Width"
 msgstr "寬度"
@@ -15920,6 +16234,9 @@ msgstr "你沒有移除該成員的權限"
 
 msgid "You need to be part of an organization to use integrations."
 msgstr "你需要加入一個組織才能使用整合。"
+
+msgid "You picked this account"
+msgstr "你選擇了這個帳戶"
 
 #. placeholder {0}: preview.rank
 #. placeholder {1}: preview.total

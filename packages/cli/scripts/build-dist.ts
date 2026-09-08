@@ -420,6 +420,10 @@ async function main(): Promise<void> {
 	console.log("[build-dist] building host-service bundle");
 	const hostServiceBundle = await buildHostService();
 	cpSync(hostServiceBundle, join(stagingRoot, "lib", "host-service.js"));
+	cpSync(
+		join(dirname(hostServiceBundle), "account-owner.js"),
+		join(stagingRoot, "lib", "account-owner.js"),
+	);
 
 	// host-worker.js ships side-by-side too: the worker pool resolves it
 	// next to host-service.js (falling back to inline execution if absent).

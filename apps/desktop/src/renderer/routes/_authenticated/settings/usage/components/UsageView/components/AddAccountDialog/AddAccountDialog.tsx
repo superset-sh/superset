@@ -1,7 +1,7 @@
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
-import { errorMessage } from "@superset/i18n/errors";
+import { rawErrorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -30,6 +30,13 @@ const AGENT_LABELS: Record<Agent, string> = {
 	claude: "Claude Code",
 	codex: "Codex",
 };
+
+/** The account card's wording for the same control, so both say what making
+ * an account active actually does: it moves the sessions already running. */
+const ACTIVE_TITLE = msg({
+	message:
+		"Active — every running and newly launched session of this agent uses this account.",
+});
 
 /** The login being re-signed by "Switch sign-in": a profile dir, or the
  * system default when selection is null. */
@@ -150,8 +157,8 @@ interface AddAccountDialogProps {
 	agent: Agent;
 	/** Called once when the new sign-in is detected, to refresh quota. */
 	onAccountAdded: () => void;
-	/** Called after "Use for new agents" makes the added account the default;
-	 * the owner toasts, or offers to restart running agents onto it. */
+	/** Called after "Make active" switches to the added account; the owner
+	 * toasts, or offers to restart running agents onto it. */
 	onDefaultSwitched: (agent: Agent, accountLabel: string) => void;
 	/** When set, the dialog re-signs this existing login instead of adding a
 	 * separate profile. */
@@ -329,6 +336,7 @@ export function AddAccountDialog({
 							{!switchTarget && found.selection !== null && (
 								<Button
 									disabled={setDefault.isPending}
+									title={i18n._(ACTIVE_TITLE)}
 									onClick={() => {
 										setDefault.mutate(
 											{ agent, selection: found.selection },
@@ -337,12 +345,23 @@ export function AddAccountDialog({
 													onDefaultSwitched(agent, found.label);
 													onOpenChange(false);
 												},
-												onError: (error) => toast.error(errorMessage(error)),
+												// The host refuses with a bare code ("lock-loser",
+												// "engine-unavailable", …) as the error message, so
+												// rendering it as-is would show the user the code.
+												// `rawErrorMessage` on purpose: the code is
+												// classification, and it goes in the parentheses the
+												// account cards already quote it in.
+												onError: (error) =>
+													toast.error(
+														t({
+															message: `Switch failed (${rawErrorMessage(error)}). The previous account is still active.`,
+														}),
+													),
 											},
 										);
 									}}
 								>
-									<Trans>Use for new agents</Trans>
+									<Trans>Make active</Trans>
 								</Button>
 							)}
 						</div>

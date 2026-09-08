@@ -32,6 +32,10 @@
 			"types": "./src/workers/host-worker.ts",
 			"default": "./src/workers/host-worker.ts"
 		},
+		"./account-owner": {
+			"types": "./src/account-engine/machine-owner/entry.ts",
+			"default": "./src/account-engine/machine-owner/entry.ts"
+		},
 		"./terminal-env": {
 			"types": "./src/terminal/env.ts",
 			"default": "./src/terminal/env.ts"

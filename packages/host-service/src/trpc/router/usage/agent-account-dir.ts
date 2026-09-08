@@ -1,0 +1,124 @@
+/**
+ * Which account directory an agent launch would actually use, and whether
+ * Superset owns that choice (KTD12).
+ *
+ * Launch-time env overlays the shell snapshot with host defaults and then
+ * config.env (the terminal agent launch, trust seeder, and transcript reader).
+ * This wrapper is the one place that also answers the second
+ * question the account engine needs: a session whose `CLAUDE_CONFIG_DIR` /
+ * `CODEX_HOME` differs from the `SUPERSET_DEFAULT_*` twin Superset injects
+ * alongside it was pinned by the user — the engine must never restart it onto
+ * another account.
+ */
+
+import type { HostDb } from "../../../db/index.ts";
+import {
+	canonicalAccountHome,
+	resolveDefaultAccountEnv,
+} from "./default-account.ts";
+
+/** The two agent families whose account dir Superset can switch. */
+export type AccountDirFamily = "claude" | "codex";
+
+const DIR_VARS: Record<
+	AccountDirFamily,
+	{ configDir: string; supersetTwin: string }
+> = {
+	claude: {
+		configDir: "CLAUDE_CONFIG_DIR",
+		supersetTwin: "SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR",
+	},
+	codex: {
+		configDir: "CODEX_HOME",
+		supersetTwin: "SUPERSET_DEFAULT_CODEX_HOME",
+	},
+};
+
+export interface AgentAccountDirInput {
+	family: AccountDirFamily;
+	/** Startup shell snapshot, below defaults and config. Later shell edits
+	 * and per-session exports are not represented by this snapshot. */
+	shellEnv?: Record<string, string>;
+	/** The agent config's own env overlay, which wins over the host default. */
+	env?: Record<string, string>;
+	/**
+	 * The host default env, when the caller already has it. It depends only on
+	 * `db` and `family`, so a caller resolving many launches of one family
+	 * resolves it once instead of re-querying per launch.
+	 */
+	defaultEnv?: Record<string, string>;
+}
+
+export interface AgentAccountDir {
+	/**
+	 * The dir the launch would run under, or null when nothing overrides the
+	 * CLI's own default home (`~/.claude`, `~/.codex`).
+	 */
+	configDir: string | null;
+	/**
+	 * False when the value came from the user rather than from Superset's
+	 * account selection: such a session is listed as unmanaged and is never
+	 * restarted onto another account.
+	 */
+	managed: boolean;
+}
+
+function samePath(a: string, b: string): boolean {
+	if (a === b) return true;
+	return canonicalAccountHome(a) === canonicalAccountHome(b);
+}
+
+/**
+ * Resolve `{ configDir, managed }` for one agent launch. `db` supplies the
+ * host-wide account selection; `input.env` is the per-agent override that
+ * wins over it, exactly as the launch composes them.
+ */
+export function resolveAgentAccountDir(
+	db: HostDb,
+	input: AgentAccountDirInput,
+): AgentAccountDir {
+	const vars = DIR_VARS[input.family];
+	const env = {
+		...input.shellEnv,
+		...(input.defaultEnv ?? resolveDefaultAccountEnv(db, input.family)),
+		...input.env,
+	};
+	const configDir = env[vars.configDir] || null;
+	const injected = env[vars.supersetTwin] || null;
+	if (configDir === null) {
+		// No override at all: the CLI's own home, which the pointer still
+		// governs the moment an account is selected.
+		return { configDir: null, managed: true };
+	}
+	// Today's pointer may override a shell pin that an existing session still
+	// uses. As with config pins below, refusing a move is the safe direction.
+	if (input.shellEnv?.[vars.configDir]) {
+		return { configDir, managed: false };
+	}
+	// A config that names either var pinned this session by hand, so it owns
+	// the account and Superset does not. Testing only the value would call a
+	// pin "managed" whenever it happened to equal the current selection, and
+	// the engine would then kill and resume a session that comes back on the
+	// very account it was switched away from, because the launch wrapper keeps
+	// a config's own dir. The twin is Superset's own marker and never part of
+	// an agent config's env, so a config carrying one is forging it.
+	//
+	// One shape this answers conservatively rather than correctly: a config
+	// that sets the dir var AND the twin to the same value. The wrapper's gate
+	// treats that as "unset" and re-exports the pointer, so such a launch does
+	// follow the selection — but the wrapper compares against the twin frozen
+	// in the PTY at spawn, which this function cannot see, so the neighbouring
+	// shape (a config pinning only the dir var while the spawn-time selection
+	// happened to equal it) would stay wrong either way. Refusing to move a
+	// session is the safe direction, so both stay unmanaged.
+	if (
+		input.env &&
+		(vars.configDir in input.env || vars.supersetTwin in input.env)
+	) {
+		return { configDir, managed: false };
+	}
+	return {
+		configDir,
+		managed: injected !== null && samePath(configDir, injected),
+	};
+}

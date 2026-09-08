@@ -3,11 +3,15 @@ import {
 	BUILTIN_AGENT_IDS,
 } from "@superset/shared/agent-catalog";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import type { HostDb } from "../../../db";
-import { workspaces } from "../../../db/schema";
+import { terminalSessions, workspaces } from "../../../db/schema";
 import type { EventBus } from "../../../events";
+import {
+	getTerminalBaseEnv,
+	waitForTerminalBaseEnv,
+} from "../../../terminal/env";
 import { hasHarnessSession } from "../../../terminal/harness-transcript";
 import {
 	createTerminalSessionInternal,
@@ -34,6 +38,7 @@ import {
 	runAgentInWorkspace,
 } from "../agents/agents";
 import { toTerminalSessionError } from "../terminal/errors";
+import { resolveAgentAccountDir } from "../usage/agent-account-dir";
 import { resolveDefaultAccountEnv } from "../usage/default-account";
 
 type GetOrCreateResult = {
@@ -75,13 +80,57 @@ export interface ResumeSessionDeps {
 const resumeInflight = new Map<string, Promise<ResumeResult>>();
 
 /**
+ * Agent session ids are opaque tokens (both CLIs mint UUIDs). The resume
+ * command is typed into the user's shell, so anything outside this alphabet
+ * is refused rather than quoted: a stored id that looks like shell syntax is
+ * corruption or an attempt, never a conversation worth restoring.
+ */
+const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
+
+/**
+ * Continue nudges waiting for their terminal's next resume, keyed
+ * `${workspaceId}::${terminalId}` (KTD8). The account mover registers one
+ * before it kills a session; whichever caller then wins the `resumeInflight`
+ * coalescing — the mover's own resume or the renderer's empty-prompt
+ * auto-resume — launches the agent with it, so the interrupted turn proceeds
+ * without the user typing. Consumed exactly once and retained for immediate
+ * retries after a failed launch. Expired nudges must not start an unsolicited
+ * turn when a user resumes that conversation much later.
+ */
+const PENDING_NUDGE_TTL_MS = 2 * 60_000;
+const pendingNudges = new Map<
+	string,
+	{ prompt: string; expiresAt: number; consumed?: boolean }
+>();
+
+function nudgeKey(workspaceId: string, terminalId: string): string {
+	return `${workspaceId}::${terminalId}`;
+}
+
+/** See {@link pendingNudges}. Overwrites any nudge still pending. */
+export function registerPendingNudge(
+	workspaceId: string,
+	terminalId: string,
+	nudge: string,
+): void {
+	const now = Date.now();
+	for (const [key, pending] of pendingNudges) {
+		if (pending.expiresAt <= now) pendingNudges.delete(key);
+	}
+	pendingNudges.set(nudgeKey(workspaceId, terminalId), {
+		prompt: nudge,
+		expiresAt: now + PENDING_NUDGE_TTL_MS,
+	});
+}
+
+/**
  * Whether the harness behind `binding` still holds its conversation, read
  * from the directory the relaunch will run under: the default account can
  * have changed since the session started (that is what the account-switch
  * restart is for), and session sharing makes the transcript reachable from
  * the new profile too.
  */
-function bindingHasHarnessSession(
+export function bindingHasHarnessSession(
 	db: HostDb,
 	binding: TerminalAgentBinding,
 ): boolean | null {
@@ -135,7 +184,12 @@ export async function resumeTerminalAgentSession(
 			workspaceId,
 			terminalId,
 		);
-		if (!claimed?.agentSessionId) return { resumed: false };
+		if (!claimed?.agentSessionId) {
+			// Nothing left to resume under this id, and terminal ids are never
+			// reused: a nudge left queued here could never be looked up again.
+			pendingNudges.delete(key);
+			return { resumed: false };
+		}
 
 		const config = resolveHostAgentConfig(
 			deps.db,
@@ -148,22 +202,71 @@ export async function resumeTerminalAgentSession(
 			return { resumed: false };
 		}
 
+		if (!SESSION_ID_PATTERN.test(claimed.agentSessionId)) {
+			// Never becomes a `--resume` argument. Logged without the value.
+			console.warn(
+				"[terminal-agents] refusing to resume a malformed session id",
+				{ terminalId },
+			);
+			unclaimResumeCandidateBinding(deps.db, terminalId);
+			return { resumed: false };
+		}
+
+		const killPending = deps.db
+			.select({
+				status: terminalSessions.status,
+				disposeRequestedAt: terminalSessions.disposeRequestedAt,
+			})
+			.from(terminalSessions)
+			.where(eq(terminalSessions.id, terminalId))
+			.get();
+		if (
+			killPending?.status === "active" &&
+			killPending.disposeRequestedAt != null
+		) {
+			// A kill was requested and the daemon never confirmed it: the old
+			// pty may still be running this conversation, so resuming now
+			// would put two agents on it. Only this state is refused — a
+			// confirmed kill leaves the row "disposed", a crash or daemon loss
+			// leaves it "exited", and a v1->v2 seeded candidate never carries
+			// the stamp. The reaper retries the kill (it reaps any row with
+			// disposeRequestedAt set) and flips the row, after which this
+			// republishes and resumes normally with its nudge intact.
+			unclaimResumeCandidateBinding(deps.db, terminalId);
+			return { resumed: false };
+		}
+
 		// Only a definite "no transcript" launches fresh: an unreadable or
 		// unsurveyed store must not cost a restored conversation its history.
 		const resumable =
 			claimed.lastEventType !== "Attached" ||
 			deps.hasSession(claimed) !== false;
 
+		// Consumed here, not at the call site, so the winner of the coalescing
+		// is the launch that carries it (KTD8).
+		const pendingNudge = pendingNudges.get(key);
+		pendingNudges.delete(key);
+		const nudge =
+			pendingNudge && pendingNudge.expiresAt > Date.now()
+				? pendingNudge
+				: undefined;
+		if (nudge) nudge.consumed = true;
+
 		let result: AgentRunResult;
 		try {
 			result = await deps.runAgent({
 				workspaceId,
 				agent: config.id,
-				prompt: "",
+				prompt: nudge?.prompt ?? "",
 				...(resumable ? { resumeSessionId: claimed.agentSessionId } : {}),
 			});
 		} catch (error) {
 			unclaimResumeCandidateBinding(deps.db, terminalId);
+			// The retry that re-claims this candidate must still nudge.
+			if (nudge) {
+				nudge.consumed = false;
+				if (nudge.expiresAt > Date.now()) pendingNudges.set(key, nudge);
+			}
 			throw error;
 		}
 
@@ -207,6 +310,178 @@ export async function resumeTerminalAgentSession(
 }
 
 /**
+ * `disposeSessionAndWait` reports a kill the daemon could not confirm by
+ * returning `daemonCloseSucceeded: false`, not by throwing — see
+ * `DisposeSessionResult`. Read defensively because the dep is a plain
+ * `Promise<unknown>`: a test double (or a future disposer) may resolve with
+ * nothing at all, which is not a failure.
+ */
+function daemonCloseFailed(result: unknown): boolean {
+	return (
+		typeof result === "object" &&
+		result !== null &&
+		(result as { daemonCloseSucceeded?: unknown }).daemonCloseSucceeded ===
+			false
+	);
+}
+
+/**
+ * Write the durable intent-to-kill stamp for a dispose that threw. The real
+ * disposer stamps as its first statement, so a throw can mean the pty was
+ * never touched — and by then the binding is already a claimable resume
+ * candidate. Only this stamp makes the kill-pending guard in
+ * `resumeTerminalAgentSession` refuse a resume onto a pty that may still be
+ * running the conversation, and only it makes the reaper retry the kill.
+ * First request time wins, like `disposeSessionAndWait`. Best-effort: a
+ * failure here must not mask the dispose error the caller is reporting.
+ */
+function stampDisposeRequested(db: HostDb, terminalId: string): void {
+	try {
+		db.update(terminalSessions)
+			.set({ disposeRequestedAt: Date.now() })
+			.where(
+				and(
+					eq(terminalSessions.id, terminalId),
+					isNull(terminalSessions.disposeRequestedAt),
+				),
+			)
+			.run();
+	} catch (error) {
+		console.warn("[terminal-agents] failed to stamp the requested kill", {
+			terminalId,
+			error,
+		});
+	}
+}
+
+/**
+ * Kill one live agent session the way a crash would and bring it straight
+ * back with its conversation — the account engine's mover (KTD8).
+ *
+ * A kill the daemon could not confirm returns `{ resumed: false }`: the old
+ * pty may still hold the session, and resuming on top of it would run two
+ * agents on one conversation.
+ *
+ * `prompt` is registered before anything is killed, so the resume that
+ * follows launches with it even if the renderer's auto-resume gets there
+ * first — and when the resume it joins had already composed its prompt, this
+ * reports `{ resumed: false }` rather than a nudge that never went out. The
+ * binding is marked "terminal-exited", never "disposed", so it
+ * stays a resume candidate; the old pty is disposed before the relaunch so
+ * two processes never hold the same session id.
+ *
+ * Marking it exited is also what publishes it as a resume candidate, so the
+ * `resumeInflight` slot is reserved before the mark and held until the kill
+ * is done: a renderer auto-resume arriving in that window would otherwise
+ * claim the candidate and launch a second agent while the old pty may still
+ * be running the conversation. A resume that lands during the window waits on
+ * this call and shares its result instead of launching.
+ */
+export async function killAndResumeTerminalAgent(
+	deps: ResumeSessionDeps,
+	input: { workspaceId: string; terminalId: string; prompt?: string },
+): Promise<ResumeResult> {
+	const { workspaceId, terminalId, prompt } = input;
+	const key = `${workspaceId}::${terminalId}`;
+	if (prompt) registerPendingNudge(workspaceId, terminalId, prompt);
+	const registeredNudge = prompt ? pendingNudges.get(key) : undefined;
+
+	// A resume already in flight has claimed the candidate and disposes the
+	// old terminal itself; joining it is what any other caller does.
+	const pending = resumeInflight.get(key);
+	if (pending) {
+		const joined = await pending;
+		// A resume reads the nudge before it is reachable through
+		// `resumeInflight`, so the one just joined carries ours only when it
+		// had not read one yet — the kill window reserved below. A nudge still
+		// pending after the join reached no launch: report it as needing
+		// attention instead of claiming a prompt that was never delivered, and
+		// leave the entry for the resume that follows the caller's retry.
+		if (prompt && !registeredNudge?.consumed) return { resumed: false };
+		return joined;
+	}
+
+	let settle!: (result: ResumeResult) => void;
+	const reserved = new Promise<ResumeResult>((resolve) => {
+		settle = resolve;
+	});
+	resumeInflight.set(key, reserved);
+	// Dropped in the same turn the real resume installs its own entry, so no
+	// caller can slip between the two.
+	const handOver = (): void => {
+		if (resumeInflight.get(key) === reserved) resumeInflight.delete(key);
+	};
+
+	try {
+		deps.terminalAgentStore.markTerminalExited(terminalId);
+	} catch (error) {
+		// The reservation is already visible, and this write can throw for
+		// real — it is a better-sqlite3 update behind a 5s busy timeout, and
+		// endBinding emits a change event that rethrows a listener's throw.
+		// Leaving without settling strands an unresolved promise under this
+		// key, so every later resume of the terminal awaits something that
+		// never completes: the pane spins forever with no error and no retry,
+		// for the life of the process.
+		handOver();
+		settle({ resumed: false });
+		console.warn("[terminal-agents] failed to record the kill before resume", {
+			terminalId,
+			error,
+		});
+		throw error;
+	}
+	let disposal: unknown;
+	try {
+		disposal = await deps.disposeSession(terminalId);
+	} catch (error) {
+		// The dispose can throw before it stamps its own intent to kill, and
+		// the binding is already a claimable candidate: stamp it here, before
+		// the reservation is released, so the kill-pending guard refuses a
+		// resume onto a pty that may still be running. The reaper then retries
+		// the kill (it reaps any stamped row) and flips the row out of
+		// "active", after which the candidate republishes with its nudge
+		// still pending and resumes normally.
+		stampDisposeRequested(deps.db, terminalId);
+		handOver();
+		settle({ resumed: false });
+		console.warn("[terminal-agents] failed to kill terminal before resume", {
+			terminalId,
+			error,
+		});
+		throw error;
+	}
+	if (daemonCloseFailed(disposal)) {
+		// Same situation as the throw above, reported by a return value rather
+		// than an exception: the old pty may still be running the session, so
+		// resuming now would put two agents on one conversation. The reaper
+		// retries the kill and the nudge stays pending for the resume that
+		// follows it; the caller treats this as needing attention.
+		handOver();
+		settle({ resumed: false });
+		console.warn(
+			"[terminal-agents] the daemon could not confirm the kill; not resuming",
+			{ terminalId },
+		);
+		return { resumed: false };
+	}
+
+	handOver();
+	try {
+		const result = await resumeTerminalAgentSession(deps, {
+			workspaceId,
+			terminalId,
+		});
+		settle(result);
+		return prompt && !registeredNudge?.consumed ? { resumed: false } : result;
+	} catch (error) {
+		// Waiters are resolved, never rejected: with no waiter at all a
+		// rejected reservation would surface as an unhandled rejection.
+		settle({ resumed: false });
+		throw error;
+	}
+}
+
+/**
  * Live agent sessions a default-account switch cannot reach: their PTY env
  * was frozen at spawn, so they keep the old login until relaunched. A
  * session qualifies when its binding captured a session id and its config
@@ -216,14 +491,31 @@ export async function resumeTerminalAgentSession(
  * relaunch by hand, and the resume path starts it fresh when it has no
  * conversation yet. Sessions that fail the bar are left running rather than
  * killed without a way back.
+ *
+ * Each row also carries the account dir the launch resolves to and whether
+ * Superset owns that choice (KTD12): a session pinned to a
+ * user-exported `CLAUDE_CONFIG_DIR` / `CODEX_HOME` is reported unmanaged, and
+ * the account engine leaves it alone.
  */
 export function listAccountRestartCandidates(
 	db: HostDb,
 	store: TerminalAgentStore,
 	provider: "claude" | "codex",
-): Array<{ binding: TerminalAgentBinding; agentLabel: string }> {
-	const out: Array<{ binding: TerminalAgentBinding; agentLabel: string }> = [];
-	for (const binding of store.list()) {
+): AccountRestartCandidate[] {
+	const out: AccountRestartCandidate[] = [];
+	// The host default depends only on `db` and `provider`, and resolving it
+	// costs a DB query plus the pointer reads: once, not once per binding.
+	const defaultEnv = resolveDefaultAccountEnv(db, provider);
+	let shellEnv: Record<string, string>;
+	try {
+		shellEnv = getTerminalBaseEnv();
+	} catch {
+		// The engine reads this synchronously; until the startup snapshot is
+		// ready, no session can safely be classified as movable.
+		return [];
+	}
+	for (const listed of store.list()) {
+		const binding = withEphemeralFields(store, listed);
 		if (!binding.agentSessionId) continue;
 		const config = resolveHostAgentConfig(
 			db,
@@ -231,55 +523,53 @@ export function listAccountRestartCandidates(
 		);
 		if (!config || config.presetId !== provider) continue;
 		if (config.resumeArgs.length === 0) continue;
-		out.push({ binding, agentLabel: config.label });
+		const account = resolveAgentAccountDir(db, {
+			family: provider,
+			shellEnv,
+			env: config.env,
+			defaultEnv,
+		});
+		out.push({
+			binding,
+			agentLabel: config.label,
+			configDir: account.configDir,
+			managed: account.managed,
+		});
 	}
 	return out;
 }
 
 /**
- * Relaunch every live `provider` agent onto the current default account,
- * without waiting for a pane to notice. Each candidate is killed, then
- * resumed here on the host through {@link resumeTerminalAgentSession}: same
- * conversation in a fresh terminal whose agent wrapper re-resolves the
- * account pointer at launch. Panes still open on the old terminal follow
- * the "resumed" lifecycle event; a session with no pane anywhere (launched
- * from the CLI, or in a workspace this client never opened) gets one from
- * background-session adoption the next time its workspace is viewed. Doing
- * the resume renderer-side instead would leave such a session stranded: its
- * terminal is dead, so nothing lists it and nothing ever asks to resume it.
+ * `store.list()` is served from SQLite in production, and `lastFailure` and
+ * `lastTransitionAt` have no columns there — they are in-memory only (see
+ * TerminalAgentBinding). Without them the account engine never sees a Claude
+ * limit stop at all, so the row it acts on is the listed one topped up from
+ * the store's own map.
  */
-export async function restartAccountSessions(
-	deps: ResumeSessionDeps,
-	provider: "claude" | "codex",
-): Promise<{ restartedTerminalIds: string[] }> {
-	const candidates = listAccountRestartCandidates(
-		deps.db,
-		deps.terminalAgentStore,
-		provider,
-	);
-	const restartedTerminalIds: string[] = [];
-	for (const { binding } of candidates) {
-		// Ended crash-style ("terminal-exited", never "disposed") so the
-		// binding is a resume candidate for the relaunch below — and, should
-		// either step fail, for any pane that asks later (a failed relaunch
-		// is un-claimed by the resume path; a failed kill is the reaper's).
-		deps.terminalAgentStore.markTerminalExited(binding.terminalId);
-		try {
-			await deps.disposeSession(binding.terminalId);
-			await resumeTerminalAgentSession(deps, {
-				workspaceId: binding.workspaceId,
-				terminalId: binding.terminalId,
-			});
-		} catch (error) {
-			console.warn("[terminal-agents] account-switch restart failed", {
-				terminalId: binding.terminalId,
-				error,
-			});
-			continue;
-		}
-		restartedTerminalIds.push(binding.terminalId);
-	}
-	return { restartedTerminalIds };
+function withEphemeralFields(
+	store: TerminalAgentStore,
+	listed: TerminalAgentBinding,
+): TerminalAgentBinding {
+	const live = store.get(listed.terminalId);
+	if (!live) return listed;
+	return {
+		...listed,
+		...(live.lastFailure === undefined
+			? {}
+			: { lastFailure: live.lastFailure }),
+		...(live.lastTransitionAt === undefined
+			? {}
+			: { lastTransitionAt: live.lastTransitionAt }),
+	};
+}
+
+export interface AccountRestartCandidate {
+	binding: TerminalAgentBinding;
+	agentLabel: string;
+	/** Account dir the launch resolves to; null is the CLI's own home. */
+	configDir: string | null;
+	/** False for a user-pinned session the engine must never move. */
+	managed: boolean;
 }
 
 /**
@@ -439,40 +729,24 @@ export const terminalAgentsRouter = router({
 		),
 
 	/**
-	 * The sessions {@link restartAccountSessions} would relaunch — exposed
-	 * separately so the Usage tab can ask before restarting anything.
+	 * The live sessions a default-account switch could not reach — exposed so
+	 * the Usage tab can tell the user which agents stayed behind.
 	 */
 	accountRestartCandidates: protectedProcedure
 		.input(z.object({ provider: z.enum(["claude", "codex"]) }))
-		.query(({ ctx, input }) =>
-			listAccountRestartCandidates(
+		.query(async ({ ctx, input }) => {
+			await waitForTerminalBaseEnv();
+			return listAccountRestartCandidates(
 				ctx.db,
 				ctx.terminalAgentStore,
 				input.provider,
-			).map(({ binding, agentLabel }) => ({
+			).map(({ binding, agentLabel, managed }) => ({
 				terminalId: binding.terminalId,
 				workspaceId: binding.workspaceId,
 				agentLabel,
-			})),
-		),
-
-	/** See {@link restartAccountSessions}. */
-	restartAccountSessions: protectedProcedure
-		.input(z.object({ provider: z.enum(["claude", "codex"]) }))
-		.mutation(({ ctx, input }) =>
-			restartAccountSessions(
-				{
-					db: ctx.db,
-					terminalAgentStore: ctx.terminalAgentStore,
-					runAgent: (runInput) => runAgentInWorkspace(ctx, runInput),
-					disposeSession: (terminalId) =>
-						disposeSessionAndWait(terminalId, ctx.db),
-					hasSession: (binding) => bindingHasHarnessSession(ctx.db, binding),
-					eventBus: ctx.eventBus,
-				},
-				input.provider,
-			),
-		),
+				managed,
+			}));
+		}),
 
 	/**
 	 * Seed a resume candidate for a terminal recreated by the v1→v2 pane

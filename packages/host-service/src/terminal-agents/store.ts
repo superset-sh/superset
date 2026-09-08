@@ -1,5 +1,6 @@
 import { EventEmitter } from "node:events";
 import type { AgentDefinitionId } from "@superset/shared/agent-catalog";
+import { agentIsBusy } from "../page-watch/trigger";
 import {
 	getSubagentHarness,
 	isTrustedTranscriptPath,
@@ -18,6 +19,8 @@ interface RecordEventInput {
 	terminalId: string;
 	workspaceId: string;
 	eventType: string;
+	/** Bounded failure class from a `Failed` event's hook payload. */
+	errorType?: string;
 	agentId?: TerminalAgentId;
 	agentSessionId?: string;
 	definitionId?: AgentDefinitionId;
@@ -66,6 +69,14 @@ const END_EVENT_REASONS = new Map<string, TerminalAgentEndReason>([
  * upsert would erase `endedAt`/`endReason` and destroy the resume candidate.
  */
 const END_STRAGGLER_WINDOW_MS = 30_000;
+
+// The agent is mid-turn on these; anything else is idle or session-lifetime
+// noise. A busy row moving to a stopped one is the moment a limit stop would
+// have happened, and this records it. Nothing reads it yet: the engine
+// corroborates a limit stop against the screen and the quota windows, not by
+// date. Kept because the record is only correct if it is kept correctly, and
+// the rules below are the ones a later dating consumer would need.
+const STOPPED_EVENT_TYPES = new Set(["Stop", "Failed"]);
 
 /**
  * A subagent whose SubagentStop never arrived (parent interrupted, hook
@@ -151,6 +162,7 @@ export class TerminalAgentStore extends EventEmitter {
 			terminalId,
 			workspaceId,
 			eventType,
+			errorType,
 			agentId,
 			agentSessionId,
 			definitionId,
@@ -214,16 +226,84 @@ export class TerminalAgentStore extends EventEmitter {
 				? prior.lastEventType
 				: undefined;
 
+		const lastEventType = preservedLifecycleState ?? eventType;
+
+		// Only a real busy → stopped move stamps the transition: a second Stop
+		// leaves the first one's timestamp in place, so the moment recorded is
+		// the stop itself, not the last hook that happened to arrive after it.
+		const stoppedNow =
+			prior !== undefined &&
+			agentIsBusy(prior.lastEventType) &&
+			STOPPED_EVENT_TYPES.has(lastEventType);
+
+		// A session start, whatever the agent called it: the hook router
+		// normalizes every flavour of SessionStart to "Attached"
+		// (events/map-event-type.ts), and a relaunch of the same conversation
+		// is reported as "Attached" too, keeping the session id it resumed. So
+		// "Attached" — never "SessionStart" — is the start this store sees.
+		// But only when it really starts something: an "Attached" whose
+		// lifecycle state was preserved above arrived *inside* a session that
+		// already moved on (the wrapper's delayed launch report, a
+		// resume/compact/clear SessionStart), and clearing there would leave
+		// the row saying the turn failed with no failure class and no date.
+		const sessionStarted =
+			eventType === "Attached" && preservedLifecycleState === undefined;
+
+		// A transition belongs to the session it happened in. A session start
+		// or a different agent session id in the same terminal starts over,
+		// exactly as `lastFailure` does — otherwise a fresh session would carry
+		// the previous session's stop as its own recorded moment.
+		const carriedTransitionAt =
+			sessionChanged || sessionStarted ? undefined : prior?.lastTransitionAt;
+
+		// A failure describes the turn it ended, so it is dropped the moment
+		// the session moves on: a new turn, a session start, or a different
+		// agent session in the same terminal. Carrying it forward leaves a
+		// rate-limit stop arming the engine's limit-stop fallback against a
+		// live session. The same holds for a failure arriving late *from* a
+		// session that already moved on, so it is not recorded either.
+		// The trade: if the store missed a new session's earlier events, a
+		// "Failed" that is the first event seen for the new session while
+		// `prior` still holds the old one is discarded. Deliberate — missing a
+		// switch beats killing a live session.
+		// Only "Start" begins a turn. "PermissionRequest" is busy for
+		// `stoppedNow` above but is not a turn boundary: "PreToolUse" folds
+		// into it (events/map-event-type.ts) and always follows a "Start" that
+		// already cleared the failure. That fold also covers an idle
+		// "Notification", which would erase the failure a minute after the stop
+		// with no turn having begun — but this repo's Claude wrapper never
+		// registers that hook (CLAUDE_MANAGED_EVENTS), so it is unreachable for
+		// the agents the engine acts on.
+		const turnStarted = eventType === "Start" || sessionStarted;
+		const lastFailure =
+			eventType === "Failed" && errorType && !sessionChanged
+				? { errorType, at: occurredAt }
+				: turnStarted || sessionChanged
+					? undefined
+					: prior?.lastFailure;
+
 		const next: TerminalAgentBinding = {
 			terminalId,
 			workspaceId,
 			agentId: nextAgentId,
+			// Any id that arrives wins, because arrival order is the only order
+			// there is: the hook payload carries no sequence and `occurredAt` is
+			// stamped on receipt, so a straggler always looks newer. A late event
+			// from a session this terminal already moved on from therefore rewrites
+			// this row's identity, and that id is what a resume would target. No
+			// guard fixes it from here — rejecting an id seen before breaks the
+			// user's own `--resume` in this pane (see the "Attached" note above),
+			// and rejecting a differing id on anything but "Attached" breaks Codex,
+			// whose TUI fires nothing until the first turn, leaving a pane with no
+			// resume candidate at all. It needs an origin-side sequence in the hook.
 			agentSessionId: agentSessionId ?? prior?.agentSessionId,
 			definitionId: definitionId ?? prior?.definitionId,
 			startedAt:
 				prior !== undefined && !sessionChanged ? prior.startedAt : occurredAt,
 			lastEventAt: occurredAt,
-			lastEventType: preservedLifecycleState ?? eventType,
+			lastEventType,
+			lastFailure,
+			lastTransitionAt: stoppedNow ? occurredAt : carriedTransitionAt,
 		};
 
 		this.byTerminal.set(terminalId, next);

@@ -1,0 +1,1 @@
+export { AutoSwitchSettings } from "./AutoSwitchSettings";

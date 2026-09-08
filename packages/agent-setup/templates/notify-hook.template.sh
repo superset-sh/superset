@@ -113,6 +113,17 @@ fi
 # a false completion notification.
 [ -z "$EVENT_TYPE" ] && exit 0
 
+# Claude Code's StopFailure carries the API error class in "error". Forward
+# only that field, only on StopFailure — an agent's own words (a Stop whose
+# last_assistant_message quotes {"error":"rate_limit"}) must never look like
+# a limit stop. The value reaches an unauthenticated endpoint, so take one
+# line, strip control characters and hard-truncate here; the receiver bounds
+# it again against a fixed enum. last_assistant_message is never forwarded.
+ERROR_TYPE=""
+if [ "$EVENT_TYPE" = "StopFailure" ]; then
+  ERROR_TYPE=$(echo "$INPUT" | grep -oE '"error"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | grep -oE '"[^"]*"$' | tr -d '"' | tr -d '\000-\037' | cut -c1-64)
+fi
+
 DEBUG_HOOKS_ENABLED="0"
 if [ -n "$SUPERSET_DEBUG_HOOKS" ]; then
   case "$SUPERSET_DEBUG_HOOKS" in
@@ -211,7 +222,9 @@ case "$V1_EVENT_TYPE" in
 esac
 
 if [ -n "$SUPERSET_TERMINAL_ID" ]; then
-  dispatch_to_host "{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"agent\":{\"agentId\":\"$(json_escape "$AGENT_ID")\",\"sessionId\":\"$(json_escape "$SESSION_ID")\"}}}"
+  ERROR_TYPE_FIELD=""
+  [ -n "$ERROR_TYPE" ] && ERROR_TYPE_FIELD=",\"errorType\":\"$(json_escape "$ERROR_TYPE")\""
+  dispatch_to_host "{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\"$ERROR_TYPE_FIELD,\"agent\":{\"agentId\":\"$(json_escape "$AGENT_ID")\",\"sessionId\":\"$(json_escape "$SESSION_ID")\"}}}"
   [ "$HOOK_ACCEPTED" = "1" ] && exit 0
   # Delivered somewhere (2xx) but no host owned the terminal: keep the
   # pre-existing "any 2xx wins" behavior and skip the v1 fallback.

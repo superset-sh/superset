@@ -28,8 +28,18 @@ import {
 } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import type { AccountService } from "../../../../account-engine/account-service.ts";
 import type { HostDb } from "../../../../db";
-import { resolveDefaultAccountEnv } from "../../usage/default-account";
+import {
+	getTerminalBaseEnv,
+	waitForTerminalBaseEnv,
+} from "../../../../terminal/env";
+import { resolveAgentAccountDir } from "../../usage/agent-account-dir";
+import { updateClaudeStateFile } from "../../usage/claude-state-file";
+import {
+	canonicalAccountHome,
+	resolveDefaultAccountEnv,
+} from "../../usage/default-account";
 
 type TrustFamily = "claude" | "codex";
 
@@ -73,9 +83,43 @@ function resolveTrustTarget(
 ): TrustTarget | null {
 	const family = resolveTrustFamily(config);
 	if (family === null) return null;
-	const env = { ...resolveDefaultAccountEnv(db, family), ...config.env };
+	// Resolved once and handed to both readers below: resolving twice cost a
+	// second pointer-file read and opened a window where another host-service
+	// could switch the account between them. The tear always failed safe (a
+	// skipped seed), but there is no reason to leave it open.
+	const defaultEnv = resolveDefaultAccountEnv(db, family);
+	const { configDir } = resolveAgentAccountDir(db, {
+		family,
+		shellEnv: getTerminalBaseEnv(),
+		env: config.env,
+		defaultEnv,
+	});
+	// A dir the user pinned themselves is Superset's to read, never to write:
+	// the folder dialog showing once costs less than a host-service write into
+	// a config dir nobody handed us. (KTD12.)
+	//
+	// `managed` is the wrong question to ask for that, though — it answers
+	// "may the engine restart this session onto another account?", and it is
+	// deliberately false for any config that merely NAMES the dir var, even
+	// when the value it names is the dir Superset itself selected. That dir is
+	// one we write on every unpinned launch, so refusing it stranded the trust
+	// dialog on every new session of a pinned-to-the-selection agent.
+	//
+	// The twin is read from the DEFAULT env, never the merged one: a config
+	// that sets its own SUPERSET_DEFAULT_* alongside a foreign dir would
+	// otherwise forge exactly the equality this test grants.
+	const selection =
+		defaultEnv[
+			family === "claude"
+				? "SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR"
+				: "SUPERSET_DEFAULT_CODEX_HOME"
+		] ?? null;
+	const supersetChose =
+		configDir === null ||
+		(selection !== null &&
+			canonicalAccountHome(configDir) === canonicalAccountHome(selection));
+	if (!supersetChose) return null;
 	if (family === "claude") {
-		const configDir = env.CLAUDE_CONFIG_DIR;
 		return {
 			family,
 			file: configDir
@@ -83,8 +127,10 @@ function resolveTrustTarget(
 				: join(homedir(), ".claude.json"),
 		};
 	}
-	const codexHome = env.CODEX_HOME || join(homedir(), ".codex");
-	return { family, file: join(codexHome, "config.toml") };
+	return {
+		family,
+		file: join(configDir ?? join(homedir(), ".codex"), "config.toml"),
+	};
 }
 
 /**
@@ -109,38 +155,97 @@ async function atomicWrite(file: string, content: string): Promise<void> {
 	}
 }
 
+/** The `projects` map of a Claude state file, tolerating anything else. */
+function claudeProjects(
+	state: Record<string, unknown>,
+): Record<string, Record<string, unknown> | undefined> {
+	const projects = state.projects;
+	if (
+		projects === null ||
+		typeof projects !== "object" ||
+		Array.isArray(projects)
+	) {
+		return {};
+	}
+	return projects as Record<string, Record<string, unknown> | undefined>;
+}
+
 /**
  * Merge `projects[<path>].hasTrustDialogAccepted: true` into a Claude state
- * file, preserving every other key. A corrupt file throws instead of being
- * clobbered. No-op when the entry is already trusted.
+ * file, preserving every other key. A pre-read leaves a corrupt or unreadable
+ * file alone rather than reseeding over it — `updateClaudeStateFile` would
+ * copy it aside and rewrite it from empty state, dropping the identity block
+ * and every other project's trust entry to save one dialog. The write itself
+ * goes through `updateClaudeStateFile`, the one writer of that file, so an
+ * account swap rewriting the identity block cannot race this one.
+ * No-op when the entry is already trusted.
  */
 export async function seedClaudeFolderTrust(
 	stateFile: string,
 	folderPath: string,
+	assertOwner?: () => void,
 ): Promise<void> {
-	let state: Record<string, unknown> = {};
 	if (existsSync(stateFile)) {
-		state = JSON.parse(await readFile(stateFile, "utf-8"));
+		// Cheap pre-read so an already-trusted folder leaves the file byte for
+		// byte as Claude Code wrote it.
+		const current = await readFile(stateFile, "utf-8").then(
+			(raw) => {
+				// An empty file is empty state, not damage — updateClaudeStateFile
+				// says the same (`raw.trim() !== ""`), so refusing here would
+				// strand every session on the trust dialog over a zero-byte file
+				// the writer would have filled in safely.
+				if (raw.trim() === "") return {};
+				try {
+					const parsed: unknown = JSON.parse(raw);
+					return parsed !== null &&
+						typeof parsed === "object" &&
+						!Array.isArray(parsed)
+						? (parsed as Record<string, unknown>)
+						: null;
+				} catch {
+					return null;
+				}
+			},
+			() => null,
+		);
+		if (current === null) {
+			// Seeding trust is cosmetic — a skipped seed just shows the dialog
+			// once. Writing through a file we could not read is not: the update
+			// below starts from empty state, so the rewrite would drop the
+			// identity block, the onboarding flags and every other project's
+			// settings, signing the user out to save them one dialog.
+			console.warn(
+				`[agents.run] ${stateFile} is unreadable or not an object; leaving it alone rather than reseeding trust over it`,
+			);
+			return;
+		}
+		if (claudeProjects(current)[folderPath]?.hasTrustDialogAccepted === true) {
+			return;
+		}
 	} else if (!existsSync(dirname(stateFile))) {
 		// A missing config dir means this login was never set up — the CLI's
 		// own onboarding (which includes trust) will run anyway.
 		return;
 	}
-	const projects = (state.projects ?? {}) as Record<
-		string,
-		Record<string, unknown> | undefined
-	>;
-	// `false` is Claude's default scaffold value ("dialog never accepted"),
-	// not a recorded decline — the CLI persists no decline state (declining
-	// just exits). So overwriting false → true is the intended seed, unlike
-	// Codex's explicit "untrusted", which is preserved below.
-	const existing = projects[folderPath];
-	if (existing?.hasTrustDialogAccepted === true) return;
-	state.projects = {
-		...projects,
-		[folderPath]: { ...existing, hasTrustDialogAccepted: true },
-	};
-	await atomicWrite(stateFile, JSON.stringify(state, null, 2));
+
+	await updateClaudeStateFile(stateFile, (state) => {
+		assertOwner?.();
+		const projects = claudeProjects(state);
+		// `false` is Claude's default scaffold value ("dialog never accepted"),
+		// not a recorded decline — the CLI persists no decline state (declining
+		// just exits). So overwriting false → true is the intended seed, unlike
+		// Codex's explicit "untrusted", which is preserved below.
+		return {
+			...state,
+			projects: {
+				...projects,
+				[folderPath]: {
+					...projects[folderPath],
+					hasTrustDialogAccepted: true,
+				},
+			},
+		};
+	});
 }
 
 /**
@@ -204,13 +309,22 @@ export async function seedAgentFolderTrust(
 	db: HostDb,
 	folderPath: string,
 	config: { presetId: string; command: string; env: Record<string, string> },
+	accountService?: Pick<AccountService, "seedClaudeFolderTrust"> | null,
 ): Promise<void> {
 	try {
+		await waitForTerminalBaseEnv();
 		const target = resolveTrustTarget(db, config);
 		if (target === null) return;
 		const normalized = normalizeFolderPath(folderPath);
 		if (target.family === "claude") {
-			await seedClaudeFolderTrust(target.file, normalized);
+			if (accountService) {
+				await accountService.seedClaudeFolderTrust({
+					stateFile: target.file,
+					folderPath: normalized,
+				});
+			} else {
+				await seedClaudeFolderTrust(target.file, normalized);
+			}
 		} else {
 			await seedCodexFolderTrust(target.file, normalized);
 		}

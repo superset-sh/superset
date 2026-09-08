@@ -220,8 +220,8 @@ msgid "{0, plural, one {# workspace} other {# workspaces}}"
 msgstr "{0, plural, one {# área de trabalho} other {# áreas de trabalho}}"
 
 #. placeholder {0}: shown?.count ?? 0
-msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
-msgstr "{0, plural, one {Um agente em execução ainda usa a conta anterior — a troca só vale para novos lançamentos.} other {# agentes em execução ainda usam a conta anterior — a troca só vale para novos lançamentos.}}"
+msgid "{0, plural, one {A running agent is pinned to its own config dir by its agent configuration, so it keeps the account signed in there.} other {# running agents are pinned to their own config dirs by their agent configuration, so they keep the accounts signed in there.}}"
+msgstr "{0, plural, one {Um agente em execução está fixado no próprio diretório de configuração pela configuração do agente, então mantém a conta conectada ali.} other {# agentes em execução estão fixados nos próprios diretórios de configuração pela configuração do agente, então mantêm as contas conectadas ali.}}"
 
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
@@ -309,6 +309,11 @@ msgstr "Ações de {0}"
 #. placeholder {1}: right.name
 msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
 msgstr "{0} e {1} resolvem isso como dinossauros de terminal. As estatísticas decidem o vencedor."
+
+#. placeholder {0}: windowLabel(entry.windowId)
+#. placeholder {1}: formatPercent(entry.usedPercent / 100, { maximumFractionDigits: 0 })
+msgid "{0} at {1}"
+msgstr "{0} em {1}"
 
 #. placeholder {0}: formatTokens(me.tokens - below.tokens)
 msgid "{0} behind you"
@@ -534,8 +539,23 @@ msgstr "{0}% de todos os tokens · {1} tokens"
 msgid "{0}% of total cost · {1} tokens · * at API list rates"
 msgstr "{0}% do custo total · {1} tokens · * a preços de tabela da API"
 
+msgid "{accountLabel} is now the active {providerLabel} account."
+msgstr "{accountLabel} agora é a conta {providerLabel} ativa."
+
 msgid "{actual} so far · ~{projected} projected"
 msgstr "{actual} até agora · ~{projected} projetadas"
+
+msgid "{agent} could not switch accounts"
+msgstr "{agent} não conseguiu trocar de conta"
+
+msgid "{agent} switched account"
+msgstr "{agent} trocou de conta"
+
+msgid "{agent} switched from {fromLabel} to {toLabel}"
+msgstr "{agent} trocou de {fromLabel} para {toLabel}"
+
+msgid "{agent} switched to {toLabel}"
+msgstr "{agent} trocou para {toLabel}"
 
 msgid "{backgroundCount, plural, one {# background terminal session} other {# background terminal sessions}}"
 msgstr "{backgroundCount, plural, one {# sessão de terminal em segundo plano} other {# sessões de terminal em segundo plano}}"
@@ -561,6 +581,9 @@ msgstr "Tamanho da fonte de {configTitle}"
 
 msgid "{cookieCount} cookies — forget this site"
 msgstr "{cookieCount} cookies — esquecer este site"
+
+msgid "{count, plural, one {# account switch while you were away} other {# account switches while you were away}}"
+msgstr "{count, plural, one {# troca de conta enquanto você estava fora} other {# trocas de conta enquanto você estava fora}}"
 
 msgid "{count, plural, one {# Check Failed} other {# Checks Failed}}"
 msgstr "{count, plural, one {# verificação falhou} other {# verificações falharam}}"
@@ -736,6 +759,9 @@ msgstr "{minutes}m"
 msgid "{minutes}m ago"
 msgstr "há {minutes}m"
 
+msgid "{model} weekly window"
+msgstr "Janela semanal de {model}"
+
 msgid "{modKey}↵ to create"
 msgstr "{modKey}↵ para criar"
 
@@ -904,6 +930,9 @@ msgstr "{updatedLabel} restaurado para os padrões"
 msgid "{waiting} Waiting"
 msgstr "{waiting} aguardando"
 
+msgid "{windowLabel} at {percent}"
+msgstr "{windowLabel} em {percent}"
+
 msgid "{workspaceName}: host is unavailable"
 msgstr "{workspaceName}: o host está indisponível"
 
@@ -1071,6 +1100,9 @@ msgstr "1 cookie — esquecer este site"
 msgid "1 hour"
 msgstr "1 hora"
 
+msgid "1 minute"
+msgstr "1 minuto"
+
 msgid "1 user"
 msgstr "1 usuário"
 
@@ -1091,6 +1123,9 @@ msgstr "2 agentes · 14 arquivos alterados"
 
 msgid "2 hours"
 msgstr "2 horas"
+
+msgid "2 minutes"
+msgstr "2 minutos"
 
 msgid "2021 to 2023"
 msgstr "2021 a 2023"
@@ -1119,6 +1154,9 @@ msgstr "3 ou mais frentes simultâneas por pessoa"
 msgid "30 minutes"
 msgstr "30 minutos"
 
+msgid "30 seconds"
+msgstr "30 segundos"
+
 msgid "30D"
 msgstr "30D"
 
@@ -1137,6 +1175,9 @@ msgstr "45 arquivos · +82 −172"
 msgid "5 minutes"
 msgstr "5 minutos"
 
+msgid "5-hour window"
+msgstr "Janela de 5 horas"
+
 msgid "55 call sites pass {code}"
 msgstr "55 pontos de chamada passam {code}"
 
@@ -1148,6 +1189,9 @@ msgstr "7D"
 
 msgid "87.4K of 200K tokens used in this session."
 msgstr "87,4 mil de 200 mil tokens usados nesta sessão."
+
+msgid "A {agent} session needs attention"
+msgstr "Uma sessão do {agent} precisa de atenção"
 
 msgid "A better in-app browser: preview your changes and click any element to send it to the agent as context."
 msgstr "Um navegador embutido melhor: veja suas mudanças e clique em qualquer elemento para enviá-lo ao agente como contexto."
@@ -1184,6 +1228,9 @@ msgstr "Um panorama do que está em andamento, do que vem a seguir e para onde a
 
 msgid "A majority of production changes merge without any human reading the diff."
 msgstr "A maioria das mudanças em produção é mesclada sem ninguém ler o diff."
+
+msgid "A model name can be at most {MAX_MODEL_NAME_LENGTH} characters. Shorten it and try again."
+msgstr "Um nome de modelo pode ter no máximo {MAX_MODEL_NAME_LENGTH} caracteres. Encurte-o e tente novamente."
 
 msgid "A new version of Superset is required to continue. Please update to the latest version."
 msgstr "É necessária uma nova versão do Superset para continuar. Atualize para a versão mais recente."
@@ -1261,6 +1308,9 @@ msgstr "Accordion"
 msgid "Account"
 msgstr "Conta"
 
+msgid "Account changed outside Superset"
+msgstr "Conta alterada fora do Superset"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceNotResolvable"
 msgstr "A instalação na conta só resolve manifestos próprios, então {plugin} de {marketplace} ainda não pode ser instalado na sua conta. Ele continua instalado nesta máquina."
@@ -1298,6 +1348,16 @@ msgstr "taxa de ativação"
 
 msgid "Active"
 msgstr "Ativa"
+
+msgctxt "account state"
+msgid "Active"
+msgstr "Ativa"
+
+msgid "Active — every newly launched session of this agent uses this account; ones already running keep the previous login until you restart them."
+msgstr "Ativa — novas sessões deste agente usam esta conta; as sessões em execução mantêm o login anterior até serem reiniciadas."
+
+msgid "Active — every running and newly launched session of this agent uses this account."
+msgstr "Ativa — todas as sessões deste agente, em execução ou recém-abertas, usam esta conta."
 
 #. placeholder {0}: formatDistanceToNowStrict(binding.lastEventAt, { addSuffix: true, })
 msgid "active {0}"
@@ -1500,6 +1560,10 @@ msgstr "Em relação à main"
 msgid "Agent"
 msgstr "Agente"
 
+msgctxt "switch history column"
+msgid "Agent"
+msgstr "Agente"
+
 msgid "Agent Complete — {workspaceName}"
 msgstr "Agente concluiu — {workspaceName}"
 
@@ -1633,6 +1697,9 @@ msgstr "Todos os {0} objetivos estão fazendo a sua parte para {nextLabel}."
 #. placeholder {0}: summary.relevantChecks.length
 msgid "All {0} passed"
 msgstr "Todas as {0} passaram"
+
+msgid "All {agent} accounts are at their limit"
+msgstr "Todas as contas do {agent} atingiram o limite"
 
 msgid "All {versionCount} versions and their content are removed. Anyone with the link loses access."
 msgstr "As {versionCount} versões e o conteúdo delas são removidos. Quem tiver o link perde o acesso."
@@ -1980,6 +2047,9 @@ msgstr "Vale para URLs em terminais, mensagens de chat e navegadores de tarefas.
 msgid "Apply"
 msgstr "Aplicar"
 
+msgid "Approaching the usage limit"
+msgstr "Chegando perto do limite de uso"
+
 msgid "Approve"
 msgstr "Aprovar"
 
@@ -2192,6 +2262,19 @@ msgstr "Automatizar tarefas"
 
 msgid "Automate workspace setup for {projectName}"
 msgstr "Automatize a preparação das áreas de trabalho de {projectName}"
+
+msgctxt "account switch trigger"
+msgid "Automatic"
+msgstr "Automática"
+
+msgid "Automatic account switching is not available on Windows. Switch accounts by hand instead."
+msgstr "A troca automática de contas não está disponível no Windows. Troque de conta manualmente."
+
+msgid "Automatic switching may move sessions onto this account. Held-out accounts stay available to pick by hand."
+msgstr "A troca automática pode mover sessões para esta conta. Contas fora do rodízio continuam disponíveis para escolha manual."
+
+msgid "Automatic switching needs macOS or Linux. On Windows you can still switch the active {agentLabel} account by hand."
+msgstr "A troca automática precisa de macOS ou Linux. No Windows, você ainda pode trocar a conta ativa do {agentLabel} manualmente."
 
 msgid "Automation"
 msgstr "Automação"
@@ -2873,6 +2956,9 @@ msgstr "Verificar recursos"
 
 msgid "Check the rendered prompt and launch output before saving"
 msgstr "Confira o prompt renderizado e a saída de execução antes de salvar"
+
+msgid "Check usage every"
+msgstr "Verificar o uso a cada"
 
 msgid "Check your access under Settings > Security on that device."
 msgstr "Confira seu acesso em Configurações > Segurança nesse dispositivo."
@@ -4571,9 +4657,6 @@ msgstr "Padrão ({defaultWorktreePath})"
 msgid "Default effort"
 msgstr "Esforço padrão"
 
-msgid "Default for new agents"
-msgstr "Padrão para novos agentes"
-
 msgid "Default location for new worktree workspaces on this host."
 msgstr "Local padrão para novas áreas de trabalho com worktree neste host."
 
@@ -5230,9 +5313,6 @@ msgstr "Cada um em sua própria aba"
 msgid "Each morning at 8am, look at yesterday's failed CI runs, diagnose the most common failure, and open a fix PR."
 msgstr "Toda manhã às 8h, veja as execuções de CI que falharam ontem, diagnostique a falha mais comum e abra um PR com a correção."
 
-msgid "Each session resumes where it left off."
-msgstr "Cada sessão retoma de onde parou."
-
 msgid "Each surface has its own typography. Changes appear immediately in the live previews."
 msgstr "Cada superfície tem a própria tipografia. As mudanças aparecem na hora nas prévias ao vivo."
 
@@ -5479,6 +5559,10 @@ msgstr "A cada minuto"
 msgid "Every objective is carrying its weight for the next rung. Measured over the trailing 30 days."
 msgstr "Todos os objetivos estão contribuindo para o próximo degrau. Medido nos últimos 30 dias."
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Every running and newly launched {0} session uses the active account."
+msgstr "Todas as sessões do {0}, em execução ou recém-abertas, usam a conta ativa."
+
 msgid "Every star on <0>{repoSlug}</0>, plotted since launch."
 msgstr "Cada estrela em <0>{repoSlug}</0>, no gráfico desde o lançamento."
 
@@ -5628,6 +5712,9 @@ msgstr "Portão F4 · {F4_GATE_SHARE}%"
 
 msgid "F4 gate crossed"
 msgstr "Portão F4 cruzado"
+
+msgid "Fable, Opus"
+msgstr "Fable, Opus"
 
 msgid "Factory 2026"
 msgstr "Factory 2026"
@@ -6100,6 +6187,9 @@ msgstr "Falha ao enviar o logo"
 msgid "Failure"
 msgstr "Falha"
 
+msgid "Fallback restart after a usage limit"
+msgstr "Reinício alternativo após um limite de uso"
+
 msgid "FAQ"
 msgstr "FAQ"
 
@@ -6475,6 +6565,10 @@ msgstr "de"
 msgid "From"
 msgstr "De"
 
+msgctxt "switch history column"
+msgid "From"
+msgstr "De"
+
 msgid "from {price}/user/mo"
 msgstr "a partir de {price}/usuário/mês"
 
@@ -6827,6 +6921,9 @@ msgstr "histórico"
 msgid "History"
 msgstr "Histórico"
 
+msgid "History is unavailable right now. Reopen this page to try again."
+msgstr "O histórico está indisponível no momento. Reabra esta página para tentar de novo."
+
 msgid "Home"
 msgstr "Início"
 
@@ -7132,6 +7229,9 @@ msgstr "Em andamento"
 
 msgid "In Progress"
 msgstr "Em andamento"
+
+msgid "In rotation"
+msgstr "No rodízio"
 
 msgid "In the Superset desktop app, open <0>Settings → Appearance → Theme</0>."
 msgstr "No app de desktop do Superset, abra <0>Configurações → Aparência → Tema</0>."
@@ -7607,6 +7707,9 @@ msgstr "Último dia de cada mês"
 msgid "Last day of each month at {time}"
 msgstr "Último dia de cada mês às {time}"
 
+msgid "Last read failed, so this list may be out of date. Reopen this page to try again."
+msgstr "A última leitura falhou, então esta lista pode estar desatualizada. Reabra esta página para tentar de novo."
+
 msgid "Last run"
 msgstr "Última execução"
 
@@ -7756,6 +7859,12 @@ msgstr "Gosta de construir com o Superset?"
 
 msgid "Lime"
 msgstr "Lima"
+
+msgid "Limit hit — session restarted"
+msgstr "Limite atingido — sessão reiniciada"
+
+msgid "Limit report not confirmed — no switch"
+msgstr "Relato de limite não confirmado — sem troca"
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
@@ -8012,6 +8121,9 @@ msgstr "Sair"
 msgid "Log out?"
 msgstr "Sair?"
 
+msgid "Login changed outside Superset"
+msgstr "Login alterado fora do Superset"
+
 msgid "Logins (cookies)"
 msgstr "Logins (cookies)"
 
@@ -8060,14 +8172,17 @@ msgstr "Main"
 msgid "Main workspace"
 msgstr "Área de trabalho principal"
 
+msgid "Make active"
+msgstr "Tornar ativa"
+
+msgid "Make active — running sessions move to this account too."
+msgstr "Tornar ativa — as sessões em execução também mudam para esta conta."
+
+msgid "Make active — sessions launched from now on use this account."
+msgstr "Ativar — sessões iniciadas a partir de agora usam esta conta."
+
 msgid "Make all panes equal size"
 msgstr "Deixar todos os painéis do mesmo tamanho"
-
-msgid "Make default"
-msgstr "Tornar padrão"
-
-msgid "Make default — launch new terminals and agents on this account."
-msgstr "Tornar padrão — abre novos terminais e agentes nesta conta."
 
 msgid "Make sure the device is awake, online, and running Superset."
 msgstr "Confira se o dispositivo está ativo, online e com o Superset em execução."
@@ -8120,6 +8235,10 @@ msgstr "Gerenciada"
 msgid "Managed by your organization admin."
 msgstr "Gerenciado pelo administrador da sua organização."
 
+msgid "Manual"
+msgstr "Manual"
+
+msgctxt "account switch trigger"
 msgid "Manual"
 msgstr "Manual"
 
@@ -8322,6 +8441,9 @@ msgstr "Meados de 2026"
 msgid "Mid 2027"
 msgstr "Meados de 2027"
 
+msgid "min"
+msgstr "min"
+
 msgid "Mine"
 msgstr "Minhas"
 
@@ -8380,6 +8502,9 @@ msgstr "Modelo"
 msgid "Model context usage"
 msgstr "Uso do contexto do modelo"
 
+msgid "Model names whose weekly window also counts toward the threshold, separated by commas. Leave empty to watch only the account-wide windows."
+msgstr "Nomes de modelos cuja janela semanal também conta para o limiar, separados por vírgula. Deixe vazio para observar apenas as janelas da conta inteira."
+
 msgid "Model picker scoped to the selected agent"
 msgstr "Seletor de modelo limitado ao agente selecionado"
 
@@ -8388,6 +8513,9 @@ msgstr "Seletor de modelo"
 
 msgid "Model volume"
 msgstr "Volume por modelo"
+
+msgid "Model windows"
+msgstr "Janelas por modelo"
 
 msgid "Model-suggested code appears in a majority of new files."
 msgstr "Código sugerido por modelo aparece na maioria dos arquivos novos."
@@ -8455,20 +8583,32 @@ msgstr "Mais temas {kindLower}s"
 msgid "More actions"
 msgstr "Mais ações"
 
+msgid "More headroom elsewhere"
+msgstr "Mais folga em outra conta"
+
 msgid "More pages"
 msgstr "Mais páginas"
 
 msgid "More than half of merged changes are written by agents with zero human edits."
 msgstr "Mais da metade das mudanças mescladas é escrita por agentes, sem nenhuma edição humana."
 
+msgid "More than one saved login matched that account, so Superset would not guess which to use."
+msgstr "Mais de um login salvo corresponde à conta. O Superset não escolheu ao acaso."
+
 msgid "most developers"
 msgstr "a maioria das pessoas desenvolvedoras"
+
+msgid "Most headroom"
+msgstr "Mais folga"
 
 msgid "Most of software history"
 msgstr "Quase toda a história do software"
 
 msgid "Move {count} to Group"
 msgstr "Mover {count} para um grupo"
+
+msgid "Move running and new {agentLabel} sessions to another account before this one runs out."
+msgstr "Mova as sessões do {agentLabel} em execução e as novas para outra conta antes que esta acabe."
 
 msgid "Move to group"
 msgstr "Mover para grupo"
@@ -8550,6 +8690,9 @@ msgstr "Navegação"
 msgid "Navigation Menu"
 msgstr "Menu de navegação"
 
+msgid "Near the limit"
+msgstr "Perto do limite"
+
 msgid "Need app-level wiring (form state, chart data, app shell)"
 msgstr "Precisam de integração no nível do app (estado de formulário, dados de gráfico, app shell)"
 
@@ -8592,17 +8735,11 @@ msgstr "A rede mudou"
 msgid "Never"
 msgstr "Nunca"
 
-msgid "New {providerLabel} agents will use {accountLabel}."
-msgstr "Os novos agentes {providerLabel} vão usar {accountLabel}."
-
 msgid "New accounts"
 msgstr "Novas contas"
 
 msgid "New agent"
 msgstr "Novo agente"
-
-msgid "New agent launches use this account. Relaunch a running agent to switch it."
-msgstr "Novos agentes usam esta conta. Reinicie um agente em execução para trocar a conta dele."
 
 msgid "New agent session"
 msgstr "Nova sessão de agente"
@@ -8657,6 +8794,9 @@ msgstr "Novas versões e atualizações do produto."
 
 msgid "New session"
 msgstr "Nova sessão"
+
+msgid "New sessions use it; sessions already running keep the previous login until you restart them."
+msgstr "Novas sessões a usam; as sessões em execução mantêm o login anterior até serem reiniciadas."
 
 msgid "New stars"
 msgstr "Novas estrelas"
@@ -8715,6 +8855,10 @@ msgstr "Mais recente que este app"
 msgid "Newer than this app. Everything works; update the app to match."
 msgstr "Mais recente que este app. Tudo funciona; atualize o app para igualar."
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Newly launched {0} sessions use the active account; ones already running keep the previous login until you restart them."
+msgstr "Novas sessões de {0} usam a conta ativa; as sessões em execução mantêm o login anterior até serem reiniciadas."
+
 msgid "News & Updates"
 msgstr "Novidades e atualizações"
 
@@ -8732,6 +8876,9 @@ msgstr "Próximo comentário"
 
 msgid "Next match"
 msgstr "Próxima ocorrência"
+
+msgid "Next reset: {resetTime}"
+msgstr "Próxima redefinição: {resetTime}"
 
 #. placeholder {0}: formatDateTimeInTimezone( new Date(automation.nextRunAt), automation.timezone ?? "UTC", )
 msgid "Next run {0}"
@@ -8770,6 +8917,9 @@ msgstr "Nenhum login {0} neste host — entre e o uso aparece aqui."
 
 msgid "No access to this host"
 msgstr "Sem acesso a este host"
+
+msgid "No account switches yet. Every switch, automatic or by hand, is listed here."
+msgstr "Nenhuma troca de conta ainda. Toda troca, automática ou manual, aparece aqui."
 
 msgid "No active enterprise accounts"
 msgstr "Nenhuma conta enterprise ativa"
@@ -8915,6 +9065,9 @@ msgstr "Nenhum dispositivo ainda"
 
 msgid "No downloads yet"
 msgstr "Nenhum download ainda"
+
+msgid "No eligible account has confirmed headroom. This session will stay stopped while quota is checked again. To continue with another model, use /model in the affected terminal."
+msgstr "Nenhuma conta elegível tem capacidade disponível confirmada. Esta sessão permanecerá parada enquanto a cota é verificada novamente. Para continuar com outro modelo, use /model no terminal afetado."
 
 msgid "No emoji found"
 msgstr "Nenhum emoji encontrado"
@@ -9349,6 +9502,10 @@ msgstr "Ainda não recebendo eventos: o Microsoft Graph recusou as assinaturas d
 msgid "Not reviewed by you"
 msgstr "Não revisados por você"
 
+#. placeholder {0}: engineErrorCode(failure)
+msgid "Not saved ({0}). The previous value still stands."
+msgstr "Não salvo ({0}). O valor anterior continua valendo."
+
 msgid "not set up"
 msgstr "não configurado"
 
@@ -9384,6 +9541,10 @@ msgstr "Não há nada em {pathname}."
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Nada publicado nos últimos 30 dias ainda. Sua posição aparece assim que o uso desta máquina sincronizar, publicando como <0>{handle}</0>."
+
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Nothing to switch to yet: this needs another {0} account with In rotation turned on."
+msgstr "Ainda não há conta alternativa: é necessária outra conta de {0} com a rotação ativada."
 
 msgid "Notice"
 msgstr "Aviso"
@@ -10141,6 +10302,10 @@ msgstr "Esquema de saída"
 msgid "Output truncated"
 msgstr "Saída truncada"
 
+msgctxt "account switch trigger"
+msgid "Outside Superset"
+msgstr "Fora do Superset"
+
 msgid "Overflow Fade"
 msgstr "Overflow Fade"
 
@@ -10342,6 +10507,9 @@ msgstr "por usuário/mês"
 
 msgid "Percent of total system RAM used by monitored Superset resources only (not all apps). A high share means Superset is a major contributor to system memory pressure; a low share means pressure is likely elsewhere."
 msgstr "Percentual da RAM total do sistema usado apenas pelos recursos monitorados do Superset (não por todos os apps). Uma parcela alta significa que o Superset contribui bastante para a pressão de memória do sistema; uma parcela baixa indica que a pressão vem de outro lugar."
+
+msgid "Percent used at which any window of the active account counts as near its limit."
+msgstr "Percentual de uso a partir do qual qualquer janela da conta ativa é considerada perto do limite."
 
 #. placeholder {0}: team.name
 msgid "Permanently remove <0>{0}</0> and all of its members. This can't be undone."
@@ -10598,6 +10766,9 @@ msgstr "Progresso da previsão"
 
 msgid "Predictions about AI are cheap because nobody checks them. This page is a rubric, not a vibe: every gate below is either true or false of a real team shipping real software. We update it as gates open, and we do not move the goalposts."
 msgstr "Previsões sobre IA são baratas porque ninguém confere. Esta página é uma régua, não um clima: cada portão abaixo é verdadeiro ou falso para um time real entregando software real. Atualizamos conforme os portões abrem, e não mudamos as regras no meio do jogo."
+
+msgid "Prefer the account whose weekly window resets soonest, so no quota expires unused"
+msgstr "Preferir a conta cuja janela semanal reseta primeiro, para que nenhuma cota expire sem uso"
 
 msgid "Preferences"
 msgstr "Preferências"
@@ -11073,6 +11244,9 @@ msgstr "Leia o guia de agentes de código em paralelo"
 msgid "Read the setup guide"
 msgstr "Ler o guia de configuração"
 
+msgid "Reading switch history…"
+msgstr "Lendo o histórico de trocas…"
+
 msgid "Reading usage…"
 msgstr "Lendo o uso…"
 
@@ -11214,9 +11388,6 @@ msgstr "Posts relacionados"
 
 msgid "Relative path copied"
 msgstr "Caminho relativo copiado"
-
-msgid "Relaunch running agents to switch them."
-msgstr "Reinicie os agentes em execução para trocar a conta deles."
 
 msgid "Relay access enabled, connecting to the relay…"
 msgstr "Acesso ao relay habilitado, conectando ao relay…"
@@ -11524,6 +11695,9 @@ msgstr "Redefinir local"
 msgid "Reset terminal"
 msgstr "Redefinir terminal"
 
+msgid "Reset time unavailable. You can refresh quota or wait for the next check."
+msgstr "Horário de redefinição indisponível. Você pode atualizar a cota ou aguardar a próxima verificação."
+
 msgid "Reset to default"
 msgstr "Restaurar o padrão"
 
@@ -11602,9 +11776,6 @@ msgstr "Reiniciar todos os terminais?"
 msgid "Restart and close sessions"
 msgstr "Reiniciar e fechar as sessões"
 
-msgid "Restart and resume"
-msgstr "Reiniciar e retomar"
-
 msgid "Restart Browser"
 msgstr "Reiniciar o navegador"
 
@@ -11613,12 +11784,6 @@ msgstr "Reiniciar o daemon"
 
 msgid "Restart host service"
 msgstr "Reiniciar o serviço do host"
-
-msgid "Restart now to move them to {accountLabel}; each session picks its conversation back up where it left off."
-msgstr "Reinicie agora para movê-los para {accountLabel}; cada sessão retoma a conversa de onde parou."
-
-msgid "Restart running {providerLabel} agents?"
-msgstr "Reiniciar os agentes {providerLabel} em execução?"
 
 msgid "Restart terminal daemon?"
 msgstr "Reiniciar o daemon de terminal?"
@@ -11632,11 +11797,11 @@ msgstr "{restartedOrgCount} serviços de host reiniciados"
 msgid "Restarted 1 host service"
 msgstr "1 serviço de host reiniciado"
 
+msgid "Restarted and resumed"
+msgstr "Reiniciada e retomada"
+
 msgid "Restarting"
 msgstr "Reiniciando"
-
-msgid "Restarting agents on {accountLabel}."
-msgstr "Reiniciando agentes em {accountLabel}."
 
 msgid "Restarting host services…"
 msgstr "Reiniciando os serviços do host…"
@@ -11844,6 +12009,10 @@ msgstr "Volte uma sessão de agente para qualquer checkpoint, conversa e altera�
 msgid "Rotate device"
 msgstr "Girar o dispositivo"
 
+#. placeholder {0}: engineErrorCode(failure)
+msgid "Rotation not saved ({0})."
+msgstr "Rodízio não salvo ({0})."
+
 msgid "Roundups"
 msgstr "Panoramas"
 
@@ -11955,6 +12124,12 @@ msgstr "Rodando em um dispositivo pareado"
 
 msgid "Running on this device"
 msgstr "Rodando neste dispositivo"
+
+msgid "Running sessions move over when they go idle, resuming where they left off."
+msgstr "As sessões em execução mudam quando ficam ociosas e continuam de onde pararam."
+
+msgid "Running sessions pick up the new login in place; ones on their own profile restart when they go idle."
+msgstr "As sessões em execução assumem o novo login no lugar; as que têm perfil próprio reiniciam quando ficam ociosas."
 
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Os processos de terminal em execução continuam, mas a saída mais antiga pode não estar mais disponível depois de reiniciar o app."
@@ -12552,6 +12727,10 @@ msgstr "Visualização da sessão"
 msgid "Sessions"
 msgstr "Sessões"
 
+msgctxt "switch history column"
+msgid "Sessions"
+msgstr "Sessões"
+
 #. placeholder {0}: detail.sessions.length
 msgid "Sessions · top {0} by cost"
 msgstr "Sessões · top {0} por custo"
@@ -12575,6 +12754,9 @@ msgstr "Definir senha"
 
 msgid "Set Run"
 msgstr "Definir execução"
+
+msgid "Set up outside Superset. Its usage is shown, but switching never writes to this login."
+msgstr "Configurada fora do Superset. O uso aparece aqui, mas a troca nunca escreve neste login."
 
 msgid "Set up project on {hostName}"
 msgstr "Configurar o projeto em {hostName}"
@@ -12886,6 +13068,9 @@ msgstr "Falha no login"
 msgid "Signed in as <0>{userName}</0>"
 msgstr "Conectado como <0>{userName}</0>"
 
+msgid "Signed in outside Superset, so switching leaves this login alone."
+msgstr "Login feito fora do Superset, então a troca não mexe nele."
+
 msgid "Signed out"
 msgstr "Sessão encerrada"
 
@@ -13023,6 +13208,9 @@ msgstr "Relatório SOC 2 Tipo II"
 
 msgid "Social"
 msgstr "Redes sociais"
+
+msgid "Some {providerLabel} sessions stay on their own account"
+msgstr "Algumas sessões do {providerLabel} continuam na própria conta"
 
 msgid "Some files are not an accepted type and were not added."
 msgstr "Alguns arquivos não são de um tipo aceito e não foram adicionados."
@@ -13184,6 +13372,9 @@ msgstr "Adicionar tudo ao stage"
 msgid "Staged"
 msgstr "No stage"
 
+msgid "Stale token, still eligible"
+msgstr "Token desatualizado, ainda elegível"
+
 msgid "Standard action strip for pane headers"
 msgstr "Faixa de ações padrão para cabeçalhos de painel"
 
@@ -13322,6 +13513,9 @@ msgstr "Status alterado"
 
 msgid "Stay connected (refresh tokens)"
 msgstr "Manter a conexão (refresh tokens)"
+
+msgid "Stay until the active account nears its limit, then move to the account with the most headroom"
+msgstr "Ficar até a conta ativa chegar perto do limite e então mudar para a conta com mais folga"
 
 #. placeholder {0}: step === "workspace" ? 1 : 2
 msgid "Step {0} of 2"
@@ -13486,6 +13680,9 @@ msgstr "Componentes do Superset"
 msgid "Superset could not complete sign-in. Please try again."
 msgstr "O Superset não conseguiu concluir o login. Tente novamente."
 
+msgid "Superset could not tell which account is signed in, so it left the current one in place."
+msgstr "O Superset não conseguiu identificar a conta conectada e manteve a atual."
+
 msgid "Superset CPU"
 msgstr "CPU do Superset"
 
@@ -13604,8 +13801,22 @@ msgstr "Suspenso"
 msgid "Sustain"
 msgstr "Constância"
 
+msgid "Switch accounts automatically"
+msgstr "Trocar de conta automaticamente"
+
 msgid "Switch agents. Keep your workflow"
 msgstr "Troque de agente. Mantenha seu fluxo"
+
+msgid "Switch at"
+msgstr "Trocar em"
+
+#. placeholder {0}: engineErrorCode(failure)
+#. placeholder {0}: rawErrorMessage(error)
+msgid "Switch failed ({0}). The previous account is still active."
+msgstr "Falha na troca ({0}). A conta anterior continua ativa."
+
+msgid "Switch history"
+msgstr "Histórico de trocas"
 
 msgid "Switch host"
 msgstr "Trocar de host"
@@ -13675,6 +13886,12 @@ msgstr "Ir para a área de trabalho 8"
 
 msgid "Switch to Workspace 9"
 msgstr "Ir para a área de trabalho 9"
+
+msgid "Switching resumes when a usage window resets."
+msgstr "A troca volta quando uma janela de uso resetar."
+
+msgid "Switching…"
+msgstr "Trocando…"
 
 msgid "Sync"
 msgstr "Sincronizar"
@@ -13943,6 +14160,9 @@ msgstr "Textarea"
 msgid "Thanks for reaching out"
 msgstr "Obrigado pelo contato"
 
+msgid "That account is not one this host can see, so the previous account is still active."
+msgstr "Este host não consegue ver essa conta. A conta anterior continua ativa."
+
 msgid "That handle is taken."
 msgstr "Esse apelido já está em uso."
 
@@ -13958,6 +14178,33 @@ msgstr "Esse nome não é permitido."
 msgid "The 2026 bet"
 msgstr "A aposta de 2026"
 
+msgid "The access token is past its expiry but the sign-in is not — a fresh one is minted the next time the CLI runs."
+msgstr "O token de acesso passou da validade, mas o login não — um novo é gerado na próxima vez que o CLI rodar."
+
+msgid "The account engine cannot use its state directory. Make it owner-only (chmod 700), or point SUPERSET_HOME_DIR at a filesystem that supports Unix permissions."
+msgstr "O motor de contas não consegue usar seu diretório de estado. Deixe-o acessível apenas ao proprietário (chmod 700), ou aponte SUPERSET_HOME_DIR para um sistema de arquivos compatível com permissões Unix."
+
+msgid "The account engine is not running on this host, so {agentLabel} accounts cannot switch automatically."
+msgstr "O motor de contas não está rodando neste host, então as contas do {agentLabel} não podem trocar automaticamente."
+
+msgid "The account engine is not running on this host."
+msgstr "O motor de contas não está rodando neste host."
+
+msgid "The account it tried to switch to has no saved identity, so the previous account is still active."
+msgstr "A conta de destino não tem identidade salva. A conta anterior continua ativa."
+
+msgid "The account it tried to switch to has no saved login. Sign in to it once and switching can use it."
+msgstr "A conta de destino não tem login salvo. Entre nela uma vez para poder usá-la."
+
+msgid "The account it tried to switch to is not usable, so the previous account is still active."
+msgstr "A conta de destino não pode ser usada. A conta anterior continua ativa."
+
+msgid "The account it was switching to changed while switching, so the switch was abandoned."
+msgstr "A conta de destino mudou durante a troca. A operação foi cancelada."
+
+msgid "The active account could not be updated, so the previous account is still active."
+msgstr "Não foi possível atualizar a conta ativa. A conta anterior continua ativa."
+
 msgid "the active organization"
 msgstr "a organização ativa"
 
@@ -13969,6 +14216,12 @@ msgstr "O agente é dono da tarefa, do ticket ao diff. A pessoa revisa o resulta
 
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "O agente que esta automação usava não existe mais no host — os agentes do host podem ter sido redefinidos ou removidos. Selecione outro agente nas configurações da automação."
+
+msgid "The agent's account folder could not be reached, so the previous account is still active."
+msgstr "A pasta da conta do agente está inacessível. A conta anterior continua ativa."
+
+msgid "The agent's account folder is not in a usable state, so the previous account is still active."
+msgstr "A pasta da conta do agente não pode ser usada. A conta anterior continua ativa."
 
 msgid "The app is on {appVersion} but attached to a host service started by something else, likely an older CLI or another Superset build. Restarting replaces it with this app's copy."
 msgstr "O app está na {appVersion}, mas conectado a um serviço de host iniciado por outra coisa, provavelmente uma CLI antiga ou outro build do Superset. Reiniciar o substitui pela cópia deste app."
@@ -14064,6 +14317,9 @@ msgstr "O host não voltou a ficar disponível em quinze minutos."
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "O host não está conectado ao relay do Superset. Se for este dispositivo, ative \"Permitir acesso remoto a este dispositivo via relay\" em Configurações > Acesso remoto e tente novamente."
 
+msgid "The host rejected that value, so the previous one still stands."
+msgstr "O host recusou esse valor, então o anterior continua valendo."
+
 msgid "The host reported a failed update."
 msgstr "O host relatou uma falha na atualização."
 
@@ -14120,6 +14376,12 @@ msgstr "O nome da sua organização ou equipe"
 
 msgid "The network connection changed"
 msgstr "A conexão de rede mudou"
+
+msgid "The new login could not be saved, so the previous account is still active."
+msgstr "Não foi possível salvar o novo login. A conta anterior continua ativa."
+
+msgid "The new login could not be verified, so the previous account was put back."
+msgstr "Não foi possível verificar o novo login. A conta anterior foi restaurada."
 
 msgid "The overnight shift"
 msgstr "O turno da noite"
@@ -14185,8 +14447,17 @@ msgstr "A fábrica de software autônoma"
 msgid "The server could not be found"
 msgstr "Não foi possível encontrar o servidor"
 
+msgid "The shared account service is unavailable. Try refreshing usage."
+msgstr "O serviço de contas compartilhado está indisponível. Tente atualizar o uso."
+
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "O link de login estava incompleto. Tente novamente."
+
+msgid "The signed-in account changed while switching, so the switch was abandoned."
+msgstr "A conta conectada mudou durante a troca. A operação foi cancelada."
+
+msgid "The signed-in account could not be identified, so nothing was changed."
+msgstr "Não foi possível identificar a conta conectada. Nada foi alterado."
 
 msgid "The site's certificate authority is not trusted"
 msgstr "A autoridade certificadora do site não é confiável"
@@ -14214,6 +14485,12 @@ msgstr "O serviço do host do Superset parou inesperadamente ({cause}) e não p�
 
 msgid "The surfaces outside the site that carry the product: the repository, releases, and Discord."
 msgstr "As superfícies fora do site que carregam o produto: o repositório, as versões e o Discord."
+
+msgid "The switch did not go through. The previous account is still active."
+msgstr "A troca não foi concluída. A conta anterior continua ativa."
+
+msgid "The switch stopped halfway. Open Usage to check which account is signed in."
+msgstr "A troca foi interrompida. Abra Uso para verificar qual conta está conectada."
 
 msgid "the target host"
 msgstr "o host de destino"
@@ -14561,6 +14838,10 @@ msgstr "O título contém..."
 msgid "To"
 msgstr "Para"
 
+msgctxt "switch history column"
+msgid "To"
+msgstr "Para"
+
 msgid "Toast (Sonner)"
 msgstr "Toast (Sonner)"
 
@@ -14743,6 +15024,10 @@ msgstr "Triagem de novas issues"
 
 msgid "triaging 12 new issues…"
 msgstr "triando 12 issues novas…"
+
+msgctxt "switch history column"
+msgid "Trigger"
+msgstr "Gatilho"
 
 msgid "Trigger alert()"
 msgstr "Disparar alert()"
@@ -14954,6 +15239,9 @@ msgctxt "person"
 msgid "Unknown"
 msgstr "Desconhecido"
 
+msgid "Unknown account"
+msgstr "Conta desconhecida"
+
 msgid "Unknown device"
 msgstr "Dispositivo desconhecido"
 
@@ -14990,6 +15278,9 @@ msgstr "Ilimitado"
 
 msgid "Unlimited users"
 msgstr "Usuários ilimitados"
+
+msgid "Unmanaged"
+msgstr "Não gerenciada"
 
 msgid "Unmute notifications"
 msgstr "Reativar notificações"
@@ -15160,6 +15451,9 @@ msgstr "Identificador amigável para URL, único dentro da sua organização."
 msgid "Usage"
 msgstr "Uso"
 
+msgid "Usage limit reached"
+msgstr "Limite de uso atingido"
+
 msgid "Usage sections"
 msgstr "Seções de uso"
 
@@ -15188,9 +15482,6 @@ msgstr "Use Claude Code, Codex, OpenCode ou qualquer agente de código em cada t
 msgid "Use Claude Code, Codex, or any coding agent. Choose per task or run several side by side."
 msgstr "Use Claude Code, Codex ou qualquer agente de código. Escolha por tarefa ou rode vários lado a lado."
 
-msgid "Use for new agents"
-msgstr "Usar para novos agentes"
-
 msgid "Use global default"
 msgstr "Usar o padrão global"
 
@@ -15214,6 +15505,9 @@ msgstr "Use isso para consertar terminais travados ou que não respondem."
 
 msgid "Use this when calling the Superset API."
 msgstr "Use isto ao chamar a API do Superset."
+
+msgid "Use up the soonest reset"
+msgstr "Usar primeiro a conta cujo reset está mais próximo"
 
 msgid "Use voice transcription and push-to-talk features."
 msgstr "Usar transcrição de voz e o recurso de apertar para falar."
@@ -15389,6 +15683,9 @@ msgstr "Volume"
 msgid "VS Code"
 msgstr "VS Code"
 
+msgid "Wait between switches"
+msgstr "Espera entre trocas"
+
 msgid "Wait for workspace setup before starting agents"
 msgstr "Esperar o setup da área de trabalho antes de iniciar os agentes"
 
@@ -15399,6 +15696,9 @@ msgstr "aguardando {0} e {1}…"
 
 msgid "Waiting for Checks"
 msgstr "Aguardando as verificações"
+
+msgid "Waiting for confirmed quota"
+msgstr "Aguardando cota confirmada"
 
 msgid "Waiting for Review"
 msgstr "Aguardando revisão"
@@ -15557,6 +15857,9 @@ msgstr "Visitantes semanais do site (sessões do PostHog), pessoas que clicaram 
 msgid "Weekly visitors arriving from a search results page. Search Console below says which queries they typed."
 msgstr "Visitantes semanais vindos de uma página de resultados de busca. O Search Console abaixo mostra quais consultas eles digitaram."
 
+msgid "weekly window"
+msgstr "Janela semanal"
+
 msgid "Welcome back"
 msgstr "Que bom te ver de novo"
 
@@ -15617,6 +15920,10 @@ msgstr "O que está incluído no Enterprise?"
 msgid "What's New"
 msgstr "Novidades"
 
+msgctxt "switch history column"
+msgid "When"
+msgstr "Quando"
+
 msgid "When off, nothing else can reach the files and tools on this device. You can still connect out to remote sandboxes from here. <0>Learn more<1/></0>"
 msgstr "Quando desativado, nada mais consegue acessar os arquivos e ferramentas deste dispositivo. Você ainda pode se conectar a sandboxes remotos daqui. <0>Saiba mais<1/></0>"
 
@@ -15653,6 +15960,9 @@ msgstr "Onde você está de verdade"
 msgid "Whether the people acquired stay and what they pay."
 msgstr "Se as pessoas adquiridas ficam e quanto pagam."
 
+msgid "Which account to move to"
+msgstr "Para qual conta mudar"
+
 msgid "Which agents are supported?"
 msgstr "Quais agentes são suportados?"
 
@@ -15667,6 +15977,10 @@ msgstr "Site inteiro"
 
 msgid "Whole Task"
 msgstr "Tarefa inteira"
+
+msgctxt "switch history column"
+msgid "Why"
+msgstr "Por quê"
 
 msgid "Width"
 msgstr "Largura"
@@ -15920,6 +16234,9 @@ msgstr "Você não tem permissão para remover este membro"
 
 msgid "You need to be part of an organization to use integrations."
 msgstr "Você precisa fazer parte de uma organização para usar integrações."
+
+msgid "You picked this account"
+msgstr "Você escolheu esta conta"
 
 #. placeholder {0}: preview.rank
 #. placeholder {1}: preview.total

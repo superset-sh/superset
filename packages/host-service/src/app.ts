@@ -6,8 +6,13 @@ import { TRPCError } from "@trpc/server";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { createLocalAccountService } from "./account-engine/account-service.ts";
+import { createAccountEngineHostDeps } from "./account-engine/host-deps.ts";
+import { createMachineAccountClient } from "./account-engine/machine-owner/client.ts";
+import { QuotaStore } from "./account-engine/quota-store.ts";
 import { createApiClient } from "./api";
 import { createChatV3Mount, registerChatV3Routes } from "./chat-v3";
+import { isTestRunnerContext } from "./daemon/manifest.ts";
 import { createDb, type HostDb } from "./db";
 import { EventBus, GitWatcher, registerEventBusRoute } from "./events";
 import { agentIsBusy, PageWatchManager } from "./page-watch/index.ts";
@@ -30,6 +35,7 @@ import {
 	runSandboxSelfSeed,
 } from "./runtime/sandbox-self-seed";
 import {
+	isBracketedPasteActive,
 	isLiveTerminalSession,
 	registerWorkspaceTerminalRoute,
 	writeFramedInputToSession,
@@ -40,6 +46,7 @@ import {
 } from "./terminal-agents";
 import { appRouter } from "./trpc/router";
 import { provisionSelectedAccounts } from "./trpc/router/usage/account-provisioning";
+import { syncDefaultAccountPointers } from "./trpc/router/usage/default-account.ts";
 import {
 	execGh as defaultExecGh,
 	type ExecGh,
@@ -48,6 +55,7 @@ import type {
 	ApiClient,
 	BrowserBridgeConfig,
 	HostServiceContext,
+	HostServiceRuntime,
 } from "./types";
 import { getHostWorkerPool } from "./workers/host-worker-pool";
 import { gitWorkspaceRefsTask } from "./workers/tasks/git";
@@ -237,11 +245,72 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	});
 	pageWatch.subscribeToTerminalEvents(eventBus);
 
-	const runtime = {
+	// Sandboxes fetch locally; machine hosts replace this read adapter with
+	// the shared owner's quota store below.
+	const quotaStore = new QuotaStore();
+
+	const runtime: HostServiceRuntime = {
 		filesystem,
 		pullRequests: pullRequestRuntime,
 		pageWatch,
+		quotaStore,
+		accountEngine: null,
 	};
+
+	// Organization hosts connect to one persistent machine owner. Each org
+	// retains its own terminal store and executes only its own session actions.
+	// Sandboxes have one provisioned account and do not join the machine owner.
+	let stopAccountEngine: (() => Promise<void>) | null = null;
+	if (
+		process.env.SUPERSET_HOST_RUN_MODE !== "sandbox" &&
+		!isTestRunnerContext()
+	) {
+		const engineHostDeps = createAccountEngineHostDeps({
+			db,
+			terminalAgentStore,
+			// Fabricated per launch, the way launchSandboxAgent does it: a
+			// resume needs a HostServiceContext and only app.ts can build one.
+			makeContext: () =>
+				({
+					git,
+					credentials: providers.credentials,
+					github,
+					execGh,
+					api,
+					db,
+					runtime,
+					eventBus,
+					terminalAgentStore,
+					organizationId: config.organizationId,
+					isAuthenticated: true,
+					browserBridge: config.browserBridge,
+				}) as HostServiceContext,
+			isBracketedPasteActive,
+		});
+		// Migrate legacy org selections once before connecting. Existing machine
+		// pointers remain authoritative; the owner handles all later writes.
+		syncDefaultAccountPointers(db);
+		const client = createMachineAccountClient({
+			localFallback: createLocalAccountService(null, quotaStore),
+			organizationId: config.organizationId,
+			hostDeps: engineHostDeps,
+			broadcast: {
+				switched: (payload) => eventBus.broadcastAccountSwitched(payload),
+				engineState: (payload) => eventBus.broadcastAccountEngineState(payload),
+			},
+			subscribe: (onChange) => {
+				terminalAgentStore.on("change", onChange);
+				return () => {
+					terminalAgentStore.off("change", onChange);
+				};
+			},
+		});
+		runtime.accountEngine = client.service;
+		runtime.quotaStore = {
+			read: (options) => client.service.readUsage(options),
+		};
+		stopAccountEngine = client.close;
+	}
 
 	// Startup sweeps run in the background so they don't block server
 	// startup. Ordering matters: the project backfill fills identity fields
@@ -292,7 +361,10 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		// Re-share the default account's Claude/Codex config into the selected
 		// provider profiles. Last: it touches no host state the sweeps above
 		// repair, and a slow filesystem must not delay them.
-		await provisionSelectedAccounts(db).catch((err) => {
+		await (runtime.accountEngine
+			? runtime.accountEngine.provisionSelectedAccounts()
+			: provisionSelectedAccounts(db)
+		).catch((err) => {
 			console.warn("[host-service] account provisioning failed:", err);
 		});
 	})();
@@ -382,6 +454,11 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			pageWatch.stop();
 		} catch (err) {
 			console.warn("[host-service] pageWatch.stop failed:", err);
+		}
+		try {
+			await stopAccountEngine?.();
+		} catch (err) {
+			console.warn("[host-service] accountEngine.stop failed:", err);
 		}
 		try {
 			await chatV3.dispose();

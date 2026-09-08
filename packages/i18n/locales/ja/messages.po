@@ -220,8 +220,8 @@ msgid "{0, plural, one {# workspace} other {# workspaces}}"
 msgstr "{0, plural, one {#件のワークスペース} other {#件のワークスペース}}"
 
 #. placeholder {0}: shown?.count ?? 0
-msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
-msgstr "{0, plural, one {実行中の#件のエージェントはまだ以前のアカウントを使用しています。切り替えが適用されるのは新規起動のみです。} other {実行中の#件のエージェントはまだ以前のアカウントを使用しています。切り替えが適用されるのは新規起動のみです。}}"
+msgid "{0, plural, one {A running agent is pinned to its own config dir by its agent configuration, so it keeps the account signed in there.} other {# running agents are pinned to their own config dirs by their agent configuration, so they keep the accounts signed in there.}}"
+msgstr "{0, plural, one {エージェント設定で専用の設定ディレクトリが固定されたエージェントが実行中のため、そのディレクトリでログインしているアカウントのままになります。} other {エージェント設定で専用の設定ディレクトリが固定されたエージェントが#件実行中のため、それぞれそのディレクトリでログインしているアカウントのままになります。}}"
 
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
@@ -309,6 +309,11 @@ msgstr "{0}の操作"
 #. placeholder {1}: right.name
 msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
 msgstr "{0}と{1}がターミナル恐竜となって決着をつけます。勝敗を決めるのは統計です。"
+
+#. placeholder {0}: windowLabel(entry.windowId)
+#. placeholder {1}: formatPercent(entry.usedPercent / 100, { maximumFractionDigits: 0 })
+msgid "{0} at {1}"
+msgstr "{0}の使用率が{1}"
 
 #. placeholder {0}: formatTokens(me.tokens - below.tokens)
 msgid "{0} behind you"
@@ -534,8 +539,23 @@ msgstr "全トークンの{0}% · {1}トークン"
 msgid "{0}% of total cost · {1} tokens · * at API list rates"
 msgstr "総コストの{0}% · {1}トークン · * API定価換算"
 
+msgid "{accountLabel} is now the active {providerLabel} account."
+msgstr "{accountLabel}が{providerLabel}のアクティブなアカウントになりました。"
+
 msgid "{actual} so far · ~{projected} projected"
 msgstr "現時点で{actual} · 予測は約{projected}"
+
+msgid "{agent} could not switch accounts"
+msgstr "{agent}はアカウントを切り替えられませんでした"
+
+msgid "{agent} switched account"
+msgstr "{agent}がアカウントを切り替えました"
+
+msgid "{agent} switched from {fromLabel} to {toLabel}"
+msgstr "{agent}が{fromLabel}から{toLabel}に切り替えました"
+
+msgid "{agent} switched to {toLabel}"
+msgstr "{agent}が{toLabel}に切り替えました"
 
 msgid "{backgroundCount, plural, one {# background terminal session} other {# background terminal sessions}}"
 msgstr "{backgroundCount, plural, one {#件のバックグラウンドターミナルセッション} other {#件のバックグラウンドターミナルセッション}}"
@@ -561,6 +581,9 @@ msgstr "{configTitle}のフォントサイズ"
 
 msgid "{cookieCount} cookies — forget this site"
 msgstr "{cookieCount}件のCookie — このサイトを削除"
+
+msgid "{count, plural, one {# account switch while you were away} other {# account switches while you were away}}"
+msgstr "{count, plural, one {不在中にアカウントの切り替えが#件ありました} other {不在中にアカウントの切り替えが#件ありました}}"
 
 msgid "{count, plural, one {# Check Failed} other {# Checks Failed}}"
 msgstr "{count, plural, one {#件のチェックが失敗} other {#件のチェックが失敗}}"
@@ -736,6 +759,9 @@ msgstr "{minutes}分"
 msgid "{minutes}m ago"
 msgstr "{minutes}分前"
 
+msgid "{model} weekly window"
+msgstr "{model}の週間枠"
+
 msgid "{modKey}↵ to create"
 msgstr "{modKey}↵で作成"
 
@@ -904,6 +930,9 @@ msgstr "{updatedLabel}をデフォルトに復元しました"
 msgid "{waiting} Waiting"
 msgstr "{waiting}件待機中"
 
+msgid "{windowLabel} at {percent}"
+msgstr "{windowLabel}の使用率が{percent}"
+
 msgid "{workspaceName}: host is unavailable"
 msgstr "{workspaceName}: ホストが利用できません"
 
@@ -1071,6 +1100,9 @@ msgstr "1件のCookie — このサイトを削除"
 msgid "1 hour"
 msgstr "1時間"
 
+msgid "1 minute"
+msgstr "1分"
+
 msgid "1 user"
 msgstr "1ユーザー"
 
@@ -1091,6 +1123,9 @@ msgstr "2エージェント · 14ファイル変更"
 
 msgid "2 hours"
 msgstr "2時間"
+
+msgid "2 minutes"
+msgstr "2分"
 
 msgid "2021 to 2023"
 msgstr "2021年〜2023年"
@@ -1119,6 +1154,9 @@ msgstr "エンジニア1人あたり3つ以上の並行ワークストリーム"
 msgid "30 minutes"
 msgstr "30分"
 
+msgid "30 seconds"
+msgstr "30秒"
+
 msgid "30D"
 msgstr "30日"
 
@@ -1137,6 +1175,9 @@ msgstr "45ファイル · +82 −172"
 msgid "5 minutes"
 msgstr "5分"
 
+msgid "5-hour window"
+msgstr "5時間枠"
+
 msgid "55 call sites pass {code}"
 msgstr "55か所の呼び出し元が{code}を渡しています"
 
@@ -1148,6 +1189,9 @@ msgstr "7日"
 
 msgid "87.4K of 200K tokens used in this session."
 msgstr "このセッションで200Kトークン中87.4Kを使用しました。"
+
+msgid "A {agent} session needs attention"
+msgstr "{agent}のセッションに対応が必要です"
 
 msgid "A better in-app browser: preview your changes and click any element to send it to the agent as context."
 msgstr "アプリ内ブラウザを改良します。変更をプレビューし、任意の要素をクリックしてコンテキストとしてエージェントに送れます。"
@@ -1184,6 +1228,9 @@ msgstr "進行中のもの、次に来るもの、そして{company}が向かう
 
 msgid "A majority of production changes merge without any human reading the diff."
 msgstr "本番への変更の過半数が、人間が差分を読まないままマージされる。"
+
+msgid "A model name can be at most {MAX_MODEL_NAME_LENGTH} characters. Shorten it and try again."
+msgstr "モデル名は最大 {MAX_MODEL_NAME_LENGTH} 文字です。短くして再試行してください。"
 
 msgid "A new version of Superset is required to continue. Please update to the latest version."
 msgstr "続行するには新しいバージョンのSupersetが必要です。最新バージョンに更新してください。"
@@ -1261,6 +1308,9 @@ msgstr "Accordion"
 msgid "Account"
 msgstr "アカウント"
 
+msgid "Account changed outside Superset"
+msgstr "Superset外でアカウントが変更されました"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceNotResolvable"
 msgstr "アカウントへのインストールはファーストパーティのマニフェストのみを解決するため、{marketplace} の {plugin} はまだアカウントにインストールできません。このマシンにはインストールされたままです。"
@@ -1298,6 +1348,16 @@ msgstr "アクティベーション率"
 
 msgid "Active"
 msgstr "有効"
+
+msgctxt "account state"
+msgid "Active"
+msgstr "アクティブ"
+
+msgid "Active — every newly launched session of this agent uses this account; ones already running keep the previous login until you restart them."
+msgstr "アクティブ — このエージェントの新しいセッションはこのアカウントを使います。実行中のセッションは再起動するまで以前のログインを保持します。"
+
+msgid "Active — every running and newly launched session of this agent uses this account."
+msgstr "アクティブ — このエージェントの実行中および新しく起動するセッションはすべてこのアカウントを使用します。"
 
 #. placeholder {0}: formatDistanceToNowStrict(binding.lastEventAt, { addSuffix: true, })
 msgid "active {0}"
@@ -1500,6 +1560,10 @@ msgstr "mainとの比較"
 msgid "Agent"
 msgstr "エージェント"
 
+msgctxt "switch history column"
+msgid "Agent"
+msgstr "エージェント"
+
 msgid "Agent Complete — {workspaceName}"
 msgstr "エージェント完了 — {workspaceName}"
 
@@ -1633,6 +1697,9 @@ msgstr "{0} 個すべての目標が {nextLabel} に向けて働いています�
 #. placeholder {0}: summary.relevantChecks.length
 msgid "All {0} passed"
 msgstr "{0}件すべて成功"
+
+msgid "All {agent} accounts are at their limit"
+msgstr "{agent}のすべてのアカウントが上限に達しました"
 
 msgid "All {versionCount} versions and their content are removed. Anyone with the link loses access."
 msgstr "{versionCount}件すべてのバージョンとその内容が削除されます。リンクを知っている人もアクセスできなくなります。"
@@ -1980,6 +2047,9 @@ msgstr "ターミナル、チャットメッセージ、タスクのブラウザ
 msgid "Apply"
 msgstr "適用"
 
+msgid "Approaching the usage limit"
+msgstr "使用量の上限に近づいています"
+
 msgid "Approve"
 msgstr "承認"
 
@@ -2192,6 +2262,19 @@ msgstr "タスクを自動化"
 
 msgid "Automate workspace setup for {projectName}"
 msgstr "{projectName}のワークスペースのセットアップを自動化"
+
+msgctxt "account switch trigger"
+msgid "Automatic"
+msgstr "自動"
+
+msgid "Automatic account switching is not available on Windows. Switch accounts by hand instead."
+msgstr "Windowsではアカウントの自動切り替えを利用できません。手動で切り替えてください。"
+
+msgid "Automatic switching may move sessions onto this account. Held-out accounts stay available to pick by hand."
+msgstr "自動切り替えによってセッションがこのアカウントに移ることがあります。除外したアカウントも手動では選べます。"
+
+msgid "Automatic switching needs macOS or Linux. On Windows you can still switch the active {agentLabel} account by hand."
+msgstr "自動切り替えにはmacOSまたはLinuxが必要です。Windowsでも、アクティブな{agentLabel}アカウントを手動で切り替えることはできます。"
 
 msgid "Automation"
 msgstr "オートメーション"
@@ -2873,6 +2956,9 @@ msgstr "リソースを確認"
 
 msgid "Check the rendered prompt and launch output before saving"
 msgstr "保存前にレンダリングされたプロンプトと起動出力を確認"
+
+msgid "Check usage every"
+msgstr "使用量の確認間隔"
 
 msgid "Check your access under Settings > Security on that device."
 msgstr "そのデバイスの「設定」>「セキュリティ」でアクセス権を確認してください。"
@@ -4571,9 +4657,6 @@ msgstr "デフォルト({defaultWorktreePath})"
 msgid "Default effort"
 msgstr "デフォルトのエフォート"
 
-msgid "Default for new agents"
-msgstr "新規エージェントのデフォルト"
-
 msgid "Default location for new worktree workspaces on this host."
 msgstr "このホストの新規ワークツリーワークスペースの既定の場所。"
 
@@ -5230,9 +5313,6 @@ msgstr "それぞれ新しいタブで"
 msgid "Each morning at 8am, look at yesterday's failed CI runs, diagnose the most common failure, and open a fix PR."
 msgstr "毎朝午前8時に、前日の失敗したCI実行を確認し、最も多い失敗原因を診断して修正PRを作成する。"
 
-msgid "Each session resumes where it left off."
-msgstr "各セッションは中断したところから再開します。"
-
 msgid "Each surface has its own typography. Changes appear immediately in the live previews."
 msgstr "サーフェスごとに独自のタイポグラフィがあります。変更はライブプレビューに即座に反映されます。"
 
@@ -5479,6 +5559,10 @@ msgstr "毎分"
 msgid "Every objective is carrying its weight for the next rung. Measured over the trailing 30 days."
 msgstr "すべての目標が次の段に向けて力を発揮しています。直近30日間で計測。"
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Every running and newly launched {0} session uses the active account."
+msgstr "実行中および新しく起動する{0}のセッションはすべてアクティブなアカウントを使用します。"
+
 msgid "Every star on <0>{repoSlug}</0>, plotted since launch."
 msgstr "<0>{repoSlug}</0>のすべてのスターを、公開時からプロットしています。"
 
@@ -5628,6 +5712,9 @@ msgstr "F4ゲート · {F4_GATE_SHARE}%"
 
 msgid "F4 gate crossed"
 msgstr "F4ゲート通過"
+
+msgid "Fable, Opus"
+msgstr "Fable, Opus"
 
 msgid "Factory 2026"
 msgstr "Factory 2026"
@@ -6100,6 +6187,9 @@ msgstr "ロゴのアップロードに失敗しました"
 msgid "Failure"
 msgstr "失敗"
 
+msgid "Fallback restart after a usage limit"
+msgstr "使用量の上限によるフォールバック再起動"
+
 msgid "FAQ"
 msgstr "FAQ"
 
@@ -6475,6 +6565,10 @@ msgstr "元:"
 msgid "From"
 msgstr "移動元"
 
+msgctxt "switch history column"
+msgid "From"
+msgstr "切り替え元"
+
 msgid "from {price}/user/mo"
 msgstr "{price}/ユーザー/月〜"
 
@@ -6827,6 +6921,9 @@ msgstr "履歴"
 msgid "History"
 msgstr "履歴"
 
+msgid "History is unavailable right now. Reopen this page to try again."
+msgstr "履歴は現在利用できません。このページを開き直すと再試行します。"
+
 msgid "Home"
 msgstr "ホーム"
 
@@ -7132,6 +7229,9 @@ msgstr "作業中"
 
 msgid "In Progress"
 msgstr "進行中"
+
+msgid "In rotation"
+msgstr "ローテーションに含める"
 
 msgid "In the Superset desktop app, open <0>Settings → Appearance → Theme</0>."
 msgstr "Supersetデスクトップアプリで<0>設定 → 外観 → テーマ</0>を開きます。"
@@ -7607,6 +7707,9 @@ msgstr "毎月末日"
 msgid "Last day of each month at {time}"
 msgstr "毎月末日 {time}"
 
+msgid "Last read failed, so this list may be out of date. Reopen this page to try again."
+msgstr "最後の読み込みに失敗したため、この一覧は最新ではない可能性があります。このページを開き直すと再試行します。"
+
 msgid "Last run"
 msgstr "最終実行"
 
@@ -7756,6 +7859,12 @@ msgstr "Supersetでの開発は気に入りましたか?"
 
 msgid "Lime"
 msgstr "ライム"
+
+msgid "Limit hit — session restarted"
+msgstr "上限に到達 — セッションを再起動しました"
+
+msgid "Limit report not confirmed — no switch"
+msgstr "上限の報告を確認できず — 切り替えなし"
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
@@ -8012,6 +8121,9 @@ msgstr "ログアウト"
 msgid "Log out?"
 msgstr "ログアウトしますか?"
 
+msgid "Login changed outside Superset"
+msgstr "Superset外でログイン情報が変更されました"
+
 msgid "Logins (cookies)"
 msgstr "ログイン情報(Cookie)"
 
@@ -8060,14 +8172,17 @@ msgstr "メイン"
 msgid "Main workspace"
 msgstr "メインワークスペース"
 
+msgid "Make active"
+msgstr "アクティブにする"
+
+msgid "Make active — running sessions move to this account too."
+msgstr "アクティブにする — 実行中のセッションもこのアカウントに移ります。"
+
+msgid "Make active — sessions launched from now on use this account."
+msgstr "アクティブにする — これ以降に開始するセッションはこのアカウントを使います。"
+
 msgid "Make all panes equal size"
 msgstr "すべてのペインを同じサイズにする"
-
-msgid "Make default"
-msgstr "デフォルトにする"
-
-msgid "Make default — launch new terminals and agents on this account."
-msgstr "デフォルトにする — 新しいターミナルとエージェントをこのアカウントで起動します。"
 
 msgid "Make sure the device is awake, online, and running Superset."
 msgstr "デバイスがスリープ状態ではなく、オンラインで Superset が起動していることを確認してください。"
@@ -8122,6 +8237,10 @@ msgstr "組織の管理者によって管理されています。"
 
 msgid "Manual"
 msgstr "手作業"
+
+msgctxt "account switch trigger"
+msgid "Manual"
+msgstr "手動"
 
 msgid "Manual order"
 msgstr "手動順"
@@ -8322,6 +8441,9 @@ msgstr "2026年半ば"
 msgid "Mid 2027"
 msgstr "2027年半ば"
 
+msgid "min"
+msgstr "分"
+
 msgid "Mine"
 msgstr "自分"
 
@@ -8380,6 +8502,9 @@ msgstr "モデル"
 msgid "Model context usage"
 msgstr "モデルのコンテキスト使用量"
 
+msgid "Model names whose weekly window also counts toward the threshold, separated by commas. Leave empty to watch only the account-wide windows."
+msgstr "週間枠をしきい値の判定に含めるモデル名を、カンマ区切りで指定します。空にするとアカウント全体の枠のみを監視します。"
+
 msgid "Model picker scoped to the selected agent"
 msgstr "選択中のエージェントに絞ったモデルピッカー"
 
@@ -8388,6 +8513,9 @@ msgstr "モデルを選択"
 
 msgid "Model volume"
 msgstr "モデル別ボリューム"
+
+msgid "Model windows"
+msgstr "モデル別の枠"
 
 msgid "Model-suggested code appears in a majority of new files."
 msgstr "モデルが提案したコードが新規ファイルの過半数に現れる。"
@@ -8455,20 +8583,32 @@ msgstr "他の{kindLower}テーマ"
 msgid "More actions"
 msgstr "その他の操作"
 
+msgid "More headroom elsewhere"
+msgstr "他にもっと余裕あり"
+
 msgid "More pages"
 msgstr "その他のページ"
 
 msgid "More than half of merged changes are written by agents with zero human edits."
 msgstr "マージされた変更の半数超が、人間の編集なしにエージェントによって書かれる。"
 
+msgid "More than one saved login matched that account, so Superset would not guess which to use."
+msgstr "このアカウントに一致する保存済みログインが複数あるため、Supersetは推測で選択しませんでした。"
+
 msgid "most developers"
 msgstr "大半の開発者"
+
+msgid "Most headroom"
+msgstr "最も余裕のあるアカウント"
 
 msgid "Most of software history"
 msgstr "ソフトウェアの歴史のほとんど"
 
 msgid "Move {count} to Group"
 msgstr "{count}件をグループへ移動"
+
+msgid "Move running and new {agentLabel} sessions to another account before this one runs out."
+msgstr "このアカウントを使い切る前に、実行中および新規の{agentLabel}セッションを別のアカウントに移します。"
 
 msgid "Move to group"
 msgstr "グループへ移動"
@@ -8550,6 +8690,9 @@ msgstr "ナビゲーション"
 msgid "Navigation Menu"
 msgstr "Navigation Menu"
 
+msgid "Near the limit"
+msgstr "上限が近い"
+
 msgid "Need app-level wiring (form state, chart data, app shell)"
 msgstr "アプリ側の配線が必要です(フォームの状態、チャートのデータ、アプリシェル)"
 
@@ -8592,17 +8735,11 @@ msgstr "ネットワークが変更されました"
 msgid "Never"
 msgstr "未使用"
 
-msgid "New {providerLabel} agents will use {accountLabel}."
-msgstr "新規の{providerLabel}エージェントは{accountLabel}を使用します。"
-
 msgid "New accounts"
 msgstr "新規アカウント"
 
 msgid "New agent"
 msgstr "新しいエージェント"
-
-msgid "New agent launches use this account. Relaunch a running agent to switch it."
-msgstr "新規エージェントの起動でこのアカウントを使用します。実行中のエージェントを切り替えるには再起動してください。"
 
 msgid "New agent session"
 msgstr "新規エージェントセッション"
@@ -8657,6 +8794,9 @@ msgstr "新しいリリースと製品アップデート。"
 
 msgid "New session"
 msgstr "新規セッション"
+
+msgid "New sessions use it; sessions already running keep the previous login until you restart them."
+msgstr "新しいセッションはこのアカウントを使います。実行中のセッションは再起動するまで以前のログインを保持します。"
 
 msgid "New stars"
 msgstr "新規スター"
@@ -8715,6 +8855,10 @@ msgstr "このアプリより新しい"
 msgid "Newer than this app. Everything works; update the app to match."
 msgstr "このアプリより新しいバージョンです。動作に問題はありません。アプリを更新して合わせてください。"
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Newly launched {0} sessions use the active account; ones already running keep the previous login until you restart them."
+msgstr "新しい{0}セッションはアクティブなアカウントを使います。実行中のセッションは再起動するまで以前のログインを保持します。"
+
 msgid "News & Updates"
 msgstr "ニュースとアップデート"
 
@@ -8732,6 +8876,9 @@ msgstr "次のコメント"
 
 msgid "Next match"
 msgstr "次の一致"
+
+msgid "Next reset: {resetTime}"
+msgstr "次のリセット: {resetTime}"
 
 #. placeholder {0}: formatDateTimeInTimezone( new Date(automation.nextRunAt), automation.timezone ?? "UTC", )
 msgid "Next run {0}"
@@ -8770,6 +8917,9 @@ msgstr "このホストに{0}のログインがありません — サインイ�
 
 msgid "No access to this host"
 msgstr "このホストへのアクセス権がありません"
+
+msgid "No account switches yet. Every switch, automatic or by hand, is listed here."
+msgstr "アカウントの切り替えはまだありません。自動・手動を問わず、すべての切り替えがここに表示されます。"
 
 msgid "No active enterprise accounts"
 msgstr "有効なエンタープライズアカウントはありません"
@@ -8915,6 +9065,9 @@ msgstr "デバイスはまだありません"
 
 msgid "No downloads yet"
 msgstr "ダウンロードはまだありません"
+
+msgid "No eligible account has confirmed headroom. This session will stay stopped while quota is checked again. To continue with another model, use /model in the affected terminal."
+msgstr "対象のアカウントで利用枠の空きが確認できません。利用枠を再確認する間、このセッションは停止したままになります。別のモデルで続けるには、対象のターミナルで /model を使ってください。"
 
 msgid "No emoji found"
 msgstr "絵文字が見つかりません"
@@ -9349,6 +9502,10 @@ msgstr "まだイベントを受信していません: Microsoft Graphが通知�
 msgid "Not reviewed by you"
 msgstr "自分がレビューしていない"
 
+#. placeholder {0}: engineErrorCode(failure)
+msgid "Not saved ({0}). The previous value still stands."
+msgstr "保存できませんでした({0})。以前の値がそのまま有効です。"
+
 msgid "not set up"
 msgstr "未セットアップ"
 
@@ -9384,6 +9541,10 @@ msgstr "{pathname}には何もありません。"
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "直近30日に公開された実績はまだありません。このマシンの利用状況が同期されるとランクが表示されます(<0>{handle}</0>として公開)。"
+
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Nothing to switch to yet: this needs another {0} account with In rotation turned on."
+msgstr "切り替え先がありません。ローテーションを有効にした別の{0}アカウントが必要です。"
 
 msgid "Notice"
 msgstr "お知らせ"
@@ -10141,6 +10302,10 @@ msgstr "出力スキーマ"
 msgid "Output truncated"
 msgstr "出力は省略されました"
 
+msgctxt "account switch trigger"
+msgid "Outside Superset"
+msgstr "Superset外"
+
 msgid "Overflow Fade"
 msgstr "Overflow Fade"
 
@@ -10342,6 +10507,9 @@ msgstr "1ユーザーあたり月額"
 
 msgid "Percent of total system RAM used by monitored Superset resources only (not all apps). A high share means Superset is a major contributor to system memory pressure; a low share means pressure is likely elsewhere."
 msgstr "監視対象のSupersetリソースのみが使用する、システムRAM全体に対する割合です(すべてのアプリではありません)。割合が高い場合はSupersetがシステムのメモリ圧迫の主な要因であり、低い場合は原因は他にあります。"
+
+msgid "Percent used at which any window of the active account counts as near its limit."
+msgstr "アクティブなアカウントのいずれかの枠が上限に近いとみなす使用率です。"
 
 #. placeholder {0}: team.name
 msgid "Permanently remove <0>{0}</0> and all of its members. This can't be undone."
@@ -10598,6 +10766,9 @@ msgstr "予測の進捗"
 
 msgid "Predictions about AI are cheap because nobody checks them. This page is a rubric, not a vibe: every gate below is either true or false of a real team shipping real software. We update it as gates open, and we do not move the goalposts."
 msgstr "AIについての予測が安っぽいのは、誰も答え合わせをしないからです。このページは雰囲気ではなくルーブリックです。以下のゲートはどれも、実際にソフトウェアを出荷している実在のチームについて真か偽かが決まります。ゲートが通過されれば更新しますが、ゴールポストは動かしません。"
+
+msgid "Prefer the account whose weekly window resets soonest, so no quota expires unused"
+msgstr "週間枠のリセットが最も近いアカウントを優先し、使い残しを出さない"
 
 msgid "Preferences"
 msgstr "環境設定"
@@ -11073,6 +11244,9 @@ msgstr "並列コーディングエージェントのガイドを読む"
 msgid "Read the setup guide"
 msgstr "セットアップガイドを読む"
 
+msgid "Reading switch history…"
+msgstr "切り替え履歴を読み込み中…"
+
 msgid "Reading usage…"
 msgstr "使用量を取得中…"
 
@@ -11214,9 +11388,6 @@ msgstr "関連記事"
 
 msgid "Relative path copied"
 msgstr "相対パスをコピーしました"
-
-msgid "Relaunch running agents to switch them."
-msgstr "実行中のエージェントを切り替えるには再起動してください。"
 
 msgid "Relay access enabled, connecting to the relay…"
 msgstr "リレーアクセスを有効にしました。リレーに接続中…"
@@ -11524,6 +11695,9 @@ msgstr "場所をリセット"
 msgid "Reset terminal"
 msgstr "ターミナルをリセット"
 
+msgid "Reset time unavailable. You can refresh quota or wait for the next check."
+msgstr "リセット時刻は不明です。利用枠を更新するか、次の確認をお待ちください。"
+
 msgid "Reset to default"
 msgstr "デフォルトに戻す"
 
@@ -11602,9 +11776,6 @@ msgstr "すべてのターミナルを再起動しますか?"
 msgid "Restart and close sessions"
 msgstr "再起動してセッションを閉じる"
 
-msgid "Restart and resume"
-msgstr "再起動して再開"
-
 msgid "Restart Browser"
 msgstr "ブラウザを再起動"
 
@@ -11613,12 +11784,6 @@ msgstr "デーモンを再起動"
 
 msgid "Restart host service"
 msgstr "ホストサービスを再起動"
-
-msgid "Restart now to move them to {accountLabel}; each session picks its conversation back up where it left off."
-msgstr "今すぐ再起動すると{accountLabel}に移行し、各セッションは会話を中断したところから再開します。"
-
-msgid "Restart running {providerLabel} agents?"
-msgstr "実行中の{providerLabel}エージェントを再起動しますか？"
 
 msgid "Restart terminal daemon?"
 msgstr "ターミナルデーモンを再起動しますか?"
@@ -11632,11 +11797,11 @@ msgstr "{restartedOrgCount}件のホストサービスを再起動しました"
 msgid "Restarted 1 host service"
 msgstr "1件のホストサービスを再起動しました"
 
+msgid "Restarted and resumed"
+msgstr "再起動して再開"
+
 msgid "Restarting"
 msgstr "再起動中"
-
-msgid "Restarting agents on {accountLabel}."
-msgstr "{accountLabel}でエージェントを再起動しています。"
 
 msgid "Restarting host services…"
 msgstr "ホストサービスを再起動中…"
@@ -11844,6 +12009,10 @@ msgstr "エージェントのセッションを任意のチェックポイント
 msgid "Rotate device"
 msgstr "デバイスを回転"
 
+#. placeholder {0}: engineErrorCode(failure)
+msgid "Rotation not saved ({0})."
+msgstr "ローテーションを保存できませんでした({0})。"
+
 msgid "Roundups"
 msgstr "まとめ"
 
@@ -11955,6 +12124,12 @@ msgstr "ペアリング済みデバイスで実行中"
 
 msgid "Running on this device"
 msgstr "このデバイスで実行中"
+
+msgid "Running sessions move over when they go idle, resuming where they left off."
+msgstr "実行中のセッションはアイドルになった時点で切り替わり、中断したところから再開します。"
+
+msgid "Running sessions pick up the new login in place; ones on their own profile restart when they go idle."
+msgstr "実行中のセッションはそのまま新しいログインに切り替わります。専用プロファイルのセッションはアイドルになった時点で再起動します。"
 
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "実行中のターミナルプロセスは継続しますが、アプリ再起動後に古い出力が利用できなくなる場合があります。"
@@ -12552,6 +12727,10 @@ msgstr "セッション表示"
 msgid "Sessions"
 msgstr "セッション"
 
+msgctxt "switch history column"
+msgid "Sessions"
+msgstr "セッション"
+
 #. placeholder {0}: detail.sessions.length
 msgid "Sessions · top {0} by cost"
 msgstr "セッション · コスト上位{0}件"
@@ -12575,6 +12754,9 @@ msgstr "パスワードを設定"
 
 msgid "Set Run"
 msgstr "実行を設定"
+
+msgid "Set up outside Superset. Its usage is shown, but switching never writes to this login."
+msgstr "Superset外で設定されています。使用量は表示されますが、切り替えでこのログイン情報が書き換えられることはありません。"
 
 msgid "Set up project on {hostName}"
 msgstr "{hostName}でプロジェクトをセットアップ"
@@ -12886,6 +13068,9 @@ msgstr "サインインに失敗しました"
 msgid "Signed in as <0>{userName}</0>"
 msgstr "<0>{userName}</0>としてサインイン中"
 
+msgid "Signed in outside Superset, so switching leaves this login alone."
+msgstr "Superset外でサインインしているため、切り替えてもこのログイン情報はそのままです。"
+
 msgid "Signed out"
 msgstr "サインアウトしました"
 
@@ -13023,6 +13208,9 @@ msgstr "SOC 2 Type IIレポート"
 
 msgid "Social"
 msgstr "ソーシャル"
+
+msgid "Some {providerLabel} sessions stay on their own account"
+msgstr "一部の{providerLabel}セッションは元のアカウントのままです"
 
 msgid "Some files are not an accepted type and were not added."
 msgstr "一部のファイルは対応していない形式のため追加されませんでした。"
@@ -13184,6 +13372,9 @@ msgstr "すべてステージ"
 msgid "Staged"
 msgstr "ステージ済み"
 
+msgid "Stale token, still eligible"
+msgstr "トークンは期限切れ、引き続き利用可能"
+
 msgid "Standard action strip for pane headers"
 msgstr "ペインヘッダー用の標準アクションストリップ"
 
@@ -13322,6 +13513,9 @@ msgstr "ステータス変更"
 
 msgid "Stay connected (refresh tokens)"
 msgstr "接続の維持(リフレッシュトークン)"
+
+msgid "Stay until the active account nears its limit, then move to the account with the most headroom"
+msgstr "アクティブなアカウントが上限に近づくまで使い、その後は最も余裕のあるアカウントに移る"
 
 #. placeholder {0}: step === "workspace" ? 1 : 2
 msgid "Step {0} of 2"
@@ -13486,6 +13680,9 @@ msgstr "Supersetコンポーネント"
 msgid "Superset could not complete sign-in. Please try again."
 msgstr "Supersetはサインインを完了できませんでした。もう一度お試しください。"
 
+msgid "Superset could not tell which account is signed in, so it left the current one in place."
+msgstr "Supersetはログイン中のアカウントを判別できず、現在のアカウントを保持しました。"
+
 msgid "Superset CPU"
 msgstr "Superset CPU"
 
@@ -13604,8 +13801,22 @@ msgstr "停止中"
 msgid "Sustain"
 msgstr "継続"
 
+msgid "Switch accounts automatically"
+msgstr "アカウントを自動で切り替える"
+
 msgid "Switch agents. Keep your workflow"
 msgstr "エージェントは替える。ワークフローはそのまま"
+
+msgid "Switch at"
+msgstr "切り替えるしきい値"
+
+#. placeholder {0}: engineErrorCode(failure)
+#. placeholder {0}: rawErrorMessage(error)
+msgid "Switch failed ({0}). The previous account is still active."
+msgstr "切り替えに失敗しました({0})。以前のアカウントがそのままアクティブです。"
+
+msgid "Switch history"
+msgstr "切り替え履歴"
 
 msgid "Switch host"
 msgstr "ホストを切り替え"
@@ -13675,6 +13886,12 @@ msgstr "ワークスペース8に切り替え"
 
 msgid "Switch to Workspace 9"
 msgstr "ワークスペース9に切り替え"
+
+msgid "Switching resumes when a usage window resets."
+msgstr "使用量の枠がリセットされると切り替えを再開します。"
+
+msgid "Switching…"
+msgstr "切り替え中…"
 
 msgid "Sync"
 msgstr "同期"
@@ -13943,6 +14160,9 @@ msgstr "Textarea"
 msgid "Thanks for reaching out"
 msgstr "お問い合わせありがとうございます"
 
+msgid "That account is not one this host can see, so the previous account is still active."
+msgstr "このホストからそのアカウントは見えません。以前のアカウントが引き続きアクティブです。"
+
 msgid "That handle is taken."
 msgstr "そのハンドルは使用済みです。"
 
@@ -13958,6 +14178,33 @@ msgstr "その名前は使用できません。"
 msgid "The 2026 bet"
 msgstr "2026年の賭け"
 
+msgid "The access token is past its expiry but the sign-in is not — a fresh one is minted the next time the CLI runs."
+msgstr "アクセストークンは期限切れですが、サインイン自体は有効です — 次回CLIを実行したときに新しいトークンが発行されます。"
+
+msgid "The account engine cannot use its state directory. Make it owner-only (chmod 700), or point SUPERSET_HOME_DIR at a filesystem that supports Unix permissions."
+msgstr "アカウントエンジンが状態ディレクトリを使用できません。所有者のみがアクセスできるようにするか (chmod 700)、Unix のパーミッションに対応したファイルシステムを SUPERSET_HOME_DIR に指定してください。"
+
+msgid "The account engine is not running on this host, so {agentLabel} accounts cannot switch automatically."
+msgstr "このホストではアカウントエンジンが動作していないため、{agentLabel}のアカウントを自動で切り替えられません。"
+
+msgid "The account engine is not running on this host."
+msgstr "このホストではアカウントエンジンが動作していません。"
+
+msgid "The account it tried to switch to has no saved identity, so the previous account is still active."
+msgstr "切り替え先に保存済みのID情報がありません。以前のアカウントが引き続きアクティブです。"
+
+msgid "The account it tried to switch to has no saved login. Sign in to it once and switching can use it."
+msgstr "切り替え先に保存済みログインがありません。一度ログインすると切り替えに使えます。"
+
+msgid "The account it tried to switch to is not usable, so the previous account is still active."
+msgstr "切り替え先は使用できません。以前のアカウントが引き続きアクティブです。"
+
+msgid "The account it was switching to changed while switching, so the switch was abandoned."
+msgstr "切り替え中に対象アカウントが変わったため、切り替えを中止しました。"
+
+msgid "The active account could not be updated, so the previous account is still active."
+msgstr "アクティブなアカウントを更新できませんでした。以前のアカウントが引き続きアクティブです。"
+
 msgid "the active organization"
 msgstr "アクティブな組織"
 
@@ -13969,6 +14216,12 @@ msgstr "エージェントがチケットから差分までタスクを引き受
 
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "このオートメーションに設定されていたエージェントは、ホスト上に存在しなくなりました — ホストのエージェントがリセットまたは削除された可能性があります。オートメーションの設定でエージェントを選び直してください。"
+
+msgid "The agent's account folder could not be reached, so the previous account is still active."
+msgstr "エージェントのアカウントフォルダーにアクセスできません。以前のアカウントが引き続きアクティブです。"
+
+msgid "The agent's account folder is not in a usable state, so the previous account is still active."
+msgstr "エージェントのアカウントフォルダーを使用できません。以前のアカウントが引き続きアクティブです。"
 
 msgid "The app is on {appVersion} but attached to a host service started by something else, likely an older CLI or another Superset build. Restarting replaces it with this app's copy."
 msgstr "アプリは{appVersion}ですが、別のもの（古いCLIや別のSupersetビルドの可能性）が起動したホストサービスに接続しています。再起動するとこのアプリのコピーに置き換わります。"
@@ -14064,6 +14317,9 @@ msgstr "ホストが15分以内に復帰しませんでした。"
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "ホストがSupersetリレーに接続されていません。このデバイスの場合は、設定 > リモートアクセスで「リレー経由でこのデバイスへのリモートアクセスを許可」をオンにしてから再試行してください。"
 
+msgid "The host rejected that value, so the previous one still stands."
+msgstr "ホストがその値を拒否したため、以前の値がそのまま有効です。"
+
 msgid "The host reported a failed update."
 msgstr "ホストが更新の失敗を報告しました。"
 
@@ -14120,6 +14376,12 @@ msgstr "組織またはチームの名前"
 
 msgid "The network connection changed"
 msgstr "ネットワーク接続が変更されました"
+
+msgid "The new login could not be saved, so the previous account is still active."
+msgstr "新しいログインを保存できませんでした。以前のアカウントが引き続きアクティブです。"
+
+msgid "The new login could not be verified, so the previous account was put back."
+msgstr "新しいログインを確認できなかったため、以前のアカウントを復元しました。"
 
 msgid "The overnight shift"
 msgstr "夜間シフト"
@@ -14185,8 +14447,17 @@ msgstr "自動運転するソフトウェア工場"
 msgid "The server could not be found"
 msgstr "サーバーが見つかりませんでした"
 
+msgid "The shared account service is unavailable. Try refreshing usage."
+msgstr "共有アカウントサービスを利用できません。使用量の更新をお試しください。"
+
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "サインインリンクが不完全でした。もう一度お試しください。"
+
+msgid "The signed-in account changed while switching, so the switch was abandoned."
+msgstr "切り替え中にログイン中のアカウントが変わったため、切り替えを中止しました。"
+
+msgid "The signed-in account could not be identified, so nothing was changed."
+msgstr "ログイン中のアカウントを特定できませんでした。変更はありません。"
 
 msgid "The site's certificate authority is not trusted"
 msgstr "サイトの認証局が信頼されていません"
@@ -14214,6 +14485,12 @@ msgstr "Supersetのホストサービスが予期せず停止し ({cause})、自
 
 msgid "The surfaces outside the site that carry the product: the repository, releases, and Discord."
 msgstr "サイトの外でプロダクトを運ぶ場所: リポジトリ、リリース、Discord。"
+
+msgid "The switch did not go through. The previous account is still active."
+msgstr "切り替えに失敗しました。以前のアカウントが引き続きアクティブです。"
+
+msgid "The switch stopped halfway. Open Usage to check which account is signed in."
+msgstr "切り替えが途中で停止しました。「使用量」を開き、ログイン中のアカウントを確認してください。"
 
 msgid "the target host"
 msgstr "対象ホスト"
@@ -14561,6 +14838,10 @@ msgstr "タイトルに含む..."
 msgid "To"
 msgstr "移動先"
 
+msgctxt "switch history column"
+msgid "To"
+msgstr "切り替え先"
+
 msgid "Toast (Sonner)"
 msgstr "Toast (Sonner)"
 
@@ -14743,6 +15024,10 @@ msgstr "新規issueをトリアージ"
 
 msgid "triaging 12 new issues…"
 msgstr "新規issue 12件をトリアージ中…"
+
+msgctxt "switch history column"
+msgid "Trigger"
+msgstr "トリガー"
 
 msgid "Trigger alert()"
 msgstr "alert()を実行"
@@ -14954,6 +15239,9 @@ msgctxt "person"
 msgid "Unknown"
 msgstr "不明"
 
+msgid "Unknown account"
+msgstr "不明なアカウント"
+
 msgid "Unknown device"
 msgstr "不明なデバイス"
 
@@ -14990,6 +15278,9 @@ msgstr "無制限"
 
 msgid "Unlimited users"
 msgstr "ユーザー数無制限"
+
+msgid "Unmanaged"
+msgstr "管理対象外"
 
 msgid "Unmute notifications"
 msgstr "通知のミュートを解除"
@@ -15160,6 +15451,9 @@ msgstr "組織内で一意のURLフレンドリーな識別子。"
 msgid "Usage"
 msgstr "使用量"
 
+msgid "Usage limit reached"
+msgstr "使用上限に達しました"
+
 msgid "Usage sections"
 msgstr "使用量セクション"
 
@@ -15188,9 +15482,6 @@ msgstr "タスクごとにClaude Code、Codex、OpenCode、その他どのコー
 msgid "Use Claude Code, Codex, or any coding agent. Choose per task or run several side by side."
 msgstr "Claude Code、Codex、その他どのコーディングエージェントでも使えます。タスクごとに選ぶことも、複数を並べて実行することもできます。"
 
-msgid "Use for new agents"
-msgstr "新規エージェントに使用"
-
 msgid "Use global default"
 msgstr "グローバルのデフォルトを使用"
 
@@ -15214,6 +15505,9 @@ msgstr "固まった、または応答しないターミナルの修復に使い
 
 msgid "Use this when calling the Superset API."
 msgstr "Superset APIを呼び出すときに使用します。"
+
+msgid "Use up the soonest reset"
+msgstr "リセットが近い方から使い切る"
 
 msgid "Use voice transcription and push-to-talk features."
 msgstr "音声文字起こしとプッシュトゥトーク機能を使用します。"
@@ -15389,6 +15683,9 @@ msgstr "音量"
 msgid "VS Code"
 msgstr "VS Code"
 
+msgid "Wait between switches"
+msgstr "切り替えの間隔"
+
 msgid "Wait for workspace setup before starting agents"
 msgstr "エージェント起動前にワークスペースのセットアップを待つ"
 
@@ -15399,6 +15696,9 @@ msgstr "{0}と{1}を待っています…"
 
 msgid "Waiting for Checks"
 msgstr "チェックを待機中"
+
+msgid "Waiting for confirmed quota"
+msgstr "確認済みの利用枠を待機中"
 
 msgid "Waiting for Review"
 msgstr "レビューを待機中"
@@ -15557,6 +15857,9 @@ msgstr "週ごとのサイト訪問者（PostHog セッション）、ダウン�
 msgid "Weekly visitors arriving from a search results page. Search Console below says which queries they typed."
 msgstr "検索結果ページから到達した週ごとの訪問者。入力されたクエリは下の Search Console を参照。"
 
+msgid "weekly window"
+msgstr "週間枠"
+
 msgid "Welcome back"
 msgstr "おかえりなさい"
 
@@ -15617,6 +15920,10 @@ msgstr "Enterpriseには何が含まれますか?"
 msgid "What's New"
 msgstr "新着情報"
 
+msgctxt "switch history column"
+msgid "When"
+msgstr "日時"
+
 msgid "When off, nothing else can reach the files and tools on this device. You can still connect out to remote sandboxes from here. <0>Learn more<1/></0>"
 msgstr "オフにすると、このデバイスのファイルやツールに外部からアクセスできなくなります。ここからリモートサンドボックスへの接続は引き続き可能です。<0>詳細<1/></0>"
 
@@ -15653,6 +15960,9 @@ msgstr "あなたの実際の位置"
 msgid "Whether the people acquired stay and what they pay."
 msgstr "獲得した人が定着し、いくら支払っているか。"
 
+msgid "Which account to move to"
+msgstr "移動先のアカウント"
+
 msgid "Which agents are supported?"
 msgstr "どのエージェントに対応していますか?"
 
@@ -15667,6 +15977,10 @@ msgstr "サイト全体"
 
 msgid "Whole Task"
 msgstr "タスク完遂"
+
+msgctxt "switch history column"
+msgid "Why"
+msgstr "理由"
 
 msgid "Width"
 msgstr "幅"
@@ -15920,6 +16234,9 @@ msgstr "このメンバーを削除する権限がありません"
 
 msgid "You need to be part of an organization to use integrations."
 msgstr "連携を使うには組織に所属している必要があります。"
+
+msgid "You picked this account"
+msgstr "自分で選んだアカウント"
 
 #. placeholder {0}: preview.rank
 #. placeholder {1}: preview.total

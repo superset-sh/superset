@@ -783,3 +783,386 @@ describe("TerminalAgentStore", () => {
 		expect(lateArrival.persisted.has("t1")).toBe(true);
 	});
 });
+
+describe("TerminalAgentStore limit-stop signals", () => {
+	let store: TerminalAgentStore;
+
+	beforeEach(() => {
+		store = new TerminalAgentStore();
+	});
+
+	function start(occurredAt: number) {
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Start",
+			agentId: "claude",
+			occurredAt,
+		});
+	}
+
+	it("records the error class of a Failed event beside lastEventType", () => {
+		start(100);
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Failed",
+			errorType: "rate_limit",
+			occurredAt: 200,
+		});
+
+		const binding = store.get("t1");
+		expect(binding?.lastEventType).toBe("Failed");
+		expect(binding?.lastFailure).toEqual({ errorType: "rate_limit", at: 200 });
+	});
+
+	it("stamps the busy to stopped transition, and only on that move", () => {
+		start(100);
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Stop",
+			occurredAt: 200,
+		});
+		expect(store.get("t1")?.lastTransitionAt).toBe(200);
+
+		// Stop after Stop is not a transition: the timestamp must not move.
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Stop",
+			occurredAt: 300,
+		});
+		expect(store.get("t1")?.lastTransitionAt).toBe(200);
+
+		// A permission request is busy, so the next Stop is a fresh transition.
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "PermissionRequest",
+			occurredAt: 400,
+		});
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Failed",
+			occurredAt: 500,
+		});
+		expect(store.get("t1")?.lastTransitionAt).toBe(500);
+	});
+
+	// The transition dates the stop the engine is investigating, so it belongs
+	// to the session it happened in — a new agent session in the same terminal
+	// starts over, exactly as lastFailure does.
+	it("drops the transition timestamp when a new agent session takes over", () => {
+		start(100);
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Stop",
+			occurredAt: 200,
+		});
+		expect(store.get("t1")?.lastTransitionAt).toBe(200);
+
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Start",
+			agentSessionId: "s2",
+			occurredAt: 300,
+		});
+		expect(store.get("t1")?.lastTransitionAt).toBeUndefined();
+
+		// The same session's own events still carry it forward.
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Stop",
+			agentSessionId: "s2",
+			occurredAt: 400,
+		});
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Stop",
+			agentSessionId: "s2",
+			occurredAt: 500,
+		});
+		expect(store.get("t1")?.lastTransitionAt).toBe(400);
+	});
+
+	// The failure describes the turn it ended: the account engine reads it as
+	// a limit-stop hint, so one carried past its turn would arm the fallback
+	// against a live session.
+	it("keeps the last failure until the session moves on, and never invents one", () => {
+		start(100);
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Failed",
+			errorType: "rate_limit",
+			occurredAt: 200,
+		});
+
+		// A Failed without an error class leaves the previous one alone.
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Failed",
+			occurredAt: 250,
+		});
+		// Neither does an event that is not turn progress: the router folds
+		// Claude Code's idle Notification hook into "PermissionRequest", so
+		// idle noise must not read as a new turn.
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "PermissionRequest",
+			occurredAt: 275,
+		});
+		expect(store.get("t1")?.lastFailure).toEqual({
+			errorType: "rate_limit",
+			at: 200,
+		});
+		// The class and the date of the stop stay together.
+		expect(store.get("t1")?.lastTransitionAt).toBe(200);
+
+		// A new turn drops it.
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Start",
+			occurredAt: 300,
+		});
+		expect(store.get("t1")?.lastFailure).toBeUndefined();
+
+		// So does a new agent session in the same terminal.
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Failed",
+			errorType: "rate_limit",
+			occurredAt: 400,
+		});
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Stop",
+			agentSessionId: "s2",
+			occurredAt: 450,
+		});
+		expect(store.get("t1")?.lastFailure).toBeUndefined();
+
+		// A different terminal never inherits it.
+		store.recordEvent({
+			terminalId: "t2",
+			workspaceId: WORKSPACE,
+			eventType: "Stop",
+			agentId: "claude",
+			occurredAt: 500,
+		});
+		expect(store.get("t2")?.lastFailure).toBeUndefined();
+		expect(store.get("t2")?.lastTransitionAt).toBeUndefined();
+	});
+
+	// The hook router normalizes every SessionStart to "Attached", including
+	// the wrapper's delayed launch report and Claude's resume/compact/clear —
+	// so an "Attached" inside a session that already failed is not a restart.
+	// Dropping the evidence there would leave the row saying the turn failed
+	// with no failure class and no date, and the engine would never fall back.
+	it("keeps the failure and transition when Attached lands inside the same session", () => {
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Start",
+			agentId: "claude",
+			agentSessionId: "s1",
+			occurredAt: 100,
+		});
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Failed",
+			errorType: "rate_limit",
+			agentId: "claude",
+			agentSessionId: "s1",
+			occurredAt: 200,
+		});
+		expect(store.get("t1")?.lastFailure).toEqual({
+			errorType: "rate_limit",
+			at: 200,
+		});
+		expect(store.get("t1")?.lastTransitionAt).toBe(200);
+
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "claude",
+			agentSessionId: "s1",
+			occurredAt: 300,
+		});
+
+		expect(store.get("t1")?.lastFailure).toEqual({
+			errorType: "rate_limit",
+			at: 200,
+		});
+		expect(store.get("t1")?.lastTransitionAt).toBe(200);
+		// The start still does not rewrite the lifecycle state it arrived after.
+		expect(store.get("t1")?.lastEventType).toBe("Failed");
+	});
+
+	// A real restart does start over: a first-ever "Attached" has no state to
+	// preserve, and a different agent session id is a different run.
+	it("drops the failure and transition when the session genuinely restarts", () => {
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "claude",
+			agentSessionId: "s1",
+			occurredAt: 100,
+		});
+		expect(store.get("t1")?.lastFailure).toBeUndefined();
+		expect(store.get("t1")?.lastTransitionAt).toBeUndefined();
+
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Start",
+			agentId: "claude",
+			agentSessionId: "s1",
+			occurredAt: 200,
+		});
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Failed",
+			errorType: "rate_limit",
+			agentId: "claude",
+			agentSessionId: "s1",
+			occurredAt: 300,
+		});
+		expect(store.get("t1")?.lastTransitionAt).toBe(300);
+
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "claude",
+			agentSessionId: "s2",
+			occurredAt: 400,
+		});
+
+		expect(store.get("t1")?.lastFailure).toBeUndefined();
+		expect(store.get("t1")?.lastTransitionAt).toBeUndefined();
+	});
+
+	// A "Failed" that outlives its own session must not arm the engine
+	// against the session that replaced it: the row the late event lands on
+	// belongs to s2, and the engine's limit-stop gates only ask whether the
+	// account is spent, never which session the hint came from.
+	it("does not record a failure that arrives from a session already moved on", () => {
+		const persisted = new Map<string, TerminalAgentBinding>();
+		const persistence: TerminalAgentBindingPersistence = {
+			load: () => [],
+			upsert: (binding) => {
+				persisted.set(binding.terminalId, binding);
+			},
+			delete: (terminalId) => {
+				persisted.delete(terminalId);
+			},
+			markEnded: (terminalId) => {
+				const row = persisted.get(terminalId);
+				if (!row) return undefined;
+				return { workspaceId: row.workspaceId };
+			},
+			getEnded: () => ({ endedAt: 300, agentSessionId: "s1" }),
+		};
+		const persistentStore = new TerminalAgentStore(persistence);
+
+		persistentStore.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "claude",
+			agentSessionId: "s1",
+			occurredAt: 100,
+		});
+		persistentStore.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Start",
+			agentId: "claude",
+			agentSessionId: "s1",
+			occurredAt: 200,
+		});
+		// s1 ends, and the terminal is taken over by a new session.
+		persistentStore.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Detached",
+			occurredAt: 300,
+		});
+		persistentStore.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "claude",
+			agentSessionId: "s2",
+			occurredAt: 400,
+		});
+		expect(persistentStore.get("t1")?.agentSessionId).toBe("s2");
+
+		// s1's rate-limit failure surfaces late, onto s2's live row.
+		persistentStore.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Failed",
+			errorType: "rate_limit",
+			agentId: "claude",
+			agentSessionId: "s1",
+			occurredAt: 500,
+		});
+
+		expect(persistentStore.get("t1")?.lastEventType).toBe("Failed");
+		expect(persistentStore.get("t1")?.lastFailure).toBeUndefined();
+	});
+
+	// The control: the same failure, from the session that is actually live,
+	// is still recorded — the guard is about whose failure it is, not about
+	// suppressing failures near a session boundary.
+	it("still records a failure that belongs to the live session", () => {
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "claude",
+			agentSessionId: "s1",
+			occurredAt: 100,
+		});
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Start",
+			agentId: "claude",
+			agentSessionId: "s1",
+			occurredAt: 200,
+		});
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Failed",
+			errorType: "rate_limit",
+			agentId: "claude",
+			agentSessionId: "s1",
+			occurredAt: 300,
+		});
+
+		expect(store.get("t1")?.lastFailure).toEqual({
+			errorType: "rate_limit",
+			at: 300,
+		});
+		expect(store.get("t1")?.lastTransitionAt).toBe(300);
+	});
+});

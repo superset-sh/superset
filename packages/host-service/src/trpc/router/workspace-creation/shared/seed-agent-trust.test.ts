@@ -1,16 +1,24 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import {
 	chmodSync,
+	existsSync,
+	mkdirSync,
 	mkdtempSync,
 	readFileSync,
+	realpathSync,
 	rmSync,
 	statSync,
 	writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { HostDb } from "../../../../db";
+import * as terminalEnv from "../../../../terminal/env";
+import { initTerminalBaseEnv } from "../../../../terminal/env";
+import * as accountDir from "../../usage/agent-account-dir";
 import {
 	resolveTrustFamily,
+	seedAgentFolderTrust,
 	seedClaudeFolderTrust,
 	seedCodexFolderTrust,
 } from "./seed-agent-trust";
@@ -18,6 +26,7 @@ import {
 let dir: string;
 
 beforeEach(() => {
+	initTerminalBaseEnv({});
 	dir = mkdtempSync(join(tmpdir(), "seed-agent-trust-"));
 });
 
@@ -100,13 +109,43 @@ describe("seedClaudeFolderTrust", () => {
 		expect(readFileSync(file, "utf-8")).toBe(content);
 	});
 
-	test("throws on a corrupt state file without clobbering it", async () => {
+	test("leaves a corrupt state file alone rather than rewriting it", async () => {
+		// updateClaudeStateFile starts an unparsable file from empty state, so
+		// seeding through one would drop the identity block and every other
+		// project's settings. A skipped seed costs one trust dialog; this
+		// would cost the login.
 		const file = join(dir, ".claude.json");
-		writeFileSync(file, "{not json");
-		await expect(
-			seedClaudeFolderTrust(file, "/tmp/session-d"),
-		).rejects.toThrow();
-		expect(readFileSync(file, "utf-8")).toBe("{not json");
+		writeFileSync(file, '{"oauthAccount":{"accountUuid":"u"},"projects":{');
+		await seedClaudeFolderTrust(file, "/tmp/session-d");
+		expect(readFileSync(file, "utf-8")).toBe(
+			'{"oauthAccount":{"accountUuid":"u"},"projects":{',
+		);
+	});
+
+	// A zero-byte file is what a touch, a truncated write, or a full disk
+	// during someone else's write leaves behind. The writer treats it as empty
+	// state, so refusing it here would strand every session on the dialog.
+	test("seeds through an empty state file", async () => {
+		const file = join(dir, ".claude.json");
+		writeFileSync(file, "");
+		await seedClaudeFolderTrust(file, "/tmp/session-f");
+		const state = JSON.parse(readFileSync(file, "utf-8"));
+		expect(state.projects["/tmp/session-f"].hasTrustDialogAccepted).toBe(true);
+	});
+
+	test("seeds through a whitespace-only state file", async () => {
+		const file = join(dir, ".claude.json");
+		writeFileSync(file, "  \n ");
+		await seedClaudeFolderTrust(file, "/tmp/session-g");
+		const state = JSON.parse(readFileSync(file, "utf-8"));
+		expect(state.projects["/tmp/session-g"].hasTrustDialogAccepted).toBe(true);
+	});
+
+	test("leaves a state file holding a bare null alone", async () => {
+		const file = join(dir, ".claude.json");
+		writeFileSync(file, "null");
+		await seedClaudeFolderTrust(file, "/tmp/session-e");
+		expect(readFileSync(file, "utf-8")).toBe("null");
 	});
 
 	test("skips when the config dir itself does not exist", async () => {
@@ -215,5 +254,201 @@ describe("seedCodexFolderTrust", () => {
 		expect(readFileSync(file, "utf-8")).toContain(
 			'[projects."/tmp/session-h"]\ntrust_level = "trusted"\n',
 		);
+	});
+});
+
+/**
+ * KTD12: a config dir the user pinned themselves is Superset's to read, never
+ * to write. The trust seeder resolves the same dir a launch would, so it is
+ * also the place that would write into one.
+ */
+describe("seedAgentFolderTrust", () => {
+	function mockDb(claudeConfigDir: string | null): HostDb {
+		return {
+			select: () => ({
+				from: () => ({
+					get: () => ({
+						defaultClaudeConfigDir: claudeConfigDir,
+						defaultCodexHome: null,
+					}),
+				}),
+			}),
+		} as unknown as HostDb;
+	}
+
+	const previousSupersetHome = process.env.SUPERSET_HOME_DIR;
+	let selected: string;
+	let pinned: string;
+	let folder: string;
+
+	beforeEach(() => {
+		process.env.SUPERSET_HOME_DIR = join(dir, "superset");
+		selected = join(dir, "selected-profile");
+		pinned = join(dir, "hand-exported");
+		folder = join(dir, "session");
+		for (const path of [selected, pinned, folder]) {
+			mkdirSync(path, { recursive: true });
+		}
+	});
+
+	afterEach(() => {
+		if (previousSupersetHome === undefined)
+			delete process.env.SUPERSET_HOME_DIR;
+		else process.env.SUPERSET_HOME_DIR = previousSupersetHome;
+	});
+
+	const claudeConfig = (env: Record<string, string>) => ({
+		presetId: "claude",
+		command: "claude",
+		env,
+	});
+
+	test("sends resolved Claude trust paths to the machine owner without a local write", async () => {
+		const calls: Array<{ stateFile: string; folderPath: string }> = [];
+		await seedAgentFolderTrust(mockDb(selected), folder, claudeConfig({}), {
+			seedClaudeFolderTrust: async (input) => {
+				calls.push(input);
+			},
+		});
+		expect(calls).toEqual([
+			{
+				stateFile: join(selected, ".claude.json"),
+				folderPath: realpathSync(folder),
+			},
+		]);
+		expect(existsSync(join(selected, ".claude.json"))).toBe(false);
+	});
+
+	test("does not fall back to a local trust write when the owner is unavailable", async () => {
+		const stateFile = join(selected, ".claude.json");
+		const original = JSON.stringify({
+			oauthAccount: { accountUuid: "original" },
+		});
+		writeFileSync(stateFile, original);
+		await seedAgentFolderTrust(mockDb(selected), folder, claudeConfig({}), {
+			seedClaudeFolderTrust: async () => {
+				throw new Error("account-owner-disconnected");
+			},
+		});
+		expect(readFileSync(stateFile, "utf8")).toBe(original);
+	});
+
+	test("waits for the cold-start shell snapshot before seeding", async () => {
+		terminalEnv.resetTerminalBaseEnvForTests();
+		let release!: () => void;
+		const ready = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		const wait = spyOn(
+			terminalEnv,
+			"waitForTerminalBaseEnv",
+		).mockImplementation(async () => {
+			await ready;
+			initTerminalBaseEnv({});
+		});
+		const seeding = seedAgentFolderTrust(
+			mockDb(selected),
+			folder,
+			claudeConfig({}),
+		);
+		try {
+			expect(wait).toHaveBeenCalledTimes(1);
+			expect(existsSync(join(selected, ".claude.json"))).toBe(false);
+			release();
+			await seeding;
+			expect(
+				JSON.parse(readFileSync(join(selected, ".claude.json"), "utf8"))
+					.projects[realpathSync(folder)].hasTrustDialogAccepted,
+			).toBe(true);
+		} finally {
+			release();
+			await seeding;
+			wait.mockRestore();
+			initTerminalBaseEnv({});
+		}
+	});
+
+	test("passes the shell snapshot to classification and leaves its foreign dir untouched", async () => {
+		initTerminalBaseEnv({ CLAUDE_CONFIG_DIR: pinned });
+		const classify = spyOn(
+			accountDir,
+			"resolveAgentAccountDir",
+		).mockReturnValue({
+			configDir: pinned,
+			managed: false,
+		});
+		try {
+			await seedAgentFolderTrust(mockDb(null), folder, claudeConfig({}));
+			expect(classify).toHaveBeenCalledWith(
+				expect.anything(),
+				expect.objectContaining({
+					shellEnv: { CLAUDE_CONFIG_DIR: pinned },
+				}),
+			);
+			expect(existsSync(join(pinned, ".claude.json"))).toBe(false);
+		} finally {
+			classify.mockRestore();
+			initTerminalBaseEnv({});
+		}
+	});
+
+	test("seeds the Superset-selected config dir", async () => {
+		await seedAgentFolderTrust(mockDb(selected), folder, claudeConfig({}));
+
+		const state = JSON.parse(
+			readFileSync(join(selected, ".claude.json"), "utf-8"),
+		);
+		expect(state.projects[realpathSync(folder)].hasTrustDialogAccepted).toBe(
+			true,
+		);
+	});
+
+	test("never writes into a config dir the user pinned", async () => {
+		await seedAgentFolderTrust(
+			mockDb(selected),
+			folder,
+			claudeConfig({ CLAUDE_CONFIG_DIR: pinned }),
+		);
+
+		expect(existsSync(join(pinned, ".claude.json"))).toBe(false);
+		expect(existsSync(join(selected, ".claude.json"))).toBe(false);
+	});
+
+	// A pin that names Superset's own selection is where the launch runs, and
+	// it is the same file an unpinned launch is seeded into — so refusing it
+	// only cost the user the trust dialog on every new session. `managed` says
+	// no here because it answers a different question: whether the ENGINE may
+	// restart the session onto another account.
+	test("seeds a pin that names the dir Superset selected", async () => {
+		await seedAgentFolderTrust(
+			mockDb(selected),
+			folder,
+			claudeConfig({ CLAUDE_CONFIG_DIR: selected }),
+		);
+
+		const state = JSON.parse(
+			readFileSync(join(selected, ".claude.json"), "utf-8"),
+		);
+		expect(state.projects[realpathSync(folder)].hasTrustDialogAccepted).toBe(
+			true,
+		);
+	});
+
+	// The twin is read from the DB-derived default env, never the merged one.
+	// A config that supplies its own SUPERSET_DEFAULT_* beside a foreign dir
+	// would otherwise forge the equality above and induce a host-service write
+	// into a directory nobody handed us.
+	test("refuses a pin that forges the Superset twin", async () => {
+		await seedAgentFolderTrust(
+			mockDb(selected),
+			folder,
+			claudeConfig({
+				CLAUDE_CONFIG_DIR: pinned,
+				SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR: pinned,
+			}),
+		);
+
+		expect(existsSync(join(pinned, ".claude.json"))).toBe(false);
+		expect(existsSync(join(selected, ".claude.json"))).toBe(false);
 	});
 });

@@ -32,6 +32,12 @@ function hookEnv(envOverrides: Record<string, string>) {
 	};
 }
 
+/** Fixtures are objects; a raw string lets a test feed bytes JSON.stringify
+ * would escape away (control characters, an unescaped newline). */
+function encodeInput(input: Record<string, unknown> | string): Buffer {
+	return Buffer.from(typeof input === "string" ? input : JSON.stringify(input));
+}
+
 function runNotifyHook(
 	input: Record<string, unknown>,
 	envOverrides: Record<string, string> = {},
@@ -39,7 +45,7 @@ function runNotifyHook(
 	return Bun.spawnSync({
 		cmd: ["bash", "-c", renderNotifyHookScript()],
 		env: hookEnv(envOverrides),
-		stdin: Buffer.from(JSON.stringify(input)),
+		stdin: encodeInput(input),
 		stdout: "pipe",
 		stderr: "pipe",
 	});
@@ -51,13 +57,13 @@ function runNotifyHook(
  * hook's curl against that server.
  */
 async function runNotifyHookAsync(
-	input: Record<string, unknown>,
+	input: Record<string, unknown> | string,
 	envOverrides: Record<string, string> = {},
 ) {
 	const proc = Bun.spawn({
 		cmd: ["bash", "-c", renderNotifyHookScript()],
 		env: hookEnv(envOverrides),
-		stdin: Buffer.from(JSON.stringify(input)),
+		stdin: encodeInput(input),
 		stdout: "pipe",
 		stderr: "pipe",
 	});
@@ -70,11 +76,16 @@ async function runNotifyHookAsync(
 
 /** Fake host-service answering notifications.hook like the real router. */
 function fakeHostService(ignored: boolean) {
-	const requests: Array<{ json: Record<string, unknown> }> = [];
+	const requests: Array<{
+		json: Record<string, unknown> & { errorType?: string };
+	}> = [];
+	const rawBodies: string[] = [];
 	const server = Bun.serve({
 		port: 0,
 		fetch: async (req) => {
-			requests.push((await req.json()) as (typeof requests)[number]);
+			const raw = await req.text();
+			rawBodies.push(raw);
+			requests.push(JSON.parse(raw) as (typeof requests)[number]);
 			return Response.json({
 				result: { data: { json: { success: true, ignored } } },
 			});
@@ -82,6 +93,7 @@ function fakeHostService(ignored: boolean) {
 	});
 	return {
 		requests,
+		rawBodies,
 		url: `http://127.0.0.1:${server.port}`,
 		stop: () => server.stop(true),
 	};
@@ -104,7 +116,7 @@ function writeHookManifest(home: string, orgId: string, endpoint: string) {
 
 describe("getNotifyScriptContent", () => {
 	it("bumps the notify hook marker when hook semantics change", () => {
-		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v15");
+		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v16");
 	});
 
 	it("forwards hooks fired inside a subagent (agent_id present) to the host roster only", async () => {
@@ -259,7 +271,7 @@ describe("getNotifyScriptContent", () => {
 			"HOOK_SESSION_ID=$(json_field session_id sessionId)",
 		);
 		expect(script).toContain(
-			'dispatch_to_host "{\\"json\\":{\\"terminalId\\":\\"$(json_escape "$SUPERSET_TERMINAL_ID")\\",\\"eventType\\":\\"$(json_escape "$EVENT_TYPE")\\",\\"agent\\":{\\"agentId\\":\\"$(json_escape "$AGENT_ID")\\",\\"sessionId\\":\\"$(json_escape "$SESSION_ID")\\"}}}"',
+			'dispatch_to_host "{\\"json\\":{\\"terminalId\\":\\"$(json_escape "$SUPERSET_TERMINAL_ID")\\",\\"eventType\\":\\"$(json_escape "$EVENT_TYPE")\\"$ERROR_TYPE_FIELD,\\"agent\\":{\\"agentId\\":\\"$(json_escape "$AGENT_ID")\\",\\"sessionId\\":\\"$(json_escape "$SESSION_ID")\\"}}}"',
 		);
 		// One dispatcher serves both the agent and subagent payloads.
 		expect(script.split('dispatch_to_host "').length - 1).toBe(2);
@@ -713,5 +725,89 @@ describe("cursor-hook.template.sh identity", () => {
 		// The approval must still reach cursor-agent or the tool call hangs.
 		expect(nested.stdout).toBe('{"continue":true}\n');
 		expect(nested.requests).toEqual([]);
+	});
+});
+
+describe("StopFailure error forwarding", () => {
+	/** POSTs a fixture at a fake host-service and returns what it received. */
+	async function capturePost(input: Record<string, unknown> | string) {
+		const host = fakeHostService(false);
+		const home = mkdtempSync(path.join(tmpdir(), "notify-hook-home-"));
+		try {
+			const result = await runNotifyHookAsync(input, {
+				SUPERSET_AGENT_ID: "claude",
+				SUPERSET_HOME_DIR: home,
+				SUPERSET_HOST_AGENT_HOOK_URL: `${host.url}/trpc/notifications.hook`,
+			});
+			expect(result.exitCode).toBe(0);
+			return { requests: host.requests, rawBodies: host.rawBodies };
+		} finally {
+			host.stop();
+		}
+	}
+
+	it("forwards the error class of a StopFailure event", async () => {
+		const { requests } = await capturePost({
+			hook_event_name: "StopFailure",
+			session_id: "session-abc",
+			error: "rate_limit",
+		});
+
+		expect(requests).toHaveLength(1);
+		expect(requests[0]?.json.eventType).toBe("StopFailure");
+		expect(requests[0]?.json.errorType).toBe("rate_limit");
+	});
+
+	it("never forwards an error class off a non-StopFailure event, even one the extractor would match", async () => {
+		// Hand-built so "error" is a real unescaped sibling field: the
+		// extractor WOULD match it, so only the StopFailure gate can keep it
+		// off the wire. Remove the gate and this case goes red.
+		const unescaped = await capturePost(
+			'{"hook_event_name":"Stop","session_id":"session-abc","error":"rate_limit"}',
+		);
+
+		expect(unescaped.requests).toHaveLength(1);
+		expect(unescaped.requests[0]?.json.errorType).toBeUndefined();
+		expect(unescaped.rawBodies[0]).not.toContain("errorType");
+		expect(unescaped.rawBodies[0]).not.toContain("rate_limit");
+
+		// Secondary: the agent's own words are attacker-controlled, and a Stop
+		// whose message merely quotes the wire format must not manufacture a
+		// limit-stop hint. JSON escaping alone already defeats the extractor
+		// here, so this case proves nothing about the gate on its own — the
+		// unescaped payload above is what pins it.
+		const quoted = await capturePost({
+			hook_event_name: "Stop",
+			session_id: "session-abc",
+			last_assistant_message:
+				'I retried after {"error":"rate_limit"} came back',
+		});
+
+		expect(quoted.requests).toHaveLength(1);
+		expect(quoted.requests[0]?.json.errorType).toBeUndefined();
+		expect(quoted.rawBodies[0]).not.toContain("errorType");
+		expect(quoted.rawBodies[0]).not.toContain("rate_limit");
+	});
+
+	it("posts valid JSON for a hostile error value and drops the assistant message", async () => {
+		const esc = "\u001b";
+		const huge = "x".repeat(100_000);
+		// Hand-built so the control characters survive into the fixture.
+		const raw = `{"hook_event_name":"StopFailure","session_id":"s1","error":"rate_limit${esc}[31m and padding well past the sixty-four character truncation and a backslash \\\\ and a quote \\"\nnewline","last_assistant_message":"${huge}"}`;
+
+		const { requests, rawBodies } = await capturePost(raw);
+
+		expect(rawBodies).toHaveLength(1);
+		const body = rawBodies[0] ?? "";
+		expect(() => JSON.parse(body)).not.toThrow();
+		expect(body).not.toContain(huge);
+		expect(body.length).toBeLessThan(1_000);
+
+		const errorType = requests[0]?.json.errorType ?? "";
+		expect(errorType.length).toBeGreaterThan(0);
+		expect(errorType.length).toBeLessThanOrEqual(64);
+		expect(errorType).not.toContain(esc);
+		// biome-ignore lint/suspicious/noControlCharactersInRegex: the point is that none survive
+		expect(/[\u0000-\u001f]/.test(errorType)).toBe(false);
 	});
 });

@@ -1,5 +1,9 @@
 import type { AppRouter } from "@superset/host-service";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+	type QueryClient,
+	useQuery,
+	useQueryClient,
+} from "@tanstack/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
 import { useCallback } from "react";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -41,4 +45,19 @@ export function useHostUsageQuota(hostUrl: string | null) {
 	}, [hostUrl, queryClient, queryKey]);
 
 	return { ...query, refresh };
+}
+
+/**
+ * Drop the cached quota for one host so the next render refetches it. Used
+ * by the account-switch listener: an account switch changes whose numbers the
+ * Usage page is showing, and waiting out the 5-minute poll would leave the
+ * previous account's quota on screen.
+ */
+export function invalidateHostUsageQuota(
+	queryClient: QueryClient,
+	hostUrl: string,
+): Promise<void> {
+	return queryClient.invalidateQueries({
+		queryKey: [...HOST_USAGE_QUOTA_QUERY_KEY, hostUrl],
+	});
 }

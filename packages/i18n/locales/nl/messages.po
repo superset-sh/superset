@@ -220,8 +220,8 @@ msgid "{0, plural, one {# workspace} other {# workspaces}}"
 msgstr "{0, plural, one {# werkruimte} other {# werkruimtes}}"
 
 #. placeholder {0}: shown?.count ?? 0
-msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
-msgstr "{0, plural, one {Eén draaiende agent gebruikt nog het vorige account — de wissel geldt alleen voor nieuwe starts.} other {# draaiende agents gebruiken nog het vorige account — de wissel geldt alleen voor nieuwe starts.}}"
+msgid "{0, plural, one {A running agent is pinned to its own config dir by its agent configuration, so it keeps the account signed in there.} other {# running agents are pinned to their own config dirs by their agent configuration, so they keep the accounts signed in there.}}"
+msgstr "{0, plural, one {Een actieve agent is door zijn agentconfiguratie vastgezet op een eigen configuratiemap en houdt dus het account dat daar is aangemeld.} other {# actieve agents zijn door hun agentconfiguratie vastgezet op eigen configuratiemappen en houden dus de accounts die daar zijn aangemeld.}}"
 
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
@@ -309,6 +309,11 @@ msgstr "Acties voor {0}"
 #. placeholder {1}: right.name
 msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
 msgstr "{0} en {1} beslechten het als terminaldinosaurussen. De statistieken bepalen de winnaar."
+
+#. placeholder {0}: windowLabel(entry.windowId)
+#. placeholder {1}: formatPercent(entry.usedPercent / 100, { maximumFractionDigits: 0 })
+msgid "{0} at {1}"
+msgstr "{0} op {1}"
 
 #. placeholder {0}: formatTokens(me.tokens - below.tokens)
 msgid "{0} behind you"
@@ -534,8 +539,23 @@ msgstr "{0}% van alle tokens · {1} tokens"
 msgid "{0}% of total cost · {1} tokens · * at API list rates"
 msgstr "{0}% van de totale kosten · {1} tokens · * tegen API-lijstprijzen"
 
+msgid "{accountLabel} is now the active {providerLabel} account."
+msgstr "{accountLabel} is nu het actieve {providerLabel}-account."
+
 msgid "{actual} so far · ~{projected} projected"
 msgstr "{actual} tot nu toe · ~{projected} verwacht"
+
+msgid "{agent} could not switch accounts"
+msgstr "{agent} kon niet van account wisselen"
+
+msgid "{agent} switched account"
+msgstr "{agent} heeft van account gewisseld"
+
+msgid "{agent} switched from {fromLabel} to {toLabel}"
+msgstr "{agent} is overgestapt van {fromLabel} naar {toLabel}"
+
+msgid "{agent} switched to {toLabel}"
+msgstr "{agent} is overgestapt naar {toLabel}"
 
 msgid "{backgroundCount, plural, one {# background terminal session} other {# background terminal sessions}}"
 msgstr "{backgroundCount, plural, one {# terminalsessie op de achtergrond} other {# terminalsessies op de achtergrond}}"
@@ -561,6 +581,9 @@ msgstr "Tekengrootte van {configTitle}"
 
 msgid "{cookieCount} cookies — forget this site"
 msgstr "{cookieCount} cookies — deze site vergeten"
+
+msgid "{count, plural, one {# account switch while you were away} other {# account switches while you were away}}"
+msgstr "{count, plural, one {# accountwissel terwijl je weg was} other {# accountwissels terwijl je weg was}}"
 
 msgid "{count, plural, one {# Check Failed} other {# Checks Failed}}"
 msgstr "{count, plural, one {# check mislukt} other {# checks mislukt}}"
@@ -736,6 +759,9 @@ msgstr "{minutes}m"
 msgid "{minutes}m ago"
 msgstr "{minutes}m geleden"
 
+msgid "{model} weekly window"
+msgstr "Wekelijks venster van {model}"
+
 msgid "{modKey}↵ to create"
 msgstr "{modKey}↵ om aan te maken"
 
@@ -904,6 +930,9 @@ msgstr "{updatedLabel} teruggezet naar standaardwaarden"
 msgid "{waiting} Waiting"
 msgstr "{waiting} wachten"
 
+msgid "{windowLabel} at {percent}"
+msgstr "{windowLabel} op {percent}"
+
 msgid "{workspaceName}: host is unavailable"
 msgstr "{workspaceName}: host is niet beschikbaar"
 
@@ -1071,6 +1100,9 @@ msgstr "1 cookie — deze site vergeten"
 msgid "1 hour"
 msgstr "1 uur"
 
+msgid "1 minute"
+msgstr "1 minuut"
+
 msgid "1 user"
 msgstr "1 gebruiker"
 
@@ -1091,6 +1123,9 @@ msgstr "2 agents · 14 bestanden gewijzigd"
 
 msgid "2 hours"
 msgstr "2 uur"
+
+msgid "2 minutes"
+msgstr "2 minuten"
 
 msgid "2021 to 2023"
 msgstr "2021 tot 2023"
@@ -1119,6 +1154,9 @@ msgstr "3+ gelijktijdige werkstromen per engineer"
 msgid "30 minutes"
 msgstr "30 minuten"
 
+msgid "30 seconds"
+msgstr "30 seconden"
+
 msgid "30D"
 msgstr "30D"
 
@@ -1137,6 +1175,9 @@ msgstr "45 bestanden · +82 −172"
 msgid "5 minutes"
 msgstr "5 minuten"
 
+msgid "5-hour window"
+msgstr "Venster van 5 uur"
+
 msgid "55 call sites pass {code}"
 msgstr "55 aanroepplekken geven {code} door"
 
@@ -1148,6 +1189,9 @@ msgstr "7D"
 
 msgid "87.4K of 200K tokens used in this session."
 msgstr "87,4K van 200K tokens gebruikt in deze sessie."
+
+msgid "A {agent} session needs attention"
+msgstr "Een {agent}-sessie heeft aandacht nodig"
 
 msgid "A better in-app browser: preview your changes and click any element to send it to the agent as context."
 msgstr "Een betere ingebouwde browser: bekijk je wijzigingen en klik op elk element om het als context naar de agent te sturen."
@@ -1184,6 +1228,9 @@ msgstr "Een blik op wat er loopt, wat er hierna komt en waar {company} naartoe g
 
 msgid "A majority of production changes merge without any human reading the diff."
 msgstr "Een meerderheid van de productiewijzigingen merget zonder dat een mens de diff leest."
+
+msgid "A model name can be at most {MAX_MODEL_NAME_LENGTH} characters. Shorten it and try again."
+msgstr "Een modelnaam mag maximaal {MAX_MODEL_NAME_LENGTH} tekens lang zijn. Kort hem in en probeer het opnieuw."
 
 msgid "A new version of Superset is required to continue. Please update to the latest version."
 msgstr "Er is een nieuwe versie van Superset nodig om verder te gaan. Werk bij naar de nieuwste versie."
@@ -1261,6 +1308,9 @@ msgstr "Accordion"
 msgid "Account"
 msgstr "Account"
 
+msgid "Account changed outside Superset"
+msgstr "Account buiten Superset gewijzigd"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceNotResolvable"
 msgstr "Installatie op het account werkt alleen met eigen manifests, dus {plugin} uit {marketplace} kan nog niet op je account worden geïnstalleerd. Hij blijft op deze machine geïnstalleerd."
@@ -1298,6 +1348,16 @@ msgstr "activatiegraad"
 
 msgid "Active"
 msgstr "Actief"
+
+msgctxt "account state"
+msgid "Active"
+msgstr "Actief"
+
+msgid "Active — every newly launched session of this agent uses this account; ones already running keep the previous login until you restart them."
+msgstr "Actief — nieuwe sessies van deze agent gebruiken dit account; lopende sessies behouden de vorige aanmelding totdat je ze herstart."
+
+msgid "Active — every running and newly launched session of this agent uses this account."
+msgstr "Actief — elke actieve en nieuw gestarte sessie van deze agent gebruikt dit account."
 
 #. placeholder {0}: formatDistanceToNowStrict(binding.lastEventAt, { addSuffix: true, })
 msgid "active {0}"
@@ -1500,6 +1560,10 @@ msgstr "Ten opzichte van main"
 msgid "Agent"
 msgstr "Agent"
 
+msgctxt "switch history column"
+msgid "Agent"
+msgstr "Agent"
+
 msgid "Agent Complete — {workspaceName}"
 msgstr "Agent klaar — {workspaceName}"
 
@@ -1633,6 +1697,9 @@ msgstr "Alle {0} doelen dragen hun deel bij voor {nextLabel}."
 #. placeholder {0}: summary.relevantChecks.length
 msgid "All {0} passed"
 msgstr "Alle {0} geslaagd"
+
+msgid "All {agent} accounts are at their limit"
+msgstr "Alle {agent}-accounts zitten aan hun limiet"
 
 msgid "All {versionCount} versions and their content are removed. Anyone with the link loses access."
 msgstr "Alle {versionCount} versies en hun inhoud worden verwijderd. Iedereen met de link verliest toegang."
@@ -1980,6 +2047,9 @@ msgstr "Geldt voor URL's in terminals, chatberichten en taakbrowsers."
 msgid "Apply"
 msgstr "Toepassen"
 
+msgid "Approaching the usage limit"
+msgstr "Bijna aan de gebruikslimiet"
+
 msgid "Approve"
 msgstr "Goedkeuren"
 
@@ -2192,6 +2262,19 @@ msgstr "Taken automatiseren"
 
 msgid "Automate workspace setup for {projectName}"
 msgstr "Automatiseer het instellen van werkruimtes voor {projectName}"
+
+msgctxt "account switch trigger"
+msgid "Automatic"
+msgstr "Automatisch"
+
+msgid "Automatic account switching is not available on Windows. Switch accounts by hand instead."
+msgstr "Automatisch wisselen van accounts is niet beschikbaar op Windows. Wissel accounts handmatig."
+
+msgid "Automatic switching may move sessions onto this account. Held-out accounts stay available to pick by hand."
+msgstr "Automatisch wisselen kan sessies naar dit account verplaatsen. Accounts buiten de rotatie blijven handmatig te kiezen."
+
+msgid "Automatic switching needs macOS or Linux. On Windows you can still switch the active {agentLabel} account by hand."
+msgstr "Automatisch wisselen vereist macOS of Linux. Op Windows kun je het actieve {agentLabel}-account nog steeds handmatig wisselen."
 
 msgid "Automation"
 msgstr "Automatisering"
@@ -2873,6 +2956,9 @@ msgstr "Resources controleren"
 
 msgid "Check the rendered prompt and launch output before saving"
 msgstr "Bekijk de gerenderde prompt en startuitvoer voordat je opslaat"
+
+msgid "Check usage every"
+msgstr "Gebruik controleren: elke"
 
 msgid "Check your access under Settings > Security on that device."
 msgstr "Controleer je toegang onder Instellingen > Beveiliging op dat apparaat."
@@ -4571,9 +4657,6 @@ msgstr "Standaard ({defaultWorktreePath})"
 msgid "Default effort"
 msgstr "Standaard-effort"
 
-msgid "Default for new agents"
-msgstr "Standaard voor nieuwe agents"
-
 msgid "Default location for new worktree workspaces on this host."
 msgstr "Standaardlocatie voor nieuwe worktree-werkruimtes op deze host."
 
@@ -5230,9 +5313,6 @@ msgstr "Elk in een eigen nieuw tabblad"
 msgid "Each morning at 8am, look at yesterday's failed CI runs, diagnose the most common failure, and open a fix PR."
 msgstr "Elke ochtend om 8 uur: bekijk de mislukte CI-runs van gisteren, diagnosticeer de meest voorkomende fout en open een fix-PR."
 
-msgid "Each session resumes where it left off."
-msgstr "Elke sessie gaat verder waar die gebleven was."
-
 msgid "Each surface has its own typography. Changes appear immediately in the live previews."
 msgstr "Elk oppervlak heeft zijn eigen typografie. Wijzigingen zie je meteen in de live previews."
 
@@ -5479,6 +5559,10 @@ msgstr "Elke minuut"
 msgid "Every objective is carrying its weight for the next rung. Measured over the trailing 30 days."
 msgstr "Alle doelen dragen bij aan de volgende trede. Gemeten over de laatste 30 dagen."
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Every running and newly launched {0} session uses the active account."
+msgstr "Elke actieve en nieuw gestarte {0}-sessie gebruikt het actieve account."
+
 msgid "Every star on <0>{repoSlug}</0>, plotted since launch."
 msgstr "Elke ster op <0>{repoSlug}</0>, uitgezet sinds de lancering."
 
@@ -5628,6 +5712,9 @@ msgstr "F4-drempel · {F4_GATE_SHARE}%"
 
 msgid "F4 gate crossed"
 msgstr "F4-drempel gepasseerd"
+
+msgid "Fable, Opus"
+msgstr "Fable, Opus"
 
 msgid "Factory 2026"
 msgstr "Factory 2026"
@@ -6100,6 +6187,9 @@ msgstr "Uploaden van logo mislukt"
 msgid "Failure"
 msgstr "Mislukt"
 
+msgid "Fallback restart after a usage limit"
+msgstr "Terugvalherstart na een gebruikslimiet"
+
 msgid "FAQ"
 msgstr "FAQ"
 
@@ -6475,6 +6565,10 @@ msgstr "vanaf"
 msgid "From"
 msgstr "Van"
 
+msgctxt "switch history column"
+msgid "From"
+msgstr "Van"
+
 msgid "from {price}/user/mo"
 msgstr "vanaf {price}/gebruiker/mnd"
 
@@ -6827,6 +6921,9 @@ msgstr "geschiedenis"
 msgid "History"
 msgstr "Geschiedenis"
 
+msgid "History is unavailable right now. Reopen this page to try again."
+msgstr "De geschiedenis is nu niet beschikbaar. Open deze pagina opnieuw om het nog eens te proberen."
+
 msgid "Home"
 msgstr "Home"
 
@@ -7132,6 +7229,9 @@ msgstr "In uitvoering"
 
 msgid "In Progress"
 msgstr "Bezig"
+
+msgid "In rotation"
+msgstr "In rotatie"
 
 msgid "In the Superset desktop app, open <0>Settings → Appearance → Theme</0>."
 msgstr "Open in de Superset-desktopapp <0>Instellingen → Uiterlijk → Thema</0>."
@@ -7607,6 +7707,9 @@ msgstr "Laatste dag van elke maand"
 msgid "Last day of each month at {time}"
 msgstr "Laatste dag van elke maand om {time}"
 
+msgid "Last read failed, so this list may be out of date. Reopen this page to try again."
+msgstr "De laatste keer lezen is mislukt, dus deze lijst is mogelijk verouderd. Open deze pagina opnieuw om het nog eens te proberen."
+
 msgid "Last run"
 msgstr "Laatste run"
 
@@ -7756,6 +7859,12 @@ msgstr "Bouw je graag met Superset?"
 
 msgid "Lime"
 msgstr "Limoen"
+
+msgid "Limit hit — session restarted"
+msgstr "Limiet bereikt — sessie herstart"
+
+msgid "Limit report not confirmed — no switch"
+msgstr "Limietmelding niet bevestigd — geen wissel"
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
@@ -8012,6 +8121,9 @@ msgstr "Uitloggen"
 msgid "Log out?"
 msgstr "Uitloggen?"
 
+msgid "Login changed outside Superset"
+msgstr "Login buiten Superset gewijzigd"
+
 msgid "Logins (cookies)"
 msgstr "Logins (cookies)"
 
@@ -8060,14 +8172,17 @@ msgstr "Main"
 msgid "Main workspace"
 msgstr "Hoofdwerkruimte"
 
+msgid "Make active"
+msgstr "Actief maken"
+
+msgid "Make active — running sessions move to this account too."
+msgstr "Actief maken — actieve sessies gaan ook naar dit account."
+
+msgid "Make active — sessions launched from now on use this account."
+msgstr "Activeren — sessies die vanaf nu starten gebruiken dit account."
+
 msgid "Make all panes equal size"
 msgstr "Alle panelen even groot maken"
-
-msgid "Make default"
-msgstr "Standaard maken"
-
-msgid "Make default — launch new terminals and agents on this account."
-msgstr "Standaard maken — start nieuwe terminals en agents op dit account."
 
 msgid "Make sure the device is awake, online, and running Superset."
 msgstr "Zorg dat het apparaat wakker en online is en dat Superset erop draait."
@@ -8120,6 +8235,10 @@ msgstr "Beheerd"
 msgid "Managed by your organization admin."
 msgstr "Beheerd door de beheerder van je organisatie."
 
+msgid "Manual"
+msgstr "Handmatig"
+
+msgctxt "account switch trigger"
 msgid "Manual"
 msgstr "Handmatig"
 
@@ -8322,6 +8441,9 @@ msgstr "Medio 2026"
 msgid "Mid 2027"
 msgstr "Medio 2027"
 
+msgid "min"
+msgstr "min"
+
 msgid "Mine"
 msgstr "Mijn"
 
@@ -8380,6 +8502,9 @@ msgstr "Model"
 msgid "Model context usage"
 msgstr "Contextgebruik van model"
 
+msgid "Model names whose weekly window also counts toward the threshold, separated by commas. Leave empty to watch only the account-wide windows."
+msgstr "Modelnamen waarvan het wekelijkse venster ook meetelt voor de drempel, gescheiden door komma's. Laat leeg om alleen de accountbrede vensters te volgen."
+
 msgid "Model picker scoped to the selected agent"
 msgstr "Modelkiezer beperkt tot de gekozen agent"
 
@@ -8388,6 +8513,9 @@ msgstr "Modelkiezer"
 
 msgid "Model volume"
 msgstr "Modelvolume"
+
+msgid "Model windows"
+msgstr "Modelvensters"
 
 msgid "Model-suggested code appears in a majority of new files."
 msgstr "Door een model voorgestelde code staat in een meerderheid van de nieuwe bestanden."
@@ -8455,20 +8583,32 @@ msgstr "Meer {kindLower} thema's"
 msgid "More actions"
 msgstr "Meer acties"
 
+msgid "More headroom elsewhere"
+msgstr "Meer ruimte elders"
+
 msgid "More pages"
 msgstr "Meer pagina's"
 
 msgid "More than half of merged changes are written by agents with zero human edits."
 msgstr "Meer dan de helft van de gemergede wijzigingen is door agents geschreven zonder menselijke bewerkingen."
 
+msgid "More than one saved login matched that account, so Superset would not guess which to use."
+msgstr "Meerdere opgeslagen aanmeldingen kwamen overeen met dit account. Superset heeft niet gegokt welke te gebruiken."
+
 msgid "most developers"
 msgstr "de meeste ontwikkelaars"
+
+msgid "Most headroom"
+msgstr "Meeste ruimte"
 
 msgid "Most of software history"
 msgstr "Het grootste deel van de softwaregeschiedenis"
 
 msgid "Move {count} to Group"
 msgstr "{count} naar groep verplaatsen"
+
+msgid "Move running and new {agentLabel} sessions to another account before this one runs out."
+msgstr "Verplaats actieve en nieuwe {agentLabel}-sessies naar een ander account voordat dit account opraakt."
 
 msgid "Move to group"
 msgstr "Naar groep verplaatsen"
@@ -8550,6 +8690,9 @@ msgstr "Navigatie"
 msgid "Navigation Menu"
 msgstr "Navigatiemenu"
 
+msgid "Near the limit"
+msgstr "Bijna aan de limiet"
+
 msgid "Need app-level wiring (form state, chart data, app shell)"
 msgstr "Vereist bedrading op app-niveau (formulierstate, grafiekdata, app-shell)"
 
@@ -8592,17 +8735,11 @@ msgstr "Netwerk gewijzigd"
 msgid "Never"
 msgstr "Nooit"
 
-msgid "New {providerLabel} agents will use {accountLabel}."
-msgstr "Nieuwe {providerLabel}-agents gebruiken {accountLabel}."
-
 msgid "New accounts"
 msgstr "Nieuwe accounts"
 
 msgid "New agent"
 msgstr "Nieuwe agent"
-
-msgid "New agent launches use this account. Relaunch a running agent to switch it."
-msgstr "Nieuwe agentstarts gebruiken dit account. Herstart een draaiende agent om te wisselen."
 
 msgid "New agent session"
 msgstr "Nieuwe agentsessie"
@@ -8657,6 +8794,9 @@ msgstr "Nieuwe releases en productupdates."
 
 msgid "New session"
 msgstr "Nieuwe sessie"
+
+msgid "New sessions use it; sessions already running keep the previous login until you restart them."
+msgstr "Nieuwe sessies gebruiken dit account; lopende sessies behouden de vorige aanmelding totdat je ze herstart."
 
 msgid "New stars"
 msgstr "Nieuwe sterren"
@@ -8715,6 +8855,10 @@ msgstr "Nieuwer dan deze app"
 msgid "Newer than this app. Everything works; update the app to match."
 msgstr "Nieuwer dan deze app. Alles werkt; werk de app bij om gelijk te trekken."
 
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Newly launched {0} sessions use the active account; ones already running keep the previous login until you restart them."
+msgstr "Nieuwe {0}-sessies gebruiken het actieve account; lopende sessies behouden de vorige aanmelding totdat je ze herstart."
+
 msgid "News & Updates"
 msgstr "Nieuws en updates"
 
@@ -8732,6 +8876,9 @@ msgstr "Volgende opmerking"
 
 msgid "Next match"
 msgstr "Volgende overeenkomst"
+
+msgid "Next reset: {resetTime}"
+msgstr "Volgende reset: {resetTime}"
 
 #. placeholder {0}: formatDateTimeInTimezone( new Date(automation.nextRunAt), automation.timezone ?? "UTC", )
 msgid "Next run {0}"
@@ -8770,6 +8917,9 @@ msgstr "Geen {0}-logins op deze host — log in en het gebruik verschijnt hier."
 
 msgid "No access to this host"
 msgstr "Geen toegang tot deze host"
+
+msgid "No account switches yet. Every switch, automatic or by hand, is listed here."
+msgstr "Nog geen accountwissels. Elke wissel, automatisch of handmatig, staat hier."
 
 msgid "No active enterprise accounts"
 msgstr "Geen actieve enterprise-accounts"
@@ -8915,6 +9065,9 @@ msgstr "Nog geen apparaten"
 
 msgid "No downloads yet"
 msgstr "Nog geen downloads"
+
+msgid "No eligible account has confirmed headroom. This session will stay stopped while quota is checked again. To continue with another model, use /model in the affected terminal."
+msgstr "Geen geschikt account heeft bevestigde vrije capaciteit. Deze sessie blijft gestopt terwijl het quotum opnieuw wordt gecontroleerd. Gebruik /model in de betreffende terminal om met een ander model verder te gaan."
 
 msgid "No emoji found"
 msgstr "Geen emoji gevonden"
@@ -9349,6 +9502,10 @@ msgstr "Er komen nog geen gebeurtenissen binnen: Microsoft Graph heeft de meldin
 msgid "Not reviewed by you"
 msgstr "Niet door jou gereviewd"
 
+#. placeholder {0}: engineErrorCode(failure)
+msgid "Not saved ({0}). The previous value still stands."
+msgstr "Niet opgeslagen ({0}). De vorige waarde blijft staan."
+
 msgid "not set up"
 msgstr "niet ingesteld"
 
@@ -9384,6 +9541,10 @@ msgstr "Er staat niets op {pathname}."
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Nog niets gepubliceerd in de laatste 30 dagen. Je positie verschijnt zodra het gebruik van deze machine is gesynchroniseerd, gepubliceerd als <0>{handle}</0>."
+
+#. placeholder {0}: AGENT_LABELS[agent]
+msgid "Nothing to switch to yet: this needs another {0} account with In rotation turned on."
+msgstr "Nog geen alternatief: er is een ander {0}-account nodig met rotatie ingeschakeld."
 
 msgid "Notice"
 msgstr "Mededeling"
@@ -10141,6 +10302,10 @@ msgstr "Outputschema"
 msgid "Output truncated"
 msgstr "Uitvoer afgekapt"
 
+msgctxt "account switch trigger"
+msgid "Outside Superset"
+msgstr "Buiten Superset"
+
 msgid "Overflow Fade"
 msgstr "Overflow Fade"
 
@@ -10342,6 +10507,9 @@ msgstr "per gebruiker/maand"
 
 msgid "Percent of total system RAM used by monitored Superset resources only (not all apps). A high share means Superset is a major contributor to system memory pressure; a low share means pressure is likely elsewhere."
 msgstr "Percentage van het totale systeem-RAM dat alleen door de gemonitorde Superset-resources wordt gebruikt (niet door alle apps). Een hoog aandeel betekent dat Superset flink bijdraagt aan de geheugendruk; een laag aandeel betekent dat de druk waarschijnlijk elders zit."
+
+msgid "Percent used at which any window of the active account counts as near its limit."
+msgstr "Percentage gebruikt waarbij een venster van het actieve account als bijna aan de limiet telt."
 
 #. placeholder {0}: team.name
 msgid "Permanently remove <0>{0}</0> and all of its members. This can't be undone."
@@ -10598,6 +10766,9 @@ msgstr "Voortgang van de voorspelling"
 
 msgid "Predictions about AI are cheap because nobody checks them. This page is a rubric, not a vibe: every gate below is either true or false of a real team shipping real software. We update it as gates open, and we do not move the goalposts."
 msgstr "Voorspellingen over AI zijn goedkoop omdat niemand ze narekent. Deze pagina is een rubric, geen gevoel: elke drempel hieronder is waar of onwaar voor een echt team dat echte software levert. We werken de pagina bij als drempels vallen, en we verzetten de doelpalen niet."
+
+msgid "Prefer the account whose weekly window resets soonest, so no quota expires unused"
+msgstr "Kies het account waarvan het wekelijkse venster het eerst reset, zodat geen quotum ongebruikt verloopt"
 
 msgid "Preferences"
 msgstr "Voorkeuren"
@@ -11073,6 +11244,9 @@ msgstr "Lees de gids over parallelle coding agents"
 msgid "Read the setup guide"
 msgstr "Lees de installatiegids"
 
+msgid "Reading switch history…"
+msgstr "Wisselgeschiedenis lezen…"
+
 msgid "Reading usage…"
 msgstr "Gebruik wordt gelezen…"
 
@@ -11214,9 +11388,6 @@ msgstr "Gerelateerde berichten"
 
 msgid "Relative path copied"
 msgstr "Relatief pad gekopieerd"
-
-msgid "Relaunch running agents to switch them."
-msgstr "Herstart draaiende agents om ze te wisselen."
 
 msgid "Relay access enabled, connecting to the relay…"
 msgstr "Relaytoegang ingeschakeld, verbinden met de relay…"
@@ -11524,6 +11695,9 @@ msgstr "Locatie resetten"
 msgid "Reset terminal"
 msgstr "Terminal resetten"
 
+msgid "Reset time unavailable. You can refresh quota or wait for the next check."
+msgstr "Resettijd onbekend. Je kunt het quotum vernieuwen of op de volgende controle wachten."
+
 msgid "Reset to default"
 msgstr "Terug naar standaard"
 
@@ -11602,9 +11776,6 @@ msgstr "Alle terminals herstarten?"
 msgid "Restart and close sessions"
 msgstr "Herstarten en sessies sluiten"
 
-msgid "Restart and resume"
-msgstr "Herstarten en hervatten"
-
 msgid "Restart Browser"
 msgstr "Browser herstarten"
 
@@ -11613,12 +11784,6 @@ msgstr "Daemon herstarten"
 
 msgid "Restart host service"
 msgstr "Hostservice herstarten"
-
-msgid "Restart now to move them to {accountLabel}; each session picks its conversation back up where it left off."
-msgstr "Herstart ze nu om ze naar {accountLabel} te verplaatsen; elke sessie pakt het gesprek op waar het gebleven was."
-
-msgid "Restart running {providerLabel} agents?"
-msgstr "Draaiende {providerLabel}-agents herstarten?"
 
 msgid "Restart terminal daemon?"
 msgstr "Terminal-daemon herstarten?"
@@ -11632,11 +11797,11 @@ msgstr "{restartedOrgCount} hostservices herstart"
 msgid "Restarted 1 host service"
 msgstr "1 hostservice herstart"
 
+msgid "Restarted and resumed"
+msgstr "Herstart en hervat"
+
 msgid "Restarting"
 msgstr "Opnieuw starten"
-
-msgid "Restarting agents on {accountLabel}."
-msgstr "Agents worden herstart op {accountLabel}."
 
 msgid "Restarting host services…"
 msgstr "Hostservices herstarten…"
@@ -11844,6 +12009,10 @@ msgstr "Draai een agentsessie terug naar elk checkpoint, gesprek en bestandswijz
 msgid "Rotate device"
 msgstr "Apparaat draaien"
 
+#. placeholder {0}: engineErrorCode(failure)
+msgid "Rotation not saved ({0})."
+msgstr "Rotatie niet opgeslagen ({0})."
+
 msgid "Roundups"
 msgstr "Overzichten"
 
@@ -11955,6 +12124,12 @@ msgstr "Draait op een gekoppeld apparaat"
 
 msgid "Running on this device"
 msgstr "Draait op dit apparaat"
+
+msgid "Running sessions move over when they go idle, resuming where they left off."
+msgstr "Actieve sessies wisselen zodra ze inactief zijn en gaan verder waar ze gebleven waren."
+
+msgid "Running sessions pick up the new login in place; ones on their own profile restart when they go idle."
+msgstr "Actieve sessies pakken de nieuwe login ter plekke op; die met een eigen profiel starten opnieuw zodra ze inactief zijn."
 
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Draaiende terminalprocessen gaan door, maar oudere uitvoer is na het herstarten van de app mogelijk niet meer beschikbaar."
@@ -12552,6 +12727,10 @@ msgstr "Sessieweergave"
 msgid "Sessions"
 msgstr "Sessies"
 
+msgctxt "switch history column"
+msgid "Sessions"
+msgstr "Sessies"
+
 #. placeholder {0}: detail.sessions.length
 msgid "Sessions · top {0} by cost"
 msgstr "Sessies · top {0} op kosten"
@@ -12575,6 +12754,9 @@ msgstr "Wachtwoord instellen"
 
 msgid "Set Run"
 msgstr "Run instellen"
+
+msgid "Set up outside Superset. Its usage is shown, but switching never writes to this login."
+msgstr "Buiten Superset ingesteld. Het gebruik wordt getoond, maar wisselen schrijft nooit naar deze login."
 
 msgid "Set up project on {hostName}"
 msgstr "Project instellen op {hostName}"
@@ -12886,6 +13068,9 @@ msgstr "Inloggen mislukt"
 msgid "Signed in as <0>{userName}</0>"
 msgstr "Ingelogd als <0>{userName}</0>"
 
+msgid "Signed in outside Superset, so switching leaves this login alone."
+msgstr "Buiten Superset ingelogd, dus wisselen laat deze login met rust."
+
 msgid "Signed out"
 msgstr "Uitgelogd"
 
@@ -13023,6 +13208,9 @@ msgstr "SOC 2 Type II-rapport"
 
 msgid "Social"
 msgstr "Social"
+
+msgid "Some {providerLabel} sessions stay on their own account"
+msgstr "Sommige {providerLabel}-sessies blijven op hun eigen account"
 
 msgid "Some files are not an accepted type and were not added."
 msgstr "Sommige bestanden hebben geen toegestaan type en zijn niet toegevoegd."
@@ -13184,6 +13372,9 @@ msgstr "Alles stagen"
 msgid "Staged"
 msgstr "Gestaged"
 
+msgid "Stale token, still eligible"
+msgstr "Verouderd token, nog bruikbaar"
+
 msgid "Standard action strip for pane headers"
 msgstr "Standaard actiebalk voor paneelkoppen"
 
@@ -13322,6 +13513,9 @@ msgstr "Status gewijzigd"
 
 msgid "Stay connected (refresh tokens)"
 msgstr "Verbonden blijven (refresh-tokens)"
+
+msgid "Stay until the active account nears its limit, then move to the account with the most headroom"
+msgstr "Blijf tot het actieve account bijna aan zijn limiet zit en ga dan naar het account met de meeste ruimte"
 
 #. placeholder {0}: step === "workspace" ? 1 : 2
 msgid "Step {0} of 2"
@@ -13486,6 +13680,9 @@ msgstr "Superset-componenten"
 msgid "Superset could not complete sign-in. Please try again."
 msgstr "Superset kon het inloggen niet voltooien. Probeer het opnieuw."
 
+msgid "Superset could not tell which account is signed in, so it left the current one in place."
+msgstr "Superset kon het aangemelde account niet bepalen en heeft het huidige behouden."
+
 msgid "Superset CPU"
 msgstr "CPU van Superset"
 
@@ -13604,8 +13801,22 @@ msgstr "Opgeschort"
 msgid "Sustain"
 msgstr "Volhouden"
 
+msgid "Switch accounts automatically"
+msgstr "Automatisch van account wisselen"
+
 msgid "Switch agents. Keep your workflow"
 msgstr "Wissel van agent. Houd je workflow"
+
+msgid "Switch at"
+msgstr "Wisselen bij"
+
+#. placeholder {0}: engineErrorCode(failure)
+#. placeholder {0}: rawErrorMessage(error)
+msgid "Switch failed ({0}). The previous account is still active."
+msgstr "Wisselen mislukt ({0}). Het vorige account is nog actief."
+
+msgid "Switch history"
+msgstr "Wisselgeschiedenis"
 
 msgid "Switch host"
 msgstr "Van host wisselen"
@@ -13675,6 +13886,12 @@ msgstr "Naar werkruimte 8"
 
 msgid "Switch to Workspace 9"
 msgstr "Naar werkruimte 9"
+
+msgid "Switching resumes when a usage window resets."
+msgstr "Wisselen gaat verder zodra een gebruiksvenster reset."
+
+msgid "Switching…"
+msgstr "Wisselen…"
 
 msgid "Sync"
 msgstr "Synchroniseren"
@@ -13943,6 +14160,9 @@ msgstr "Textarea"
 msgid "Thanks for reaching out"
 msgstr "Bedankt voor je bericht"
 
+msgid "That account is not one this host can see, so the previous account is still active."
+msgstr "Deze host kan dat account niet zien. Het vorige account blijft actief."
+
 msgid "That handle is taken."
 msgstr "Die handle is al bezet."
 
@@ -13958,6 +14178,33 @@ msgstr "Die naam is niet toegestaan."
 msgid "The 2026 bet"
 msgstr "De weddenschap voor 2026"
 
+msgid "The access token is past its expiry but the sign-in is not — a fresh one is minted the next time the CLI runs."
+msgstr "Het toegangstoken is verlopen, maar de login niet — er wordt een nieuw token aangemaakt zodra de CLI weer draait."
+
+msgid "The account engine cannot use its state directory. Make it owner-only (chmod 700), or point SUPERSET_HOME_DIR at a filesystem that supports Unix permissions."
+msgstr "De account-engine kan zijn statusmap niet gebruiken. Maak de map alleen toegankelijk voor de eigenaar (chmod 700) of laat SUPERSET_HOME_DIR naar een bestandssysteem wijzen dat Unix-rechten ondersteunt."
+
+msgid "The account engine is not running on this host, so {agentLabel} accounts cannot switch automatically."
+msgstr "De account-engine draait niet op deze host, dus {agentLabel}-accounts kunnen niet automatisch wisselen."
+
+msgid "The account engine is not running on this host."
+msgstr "De account-engine draait niet op deze host."
+
+msgid "The account it tried to switch to has no saved identity, so the previous account is still active."
+msgstr "Het doelaccount heeft geen opgeslagen identiteit. Het vorige account blijft actief."
+
+msgid "The account it tried to switch to has no saved login. Sign in to it once and switching can use it."
+msgstr "Het doelaccount heeft geen opgeslagen aanmelding. Meld je er eenmaal aan om het te kunnen gebruiken."
+
+msgid "The account it tried to switch to is not usable, so the previous account is still active."
+msgstr "Het doelaccount is niet bruikbaar. Het vorige account blijft actief."
+
+msgid "The account it was switching to changed while switching, so the switch was abandoned."
+msgstr "Het doelaccount veranderde tijdens de wissel. De wissel is afgebroken."
+
+msgid "The active account could not be updated, so the previous account is still active."
+msgstr "Het actieve account kon niet worden bijgewerkt. Het vorige account blijft actief."
+
 msgid "the active organization"
 msgstr "de actieve organisatie"
 
@@ -13969,6 +14216,12 @@ msgstr "De agent bezit een taak van ticket tot diff. De mens reviewt het resulta
 
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "De agent waarmee deze automatisering zou draaien bestaat niet meer op de host — de agents van die host zijn mogelijk gereset of verwijderd. Kies opnieuw een agent in de instellingen van de automatisering."
+
+msgid "The agent's account folder could not be reached, so the previous account is still active."
+msgstr "De accountmap van de agent is niet bereikbaar. Het vorige account blijft actief."
+
+msgid "The agent's account folder is not in a usable state, so the previous account is still active."
+msgstr "De accountmap van de agent is niet bruikbaar. Het vorige account blijft actief."
 
 msgid "The app is on {appVersion} but attached to a host service started by something else, likely an older CLI or another Superset build. Restarting replaces it with this app's copy."
 msgstr "De app is op {appVersion}, maar gekoppeld aan een hostservice die door iets anders is gestart, waarschijnlijk een oudere CLI of een andere Superset-build. Opnieuw starten vervangt die door de kopie van deze app."
@@ -14064,6 +14317,9 @@ msgstr "De host was na vijftien minuten nog niet terug."
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "De host is niet verbonden met de Superset-relay. Als het dit apparaat is, zet dan \"Externe toegang via de relay toegang geven tot dit apparaat\" aan bij Instellingen > Externe toegang en probeer het opnieuw."
 
+msgid "The host rejected that value, so the previous one still stands."
+msgstr "De host heeft die waarde geweigerd, dus de vorige blijft staan."
+
 msgid "The host reported a failed update."
 msgstr "De host meldde een mislukte update."
 
@@ -14120,6 +14376,12 @@ msgstr "De naam van je organisatie of team"
 
 msgid "The network connection changed"
 msgstr "De netwerkverbinding is gewijzigd"
+
+msgid "The new login could not be saved, so the previous account is still active."
+msgstr "De nieuwe aanmelding kon niet worden opgeslagen. Het vorige account blijft actief."
+
+msgid "The new login could not be verified, so the previous account was put back."
+msgstr "De nieuwe aanmelding kon niet worden geverifieerd. Het vorige account is hersteld."
 
 msgid "The overnight shift"
 msgstr "De nachtploeg"
@@ -14185,8 +14447,17 @@ msgstr "De zelfrijdende softwarefabriek"
 msgid "The server could not be found"
 msgstr "De server is niet gevonden"
 
+msgid "The shared account service is unavailable. Try refreshing usage."
+msgstr "De gedeelde accountservice is niet beschikbaar. Probeer het gebruik te vernieuwen."
+
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "De inloglink was onvolledig. Probeer het opnieuw."
+
+msgid "The signed-in account changed while switching, so the switch was abandoned."
+msgstr "Het aangemelde account veranderde tijdens de wissel. De wissel is afgebroken."
+
+msgid "The signed-in account could not be identified, so nothing was changed."
+msgstr "Het aangemelde account kon niet worden bepaald. Er is niets gewijzigd."
 
 msgid "The site's certificate authority is not trusted"
 msgstr "De certificaatautoriteit van de site wordt niet vertrouwd"
@@ -14214,6 +14485,12 @@ msgstr "De Superset-hostservice is onverwacht gestopt ({cause}) en kon niet auto
 
 msgid "The surfaces outside the site that carry the product: the repository, releases, and Discord."
 msgstr "De plekken buiten de site die het product dragen: de repository, releases en Discord."
+
+msgid "The switch did not go through. The previous account is still active."
+msgstr "De wissel is niet gelukt. Het vorige account blijft actief."
+
+msgid "The switch stopped halfway. Open Usage to check which account is signed in."
+msgstr "De wissel is onderbroken. Open Gebruik om te controleren welk account is aangemeld."
 
 msgid "the target host"
 msgstr "de doelhost"
@@ -14561,6 +14838,10 @@ msgstr "Titel bevat..."
 msgid "To"
 msgstr "Naar"
 
+msgctxt "switch history column"
+msgid "To"
+msgstr "Naar"
+
 msgid "Toast (Sonner)"
 msgstr "Toast (Sonner)"
 
@@ -14743,6 +15024,10 @@ msgstr "Nieuwe issues triageren"
 
 msgid "triaging 12 new issues…"
 msgstr "12 nieuwe issues triageren…"
+
+msgctxt "switch history column"
+msgid "Trigger"
+msgstr "Trigger"
 
 msgid "Trigger alert()"
 msgstr "alert() aanroepen"
@@ -14954,6 +15239,9 @@ msgctxt "person"
 msgid "Unknown"
 msgstr "Onbekend"
 
+msgid "Unknown account"
+msgstr "Onbekend account"
+
 msgid "Unknown device"
 msgstr "Onbekend apparaat"
 
@@ -14990,6 +15278,9 @@ msgstr "Onbeperkt"
 
 msgid "Unlimited users"
 msgstr "Onbeperkt aantal gebruikers"
+
+msgid "Unmanaged"
+msgstr "Onbeheerd"
 
 msgid "Unmute notifications"
 msgstr "Dempen van meldingen opheffen"
@@ -15160,6 +15451,9 @@ msgstr "URL-vriendelijke identifier, uniek binnen je organisatie."
 msgid "Usage"
 msgstr "Gebruik"
 
+msgid "Usage limit reached"
+msgstr "Gebruikslimiet bereikt"
+
 msgid "Usage sections"
 msgstr "Onderdelen van gebruik"
 
@@ -15188,9 +15482,6 @@ msgstr "Gebruik Claude Code, Codex, OpenCode of welke coding agent dan ook voor 
 msgid "Use Claude Code, Codex, or any coding agent. Choose per task or run several side by side."
 msgstr "Gebruik Claude Code, Codex of welke coding agent dan ook. Kies per taak of laat er meerdere naast elkaar draaien."
 
-msgid "Use for new agents"
-msgstr "Gebruiken voor nieuwe agents"
-
 msgid "Use global default"
 msgstr "Globale standaard gebruiken"
 
@@ -15214,6 +15505,9 @@ msgstr "Gebruik dit om vastgelopen of niet-reagerende terminals te herstellen."
 
 msgid "Use this when calling the Superset API."
 msgstr "Gebruik dit bij het aanroepen van de Superset-API."
+
+msgid "Use up the soonest reset"
+msgstr "Gebruik eerst het account met de eerstvolgende reset"
 
 msgid "Use voice transcription and push-to-talk features."
 msgstr "Spraaktranscriptie en push-to-talk gebruiken."
@@ -15389,6 +15683,9 @@ msgstr "Volume"
 msgid "VS Code"
 msgstr "VS Code"
 
+msgid "Wait between switches"
+msgstr "Wachttijd tussen wissels"
+
 msgid "Wait for workspace setup before starting agents"
 msgstr "Wachten op werkruimte-setup voordat agents starten"
 
@@ -15399,6 +15696,9 @@ msgstr "wachten op {0} en {1}…"
 
 msgid "Waiting for Checks"
 msgstr "Wachten op checks"
+
+msgid "Waiting for confirmed quota"
+msgstr "Wachten op bevestigd quotum"
 
 msgid "Waiting for Review"
 msgstr "Wachten op review"
@@ -15557,6 +15857,9 @@ msgstr "Wekelijkse sitebezoekers (PostHog-sessies), mensen die op downloaden kli
 msgid "Weekly visitors arriving from a search results page. Search Console below says which queries they typed."
 msgstr "Wekelijkse bezoekers vanaf een zoekresultatenpagina. Search Console hieronder laat zien welke zoekopdrachten ze typten."
 
+msgid "weekly window"
+msgstr "Wekelijks venster"
+
 msgid "Welcome back"
 msgstr "Welkom terug"
 
@@ -15617,6 +15920,10 @@ msgstr "Wat zit er in Enterprise?"
 msgid "What's New"
 msgstr "Wat is er nieuw"
 
+msgctxt "switch history column"
+msgid "When"
+msgstr "Wanneer"
+
 msgid "When off, nothing else can reach the files and tools on this device. You can still connect out to remote sandboxes from here. <0>Learn more<1/></0>"
 msgstr "Als dit uitstaat, kan niets anders bij de bestanden en tools op dit apparaat. Je kunt vanaf hier nog steeds verbinden met externe sandboxes. <0>Meer informatie<1/></0>"
 
@@ -15653,6 +15960,9 @@ msgstr "Waar je echt staat"
 msgid "Whether the people acquired stay and what they pay."
 msgstr "Of de geworven mensen blijven en wat ze betalen."
 
+msgid "Which account to move to"
+msgstr "Naar welk account"
+
 msgid "Which agents are supported?"
 msgstr "Welke agents worden ondersteund?"
 
@@ -15667,6 +15977,10 @@ msgstr "Hele site"
 
 msgid "Whole Task"
 msgstr "Hele taak"
+
+msgctxt "switch history column"
+msgid "Why"
+msgstr "Waarom"
 
 msgid "Width"
 msgstr "Breedte"
@@ -15920,6 +16234,9 @@ msgstr "Je hebt geen rechten om dit lid te verwijderen"
 
 msgid "You need to be part of an organization to use integrations."
 msgstr "Je moet deel uitmaken van een organisatie om integraties te gebruiken."
+
+msgid "You picked this account"
+msgstr "Jij hebt dit account gekozen"
 
 #. placeholder {0}: preview.rank
 #. placeholder {1}: preview.total

@@ -1,6 +1,8 @@
 import { Database } from "bun:sqlite";
-import { describe, expect, it } from "bun:test";
+import { beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { resolve } from "node:path";
+import type { AgentDefinitionId } from "@superset/shared/agent-catalog";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import type { HostDb } from "../../../db";
@@ -10,6 +12,8 @@ import {
 	terminalAgentBindings,
 	terminalSessions,
 } from "../../../db/schema";
+import * as terminalEnv from "../../../terminal/env";
+import { initTerminalBaseEnv } from "../../../terminal/env";
 import {
 	SqliteTerminalAgentBindingPersistence,
 	type TerminalAgentId,
@@ -19,18 +23,26 @@ import {
 	findResumeCandidateBinding,
 	findResumedSuccessorTerminalId,
 } from "../../../terminal-agents/persistence";
+import type { HostServiceContext } from "../../../types";
 import type { AgentRunResult } from "../agents/agents";
+import * as accountDir from "../usage/agent-account-dir";
 import {
 	findResumedSuccessor,
+	killAndResumeTerminalAgent,
 	listAccountRestartCandidates,
 	type ResumeSessionDeps,
-	restartAccountSessions,
+	registerPendingNudge,
 	resumeTerminalAgentSession,
+	terminalAgentsRouter,
 } from "./terminal-agents";
 
 const MIGRATIONS_FOLDER = resolve(import.meta.dir, "../../../../drizzle");
 
 const CLAUDE_CONFIG_ID = "00000000-0000-0000-0000-000000000001";
+
+beforeEach(() => {
+	initTerminalBaseEnv({});
+});
 
 function createTestDb(): HostDb {
 	const sqlite = new Database(":memory:");
@@ -47,8 +59,15 @@ function seedResumableBinding(
 		terminalId = "t1",
 		resumeArgs = ["--resume"],
 		lastEventType = "Stop" as "Stop" | "Attached",
+		agentSessionId,
+	}: {
+		terminalId?: string;
+		resumeArgs?: string[];
+		lastEventType?: "Stop" | "Attached";
+		agentSessionId?: string;
 	} = {},
 ) {
+	const sessionId = agentSessionId ?? `sess-${terminalId}`;
 	db.insert(hostAgentConfigs)
 		.values({
 			id: CLAUDE_CONFIG_ID,
@@ -59,6 +78,7 @@ function seedResumableBinding(
 			resumeArgsJson: JSON.stringify(resumeArgs),
 			displayOrder: 0,
 		})
+		.onConflictDoNothing()
 		.run();
 	db.insert(terminalSessions)
 		.values({
@@ -73,7 +93,7 @@ function seedResumableBinding(
 			terminalId,
 			workspaceId: "ws-1",
 			agentId: "claude",
-			agentSessionId: `sess-${terminalId}`,
+			agentSessionId: sessionId,
 			startedAt: 1,
 			lastEventAt: 2,
 			lastEventType,
@@ -96,16 +116,25 @@ interface DepsHarness {
 
 function createDeps(
 	db: HostDb,
-	{
+	options:
+		| {
+				runAgent?: ResumeSessionDeps["runAgent"];
+				hasSession?: ResumeSessionDeps["hasSession"];
+				disposeSession?: ResumeSessionDeps["disposeSession"];
+		  }
+		| ResumeSessionDeps["runAgent"] = {},
+	legacyHasSession?: ResumeSessionDeps["hasSession"],
+): DepsHarness {
+	const {
 		runAgent,
 		hasSession = () => null,
 		disposeSession,
-	}: {
-		runAgent?: ResumeSessionDeps["runAgent"];
-		hasSession?: ResumeSessionDeps["hasSession"];
-		disposeSession?: ResumeSessionDeps["disposeSession"];
-	} = {},
-): DepsHarness {
+	} = typeof options === "function"
+		? { runAgent: options, hasSession: legacyHasSession }
+		: {
+				...options,
+				...(legacyHasSession ? { hasSession: legacyHasSession } : {}),
+			};
 	const runCalls: DepsHarness["runCalls"] = [];
 	const disposedTerminals: string[] = [];
 	const broadcasts: BroadcastMessage[] = [];
@@ -354,9 +383,68 @@ describe("resumeTerminalAgentSession", () => {
 		// The session id must survive: a config edit could re-enable resume.
 		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeDefined();
 	});
+
+	// A kill was requested and the daemon never confirmed it: the row stays
+	// `active` with the intent-to-kill stamp while the old pty may still be
+	// running the conversation. Resuming there launches a second agent on it.
+	it("does not resume a terminal whose requested kill was never confirmed", async () => {
+		const db = createTestDb();
+		seedResumableBinding(db);
+		db.update(terminalSessions)
+			.set({ status: "active", disposeRequestedAt: 100 })
+			.where(eq(terminalSessions.id, "t1"))
+			.run();
+		registerPendingNudge("ws-1", "t1", "nudge");
+		const { deps, runCalls, disposedTerminals } = createDeps(db);
+
+		const result = await resumeTerminalAgentSession(deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+
+		expect(result).toEqual({ resumed: false });
+		expect(runCalls).toEqual([]);
+		expect(disposedTerminals).toEqual([]);
+		// Nothing is destroyed: the candidate is republished for the resume
+		// that follows the reaper's retry.
+		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeDefined();
+
+		// The reaper's retry confirms the kill and flips the row.
+		db.update(terminalSessions)
+			.set({ status: "disposed" })
+			.where(eq(terminalSessions.id, "t1"))
+			.run();
+		const retry = createDeps(db);
+
+		const after = await resumeTerminalAgentSession(retry.deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+
+		expect(after).toEqual({
+			resumed: true,
+			terminalId: "t-new",
+			label: "Claude",
+		});
+		// The nudge outlived the refusal and rides the launch that follows.
+		expect(retry.runCalls).toEqual([
+			{
+				workspaceId: "ws-1",
+				agent: CLAUDE_CONFIG_ID,
+				prompt: "nudge",
+				resumeSessionId: "sess-t1",
+			},
+		]);
+	});
 });
 
 const CODEX_CONFIG_ID = "00000000-0000-0000-0000-000000000002";
+
+/** A session pinned to a hand-exported `CLAUDE_CONFIG_DIR`: no Superset twin
+ * beside it, so `resolveAgentAccountDir` reports `managed: false` and the
+ * engine cannot move it. */
+const UNMANAGED_ENV = { CLAUDE_CONFIG_DIR: "/hand/exported/claude" };
+const UNMANAGED_DEFINITION_ID = "custom:claude-exported" as AgentDefinitionId;
 
 function seedAgentConfig(
 	db: HostDb,
@@ -367,6 +455,7 @@ function seedAgentConfig(
 		command = "claude",
 		resumeArgs = ["--resume"] as string[],
 		displayOrder = 0,
+		env = {} as Record<string, string>,
 	} = {},
 ) {
 	db.insert(hostAgentConfigs)
@@ -377,6 +466,7 @@ function seedAgentConfig(
 			command,
 			promptTransport: "argv",
 			resumeArgsJson: JSON.stringify(resumeArgs),
+			envJson: JSON.stringify(env),
 			displayOrder,
 		})
 		.run();
@@ -389,6 +479,7 @@ function seedLiveBinding(
 		agentId = "claude" as TerminalAgentId,
 		agentSessionId = `sess-${terminalId}` as string | null,
 		lastEventType = "Stop",
+		definitionId = undefined as AgentDefinitionId | undefined,
 	} = {},
 ) {
 	db.insert(terminalSessions)
@@ -405,6 +496,7 @@ function seedLiveBinding(
 			workspaceId: "ws-1",
 			agentId,
 			agentSessionId,
+			definitionId,
 			startedAt: 1,
 			lastEventAt: 2,
 			lastEventType,
@@ -462,6 +554,102 @@ describe("findResumedSuccessorTerminalId", () => {
 });
 
 describe("listAccountRestartCandidates", () => {
+	it("defers synchronous engine classification until the shell snapshot is ready", () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedLiveBinding(db);
+		const store = createStore(db);
+		terminalEnv.resetTerminalBaseEnvForTests();
+		try {
+			expect(listAccountRestartCandidates(db, store, "claude")).toEqual([]);
+			initTerminalBaseEnv({});
+			expect(listAccountRestartCandidates(db, store, "claude")).toHaveLength(1);
+		} finally {
+			initTerminalBaseEnv({});
+		}
+	});
+
+	it("waits for the cold-start snapshot in the request path even with no sessions", async () => {
+		const db = createTestDb();
+		terminalEnv.resetTerminalBaseEnvForTests();
+		let release!: () => void;
+		let started!: () => void;
+		const ready = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		const waiting = new Promise<void>((resolve) => {
+			started = resolve;
+		});
+		const wait = spyOn(
+			terminalEnv,
+			"waitForTerminalBaseEnv",
+		).mockImplementation(async () => {
+			started();
+			await ready;
+			initTerminalBaseEnv({});
+		});
+		const caller = terminalAgentsRouter.createCaller({
+			db,
+			terminalAgentStore: createStore(db),
+			isAuthenticated: true,
+		} as HostServiceContext);
+		let completed = false;
+		const request = caller
+			.accountRestartCandidates({ provider: "claude" })
+			.then((result) => {
+				completed = true;
+				return result;
+			});
+		try {
+			await Promise.race([waiting, request]);
+			expect(wait).toHaveBeenCalledTimes(1);
+			expect(completed).toBe(false);
+			release();
+			expect(await request).toEqual([]);
+		} finally {
+			release();
+			await request;
+			wait.mockRestore();
+			initTerminalBaseEnv({});
+		}
+	});
+
+	it("passes the shell snapshot to classification and preserves its unmanaged result", () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedLiveBinding(db, { terminalId: "shell-pinned" });
+		const shellDir = "/shell-exported-claude";
+		initTerminalBaseEnv({ CLAUDE_CONFIG_DIR: shellDir });
+		const classify = spyOn(
+			accountDir,
+			"resolveAgentAccountDir",
+		).mockReturnValue({
+			configDir: shellDir,
+			managed: false,
+		});
+		try {
+			const candidates = listAccountRestartCandidates(
+				db,
+				createStore(db),
+				"claude",
+			);
+			expect(classify).toHaveBeenCalledWith(
+				expect.anything(),
+				expect.objectContaining({
+					shellEnv: { CLAUDE_CONFIG_DIR: shellDir },
+				}),
+			);
+			expect(candidates).toHaveLength(1);
+			expect(candidates[0]).toMatchObject({
+				configDir: shellDir,
+				managed: false,
+			});
+		} finally {
+			classify.mockRestore();
+			initTerminalBaseEnv({});
+		}
+	});
+
 	it("lists live provider sessions with a resumable conversation, nothing else", () => {
 		const db = createTestDb();
 		seedAgentConfig(db);
@@ -502,6 +690,75 @@ describe("listAccountRestartCandidates", () => {
 		]);
 	});
 
+	// `lastFailure` has no SQLite column, so the persisted read gives it back
+	// without one. The engine's Claude limit-stop path keys on exactly that
+	// field, so it has to come from the in-memory row.
+	it("carries the in-memory failure the persisted row cannot hold", () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedLiveBinding(db, { terminalId: "t1" });
+		const persisted = createStore(db).list();
+		const store = new TerminalAgentStore({
+			load: () => [],
+			upsert: () => {},
+			delete: () => {},
+			listLive: () => persisted,
+		});
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: "ws-1",
+			agentId: "claude",
+			agentSessionId: "sess-t1",
+			eventType: "Failed",
+			errorType: "rate_limit",
+			occurredAt: 9,
+		});
+
+		const candidates = listAccountRestartCandidates(db, store, "claude");
+
+		expect(persisted[0]?.lastFailure).toBeUndefined();
+		expect(candidates.map(({ binding }) => binding.lastFailure)).toEqual([
+			{ errorType: "rate_limit", at: 9 },
+		]);
+	});
+
+	// KTD12: the Usage notice counts the unmanaged rows only, so the flag that
+	// separates a hand-pinned session from one the switch reaches is the whole
+	// contract this list still owes its caller.
+	it("reports a session pinned to a hand-exported config dir as unmanaged", () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedAgentConfig(db, {
+			id: UNMANAGED_DEFINITION_ID,
+			label: "Claude (exported)",
+			env: UNMANAGED_ENV,
+			displayOrder: 1,
+		});
+		seedLiveBinding(db, { terminalId: "t-managed" });
+		seedLiveBinding(db, {
+			terminalId: "t-unmanaged",
+			definitionId: UNMANAGED_DEFINITION_ID,
+		});
+
+		const candidates = listAccountRestartCandidates(
+			db,
+			createStore(db),
+			"claude",
+		);
+
+		expect(
+			candidates
+				.map(({ binding, managed }) => ({
+					terminalId: binding.terminalId,
+					managed,
+				}))
+				.sort((a, b) => a.terminalId.localeCompare(b.terminalId)),
+		).toEqual([
+			{ terminalId: "t-managed", managed: true },
+			{ terminalId: "t-unmanaged", managed: false },
+		]);
+	});
+
 	it("skips sessions whose config cannot resume", () => {
 		const db = createTestDb();
 		seedAgentConfig(db, { resumeArgs: [] });
@@ -513,113 +770,550 @@ describe("listAccountRestartCandidates", () => {
 	});
 });
 
-describe("restartAccountSessions", () => {
-	it("kills each candidate and relaunches it here with its saved session id", async () => {
+describe("pending nudge (KTD8)", () => {
+	it("launches with a registered nudge whichever caller wins the race", async () => {
 		const db = createTestDb();
-		seedAgentConfig(db);
-		seedLiveBinding(db, { terminalId: "t1" });
-		seedLiveBinding(db, { terminalId: "t2" });
-		let launches = 0;
-		const order: string[] = [];
-		const { deps, broadcasts } = createDeps(db, {
-			runAgent: (input) => {
-				order.push(`launch ${input.resumeSessionId}`);
-				return Promise.resolve({
-					kind: "terminal",
-					sessionId: `t-new-${++launches}`,
-					label: "Claude",
-				} satisfies AgentRunResult);
-			},
-			disposeSession: (terminalId) => {
-				order.push(`kill ${terminalId}`);
-				return Promise.resolve();
-			},
+		seedResumableBinding(db);
+		let releaseLaunch = () => {};
+		const gate = new Promise<void>((resolveGate) => {
+			releaseLaunch = resolveGate;
+		});
+		const { deps, runCalls } = createDeps(db, async () => {
+			await gate;
+			return { kind: "terminal", sessionId: "t-new", label: "Claude" };
 		});
 
-		const result = await restartAccountSessions(deps, "claude");
+		registerPendingNudge("ws-1", "t1", "Continue where you left off.");
 
-		expect(result.restartedTerminalIds.sort()).toEqual(["t1", "t2"]);
-		// The old agent is killed before its session is resumed, so two
-		// processes never share one conversation. The resume path's own
-		// dispose of the already-dead terminal is a harmless repeat.
-		expect(order).toEqual([
-			"kill t1",
-			"launch sess-t1",
-			"kill t1",
-			"kill t2",
-			"launch sess-t2",
-			"kill t2",
+		const input = { workspaceId: "ws-1", terminalId: "t1" };
+		// The renderer's empty-prompt resume races the mover's; one launch wins.
+		const a = resumeTerminalAgentSession(deps, input);
+		const b = resumeTerminalAgentSession(deps, input);
+		releaseLaunch();
+		await Promise.all([a, b]);
+
+		expect(runCalls).toEqual([
+			{
+				workspaceId: "ws-1",
+				agent: CLAUDE_CONFIG_ID,
+				prompt: "Continue where you left off.",
+				resumeSessionId: "sess-t1",
+			},
 		]);
-		// No pane had to be open: the relaunch happened here, and each old
-		// terminal is announced as resumed for any pane that is.
-		expect(
-			broadcasts.map((message) =>
-				message.eventType === "resumed"
-					? [message.terminalId, message.resumedTerminalId]
-					: message.eventType,
-			),
-		).toEqual([
-			["t1", "t-new-1"],
-			["t2", "t-new-2"],
-		]);
-		// Consumed, not left for a renderer that may never come.
-		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeUndefined();
-		expect(findResumeCandidateBinding(db, "ws-1", "t2")).toBeUndefined();
-		// The bindings left the live view, so a repeat restarts nothing.
-		expect(await restartAccountSessions(deps, "claude")).toEqual({
-			restartedTerminalIds: [],
-		});
 	});
 
-	it("lets a pane that missed the event find the relaunched terminal, even for a never-prompted session launched fresh", async () => {
+	it("consumes the nudge exactly once", async () => {
+		const db = createTestDb();
+		seedResumableBinding(db, { terminalId: "t1" });
+		const { deps, runCalls } = createDeps(db);
+		registerPendingNudge("ws-1", "t1", "nudge");
+
+		await resumeTerminalAgentSession(deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+		// Replay the same key without registering another nudge. A leak of
+		// ws-1::t1 would be observable here, unlike resuming a different key.
+		db.delete(terminalAgentBindings)
+			.where(eq(terminalAgentBindings.terminalId, "t1"))
+			.run();
+		db.delete(terminalSessions).where(eq(terminalSessions.id, "t1")).run();
+		seedResumableBinding(db, { terminalId: "t1" });
+		await resumeTerminalAgentSession(deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+
+		expect(runCalls.map((call) => call.prompt)).toEqual(["nudge", ""]);
+	});
+
+	it("keeps the nudge pending when the launch fails", async () => {
+		const db = createTestDb();
+		seedResumableBinding(db);
+		let failNext = true;
+		const { deps, runCalls } = createDeps(db, () => {
+			if (failNext) {
+				failNext = false;
+				return Promise.reject(new Error("spawn failed"));
+			}
+			return Promise.resolve({
+				kind: "terminal",
+				sessionId: "t-new",
+				label: "Claude",
+			});
+		});
+		registerPendingNudge("ws-1", "t1", "nudge");
+
+		const input = { workspaceId: "ws-1", terminalId: "t1" };
+		await expect(resumeTerminalAgentSession(deps, input)).rejects.toThrow(
+			"spawn failed",
+		);
+		await resumeTerminalAgentSession(deps, input);
+
+		expect(runCalls.map((call) => call.prompt)).toEqual(["nudge", "nudge"]);
+	});
+
+	it.each([
+		false,
+		true,
+	])("does not revive an expired nudge after a failed launch (expiry during launch: %s)", async (expireDuringLaunch) => {
+		const db = createTestDb();
+		seedResumableBinding(db);
+		let now = Date.now();
+		const clock = spyOn(Date, "now").mockImplementation(() => now);
+		try {
+			let failNext = true;
+			const { deps, runCalls } = createDeps(db, () => {
+				if (failNext) {
+					failNext = false;
+					if (expireDuringLaunch) now += 2 * 60_000;
+					return Promise.reject(new Error("spawn failed"));
+				}
+				return Promise.resolve({
+					kind: "terminal",
+					sessionId: "t-new",
+					label: "Claude",
+				});
+			});
+			registerPendingNudge("ws-1", "t1", "nudge");
+			const input = { workspaceId: "ws-1", terminalId: "t1" };
+			await expect(resumeTerminalAgentSession(deps, input)).rejects.toThrow(
+				"spawn failed",
+			);
+			if (!expireDuringLaunch) now += 2 * 60_000;
+			await resumeTerminalAgentSession(deps, input);
+			expect(runCalls.map((call) => call.prompt)).toEqual(["nudge", ""]);
+		} finally {
+			clock.mockRestore();
+		}
+	});
+
+	// Dropped only where nothing is left to resume under this id: terminal ids
+	// are never reused, so that nudge could never be looked up again. An exit
+	// that republishes the candidate under the same id keeps its nudge.
+	it("drops the nudge only when the candidate is gone, keeps it when it is republished", async () => {
+		const input = { workspaceId: "ws-1", terminalId: "t1" };
+
+		// Nothing to claim: the candidate lost the race, or never existed.
+		const noCandidate = createTestDb();
+		const first = createDeps(noCandidate);
+		registerPendingNudge("ws-1", "t1", "nudge");
+		expect(await resumeTerminalAgentSession(first.deps, input)).toEqual({
+			resumed: false,
+		});
+		seedResumableBinding(noCandidate, { terminalId: "t1" });
+		await resumeTerminalAgentSession(first.deps, input);
+		expect(first.runCalls.map((call) => call.prompt)).toEqual([""]);
+
+		// Resume unsupported by the agent config.
+		const noResume = createTestDb();
+		seedResumableBinding(noResume, { terminalId: "t1", resumeArgs: [] });
+		const second = createDeps(noResume);
+		registerPendingNudge("ws-1", "t1", "nudge");
+		expect(await resumeTerminalAgentSession(second.deps, input)).toEqual({
+			resumed: false,
+		});
+		noResume
+			.update(hostAgentConfigs)
+			.set({ resumeArgsJson: JSON.stringify(["--resume"]) })
+			.where(eq(hostAgentConfigs.id, CLAUDE_CONFIG_ID))
+			.run();
+		await resumeTerminalAgentSession(second.deps, input);
+		expect(second.runCalls.map((call) => call.prompt)).toEqual(["nudge"]);
+
+		// A stored session id that could never become a `--resume` argument.
+		const malformed = createTestDb();
+		seedResumableBinding(malformed, {
+			terminalId: "t1",
+			agentSessionId: 'x"; rm -rf ~; #',
+		});
+		const third = createDeps(malformed);
+		registerPendingNudge("ws-1", "t1", "nudge");
+		expect(await resumeTerminalAgentSession(third.deps, input)).toEqual({
+			resumed: false,
+		});
+		malformed
+			.update(terminalAgentBindings)
+			.set({ agentSessionId: "sess-t1" })
+			.where(eq(terminalAgentBindings.terminalId, "t1"))
+			.run();
+		await resumeTerminalAgentSession(third.deps, input);
+		expect(third.runCalls.map((call) => call.prompt)).toEqual(["nudge"]);
+	});
+
+	it("refuses a session id that is not a plain session token", async () => {
+		const db = createTestDb();
+		seedResumableBinding(db, { agentSessionId: 'x"; rm -rf ~; #' });
+		const { deps, runCalls } = createDeps(db);
+
+		const result = await resumeTerminalAgentSession(deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+
+		expect(result).toEqual({ resumed: false });
+		expect(runCalls).toEqual([]);
+		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeDefined();
+	});
+});
+
+describe("killAndResumeTerminalAgent", () => {
+	it("lets a pane find the successor after an account move launches a never-prompted session fresh", async () => {
 		const db = createTestDb();
 		seedAgentConfig(db);
 		seedLiveBinding(db, { terminalId: "t1", lastEventType: "Attached" });
-		// No transcript: the relaunch is fresh, so the new terminal will get
-		// a new session id — the link must not depend on sharing the old one.
-		const { deps, runCalls } = createDeps(db, { hasSession: () => false });
+		const { deps, runCalls, broadcasts } = createDeps(db, {
+			hasSession: () => false,
+		});
 		expect(findResumedSuccessor(db, "ws-1", "t1")).toBeNull();
-
-		await restartAccountSessions(deps, "claude");
-
+		await killAndResumeTerminalAgent(deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
 		expect(runCalls[0]?.resumeSessionId).toBeUndefined();
 		expect(findResumedSuccessor(db, "ws-1", "t1")).toEqual({
 			terminalId: "t-new",
 			label: "Claude",
 		});
-		expect(findResumedSuccessor(db, "ws-1", "t-new")).toBeNull();
+		expect(broadcasts).toContainEqual(
+			expect.objectContaining({
+				eventType: "resumed",
+				terminalId: "t1",
+				resumedTerminalId: "t-new",
+			}),
+		);
 	});
-
-	it("leaves a candidate running, and resumable, when its kill fails", async () => {
+	// The reservation is already visible when the kill is recorded, and that
+	// write can throw for real: it is a better-sqlite3 update behind a 5s busy
+	// timeout, and endBinding emits a change event that rethrows a listener's
+	// throw. Leaving without settling strands an unresolved promise under the
+	// key, and every later resume of that terminal then awaits something that
+	// never completes — the pane spins forever, for the life of the process.
+	it("releases the inflight reservation when recording the kill throws", async () => {
 		const db = createTestDb();
 		seedAgentConfig(db);
 		seedLiveBinding(db, { terminalId: "t1" });
-		const { deps, runCalls } = createDeps(db, {
-			disposeSession: () => Promise.reject(new Error("daemon unreachable")),
+		const { deps } = createDeps(db);
+		const store = deps.terminalAgentStore as unknown as {
+			markTerminalExited: (id: string) => void;
+		};
+		const real = store.markTerminalExited.bind(store);
+		let fail = true;
+		store.markTerminalExited = (id: string) => {
+			if (fail) throw new Error("db write failed");
+			real(id);
+		};
+
+		await expect(
+			killAndResumeTerminalAgent(deps, {
+				workspaceId: "ws-1",
+				terminalId: "t1",
+				prompt: "nudge",
+			}),
+		).rejects.toThrow(/db write failed/);
+
+		// The key must be free: a later resume has to run, not hang.
+		fail = false;
+		const after = await Promise.race([
+			resumeTerminalAgentSession(deps, {
+				workspaceId: "ws-1",
+				terminalId: "t1",
+			}),
+			new Promise<"hung">((resolve) =>
+				setTimeout(() => resolve("hung"), 1_000),
+			),
+		]);
+
+		expect(after).not.toBe("hung");
+	});
+
+	// The real disposer stamps its intent to kill as its first statement, so a
+	// throw can mean the pty was never touched — while the binding is already
+	// a claimable resume candidate. Without a stamp of our own the kill-pending
+	// guard passes and a second agent launches with `--resume` on the
+	// conversation the live pty is still running.
+	it("stamps the requested kill when the dispose throws, so no resume is admitted", async () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedLiveBinding(db, { terminalId: "t1" });
+		const { deps } = createDeps(db);
+		deps.disposeSession = () => Promise.reject(new Error("dispose failed"));
+
+		await expect(
+			killAndResumeTerminalAgent(deps, {
+				workspaceId: "ws-1",
+				terminalId: "t1",
+				prompt: "nudge",
+			}),
+		).rejects.toThrow(/dispose failed/);
+
+		const refused = createDeps(db);
+		const after = await resumeTerminalAgentSession(refused.deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
 		});
 
-		const result = await restartAccountSessions(deps, "claude");
+		expect(after).toEqual({ resumed: false });
+		expect(refused.runCalls).toEqual([]);
 
-		expect(result).toEqual({ restartedTerminalIds: [] });
-		// Never relaunch beside a process that may still be alive.
+		// Nothing is lost: the reaper retries the kill and flips the row, and
+		// the candidate republishes with its nudge intact.
+		db.update(terminalSessions)
+			.set({ status: "disposed" })
+			.where(eq(terminalSessions.id, "t1"))
+			.run();
+		const retry = createDeps(db);
+
+		const resumed = await resumeTerminalAgentSession(retry.deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+
+		expect(resumed).toEqual({
+			resumed: true,
+			terminalId: "t-new",
+			label: "Claude",
+		});
+		expect(retry.runCalls.map((call) => call.prompt)).toEqual(["nudge"]);
+	});
+
+	it("kills crash-style and relaunches with the nudge as the prompt", async () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedLiveBinding(db, { terminalId: "t1" });
+		const { deps, runCalls, disposedTerminals } = createDeps(db);
+
+		const result = await killAndResumeTerminalAgent(deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+			prompt: "nudge",
+		});
+
+		expect(result).toEqual({
+			resumed: true,
+			terminalId: "t-new",
+			label: "Claude",
+		});
+		expect(runCalls).toEqual([
+			{
+				workspaceId: "ws-1",
+				agent: CLAUDE_CONFIG_ID,
+				prompt: "nudge",
+				resumeSessionId: "sess-t1",
+			},
+		]);
+		// Killed before the relaunch, then swept again by the resume path's
+		// own cleanup — the second dispose lands on an already-dead terminal.
+		expect(disposedTerminals).toEqual(["t1", "t1"]);
+	});
+
+	// The daemon reports a kill it could not confirm by returning, not by
+	// throwing. Resuming on top of a pty that may still be alive would run two
+	// agents on one session.
+	it("does not resume when the daemon could not confirm the kill", async () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedLiveBinding(db, { terminalId: "t1" });
+		const { deps, runCalls } = createDeps(db);
+		deps.disposeSession = async () => ({
+			terminalId: "t1",
+			daemonCloseAttempted: true,
+			daemonCloseSucceeded: false,
+		});
+
+		const result = await killAndResumeTerminalAgent(deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+			prompt: "nudge",
+		});
+
+		expect(result).toEqual({ resumed: false });
 		expect(runCalls).toEqual([]);
-		// The reaper finishes the kill; the session id must stay resumable.
-		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeDefined();
+		// The nudge stays pending, so the resume that follows the reaper's
+		// kill still carries it.
+		const { deps: retryDeps, runCalls: retryCalls } = createDeps(db);
+		await resumeTerminalAgentSession(retryDeps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+		expect(retryCalls.map((call) => call.prompt)).toEqual(["nudge"]);
 	});
 
-	it("keeps the candidate for a pane to retry when the relaunch throws", async () => {
+	// Marking the terminal exited publishes it as a resume candidate while the
+	// old pty is still being killed. A renderer auto-resume landing there used
+	// to claim it and launch a second agent on the same conversation.
+	it("holds off a concurrent resume until the kill is done", async () => {
 		const db = createTestDb();
 		seedAgentConfig(db);
 		seedLiveBinding(db, { terminalId: "t1" });
-		const { deps, disposedTerminals, broadcasts } = createDeps(db, {
-			runAgent: () => Promise.reject(new Error("spawn failed")),
+		const killer = createDeps(db);
+		const racer = createDeps(db);
+		let finishKill!: () => void;
+		const killed = new Promise<void>((resolve) => {
+			finishKill = resolve;
+		});
+		killer.deps.disposeSession = (terminalId) => {
+			killer.disposedTerminals.push(terminalId);
+			return killed;
+		};
+
+		const kill = killAndResumeTerminalAgent(killer.deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+			prompt: "nudge",
+		});
+		expect(killer.disposedTerminals).toEqual(["t1"]);
+
+		const raced = resumeTerminalAgentSession(racer.deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+		await Promise.resolve();
+		expect(racer.runCalls).toEqual([]);
+
+		finishKill();
+		const [killResult, raceResult] = await Promise.all([kill, raced]);
+
+		// One launch for this conversation, and the racer shares its outcome.
+		expect(killResult).toEqual({
+			resumed: true,
+			terminalId: "t-new",
+			label: "Claude",
+		});
+		expect(raceResult).toEqual(killResult);
+		expect(killer.runCalls.map((call) => call.prompt)).toEqual(["nudge"]);
+		expect(racer.runCalls).toEqual([]);
+	});
+
+	// The pane died on its own in the window before the mover got here, so the
+	// renderer's auto-resume is already past the point where it reads a nudge:
+	// the one registered now cannot ride along on that launch.
+	it("does not claim a nudge the resume it joined had already passed", async () => {
+		const db = createTestDb();
+		seedResumableBinding(db, { terminalId: "t1" });
+		let releaseLaunch = () => {};
+		const gate = new Promise<void>((resolveGate) => {
+			releaseLaunch = resolveGate;
+		});
+		const racer = createDeps(db, async () => {
+			await gate;
+			return { kind: "terminal", sessionId: "t-new", label: "Claude" };
+		});
+		const mover = createDeps(db);
+
+		const raced = resumeTerminalAgentSession(racer.deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+		const killed = killAndResumeTerminalAgent(mover.deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+			prompt: "nudge",
+		});
+		releaseLaunch();
+		const [raceResult, killResult] = await Promise.all([raced, killed]);
+
+		expect(raceResult).toEqual({
+			resumed: true,
+			terminalId: "t-new",
+			label: "Claude",
+		});
+		// That launch went out with an empty prompt, so the mover must not
+		// report the restart as the one that delivered the nudge.
+		expect(racer.runCalls.map((call) => call.prompt)).toEqual([""]);
+		expect(mover.runCalls).toEqual([]);
+		expect(killResult).toEqual({ resumed: false });
+
+		// The nudge is still pending, so the resume that follows the caller's
+		// retry carries it — and consumes it there, leaving nothing behind.
+		db.update(terminalAgentBindings)
+			.set({ endReason: "terminal-exited" })
+			.where(eq(terminalAgentBindings.terminalId, "t1"))
+			.run();
+		const retry = createDeps(db);
+		await resumeTerminalAgentSession(retry.deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+		expect(retry.runCalls.map((call) => call.prompt)).toEqual(["nudge"]);
+	});
+
+	it("does not report an expired late nudge as delivered after cleanup", async () => {
+		const db = createTestDb();
+		seedResumableBinding(db);
+		let now = Date.now();
+		const clock = spyOn(Date, "now").mockImplementation(() => now);
+		let releaseLaunch = () => {};
+		const gate = new Promise<void>((resolveGate) => {
+			releaseLaunch = resolveGate;
+		});
+		try {
+			const racer = createDeps(db, async () => {
+				await gate;
+				return { kind: "terminal", sessionId: "t-new", label: "Claude" };
+			});
+			const raced = resumeTerminalAgentSession(racer.deps, {
+				workspaceId: "ws-1",
+				terminalId: "t1",
+			});
+			const joined = killAndResumeTerminalAgent(createDeps(db).deps, {
+				workspaceId: "ws-1",
+				terminalId: "t1",
+				prompt: "nudge",
+			});
+			now += 2 * 60_000;
+			registerPendingNudge("ws-1", "unrelated", "another nudge");
+			releaseLaunch();
+			await raced;
+			expect(await joined).toEqual({ resumed: false });
+			expect(racer.runCalls.map((call) => call.prompt)).toEqual([""]);
+		} finally {
+			releaseLaunch();
+			clock.mockRestore();
+		}
+	});
+
+	it("does not claim a nudge that expires while its own kill is pending", async () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedLiveBinding(db, { terminalId: "t1" });
+		let now = Date.now();
+		const clock = spyOn(Date, "now").mockImplementation(() => now);
+		try {
+			const { deps, runCalls, broadcasts } = createDeps(db, {
+				disposeSession: async () => {
+					now += 2 * 60_000;
+				},
+			});
+			const result = await killAndResumeTerminalAgent(deps, {
+				workspaceId: "ws-1",
+				terminalId: "t1",
+				prompt: "nudge",
+			});
+			expect(result).toEqual({ resumed: false });
+			expect(runCalls.map((call) => call.prompt)).toEqual([""]);
+			expect(broadcasts).toContainEqual(
+				expect.objectContaining({
+					eventType: "resumed",
+					resumedTerminalId: "t-new",
+				}),
+			);
+		} finally {
+			clock.mockRestore();
+		}
+	});
+
+	it("restarts without a prompt when no nudge is given", async () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedLiveBinding(db, { terminalId: "t1" });
+		const { deps, runCalls } = createDeps(db);
+
+		await killAndResumeTerminalAgent(deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
 		});
 
-		const result = await restartAccountSessions(deps, "claude");
-
-		expect(result).toEqual({ restartedTerminalIds: [] });
-		expect(disposedTerminals).toEqual(["t1"]);
-		expect(broadcasts).toEqual([]);
-		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeDefined();
+		expect(runCalls.map((call) => call.prompt)).toEqual([""]);
 	});
 });

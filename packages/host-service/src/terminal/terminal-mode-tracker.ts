@@ -52,6 +52,16 @@ export interface TerminalSnapshot {
 	rows: number;
 	/** Plain text of the emulator buffer (alt-screen for TUI agents). */
 	text: string;
+	/**
+	 * How many trailing blank rows were trimmed off the end of `text`. A
+	 * consumer slicing the last `rows` lines back out of `text` to get the
+	 * visible screen has to subtract this, or its window starts that many rows
+	 * above the viewport top and reaches into scrollback. Clamped to `rows`:
+	 * trimming can run past the viewport top into blank scrollback, and
+	 * `rows - trimmedRows` has to stay a row count, never negative. At `rows`
+	 * the visible screen is blank.
+	 */
+	trimmedRows: number;
 }
 
 // Reaches into private xterm internals: synchronous parsing and kitty
@@ -264,8 +274,20 @@ export function createModeTracker(
 			lines.push(buffer.getLine(y)?.translateToString(true) ?? "");
 		}
 		// Trim trailing blank rows so the snapshot ends at real content.
-		while (lines.length > 0 && lines[lines.length - 1] === "") lines.pop();
-		return { cols: term.cols, rows: term.rows, text: lines.join("\n") };
+		let trimmedRows = 0;
+		while (lines.length > 0 && lines[lines.length - 1] === "") {
+			lines.pop();
+			trimmedRows++;
+		}
+		return {
+			cols: term.cols,
+			rows: term.rows,
+			text: lines.join("\n"),
+			// The pop above keeps going into blank scrollback above the viewport
+			// top; reporting more than a screenful would make a consumer's
+			// `rows - trimmedRows` window negative.
+			trimmedRows: Math.min(trimmedRows, term.rows),
+		};
 	};
 
 	return {

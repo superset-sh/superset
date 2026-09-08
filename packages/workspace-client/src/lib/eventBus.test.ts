@@ -79,6 +79,82 @@ describe("eventBus", () => {
 		expect(other.length).toBe(0);
 	});
 
+	// KTD6: account events are agent-scoped, not workspace-scoped — the active
+	// account is host-wide, so the agent is the only filter that means
+	// anything.
+	it("routes account events to listeners keyed by agent", async () => {
+		const host = makeHostServer();
+		const bus = getEventBus(host.hostUrl, () => "tok");
+		const claude: Array<[string, { toAccountId: string | null }]> = [];
+		const codex: string[] = [];
+		const anyAgent: string[] = [];
+		const engineCodex: Array<[string, { activeAccountId: string | null }]> = [];
+		const engineClaude: string[] = [];
+		cleanups.push(
+			bus.on("account:switched", "claude", (agent, payload) =>
+				claude.push([agent, payload]),
+			),
+		);
+		cleanups.push(
+			bus.on("account:switched", "codex", (agent) => codex.push(agent)),
+		);
+		cleanups.push(
+			bus.on("account:engine-state", "*", (agent) => anyAgent.push(agent)),
+		);
+		cleanups.push(
+			bus.on("account:engine-state", "codex", (agent, payload) =>
+				engineCodex.push([agent, payload]),
+			),
+		);
+		cleanups.push(
+			bus.on("account:engine-state", "claude", (agent) =>
+				engineClaude.push(agent),
+			),
+		);
+		cleanups.push(() => host.server.stop(true));
+
+		await waitFor(() => host.clientCount() === 1);
+		host.push({
+			type: "account:switched",
+			scope: "claude",
+			agent: "claude",
+			fromAccountId: "acct-a",
+			fromLabel: "work",
+			toAccountId: "acct-b",
+			toLabel: "personal",
+			reasonKind: "threshold",
+			windowId: "five_hour",
+			usedPercent: 91,
+			at: 1,
+			fallbackRestart: false,
+		});
+		host.push({
+			type: "account:engine-state",
+			scope: "codex",
+			agent: "codex",
+			enabled: true,
+			activeAccountId: "acct-c",
+			cooldownUntil: null,
+			exhausted: false,
+			lockOwner: true,
+			occurredAt: 2,
+		});
+
+		await waitFor(
+			() =>
+				claude.length === 1 &&
+				anyAgent.length === 1 &&
+				engineCodex.length === 1,
+		);
+		expect(codex).toEqual([]);
+		expect(engineClaude).toEqual([]);
+		expect(claude[0]?.[0]).toBe("claude");
+		expect(claude[0]?.[1].toAccountId).toBe("acct-b");
+		expect(anyAgent).toEqual(["codex"]);
+		expect(engineCodex[0]?.[0]).toBe("codex");
+		expect(engineCodex[0]?.[1].activeAccountId).toBe("acct-c");
+	});
+
 	it("shares one connection per hostUrl across handles", async () => {
 		const host = makeHostServer();
 		const busA = getEventBus(host.hostUrl, () => "tok");

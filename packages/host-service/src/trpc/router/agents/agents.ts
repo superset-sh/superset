@@ -611,7 +611,12 @@ export async function runAgentInWorkspace(
 	if (workspace.projectId === null) {
 		const config = resolveHostAgentConfig(ctx.db, input.agent);
 		if (config) {
-			await seedAgentFolderTrust(ctx.db, workspace.worktreePath, config);
+			await seedAgentFolderTrust(
+				ctx.db,
+				workspace.worktreePath,
+				config,
+				ctx.runtime.accountEngine,
+			);
 		}
 	}
 	return runTerminalAgent(ctx, input);

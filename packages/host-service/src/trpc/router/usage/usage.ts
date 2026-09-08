@@ -1,90 +1,61 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { basename, join } from "node:path";
-import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import {
+	type AccountService,
+	createLocalAccountService,
+} from "../../../account-engine/account-service.ts";
+import type { QuotaStore } from "../../../account-engine/quota-store.ts";
 import { projects, workspaces } from "../../../db/schema";
+import type { HostServiceContext } from "../../../types.ts";
 import {
 	leaderboardPayloadTask,
 	usageHistoryTask,
 } from "../../../workers/tasks/usage";
 import { protectedProcedure, queryProcedure, router } from "../../index";
 import { offLoop } from "../../off-loop";
+import { readDefaultLoginEmail } from "./claude";
 import {
-	provisionClaudeAccount,
-	provisionCodexAccount,
-} from "./account-provisioning";
-import { fetchAgyAccounts } from "./agy-quota";
-import { fetchClaudeAccounts, readDefaultLoginEmail } from "./claude";
-import { fetchCodexAccounts } from "./codex";
-import {
+	applyAccountEngineState,
 	getDefaultAccountSelections,
+	readAccountEngineView,
 	setDefaultAccountSelection,
 } from "./default-account";
-import { fetchGrokAccounts } from "./grok-quota";
+import { engineError, usageEngineRouter } from "./engine";
 import { countAgentPrsByDay } from "./history/agent-prs";
-import { removeClaudeProfile, removeCodexHome } from "./profile-remove";
 import { discoverClaudeProfiles, discoverCodexHomes } from "./profiles";
-import type { UsageAccount } from "./types";
 
-/**
- * Agent quota endpoints are undocumented and rate-limit-sensitive, so
- * results are cached briefly and concurrent callers share one in-flight
- * request. The cached promise is evicted on rejection so a failure does not
- * replay for the whole TTL.
- */
-// >=5 min: Anthropic 429-blacklists faster pollers of the oauth/usage
-// endpoint (ccusage deprecated its live gauge over this; CodexBar #30930).
-const QUOTA_CACHE_TTL_MS = 5 * 60 * 1000;
-
-let cachedQuota: { promise: Promise<UsageAccount[]>; cachedAt: number } | null =
-	null;
-
-function loadAccounts(): Promise<UsageAccount[]> {
-	return Promise.all([
-		fetchClaudeAccounts(),
-		fetchCodexAccounts(),
-		fetchGrokAccounts(),
-		fetchAgyAccounts(),
-	]).then((groups) => groups.flat());
-}
-
-function getQuota(forceRefresh: boolean): Promise<UsageAccount[]> {
-	if (
-		!forceRefresh &&
-		cachedQuota &&
-		Date.now() - cachedQuota.cachedAt < QUOTA_CACHE_TTL_MS
-	) {
-		return cachedQuota.promise;
-	}
-
-	const promise = loadAccounts();
-	const entry = { promise, cachedAt: Date.now() };
-	cachedQuota = entry;
-	promise.catch(() => {
-		if (cachedQuota === entry) cachedQuota = null;
-	});
-	return promise;
+function accountService(ctx: HostServiceContext): AccountService {
+	return (
+		ctx.runtime.accountEngine ??
+		createLocalAccountService(null, ctx.runtime.quotaStore as QuotaStore, {
+			readView: () => readAccountEngineView(ctx.db),
+			setSelection: (agent, selection) =>
+				setDefaultAccountSelection(ctx.db, agent, selection),
+			getSelections: () => getDefaultAccountSelections(ctx.db),
+		})
+	);
 }
 
 export const usageRouter = router({
+	/** U7: the account engine's settings, rotation and switch history. */
+	engine: usageEngineRouter,
+
 	quota: queryProcedure
 		.meta({ timeoutMs: 15_000 })
 		.input(z.object({ forceRefresh: z.boolean().optional() }).optional())
 		.query(async ({ ctx, input }) => {
-			const accounts = await getQuota(input?.forceRefresh ?? false);
-			// isDefault is applied per query, not cached with the quota: changing
-			// the default must reflect immediately without re-hitting providers.
-			const defaults = getDefaultAccountSelections(ctx.db);
-			return accounts.map((account) => ({
-				...account,
-				isDefault:
-					account.agent === "claude"
-						? account.selection === defaults.claudeConfigDir
-						: account.agent === "codex"
-							? account.selection === defaults.codexHome
-							: false,
-			}));
+			const accounts = await ctx.runtime.quotaStore.read({
+				forceRefresh: input?.forceRefresh ?? false,
+			});
+			// The active account and the rotation flags are applied per query,
+			// not cached with the quota: a switch or a toggle must reflect
+			// immediately without re-hitting providers.
+			const engineState = readAccountEngineView(ctx.db);
+			return accounts.map((account) =>
+				applyAccountEngineState(account, engineState),
+			);
 		}),
 
 	/**
@@ -133,8 +104,12 @@ export const usageRouter = router({
 	}),
 
 	/**
-	 * Point new agent launches at one of the discovered logins (null = the
-	 * system default). Never touches credentials — see default-account.ts.
+	 * R2/R4: make one of the discovered logins the active account (null = the
+	 * system default, KTD14). The engine performs it by the same path an
+	 * automatic switch takes, so it reaches running sessions, records a manual
+	 * history entry and restarts the cooldown while auto-switch stays on.
+	 * On Windows, where there is no engine swap to be had (KTD13), it falls
+	 * back to the pointer write, which is all this endpoint ever did before.
 	 */
 	setDefaultAccount: protectedProcedure
 		.input(
@@ -144,88 +119,37 @@ export const usageRouter = router({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			if (input.selection !== null) {
-				// Only accept a discovered login: the value lands in a shell env
-				// overlay, and a typo'd dir would boot agents signed out.
-				const accounts = await getQuota(false);
-				const known = accounts.some(
-					(account) =>
-						account.agent === input.agent &&
-						account.selection === input.selection,
-				);
-				if (!known) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: `No ${input.agent} login found at ${input.selection} — refresh usage and pick again.`,
-					});
-				}
-			}
-			setDefaultAccountSelection(ctx.db, input.agent, input.selection);
-			// A profile dir is a whole config root, not just a login: without
-			// provisioning, agents launched there lose the user's skills,
-			// plugins, MCP servers and settings along with Superset's lifecycle
-			// hooks — and, for Claude, the shared session history. Best-effort —
-			// a failed share must not undo the switch, and provisioning retries
-			// on the next switch and at host boot.
-			if (input.selection !== null) {
-				try {
-					await (input.agent === "claude"
-						? provisionClaudeAccount(input.selection)
-						: provisionCodexAccount(input.selection));
-				} catch (error) {
-					console.warn(
-						`[host-service] provisioning ${input.agent} account ${input.selection} failed (continuing):`,
-						error,
-					);
-				}
-			}
+			const outcome = await accountService(ctx).switchManually(
+				input.agent,
+				input.selection,
+			);
+			if (!outcome.ok) throw engineError(outcome.code);
 			return { success: true as const };
 		}),
 
 	/**
 	 * Deletes a secondary profile: its dir plus, for Claude on macOS, its
 	 * scoped keychain items. The system default (selection null) is never
-	 * removable, and only currently discovered profiles are accepted. A
-	 * default pointer at the removed profile is cleared so agents fall back
-	 * to the system login instead of a dead dir.
+	 * removable, and only currently discovered profiles are accepted. R25:
+	 * the active account is what every running session is signed in as, so it
+	 * can only be removed once another account has become active.
 	 */
 	removeAccount: protectedProcedure
 		.input(
 			z.object({
 				agent: z.enum(["claude", "codex"]),
 				selection: z.string(),
+				/**
+				 * The caller has told the user Superset cannot tell which login
+				 * is live and they chose to remove anyway. Only the genuinely
+				 * unknown refusal below honours it; an account known to be
+				 * active is still refused.
+				 */
+				acknowledgeUnknownActive: z.boolean().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const accounts = await getQuota(false);
-			const known = accounts.some(
-				(account) =>
-					account.agent === input.agent &&
-					account.selection === input.selection,
-			);
-			if (!known) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: `No removable ${input.agent} profile at ${input.selection}.`,
-				});
-			}
-			if (input.agent === "claude") {
-				await removeClaudeProfile(input.selection);
-			} else {
-				await removeCodexHome(input.selection);
-			}
-			const defaults = getDefaultAccountSelections(ctx.db);
-			const pointer =
-				input.agent === "claude"
-					? defaults.claudeConfigDir
-					: defaults.codexHome;
-			if (pointer === input.selection) {
-				setDefaultAccountSelection(ctx.db, input.agent, null);
-			}
-			// The quota cache still lists the removed account; drop it so the
-			// next query re-discovers.
-			cachedQuota = null;
-			return { success: true as const };
+			return accountService(ctx).removeAccount(input);
 		}),
 
 	/**
@@ -242,21 +166,8 @@ export const usageRouter = router({
 				selection: z.string(),
 			}),
 		)
-		.mutation(async ({ input }) => {
-			const discovered =
-				input.agent === "claude"
-					? (await discoverClaudeProfiles()).map((profile) => profile.configDir)
-					: (await discoverCodexHomes()).map((home) => home.home);
-			if (!discovered.includes(input.selection)) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: `No ${input.agent} profile found at ${input.selection}.`,
-				});
-			}
-			await (input.agent === "claude"
-				? provisionClaudeAccount(input.selection)
-				: provisionCodexAccount(input.selection));
-			return { success: true as const };
+		.mutation(async ({ ctx, input }) => {
+			return accountService(ctx).prepareAccount(input);
 		}),
 
 	/**
