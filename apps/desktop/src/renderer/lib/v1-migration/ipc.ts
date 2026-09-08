@@ -21,7 +21,18 @@ export interface V1ProjectRow {
 	branchPrefixCustom: string | null;
 }
 
+export interface V1GroupRow {
+	isCollapsed?: boolean | null;
+	createdAt?: number;
+	id: string;
+	projectId: string;
+	name: string;
+	color: string | null;
+	tabOrder: number;
+}
+
 export interface V1WorkspaceRow {
+	sectionId?: string | null;
 	id: string;
 	projectId: string;
 	worktreeId: string | null;
@@ -52,6 +63,7 @@ export interface V1TerminalPaneRow {
  * runV1Migration is testable end-to-end with in-memory fakes.
  */
 export interface V1MigrationIpc {
+	readV1Groups(): Promise<V1GroupRow[]>;
 	readV1Projects(): Promise<V1ProjectRow[]>;
 	readV1Workspaces(): Promise<V1WorkspaceRow[]>;
 	readV1Worktrees(): Promise<V1WorktreeRow[]>;
@@ -66,6 +78,7 @@ export interface V1MigrationIpc {
 }
 
 export const electronV1MigrationIpc: V1MigrationIpc = {
+	readV1Groups: () => electronTrpcClient.migration.readV1Groups.query(),
 	readV1Projects: () => electronTrpcClient.migration.readV1Projects.query(),
 	readV1Workspaces: () => electronTrpcClient.migration.readV1Workspaces.query(),
 	readV1Worktrees: () => electronTrpcClient.migration.readV1Worktrees.query(),

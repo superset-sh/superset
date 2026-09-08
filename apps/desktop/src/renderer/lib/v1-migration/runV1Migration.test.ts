@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { HostServiceClient } from "renderer/lib/host-service-client";
 import type {
+	V1GroupRow,
 	V1MigrationIpc,
 	V1ProjectRow,
 	V1WorkspaceRow,
@@ -22,6 +23,7 @@ interface HostProject {
 	repoPath: string;
 }
 interface HostWorkspace {
+	tags: string[];
 	id: string;
 	projectId: string;
 	branch: string;
@@ -36,6 +38,14 @@ class FakeHost {
 	brokenRepos = new Map<string, string>();
 	/** Throw the next N adopt calls (transient host fault). */
 	adoptFaults = 0;
+	tagFaults = 0;
+	folders: Array<{
+		scope: string;
+		tag: string;
+		displayName: string;
+		color: string | null;
+		tabOrder: number;
+	}> = [];
 	mutations: Array<{ kind: string; args: unknown }> = [];
 	private seq = 0;
 
@@ -87,6 +97,7 @@ class FakeHost {
 						const project = { id: this.id("v2p"), repoPath: mode.repoPath };
 						this.projects.push(project);
 						const main = {
+							tags: [],
 							id: this.id("v2w"),
 							projectId: project.id,
 							branch: "main",
@@ -141,7 +152,30 @@ class FakeHost {
 					},
 				},
 			},
-			workspace: { list: { query: async () => [...this.workspaces] } },
+
+			tagFolders: {
+				list: { query: async () => this.folders },
+				upsert: {
+					mutate: async (args: FakeHost["folders"][number]) => {
+						this.folders = this.folders.filter(
+							(f) => f.scope !== args.scope || f.tag !== args.tag,
+						);
+						this.folders.push(args);
+					},
+				},
+			},
+			workspace: {
+				list: { query: async () => this.workspaces.map((w) => ({ ...w })) },
+				update: {
+					mutate: async (args: { id: string; tags: string[] }) => {
+						if (this.tagFaults-- > 0) throw new Error("tag write failed");
+						const row = this.workspaces.find((w) => w.id === args.id);
+						if (!row) throw new Error("missing workspace");
+						row.tags = args.tags;
+						this.mutations.push({ kind: "workspace.update", args });
+					},
+				},
+			},
 			workspaceCreation: {
 				listProjectWorktrees: {
 					query: async ({ projectId }: { projectId: string }) => {
@@ -170,6 +204,7 @@ class FakeHost {
 						);
 						if (existing) return { workspace: existing, alreadyExists: true };
 						const row = {
+							tags: [],
 							id: this.id("v2w"),
 							projectId: args.projectId,
 							branch: args.branch,
@@ -184,6 +219,7 @@ class FakeHost {
 }
 
 class FakeIpc implements V1MigrationIpc {
+	groups: V1GroupRow[] = [];
 	projects: V1ProjectRow[] = [];
 	workspaces: V1WorkspaceRow[] = [];
 	worktrees: V1WorktreeRow[] = [];
@@ -192,6 +228,9 @@ class FakeIpc implements V1MigrationIpc {
 	ledgerHistory = new Map<string, string[]>();
 	failNextLedgerRecords = 0;
 
+	async readV1Groups() {
+		return this.groups;
+	}
 	async readV1Projects() {
 		return [...this.projects];
 	}
@@ -505,5 +544,117 @@ describe("runV1Migration invariants (seeded fuzz)", () => {
 			await run(ipc, host);
 			expect(host.mutations.length).toBe(before);
 		}
+	});
+});
+
+describe("v1 groups to tags", () => {
+	const setup = async () => {
+		const ipc = new FakeIpc();
+		const host = new FakeHost();
+		ipc.projects = [project("p", "/repo")];
+		ipc.workspaces = [{ ...workspace("w", "p", "main"), sectionId: "g" }];
+		await run(ipc, host); // Backfill a migration that finished before groups existed.
+		ipc.groups = [
+			{
+				id: "g",
+				projectId: "p",
+				name: "Review",
+				color: "#ff0000",
+				tabOrder: 3,
+			},
+		];
+		return { ipc, host };
+	};
+
+	test("backfills existing workspaces, preserves tags and presentation, respects later v2 edits", async () => {
+		const { ipc, host } = await setup();
+		host.workspaces[0].tags = ["existing"];
+		await run(ipc, host);
+		expect(host.workspaces[0].tags).toEqual(["existing", "review"]);
+		expect(host.folders[0]).toMatchObject({
+			tag: "review",
+			displayName: "Review",
+			color: "#ff0000",
+			tabOrder: 3,
+		});
+		host.workspaces[0].tags = ["existing"]; // user removes migrated membership
+		host.folders[0].displayName = "Renamed";
+		const writes = host.mutations.length;
+		await run(ipc, host);
+		expect(host.mutations.length).toBe(writes);
+		expect(host.workspaces[0].tags).toEqual(["existing"]);
+		expect(host.folders[0].displayName).toBe("Renamed");
+	});
+
+	test("reserves collision-free tags and reuses them after a rejected membership write", async () => {
+		const { ipc, host } = await setup();
+		host.workspaces[0].tags = ["review"];
+		ipc.groups.push({ ...ipc.groups[0], id: "empty" });
+		host.tagFaults = 1;
+		expect((await run(ipc, host)).settings.failed).toBe(1);
+		expect(host.folders.map((f) => f.tag)).toEqual(["review-2", "review-3"]);
+		await run(ipc, host);
+		expect(host.workspaces[0].tags).toEqual(["review", "review-2"]);
+		expect(host.folders.map((f) => f.tag)).toEqual(["review-2", "review-3"]);
+	});
+
+	test("imports late members without recreating or retagging the group", async () => {
+		const { ipc, host } = await setup();
+		ipc.workspaces.push({ ...workspace("late", "p", "feat"), sectionId: "g" });
+		host.diskBranches.set("/repo", new Set(["main", "feat"]));
+		host.adoptFaults = 1;
+		expect((await run(ipc, host)).settings.deferred).toBe(1);
+		await run(ipc, host);
+		expect(host.workspaces.find((w) => w.branch === "feat")?.tags).toEqual([
+			"review",
+		]);
+		expect(host.folders).toHaveLength(1);
+	});
+
+	test("does not write host state when reserving the tag fails", async () => {
+		const { ipc, host } = await setup();
+		ipc.failNextLedgerRecords = 1;
+		expect((await run(ipc, host)).settings.failed).toBe(1);
+		expect(host.folders).toHaveLength(0);
+		expect(host.workspaces[0].tags).toEqual([]);
+		await run(ipc, host);
+		expect(host.folders[0].tag).toBe("review");
+	});
+
+	test("retries local presentation after failure and seeds it only once", async () => {
+		const { ipc, host } = await setup();
+		ipc.groups[0].isCollapsed = true;
+		const imported: unknown[] = [];
+		let fail = true;
+		const groupTarget = (group: V1GroupRow, projectId: string, tag: string) => {
+			if (fail) throw new Error("local write failed");
+			imported.push({ group, projectId, tag });
+		};
+		const pass = () =>
+			runV1Migration({
+				organizationId: "org",
+				ipc,
+				hostClient: host.client(),
+				groupTarget,
+			});
+		expect((await pass()).settings.failed).toBe(1);
+		fail = false;
+		await pass();
+		await pass();
+		expect(imported).toHaveLength(1);
+		expect(imported[0]).toMatchObject({
+			group: { isCollapsed: true },
+			tag: "review",
+		});
+		expect(host.folders).toHaveLength(1);
+		expect(host.workspaces[0].tags).toEqual(["review"]);
+	});
+
+	test("skips groups belonging to projects that were not migrated", async () => {
+		const { ipc, host } = await setup();
+		ipc.groups[0].projectId = "hidden";
+		await run(ipc, host);
+		expect(host.folders).toHaveLength(0);
+		expect(host.workspaces[0].tags).toEqual([]);
 	});
 });
