@@ -381,6 +381,73 @@ describe("AutoSwitchSettings controls", () => {
 		).toBe("90");
 	});
 
+	// The models field sits between the threshold and the poll pair in tab
+	// order, so tabbing past it must not swallow the refusal the threshold
+	// just got — that would make the refusal silent.
+	test("tabbing through the model field leaves another control's refusal on screen", async () => {
+		const onCommit = mock(() => Promise.reject(new Error("invalid-settings")));
+		const view = render(
+			<AutoSwitchSettings
+				agentLabel="Claude Code"
+				settings={SETTINGS}
+				engineAvailable
+				platformSupported
+				lockOwner
+				disabled={false}
+				onCommit={onCommit}
+			/>,
+		);
+		const ui = within(view.baseElement as HTMLElement);
+		await act(async () => {
+			const threshold = ui.getByRole("spinbutton", { name: "Switch at" });
+			fireEvent.change(threshold, { target: { value: "40" } });
+			fireEvent.blur(threshold);
+		});
+		expect(ui.getByRole("alert").textContent).toContain(
+			"previous one still stands",
+		);
+		await act(async () => {
+			const models = ui.getByRole("textbox", { name: "Model windows" });
+			fireEvent.focus(models);
+			fireEvent.blur(models);
+		});
+		expect(onCommit).toHaveBeenCalledTimes(1);
+		expect(ui.getByRole("alert").textContent).toContain(
+			"previous one still stands",
+		);
+		expect(
+			(ui.getByRole("spinbutton", { name: "Switch at" }) as HTMLInputElement)
+				.value,
+		).toBe("90");
+	});
+
+	// The 64-character complaint promised the long name would stay put until
+	// it is shortened, so saving another control must not delete it, nor the
+	// line that says why it is still there.
+	test("a kept model draft and its complaint survive another control's save", async () => {
+		const { commits, ui } = setup();
+		const typed = `Opus, ${"m".repeat(70)}`;
+		await act(async () => {
+			const models = ui.getByRole("textbox", { name: "Model windows" });
+			fireEvent.change(models, { target: { value: typed } });
+			fireEvent.blur(models);
+		});
+		expect(commits).toEqual([]);
+		await act(async () => {
+			const threshold = ui.getByRole("spinbutton", { name: "Switch at" });
+			fireEvent.change(threshold, { target: { value: "75" } });
+			fireEvent.blur(threshold);
+		});
+		expect(commits).toEqual([{ thresholdPercent: 75 }]);
+		expect(
+			(ui.getByRole("textbox", { name: "Model windows" }) as HTMLInputElement)
+				.value,
+		).toBe(typed);
+		expect(ui.getByRole("alert").textContent).toContain(
+			"at most 64 characters",
+		);
+	});
+
 	test("an offline host leaves every control untouchable", () => {
 		const { ui } = setup({ disabled: true });
 		expect(

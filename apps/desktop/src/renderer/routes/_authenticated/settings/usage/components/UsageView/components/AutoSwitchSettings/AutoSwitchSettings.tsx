@@ -75,7 +75,12 @@ export function AutoSwitchSettings({
 	const { t } = useLingui();
 	const fieldId = useId();
 	const [pending, setPending] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+	// Tagged with whoever raised it: only the control that put a complaint on
+	// screen is allowed to take it back down.
+	const [error, setError] = useState<{
+		source: "models" | "commit";
+		message: string;
+	} | null>(null);
 	// Drafts only exist between a keystroke and the host's answer; `null`
 	// means "show what the host confirmed".
 	const [thresholdDraft, setThresholdDraft] = useState<string | null>(null);
@@ -99,22 +104,30 @@ export function AutoSwitchSettings({
 	const models = modelsDraft ?? confirmedModels;
 
 	const commit = async (patch: Partial<AccountEngineAgentSettings>) => {
-		setError(null);
+		// The model-name complaint asked for the typed text to be shortened, so
+		// it and the draft it is about outlive a commit from another control;
+		// only the models field's own commit answers it.
+		const keepModelsError =
+			error?.source === "models" && !("modelWindows" in patch);
+		setError(keepModelsError ? error : null);
 		setPending(true);
 		try {
 			await onCommit(patch);
 		} catch (failure) {
-			setError(
-				engineErrorMessage(failure) ??
+			setError({
+				source: "commit",
+				message:
+					engineErrorMessage(failure) ??
 					t({
 						message: `Not saved (${engineErrorCode(failure)}). The previous value still stands.`,
 					}),
-			);
+			});
 		} finally {
-			// Whichever way it went, the host's own value is the truth now.
+			// Whichever way it went, the host's own value is the truth now —
+			// except for a draft the panel itself promised to keep.
 			setThresholdDraft(null);
 			setCooldownDraft(null);
-			setModelsDraft(null);
+			if (!keepModelsError) setModelsDraft(null);
 			setPending(false);
 		}
 	};
@@ -314,8 +327,10 @@ export function AutoSwitchSettings({
 									onBlur={() => {
 										// Putting the field back the way it was clears the
 										// complaint about what used to be in it, the same way
-										// `commit` clears it before writing.
-										setError(null);
+										// `commit` clears it before writing — but only this field's
+										// own complaint; another control's refusal is not this
+										// field's to erase.
+										if (error?.source === "models") setError(null);
 										if (models === confirmedModels) {
 											setModelsDraft(null);
 											return;
@@ -331,11 +346,12 @@ export function AutoSwitchSettings({
 										if (
 											names.some((name) => name.length > MAX_MODEL_NAME_LENGTH)
 										) {
-											setError(
-												t({
+											setError({
+												source: "models",
+												message: t({
 													message: `A model name can be at most ${MAX_MODEL_NAME_LENGTH} characters. Shorten it and try again.`,
 												}),
-											);
+											});
 											return;
 										}
 										void commit({ modelWindows: names });
@@ -454,7 +470,7 @@ export function AutoSwitchSettings({
 					className="mt-2 flex items-start gap-1.5 text-[11px] text-red-500"
 				>
 					<LuTriangleAlert className="mt-px size-3 shrink-0" />
-					<span>{error}</span>
+					<span>{error.message}</span>
 				</p>
 			)}
 		</div>
