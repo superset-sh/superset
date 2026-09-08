@@ -1,0 +1,10 @@
+{
+	"name": "@superset-plugins/gmail",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"publish": "superset plugins publish gmail",
+		"check": "superset plugins validate plugins/gmail"
+	}
+}

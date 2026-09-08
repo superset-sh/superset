@@ -87,7 +87,7 @@ export const FIRST_PARTY_MANIFESTS = {
 	"linear": {
 		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
 		"name": "linear",
-		"version": "1.4.0",
+		"version": "1.5.0",
 		"description": "Plan and build products: create, search, and update Linear issues.",
 		"author": {
 			"name": "Superset",
@@ -114,33 +114,11 @@ export const FIRST_PARTY_MANIFESTS = {
 						"type": "oauth2",
 						"label": "OAuth 2.0",
 						"provider": "linear",
-						"authorization_url": "https://linear.app/oauth/authorize",
-						"token_url": "https://api.linear.app/oauth/token",
+						"client": "dynamic",
 						"scopes": [
 							"read",
-							"write",
-							"issues:create"
+							"write"
 						],
-						"scope_separator": ",",
-						"token_request_auth_method": "client_secret_post",
-						"token_expiration_buffer": 300,
-						"requires_env": [
-							"PLUGIN_LINEAR_CLIENT_ID",
-							"PLUGIN_LINEAR_CLIENT_SECRET"
-						],
-						"identity": {
-							"url": "https://api.linear.app/graphql",
-							"method": "POST",
-							"headers": {
-								"Authorization": "Bearer ${config.access_token}",
-								"Content-Type": "application/json"
-							},
-							"body": {
-								"query": "query { viewer { id name organization { id name } } }"
-							},
-							"id": "$.data.viewer.organization.id",
-							"label": "$.data.viewer.organization.name"
-						},
 						"bind": {
 							"headers": {
 								"Authorization": "Bearer ${config.access_token}"
@@ -257,6 +235,158 @@ export const FIRST_PARTY_MANIFESTS = {
 				"description": "Write a page into Notion that someone else can find and trust — pick the right parent, check for the page that already exists, and structure it for a reader who was not in this conversation. Use when the user says to write up, document, save, or capture something in Notion, or to update an existing page."
 			}
 		]
+	} as const,
+	"slack": {
+		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+		"name": "slack",
+		"version": "1.0.0",
+		"description": "Search and post across your Slack workspace: channels, DMs, and threads.",
+		"author": {
+			"name": "Superset",
+			"url": "https://superset.sh"
+		},
+		"homepage": "https://docs.superset.sh",
+		"repository": "https://github.com/superset-sh/superset",
+		"license": "MIT",
+		"keywords": [
+			"slack",
+			"chat",
+			"messages",
+			"communication",
+			"search"
+		],
+		"extensions": {
+			"superset": {
+				"interface": {
+					"displayName": "Slack",
+					"category": "Communication",
+					"icon": "slack"
+				},
+				"auth": [
+					{
+						"type": "oauth2",
+						"label": "OAuth 2.0",
+						"provider": "slack",
+						"pkce": true,
+						"authorization_url": "https://slack.com/oauth/v2_user/authorize",
+						"token_url": "https://slack.com/api/oauth.v2.user.access",
+						"scopes": [
+							"channels:history",
+							"channels:read",
+							"groups:history",
+							"groups:read",
+							"im:history",
+							"im:read",
+							"mpim:history",
+							"mpim:read",
+							"chat:write",
+							"users:read",
+							"search:read.public"
+						],
+						"scope_separator": ",",
+						"token_request_auth_method": "client_secret_post",
+						"requires_env": [
+							"PLUGIN_SLACK_CLIENT_ID",
+							"PLUGIN_SLACK_CLIENT_SECRET"
+						],
+						"identity": {
+							"url": "https://slack.com/api/auth.test",
+							"method": "GET",
+							"headers": {
+								"Authorization": "Bearer ${config.access_token}"
+							},
+							"id": "$.team_id",
+							"label": "$.team"
+						},
+						"bind": {
+							"headers": {
+								"Authorization": "Bearer ${config.access_token}"
+							}
+						}
+					}
+				],
+				"mcp": {
+					"type": "streamable-http",
+					"url": "https://mcp.slack.com/mcp"
+				}
+			}
+		},
+		"skills": []
+	} as const,
+	"gmail": {
+		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+		"name": "gmail",
+		"version": "1.0.0",
+		"description": "Read, search, and draft mail in your Gmail account.",
+		"author": {
+			"name": "Superset",
+			"url": "https://superset.sh"
+		},
+		"homepage": "https://docs.superset.sh",
+		"repository": "https://github.com/superset-sh/superset",
+		"license": "MIT",
+		"keywords": [
+			"gmail",
+			"email",
+			"mail",
+			"google",
+			"inbox"
+		],
+		"extensions": {
+			"superset": {
+				"interface": {
+					"displayName": "Gmail",
+					"category": "Communication",
+					"icon": "gmail"
+				},
+				"auth": [
+					{
+						"type": "oauth2",
+						"label": "OAuth 2.0",
+						"provider": "google",
+						"pkce": true,
+						"authorization_url": "https://accounts.google.com/o/oauth2/v2/auth",
+						"token_url": "https://oauth2.googleapis.com/token",
+						"scopes": [
+							"openid",
+							"email",
+							"https://www.googleapis.com/auth/gmail.readonly",
+							"https://www.googleapis.com/auth/gmail.compose"
+						],
+						"scope_separator": " ",
+						"token_request_auth_method": "client_secret_post",
+						"token_expiration_buffer": 300,
+						"authorization_params": {
+							"access_type": "offline",
+							"prompt": "consent"
+						},
+						"requires_env": [
+							"PLUGIN_GOOGLE_CLIENT_ID",
+							"PLUGIN_GOOGLE_CLIENT_SECRET"
+						],
+						"identity": {
+							"url": "https://openidconnect.googleapis.com/v1/userinfo",
+							"method": "GET",
+							"headers": {
+								"Authorization": "Bearer ${config.access_token}"
+							},
+							"id": "$.sub",
+							"label": "$.email"
+						},
+						"bind": {
+							"headers": {
+								"Authorization": "Bearer ${config.access_token}"
+							}
+						}
+					}
+				],
+				"mcp": {
+					"type": "streamable-http",
+					"url": "https://gmailmcp.googleapis.com/mcp/v1"
+				}
+			}
+		},
+		"skills": []
 	} as const,
 } as const;
 

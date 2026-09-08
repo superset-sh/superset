@@ -1,0 +1,68 @@
+{
+	"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+	"name": "gmail",
+	"version": "1.0.0",
+	"description": "Read, search, and draft mail in your Gmail account.",
+	"author": {
+		"name": "Superset",
+		"url": "https://superset.sh"
+	},
+	"homepage": "https://docs.superset.sh",
+	"repository": "https://github.com/superset-sh/superset",
+	"license": "MIT",
+	"keywords": ["gmail", "email", "mail", "google", "inbox"],
+	"extensions": {
+		"superset": {
+			"interface": {
+				"displayName": "Gmail",
+				"category": "Communication",
+				"icon": "gmail"
+			},
+			"auth": [
+				{
+					"type": "oauth2",
+					"label": "OAuth 2.0",
+					"provider": "google",
+					"pkce": true,
+					"authorization_url": "https://accounts.google.com/o/oauth2/v2/auth",
+					"token_url": "https://oauth2.googleapis.com/token",
+					"scopes": [
+						"openid",
+						"email",
+						"https://www.googleapis.com/auth/gmail.readonly",
+						"https://www.googleapis.com/auth/gmail.compose"
+					],
+					"scope_separator": " ",
+					"token_request_auth_method": "client_secret_post",
+					"token_expiration_buffer": 300,
+					"authorization_params": {
+						"access_type": "offline",
+						"prompt": "consent"
+					},
+					"requires_env": [
+						"PLUGIN_GOOGLE_CLIENT_ID",
+						"PLUGIN_GOOGLE_CLIENT_SECRET"
+					],
+					"identity": {
+						"url": "https://openidconnect.googleapis.com/v1/userinfo",
+						"method": "GET",
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						},
+						"id": "$.sub",
+						"label": "$.email"
+					},
+					"bind": {
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						}
+					}
+				}
+			],
+			"mcp": {
+				"type": "streamable-http",
+				"url": "https://gmailmcp.googleapis.com/mcp/v1"
+			}
+		}
+	}
+}

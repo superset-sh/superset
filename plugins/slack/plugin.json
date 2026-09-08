@@ -1,0 +1,70 @@
+{
+	"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+	"name": "slack",
+	"version": "1.0.0",
+	"description": "Search and post across your Slack workspace: channels, DMs, and threads.",
+	"author": {
+		"name": "Superset",
+		"url": "https://superset.sh"
+	},
+	"homepage": "https://docs.superset.sh",
+	"repository": "https://github.com/superset-sh/superset",
+	"license": "MIT",
+	"keywords": ["slack", "chat", "messages", "communication", "search"],
+	"extensions": {
+		"superset": {
+			"interface": {
+				"displayName": "Slack",
+				"category": "Communication",
+				"icon": "slack"
+			},
+			"auth": [
+				{
+					"type": "oauth2",
+					"label": "OAuth 2.0",
+					"provider": "slack",
+					"pkce": true,
+					"authorization_url": "https://slack.com/oauth/v2_user/authorize",
+					"token_url": "https://slack.com/api/oauth.v2.user.access",
+					"scopes": [
+						"channels:history",
+						"channels:read",
+						"groups:history",
+						"groups:read",
+						"im:history",
+						"im:read",
+						"mpim:history",
+						"mpim:read",
+						"chat:write",
+						"users:read",
+						"search:read.public"
+					],
+					"scope_separator": ",",
+					"token_request_auth_method": "client_secret_post",
+					"requires_env": [
+						"PLUGIN_SLACK_CLIENT_ID",
+						"PLUGIN_SLACK_CLIENT_SECRET"
+					],
+					"identity": {
+						"url": "https://slack.com/api/auth.test",
+						"method": "GET",
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						},
+						"id": "$.team_id",
+						"label": "$.team"
+					},
+					"bind": {
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						}
+					}
+				}
+			],
+			"mcp": {
+				"type": "streamable-http",
+				"url": "https://mcp.slack.com/mcp"
+			}
+		}
+	}
+}

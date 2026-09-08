@@ -2,7 +2,12 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Switch } from "@superset/ui/switch";
 import { useNavigate } from "@tanstack/react-router";
-import { LuArrowLeft, LuArrowUp, LuExternalLink } from "react-icons/lu";
+import {
+	LuArrowLeft,
+	LuArrowUp,
+	LuExternalLink,
+	LuTrash2,
+} from "react-icons/lu";
 import { PluginIcon } from "renderer/routes/_authenticated/_dashboard/plugins/components/PluginIcon";
 import { SkillIcon } from "renderer/routes/_authenticated/_dashboard/plugins/components/SkillIcon";
 import type { CatalogPlugin } from "renderer/routes/_authenticated/_dashboard/plugins/hooks/usePluginCatalog";
@@ -60,6 +65,18 @@ export function PluginDetail({ plugin }: { plugin: CatalogPlugin }) {
 							</Button>
 						)}
 						{plugin.installed && (
+							<Button
+								size="sm"
+								variant="outline"
+								className="text-destructive"
+								disabled={isBusy}
+								onClick={() => uninstall(plugin.name)}
+							>
+								<LuTrash2 className="size-4" />
+								<Trans>Remove</Trans>
+							</Button>
+						)}
+						{plugin.installed && (
 							<Switch
 								checked={plugin.enabled}
 								disabled={isBusy}
@@ -79,7 +96,6 @@ export function PluginDetail({ plugin }: { plugin: CatalogPlugin }) {
 				auth={plugin.auth}
 				installed={plugin.installed}
 				onAdd={() => add(plugin.name)}
-				onRemove={() => uninstall(plugin.name)}
 				isBusy={isBusy}
 			/>
 

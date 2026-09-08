@@ -12,8 +12,11 @@ export interface ClientIdentity {
 	authentication?: "basic" | "post";
 }
 
+const PUBLIC_CLIENT_METADATA_BASE =
+	process.env.PLUGIN_CLIENT_METADATA_BASE_URL ?? env.NEXT_PUBLIC_API_URL;
+
 export function clientMetadataUrl(pluginName: string): string {
-	return `${env.NEXT_PUBLIC_API_URL}/api/plugins/${pluginName}/client-metadata`;
+	return `${PUBLIC_CLIENT_METADATA_BASE}/api/plugins/${pluginName}/client-metadata`;
 }
 
 function pickAuthMethod(

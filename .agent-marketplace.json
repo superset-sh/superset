@@ -25,7 +25,7 @@
 			},
 			"category": "productivity",
 			"source": "./plugins/linear",
-			"version": "1.4.0"
+			"version": "1.5.0"
 		},
 		{
 			"name": "notion",
@@ -35,6 +35,26 @@
 			},
 			"category": "productivity",
 			"source": "./plugins/notion",
+			"version": "1.0.0"
+		},
+		{
+			"name": "slack",
+			"description": "Search and post across your Slack workspace: channels, DMs, and threads.",
+			"author": {
+				"name": "Superset"
+			},
+			"category": "communication",
+			"source": "./plugins/slack",
+			"version": "1.0.0"
+		},
+		{
+			"name": "gmail",
+			"description": "Read, search, and draft mail in your Gmail account.",
+			"author": {
+				"name": "Superset"
+			},
+			"category": "communication",
+			"source": "./plugins/gmail",
 			"version": "1.0.0"
 		}
 	],
