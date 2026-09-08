@@ -172,7 +172,10 @@ describe("AccountEngine runtime writes", () => {
 					return { movedTerminalIds: [], deferredTerminalIds: [] };
 				},
 				fallbackRestart: async () => true,
-				corroborateLimitStop: async () => true,
+				observeLimitStop: async () => ({
+					model: null,
+					source: "terminal" as const,
+				}),
 				onExternalSwitch: async () => ({
 					movedTerminalIds: [],
 					deferredTerminalIds: [],

@@ -104,7 +104,10 @@ function loser(input: {
 				return { movedTerminalIds: [], deferredTerminalIds: [] };
 			},
 			fallbackRestart: async () => true,
-			corroborateLimitStop: async () => true,
+			observeLimitStop: async () => ({
+				model: null,
+				source: "terminal" as const,
+			}),
 			onExternalSwitch: async () => {
 				moved.push(input.sessions);
 				return { movedTerminalIds: [], deferredTerminalIds: [] };

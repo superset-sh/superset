@@ -53,6 +53,15 @@ export interface HistoryEntry {
 }
 
 export interface AgentRuntimeState {
+	/** Recovery pauses until the affected model has confirmed quota. */
+	waiting?: {
+		model: string | null;
+		resetAt: number | null;
+		windowIds?: string[];
+		terminalId?: string;
+		lastEventAt?: number;
+		accountId?: string | null;
+	} | null;
 	/** R15: no automatic switch happens before this timestamp. */
 	cooldownUntil: number | null;
 	/** R22: latch so the all-exhausted state notifies once. */

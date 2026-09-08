@@ -74,6 +74,21 @@ describe("fallbackAllowed", () => {
 });
 
 describe("snapshotShowsLimit", () => {
+	it("recognizes the Claude 2.1.263 Fable limit response", () => {
+		expect(
+			snapshotShowsLimit("claude", "You've reached your Fable limit"),
+		).toBe(true);
+		expect(
+			snapshotShowsLimit(
+				"claude",
+				"You’ve reached your Fable limit · resets tomorrow",
+			),
+		).toBe(true);
+		expect(
+			snapshotShowsLimit("claude", "You've reached your\nFable limit"),
+		).toBe(false);
+	});
+
 	it("matches Claude's limit lines", () => {
 		expect(
 			snapshotShowsLimit(

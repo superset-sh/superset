@@ -231,7 +231,10 @@ function harness(options: {
 				deferredTerminalIds: [],
 			}),
 			fallbackRestart: async () => true,
-			corroborateLimitStop: async () => true,
+			observeLimitStop: async () => ({
+				model: null,
+				source: "terminal" as const,
+			}),
 			onExternalSwitch: async () => ({
 				movedTerminalIds: [],
 				deferredTerminalIds: [],
@@ -1027,9 +1030,9 @@ describe("AccountEngine: limit recovery", () => {
 				],
 			},
 			mover: {
-				corroborateLimitStop: async () => {
+				observeLimitStop: async () => {
 					corroborations++;
-					return true;
+					return { model: null, source: "terminal" as const };
 				},
 			},
 			onRead: async () => {

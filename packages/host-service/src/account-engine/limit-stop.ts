@@ -57,7 +57,7 @@ export function fallbackAllowed({
 // unrelated lines from corroborating each other. The apostrophe is matched
 // straight or typographic because terminals render both.
 const LIMIT_TEXT: Partial<Record<QuotaCapableAgent, RegExp>> = {
-	claude: /You['’]ve hit your[^\n]*limit/i,
+	claude: /You['’]ve (?:hit|reached) your[^\n]*limit/i,
 	codex: /You['’]ve hit your usage limit/i,
 };
 

@@ -64,6 +64,8 @@ export interface AccountEngineHostDeps {
 		workspaceId: string;
 		terminalId: string;
 		prompt?: string;
+		mode?: "limit-stop";
+		expectedEventAt?: number;
 	}): Promise<ResumedTerminal | null>;
 	sendToTerminal(input: {
 		workspaceId: string;

@@ -28,11 +28,7 @@ function row(overrides: Partial<MovableSession> = {}): MovableSession {
 interface Harness {
 	deps: SessionMoverDeps;
 	mover: SessionMover;
-	killCalls: Array<{
-		workspaceId: string;
-		terminalId: string;
-		prompt?: string;
-	}>;
+	killCalls: Array<Parameters<SessionMoverDeps["killAndResume"]>[0]>;
 	sendCalls: Array<{ workspaceId: string; terminalId: string; text: string }>;
 	snapshotCalls: string[];
 	attention: NeedsAttentionEvent[];
@@ -470,6 +466,14 @@ describe("moveAtIdle", () => {
 });
 
 describe("fallbackRestart", () => {
+	it("carries the original failure event even when live tracking has advanced", async () => {
+		const h = harness({ lastAgentEvent: () => ({ type: "Start", at: NOW }) });
+		const stopped = row({ agent: "claude", lastEventAt: NOW - 2000 });
+		await h.mover.fallbackRestart(stopped);
+		expect(h.killCalls[0]?.expectedEventAt).toBe(NOW - 2000);
+		expect(h.killCalls[0]?.mode).toBe("limit-stop");
+	});
+
 	it("hands Claude the nudge as its launch prompt, exactly once (AE3)", async () => {
 		const h = harness();
 		const claude = row({ agent: "claude", terminalId: "tc" });
@@ -477,7 +481,13 @@ describe("fallbackRestart", () => {
 		await h.mover.fallbackRestart(claude);
 
 		expect(h.killCalls).toEqual([
-			{ workspaceId: "ws-1", terminalId: "tc", prompt: CONTINUE_NUDGE },
+			{
+				workspaceId: "ws-1",
+				terminalId: "tc",
+				prompt: CONTINUE_NUDGE,
+				mode: "limit-stop",
+				expectedEventAt: claude.lastEventAt,
+			},
 		]);
 		expect(h.sendCalls).toEqual([]);
 		expect(h.attention).toEqual([]);
@@ -487,7 +497,14 @@ describe("fallbackRestart", () => {
 		const h = harness();
 		await h.mover.fallbackRestart(row({ terminalId: "tx" }));
 
-		expect(h.killCalls).toEqual([{ workspaceId: "ws-1", terminalId: "tx" }]);
+		expect(h.killCalls).toEqual([
+			{
+				workspaceId: "ws-1",
+				terminalId: "tx",
+				mode: "limit-stop",
+				expectedEventAt: row().lastEventAt,
+			},
+		]);
 		expect(h.sendCalls).toEqual([
 			{ workspaceId: "ws-1", terminalId: "tx-new", text: CONTINUE_NUDGE },
 		]);
@@ -786,5 +803,53 @@ describe("corroborateLimitStop", () => {
 		}
 
 		expect(logged.join("\n")).not.toContain(secret);
+	});
+});
+
+describe("observeLimitStop", () => {
+	it("observes a hinted Claude model limit without fabricated quota", async () => {
+		const h = harness({
+			snapshotTerminal: () =>
+				Promise.resolve("You've reached your Opus limit · resets 3pm"),
+		});
+		expect(
+			await h.mover.observeLimitStop(
+				row({ agent: "claude", limitHintErrorType: "rate_limit" }),
+				[],
+			),
+		).toEqual({ model: "Opus", source: "terminal" });
+		expect(h.killCalls).toEqual([]);
+	});
+	it("requires both the Claude hint and the visible provider banner", async () => {
+		const unhinted = harness();
+		expect(
+			await unhinted.mover.observeLimitStop(row({ agent: "claude" }), SPENT),
+		).toBeNull();
+		expect(unhinted.snapshotCalls).toEqual([]);
+		const hidden = harness({
+			snapshotTerminal: () => Promise.resolve("Ready for your next prompt"),
+		});
+		expect(
+			await hidden.mover.observeLimitStop(
+				row({ agent: "claude", limitHintErrorType: "rate_limit" }),
+				SPENT,
+			),
+		).toBeNull();
+	});
+	it("observes busy Codex against real model quota without proactive model settings", async () => {
+		const h = harness({
+			isAgentBusy: () => true,
+			snapshotTerminal: () => Promise.resolve("You've hit your usage limit"),
+		});
+		const windows = [
+			{ id: "model:spark", label: "Spark", usedPercent: 100, resetsAt: null },
+		];
+		expect(await h.mover.observeLimitStop(row(), windows)).toEqual({
+			model: null,
+			source: "terminal",
+		});
+		expect(await h.mover.observeLimitStop(row(), [])).toBeNull();
+		h.deps.isAgentBusy = () => false;
+		expect(await h.mover.observeLimitStop(row(), windows)).toBeNull();
 	});
 });

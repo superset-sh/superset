@@ -16,7 +16,11 @@
 
 import type { UsageQuotaWindow } from "../trpc/router/usage/types.ts";
 import { windowsInScope } from "./decision.ts";
-import { isCorroboratedLimitStop, snapshotShowsLimit } from "./limit-stop.ts";
+import { isCorroboratedLimitStop } from "./limit-stop.ts";
+import {
+	type LimitStopEvidence,
+	observeProviderLimit,
+} from "./provider-limit.ts";
 import type { AccountAgent } from "./types.ts";
 
 /**
@@ -123,6 +127,8 @@ export interface SessionMoverDeps {
 		workspaceId: string;
 		terminalId: string;
 		prompt?: string;
+		mode?: "limit-stop";
+		expectedEventAt?: number;
 	}): Promise<ResumedTerminal | null>;
 	sendToTerminal(input: {
 		workspaceId: string;
@@ -389,7 +395,7 @@ export class SessionMover {
 	 * interpolate.
 	 */
 	async fallbackRestart(row: MovableSession): Promise<boolean> {
-		const resumed = await this.restart(row, CONTINUE_NUDGE);
+		const resumed = await this.restart(row, CONTINUE_NUDGE, "limit-stop");
 		if (!resumed) {
 			this.reportResumeFailed(row);
 			return false;
@@ -426,27 +432,39 @@ export class SessionMover {
 	): Promise<boolean> {
 		if (!this.maySnapshot(row, windows, modelWindows)) return false;
 
-		const screenText = await this.deps.snapshotTerminal(row.terminalId);
-		const snapshotMatch =
-			screenText !== null && snapshotShowsLimit(row.agent, screenText);
-		if (
-			!snapshotMatch &&
-			screenText !== null &&
-			process.env.SUPERSET_DEBUG_HOOKS
+		const evidence = await this.observeLimitStop(row, windows);
+		return isCorroboratedLimitStop({
+			agent: row.agent,
+			hint: true,
+			snapshotMatch: evidence !== null,
+			windows,
+			modelWindows,
+		});
+	}
+
+	/** Observe provider evidence without substituting quota or choosing a target. */
+	async observeLimitStop(
+		row: MovableSession,
+		windows: readonly UsageQuotaWindow[],
+	): Promise<LimitStopEvidence | null> {
+		if (row.agent === "claude") {
+			if (row.limitHintErrorType !== CLAUDE_LIMIT_HINT) return null;
+		} else if (
+			!this.deps.isAgentBusy(row.terminalId) ||
+			!windows.some((window) => window.usedPercent >= 100)
 		) {
+			return null;
+		}
+		const screenText = await this.deps.snapshotTerminal(row.terminalId);
+		const evidence =
+			screenText === null ? null : observeProviderLimit(row.agent, screenText);
+		if (!evidence && screenText !== null && process.env.SUPERSET_DEBUG_HOOKS) {
 			console.debug("[account-engine] limit text not found in snapshot", {
 				terminalId: row.terminalId,
 				excerpt: screenText.slice(0, DEBUG_EXCERPT_CHARS),
 			});
 		}
-
-		return isCorroboratedLimitStop({
-			agent: row.agent,
-			hint: true,
-			snapshotMatch,
-			windows,
-			modelWindows,
-		});
+		return evidence;
 	}
 
 	private maySnapshot(
@@ -494,6 +512,7 @@ export class SessionMover {
 	private async restart(
 		row: MovableSession,
 		nudge?: string,
+		mode?: "limit-stop",
 	): Promise<ResumedTerminal | null> {
 		// Claude takes the nudge as its launch prompt; Codex resumes bare and
 		// is typed to afterwards.
@@ -505,6 +524,9 @@ export class SessionMover {
 				workspaceId: row.workspaceId,
 				terminalId: row.terminalId,
 				...(prompt === undefined ? {} : { prompt }),
+				...(mode === undefined
+					? {}
+					: { mode, expectedEventAt: row.lastEventAt }),
 			});
 		} catch (error) {
 			console.warn("[account-engine] failed to restart session", {

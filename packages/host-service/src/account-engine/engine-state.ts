@@ -131,6 +131,17 @@ const rotationSchema = z.record(z.string(), z.boolean());
 
 const agentRuntimeSchema = z
 	.object({
+		waiting: z
+			.object({
+				model: z.string().nullable(),
+				resetAt: z.number().nullable(),
+				windowIds: z.array(z.string()).optional(),
+				terminalId: z.string().optional(),
+				lastEventAt: z.number().optional(),
+				accountId: z.string().nullable().optional(),
+			})
+			.nullable()
+			.optional(),
 		cooldownUntil: z.number().nullable().default(null),
 		exhaustedNotifiedAt: z.number().nullable().default(null),
 		fallbackTimestamps: z.array(z.number()).default([]),

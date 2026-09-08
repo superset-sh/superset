@@ -185,6 +185,70 @@ describe("QuotaStore on demand (engine disabled)", () => {
 		expect(h.callsFor(CLAUDE_DEFAULT)).toHaveLength(2);
 	});
 
+	it("scopes forced fetches while preserving discovery and cached accounts", async () => {
+		const h = harness({ claudeSelections: [null, "/profiles/a"] });
+		await h.store.read({ agents: ["claude"] });
+		h.advance(QUOTA_TTL_MS);
+		h.state.claudeSelections.push("/profiles/b");
+
+		const accounts = await h.store.read({
+			agents: ["claude"],
+			forceRefresh: true,
+			entryKeys: [CLAUDE_A],
+		});
+
+		expect(h.calls.map((call) => call.key)).toEqual([
+			CLAUDE_DEFAULT,
+			CLAUDE_A,
+			CLAUDE_A,
+		]);
+		expect(accounts.map((row) => row.selection)).toEqual([null, "/profiles/a"]);
+		expect(requireEntry(h.store, CLAUDE_B).fetchedAt).toBeNull();
+		expect(requireEntry(h.store, CLAUDE_DEFAULT).fetchedAt).toBe(T0);
+		expect(requireEntry(h.store, CLAUDE_A).fetchedAt).toBe(h.now);
+	});
+
+	it("fetches nothing for empty entry keys, including undiscovered profiles", async () => {
+		const h = harness({ claudeSelections: [null, "/profiles/a"] });
+		await h.store.read({
+			agents: ["claude"],
+			forceRefresh: true,
+			entryKeys: [],
+		});
+		expect(h.calls).toEqual([]);
+		expect(h.store.entries("claude")).toHaveLength(2);
+	});
+
+	it("keeps scoped forced refreshes within the endpoint budget", async () => {
+		const h = harness({ claudeSelections: [null, "/profiles/a"] });
+		await h.store.read({ agents: ["claude"] });
+		for (let i = 0; i < BUDGET_MAX_REQUESTS; i++) {
+			await h.store.read({
+				agents: ["claude"],
+				forceRefresh: true,
+				entryKeys: [CLAUDE_A],
+			});
+		}
+		expect(h.calls).toHaveLength(BUDGET_MAX_REQUESTS);
+		expect(h.callsFor(CLAUDE_DEFAULT)).toHaveLength(1);
+	});
+
+	it("holds scoped forced refreshes behind endpoint backoff", async () => {
+		const h = harness({
+			respondClaude: async (selection) => ({
+				account: account("claude", selection),
+				rateLimited: true,
+			}),
+		});
+		await h.store.read({ agents: ["claude"] });
+		await h.store.read({
+			agents: ["claude"],
+			forceRefresh: true,
+			entryKeys: [CLAUDE_DEFAULT],
+		});
+		expect(h.calls).toHaveLength(1);
+	});
+
 	it("invalidate drops only that entry and the next read refetches it", async () => {
 		const h = harness({ claudeSelections: [null, "/profiles/a"] });
 		await h.store.read({ agents: ["claude"] });
@@ -1035,6 +1099,36 @@ describe("QuotaStore resilience", () => {
 		const entry = h.store.entry(CLAUDE_DEFAULT);
 		expect(entry?.tokenState).toBe("token_stale");
 		expect(eligibleForSwitch(requireEntry(h.store, CLAUDE_DEFAULT))).toBe(true);
+	});
+
+	it("keeps last-known windows after an unavailable response without making it a target", async () => {
+		let stale = false;
+		const h = harness({
+			claudeSelections: [null],
+			respondClaude: async (selection) => ({
+				account: stale
+					? account("claude", selection, {
+							status: "unavailable",
+							statusDetail: "Refreshes when Claude Code next runs.",
+							windows: [],
+						})
+					: account("claude", selection),
+				rateLimited: false,
+			}),
+		});
+
+		await h.store.read({ agents: ["claude"] });
+		stale = true;
+		h.advance(QUOTA_TTL_MS);
+		const accounts = await h.store.read({ agents: ["claude"] });
+
+		expect(accounts[0]?.status).toBe("unavailable");
+		expect(accounts[0]?.windows[0]?.usedPercent).toBe(10);
+		const entry = h.store.entry(CLAUDE_DEFAULT);
+		expect(entry?.tokenState).toBe("unavailable");
+		expect(eligibleForSwitch(requireEntry(h.store, CLAUDE_DEFAULT))).toBe(
+			false,
+		);
 	});
 
 	// A re-login puts a different provider account behind the same profile

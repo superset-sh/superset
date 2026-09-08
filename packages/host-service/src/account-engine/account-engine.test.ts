@@ -242,9 +242,11 @@ function harness(options: HarnessOptions = {}) {
 				await options.onFallbackRestart?.();
 				return options.restartSucceeds ?? true;
 			},
-			corroborateLimitStop: async () => {
+			observeLimitStop: async () => {
 				calls.push("corroborate");
-				return options.corroborates ?? true;
+				return (options.corroborates ?? true)
+					? { model: null, source: "terminal" as const }
+					: null;
 			},
 			onExternalSwitch: async (agent) => {
 				externalSwitches.push(agent);
@@ -710,7 +712,7 @@ describe("AccountEngine", () => {
 	// and the scheduled refresh performs no request at all while the active
 	// account's own poll is still ahead, which is when a hint arrives.
 	it("accepts a hint whose limit only shows in the forced refresh", async () => {
-		const spare = () =>
+		const spare = (fetchedAt = T0 - MINUTE) =>
 			entryFor(
 				usageAccount({
 					accountKey: "key-b",
@@ -718,7 +720,7 @@ describe("AccountEngine", () => {
 					selection: "/profiles/b",
 					windows: [w("five_hour", "Session (5h)", 10)],
 				}),
-				{ fetchedAt: T0 - MINUTE, nextPollAt: T0 + MINUTE },
+				{ fetchedAt, nextPollAt: T0 + MINUTE },
 			);
 		const activeAt = (usedPercent: number, fetchedAt = T0 - MINUTE) =>
 			entryFor(
@@ -736,7 +738,7 @@ describe("AccountEngine", () => {
 			onRead: () => {
 				// The read the hint forced: the account really did hit its
 				// limit since the last poll.
-				h.setEntries([activeAt(100, T0), spare()]);
+				h.setEntries([activeAt(100, T0), spare(T0)]);
 			},
 		});
 		enable(h.engine);
@@ -752,7 +754,7 @@ describe("AccountEngine", () => {
 	// the numbers on hand are the ones the hint says are wrong, so it is left
 	// for the next pass instead of being written off against them.
 	it("leaves a corroborated hint retryable when nothing could be fetched", async () => {
-		const spare = () =>
+		const spare = (fetchedAt = T0 - MINUTE) =>
 			entryFor(
 				usageAccount({
 					accountKey: "key-b",
@@ -760,7 +762,7 @@ describe("AccountEngine", () => {
 					selection: "/profiles/b",
 					windows: [w("five_hour", "Session (5h)", 10)],
 				}),
-				{ fetchedAt: T0 - MINUTE, nextPollAt: T0 + MINUTE },
+				{ fetchedAt, nextPollAt: T0 + MINUTE },
 			);
 		const active = (over: Partial<QuotaEntry> = {}) =>
 			entryFor(
@@ -774,7 +776,7 @@ describe("AccountEngine", () => {
 			entries: [active({ backoffMs: MINUTE }), spare()],
 			sessions: [movableSession({ limitHintErrorType: "rate_limit" })],
 			onRead: () => {
-				h.setEntries([active({ fetchedAt: T0 }), spare()]);
+				h.setEntries([active({ fetchedAt: T0 }), spare(T0)]);
 			},
 		});
 		enable(h.engine);
@@ -2544,7 +2546,7 @@ describe("app wiring", () => {
 	// host-wide lock would only fight the machine that owns it. `createApp`
 	// needs a live database, a Hono server and a tRPC client to run at all, so
 	// the invariant is asserted against the wiring itself.
-	it("constructs the engine only outside sandbox mode", () => {
+	it("connects to the machine owner only outside sandbox mode", () => {
 		const source = readFileSync(
 			join(import.meta.dirname, "..", "app.ts"),
 			"utf8",
@@ -2555,7 +2557,8 @@ describe("app wiring", () => {
 		const end = source.indexOf("\n\t}\n", start);
 		expect(end).toBeGreaterThan(start);
 		const guarded = source.slice(start, end);
-		expect(guarded).toContain("new AccountEngine(");
-		expect(source.split("new AccountEngine(")).toHaveLength(2);
+		expect(guarded).toContain("createMachineAccountClient(");
+		expect(source).not.toContain("new AccountEngine(");
+		expect(source.split("createMachineAccountClient(")).toHaveLength(2);
 	});
 });

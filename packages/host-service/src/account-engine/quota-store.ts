@@ -200,6 +200,13 @@ export interface QuotaStoreDeps {
 	onSnapshot?: (snapshot: QuotaStoreSnapshot) => void;
 }
 
+export interface QuotaReadOptions {
+	agents?: QuotaCapableAgent[];
+	forceRefresh?: boolean;
+	/** Limit fetches to these entries; discovery and cached results stay complete. */
+	entryKeys?: string[];
+}
+
 interface QuotaFetchOutcome {
 	agent: QuotaCapableAgent;
 	ok: boolean;
@@ -274,7 +281,10 @@ function carryLastKnownWindows(
 	previous: UsageAccount[],
 	account: UsageAccount,
 ): UsageAccount {
-	if (account.status !== "token_stale" || account.windows.length > 0) {
+	if (
+		(account.status !== "token_stale" && account.status !== "unavailable") ||
+		account.windows.length > 0
+	) {
 		return account;
 	}
 	// The provider's own account id decides this, not the profile dir: a
@@ -379,9 +389,7 @@ export class QuotaStore {
 	 * Serves the Usage page and the router's known-selection checks: cached
 	 * entries are returned as they are, stale ones are fetched on demand.
 	 */
-	async read(
-		options: { agents?: QuotaCapableAgent[]; forceRefresh?: boolean } = {},
-	): Promise<UsageAccount[]> {
+	async read(options: QuotaReadOptions = {}): Promise<UsageAccount[]> {
 		const agents = options.agents ?? ALL_AGENTS;
 		// KTD5: a lock loser answers from the owner's mirror, forced refresh
 		// included — the owner is already polling on this machine's behalf. The
@@ -403,6 +411,8 @@ export class QuotaStore {
 			const ready = this.entries(agent).filter(
 				(entry) =>
 					entry.fetchable &&
+					(options.entryKeys === undefined ||
+						options.entryKeys.includes(entry.key)) &&
 					// The endpoint's back-off outranks both the TTL and the Usage
 					// page's Refresh: the entry is still served below with its
 					// last-known accounts, only the request is withheld.

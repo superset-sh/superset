@@ -1,11 +1,4 @@
-/**
- * KTD7 gate 3 through the engine's own call: the windows the engine hands the
- * mover have to survive `windowsInScope`, and the models the user configured
- * have to travel with them. Claude's hint is asked with a stand-in window, so
- * that window must be one of Claude's account-wide ids or every Claude limit
- * stop is scoped away to nothing and answers false. The mover here is a fake
- * running the real gate on exactly what the engine passed it.
- */
+/** Model-scoped recovery acceptance cases with a normalized provider observation. */
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -24,7 +17,6 @@ import {
 	EngineState,
 } from "./engine-state.ts";
 import type { AccountEngineHostDeps } from "./host-deps.ts";
-import { isCorroboratedLimitStop } from "./limit-stop.ts";
 import type { QuotaEntry } from "./quota-store.ts";
 import type { MovableSession } from "./session-mover.ts";
 import type { AccountAgent } from "./types.ts";
@@ -139,6 +131,7 @@ function buildEngine(input: {
 	agent: AccountAgent;
 	entries: QuotaEntry[];
 	modelWindows: string[];
+	observedModel?: string | null;
 }): Harness {
 	const state = new EngineState();
 	state.writeSettings({
@@ -183,17 +176,9 @@ function buildEngine(input: {
 				deferredTerminalIds: [],
 			}),
 			fallbackRestart: async () => true,
-			// The real gate, on exactly what the engine handed over: the screen
-			// matched, so the verdict is the window scope's alone.
-			corroborateLimitStop: async (row, windows, modelWindows) => {
-				calls.push({ windows, modelWindows });
-				return isCorroboratedLimitStop({
-					agent: row.agent,
-					hint: true,
-					snapshotMatch: true,
-					windows,
-					modelWindows,
-				});
+			observeLimitStop: async (_row, windows) => {
+				calls.push({ windows, modelWindows: input.modelWindows });
+				return { model: input.observedModel ?? null, source: "terminal" };
 			},
 			onExternalSwitch: async () => ({
 				movedTerminalIds: [],
@@ -247,7 +232,46 @@ describe("a limit stop through the engine's own corroboration call", () => {
 		rmSync(home, { recursive: true, force: true });
 	});
 
-	it("corroborates a Claude hint on the stand-in window and switches", async () => {
+	it("waits instead of restarting onto another Fable-exhausted account without configured models", async () => {
+		const spent: UsageQuotaWindow[] = [
+			{ id: "five_hour", label: "Session", usedPercent: 30, resetsAt: null },
+			{ id: "seven_day", label: "Weekly", usedPercent: 30, resetsAt: null },
+			{
+				id: "weekly_scoped:Fable",
+				label: "Fable",
+				usedPercent: 100,
+				resetsAt: new Date(T0 + 60_000),
+			},
+		];
+		const entries = pool("claude", spent);
+		const destination = entries[1]?.accounts[0];
+		if (!destination) throw new Error("Missing destination fixture");
+		destination.windows = spent;
+		const h = buildEngine({
+			agent: "claude",
+			entries,
+			modelWindows: [],
+			observedModel: "Fable",
+		});
+		await h.engine.handleLimitHints(T0);
+		expect(h.engine.history()).toEqual([]);
+		expect(h.engine.status().claude.waiting).toEqual({
+			model: "Fable",
+			resetAt: T0 + 60_000,
+		});
+		// The same stopped turn remains retryable once the other account has room.
+		destination.windows = spent.map((window) => ({
+			...window,
+			usedPercent: 10,
+		}));
+		await h.engine.handleLimitHints(T0);
+		expect(h.engine.history().map((row) => row.toAccountId)).toEqual([
+			"acct-b",
+		]);
+		expect(h.engine.status().claude.waiting).toBeNull();
+	});
+
+	it("switches after a Claude limit observation and confirmed destination quota", async () => {
 		const h = buildEngine({
 			agent: "claude",
 			entries: pool("claude", [
@@ -267,7 +291,6 @@ describe("a limit stop through the engine's own corroboration call", () => {
 		// The configured models travel with the windows, or gate 3 scores by a
 		// list the proactive path never agreed to.
 		expect(h.calls[0]?.modelWindows).toEqual(["Opus 4.6"]);
-		// A stand-in scoped away to nothing would strand this session forever.
 		expect(h.engine.history().map((row) => row.reasonKind)).toEqual([
 			"fallback",
 		]);
@@ -290,7 +313,7 @@ describe("a limit stop through the engine's own corroboration call", () => {
 		]);
 	});
 
-	it("ignores a spent model window for a model nobody configured", async () => {
+	it("waits on an unconfigured model when the target lacks that model quota", async () => {
 		const h = buildEngine({
 			agent: "codex",
 			entries: pool("codex", SPENT_MODEL_WINDOW),
@@ -299,12 +322,10 @@ describe("a limit stop through the engine's own corroboration call", () => {
 
 		await h.engine.handleLimitHints(T0);
 
-		// The proactive path refuses to score this window, so the fallback
-		// must refuse it too — nothing here says the account is spent.
 		expect(h.engine.history()).toEqual([]);
 	});
 
-	it("ignores a spent Claude model window for a model nobody configured", async () => {
+	it("waits when an unconfigured Claude model has no confirmed destination quota", async () => {
 		const h = buildEngine({
 			agent: "claude",
 			entries: pool("claude", [
@@ -322,12 +343,11 @@ describe("a limit stop through the engine's own corroboration call", () => {
 
 		await h.engine.handleLimitHints(T0);
 
-		// Claude's gate 2 is asked with the stand-in, so gate 3 is the only
-		// place the account's real windows are judged — and it has to scope
-		// them. Otherwise the switch is reasoned by a window at 30%.
-		expect(h.engine.history().map((row) => row.reasonKind)).toEqual([
-			"fallback-rejected",
-		]);
+		expect(h.engine.history()).toEqual([]);
+		expect(h.engine.status().claude.waiting).toEqual({
+			model: null,
+			resetAt: null,
+		});
 	});
 
 	it("ranks the fallback's target the way the proactive path ranks it", async () => {
@@ -417,7 +437,7 @@ describe("a limit stop through the engine's own corroboration call", () => {
 		]);
 	});
 
-	it("acts on that same window once the user configured its model", async () => {
+	it("requires the target to report a configured model window too", async () => {
 		const h = buildEngine({
 			agent: "codex",
 			entries: pool("codex", SPENT_MODEL_WINDOW),
@@ -426,8 +446,7 @@ describe("a limit stop through the engine's own corroboration call", () => {
 
 		await h.engine.handleLimitHints(T0);
 
-		expect(h.engine.history().map((row) => row.reasonKind)).toEqual([
-			"fallback",
-		]);
+		expect(h.engine.history()).toEqual([]);
+		expect(h.engine.status().codex.waiting).not.toBeNull();
 	});
 });

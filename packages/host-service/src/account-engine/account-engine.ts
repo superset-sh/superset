@@ -69,17 +69,14 @@ import {
 import {
 	type DecisionAccount,
 	isEligible,
-	isNearLimit,
 	pickBest,
-	relevantWindows,
-	scoreAccount,
 	shouldSwitch,
-	windowsInScope,
 	worstWindow,
 } from "./decision.ts";
 import { DEFAULT_LOCK_STALE_MS, type EngineState } from "./engine-state.ts";
 import type { AccountEngineHostDeps } from "./host-deps.ts";
 import { fallbackAllowed } from "./limit-stop.ts";
+import type { LimitStopEvidence } from "./provider-limit.ts";
 import {
 	EXHAUSTED_POLL_MS,
 	eligibleForSwitch,
@@ -88,6 +85,7 @@ import {
 	type QuotaStoreSnapshot,
 	quotaEntryKey,
 } from "./quota-store.ts";
+import { hasRecoveryHeadroom, recoveryWindows } from "./recovery-decision.ts";
 import type {
 	MovableSession,
 	MoveResult,
@@ -128,24 +126,6 @@ const POLL_INTERVALS = new Set([30, 60, 120, 300]);
  * short enough that a wedged one cannot hold a shutdown open. */
 const STOP_DRAIN_MS = 10_000;
 
-/**
- * KTD7 gate 2 asks the mover two questions at once — did this terminal's own
- * screen show the limit, and is the account really spent — and only the first
- * costs nothing. A Claude hint's permission to read a screen is the hook
- * event, not the quota, so it is asked with a stand-in window that leaves the
- * screen as the only variable; the quota half is then evaluated against
- * numbers refreshed *after* the screen corroborated it, because a limit
- * reached between two polls is still a real limit.
- */
-const SNAPSHOT_ONLY_WINDOWS: readonly UsageQuotaWindow[] = [
-	{
-		id: "five_hour",
-		label: "limit hint",
-		usedPercent: 100,
-		resetsAt: null,
-	},
-];
-
 /** KTD13: the engine is refused on Windows rather than half-supported. */
 export const WINDOWS_UNSUPPORTED_REASON =
 	"Automatic account switching is not supported on Windows: the launch wrapper that re-resolves the account pointer is POSIX shell.";
@@ -168,6 +148,7 @@ export interface EngineQuotaStore {
 	read(options?: {
 		agents?: AccountAgent[];
 		forceRefresh?: boolean;
+		entryKeys?: string[];
 	}): Promise<unknown>;
 	refreshDue(now: number, schedule: QuotaRefreshSchedule): Promise<void>;
 	setSnapshotSink(sink: ((snapshot: QuotaStoreSnapshot) => void) | null): void;
@@ -177,13 +158,12 @@ export interface EngineQuotaStore {
 
 /** The slice of `SessionMover` the engine uses (KTD8). */
 export interface EngineSessionMover {
-	moveAtIdle(agent: AccountAgent, rows?: MovableSession[]): Promise<MoveResult>;
-	fallbackRestart(row: MovableSession): Promise<boolean>;
-	corroborateLimitStop(
+	observeLimitStop(
 		row: MovableSession,
 		windows: readonly UsageQuotaWindow[],
-		modelWindows: readonly string[],
-	): Promise<boolean>;
+	): Promise<LimitStopEvidence | null>;
+	moveAtIdle(agent: AccountAgent, rows?: MovableSession[]): Promise<MoveResult>;
+	fallbackRestart(row: MovableSession): Promise<boolean>;
 	onExternalSwitch(agent: AccountAgent): Promise<MoveResult>;
 }
 
@@ -197,7 +177,11 @@ export interface AccountEngineDeps {
 	quotaStore: EngineQuotaStore;
 	mover: EngineSessionMover;
 	hostDeps: AccountEngineHostDeps;
-	db: HostDb;
+	db?: HostDb;
+	machinePointers?: {
+		read(): DefaultAccountSelections;
+		write(agent: AccountAgent, selection: string | null): void;
+	};
 	broadcast: AccountEngineBroadcast;
 	now?: () => number;
 	setIntervalFn?: typeof setInterval;
@@ -266,6 +250,7 @@ export type RotationOutcome =
 	| { ok: false; code: "lock-loser"; reason: string };
 
 export interface AgentEngineStatus {
+	waiting?: { model: string | null; resetAt: number | null } | null;
 	enabled: boolean;
 	activeAccountId: string | null;
 	activeSelection: string | null;
@@ -284,6 +269,12 @@ interface EngineAccount {
 }
 
 interface PerformSwitchInput {
+	recovery?: {
+		model: string | null;
+		sourceWindows: readonly UsageQuotaWindow[];
+		terminalId: string;
+		lastEventAt: number;
+	};
 	agent: AccountAgent;
 	settings: AutoSwitchSettings;
 	runtime: RuntimeState;
@@ -332,42 +323,6 @@ function errorText(error: unknown): string {
 
 function labelOf(account: UsageAccount): string | null {
 	return account.email ?? account.sourceLabel ?? null;
-}
-
-/**
- * The two last-resort tiers `shouldSwitch` ranks its candidates by, so the
- * limit-stop fallback lands on the same target the proactive path would pick
- * from the same set (decision.ts, `best`). They live here rather than being
- * imported because `decision.ts` keeps them private and belongs to another
- * layer; the order is what matters and is the order it applies them in.
- *
- * An account whose relevant windows are empty scores a full 100 headroom with
- * nothing behind it — a stale read, or a login whose only window is scoped to
- * a model the user never configured — so it wins `pickBest` against every
- * account we can actually read. It stays a target of last resort, and an
- * API-billed login the tier below it: flattening the two would let the
- * alphabetical tie-break put the user on per-token billing while a plan login
- * with room was available.
- */
-function reportsNoWindows(
-	account: DecisionAccount,
-	modelWindows: readonly string[],
-): boolean {
-	return relevantWindows(account, modelWindows).length === 0;
-}
-
-function isMetered(account: DecisionAccount): boolean {
-	return account.credentialKind === "api_key";
-}
-
-/** The candidates that are not a last resort — or all of them, when a last
- * resort is all there is. */
-function preferRanked(
-	candidates: readonly DecisionAccount[],
-	lastResort: (account: DecisionAccount) => boolean,
-): readonly DecisionAccount[] {
-	const ranked = candidates.filter((candidate) => !lastResort(candidate));
-	return ranked.length > 0 ? ranked : candidates;
 }
 
 /** The default identity read: the state file names the account, the
@@ -428,7 +383,6 @@ export class AccountEngine {
 	private readonly quotaStore: EngineQuotaStore;
 	private readonly mover: EngineSessionMover;
 	private readonly hostDeps: AccountEngineHostDeps;
-	private readonly db: HostDb;
 	private readonly broadcast: AccountEngineBroadcast;
 	private readonly now: () => number;
 	private readonly setIntervalFn: typeof setInterval;
@@ -440,8 +394,11 @@ export class AccountEngine {
 	private readonly seed: typeof seedActiveClaudeLogin;
 	private readonly ensureActiveDir: typeof ensureActiveClaudeDir;
 	private readonly provisionCodex: typeof provisionCodexAccount;
-	private readonly setPointer: typeof setDefaultAccountSelection;
-	private readonly readPointerSelections: typeof getDefaultAccountSelections;
+	private readonly setPointer: (
+		agent: AccountAgent,
+		selection: string | null,
+	) => void;
+	private readonly readPointerSelections: () => DefaultAccountSelections;
 	private readonly writeClaudeState: typeof updateClaudeStateFile;
 	private readonly resolveActiveDir: () => string;
 	private readonly readActiveIdentity: (
@@ -516,7 +473,6 @@ export class AccountEngine {
 		this.quotaStore = deps.quotaStore;
 		this.mover = deps.mover;
 		this.hostDeps = deps.hostDeps;
-		this.db = deps.db;
 		this.broadcast = deps.broadcast;
 		this.now = deps.now ?? Date.now;
 		this.setIntervalFn = deps.setIntervalFn ?? setInterval;
@@ -528,9 +484,30 @@ export class AccountEngine {
 		this.seed = deps.seed ?? seedActiveClaudeLogin;
 		this.ensureActiveDir = deps.ensureActiveDir ?? ensureActiveClaudeDir;
 		this.provisionCodex = deps.provisionCodex ?? provisionCodexAccount;
-		this.setPointer = deps.setPointer ?? setDefaultAccountSelection;
+		this.setPointer =
+			deps.machinePointers?.write ??
+			((agent, selection) => {
+				if (!deps.db)
+					throw new Error(
+						"Account engine requires machine pointers or a host database",
+					);
+				(deps.setPointer ?? setDefaultAccountSelection)(
+					deps.db,
+					agent,
+					selection,
+				);
+			});
 		this.readPointerSelections =
-			deps.readPointerSelections ?? getDefaultAccountSelections;
+			deps.machinePointers?.read ??
+			(() => {
+				if (!deps.db)
+					throw new Error(
+						"Account engine requires machine pointers or a host database",
+					);
+				return (deps.readPointerSelections ?? getDefaultAccountSelections)(
+					deps.db,
+				);
+			});
 		this.writeClaudeState = deps.updateClaudeStateFile ?? updateClaudeStateFile;
 		this.resolveActiveDir = deps.resolveActiveDir ?? activeClaudeConfigDir;
 		this.readActiveIdentity =
@@ -697,6 +674,9 @@ export class AccountEngine {
 			const state = runtime.perAgent[agent];
 			return {
 				enabled: settings[agent].enabled,
+				waiting: state.waiting
+					? { model: state.waiting.model, resetAt: state.waiting.resetAt }
+					: null,
 				activeAccountId: state.activeAccountId,
 				activeSelection: state.activeSelection,
 				cooldownUntil: state.cooldownUntil,
@@ -790,6 +770,7 @@ export class AccountEngine {
 		if (from && from.accountKey === target.row.accountKey) {
 			state.cooldownUntil = now + settings[agent].cooldownSeconds * 1000;
 			state.exhaustedNotifiedAt = null;
+			state.waiting = null;
 			this.persistRuntime(runtime);
 			this.broadcastState(agent, settings[agent], runtime, now);
 			return { ok: true };
@@ -1195,7 +1176,7 @@ export class AccountEngine {
 			// pointer names the active dir.
 			let pointer: string | null;
 			try {
-				pointer = this.readPointerSelections(this.db).claudeConfigDir;
+				pointer = this.readPointerSelections().claudeConfigDir;
 			} catch {
 				return;
 			}
@@ -1332,7 +1313,7 @@ export class AccountEngine {
 	): Promise<EngineAccount | undefined> {
 		let selections: DefaultAccountSelections;
 		try {
-			selections = this.readPointerSelections(this.db);
+			selections = this.readPointerSelections();
 		} catch (error) {
 			console.warn(
 				"[account-engine] could not read the account pointer:",
@@ -1425,6 +1406,9 @@ export class AccountEngine {
 		// With nothing known about the account sessions run on there is no
 		// comparison to make, and a switch would be a guess.
 		if (!active) return;
+		// A stopped turn has a stricter scope than proactive preferences. Do
+		// not let a scheduled decision bypass its pending recovery checks.
+		if (state.waiting) return;
 
 		const decision = shouldSwitch({
 			settings,
@@ -1458,6 +1442,7 @@ export class AccountEngine {
 			if (decision.allExhausted && !signedOut) {
 				state.exhaustedNotifiedAt ??= now;
 			} else state.exhaustedNotifiedAt = null;
+			state.waiting = null;
 			return;
 		}
 
@@ -1517,6 +1502,7 @@ export class AccountEngine {
 		// the lease is re-checked immediately before them and again before the
 		// state they leave behind.
 		if (!this.ensureOwnership(this.now())) return LOCK_LOSER;
+		if (!this.switchStillAllowed(input)) return { ok: true };
 		// The config dirs sessions were *launched* from, read before the
 		// pointer moves. Afterwards an unpinned session resolves to the active
 		// dir and the filter below would read it as already moved.
@@ -1545,8 +1531,9 @@ export class AccountEngine {
 		// event that claim it did. It is also what puts that session on the
 		// new account, so it runs here rather than after the planned move —
 		// which leaves it alone (KTD8).
+		const recoveryReady = !input.recovery || this.switchStillAllowed(input);
 		const restarted =
-			input.fallbackRestart === undefined
+			input.fallbackRestart === undefined || !recoveryReady
 				? false
 				: await input.fallbackRestart();
 		// That restart is a kill, a relaunch and a typed nudge, and it can
@@ -1565,8 +1552,24 @@ export class AccountEngine {
 		}
 		state.activeAccountId = input.target.accountId;
 		state.activeSelection = input.target.selection;
-		state.cooldownUntil = now + input.settings.cooldownSeconds * 1000;
+		state.cooldownUntil = this.now() + input.settings.cooldownSeconds * 1000;
 		state.exhaustedNotifiedAt = null;
+		state.waiting =
+			!recoveryReady && input.recovery
+				? {
+						model: input.recovery.model,
+						resetAt: null,
+						windowIds: recoveryWindows(
+							input.agent,
+							input.recovery.sourceWindows,
+							input.recovery.model,
+						).map((window) => window.id),
+						terminalId: input.recovery.terminalId,
+						lastEventAt: input.recovery.lastEventAt,
+						accountId: input.target.accountId,
+					}
+				: null;
+		if (state.waiting) state.exhaustedNotifiedAt = this.now();
 		if (input.reasonKind === "fallback") {
 			state.fallbackTimestamps = [
 				...state.fallbackTimestamps.filter((at) => now - at < HOUR_MS),
@@ -1624,7 +1627,7 @@ export class AccountEngine {
 
 	private async switchClaude(
 		input: PerformSwitchInput,
-	): Promise<ManualSwitchOutcome & { activeDir?: string }> {
+	): Promise<(ManualSwitchOutcome & { activeDir?: string }) | null> {
 		if (input.target.credentialKind === "api_key") {
 			const dir = input.target.selection;
 			if (
@@ -1647,7 +1650,7 @@ export class AccountEngine {
 			}
 			if (!this.ensureOwnership(this.now())) return LOCK_LOSER;
 			try {
-				this.setPointer(this.db, "claude", dir);
+				this.setPointer("claude", dir);
 			} catch (error) {
 				return { ok: false, code: "pointer-failed", reason: errorText(error) };
 			}
@@ -1714,7 +1717,7 @@ export class AccountEngine {
 				if (!this.ensureOwnership(this.now())) return LOCK_LOSER;
 				const activeDir = this.resolveActiveDir();
 				try {
-					this.setPointer(this.db, "claude", activeDir);
+					this.setPointer("claude", activeDir);
 				} catch (error) {
 					return {
 						ok: false,
@@ -1751,6 +1754,7 @@ export class AccountEngine {
 
 		if (!this.ensureOwnership(this.now())) return LOCK_LOSER;
 
+		if (!this.switchStillAllowed(input)) return null;
 		let result: ClaudeSwapResult;
 		if (firstActivation) {
 			// The same primitive a brand-new active dir uses: copy the target in
@@ -1825,7 +1829,7 @@ export class AccountEngine {
 			input.target.selection,
 		);
 		try {
-			this.setPointer(this.db, "claude", activeDir);
+			this.setPointer("claude", activeDir);
 		} catch (error) {
 			// R24 says a failed switch changes nothing, and the swap above has
 			// already changed the active dir. Put the previous login back
@@ -1964,15 +1968,9 @@ export class AccountEngine {
 		// stale-lease reclaim landing inside that window is still seen at that
 		// check after the write — no ordering prevents it, only the lease.
 		if (!this.ensureOwnership(this.now())) return LOCK_LOSER;
-		if (
-			input.reasonKind !== "manual" &&
-			(!this.state.readSettings().codex.enabled ||
-				!isEligible(input.target, this.state.readRotation()))
-		) {
-			return null;
-		}
+		if (!this.switchStillAllowed(input)) return null;
 		try {
-			this.setPointer(this.db, "codex", input.target.selection);
+			this.setPointer("codex", input.target.selection);
 		} catch (error) {
 			return { ok: false, code: "pointer-failed", reason: errorText(error) };
 		}
@@ -2009,6 +2007,7 @@ export class AccountEngine {
 		dir: string,
 		input: PerformSwitchInput,
 	): Promise<void> {
+		if (!this.ensureOwnership(this.now())) throw new Error(LOCK_LOSER_REASON);
 		// KTD14: a brand-new active dir starts from the login every session is
 		// already running on — which on a host upgraded into this feature is
 		// whatever the pointer selects, not necessarily `~/.claude`. Seeding
@@ -2227,6 +2226,7 @@ export class AccountEngine {
 		// signed into.
 		state.cooldownUntil = now + settings.cooldownSeconds * 1000;
 		state.exhaustedNotifiedAt = null;
+		state.waiting = null;
 		this.lastWritten = null;
 		// A third account's name settles who is in the dir; nothing is in doubt
 		// any more.
@@ -2346,7 +2346,24 @@ export class AccountEngine {
 		const { settings, agents, runtime, rotation } = pass;
 		for (const agent of agents) {
 			await this.resolveActive(agent, runtime);
-			for (const row of this.hostDeps.listSessions(agent)) {
+			const rows = this.hostDeps.listSessions(agent);
+			const waiting = runtime.perAgent[agent].waiting;
+			if (
+				waiting &&
+				!rows.some(
+					(row) =>
+						row.managed &&
+						row.terminalId === waiting.terminalId &&
+						row.lastEventAt === waiting.lastEventAt &&
+						this.isLimitHint(row),
+				)
+			) {
+				runtime.perAgent[agent].waiting = null;
+				runtime.perAgent[agent].exhaustedNotifiedAt = null;
+				this.persistRuntime(runtime);
+				this.broadcastState(agent, settings[agent], runtime, now);
+			}
+			for (const row of rows) {
 				if (!row.managed || !this.isLimitHint(row)) continue;
 				await this.handleHint(row, settings, rotation, runtime, now);
 			}
@@ -2430,6 +2447,13 @@ export class AccountEngine {
 		);
 		if (!active) return false;
 		if (active.row.credentialKind === "api_key") return true;
+		const waiting = state.waiting;
+		const pendingRecovery =
+			waiting &&
+			waiting.terminalId === row.terminalId &&
+			waiting.lastEventAt === row.lastEventAt &&
+			waiting.accountId === active.row.accountId;
+		if (waiting && !pendingRecovery) return false;
 
 		// Gate 1: the local rate limits, before any snapshot or provider call.
 		if (
@@ -2439,6 +2463,7 @@ export class AccountEngine {
 				now,
 			})
 		) {
+			if (pendingRecovery) return false;
 			this.recordRejectedHint(agent, active.row, now);
 			return true;
 		}
@@ -2448,12 +2473,10 @@ export class AccountEngine {
 		// cost a request. Codex's stall is only allowed to open a screen once
 		// its own numbers say the account is spent; Claude's hook event is its
 		// own permission (see SNAPSHOT_ONLY_WINDOWS).
-		const corroborated = await this.mover.corroborateLimitStop(
-			row,
-			agent === "claude" ? SNAPSHOT_ONLY_WINDOWS : active.account.windows,
-			settings.modelWindows,
-		);
-		if (!corroborated) {
+		const evidence = pendingRecovery
+			? { model: waiting.model, source: "terminal" as const }
+			: await this.mover.observeLimitStop(row, active.account.windows);
+		if (!evidence) {
 			this.recordRejectedHint(agent, active.row, now);
 			return true;
 		}
@@ -2477,54 +2500,112 @@ export class AccountEngine {
 		const pool = this.pool(agent, state.activeSelection);
 		const from = this.activeRow(pool, state) ?? active;
 		if (from.row.credentialKind === "api_key") return true;
+		if (!eligibleForSwitch(from.entry)) return false;
+		const affected = recoveryWindows(agent, from.row.windows, evidence.model);
 		if (
-			!windowsInScope(agent, from.row.windows, settings.modelWindows).some(
-				(window) => window.usedPercent >= 100,
+			pendingRecovery &&
+			waiting.windowIds?.some(
+				(id) => !affected.some((window) => window.id === id),
 			)
-		) {
-			// The screen said "limit" but the account has room in the windows
-			// the proactive path scores: a stale screen, or a limit that has
-			// already reset.
+		)
+			return false;
+		if (!affected.some((window) => window.usedPercent >= 100)) {
+			// A previously corroborated stop can recover after its own reset.
+			// No account or credential change is needed in that case.
+			if (pendingRecovery) {
+				if (!this.currentRecoveryHint(agent, row.terminalId, row.lastEventAt))
+					return false;
+				if (
+					!hasRecoveryHeadroom({
+						agent,
+						model: evidence.model,
+						sourceWindows: from.row.windows,
+						targetWindows: from.row.windows,
+						thresholdPercent: settings.thresholdPercent,
+					})
+				)
+					return false;
+				const restarted = await this.mover.fallbackRestart(row);
+				if (!this.ensureOwnership(this.now())) return false;
+				state.cooldownUntil = this.now() + settings.cooldownSeconds * 1000;
+				if (!restarted) {
+					this.persistRuntime(runtime);
+					return false;
+				}
+			}
+			state.waiting = null;
+			state.exhaustedNotifiedAt = null;
+			this.persistRuntime(runtime);
+			this.broadcastState(agent, settings, runtime, now);
 			this.recordRejectedHint(agent, from.row, now);
 			return true;
 		}
-		const usable = this.targets(pool, from).filter(
-			(candidate) =>
-				isEligible(candidate, rotation) &&
-				!isNearLimit(
-					scoreAccount(candidate, settings.modelWindows),
-					settings.thresholdPercent,
-				),
-		);
-		// Ranked exactly as the proactive path ranks the same set: a bare
-		// `pickBest` here would take the metered login or the one it cannot
-		// rank over a plan account with real room, and the two paths would
-		// disagree about where the same limit stop should land.
-		const target = pickBest(
-			preferRanked(
-				preferRanked(usable, (candidate) =>
-					reportsNoWindows(candidate, settings.modelWindows),
-				),
-				isMetered,
-			),
-			settings.modelWindows,
-		);
+		const usable: DecisionAccount[] = [];
+		for (const candidate of this.targets(pool, from)) {
+			if (!isEligible(candidate, rotation)) continue;
+			const entry = pool.find(
+				(item) => item.row.accountKey === candidate.accountKey,
+			)?.entry;
+			if (!entry || !(await this.refreshForHint(agent, entry, this.now())))
+				continue;
+			if (!this.ensureOwnership(this.now())) return false;
+			const fresh = this.pool(agent, state.activeSelection).find(
+				(item) => item.row.accountKey === candidate.accountKey,
+			)?.row;
+			if (
+				fresh &&
+				isEligible(fresh, this.state.readRotation()) &&
+				hasRecoveryHeadroom({
+					agent,
+					model: evidence.model,
+					sourceWindows: from.row.windows,
+					targetWindows: fresh.windows,
+					thresholdPercent: settings.thresholdPercent,
+				})
+			)
+				usable.push(fresh);
+		}
+		const models =
+			evidence.model === null
+				? affected.map((window) => window.id)
+				: [evidence.model];
+		const target = pickBest(usable, models);
 		if (!target) {
-			// R8/R22: no eligible account, so no restart — a relaunch onto a
-			// spent account would just stop again.
 			state.exhaustedNotifiedAt ??= now;
+			const resets = pool
+				.flatMap((item) =>
+					recoveryWindows(agent, item.row.windows, evidence.model),
+				)
+				.filter((window) => window.usedPercent >= 100)
+				.map((window) => window.resetsAt?.getTime())
+				.filter((at): at is number => at !== undefined && at > this.now());
+			state.waiting = {
+				model: evidence.model,
+				resetAt: resets.length ? Math.min(...resets) : null,
+				windowIds: affected.map((window) => window.id),
+				terminalId: row.terminalId,
+				lastEventAt: row.lastEventAt,
+				accountId: from.row.accountId,
+			};
 			this.persistRuntime(runtime);
 			this.broadcastState(agent, settings, runtime, now);
-			return true;
+			// Keep the stop retryable after a quota refresh or reset.
+			return false;
 		}
 
-		const worst = worstWindow(from.row, settings.modelWindows);
+		const worst = worstWindow(from.row, models);
 		await this.performSwitch({
 			agent,
 			settings,
 			runtime,
 			from: from.row,
 			target,
+			recovery: {
+				model: evidence.model,
+				sourceWindows: from.row.windows,
+				terminalId: row.terminalId,
+				lastEventAt: row.lastEventAt,
+			},
 			reasonKind: "fallback",
 			windowId: worst?.id ?? null,
 			usedPercent: worst?.usedPercent ?? null,
@@ -2534,7 +2615,61 @@ export class AccountEngine {
 			fallbackRestart: () => this.mover.fallbackRestart(row),
 			excludeTerminalId: row.terminalId,
 		});
-		return true;
+		return (
+			!state.waiting &&
+			state.activeAccountId === target.accountId &&
+			state.activeSelection === target.selection
+		);
+	}
+
+	private switchStillAllowed(input: PerformSwitchInput): boolean {
+		if (input.reasonKind === "manual") return true;
+		const settings = this.state.readSettings()[input.agent];
+		if (
+			!settings.enabled ||
+			!isEligible(input.target, this.state.readRotation())
+		)
+			return false;
+		if (!input.recovery) return true;
+		if (
+			!this.currentRecoveryHint(
+				input.agent,
+				input.recovery.terminalId,
+				input.recovery.lastEventAt,
+			)
+		)
+			return false;
+		const target = this.pool(input.agent).find(
+			(item) => item.row.accountKey === input.target.accountKey,
+		);
+		return (
+			target !== undefined &&
+			target.entry.fetchedAt !== null &&
+			this.now() - target.entry.fetchedAt < HINT_QUOTA_FRESH_MS &&
+			eligibleForSwitch(target.entry) &&
+			hasRecoveryHeadroom({
+				agent: input.agent,
+				...input.recovery,
+				targetWindows: target.row.windows,
+				thresholdPercent: settings.thresholdPercent,
+			})
+		);
+	}
+
+	private currentRecoveryHint(
+		agent: AccountAgent,
+		terminalId: string,
+		lastEventAt: number,
+	): boolean {
+		return this.hostDeps
+			.listSessions(agent)
+			.some(
+				(row) =>
+					row.managed &&
+					row.terminalId === terminalId &&
+					row.lastEventAt === lastEventAt &&
+					this.isLimitHint(row),
+			);
 	}
 
 	/**
@@ -2566,7 +2701,11 @@ export class AccountEngine {
 		// around it.
 		if (entry.backoffMs > 0 && entry.nextPollAt > now) return false;
 		const before = entry.fetchedAt;
-		await this.quotaStore.read({ agents: [agent], forceRefresh: true });
+		await this.quotaStore.read({
+			agents: [agent],
+			forceRefresh: true,
+			entryKeys: [entry.key],
+		});
 		// Discovery can have replaced the entry object; the key survives it.
 		const fetchedAt = this.quotaStore.entry(entry.key)?.fetchedAt ?? null;
 		return fetchedAt !== null && fetchedAt !== before;
@@ -2619,7 +2758,11 @@ export class AccountEngine {
 		if (extra === undefined) {
 			// Steady state goes out only when it changes: an open Usage page
 			// should not be woken every tick to be told nothing happened.
-			const key = JSON.stringify({ ...payload, occurredAt: 0 });
+			const key = JSON.stringify({
+				...payload,
+				occurredAt: 0,
+				waiting: state.waiting ?? null,
+			});
 			if (this.lastState.get(agent) === key) return;
 			this.lastState.set(agent, key);
 		}
