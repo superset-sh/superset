@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+	chmodSync,
+	mkdirSync,
+	mkdtempSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ClaudeOauthCredential } from "./claude";
@@ -555,5 +561,124 @@ describe("discoverClaudeQuotaTargets", () => {
 			else process.env.CLAUDE_CONFIG_DIR = previous;
 			rmSync(home, { recursive: true, force: true });
 		}
+	});
+
+	/**
+	 * Profile discovery permanently excludes the default slot, so it has no
+	 * signed-out row to fall back on: a store that fails to read lists nothing
+	 * for it, and the store deletes every entry this pass omits. A momentary
+	 * EACCES or a half-written file therefore has to spoil `complete`, exactly
+	 * as an unreadable profile dir already does — otherwise the user's main
+	 * Claude login leaves the rotation pool and the Usage panel until the next
+	 * discovery pass.
+	 */
+	describe("the default slot's own store", () => {
+		const store = JSON.stringify({
+			claudeAiOauth: {
+				accessToken: "tok-default",
+				refreshToken: "r",
+				expiresAt: Date.now() + hour,
+			},
+		});
+		let previousConfigDir: string | undefined;
+
+		beforeEach(() => {
+			setIdentityBindingRecorder(() => {});
+			// An exported CLAUDE_CONFIG_DIR would add logins of its own to the
+			// pass; only the default slot is under test here.
+			previousConfigDir = process.env.CLAUDE_CONFIG_DIR;
+			delete process.env.CLAUDE_CONFIG_DIR;
+		});
+
+		afterEach(() => {
+			if (previousConfigDir !== undefined) {
+				process.env.CLAUDE_CONFIG_DIR = previousConfigDir;
+			}
+		});
+
+		// Each case freezes the clock around the pass: an exhausted scan budget
+		// reports incomplete too, so a slow machine could otherwise pass or
+		// fail these for the wrong reason.
+		function stageHome(body?: string): string {
+			const home = mkdtempSync(
+				join(tmpdir(), "superset-claude-default-store-"),
+			);
+			mkdirSync(join(home, ".claude"));
+			// The default slot keeps its state next door, not inside the dir.
+			writeFileSync(
+				join(home, ".claude.json"),
+				JSON.stringify({ oauthAccount: { accountUuid: "uuid-default" } }),
+			);
+			if (body !== undefined) {
+				writeFileSync(join(home, ".claude", ".credentials.json"), body);
+			}
+			return home;
+		}
+
+		it("lists the default login and stays complete when its store reads", async () => {
+			const home = stageHome(store);
+			const clock = spyOn(Date, "now").mockReturnValue(0);
+			try {
+				const targets = await discoverClaudeQuotaTargets(home);
+
+				expect(targets.selections).toEqual([null]);
+				expect(targets.complete).toBe(true);
+			} finally {
+				clock.mockRestore();
+				rmSync(home, { recursive: true, force: true });
+			}
+		});
+
+		it("is incomplete when the default store is half-written", async () => {
+			const home = stageHome('{"claudeAiOauth": {"accessToken": "tok-def');
+			const clock = spyOn(Date, "now").mockReturnValue(0);
+			try {
+				const targets = await discoverClaudeQuotaTargets(home);
+
+				expect(targets.selections).toEqual([]);
+				expect(targets.complete).toBe(false);
+			} finally {
+				clock.mockRestore();
+				rmSync(home, { recursive: true, force: true });
+			}
+		});
+
+		it("is incomplete when the default store cannot be read", async () => {
+			// root ignores the mode bits, so the denial this asserts on cannot
+			// be staged; skipping beats passing without having tested anything.
+			if (process.getuid?.() === 0) return;
+			const home = stageHome(store);
+			const credentials = join(home, ".claude", ".credentials.json");
+			const clock = spyOn(Date, "now").mockReturnValue(0);
+			chmodSync(credentials, 0o000);
+			try {
+				const targets = await discoverClaudeQuotaTargets(home);
+
+				expect(targets.selections).toEqual([]);
+				expect(targets.complete).toBe(false);
+			} finally {
+				chmodSync(credentials, 0o600);
+				clock.mockRestore();
+				rmSync(home, { recursive: true, force: true });
+			}
+		});
+
+		// The guard that matters: "not signed in" is not "unreadable". A home
+		// with no default store at all is the ordinary state of a user who only
+		// uses profile dirs, and pinning it incomplete would disable reaping
+		// forever.
+		it("stays complete when there is no default store at all", async () => {
+			const home = stageHome();
+			const clock = spyOn(Date, "now").mockReturnValue(0);
+			try {
+				const targets = await discoverClaudeQuotaTargets(home);
+
+				expect(targets.selections).toEqual([]);
+				expect(targets.complete).toBe(true);
+			} finally {
+				clock.mockRestore();
+				rmSync(home, { recursive: true, force: true });
+			}
+		});
 	});
 });

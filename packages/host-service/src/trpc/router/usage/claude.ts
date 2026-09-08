@@ -26,7 +26,9 @@ import {
 	isActiveClaudeConfigDir,
 	keychainServicesForConfigDir,
 	readClaudeIdentity,
+	readKeychainHits,
 	readKeychainSecrets,
+	runSecurity,
 } from "./profiles";
 import type { UsageAccount, UsageQuotaWindow } from "./types";
 
@@ -116,20 +118,56 @@ async function readCredentialFile(
 	}
 }
 
+/**
+ * A read that found no login, told apart from a read that failed — the
+ * `ProfileRead` shape profiles.ts already uses for profile dirs, and for the
+ * same reason: a caller that reaps whatever is missing (the quota store)
+ * would otherwise delete a live account over a torn write or a momentary
+ * EACCES.
+ */
+interface DefaultSlotRead {
+	value: ClaudeOauthCredential | null;
+	unreadable: boolean;
+}
+
+/** `security`'s errSecItemNotFound: this scope simply holds no such item. */
+const KEYCHAIN_ITEM_NOT_FOUND = 44;
+
 /** The default login's Keychain item: the freshest of the items sharing its
  * service, since a sibling without a Claude login can sit beside it. */
-async function readKeychainCredential(): Promise<ClaudeOauthCredential | null> {
-	const secrets = await readKeychainSecrets(CLAUDE_KEYCHAIN_SERVICE);
-	return pickFreshest(
-		secrets.map((secret) =>
-			parseCredential(
-				secret,
-				`keychain:${CLAUDE_KEYCHAIN_SERVICE}`,
-				"Keychain",
-				null,
+async function readKeychainCredential(): Promise<DefaultSlotRead> {
+	// readKeychainHits reports every `security` failure as "no item under this
+	// scope", which for the default slot means a locked Keychain, a denied
+	// prompt or the 5s exec timeout reads as "signed out" — on macOS the
+	// default login can live in the Keychain alone. The probe runs through our
+	// own exec so those are told apart from a genuine miss; off macOS nothing
+	// runs at all.
+	let unreadable = false;
+	const hits = await readKeychainHits(CLAUDE_KEYCHAIN_SERVICE, {
+		exec: async (args, stdin) => {
+			try {
+				return await runSecurity(args, stdin);
+			} catch (error) {
+				if ((error as { code?: unknown }).code !== KEYCHAIN_ITEM_NOT_FOUND) {
+					unreadable = true;
+				}
+				throw error;
+			}
+		},
+	});
+	return {
+		value: pickFreshest(
+			hits.map((hit) =>
+				parseCredential(
+					hit.secret,
+					`keychain:${CLAUDE_KEYCHAIN_SERVICE}`,
+					"Keychain",
+					null,
+				),
 			),
 		),
-	);
+		unreadable,
+	};
 }
 
 export const STALE_TOKEN_DETAIL = "Refreshes when Claude Code next runs.";
@@ -230,25 +268,61 @@ function defaultCredentialCandidates(
 	];
 }
 
+/**
+ * One default-slot store, reporting whether it failed rather than swallowing
+ * it: ENOENT/ENOTDIR is "not signed in here", while a denial, an EMFILE or
+ * bytes that will not parse is a login that may be live and unseen. Valid
+ * JSON carrying no token is a signed-out store, not a failure — calling that
+ * unreadable would disable reaping for good.
+ */
+async function readDefaultCredentialFile(
+	path: string,
+	sourceLabel: string,
+): Promise<DefaultSlotRead> {
+	let raw: string;
+	try {
+		raw = await readFile(path, "utf-8");
+	} catch (error) {
+		const code = (error as NodeJS.ErrnoException).code ?? "";
+		return { value: null, unreadable: code !== "ENOENT" && code !== "ENOTDIR" };
+	}
+	const value = parseCredential(raw, path, sourceLabel, null);
+	if (value) return { value, unreadable: false };
+	try {
+		JSON.parse(raw);
+		return { value: null, unreadable: false };
+	} catch {
+		return { value: null, unreadable: true };
+	}
+}
+
 async function readDefaultCredential(
 	homeDir?: string,
-): Promise<ClaudeOauthCredential | null> {
+): Promise<DefaultSlotRead> {
 	const home = homeDir ?? homedir();
 	const [identity, keychainCredential, defaultFiles] = await Promise.all([
 		readDefaultLoginIdentity(home),
 		readKeychainCredential(),
 		Promise.all(
 			defaultCredentialCandidates(home).map(({ path, sourceLabel }) =>
-				readCredentialFile(path, sourceLabel, null),
+				readDefaultCredentialFile(path, sourceLabel),
 			),
 		),
 	]);
-	const credential = pickFreshest([keychainCredential, ...defaultFiles]);
+	const credential = pickFreshest([
+		keychainCredential.value,
+		...defaultFiles.map((file) => file.value),
+	]);
 	if (credential && !credential.email && identity.email) {
 		credential.email = identity.email;
 	}
 	if (credential) credential.accountId = identity.accountId;
-	return credential;
+	return {
+		value: credential,
+		unreadable:
+			keychainCredential.unreadable ||
+			defaultFiles.some((file) => file.unreadable),
+	};
 }
 
 async function readProfileCredential(
@@ -294,8 +368,9 @@ async function discoverClaudeCredentials(homeDir?: string): Promise<{
 	credentials: ClaudeOauthCredential[];
 	signedOutProfiles: Awaited<ReturnType<typeof discoverClaudeProfiles>>;
 	apiProfiles: Awaited<ReturnType<typeof discoverClaudeProfiles>>;
-	/** False when the profile scan gave up on its time budget mid-walk, so
-	 * this list is a subset of the logins on disk. */
+	/** False when the profile scan gave up on its time budget mid-walk, or the
+	 * default slot's own store was there but unreadable — either way this list
+	 * is a subset of the logins on disk. */
 	complete: boolean;
 }> {
 	const home = homeDir ?? homedir();
@@ -379,7 +454,7 @@ async function discoverClaudeCredentials(homeDir?: string): Promise<{
 	]);
 
 	const credentials = dedupeClaudeCredentials([
-		defaultCredential,
+		defaultCredential.value,
 		...explicit,
 		...profiled,
 	]);
@@ -398,7 +473,16 @@ async function discoverClaudeCredentials(homeDir?: string): Promise<{
 	const signedOutProfiles = profiles.filter(
 		(_profile, index) => profiled[index] === null,
 	);
-	return { credentials, signedOutProfiles, apiProfiles, complete };
+	// The default slot has no signed-out row to fall back on — profile
+	// discovery excludes it — so a store that is there but unreadable lists
+	// nothing at all, and the reaper would take the user's main login for a
+	// deleted one.
+	return {
+		credentials,
+		signedOutProfiles,
+		apiProfiles,
+		complete: complete && !defaultCredential.unreadable,
+	};
 }
 
 /**
@@ -757,8 +841,9 @@ export async function fetchClaudeAccounts(): Promise<UsageAccount[]> {
 /**
  * The quota store's discovery pass (KTD10): which logins have a credential
  * worth polling, and the rows that have no fetch of their own. `complete` is
- * false when the profile scan ran out of time mid-walk — the store reaps
- * entries missing from this result, and a truncated list is not proof an
+ * false when the profile scan ran out of time mid-walk, or the default slot's
+ * store was there but unreadable — the store reaps entries missing from this
+ * result, and neither a truncated list nor an unread store is proof an
  * account is gone.
  */
 export async function discoverClaudeQuotaTargets(homeDir?: string): Promise<{
@@ -900,7 +985,7 @@ export async function fetchClaudeAccountForSelection(
 ): Promise<{ account: UsageAccount | null; rateLimited: boolean }> {
 	const credential =
 		selection === null
-			? await readDefaultCredential()
+			? (await readDefaultCredential()).value
 			: await readCredentialForConfigDir(selection);
 	if (!credential) return { account: null, rateLimited: false };
 	return fetchClaudeAccount(await preferActiveDirToken(credential));
