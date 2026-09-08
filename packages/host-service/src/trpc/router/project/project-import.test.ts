@@ -175,6 +175,51 @@ describe("createFromImportLocal idempotency", () => {
 	});
 });
 
+describe("setup import root policy", () => {
+	it.each([
+		"root",
+		"alias",
+		"subdirectory",
+	])("refuses %s without persisting a project", async (kind) => {
+		const repoPath = await createTempGitRepo();
+		const aliasDir = mkdtempSync(join(tmpdir(), "setup-alias-"));
+		tempRepoDirs.push(aliasDir);
+		const alias = join(aliasDir, "repo");
+		symlinkSync(repoPath, alias, "dir");
+		const child = join(repoPath, "child");
+		mkdirSync(child);
+		const previous = process.env.SUPERSET_HOME_DIR;
+		process.env.SUPERSET_HOME_DIR = join(repoPath, ".superset");
+		try {
+			const db = createTestDb();
+			const { api } = createRecordingApiStub();
+			const caller = createCallerFactory(projectRouter)(
+				createTestContext(db, api),
+			);
+			await expect(
+				caller.setup({
+					projectId: randomUUID(),
+					origin: { name: "Forbidden" },
+					mode: {
+						kind: "import",
+						repoPath:
+							kind === "alias"
+								? alias
+								: kind === "subdirectory"
+									? child
+									: repoPath,
+					},
+				}),
+			).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+			expect(db.select().from(projects).all()).toHaveLength(0);
+			expect(db.select().from(schema.workspaces).all()).toHaveLength(0);
+		} finally {
+			if (previous === undefined) delete process.env.SUPERSET_HOME_DIR;
+			else process.env.SUPERSET_HOME_DIR = previous;
+		}
+	});
+});
+
 describe("createFromImportLocal root policy", () => {
 	it("refuses discovery before offering initialization, then accepts an ordinary folder", async () => {
 		const root = mkdtempSync(join(tmpdir(), "import-discovery-"));

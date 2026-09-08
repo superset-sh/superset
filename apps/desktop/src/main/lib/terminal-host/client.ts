@@ -213,7 +213,7 @@ export class TerminalHostClient extends EventEmitter {
 	 * Spawns daemon if needed.
 	 */
 	async ensureConnected(): Promise<void> {
-		if (isV1RuntimeBlocked()) throw new TerminalHostClientDisposedError();
+		this.assertRuntimeAllowed();
 		// Already connected - fast path (no logging to avoid noise on every API call)
 		if (
 			this.connectionState === ConnectionState.CONNECTED &&
@@ -237,6 +237,10 @@ export class TerminalHostClient extends EventEmitter {
 				const WAIT_TIMEOUT_MS = 10000; // 10 seconds max wait
 
 				const checkConnection = () => {
+					if (this.disposed || isV1RuntimeBlocked()) {
+						reject(new TerminalHostClientDisposedError());
+						return;
+					}
 					if (
 						this.connectionState === ConnectionState.CONNECTED &&
 						this.controlSocket &&
@@ -269,6 +273,7 @@ export class TerminalHostClient extends EventEmitter {
 
 		try {
 			await this.connectAndAuthenticate();
+			this.assertRuntimeAllowed();
 			this.connectionState = ConnectionState.CONNECTED;
 			this.disconnectArmed = false;
 			this.emit("connected");
@@ -365,12 +370,19 @@ export class TerminalHostClient extends EventEmitter {
 		);
 	}
 
+	private assertRuntimeAllowed(): void {
+		if (this.disposed || isV1RuntimeBlocked()) {
+			throw new TerminalHostClientDisposedError();
+		}
+	}
+
 	/**
 	 * Connect and authenticate both control + stream sockets.
 	 * Handles protocol mismatch by shutting down a legacy daemon and retrying once.
 	 */
 	private async connectAndAuthenticate(): Promise<void> {
 		for (let attempt = 0; attempt < 2; attempt++) {
+			this.assertRuntimeAllowed();
 			if (
 				attempt === 0 &&
 				process.env.NODE_ENV === "development" &&
@@ -388,9 +400,11 @@ export class TerminalHostClient extends EventEmitter {
 
 			if (!this.controlSocket) {
 				let controlConnected = await this.tryConnectControl();
+				this.assertRuntimeAllowed();
 				if (!controlConnected) {
 					await this.spawnDaemon();
 					controlConnected = await this.tryConnectControl();
+					this.assertRuntimeAllowed();
 					if (!controlConnected) {
 						throw new Error("Failed to connect control socket after spawn");
 					}
@@ -401,6 +415,7 @@ export class TerminalHostClient extends EventEmitter {
 			try {
 				token = this.readAuthToken();
 			} catch (error) {
+				this.assertRuntimeAllowed();
 				if (attempt === 0) {
 					if (DEBUG_CLIENT) {
 						console.log(
@@ -420,6 +435,7 @@ export class TerminalHostClient extends EventEmitter {
 				try {
 					await this.authenticateControl({ token });
 				} catch (error) {
+					this.assertRuntimeAllowed();
 					if (attempt === 0 && this.isProtocolMismatchError(error)) {
 						if (DEBUG_CLIENT) {
 							console.log(
@@ -444,6 +460,7 @@ export class TerminalHostClient extends EventEmitter {
 				}
 			}
 
+			this.assertRuntimeAllowed();
 			if (!this.streamSocket) {
 				const streamConnected = await this.tryConnectStream();
 				if (!streamConnected) {
@@ -1160,10 +1177,12 @@ export class TerminalHostClient extends EventEmitter {
 	 * Spawn the daemon process if not running
 	 */
 	private async spawnDaemon(): Promise<void> {
+		this.assertRuntimeAllowed();
 		// Check if socket is live first - this is the authoritative check
 		// PID file can be stale if daemon crashed and PID was reused by another process
 		if (existsSync(SOCKET_PATH)) {
 			const isLive = await this.isSocketLive();
+			this.assertRuntimeAllowed();
 			if (isLive) {
 				if (DEBUG_CLIENT) {
 					console.log("[TerminalHostClient] Socket is live, daemon is running");
@@ -1189,6 +1208,7 @@ export class TerminalHostClient extends EventEmitter {
 				console.log("[TerminalHostClient] Killing daemon from stale PID file");
 			}
 			await this.killDaemonFromPidFile();
+			this.assertRuntimeAllowed();
 			if (DEBUG_CLIENT) {
 				console.log("[TerminalHostClient] Removing stale PID file");
 			}
@@ -1264,6 +1284,7 @@ export class TerminalHostClient extends EventEmitter {
 			const isDev = !app.isPackaged;
 			let child: ReturnType<typeof spawn> | null = null;
 			try {
+				this.assertRuntimeAllowed();
 				child = spawn(process.execPath, [daemonScript], {
 					detached: !isDev,
 					stdio: logFd >= 0 ? ["ignore", logFd, logFd] : "ignore",
@@ -1300,6 +1321,10 @@ export class TerminalHostClient extends EventEmitter {
 				console.log("[TerminalHostClient] Waiting for daemon to start...");
 			}
 			await this.waitForDaemon();
+			// Retirement may have begun during spawn. Reject this connection;
+			// the retirement coordinator owns shutdown after checking sessions.
+			// A daemon is shared with other app instances, so never kill it here.
+			this.assertRuntimeAllowed();
 
 			// In development mode, save the script mtime to detect rebuilds
 			if (process.env.NODE_ENV === "development") {
@@ -1463,6 +1488,7 @@ export class TerminalHostClient extends EventEmitter {
 		throwIfAborted(signal);
 		await this.ensureConnected();
 		throwIfAborted(signal);
+		this.assertRuntimeAllowed();
 		if (
 			request.requestId &&
 			this.canceledCreateOrAttachKeys.delete(

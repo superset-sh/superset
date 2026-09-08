@@ -770,6 +770,7 @@ export const projectRouter = router({
 					};
 				}
 				case "import": {
+					assertImportRootAllowed(input.mode.repoPath);
 					let resolved: ResolvedRepo;
 					if (origin.repoCloneUrl) {
 						const parsed = parseGitHubRemote(origin.repoCloneUrl);
@@ -786,6 +787,7 @@ export const projectRouter = router({
 					} else {
 						resolved = await resolveLocalRepo(input.mode.repoPath);
 					}
+					assertImportRootAllowed(resolved.repoPath);
 
 					// Each on-disk repo path maps to at most one project in the
 					// local DB; importing the same folder under a second project
