@@ -1,21 +1,26 @@
 /**
- * An API-billed login is active with no provider account id (R16 keeps it out
- * of rotation, nothing keeps it out of the active seat), and `ownerBinding`
- * refused every id-less owner outright — so every switch away from one, manual
- * or automatic, came back `owner-unknown` and the user was stuck on
- * pay-per-token billing. The id scan genuinely cannot serve such a row: a null
- * id matches every other id-less row. Its selection can, and does, because a
- * selection names exactly one store.
+ * An API-billed profile has no OAuth login to save back. Returning to OAuth
+ * seeds an empty active dir without assigning a credential to either API
+ * profile. An existing OAuth owner still binds by account id.
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
+import {
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { HostDb } from "../db/index.ts";
 import type { UsageAccount } from "../trpc/router/usage/types.ts";
 import { AccountEngine } from "./account-engine.ts";
-import type { swapClaudeLogin } from "./claude-login-swap.ts";
+import {
+	seedActiveClaudeLogin,
+	type swapClaudeLogin,
+} from "./claude-login-swap.ts";
 import { EngineState } from "./engine-state.ts";
 import type { AccountEngineHostDeps } from "./host-deps.ts";
 import type { QuotaEntry } from "./quota-store.ts";
@@ -87,8 +92,27 @@ function entryFor(account: UsageAccount): QuotaEntry {
 }
 
 let swaps: SwapInput[] = [];
+let seeds: Parameters<typeof seedActiveClaudeLogin>[0][] = [];
 
 function engineOver(state: EngineState, entries: QuotaEntry[]): AccountEngine {
+	const home = process.env.SUPERSET_HOME_DIR as string;
+	const targetDir = join(home, "target");
+	const activeDir = join(home, "active");
+	for (const dir of [targetDir, activeDir]) mkdirSync(dir, { mode: 0o700 });
+	writeFileSync(
+		join(targetDir, ".credentials.json"),
+		JSON.stringify({
+			claudeAiOauth: {
+				accessToken: "target-b",
+				refreshToken: "refresh-b",
+				expiresAt: T0 + 60_000,
+			},
+		}),
+	);
+	writeFileSync(
+		join(targetDir, ".claude.json"),
+		JSON.stringify({ oauthAccount: { accountUuid: "acct-b" } }),
+	);
 	const engine = new AccountEngine({
 		engineState: state,
 		db: {} as HostDb,
@@ -142,11 +166,15 @@ function engineOver(state: EngineState, entries: QuotaEntry[]): AccountEngine {
 				},
 			};
 		},
-		seed: async () => ({
-			ok: false,
-			code: "owner-unknown",
-			reason: "no login to seed in this test",
-		}),
+		seed: async (input) => {
+			seeds.push(input);
+			return seedActiveClaudeLogin({
+				...input,
+				source: { kind: "profile", dir: targetDir },
+				activeDir,
+				deps: { darwin: false, homeDir: home },
+			});
+		},
 		ensureActiveDir: async () => ACTIVE_DIR,
 		setPointer: () => {},
 		readPointerSelections: () => ({
@@ -159,7 +187,7 @@ function engineOver(state: EngineState, entries: QuotaEntry[]): AccountEngine {
 		// An API-billed login names no account, which is the whole point.
 		readActiveIdentity: async () => ({
 			accountUuid: null,
-			credentialHash: "hash-active",
+			credentialHash: null,
 		}),
 		readCodexIdentity: async () => null,
 	});
@@ -173,6 +201,7 @@ describe("the owner of an API-billed active login", () => {
 
 	beforeEach(() => {
 		swaps = [];
+		seeds = [];
 		previousHome = process.env.SUPERSET_HOME_DIR;
 		home = mkdtempSync(join(tmpdir(), "superset-account-engine-api-billed-"));
 		process.env.SUPERSET_HOME_DIR = home;
@@ -197,7 +226,7 @@ describe("the owner of an API-billed active login", () => {
 		return state;
 	}
 
-	it("switches away, binding the save-back to the dir it is active from", async () => {
+	it("switches away by seeding OAuth without saving back to the API profile", async () => {
 		const engine = engineOver(seedRuntime(null, "/profiles/api"), [
 			entryFor(apiBilled("/profiles/api", "key-api")),
 			entryFor(usageAccount({})),
@@ -206,20 +235,24 @@ describe("the owner of an API-billed active login", () => {
 		const outcome = await engine.switchManually("claude", "/profiles/b");
 
 		expect(outcome).toEqual({ ok: true });
-		expect(swaps.map((input) => input.ownerBinding)).toEqual([
-			{ kind: "profile", dir: "/profiles/api" },
+		expect(swaps).toEqual([]);
+		expect(seeds.map((input) => input.source)).toEqual([
+			{ kind: "profile", dir: "/profiles/b" },
 		]);
+		expect(
+			JSON.parse(
+				readFileSync(join(home, "active", ".credentials.json"), "utf8"),
+			).claudeAiOauth.accessToken,
+		).toBe("target-b");
 	});
 
 	/**
 	 * The guard on the fix, and the one that must hold however it is written:
-	 * two id-less rows are indistinguishable by id, so a scan that ever sees
-	 * one binds the save-back to whichever dir it happens to find and signs
-	 * the other out. Its own dir or nothing — a refusal is safe, the sibling
-	 * never is.
+	 * two id-less rows are indistinguishable by id. Neither may receive an
+	 * OAuth save-back when leaving an API-only profile.
 	 */
 	for (const active of ["/profiles/api", "/profiles/api2"]) {
-		it(`binds ${active} to itself, never to the other id-less row`, async () => {
+		it(`leaves ${active} without writing either id-less profile`, async () => {
 			const engine = engineOver(seedRuntime(null, active), [
 				entryFor(apiBilled("/profiles/api", "key-api")),
 				entryFor(apiBilled("/profiles/api2", "key-api2")),
@@ -228,9 +261,11 @@ describe("the owner of an API-billed active login", () => {
 
 			const outcome = await engine.switchManually("claude", "/profiles/b");
 
-			expect(swaps.map((input) => input.ownerBinding)).toEqual(
-				outcome.ok ? [{ kind: "profile", dir: active }] : [],
-			);
+			expect(outcome).toEqual({ ok: true });
+			expect(swaps).toEqual([]);
+			expect(seeds.map((input) => input.source)).toEqual([
+				{ kind: "profile", dir: "/profiles/b" },
+			]);
 		});
 	}
 

@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, it } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { HostDb } from "../db/index.ts";
@@ -140,7 +140,9 @@ function harness(options: {
 	/** A host that has never recorded which login its sessions are on. */
 	noActiveRecord?: boolean;
 	pointer?: { claudeConfigDir: string | null; codexHome: string | null };
-	setPointer?: () => void;
+	setPointer?: AccountEngineDeps["setPointer"];
+	swap?: AccountEngineDeps["swap"];
+	provisionClaude?: AccountEngineDeps["provisionClaude"];
 	seed?: AccountEngineDeps["seed"];
 	readActiveIdentity?: AccountEngineDeps["readActiveIdentity"];
 	hostDeps?: Partial<AccountEngineHostDeps>;
@@ -220,21 +222,23 @@ function harness(options: {
 			>) as unknown as typeof setInterval,
 		clearIntervalFn: (() => {}) as unknown as typeof clearInterval,
 		platform: "linux",
-		swap: async (input: { target: ClaudeLoginStoreRef }) => {
-			swapped.push(input.target);
-			options.onSwap?.(state, swapped.length);
-			const dir =
-				input.target.kind === "profile" ? input.target.dir : "/profiles/a";
-			const accountUuid = dir === "/profiles/b" ? "acct-b" : "acct-a";
-			return {
-				ok: true,
-				identity: {
-					accountUuid,
-					emailAddress: null,
-					keys: { oauthAccount: { accountUuid } },
-				},
-			} satisfies ClaudeSwapResult;
-		},
+		swap:
+			options.swap ??
+			(async (input: { target: ClaudeLoginStoreRef }) => {
+				swapped.push(input.target);
+				options.onSwap?.(state, swapped.length);
+				const dir =
+					input.target.kind === "profile" ? input.target.dir : "/profiles/a";
+				const accountUuid = dir === "/profiles/b" ? "acct-b" : "acct-a";
+				return {
+					ok: true,
+					identity: {
+						accountUuid,
+						emailAddress: null,
+						keys: { oauthAccount: { accountUuid } },
+					},
+				} satisfies ClaudeSwapResult;
+			}),
 		seed:
 			options.seed ??
 			(async () => ({
@@ -250,6 +254,7 @@ function harness(options: {
 			return ACTIVE_DIR;
 		},
 		provisionCodex: async () => {},
+		provisionClaude: options.provisionClaude ?? (async () => {}),
 		setPointer: options.setPointer ?? (() => {}),
 		readPointerSelections: () =>
 			options.pointer ?? { claudeConfigDir: null, codexHome: null },
@@ -446,6 +451,297 @@ describe("AccountEngine: a switch that failed", () => {
 			expect(h.runtime().activeAccountId).toBe("acct-b");
 		} finally {
 			h.cleanup();
+		}
+	});
+});
+
+describe("AccountEngine: API-billed Claude profiles", () => {
+	for (const drift of ["stale-identity", "indeterminate"] as const) {
+		it(`refuses an API -> OAuth return with ${drift}`, async () => {
+			const dir = mkdtempSync(join(tmpdir(), "superset-api-profile-"));
+			writeFileSync(join(dir, ".superset-api-billing"), "claude");
+			const pointer = {
+				claudeConfigDir: ACTIVE_DIR as string | null,
+				codexHome: null,
+			};
+			let seen = { accountUuid: "acct-b", credentialHash: "hash-b" };
+			const h = harness({
+				pointer,
+				entries: [
+					entryFor(usageAccount({})),
+					entryFor(accountB()),
+					entryFor(
+						accountB({
+							accountKey: "api",
+							selection: dir,
+							accountId: null,
+							credentialKind: "api_key",
+							windows: [],
+						}),
+					),
+				],
+				readActiveIdentity: async () => seen,
+				setPointer: (_db, _agent, selection) => {
+					pointer.claudeConfigDir = selection;
+				},
+			});
+			try {
+				expect(await h.engine.switchManually("claude", "/profiles/b")).toEqual({
+					ok: true,
+				});
+				if (drift === "indeterminate") {
+					seen = {
+						accountUuid: "acct-a",
+						credentialHash: "changed-credential",
+					};
+					h.engine.setSettings("claude", { enabled: false });
+					await h.engine.tick();
+				}
+				expect(await h.engine.switchManually("claude", dir)).toEqual({
+					ok: true,
+				});
+				seen = {
+					accountUuid: drift === "stale-identity" ? "acct-a" : "acct-b",
+					credentialHash: "hash-b",
+				};
+				const before = h.state.readHistory();
+				expect(
+					await h.engine.switchManually(
+						"claude",
+						drift === "stale-identity" ? "/profiles/a" : "/profiles/b",
+					),
+				).toMatchObject({ ok: false, code: "owner-unknown" });
+				expect(h.swapped).toHaveLength(1);
+				expect(pointer.claudeConfigDir).toBe(dir);
+				expect(h.runtime().activeSelection).toBe(dir);
+				expect(h.state.readHistory()).toEqual(before);
+			} finally {
+				h.cleanup();
+				rmSync(dir, { recursive: true, force: true });
+			}
+		});
+	}
+
+	it("follows API changes without moving current idle or busy sessions", async () => {
+		let selected = "/profiles/api";
+		const moved: string[][] = [];
+		const h = harness({
+			entries: ["/profiles/api", "/profiles/api2"].map((selection) =>
+				entryFor(
+					accountB({
+						accountKey: selection,
+						selection,
+						accountId: null,
+						credentialKind: "api_key",
+						windows: [],
+					}),
+				),
+			),
+			hostDeps: {
+				listSessions: () =>
+					["idle", "busy", "stale"].map((terminalId) => ({
+						agent: "claude",
+						workspaceId: "workspace",
+						terminalId,
+						managed: true,
+						configDir: terminalId === "stale" ? ACTIVE_DIR : `${selected}/.`,
+						lastEventType: terminalId === "busy" ? "Start" : "Stop",
+						lastEventAt: T0,
+					})),
+			},
+			mover: {
+				onExternalSwitch: async () => {
+					throw new Error("must filter before moving");
+				},
+				moveAtIdle: async (_agent, rows = []) => {
+					moved.push(rows.map((row) => row.terminalId));
+					return { movedTerminalIds: [], deferredTerminalIds: [] };
+				},
+			},
+		});
+		try {
+			for (const selection of ["/profiles/api", "/profiles/api2"]) {
+				selected = selection;
+				const runtime = h.state.readRuntime();
+				runtime.perAgent.claude.activeAccountId = null;
+				runtime.perAgent.claude.activeSelection = selection;
+				h.state.writeRuntime(runtime);
+				h.state.loseNextClaim = true;
+				await h.engine.tick();
+			}
+			expect(moved).toEqual([["stale"], ["stale"]]);
+		} finally {
+			h.cleanup();
+		}
+	});
+
+	for (const firstActivation of [false, true]) {
+		it(`activates the API profile itself with firstActivation=${firstActivation}`, async () => {
+			const dir = mkdtempSync(join(tmpdir(), "superset-api-profile-"));
+			writeFileSync(join(dir, ".superset-api-billing"), "claude");
+			writeFileSync(
+				join(dir, "settings.json"),
+				'{"env":{"ANTHROPIC_API_KEY":"test-key"}}',
+			);
+			const pointer = {
+				claudeConfigDir: firstActivation ? null : ACTIVE_DIR,
+				codexHome: null,
+			};
+			const moved: string[] = [];
+			const h = harness({
+				noActiveRecord: firstActivation,
+				pointer,
+				entries: [
+					entryFor(usageAccount({})),
+					entryFor(
+						accountB({
+							selection: dir,
+							accountId: null,
+							credentialKind: "api_key",
+							windows: [],
+						}),
+					),
+				],
+				swap: async () => {
+					throw new Error("API activation must not swap OAuth");
+				},
+				seed: async () => {
+					throw new Error("API activation must not seed OAuth");
+				},
+				setPointer: (_db, _agent, selection) => {
+					pointer.claudeConfigDir = selection;
+				},
+				hostDeps: {
+					listSessions: () => [
+						{
+							agent: "claude",
+							workspaceId: "workspace",
+							terminalId: "old-session",
+							managed: true,
+							configDir: ACTIVE_DIR,
+							lastEventType: "Stop",
+							lastEventAt: T0,
+						},
+					],
+				},
+				mover: {
+					moveAtIdle: async (_agent, rows = []) => {
+						moved.push(...rows.map((row) => row.terminalId));
+						return { movedTerminalIds: moved, deferredTerminalIds: [] };
+					},
+				},
+			});
+			try {
+				expect(await h.engine.switchManually("claude", dir)).toEqual({
+					ok: true,
+				});
+				expect(pointer.claudeConfigDir).toBe(dir);
+				expect(h.runtime().activeSelection).toBe(dir);
+				expect(h.runtime().activeAccountId).toBeNull();
+				expect(moved).toEqual(["old-session"]);
+				expect(readFileSync(join(dir, "settings.json"), "utf8")).toContain(
+					"test-key",
+				);
+				expect(h.state.readHistory()).toHaveLength(1);
+				moved.length = 0;
+				h.state.loseNextClaim = true;
+				await h.engine.tick();
+				expect(moved).toEqual(["old-session"]);
+			} finally {
+				h.cleanup();
+				rmSync(dir, { recursive: true, force: true });
+			}
+		});
+	}
+
+	for (const target of ["a", "b"] as const) {
+		it(`returns from API billing to OAuth ${target} without assigning the retained login to the API profile`, async () => {
+			const dir = mkdtempSync(join(tmpdir(), "superset-api-profile-"));
+			writeFileSync(join(dir, ".superset-api-billing"), "claude");
+			const pointer = {
+				claudeConfigDir: ACTIVE_DIR as string | null,
+				codexHome: null,
+			};
+			let swaps = 0;
+			const h = harness({
+				pointer,
+				entries: [
+					entryFor(usageAccount({})),
+					entryFor(accountB()),
+					entryFor(
+						accountB({
+							accountKey: "api",
+							selection: dir,
+							accountId: null,
+							credentialKind: "api_key",
+							windows: [],
+						}),
+					),
+				],
+				setPointer: (_db, _agent, selection) => {
+					pointer.claudeConfigDir = selection;
+				},
+				swap: async (input) => {
+					swaps++;
+					expect(input.ownerBinding).toEqual({
+						kind: "profile",
+						dir: "/profiles/a",
+					});
+					expect(input.expectedOwnerAccountId).toBe("acct-a");
+					return {
+						ok: true,
+						identity: { accountUuid: "acct-b", emailAddress: null, keys: {} },
+					};
+				},
+			});
+			try {
+				expect(await h.engine.switchManually("claude", dir)).toEqual({
+					ok: true,
+				});
+				expect(
+					await h.engine.switchManually("claude", `/profiles/${target}`),
+				).toEqual({ ok: true });
+				expect(swaps).toBe(target === "a" ? 0 : 1);
+				expect(pointer.claudeConfigDir).toBe(ACTIVE_DIR);
+				expect(h.runtime().activeAccountId).toBe(`acct-${target}`);
+				expect(h.state.readHistory()[0]?.fromAccountId).toBeNull();
+			} finally {
+				h.cleanup();
+				rmSync(dir, { recursive: true, force: true });
+			}
+		});
+	}
+
+	it("keeps runtime unchanged when the API profile pointer cannot be written", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "superset-api-profile-"));
+		writeFileSync(join(dir, ".superset-api-billing"), "claude");
+		const h = harness({
+			entries: [
+				entryFor(usageAccount({})),
+				entryFor(
+					accountB({
+						selection: dir,
+						accountId: null,
+						credentialKind: "api_key",
+						windows: [],
+					}),
+				),
+			],
+			setPointer: () => {
+				throw new Error("pointer refused");
+			},
+		});
+		try {
+			expect(await h.engine.switchManually("claude", dir)).toMatchObject({
+				ok: false,
+				code: "pointer-failed",
+			});
+			expect(h.runtime().activeAccountId).toBe("acct-a");
+			expect(h.swapped).toEqual([]);
+			expect(h.state.readHistory()).toEqual([]);
+		} finally {
+			h.cleanup();
+			rmSync(dir, { recursive: true, force: true });
 		}
 	});
 });

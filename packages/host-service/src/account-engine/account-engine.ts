@@ -40,6 +40,7 @@ import type {
 import {
 	activeClaudeConfigDir,
 	ensureActiveClaudeDir,
+	provisionClaudeAccount,
 	provisionCodexAccount,
 } from "../trpc/router/usage/account-provisioning.ts";
 import { updateClaudeStateFile } from "../trpc/router/usage/claude-state-file.ts";
@@ -52,6 +53,7 @@ import {
 } from "../trpc/router/usage/default-account.ts";
 import {
 	claudeStatePath,
+	readApiBillingFingerprint,
 	readClaudeLogin,
 } from "../trpc/router/usage/profiles.ts";
 import type {
@@ -209,6 +211,7 @@ export interface AccountEngineDeps {
 	/** Injected for the same reason `ensureActiveDir` is: the real one shares
 	 * session state into the caller's own ambient Codex home. */
 	provisionCodex?: typeof provisionCodexAccount;
+	provisionClaude?: typeof provisionClaudeAccount;
 	setPointer?: typeof setDefaultAccountSelection;
 	/** The host pointer the agent wrappers resolve on every launch. It seeds
 	 * the active account on a first run (KTD4). */
@@ -1092,12 +1095,21 @@ export class AccountEngine {
 			await this.mover.onExternalSwitch(agent);
 			return;
 		}
-		const activeDir = this.resolveActiveDir();
+		const state = this.state.readRuntime().perAgent[agent];
+		const activeDir =
+			this.activeRow(this.pool(agent), state)?.row.credentialKind === "api_key"
+				? state.activeSelection
+				: this.resolveActiveDir();
 		await this.mover.moveAtIdle(
 			agent,
 			this.hostDeps
 				.listSessions(agent)
-				.filter((row) => row.configDir !== activeDir),
+				.filter(
+					(row) =>
+						row.configDir === null ||
+						activeDir === null ||
+						!samePath(row.configDir, activeDir),
+				),
 		);
 	}
 
@@ -1119,6 +1131,9 @@ export class AccountEngine {
 		if (state.activeAccountId === null && state.activeSelection === null) {
 			return;
 		}
+		const apiProfile =
+			agent === "claude" &&
+			this.activeRow(this.pool(agent), state)?.row.credentialKind === "api_key";
 		// Claude's account is the login inside the shared active dir; Codex's
 		// account *is* its config dir. A Codex selection of `null` is the
 		// default home, not "no dir" — and a managed row's `configDir` is never
@@ -1128,9 +1143,11 @@ export class AccountEngine {
 		// already running.
 		const active: string | null =
 			agent === "claude"
-				? this.resolveActiveDir()
+				? apiProfile
+					? state.activeSelection
+					: this.resolveActiveDir()
 				: (state.activeSelection ?? resolveAmbientCodexHome());
-		if (agent === "claude") {
+		if (agent === "claude" && !apiProfile) {
 			// Before the owner's first Claude switch the pointer still names a
 			// profile dir, and every unpinned row resolves to it — so they all
 			// read as stale against the active dir, and the restart lands them
@@ -1539,20 +1556,121 @@ export class AccountEngine {
 	private async switchClaude(
 		input: PerformSwitchInput,
 	): Promise<ManualSwitchOutcome & { activeDir?: string }> {
+		if (input.target.credentialKind === "api_key") {
+			const dir = input.target.selection;
+			if (
+				dir === null ||
+				(await readApiBillingFingerprint(dir, "claude")) === null
+			) {
+				return {
+					ok: false,
+					code: "no-target-login",
+					reason: "The API-billed profile is no longer available.",
+				};
+			}
+			try {
+				await (this.deps.provisionClaude ?? provisionClaudeAccount)(dir);
+			} catch (error) {
+				console.warn(
+					"[account-engine] provisioning the API-billed Claude profile failed (continuing):",
+					error,
+				);
+			}
+			if (!this.ensureOwnership(this.now())) return LOCK_LOSER;
+			try {
+				this.setPointer(this.db, "claude", dir);
+			} catch (error) {
+				return { ok: false, code: "pointer-failed", reason: errorText(error) };
+			}
+			// API credentials belong to the whole profile. Leave the shared
+			// OAuth login intact, and move sessions to this profile at idle.
+			return { ok: true, activeDir: dir };
+		}
+
+		// Returning from an API profile does not make it the owner of the
+		// OAuth credential retained in the shared dir. Resolve that owner
+		// separately; history still describes the actual API -> OAuth switch.
+		let credentialInput = input;
+		if (input.from?.credentialKind === "api_key") {
+			const retained = await this.readActiveIdentitySafe(
+				this.resolveActiveDir(),
+			);
+			// The identity block can be stale while the retained credential is
+			// still the one we wrote for another account. Never use that block
+			// as an owner claim, including the pointer-only return below.
+			if (
+				this.claudeIdentityIndeterminate ||
+				(retained !== null &&
+					retained.credentialHash !== null &&
+					this.lastWritten !== null &&
+					retained.accountUuid !== this.lastWritten.accountUuid)
+			) {
+				return {
+					ok: false,
+					code: "owner-unknown",
+					reason:
+						"The retained OAuth identity is indeterminate or contradicts the last activated login.",
+				};
+			}
+			if (
+				!retained ||
+				(retained.credentialHash !== null && retained.accountUuid === null)
+			) {
+				return {
+					ok: false,
+					code: "owner-unknown",
+					reason: "The retained OAuth login could not be identified.",
+				};
+			}
+			const owner =
+				retained.credentialHash === null
+					? null
+					: this.pool("claude").find(
+							(item) =>
+								item.row.credentialKind !== "api_key" &&
+								item.row.accountId === retained.accountUuid &&
+								item.row.selection ===
+									input.runtime.identityBindings[retained.accountUuid ?? ""],
+						)?.row;
+			if (owner === undefined) {
+				return {
+					ok: false,
+					code: "owner-unknown",
+					reason: "No profile is bound to the retained OAuth login.",
+				};
+			}
+			if (owner !== null && owner.accountKey === input.target.accountKey) {
+				// The freshest login is already in place. Swapping its profile
+				// back in would load the older token before saving this one back.
+				if (!this.ensureOwnership(this.now())) return LOCK_LOSER;
+				const activeDir = this.resolveActiveDir();
+				try {
+					this.setPointer(this.db, "claude", activeDir);
+				} catch (error) {
+					return {
+						ok: false,
+						code: "pointer-failed",
+						reason: errorText(error),
+					};
+				}
+				return { ok: true, activeDir };
+			}
+			credentialInput = { ...input, from: owner };
+		}
 		// KTD14, first activation: no account is known to be active and the
 		// active dir holds no credential, so there is nothing of the user's to
 		// save back — no owner to bind, and no login to seed from. Seeding from
 		// the absent system default is what used to leave the owner requirement
 		// unsatisfiable forever.
 		const firstActivation =
-			input.from === null && !(await this.activeDirHoldsLogin());
+			credentialInput.from === null && !(await this.activeDirHoldsLogin());
 
 		let activeDir: string;
 		try {
 			activeDir = await this.ensureActiveDir(
 				firstActivation
 					? {}
-					: { seedLogin: (dir) => this.seedActiveDir(dir, input) },
+					: { seedLogin: (dir) => this.seedActiveDir(dir, credentialInput) },
 			);
 		} catch (error) {
 			return {
@@ -1574,7 +1692,10 @@ export class AccountEngine {
 				activeDir,
 			});
 		} else {
-			const ownerBinding = this.ownerBinding(input.runtime, input.from);
+			const ownerBinding = this.ownerBinding(
+				input.runtime,
+				credentialInput.from,
+			);
 			if (!ownerBinding) {
 				return {
 					ok: false,
@@ -1596,14 +1717,16 @@ export class AccountEngine {
 				// into the wrong dir after a `/login` inside a live session.
 				expectedOwnerAccountId: indeterminate
 					? null
-					: (input.from?.accountId ?? null),
+					: (credentialInput.from?.accountId ?? null),
 				// The same claim about the target, so a `/login` that landed there
 				// since the decision is refused rather than moved onto under the
 				// account the decision was about.
 				expectedTargetAccountId: input.target.accountId ?? null,
 				// A hand-exported dir is read, never written: the login it holds
 				// is not Superset's to save back.
-				ownerManaged: indeterminate ? false : (input.from?.managed ?? true),
+				ownerManaged: indeterminate
+					? false
+					: (credentialInput.from?.managed ?? true),
 				activeDir,
 			});
 		}
@@ -1639,7 +1762,10 @@ export class AccountEngine {
 			// already changed the active dir. Put the previous login back
 			// through the same primitive before reporting the failure;
 			// otherwise the sessions are on an account nothing recorded.
-			const restored = await this.restorePreviousLogin(input, activeDir);
+			const restored = await this.restorePreviousLogin(
+				credentialInput,
+				activeDir,
+			);
 			if (restored) {
 				return { ok: false, code: "pointer-failed", reason: errorText(error) };
 			}
@@ -1665,7 +1791,7 @@ export class AccountEngine {
 			// rewrites `.claude.json` from the identity it started with, so a
 			// changed credential paired with *this* id is that CLI, not a
 			// `/login`.
-			previousAccountUuid: input.from?.accountId ?? null,
+			previousAccountUuid: credentialInput.from?.accountId ?? null,
 		};
 		return { ok: true, activeDir };
 	}
@@ -1870,6 +1996,11 @@ export class AccountEngine {
 		now: number,
 	): Promise<void> {
 		const state = runtime.perAgent.claude;
+		if (
+			this.activeRow(this.pool("claude"), state)?.row.credentialKind ===
+			"api_key"
+		)
+			return;
 		const expected = state.activeAccountId;
 		if (expected === null) return;
 		const activeDir = this.resolveActiveDir();
