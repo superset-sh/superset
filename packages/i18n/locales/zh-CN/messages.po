@@ -4009,6 +4009,9 @@ msgstr "无法连接到主机以加载此拉取请求。"
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "无法连接主机以开始更新。请确认主机在线后重试。"
 
+msgid "Could not reach the server."
+msgstr "无法连接到服务器。"
+
 msgid "Could not reach this workspace's machine"
 msgstr "无法连接到这个工作区所在的机器"
 
@@ -4253,6 +4256,9 @@ msgstr "创建团队"
 
 msgid "Create a workspace for the auth feature on my MacBook"
 msgstr "在我的MacBook上为认证功能创建一个工作区"
+
+msgid "Create again"
+msgstr "再次创建"
 
 msgid "Create an account"
 msgstr "创建账户"
@@ -4878,6 +4884,9 @@ msgstr "语音输入"
 
 msgid "Dictation is not available on this device"
 msgstr "此设备不支持语音输入"
+
+msgid "Didn't hear back"
+msgstr "未收到响应"
 
 msgid "diff"
 msgstr "差异"
@@ -8987,6 +8996,9 @@ msgstr "无图标"
 
 msgid "No Internet Connection"
 msgstr "无网络连接"
+
+msgid "No internet connection."
+msgstr "无网络连接。"
 
 msgid "No issues found."
 msgstr "未找到议题。"
@@ -13991,6 +14003,9 @@ msgstr "最好的智能体会变。<0/>你的工作流不该变。"
 msgid "The Codex sign-in"
 msgstr "Codex登录"
 
+msgid "The connection dropped."
+msgstr "连接已中断。"
+
 msgid "The connection timed out"
 msgstr "连接已超时"
 
@@ -14069,6 +14084,9 @@ msgstr "主机以 {0} 而非 {targetVersion} 恢复。"
 
 msgid "The host did not come back within fifteen minutes."
 msgstr "主机未在十五分钟内恢复。"
+
+msgid "The host hasn't answered."
+msgstr "主机未响应。"
 
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "该主机没有连接到Superset中继。如果就是此设备，请在“设置>远程访问”中打开“允许通过中继远程访问本设备”，然后重试。"
@@ -14172,6 +14190,9 @@ msgstr "仓库文件夹本身会保留。"
 msgid "The request failed."
 msgstr "请求失败。"
 
+msgid "The request timed out."
+msgstr "请求超时。"
+
 msgid "The response: agents review agents, and humans sample instead of reading everything. Trust is earned statistically, not per diff."
 msgstr "应对办法是：让智能体审查智能体，人类改为抽样而不是通读。信任靠统计建立，而不是逐个差异建立。"
 
@@ -14235,6 +14256,9 @@ msgstr "网页版智能体界面目前是只读预览。"
 
 msgid "The workspace is not ready yet. Try again."
 msgstr "工作区尚未就绪。请重试。"
+
+msgid "The workspace may still have been created. This screen opens it if it appears."
+msgstr "工作区可能已经创建。如果出现，此界面会自动打开它。"
 
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "worktree及其中所有未提交的更改都会被移除。此操作无法撤销。"
@@ -14557,9 +14581,6 @@ msgstr "等级"
 
 msgid "Time range"
 msgstr "时间范围"
-
-msgid "Timed out waiting for the host to create the workspace."
-msgstr "等待主机创建工作区超时。"
 
 msgid "Title"
 msgstr "标题"

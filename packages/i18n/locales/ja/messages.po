@@ -4009,6 +4009,9 @@ msgstr "このプルリクエストを読み込むためのホストに接続で
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "更新を開始するためにホストに接続できませんでした。オンラインであることを確認して、もう一度お試しください。"
 
+msgid "Could not reach the server."
+msgstr "サーバーに接続できませんでした。"
+
 msgid "Could not reach this workspace's machine"
 msgstr "このワークスペースのマシンに接続できませんでした"
 
@@ -4253,6 +4256,9 @@ msgstr "チームを作成"
 
 msgid "Create a workspace for the auth feature on my MacBook"
 msgstr "MacBookに認証機能用のワークスペースを作って"
+
+msgid "Create again"
+msgstr "もう一度作成"
 
 msgid "Create an account"
 msgstr "アカウントを作成"
@@ -4878,6 +4884,9 @@ msgstr "音声入力"
 
 msgid "Dictation is not available on this device"
 msgstr "このデバイスでは音声入力を利用できません"
+
+msgid "Didn't hear back"
+msgstr "応答がありません"
 
 msgid "diff"
 msgstr "差分"
@@ -8987,6 +8996,9 @@ msgstr "アイコンなし"
 
 msgid "No Internet Connection"
 msgstr "インターネット接続がありません"
+
+msgid "No internet connection."
+msgstr "インターネット接続がありません。"
 
 msgid "No issues found."
 msgstr "Issueが見つかりません。"
@@ -13991,6 +14003,9 @@ msgstr "最良のエージェントは変わります。<0/>ワークフロー�
 msgid "The Codex sign-in"
 msgstr "Codexのサインイン"
 
+msgid "The connection dropped."
+msgstr "接続が切断されました。"
+
 msgid "The connection timed out"
 msgstr "接続がタイムアウトしました"
 
@@ -14069,6 +14084,9 @@ msgstr "ホストは{targetVersion}ではなく{0}で復帰しました。"
 
 msgid "The host did not come back within fifteen minutes."
 msgstr "ホストが15分以内に復帰しませんでした。"
+
+msgid "The host hasn't answered."
+msgstr "ホストからの応答がありません。"
 
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "ホストがSupersetリレーに接続されていません。このデバイスの場合は、設定 > リモートアクセスで「リレー経由でこのデバイスへのリモートアクセスを許可」をオンにしてから再試行してください。"
@@ -14172,6 +14190,9 @@ msgstr "リポジトリのフォルダ自体は残ります。"
 msgid "The request failed."
 msgstr "リクエストに失敗しました。"
 
+msgid "The request timed out."
+msgstr "リクエストがタイムアウトしました。"
+
 msgid "The response: agents review agents, and humans sample instead of reading everything. Trust is earned statistically, not per diff."
 msgstr "その答えは、エージェントがエージェントをレビューし、人間はすべてを読む代わりに抜き取りで確認することです。信頼は差分ごとではなく、統計的に積み上げられます。"
 
@@ -14235,6 +14256,9 @@ msgstr "Web版のエージェントUIは現時点では読み取り専用のプ�
 
 msgid "The workspace is not ready yet. Try again."
 msgstr "ワークスペースの準備がまだできていません。もう一度お試しください。"
+
+msgid "The workspace may still have been created. This screen opens it if it appears."
+msgstr "ワークスペースは作成されている可能性があります。表示された場合、この画面で開きます。"
 
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "ワークツリーと未コミットの変更が削除されます。この操作は元に戻せません。"
@@ -14557,9 +14581,6 @@ msgstr "ティア"
 
 msgid "Time range"
 msgstr "期間"
-
-msgid "Timed out waiting for the host to create the workspace."
-msgstr "ホストがワークスペースを作成するのを待つ間にタイムアウトしました。"
 
 msgid "Title"
 msgstr "タイトル"

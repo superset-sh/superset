@@ -4009,6 +4009,9 @@ msgstr "Não foi possível acessar o host para carregar este pull request."
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "Não foi possível alcançar o host para iniciar a atualização. Verifique se ele está online e tente novamente."
 
+msgid "Could not reach the server."
+msgstr "Não foi possível acessar o servidor."
+
 msgid "Could not reach this workspace's machine"
 msgstr "Não foi possível acessar a máquina desta área de trabalho"
 
@@ -4253,6 +4256,9 @@ msgstr "Criar uma equipe"
 
 msgid "Create a workspace for the auth feature on my MacBook"
 msgstr "Crie uma área de trabalho para a funcionalidade de autenticação no meu MacBook"
+
+msgid "Create again"
+msgstr "Criar novamente"
 
 msgid "Create an account"
 msgstr "Criar uma conta"
@@ -4878,6 +4884,9 @@ msgstr "Ditar"
 
 msgid "Dictation is not available on this device"
 msgstr "O ditado não está disponível neste dispositivo"
+
+msgid "Didn't hear back"
+msgstr "Sem resposta"
 
 msgid "diff"
 msgstr "diff"
@@ -8987,6 +8996,9 @@ msgstr "Sem ícone"
 
 msgid "No Internet Connection"
 msgstr "Sem conexão com a internet"
+
+msgid "No internet connection."
+msgstr "Sem conexão com a internet."
 
 msgid "No issues found."
 msgstr "Nenhuma issue encontrada."
@@ -13991,6 +14003,9 @@ msgstr "O melhor agente vai mudar.<0/>Seu fluxo de trabalho, não."
 msgid "The Codex sign-in"
 msgstr "O login do Codex"
 
+msgid "The connection dropped."
+msgstr "A conexão caiu."
+
 msgid "The connection timed out"
 msgstr "O tempo de conexão esgotou"
 
@@ -14069,6 +14084,9 @@ msgstr "O host voltou na {0}, não na {targetVersion}."
 
 msgid "The host did not come back within fifteen minutes."
 msgstr "O host não voltou a ficar disponível em quinze minutos."
+
+msgid "The host hasn't answered."
+msgstr "O host não respondeu."
 
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "O host não está conectado ao relay do Superset. Se for este dispositivo, ative \"Permitir acesso remoto a este dispositivo via relay\" em Configurações > Acesso remoto e tente novamente."
@@ -14172,6 +14190,9 @@ msgstr "A pasta do repositório em si é mantida."
 msgid "The request failed."
 msgstr "A requisição falhou."
 
+msgid "The request timed out."
+msgstr "A solicitação expirou."
+
 msgid "The response: agents review agents, and humans sample instead of reading everything. Trust is earned statistically, not per diff."
 msgstr "A resposta: agentes revisam agentes, e as pessoas amostram em vez de ler tudo. A confiança é conquistada estatisticamente, não diff a diff."
 
@@ -14235,6 +14256,9 @@ msgstr "A interface web de agentes é uma prévia somente leitura por enquanto."
 
 msgid "The workspace is not ready yet. Try again."
 msgstr "A área de trabalho ainda não está pronta. Tente de novo."
+
+msgid "The workspace may still have been created. This screen opens it if it appears."
+msgstr "A área de trabalho pode ter sido criada mesmo assim. Esta tela a abre se ela aparecer."
 
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "A worktree e as alterações sem commit serão removidas. Não dá para desfazer."
@@ -14557,9 +14581,6 @@ msgstr "Plano"
 
 msgid "Time range"
 msgstr "Período"
-
-msgid "Timed out waiting for the host to create the workspace."
-msgstr "O tempo de espera para o host criar a área de trabalho esgotou."
 
 msgid "Title"
 msgstr "Título"

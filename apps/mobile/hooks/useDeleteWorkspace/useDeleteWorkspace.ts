@@ -7,6 +7,7 @@ import {
 	getHostWorkspacesQueryKey,
 	type HostWorkspaceRow,
 } from "@/hooks/useHostWorkspaces";
+import { captureError, errorCopy, isTransportError } from "@/lib/errors";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
 import { isTrpcErrorWithData } from "@/lib/host-service/errors";
 
@@ -127,6 +128,7 @@ export function useDeleteWorkspace() {
 					const rows = await client.workspace.list.query().catch(() => null);
 					if (rows && !rows.some((row) => row.id === target.id)) return;
 					void queryClient.invalidateQueries({ queryKey: listKey });
+					captureError(error, "workspace.delete");
 					Alert.alert(
 						t({
 							message: "Delete failed",
@@ -184,5 +186,8 @@ function failureDetail(error: unknown): string | undefined {
 	) {
 		return undefined;
 	}
-	return error instanceof Error ? error.message : undefined;
+	// A transport failure is silent here for the same reason: the fresh list
+	// above answered, so a dropped connection is not what stopped the delete.
+	if (isTransportError(error)) return undefined;
+	return errorCopy(error);
 }

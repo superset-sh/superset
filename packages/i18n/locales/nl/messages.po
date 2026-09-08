@@ -4009,6 +4009,9 @@ msgstr "Kan de host niet bereiken om deze pull request te laden."
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "Kon de host niet bereiken om de update te starten. Controleer of hij online is en probeer het opnieuw."
 
+msgid "Could not reach the server."
+msgstr "Kan de server niet bereiken."
+
 msgid "Could not reach this workspace's machine"
 msgstr "Kan de machine van deze werkruimte niet bereiken"
 
@@ -4253,6 +4256,9 @@ msgstr "Een team aanmaken"
 
 msgid "Create a workspace for the auth feature on my MacBook"
 msgstr "Maak een werkruimte voor de auth-feature op mijn MacBook"
+
+msgid "Create again"
+msgstr "Opnieuw aanmaken"
 
 msgid "Create an account"
 msgstr "Een account aanmaken"
@@ -4878,6 +4884,9 @@ msgstr "Dicteren"
 
 msgid "Dictation is not available on this device"
 msgstr "Dicteren is niet beschikbaar op dit apparaat"
+
+msgid "Didn't hear back"
+msgstr "Geen reactie ontvangen"
 
 msgid "diff"
 msgstr "diff"
@@ -8987,6 +8996,9 @@ msgstr "Geen icoon"
 
 msgid "No Internet Connection"
 msgstr "Geen internetverbinding"
+
+msgid "No internet connection."
+msgstr "Geen internetverbinding."
 
 msgid "No issues found."
 msgstr "Geen issues gevonden."
@@ -13991,6 +14003,9 @@ msgstr "De beste agent verandert.<0/>Jouw workflow niet."
 msgid "The Codex sign-in"
 msgstr "De Codex-login"
 
+msgid "The connection dropped."
+msgstr "De verbinding is verbroken."
+
 msgid "The connection timed out"
 msgstr "De verbinding is verlopen"
 
@@ -14069,6 +14084,9 @@ msgstr "De host kwam terug op {0}, niet op {targetVersion}."
 
 msgid "The host did not come back within fifteen minutes."
 msgstr "De host was na vijftien minuten nog niet terug."
+
+msgid "The host hasn't answered."
+msgstr "De host heeft niet geantwoord."
 
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "De host is niet verbonden met de Superset-relay. Als het dit apparaat is, zet dan \"Externe toegang via de relay toegang geven tot dit apparaat\" aan bij Instellingen > Externe toegang en probeer het opnieuw."
@@ -14172,6 +14190,9 @@ msgstr "De repositorymap zelf blijft behouden."
 msgid "The request failed."
 msgstr "Het verzoek is mislukt."
 
+msgid "The request timed out."
+msgstr "De aanvraag is verlopen."
+
 msgid "The response: agents review agents, and humans sample instead of reading everything. Trust is earned statistically, not per diff."
 msgstr "Het antwoord: agents reviewen agents, en mensen nemen steekproeven in plaats van alles te lezen. Vertrouwen wordt statistisch verdiend, niet per diff."
 
@@ -14235,6 +14256,9 @@ msgstr "De web-UI voor agents is voorlopig een alleen-lezen preview."
 
 msgid "The workspace is not ready yet. Try again."
 msgstr "De werkruimte is nog niet klaar. Probeer het opnieuw."
+
+msgid "The workspace may still have been created. This screen opens it if it appears."
+msgstr "De werkruimte is mogelijk toch aangemaakt. Dit scherm opent hem zodra hij verschijnt."
 
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "De worktree en eventuele niet-gecommitte wijzigingen worden verwijderd. Dit kan niet ongedaan worden gemaakt."
@@ -14557,9 +14581,6 @@ msgstr "Tier"
 
 msgid "Time range"
 msgstr "Periode"
-
-msgid "Timed out waiting for the host to create the workspace."
-msgstr "Time-out tijdens het wachten tot de host de werkruimte aanmaakte."
 
 msgid "Title"
 msgstr "Titel"

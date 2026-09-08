@@ -1,10 +1,9 @@
 import { msg } from "@lingui/core/macro";
-import { i18n } from "@superset/i18n";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { Alert } from "react-native";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
+import { alertError } from "@/lib/errors";
 import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
@@ -95,13 +94,12 @@ export function useStartWorkspaceTerminal(workspaces: HostWorkspaceItem[]) {
 				workspace_id: target.workspaceId,
 				result: "failed",
 			});
-			Alert.alert(
-				i18n._(
-					msg({
-						message: "Could not start agent",
-					}),
-				),
-				error instanceof Error ? error.message : String(error),
+			alertError(
+				msg({
+					message: "Could not start agent",
+				}),
+				error,
+				"agent.start",
 			);
 		},
 	});

@@ -29,6 +29,19 @@ export interface PendingWorkspaceCreateInput {
 	message: PromptInputMessage;
 }
 
+/**
+ * Why a create stopped short of a row. `unknown` is the honest answer to a
+ * failure in transport: the request never got an answer, so the host may have
+ * finished the worktree anyway. The workspace screen keeps polling either way
+ * and heals itself if the row turns up, so the distinction is only about what
+ * the user is told and what the retry button does.
+ */
+export interface PendingWorkspaceCreateFailure {
+	outcome: "failed" | "unknown";
+	/** Display copy — already mapped and safe to show. */
+	message: string;
+}
+
 export interface PendingWorkspaceCreate {
 	workspaceId: string;
 	/** Host machineId — keys the host-scoped query invalidations. */
@@ -37,13 +50,13 @@ export interface PendingWorkspaceCreate {
 	startedAt: number;
 	input: PendingWorkspaceCreateInput;
 	/** Set on failure — the workspace screen swaps to the failed state. */
-	error: string | null;
+	failure: PendingWorkspaceCreateFailure | null;
 }
 
 interface PendingWorkspaceCreatesStore {
 	pendingById: Record<string, PendingWorkspaceCreate>;
-	start: (entry: Omit<PendingWorkspaceCreate, "error">) => void;
-	fail: (workspaceId: string, error: string) => void;
+	start: (entry: Omit<PendingWorkspaceCreate, "failure">) => void;
+	fail: (workspaceId: string, failure: PendingWorkspaceCreateFailure) => void;
 	clear: (workspaceId: string) => void;
 }
 
@@ -61,17 +74,17 @@ export const usePendingWorkspaceCreatesStore =
 			set((state) => ({
 				pendingById: {
 					...state.pendingById,
-					[entry.workspaceId]: { ...entry, error: null },
+					[entry.workspaceId]: { ...entry, failure: null },
 				},
 			})),
-		fail: (workspaceId, error) =>
+		fail: (workspaceId, failure) =>
 			set((state) => {
 				const entry = state.pendingById[workspaceId];
 				if (!entry) return state;
 				return {
 					pendingById: {
 						...state.pendingById,
-						[workspaceId]: { ...entry, error },
+						[workspaceId]: { ...entry, failure },
 					},
 				};
 			}),

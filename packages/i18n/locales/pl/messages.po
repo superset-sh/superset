@@ -4009,6 +4009,9 @@ msgstr "Nie udało się połączyć z hostem, aby wczytać ten pull request."
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "Nie udało się połączyć z hostem, aby rozpocząć aktualizację. Sprawdź, czy jest online, i spróbuj ponownie."
 
+msgid "Could not reach the server."
+msgstr "Nie można połączyć się z serwerem."
+
 msgid "Could not reach this workspace's machine"
 msgstr "Nie udało się połączyć z maszyną tego obszaru roboczego"
 
@@ -4253,6 +4256,9 @@ msgstr "Utwórz zespół"
 
 msgid "Create a workspace for the auth feature on my MacBook"
 msgstr "Utwórz obszar roboczy dla funkcji auth na moim MacBooku"
+
+msgid "Create again"
+msgstr "Utwórz ponownie"
 
 msgid "Create an account"
 msgstr "Utwórz konto"
@@ -4878,6 +4884,9 @@ msgstr "Dyktuj"
 
 msgid "Dictation is not available on this device"
 msgstr "Dyktowanie jest niedostępne na tym urządzeniu"
+
+msgid "Didn't hear back"
+msgstr "Brak odpowiedzi"
 
 msgid "diff"
 msgstr "różnice"
@@ -8987,6 +8996,9 @@ msgstr "Brak ikony"
 
 msgid "No Internet Connection"
 msgstr "Brak połączenia z internetem"
+
+msgid "No internet connection."
+msgstr "Brak połączenia z internetem."
 
 msgid "No issues found."
 msgstr "Nie znaleziono zgłoszeń."
@@ -13991,6 +14003,9 @@ msgstr "Najlepszy agent się zmieni.<0/>Twój workflow nie musi."
 msgid "The Codex sign-in"
 msgstr "Logowanie Codex"
 
+msgid "The connection dropped."
+msgstr "Połączenie zostało przerwane."
+
 msgid "The connection timed out"
 msgstr "Przekroczono czas połączenia"
 
@@ -14069,6 +14084,9 @@ msgstr "Host wrócił w wersji {0}, a nie {targetVersion}."
 
 msgid "The host did not come back within fifteen minutes."
 msgstr "Host nie wrócił do działania w ciągu piętnastu minut."
+
+msgid "The host hasn't answered."
+msgstr "Host nie odpowiedział."
 
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "Host nie jest połączony z przekaźnikiem Superset. Jeśli chodzi o to urządzenie, włącz „Zezwól na zdalny dostęp do tego urządzenia przez przekaźnik” w Ustawienia > Dostęp zdalny i spróbuj ponownie."
@@ -14172,6 +14190,9 @@ msgstr "Sam folder repozytorium zostaje zachowany."
 msgid "The request failed."
 msgstr "Żądanie nie powiodło się."
 
+msgid "The request timed out."
+msgstr "Upłynął limit czasu żądania."
+
 msgid "The response: agents review agents, and humans sample instead of reading everything. Trust is earned statistically, not per diff."
 msgstr "Odpowiedź: agenci przeglądają agentów, a ludzie próbkują zamiast czytać wszystko. Zaufanie zdobywa się statystycznie, nie per diff."
 
@@ -14235,6 +14256,9 @@ msgstr "Webowy interfejs agentów jest na razie podglądem tylko do odczytu."
 
 msgid "The workspace is not ready yet. Try again."
 msgstr "Obszar roboczy nie jest jeszcze gotowy. Spróbuj ponownie."
+
+msgid "The workspace may still have been created. This screen opens it if it appears."
+msgstr "Obszar roboczy mógł mimo to zostać utworzony. Ten ekran otworzy go, gdy się pojawi."
 
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "Worktree i wszystkie niezacommitowane zmiany zostaną usunięte. Tej operacji nie można cofnąć."
@@ -14557,9 +14581,6 @@ msgstr "Poziom"
 
 msgid "Time range"
 msgstr "Zakres czasu"
-
-msgid "Timed out waiting for the host to create the workspace."
-msgstr "Przekroczono czas oczekiwania na utworzenie obszaru roboczego przez host."
 
 msgid "Title"
 msgstr "Tytuł"

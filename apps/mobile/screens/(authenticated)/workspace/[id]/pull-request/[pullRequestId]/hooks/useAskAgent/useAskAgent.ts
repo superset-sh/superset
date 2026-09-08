@@ -1,10 +1,9 @@
 import { msg } from "@lingui/core/macro";
-import { i18n } from "@superset/i18n";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert } from "react-native";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
+import { alertError } from "@/lib/errors";
 import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
@@ -72,13 +71,12 @@ export function useAskAgent({ workspaceId }: { workspaceId: string | null }) {
 			);
 		},
 		onError: (error: Error) => {
-			Alert.alert(
-				i18n._(
-					msg({
-						message: "Could not start agent",
-					}),
-				),
-				error.message,
+			alertError(
+				msg({
+					message: "Could not start agent",
+				}),
+				error,
+				"pull-request.ask-agent",
 			);
 		},
 	});

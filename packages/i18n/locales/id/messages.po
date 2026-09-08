@@ -4009,6 +4009,9 @@ msgstr "Tidak bisa menjangkau host untuk memuat pull request ini."
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "Tidak dapat menjangkau host untuk memulai pembaruan. Pastikan host online lalu coba lagi."
 
+msgid "Could not reach the server."
+msgstr "Tidak dapat menjangkau server."
+
 msgid "Could not reach this workspace's machine"
 msgstr "Tidak bisa menjangkau mesin workspace ini"
 
@@ -4253,6 +4256,9 @@ msgstr "Buat sebuah tim"
 
 msgid "Create a workspace for the auth feature on my MacBook"
 msgstr "Buat workspace untuk fitur auth di MacBook saya"
+
+msgid "Create again"
+msgstr "Buat lagi"
 
 msgid "Create an account"
 msgstr "Buat akun"
@@ -4878,6 +4884,9 @@ msgstr "Dikte"
 
 msgid "Dictation is not available on this device"
 msgstr "Dikte tidak tersedia di perangkat ini"
+
+msgid "Didn't hear back"
+msgstr "Tidak ada respons"
 
 msgid "diff"
 msgstr "diff"
@@ -8987,6 +8996,9 @@ msgstr "Tanpa ikon"
 
 msgid "No Internet Connection"
 msgstr "Tidak Ada Koneksi Internet"
+
+msgid "No internet connection."
+msgstr "Tidak ada koneksi internet."
 
 msgid "No issues found."
 msgstr "Tidak ada issue ditemukan."
@@ -13991,6 +14003,9 @@ msgstr "Agen terbaik akan berganti.<0/>Alur kerja Anda tidak perlu."
 msgid "The Codex sign-in"
 msgstr "Sesi masuk Codex"
 
+msgid "The connection dropped."
+msgstr "Koneksi terputus."
+
 msgid "The connection timed out"
 msgstr "Koneksinya kehabisan waktu"
 
@@ -14069,6 +14084,9 @@ msgstr "Host kembali dengan {0}, bukan {targetVersion}."
 
 msgid "The host did not come back within fifteen minutes."
 msgstr "Host tidak kembali dalam lima belas menit."
+
+msgid "The host hasn't answered."
+msgstr "Host tidak merespons."
 
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "Host tidak terhubung ke relay Superset. Kalau ini perangkatnya, aktifkan \"Izinkan akses jarak jauh ke perangkat ini melalui relay\" di Pengaturan > Akses Jarak Jauh, lalu coba lagi."
@@ -14172,6 +14190,9 @@ msgstr "Folder repositori itu sendiri tetap dipertahankan."
 msgid "The request failed."
 msgstr "Permintaan gagal."
 
+msgid "The request timed out."
+msgstr "Permintaan kehabisan waktu."
+
 msgid "The response: agents review agents, and humans sample instead of reading everything. Trust is earned statistically, not per diff."
 msgstr "Jawabannya: agen mereview agen, dan manusia mengambil sampel alih-alih membaca semuanya. Kepercayaan dibangun secara statistik, bukan per diff."
 
@@ -14235,6 +14256,9 @@ msgstr "UI agen di web masih pratinjau baca-saja untuk saat ini."
 
 msgid "The workspace is not ready yet. Try again."
 msgstr "Workspace belum siap. Coba lagi."
+
+msgid "The workspace may still have been created. This screen opens it if it appears."
+msgstr "Workspace mungkin tetap dibuat. Layar ini akan membukanya jika muncul."
 
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "Worktree beserta perubahan yang belum di-commit akan dihapus. Ini tidak bisa dibatalkan."
@@ -14557,9 +14581,6 @@ msgstr "Tingkat"
 
 msgid "Time range"
 msgstr "Rentang waktu"
-
-msgid "Timed out waiting for the host to create the workspace."
-msgstr "Kehabisan waktu menunggu host membuat workspace."
 
 msgid "Title"
 msgstr "Judul"

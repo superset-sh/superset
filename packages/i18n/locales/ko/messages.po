@@ -4009,6 +4009,9 @@ msgstr "호스트에 연결할 수 없어 이 풀 리퀘스트를 불러오지 �
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "업데이트를 시작하기 위해 호스트에 연결할 수 없습니다. 온라인 상태인지 확인한 후 다시 시도하세요."
 
+msgid "Could not reach the server."
+msgstr "서버에 연결할 수 없습니다."
+
 msgid "Could not reach this workspace's machine"
 msgstr "이 워크스페이스의 컴퓨터에 연결할 수 없습니다"
 
@@ -4253,6 +4256,9 @@ msgstr "팀 만들기"
 
 msgid "Create a workspace for the auth feature on my MacBook"
 msgstr "내 MacBook에 인증 기능용 워크스페이스를 만들어 줘"
+
+msgid "Create again"
+msgstr "다시 생성"
 
 msgid "Create an account"
 msgstr "계정 만들기"
@@ -4878,6 +4884,9 @@ msgstr "받아쓰기"
 
 msgid "Dictation is not available on this device"
 msgstr "이 기기에서는 받아쓰기를 사용할 수 없습니다"
+
+msgid "Didn't hear back"
+msgstr "응답이 없습니다"
 
 msgid "diff"
 msgstr "차이"
@@ -8987,6 +8996,9 @@ msgstr "아이콘 없음"
 
 msgid "No Internet Connection"
 msgstr "인터넷 연결 없음"
+
+msgid "No internet connection."
+msgstr "인터넷 연결이 없습니다."
 
 msgid "No issues found."
 msgstr "이슈를 찾을 수 없습니다."
@@ -13991,6 +14003,9 @@ msgstr "최고의 에이전트는 바뀝니다.<0/>워크플로는 그럴 필요
 msgid "The Codex sign-in"
 msgstr "Codex 로그인"
 
+msgid "The connection dropped."
+msgstr "연결이 끊어졌습니다."
+
 msgid "The connection timed out"
 msgstr "연결 시간이 초과되었습니다"
 
@@ -14069,6 +14084,9 @@ msgstr "호스트가 {targetVersion}이(가) 아닌 {0}(으)로 돌아왔습니�
 
 msgid "The host did not come back within fifteen minutes."
 msgstr "호스트가 15분 이내에 다시 연결되지 않았습니다."
+
+msgid "The host hasn't answered."
+msgstr "호스트가 응답하지 않았습니다."
 
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "호스트가 Superset 릴레이에 연결되어 있지 않습니다. 이 기기라면 설정 > 원격 액세스에서 \"원격 액세스가 릴레이를 통해 이 기기에 접근하도록 허용\"을 켠 뒤 다시 시도하세요."
@@ -14172,6 +14190,9 @@ msgstr "저장소 폴더 자체는 유지됩니다."
 msgid "The request failed."
 msgstr "요청이 실패했습니다."
 
+msgid "The request timed out."
+msgstr "요청 시간이 초과되었습니다."
+
 msgid "The response: agents review agents, and humans sample instead of reading everything. Trust is earned statistically, not per diff."
 msgstr "그 대응은 이렇습니다. 에이전트가 에이전트를 리뷰하고, 사람은 전부 읽는 대신 표본만 확인합니다. 신뢰는 차이 하나하나가 아니라 통계적으로 쌓입니다."
 
@@ -14235,6 +14256,9 @@ msgstr "웹 에이전트 UI는 아직 읽기 전용 미리 보기입니다."
 
 msgid "The workspace is not ready yet. Try again."
 msgstr "워크스페이스가 아직 준비되지 않았습니다. 다시 시도하세요."
+
+msgid "The workspace may still have been created. This screen opens it if it appears."
+msgstr "워크스페이스가 생성되었을 수도 있습니다. 나타나면 이 화면에서 열립니다."
 
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "worktree와 커밋되지 않은 변경 사항이 모두 삭제됩니다. 되돌릴 수 없습니다."
@@ -14557,9 +14581,6 @@ msgstr "등급"
 
 msgid "Time range"
 msgstr "기간"
-
-msgid "Timed out waiting for the host to create the workspace."
-msgstr "호스트가 워크스페이스를 만들기를 기다리다 시간이 초과되었습니다."
 
 msgid "Title"
 msgstr "제목"

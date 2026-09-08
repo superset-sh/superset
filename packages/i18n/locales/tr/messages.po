@@ -4009,6 +4009,9 @@ msgstr "Bu pull request'i yüklemek için host'a erişilemedi."
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "Güncellemeyi başlatmak için ana makineye ulaşılamadı. Çevrimiçi olduğundan emin olup tekrar deneyin."
 
+msgid "Could not reach the server."
+msgstr "Sunucuya ulaşılamadı."
+
 msgid "Could not reach this workspace's machine"
 msgstr "Bu çalışma alanının makinesine erişilemedi"
 
@@ -4253,6 +4256,9 @@ msgstr "Takım oluştur"
 
 msgid "Create a workspace for the auth feature on my MacBook"
 msgstr "MacBook'umda auth özelliği için bir çalışma alanı oluştur"
+
+msgid "Create again"
+msgstr "Yeniden oluştur"
 
 msgid "Create an account"
 msgstr "Hesap oluşturun"
@@ -4878,6 +4884,9 @@ msgstr "Sesle yaz"
 
 msgid "Dictation is not available on this device"
 msgstr "Bu cihazda sesle yazma kullanılamıyor"
+
+msgid "Didn't hear back"
+msgstr "Yanıt alınamadı"
 
 msgid "diff"
 msgstr "fark"
@@ -8987,6 +8996,9 @@ msgstr "Simge yok"
 
 msgid "No Internet Connection"
 msgstr "İnternet bağlantısı yok"
+
+msgid "No internet connection."
+msgstr "İnternet bağlantısı yok."
 
 msgid "No issues found."
 msgstr "Issue bulunamadı."
@@ -13991,6 +14003,9 @@ msgstr "En iyi ajan değişecek.<0/>İş akışınız değişmemeli."
 msgid "The Codex sign-in"
 msgstr "Codex oturumu"
 
+msgid "The connection dropped."
+msgstr "Bağlantı koptu."
+
 msgid "The connection timed out"
 msgstr "Bağlantı zaman aşımına uğradı"
 
@@ -14069,6 +14084,9 @@ msgstr "Ana makine {targetVersion} yerine {0} ile geri döndü."
 
 msgid "The host did not come back within fifteen minutes."
 msgstr "Ana makine on beş dakika içinde geri gelmedi."
+
+msgid "The host hasn't answered."
+msgstr "Host yanıt vermedi."
 
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "Host, Superset rölesine bağlı değil. Bu cihazsa Ayarlar > Uzaktan erişim bölümünde \"Uzaktan erişimnın bu cihaza röle üzerinden erişmesine izin ver\" seçeneğini açıp yeniden deneyin."
@@ -14172,6 +14190,9 @@ msgstr "Depo klasörünün kendisi korunur."
 msgid "The request failed."
 msgstr "İstek başarısız oldu."
 
+msgid "The request timed out."
+msgstr "İstek zaman aşımına uğradı."
+
 msgid "The response: agents review agents, and humans sample instead of reading everything. Trust is earned statistically, not per diff."
 msgstr "Yanıt şu: ajanlar ajanları inceler, insanlar da her şeyi okumak yerine örnekleme yapar. Güven fark fark değil, istatistiksel olarak kazanılır."
 
@@ -14235,6 +14256,9 @@ msgstr "Web ajan arayüzü şimdilik salt okunur bir önizlemedir."
 
 msgid "The workspace is not ready yet. Try again."
 msgstr "Çalışma alanı henüz hazır değil. Yeniden deneyin."
+
+msgid "The workspace may still have been created. This screen opens it if it appears."
+msgstr "Çalışma alanı yine de oluşturulmuş olabilir. Göründüğünde bu ekran onu açar."
 
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "Worktree ve commit'lenmemiş tüm değişiklikler kaldırılacak. Bu geri alınamaz."
@@ -14557,9 +14581,6 @@ msgstr "Katman"
 
 msgid "Time range"
 msgstr "Zaman aralığı"
-
-msgid "Timed out waiting for the host to create the workspace."
-msgstr "Host'un çalışma alanını oluşturması beklenirken zaman aşımına uğrandı."
 
 msgid "Title"
 msgstr "Başlık"

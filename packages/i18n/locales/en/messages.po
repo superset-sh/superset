@@ -4009,6 +4009,9 @@ msgstr "Could not reach the host to load this pull request."
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "Could not reach the host to start the update. Check that it is online and try again."
 
+msgid "Could not reach the server."
+msgstr "Could not reach the server."
+
 msgid "Could not reach this workspace's machine"
 msgstr "Could not reach this workspace's machine"
 
@@ -4253,6 +4256,9 @@ msgstr "Create a team"
 
 msgid "Create a workspace for the auth feature on my MacBook"
 msgstr "Create a workspace for the auth feature on my MacBook"
+
+msgid "Create again"
+msgstr "Create again"
 
 msgid "Create an account"
 msgstr "Create an account"
@@ -4878,6 +4884,9 @@ msgstr "Dictate"
 
 msgid "Dictation is not available on this device"
 msgstr "Dictation is not available on this device"
+
+msgid "Didn't hear back"
+msgstr "Didn't hear back"
 
 msgid "diff"
 msgstr "diff"
@@ -8987,6 +8996,9 @@ msgstr "No icon"
 
 msgid "No Internet Connection"
 msgstr "No Internet Connection"
+
+msgid "No internet connection."
+msgstr "No internet connection."
 
 msgid "No issues found."
 msgstr "No issues found."
@@ -13991,6 +14003,9 @@ msgstr "The best agent will change.<0/>Your workflow shouldn't."
 msgid "The Codex sign-in"
 msgstr "The Codex sign-in"
 
+msgid "The connection dropped."
+msgstr "The connection dropped."
+
 msgid "The connection timed out"
 msgstr "The connection timed out"
 
@@ -14069,6 +14084,9 @@ msgstr "The host came back on {0}, not {targetVersion}."
 
 msgid "The host did not come back within fifteen minutes."
 msgstr "The host did not come back within fifteen minutes."
+
+msgid "The host hasn't answered."
+msgstr "The host hasn't answered."
 
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
@@ -14172,6 +14190,9 @@ msgstr "The repository folder itself is kept."
 msgid "The request failed."
 msgstr "The request failed."
 
+msgid "The request timed out."
+msgstr "The request timed out."
+
 msgid "The response: agents review agents, and humans sample instead of reading everything. Trust is earned statistically, not per diff."
 msgstr "The response: agents review agents, and humans sample instead of reading everything. Trust is earned statistically, not per diff."
 
@@ -14235,6 +14256,9 @@ msgstr "The web agents UI is a read-only preview for now."
 
 msgid "The workspace is not ready yet. Try again."
 msgstr "The workspace is not ready yet. Try again."
+
+msgid "The workspace may still have been created. This screen opens it if it appears."
+msgstr "The workspace may still have been created. This screen opens it if it appears."
 
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "The worktree and any uncommitted changes will be removed. This cannot be undone."
@@ -14557,9 +14581,6 @@ msgstr "Tier"
 
 msgid "Time range"
 msgstr "Time range"
-
-msgid "Timed out waiting for the host to create the workspace."
-msgstr "Timed out waiting for the host to create the workspace."
 
 msgid "Title"
 msgstr "Title"

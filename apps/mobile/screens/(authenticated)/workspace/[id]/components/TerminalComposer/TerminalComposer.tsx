@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 import {
 	Composer,
@@ -11,6 +12,7 @@ import type { SlashCommand } from "@superset/shared/slash-commands";
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { Alert, View } from "react-native";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
+import { alertError } from "@/lib/errors";
 import { posthog } from "@/lib/posthog";
 import { useAttachmentsSheet } from "@/screens/(authenticated)/hooks/useAttachmentsSheet";
 import { useComposerDraft } from "@/screens/(authenticated)/hooks/useComposerDraft";
@@ -205,10 +207,7 @@ export const TerminalComposer = forwardRef<
 			if (allowAttachments) draft.clear();
 			else draft.setText("");
 		} catch (cause) {
-			Alert.alert(
-				t({ message: "Could not send" }),
-				cause instanceof Error ? cause.message : String(cause),
-			);
+			alertError(msg({ message: "Could not send" }), cause, "terminal.send");
 		} finally {
 			setIsSubmitting(false);
 		}

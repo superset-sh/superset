@@ -7,7 +7,6 @@ import type {
 	ComposerSessionTab,
 } from "@superset/composer";
 import { i18n } from "@superset/i18n";
-import { errorMessage } from "@superset/i18n/errors";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -31,6 +30,7 @@ import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { getHostWorkspacesQueryKey } from "@/hooks/useHostWorkspaces";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
+import { alertError } from "@/lib/errors";
 import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
@@ -169,11 +169,14 @@ export function WorkspaceScreen() {
 		(state) => state.fail,
 	);
 	const createWorkspace = useCreateTerminalWorkspace();
+	// Latches while an unproven failure is being checked against the host, so
+	// a second tap cannot start the duplicate the check exists to prevent.
+	const [retryingCreate, setRetryingCreate] = useState(false);
 	const isCreating =
-		!!pendingCreate && !pendingCreate.error && rows.length === 0;
+		!!pendingCreate && !pendingCreate.failure && rows.length === 0;
 	const workspaceResolved = workspace !== null;
 	const createFailed =
-		!!pendingCreate?.error && !workspaceResolved && rows.length === 0;
+		!!pendingCreate?.failure && !workspaceResolved && rows.length === 0;
 
 	// Poll through the failed state too: a relay timeout can reject a create
 	// the host actually finished, and the row arriving is what heals it.
@@ -196,7 +199,7 @@ export function WorkspaceScreen() {
 
 	// The launched session arrived — the create is done for this screen.
 	useEffect(() => {
-		if (pendingCreate && !pendingCreate.error && rows.length > 0) {
+		if (pendingCreate && !pendingCreate.failure && rows.length > 0) {
 			clearPendingCreate(pendingCreate.workspaceId);
 		}
 	}, [pendingCreate, rows.length, clearPendingCreate]);
@@ -205,7 +208,7 @@ export function WorkspaceScreen() {
 	// synchronous create that timed out at the relay while the host finished
 	// anyway) — the real workspace wins over the failed state.
 	useEffect(() => {
-		if (pendingCreate?.error && workspaceResolved) {
+		if (pendingCreate?.failure && workspaceResolved) {
 			clearPendingCreate(pendingCreate.workspaceId);
 		}
 	}, [pendingCreate, workspaceResolved, clearPendingCreate]);
@@ -213,19 +216,19 @@ export function WorkspaceScreen() {
 	// No row within the backstop: the create died host-side and there is no
 	// event channel to say so. Resolve to the failed state rather than spin.
 	useEffect(() => {
-		if (!pendingCreate || pendingCreate.error || workspaceResolved) return;
+		if (!pendingCreate || pendingCreate.failure || workspaceResolved) return;
 		const workspaceId = pendingCreate.workspaceId;
 		const remaining = Math.max(
 			0,
 			pendingCreate.startedAt + PENDING_CREATE_ROW_TIMEOUT_MS - Date.now(),
 		);
 		const timer = setTimeout(() => {
-			failPendingCreate(
-				workspaceId,
-				t({
-					message: "Timed out waiting for the host to create the workspace.",
-				}),
-			);
+			// The backstop only means the host has not answered inside the
+			// window — it may still be working, so the outcome is unknown.
+			failPendingCreate(workspaceId, {
+				outcome: "unknown",
+				message: t({ message: "The host hasn't answered." }),
+			});
 		}, remaining);
 		return () => clearTimeout(timer);
 	}, [pendingCreate, workspaceResolved, failPendingCreate, t]);
@@ -233,7 +236,7 @@ export function WorkspaceScreen() {
 	// Row landed but no session followed (agent failed to launch): fall
 	// through to the regular empty state instead of spinning.
 	useEffect(() => {
-		if (!pendingCreate || pendingCreate.error || !workspaceResolved) return;
+		if (!pendingCreate || pendingCreate.failure || !workspaceResolved) return;
 		const workspaceId = pendingCreate.workspaceId;
 		const timer = setTimeout(
 			() => clearPendingCreate(workspaceId),
@@ -244,11 +247,39 @@ export function WorkspaceScreen() {
 
 	// Retry mints a fresh id and re-enters Creating via replace, so back
 	// never returns to the dead failed state (desktop's `replace: true`).
-	const retryCreate = useCallback(() => {
-		if (!pendingCreate) return;
-		clearPendingCreate(pendingCreate.workspaceId);
-		createWorkspace.mutate({ ...pendingCreate.input, replace: true });
-	}, [pendingCreate, clearPendingCreate, createWorkspace]);
+	//
+	// A fresh id is also why an unproven failure has to be checked first: if
+	// the host finished the create the relay gave up on, retrying would leave
+	// the user with two worktrees and no way to tell which is which. Ask the
+	// host directly rather than trusting the poll to have landed yet.
+	const retryCreate = useCallback(async () => {
+		if (!pendingCreate || retryingCreate) return;
+		const { workspaceId, hostId, hostUrl, input, failure } = pendingCreate;
+		if (failure?.outcome === "unknown") {
+			setRetryingCreate(true);
+			const rows = await getHostServiceClientByUrl(hostUrl)
+				.workspace.list.query()
+				.catch(() => null);
+			setRetryingCreate(false);
+			if (rows?.some((row) => row.id === workspaceId)) {
+				// It landed after all — the poll's invalidation resolves the
+				// screen onto the real workspace.
+				clearPendingCreate(workspaceId);
+				void queryClient.invalidateQueries({
+					queryKey: getHostWorkspacesQueryKey(hostId, hostUrl),
+				});
+				return;
+			}
+		}
+		clearPendingCreate(workspaceId);
+		createWorkspace.mutate({ ...input, replace: true });
+	}, [
+		pendingCreate,
+		retryingCreate,
+		clearPendingCreate,
+		createWorkspace,
+		queryClient,
+	]);
 
 	const dismissFailedCreate = useCallback(() => {
 		if (pendingCreate) clearPendingCreate(pendingCreate.workspaceId);
@@ -390,16 +421,17 @@ export function WorkspaceScreen() {
 				// long-press only; the strip now offers it on every selected tab and
 				// in the press-and-hold menu, so silence is no longer affordable.
 				.catch((cause: unknown) =>
-					Alert.alert(
-						t({
+					alertError(
+						msg({
 							message: "Could not close the session",
 						}),
-						errorMessage(cause),
+						cause,
+						"terminal.kill",
 					),
 				)
 				.finally(invalidateTerminals);
 		},
-		[workspace, hostUrl, invalidateTerminals, t],
+		[workspace, hostUrl, invalidateTerminals],
 	);
 
 	// The composer reports the intent and stops there: it has no idea that
@@ -630,12 +662,13 @@ export function WorkspaceScreen() {
 						}),
 					}}
 				/>
-				{createFailed ? (
+				{createFailed && pendingCreate.failure ? (
 					<WorkspaceCreateFailedState
 						subtitle={subtitle}
-						errorMessage={pendingCreate.error ?? ""}
+						failure={pendingCreate.failure}
+						checking={retryingCreate}
 						prompt={pendingCreate.input.message.text.trim()}
-						onRetry={retryCreate}
+						onRetry={() => void retryCreate()}
 						onDismiss={dismissFailedCreate}
 					/>
 				) : (
