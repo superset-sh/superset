@@ -992,7 +992,7 @@ export class AccountEngine {
 			return false;
 		}
 		await commit();
-		return true;
+		return this.state.isOwner(this.nonce);
 	}
 
 	// ── Ownership (KTD5) ───────────────────────────────────────────────
@@ -1380,11 +1380,12 @@ export class AccountEngine {
 	}
 
 	private nearestReset(agent: AccountAgent): number | null {
+		const now = this.now();
 		let soonest: number | null = null;
 		for (const item of this.pool(agent)) {
 			for (const window of item.account.windows) {
 				const at = window.resetsAt?.getTime();
-				if (at === undefined) continue;
+				if (at === undefined || !Number.isFinite(at) || at <= now) continue;
 				if (soonest === null || at < soonest) soonest = at;
 			}
 		}
@@ -1527,48 +1528,24 @@ export class AccountEngine {
 		}
 
 		if (!this.ensureOwnership(this.now())) return LOCK_LOSER;
-		// R8: the limit-stopped session comes back before the row and the
-		// event that claim it did. It is also what puts that session on the
-		// new account, so it runs here rather than after the planned move —
-		// which leaves it alone (KTD8).
-		const recoveryReady = !input.recovery || this.switchStillAllowed(input);
-		const restarted =
-			input.fallbackRestart === undefined || !recoveryReady
-				? false
-				: await input.fallbackRestart();
-		// That restart is a kill, a relaunch and a typed nudge, and it can
-		// outlast both the lease and `stop()`'s drain. The login has moved and
-		// stays moved, but publishing this instance's runtime state and event
-		// now would overwrite whatever the instance that took the lock has
-		// since decided (KTD5).
-		if (
-			input.fallbackRestart !== undefined &&
-			!this.ensureOwnership(this.now())
-		) {
-			console.warn(
-				"[account-engine] the host lock was lost while the limit-stopped session restarted; this switch is not published.",
-			);
-			return LOCK_LOSER;
-		}
 		state.activeAccountId = input.target.accountId;
 		state.activeSelection = input.target.selection;
 		state.cooldownUntil = this.now() + input.settings.cooldownSeconds * 1000;
 		state.exhaustedNotifiedAt = null;
-		state.waiting =
-			!recoveryReady && input.recovery
-				? {
-						model: input.recovery.model,
-						resetAt: null,
-						windowIds: recoveryWindows(
-							input.agent,
-							input.recovery.sourceWindows,
-							input.recovery.model,
-						).map((window) => window.id),
-						terminalId: input.recovery.terminalId,
-						lastEventAt: input.recovery.lastEventAt,
-						accountId: input.target.accountId,
-					}
-				: null;
+		state.waiting = input.recovery
+			? {
+					model: input.recovery.model,
+					resetAt: null,
+					windowIds: recoveryWindows(
+						input.agent,
+						input.recovery.sourceWindows,
+						input.recovery.model,
+					).map((window) => window.id),
+					terminalId: input.recovery.terminalId,
+					lastEventAt: input.recovery.lastEventAt,
+					accountId: input.target.accountId,
+				}
+			: null;
 		if (state.waiting) state.exhaustedNotifiedAt = this.now();
 		if (input.reasonKind === "fallback") {
 			state.fallbackTimestamps = [
@@ -1576,24 +1553,34 @@ export class AccountEngine {
 				now,
 			];
 		}
-		const entry = this.historyEntry(input, restarted);
-		try {
-			this.state.appendHistory(entry);
-		} catch (error) {
-			// The switch has already happened. A row that could not be appended
-			// is a lost line in a log, not a reason to leave the runtime state
-			// and the sessions behind on the previous account.
-			console.warn(
-				"[account-engine] could not record the switch in history:",
-				error,
-			);
-		}
 		const recordedBindings = new Set(this.recordedBindings);
 		this.pendingSwitchCommit = async () => {
+			// The credentials already moved. Commit their identity before a
+			// restart can outlast the lease, so a successor inherits the truth.
 			this.persistRuntime(runtime, recordedBindings);
-			// A failed write retains this exact commit; a completed one must
-			// never repeat its event or session move on a later tick.
 			this.pendingSwitchCommit = null;
+			const recoveryReady = !input.recovery || this.switchStillAllowed(input);
+			const restarted =
+				input.fallbackRestart === undefined || !recoveryReady
+					? false
+					: await input.fallbackRestart();
+			if (!this.ensureOwnership(this.now())) return;
+			if (recoveryReady && (input.fallbackRestart === undefined || restarted)) {
+				state.waiting = null;
+				state.exhaustedNotifiedAt = null;
+			}
+			const entry = this.historyEntry(input, restarted);
+			try {
+				this.state.appendHistory(entry);
+			} catch (error) {
+				// The switch has already happened. A row that could not be appended
+				// is a lost line in a log, not a reason to leave the runtime state
+				// and the sessions behind on the previous account.
+				console.warn(
+					"[account-engine] could not record the switch in history:",
+					error,
+				);
+			}
 			this.broadcast.switched(switchedPayload(entry));
 			if (!this.ensureOwnership(this.now())) return;
 			await this.moveSessions(
@@ -1639,10 +1626,9 @@ export class AccountEngine {
 	): Promise<(ManualSwitchOutcome & { activeDir?: string }) | null> {
 		if (input.target.credentialKind === "api_key") {
 			const dir = input.target.selection;
-			if (
-				dir === null ||
-				(await readApiBillingFingerprint(dir, "claude")) === null
-			) {
+			const fingerprint =
+				dir === null ? null : await readApiBillingFingerprint(dir, "claude");
+			if (dir === null || fingerprint === null) {
 				return {
 					ok: false,
 					code: "no-target-login",
@@ -1657,7 +1643,15 @@ export class AccountEngine {
 					error,
 				);
 			}
+			if ((await readApiBillingFingerprint(dir, "claude")) !== fingerprint) {
+				return {
+					ok: false,
+					code: "target-changed",
+					reason: "The API-billed profile changed during provisioning.",
+				};
+			}
 			if (!this.ensureOwnership(this.now())) return LOCK_LOSER;
+			if (!this.switchStillAllowed(input)) return null;
 			try {
 				this.setPointer("claude", dir);
 			} catch (error) {
@@ -2018,6 +2012,7 @@ export class AccountEngine {
 		input: PerformSwitchInput,
 	): Promise<void> {
 		if (!this.ensureOwnership(this.now())) throw new Error(LOCK_LOSER_REASON);
+		if (!this.switchStillAllowed(input)) return;
 		// KTD14: a brand-new active dir starts from the login every session is
 		// already running on — which on a host upgraded into this feature is
 		// whatever the pointer selects, not necessarily `~/.claude`. Seeding

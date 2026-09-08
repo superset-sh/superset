@@ -311,9 +311,9 @@ describe("pickConsumeFirst", () => {
 			accountKey: "key-b",
 			windows: [window_("seven_day", "Weekly", 40, T0 + 5 * DAY)],
 		});
-		expect(pickConsumeFirst([scopedOnly, plainWeekly], T0)?.accountKey).toBe(
-			"key-a",
-		);
+		expect(
+			pickConsumeFirst([scopedOnly, plainWeekly], T0, ["Fable"])?.accountKey,
+		).toBe("key-a");
 	});
 
 	// Every reset unknown ties every candidate at Infinity. Picking nobody
@@ -362,14 +362,55 @@ describe("pickConsumeFirst", () => {
 			accountKey: "key-b",
 			windows: [window_("seven_day", "Weekly", 40, T0 + 3 * DAY)],
 		});
-		expect(pickConsumeFirst([soonestIsPlain, later], T0)?.accountKey).toBe(
-			"key-a",
-		);
+		expect(
+			pickConsumeFirst([soonestIsPlain, later], T0, ["Fable"])?.accountKey,
+		).toBe("key-a");
 	});
 });
 
 describe("shouldSwitch", () => {
 	const runtime = { cooldownUntil: null, activeAccountId: "acct-a" };
+
+	for (const [id, model] of [
+		["weekly_scoped:Fable", "Fable"],
+		["seven_day_sonnet", "Sonnet"],
+	] as const) {
+		it(`consume-first ignores unconfigured ${id} reset times`, () => {
+			const input = {
+				active: account({
+					windows: [window_("seven_day", "Weekly", 40, T0 + 5 * DAY)],
+				}),
+				candidates: [
+					account({
+						accountId: "acct-b",
+						accountKey: "key-b",
+						windows: [
+							window_("seven_day", "Weekly", 40, T0 + 6 * DAY),
+							window_(id, model, 40, T0 + HOUR),
+						],
+					}),
+				],
+				rotation: {},
+				runtime,
+				now: T0,
+			};
+			expect(
+				shouldSwitch({
+					...input,
+					settings: settings({ strategy: "consume-first" }),
+				}),
+			).toEqual({ switch: false, allExhausted: false });
+			expect(
+				shouldSwitch({
+					...input,
+					settings: settings({
+						strategy: "consume-first",
+						modelWindows: [model],
+					}),
+				}),
+			).toMatchObject({ switch: true, reasonKind: "strategy" });
+		});
+	}
 
 	// An API-billed login reports no windows, and no windows scores a full
 	// 100 — the same "zero windows is not headroom" hazard isEligible already
@@ -1065,7 +1106,7 @@ describe("shouldSwitch", () => {
 	// sibling that does report a reset on the same account.
 	it("consume-first: an unparseable reset does not poison a good sibling window", () => {
 		const decision = shouldSwitch({
-			settings: settings({ strategy: "consume-first" }),
+			settings: settings({ strategy: "consume-first", modelWindows: ["Opus"] }),
 			active: account({
 				windows: [window_("seven_day", "Weekly", 40, T0 + 5 * DAY)],
 			}),

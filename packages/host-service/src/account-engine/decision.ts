@@ -48,7 +48,7 @@ const ACCOUNT_WIDE_WINDOW_IDS: Record<AccountAgent, readonly string[]> = {
  * The longest-period windows per agent — Claude's weekly, Codex's secondary
  * (R12). `consume-first` orders accounts by when this one resets, so they are
  * matched by prefix: `seven_day_sonnet` still belongs to the weekly period
- * when a plan reports no plain `seven_day`, and so does a per-model
+ * when that model is configured, and so does a per-model
  * `weekly_scoped:Fable`, which on some plans is the only weekly window
  * reported at all — without it consume-first would have no reset to rank by.
  */
@@ -143,9 +143,8 @@ function matchesModel(
  * The windows a decision may judge an account by: the agent's account-wide
  * windows, plus per-model windows for models the user actually configured. A
  * model-scoped window for an unconfigured model is not evidence about the
- * account — the proactive path has always excluded it, and the limit-stop
- * fallback has to agree or the two paths disagree about whether the same
- * account is spent.
+ * account for proactive decisions. Limit-stop recovery separately requires
+ * headroom for the affected model, regardless of proactive preferences.
  */
 export function windowsInScope(
 	agent: AccountAgent,
@@ -317,10 +316,11 @@ export function pickBest(
 function longestPeriodResetAt(
 	account: DecisionAccount,
 	now: number,
+	modelWindows: readonly string[],
 ): number | null {
 	const prefixes = LONGEST_PERIOD_WINDOW_PREFIXES[account.agent];
 	let soonest: number | null = null;
-	for (const window of account.windows) {
+	for (const window of relevantWindows(account, modelWindows)) {
 		if (window.resetsAt === null) continue;
 		if (!prefixes.some((prefix) => window.id.startsWith(prefix))) continue;
 		const at = window.resetsAt.getTime();
@@ -347,11 +347,14 @@ function longestPeriodResetAt(
 export function pickConsumeFirst(
 	accounts: readonly DecisionAccount[],
 	now: number,
+	modelWindows: readonly string[] = [],
 ): DecisionAccount | null {
 	let best: DecisionAccount | null = null;
 	let bestAt = Number.POSITIVE_INFINITY;
 	for (const account of accounts) {
-		const at = longestPeriodResetAt(account, now) ?? Number.POSITIVE_INFINITY;
+		const at =
+			longestPeriodResetAt(account, now, modelWindows) ??
+			Number.POSITIVE_INFINITY;
 		// The tie also has to take the first candidate: when every reset is
 		// unknown every `at` is Infinity, and a tie-break that only ever
 		// replaces an existing `best` would pick nobody and report the agent
@@ -482,7 +485,11 @@ export function shouldSwitch(input: ShouldSwitchInput): SwitchDecision {
 		const rankable = preferRanked(withRoom, (candidate) =>
 			reportsNoWindows(candidate, models),
 		);
-		const target = pickConsumeFirst(preferRanked(rankable, isMetered), now);
+		const target = pickConsumeFirst(
+			preferRanked(rankable, isMetered),
+			now,
+			models,
+		);
 		if (!target) return stay(activeNearLimit);
 		if (activeNearLimit) return move(target, "threshold");
 		// The last-resort tier is a fallback, not a gate: when the unrankable
@@ -497,9 +504,9 @@ export function shouldSwitch(input: ShouldSwitchInput): SwitchDecision {
 		// tick. An unknown reset sorts last on either side, as it does in
 		// pickConsumeFirst, so it never wins the comparison.
 		const activeResetAt =
-			longestPeriodResetAt(active, now) ?? Number.POSITIVE_INFINITY;
+			longestPeriodResetAt(active, now, models) ?? Number.POSITIVE_INFINITY;
 		const targetResetAt =
-			longestPeriodResetAt(target, now) ?? Number.POSITIVE_INFINITY;
+			longestPeriodResetAt(target, now, models) ?? Number.POSITIVE_INFINITY;
 		if (targetResetAt < activeResetAt) return move(target, "strategy");
 		return stay(false);
 	}

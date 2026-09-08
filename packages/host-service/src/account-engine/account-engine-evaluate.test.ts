@@ -660,6 +660,46 @@ describe("AccountEngine: a switch that failed", () => {
 });
 
 describe("AccountEngine: API-billed Claude profiles", () => {
+	it("refuses an API profile whose billing marker changes during provisioning", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "superset-api-profile-"));
+		writeFileSync(join(dir, ".superset-api-billing"), "claude");
+		const pointer = {
+			claudeConfigDir: ACTIVE_DIR as string | null,
+			codexHome: null,
+		};
+		const h = harness({
+			pointer,
+			entries: [
+				entryFor(usageAccount({})),
+				entryFor(
+					accountB({
+						selection: dir,
+						accountId: null,
+						credentialKind: "api_key",
+						windows: [],
+					}),
+				),
+			],
+			provisionClaude: async () => {
+				rmSync(join(dir, ".superset-api-billing"));
+			},
+			setPointer: (_db, _agent, selection) => {
+				pointer.claudeConfigDir = selection;
+			},
+		});
+		try {
+			expect(await h.engine.switchManually("claude", dir)).toMatchObject({
+				ok: false,
+				code: "target-changed",
+			});
+			expect(pointer.claudeConfigDir).toBe(ACTIVE_DIR);
+			expect(h.state.readHistory(10)).toEqual([]);
+		} finally {
+			h.cleanup();
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("can return from API billing after a successful swap resolves identity uncertainty", async () => {
 		const dir = mkdtempSync(join(tmpdir(), "superset-api-profile-"));
 		writeFileSync(join(dir, ".superset-api-billing"), "claude");

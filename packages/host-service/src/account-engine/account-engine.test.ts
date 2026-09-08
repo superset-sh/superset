@@ -125,6 +125,7 @@ interface HarnessOptions {
 	 * typed nudge, all of which can outlast the lease (KTD5). */
 	onFallbackRestart?: () => Promise<void> | void;
 	onMoveAtIdle?: () => Promise<void> | void;
+	onEnsureActiveDir?: () => void;
 	/** KTD4: what a Codex home's auth.json names right now. */
 	codexIdentity?: (selection: string | null) => string | null;
 	/** Runs inside the awaited Codex identity read, where a slow read can
@@ -294,6 +295,7 @@ function harness(options: HarnessOptions = {}) {
 			};
 		},
 		ensureActiveDir: async (opts) => {
+			options.onEnsureActiveDir?.();
 			if (options.activeDirThrows) throw new Error("permission denied");
 			// Mirrors ensureActiveClaudeDir: the seed runs only on a dir that
 			// holds no login at all. An identity naming an account is parsed
@@ -611,6 +613,67 @@ describe("AccountEngine", () => {
 		).toBe("active-dir-unavailable");
 	});
 
+	for (const preference of ["disabled", "rotation"] as const) {
+		it(`does not seed or swap when ${preference} changes during active directory preparation`, async () => {
+			const h = harness({
+				entries: twoClaudeAccounts(),
+				onEnsureActiveDir: () => {
+					if (preference === "disabled")
+						h.engine.setSettings("claude", { enabled: false });
+					else h.engine.setRotation("acct-b", false);
+				},
+			});
+			h.setActiveIdentity({ accountUuid: null, credentialHash: null });
+			enable(h.engine);
+			await h.engine.tick();
+			expect(h.calls).not.toContain("seed");
+			expect(h.calls).not.toContain("swap");
+			expect(h.pointers).toEqual([]);
+		});
+	}
+
+	it("retries a stopped Claude hint after a failed pointer write", async () => {
+		const entries = twoClaudeAccounts();
+		const source = entries[0]?.accounts[0];
+		if (!source) throw new Error("missing source fixture");
+		source.windows = [w("five_hour", "Session (5h)", 100)];
+		const options: HarnessOptions = {
+			entries,
+			sessions: [movableSession({ limitHintErrorType: "rate_limit" })],
+			setPointerThrows: true,
+		};
+		const h = harness(options);
+		enable(h.engine);
+		await h.engine.handleLimitHints();
+		expect(h.switched).toHaveLength(0);
+		options.setPointerThrows = false;
+		await h.engine.handleLimitHints();
+		expect(h.switched).toHaveLength(1);
+		expect(h.restarted).toHaveLength(1);
+	});
+
+	it("schedules only future finite quota resets after exhaustion", async () => {
+		const h = harness({
+			entries: [
+				entryFor(
+					usageAccount({
+						isDefault: true,
+						windows: [
+							w("five_hour", "Session (5h)", 100, T0 - MINUTE),
+							w("seven_day", "Weekly", 100, Number.NaN),
+							w("seven_day_sonnet", "Model", 100, T0 + 90 * MINUTE),
+						],
+					}),
+				),
+			],
+		});
+		enable(h.engine);
+		await h.engine.tick();
+		h.advance(MINUTE);
+		await h.engine.tick();
+		expect(h.schedules.at(-1)?.schedule.claude?.wakeAt).toBe(T0 + 90 * MINUTE);
+	});
+
 	// AE9.
 	it("latches all-exhausted, notifies once, and schedules a wake at the nearest reset", async () => {
 		const resetsAt = T0 + 90 * MINUTE;
@@ -904,7 +967,7 @@ describe("AccountEngine", () => {
 	// KTD5: the restart is a kill, a relaunch and a typed nudge, so it can
 	// outlast the lease. The instance that took the lock owns the runtime state
 	// from then on, and publishing this one's would write over its decisions.
-	it("publishes nothing when the lock goes while the stopped session restarts", async () => {
+	it("persists the completed switch before a restart loses the lease", async () => {
 		const thief = harness();
 		const h = harness({
 			entries: [
@@ -925,6 +988,11 @@ describe("AccountEngine", () => {
 			],
 			sessions: [movableSession({ limitHintErrorType: "rate_limit" })],
 			onFallbackRestart: async () => {
+				expect(h.engineState.readRuntime().perAgent.claude).toMatchObject({
+					activeAccountId: "acct-b",
+					activeSelection: "/profiles/b",
+					waiting: { terminalId: "term-1", accountId: "acct-b" },
+				});
 				h.advance(4 * MINUTE);
 				thief.advance(4 * MINUTE);
 				await thief.engine.tick();
@@ -939,10 +1007,89 @@ describe("AccountEngine", () => {
 		expect(h.engineState.readHistory(10)).toEqual([]);
 		expect(h.calls).not.toContain("moveAtIdle");
 		expect(h.engineState.readRuntime().perAgent.claude.activeAccountId).toBe(
-			null,
+			"acct-b",
 		);
 		expect(h.engine.status().claude.lockOwner).toBe(false);
 	});
+
+	it("retries the initial recovery commit without replaying its credential swap or restart", async () => {
+		const entries = twoClaudeAccounts();
+		const source = entries[0]?.accounts[0];
+		if (!source) throw new Error("missing source fixture");
+		source.windows = [w("five_hour", "Session (5h)", 100)];
+		const h = harness({
+			entries,
+			sessions: [movableSession({ limitHintErrorType: "rate_limit" })],
+			onSetPointer: () => {
+				const write = h.engineState.writeRuntime.bind(h.engineState);
+				h.engineState.writeRuntime = () => {
+					h.engineState.writeRuntime = write;
+					throw new Error("runtime commit failed");
+				};
+			},
+		});
+		enable(h.engine);
+		await h.engine.handleLimitHints();
+		expect(h.restarted).toHaveLength(0);
+		expect(h.switched).toHaveLength(0);
+		await h.engine.handleLimitHints();
+		expect(h.restarted).toHaveLength(1);
+		expect(h.switched).toHaveLength(1);
+		expect(h.calls.filter((call) => call === "swap")).toHaveLength(1);
+		await h.engine.handleLimitHints();
+		expect(h.restarted).toHaveLength(1);
+		expect(h.switched).toHaveLength(1);
+	});
+
+	for (const nextOwner of ["same", "successor"] as const) {
+		it(`keeps a lease-interrupted recovery retryable for the ${nextOwner} owner`, async () => {
+			const entries = twoClaudeAccounts();
+			const source = entries[0]?.accounts[0];
+			if (!source) throw new Error("missing source fixture");
+			source.windows = [w("five_hour", "Session (5h)", 100)];
+			const sessions = [movableSession({ limitHintErrorType: "rate_limit" })];
+			let interrupt = true;
+			const h = harness({
+				entries,
+				sessions,
+				onFallbackRestart: () => {
+					if (!interrupt) return;
+					interrupt = false;
+					h.advance(4 * MINUTE);
+					expect(h.engineState.claimLock("temporary-owner", h.at())).toBe(true);
+				},
+			});
+			enable(h.engine);
+			await h.engine.handleLimitHints();
+			expect(
+				h.engineState.readRuntime().perAgent.claude.waiting?.accountId,
+			).toBe("acct-b");
+			const retry =
+				nextOwner === "same"
+					? h
+					: harness({
+							entries,
+							sessions,
+							pointer: { claudeConfigDir: ACTIVE_DIR },
+						});
+			retry.setActiveIdentity({
+				accountUuid: "acct-b",
+				credentialHash: "swapped",
+			});
+			retry.advance(nextOwner === "same" ? 4 * MINUTE : 8 * MINUTE);
+			retry.setEntries(
+				entries.map((entry) => ({ ...entry, fetchedAt: retry.at() })),
+			);
+			const priorRestarts = retry.restarted.length;
+			await retry.engine.handleLimitHints();
+			expect(retry.restarted).toHaveLength(priorRestarts + 1);
+			expect(
+				retry.engineState.readRuntime().perAgent.claude.waiting,
+			).toBeNull();
+			await retry.engine.handleLimitHints();
+			expect(retry.restarted).toHaveLength(priorRestarts + 1);
+		});
+	}
 
 	// AE8/R4.
 	it("switches manually, resets the cooldown and the latch, and stays enabled", async () => {
