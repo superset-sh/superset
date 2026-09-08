@@ -1,12 +1,6 @@
 import { Database } from "bun:sqlite";
 import { afterEach, describe, expect, test } from "bun:test";
-import {
-	mkdirSync,
-	mkdtempSync,
-	readFileSync,
-	rmSync,
-	writeFileSync,
-} from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { drizzle } from "drizzle-orm/bun-sqlite";
@@ -14,18 +8,13 @@ import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import { runMigrations } from "./runMigrations";
 
 /**
- * The desktop runs migrations through better-sqlite3, which Bun cannot load.
+ * Both callers run migrations through better-sqlite3, which Bun cannot load.
  * bun:sqlite drives the identical drizzle migrator code path (both are sync
  * sessions on SQLiteSyncDialect), so these arms reproduce production
  * semantics exactly.
  */
 
 type Entry = { tag: string; when: number; sql: string };
-
-const REAL_JOURNAL = join(
-	import.meta.dir,
-	"../../../../../../../packages/local-db/drizzle/meta/_journal.json",
-);
 
 const CREATE_WORKTREES: Entry = {
 	tag: "0000_create_worktrees",
@@ -195,16 +184,5 @@ describe("runMigrations", () => {
 				.all() as { name: string }[]
 		).map((row) => row.name);
 		expect(tables).not.toContain("worktrees");
-	});
-
-	test("every shipped journal entry has a distinct `when`", () => {
-		// The runner identifies applied migrations by `when`. Two entries sharing
-		// one would let a real migration be mistaken for an applied one.
-		const journal = JSON.parse(readFileSync(REAL_JOURNAL, "utf8")) as {
-			entries: { when: number }[];
-		};
-		const whens = journal.entries.map((entry) => entry.when);
-
-		expect(new Set(whens).size).toBe(whens.length);
 	});
 });

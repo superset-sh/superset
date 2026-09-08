@@ -33,9 +33,9 @@ const MIGRATIONS_TABLE = sql.identifier("__drizzle_migrations");
  * recorded, so this reads tables written by every previous version and writes
  * rows those versions still understand.
  *
- * It keys on `created_at` rather than `hash` deliberately: migrations 0004
- * through 0008 and 0011 were edited after they had already shipped, so the
- * hashes those machines recorded no longer match the files on disk, and
+ * It keys on `created_at` rather than `hash` deliberately: some migrations
+ * were edited after they had already shipped (the desktop's local-db has six),
+ * so the hashes those machines recorded no longer match the files on disk, and
  * hashing would re-run migrations that are already applied.
  */
 export function runMigrations(
