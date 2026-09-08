@@ -55,7 +55,7 @@ export function HeroSection() {
 						>
 							<Cloud
 								aria-hidden="true"
-								className="size-3.5 text-brand shrink-0"
+								className="size-3.5 text-foreground shrink-0"
 							/>
 							<span>
 								<Trans>Cloud is coming. Become a design partner</Trans>
