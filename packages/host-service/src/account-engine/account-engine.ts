@@ -1047,7 +1047,13 @@ export class AccountEngine {
 	private applyOwnership(owner: boolean): void {
 		this.quotaStore.setSnapshotSink(
 			owner
-				? (snapshot) => this.state.writeQuotaSnapshot(snapshot, this.now())
+				? (snapshot) => {
+						// The refresh publishes before returning to the tick's next
+						// ownership check. A stale callback must not claim a new lease.
+						if (!this.stopped && this.state.isOwner(this.nonce)) {
+							this.state.writeQuotaSnapshot(snapshot, this.now());
+						}
+					}
 				: null,
 		);
 		this.quotaStore.setSnapshotSource(

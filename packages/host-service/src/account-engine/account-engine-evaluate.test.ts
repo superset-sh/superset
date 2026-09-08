@@ -167,6 +167,8 @@ function harness(options: {
 	hostDeps?: Partial<AccountEngineHostDeps>;
 	mover?: Partial<AccountEngineDeps["mover"]>;
 	onRead?: () => Promise<void>;
+	onRefresh?: () => Promise<void>;
+	setSnapshotSink?: AccountEngineDeps["quotaStore"]["setSnapshotSink"];
 	onEnsureActiveDir?: (state: FlakyLockState) => void;
 	onSwap?: (state: FlakyLockState, call: number) => void;
 	now?: () => number;
@@ -217,8 +219,9 @@ function harness(options: {
 				// The discovery pass the real store runs here is what puts the
 				// profiles in the pool.
 				warm = true;
+				await options.onRefresh?.();
 			},
-			setSnapshotSink: () => {},
+			setSnapshotSink: options.setSnapshotSink ?? (() => {}),
 			setSnapshotSource: () => {},
 			snapshot: () => ({ entries: [] }),
 		},
@@ -327,6 +330,54 @@ function harness(options: {
 		},
 	};
 }
+
+describe("AccountEngine: quota publication ownership", () => {
+	for (const handover of [false, true]) {
+		it(`publishes an in-flight refresh only while its nonce owns the lock (handover=${handover})`, async () => {
+			let release = () => {};
+			let started = () => {};
+			const gate = new Promise<void>((resolve) => {
+				release = resolve;
+			});
+			const entered = new Promise<void>((resolve) => {
+				started = resolve;
+			});
+			const publisher: {
+				sink: Parameters<AccountEngineDeps["quotaStore"]["setSnapshotSink"]>[0];
+			} = { sink: null };
+			const h = harness({
+				entries: [],
+				setSnapshotSink: (sink) => {
+					publisher.sink = sink;
+				},
+				onRefresh: async () => {
+					started();
+					await gate;
+					publisher.sink?.({ entries: [] });
+				},
+			});
+			const tick = h.engine.tick();
+			try {
+				await entered;
+				const successorSnapshot = { entries: [], successor: true };
+				if (handover) {
+					expect(h.state.claimLock("successor", T0 + 200_000)).toBe(true);
+					h.state.writeQuotaSnapshot(successorSnapshot, T0 + 200_000);
+				}
+				release();
+				await tick;
+				expect(h.state.readQuotaSnapshot()).toEqual({
+					writtenAt: handover ? T0 + 200_000 : T0,
+					data: handover ? successorSnapshot : { entries: [] },
+				});
+			} finally {
+				release();
+				await tick;
+				h.cleanup();
+			}
+		});
+	}
+});
 
 describe("AccountEngine: queued lease renewal", () => {
 	for (const operation of ["tick", "hint"] as const) {
