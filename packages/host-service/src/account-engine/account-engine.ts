@@ -924,8 +924,27 @@ export class AccountEngine {
 		const liveRotation = this.state.readRotation();
 		const liveAgents = agents.filter((agent) => live[agent].enabled);
 
+		// Recover a limit-stopped turn while its original account is still
+		// active. A proactive switch first would hide its spent quota behind
+		// the new account and leave the deferred session without a continue nudge.
+		await this.limitHintPass(now, {
+			settings: live,
+			agents: liveAgents,
+			runtime,
+			rotation: liveRotation,
+		});
+		if (!this.ensureOwnership(this.now())) return;
+
 		for (const agent of liveAgents) {
-			await this.evaluate(agent, live[agent], liveRotation, runtime, now);
+			const current = this.state.readSettings()[agent];
+			if (!current.enabled) continue;
+			await this.evaluate(
+				agent,
+				current,
+				this.state.readRotation(),
+				runtime,
+				now,
+			);
 			if (!this.ensureOwnership(this.now())) return;
 		}
 
@@ -937,14 +956,6 @@ export class AccountEngine {
 		for (const agent of agents) {
 			this.broadcastState(agent, live[agent], runtime, now);
 		}
-		// Not through `handleLimitHints`: this tick already holds the mutation
-		// slot, and queueing behind itself would never resolve.
-		await this.limitHintPass(now, {
-			settings: live,
-			agents: liveAgents,
-			runtime,
-			rotation: liveRotation,
-		});
 	}
 
 	/**
@@ -1550,6 +1561,8 @@ export class AccountEngine {
 				reason: errorText(error),
 			};
 		}
+
+		if (!this.ensureOwnership(this.now())) return LOCK_LOSER;
 
 		let result: ClaudeSwapResult;
 		if (firstActivation) {
@@ -2171,7 +2184,7 @@ export class AccountEngine {
 		now: number,
 	): Promise<boolean> {
 		const agent = row.agent;
-		const settings = allSettings[agent];
+		let settings = allSettings[agent];
 		const state = runtime.perAgent[agent];
 
 		const active = this.activeRow(
@@ -2219,6 +2232,9 @@ export class AccountEngine {
 		// failed. The numbers on hand are the ones this hint says are wrong,
 		// so it is left retryable rather than written off against them.
 		if (!refreshed) return false;
+		settings = this.state.readSettings()[agent];
+		if (!settings.enabled) return false;
+		rotation = this.state.readRotation();
 
 		const pool = this.pool(agent, state.activeSelection);
 		const from = this.activeRow(pool, state) ?? active;

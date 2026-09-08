@@ -143,6 +143,10 @@ function harness(options: {
 	setPointer?: () => void;
 	seed?: AccountEngineDeps["seed"];
 	readActiveIdentity?: AccountEngineDeps["readActiveIdentity"];
+	hostDeps?: Partial<AccountEngineHostDeps>;
+	mover?: Partial<AccountEngineDeps["mover"]>;
+	onRead?: () => Promise<void>;
+	onEnsureActiveDir?: (state: FlakyLockState) => void;
 	onSwap?: (state: FlakyLockState, call: number) => void;
 }): Harness {
 	const previousHome = process.env.SUPERSET_HOME_DIR;
@@ -176,11 +180,15 @@ function harness(options: {
 			snapshotTerminal: async () => null,
 			hasStartedAgent: () => true,
 			isBracketedPasteActive: () => true,
+			...options.hostDeps,
 		} satisfies AccountEngineHostDeps,
 		quotaStore: {
 			entries: () => (warm ? options.entries : []),
-			entry: () => undefined,
-			read: async () => [],
+			entry: (key) => options.entries.find((entry) => entry.key === key),
+			read: async () => {
+				await options.onRead?.();
+				return [];
+			},
 			refreshDue: async (_now: number, schedule: QuotaRefreshSchedule) => {
 				schedules.push(schedule);
 				// The discovery pass the real store runs here is what puts the
@@ -202,6 +210,7 @@ function harness(options: {
 				movedTerminalIds: [],
 				deferredTerminalIds: [],
 			}),
+			...options.mover,
 		},
 		broadcast: { switched: () => {}, engineState: () => {} },
 		now: () => T0,
@@ -236,7 +245,11 @@ function harness(options: {
 					keys: { oauthAccount: { accountUuid: "acct-a" } },
 				},
 			})),
-		ensureActiveDir: async () => ACTIVE_DIR,
+		ensureActiveDir: async () => {
+			options.onEnsureActiveDir?.(state);
+			return ACTIVE_DIR;
+		},
+		provisionCodex: async () => {},
 		setPointer: options.setPointer ?? (() => {}),
 		readPointerSelections: () =>
 			options.pointer ?? { claudeConfigDir: null, codexHome: null },
@@ -249,7 +262,9 @@ function harness(options: {
 				accountUuid: "acct-a",
 				credentialHash: "hash-a",
 			})),
-		readCodexIdentity: async () => null,
+		readCodexIdentity: async (selection) =>
+			options.entries.find((entry) => entry.selection === selection)
+				?.accounts[0]?.accountId ?? null,
 	});
 	expect(engine.setSettings("claude", { enabled: true }).ok).toBe(true);
 
@@ -285,6 +300,34 @@ function harness(options: {
 }
 
 describe("AccountEngine: a switch that failed", () => {
+	it("starts no credential operation when provisioning loses ownership", async () => {
+		let seedCalls = 0;
+		const h = harness({
+			entries: switchDue(),
+			onEnsureActiveDir: (state) => {
+				state.loseNextClaim = true;
+			},
+			seed: async () => {
+				seedCalls++;
+				throw new Error("must not seed");
+			},
+		});
+		try {
+			expect(
+				await h.engine.switchManually("claude", "/profiles/b"),
+			).toMatchObject({
+				ok: false,
+				code: "lock-loser",
+			});
+			expect(seedCalls).toBe(0);
+			expect(h.swapped).toEqual([]);
+			expect(h.state.readHistory()).toEqual([]);
+			expect(h.runtime().activeAccountId).toBe("acct-a");
+		} finally {
+			h.cleanup();
+		}
+	});
+
 	it("reports lock loss without rolling back or publishing a manual switch", async () => {
 		let pointerWrites = 0;
 		const h = harness({
@@ -405,6 +448,110 @@ describe("AccountEngine: a switch that failed", () => {
 			h.cleanup();
 		}
 	});
+});
+
+describe("AccountEngine: limit recovery", () => {
+	it("recovers a busy Codex limit stop before a proactive switch hides its quota", async () => {
+		const row = {
+			agent: "codex" as const,
+			terminalId: "stalled",
+			workspaceId: "workspace",
+			managed: true,
+			configDir: "/profiles/a",
+			lastEventType: "Start",
+			lastEventAt: T0,
+		};
+		let restarts = 0;
+		const h = harness({
+			entries: [
+				entryFor(
+					usageAccount({
+						agent: "codex",
+						windows: window(100).map((item) => ({ ...item, id: "primary" })),
+					}),
+				),
+				entryFor(
+					accountB({
+						agent: "codex",
+						windows: window(20).map((item) => ({ ...item, id: "primary" })),
+					}),
+				),
+			],
+			hostDeps: {
+				listSessions: (agent) => (agent === "codex" ? [row] : []),
+				isAgentBusy: () => true,
+			},
+			mover: {
+				fallbackRestart: async (session) => {
+					expect(session.terminalId).toBe("stalled");
+					restarts++;
+					return true;
+				},
+			},
+		});
+		try {
+			const runtime = h.state.readRuntime();
+			runtime.perAgent.codex.activeAccountId = "acct-a";
+			runtime.perAgent.codex.activeSelection = "/profiles/a";
+			h.state.writeRuntime(runtime);
+			h.engine.setSettings("codex", { enabled: true });
+			await h.engine.tick();
+			expect(restarts).toBe(1);
+			expect(h.state.readRuntime().perAgent.codex.activeAccountId).toBe(
+				"acct-b",
+			);
+			expect(
+				h.state
+					.readHistory()
+					.filter((entry) => entry.reasonKind === "fallback"),
+			).toHaveLength(1);
+		} finally {
+			h.cleanup();
+		}
+	});
+
+	for (const change of ["disable", "exclude"] as const) {
+		it(`honors ${change} during the hint quota refresh`, async () => {
+			const entries = [
+				entryFor(usageAccount({ windows: window(100) })),
+				entryFor(accountB({ windows: window(20) })),
+			];
+			for (const entry of entries) entry.fetchedAt = T0 - 60_000;
+			let refreshCalls = 0;
+			const h = harness({
+				entries,
+				hostDeps: {
+					listSessions: () => [
+						{
+							agent: "claude",
+							terminalId: "stalled",
+							workspaceId: "workspace",
+							managed: true,
+							configDir: ACTIVE_DIR,
+							lastEventType: "Failed",
+							lastEventAt: T0,
+							limitHintErrorType: "rate_limit",
+						},
+					],
+				},
+				onRead: async () => {
+					refreshCalls++;
+					if (change === "disable")
+						h.engine.setSettings("claude", { enabled: false });
+					else h.engine.setRotation("claude:acct-b", false);
+					for (const entry of entries) entry.fetchedAt = T0;
+				},
+			});
+			try {
+				await h.engine.handleLimitHints();
+				expect(refreshCalls).toBe(1);
+				expect(h.swapped).toEqual([]);
+				expect(h.runtime().activeAccountId).toBe("acct-a");
+			} finally {
+				h.cleanup();
+			}
+		});
+	}
 });
 
 describe("AccountEngine: the all-exhausted latch", () => {
