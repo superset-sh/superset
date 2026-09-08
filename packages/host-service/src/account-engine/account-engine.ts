@@ -1771,8 +1771,19 @@ export class AccountEngine {
 		runtime: RuntimeState,
 		from: DecisionAccount | null,
 	): ClaudeLoginStoreRef | undefined {
-		const accountId = from?.accountId ?? null;
-		if (accountId === null) return undefined;
+		// Nothing says whose the login is when no row is active at all.
+		if (from === null) return undefined;
+		const accountId = from.accountId ?? null;
+		// R16: an API-billed login is active with no provider account id, and a
+		// null id matches every other one of them — which is why the id scan
+		// below must never see one. Its selection is the discriminator
+		// `activeRow` already tells those rows apart by, and it names exactly
+		// one store, so the owner is unambiguous without the scan. Refusing
+		// here instead refused every switch away from such a login as
+		// `owner-unknown`, auto-switch included. The store usually takes
+		// nothing back — an API key is not a rotating OAuth token, and the swap
+		// skips a save-back it has no login for.
+		if (accountId === null) return storeRef(from.selection);
 		if (accountId in runtime.identityBindings) {
 			return storeRef(runtime.identityBindings[accountId] ?? null);
 		}
