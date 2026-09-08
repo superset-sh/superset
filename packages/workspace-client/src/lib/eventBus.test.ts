@@ -172,6 +172,34 @@ describe("eventBus", () => {
 		expect(bus.getConnectionStatus().state).toBe("open");
 	});
 
+	it("caps automatic retry backoff so a recovered host is reached promptly", async () => {
+		const attempts: number[] = [];
+		const server = Bun.serve({
+			port: 0,
+			fetch(request, instance) {
+				attempts.push(Date.now());
+				// Enough failures to grow past five seconds without the cap.
+				if (attempts.length < 9)
+					return new Response("offline", { status: 503 });
+				if (instance.upgrade(request)) return;
+				return new Response("no", { status: 400 });
+			},
+			websocket: { message() {} },
+		});
+		const bus = getEventBus(`http://127.0.0.1:${server.port}`, () => "tok");
+		cleanups.push(bus.retain());
+		cleanups.push(() => server.stop(true));
+		await waitFor(() => bus.getConnectionStatus().state === "open", 30_000);
+		expect(attempts).toHaveLength(9);
+		const previousAttempt = attempts[7];
+		const finalAttempt = attempts[8];
+		if (previousAttempt === undefined || finalAttempt === undefined) {
+			throw new Error("Expected nine connection attempts");
+		}
+		// Allow scheduler jitter, but reject the uncapped 6.27s ninth dial.
+		expect(finalAttempt - previousAttempt).toBeLessThan(5_750);
+	}, 35_000);
+
 	it("closes the connection when the last listener unsubscribes", async () => {
 		const host = makeHostServer();
 		const bus = getEventBus(host.hostUrl, () => "tok");

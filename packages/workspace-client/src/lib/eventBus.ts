@@ -158,7 +158,10 @@ interface ListenerEntry {
 }
 
 const RECONNECT_BASE_MS = 1_000;
-const RECONNECT_MAX_MS = 30_000;
+// Keep recovery responsive without a second timer forcing reconnect(). A
+// forced retry can abort a healthy relay handshake, which may take up to
+// DIAL_TIMEOUT_MS. Backoff runs only after an attempt finishes or fails.
+const RECONNECT_MAX_MS = 5_000;
 // Definitive access denial (preflight 403): the relay will keep saying no, so
 // exponential 1-30s retries just hammer it. Poll slowly instead of stopping
 // outright so access granted later (host sharing) is picked up eventually.

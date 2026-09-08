@@ -27,15 +27,6 @@ const DEGRADED_GRACE_MS = 2_000;
  */
 const UNREACHABLE_GRACE_MS = 10_000;
 
-/**
- * While the host is down, dial on this cadence instead of riding the socket's
- * own backoff. That backoff grows to 30s, so a host that came back could sit
- * behind "Reconnecting…" for half a minute — measured at 20.7s — which reads
- * as broken next to copy promising the workspace returns with the connection.
- * Only runs while the host is down, so it can't hammer a healthy host.
- */
-const REDIAL_INTERVAL_MS = 5_000;
-
 export interface HostReachabilityOptions {
 	/**
 	 * How long the host may stay down before `isUnreachable`. Callers that know
@@ -159,12 +150,6 @@ export function useHostReachability(
 	const isUnreachable =
 		graceElapsed || (isDown && status.probe?.status === 403);
 	const isRelayHost = /\/hosts\/[^/]+/.test(hostUrl);
-
-	useEffect(() => {
-		if (!isDegraded) return;
-		const timer = window.setInterval(() => bus.reconnect(), REDIAL_INTERVAL_MS);
-		return () => window.clearInterval(timer);
-	}, [isDegraded, bus]);
 
 	return {
 		isDegraded,
