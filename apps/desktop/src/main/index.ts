@@ -28,6 +28,7 @@ import {
 	PLATFORM,
 	PROTOCOL_SCHEME,
 } from "shared/constants";
+import { configureZodLocale } from "shared/zod-locale";
 import { sweepDevAppProfiles } from "./dev-app-profile-sweep";
 import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
@@ -477,6 +478,7 @@ if (!gotTheLock) {
 		ensureProjectIconsDir();
 		setWorkspaceDockIcon();
 		initSentry();
+		configureZodLocale();
 		await initAppState();
 		initTanstackDbPersistence();
 
