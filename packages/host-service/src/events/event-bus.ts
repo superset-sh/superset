@@ -3,6 +3,7 @@ import type { NodeWebSocket } from "@hono/node-ws";
 import type { DetectedPort } from "@superset/port-scanner";
 import {
 	type FsWatchEvent,
+	invalidateSearchIndexesForRoot,
 	watchSingleFile,
 } from "@superset/workspace-fs/host";
 import type { Hono } from "hono";
@@ -525,7 +526,7 @@ export class EventBus {
 	 * Targeted watch for one open document. Installs a real per-file watcher
 	 * only when the recursive workspace watch delivers nothing for the path
 	 * (pruned subtree — gitignored build dir, node_modules, nested repo); a
-	 * covered path records a no-op so unwatch stays symmetric. Port of VS
+	 * covered path needs no targeted watch or budget slot. Port of VS
 	 * Code's per-resource fallback for visible editors.
 	 */
 	private startFsFileWatch(
@@ -536,13 +537,6 @@ export class EventBus {
 	): void {
 		const key = `${workspaceId}\0${absolutePath}`;
 		if (state.fileWatches.has(key)) return;
-		if (state.fileWatches.size >= MAX_FILE_WATCHES_PER_CLIENT) {
-			sendMessage(socket, {
-				type: "error",
-				message: "Too many file watches for this client",
-			});
-			return;
-		}
 
 		let rootPath: string;
 		try {
@@ -560,7 +554,8 @@ export class EventBus {
 		const resolved = path.resolve(absolutePath);
 		if (
 			resolved !== absolutePath ||
-			!resolved.startsWith(`${rootPath.replace(/\/$/, "")}/`)
+			(resolved !== rootPath &&
+				!resolved.startsWith(`${rootPath.replace(/\/$/, "")}/`))
 		) {
 			sendMessage(socket, {
 				type: "error",
@@ -571,23 +566,36 @@ export class EventBus {
 
 		if (!this.filesystem.isPathPrunedFromWatch(workspaceId, absolutePath)) {
 			// The recursive watcher already covers this file — nothing to add.
-			state.fileWatches.set(key, () => {});
 			return;
 		}
 
-		const dispose = watchSingleFile(absolutePath, (event: FsWatchEvent) => {
-			// A dead socket must not throw into the watcher's settle loop; the
-			// close handler disposes every file watch for this client.
-			try {
-				sendMessage(socket, {
-					type: "fs:events",
-					workspaceId,
-					events: [event],
-				});
-			} catch (error) {
-				console.error("[event-bus] file-watch send failed", { error });
-			}
-		});
+		if (state.fileWatches.size >= MAX_FILE_WATCHES_PER_CLIENT) {
+			sendMessage(socket, {
+				type: "error",
+				message: "Too many file watches for this client",
+			});
+			return;
+		}
+
+		const dispose = watchSingleFile(
+			absolutePath,
+			(event: FsWatchEvent) => {
+				invalidateSearchIndexesForRoot(rootPath);
+				this.gitWatcher.notifyWorktreeEvents(workspaceId, rootPath, [event]);
+				// A dead socket must not throw into the watcher's settle loop; the
+				// close handler disposes every file watch for this client.
+				try {
+					sendMessage(socket, {
+						type: "fs:events",
+						workspaceId,
+						events: [event],
+					});
+				} catch (error) {
+					console.error("[event-bus] file-watch send failed", { error });
+				}
+			},
+			{ emitInitialState: true },
+		);
 		state.fileWatches.set(key, dispose);
 	}
 

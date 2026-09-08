@@ -19,7 +19,10 @@ const readFileUseQuery = mock(
 );
 const emptyUseQuery = mock(() => ({ data: undefined, isLoading: false }));
 
+// Module mocks are process-wide; preserve React exports used by later suites.
+const actualReact = { ...(await import("react")) };
 mock.module("react", () => ({
+	...actualReact,
 	useMemo: <T>(factory: () => T) => factory(),
 }));
 

@@ -37,7 +37,10 @@ const createMock = mock(async () => ({
 const finalizeSetupMock = mock(() => undefined);
 const requestGitInitMock = mock(async () => false);
 
+// Module mocks are process-wide; preserve React exports used by later suites.
+const actualReact = { ...(await import("react")) };
 mock.module("react", () => ({
+	...actualReact,
 	useCallback: <T extends (...args: never[]) => unknown>(callback: T) =>
 		callback,
 }));

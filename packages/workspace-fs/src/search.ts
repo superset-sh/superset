@@ -94,6 +94,7 @@ interface PathFilterMatcher {
 }
 
 interface SearchIndexKeyOptions {
+	maxAgeMs?: number;
 	rootPath: string;
 	includeHidden: boolean;
 }
@@ -115,6 +116,7 @@ export interface SearchPatchEvent {
 }
 
 export interface SearchFilesOptions {
+	indexMaxAgeMs?: number;
 	rootPath: string;
 	query: string;
 	includeHidden?: boolean;
@@ -129,6 +131,7 @@ export interface RunRipgrepOptions {
 }
 
 export interface SearchContentOptions {
+	indexMaxAgeMs?: number;
 	rootPath: string;
 	query: string;
 	includeHidden?: boolean;
@@ -148,6 +151,7 @@ const SEARCH_INDEX_CACHE_MAX = 12;
 const SEARCH_INDEX_CACHE_TTL_MS = 30 * 60_000;
 
 interface CachedIndex {
+	builtAt: number;
 	items: SearchIndexEntry[];
 	lastAccessedAt: number;
 }
@@ -314,22 +318,66 @@ function matchesPathFilters(
 	return true;
 }
 
-async function buildSearchIndex({
-	rootPath,
-	includeHidden,
-}: SearchIndexKeyOptions): Promise<SearchIndexEntry[]> {
-	const normalizedRootPath = normalizeAbsolutePath(rootPath);
-	const entries = await fg("**/*", {
-		cwd: normalizedRootPath,
+/**
+ * Entry cap for one index. A root that is a home directory, or otherwise holds
+ * most of a machine's files, used to walk straight to the V8 heap limit here:
+ * the host-service died with "JavaScript heap out of memory" inside the
+ * readdir callback about 110 s after boot, on every boot, for as long as such
+ * a project existed. Past the cap the walk stops and the index is served
+ * truncated — search still answers for the files it saw, and the root is
+ * logged once so the truncation is diagnosable.
+ */
+export const MAX_SEARCH_INDEX_ENTRIES = 200_000;
+
+/**
+ * Walk `rootPath` for index candidates, stopping at `maxEntries`. Exported for
+ * tests; production goes through getSearchIndex.
+ */
+export async function collectSearchIndexPaths(
+	rootPath: string,
+	options: { includeHidden: boolean; maxEntries?: number },
+): Promise<{ paths: string[]; truncated: boolean }> {
+	const maxEntries = options.maxEntries ?? MAX_SEARCH_INDEX_ENTRIES;
+	const stream = fg.stream("**/*", {
+		cwd: rootPath,
 		onlyFiles: true,
-		dot: includeHidden,
+		dot: options.includeHidden,
 		followSymbolicLinks: false,
 		unique: true,
 		suppressErrors: true,
 		ignore: DEFAULT_IGNORE_PATTERNS,
 	});
+	const paths: string[] = [];
+	let truncated = false;
+	// Breaking out of for-await returns the stream, which destroys the
+	// underlying directory walk rather than letting it run to the end.
+	for await (const entry of stream) {
+		if (paths.length >= maxEntries) {
+			truncated = true;
+			break;
+		}
+		paths.push(String(entry));
+	}
+	return { paths, truncated };
+}
 
-	return entries.map((relativePath) =>
+async function buildSearchIndex({
+	rootPath,
+	includeHidden,
+}: SearchIndexKeyOptions): Promise<SearchIndexEntry[]> {
+	const normalizedRootPath = normalizeAbsolutePath(rootPath);
+	const { paths, truncated } = await collectSearchIndexPaths(
+		normalizedRootPath,
+		{ includeHidden },
+	);
+	if (truncated) {
+		console.warn("[workspace-fs/search] index truncated at the entry cap", {
+			rootPath: normalizedRootPath,
+			maxEntries: MAX_SEARCH_INDEX_ENTRIES,
+		});
+	}
+
+	return paths.map((relativePath) =>
 		createSearchIndexEntry(normalizedRootPath, relativePath),
 	);
 }
@@ -344,7 +392,11 @@ export async function getSearchIndex(
 		// TTL is the freshness contract — bypassing it on hits would let a hot
 		// key serve indefinitely-stale data. Memory is already bounded by LRU.
 		searchIndexCache.delete(cacheKey);
-		if (Date.now() - cached.lastAccessedAt <= SEARCH_INDEX_CACHE_TTL_MS) {
+		if (
+			Date.now() - cached.lastAccessedAt <= SEARCH_INDEX_CACHE_TTL_MS &&
+			(options.maxAgeMs === undefined ||
+				Date.now() - cached.builtAt <= options.maxAgeMs)
+		) {
 			cached.lastAccessedAt = Date.now();
 			searchIndexCache.set(cacheKey, cached); // re-insert at MRU position
 			return cached.items;
@@ -366,6 +418,7 @@ export async function getSearchIndex(
 				evictLruSearchIndexEntries();
 				searchIndexCache.set(cacheKey, {
 					items,
+					builtAt: Date.now(),
 					lastAccessedAt: Date.now(),
 				});
 				searchIndexBuilds.delete(cacheKey);
@@ -454,7 +507,7 @@ async function searchContentWithRipgrep({
 	excludePattern,
 	limit,
 	runRipgrep,
-}: Required<Omit<SearchContentOptions, "runRipgrep">> & {
+}: Required<Omit<SearchContentOptions, "runRipgrep" | "indexMaxAgeMs">> & {
 	runRipgrep: NonNullable<SearchContentOptions["runRipgrep"]>;
 }): Promise<InternalContentMatch[]> {
 	const safeLimit = safeSearchLimit(limit);
@@ -718,6 +771,11 @@ function applySearchPatchEvent({
 		}
 
 		const nextAbsolutePath = normalizeAbsolutePath(event.absolutePath);
+		if (
+			!itemsByPath.has(nextAbsolutePath) &&
+			itemsByPath.size >= MAX_SEARCH_INDEX_ENTRIES
+		)
+			return;
 		itemsByPath.set(
 			nextAbsolutePath,
 			createSearchIndexEntry(rootPath, nextRelativePath),
@@ -737,6 +795,11 @@ function applySearchPatchEvent({
 		return;
 	}
 
+	if (
+		!itemsByPath.has(absolutePath) &&
+		itemsByPath.size >= MAX_SEARCH_INDEX_ENTRIES
+	)
+		return;
 	itemsByPath.set(absolutePath, createSearchIndexEntry(rootPath, relativePath));
 }
 
@@ -800,6 +863,7 @@ export function patchSearchIndexesForRoot(
 		searchIndexCache.delete(cacheKey);
 		searchIndexCache.set(cacheKey, {
 			items: Array.from(nextItemsByPath.values()),
+			builtAt: cached.builtAt,
 			lastAccessedAt: Date.now(),
 		});
 	}
@@ -823,6 +887,7 @@ const searchEntryAccessor: IItemAccessor<SearchIndexEntry> = {
 
 export async function searchFiles({
 	rootPath,
+	indexMaxAgeMs,
 	query,
 	includeHidden = false,
 	includePattern = "",
@@ -836,6 +901,7 @@ export async function searchFiles({
 
 	const index = await getSearchIndex({
 		rootPath,
+		maxAgeMs: indexMaxAgeMs,
 		includeHidden,
 	});
 	const pathMatcher = createPathFilterMatcher({
@@ -887,6 +953,7 @@ export async function searchFiles({
 }
 
 export async function searchContent({
+	indexMaxAgeMs,
 	rootPath,
 	query,
 	includeHidden = true,
@@ -900,10 +967,6 @@ export async function searchContent({
 		return [];
 	}
 
-	const index = await getSearchIndex({
-		rootPath,
-		includeHidden,
-	});
 	const pathMatcher = createPathFilterMatcher({
 		includePattern,
 		excludePattern,
@@ -921,6 +984,11 @@ export async function searchContent({
 			runRipgrep,
 		});
 	} catch {
+		const index = await getSearchIndex({
+			rootPath,
+			includeHidden,
+			maxAgeMs: indexMaxAgeMs,
+		});
 		internalMatches = await searchContentWithScan({
 			index,
 			query: trimmedQuery,

@@ -52,6 +52,7 @@ export interface FsHostService extends FsService {
 
 export interface FsHostServiceOptions {
 	rootPath: string;
+	searchIndexMaxAgeMs?: number;
 	watcherManager?: Pick<FsWatcherManager, "subscribe" | "close">;
 	trashItem?: (absolutePath: string) => Promise<void>;
 	runRipgrep?: SearchContentOptions["runRipgrep"];
@@ -263,6 +264,7 @@ export function createFsHostService(
 		async searchFiles(input) {
 			const matches = await searchFiles({
 				rootPath,
+				indexMaxAgeMs: options.searchIndexMaxAgeMs,
 				query: input.query,
 				includeHidden: input.includeHidden,
 				includePattern: input.includePattern,
@@ -274,6 +276,7 @@ export function createFsHostService(
 
 		async searchContent(input) {
 			const matches = await searchContent({
+				indexMaxAgeMs: options.searchIndexMaxAgeMs,
 				rootPath,
 				query: input.query,
 				includeHidden: input.includeHidden,

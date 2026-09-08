@@ -179,8 +179,10 @@ describe("isRelPathUnderPrunedDirs", () => {
 			true,
 		);
 		expect(isRelPathUnderPrunedDirs("src/app.ts", [])).toBe(false);
-		// A file merely named like an ignored dir is not inside one.
-		expect(isRelPathUnderPrunedDirs("dist", [])).toBe(false);
+		// Resource subscriptions also target directories themselves. A file
+		// with the same name conservatively gets a harmless targeted watch.
+		expect(isRelPathUnderPrunedDirs("dist", [])).toBe(true);
+		expect(isRelPathUnderPrunedDirs("buildout", ["buildout"])).toBe(true);
 		expect(isRelPathUnderPrunedDirs("distance/file.ts", [])).toBe(false);
 
 		expect(

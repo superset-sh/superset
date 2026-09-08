@@ -506,9 +506,10 @@ export interface EventBusHandle {
 	watchFs(workspaceId: string): void;
 	unwatchFs(workspaceId: string): void;
 	/**
-	 * Declare one open file so the host can install a targeted watch when the
+	 * Declare an open file or expanded directory for a targeted resource watch when the
 	 * recursive workspace watcher doesn't cover it (gitignored build dirs,
-	 * node_modules, nested repos). Events arrive as regular `fs:events`.
+	 * node_modules, nested repos, broad roots). Directories observe only immediate
+	 * children. Events arrive as regular `fs:events`.
 	 */
 	watchFsFile(workspaceId: string, absolutePath: string): void;
 	unwatchFsFile(workspaceId: string, absolutePath: string): void;

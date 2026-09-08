@@ -703,6 +703,57 @@ export class GitWatcher {
 		this.markGitDirDirty(workspaceId);
 	}
 
+	/** Feed targeted resource events through the same filtering and debounce as recursive events. */
+	notifyWorktreeEvents(
+		workspaceId: string,
+		worktreePath: string,
+		events: FsWatchEvent[],
+	): void {
+		if (this.closed || !this.interest.has(workspaceId)) return;
+		const ignoredState = this.getOrCreateIgnoredDirsState(workspaceId);
+		const filtered = filterGitIgnoredEvents(
+			events,
+			worktreePath,
+			ignoredState.dirs,
+		);
+		if (filtered.sawGitignoreChange) {
+			// Rules changed — stop filtering (fail open) until the
+			// post-emit refresh re-derives the set, and have that
+			// refresh check the native prune for staleness. Existing files may
+			// change visibility without emitting their own filesystem events.
+			ignoredState.dirs = new Set();
+			ignoredState.rulesChanged = true;
+			this.getOrCreateBatch(workspaceId).paths = null;
+		}
+		// Entirely gitignored churn (a build writing into .next):
+		// no flush at all — this is the whole point of the filter.
+		if (filtered.events.length === 0) return;
+
+		if (filtered.events.some((event) => event.isDirectory !== false)) {
+			// A shallow folder notification names the folder, not its changed
+			// children. Unknown types can also be directories deleted before stat.
+			// Invalidate all diffs in either case.
+			this.getOrCreateBatch(workspaceId).paths = null;
+		}
+
+		if (this.pendingBatches.get(workspaceId)?.paths === null) {
+			this.scheduleFlush(workspaceId);
+			return;
+		}
+
+		const relativePaths = collectWorktreeBatchPaths(
+			filtered.events,
+			worktreePath,
+		);
+
+		if (relativePaths.size > 0) {
+			this.addWorktreePaths(workspaceId, relativePaths);
+		} else {
+			this.getOrCreateBatch(workspaceId);
+			this.scheduleFlush(workspaceId);
+		}
+	}
+
 	/**
 	 * Subscribe to worktree fs events via the shared workspace-fs watcher
 	 * manager. Each batch of events feeds into the debounced flush, contributing
@@ -737,39 +788,11 @@ export class GitWatcher {
 					const next = await iterator.next();
 					if (disposed || next.done) return;
 
-					const ignoredState = this.getOrCreateIgnoredDirsState(workspaceId);
-					const filtered = filterGitIgnoredEvents(
+					this.notifyWorktreeEvents(
+						workspaceId,
+						worktreePath,
 						next.value.events,
-						worktreePath,
-						ignoredState.dirs,
 					);
-					if (filtered.sawGitignoreChange) {
-						// Rules changed — stop filtering (fail open) until the
-						// post-emit refresh re-derives the set, and have that
-						// refresh check the native prune for staleness.
-						ignoredState.dirs = new Set();
-						ignoredState.rulesChanged = true;
-					}
-					// Entirely gitignored churn (a build writing into .next):
-					// no flush at all — this is the whole point of the filter.
-					if (filtered.events.length === 0) continue;
-
-					if (this.pendingBatches.get(workspaceId)?.paths === null) {
-						this.scheduleFlush(workspaceId);
-						continue;
-					}
-
-					const relativePaths = collectWorktreeBatchPaths(
-						filtered.events,
-						worktreePath,
-					);
-
-					if (relativePaths.size > 0) {
-						this.addWorktreePaths(workspaceId, relativePaths);
-					} else {
-						this.getOrCreateBatch(workspaceId);
-						this.scheduleFlush(workspaceId);
-					}
 				}
 			} catch (error) {
 				if (!disposed) {

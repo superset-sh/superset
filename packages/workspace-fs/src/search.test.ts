@@ -1,11 +1,18 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, spyOn } from "bun:test";
+import nodeFs from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import type { Readable } from "node:stream";
+import fg from "fast-glob";
 import type { SearchPatchEvent } from "./search";
 import {
+	collectSearchIndexPaths,
+	getSearchIndex,
 	invalidateAllSearchIndexes,
+	MAX_SEARCH_INDEX_ENTRIES,
 	patchSearchIndexesForRoot,
+	searchContent,
 	searchFiles,
 } from "./search";
 
@@ -241,4 +248,184 @@ describe("searchFiles", () => {
 		expect(paths).toContain(nestedPath);
 		expect(paths).toHaveLength(2);
 	});
+});
+
+describe("collectSearchIndexPaths", () => {
+	it("stops the walk at the entry cap and reports truncation", async () => {
+		const rootPath = await fs.mkdtemp(
+			path.join(os.tmpdir(), "workspace-fs-index-cap-"),
+		);
+		try {
+			for (let i = 0; i < 12; i++) {
+				await fs.writeFile(path.join(rootPath, `file-${i}.txt`), "x");
+			}
+			const capped = await collectSearchIndexPaths(rootPath, {
+				includeHidden: false,
+				maxEntries: 5,
+			});
+			expect(capped.paths).toHaveLength(5);
+			expect(capped.truncated).toBe(true);
+
+			const full = await collectSearchIndexPaths(rootPath, {
+				includeHidden: false,
+			});
+			expect(full.paths).toHaveLength(12);
+			expect(full.truncated).toBe(false);
+		} finally {
+			await fs.rm(rootPath, { recursive: true, force: true });
+		}
+	});
+
+	it("destroys the directory walk at the cap instead of running it to completion", async () => {
+		const rootPath = await createTempRoot();
+		const DIRS = 400;
+		const FILES = 3;
+		for (let d = 0; d < DIRS; d++) {
+			const dir = path.join(rootPath, `dir-${d}`);
+			await fs.mkdir(dir);
+			for (let f = 0; f < FILES; f++) {
+				await fs.writeFile(path.join(dir, `file-${f}.txt`), "x");
+			}
+		}
+
+		// search.ts looks `fg.stream` up on the fast-glob module object at call
+		// time, so a spy here can route the walk through a counting readdir and
+		// keep a handle on the stream the walk consumes.
+		let readdirCalls = 0;
+		let pendingReaddirs = 0;
+		const countingReaddir = ((...args: unknown[]) => {
+			readdirCalls++;
+			pendingReaddirs++;
+			const callback = args.pop() as (...values: unknown[]) => void;
+			return (nodeFs.readdir as (...a: unknown[]) => void)(
+				...args,
+				(...values: unknown[]) => {
+					try {
+						callback(...values);
+					} finally {
+						pendingReaddirs--;
+					}
+				},
+			);
+		}) as typeof nodeFs.readdir;
+		const originalStream = fg.stream;
+		const streams: Readable[] = [];
+		const streamSpy = spyOn(fg, "stream").mockImplementation(
+			(source, options) => {
+				const stream = originalStream(source, {
+					...options,
+					fs: { readdir: countingReaddir },
+				});
+				streams.push(stream as Readable);
+				return stream;
+			},
+		);
+		try {
+			const full = await collectSearchIndexPaths(rootPath, {
+				includeHidden: false,
+			});
+			expect(full.paths).toHaveLength(DIRS * FILES);
+			expect(full.truncated).toBe(false);
+			const fullReaddirs = readdirCalls;
+			expect(fullReaddirs).toBe(DIRS + 1);
+			expect(streams[0]?.readableEnded).toBe(true);
+
+			readdirCalls = 0;
+			const capped = await collectSearchIndexPaths(rootPath, {
+				includeHidden: false,
+				maxEntries: FILES,
+			});
+			expect(capped.paths).toHaveLength(FILES);
+			expect(capped.truncated).toBe(true);
+			const cappedReaddirs = readdirCalls;
+
+			// The stream was torn down early, not read to its natural end.
+			expect(streams[1]?.destroyed).toBe(true);
+			expect(streams[1]?.readableEnded).toBe(false);
+
+			// Directories still in flight when the cap hit (bounded by fast-glob's
+			// concurrency, the CPU count) may finish, but the walker opens no
+			// more: the count is frozen, not merely lagging.
+			const deadline = Date.now() + 5_000;
+			while (pendingReaddirs > 0) {
+				if (Date.now() > deadline)
+					throw new Error("Directory callbacks failed to drain");
+				await new Promise((resolve) => setImmediate(resolve));
+			}
+			await new Promise((resolve) => setImmediate(resolve));
+			expect(readdirCalls).toBe(cappedReaddirs);
+			expect(cappedReaddirs).toBeLessThan(fullReaddirs / 2);
+		} finally {
+			streamSpy.mockRestore();
+		}
+	});
+});
+
+it("does not build a filename index before successful content search", async () => {
+	const rootPath = await createTempRoot();
+	const walk = spyOn(fg, "stream");
+	try {
+		await searchContent({
+			rootPath,
+			query: "needle",
+			runRipgrep: async () => ({ stdout: "" }),
+		});
+		expect(walk).not.toHaveBeenCalled();
+	} finally {
+		walk.mockRestore();
+	}
+});
+
+it("expires a broad-root index even while searches keep it hot", async () => {
+	const rootPath = await createTempRoot();
+	await fs.writeFile(path.join(rootPath, "old.txt"), "old");
+	await getSearchIndex({ rootPath, includeHidden: false });
+	await fs.writeFile(path.join(rootPath, "new.txt"), "new");
+	const now = Date.now();
+	const clock = spyOn(Date, "now").mockReturnValue(now + 6_000);
+	try {
+		const items = await getSearchIndex({
+			rootPath,
+			includeHidden: false,
+			maxAgeMs: 5_000,
+		});
+		expect(items.some((item) => item.name === "new.txt")).toBe(true);
+	} finally {
+		clock.mockRestore();
+	}
+});
+
+it("keeps the index bounded after a stream of file creations", async () => {
+	const rootPath = await createTempRoot();
+	await getSearchIndex({ rootPath, includeHidden: false });
+	patchSearchIndexesForRoot(
+		rootPath,
+		Array.from({ length: MAX_SEARCH_INDEX_ENTRIES + 2 }, (_, i) => ({
+			kind: "create" as const,
+			absolutePath: path.join(rootPath, `${i}.txt`),
+			isDirectory: false,
+		})),
+	);
+	expect(await getSearchIndex({ rootPath, includeHidden: false })).toHaveLength(
+		MAX_SEARCH_INDEX_ENTRIES,
+	);
+});
+
+it("expires the fallback content index when unwatched descendants change", async () => {
+	const rootPath = await createTempRoot();
+	const options = {
+		rootPath,
+		query: "needle",
+		indexMaxAgeMs: 0,
+		runRipgrep: async () => {
+			throw new Error("rg unavailable");
+		},
+	};
+	expect(await searchContent(options)).toEqual([]);
+	await fs.mkdir(path.join(rootPath, "deep"));
+	await fs.writeFile(path.join(rootPath, "deep", "new.txt"), "needle");
+	await new Promise((resolve) => setTimeout(resolve, 2));
+	expect(
+		(await searchContent(options)).map((match) => match.relativePath),
+	).toEqual(["deep/new.txt"]);
 });
