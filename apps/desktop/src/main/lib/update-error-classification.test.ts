@@ -216,25 +216,15 @@ describe("isEnvironmentUpdateError", () => {
 		).toBe(false);
 	});
 
-	test("does not take the ShipIt name alone as proof of a staging failure", () => {
-		expect(
-			isEnvironmentUpdateError(
-				"ditto: /Applications/ShipIt Tools/Superset.app/Contents/Resources/app.asar: No such file or directory",
-				ROOMY_VOLUME,
-			),
-		).toBe(false);
-	});
-
-	test("classifies a staged copy that lost a file under ShipIt's directory", () => {
+	test("keeps reporting a staged copy that lost a file under ShipIt's directory", () => {
+		// Squirrel sweeps sibling `update.*` directories out of its cache
+		// (-removeUpdateDirectoriesInStorageURL:excludingURL:), so a vanished
+		// staging tree is not proof the machine did it. A full volume still is.
 		expect(
 			isEnvironmentUpdateError(DITTO_STAGING_FILE_MISSING, ROOMY_VOLUME),
-		).toBe(true);
-		// ditto complaining about the installed bundle is not a staging failure.
-		expect(
-			isEnvironmentUpdateError(
-				"ditto: /Applications/Superset.app/Contents/Resources/app.asar: No such file or directory",
-				ROOMY_VOLUME,
-			),
 		).toBe(false);
+		expect(
+			isEnvironmentUpdateError(DITTO_STAGING_FILE_MISSING, FULL_VOLUME),
+		).toBe(true);
 	});
 });
