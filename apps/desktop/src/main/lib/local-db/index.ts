@@ -5,7 +5,6 @@ import * as schema from "@superset/local-db";
 
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
-import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { app } from "electron";
 import { validate as uuidValidate, version as uuidVersion } from "uuid";
 import { env } from "../../env.main";
@@ -14,6 +13,7 @@ import {
 	SUPERSET_HOME_DIR,
 	SUPERSET_SENSITIVE_FILE_MODE,
 } from "../app-environment";
+import { runMigrations } from "./runMigrations";
 
 const DB_PATH = join(SUPERSET_HOME_DIR, "local.db");
 
@@ -96,7 +96,7 @@ console.log(`[local-db] Running migrations from: ${migrationsFolder}`);
 export const localDb = drizzle(sqlite, { schema });
 
 try {
-	migrate(localDb, { migrationsFolder });
+	runMigrations(localDb, migrationsFolder);
 } catch (error) {
 	console.error("[local-db] Migration failed:", error);
 }
