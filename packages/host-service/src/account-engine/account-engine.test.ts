@@ -880,6 +880,7 @@ describe("AccountEngine", () => {
 			],
 			sessions: [movableSession({ limitHintErrorType: "rate_limit" })],
 			onFallbackRestart: async () => {
+				h.advance(4 * MINUTE);
 				thief.advance(4 * MINUTE);
 				await thief.engine.tick();
 			},
@@ -1162,6 +1163,7 @@ describe("AccountEngine", () => {
 		const h = harness({
 			entries: twoCodexHomes(),
 			onCodexIdentity: async () => {
+				h.advance(4 * MINUTE);
 				thief.advance(4 * MINUTE);
 				await thief.engine.tick();
 			},
@@ -1762,6 +1764,7 @@ describe("AccountEngine", () => {
 			onRefreshDue: async () => {
 				// The provider call outlives the lease and another instance
 				// reclaims the stale lock while this tick is still running.
+				h.advance(4 * MINUTE);
 				thief.advance(4 * MINUTE);
 				await thief.engine.tick();
 			},
@@ -2128,6 +2131,10 @@ describe("AccountEngine", () => {
 		const gate = new Promise<void>((resolve) => {
 			release = resolve;
 		});
+		let started: () => void = () => {};
+		const refreshStarted = new Promise<void>((resolve) => {
+			started = resolve;
+		});
 		const pending: Array<Promise<unknown>> = [];
 		const h = harness({
 			entries: [
@@ -2149,6 +2156,7 @@ describe("AccountEngine", () => {
 			onRefreshDue: async () => {
 				pending.push(h.engine.switchManually("claude", "/profiles/b"));
 				h.calls.push("manual-issued");
+				started();
 				await gate;
 				h.calls.push("refresh-done");
 			},
@@ -2161,8 +2169,7 @@ describe("AccountEngine", () => {
 		const tick = h.engine.tick();
 		// Every chance to interleave: the manual switch is queued and the tick
 		// is still parked inside the quota read.
-		await Promise.resolve();
-		await Promise.resolve();
+		await refreshStarted;
 		expect(h.calls).toEqual(["refreshDue", "manual-issued"]);
 
 		release();
@@ -2183,14 +2190,14 @@ describe("AccountEngine", () => {
 		const pending: Array<Promise<unknown>> = [];
 		// Recorded, not asserted, in here: `tick()` swallows anything this
 		// callback throws, so an expectation would fail open.
-		let thiefOwnedMidTick: boolean | null = null;
+		const thiefOwnership: { midTick: boolean | null } = { midTick: null };
 		const h = harness({
 			entries: twoClaudeAccounts(),
 			onRefreshDue: async () => {
 				pending.push(h.engine.stop());
 				// Still held: this tick has not returned yet.
 				await thief.engine.tick();
-				thiefOwnedMidTick = thief.engine.status().claude.lockOwner;
+				thiefOwnership.midTick = thief.engine.status().claude.lockOwner;
 			},
 		});
 		enable(h.engine);
@@ -2198,7 +2205,7 @@ describe("AccountEngine", () => {
 		await h.engine.tick();
 		await Promise.all(pending);
 
-		expect(thiefOwnedMidTick).toBe(false);
+		expect(thiefOwnership.midTick).toBe(false);
 		expect(h.calls).not.toContain("swap");
 		expect(h.engineState.readHistory(10)).toEqual([]);
 		expect(h.engineState.readRuntime().perAgent.claude.activeAccountId).toBe(
@@ -2246,14 +2253,15 @@ describe("AccountEngine", () => {
 	// KTD5: the swap is Keychain and filesystem work, and `stop()` only drains
 	// for ten seconds before it hands the lock back — so the lock can be gone
 	// by the time the swap resolves.
-	it("puts the previous login back when the lock goes during the swap", async () => {
+	it("does not roll back over a new owner when the lock goes during the swap", async () => {
 		const thief = harness();
 		const h = harness({
 			entries: twoClaudeAccounts(),
 			onSwap: async (call) => {
-				// Only the swap itself; the restore that undoes it must not be
-				// interrupted too.
+				// Only the first swap triggers the takeover. A rollback must
+				// never start after another host owns the lease.
 				if (call > 1) return;
+				h.advance(4 * MINUTE);
 				thief.advance(4 * MINUTE);
 				await thief.engine.tick();
 			},
@@ -2262,11 +2270,7 @@ describe("AccountEngine", () => {
 
 		await h.engine.tick();
 
-		expect(h.calls.filter((call) => call === "swap")).toHaveLength(2);
-		expect(h.swapInputs[1]?.target).toEqual({
-			kind: "profile",
-			dir: "/profiles/a",
-		});
+		expect(h.calls.filter((call) => call === "swap")).toHaveLength(1);
 		expect(h.calls).not.toContain("setPointer");
 		expect(h.switched).toEqual([]);
 		expect(h.engineState.readRuntime().perAgent.claude.activeAccountId).toBe(
@@ -2431,6 +2435,7 @@ describe("AccountEngine", () => {
 		expect(h.seedInputs).toEqual([
 			{
 				source: { kind: "profile", dir: "/profiles/b" },
+				expectedTargetAccountId: "acct-b",
 				activeDir: ACTIVE_DIR,
 			},
 		]);
