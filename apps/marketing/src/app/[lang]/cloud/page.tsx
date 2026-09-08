@@ -1,8 +1,8 @@
 import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
-import { Cloud } from "lucide-react";
 import type { Metadata } from "next";
+import { FaCloud } from "react-icons/fa";
 import { ContactForm } from "@/app/[lang]/components/ContactForm";
 import { localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
@@ -27,7 +27,7 @@ export default async function CloudPage() {
 			<header className="border-b border-border">
 				<div className="max-w-3xl mx-auto px-6 pt-16 pb-10 md:pt-20 md:pb-12">
 					<div className="inline-flex items-center gap-2 text-sm font-mono text-muted-foreground">
-						<Cloud aria-hidden="true" className="size-4 text-brand" />
+						<FaCloud aria-hidden="true" className="size-4 text-brand" />
 						<Trans>Cloud</Trans>
 						<span className="border border-border px-2 py-0.5 text-xs">
 							<Trans>Coming soon</Trans>
