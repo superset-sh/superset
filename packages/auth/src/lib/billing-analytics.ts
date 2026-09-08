@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { getOrganizationOwners } from "../utils";
 import { posthog } from "./analytics";
 
@@ -15,8 +17,34 @@ type CaptureArgs = {
 	 * checkout session and the subscription it creates.
 	 */
 	initiatedByUserId?: string | null;
+	/**
+	 * A Stripe id that is stable across webhook retries — the event id where we
+	 * have one, otherwise the subscription id. See `idempotencyUuid`.
+	 */
+	idempotencyKey: string;
+	/** When Stripe says it happened, not when we got around to processing it. */
+	occurredAt: Date;
 	properties?: Record<string, unknown>;
 };
+
+/**
+ * PostHog de-duplicates on (uuid, event name, timestamp, distinct_id), so a
+ * retried Stripe webhook only collapses if all four are stable — which is why
+ * callers pass `occurredAt` rather than letting it default to now().
+ *
+ * Stripe ids are not UUIDs and the column is, so the id is hashed into the
+ * UUID shape. Same input, same uuid, on every retry.
+ */
+function idempotencyUuid(event: BillingEvent, key: string): string {
+	const hex = createHash("sha256").update(`${event}:${key}`).digest("hex");
+	return [
+		hex.slice(0, 8),
+		hex.slice(8, 12),
+		hex.slice(12, 16),
+		hex.slice(16, 20),
+		hex.slice(20, 32),
+	].join("-");
+}
 
 /**
  * Attributes a Stripe outcome to the user who started it, so it lands on the
@@ -29,12 +57,19 @@ type CaptureArgs = {
  * answer there, and `attribution` records which one we used so a funnel built on
  * these events can tell measured conversions from inferred ones.
  *
+ * Safe to run twice: Stripe retries a webhook whenever the handler fails or
+ * times out, and this one does enough before reaching here (emails, QStash) to
+ * make that a real possibility rather than a theoretical one. Without the
+ * de-duplication below, a retry would bill `payment_succeeded` twice.
+ *
  * Never throws: a webhook must not fail because analytics did.
  */
 export async function captureBillingEvent({
 	event,
 	organizationId,
 	initiatedByUserId,
+	idempotencyKey,
+	occurredAt,
 	properties,
 }: CaptureArgs): Promise<void> {
 	try {
@@ -60,6 +95,8 @@ export async function captureBillingEvent({
 		posthog.capture({
 			distinctId,
 			event,
+			uuid: idempotencyUuid(event, idempotencyKey),
+			timestamp: occurredAt,
 			properties: {
 				...(properties ?? {}),
 				organization_id: organizationId,

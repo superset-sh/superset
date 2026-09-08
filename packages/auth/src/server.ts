@@ -1224,6 +1224,11 @@ export const auth = betterAuth({
 						event: "subscription_started",
 						organizationId: subscription.referenceId,
 						initiatedByUserId: stripeSubscription.metadata?.userId,
+						// This hook is handed the subscription, not the webhook event, so
+						// the subscription id is the stable key. One `subscription_started`
+						// per subscription is the intended meaning anyway.
+						idempotencyKey: stripeSubscription.id,
+						occurredAt: new Date(stripeSubscription.created * 1000),
 						properties: {
 							plan: plan.name,
 							billing_interval: billingInterval,
@@ -1402,6 +1407,8 @@ export const auth = betterAuth({
 							organizationId: org.id,
 							initiatedByUserId:
 								invoice.parent?.subscription_details?.metadata?.userId,
+							idempotencyKey: event.id,
+							occurredAt: new Date(event.created * 1000),
 							properties: {
 								// No money moved, so this must not be `revenue`.
 								amount_due: invoice.amount_due,
@@ -1517,6 +1524,8 @@ export const auth = betterAuth({
 								event: "payment_succeeded",
 								organizationId,
 								initiatedByUserId: subscriptionDetails?.metadata?.userId,
+								idempotencyKey: event.id,
+								occurredAt: new Date(event.created * 1000),
 								properties: {
 									revenue: invoice.amount_paid,
 									currency: invoice.currency,
@@ -1542,6 +1551,8 @@ export const auth = betterAuth({
 								event: "checkout_abandoned",
 								organizationId,
 								initiatedByUserId: session.metadata?.userId,
+								idempotencyKey: event.id,
+								occurredAt: new Date(event.created * 1000),
 								properties: {
 									// No money moved, so this must not be `revenue`.
 									abandoned_value: session.amount_total ?? 0,
