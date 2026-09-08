@@ -3281,9 +3281,12 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 		const ownerService = keychainServicesForConfigDir(f.profileA)[0] as string;
 		const account = claudeKeychainAccounts()[0] as string;
 		const secret = JSON.stringify({ claudeAiOauth: oauth("t-a", 1_000) });
-		const keychain = fakeKeychain([{ service: ownerService, account, secret }], {
-			failRead: (args) => args[args.indexOf("-s") + 1] === ownerService,
-		});
+		const keychain = fakeKeychain(
+			[{ service: ownerService, account, secret }],
+			{
+				failRead: (args) => args[args.indexOf("-s") + 1] === ownerService,
+			},
+		);
 
 		const result = await swapClaudeLogin({
 			target: asProfile(f.profileB),
@@ -3297,7 +3300,9 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 			oauth("t-b", 2_000),
 		);
 		// The item nothing could read is also the item nothing wrote.
-		expect(keychain.items).toEqual([{ service: ownerService, account, secret }]);
+		expect(keychain.items).toEqual([
+			{ service: ownerService, account, secret },
+		]);
 		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
 		expect(readCredentials(f.profileA).claudeAiOauth).toEqual(
 			oauth("t-a-newest", 9_000),
@@ -3334,7 +3339,9 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 		// would have created it.
 		expect(existsSync(join(f.profileA, ".claude.json"))).toBe(false);
 		expect(readdirSync(f.profileA)).toEqual([]);
-		expect(keychain.items).toEqual([{ service: ownerService, account, secret }]);
+		expect(keychain.items).toEqual([
+			{ service: ownerService, account, secret },
+		]);
 		expect(keychain.calls.some((call) => call.args[0] === "-i")).toBe(false);
 		expect(readCredentials(f.activeDir).claudeAiOauth).toEqual(
 			oauth("t-a-refreshed", 5_000),

@@ -1591,10 +1591,7 @@ export async function swapClaudeLogin(input: {
 			// group-writable dir. Asked whenever that write runs, and before
 			// anything lands, so a refusal still writes nothing.
 			if (namesAccount(activeIdentity)) {
-				const stateDirInvalid = await validateDir(
-					dirname(ownerStatePath),
-					ctx,
-				);
+				const stateDirInvalid = await validateDir(dirname(ownerStatePath), ctx);
 				if (stateDirInvalid) return failure("invalid-owner", stateDirInvalid);
 			}
 			// A login is two halves here exactly as it is in the active dir, and
