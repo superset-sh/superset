@@ -1315,12 +1315,29 @@ export class AccountEngine {
 		});
 
 		if (!decision.switch) {
-			if (decision.allExhausted) state.exhaustedNotifiedAt ??= now;
-			else state.exhaustedNotifiedAt = null;
+			// R22: `allExhausted` also comes back for an active login that is
+			// simply not signed in — it reports no windows and is scored 0,
+			// exactly like an account over its limit — and the two are
+			// byte-identical in `SwitchDecision`. Latching there claims every
+			// account is at its limit and that switching resumes at the next
+			// window reset; both are false for an expired login, whose fix is
+			// to sign in again, and the latch would also drop the poll to the
+			// exhausted cadence so the re-login goes unnoticed for minutes.
+			// Not silence: the Usage card already reports these two states and
+			// the CLI fails loudly — this drops a false claim, not a real one.
+			// The same two states `activeUsable` refuses in decision.ts, and
+			// deliberately not `token_stale` (the self-healing refresh) or
+			// `unavailable` (one bad response from the usage endpoint).
+			const signedOut =
+				active.row.tokenState === "token_expired" ||
+				active.row.tokenState === "signed_out";
+			if (decision.allExhausted && !signedOut) {
+				state.exhaustedNotifiedAt ??= now;
+			} else state.exhaustedNotifiedAt = null;
 			return;
 		}
 
-		await this.performSwitch({
+		const outcome = await this.performSwitch({
 			agent,
 			settings,
 			runtime,
@@ -1331,6 +1348,21 @@ export class AccountEngine {
 			usedPercent: decision.usedPercent,
 			now,
 		});
+		// R15/AE6: `shouldSwitch` reads only the cooldown and the active
+		// account, so an unchanged quota reaches the identical decision and
+		// the identical target on the next tick. Without a backoff on failure
+		// a persistently failing switch re-runs the whole attempt — for a
+		// pointer write that throws, a credential swap plus its rollback —
+		// every poll interval forever, and each attempt broadcasts a failure
+		// the desktop notifies on. The same cooldown a successful switch
+		// takes applies here.
+		//
+		// `lock-loser` is deliberately excluded: this host's attempt did not
+		// fail, another instance owns the lock, and backing off would delay a
+		// legitimate switch once ownership comes back.
+		if (!outcome.ok && outcome.code !== "lock-loser") {
+			state.cooldownUntil = now + settings.cooldownSeconds * 1000;
+		}
 	}
 
 	/**
