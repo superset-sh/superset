@@ -138,7 +138,9 @@ export async function POST(request: Request): Promise<Response> {
 	// the lock also bounds this route to a single connection.
 	const attempt = await singleFlight("linear.sweep-abandoned", async (tx) => {
 		// The lock is held from here, so the budget is measured from here too.
-		const startedAt = Date.now();
+		// Monotonic: the wall clock can step backwards mid-run (NTP), which would
+		// read as less elapsed time and extend the lock hold past the budget.
+		const startedAt = performance.now();
 		const { rows } = await tx.execute<AbandonedRow>(sql`
 			WITH band AS MATERIALIZED (
 				SELECT id, provider, status, event_id, received_at, retry_count
@@ -201,7 +203,7 @@ export async function POST(request: Request): Promise<Response> {
 			// rows that entered most recently and still pass under later runs
 			// before they age out. Nothing is written for them, so the next run
 			// finds them exactly as they were.
-			if (Date.now() - startedAt >= PUBLISH_BUDGET_MS) break;
+			if (performance.now() - startedAt >= PUBLISH_BUDGET_MS) break;
 			try {
 				await enqueueLinearDelivery(work);
 				requeued.push({ observedRetryCount, ...work });
