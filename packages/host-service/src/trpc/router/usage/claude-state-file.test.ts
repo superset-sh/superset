@@ -443,6 +443,31 @@ describe("updateClaudeStateFile", () => {
 		expect(readdirSync(dir)).toEqual([".claude.json"]);
 	});
 
+	// Every caller keys off the same home dir's `.claude.json`, so its queue
+	// entry outlives any one update: if a failed write left a rejected promise
+	// at the head of the chain, every later trust seed and account swap would
+	// chain off it and fail with the first update's error until the process
+	// restarted.
+	it("still serves the same path after an update fails", async () => {
+		const file = join(tempDir(), ".claude.json");
+		writeFileSync(file, JSON.stringify({ userID: "user-a" }));
+		const failed = new Error("the mutation blew up");
+
+		// The caller gets its own error, unwrapped.
+		await expect(
+			updateClaudeStateFile(file, () => {
+				throw failed;
+			}),
+		).rejects.toBe(failed);
+
+		await updateClaudeStateFile(file, (state) => ({ ...state, seeded: true }));
+
+		expect(JSON.parse(readFileSync(file, "utf-8"))).toEqual({
+			userID: "user-a",
+			seeded: true,
+		});
+	});
+
 	it("propagates a failure without clobbering the previous state", async () => {
 		const dir = tempDir();
 		const file = join(dir, "missing", ".claude.json");
