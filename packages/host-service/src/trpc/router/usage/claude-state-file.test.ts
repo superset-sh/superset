@@ -255,6 +255,85 @@ describe("updateClaudeStateFile", () => {
 		});
 	});
 
+	// The settle does not have to land inside the read. A CLI writing the file
+	// non-atomically can finish any time up to the rename, and the retry then
+	// writes the settled file whole — so the torn bytes were never discarded
+	// and there is nothing to rescue and nothing to warn about.
+	it("keeps no backup when the torn read settles before the write", async () => {
+		const dir = tempDir();
+		const file = join(dir, ".claude.json");
+		writeFileSync(file, '{"userID":"user-a","hasCompletedOn');
+		const settled = JSON.stringify({
+			userID: "user-a",
+			hasCompletedOnboarding: true,
+		});
+		let passes = 0;
+		const warn = spyOn(console, "warn").mockImplementation(() => {});
+
+		try {
+			await updateClaudeStateFile(file, (state) => {
+				// Stands in for the CLI finishing its write after Superset read
+				// the half-written file, on the first pass only.
+				if (passes++ === 0) writeFileSync(file, settled);
+				return { ...state, seeded: true };
+			});
+
+			expect(passes).toBe(2);
+			expect(
+				warn.mock.calls.filter((call) =>
+					String(call[0]).includes("could not parse"),
+				),
+			).toHaveLength(0);
+		} finally {
+			warn.mockRestore();
+		}
+
+		expect(
+			readdirSync(dir).filter((name) => name.endsWith(".superset-swap-bak")),
+		).toEqual([]);
+		expect(JSON.parse(readFileSync(file, "utf-8"))).toEqual({
+			userID: "user-a",
+			hasCompletedOnboarding: true,
+			seeded: true,
+		});
+	});
+
+	// What makes a junk copy destructive rather than untidy: only three are
+	// kept per dir, so torn reads used to push out the rescue of a file that
+	// really was corrupt — the only copy of that identity, onboarding flag and
+	// folder-trust entries left anywhere.
+	it("keeps a genuine rescue through three torn reads", async () => {
+		const dir = tempDir();
+		const file = join(dir, ".claude.json");
+		// Sorts oldest by its leading stamp, so it is the entry the prune
+		// reaches for first.
+		const rescued =
+			".claude.json.2020-01-01T00-00-00-000Z.0000.superset-swap-bak";
+		const corrupt = '{"userID":"user-a","projects":{';
+		writeFileSync(join(dir, rescued), corrupt);
+		const warn = spyOn(console, "warn").mockImplementation(() => {});
+
+		try {
+			for (let cycle = 0; cycle < 3; cycle++) {
+				writeFileSync(file, '{"userID":"user-a","hasCompletedOn');
+				let passes = 0;
+				await updateClaudeStateFile(file, (state) => {
+					if (passes++ === 0) {
+						writeFileSync(file, JSON.stringify({ userID: "user-a", cycle }));
+					}
+					return { ...state, seeded: true };
+				});
+			}
+		} finally {
+			warn.mockRestore();
+		}
+
+		expect(
+			readdirSync(dir).filter((name) => name.endsWith(".superset-swap-bak")),
+		).toEqual([rescued]);
+		expect(readFileSync(join(dir, rescued), "utf-8")).toBe(corrupt);
+	});
+
 	// The bytes a rescue saves are the only copy left, so two of them in the
 	// same millisecond must not share a name: the second used to fail EEXIST
 	// and be discarded as though the first had already saved it.
@@ -278,6 +357,42 @@ describe("updateClaudeStateFile", () => {
 			.map((name) => readFileSync(join(dir, name), "utf-8"))
 			.sort();
 		expect(backups).toEqual(["{first corrupt", "{second corrupt"]);
+	});
+
+	// The rescue runs at the commit point now, so its failure has to abort the
+	// update from in there: a full or read-only home must leave the corrupt
+	// file standing rather than replace the only copy of it with the mutation.
+	it("aborts the update when the rescue cannot be written", async () => {
+		const dir = tempDir();
+		const file = join(dir, ".claude.json");
+		const corrupt = '{"userID":"user-a","hasCompletedOn';
+		writeFileSync(file, corrupt);
+		const realWriteFile = fsPromises.writeFile.bind(fsPromises);
+		const writeFile = spyOn(fsPromises, "writeFile").mockImplementation((async (
+			path: Parameters<typeof realWriteFile>[0],
+			data: Parameters<typeof realWriteFile>[1],
+			options: Parameters<typeof realWriteFile>[2],
+		) => {
+			if (String(path).endsWith(".superset-swap-bak")) {
+				throw Object.assign(new Error("no space left on device"), {
+					code: "ENOSPC",
+				});
+			}
+			return realWriteFile(path, data, options);
+		}) as unknown as typeof fsPromises.writeFile);
+
+		try {
+			await expect(
+				updateClaudeStateFile(file, (state) => ({ ...state, userID: "u" })),
+			).rejects.toThrow(/no space left/);
+		} finally {
+			writeFile.mockRestore();
+		}
+
+		// The bytes it could not copy are still where they were, and the
+		// half-written temp file is gone.
+		expect(readFileSync(file, "utf-8")).toBe(corrupt);
+		expect(readdirSync(dir)).toEqual([".claude.json"]);
 	});
 
 	// A dir quietly filling with backups is the failure this used to hide.

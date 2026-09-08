@@ -113,12 +113,10 @@ async function backupUnparsableState(
 	});
 	// Only once the copy exists — a full or read-only home makes the write
 	// throw, and announcing a path that was never created would send the user
-	// looking for a file that is not there. The message stops at what is
-	// already true: this ran before writeIfUnchanged has decided anything, and
-	// a torn read that the retry recovers from replaces nothing, so claiming a
-	// replacement here would be a false alarm. Discarding the live state used
-	// to say nothing at all, while failing to prune an old rescue already
-	// warned.
+	// looking for a file that is not there. Its caller only reaches here when
+	// the write is committing, so the message is never a false alarm about a
+	// file that turned out to be fine. Discarding the live state used to say
+	// nothing at all, while failing to prune an old rescue already warned.
 	console.warn(
 		`Superset could not parse ${statePath}; a copy of its contents was saved to ${backupPath}.`,
 	);
@@ -161,11 +159,16 @@ async function stateFingerprint(statePath: string): Promise<string | null> {
 
 /** Writes the mutated state, unless the file changed since `before` — in
  * which case the caller has to re-read and re-apply, since this snapshot no
- * longer has the other writer's bytes in it. */
+ * longer has the other writer's bytes in it. `rescue`, when the read was
+ * unparsable, runs in the one moment those bytes are known to be lost: past
+ * the fingerprint check, so an abandoned attempt never calls it, and still
+ * before the rename, so a rescue that cannot be written aborts the update
+ * with the corrupt file intact. */
 async function writeIfUnchanged(
 	statePath: string,
 	next: ClaudeState,
 	before: string | null,
+	rescue?: () => Promise<void>,
 ): Promise<boolean> {
 	const temporaryPath = `${statePath}.${process.pid}.${randomUUID()}.tmp`;
 	try {
@@ -177,6 +180,7 @@ async function writeIfUnchanged(
 			await unlink(temporaryPath).catch(() => {});
 			return false;
 		}
+		await rescue?.();
 		await rename(temporaryPath, statePath);
 		return true;
 	} catch (error) {
@@ -217,22 +221,22 @@ async function applyStateUpdate(
 	for (let attempt = 1; ; attempt++) {
 		const before = await stateFingerprint(statePath);
 		let state: ClaudeState = {};
+		let rescue: (() => Promise<void>) | undefined;
 		const raw = await readExistingState(statePath);
 		if (raw !== null && raw.trim() !== "") {
 			const parsed = parseState(raw);
 			if (parsed) state = parsed;
-			// Only bytes this attempt would actually discard are worth
-			// rescuing. A file that already moved since `before` is one
-			// writeIfUnchanged will refuse to replace, so a copy of it would
-			// be a permanent backup of a torn read nothing ever lost — and
-			// those junk copies evict a genuine rescue from the three kept
-			// per dir. Skipping it changes nothing else: the attempt is
-			// abandoned on the same `before` a moment later.
-			else if ((await stateFingerprint(statePath)) === before) {
-				await backupUnparsableState(statePath, raw);
-			}
+			// Held, not written yet: only bytes this attempt actually replaces
+			// are worth rescuing. A non-atomic CLI write can settle any time
+			// up to the rename, and the retry then writes the file whole, so
+			// copying at the read would leave a permanent backup of a torn
+			// read nothing ever lost, warn about a file that was fine, and
+			// spend one of the three slots — three of them evict the genuine
+			// rescue of a truly corrupt file.
+			else rescue = () => backupUnparsableState(statePath, raw);
 		}
-		if (await writeIfUnchanged(statePath, mutate(state), before)) return;
+		if (await writeIfUnchanged(statePath, mutate(state), before, rescue))
+			return;
 		if (attempt >= MAX_ATTEMPTS) {
 			throw new Error(
 				`${statePath} kept changing while Superset updated it; no write was made`,
