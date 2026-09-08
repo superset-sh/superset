@@ -172,6 +172,57 @@ describe("AutoSwitchSettings controls", () => {
 		expect(ui.queryByRole("alert")).toBeNull();
 	});
 
+	// The complaint is announced once, from the bottom of the card. Tabbing back
+	// into the field afterwards has to find it marked, or the field goes on
+	// showing a value the engine never received with nothing to say so.
+	test("the refused model field is marked invalid and points at the complaint", async () => {
+		const { ui } = setup();
+		const field = ui.getByRole("textbox", {
+			name: "Model windows",
+		}) as HTMLInputElement;
+		expect(field.getAttribute("aria-invalid")).not.toBe("true");
+		expect(field.getAttribute("aria-describedby")).toBeNull();
+		await act(async () => {
+			fireEvent.change(field, { target: { value: "m".repeat(65) } });
+			fireEvent.blur(field);
+		});
+		const marked = ui.getByRole("textbox", { name: "Model windows" });
+		expect(marked.getAttribute("aria-invalid")).toBe("true");
+		// One node serves as both the announcement and the description.
+		const alert = ui.getByRole("alert");
+		expect(alert.id).not.toBe("");
+		expect(marked.getAttribute("aria-describedby")).toBe(alert.id);
+	});
+
+	// A refusal raised by another control is not this field's fault, so the
+	// value it holds must not be marked as the offender.
+	test("another control's refusal leaves the model field valid", async () => {
+		const onCommit = mock(() => Promise.reject(new Error("invalid-settings")));
+		const view = render(
+			<AutoSwitchSettings
+				agentLabel="Claude Code"
+				settings={SETTINGS}
+				engineAvailable
+				platformSupported
+				lockOwner
+				disabled={false}
+				onCommit={onCommit}
+			/>,
+		);
+		const ui = within(view.baseElement as HTMLElement);
+		await act(async () => {
+			const threshold = ui.getByRole("spinbutton", { name: "Switch at" });
+			fireEvent.change(threshold, { target: { value: "42" } });
+			fireEvent.blur(threshold);
+		});
+		expect(ui.getByRole("alert").textContent).toContain(
+			"previous one still stands",
+		);
+		const models = ui.getByRole("textbox", { name: "Model windows" });
+		expect(models.getAttribute("aria-invalid")).not.toBe("true");
+		expect(models.getAttribute("aria-describedby")).toBeNull();
+	});
+
 	// A one-line field is finished with Enter; doing nothing looks like it saved.
 	test("Enter sends the threshold instead of doing nothing", async () => {
 		const { commits, ui } = setup();

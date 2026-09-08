@@ -315,6 +315,14 @@ export function AutoSwitchSettings({
 								<Input
 									id={`${fieldId}-models`}
 									className="h-6 px-1.5 text-[11px]"
+									// Only this field's own complaint marks it: a commit
+									// refusal came from another control, and the value here is
+									// not the one that was refused. The shared Input styles
+									// `aria-invalid`, so the attribute is also the visual mark.
+									aria-invalid={error?.source === "models"}
+									aria-describedby={
+										error?.source === "models" ? `${fieldId}-error` : undefined
+									}
 									placeholder={t({
 										message: "Fable, Opus",
 									})}
@@ -477,6 +485,7 @@ export function AutoSwitchSettings({
 				(error.source !== "models" ||
 					(blockedMessage === null && settings.enabled)) && (
 					<p
+						id={`${fieldId}-error`}
 						role="alert"
 						className="mt-2 flex items-start gap-1.5 text-[11px] text-red-500"
 					>
