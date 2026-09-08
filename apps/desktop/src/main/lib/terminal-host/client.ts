@@ -467,6 +467,14 @@ export class TerminalHostClient extends EventEmitter {
 			if (!this.streamSocket) {
 				const streamConnected = await this.tryConnectStream();
 				if (!streamConnected) {
+					// Both legs dial the same socket seconds apart, so a daemon that
+					// went away in between fails the stream leg alone. The control leg
+					// above already knows how to spawn one and start over; give it the
+					// attempt this loop is here for instead of failing outright.
+					if (attempt === 0) {
+						this.resetConnectionState({ emitDisconnected: false });
+						continue;
+					}
 					throw new Error("Failed to connect stream socket");
 				}
 			}
