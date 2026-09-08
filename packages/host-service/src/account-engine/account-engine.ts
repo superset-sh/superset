@@ -1377,8 +1377,18 @@ export class AccountEngine {
 			// never past the reset that would end the latch.
 			const exhausted = state.exhaustedNotifiedAt !== null;
 			const wakeAt = exhausted ? this.nearestReset(agent) : null;
+			// A preserved Claude pointer can be a deduplicated sibling of the
+			// entry discovery retained. Poll that entry at the active cadence.
+			const active = this.pool(agent).find(
+				(item) =>
+					item.row.selection === state.activeSelection ||
+					(agent === "claude" &&
+						state.activeSelection !== null &&
+						item.entry.duplicateSelections?.includes(state.activeSelection)),
+			);
 			schedule[agent] = {
-				activeKey: quotaEntryKey(agent, state.activeSelection),
+				activeKey:
+					active?.entry.key ?? quotaEntryKey(agent, state.activeSelection),
 				intervalMs: exhausted
 					? EXHAUSTED_POLL_MS
 					: settings[agent].pollIntervalSeconds * 1000,

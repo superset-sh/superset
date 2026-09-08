@@ -1099,6 +1099,7 @@ describe("AccountEngine: the all-exhausted latch", () => {
 describe("AccountEngine: the first tick after a boot", () => {
 	for (const withDefault of [false, true]) {
 		it(`resolves a deduplicated pointer without replacing its selection (default=${withDefault})`, async () => {
+			const pollIntervalSeconds = withDefault ? 60 : 30;
 			const representative = entryFor(accountB({ windows: window(20) }));
 			representative.duplicateSelections = ["/profiles/original"];
 			const h = harness({
@@ -1117,6 +1118,9 @@ describe("AccountEngine: the first tick after a boot", () => {
 				}),
 			});
 			try {
+				expect(h.engine.setSettings("claude", { pollIntervalSeconds }).ok).toBe(
+					true,
+				);
 				await h.engine.tick();
 				await h.engine.tick();
 				expect(h.runtime().activeAccountId).toBe("acct-b");
@@ -1124,6 +1128,10 @@ describe("AccountEngine: the first tick after a boot", () => {
 				expect(h.swapped).toEqual([]);
 				expect(h.state.readHistory()).toEqual([]);
 				expect(representative.accounts[0]?.selection).toBe("/profiles/b");
+				expect(h.schedules.at(-1)?.claude).toEqual({
+					activeKey: representative.key,
+					intervalMs: pollIntervalSeconds * 1000,
+				});
 			} finally {
 				h.cleanup();
 			}
