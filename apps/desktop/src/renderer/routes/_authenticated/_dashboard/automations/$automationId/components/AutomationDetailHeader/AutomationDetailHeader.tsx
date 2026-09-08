@@ -16,10 +16,11 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { Link } from "@tanstack/react-router";
-import { LuClock, LuEllipsis, LuPlay, LuTrash2 } from "react-icons/lu";
+import { LuClock, LuEllipsis, LuLink, LuPlay, LuTrash2 } from "react-icons/lu";
 
 interface AutomationDetailHeaderProps {
 	name: string;
+	onCopyLink: () => void;
 	onDelete: () => void;
 	onRunNow: () => void;
 	onOpenHistory: () => void;
@@ -31,6 +32,7 @@ interface AutomationDetailHeaderProps {
 
 export function AutomationDetailHeader({
 	name,
+	onCopyLink,
 	onDelete,
 	onRunNow,
 	onOpenHistory,
@@ -92,7 +94,6 @@ export function AutomationDetailHeader({
 						<Button
 							variant="ghost"
 							size="icon-sm"
-							disabled={readOnly}
 							aria-label={t({
 								message: "More actions",
 							})}
@@ -101,9 +102,13 @@ export function AutomationDetailHeader({
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end">
+						<DropdownMenuItem onSelect={onCopyLink}>
+							<LuLink className="size-4" />
+							<Trans>Copy link</Trans>
+						</DropdownMenuItem>
 						<DropdownMenuItem
 							variant="destructive"
-							disabled={deleteDisabled}
+							disabled={readOnly || deleteDisabled}
 							onSelect={onDelete}
 						>
 							<LuTrash2 className="size-4" />

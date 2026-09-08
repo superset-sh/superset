@@ -28,6 +28,7 @@ import { LuEllipsis, LuPlay, LuRotateCw } from "react-icons/lu";
 import type { AutomationLastRun } from "renderer/routes/_authenticated/_dashboard/hooks/useFailedAutomations";
 import type { ProjectOption } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/types";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
+import { useCopyAutomationLink } from "../../hooks/useCopyAutomationLink";
 import { AutomationActionsMenuItems } from "./components/AutomationActionsMenuItems";
 
 type AutomationListItem = RouterOutputs["automation"]["list"][number];
@@ -131,6 +132,7 @@ export function AutomationRow({
 }: AutomationRowProps) {
 	const { t } = useLingui();
 	const navigate = useNavigate();
+	const copyAutomationLink = useCopyAutomationLink();
 	// No rrule but some trigger means the automation is driven by events
 	// rather than a clock; no triggers at all means it never fires.
 	const scheduleLabel = automation.rrule
@@ -172,6 +174,7 @@ export function AutomationRow({
 			isOwner={isOwner}
 			enabled={automation.enabled}
 			onEdit={openDetail}
+			onCopyLink={() => copyAutomationLink(automation.id)}
 			onRunNow={() => onRunNow(automation)}
 			onToggleEnabled={() => onToggleEnabled(automation)}
 			onHistory={openHistory}
@@ -378,29 +381,27 @@ export function AutomationRow({
 									</TooltipContent>
 								</Tooltip>
 							)}
-							{isOwner && (
-								<DropdownMenu>
-									<DropdownMenuTrigger asChild>
-										<Button
-											variant="ghost"
-											size="icon-sm"
-											onClick={(e) => e.stopPropagation()}
-											aria-label={t({
-												message: "Row actions",
-											})}
-											className="opacity-0 group-hover/row:opacity-100 data-[state=open]:opacity-100 focus-visible:opacity-100"
-										>
-											<LuEllipsis className="size-4" />
-										</Button>
-									</DropdownMenuTrigger>
-									<DropdownMenuContent
-										align="end"
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button
+										variant="ghost"
+										size="icon-sm"
 										onClick={(e) => e.stopPropagation()}
+										aria-label={t({
+											message: "Row actions",
+										})}
+										className="opacity-0 group-hover/row:opacity-100 data-[state=open]:opacity-100 focus-visible:opacity-100"
 									>
-										{actionsMenuItems("dropdown")}
-									</DropdownMenuContent>
-								</DropdownMenu>
-							)}
+										<LuEllipsis className="size-4" />
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent
+									align="end"
+									onClick={(e) => e.stopPropagation()}
+								>
+									{actionsMenuItems("dropdown")}
+								</DropdownMenuContent>
+							</DropdownMenu>
 						</span>
 					</TableCell>
 				</TableRow>

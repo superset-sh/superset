@@ -11,6 +11,7 @@ import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { HostOfflineRunDialog } from "../components/HostOfflineRunDialog";
+import { useCopyAutomationLink } from "../hooks/useCopyAutomationLink";
 import { isHostOfflineError } from "../utils/hostOfflineError";
 import { isStaleAgentError, STALE_AGENT_HELP } from "../utils/staleAgentError";
 import { AutomationBody } from "./components/AutomationBody";
@@ -43,6 +44,7 @@ function AutomationDetailPage() {
 	const currentUserId = session?.user?.id;
 	const [historyOpen, setHistoryOpen] = useState(history ?? false);
 	const [hostOfflineOpen, setHostOfflineOpen] = useState(false);
+	const copyAutomationLink = useCopyAutomationLink();
 
 	// The prompt body rides its own procedure — `get` omits it.
 	const automationQuery = cloudTrpc.automation.get.useQuery(
@@ -160,6 +162,7 @@ function AutomationDetailPage() {
 			<div className="flex flex-1 flex-col overflow-hidden">
 				<AutomationDetailHeader
 					name={automation.name}
+					onCopyLink={() => copyAutomationLink(automation.id)}
 					onDelete={() => {
 						alert({
 							title: t({
