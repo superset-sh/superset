@@ -1869,6 +1869,33 @@ export class AccountEngine {
 	private async switchCodex(
 		input: PerformSwitchInput,
 	): Promise<(ManualSwitchOutcome & { activeDir?: string }) | null> {
+		// A Codex home is a whole config root, not just a login, and an
+		// auto-switch can land on one that never passed the add-account flow —
+		// any `~/.codex*` dir with a parsable auth.json is rotatable. Without
+		// provisioning it, sessions do not pool into the ambient home, so the
+		// mover's `codex resume` cannot find the rollout it just moved.
+		// Best-effort — provisioning retries on the next switch and at host
+		// boot, so a failed share must not fail the switch.
+		//
+		// R24: it runs *before* the pointer, because the pointer write is the
+		// Codex switch itself — it is what every new Codex terminal reads as
+		// its CODEX_HOME — and a switch that does not complete has to leave it
+		// untouched. Anything awaited after the write can lose the lease at the
+		// check that records the switch, which would leave the pointer on the
+		// target while `runtime.json` still names the previous account, and
+		// nothing reconciles the two afterwards. `provisionCodexAccount` takes
+		// the home directly and never reads the pointer, so it does not need
+		// the pointer moved first.
+		if (input.target.selection !== null) {
+			try {
+				await this.provisionCodex(input.target.selection);
+			} catch (error) {
+				console.warn(
+					`[account-engine] provisioning the Codex home ${input.target.selection} failed (continuing):`,
+					error,
+				);
+			}
+		}
 		// A Codex switch is the pointer alone, so the home's own auth.json is
 		// the last word on who this points at — and the decision's claim is
 		// only as fresh as the last poll. A `codex login` in that home since
@@ -1900,33 +1927,6 @@ export class AccountEngine {
 							? `${home} names no signed-in account, so the expected ${expected} could not be confirmed`
 							: `${home} is signed in as account ${seen}, not the expected ${expected}`,
 				};
-			}
-		}
-		// A Codex home is a whole config root, not just a login, and an
-		// auto-switch can land on one that never passed the add-account flow —
-		// any `~/.codex*` dir with a parsable auth.json is rotatable. Without
-		// provisioning it, sessions do not pool into the ambient home, so the
-		// mover's `codex resume` cannot find the rollout it just moved.
-		// Best-effort — provisioning retries on the next switch and at host
-		// boot, so a failed share must not fail the switch.
-		//
-		// R24: it runs *before* the pointer, because the pointer write is the
-		// Codex switch itself — it is what every new Codex terminal reads as
-		// its CODEX_HOME — and a switch that does not complete has to leave it
-		// untouched. Anything awaited after the write can lose the lease at the
-		// check that records the switch, which would leave the pointer on the
-		// target while `runtime.json` still names the previous account, and
-		// nothing reconciles the two afterwards. `provisionCodexAccount` takes
-		// the home directly and never reads the pointer, so it does not need
-		// the pointer moved first.
-		if (input.target.selection !== null) {
-			try {
-				await this.provisionCodex(input.target.selection);
-			} catch (error) {
-				console.warn(
-					`[account-engine] provisioning the Codex home ${input.target.selection} failed (continuing):`,
-					error,
-				);
 			}
 		}
 		// API marker used by discovery is not proof that auth.json still

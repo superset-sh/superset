@@ -11,6 +11,7 @@ import {
 	existsSync,
 	mkdirSync,
 	mkdtempSync,
+	readFileSync,
 	rmSync,
 	writeFileSync,
 } from "node:fs";
@@ -94,6 +95,7 @@ function buildEngine(
 		pointerWrites: Array<string | null>;
 		entries?: QuotaEntry[];
 		onMove?: () => void;
+		readCodexIdentity?: (selection: string | null) => Promise<string | null>;
 	},
 ): AccountEngine {
 	return new AccountEngine({
@@ -161,8 +163,10 @@ function buildEngine(
 			credentialHash: null,
 		}),
 		// The target home is signed in as exactly the account the switch expects.
-		readCodexIdentity: async (selection) =>
-			selection === "/homes/b" ? "codex-acct-b" : "codex-acct-a",
+		readCodexIdentity:
+			deps.readCodexIdentity ??
+			(async (selection) =>
+				selection === "/homes/b" ? "codex-acct-b" : "codex-acct-a"),
 	});
 }
 
@@ -219,6 +223,77 @@ describe("AccountEngine Codex switches", () => {
 	});
 
 	for (const mode of ["automatic", "manual"] as const) {
+		for (const changed of [false, true]) {
+			it(`${mode} validates the subscription identity after provisioning (changed=${changed})`, async () => {
+				const state = new EngineState();
+				const before = state.readRuntime();
+				before.perAgent.codex.activeAccountId = "codex-acct-a";
+				before.perAgent.codex.activeSelection = "/homes/a";
+				state.writeRuntime(before);
+				const authPath = join(home, "auth.json");
+				const writeIdentity = (id: string) =>
+					writeFileSync(
+						authPath,
+						JSON.stringify({ tokens: { account_id: id } }),
+					);
+				writeIdentity("codex-acct-b");
+				const entries = twoCodexHomes();
+				for (const [index, entry] of entries.entries()) {
+					for (const account of entry.accounts) {
+						account.windows = [
+							{
+								id: "primary",
+								label: "Session",
+								usedPercent: index === 0 ? 95 : 10,
+								resetsAt: null,
+							},
+						];
+					}
+				}
+				const pointerWrites: Array<string | null> = [];
+				let moves = 0;
+				let provisioned = false;
+				const engine = buildEngine(state, {
+					entries,
+					pointerWrites,
+					readCodexIdentity: async (selection) =>
+						selection === "/homes/b"
+							? JSON.parse(readFileSync(authPath, "utf8")).tokens.account_id
+							: "codex-acct-a",
+					provisionCodex: async () => {
+						await Promise.resolve();
+						if (changed) writeIdentity("codex-acct-c");
+						provisioned = true;
+					},
+					onMove: () => {
+						moves++;
+					},
+				});
+				try {
+					expect(engine.setSettings("codex", { enabled: true }).ok).toBe(true);
+					const outcome =
+						mode === "manual"
+							? await engine.switchManually("codex", "/homes/b")
+							: await engine.tick();
+					if (mode === "manual")
+						expect(outcome).toMatchObject(
+							changed ? { ok: false, code: "target-changed" } : { ok: true },
+						);
+					expect(provisioned).toBe(true);
+					expect(pointerWrites).toEqual(changed ? [] : ["/homes/b"]);
+					expect(state.readRuntime().perAgent.codex.activeAccountId).toBe(
+						changed ? "codex-acct-a" : "codex-acct-b",
+					);
+					expect(state.readRuntime().perAgent.codex.activeSelection).toBe(
+						changed ? "/homes/a" : "/homes/b",
+					);
+					expect(state.readHistory()).toHaveLength(changed ? 0 : 1);
+					expect(moves).toBe(changed ? 0 : 1);
+				} finally {
+					await engine.stop();
+				}
+			});
+		}
 		for (const change of ["disable", "exclude"] as const) {
 			it(`${mode} switch respects ${change} during provisioning`, async () => {
 				const state = new EngineState();
