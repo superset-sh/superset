@@ -8473,6 +8473,10 @@ msgstr "Przenieś {count} do grupy"
 msgid "Move to group"
 msgstr "Przenieś do grupy"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.moveToOrganization"
+msgstr "Przenieś do organizacji"
+
 msgid "Move to Tab"
 msgstr "Przenieś do karty"
 

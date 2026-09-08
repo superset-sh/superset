@@ -43,6 +43,7 @@ import { PROJECT_CUSTOM_COLORS } from "shared/constants/project-colors";
 import {
 	createEmptyPaneLayout,
 	ensureSidebarProjectRecord,
+	removeProjectFromSidebarState,
 	setSidebarProjectHidden,
 	tombstoneSidebarWorkspaceRecord,
 } from "./sidebarMutations";
@@ -277,7 +278,7 @@ export function useDashboardSidebarState() {
 	const collections = useCollections();
 	const { workspaces: hostWorkspaces, cache: hostWorkspacesCache } =
 		useHostWorkspaces();
-	const { activeHostUrl } = useLocalHostService();
+	const { activeHostUrl, machineId } = useLocalHostService();
 	const { v2Workspaces } = useOptimisticActions();
 	const tagFolderContext = useTagFolderContext();
 
@@ -1037,7 +1038,24 @@ export function useDashboardSidebarState() {
 		[collections],
 	);
 
+	// A cross-org move takes the project out of this organization's sidebar
+	// entirely — hiding it would leave a row pointing at a project this org no
+	// longer owns.
+	const removeProjectFromSidebar = useCallback(
+		(projectId: string) => {
+			removeProjectFromSidebarState(
+				collections,
+				hostWorkspaces,
+				projectId,
+				machineId,
+				cleanupWorkspacePaneRuntimes,
+			);
+		},
+		[collections, hostWorkspaces, machineId],
+	);
+
 	return {
+		removeProjectFromSidebar,
 		createSection,
 		deleteSection,
 		ensureProjectInSidebar,

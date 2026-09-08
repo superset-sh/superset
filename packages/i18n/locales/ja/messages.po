@@ -8473,6 +8473,10 @@ msgstr "{count}件をグループへ移動"
 msgid "Move to group"
 msgstr "グループへ移動"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.moveToOrganization"
+msgstr "組織へ移動"
+
 msgid "Move to Tab"
 msgstr "タブに移動"
 

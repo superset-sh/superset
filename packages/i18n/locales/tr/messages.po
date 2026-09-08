@@ -8473,6 +8473,10 @@ msgstr "{count} öğeyi gruba taşı"
 msgid "Move to group"
 msgstr "Gruba taşı"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.moveToOrganization"
+msgstr "Kuruluşa taşı"
+
 msgid "Move to Tab"
 msgstr "Sekmeye taşı"
 

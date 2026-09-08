@@ -43,6 +43,7 @@ export function DashboardSidebarProjectSection({
 	const {
 		canDeleteProject,
 		cancelRename,
+		confirmMoveToOrganization,
 		confirmImportWorktrees,
 		deleteSection,
 		handleImportWorktrees,
@@ -56,9 +57,11 @@ export function DashboardSidebarProjectSection({
 		handleNewWorkspace,
 		handleOpenInFinder,
 		handleOpenSettings,
+		isMovingToOrganization,
 		importableWorktrees,
 		isImportingWorktrees,
 		isRenaming,
+		moveTargetOrganizations,
 		renameSection,
 		renameValue,
 		setImportableWorktrees,
@@ -106,6 +109,9 @@ export function DashboardSidebarProjectSection({
 				onOpenSettings={handleOpenSettings}
 				onHide={hideProject}
 				onDelete={canDeleteProject ? openDeleteDialog : null}
+				moveTargetOrganizations={moveTargetOrganizations}
+				onMoveToOrganization={confirmMoveToOrganization}
+				isMovingToOrganization={isMovingToOrganization}
 				onRename={startRename}
 			>
 				<div className="mt-1 first:mt-0">
@@ -137,6 +143,9 @@ export function DashboardSidebarProjectSection({
 				onOpenSettings={handleOpenSettings}
 				onHide={hideProject}
 				onDelete={canDeleteProject ? openDeleteDialog : null}
+				moveTargetOrganizations={moveTargetOrganizations}
+				onMoveToOrganization={confirmMoveToOrganization}
+				isMovingToOrganization={isMovingToOrganization}
 				onRename={startRename}
 			>
 				<DashboardSidebarProjectRow

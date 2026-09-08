@@ -8473,6 +8473,10 @@ msgstr "Přesunout {count} do skupiny"
 msgid "Move to group"
 msgstr "Přesunout do skupiny"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.moveToOrganization"
+msgstr "Přesunout do organizace"
+
 msgid "Move to Tab"
 msgstr "Přesunout na kartu"
 

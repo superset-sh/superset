@@ -8473,6 +8473,10 @@ msgstr "將{count}個移動到群組"
 msgid "Move to group"
 msgstr "移動到群組"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.moveToOrganization"
+msgstr "移動到組織"
+
 msgid "Move to Tab"
 msgstr "移動到分頁"
 

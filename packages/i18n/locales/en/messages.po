@@ -8473,6 +8473,10 @@ msgstr "Move {count} to Group"
 msgid "Move to group"
 msgstr "Move to group"
 
+#. js-lingui-explicit-id
+msgid "dashboard.sidebar.projectMenu.moveToOrganization"
+msgstr "Move to organization"
+
 msgid "Move to Tab"
 msgstr "Move to Tab"
 
