@@ -15,6 +15,7 @@ import {
 import { commentAuthor } from "../../utils/commentAuthor";
 import { initialsOf } from "../../utils/initialsOf";
 import { relativeTime } from "../../utils/relativeTime";
+import { Quote } from "./components/Quote";
 
 interface CommentListProps {
 	thread: CommentThread;
@@ -170,23 +171,6 @@ export function CommentList({
 				);
 			})}
 		</div>
-	);
-}
-
-function Quote({
-	children,
-	onClick,
-}: {
-	children: string;
-	onClick?: () => void;
-}) {
-	const className =
-		"line-clamp-2 border-l-2 border-primary pl-2 text-left text-muted-foreground text-sm italic";
-	if (!onClick) return <p className={className}>{children}</p>;
-	return (
-		<button type="button" onClick={onClick} className={className}>
-			{children}
-		</button>
 	);
 }
 

@@ -5,6 +5,8 @@ import {
 	fileOriginalKey,
 	fileResponsePolicy,
 	injectScriptTag,
+	injectStylesheetLink,
+	PAGE_THEME_CSS,
 	type PageManifest,
 	type PageTicketClaims,
 	pageAssetResponsePolicy,
@@ -15,6 +17,7 @@ import {
 	parsePageManifest,
 	RUNTIME_SCRIPT_PATH,
 	servedVersionOf,
+	THEME_STYLESHEET_PATH,
 	THUMBNAIL_FILENAME,
 	TICKET_QUERY_PARAM,
 	verifyFileTicket,
@@ -145,10 +148,11 @@ async function servePage(c: Context<AppContext>): Promise<Response> {
 	});
 
 	if (!isHtml) return new Response(object.body, { headers });
-	return new Response(
+	const document = injectStylesheetLink(
 		injectScriptTag(await object.text(), RUNTIME_SCRIPT_PATH),
-		{ headers },
+		THEME_STYLESHEET_PATH,
 	);
+	return new Response(document, { headers });
 }
 
 async function serveThumbnail(c: Context<AppContext>): Promise<Response> {
@@ -422,6 +426,13 @@ app.use("*", async (c, next) => {
 app.get(RUNTIME_SCRIPT_PATH, (c) =>
 	c.body(PAGE_COMMENTS_RUNTIME_SOURCE, 200, {
 		"Content-Type": "text/javascript; charset=utf-8",
+		"Cache-Control": "public, max-age=300",
+	}),
+);
+
+app.get(THEME_STYLESHEET_PATH, (c) =>
+	c.body(PAGE_THEME_CSS, 200, {
+		"Content-Type": "text/css; charset=utf-8",
 		"Cache-Control": "public, max-age=300",
 	}),
 );
