@@ -17,10 +17,16 @@ export class WorkerTaskError extends Error {
 	}
 }
 
+/** Why the runner gave up on a task on purpose; none of these is a worker failure. */
+export type WorkerTaskAbortKind = "disposed" | "superseded" | "cancelled";
+
 export class WorkerTaskAbortedError extends Error {
-	constructor(message = "Worker task aborted") {
+	public readonly kind: WorkerTaskAbortKind;
+
+	constructor(kind: WorkerTaskAbortKind, message = "Worker task aborted") {
 		super(message);
 		this.name = "WorkerTaskAbortedError";
+		this.kind = kind;
 	}
 }
 
@@ -172,7 +178,7 @@ export class WorkerTaskRunner {
 		for (const taskId of [...this.queue]) {
 			this.rejectTask(
 				taskId,
-				new WorkerTaskAbortedError("Worker runner disposed"),
+				new WorkerTaskAbortedError("disposed", "Worker runner disposed"),
 			);
 		}
 		this.queue.length = 0;
@@ -182,7 +188,7 @@ export class WorkerTaskRunner {
 			if (slot.activeTaskId) {
 				this.rejectTask(
 					slot.activeTaskId,
-					new WorkerTaskAbortedError("Worker runner disposed"),
+					new WorkerTaskAbortedError("disposed", "Worker runner disposed"),
 				);
 			}
 			await slot.worker.terminate();
@@ -239,7 +245,7 @@ export class WorkerTaskRunner {
 			if (!task) continue;
 
 			if (task.abortSignal?.aborted) {
-				this.rejectTask(task.taskId, new WorkerTaskAbortedError());
+				this.rejectTask(task.taskId, new WorkerTaskAbortedError("cancelled"));
 				continue;
 			}
 
@@ -298,7 +304,10 @@ export class WorkerTaskRunner {
 			) {
 				this.rejectTask(
 					task.taskId,
-					new WorkerTaskAbortedError("Task superseded by a newer request"),
+					new WorkerTaskAbortedError(
+						"superseded",
+						"Task superseded by a newer request",
+					),
 				);
 			} else {
 				this.resolveTask(task.taskId, response.result);
@@ -364,7 +373,7 @@ export class WorkerTaskRunner {
 		const task = this.tasks.get(taskId);
 		if (!task) return;
 
-		this.rejectTask(taskId, new WorkerTaskAbortedError());
+		this.rejectTask(taskId, new WorkerTaskAbortedError("cancelled"));
 
 		if (task.slotId) {
 			const slot = this.workerSlots.get(task.slotId);
@@ -407,7 +416,10 @@ export class WorkerTaskRunner {
 			this.queue.splice(i, 1);
 			this.rejectTask(
 				queuedTask.taskId,
-				new WorkerTaskAbortedError("Task superseded by a newer request"),
+				new WorkerTaskAbortedError(
+					"superseded",
+					"Task superseded by a newer request",
+				),
 			);
 		}
 	}
