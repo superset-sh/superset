@@ -24,7 +24,10 @@ import { z } from "zod";
 import type { HostDb } from "../../../db";
 import { hostAgentConfigs, workspaces } from "../../../db/schema";
 import { hasHarnessSession } from "../../../terminal/harness-transcript";
-import { createTerminalSessionInternal } from "../../../terminal/terminal";
+import {
+	createTerminalSessionInternal,
+	writeFramedInputToSession,
+} from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 import { resolveAttachmentPath } from "../attachments/storage";
@@ -217,6 +220,13 @@ export interface AgentRunInput {
 	resumeSessionId?: string;
 	/** Session id to clone into a new provider-owned session. */
 	forkSessionId?: string;
+	/**
+	 * A terminal an earlier run of this same caller left behind. When it still
+	 * runs this agent, the prompt is delivered into that session instead of
+	 * starting a second one beside it. Anything else — terminal gone, agent
+	 * exited, a different agent now owns it — launches as usual.
+	 */
+	continueTerminalId?: string;
 }
 
 export type AgentRunResult = {
@@ -588,6 +598,72 @@ async function runTerminalAgent(
 	};
 }
 
+/**
+ * Deliver the prompt into the agent already running in `continueTerminalId`,
+ * or return null to let the caller launch a fresh session.
+ *
+ * For a caller that runs the same agent in the same workspace over and over —
+ * automation dispatch against a pinned workspace — every run used to leave
+ * another live agent behind: a five-minute schedule put 181 concurrent codex
+ * sessions in one worktree, all editing the same files and all spending
+ * tokens. Naming the previous run's terminal turns that into one session that
+ * keeps getting prompts.
+ *
+ * Every "no" here falls through to a normal launch rather than failing the
+ * run, so a caller can always name a terminal it is no longer sure about.
+ */
+async function continueTerminalAgent(
+	ctx: Pick<HostServiceContext, "db" | "eventBus" | "terminalAgentStore">,
+	input: AgentRunInput,
+): Promise<AgentRunResult | null> {
+	const terminalId = input.continueTerminalId;
+	if (!terminalId || input.prompt.trim().length === 0) return null;
+	// Launch-time-only options can't be applied to a process that is already
+	// running, so honour them with a launch instead of silently dropping them.
+	if (
+		input.model ||
+		input.effort ||
+		input.mode ||
+		input.resumeSessionId ||
+		input.forkSessionId ||
+		(input.attachmentIds?.length ?? 0) > 0
+	) {
+		return null;
+	}
+
+	const config = resolveHostAgentConfig(ctx.db, input.agent);
+	if (!config) return null;
+
+	// Live reads only: a binding whose terminal died or whose agent exited is
+	// not a continuation target. That is also what keeps the prompt out of a
+	// bare shell — the send below adopts but never respawns, so a terminal
+	// whose pty is gone errors instead of coming back as an empty shell.
+	const binding = ctx.terminalAgentStore
+		.listByWorkspace(input.workspaceId)
+		.find((candidate) => candidate.terminalId === terminalId);
+	if (!binding) return null;
+	// Resolve both sides: the caller may name a preset while the binding
+	// carries the custom definition that preset resolved to, or vice versa.
+	const bound = resolveHostAgentConfig(
+		ctx.db,
+		binding.definitionId ?? binding.agentId,
+	);
+	if (bound?.id !== config.id) return null;
+
+	const sent = await writeFramedInputToSession({
+		terminalId,
+		workspaceId: input.workspaceId,
+		text: input.prompt,
+		submit: true,
+		db: ctx.db,
+		eventBus: ctx.eventBus,
+	});
+	// Raced the session's death between the binding read and the write.
+	if ("error" in sent) return null;
+
+	return { kind: "terminal", sessionId: terminalId, label: config.label };
+}
+
 export async function runAgentInWorkspace(
 	ctx: HostServiceContext,
 	input: AgentRunInput,
@@ -603,6 +679,9 @@ export async function runAgentInWorkspace(
 			message: `Workspace ${input.workspaceId} not found on this host — it may have been deleted.`,
 		});
 	}
+	// Before any launch work: continuing costs no pty, no trust seeding.
+	const continued = await continueTerminalAgent(ctx, input);
+	if (continued) return continued;
 	// Session workspaces are standalone repos the host itself scaffolded, so
 	// agent CLIs can't inherit folder trust from anywhere — pre-trust the
 	// folder in the launching agent's own trust store so its first
@@ -632,6 +711,7 @@ export const agentsRouter = router({
 				mode: z.string().min(1).optional(),
 				resumeSessionId: z.string().min(1).optional(),
 				forkSessionId: z.string().min(1).optional(),
+				continueTerminalId: z.string().min(1).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => runAgentInWorkspace(ctx, input)),
