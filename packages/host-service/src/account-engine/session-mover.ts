@@ -67,8 +67,8 @@ export const NUDGE_MAX_ATTEMPTS = 30;
  *
  * Bounded because retries are not free and nothing else stops them: every
  * attempt kills and disposes the session again, and a permanently refused
- * candidate (a session id the resume will never accept, say) stays listed
- * under the same terminal id, so it would be re-offered on every store change
+ * candidate (a session id the resume will never accept, say) is retried from
+ * the row the mover kept, so it would be re-offered on every store change
  * forever. A count is the only bound available — the resume reports failure as
  * a bare null, with no way to say whether trying again could work.
  */
@@ -170,7 +170,8 @@ export class SessionMover {
 	 * restarting rows that are already on the new account; still being listed
 	 * under that id is how a row that has not moved yet is recognised, because
 	 * a restart ends the binding and brings the session back on a fresh
-	 * terminal.
+	 * terminal. That test only holds for rows nothing has killed, which is why
+	 * a refused resume is retried from {@link pendingResume} instead.
 	 */
 	private readonly deferred = new Map<AccountAgent, Set<string>>();
 	/**
@@ -178,6 +179,29 @@ export class SessionMover {
 	 * not on the row, because the row is a fresh snapshot on every pass.
 	 */
 	private readonly resumeAttempts = new Map<string, number>();
+	/**
+	 * The rows behind those attempts, per terminal id: a refused resume is
+	 * retried from this copy rather than from the store.
+	 *
+	 * The id-based deferral above cannot carry it. A restart kills first —
+	 * `killAndResume` ends the binding before it resumes — and the store only
+	 * lists live bindings, so a row whose resume was then refused is absent
+	 * from the very next `listSessions` and looks exactly like one that
+	 * relaunched. Retrying it from the id alone therefore never retried
+	 * anything: the deferral was dropped as "already moved" and the failure was
+	 * never reported. Only refused rows are kept here; a mid-turn deferral is
+	 * still matched by id, which is sound because nothing killed it.
+	 */
+	private readonly pendingResume = new Map<string, MovableSession>();
+	/**
+	 * Set while a store-change pass is running. Ending a binding emits `change`
+	 * synchronously from inside the restart this pass is awaiting, and a nested
+	 * pass would find the same row still retained above and kill it again,
+	 * before the attempt that is in flight has been counted. Skipping the
+	 * nested pass keeps kills bounded by {@link MAX_RESUME_ATTEMPTS}; the pass
+	 * already running re-decides those rows anyway.
+	 */
+	private passInFlight = false;
 
 	constructor(deps: SessionMoverDeps) {
 		this.deps = deps;
@@ -227,6 +251,7 @@ export class SessionMover {
 			const attempts = (this.resumeAttempts.get(row.terminalId) ?? 0) + 1;
 			if (attempts < MAX_RESUME_ATTEMPTS) {
 				this.resumeAttempts.set(row.terminalId, attempts);
+				this.pendingResume.set(row.terminalId, row);
 				deferredTerminalIds.push(row.terminalId);
 				waiting.add(row.terminalId);
 				continue;
@@ -250,6 +275,11 @@ export class SessionMover {
 			),
 		);
 		for (const terminalId of waiting) next.add(terminalId);
+		// Whatever this pass looked at and did not re-defer is settled — moved,
+		// given up on, or never movable — so it is no longer retried from a
+		// retained copy.
+		for (const terminalId of considered)
+			if (!waiting.has(terminalId)) this.pendingResume.delete(terminalId);
 		if (next.size > 0) this.deferred.set(agent, next);
 		else this.deferred.delete(agent);
 
@@ -275,17 +305,33 @@ export class SessionMover {
 	 * the switch has already moved.
 	 */
 	async handleStoreChange(_workspaceId: string): Promise<void> {
-		for (const [agent, waiting] of [...this.deferred]) {
-			const rows = this.deps
-				.listSessions(agent)
-				.filter((row) => waiting.has(row.terminalId));
-			if (rows.length === 0) {
-				this.deferred.delete(agent);
-				for (const terminalId of waiting)
-					this.resumeAttempts.delete(terminalId);
-				continue;
+		if (this.passInFlight) return;
+		this.passInFlight = true;
+		try {
+			for (const [agent, waiting] of [...this.deferred]) {
+				const listed = this.deps
+					.listSessions(agent)
+					.filter((row) => waiting.has(row.terminalId));
+				// A row we killed and failed to resume is no longer listed, so
+				// it is re-driven from the copy kept when it was refused. The
+				// listed row wins where there is one: it is this moment's
+				// truth, the retained copy a snapshot from before the kill.
+				const rows = [...listed];
+				for (const terminalId of waiting) {
+					if (listed.some((row) => row.terminalId === terminalId)) continue;
+					const retained = this.pendingResume.get(terminalId);
+					if (retained !== undefined) rows.push(retained);
+				}
+				if (rows.length === 0) {
+					this.deferred.delete(agent);
+					for (const terminalId of waiting)
+						this.resumeAttempts.delete(terminalId);
+					continue;
+				}
+				await this.moveAtIdle(agent, rows);
 			}
-			await this.moveAtIdle(agent, rows);
+		} finally {
+			this.passInFlight = false;
 		}
 	}
 

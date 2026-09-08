@@ -296,13 +296,26 @@ describe("moveAtIdle", () => {
 	it("retries a resume that came back empty on the next store change", async () => {
 		const attempts: string[] = [];
 		let refuse = true;
+		// The store the real mover reads: `killAndResume` marks the binding
+		// ended before it resumes and `listLive` filters ended bindings out, so
+		// the killed terminal id is gone from the very next `listSessions` —
+		// replaced by the fresh terminal only if the resume actually took.
+		let listed: MovableSession[] = [row({ lastEventType: "Stop" })];
 		const h = harness({
-			listSessions: () => [row({ lastEventType: "Stop" })],
+			listSessions: () => listed,
 			killAndResume: (input) => {
 				attempts.push(input.terminalId);
-				return Promise.resolve(
-					refuse ? null : { terminalId: `${input.terminalId}-new` },
-				);
+				if (refuse) {
+					listed = [];
+					return Promise.resolve(null);
+				}
+				listed = [
+					row({
+						terminalId: `${input.terminalId}-new`,
+						lastEventType: "Stop",
+					}),
+				];
+				return Promise.resolve({ terminalId: `${input.terminalId}-new` });
 			},
 		});
 
@@ -329,10 +342,15 @@ describe("moveAtIdle", () => {
 	// the resume will never accept stays listed under the same terminal id.
 	it("gives up after the attempts run out, asking for attention once", async () => {
 		const attempts: string[] = [];
+		// Same store as above, and a resume that is refused every time: the row
+		// is ended on the first kill and nothing ever brings it back, so the
+		// retry cannot depend on `listSessions` re-offering it.
+		let listed: MovableSession[] = [row({ lastEventType: "Stop" })];
 		const h = harness({
-			listSessions: () => [row({ lastEventType: "Stop" })],
+			listSessions: () => listed,
 			killAndResume: (input) => {
 				attempts.push(input.terminalId);
+				listed = [];
 				return Promise.resolve(null);
 			},
 		});
