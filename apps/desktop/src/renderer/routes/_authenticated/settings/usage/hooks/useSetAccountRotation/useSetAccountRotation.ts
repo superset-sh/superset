@@ -4,6 +4,8 @@ import { rotationKey } from "../../utils/rotationKey";
 import type { UsageAccount } from "../useHostUsageQuota";
 import { HOST_USAGE_QUOTA_QUERY_KEY } from "../useHostUsageQuota";
 
+const SET_ACCOUNT_ROTATION_MUTATION_KEY = ["set-account-rotation"] as const;
+
 /** Pure: the account list with one account's rotation flag replaced. */
 export function withRotation(
 	accounts: UsageAccount[],
@@ -23,7 +25,9 @@ export function withRotation(
 export function useSetAccountRotation(hostUrl: string | null) {
 	const queryClient = useQueryClient();
 	const quotaKey = [...HOST_USAGE_QUOTA_QUERY_KEY, hostUrl] as const;
+	const mutationKey = [...SET_ACCOUNT_ROTATION_MUTATION_KEY, hostUrl] as const;
 	return useMutation({
+		mutationKey,
 		mutationFn: (input: {
 			accountKey: string;
 			inRotation: boolean;
@@ -60,6 +64,13 @@ export function useSetAccountRotation(hostUrl: string | null) {
 			}
 		},
 		onSettled: () => {
+			// Every toggle reads the same quota query, and the host only holds a
+			// flag once its own call has landed. Refetching while another toggle is
+			// still in flight would answer with that account's old flag and flip the
+			// switch the user just moved back on until its call returns, so only the
+			// last toggle to settle — this one, when it is the only one left
+			// pending — refetches.
+			if (queryClient.isMutating({ mutationKey }) > 1) return;
 			void queryClient.invalidateQueries({ queryKey: quotaKey });
 		},
 	});
