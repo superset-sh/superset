@@ -5,7 +5,7 @@ import { View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { signIn, signUp } from "@/lib/auth/client";
-import { captureError, errorCopy } from "@/lib/errors";
+import { errorCopy } from "@/lib/errors";
 
 const DEV_EMAIL = "admin@local.test";
 const DEV_PASSWORD = "supersetdev";
@@ -46,7 +46,7 @@ export function DevSignInOptions() {
 				throw new Error(res.error.message);
 			}
 		} catch (err) {
-			captureError(err, "sign-in.dev");
+			console.error("[dev-sign-in] Error:", err);
 			setError(errorCopy(err));
 		} finally {
 			setIsLoading(false);

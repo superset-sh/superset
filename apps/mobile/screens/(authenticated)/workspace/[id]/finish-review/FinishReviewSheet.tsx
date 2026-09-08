@@ -1,13 +1,12 @@
-import { msg } from "@lingui/core/macro";
 import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import { ScrollView, TextInput, View } from "react-native";
+import { Alert, ScrollView, TextInput, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
-import { alertError } from "@/lib/errors";
+import { errorCopy } from "@/lib/errors";
 import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
@@ -137,12 +136,11 @@ export function FinishReviewSheet() {
 			router.back();
 			router.push(`/(authenticated)/workspace/${workspaceId}?tab=${target}`);
 		} catch (cause) {
-			alertError(
-				msg({
+			Alert.alert(
+				t({
 					message: "Could not send review",
 				}),
-				cause,
-				"review.send",
+				errorCopy(cause),
 			);
 		} finally {
 			setSending(false);

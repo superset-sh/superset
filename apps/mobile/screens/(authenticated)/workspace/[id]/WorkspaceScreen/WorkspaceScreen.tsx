@@ -30,7 +30,7 @@ import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { getHostWorkspacesQueryKey } from "@/hooks/useHostWorkspaces";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
-import { alertError } from "@/lib/errors";
+import { errorCopy } from "@/lib/errors";
 import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
@@ -421,17 +421,16 @@ export function WorkspaceScreen() {
 				// long-press only; the strip now offers it on every selected tab and
 				// in the press-and-hold menu, so silence is no longer affordable.
 				.catch((cause: unknown) =>
-					alertError(
-						msg({
+					Alert.alert(
+						t({
 							message: "Could not close the session",
 						}),
-						cause,
-						"terminal.kill",
+						errorCopy(cause),
 					),
 				)
 				.finally(invalidateTerminals);
 		},
-		[workspace, hostUrl, invalidateTerminals],
+		[workspace, hostUrl, invalidateTerminals, t],
 	);
 
 	// The composer reports the intent and stops there: it has no idea that

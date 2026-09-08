@@ -1,15 +1,14 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { msg } from "@lingui/core/macro";
 import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import { useState } from "react";
-import { Linking, View } from "react-native";
+import { Alert, Linking, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { useSignOut } from "@/hooks/useSignOut";
 import { useTheme } from "@/hooks/useTheme";
 import { useSession } from "@/lib/auth/client";
-import { alertError } from "@/lib/errors";
+import { errorCopy } from "@/lib/errors";
 import { apiClient } from "@/lib/trpc/client";
 import { useDaysUntilPurge } from "./hooks/useDaysUntilPurge";
 
@@ -30,12 +29,12 @@ export function AccountPendingDeletionScreen() {
 			await apiClient.user.reactivateAccount.mutate();
 			await refetch();
 		} catch (error) {
-			alertError(
-				msg({
+			console.error("[account/reactivate] Failed:", error);
+			Alert.alert(
+				t({
 					message: "Could not reactivate",
 				}),
-				error,
-				"account.reactivate",
+				errorCopy(error),
 			);
 		} finally {
 			setIsReactivating(false);

@@ -1,11 +1,13 @@
 import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
+import { Alert } from "react-native";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import type { CloudWorkspaceRow } from "@/hooks/useCloudWorkspaces";
 import { getCloudWorkspacesQueryKey } from "@/hooks/useCloudWorkspaces";
 import { useSession } from "@/lib/auth/client";
-import { alertError } from "@/lib/errors";
+import { errorCopy } from "@/lib/errors";
 import { posthog } from "@/lib/posthog";
 import { apiClient } from "@/lib/trpc/client";
 
@@ -102,12 +104,13 @@ export function useCreateCloudWorkspace() {
 				source: "mobile_composer",
 				base_branch: branch,
 			});
-			alertError(
-				msg({
-					message: "Could not create cloud workspace",
-				}),
-				error,
-				"cloud-workspace.create",
+			Alert.alert(
+				i18n._(
+					msg({
+						message: "Could not create cloud workspace",
+					}),
+				),
+				errorCopy(error),
 			);
 		},
 	});

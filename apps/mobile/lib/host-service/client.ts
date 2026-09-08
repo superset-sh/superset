@@ -2,16 +2,11 @@
 // moves to a neutral package — see packages/host-service/docs/interim-router-types.md
 import type { AppRouter } from "@superset/host-service/router";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
-import {
-	createTRPCClient,
-	httpLink,
-	retryLink,
-	type TRPCClient,
-} from "@trpc/client";
+import { createTRPCClient, httpLink, type TRPCClient } from "@trpc/client";
 import type { inferRouterOutputs } from "@trpc/server";
 import superjson from "superjson";
 import { getJwt } from "../auth/client";
-import { isTransportError } from "../errors";
+import { transportRetryLink } from "../errors";
 import { getRelayUrl } from "../host/client";
 import { getSandboxAccess, sandboxPreviewToken } from "../sandbox-access";
 
@@ -54,20 +49,7 @@ export function getHostServiceClientByUrl(hostUrl: string): HostServiceClient {
 
 	const client = createTRPCClient<AppRouter>({
 		links: [
-			// iOS drops pooled HTTPS connections that have gone idle, and
-			// Apple's guidance for the -1005 that produces is to retry rather
-			// than surface it (QA1941). A phone in a pocket hits this on the
-			// first tap after every idle stretch.
-			//
-			// Queries only. A mutation is not safe to replay here: when the
-			// caller does not supply a branch, `workspaces.create` picks a
-			// fresh friendly-random name per call and dedupes on the branch,
-			// not on the client-minted id — so a replayed create would land a
-			// second workspace instead of resolving to the first.
-			retryLink({
-				retry: ({ op, error, attempts }) =>
-					attempts === 1 && op.type === "query" && isTransportError(error),
-			}),
+			transportRetryLink(),
 			httpLink({
 				url: `${hostUrl}/trpc`,
 				transformer: superjson,

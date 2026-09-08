@@ -1,9 +1,11 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import { useMutation } from "@tanstack/react-query";
 import { useRef } from "react";
+import { Alert } from "react-native";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
-import { alertError } from "@/lib/errors";
+import { errorCopy } from "@/lib/errors";
 import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
@@ -71,7 +73,7 @@ export function usePullRequestActions({
 		},
 		onSuccess: onDone,
 		onError: (error: Error, action) => {
-			alertError(REFUSED_TITLE[action], error, `pull-request.${action}`);
+			Alert.alert(i18n._(REFUSED_TITLE[action]), errorCopy(error));
 		},
 	});
 

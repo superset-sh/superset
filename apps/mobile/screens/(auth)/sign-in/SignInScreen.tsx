@@ -7,7 +7,7 @@ import { Image, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { signIn } from "@/lib/auth/client";
 import { env } from "@/lib/env";
-import { captureError, errorCopy } from "@/lib/errors";
+import { errorCopy } from "@/lib/errors";
 import { openUrl } from "@/lib/open-url";
 
 import { DevSignInOptions } from "./components/DevSignInOptions";
@@ -29,7 +29,7 @@ export function SignInScreen() {
 				callbackURL: "/",
 			});
 		} catch (err) {
-			captureError(err, "sign-in.social");
+			console.error("[sign-in] Error:", err);
 			setError(errorCopy(err));
 		}
 	};
@@ -78,7 +78,7 @@ export function SignInScreen() {
 			) {
 				return;
 			}
-			captureError(err, "sign-in.apple");
+			console.error("[sign-in] Apple error:", err);
 			setError(errorCopy(err));
 		}
 	};

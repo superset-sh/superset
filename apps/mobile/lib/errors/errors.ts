@@ -1,11 +1,9 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
-import * as Sentry from "@sentry/react-native";
 import { i18n } from "@superset/i18n";
-import { errorMessage, rawErrorMessage } from "@superset/i18n/errors";
+import { errorMessage } from "@superset/i18n/errors";
 import { TRPCClientError } from "@trpc/client";
 import * as Network from "expo-network";
-import { Alert } from "react-native";
 import { TransportError } from "./transport-fetch";
 
 /**
@@ -14,26 +12,27 @@ import { TransportError } from "./transport-fetch";
  */
 export type TransportFailureKind = "offline" | "unreachable";
 
-/**
- * Latest reachability, kept current by a listener so the classifier can stay
- * synchronous. Started at import like the PostHog client's super properties:
- * the first failure can arrive before any provider effect has run.
- *
- * `isInternetReachable` is tri-state — undefined means "not determined yet",
- * and only an explicit false is offline.
- */
 let deviceOffline = false;
-Network.addNetworkStateListener((state) => {
-	deviceOffline = state.isInternetReachable === false;
-});
-void Network.getNetworkStateAsync()
-	.then((state) => {
+
+/**
+ * Start tracking reachability, so the classifier can answer synchronously at
+ * the moment an alert is built. Call once at startup, beside `initI18n` — this
+ * is a refinement, not a gate: without it every transport failure simply reads
+ * as "could not reach the server".
+ *
+ * `isInternetReachable` is tri-state; undefined means "not determined yet", so
+ * only an explicit false counts as offline.
+ */
+export function watchNetworkState(): void {
+	Network.addNetworkStateListener((state) => {
 		deviceOffline = state.isInternetReachable === false;
-	})
-	.catch(() => {
-		// Reachability is a refinement, not a gate: without it every transport
-		// failure simply reads as "could not reach the server".
 	});
+	void Network.getNetworkStateAsync()
+		.then((state) => {
+			deviceOffline = state.isInternetReachable === false;
+		})
+		.catch(() => {});
+}
 
 /**
  * The transport failure behind an error, or null when the server did answer
@@ -99,41 +98,4 @@ export function errorCopy(error: unknown): string {
 	if (kind) return i18n._(TRANSPORT_COPY[kind]);
 	if (isExpoNativeError(error)) return i18n._(GENERIC);
 	return errorMessage(error);
-}
-
-/**
- * Route a caught error to diagnostics. Always the raw error, never
- * `errorCopy()` — logs and Sentry grouping need stable English.
- *
- * A transport failure is a breadcrumb rather than an event: a phone losing its
- * connection is not a bug, and the volume is exactly what exhausted the Sentry
- * quota in August. It still rides along on whatever is captured next.
- */
-export function captureError(error: unknown, scope: string): void {
-	console.error(`[${scope}]`, error);
-	const kind = transportFailureKind(error);
-	if (kind) {
-		Sentry.addBreadcrumb({
-			category: "transport",
-			level: "warning",
-			message: `${scope}: ${kind}`,
-			data: { raw: rawErrorMessage(error) },
-		});
-		return;
-	}
-	Sentry.captureException(error, { tags: { scope } });
-}
-
-/**
- * The one way to tell a user an action failed: a translated title, a body that
- * is safe to show, and the real error sent to diagnostics. `scope` names the
- * action for Sentry — `"workspace.create"`, `"terminal.send"`.
- */
-export function alertError(
-	title: MessageDescriptor,
-	error: unknown,
-	scope: string,
-): void {
-	captureError(error, scope);
-	Alert.alert(i18n._(title), errorCopy(error));
 }

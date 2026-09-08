@@ -3,7 +3,7 @@ import { prompt } from "@superset/alert-prompt";
 import { useState } from "react";
 import { Text } from "@/components/ui/text";
 import { signIn } from "@/lib/auth/client";
-import { captureError, errorCopy } from "@/lib/errors";
+import { errorCopy } from "@/lib/errors";
 
 /** Quiet credential sign-in for accounts with a password set (App Store
  * review demo account; sign-up stays disabled in production). */
@@ -43,7 +43,7 @@ export function EmailSignInLink({
 			const res = await signIn.email({ email, password });
 			if (res.error) throw new Error(res.error.message);
 		} catch (err) {
-			captureError(err, "sign-in.email");
+			console.error("[sign-in] Email error:", err);
 			onError(errorCopy(err));
 		} finally {
 			setIsLoading(false);

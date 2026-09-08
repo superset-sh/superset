@@ -1,15 +1,14 @@
-import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { SquareTerminal } from "lucide-react-native";
 import { useState } from "react";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
-import { alertError } from "@/lib/errors";
+import { errorCopy } from "@/lib/errors";
 import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
@@ -123,12 +122,11 @@ export function NewSessionSheet() {
 			);
 		} catch (error) {
 			setLaunchingKey(null);
-			alertError(
-				msg({
+			Alert.alert(
+				t({
 					message: "Could not start session",
 				}),
-				error,
-				"session.start",
+				errorCopy(error),
 			);
 		}
 	};
