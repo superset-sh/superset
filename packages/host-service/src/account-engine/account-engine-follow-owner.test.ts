@@ -20,6 +20,8 @@ import type { MovableSession } from "./session-mover.ts";
 
 const T0 = 1_800_000_000_000;
 const ACTIVE_DIR = "/superset-home/accounts/claude-active";
+/** The machine's own Codex home, which `selection: null` names. */
+const AMBIENT_CODEX_HOME = "/home/tester/.codex";
 /** Nothing in these tests swaps a login: a loser never touches credentials. */
 const NO_SWAP: ClaudeSwapResult = {
 	ok: false,
@@ -136,16 +138,30 @@ function loser(input: {
 describe("a lock loser's first reconcile", () => {
 	let home: string;
 	let previousHome: string | undefined;
+	let previousCodexHome: string | undefined;
+	let previousInjectedCodexHome: string | undefined;
 
 	beforeEach(() => {
 		previousHome = process.env.SUPERSET_HOME_DIR;
+		previousCodexHome = process.env.CODEX_HOME;
+		previousInjectedCodexHome = process.env.SUPERSET_DEFAULT_CODEX_HOME;
 		home = mkdtempSync(join(tmpdir(), "superset-account-engine-follow-"));
 		process.env.SUPERSET_HOME_DIR = home;
+		// The ambient home, so the default-home case does not depend on the
+		// machine running the test. Not Superset's own injection, hence the
+		// twin variable being cleared.
+		process.env.CODEX_HOME = AMBIENT_CODEX_HOME;
+		delete process.env.SUPERSET_DEFAULT_CODEX_HOME;
 	});
 
 	afterEach(() => {
 		if (previousHome === undefined) delete process.env.SUPERSET_HOME_DIR;
 		else process.env.SUPERSET_HOME_DIR = previousHome;
+		if (previousCodexHome === undefined) delete process.env.CODEX_HOME;
+		else process.env.CODEX_HOME = previousCodexHome;
+		if (previousInjectedCodexHome === undefined)
+			delete process.env.SUPERSET_DEFAULT_CODEX_HOME;
+		else process.env.SUPERSET_DEFAULT_CODEX_HOME = previousInjectedCodexHome;
 		rmSync(home, { recursive: true, force: true });
 	});
 
@@ -177,6 +193,31 @@ describe("a lock loser's first reconcile", () => {
 		await engine.tick();
 
 		expect(moved.flat().map((row) => row.terminalId)).toEqual(["term-1"]);
+	});
+
+	it("leaves Codex sessions alone when the owner's account is the default home", async () => {
+		// `selection: null` is how the default Codex home is recorded, not an
+		// absence: the owner named a real ChatGPT account. Every managed row
+		// carries the resolved home as its `configDir` — never null, because
+		// the launch injects CODEX_HOME — so comparing against the raw null
+		// would read every pane as stale and restart it onto the home it is
+		// already on.
+		const { engine, moved } = loser({
+			sessions: [
+				session({
+					agent: "codex",
+					terminalId: "term-3",
+					configDir: AMBIENT_CODEX_HOME,
+				}),
+			],
+			pointer: { claudeConfigDir: "/profiles/a", codexHome: null },
+			active: { accountId: "acct-chatgpt", selection: null },
+			agent: "codex",
+		});
+
+		await engine.tick();
+
+		expect(moved).toEqual([]);
 	});
 
 	it("still moves a Codex session off the wrong home", async () => {

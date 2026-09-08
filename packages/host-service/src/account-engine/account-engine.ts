@@ -29,6 +29,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { resolve as resolvePath } from "node:path";
+import { resolveAmbientCodexHome } from "@superset/agent-setup";
 import type { HostDb } from "../db/index.ts";
 import type {
 	AccountEngineStatePayload,
@@ -1085,9 +1086,16 @@ export class AccountEngine {
 			return;
 		}
 		// Claude's account is the login inside the shared active dir; Codex's
-		// account *is* its config dir.
-		const active =
-			agent === "claude" ? this.resolveActiveDir() : state.activeSelection;
+		// account *is* its config dir. A Codex selection of `null` is the
+		// default home, not "no dir" — and a managed row's `configDir` is never
+		// null, because every launch has `CODEX_HOME` injected — so it has to
+		// be resolved to the same real path the row carries or every row on the
+		// default home reads as stale and gets restarted onto the home it is
+		// already running.
+		const active: string | null =
+			agent === "claude"
+				? this.resolveActiveDir()
+				: (state.activeSelection ?? resolveAmbientCodexHome());
 		if (agent === "claude") {
 			// Before the owner's first Claude switch the pointer still names a
 			// profile dir, and every unpinned row resolves to it — so they all
@@ -1105,7 +1113,12 @@ export class AccountEngine {
 		}
 		const stale = this.hostDeps
 			.listSessions(agent)
-			.filter((row) => row.configDir !== active);
+			.filter(
+				(row) =>
+					row.configDir === null ||
+					active === null ||
+					!samePath(row.configDir, active),
+			);
 		if (stale.length === 0) return;
 		await this.mover.moveAtIdle(agent, stale);
 	}
