@@ -1,5 +1,5 @@
 import { Database } from "bun:sqlite";
-import { describe, expect, it } from "bun:test";
+import { beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { resolve } from "node:path";
 import type { AgentDefinitionId } from "@superset/shared/agent-catalog";
 import { eq } from "drizzle-orm";
@@ -12,24 +12,33 @@ import {
 	terminalAgentBindings,
 	terminalSessions,
 } from "../../../db/schema";
+import * as terminalEnv from "../../../terminal/env";
+import { initTerminalBaseEnv } from "../../../terminal/env";
 import {
 	SqliteTerminalAgentBindingPersistence,
 	type TerminalAgentId,
 	TerminalAgentStore,
 } from "../../../terminal-agents";
 import { findResumeCandidateBinding } from "../../../terminal-agents/persistence";
+import type { HostServiceContext } from "../../../types";
 import type { AgentRunResult } from "../agents/agents";
+import * as accountDir from "../usage/agent-account-dir";
 import {
 	killAndResumeTerminalAgent,
 	listAccountRestartCandidates,
 	type ResumeSessionDeps,
 	registerPendingNudge,
 	resumeTerminalAgentSession,
+	terminalAgentsRouter,
 } from "./terminal-agents";
 
 const MIGRATIONS_FOLDER = resolve(import.meta.dir, "../../../../drizzle");
 
 const CLAUDE_CONFIG_ID = "00000000-0000-0000-0000-000000000001";
+
+beforeEach(() => {
+	initTerminalBaseEnv({});
+});
 
 function createTestDb(): HostDb {
 	const sqlite = new Database(":memory:");
@@ -455,6 +464,102 @@ function createStore(db: HostDb): TerminalAgentStore {
 }
 
 describe("listAccountRestartCandidates", () => {
+	it("defers synchronous engine classification until the shell snapshot is ready", () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedLiveBinding(db);
+		const store = createStore(db);
+		terminalEnv.resetTerminalBaseEnvForTests();
+		try {
+			expect(listAccountRestartCandidates(db, store, "claude")).toEqual([]);
+			initTerminalBaseEnv({});
+			expect(listAccountRestartCandidates(db, store, "claude")).toHaveLength(1);
+		} finally {
+			initTerminalBaseEnv({});
+		}
+	});
+
+	it("waits for the cold-start snapshot in the request path even with no sessions", async () => {
+		const db = createTestDb();
+		terminalEnv.resetTerminalBaseEnvForTests();
+		let release!: () => void;
+		let started!: () => void;
+		const ready = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		const waiting = new Promise<void>((resolve) => {
+			started = resolve;
+		});
+		const wait = spyOn(
+			terminalEnv,
+			"waitForTerminalBaseEnv",
+		).mockImplementation(async () => {
+			started();
+			await ready;
+			initTerminalBaseEnv({});
+		});
+		const caller = terminalAgentsRouter.createCaller({
+			db,
+			terminalAgentStore: createStore(db),
+			isAuthenticated: true,
+		} as HostServiceContext);
+		let completed = false;
+		const request = caller
+			.accountRestartCandidates({ provider: "claude" })
+			.then((result) => {
+				completed = true;
+				return result;
+			});
+		try {
+			await Promise.race([waiting, request]);
+			expect(wait).toHaveBeenCalledTimes(1);
+			expect(completed).toBe(false);
+			release();
+			expect(await request).toEqual([]);
+		} finally {
+			release();
+			await request;
+			wait.mockRestore();
+			initTerminalBaseEnv({});
+		}
+	});
+
+	it("passes the shell snapshot to classification and preserves its unmanaged result", () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedLiveBinding(db, { terminalId: "shell-pinned" });
+		const shellDir = "/shell-exported-claude";
+		initTerminalBaseEnv({ CLAUDE_CONFIG_DIR: shellDir });
+		const classify = spyOn(
+			accountDir,
+			"resolveAgentAccountDir",
+		).mockReturnValue({
+			configDir: shellDir,
+			managed: false,
+		});
+		try {
+			const candidates = listAccountRestartCandidates(
+				db,
+				createStore(db),
+				"claude",
+			);
+			expect(classify).toHaveBeenCalledWith(
+				expect.anything(),
+				expect.objectContaining({
+					shellEnv: { CLAUDE_CONFIG_DIR: shellDir },
+				}),
+			);
+			expect(candidates).toHaveLength(1);
+			expect(candidates[0]).toMatchObject({
+				configDir: shellDir,
+				managed: false,
+			});
+		} finally {
+			classify.mockRestore();
+			initTerminalBaseEnv({});
+		}
+	});
+
 	it("lists live provider sessions with a resumable conversation, nothing else", () => {
 		const db = createTestDb();
 		seedAgentConfig(db);

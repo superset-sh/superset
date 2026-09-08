@@ -7,6 +7,10 @@ import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import type { HostDb } from "../../../db";
 import { terminalSessions, workspaces } from "../../../db/schema";
+import {
+	getTerminalBaseEnv,
+	waitForTerminalBaseEnv,
+} from "../../../terminal/env";
 import { hasHarnessSession } from "../../../terminal/harness-transcript";
 import {
 	createTerminalSessionInternal,
@@ -466,6 +470,14 @@ export function listAccountRestartCandidates(
 	// The host default depends only on `db` and `provider`, and resolving it
 	// costs a DB query plus the pointer reads: once, not once per binding.
 	const defaultEnv = resolveDefaultAccountEnv(db, provider);
+	let shellEnv: Record<string, string>;
+	try {
+		shellEnv = getTerminalBaseEnv();
+	} catch {
+		// The engine reads this synchronously; until the startup snapshot is
+		// ready, no session can safely be classified as movable.
+		return [];
+	}
 	for (const listed of store.list()) {
 		const binding = withEphemeralFields(store, listed);
 		if (!binding.agentSessionId) continue;
@@ -477,6 +489,7 @@ export function listAccountRestartCandidates(
 		if (config.resumeArgs.length === 0) continue;
 		const account = resolveAgentAccountDir(db, {
 			family: provider,
+			shellEnv,
 			env: config.env,
 			defaultEnv,
 		});
@@ -546,6 +559,7 @@ export async function restartAccountSessions(
 	deps: RestartAccountSessionsDeps,
 	provider: "claude" | "codex",
 ): Promise<{ restartedTerminalIds: string[] }> {
+	await waitForTerminalBaseEnv();
 	const candidates = listAccountRestartCandidates(
 		deps.db,
 		deps.terminalAgentStore,
@@ -681,8 +695,9 @@ export const terminalAgentsRouter = router({
 	 */
 	accountRestartCandidates: protectedProcedure
 		.input(z.object({ provider: z.enum(["claude", "codex"]) }))
-		.query(({ ctx, input }) =>
-			listAccountRestartCandidates(
+		.query(async ({ ctx, input }) => {
+			await waitForTerminalBaseEnv();
+			return listAccountRestartCandidates(
 				ctx.db,
 				ctx.terminalAgentStore,
 				input.provider,
@@ -691,8 +706,8 @@ export const terminalAgentsRouter = router({
 				workspaceId: binding.workspaceId,
 				agentLabel,
 				managed,
-			})),
-		),
+			}));
+		}),
 
 	/** See {@link restartAccountSessions}. */
 	restartAccountSessions: protectedProcedure
