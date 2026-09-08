@@ -857,7 +857,7 @@ export class AccountEngine {
 		// settings change — go through the same gate. Auto-switch is off by
 		// default, so releasing it here would leave every fresh install a
 		// lock loser that refuses its own user.
-		if (!this.ensureOwnership(now)) {
+		if (!this.ensureOwnership(this.now())) {
 			// Every agent, not just the enabled ones: following is about moving
 			// this host's own sessions onto the login the owner chose, which is
 			// unrelated to whether this host would have chosen it. Auto-switch
@@ -2235,7 +2235,7 @@ export class AccountEngine {
 		if (!this.platformSupported()) return;
 		// The tick hands its own state down; a standalone pass off the session
 		// subscription has to read it (and claim the lock) for itself.
-		const pass = loaded ?? this.loadLimitHintPass(now);
+		const pass = loaded ?? this.loadLimitHintPass();
 		if (!pass) return;
 		const { settings, agents, runtime, rotation } = pass;
 		for (const agent of agents) {
@@ -2247,11 +2247,11 @@ export class AccountEngine {
 		}
 	}
 
-	private loadLimitHintPass(now: number): LimitHintPass | null {
+	private loadLimitHintPass(): LimitHintPass | null {
 		const settings = this.state.readSettings();
 		const agents = AGENTS.filter((agent) => settings[agent].enabled);
 		if (agents.length === 0) return null;
-		if (!this.ensureOwnership(now)) return null;
+		if (!this.ensureOwnership(this.now())) return null;
 		// As in `runManualSwitch`: this pass reads its own runtime, so only
 		// what it records below is its to re-apply.
 		this.recordedBindings.clear();

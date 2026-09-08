@@ -101,6 +101,7 @@ function switchDue(): QuotaEntry[] {
 /** Loses the lock on the single claim following `loseNextClaim = true`. */
 class FlakyLockState extends EngineState {
 	loseNextClaim = false;
+	heartbeats: number[] = [];
 
 	override claimLock(
 		nonce: string,
@@ -111,7 +112,14 @@ class FlakyLockState extends EngineState {
 			this.loseNextClaim = false;
 			return false;
 		}
-		return super.claimLock(nonce, now, staleAfterMs);
+		const owned = super.claimLock(nonce, now, staleAfterMs);
+		if (owned) {
+			this.heartbeats.push(
+				JSON.parse(readFileSync(join(this.dir, "engine.lock"), "utf8"))
+					.heartbeatAt,
+			);
+		}
+		return owned;
 	}
 }
 
@@ -150,6 +158,7 @@ function harness(options: {
 	onRead?: () => Promise<void>;
 	onEnsureActiveDir?: (state: FlakyLockState) => void;
 	onSwap?: (state: FlakyLockState, call: number) => void;
+	now?: () => number;
 }): Harness {
 	const previousHome = process.env.SUPERSET_HOME_DIR;
 	const home = mkdtempSync(join(tmpdir(), "superset-account-engine-evaluate-"));
@@ -215,7 +224,7 @@ function harness(options: {
 			...options.mover,
 		},
 		broadcast: { switched: () => {}, engineState: () => {} },
-		now: () => T0,
+		now: options.now ?? (() => T0),
 		setIntervalFn: (() =>
 			({ unref() {} }) as unknown as ReturnType<
 				typeof setInterval
@@ -303,6 +312,42 @@ function harness(options: {
 		},
 	};
 }
+
+describe("AccountEngine: queued lease renewal", () => {
+	for (const operation of ["tick", "hint"] as const) {
+		it(`renews the lease at execution time after a queued ${operation}`, async () => {
+			let now = T0;
+			const h = harness({ entries: [], now: () => now });
+			let release = () => {};
+			const gate = new Promise<void>((resolve) => {
+				release = resolve;
+			});
+			const blocking = h.engine.runExclusive(() => gate);
+			const queued =
+				operation === "tick" ? h.engine.tick() : h.engine.handleLimitHints();
+			try {
+				now += 100_000;
+				// A synchronous settings change renews the lease while the older
+				// operation is still queued. Its later claim must not rewind it.
+				expect(h.engine.setSettings("claude", { enabled: true }).ok).toBe(true);
+				expect(h.state.heartbeats.at(-1)).toBe(now);
+				h.state.heartbeats.length = 0;
+				release();
+				await blocking;
+				await queued;
+				expect(h.state.heartbeats.length).toBeGreaterThan(0);
+				expect(h.state.heartbeats.every((heartbeat) => heartbeat === now)).toBe(
+					true,
+				);
+			} finally {
+				release();
+				await blocking;
+				await queued;
+				h.cleanup();
+			}
+		});
+	}
+});
 
 describe("AccountEngine: a switch that failed", () => {
 	it("starts no credential operation when provisioning loses ownership", async () => {
