@@ -164,9 +164,7 @@ describe("runMigrations", () => {
 			`${ADD_CREATED_BY_SUPERSET.sql}\n-- edited after shipping\n`,
 		);
 
-		expect(() =>
-			runMigrations(drizzle(sqlite), folder),
-		).not.toThrow();
+		expect(() => runMigrations(drizzle(sqlite), folder)).not.toThrow();
 	});
 
 	test("rolls the whole batch back when one migration fails", () => {
