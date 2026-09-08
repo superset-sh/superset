@@ -16,7 +16,18 @@ import { env } from "@/env";
  * and hands the fan-out to QStash; `jobs/process-delivery` does the rest with
  * retries and no clock over its head.
  */
-const qstash = new Client({ token: env.QSTASH_TOKEN, baseUrl: env.QSTASH_URL });
+const qstash = new Client({
+	token: env.QSTASH_TOKEN,
+	baseUrl: env.QSTASH_URL,
+	// The publish is the one part of accepting a delivery that leaves the
+	// building, and it runs against Linear's five-second clock. The client's
+	// default is five retries backing off by `Math.exp(n) * 50` ms — about 4.3s
+	// of sleeping before it ever throws, which would spend the whole budget on
+	// the path whose only job is to answer quickly. Two attempts: if QStash is
+	// not there, a fast 500 is worth far more than a slow one, because the row
+	// is already durable and Linear's redelivery re-queues it.
+	retry: { retries: 1, backoff: () => 150 },
+});
 
 export const PROCESS_PATH =
 	"/api/integrations/linear/jobs/process-delivery" as const;

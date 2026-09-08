@@ -6,6 +6,7 @@ import { eq, sql } from "drizzle-orm";
 import { verifyQstashRequest } from "@/lib/verifyQstash";
 import { processDelivery } from "../../webhook/processDelivery";
 import { linearDeliveryWorkSchema, PROCESS_PATH } from "../../webhook/queue";
+import { partitionDay } from "./partitionDay";
 
 export const dynamic = "force-dynamic";
 
@@ -105,23 +106,27 @@ interface AcceptedDelivery {
  * The delivery's current state and the body recorded with it, in one round
  * trip.
  *
- * `received_at` is webhook_payloads' partition key, so passing it as a
- * constant makes the body a primary-key lookup inside a single day's
- * partition. It is cast through timestamptz rather than bound as a date: the
- * column is a timestamp without a zone holding UTC wall time, and this is what
- * makes the match independent of whatever timezone the driver would otherwise
- * serialize a Date in.
+ * Two conditions on `received_at`, and they do different jobs. `p.received_at
+ * = e.received_at` is what makes the match exact, at the full microsecond
+ * precision both columns hold. The day bounds are constants, which is what
+ * lets the planner prune `webhook_payloads` to the single partition the body
+ * is in — the partitions run midnight to midnight, so the bounds land on
+ * exactly one. Matching the queued timestamp directly would find nothing:
+ * see `partitionDay`.
  */
 async function loadAcceptedDelivery(
 	webhookEventId: string,
 	receivedAt: Date,
 ): Promise<AcceptedDelivery | null> {
+	const day = partitionDay(receivedAt);
 	const result = await db.execute<{ status: string; payload: unknown }>(sql`
 		SELECT e.status, p.payload
 		FROM ingest.webhook_events e
 		LEFT JOIN ingest.webhook_payloads p
 			ON p.webhook_event_id = e.id
-			AND p.received_at = ${receivedAt.toISOString()}::timestamptz AT TIME ZONE 'UTC'
+			AND p.received_at = e.received_at
+			AND p.received_at >= ${day}::timestamp
+			AND p.received_at < ${day}::timestamp + interval '1 day'
 		WHERE e.id = ${webhookEventId}
 	`);
 
