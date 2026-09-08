@@ -137,14 +137,12 @@ function creditsLine(account: UsageAccount): string | null {
 export function sessionMoveNote(
 	agent: ManagedAgent,
 	/**
-	 * KTD13. Absent means the host has not said otherwise, so the POSIX
-	 * promise stands: only a host that answered `platformSupported: false`
-	 * loses the live swap, and a read that has not landed must not send a
-	 * macOS user off to relaunch.
+	 * Absent means the host has not answered yet. Once available, its
+	 * capability includes both platform and engine state-directory safety.
 	 */
 	movesRunningSessions = true,
 ): string {
-	// win32: `usage.setDefaultAccount` writes only the default-account
+	// Pointer-only activation writes only the default-account
 	// pointer, which agents read at launch, so the sessions already running
 	// keep the previous login until they are restarted by hand.
 	if (!movesRunningSessions) {
@@ -587,13 +585,9 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 		ManagedAgent,
 		AccountEngineAgentSettings
 	> | null = engineQuery.data?.settings ?? null;
-	// KTD13: on win32 the host writes only the default-account pointer, which
-	// agents read at launch, and its own comment says "Only the swap of
-	// already-running sessions is lost" — yet the mutation still resolves
-	// success, so every line promising the live swap has to know. `!== false`
-	// and not `?? false`: a read that has not landed is not a Windows host,
-	// and telling everyone else to relaunch would be its own falsehood.
-	const movesRunningSessions = engineQuery.data?.platformSupported !== false;
+	// Windows and an unusable engine state directory allow pointer-only
+	// activation. Keep the live-session wording until the host answers.
+	const movesRunningSessions = engineQuery.data?.movesRunningSessions !== false;
 	// The three states in which `AutoSwitchSettings` replaces its controls with
 	// an explanation of why nothing can switch at all. A note about this
 	// agent's accounts underneath one of those would be noise.

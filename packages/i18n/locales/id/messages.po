@@ -15451,6 +15451,9 @@ msgstr "Pengenal ramah URL, unik di dalam organisasi Anda."
 msgid "Usage"
 msgstr "Penggunaan"
 
+msgid "Usage limit reached"
+msgstr "Batas penggunaan tercapai"
+
 msgid "Usage sections"
 msgstr "Bagian penggunaan"
 

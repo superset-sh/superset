@@ -15451,6 +15451,9 @@ msgstr "Identifikátor vhodný do URL, jedinečný v rámci vaší organizace."
 msgid "Usage"
 msgstr "Využití"
 
+msgid "Usage limit reached"
+msgstr "Byl dosažen limit využití"
+
 msgid "Usage sections"
 msgstr "Sekce využití"
 

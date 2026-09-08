@@ -15451,6 +15451,9 @@ msgstr "Kuruluşunuz içinde benzersiz, URL dostu tanımlayıcı."
 msgid "Usage"
 msgstr "Kullanım"
 
+msgid "Usage limit reached"
+msgstr "Kullanım limitine ulaşıldı"
+
 msgid "Usage sections"
 msgstr "Kullanım bölümleri"
 

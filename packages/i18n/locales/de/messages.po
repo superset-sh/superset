@@ -15451,6 +15451,9 @@ msgstr "URL-tauglicher Bezeichner, eindeutig innerhalb deiner Organisation."
 msgid "Usage"
 msgstr "Nutzung"
 
+msgid "Usage limit reached"
+msgstr "Nutzungslimit erreicht"
+
 msgid "Usage sections"
 msgstr "Nutzungsbereiche"
 

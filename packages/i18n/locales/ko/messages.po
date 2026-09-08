@@ -15451,6 +15451,9 @@ msgstr "URL에 쓰기 좋은 식별자로, 조직 안에서 고유해야 합니�
 msgid "Usage"
 msgstr "사용량"
 
+msgid "Usage limit reached"
+msgstr "사용 한도에 도달했습니다"
+
 msgid "Usage sections"
 msgstr "사용량 섹션"
 

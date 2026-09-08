@@ -221,6 +221,7 @@ describe("usage.engine.setSettings", () => {
 		});
 		expect(result.engineAvailable).toBe(true);
 		expect(result.platformSupported).toBe(true);
+		expect(result.movesRunningSessions).toBe(true);
 		expect(result.lockOwner).toBe(true);
 		expect(result.status.claude.enabled).toBe(true);
 		expect(fake.readSettings().codex.enabled).toBe(false);
@@ -371,6 +372,20 @@ describe("a lock loser", () => {
  * that the user is told which of the two hosts they are on.
  */
 describe("an unusable engine state dir", () => {
+	it("reports pointer-only activation without contacting an owner that cannot start", async () => {
+		chmodSync(stateDir(), 0o777);
+		const fake = fakeEngine({ ownsLock: false });
+		const status = mock(() => {
+			throw new Error("owner unavailable");
+		});
+		fake.engine.status = status;
+		const caller = usageRouter.createCaller(context(fake.engine));
+		const view = await caller.engine.getSettings();
+		expect(view.platformSupported).toBe(process.platform !== "win32");
+		expect(view.engineAvailable).toBe(false);
+		expect(view.movesRunningSessions).toBe(false);
+		expect(status).not.toHaveBeenCalled();
+	});
 	it("refuses state writes with engine-state-unusable, not lock-loser", async () => {
 		chmodSync(stateDir(), 0o777);
 		const fake = fakeEngine({ ownsLock: false });
@@ -487,6 +502,7 @@ describe("a sandbox host", () => {
 		const view = await caller.engine.getSettings();
 
 		expect(view.engineAvailable).toBe(false);
+		expect(view.movesRunningSessions).toBe(false);
 		expect(view.settings).toEqual(defaultEngineSettings());
 		expect(view.lockOwner).toBe(false);
 		expect(view.platformSupported).toBe(process.platform !== "win32");

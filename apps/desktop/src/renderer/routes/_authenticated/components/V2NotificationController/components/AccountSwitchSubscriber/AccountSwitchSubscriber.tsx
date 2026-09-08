@@ -239,7 +239,9 @@ function getSwitchReason(payload: AccountSwitchedPayload): string {
 		case "strategy":
 			return i18n._(msg({ message: "More headroom elsewhere" }));
 		case "fallback":
-			return i18n._(msg({ message: "Fallback restart after a usage limit" }));
+			return payload.fallbackRestart
+				? i18n._(msg({ message: "Fallback restart after a usage limit" }))
+				: i18n._(msg({ message: "Usage limit reached" }));
 		case "external":
 			return i18n._(msg({ message: "Login changed outside Superset" }));
 		default:

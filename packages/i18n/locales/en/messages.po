@@ -15451,6 +15451,9 @@ msgstr "URL-friendly identifier, unique within your organization."
 msgid "Usage"
 msgstr "Usage"
 
+msgid "Usage limit reached"
+msgstr "Usage limit reached"
+
 msgid "Usage sections"
 msgstr "Usage sections"
 

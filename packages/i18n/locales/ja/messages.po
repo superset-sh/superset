@@ -15451,6 +15451,9 @@ msgstr "組織内で一意のURLフレンドリーな識別子。"
 msgid "Usage"
 msgstr "使用量"
 
+msgid "Usage limit reached"
+msgstr "使用上限に達しました"
+
 msgid "Usage sections"
 msgstr "使用量セクション"
 

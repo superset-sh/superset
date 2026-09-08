@@ -234,6 +234,28 @@ function engineState(
 }
 
 describe("switch notifications", () => {
+	test.each([
+		false,
+		true,
+	])("limit switch reports restart only when confirmed (%s)", async (fallbackRestart) => {
+		await mountSubscriber(`http://host-limit-restart-${fallbackRestart}`);
+		await emit(
+			"account:switched",
+			"claude",
+			switched({
+				at: fallbackRestart ? 91002 : 91001,
+				reasonKind: "fallback",
+				fallbackRestart,
+			}),
+		);
+		expect(shown).toHaveLength(1);
+		expect(shown[0]?.body).toBe(
+			fallbackRestart
+				? "Fallback restart after a usage limit"
+				: "Usage limit reached",
+		);
+	});
+
 	test("an automatic switch notifies and refreshes the usage queries", async () => {
 		const { invalidatedKeys } = await mountSubscriber("http://host-switch");
 

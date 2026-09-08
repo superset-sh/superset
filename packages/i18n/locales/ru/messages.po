@@ -15451,6 +15451,9 @@ msgstr "Идентификатор для URL, уникальный внутри
 msgid "Usage"
 msgstr "Использование"
 
+msgid "Usage limit reached"
+msgstr "Достигнут лимит использования"
+
 msgid "Usage sections"
 msgstr "Разделы использования"
 

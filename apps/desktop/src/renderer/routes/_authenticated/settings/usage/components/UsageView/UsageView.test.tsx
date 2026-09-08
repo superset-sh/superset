@@ -635,7 +635,7 @@ describe("UsageView switch history", () => {
 describe("UsageView on a host that cannot swap live sessions", () => {
 	// Only the fields the view reads; the panel below it is not what this is
 	// about.
-	function renderOnWindowsHost() {
+	function renderOnWindowsHost(platformSupported = false) {
 		const queryClient = new QueryClient({
 			defaultOptions: { queries: { retry: false } },
 		});
@@ -653,7 +653,8 @@ describe("UsageView on a host that cannot swap live sessions", () => {
 		);
 		queryClient.setQueryData([...ACCOUNT_ENGINE_QUERY_KEY, null], {
 			engineAvailable: true,
-			platformSupported: false,
+			platformSupported,
+			movesRunningSessions: false,
 			lockOwner: true,
 			settings: null,
 		});
@@ -671,6 +672,16 @@ describe("UsageView on a host that cannot swap live sessions", () => {
 			"Newly launched Claude Code sessions use the active account; ones already running keep the previous login until you restart them.",
 		);
 		expect(text).not.toContain("Every running and newly launched");
+	});
+
+	test("an unusable state directory on POSIX also promises new sessions only", () => {
+		const view = renderOnWindowsHost(true);
+		expect(view.baseElement.textContent).toContain(
+			"ones already running keep the previous login until you restart them.",
+		);
+		expect(view.baseElement.textContent).not.toContain(
+			"Every running and newly launched",
+		);
 	});
 
 	test("the card titles make the same promise the host keeps", () => {

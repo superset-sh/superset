@@ -15451,6 +15451,9 @@ msgstr "Identificador apto para URL, único dentro de tu organización."
 msgid "Usage"
 msgstr "Uso"
 
+msgid "Usage limit reached"
+msgstr "Se alcanzó el límite de uso"
+
 msgid "Usage sections"
 msgstr "Secciones de uso"
 

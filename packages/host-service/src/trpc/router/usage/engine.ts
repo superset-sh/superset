@@ -59,6 +59,7 @@ export function engineStateUnusable(): boolean {
 /** What every settings call answers with: the state the panel renders from. */
 export interface UsageEngineView {
 	engineAvailable: boolean;
+	movesRunningSessions: boolean;
 	platformSupported: boolean;
 	settings: EngineSettings;
 	status: Record<AccountAgent, AgentEngineStatus>;
@@ -97,10 +98,13 @@ export async function engineView(
 	engine: AccountService | null,
 	settings?: EngineSettings,
 ): Promise<UsageEngineView> {
-	if (!engine) {
+	// An unsafe state directory prevents the machine owner from starting, so
+	// do not ask its unavailable RPC endpoint for status in this known case.
+	if (!engine || engineStateUnusable()) {
 		const platformSupported = process.platform !== "win32";
 		return {
 			engineAvailable: false,
+			movesRunningSessions: false,
 			platformSupported,
 			settings: defaultEngineSettings(),
 			status: {
@@ -113,6 +117,8 @@ export async function engineView(
 	const status = await engine.status();
 	return {
 		engineAvailable: true,
+		movesRunningSessions:
+			status.claude.platformSupported && !engineStateUnusable(),
 		platformSupported: status.claude.platformSupported,
 		settings: settings ?? (await engine.getSettings()),
 		status,

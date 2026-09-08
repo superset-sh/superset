@@ -79,6 +79,25 @@ function renderHistory(
 }
 
 describe("SwitchHistory", () => {
+	test.each([
+		false,
+		true,
+	])("limit history reports restart only when confirmed (%s)", (fallbackRestart) => {
+		const ui = renderHistory([
+			{ ...newer, reasonKind: "fallback", fallbackRestart },
+		]);
+		expect(
+			ui.getByText(
+				fallbackRestart
+					? "Limit hit — session restarted"
+					: "Usage limit reached",
+			),
+		).toBeTruthy();
+		expect(ui.queryByText("Restarted and resumed") !== null).toBe(
+			fallbackRestart,
+		);
+	});
+
 	test("keeps the host's newest-first order and composes the reason itself", () => {
 		const ui = renderHistory([newer, older]);
 		const rows = ui.getAllByRole("row").slice(1);

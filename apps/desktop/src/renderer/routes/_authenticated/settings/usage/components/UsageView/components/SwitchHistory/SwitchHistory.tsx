@@ -69,9 +69,9 @@ export function SwitchHistory({
 					message: "You picked this account",
 				});
 			case "fallback":
-				return t({
-					message: "Limit hit — session restarted",
-				});
+				return entry.fallbackRestart
+					? t({ message: "Limit hit — session restarted" })
+					: t({ message: "Usage limit reached" });
 			case "fallback-rejected":
 				return t({
 					message: "Limit report not confirmed — no switch",

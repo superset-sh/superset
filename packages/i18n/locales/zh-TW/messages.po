@@ -15451,6 +15451,9 @@ msgstr "URL友好的識別符號，在你的組織內唯一。"
 msgid "Usage"
 msgstr "用量"
 
+msgid "Usage limit reached"
+msgstr "已達使用上限"
+
 msgid "Usage sections"
 msgstr "用量分區"
 
