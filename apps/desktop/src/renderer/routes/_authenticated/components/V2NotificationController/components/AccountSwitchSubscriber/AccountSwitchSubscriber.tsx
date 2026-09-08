@@ -12,12 +12,12 @@ import { useEffect, useEffectEvent } from "react";
 import { getHostEventBus } from "renderer/lib/host-event-bus";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
-import { engineErrorMessage } from "renderer/routes/_authenticated/settings/usage/components/UsageView/utils/engineErrorMessage";
 import { ACCOUNT_ENGINE_QUERY_KEY } from "renderer/routes/_authenticated/settings/usage/hooks/useAccountEngineSettings";
 import { invalidateHostUsageQuota } from "renderer/routes/_authenticated/settings/usage/hooks/useHostUsageQuota";
 import { SWITCH_HISTORY_QUERY_KEY } from "renderer/routes/_authenticated/settings/usage/hooks/useSwitchHistory";
 import { windowLabel as getWindowLabel } from "renderer/routes/_authenticated/utils/windowLabel";
 import type { HostNotificationWorkspaceState } from "../HostNotificationSubscriber";
+import { switchFailureMessage } from "./utils/switchFailureMessage";
 
 type AccountAgent = AccountSwitchedPayload["agent"];
 
@@ -312,13 +312,7 @@ function notifySwitchFailure(
 	const agent = getAgentLabel(payload.agent);
 	showNative({
 		title: i18n._(msg({ message: `${agent} could not switch accounts` })),
-		body:
-			engineErrorMessage(failure.code) ??
-			i18n._(
-				msg({
-					message: `Switch failed (${failure.code}). The previous account is still active.`,
-				}),
-			),
+		body: switchFailureMessage(failure.code),
 	});
 }
 

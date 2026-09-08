@@ -13,6 +13,10 @@ import type {
 	AccountSwitchedPayload,
 } from "@superset/workspace-client";
 
+type AccountSwitchFailureCode = NonNullable<
+	AccountEngineStatePayload["lastSwitchFailure"]
+>["code"];
+
 // happy-dom over the preloaded plain-object document — the subscriber mounts
 // through @testing-library/react. Process-wide, so this unregisters in
 // afterAll to leave the other renderer suites their document.
@@ -494,7 +498,7 @@ describe("switch failures", () => {
 			{
 				silent: true,
 				title: "Claude could not switch accounts",
-				body: "Switch failed (verify-failed). The previous account is still active.",
+				body: "The new login could not be verified, so the previous account was put back.",
 			},
 		]);
 
@@ -531,6 +535,48 @@ describe("switch failures", () => {
 		);
 
 		expect(shown).toHaveLength(2);
+	});
+
+	test("a code with no shared wording still reads as a sentence, never the code", async () => {
+		await mountSubscriber("http://host-switch-failure-keychain");
+
+		await emit(
+			"account:engine-state",
+			"claude",
+			engineState({
+				occurredAt: 9_101,
+				lastSwitchFailure: { code: "keychain-ambiguous", at: 9_100 },
+			}),
+		);
+
+		expect(shown[0]).toMatchObject({
+			title: "Claude could not switch accounts",
+			body: "More than one saved login matched that account, so Superset would not guess which to use.",
+		});
+		expect(shown[0]?.body).not.toContain("keychain-ambiguous");
+	});
+
+	test("a code from a newer host falls back to a generic sentence", async () => {
+		await mountSubscriber("http://host-switch-failure-future");
+
+		await emit(
+			"account:engine-state",
+			"claude",
+			engineState({
+				occurredAt: 9_201,
+				lastSwitchFailure: {
+					// A host one release ahead sends a code this build has never
+					// heard of; the user must still get a sentence.
+					code: "quantum-flux" as AccountSwitchFailureCode,
+					at: 9_200,
+				},
+			}),
+		);
+
+		expect(shown[0]).toMatchObject({
+			body: "The switch did not go through. The previous account is still active.",
+		});
+		expect(shown[0]?.body).not.toContain("quantum-flux");
 	});
 
 	test("a code the renderer has wording for reads as that wording", async () => {
