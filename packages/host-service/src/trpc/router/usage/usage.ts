@@ -1,42 +1,42 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { basename, join } from "node:path";
-import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { quotaEntryKey } from "../../../account-engine/quota-store.ts";
+import {
+	type AccountService,
+	createLocalAccountService,
+} from "../../../account-engine/account-service.ts";
+import type { QuotaStore } from "../../../account-engine/quota-store.ts";
 import { projects, workspaces } from "../../../db/schema";
+import type { HostServiceContext } from "../../../types.ts";
 import {
 	leaderboardPayloadTask,
 	usageHistoryTask,
 } from "../../../workers/tasks/usage";
 import { protectedProcedure, queryProcedure, router } from "../../index";
 import { offLoop } from "../../off-loop";
-import {
-	provisionClaudeAccount,
-	provisionCodexAccount,
-} from "./account-provisioning";
 import { readDefaultLoginEmail } from "./claude";
 import {
-	activeClaudeConfigDirPath,
 	applyAccountEngineState,
-	isActiveAccount,
+	getDefaultAccountSelections,
 	readAccountEngineView,
 	setDefaultAccountSelection,
 } from "./default-account";
-import {
-	engineError,
-	engineStateUnusable,
-	usageEngineRouter,
-	writableEngine,
-} from "./engine";
+import { engineError, usageEngineRouter } from "./engine";
 import { countAgentPrsByDay } from "./history/agent-prs";
-import { removeClaudeProfile, removeCodexHome } from "./profile-remove";
-import {
-	discoverClaudeProfiles,
-	discoverCodexHomes,
-	readClaudeIdentity,
-} from "./profiles";
-import type { UsageAccount } from "./types";
+import { discoverClaudeProfiles, discoverCodexHomes } from "./profiles";
+
+function accountService(ctx: HostServiceContext): AccountService {
+	return (
+		ctx.runtime.accountEngine ??
+		createLocalAccountService(null, ctx.runtime.quotaStore as QuotaStore, {
+			readView: () => readAccountEngineView(ctx.db),
+			setSelection: (agent, selection) =>
+				setDefaultAccountSelection(ctx.db, agent, selection),
+			getSelections: () => getDefaultAccountSelections(ctx.db),
+		})
+	);
+}
 
 export const usageRouter = router({
 	/** U7: the account engine's settings, rotation and switch history. */
@@ -119,68 +119,11 @@ export const usageRouter = router({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const engine = ctx.runtime.accountEngine;
-			// KTD13: the engine's hot swap is POSIX-only, but the pointer it
-			// repoints is not. On Windows, picking the login new sessions
-			// launch on still works exactly as it did before the engine
-			// existed — the panel says so, so it must be true.
-			// The same is true of a host whose engine state dir is unusable: no
-			// engine sharing that dir can claim the lock, so there is no hot
-			// swap to be had — but the pointer is a DB write that needs no
-			// state dir, so choosing which login new sessions launch on still
-			// works. Only the swap of already-running sessions is lost.
-			if (
-				engine &&
-				(!engine.status()[input.agent].platformSupported ||
-					engineStateUnusable())
-			) {
-				if (input.selection !== null) {
-					// Only accept a discovered login: the value lands in a shell
-					// env overlay, and a typo'd dir would boot agents signed out.
-					const accounts = await ctx.runtime.quotaStore.read({
-						agents: [input.agent],
-					});
-					const known = accounts.some(
-						(account) =>
-							account.agent === input.agent &&
-							account.selection === input.selection,
-					);
-					if (!known) {
-						throw new TRPCError({
-							code: "BAD_REQUEST",
-							message: `No ${input.agent} login found at ${input.selection} — refresh usage and pick again.`,
-						});
-					}
-				}
-				setDefaultAccountSelection(ctx.db, input.agent, input.selection);
-			} else {
-				// A lock loser must not swap behind the owner's back (KTD5).
-				// The engine itself refuses an account it cannot see, so no
-				// separate known-login check is needed.
-				const outcome = await writableEngine(engine).switchManually(
-					input.agent,
-					input.selection,
-				);
-				if (!outcome.ok) throw engineError(outcome.code);
-			}
-			// A profile dir is a whole config root, not just a login: without
-			// provisioning, agents launched there lose the user's skills,
-			// plugins, MCP servers and settings along with Superset's lifecycle
-			// hooks — and, for Claude, the shared session history. Best-effort —
-			// a failed share must not undo the switch, and provisioning retries
-			// on the next switch and at host boot.
-			if (input.selection !== null) {
-				try {
-					await (input.agent === "claude"
-						? provisionClaudeAccount(input.selection)
-						: provisionCodexAccount(input.selection));
-				} catch (error) {
-					console.warn(
-						`[host-service] provisioning ${input.agent} account ${input.selection} failed (continuing):`,
-						error,
-					);
-				}
-			}
+			const outcome = await accountService(ctx).switchManually(
+				input.agent,
+				input.selection,
+			);
+			if (!outcome.ok) throw engineError(outcome.code);
 			return { success: true as const };
 		}),
 
@@ -206,148 +149,7 @@ export const usageRouter = router({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			// KTD5: the mutation lane below only serialises this host-service.
-			// On a lock loser the instance that owns the lock can switch onto
-			// this profile at any moment, and a deleted profile dir is not
-			// recoverable — so removal happens on the owner or not at all. A
-			// sandbox has no engine and keeps the unserialised path.
-			// An unusable state dir answers false to the same question, and
-			// there the hazard is absent rather than present: no engine
-			// sharing that dir can claim the lock, so none can switch onto
-			// this profile. Refusing on it would make the profile permanently
-			// undeletable; `refuseIfActive` below is what actually guards the
-			// rm, and it reads the pointer and the runtime, not the lock. The
-			// dir is host configuration rather than a racing lock, so it is
-			// read once per request while the lock itself is re-read below.
-			let unusable: boolean | undefined;
-			const foreignLockHeld = (): boolean => {
-				if (ctx.runtime.accountEngine?.ownsLock() !== false) return false;
-				if (unusable === undefined) unusable = engineStateUnusable();
-				return !unusable;
-			};
-			if (foreignLockHeld()) {
-				throw engineError("lock-loser");
-			}
-			const accounts = await ctx.runtime.quotaStore.read({
-				agents: [input.agent],
-			});
-			const target = accounts.find(
-				(account) =>
-					account.agent === input.agent &&
-					(account.selection === input.selection ||
-						account.duplicateSelections?.includes(input.selection) === true),
-			);
-			if (!target) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: `No removable ${input.agent} profile at ${input.selection}.`,
-				});
-			}
-			const activeAccountRefusal = (): TRPCError =>
-				new TRPCError({
-					code: "BAD_REQUEST",
-					message: `This is the active ${input.agent} account — switch to another account first, then remove it.`,
-				});
-			const refuseIfActive = async (account: UsageAccount): Promise<void> => {
-				const engineStatus = ctx.runtime.accountEngine?.status()[input.agent];
-				const view = readAccountEngineView(ctx.db);
-				// The row can own more than one dir, and the request names one of
-				// them — so the guard has to test the dir being deleted, not just
-				// the row's surviving selection. Otherwise removing a duplicate
-				// dir that the pointer happens to name deletes the login every
-				// running session is signed in to: the identity branches below
-				// only catch it once the engine has recorded an activeAccountId,
-				// which it never has on Windows, in a sandbox, or after a pointer
-				// migrated from the pre-engine setting.
-				const requestedIsLive =
-					input.selection !== null &&
-					(input.selection === view[input.agent]?.pointerSelection ||
-						input.selection === engineStatus?.activeSelection);
-				const active =
-					requestedIsLive ||
-					isActiveAccount(account, view) ||
-					(engineStatus?.activeAccountId != null &&
-						account.accountId === engineStatus.activeAccountId) ||
-					(engineStatus?.activeSelection != null &&
-						account.selection === engineStatus.activeSelection);
-				if (active) throw activeAccountRefusal();
-				// KTD4: the pointer names the active dir and nothing recorded
-				// which login was swapped into it, so every test above compared
-				// against null and answered "not active" — including
-				// `isActiveAccount`, which deliberately shows no badge rather
-				// than a wrong one. `engine.status()` is no second witness: it
-				// reads the same runtime record. That state is permanent on a
-				// host whose engine state dir is unusable, so refusing outright
-				// would leave every profile undeletable, with no switch
-				// available to make one of them removable either.
-				// The active dir's own `.claude.json` still says whose login is
-				// in it — the same read the engine's `pointerAccount` falls back
-				// to when the pointer names that dir — and it lives outside the
-				// state dir, so an unusable one keeps it available.
-				// Only Claude has such a dir; Codex's pointer names the profile
-				// home itself, so its binding is never `unknown`.
-				if (input.agent !== "claude" || !view.claude.unknown) return;
-				const live = await readClaudeIdentity(activeClaudeConfigDirPath());
-				if (live?.accountId != null) {
-					if (live.accountId === account.accountId) {
-						throw activeAccountRefusal();
-					}
-					return;
-				}
-				// Nobody can say which login is live. Deleting blind is the one
-				// unrecoverable outcome, so refuse — but with a code of its own
-				// so the UI can offer the removal behind an explicit
-				// acknowledgement instead of stranding the user.
-				if (input.acknowledgeUnknownActive === true) return;
-				throw engineError("active-account-unknown");
-			};
-			await refuseIfActive(target);
-			// A switch can land between the check above and the delete below —
-			// they are separated by awaits — and removing the dir every running
-			// session is signed in to is not recoverable. Both reads are cheap
-			// and neither hits a provider, so the check is repeated on fresh
-			// state as the last thing before the filesystem.
-			const recheckAndDelete = async (): Promise<void> => {
-				const current = (
-					await ctx.runtime.quotaStore.read({ agents: [input.agent] })
-				).find(
-					(account) =>
-						account.agent === input.agent &&
-						(account.selection === input.selection ||
-							account.duplicateSelections?.includes(input.selection) === true),
-				);
-				await refuseIfActive(current ?? target);
-				// The lane serialises this host-service only. Re-read the lock from
-				// disk here, the way every engine mutation re-checks at an awaited
-				// boundary — a switch that has swapped but not yet persisted its
-				// runtime is invisible to the check above, and the owner is the one
-				// that made it.
-				if (foreignLockHeld()) {
-					throw engineError("lock-loser");
-				}
-				if (input.agent === "claude") {
-					await removeClaudeProfile(input.selection);
-				} else {
-					await removeCodexHome(input.selection);
-				}
-			};
-			// On the engine's mutation lane, so a switch already queued there
-			// finishes before the re-check reads the active account, and one
-			// that arrives later waits for the delete. This serialises within
-			// one host-service only; across processes nothing stops the lock
-			// owner switching under us, which is why the delete re-reads the
-			// lock above. A sandbox has no engine and keeps the unserialised
-			// path.
-			const engine = ctx.runtime.accountEngine;
-			await (engine
-				? engine.runExclusive(recheckAndDelete)
-				: recheckAndDelete());
-			// The store still lists the removed account; drop its entry so the
-			// next read re-discovers.
-			ctx.runtime.quotaStore.invalidate(
-				quotaEntryKey(input.agent, input.selection),
-			);
-			return { success: true as const };
+			return accountService(ctx).removeAccount(input);
 		}),
 
 	/**
@@ -364,21 +166,8 @@ export const usageRouter = router({
 				selection: z.string(),
 			}),
 		)
-		.mutation(async ({ input }) => {
-			const discovered =
-				input.agent === "claude"
-					? (await discoverClaudeProfiles()).map((profile) => profile.configDir)
-					: (await discoverCodexHomes()).map((home) => home.home);
-			if (!discovered.includes(input.selection)) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: `No ${input.agent} profile found at ${input.selection}.`,
-				});
-			}
-			await (input.agent === "claude"
-				? provisionClaudeAccount(input.selection)
-				: provisionCodexAccount(input.selection));
-			return { success: true as const };
+		.mutation(async ({ ctx, input }) => {
+			return accountService(ctx).prepareAccount(input);
 		}),
 
 	/**

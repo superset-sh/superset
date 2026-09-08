@@ -140,6 +140,7 @@ export default defineConfig({
 					// host-service worker thread — emitted side-by-side with
 					// host-service.js so the pool's script resolution finds it.
 					"host-worker": resolve("src/main/host-worker/index.ts"),
+					"account-owner": resolve("src/main/account-owner/index.ts"),
 				},
 				output: {
 					dir: resolve(devPath, "main"),

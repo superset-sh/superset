@@ -10,11 +10,46 @@ import {
 } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
-import { quotaEntryKey } from "../../../account-engine/quota-store.ts";
+import type { AccountEngine } from "../../../account-engine/account-engine.ts";
+import { createLocalAccountService } from "../../../account-engine/account-service.ts";
+import {
+	quotaEntryKey,
+	type QuotaStore,
+} from "../../../account-engine/quota-store.ts";
 import type { HostDb } from "../../../db/index.ts";
 import type { HostServiceContext } from "../../../types.ts";
+import {
+	getDefaultAccountSelections,
+	readAccountEngineView,
+	setDefaultAccountSelection,
+} from "./default-account.ts";
 import type { UsageAccount } from "./types.ts";
-import { usageRouter } from "./usage.ts";
+import { usageRouter as actualUsageRouter } from "./usage.ts";
+
+// Exercise the owner adapter used by production; the fixtures below model its engine.
+const usageRouter = {
+	createCaller(ctx: HostServiceContext) {
+		const engine = ctx.runtime.accountEngine as unknown as AccountEngine | null;
+		return actualUsageRouter.createCaller({
+			...ctx,
+			runtime: {
+				...ctx.runtime,
+				accountEngine: engine
+					? createLocalAccountService(
+							engine,
+							ctx.runtime.quotaStore as QuotaStore,
+							{
+								readView: () => readAccountEngineView(ctx.db),
+								setSelection: (agent, selection) =>
+									setDefaultAccountSelection(ctx.db, agent, selection),
+								getSelections: () => getDefaultAccountSelections(ctx.db),
+							},
+						)
+					: null,
+			},
+		});
+	},
+};
 
 // Paths under the real home (Bun's os.homedir() ignores $HOME, and
 // profile-remove.ts refuses anything outside it) that are never created: the
@@ -610,5 +645,52 @@ describe("usageRouter.setDefaultAccount", () => {
 
 		expect(switched).toEqual([{ agent: "claude", selection: null }]);
 		expect(written).toEqual([]);
+	});
+});
+
+/** Org hosts forward values to the machine owner without touching local credentials. */
+describe("usageRouter machine account service", () => {
+	it("forwards removal and preparation without reading the org database or local quota", async () => {
+		const removeAccount = mock(async (_input: unknown) => ({
+			success: true as const,
+		}));
+		const prepareAccount = mock(async (_input: unknown) => ({
+			success: true as const,
+		}));
+		const ctx = {
+			isAuthenticated: true,
+			db: new Proxy(
+				{},
+				{
+					get() {
+						throw new Error("org database must stay local");
+					},
+				},
+			),
+			runtime: { accountEngine: { removeAccount, prepareAccount } },
+		} as unknown as HostServiceContext;
+		const caller = actualUsageRouter.createCaller(ctx);
+		const removal = {
+			agent: "claude" as const,
+			selection: "/profiles/a",
+			acknowledgeUnknownActive: true,
+		};
+		expect(await caller.removeAccount(removal)).toEqual({ success: true });
+		expect(removeAccount).toHaveBeenCalledWith(removal);
+		const preparation = { agent: "codex" as const, selection: "/profiles/b" };
+		expect(await caller.prepareAccount(preparation)).toEqual({ success: true });
+		expect(prepareAccount).toHaveBeenCalledWith(preparation);
+	});
+
+	it("rejects unauthenticated removal before contacting the machine service", async () => {
+		const removeAccount = mock(async () => ({ success: true as const }));
+		const caller = actualUsageRouter.createCaller({
+			isAuthenticated: false,
+			runtime: { accountEngine: { removeAccount } },
+		} as unknown as HostServiceContext);
+		await expect(
+			caller.removeAccount({ agent: "claude", selection: "/profiles/a" }),
+		).rejects.toThrow();
+		expect(removeAccount).not.toHaveBeenCalled();
 	});
 });

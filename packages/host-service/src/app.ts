@@ -6,14 +6,9 @@ import { TRPCError } from "@trpc/server";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { AccountEngine } from "./account-engine/account-engine.ts";
-import { EngineState } from "./account-engine/engine-state.ts";
-import {
-	createAccountEngineHostDeps,
-	subscribeSessionMoverToStore,
-} from "./account-engine/host-deps.ts";
+import { createAccountEngineHostDeps } from "./account-engine/host-deps.ts";
+import { createMachineAccountClient } from "./account-engine/machine-owner/client.ts";
 import { QuotaStore } from "./account-engine/quota-store.ts";
-import { SessionMover } from "./account-engine/session-mover.ts";
 import { createApiClient } from "./api";
 import { createChatV3Mount, registerChatV3Routes } from "./chat-v3";
 import { createDb, type HostDb } from "./db";
@@ -49,6 +44,7 @@ import {
 } from "./terminal-agents";
 import { appRouter } from "./trpc/router";
 import { provisionSelectedAccounts } from "./trpc/router/usage/account-provisioning";
+import { syncDefaultAccountPointers } from "./trpc/router/usage/default-account.ts";
 import {
 	execGh as defaultExecGh,
 	type ExecGh,
@@ -247,9 +243,8 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	});
 	pageWatch.subscribeToTerminalEvents(eventBus);
 
-	// Owns quota fetching for the Usage page and, later, for the account
-	// engine's adaptive cadence (KTD10). Unconditional: with no engine it
-	// simply serves on-demand reads with the 5-minute TTL.
+	// Sandboxes fetch locally; machine hosts replace this read adapter with
+	// the shared owner's quota store below.
 	const quotaStore = new QuotaStore();
 
 	const runtime: HostServiceRuntime = {
@@ -260,13 +255,9 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		accountEngine: null,
 	};
 
-	// The account engine (KTD1), after the terminal-agent store and the event
-	// bus because it reaches both only through the closures built here.
-	//
-	// Never in a sandbox: a sandbox is provisioned with exactly one account
-	// and one workspace, so there is nothing to switch between, and its engine
-	// would only race the machine that owns the host-wide lock. `runtime`
-	// keeps a null in that case, and every caller treats it as "not running".
+	// Organization hosts connect to one persistent machine owner. Each org
+	// retains its own terminal store and executes only its own session actions.
+	// Sandboxes have one provisioned account and do not join the machine owner.
 	let stopAccountEngine: (() => Promise<void>) | null = null;
 	if (process.env.SUPERSET_HOST_RUN_MODE !== "sandbox") {
 		const engineHostDeps = createAccountEngineHostDeps({
@@ -291,46 +282,28 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 				}) as HostServiceContext,
 			isBracketedPasteActive,
 		});
-		const engineState = new EngineState();
-		const mover = new SessionMover({
-			...engineHostDeps,
-			onNeedsAttention: (event) =>
-				runtime.accountEngine?.reportNeedsAttention(event),
-		});
-		// A row that was mid-turn when the switch happened moves at its next
-		// Stop; the store's change event is the only notice of that (R7).
-		const unsubscribeMover = subscribeSessionMoverToStore(
-			terminalAgentStore,
-			mover,
-		);
-		const engine = new AccountEngine({
-			engineState,
-			quotaStore,
-			mover,
+		// Migrate legacy org selections once before connecting. Existing machine
+		// pointers remain authoritative; the owner handles all later writes.
+		syncDefaultAccountPointers(db);
+		const client = createMachineAccountClient({
+			organizationId: config.organizationId,
 			hostDeps: engineHostDeps,
-			db,
 			broadcast: {
 				switched: (payload) => eventBus.broadcastAccountSwitched(payload),
 				engineState: (payload) => eventBus.broadcastAccountEngineState(payload),
 			},
-			// A limit stop arrives as a store write, not as a tick (KTD7).
-			subscribeToSessions: (onChange) => {
-				const handler = () => onChange();
-				terminalAgentStore.on("change", handler);
+			subscribe: (onChange) => {
+				terminalAgentStore.on("change", onChange);
 				return () => {
-					terminalAgentStore.off("change", handler);
+					terminalAgentStore.off("change", onChange);
 				};
 			},
 		});
-		engine.start();
-		runtime.accountEngine = engine;
-		// Awaited on dispose: the engine hands the host-wide lock back only
-		// once the tick in flight has finished, so another instance cannot
-		// claim it and swap credentials on top of one already in progress.
-		stopAccountEngine = async () => {
-			await unsubscribeMover();
-			await engine.stop();
+		runtime.accountEngine = client.service;
+		runtime.quotaStore = {
+			read: (options) => client.service.readUsage(options),
 		};
+		stopAccountEngine = client.close;
 	}
 
 	// Startup sweeps run in the background so they don't block server
@@ -382,7 +355,10 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		// Re-share the default account's Claude/Codex config into the selected
 		// provider profiles. Last: it touches no host state the sweeps above
 		// repair, and a slow filesystem must not delay them.
-		await provisionSelectedAccounts(db).catch((err) => {
+		await (runtime.accountEngine
+			? runtime.accountEngine.provisionSelectedAccounts()
+			: provisionSelectedAccounts(db)
+		).catch((err) => {
 			console.warn("[host-service] account provisioning failed:", err);
 		});
 	})();

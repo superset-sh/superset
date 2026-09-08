@@ -17,12 +17,15 @@ import {
 	activeClaudeConfigDirPath,
 	applyAccountEngineState,
 	getDefaultAccountSelections,
+	getMachineAccountSelections,
 	isActiveAccount,
 	isActiveClaudeDirPointer,
 	readAccountEngineView,
+	readMachineAccountEngineView,
 	recordIdentityBindings,
 	resolveDefaultAccountEnv,
 	setIdentityBindingRecorder,
+	setMachineAccountSelection,
 	syncDefaultAccountPointer,
 	syncDefaultAccountPointers,
 } from "./default-account.ts";
@@ -69,6 +72,24 @@ describe("host-wide default account pointers", () => {
 			else process.env[key] = value;
 		}
 		rmSync(home, { recursive: true, force: true });
+	});
+
+	it("reads and writes machine selections without an organization database", () => {
+		expect(getMachineAccountSelections()).toEqual({
+			claudeConfigDir: null,
+			codexHome: null,
+		});
+		setMachineAccountSelection("claude", "/profiles/a");
+		setMachineAccountSelection("codex", "/profiles/b");
+		expect(getMachineAccountSelections()).toEqual({
+			claudeConfigDir: "/profiles/a",
+			codexHome: "/profiles/b",
+		});
+		expect(readMachineAccountEngineView().claude.pointerSelection).toBe(
+			"/profiles/a",
+		);
+		setMachineAccountSelection("claude", null);
+		expect(getMachineAccountSelections().claudeConfigDir).toBeNull();
 	});
 
 	it("does not let an empty second org reset a selected account at boot", () => {

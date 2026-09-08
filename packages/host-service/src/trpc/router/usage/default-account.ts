@@ -195,6 +195,16 @@ export interface DefaultAccountSelections {
 	codexHome: string | null;
 }
 
+/** Machine service reads only the authoritative pointer files. */
+export function getMachineAccountSelections(): DefaultAccountSelections {
+	return {
+		claudeConfigDir: readDefaultAccountPointer("claude").selection,
+		codexHome: readDefaultAccountPointer("codex").selection,
+	};
+}
+
+export const setMachineAccountSelection = syncDefaultAccountPointer;
+
 export function getDefaultAccountSelections(
 	db: HostDb,
 ): DefaultAccountSelections {
@@ -312,7 +322,16 @@ export interface AccountEngineView {
 }
 
 export function readAccountEngineView(db: HostDb): AccountEngineView {
-	const defaults = getDefaultAccountSelections(db);
+	return accountEngineView(getDefaultAccountSelections(db));
+}
+
+export function readMachineAccountEngineView(): AccountEngineView {
+	return accountEngineView(getMachineAccountSelections());
+}
+
+function accountEngineView(
+	defaults: DefaultAccountSelections,
+): AccountEngineView {
 	let runtime: RuntimeState | null = null;
 	let rotation: RotationState = {};
 	try {

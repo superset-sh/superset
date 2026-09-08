@@ -1,9 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import type {
-	AccountEngine,
-	AgentEngineStatus,
-} from "../../../account-engine/account-engine.ts";
+import type { AgentEngineStatus } from "../../../account-engine/account-engine.ts";
+import type { AccountService } from "../../../account-engine/account-service.ts";
 import {
 	defaultEngineSettings,
 	EngineState,
@@ -95,10 +93,10 @@ function disabledStatus(platformSupported: boolean): AgentEngineStatus {
  * Reads never fail: a sandbox (no engine, KTD1) and a lock loser (KTD5) both
  * answer, so the Usage page can explain itself instead of showing an error.
  */
-export function engineView(
-	engine: AccountEngine | null,
+export async function engineView(
+	engine: AccountService | null,
 	settings?: EngineSettings,
-): UsageEngineView {
+): Promise<UsageEngineView> {
 	if (!engine) {
 		const platformSupported = process.platform !== "win32";
 		return {
@@ -112,11 +110,11 @@ export function engineView(
 			lockOwner: false,
 		};
 	}
-	const status = engine.status();
+	const status = await engine.status();
 	return {
 		engineAvailable: true,
 		platformSupported: status.claude.platformSupported,
-		settings: settings ?? engine.getSettings(),
+		settings: settings ?? (await engine.getSettings()),
 		status,
 		lockOwner: status.claude.lockOwner,
 	};
@@ -128,11 +126,16 @@ export function engineView(
  * platform refusal — which the engine itself raises, per call — must not be
  * masked here by a lock-loser error.
  */
-export function writableEngine(engine: AccountEngine | null): AccountEngine {
+export async function writableEngine(
+	engine: AccountService | null,
+): Promise<AccountService> {
 	if (!engine) throw engineError("engine-unavailable");
 	// The lock can have been released since the last tick, so re-read it
 	// from disk the way the engine's own mutations do.
-	if (engine.status().claude.platformSupported && !engine.ownsLock()) {
+	if (
+		(await engine.status()).claude.platformSupported &&
+		!(await engine.ownsLock())
+	) {
 		// Two different hosts answer false here, and telling the user the
 		// wrong one sends them looking for a rival instance that does not
 		// exist. These writes land in the state dir, so an unusable one is
@@ -150,16 +153,16 @@ export function writableEngine(engine: AccountEngine | null): AccountEngine {
  */
 export const usageEngineRouter = router({
 	/** Per-agent settings plus the runtime state the panel needs. */
-	getSettings: queryProcedure.query(
-		({ ctx }): UsageEngineView => engineView(ctx.runtime.accountEngine),
+	getSettings: queryProcedure.query(({ ctx }) =>
+		engineView(ctx.runtime.accountEngine),
 	),
 
 	/** R10 to R15. Returns the same shape as `getSettings`. */
 	setSettings: machineOnlyProcedure
 		.input(z.object({ agent: z.enum(["claude", "codex"]), patch: patchInput }))
-		.mutation(({ ctx, input }): UsageEngineView => {
-			const engine = writableEngine(ctx.runtime.accountEngine);
-			const outcome = engine.setSettings(input.agent, input.patch);
+		.mutation(async ({ ctx, input }): Promise<UsageEngineView> => {
+			const engine = await writableEngine(ctx.runtime.accountEngine);
+			const outcome = await engine.setSettings(input.agent, input.patch);
 			if (!outcome.ok) {
 				throw engineError(
 					outcome.code === "invalid" ? "invalid-settings" : outcome.code,
@@ -176,9 +179,12 @@ export const usageEngineRouter = router({
 				inRotation: z.boolean(),
 			}),
 		)
-		.mutation(({ ctx, input }): { rotation: RotationState } => {
-			const engine = writableEngine(ctx.runtime.accountEngine);
-			const outcome = engine.setRotation(input.accountKey, input.inRotation);
+		.mutation(async ({ ctx, input }): Promise<{ rotation: RotationState }> => {
+			const engine = await writableEngine(ctx.runtime.accountEngine);
+			const outcome = await engine.setRotation(
+				input.accountKey,
+				input.inRotation,
+			);
 			// The gate and the mutation are two separate disk reads, so the
 			// engine can still refuse a lock lost in between.
 			if (!outcome.ok) throw engineError(outcome.code);
@@ -192,7 +198,10 @@ export const usageEngineRouter = router({
 				.object({ limit: z.number().int().min(1).max(200).optional() })
 				.optional(),
 		)
-		.query(({ ctx, input }): { entries: HistoryEntry[] } => ({
-			entries: ctx.runtime.accountEngine?.history(input?.limit ?? 50) ?? [],
-		})),
+		.query(
+			async ({ ctx, input }): Promise<{ entries: HistoryEntry[] }> => ({
+				entries:
+					(await ctx.runtime.accountEngine?.history(input?.limit ?? 50)) ?? [],
+			}),
+		),
 });

@@ -4,7 +4,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { TRPCError } from "@trpc/server";
 import type { AccountEngine } from "../../../account-engine/account-engine.ts";
+import { createLocalAccountService } from "../../../account-engine/account-service.ts";
 import { defaultEngineSettings } from "../../../account-engine/engine-state.ts";
+import { QuotaStore } from "../../../account-engine/quota-store.ts";
 import type {
 	AccountAgent,
 	AutoSwitchSettings,
@@ -144,7 +146,11 @@ function context(engine: AccountEngine | null): HostServiceContext {
 	return {
 		isAuthenticated: true,
 		db: {} as unknown,
-		runtime: { accountEngine: engine },
+		runtime: {
+			accountEngine: engine
+				? createLocalAccountService(engine, new QuotaStore())
+				: null,
+		},
 	} as unknown as HostServiceContext;
 }
 
