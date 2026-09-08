@@ -43,6 +43,16 @@ describe("forEachLine", () => {
 		]);
 	});
 
+	test("a CRLF line of exactly MAX_LINE_LENGTH is kept: the CR does not count", async () => {
+		const path = join(root, "crlf-boundary.jsonl");
+		writeFileSync(path, `${"y".repeat(MAX_LINE_LENGTH)}\r\nlast\r\n`);
+		const lines = await linesOf(path);
+		expect(lines.map((line) => line.length)).toEqual([
+			MAX_LINE_LENGTH,
+			"last".length,
+		]);
+	});
+
 	test("finishes a file whose newline-free tail is past MAX_LINE_LENGTH", async () => {
 		const path = join(root, "unterminated.jsonl");
 		writeFileSync(path, `first\n${"x".repeat(MAX_LINE_LENGTH + 1)}`);

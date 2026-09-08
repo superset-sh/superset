@@ -82,8 +82,10 @@ export async function forEachLine(
 ): Promise<void> {
 	let pending = "";
 	let skipping = false;
-	const emit = (line: string) => {
-		onLine(line.endsWith("\r") ? line.slice(0, -1) : line);
+	const emit = (raw: string) => {
+		// Strip the CR before measuring so LF and CRLF files share one bound.
+		const line = raw.endsWith("\r") ? raw.slice(0, -1) : raw;
+		if (line.length <= MAX_LINE_LENGTH) onLine(line);
 	};
 	try {
 		const chunks = createReadStream(path, {
@@ -101,7 +103,7 @@ export async function forEachLine(
 				} else {
 					const line = pending + chunk.slice(start, end);
 					pending = "";
-					if (line.length <= MAX_LINE_LENGTH) emit(line);
+					emit(line);
 				}
 				start = end + 1;
 			}
