@@ -154,9 +154,8 @@ describe("isEligible", () => {
 		expect(isEligible(unreadable, { "claude:acct-a": true })).toBe(false);
 	});
 
-	// AE7: an API-key account is skipped at the default and eligible once its
-	// rotation toggle is on.
-	it("holds API-key accounts out of rotation by default", () => {
+	// API billing remains manual-only even with a saved rotation override.
+	it("holds API-key accounts out of rotation even with an override", () => {
 		const apiKey = account({
 			accountId: "acct-c",
 			accountKey: "key-c",
@@ -164,7 +163,7 @@ describe("isEligible", () => {
 			inRotation: false,
 		});
 		expect(isEligible(apiKey, {})).toBe(false);
-		expect(isEligible(apiKey, { "acct-c": true })).toBe(true);
+		expect(isEligible(apiKey, { "acct-c": true })).toBe(false);
 	});
 
 	// R16: the spelling the renderer writes and the router stores is
@@ -386,6 +385,27 @@ describe("shouldSwitch", () => {
 			windows: [],
 		});
 
+	for (const strategy of ["best", "consume-first"] as const) {
+		it(`${strategy} leaves an active API account selected`, () => {
+			for (const tokenState of ["ok", "signed_out"] as const) {
+				expect(
+					shouldSwitch({
+						settings: settings({ strategy }),
+						active: { ...metered(), tokenState },
+						candidates: [
+							account({
+								windows: [window_("seven_day", "Weekly", 10, T0 + DAY)],
+							}),
+						],
+						rotation: {},
+						runtime,
+						now: T0,
+					}),
+				).toEqual({ switch: false, allExhausted: false });
+			}
+		});
+	}
+
 	it("never moves onto a metered account proactively", () => {
 		const decision = shouldSwitch({
 			settings: settings(),
@@ -426,9 +446,8 @@ describe("shouldSwitch", () => {
 		expect(decision.target.accountKey).toBe("key-b");
 	});
 
-	// Last resort, not never: at the limit with nothing else left, metered
-	// beats stopping.
-	it("takes a metered account when nothing on the plan has room", () => {
+	// Automatic switching never changes billing modes.
+	it("stays exhausted when only a metered account has room", () => {
 		const decision = shouldSwitch({
 			settings: settings(),
 			active: account({
@@ -440,10 +459,7 @@ describe("shouldSwitch", () => {
 			now: 0,
 		});
 
-		expect(decision.switch).toBe(true);
-		if (!decision.switch) throw new Error("expected a switch");
-		expect(decision.target.accountKey).toBe("key-api");
-		expect(decision.reasonKind).toBe("threshold");
+		expect(decision).toEqual({ switch: false, allExhausted: true });
 	});
 
 	// A stale access token skips the usage endpoint, and with no earlier read

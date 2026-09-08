@@ -211,6 +211,8 @@ export function isEligible(
 	rotation: RotationState,
 	tokenState: QuotaTokenState = account.tokenState,
 ): boolean {
+	// API credentials are manual-only, even with an old rotation preference.
+	if (account.credentialKind === "api_key") return false;
 	// `unavailable` is a read that did not land (endpoint error, timeout, no
 	// windows). Its zero windows would score a full 100 headroom, so without
 	// this an automatic switch lands on the one account nobody could read. It
@@ -415,7 +417,8 @@ export function shouldSwitch(input: ShouldSwitchInput): SwitchDecision {
 		allExhausted,
 	});
 
-	if (!settings.enabled) return stay(false);
+	if (!settings.enabled || active.credentialKind === "api_key")
+		return stay(false);
 	// R15: the cooldown is checked before anything else, so a run of crossings
 	// cannot become a run of switches (AE6).
 	if (runtime.cooldownUntil !== null && now < runtime.cooldownUntil) {
