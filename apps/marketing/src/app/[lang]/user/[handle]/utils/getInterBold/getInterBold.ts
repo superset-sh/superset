@@ -1,10 +1,13 @@
-let interBoldPromise: Promise<ArrayBuffer> | null = null;
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 
-export function getInterBold(): Promise<ArrayBuffer> {
+let interBoldPromise: Promise<Buffer> | null = null;
+
+export function getInterBold(): Promise<Buffer> {
 	if (!interBoldPromise) {
-		interBoldPromise = fetch(
-			new URL("../../assets/Inter-Bold.ttf", import.meta.url),
-		).then((res) => res.arrayBuffer());
+		interBoldPromise = readFile(
+			path.join(process.cwd(), "public", "fonts", "Inter-Bold.ttf"),
+		);
 	}
 	return interBoldPromise;
 }
