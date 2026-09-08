@@ -401,19 +401,41 @@ export class EngineState {
 
 	releaseLock(nonce: string): void {
 		const path = join(this.dir, LOCK_FILE);
-		const before = this.ownedLockIdentity(path, nonce);
-		if (!before) return;
-		// Re-read immediately before the unlink. A reclaim that lands between
-		// the ownership check and the unlink puts a *successor's* lock on this
-		// path, and deleting that would leave the host unlocked while a live
-		// engine still believes it owns it.
-		const after = this.ownedLockIdentity(path, nonce);
-		if (!after || after.ino !== before.ino || after.dev !== before.dev) return;
+		// A process that does not own the lock never touches the path at all:
+		// moving a healthy owner's lock aside, even briefly, is exactly the
+		// vacancy this method must never create.
+		if (!this.ownedLockIdentity(path, nonce)) return;
+		// Re-checking ownership cannot make a delete *by path* safe: a reclaim
+		// landing after the last check links a successor's fresh inode over
+		// this path, and unlinking that leaves the host with no lock file at
+		// all — an absent lock has no staleness barrier, so the next engine to
+		// tick claims it for free while the successor still believes it owns.
+		// Move the lock aside first, the way claimLock does, and decide from
+		// the record that was actually moved: the delete then only ever
+		// destroys an inode read and confirmed to be ours.
+		const asideName = `${LOCK_FILE}.release.${process.pid}.${randomUUID()}`;
+		const asidePath = join(this.dir, asideName);
 		try {
-			unlinkSync(path);
+			renameSync(path, asidePath);
 		} catch {
-			// Already gone, or reclaimed between the check and the unlink.
+			// Already gone, or a claimant renamed it aside first.
+			return;
 		}
+		const aside = this.readLockRecord(asideName);
+		// A null record is a corrupt lock: discard it rather than re-install
+		// it, matching readLockFile's rule that it counts as present but
+		// unowned. Only a successor's record goes back on the path.
+		if (aside && aside.nonce !== nonce) {
+			try {
+				// linkSync, not renameSync: a claimant that linked its own lock
+				// while the path was empty owns the host and must not be
+				// clobbered by the record we moved aside.
+				linkSync(asidePath, path);
+			} catch {
+				// EEXIST — a successor already claimed the path.
+			}
+		}
+		this.discard(asidePath);
 	}
 
 	/**

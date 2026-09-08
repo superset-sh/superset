@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import {
 	chmodSync,
+	existsSync,
 	mkdirSync,
 	mkdtempSync,
 	readdirSync,
@@ -342,6 +343,54 @@ describe("account-engine state", () => {
 
 		expect(JSON.parse(readFileSync(lockPath, "utf8")).nonce).toBe("nonce-b");
 		expect(rival.isOwner("nonce-b")).toBe(true);
+	});
+
+	// The window a second ownership check cannot close: the reclaim lands
+	// *after* the last check, so the path names a successor's fresh inode by
+	// the time the release deletes it. The seam fires the rival's takeover
+	// right after the first check and pins what that check saw, which is that
+	// interleaving — and it fires at the same point in the release whether the
+	// delete re-checks the path or moves the lock aside first.
+	it("never deletes a lock reclaimed after the final ownership check", () => {
+		const owner = new EngineState();
+		expect(owner.claimLock("nonce-a", 1_000)).toBe(true);
+		const dir = join(home, "state", "account-engine");
+		const lockPath = join(dir, "engine.lock");
+		const rival = new EngineState();
+		const takeoverAt = 1_000 + DEFAULT_LOCK_STALE_MS + 1;
+
+		type LockIdentity = {
+			ownedLockIdentity(
+				path: string,
+				nonce: string,
+			): { ino: number; dev: number } | null;
+		};
+		const seam = owner as unknown as LockIdentity;
+		const realIdentity = seam.ownedLockIdentity.bind(owner);
+		let checked: { ino: number; dev: number } | null | undefined;
+		let reclaimed = false;
+		seam.ownedLockIdentity = (path, nonce) => {
+			if (checked === undefined) {
+				checked = realIdentity(path, nonce);
+				reclaimed = rival.claimLock("nonce-b", takeoverAt);
+			}
+			return checked;
+		};
+
+		owner.releaseLock("nonce-a");
+
+		expect(reclaimed).toBe(true);
+		// Deleting by path would take the successor's lock, not ours.
+		expect(existsSync(lockPath)).toBe(true);
+		expect(JSON.parse(readFileSync(lockPath, "utf8")).nonce).toBe("nonce-b");
+		expect(rival.isOwner("nonce-b")).toBe(true);
+		// An absent lock has no staleness barrier, so any engine that ticks
+		// claims it for free while the rival still believes it owns the host:
+		// that free second owner is what this must never leave behind.
+		expect(new EngineState().claimLock("nonce-c", takeoverAt + 1)).toBe(false);
+		expect(
+			readdirSync(dir).filter((name) => name.includes(".release.")),
+		).toEqual([]);
 	});
 
 	it("keeps refreshing while the lock is still ours", () => {
