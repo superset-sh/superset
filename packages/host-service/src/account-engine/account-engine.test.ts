@@ -292,8 +292,10 @@ function harness(options: HarnessOptions = {}) {
 		ensureActiveDir: async (opts) => {
 			if (options.activeDirThrows) throw new Error("permission denied");
 			// Mirrors ensureActiveClaudeDir: the seed runs only on a dir that
-			// has never held a login.
-			if (!seeded) {
+			// holds no login at all. An identity naming an account is parsed
+			// out of the `.claude.json` whose absence is the seed's whole
+			// precondition, so the two cannot be true at once.
+			if (!seeded && activeIdentity.accountUuid === null) {
 				seeded = true;
 				await opts?.seedLogin?.(ACTIVE_DIR);
 			}
@@ -651,8 +653,8 @@ describe("AccountEngine", () => {
 		expect(h.calls).toEqual([
 			"corroborate",
 			// Gate 3 fetches nothing here: these numbers were read this very
-			// instant, and a hint does not pay for a read twice.
-			"seed",
+			// instant, and a hint does not pay for a read twice. No seed
+			// either — the active dir already holds account A's login.
 			"swap",
 			"setPointer",
 			// Before the history row and the event that report it (#J).
@@ -1310,6 +1312,50 @@ describe("AccountEngine", () => {
 
 		expect(h.swapInputs.at(-1)?.ownerManaged).toBe(false);
 		expect(h.swapInputs.at(-1)?.expectedOwnerAccountId).toBeNull();
+	});
+
+	// KTD3 step 2, the guess it refuses to make: with nothing bound yet the
+	// owner of the active dir's login is inferred from the pool, and one
+	// account signed into two config dirs offers two answers. Saving its
+	// refreshed token back into the wrong one of them signs that dir out.
+	it("refuses the swap when one account's login sits in two dirs", async () => {
+		const h = harness({
+			entries: [
+				entryFor(
+					usageAccount({
+						windows: [w("five_hour", "Session (5h)", 91)],
+						isDefault: true,
+					}),
+				),
+				entryFor(
+					usageAccount({
+						accountKey: "key-a2",
+						selection: "/profiles/a2",
+						windows: [w("five_hour", "Session (5h)", 91)],
+					}),
+				),
+				entryFor(
+					usageAccount({
+						accountKey: "key-b",
+						accountId: "acct-b",
+						selection: "/profiles/b",
+						email: "b@example.com",
+						windows: [w("five_hour", "Session (5h)", 20)],
+					}),
+				),
+			],
+		});
+		enable(h.engine);
+
+		await h.engine.tick();
+
+		expect(h.calls).not.toContain("swap");
+		expect(h.switched).toEqual([]);
+		expect(
+			h.engineStates.filter(
+				(event) => event.lastSwitchFailure?.code === "owner-unknown",
+			),
+		).toHaveLength(1);
 	});
 
 	// The other half of the same fork: a name that is neither the account we
@@ -2107,6 +2153,9 @@ describe("AccountEngine", () => {
 				h.calls.push("refresh-done");
 			},
 		});
+		// The seed this test orders against only runs on a dir that holds no
+		// login yet.
+		h.setActiveIdentity({ accountUuid: null, credentialHash: null });
 		enable(h.engine);
 
 		const tick = h.engine.tick();
@@ -2339,7 +2388,9 @@ describe("AccountEngine", () => {
 			],
 			pointer: { claudeConfigDir: "/profiles/b" },
 		});
-		h.setActiveIdentity({ accountUuid: "acct-b", credentialHash: "hash-b" });
+		// The state a seed is possible in: the active dir has never held a
+		// login, so nothing there names an account.
+		h.setActiveIdentity({ accountUuid: null, credentialHash: null });
 		enable(h.engine);
 
 		await h.engine.tick();
@@ -2444,8 +2495,33 @@ describe("AccountEngine", () => {
 		expect(loser.engineState.readRotation()).toEqual({});
 	});
 
+	// The row is composed from the two decision accounts, so the assertion is
+	// only worth anything if one of them carries token material to begin with:
+	// `accountKey` keys the credential source, rides into the switch as the
+	// `from` account, and is the field there the row must not copy. Every
+	// other value in reach is an id, a dir or a display label, which is why an
+	// entry serializing its whole input used to pass this unchanged.
 	it("keeps token material out of the history file", async () => {
-		const h = harness({ entries: twoClaudeAccounts() });
+		const h = harness({
+			entries: [
+				entryFor(
+					usageAccount({
+						accountKey: "sk-ant-oat01-FIXTURE",
+						windows: [w("five_hour", "Session (5h)", 91)],
+						isDefault: true,
+					}),
+				),
+				entryFor(
+					usageAccount({
+						accountKey: "key-b",
+						accountId: "acct-b",
+						selection: "/profiles/b",
+						email: "b@example.com",
+						windows: [w("five_hour", "Session (5h)", 20)],
+					}),
+				),
+			],
+		});
 		enable(h.engine);
 		await h.engine.tick();
 
