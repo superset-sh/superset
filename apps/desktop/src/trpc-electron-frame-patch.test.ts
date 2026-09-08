@@ -19,10 +19,16 @@ describe("trpc-electron disposed-frame patch", () => {
 			const read = src.indexOf("frameRoutingId", listener);
 			expect(read).toBeGreaterThan(listener);
 
-			// Reading any property of a WebFrameMain whose render frame is gone
-			// throws out of webContents.emit, so the liveness check has to sit
-			// between the listener and the routingId read.
-			expect(src.slice(listener, read)).toContain("isDestroyed()");
+			// Both guards have to sit between the listener and the routingId
+			// read: Electron hands the listener `WebFrameMain | null`, and
+			// reading any property of a frame whose render frame is gone throws
+			// out of webContents.emit. Read the frame's minified binding name so
+			// the assertions survive a re-minify.
+			const guard = src.slice(listener, read);
+			const frame = /frame\s*:\s*([A-Za-z_$][\w$]*)/.exec(guard)?.[1];
+			expect(frame).toBeString();
+			expect(guard).toContain(`!${frame}`);
+			expect(guard).toContain(`${frame}.isDestroyed()`);
 		});
 	}
 });
