@@ -62,6 +62,30 @@ describe("updateClaudeStateFile", () => {
 		}
 	});
 
+	it("renames before rescue pruning can yield to another writer", async () => {
+		const file = join(tempDir(), ".claude.json");
+		writeFileSync(file, "{partial");
+		const settled = { userID: "repaired", projects: { trusted: true } };
+		const realReaddir = fsPromises.readdir.bind(fsPromises);
+		const readdir = spyOn(fsPromises, "readdir").mockImplementation((async (
+			...args: Parameters<typeof realReaddir>
+		) => {
+			// The CLI repairs its state during the asynchronous backup listing.
+			writeFileSync(file, JSON.stringify(settled));
+			return realReaddir(...args);
+		}) as typeof fsPromises.readdir);
+		try {
+			await updateClaudeStateFile(file, (state) => ({
+				...state,
+				seeded: true,
+			}));
+			expect(readdir).toHaveBeenCalled();
+			expect(JSON.parse(readFileSync(file, "utf8"))).toEqual(settled);
+		} finally {
+			readdir.mockRestore();
+		}
+	});
+
 	// The guard has to notice a writer that replaced the file. mtime alone
 	// cannot: the plain Stats field is whole milliseconds and this cycle is
 	// far shorter, so a same-size rewrite in the same bucket used to be

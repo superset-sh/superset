@@ -243,6 +243,29 @@ describe("dedupeClaudeCredentials", () => {
 		).toEqual(["stale", "live"]);
 	});
 
+	it("keeps renewable and expired copies in either discovery order", () => {
+		const expired = credential({
+			accessToken: "expired",
+			accountId: "uuid-a",
+			selection: null,
+			expiresAt: now - hour,
+			refreshTokenExpiresAt: now - hour,
+		});
+		const renewable = credential({
+			accessToken: "renewable",
+			accountId: "uuid-a",
+			selection: "/home/u/.claude-a",
+			expiresAt: now - hour,
+			refreshTokenExpiresAt: now + hour,
+		});
+		for (const copies of [
+			[expired, renewable],
+			[renewable, expired],
+		]) {
+			expect(dedupeClaudeCredentials(copies, now)).toEqual(copies);
+		}
+	});
+
 	it("carries a dropped dir on the survivor, so it stays removable", () => {
 		const first = credential({
 			accessToken: "one",

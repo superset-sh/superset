@@ -532,10 +532,7 @@ export function dedupeClaudeCredentials(
 		// expired card or the working one. Keep both and let the user move.
 		const keptState = classifyLapsedToken(kept, now);
 		const candidateState = classifyLapsedToken(credential, now);
-		if (
-			keptState !== candidateState &&
-			(keptState === "live" || candidateState === "live")
-		) {
+		if (keptState !== candidateState) {
 			out.push(credential);
 			continue;
 		}

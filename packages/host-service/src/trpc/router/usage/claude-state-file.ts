@@ -218,8 +218,8 @@ async function writeIfUnchanged(
 			await unlink(temporaryPath).catch(() => {});
 			return false;
 		}
-		await rescued?.commit();
 		await rename(temporaryPath, statePath);
+		await rescued?.commit();
 		return true;
 	} catch (error) {
 		await unlink(temporaryPath).catch(() => {});
