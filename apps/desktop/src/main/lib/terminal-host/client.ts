@@ -87,13 +87,21 @@ const SCRIPT_MTIME_PATH = join(SUPERSET_HOME_DIR, "terminal-host.mtime");
 
 // Connection timeouts
 const CONNECT_TIMEOUT_MS = 5000;
-const SPAWN_WAIT_MS = 2000;
 const REQUEST_TIMEOUT_MS = 30000;
 const SPAWN_LOCK_TIMEOUT_MS = 10000; // Max time to hold spawn lock
+// How long a spawned daemon gets to start accepting connections. A cold
+// `ELECTRON_RUN_AS_NODE` process start is not fast on a loaded machine, and
+// giving up early spawns a second daemon on top of the one still booting, so
+// this matches the window the spawn lock itself allows a spawn to take.
+const DAEMON_READY_TIMEOUT_MS = SPAWN_LOCK_TIMEOUT_MS;
+// Max wait for a connection attempt started elsewhere in this client to settle.
+const CONNECT_SETTLE_TIMEOUT_MS = 10000;
 
 // Queue limits
 const MAX_NOTIFY_QUEUE_BYTES = 2_000_000; // 2MB cap to prevent OOM
 const MAX_DAEMON_LOG_BYTES = 5 * 1024 * 1024; // 5MB cap for daemon.log
+// How many timed-out request ids to keep so a later reply can be recognized.
+const MAX_TIMED_OUT_REQUESTS = 16;
 
 // =============================================================================
 // NDJSON Parser
@@ -193,6 +201,13 @@ export class TerminalHostClient extends EventEmitter {
 	private disconnectArmed = false;
 	private clientId = randomUUID();
 	private canceledCreateOrAttachKeys = new Set<string>();
+	private connectAttempt: Promise<void> | null = null;
+	/** When the daemon last sent anything on either socket. 0 = never. */
+	private lastDaemonMessageAt = 0;
+	/** Requests we stopped waiting for, by id, so a late reply is recognized. */
+	private timedOutRequests = new Map<string, number>();
+	private lateAnswerCount = 0;
+	private lastLateAnswerMs: number | null = null;
 
 	constructor() {
 		super();
@@ -210,57 +225,41 @@ export class TerminalHostClient extends EventEmitter {
 	// Connection Management
 	// ===========================================================================
 
+	private get isFullyConnected(): boolean {
+		return (
+			this.connectionState === ConnectionState.CONNECTED &&
+			this.controlSocket !== null &&
+			this.streamSocket !== null &&
+			this.controlAuthenticated &&
+			this.streamAuthenticated
+		);
+	}
+
 	/**
 	 * Ensure we have a connected, authenticated socket.
 	 * Spawns daemon if needed.
 	 */
 	async ensureConnected(): Promise<void> {
 		// Already connected - fast path (no logging to avoid noise on every API call)
-		if (
-			this.connectionState === ConnectionState.CONNECTED &&
-			this.controlSocket &&
-			this.streamSocket &&
-			this.controlAuthenticated &&
-			this.streamAuthenticated
-		) {
-			return;
-		}
+		if (this.isFullyConnected) return;
 
-		// Another connection in progress - wait with timeout
-		if (this.connectionState === ConnectionState.CONNECTING) {
-			if (DEBUG_CLIENT) {
-				console.log(
-					"[TerminalHostClient] Connection already in progress, waiting...",
-				);
-			}
-			return new Promise((resolve, reject) => {
-				const startTime = Date.now();
-				const WAIT_TIMEOUT_MS = 10000; // 10 seconds max wait
+		// Concurrent callers share the one attempt, so all of them settle on what
+		// actually happened. Watching `connectionState` from the outside instead
+		// reported "Connection failed while waiting", which named neither the
+		// failure nor the caller that hit it.
+		this.connectAttempt ??= this.connectOnce().finally(() => {
+			this.connectAttempt = null;
+		});
+		return this.connectAttempt;
+	}
 
-				const checkConnection = () => {
-					if (
-						this.connectionState === ConnectionState.CONNECTED &&
-						this.controlSocket &&
-						this.streamSocket &&
-						this.controlAuthenticated &&
-						this.streamAuthenticated
-					) {
-						resolve();
-					} else if (this.connectionState === ConnectionState.DISCONNECTED) {
-						reject(new Error("Connection failed while waiting"));
-					} else if (Date.now() - startTime > WAIT_TIMEOUT_MS) {
-						reject(
-							new Error(
-								"Timeout waiting for connection - daemon may be unresponsive",
-							),
-						);
-					} else {
-						setTimeout(checkConnection, 100);
-					}
-				};
-				checkConnection();
-			});
-		}
+	private async connectOnce(): Promise<void> {
+		// `tryConnectAndAuthenticate` may already own CONNECTING; two attempts
+		// destroy each other's control socket. Wait for that probe to settle —
+		// a probe that finds no daemon leaves us DISCONNECTED, which is not a
+		// failure here, because we spawn one below.
+		await this.waitForConnectionToSettle();
+		if (this.isFullyConnected) return;
 
 		this.connectionState = ConnectionState.CONNECTING;
 		this.disconnectArmed = false;
@@ -277,6 +276,26 @@ export class TerminalHostClient extends EventEmitter {
 			// Reset without emitting disconnected (connection never became usable)
 			this.resetConnectionState({ emitDisconnected: false });
 			throw error;
+		}
+	}
+
+	private async waitForConnectionToSettle(): Promise<void> {
+		if (this.connectionState !== ConnectionState.CONNECTING) return;
+
+		if (DEBUG_CLIENT) {
+			console.log(
+				"[TerminalHostClient] Connection already in progress, waiting...",
+			);
+		}
+
+		const startTime = Date.now();
+		while (this.connectionState === ConnectionState.CONNECTING) {
+			if (Date.now() - startTime > CONNECT_SETTLE_TIMEOUT_MS) {
+				throw new Error(
+					"Timeout waiting for connection - daemon may be unresponsive",
+				);
+			}
+			await this.sleep(100);
 		}
 	}
 
@@ -720,11 +739,15 @@ export class TerminalHostClient extends EventEmitter {
 	 * Handle incoming message (response or event)
 	 */
 	private handleMessage(message: IpcResponse | IpcEvent): void {
+		this.lastDaemonMessageAt = Date.now();
+
 		// Type guard: responses have 'id' field, events have 'type: event'
 		if ("id" in message) {
 			// Response to a request
 			const pending = this.pendingRequests.get(message.id);
-			if (pending) {
+			if (!pending) {
+				this.recordLateAnswer(message.id);
+			} else {
 				this.pendingRequests.delete(message.id);
 				clearTimeout(pending.timeoutId);
 
@@ -824,6 +847,10 @@ export class TerminalHostClient extends EventEmitter {
 			pending.reject(pendingRequestError ?? new Error("Connection lost"));
 			this.pendingRequests.delete(id);
 		}
+
+		// Nothing can answer these now, so they are not evidence of a daemon that
+		// never answers.
+		this.timedOutRequests.clear();
 
 		if (emitDisconnected) {
 			this.emit("disconnected");
@@ -1296,13 +1323,28 @@ export class TerminalHostClient extends EventEmitter {
 				);
 			}
 
+			// Watch the child we just started. Nothing observed it before, so a
+			// daemon that could not exec or died on startup was indistinguishable
+			// from a slow one, and an unhandled "error" event would have taken the
+			// main process down with it.
+			const startupFailure: { reason: string | null } = { reason: null };
+			child.on("error", (error) => {
+				startupFailure.reason ??= `could not be spawned (${error.message})`;
+				console.warn(`[TerminalHostClient] Daemon ${startupFailure.reason}`);
+			});
+			child.once("exit", (code, signal) => {
+				startupFailure.reason ??= signal
+					? `was killed by ${signal} during startup`
+					: `exited with code ${code} during startup`;
+			});
+
 			if (!isDev) child.unref();
 
 			// Wait for daemon to start
 			if (DEBUG_CLIENT) {
 				console.log("[TerminalHostClient] Waiting for daemon to start...");
 			}
-			await this.waitForDaemon();
+			await this.waitForDaemon(startupFailure);
 
 			// In development mode, save the script mtime to detect rebuilds
 			if (process.env.NODE_ENV === "development") {
@@ -1332,16 +1374,23 @@ export class TerminalHostClient extends EventEmitter {
 	}
 
 	/**
-	 * Wait for daemon to be ready
+	 * Wait for the daemon to accept connections.
+	 *
+	 * `startupFailure` carries what the process we spawned did, when we were the
+	 * spawner. A daemon that dies on startup is a different thing from one that
+	 * is merely slow, and only the socket answering means it is actually ready —
+	 * the socket file appears at `listen()` but polling for the file alone had to
+	 * guess at the rest with a fixed sleep.
 	 */
-	private async waitForDaemon(): Promise<void> {
+	private async waitForDaemon(startupFailure?: {
+		reason: string | null;
+	}): Promise<void> {
 		const startTime = Date.now();
 
-		while (Date.now() - startTime < SPAWN_WAIT_MS) {
-			if (existsSync(SOCKET_PATH)) {
-				// Give it a moment to start listening
-				await this.sleep(200);
-				return;
+		while (Date.now() - startTime < DAEMON_READY_TIMEOUT_MS) {
+			if (await this.isSocketLive()) return;
+			if (startupFailure?.reason) {
+				throw new Error(`Daemon ${startupFailure.reason}`);
 			}
 			await this.sleep(100);
 		}
@@ -1358,6 +1407,37 @@ export class TerminalHostClient extends EventEmitter {
 	// ===========================================================================
 
 	/**
+	 * Note that a request we gave up on was answered after all, and how late.
+	 * A daemon that always answers eventually is a slow or suspended machine; a
+	 * daemon that never does is a daemon that is actually stuck.
+	 */
+	private recordLateAnswer(id: string): void {
+		const timedOutAt = this.timedOutRequests.get(id);
+		if (timedOutAt === undefined) return;
+		this.timedOutRequests.delete(id);
+		this.lateAnswerCount++;
+		this.lastLateAnswerMs = Date.now() - timedOutAt;
+	}
+
+	/**
+	 * What we know about the daemon at the moment a request gave up. Without
+	 * this the timeout says only which request it was, which cannot tell a
+	 * wedged daemon apart from a machine that stopped running either process.
+	 */
+	private describeRequestTimeout(sentAt: number): string {
+		const facts = [
+			this.lastDaemonMessageAt > sentAt
+				? `daemon last spoke ${Date.now() - this.lastDaemonMessageAt}ms ago`
+				: "daemon sent nothing while we waited",
+			`${this.pendingRequests.size} other request(s) in flight`,
+			this.lateAnswerCount === 0
+				? "no earlier timeout has ever been answered"
+				: `${this.lateAnswerCount} earlier timeout(s) answered late, most recent ${this.lastLateAnswerMs}ms after giving up`,
+		];
+		return ` after ${Date.now() - sentAt}ms (${facts.join("; ")})`;
+	}
+
+	/**
 	 * Send a request to the daemon and wait for response
 	 */
 	private sendRequest<T>(type: string, payload: unknown): Promise<T> {
@@ -1368,10 +1448,20 @@ export class TerminalHostClient extends EventEmitter {
 			}
 
 			const id = `req_${++this.requestCounter}`;
+			const sentAt = Date.now();
 
 			const timeoutId = setTimeout(() => {
 				this.pendingRequests.delete(id);
-				reject(new Error(`Request timeout: ${type}`));
+				if (this.timedOutRequests.size >= MAX_TIMED_OUT_REQUESTS) {
+					const oldest = this.timedOutRequests.keys().next().value;
+					if (oldest) this.timedOutRequests.delete(oldest);
+				}
+				this.timedOutRequests.set(id, Date.now());
+				reject(
+					new Error(
+						`Request timeout: ${type}${this.describeRequestTimeout(sentAt)}`,
+					),
+				);
 			}, REQUEST_TIMEOUT_MS);
 
 			// Cast resolve to unknown handler - safe because response type matches T
