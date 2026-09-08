@@ -170,6 +170,23 @@ export function sessionMoveNote(
 			);
 }
 
+/**
+ * How many of an agent's accounts the engine could actually switch onto.
+ * Mirrors what `shouldSwitch` looks for: another account than the active one
+ * (`accountKey !== active.accountKey`) that `isEligible` accepts — managed, in
+ * rotation, and with a token it can read. Login count is not the predicate:
+ * two logins with neither in rotation are as inert as one.
+ */
+function switchCandidateCount(accounts: UsageAccount[]): number {
+	return accounts.filter(
+		(candidate) =>
+			!candidate.isDefault &&
+			candidate.managed &&
+			candidate.inRotation &&
+			(candidate.status === "ok" || candidate.status === "token_stale"),
+	).length;
+}
+
 const ACTIVE_TITLE = msg({
 	message:
 		"Active — every running and newly launched session of this agent uses this account.",
@@ -574,6 +591,13 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 	// and not `?? false`: a read that has not landed is not a Windows host,
 	// and telling everyone else to relaunch would be its own falsehood.
 	const movesRunningSessions = engineQuery.data?.platformSupported !== false;
+	// The three states in which `AutoSwitchSettings` replaces its controls with
+	// an explanation of why nothing can switch at all. A note about this
+	// agent's accounts underneath one of those would be noise.
+	const autoSwitchBlocked =
+		!engineQuery.data?.platformSupported ||
+		!engineQuery.data?.engineAvailable ||
+		!engineQuery.data?.lockOwner;
 
 	const showMadeActiveToast = (agent: ManagedAgent, accountLabel: string) => {
 		const providerLabel = AGENT_LABELS[agent];
@@ -882,17 +906,36 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 							</div>
 						)}
 						{engineAgentSettings && isManagedAgent(agent) && (
-							<AutoSwitchSettings
-								agentLabel={AGENT_LABELS[agent]}
-								settings={engineAgentSettings[agent]}
-								engineAvailable={engineQuery.data?.engineAvailable ?? false}
-								platformSupported={engineQuery.data?.platformSupported ?? false}
-								lockOwner={engineQuery.data?.lockOwner ?? false}
-								disabled={!hostUrl || engineQuery.isPending}
-								onCommit={(patch) =>
-									setEngineSettings.mutateAsync({ agent, patch })
-								}
-							/>
+							<>
+								<AutoSwitchSettings
+									agentLabel={AGENT_LABELS[agent]}
+									settings={engineAgentSettings[agent]}
+									engineAvailable={engineQuery.data?.engineAvailable ?? false}
+									platformSupported={
+										engineQuery.data?.platformSupported ?? false
+									}
+									lockOwner={engineQuery.data?.lockOwner ?? false}
+									disabled={!hostUrl || engineQuery.isPending}
+									onCommit={(patch) =>
+										setEngineSettings.mutateAsync({ agent, patch })
+									}
+								/>
+								{/* The panel offers a switch the engine can never make: it
+								    finds no candidate, and the only word about it comes as
+								    an exhaustion notice much later. The setting is
+								    legitimately configured before the second account
+								    exists, so this says so rather than hiding the panel. */}
+								{!autoSwitchBlocked &&
+									switchCandidateCount(agentAccounts) === 0 && (
+										<p className="px-2.5 text-[11px] text-muted-foreground">
+											<Trans>
+												Nothing to switch to yet: this needs another{" "}
+												{AGENT_LABELS[agent]} account with In rotation turned
+												on.
+											</Trans>
+										</p>
+									)}
+							</>
 						)}
 					</section>
 				);

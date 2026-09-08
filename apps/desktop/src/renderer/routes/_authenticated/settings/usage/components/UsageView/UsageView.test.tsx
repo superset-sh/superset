@@ -671,3 +671,101 @@ describe("UsageView on a host that cannot swap live sessions", () => {
 		).toHaveLength(0);
 	});
 });
+
+describe("UsageView auto-switch with nowhere to go", () => {
+	const AUTO_SWITCH_SETTINGS = {
+		enabled: true,
+		thresholdPercent: 90,
+		strategy: "best",
+		modelWindows: [],
+		pollIntervalSeconds: 60,
+		cooldownSeconds: 300,
+	};
+
+	function renderWithEngine(accounts: Account[]) {
+		const queryClient = new QueryClient({
+			defaultOptions: { queries: { retry: false } },
+		});
+		queryClient.setQueryData([...HOST_USAGE_QUOTA_QUERY_KEY, null], accounts);
+		// Only the fields the view reads, with none of the three blocked states.
+		queryClient.setQueryData([...ACCOUNT_ENGINE_QUERY_KEY, null], {
+			engineAvailable: true,
+			platformSupported: true,
+			lockOwner: true,
+			settings: {
+				claude: AUTO_SWITCH_SETTINGS,
+				codex: AUTO_SWITCH_SETTINGS,
+			},
+		});
+		const view = render(
+			<QueryClientProvider client={queryClient}>
+				<UsageView hostUrl={null} />
+			</QueryClientProvider>,
+		);
+		return { text: view.baseElement.textContent ?? "", view };
+	}
+
+	const CLAUDE_NOTE =
+		"Nothing to switch to yet: this needs another Claude Code account with In rotation turned on.";
+
+	// The panel renders directly under "No Claude Code logins on this host"
+	// with a live enabled toggle, and the engine's only word about finding no
+	// candidate is an exhaustion notice at limit-time, hours later.
+	test("a lone login is told the switch has nowhere to go", () => {
+		const { text } = renderWithEngine([account({ isDefault: true })]);
+		expect(text).toContain(CLAUDE_NOTE);
+	});
+
+	// The correction that shapes this: login count is not the predicate.
+	// `isEligible` reads the rotation flag, so a second account held out of
+	// rotation leaves the engine exactly as stuck as one account does.
+	test("a second account held out of rotation is just as inert", () => {
+		const { text } = renderWithEngine([
+			account({ isDefault: true }),
+			account({
+				accountKey: "claude:/p/b",
+				selection: "/p/b",
+				accountId: "uuid-b",
+				email: "b@example.com",
+				inRotation: false,
+			}),
+		]);
+		expect(text).toContain(CLAUDE_NOTE);
+	});
+
+	test("a candidate the engine would accept drops the note", () => {
+		const { text } = renderWithEngine([
+			account({ isDefault: true }),
+			account({
+				accountKey: "claude:/p/b",
+				selection: "/p/b",
+				accountId: "uuid-b",
+				email: "b@example.com",
+			}),
+		]);
+		expect(text).not.toContain(CLAUDE_NOTE);
+		// Codex still has none, and the note is per agent.
+		expect(text).toContain(
+			"Nothing to switch to yet: this needs another Codex account with In rotation turned on.",
+		);
+	});
+
+	// The setting is legitimately configured before the second account is
+	// added and is persisted host-side, so the note explains the panel — it
+	// does not take it away.
+	test("the note explains the panel instead of disabling it", () => {
+		const { view } = renderWithEngine([account({ isDefault: true })]);
+		const ui = within(view.baseElement as HTMLElement);
+		const toggles = ui.getAllByRole("switch", {
+			name: "Switch accounts automatically",
+		});
+		expect(toggles).toHaveLength(2);
+		// Still on, still the host's value, with the thresholds it governs.
+		for (const toggle of toggles) {
+			expect(toggle.getAttribute("aria-checked")).toBe("true");
+		}
+		expect(ui.getAllByRole("spinbutton", { name: "Switch at" })).toHaveLength(
+			2,
+		);
+	});
+});
