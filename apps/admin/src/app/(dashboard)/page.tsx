@@ -6,22 +6,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@superset/ui/tabs";
 
 import { BurnByVendorTile } from "./components/BurnByVendorTile";
 import { CashBalanceTile } from "./components/CashBalanceTile";
-import { ChurnHeatmapTile } from "./components/ChurnHeatmapTile";
 import { EnterpriseArrTile } from "./components/EnterpriseArrTile";
 import { HogQLLineTile } from "./components/HogQLLineTile";
-import { LogoRetentionTile } from "./components/LogoRetentionTile";
 import { MrrTile } from "./components/MrrTile";
 import { NetBurnTile } from "./components/NetBurnTile";
 import { PostHogFunnelTile } from "./components/PostHogFunnelTile";
 import { RetentionGridTile } from "./components/RetentionGridTile";
 import { RunwayTile } from "./components/RunwayTile";
-import { SignupToPaidTile } from "./components/SignupToPaidTile";
 import { TrendSeriesTile } from "./components/TrendSeriesTile";
 
 // Mirror of PostHog dashboard 1884562 (plan D-7), organized by audience:
-// tiles can appear on several tabs. Product tiles reference saved insights
-// by id; business tiles compute live from Stripe/Neon. Each tile renders at
-// its canonical saved range (D-14).
+// tiles can appear on several tabs, and growth has its own page at /growth.
+// Product tiles reference saved insights by id; business tiles compute live
+// from Stripe/Neon. Each tile renders at its canonical saved range (D-14).
 
 export default function DashboardPage() {
 	const { t } = useLingui();
@@ -127,9 +124,6 @@ export default function DashboardPage() {
 					<TabsTrigger value="product">
 						<Trans>Product</Trans>
 					</TabsTrigger>
-					<TabsTrigger value="growth">
-						<Trans>Growth</Trans>
-					</TabsTrigger>
 				</TabsList>
 
 				<TabsContent value="company" className="mt-4 space-y-6">
@@ -184,36 +178,6 @@ export default function DashboardPage() {
 						/>
 						<div className="col-span-full">
 							<RetentionGridTile />
-						</div>
-					</div>
-				</TabsContent>
-
-				<TabsContent value="growth" className="mt-4">
-					<div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-						<div className="col-span-full">
-							<PostHogFunnelTile />
-						</div>
-						<TrendSeriesTile
-							insight="newSiteVisitors"
-							description={t({
-								message: "First-ever pageview on superset.sh, daily",
-							})}
-						/>
-						<TrendSeriesTile
-							insight="downloadCtrMac"
-							description={t({
-								message:
-									"Weekly pageview → download conversion, Mac visitors; current week dashed",
-							})}
-							valueSuffix="%"
-							dashIncompleteLast
-						/>
-						<SignupToPaidTile />
-						<HogQLLineTile {...ACTIVATED_RATE_PROPS} />
-						<MrrTile />
-						<LogoRetentionTile />
-						<div className="col-span-full">
-							<ChurnHeatmapTile />
 						</div>
 					</div>
 				</TabsContent>

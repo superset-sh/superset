@@ -1,5 +1,6 @@
 import type { SelectV2Workspace } from "@superset/db/schema";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
+import { visibleWorkspaceTags } from "@superset/shared/workspace-tags";
 import type {
 	HostConnectionState,
 	WorkspaceSnapshotPayload,
@@ -216,6 +217,10 @@ export function isEventBusReopen(
 /**
  * Apply a workspace:changed event to a host's cached list. Created/updated
  * upsert from the event's snapshot payload; deleted removes the row.
+ *
+ * The host broadcasts one snapshot to every client, so it carries every
+ * user's tags with their creators; `viewerUserId` keeps this client's own,
+ * matching what `workspace.list` already served it.
  */
 export function applyWorkspaceChangedEvent(
 	rows: HostWorkspaceRow[] | undefined,
@@ -225,6 +230,8 @@ export function applyWorkspaceChangedEvent(
 	},
 	host: { organizationId: string; machineId: string },
 	workspaceId: string,
+	/** Null while the session is unresolved — not "no identity". */
+	viewerUserId: string | null,
 ): HostWorkspaceRow[] | undefined {
 	if (event.eventType === "deleted") {
 		if (!rows) return rows;
@@ -246,7 +253,15 @@ export function applyWorkspaceChangedEvent(
 		taskId: snapshot.taskId,
 		// Runtime-optional despite the payload type: an older host's events
 		// carry no tags — keep the row's last known set rather than wiping it.
-		tags: snapshot.tags ?? existing?.tags,
+		// A host that predates tag creators sends only the union and can't
+		// tell whose is whose; show it as before rather than nothing.
+		tags: snapshot.tagAssignments
+			? viewerUserId === null
+				? // The session hasn't resolved yet: nobody's tags are ours to
+					// show (or persist), so keep what the row already had.
+					(existing?.tags ?? [])
+				: visibleWorkspaceTags(snapshot.tagAssignments, viewerUserId)
+			: (snapshot.tags ?? existing?.tags),
 		createdAt: new Date(snapshot.createdAt),
 		updatedAt: new Date(snapshot.updatedAt),
 		// Same runtime-optionality as tags: an older host's events omit it, so

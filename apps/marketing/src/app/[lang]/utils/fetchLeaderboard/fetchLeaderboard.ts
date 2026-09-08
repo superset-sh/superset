@@ -19,8 +19,11 @@ export interface RangeQuery {
 	to?: string;
 }
 
-export interface StandingsQuery extends RangeQuery {
+export interface MetricQuery extends RangeQuery {
 	metric?: LeaderboardMetric;
+}
+
+export interface StandingsQuery extends MetricQuery {
 	limit?: number;
 	offset?: number;
 }
@@ -71,5 +74,57 @@ export async function fetchParticipant(
 			return null;
 		}
 		throw error;
+	}
+}
+
+/** The API's public limiter refused the read; the caller decides what to render. */
+export function isRateLimited(error: unknown): boolean {
+	return (
+		error instanceof TRPCClientError && error.data?.code === "TOO_MANY_REQUESTS"
+	);
+}
+
+export async function fetchStanding(
+	handle: string,
+	options: MetricQuery = {},
+	signal?: AbortSignal,
+): Promise<StandingRow | null> {
+	try {
+		return await leaderboardClient.leaderboard.public.standing.query(
+			{ handle, ...options },
+			{ signal },
+		);
+	} catch (error) {
+		if (signal?.aborted) return null;
+		console.error("[marketing/leaderboard] standing error:", error);
+		return null;
+	}
+}
+
+export async function fetchSearch(
+	query: string,
+	options: MetricQuery = {},
+	signal?: AbortSignal,
+): Promise<StandingRow[]> {
+	try {
+		return await leaderboardClient.leaderboard.public.search.query(
+			{ query, ...options },
+			{ signal },
+		);
+	} catch (error) {
+		if (signal?.aborted) return [];
+		console.error("[marketing/leaderboard] search error:", error);
+		return [];
+	}
+}
+
+export async function fetchPublicHandles(): Promise<
+	Array<{ handle: string; lastPublishedAt: Date | null }>
+> {
+	try {
+		return await leaderboardClient.leaderboard.public.handles.query();
+	} catch (error) {
+		console.error("[marketing/leaderboard] handles error:", error);
+		return [];
 	}
 }

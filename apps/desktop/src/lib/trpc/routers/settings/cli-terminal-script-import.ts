@@ -1,22 +1,28 @@
 import type { TerminalPreset } from "@superset/local-db";
 
+/**
+ * A row the CLI flagged for this organization: either a new/edited script to
+ * copy into v2 (cliImportPending) or a tombstone whose v2 copy must go
+ * (cliDeletePending).
+ */
 export function isPendingCliTerminalScript(
 	script: TerminalPreset,
 	organizationId: string,
 ): boolean {
 	return (
-		script.cliImportPending === true &&
+		(script.cliImportPending === true || script.cliDeletePending === true) &&
 		script.cliTargetOrganizationId === organizationId
 	);
 }
 
 /**
- * Clear the one-shot CLI import markers once v2 has copied the scripts. The
- * rows stay in the legacy store (v1 keeps showing them, same as presets
- * brought over by the v1 import modal); only the marker goes, so a script
- * deleted in v2 is never re-imported.
+ * Settle the one-shot CLI markers once v2 has applied them. Imported rows
+ * stay in the legacy store (v1 keeps showing them, same as presets brought
+ * over by the v1 import modal); only the marker goes, so a script deleted in
+ * v2 is never re-imported. Tombstones are dropped entirely: the user deleted
+ * the script, and `superset scripts list` reads this store.
  */
-export function clearImportedCliTerminalScripts({
+export function acknowledgeCliTerminalScripts({
 	scripts,
 	organizationId,
 	ids,
@@ -27,19 +33,23 @@ export function clearImportedCliTerminalScripts({
 }): { scripts: TerminalPreset[]; changed: boolean } {
 	const acknowledgedIds = new Set(ids);
 	let changed = false;
-	const nextScripts = scripts.map((script) => {
+	const nextScripts: TerminalPreset[] = [];
+	for (const script of scripts) {
 		if (
 			!acknowledgedIds.has(script.id) ||
 			!isPendingCliTerminalScript(script, organizationId)
-		)
-			return script;
+		) {
+			nextScripts.push(script);
+			continue;
+		}
 		changed = true;
+		if (script.cliDeletePending) continue;
 		const {
 			cliImportPending: _pending,
 			cliTargetOrganizationId: _target,
 			...rest
 		} = script;
-		return rest;
-	});
+		nextScripts.push(rest);
+	}
 	return { scripts: nextScripts, changed };
 }

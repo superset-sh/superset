@@ -1,10 +1,12 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+	isWorkspaceTagVisibleTo,
 	normalizeWorkspaceTag,
 	normalizeWorkspaceTags,
 	SESSIONS_TAG_SCOPE,
 	tagFolderScopeInputSchema,
+	visibleWorkspaceTags,
 	WORKSPACE_TAG_MAX_LENGTH,
 	WORKSPACE_TAGS_MAX_PER_WORKSPACE,
 	workspaceTagInputSchema,
@@ -140,5 +142,43 @@ describe("workspaceTagsInputSchema", () => {
 		expect(workspaceTagsInputSchema.parse(tags)).toHaveLength(
 			WORKSPACE_TAGS_MAX_PER_WORKSPACE,
 		);
+	});
+});
+
+describe("isWorkspaceTagVisibleTo", () => {
+	test("a tag is visible to whoever applied it", () => {
+		expect(isWorkspaceTagVisibleTo("user-a", "user-a")).toBe(true);
+		expect(isWorkspaceTagVisibleTo("user-a", "user-b")).toBe(false);
+	});
+
+	test("a tag with no known creator is visible to everyone", () => {
+		expect(isWorkspaceTagVisibleTo(null, "user-b")).toBe(true);
+		expect(isWorkspaceTagVisibleTo(undefined, "user-b")).toBe(true);
+	});
+
+	test("a viewer with no identity sees everything", () => {
+		expect(isWorkspaceTagVisibleTo("user-a", null)).toBe(true);
+		expect(isWorkspaceTagVisibleTo("user-a", undefined)).toBe(true);
+	});
+});
+
+describe("visibleWorkspaceTags", () => {
+	test("filters to the viewer, then normalizes and sorts", () => {
+		expect(
+			visibleWorkspaceTags(
+				[
+					{ tag: "Zeta", createdByUserId: "user-a" },
+					{ tag: "theirs", createdByUserId: "user-b" },
+					{ tag: "legacy", createdByUserId: null },
+					{ tag: "zeta", createdByUserId: null },
+				],
+				"user-a",
+			),
+		).toEqual(["legacy", "zeta"]);
+	});
+
+	test("empty for no assignments", () => {
+		expect(visibleWorkspaceTags(null, "user-a")).toEqual([]);
+		expect(visibleWorkspaceTags(undefined, null)).toEqual([]);
 	});
 });

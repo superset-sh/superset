@@ -6,6 +6,7 @@ import {
 	Outlet,
 	useLocation,
 	useNavigate,
+	useRouterState,
 } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { DndProvider } from "react-dnd";
@@ -41,6 +42,7 @@ import {
 	V2FlipWelcome,
 } from "renderer/routes/_authenticated/components/V1FlipNotice";
 import { V1ImportModal } from "renderer/routes/_authenticated/components/V1ImportModal";
+import { useForwardedHotkeys } from "renderer/routes/_authenticated/hooks/useForwardedHotkeys";
 import { useZoomHotkeys } from "renderer/routes/_authenticated/hooks/useZoomHotkeys";
 import { WorkspaceInitEffects } from "renderer/screens/main/components/WorkspaceInitEffects";
 import { useSettingsStore } from "renderer/stores/settings-state";
@@ -86,6 +88,15 @@ function AuthenticatedLayout() {
 	const isOnline = useOnlineStatus();
 	const navigate = useNavigate();
 	const location = useLocation();
+	// The onboarding gate below must key off the route being RENDERED, not
+	// `useLocation()`. `location` is the pending navigation, so the instant the
+	// redirect to /onboarding starts, the gate re-opens while `matches` still
+	// holds the route we are leaving — remounting it, and re-firing its own
+	// mount-time redirect, which cancels ours. The two then bounce forever
+	// (DESKTOP-E3). `matches` only advances once the destination commits.
+	const renderedPathname = useRouterState({
+		select: (state) => state.matches[state.matches.length - 1]?.pathname ?? "",
+	});
 	const setOriginRoute = useSettingsStore((s) => s.setOriginRoute);
 	const utils = electronTrpc.useUtils();
 	const shownWorkspaceInitWarningsRef = useRef(new Set<string>());
@@ -187,6 +198,7 @@ function AuthenticatedLayout() {
 	});
 
 	useZoomHotkeys();
+	useForwardedHotkeys();
 
 	// Menu navigation subscription
 	electronTrpc.menu.subscribe.useSubscription(undefined, {
@@ -281,7 +293,7 @@ function AuthenticatedLayout() {
 	if (
 		session?.user &&
 		!session.user.onboardedAt &&
-		!location.pathname.startsWith("/onboarding")
+		!renderedPathname.startsWith("/onboarding")
 	) {
 		return onboardingRedirect;
 	}

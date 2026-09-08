@@ -32,13 +32,13 @@ export async function generateMetadata(): Promise<Metadata> {
 			title: `${title} | Superset`,
 			description: description,
 			url: localeUrl(lang, "/roadmap"),
-			images: ["/opengraph-image"],
+			images: ["/og-image.png"],
 		},
 		twitter: {
 			card: "summary_large_image",
 			title: `${title} | Superset`,
 			description: description,
-			images: ["/opengraph-image"],
+			images: ["/og-image.png"],
 		},
 	};
 }

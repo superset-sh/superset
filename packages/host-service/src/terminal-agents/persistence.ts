@@ -166,6 +166,65 @@ export function findResumeCandidateBinding(
 }
 
 /**
+ * Record where a consumed candidate's session was relaunched, so a pane
+ * that was not mounted for the "resumed" lifecycle event can still find
+ * it. Written by the resume path once the launch has a terminal id.
+ */
+export function markResumeCandidateResumedInto(
+	db: HostDb,
+	terminalId: string,
+	resumedIntoTerminalId: string,
+): void {
+	db.update(terminalAgentBindings)
+		.set({ resumedIntoTerminalId })
+		.where(eq(terminalAgentBindings.terminalId, terminalId))
+		.run();
+}
+
+const MAX_RESUME_HOPS = 16;
+
+/**
+ * The terminal now hosting the session that was resumed out of
+ * `terminalId`, following a chain of resumes to its end. Undefined when the
+ * binding was never consumed by a resume.
+ */
+export function findResumedSuccessorTerminalId(
+	db: HostDb,
+	workspaceId: string,
+	terminalId: string,
+): string | undefined {
+	let current = terminalId;
+	for (let hop = 0; hop < MAX_RESUME_HOPS; hop++) {
+		const next = db
+			.select({ next: terminalAgentBindings.resumedIntoTerminalId })
+			.from(terminalAgentBindings)
+			.where(
+				and(
+					eq(terminalAgentBindings.terminalId, current),
+					eq(terminalAgentBindings.workspaceId, workspaceId),
+					eq(terminalAgentBindings.endReason, "resumed"),
+				),
+			)
+			.get()?.next;
+		if (!next) break;
+		current = next;
+	}
+	return current === terminalId ? undefined : current;
+}
+
+export function getTerminalAgentBinding(
+	db: HostDb,
+	terminalId: string,
+): TerminalAgentBinding | undefined {
+	const row = db
+		.select(bindingColumns)
+		.from(terminalAgentBindings)
+		.where(eq(terminalAgentBindings.terminalId, terminalId))
+		.get();
+	return row ? rowToBinding(row) : undefined;
+}
+
+/**
  * Atomically consume a resume candidate by flipping its end reason to
  * "resumed". The UPDATE is guarded by the full candidate predicate, so of any
  * number of concurrent claimers exactly one gets the binding back — the rest

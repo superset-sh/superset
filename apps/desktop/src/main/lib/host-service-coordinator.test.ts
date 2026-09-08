@@ -5,8 +5,11 @@ import {
 	describe,
 	expect,
 	mock,
+	spyOn,
 	test,
 } from "bun:test";
+import * as childProcess from "node:child_process";
+import { EventEmitter } from "node:events";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import path from "node:path";
@@ -129,6 +132,45 @@ const baseManifest = (pid: number, endpoint = "http://127.0.0.1:55555") => ({
 });
 
 const spawnConfig = { authToken: "token", cloudApiUrl: "https://api.example" };
+
+test.each([
+	"ENOENT",
+	"EACCES",
+])("a failed launcher handles its asynchronous %s after startup rejects", async (code) => {
+	resetMocks();
+	testManifestRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hsc-spawn-test-"));
+	const coordinator = new HostServiceCoordinator();
+	const internals = coordinator as unknown as {
+		buildEnv: () => Promise<Record<string, string>>;
+		spawn: (org: string, config: typeof spawnConfig) => Promise<unknown>;
+		instances: Map<string, unknown>;
+	};
+	internals.buildEnv = async () => ({});
+	const child = Object.assign(new EventEmitter(), {
+		pid: undefined,
+		stdout: null,
+		stderr: null,
+	}) as ReturnType<typeof childProcess.spawn>;
+	const spawn = spyOn(childProcess, "spawn").mockReturnValue(child);
+	try {
+		await expect(internals.spawn("org-1", spawnConfig)).rejects.toThrow(
+			"Failed to spawn host service process",
+		);
+		expect(internals.instances.has("org-1")).toBe(false);
+		expect(pollHealthCheckMock).not.toHaveBeenCalled();
+		// Node emits error/close on the next tick for a spawn with no PID.
+		// An unhandled error would escape even though startup already rejected.
+		expect(() =>
+			child.emit("error", Object.assign(new Error(`spawn ${code}`), { code })),
+		).not.toThrow();
+		child.emit("close", -1, null);
+	} finally {
+		spawn.mockRestore();
+		coordinator.stopAll();
+		fs.rmSync(testManifestRoot, { recursive: true, force: true });
+		testManifestRoot = "";
+	}
+});
 
 interface HostServiceCoordinatorInternals {
 	getPreferredPorts(organizationId: string): number[];

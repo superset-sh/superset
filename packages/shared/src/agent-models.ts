@@ -25,6 +25,34 @@ export interface AgentModelOption {
 	group?: string;
 }
 
+/**
+ * Split a catalog into the picks a menu shows inline and the groups it keeps
+ * a level down. Inline is everything up to and including the first group —
+ * the aliases that track the newest release — and every later group gets a
+ * row of its own that opens that group: a dozen pinned versions would bury
+ * the four picks almost everyone wants.
+ */
+export function splitModelCatalog(models: readonly AgentModelOption[]): {
+	inline: AgentModelOption[];
+	groups: string[];
+} {
+	const firstGroup = models.find((option) => option.group)?.group;
+	const inline = models.filter(
+		(option) => !option.group || option.group === firstGroup,
+	);
+	const groups: string[] = [];
+	for (const option of models) {
+		if (
+			option.group &&
+			option.group !== firstGroup &&
+			!groups.includes(option.group)
+		) {
+			groups.push(option.group);
+		}
+	}
+	return { inline, groups };
+}
+
 export interface AgentModelSupport {
 	presetId: string;
 	modelFlag: string | null;

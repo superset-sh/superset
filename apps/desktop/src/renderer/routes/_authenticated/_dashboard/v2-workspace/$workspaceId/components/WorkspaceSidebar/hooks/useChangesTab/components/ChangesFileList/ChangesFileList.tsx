@@ -18,6 +18,8 @@ export interface FoldSignal {
 
 interface ChangesFileListProps {
 	files: ChangesetFile[];
+	/** True while a toolbar search query is active — flips the empty copy. */
+	isFiltered?: boolean;
 	workspaceId: string;
 	isLoading?: boolean;
 	viewMode: ChangesViewMode;
@@ -58,6 +60,7 @@ const GROUP_TITLES: Record<GroupKey, MessageDescriptor> = {
 
 export const ChangesFileList = memo(function ChangesFileList({
 	files,
+	isFiltered,
 	workspaceId,
 	isLoading,
 	viewMode,
@@ -93,7 +96,11 @@ export const ChangesFileList = memo(function ChangesFileList({
 	if (files.length === 0) {
 		return (
 			<div className="px-3 py-6 text-center text-sm text-muted-foreground">
-				<Trans>No changes</Trans>
+				{isFiltered ? (
+					<Trans>No files match your search</Trans>
+				) : (
+					<Trans>No changes</Trans>
+				)}
 			</div>
 		);
 	}

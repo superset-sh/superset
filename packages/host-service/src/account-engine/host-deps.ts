@@ -80,6 +80,7 @@ export interface AccountEngineHostDeps {
 function resumeDeps(input: HostDepsInput): ResumeSessionDeps {
 	return {
 		db: input.db,
+		eventBus: input.makeContext().eventBus,
 		terminalAgentStore: input.terminalAgentStore,
 		runAgent: (runInput) => runAgentInWorkspace(input.makeContext(), runInput),
 		disposeSession: (terminalId) => disposeSessionAndWait(terminalId, input.db),

@@ -1,9 +1,15 @@
 import { useLingui } from "@lingui/react/macro";
+import {
+	deriveHostVersionState,
+	type HostVersionState,
+} from "@superset/shared/host-version";
 import { cn } from "@superset/ui/utils";
 import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
+import { useAppVersion } from "renderer/hooks/host-version/useHostVersionState";
 import { useHostsPresence } from "renderer/hooks/useHostsPresence";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { hostVersionDotClass } from "renderer/routes/_authenticated/components/HostVersionBadge";
 import {
 	type SettingsListGroup,
 	SettingsListSidebar,
@@ -15,6 +21,8 @@ interface HostRow {
 	name: string;
 	machineId: string;
 	isOnline: boolean;
+	version: string | null;
+	versionState: HostVersionState;
 }
 
 interface HostsSettingsSidebarProps {
@@ -25,6 +33,7 @@ export function HostsSettingsSidebar({
 	selectedHostId,
 }: HostsSettingsSidebarProps) {
 	const { t } = useLingui();
+	const appVersion = useAppVersion();
 	const { data: hosts = [] } = cloudTrpc.v2Host.list.useQuery(undefined);
 
 	const presence = useHostsPresence(hosts);
@@ -33,7 +42,7 @@ export function HostsSettingsSidebar({
 			presence
 				? hosts.map((host) => ({
 						...host,
-						isOnline: presence.get(host.machineId) ?? host.isOnline,
+						isOnline: presence.get(host.machineId)?.online ?? host.isOnline,
 					}))
 				: hosts,
 		[hosts, presence],
@@ -46,6 +55,8 @@ export function HostsSettingsSidebar({
 				name: host.name,
 				machineId: host.machineId,
 				isOnline: host.isOnline,
+				version: host.version,
+				versionState: deriveHostVersionState(host.version, appVersion),
 			}))
 			.sort((a, b) => a.name.localeCompare(b.name));
 		return [
@@ -64,7 +75,7 @@ export function HostsSettingsSidebar({
 				rows: sorted.filter((h) => !h.isOnline),
 			},
 		];
-	}, [hostsWithPresence, t]);
+	}, [hostsWithPresence, appVersion, t]);
 
 	return (
 		<SettingsListSidebar
@@ -75,7 +86,11 @@ export function HostsSettingsSidebar({
 				message: "Filter hosts",
 			})}
 			groups={listGroups}
-			filterRow={(row, q) => row.name.toLowerCase().includes(q.toLowerCase())}
+			filterRow={(row, q) =>
+				`${row.name} ${row.version ?? ""}`
+					.toLowerCase()
+					.includes(q.toLowerCase())
+			}
 			getRowKey={(row) => row.id}
 			emptyLabel={t({
 				message: "No hosts yet.",
@@ -94,10 +109,26 @@ export function HostsSettingsSidebar({
 					<span
 						className={cn(
 							"h-1.5 w-1.5 rounded-full shrink-0",
-							row.isOnline ? "bg-emerald-500" : "bg-muted-foreground/40",
+							hostVersionDotClass(row.versionState, row.isOnline),
 						)}
 					/>
 					<span className="truncate flex-1">{row.name}</span>
+					{row.version && (
+						<span
+							className={cn(
+								"shrink-0 font-mono text-[10.5px] tabular-nums",
+								!row.isOnline
+									? "text-muted-foreground/50"
+									: row.versionState === "incompatible"
+										? "text-destructive"
+										: row.versionState === "behind"
+											? "text-amber-600 dark:text-amber-400"
+											: "text-muted-foreground/60",
+							)}
+						>
+							{row.version}
+						</span>
+					)}
 				</Link>
 			)}
 		/>

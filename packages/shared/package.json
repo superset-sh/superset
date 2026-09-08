@@ -60,6 +60,10 @@
 			"types": "./src/sentry-throttle.ts",
 			"default": "./src/sentry-throttle.ts"
 		},
+		"./sqlite-migrations": {
+			"types": "./src/sqlite-migrations/index.ts",
+			"default": "./src/sqlite-migrations/index.ts"
+		},
 		"./slash-commands": {
 			"types": "./src/slash-commands.ts",
 			"default": "./src/slash-commands.ts"
@@ -232,6 +236,10 @@
 			"types": "./src/host-routing.ts",
 			"default": "./src/host-routing.ts"
 		},
+		"./install-update-lock": {
+			"types": "./src/install-update-lock.ts",
+			"default": "./src/install-update-lock.ts"
+		},
 		"./host-version": {
 			"types": "./src/host-version.ts",
 			"default": "./src/host-version.ts"
@@ -263,6 +271,10 @@
 		"./terminal-session-handoff": {
 			"types": "./src/terminal-session-handoff.ts",
 			"default": "./src/terminal-session-handoff.ts"
+		},
+		"./theme-colors": {
+			"types": "./src/themes/types.ts",
+			"default": "./src/themes/types.ts"
 		}
 	},
 	"scripts": {
@@ -275,6 +287,7 @@
 		"@lingui/core": "6.6.0",
 		"@superset/i18n": "workspace:*",
 		"culori": "4.0.2",
+		"drizzle-orm": "0.45.2",
 		"friendly-words": "1.3.1",
 		"rrule": "2.8.1",
 		"semver": "7.7.4",

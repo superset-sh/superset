@@ -36,11 +36,25 @@ const stopFailureErrorTypes = [
 	"max_output_tokens",
 ] as const;
 
+// Set when the hook fired inside a subagent (Claude Task tool, Codex
+// spawn_agent). Such events feed the terminal's subagent roster only.
+const subagentInput = z
+	.object({
+		id: z.string(),
+		type: z.string().optional(),
+		/** The child's hook session id — a Codex child's own thread id. */
+		sessionId: z.string().optional(),
+		transcriptPath: z.string().optional(),
+		agentTranscriptPath: z.string().optional(),
+	})
+	.optional();
+
 const hookInput = z.object({
 	terminalId: z.string().optional(),
 	eventType: z.string().optional(),
 	errorType: z.enum(stopFailureErrorTypes).optional().catch(undefined),
 	agent: agentIdentityInput,
+	subagent: subagentInput,
 });
 
 function trimOrUndefined(value: string | undefined): string | undefined {
@@ -111,8 +125,9 @@ export const notificationsRouter = router({
 	 * practical gain.
 	 */
 	hook: publicProcedure.input(hookInput).mutation(async ({ ctx, input }) => {
-		const eventType = mapEventType(input.eventType);
-		if (!eventType) {
+		const subagentId = trimOrUndefined(input.subagent?.id);
+		const eventType = subagentId ? undefined : mapEventType(input.eventType);
+		if (!subagentId && !eventType) {
 			return { success: true, ignored: true as const };
 		}
 
@@ -130,8 +145,43 @@ export const notificationsRouter = router({
 			return { success: true, ignored: true as const };
 		}
 
-		const agent = normalizeAgentIdentity(input.agent);
 		const occurredAt = Date.now();
+
+		// Subagent activity is not the terminal's lifecycle: no chime, no
+		// status change, no session id capture. The roster change is fanned
+		// out as an invalidation so the sidebar refetches bindings.
+		if (subagentId) {
+			const agentType = trimOrUndefined(input.subagent?.type);
+			const recorded = ctx.terminalAgentStore.recordSubagentHook({
+				terminalId: input.terminalId,
+				workspaceId: terminalSession.originWorkspaceId,
+				eventType: input.eventType ?? "",
+				subagentId,
+				...(agentType ? { agentType } : {}),
+				hint: {
+					subagentId,
+					sessionId: trimOrUndefined(input.subagent?.sessionId),
+					transcriptPath: trimOrUndefined(input.subagent?.transcriptPath),
+					agentTranscriptPath: trimOrUndefined(
+						input.subagent?.agentTranscriptPath,
+					),
+				},
+				occurredAt,
+			});
+			if (!recorded) {
+				return { success: true, ignored: true as const };
+			}
+			ctx.eventBus.broadcastAgentBindingsChanged({
+				workspaceId: terminalSession.originWorkspaceId,
+				occurredAt,
+			});
+			return { success: true, ignored: false as const };
+		}
+		if (!eventType) {
+			return { success: true, ignored: true as const };
+		}
+
+		const agent = normalizeAgentIdentity(input.agent);
 
 		ctx.eventBus.broadcastAgentLifecycle({
 			workspaceId: terminalSession.originWorkspaceId,

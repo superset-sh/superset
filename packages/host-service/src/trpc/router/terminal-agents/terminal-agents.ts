@@ -7,6 +7,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import type { HostDb } from "../../../db";
 import { terminalSessions, workspaces } from "../../../db/schema";
+import type { EventBus } from "../../../events";
 import {
 	getTerminalBaseEnv,
 	waitForTerminalBaseEnv,
@@ -24,6 +25,9 @@ import type {
 import {
 	claimResumeCandidateBinding,
 	findResumeCandidateBinding,
+	findResumedSuccessorTerminalId,
+	getTerminalAgentBinding,
+	markResumeCandidateResumedInto,
 	seedEndedTerminalAgentBinding,
 	unclaimResumeCandidateBinding,
 } from "../../../terminal-agents/persistence";
@@ -69,6 +73,8 @@ export interface ResumeSessionDeps {
 	 * progressed past "Attached".
 	 */
 	hasSession: (binding: TerminalAgentBinding) => boolean | null;
+	/** Tells panes on the dead terminal where the session went. */
+	eventBus: Pick<EventBus, "broadcastTerminalLifecycle">;
 }
 
 const resumeInflight = new Map<string, Promise<ResumeResult>>();
@@ -249,6 +255,8 @@ export async function resumeTerminalAgentSession(
 			throw error;
 		}
 
+		markResumeCandidateResumedInto(deps.db, terminalId, result.sessionId);
+
 		// The replaced terminal is dead (or a respawned empty shell nobody
 		// asked for) — drop it now that the session lives elsewhere.
 		await deps.disposeSession(terminalId).catch((cleanupError) => {
@@ -258,6 +266,18 @@ export async function resumeTerminalAgentSession(
 			);
 		});
 		deps.terminalAgentStore.markTerminalDisposed(terminalId);
+
+		// Every pane on the dead terminal follows the session — the one whose
+		// mutation this is, panes in other windows, and panes whose host-side
+		// restart never went through a renderer at all.
+		deps.eventBus.broadcastTerminalLifecycle({
+			workspaceId,
+			terminalId,
+			eventType: "resumed",
+			resumedTerminalId: result.sessionId,
+			label: result.label,
+			occurredAt: Date.now(),
+		});
 
 		return {
 			resumed: true,
@@ -536,6 +556,34 @@ export interface AccountRestartCandidate {
 	managed: boolean;
 }
 
+/**
+ * The terminal now hosting the session that was resumed out of
+ * `terminalId`, for a pane that missed the "resumed" lifecycle event. The
+ * label comes from the origin binding: a fresh relaunch (a session that was
+ * never prompted) has no binding of its own until the agent's first hook.
+ */
+export function findResumedSuccessor(
+	db: HostDb,
+	workspaceId: string,
+	terminalId: string,
+): { terminalId: string; label: string } | null {
+	const successorTerminalId = findResumedSuccessorTerminalId(
+		db,
+		workspaceId,
+		terminalId,
+	);
+	const origin = getTerminalAgentBinding(db, terminalId);
+	if (!successorTerminalId || !origin) return null;
+	const config = resolveHostAgentConfig(
+		db,
+		origin.definitionId ?? origin.agentId,
+	);
+	return {
+		terminalId: successorTerminalId,
+		label: config?.label ?? origin.agentId,
+	};
+}
+
 function inflightKey(
 	workspaceId: string,
 	agentId: TerminalAgentId,
@@ -572,6 +620,20 @@ export const terminalAgentsRouter = router({
 				...(definitionId ? { definitionId } : {}),
 			});
 		}),
+
+	/**
+	 * The transcript behind a subagent row, for the subagent pane. Reads
+	 * only a path the roster recorded from the child's own hook events;
+	 * `transcript` is null while the child has not flushed its first record.
+	 */
+	subagentTranscript: protectedProcedure
+		.input(z.object({ terminalId: z.string(), subagentId: z.string() }))
+		.query(({ ctx, input }) =>
+			ctx.terminalAgentStore.getSubagentTranscript(
+				input.terminalId,
+				input.subagentId,
+			),
+		),
 
 	findActive: protectedProcedure
 		.input(
@@ -625,6 +687,13 @@ export const terminalAgentsRouter = router({
 			};
 		}),
 
+	/** See {@link findResumedSuccessor}. */
+	resumedSuccessor: protectedProcedure
+		.input(z.object({ workspaceId: z.string(), terminalId: z.string() }))
+		.query(({ ctx, input }) =>
+			findResumedSuccessor(ctx.db, input.workspaceId, input.terminalId),
+		),
+
 	/** See {@link resumeTerminalAgentSession}. */
 	resume: protectedProcedure
 		.input(z.object({ workspaceId: z.string(), terminalId: z.string() }))
@@ -637,6 +706,7 @@ export const terminalAgentsRouter = router({
 					disposeSession: (terminalId) =>
 						disposeSessionAndWait(terminalId, ctx.db),
 					hasSession: (binding) => bindingHasHarnessSession(ctx.db, binding),
+					eventBus: ctx.eventBus,
 				},
 				input,
 			),

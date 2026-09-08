@@ -1,7 +1,8 @@
 import { SUPPORTED_LOCALES } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
 import type { MetadataRoute } from "next";
-import { localeUrl } from "@/app/[lang]/metadata";
+import { hasLocalizedContent, localeUrl } from "@/app/[lang]/metadata";
+import { fetchPublicHandles } from "@/app/[lang]/utils/fetchLeaderboard";
 import { getBlogPosts } from "@/lib/blog";
 import { getCategoryPages } from "@/lib/category";
 import { getChangelogEntries } from "@/lib/changelog";
@@ -10,7 +11,7 @@ import { getAllLegalSlugs, getLegalPage } from "@/lib/legal";
 import { themeListings } from "@/lib/marketplace";
 import { getAllPeople } from "@/lib/people";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 	const baseUrl = COMPANY.MARKETING_URL;
 
 	const staticPages: MetadataRoute.Sitemap = [
@@ -79,12 +80,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
 			lastModified: new Date(),
 			changeFrequency: "monthly",
 			priority: 0.5,
-		},
-		{
-			url: `${baseUrl}/llms.txt`,
-			lastModified: new Date(),
-			changeFrequency: "weekly",
-			priority: 0.3,
 		},
 		{
 			url: `${baseUrl}/enterprise`,
@@ -208,11 +203,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
 		...themePages,
 	];
 
-	// Every page exists once per locale (English at the bare URL, others under
-	// /{locale}), and every entry names its siblings via hreflang alternates —
-	// this is what makes the localized tree discoverable to search engines.
-	return pages.flatMap((entry) => {
+	// Only translated content has independently indexable locale variants.
+	// English-only articles remain accessible with translated navigation, but
+	// their canonical URL is the bare English path.
+	const expand = (entry: MetadataRoute.Sitemap[number]) => {
 		const path = entry.url === baseUrl ? "/" : entry.url.slice(baseUrl.length);
+		if (!hasLocalizedContent(path)) return [entry];
 		const languages: Record<string, string> = {
 			"x-default": localeUrl("en", path),
 		};
@@ -224,5 +220,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
 			url: localeUrl(locale, path),
 			alternates: { languages },
 		}));
-	});
+	};
+
+	// Profiles are listed once at their canonical bare URL. Expanding each of
+	// them across every locale with a full alternates map multiplies the file
+	// by the square of the locale count and blew past Vercel's 19 MB ISR cap.
+	const profilePages: MetadataRoute.Sitemap = (await fetchPublicHandles()).map(
+		(profile) => ({
+			url: `${baseUrl}/${profile.handle}`,
+			lastModified: profile.lastPublishedAt ?? new Date(),
+			changeFrequency: "daily" as const,
+			priority: 0.6,
+		}),
+	);
+
+	return [...pages.flatMap(expand), ...profilePages];
 }

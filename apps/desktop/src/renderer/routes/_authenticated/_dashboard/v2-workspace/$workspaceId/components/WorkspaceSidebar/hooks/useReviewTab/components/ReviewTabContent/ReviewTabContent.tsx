@@ -14,6 +14,7 @@ interface ReviewTabContentProps {
 	isError: boolean;
 	isCommentsLoading: boolean;
 	onOpenComment?: (comment: CommentPaneData) => void;
+	onOpenPullRequest?: (prNumber: number) => void;
 	onOpenInDiff?: (
 		path: string,
 		line?: number,
@@ -30,6 +31,7 @@ export const ReviewTabContent = memo(function ReviewTabContent({
 	isError,
 	isCommentsLoading,
 	onOpenComment,
+	onOpenPullRequest,
 	onOpenInDiff,
 }: ReviewTabContentProps) {
 	if (isError) {
@@ -60,7 +62,7 @@ export const ReviewTabContent = memo(function ReviewTabContent({
 
 	return (
 		<div className="flex h-full min-h-0 min-w-0 flex-col overflow-x-hidden overflow-y-auto">
-			<PRHeader pr={pr} />
+			<PRHeader pr={pr} onOpenPullRequest={onOpenPullRequest} />
 
 			<div className="my-1 border-b border-border/70" />
 

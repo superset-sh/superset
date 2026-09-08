@@ -45,8 +45,6 @@ function signUrl(url: string, token: string | null): string {
 	return u.toString();
 }
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
 /**
  * Reconnecting WebSocket for host-service endpoints (direct or relay-fronted).
  * partysocket evaluates the async URL provider before EVERY attempt, so each
@@ -57,6 +55,17 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  */
 export function createRelaySocket(opts: RelaySocketOptions): RelaySocket {
 	let socket: ReconnectingWebSocket | null = null;
+	let cancelAccessDeniedWait: (() => void) | undefined;
+	const waitAfterAccessDenied = (ms: number) =>
+		new Promise<void>((resolve) => {
+			const finish = () => {
+				clearTimeout(timer);
+				cancelAccessDeniedWait = undefined;
+				resolve();
+			};
+			const timer = setTimeout(finish, ms);
+			cancelAccessDeniedWait = finish;
+		});
 
 	// Per-dial epoch so a slow preflight from a superseded dial (URL swap,
 	// reconnect) can't publish its probe after a newer dial has started —
@@ -73,7 +82,7 @@ export function createRelaySocket(opts: RelaySocketOptions): RelaySocket {
 			if (opts.accessDeniedRetryMs == null) {
 				socket?.close(1000, "relay access denied");
 			} else {
-				await sleep(opts.accessDeniedRetryMs);
+				await waitAfterAccessDenied(opts.accessDeniedRetryMs);
 			}
 			// Rejecting aborts this attempt; partysocket surfaces it as an error
 			// event and re-enters its backoff loop (no-op once close() was called).
@@ -89,6 +98,20 @@ export function createRelaySocket(opts: RelaySocketOptions): RelaySocket {
 		connectionTimeout: opts.connectionTimeout,
 		maxEnqueuedMessages: opts.maxEnqueuedMessages ?? 0,
 	});
+
+	// The URL provider holds partysocket's connection lock while awaiting the
+	// denial cooldown. Wake it on explicit retry/close so the provider settles
+	// promptly and the native retry loop can honor the user's action.
+	const reconnect = socket.reconnect.bind(socket);
+	socket.reconnect = (code, reason) => {
+		cancelAccessDeniedWait?.();
+		reconnect(code, reason);
+	};
+	const close = socket.close.bind(socket);
+	socket.close = (code, reason) => {
+		cancelAccessDeniedWait?.();
+		close(code, reason);
+	};
 
 	return socket;
 }

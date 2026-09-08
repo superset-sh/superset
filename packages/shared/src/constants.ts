@@ -103,8 +103,6 @@ export const V2_NEW_USER_V1_EXPERIMENT_START = "2026-06-08T06:59:00.000Z";
 export const V2_NEW_USER_V2_DEFAULT_START = "2026-07-09T17:00:00.000Z";
 
 export const FEATURE_FLAGS = {
-	/** Gates access to experimental Electric SQL tasks feature. */
-	ELECTRIC_TASKS_ACCESS: "electric-tasks-access",
 	/** Gates access to the experimental mobile-first agents UI on web. */
 	WEB_AGENTS_UI_ACCESS: "web-agents-ui-access",
 	/** Gates access to Cloud features (environment variables, sandboxes). */

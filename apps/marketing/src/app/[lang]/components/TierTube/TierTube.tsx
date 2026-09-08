@@ -59,6 +59,7 @@ interface TierTubeProps {
 	counts?: number[];
 	subject?: "fleet" | "you";
 	pixelClassName?: string;
+	footer?: React.ReactNode;
 }
 
 export function TierTube({
@@ -66,6 +67,7 @@ export function TierTube({
 	counts,
 	subject = "you",
 	pixelClassName = "",
+	footer,
 }: TierTubeProps) {
 	const { t } = useLingui();
 	const activeTier = Math.min(4, Math.max(0, Math.floor(position)));
@@ -183,6 +185,8 @@ export function TierTube({
 					);
 				})}
 			</div>
+
+			{footer && <div className="border-t border-border">{footer}</div>}
 		</div>
 	);
 }

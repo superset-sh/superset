@@ -83,7 +83,7 @@ import {
 	updateCustomAgentInputSchema,
 } from "./agent-preset-router.utils";
 import {
-	clearImportedCliTerminalScripts,
+	acknowledgeCliTerminalScripts,
 	isPendingCliTerminalScript,
 } from "./cli-terminal-script-import";
 import {
@@ -304,7 +304,7 @@ export const createSettingsRouter = () => {
 				// land between this read and write or its row would be dropped.
 				localDb.transaction(
 					() => {
-						const result = clearImportedCliTerminalScripts({
+						const result = acknowledgeCliTerminalScripts({
 							scripts: getNormalizedTerminalPresets(),
 							organizationId: input.organizationId,
 							ids: input.ids,

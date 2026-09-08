@@ -14,8 +14,14 @@ export interface HostPresenceTarget {
 
 const PRESENCE_BATCH_LIMIT = 50;
 
+export interface HostPresence {
+	online: boolean;
+	/** Relay timestamp of the host's last keepalive; null if never seen. */
+	lastSeenAt: number | null;
+}
+
 interface PresenceResponse {
-	hosts: Record<string, { online: boolean; lastSeenAt: number | null }>;
+	hosts: Record<string, HostPresence>;
 }
 
 async function fetchPresenceBatch(
@@ -33,7 +39,7 @@ async function fetchPresenceBatch(
 
 export function useHostsPresence(
 	targets: HostPresenceTarget[],
-): Map<string, boolean> | null {
+): Map<string, HostPresence> | null {
 	const relayUrl = useRelayUrl();
 
 	const routingKeys = useMemo(
@@ -69,7 +75,7 @@ export function useHostsPresence(
 		enabled,
 		refetchInterval: 30_000,
 		refetchOnWindowFocus: true,
-		queryFn: async (): Promise<Map<string, boolean>> => {
+		queryFn: async (): Promise<Map<string, HostPresence>> => {
 			const jwt = getJwt();
 			if (!jwt) throw new Error("no JWT for presence fetch");
 			const chunks: string[][] = [];
@@ -83,14 +89,19 @@ export function useHostsPresence(
 			const responses = await Promise.all(
 				chunks.map((chunk) => fetchPresenceBatch(relayUrl, chunk, jwt)),
 			);
-			const online = new Map<string, boolean>();
+			const presence = new Map<string, HostPresence>();
 			for (const response of responses) {
 				for (const [key, info] of Object.entries(response.hosts)) {
 					const parsed = parseHostRoutingKey(key);
-					if (parsed) online.set(parsed.machineId, info.online);
+					if (parsed) {
+						presence.set(parsed.machineId, {
+							online: info.online,
+							lastSeenAt: info.lastSeenAt ?? null,
+						});
+					}
 				}
 			}
-			return online;
+			return presence;
 		},
 	});
 

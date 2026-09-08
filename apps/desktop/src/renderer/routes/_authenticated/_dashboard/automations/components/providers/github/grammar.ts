@@ -163,6 +163,17 @@ export const GITHUB_SENTENCES: Record<GithubTriggerEvent, SentencePart[]> = {
 		{ text: "Any workflow conclusion in" },
 		{ slot: "repositories" },
 	],
+	"release.published": [
+		{ text: "Release published in" },
+		{ slot: "repositories" },
+	],
+	"release.created": [{ text: "Release created in" }, { slot: "repositories" }],
+	"release.edited": [{ text: "Release edited in" }, { slot: "repositories" }],
+	"release.unpublished": [
+		{ text: "Release unpublished in" },
+		{ slot: "repositories" },
+	],
+	"release.deleted": [{ text: "Release deleted in" }, { slot: "repositories" }],
 };
 
 /**
@@ -334,6 +345,48 @@ export const GITHUB_MENU: TriggerMenuEntry<GithubConfig>[] = [
 					message: "Any conclusion",
 				}),
 				"workflow_run.any",
+			),
+		],
+	},
+	{
+		label: msg({
+			message: "Release…",
+		}),
+		children: [
+			leaf(
+				msg({
+					context: "github release action",
+					message: "Published",
+				}),
+				"release.published",
+			),
+			leaf(
+				msg({
+					context: "github release action",
+					message: "Created",
+				}),
+				"release.created",
+			),
+			leaf(
+				msg({
+					context: "github release action",
+					message: "Edited",
+				}),
+				"release.edited",
+			),
+			leaf(
+				msg({
+					context: "github release action",
+					message: "Unpublished",
+				}),
+				"release.unpublished",
+			),
+			leaf(
+				msg({
+					context: "github release action",
+					message: "Deleted",
+				}),
+				"release.deleted",
 			),
 		],
 	},

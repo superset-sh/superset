@@ -7,9 +7,20 @@ interface PagePaneProps {
 	data: PagePaneData;
 	paneId: string;
 	onDataChange: (data: PagePaneData) => void;
+	/**
+	 * Make this the active pane. Clicking anywhere in a pane activates it,
+	 * but a click inside the page's iframe never reaches the pane's own
+	 * handler, so the frame reports it and the pane activates itself.
+	 */
+	onFocus: () => void;
 }
 
-export function PagePane({ data, paneId, onDataChange }: PagePaneProps) {
+export function PagePane({
+	data,
+	paneId,
+	onDataChange,
+	onFocus,
+}: PagePaneProps) {
 	const { commentsEnabled, setCommentsEnabled } = usePagePaneUi(paneId);
 
 	const onDataChangeRef = useRef(onDataChange);
@@ -35,6 +46,7 @@ export function PagePane({ data, paneId, onDataChange }: PagePaneProps) {
 			commentsEnabled={commentsEnabled}
 			onCommentsEnabledChange={setCommentsEnabled}
 			onResolved={handleResolved}
+			onFramePointerDown={onFocus}
 		/>
 	);
 }

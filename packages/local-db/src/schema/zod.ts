@@ -125,6 +125,12 @@ export const terminalPresetSchema = z.object({
 	cliImportPending: z.boolean().optional(),
 	/** Organization-scoped destination for the v2 one-shot import. */
 	cliTargetOrganizationId: z.string().optional(),
+	/**
+	 * Tombstone left by `superset scripts delete`. V2 removes its copy, then
+	 * drops the row from this store. Kept as a marker rather than an immediate
+	 * removal so a script the desktop already imported is deleted there too.
+	 */
+	cliDeletePending: z.boolean().optional(),
 });
 
 export type TerminalPreset = z.infer<typeof terminalPresetSchema>;

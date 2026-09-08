@@ -1,9 +1,14 @@
 import { auth } from "@superset/auth/server";
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Image from "next/image";
 import { redirect } from "next/navigation";
 
 import { env } from "@/env";
+
+export const metadata: Metadata = {
+	robots: { index: false, follow: true },
+};
 
 export default async function AuthLayout({
 	children,

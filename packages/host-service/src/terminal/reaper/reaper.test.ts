@@ -97,6 +97,58 @@ describe("planPortScanSync", () => {
 		expect(plan.register).toEqual([]);
 	});
 
+	it("does not re-register sessions the scanner already watches", () => {
+		const liveSessions = [
+			{ id: "term-1", pid: 4242 },
+			{ id: "term-2", pid: 4343 },
+		];
+		const rowById = new Map([
+			["term-1", { status: "active", originWorkspaceId: "ws-1" }],
+			["term-2", { status: "active", originWorkspaceId: "ws-1" }],
+		]);
+
+		const first = planPortScanSync({
+			liveSessions,
+			rowById,
+			registeredTerminalIds: [],
+			isLive: noneLive,
+		});
+		expect(first.register.map((entry) => entry.terminalId)).toEqual([
+			"term-1",
+			"term-2",
+		]);
+
+		// Second pass with the same live sessions, now that the first pass's
+		// registrations are in the scanner: nothing new to register.
+		const second = planPortScanSync({
+			liveSessions,
+			rowById,
+			registeredTerminalIds: first.register.map((entry) => entry.terminalId),
+			isLive: noneLive,
+		});
+		expect(second.register).toEqual([]);
+		expect(second.unregister).toEqual([]);
+	});
+
+	it("registers only the sessions the scanner is not yet watching", () => {
+		const plan = planPortScanSync({
+			liveSessions: [
+				{ id: "term-1", pid: 4242 },
+				{ id: "term-new", pid: 5555 },
+			],
+			rowById: new Map([
+				["term-1", { status: "active", originWorkspaceId: "ws-1" }],
+				["term-new", { status: "active", originWorkspaceId: "ws-2" }],
+			]),
+			registeredTerminalIds: ["term-1"],
+			isLive: noneLive,
+		});
+
+		expect(plan.register).toEqual([
+			{ terminalId: "term-new", workspaceId: "ws-2", pid: 5555 },
+		]);
+	});
+
 	it("unregisters scanned terminals the daemon no longer reports", () => {
 		const plan = planPortScanSync({
 			liveSessions: [{ id: "term-1", pid: 4242 }],

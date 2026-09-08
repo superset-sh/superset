@@ -1,12 +1,18 @@
-import { boolean, CLIError, string } from "@superset/cli-framework";
+import { boolean, string } from "@superset/cli-framework";
 import { EXECUTION_MODES } from "@superset/local-db";
 import { command } from "../../../lib/command";
-import { readConfig, resolveOrganizationId } from "../../../lib/config";
 import { notifyDesktopSettingsChanged } from "../../../lib/settings/notify";
-import { createTerminalScript } from "../../../lib/terminal-scripts";
-
-const UUID_PATTERN =
-	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import {
+	createTerminalScript,
+	findTerminalScriptByName,
+	toPublicTerminalScript,
+	updateTerminalScript,
+} from "../../../lib/terminal-scripts";
+import {
+	assertProjectIds,
+	desktopSyncNote,
+	requireOrganizationId,
+} from "../shared";
 
 export default command({
 	description: "Add a reusable terminal script",
@@ -26,52 +32,53 @@ export default command({
 			.desc("How multiple commands open"),
 		hidden: boolean().desc("Create without showing it in the Scripts bar"),
 		workspaceRun: boolean().desc("Use as the project's Run action"),
+		upsert: boolean().desc(
+			"Replace the script with this name instead of adding a duplicate",
+		),
 	},
 	skipMiddleware: true,
 	run: async ({ options }) => {
-		const organizationId = resolveOrganizationId(readConfig());
-		if (!organizationId) {
-			throw new CLIError("No active organization", "Run: superset auth login");
-		}
-		const invalidProjectId = options.project?.find(
-			(projectId) => !UUID_PATTERN.test(projectId),
-		);
-		if (invalidProjectId) {
-			throw new CLIError(
-				`Invalid project UUID: ${invalidProjectId}`,
-				"Pass the project UUID shown by `superset projects list`.",
-			);
-		}
+		const organizationId = requireOrganizationId();
+		assertProjectIds(options.project);
 
-		const script = createTerminalScript({
-			organizationId,
-			name: options.name,
-			description: options.description,
-			cwd: options.cwd,
-			commands: options.command,
-			projectIds: options.project,
-			pinnedToBar: !options.hidden,
-			useAsWorkspaceRun: options.workspaceRun,
-			executionMode: options.executionMode ?? "new-tab",
-		});
+		const existing = options.upsert
+			? findTerminalScriptByName(options.name)
+			: undefined;
+		const script = existing
+			? updateTerminalScript({
+					organizationId,
+					id: existing.id,
+					patch: {
+						name: options.name,
+						description: options.description ?? "",
+						cwd: options.cwd ?? "",
+						commands: options.command,
+						projectIds: options.project ?? null,
+						pinnedToBar: !options.hidden,
+						useAsWorkspaceRun: options.workspaceRun ?? false,
+						executionMode: options.executionMode ?? "new-tab",
+					},
+				})
+			: createTerminalScript({
+					organizationId,
+					name: options.name,
+					description: options.description,
+					cwd: options.cwd,
+					commands: options.command,
+					projectIds: options.project,
+					pinnedToBar: !options.hidden,
+					useAsWorkspaceRun: options.workspaceRun,
+					executionMode: options.executionMode ?? "new-tab",
+				});
 		const refreshed = await notifyDesktopSettingsChanged();
-		const {
-			cliImportPending: _,
-			cliTargetOrganizationId: __,
-			...publicScript
-		} = script;
 
 		const workspaceRunNote = options.workspaceRun
 			? " Run precedence is: matching project script, project lifecycle Run command, then global script; the first matching script wins."
 			: "";
 
 		return {
-			data: publicScript,
-			message: `Added terminal script ${script.name} (${script.id}). ${
-				refreshed
-					? "The running desktop app refreshed immediately."
-					: "It will import when the desktop app opens or refocuses with this organization active."
-			}${workspaceRunNote}`,
+			data: toPublicTerminalScript(script),
+			message: `${existing ? "Updated" : "Added"} terminal script ${script.name} (${script.id}). ${desktopSyncNote(refreshed)}${workspaceRunNote}`,
 		};
 	},
 });

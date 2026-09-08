@@ -17,36 +17,71 @@ fi
 # payload alone must never dispatch.
 [ -n "$SUPERSET_TERMINAL_ID" ] || [ -n "$SUPERSET_TAB_ID" ] || exit 0
 
-# Claude Code (and forks sharing its hook schema) set agent_id only when the
-# hook fires inside a subagent (Task tool). Subagent activity must not drive
-# terminal-level agent status or notifications — only the main loop counts.
-SUBAGENT_ID=$(echo "$INPUT" | grep -oE '"agent_id"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
-[ -n "$SUBAGENT_ID" ] && exit 0
+# Which agent this event belongs to. A Superset wrapper exports
+# SUPERSET_AGENT_ID for the process it launches (first-wins, so a CLI an
+# agent runs from a tool call keeps the terminal's identity), and every
+# hook config Superset writes inlines SUPERSET_HOOK_HARNESS, the harness
+# whose config fired. The two can disagree: cursor-agent replays
+# ~/.claude/settings.json, so Claude's config fires inside a Cursor session;
+# and Claude's Bash tool running `codex exec` fires Codex's config under a
+# Claude terminal. Neither is this terminal's lifecycle — the replay is
+# covered by Cursor's own hooks and the nested run belongs to a child
+# process — so a foreign harness's event is dropped rather than allowed to
+# relabel the terminal (and hand its session id to the wrong agent's
+# resume). A config firing with no wrapper identity at all names the agent
+# itself: the binary was resolved from the system PATH.
+AGENT_ID="$SUPERSET_AGENT_ID"
+if [ -z "$AGENT_ID" ]; then
+  # cursor-agent stamps CURSOR_AGENT/CURSOR_CLI/CURSOR_VERSION into its env;
+  # without a wrapper that is the only sign Claude's config is being replayed.
+  if [ "$SUPERSET_HOOK_HARNESS" = "claude" ] && { [ -n "$CURSOR_AGENT" ] || [ -n "$CURSOR_CLI" ] || [ -n "$CURSOR_VERSION" ]; }; then
+    exit 0
+  fi
+  AGENT_ID="$SUPERSET_HOOK_HARNESS"
+elif [ -n "$SUPERSET_HOOK_HARNESS" ] && [ "$SUPERSET_HOOK_HARNESS" != "$AGENT_ID" ]; then
+  exit 0
+fi
 
-HOOK_SESSION_ID=$(echo "$INPUT" | grep -oE '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
-if [ -z "$HOOK_SESSION_ID" ]; then
-  # Grok's envelope is camelCase.
-  HOOK_SESSION_ID=$(echo "$INPUT" | grep -oE '"sessionId"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
-fi
-RESOURCE_ID=$(echo "$INPUT" | grep -oE '"resourceId"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
-if [ -z "$RESOURCE_ID" ]; then
-  RESOURCE_ID=$(echo "$INPUT" | grep -oE '"resource_id"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
-fi
+# Claude Code and Codex set agent_id only when the hook fires inside a
+# subagent (Task tool / spawn_agent). Subagent activity must not drive
+# terminal-level agent status, notifications, or the session id binding —
+# only the main loop counts. It is forwarded separately so the host can keep
+# a per-terminal roster of live subagents (see notifications.hook).
+# Snake_case is the Claude schema shared by Codex and most forks; camelCase
+# covers harnesses that serialize like Grok. Add an alias here, nothing
+# downstream cares which spelling arrived.
+# First match only: a key can recur in nested objects (Claude's SubagentStop
+# repeats agent_type inside background_tasks), and a multi-line value would
+# break the JSON payload built from it.
+json_field() {
+  for KEY in "$@"; do
+    VALUE=$(echo "$INPUT" | grep -oE "\"$KEY\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" | head -n 1 | grep -oE '"[^"]*"$' | tr -d '"')
+    [ -n "$VALUE" ] && { printf '%s' "$VALUE"; return; }
+  done
+}
+SUBAGENT_ID=$(json_field agent_id agentId)
+SUBAGENT_TYPE=$(json_field agent_type agentType)
+# transcript_path is the file the hook ran against (Claude: the parent
+# session; Codex: the child's own rollout); agent_transcript_path is the
+# child's transcript on SubagentStop. The host derives the child's file from
+# them so the subagent pane can follow it.
+TRANSCRIPT_PATH=$(json_field transcript_path transcriptPath)
+AGENT_TRANSCRIPT_PATH=$(json_field agent_transcript_path agentTranscriptPath)
+
+HOOK_SESSION_ID=$(json_field session_id sessionId)
+RESOURCE_ID=$(json_field resourceId resource_id)
 SESSION_ID=${RESOURCE_ID:-$HOOK_SESSION_ID}
 if [ -z "$SESSION_ID" ]; then
   # Codex's legacy notify callback (agent-turn-complete) carries the
   # resumable id as thread-id — the same id `codex resume` takes.
-  SESSION_ID=$(echo "$INPUT" | grep -oE '"thread[-_]id"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+  SESSION_ID=$(json_field thread-id thread_id)
 fi
 
 # Claude/Mastra/Droid/Kimi use "hook_event_name"; Grok uses camelCase
 # "hookEventName" (snake_case values, mapped server-side); Codex uses "type".
-EVENT_TYPE=$(echo "$INPUT" | grep -oE '"hook_event_name"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+EVENT_TYPE=$(json_field hook_event_name hookEventName)
 if [ -z "$EVENT_TYPE" ]; then
-  EVENT_TYPE=$(echo "$INPUT" | grep -oE '"hookEventName"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
-fi
-if [ -z "$EVENT_TYPE" ]; then
-  CODEX_TYPE=$(echo "$INPUT" | grep -oE '"type"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+  CODEX_TYPE=$(json_field type)
   case "$CODEX_TYPE" in
     agent-turn-complete|task_complete) EVENT_TYPE="Stop" ;;
     task_started) EVENT_TYPE="Start" ;;
@@ -63,7 +98,7 @@ fi
 # --always-approve so tool approvals rarely prompt). Keep the case pattern
 # in sync with GROK_BLOCKING_NOTIFICATION_TYPES in agent-wrappers-grok.ts.
 if [ "$EVENT_TYPE" = "notification" ]; then
-  NOTIFICATION_TYPE=$(echo "$INPUT" | grep -oE '"notificationType"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+  NOTIFICATION_TYPE=$(json_field notificationType notification_type)
   case "$NOTIFICATION_TYPE" in
     permission_prompt|elicitation_dialog) EVENT_TYPE="PermissionRequest" ;;
     *) exit 0 ;;
@@ -99,25 +134,13 @@ elif [ "$SUPERSET_ENV" = "development" ] || [ "$NODE_ENV" = "development" ]; the
 fi
 
 if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
-  echo "[notify-hook] event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID" >&2
+  echo "[notify-hook] event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$AGENT_ID subagentId=$SUBAGENT_ID sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID" >&2
 fi
 
 debug_log() {
   [ "$DEBUG_HOOKS_ENABLED" = "1" ] || return 0
   printf '%s [notify-hook] %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date)" "$*" >> "${SUPERSET_HOOK_DEBUG_LOG:-/tmp/superset-agent-hooks.log}" 2>/dev/null || true
 }
-
-debug_log "event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID tabId=$SUPERSET_TAB_ID"
-
-V1_EVENT_TYPE="$EVENT_TYPE"
-case "$V1_EVENT_TYPE" in
-  Attached|attached|SessionStart|sessionStart|session_start)
-    V1_EVENT_TYPE="Start"
-    ;;
-  Detached|detached|SessionEnd|sessionEnd|session_end)
-    V1_EVENT_TYPE="Stop"
-    ;;
-esac
 
 json_escape() {
   printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
@@ -131,11 +154,13 @@ json_escape() {
 # on every start, so it never goes stale. Try the env URL first (fast path),
 # then every org manifest's endpoint. Only the host that owns this terminal
 # answers "ignored":false; probing the other orgs' hosts is a harmless no-op.
-if [ -n "$SUPERSET_TERMINAL_ID" ]; then
-  ERROR_TYPE_FIELD=""
-  [ -n "$ERROR_TYPE" ] && ERROR_TYPE_FIELD=",\"errorType\":\"$(json_escape "$ERROR_TYPE")\""
-  PAYLOAD="{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\"$ERROR_TYPE_FIELD,\"agent\":{\"agentId\":\"$(json_escape "$SUPERSET_AGENT_ID")\",\"sessionId\":\"$(json_escape "$SESSION_ID")\"}}}"
-
+#
+# Sets HOOK_ACCEPTED=1 when an owning host took the event and
+# HOOK_DELIVERED_2XX=1 when any host answered 2xx.
+dispatch_to_host() {
+  DISPATCH_PAYLOAD="$1"
+  HOOK_ACCEPTED="0"
+  HOOK_DELIVERED_2XX="0"
   HOOK_CANDIDATE_URLS="$SUPERSET_HOST_AGENT_HOOK_URL"
   for MANIFEST_FILE in "${SUPERSET_HOME_DIR:-$HOME/.superset}"/host/*/manifest.json; do
     [ -f "$MANIFEST_FILE" ] || continue
@@ -144,7 +169,6 @@ if [ -n "$SUPERSET_TERMINAL_ID" ]; then
     HOOK_CANDIDATE_URLS="$HOOK_CANDIDATE_URLS $MANIFEST_ENDPOINT/trpc/notifications.hook"
   done
 
-  HOOK_DELIVERED_2XX="0"
   SEEN_HOOK_URLS=""
   for HOOK_URL in $HOOK_CANDIDATE_URLS; do
     case " $SEEN_HOOK_URLS " in *" $HOOK_URL "*) continue ;; esac
@@ -153,7 +177,7 @@ if [ -n "$SUPERSET_TERMINAL_ID" ]; then
     RESPONSE=$(curl -sX POST "$HOOK_URL" \
       --connect-timeout 2 --max-time 5 \
       -H "Content-Type: application/json" \
-      -d "$PAYLOAD" \
+      -d "$DISPATCH_PAYLOAD" \
       -w "|%{http_code}" 2>/dev/null)
     STATUS_CODE="${RESPONSE##*|}"
     BODY="${RESPONSE%|*}"
@@ -161,17 +185,47 @@ if [ -n "$SUPERSET_TERMINAL_ID" ]; then
     if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
       echo "[notify-hook] host-service dispatched status=$STATUS_CODE url=$HOOK_URL" >&2
     fi
-    debug_log "host-service status=$STATUS_CODE url=$HOOK_URL"
+    debug_log "host-service status=$STATUS_CODE url=$HOOK_URL body=$BODY"
 
     # "ignored":false means the owning host accepted and fanned out the event.
     case "$BODY" in
-      *'"ignored":false'*|*'"ignored": false'*) exit 0 ;;
+      *'"ignored":false'*|*'"ignored": false'*) HOOK_ACCEPTED="1"; return 0 ;;
     esac
     case "$STATUS_CODE" in
       2*) HOOK_DELIVERED_2XX="1" ;;
     esac
   done
+  return 0
+}
 
+# Subagent events go to the host-service roster only: no v1 fallback, no
+# session id (a Codex child's session_id is its own thread, never the
+# terminal's resumable session), and the raw event name so the host can tell
+# a start from a stop.
+if [ -n "$SUBAGENT_ID" ]; then
+  debug_log "subagent event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$AGENT_ID subagentId=$SUBAGENT_ID subagentType=$SUBAGENT_TYPE"
+  [ -n "$SUPERSET_TERMINAL_ID" ] || exit 0
+  dispatch_to_host "{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"subagent\":{\"id\":\"$(json_escape "$SUBAGENT_ID")\",\"type\":\"$(json_escape "$SUBAGENT_TYPE")\",\"sessionId\":\"$(json_escape "$HOOK_SESSION_ID")\",\"transcriptPath\":\"$(json_escape "$TRANSCRIPT_PATH")\",\"agentTranscriptPath\":\"$(json_escape "$AGENT_TRANSCRIPT_PATH")\"}}}"
+  exit 0
+fi
+
+debug_log "event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$AGENT_ID sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID tabId=$SUPERSET_TAB_ID"
+
+V1_EVENT_TYPE="$EVENT_TYPE"
+case "$V1_EVENT_TYPE" in
+  Attached|attached|SessionStart|sessionStart|session_start)
+    V1_EVENT_TYPE="Start"
+    ;;
+  Detached|detached|SessionEnd|sessionEnd|session_end)
+    V1_EVENT_TYPE="Stop"
+    ;;
+esac
+
+if [ -n "$SUPERSET_TERMINAL_ID" ]; then
+  ERROR_TYPE_FIELD=""
+  [ -n "$ERROR_TYPE" ] && ERROR_TYPE_FIELD=",\"errorType\":\"$(json_escape "$ERROR_TYPE")\""
+  dispatch_to_host "{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\"$ERROR_TYPE_FIELD,\"agent\":{\"agentId\":\"$(json_escape "$AGENT_ID")\",\"sessionId\":\"$(json_escape "$SESSION_ID")\"}}}"
+  [ "$HOOK_ACCEPTED" = "1" ] && exit 0
   # Delivered somewhere (2xx) but no host owned the terminal: keep the
   # pre-existing "any 2xx wins" behavior and skip the v1 fallback.
   [ "$HOOK_DELIVERED_2XX" = "1" ] && exit 0
@@ -195,7 +249,7 @@ if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
     --data-urlencode "resourceId=$RESOURCE_ID" \
     --data-urlencode "eventType=$V1_EVENT_TYPE" \
     --data-urlencode "rawEventType=$EVENT_TYPE" \
-    --data-urlencode "agentId=$SUPERSET_AGENT_ID" \
+    --data-urlencode "agentId=$AGENT_ID" \
     --data-urlencode "env=$SUPERSET_ENV" \
     --data-urlencode "version=$SUPERSET_HOOK_VERSION" \
     -o /dev/null -w "%{http_code}" 2>/dev/null)
@@ -214,7 +268,7 @@ else
     --data-urlencode "resourceId=$RESOURCE_ID" \
     --data-urlencode "eventType=$V1_EVENT_TYPE" \
     --data-urlencode "rawEventType=$EVENT_TYPE" \
-    --data-urlencode "agentId=$SUPERSET_AGENT_ID" \
+    --data-urlencode "agentId=$AGENT_ID" \
     --data-urlencode "env=$SUPERSET_ENV" \
     --data-urlencode "version=$SUPERSET_HOOK_VERSION" \
     > /dev/null 2>&1

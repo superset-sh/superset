@@ -9,7 +9,6 @@ import { eq } from "drizzle-orm";
 import { Resend } from "resend";
 import { z } from "zod";
 import { env } from "../../env";
-import { posthog } from "../../lib/analytics";
 import { jwtProcedure, protectedProcedure, userError } from "../../trpc";
 
 const resend = new Resend(env.RESEND_API_KEY);
@@ -101,6 +100,9 @@ export const v2WorkspaceRouter = {
 			},
 		),
 
+	// Exits the Resend activation campaign, and captures nothing: the host-service
+	// already emits `workspace_created` for the same workspace, so a capture here
+	// double-counts it.
 	trackCreated: jwtProcedure
 		.input(
 			z.object({
@@ -120,20 +122,6 @@ export const v2WorkspaceRouter = {
 					i18nKey: "serverError.v2Workspace.notAMemberOfThisOrganization",
 				});
 			}
-
-			posthog.capture({
-				distinctId: ctx.userId,
-				event: "workspace_created",
-				properties: {
-					workspace_id: input.workspaceId,
-					project_id: input.projectId,
-					organization_id: input.organizationId,
-					host_id: input.hostId ?? null,
-					branch: input.branch,
-					type: input.type,
-					source: "host-report",
-				},
-			});
 
 			if (input.type !== "main" && ctx.email) {
 				await exitActivationEmailCampaign(ctx.userId, ctx.email);

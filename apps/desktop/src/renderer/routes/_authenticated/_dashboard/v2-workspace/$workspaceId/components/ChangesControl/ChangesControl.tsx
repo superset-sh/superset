@@ -14,6 +14,8 @@ interface ChangesControlProps {
 	isChangesOpen: boolean;
 	/** Close the visible Changes pane, or open/focus one when none shows. */
 	onToggleChanges: () => void;
+	/** Open or focus the pane showing the linked PR's summary. */
+	onOpenPullRequest: (prNumber: number) => void;
 }
 
 /**
@@ -35,6 +37,7 @@ export const ChangesControl = memo(function ChangesControl({
 	workspaceId,
 	isChangesOpen,
 	onToggleChanges,
+	onOpenPullRequest,
 }: ChangesControlProps) {
 	const { t } = useLingui();
 	const status = useWorkspaceGitStatus();
@@ -97,6 +100,7 @@ export const ChangesControl = memo(function ChangesControl({
 					isChangesOpen={isChangesOpen}
 					toggleLabel={label}
 					onToggleChanges={onToggleChanges}
+					onOpenPullRequest={onOpenPullRequest}
 				/>
 			)}
 		</div>

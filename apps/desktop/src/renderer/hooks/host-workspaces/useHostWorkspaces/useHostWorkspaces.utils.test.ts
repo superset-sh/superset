@@ -51,6 +51,7 @@ describe("applyWorkspaceChangedEvent lastActivityAt", () => {
 			{ eventType: "created", workspace: makeSnapshot({ id: "w1" }) },
 			HOST,
 			"w1",
+			null,
 		);
 		expect(rows?.[0]?.lastActivityAt).toBe(1_700_000_050_000);
 	});
@@ -61,6 +62,7 @@ describe("applyWorkspaceChangedEvent lastActivityAt", () => {
 			{ eventType: "created", workspace: makeSnapshot({ id: "w1" }) },
 			HOST,
 			"w1",
+			null,
 		);
 		const updated = applyWorkspaceChangedEvent(
 			initial,
@@ -73,6 +75,7 @@ describe("applyWorkspaceChangedEvent lastActivityAt", () => {
 			},
 			HOST,
 			"w1",
+			null,
 		);
 		expect(updated?.[0]?.lastActivityAt).toBe(1_700_000_999_000);
 	});
@@ -92,6 +95,7 @@ describe("applyWorkspaceChangedEvent lastActivityAt", () => {
 			},
 			HOST,
 			"w1",
+			null,
 		);
 		expect(rows?.[0]?.lastActivityAt).toBeNull();
 	});
@@ -102,6 +106,7 @@ describe("applyWorkspaceChangedEvent lastActivityAt", () => {
 			{ eventType: "created", workspace: makeSnapshot({ id: "w1" }) },
 			HOST,
 			"w1",
+			null,
 		);
 		const legacy = makeSnapshot({ id: "w1" }) as unknown as Record<
 			string,
@@ -116,8 +121,81 @@ describe("applyWorkspaceChangedEvent lastActivityAt", () => {
 			},
 			HOST,
 			"w1",
+			null,
 		);
 		expect(updated?.[0]?.lastActivityAt).toBe(1_700_000_050_000);
+	});
+});
+
+describe("applyWorkspaceChangedEvent tags", () => {
+	it("keeps only the viewer's own and creator-less tags", () => {
+		const rows = applyWorkspaceChangedEvent(
+			undefined,
+			{
+				eventType: "created",
+				workspace: makeSnapshot({
+					id: "w1",
+					tags: ["legacy", "mine", "theirs"],
+					tagAssignments: [
+						{ tag: "theirs", createdByUserId: "user-b" },
+						{ tag: "mine", createdByUserId: "user-a" },
+						{ tag: "legacy", createdByUserId: null },
+					],
+				}),
+			},
+			HOST,
+			"w1",
+			"user-a",
+		);
+		expect(rows?.[0]?.tags).toEqual(["legacy", "mine"]);
+	});
+
+	it("shows nobody's tags while the session is unresolved", () => {
+		const initial = applyWorkspaceChangedEvent(
+			undefined,
+			{
+				eventType: "created",
+				workspace: makeSnapshot({
+					id: "w1",
+					tags: ["theirs"],
+					tagAssignments: [{ tag: "theirs", createdByUserId: "user-b" }],
+				}),
+			},
+			HOST,
+			"w1",
+			null,
+		);
+		expect(initial?.[0]?.tags).toEqual([]);
+		const cached = initial?.map((row) => ({ ...row, tags: ["cached"] }));
+		const updated = applyWorkspaceChangedEvent(
+			cached,
+			{
+				eventType: "updated",
+				workspace: makeSnapshot({
+					id: "w1",
+					tags: ["theirs"],
+					tagAssignments: [{ tag: "theirs", createdByUserId: "user-b" }],
+				}),
+			},
+			HOST,
+			"w1",
+			null,
+		);
+		expect(updated?.[0]?.tags).toEqual(["cached"]);
+	});
+
+	it("falls back to the union from a host that predates tag creators", () => {
+		const rows = applyWorkspaceChangedEvent(
+			undefined,
+			{
+				eventType: "created",
+				workspace: makeSnapshot({ id: "w1", tags: ["shared"] }),
+			},
+			HOST,
+			"w1",
+			"user-a",
+		);
+		expect(rows?.[0]?.tags).toEqual(["shared"]);
 	});
 });
 
@@ -128,6 +206,7 @@ describe("toHostWorkspaceItem", () => {
 			{ eventType: "created", workspace: makeSnapshot({ id: "w1" }) },
 			HOST,
 			"w1",
+			null,
 		) ?? [];
 	if (!row) throw new Error("expected a row");
 

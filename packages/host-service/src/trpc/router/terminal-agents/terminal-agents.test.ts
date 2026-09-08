@@ -19,11 +19,15 @@ import {
 	type TerminalAgentId,
 	TerminalAgentStore,
 } from "../../../terminal-agents";
-import { findResumeCandidateBinding } from "../../../terminal-agents/persistence";
+import {
+	findResumeCandidateBinding,
+	findResumedSuccessorTerminalId,
+} from "../../../terminal-agents/persistence";
 import type { HostServiceContext } from "../../../types";
 import type { AgentRunResult } from "../agents/agents";
 import * as accountDir from "../usage/agent-account-dir";
 import {
+	findResumedSuccessor,
 	killAndResumeTerminalAgent,
 	listAccountRestartCandidates,
 	type ResumeSessionDeps,
@@ -99,19 +103,41 @@ function seedResumableBinding(
 		.run();
 }
 
+type BroadcastMessage = Parameters<
+	ResumeSessionDeps["eventBus"]["broadcastTerminalLifecycle"]
+>[0];
+
 interface DepsHarness {
 	deps: ResumeSessionDeps;
 	runCalls: Array<Parameters<ResumeSessionDeps["runAgent"]>[0]>;
 	disposedTerminals: string[];
+	broadcasts: BroadcastMessage[];
 }
 
 function createDeps(
 	db: HostDb,
-	runAgent?: ResumeSessionDeps["runAgent"],
-	hasSession: ResumeSessionDeps["hasSession"] = () => null,
+	options:
+		| {
+				runAgent?: ResumeSessionDeps["runAgent"];
+				hasSession?: ResumeSessionDeps["hasSession"];
+				disposeSession?: ResumeSessionDeps["disposeSession"];
+		  }
+		| ResumeSessionDeps["runAgent"] = {},
+	legacyHasSession?: ResumeSessionDeps["hasSession"],
 ): DepsHarness {
+	const {
+		runAgent,
+		hasSession = () => null,
+		disposeSession,
+	} = typeof options === "function"
+		? { runAgent: options, hasSession: legacyHasSession }
+		: {
+				...options,
+				...(legacyHasSession ? { hasSession: legacyHasSession } : {}),
+			};
 	const runCalls: DepsHarness["runCalls"] = [];
 	const disposedTerminals: string[] = [];
+	const broadcasts: BroadcastMessage[] = [];
 	const deps: ResumeSessionDeps = {
 		db,
 		terminalAgentStore: new TerminalAgentStore(
@@ -128,18 +154,23 @@ function createDeps(
 		},
 		disposeSession: (terminalId) => {
 			disposedTerminals.push(terminalId);
-			return Promise.resolve();
+			return disposeSession?.(terminalId) ?? Promise.resolve();
 		},
 		hasSession,
+		eventBus: {
+			broadcastTerminalLifecycle: (message) => {
+				broadcasts.push(message);
+			},
+		},
 	};
-	return { deps, runCalls, disposedTerminals };
+	return { deps, runCalls, disposedTerminals, broadcasts };
 }
 
 describe("resumeTerminalAgentSession", () => {
 	it("claims, relaunches with the saved session id, and disposes the dead terminal", async () => {
 		const db = createTestDb();
 		seedResumableBinding(db);
-		const { deps, runCalls, disposedTerminals } = createDeps(db);
+		const { deps, runCalls, disposedTerminals, broadcasts } = createDeps(db);
 
 		const result = await resumeTerminalAgentSession(deps, {
 			workspaceId: "ws-1",
@@ -162,6 +193,17 @@ describe("resumeTerminalAgentSession", () => {
 		expect(disposedTerminals).toEqual(["t1"]);
 		// The candidate is consumed for good.
 		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeUndefined();
+		// Every pane on t1 — in any window — learns where the session went.
+		expect(broadcasts).toEqual([
+			{
+				workspaceId: "ws-1",
+				terminalId: "t1",
+				eventType: "resumed",
+				resumedTerminalId: "t-new",
+				label: "Claude",
+				occurredAt: expect.any(Number),
+			},
+		]);
 	});
 
 	it("launches a never-prompted session fresh instead of resuming into nothing", async () => {
@@ -169,11 +211,9 @@ describe("resumeTerminalAgentSession", () => {
 		seedResumableBinding(db, { lastEventType: "Attached" });
 		// Idle since SessionStart with no transcript on disk: a `--resume`
 		// would exit with "no conversation found".
-		const { deps, runCalls, disposedTerminals } = createDeps(
-			db,
-			undefined,
-			() => false,
-		);
+		const { deps, runCalls, disposedTerminals } = createDeps(db, {
+			hasSession: () => false,
+		});
 
 		const result = await resumeTerminalAgentSession(deps, {
 			workspaceId: "ws-1",
@@ -196,9 +236,10 @@ describe("resumeTerminalAgentSession", () => {
 		// A session restored earlier and left idle is "Attached" too, but its
 		// transcript exists — relaunching fresh would drop that conversation.
 		seedResumableBinding(db, { lastEventType: "Attached" });
-		const { deps, runCalls } = createDeps(db, undefined, (binding) =>
-			binding.agentSessionId === "sess-t1" ? true : null,
-		);
+		const { deps, runCalls } = createDeps(db, {
+			hasSession: (binding) =>
+				binding.agentSessionId === "sess-t1" ? true : null,
+		});
 
 		await resumeTerminalAgentSession(deps, {
 			workspaceId: "ws-1",
@@ -213,7 +254,7 @@ describe("resumeTerminalAgentSession", () => {
 		// Unreadable or unsurveyed store: not evidence the conversation is
 		// gone, so the saved session id is kept rather than discarded.
 		seedResumableBinding(db, { lastEventType: "Attached" });
-		const { deps, runCalls } = createDeps(db, undefined, () => null);
+		const { deps, runCalls } = createDeps(db, { hasSession: () => null });
 
 		await resumeTerminalAgentSession(deps, {
 			workspaceId: "ws-1",
@@ -226,7 +267,7 @@ describe("resumeTerminalAgentSession", () => {
 	it("never consults the harness store for a session past its first prompt", async () => {
 		const db = createTestDb();
 		seedResumableBinding(db);
-		const { deps, runCalls } = createDeps(db, undefined, () => false);
+		const { deps, runCalls } = createDeps(db, { hasSession: () => false });
 
 		await resumeTerminalAgentSession(deps, {
 			workspaceId: "ws-1",
@@ -262,9 +303,11 @@ describe("resumeTerminalAgentSession", () => {
 		const gate = new Promise<void>((resolveGate) => {
 			releaseLaunch = resolveGate;
 		});
-		const { deps, runCalls } = createDeps(db, async () => {
-			await gate;
-			return { kind: "terminal", sessionId: "t-new", label: "Claude" };
+		const { deps, runCalls } = createDeps(db, {
+			runAgent: async () => {
+				await gate;
+				return { kind: "terminal", sessionId: "t-new", label: "Claude" };
+			},
 		});
 
 		const input = { workspaceId: "ws-1", terminalId: "t1" };
@@ -286,16 +329,18 @@ describe("resumeTerminalAgentSession", () => {
 		const db = createTestDb();
 		seedResumableBinding(db);
 		let failNext = true;
-		const { deps, runCalls, disposedTerminals } = createDeps(db, () => {
-			if (failNext) {
-				failNext = false;
-				return Promise.reject(new Error("spawn failed"));
-			}
-			return Promise.resolve({
-				kind: "terminal",
-				sessionId: "t-new",
-				label: "Claude",
-			});
+		const { deps, runCalls, disposedTerminals } = createDeps(db, {
+			runAgent: () => {
+				if (failNext) {
+					failNext = false;
+					return Promise.reject(new Error("spawn failed"));
+				}
+				return Promise.resolve({
+					kind: "terminal",
+					sessionId: "t-new",
+					label: "Claude",
+				});
+			},
 		});
 
 		const input = { workspaceId: "ws-1", terminalId: "t1" };
@@ -462,6 +507,51 @@ function seedLiveBinding(
 function createStore(db: HostDb): TerminalAgentStore {
 	return new TerminalAgentStore(new SqliteTerminalAgentBindingPersistence(db));
 }
+
+describe("findResumedSuccessorTerminalId", () => {
+	it("follows a chain of resumes to the newest terminal", () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		for (const [terminalId, resumedInto] of [
+			["t1", "t2"],
+			["t2", "t3"],
+			["t3", null],
+		] as const) {
+			db.insert(terminalSessions)
+				.values({
+					id: terminalId,
+					status: resumedInto ? "disposed" : "active",
+					originWorkspaceId: "ws-1",
+					createdAt: 1,
+				})
+				.run();
+			db.insert(terminalAgentBindings)
+				.values({
+					terminalId,
+					workspaceId: "ws-1",
+					agentId: "claude",
+					agentSessionId: "sess",
+					startedAt: 1,
+					lastEventAt: 2,
+					lastEventType: "Stop",
+					...(resumedInto
+						? {
+								endedAt: 3,
+								endReason: "resumed",
+								resumedIntoTerminalId: resumedInto,
+							}
+						: {}),
+				})
+				.run();
+		}
+
+		expect(findResumedSuccessorTerminalId(db, "ws-1", "t1")).toBe("t3");
+		expect(findResumedSuccessorTerminalId(db, "ws-1", "t2")).toBe("t3");
+		expect(findResumedSuccessorTerminalId(db, "ws-1", "t3")).toBeUndefined();
+		// Another workspace's terminal id is not followed.
+		expect(findResumedSuccessorTerminalId(db, "ws-2", "t1")).toBeUndefined();
+	});
+});
 
 describe("listAccountRestartCandidates", () => {
 	it("defers synchronous engine classification until the shell snapshot is ready", () => {
@@ -829,6 +919,31 @@ describe("pending nudge (KTD8)", () => {
 });
 
 describe("killAndResumeTerminalAgent", () => {
+	it("lets a pane find the successor after an account move launches a never-prompted session fresh", async () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedLiveBinding(db, { terminalId: "t1", lastEventType: "Attached" });
+		const { deps, runCalls, broadcasts } = createDeps(db, {
+			hasSession: () => false,
+		});
+		expect(findResumedSuccessor(db, "ws-1", "t1")).toBeNull();
+		await killAndResumeTerminalAgent(deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+		expect(runCalls[0]?.resumeSessionId).toBeUndefined();
+		expect(findResumedSuccessor(db, "ws-1", "t1")).toEqual({
+			terminalId: "t-new",
+			label: "Claude",
+		});
+		expect(broadcasts).toContainEqual(
+			expect.objectContaining({
+				eventType: "resumed",
+				terminalId: "t1",
+				resumedTerminalId: "t-new",
+			}),
+		);
+	});
 	// The reservation is already visible when the kill is recorded, and that
 	// write can throw for real: it is a better-sqlite3 update behind a 5s busy
 	// timeout, and endBinding emits a change event that rethrows a listener's

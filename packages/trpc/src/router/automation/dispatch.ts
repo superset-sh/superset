@@ -66,15 +66,27 @@ export type DispatchOptions = {
 	relayUrl: string;
 } & DispatchCause;
 
+/**
+ * The columns a candidate is built from, named once so both queries below
+ * project the same ones. A bare `.select()` would instead project whatever the
+ * schema currently declares, which couples dispatch to columns it never reads:
+ * a column dropped from `v2_hosts` breaks every deployment still running the
+ * previous build, since it goes on selecting a column the database no longer
+ * has.
+ */
+const hostCandidateColumns = {
+	organizationId: v2Hosts.organizationId,
+	machineId: v2Hosts.machineId,
+	name: v2Hosts.name,
+	wakeCommand: v2Hosts.wakeCommand,
+	createdByUserId: v2Hosts.createdByUserId,
+	createdAt: v2Hosts.createdAt,
+	updatedAt: v2Hosts.updatedAt,
+};
+
 type HostCandidate = Pick<
 	typeof v2Hosts.$inferSelect,
-	| "organizationId"
-	| "machineId"
-	| "name"
-	| "wakeCommand"
-	| "createdByUserId"
-	| "createdAt"
-	| "updatedAt"
+	keyof typeof hostCandidateColumns
 >;
 
 /**
@@ -287,7 +299,7 @@ async function resolveCandidateHosts(
 ): Promise<HostCandidate[]> {
 	if (automation.targetHostId) {
 		const [host] = await db
-			.select()
+			.select(hostCandidateColumns)
 			.from(v2Hosts)
 			.where(
 				and(
@@ -301,15 +313,7 @@ async function resolveCandidateHosts(
 	}
 
 	return db
-		.select({
-			organizationId: v2Hosts.organizationId,
-			machineId: v2Hosts.machineId,
-			name: v2Hosts.name,
-			wakeCommand: v2Hosts.wakeCommand,
-			createdByUserId: v2Hosts.createdByUserId,
-			createdAt: v2Hosts.createdAt,
-			updatedAt: v2Hosts.updatedAt,
-		})
+		.select(hostCandidateColumns)
 		.from(v2Hosts)
 		.innerJoin(
 			v2UsersHosts,

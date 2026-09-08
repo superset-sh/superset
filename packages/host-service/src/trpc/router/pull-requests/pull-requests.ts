@@ -22,7 +22,13 @@ export const pullRequestsRouter = router({
 				await ctx.runtime.pullRequests.getPullRequestsByWorkspaces(
 					input.workspaceIds,
 				);
-			return { workspaces };
+			// Why links may be stale: the sweep keeps existing links through a
+			// rate limit, outage, or rejected credential but cannot create new
+			// ones, and a workspace with no PR chip says nothing on its own.
+			return {
+				workspaces,
+				github: ctx.runtime.pullRequests.getGithubStatus(),
+			};
 		}),
 	/**
 	 * Every PR each workspace has ever been linked to, current one first.

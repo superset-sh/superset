@@ -8,6 +8,7 @@ import { FaGithub } from "react-icons/fa";
 import { DownloadButton } from "../DownloadButton";
 import { WaitlistModal } from "../WaitlistModal";
 import { BoidsBackground } from "./components/BoidsBackground";
+import { HeroReassurance } from "./components/HeroReassurance";
 import { ProductDemo } from "./components/ProductDemo";
 import { TypewriterText } from "./components/TypewriterText";
 
@@ -18,16 +19,22 @@ export function HeroSection() {
 	const headlineSegments = [
 		{
 			id: "lead",
-			// Trailing space separates the two segments as the typewriter runs
+			// Typed newline, not a space: the headline is always two lines, and
+			// the break arrives as part of the animation (the caret drops to the
+			// second line) instead of the second segment starting on line one and
+			// reflowing down once it outgrows the width. Needs the h1's
+			// whitespace-pre-line to render.
 			text: `${t({
 				message: "Bring Any Agent.",
-			})} `,
+			})}\n`,
 		},
 		{
 			id: "emphasis",
 			text: t({
 				message: "Orchestrate Them All.",
 			}),
+			// Beat on the empty second line before the payoff line types
+			delayBefore: 450,
 			// Plain inline (not inline-block): vertical padding on inline boxes
 			// paints the brackets without affecting line height, so the line
 			// can't jump when this segment mounts mid-animation
@@ -60,7 +67,7 @@ export function HeroSection() {
 							</span>
 						</Link>
 						<div className="space-y-4 sm:space-y-6">
-							<h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium tracking-tight leading-[1.1] [word-spacing:0.15em] text-foreground relative max-w-6xl mx-auto">
+							<h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium tracking-tight leading-[1.1] [word-spacing:0.15em] whitespace-pre-line text-foreground relative max-w-6xl mx-auto">
 								{/* Real headline for screen readers and no-JS crawlers; the
 								    typewriter below is purely visual */}
 								<span className="sr-only">
@@ -97,7 +104,10 @@ export function HeroSection() {
 						</div>
 
 						<div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 mt-6 sm:mt-8">
-							<DownloadButton onJoinWaitlist={() => setIsWaitlistOpen(true)} />
+							<DownloadButton
+								source="hero"
+								onJoinWaitlist={() => setIsWaitlistOpen(true)}
+							/>
 							<button
 								type="button"
 								className="px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-normal bg-background border border-border text-foreground hover:bg-muted transition-colors flex items-center gap-2"
@@ -110,6 +120,7 @@ export function HeroSection() {
 								<FaGithub className="size-4" />
 							</button>
 						</div>
+						<HeroReassurance />
 					</div>
 
 					<div className="relative w-full mt-20 sm:mt-32 lg:mt-40">

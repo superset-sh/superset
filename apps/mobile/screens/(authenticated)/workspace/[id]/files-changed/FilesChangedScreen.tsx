@@ -61,7 +61,6 @@ import {
 	DIFF_LINE_HEIGHT,
 	ESTIMATED_CHAR_WIDTH,
 	GUTTER_WIDTH,
-	HUNK_ROW_HEIGHT,
 } from "./utils/diffMetrics";
 
 const MAX_HIGHLIGHT_BYTES = 200_000;
@@ -528,17 +527,6 @@ export function FilesChangedScreen() {
 							onDelete={deleteFile}
 							onToggleViewed={onToggleViewed}
 						/>
-					);
-				case "hunk":
-					return (
-						<View
-							className="bg-sky-500/10 justify-center px-3"
-							style={{ height: HUNK_ROW_HEIGHT }}
-						>
-							<Text className="text-sky-300/80 font-mono text-[12px]">
-								{item.header}
-							</Text>
-						</View>
 					);
 				case "segment":
 					return (

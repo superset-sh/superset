@@ -111,7 +111,9 @@ export interface PortScanSyncPlan {
  * terminal — e.g. sessions the daemon kept alive across a host-service restart.
  * v1 desktop did this in its startup reconcile; v2 previously only registered
  * terminals a renderer had explicitly opened, so ports were detected less
- * completely.
+ * completely. A session the scanner already watches is skipped, so a pass
+ * with no new sessions plans nothing and the "registered N" log stays quiet
+ * instead of repeating every reap tick.
  *
  * Unregister every currently-watched terminal the daemon no longer reports and
  * that no live in-memory session owns. Sessions adopted here never get the
@@ -132,9 +134,11 @@ export function planPortScanSync({
 	isLive: (terminalId: string) => boolean;
 }): PortScanSyncPlan {
 	const aliveIds = new Set(liveSessions.map((session) => session.id));
+	const registeredIds = new Set(registeredTerminalIds);
 
 	const register: PortScanSyncPlan["register"] = [];
 	for (const session of liveSessions) {
+		if (registeredIds.has(session.id)) continue;
 		if (isLive(session.id)) continue;
 		const row = rowById.get(session.id);
 		if (!row?.originWorkspaceId) continue;

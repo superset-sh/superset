@@ -169,9 +169,12 @@ function V2WorkspaceLayout() {
 			return (
 				<StateScreenShell>
 					<WorkspaceHostIncompatibleState
+						hostId={hostStatus.hostId}
+						hostUrl={hostStatus.hostUrl}
 						hostName={hostStatus.hostName}
 						hostVersion={hostStatus.hostVersion}
 						minVersion={hostStatus.minVersion}
+						installSource={hostStatus.installSource}
 					/>
 				</StateScreenShell>
 			);

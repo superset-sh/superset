@@ -17,6 +17,9 @@ describe("host-service smoke", () => {
 		const result = await host.unauthenticatedTrpc.health.check.query();
 		expect(result).toEqual({
 			status: "ok",
+			pid: process.pid,
+			version: expect.stringMatching(/^\d+\.\d+\.\d+/),
+			installSource: expect.stringMatching(/^(cli|desktop|dev|unknown)$/),
 			cloudRegistered: false,
 			registrationError: null,
 		});
@@ -26,6 +29,9 @@ describe("host-service smoke", () => {
 		const result = await host.trpc.health.check.query();
 		expect(result).toEqual({
 			status: "ok",
+			pid: process.pid,
+			version: expect.stringMatching(/^\d+\.\d+\.\d+/),
+			installSource: expect.stringMatching(/^(cli|desktop|dev|unknown)$/),
 			cloudRegistered: false,
 			registrationError: null,
 		});

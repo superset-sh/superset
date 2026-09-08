@@ -1,9 +1,22 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
+	existsSync,
+	mkdtempSync,
+	readdirSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
 	augmentPathForMacOS,
 	buildMinimalEnv,
+	clearStrictShellEnvCache,
+	getStrictShellEnvironment,
 	parseEnvOutput,
 } from "./clean-shell-env.ts";
+import { __setAccountShellForTesting } from "./user-shell.ts";
 
 describe("buildMinimalEnv", () => {
 	const trackedKeys = [
@@ -115,3 +128,61 @@ describe("parseEnvOutput", () => {
 		expect(() => parseEnvOutput(withDelimiters(""))).toThrow("returned empty");
 	});
 });
+
+// Real shell, real pipes: a daemon started from the rc file inherits the
+// shell's stdout/stderr and outlives it. Resolution must complete when the
+// shell exits, not when that daemon lets go of the pipes, and must not leave
+// the pipe read ends in this process's descriptor table (HOST-SERVICE-4E).
+// Needs the real zsh and perl binaries; a CI image without them (Linux
+// runners ship no zsh) cannot exercise the pipe-holding daemon at all.
+const canRunRealShell =
+	process.platform !== "win32" &&
+	existsSync("/bin/zsh") &&
+	existsSync("/usr/bin/perl");
+
+describe.skipIf(!canRunRealShell)(
+	"getStrictShellEnvironment with an rc-spawned daemon holding the pipes",
+	() => {
+		let home: string;
+		let originalHome: string | undefined;
+		const openDescriptors = () =>
+			readdirSync(process.platform === "linux" ? "/proc/self/fd" : "/dev/fd")
+				.length;
+
+		beforeEach(() => {
+			home = mkdtempSync(join(tmpdir(), "clean-shell-env-"));
+			// New session so the timeout's tree kill cannot reach it, like a
+			// daemon that detached itself would be.
+			writeFileSync(
+				join(home, ".zshrc"),
+				`/usr/bin/perl -e 'use POSIX; POSIX::setsid(); sleep 30' &\necho $! > "${home}/holder.pid"\n`,
+			);
+			originalHome = process.env.HOME;
+			process.env.HOME = home;
+			__setAccountShellForTesting("/bin/zsh");
+			clearStrictShellEnvCache();
+		});
+
+		afterEach(() => {
+			__setAccountShellForTesting(undefined);
+			if (originalHome === undefined) delete process.env.HOME;
+			else process.env.HOME = originalHome;
+			try {
+				process.kill(Number(readFileSync(join(home, "holder.pid"), "utf8")));
+			} catch {}
+			rmSync(home, { recursive: true, force: true });
+			clearStrictShellEnvCache();
+		});
+
+		test("resolves on shell exit and releases both pipe descriptors", async () => {
+			const before = openDescriptors();
+			const startedAt = Date.now();
+			const env = await getStrictShellEnvironment();
+			expect(env.HOME).toBe(home);
+			expect(Date.now() - startedAt).toBeLessThan(5_000);
+			// The holder is still alive with the write ends; ours are gone.
+			await new Promise((resolve) => setTimeout(resolve, 200));
+			expect(openDescriptors()).toBe(before);
+		}, 15_000);
+	},
+);

@@ -75,7 +75,7 @@ export default function (pi: OmpExtensionApi) {
 			const child = spawn(notifyScript, [], {
 				stdio: ["pipe", "ignore", "ignore"],
 				detached: true,
-				env: { ...process.env, SUPERSET_AGENT_ID: "omp" },
+				env: { ...process.env, SUPERSET_HOOK_HARNESS: "omp" },
 			});
 			child.on("error", () => {
 				/* swallow — never let hook failures affect OMP */

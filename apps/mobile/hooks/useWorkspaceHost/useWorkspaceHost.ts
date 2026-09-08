@@ -124,6 +124,9 @@ export function useWorkspaceHost(
 							organizationId: cloud.organizationId,
 							machineId: cloud.id,
 							name: "Cloud",
+							version: null,
+							platform: null,
+							installSource: null,
 							// A sandbox is reachable or it isn't; there is no offline
 							// device behind it to report on.
 							isOnline: true,

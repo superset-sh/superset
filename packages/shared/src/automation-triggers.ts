@@ -97,6 +97,11 @@ export const githubTriggerEventValues = [
 	"workflow_run.failure",
 	"workflow_run.cancelled",
 	"workflow_run.any",
+	"release.published",
+	"release.created",
+	"release.edited",
+	"release.unpublished",
+	"release.deleted",
 ] as const;
 export type GithubTriggerEvent = (typeof githubTriggerEventValues)[number];
 
@@ -134,6 +139,14 @@ const githubSimpleEvent = z.object({
 		"workflow_run.failure",
 		"workflow_run.cancelled",
 		"workflow_run.any",
+		// A release names a tag, not a branch, and carries no labels — the
+		// branch and label scopes on githubCommon simply go unused rather than
+		// earning this its own shape.
+		"release.published",
+		"release.created",
+		"release.edited",
+		"release.unpublished",
+		"release.deleted",
 	]),
 	actor: triggerScopeSchema,
 });

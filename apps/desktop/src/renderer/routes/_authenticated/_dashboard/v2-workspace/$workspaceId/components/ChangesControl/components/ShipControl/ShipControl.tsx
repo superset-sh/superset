@@ -21,8 +21,9 @@ import {
 	VscLoading,
 	VscRepoPush,
 } from "react-icons/vsc";
-import { usePullRequestsSplitViewStore } from "renderer/routes/_authenticated/_dashboard/pull-requests/stores/pullRequestsSplitViewStore";
+import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
+import { usePullRequestPaneIntent } from "renderer/stores/pull-request-pane-intent";
 import { useWorkspaceGitStatus } from "../../../../providers/WorkspaceGitStatusProvider";
 import type { BranchSyncStatus } from "../../utils/getPRFlowState";
 
@@ -253,15 +254,15 @@ export function ShipControl({
 						label: t({
 							message: "Open",
 						}),
+						// The toast outlives this page: the user may have switched
+						// workspaces by the time they click. A workspace-scoped intent
+						// plus navigation lands the pane in the right store either way.
 						onClick: () => {
-							if (projectId == null) return;
-							// Same pair the PR badge's own click performs.
-							usePullRequestsSplitViewStore.getState().expandDetail();
-							void navigate({
-								to: "/pull-requests/$prNumber",
-								params: { prNumber: String(created.number) },
-								search: { project: projectId },
+							usePullRequestPaneIntent.getState().request({
+								workspaceId,
+								prNumber: created.number,
 							});
+							void navigateToV2Workspace(workspaceId, navigate);
 						},
 					},
 				},

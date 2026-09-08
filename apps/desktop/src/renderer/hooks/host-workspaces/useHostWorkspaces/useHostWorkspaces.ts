@@ -3,6 +3,7 @@ import { useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
+import { authClient } from "renderer/lib/auth-client";
 import { getHostEventBus } from "renderer/lib/host-event-bus";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -236,6 +237,22 @@ export function useHostWorkspacesSource(
 	});
 
 	const busEverOpenedRef = useRef<Set<string>>(new Set());
+	const { data: session } = authClient.useSession();
+	const currentUserId = session?.user?.id ?? null;
+
+	// Served rows are scoped to whoever asked (tags are personal), so rows
+	// fetched before the session resolved, or by the previous account, are
+	// not this user's view: refetch every host once the user is known.
+	const targetsRef = useRef(targets);
+	targetsRef.current = targets;
+	useEffect(() => {
+		if (currentUserId === null) return;
+		for (const target of targetsRef.current) {
+			void queryClient.invalidateQueries({
+				queryKey: getHostWorkspacesQueryKey(target),
+			});
+		}
+	}, [currentUserId, queryClient]);
 
 	// Live updates: each reachable host's workspace:changed patches its own
 	// cached list without a refetch.
@@ -263,6 +280,7 @@ export function useHostWorkspacesSource(
 									machineId: target.machineId,
 								},
 								workspaceId,
+								currentUserId,
 							);
 							if (next && next !== rows) {
 								saveHostWorkspacesSnapshot(
@@ -324,7 +342,7 @@ export function useHostWorkspacesSource(
 		return () => {
 			for (const cleanup of cleanups) cleanup();
 		};
-	}, [targets, queryClient, includeArchived]);
+	}, [targets, queryClient, includeArchived, currentUserId]);
 
 	const workspaces = useMemo(() => {
 		const merged = mergeHostWorkspaces({

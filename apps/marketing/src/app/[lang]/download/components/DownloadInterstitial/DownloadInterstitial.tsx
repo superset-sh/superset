@@ -1,6 +1,6 @@
 "use client";
 
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { formatNumber } from "@superset/i18n/format";
 import { DOWNLOAD_URL_MAC_X64 } from "@superset/shared/constants";
 import { useEffect, useRef } from "react";
@@ -47,6 +47,7 @@ interface DownloadInterstitialProps {
 export function DownloadInterstitial({
 	latestRelease,
 }: DownloadInterstitialProps) {
+	const { i18n } = useLingui();
 	const { platform, archSource } = usePlatform();
 	const firedRef = useRef(false);
 
@@ -66,13 +67,13 @@ export function DownloadInterstitial({
 		if (!canAutoDownload) return;
 
 		const url = desktopUrlFor(platform);
-		track("download_started", { platform, archSource });
 
 		// Latched in the callback, not here: if `platform` resolved again before
 		// the timer fired, latching early would strand the pending redirect on
 		// the stale URL. Cleanup cancels it so the newest platform wins.
 		const timer = window.setTimeout(() => {
 			firedRef.current = true;
+			track("download_started", { platform, archSource, trigger: "auto" });
 			window.location.href = url;
 		}, AUTO_DOWNLOAD_DELAY_MS);
 		return () => window.clearTimeout(timer);
@@ -177,9 +178,13 @@ export function DownloadInterstitial({
 							<Trans>Size</Trans>
 						</dt>
 						<dd className="text-foreground">
-							{formatNumber(asset.sizeBytes / BYTES_PER_MB, {
-								maximumFractionDigits: 0,
-							})}
+							{formatNumber(
+								asset.sizeBytes / BYTES_PER_MB,
+								{
+									maximumFractionDigits: 0,
+								},
+								i18n.locale,
+							)}
 							{" MB"}
 						</dd>
 					</div>
@@ -188,7 +193,7 @@ export function DownloadInterstitial({
 							<Trans>Published</Trans>
 						</dt>
 						<dd className="text-foreground">
-							{formatReleaseDate(latestRelease.publishedAt)}
+							{formatReleaseDate(latestRelease.publishedAt, i18n.locale)}
 						</dd>
 					</div>
 				</dl>

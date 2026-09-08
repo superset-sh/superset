@@ -1,4 +1,5 @@
 import {
+	afterAll,
 	afterEach,
 	beforeEach,
 	describe,
@@ -105,17 +106,23 @@ class FakeRelaySocket {
 	}
 }
 
-// bun's mock.module is process-global and leaks to every later test file in the
-// whole desktop run, so a partial stub breaks unrelated tests that import the
-// module's other named exports. Preserve the real exports and override only
-// createRelaySocket. (auth-client / posthog are deliberately NOT mocked: with a
+// mock.module affects later suites too. Snapshot the real exports before the
+// mock rewrites their live bindings, then restore them when this suite ends.
+// (auth-client / posthog are deliberately NOT mocked: with a
 // faked socket getToken/ensureFreshJwt never runs, and posthog.capture before
 // init is a harmless no-op — the real modules load fine, as the prior test did.)
+const realRelaySocketModule = { ...relaySocketModule };
 mock.module("@superset/workspace-client/relay-socket", () => ({
-	...relaySocketModule,
+	...realRelaySocketModule,
 	createRelaySocket: (options: Record<string, unknown>) =>
 		new FakeRelaySocket(options),
 }));
+afterAll(() => {
+	mock.module(
+		"@superset/workspace-client/relay-socket",
+		() => realRelaySocketModule,
+	);
+});
 
 const { connect, createTransport, disconnect, park, reconnect } = await import(
 	"./terminal-ws-transport"

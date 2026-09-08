@@ -82,6 +82,9 @@ export const v2HostRouter = {
 				machineId: v2Hosts.machineId,
 				name: v2Hosts.name,
 				organizationId: v2Hosts.organizationId,
+				version: v2Hosts.version,
+				platform: v2Hosts.platform,
+				installSource: v2Hosts.installSource,
 			})
 			.from(v2Hosts)
 			.innerJoin(

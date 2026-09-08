@@ -297,7 +297,7 @@ export function useAccessibleV2Workspaces(
 			presence
 				? rawHostRows.map((host) => ({
 						...host,
-						isOnline: presence.get(host.machineId) ?? host.isOnline,
+						isOnline: presence.get(host.machineId)?.online ?? host.isOnline,
 					}))
 				: rawHostRows,
 		[rawHostRows, presence],
