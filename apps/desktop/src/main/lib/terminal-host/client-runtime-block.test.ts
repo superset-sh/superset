@@ -14,6 +14,9 @@ interface ClientInternals {
 	connectAndAuthenticate(): Promise<void>;
 	spawnDaemon(): Promise<void>;
 	tryConnectControl(): Promise<boolean>;
+	tryConnectStream(): Promise<boolean>;
+	authenticateStream(options: { token: string }): Promise<void>;
+	readAuthToken(): string;
 	sendRequest(type: string, payload: unknown): Promise<unknown>;
 	controlSocket: Socket | null;
 	streamSocket: Socket | null;
@@ -34,6 +37,40 @@ function makeClient() {
 }
 
 describe("legacy connection retirement races", () => {
+	test("a lock during stream connection prevents stream authentication", async () => {
+		let blocked = false;
+		setV1RuntimeBlockedCheck(() => blocked);
+		const { client, internals } = makeClient();
+		internals.controlSocket = new Socket();
+		internals.controlAuthenticated = true;
+		internals.readAuthToken = () => "test-token";
+		internals.tryConnectStream = async () => {
+			blocked = true;
+			return true;
+		};
+		const authenticate = mock(async () => {});
+		internals.authenticateStream = authenticate;
+		await expect(client.ensureConnected()).rejects.toBeInstanceOf(
+			TerminalHostClientDisposedError,
+		);
+		expect(authenticate).not.toHaveBeenCalled();
+	});
+
+	test("a lock while awaiting daemon availability prevents a second control probe", async () => {
+		let blocked = false;
+		setV1RuntimeBlockedCheck(() => blocked);
+		const { client, internals } = makeClient();
+		const probe = mock(async () => false);
+		internals.tryConnectControl = probe;
+		internals.spawnDaemon = async () => {
+			blocked = true;
+		};
+		await expect(client.ensureConnected()).rejects.toBeInstanceOf(
+			TerminalHostClientDisposedError,
+		);
+		expect(probe).toHaveBeenCalledTimes(1);
+	});
+
 	test("a lock during authentication rejects the connection and waiting callers", async () => {
 		let blocked = false;
 		setV1RuntimeBlockedCheck(() => blocked);

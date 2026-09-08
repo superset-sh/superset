@@ -403,6 +403,7 @@ export class TerminalHostClient extends EventEmitter {
 				this.assertRuntimeAllowed();
 				if (!controlConnected) {
 					await this.spawnDaemon();
+					this.assertRuntimeAllowed();
 					controlConnected = await this.tryConnectControl();
 					this.assertRuntimeAllowed();
 					if (!controlConnected) {
@@ -463,6 +464,7 @@ export class TerminalHostClient extends EventEmitter {
 			this.assertRuntimeAllowed();
 			if (!this.streamSocket) {
 				const streamConnected = await this.tryConnectStream();
+				this.assertRuntimeAllowed();
 				if (!streamConnected) {
 					throw new Error("Failed to connect stream socket");
 				}
@@ -1228,6 +1230,7 @@ export class TerminalHostClient extends EventEmitter {
 			}
 			// Wait for the other spawn to complete
 			await this.waitForDaemon();
+			this.assertRuntimeAllowed();
 			return;
 		}
 
