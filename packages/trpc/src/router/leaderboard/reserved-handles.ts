@@ -128,7 +128,14 @@ export function isReservedHandle(handle: string): boolean {
 	return RESERVED_HANDLES.has(handle.trim().toLowerCase());
 }
 
-export const HANDLE_PATTERN = /^[a-z0-9](?:[a-z0-9]|-(?=[a-z0-9])){0,38}$/;
+/**
+ * The shape `handleSchema` enforces, 2 to 39 characters, shared with it so the
+ * two cannot disagree. `isProfileHandle` decides whether a bare URL segment is
+ * routed to a profile page, and that page passes the segment straight to the
+ * API as a handle, so a segment this admits and the schema refuses becomes an
+ * unhandled input-validation rejection mid-render.
+ */
+export const HANDLE_PATTERN = /^[a-z0-9](?:[a-z0-9]|-(?=[a-z0-9])){1,38}$/;
 
 export function isProfileHandle(segment: string): boolean {
 	const candidate = segment.toLowerCase();

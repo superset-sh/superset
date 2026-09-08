@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { SUPPORTED_LOCALES } from "@superset/i18n/locales";
 import {
 	HANDLE_PATTERN,
+	isProfileHandle,
 	isReservedHandle,
 	RESERVED_HANDLES,
 } from "./reserved-handles";
@@ -73,5 +74,43 @@ describe("handleSchema", () => {
 		expect(handleSchema.safeParse("-nope").success).toBe(false);
 		expect(handleSchema.safeParse("a").success).toBe(false);
 		expect(handleSchema.safeParse("has--double").success).toBe(false);
+	});
+});
+
+describe("isProfileHandle", () => {
+	// The proxy routes a bare path to the profile page when this says yes, and
+	// the page then asks the API with that path as the handle. Anything this
+	// admits that `handleSchema` refuses becomes an unhandled input-validation
+	// rejection during the render, so the matcher has to stay the stricter of
+	// the two.
+	test("never admits a segment handleSchema rejects", () => {
+		const segments = [
+			"1",
+			"a",
+			"z",
+			"harshith",
+			"ab",
+			"a1",
+			"UPPER",
+			"-nope",
+			"nope-",
+			"has--double",
+			"pricing",
+			"ja",
+			"a".repeat(39),
+			"a".repeat(40),
+			"dot.dot",
+			"under_score",
+		];
+
+		const admittedButInvalid = segments
+			.filter((segment) => isProfileHandle(segment))
+			.filter((segment) => !handleSchema.safeParse(segment).success);
+
+		expect(admittedButInvalid).toEqual([]);
+	});
+
+	test("a single-character path is not a handle", () => {
+		expect(isProfileHandle("7")).toBe(false);
 	});
 });

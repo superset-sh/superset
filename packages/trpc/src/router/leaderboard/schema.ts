@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { isDayKey, LEADERBOARD_PERIODS } from "./periods";
-import { isReservedHandle } from "./reserved-handles";
+import { HANDLE_PATTERN, isReservedHandle } from "./reserved-handles";
 
 const dayKey = z.string().refine(isDayKey, "Expected a real YYYY-MM-DD date");
 
@@ -21,10 +21,7 @@ export const handleSchema = z
 	.toLowerCase()
 	.min(2)
 	.max(39)
-	.regex(
-		/^[a-z0-9](?:[a-z0-9]|-(?=[a-z0-9])){0,38}$/,
-		"Letters, numbers and single dashes only",
-	)
+	.regex(HANDLE_PATTERN, "Letters, numbers and single dashes only")
 	.refine((handle) => !isReservedHandle(handle), "That handle is reserved");
 
 export const visibilitySchema = z.enum(["public", "hidden"]);
