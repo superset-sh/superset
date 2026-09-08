@@ -28,6 +28,7 @@ import {
 } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import type { AccountService } from "../../../../account-engine/account-service.ts";
 import type { HostDb } from "../../../../db";
 import {
 	getTerminalBaseEnv,
@@ -182,6 +183,7 @@ function claudeProjects(
 export async function seedClaudeFolderTrust(
 	stateFile: string,
 	folderPath: string,
+	assertOwner?: () => void,
 ): Promise<void> {
 	if (existsSync(stateFile)) {
 		// Cheap pre-read so an already-trusted folder leaves the file byte for
@@ -227,6 +229,7 @@ export async function seedClaudeFolderTrust(
 	}
 
 	await updateClaudeStateFile(stateFile, (state) => {
+		assertOwner?.();
 		const projects = claudeProjects(state);
 		// `false` is Claude's default scaffold value ("dialog never accepted"),
 		// not a recorded decline — the CLI persists no decline state (declining
@@ -306,6 +309,7 @@ export async function seedAgentFolderTrust(
 	db: HostDb,
 	folderPath: string,
 	config: { presetId: string; command: string; env: Record<string, string> },
+	accountService?: Pick<AccountService, "seedClaudeFolderTrust"> | null,
 ): Promise<void> {
 	try {
 		await waitForTerminalBaseEnv();
@@ -313,7 +317,14 @@ export async function seedAgentFolderTrust(
 		if (target === null) return;
 		const normalized = normalizeFolderPath(folderPath);
 		if (target.family === "claude") {
-			await seedClaudeFolderTrust(target.file, normalized);
+			if (accountService) {
+				await accountService.seedClaudeFolderTrust({
+					stateFile: target.file,
+					folderPath: normalized,
+				});
+			} else {
+				await seedClaudeFolderTrust(target.file, normalized);
+			}
 		} else {
 			await seedCodexFolderTrust(target.file, normalized);
 		}

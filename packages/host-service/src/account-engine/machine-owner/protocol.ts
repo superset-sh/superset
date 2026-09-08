@@ -39,6 +39,12 @@ export const serviceArguments = {
 	]),
 	prepareAccount: z.tuple([selectionInput]),
 	provisionSelectedAccounts: z.tuple([]),
+	seedClaudeFolderTrust: z.tuple([
+		z.object({
+			stateFile: z.string().min(1).max(4096),
+			folderPath: z.string().min(1).max(4096),
+		}),
+	]),
 };
 
 export const sessionSnapshots = z

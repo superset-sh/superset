@@ -303,6 +303,36 @@ describe("seedAgentFolderTrust", () => {
 		env,
 	});
 
+	test("sends resolved Claude trust paths to the machine owner without a local write", async () => {
+		const calls: Array<{ stateFile: string; folderPath: string }> = [];
+		await seedAgentFolderTrust(mockDb(selected), folder, claudeConfig({}), {
+			seedClaudeFolderTrust: async (input) => {
+				calls.push(input);
+			},
+		});
+		expect(calls).toEqual([
+			{
+				stateFile: join(selected, ".claude.json"),
+				folderPath: realpathSync(folder),
+			},
+		]);
+		expect(existsSync(join(selected, ".claude.json"))).toBe(false);
+	});
+
+	test("does not fall back to a local trust write when the owner is unavailable", async () => {
+		const stateFile = join(selected, ".claude.json");
+		const original = JSON.stringify({
+			oauthAccount: { accountUuid: "original" },
+		});
+		writeFileSync(stateFile, original);
+		await seedAgentFolderTrust(mockDb(selected), folder, claudeConfig({}), {
+			seedClaudeFolderTrust: async () => {
+				throw new Error("account-owner-disconnected");
+			},
+		});
+		expect(readFileSync(stateFile, "utf8")).toBe(original);
+	});
+
 	test("waits for the cold-start shell snapshot before seeding", async () => {
 		terminalEnv.resetTerminalBaseEnvForTests();
 		let release!: () => void;

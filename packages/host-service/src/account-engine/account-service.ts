@@ -23,6 +23,7 @@ import {
 	readClaudeIdentity,
 } from "../trpc/router/usage/profiles.ts";
 import type { UsageAccount } from "../trpc/router/usage/types.ts";
+import { seedClaudeFolderTrust } from "../trpc/router/workspace-creation/shared/seed-agent-trust.ts";
 import type {
 	AccountEngine,
 	AgentEngineStatus,
@@ -72,6 +73,10 @@ export interface AccountService {
 	removeAccount(input: AccountRemovalInput): Promise<{ success: true }>;
 	prepareAccount(input: AccountSelectionInput): Promise<{ success: true }>;
 	provisionSelectedAccounts(): Promise<void>;
+	seedClaudeFolderTrust(input: {
+		stateFile: string;
+		folderPath: string;
+	}): Promise<void>;
 }
 
 export interface AccountServicePointers {
@@ -111,6 +116,15 @@ export function createLocalAccountService(
 		if (engine && !engineStateUnusable()) requireWritableEngine(engine);
 	};
 	return {
+		async seedClaudeFolderTrust({ stateFile, folderPath }) {
+			const assertOwner = () => {
+				if (engine) requireWritableEngine(engine);
+			};
+			assertOwner();
+			// A session resume calls back here while the engine is moving it.
+			// Use the state file's queue; re-entering the engine lane deadlocks.
+			await seedClaudeFolderTrust(stateFile, folderPath, assertOwner);
+		},
 		async status() {
 			if (engine) return engine.status();
 			const status: AgentEngineStatus = {
