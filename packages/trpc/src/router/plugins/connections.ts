@@ -154,7 +154,7 @@ export async function updateConnectionTokens(
 			...(tokens.refreshToken
 				? { refreshToken: await encryptSecret(tokens.refreshToken) }
 				: {}),
-			tokenExpiresAt: tokens.expiresAt,
+			...(tokens.expiresAt ? { tokenExpiresAt: tokens.expiresAt } : {}),
 			...(tokens.scopes ? { scopes: tokens.scopes } : {}),
 		})
 		.where(eq(pluginConnections.id, connectionId))

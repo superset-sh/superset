@@ -1,7 +1,7 @@
 {
 	"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
 	"name": "linear",
-	"version": "1.5.0",
+	"version": "1.5.1",
 	"description": "Plan and build products: create, search, and update Linear issues.",
 	"author": {
 		"name": "Superset",
@@ -25,6 +25,19 @@
 					"provider": "linear",
 					"client": "dynamic",
 					"scopes": ["read", "write"],
+					"identity": {
+						"url": "https://api.linear.app/graphql",
+						"method": "POST",
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}",
+							"Content-Type": "application/json"
+						},
+						"body": {
+							"query": "query { viewer { id name organization { id name } } }"
+						},
+						"id": "$.data.viewer.organization.id",
+						"label": "$.data.viewer.organization.name"
+					},
 					"bind": {
 						"headers": {
 							"Authorization": "Bearer ${config.access_token}"
@@ -39,8 +52,8 @@
 						{
 							"name": "api_key",
 							"label": "Linear API key",
-							"placeholder": "lin_api_\u2026",
-							"description": "Linear \u2192 Settings \u2192 Security & access \u2192 Personal API keys",
+							"placeholder": "lin_api_…",
+							"description": "Linear → Settings → Security & access → Personal API keys",
 							"required": true,
 							"secret": true
 						}

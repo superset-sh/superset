@@ -86,7 +86,6 @@ export async function resolveEndpoints(
 	auth: PluginAuthMethod,
 	scope: TemplateScope,
 	manifest?: PluginManifest,
-	options: { forceRegister?: boolean } = {},
 ): Promise<OAuthEndpoints> {
 	if (usesDynamicClient(auth)) {
 		const server = await discoverServer(mcpUrlOf(pluginName, manifest));
@@ -95,12 +94,20 @@ export async function resolveEndpoints(
 			server,
 			auth,
 			redirectUri(pluginName),
-			options,
 		);
 		return {
 			identity,
-			authorizationEndpoint: server.metadata.authorization_endpoint,
-			tokenEndpoint: server.metadata.token_endpoint,
+			authorizationEndpoint: auth.authorization_url
+				? resolveUrlTemplate(
+						auth.authorization_url,
+						scope,
+						auth,
+						"authorization_url",
+					)
+				: server.metadata.authorization_endpoint,
+			tokenEndpoint: auth.token_url
+				? resolveUrlTemplate(auth.token_url, scope, auth, "token_url")
+				: server.metadata.token_endpoint,
 			resource: server.resource,
 			server,
 		};
@@ -262,31 +269,20 @@ function unknownClient(error: unknown): boolean {
 	);
 }
 
-async function withClientRetry<T>(
+async function discardDeadClient(
 	pluginName: string,
 	auth: PluginAuthMethod,
 	endpoints: OAuthEndpoints,
-	attempt: (endpoints: OAuthEndpoints) => Promise<T>,
-	scope: TemplateScope,
-	manifest?: PluginManifest,
-): Promise<T> {
-	try {
-		return await attempt(endpoints);
-	} catch (error) {
-		if (
-			!unknownClient(error) ||
-			!usesDynamicClient(auth) ||
-			!endpoints.server
-		) {
-			throw error;
-		}
-		await forgetClient(endpoints.server.issuer, redirectUri(pluginName));
-		return await attempt(
-			await resolveEndpoints(pluginName, auth, scope, manifest, {
-				forceRegister: true,
-			}),
-		);
+	error: unknown,
+): Promise<never> {
+	if (!unknownClient(error) || !usesDynamicClient(auth) || !endpoints.server) {
+		throw error;
 	}
+	await forgetClient(endpoints.server.issuer, redirectUri(pluginName));
+	throw new TokenRequestError(
+		`The authorization server for "${pluginName}" no longer recognises our registered client; reconnect the plugin.`,
+		(error as TokenRequestError).code,
+	);
 }
 
 export async function exchangeCode(
@@ -317,6 +313,9 @@ export async function exchangeCode(
 			additionalParams: auth.token_params ?? {},
 		}),
 		"token_url",
+	).catch(
+		async (error) =>
+			await discardDeadClient(pluginName, auth, endpoints, error),
 	);
 
 	return exchanged(tokens, auth);
@@ -331,26 +330,21 @@ export async function refreshToken(
 ): Promise<ExchangedToken> {
 	const endpoints = await resolveEndpoints(pluginName, auth, scope, manifest);
 
-	const tokens = await withClientRetry(
-		pluginName,
-		auth,
-		endpoints,
-		async (current) =>
-			await postToken(
-				requireTokenEndpoint(pluginName, current),
-				await refreshAccessTokenRequest({
-					refreshToken: token,
-					options: providerOptions(pluginName, current.identity),
-					...(current.identity.authentication
-						? { authentication: current.identity.authentication }
-						: {}),
-					...(current.resource ? { resource: current.resource } : {}),
-					...(auth.token_params ? { extraParams: auth.token_params } : {}),
-				}),
-				"token refresh",
-			),
-		scope,
-		manifest,
+	const tokens = await postToken(
+		requireTokenEndpoint(pluginName, endpoints),
+		await refreshAccessTokenRequest({
+			refreshToken: token,
+			options: providerOptions(pluginName, endpoints.identity),
+			...(endpoints.identity.authentication
+				? { authentication: endpoints.identity.authentication }
+				: {}),
+			...(endpoints.resource ? { resource: endpoints.resource } : {}),
+			...(auth.token_params ? { extraParams: auth.token_params } : {}),
+		}),
+		"token refresh",
+	).catch(
+		async (error) =>
+			await discardDeadClient(pluginName, auth, endpoints, error),
 	);
 
 	return exchanged(tokens, auth);

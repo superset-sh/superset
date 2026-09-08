@@ -23,9 +23,16 @@ const cache = new Map<string, { at: number; value: DiscoveredServer }>();
 
 function wellKnown(base: URL, name: string): string[] {
 	const path = base.pathname.replace(/\/$/, "");
-	const urls = [`${base.origin}/.well-known/${name}${path}`];
-	if (path) urls.push(`${base.origin}/.well-known/${name}`);
-	return urls;
+	if (!path) return [`${base.origin}/.well-known/${name}`];
+	return [
+		`${base.origin}/.well-known/${name}${path}`,
+		`${base.origin}${path}/.well-known/${name}`,
+		`${base.origin}/.well-known/${name}`,
+	];
+}
+
+function sameIssuer(a: string, b: string): boolean {
+	return a.replace(/\/$/, "") === b.replace(/\/$/, "");
 }
 
 async function fetchJson(urls: string[], what: string): Promise<unknown> {
@@ -90,9 +97,14 @@ async function authorizationServer(
 			`${issuer} advertises no authorization_endpoint or token_endpoint.`,
 		);
 	}
+	if (payload.issuer && !sameIssuer(payload.issuer, issuer)) {
+		throw new Error(
+			`${issuer} returned metadata for issuer "${payload.issuer}"; an authorization server may only describe the issuer it was requested from.`,
+		);
+	}
 	return {
 		...payload,
-		issuer: payload.issuer ?? issuer,
+		issuer,
 		authorization_endpoint: payload.authorization_endpoint,
 		token_endpoint: payload.token_endpoint,
 	};
@@ -105,14 +117,25 @@ export async function discoverServer(
 	if (cached && Date.now() - cached.at < CACHE_TTL_MS) return cached.value;
 
 	const { resource, issuers } = await protectedResource(mcpUrl);
-	const issuer = issuers[0] as string;
-	const value = {
-		resource,
-		issuer,
-		metadata: await authorizationServer(issuer),
-	};
-	cache.set(mcpUrl, { at: Date.now(), value });
-	return value;
+	const failures: string[] = [];
+	for (const issuer of issuers) {
+		try {
+			const value = {
+				resource,
+				issuer,
+				metadata: await authorizationServer(issuer),
+			};
+			cache.set(mcpUrl, { at: Date.now(), value });
+			return value;
+		} catch (error) {
+			failures.push(
+				`${issuer}: ${error instanceof Error ? error.message : String(error)}`,
+			);
+		}
+	}
+	throw new Error(
+		`No authorization server named by ${mcpUrl} could be read (${failures.join("; ")})`,
+	);
 }
 
 export function forgetDiscovery(mcpUrl: string): void {

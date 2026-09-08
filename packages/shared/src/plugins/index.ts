@@ -258,7 +258,7 @@ export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
 	},
 	{
 		name: "linear",
-		version: "1.0.0",
+		version: "1.5.1",
 		description: "Plan and build products",
 		interface: { displayName: "Linear", category: "Productivity" },
 		auth: [{ type: "oauth2" }],
@@ -280,7 +280,7 @@ export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
 	},
 	{
 		name: "notion",
-		version: "1.0.0",
+		version: "1.0.1",
 		description: "Notion workflows for specs, research, and docs",
 		interface: { displayName: "Notion", category: "Productivity" },
 		mcpServers: {
@@ -346,12 +346,11 @@ export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
 	},
 	{
 		name: "slack",
-		version: "1.0.0",
+		version: "1.2.0",
 		description: "Read and send messages in your workspace",
 		interface: { displayName: "Slack", category: "Communication" },
-		mcpServers: {
-			slack: { type: "http", url: "https://mcp.slack.com/mcp" },
-		},
+		auth: [{ type: "oauth2" }],
+		mcpServers: {},
 	},
 	{
 		name: "gmail",

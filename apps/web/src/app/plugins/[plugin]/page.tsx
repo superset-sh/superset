@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 
 export default function PluginDeepLinkPage() {
 	const params = useParams<{ plugin: string }>();
-	const plugin = params.plugin;
+	const plugin = encodeURIComponent(params.plugin);
 	const [deepLink, setDeepLink] = useState(`superset://plugins/${plugin}`);
 
 	useEffect(() => {

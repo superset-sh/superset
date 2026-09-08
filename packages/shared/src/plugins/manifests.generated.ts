@@ -87,7 +87,7 @@ export const FIRST_PARTY_MANIFESTS = {
 	"linear": {
 		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
 		"name": "linear",
-		"version": "1.5.0",
+		"version": "1.5.1",
 		"description": "Plan and build products: create, search, and update Linear issues.",
 		"author": {
 			"name": "Superset",
@@ -119,6 +119,19 @@ export const FIRST_PARTY_MANIFESTS = {
 							"read",
 							"write"
 						],
+						"identity": {
+							"url": "https://api.linear.app/graphql",
+							"method": "POST",
+							"headers": {
+								"Authorization": "Bearer ${config.access_token}",
+								"Content-Type": "application/json"
+							},
+							"body": {
+								"query": "query { viewer { id name organization { id name } } }"
+							},
+							"id": "$.data.viewer.organization.id",
+							"label": "$.data.viewer.organization.name"
+						},
 						"bind": {
 							"headers": {
 								"Authorization": "Bearer ${config.access_token}"
@@ -183,7 +196,7 @@ export const FIRST_PARTY_MANIFESTS = {
 	"notion": {
 		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
 		"name": "notion",
-		"version": "1.0.0",
+		"version": "1.0.1",
 		"description": "Search, read, and write your Notion workspace: pages, databases, and comments.",
 		"author": {
 			"name": "Superset",
@@ -212,6 +225,15 @@ export const FIRST_PARTY_MANIFESTS = {
 						"label": "OAuth 2.0",
 						"provider": "notion",
 						"client": "dynamic",
+						"identity": {
+							"url": "https://api.notion.com/v1/users/me",
+							"headers": {
+								"Authorization": "Bearer ${config.access_token}",
+								"Notion-Version": "2022-06-28"
+							},
+							"id": "$.id",
+							"label": "$.bot.workspace_name"
+						},
 						"bind": {
 							"headers": {
 								"Authorization": "Bearer ${config.access_token}"

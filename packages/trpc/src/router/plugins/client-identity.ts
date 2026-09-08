@@ -15,11 +15,9 @@ export interface ClientIdentity {
 	authentication?: "basic" | "post";
 }
 
-const PUBLIC_CLIENT_METADATA_BASE =
-	process.env.PLUGIN_CLIENT_METADATA_BASE_URL ?? env.NEXT_PUBLIC_API_URL;
-
 export function clientMetadataUrl(pluginName: string): string {
-	return `${PUBLIC_CLIENT_METADATA_BASE}/api/plugins/${pluginName}/client-metadata`;
+	const base = env.PLUGIN_CLIENT_METADATA_BASE_URL ?? env.NEXT_PUBLIC_API_URL;
+	return `${base}/api/plugins/${pluginName}/client-metadata`;
 }
 
 function pickAuthMethod(
@@ -178,16 +176,13 @@ export async function resolveClientIdentity(
 	server: DiscoveredServer,
 	auth: PluginAuthMethod,
 	redirectUri: string,
-	options: { forceRegister?: boolean } = {},
 ): Promise<ClientIdentity> {
 	if (server.metadata.client_id_metadata_document_supported) {
 		return { clientId: clientMetadataUrl(pluginName) };
 	}
 
-	if (!options.forceRegister) {
-		const existing = await storedClient(server.issuer, redirectUri);
-		if (existing) return existing;
-	}
+	const existing = await storedClient(server.issuer, redirectUri);
+	if (existing) return existing;
 	return await register(pluginName, server, auth, redirectUri);
 }
 
