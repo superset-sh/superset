@@ -1509,6 +1509,8 @@ export class AccountEngine {
 			agent === "claude"
 				? await this.switchClaude(input)
 				: await this.switchCodex(input);
+		// Preferences changed during provisioning: nothing switched or failed.
+		if (result === null) return { ok: true };
 
 		if (!result.ok) {
 			// KTD5: losing the lock mid-swap is not a swap failure, and never
@@ -1849,7 +1851,7 @@ export class AccountEngine {
 
 	private async switchCodex(
 		input: PerformSwitchInput,
-	): Promise<ManualSwitchOutcome & { activeDir?: string }> {
+	): Promise<(ManualSwitchOutcome & { activeDir?: string }) | null> {
 		// A Codex switch is the pointer alone, so the home's own auth.json is
 		// the last word on who this points at — and the decision's claim is
 		// only as fresh as the last poll. A `codex login` in that home since
@@ -1945,6 +1947,13 @@ export class AccountEngine {
 		// stale-lease reclaim landing inside that window is still seen at that
 		// check after the write — no ordering prevents it, only the lease.
 		if (!this.ensureOwnership(this.now())) return LOCK_LOSER;
+		if (
+			input.reasonKind !== "manual" &&
+			(!this.state.readSettings().codex.enabled ||
+				!isEligible(input.target, this.state.readRotation()))
+		) {
+			return null;
+		}
 		try {
 			this.setPointer(this.db, "codex", input.target.selection);
 		} catch (error) {

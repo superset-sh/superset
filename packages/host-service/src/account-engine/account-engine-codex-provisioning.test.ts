@@ -176,6 +176,81 @@ describe("AccountEngine Codex switches", () => {
 		rmSync(home, { recursive: true, force: true });
 	});
 
+	for (const mode of ["automatic", "manual"] as const) {
+		for (const change of ["disable", "exclude"] as const) {
+			it(`${mode} switch respects ${change} during provisioning`, async () => {
+				const state = new EngineState();
+				const before = state.readRuntime();
+				before.perAgent.codex.activeAccountId = "codex-acct-a";
+				before.perAgent.codex.activeSelection = "/homes/a";
+				state.writeRuntime(before);
+				const entries = twoCodexHomes();
+				for (const [index, entry] of entries.entries()) {
+					for (const account of entry.accounts) {
+						account.windows = [
+							{
+								id: "primary",
+								label: "Session",
+								usedPercent: index === 0 ? 95 : 10,
+								resetsAt: null,
+							},
+						];
+					}
+				}
+				let release = () => {};
+				let entered = () => {};
+				const gate = new Promise<void>((resolve) => {
+					release = resolve;
+				});
+				const provisioning = new Promise<void>((resolve) => {
+					entered = resolve;
+				});
+				const pointerWrites: Array<string | null> = [];
+				let moves = 0;
+				const engine = buildEngine(state, {
+					entries,
+					pointerWrites,
+					provisionCodex: async () => {
+						entered();
+						await gate;
+					},
+					onMove: () => {
+						moves++;
+					},
+				});
+				expect(engine.setSettings("codex", { enabled: true }).ok).toBe(true);
+				const operation =
+					mode === "manual"
+						? engine.switchManually("codex", "/homes/b")
+						: engine.tick();
+				try {
+					await provisioning;
+					expect(
+						change === "disable"
+							? engine.setSettings("codex", { enabled: false }).ok
+							: engine.setRotation("codex:codex-acct-b", false).ok,
+					).toBe(true);
+					release();
+					await operation;
+					const switched = mode === "manual";
+					expect(pointerWrites).toEqual(switched ? ["/homes/b"] : []);
+					expect(state.readRuntime().perAgent.codex.activeSelection).toBe(
+						switched ? "/homes/b" : "/homes/a",
+					);
+					expect(state.readRuntime().perAgent.codex.activeAccountId).toBe(
+						switched ? "codex-acct-b" : "codex-acct-a",
+					);
+					expect(state.readHistory()).toHaveLength(switched ? 1 : 0);
+					expect(moves).toBe(switched ? 1 : 0);
+				} finally {
+					release();
+					await operation;
+					await engine.stop();
+				}
+			});
+		}
+	}
+
 	for (const shape of [
 		"missing",
 		"malformed",
