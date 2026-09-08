@@ -1,5 +1,8 @@
 import { expect, test } from "bun:test";
-import { authorizeHostUpdate } from "./update-access";
+import {
+	authorizeHostUpdate,
+	hostUpdateAuthorizationSchema,
+} from "./update-access";
 
 const input = { organizationId: "org", machineId: "host", userId: "requester" };
 test("an organization member cannot authorize an update using a known host id", async () => {
@@ -50,4 +53,14 @@ test("both owner checks are scoped to the host and organization supplied by the 
 		["org", "host", "owner"],
 		["org", "host", "requester"],
 	]);
+});
+
+test("malformed caller identity is rejected before a UUID database lookup", () => {
+	expect(
+		hostUpdateAuthorizationSchema.safeParse({
+			organizationId: "00000000-0000-4000-8000-000000000001",
+			machineId: "host",
+			userId: "not-a-uuid",
+		}).success,
+	).toBe(false);
 });

@@ -24,7 +24,10 @@ import { emitAppFirstOpened } from "../../lib/activation-events";
 import { fetchRelayPresence } from "../../lib/relay-presence";
 import { jwtProcedure, userError } from "../../trpc";
 import { registerHost } from "./registration";
-import { authorizeHostUpdate } from "./update-access";
+import {
+	authorizeHostUpdate,
+	hostUpdateAuthorizationSchema,
+} from "./update-access";
 
 // Registering a first host means the app is installed and running, so it
 // also marks the user as first-opened for the activation automation.
@@ -230,13 +233,7 @@ export const hostRouter = {
 	// The host uses its own owner credential to check the relay-authenticated
 	// requester. Neither organization membership nor a claimed machine id is enough.
 	authorizeUpdate: jwtProcedure
-		.input(
-			z.object({
-				organizationId: z.string().uuid(),
-				machineId: z.string().min(1),
-				userId: z.string().min(1),
-			}),
-		)
+		.input(hostUpdateAuthorizationSchema)
 		.query(({ ctx, input }) => authorizeHostUpdate(ctx, input, isHostOwner)),
 
 	checkAccess: jwtProcedure

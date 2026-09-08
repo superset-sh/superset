@@ -1,4 +1,11 @@
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
+
+export const hostUpdateAuthorizationSchema = z.object({
+	organizationId: z.string().uuid(),
+	machineId: z.string().min(1),
+	userId: z.string().uuid(),
+});
 
 export async function authorizeHostUpdate(
 	caller: { userId: string; organizationIds: string[] },
