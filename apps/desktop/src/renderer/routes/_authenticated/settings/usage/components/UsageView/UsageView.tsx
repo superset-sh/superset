@@ -170,6 +170,13 @@ export function sessionMoveNote(
 			);
 }
 
+function canAutomaticallySwitch(account: UsageAccount): boolean {
+	return (
+		account.credentialKind === "subscription" &&
+		(account.status === "ok" || account.status === "token_stale")
+	);
+}
+
 /**
  * How many of an agent's accounts the engine could actually switch onto.
  * Mirrors what `shouldSwitch` looks for: another account than the active one
@@ -183,7 +190,7 @@ function switchCandidateCount(accounts: UsageAccount[]): number {
 			!candidate.isDefault &&
 			candidate.managed &&
 			candidate.inRotation &&
-			(candidate.status === "ok" || candidate.status === "token_stale"),
+			canAutomaticallySwitch(candidate),
 	).length;
 }
 
@@ -246,6 +253,7 @@ export function AccountCard({
 	// under the card say why.
 	const onMakeActive = account.managed ? makeActive : null;
 	const onToggleRotation = account.managed ? toggleRotation : null;
+	const rotationEligible = canAutomaticallySwitch(account);
 	const onSwitchSignIn = account.managed ? switchSignIn : null;
 	const onRemove = account.managed ? remove : null;
 	// Grok and Antigravity keep one login per machine, so "unmanaged" would be
@@ -485,14 +493,8 @@ export function AccountCard({
 						<label
 							htmlFor={rotationId}
 							className="ml-auto flex shrink-0 items-center gap-1.5 text-[10px] text-muted-foreground"
-							// `isEligible` refuses an expired, signed-out or unreadable
-							// token before it reads the rotation flag, so on those the
-							// sentence would promise a switch that never comes. The saved
-							// preference and the toggle stay as they are — the statuses are
-							// transient often enough that flipping either would move a
-							// choice the user did not make — but the promise goes.
 							title={
-								account.status === "ok" || account.status === "token_stale"
+								rotationEligible
 									? t({
 											message:
 												"Automatic switching may move sessions onto this account. Held-out accounts stay available to pick by hand.",
@@ -507,7 +509,8 @@ export function AccountCard({
 								aria-label={t({
 									message: "In rotation",
 								})}
-								checked={account.inRotation}
+								checked={rotationEligible && account.inRotation}
+								disabled={!rotationEligible}
 								onCheckedChange={onToggleRotation}
 							/>
 						</label>

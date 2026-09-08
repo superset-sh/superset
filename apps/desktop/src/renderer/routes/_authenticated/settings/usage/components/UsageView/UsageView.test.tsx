@@ -254,15 +254,36 @@ describe("AccountCard rotation", () => {
 		const view = renderCard(account({ status: "unavailable" }));
 		const ui = within(view.baseElement as HTMLElement);
 		expect(view.baseElement.textContent).toContain("Unavailable");
-		// The toggle and the saved preference stay: the statuses it would key
-		// off are transient often enough that either would move on its own.
-		expect(ui.getByRole("switch").getAttribute("aria-checked")).toBe("true");
+		expect(ui.getByRole("switch").getAttribute("aria-checked")).toBe("false");
+		expect(ui.getByRole("switch").hasAttribute("disabled")).toBe(true);
 		expect(ui.queryByTitle(rotationPromise)).toBeNull();
 		cleanup();
 		const readable = renderCard(account({ status: "ok" }));
 		expect(
 			within(readable.baseElement as HTMLElement).queryByTitle(rotationPromise),
 		).toBeTruthy();
+	});
+
+	test.each([
+		{ credentialKind: "api_key" as const },
+		{ status: "unavailable" as const },
+	])("excluded accounts cannot enroll but can still be activated: %j", (override) => {
+		const rotations: boolean[] = [];
+		let activations = 0;
+		const view = renderCard(account({ ...override, inRotation: true }), {
+			onToggleRotation: (next) => rotations.push(next),
+			onMakeActive: () => {
+				activations += 1;
+			},
+		});
+		const ui = within(view.baseElement as HTMLElement);
+		const toggle = ui.getByRole("switch");
+		expect(toggle.getAttribute("aria-checked")).toBe("false");
+		expect(toggle.hasAttribute("disabled")).toBe(true);
+		fireEvent.click(toggle);
+		expect(rotations).toEqual([]);
+		fireEvent.click(ui.getByRole("button", { name: "Make active" }));
+		expect(activations).toBe(1);
 	});
 
 	test("agents the engine cannot switch get no toggle at all", () => {
@@ -728,6 +749,23 @@ describe("UsageView auto-switch with nowhere to go", () => {
 				accountId: "uuid-b",
 				email: "b@example.com",
 				inRotation: false,
+			}),
+		]);
+		expect(text).toContain(CLAUDE_NOTE);
+	});
+
+	test.each([
+		{ credentialKind: "api_key" as const },
+		{ status: "unavailable" as const },
+	])("excluded accounts do not count as switch candidates: %j", (override) => {
+		const { text } = renderWithEngine([
+			account({ isDefault: true }),
+			account({
+				...override,
+				accountKey: "claude:/p/b",
+				selection: "/p/b",
+				accountId: "uuid-b",
+				inRotation: true,
 			}),
 		]);
 		expect(text).toContain(CLAUDE_NOTE);
