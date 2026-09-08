@@ -422,17 +422,57 @@ describe("a stale cached lockOwner", () => {
 
 /** A cloud sandbox has no engine at all (KTD1). */
 describe("a sandbox host", () => {
-	it("rejects mutations with engine-unavailable", async () => {
+	let previousRunMode: string | undefined;
+
+	beforeEach(() => {
+		previousRunMode = process.env.SUPERSET_HOST_RUN_MODE;
+		process.env.SUPERSET_HOST_RUN_MODE = "sandbox";
+	});
+
+	afterEach(() => {
+		if (previousRunMode === undefined)
+			delete process.env.SUPERSET_HOST_RUN_MODE;
+		else process.env.SUPERSET_HOST_RUN_MODE = previousRunMode;
+	});
+
+	// `setDefaultAccount` is a plain protected procedure, so it is the one
+	// mutation that reaches the resolver and refuses for the missing engine.
+	it("rejects setDefaultAccount with engine-unavailable", async () => {
 		const caller = usageRouter.createCaller(context(null));
 
-		for (const call of [
-			caller.engine.setSettings({ agent: "claude", patch: { enabled: true } }),
-			caller.engine.setRotation({ accountKey: "claude:x", inRotation: true }),
+		const error = await errorOf(
 			caller.setDefaultAccount({ agent: "claude", selection: null }),
-		]) {
+		);
+
+		expect(error.code).toBe("PRECONDITION_FAILED");
+		expect(error.message).toBe("engine-unavailable");
+	});
+
+	// The two engine writes are machine-only, so the sandbox check refuses
+	// them before the resolver runs — never reaching `engine-unavailable`.
+	it("refuses the machine-only engine writes as a cloud workspace", async () => {
+		const caller = usageRouter.createCaller(context(null));
+
+		const calls: [string, Promise<unknown>][] = [
+			[
+				"engine.setSettings",
+				caller.engine.setSettings({
+					agent: "claude",
+					patch: { enabled: true },
+				}),
+			],
+			[
+				"engine.setRotation",
+				caller.engine.setRotation({ accountKey: "claude:x", inRotation: true }),
+			],
+		];
+
+		for (const [path, call] of calls) {
 			const error = await errorOf(call);
 			expect(error.code).toBe("PRECONDITION_FAILED");
-			expect(error.message).toBe("engine-unavailable");
+			expect(error.message).toBe(
+				`${path} is not available in a cloud workspace: its sandbox holds exactly one project and one workspace.`,
+			);
 		}
 	});
 
