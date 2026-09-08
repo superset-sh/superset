@@ -67,6 +67,43 @@ describe("resolveAgentAccountDir", () => {
 		).toEqual({ configDir: null, managed: true });
 	});
 
+	it("sees a shell-exported Claude directory when no account is selected", () => {
+		expect(
+			resolveAgentAccountDir(mockDb({}), {
+				family: "claude",
+				shellEnv: { CLAUDE_CONFIG_DIR: exported },
+			}),
+		).toEqual({ configDir: exported, managed: false });
+	});
+
+	for (const family of ["claude", "codex"] as const) {
+		it(`keeps a ${family} shell pin unmanaged after the pointer changes`, () => {
+			const key = family === "claude" ? "CLAUDE_CONFIG_DIR" : "CODEX_HOME";
+			expect(
+				resolveAgentAccountDir(mockDb({ [family]: profile }), {
+					family,
+					shellEnv: { [key]: exported },
+				}),
+			).toEqual({ configDir: profile, managed: false });
+			expect(
+				resolveAgentAccountDir(mockDb({ [family]: profile }), {
+					family,
+					shellEnv: { [key]: exported },
+					env: { [key]: exported },
+				}),
+			).toEqual({ configDir: exported, managed: false });
+		});
+	}
+
+	it("does not treat an empty shell directory as a pin", () => {
+		expect(
+			resolveAgentAccountDir(mockDb({ claude: profile }), {
+				family: "claude",
+				shellEnv: { CLAUDE_CONFIG_DIR: "" },
+			}),
+		).toEqual({ configDir: profile, managed: true });
+	});
+
 	// A hand-pinned dir that happens to equal today's selection is still
 	// hand-pinned: the config env wins at relaunch, so calling it managed
 	// would have the engine kill the session and resume it on the same

@@ -2,9 +2,9 @@
  * Which account directory an agent launch would actually use, and whether
  * Superset owns that choice (KTD12).
  *
- * Launch-time env resolution is `{...hostDefaultAccountEnv, ...config.env}`
- * in three places (the terminal agent launch, the trust seeder, the transcript
- * reader). This wrapper is the one place that also answers the second
+ * Launch-time env overlays the shell snapshot with host defaults and then
+ * config.env (the terminal agent launch, trust seeder, and transcript reader).
+ * This wrapper is the one place that also answers the second
  * question the account engine needs: a session whose `CLAUDE_CONFIG_DIR` /
  * `CODEX_HOME` differs from the `SUPERSET_DEFAULT_*` twin Superset injects
  * alongside it was pinned by the user — the engine must never restart it onto
@@ -36,6 +36,9 @@ const DIR_VARS: Record<
 
 export interface AgentAccountDirInput {
 	family: AccountDirFamily;
+	/** Startup shell snapshot, below defaults and config. Later shell edits
+	 * and per-session exports are not represented by this snapshot. */
+	shellEnv?: Record<string, string>;
 	/** The agent config's own env overlay, which wins over the host default. */
 	env?: Record<string, string>;
 	/**
@@ -76,6 +79,7 @@ export function resolveAgentAccountDir(
 ): AgentAccountDir {
 	const vars = DIR_VARS[input.family];
 	const env = {
+		...input.shellEnv,
 		...(input.defaultEnv ?? resolveDefaultAccountEnv(db, input.family)),
 		...input.env,
 	};
@@ -85,6 +89,11 @@ export function resolveAgentAccountDir(
 		// No override at all: the CLI's own home, which the pointer still
 		// governs the moment an account is selected.
 		return { configDir: null, managed: true };
+	}
+	// Today's pointer may override a shell pin that an existing session still
+	// uses. As with config pins below, refusing a move is the safe direction.
+	if (input.shellEnv?.[vars.configDir]) {
+		return { configDir, managed: false };
 	}
 	// A config that names either var pinned this session by hand, so it owns
 	// the account and Superset does not. Testing only the value would call a
