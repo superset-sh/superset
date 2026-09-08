@@ -53,10 +53,6 @@ import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
 import { runQuitCleanup } from "./lib/quit-sequence";
 import { initSentry } from "./lib/sentry";
 import {
-	prewarmTerminalRuntime,
-	reconcileDaemonSessions,
-} from "./lib/terminal";
-import {
 	disposeTerminalHostClient,
 	getTerminalHostClient,
 } from "./lib/terminal-host/client";
@@ -505,9 +501,8 @@ if (!gotTheLock) {
 
 		await loadWebviewBrowserExtension();
 
-		// Must happen before renderer restore runs
-		await reconcileDaemonSessions();
-		prewarmTerminalRuntime();
+		// V1RuntimeLifecycle reconciles legacy sessions only after the renderer
+		// knows whether its migration lock took effect. Do not spawn v1 for v2.
 
 		// Must be listening before any host-service spawns: the child learns the
 		// bridge endpoint/secret from its env, so a late bridge means browser

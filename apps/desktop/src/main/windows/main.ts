@@ -40,6 +40,7 @@ import {
 	getWorkspaceName,
 } from "../lib/notifications/utils";
 import { recordV1TerminalExit } from "../lib/notifications/v1-agent-sessions";
+import { v1RuntimeRetirement } from "../lib/v1-runtime-retirement";
 import {
 	getAllWindows,
 	getFocusedOrLastWindow,
@@ -422,6 +423,12 @@ export async function createPlatformWindow({
 	});
 
 	registerWindow({ window, orgId, key: key ?? randomUUID() });
+	window.webContents.on(
+		"did-start-navigation",
+		(_event, _url, isInPlace, isMainFrame) => {
+			if (isMainFrame && !isInPlace) v1RuntimeRetirement.forget(window.id);
+		},
+	);
 	window.on("focus", () => markFocused(window.id));
 
 	attachEditContextMenu(window.webContents);
@@ -594,6 +601,7 @@ export async function createPlatformWindow({
 
 		ipcHandler?.detachWindow(window);
 		unregisterWindow(window.id);
+		v1RuntimeRetirement.forget(window.id);
 
 		// A user closing one window (app keeps running) updates the restore set.
 		// During app quit we skip this — before-quit snapshots the full set so

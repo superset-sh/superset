@@ -20,15 +20,16 @@ let prewarmInFlight: Promise<void> | null = null;
  * Cleans up stale sessions from previous app runs and preserves sessions
  * that can be retained.
  */
-export async function reconcileDaemonSessions(): Promise<void> {
+export async function reconcileDaemonSessions(): Promise<boolean> {
 	try {
 		const manager = getDaemonTerminalManager();
-		await manager.reconcileOnStartup();
+		return await manager.reconcileOnStartup();
 	} catch (error) {
 		console.warn(
 			"[TerminalManager] Failed to reconcile daemon sessions:",
 			error,
 		);
+		return false;
 	}
 }
 

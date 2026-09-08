@@ -92,13 +92,13 @@ export class DaemonTerminalManager extends EventEmitter {
 		return response ?? { sessions: [] };
 	}
 
-	async reconcileOnStartup(): Promise<void> {
+	async reconcileOnStartup(): Promise<boolean> {
 		try {
 			const response = await this.listExistingDaemonSessions();
 			if (response.sessions.length === 0) {
 				this.daemonAliveSessionIds.clear();
 				this.daemonSessionIdsHydrated = true;
-				return;
+				return true;
 			}
 
 			console.log(
@@ -151,11 +151,13 @@ export class DaemonTerminalManager extends EventEmitter {
 					`[DaemonTerminalManager] Preserving ${preservedCount} sessions for reattach`,
 				);
 			}
+			return true;
 		} catch (error) {
 			console.warn(
 				"[DaemonTerminalManager] Failed to reconcile sessions:",
 				error,
 			);
+			return false;
 		}
 	}
 
