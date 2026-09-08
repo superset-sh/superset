@@ -15305,7 +15305,7 @@ msgid "We'll be in touch shortly."
 msgstr "我們會盡快與你聯絡。"
 
 msgid "We'll bring you back as soon as we reconnect."
-msgstr "連線恢復後，你就能回到工作區。"
+msgstr "連線恢復後，我們會立即帶你回到工作區。"
 
 msgid "We'll get back to you shortly."
 msgstr "我們會盡快回復你。"
