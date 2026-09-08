@@ -2546,13 +2546,14 @@ describe("app wiring", () => {
 	// host-wide lock would only fight the machine that owns it. `createApp`
 	// needs a live database, a Hono server and a tRPC client to run at all, so
 	// the invariant is asserted against the wiring itself.
-	it("connects to the machine owner only outside sandbox mode", () => {
+	it("connects to the machine owner only outside sandbox and test modes", () => {
 		const source = readFileSync(
 			join(import.meta.dirname, "..", "app.ts"),
 			"utf8",
 		);
-		const guard = 'if (process.env.SUPERSET_HOST_RUN_MODE !== "sandbox") {';
-		const start = source.indexOf(guard);
+		const guard =
+			/if\s*\(\s*process.env.SUPERSET_HOST_RUN_MODE !== "sandbox"\s*&&\s*!isTestRunnerContext\(\)\s*\)\s*\{/;
+		const start = guard.exec(source)?.index ?? -1;
 		expect(start).toBeGreaterThan(-1);
 		const end = source.indexOf("\n\t}\n", start);
 		expect(end).toBeGreaterThan(start);

@@ -11,6 +11,7 @@ import { createMachineAccountClient } from "./account-engine/machine-owner/clien
 import { QuotaStore } from "./account-engine/quota-store.ts";
 import { createApiClient } from "./api";
 import { createChatV3Mount, registerChatV3Routes } from "./chat-v3";
+import { isTestRunnerContext } from "./daemon/manifest.ts";
 import { createDb, type HostDb } from "./db";
 import { EventBus, GitWatcher, registerEventBusRoute } from "./events";
 import { agentIsBusy, PageWatchManager } from "./page-watch/index.ts";
@@ -259,7 +260,10 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	// retains its own terminal store and executes only its own session actions.
 	// Sandboxes have one provisioned account and do not join the machine owner.
 	let stopAccountEngine: (() => Promise<void>) | null = null;
-	if (process.env.SUPERSET_HOST_RUN_MODE !== "sandbox") {
+	if (
+		process.env.SUPERSET_HOST_RUN_MODE !== "sandbox" &&
+		!isTestRunnerContext()
+	) {
 		const engineHostDeps = createAccountEngineHostDeps({
 			db,
 			terminalAgentStore,

@@ -15,7 +15,7 @@ it("one owner serves shared settings to two orgs and survives an org disconnect"
 	const clients: AccountRpc[] = [];
 	let close: (() => Promise<void>) | null = null;
 	try {
-		close = await startMachineAccountOwner();
+		close = await startMachineAccountOwner({ idleGraceMs: 200 });
 		expect(close).not.toBeNull();
 		const manifest = readOwnerManifest();
 		if (!manifest) throw new Error("owner not published");
@@ -38,6 +38,7 @@ it("one owner serves shared settings to two orgs and survives an org disconnect"
 		);
 		expect(settings?.claude.thresholdPercent).toBe(77);
 		clients[0]?.socket.destroy();
+		await new Promise((resolve) => setTimeout(resolve, 250));
 		expect(await clients[1]?.request<boolean>("service:ownsLock")).toBe(true);
 		const unauthorized = new AccountRpc(
 			createConnection({ host: "127.0.0.1", port: manifest.port }),
@@ -47,6 +48,9 @@ it("one owner serves shared settings to two orgs and survives an org disconnect"
 		await expect(unauthorized.request("service:getSettings")).rejects.toThrow(
 			"unauthorized-account-client",
 		);
+		clients[1]?.socket.destroy();
+		await new Promise((resolve) => setTimeout(resolve, 250));
+		expect(readOwnerManifest()).toBeNull();
 	} finally {
 		for (const rpc of clients) rpc.socket.destroy();
 		await close?.();

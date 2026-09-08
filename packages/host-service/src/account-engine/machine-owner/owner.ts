@@ -17,9 +17,9 @@ import { MachineSessions } from "./sessions.ts";
 
 /** One machine process owns discovery, credential mutations and session moves.
  * Org hosts only register live session snapshots and execute local actions. */
-export async function startMachineAccountOwner(): Promise<
-	(() => Promise<void>) | null
-> {
+export async function startMachineAccountOwner(
+	options: { idleGraceMs?: number } = {},
+): Promise<(() => Promise<void>) | null> {
 	const state = new EngineState();
 	if (state.assertSafeStateDir().readOnly)
 		throw new Error("engine-state-unusable");
@@ -69,6 +69,15 @@ export async function startMachineAccountOwner(): Promise<
 	const service = createLocalAccountService(engine, quotaStore);
 	const methods = new Set(Object.keys(service));
 	const peers = new Set<AccountRpc>();
+	const registeredPeers = new Set<AccountRpc>();
+	let idleTimer: ReturnType<typeof setTimeout> | undefined;
+	const scheduleIdleShutdown = () => {
+		if (idleTimer) clearTimeout(idleTimer);
+		if (stopped || registeredPeers.size > 0) return;
+		idleTimer = setTimeout(() => {
+			void close();
+		}, options.idleGraceMs ?? 30_000);
+	};
 	const moves = new Set<Promise<void>>();
 	let stopped = false;
 	const onChange = () => {
@@ -106,6 +115,8 @@ export async function startMachineAccountOwner(): Promise<
 						throw new Error("account-client-disconnected");
 					organizationId = org;
 					sessions.register(org, rpc);
+					registeredPeers.add(rpc);
+					scheduleIdleShutdown();
 				});
 				registration = register.catch(() => {});
 				await register;
@@ -130,7 +141,9 @@ export async function startMachineAccountOwner(): Promise<
 		socket.once("close", () => {
 			clearTimeout(authTimeout);
 			peers.delete(rpc);
+			registeredPeers.delete(rpc);
 			if (organizationId) sessions.unregister(organizationId, rpc);
+			scheduleIdleShutdown();
 		});
 	});
 	const manifest = ownerManifestPath();
@@ -139,6 +152,7 @@ export async function startMachineAccountOwner(): Promise<
 	const close = async () => {
 		if (stopped) return;
 		stopped = true;
+		if (idleTimer) clearTimeout(idleTimer);
 		if (heartbeat) clearInterval(heartbeat);
 		if (server.listening) server.close();
 		await Promise.allSettled([
@@ -169,6 +183,7 @@ export async function startMachineAccountOwner(): Promise<
 			{ mode: 0o600 },
 		);
 		renameSync(temp, manifest);
+		scheduleIdleShutdown();
 		heartbeat = setInterval(() => {
 			if (!owns()) {
 				void close();

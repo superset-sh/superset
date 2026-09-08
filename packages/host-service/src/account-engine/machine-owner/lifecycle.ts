@@ -3,7 +3,10 @@ import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { assertIsolatedDaemonNamespaceInTests } from "../../daemon/manifest.ts";
+import {
+	assertIsolatedDaemonNamespaceInTests,
+	isTestRunnerContext,
+} from "../../daemon/manifest.ts";
 
 export interface OwnerManifest {
 	pid: number;
@@ -67,6 +70,10 @@ export function resolveOwnerScript(): string {
 /** Same persistent child-process pattern as the PTY daemon. Concurrent
  * spawners are harmless: only the engine lease winner publishes an endpoint. */
 export function spawnAccountOwner(): void {
+	if (isTestRunnerContext())
+		throw new Error(
+			"Tests must start an in-process account owner explicitly; automatic subprocess spawning is disabled.",
+		);
 	assertIsolatedDaemonNamespaceInTests();
 	const child = spawn(process.execPath, [resolveOwnerScript()], {
 		detached: true,
