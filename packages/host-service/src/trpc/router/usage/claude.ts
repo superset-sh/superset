@@ -970,6 +970,15 @@ async function preferActiveDirToken(
 	credential: ClaudeOauthCredential,
 ): Promise<ClaudeOauthCredential> {
 	if (!credential.accountId) return credential;
+	// One account can hold two rows: the dedupe keeps a live copy and a lapsed
+	// one apart on purpose, so the panel can offer the working dir and show the
+	// other as "Sign-in expired". Identity alone would lend the active dir's
+	// fresh token to that second dir too and report a dead sign-in as `ok` with
+	// the account's real quota, which is not a run target the user can use.
+	// A stale copy still borrows — its refresh token is good, and freezing the
+	// active account's windows eight hours after a switch is the bug this
+	// function exists to fix.
+	if (classifyLapsedToken(credential) === "token_expired") return credential;
 	const active = readActiveClaudeBinding();
 	const isActive =
 		active.accountId !== null

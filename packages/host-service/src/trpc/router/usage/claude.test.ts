@@ -446,6 +446,44 @@ describe("fetchClaudeAccountForSelection on the active account", () => {
 		expect(untouched.account?.status).toBe("token_stale");
 		expect(tokens).toEqual(["Bearer t-active-dir"]);
 	});
+
+	// The dedupe keeps a live copy and a lapsed one of one account apart on
+	// purpose, so the panel can offer the working dir and show the other as
+	// "Sign-in expired". Matching on the account id alone lent the active dir's
+	// fresh token to that second dir too, which then reported `ok` with the
+	// account's real quota — a run target the user cannot actually use, and one
+	// rotation would be free to pick.
+	it("does not lend the active dir's token to a signed-out dir of the same account", async () => {
+		const active = profileDir("uuid-active", {
+			accessToken: "t-vault-stale",
+			refreshToken: "r",
+			expiresAt: Date.now() - hour,
+			refreshTokenExpiresAt: Date.now() + 24 * hour,
+		});
+		const signedOut = profileDir("uuid-active", {
+			accessToken: "t-dead",
+			refreshToken: "r",
+			expiresAt: Date.now() - 30 * hour,
+			refreshTokenExpiresAt: Date.now() - hour,
+		});
+		const activeDir = activeClaudeConfigDirPath();
+		mkdirSync(activeDir, { recursive: true });
+		writeProfile(activeDir, "uuid-active", {
+			accessToken: "t-active-dir",
+			refreshToken: "r",
+			expiresAt: Date.now() + hour,
+		});
+		writeRuntime("uuid-active", active);
+
+		const fetched = await fetchClaudeAccountForSelection(signedOut);
+
+		expect(fetched.account).toMatchObject({
+			status: "token_expired",
+			selection: signedOut,
+		});
+		// Its own token is dead, so nothing was polled on its behalf.
+		expect(tokens).toEqual([]);
+	});
 });
 
 /**
