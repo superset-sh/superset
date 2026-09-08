@@ -5,6 +5,7 @@ import {
 	mkdtempSync,
 	rmSync,
 	symlinkSync,
+	truncateSync,
 	utimesSync,
 	writeFileSync,
 } from "node:fs";
@@ -321,6 +322,31 @@ describe("discoverClaudeProfilesWithStatus", () => {
 				expect(complete).toBe(false);
 			} finally {
 				chmodSync(join(hidden, ".claude.json"), 0o600);
+				clock.mockRestore();
+			}
+		});
+
+		// A state file past the parse cap is a profile that exists and cannot
+		// be read, so it belongs with the case above and not with the
+		// fail-open ones: the file only grows, so a reaper acting on a walk
+		// called whole would delete a live account for good.
+		it("is incomplete when a candidate's state file is past the size cap", async () => {
+			const { home, dirs } = homeWithTwoProfiles();
+			const hidden = dirs[1] as string;
+			const clock = spyOn(Date, "now").mockReturnValue(0);
+			// Sparse: reports 50 MB + 1 to stat without writing the bytes.
+			truncateSync(join(hidden, ".claude.json"), 50 * 1024 * 1024 + 1);
+			try {
+				const { profiles, complete } = await discoverClaudeProfilesWithStatus(
+					undefined,
+					home,
+				);
+
+				expect(profiles.map((profile) => profile.configDir)).not.toContain(
+					hidden,
+				);
+				expect(complete).toBe(false);
+			} finally {
 				clock.mockRestore();
 			}
 		});

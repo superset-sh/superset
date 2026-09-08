@@ -187,11 +187,17 @@ async function readClaudeIdentityWithStatus(
 		// nothing usable.
 		return { value: null, unreadable: false };
 	}
-	// An oversized state file is a real one we choose not to parse, not a
-	// failure: a busy ~/.claude.json reaches tens of MB, and calling that
-	// unreadable would pin the walk incomplete and disable reaping forever.
-	if (!info.isFile() || info.size > MAX_STATE_FILE_BYTES) {
+	// A directory or socket at that path is not a profile we are hiding.
+	if (!info.isFile()) {
 		return { value: null, unreadable: false };
+	}
+	// An oversized state file is the opposite case: the file is there and we
+	// refuse to parse it, so a profile that exists stays invisible. That must
+	// spoil the walk like any other unreadable state file — a state file only
+	// grows, so a reaper told the walk was whole would delete a live account's
+	// records and no later pass would ever bring it back.
+	if (info.size > MAX_STATE_FILE_BYTES) {
+		return { value: null, unreadable: true };
 	}
 	try {
 		const parsed: ClaudeStateFile = JSON.parse(
