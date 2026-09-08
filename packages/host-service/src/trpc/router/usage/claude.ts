@@ -10,7 +10,7 @@
  * the CLI out.
  */
 
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import {
@@ -25,6 +25,7 @@ import {
 	discoverClaudeProfilesWithStatus,
 	isActiveClaudeConfigDir,
 	keychainServicesForConfigDir,
+	MAX_STATE_FILE_BYTES,
 	readClaudeIdentity,
 	readKeychainHits,
 	readKeychainSecrets,
@@ -233,9 +234,14 @@ export async function readDefaultLoginIdentity(homeDir?: string): Promise<{
 	accountId: string | null;
 }> {
 	try {
-		const parsed = JSON.parse(
-			await readFile(join(homeDir ?? homedir(), ".claude.json"), "utf-8"),
-		) as { oauthAccount?: { emailAddress?: string; accountUuid?: string } };
+		const statePath = join(homeDir ?? homedir(), ".claude.json");
+		const info = await stat(statePath);
+		if (!info.isFile() || info.size > MAX_STATE_FILE_BYTES) {
+			return { email: null, accountId: null };
+		}
+		const parsed = JSON.parse(await readFile(statePath, "utf-8")) as {
+			oauthAccount?: { emailAddress?: string; accountUuid?: string };
+		};
 		return {
 			email: parsed.oauthAccount?.emailAddress ?? null,
 			accountId: parsed.oauthAccount?.accountUuid ?? null,

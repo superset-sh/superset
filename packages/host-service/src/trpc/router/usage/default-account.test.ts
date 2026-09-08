@@ -395,7 +395,7 @@ describe("active account semantics", () => {
 		expect(applyAccountEngineState(known, view).inRotation).toBe(false);
 	});
 
-	it("records identity-to-dir bindings, and never on a read-only state dir", () => {
+	it("records identity-to-dir bindings, and never on a state dir whose mode is not 0700", () => {
 		recordIdentityBindings([
 			["uuid-a", "/home/u/.claude-a"],
 			["uuid-default", null],

@@ -1,5 +1,6 @@
 import { EventEmitter } from "node:events";
 import type { AgentDefinitionId } from "@superset/shared/agent-catalog";
+import { agentIsBusy } from "../page-watch/trigger";
 import {
 	getSubagentHarness,
 	isTrustedTranscriptPath,
@@ -75,7 +76,6 @@ const END_STRAGGLER_WINDOW_MS = 30_000;
 // corroborates a limit stop against the screen and the quota windows, not by
 // date. Kept because the record is only correct if it is kept correctly, and
 // the rules below are the ones a later dating consumer would need.
-const BUSY_EVENT_TYPES = new Set(["Start", "PermissionRequest"]);
 const STOPPED_EVENT_TYPES = new Set(["Stop", "Failed"]);
 
 /**
@@ -233,7 +233,7 @@ export class TerminalAgentStore extends EventEmitter {
 		// the stop itself, not the last hook that happened to arrive after it.
 		const stoppedNow =
 			prior !== undefined &&
-			BUSY_EVENT_TYPES.has(prior.lastEventType) &&
+			agentIsBusy(prior.lastEventType) &&
 			STOPPED_EVENT_TYPES.has(lastEventType);
 
 		// A session start, whatever the agent called it: the hook router

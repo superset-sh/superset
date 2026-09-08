@@ -33,7 +33,7 @@ import { activeClaudeConfigDirPath } from "./default-account.ts";
 const execFileAsync = promisify(execFile);
 
 const SCAN_TIME_BUDGET_MS = 1_500;
-const MAX_STATE_FILE_BYTES = 50 * 1024 * 1024;
+export const MAX_STATE_FILE_BYTES = 50 * 1024 * 1024;
 
 /**
  * Written inside a profile dir by the add-account command once the
