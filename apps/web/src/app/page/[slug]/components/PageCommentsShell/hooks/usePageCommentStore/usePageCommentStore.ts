@@ -109,20 +109,30 @@ export function usePageCommentStore({
 		[queryClient, listOptions.queryKey],
 	);
 
-	const onSettled = useMemo(
-		() => ({
-			onSuccess: invalidate,
-			onError: (error: { message: string }) => toast.error(errorMessage(error)),
-		}),
-		[invalidate],
-	);
-
 	const sending = useRef(0);
+
+	const beginSend = useCallback(() => {
+		sending.current += 1;
+	}, []);
+
+	const endSend = useCallback(() => {
+		sending.current = Math.max(0, sending.current - 1);
+		if (sending.current === 0) invalidate();
+	}, [invalidate]);
+
+	const handlers = useMemo(
+		() => ({
+			onMutate: beginSend,
+			onError: (error: { message: string }) => toast.error(errorMessage(error)),
+			onSettled: endSend,
+		}),
+		[beginSend, endSend],
+	);
 
 	const optimistic = useMemo(
 		() => ({
 			onMutate: async (write: (rows: ServerThread[]) => ServerThread[]) => {
-				sending.current += 1;
+				beginSend();
 				await queryClient.cancelQueries({ queryKey: listOptions.queryKey });
 				const previous = queryClient.getQueryData(listOptions.queryKey);
 				queryClient.setQueryData(listOptions.queryKey, write(previous ?? []));
@@ -135,12 +145,9 @@ export function usePageCommentStore({
 				queryClient.setQueryData(listOptions.queryKey, context?.previous);
 				toast.error(errorMessage(error));
 			},
-			onSettled: () => {
-				sending.current = Math.max(0, sending.current - 1);
-				if (sending.current === 0) invalidate();
-			},
+			onSettled: endSend,
 		}),
-		[queryClient, listOptions.queryKey, invalidate],
+		[queryClient, listOptions.queryKey, beginSend, endSend],
 	);
 
 	const create = useMutation(
@@ -174,13 +181,11 @@ export function usePageCommentStore({
 			onSettled: optimistic.onSettled,
 		}),
 	);
-	const edit = useMutation(trpc.pageComment.edit.mutationOptions(onSettled));
+	const edit = useMutation(trpc.pageComment.edit.mutationOptions(handlers));
 	const resolve = useMutation(
-		trpc.pageComment.resolve.mutationOptions(onSettled),
+		trpc.pageComment.resolve.mutationOptions(handlers),
 	);
-	const remove = useMutation(
-		trpc.pageComment.delete.mutationOptions(onSettled),
-	);
+	const remove = useMutation(trpc.pageComment.delete.mutationOptions(handlers));
 
 	const threads = useMemo(() => toThreads(list.data ?? []), [list.data]);
 

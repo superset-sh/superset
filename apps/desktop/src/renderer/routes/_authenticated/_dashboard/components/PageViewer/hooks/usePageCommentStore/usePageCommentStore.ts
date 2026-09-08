@@ -75,20 +75,30 @@ export function usePageCommentStore({
 		[utils, pageId],
 	);
 
+	const sending = useRef(0);
+
+	const beginSend = useCallback(() => {
+		sending.current += 1;
+	}, []);
+
+	const endSend = useCallback(() => {
+		sending.current = Math.max(0, sending.current - 1);
+		if (sending.current === 0) invalidate();
+	}, [invalidate]);
+
 	const handlers = useMemo(
 		() => ({
-			onSuccess: invalidate,
+			onMutate: beginSend,
 			onError: (error: { message: string }) => toast.error(errorMessage(error)),
+			onSettled: endSend,
 		}),
-		[invalidate],
+		[beginSend, endSend],
 	);
-
-	const sending = useRef(0);
 
 	const optimistic = useMemo(
 		() => ({
 			onMutate: async (write: (rows: ServerThread[]) => ServerThread[]) => {
-				sending.current += 1;
+				beginSend();
 				await utils.pageComment.list.cancel({ pageId });
 				const previous = utils.pageComment.list.getData({ pageId });
 				utils.pageComment.list.setData({ pageId }, write(previous ?? []));
@@ -101,12 +111,9 @@ export function usePageCommentStore({
 				utils.pageComment.list.setData({ pageId }, context?.previous);
 				toast.error(errorMessage(error));
 			},
-			onSettled: () => {
-				sending.current = Math.max(0, sending.current - 1);
-				if (sending.current === 0) invalidate();
-			},
+			onSettled: endSend,
 		}),
-		[utils, pageId, invalidate],
+		[utils, pageId, beginSend, endSend],
 	);
 
 	const create = cloudTrpc.pageComment.create.useMutation({
