@@ -83,6 +83,7 @@ function InputGroupAddon({
 				const parent = e.currentTarget.parentElement;
 				const focusTarget =
 					parent?.querySelector<HTMLElement>("input") ??
+					parent?.querySelector<HTMLElement>("textarea") ??
 					parent?.querySelector<HTMLElement>("[contenteditable]");
 				focusTarget?.focus();
 			}}

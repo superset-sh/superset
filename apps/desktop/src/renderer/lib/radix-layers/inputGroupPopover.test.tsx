@@ -24,10 +24,20 @@ afterAll(async () => {
 
 // Mirrors the workspace composer: Radix content is portaled out of the DOM
 // footer but its React click events still bubble through InputGroupAddon.
-function ComposerWithIssuePicker() {
+function ComposerWithIssuePicker({
+	control,
+}: {
+	control: "input" | "textarea" | "contenteditable";
+}) {
 	return (
 		<InputGroup>
-			<div contentEditable data-testid="composer" />
+			{control === "contenteditable" ? (
+				<div contentEditable data-testid="composer" />
+			) : control === "textarea" ? (
+				<textarea data-testid="composer" />
+			) : (
+				<input data-testid="composer" />
+			)}
 			<InputGroupAddon>
 				<span>Footer padding</span>
 				<Popover>
@@ -45,9 +55,13 @@ function ComposerWithIssuePicker() {
 	);
 }
 
-describe("input group popup interactions", () => {
+describe.each([
+	"input",
+	"textarea",
+	"contenteditable",
+] as const)("%s group popup interactions", (control) => {
 	test("clicking and typing in a portaled search keeps the popup focused and open", async () => {
-		render(<ComposerWithIssuePicker />);
+		render(<ComposerWithIssuePicker control={control} />);
 		const page = within(document.body);
 		await act(async () => {
 			fireEvent.click(page.getByRole("button", { name: "Link issue" }));
@@ -73,7 +87,7 @@ describe("input group popup interactions", () => {
 	});
 
 	test("ordinary addon clicks still focus the composer and buttons keep their action", async () => {
-		render(<ComposerWithIssuePicker />);
+		render(<ComposerWithIssuePicker control={control} />);
 		const page = within(document.body);
 		await act(async () => {
 			fireEvent.click(page.getByText("Footer padding"));
