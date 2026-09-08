@@ -2,10 +2,14 @@
 
 import { errorMessage } from "@superset/i18n/errors";
 import type { RouterOutputs } from "@superset/trpc";
-import type { CommentStore, CommentThread } from "@superset/ui/page-comments";
+import type {
+	CommentStore,
+	CommentThread,
+	PageCommentUser,
+} from "@superset/ui/page-comments";
 import { toast } from "@superset/ui/sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useTRPC } from "@/trpc/react";
 
 type ServerThread = RouterOutputs["pageComment"]["list"][number];
@@ -39,12 +43,61 @@ function toThreads(rows: ServerThread[]): CommentThread[] {
 	);
 }
 
+function optimisticComment({
+	body,
+	user,
+}: {
+	body: string;
+	user: PageCommentUser;
+}): ServerThread["comments"][number] {
+	return {
+		id: `optimistic-${crypto.randomUUID()}`,
+		body,
+		authorKind: "human",
+		authorName: user.name,
+		authorImage: user.image,
+		createdAt: new Date(),
+	};
+}
+
+function optimisticThread({
+	input,
+	user,
+	version,
+}: {
+	input: {
+		anchor?: {
+			path: string;
+			tag: string;
+			offsetX?: number;
+			offsetY?: number;
+		} | null;
+		anchorText?: string | null;
+		body: string;
+	};
+	user: PageCommentUser;
+	version: number;
+}): ServerThread {
+	return {
+		id: `optimistic-${crypto.randomUUID()}`,
+		anchorKind: "element",
+		anchor: input.anchor ?? null,
+		anchorText: input.anchorText ?? null,
+		resolved: false,
+		createdAt: new Date(),
+		version,
+		comments: [optimisticComment({ body: input.body, user })],
+	};
+}
+
 export function usePageCommentStore({
 	pageId,
 	version,
+	user,
 }: {
 	pageId: string;
 	version: number;
+	user: PageCommentUser;
 }): CommentStore {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -64,10 +117,63 @@ export function usePageCommentStore({
 		[invalidate],
 	);
 
-	const create = useMutation(
-		trpc.pageComment.create.mutationOptions(onSettled),
+	const sending = useRef(0);
+
+	const optimistic = useMemo(
+		() => ({
+			onMutate: async (write: (rows: ServerThread[]) => ServerThread[]) => {
+				sending.current += 1;
+				await queryClient.cancelQueries({ queryKey: listOptions.queryKey });
+				const previous = queryClient.getQueryData(listOptions.queryKey);
+				queryClient.setQueryData(listOptions.queryKey, write(previous ?? []));
+				return { previous };
+			},
+			onError: (
+				error: { message: string },
+				context: { previous: ServerThread[] | undefined } | undefined,
+			) => {
+				queryClient.setQueryData(listOptions.queryKey, context?.previous);
+				toast.error(errorMessage(error));
+			},
+			onSettled: () => {
+				sending.current = Math.max(0, sending.current - 1);
+				if (sending.current === 0) invalidate();
+			},
+		}),
+		[queryClient, listOptions.queryKey, invalidate],
 	);
-	const reply = useMutation(trpc.pageComment.reply.mutationOptions(onSettled));
+
+	const create = useMutation(
+		trpc.pageComment.create.mutationOptions({
+			onMutate: (input) =>
+				optimistic.onMutate((rows) => [
+					...rows,
+					optimisticThread({ input, user, version }),
+				]),
+			onError: (error, _input, context) => optimistic.onError(error, context),
+			onSettled: optimistic.onSettled,
+		}),
+	);
+	const reply = useMutation(
+		trpc.pageComment.reply.mutationOptions({
+			onMutate: (input) =>
+				optimistic.onMutate((rows) =>
+					rows.map((row) =>
+						row.id === input.threadId
+							? {
+									...row,
+									comments: [
+										...row.comments,
+										optimisticComment({ body: input.body, user }),
+									],
+								}
+							: row,
+					),
+				),
+			onError: (error, _input, context) => optimistic.onError(error, context),
+			onSettled: optimistic.onSettled,
+		}),
+	);
 	const edit = useMutation(trpc.pageComment.edit.mutationOptions(onSettled));
 	const resolve = useMutation(
 		trpc.pageComment.resolve.mutationOptions(onSettled),

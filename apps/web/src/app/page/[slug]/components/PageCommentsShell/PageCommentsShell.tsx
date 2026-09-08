@@ -20,7 +20,7 @@ export function PageCommentsShell({
 	user,
 	children,
 }: PageCommentsShellProps) {
-	const store = usePageCommentStore({ pageId, version });
+	const store = usePageCommentStore({ pageId, version, user });
 	return (
 		<CommentProvider user={user} store={store}>
 			{children}

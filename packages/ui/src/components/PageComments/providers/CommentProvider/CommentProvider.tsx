@@ -209,17 +209,21 @@ export function CommentProvider({
 
 	const createThread = useCallback<CommentStore["createThread"]>(
 		async (input) => {
-			const ok = await runSubmit(() => store.createThread(input));
-			if (ok) setDraft(null);
+			const composing = draft;
+			setDraft(null);
+			try {
+				await store.createThread(input);
+			} catch (error) {
+				if (composing) setDraft(composing);
+				throw error;
+			}
 		},
-		[runSubmit, store],
+		[draft, store],
 	);
 
 	const addReply = useCallback<CommentStore["addReply"]>(
-		async (threadId, body) => {
-			await runSubmit(() => store.addReply(threadId, body));
-		},
-		[runSubmit, store],
+		(threadId, body) => store.addReply(threadId, body),
+		[store],
 	);
 
 	const editComment = useCallback<CommentStore["editComment"]>(

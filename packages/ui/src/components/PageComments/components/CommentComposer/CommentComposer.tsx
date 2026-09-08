@@ -1,12 +1,11 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
-import { Loader2, SendHorizontal } from "lucide-react";
+import { SendHorizontal } from "lucide-react";
 import { type Ref, useState } from "react";
 import { cn } from "../../../../lib/utils";
 import { Button } from "../../../ui/button";
 import { Textarea } from "../../../ui/textarea";
-import { useComments } from "../../providers/CommentProvider";
 
 interface CommentComposerProps {
 	/** A reply composer names its thread; a draft composer starts one. */
@@ -27,18 +26,17 @@ export function CommentComposer({
 	className,
 }: CommentComposerProps) {
 	const { t } = useLingui();
-	const { submitting } = useComments();
 	const [value, setValue] = useState("");
 	const [focused, setFocused] = useState(false);
 	const open = focused || value.trim().length > 0;
 
-	const submit = async () => {
+	const submit = () => {
 		const body = value.trim();
-		if (!body || submitting) return;
-		try {
-			await onSubmit(body);
-			setValue("");
-		} catch {}
+		if (!body) return;
+		setValue("");
+		Promise.resolve(onSubmit(body)).catch(() => {
+			setValue((current) => current || body);
+		});
 	};
 
 	return (
@@ -83,13 +81,9 @@ export function CommentComposer({
 								? t({ message: "Send reply" })
 								: t({ message: "Post comment" })
 						}
-						disabled={submitting || value.trim().length === 0}
+						disabled={value.trim().length === 0}
 					>
-						{submitting ? (
-							<Loader2 className="size-4 animate-spin" />
-						) : (
-							<SendHorizontal className="size-4" />
-						)}
+						<SendHorizontal className="size-4" />
 					</Button>
 				</div>
 			) : null}

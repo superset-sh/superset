@@ -177,6 +177,25 @@ Three traps worth knowing before you touch catalogs:
   Mock that module with a Proxy, never a spread — `i18n` is a class instance and a spread
   drops `load`/`activate`.
 
+## Optimistic mutations
+
+A control someone is watching should never wait on a round trip. The pattern is
+TanStack's, and the row goes into the **list query's cache** — never component
+state — inside the hook that owns the mutation:
+
+- `onMutate`: cancel in-flight queries for that key, snapshot it with
+  `getData`, write the optimistic row with `setData`, return the snapshot.
+- `onError`: put the snapshot back and toast `errorMessage(error)`.
+- `onSettled`: invalidate.
+
+`ApiKeysSettings` removes a row this way; `usePageCommentStore` appends one.
+
+Two things the naive version gets wrong. A burst of sends invalidates on the
+first settle and blanks out the rows still in flight, so count what is in
+flight and invalidate only when the last one lands. And an input that clears
+itself before the server answers owes the text back on failure — restoring the
+cache is no help if what the person typed is gone.
+
 ## Further reading
 
 - `.agents/skills/`: CDP UI verification, DB migrations, ticket format, and more. Read the matching

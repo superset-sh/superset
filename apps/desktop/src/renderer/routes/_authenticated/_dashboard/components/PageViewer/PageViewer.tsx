@@ -7,7 +7,7 @@ import {
 } from "@superset/ui/page-comments";
 import { Spinner } from "@superset/ui/spinner";
 import { TRPCClientError } from "@trpc/client";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { PageViewerMessage } from "./components/PageViewerMessage";
@@ -45,9 +45,18 @@ export function PageViewer({
 	const pull = cloudTrpc.page.pull.useQuery(pageId ? { id: pageId } : { slug });
 	const resolvedPageId = pageId ?? pull.data?.id;
 	const resolvedTitle = title ?? pull.data?.title ?? slug;
+	const user = useMemo(
+		() => ({
+			id: session?.user.id ?? "",
+			name: session?.user.name ?? t({ message: "You" }),
+			image: session?.user.image ?? null,
+		}),
+		[session?.user.id, session?.user.name, session?.user.image, t],
+	);
 	const store = usePageCommentStore({
 		pageId: resolvedPageId ?? "",
 		version: pull.data?.version ?? 0,
+		user,
 	});
 	const scrollKey = `${resolvedPageId ?? slug}:${pull.data?.version ?? 0}`;
 
@@ -103,11 +112,7 @@ export function PageViewer({
 			store={store}
 			enabled={commentsEnabled}
 			onEnabledChange={onCommentsEnabledChange}
-			user={{
-				id: session?.user.id ?? "",
-				name: session?.user.name ?? t({ message: "You" }),
-				image: session?.user.image ?? null,
-			}}
+			user={user}
 		>
 			<div className="relative flex h-full w-full">
 				<div className="min-h-0 min-w-0 flex-1">
