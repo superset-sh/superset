@@ -657,6 +657,62 @@ describe("AccountEngine: a switch that failed", () => {
 });
 
 describe("AccountEngine: API-billed Claude profiles", () => {
+	it("can return from API billing after a successful swap resolves identity uncertainty", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "superset-api-profile-"));
+		writeFileSync(join(dir, ".superset-api-billing"), "claude");
+		const pointer = {
+			claudeConfigDir: ACTIVE_DIR as string | null,
+			codexHome: null,
+		};
+		let seen = { accountUuid: "acct-b", credentialHash: "hash-b" };
+		const h = harness({
+			pointer,
+			entries: [
+				entryFor(usageAccount({})),
+				entryFor(accountB()),
+				entryFor(
+					accountB({
+						accountKey: "api",
+						selection: dir,
+						accountId: null,
+						credentialKind: "api_key",
+						windows: [],
+					}),
+				),
+			],
+			readActiveIdentity: async () => seen,
+			setPointer: (_db, _agent, selection) => {
+				pointer.claudeConfigDir = selection;
+			},
+		});
+		try {
+			expect(await h.engine.switchManually("claude", "/profiles/b")).toEqual({
+				ok: true,
+			});
+			seen = { accountUuid: "acct-a", credentialHash: "changed-credential" };
+			h.engine.setSettings("claude", { enabled: false });
+			await h.engine.tick();
+			// An authoritative swap resolves the parked identity before any next tick.
+			expect(await h.engine.switchManually("claude", "/profiles/a")).toEqual({
+				ok: true,
+			});
+			expect(h.swapped).toHaveLength(2);
+			expect(await h.engine.switchManually("claude", dir)).toEqual({
+				ok: true,
+			});
+			await h.engine.tick();
+			expect(await h.engine.switchManually("claude", "/profiles/a")).toEqual({
+				ok: true,
+			});
+			expect(pointer.claudeConfigDir).toBe(ACTIVE_DIR);
+			expect(h.runtime().activeAccountId).toBe("acct-a");
+			expect(h.swapped).toHaveLength(2);
+		} finally {
+			h.cleanup();
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
 	for (const drift of ["stale-identity", "indeterminate"] as const) {
 		it(`refuses an API -> OAuth return with ${drift}`, async () => {
 			const dir = mkdtempSync(join(tmpdir(), "superset-api-profile-"));

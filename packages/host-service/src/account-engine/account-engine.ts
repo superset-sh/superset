@@ -1862,6 +1862,7 @@ export class AccountEngine {
 			// `/login`.
 			previousAccountUuid: credentialInput.from?.accountId ?? null,
 		};
+		this.claudeIdentityIndeterminate = false;
 		return { ok: true, activeDir };
 	}
 
