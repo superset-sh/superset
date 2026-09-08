@@ -507,6 +507,8 @@ export class AccountEngine {
 	 * stands on disk (KTD3). Cleared by whichever operation takes a fresh
 	 * runtime snapshot. */
 	private readonly recordedBindings = new Set<string>();
+	/** A switched login whose runtime commit must finish before another decision. */
+	private pendingSwitchCommit: (() => Promise<void>) | null = null;
 
 	constructor(deps: AccountEngineDeps) {
 		this.deps = deps;
@@ -725,6 +727,7 @@ export class AccountEngine {
 		agent: AccountAgent,
 		selection: string | null,
 	): Promise<ManualSwitchOutcome> {
+		if (!(await this.retrySwitchCommit())) return LOCK_LOSER;
 		const now = this.now();
 		// KTD5: another instance holding the lock owns the credentials, so a
 		// swap here would sign its sessions out from under it.
@@ -849,6 +852,7 @@ export class AccountEngine {
 		// its db handle and its event bus.
 		if (this.stopped) return;
 		if (!this.platformSupported()) return;
+		if (!(await this.retrySwitchCommit())) return;
 		const settings = this.state.readSettings();
 		const agents = AGENTS.filter((agent) => settings[agent].enabled);
 		// The lock is claimed before the enabled check, not after it: it is
@@ -936,6 +940,7 @@ export class AccountEngine {
 			runtime,
 			rotation: liveRotation,
 		});
+		if (this.pendingSwitchCommit !== null) return;
 		if (!this.ensureOwnership(this.now())) return;
 
 		for (const agent of liveAgents) {
@@ -973,19 +978,42 @@ export class AccountEngine {
 	 * somebody else, and spreading the copy this snapshot started from back
 	 * over the file would resurrect the one it just deleted.
 	 */
-	private persistRuntime(runtime: RuntimeState): void {
+	private persistRuntime(
+		runtime: RuntimeState,
+		recordedBindings: ReadonlySet<string> = this.recordedBindings,
+	): void {
 		const onDisk = this.state.readRuntime();
 		const bindings = { ...onDisk.identityBindings };
-		for (const accountUuid of this.recordedBindings) {
+		for (const accountUuid of recordedBindings) {
 			bindings[accountUuid] = runtime.identityBindings[accountUuid] ?? null;
 		}
 		runtime.identityBindings = bindings;
 		this.state.writeRuntime(runtime);
 	}
 
+	private async retrySwitchCommit(): Promise<boolean> {
+		const commit = this.pendingSwitchCommit;
+		if (commit === null) return true;
+		// Check the original nonce before claiming: reacquiring a released
+		// lock does not authorize replaying a snapshot over a successor's work.
+		if (
+			!this.state.isOwner(this.nonce) ||
+			!this.ensureOwnership(this.now()) ||
+			this.pendingSwitchCommit !== commit
+		) {
+			this.pendingSwitchCommit = null;
+			return false;
+		}
+		await commit();
+		return true;
+	}
+
 	// ── Ownership (KTD5) ───────────────────────────────────────────────
 
 	private ensureOwnership(now: number): boolean {
+		if (this.pendingSwitchCommit !== null && !this.state.isOwner(this.nonce)) {
+			this.pendingSwitchCommit = null;
+		}
 		// A stopped engine claims nothing and re-claims nothing: `stop()` is
 		// about to hand the lock to whoever wants it next, and every awaited
 		// boundary below asks this question before it writes.
@@ -1523,15 +1551,22 @@ export class AccountEngine {
 				error,
 			);
 		}
-		this.persistRuntime(runtime);
-		this.broadcast.switched(switchedPayload(entry));
-		if (!this.ensureOwnership(this.now())) return { ok: true };
-		await this.moveSessions(
-			agent,
-			result.activeDir ?? null,
-			input.excludeTerminalId ?? null,
-			launched,
-		);
+		const recordedBindings = new Set(this.recordedBindings);
+		this.pendingSwitchCommit = async () => {
+			this.persistRuntime(runtime, recordedBindings);
+			// A failed write retains this exact commit; a completed one must
+			// never repeat its event or session move on a later tick.
+			this.pendingSwitchCommit = null;
+			this.broadcast.switched(switchedPayload(entry));
+			if (!this.ensureOwnership(this.now())) return;
+			await this.moveSessions(
+				agent,
+				result.activeDir ?? null,
+				input.excludeTerminalId ?? null,
+				launched,
+			);
+		};
+		if (!(await this.retrySwitchCommit())) return LOCK_LOSER;
 		return { ok: true };
 	}
 
@@ -2261,6 +2296,7 @@ export class AccountEngine {
 		loaded?: LimitHintPass,
 	): Promise<void> {
 		if (!this.platformSupported()) return;
+		if (!(await this.retrySwitchCommit())) return;
 		// The tick hands its own state down; a standalone pass off the session
 		// subscription has to read it (and claim the lock) for itself.
 		const pass = loaded ?? this.loadLimitHintPass();

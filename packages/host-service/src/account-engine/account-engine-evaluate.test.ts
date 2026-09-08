@@ -102,6 +102,17 @@ function switchDue(): QuotaEntry[] {
 class FlakyLockState extends EngineState {
 	loseNextClaim = false;
 	heartbeats: number[] = [];
+	failRuntimeWrites = 0;
+
+	override writeRuntime(
+		runtime: Parameters<EngineState["writeRuntime"]>[0],
+	): void {
+		if (this.failRuntimeWrites > 0) {
+			this.failRuntimeWrites--;
+			throw new Error("runtime write failed");
+		}
+		super.writeRuntime(runtime);
+	}
 
 	override claimLock(
 		nonce: string,
@@ -159,6 +170,7 @@ function harness(options: {
 	onEnsureActiveDir?: (state: FlakyLockState) => void;
 	onSwap?: (state: FlakyLockState, call: number) => void;
 	now?: () => number;
+	onSwitched?: AccountEngineDeps["broadcast"]["switched"];
 }): Harness {
 	const previousHome = process.env.SUPERSET_HOME_DIR;
 	const home = mkdtempSync(join(tmpdir(), "superset-account-engine-evaluate-"));
@@ -223,7 +235,10 @@ function harness(options: {
 			}),
 			...options.mover,
 		},
-		broadcast: { switched: () => {}, engineState: () => {} },
+		broadcast: {
+			switched: options.onSwitched ?? (() => {}),
+			engineState: () => {},
+		},
 		now: options.now ?? (() => T0),
 		setIntervalFn: (() =>
 			({ unref() {} }) as unknown as ReturnType<
@@ -350,6 +365,96 @@ describe("AccountEngine: queued lease renewal", () => {
 });
 
 describe("AccountEngine: a switch that failed", () => {
+	for (const recovery of [
+		"tick",
+		"hint",
+		"manual",
+		"ownership-loss",
+	] as const) {
+		it(`recovers a failed runtime commit through ${recovery} without replaying the switch`, async () => {
+			const pointer = {
+				claudeConfigDir: null,
+				codexHome: "/profiles/a" as string | null,
+			};
+			const moves: Array<string | null> = [];
+			let events = 0;
+			const h = harness({
+				pointer,
+				entries: [
+					entryFor(usageAccount({ agent: "codex" })),
+					entryFor(accountB({ agent: "codex" })),
+				],
+				setPointer: (_db, _agent, selection) => {
+					pointer.codexHome = selection;
+				},
+				onSwitched: () => {
+					events++;
+				},
+				mover: {
+					moveAtIdle: async () => {
+						moves.push(pointer.codexHome);
+						return { movedTerminalIds: [], deferredTerminalIds: [] };
+					},
+				},
+			});
+			try {
+				const before = h.state.readRuntime();
+				before.perAgent.codex.activeAccountId = "acct-a";
+				before.perAgent.codex.activeSelection = "/profiles/a";
+				h.state.writeRuntime(before);
+				h.state.failRuntimeWrites = 1;
+				await expect(
+					h.engine.switchManually("codex", "/profiles/b"),
+				).rejects.toThrow("runtime write failed");
+				expect(pointer.codexHome).toBe("/profiles/b");
+				expect(h.state.readRuntime().perAgent.codex.activeAccountId).toBe(
+					"acct-a",
+				);
+				expect(moves).toEqual([]);
+				expect(events).toBe(0);
+				// Discovery may update unrelated bindings before the retry.
+				const discovered = h.state.readRuntime();
+				discovered.identityBindings["new-account"] = "/profiles/new";
+				h.state.writeRuntime(discovered);
+				if (recovery === "ownership-loss") {
+					expect(h.state.claimLock("successor", T0 + 200_000)).toBe(true);
+					discovered.perAgent.codex.activeAccountId = "successor-account";
+					h.state.writeRuntime(discovered);
+					await h.engine.tick();
+					expect(h.state.readRuntime().perAgent.codex.activeAccountId).toBe(
+						"successor-account",
+					);
+					expect(events).toBe(0);
+					expect(moves).toEqual([]);
+				} else {
+					if (recovery === "manual") {
+						expect(
+							await h.engine.switchManually("codex", "/profiles/a"),
+						).toEqual({ ok: true });
+					} else if (recovery === "hint") await h.engine.handleLimitHints();
+					else await h.engine.tick();
+					expect(h.state.readRuntime().perAgent.codex.activeAccountId).toBe(
+						recovery === "manual" ? "acct-a" : "acct-b",
+					);
+					expect(moves).toEqual(
+						recovery === "manual"
+							? ["/profiles/b", "/profiles/a"]
+							: ["/profiles/b"],
+					);
+					expect(events).toBe(recovery === "manual" ? 2 : 1);
+					expect(h.state.readHistory()).toHaveLength(events);
+					await h.engine.tick();
+					expect(moves).toHaveLength(events);
+				}
+				expect(h.state.readRuntime().identityBindings["new-account"]).toBe(
+					"/profiles/new",
+				);
+			} finally {
+				h.cleanup();
+			}
+		});
+	}
+
 	it("starts no credential operation when provisioning loses ownership", async () => {
 		let seedCalls = 0;
 		const h = harness({
