@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import type { useV2PresetExecution } from "../useV2PresetExecution";
+import { useWorkspaceSetupStatus } from "../useWorkspaceSetupStatus";
 
 type PresetExecution = ReturnType<typeof useV2PresetExecution>;
 
@@ -58,8 +59,14 @@ export function useRunWorkspaceCreationPresets({
 			?.pendingCreationPresetIds ?? []
 	).join("\n");
 
+	const setup = useWorkspaceSetupStatus(workspaceId, pendingKey !== "");
+	// Old hosts lack this endpoint; retain compatibility only for NOT_FOUND.
+	const readyForPresets = setup.isSuccess
+		? !setup.data || setup.data.status === "ready"
+		: setup.error?.message.includes("No procedure found") === true;
+
 	useEffect(() => {
-		if (!isLayoutReady || pendingKey === "") return;
+		if (!isLayoutReady || !readyForPresets || pendingKey === "") return;
 		// The row can vanish between render and effect (sidebar delete, another
 		// window); TanStack DB's update throws on a missing key.
 		if (!collections.v2WorkspaceLocalState.get(workspaceId)) return;
@@ -94,6 +101,7 @@ export function useRunWorkspaceCreationPresets({
 		})();
 	}, [
 		isLayoutReady,
+		readyForPresets,
 		pendingKey,
 		workspaceId,
 		collections,

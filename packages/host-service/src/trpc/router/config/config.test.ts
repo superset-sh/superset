@@ -188,24 +188,17 @@ describe("configRouter", () => {
 			expect(parsed.setup).toEqual(["x"]);
 		});
 
-		it("overwrites a malformed config.json with a fresh shape", async () => {
-			// Documents the current behavior: a corrupt file is silently replaced.
-			// Surfaced in the smoke-test list as a known-but-accepted edge case.
+		it("preserves malformed config and asks the user to repair it", async () => {
 			const caller = createCaller(sandbox.repoPath);
 			const dir = join(sandbox.repoPath, ".superset");
 			mkdirSync(dir, { recursive: true });
 			writeFileSync(join(dir, "config.json"), "{not valid json,,,", "utf-8");
-
-			await caller.updateConfig({
-				projectId: PROJECT_ID,
-				setup: ["new"],
-				teardown: [],
-			});
-
-			const parsed = JSON.parse(
-				readFileSync(join(dir, "config.json"), "utf-8"),
+			await expect(
+				caller.updateConfig({ projectId: PROJECT_ID, setup: ["new"] }),
+			).rejects.toThrow("Fix the existing");
+			expect(readFileSync(join(dir, "config.json"), "utf8")).toBe(
+				"{not valid json,,,",
 			);
-			expect(parsed).toEqual({ setup: ["new"], teardown: [] });
 		});
 	});
 

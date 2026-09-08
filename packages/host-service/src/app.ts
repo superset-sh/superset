@@ -30,6 +30,10 @@ import {
 	runSandboxSelfSeed,
 } from "./runtime/sandbox-self-seed";
 import {
+	resumeWorkspaceSetups,
+	stopSetupMonitors,
+} from "./runtime/workspace-setup/service";
+import {
 	isLiveTerminalSession,
 	registerWorkspaceTerminalRoute,
 	writeFramedInputToSession,
@@ -370,6 +374,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 
 	const ownsDb = options.db === undefined;
 	const dispose = async (): Promise<void> => {
+		stopSetupMonitors(db);
 		// Each step is best-effort and isolated: a throw in one cleanup must
 		// not skip the others, otherwise a flaky `.stop()` could leak the
 		// open SQLite handle for the rest of the process lifetime.
@@ -416,6 +421,21 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			}
 		}
 	};
+
+	resumeWorkspaceSetups({
+		git,
+		credentials: providers.credentials,
+		github,
+		execGh,
+		api,
+		db,
+		runtime,
+		eventBus,
+		terminalAgentStore,
+		organizationId: config.organizationId,
+		isAuthenticated: true,
+		browserBridge: config.browserBridge,
+	} as HostServiceContext);
 
 	const launchSandboxAgent = async () => {
 		if (!sandboxIdentity?.launch) return;

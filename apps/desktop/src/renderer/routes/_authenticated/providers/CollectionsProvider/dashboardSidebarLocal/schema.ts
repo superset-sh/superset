@@ -592,6 +592,13 @@ export type WorkspacesCreateAnyInput =
 	| WorkspacesCreateSessionInput;
 
 export const failedWorkspaceCreateSchema = z.object({
+	baseRefRecovery: z
+		.object({
+			ref: z.string(),
+			commit: z.string().nullable(),
+			commitTime: z.number().nullable(),
+		})
+		.optional(),
 	id: z.string().uuid(),
 	hostId: z.string(),
 	input: z.custom<WorkspacesCreateAnyInput>(),

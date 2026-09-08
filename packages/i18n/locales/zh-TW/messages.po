@@ -992,9 +992,6 @@ msgstr "<0>對比</0> <1/>"
 msgid "~{stars} projected this week"
 msgstr "本週預計約{stars}"
 
-msgid "~{totalSeconds}s typical"
-msgstr "通常約{totalSeconds}秒"
-
 msgid "~{TYPICAL_SECONDS}s typical"
 msgstr "通常約{TYPICAL_SECONDS}秒"
 
@@ -1375,6 +1372,9 @@ msgstr "新增自訂音訊"
 msgid "Add description..."
 msgstr "新增描述..."
 
+msgid "Add file"
+msgstr "新增檔案"
+
 msgid "Add file comment"
 msgstr "新增檔案評論"
 
@@ -1552,6 +1552,9 @@ msgstr "代理程式自己載入預覽、操作介面，並在標記為待審查
 
 msgid "Agents running at once"
 msgstr "同時執行的代理程式數"
+
+msgid "Agents will start when setup finishes."
+msgstr "設定完成後將啟動代理程式。"
 
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Superset 排行榜上所有開發者的彙總代理使用量 — tokens、成本、快取行為，以及大家實際選用的模型。"
@@ -2737,6 +2740,9 @@ msgstr "思維鏈"
 msgid "Change avatar"
 msgstr "更換頭像"
 
+msgid "Change base branch"
+msgstr "變更基準分支"
+
 msgid "Change location"
 msgstr "更改位置"
 
@@ -3335,9 +3341,6 @@ msgstr "命令..."
 msgid "Commands"
 msgstr "命令"
 
-msgid "Commands run for workspace setup, teardown, and the Run button."
-msgstr "用於工作區初始化、清理和「執行」按鈕的命令。"
-
 msgid "Comment"
 msgstr "評論"
 
@@ -3851,9 +3854,6 @@ msgstr "把其他瀏覽器的瀏覽歷史和登入資訊複製到Superset。原�
 msgid "Copy your key now — you won't be able to see it again."
 msgstr "請立即複製你的金鑰，之後將無法再次檢視。"
 
-msgid "Copying configuration"
-msgstr "正在複製配置"
-
 msgid "Cost"
 msgstr "費用"
 
@@ -4214,6 +4214,9 @@ msgstr "用代理程式建立自動化"
 msgid "Create failed: {message}"
 msgstr "建立失敗：{message}"
 
+msgid "Create from this commit"
+msgstr "從此提交建立"
+
 msgid "Create merge commit"
 msgstr "建立合併提交"
 
@@ -4326,9 +4329,6 @@ msgstr "建立中"
 
 msgid "Creating"
 msgstr "建立中"
-
-msgid "Creating git worktree"
-msgstr "正在建立git worktree"
 
 msgid "Creating PR..."
 msgstr "正在建立PR…"
@@ -4527,6 +4527,9 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 
 msgid "Default ({defaultWorktreePath})"
 msgstr "預設（{defaultWorktreePath}）"
+
+msgid "Default base branch"
+msgstr "預設基準分支"
 
 msgid "Default effort"
 msgstr "預設推理強度"
@@ -4793,6 +4796,9 @@ msgstr "已分離"
 
 msgid "Details"
 msgstr "詳情"
+
+msgid "Detected setup command"
+msgstr "偵測到的設定指令"
 
 msgid "Dev"
 msgstr "開發"
@@ -6177,9 +6183,6 @@ msgstr "篩選"
 msgid "Filters, {activeFilterCount} active"
 msgstr "篩選，{activeFilterCount}項生效"
 
-msgid "Finalizing setup"
-msgstr "正在完成設定"
-
 msgid "Find a small bug and fix it…"
 msgstr "找一個小bug並修好它…"
 
@@ -7122,9 +7125,6 @@ msgstr "初始化Git"
 msgid "Initialize Git Repository?"
 msgstr "初始化Git儲存庫？"
 
-msgid "Initializing session"
-msgstr "正在初始化會話"
-
 msgid "Initializing..."
 msgstr "正在初始化..."
 
@@ -7767,6 +7767,9 @@ msgstr "關聯任務"
 msgid "Linked {slug} to workspace"
 msgstr "已將{slug}關聯到工作區"
 
+msgid "Linking shared files…"
+msgstr "正在連結共用檔案…"
+
 msgid "Links"
 msgstr "連結"
 
@@ -7925,6 +7928,9 @@ msgstr "載入中..."
 
 msgid "Loading…"
 msgstr "正在載入…"
+
+msgid "Local"
+msgstr "本機"
 
 msgid "Local Device"
 msgstr "本地裝置"
@@ -9463,6 +9469,9 @@ msgstr "只有主機擁有者可以更改此位置。"
 msgid "Only host owners can delete this host"
 msgstr "只有主機擁有者才能刪除此主機"
 
+msgid "Only ignored files on this host can be shared."
+msgstr "只能共用此主機上被忽略的檔案。"
+
 msgid "Only organization owners can delete this project."
 msgstr "只有組織擁有者可以刪除此專案。"
 
@@ -10525,6 +10534,9 @@ msgstr "偏好設定"
 msgid "Prefix"
 msgstr "字首"
 
+msgid "Prepare new workspaces on this host before agents start."
+msgstr "在代理程式啟動前，在此主機上準備新工作區。"
+
 msgid "Preparing"
 msgstr "正在準備"
 
@@ -10683,9 +10695,6 @@ msgstr "專案已匯入並選中。"
 
 msgid "Project is already at that location"
 msgstr "專案已位於該位置"
-
-msgid "Project lifecycle scripts"
-msgstr "專案生命週期指令碼"
 
 msgid "Project name"
 msgstr "專案名稱"
@@ -11156,9 +11165,6 @@ msgstr "重新載入應用"
 msgid "Reload Superset to refresh the workspace list."
 msgstr "重新載入Superset以重新整理工作區列表。"
 
-msgid "Reload window"
-msgstr "重新載入視窗"
-
 msgid "Relocate"
 msgstr "遷移"
 
@@ -11182,6 +11188,12 @@ msgstr "遠端存取"
 
 msgid "Remote Access"
 msgstr "遠端存取"
+
+msgid "Remote base → shared files → setup → ready"
+msgstr "遠端基準 → 共用檔案 → 設定 → 就緒"
+
+msgid "Remote branches are refreshed before each new workspace. Local branches use the commit on this host."
+msgstr "每次建立新工作區前都會更新遠端分支。本機分支使用此主機上的提交。"
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "遠端MCP伺服器，通過HTTP連線"
@@ -11389,6 +11401,9 @@ msgstr "儲存庫：{label}"
 
 msgid "Repository"
 msgstr "儲存庫"
+
+msgid "Repository default"
+msgstr "儲存庫預設值"
 
 msgid "Repository reach and desktop release downloads. Installs are dmg and AppImage downloads; updates are the zip the auto-updater pulls, so they count existing users."
 msgstr "儲存庫影響力與桌面版下載。安裝為 dmg 與 AppImage 下載；更新為自動更新程式拉取的 zip，代表現有使用者。"
@@ -11632,6 +11647,9 @@ msgstr "請在幾秒後重試；若問題持續，請重啟Superset。"
 msgid "Retry in a few seconds."
 msgstr "請在幾秒後重試。"
 
+msgid "Retry setup"
+msgstr "重試設定"
+
 msgid "Retrying…"
 msgstr "正在重試…"
 
@@ -11869,6 +11887,9 @@ msgstr "在已配對的裝置上執行"
 
 msgid "Running on this device"
 msgstr "在此裝置上執行"
+
+msgid "Running setup…"
+msgstr "正在執行設定…"
 
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "執行中的終端處理程序會繼續，但重啟應用後可能無法再看到較早的輸出。"
@@ -12353,6 +12374,9 @@ msgstr "所選代理程式在此主機上不可用"
 msgid "Selected agent isn't a terminal agent"
 msgstr "所選代理程式不是終端代理程式"
 
+msgid "Selected files link to the root checkout. Edits are shared across workspaces."
+msgstr "所選檔案連結到根簽出目錄。編輯內容會在工作區之間共用。"
+
 msgid "Selected issues span multiple repositories. Select issues from a single repository to run them."
 msgstr "所選議題跨越多個儲存庫。請選擇同一儲存庫中的議題後再執行。"
 
@@ -12548,6 +12572,9 @@ msgstr "共享應用元件"
 msgid "Shared component library."
 msgstr "共享元件庫。"
 
+msgid "Shared files"
+msgstr "共用檔案"
+
 msgid "Shared theme JSON files you can import into Superset."
 msgstr "可匯入Superset的共享主題JSON檔案。"
 
@@ -12685,6 +12712,9 @@ msgstr "顯示指令碼欄"
 
 msgid "Show sessions"
 msgstr "顯示會話"
+
+msgid "Show setup suggestion"
+msgstr "顯示設定建議"
 
 msgid "Show status and send notifications for this agent."
 msgstr "為此代理程式顯示狀態併發送通知。"
@@ -12877,6 +12907,9 @@ msgstr "全部跳過"
 
 msgid "Skip for now"
 msgstr "暫時跳過"
+
+msgid "Skip this file once"
+msgstr "僅此次略過此檔案"
 
 msgid "Skipped"
 msgstr "已跳過"
@@ -13190,6 +13223,9 @@ msgstr "啟動中"
 
 msgid "Starting {agentLabel}"
 msgstr "正在啟動{agentLabel}"
+
+msgid "Starting agents…"
+msgstr "正在啟動代理程式…"
 
 msgid "Starting cloud workspace"
 msgstr "正在啟動雲端工作區"
@@ -13595,9 +13631,6 @@ msgstr "同步儲存庫"
 
 msgid "Sync started"
 msgstr "同步已開始"
-
-msgid "Syncing with remote"
-msgstr "正在與遠端同步"
 
 msgid "Syncing..."
 msgstr "正在同步..."
@@ -14187,6 +14220,9 @@ msgstr "這會關閉所有終端會話 — 包括此工作區和其他工作區�
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "這會關閉你組織的所有終端會話{runningCountSuffix}並啟動全新的守護程式。"
+
+msgid "This commit may be behind the remote. Use it for this workspace only."
+msgstr "此提交可能落後於遠端分支。僅用於此工作區。"
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "這將刪除用於重啟/崩潰恢復的已儲存回滾緩衝。"
@@ -15042,11 +15078,17 @@ msgstr "使用任意代理程式"
 msgid "Use as workspace run"
 msgstr "用作工作區執行指令碼"
 
+msgid "Use cached base"
+msgstr "使用快取的基準"
+
 msgid "Use Claude Code, Codex, OpenCode, or any coding agent for each task. Your workspaces, branches, and review flow stay the same."
 msgstr "每個任務都可以用Claude Code、Codex、OpenCode或任何編碼代理程式。工作區、分支和審查流程保持不變。"
 
 msgid "Use Claude Code, Codex, or any coding agent. Choose per task or run several side by side."
 msgstr "使用Claude Code、Codex或任何編碼代理程式。按任務選擇，或讓多個並行執行。"
+
+msgid "Use command"
+msgstr "使用指令"
 
 msgid "Use for new agents"
 msgstr "用於新代理程式"
@@ -15135,9 +15177,6 @@ msgstr "確認Kbd在tooltip中仍然可見"
 msgid "Verify your identity"
 msgstr "驗證你的身份"
 
-msgid "Verifying base branch"
-msgstr "正在校驗基礎分支"
-
 msgid "Version"
 msgstr "版本"
 
@@ -15209,6 +15248,9 @@ msgstr "檢視空缺職位"
 
 msgid "View open roles on Y Combinator"
 msgstr "在Y Combinator上檢視空缺職位"
+
+msgid "View output"
+msgstr "檢視輸出"
 
 msgid "View pull request"
 msgstr "檢視拉取請求"
@@ -15620,6 +15662,12 @@ msgstr "工作區執行：{workspaceRunState}"
 
 msgid "Workspace settings"
 msgstr "工作區設定"
+
+msgid "Workspace setup"
+msgstr "工作區設定"
+
+msgid "Workspace setup needs attention"
+msgstr "工作區設定需要處理"
 
 msgid "Workspace worktree not available"
 msgstr "工作區worktree不可用"

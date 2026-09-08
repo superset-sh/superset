@@ -992,9 +992,6 @@ msgstr "<0>vs</0> <1/>"
 msgid "~{stars} projected this week"
 msgstr "~{stars} verwacht deze week"
 
-msgid "~{totalSeconds}s typical"
-msgstr "~{totalSeconds}s gebruikelijk"
-
 msgid "~{TYPICAL_SECONDS}s typical"
 msgstr "~{TYPICAL_SECONDS}s gebruikelijk"
 
@@ -1375,6 +1372,9 @@ msgstr "Eigen audio toevoegen"
 msgid "Add description..."
 msgstr "Beschrijving toevoegen..."
 
+msgid "Add file"
+msgstr "Bestand toevoegen"
+
 msgid "Add file comment"
 msgstr "Opmerking bij bestand toevoegen"
 
@@ -1552,6 +1552,9 @@ msgstr "Agents laden hun eigen preview, bedienen de UI en voegen screenshotbewij
 
 msgid "Agents running at once"
 msgstr "Agents die tegelijk draaien"
+
+msgid "Agents will start when setup finishes."
+msgstr "Agents starten zodra de configuratie is voltooid."
 
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Totaal agentgebruik van alle developers op het Superset-leaderboard — tokens, kosten, cachegedrag en welke modellen mensen echt gebruiken."
@@ -2737,6 +2740,9 @@ msgstr "Gedachtegang"
 msgid "Change avatar"
 msgstr "Avatar wijzigen"
 
+msgid "Change base branch"
+msgstr "Basisbranch wijzigen"
+
 msgid "Change location"
 msgstr "Locatie wijzigen"
 
@@ -3335,9 +3341,6 @@ msgstr "Commando..."
 msgid "Commands"
 msgstr "Commando's"
 
-msgid "Commands run for workspace setup, teardown, and the Run button."
-msgstr "Commando's voor setup en teardown van werkruimtes en voor de knop Uitvoeren."
-
 msgid "Comment"
 msgstr "Reageren"
 
@@ -3851,9 +3854,6 @@ msgstr "Kopieer je browsegeschiedenis en logins uit een andere browser naar Supe
 msgid "Copy your key now — you won't be able to see it again."
 msgstr "Kopieer je sleutel nu — je kunt hem later niet meer zien."
 
-msgid "Copying configuration"
-msgstr "Configuratie kopiëren"
-
 msgid "Cost"
 msgstr "Kosten"
 
@@ -4214,6 +4214,9 @@ msgstr "Een automatisering maken met een agent"
 msgid "Create failed: {message}"
 msgstr "Aanmaken mislukt: {message}"
 
+msgid "Create from this commit"
+msgstr "Maken vanaf deze commit"
+
 msgid "Create merge commit"
 msgstr "Merge-commit maken"
 
@@ -4326,9 +4329,6 @@ msgstr "aanmaken"
 
 msgid "Creating"
 msgstr "Aanmaken"
-
-msgid "Creating git worktree"
-msgstr "Git-worktree aanmaken"
 
 msgid "Creating PR..."
 msgstr "PR wordt aangemaakt…"
@@ -4527,6 +4527,9 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 
 msgid "Default ({defaultWorktreePath})"
 msgstr "Standaard ({defaultWorktreePath})"
+
+msgid "Default base branch"
+msgstr "Standaardbasisbranch"
 
 msgid "Default effort"
 msgstr "Standaard-effort"
@@ -4793,6 +4796,9 @@ msgstr "Losgekoppeld"
 
 msgid "Details"
 msgstr "Details"
+
+msgid "Detected setup command"
+msgstr "Gedetecteerde configuratieopdracht"
 
 msgid "Dev"
 msgstr "Dev"
@@ -6177,9 +6183,6 @@ msgstr "Filters"
 msgid "Filters, {activeFilterCount} active"
 msgstr "Filters, {activeFilterCount} actief"
 
-msgid "Finalizing setup"
-msgstr "Setup afronden"
-
 msgid "Find a small bug and fix it…"
 msgstr "Vind een kleine bug en fix die…"
 
@@ -7122,9 +7125,6 @@ msgstr "Git initialiseren"
 msgid "Initialize Git Repository?"
 msgstr "Git-repository initialiseren?"
 
-msgid "Initializing session"
-msgstr "Sessie initialiseren"
-
 msgid "Initializing..."
 msgstr "Initialiseren..."
 
@@ -7767,6 +7767,9 @@ msgstr "Taak koppelen"
 msgid "Linked {slug} to workspace"
 msgstr "{slug} gekoppeld aan werkruimte"
 
+msgid "Linking shared files…"
+msgstr "Gedeelde bestanden koppelen…"
+
 msgid "Links"
 msgstr "Links"
 
@@ -7925,6 +7928,9 @@ msgstr "Laden..."
 
 msgid "Loading…"
 msgstr "Laden…"
+
+msgid "Local"
+msgstr "Lokaal"
 
 msgid "Local Device"
 msgstr "Lokaal apparaat"
@@ -9463,6 +9469,9 @@ msgstr "Alleen eigenaren van de host kunnen deze locatie wijzigen."
 msgid "Only host owners can delete this host"
 msgstr "Alleen eigenaren van de host kunnen deze host verwijderen"
 
+msgid "Only ignored files on this host can be shared."
+msgstr "Alleen genegeerde bestanden op deze host kunnen worden gedeeld."
+
 msgid "Only organization owners can delete this project."
 msgstr "Alleen eigenaren van de organisatie kunnen dit project verwijderen."
 
@@ -10525,6 +10534,9 @@ msgstr "Voorkeuren"
 msgid "Prefix"
 msgstr "Prefix"
 
+msgid "Prepare new workspaces on this host before agents start."
+msgstr "Bereid nieuwe werkruimten op deze host voor voordat agents starten."
+
 msgid "Preparing"
 msgstr "Voorbereiden"
 
@@ -10683,9 +10695,6 @@ msgstr "Project geïmporteerd en geselecteerd."
 
 msgid "Project is already at that location"
 msgstr "Project staat al op die locatie"
-
-msgid "Project lifecycle scripts"
-msgstr "Lifecycle-scripts van het project"
 
 msgid "Project name"
 msgstr "Projectnaam"
@@ -11156,9 +11165,6 @@ msgstr "App herladen"
 msgid "Reload Superset to refresh the workspace list."
 msgstr "Herlaad Superset om de lijst met werkruimtes te verversen."
 
-msgid "Reload window"
-msgstr "Venster herladen"
-
 msgid "Relocate"
 msgstr "Verplaatsen"
 
@@ -11182,6 +11188,12 @@ msgstr "Externe toegang"
 
 msgid "Remote Access"
 msgstr "Externe toegang"
+
+msgid "Remote base → shared files → setup → ready"
+msgstr "Externe basis → gedeelde bestanden → configuratie → gereed"
+
+msgid "Remote branches are refreshed before each new workspace. Local branches use the commit on this host."
+msgstr "Externe branches worden vóór elke nieuwe werkruimte vernieuwd. Lokale branches gebruiken de commit op deze host."
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "Externe MCP-server — verbindt via HTTP"
@@ -11389,6 +11401,9 @@ msgstr "Repository's: {label}"
 
 msgid "Repository"
 msgstr "Repository"
+
+msgid "Repository default"
+msgstr "Standaard van repository"
 
 msgid "Repository reach and desktop release downloads. Installs are dmg and AppImage downloads; updates are the zip the auto-updater pulls, so they count existing users."
 msgstr "Bereik van de repository en downloads van desktopreleases. Installaties zijn dmg- en AppImage-downloads; updates zijn de zip die de auto-updater ophaalt, dus die tellen bestaande gebruikers."
@@ -11632,6 +11647,9 @@ msgstr "Probeer het over een paar seconden opnieuw; blijft het misgaan, herstart
 msgid "Retry in a few seconds."
 msgstr "Probeer het over een paar seconden opnieuw."
 
+msgid "Retry setup"
+msgstr "Configuratie opnieuw proberen"
+
 msgid "Retrying…"
 msgstr "Opnieuw proberen…"
 
@@ -11869,6 +11887,9 @@ msgstr "Draait op een gekoppeld apparaat"
 
 msgid "Running on this device"
 msgstr "Draait op dit apparaat"
+
+msgid "Running setup…"
+msgstr "Configuratie uitvoeren…"
 
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Draaiende terminalprocessen gaan door, maar oudere uitvoer is na het herstarten van de app mogelijk niet meer beschikbaar."
@@ -12353,6 +12374,9 @@ msgstr "De gekozen agent is niet beschikbaar op deze host"
 msgid "Selected agent isn't a terminal agent"
 msgstr "De gekozen agent is geen terminalagent"
 
+msgid "Selected files link to the root checkout. Edits are shared across workspaces."
+msgstr "Geselecteerde bestanden worden gekoppeld aan de hoofdcheckout. Bewerkingen worden gedeeld tussen werkruimten."
+
 msgid "Selected issues span multiple repositories. Select issues from a single repository to run them."
 msgstr "De geselecteerde issues komen uit meerdere repository's. Kies issues uit één repository om ze uit te voeren."
 
@@ -12548,6 +12572,9 @@ msgstr "Gedeelde app-componenten"
 msgid "Shared component library."
 msgstr "Gedeelde componentbibliotheek."
 
+msgid "Shared files"
+msgstr "Gedeelde bestanden"
+
 msgid "Shared theme JSON files you can import into Superset."
 msgstr "Gedeelde thema-JSON-bestanden die je in Superset kunt importeren."
 
@@ -12685,6 +12712,9 @@ msgstr "Scriptsbalk tonen"
 
 msgid "Show sessions"
 msgstr "Sessies tonen"
+
+msgid "Show setup suggestion"
+msgstr "Configuratiesuggestie tonen"
 
 msgid "Show status and send notifications for this agent."
 msgstr "Status tonen en meldingen sturen voor deze agent."
@@ -12877,6 +12907,9 @@ msgstr "Alles overslaan"
 
 msgid "Skip for now"
 msgstr "Nu overslaan"
+
+msgid "Skip this file once"
+msgstr "Dit bestand eenmalig overslaan"
 
 msgid "Skipped"
 msgstr "Overgeslagen"
@@ -13190,6 +13223,9 @@ msgstr "Starten"
 
 msgid "Starting {agentLabel}"
 msgstr "{agentLabel} starten"
+
+msgid "Starting agents…"
+msgstr "Agents starten…"
 
 msgid "Starting cloud workspace"
 msgstr "Cloudwerkruimte starten"
@@ -13595,9 +13631,6 @@ msgstr "Repository's synchroniseren"
 
 msgid "Sync started"
 msgstr "Synchronisatie gestart"
-
-msgid "Syncing with remote"
-msgstr "Synchroniseren met remote"
 
 msgid "Syncing..."
 msgstr "Synchroniseren..."
@@ -14187,6 +14220,9 @@ msgstr "Hiermee worden alle terminalsessies gesloten — in deze werkruimte en i
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "Hiermee wordt elke terminalsessie van je organisatie{runningCountSuffix} gesloten en start een verse daemon."
+
+msgid "This commit may be behind the remote. Use it for this workspace only."
+msgstr "Deze commit kan achterlopen op de externe branch. Gebruik deze alleen voor deze werkruimte."
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Hiermee wordt de opgeslagen scrollback voor herstel na herstart of crash verwijderd."
@@ -15042,11 +15078,17 @@ msgstr "Elke agent gebruiken"
 msgid "Use as workspace run"
 msgstr "Gebruiken als run van de werkruimte"
 
+msgid "Use cached base"
+msgstr "Basis uit cache gebruiken"
+
 msgid "Use Claude Code, Codex, OpenCode, or any coding agent for each task. Your workspaces, branches, and review flow stay the same."
 msgstr "Gebruik Claude Code, Codex, OpenCode of welke coding agent dan ook voor elke taak. Je werkruimtes, branches en reviewproces blijven hetzelfde."
 
 msgid "Use Claude Code, Codex, or any coding agent. Choose per task or run several side by side."
 msgstr "Gebruik Claude Code, Codex of welke coding agent dan ook. Kies per taak of laat er meerdere naast elkaar draaien."
+
+msgid "Use command"
+msgstr "Opdracht gebruiken"
 
 msgid "Use for new agents"
 msgstr "Gebruiken voor nieuwe agents"
@@ -15135,9 +15177,6 @@ msgstr "Controleren of Kbd zichtbaar blijft in tooltips"
 msgid "Verify your identity"
 msgstr "Je identiteit verifiëren"
 
-msgid "Verifying base branch"
-msgstr "Basisbranch verifiëren"
-
 msgid "Version"
 msgstr "Versie"
 
@@ -15209,6 +15248,9 @@ msgstr "Bekijk openstaande vacatures"
 
 msgid "View open roles on Y Combinator"
 msgstr "Bekijk openstaande vacatures op Y Combinator"
+
+msgid "View output"
+msgstr "Uitvoer bekijken"
 
 msgid "View pull request"
 msgstr "Pull request bekijken"
@@ -15620,6 +15662,12 @@ msgstr "Werkruimte-run: {workspaceRunState}"
 
 msgid "Workspace settings"
 msgstr "Instellingen van werkruimte"
+
+msgid "Workspace setup"
+msgstr "Werkruimte configureren"
+
+msgid "Workspace setup needs attention"
+msgstr "De configuratie van de werkruimte vereist aandacht"
 
 msgid "Workspace worktree not available"
 msgstr "Worktree van werkruimte niet beschikbaar"

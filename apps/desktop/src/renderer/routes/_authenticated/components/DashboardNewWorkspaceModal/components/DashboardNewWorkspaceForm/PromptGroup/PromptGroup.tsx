@@ -63,6 +63,7 @@ import { PRLinkCommand } from "./components/PRLinkCommand";
 import { ProjectPickerPill } from "./components/ProjectPickerPill";
 import { PromptHistoryCommand } from "./components/PromptHistoryCommand";
 import { UploadingAttachmentPill } from "./components/UploadingAttachmentPill";
+import { WorkspaceSetupSummary } from "./components/WorkspaceSetupSummary";
 import { useBranchPickerController } from "./hooks/useBranchPickerController";
 import { useLinkedContext } from "./hooks/useLinkedContext";
 import { useSubmitWorkspace } from "./hooks/useSubmitWorkspace";
@@ -113,16 +114,7 @@ export function PromptGroup({
 	const relayUrl = useRelayUrl();
 	const activeOrganizationId = useActiveOrganizationId();
 	const needsSetup = selectedProject?.needsSetup === true;
-	const persistedBaseBranchDefault = useV2WorkspaceCreateDefaultsStore(
-		(state) =>
-			projectId ? (state.baseBranchesByProjectId[projectId] ?? null) : null,
-	);
-	const setBaseBranchDefault = useV2WorkspaceCreateDefaultsStore(
-		(state) => state.setBaseBranchDefault,
-	);
-	const clearBaseBranchDefault = useV2WorkspaceCreateDefaultsStore(
-		(state) => state.clearBaseBranchDefault,
-	);
+
 	const setLastHostId = useV2WorkspaceCreateDefaultsStore(
 		(state) => state.setLastHostId,
 	);
@@ -290,8 +282,7 @@ export function PromptGroup({
 		[updateDraft],
 	);
 
-	// Reset baseBranch on project or host change, defaulting to the user's
-	// last selected branch for that project when one exists.
+	// A base override applies only to this creation and execution host.
 	const previousProjectIdRef = useRef(projectId);
 	const previousHostIdRef = useRef(hostId);
 	useEffect(() => {
@@ -302,11 +293,11 @@ export function PromptGroup({
 			previousProjectIdRef.current = projectId;
 			previousHostIdRef.current = hostId;
 			updateDraft({
-				baseBranch: persistedBaseBranchDefault?.branchName ?? null,
-				baseBranchSource: persistedBaseBranchDefault?.source ?? null,
+				baseBranch: null,
+				baseBranchSource: null,
 			});
 		}
-	}, [projectId, hostId, persistedBaseBranchDefault, updateDraft]);
+	}, [projectId, hostId, updateDraft]);
 
 	// ── Branch picker controller ─────────────────────────────────────
 	const { pickerProps } = useBranchPickerController({
@@ -315,13 +306,6 @@ export function PromptGroup({
 		baseBranch,
 		typedWorkspaceName: workspaceName,
 		onBaseBranchChange: (branch, source) => {
-			if (projectId) {
-				if (branch && source) {
-					setBaseBranchDefault(projectId, branch, source);
-				} else {
-					clearBaseBranchDefault(projectId);
-				}
-			}
 			updateDraft({ baseBranch: branch, baseBranchSource: source });
 		},
 		closeModal,
@@ -775,6 +759,7 @@ export function PromptGroup({
 						</PromptInputSubmit>
 					</div>
 				</PromptInputFooter>
+				<WorkspaceSetupSummary hostUrl={launchHostUrl} projectId={projectId} />
 			</PromptInput>
 
 			{/* Bottom bar */}

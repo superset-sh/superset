@@ -6,7 +6,7 @@ import type { SimpleGit } from "simple-git";
  *
  * See `packages/host-service/GIT_REFS.md` for the rationale.
  */
-export type ResolvedRef =
+export type ResolvedRef = { commit?: string } & (
 	| {
 			kind: "local";
 			fullRef: `refs/heads/${string}`;
@@ -24,7 +24,8 @@ export type ResolvedRef =
 			fullRef: `refs/tags/${string}`;
 			shortName: string;
 	  }
-	| { kind: "head" };
+	| { kind: "head" }
+);
 
 /** Wrap a branch name as a fully-qualified local ref. */
 export function asLocalRef(name: string): `refs/heads/${string}` {

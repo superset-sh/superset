@@ -67,7 +67,12 @@ export const gitFetchBaseRefTask = defineWorkerTask<
 	type: "git/fetchBaseRef",
 	handler: async ({ worktreePath, target, gitEnv }) => {
 		const git = createUserSimpleGit(worktreePath).env(gitEnv);
-		await git.fetch([target.remote, target.branch, "--quiet", "--no-tags"]);
+		await git.fetch([
+			"--quiet",
+			"--no-tags",
+			target.remote,
+			`+refs/heads/${target.branch}:refs/remotes/${target.remote}/${target.branch}`,
+		]);
 	},
 });
 

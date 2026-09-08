@@ -67,6 +67,16 @@ export function useBranchContext(
 		},
 	});
 
+	const projectSetup = useQuery({
+		queryKey: ["workspace-setup-project", hostUrl, projectId],
+		enabled: !isCloud && Boolean(hostUrl && projectId),
+		queryFn: () =>
+			getHostServiceClientByUrl(hostUrl ?? "").workspaceSetup.getProject.query({
+				projectId: projectId ?? "",
+			}),
+		retry: false,
+	});
+
 	const q = useInfiniteQuery({
 		queryKey: [
 			"workspaceCreation",
@@ -116,7 +126,11 @@ export function useBranchContext(
 		[pages],
 	);
 
-	const defaultBranch = pages?.[0]?.defaultBranch ?? null;
+	const configuredBase = projectSetup.data?.defaultBaseRef;
+	const defaultBranch =
+		configuredBase?.replace(/^refs\/(heads|remotes)\//, "") ??
+		pages?.[0]?.defaultBranch ??
+		null;
 
 	if (isCloud) {
 		return {

@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { HiCheckCircle } from "react-icons/hi2";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { ScriptField } from "./components/ScriptField";
+import { SetupSuggestion } from "./components/SetupSuggestion";
 
 interface V2ScriptsEditorProps {
 	hostUrl: string;
@@ -166,6 +167,9 @@ export function V2ScriptsEditor({
 		}) => getHostServiceClientByUrl(hostUrl).config.updateConfig.mutate(input),
 		onSuccess: () => {
 			void queryClient.invalidateQueries({ queryKey: configQueryKey });
+			void queryClient.invalidateQueries({
+				queryKey: ["workspace-setup-project", hostUrl, projectId],
+			});
 		},
 	});
 
@@ -292,6 +296,11 @@ export function V2ScriptsEditor({
 
 	return (
 		<div className={cn("space-y-3", className)}>
+			{updateMutation.error && (
+				<p role="alert" className="text-sm text-destructive">
+					{updateMutation.error.message}
+				</p>
+			)}
 			<Tabs defaultValue="setup">
 				<div className="flex items-center justify-between gap-2 border-b border-border">
 					<TabsList className="h-auto gap-0 rounded-none bg-transparent p-0">
@@ -328,7 +337,14 @@ export function V2ScriptsEditor({
 						)}
 					</div>
 				</div>
-				<TabsContent value="setup">
+				<TabsContent value="setup" className="space-y-3">
+					{!setupValue.trim() && (
+						<SetupSuggestion
+							hostUrl={hostUrl}
+							projectId={projectId}
+							onAccept={(command) => handleChange("setup", command)}
+						/>
+					)}
 					<ScriptField
 						placeholder="bun install&#10;bun run db:migrate"
 						value={setupValue}

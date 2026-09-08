@@ -7,14 +7,12 @@ import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { authClient } from "renderer/lib/auth-client";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostEventBus } from "renderer/lib/host-event-bus";
 import {
 	getHostServiceClientByUrl,
 	type HostServiceClient,
 } from "renderer/lib/host-service-client";
 import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
-import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type {
 	WorkspacesCreateAnyInput,
@@ -214,7 +212,10 @@ async function createViaEnqueue(
 		}
 
 		if (!outcome.ok) {
-			throw new Error(outcome.error ?? "Workspace creation failed");
+			throw Object.assign(
+				new Error(outcome.error ?? "Workspace creation failed"),
+				{ baseRefRecovery: outcome.baseRefRecovery },
+			);
 		}
 		return {
 			workspace: {
@@ -243,8 +244,6 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 	const trackWorkspaceTransaction = useWorkspaceTransactionsStore(
 		(state) => state.track,
 	);
-	const { data: waitForSetupBeforeAgent } =
-		electronTrpc.settings.getWaitForSetupBeforeAgent.useQuery();
 
 	const submit = useCallback(
 		(args: SubmitArgs): SubmitHandle => {
@@ -254,7 +253,10 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 				throw new Error("workspaces.create requires `id`");
 			}
 
-			const recordFailure = (error: string) => {
+			const recordFailure = (
+				error: string,
+				baseRefRecovery?: WorkspaceCreateSettledPayload["baseRefRecovery"],
+			) => {
 				if (collections.failedWorkspaceCreates.get(workspaceId)) {
 					collections.failedWorkspaceCreates.delete(workspaceId);
 				}
@@ -263,6 +265,7 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 					hostId: args.hostId,
 					input: snapshot,
 					error,
+					baseRefRecovery,
 					failedAt: new Date(),
 				});
 			};
@@ -375,17 +378,10 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 						throw error;
 					}
 				}
-				let waitForSetup = waitForSetupBeforeAgent;
-				if (waitForSetup === undefined && snapshot.agents?.length) {
-					waitForSetup =
-						await electronTrpcClient.settings.getWaitForSetupBeforeAgent
-							.query()
-							.catch(() => false);
-				}
-				const payload: WorkspacesCreateInput =
-					snapshot.agents?.length && waitForSetup
-						? { ...snapshot, waitForSetupBeforeAgents: true }
-						: snapshot;
+				const payload: WorkspacesCreateInput = {
+					...snapshot,
+					waitForSetupBeforeAgents: true,
+				};
 				return createViaEnqueue(client, hostUrl, workspaceId, payload);
 			})();
 
@@ -445,7 +441,14 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 						error instanceof Error ? error.message : String(error);
 					hostWorkspacesCache.removeWorkspace(args.hostId, workspaceId);
 					deleteWorkspaceLocalState(workspaceId);
-					recordFailure(message);
+					recordFailure(
+						message,
+						(
+							error as {
+								baseRefRecovery?: WorkspaceCreateSettledPayload["baseRefRecovery"];
+							}
+						)?.baseRefRecovery,
+					);
 					return { ok: false, error: message };
 				});
 
@@ -474,7 +477,6 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 			relayUrl,
 			hostService,
 			trackWorkspaceTransaction,
-			waitForSetupBeforeAgent,
 		],
 	);
 

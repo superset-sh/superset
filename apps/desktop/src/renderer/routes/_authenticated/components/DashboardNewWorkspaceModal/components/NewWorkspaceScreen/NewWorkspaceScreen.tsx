@@ -77,6 +77,7 @@ import { LinkedPRPill } from "../DashboardNewWorkspaceForm/PromptGroup/component
 import { PRLinkCommand } from "../DashboardNewWorkspaceForm/PromptGroup/components/PRLinkCommand";
 import { ProjectPickerPill } from "../DashboardNewWorkspaceForm/PromptGroup/components/ProjectPickerPill";
 import { PromptHistoryCommand } from "../DashboardNewWorkspaceForm/PromptGroup/components/PromptHistoryCommand";
+import { WorkspaceSetupSummary } from "../DashboardNewWorkspaceForm/PromptGroup/components/WorkspaceSetupSummary";
 import { useBranchPickerController } from "../DashboardNewWorkspaceForm/PromptGroup/hooks/useBranchPickerController";
 import { useLinkedContext } from "../DashboardNewWorkspaceForm/PromptGroup/hooks/useLinkedContext";
 import { useSubmitWorkspace } from "../DashboardNewWorkspaceForm/PromptGroup/hooks/useSubmitWorkspace";
@@ -379,19 +380,8 @@ export function NewWorkspaceScreen({
 		}
 	}, [isOpen, updateDraft]);
 
-	// Reset baseBranch on project or host change, defaulting to the user's
-	// last selected branch for that project — the draft store is global, so a
-	// stale branch from another project would otherwise ride into the create.
-	const persistedBaseBranchDefault = useV2WorkspaceCreateDefaultsStore(
-		(state) =>
-			projectId ? (state.baseBranchesByProjectId[projectId] ?? null) : null,
-	);
-	const setBaseBranchDefault = useV2WorkspaceCreateDefaultsStore(
-		(state) => state.setBaseBranchDefault,
-	);
-	const clearBaseBranchDefault = useV2WorkspaceCreateDefaultsStore(
-		(state) => state.clearBaseBranchDefault,
-	);
+	// Reset overrides when switching projects or execution hosts.
+
 	const previousProjectIdRef = useRef(projectId);
 	const previousHostIdRef = useRef(draft.hostId);
 	useEffect(() => {
@@ -402,11 +392,11 @@ export function NewWorkspaceScreen({
 			previousProjectIdRef.current = projectId;
 			previousHostIdRef.current = draft.hostId;
 			updateDraft({
-				baseBranch: persistedBaseBranchDefault?.branchName ?? null,
-				baseBranchSource: persistedBaseBranchDefault?.source ?? null,
+				baseBranch: null,
+				baseBranchSource: null,
 			});
 		}
-	}, [projectId, draft.hostId, persistedBaseBranchDefault, updateDraft]);
+	}, [projectId, draft.hostId, updateDraft]);
 
 	// ── Agent / model / effort ───────────────────────────────────────
 	const launchHostUrl = useMemo(() => {
@@ -536,13 +526,6 @@ export function NewWorkspaceScreen({
 		baseBranch: draft.baseBranch,
 		typedWorkspaceName: draft.workspaceName,
 		onBaseBranchChange: (branch, source) => {
-			if (projectId) {
-				if (branch && source) {
-					setBaseBranchDefault(projectId, branch, source);
-				} else {
-					clearBaseBranchDefault(projectId);
-				}
-			}
 			updateDraft({ baseBranch: branch, baseBranchSource: source });
 		},
 		closeModal,
@@ -1017,6 +1000,10 @@ export function NewWorkspaceScreen({
 								</PromptInputSubmit>
 							</div>
 						</PromptInputFooter>
+						<WorkspaceSetupSummary
+							hostUrl={launchHostUrl}
+							projectId={projectId}
+						/>
 					</PromptInput>
 					<div className="mt-2 flex items-center justify-between gap-2">
 						<div className="flex min-w-0 flex-1 items-center gap-2">

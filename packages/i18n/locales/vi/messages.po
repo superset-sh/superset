@@ -992,9 +992,6 @@ msgstr "<0>vs</0> <1/>"
 msgid "~{stars} projected this week"
 msgstr "dự kiến ~{stars} tuần này"
 
-msgid "~{totalSeconds}s typical"
-msgstr "thường ~{totalSeconds}s"
-
 msgid "~{TYPICAL_SECONDS}s typical"
 msgstr "thường ~{TYPICAL_SECONDS}s"
 
@@ -1375,6 +1372,9 @@ msgstr "Thêm âm thanh riêng"
 msgid "Add description..."
 msgstr "Thêm mô tả..."
 
+msgid "Add file"
+msgstr "Thêm tệp"
+
 msgid "Add file comment"
 msgstr "Thêm bình luận cho tệp"
 
@@ -1552,6 +1552,9 @@ msgstr "Agent tự mở bản xem trước, thao tác giao diện và đính kè
 
 msgid "Agents running at once"
 msgstr "Số agent chạy cùng lúc"
+
+msgid "Agents will start when setup finishes."
+msgstr "Tác nhân sẽ bắt đầu khi thiết lập hoàn tất."
 
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Tổng hợp mức sử dụng agent của mọi lập trình viên trên bảng xếp hạng Superset — token, chi phí, hành vi cache và những mô hình mọi người thực sự dùng."
@@ -2737,6 +2740,9 @@ msgstr "Chuỗi suy luận"
 msgid "Change avatar"
 msgstr "Đổi ảnh đại diện"
 
+msgid "Change base branch"
+msgstr "Đổi nhánh cơ sở"
+
 msgid "Change location"
 msgstr "Đổi vị trí"
 
@@ -3335,9 +3341,6 @@ msgstr "Lệnh..."
 msgid "Commands"
 msgstr "Lệnh"
 
-msgid "Commands run for workspace setup, teardown, and the Run button."
-msgstr "Các lệnh chạy khi thiết lập, dọn dẹp workspace và khi nhấn nút Chạy."
-
 msgid "Comment"
 msgstr "Bình luận"
 
@@ -3851,9 +3854,6 @@ msgstr "Sao chép lịch sử duyệt web và thông tin đăng nhập từ trì
 msgid "Copy your key now — you won't be able to see it again."
 msgstr "Hãy sao chép khóa ngay — bạn sẽ không xem lại được nữa."
 
-msgid "Copying configuration"
-msgstr "Đang sao chép cấu hình"
-
 msgid "Cost"
 msgstr "Chi phí"
 
@@ -4214,6 +4214,9 @@ msgstr "Tạo tự động hóa với một agent"
 msgid "Create failed: {message}"
 msgstr "Tạo thất bại: {message}"
 
+msgid "Create from this commit"
+msgstr "Tạo từ commit này"
+
 msgid "Create merge commit"
 msgstr "Tạo merge commit"
 
@@ -4326,9 +4329,6 @@ msgstr "đang tạo"
 
 msgid "Creating"
 msgstr "Đang tạo"
-
-msgid "Creating git worktree"
-msgstr "Đang tạo git worktree"
 
 msgid "Creating PR..."
 msgstr "Đang tạo PR…"
@@ -4527,6 +4527,9 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 
 msgid "Default ({defaultWorktreePath})"
 msgstr "Mặc định ({defaultWorktreePath})"
+
+msgid "Default base branch"
+msgstr "Nhánh cơ sở mặc định"
 
 msgid "Default effort"
 msgstr "Mức nỗ lực mặc định"
@@ -4793,6 +4796,9 @@ msgstr "Đã tách"
 
 msgid "Details"
 msgstr "Chi tiết"
+
+msgid "Detected setup command"
+msgstr "Lệnh thiết lập được phát hiện"
 
 msgid "Dev"
 msgstr "Dev"
@@ -6177,9 +6183,6 @@ msgstr "Bộ lọc"
 msgid "Filters, {activeFilterCount} active"
 msgstr "Bộ lọc, {activeFilterCount} đang bật"
 
-msgid "Finalizing setup"
-msgstr "Đang hoàn tất thiết lập"
-
 msgid "Find a small bug and fix it…"
 msgstr "Tìm một lỗi nhỏ và sửa nó…"
 
@@ -7122,9 +7125,6 @@ msgstr "Khởi tạo Git"
 msgid "Initialize Git Repository?"
 msgstr "Khởi tạo repository Git?"
 
-msgid "Initializing session"
-msgstr "Đang khởi tạo phiên"
-
 msgid "Initializing..."
 msgstr "Đang khởi tạo..."
 
@@ -7767,6 +7767,9 @@ msgstr "Liên kết tác vụ"
 msgid "Linked {slug} to workspace"
 msgstr "Đã liên kết {slug} với workspace"
 
+msgid "Linking shared files…"
+msgstr "Đang liên kết tệp dùng chung…"
+
 msgid "Links"
 msgstr "Liên kết"
 
@@ -7925,6 +7928,9 @@ msgstr "Đang tải..."
 
 msgid "Loading…"
 msgstr "Đang tải…"
+
+msgid "Local"
+msgstr "Cục bộ"
 
 msgid "Local Device"
 msgstr "Thiết bị cục bộ"
@@ -9463,6 +9469,9 @@ msgstr "Chỉ chủ sở hữu host mới đổi được vị trí này."
 msgid "Only host owners can delete this host"
 msgstr "Chỉ chủ sở hữu host mới xóa được host này"
 
+msgid "Only ignored files on this host can be shared."
+msgstr "Chỉ có thể chia sẻ các tệp bị bỏ qua trên máy chủ này."
+
 msgid "Only organization owners can delete this project."
 msgstr "Chỉ chủ sở hữu tổ chức mới xóa được dự án này."
 
@@ -10525,6 +10534,9 @@ msgstr "Tùy chọn"
 msgid "Prefix"
 msgstr "Tiền tố"
 
+msgid "Prepare new workspaces on this host before agents start."
+msgstr "Chuẩn bị không gian làm việc mới trên máy chủ này trước khi tác nhân bắt đầu."
+
 msgid "Preparing"
 msgstr "Đang chuẩn bị"
 
@@ -10683,9 +10695,6 @@ msgstr "Đã nhập và chọn dự án."
 
 msgid "Project is already at that location"
 msgstr "Dự án đã ở vị trí đó"
-
-msgid "Project lifecycle scripts"
-msgstr "Script vòng đời dự án"
 
 msgid "Project name"
 msgstr "Tên dự án"
@@ -11156,9 +11165,6 @@ msgstr "Tải lại ứng dụng"
 msgid "Reload Superset to refresh the workspace list."
 msgstr "Tải lại Superset để làm mới danh sách workspace."
 
-msgid "Reload window"
-msgstr "Tải lại cửa sổ"
-
 msgid "Relocate"
 msgstr "Chuyển vị trí"
 
@@ -11182,6 +11188,12 @@ msgstr "Truy cập từ xa"
 
 msgid "Remote Access"
 msgstr "Truy cập từ xa"
+
+msgid "Remote base → shared files → setup → ready"
+msgstr "Cơ sở từ xa → tệp dùng chung → thiết lập → sẵn sàng"
+
+msgid "Remote branches are refreshed before each new workspace. Local branches use the commit on this host."
+msgstr "Các nhánh từ xa được cập nhật trước mỗi không gian làm việc mới. Nhánh cục bộ dùng commit trên máy chủ này."
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "Server MCP từ xa — kết nối qua HTTP"
@@ -11389,6 +11401,9 @@ msgstr "Repository: {label}"
 
 msgid "Repository"
 msgstr "Repository"
+
+msgid "Repository default"
+msgstr "Mặc định của kho mã"
 
 msgid "Repository reach and desktop release downloads. Installs are dmg and AppImage downloads; updates are the zip the auto-updater pulls, so they count existing users."
 msgstr "Độ phủ của kho mã và lượt tải bản phát hành desktop. Cài đặt là lượt tải dmg và AppImage; cập nhật là tệp zip mà trình tự cập nhật tải về, nên tính người dùng hiện có."
@@ -11632,6 +11647,9 @@ msgstr "Thử lại sau vài giây; nếu vẫn lỗi, khởi động lại Supe
 msgid "Retry in a few seconds."
 msgstr "Thử lại sau vài giây."
 
+msgid "Retry setup"
+msgstr "Thử lại thiết lập"
+
 msgid "Retrying…"
 msgstr "Đang thử lại…"
 
@@ -11869,6 +11887,9 @@ msgstr "Đang chạy trên thiết bị đã ghép nối"
 
 msgid "Running on this device"
 msgstr "Đang chạy trên thiết bị này"
+
+msgid "Running setup…"
+msgstr "Đang chạy thiết lập…"
 
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Các tiến trình terminal đang chạy vẫn tiếp tục, nhưng kết quả cũ có thể không còn sau khi khởi động lại ứng dụng."
@@ -12353,6 +12374,9 @@ msgstr "Agent đã chọn không khả dụng trên host này"
 msgid "Selected agent isn't a terminal agent"
 msgstr "Agent đã chọn không phải agent terminal"
 
+msgid "Selected files link to the root checkout. Edits are shared across workspaces."
+msgstr "Các tệp đã chọn liên kết đến bản checkout gốc. Các chỉnh sửa được chia sẻ giữa các không gian làm việc."
+
 msgid "Selected issues span multiple repositories. Select issues from a single repository to run them."
 msgstr "Các issue đã chọn thuộc nhiều repository. Hãy chọn issue trong cùng một repository để chạy."
 
@@ -12548,6 +12572,9 @@ msgstr "Component dùng chung của ứng dụng"
 msgid "Shared component library."
 msgstr "Thư viện component dùng chung."
 
+msgid "Shared files"
+msgstr "Tệp dùng chung"
+
 msgid "Shared theme JSON files you can import into Superset."
 msgstr "Các tệp JSON chủ đề được chia sẻ, bạn có thể nhập vào Superset."
 
@@ -12685,6 +12712,9 @@ msgstr "Hiện thanh script"
 
 msgid "Show sessions"
 msgstr "Hiện phiên"
+
+msgid "Show setup suggestion"
+msgstr "Hiện đề xuất thiết lập"
 
 msgid "Show status and send notifications for this agent."
 msgstr "Hiển thị trạng thái và gửi thông báo cho agent này."
@@ -12877,6 +12907,9 @@ msgstr "Bỏ qua tất cả"
 
 msgid "Skip for now"
 msgstr "Bỏ qua bây giờ"
+
+msgid "Skip this file once"
+msgstr "Bỏ qua tệp này một lần"
 
 msgid "Skipped"
 msgstr "Đã bỏ qua"
@@ -13190,6 +13223,9 @@ msgstr "Đang khởi động"
 
 msgid "Starting {agentLabel}"
 msgstr "Đang khởi động {agentLabel}"
+
+msgid "Starting agents…"
+msgstr "Đang khởi động tác nhân…"
 
 msgid "Starting cloud workspace"
 msgstr "Đang khởi động workspace trên cloud"
@@ -13595,9 +13631,6 @@ msgstr "Đồng bộ repository"
 
 msgid "Sync started"
 msgstr "Đã bắt đầu đồng bộ"
-
-msgid "Syncing with remote"
-msgstr "Đang đồng bộ với remote"
 
 msgid "Syncing..."
 msgstr "Đang đồng bộ..."
@@ -14187,6 +14220,9 @@ msgstr "Thao tác này đóng mọi phiên terminal — trong workspace này và
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "Thao tác này đóng mọi phiên terminal của tổ chức bạn{runningCountSuffix} và khởi động một daemon mới."
+
+msgid "This commit may be behind the remote. Use it for this workspace only."
+msgstr "Commit này có thể chậm hơn nhánh từ xa. Chỉ dùng cho không gian làm việc này."
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Thao tác này xóa phần scrollback đã lưu dùng để khôi phục sau khi khởi động lại hoặc crash."
@@ -15042,11 +15078,17 @@ msgstr "Dùng agent bất kỳ"
 msgid "Use as workspace run"
 msgstr "Dùng làm lệnh chạy của workspace"
 
+msgid "Use cached base"
+msgstr "Dùng cơ sở đã lưu đệm"
+
 msgid "Use Claude Code, Codex, OpenCode, or any coding agent for each task. Your workspaces, branches, and review flow stay the same."
 msgstr "Dùng Claude Code, Codex, OpenCode hay bất kỳ coding agent nào cho từng tác vụ. Workspace, nhánh và quy trình review của bạn vẫn giữ nguyên."
 
 msgid "Use Claude Code, Codex, or any coding agent. Choose per task or run several side by side."
 msgstr "Dùng Claude Code, Codex hay bất kỳ coding agent nào. Chọn theo từng tác vụ hoặc chạy nhiều agent cạnh nhau."
+
+msgid "Use command"
+msgstr "Dùng lệnh"
 
 msgid "Use for new agents"
 msgstr "Dùng cho agent mới"
@@ -15135,9 +15177,6 @@ msgstr "Kiểm tra Kbd vẫn hiện rõ bên trong tooltip"
 msgid "Verify your identity"
 msgstr "Xác minh danh tính của bạn"
 
-msgid "Verifying base branch"
-msgstr "Đang kiểm tra nhánh gốc"
-
 msgid "Version"
 msgstr "Phiên bản"
 
@@ -15209,6 +15248,9 @@ msgstr "Xem vị trí đang tuyển"
 
 msgid "View open roles on Y Combinator"
 msgstr "Xem các vị trí đang tuyển trên Y Combinator"
+
+msgid "View output"
+msgstr "Xem đầu ra"
 
 msgid "View pull request"
 msgstr "Xem pull request"
@@ -15620,6 +15662,12 @@ msgstr "Lệnh chạy của workspace: {workspaceRunState}"
 
 msgid "Workspace settings"
 msgstr "Cài đặt workspace"
+
+msgid "Workspace setup"
+msgstr "Thiết lập không gian làm việc"
+
+msgid "Workspace setup needs attention"
+msgstr "Thiết lập không gian làm việc cần được xử lý"
 
 msgid "Workspace worktree not available"
 msgstr "Worktree của workspace không khả dụng"

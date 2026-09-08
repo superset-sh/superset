@@ -992,9 +992,6 @@ msgstr "<0>vs</0> <1/>"
 msgid "~{stars} projected this week"
 msgstr "~{stars} projected this week"
 
-msgid "~{totalSeconds}s typical"
-msgstr "~{totalSeconds}s typical"
-
 msgid "~{TYPICAL_SECONDS}s typical"
 msgstr "~{TYPICAL_SECONDS}s typical"
 
@@ -1375,6 +1372,9 @@ msgstr "Add custom audio"
 msgid "Add description..."
 msgstr "Add description..."
 
+msgid "Add file"
+msgstr "Add file"
+
 msgid "Add file comment"
 msgstr "Add file comment"
 
@@ -1552,6 +1552,9 @@ msgstr "Agents load their own preview, drive the UI, and attach screenshot proof
 
 msgid "Agents running at once"
 msgstr "Agents running at once"
+
+msgid "Agents will start when setup finishes."
+msgstr "Agents will start when setup finishes."
 
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
@@ -2737,6 +2740,9 @@ msgstr "Chain of Thought"
 msgid "Change avatar"
 msgstr "Change avatar"
 
+msgid "Change base branch"
+msgstr "Change base branch"
+
 msgid "Change location"
 msgstr "Change location"
 
@@ -3335,9 +3341,6 @@ msgstr "Command..."
 msgid "Commands"
 msgstr "Commands"
 
-msgid "Commands run for workspace setup, teardown, and the Run button."
-msgstr "Commands run for workspace setup, teardown, and the Run button."
-
 msgid "Comment"
 msgstr "Comment"
 
@@ -3851,9 +3854,6 @@ msgstr "Copy your browsing history and logins from another browser into Superset
 msgid "Copy your key now — you won't be able to see it again."
 msgstr "Copy your key now — you won't be able to see it again."
 
-msgid "Copying configuration"
-msgstr "Copying configuration"
-
 msgid "Cost"
 msgstr "Cost"
 
@@ -4214,6 +4214,9 @@ msgstr "Create an automation with an agent"
 msgid "Create failed: {message}"
 msgstr "Create failed: {message}"
 
+msgid "Create from this commit"
+msgstr "Create from this commit"
+
 msgid "Create merge commit"
 msgstr "Create merge commit"
 
@@ -4326,9 +4329,6 @@ msgstr "creating"
 
 msgid "Creating"
 msgstr "Creating"
-
-msgid "Creating git worktree"
-msgstr "Creating git worktree"
 
 msgid "Creating PR..."
 msgstr "Creating PR..."
@@ -4527,6 +4527,9 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 
 msgid "Default ({defaultWorktreePath})"
 msgstr "Default ({defaultWorktreePath})"
+
+msgid "Default base branch"
+msgstr "Default base branch"
 
 msgid "Default effort"
 msgstr "Default effort"
@@ -4793,6 +4796,9 @@ msgstr "Detached"
 
 msgid "Details"
 msgstr "Details"
+
+msgid "Detected setup command"
+msgstr "Detected setup command"
 
 msgid "Dev"
 msgstr "Dev"
@@ -6177,9 +6183,6 @@ msgstr "Filters"
 msgid "Filters, {activeFilterCount} active"
 msgstr "Filters, {activeFilterCount} active"
 
-msgid "Finalizing setup"
-msgstr "Finalizing setup"
-
 msgid "Find a small bug and fix it…"
 msgstr "Find a small bug and fix it…"
 
@@ -7122,9 +7125,6 @@ msgstr "Initialize Git"
 msgid "Initialize Git Repository?"
 msgstr "Initialize Git Repository?"
 
-msgid "Initializing session"
-msgstr "Initializing session"
-
 msgid "Initializing..."
 msgstr "Initializing..."
 
@@ -7767,6 +7767,9 @@ msgstr "Link task"
 msgid "Linked {slug} to workspace"
 msgstr "Linked {slug} to workspace"
 
+msgid "Linking shared files…"
+msgstr "Linking shared files…"
+
 msgid "Links"
 msgstr "Links"
 
@@ -7925,6 +7928,9 @@ msgstr "Loading..."
 
 msgid "Loading…"
 msgstr "Loading…"
+
+msgid "Local"
+msgstr "Local"
 
 msgid "Local Device"
 msgstr "Local Device"
@@ -9463,6 +9469,9 @@ msgstr "Only host owners can change this location."
 msgid "Only host owners can delete this host"
 msgstr "Only host owners can delete this host"
 
+msgid "Only ignored files on this host can be shared."
+msgstr "Only ignored files on this host can be shared."
+
 msgid "Only organization owners can delete this project."
 msgstr "Only organization owners can delete this project."
 
@@ -10525,6 +10534,9 @@ msgstr "Preferences"
 msgid "Prefix"
 msgstr "Prefix"
 
+msgid "Prepare new workspaces on this host before agents start."
+msgstr "Prepare new workspaces on this host before agents start."
+
 msgid "Preparing"
 msgstr "Preparing"
 
@@ -10683,9 +10695,6 @@ msgstr "Project imported and selected."
 
 msgid "Project is already at that location"
 msgstr "Project is already at that location"
-
-msgid "Project lifecycle scripts"
-msgstr "Project lifecycle scripts"
 
 msgid "Project name"
 msgstr "Project name"
@@ -11156,9 +11165,6 @@ msgstr "Reload app"
 msgid "Reload Superset to refresh the workspace list."
 msgstr "Reload Superset to refresh the workspace list."
 
-msgid "Reload window"
-msgstr "Reload window"
-
 msgid "Relocate"
 msgstr "Relocate"
 
@@ -11182,6 +11188,12 @@ msgstr "Remote access"
 
 msgid "Remote Access"
 msgstr "Remote Access"
+
+msgid "Remote base → shared files → setup → ready"
+msgstr "Remote base → shared files → setup → ready"
+
+msgid "Remote branches are refreshed before each new workspace. Local branches use the commit on this host."
+msgstr "Remote branches are refreshed before each new workspace. Local branches use the commit on this host."
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "Remote MCP server — connects over HTTP"
@@ -11389,6 +11401,9 @@ msgstr "Repositories: {label}"
 
 msgid "Repository"
 msgstr "Repository"
+
+msgid "Repository default"
+msgstr "Repository default"
 
 msgid "Repository reach and desktop release downloads. Installs are dmg and AppImage downloads; updates are the zip the auto-updater pulls, so they count existing users."
 msgstr "Repository reach and desktop release downloads. Installs are dmg and AppImage downloads; updates are the zip the auto-updater pulls, so they count existing users."
@@ -11632,6 +11647,9 @@ msgstr "Retry in a few seconds; if it persists, restart Superset."
 msgid "Retry in a few seconds."
 msgstr "Retry in a few seconds."
 
+msgid "Retry setup"
+msgstr "Retry setup"
+
 msgid "Retrying…"
 msgstr "Retrying…"
 
@@ -11869,6 +11887,9 @@ msgstr "Running on a paired device"
 
 msgid "Running on this device"
 msgstr "Running on this device"
+
+msgid "Running setup…"
+msgstr "Running setup…"
 
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Running terminal processes continue, but older output may no longer be available after restarting the app."
@@ -12353,6 +12374,9 @@ msgstr "Selected agent is not available on this host"
 msgid "Selected agent isn't a terminal agent"
 msgstr "Selected agent isn't a terminal agent"
 
+msgid "Selected files link to the root checkout. Edits are shared across workspaces."
+msgstr "Selected files link to the root checkout. Edits are shared across workspaces."
+
 msgid "Selected issues span multiple repositories. Select issues from a single repository to run them."
 msgstr "Selected issues span multiple repositories. Select issues from a single repository to run them."
 
@@ -12548,6 +12572,9 @@ msgstr "Shared app components"
 msgid "Shared component library."
 msgstr "Shared component library."
 
+msgid "Shared files"
+msgstr "Shared files"
+
 msgid "Shared theme JSON files you can import into Superset."
 msgstr "Shared theme JSON files you can import into Superset."
 
@@ -12685,6 +12712,9 @@ msgstr "Show Scripts Bar"
 
 msgid "Show sessions"
 msgstr "Show sessions"
+
+msgid "Show setup suggestion"
+msgstr "Show setup suggestion"
 
 msgid "Show status and send notifications for this agent."
 msgstr "Show status and send notifications for this agent."
@@ -12877,6 +12907,9 @@ msgstr "Skip All"
 
 msgid "Skip for now"
 msgstr "Skip for now"
+
+msgid "Skip this file once"
+msgstr "Skip this file once"
 
 msgid "Skipped"
 msgstr "Skipped"
@@ -13190,6 +13223,9 @@ msgstr "Starting"
 
 msgid "Starting {agentLabel}"
 msgstr "Starting {agentLabel}"
+
+msgid "Starting agents…"
+msgstr "Starting agents…"
 
 msgid "Starting cloud workspace"
 msgstr "Starting cloud workspace"
@@ -13595,9 +13631,6 @@ msgstr "Sync Repositories"
 
 msgid "Sync started"
 msgstr "Sync started"
-
-msgid "Syncing with remote"
-msgstr "Syncing with remote"
 
 msgid "Syncing..."
 msgstr "Syncing..."
@@ -14187,6 +14220,9 @@ msgstr "This closes every terminal session — in this workspace and any others 
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
+
+msgid "This commit may be behind the remote. Use it for this workspace only."
+msgstr "This commit may be behind the remote. Use it for this workspace only."
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "This deletes the saved scrollback used for reboot/crash recovery."
@@ -15042,11 +15078,17 @@ msgstr "Use Any Agents"
 msgid "Use as workspace run"
 msgstr "Use as workspace run"
 
+msgid "Use cached base"
+msgstr "Use cached base"
+
 msgid "Use Claude Code, Codex, OpenCode, or any coding agent for each task. Your workspaces, branches, and review flow stay the same."
 msgstr "Use Claude Code, Codex, OpenCode, or any coding agent for each task. Your workspaces, branches, and review flow stay the same."
 
 msgid "Use Claude Code, Codex, or any coding agent. Choose per task or run several side by side."
 msgstr "Use Claude Code, Codex, or any coding agent. Choose per task or run several side by side."
+
+msgid "Use command"
+msgstr "Use command"
 
 msgid "Use for new agents"
 msgstr "Use for new agents"
@@ -15135,9 +15177,6 @@ msgstr "Verify Kbd stays visible inside tooltips"
 msgid "Verify your identity"
 msgstr "Verify your identity"
 
-msgid "Verifying base branch"
-msgstr "Verifying base branch"
-
 msgid "Version"
 msgstr "Version"
 
@@ -15209,6 +15248,9 @@ msgstr "View open roles"
 
 msgid "View open roles on Y Combinator"
 msgstr "View open roles on Y Combinator"
+
+msgid "View output"
+msgstr "View output"
 
 msgid "View pull request"
 msgstr "View pull request"
@@ -15620,6 +15662,12 @@ msgstr "Workspace run: {workspaceRunState}"
 
 msgid "Workspace settings"
 msgstr "Workspace settings"
+
+msgid "Workspace setup"
+msgstr "Workspace setup"
+
+msgid "Workspace setup needs attention"
+msgstr "Workspace setup needs attention"
 
 msgid "Workspace worktree not available"
 msgstr "Workspace worktree not available"

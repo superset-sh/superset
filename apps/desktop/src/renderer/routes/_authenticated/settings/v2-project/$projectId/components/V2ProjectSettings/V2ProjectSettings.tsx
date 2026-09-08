@@ -27,7 +27,7 @@ import { NamingInstructionsSection } from "./components/NamingInstructionsSectio
 import { ProjectLocationSection } from "./components/ProjectLocationSection";
 import { RepositorySection } from "./components/RepositorySection";
 import { SparseCheckoutSection } from "./components/SparseCheckoutSection";
-import { V2ScriptsEditor } from "./components/V2ScriptsEditor";
+import { WorkspaceSetupSection } from "./components/WorkspaceSetupSection";
 import { WorktreeLocationSection } from "./components/WorktreeLocationSection";
 
 interface V2ProjectSettingsProps {
@@ -362,14 +362,18 @@ export function V2ProjectSettings({
 				{targetHostUrl && (
 					<SettingsSection
 						title={t({
-							message: "Project lifecycle scripts",
+							message: "Workspace setup",
 						})}
 						description={t({
 							message:
-								"Commands run for workspace setup, teardown, and the Run button.",
+								"Prepare new workspaces on this host before agents start.",
 						})}
 					>
-						<V2ScriptsEditor hostUrl={targetHostUrl} projectId={projectId} />
+						<WorkspaceSetupSection
+							key={`${projectId}:${targetHostId}`}
+							hostUrl={targetHostUrl}
+							projectId={projectId}
+						/>
 					</SettingsSection>
 				)}
 
