@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Worker } from "node:worker_threads";
 import type {
 	SerializedWorkerError,
+	WorkerTaskCancelMessage,
 	WorkerTaskRequestMessage,
 	WorkerTaskResponseMessage,
 } from "./worker-task-protocol";
@@ -44,12 +45,17 @@ interface WorkerTaskRunnerOptions {
 	concurrency: number;
 	name?: string;
 	debug?: boolean;
+	/** How long a worker gets to report a cancelled task before it is terminated. */
+	cancelGraceMs?: number;
 }
 
 interface WorkerSlot {
 	id: number;
 	worker: Worker;
 	activeTaskId: string | null;
+	/** Task the caller gave up on; the slot stays busy until the worker reports it. */
+	cancelledTaskId: string | null;
+	cancelTimeoutHandle?: NodeJS.Timeout;
 	terminating: boolean;
 }
 
@@ -70,12 +76,14 @@ interface QueuedTask {
 }
 
 const DEFAULT_TIMEOUT_MS = 60_000;
+const DEFAULT_CANCEL_GRACE_MS = 10_000;
 
 export class WorkerTaskRunner {
 	private readonly workerScriptPath: string;
 	private readonly concurrency: number;
 	private readonly name: string;
 	private readonly debug: boolean;
+	private readonly cancelGraceMs: number;
 	private readonly workerSlots = new Map<number, WorkerSlot>();
 	private readonly queue: string[] = [];
 	private readonly tasks = new Map<string, QueuedTask>();
@@ -89,6 +97,7 @@ export class WorkerTaskRunner {
 		this.concurrency = Math.max(1, options.concurrency);
 		this.name = options.name ?? "worker-runner";
 		this.debug = options.debug ?? false;
+		this.cancelGraceMs = options.cancelGraceMs ?? DEFAULT_CANCEL_GRACE_MS;
 	}
 
 	runTask<TResult>(
@@ -185,6 +194,7 @@ export class WorkerTaskRunner {
 
 		for (const slot of this.workerSlots.values()) {
 			slot.terminating = true;
+			this.clearCancelTimeout(slot);
 			if (slot.activeTaskId) {
 				this.rejectTask(
 					slot.activeTaskId,
@@ -204,6 +214,7 @@ export class WorkerTaskRunner {
 			id: slotId,
 			worker,
 			activeTaskId: null,
+			cancelledTaskId: null,
 			terminating: false,
 		};
 
@@ -236,7 +247,9 @@ export class WorkerTaskRunner {
 		this.ensureWorkerCapacity();
 
 		for (const slot of this.workerSlots.values()) {
-			if (slot.activeTaskId || slot.terminating) continue;
+			if (slot.activeTaskId || slot.cancelledTaskId || slot.terminating) {
+				continue;
+			}
 			if (this.queue.length === 0) break;
 
 			const nextTaskId = this.queue.shift();
@@ -274,6 +287,14 @@ export class WorkerTaskRunner {
 		}
 		const response = message;
 
+		if (slot.cancelledTaskId === response.taskId) {
+			// The caller was already answered; this only frees the thread.
+			this.clearCancelTimeout(slot);
+			slot.cancelledTaskId = null;
+			this.drainQueue();
+			return;
+		}
+
 		if (slot.activeTaskId !== response.taskId) {
 			this.log(
 				`worker ${slot.id} sent unexpected task result ${response.taskId} (active: ${slot.activeTaskId ?? "none"})`,
@@ -286,10 +307,7 @@ export class WorkerTaskRunner {
 			this.log(
 				`worker ${slot.id} reported result for missing active task ${response.taskId}; recycling worker`,
 			);
-			if (!slot.terminating) {
-				slot.terminating = true;
-				void slot.worker.terminate();
-			}
+			this.terminateSlot(slot);
 			return;
 		}
 
@@ -349,42 +367,60 @@ export class WorkerTaskRunner {
 		const task = this.tasks.get(taskId);
 		if (!task) return;
 
-		this.rejectTask(
-			taskId,
+		this.cancelTask(
+			task,
 			new WorkerTaskError(
 				`[${this.name}] Task "${task.taskType}" timed out after ${task.timeoutMs}ms`,
 			),
 		);
-
-		if (task.slotId) {
-			const slot = this.workerSlots.get(task.slotId);
-			if (slot && !slot.terminating) {
-				slot.terminating = true;
-				void slot.worker.terminate();
-				if (this.hasOutstandingWork()) {
-					this.ensureWorkerCapacity();
-					this.drainQueue();
-				}
-			}
-		}
 	}
 
 	private abortTask(taskId: string): void {
 		const task = this.tasks.get(taskId);
 		if (!task) return;
 
-		this.rejectTask(taskId, new WorkerTaskAbortedError("cancelled"));
+		this.cancelTask(task, new WorkerTaskAbortedError("cancelled"));
+	}
 
-		if (task.slotId) {
-			const slot = this.workerSlots.get(task.slotId);
-			if (slot && !slot.terminating) {
-				slot.terminating = true;
-				void slot.worker.terminate();
-				if (this.hasOutstandingWork()) {
-					this.ensureWorkerCapacity();
-					this.drainQueue();
-				}
-			}
+	// Answer the caller, then let the worker kill what the task spawned and
+	// report back. Terminating the thread instead orphans its child processes:
+	// they run on, and once they exit nothing reaps them, so each one stays a
+	// zombie holding a slot in the user's process table until the app quits.
+	private cancelTask(task: QueuedTask, reason: unknown): void {
+		const slot =
+			task.slotId === undefined ? undefined : this.workerSlots.get(task.slotId);
+		this.rejectTask(task.taskId, reason);
+		if (!slot || slot.terminating) return;
+
+		slot.cancelledTaskId = task.taskId;
+		const cancel: WorkerTaskCancelMessage = {
+			kind: "cancel",
+			taskId: task.taskId,
+		};
+		slot.worker.postMessage(cancel);
+		slot.cancelTimeoutHandle = setTimeout(() => {
+			this.log(
+				`worker ${slot.id} did not report cancelled task ${task.taskId} within ${this.cancelGraceMs}ms; terminating`,
+			);
+			this.terminateSlot(slot);
+		}, this.cancelGraceMs);
+	}
+
+	private terminateSlot(slot: WorkerSlot): void {
+		if (slot.terminating) return;
+		slot.terminating = true;
+		this.clearCancelTimeout(slot);
+		void slot.worker.terminate();
+		if (this.hasOutstandingWork()) {
+			this.ensureWorkerCapacity();
+			this.drainQueue();
+		}
+	}
+
+	private clearCancelTimeout(slot: WorkerSlot): void {
+		if (slot.cancelTimeoutHandle) {
+			clearTimeout(slot.cancelTimeoutHandle);
+			slot.cancelTimeoutHandle = undefined;
 		}
 	}
 
@@ -393,6 +429,7 @@ export class WorkerTaskRunner {
 		if (!slot) return;
 
 		const activeTaskId = slot.activeTaskId;
+		this.clearCancelTimeout(slot);
 		this.workerSlots.delete(slot.id);
 
 		if (activeTaskId) {
