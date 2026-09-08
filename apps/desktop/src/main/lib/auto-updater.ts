@@ -81,8 +81,11 @@ const SILENT_ERROR_PATTERNS = [
 	"ECONNRESET",
 ];
 
+// Certificate failures are the exception: a proxy that rewrites TLS is
+// permanent, so the user needs to see why updates never arrive.
 function isNetworkError(error: Error | string): boolean {
 	const message = typeof error === "string" ? error : error.message;
+	if (message.includes("net::ERR_CERT_")) return false;
 	return SILENT_ERROR_PATTERNS.some((pattern) => message.includes(pattern));
 }
 
