@@ -464,15 +464,26 @@ export function AutoSwitchSettings({
 					)}
 				</>
 			)}
-			{error !== null && (
-				<p
-					role="alert"
-					className="mt-2 flex items-start gap-1.5 text-[11px] text-red-500"
-				>
-					<LuTriangleAlert className="mt-px size-3 shrink-0" />
-					<span>{error.message}</span>
-				</p>
-			)}
+			{error !== null &&
+				// A models complaint points at the Model windows field and asks for
+				// the text in it to be shortened, so it only makes sense while that
+				// field is on screen: another control's commit keeps it, but a
+				// collapsed or blocked panel would leave an un-dismissable line
+				// about a control that is gone. The kept error and draft stay in
+				// state, so re-enabling brings field, draft and complaint back
+				// together. A commit refusal belongs to whichever control raised it
+				// — including the toggle that collapses the panel — so it still
+				// reports itself in every state.
+				(error.source !== "models" ||
+					(blockedMessage === null && settings.enabled)) && (
+					<p
+						role="alert"
+						className="mt-2 flex items-start gap-1.5 text-[11px] text-red-500"
+					>
+						<LuTriangleAlert className="mt-px size-3 shrink-0" />
+						<span>{error.message}</span>
+					</p>
+				)}
 		</div>
 	);
 }

@@ -448,6 +448,97 @@ describe("AutoSwitchSettings controls", () => {
 		);
 	});
 
+	// The complaint asks for the text in the Model windows field to be
+	// shortened, so it cannot outlive that field: the settings prop is refetched
+	// after every commit, and `commit({ enabled: false })` keeps the complaint
+	// while unmounting the whole detail grid.
+	test("a model complaint leaves with the field it points at and comes back with it", async () => {
+		const onCommit = mock(() => Promise.resolve());
+		const props = {
+			agentLabel: "Claude Code",
+			settings: SETTINGS,
+			engineAvailable: true,
+			platformSupported: true,
+			lockOwner: true,
+			disabled: false,
+			onCommit,
+		};
+		const view = render(<AutoSwitchSettings {...props} />);
+		const ui = within(view.baseElement as HTMLElement);
+		const typed = `Opus, ${"m".repeat(70)}`;
+		await act(async () => {
+			const models = ui.getByRole("textbox", { name: "Model windows" });
+			fireEvent.change(models, { target: { value: typed } });
+			fireEvent.blur(models);
+		});
+		expect(ui.getByRole("alert").textContent).toContain(
+			"at most 64 characters",
+		);
+
+		await act(async () => {
+			fireEvent.click(
+				ui.getByRole("switch", { name: "Switch accounts automatically" }),
+			);
+		});
+		await act(async () => {
+			view.rerender(
+				<AutoSwitchSettings
+					{...props}
+					settings={{ ...SETTINGS, enabled: false }}
+				/>,
+			);
+		});
+		expect(onCommit).toHaveBeenCalledWith({ enabled: false });
+		expect(ui.queryByRole("textbox", { name: "Model windows" })).toBeNull();
+		expect(ui.queryByRole("alert")).toBeNull();
+
+		// Switching back on returns the field, the draft it promised to keep and
+		// the complaint about it, all together.
+		await act(async () => {
+			view.rerender(<AutoSwitchSettings {...props} settings={SETTINGS} />);
+		});
+		expect(
+			(ui.getByRole("textbox", { name: "Model windows" }) as HTMLInputElement)
+				.value,
+		).toBe(typed);
+		expect(ui.getByRole("alert").textContent).toContain(
+			"at most 64 characters",
+		);
+
+		// A poll that hands switching to another instance hides the field and the
+		// switch, so the complaint would have no control left to clear it.
+		await act(async () => {
+			view.rerender(<AutoSwitchSettings {...props} lockOwner={false} />);
+		});
+		expect(ui.queryByRole("alert")).toBeNull();
+	});
+
+	// The toggle is the one control still on screen when the panel is collapsed,
+	// so its refusal has to report itself there.
+	test("a refused toggle still says so while the panel is collapsed", async () => {
+		const onCommit = mock(() => Promise.reject(new Error("invalid-settings")));
+		const view = render(
+			<AutoSwitchSettings
+				agentLabel="Claude Code"
+				settings={{ ...SETTINGS, enabled: false }}
+				engineAvailable
+				platformSupported
+				lockOwner
+				disabled={false}
+				onCommit={onCommit}
+			/>,
+		);
+		const ui = within(view.baseElement as HTMLElement);
+		await act(async () => {
+			fireEvent.click(
+				ui.getByRole("switch", { name: "Switch accounts automatically" }),
+			);
+		});
+		expect(ui.getByRole("alert").textContent).toContain(
+			"previous one still stands",
+		);
+	});
+
 	test("an offline host leaves every control untouchable", () => {
 		const { ui } = setup({ disabled: true });
 		expect(
