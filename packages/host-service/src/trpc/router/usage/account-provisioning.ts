@@ -89,7 +89,22 @@ export async function ensureActiveClaudeDir(
 			hasCompletedOnboarding: true,
 		}));
 	}
-	await (options.provision ?? provisionClaudeAccount)(dir);
+	// Best-effort, like the other two call sites of this provisioner: the dir is
+	// created, owner-only, seeded and flagged by the time we get here, so a
+	// failed refresh of skills/plugins/settings/session-share says nothing about
+	// whether the credential swap is safe. Failing here would refuse the switch
+	// without repairing anything, and a persistent fault (EPERM replacing a
+	// symlink, ENOSPC on a merge) would disable account switching outright —
+	// reported as `active-dir-unavailable`, which the dir plainly is not.
+	// Provisioning retries on the next switch and at host boot.
+	try {
+		await (options.provision ?? provisionClaudeAccount)(dir);
+	} catch (error) {
+		console.warn(
+			`[host-service] provisioning the active Claude dir ${dir} failed (continuing):`,
+			error,
+		);
+	}
 	return dir;
 }
 

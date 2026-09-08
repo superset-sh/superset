@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { HostDb } from "../../../db/index.ts";
 import {
+	activeClaudeConfigDir,
 	ensureActiveClaudeDir,
 	provisionSelectedAccounts,
 } from "./account-provisioning.ts";
@@ -171,5 +172,21 @@ describe("ensureActiveClaudeDir", () => {
 
 		const state = JSON.parse(readFileSync(join(dir, ".claude.json"), "utf-8"));
 		expect(state.oauthAccount.accountUuid).toBe("uuid-a");
+	});
+
+	// Provisioning does bare unlinkSync/symlinkSync and unguarded merges, so an
+	// EPERM or ENOSPC in it is reachable. It runs after the dir is created,
+	// seeded and flagged, so letting it through refuses the whole credential
+	// swap — permanently, for a persistent fault — and misreports the dir as
+	// unavailable when only the config refresh failed.
+	it("returns the dir when provisioning fails", async () => {
+		const dir = await ensureActiveClaudeDir({
+			provision: async () => {
+				throw new Error("EPERM: symlink");
+			},
+		});
+
+		expect(dir).toBe(activeClaudeConfigDir());
+		expect(existsSync(join(dir, ".claude.json"))).toBe(true);
 	});
 });
