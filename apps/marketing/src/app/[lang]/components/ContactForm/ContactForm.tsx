@@ -3,14 +3,19 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import { useState } from "react";
-import { submitContactInquiry } from "../../actions";
+import { submitContactInquiry } from "../../contact/actions";
 
-export function ContactForm() {
+interface ContactFormProps {
+	intent?: "contact" | "cloud-design-partner";
+}
+
+export function ContactForm({ intent = "contact" }: ContactFormProps) {
+	const isCloudSignup = intent === "cloud-design-partner";
 	const { t } = useLingui();
 	const [formState, setFormState] = useState({
 		name: "",
 		email: "",
-		topic: "",
+		topic: isCloudSignup ? "Cloud design partnership" : "",
 		message: "",
 		honeypot: "",
 	});
@@ -50,7 +55,7 @@ export function ContactForm() {
 
 	if (status === "success") {
 		return (
-			<div className="flex flex-col items-center justify-center py-16 text-center">
+			<output className="flex flex-col items-center justify-center py-16 text-center">
 				<CheckCircle2 className="size-6 text-muted-foreground mb-4" />
 				<p className="text-lg font-medium text-foreground">
 					<Trans>Thanks for reaching out</Trans>
@@ -58,7 +63,7 @@ export function ContactForm() {
 				<p className="mt-2 text-sm text-muted-foreground">
 					<Trans>We&apos;ll get back to you shortly.</Trans>
 				</p>
-			</div>
+			</output>
 		);
 	}
 
@@ -104,30 +109,38 @@ export function ContactForm() {
 				</div>
 			</div>
 
-			<div>
-				<label
-					htmlFor="contact-topic"
-					className="block text-sm text-muted-foreground mb-1.5"
-				>
-					<Trans>Topic</Trans>
-				</label>
-				<input
-					id="contact-topic"
-					type="text"
-					value={formState.topic}
-					onChange={(e) =>
-						setFormState((s) => ({ ...s, topic: e.target.value }))
-					}
-					className="w-full px-3.5 py-2.5 text-sm bg-background border border-border text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/25 transition-colors"
-				/>
-			</div>
+			{!isCloudSignup && (
+				<div>
+					<label
+						htmlFor="contact-topic"
+						className="block text-sm text-muted-foreground mb-1.5"
+					>
+						<Trans>Topic</Trans>
+					</label>
+					<input
+						id="contact-topic"
+						type="text"
+						value={formState.topic}
+						onChange={(e) =>
+							setFormState((s) => ({ ...s, topic: e.target.value }))
+						}
+						className="w-full px-3.5 py-2.5 text-sm bg-background border border-border text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/25 transition-colors"
+					/>
+				</div>
+			)}
 
 			<div>
 				<label
 					htmlFor="contact-message"
 					className="block text-sm text-muted-foreground mb-1.5"
 				>
-					<Trans>How can we help?</Trans>
+					{isCloudSignup ? (
+						<Trans>
+							What would you like to build with Superset in the cloud?
+						</Trans>
+					) : (
+						<Trans>How can we help?</Trans>
+					)}
 				</label>
 				<textarea
 					id="contact-message"
@@ -155,7 +168,9 @@ export function ContactForm() {
 			/>
 
 			{status === "error" && (
-				<p className="text-sm text-red-400">{errorMessage}</p>
+				<p role="alert" className="text-sm text-red-400">
+					{errorMessage}
+				</p>
 			)}
 
 			<button
@@ -170,7 +185,11 @@ export function ContactForm() {
 					</>
 				) : (
 					<>
-						<Trans>Send message</Trans>
+						{isCloudSignup ? (
+							<Trans>Become a design partner</Trans>
+						) : (
+							<Trans>Send message</Trans>
+						)}
 						<ArrowRight className="size-3.5" />
 					</>
 				)}

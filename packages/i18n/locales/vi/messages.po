@@ -2338,6 +2338,9 @@ msgstr "dựa trên PR #{0}"
 msgid "Based on {0} tokens in the last 30 days, counting {1}."
 msgstr "Dựa trên {0} token trong 30 ngày qua, tính cả {1}."
 
+msgid "Become a design partner"
+msgstr "Trở thành đối tác đồng phát triển"
+
 msgid "Before"
 msgstr "Trước"
 
@@ -2539,6 +2542,9 @@ msgstr "Lịch sử duyệt web"
 
 msgid "Bug"
 msgstr "Bug"
+
+msgid "Build the future of Superset in the cloud"
+msgstr "Xây dựng tương lai của Superset trên đám mây"
 
 msgid "Building the last piece of software"
 msgstr "Xây phần mềm cuối cùng"
@@ -3240,6 +3246,9 @@ msgstr "Đóng terminal này sẽ kết thúc tiến trình đang chạy."
 
 msgid "Cloud"
 msgstr "Cloud"
+
+msgid "Cloud is coming. Become a design partner"
+msgstr "Phiên bản đám mây sắp ra mắt. Trở thành đối tác đồng phát triển"
 
 msgid "Cloud sandboxes"
 msgstr "Sandbox trên cloud"
@@ -15341,17 +15350,14 @@ msgstr "Chúng tôi chỉ dùng địa chỉ này để gửi liên kết tải.
 msgid "We're hiring"
 msgstr "Chúng tôi đang tuyển"
 
-msgid "We're hiring engineers"
-msgstr "Chúng tôi đang tuyển kỹ sư"
-
-msgid "We're hiring engineers in San Francisco"
-msgstr "Chúng tôi đang tuyển kỹ sư tại San Francisco"
-
 msgid "We're hiring engineers in San Francisco. Help us build the first software factory platform."
 msgstr "Chúng tôi đang tuyển kỹ sư tại San Francisco. Hãy cùng chúng tôi xây dựng nền tảng software factory đầu tiên."
 
 msgid "We're hiring in San Francisco"
 msgstr "Chúng tôi đang tuyển tại San Francisco"
+
+msgid "We're looking for design partners to help shape our cloud offering. Tell us about your workflow and we'll be in touch to explore working together."
+msgstr "Chúng tôi đang tìm kiếm đối tác đồng phát triển để cùng định hình sản phẩm đám mây. Hãy chia sẻ quy trình làm việc của bạn và chúng tôi sẽ liên hệ để trao đổi cơ hội hợp tác."
 
 msgid "We're rebuilding this feature. Check back soon."
 msgstr "Chúng tôi đang xây dựng lại tính năng này. Hãy quay lại sau."
@@ -15473,6 +15479,9 @@ msgstr "Chúng tôi đang xây gì"
 
 msgid "What we're building now and next."
 msgstr "Chúng tôi đang và sắp xây gì."
+
+msgid "What would you like to build with Superset in the cloud?"
+msgstr "Bạn muốn xây dựng gì với Superset trên đám mây?"
 
 msgid "What would you like to know?"
 msgstr "Bạn muốn biết điều gì?"

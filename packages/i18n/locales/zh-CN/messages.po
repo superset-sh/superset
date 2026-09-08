@@ -2338,6 +2338,9 @@ msgstr "基于PR #{0}"
 msgid "Based on {0} tokens in the last 30 days, counting {1}."
 msgstr "基于最近30天的{0}个token，统计{1}。"
 
+msgid "Become a design partner"
+msgstr "成为共创伙伴"
+
 msgid "Before"
 msgstr "变更前"
 
@@ -2539,6 +2542,9 @@ msgstr "浏览历史"
 
 msgid "Bug"
 msgstr "虫子"
+
+msgid "Build the future of Superset in the cloud"
+msgstr "共创 Superset 的云端未来"
 
 msgid "Building the last piece of software"
 msgstr "打造最后一款软件"
@@ -3240,6 +3246,9 @@ msgstr "关闭此终端将结束正在运行的进程。"
 
 msgid "Cloud"
 msgstr "云端"
+
+msgid "Cloud is coming. Become a design partner"
+msgstr "云端版本即将推出。成为共创伙伴"
 
 msgid "Cloud sandboxes"
 msgstr "云端沙箱"
@@ -15341,17 +15350,14 @@ msgstr "我们只会用它给你发送下载链接。"
 msgid "We're hiring"
 msgstr "我们在招聘"
 
-msgid "We're hiring engineers"
-msgstr "我们正在招聘工程师"
-
-msgid "We're hiring engineers in San Francisco"
-msgstr "我们在旧金山招聘工程师"
-
 msgid "We're hiring engineers in San Francisco. Help us build the first software factory platform."
 msgstr "我们正在旧金山招聘工程师。与我们一起打造首个软件工厂平台。"
 
 msgid "We're hiring in San Francisco"
 msgstr "我们在旧金山招聘"
+
+msgid "We're looking for design partners to help shape our cloud offering. Tell us about your workflow and we'll be in touch to explore working together."
+msgstr "我们正在寻找共创伙伴，共同打造云端产品。请告诉我们您的工作流程，我们会与您联系，探讨合作机会。"
 
 msgid "We're rebuilding this feature. Check back soon."
 msgstr "我们正在重做这个功能，敬请期待。"
@@ -15473,6 +15479,9 @@ msgstr "我们正在构建什么"
 
 msgid "What we're building now and next."
 msgstr "我们正在做什么，接下来做什么。"
+
+msgid "What would you like to build with Superset in the cloud?"
+msgstr "您想用云端 Superset 构建什么？"
 
 msgid "What would you like to know?"
 msgstr "你想了解什么？"

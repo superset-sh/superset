@@ -2338,6 +2338,9 @@ msgstr "PR #{0} をベースに"
 msgid "Based on {0} tokens in the last 30 days, counting {1}."
 msgstr "過去30日間の{0}トークンに基づく({1}を集計)。"
 
+msgid "Become a design partner"
+msgstr "共同開発パートナーになる"
+
 msgid "Before"
 msgstr "変更前"
 
@@ -2539,6 +2542,9 @@ msgstr "閲覧履歴"
 
 msgid "Bug"
 msgstr "バグ"
+
+msgid "Build the future of Superset in the cloud"
+msgstr "クラウドでSupersetの未来を築く"
 
 msgid "Building the last piece of software"
 msgstr "最後のソフトウェアを作る"
@@ -3240,6 +3246,9 @@ msgstr "このターミナルを閉じると実行中のプロセスが終了し
 
 msgid "Cloud"
 msgstr "クラウド"
+
+msgid "Cloud is coming. Become a design partner"
+msgstr "クラウド版が近日登場。共同開発パートナーを募集中"
 
 msgid "Cloud sandboxes"
 msgstr "クラウドサンドボックス"
@@ -15341,17 +15350,14 @@ msgstr "ダウンロードリンクの送信にのみ使用します。"
 msgid "We're hiring"
 msgstr "採用中"
 
-msgid "We're hiring engineers"
-msgstr "エンジニアを募集中"
-
-msgid "We're hiring engineers in San Francisco"
-msgstr "サンフランシスコでエンジニアを募集中"
-
 msgid "We're hiring engineers in San Francisco. Help us build the first software factory platform."
 msgstr "サンフランシスコでエンジニアを募集中。最初のソフトウェアファクトリープラットフォームを一緒に作りましょう。"
 
 msgid "We're hiring in San Francisco"
 msgstr "サンフランシスコで採用中"
+
+msgid "We're looking for design partners to help shape our cloud offering. Tell us about your workflow and we'll be in touch to explore working together."
+msgstr "クラウド版を一緒に作り上げる共同開発パートナーを募集しています。ワークフローについてお聞かせください。協力の可能性について、こちらからご連絡します。"
 
 msgid "We're rebuilding this feature. Check back soon."
 msgstr "この機能は作り直し中です。しばらくお待ちください。"
@@ -15473,6 +15479,9 @@ msgstr "いま作っているもの"
 
 msgid "What we're building now and next."
 msgstr "いま作っているものと、次に作るもの。"
+
+msgid "What would you like to build with Superset in the cloud?"
+msgstr "クラウド上のSupersetで何を作りたいですか？"
 
 msgid "What would you like to know?"
 msgstr "何を知りたいですか?"

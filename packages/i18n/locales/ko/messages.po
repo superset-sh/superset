@@ -2338,6 +2338,9 @@ msgstr "PR #{0} 기반"
 msgid "Based on {0} tokens in the last 30 days, counting {1}."
 msgstr "최근 30일간 토큰 {0}개 기준이며, {1}을(를) 집계했습니다."
 
+msgid "Become a design partner"
+msgstr "공동 개발 파트너 되기"
+
 msgid "Before"
 msgstr "변경 전"
 
@@ -2539,6 +2542,9 @@ msgstr "방문 기록"
 
 msgid "Bug"
 msgstr "버그"
+
+msgid "Build the future of Superset in the cloud"
+msgstr "클라우드에서 Superset의 미래를 함께 만드세요"
 
 msgid "Building the last piece of software"
 msgstr "마지막 소프트웨어를 만듭니다"
@@ -3240,6 +3246,9 @@ msgstr "이 터미널을 닫으면 실행 중인 프로세스가 종료됩니다
 
 msgid "Cloud"
 msgstr "클라우드"
+
+msgid "Cloud is coming. Become a design partner"
+msgstr "클라우드 버전이 곧 출시됩니다. 공동 개발 파트너가 되어 주세요"
 
 msgid "Cloud sandboxes"
 msgstr "클라우드 샌드박스"
@@ -15341,17 +15350,14 @@ msgstr "다운로드 링크를 보내는 데에만 사용합니다."
 msgid "We're hiring"
 msgstr "채용 중"
 
-msgid "We're hiring engineers"
-msgstr "엔지니어를 채용하고 있습니다"
-
-msgid "We're hiring engineers in San Francisco"
-msgstr "샌프란시스코에서 엔지니어를 채용하고 있습니다"
-
 msgid "We're hiring engineers in San Francisco. Help us build the first software factory platform."
 msgstr "샌프란시스코에서 엔지니어를 채용하고 있습니다. 최초의 소프트웨어 팩토리 플랫폼을 함께 만들어요."
 
 msgid "We're hiring in San Francisco"
 msgstr "샌프란시스코에서 채용하고 있습니다"
+
+msgid "We're looking for design partners to help shape our cloud offering. Tell us about your workflow and we'll be in touch to explore working together."
+msgstr "클라우드 서비스를 함께 만들어 갈 공동 개발 파트너를 찾고 있습니다. 워크플로를 알려 주시면 협업 방안을 논의하기 위해 연락드리겠습니다."
 
 msgid "We're rebuilding this feature. Check back soon."
 msgstr "이 기능을 다시 만들고 있습니다. 곧 다시 확인해 주세요."
@@ -15473,6 +15479,9 @@ msgstr "우리가 만들고 있는 것"
 
 msgid "What we're building now and next."
 msgstr "지금 만들고 있는 것과 다음에 만들 것."
+
+msgid "What would you like to build with Superset in the cloud?"
+msgstr "클라우드의 Superset으로 무엇을 만들고 싶으신가요?"
 
 msgid "What would you like to know?"
 msgstr "무엇을 알고 싶으신가요?"

@@ -2,6 +2,7 @@
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
+import { Cloud } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
@@ -14,7 +15,7 @@ import { TypewriterText } from "./components/TypewriterText";
 
 export function HeroSection() {
 	const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
-	const { t } = useLingui();
+	const { t, i18n } = useLingui();
 
 	const headlineSegments = [
 		{
@@ -48,21 +49,21 @@ export function HeroSection() {
 				<BoidsBackground />
 				<div className="relative w-full max-w-7xl mx-auto px-6 sm:px-8">
 					<div className="flex flex-col items-center text-center">
-						{/* Hiring pill: in-flow badge above the headline */}
 						<Link
-							href="/join-us"
-							className="group mb-6 sm:mb-8 inline-flex w-max items-center gap-2 whitespace-nowrap rounded-[2px] border border-border bg-background/80 px-3 py-1.5 text-xs font-mono text-muted-foreground transition-colors hover:text-foreground hover:border-foreground/[0.2]"
+							href={i18n.locale === "en" ? "/cloud" : `/${i18n.locale}/cloud`}
+							className="group mb-6 sm:mb-8 inline-flex max-w-full items-center gap-2 rounded-[2px] border border-border bg-background/80 px-3 py-1.5 text-xs font-mono text-muted-foreground transition-colors hover:text-foreground hover:border-foreground/[0.2]"
 						>
-							<span className="text-brand shrink-0">●</span>
+							<Cloud
+								aria-hidden="true"
+								className="size-3.5 text-brand shrink-0"
+							/>
 							<span>
-								<span className="sm:hidden">
-									<Trans>We&apos;re hiring engineers</Trans>
-								</span>
-								<span className="hidden sm:inline">
-									<Trans>We&apos;re hiring engineers in San Francisco</Trans>
-								</span>
+								<Trans>Cloud is coming. Become a design partner</Trans>
 							</span>
-							<span className="shrink-0 transition-transform group-hover:translate-x-0.5">
+							<span
+								aria-hidden="true"
+								className="shrink-0 transition-transform group-hover:translate-x-0.5"
+							>
 								→
 							</span>
 						</Link>

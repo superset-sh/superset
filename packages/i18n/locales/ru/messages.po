@@ -2338,6 +2338,9 @@ msgstr "на основе PR #{0}"
 msgid "Based on {0} tokens in the last 30 days, counting {1}."
 msgstr "На основе {0} токенов за последние 30 дней, учитывая {1}."
 
+msgid "Become a design partner"
+msgstr "Стать партнёром по разработке"
+
 msgid "Before"
 msgstr "До"
 
@@ -2539,6 +2542,9 @@ msgstr "История просмотров"
 
 msgid "Bug"
 msgstr "Жук"
+
+msgid "Build the future of Superset in the cloud"
+msgstr "Создайте будущее Superset в облаке"
 
 msgid "Building the last piece of software"
 msgstr "Строим последнюю программу"
@@ -3240,6 +3246,9 @@ msgstr "Закрытие этого терминала завершит рабо
 
 msgid "Cloud"
 msgstr "Облако"
+
+msgid "Cloud is coming. Become a design partner"
+msgstr "Облачная версия скоро появится. Станьте партнёром по разработке"
 
 msgid "Cloud sandboxes"
 msgstr "Облачные песочницы"
@@ -15341,17 +15350,14 @@ msgstr "Используем адрес только для отправки с�
 msgid "We're hiring"
 msgstr "Мы нанимаем"
 
-msgid "We're hiring engineers"
-msgstr "Мы нанимаем инженеров"
-
-msgid "We're hiring engineers in San Francisco"
-msgstr "Мы нанимаем инженеров в Сан-Франциско"
-
 msgid "We're hiring engineers in San Francisco. Help us build the first software factory platform."
 msgstr "Мы нанимаем инженеров в Сан-Франциско. Помогите нам построить первую платформу программной фабрики."
 
 msgid "We're hiring in San Francisco"
 msgstr "Мы нанимаем в Сан-Франциско"
+
+msgid "We're looking for design partners to help shape our cloud offering. Tell us about your workflow and we'll be in touch to explore working together."
+msgstr "Мы ищем партнёров по разработке, которые помогут создать наш облачный продукт. Расскажите о своём рабочем процессе, и мы свяжемся с вами, чтобы обсудить сотрудничество."
 
 msgid "We're rebuilding this feature. Check back soon."
 msgstr "Мы переделываем эту функцию. Загляните позже."
@@ -15473,6 +15479,9 @@ msgstr "Что мы строим"
 
 msgid "What we're building now and next."
 msgstr "Что мы делаем сейчас и что дальше."
+
+msgid "What would you like to build with Superset in the cloud?"
+msgstr "Что вы хотели бы создать с помощью Superset в облаке?"
 
 msgid "What would you like to know?"
 msgstr "Что вы хотите узнать?"

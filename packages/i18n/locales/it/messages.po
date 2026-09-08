@@ -2338,6 +2338,9 @@ msgstr "basato sulla PR #{0}"
 msgid "Based on {0} tokens in the last 30 days, counting {1}."
 msgstr "In base a {0} token negli ultimi 30 giorni, contando {1}."
 
+msgid "Become a design partner"
+msgstr "Diventa partner di progettazione"
+
 msgid "Before"
 msgstr "Prima"
 
@@ -2539,6 +2542,9 @@ msgstr "Cronologia di navigazione"
 
 msgid "Bug"
 msgstr "Bug"
+
+msgid "Build the future of Superset in the cloud"
+msgstr "Costruisci il futuro di Superset nel cloud"
 
 msgid "Building the last piece of software"
 msgstr "Costruiamo l'ultimo pezzo di software"
@@ -3240,6 +3246,9 @@ msgstr "Chiudendo questo terminale terminerai il processo in esecuzione."
 
 msgid "Cloud"
 msgstr "Cloud"
+
+msgid "Cloud is coming. Become a design partner"
+msgstr "Il cloud sta arrivando. Diventa partner di progettazione"
 
 msgid "Cloud sandboxes"
 msgstr "Sandbox nel cloud"
@@ -15341,17 +15350,14 @@ msgstr "La useremo solo per inviarti il link di download."
 msgid "We're hiring"
 msgstr "Stiamo assumendo"
 
-msgid "We're hiring engineers"
-msgstr "Stiamo assumendo ingegneri"
-
-msgid "We're hiring engineers in San Francisco"
-msgstr "Stiamo assumendo ingegneri a San Francisco"
-
 msgid "We're hiring engineers in San Francisco. Help us build the first software factory platform."
 msgstr "Stiamo assumendo ingegneri a San Francisco. Aiutaci a costruire la prima piattaforma di software factory."
 
 msgid "We're hiring in San Francisco"
 msgstr "Stiamo assumendo a San Francisco"
+
+msgid "We're looking for design partners to help shape our cloud offering. Tell us about your workflow and we'll be in touch to explore working together."
+msgstr "Cerchiamo partner di progettazione per dare forma alla nostra offerta cloud. Raccontaci come lavori e ti contatteremo per valutare una collaborazione."
 
 msgid "We're rebuilding this feature. Check back soon."
 msgstr "Stiamo ricostruendo questa funzione. Torna a controllare presto."
@@ -15473,6 +15479,9 @@ msgstr "Cosa stiamo costruendo"
 
 msgid "What we're building now and next."
 msgstr "Cosa stiamo costruendo ora e dopo."
+
+msgid "What would you like to build with Superset in the cloud?"
+msgstr "Cosa vorresti creare con Superset nel cloud?"
 
 msgid "What would you like to know?"
 msgstr "Cosa vorresti sapere?"
