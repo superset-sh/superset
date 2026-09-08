@@ -177,23 +177,29 @@ describe("agent-wrappers opencode", () => {
 		expect(notifications).toEqual(["PermissionRequest"]);
 	});
 
-	it("retains the legacy permission.ask notification hook", async () => {
+	it("retains legacy permission.ask using the tracked root when the input omits its ID", async () => {
 		process.env.SUPERSET_TERMINAL_ID = "terminal-1";
 		const { SupersetNotifyPlugin } = await loadOpenCodePlugin();
-		const notifications: string[] = [];
+		const notifications: unknown[] = [];
 		const hooks = await SupersetNotifyPlugin({
 			$: (
 				_parts: TemplateStringsArray,
 				_notifyPath: string,
 				payload: string,
 			) => {
-				notifications.push(JSON.parse(payload).hook_event_name);
+				notifications.push(JSON.parse(payload));
 			},
 		});
 
+		await hooks.event({
+			event: { type: "session.created", properties: { info: { id: "root" } } },
+		});
+		notifications.length = 0;
 		await hooks["permission.ask"]({}, { status: "ask" });
 
-		expect(notifications).toEqual(["PermissionRequest"]);
+		expect(notifications).toEqual([
+			{ hook_event_name: "PermissionRequest", session_id: "root" },
+		]);
 	});
 
 	it("carries the root session through lifecycle events without accepting child or competing sessions", async () => {
@@ -220,6 +226,7 @@ describe("agent-wrappers opencode", () => {
 			hooks.event({ event: { type, properties } });
 
 		await event("session.created", { info: { id: "root" } });
+		await event("session.created", { info: { id: "other-before-busy" } });
 		await event("session.status", {
 			sessionID: "root",
 			status: { type: "busy" },
@@ -305,6 +312,7 @@ describe("agent-wrappers opencode", () => {
 			client: { session: { list: async () => ({ data: [] }) } },
 		});
 		await hooks.event({ event: { type: "session.created", properties: {} } });
+		await hooks["permission.ask"]({}, { status: "ask" });
 		await hooks.event({
 			event: {
 				type: "session.status",

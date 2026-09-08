@@ -76,12 +76,12 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
   const childSessionCache = new Map();
   const isChildSession = async (sessionID) => {
     if (!sessionID) return true; // No sessionID = can't verify, skip
-    if (!client?.session?.list) return true; // Can't check, skip
 
     // Check cache first
     if (childSessionCache.has(sessionID)) {
       return childSessionCache.get(sessionID);
     }
+    if (!client?.session?.list) return true; // Can't check, skip
 
     try {
       const sessions = await client.session.list();
@@ -240,7 +240,7 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
     "permission.ask": async (permission, output) => {
       if (output.status === "ask") {
         const sessionID = permission?.sessionID ?? rootSessionID;
-        if (sessionID && await isChildSession(sessionID)) return;
+        if (!sessionID || await isChildSession(sessionID)) return;
         await notify("PermissionRequest", sessionID);
       }
     },
