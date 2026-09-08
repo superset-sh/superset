@@ -152,8 +152,19 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
     }
   };
 
+  // OpenCode can dispatch another hook while an earlier notification is in
+  // flight. Keep ownership transitions and their notifications in arrival
+  // order, including legacy permission callbacks that use the current root.
+  let pendingEvent = Promise.resolve();
+  const enqueue = (handle) => {
+    pendingEvent = pendingEvent.then(handle).catch((err) => {
+      log('Event handling failed:', err?.message || err);
+    });
+    return pendingEvent;
+  };
+
   return {
-    event: async ({ event }) => {
+    event: ({ event }) => enqueue(async () => {
       // session.created carries the new session info under `info`, not `sessionID`.
       const sessionID =
         event.properties?.sessionID ??
@@ -236,13 +247,13 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
       if (event.type === "session.error") {
         await handleStop(sessionID, 'session.error');
       }
-    },
-    "permission.ask": async (permission, output) => {
+    }),
+    "permission.ask": (permission, output) => enqueue(async () => {
       if (output.status === "ask") {
         const sessionID = permission?.sessionID ?? rootSessionID;
         if (!sessionID || await isChildSession(sessionID)) return;
         await notify("PermissionRequest", sessionID);
       }
-    },
+    }),
   };
 };

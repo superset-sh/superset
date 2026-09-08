@@ -94,8 +94,14 @@ PID reuse. A PID supplied by an HTTP caller is also only a claim.
    link to its predecessor.
 
 Implement a pure acceptance decision shared by the host's hook route and binding
-store. Return a classification such as accepted, nested, stale, or unverified;
-apply side effects only to accepted events. Keep classification independent of UI.
+store. Execute that decision in a per-terminal transaction or compare-and-swap:
+validate the expected generation and process identity against current state, then
+commit the generation, process identity, ownership, and binding together. Retry
+or reject a decision if its expected state changed. Return a classification such
+as accepted, nested, stale, or unverified; rejected events have no lifecycle side
+effects. Broadcast lifecycle changes and notifications only after the accepted
+commit, preserving per-terminal commit order. Validation followed by an unrelated
+store write is insufficient. Keep classification independent of UI.
 
 ## Compatibility and recovery
 
@@ -104,6 +110,11 @@ apply side effects only to accepted events. Keep classification independent of U
 - For legacy/unwrapped launches, attempt host-side process reconciliation. If
   ownership cannot be proven, preserve an existing validated resume binding.
   Do not silently replace it based on the latest arriving hook.
+- Preserve OpenCode's legacy `permission.ask` fallback: when the callback omits
+  `permission.sessionID`, use the verified tracked `rootSessionID` for that owner.
+  If both identifiers are absent, classify the event as unverified and leave
+  ownership and permission state unchanged. This fallback does not bypass the
+  reporting process and launch-generation checks.
 - Decide separately how to display an unverified first launch; uncertainty must
   not manufacture an automatically executable resume binding.
 - Surviving agents retain immutable environment variables across host restarts.
@@ -142,6 +153,8 @@ validation must not silently invent account settings or user command arguments.
 | Native subagent start/stop | Roster updates; parent identity/lifecycle preserved |
 | Agent exits, user starts another in same shell | New launch becomes owner |
 | Delayed Stop/SessionEnd from old launch | No effect on current owner |
+| Concurrent replacement and old-owner hook | Atomic validation/commit rejects stale ownership; effects follow commit order |
+| OpenCode legacy permission without a session ID | Verified tracked root supplies the ID; absent root leaves ownership and permission state unchanged |
 | Same process starts a new native conversation | Verified adapter transition updates ID |
 | Missing wrapper / transient hook shell | Correct process reconciliation or explicit uncertainty |
 | PID reused / host-service restarted | No false match; surviving owners remain valid |

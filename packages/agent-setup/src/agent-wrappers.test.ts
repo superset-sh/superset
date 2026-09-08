@@ -263,6 +263,44 @@ describe("agent-wrappers opencode", () => {
 		).toBe(true);
 	});
 
+	it("orders root replacement and legacy permissions behind an in-flight deletion", async () => {
+		process.env.SUPERSET_TERMINAL_ID = "terminal-1";
+		const { SupersetNotifyPlugin } = await loadOpenCodePlugin();
+		const notifications: unknown[] = [];
+		const deleting = Promise.withResolvers<void>();
+		const release = Promise.withResolvers<void>();
+		const hooks = await SupersetNotifyPlugin({
+			$: async (
+				_parts: TemplateStringsArray,
+				_notifyPath: string,
+				payload: string,
+			) => {
+				const notification = JSON.parse(payload);
+				if (notification.hook_event_name === "SessionEnd") {
+					deleting.resolve();
+					await release.promise;
+				}
+				notifications.push(notification);
+			},
+		});
+		const event = (type: string, id: string) =>
+			hooks.event({ event: { type, properties: { info: { id } } } });
+		await event("session.created", "old");
+		notifications.length = 0;
+		const deletion = event("session.deleted", "old");
+		await deleting.promise;
+		const creation = event("session.created", "new");
+		const permission = hooks["permission.ask"]({}, { status: "ask" });
+		release.resolve();
+		await Promise.all([deletion, creation, permission]);
+
+		expect(notifications).toEqual([
+			{ hook_event_name: "SessionEnd", session_id: "old" },
+			{ hook_event_name: "SessionStart", session_id: "new" },
+			{ hook_event_name: "PermissionRequest", session_id: "new" },
+		]);
+	});
+
 	it("captures resumed and subsequent root sessions without a session.created event", async () => {
 		process.env.SUPERSET_TERMINAL_ID = "terminal-1";
 		const { SupersetNotifyPlugin } = await loadOpenCodePlugin();
