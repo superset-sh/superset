@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
-// Static import so the real store loads (with real react) before the partial
-// "react" mock below registers.
+import * as reactActual from "react";
+// Static imports so the real modules are captured before the mocks below
+// replace them.
+import * as hostServiceClientActual from "renderer/lib/host-service-client";
+import * as projectsActual from "renderer/react-query/projects";
+import * as localHostServiceActual from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import * as gitInitConfirmActual from "renderer/stores/git-init-confirm";
 
 const hostUrl = "http://host-service";
@@ -37,7 +41,12 @@ const createMock = mock(async () => ({
 const finalizeSetupMock = mock(() => undefined);
 const requestGitInitMock = mock(async () => false);
 
+// Spread the real module for the same reason the store mock below does: bun's
+// mock.module is process-global and permanent, so dropping an export here
+// deletes it for every test file that runs after this one. `useCallback` is
+// identity so the hook can be exercised outside a render.
 mock.module("react", () => ({
+	...reactActual,
 	useCallback: <T extends (...args: never[]) => unknown>(callback: T) =>
 		callback,
 }));
@@ -53,6 +62,7 @@ mock.module("renderer/lib/electron-trpc", () => ({
 }));
 
 mock.module("renderer/lib/host-service-client", () => ({
+	...hostServiceClientActual,
 	getHostServiceClientByUrl: () => ({
 		project: {
 			findByPath: { query: findByPathMock },
@@ -63,12 +73,14 @@ mock.module("renderer/lib/host-service-client", () => ({
 }));
 
 mock.module("renderer/react-query/projects", () => ({
+	...projectsActual,
 	useFinalizeProjectSetup: () => finalizeSetupMock,
 }));
 
 mock.module(
 	"renderer/routes/_authenticated/providers/LocalHostServiceProvider",
 	() => ({
+		...localHostServiceActual,
 		useLocalHostService: () => ({
 			activeHostUrl: hostUrl,
 			waitForHostReady: async () => hostUrl,
