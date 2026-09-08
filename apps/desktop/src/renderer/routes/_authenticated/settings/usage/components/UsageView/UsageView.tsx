@@ -647,26 +647,28 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 		);
 	};
 
-	const toggleAccountRotation = (
+	// One mutation instance serves every row, so a toggle elsewhere detaches
+	// this call from it and its per-call `onError` never runs — the toggle
+	// sprang back with nothing on screen to say why. The mutation's own promise
+	// still rejects with the refusal, so the report is taken from there.
+	const toggleAccountRotation = async (
 		account: UsageAccount,
 		inRotation: boolean,
 	) => {
 		const key = rotationKey(account);
 		setCardError(key, "rotation", null);
-		setRotation.mutate(
-			{ accountKey: key, inRotation },
-			{
-				onError: (failure) =>
-					setCardError(
-						key,
-						"rotation",
-						engineErrorMessage(failure) ??
-							t({
-								message: `Rotation not saved (${engineErrorCode(failure)}).`,
-							}),
-					),
-			},
-		);
+		try {
+			await setRotation.mutateAsync({ accountKey: key, inRotation });
+		} catch (failure) {
+			setCardError(
+				key,
+				"rotation",
+				engineErrorMessage(failure) ??
+					t({
+						message: `Rotation not saved (${engineErrorCode(failure)}).`,
+					}),
+			);
+		}
 	};
 
 	// The switch itself succeeded; the confirmation waits for the notice so
@@ -796,8 +798,9 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 										}
 										onToggleRotation={
 											isManagedAgent(account.agent)
-												? (inRotation) =>
-														toggleAccountRotation(account, inRotation)
+												? (inRotation) => {
+														void toggleAccountRotation(account, inRotation);
+													}
 												: null
 										}
 										onSwitchSignIn={

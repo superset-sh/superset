@@ -510,6 +510,42 @@ describe("UsageView card errors", () => {
 		expect(cardFor("copy@example.com").getByText("Make active")).toBeTruthy();
 	});
 
+	// One `useSetAccountRotation` drives every row, so a second `mutate` on it
+	// detaches the observer from the first: the first toggle's per-call
+	// `onError` never ran and its refusal went unsaid, leaving a toggle that
+	// sprang back with nothing on screen to explain why.
+	test("a rotation refusal reaches its row when another toggle supersedes it", async () => {
+		switchRefusals = {};
+		const cardFor = renderUsageView([
+			account({
+				isDefault: true,
+				accountKey: "claude:/p/a",
+				selection: "/p/a",
+				accountId: "uuid-a",
+			}),
+			account({
+				accountKey: "claude:/p/b",
+				selection: "/p/b",
+				accountId: "uuid-b",
+				email: "b@example.com",
+			}),
+		]);
+
+		// No host, so both rotation writes refuse. The second click lands while
+		// the first is still in flight, which is the case that lost it.
+		fireEvent.click(cardFor("a@example.com").getByRole("switch"));
+		fireEvent.click(cardFor("b@example.com").getByRole("switch"));
+
+		await waitFor(() =>
+			expect(cardFor("a@example.com").getByRole("alert").textContent).toContain(
+				"Rotation not saved",
+			),
+		);
+		expect(cardFor("b@example.com").getByRole("alert").textContent).toContain(
+			"Rotation not saved",
+		);
+	});
+
 	// The other half of the split: the two rows share one rotation flag, so a
 	// refusal to write it is true of both cards and belongs on both.
 	test("a rotation refusal reaches every card behind the same flag", async () => {
