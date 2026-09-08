@@ -3,7 +3,6 @@ import {
 	createFsHostService,
 	type FsHostService,
 	FsWatcherManager,
-	invalidateSearchIndexesForRoot,
 } from "@superset/workspace-fs/host";
 import { TRPCError } from "@trpc/server";
 import { shell } from "electron";
@@ -53,12 +52,6 @@ export function resolveWorkspaceRootPath(workspaceId: string): string {
 }
 
 const serviceCache = new Map<string, FsHostService>();
-
-export async function disposeWorkspaceFilesystem(): Promise<void> {
-	for (const root of serviceCache.keys()) invalidateSearchIndexesForRoot(root);
-	serviceCache.clear();
-	await filesystemWatcherManager.close();
-}
 
 export function getServiceForRootPath(rootPath: string): FsHostService {
 	let service = serviceCache.get(rootPath);

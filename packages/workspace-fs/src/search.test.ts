@@ -8,8 +8,11 @@ import fg from "fast-glob";
 import type { SearchPatchEvent } from "./search";
 import {
 	collectSearchIndexPaths,
+	getSearchIndex,
 	invalidateAllSearchIndexes,
+	MAX_SEARCH_INDEX_ENTRIES,
 	patchSearchIndexesForRoot,
+	searchContent,
 	searchFiles,
 } from "./search";
 
@@ -289,9 +292,21 @@ describe("collectSearchIndexPaths", () => {
 		// time, so a spy here can route the walk through a counting readdir and
 		// keep a handle on the stream the walk consumes.
 		let readdirCalls = 0;
+		let pendingReaddirs = 0;
 		const countingReaddir = ((...args: unknown[]) => {
 			readdirCalls++;
-			return (nodeFs.readdir as (...a: unknown[]) => void)(...args);
+			pendingReaddirs++;
+			const callback = args.pop() as (...values: unknown[]) => void;
+			return (nodeFs.readdir as (...a: unknown[]) => void)(
+				...args,
+				(...values: unknown[]) => {
+					try {
+						callback(...values);
+					} finally {
+						pendingReaddirs--;
+					}
+				},
+			);
 		}) as typeof nodeFs.readdir;
 		const originalStream = fg.stream;
 		const streams: Readable[] = [];
@@ -331,11 +346,67 @@ describe("collectSearchIndexPaths", () => {
 			// Directories still in flight when the cap hit (bounded by fast-glob's
 			// concurrency, the CPU count) may finish, but the walker opens no
 			// more: the count is frozen, not merely lagging.
-			await new Promise((resolve) => setTimeout(resolve, 150));
+			const deadline = Date.now() + 5_000;
+			while (pendingReaddirs > 0) {
+				if (Date.now() > deadline)
+					throw new Error("Directory callbacks failed to drain");
+				await new Promise((resolve) => setImmediate(resolve));
+			}
+			await new Promise((resolve) => setImmediate(resolve));
 			expect(readdirCalls).toBe(cappedReaddirs);
 			expect(cappedReaddirs).toBeLessThan(fullReaddirs / 2);
 		} finally {
 			streamSpy.mockRestore();
 		}
 	});
+});
+
+it("does not build a filename index before successful content search", async () => {
+	const rootPath = await createTempRoot();
+	const walk = spyOn(fg, "stream");
+	try {
+		await searchContent({
+			rootPath,
+			query: "needle",
+			runRipgrep: async () => ({ stdout: "" }),
+		});
+		expect(walk).not.toHaveBeenCalled();
+	} finally {
+		walk.mockRestore();
+	}
+});
+
+it("expires a broad-root index even while searches keep it hot", async () => {
+	const rootPath = await createTempRoot();
+	await fs.writeFile(path.join(rootPath, "old.txt"), "old");
+	await getSearchIndex({ rootPath, includeHidden: false });
+	await fs.writeFile(path.join(rootPath, "new.txt"), "new");
+	const now = Date.now();
+	const clock = spyOn(Date, "now").mockReturnValue(now + 6_000);
+	try {
+		const items = await getSearchIndex({
+			rootPath,
+			includeHidden: false,
+			maxAgeMs: 5_000,
+		});
+		expect(items.some((item) => item.name === "new.txt")).toBe(true);
+	} finally {
+		clock.mockRestore();
+	}
+});
+
+it("keeps the index bounded after a stream of file creations", async () => {
+	const rootPath = await createTempRoot();
+	await getSearchIndex({ rootPath, includeHidden: false });
+	patchSearchIndexesForRoot(
+		rootPath,
+		Array.from({ length: MAX_SEARCH_INDEX_ENTRIES + 2 }, (_, i) => ({
+			kind: "create" as const,
+			absolutePath: path.join(rootPath, `${i}.txt`),
+			isDirectory: false,
+		})),
+	);
+	expect(await getSearchIndex({ rootPath, includeHidden: false })).toHaveLength(
+		MAX_SEARCH_INDEX_ENTRIES,
+	);
 });

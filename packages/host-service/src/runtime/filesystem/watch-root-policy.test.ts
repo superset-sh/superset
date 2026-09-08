@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { forbiddenRootReason } from "./watch-root-policy";
+import { broadRootReason } from "./watch-root-policy";
 
 const env = {
 	homeDir: "/Users/peta",
@@ -30,11 +30,11 @@ function fixture() {
 	};
 }
 
-describe("forbiddenRootReason", () => {
+describe("broadRootReason", () => {
 	it("refuses a symlink to the home directory, including an aliased policy home", () => {
 		const f = fixture();
-		expect(forbiddenRootReason(f.alias, f)).toBe("home-directory");
-		expect(forbiddenRootReason(f.homeDir, { ...f, homeDir: f.alias })).toBe(
+		expect(broadRootReason(f.alias, f)).toBe("home-directory");
+		expect(broadRootReason(f.homeDir, { ...f, homeDir: f.alias })).toBe(
 			"home-directory",
 		);
 	});
@@ -43,7 +43,7 @@ describe("forbiddenRootReason", () => {
 		const f = fixture();
 		const alias = path.join(f.root, "disk");
 		symlinkSync(path.parse(f.root).root, alias, "junction");
-		expect(forbiddenRootReason(alias, f)).toBe("filesystem-root");
+		expect(broadRootReason(alias, f)).toBe("filesystem-root");
 	});
 
 	it("resolves existing parents when the relocated data directory does not exist yet", () => {
@@ -52,7 +52,7 @@ describe("forbiddenRootReason", () => {
 			homeDir: path.join(f.root, "other"),
 			supersetHomeDir: path.join(f.alias, "missing", ".superset"),
 		};
-		expect(forbiddenRootReason(f.homeDir, relocated)).toBe(
+		expect(broadRootReason(f.homeDir, relocated)).toBe(
 			"contains-superset-home",
 		);
 	});
@@ -62,31 +62,31 @@ describe("forbiddenRootReason", () => {
 		mkdirSync(path.join(f.homeDir, "repo"));
 		const alias = path.join(f.root, "repo-alias");
 		symlinkSync(path.join(f.homeDir, "repo"), alias, "junction");
-		expect(forbiddenRootReason(alias, f)).toBeNull();
-		expect(forbiddenRootReason(`${f.homeDir}-other`, f)).toBeNull();
+		expect(broadRootReason(alias, f)).toBeNull();
+		expect(broadRootReason(`${f.homeDir}-other`, f)).toBeNull();
 	});
 	it("refuses the home directory, with or without a trailing slash", () => {
-		expect(forbiddenRootReason("/Users/peta", env)).toBe("home-directory");
-		expect(forbiddenRootReason("/Users/peta/", env)).toBe("home-directory");
+		expect(broadRootReason("/Users/peta", env)).toBe("home-directory");
+		expect(broadRootReason("/Users/peta/", env)).toBe("home-directory");
 	});
 
 	it("refuses filesystem roots", () => {
-		expect(forbiddenRootReason("/", env)).toBe("filesystem-root");
+		expect(broadRootReason("/", env)).toBe("filesystem-root");
 	});
 
 	it("refuses any ancestor of the superset home directory", () => {
-		expect(forbiddenRootReason("/Users", env)).toBe("contains-superset-home");
+		expect(broadRootReason("/Users", env)).toBe("contains-superset-home");
 	});
 
 	it("allows a repository inside the home directory", () => {
-		expect(forbiddenRootReason("/Users/peta/popcamcode", env)).toBeNull();
+		expect(broadRootReason("/Users/peta/popcamcode", env)).toBeNull();
 		expect(
-			forbiddenRootReason("/Users/peta/.superset/worktrees/p/w", env),
+			broadRootReason("/Users/peta/.superset/worktrees/p/w", env),
 		).toBeNull();
 	});
 
 	it("allows a repository elsewhere on disk", () => {
-		expect(forbiddenRootReason("/opt/src/app", env)).toBeNull();
+		expect(broadRootReason("/opt/src/app", env)).toBeNull();
 	});
 
 	it("honours a relocated superset home directory", () => {
@@ -94,9 +94,7 @@ describe("forbiddenRootReason", () => {
 			homeDir: "/Users/peta",
 			supersetHomeDir: "/data/superset",
 		};
-		expect(forbiddenRootReason("/data", relocated)).toBe(
-			"contains-superset-home",
-		);
-		expect(forbiddenRootReason("/Users", relocated)).toBeNull();
+		expect(broadRootReason("/data", relocated)).toBe("contains-superset-home");
+		expect(broadRootReason("/Users", relocated)).toBeNull();
 	});
 });

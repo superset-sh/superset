@@ -2,23 +2,14 @@ import {
 	createFsHostService,
 	type FsHostService,
 	FsWatcherManager,
+	invalidateSearchIndexesForRoot,
+	watchSingleFile,
 } from "@superset/workspace-fs/host";
 import { eq } from "drizzle-orm";
 import type { HostDb } from "../../db/index.ts";
 import { projects, workspaces } from "../../db/schema.ts";
 import { listGitIgnoredDirs } from "../git/index.ts";
-import { forbiddenRootReason } from "./watch-root-policy.ts";
-
-/**
- * Stand-in for a root that must not be watched (see forbiddenRootReason):
- * subscriptions attach and never deliver, so consumers see a quiet tree
- * instead of an error on every boot. The refusal is logged once, where the
- * service is created.
- */
-const unwatchedRoot: Pick<FsWatcherManager, "subscribe" | "close"> = {
-	subscribe: async () => async () => {},
-	close: async () => {},
-};
+import { broadRootReason } from "./watch-root-policy.ts";
 
 export interface WorkspaceFilesystemManagerOptions {
 	db: HostDb;
@@ -43,6 +34,7 @@ export class WorkspaceFilesystemManager {
 	private readonly watcherManager = new FsWatcherManager({
 		listGitIgnoredDirs,
 	});
+	private readonly shallowWatches = new Set<() => void>();
 	private readonly serviceCache = new Map<string, FsHostService>();
 
 	constructor(options: WorkspaceFilesystemManagerOptions) {
@@ -108,26 +100,44 @@ export class WorkspaceFilesystemManager {
 	private getServiceForRootPath(rootPath: string): FsHostService {
 		let service = this.serviceCache.get(rootPath);
 		if (!service) {
-			const forbidden = forbiddenRootReason(rootPath);
-			if (forbidden) {
-				console.warn("[workspace-fs] not watching this root", {
-					rootPath,
-					reason: forbidden,
-				});
-			}
+			const broad = broadRootReason(rootPath) !== null;
 			service = createFsHostService({
 				rootPath,
-				watcherManager: forbidden ? unwatchedRoot : this.watcherManager,
+				// A broad root observes immediate children only. Expanded folders
+				// and open documents acquire their own resource watches via the bus.
+				watcherManager: broad
+					? {
+							subscribe: async ({ absolutePath }, listener) => {
+								const dispose = watchSingleFile(absolutePath, (event) => {
+									invalidateSearchIndexesForRoot(rootPath);
+									listener({ events: [event] });
+								});
+								this.shallowWatches.add(dispose);
+								return async () => {
+									this.shallowWatches.delete(dispose);
+									dispose();
+								};
+							},
+							close: async () => {
+								for (const dispose of this.shallowWatches) dispose();
+								this.shallowWatches.clear();
+							},
+						}
+					: this.watcherManager,
+				// Descendants outside the visible tree have no recursive invalidation.
+				searchIndexMaxAgeMs: broad ? 5_000 : undefined,
 			});
 			this.serviceCache.set(rootPath, service);
-			// No index pre-warm here: this runs for every workspace at boot (the
-			// git-watcher attaches to each), so it walked every root whether or
-			// not anyone would search it. The first search pays the walk instead.
+			// Opening a workspace must not walk it. Build an index only on search.
 		}
 		return service;
 	}
 
 	async close(): Promise<void> {
+		for (const dispose of this.shallowWatches) dispose();
+		this.shallowWatches.clear();
+		for (const root of this.serviceCache.keys())
+			invalidateSearchIndexesForRoot(root);
 		this.serviceCache.clear();
 		await this.watcherManager.close();
 	}

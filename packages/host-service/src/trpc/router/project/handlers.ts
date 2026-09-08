@@ -6,7 +6,6 @@ import { projects } from "../../../db/schema";
 import { emitProjectChanged } from "../../../projects/local-project-store";
 import type { HostServiceContext } from "../../../types";
 import { ensureMainWorkspaceStrict } from "./utils/ensure-main-workspace";
-import { assertImportRootAllowed } from "./utils/import-root-policy";
 import { persistLocalProject } from "./utils/persist-project";
 import {
 	cloneRepoInto,
@@ -138,15 +137,10 @@ export async function createFromImportLocal(
 	ctx: HostServiceContext,
 	args: { name: string; repoPath: string; initIfNeeded?: boolean },
 ): Promise<CreateResult> {
-	assertImportRootAllowed(args.repoPath);
 	const resolved = await resolveOrInitLocalRepo(
 		args.repoPath,
 		args.initIfNeeded ?? false,
 	);
-	// A root the host-service refuses to watch is not a project either: it
-	// would sit in the sidebar with no live status and, before the watch
-	// policy existed, took the host-service down on every boot.
-	assertImportRootAllowed(resolved.repoPath);
 
 	// Idempotency guard: importing a repo that is already a project on this
 	// device returns the existing project instead of minting a duplicate

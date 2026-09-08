@@ -85,7 +85,7 @@ export function isRelPathUnderPrunedDirs(
 	prunedRelPrefixes: readonly string[],
 ): boolean {
 	const segments = relative.split("/");
-	for (let i = 0; i < segments.length - 1; i += 1) {
+	for (let i = 0; i < segments.length; i += 1) {
 		const segment = segments[i] as string;
 		if (DEFAULT_IGNORE_DIR_NAMES.has(segment)) {
 			return true;
@@ -96,7 +96,7 @@ export function isRelPathUnderPrunedDirs(
 		}
 	}
 	for (const prefix of prunedRelPrefixes) {
-		if (relative.startsWith(`${prefix}/`)) {
+		if (relative === prefix || relative.startsWith(`${prefix}/`)) {
 			return true;
 		}
 	}

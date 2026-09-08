@@ -94,6 +94,7 @@ interface PathFilterMatcher {
 }
 
 interface SearchIndexKeyOptions {
+	maxAgeMs?: number;
 	rootPath: string;
 	includeHidden: boolean;
 }
@@ -115,6 +116,7 @@ export interface SearchPatchEvent {
 }
 
 export interface SearchFilesOptions {
+	indexMaxAgeMs?: number;
 	rootPath: string;
 	query: string;
 	includeHidden?: boolean;
@@ -148,6 +150,7 @@ const SEARCH_INDEX_CACHE_MAX = 12;
 const SEARCH_INDEX_CACHE_TTL_MS = 30 * 60_000;
 
 interface CachedIndex {
+	builtAt: number;
 	items: SearchIndexEntry[];
 	lastAccessedAt: number;
 }
@@ -388,7 +391,11 @@ export async function getSearchIndex(
 		// TTL is the freshness contract — bypassing it on hits would let a hot
 		// key serve indefinitely-stale data. Memory is already bounded by LRU.
 		searchIndexCache.delete(cacheKey);
-		if (Date.now() - cached.lastAccessedAt <= SEARCH_INDEX_CACHE_TTL_MS) {
+		if (
+			Date.now() - cached.lastAccessedAt <= SEARCH_INDEX_CACHE_TTL_MS &&
+			(options.maxAgeMs === undefined ||
+				Date.now() - cached.builtAt <= options.maxAgeMs)
+		) {
 			cached.lastAccessedAt = Date.now();
 			searchIndexCache.set(cacheKey, cached); // re-insert at MRU position
 			return cached.items;
@@ -410,6 +417,7 @@ export async function getSearchIndex(
 				evictLruSearchIndexEntries();
 				searchIndexCache.set(cacheKey, {
 					items,
+					builtAt: Date.now(),
 					lastAccessedAt: Date.now(),
 				});
 				searchIndexBuilds.delete(cacheKey);
@@ -762,6 +770,11 @@ function applySearchPatchEvent({
 		}
 
 		const nextAbsolutePath = normalizeAbsolutePath(event.absolutePath);
+		if (
+			!itemsByPath.has(nextAbsolutePath) &&
+			itemsByPath.size >= MAX_SEARCH_INDEX_ENTRIES
+		)
+			return;
 		itemsByPath.set(
 			nextAbsolutePath,
 			createSearchIndexEntry(rootPath, nextRelativePath),
@@ -781,6 +794,11 @@ function applySearchPatchEvent({
 		return;
 	}
 
+	if (
+		!itemsByPath.has(absolutePath) &&
+		itemsByPath.size >= MAX_SEARCH_INDEX_ENTRIES
+	)
+		return;
 	itemsByPath.set(absolutePath, createSearchIndexEntry(rootPath, relativePath));
 }
 
@@ -844,6 +862,7 @@ export function patchSearchIndexesForRoot(
 		searchIndexCache.delete(cacheKey);
 		searchIndexCache.set(cacheKey, {
 			items: Array.from(nextItemsByPath.values()),
+			builtAt: cached.builtAt,
 			lastAccessedAt: Date.now(),
 		});
 	}
@@ -867,6 +886,7 @@ const searchEntryAccessor: IItemAccessor<SearchIndexEntry> = {
 
 export async function searchFiles({
 	rootPath,
+	indexMaxAgeMs,
 	query,
 	includeHidden = false,
 	includePattern = "",
@@ -880,6 +900,7 @@ export async function searchFiles({
 
 	const index = await getSearchIndex({
 		rootPath,
+		maxAgeMs: indexMaxAgeMs,
 		includeHidden,
 	});
 	const pathMatcher = createPathFilterMatcher({
@@ -944,10 +965,6 @@ export async function searchContent({
 		return [];
 	}
 
-	const index = await getSearchIndex({
-		rootPath,
-		includeHidden,
-	});
 	const pathMatcher = createPathFilterMatcher({
 		includePattern,
 		excludePattern,
@@ -965,6 +982,7 @@ export async function searchContent({
 			runRipgrep,
 		});
 	} catch {
+		const index = await getSearchIndex({ rootPath, includeHidden });
 		internalMatches = await searchContentWithScan({
 			index,
 			query: trimmedQuery,

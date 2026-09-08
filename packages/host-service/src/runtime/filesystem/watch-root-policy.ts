@@ -2,21 +2,10 @@ import { realpathSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-/**
- * Why a directory must never become a recursive watch root or an imported
- * project root:
- *
- * - "home-directory": the user's home. Watching it means watching every
- *   worktree, cache, and photo library on the machine; indexing it walks to
- *   the V8 heap limit. A user whose v1 project was their home directory had
- *   the host-service die of "JavaScript heap out of memory" ~110 s after
- *   every boot, forever.
- * - "filesystem-root": `/` or a drive root, for the same reason.
- * - "contains-superset-home": an ancestor of `~/.superset` (worktrees,
- *   sessions, host databases). Watching it re-watches every other workspace
- *   through their parent and feeds the host-service its own writes.
+/** Broad roots use shallow resource watches rather than a recursive subscription.
+ * This selects a performance strategy; these paths remain valid projects.
  */
-export type ForbiddenRootReason =
+export type BroadRootReason =
 	| "home-directory"
 	| "filesystem-root"
 	| "contains-superset-home";
@@ -65,10 +54,10 @@ function isAncestorOf(ancestor: string, descendant: string): boolean {
 	);
 }
 
-export function forbiddenRootReason(
+export function broadRootReason(
 	rootPath: string,
 	env: RootPolicyEnv = defaultRootPolicyEnv(),
-): ForbiddenRootReason | null {
+): BroadRootReason | null {
 	const root = normalize(rootPath);
 	if (root === path.parse(root).root) return "filesystem-root";
 	if (root === normalize(env.homeDir)) return "home-directory";

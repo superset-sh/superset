@@ -1,7 +1,13 @@
 import { Database } from "bun:sqlite";
 import { afterEach, describe, expect, it, spyOn } from "bun:test";
 import { randomUUID } from "node:crypto";
-import { mkdtempSync, realpathSync, rmSync, symlinkSync } from "node:fs";
+import {
+	mkdirSync,
+	mkdtempSync,
+	realpathSync,
+	rmSync,
+	symlinkSync,
+} from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -81,7 +87,7 @@ describe("WorkspaceFilesystemManager.getServiceForRootPath", () => {
 	it.each([
 		false,
 		true,
-	])("gives a forbidden root no watcher events or index walk (symlink: %s)", async (useAlias) => {
+	])("gives a broad root shallow events without an eager index walk (symlink: %s)", async (useAlias) => {
 		const actualRoot = createTempRoot();
 		const rootPath = useAlias ? join(createTempRoot(), "alias") : actualRoot;
 		if (useAlias) symlinkSync(actualRoot, rootPath, "junction");
@@ -99,21 +105,16 @@ describe("WorkspaceFilesystemManager.getServiceForRootPath", () => {
 		const refusals = warn.mock.calls.filter(
 			([message]) => message === "[workspace-fs] not watching this root",
 		);
-		expect(refusals).toHaveLength(1);
-		expect(refusals[0]?.[1]).toEqual({
-			rootPath,
-			reason: "contains-superset-home",
-		});
-
-		// Attaches without error, then stays silent through a real change (a
-		// native watcher on this root reports the write well inside 2 s once it
-		// has had its post-subscribe moment; see the allowed-root case).
+		expect(refusals).toHaveLength(0);
+		mkdirSync(join(rootPath, "nested"));
 		const iterator = service
 			.watchPath({ absolutePath: rootPath })
 			[Symbol.asyncIterator]();
 		await new Promise((resolve) => setTimeout(resolve, 300));
 		await writeFile(join(rootPath, "changed.txt"), "y");
-		expect(await nextEventsOrTimeout(iterator, 2_000)).toBe("timeout");
+		expect(await nextEventsOrTimeout(iterator, 4_000)).toBe("delivered");
+		await writeFile(join(rootPath, "nested", "deep.txt"), "z");
+		expect(await nextEventsOrTimeout(iterator, 2_500)).toBe("timeout");
 		await iterator.return?.();
 
 		// No index walk was started by creating the service: the first search
@@ -122,7 +123,7 @@ describe("WorkspaceFilesystemManager.getServiceForRootPath", () => {
 		rmSync(join(rootPath, "ghost.txt"));
 		const { matches } = await service.searchFiles({ query: "ghost" });
 		expect(matches).toHaveLength(0);
-	});
+	}, 15_000);
 
 	it("gives an allowed root a real watcher that delivers events", async () => {
 		const rootPath = createTempRoot();

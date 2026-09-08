@@ -38,7 +38,6 @@ import {
 } from "./handlers";
 import { ensureMainWorkspace } from "./utils/ensure-main-workspace";
 import { getGitHubRemotes } from "./utils/git-remote";
-import { assertImportRootAllowed } from "./utils/import-root-policy";
 import { persistLocalProject } from "./utils/persist-project";
 import {
 	cloneRepoInto,
@@ -459,8 +458,6 @@ export const projectRouter = router({
 			// instead of dead-ending on a BAD_REQUEST. Additive optional field —
 			// repo paths never carry needsGitInit, so existing callers are
 			// unaffected.
-			// Refuse unsafe folders before asking the user to initialize git.
-			assertImportRootAllowed(input.repoPath);
 			const root = await tryRevParseGitRoot(input.repoPath);
 			if (root === null) {
 				validateDirectoryPath(input.repoPath, "Path"); // 400 on missing / not-a-dir
@@ -473,7 +470,6 @@ export const projectRouter = router({
 
 			const resolved = await resolveLocalRepo(root);
 			const gitRoot = resolved.repoPath;
-			assertImportRootAllowed(gitRoot);
 
 			const expectedParsed =
 				input.walkAllRemotes && input.expectedRemoteUrl
@@ -770,7 +766,6 @@ export const projectRouter = router({
 					};
 				}
 				case "import": {
-					assertImportRootAllowed(input.mode.repoPath);
 					let resolved: ResolvedRepo;
 					if (origin.repoCloneUrl) {
 						const parsed = parseGitHubRemote(origin.repoCloneUrl);
@@ -787,7 +782,6 @@ export const projectRouter = router({
 					} else {
 						resolved = await resolveLocalRepo(input.mode.repoPath);
 					}
-					assertImportRootAllowed(resolved.repoPath);
 
 					// Each on-disk repo path maps to at most one project in the
 					// local DB; importing the same folder under a second project

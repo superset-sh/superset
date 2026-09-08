@@ -16,6 +16,7 @@ import {
 	toAbs,
 	toRel,
 } from "../../utils/treePath";
+import { watchExpandedDirectories } from "./utils/watchExpandedDirectories";
 
 // Failed listings retry on their own with exponential backoff: a listing can
 // fail while the host socket stays open (relay 502s, a host-service restart
@@ -111,6 +112,7 @@ export function useFilesTabBridge({
 	// fetchDir before reveal's own `await fetchDir` runs — without shared
 	// promises, reveal would resolve before children land in knownPaths.
 	const inflightDirsRef = useRef(new Map<string, Promise<void>>());
+	const refreshQueuedDirsRef = useRef(new Set<string>());
 
 	// Bumped on workspace/root change so async listings started against an
 	// old workspace can detect they're stale and bail out before mutating.
@@ -145,11 +147,17 @@ export function useFilesTabBridge({
 	}, []);
 
 	const fetchDir = useCallback(
-		async function fetchDirectory(relDir: string): Promise<void> {
+		async function fetchDirectory(
+			relDir: string,
+			force = false,
+		): Promise<void> {
 			if (!rootPath || !workspaceId) return;
-			if (loadedDirsRef.current.has(relDir)) return;
+			if (!force && loadedDirsRef.current.has(relDir)) return;
 			const existing = inflightDirsRef.current.get(relDir);
-			if (existing) return existing;
+			if (existing) {
+				if (force) refreshQueuedDirsRef.current.add(relDir);
+				return existing;
+			}
 
 			const startVersion = versionRef.current;
 			const startTreeRevision = treeRevisionRef.current;
@@ -157,16 +165,36 @@ export function useFilesTabBridge({
 			let retryDelayMs = 0;
 			const promise = (async () => {
 				try {
-					const result = await utils.filesystem.listDirectory.fetch({
-						workspaceId,
-						absolutePath: toAbs(rootPath, relDir),
-					});
+					const result = await utils.filesystem.listDirectory.fetch(
+						{
+							workspaceId,
+							absolutePath: toAbs(rootPath, relDir),
+						},
+						{ staleTime: force ? 0 : undefined },
+					);
 					if (
 						versionRef.current !== startVersion ||
 						treeRevisionRef.current !== startTreeRevision
 					) {
 						shouldRetry = versionRef.current === startVersion;
 						return;
+					}
+					if (force) {
+						const present = new Set(
+							result.entries.map((entry) => {
+								const rel = toRel(rootPath, entry.absolutePath);
+								return entry.kind === "directory" ? `${rel}/` : rel;
+							}),
+						);
+						for (const known of [...knownPathsRef.current]) {
+							const bare = stripTrailingSlash(known);
+							const parent = bare.includes("/")
+								? bare.slice(0, bare.lastIndexOf("/"))
+								: "";
+							if (parent !== relDir || present.has(known)) continue;
+							removeKnownPath(model, knownPathsRef.current, known);
+							if (known.endsWith("/")) purgeDirectory(bookkeeping(), bare);
+						}
 					}
 					fetchFailuresRef.current.delete(relDir);
 					const ops: { type: "add"; path: string }[] = [];
@@ -218,6 +246,12 @@ export function useFilesTabBridge({
 			void promise.finally(() => {
 				if (inflightDirsRef.current.get(relDir) === promise) {
 					inflightDirsRef.current.delete(relDir);
+					if (
+						refreshQueuedDirsRef.current.delete(relDir) &&
+						versionRef.current === startVersion
+					) {
+						void fetchDirectory(relDir, true);
+					}
 				}
 				if (!shouldRetry || versionRef.current !== startVersion) return;
 				// Root is always relevant. Nested directories are retried only when
@@ -242,7 +276,7 @@ export function useFilesTabBridge({
 			});
 			return promise;
 		},
-		[model, rootPath, workspaceId, utils.filesystem.listDirectory],
+		[model, rootPath, workspaceId, utils.filesystem.listDirectory, bookkeeping],
 	);
 
 	const doRefresh = useCallback(async (): Promise<void> => {
@@ -323,7 +357,13 @@ export function useFilesTabBridge({
 					}
 				}
 			}
-			model.resetPaths(Array.from(freshPaths));
+			model.resetPaths(Array.from(freshPaths), {
+				initialExpandedPaths: [...freshLoadedDirs]
+					.filter(
+						(dir) => dir && lookupDirectory(model, `${dir}/`)?.isExpanded(),
+					)
+					.map((dir) => `${dir}/`),
+			});
 		} finally {
 			setIsRefreshing(false);
 		}
@@ -338,6 +378,7 @@ export function useFilesTabBridge({
 		knownPathsRef.current.clear();
 		loadedDirsRef.current.clear();
 		inflightDirsRef.current.clear();
+		refreshQueuedDirsRef.current.clear();
 		unloadedDirCandidatesRef.current.clear();
 		fetchFailuresRef.current.clear();
 		model.resetPaths([]);
@@ -357,6 +398,8 @@ export function useFilesTabBridge({
 		const releaseRetain = bus.retain();
 		const unsubscribe = bus.subscribeConnectionStatus((status) => {
 			if (status.state !== "open") return;
+			// Resource watches cannot replay changes made while disconnected.
+			void doRefresh();
 			fetchFailuresRef.current.clear();
 			if (!loadedDirsRef.current.has("")) {
 				void fetchDir("");
@@ -370,25 +413,26 @@ export function useFilesTabBridge({
 			unsubscribe();
 			releaseRetain();
 		};
-	}, [hostUrl, workspaceId, rootPath, model, fetchDir]);
+	}, [hostUrl, workspaceId, rootPath, model, fetchDir, doRefresh]);
 
-	// On every model change, check only unloaded directory candidates for
-	// expansion. Pierre doesn't surface an explicit "expand" event, so we
-	// detect by checking expansion state on the (much smaller) candidate set
-	// instead of iterating every known path. fetchDir removes the dir from
-	// the candidate set on success.
+	// Visible folders acquire shallow resource watches. Closing an ancestor
+	// releases all descendant interests; reopening refreshes their listings.
 	useEffect(() => {
-		return model.subscribe(() => {
-			for (const dirRel of unloadedDirCandidatesRef.current) {
-				const dirKey = `${dirRel}/`;
-				if (!knownPathsRef.current.has(dirKey)) continue;
-				const handle = asDirectoryHandle(model.getItem(dirKey));
-				if (handle?.isExpanded()) {
-					void fetchDir(dirRel);
-				}
-			}
+		if (!hostUrl || !workspaceId || !rootPath) return;
+		const bus = getHostEventBus(hostUrl);
+		return watchExpandedDirectories({
+			model,
+			candidates: () => [
+				...loadedDirsRef.current,
+				...unloadedDirCandidatesRef.current,
+			],
+			watch: (dir) => {
+				bus.watchFsFile(workspaceId, toAbs(rootPath, dir));
+				void fetchDir(dir, true);
+			},
+			unwatch: (dir) => bus.unwatchFsFile(workspaceId, toAbs(rootPath, dir)),
 		});
-	}, [model, fetchDir]);
+	}, [hostUrl, workspaceId, rootPath, model, fetchDir]);
 
 	// Pierre fires a `remove` mutation when an inline rename is canceled with
 	// `removeIfCanceled: true`. Mirror that into our bookkeeping so the row
@@ -441,6 +485,11 @@ export function useFilesTabBridge({
 						rootPath,
 					});
 				}
+				return;
+			}
+
+			if (!rel && event.isDirectory && event.kind !== "update") {
+				void doRefresh();
 				return;
 			}
 
@@ -516,7 +565,10 @@ export function useFilesTabBridge({
 				return;
 			}
 
-			// "update" doesn't change tree shape.
+			// A shallow directory notification means immediate children changed.
+			if (event.kind === "update" && event.isDirectory) {
+				void fetchDir(rel, true);
+			}
 		},
 		Boolean(workspaceId && rootPath),
 	);

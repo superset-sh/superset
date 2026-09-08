@@ -240,14 +240,6 @@ mock.module("./history-manager", () => ({
 const { DaemonTerminalManager } = await import("./daemon-manager");
 
 describe("DaemonTerminalManager kill tracking", () => {
-	it("reports a failed startup inventory as retryable instead of successful reconciliation", async () => {
-		const manager = new DaemonTerminalManager();
-		mockClient.listSessionsIfRunningError = new Error("probe failed");
-		expect(await manager.reconcileOnStartup()).toBe(false);
-		mockClient.listSessionsIfRunningError = null;
-		mockClient.listSessionsIfRunningResult = { sessions: [] };
-		expect(await manager.reconcileOnStartup()).toBe(true);
-	});
 	beforeEach(() => {
 		mockClient = new MockTerminalHostClient();
 	});

@@ -15,7 +15,6 @@ let listSessionsIfRunningError: Error | null = null;
 let shutdownIfRunningError: Error | null = null;
 let shutdownIfRunningCalls = 0;
 let resetCalls = 0;
-let reconcileResult = true;
 
 function makeSession(
 	overrides: Partial<ListSessionsResponse["sessions"][number]> = {},
@@ -57,15 +56,13 @@ mock.module("./daemon", () => ({
 		reset: () => {
 			resetCalls++;
 		},
-		reconcileOnStartup: async () => reconcileResult,
+		reconcileOnStartup: async () => {},
 	}),
 }));
 
-const {
-	reconcileDaemonSessions,
-	restartDaemon,
-	tryListExistingDaemonSessions,
-} = await import("./index");
+const { restartDaemon, tryListExistingDaemonSessions } = await import(
+	"./index"
+);
 
 describe("terminal index", () => {
 	beforeAll(() => {
@@ -83,14 +80,6 @@ describe("terminal index", () => {
 		shutdownIfRunningError = null;
 		shutdownIfRunningCalls = 0;
 		resetCalls = 0;
-		reconcileResult = true;
-	});
-
-	it("propagates unsuccessful reconciliation so the lifecycle can retry", async () => {
-		reconcileResult = false;
-		expect(await reconcileDaemonSessions()).toBe(false);
-		reconcileResult = true;
-		expect(await reconcileDaemonSessions()).toBe(true);
 	});
 
 	it("resets the daemon manager when no daemon is running", async () => {

@@ -109,18 +109,6 @@ describe("useIsV1FlipLocked", () => {
 		expect(readProbe("org-optin", true)).toEqual({ locked: false, v2: true });
 	});
 
-	test("completion during a live v1 session does not grant retirement permission", () => {
-		expect(readProbe("org-completes-mid-session", false)).toEqual({
-			locked: false,
-			v2: false,
-		});
-		markV1MigrationComplete("org-completes-mid-session");
-		expect(readProbe("org-completes-mid-session", false)).toEqual({
-			locked: false,
-			v2: false,
-		});
-	});
-
 	test("forced-flip backstop locks the flip without a marker", () => {
 		forcedFlipActive = true;
 		try {

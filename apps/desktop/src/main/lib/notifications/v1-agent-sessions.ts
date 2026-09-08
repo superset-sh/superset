@@ -40,25 +40,6 @@ const DEATH_GASP_WINDOW_MS = 30_000;
 /** Mirrors host-service END_STRAGGLER_WINDOW_MS. */
 const END_STRAGGLER_WINDOW_MS = 30_000;
 
-// Shutdown disconnects the daemon client before every final hook arrives.
-// Remember only the sessions being retired, briefly, so their SIGHUP goodbye
-// cannot erase the resume candidate that migration is carrying into v2.
-const retiringSessions = new Map<
-	string,
-	{ agentSessionId: string; at: number }
->();
-
-export function markV1TerminalRetiring(paneId: string): void {
-	const session = appState.data.v1AgentSessions?.[paneId];
-	if (!session || session.endedAt !== undefined) return;
-	const retirement = { agentSessionId: session.agentSessionId, at: Date.now() };
-	retiringSessions.set(paneId, retirement);
-	setTimeout(() => {
-		if (retiringSessions.get(paneId) === retirement)
-			retiringSessions.delete(paneId);
-	}, DEATH_GASP_WINDOW_MS).unref();
-}
-
 export interface V1AgentHookEvent {
 	rawEventType: string;
 	agentId: string;
@@ -73,18 +54,11 @@ export interface V1AgentHookEvent {
 export function applyV1AgentHookEvent(
 	existing: V1PaneAgentSession | undefined,
 	event: V1AgentHookEvent,
-	retirement?: { agentSessionId: string; at: number },
 ): V1PaneAgentSession | undefined {
 	const { rawEventType, agentId, agentSessionId, at } = event;
 
 	if (SESSION_END_EVENTS.has(rawEventType)) {
 		if (!existing || existing.endedAt !== undefined) return undefined;
-		if (
-			retirement?.agentSessionId === existing.agentSessionId &&
-			at >= retirement.at &&
-			at - retirement.at <= DEATH_GASP_WINDOW_MS
-		)
-			return undefined;
 		// A goodbye from some other agent or session must not end this one.
 		if (agentId !== existing.agentId) return undefined;
 		if (
@@ -172,12 +146,9 @@ export function recordV1AgentHookEvent(
 	paneId: string,
 	event: V1AgentHookEvent,
 ): void {
-	if (SESSION_START_EVENTS.has(event.rawEventType))
-		retiringSessions.delete(paneId);
 	const next = applyV1AgentHookEvent(
 		appState.data.v1AgentSessions?.[paneId],
 		event,
-		retiringSessions.get(paneId),
 	);
 	if (next) persist(paneId, next);
 }

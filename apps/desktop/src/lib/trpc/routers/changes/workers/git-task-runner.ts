@@ -19,12 +19,6 @@ const WORKER_DEBUG = process.env.SUPERSET_WORKER_DEBUG === "1";
 let gitTaskRunner: WorkerTaskRunner | null = null;
 let didRegisterDisposeHook = false;
 
-export async function disposeGitTaskRunner(): Promise<void> {
-	const runner = gitTaskRunner;
-	gitTaskRunner = null;
-	await runner?.dispose();
-}
-
 function getWorkerScriptPath(): string {
 	try {
 		// Lazy require avoids test/runtime issues where electron is unavailable.
@@ -49,7 +43,8 @@ function getRunner(): WorkerTaskRunner {
 			try {
 				const { app } = require("electron") as typeof import("electron");
 				app?.once("before-quit", () => {
-					void disposeGitTaskRunner();
+					void gitTaskRunner?.dispose();
+					gitTaskRunner = null;
 				});
 				didRegisterDisposeHook = true;
 			} catch (error) {

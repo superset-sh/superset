@@ -20,45 +20,6 @@ function record(
 }
 
 describe("applyV1AgentHookEvent", () => {
-	it("keeps a migrated agent resumable when shutdown's goodbye arrives after disconnect", () => {
-		const event = {
-			rawEventType: "SessionEnd",
-			agentId: "claude",
-			agentSessionId: "session-a",
-			at: T0 + 100,
-		};
-		expect(applyV1AgentHookEvent(record(), event)).toEqual(
-			record({ endedAt: T0 + 100, updatedAt: T0 + 100 }),
-		);
-		expect(
-			applyV1AgentHookEvent(record(), event, {
-				agentSessionId: "session-a",
-				at: T0,
-			}),
-		).toBeUndefined();
-	});
-
-	it("retirement does not suppress another session's goodbye or a later clean exit", () => {
-		const event = {
-			rawEventType: "SessionEnd",
-			agentId: "claude",
-			agentSessionId: "session-a",
-			at: T0 + 100,
-		};
-		expect(
-			applyV1AgentHookEvent(record(), event, {
-				agentSessionId: "other",
-				at: T0,
-			})?.endedAt,
-		).toBe(T0 + 100);
-		expect(
-			applyV1AgentHookEvent(
-				record(),
-				{ ...event, at: T0 + 30_001 },
-				{ agentSessionId: "session-a", at: T0 },
-			)?.endedAt,
-		).toBe(T0 + 30_001);
-	});
 	it("starts a fresh un-prompted record on SessionStart", () => {
 		const next = applyV1AgentHookEvent(undefined, {
 			rawEventType: "SessionStart",

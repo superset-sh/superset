@@ -166,7 +166,10 @@ export function watchSingleFile(
 		const stats = await stat(absolutePath).catch(() => null);
 		if (disposed) return;
 		exists = stats !== null;
-		if (!stats || !installWatcher(stats.ino)) {
+		if (stats?.isDirectory()) {
+			dirMtimeMs = stats.mtimeMs;
+			startPolling();
+		} else if (!stats || !installWatcher(stats.ino)) {
 			startPolling();
 		}
 	})();

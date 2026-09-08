@@ -150,3 +150,39 @@ describe("watchSingleFile", () => {
 		await waitFor(events, (e) => e.kind === "create");
 	}, 15_000);
 });
+
+// Resource watches must remain shallow even when a folder contains a whole home.
+it("observes a directory without walking descendants, survives deletion, and stops on dispose", async () => {
+	const file = await createTempFile();
+	const root = path.dirname(file);
+	const directory = path.join(root, "visible");
+	await fs.mkdir(path.join(directory, "hidden"), { recursive: true });
+	const events: FsWatchEvent[] = [];
+	const dispose = watchSingleFile(directory, (event) => events.push(event), {
+		pollMs: 40,
+	});
+	disposers.push(dispose);
+	await new Promise((resolve) => setTimeout(resolve, 100));
+	await fs.writeFile(path.join(directory, "new.txt"), "new");
+	await waitFor(
+		events,
+		(event) => event.kind === "update" && event.isDirectory === true,
+	);
+	events.length = 0;
+	await fs.writeFile(path.join(directory, "hidden", "deep.txt"), "deep");
+	await new Promise((resolve) => setTimeout(resolve, 150));
+	expect(events).toEqual([]);
+	await fs.rm(directory, { recursive: true });
+	await waitFor(events, (event) => event.kind === "delete");
+	events.length = 0;
+	await fs.mkdir(directory);
+	await waitFor(
+		events,
+		(event) => event.kind === "create" && event.isDirectory === true,
+	);
+	dispose();
+	events.length = 0;
+	await fs.writeFile(path.join(directory, "after.txt"), "after");
+	await new Promise((resolve) => setTimeout(resolve, 150));
+	expect(events).toEqual([]);
+});

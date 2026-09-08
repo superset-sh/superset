@@ -3,6 +3,7 @@ import type { NodeWebSocket } from "@hono/node-ws";
 import type { DetectedPort } from "@superset/port-scanner";
 import {
 	type FsWatchEvent,
+	invalidateSearchIndexesForRoot,
 	watchSingleFile,
 } from "@superset/workspace-fs/host";
 import type { Hono } from "hono";
@@ -557,7 +558,8 @@ export class EventBus {
 		const resolved = path.resolve(absolutePath);
 		if (
 			resolved !== absolutePath ||
-			!resolved.startsWith(`${rootPath.replace(/\/$/, "")}/`)
+			(resolved !== rootPath &&
+				!resolved.startsWith(`${rootPath.replace(/\/$/, "")}/`))
 		) {
 			sendMessage(socket, {
 				type: "error",
@@ -573,6 +575,7 @@ export class EventBus {
 		}
 
 		const dispose = watchSingleFile(absolutePath, (event: FsWatchEvent) => {
+			invalidateSearchIndexesForRoot(rootPath);
 			// A dead socket must not throw into the watcher's settle loop; the
 			// close handler disposes every file watch for this client.
 			try {
