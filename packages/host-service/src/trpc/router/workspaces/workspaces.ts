@@ -51,6 +51,7 @@ import {
 	requireLocalProject,
 	requireProjectRepoPath,
 } from "../workspace-creation/shared/local-project";
+import { hasRecordedAgentHistory } from "../workspace-creation/shared/move-worktree";
 import { startSetupTerminalIfPresent } from "../workspace-creation/shared/setup-terminal";
 import {
 	addWorktreeWithSparseCheckout,
@@ -1087,7 +1088,7 @@ export const workspacesRouter = router({
 			// bounded by its own timeouts, so this usually adds well under a
 			// second on top of the git work; the rename itself (`branch -m`
 			// plus a row update) is milliseconds. The worktree directory
-			// keeps its creation-time name.
+			// follows the branch here — nothing has opened it yet.
 			if (!alreadyExists && aiNamesPromise && worktreePath !== undefined) {
 				const names = await aiNamesPromise;
 				if (names) {
@@ -1102,6 +1103,7 @@ export const workspacesRouter = router({
 							names,
 							renameTitle: true,
 							renameBranch: aiCanRenameBranch,
+							moveWorktreeDir: true,
 						});
 						if (applied) {
 							// Keep the original row object: it carries the create txid.
@@ -1330,18 +1332,28 @@ export const workspacesRouter = router({
 					message: "Local project not found for workspace",
 				});
 			}
-			void applyAiWorkspaceRename({
-				ctx,
-				workspaceId: input.workspaceId,
-				repoPath: project.repoPath ?? "",
-				worktreePath: local.worktreePath,
-				oldBranchName: local.branch,
-				oldWorkspaceName: local.name || local.branch,
-				prompt: input.prompt,
-				namingInstructions: project.namingInstructions,
-				renameTitle: true,
-				renameBranch: true,
-			}).catch((err) => {
+			// A late rename, unlike the one during create: the directory may
+			// follow only if no agent has filed anything under the old path.
+			void (async () => {
+				const moveWorktreeDir = !(await hasRecordedAgentHistory(
+					ctx,
+					input.workspaceId,
+					local.worktreePath,
+				));
+				await applyAiWorkspaceRename({
+					ctx,
+					workspaceId: input.workspaceId,
+					repoPath: project.repoPath ?? "",
+					worktreePath: local.worktreePath,
+					oldBranchName: local.branch,
+					oldWorkspaceName: local.name || local.branch,
+					prompt: input.prompt,
+					namingInstructions: project.namingInstructions,
+					renameTitle: true,
+					renameBranch: true,
+					moveWorktreeDir,
+				});
+			})().catch((err) => {
 				console.warn("[workspaces.aiRename] failed", err);
 			});
 			return { success: true as const };

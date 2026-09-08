@@ -40,14 +40,22 @@ export interface HarnessTranscript {
  * Claude Code stores one JSONL file per session under a directory named after
  * the working directory with every `/` and `.` replaced by `-`.
  */
+export function claudeProjectDirName(worktreePath: string): string {
+	return worktreePath.replaceAll(/[/.]/g, "-");
+}
+
 function claudeTranscriptPath(
 	worktreePath: string,
 	sessionId: string,
 	configDir: string,
 ): string | null {
 	if (!/^[\w-]+$/.test(sessionId)) return null;
-	const encoded = worktreePath.replaceAll(/[/.]/g, "-");
-	const path = join(configDir, "projects", encoded, `${sessionId}.jsonl`);
+	const path = join(
+		configDir,
+		"projects",
+		claudeProjectDirName(worktreePath),
+		`${sessionId}.jsonl`,
+	);
 	return existsSync(path) ? path : null;
 }
 
