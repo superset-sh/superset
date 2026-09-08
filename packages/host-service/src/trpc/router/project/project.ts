@@ -38,6 +38,7 @@ import {
 } from "./handlers";
 import { ensureMainWorkspace } from "./utils/ensure-main-workspace";
 import { getGitHubRemotes } from "./utils/git-remote";
+import { assertImportRootAllowed } from "./utils/import-root-policy";
 import { persistLocalProject } from "./utils/persist-project";
 import {
 	cloneRepoInto,
@@ -458,6 +459,8 @@ export const projectRouter = router({
 			// instead of dead-ending on a BAD_REQUEST. Additive optional field —
 			// repo paths never carry needsGitInit, so existing callers are
 			// unaffected.
+			// Refuse unsafe folders before asking the user to initialize git.
+			assertImportRootAllowed(input.repoPath);
 			const root = await tryRevParseGitRoot(input.repoPath);
 			if (root === null) {
 				validateDirectoryPath(input.repoPath, "Path"); // 400 on missing / not-a-dir
@@ -470,6 +473,7 @@ export const projectRouter = router({
 
 			const resolved = await resolveLocalRepo(root);
 			const gitRoot = resolved.repoPath;
+			assertImportRootAllowed(gitRoot);
 
 			const expectedParsed =
 				input.walkAllRemotes && input.expectedRemoteUrl

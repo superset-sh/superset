@@ -4,22 +4,32 @@ import { disposeGitTaskRunner } from "lib/trpc/routers/changes/workers/git-task-
 import { disposeWorkspaceFilesystem } from "lib/trpc/routers/workspace-fs-service";
 import { localDb } from "../local-db";
 import { markV1TerminalRetiring } from "../notifications/v1-agent-sessions";
+import { prewarmTerminalRuntime, reconcileDaemonSessions } from "../terminal";
 import { getDaemonTerminalManager } from "../terminal/daemon";
 import { portManager } from "../terminal/port-manager";
 import { getTerminalHostClient } from "../terminal-host/client";
 import { getAllWindows, getOrg } from "../window-registry/window-registry";
-import { setV1RuntimeRetirementCheck } from "./access";
-import { V1RuntimeRetirementController } from "./controller";
+import { setV1RuntimeBlockedCheck } from "./access";
+import {
+	type V1RuntimeReport,
+	V1RuntimeRetirementController,
+} from "./controller";
 import { retireV1Runtime } from "./retire";
+import { V1RuntimeStartup } from "./startup";
 
-export const v1RuntimeRetirement = new V1RuntimeRetirementController(
+const startup = new V1RuntimeStartup({
+	reconcile: reconcileDaemonSessions,
+	prewarm: prewarmTerminalRuntime,
+});
+
+const controller = new V1RuntimeRetirementController(
 	() =>
 		getAllWindows().map((window) => ({
 			id: window.id,
 			organizationId: getOrg(window.id),
 		})),
-	async (stillEligible) => {
-		const migratedByOrg = v1RuntimeRetirement.organizationIds().map(
+	async (stillEligible, organizationIds) => {
+		const migratedByOrg = organizationIds.map(
 			(organizationId) =>
 				new Set(
 					localDb
@@ -50,6 +60,7 @@ export const v1RuntimeRetirement = new V1RuntimeRetirementController(
 					}
 				},
 				cleanup: async (sessions) => {
+					startup.reset();
 					for (const session of sessions)
 						portManager.unregisterSession(session.paneId);
 					portManager.stopPeriodicScan();
@@ -70,4 +81,24 @@ export const v1RuntimeRetirement = new V1RuntimeRetirementController(
 	},
 );
 
-setV1RuntimeRetirementCheck(() => v1RuntimeRetirement.isEligible());
+setV1RuntimeBlockedCheck(() => controller.isEligible());
+
+/** Temporary v1 integration boundary; see README.md for its removal path. */
+export const v1RuntimeRetirement = {
+	async report(windowId: number, report: V1RuntimeReport): Promise<boolean> {
+		if (getOrg(windowId) !== report.organizationId) return false;
+		const retired = await controller.report(windowId, report);
+		if (!report.migratedAtBoot) {
+			await startup.start(
+				!report.v2Enabled,
+				() =>
+					getOrg(windowId) === report.organizationId &&
+					!controller.isEligible(),
+			);
+		}
+		return retired;
+	},
+	forget(windowId: number): void {
+		controller.forget(windowId);
+	},
+};

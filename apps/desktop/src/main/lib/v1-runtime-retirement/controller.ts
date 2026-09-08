@@ -22,7 +22,10 @@ export class V1RuntimeRetirementController {
 
 	constructor(
 		private readonly windows: () => RuntimeWindow[],
-		private readonly retire: (stillEligible: () => boolean) => Promise<boolean>,
+		private readonly retire: (
+			stillEligible: () => boolean,
+			organizationIds: string[],
+		) => Promise<boolean>,
 	) {}
 
 	forget(windowId: number): void {
@@ -53,6 +56,15 @@ export class V1RuntimeRetirementController {
 		const windowSet = this.windowSet();
 		this.pending = this.retire(
 			() => this.isEligible() && this.windowSet() === windowSet,
+			// Eligibility guarantees an organization for each window. Pass this
+			// attempt's scope to cleanup instead of having it query the controller.
+			[
+				...new Set(
+					windows.flatMap((window) =>
+						window.organizationId ? [window.organizationId] : [],
+					),
+				),
+			],
 		)
 			.then((retired) => {
 				this.retired =
@@ -84,16 +96,5 @@ export class V1RuntimeRetirementController {
 				);
 			})
 		);
-	}
-
-	/** Every visible org must have migrated a session before it can be killed. */
-	organizationIds(): string[] {
-		return [
-			...new Set(
-				this.windows().flatMap((window) =>
-					window.organizationId ? [window.organizationId] : [],
-				),
-			),
-		];
 	}
 }

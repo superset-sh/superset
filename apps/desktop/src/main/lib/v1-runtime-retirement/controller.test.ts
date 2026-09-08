@@ -131,6 +131,28 @@ describe("v1 runtime retirement", () => {
 		expect(await f.controller.report(2, migrated)).toBe(true);
 	});
 
+	test("scopes cleanup to every eligible organization, without duplicates", async () => {
+		const scopes: string[][] = [];
+		const controller = new V1RuntimeRetirementController(
+			() => [
+				{ id: 1, organizationId: "org" },
+				{ id: 2, organizationId: "other" },
+				{ id: 3, organizationId: "org" },
+			],
+			async (_eligible, organizationIds) => {
+				scopes.push(organizationIds);
+				return true;
+			},
+		);
+		expect(await controller.report(1, migrated)).toBe(false);
+		expect(await controller.report(3, migrated)).toBe(false);
+		expect(scopes).toEqual([]);
+		expect(
+			await controller.report(2, { ...migrated, organizationId: "other" }),
+		).toBe(true);
+		expect(scopes).toEqual([["org", "other"]]);
+	});
+
 	test("rejects an unregistered sender and a report from the previous organization", async () => {
 		const f = fixture();
 		expect(await f.controller.report(99, migrated)).toBe(false);

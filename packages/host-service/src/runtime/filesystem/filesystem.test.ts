@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite";
 import { afterEach, describe, expect, it, spyOn } from "bun:test";
 import { randomUUID } from "node:crypto";
-import { mkdtempSync, realpathSync, rmSync } from "node:fs";
+import { mkdtempSync, realpathSync, rmSync, symlinkSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -78,9 +78,14 @@ async function nextEventsOrTimeout(
 }
 
 describe("WorkspaceFilesystemManager.getServiceForRootPath", () => {
-	it("gives a forbidden root a watcher that attaches and never delivers, and no index walk", async () => {
-		const rootPath = createTempRoot();
-		withSupersetHomeInside(rootPath);
+	it.each([
+		false,
+		true,
+	])("gives a forbidden root no watcher events or index walk (symlink: %s)", async (useAlias) => {
+		const actualRoot = createTempRoot();
+		const rootPath = useAlias ? join(createTempRoot(), "alias") : actualRoot;
+		if (useAlias) symlinkSync(actualRoot, rootPath, "junction");
+		withSupersetHomeInside(actualRoot);
 		await writeFile(join(rootPath, "ghost.txt"), "x");
 		const db = createTestDb();
 		const workspaceId = insertWorkspace(db, rootPath);

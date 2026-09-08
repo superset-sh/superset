@@ -34,7 +34,7 @@ import { app } from "electron";
 import { SUPERSET_DIR_NAME } from "shared/constants";
 import { throwIfAborted } from "../terminal/abort";
 import { TerminalAttachCanceledError } from "../terminal/errors";
-import { isV1RuntimeRetired } from "../v1-runtime-retirement/access";
+import { isV1RuntimeBlocked } from "../v1-runtime-retirement/access";
 import {
 	type CancelCreateOrAttachRequest,
 	type ClearScrollbackRequest,
@@ -213,7 +213,7 @@ export class TerminalHostClient extends EventEmitter {
 	 * Spawns daemon if needed.
 	 */
 	async ensureConnected(): Promise<void> {
-		if (isV1RuntimeRetired()) throw new TerminalHostClientDisposedError();
+		if (isV1RuntimeBlocked()) throw new TerminalHostClientDisposedError();
 		// Already connected - fast path (no logging to avoid noise on every API call)
 		if (
 			this.connectionState === ConnectionState.CONNECTED &&

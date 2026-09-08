@@ -1,3 +1,4 @@
+import { realpathSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
@@ -36,9 +37,21 @@ export function defaultRootPolicyEnv(): RootPolicyEnv {
 
 function normalize(input: string): string {
 	const resolved = path.resolve(input);
-	const { root } = path.parse(resolved);
-	if (resolved === root) return resolved;
-	return resolved.replace(/[\\/]+$/, "");
+	let existing = resolved;
+	const missing: string[] = [];
+	for (;;) {
+		try {
+			return path.join(realpathSync.native(existing), ...missing);
+		} catch (error) {
+			// A configured data directory may not exist yet. Resolve its nearest
+			// existing parent so macOS /var aliases and symlinked parents agree.
+			if ((error as NodeJS.ErrnoException).code !== "ENOENT") return resolved;
+			const parent = path.dirname(existing);
+			if (parent === existing) return resolved;
+			missing.unshift(path.basename(existing));
+			existing = parent;
+		}
+	}
 }
 
 /** Whether `ancestor` strictly contains `descendant`. */
@@ -46,7 +59,8 @@ function isAncestorOf(ancestor: string, descendant: string): boolean {
 	const relative = path.relative(ancestor, descendant);
 	return (
 		relative.length > 0 &&
-		!relative.startsWith("..") &&
+		relative !== ".." &&
+		!relative.startsWith(`..${path.sep}`) &&
 		!path.isAbsolute(relative)
 	);
 }

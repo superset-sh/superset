@@ -49,8 +49,7 @@ function getRunner(): WorkerTaskRunner {
 			try {
 				const { app } = require("electron") as typeof import("electron");
 				app?.once("before-quit", () => {
-					void gitTaskRunner?.dispose();
-					gitTaskRunner = null;
+					void disposeGitTaskRunner();
 				});
 				didRegisterDisposeHook = true;
 			} catch (error) {
