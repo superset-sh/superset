@@ -812,12 +812,16 @@ describe("pending nudge (KTD8)", () => {
 			workspaceId: "ws-1",
 			terminalId: "t1",
 		});
-		// A second restart of the same terminal must not re-send the nudge.
-		seedResumableBinding(db, { terminalId: "t2" });
-		registerPendingNudge("ws-1", "t2", "");
+		// Replay the same key without registering another nudge. A leak of
+		// ws-1::t1 would be observable here, unlike resuming a different key.
+		db.delete(terminalAgentBindings)
+			.where(eq(terminalAgentBindings.terminalId, "t1"))
+			.run();
+		db.delete(terminalSessions).where(eq(terminalSessions.id, "t1")).run();
+		seedResumableBinding(db, { terminalId: "t1" });
 		await resumeTerminalAgentSession(deps, {
 			workspaceId: "ws-1",
-			terminalId: "t2",
+			terminalId: "t1",
 		});
 
 		expect(runCalls.map((call) => call.prompt)).toEqual(["nudge", ""]);
@@ -847,6 +851,41 @@ describe("pending nudge (KTD8)", () => {
 		await resumeTerminalAgentSession(deps, input);
 
 		expect(runCalls.map((call) => call.prompt)).toEqual(["nudge", "nudge"]);
+	});
+
+	it.each([
+		false,
+		true,
+	])("does not revive an expired nudge after a failed launch (expiry during launch: %s)", async (expireDuringLaunch) => {
+		const db = createTestDb();
+		seedResumableBinding(db);
+		let now = Date.now();
+		const clock = spyOn(Date, "now").mockImplementation(() => now);
+		try {
+			let failNext = true;
+			const { deps, runCalls } = createDeps(db, () => {
+				if (failNext) {
+					failNext = false;
+					if (expireDuringLaunch) now += 2 * 60_000;
+					return Promise.reject(new Error("spawn failed"));
+				}
+				return Promise.resolve({
+					kind: "terminal",
+					sessionId: "t-new",
+					label: "Claude",
+				});
+			});
+			registerPendingNudge("ws-1", "t1", "nudge");
+			const input = { workspaceId: "ws-1", terminalId: "t1" };
+			await expect(resumeTerminalAgentSession(deps, input)).rejects.toThrow(
+				"spawn failed",
+			);
+			if (!expireDuringLaunch) now += 2 * 60_000;
+			await resumeTerminalAgentSession(deps, input);
+			expect(runCalls.map((call) => call.prompt)).toEqual(["nudge", ""]);
+		} finally {
+			clock.mockRestore();
+		}
 	});
 
 	// Dropped only where nothing is left to resume under this id: terminal ids
@@ -1197,6 +1236,71 @@ describe("killAndResumeTerminalAgent", () => {
 			terminalId: "t1",
 		});
 		expect(retry.runCalls.map((call) => call.prompt)).toEqual(["nudge"]);
+	});
+
+	it("does not report an expired late nudge as delivered after cleanup", async () => {
+		const db = createTestDb();
+		seedResumableBinding(db);
+		let now = Date.now();
+		const clock = spyOn(Date, "now").mockImplementation(() => now);
+		let releaseLaunch = () => {};
+		const gate = new Promise<void>((resolveGate) => {
+			releaseLaunch = resolveGate;
+		});
+		try {
+			const racer = createDeps(db, async () => {
+				await gate;
+				return { kind: "terminal", sessionId: "t-new", label: "Claude" };
+			});
+			const raced = resumeTerminalAgentSession(racer.deps, {
+				workspaceId: "ws-1",
+				terminalId: "t1",
+			});
+			const joined = killAndResumeTerminalAgent(createDeps(db).deps, {
+				workspaceId: "ws-1",
+				terminalId: "t1",
+				prompt: "nudge",
+			});
+			now += 2 * 60_000;
+			registerPendingNudge("ws-1", "unrelated", "another nudge");
+			releaseLaunch();
+			await raced;
+			expect(await joined).toEqual({ resumed: false });
+			expect(racer.runCalls.map((call) => call.prompt)).toEqual([""]);
+		} finally {
+			releaseLaunch();
+			clock.mockRestore();
+		}
+	});
+
+	it("does not claim a nudge that expires while its own kill is pending", async () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedLiveBinding(db, { terminalId: "t1" });
+		let now = Date.now();
+		const clock = spyOn(Date, "now").mockImplementation(() => now);
+		try {
+			const { deps, runCalls, broadcasts } = createDeps(db, {
+				disposeSession: async () => {
+					now += 2 * 60_000;
+				},
+			});
+			const result = await killAndResumeTerminalAgent(deps, {
+				workspaceId: "ws-1",
+				terminalId: "t1",
+				prompt: "nudge",
+			});
+			expect(result).toEqual({ resumed: false });
+			expect(runCalls.map((call) => call.prompt)).toEqual([""]);
+			expect(broadcasts).toContainEqual(
+				expect.objectContaining({
+					eventType: "resumed",
+					resumedTerminalId: "t-new",
+				}),
+			);
+		} finally {
+			clock.mockRestore();
+		}
 	});
 
 	it("restarts without a prompt when no nudge is given", async () => {

@@ -93,15 +93,15 @@ const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
  * before it kills a session; whichever caller then wins the `resumeInflight`
  * coalescing — the mover's own resume or the renderer's empty-prompt
  * auto-resume — launches the agent with it, so the interrupted turn proceeds
- * without the user typing. Consumed exactly once, restored when the launch it
- * was consumed for failed, and dropped only where nothing is left to resume
- * under that id — a terminal id is a fresh UUID, so that entry is unreachable
- * for good. An exit that un-claims and republishes the candidate under the
- * same terminal id keeps its nudge: the retry arrives on that id and still
- * nudges. Residual, accepted: a cold respawn rebinding the same terminal id to
- * a new session would deliver it a stale nudge.
+ * without the user typing. Consumed exactly once and retained for immediate
+ * retries after a failed launch. Expired nudges must not start an unsolicited
+ * turn when a user resumes that conversation much later.
  */
-const pendingNudges = new Map<string, string>();
+const PENDING_NUDGE_TTL_MS = 2 * 60_000;
+const pendingNudges = new Map<
+	string,
+	{ prompt: string; expiresAt: number; consumed?: boolean }
+>();
 
 function nudgeKey(workspaceId: string, terminalId: string): string {
 	return `${workspaceId}::${terminalId}`;
@@ -113,7 +113,14 @@ export function registerPendingNudge(
 	terminalId: string,
 	nudge: string,
 ): void {
-	pendingNudges.set(nudgeKey(workspaceId, terminalId), nudge);
+	const now = Date.now();
+	for (const [key, pending] of pendingNudges) {
+		if (pending.expiresAt <= now) pendingNudges.delete(key);
+	}
+	pendingNudges.set(nudgeKey(workspaceId, terminalId), {
+		prompt: nudge,
+		expiresAt: now + PENDING_NUDGE_TTL_MS,
+	});
 }
 
 /**
@@ -237,21 +244,29 @@ export async function resumeTerminalAgentSession(
 
 		// Consumed here, not at the call site, so the winner of the coalescing
 		// is the launch that carries it (KTD8).
-		const nudge = pendingNudges.get(key);
+		const pendingNudge = pendingNudges.get(key);
 		pendingNudges.delete(key);
+		const nudge =
+			pendingNudge && pendingNudge.expiresAt > Date.now()
+				? pendingNudge
+				: undefined;
+		if (nudge) nudge.consumed = true;
 
 		let result: AgentRunResult;
 		try {
 			result = await deps.runAgent({
 				workspaceId,
 				agent: config.id,
-				prompt: nudge ?? "",
+				prompt: nudge?.prompt ?? "",
 				...(resumable ? { resumeSessionId: claimed.agentSessionId } : {}),
 			});
 		} catch (error) {
 			unclaimResumeCandidateBinding(deps.db, terminalId);
 			// The retry that re-claims this candidate must still nudge.
-			if (nudge !== undefined) pendingNudges.set(key, nudge);
+			if (nudge) {
+				nudge.consumed = false;
+				if (nudge.expiresAt > Date.now()) pendingNudges.set(key, nudge);
+			}
 			throw error;
 		}
 
@@ -369,6 +384,7 @@ export async function killAndResumeTerminalAgent(
 	const { workspaceId, terminalId, prompt } = input;
 	const key = `${workspaceId}::${terminalId}`;
 	if (prompt) registerPendingNudge(workspaceId, terminalId, prompt);
+	const registeredNudge = prompt ? pendingNudges.get(key) : undefined;
 
 	// A resume already in flight has claimed the candidate and disposes the
 	// old terminal itself; joining it is what any other caller does.
@@ -381,7 +397,7 @@ export async function killAndResumeTerminalAgent(
 		// pending after the join reached no launch: report it as needing
 		// attention instead of claiming a prompt that was never delivered, and
 		// leave the entry for the resume that follows the caller's retry.
-		if (prompt && pendingNudges.has(key)) return { resumed: false };
+		if (prompt && !registeredNudge?.consumed) return { resumed: false };
 		return joined;
 	}
 
@@ -456,7 +472,7 @@ export async function killAndResumeTerminalAgent(
 			terminalId,
 		});
 		settle(result);
-		return result;
+		return prompt && !registeredNudge?.consumed ? { resumed: false } : result;
 	} catch (error) {
 		// Waiters are resolved, never rejected: with no waiter at all a
 		// rejected reservation would surface as an unhandled rejection.
