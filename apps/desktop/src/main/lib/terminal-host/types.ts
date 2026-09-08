@@ -305,7 +305,7 @@ export type TerminalSpawnFailureCause =
 			args: string[];
 			exitCode: number;
 			signal?: number;
-			/** First bytes the process wrote before exiting; shells print why they died here. */
+			/** First characters the process wrote before exiting; shells print why they died here. */
 			outputHead: string;
 	  }
 	| {

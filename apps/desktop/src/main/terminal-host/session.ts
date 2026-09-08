@@ -83,8 +83,10 @@ const EMULATOR_WRITE_QUEUE_LOW_WATERMARK_BYTES = 250_000;
 const SHELL_READY_TIMEOUT_MS = 15_000;
 
 /**
- * How much of the process's first output to keep for a spawn failure report.
- * A shell that dies during init prints why in its first lines.
+ * How much of the process's first output to keep for a spawn failure report,
+ * counted in characters of the decoded text, not bytes — non-ASCII output
+ * crosses the socket larger than this number suggests. A shell that dies
+ * during init prints why in its first lines.
  */
 const SPAWN_OUTPUT_HEAD_CHARS = 2048;
 
@@ -406,10 +408,15 @@ export class Session {
 				).toString("utf8");
 
 				if (this.outputHead.length < SPAWN_OUTPUT_HEAD_CHARS) {
-					this.outputHead += data.slice(
-						0,
-						SPAWN_OUTPUT_HEAD_CHARS - this.outputHead.length,
-					);
+					const head =
+						this.outputHead +
+						data.slice(0, SPAWN_OUTPUT_HEAD_CHARS - this.outputHead.length);
+					// The cap counts UTF-16 code units, so it can land between the
+					// halves of a surrogate pair. Drop the orphan rather than report
+					// a lone surrogate.
+					const lastUnit = head.charCodeAt(head.length - 1);
+					this.outputHead =
+						lastUnit >= 0xd800 && lastUnit <= 0xdbff ? head.slice(0, -1) : head;
 				}
 
 				this.enqueueEmulatorWrite(data);

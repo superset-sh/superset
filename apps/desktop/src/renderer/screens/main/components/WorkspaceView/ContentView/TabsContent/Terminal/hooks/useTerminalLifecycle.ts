@@ -94,6 +94,23 @@ function waitForAttachClear(paneId: string, waiter: () => void): () => void {
 		}
 	};
 }
+
+/**
+ * A createOrAttach succeeded, so the pane has a backend session: start the
+ * cache-owned stream subscription and open the gate so events reach the
+ * component's registered handler.
+ *
+ * The first attach that succeeds owns this, whether that is the initial attach
+ * or a restart after the initial shell exited before it was ready — a restarted
+ * shell whose stream never started writes into nothing. Every step is
+ * idempotent, so the attaches after it re-run this for free.
+ */
+function openPaneStream(paneId: string): void {
+	v1TerminalCache.startStream(paneId);
+	v1TerminalCache.setStreamReady(paneId);
+	markTerminalSessionReady(paneId);
+}
+
 export interface UseTerminalLifecycleOptions {
 	paneId: string;
 	tabIdRef: MutableRefObject<string>;
@@ -413,6 +430,7 @@ export function useTerminalLifecycle({
 									return;
 								}
 								setConnectionError(null);
+								openPaneStream(paneId);
 								syncBackendDimensions();
 								pendingInitialStateRef.current = result;
 								maybeApplyInitialState();
@@ -626,12 +644,7 @@ export function useTerminalLifecycle({
 									setConnectionError(null);
 									clearPaneInitialDataRef.current(paneId);
 
-									// Start the cache-owned stream subscription now that the
-									// backend session exists, and mark it ready so events
-									// flow through the component's registered handler.
-									v1TerminalCache.startStream(paneId);
-									v1TerminalCache.setStreamReady(paneId);
-									markTerminalSessionReady(paneId);
+									openPaneStream(paneId);
 									syncBackendDimensions();
 
 									const storedColdRestore = coldRestoreState.get(paneId);

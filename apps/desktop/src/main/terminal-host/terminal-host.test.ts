@@ -294,7 +294,7 @@ describe("TerminalHost — spawn failure cause", () => {
 		await session.dispose();
 	});
 
-	it("caps the captured output head at 2 KB", async () => {
+	it("caps the captured output head at 2048 characters", async () => {
 		const session = spawnSession();
 		emitReadyAndSpawned(fakeChild, 555);
 		emitData(fakeChild, "x".repeat(5000));
@@ -304,6 +304,28 @@ describe("TerminalHost — spawn failure cause", () => {
 		expect(failure.kind).toBe("SHELL_EXITED");
 		if (failure.kind === "SHELL_EXITED") {
 			expect(failure.outputHead).toHaveLength(2048);
+		}
+
+		await session.dispose();
+	});
+
+	it("counts multibyte output in characters and never splits a surrogate pair", async () => {
+		const session = spawnSession();
+		emitReadyAndSpawned(fakeChild, 555);
+		// "✗" is one character over 3 bytes and each emoji is a surrogate pair,
+		// so the 2048-code-unit cap lands mid-pair after that odd-length prefix.
+		emitData(fakeChild, `✗${"🔥".repeat(2000)}`);
+		emitExit(fakeChild, 1);
+
+		const failure = session.describeSpawnFailure();
+		expect(failure.kind).toBe("SHELL_EXITED");
+		if (failure.kind === "SHELL_EXITED") {
+			expect(failure.outputHead).toHaveLength(2047);
+			expect(failure.outputHead.startsWith("✗🔥")).toBe(true);
+			// A dangling half-pair would come back as U+FFFD once encoded.
+			expect(Buffer.from(failure.outputHead, "utf8").toString("utf8")).toBe(
+				failure.outputHead,
+			);
 		}
 
 		await session.dispose();
