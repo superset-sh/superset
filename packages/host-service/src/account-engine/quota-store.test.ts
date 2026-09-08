@@ -59,6 +59,7 @@ function account(
 interface FetchOutcome {
 	account: UsageAccount | null;
 	rateLimited: boolean;
+	reachedEndpoint?: boolean;
 }
 
 function harness(
@@ -210,7 +211,9 @@ describe("QuotaStore on demand (engine disabled)", () => {
 
 		expect(first).toHaveLength(selections.length);
 		expect(h.calls).toHaveLength(selections.length);
-		expect(first.map((a) => a.selection).sort()).toEqual([...selections].sort());
+		expect(first.map((a) => a.selection).sort()).toEqual(
+			[...selections].sort(),
+		);
 	});
 
 	it("serves grok and antigravity as group entries and never schedules them", async () => {
@@ -1189,6 +1192,59 @@ describe("QuotaStore resilience", () => {
 		await h.store.refreshDue(h.now, schedule);
 
 		expect(requireEntry(h.store, CLAUDE_DEFAULT).backoffMs).toBe(MINUTE);
+	});
+
+	// The same rule for a row that is not empty at all: a profile whose OAuth
+	// token has lapsed answers from the credential alone, without a request.
+	// It is a normal fetchable selection and it answers that way on every poll,
+	// so voting it as a success pinned the ladder on its first rung for as long
+	// as one lapsed profile existed — and released the live profiles onto an
+	// endpoint that was still rate-limiting.
+	it("does not clear the endpoint back-off with a row that made no request", async () => {
+		const h = harness({
+			claudeSelections: ["/profiles/a", "/profiles/b"],
+			respondClaude: async (selection) =>
+				selection === "/profiles/a"
+					? {
+							account: account("claude", selection, {
+								status: "token_stale",
+								statusDetail: "Refreshes when Claude Code next runs.",
+								windows: [],
+							}),
+							rateLimited: false,
+							reachedEndpoint: false,
+						}
+					: {
+							account: account("claude", selection, {
+								status: "unavailable",
+								statusDetail: "Usage endpoint returned 429.",
+								windows: [],
+							}),
+							rateLimited: true,
+						},
+		});
+		const schedule = { claude: { activeKey: CLAUDE_A, intervalMs: MINUTE } };
+
+		// The live profile's 429 arms the ladder on every entry of the endpoint.
+		await h.store.refreshDue(h.now, schedule);
+		expect(requireEntry(h.store, CLAUDE_A).backoffMs).toBe(MINUTE);
+		expect(requireEntry(h.store, CLAUDE_B).backoffMs).toBe(MINUTE);
+
+		// A minute later only the lapsed profile is due, and its poll reaches
+		// nobody.
+		h.advance(requireEntry(h.store, CLAUDE_A).nextPollAt - h.now);
+		await h.store.refreshDue(h.now, schedule);
+		expect(h.callsFor(CLAUDE_A)).toHaveLength(2);
+
+		expect(requireEntry(h.store, CLAUDE_B).backoffMs).toBe(MINUTE);
+		// So the live profile is still withheld from the still-limited endpoint.
+		await h.store.read({ agents: ["claude"], forceRefresh: true });
+		expect(h.callsFor(CLAUDE_B)).toHaveLength(1);
+		// The lapsed row is still written and still switchable: only its vote
+		// on the back-off is suppressed.
+		expect(requireEntry(h.store, CLAUDE_A).tokenState).toBe("token_stale");
+		expect(requireEntry(h.store, CLAUDE_A).lastError).toBeNull();
+		expect(eligibleForSwitch(requireEntry(h.store, CLAUDE_A))).toBe(true);
 	});
 
 	// The same rule under the overlap staged in "keeps a static row a discovery

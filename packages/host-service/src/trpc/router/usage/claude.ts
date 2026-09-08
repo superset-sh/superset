@@ -669,10 +669,15 @@ async function fetchClaudeProfileEmail(
 }
 
 /** `rateLimited` is the usage endpoint's 429, which backs off every poll on
- * it (KTD10); callers that only want the row ignore it. */
-async function fetchClaudeAccount(
-	credential: ClaudeOauthCredential,
-): Promise<{ account: UsageAccount; rateLimited: boolean }> {
+ * it (KTD10); callers that only want the row ignore it. `reachedEndpoint` is
+ * false for the rows built without asking the provider anything — a lapsed
+ * token, a request that never completed — because such a row is no evidence
+ * the endpoint recovered from that back-off. A 429 reached it. */
+async function fetchClaudeAccount(credential: ClaudeOauthCredential): Promise<{
+	account: UsageAccount;
+	rateLimited: boolean;
+	reachedEndpoint: boolean;
+}> {
 	const base = {
 		agent: "claude" as const,
 		credentialKind: "subscription" as const,
@@ -692,6 +697,8 @@ async function fetchClaudeAccount(
 		fetchedAt: new Date(),
 	};
 
+	// Built from the credential alone, with no request: a token that lapsed
+	// while the endpoint was rate-limiting says nothing about the endpoint.
 	const lapsed = classifyLapsedToken(credential);
 	if (lapsed !== "live") {
 		return {
@@ -705,6 +712,7 @@ async function fetchClaudeAccount(
 				extraUsage: null,
 			},
 			rateLimited: false,
+			reachedEndpoint: false,
 		};
 	}
 
@@ -732,6 +740,7 @@ async function fetchClaudeAccount(
 					extraUsage: null,
 				},
 				rateLimited,
+				reachedEndpoint: true,
 			};
 		}
 		if (!usageResponse.ok) {
@@ -745,6 +754,7 @@ async function fetchClaudeAccount(
 					extraUsage: null,
 				},
 				rateLimited,
+				reachedEndpoint: true,
 			};
 		}
 
@@ -771,6 +781,7 @@ async function fetchClaudeAccount(
 					extraUsage,
 				},
 				rateLimited,
+				reachedEndpoint: true,
 			};
 		}
 
@@ -784,8 +795,11 @@ async function fetchClaudeAccount(
 				extraUsage,
 			},
 			rateLimited,
+			reachedEndpoint: true,
 		};
 	} catch (error) {
+		// A timeout, a DNS failure or a body that would not parse: no answer
+		// came back, so this is not the endpoint recovering either.
 		return {
 			account: {
 				...base,
@@ -797,6 +811,7 @@ async function fetchClaudeAccount(
 				extraUsage: null,
 			},
 			rateLimited: false,
+			reachedEndpoint: false,
 		};
 	}
 }
@@ -1007,15 +1022,21 @@ async function preferActiveDirToken(
 
 /**
  * One login's quota, for the quota store's per-account cadence. `rateLimited`
- * is the 429 that backs off every poll on this endpoint (KTD10).
+ * is the 429 that backs off every poll on this endpoint (KTD10), and
+ * `reachedEndpoint` is whether anything was asked of it at all.
  */
 export async function fetchClaudeAccountForSelection(
 	selection: string | null,
-): Promise<{ account: UsageAccount | null; rateLimited: boolean }> {
+): Promise<{
+	account: UsageAccount | null;
+	rateLimited: boolean;
+	reachedEndpoint: boolean;
+}> {
 	const credential =
 		selection === null
 			? (await readDefaultCredential()).value
 			: await readCredentialForConfigDir(selection);
-	if (!credential) return { account: null, rateLimited: false };
+	if (!credential)
+		return { account: null, rateLimited: false, reachedEndpoint: false };
 	return fetchClaudeAccount(await preferActiveDirToken(credential));
 }

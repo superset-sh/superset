@@ -115,6 +115,14 @@ export interface QuotaEntry {
 export interface QuotaFetchResult {
 	account: UsageAccount | null;
 	rateLimited: boolean;
+	/**
+	 * Whether the provider was actually asked. False for a row a producer
+	 * builds locally — a lapsed OAuth token, a request that never completed —
+	 * which looks like any other row but is no evidence the endpoint recovered
+	 * from its back-off. A 429 reached the endpoint, so it is true there.
+	 * Absent means it did: producers with no such path need not say so.
+	 */
+	reachedEndpoint?: boolean;
 }
 
 /** What a per-agent discovery pass found. */
@@ -684,7 +692,11 @@ export class QuotaStore {
 		const backedOff = entry.backoffMs > 0;
 		this.recordRequest(entry.agent, now);
 		try {
-			const { accounts, rateLimited } = await this.fetchAccounts(entry);
+			const {
+				accounts,
+				rateLimited,
+				reachedEndpoint = true,
+			} = await this.fetchAccounts(entry);
 			// A discovery pass that ran while this fetch was in flight may have
 			// carried the row whole (signed out, API-billed): that row is the newer
 			// truth and this result is about a credential that is already gone.
@@ -699,8 +711,8 @@ export class QuotaStore {
 					agent: entry.agent,
 					ok:
 						rateLimited ||
-						accounts.length > 0 ||
-						GROUP_AGENTS.includes(entry.agent),
+						(reachedEndpoint &&
+							(accounts.length > 0 || GROUP_AGENTS.includes(entry.agent))),
 					rateLimited,
 					backedOff,
 				};
@@ -726,7 +738,19 @@ export class QuotaStore {
 			entry.fetchedAt = now;
 			entry.lastError = null;
 			entry.tokenState = deriveTokenState(entry.accounts);
-			return { agent: entry.agent, ok: true, rateLimited, backedOff };
+			// The row is written either way — a lapsed token keeps its last-known
+			// windows and stays eligible — but only a row the provider answered for
+			// votes the back-off away. A profile whose OAuth token lapsed returns a
+			// full row on every poll without a request, and voting those as
+			// successes pinned the ladder on its first rung for as long as one
+			// existed. Same rule as the two guards above, one step earlier: the
+			// answer is a local one, not an empty one.
+			return {
+				agent: entry.agent,
+				ok: reachedEndpoint,
+				rateLimited,
+				backedOff,
+			};
 		} catch (error) {
 			// AE10: the previous accounts stay; only `lastError` moves, and
 			// `fetchedAt` does not, so the next read retries instead of
@@ -742,9 +766,12 @@ export class QuotaStore {
 		}
 	}
 
-	private async fetchAccounts(
-		entry: QuotaEntry,
-	): Promise<{ accounts: UsageAccount[]; rateLimited: boolean }> {
+	private async fetchAccounts(entry: QuotaEntry): Promise<{
+		accounts: UsageAccount[];
+		rateLimited: boolean;
+		/** Absent from producers that always make a request. */
+		reachedEndpoint?: boolean;
+	}> {
 		switch (entry.agent) {
 			case "claude": {
 				const result = await (
@@ -753,6 +780,7 @@ export class QuotaStore {
 				return {
 					accounts: result.account ? [result.account] : [],
 					rateLimited: result.rateLimited,
+					reachedEndpoint: result.reachedEndpoint,
 				};
 			}
 			case "codex": {
