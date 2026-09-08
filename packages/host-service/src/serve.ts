@@ -15,6 +15,7 @@ import {
 import { provisionAgentIntegrations } from "./runtime/agent-provisioning";
 import { resolveBrowserBridgeFromEnv } from "./runtime/browser-bridge/env";
 import { applyLoginShellEnvToProcess } from "./runtime/login-shell-env";
+import { detachFromLaunchDirectory } from "./runtime/working-directory";
 import { installProcessSafetyNet, installUpgradeSocketGuard } from "./safety";
 import { captureFatalStartupError, initSentry } from "./sentry";
 import { startTerminalBaseEnvResolution } from "./terminal/env";
@@ -24,6 +25,11 @@ import { connectRelay } from "./tunnel";
 async function main(): Promise<void> {
 	installConsoleTimestamps();
 	initSentry({ organizationId: env.ORGANIZATION_ID });
+
+	// Before anything spawns a worker thread or a child process: a host
+	// started from a workspace outlives that directory (HOST-SERVICE-5D).
+	detachFromLaunchDirectory();
+
 	console.log(
 		`[host-service] starting (org=${env.ORGANIZATION_ID}, port=${env.PORT}, NODE_ENV=${process.env.NODE_ENV ?? "unset"})`,
 	);

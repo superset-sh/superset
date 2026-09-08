@@ -100,12 +100,15 @@ describe("getGitHubUsernameViaGh", () => {
 });
 
 describe("readGitIdentity", () => {
-	test("combines gh login with the process-env git author", async () => {
+	test("combines gh login with the home-anchored git author", async () => {
 		writeGhStub('echo "hubster"');
-		// The git read intentionally uses the process env (not shellEnv), so
-		// compare against the same read done directly.
+		// The git read intentionally uses the process env (not shellEnv) and
+		// is anchored at the home directory rather than wherever this process
+		// happens to be — compare against the same read done directly.
 		const { createUserSimpleGit } = await import("./simple-git");
-		const expectedAuthor = await getGitAuthorName(createUserSimpleGit());
+		const expectedAuthor = await getGitAuthorName(
+			createUserSimpleGit(os.homedir()),
+		);
 		expect(await readGitIdentity(stubGhEnv())).toEqual({
 			githubUsername: "hubster",
 			authorName: expectedAuthor,
