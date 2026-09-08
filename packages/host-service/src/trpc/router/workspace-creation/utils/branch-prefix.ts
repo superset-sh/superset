@@ -1,5 +1,6 @@
 import {
 	type BranchPrefixMode,
+	branchPrefixCollides,
 	resolveBranchPrefix,
 } from "@superset/shared/workspace-launch";
 import type { SimpleGit } from "simple-git";
@@ -70,6 +71,5 @@ export async function resolveProjectBranchPrefix({
 	});
 	if (!prefix) return undefined;
 
-	const existingSet = new Set(existingBranches.map((b) => b.toLowerCase()));
-	return existingSet.has(prefix.toLowerCase()) ? undefined : prefix;
+	return branchPrefixCollides(prefix, existingBranches) ? undefined : prefix;
 }
