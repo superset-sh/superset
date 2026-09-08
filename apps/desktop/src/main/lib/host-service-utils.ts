@@ -1,4 +1,5 @@
 import { createServer } from "node:net";
+import path from "node:path";
 
 export {
 	MAX_HOST_LOG_BYTES,
@@ -94,4 +95,39 @@ export async function pollHealthCheck(
 		await new Promise((r) => setTimeout(r, HEALTH_POLL_INTERVAL_MS));
 	}
 	return false;
+}
+
+/**
+ * Strip secrets and the user's home directory out of a child's output tail
+ * before it is attached to a crash report.
+ *
+ * The home directory is replaced rather than dropped: a macOS account name is
+ * usually a person's real name, and a host-service tail is mostly worktree
+ * paths beneath it, so one crash report can carry the name hundreds of times.
+ * `~` keeps the path readable — which worktree the child died under is part of
+ * the diagnosis.
+ *
+ * Both substitutions are exact strings we already know, never patterns. The
+ * tail is the only evidence a hard kill (SIGSEGV, OOM) leaves behind, so a
+ * matcher that reached past what it named would redact the diagnosis along
+ * with the name.
+ */
+export function redactCrashTail(
+	tail: string,
+	options: { secrets?: readonly string[]; homeDir?: string } = {},
+): string {
+	let redacted = tail;
+	for (const secret of options.secrets ?? []) {
+		// `"".split("")` splits between every character: an empty secret would
+		// leave nothing but separators.
+		if (!secret) continue;
+		redacted = redacted.split(secret).join("[redacted]");
+	}
+	const { homeDir } = options;
+	// A root is its own parent. It also prefixes nearly every absolute path in
+	// the tail, so substituting one would erase the report.
+	if (homeDir && path.dirname(homeDir) !== homeDir) {
+		redacted = redacted.split(homeDir).join("~");
+	}
+	return redacted;
 }

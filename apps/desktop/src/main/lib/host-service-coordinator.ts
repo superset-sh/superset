@@ -34,6 +34,7 @@ import {
 	MAX_HOST_LOG_BYTES,
 	openRotatingLogFd,
 	pollHealthCheck,
+	redactCrashTail,
 } from "./host-service-utils";
 import { localDb } from "./local-db";
 import { HOOK_PROTOCOL_VERSION } from "./terminal/env";
@@ -1092,10 +1093,10 @@ export class HostServiceCoordinator extends EventEmitter {
 							pid: childPid,
 							version: app.getVersion(),
 							uptimeMs: Date.now() - current.spawnedAt,
-							outputTail: current.redactions.reduce(
-								(tail, secret) => tail.split(secret).join("[redacted]"),
-								current.outputTail,
-							),
+							outputTail: redactCrashTail(current.outputTail, {
+								secrets: current.redactions,
+								homeDir: os.homedir(),
+							}),
 						},
 					}),
 				)
