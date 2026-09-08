@@ -1711,11 +1711,22 @@ export async function swapClaudeLogin(input: {
  */
 export async function seedActiveClaudeLogin(input: {
 	source: ClaudeLoginStoreRef;
+	/** The accountUuid `source` is expected to hold, when the caller knows it. */
+	expectedTargetAccountId?: string | null;
 	activeDir: string;
 	deps?: ClaudeSwapDeps;
 }): Promise<ClaudeSwapResult> {
 	const ctx = buildContext(input.deps);
 	const loaded = await loadTarget(input.source, ctx);
 	if (!loaded.ok) return loaded.result;
+	if (
+		input.expectedTargetAccountId &&
+		loaded.target.identity.accountUuid !== input.expectedTargetAccountId
+	) {
+		return failure(
+			"target-changed",
+			`${storeDir(input.source, ctx)} is signed in as account ${loaded.target.identity.accountUuid ?? "none it names"}, not the expected ${input.expectedTargetAccountId}`,
+		);
+	}
 	return applyToActiveDir(loaded.target, input.activeDir, ctx);
 }

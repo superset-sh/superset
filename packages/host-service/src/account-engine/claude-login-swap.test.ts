@@ -4627,6 +4627,55 @@ describe("swapClaudeLogin on macOS (injected security exec)", () => {
 });
 
 describe("seedActiveClaudeLogin", () => {
+	it("refuses a changed source identity before writing anything", async () => {
+		const f = fixture();
+		const empty = makeDir(join(f.superset, "accounts", "fresh-active"));
+		const sourceCredentials = readCredentials(f.profileB);
+		const sourceIdentity = readFileSync(
+			join(f.profileB, ".claude.json"),
+			"utf-8",
+		);
+		const sourceFiles = readdirSync(f.profileB);
+
+		const result = await seedActiveClaudeLogin({
+			source: asProfile(f.profileB),
+			expectedTargetAccountId: "uuid-c",
+			activeDir: empty,
+			deps: f.deps,
+		});
+
+		expect(result).toMatchObject({ ok: false, code: "target-changed" });
+		expect(readdirSync(empty)).toEqual([]);
+		expect(readCredentials(f.profileB)).toEqual(sourceCredentials);
+		expect(readFileSync(join(f.profileB, ".claude.json"), "utf-8")).toBe(
+			sourceIdentity,
+		);
+		expect(readdirSync(f.profileB)).toEqual(sourceFiles);
+	});
+
+	it("seeds a source matching the expected account", async () => {
+		const f = fixture();
+		const empty = makeDir(join(f.superset, "accounts", "fresh-active"));
+
+		const result = await seedActiveClaudeLogin({
+			source: asProfile(f.profileB),
+			expectedTargetAccountId: "uuid-b",
+			activeDir: empty,
+			deps: f.deps,
+		});
+
+		expect(result).toMatchObject({
+			ok: true,
+			identity: { accountUuid: "uuid-b" },
+		});
+		expect(readCredentials(empty).claudeAiOauth).toEqual(
+			readCredentials(f.profileB).claudeAiOauth,
+		);
+		expect(
+			JSON.parse(readFileSync(join(empty, ".claude.json"), "utf-8")),
+		).toMatchObject(identity("b"));
+	});
+
 	it("copies the source login and identity into a fresh active dir", async () => {
 		const f = fixture();
 		const empty = makeDir(join(f.superset, "accounts", "fresh-active"));
