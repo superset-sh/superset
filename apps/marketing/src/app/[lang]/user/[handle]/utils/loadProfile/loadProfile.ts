@@ -1,4 +1,3 @@
-import { unstable_noStore } from "next/cache";
 import {
 	fetchParticipant,
 	isRateLimited,
@@ -19,14 +18,7 @@ export async function loadProfile(handle: string): Promise<ProfileLookup> {
 		const profile = await fetchParticipant(handle, { period: "all" });
 		return profile ? { state: "found", profile } : { state: "missing" };
 	} catch (error) {
-		if (isRateLimited(error)) {
-			// A refusal describes this moment, not this profile. The retry page
-			// renders as an ordinary 200, so without opting out here the route's
-			// revalidate window would serve it for every visitor to that handle
-			// until it expired.
-			unstable_noStore();
-			return { state: "rate-limited" };
-		}
+		if (isRateLimited(error)) return { state: "rate-limited" };
 		throw error;
 	}
 }
