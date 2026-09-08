@@ -1557,6 +1557,7 @@ export class AccountEngine {
 			// and save nothing back.
 			result = await this.seed({
 				source: storeRef(input.target.selection),
+				expectedTargetAccountId: input.target.accountId,
 				activeDir,
 			});
 		} else {
@@ -1605,21 +1606,12 @@ export class AccountEngine {
 		// The swap is the longest await in a switch — Keychain, then the
 		// filesystem — and it can outlast both the lease and `stop()`'s
 		// bounded drain, which hands the lock back with this call still in
-		// flight. Publishing the pointer now would point the machine at a
-		// login the instance that owns the lock knows nothing about, so the
-		// previous one goes back through the same primitive instead (R24).
+		// flight. Once ownership is lost, even a rollback could overwrite the
+		// new owner's login. Forget our identity tracking and let that owner
+		// reconcile the active dir without publishing this switch.
 		if (!this.ensureOwnership(this.now())) {
-			if (await this.restorePreviousLogin(input, activeDir)) return LOCK_LOSER;
-			// Neither the pointer nor the login moved back: the active dir
-			// holds the target's login under no record at all. Forget what we
-			// wrote so the next tick reads the dir as externally changed (KTD3).
 			this.lastWritten = null;
-			return {
-				ok: false,
-				code: "split-state",
-				reason:
-					"the host lock was lost while the login was being swapped, and the previous login could not be put back",
-			};
+			return LOCK_LOSER;
 		}
 
 		this.recordBinding(

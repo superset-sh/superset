@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { HostDb } from "../db/index.ts";
 import type { UsageAccount } from "../trpc/router/usage/types.ts";
-import { AccountEngine } from "./account-engine.ts";
+import { AccountEngine, type AccountEngineDeps } from "./account-engine.ts";
 import type {
 	ClaudeLoginStoreRef,
 	ClaudeSwapResult,
@@ -141,6 +141,8 @@ function harness(options: {
 	noActiveRecord?: boolean;
 	pointer?: { claudeConfigDir: string | null; codexHome: string | null };
 	setPointer?: () => void;
+	seed?: AccountEngineDeps["seed"];
+	readActiveIdentity?: AccountEngineDeps["readActiveIdentity"];
 	onSwap?: (state: FlakyLockState, call: number) => void;
 }): Harness {
 	const previousHome = process.env.SUPERSET_HOME_DIR;
@@ -224,14 +226,16 @@ function harness(options: {
 				},
 			} satisfies ClaudeSwapResult;
 		},
-		seed: async () => ({
-			ok: true,
-			identity: {
-				accountUuid: "acct-a",
-				emailAddress: null,
-				keys: { oauthAccount: { accountUuid: "acct-a" } },
-			},
-		}),
+		seed:
+			options.seed ??
+			(async () => ({
+				ok: true,
+				identity: {
+					accountUuid: "acct-a",
+					emailAddress: null,
+					keys: { oauthAccount: { accountUuid: "acct-a" } },
+				},
+			})),
 		ensureActiveDir: async () => ACTIVE_DIR,
 		setPointer: options.setPointer ?? (() => {}),
 		readPointerSelections: () =>
@@ -239,10 +243,12 @@ function harness(options: {
 		updateClaudeStateFile: async () => {},
 		setBindingRecorder: () => {},
 		resolveActiveDir: () => ACTIVE_DIR,
-		readActiveIdentity: async () => ({
-			accountUuid: "acct-a",
-			credentialHash: "hash-a",
-		}),
+		readActiveIdentity:
+			options.readActiveIdentity ??
+			(async () => ({
+				accountUuid: "acct-a",
+				credentialHash: "hash-a",
+			})),
 		readCodexIdentity: async () => null,
 	});
 	expect(engine.setSettings("claude", { enabled: true }).ok).toBe(true);
@@ -279,6 +285,76 @@ function harness(options: {
 }
 
 describe("AccountEngine: a switch that failed", () => {
+	it("reports lock loss without rolling back or publishing a manual switch", async () => {
+		let pointerWrites = 0;
+		const h = harness({
+			entries: switchDue(),
+			setPointer: () => {
+				pointerWrites++;
+			},
+			onSwap: (state) => {
+				state.loseNextClaim = true;
+			},
+		});
+		try {
+			expect(
+				await h.engine.switchManually("claude", "/profiles/b"),
+			).toMatchObject({
+				ok: false,
+				code: "lock-loser",
+			});
+			expect(h.swapped).toHaveLength(1);
+			expect(pointerWrites).toBe(0);
+			expect(h.state.readHistory()).toEqual([]);
+			expect(h.runtime().activeAccountId).toBe("acct-a");
+		} finally {
+			h.cleanup();
+		}
+	});
+
+	it("passes the selected identity to first activation and preserves a seed refusal", async () => {
+		let seedCalls = 0;
+		let pointerWrites = 0;
+		const h = harness({
+			noActiveRecord: true,
+			entries: [entryFor(accountB({ windows: window(20) }))],
+			readActiveIdentity: async () => ({
+				accountUuid: null,
+				credentialHash: null,
+			}),
+			setPointer: () => {
+				pointerWrites++;
+			},
+			seed: async (input) => {
+				seedCalls++;
+				expect(input).toMatchObject({
+					source: { kind: "profile", dir: "/profiles/b" },
+					expectedTargetAccountId: "acct-b",
+				});
+				return {
+					ok: false,
+					code: "target-changed",
+					reason: "profile is now acct-c",
+				};
+			},
+		});
+		try {
+			expect(
+				await h.engine.switchManually("claude", "/profiles/b"),
+			).toMatchObject({
+				ok: false,
+				code: "target-changed",
+			});
+			expect(seedCalls).toBe(1);
+			expect(h.swapped).toHaveLength(0);
+			expect(pointerWrites).toBe(0);
+			expect(h.state.readHistory()).toEqual([]);
+			expect(h.runtime().activeAccountId).toBeNull();
+		} finally {
+			h.cleanup();
+		}
+	});
+
 	it("backs off, so a persistent failure is not re-attempted every tick", async () => {
 		const h = harness({
 			entries: switchDue(),
@@ -315,14 +391,15 @@ describe("AccountEngine: a switch that failed", () => {
 		try {
 			await h.engine.tick();
 
-			expect(h.swapped).toHaveLength(2);
+			// A lock loser must not start a rollback against the new owner's login.
+			expect(h.swapped).toHaveLength(1);
 			expect(h.runtime().activeAccountId).toBe("acct-a");
 			expect(h.runtime().cooldownUntil).toBeNull();
 
 			// Ownership is back, so the switch this host never got to make runs
 			// now rather than waiting out a cooldown it never earned.
 			await h.engine.tick();
-			expect(h.swapped.length).toBeGreaterThan(2);
+			expect(h.swapped).toHaveLength(2);
 			expect(h.runtime().activeAccountId).toBe("acct-b");
 		} finally {
 			h.cleanup();
