@@ -8822,7 +8822,7 @@ msgid "No comments yet."
 msgstr "Комментариев пока нет."
 
 msgid "No comments yet. Turn on comment mode and click anything on the page to start one."
-msgstr "Комментариев пока нет. Включите режим комментирования и нажмите на любой элемент страницы, чтобы начать."
+msgstr "Комментариев пока нет. Включите режим комментирования и нажмите на любой элемент страницы, чтобы оставить комментарий."
 
 msgid "No commits on this branch yet."
 msgstr "В этой ветке пока нет коммитов."

@@ -43,6 +43,34 @@ describe("injectStylesheetLink", () => {
 	test("goes first in a fragment", () => {
 		expect(injectStylesheetLink("<p>hi</p>", HREF)).toBe(`${LINK}<p>hi</p>`);
 	});
+
+	test("skips a head written inside a comment", () => {
+		const html = "<!-- <head> is where styles go --><head><p>hi</p></head>";
+		expect(injectStylesheetLink(html, HREF)).toBe(
+			`<!-- <head> is where styles go --><head>${LINK}<p>hi</p></head>`,
+		);
+	});
+
+	test("skips a head written inside a script", () => {
+		const html = '<script>d.write("<head>")</script><head lang="en">x</head>';
+		expect(injectStylesheetLink(html, HREF)).toBe(
+			`<script>d.write("<head>")</script><head lang="en">${LINK}x</head>`,
+		);
+	});
+
+	test("skips a head written inside a style", () => {
+		const html = "<style>/* <head> */</style><head>x</head>";
+		expect(injectStylesheetLink(html, HREF)).toBe(
+			`<style>/* <head> */</style><head>${LINK}x</head>`,
+		);
+	});
+
+	test("falls back when the only head is inside a comment", () => {
+		const html = "<!DOCTYPE html><!-- <head> --><p>hi</p>";
+		expect(injectStylesheetLink(html, HREF)).toBe(
+			`<!DOCTYPE html>${LINK}<!-- <head> --><p>hi</p>`,
+		);
+	});
 });
 
 describe("injectScriptTag", () => {

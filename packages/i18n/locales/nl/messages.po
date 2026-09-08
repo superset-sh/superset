@@ -7636,7 +7636,7 @@ msgid "Leave and delete"
 msgstr "Verlaten en verwijderen"
 
 msgid "Leave comment mode"
-msgstr "Reactiemodus verlaten"
+msgstr "Opmerkingsmodus verlaten"
 
 msgid "Leave Organization"
 msgstr "Organisatie verlaten"
@@ -8822,7 +8822,7 @@ msgid "No comments yet."
 msgstr "Nog geen opmerkingen."
 
 msgid "No comments yet. Turn on comment mode and click anything on the page to start one."
-msgstr "Nog geen opmerkingen. Zet de opmerkingsmodus aan en klik op iets op de pagina om er een te beginnen."
+msgstr "Nog geen opmerkingen. Zet de opmerkingsmodus aan en klik op iets op de pagina om er een te plaatsen."
 
 msgid "No commits on this branch yet."
 msgstr "Nog geen commits op deze branch."

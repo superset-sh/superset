@@ -8822,7 +8822,7 @@ msgid "No comments yet."
 msgstr "Noch keine Kommentare."
 
 msgid "No comments yet. Turn on comment mode and click anything on the page to start one."
-msgstr "Noch keine Kommentare. Aktiviere den Kommentarmodus und klicke auf ein beliebiges Element der Seite, um einen zu beginnen."
+msgstr "Noch keine Kommentare. Aktiviere den Kommentarmodus und klicke auf ein beliebiges Element der Seite, um einen Kommentar zu schreiben."
 
 msgid "No commits on this branch yet."
 msgstr "Noch keine Commits auf diesem Branch."

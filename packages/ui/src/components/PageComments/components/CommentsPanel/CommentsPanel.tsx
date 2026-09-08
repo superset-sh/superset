@@ -4,7 +4,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { formatDate } from "@superset/i18n/format";
 import { differenceInCalendarDays } from "date-fns";
 import { X } from "lucide-react";
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "../../../../lib/utils";
 import { Button } from "../../../ui/button";
 import { useComments } from "../../providers/CommentProvider";
@@ -38,11 +38,16 @@ export function CommentsPanel({
 		setPanelOpen,
 	} = useComments();
 	const [showResolved, setShowResolved] = useState(false);
+	const closeRef = useRef<HTMLButtonElement>(null);
 
 	const { anchored, unanchored, openCount } = useMemo(
 		() => groupThreads({ threads, rects, rectsReady, showResolved }),
 		[threads, rects, rectsReady, showResolved],
 	);
+
+	useEffect(() => {
+		if (panelOpen) closeRef.current?.focus();
+	}, [panelOpen]);
 
 	if (!panelOpen) return null;
 
@@ -104,6 +109,7 @@ export function CommentsPanel({
 					</Button>
 				) : null}
 				<Button
+					ref={closeRef}
 					size="icon"
 					variant="ghost"
 					aria-label={t({ message: "Close comments" })}

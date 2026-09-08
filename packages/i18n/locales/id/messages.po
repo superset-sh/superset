@@ -6770,7 +6770,7 @@ msgid "Hide pull request preview"
 msgstr "Sembunyikan pratinjau pull request"
 
 msgid "Hide resolved ({resolvedCount})"
-msgstr "Sembunyikan yang selesai ({resolvedCount})"
+msgstr "Sembunyikan yang terselesaikan ({resolvedCount})"
 
 msgid "Hide review comments"
 msgstr "Sembunyikan komentar review"
@@ -12699,7 +12699,7 @@ msgid "Show pull request preview"
 msgstr "Tampilkan pratinjau pull request"
 
 msgid "Show resolved ({resolvedCount})"
-msgstr "Tampilkan yang selesai ({resolvedCount})"
+msgstr "Tampilkan yang terselesaikan ({resolvedCount})"
 
 msgid "Show review comments"
 msgstr "Tampilkan komentar review"
