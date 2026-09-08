@@ -124,12 +124,22 @@ interface Harness {
 		cooldownUntil: number | null;
 		exhaustedNotifiedAt: number | null;
 		activeAccountId: string | null;
+		activeSelection: string | null;
 	};
 	cleanup: () => void;
 }
 
 function harness(options: {
 	entries: QuotaEntry[];
+	/**
+	 * The store holds nothing until `refreshDue` runs — its discovery pass is
+	 * what fills the pool — which is every first tick after a host-service
+	 * start.
+	 */
+	cold?: boolean;
+	/** A host that has never recorded which login its sessions are on. */
+	noActiveRecord?: boolean;
+	pointer?: { claudeConfigDir: string | null; codexHome: string | null };
 	setPointer?: () => void;
 	onSwap?: (state: FlakyLockState, call: number) => void;
 }): Harness {
@@ -141,13 +151,16 @@ function harness(options: {
 	const seed = state.readRuntime();
 	// The account sessions are on, and the binding a swap needs to save its
 	// credential back into the right store.
-	seed.perAgent.claude.activeAccountId = "acct-a";
-	seed.perAgent.claude.activeSelection = "/profiles/a";
+	if (!options.noActiveRecord) {
+		seed.perAgent.claude.activeAccountId = "acct-a";
+		seed.perAgent.claude.activeSelection = "/profiles/a";
+	}
 	seed.identityBindings["acct-a"] = "/profiles/a";
 	state.writeRuntime(seed);
 
 	const swapped: ClaudeLoginStoreRef[] = [];
 	const schedules: QuotaRefreshSchedule[] = [];
+	let warm = options.cold !== true;
 
 	const engine = new AccountEngine({
 		engineState: state,
@@ -163,11 +176,14 @@ function harness(options: {
 			isBracketedPasteActive: () => true,
 		} satisfies AccountEngineHostDeps,
 		quotaStore: {
-			entries: () => options.entries,
+			entries: () => (warm ? options.entries : []),
 			entry: () => undefined,
 			read: async () => [],
 			refreshDue: async (_now: number, schedule: QuotaRefreshSchedule) => {
 				schedules.push(schedule);
+				// The discovery pass the real store runs here is what puts the
+				// profiles in the pool.
+				warm = true;
 			},
 			setSnapshotSink: () => {},
 			setSnapshotSource: () => {},
@@ -218,7 +234,8 @@ function harness(options: {
 		}),
 		ensureActiveDir: async () => ACTIVE_DIR,
 		setPointer: options.setPointer ?? (() => {}),
-		readPointerSelections: () => ({ claudeConfigDir: null, codexHome: null }),
+		readPointerSelections: () =>
+			options.pointer ?? { claudeConfigDir: null, codexHome: null },
 		updateClaudeStateFile: async () => {},
 		setBindingRecorder: () => {},
 		resolveActiveDir: () => ACTIVE_DIR,
@@ -247,6 +264,7 @@ function harness(options: {
 						cooldownUntil: number | null;
 						exhaustedNotifiedAt: number | null;
 						activeAccountId: string | null;
+						activeSelection: string | null;
 					};
 				};
 			};
@@ -351,6 +369,39 @@ describe("AccountEngine: the all-exhausted latch", () => {
 
 			expect(h.runtime().exhaustedNotifiedAt).toBe(T0);
 			expect(h.schedules[1]?.claude?.intervalMs).toBe(EXHAUSTED_POLL_MS);
+		} finally {
+			h.cleanup();
+		}
+	});
+});
+
+describe("AccountEngine: the first tick after a boot", () => {
+	it("resolves the active login once discovery has filled the pool, not off an empty one", async () => {
+		// A cold store — `refreshDue` runs the discovery pass, so nothing is in
+		// the pool until it has — on a host that records no active login yet.
+		// The host pointer names /profiles/b, which is where the sessions are;
+		// the system-default login is a different account, over its threshold.
+		// Resolving before the pool exists resolves nothing, and `activeRow`
+		// then reads a null id as the system default and switches off it.
+		const h = harness({
+			cold: true,
+			noActiveRecord: true,
+			pointer: { claudeConfigDir: "/profiles/b", codexHome: null },
+			entries: [
+				entryFor(usageAccount({ selection: null, windows: window(91) })),
+				entryFor(accountB({ windows: window(20) })),
+			],
+		});
+		try {
+			await h.engine.tick();
+
+			// Sessions are on B at 20%: nothing is due, so nothing moves and no
+			// history row claims a switch that never happened.
+			expect(h.swapped).toEqual([]);
+			expect(h.state.readHistory()).toEqual([]);
+			expect(h.runtime().activeAccountId).toBe("acct-b");
+			expect(h.runtime().activeSelection).toBe("/profiles/b");
+			expect(h.runtime().cooldownUntil).toBeNull();
 		} finally {
 			h.cleanup();
 		}

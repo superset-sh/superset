@@ -891,6 +891,20 @@ export class AccountEngine {
 			if (!this.ensureOwnership(this.now())) return;
 		}
 
+		// The pass above resolved against whatever the store already held,
+		// which on the first tick after a boot is nothing at all: `refreshDue`
+		// is what runs the discovery that fills the pool. Repeat the same
+		// idempotent call now that there is a pool to resolve against —
+		// `resolveActive` returns on a recorded active, so anything decided
+		// above stands and nothing is re-guessed — because `evaluate` below
+		// otherwise reads both fields null and `activeRow` matches the
+		// system-default login rather than the profile the host pointer names.
+		// After the re-assertion, not before it: handing `reassertClaudeIdentity`
+		// a freshly resolved `expected` on a cold first tick would park and
+		// broadcast `owner-unknown` a tick earlier than the drift is real.
+		for (const agent of agents) await this.resolveActive(agent, runtime);
+		if (!this.ensureOwnership(this.now())) return;
+
 		// `setSettings` and `setRotation` write straight to the state dir
 		// rather than queueing on the mutation lane, so the snapshots taken at
 		// the top of this tick are as old as every await since: a user who
