@@ -2,10 +2,9 @@
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
-import { Cloud } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { FaGithub } from "react-icons/fa";
+import { FaCloud, FaGithub } from "react-icons/fa";
 import { DownloadButton } from "../DownloadButton";
 import { WaitlistModal } from "../WaitlistModal";
 import { BoidsBackground } from "./components/BoidsBackground";
@@ -53,7 +52,7 @@ export function HeroSection() {
 							href={i18n.locale === "en" ? "/cloud" : `/${i18n.locale}/cloud`}
 							className="group mb-6 sm:mb-8 inline-flex max-w-full items-center gap-2 rounded-[2px] border border-border bg-background/80 px-3 py-1.5 text-xs font-mono text-muted-foreground transition-colors hover:text-foreground hover:border-foreground/[0.2]"
 						>
-							<Cloud
+							<FaCloud
 								aria-hidden="true"
 								className="size-3.5 text-foreground shrink-0"
 							/>
