@@ -28,7 +28,7 @@
 
 import { createHash, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { resolve as resolvePath } from "node:path";
+import { join, resolve as resolvePath } from "node:path";
 import { resolveAmbientCodexHome } from "@superset/agent-setup";
 import type { HostDb } from "../db/index.ts";
 import type {
@@ -1806,7 +1806,7 @@ export class AccountEngine {
 		// would record the switch under an account nobody is signed in as.
 		// A target that names no account is nothing to contradict.
 		const expected = input.target.accountId;
-		if (expected !== null) {
+		if (input.target.credentialKind !== "api_key" && expected !== null) {
 			let seen: string | null = null;
 			try {
 				seen = await this.readCodexIdentity(input.target.selection);
@@ -1859,7 +1859,35 @@ export class AccountEngine {
 				);
 			}
 		}
-		// KTD5: the identity read and the provision above are I/O, and the
+		// API marker used by discovery is not proof that auth.json still
+		// contains a key. Check after provisioning, without logging its bytes.
+		if (input.target.credentialKind === "api_key") {
+			let usable = false;
+			try {
+				const auth = JSON.parse(
+					await readFile(
+						join(
+							input.target.selection ?? resolveAmbientCodexHome(),
+							"auth.json",
+						),
+						"utf8",
+					),
+				) as { OPENAI_API_KEY?: unknown } | null;
+				usable =
+					typeof auth?.OPENAI_API_KEY === "string" &&
+					auth.OPENAI_API_KEY.trim().length > 0;
+			} catch {
+				// Missing, malformed and unreadable credentials all fail closed.
+			}
+			if (!usable) {
+				return {
+					ok: false,
+					code: "no-target-login",
+					reason: "The selected Codex home has no readable API key.",
+				};
+			}
+		}
+		// KTD5: the credential reads and provision above are I/O, and the
 		// lease is three ticks long. The pointer is host-wide state, so it is
 		// written only by a switch that still owns the lock, and nothing is
 		// awaited between here and the post-swap check that records it. A

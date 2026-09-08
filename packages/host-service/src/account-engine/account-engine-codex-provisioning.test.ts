@@ -7,7 +7,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { HostDb } from "../db/index.ts";
@@ -86,6 +86,8 @@ function buildEngine(
 	deps: {
 		provisionCodex: (codexHome: string) => Promise<void>;
 		pointerWrites: Array<string | null>;
+		entries?: QuotaEntry[];
+		onMove?: () => void;
 	},
 ): AccountEngine {
 	return new AccountEngine({
@@ -102,7 +104,7 @@ function buildEngine(
 			isBracketedPasteActive: () => true,
 		} satisfies AccountEngineHostDeps,
 		quotaStore: {
-			entries: () => twoCodexHomes(),
+			entries: () => deps.entries ?? twoCodexHomes(),
 			entry: () => undefined,
 			read: async () => [],
 			refreshDue: async () => {},
@@ -111,10 +113,10 @@ function buildEngine(
 			snapshot: () => ({ entries: [] }),
 		},
 		mover: {
-			moveAtIdle: async () => ({
-				movedTerminalIds: [],
-				deferredTerminalIds: [],
-			}),
+			moveAtIdle: async () => {
+				deps.onMove?.();
+				return { movedTerminalIds: [], deferredTerminalIds: [] };
+			},
 			fallbackRestart: async () => true,
 			corroborateLimitStop: async () => true,
 			onExternalSwitch: async () => ({
@@ -130,8 +132,12 @@ function buildEngine(
 			>) as unknown as typeof setInterval,
 		clearIntervalFn: (() => {}) as unknown as typeof clearInterval,
 		platform: "linux",
-		swap: async () => ({ ok: false, code: "swap-failed", reason: "unused" }),
-		seed: async () => ({ ok: false, code: "swap-failed", reason: "unused" }),
+		swap: async () => {
+			throw new Error("Codex provisioning must not swap Claude credentials");
+		},
+		seed: async () => {
+			throw new Error("Codex provisioning must not seed Claude credentials");
+		},
 		ensureActiveDir: async () => ACTIVE_DIR,
 		provisionCodex: deps.provisionCodex,
 		setPointer: (_db, _agent, selection) => {
@@ -169,6 +175,81 @@ describe("AccountEngine Codex switches", () => {
 		else process.env.SUPERSET_HOME_DIR = previousHome;
 		rmSync(home, { recursive: true, force: true });
 	});
+
+	for (const shape of [
+		"missing",
+		"malformed",
+		"unreadable",
+		"empty",
+		"wrong-type",
+		"null",
+		"valid",
+	] as const) {
+		it(`validates ${shape} API credentials before publishing a Codex switch`, async () => {
+			const target = join(home, "api-home");
+			mkdirSync(target);
+			writeFileSync(join(target, ".superset-api-billing"), "codex");
+			const authPath = join(target, "auth.json");
+			if (shape === "unreadable") mkdirSync(authPath);
+			else if (shape !== "missing")
+				writeFileSync(
+					authPath,
+					shape === "malformed"
+						? "{"
+						: shape === "null"
+							? "null"
+							: JSON.stringify({
+									auth_mode: "apikey",
+									OPENAI_API_KEY:
+										shape === "valid"
+											? "sk-test"
+											: shape === "wrong-type"
+												? 42
+												: "  ",
+								}),
+				);
+			const state = new EngineState();
+			const before = state.readRuntime();
+			before.perAgent.codex.activeAccountId = "codex-acct-a";
+			before.perAgent.codex.activeSelection = "/homes/a";
+			state.writeRuntime(before);
+			const pointerWrites: Array<string | null> = [];
+			let moves = 0;
+			const engine = buildEngine(state, {
+				pointerWrites,
+				provisionCodex: async () => {},
+				onMove: () => {
+					moves++;
+				},
+				entries: [
+					entryFor(codexAccount({})),
+					entryFor(
+						codexAccount({
+							accountKey: "api",
+							accountId: null,
+							selection: target,
+							credentialKind: "api_key",
+							windows: [],
+						}),
+					),
+				],
+			});
+			const outcome = await engine.switchManually("codex", target);
+			if (shape === "valid") {
+				expect(outcome).toEqual({ ok: true });
+				expect(pointerWrites).toEqual([target]);
+				expect(state.readRuntime().perAgent.codex.activeSelection).toBe(target);
+				expect(state.readHistory()).toHaveLength(1);
+				expect(moves).toBe(1);
+			} else {
+				expect(outcome).toMatchObject({ ok: false, code: "no-target-login" });
+				expect(pointerWrites).toEqual([]);
+				expect(state.readRuntime()).toEqual(before);
+				expect(state.readHistory()).toEqual([]);
+				expect(moves).toBe(0);
+			}
+		});
+	}
 
 	it("provisions the Codex home it switches onto", async () => {
 		const provisioned: string[] = [];
