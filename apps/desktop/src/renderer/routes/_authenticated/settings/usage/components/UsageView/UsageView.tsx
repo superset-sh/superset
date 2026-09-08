@@ -428,10 +428,20 @@ export function AccountCard({
 						<label
 							htmlFor={rotationId}
 							className="ml-auto flex shrink-0 items-center gap-1.5 text-[10px] text-muted-foreground"
-							title={t({
-								message:
-									"Automatic switching may move sessions onto this account. Held-out accounts stay available to pick by hand.",
-							})}
+							// `isEligible` refuses an expired, signed-out or unreadable
+							// token before it reads the rotation flag, so on those the
+							// sentence would promise a switch that never comes. The saved
+							// preference and the toggle stay as they are — the statuses are
+							// transient often enough that flipping either would move a
+							// choice the user did not make — but the promise goes.
+							title={
+								account.status === "ok" || account.status === "token_stale"
+									? t({
+											message:
+												"Automatic switching may move sessions onto this account. Held-out accounts stay available to pick by hand.",
+										})
+									: undefined
+							}
 						>
 							<Trans>In rotation</Trans>
 							<Switch
@@ -497,8 +507,12 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 	const [removeTarget, setRemoveTarget] = useState<UsageAccount | null>(null);
 	const [restartPrompt, setRestartPrompt] =
 		useState<RestartSessionsPrompt | null>(null);
-	// Keyed by rotation key, so a card keeps its own refusal when several
-	// cards are touched in a row.
+	// Keyed by what the refusal is actually about, so a card keeps its own
+	// when several cards are touched in a row. A switch refusal belongs to the
+	// run target that asked for it, which is the card, so it is filed under the
+	// unique `accountKey`. A rotation refusal belongs to the rotation flag, and
+	// two cards of one provider account share one flag, so it is filed under
+	// `rotationKey` and belongs on both.
 	const [cardErrors, setCardErrors] = useState<
 		Record<string, { kind: "switch" | "rotation"; message: string }>
 	>({});
@@ -546,6 +560,15 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 		});
 	};
 
+	/** The refusal this card is the one to show, under either spelling. */
+	const cardErrorFor = (account: UsageAccount): string | null => {
+		const own = cardErrors[account.accountKey];
+		if (own?.kind === "switch") return own.message;
+		const rotation = cardErrors[rotationKey(account)];
+		if (rotation?.kind === "rotation") return rotation.message;
+		return null;
+	};
+
 	// A refusal says "the previous account is still active", so a switch that
 	// then succeeds makes it false. Only this agent's cards are cleared —
 	// another agent's refusal is about a switch this one did not perform. A
@@ -555,7 +578,7 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 		const switched = new Set(
 			accounts
 				.filter((candidate) => candidate.agent === agent)
-				.map((candidate) => rotationKey(candidate)),
+				.map((candidate) => candidate.accountKey),
 		);
 		setCardErrors((errors) => {
 			const kept = Object.entries(errors).filter(
@@ -601,7 +624,9 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 	const makeAccountActive = (account: UsageAccount) => {
 		if (!isManagedAgent(account.agent)) return;
 		const agent = account.agent;
-		const key = rotationKey(account);
+		// The card's own key, not the rotation key: two run targets can share
+		// one provider account, and only the one that asked is switching.
+		const key = account.accountKey;
 		setCardError(key, "switch", null);
 		setActivatingKey(key);
 		setDefault.mutate(
@@ -786,9 +811,9 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 												? () => setRemoveTarget(account)
 												: null
 										}
-										isActivating={activatingKey === rotationKey(account)}
+										isActivating={activatingKey === account.accountKey}
 										isSwitching={setDefault.isPending}
-										error={cardErrors[rotationKey(account)]?.message ?? null}
+										error={cardErrorFor(account)}
 										selectable={
 											isManagedAgent(agent) && agentAccounts.length > 1
 										}

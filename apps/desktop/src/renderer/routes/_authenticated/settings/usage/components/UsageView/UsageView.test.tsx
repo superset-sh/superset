@@ -37,6 +37,8 @@ const realSetDefaultUsageAccount = {
 
 /** Selections the stubbed switch refuses, by engine code. */
 let switchRefusals: Record<string, string> = {};
+/** A selection whose switch never answers, so its card stays mid-switch. */
+let switchPending: string | null = null;
 mock.module("../LeaderboardCard", () => ({ LeaderboardCard: () => null }));
 mock.module("../UsageHistorySection", () => ({
 	UsageHistorySection: () => null,
@@ -51,6 +53,7 @@ mock.module("../../hooks/useSetDefaultUsageAccount", () => ({
 				onError,
 			}: { onSuccess: () => void; onError: (failure: unknown) => void },
 		) => {
+			if (selection !== null && selection === switchPending) return;
 			const code = selection === null ? undefined : switchRefusals[selection];
 			if (code) onError(new Error(code));
 			else onSuccess();
@@ -69,7 +72,10 @@ const { HOST_USAGE_QUOTA_QUERY_KEY } = await import(
 );
 const { AccountCard, sessionMoveNote, UsageView } = await import("./UsageView");
 
-afterEach(cleanup);
+afterEach(() => {
+	cleanup();
+	switchPending = null;
+});
 afterAll(async () => {
 	// `mock.module` is process-wide and `mock.restore` does not undo it, so the
 	// real modules go back before the next suite in this run asks for them.
@@ -219,6 +225,28 @@ describe("AccountCard rotation", () => {
 		expect(toggle.getAttribute("aria-checked")).toBe("true");
 		fireEvent.click(toggle);
 		expect(calls).toEqual([false]);
+	});
+
+	// `isEligible` refuses an unreadable token before it reads the rotation
+	// flag, and "unavailable" is the steady state for an org-managed plan. The
+	// badge says the numbers could not be read, which a user does not read as
+	// "never auto-selected" — so the sentence beside it must not promise the
+	// switch that will not come.
+	test("a token the engine will not auto-select promises no automatic switch", () => {
+		const rotationPromise =
+			"Automatic switching may move sessions onto this account. Held-out accounts stay available to pick by hand.";
+		const view = renderCard(account({ status: "unavailable" }));
+		const ui = within(view.baseElement as HTMLElement);
+		expect(view.baseElement.textContent).toContain("Unavailable");
+		// The toggle and the saved preference stay: the statuses it would key
+		// off are transient often enough that either would move on its own.
+		expect(ui.getByRole("switch").getAttribute("aria-checked")).toBe("true");
+		expect(ui.queryByTitle(rotationPromise)).toBeNull();
+		cleanup();
+		const readable = renderCard(account({ status: "ok" }));
+		expect(
+			within(readable.baseElement as HTMLElement).queryByTitle(rotationPromise),
+		).toBeTruthy();
 	});
 
 	test("agents the engine cannot switch get no toggle at all", () => {
@@ -427,5 +455,78 @@ describe("UsageView card errors", () => {
 		).toBe("true");
 		// The switch refusal the same switch did make untrue still goes.
 		expect(cardFor("b@example.com").queryAllByRole("alert")).toHaveLength(0);
+	});
+
+	// `dedupeClaudeCredentials` deliberately keeps one login found in two dirs
+	// as two rows: one provider account, two run targets. Keyed by the account
+	// they share, one card's refusal landed on both, and a card that asked for
+	// nothing showed a failure.
+	function duplicateAccountIdAccounts() {
+		return [
+			account({
+				isDefault: true,
+				accountKey: "claude:/p/a",
+				selection: "/p/a",
+				accountId: "uuid-a",
+			}),
+			account({
+				accountKey: "claude:/p/live",
+				selection: "/p/live",
+				accountId: "uuid-dup",
+				email: "live@example.com",
+			}),
+			account({
+				accountKey: "claude:/p/copy",
+				selection: "/p/copy",
+				accountId: "uuid-dup",
+				email: "copy@example.com",
+			}),
+		];
+	}
+
+	test("a refused switch stays on the run target that asked for it", () => {
+		switchRefusals = { "/p/live": "swap-verify-failed" };
+		const cardFor = renderUsageView(duplicateAccountIdAccounts());
+
+		fireEvent.click(cardFor("live@example.com").getByText("Make active"));
+		expect(
+			cardFor("live@example.com").getByRole("alert").textContent,
+		).toContain("swap-verify-failed");
+		// A count, not the node: a failed assertion on an element serializes
+		// the whole card into the diff, which costs seconds.
+		expect(cardFor("copy@example.com").queryAllByRole("alert")).toHaveLength(0);
+	});
+
+	test("only the card mid-switch says it is switching", () => {
+		switchRefusals = {};
+		switchPending = "/p/live";
+		const cardFor = renderUsageView(duplicateAccountIdAccounts());
+
+		fireEvent.click(cardFor("live@example.com").getByText("Make active"));
+		expect(cardFor("live@example.com").getByText("Switching…")).toBeTruthy();
+		expect(
+			cardFor("copy@example.com").queryAllByText("Switching…"),
+		).toHaveLength(0);
+		expect(cardFor("copy@example.com").getByText("Make active")).toBeTruthy();
+	});
+
+	// The other half of the split: the two rows share one rotation flag, so a
+	// refusal to write it is true of both cards and belongs on both.
+	test("a rotation refusal reaches every card behind the same flag", async () => {
+		switchRefusals = {};
+		const cardFor = renderUsageView(duplicateAccountIdAccounts());
+
+		// No host, so the rotation write refuses.
+		fireEvent.click(cardFor("live@example.com").getByRole("switch"));
+		await waitFor(() =>
+			expect(
+				cardFor("live@example.com").getByRole("alert").textContent,
+			).toContain("Rotation not saved"),
+		);
+		expect(
+			cardFor("copy@example.com").getByRole("alert").textContent,
+		).toContain("Rotation not saved");
+		// A card of a different provider account is not behind that flag.
+		expect(cardFor("a@example.com").queryAllByRole("alert")).toHaveLength(0);
 	});
 });
