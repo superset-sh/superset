@@ -19,6 +19,7 @@ import {
 	gitStatusSnapshotTask,
 } from "../../../workers/tasks/git";
 import { protectedProcedure, queryProcedure, router } from "../../index";
+import { rethrowWorkerTaskAbort } from "../../worker-abort";
 import { resolveGithubRepo } from "../workspace-creation/shared/project-helpers";
 import type {
 	ChangedFile,
@@ -245,6 +246,9 @@ export const gitRouter = router({
 			try {
 				return await runStatusSnapshot(ctx, input);
 			} catch (error) {
+				// A pane closing mid-request aborts the task; that is the client
+				// leaving, not a status failure.
+				rethrowWorkerTaskAbort(error);
 				// The worker boundary strips prototypes, so a simple-git failure
 				// arrives as a plain error — classify it by message here. The
 				// worktree can vanish between resolveWorktreePath's existsSync
