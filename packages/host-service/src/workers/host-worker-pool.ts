@@ -33,6 +33,48 @@ const IDLE_TIMEOUT_MS = 30_000;
 const CRASH_BUDGET = 3;
 const CRASH_WINDOW_MS = 60_000;
 
+/**
+ * A worker result at or above either of these is in the size range that can
+ * abort host-service outright while its tRPC response is serialized — the
+ * unattributed half of DESKTOP-H1, whose fatal runs no handler and leaves
+ * nothing behind but the log tail. Smaller results cannot be that crash, so
+ * they stay silent.
+ *
+ * Both numbers are reported because they behave differently: rows cost heap
+ * and serialize about 1:1, while off-heap bytes cost no heap at all and
+ * expand ~4x as JSON (a Buffer becomes `[104,101,…]`), so a result that looks
+ * small by every heap metric can still be the one that dies.
+ */
+const LARGE_RESULT_ROWS = 50_000;
+const LARGE_RESULT_BYTES = 4 * 1024 * 1024;
+
+/**
+ * Rows and bytes a result carries. Arrays are counted, never walked — the
+ * length is the whole diagnostic, and walking a 200k-row result would cost as
+ * much as the serialization this is trying to describe. Depth stops at 2,
+ * which reaches every worker result's bulk (`{ snapshot: { unstaged: [...] } }`
+ * is the deepest).
+ */
+function measureResultBulk(
+	value: unknown,
+	depth = 0,
+): { rows: number; bytes: number } {
+	if (typeof value === "string") return { rows: 0, bytes: value.length };
+	if (ArrayBuffer.isView(value)) return { rows: 0, bytes: value.byteLength };
+	if (Array.isArray(value)) return { rows: value.length, bytes: 0 };
+	if (depth >= 2 || value === null || typeof value !== "object") {
+		return { rows: 0, bytes: 0 };
+	}
+	let rows = 0;
+	let bytes = 0;
+	for (const child of Object.values(value)) {
+		const inner = measureResultBulk(child, depth + 1);
+		rows += inner.rows;
+		bytes += inner.bytes;
+	}
+	return { rows, bytes };
+}
+
 export function resolveHostWorkerScriptPath(): string | null {
 	const override = process.env.SUPERSET_HOST_WORKER_SCRIPT_PATH;
 	if (override) return existsSync(override) ? override : null;
@@ -114,6 +156,23 @@ export class HostWorkerPool {
 	}
 
 	async run<TInput, TResult>(
+		def: WorkerTaskDefinition<TInput, TResult>,
+		input: TInput,
+		options?: WorkerTaskOptions,
+	): Promise<TResult> {
+		const result = await this.runWithFallback(def, input, options);
+		const { rows, bytes } = measureResultBulk(result);
+		if (rows >= LARGE_RESULT_ROWS || bytes >= LARGE_RESULT_BYTES) {
+			console.warn("[host-service:worker] large task result", {
+				taskType: def.type,
+				rows,
+				bytes,
+			});
+		}
+		return result;
+	}
+
+	private async runWithFallback<TInput, TResult>(
 		def: WorkerTaskDefinition<TInput, TResult>,
 		input: TInput,
 		options?: WorkerTaskOptions,
