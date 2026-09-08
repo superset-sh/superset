@@ -342,7 +342,15 @@ export class EngineState {
 		const lockPath = join(this.dir, LOCK_FILE);
 		const { exists, record } = this.readLockFile();
 		if (record?.nonce === nonce) return this.heartbeat(nonce, now);
-		if (record && now - record.heartbeatAt <= staleAfterMs) return false;
+		// Distance, not a signed age: a heartbeat stamped in the future (the
+		// host's clock was ahead and NTP stepped it back) would otherwise
+		// stay "fresh" until wall-clock catches up and wedge the engine for
+		// years, which is exactly what a reclaimable lock is meant to prevent.
+		// Inclusive on both sides, so a record refreshed at the claimant's own
+		// `now` still holds.
+		if (record && Math.abs(now - record.heartbeatAt) <= staleAfterMs) {
+			return false;
+		}
 		if (exists) {
 			const asideName = `${LOCK_FILE}.stale.${process.pid}.${randomUUID()}`;
 			const asidePath = join(this.dir, asideName);
@@ -360,7 +368,7 @@ export class EngineState {
 			if (
 				aside &&
 				aside.nonce !== nonce &&
-				now - aside.heartbeatAt <= staleAfterMs
+				Math.abs(now - aside.heartbeatAt) <= staleAfterMs
 			) {
 				try {
 					// linkSync, not renameSync: if another claimant linked its own

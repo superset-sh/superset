@@ -214,6 +214,60 @@ describe("account-engine state", () => {
 		expect(rival.isOwner("nonce-b")).toBe(true);
 	});
 
+	// A host whose clock was ahead (VM snapshot, dead CMOS battery, boot
+	// before NTP) stamps a heartbeat in the future and then steps back. A
+	// signed age reads that as fresh until wall-clock catches up, so the
+	// engine could never reclaim its own lock again — the wedge a reclaimable
+	// lock exists to prevent. Both the staleness test and the rename-aside
+	// re-read have to bound it, or the claim dies on whichever it reaches.
+	it("reclaims a lock whose heartbeat is implausibly far in the future", () => {
+		const dir = join(home, "state", "account-engine");
+		const lockPath = join(dir, "engine.lock");
+		const now = 2_000_000;
+		// The engine ran while the clock was ahead by years, then the clock
+		// stepped back. A restarted engine has a fresh nonce, so refreshing
+		// its own lock at claimLock's first branch cannot rescue it.
+		const owner = new EngineState();
+		expect(owner.claimLock("nonce-skewed", now)).toBe(true);
+		writeFileSync(
+			lockPath,
+			JSON.stringify({
+				nonce: "nonce-skewed",
+				startedAt: now,
+				heartbeatAt: now + 1_000_000_000_000,
+			}),
+		);
+
+		const restarted = new EngineState();
+		expect(restarted.claimLock("nonce-b", now)).toBe(true);
+		expect(restarted.isOwner("nonce-b")).toBe(true);
+		expect(readdirSync(dir).filter((name) => name.includes(".stale."))).toEqual(
+			[],
+		);
+	});
+
+	// The allowance is inclusive, so a clock a little ahead still holds its
+	// lock rather than letting two engines run at once.
+	it("still holds a lock stamped exactly staleAfterMs ahead of the claimant", () => {
+		const lockPath = join(home, "state", "account-engine", "engine.lock");
+		const now = 2_000_000;
+		const owner = new EngineState();
+		expect(owner.claimLock("nonce-ahead", now)).toBe(true);
+		writeFileSync(
+			lockPath,
+			JSON.stringify({
+				nonce: "nonce-ahead",
+				startedAt: now,
+				heartbeatAt: now + DEFAULT_LOCK_STALE_MS,
+			}),
+		);
+
+		expect(new EngineState().claimLock("nonce-b", now)).toBe(false);
+		expect(JSON.parse(readFileSync(lockPath, "utf8")).nonce).toBe(
+			"nonce-ahead",
+		);
+	});
+
 	// The heartbeat stages its write and then re-reads the nonce: without that
 	// second read, an owner whose lock was reclaimed mid-refresh renames its
 	// stale record back over the new owner's and both believe they own the host.
