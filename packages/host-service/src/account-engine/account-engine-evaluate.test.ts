@@ -948,6 +948,50 @@ describe("AccountEngine: API-billed Claude profiles", () => {
 });
 
 describe("AccountEngine: limit recovery", () => {
+	it("ignores a limit hint from an active API account before corroboration", async () => {
+		let corroborations = 0;
+		let reads = 0;
+		const h = harness({
+			entries: [
+				entryFor(usageAccount({ credentialKind: "api_key", windows: [] })),
+				entryFor(accountB({ windows: window(20) })),
+			],
+			hostDeps: {
+				listSessions: () => [
+					{
+						agent: "claude",
+						terminalId: "api",
+						workspaceId: "workspace",
+						managed: true,
+						configDir: ACTIVE_DIR,
+						lastEventType: "Failed",
+						lastEventAt: T0,
+						limitHintErrorType: "rate_limit",
+					},
+				],
+			},
+			mover: {
+				corroborateLimitStop: async () => {
+					corroborations++;
+					return true;
+				},
+			},
+			onRead: async () => {
+				reads++;
+			},
+		});
+		try {
+			await h.engine.handleLimitHints();
+			expect(corroborations).toBe(0);
+			expect(reads).toBe(0);
+			expect(h.runtime().activeAccountId).toBe("acct-a");
+			expect(h.swapped).toEqual([]);
+			expect(h.state.readHistory()).toEqual([]);
+		} finally {
+			h.cleanup();
+		}
+	});
+
 	it("recovers a busy Codex limit stop before a proactive switch hides its quota", async () => {
 		const row = {
 			agent: "codex" as const,

@@ -2428,6 +2428,7 @@ export class AccountEngine {
 			state,
 		);
 		if (!active) return false;
+		if (active.row.credentialKind === "api_key") return true;
 
 		// Gate 1: the local rate limits, before any snapshot or provider call.
 		if (
@@ -2474,6 +2475,7 @@ export class AccountEngine {
 
 		const pool = this.pool(agent, state.activeSelection);
 		const from = this.activeRow(pool, state) ?? active;
+		if (from.row.credentialKind === "api_key") return true;
 		if (
 			!windowsInScope(agent, from.row.windows, settings.modelWindows).some(
 				(window) => window.usedPercent >= 100,
