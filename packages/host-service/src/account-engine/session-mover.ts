@@ -197,11 +197,35 @@ export class SessionMover {
 	 * Set while a store-change pass is running. Ending a binding emits `change`
 	 * synchronously from inside the restart this pass is awaiting, and a nested
 	 * pass would find the same row still retained above and kill it again,
-	 * before the attempt that is in flight has been counted. Skipping the
-	 * nested pass keeps kills bounded by {@link MAX_RESUME_ATTEMPTS}; the pass
-	 * already running re-decides those rows anyway.
+	 * before the attempt that is in flight has been counted — descending again
+	 * on every kill, without bound. So a change that arrives mid-pass is never
+	 * run where it lands; it is remembered in {@link pendingPass} and run as a
+	 * fresh pass once this one is over.
+	 *
+	 * That is what keeps kills bounded by {@link MAX_RESUME_ATTEMPTS} without
+	 * losing the wake-up: bounding lives in `resumeAttempts`, never here. Every
+	 * drain pass runs after the attempt that woke it has been counted, so a
+	 * drain pass that kills has already spent an attempt and the ladder ends.
 	 */
 	private passInFlight = false;
+	/**
+	 * A store change that arrived mid-pass and still has to be run.
+	 *
+	 * Dropping it silently stalled everything the pass itself woke. The retry
+	 * ladder, first: the only change attempt N's kill produces is the one that
+	 * arrives mid-pass, so attempt N+1 never came and a permanently refused
+	 * resume stopped at two kills and never reported. And any *other* deferred
+	 * row whose turn ended during that restart — `change` is emitted on every
+	 * event ingestion, Stop included — was left idling on the account the
+	 * engine had switched away from, its state intact and its only trigger
+	 * gone. For a Claude row that Stop is the last event until the user types.
+	 *
+	 * One boolean for any number of dropped changes loses nothing: the
+	 * parameter is unused, and every pass re-reads the truth from
+	 * `listSessions` and `isAgentBusy`, so a change carries no payload beyond
+	 * "something happened".
+	 */
+	private pendingPass = false;
 
 	constructor(deps: SessionMoverDeps) {
 		this.deps = deps;
@@ -303,35 +327,54 @@ export class SessionMover {
 	 * binding and resumes on a fresh terminal — or it is gone. Its `configDir`
 	 * cannot say which, because every row re-resolves it from the host pointer
 	 * the switch has already moved.
+	 *
+	 * Changes this pass causes itself are drained afterwards rather than run
+	 * inline — see {@link passInFlight} and {@link pendingPass}.
 	 */
 	async handleStoreChange(_workspaceId: string): Promise<void> {
-		if (this.passInFlight) return;
-		this.passInFlight = true;
-		try {
-			for (const [agent, waiting] of [...this.deferred]) {
-				const listed = this.deps
-					.listSessions(agent)
-					.filter((row) => waiting.has(row.terminalId));
-				// A row we killed and failed to resume is no longer listed, so
-				// it is re-driven from the copy kept when it was refused. The
-				// listed row wins where there is one: it is this moment's
-				// truth, the retained copy a snapshot from before the kill.
-				const rows = [...listed];
-				for (const terminalId of waiting) {
-					if (listed.some((row) => row.terminalId === terminalId)) continue;
-					const retained = this.pendingResume.get(terminalId);
-					if (retained !== undefined) rows.push(retained);
-				}
-				if (rows.length === 0) {
-					this.deferred.delete(agent);
-					for (const terminalId of waiting)
-						this.resumeAttempts.delete(terminalId);
-					continue;
-				}
-				await this.moveAtIdle(agent, rows);
+		if (this.passInFlight) {
+			this.pendingPass = true;
+			return;
+		}
+		// One guarded pass per remembered change, each starting only once the
+		// one before it has finished and released the guard. A change raised by
+		// this pass's own kills is therefore still never run where it lands —
+		// it lands inside the branch above — and a drain pass cannot descend
+		// into itself either, because it re-arms the guard for its own kills.
+		do {
+			this.pendingPass = false;
+			this.passInFlight = true;
+			try {
+				await this.runStorePass();
+			} finally {
+				this.passInFlight = false;
 			}
-		} finally {
-			this.passInFlight = false;
+		} while (this.pendingPass);
+	}
+
+	/** One pass over the deferrals: see {@link handleStoreChange}. */
+	private async runStorePass(): Promise<void> {
+		for (const [agent, waiting] of [...this.deferred]) {
+			const listed = this.deps
+				.listSessions(agent)
+				.filter((row) => waiting.has(row.terminalId));
+			// A row we killed and failed to resume is no longer listed, so it
+			// is re-driven from the copy kept when it was refused. The listed
+			// row wins where there is one: it is this moment's truth, the
+			// retained copy a snapshot from before the kill.
+			const rows = [...listed];
+			for (const terminalId of waiting) {
+				if (listed.some((row) => row.terminalId === terminalId)) continue;
+				const retained = this.pendingResume.get(terminalId);
+				if (retained !== undefined) rows.push(retained);
+			}
+			if (rows.length === 0) {
+				this.deferred.delete(agent);
+				for (const terminalId of waiting)
+					this.resumeAttempts.delete(terminalId);
+				continue;
+			}
+			await this.moveAtIdle(agent, rows);
 		}
 	}
 

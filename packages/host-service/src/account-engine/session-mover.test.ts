@@ -346,19 +346,23 @@ describe("moveAtIdle", () => {
 		// is ended on the first kill and nothing ever brings it back, so the
 		// retry cannot depend on `listSessions` re-offering it.
 		let listed: MovableSession[] = [row({ lastEventType: "Stop" })];
-		const h = harness({
+		const h: Harness = harness({
 			listSessions: () => listed,
-			killAndResume: (input) => {
+			killAndResume: async (input) => {
 				attempts.push(input.terminalId);
 				listed = [];
-				return Promise.resolve(null);
+				// Ending the binding is an event ingestion like any other, so
+				// the store emits its `change` from inside the kill — and that
+				// is the ONLY wake-up this attempt produces. The ladder has to
+				// climb on it; a test that drove the next pass by hand would be
+				// standing in for a store that never calls back.
+				await h.mover.handleStoreChange("ws-1");
+				return null;
 			},
 		});
 
 		await h.mover.moveAtIdle("codex", [row({ lastEventType: "Stop" })]);
-		for (let pass = 1; pass < MAX_RESUME_ATTEMPTS; pass += 1) {
-			await h.mover.handleStoreChange("ws-1");
-		}
+		await h.mover.handleStoreChange("ws-1");
 
 		expect(attempts).toHaveLength(MAX_RESUME_ATTEMPTS);
 		expect(h.attention).toEqual([
@@ -375,6 +379,42 @@ describe("moveAtIdle", () => {
 		await h.mover.handleStoreChange("ws-1");
 		expect(attempts).toHaveLength(MAX_RESUME_ATTEMPTS);
 		expect(h.attention).toHaveLength(1);
+	});
+
+	// `change` is emitted on every event ingestion, Stop included, so one
+	// deferred row's turn routinely ends while another row's restart is still
+	// in flight. Dropping that wake-up instead of remembering it left the first
+	// row idling on the account the engine had switched away from — its
+	// deferral intact and its only trigger gone.
+	it("restarts a row whose wake-up arrived during another row's restart", async () => {
+		const busy = new Set(["t-a", "t-b"]);
+		let listed = [row({ terminalId: "t-a" }), row({ terminalId: "t-b" })];
+		const h: Harness = harness({
+			isAgentBusy: (terminalId) => busy.has(terminalId),
+			listSessions: () => listed,
+			killAndResume: async (input) => {
+				h.killCalls.push(input);
+				listed = listed.filter((r) => r.terminalId !== input.terminalId);
+				if (input.terminalId === "t-b") {
+					// t-a's turn ends while t-b is still restarting: the store
+					// ingests the Stop and emits a change of its own.
+					busy.delete("t-a");
+					await h.mover.handleStoreChange("ws-1");
+				}
+				return { terminalId: `${input.terminalId}-new` };
+			},
+		});
+
+		await h.mover.moveAtIdle("codex", [
+			row({ terminalId: "t-a" }),
+			row({ terminalId: "t-b" }),
+		]);
+		expect(h.killCalls).toEqual([]);
+
+		busy.delete("t-b");
+		await h.mover.handleStoreChange("ws-1");
+
+		expect(h.killCalls.map((call) => call.terminalId)).toEqual(["t-b", "t-a"]);
 	});
 
 	it("drops a deferred row that has since moved onto the new account", async () => {
