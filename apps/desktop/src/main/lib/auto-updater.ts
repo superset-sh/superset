@@ -68,15 +68,13 @@ export type { AutoUpdateStatusEvent } from "shared/auto-update";
 
 export const autoUpdateEmitter = new EventEmitter();
 
-// Network errors that don't need to be shown to the user
-// These are transient/expected and will resolve on retry
+// Network errors that don't need to be shown to the user or reported: they are
+// transient and the next check retries. Chromium names every transport failure
+// net::ERR_* (timeouts, HTTP/2 resets, a laptop suspending mid-download, a
+// proxy's certificate), and none of them is a defect in the feed or artifact —
+// an enumerated list was reporting ~800 of the unlisted ones a day.
 const SILENT_ERROR_PATTERNS = [
-	"net::ERR_INTERNET_DISCONNECTED",
-	"net::ERR_NETWORK_CHANGED",
-	"net::ERR_CONNECTION_REFUSED",
-	"net::ERR_NAME_NOT_RESOLVED",
-	"net::ERR_CONNECTION_TIMED_OUT",
-	"net::ERR_CONNECTION_RESET",
+	"net::ERR_",
 	"ENOTFOUND",
 	"ETIMEDOUT",
 	"ECONNREFUSED",

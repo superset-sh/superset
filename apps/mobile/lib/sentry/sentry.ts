@@ -8,7 +8,6 @@ export function initSentry() {
 	Sentry.init({
 		dsn: env.EXPO_PUBLIC_SENTRY_DSN_MOBILE,
 		environment: env.EXPO_PUBLIC_SENTRY_ENVIRONMENT,
-		tracesSampleRate: 0,
 		replaysSessionSampleRate: 0,
 		replaysOnErrorSampleRate: 0,
 		sendDefaultPii: false,

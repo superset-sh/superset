@@ -6,15 +6,11 @@ Sentry.init({
 	dsn: env.NEXT_PUBLIC_SENTRY_DSN_API,
 	environment: env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
 	enabled: env.NEXT_PUBLIC_SENTRY_ENVIRONMENT === "production",
-	// Per-route sampling. /api/auth/* is session/JWT polling from every
-	// client — 87% of api traffic (~600M req/30d) with no diagnostic value,
-	// and at 10% it alone blew the span quota 16x. Webhooks/jobs are low
-	// volume and each trace is useful; the rest gets a working sample.
-	tracesSampler: ({ name }) => {
-		if (name.includes("/api/auth/")) return 0;
-		if (name.includes("/webhook") || name.includes("/jobs/")) return 0.25;
-		return 0.05;
-	},
+	// No tracesSampleRate or tracesSampler on purpose: the SDK treats a rate of
+	// 0 as "tracing on, sample nothing" and still records every span whose
+	// parent was sampled, and a sampler here was storing a flat 5% of ~20M
+	// requests a day (~19M spans, 115x the org quota). Omitting both disables
+	// spans outright.
 	sendDefaultPii: true,
 	debug: false,
 });

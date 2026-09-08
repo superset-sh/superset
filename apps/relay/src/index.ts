@@ -307,9 +307,10 @@ function isPeerGone(message: string): boolean {
 
 // Exceptions only — console/breadcrumb capture stays off: retaining every log
 // line is a memory leak at relay volume. No-op until SENTRY_DSN is set.
+// No tracesSampleRate either: 0 keeps tracing enabled and inherits the caller's
+// sampling decision, which stored 165k /presence spans a day from api traces.
 const sentryOptions = (env: RelayEnv): Sentry.CloudflareOptions => ({
 	dsn: env.SENTRY_DSN,
-	tracesSampleRate: 0,
 	sendDefaultPii: false,
 	integrations: (defaults) =>
 		defaults.filter((integration) => integration.name !== "Console"),
