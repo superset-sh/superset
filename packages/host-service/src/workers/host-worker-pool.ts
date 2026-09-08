@@ -48,30 +48,64 @@ const CRASH_WINDOW_MS = 60_000;
 const LARGE_RESULT_ROWS = 50_000;
 const LARGE_RESULT_BYTES = 4 * 1024 * 1024;
 
+/** Deepest a result keeps its bulk: `{ diffs: [ { oldFile: { contents } } ] }`
+ * puts a string four levels down, and the bytes have to be reachable there. */
+const MAX_PROBE_DEPTH = 4;
+
 /**
- * Rows and bytes a result carries. Arrays are counted, never walked — the
- * length is the whole diagnostic, and walking a 200k-row result would cost as
- * much as the serialization this is trying to describe. Depth stops at 2,
- * which reaches every worker result's bulk (`{ snapshot: { unstaged: [...] } }`
- * is the deepest).
+ * Rows and bytes a result carries.
+ *
+ * The walk stops as soon as `bytes` passes the threshold, which is what makes
+ * descending into array elements affordable: a result past the threshold is
+ * one this is about to log anyway, so nothing further can change the decision,
+ * and a 200k-row result is never walked in full. Both counts are therefore
+ * floors rather than totals once the walk stops — enough to tell the shape
+ * apart, which is all they are for. Elements are walked at all because the
+ * shape this is hunting could well be an array whose *elements* carry the
+ * bytes — a length-only count reports that as `rows: 1, bytes: 0` and stays
+ * silent on exactly the candidate it exists to catch.
+ *
+ * String lengths are UTF-16 code units, deliberately — not UTF-8 bytes. The
+ * fatal being chased is bounded by V8's `String::kMaxLength` and by heap held
+ * as UTF-16, so this is the unit the thresholds were derived in; re-encoding
+ * would make the number less comparable and cost a full encode per string.
  */
-function measureResultBulk(
-	value: unknown,
-	depth = 0,
-): { rows: number; bytes: number } {
-	if (typeof value === "string") return { rows: 0, bytes: value.length };
-	if (ArrayBuffer.isView(value)) return { rows: 0, bytes: value.byteLength };
-	if (Array.isArray(value)) return { rows: value.length, bytes: 0 };
-	if (depth >= 2 || value === null || typeof value !== "object") {
-		return { rows: 0, bytes: 0 };
-	}
+function measureResultBulk(result: unknown): { rows: number; bytes: number } {
 	let rows = 0;
 	let bytes = 0;
-	for (const child of Object.values(value)) {
-		const inner = measureResultBulk(child, depth + 1);
-		rows += inner.rows;
-		bytes += inner.bytes;
-	}
+
+	const visit = (value: unknown, depth: number): void => {
+		if (bytes >= LARGE_RESULT_BYTES) return;
+		if (typeof value === "string") {
+			bytes += value.length;
+			return;
+		}
+		// `isView` covers typed arrays and DataView but not a raw ArrayBuffer.
+		if (ArrayBuffer.isView(value)) {
+			bytes += value.byteLength;
+			return;
+		}
+		if (value instanceof ArrayBuffer) {
+			bytes += value.byteLength;
+			return;
+		}
+		if (Array.isArray(value)) {
+			rows += value.length;
+			if (depth >= MAX_PROBE_DEPTH) return;
+			for (const element of value) visit(element, depth + 1);
+			return;
+		}
+		if (
+			depth >= MAX_PROBE_DEPTH ||
+			value === null ||
+			typeof value !== "object"
+		) {
+			return;
+		}
+		for (const child of Object.values(value)) visit(child, depth + 1);
+	};
+
+	visit(result, 0);
 	return { rows, bytes };
 }
 
