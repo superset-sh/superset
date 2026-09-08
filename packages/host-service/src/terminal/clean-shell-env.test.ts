@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
+	existsSync,
 	mkdtempSync,
 	readdirSync,
 	readFileSync,
@@ -132,7 +133,14 @@ describe("parseEnvOutput", () => {
 // shell's stdout/stderr and outlives it. Resolution must complete when the
 // shell exits, not when that daemon lets go of the pipes, and must not leave
 // the pipe read ends in this process's descriptor table (HOST-SERVICE-4E).
-describe.skipIf(process.platform === "win32")(
+// Needs the real zsh and perl binaries; a CI image without them (Linux
+// runners ship no zsh) cannot exercise the pipe-holding daemon at all.
+const canRunRealShell =
+	process.platform !== "win32" &&
+	existsSync("/bin/zsh") &&
+	existsSync("/usr/bin/perl");
+
+describe.skipIf(!canRunRealShell)(
 	"getStrictShellEnvironment with an rc-spawned daemon holding the pipes",
 	() => {
 		let home: string;
