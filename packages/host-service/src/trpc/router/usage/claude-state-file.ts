@@ -95,12 +95,25 @@ function parseState(raw: string): ClaudeState | null {
 	return null;
 }
 
+/** A copy of the unparsable bytes, written but not yet announced: the caller
+ * decides. Splitting it this way keeps the fingerprint check the last thing
+ * before the rename — announcing and pruning inline put milliseconds of
+ * directory I/O inside that window, and a writer settling in there had its
+ * bytes replaced by a mutation of empty state. */
+type RescuedBytes = {
+	/** Announce the rescue and prune the dir down to three. */
+	commit: () => Promise<void>;
+	/** Take the copy back: the attempt is being retried, so nothing was
+	 * discarded and nothing should be announced or pruned. */
+	abandon: () => Promise<void>;
+};
+
 /** One 0600 timestamped copy of the bytes this write is about to discard,
  * three kept per dir. */
 async function backupUnparsableState(
 	statePath: string,
 	raw: string,
-): Promise<void> {
+): Promise<RescuedBytes> {
 	const stamp = new Date().toISOString().replace(/[:.]/g, "-");
 	const backupPath = `${statePath}.${stamp}.${randomUUID()}${BACKUP_MARKER}`;
 	// The uuid keeps two rescues in the same millisecond apart: sharing a name,
@@ -111,12 +124,24 @@ async function backupUnparsableState(
 		mode: 0o600,
 		flag: "wx",
 	});
+	return {
+		commit: () => announceRescue(statePath, backupPath),
+		// Best-effort: a copy that cannot be taken back is untidy, not a
+		// reason to fail an update that has not written anything yet.
+		abandon: () => unlink(backupPath).catch(() => {}),
+	};
+}
+
+async function announceRescue(
+	statePath: string,
+	backupPath: string,
+): Promise<void> {
 	// Only once the copy exists — a full or read-only home makes the write
 	// throw, and announcing a path that was never created would send the user
-	// looking for a file that is not there. Its caller only reaches here when
-	// the write is committing, so the message is never a false alarm about a
-	// file that turned out to be fine. Discarding the live state used to say
-	// nothing at all, while failing to prune an old rescue already warned.
+	// looking for a file that is not there. Only once the write is committing,
+	// too, so the message is never a false alarm about a file that turned out
+	// to be fine. Discarding the live state used to say nothing at all, while
+	// failing to prune an old rescue already warned.
 	console.warn(
 		`Superset could not parse ${statePath}; a copy of its contents was saved to ${backupPath}.`,
 	);
@@ -160,15 +185,17 @@ async function stateFingerprint(statePath: string): Promise<string | null> {
 /** Writes the mutated state, unless the file changed since `before` — in
  * which case the caller has to re-read and re-apply, since this snapshot no
  * longer has the other writer's bytes in it. `rescue`, when the read was
- * unparsable, runs in the one moment those bytes are known to be lost: past
- * the fingerprint check, so an abandoned attempt never calls it, and still
- * before the rename, so a rescue that cannot be written aborts the update
- * with the corrupt file intact. */
+ * unparsable, writes its copy in the one moment those bytes are known to be
+ * lost: past the fingerprint check, so an abandoned attempt never copies
+ * anything, and still before the rename, so a rescue that cannot be written
+ * aborts the update with the corrupt file intact. Only the copy happens
+ * there — announcing and pruning wait until the fingerprint has had the last
+ * word. */
 async function writeIfUnchanged(
 	statePath: string,
 	next: ClaudeState,
 	before: string | null,
-	rescue?: () => Promise<void>,
+	rescue?: () => Promise<RescuedBytes>,
 ): Promise<boolean> {
 	const temporaryPath = `${statePath}.${process.pid}.${randomUUID()}.tmp`;
 	try {
@@ -180,7 +207,18 @@ async function writeIfUnchanged(
 			await unlink(temporaryPath).catch(() => {});
 			return false;
 		}
-		await rescue?.();
+		const rescued = await rescue?.();
+		// Writing the copy is directory I/O, so the file can settle while it
+		// runs — and the tmp file already holds a mutation of empty state,
+		// which would sign the user out and drop every folder-trust entry the
+		// settling writer had just saved. The check goes last, with nothing
+		// but the rename behind it.
+		if ((await stateFingerprint(statePath)) !== before) {
+			await rescued?.abandon();
+			await unlink(temporaryPath).catch(() => {});
+			return false;
+		}
+		await rescued?.commit();
 		await rename(temporaryPath, statePath);
 		return true;
 	} catch (error) {
@@ -221,7 +259,7 @@ async function applyStateUpdate(
 	for (let attempt = 1; ; attempt++) {
 		const before = await stateFingerprint(statePath);
 		let state: ClaudeState = {};
-		let rescue: (() => Promise<void>) | undefined;
+		let rescue: (() => Promise<RescuedBytes>) | undefined;
 		const raw = await readExistingState(statePath);
 		if (raw !== null && raw.trim() !== "") {
 			const parsed = parseState(raw);

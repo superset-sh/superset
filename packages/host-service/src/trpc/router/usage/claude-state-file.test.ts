@@ -334,6 +334,76 @@ describe("updateClaudeStateFile", () => {
 		expect(readFileSync(join(dir, rescued), "utf-8")).toBe(corrupt);
 	});
 
+	// Writing the copy is directory I/O, so a non-atomic writer can settle
+	// while it runs — after the fingerprint check, before the rename. The tmp
+	// file at that point holds a mutation of EMPTY state, so renaming it would
+	// sign the user out, re-onboard them and drop every folder-trust entry the
+	// settling writer had just saved, leaving a copy of the torn prefix as the
+	// only trace.
+	it("does not clobber a writer that settles while the rescue is written", async () => {
+		const dir = tempDir();
+		const file = join(dir, ".claude.json");
+		writeFileSync(file, '{"userID":"user-a","hasCompletedOn');
+		// Three genuine rescues, already at the cap: an abandoned attempt must
+		// not prune them either.
+		const kept = ["2020-a", "2020-b", "2020-c"].map(
+			(stamp) => `.claude.json.${stamp}.superset-swap-bak`,
+		);
+		for (const name of kept) writeFileSync(join(dir, name), name);
+		const settled = JSON.stringify({
+			userID: "user-a",
+			hasCompletedOnboarding: true,
+			projects: { "/tmp/other": { hasTrustDialogAccepted: true } },
+		});
+		let passes = 0;
+		let parseWarnings: unknown[][] = [];
+		const realWriteFile = fsPromises.writeFile.bind(fsPromises);
+		const writeFile = spyOn(fsPromises, "writeFile").mockImplementation((async (
+			path: Parameters<typeof realWriteFile>[0],
+			data: Parameters<typeof realWriteFile>[1],
+			options: Parameters<typeof realWriteFile>[2],
+		) => {
+			const written = await realWriteFile(path, data, options);
+			// The CLI finishes its write while Superset saves the copy.
+			if (String(path).endsWith(".superset-swap-bak")) {
+				writeFileSync(file, settled);
+			}
+			return written;
+		}) as unknown as typeof fsPromises.writeFile);
+		const warn = spyOn(console, "warn").mockImplementation(() => {});
+
+		try {
+			await updateClaudeStateFile(file, (state) => {
+				passes++;
+				return { ...state, seeded: true };
+			});
+
+			// Collected before the spy is restored, which clears its calls.
+			parseWarnings = warn.mock.calls.filter((call) =>
+				String(call[0]).includes("could not parse"),
+			);
+		} finally {
+			writeFile.mockRestore();
+			warn.mockRestore();
+		}
+
+		// The settling writer's state stands, with the mutation on top of it.
+		expect(JSON.parse(readFileSync(file, "utf-8"))).toEqual({
+			userID: "user-a",
+			hasCompletedOnboarding: true,
+			projects: { "/tmp/other": { hasTrustDialogAccepted: true } },
+			seeded: true,
+		});
+		expect(passes).toBe(2);
+		// The copy was taken back, and the rescues at the cap are untouched.
+		expect(
+			readdirSync(dir)
+				.filter((name) => name.endsWith(".superset-swap-bak"))
+				.sort(),
+		).toEqual(kept);
+		expect(parseWarnings).toHaveLength(0);
+	});
+
 	// The bytes a rescue saves are the only copy left, so two of them in the
 	// same millisecond must not share a name: the second used to fail EEXIST
 	// and be discarded as though the first had already saved it.
