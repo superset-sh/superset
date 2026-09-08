@@ -34,6 +34,7 @@ import { and, asc, count, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import type Stripe from "stripe";
 import { env } from "./env";
 import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
+import { captureBillingEvent } from "./lib/billing-analytics";
 import { jwksAdapter } from "./lib/cached-jwks";
 import { generateMagicTokenForInvite } from "./lib/generate-magic-token";
 import { getActivationVariant } from "./lib/lifecycle";
@@ -1214,6 +1215,28 @@ export const auth = betterAuth({
 							error,
 						);
 					}
+
+					// The paid conversion. Emitted here rather than from an
+					// `onEvent` case for `checkout.session.completed` because Better
+					// Auth calls both for that one webhook, and this hook is the side
+					// that already knows the plan, seat count and interval.
+					await captureBillingEvent({
+						event: "subscription_started",
+						organizationId: subscription.referenceId,
+						initiatedByUserId: stripeSubscription.metadata?.userId,
+						properties: {
+							plan: plan.name,
+							billing_interval: billingInterval,
+							seats: subscription.seats ?? 1,
+							// Deliberately not `revenue`: that property is what PostHog
+							// revenue analytics sums, and `payment_succeeded` below is the
+							// one event where money actually moved. Naming it here too
+							// would double-count every subscription.
+							subscription_value: pricePerSeat * (subscription.seats ?? 1),
+							currency,
+							stripe_subscription_id: stripeSubscription.id,
+						},
+					});
 				},
 
 				onSubscriptionCancel: async ({
@@ -1373,6 +1396,22 @@ export const auth = betterAuth({
 								);
 							}
 						}
+
+						await captureBillingEvent({
+							event: "payment_failed",
+							organizationId: org.id,
+							initiatedByUserId:
+								invoice.parent?.subscription_details?.metadata?.userId,
+							properties: {
+								// No money moved, so this must not be `revenue`.
+								amount_due: invoice.amount_due,
+								currency: invoice.currency,
+								attempt_count: invoice.attempt_count ?? 0,
+								is_final_attempt: isFinalAttempt,
+								already_cancelled: alreadyCancelled,
+								stripe_subscription_id: stripeSubId ?? null,
+							},
+						});
 					}
 
 					if (event.type === "invoice.upcoming") {
@@ -1440,8 +1479,11 @@ export const auth = betterAuth({
 					if (event.type === "invoice.paid") {
 						const invoice = event.data.object as Stripe.Invoice;
 
-						const stripeSubId = invoice.parent?.subscription_details
-							?.subscription as string | undefined;
+						const subscriptionDetails =
+							invoice.parent?.subscription_details ?? undefined;
+						const stripeSubId = subscriptionDetails?.subscription as
+							| string
+							| undefined;
 
 						if (stripeSubId) {
 							try {
@@ -1463,6 +1505,50 @@ export const auth = betterAuth({
 									error,
 								);
 							}
+						}
+
+						// `referenceId` is the organization id — Better Auth writes it
+						// onto the subscription, and Stripe copies subscription metadata
+						// onto every invoice it raises, so this needs no lookup.
+						const organizationId = subscriptionDetails?.metadata?.referenceId;
+
+						if (organizationId) {
+							await captureBillingEvent({
+								event: "payment_succeeded",
+								organizationId,
+								initiatedByUserId: subscriptionDetails?.metadata?.userId,
+								properties: {
+									revenue: invoice.amount_paid,
+									currency: invoice.currency,
+									// `subscription_create` is the first payment, everything
+									// else is a renewal or a seat change.
+									billing_reason: invoice.billing_reason,
+									stripe_subscription_id: stripeSubId ?? null,
+								},
+							});
+						}
+					}
+
+					// Stripe expires an unpaid Checkout session ~24h after it opens, so
+					// this arrives late by design. It is the only signal that someone
+					// reached the payment page and did not pay — the paid side comes
+					// through `onSubscriptionComplete` instead.
+					if (event.type === "checkout.session.expired") {
+						const session = event.data.object as Stripe.Checkout.Session;
+						const organizationId = session.metadata?.organizationId;
+
+						if (organizationId) {
+							await captureBillingEvent({
+								event: "checkout_abandoned",
+								organizationId,
+								initiatedByUserId: session.metadata?.userId,
+								properties: {
+									// No money moved, so this must not be `revenue`.
+									abandoned_value: session.amount_total ?? 0,
+									currency: session.currency ?? "usd",
+									stripe_session_id: session.id,
+								},
+							});
 						}
 					}
 

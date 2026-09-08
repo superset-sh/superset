@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { rawErrorMessage } from "@superset/i18n/errors";
 import { formatPrice } from "@superset/i18n/format";
 import { isPaymentFailingStatus } from "@superset/shared/billing";
 import { Button } from "@superset/ui/button";
@@ -9,6 +10,7 @@ import { HiArrowRight } from "react-icons/hi2";
 import { env } from "renderer/env.renderer";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { resolveCurrentPlan } from "renderer/hooks/useCurrentPlan";
+import { track } from "renderer/lib/analytics";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -91,6 +93,16 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 	const handleUpgrade = async (annual = false) => {
 		if (!activeOrgId || memberCount === undefined) return;
 
+		// Second route into Stripe Checkout, alongside the plans page. `source`
+		// is what lets the funnel tell them apart.
+		const checkoutProperties = {
+			plan: "pro",
+			annual,
+			seats: memberCount,
+			source: "billing_overview",
+		};
+		track("checkout_started", checkoutProperties);
+
 		setIsUpgrading(true);
 		try {
 			await authClient.subscription.upgrade(
@@ -106,8 +118,18 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 				{
 					onSuccess: (ctx) => {
 						if (ctx.data?.url) {
+							track("checkout_redirected", checkoutProperties);
 							window.open(ctx.data.url, "_blank");
 						}
+					},
+					// Better Auth resolves rather than throws, so without this hook a
+					// failed checkout is invisible: the button just resets.
+					onError: (ctx) => {
+						track("checkout_failed", {
+							...checkoutProperties,
+							status: ctx.response?.status,
+							error: rawErrorMessage(ctx.error),
+						});
 					},
 				},
 			);
