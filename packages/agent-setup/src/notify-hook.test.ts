@@ -536,6 +536,39 @@ describe("agent identity precedence", () => {
 		]);
 	});
 
+	it.each([
+		"opencode",
+		"",
+	])("captures OpenCode's resumable session with wrapper identity %j", async (wrapperIdentity) => {
+		expect(
+			await dispatched(
+				{
+					SUPERSET_AGENT_ID: wrapperIdentity,
+					SUPERSET_HOOK_HARNESS: "opencode",
+				},
+				{ hook_event_name: "Stop", session_id: "ses_opencode" },
+			),
+		).toEqual([
+			{
+				terminalId: "terminal-test",
+				eventType: "Stop",
+				agent: { agentId: "opencode", sessionId: "ses_opencode" },
+			},
+		]);
+	});
+
+	it("drops a nested OpenCode plugin's lifecycle and session ID", async () => {
+		expect(
+			await dispatched(
+				{
+					SUPERSET_AGENT_ID: "claude",
+					SUPERSET_HOOK_HARNESS: "opencode",
+				},
+				{ hook_event_name: "Stop", session_id: "ses_child" },
+			),
+		).toEqual([]);
+	});
+
 	it("names the agent from the hook config when no wrapper exported an identity", async () => {
 		// The binary was resolved from the system PATH: the config that
 		// fired is the only identity there is.

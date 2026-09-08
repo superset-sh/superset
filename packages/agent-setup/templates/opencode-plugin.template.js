@@ -5,7 +5,7 @@
  * This plugin sends desktop notifications when OpenCode sessions need attention.
  * It hooks into session.status (busy/idle), session.idle, session.error, and permission.ask events.
  *
- * ROBUSTNESS FEATURES (v9):
+ * ROBUSTNESS FEATURES (v10):
  * - Session-scoped: Tracks root sessionID, ignores events from other sessions
  * - Deduplication: Only sends Start on idle→busy, Stop on busy→idle transitions
  * - Safe defaults: On error, assumes child session to avoid false positives
@@ -23,8 +23,8 @@
  * @see https://github.com/sst/opencode/blob/dev/packages/app/src/context/notification.tsx
  */
 export const SupersetNotifyPlugin = async ({ $, client }) => {
-  if (globalThis.__supersetOpencodeNotifyPluginV9) return {};
-  globalThis.__supersetOpencodeNotifyPluginV9 = true;
+  if (globalThis.__supersetOpencodeNotifyPluginV10) return {};
+  globalThis.__supersetOpencodeNotifyPluginV10 = true;
 
   // Only run inside a v2 Superset terminal session.
   if (!process?.env?.SUPERSET_TERMINAL_ID) return {};
@@ -45,14 +45,20 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
    * Sends a notification to Superset's notification server.
    * Best-effort only - failures are silently ignored to avoid breaking the agent.
    */
-  const notify = async (hookEventName) => {
-    const payload = JSON.stringify({ hook_event_name: hookEventName });
+  const notify = async (hookEventName, sessionID = rootSessionID) => {
+    // An event from a different root must not replace the active session's
+    // identity or end its binding (the host uses this ID for native resume).
+    if (rootSessionID && sessionID && sessionID !== rootSessionID) return;
+    const payload = JSON.stringify({
+      hook_event_name: hookEventName,
+      ...(sessionID ? { session_id: sessionID } : {}),
+    });
     log('Sending notification:', hookEventName);
     try {
-      // SUPERSET_AGENT_ID=opencode is exported by the opencode wrapper and
-      // inherited by every child of the opencode process, so the notify
-      // script reads the right id from env without any explicit forwarding.
-      await $`bash ${notifyPath} ${payload}`;
+      // Preserve the outer wrapper's identity. notify.sh drops this event
+      // when OpenCode runs under another harness, and uses this marker as
+      // its identity fallback when OpenCode bypasses the wrapper.
+      await $`SUPERSET_HOOK_HARNESS=opencode bash ${notifyPath} ${payload}`;
       log('Notification sent successfully');
     } catch (err) {
       log('Notification failed:', err?.message || err);
@@ -80,7 +86,10 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
     try {
       const sessions = await client.session.list();
       const session = sessions.data?.find((s) => s.id === sessionID);
-      const isChild = !!session?.parentID;
+      // A missing session is not proof of a root. Retry on a later event
+      // instead of caching a race with session creation as a root identity.
+      if (!session) return true;
+      const isChild = !!session.parentID;
       childSessionCache.set(sessionID, isChild);
       log('Session lookup:', sessionID, 'isChild:', isChild);
       return isChild;
@@ -113,7 +122,7 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
     if (currentState === 'idle') {
       currentState = 'busy';
       stopSent = false; // Reset stop flag for new busy period
-      await notify('Start');
+      await notify('Start', sessionID);
     } else {
       log('Already busy, skipping Start');
     }
@@ -136,7 +145,7 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
       currentState = 'idle';
       stopSent = true;
       log('Stopping, reason:', reason);
-      await notify('Stop');
+      await notify('Stop', sessionID);
       // Reset rootSessionID so we can track a new session if OpenCode starts another conversation
       rootSessionID = null;
       log('Reset rootSessionID for next session');
@@ -153,6 +162,7 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
         event.properties?.info?.id ??
         null;
       log('Event:', event.type, 'sessionID:', sessionID);
+      if (!sessionID) return;
 
       // SessionStart/SessionEnd give the host binding store its earliest/latest
       // signal — fired before any prompt arrives. Filter out child sessions so
@@ -163,7 +173,7 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
         // — by the time deletion fires the session is gone from list().
         if (sessionID) childSessionCache.set(sessionID, isChild);
         if (!isChild) {
-          await notify("SessionStart");
+          await notify("SessionStart", sessionID);
         }
         return;
       }
@@ -175,7 +185,7 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
             ? cachedIsChild
             : await isChildSession(sessionID);
         if (!isChild) {
-          await notify("SessionEnd");
+          await notify("SessionEnd", sessionID);
         }
         if (sessionID) childSessionCache.delete(sessionID);
         return;
@@ -194,7 +204,7 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
         event.type === "permission.asked" ||
         event.type === "question.asked"
       ) {
-        await notify("PermissionRequest");
+        await notify("PermissionRequest", sessionID);
         return;
       }
 
@@ -223,9 +233,11 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
         await handleStop(sessionID, 'session.error');
       }
     },
-    "permission.ask": async (_permission, output) => {
+    "permission.ask": async (permission, output) => {
       if (output.status === "ask") {
-        await notify("PermissionRequest");
+        const sessionID = permission?.sessionID ?? rootSessionID;
+        if (sessionID && await isChildSession(sessionID)) return;
+        await notify("PermissionRequest", sessionID);
       }
     },
   };

@@ -130,9 +130,9 @@ describe("agent-wrappers opencode", () => {
 	beforeEach(() => {
 		delete (
 			globalThis as typeof globalThis & {
-				__supersetOpencodeNotifyPluginV9?: boolean;
+				__supersetOpencodeNotifyPluginV10?: boolean;
 			}
-		).__supersetOpencodeNotifyPluginV9;
+		).__supersetOpencodeNotifyPluginV10;
 	});
 
 	afterEach(() => {
@@ -194,6 +194,125 @@ describe("agent-wrappers opencode", () => {
 		await hooks["permission.ask"]({}, { status: "ask" });
 
 		expect(notifications).toEqual(["PermissionRequest"]);
+	});
+
+	it("carries the root session through lifecycle events without accepting child or competing sessions", async () => {
+		process.env.SUPERSET_TERMINAL_ID = "terminal-1";
+		const { SupersetNotifyPlugin } = await loadOpenCodePlugin();
+		const notifications: unknown[] = [];
+		const commands: string[] = [];
+		const hooks = await SupersetNotifyPlugin({
+			$: (
+				parts: TemplateStringsArray,
+				_notifyPath: string,
+				payload: string,
+			) => {
+				commands.push(parts.join(""));
+				notifications.push(JSON.parse(payload));
+			},
+			client: {
+				session: {
+					list: async () => ({ data: [{ id: "root" }, { id: "other" }] }),
+				},
+			},
+		});
+		const event = (type: string, properties: Record<string, unknown>) =>
+			hooks.event({ event: { type, properties } });
+
+		await event("session.created", { info: { id: "root" } });
+		await event("session.status", {
+			sessionID: "root",
+			status: { type: "busy" },
+		});
+		await event("session.created", { info: { id: "child", parentID: "root" } });
+		await event("session.status", {
+			sessionID: "child",
+			status: { type: "busy" },
+		});
+		await event("permission.asked", { sessionID: "child" });
+		await event("session.created", { info: { id: "other" } });
+		await event("permission.asked", { sessionID: "other" });
+		await event("session.deleted", { info: { id: "other" } });
+		await event("permission.asked", { sessionID: "root" });
+		await event("session.idle", { sessionID: "root" });
+		await event("session.idle", { sessionID: "root" });
+		await event("session.deleted", { info: { id: "child", parentID: "root" } });
+		await event("session.deleted", { info: { id: "root" } });
+
+		expect(notifications).toEqual(
+			["SessionStart", "Start", "PermissionRequest", "Stop", "SessionEnd"].map(
+				(hook_event_name) => ({ hook_event_name, session_id: "root" }),
+			),
+		);
+		expect(
+			commands.every((command) =>
+				command.includes("SUPERSET_HOOK_HARNESS=opencode"),
+			),
+		).toBe(true);
+	});
+
+	it("captures resumed and subsequent root sessions without a session.created event", async () => {
+		process.env.SUPERSET_TERMINAL_ID = "terminal-1";
+		const { SupersetNotifyPlugin } = await loadOpenCodePlugin();
+		const notifications: unknown[] = [];
+		const hooks = await SupersetNotifyPlugin({
+			$: (
+				_parts: TemplateStringsArray,
+				_notifyPath: string,
+				payload: string,
+			) => {
+				notifications.push(JSON.parse(payload));
+			},
+			client: {
+				session: {
+					list: async () => ({ data: [{ id: "resumed" }, { id: "next" }] }),
+				},
+			},
+		});
+		for (const sessionID of ["resumed", "next"]) {
+			await hooks.event({
+				event: {
+					type: "session.status",
+					properties: { sessionID, status: { type: "busy" } },
+				},
+			});
+			await hooks["permission.ask"]({ sessionID }, { status: "ask" });
+			await hooks.event({
+				event: { type: "session.idle", properties: { sessionID } },
+			});
+		}
+		expect(notifications).toEqual(
+			["resumed", "next"].flatMap((session_id) =>
+				["Start", "PermissionRequest", "Stop"].map((hook_event_name) => ({
+					hook_event_name,
+					session_id,
+				})),
+			),
+		);
+	});
+
+	it("does not bind missing or unverified sessions", async () => {
+		process.env.SUPERSET_TERMINAL_ID = "terminal-1";
+		const { SupersetNotifyPlugin } = await loadOpenCodePlugin();
+		const notify = mock(() => {});
+		const hooks = await SupersetNotifyPlugin({
+			$: notify,
+			client: { session: { list: async () => ({ data: [] }) } },
+		});
+		await hooks.event({ event: { type: "session.created", properties: {} } });
+		await hooks.event({
+			event: {
+				type: "session.status",
+				properties: { sessionID: "unknown", status: { type: "busy" } },
+			},
+		});
+		await hooks.event({
+			event: {
+				type: "session.deleted",
+				properties: { info: { id: "unknown" } },
+			},
+		});
+		expect(notify).not.toHaveBeenCalled();
 	});
 });
 
