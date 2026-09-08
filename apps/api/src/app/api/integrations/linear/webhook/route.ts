@@ -8,7 +8,7 @@ import { env } from "@/env";
 import { recordWebhookDelivery } from "@/lib/ingest/recordWebhookDelivery";
 import { stripNullChars } from "@/lib/strip-null-chars";
 import { verifyHookdeckDelivery } from "@/lib/webhooks/hookdeck";
-import { deliveryEventId } from "./deliveryIds";
+import { deliveryRowEventId } from "./deliveryIds";
 import { hasActiveSubscriber } from "./processDelivery";
 import { enqueueLinearDelivery } from "./queue";
 
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
 	}
 
 	const deliveryId = request.headers.get("linear-delivery");
-	const eventId = deliveryEventId(payload, deliveryId);
+	const eventId = deliveryRowEventId(payload, deliveryId);
 
 	const accepted = await recordWebhookDelivery({
 		provider: "linear",

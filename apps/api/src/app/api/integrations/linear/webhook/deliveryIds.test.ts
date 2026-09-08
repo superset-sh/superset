@@ -2,8 +2,11 @@ import { describe, expect, test } from "bun:test";
 
 import {
 	connectionEventId,
+	DELIVERY_PREFIX_LENGTH,
 	type DeliveryIdentity,
 	deliveryEventId,
+	deliveryHeaderFromRow,
+	deliveryRowEventId,
 } from "./deliveryIds";
 
 const CONNECTION = "11111111-1111-1111-1111-111111111111";
@@ -75,5 +78,70 @@ describe("connectionEventId", () => {
 		const id = deliveryEventId(delivery(), "delivery-1");
 
 		expect(connectionEventId(CONNECTION, id)).not.toBe(id);
+	});
+});
+
+describe("deliveryHeaderFromRow", () => {
+	const header = "b8c5d0aa-0000-4000-8000-000000000000";
+
+	test("refuses a per-connection row, so the sweep cannot re-queue a fragment", () => {
+		const connectionRow = connectionEventId(
+			CONNECTION,
+			deliveryEventId(delivery(), header),
+		);
+
+		expect(deliveryHeaderFromRow(connectionRow)).toBeUndefined();
+	});
+
+	test("refuses a row recorded before this format existed", () => {
+		expect(deliveryHeaderFromRow(header)).toBeUndefined();
+		expect(
+			deliveryHeaderFromRow("org-1-1757000000000-Issue-issue-1"),
+		).toBeUndefined();
+	});
+
+	test("refuses a near miss rather than guessing", () => {
+		expect(deliveryHeaderFromRow("delivery:")).toBeUndefined();
+		expect(deliveryHeaderFromRow("delivery:x:whatever")).toBeUndefined();
+		expect(deliveryHeaderFromRow("Delivery:h:abc")).toBeUndefined();
+	});
+
+	test("round-trips a delivery that carried a header", () => {
+		expect(deliveryHeaderFromRow(deliveryRowEventId(delivery(), header))).toBe(
+			header,
+		);
+	});
+
+	test("round-trips a delivery that carried none, as null and not as a string", () => {
+		const row = deliveryRowEventId(delivery(), null);
+
+		// null and undefined mean different things here: null is "there was no
+		// header", undefined is "this is not a delivery row".
+		expect(deliveryHeaderFromRow(row)).toBeNull();
+	});
+
+	test("re-deriving the queued header reproduces the original ids exactly", () => {
+		for (const original of [header, null]) {
+			const row = deliveryRowEventId(delivery(), original);
+			const recovered = deliveryHeaderFromRow(row) ?? null;
+
+			expect(
+				connectionEventId(CONNECTION, deliveryEventId(delivery(), recovered)),
+			).toBe(
+				connectionEventId(CONNECTION, deliveryEventId(delivery(), original)),
+			);
+		}
+	});
+
+	test("the marker length the sweep matches on covers exactly the prefix", () => {
+		const row = deliveryRowEventId(delivery(), header);
+
+		expect(row.slice(0, DELIVERY_PREFIX_LENGTH)).toBe("delivery:");
+		expect(
+			connectionEventId(CONNECTION, deliveryEventId(delivery(), header)).slice(
+				0,
+				DELIVERY_PREFIX_LENGTH,
+			),
+		).not.toBe("delivery:");
 	});
 });

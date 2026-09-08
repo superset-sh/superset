@@ -60,8 +60,14 @@ export async function POST(request: Request): Promise<Response> {
 	}
 
 	// A QStash redelivery of work that already finished, or a Linear retry that
-	// got past both dedup windows.
-	if (accepted.status === "processed" || accepted.status === "skipped") {
+	// got past both dedup windows. `abandoned` is the sweep's give-up state: a
+	// message still arriving for one is a straggler from before it was written
+	// off, and running it would undo the giving up.
+	if (
+		accepted.status === "processed" ||
+		accepted.status === "skipped" ||
+		accepted.status === "abandoned"
+	) {
 		return Response.json({ skipped: `already ${accepted.status}` });
 	}
 
