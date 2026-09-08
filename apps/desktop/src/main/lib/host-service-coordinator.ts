@@ -908,6 +908,15 @@ export class HostServiceCoordinator extends EventEmitter {
 				// Avoid a flashing CMD window on Windows.
 				windowsHide: true,
 			});
+			// ENOENT/EACCES arrive on the child asynchronously, even when the
+			// missing-pid check below has already rejected and cleaned up startup.
+			// Keep a listener attached so a failed launcher cannot crash Electron.
+			child.on("error", (error) => {
+				log.error(
+					`[host-service:${organizationId}] failed to launch host service`,
+					error,
+				);
+			});
 		} catch (error) {
 			logStream?.end();
 			throw error;
