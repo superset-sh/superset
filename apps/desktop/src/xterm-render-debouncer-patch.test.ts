@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from "bun:test";
+import { afterAll, afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
@@ -57,8 +57,24 @@ afterAll(async () => {
 
 const { Terminal } = await import("@xterm/xterm");
 
+// The frame stubs below live on the process-wide window, which outlives this
+// file when another suite registered happy-dom first (`alreadyRegistered`, so
+// afterAll does not unregister). Leaving a queue that only this file drains
+// would silently strand every later rAF, so restore after each test.
+let restoreFrames: (() => void) | undefined;
+afterEach(() => {
+	restoreFrames?.();
+	restoreFrames = undefined;
+});
+
 /** Deterministic frames: xterm schedules through the window it was opened in. */
 function captureFrames() {
+	const requestAnimationFrame = window.requestAnimationFrame;
+	const cancelAnimationFrame = window.cancelAnimationFrame;
+	restoreFrames = () => {
+		window.requestAnimationFrame = requestAnimationFrame;
+		window.cancelAnimationFrame = cancelAnimationFrame;
+	};
 	const frames = new Map<number, FrameRequestCallback>();
 	let nextId = 1;
 	window.requestAnimationFrame = (callback) => {
