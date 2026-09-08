@@ -863,9 +863,15 @@ export class AccountEngine {
 			await this.followOwner(AGENTS);
 			return;
 		}
-		// Nothing to decide with every agent's auto-switch off, but the lock
-		// stays claimed.
-		if (agents.length === 0) return;
+		// There is nothing to *decide* with every agent's auto-switch off, and
+		// everything below skips itself on an empty agent list — the refresh
+		// schedule, the decision loop, the broadcasts, the limit-hint pass. The
+		// tick does not return here because identity maintenance is not part of
+		// the decision: a manual switch runs whatever this flag says and is what
+		// records `lastWritten`, so gating the repair on auto-switch left a host
+		// in the default configuration with a drifted active dir that nothing
+		// ever re-asserted or parked — and every later manual switch refused as
+		// `owner-unknown`. The lock stays claimed either way (KTD5).
 
 		const runtime = this.state.readRuntime();
 		const runtimeBefore = JSON.stringify(runtime);
@@ -886,10 +892,13 @@ export class AccountEngine {
 		// tick that lost it writes nothing more (KTD5).
 		if (!this.ensureOwnership(this.now())) return;
 
-		if (agents.includes("claude")) {
-			await this.reassertClaudeIdentity(runtime, settings.claude, now);
-			if (!this.ensureOwnership(this.now())) return;
-		}
+		// Not gated on Claude's auto-switch: the flag decides whether this host
+		// *chooses* a login, and the active dir needs re-asserting whoever put
+		// the login there. `reassertClaudeIdentity` no-ops on a dir this host
+		// never activated (`expected === null`), so a host that has never
+		// switched still reads nothing.
+		await this.reassertClaudeIdentity(runtime, settings.claude, now);
+		if (!this.ensureOwnership(this.now())) return;
 
 		// The pass above resolved against whatever the store already held,
 		// which on the first tick after a boot is nothing at all: `refreshDue`

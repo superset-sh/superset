@@ -109,7 +109,7 @@ interface Harness {
 	reasserted: Record<string, unknown>[];
 }
 
-function harness(): Harness {
+function harness(options: { enabled?: boolean } = {}): Harness {
 	const state = new EngineState();
 	const runtime = state.readRuntime();
 	// What this host believes is active as the tick starts.
@@ -203,7 +203,9 @@ function harness(): Harness {
 		readActiveIdentity: async () => dir.current,
 		readCodexIdentity: async () => null,
 	});
-	expect(engine.setSettings("claude", { enabled: true }).ok).toBe(true);
+	expect(
+		engine.setSettings("claude", { enabled: options.enabled ?? true }).ok,
+	).toBe(true);
 	return { engine, state, switched, states, reasserted, dir };
 }
 
@@ -255,23 +257,35 @@ describe("an active dir whose identity drifted", () => {
 		expect(persistedActive(h.state)).toBe("acct-a");
 	});
 
-	it("still re-asserts its own identity block after it has written the dir", async () => {
-		// CONTROL. A switch this process performed, then a running Claude Code
-		// rewriting `.claude.json` from the identity it started with: the
-		// credential is still the one we wrote, so only the block drifted.
-		const h = harness();
-		expect((await h.engine.switchManually("claude", "/profiles/b")).ok).toBe(
-			true,
-		);
-		h.dir.current = { accountUuid: "acct-a", credentialHash: "hash-b" };
+	// Auto-switch is the flag that decides whether this host *chooses* a login.
+	// A manual switch runs whatever it says and is what records `lastWritten`,
+	// so the drift below happens in both configurations — and with the repair
+	// gated on the flag, the default one (off) never re-asserted and never
+	// parked, leaving every later manual switch away from B to be refused
+	// `owner-unknown` against a block still naming A.
+	for (const enabled of [true, false]) {
+		it(`still re-asserts its own identity block after it has written the dir, auto-switch ${enabled ? "on" : "off"}`, async () => {
+			// CONTROL. A switch this process performed, then a running Claude Code
+			// rewriting `.claude.json` from the identity it started with: the
+			// credential is still the one we wrote, so only the block drifted.
+			const h = harness({ enabled });
+			expect((await h.engine.switchManually("claude", "/profiles/b")).ok).toBe(
+				true,
+			);
+			h.dir.current = { accountUuid: "acct-a", credentialHash: "hash-b" };
 
-		await h.engine.tick();
+			await h.engine.tick();
 
-		expect(h.reasserted).toEqual([{ oauthAccount: { accountUuid: "acct-b" } }]);
-		expect(persistedActive(h.state)).toBe("acct-b");
-		// Nothing was adopted: the only switch on the bus is the manual one.
-		expect(h.switched.map((payload) => payload.reasonKind)).toEqual(["manual"]);
-	});
+			expect(h.reasserted).toEqual([
+				{ oauthAccount: { accountUuid: "acct-b" } },
+			]);
+			expect(persistedActive(h.state)).toBe("acct-b");
+			// Nothing was adopted: the only switch on the bus is the manual one.
+			expect(h.switched.map((payload) => payload.reasonKind)).toEqual([
+				"manual",
+			]);
+		});
+	}
 
 	it("still parks on a pair it cannot tell apart after it has written the dir", async () => {
 		// CONTROL. The credential changed *and* the block names the account the
