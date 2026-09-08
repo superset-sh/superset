@@ -29,6 +29,11 @@ export const ENGINE_ERROR_CODES = [
 	"engine-unavailable",
 	"invalid-settings",
 	"engine-state-unusable",
+	// A removal Superset cannot clear: nothing on this host — runtime record,
+	// pointer, nor the active dir's own identity — says which login is live,
+	// so it will not delete a dir blind. The UI turns it into an
+	// acknowledgement that re-sends the removal with the override.
+	"active-account-unknown",
 ] as const;
 
 export type UsageEngineErrorCode = (typeof ENGINE_ERROR_CODES)[number];

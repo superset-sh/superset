@@ -359,6 +359,135 @@ describe("usageRouter.removeAccount", () => {
 			rmSync(profile, { recursive: true, force: true });
 		}
 	});
+
+	// KTD2/KTD4: from the first swap onwards the pointer names Superset's own
+	// active dir, and only the engine's runtime record says which login was
+	// swapped into it. Without that record nothing above can name the live
+	// account — so the dir's own identity is asked instead.
+	function pointAtActiveDir(): void {
+		mkdirSync(join(home, "state"), { recursive: true });
+		writeFileSync(
+			join(home, "state", "default-claude-config-dir"),
+			join(home, "accounts", "claude-active"),
+		);
+	}
+
+	/** The login sitting in the active dir; null writes the dir with no
+	 * identity in it, which is a host that cannot say who is live. */
+	function writeActiveIdentity(accountId: string | null): void {
+		const activeDir = join(home, "accounts", "claude-active");
+		mkdirSync(activeDir, { recursive: true });
+		if (accountId === null) return;
+		writeFileSync(
+			join(activeDir, ".claude.json"),
+			JSON.stringify({
+				oauthAccount: { accountUuid: accountId, emailAddress: "a@example.com" },
+			}),
+		);
+	}
+
+	/** No runtime record: the engine never ran, its file was lost, or its
+	 * state dir is unusable and every write no-ops. */
+	function dropRuntime(): void {
+		rmSync(join(home, "state", "account-engine", "runtime.json"), {
+			force: true,
+		});
+	}
+
+	it("refuses the profile whose login the active dir holds when no runtime record names it", async () => {
+		const profile = mkdtempSync(
+			join(homedir(), ".claude-usage-router-unknown-"),
+		);
+		try {
+			pointAtActiveDir();
+			dropRuntime();
+			// uuid-b is the account `lockContext` puts at `profile`, so the dir
+			// being deleted is the source of the login every session is on.
+			writeActiveIdentity("uuid-b");
+
+			await expect(
+				usageRouter
+					.createCaller(lockContext(profile, () => true))
+					.removeAccount({ agent: "claude", selection: profile }),
+			).rejects.toThrow(/switch/i);
+			expect(existsSync(profile)).toBe(true);
+			expect(invalidate).not.toHaveBeenCalled();
+		} finally {
+			rmSync(profile, { recursive: true, force: true });
+		}
+	});
+
+	// The state dir is where the runtime record lives, so on a host with an
+	// unusable one the answer above is unknown forever — and no switch is
+	// available there either. Refusing on `unknown` alone would leave every
+	// profile permanently undeletable; the active dir's identity is read
+	// outside that dir, so it still names the live account.
+	it("still removes a non-active profile when the state dir is unusable and no runtime record exists", async () => {
+		const profile = mkdtempSync(
+			join(homedir(), ".claude-usage-router-unknown-perm-"),
+		);
+		try {
+			pointAtActiveDir();
+			dropRuntime();
+			// The live login is the other account, so this profile is free.
+			writeActiveIdentity("uuid-a");
+			chmodSync(join(home, "state", "account-engine"), 0o777);
+
+			await usageRouter
+				.createCaller(lockContext(profile, () => false))
+				.removeAccount({ agent: "claude", selection: profile });
+
+			expect(existsSync(profile)).toBe(false);
+			expect(invalidate).toHaveBeenCalledWith(quotaEntryKey("claude", profile));
+		} finally {
+			rmSync(profile, { recursive: true, force: true });
+		}
+	});
+
+	it("refuses with its own code when the active dir cannot say who is live either", async () => {
+		const profile = mkdtempSync(join(homedir(), ".claude-usage-router-blind-"));
+		try {
+			pointAtActiveDir();
+			dropRuntime();
+			writeActiveIdentity(null);
+
+			await expect(
+				usageRouter
+					.createCaller(lockContext(profile, () => true))
+					.removeAccount({ agent: "claude", selection: profile }),
+			).rejects.toThrow("active-account-unknown");
+			expect(existsSync(profile)).toBe(true);
+			expect(invalidate).not.toHaveBeenCalled();
+		} finally {
+			rmSync(profile, { recursive: true, force: true });
+		}
+	});
+
+	// The refusal above must not be a dead end: a user who has been told
+	// Superset cannot tell which login is live can still remove the profile.
+	it("removes a profile the caller acknowledged the unknown active account for", async () => {
+		const profile = mkdtempSync(
+			join(homedir(), ".claude-usage-router-blind-ack-"),
+		);
+		try {
+			pointAtActiveDir();
+			dropRuntime();
+			writeActiveIdentity(null);
+
+			await usageRouter
+				.createCaller(lockContext(profile, () => true))
+				.removeAccount({
+					agent: "claude",
+					selection: profile,
+					acknowledgeUnknownActive: true,
+				});
+
+			expect(existsSync(profile)).toBe(false);
+			expect(invalidate).toHaveBeenCalledWith(quotaEntryKey("claude", profile));
+		} finally {
+			rmSync(profile, { recursive: true, force: true });
+		}
+	});
 });
 
 /**

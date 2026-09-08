@@ -17,6 +17,7 @@ import {
 } from "./account-provisioning";
 import { readDefaultLoginEmail } from "./claude";
 import {
+	activeClaudeConfigDirPath,
 	applyAccountEngineState,
 	isActiveAccount,
 	readAccountEngineView,
@@ -30,7 +31,11 @@ import {
 } from "./engine";
 import { countAgentPrsByDay } from "./history/agent-prs";
 import { removeClaudeProfile, removeCodexHome } from "./profile-remove";
-import { discoverClaudeProfiles, discoverCodexHomes } from "./profiles";
+import {
+	discoverClaudeProfiles,
+	discoverCodexHomes,
+	readClaudeIdentity,
+} from "./profiles";
 import type { UsageAccount } from "./types";
 
 export const usageRouter = router({
@@ -191,6 +196,13 @@ export const usageRouter = router({
 			z.object({
 				agent: z.enum(["claude", "codex"]),
 				selection: z.string(),
+				/**
+				 * The caller has told the user Superset cannot tell which login
+				 * is live and they chose to remove anyway. Only the genuinely
+				 * unknown refusal below honours it; an account known to be
+				 * active is still refused.
+				 */
+				acknowledgeUnknownActive: z.boolean().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -231,7 +243,12 @@ export const usageRouter = router({
 					message: `No removable ${input.agent} profile at ${input.selection}.`,
 				});
 			}
-			const refuseIfActive = (account: UsageAccount): void => {
+			const activeAccountRefusal = (): TRPCError =>
+				new TRPCError({
+					code: "BAD_REQUEST",
+					message: `This is the active ${input.agent} account — switch to another account first, then remove it.`,
+				});
+			const refuseIfActive = async (account: UsageAccount): Promise<void> => {
 				const engineStatus = ctx.runtime.accountEngine?.status()[input.agent];
 				const view = readAccountEngineView(ctx.db);
 				// The row can own more than one dir, and the request names one of
@@ -253,13 +270,38 @@ export const usageRouter = router({
 						account.accountId === engineStatus.activeAccountId) ||
 					(engineStatus?.activeSelection != null &&
 						account.selection === engineStatus.activeSelection);
-				if (!active) return;
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: `This is the active ${input.agent} account — switch to another account first, then remove it.`,
-				});
+				if (active) throw activeAccountRefusal();
+				// KTD4: the pointer names the active dir and nothing recorded
+				// which login was swapped into it, so every test above compared
+				// against null and answered "not active" — including
+				// `isActiveAccount`, which deliberately shows no badge rather
+				// than a wrong one. `engine.status()` is no second witness: it
+				// reads the same runtime record. That state is permanent on a
+				// host whose engine state dir is unusable, so refusing outright
+				// would leave every profile undeletable, with no switch
+				// available to make one of them removable either.
+				// The active dir's own `.claude.json` still says whose login is
+				// in it — the same read the engine's `pointerAccount` falls back
+				// to when the pointer names that dir — and it lives outside the
+				// state dir, so an unusable one keeps it available.
+				// Only Claude has such a dir; Codex's pointer names the profile
+				// home itself, so its binding is never `unknown`.
+				if (input.agent !== "claude" || !view.claude.unknown) return;
+				const live = await readClaudeIdentity(activeClaudeConfigDirPath());
+				if (live?.accountId != null) {
+					if (live.accountId === account.accountId) {
+						throw activeAccountRefusal();
+					}
+					return;
+				}
+				// Nobody can say which login is live. Deleting blind is the one
+				// unrecoverable outcome, so refuse — but with a code of its own
+				// so the UI can offer the removal behind an explicit
+				// acknowledgement instead of stranding the user.
+				if (input.acknowledgeUnknownActive === true) return;
+				throw engineError("active-account-unknown");
 			};
-			refuseIfActive(target);
+			await refuseIfActive(target);
 			// A switch can land between the check above and the delete below —
 			// they are separated by awaits — and removing the dir every running
 			// session is signed in to is not recoverable. Both reads are cheap
@@ -274,7 +316,7 @@ export const usageRouter = router({
 						(account.selection === input.selection ||
 							account.duplicateSelections?.includes(input.selection) === true),
 				);
-				refuseIfActive(current ?? target);
+				await refuseIfActive(current ?? target);
 				// The lane serialises this host-service only. Re-read the lock from
 				// disk here, the way every engine mutation re-checks at an awaited
 				// boundary — a switch that has swapped but not yet persisted its
