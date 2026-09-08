@@ -2220,9 +2220,6 @@ msgstr "Automatisations ({myFailedCount} en échec)"
 msgid "Automations & event triggers"
 msgstr "Automatisations et déclencheurs d'événements"
 
-msgid "Automations docs"
-msgstr "Documentation des automatisations"
-
 msgid "Automations, {myFailedCount} failing"
 msgstr "Automatisations, {myFailedCount} en échec"
 
@@ -4248,9 +4245,6 @@ msgstr "Crée un espace de travail pour la fonctionnalité d'authentification su
 msgid "Create an account"
 msgstr "Créer un compte"
 
-msgid "Create an automation with an agent"
-msgstr "Créer une automatisation avec un agent"
-
 msgid "Create failed: {message}"
 msgstr "Échec de la création : {message}"
 
@@ -5467,9 +5461,6 @@ msgstr "Chaque agent s'exécute dans son propre worktree Git : dix agents peuven
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Chaque axe tire son poids pour le palier suivant. Tenez-le et le palier suivra."
 
-msgid "Every Friday at 4pm, draft release notes from this week's merged PRs"
-msgstr "Chaque vendredi à 16 h, rédige les notes de version à partir des pull requests fusionnées cette semaine"
-
 msgid "Every Friday at 4pm, draft release notes from this week's merged PRs."
 msgstr "Chaque vendredi à 16 h, rédige les notes de version à partir des pull requests fusionnées cette semaine."
 
@@ -5490,9 +5481,6 @@ msgstr "Chaque mercredi à 9 h, passe en revue les pull requests fusionnées cet
 
 msgid "Every weekday at 9am, read new GitHub issues, apply labels, and draft a first reply for my review."
 msgstr "Chaque jour ouvré à 9 h, lis les nouvelles issues GitHub, applique des labels et rédige une première réponse pour ma revue."
-
-msgid "Every weekday at 9am, triage new GitHub issues and draft replies for my review"
-msgstr "Chaque jour ouvré à 9 h, trie les nouvelles issues GitHub et rédige des réponses pour ma revue"
 
 msgid "Everyone argues about whether this generalizes. That argument is the sign the level was reached."
 msgstr "Tout le monde débat de savoir si cela se généralise. Ce débat est le signe que le niveau est atteint."
@@ -8455,6 +8443,9 @@ msgstr "Plus de thèmes {kindLower}"
 msgid "More actions"
 msgstr "Plus d'actions"
 
+msgid "More options"
+msgstr "Plus d’options"
+
 msgid "More pages"
 msgstr "Plus de pages"
 
@@ -8760,9 +8751,6 @@ msgstr "Suivant : {nextLabel}"
 
 msgid "Nice, open a PR when ready."
 msgstr "Parfait, ouvre une pull request quand c'est prêt."
-
-msgid "Nightly at 2am, find one small bug, fix it, and open a PR"
-msgstr "Chaque nuit à 2 h, trouve un petit bug, corrige-le et ouvre une pull request"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
@@ -10883,9 +10871,6 @@ msgstr "Public"
 msgid "Public leaderboard"
 msgstr "Classement public"
 
-msgid "Publish a page from an agent or the CLI and it will show up here."
-msgstr "Publiez une page depuis un agent ou la CLI et elle apparaîtra ici."
-
 msgid "Published"
 msgstr "Publiée"
 
@@ -12628,6 +12613,9 @@ msgstr "L'intensité est relative au jour le plus chargé de ce développeur"
 msgid "Share"
 msgstr "Partager"
 
+msgid "Share designs and reports. Let your agent handle the feedback."
+msgstr "Partagez des maquettes et des rapports. Laissez votre agent traiter les retours."
+
 msgid "Share page"
 msgstr "Partager la page"
 
@@ -13440,9 +13428,6 @@ msgstr "suite pour les interfaces d'agent, et les composants d'application parta
 
 msgid "Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
 msgstr "Somme du CPU utilisé par Superset et par les arborescences de processus des terminaux surveillés. Au-delà de 100 %, plusieurs cœurs CPU sont occupés. Des valeurs élevées prolongées entraînent généralement une interface lente et une consommation de batterie accrue."
-
-msgid "Summarize failed CI runs every morning before standup"
-msgstr "Résume les exécutions CI en échec chaque matin avant le point d'équipe"
 
 msgid "Summary"
 msgstr "Résumé"

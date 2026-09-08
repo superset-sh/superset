@@ -2220,9 +2220,6 @@ msgstr "Tự động hóa ({myFailedCount} đang lỗi)"
 msgid "Automations & event triggers"
 msgstr "Tự động hóa & trigger sự kiện"
 
-msgid "Automations docs"
-msgstr "Tài liệu tự động hóa"
-
 msgid "Automations, {myFailedCount} failing"
 msgstr "Tự động hóa, {myFailedCount} đang lỗi"
 
@@ -4248,9 +4245,6 @@ msgstr "Tạo một workspace cho tính năng xác thực trên MacBook của t�
 msgid "Create an account"
 msgstr "Tạo tài khoản"
 
-msgid "Create an automation with an agent"
-msgstr "Tạo tự động hóa với một agent"
-
 msgid "Create failed: {message}"
 msgstr "Tạo thất bại: {message}"
 
@@ -5467,9 +5461,6 @@ msgstr "Mỗi agent chạy trong git worktree riêng, nên mười agent có th�
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Mọi trục đều đang góp sức cho hạng tiếp theo. Giữ được như vậy thì hạng sẽ tới."
 
-msgid "Every Friday at 4pm, draft release notes from this week's merged PRs"
-msgstr "Mỗi thứ Sáu lúc 4h chiều, soạn ghi chú phát hành từ các PR đã merge trong tuần"
-
 msgid "Every Friday at 4pm, draft release notes from this week's merged PRs."
 msgstr "Mỗi thứ Sáu lúc 4h chiều, soạn ghi chú phát hành từ các PR đã merge trong tuần."
 
@@ -5490,9 +5481,6 @@ msgstr "Mỗi thứ Tư lúc 9h sáng, xem lại các PR đã merge trong tuần
 
 msgid "Every weekday at 9am, read new GitHub issues, apply labels, and draft a first reply for my review."
 msgstr "Mỗi ngày trong tuần lúc 9h sáng, đọc issue GitHub mới, gán nhãn và soạn câu trả lời đầu tiên để tôi xem lại."
-
-msgid "Every weekday at 9am, triage new GitHub issues and draft replies for my review"
-msgstr "Mỗi ngày trong tuần lúc 9h sáng, phân loại issue GitHub mới và soạn câu trả lời để tôi xem lại"
 
 msgid "Everyone argues about whether this generalizes. That argument is the sign the level was reached."
 msgstr "Ai cũng tranh cãi liệu điều này có khái quát được không. Chính cuộc tranh cãi đó là dấu hiệu mức này đã đạt được."
@@ -8455,6 +8443,9 @@ msgstr "Thêm chủ đề {kindLower}"
 msgid "More actions"
 msgstr "Thêm hành động"
 
+msgid "More options"
+msgstr "Tùy chọn khác"
+
 msgid "More pages"
 msgstr "Thêm trang"
 
@@ -8760,9 +8751,6 @@ msgstr "Tiếp: {nextLabel}"
 
 msgid "Nice, open a PR when ready."
 msgstr "Tốt, mở PR khi sẵn sàng nhé."
-
-msgid "Nightly at 2am, find one small bug, fix it, and open a PR"
-msgstr "Hằng đêm lúc 2h sáng, tìm một lỗi nhỏ, sửa nó và mở một PR"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
@@ -10883,9 +10871,6 @@ msgstr "Công khai"
 msgid "Public leaderboard"
 msgstr "Bảng xếp hạng công khai"
 
-msgid "Publish a page from an agent or the CLI and it will show up here."
-msgstr "Xuất bản một trang từ agent hoặc CLI và nó sẽ xuất hiện ở đây."
-
 msgid "Published"
 msgstr "Phát hành"
 
@@ -12628,6 +12613,9 @@ msgstr "Độ đậm được tính theo ngày bận rộn nhất của nhà ph�
 msgid "Share"
 msgstr "Chia sẻ"
 
+msgid "Share designs and reports. Let your agent handle the feedback."
+msgstr "Chia sẻ thiết kế và báo cáo. Để tác nhân của bạn xử lý phản hồi."
+
 msgid "Share page"
 msgstr "Chia sẻ trang"
 
@@ -13440,9 +13428,6 @@ msgstr "cho giao diện agent, và các component dùng chung của ứng dụng
 
 msgid "Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
 msgstr "Tổng CPU mà Superset và các cây tiến trình terminal được theo dõi sử dụng. Trên 100% nghĩa là nhiều nhân CPU đang bận. Giá trị cao kéo dài thường làm giao diện chậm và hao pin hơn."
-
-msgid "Summarize failed CI runs every morning before standup"
-msgstr "Tóm tắt các lần chạy CI thất bại mỗi sáng trước standup"
 
 msgid "Summary"
 msgstr "Tóm tắt"

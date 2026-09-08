@@ -2220,9 +2220,6 @@ msgstr "Автоматизации (с ошибкой: {myFailedCount})"
 msgid "Automations & event triggers"
 msgstr "Автоматизации и триггеры по событиям"
 
-msgid "Automations docs"
-msgstr "Документация по автоматизациям"
-
 msgid "Automations, {myFailedCount} failing"
 msgstr "Автоматизации, с ошибкой: {myFailedCount}"
 
@@ -4248,9 +4245,6 @@ msgstr "Создай рабочую область для фичи автори�
 msgid "Create an account"
 msgstr "Создать аккаунт"
 
-msgid "Create an automation with an agent"
-msgstr "Создать автоматизацию с помощью агента"
-
 msgid "Create failed: {message}"
 msgstr "Не удалось создать: {message}"
 
@@ -5467,9 +5461,6 @@ msgstr "Каждый агент работает в собственном Git w
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Каждая ось работает на следующий уровень. Удержите это — уровень придёт сам."
 
-msgid "Every Friday at 4pm, draft release notes from this week's merged PRs"
-msgstr "Каждую пятницу в 16:00 готовь черновик release notes по объединённым за неделю PR"
-
 msgid "Every Friday at 4pm, draft release notes from this week's merged PRs."
 msgstr "Каждую пятницу в 16:00 готовь черновик release notes по объединённым за неделю PR."
 
@@ -5490,9 +5481,6 @@ msgstr "Каждую среду в 9:00 просматривай объедин�
 
 msgid "Every weekday at 9am, read new GitHub issues, apply labels, and draft a first reply for my review."
 msgstr "Каждый будний день в 9:00 читай новые задачи GitHub, расставляй метки и готовь первый черновик ответа мне на проверку."
-
-msgid "Every weekday at 9am, triage new GitHub issues and draft replies for my review"
-msgstr "Каждый будний день в 9:00 разбирай новые задачи GitHub и готовь черновики ответов мне на проверку"
 
 msgid "Everyone argues about whether this generalizes. That argument is the sign the level was reached."
 msgstr "Все спорят, обобщается ли это. Сам спор — признак того, что уровень достигнут."
@@ -8455,6 +8443,9 @@ msgstr "Ещё {kindLower} темы"
 msgid "More actions"
 msgstr "Ещё действия"
 
+msgid "More options"
+msgstr "Другие варианты"
+
 msgid "More pages"
 msgstr "Ещё страницы"
 
@@ -8760,9 +8751,6 @@ msgstr "Далее: {nextLabel}"
 
 msgid "Nice, open a PR when ready."
 msgstr "Отлично, открой PR, когда будет готово."
-
-msgid "Nightly at 2am, find one small bug, fix it, and open a PR"
-msgstr "Каждую ночь в 2:00 находи один мелкий баг, исправляй его и открывай PR"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
@@ -10883,9 +10871,6 @@ msgstr "Публичный"
 msgid "Public leaderboard"
 msgstr "Публичный рейтинг"
 
-msgid "Publish a page from an agent or the CLI and it will show up here."
-msgstr "Опубликуйте страницу из агента или CLI, и она появится здесь."
-
 msgid "Published"
 msgstr "Опубликовано"
 
@@ -12628,6 +12613,9 @@ msgstr "Насыщенность цвета отсчитывается от са
 msgid "Share"
 msgstr "Поделиться"
 
+msgid "Share designs and reports. Let your agent handle the feedback."
+msgstr "Делитесь дизайнами и отчётами. Пусть ваш агент обработает отзывы."
+
 msgid "Share page"
 msgstr "Поделиться страницей"
 
@@ -13440,9 +13428,6 @@ msgstr "для интерфейсов агентов и общие компон�
 
 msgid "Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
 msgstr "Суммарная загрузка CPU от Superset и отслеживаемых деревьев процессов терминала. Больше 100% означает, что заняты несколько ядер. Долго держащиеся высокие значения обычно вызывают подтормаживание интерфейса и ускоренный разряд батареи."
-
-msgid "Summarize failed CI runs every morning before standup"
-msgstr "Каждое утро перед стендапом делай сводку упавших запусков CI"
 
 msgid "Summary"
 msgstr "Сводка"

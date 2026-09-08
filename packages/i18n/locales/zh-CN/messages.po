@@ -2220,9 +2220,6 @@ msgstr "自动化（{myFailedCount}个失败）"
 msgid "Automations & event triggers"
 msgstr "自动化与事件触发"
 
-msgid "Automations docs"
-msgstr "自动化文档"
-
 msgid "Automations, {myFailedCount} failing"
 msgstr "自动化，{myFailedCount}个失败"
 
@@ -4248,9 +4245,6 @@ msgstr "在我的MacBook上为认证功能创建一个工作区"
 msgid "Create an account"
 msgstr "创建账户"
 
-msgid "Create an automation with an agent"
-msgstr "用智能体创建自动化"
-
 msgid "Create failed: {message}"
 msgstr "创建失败：{message}"
 
@@ -5467,9 +5461,6 @@ msgstr "每个智能体都跑在自己的Git worktree里，十个智能体可以
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "每个维度都在为下一等级出力。保持住，等级自然会来。"
 
-msgid "Every Friday at 4pm, draft release notes from this week's merged PRs"
-msgstr "每周五下午4点，根据本周合并的PR起草发布说明"
-
 msgid "Every Friday at 4pm, draft release notes from this week's merged PRs."
 msgstr "每周五下午4点，根据本周合并的PR起草发布说明。"
 
@@ -5490,9 +5481,6 @@ msgstr "每周三上午9点，回顾本周合并的PR，更新被它们改过时
 
 msgid "Every weekday at 9am, read new GitHub issues, apply labels, and draft a first reply for my review."
 msgstr "每个工作日上午9点，阅读新的GitHub议题，打上标签，并起草初步回复供我审阅。"
-
-msgid "Every weekday at 9am, triage new GitHub issues and draft replies for my review"
-msgstr "每个工作日上午9点，分类新的GitHub议题并起草回复供我审阅"
 
 msgid "Everyone argues about whether this generalizes. That argument is the sign the level was reached."
 msgstr "所有人都在争论这能否推广。这场争论本身就说明这一级别已经达到了。"
@@ -8455,6 +8443,9 @@ msgstr "更多{kindLower}主题"
 msgid "More actions"
 msgstr "更多操作"
 
+msgid "More options"
+msgstr "更多选项"
+
 msgid "More pages"
 msgstr "更多页面"
 
@@ -8760,9 +8751,6 @@ msgstr "下一级：{nextLabel}"
 
 msgid "Nice, open a PR when ready."
 msgstr "不错，准备好就开个PR。"
-
-msgid "Nightly at 2am, find one small bug, fix it, and open a PR"
-msgstr "每晚2点，找一个小bug，修好它并提一个PR"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
@@ -10883,9 +10871,6 @@ msgstr "公开"
 msgid "Public leaderboard"
 msgstr "公开排行榜"
 
-msgid "Publish a page from an agent or the CLI and it will show up here."
-msgstr "从智能体或CLI发布一个页面，它就会出现在这里。"
-
 msgid "Published"
 msgstr "发布时间"
 
@@ -12628,6 +12613,9 @@ msgstr "深浅以该开发者最忙的一天为基准"
 msgid "Share"
 msgstr "分享"
 
+msgid "Share designs and reports. Let your agent handle the feedback."
+msgstr "分享设计和报告，让你的智能体处理反馈。"
+
 msgid "Share page"
 msgstr "分享页面"
 
@@ -13440,9 +13428,6 @@ msgstr "套件，以及共享应用组件。点击任意导入路径即可复制
 
 msgid "Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
 msgstr "Superset与受监控的终端进程树占用的CPU总和。超过100%表示有多个CPU核心处于繁忙状态。持续偏高通常会导致界面卡顿和耗电增加。"
-
-msgid "Summarize failed CI runs every morning before standup"
-msgstr "每天早上站会前总结失败的CI运行"
 
 msgid "Summary"
 msgstr "摘要"

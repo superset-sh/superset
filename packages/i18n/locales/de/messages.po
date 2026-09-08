@@ -2220,9 +2220,6 @@ msgstr "Automatisierungen ({myFailedCount} fehlgeschlagen)"
 msgid "Automations & event triggers"
 msgstr "Automatisierungen & Ereignis-Trigger"
 
-msgid "Automations docs"
-msgstr "Automatisierungs-Doku"
-
 msgid "Automations, {myFailedCount} failing"
 msgstr "Automatisierungen, {myFailedCount} fehlgeschlagen"
 
@@ -4248,9 +4245,6 @@ msgstr "Erstelle einen Arbeitsbereich für das Auth-Feature auf meinem MacBook"
 msgid "Create an account"
 msgstr "Konto erstellen"
 
-msgid "Create an automation with an agent"
-msgstr "Automatisierung mit einem Agenten erstellen"
-
 msgid "Create failed: {message}"
 msgstr "Erstellen fehlgeschlagen: {message}"
 
@@ -5467,9 +5461,6 @@ msgstr "Jeder Agent läuft in seinem eigenen Git-Worktree, sodass zehn Agenten a
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Jede Achse trägt ihren Teil zur nächsten Stufe bei. Halte dieses Niveau, und die Stufe folgt."
 
-msgid "Every Friday at 4pm, draft release notes from this week's merged PRs"
-msgstr "Jeden Freitag um 16 Uhr Release Notes aus den diese Woche gemergten PRs entwerfen"
-
 msgid "Every Friday at 4pm, draft release notes from this week's merged PRs."
 msgstr "Jeden Freitag um 16 Uhr Release Notes aus den diese Woche gemergten PRs entwerfen."
 
@@ -5490,9 +5481,6 @@ msgstr "Jeden Mittwoch um 9 Uhr die diese Woche gemergten PRs durchsehen und die
 
 msgid "Every weekday at 9am, read new GitHub issues, apply labels, and draft a first reply for my review."
 msgstr "Jeden Werktag um 9 Uhr neue GitHub-Issues lesen, Labels vergeben und eine erste Antwort für mein Review entwerfen."
-
-msgid "Every weekday at 9am, triage new GitHub issues and draft replies for my review"
-msgstr "Jeden Werktag um 9 Uhr neue GitHub-Issues triagieren und Antworten für mein Review entwerfen"
 
 msgid "Everyone argues about whether this generalizes. That argument is the sign the level was reached."
 msgstr "Alle streiten darüber, ob sich das verallgemeinern lässt. Genau dieser Streit ist das Zeichen, dass die Stufe erreicht wurde."
@@ -8455,6 +8443,9 @@ msgstr "Weitere {kindLower}e Themes"
 msgid "More actions"
 msgstr "Weitere Aktionen"
 
+msgid "More options"
+msgstr "Weitere Optionen"
+
 msgid "More pages"
 msgstr "Weitere Seiten"
 
@@ -8760,9 +8751,6 @@ msgstr "Weiter: {nextLabel}"
 
 msgid "Nice, open a PR when ready."
 msgstr "Super, öffne einen PR, wenn es so weit ist."
-
-msgid "Nightly at 2am, find one small bug, fix it, and open a PR"
-msgstr "Nachts um 2 Uhr einen kleinen Bug finden, beheben und einen PR öffnen"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
@@ -10883,9 +10871,6 @@ msgstr "Öffentlich"
 msgid "Public leaderboard"
 msgstr "Öffentliches Leaderboard"
 
-msgid "Publish a page from an agent or the CLI and it will show up here."
-msgstr "Veröffentliche eine Seite aus einem Agenten oder der CLI, dann erscheint sie hier."
-
 msgid "Published"
 msgstr "Veröffentlicht"
 
@@ -12628,6 +12613,9 @@ msgstr "Die Färbung bezieht sich auf den stärksten Tag dieses Entwicklers"
 msgid "Share"
 msgstr "Teilen"
 
+msgid "Share designs and reports. Let your agent handle the feedback."
+msgstr "Teile Entwürfe und Berichte. Lass deinen Agenten das Feedback bearbeiten."
+
 msgid "Share page"
 msgstr "Seite teilen"
 
@@ -13440,9 +13428,6 @@ msgstr "-Suite für Agenten-Oberflächen und gemeinsame App-Komponenten. Klicke 
 
 msgid "Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
 msgstr "Summe der CPU-Last von Superset und den überwachten Terminal-Prozessbäumen. Über 100 % bedeutet, dass mehrere CPU-Kerne ausgelastet sind. Dauerhaft hohe Werte machen die Oberfläche meist träge und verbrauchen mehr Akku."
-
-msgid "Summarize failed CI runs every morning before standup"
-msgstr "Jeden Morgen vor dem Standup fehlgeschlagene CI-Läufe zusammenfassen"
 
 msgid "Summary"
 msgstr "Übersicht"

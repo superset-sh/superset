@@ -2220,9 +2220,6 @@ msgstr "Automatiseringen ({myFailedCount} mislukt)"
 msgid "Automations & event triggers"
 msgstr "Automatiseringen en event-triggers"
 
-msgid "Automations docs"
-msgstr "Documentatie over automatiseringen"
-
 msgid "Automations, {myFailedCount} failing"
 msgstr "Automatiseringen, {myFailedCount} mislukt"
 
@@ -4248,9 +4245,6 @@ msgstr "Maak een werkruimte voor de auth-feature op mijn MacBook"
 msgid "Create an account"
 msgstr "Een account aanmaken"
 
-msgid "Create an automation with an agent"
-msgstr "Een automatisering maken met een agent"
-
 msgid "Create failed: {message}"
 msgstr "Aanmaken mislukt: {message}"
 
@@ -5467,9 +5461,6 @@ msgstr "Elke agent draait in zijn eigen Git-worktree, dus tien agents kunnen aan
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Elke as draagt zijn deel bij voor het volgende niveau. Houd dit vast en het niveau volgt."
 
-msgid "Every Friday at 4pm, draft release notes from this week's merged PRs"
-msgstr "Elke vrijdag om 16.00 uur: stel release notes op uit de gemergede PR's van deze week"
-
 msgid "Every Friday at 4pm, draft release notes from this week's merged PRs."
 msgstr "Elke vrijdag om 16.00 uur: stel release notes op uit de gemergede PR's van deze week."
 
@@ -5490,9 +5481,6 @@ msgstr "Elke woensdag om 9 uur: bekijk de gemergede PR's van deze week en werk d
 
 msgid "Every weekday at 9am, read new GitHub issues, apply labels, and draft a first reply for my review."
 msgstr "Elke werkdag om 9 uur: lees nieuwe GitHub-issues, plaats labels en stel een eerste antwoord op voor mijn review."
-
-msgid "Every weekday at 9am, triage new GitHub issues and draft replies for my review"
-msgstr "Elke werkdag om 9 uur: triageer nieuwe GitHub-issues en stel antwoorden op voor mijn review"
 
 msgid "Everyone argues about whether this generalizes. That argument is the sign the level was reached."
 msgstr "Iedereen discussieert over de vraag of dit generaliseert. Die discussie is het teken dat het niveau is bereikt."
@@ -8455,6 +8443,9 @@ msgstr "Meer {kindLower} thema's"
 msgid "More actions"
 msgstr "Meer acties"
 
+msgid "More options"
+msgstr "Meer opties"
+
 msgid "More pages"
 msgstr "Meer pagina's"
 
@@ -8760,9 +8751,6 @@ msgstr "Volgende: {nextLabel}"
 
 msgid "Nice, open a PR when ready."
 msgstr "Mooi, open een PR als het klaar is."
-
-msgid "Nightly at 2am, find one small bug, fix it, and open a PR"
-msgstr "Elke nacht om 2 uur: zoek één kleine bug, fix die en open een PR"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
@@ -10883,9 +10871,6 @@ msgstr "Openbaar"
 msgid "Public leaderboard"
 msgstr "Openbare ranglijst"
 
-msgid "Publish a page from an agent or the CLI and it will show up here."
-msgstr "Publiceer een pagina vanuit een agent of de CLI en die verschijnt hier."
-
 msgid "Published"
 msgstr "Gepubliceerd"
 
@@ -12628,6 +12613,9 @@ msgstr "De kleurintensiteit is relatief aan de drukste dag van deze ontwikkelaar
 msgid "Share"
 msgstr "Delen"
 
+msgid "Share designs and reports. Let your agent handle the feedback."
+msgstr "Deel ontwerpen en rapporten. Laat je agent de feedback verwerken."
+
 msgid "Share page"
 msgstr "Pagina delen"
 
@@ -13440,9 +13428,6 @@ msgstr "-suite voor agent-UI's en gedeelde app-componenten. Klik op een importpa
 
 msgid "Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
 msgstr "Som van het CPU-gebruik van Superset en de gemonitorde terminalprocesbomen. Boven 100% betekent dat meerdere CPU-cores bezig zijn. Langdurig hoge waarden zorgen meestal voor een trage UI en meer batterijverbruik."
-
-msgid "Summarize failed CI runs every morning before standup"
-msgstr "Vat elke ochtend voor de standup de mislukte CI-runs samen"
 
 msgid "Summary"
 msgstr "Samenvatting"

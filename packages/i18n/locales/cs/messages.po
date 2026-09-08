@@ -2220,9 +2220,6 @@ msgstr "Automatizace (selhává: {myFailedCount})"
 msgid "Automations & event triggers"
 msgstr "Automatizace a spouštěče událostí"
 
-msgid "Automations docs"
-msgstr "Dokumentace k automatizacím"
-
 msgid "Automations, {myFailedCount} failing"
 msgstr "Automatizace, selhává: {myFailedCount}"
 
@@ -4248,9 +4245,6 @@ msgstr "Vytvoř na mém MacBooku pracovní prostor pro funkci auth"
 msgid "Create an account"
 msgstr "Vytvořit účet"
 
-msgid "Create an automation with an agent"
-msgstr "Vytvořit automatizaci s agentem"
-
 msgid "Create failed: {message}"
 msgstr "Vytvoření selhalo: {message}"
 
@@ -5467,9 +5461,6 @@ msgstr "Každý agent běží ve vlastním git worktree, takže deset agentů m�
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Každá osa táhne na další úroveň. Udržte to a úroveň přijde sama."
 
-msgid "Every Friday at 4pm, draft release notes from this week's merged PRs"
-msgstr "Každý pátek v 16:00 sepiš poznámky k vydání ze sloučených PR za tento týden"
-
 msgid "Every Friday at 4pm, draft release notes from this week's merged PRs."
 msgstr "Každý pátek v 16:00 sepiš poznámky k vydání ze sloučených PR za tento týden."
 
@@ -5490,9 +5481,6 @@ msgstr "Každou středu v 9:00 projdi sloučené PR za tento týden a aktualizuj
 
 msgid "Every weekday at 9am, read new GitHub issues, apply labels, and draft a first reply for my review."
 msgstr "Každý všední den v 9:00 přečti nové GitHub issues, přiřaď štítky a připrav první odpověď ke kontrole."
-
-msgid "Every weekday at 9am, triage new GitHub issues and draft replies for my review"
-msgstr "Každý všední den v 9:00 roztřiď nové GitHub issues a připrav odpovědi ke kontrole"
 
 msgid "Everyone argues about whether this generalizes. That argument is the sign the level was reached."
 msgstr "Všichni se dohadují, jestli se to dá zobecnit. Právě ten spor je známkou toho, že úroveň byla dosažena."
@@ -8455,6 +8443,9 @@ msgstr "Další {kindLower} motivy"
 msgid "More actions"
 msgstr "Další akce"
 
+msgid "More options"
+msgstr "Další možnosti"
+
 msgid "More pages"
 msgstr "Další stránky"
 
@@ -8760,9 +8751,6 @@ msgstr "Další: {nextLabel}"
 
 msgid "Nice, open a PR when ready."
 msgstr "Super, až budeš mít hotovo, otevři PR."
-
-msgid "Nightly at 2am, find one small bug, fix it, and open a PR"
-msgstr "Každou noc ve 2:00 najdi jednu malou chybu, oprav ji a otevři PR"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
@@ -10883,9 +10871,6 @@ msgstr "Veřejný"
 msgid "Public leaderboard"
 msgstr "Veřejný žebříček"
 
-msgid "Publish a page from an agent or the CLI and it will show up here."
-msgstr "Zveřejněte stránku z agenta nebo z CLI a objeví se tady."
-
 msgid "Published"
 msgstr "Publikováno"
 
@@ -12628,6 +12613,9 @@ msgstr "Sytost barvy se vztahuje k nejrušnějšímu dni tohoto vývojáře"
 msgid "Share"
 msgstr "Sdílet"
 
+msgid "Share designs and reports. Let your agent handle the feedback."
+msgstr "Sdílejte návrhy a zprávy. Zpětnou vazbu nechte na svém agentovi."
+
 msgid "Share page"
 msgstr "Sdílet stránku"
 
@@ -13440,9 +13428,6 @@ msgstr "pro UI agentů a sdílené komponenty aplikace. Kliknutím na libovolnou
 
 msgid "Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
 msgstr "Součet CPU využitého Supersetem a sledovanými stromy procesů terminálu. Přes 100 % znamená, že je vytíženo více jader. Dlouhodobě vysoké hodnoty obvykle způsobují sekání UI a rychlejší vybíjení baterie."
-
-msgid "Summarize failed CI runs every morning before standup"
-msgstr "Každé ráno před standupem shrň neúspěšné běhy CI"
 
 msgid "Summary"
 msgstr "Souhrn"

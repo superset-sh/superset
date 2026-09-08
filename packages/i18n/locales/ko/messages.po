@@ -2220,9 +2220,6 @@ msgstr "자동화 ({myFailedCount}개 실패)"
 msgid "Automations & event triggers"
 msgstr "자동화 및 이벤트 트리거"
 
-msgid "Automations docs"
-msgstr "자동화 문서"
-
 msgid "Automations, {myFailedCount} failing"
 msgstr "자동화, {myFailedCount}개 실패"
 
@@ -4248,9 +4245,6 @@ msgstr "내 MacBook에 인증 기능용 워크스페이스를 만들어 줘"
 msgid "Create an account"
 msgstr "계정 만들기"
 
-msgid "Create an automation with an agent"
-msgstr "에이전트로 자동화 만들기"
-
 msgid "Create failed: {message}"
 msgstr "생성 실패: {message}"
 
@@ -5467,9 +5461,6 @@ msgstr "모든 에이전트가 각자의 Git worktree에서 실행되므로, 에
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "모든 축이 다음 등급을 향해 제 몫을 하고 있습니다. 이대로 유지하면 등급은 따라옵니다."
 
-msgid "Every Friday at 4pm, draft release notes from this week's merged PRs"
-msgstr "매주 금요일 오후 4시에 이번 주 머지된 PR로 릴리스 노트 초안 작성하기"
-
 msgid "Every Friday at 4pm, draft release notes from this week's merged PRs."
 msgstr "매주 금요일 오후 4시에 이번 주 머지된 PR로 릴리스 노트 초안을 작성합니다."
 
@@ -5490,9 +5481,6 @@ msgstr "매주 수요일 오전 9시에 이번 주 머지된 PR을 검토하고,
 
 msgid "Every weekday at 9am, read new GitHub issues, apply labels, and draft a first reply for my review."
 msgstr "평일 오전 9시마다 새 GitHub 이슈를 읽고, 라벨을 적용하고, 검토용 첫 답변 초안을 작성합니다."
-
-msgid "Every weekday at 9am, triage new GitHub issues and draft replies for my review"
-msgstr "평일 오전 9시마다 새 GitHub 이슈를 분류하고 검토용 답변 초안 작성하기"
 
 msgid "Everyone argues about whether this generalizes. That argument is the sign the level was reached."
 msgstr "이것이 일반화될 수 있는지를 두고 모두가 논쟁합니다. 그 논쟁 자체가 해당 단계에 도달했다는 신호입니다."
@@ -8455,6 +8443,9 @@ msgstr "{kindLower} 테마 더 보기"
 msgid "More actions"
 msgstr "추가 작업"
 
+msgid "More options"
+msgstr "추가 옵션"
+
 msgid "More pages"
 msgstr "더 많은 페이지"
 
@@ -8760,9 +8751,6 @@ msgstr "다음: {nextLabel}"
 
 msgid "Nice, open a PR when ready."
 msgstr "좋아요, 준비되면 PR을 올려 주세요."
-
-msgid "Nightly at 2am, find one small bug, fix it, and open a PR"
-msgstr "매일 새벽 2시에 작은 버그 하나를 찾아 고치고 PR을 올리기"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
@@ -10883,9 +10871,6 @@ msgstr "공개"
 msgid "Public leaderboard"
 msgstr "공개 리더보드"
 
-msgid "Publish a page from an agent or the CLI and it will show up here."
-msgstr "에이전트나 CLI에서 페이지를 게시하면 여기에 표시됩니다."
-
 msgid "Published"
 msgstr "게시일"
 
@@ -12628,6 +12613,9 @@ msgstr "색의 진하기는 이 개발자의 가장 바빴던 날을 기준으�
 msgid "Share"
 msgstr "공유"
 
+msgid "Share designs and reports. Let your agent handle the feedback."
+msgstr "디자인과 보고서를 공유하세요. 피드백 처리는 에이전트에게 맡기세요."
+
 msgid "Share page"
 msgstr "페이지 공유"
 
@@ -13440,9 +13428,6 @@ msgstr "스위트, 그리고 공용 앱 컴포넌트입니다. import 경로를 
 
 msgid "Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
 msgstr "Superset과 모니터링 중인 터미널 프로세스 트리가 사용하는 CPU의 합계입니다. 100%를 넘으면 여러 CPU 코어가 사용 중이라는 뜻입니다. 높은 값이 계속되면 보통 UI가 느려지고 배터리 소모가 커집니다."
-
-msgid "Summarize failed CI runs every morning before standup"
-msgstr "매일 아침 스탠드업 전에 실패한 CI 실행 요약하기"
 
 msgid "Summary"
 msgstr "요약"

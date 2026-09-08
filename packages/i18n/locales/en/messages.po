@@ -2220,9 +2220,6 @@ msgstr "Automations ({myFailedCount} failing)"
 msgid "Automations & event triggers"
 msgstr "Automations & event triggers"
 
-msgid "Automations docs"
-msgstr "Automations docs"
-
 msgid "Automations, {myFailedCount} failing"
 msgstr "Automations, {myFailedCount} failing"
 
@@ -4248,9 +4245,6 @@ msgstr "Create a workspace for the auth feature on my MacBook"
 msgid "Create an account"
 msgstr "Create an account"
 
-msgid "Create an automation with an agent"
-msgstr "Create an automation with an agent"
-
 msgid "Create failed: {message}"
 msgstr "Create failed: {message}"
 
@@ -5467,9 +5461,6 @@ msgstr "Every agent runs in its own Git worktree, so ten agents can work on ten 
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 
-msgid "Every Friday at 4pm, draft release notes from this week's merged PRs"
-msgstr "Every Friday at 4pm, draft release notes from this week's merged PRs"
-
 msgid "Every Friday at 4pm, draft release notes from this week's merged PRs."
 msgstr "Every Friday at 4pm, draft release notes from this week's merged PRs."
 
@@ -5490,9 +5481,6 @@ msgstr "Every Wednesday at 9am, review this week's merged PRs and update any doc
 
 msgid "Every weekday at 9am, read new GitHub issues, apply labels, and draft a first reply for my review."
 msgstr "Every weekday at 9am, read new GitHub issues, apply labels, and draft a first reply for my review."
-
-msgid "Every weekday at 9am, triage new GitHub issues and draft replies for my review"
-msgstr "Every weekday at 9am, triage new GitHub issues and draft replies for my review"
 
 msgid "Everyone argues about whether this generalizes. That argument is the sign the level was reached."
 msgstr "Everyone argues about whether this generalizes. That argument is the sign the level was reached."
@@ -8455,6 +8443,9 @@ msgstr "More {kindLower} themes"
 msgid "More actions"
 msgstr "More actions"
 
+msgid "More options"
+msgstr "More options"
+
 msgid "More pages"
 msgstr "More pages"
 
@@ -8760,9 +8751,6 @@ msgstr "Next: {nextLabel}"
 
 msgid "Nice, open a PR when ready."
 msgstr "Nice, open a PR when ready."
-
-msgid "Nightly at 2am, find one small bug, fix it, and open a PR"
-msgstr "Nightly at 2am, find one small bug, fix it, and open a PR"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
@@ -10883,9 +10871,6 @@ msgstr "Public"
 msgid "Public leaderboard"
 msgstr "Public leaderboard"
 
-msgid "Publish a page from an agent or the CLI and it will show up here."
-msgstr "Publish a page from an agent or the CLI and it will show up here."
-
 msgid "Published"
 msgstr "Published"
 
@@ -12628,6 +12613,9 @@ msgstr "Shade is relative to this developer's busiest day"
 msgid "Share"
 msgstr "Share"
 
+msgid "Share designs and reports. Let your agent handle the feedback."
+msgstr "Share designs and reports. Let your agent handle the feedback."
+
 msgid "Share page"
 msgstr "Share page"
 
@@ -13440,9 +13428,6 @@ msgstr "suite for agent UIs, and shared app components. Click any import path to
 
 msgid "Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
 msgstr "Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
-
-msgid "Summarize failed CI runs every morning before standup"
-msgstr "Summarize failed CI runs every morning before standup"
 
 msgid "Summary"
 msgstr "Summary"

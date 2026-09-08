@@ -2220,9 +2220,6 @@ msgstr "Otomatisasi ({myFailedCount} gagal)"
 msgid "Automations & event triggers"
 msgstr "Otomatisasi & pemicu event"
 
-msgid "Automations docs"
-msgstr "Dokumentasi otomatisasi"
-
 msgid "Automations, {myFailedCount} failing"
 msgstr "Otomatisasi, {myFailedCount} gagal"
 
@@ -4248,9 +4245,6 @@ msgstr "Buat workspace untuk fitur auth di MacBook saya"
 msgid "Create an account"
 msgstr "Buat akun"
 
-msgid "Create an automation with an agent"
-msgstr "Buat otomatisasi dengan agen"
-
 msgid "Create failed: {message}"
 msgstr "Gagal membuat: {message}"
 
@@ -5467,9 +5461,6 @@ msgstr "Tiap agen berjalan di worktree Git-nya sendiri, jadi sepuluh agen bisa b
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Setiap sumbu sudah menopang untuk tingkat berikutnya. Pertahankan, tingkatnya akan menyusul."
 
-msgid "Every Friday at 4pm, draft release notes from this week's merged PRs"
-msgstr "Tiap Jumat jam 4 sore, susun draf catatan rilis dari PR yang di-merge minggu ini"
-
 msgid "Every Friday at 4pm, draft release notes from this week's merged PRs."
 msgstr "Tiap Jumat jam 4 sore, susun draf catatan rilis dari PR yang di-merge minggu ini."
 
@@ -5490,9 +5481,6 @@ msgstr "Tiap Rabu jam 9 pagi, tinjau PR yang di-merge minggu ini dan perbarui do
 
 msgid "Every weekday at 9am, read new GitHub issues, apply labels, and draft a first reply for my review."
 msgstr "Tiap hari kerja jam 9 pagi, baca issue GitHub baru, terapkan label, dan susun draf balasan pertama untuk saya review."
-
-msgid "Every weekday at 9am, triage new GitHub issues and draft replies for my review"
-msgstr "Tiap hari kerja jam 9 pagi, triase issue GitHub baru dan susun draf balasan untuk saya review"
 
 msgid "Everyone argues about whether this generalizes. That argument is the sign the level was reached."
 msgstr "Semua orang berdebat apakah ini bisa digeneralisasi. Perdebatan itu justru tanda bahwa levelnya sudah tercapai."
@@ -8455,6 +8443,9 @@ msgstr "Tema {kindLower} lainnya"
 msgid "More actions"
 msgstr "Aksi lainnya"
 
+msgid "More options"
+msgstr "Opsi lainnya"
+
 msgid "More pages"
 msgstr "Halaman lainnya"
 
@@ -8760,9 +8751,6 @@ msgstr "Berikutnya: {nextLabel}"
 
 msgid "Nice, open a PR when ready."
 msgstr "Bagus, buka PR kalau sudah siap."
-
-msgid "Nightly at 2am, find one small bug, fix it, and open a PR"
-msgstr "Tiap malam jam 2, cari satu bug kecil, perbaiki, dan buka PR"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
@@ -10883,9 +10871,6 @@ msgstr "Publik"
 msgid "Public leaderboard"
 msgstr "Papan peringkat publik"
 
-msgid "Publish a page from an agent or the CLI and it will show up here."
-msgstr "Publikasikan halaman dari agen atau CLI dan halaman itu akan muncul di sini."
-
 msgid "Published"
 msgstr "Diterbitkan"
 
@@ -12628,6 +12613,9 @@ msgstr "Kepekatan warna relatif terhadap hari tersibuk pengembang ini"
 msgid "Share"
 msgstr "Bagikan"
 
+msgid "Share designs and reports. Let your agent handle the feedback."
+msgstr "Bagikan desain dan laporan. Biarkan agen Anda menangani masukan."
+
 msgid "Share page"
 msgstr "Bagikan halaman"
 
@@ -13440,9 +13428,6 @@ msgstr "untuk UI agen, dan komponen aplikasi bersama. Klik path impor mana pun u
 
 msgid "Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
 msgstr "Jumlah CPU yang dipakai Superset dan pohon proses terminal yang dipantau. Di atas 100% berarti beberapa inti CPU sedang sibuk. Nilai tinggi yang bertahan lama biasanya membuat UI terasa lambat dan baterai lebih boros."
-
-msgid "Summarize failed CI runs every morning before standup"
-msgstr "Rangkum run CI yang gagal tiap pagi sebelum standup"
 
 msgid "Summary"
 msgstr "Ringkasan"
