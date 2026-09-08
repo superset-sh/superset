@@ -21,6 +21,7 @@ const EMPTY_STATE: WorkspaceState<PaneViewerData> = {
 	version: 1,
 	tabs: [],
 	activeTabId: null,
+	closedTabsStack: [],
 };
 
 function getSnapshot(state: WorkspaceState<PaneViewerData>): string {
@@ -129,6 +130,7 @@ export function useV2WorkspacePaneLayout() {
 				version: nextStore.version,
 				tabs: nextStore.tabs,
 				activeTabId: nextStore.activeTabId,
+				closedTabsStack: nextStore.closedTabsStack,
 			};
 			rememberV2PaneSelection(workspaceId, nextWorkspaceState);
 			const nextSnapshot = getSnapshot(nextWorkspaceState);

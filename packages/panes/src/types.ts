@@ -33,8 +33,14 @@ export interface Tab<TData> {
 	panes: Record<string, Pane<TData>>;
 }
 
+export interface ClosedTabEntry<TData> {
+	tab: Tab<TData>;
+	index: number;
+}
+
 export interface WorkspaceState<TData> {
 	version: 1;
 	tabs: Tab<TData>[];
 	activeTabId: string | null;
+	closedTabsStack: ClosedTabEntry<TData>[];
 }

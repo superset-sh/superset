@@ -75,6 +75,49 @@ describe("tab operations", () => {
 		expect(store.getState().activeTabId).toBeNull();
 	});
 
+	it("tracks closed tabs and reopens the most recent tab at its original index", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		store.getState().addTab({ id: "t2", panes: [tp("p2")] });
+
+		store.getState().removeTab("t1");
+		expect(
+			store.getState().closedTabsStack.map((entry) => entry.tab.id),
+		).toEqual(["t1"]);
+
+		store.getState().reopenClosedTab();
+
+		expect(store.getState().tabs.map((tab) => tab.id)).toEqual(["t1", "t2"]);
+		expect(store.getState().activeTabId).toBe("t1");
+		expect(store.getState().closedTabsStack).toHaveLength(0);
+	});
+
+	it("activates an already-open tab when reopening a duplicate closed entry", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		store.getState().removeTab("t1");
+		store.getState().addTab({ id: "t1", panes: [tp("p1b")] });
+		store.getState().addTab({ id: "t2", panes: [tp("p2")] });
+
+		store.getState().reopenClosedTab();
+
+		expect(store.getState().tabs.map((tab) => tab.id)).toEqual(["t1", "t2"]);
+		expect(store.getState().activeTabId).toBe("t1");
+		expect(store.getState().closedTabsStack).toHaveLength(0);
+	});
+
+	it("keeps the closed-tabs stack bounded", () => {
+		const store = makeStore();
+		for (let index = 0; index < 21; index += 1) {
+			store.getState().addTab({ id: `t${index}`, panes: [tp(`p${index}`)] });
+			store.getState().removeTab(`t${index}`);
+		}
+
+		expect(store.getState().closedTabsStack).toHaveLength(20);
+		expect(store.getState().closedTabsStack[0]?.tab.id).toBe("t20");
+		expect(store.getState().closedTabsStack[19]?.tab.id).toBe("t1");
+	});
+
 	it("sets active tab", () => {
 		const store = makeStore();
 		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
