@@ -1,1 +1,1 @@
-export { type MigrationDatabase, runMigrations } from "./runMigrations";
+export { type MigrationDatabase, runMigrations } from "./runMigrations.ts";
