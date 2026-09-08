@@ -17,17 +17,17 @@ The new-workspace search dismissal was reproduced in the real Electron renderer 
 
 Search covered all TS/TSX references to InputGroupAddon, PromptInputFooter and PromptInputHeader in apps/ and packages/, plus similar ancestor click/focus handlers. Other click guards found in the sidebars do not share this composer refocus path.
 
-## Additional pre-existing findings
+## Additional findings fixed
 
-- **Legacy branch picker retains filters after selection.** CompareBaseBranchPickerInline clears branchSearch/filterMode in Popover.onOpenChange, but selection/open-workspace paths call setOpen(false) directly. This is the same cleanup pattern fixed in the v2 picker. Source-audit finding; legacy UI was not live-reproduced or changed in this PR.
-- **Addon padding does not focus textarea controls.** InputGroupAddon looks for input or contenteditable, but not textarea. This affects the legacy textarea composer and the web textarea example's padding focus behavior. It predates this change; adding textarea support would change existing behavior and needs separate verification.
+- **Legacy branch picker retained filters after selection.** CompareBaseBranchPickerInline now routes selection, Open, Create, and dismissal through the same close handler, clearing both branchSearch and filterMode. The component was extracted unchanged apart from close handling so the actual picker can be mounted in regression tests. Mouse row selection, keyboard selection, Open, and Create all failed the reset assertion before the fix; all pass afterward, along with Escape.
+- **Addon padding did not focus textarea controls.** InputGroupAddon now includes textarea in its focus target lookup. The textarea padding regression failed before the change and passes afterward. Tests cover input, textarea, and contenteditable focus, popup search clicks/typing, checkbox labels, and trigger actions, using the actual shared addon and Radix popup.
 
-These are follow-up findings, not claimed live regressions or additional fixes in this PR.
+These additional findings were reproduced and verified with component integration tests, not the legacy modal's full live journey.
 
 ## Verification
 
-- New regression tests mount actual InputGroupAddon + Radix Popover together and exercise search clicks/typing, a checkbox label, normal addon clicks and trigger action. The search interaction test fails with the portal guard removed; both tests pass with the fix.
-- Both Radix integration test files pass together (3 tests, 16 assertions).
-- Full new-workspace-page UI audit covered issue search/selection/scrolling/toggles, projects, branches, agent/model/effort menus and nested model choices, device and nested host menus, cloud environments, create/clone dialogs, native chooser opening/cancellation, tooltips and image previews. Nine repeated search interactions after page navigation retained focus, with zero captured console errors.
+- New regression tests mount actual InputGroupAddon + Radix Popover together and exercise search clicks/typing, a checkbox label, normal addon clicks and trigger action. The search interaction test fails with the portal guard removed; the interaction tests pass with the fix for input, textarea, and contenteditable composers.
+- Both Radix integration test files and the legacy picker tests pass together (12 tests, 60 assertions).
+- Full new-workspace-page UI audit covered issue search/selection/scrolling/toggles, projects, branches, agent/model/effort menus and nested model choices, device and nested host menus, cloud environments, create/clone dialogs, native chooser opening/cancellation, tooltips and image previews. Nine repeated search interactions after page navigation retained focus, with zero captured console errors. Six further Linear/GitHub/PR search interactions passed after the textarea and legacy picker changes.
 - The branch picker cleanup was reproduced before the fix and verified after pointer and keyboard selection: reopening clears the search.
 - Native file selection and populated prompt history were not verified end-to-end. Image preview used a repo icon supplied through CDP file-input setup. OMP launch mode was unavailable in the installed agent list. Remote host selection, image download and branch Open workspace actions were not exercised.
