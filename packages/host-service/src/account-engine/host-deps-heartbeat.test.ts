@@ -3,7 +3,7 @@
  * has to move even on a host whose store never emits again.
  */
 
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
 import { TerminalAgentStore } from "../terminal-agents/index.ts";
 import { subscribeSessionMoverToStore } from "./host-deps.ts";
 import {
@@ -79,6 +79,44 @@ function harness() {
 }
 
 describe("subscribeSessionMoverToStore heartbeat", () => {
+	it("drains existing work and rejects new triggers during cleanup", async () => {
+		const { mover } = harness();
+		const store = new TerminalAgentStore();
+		const timers = fakeTimers();
+		const releases: Array<() => void> = [];
+		const handle = spyOn(mover, "handleStoreChange").mockImplementation(
+			() => new Promise<void>((resolve) => releases.push(resolve)),
+		);
+		const unsubscribe = subscribeSessionMoverToStore(store, mover, timers);
+		const heartbeat = [...timers.live.values()][0]?.run;
+		store.emit("change", "ws-1");
+		heartbeat?.();
+		let drained = false;
+		const cleanup = unsubscribe().then(() => {
+			drained = true;
+		});
+		try {
+			expect(timers.live.size).toBe(0);
+			expect(store.listenerCount("change")).toBe(0);
+			store.emit("change", "ws-1");
+			// A callback already captured by the timer must also become inert.
+			heartbeat?.();
+			expect(handle).toHaveBeenCalledTimes(2);
+			await Promise.resolve();
+			expect(drained).toBe(false);
+			releases[0]?.();
+			await Promise.resolve();
+			expect(drained).toBe(false);
+			releases[1]?.();
+			await cleanup;
+			expect(drained).toBe(true);
+		} finally {
+			for (const release of releases) release();
+			await cleanup;
+			handle.mockRestore();
+		}
+	});
+
 	it("moves a deferred row on a host that emits no store change", async () => {
 		const { mover, killed, advance } = harness();
 		const store = new TerminalAgentStore();
@@ -102,10 +140,10 @@ describe("subscribeSessionMoverToStore heartbeat", () => {
 		await Promise.resolve();
 
 		expect(killed).toEqual(["t1"]);
-		unsubscribe();
+		await unsubscribe();
 	});
 
-	it("clears the heartbeat when the subscription is disposed", () => {
+	it("clears the heartbeat when the subscription is disposed", async () => {
 		const { mover } = harness();
 		const store = new TerminalAgentStore();
 		const timers = fakeTimers();
@@ -113,7 +151,7 @@ describe("subscribeSessionMoverToStore heartbeat", () => {
 		const unsubscribe = subscribeSessionMoverToStore(store, mover, timers);
 		expect(timers.live.size).toBe(1);
 
-		unsubscribe();
+		await unsubscribe();
 		expect(timers.live.size).toBe(0);
 		expect(store.listenerCount("change")).toBe(0);
 	});

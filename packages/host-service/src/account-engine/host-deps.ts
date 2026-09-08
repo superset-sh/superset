@@ -190,20 +190,27 @@ export function subscribeSessionMoverToStore(
 		setIntervalFn?: typeof setInterval;
 		clearIntervalFn?: typeof clearInterval;
 	} = {},
-): () => void {
+): () => Promise<void> {
+	let stopped = false;
+	const pending = new Set<Promise<void>>();
 	const onChange = (workspaceId: string) => {
+		if (stopped) return;
 		// Detached on purpose — the store's emit must not wait on a restart —
 		// but never unhandled: a rejection here is the reason a session stayed
 		// on the old account, so it is reported rather than swallowed.
-		mover.handleStoreChange(workspaceId).catch((error: unknown) => {
-			console.warn(
-				"[account-engine] moving sessions after a store change failed",
-				{
-					workspaceId,
-					error,
-				},
-			);
-		});
+		const work = mover
+			.handleStoreChange(workspaceId)
+			.catch((error: unknown) => {
+				console.warn(
+					"[account-engine] moving sessions after a store change failed",
+					{
+						workspaceId,
+						error,
+					},
+				);
+			});
+		pending.add(work);
+		void work.finally(() => pending.delete(work));
 	};
 	store.on("change", onChange);
 
@@ -219,8 +226,10 @@ export function subscribeSessionMoverToStore(
 	const heartbeat = setIntervalFn(() => onChange("heartbeat"), HEARTBEAT_MS);
 	heartbeat.unref?.();
 
-	return () => {
+	return async () => {
+		stopped = true;
 		store.off("change", onChange);
 		(timers.clearIntervalFn ?? clearInterval)(heartbeat);
+		await Promise.all(pending);
 	};
 }

@@ -328,7 +328,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		// once the tick in flight has finished, so another instance cannot
 		// claim it and swap credentials on top of one already in progress.
 		stopAccountEngine = async () => {
-			unsubscribeMover();
+			await unsubscribeMover();
 			await engine.stop();
 		};
 	}
