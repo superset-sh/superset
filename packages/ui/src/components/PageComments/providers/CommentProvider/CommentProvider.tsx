@@ -239,7 +239,13 @@ export function CommentProvider({
 
 	const editComment = useCallback<CommentStore["editComment"]>(
 		async (threadId, commentId, body) => {
-			await runSubmit(() => store.editComment(threadId, commentId, body));
+			if (isOptimisticId(threadId) || isOptimisticId(commentId)) return;
+			// Rethrown, unlike the thread actions: the editor holds text that is
+			// only on screen, so its caller has to know the save did not land.
+			const saved = await runSubmit(() =>
+				store.editComment(threadId, commentId, body),
+			);
+			if (!saved) throw new Error("Edit failed");
 		},
 		[runSubmit, store],
 	);
@@ -259,13 +265,20 @@ export function CommentProvider({
 	);
 
 	const setResolved = useCallback<CommentStore["setResolved"]>(
-		(threadId, resolved) =>
-			runThreadAction(threadId, () => store.setResolved(threadId, resolved)),
+		async (threadId, resolved) => {
+			if (isOptimisticId(threadId)) return;
+			await runThreadAction(threadId, () =>
+				store.setResolved(threadId, resolved),
+			);
+		},
 		[runThreadAction, store],
 	);
 
 	const deleteThread = useCallback<CommentStore["deleteThread"]>(
-		(threadId) => runThreadAction(threadId, () => store.deleteThread(threadId)),
+		async (threadId) => {
+			if (isOptimisticId(threadId)) return;
+			await runThreadAction(threadId, () => store.deleteThread(threadId));
+		},
 		[runThreadAction, store],
 	);
 

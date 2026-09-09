@@ -14,6 +14,7 @@ import {
 	useComments,
 } from "../../providers/CommentProvider";
 import { commentAuthor } from "../../utils/commentAuthor";
+import { isOptimisticId } from "../../utils/optimisticId";
 import { relativeTime } from "../../utils/relativeTime";
 import { Quote } from "./components/Quote";
 
@@ -38,7 +39,10 @@ export function CommentList({
 }: CommentListProps) {
 	const { t } = useLingui();
 	const { submitting, busyThreadId, canEdit, canDeleteThread } = useComments();
-	const deletable = canDeleteThread(thread);
+	// Nothing here can address a row the server has not created yet: its id is
+	// synthetic, and every one of these controls sends an id.
+	const pending = isOptimisticId(thread.id);
+	const deletable = !pending && canDeleteThread(thread);
 	const threadBusy = busyThreadId === thread.id;
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const [editValue, setEditValue] = useState("");
@@ -86,7 +90,7 @@ export function CommentList({
 									</span>
 								</div>
 								<div className="ml-auto flex items-center gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover/comment:opacity-100">
-									{onEdit && canEdit(comment) ? (
+									{onEdit && !isOptimisticId(comment.id) && canEdit(comment) ? (
 										<IconButton
 											label={t({ message: "Edit comment" })}
 											onClick={() => {
@@ -97,7 +101,7 @@ export function CommentList({
 											<Pencil className="size-3.5" />
 										</IconButton>
 									) : null}
-									{onToggleResolved ? (
+									{onToggleResolved && !pending ? (
 										<IconButton
 											label={
 												thread.resolved
