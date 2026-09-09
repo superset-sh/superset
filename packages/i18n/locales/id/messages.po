@@ -3069,6 +3069,9 @@ msgstr "Mencapai Operator dalam periode Run 01"
 msgid "Cleared terminal history"
 msgstr "Riwayat terminal dibersihkan"
 
+msgid "Clearing session name..."
+msgstr "Menghapus nama sesi..."
+
 msgid "Clearing…"
 msgstr "Membersihkan…"
 
@@ -4047,6 +4050,9 @@ msgstr "Tidak bisa membaca akun Google. Silakan coba lagi."
 
 msgid "Could not record cloud workspace"
 msgstr "Tidak bisa mencatat workspace cloud"
+
+msgid "Could not rename the session"
+msgstr "Tidak dapat mengganti nama sesi"
 
 msgid "Could not reopen"
 msgstr "Tidak bisa membuka lagi"
@@ -5963,6 +5969,9 @@ msgstr "Gagal mengganti nama"
 msgid "Failed to rename branch"
 msgstr "Gagal mengganti nama branch"
 
+msgid "Failed to rename session"
+msgstr "Gagal mengganti nama sesi"
+
 msgid "Failed to reorder"
 msgstr "Gagal mengurutkan ulang"
 
@@ -7718,6 +7727,9 @@ msgstr "Keluar dan hapus"
 
 msgid "Leave comment mode"
 msgstr "Keluar dari mode komentar"
+
+msgid "Leave it empty to go back to the name the terminal reports."
+msgstr "Kosongkan untuk kembali ke nama yang dilaporkan terminal."
 
 msgid "Leave Organization"
 msgstr "Keluar dari Organisasi"
@@ -11414,6 +11426,9 @@ msgstr "Menghapus…"
 msgid "Rename"
 msgstr "Ganti nama"
 
+msgid "Rename {title}"
+msgstr "Ganti nama {title}"
+
 msgid "Rename branch"
 msgstr "Ganti nama branch"
 
@@ -11430,6 +11445,9 @@ msgstr "Ganti nama grup"
 msgid "Rename host"
 msgstr "Ganti nama host"
 
+msgid "Rename session"
+msgstr "Ganti nama sesi"
+
 msgid "rename the branch"
 msgstr "mengganti nama branch"
 
@@ -11441,6 +11459,9 @@ msgstr "Ganti nama..."
 
 msgid "Renaming branch to {newName}..."
 msgstr "Mengganti nama branch menjadi {newName}..."
+
+msgid "Renaming session to {trimmed}..."
+msgstr "Mengganti nama sesi menjadi {trimmed}..."
 
 msgid "Rendered output: code, sources, citations, context"
 msgstr "Output yang dirender: kode, sumber, kutipan, konteks"
@@ -12598,8 +12619,17 @@ msgstr "Pembuatan sesi di web segera hadir"
 msgid "Session details"
 msgstr "Detail sesi"
 
+msgid "Session name"
+msgstr "Nama sesi"
+
+msgid "Session name cleared"
+msgstr "Nama sesi dihapus"
+
 msgid "Session notes and context."
 msgstr "Catatan dan konteks sesi."
+
+msgid "Session renamed to {trimmed}"
+msgstr "Nama sesi diganti menjadi {trimmed}"
 
 msgid "Session snapshots & revert"
 msgstr "Snapshot sesi & pengembalian"

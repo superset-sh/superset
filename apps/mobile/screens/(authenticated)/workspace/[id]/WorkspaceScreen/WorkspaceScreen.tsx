@@ -551,6 +551,60 @@ export function WorkspaceScreen() {
 		[t],
 	);
 
+	// Press and hold a tab → Rename. The prompt lives here rather than in the
+	// composer for the same reason the close confirm does: a context menu
+	// cannot take text, and the name belongs to the host, not to the strip.
+	const renameTerminal = useCallback(
+		(terminalId: string, title: string) => {
+			if (!workspace || !hostUrl) return;
+			void getHostServiceClientByUrl(hostUrl)
+				.terminal.rename.mutate({
+					terminalId,
+					workspaceId: workspace.id,
+					title,
+				})
+				.catch((cause: unknown) =>
+					Alert.alert(
+						t({
+							message: "Could not rename the session",
+						}),
+						errorCopy(cause),
+					),
+				)
+				.finally(invalidateTerminals);
+		},
+		[workspace, hostUrl, invalidateTerminals, t],
+	);
+
+	const promptRenameTerminal = useCallback(
+		(terminalId: string) => {
+			const row = rows.find((candidate) => candidate.terminalId === terminalId);
+			Alert.prompt(
+				t({
+					message: "Rename session",
+				}),
+				t({
+					message:
+						"Leave it empty to go back to the name the terminal reports.",
+				}),
+				[
+					{
+						text: t({ message: "Cancel" }),
+						style: "cancel",
+					},
+					{
+						text: t({ message: "Save" }),
+						onPress: (value?: string) =>
+							renameTerminal(terminalId, value ?? ""),
+					},
+				],
+				"plain-text",
+				row?.customTitle ?? "",
+			);
+		},
+		[rows, renameTerminal, t],
+	);
+
 	// Press and hold a tab → Copy session ID. The pasteboard write lands here
 	// rather than natively so it shares the header notice every other copy on
 	// this screen already uses.
@@ -928,6 +982,7 @@ export function WorkspaceScreen() {
 					sessionTabs={cloud && !workspace ? [] : sessionTabs}
 					onSessionTabPress={pickTerminal}
 					onSessionTabClose={confirmCloseTerminal}
+					onSessionTabRename={promptRenameTerminal}
 					onSessionTabCopyId={copyTerminalId}
 					onNewSessionPress={openAddMenu}
 					onAllSessionsPress={openSessions}

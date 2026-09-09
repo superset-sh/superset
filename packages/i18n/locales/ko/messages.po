@@ -3069,6 +3069,9 @@ msgstr "Run 01 기간에 Operator 달성"
 msgid "Cleared terminal history"
 msgstr "터미널 기록을 지웠습니다"
 
+msgid "Clearing session name..."
+msgstr "세션 이름을 지우는 중..."
+
 msgid "Clearing…"
 msgstr "삭제하는 중…"
 
@@ -4047,6 +4050,9 @@ msgstr "Google 계정을 읽을 수 없습니다. 다시 시도해 주세요."
 
 msgid "Could not record cloud workspace"
 msgstr "클라우드 워크스페이스를 기록할 수 없습니다"
+
+msgid "Could not rename the session"
+msgstr "세션 이름을 변경할 수 없습니다"
 
 msgid "Could not reopen"
 msgstr "다시 열 수 없습니다"
@@ -5963,6 +5969,9 @@ msgstr "이름을 변경하지 못했습니다"
 msgid "Failed to rename branch"
 msgstr "브랜치 이름을 변경하지 못했습니다"
 
+msgid "Failed to rename session"
+msgstr "세션 이름 변경 실패"
+
 msgid "Failed to reorder"
 msgstr "순서를 변경하지 못했습니다"
 
@@ -7718,6 +7727,9 @@ msgstr "나가고 삭제"
 
 msgid "Leave comment mode"
 msgstr "댓글 모드 나가기"
+
+msgid "Leave it empty to go back to the name the terminal reports."
+msgstr "비워 두면 터미널이 보고하는 이름으로 돌아갑니다."
 
 msgid "Leave Organization"
 msgstr "조직 나가기"
@@ -11414,6 +11426,9 @@ msgstr "제거하는 중…"
 msgid "Rename"
 msgstr "이름 변경"
 
+msgid "Rename {title}"
+msgstr "{title} 이름 변경"
+
 msgid "Rename branch"
 msgstr "브랜치 이름 변경"
 
@@ -11430,6 +11445,9 @@ msgstr "그룹 이름 변경"
 msgid "Rename host"
 msgstr "호스트 이름 변경"
 
+msgid "Rename session"
+msgstr "세션 이름 변경"
+
 msgid "rename the branch"
 msgstr "브랜치 이름을 변경할"
 
@@ -11441,6 +11459,9 @@ msgstr "이름 변경..."
 
 msgid "Renaming branch to {newName}..."
 msgstr "브랜치 이름을 {newName}(으)로 변경하는 중..."
+
+msgid "Renaming session to {trimmed}..."
+msgstr "세션 이름을 {trimmed}(으)로 변경하는 중..."
 
 msgid "Rendered output: code, sources, citations, context"
 msgstr "렌더링된 출력: 코드, 출처, 인용, 컨텍스트"
@@ -12598,8 +12619,17 @@ msgstr "웹에서 세션 만들기는 곧 지원됩니다"
 msgid "Session details"
 msgstr "세션 상세"
 
+msgid "Session name"
+msgstr "세션 이름"
+
+msgid "Session name cleared"
+msgstr "세션 이름을 지웠습니다"
+
 msgid "Session notes and context."
 msgstr "세션 노트와 컨텍스트입니다."
+
+msgid "Session renamed to {trimmed}"
+msgstr "세션 이름을 {trimmed}(으)로 변경했습니다"
 
 msgid "Session snapshots & revert"
 msgstr "세션 스냅샷 및 되돌리기"

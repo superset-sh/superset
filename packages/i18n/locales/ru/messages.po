@@ -3069,6 +3069,9 @@ msgstr "Operator достигнут в окне Run 01"
 msgid "Cleared terminal history"
 msgstr "История терминала очищена"
 
+msgid "Clearing session name..."
+msgstr "Очистка имени сессии..."
+
 msgid "Clearing…"
 msgstr "Очистка…"
 
@@ -4047,6 +4050,9 @@ msgstr "Не удалось прочитать аккаунт Google. Попро
 
 msgid "Could not record cloud workspace"
 msgstr "Не удалось записать облачную рабочую область"
+
+msgid "Could not rename the session"
+msgstr "Не удалось переименовать сессию"
 
 msgid "Could not reopen"
 msgstr "Не удалось открыть заново"
@@ -5963,6 +5969,9 @@ msgstr "Не удалось переименовать"
 msgid "Failed to rename branch"
 msgstr "Не удалось переименовать ветку"
 
+msgid "Failed to rename session"
+msgstr "Ошибка переименования сессии"
+
 msgid "Failed to reorder"
 msgstr "Не удалось изменить порядок"
 
@@ -7718,6 +7727,9 @@ msgstr "Выйти и удалить"
 
 msgid "Leave comment mode"
 msgstr "Выйти из режима комментариев"
+
+msgid "Leave it empty to go back to the name the terminal reports."
+msgstr "Оставьте поле пустым, чтобы вернуть имя, которое сообщает терминал."
 
 msgid "Leave Organization"
 msgstr "Покинуть организацию"
@@ -11414,6 +11426,9 @@ msgstr "Удаление…"
 msgid "Rename"
 msgstr "Переименовать"
 
+msgid "Rename {title}"
+msgstr "Переименовать {title}"
+
 msgid "Rename branch"
 msgstr "Переименовать ветку"
 
@@ -11430,6 +11445,9 @@ msgstr "Переименовать группу"
 msgid "Rename host"
 msgstr "Переименовать хост"
 
+msgid "Rename session"
+msgstr "Переименовать сессию"
+
 msgid "rename the branch"
 msgstr "переименовать ветку"
 
@@ -11441,6 +11459,9 @@ msgstr "Переименовать..."
 
 msgid "Renaming branch to {newName}..."
 msgstr "Переименование ветки в {newName}..."
+
+msgid "Renaming session to {trimmed}..."
+msgstr "Переименование сессии в {trimmed}..."
 
 msgid "Rendered output: code, sources, citations, context"
 msgstr "Отрендеренный вывод: код, источники, цитаты, контекст"
@@ -12598,8 +12619,17 @@ msgstr "Создание сессий в вебе скоро появится"
 msgid "Session details"
 msgstr "Детали сессии"
 
+msgid "Session name"
+msgstr "Имя сессии"
+
+msgid "Session name cleared"
+msgstr "Имя сессии очищено"
+
 msgid "Session notes and context."
 msgstr "Заметки и контекст сессии."
+
+msgid "Session renamed to {trimmed}"
+msgstr "Сессия переименована в {trimmed}"
 
 msgid "Session snapshots & revert"
 msgstr "Снимки сессий и откат"

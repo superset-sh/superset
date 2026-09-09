@@ -3069,6 +3069,9 @@ msgstr "Operator alcanzado dentro de la ventana Run 01"
 msgid "Cleared terminal history"
 msgstr "Historial de la terminal borrado"
 
+msgid "Clearing session name..."
+msgstr "Borrando el nombre de la sesión..."
+
 msgid "Clearing…"
 msgstr "Borrando…"
 
@@ -4047,6 +4050,9 @@ msgstr "No se pudo leer la cuenta de Google. Inténtalo de nuevo."
 
 msgid "Could not record cloud workspace"
 msgstr "No se pudo registrar el espacio de trabajo en la nube"
+
+msgid "Could not rename the session"
+msgstr "No se pudo cambiar el nombre de la sesión"
 
 msgid "Could not reopen"
 msgstr "No se pudo reabrir"
@@ -5963,6 +5969,9 @@ msgstr "No se pudo cambiar el nombre"
 msgid "Failed to rename branch"
 msgstr "No se pudo cambiar el nombre de la rama"
 
+msgid "Failed to rename session"
+msgstr "Error al cambiar el nombre de la sesión"
+
 msgid "Failed to reorder"
 msgstr "No se pudo reordenar"
 
@@ -7718,6 +7727,9 @@ msgstr "Salir y eliminar"
 
 msgid "Leave comment mode"
 msgstr "Salir del modo comentario"
+
+msgid "Leave it empty to go back to the name the terminal reports."
+msgstr "Déjalo vacío para volver al nombre que indica la terminal."
 
 msgid "Leave Organization"
 msgstr "Salir de la organización"
@@ -11414,6 +11426,9 @@ msgstr "Quitando…"
 msgid "Rename"
 msgstr "Cambiar nombre"
 
+msgid "Rename {title}"
+msgstr "Cambiar el nombre de {title}"
+
 msgid "Rename branch"
 msgstr "Cambiar nombre de la rama"
 
@@ -11430,6 +11445,9 @@ msgstr "Cambiar nombre del grupo"
 msgid "Rename host"
 msgstr "Cambiar el nombre del host"
 
+msgid "Rename session"
+msgstr "Cambiar el nombre de la sesión"
+
 msgid "rename the branch"
 msgstr "cambiar el nombre de la rama"
 
@@ -11441,6 +11459,9 @@ msgstr "Cambiar el nombre..."
 
 msgid "Renaming branch to {newName}..."
 msgstr "Cambiando el nombre de la rama a {newName}..."
+
+msgid "Renaming session to {trimmed}..."
+msgstr "Cambiando el nombre de la sesión a {trimmed}..."
 
 msgid "Rendered output: code, sources, citations, context"
 msgstr "Salida renderizada: código, fuentes, citas, contexto"
@@ -12598,8 +12619,17 @@ msgstr "La creación de sesiones en la web llegará pronto"
 msgid "Session details"
 msgstr "Detalles de la sesión"
 
+msgid "Session name"
+msgstr "Nombre de la sesión"
+
+msgid "Session name cleared"
+msgstr "Nombre de la sesión borrado"
+
 msgid "Session notes and context."
 msgstr "Notas y contexto de la sesión."
+
+msgid "Session renamed to {trimmed}"
+msgstr "Nombre de la sesión cambiado a {trimmed}"
 
 msgid "Session snapshots & revert"
 msgstr "Instantáneas de sesión y reversión"

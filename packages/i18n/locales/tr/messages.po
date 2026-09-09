@@ -3069,6 +3069,9 @@ msgstr "Run 01 penceresinde Operator tamamlandı"
 msgid "Cleared terminal history"
 msgstr "Terminal geçmişi temizlendi"
 
+msgid "Clearing session name..."
+msgstr "Oturum adı temizleniyor..."
+
 msgid "Clearing…"
 msgstr "Temizleniyor…"
 
@@ -4047,6 +4050,9 @@ msgstr "Google hesabı okunamadı. Lütfen yeniden deneyin."
 
 msgid "Could not record cloud workspace"
 msgstr "Bulut çalışma alanı kaydedilemedi"
+
+msgid "Could not rename the session"
+msgstr "Oturum yeniden adlandırılamadı"
 
 msgid "Could not reopen"
 msgstr "Yeniden açılamadı"
@@ -5963,6 +5969,9 @@ msgstr "Yeniden adlandırılamadı"
 msgid "Failed to rename branch"
 msgstr "Dal yeniden adlandırılamadı"
 
+msgid "Failed to rename session"
+msgstr "Oturumu yeniden adlandırma başarısız oldu"
+
 msgid "Failed to reorder"
 msgstr "Yeniden sıralanamadı"
 
@@ -7718,6 +7727,9 @@ msgstr "Ayrıl ve sil"
 
 msgid "Leave comment mode"
 msgstr "Yorum modundan çık"
+
+msgid "Leave it empty to go back to the name the terminal reports."
+msgstr "Terminalin bildirdiği ada dönmek için boş bırakın."
 
 msgid "Leave Organization"
 msgstr "Kuruluştan ayrıl"
@@ -11414,6 +11426,9 @@ msgstr "Kaldırılıyor…"
 msgid "Rename"
 msgstr "Yeniden adlandır"
 
+msgid "Rename {title}"
+msgstr "{title} adını değiştir"
+
 msgid "Rename branch"
 msgstr "Dalı yeniden adlandır"
 
@@ -11430,6 +11445,9 @@ msgstr "Grubu yeniden adlandır"
 msgid "Rename host"
 msgstr "Host'u yeniden adlandır"
 
+msgid "Rename session"
+msgstr "Oturumu yeniden adlandır"
+
 msgid "rename the branch"
 msgstr "dalı yeniden adlandırma"
 
@@ -11441,6 +11459,9 @@ msgstr "Yeniden adlandır..."
 
 msgid "Renaming branch to {newName}..."
 msgstr "Dal {newName} olarak yeniden adlandırılıyor..."
+
+msgid "Renaming session to {trimmed}..."
+msgstr "Oturum {trimmed} olarak yeniden adlandırılıyor..."
 
 msgid "Rendered output: code, sources, citations, context"
 msgstr "İşlenmiş çıktı: kod, kaynaklar, alıntılar, bağlam"
@@ -12598,8 +12619,17 @@ msgstr "Web'de oturum oluşturma yakında geliyor"
 msgid "Session details"
 msgstr "Oturum ayrıntıları"
 
+msgid "Session name"
+msgstr "Oturum adı"
+
+msgid "Session name cleared"
+msgstr "Oturum adı temizlendi"
+
 msgid "Session notes and context."
 msgstr "Oturum notları ve bağlam."
+
+msgid "Session renamed to {trimmed}"
+msgstr "Oturum {trimmed} olarak yeniden adlandırıldı"
 
 msgid "Session snapshots & revert"
 msgstr "Oturum anlık görüntüleri ve geri alma"

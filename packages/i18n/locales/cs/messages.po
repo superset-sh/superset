@@ -3069,6 +3069,9 @@ msgstr "Operator dosažen v okně Run 01"
 msgid "Cleared terminal history"
 msgstr "Historie terminálu vymazána"
 
+msgid "Clearing session name..."
+msgstr "Maži název relace..."
+
 msgid "Clearing…"
 msgstr "Mažu…"
 
@@ -4047,6 +4050,9 @@ msgstr "Nepodařilo se přečíst účet Google. Zkuste to prosím znovu."
 
 msgid "Could not record cloud workspace"
 msgstr "Nepodařilo se zaznamenat cloudový pracovní prostor"
+
+msgid "Could not rename the session"
+msgstr "Relaci se nepodařilo přejmenovat"
 
 msgid "Could not reopen"
 msgstr "Nepodařilo se znovu otevřít"
@@ -5963,6 +5969,9 @@ msgstr "Nepodařilo se přejmenovat"
 msgid "Failed to rename branch"
 msgstr "Nepodařilo se přejmenovat větev"
 
+msgid "Failed to rename session"
+msgstr "Přejmenování relace se nezdařilo"
+
 msgid "Failed to reorder"
 msgstr "Nepodařilo se změnit pořadí"
 
@@ -7718,6 +7727,9 @@ msgstr "Odejít a smazat"
 
 msgid "Leave comment mode"
 msgstr "Opustit režim komentářů"
+
+msgid "Leave it empty to go back to the name the terminal reports."
+msgstr "Nechte prázdné pro návrat k názvu, který hlásí terminál."
 
 msgid "Leave Organization"
 msgstr "Opustit organizaci"
@@ -11414,6 +11426,9 @@ msgstr "Odebírám…"
 msgid "Rename"
 msgstr "Přejmenovat"
 
+msgid "Rename {title}"
+msgstr "Přejmenovat {title}"
+
 msgid "Rename branch"
 msgstr "Přejmenovat větev"
 
@@ -11430,6 +11445,9 @@ msgstr "Přejmenovat skupinu"
 msgid "Rename host"
 msgstr "Přejmenovat hosta"
 
+msgid "Rename session"
+msgstr "Přejmenovat relaci"
+
 msgid "rename the branch"
 msgstr "přejmenovat větev"
 
@@ -11441,6 +11459,9 @@ msgstr "Přejmenovat..."
 
 msgid "Renaming branch to {newName}..."
 msgstr "Přejmenovávám větev na {newName}..."
+
+msgid "Renaming session to {trimmed}..."
+msgstr "Přejmenovávám relaci na {trimmed}..."
 
 msgid "Rendered output: code, sources, citations, context"
 msgstr "Vykreslený výstup: kód, zdroje, citace, kontext"
@@ -12598,8 +12619,17 @@ msgstr "Vytváření relací na webu bude brzy k dispozici"
 msgid "Session details"
 msgstr "Podrobnosti relace"
 
+msgid "Session name"
+msgstr "Název relace"
+
+msgid "Session name cleared"
+msgstr "Název relace byl smazán"
+
 msgid "Session notes and context."
 msgstr "Poznámky k relaci a kontext."
+
+msgid "Session renamed to {trimmed}"
+msgstr "Relace přejmenována na {trimmed}"
 
 msgid "Session snapshots & revert"
 msgstr "Snímky relace a návrat zpět"

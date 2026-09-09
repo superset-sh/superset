@@ -3069,6 +3069,9 @@ msgstr "Operator gehaald binnen het Run 01-venster"
 msgid "Cleared terminal history"
 msgstr "Terminalgeschiedenis gewist"
 
+msgid "Clearing session name..."
+msgstr "Sessienaam wissen..."
+
 msgid "Clearing…"
 msgstr "Wissen…"
 
@@ -4047,6 +4050,9 @@ msgstr "Kan het Google-account niet uitlezen. Probeer het opnieuw."
 
 msgid "Could not record cloud workspace"
 msgstr "Kan cloudwerkruimte niet vastleggen"
+
+msgid "Could not rename the session"
+msgstr "Kan de naam van de sessie niet wijzigen"
 
 msgid "Could not reopen"
 msgstr "Kan niet heropenen"
@@ -5963,6 +5969,9 @@ msgstr "Naam wijzigen mislukt"
 msgid "Failed to rename branch"
 msgstr "Naam van branch wijzigen mislukt"
 
+msgid "Failed to rename session"
+msgstr "Naam van de sessie wijzigen mislukt"
+
 msgid "Failed to reorder"
 msgstr "Herordenen mislukt"
 
@@ -7718,6 +7727,9 @@ msgstr "Verlaten en verwijderen"
 
 msgid "Leave comment mode"
 msgstr "Opmerkingsmodus verlaten"
+
+msgid "Leave it empty to go back to the name the terminal reports."
+msgstr "Laat leeg om terug te gaan naar de naam die de terminal doorgeeft."
 
 msgid "Leave Organization"
 msgstr "Organisatie verlaten"
@@ -11414,6 +11426,9 @@ msgstr "Verwijderen…"
 msgid "Rename"
 msgstr "Naam wijzigen"
 
+msgid "Rename {title}"
+msgstr "Naam van {title} wijzigen"
+
 msgid "Rename branch"
 msgstr "Branchnaam wijzigen"
 
@@ -11430,6 +11445,9 @@ msgstr "Groepsnaam wijzigen"
 msgid "Rename host"
 msgstr "Host hernoemen"
 
+msgid "Rename session"
+msgstr "Sessienaam wijzigen"
+
 msgid "rename the branch"
 msgstr "de branch hernoemen"
 
@@ -11441,6 +11459,9 @@ msgstr "Naam wijzigen..."
 
 msgid "Renaming branch to {newName}..."
 msgstr "Branch hernoemen naar {newName}..."
+
+msgid "Renaming session to {trimmed}..."
+msgstr "Sessienaam wijzigen in {trimmed}..."
 
 msgid "Rendered output: code, sources, citations, context"
 msgstr "Weergegeven output: code, bronnen, citaten, context"
@@ -12598,8 +12619,17 @@ msgstr "Sessies aanmaken op het web komt binnenkort"
 msgid "Session details"
 msgstr "Sessiedetails"
 
+msgid "Session name"
+msgstr "Sessienaam"
+
+msgid "Session name cleared"
+msgstr "Sessienaam gewist"
+
 msgid "Session notes and context."
 msgstr "Sessienotities en context."
+
+msgid "Session renamed to {trimmed}"
+msgstr "Sessienaam gewijzigd in {trimmed}"
 
 msgid "Session snapshots & revert"
 msgstr "Sessiesnapshots en terugdraaien"

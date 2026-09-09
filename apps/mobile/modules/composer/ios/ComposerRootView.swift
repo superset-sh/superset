@@ -302,6 +302,7 @@ struct ComposerRootView: View {
                 labels: model.sessionTabLabels,
                 onSelect: { model.onSessionTabPress?($0) },
                 onClose: { model.onSessionTabClose?($0) },
+                onRename: { model.onSessionTabRename?($0) },
                 onCopyId: { model.onSessionTabCopyId?($0) },
                 onNewSession: { model.onNewSessionPress?() },
                 onAllSessions: { model.onAllSessionsPress?() }

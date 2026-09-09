@@ -3069,6 +3069,9 @@ msgstr "在 Run 01 期间达到 Operator"
 msgid "Cleared terminal history"
 msgstr "已清除终端历史"
 
+msgid "Clearing session name..."
+msgstr "正在清除会话名称..."
+
 msgid "Clearing…"
 msgstr "正在清除…"
 
@@ -4047,6 +4050,9 @@ msgstr "无法读取该Google账户。请重试。"
 
 msgid "Could not record cloud workspace"
 msgstr "无法记录云端工作区"
+
+msgid "Could not rename the session"
+msgstr "无法重命名会话"
 
 msgid "Could not reopen"
 msgstr "无法重新打开"
@@ -5963,6 +5969,9 @@ msgstr "重命名失败"
 msgid "Failed to rename branch"
 msgstr "重命名分支失败"
 
+msgid "Failed to rename session"
+msgstr "重命名会话失败"
+
 msgid "Failed to reorder"
 msgstr "重新排序失败"
 
@@ -7718,6 +7727,9 @@ msgstr "退出并删除"
 
 msgid "Leave comment mode"
 msgstr "退出评论模式"
+
+msgid "Leave it empty to go back to the name the terminal reports."
+msgstr "留空即可恢复终端报告的名称。"
 
 msgid "Leave Organization"
 msgstr "退出组织"
@@ -11414,6 +11426,9 @@ msgstr "正在移除…"
 msgid "Rename"
 msgstr "重命名"
 
+msgid "Rename {title}"
+msgstr "重命名 {title}"
+
 msgid "Rename branch"
 msgstr "重命名分支"
 
@@ -11430,6 +11445,9 @@ msgstr "重命名分组"
 msgid "Rename host"
 msgstr "重命名主机"
 
+msgid "Rename session"
+msgstr "重命名会话"
+
 msgid "rename the branch"
 msgstr "重命名分支"
 
@@ -11441,6 +11459,9 @@ msgstr "重命名..."
 
 msgid "Renaming branch to {newName}..."
 msgstr "正在将分支重命名为{newName}..."
+
+msgid "Renaming session to {trimmed}..."
+msgstr "正在将会话重命名为 {trimmed}..."
 
 msgid "Rendered output: code, sources, citations, context"
 msgstr "渲染输出：代码、来源、引用、上下文"
@@ -12598,8 +12619,17 @@ msgstr "网页端创建会话即将推出"
 msgid "Session details"
 msgstr "会话详情"
 
+msgid "Session name"
+msgstr "会话名称"
+
+msgid "Session name cleared"
+msgstr "已清除会话名称"
+
 msgid "Session notes and context."
 msgstr "会话笔记与上下文。"
+
+msgid "Session renamed to {trimmed}"
+msgstr "会话已重命名为 {trimmed}"
 
 msgid "Session snapshots & revert"
 msgstr "会话快照与回退"

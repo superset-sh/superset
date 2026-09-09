@@ -3069,6 +3069,9 @@ msgstr "Operator im Run-01-Zeitraum erreicht"
 msgid "Cleared terminal history"
 msgstr "Terminal-Verlauf gelöscht"
 
+msgid "Clearing session name..."
+msgstr "Sitzungsname wird gelöscht..."
+
 msgid "Clearing…"
 msgstr "Wird gelöscht…"
 
@@ -4047,6 +4050,9 @@ msgstr "Das Google-Konto konnte nicht gelesen werden. Bitte versuche es erneut."
 
 msgid "Could not record cloud workspace"
 msgstr "Cloud-Arbeitsbereich konnte nicht erfasst werden"
+
+msgid "Could not rename the session"
+msgstr "Sitzung konnte nicht umbenannt werden"
 
 msgid "Could not reopen"
 msgstr "Konnte nicht wieder geöffnet werden"
@@ -5963,6 +5969,9 @@ msgstr "Umbenennen fehlgeschlagen"
 msgid "Failed to rename branch"
 msgstr "Branch konnte nicht umbenannt werden"
 
+msgid "Failed to rename session"
+msgstr "Umbenennen der Sitzung fehlgeschlagen"
+
 msgid "Failed to reorder"
 msgstr "Umsortieren fehlgeschlagen"
 
@@ -7718,6 +7727,9 @@ msgstr "Austreten und löschen"
 
 msgid "Leave comment mode"
 msgstr "Kommentarmodus verlassen"
+
+msgid "Leave it empty to go back to the name the terminal reports."
+msgstr "Leer lassen, um zum Namen zurückzukehren, den das Terminal meldet."
 
 msgid "Leave Organization"
 msgstr "Organisation verlassen"
@@ -11414,6 +11426,9 @@ msgstr "Wird entfernt…"
 msgid "Rename"
 msgstr "Umbenennen"
 
+msgid "Rename {title}"
+msgstr "{title} umbenennen"
+
 msgid "Rename branch"
 msgstr "Branch umbenennen"
 
@@ -11430,6 +11445,9 @@ msgstr "Gruppe umbenennen"
 msgid "Rename host"
 msgstr "Host umbenennen"
 
+msgid "Rename session"
+msgstr "Sitzung umbenennen"
+
 msgid "rename the branch"
 msgstr "den Branch umbenennen"
 
@@ -11441,6 +11459,9 @@ msgstr "Umbenennen..."
 
 msgid "Renaming branch to {newName}..."
 msgstr "Branch wird in {newName} umbenannt..."
+
+msgid "Renaming session to {trimmed}..."
+msgstr "Sitzung wird in {trimmed} umbenannt..."
 
 msgid "Rendered output: code, sources, citations, context"
 msgstr "Gerenderte Ausgabe: Code, Quellen, Zitate, Kontext"
@@ -12598,8 +12619,17 @@ msgstr "Das Erstellen von Sitzungen im Web kommt bald"
 msgid "Session details"
 msgstr "Sitzungsdetails"
 
+msgid "Session name"
+msgstr "Sitzungsname"
+
+msgid "Session name cleared"
+msgstr "Sitzungsname gelöscht"
+
 msgid "Session notes and context."
 msgstr "Sitzungsnotizen und Kontext."
+
+msgid "Session renamed to {trimmed}"
+msgstr "Sitzung in {trimmed} umbenannt"
 
 msgid "Session snapshots & revert"
 msgstr "Sitzungs-Snapshots & Zurücksetzen"

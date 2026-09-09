@@ -532,7 +532,14 @@ interface TerminalSession {
 	exitCode: number;
 	exitSignal: number;
 	listed: boolean;
+	/** Last title the shell reported over OSC. Lives and dies with the process. */
 	title: string | null;
+	/**
+	 * The name the user gave this session, mirrored from `custom_title`. It
+	 * outranks `title` everywhere a session is named, so a session keeps its
+	 * name while the shell retitles itself underneath.
+	 */
+	customTitle: string | null;
 	titleScanState: TerminalTitleScanState;
 	/**
 	 * Bus for lifecycle broadcasts. Kept on the session so dispose (which
@@ -805,7 +812,10 @@ export interface TerminalSessionSummary {
 	exited: boolean;
 	exitCode: number;
 	attached: boolean;
+	/** What to show: the user's name if set, else the shell's OSC title. */
 	title: string | null;
+	/** The user's name on its own — null when the session has never been named. */
+	customTitle: string | null;
 }
 
 /**
@@ -871,7 +881,8 @@ export function listTerminalSessions(
 			exited: session.exited,
 			exitCode: session.exitCode,
 			attached: pruneAndCountOpenSockets(session) > 0,
-			title: session.title,
+			title: sessionDisplayTitle(session),
+			customTitle: session.customTitle,
 		}));
 }
 
@@ -890,7 +901,7 @@ export function listTerminalSessions(
  * daemon session joined to an active workspace-owned row. Dispose-stamped
  * rows are scheduled kills awaiting the reaper — never resurfaced. A session
  * only the daemon knows has never been attached in this process's lifetime,
- * hence `attached: false, title: null`.
+ * hence `attached: false` and no OSC title — only the name it was given.
  */
 export async function listLiveTerminalSessions(
 	db: HostDb,
@@ -931,6 +942,7 @@ export async function listLiveTerminalSessions(
 			originWorkspaceId: terminalSessions.originWorkspaceId,
 			status: terminalSessions.status,
 			createdAt: terminalSessions.createdAt,
+			customTitle: terminalSessions.customTitle,
 			disposeRequestedAt: terminalSessions.disposeRequestedAt,
 		})
 		.from(terminalSessions)
@@ -954,7 +966,10 @@ export async function listLiveTerminalSessions(
 			exited: false,
 			exitCode: 0,
 			attached: false,
-			title: null,
+			// No OSC title to fall back on — this process has never watched
+			// this session's output — but the name it was given is durable.
+			title: row.customTitle,
+			customTitle: row.customTitle,
 		});
 	}
 	return merged;
@@ -1345,10 +1360,61 @@ function broadcastMessage(
 	return sent;
 }
 
+/**
+ * What this session is called: the user's name if it has one, else whatever
+ * the shell last reported. The single place that precedence is decided —
+ * clients are handed the answer, never the two inputs.
+ */
+function sessionDisplayTitle(session: TerminalSession): string | null {
+	return session.customTitle ?? session.title;
+}
+
+/**
+ * Announce the display title if what just changed actually changed it. A
+ * named session swallows the shell's retitles this way: it still tracks them
+ * (clearing the name falls back to the latest one) but nothing is announced.
+ */
+function broadcastDisplayTitle(
+	session: TerminalSession,
+	before: string | null,
+) {
+	const after = sessionDisplayTitle(session);
+	if (before === after) return;
+	broadcastMessage(session, { type: "title", title: after });
+}
+
 function setSessionTitle(session: TerminalSession, title: string | null) {
 	if (session.title === title) return;
+	const before = sessionDisplayTitle(session);
 	session.title = title;
-	broadcastMessage(session, { type: "title", title });
+	broadcastDisplayTitle(session, before);
+}
+
+/**
+ * Give a session a name, or clear it with null. The db row is the truth —
+ * a session with no pane, or none in this process's memory at all, is named
+ * just the same — and any live session is caught up so attached clients
+ * (this desktop, a phone) see it without waiting for their next poll.
+ */
+export function renameTerminalSession({
+	terminalId,
+	customTitle,
+	db,
+}: {
+	terminalId: string;
+	customTitle: string | null;
+	db: HostDb;
+}): void {
+	db.update(terminalSessions)
+		.set({ customTitle })
+		.where(eq(terminalSessions.id, terminalId))
+		.run();
+
+	const session = sessions.get(terminalId);
+	if (!session || session.customTitle === customTitle) return;
+	const before = sessionDisplayTitle(session);
+	session.customTitle = customTitle;
+	broadcastDisplayTitle(session, before);
 }
 
 function bufferOutput(session: TerminalSession, data: Uint8Array) {
@@ -2943,6 +3009,16 @@ export async function createTerminalSessionInternal({
 		})
 		.run();
 
+	// Read back rather than default to null: relaunching into the same
+	// terminal id (adoption, an agent resume) must keep the name it was given,
+	// and the conflict update above deliberately leaves the column alone.
+	const customTitle =
+		db
+			.select({ customTitle: terminalSessions.customTitle })
+			.from(terminalSessions)
+			.where(eq(terminalSessions.id, terminalId))
+			.get()?.customTitle ?? null;
+
 	// Determine shell readiness support. Adopted sessions are already past
 	// shell startup, so treat them as immediately ready — the OSC 133;A
 	// marker has already flown by and we don't want to gate writes on it.
@@ -2989,6 +3065,7 @@ export async function createTerminalSessionInternal({
 		exitSignal: 0,
 		listed,
 		title: null,
+		customTitle,
 		titleScanState: createTerminalTitleScanState(),
 		eventBus,
 		shellReadyState: shellSupportsReady
@@ -3298,7 +3375,7 @@ export function registerWorkspaceTerminalRoute({
 					.where(eq(terminalSessions.id, terminalId))
 					.run();
 
-				sendMessage(ws, { type: "title", title: session.title });
+				sendMessage(ws, { type: "title", title: sessionDisplayTitle(session) });
 				if (seqRequest.kind === "legacy") {
 					// Pre-seq contract: `?replay=0` means "my xterm already has
 					// the scrollback". Adoption now always pulls the daemon ring

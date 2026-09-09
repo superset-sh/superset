@@ -3069,6 +3069,9 @@ msgstr "Palier Operator atteint pendant la fenêtre Run 01"
 msgid "Cleared terminal history"
 msgstr "Historique du terminal effacé"
 
+msgid "Clearing session name..."
+msgstr "Effacement du nom de la session..."
+
 msgid "Clearing…"
 msgstr "Effacement…"
 
@@ -4047,6 +4050,9 @@ msgstr "Impossible de lire le compte Google. Veuillez réessayer."
 
 msgid "Could not record cloud workspace"
 msgstr "Impossible d'enregistrer l'espace de travail cloud"
+
+msgid "Could not rename the session"
+msgstr "Impossible de renommer la session"
 
 msgid "Could not reopen"
 msgstr "Impossible de rouvrir"
@@ -5963,6 +5969,9 @@ msgstr "Échec du renommage"
 msgid "Failed to rename branch"
 msgstr "Échec du renommage de la branche"
 
+msgid "Failed to rename session"
+msgstr "Échec du renommage de la session"
+
 msgid "Failed to reorder"
 msgstr "Échec de la réorganisation"
 
@@ -7718,6 +7727,9 @@ msgstr "Quitter et supprimer"
 
 msgid "Leave comment mode"
 msgstr "Quitter le mode commentaire"
+
+msgid "Leave it empty to go back to the name the terminal reports."
+msgstr "Laissez vide pour revenir au nom indiqué par le terminal."
 
 msgid "Leave Organization"
 msgstr "Quitter l'organisation"
@@ -11414,6 +11426,9 @@ msgstr "Suppression…"
 msgid "Rename"
 msgstr "Renommer"
 
+msgid "Rename {title}"
+msgstr "Renommer {title}"
+
 msgid "Rename branch"
 msgstr "Renommer la branche"
 
@@ -11430,6 +11445,9 @@ msgstr "Renommer le groupe"
 msgid "Rename host"
 msgstr "Renommer l'hôte"
 
+msgid "Rename session"
+msgstr "Renommer la session"
+
 msgid "rename the branch"
 msgstr "renommer la branche"
 
@@ -11441,6 +11459,9 @@ msgstr "Renommer..."
 
 msgid "Renaming branch to {newName}..."
 msgstr "Renommage de la branche en {newName}..."
+
+msgid "Renaming session to {trimmed}..."
+msgstr "Renommage de la session en {trimmed}..."
 
 msgid "Rendered output: code, sources, citations, context"
 msgstr "Sortie rendue : code, sources, citations, contexte"
@@ -12598,8 +12619,17 @@ msgstr "La création de sessions sur le web arrive bientôt"
 msgid "Session details"
 msgstr "Détails de la session"
 
+msgid "Session name"
+msgstr "Nom de la session"
+
+msgid "Session name cleared"
+msgstr "Nom de la session effacé"
+
 msgid "Session notes and context."
 msgstr "Notes et contexte de session."
+
+msgid "Session renamed to {trimmed}"
+msgstr "Session renommée en {trimmed}"
 
 msgid "Session snapshots & revert"
 msgstr "Instantanés de session et retour arrière"

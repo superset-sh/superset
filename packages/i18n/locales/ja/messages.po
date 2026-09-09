@@ -3069,6 +3069,9 @@ msgstr "Run 01 期間中に Operator を達成"
 msgid "Cleared terminal history"
 msgstr "ターミナル履歴をクリアしました"
 
+msgid "Clearing session name..."
+msgstr "セッション名をクリア中..."
+
 msgid "Clearing…"
 msgstr "消去中…"
 
@@ -4047,6 +4050,9 @@ msgstr "Googleアカウントを読み取れませんでした。もう一度お
 
 msgid "Could not record cloud workspace"
 msgstr "クラウドワークスペースを記録できませんでした"
+
+msgid "Could not rename the session"
+msgstr "セッションの名前を変更できませんでした"
 
 msgid "Could not reopen"
 msgstr "再オープンできませんでした"
@@ -5963,6 +5969,9 @@ msgstr "名前の変更に失敗しました"
 msgid "Failed to rename branch"
 msgstr "ブランチ名の変更に失敗しました"
 
+msgid "Failed to rename session"
+msgstr "セッションの名前の変更に失敗しました"
+
 msgid "Failed to reorder"
 msgstr "並べ替えに失敗しました"
 
@@ -7718,6 +7727,9 @@ msgstr "退出して削除"
 
 msgid "Leave comment mode"
 msgstr "コメントモードを終了"
+
+msgid "Leave it empty to go back to the name the terminal reports."
+msgstr "空欄にすると、ターミナルが報告する名前に戻ります。"
 
 msgid "Leave Organization"
 msgstr "組織から退出"
@@ -11414,6 +11426,9 @@ msgstr "削除中…"
 msgid "Rename"
 msgstr "名前を変更"
 
+msgid "Rename {title}"
+msgstr "{title} の名前を変更"
+
 msgid "Rename branch"
 msgstr "ブランチ名を変更"
 
@@ -11430,6 +11445,9 @@ msgstr "グループ名を変更"
 msgid "Rename host"
 msgstr "ホストの名前を変更"
 
+msgid "Rename session"
+msgstr "セッションの名前を変更"
+
 msgid "rename the branch"
 msgstr "ブランチ名を変更する"
 
@@ -11441,6 +11459,9 @@ msgstr "名前を変更..."
 
 msgid "Renaming branch to {newName}..."
 msgstr "ブランチ名を{newName}に変更中..."
+
+msgid "Renaming session to {trimmed}..."
+msgstr "セッション名を {trimmed} に変更中..."
 
 msgid "Rendered output: code, sources, citations, context"
 msgstr "描画される出力: コード、ソース、引用、コンテキスト"
@@ -12598,8 +12619,17 @@ msgstr "Web版でのセッション作成は近日公開"
 msgid "Session details"
 msgstr "セッションの詳細"
 
+msgid "Session name"
+msgstr "セッション名"
+
+msgid "Session name cleared"
+msgstr "セッション名をクリアしました"
+
 msgid "Session notes and context."
 msgstr "セッションのノートとコンテキスト。"
+
+msgid "Session renamed to {trimmed}"
+msgstr "セッション名を {trimmed} に変更しました"
 
 msgid "Session snapshots & revert"
 msgstr "セッションのスナップショットと巻き戻し"

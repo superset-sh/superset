@@ -3069,6 +3069,9 @@ msgstr "Đạt Operator trong khoảng thời gian Run 01"
 msgid "Cleared terminal history"
 msgstr "Đã xóa lịch sử terminal"
 
+msgid "Clearing session name..."
+msgstr "Đang xóa tên phiên..."
+
 msgid "Clearing…"
 msgstr "Đang xóa…"
 
@@ -4047,6 +4050,9 @@ msgstr "Không đọc được tài khoản Google. Vui lòng thử lại."
 
 msgid "Could not record cloud workspace"
 msgstr "Không thể ghi nhận workspace trên cloud"
+
+msgid "Could not rename the session"
+msgstr "Không thể đổi tên phiên"
 
 msgid "Could not reopen"
 msgstr "Không thể mở lại"
@@ -5963,6 +5969,9 @@ msgstr "Không thể đổi tên"
 msgid "Failed to rename branch"
 msgstr "Không thể đổi tên nhánh"
 
+msgid "Failed to rename session"
+msgstr "Đổi tên phiên thất bại"
+
 msgid "Failed to reorder"
 msgstr "Không thể sắp xếp lại"
 
@@ -7718,6 +7727,9 @@ msgstr "Rời và xóa"
 
 msgid "Leave comment mode"
 msgstr "Thoát chế độ bình luận"
+
+msgid "Leave it empty to go back to the name the terminal reports."
+msgstr "Để trống để quay lại tên do terminal báo cáo."
 
 msgid "Leave Organization"
 msgstr "Rời tổ chức"
@@ -11414,6 +11426,9 @@ msgstr "Đang gỡ…"
 msgid "Rename"
 msgstr "Đổi tên"
 
+msgid "Rename {title}"
+msgstr "Đổi tên {title}"
+
 msgid "Rename branch"
 msgstr "Đổi tên nhánh"
 
@@ -11430,6 +11445,9 @@ msgstr "Đổi tên nhóm"
 msgid "Rename host"
 msgstr "Đổi tên host"
 
+msgid "Rename session"
+msgstr "Đổi tên phiên"
+
 msgid "rename the branch"
 msgstr "đổi tên nhánh"
 
@@ -11441,6 +11459,9 @@ msgstr "Đổi tên..."
 
 msgid "Renaming branch to {newName}..."
 msgstr "Đang đổi tên nhánh thành {newName}..."
+
+msgid "Renaming session to {trimmed}..."
+msgstr "Đang đổi tên phiên thành {trimmed}..."
 
 msgid "Rendered output: code, sources, citations, context"
 msgstr "Kết quả hiển thị: code, nguồn, trích dẫn, ngữ cảnh"
@@ -12598,8 +12619,17 @@ msgstr "Tạo phiên trên web sẽ sớm có"
 msgid "Session details"
 msgstr "Chi tiết phiên"
 
+msgid "Session name"
+msgstr "Tên phiên"
+
+msgid "Session name cleared"
+msgstr "Đã xóa tên phiên"
+
 msgid "Session notes and context."
 msgstr "Ghi chú và ngữ cảnh của phiên."
+
+msgid "Session renamed to {trimmed}"
+msgstr "Đã đổi tên phiên thành {trimmed}"
 
 msgid "Session snapshots & revert"
 msgstr "Ảnh chụp phiên & hoàn tác"

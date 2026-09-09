@@ -3069,6 +3069,9 @@ msgstr "Operator osiągnięty w oknie Run 01"
 msgid "Cleared terminal history"
 msgstr "Wyczyszczono historię terminala"
 
+msgid "Clearing session name..."
+msgstr "Czyszczenie nazwy sesji..."
+
 msgid "Clearing…"
 msgstr "Czyszczenie…"
 
@@ -4047,6 +4050,9 @@ msgstr "Nie udało się odczytać konta Google. Spróbuj ponownie."
 
 msgid "Could not record cloud workspace"
 msgstr "Nie udało się zapisać obszaru roboczego w chmurze"
+
+msgid "Could not rename the session"
+msgstr "Nie można zmienić nazwy sesji"
 
 msgid "Could not reopen"
 msgstr "Nie udało się otworzyć ponownie"
@@ -5963,6 +5969,9 @@ msgstr "Nie udało się zmienić nazwy"
 msgid "Failed to rename branch"
 msgstr "Nie udało się zmienić nazwy gałęzi"
 
+msgid "Failed to rename session"
+msgstr "Nie udało się zmienić nazwy sesji"
+
 msgid "Failed to reorder"
 msgstr "Nie udało się zmienić kolejności"
 
@@ -7718,6 +7727,9 @@ msgstr "Opuść i usuń"
 
 msgid "Leave comment mode"
 msgstr "Wyjdź z trybu komentarzy"
+
+msgid "Leave it empty to go back to the name the terminal reports."
+msgstr "Zostaw puste, aby wrócić do nazwy zgłaszanej przez terminal."
 
 msgid "Leave Organization"
 msgstr "Opuść organizację"
@@ -11414,6 +11426,9 @@ msgstr "Usuwanie…"
 msgid "Rename"
 msgstr "Zmień nazwę"
 
+msgid "Rename {title}"
+msgstr "Zmień nazwę {title}"
+
 msgid "Rename branch"
 msgstr "Zmień nazwę gałęzi"
 
@@ -11430,6 +11445,9 @@ msgstr "Zmień nazwę grupy"
 msgid "Rename host"
 msgstr "Zmień nazwę hosta"
 
+msgid "Rename session"
+msgstr "Zmień nazwę sesji"
+
 msgid "rename the branch"
 msgstr "zmienić nazwy gałęzi"
 
@@ -11441,6 +11459,9 @@ msgstr "Zmień nazwę..."
 
 msgid "Renaming branch to {newName}..."
 msgstr "Zmiana nazwy gałęzi na {newName}..."
+
+msgid "Renaming session to {trimmed}..."
+msgstr "Zmiana nazwy sesji na {trimmed}..."
 
 msgid "Rendered output: code, sources, citations, context"
 msgstr "Wyrenderowane wyjście: kod, źródła, cytaty, kontekst"
@@ -12598,8 +12619,17 @@ msgstr "Tworzenie sesji w przeglądarce już wkrótce"
 msgid "Session details"
 msgstr "Szczegóły sesji"
 
+msgid "Session name"
+msgstr "Nazwa sesji"
+
+msgid "Session name cleared"
+msgstr "Nazwa sesji wyczyszczona"
+
 msgid "Session notes and context."
 msgstr "Notatki sesji i kontekst."
+
+msgid "Session renamed to {trimmed}"
+msgstr "Zmieniono nazwę sesji na {trimmed}"
 
 msgid "Session snapshots & revert"
 msgstr "Migawki sesji i cofanie"
