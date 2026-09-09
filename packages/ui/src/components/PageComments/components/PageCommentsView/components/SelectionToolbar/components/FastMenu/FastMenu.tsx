@@ -3,7 +3,6 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { useLingui } from "@lingui/react/macro";
 import { useEffect } from "react";
-import { cn } from "../../../../../../../../lib/utils";
 import { PRESET_KEYS, QUICK_PRESETS } from "../../constants";
 
 interface FastMenuProps {
@@ -46,14 +45,9 @@ export function FastMenu({ onPick, onClose }: FastMenuProps) {
 					key={preset.id}
 					type="button"
 					onClick={() => onPick(preset.body)}
-					className="flex w-full items-center gap-2.5 py-1.5 pr-3 pl-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+					className="flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground"
 				>
-					<span
-						className={cn("h-4 w-0.5 shrink-0 rounded-full", preset.accent)}
-					/>
-					<span aria-hidden className="w-4 shrink-0 text-center text-xs">
-						{preset.emoji}
-					</span>
+					<preset.icon className="size-4 shrink-0 text-muted-foreground" />
 					<span className="flex-1 truncate">{i18n._(preset.body)}</span>
 					<span className="shrink-0 text-muted-foreground text-xs tabular-nums">
 						{PRESET_KEYS[index]}

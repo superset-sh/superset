@@ -15,9 +15,9 @@ import { CommentPopover } from "./components/CommentPopover";
 import { PageFrame } from "./components/PageFrame";
 import { SelectionToolbar } from "./components/SelectionToolbar";
 import {
-	PIN_SIZE,
 	type PinPoint,
 	pinPointOf,
+	pinTransform,
 	stackPins,
 } from "./utils/pinLayout";
 
@@ -282,9 +282,7 @@ export function PageCommentsView({
 				{draftPoint ? (
 					<div
 						aria-hidden
-						style={{
-							transform: `translate(${draftPoint.x - PIN_SIZE / 2}px, ${draftPoint.y - PIN_SIZE / 2}px)`,
-						}}
+						style={{ transform: pinTransform(draftPoint) }}
 						className={pinClassName({ resolved: false, active: false })}
 					>
 						{getInitials(user.name) || "?"}
@@ -303,6 +301,7 @@ export function PageCommentsView({
 							initials={getInitials(first?.authorName) || "?"}
 							count={thread.comments.length}
 							resolved={thread.resolved}
+							intent={thread.intent}
 							active={thread.id === activeThreadId}
 							onClick={() => {
 								discardDraft();
@@ -322,13 +321,14 @@ export function PageCommentsView({
 						rect={selection.rect}
 						container={container}
 						onComment={() => openDraft(selection)}
-						onQuick={(body) =>
+						onQuick={(body, intent) => {
 							createThread({
 								anchor: selection.anchor,
 								anchorText: selection.anchor.text,
 								body: i18n._(body),
-							})
-						}
+								intent,
+							}).catch(() => {});
+						}}
 						onDismiss={clearSelection}
 					/>
 				) : null}

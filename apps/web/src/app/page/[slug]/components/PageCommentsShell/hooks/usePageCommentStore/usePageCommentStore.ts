@@ -3,6 +3,7 @@
 import { errorMessage } from "@superset/i18n/errors";
 import type { RouterOutputs } from "@superset/trpc";
 import {
+	type CommentIntent,
 	type CommentStore,
 	type CommentThread,
 	optimisticId,
@@ -28,6 +29,7 @@ function toThreads(rows: ServerThread[]): CommentThread[] {
 							offsetX: row.anchor.offsetX,
 							offsetY: row.anchor.offsetY,
 						},
+						intent: row.intent,
 						resolved: row.resolved,
 						version: row.version,
 						createdByUserId: row.createdByUserId,
@@ -78,6 +80,7 @@ function optimisticThread({
 		} | null;
 		anchorText?: string | null;
 		body: string;
+		intent?: CommentIntent | null;
 	};
 	user: PageCommentUser;
 	version: number;
@@ -87,6 +90,7 @@ function optimisticThread({
 		anchorKind: "element",
 		anchor: input.anchor ?? null,
 		anchorText: input.anchorText ?? null,
+		intent: input.intent ?? null,
 		resolved: false,
 		createdAt: new Date(),
 		version,
@@ -199,7 +203,7 @@ export function usePageCommentStore({
 		() => ({
 			threads,
 			isLoading: list.isPending,
-			createThread: async ({ anchor, anchorText, body }) => {
+			createThread: async ({ anchor, anchorText, body, intent }) => {
 				await create.mutateAsync({
 					pageId,
 					version,
@@ -212,6 +216,7 @@ export function usePageCommentStore({
 					},
 					anchorText: anchorText.slice(0, 500) || null,
 					body,
+					intent,
 				});
 			},
 			addReply: async (threadId, body) => {

@@ -16,6 +16,7 @@ export function toThreads(rows: ServerThread[]): CommentThread[] {
 							offsetX: row.anchor.offsetX,
 							offsetY: row.anchor.offsetY,
 						},
+						intent: row.intent,
 						resolved: row.resolved,
 						version: row.version,
 						createdByUserId: row.createdByUserId,

@@ -146,6 +146,7 @@ export const pageCommentRouter = {
 			return threadRows.map(({ thread, version }) => ({
 				id: thread.id,
 				anchorKind: thread.anchorKind,
+				intent: thread.intent,
 				anchor: thread.anchor as ElementAnchor | null,
 				anchorText: thread.anchorText,
 				resolved: thread.resolvedAt !== null,
@@ -196,6 +197,7 @@ export const pageCommentRouter = {
 						pageId: input.pageId,
 						pageVersionId: version.id,
 						anchorKind: input.anchorKind,
+						intent: input.intent ?? null,
 						anchor: input.anchor,
 						anchorText: input.anchorText,
 						createdByUserId: userId,

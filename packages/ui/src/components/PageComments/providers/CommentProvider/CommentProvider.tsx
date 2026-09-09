@@ -31,9 +31,12 @@ export interface PageComment {
 	createdAt: number;
 }
 
+export type CommentIntent = "delete" | "approve";
+
 export interface CommentThread {
 	id: string;
 	anchor: CommentAnchor;
+	intent?: CommentIntent | null;
 	comments: PageComment[];
 	resolved: boolean;
 	version: number;
@@ -53,6 +56,7 @@ export interface CommentStore {
 		anchor: CommentAnchor;
 		anchorText: string;
 		body: string;
+		intent?: CommentIntent | null;
 	}) => Promise<void>;
 	addReply: (threadId: string, body: string) => Promise<void>;
 	editComment: (

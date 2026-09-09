@@ -6,8 +6,14 @@ import type { FrameRect } from "@superset/shared/page-comments-runtime";
 import { MessageSquare, ThumbsUp, Trash2, X, Zap } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "../../../../../../lib/utils";
+import type { CommentIntent } from "../../../../providers/CommentProvider";
 import { FastMenu } from "./components/FastMenu";
-import { APPROVE_BODY, DELETE_BODY } from "./constants";
+import {
+	APPROVE_BODY,
+	APPROVE_INTENT,
+	DELETE_BODY,
+	DELETE_INTENT,
+} from "./constants";
 import { toolbarPlacement } from "./utils/toolbarPlacement";
 
 const ESTIMATED_SIZE = { width: 210, height: 44 };
@@ -16,7 +22,7 @@ interface SelectionToolbarProps {
 	rect: FrameRect;
 	container: { width: number; height: number };
 	onComment: () => void;
-	onQuick: (body: MessageDescriptor) => void;
+	onQuick: (body: MessageDescriptor, intent?: CommentIntent | null) => void;
 	onDismiss: () => void;
 }
 
@@ -71,16 +77,16 @@ export function SelectionToolbar({
 		>
 			<ToolbarButton
 				label={t({ message: "Ask for this to be removed" })}
-				onClick={() => onQuick(DELETE_BODY)}
+				onClick={() => onQuick(DELETE_BODY, DELETE_INTENT)}
 			>
-				<Trash2 className="size-4 text-red-500" />
+				<Trash2 className="size-4" />
 			</ToolbarButton>
 
 			<ToolbarButton
 				label={t({ message: "Write a comment" })}
 				onClick={onComment}
 			>
-				<MessageSquare className="size-4 text-amber-500" />
+				<MessageSquare className="size-4" />
 			</ToolbarButton>
 
 			<ToolbarButton
@@ -88,20 +94,20 @@ export function SelectionToolbar({
 				active={menuOpen}
 				onClick={() => setMenuOpen((open) => !open)}
 			>
-				<Zap className="size-4 text-amber-500" />
+				<Zap className="size-4" />
 			</ToolbarButton>
 
 			<ToolbarButton
 				label={t({ message: "Looks good" })}
-				onClick={() => onQuick(APPROVE_BODY)}
+				onClick={() => onQuick(APPROVE_BODY, APPROVE_INTENT)}
 			>
-				<ThumbsUp className="size-4 text-emerald-500" />
+				<ThumbsUp className="size-4" />
 			</ToolbarButton>
 
 			<span className="mx-0.5 h-5 w-px bg-border" />
 
 			<ToolbarButton label={t({ message: "Dismiss" })} onClick={onDismiss}>
-				<X className="size-4 text-muted-foreground" />
+				<X className="size-4" />
 			</ToolbarButton>
 
 			{menuOpen ? (
@@ -129,8 +135,8 @@ function ToolbarButton({
 			title={label}
 			onClick={onClick}
 			className={cn(
-				"flex size-8 items-center justify-center rounded-md transition-colors hover:bg-accent",
-				active && "bg-accent",
+				"flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
+				active && "bg-accent text-accent-foreground",
 			)}
 		>
 			{children}

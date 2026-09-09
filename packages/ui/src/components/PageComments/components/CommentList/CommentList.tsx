@@ -66,21 +66,21 @@ export function CommentList({
 				return (
 					<div
 						key={comment.id}
-						className="group/comment flex gap-2.5 px-3.5 pb-2 first:pt-3.5 last:pb-3.5"
+						className="group/comment flex gap-2 px-3 pb-1.5 first:pt-3 last:pb-3"
 					>
-						<Avatar className="size-7 shrink-0">
+						<Avatar className="size-6 shrink-0">
 							<AvatarImage src={author.image ?? undefined} alt="" />
-							<AvatarFallback className="text-[11px]">
+							<AvatarFallback className="text-[10px]">
 								{author.isAgent ? (
-									<Bot className="size-3.5" />
+									<Bot className="size-3" />
 								) : (
 									getInitials(author.name) || "?"
 								)}
 							</AvatarFallback>
 						</Avatar>
 
-						<div className="flex min-w-0 flex-1 flex-col gap-1 pb-1">
-							<div className="flex h-7 items-center gap-2.5">
+						<div className="flex min-w-0 flex-1 flex-col gap-0.5">
+							<div className="flex min-h-6 items-center gap-2">
 								<div className="flex min-w-0 items-baseline gap-2">
 									<span className="truncate font-medium text-sm">
 										{author.name}

@@ -23,6 +23,7 @@ export {
 export { useFramePointerDown } from "./hooks/useFramePointerDown";
 export {
 	type CommentDraft,
+	type CommentIntent,
 	CommentProvider,
 	type CommentStore,
 	type CommentThread,

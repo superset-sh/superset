@@ -29,7 +29,8 @@ export function AllCommentsButton({ className }: { className?: string }) {
 			variant="outline"
 			aria-label={t({ message: "Show all comments" })}
 			className={cn(
-				"absolute top-3 right-3 z-40 gap-2 bg-popover shadow-md",
+				"absolute top-3 right-3 z-40 gap-2 bg-popover text-popover-foreground shadow-md dark:bg-popover",
+				"hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent",
 				className,
 			)}
 			onClick={() => setPanelOpen(true)}
