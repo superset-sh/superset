@@ -2040,6 +2040,9 @@ msgstr "Sesuai laporan terakhir. Host harus online untuk memperbarui."
 msgid "ascending"
 msgstr "menaik"
 
+msgid "Ask for this to be removed"
+msgstr "Minta ini dihapus"
+
 msgid "Ask the agent…"
 msgstr "Tanya agennya…"
 
@@ -2982,6 +2985,9 @@ msgstr "Pilih agen yang memantau komentar di halaman ini"
 msgid "CI failed"
 msgstr "CI gagal"
 
+msgid "Clarify this"
+msgstr "Perjelas ini"
+
 msgid "Claude Code, Codex, and OpenCode are the agents; Superset is where you run many of them at once. Each task gets its own isolated Git worktree, so ten agents can work on ten branches simultaneously while you monitor, review, and merge from one place."
 msgstr "Claude Code, Codex, dan OpenCode adalah agennya; Superset adalah tempat Anda menjalankan banyak di antaranya sekaligus. Tiap tugas mendapat worktree Git terisolasi sendiri, jadi sepuluh agen bisa bekerja di sepuluh branch bersamaan sementara Anda memantau, mereview, dan me-merge dari satu tempat."
 
@@ -3653,6 +3659,9 @@ msgstr "Persetujuan selesai tapi Microsoft tidak menerbitkan token untuk tenant-
 
 msgid "Consent was not granted. A tenant administrator has to approve."
 msgstr "Persetujuan tidak diberikan. Administrator tenant harus menyetujuinya."
+
+msgid "Consider alternatives"
+msgstr "Pertimbangkan alternatif"
 
 msgid "Console"
 msgstr "Console"
@@ -4710,6 +4719,9 @@ msgstr "Hapus sesi \"{workspaceName}\"?"
 msgid "Delete team"
 msgstr "Hapus tim"
 
+msgid "Delete this"
+msgstr "Hapus ini"
+
 msgid "Delete this workspace?"
 msgstr "Hapus workspace ini?"
 
@@ -5397,6 +5409,9 @@ msgstr "Bahasan mendalam soal teknik dan peluncuran."
 
 msgid "Enjoying Superset?"
 msgstr "Menikmati Superset?"
+
+msgid "Ensure no regression"
+msgstr "Pastikan tidak ada regresi"
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "Masukkan direktori induk di {hostName}"
@@ -6639,6 +6654,9 @@ msgstr "Username GitHub"
 
 msgid "GitHub username…"
 msgstr "Username GitHub…"
+
+msgid "Give me an example"
+msgstr "Beri saya contoh"
 
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "Beri nama deskriptif agar Anda ingat kunci ini dipakai di mana."
@@ -8060,6 +8078,9 @@ msgstr "Tooltip khusus pintasan saat hover lama; gaya chip-nya kini menjadi bawa
 msgid "Looking for installed browsers…"
 msgstr "Mencari browser yang terpasang…"
 
+msgid "Looks good"
+msgstr "Terlihat bagus"
+
 msgid "Low"
 msgstr "Rendah"
 
@@ -8185,6 +8206,9 @@ msgstr "Marketplace"
 
 msgid "Marking ready for review..."
 msgstr "Menandai siap ditinjau…"
+
+msgid "Match existing patterns"
+msgstr "Ikuti pola yang ada"
 
 msgid "Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires on the key labeled \"Z\" — physical KeyY on QWERTZ). When off, shortcuts are anchored to physical key positions and ignore the current input source."
 msgstr "Cocokkan pintasan dengan label pada keyboard Anda (mis. ⌘Z selalu aktif pada tombol berlabel \"Z\" — KeyY fisik di QWERTZ). Saat mati, pintasan terikat pada posisi tombol fisik dan mengabaikan sumber input saat ini."
@@ -8369,6 +8393,9 @@ msgstr "State auth tidak ada"
 
 msgid "Missing authorization code. Re-run"
 msgstr "Kode otorisasi tidak ada. Jalankan ulang"
+
+msgid "Missing overview"
+msgstr "Ringkasan tidak ada"
 
 msgid "Missing required authorization parameters."
 msgstr "Parameter otorisasi yang wajib tidak ada."
@@ -8595,6 +8622,9 @@ msgstr "Perlu izin"
 msgid "Needs review"
 msgstr "Perlu review"
 
+msgid "Needs tests"
+msgstr "Butuh pengujian"
+
 msgid "needs update"
 msgstr "perlu diperbarui"
 
@@ -8784,6 +8814,9 @@ msgstr "Berikutnya:"
 
 msgid "Next: {nextLabel}"
 msgstr "Berikutnya: {nextLabel}"
+
+msgid "Nice approach"
+msgstr "Pendekatan yang bagus"
 
 msgid "Nice, open a PR when ready."
 msgstr "Bagus, buka PR kalau sudah siap."
@@ -10153,6 +10186,9 @@ msgstr "Cara lain menghubungi kami"
 msgid "Our read as of August 2026, based on our own team and the teams we watch closely. F3 is mostly open. F4 is mostly closed. That gap is the work."
 msgstr "Pembacaan kami per Agustus 2026, berdasarkan tim kami sendiri dan tim yang kami amati dari dekat. F3 sebagian besar terbuka. F4 sebagian besar tertutup. Jarak itulah pekerjaannya."
 
+msgid "Out of scope"
+msgstr "Di luar cakupan"
+
 msgid "Outcome in, software out. Humans specify intent, constraints, and budget. The factory schedules itself, ships continuously, monitors what it shipped, and rolls itself back. Most changes merge with no human in the loop, and the incident rate does not rise."
 msgstr "Hasil masuk, perangkat lunak keluar. Manusia menetapkan maksud, batasan, dan anggaran. Pabrik menjadwalkan dirinya sendiri, merilis terus-menerus, memantau apa yang dirilisnya, dan me-rollback dirinya sendiri. Sebagian besar perubahan di-merge tanpa manusia di dalam alurnya, dan tingkat insiden tidak naik."
 
@@ -11009,6 +11045,9 @@ msgstr "Buat workspace cepat"
 
 msgid "Quick Create Workspace"
 msgstr "Buat Workspace Cepat"
+
+msgid "Quick feedback"
+msgstr "Masukan cepat"
 
 msgid "Quick Open File"
 msgstr "Buka File Cepat"
@@ -15314,6 +15353,9 @@ msgstr "Terverifikasi lewat proses masuk"
 msgid "Verify Kbd stays visible inside tooltips"
 msgstr "Pastikan Kbd tetap terlihat di dalam tooltip"
 
+msgid "Verify this"
+msgstr "Verifikasi ini"
+
 msgid "Verify your identity"
 msgstr "Memverifikasi identitas Anda"
 
@@ -15874,6 +15916,9 @@ msgstr "Worktree dengan perubahan yang belum di-commit tetap berada di disk."
 
 msgid "Would you like to reassign it?"
 msgstr "Ingin menetapkannya ulang?"
+
+msgid "Write a comment"
+msgstr "Tulis komentar"
 
 msgid "Write a comment…"
 msgstr "Tulis komentar…"

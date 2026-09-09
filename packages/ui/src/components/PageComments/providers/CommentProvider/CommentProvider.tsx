@@ -84,6 +84,14 @@ interface CommentContextValue extends CommentStore {
 	draft: CommentDraft | null;
 	openDraft: (draft: CommentDraft) => void;
 	discardDraft: () => void;
+	/**
+	 * The element the reader just picked, before they have said what they want
+	 * to do with it. The toolbar hangs off this; choosing "comment" promotes it
+	 * to a draft, and every other action posts a thread without one.
+	 */
+	selection: CommentDraft | null;
+	openSelection: (selection: CommentDraft) => void;
+	clearSelection: () => void;
 	activeThreadId: string | null;
 	setActiveThreadId: (id: string | null) => void;
 	hoverRect: FrameRect | null;
@@ -145,6 +153,7 @@ export function CommentProvider({
 		[controlledEnabled, onEnabledChange],
 	);
 	const [draft, setDraft] = useState<CommentDraft | null>(null);
+	const [selection, setSelection] = useState<CommentDraft | null>(null);
 	const [panelOpen, setPanelOpenState] = useState(false);
 	const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
 	const [hoverRect, setHoverRect] = useState<FrameRect | null>(null);
@@ -159,6 +168,7 @@ export function CommentProvider({
 		setEnabled((previous) => {
 			if (previous) {
 				setDraft(null);
+				setSelection(null);
 				setActiveThreadId(null);
 				setHoverRect(null);
 			}
@@ -173,8 +183,17 @@ export function CommentProvider({
 
 	const openDraft = useCallback((next: CommentDraft) => {
 		setActiveThreadId(null);
+		setSelection(null);
 		setDraft(next);
 	}, []);
+
+	const openSelection = useCallback((next: CommentDraft) => {
+		setActiveThreadId(null);
+		setDraft(null);
+		setSelection(next);
+	}, []);
+
+	const clearSelection = useCallback(() => setSelection(null), []);
 
 	const notifyFramePointerDown = useCallback(
 		() => setFramePointerDownAt((count) => count + 1),
@@ -219,6 +238,7 @@ export function CommentProvider({
 		async (input) => {
 			const composing = draft;
 			setDraft(null);
+			setSelection(null);
 			try {
 				await store.createThread(input);
 			} catch (error) {
@@ -320,6 +340,9 @@ export function CommentProvider({
 			draft,
 			openDraft,
 			discardDraft,
+			selection,
+			openSelection,
+			clearSelection,
 			activeThreadId,
 			setActiveThreadId,
 			hoverRect,
@@ -350,6 +373,9 @@ export function CommentProvider({
 			draft,
 			openDraft,
 			discardDraft,
+			selection,
+			openSelection,
+			clearSelection,
 			activeThreadId,
 			hoverRect,
 			rects,

@@ -2040,6 +2040,9 @@ msgstr "Según el último informe. El host debe estar en línea para actualizars
 msgid "ascending"
 msgstr "ascendente"
 
+msgid "Ask for this to be removed"
+msgstr "Pedir que se elimine"
+
 msgid "Ask the agent…"
 msgstr "Pregunta al agente…"
 
@@ -2982,6 +2985,9 @@ msgstr "Elige qué agente observa los comentarios de esta página"
 msgid "CI failed"
 msgstr "CI falló"
 
+msgid "Clarify this"
+msgstr "Aclarar esto"
+
 msgid "Claude Code, Codex, and OpenCode are the agents; Superset is where you run many of them at once. Each task gets its own isolated Git worktree, so ten agents can work on ten branches simultaneously while you monitor, review, and merge from one place."
 msgstr "Claude Code, Codex y OpenCode son los agentes; Superset es donde ejecutas muchos de ellos a la vez. Cada tarea recibe su propio worktree de Git aislado, así que diez agentes pueden trabajar en diez ramas al mismo tiempo mientras tú supervisas, revisas y fusionas desde un solo sitio."
 
@@ -3653,6 +3659,9 @@ msgstr "El consentimiento terminó, pero Microsoft no emitió un token para el t
 
 msgid "Consent was not granted. A tenant administrator has to approve."
 msgstr "No se concedió el consentimiento. Tiene que aprobarlo un administrador del tenant."
+
+msgid "Consider alternatives"
+msgstr "Considerar alternativas"
 
 msgid "Console"
 msgstr "Consola"
@@ -4710,6 +4719,9 @@ msgstr "¿Eliminar la sesión \"{workspaceName}\"?"
 msgid "Delete team"
 msgstr "Eliminar el equipo"
 
+msgid "Delete this"
+msgstr "Eliminar esto"
+
 msgid "Delete this workspace?"
 msgstr "¿Eliminar este espacio de trabajo?"
 
@@ -5397,6 +5409,9 @@ msgstr "Análisis técnicos a fondo y lanzamientos."
 
 msgid "Enjoying Superset?"
 msgstr "¿Te gusta Superset?"
+
+msgid "Ensure no regression"
+msgstr "Asegurar que no haya regresión"
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "Introduce un directorio padre en {hostName}"
@@ -6639,6 +6654,9 @@ msgstr "Nombre de usuario de GitHub"
 
 msgid "GitHub username…"
 msgstr "Nombre de usuario de GitHub…"
+
+msgid "Give me an example"
+msgstr "Dame un ejemplo"
 
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "Ponle un nombre descriptivo a tu clave para recordar dónde se usa."
@@ -8060,6 +8078,9 @@ msgstr "Tooltip de solo atajo que aparece tras un hover largo; su estilo de chip
 msgid "Looking for installed browsers…"
 msgstr "Buscando navegadores instalados…"
 
+msgid "Looks good"
+msgstr "Se ve bien"
+
 msgid "Low"
 msgstr "Baja"
 
@@ -8185,6 +8206,9 @@ msgstr "Marketplace"
 
 msgid "Marking ready for review..."
 msgstr "Marcando como listo para revisión…"
+
+msgid "Match existing patterns"
+msgstr "Seguir los patrones existentes"
 
 msgid "Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires on the key labeled \"Z\" — physical KeyY on QWERTZ). When off, shortcuts are anchored to physical key positions and ignore the current input source."
 msgstr "Ajusta los atajos a las etiquetas de tu teclado (p. ej. ⌘Z siempre se activa en la tecla marcada como \"Z\", la tecla física KeyY en QWERTZ). Si está desactivado, los atajos se anclan a las posiciones físicas de las teclas e ignoran la fuente de entrada actual."
@@ -8369,6 +8393,9 @@ msgstr "Falta el estado de autenticación"
 
 msgid "Missing authorization code. Re-run"
 msgstr "Falta el código de autorización. Vuelve a ejecutar"
+
+msgid "Missing overview"
+msgstr "Falta una visión general"
 
 msgid "Missing required authorization parameters."
 msgstr "Faltan parámetros de autorización obligatorios."
@@ -8595,6 +8622,9 @@ msgstr "Necesita permiso"
 msgid "Needs review"
 msgstr "Necesita revisión"
 
+msgid "Needs tests"
+msgstr "Necesita pruebas"
+
 msgid "needs update"
 msgstr "requiere actualización"
 
@@ -8784,6 +8814,9 @@ msgstr "Siguiente:"
 
 msgid "Next: {nextLabel}"
 msgstr "Siguiente: {nextLabel}"
+
+msgid "Nice approach"
+msgstr "Buen enfoque"
 
 msgid "Nice, open a PR when ready."
 msgstr "Genial, abre un PR cuando esté listo."
@@ -10153,6 +10186,9 @@ msgstr "Otras formas de contactarnos"
 msgid "Our read as of August 2026, based on our own team and the teams we watch closely. F3 is mostly open. F4 is mostly closed. That gap is the work."
 msgstr "Nuestra lectura a agosto de 2026, basada en nuestro propio equipo y en los equipos que seguimos de cerca. F3 está casi todo abierto. F4 está casi todo cerrado. Ese hueco es el trabajo."
 
+msgid "Out of scope"
+msgstr "Fuera de alcance"
+
 msgid "Outcome in, software out. Humans specify intent, constraints, and budget. The factory schedules itself, ships continuously, monitors what it shipped, and rolls itself back. Most changes merge with no human in the loop, and the incident rate does not rise."
 msgstr "Entra un resultado, sale software. Las personas especifican la intención, las restricciones y el presupuesto. La fábrica se planifica sola, publica de forma continua, vigila lo que publicó y se revierte sola. La mayoría de los cambios se fusionan sin intervención humana, y la tasa de incidentes no sube."
 
@@ -11009,6 +11045,9 @@ msgstr "Crear espacio de trabajo rápido"
 
 msgid "Quick Create Workspace"
 msgstr "Creación rápida de espacio de trabajo"
+
+msgid "Quick feedback"
+msgstr "Comentario rápido"
 
 msgid "Quick Open File"
 msgstr "Apertura rápida de archivo"
@@ -15314,6 +15353,9 @@ msgstr "Verificado al iniciar sesión"
 msgid "Verify Kbd stays visible inside tooltips"
 msgstr "Verificar que Kbd siga visible dentro de los tooltips"
 
+msgid "Verify this"
+msgstr "Verificar esto"
+
 msgid "Verify your identity"
 msgstr "Verificar tu identidad"
 
@@ -15874,6 +15916,9 @@ msgstr "Los worktrees con cambios sin confirmar se dejan en el disco."
 
 msgid "Would you like to reassign it?"
 msgstr "¿Quieres reasignarlo?"
+
+msgid "Write a comment"
+msgstr "Escribir un comentario"
 
 msgid "Write a comment…"
 msgstr "Escribe un comentario…"

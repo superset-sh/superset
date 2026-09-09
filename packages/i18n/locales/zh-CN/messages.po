@@ -2040,6 +2040,9 @@ msgstr "上次报告的版本。主机必须在线才能更新。"
 msgid "ascending"
 msgstr "升序"
 
+msgid "Ask for this to be removed"
+msgstr "请求删除此处"
+
 msgid "Ask the agent…"
 msgstr "向智能体提问…"
 
@@ -2982,6 +2985,9 @@ msgstr "选择由哪个智能体关注此页面的评论"
 msgid "CI failed"
 msgstr "CI失败"
 
+msgid "Clarify this"
+msgstr "请说明这里"
+
 msgid "Claude Code, Codex, and OpenCode are the agents; Superset is where you run many of them at once. Each task gets its own isolated Git worktree, so ten agents can work on ten branches simultaneously while you monitor, review, and merge from one place."
 msgstr "Claude Code、Codex和OpenCode是智能体；Superset是你同时运行它们的地方。每个任务都有自己隔离的Git worktree，十个智能体可以同时在十个分支上工作，而你在一处监控、审查并合并。"
 
@@ -3653,6 +3659,9 @@ msgstr "授权同意已完成，但Microsoft没有为该租户签发令牌。"
 
 msgid "Consent was not granted. A tenant administrator has to approve."
 msgstr "未获得授权同意。需要租户管理员批准。"
+
+msgid "Consider alternatives"
+msgstr "考虑其他方案"
 
 msgid "Console"
 msgstr "控制台"
@@ -4710,6 +4719,9 @@ msgstr "删除会话“{workspaceName}”？"
 msgid "Delete team"
 msgstr "删除团队"
 
+msgid "Delete this"
+msgstr "删除此处"
+
 msgid "Delete this workspace?"
 msgstr "删除这个工作区？"
 
@@ -5397,6 +5409,9 @@ msgstr "工程深度文章与新功能发布。"
 
 msgid "Enjoying Superset?"
 msgstr "用得还顺手吗？"
+
+msgid "Ensure no regression"
+msgstr "确保没有回归"
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "请输入{hostName}上的父目录"
@@ -6639,6 +6654,9 @@ msgstr "GitHub用户名"
 
 msgid "GitHub username…"
 msgstr "GitHub用户名…"
+
+msgid "Give me an example"
+msgstr "给我一个例子"
 
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "给密钥起一个描述性的名称，方便记住它用在哪里。"
@@ -8060,6 +8078,9 @@ msgstr "长时间悬停才出现、只显示快捷键的tooltip；它的chip样�
 msgid "Looking for installed browsers…"
 msgstr "正在查找已安装的浏览器…"
 
+msgid "Looks good"
+msgstr "看起来不错"
+
 msgid "Low"
 msgstr "低"
 
@@ -8185,6 +8206,9 @@ msgstr "市场"
 
 msgid "Marking ready for review..."
 msgstr "正在标记为可评审…"
+
+msgid "Match existing patterns"
+msgstr "遵循现有模式"
 
 msgid "Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires on the key labeled \"Z\" — physical KeyY on QWERTZ). When off, shortcuts are anchored to physical key positions and ignore the current input source."
 msgstr "让快捷键匹配键盘上的标签（例如⌘Z始终触发标有“Z”的按键——在QWERTZ上是物理KeyY）。关闭后，快捷键锚定在物理按键位置，忽略当前输入源。"
@@ -8369,6 +8393,9 @@ msgstr "缺少认证状态"
 
 msgid "Missing authorization code. Re-run"
 msgstr "缺少授权码。请重新运行"
+
+msgid "Missing overview"
+msgstr "缺少概述"
 
 msgid "Missing required authorization parameters."
 msgstr "缺少必需的授权参数。"
@@ -8595,6 +8622,9 @@ msgstr "需要授权"
 msgid "Needs review"
 msgstr "待审查"
 
+msgid "Needs tests"
+msgstr "需要测试"
+
 msgid "needs update"
 msgstr "需要更新"
 
@@ -8784,6 +8814,9 @@ msgstr "下一节："
 
 msgid "Next: {nextLabel}"
 msgstr "下一级：{nextLabel}"
+
+msgid "Nice approach"
+msgstr "思路不错"
 
 msgid "Nice, open a PR when ready."
 msgstr "不错，准备好就开个PR。"
@@ -10153,6 +10186,9 @@ msgstr "其他联系方式"
 msgid "Our read as of August 2026, based on our own team and the teams we watch closely. F3 is mostly open. F4 is mostly closed. That gap is the work."
 msgstr "这是我们截至2026年8月的判断，依据是我们自己的团队和我们密切关注的团队。F3大多已开启，F4大多还没开启。这道差距就是要做的事。"
 
+msgid "Out of scope"
+msgstr "超出范围"
+
 msgid "Outcome in, software out. Humans specify intent, constraints, and budget. The factory schedules itself, ships continuously, monitors what it shipped, and rolls itself back. Most changes merge with no human in the loop, and the incident rate does not rise."
 msgstr "输入结果，输出软件。人类只指定意图、约束和预算。工厂自行排产、持续交付、监控上线内容，并自行回滚。大多数变更在无人参与的情况下合并，故障率不升。"
 
@@ -11009,6 +11045,9 @@ msgstr "快速创建工作区"
 
 msgid "Quick Create Workspace"
 msgstr "快速创建工作区"
+
+msgid "Quick feedback"
+msgstr "快速反馈"
 
 msgid "Quick Open File"
 msgstr "快速打开文件"
@@ -15314,6 +15353,9 @@ msgstr "通过登录验证"
 msgid "Verify Kbd stays visible inside tooltips"
 msgstr "确认Kbd在tooltip中仍然可见"
 
+msgid "Verify this"
+msgstr "请核实此处"
+
 msgid "Verify your identity"
 msgstr "验证你的身份"
 
@@ -15874,6 +15916,9 @@ msgstr "有未提交更改的worktree会保留在磁盘上。"
 
 msgid "Would you like to reassign it?"
 msgstr "要重新分配吗？"
+
+msgid "Write a comment"
+msgstr "写评论"
 
 msgid "Write a comment…"
 msgstr "写下评论…"

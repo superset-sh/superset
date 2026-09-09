@@ -2040,6 +2040,9 @@ msgstr "Podle posledního hlášení. Hostitel musí být online, aby se mohl ak
 msgid "ascending"
 msgstr "vzestupně"
 
+msgid "Ask for this to be removed"
+msgstr "Požádat o odstranění"
+
 msgid "Ask the agent…"
 msgstr "Zeptejte se agenta…"
 
@@ -2982,6 +2985,9 @@ msgstr "Vyberte, který agent sleduje komentáře na této stránce"
 msgid "CI failed"
 msgstr "CI selhalo"
 
+msgid "Clarify this"
+msgstr "Vyjasnit toto"
+
 msgid "Claude Code, Codex, and OpenCode are the agents; Superset is where you run many of them at once. Each task gets its own isolated Git worktree, so ten agents can work on ten branches simultaneously while you monitor, review, and merge from one place."
 msgstr "Claude Code, Codex a OpenCode jsou agenti; Superset je místo, kde jich spustíte spoustu naráz. Každý úkol dostane vlastní izolovaný git worktree, takže deset agentů může pracovat na deseti větvích současně, zatímco vy z jednoho místa sledujete, revidujete a slučujete."
 
@@ -3653,6 +3659,9 @@ msgstr "Souhlas byl dokončen, ale Microsoft pro tenant nevydal token."
 
 msgid "Consent was not granted. A tenant administrator has to approve."
 msgstr "Souhlas nebyl udělen. Musí ho schválit administrátor tenantu."
+
+msgid "Consider alternatives"
+msgstr "Zvážit alternativy"
 
 msgid "Console"
 msgstr "Konzole"
@@ -4710,6 +4719,9 @@ msgstr "Smazat relaci „{workspaceName}“?"
 msgid "Delete team"
 msgstr "Smazat tým"
 
+msgid "Delete this"
+msgstr "Odstranit toto"
+
 msgid "Delete this workspace?"
 msgstr "Smazat tento pracovní prostor?"
 
@@ -5397,6 +5409,9 @@ msgstr "Technické hloubkové články a spuštění novinek."
 
 msgid "Enjoying Superset?"
 msgstr "Líbí se vám Superset?"
+
+msgid "Ensure no regression"
+msgstr "Zajistit, aby nedošlo k regresi"
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "Zadejte nadřazený adresář na {hostName}"
@@ -6639,6 +6654,9 @@ msgstr "GitHub uživatelské jméno"
 
 msgid "GitHub username…"
 msgstr "GitHub uživatelské jméno…"
+
+msgid "Give me an example"
+msgstr "Uveď příklad"
 
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "Pojmenujte klíč popisně, ať víte, kde se používá."
@@ -8060,6 +8078,9 @@ msgstr "Tooltip jen se zkratkou při dlouhém najetí; jeho styl čipu je nyní 
 msgid "Looking for installed browsers…"
 msgstr "Hledám nainstalované prohlížeče…"
 
+msgid "Looks good"
+msgstr "Vypadá dobře"
+
 msgid "Low"
 msgstr "Nízká"
 
@@ -8185,6 +8206,9 @@ msgstr "Marketplace"
 
 msgid "Marking ready for review..."
 msgstr "Označování jako připravené k revizi…"
+
+msgid "Match existing patterns"
+msgstr "Dodržet stávající vzory"
 
 msgid "Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires on the key labeled \"Z\" — physical KeyY on QWERTZ). When off, shortcuts are anchored to physical key positions and ignore the current input source."
 msgstr "Přiřadit zkratky k popiskům na vaší klávesnici (např. ⌘Z se vždy spustí na klávese označené „Z“ — fyzicky KeyY na QWERTZ). Když je vypnuto, zkratky se vážou k fyzickým pozicím kláves a ignorují aktuální vstupní zdroj."
@@ -8369,6 +8393,9 @@ msgstr "Chybí stav ověření"
 
 msgid "Missing authorization code. Re-run"
 msgstr "Chybí autorizační kód. Spusťte znovu"
+
+msgid "Missing overview"
+msgstr "Chybí přehled"
 
 msgid "Missing required authorization parameters."
 msgstr "Chybí povinné autorizační parametry."
@@ -8595,6 +8622,9 @@ msgstr "Vyžaduje oprávnění"
 msgid "Needs review"
 msgstr "Vyžaduje revizi"
 
+msgid "Needs tests"
+msgstr "Potřebuje testy"
+
 msgid "needs update"
 msgstr "vyžaduje aktualizaci"
 
@@ -8784,6 +8814,9 @@ msgstr "Další:"
 
 msgid "Next: {nextLabel}"
 msgstr "Další: {nextLabel}"
+
+msgid "Nice approach"
+msgstr "Dobrý přístup"
 
 msgid "Nice, open a PR when ready."
 msgstr "Super, až budeš mít hotovo, otevři PR."
@@ -10153,6 +10186,9 @@ msgstr "Další způsoby, jak nás zastihnout"
 msgid "Our read as of August 2026, based on our own team and the teams we watch closely. F3 is mostly open. F4 is mostly closed. That gap is the work."
 msgstr "Náš pohled k srpnu 2026, na základě vlastního týmu a týmů, které sledujeme zblízka. F3 je z větší části otevřená. F4 je z větší části zavřená. Ta mezera je práce, která nás čeká."
 
+msgid "Out of scope"
+msgstr "Mimo rozsah"
+
 msgid "Outcome in, software out. Humans specify intent, constraints, and budget. The factory schedules itself, ships continuously, monitors what it shipped, and rolls itself back. Most changes merge with no human in the loop, and the incident rate does not rise."
 msgstr "Dovnitř výsledek, ven software. Lidé zadají záměr, omezení a rozpočet. Továrna se sama plánuje, průběžně dodává, sleduje, co dodala, a sama se vrací zpět. Většina změn se sloučí bez člověka ve smyčce a počet incidentů neroste."
 
@@ -11009,6 +11045,9 @@ msgstr "Rychle vytvořit pracovní prostor"
 
 msgid "Quick Create Workspace"
 msgstr "Rychle vytvořit pracovní prostor"
+
+msgid "Quick feedback"
+msgstr "Rychlá zpětná vazba"
 
 msgid "Quick Open File"
 msgstr "Rychle otevřít soubor"
@@ -15314,6 +15353,9 @@ msgstr "Ověřeno přihlášením"
 msgid "Verify Kbd stays visible inside tooltips"
 msgstr "Ověřit, že Kbd zůstane v tooltipech viditelný"
 
+msgid "Verify this"
+msgstr "Ověřit toto"
+
 msgid "Verify your identity"
 msgstr "ověřit vaši totožnost"
 
@@ -15874,6 +15916,9 @@ msgstr "Worktree s necommitnutými změnami zůstanou na disku."
 
 msgid "Would you like to reassign it?"
 msgstr "Chcete zkratku přiřadit znovu?"
+
+msgid "Write a comment"
+msgstr "Napsat komentář"
 
 msgid "Write a comment…"
 msgstr "Napište komentář…"

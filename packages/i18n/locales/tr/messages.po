@@ -2040,6 +2040,9 @@ msgstr "Son bildirildiği gibi. Güncellemek için ana makine çevrimiçi olmal�
 msgid "ascending"
 msgstr "artan"
 
+msgid "Ask for this to be removed"
+msgstr "Bunun kaldırılmasını iste"
+
 msgid "Ask the agent…"
 msgstr "Ajana sorun…"
 
@@ -2982,6 +2985,9 @@ msgstr "Bu sayfanın yorumlarını hangi ajanın izleyeceğini seç"
 msgid "CI failed"
 msgstr "CI başarısız"
 
+msgid "Clarify this"
+msgstr "Bunu netleştir"
+
 msgid "Claude Code, Codex, and OpenCode are the agents; Superset is where you run many of them at once. Each task gets its own isolated Git worktree, so ten agents can work on ten branches simultaneously while you monitor, review, and merge from one place."
 msgstr "Claude Code, Codex ve OpenCode ajanlardır; Superset ise bunların birçoğunu aynı anda çalıştırdığınız yerdir. Her görev kendi yalıtılmış Git worktree'sini alır, böylece on ajan on dalda eşzamanlı çalışırken siz tek bir yerden izler, inceler ve birleştirirsiniz."
 
@@ -3653,6 +3659,9 @@ msgstr "Onay tamamlandı ancak Microsoft kiracı için token vermedi."
 
 msgid "Consent was not granted. A tenant administrator has to approve."
 msgstr "Onay verilmedi. Bir kiracı yöneticisinin onaylaması gerekiyor."
+
+msgid "Consider alternatives"
+msgstr "Alternatifleri değerlendir"
 
 msgid "Console"
 msgstr "Konsol"
@@ -4710,6 +4719,9 @@ msgstr "\"{workspaceName}\" oturumu silinsin mi?"
 msgid "Delete team"
 msgstr "Takımı sil"
 
+msgid "Delete this"
+msgstr "Bunu kaldır"
+
 msgid "Delete this workspace?"
 msgstr "Bu çalışma alanı silinsin mi?"
 
@@ -5397,6 +5409,9 @@ msgstr "Mühendislik derinlemesine yazıları ve lansmanlar."
 
 msgid "Enjoying Superset?"
 msgstr "Superset'ten memnun musunuz?"
+
+msgid "Ensure no regression"
+msgstr "Regresyon olmadığından emin ol"
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "{hostName} üzerinde bir üst dizin girin"
@@ -6639,6 +6654,9 @@ msgstr "GitHub kullanıcı adı"
 
 msgid "GitHub username…"
 msgstr "GitHub kullanıcı adı…"
+
+msgid "Give me an example"
+msgstr "Bana bir örnek ver"
 
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "Nerede kullanıldığını hatırlamak için anahtarınıza açıklayıcı bir ad verin."
@@ -8060,6 +8078,9 @@ msgstr "Uzun bekletmede yalnızca kısayol gösteren tooltip; çip stili artık 
 msgid "Looking for installed browsers…"
 msgstr "Kurulu tarayıcılar aranıyor…"
 
+msgid "Looks good"
+msgstr "İyi görünüyor"
+
 msgid "Low"
 msgstr "Düşük"
 
@@ -8185,6 +8206,9 @@ msgstr "Pazar yeri"
 
 msgid "Marking ready for review..."
 msgstr "İncelemeye hazır olarak işaretleniyor…"
+
+msgid "Match existing patterns"
+msgstr "Mevcut desenlere uy"
 
 msgid "Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires on the key labeled \"Z\" — physical KeyY on QWERTZ). When off, shortcuts are anchored to physical key positions and ignore the current input source."
 msgstr "Kısayolları klavyenizdeki etiketlerle eşleştirin (örn. ⌘Z her zaman \"Z\" etiketli tuşta çalışır — QWERTZ'de fiziksel KeyY). Kapalıyken kısayollar fiziksel tuş konumlarına sabitlenir ve geçerli giriş kaynağını yok sayar."
@@ -8369,6 +8393,9 @@ msgstr "Kimlik doğrulama durumu eksik"
 
 msgid "Missing authorization code. Re-run"
 msgstr "Yetkilendirme kodu eksik. Yeniden çalıştırın:"
+
+msgid "Missing overview"
+msgstr "Genel bakış eksik"
 
 msgid "Missing required authorization parameters."
 msgstr "Gerekli yetkilendirme parametreleri eksik."
@@ -8595,6 +8622,9 @@ msgstr "İzin gerekiyor"
 msgid "Needs review"
 msgstr "İnceleme gerekiyor"
 
+msgid "Needs tests"
+msgstr "Test gerekiyor"
+
 msgid "needs update"
 msgstr "güncelleme gerekli"
 
@@ -8784,6 +8814,9 @@ msgstr "Sonraki:"
 
 msgid "Next: {nextLabel}"
 msgstr "Sonraki: {nextLabel}"
+
+msgid "Nice approach"
+msgstr "Güzel yaklaşım"
 
 msgid "Nice, open a PR when ready."
 msgstr "Güzel, hazır olduğunda bir PR aç."
@@ -10153,6 +10186,9 @@ msgstr "Bize ulaşmanın diğer yolları"
 msgid "Our read as of August 2026, based on our own team and the teams we watch closely. F3 is mostly open. F4 is mostly closed. That gap is the work."
 msgstr "Ağustos 2026 itibarıyla kendi ekibimize ve yakından izlediğimiz takımlara dayanan okumamız. F3 büyük ölçüde açık. F4 büyük ölçüde kapalı. İşin kendisi bu boşlukta."
 
+msgid "Out of scope"
+msgstr "Kapsam dışı"
+
 msgid "Outcome in, software out. Humans specify intent, constraints, and budget. The factory schedules itself, ships continuously, monitors what it shipped, and rolls itself back. Most changes merge with no human in the loop, and the incident rate does not rise."
 msgstr "Sonuç girer, yazılım çıkar. İnsanlar niyeti, kısıtları ve bütçeyi belirtir. Fabrika kendini zamanlar, sürekli gönderir, gönderdiğini izler ve kendini geri alır. Değişikliklerin çoğu insan devreye girmeden birleşir ve olay oranı yükselmez."
 
@@ -11009,6 +11045,9 @@ msgstr "Hızlı çalışma alanı oluştur"
 
 msgid "Quick Create Workspace"
 msgstr "Hızlı çalışma alanı oluştur"
+
+msgid "Quick feedback"
+msgstr "Hızlı geri bildirim"
 
 msgid "Quick Open File"
 msgstr "Hızlı dosya aç"
@@ -15314,6 +15353,9 @@ msgstr "Oturum açma ile doğrulandı"
 msgid "Verify Kbd stays visible inside tooltips"
 msgstr "Kbd'nin tooltip'ler içinde görünür kaldığını doğrula"
 
+msgid "Verify this"
+msgstr "Bunu doğrula"
+
 msgid "Verify your identity"
 msgstr "Kimliğinizi doğrulama"
 
@@ -15874,6 +15916,9 @@ msgstr "Commit edilmemiş değişiklikleri olan worktree'ler diskte bırakılır
 
 msgid "Would you like to reassign it?"
 msgstr "Yeniden atamak ister misiniz?"
+
+msgid "Write a comment"
+msgstr "Yorum yaz"
 
 msgid "Write a comment…"
 msgstr "Bir yorum yazın…"
