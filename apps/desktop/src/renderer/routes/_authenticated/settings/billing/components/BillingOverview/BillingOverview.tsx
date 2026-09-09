@@ -99,6 +99,9 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 			plan: "pro",
 			annual,
 			seats: memberCount,
+			// `plan` here is the tier they are on now — same shape as the plans
+			// page, so both sources group together.
+			previous_plan: plan,
 			source: "billing_overview",
 		};
 		track("checkout_started", checkoutProperties);
