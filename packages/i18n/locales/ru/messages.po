@@ -2994,6 +2994,9 @@ msgstr "Выберите, когда Superset вас уведомляет."
 msgid "Choose which agent watches this page for comments"
 msgstr "Выберите, какой агент отслеживает комментарии на этой странице"
 
+msgid "churned"
+msgstr "ушедшие"
+
 msgid "CI failed"
 msgstr "CI упал"
 
@@ -8648,6 +8651,9 @@ msgstr "Сеть изменилась"
 msgid "Never"
 msgstr "Никогда"
 
+msgid "new"
+msgstr "новые"
+
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "Новые агенты {providerLabel} будут использовать {accountLabel}."
 
@@ -10159,14 +10165,11 @@ msgstr "Организация: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Организации"
 
+msgid "Organizations on a paid Pro plan at each week's end (Neon), with the ones gained and lost that week. Enterprise has its own tile; the current week is still filling."
+msgstr "Организации на платном тарифе Pro на конец каждой недели (Neon), а также пришедшие и ушедшие за эту неделю. Для Enterprise есть отдельная плитка; текущая неделя ещё заполняется."
+
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Организуйте работу по командам. Задачи и интеграции можно синхронизировать отдельно для каждой команды."
-
-msgid "orgs with 2+ active members"
-msgstr "организации с 2+ активными участниками"
-
-msgid "orgs with 5+ active members"
-msgstr "организации с 5+ активными участниками"
 
 msgid "Originals"
 msgstr "Оригиналы"
@@ -10808,6 +10811,9 @@ msgstr "Возможности Pro"
 
 msgid "Pro is $20 per user/month billed monthly, or $15 per user/month billed yearly (a 25% discount). You're billed per active seat on your team."
 msgstr "Pro стоит $20 за пользователя в месяц при помесячной оплате или $15 при годовой (скидка 25%). Оплата за активные места в команде."
+
+msgid "Pro organizations"
+msgstr "Организации на тарифе Pro"
 
 msgid "Process"
 msgstr "Процесс"
@@ -15651,9 +15657,6 @@ msgstr "Недельные когорты по первому показу пе�
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "Недельные когорты по первой реальной рабочей области; % вернувшихся с ещё одной рабочей областью каждую неделю"
-
-msgid "Weekly orgs with 2+/5+ members creating real workspaces"
-msgstr "Организации за неделю, где 2+/5+ участников создают реальные рабочие области"
 
 msgid "Weekly p50/p90 real workspaces per creator; current week dashed"
 msgstr "Недельные p50/p90 реальных рабочих областей на создателя; текущая неделя пунктиром"

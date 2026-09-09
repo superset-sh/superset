@@ -2994,6 +2994,9 @@ msgstr "Zvolte, kdy vás Superset upozorní."
 msgid "Choose which agent watches this page for comments"
 msgstr "Vyberte, který agent sleduje komentáře na této stránce"
 
+msgid "churned"
+msgstr "odešlé"
+
 msgid "CI failed"
 msgstr "CI selhalo"
 
@@ -8648,6 +8651,9 @@ msgstr "Síť se změnila"
 msgid "Never"
 msgstr "Nikdy"
 
+msgid "new"
+msgstr "nové"
+
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "Noví agenti {providerLabel} použijí {accountLabel}."
 
@@ -10159,14 +10165,11 @@ msgstr "Organizace: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Organizace"
 
+msgid "Organizations on a paid Pro plan at each week's end (Neon), with the ones gained and lost that week. Enterprise has its own tile; the current week is still filling."
+msgstr "Organizace s placeným plánem Pro na konci každého týdne (Neon) a ty, které v daném týdnu přibyly a odešly. Enterprise má vlastní dlaždici; aktuální týden se ještě plní."
+
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Rozdělte práci do týmů. Úkoly a integrace se mohou synchronizovat po týmech."
-
-msgid "orgs with 2+ active members"
-msgstr "organizace s 2+ aktivními členy"
-
-msgid "orgs with 5+ active members"
-msgstr "organizace s 5+ aktivními členy"
 
 msgid "Originals"
 msgstr "Originály"
@@ -10808,6 +10811,9 @@ msgstr "Funkce Pro"
 
 msgid "Pro is $20 per user/month billed monthly, or $15 per user/month billed yearly (a 25% discount). You're billed per active seat on your team."
 msgstr "Pro stojí 20 $ na uživatele a měsíc při měsíční platbě, nebo 15 $ na uživatele a měsíc při roční platbě (sleva 25 %). Účtujeme podle aktivních míst ve vašem týmu."
+
+msgid "Pro organizations"
+msgstr "Organizace Pro"
 
 msgid "Process"
 msgstr "Proces"
@@ -15651,9 +15657,6 @@ msgstr "Týdenní kohorty podle prvního zobrazení paywallu. Sloupce jsou velik
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "Týdenní kohorty podle prvního skutečného pracovního prostoru; % těch, kdo se každý týden vrátí s dalším prostorem"
-
-msgid "Weekly orgs with 2+/5+ members creating real workspaces"
-msgstr "Týdenní organizace s 2+/5+ členy, kteří vytvářejí skutečné pracovní prostory"
 
 msgid "Weekly p50/p90 real workspaces per creator; current week dashed"
 msgstr "Týdenní p50/p90 skutečných pracovních prostorů na tvůrce; aktuální týden čárkovaně"

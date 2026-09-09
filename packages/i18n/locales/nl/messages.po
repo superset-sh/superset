@@ -2994,6 +2994,9 @@ msgstr "Kies wanneer Superset je een seintje geeft."
 msgid "Choose which agent watches this page for comments"
 msgstr "Kies welke agent deze pagina volgt voor reacties"
 
+msgid "churned"
+msgstr "opgezegd"
+
 msgid "CI failed"
 msgstr "CI mislukt"
 
@@ -8648,6 +8651,9 @@ msgstr "Netwerk gewijzigd"
 msgid "Never"
 msgstr "Nooit"
 
+msgid "new"
+msgstr "nieuw"
+
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "Nieuwe {providerLabel}-agents gebruiken {accountLabel}."
 
@@ -10159,14 +10165,11 @@ msgstr "Organisatie: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Organisaties"
 
+msgid "Organizations on a paid Pro plan at each week's end (Neon), with the ones gained and lost that week. Enterprise has its own tile; the current week is still filling."
+msgstr "Organisaties met een betaald Pro-abonnement aan het einde van elke week (Neon), met de organisaties die er die week bij kwamen en die vertrokken. Enterprise heeft een eigen tegel; de huidige week vult zich nog."
+
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Organiseer je werk in teams. Taken en integraties kunnen per team synchroniseren."
-
-msgid "orgs with 2+ active members"
-msgstr "organisaties met 2+ actieve leden"
-
-msgid "orgs with 5+ active members"
-msgstr "organisaties met 5+ actieve leden"
 
 msgid "Originals"
 msgstr "Originelen"
@@ -10808,6 +10811,9 @@ msgstr "Pro-functies"
 
 msgid "Pro is $20 per user/month billed monthly, or $15 per user/month billed yearly (a 25% discount). You're billed per active seat on your team."
 msgstr "Pro kost $20 per gebruiker/maand bij maandelijkse facturering, of $15 per gebruiker/maand bij jaarlijkse facturering (25% korting). Je betaalt per actieve seat in je team."
+
+msgid "Pro organizations"
+msgstr "Pro-organisaties"
 
 msgid "Process"
 msgstr "Proces"
@@ -15651,9 +15657,6 @@ msgstr "Wekelijkse cohorten op basis van de eerste paywall-weergave. Balken zijn
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "Wekelijkse cohorten op basis van eerste echte werkruimte; % dat elke week terugkeert met nog een werkruimte"
-
-msgid "Weekly orgs with 2+/5+ members creating real workspaces"
-msgstr "Wekelijkse organisaties met 2+/5+ leden die echte werkruimtes aanmaken"
 
 msgid "Weekly p50/p90 real workspaces per creator; current week dashed"
 msgstr "Wekelijkse p50/p90 echte werkruimtes per maker; huidige week gestippeld"

@@ -2994,6 +2994,9 @@ msgstr "Escolha quando o Superset te avisa."
 msgid "Choose which agent watches this page for comments"
 msgstr "Escolha qual agente observa os comentários desta página"
 
+msgid "churned"
+msgstr "canceladas"
+
 msgid "CI failed"
 msgstr "CI falhou"
 
@@ -8648,6 +8651,9 @@ msgstr "A rede mudou"
 msgid "Never"
 msgstr "Nunca"
 
+msgid "new"
+msgstr "novas"
+
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "Os novos agentes {providerLabel} vão usar {accountLabel}."
 
@@ -10159,14 +10165,11 @@ msgstr "Organização: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Organizações"
 
+msgid "Organizations on a paid Pro plan at each week's end (Neon), with the ones gained and lost that week. Enterprise has its own tile; the current week is still filling."
+msgstr "Organizações em um plano Pro pago no fim de cada semana (Neon), com as ganhas e perdidas naquela semana. Enterprise tem seu próprio bloco; a semana atual ainda está sendo preenchida."
+
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Organize seu trabalho em equipes. Tarefas e integrações podem sincronizar por equipe."
-
-msgid "orgs with 2+ active members"
-msgstr "organizações com 2+ membros ativos"
-
-msgid "orgs with 5+ active members"
-msgstr "organizações com 5+ membros ativos"
 
 msgid "Originals"
 msgstr "Originais"
@@ -10808,6 +10811,9 @@ msgstr "Recursos Pro"
 
 msgid "Pro is $20 per user/month billed monthly, or $15 per user/month billed yearly (a 25% discount). You're billed per active seat on your team."
 msgstr "O Pro custa US$ 20 por usuário/mês na cobrança mensal, ou US$ 15 por usuário/mês na cobrança anual (25% de desconto). A cobrança é por assento ativo no seu time."
+
+msgid "Pro organizations"
+msgstr "Organizações Pro"
 
 msgid "Process"
 msgstr "Processo"
@@ -15651,9 +15657,6 @@ msgstr "Coortes semanais pela primeira visualização do paywall. As barras most
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "Coortes semanais pela primeira área de trabalho real; % que retorna com outra área de trabalho a cada semana"
-
-msgid "Weekly orgs with 2+/5+ members creating real workspaces"
-msgstr "Organizações semanais com 2+/5+ membros criando áreas de trabalho reais"
 
 msgid "Weekly p50/p90 real workspaces per creator; current week dashed"
 msgstr "p50/p90 semanal de áreas de trabalho reais por criador; semana atual tracejada"

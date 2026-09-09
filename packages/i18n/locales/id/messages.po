@@ -2994,6 +2994,9 @@ msgstr "Pilih kapan Superset memberi tahu Anda."
 msgid "Choose which agent watches this page for comments"
 msgstr "Pilih agen yang memantau komentar di halaman ini"
 
+msgid "churned"
+msgstr "berhenti"
+
 msgid "CI failed"
 msgstr "CI gagal"
 
@@ -8648,6 +8651,9 @@ msgstr "Jaringan Berubah"
 msgid "Never"
 msgstr "Tidak pernah"
 
+msgid "new"
+msgstr "baru"
+
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "Agen {providerLabel} yang baru akan memakai {accountLabel}."
 
@@ -10159,14 +10165,11 @@ msgstr "Organisasi: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Organisasi"
 
+msgid "Organizations on a paid Pro plan at each week's end (Neon), with the ones gained and lost that week. Enterprise has its own tile; the current week is still filling."
+msgstr "Organisasi dengan paket Pro berbayar di akhir setiap minggu (Neon), beserta yang bertambah dan hilang pada minggu itu. Enterprise punya kartu sendiri; minggu ini masih bertambah."
+
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Atur pekerjaan Anda ke dalam tim. Tugas dan integrasi bisa disinkronkan per tim."
-
-msgid "orgs with 2+ active members"
-msgstr "organisasi dengan 2+ anggota aktif"
-
-msgid "orgs with 5+ active members"
-msgstr "organisasi dengan 5+ anggota aktif"
 
 msgid "Originals"
 msgstr "Orisinal"
@@ -10808,6 +10811,9 @@ msgstr "Fitur Pro"
 
 msgid "Pro is $20 per user/month billed monthly, or $15 per user/month billed yearly (a 25% discount). You're billed per active seat on your team."
 msgstr "Pro seharga $20 per pengguna/bulan jika ditagih bulanan, atau $15 per pengguna/bulan jika ditagih tahunan (diskon 25%). Anda ditagih per kursi aktif di tim Anda."
+
+msgid "Pro organizations"
+msgstr "Organisasi Pro"
 
 msgid "Process"
 msgstr "Proses"
@@ -15651,9 +15657,6 @@ msgstr "Kohort mingguan berdasarkan tampilan paywall pertama. Batang menunjukkan
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "Kohor mingguan berdasarkan workspace nyata pertama; % yang kembali dengan workspace lain tiap minggu"
-
-msgid "Weekly orgs with 2+/5+ members creating real workspaces"
-msgstr "Organisasi mingguan dengan 2+/5+ anggota yang membuat workspace nyata"
 
 msgid "Weekly p50/p90 real workspaces per creator; current week dashed"
 msgstr "p50/p90 mingguan workspace nyata per pembuat; minggu berjalan bergaris putus-putus"

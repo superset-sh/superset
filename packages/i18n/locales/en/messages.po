@@ -2994,6 +2994,9 @@ msgstr "Choose when Superset pings you."
 msgid "Choose which agent watches this page for comments"
 msgstr "Choose which agent watches this page for comments"
 
+msgid "churned"
+msgstr "churned"
+
 msgid "CI failed"
 msgstr "CI failed"
 
@@ -8648,6 +8651,9 @@ msgstr "Network Changed"
 msgid "Never"
 msgstr "Never"
 
+msgid "new"
+msgstr "new"
+
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "New {providerLabel} agents will use {accountLabel}."
 
@@ -10159,14 +10165,11 @@ msgstr "Organization: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Organizations"
 
+msgid "Organizations on a paid Pro plan at each week's end (Neon), with the ones gained and lost that week. Enterprise has its own tile; the current week is still filling."
+msgstr "Organizations on a paid Pro plan at each week's end (Neon), with the ones gained and lost that week. Enterprise has its own tile; the current week is still filling."
+
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Organize your work into teams. Tasks and integrations can sync per-team."
-
-msgid "orgs with 2+ active members"
-msgstr "orgs with 2+ active members"
-
-msgid "orgs with 5+ active members"
-msgstr "orgs with 5+ active members"
 
 msgid "Originals"
 msgstr "Originals"
@@ -10808,6 +10811,9 @@ msgstr "Pro Features"
 
 msgid "Pro is $20 per user/month billed monthly, or $15 per user/month billed yearly (a 25% discount). You're billed per active seat on your team."
 msgstr "Pro is $20 per user/month billed monthly, or $15 per user/month billed yearly (a 25% discount). You're billed per active seat on your team."
+
+msgid "Pro organizations"
+msgstr "Pro organizations"
 
 msgid "Process"
 msgstr "Process"
@@ -15651,9 +15657,6 @@ msgstr "Weekly cohorts by first paywall view. Bars are cohort size; the current 
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "Weekly cohorts by first real workspace; % returning with another workspace each week"
-
-msgid "Weekly orgs with 2+/5+ members creating real workspaces"
-msgstr "Weekly orgs with 2+/5+ members creating real workspaces"
 
 msgid "Weekly p50/p90 real workspaces per creator; current week dashed"
 msgstr "Weekly p50/p90 real workspaces per creator; current week dashed"

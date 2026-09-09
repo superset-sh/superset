@@ -667,6 +667,64 @@ export const businessRouter = {
 			return result.rows;
 		}),
 
+	// Paying organizations over time, from Neon. Deliberately not an activity
+	// metric: paying is the signal, and the cloud database stopped recording
+	// workspaces on 2026-08-12, so it cannot answer "was this org active"
+	// anyway. Enterprise is excluded — it has its own tile and is not all
+	// modelled as Stripe subscriptions.
+	//
+	// A week counts an organization live if a non-`incomplete` Pro subscription
+	// covered that week's END, which is what makes the series a level rather
+	// than a flow. `incomplete` is an abandoned checkout, not a customer.
+	// New and churned are derived from the level, comparing each week against
+	// the one before, so pro_orgs[w] = pro_orgs[w-1] + new - churned exactly.
+	getProOrgs: adminProcedure
+		.input(z.object({ weeks: z.number().min(4).max(26).default(12) }))
+		.query(async ({ input }) => {
+			const result = await db.execute<{
+				week: string;
+				pro_orgs: number;
+				new_pro_orgs: number;
+				churned_pro_orgs: number;
+			}>(sql`
+				WITH weeks AS (
+					-- One extra week: the oldest is only a baseline for the first
+					-- week's new/churned comparison and is dropped below.
+					SELECT generate_series(
+						date_trunc('week', now()) - make_interval(weeks => ${input.weeks}),
+						date_trunc('week', now()),
+						interval '1 week'
+					) AS wk
+				),
+				live AS (
+					SELECT w.wk, s.reference_id AS org
+					FROM weeks w
+					JOIN subscriptions s
+						ON s.plan = 'pro'
+						AND s.status <> 'incomplete'
+						AND s.created_at < w.wk + interval '1 week'
+						AND (s.ended_at IS NULL OR s.ended_at >= w.wk + interval '1 week')
+					GROUP BY w.wk, s.reference_id
+				)
+				SELECT
+					to_char(w.wk, 'YYYY-MM-DD') AS week,
+					(SELECT count(*) FROM live l WHERE l.wk = w.wk)::int AS pro_orgs,
+					(SELECT count(*) FROM live l
+						WHERE l.wk = w.wk AND NOT EXISTS (
+							SELECT 1 FROM live p
+							WHERE p.wk = w.wk - interval '1 week' AND p.org = l.org
+						))::int AS new_pro_orgs,
+					(SELECT count(*) FROM live p
+						WHERE p.wk = w.wk - interval '1 week' AND NOT EXISTS (
+							SELECT 1 FROM live l WHERE l.wk = w.wk AND l.org = p.org
+						))::int AS churned_pro_orgs
+				FROM weeks w
+				WHERE w.wk > (SELECT min(wk) FROM weeks)
+				ORDER BY w.wk
+			`);
+			return result.rows;
+		}),
+
 	// Logo retention: % of orgs subscribed at the end of month m still
 	// subscribed at the end of m+1. Count-based — dollar NRR needs a second
 	// Sigma query and is intentionally out of scope here.

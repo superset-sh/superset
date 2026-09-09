@@ -2994,6 +2994,9 @@ msgstr "Chọn khi nào Superset báo cho bạn."
 msgid "Choose which agent watches this page for comments"
 msgstr "Chọn agent theo dõi bình luận của trang này"
 
+msgid "churned"
+msgstr "rời bỏ"
+
 msgid "CI failed"
 msgstr "CI thất bại"
 
@@ -8648,6 +8651,9 @@ msgstr "Mạng đã thay đổi"
 msgid "Never"
 msgstr "Chưa bao giờ"
 
+msgid "new"
+msgstr "mới"
+
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "Các agent {providerLabel} mới sẽ dùng {accountLabel}."
 
@@ -10159,14 +10165,11 @@ msgstr "Tổ chức: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Tổ chức"
 
+msgid "Organizations on a paid Pro plan at each week's end (Neon), with the ones gained and lost that week. Enterprise has its own tile; the current week is still filling."
+msgstr "Các tổ chức dùng gói Pro trả phí vào cuối mỗi tuần (Neon), cùng số tăng thêm và mất đi trong tuần đó. Enterprise có thẻ riêng; tuần hiện tại vẫn đang tăng."
+
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Sắp xếp công việc theo nhóm. Tác vụ và tích hợp có thể đồng bộ riêng cho từng nhóm."
-
-msgid "orgs with 2+ active members"
-msgstr "tổ chức có 2+ thành viên hoạt động"
-
-msgid "orgs with 5+ active members"
-msgstr "tổ chức có 5+ thành viên hoạt động"
 
 msgid "Originals"
 msgstr "Riêng của Superset"
@@ -10808,6 +10811,9 @@ msgstr "Tính năng Pro"
 
 msgid "Pro is $20 per user/month billed monthly, or $15 per user/month billed yearly (a 25% discount). You're billed per active seat on your team."
 msgstr "Pro có giá 20 USD/người/tháng khi trả theo tháng, hoặc 15 USD/người/tháng khi trả theo năm (giảm 25%). Bạn được tính phí theo số ghế đang hoạt động trong nhóm."
+
+msgid "Pro organizations"
+msgstr "Tổ chức Pro"
 
 msgid "Process"
 msgstr "Tiến trình"
@@ -15651,9 +15657,6 @@ msgstr "Nhóm theo tuần dựa trên lần đầu thấy paywall. Cột là quy
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "Nhóm theo tuần dựa trên workspace thực đầu tiên; % quay lại tạo workspace khác mỗi tuần"
-
-msgid "Weekly orgs with 2+/5+ members creating real workspaces"
-msgstr "Số tổ chức hàng tuần có 2+/5+ thành viên tạo workspace thực"
 
 msgid "Weekly p50/p90 real workspaces per creator; current week dashed"
 msgstr "p50/p90 workspace thực trên mỗi người tạo theo tuần; tuần hiện tại là nét đứt"

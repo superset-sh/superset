@@ -2994,6 +2994,9 @@ msgstr "Superset이 언제 알릴지 선택하세요."
 msgid "Choose which agent watches this page for comments"
 msgstr "이 페이지의 댓글을 감시할 에이전트 선택"
 
+msgid "churned"
+msgstr "이탈"
+
 msgid "CI failed"
 msgstr "CI 실패"
 
@@ -8648,6 +8651,9 @@ msgstr "네트워크 변경됨"
 msgid "Never"
 msgstr "없음"
 
+msgid "new"
+msgstr "신규"
+
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "새 {providerLabel} 에이전트는 {accountLabel}을(를) 사용합니다."
 
@@ -10159,14 +10165,11 @@ msgstr "조직: <0>{0}</0>"
 msgid "Organizations"
 msgstr "조직"
 
+msgid "Organizations on a paid Pro plan at each week's end (Neon), with the ones gained and lost that week. Enterprise has its own tile; the current week is still filling."
+msgstr "각 주말 기준 유료 Pro 플랜을 쓰는 조직(Neon)과 그 주에 늘고 줄어든 수. Enterprise는 별도 타일이 있으며, 이번 주는 아직 채워지는 중입니다."
+
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "작업을 팀 단위로 정리하세요. 작업과 연동은 팀별로 동기화할 수 있습니다."
-
-msgid "orgs with 2+ active members"
-msgstr "활성 멤버 2명 이상 조직"
-
-msgid "orgs with 5+ active members"
-msgstr "활성 멤버 5명 이상 조직"
 
 msgid "Originals"
 msgstr "오리지널"
@@ -10808,6 +10811,9 @@ msgstr "Pro 기능"
 
 msgid "Pro is $20 per user/month billed monthly, or $15 per user/month billed yearly (a 25% discount). You're billed per active seat on your team."
 msgstr "Pro는 월간 결제 시 사용자당 월 $20, 연간 결제 시 사용자당 월 $15입니다(25% 할인). 팀의 활성 좌석 수만큼 청구됩니다."
+
+msgid "Pro organizations"
+msgstr "Pro 조직"
 
 msgid "Process"
 msgstr "프로세스"
@@ -15651,9 +15657,6 @@ msgstr "페이월을 처음 본 주 기준 코호트. 막대는 코호트 규모
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "첫 실제 워크스페이스 기준 주간 코호트. 매주 다른 워크스페이스로 돌아온 비율"
-
-msgid "Weekly orgs with 2+/5+ members creating real workspaces"
-msgstr "실제 워크스페이스를 만드는 멤버가 2명 이상/5명 이상인 주간 조직 수"
 
 msgid "Weekly p50/p90 real workspaces per creator; current week dashed"
 msgstr "생성자당 주간 실제 워크스페이스 p50/p90. 이번 주는 점선"

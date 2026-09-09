@@ -2994,6 +2994,9 @@ msgstr "Supersetから通知するタイミングを選びます。"
 msgid "Choose which agent watches this page for comments"
 msgstr "このページのコメントを監視するエージェントを選択"
 
+msgid "churned"
+msgstr "解約"
+
 msgid "CI failed"
 msgstr "CIが失敗しました"
 
@@ -8648,6 +8651,9 @@ msgstr "ネットワークが変更されました"
 msgid "Never"
 msgstr "未使用"
 
+msgid "new"
+msgstr "新規"
+
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "新規の{providerLabel}エージェントは{accountLabel}を使用します。"
 
@@ -10159,14 +10165,11 @@ msgstr "組織: <0>{0}</0>"
 msgid "Organizations"
 msgstr "組織"
 
+msgid "Organizations on a paid Pro plan at each week's end (Neon), with the ones gained and lost that week. Enterprise has its own tile; the current week is still filling."
+msgstr "各週末時点で有料Proプランに加入している組織（Neon）と、その週に増えた数・減った数。Enterpriseは別のタイルにあります。今週はまだ集計中です。"
+
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "作業をチームに整理します。タスクと連携はチームごとに同期できます。"
-
-msgid "orgs with 2+ active members"
-msgstr "アクティブメンバー2人以上の組織"
-
-msgid "orgs with 5+ active members"
-msgstr "アクティブメンバー5人以上の組織"
 
 msgid "Originals"
 msgstr "独自コンポーネント"
@@ -10808,6 +10811,9 @@ msgstr "Pro機能"
 
 msgid "Pro is $20 per user/month billed monthly, or $15 per user/month billed yearly (a 25% discount). You're billed per active seat on your team."
 msgstr "Proは月払いで1ユーザーあたり月$20、年払いなら1ユーザーあたり月$15(25%割引)です。チームのアクティブなシート数に応じて課金されます。"
+
+msgid "Pro organizations"
+msgstr "Proプランの組織"
 
 msgid "Process"
 msgstr "プロセス"
@@ -15651,9 +15657,6 @@ msgstr "最初にペイウォールを見た週ごとのコホート。棒はコ
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "初回の実ワークスペースによる週次コホート。各週に別のワークスペースを作成して戻った割合"
-
-msgid "Weekly orgs with 2+/5+ members creating real workspaces"
-msgstr "実ワークスペースを作成したメンバーが2人以上/5人以上いる組織の週次数"
 
 msgid "Weekly p50/p90 real workspaces per creator; current week dashed"
 msgstr "作成者あたりの実ワークスペース数の週次p50/p90。今週は破線"

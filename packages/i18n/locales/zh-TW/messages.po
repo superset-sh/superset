@@ -2994,6 +2994,9 @@ msgstr "選擇Superset在什麼時候通知你。"
 msgid "Choose which agent watches this page for comments"
 msgstr "選擇由哪個代理程式關注此頁面的評論"
 
+msgid "churned"
+msgstr "流失"
+
 msgid "CI failed"
 msgstr "CI失敗"
 
@@ -8648,6 +8651,9 @@ msgstr "網路已變更"
 msgid "Never"
 msgstr "從未"
 
+msgid "new"
+msgstr "新增"
+
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "新的{providerLabel}代理程式將使用{accountLabel}。"
 
@@ -10159,14 +10165,11 @@ msgstr "組織：<0>{0}</0>"
 msgid "Organizations"
 msgstr "組織"
 
+msgid "Organizations on a paid Pro plan at each week's end (Neon), with the ones gained and lost that week. Enterprise has its own tile; the current week is still filling."
+msgstr "每週結束時使用付費專業版的組織（Neon），以及當週新增和流失的數量。企業版有獨立的圖塊；本週仍在累積。"
+
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "把工作組織到團隊中。任務和整合可以按團隊同步。"
-
-msgid "orgs with 2+ active members"
-msgstr "有2名以上活躍成員的組織"
-
-msgid "orgs with 5+ active members"
-msgstr "有5名以上活躍成員的組織"
 
 msgid "Originals"
 msgstr "原創元件"
@@ -10808,6 +10811,9 @@ msgstr "Pro功能"
 
 msgid "Pro is $20 per user/month billed monthly, or $15 per user/month billed yearly (a 25% discount). You're billed per active seat on your team."
 msgstr "Pro按月付費為每使用者每月$20，按年付費為每使用者每月$15（優惠25%）。按團隊中的活躍席位計費。"
+
+msgid "Pro organizations"
+msgstr "專業版組織"
 
 msgid "Process"
 msgstr "處理程序"
@@ -15651,9 +15657,6 @@ msgstr "依首次看到付費牆的週劃分的同期群。柱狀為同期群人
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "按首個真實工作區劃分的週同期群；每週再次建立工作區的回訪比例"
-
-msgid "Weekly orgs with 2+/5+ members creating real workspaces"
-msgstr "每週有2名以上/5名以上成員建立真實工作區的組織數"
 
 msgid "Weekly p50/p90 real workspaces per creator; current week dashed"
 msgstr "每週每位建立者的真實工作區數p50/p90；本週為虛線"

@@ -2994,6 +2994,9 @@ msgstr "Superset'in sizi ne zaman uyaracağını seçin."
 msgid "Choose which agent watches this page for comments"
 msgstr "Bu sayfanın yorumlarını hangi ajanın izleyeceğini seç"
 
+msgid "churned"
+msgstr "kaybedilen"
+
 msgid "CI failed"
 msgstr "CI başarısız"
 
@@ -8648,6 +8651,9 @@ msgstr "Ağ değişti"
 msgid "Never"
 msgstr "Hiç"
 
+msgid "new"
+msgstr "yeni"
+
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "Yeni {providerLabel} ajanları {accountLabel} hesabını kullanacak."
 
@@ -10159,14 +10165,11 @@ msgstr "Kuruluş: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Kuruluşlar"
 
+msgid "Organizations on a paid Pro plan at each week's end (Neon), with the ones gained and lost that week. Enterprise has its own tile; the current week is still filling."
+msgstr "Her haftanın sonunda ücretli Pro planındaki kuruluşlar (Neon) ve o hafta kazanılanlar ile kaybedilenler. Enterprise'ın kendi kartı var; bu hafta hâlâ dolmakta."
+
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "İşinizi takımlar hâlinde düzenleyin. Görevler ve entegrasyonlar takım bazında eşitlenebilir."
-
-msgid "orgs with 2+ active members"
-msgstr "2+ etkin üyeli kuruluşlar"
-
-msgid "orgs with 5+ active members"
-msgstr "5+ etkin üyeli kuruluşlar"
 
 msgid "Originals"
 msgstr "Özgünler"
@@ -10808,6 +10811,9 @@ msgstr "Pro özellikler"
 
 msgid "Pro is $20 per user/month billed monthly, or $15 per user/month billed yearly (a 25% discount). You're billed per active seat on your team."
 msgstr "Pro, aylık faturalandırmada kullanıcı başına ayda 20 $, yıllık faturalandırmada kullanıcı başına ayda 15 $ (%25 indirim). Takımınızdaki etkin koltuk başına faturalandırılırsınız."
+
+msgid "Pro organizations"
+msgstr "Pro kuruluşlar"
 
 msgid "Process"
 msgstr "Süreç"
@@ -15651,9 +15657,6 @@ msgstr "İlk ödeme duvarı görüntülemesine göre haftalık kohortlar. Çubuk
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "İlk gerçek çalışma alanına göre haftalık kohortlar; her hafta başka bir çalışma alanıyla dönenlerin yüzdesi"
-
-msgid "Weekly orgs with 2+/5+ members creating real workspaces"
-msgstr "Gerçek çalışma alanı oluşturan 2+/5+ üyeli haftalık kuruluşlar"
 
 msgid "Weekly p50/p90 real workspaces per creator; current week dashed"
 msgstr "Oluşturan başına haftalık p50/p90 gerçek çalışma alanı; geçerli hafta kesikli"
