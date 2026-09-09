@@ -84,14 +84,87 @@ describe("DestroyConfirmPane Enter-to-confirm", () => {
 		expect(page().getByRole("alertdialog")).toBeTruthy();
 		expect(onConfirm).not.toHaveBeenCalled();
 
-		// Once the opening keystroke has finished dispatching, Enter confirms
-		// from anywhere: the closing menu hands focus back outside the dialog.
+		// Focus stays in the dialog after the context menu closes.
 		await act(async () => {
 			await new Promise((resolve) => setTimeout(resolve, 0));
 		});
 		await act(async () => {
-			fireEvent.keyDown(document.body, { key: "Enter", code: "Enter" });
+			expect(document.activeElement).toBe(
+				within(page().getByRole("alertdialog")).getByRole("button", {
+					name: "Delete",
+				}),
+			);
+			const action = document.activeElement ?? document.body;
+			expect(fireEvent.keyDown(action, { key: "Enter", code: "Enter" })).toBe(
+				true,
+			);
+			// happy-dom does not synthesize native button activation from keys.
+			// CDP coverage exercises the browser's real Enter-to-click behavior.
+			fireEvent.click(action);
 		});
 		expect(onConfirm).toHaveBeenCalledTimes(1);
 	});
+});
+
+test("opening from an agent input focuses the native action without intercepting typing", async () => {
+	const onConfirm = mock(() => {});
+	const onOpenChange = mock(() => {});
+	const agentKeyDown = mock(() => {});
+	const input = document.createElement("textarea");
+	document.body.append(input);
+	input.focus();
+	window.addEventListener("keydown", agentKeyDown);
+	const props = {
+		open: false,
+		onOpenChange,
+		workspaceName: "ws",
+		deleteBranch: false,
+		onDeleteBranchChange: () => {},
+		hasChanges: false,
+		hasUnpushedCommits: false,
+		canConfirm: true,
+		blockingReason: null,
+		onConfirm,
+		confirmLabel: "Delete",
+	};
+	try {
+		const view = render(<DestroyConfirmPane {...props} />);
+		view.rerender(<DestroyConfirmPane {...props} open />);
+		const dialog = within(document.body).getByRole("alertdialog");
+		const confirm = within(dialog).getByRole("button", { name: "Delete" });
+		expect(document.activeElement).toBe(confirm);
+		fireEvent.keyDown(document.activeElement ?? document.body, { key: "a" });
+		expect(agentKeyDown).toHaveBeenCalledTimes(1);
+		input.focus();
+		expect(document.activeElement).toBe(confirm);
+		expect(fireEvent.keyDown(confirm, { key: "Enter", repeat: true })).toBe(
+			false,
+		);
+		expect(
+			fireEvent.keyDown(confirm, { key: "Enter", isComposing: true }),
+		).toBe(false);
+		expect(onConfirm).not.toHaveBeenCalled();
+		expect(fireEvent.keyDown(confirm, { key: "Enter" })).toBe(true);
+		fireEvent.click(confirm);
+		expect(onConfirm).toHaveBeenCalledTimes(1);
+		fireEvent.keyDown(within(dialog).getByRole("button", { name: "Cancel" }), {
+			key: "Enter",
+		});
+		expect(onConfirm).toHaveBeenCalledTimes(1);
+		view.rerender(<DestroyConfirmPane {...props} open canConfirm={false} />);
+		fireEvent.keyDown(dialog, { key: "Enter" });
+		expect(onConfirm).toHaveBeenCalledTimes(1);
+		view.rerender(<DestroyConfirmPane {...props} />);
+		await act(async () => {
+			await new Promise((resolve) => setTimeout(resolve, 0));
+		});
+		input.focus();
+		view.rerender(<DestroyConfirmPane {...props} open canConfirm={false} />);
+		expect(document.activeElement).toBe(
+			within(document.body).getByRole("button", { name: "Cancel" }),
+		);
+	} finally {
+		window.removeEventListener("keydown", agentKeyDown);
+		input.remove();
+	}
 });
