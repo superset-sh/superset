@@ -31,6 +31,27 @@ function wellKnown(base: URL, name: string): string[] {
 	];
 }
 
+function evictExpired(): void {
+	const now = Date.now();
+	for (const [key, entry] of cache) {
+		if (now - entry.at >= CACHE_TTL_MS) cache.delete(key);
+	}
+}
+
+function requireHttps(value: string, field: string, issuer: string): void {
+	let parsed: URL;
+	try {
+		parsed = new URL(value);
+	} catch {
+		throw new Error(`${issuer} advertises a ${field} that is not a URL.`);
+	}
+	if (parsed.protocol !== "https:") {
+		throw new Error(
+			`${issuer} advertises a ${field} of ${parsed.protocol}//${parsed.host}; it must be https.`,
+		);
+	}
+}
+
 function sameIssuer(a: string, b: string): boolean {
 	return a.replace(/\/$/, "") === b.replace(/\/$/, "");
 }
@@ -97,6 +118,19 @@ async function authorizationServer(
 			`${issuer} advertises no authorization_endpoint or token_endpoint.`,
 		);
 	}
+	requireHttps(
+		payload.authorization_endpoint,
+		"authorization_endpoint",
+		issuer,
+	);
+	requireHttps(payload.token_endpoint, "token_endpoint", issuer);
+	if (payload.registration_endpoint) {
+		requireHttps(
+			payload.registration_endpoint,
+			"registration_endpoint",
+			issuer,
+		);
+	}
 	if (payload.issuer && !sameIssuer(payload.issuer, issuer)) {
 		throw new Error(
 			`${issuer} returned metadata for issuer "${payload.issuer}"; an authorization server may only describe the issuer it was requested from.`,
@@ -115,6 +149,7 @@ export async function discoverServer(
 ): Promise<DiscoveredServer> {
 	const cached = cache.get(mcpUrl);
 	if (cached && Date.now() - cached.at < CACHE_TTL_MS) return cached.value;
+	evictExpired();
 
 	const { resource, issuers } = await protectedResource(mcpUrl);
 	const failures: string[] = [];
@@ -136,8 +171,4 @@ export async function discoverServer(
 	throw new Error(
 		`No authorization server named by ${mcpUrl} could be read (${failures.join("; ")})`,
 	);
-}
-
-export function forgetDiscovery(mcpUrl: string): void {
-	cache.delete(mcpUrl);
 }

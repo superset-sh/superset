@@ -14,12 +14,12 @@ export {
 	authMethod,
 	DEFAULT_CREDENTIAL_INPUT,
 	trustedManifest,
-	usesPkce,
 } from "../../../router/plugins/manifest";
 export {
 	buildAuthorizationUrl,
 	createCodeVerifier,
 	exchangeCode,
+	MissingClientError,
 	redirectUri,
 	resolveIdentity,
 } from "../../../router/plugins/oauth";

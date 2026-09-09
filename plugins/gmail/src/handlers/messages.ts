@@ -1,4 +1,11 @@
-import { gmail, optionalNumber, requireString, stringList, text } from "../api";
+import {
+	gmail,
+	mapLimited,
+	optionalNumber,
+	requireString,
+	stringList,
+	text,
+} from "../api";
 import {
 	encodeRaw,
 	type GmailMessage,
@@ -21,15 +28,13 @@ async function summarize(
 	accessToken: string,
 	ids: { id?: string; threadId?: string }[],
 ): Promise<string[]> {
-	const messages = await Promise.all(
-		ids.map((entry) =>
-			gmail<GmailMessage>(accessToken, `/messages/${entry.id}`, {
-				query: {
-					format: "metadata",
-					metadataHeaders: ["From", "Subject", "Date"],
-				},
-			}).catch(() => null),
-		),
+	const messages = await mapLimited(ids, (entry) =>
+		gmail<GmailMessage>(accessToken, `/messages/${entry.id}`, {
+			query: {
+				format: "metadata",
+				metadataHeaders: ["From", "Subject", "Date"],
+			},
+		}).catch(() => null),
 	);
 
 	return messages.map((message, index) => {

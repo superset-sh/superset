@@ -797,6 +797,12 @@ msgstr "{total}项检查中有{pending}项运行中"
 msgid "{planLabel} · Joined {joined}"
 msgstr "{planLabel} · 加入于{joined}"
 
+msgid "{plugin} has no OAuth client configured on this deployment yet."
+msgstr "此部署尚未为 {plugin} 配置 OAuth 客户端。"
+
+msgid "{plugin} is no longer installed."
+msgstr "{plugin} 已不再安装。"
+
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel}已重置为默认值"
 
@@ -3578,6 +3584,9 @@ msgstr "已连接"
 msgid "connected {0}"
 msgstr "连接于 {0}"
 
+msgid "Connected {connected}"
+msgstr "已连接 {connected}"
+
 msgid "Connected as"
 msgstr "已连接为"
 
@@ -3914,6 +3923,9 @@ msgstr "无法关闭会话"
 
 msgid "Could not close the session"
 msgstr "无法关闭会话"
+
+msgid "Could not connect {plugin}. Try again."
+msgstr "无法连接 {plugin}。请重试。"
 
 msgid "Could not copy the link"
 msgstr "无法复制链接"
@@ -13943,6 +13955,9 @@ msgstr "多行文本框"
 msgid "Thanks for reaching out"
 msgstr "感谢联系"
 
+msgid "That {plugin} sign-in link expired. Try connecting again."
+msgstr "该 {plugin} 登录链接已过期。请重新连接。"
+
 msgid "That handle is taken."
 msgstr "该用户名已被占用。"
 
@@ -15908,6 +15923,9 @@ msgstr "在累计 {0} 天使用记录之前你不参与排名。等看板掌握�
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "此操作无法撤销。终端窗格会显示“进程已退出”，之后可以重新启动。"
+
+msgid "You declined the {plugin} authorization request."
+msgstr "你拒绝了 {plugin} 的授权请求。"
 
 msgid "You don't have access to this host"
 msgstr "你没有此主机的访问权限"

@@ -88,3 +88,26 @@ export function optionalNumber(
 	if (!Number.isFinite(parsed)) throw new Error(`${field} must be a number`);
 	return parsed;
 }
+
+const MAX_CONCURRENT_REQUESTS = 5;
+
+export async function mapLimited<T, R>(
+	items: T[],
+	fn: (item: T, index: number) => Promise<R>,
+	limit = MAX_CONCURRENT_REQUESTS,
+): Promise<R[]> {
+	const results = new Array<R>(items.length);
+	let next = 0;
+
+	const worker = async () => {
+		while (next < items.length) {
+			const index = next++;
+			results[index] = await fn(items[index] as T, index);
+		}
+	};
+
+	await Promise.all(
+		Array.from({ length: Math.min(limit, items.length) }, worker),
+	);
+	return results;
+}

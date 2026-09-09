@@ -99,7 +99,11 @@ async function connectionContext(userId: string, connectionId: string) {
 
 	let fresh = connection;
 	try {
-		fresh = await ensureFreshConnection(connection, install.manifest);
+		fresh = await ensureFreshConnection(
+			connection,
+			install.manifest,
+			install.marketplace,
+		);
 	} catch (error) {
 		throw userError({
 			code: "UNAUTHORIZED",

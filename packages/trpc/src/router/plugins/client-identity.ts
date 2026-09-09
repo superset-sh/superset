@@ -1,13 +1,10 @@
+import { db } from "@superset/db/client";
 import { pluginOauthClients } from "@superset/db/schema";
 import { and, eq, isNotNull, lte } from "drizzle-orm";
 import { env } from "../../env";
 import { decryptOptional, encryptOptional } from "./crypto";
 import type { DiscoveredServer } from "./discovery";
 import { credentialFetch, type PluginAuthMethod } from "./manifest";
-
-async function database() {
-	return (await import("@superset/db/client")).db;
-}
 
 export interface ClientIdentity {
 	clientId: string;
@@ -41,7 +38,7 @@ async function storedClient(
 	issuer: string,
 	redirectUri: string,
 ): Promise<ClientIdentity | null> {
-	const [row] = await (await database())
+	const [row] = await db
 		.select()
 		.from(pluginOauthClients)
 		.where(
@@ -134,32 +131,23 @@ async function register(
 			? new Date(payload.client_secret_expires_at * 1000)
 			: null;
 
-	await (await database())
+	const row = {
+		clientId: payload.client_id,
+		clientSecret: await encryptOptional(payload.client_secret),
+		clientSecretExpiresAt: expiresAt,
+		registrationAccessToken: await encryptOptional(
+			payload.registration_access_token,
+		),
+		registrationClientUri: payload.registration_client_uri ?? null,
+		tokenEndpointAuthMethod: method,
+	};
+
+	await db
 		.insert(pluginOauthClients)
-		.values({
-			issuer: server.issuer,
-			redirectUri,
-			clientId: payload.client_id,
-			clientSecret: await encryptOptional(payload.client_secret),
-			clientSecretExpiresAt: expiresAt,
-			registrationAccessToken: await encryptOptional(
-				payload.registration_access_token,
-			),
-			registrationClientUri: payload.registration_client_uri ?? null,
-			tokenEndpointAuthMethod: method,
-		})
+		.values({ issuer: server.issuer, redirectUri, ...row })
 		.onConflictDoUpdate({
 			target: [pluginOauthClients.issuer, pluginOauthClients.redirectUri],
-			set: {
-				clientId: payload.client_id,
-				clientSecret: await encryptOptional(payload.client_secret),
-				clientSecretExpiresAt: expiresAt,
-				registrationAccessToken: await encryptOptional(
-					payload.registration_access_token,
-				),
-				registrationClientUri: payload.registration_client_uri ?? null,
-				tokenEndpointAuthMethod: method,
-			},
+			set: row,
 			setWhere: and(
 				isNotNull(pluginOauthClients.clientSecretExpiresAt),
 				lte(pluginOauthClients.clientSecretExpiresAt, new Date()),
@@ -206,13 +194,15 @@ export async function resolveClientIdentity(
 export async function forgetClient(
 	issuer: string,
 	redirectUri: string,
+	clientId: string,
 ): Promise<void> {
-	await (await database())
+	await db
 		.delete(pluginOauthClients)
 		.where(
 			and(
 				eq(pluginOauthClients.issuer, issuer),
 				eq(pluginOauthClients.redirectUri, redirectUri),
+				eq(pluginOauthClients.clientId, clientId),
 			),
 		);
 }

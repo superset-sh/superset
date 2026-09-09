@@ -797,6 +797,12 @@ msgstr "{pending} de {total} comprobaciones en ejecución"
 msgid "{planLabel} · Joined {joined}"
 msgstr "{planLabel} · Se unió {joined}"
 
+msgid "{plugin} has no OAuth client configured on this deployment yet."
+msgstr "{plugin} aún no tiene un cliente OAuth configurado en este despliegue."
+
+msgid "{plugin} is no longer installed."
+msgstr "{plugin} ya no está instalado."
+
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel} restablecido a los valores predeterminados"
 
@@ -3578,6 +3584,9 @@ msgstr "Conectado"
 msgid "connected {0}"
 msgstr "conectado {0}"
 
+msgid "Connected {connected}"
+msgstr "{connected} conectado"
+
 msgid "Connected as"
 msgstr "Conectado como"
 
@@ -3914,6 +3923,9 @@ msgstr "No se pudo cerrar la sesión"
 
 msgid "Could not close the session"
 msgstr "No se pudo cerrar la sesión"
+
+msgid "Could not connect {plugin}. Try again."
+msgstr "No se pudo conectar {plugin}. Inténtalo de nuevo."
 
 msgid "Could not copy the link"
 msgstr "No se pudo copiar el enlace"
@@ -13943,6 +13955,9 @@ msgstr "Área de texto"
 msgid "Thanks for reaching out"
 msgstr "Gracias por escribirnos"
 
+msgid "That {plugin} sign-in link expired. Try connecting again."
+msgstr "Ese enlace de inicio de sesión de {plugin} ha caducado. Vuelve a conectarte."
+
 msgid "That handle is taken."
 msgstr "Ese nombre de usuario ya está en uso."
 
@@ -15908,6 +15923,9 @@ msgstr "No estás clasificado hasta que haya {0} días con actividad. La puntuac
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Esta acción no se puede deshacer. Los paneles de terminal mostrarán \"Process exited\" y se pueden reiniciar."
+
+msgid "You declined the {plugin} authorization request."
+msgstr "Has rechazado la solicitud de autorización de {plugin}."
 
 msgid "You don't have access to this host"
 msgstr "No tienes acceso a este host"

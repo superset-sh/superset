@@ -25,6 +25,7 @@ import {
 	supersetExtension,
 	type TemplateScope,
 	tokenAuthentication,
+	trustedManifest,
 	usesDynamicClient,
 	usesPkce,
 } from "./manifest";
@@ -38,6 +39,15 @@ import {
  * server secrets to a host the manifest chose.
  */
 const CLIENT_ENV = /^PLUGIN_[A-Z0-9_]+_CLIENT_(ID|SECRET)$/;
+
+const DEFAULT_TOKEN_EXPIRATION_BUFFER = 60;
+
+export class MissingClientError extends Error {
+	constructor(pluginName: string) {
+		super(`No OAuth client configured for plugin "${pluginName}".`);
+		this.name = "MissingClientError";
+	}
+}
 
 export function clientCredentials(auth: PluginAuthMethod): {
 	clientId: string;
@@ -86,8 +96,14 @@ export async function resolveEndpoints(
 	auth: PluginAuthMethod,
 	scope: TemplateScope,
 	manifest?: PluginManifest,
+	marketplace?: string,
 ): Promise<OAuthEndpoints> {
 	if (usesDynamicClient(auth)) {
+		if (!marketplace || !trustedManifest(marketplace)) {
+			throw new Error(
+				`Plugin "${pluginName}" sets client "dynamic", which discovers and registers against hosts its own manifest names. Only first-party plugins may do that.`,
+			);
+		}
 		const server = await discoverServer(mcpUrlOf(pluginName, manifest));
 		const identity = await resolveClientIdentity(
 			pluginName,
@@ -115,7 +131,7 @@ export async function resolveEndpoints(
 
 	const credentials = clientCredentials(auth);
 	if (!credentials) {
-		throw new Error(`No OAuth client configured for plugin "${pluginName}".`);
+		throw new MissingClientError(pluginName);
 	}
 	if (!auth.authorization_url) {
 		throw new Error(`Plugin "${pluginName}" declares no authorization_url.`);
@@ -169,13 +185,18 @@ export async function buildAuthorizationUrl(
 	auth: PluginAuthMethod,
 	scope: TemplateScope,
 	state: string,
-	options: { manifest?: PluginManifest; codeVerifier?: string | null } = {},
+	options: {
+		manifest?: PluginManifest;
+		codeVerifier?: string | null;
+		marketplace?: string;
+	} = {},
 ): Promise<string> {
 	const endpoints = await resolveEndpoints(
 		pluginName,
 		auth,
 		scope,
 		options.manifest,
+		options.marketplace,
 	);
 	const codeVerifier = options.codeVerifier ?? null;
 
@@ -246,7 +267,8 @@ function exchanged(
 ): ExchangedToken {
 	if (!tokens.accessToken) throw new Error("No access_token returned");
 
-	const bufferSeconds = auth.token_expiration_buffer ?? 0;
+	const bufferSeconds =
+		auth.token_expiration_buffer ?? DEFAULT_TOKEN_EXPIRATION_BUFFER;
 	const raw = tokens.raw as { scope?: string } | undefined;
 	const scopes = raw?.scope
 		? raw.scope.split(auth.scope_separator ?? " ").filter(Boolean)
@@ -263,10 +285,7 @@ function exchanged(
 }
 
 function unknownClient(error: unknown): boolean {
-	return (
-		error instanceof TokenRequestError &&
-		(error.code === "invalid_client" || error.code === "unauthorized_client")
-	);
+	return error instanceof TokenRequestError && error.code === "invalid_client";
 }
 
 async function discardDeadClient(
@@ -278,7 +297,11 @@ async function discardDeadClient(
 	if (!unknownClient(error) || !usesDynamicClient(auth) || !endpoints.server) {
 		throw error;
 	}
-	await forgetClient(endpoints.server.issuer, redirectUri(pluginName));
+	await forgetClient(
+		endpoints.server.issuer,
+		redirectUri(pluginName),
+		endpoints.identity.clientId,
+	);
 	throw new TokenRequestError(
 		`The authorization server for "${pluginName}" no longer recognises our registered client; reconnect the plugin.`,
 		(error as TokenRequestError).code,
@@ -290,13 +313,18 @@ export async function exchangeCode(
 	auth: PluginAuthMethod,
 	scope: TemplateScope,
 	code: string,
-	options: { codeVerifier?: string | null; manifest?: PluginManifest } = {},
+	options: {
+		codeVerifier?: string | null;
+		manifest?: PluginManifest;
+		marketplace?: string;
+	} = {},
 ): Promise<ExchangedToken> {
 	const endpoints = await resolveEndpoints(
 		pluginName,
 		auth,
 		scope,
 		options.manifest,
+		options.marketplace,
 	);
 
 	const tokens = await postToken(
@@ -327,8 +355,15 @@ export async function refreshToken(
 	scope: TemplateScope,
 	token: string,
 	manifest?: PluginManifest,
+	marketplace?: string,
 ): Promise<ExchangedToken> {
-	const endpoints = await resolveEndpoints(pluginName, auth, scope, manifest);
+	const endpoints = await resolveEndpoints(
+		pluginName,
+		auth,
+		scope,
+		manifest,
+		marketplace,
+	);
 
 	const tokens = await postToken(
 		requireTokenEndpoint(pluginName, endpoints),

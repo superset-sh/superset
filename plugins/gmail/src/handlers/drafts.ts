@@ -1,4 +1,4 @@
-import { gmail, optionalNumber, requireString, text } from "../api";
+import { gmail, mapLimited, optionalNumber, requireString, text } from "../api";
 import {
 	encodeRaw,
 	type GmailMessage,
@@ -49,12 +49,10 @@ export const draftHandlers: Record<string, Handler> = {
 		const drafts = data.drafts ?? [];
 		if (!drafts.length) return text("No drafts found");
 
-		const details = await Promise.all(
-			drafts.map((draft) =>
-				gmail<Draft>(accessToken, `/drafts/${draft.id}`, {
-					query: { format: "metadata" },
-				}).catch(() => null),
-			),
+		const details = await mapLimited(drafts, (draft) =>
+			gmail<Draft>(accessToken, `/drafts/${draft.id}`, {
+				query: { format: "metadata" },
+			}).catch(() => null),
 		);
 
 		const lines = [`Found ${drafts.length} draft(s):`, ""];

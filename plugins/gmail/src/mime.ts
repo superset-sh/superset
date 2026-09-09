@@ -21,6 +21,17 @@ export interface EmailFields {
 
 const ASCII = /^[\x20-\x7e]*$/;
 
+function headerSafe(value: string, field: string): string {
+	if (/[\r\n]/.test(value)) {
+		throw new Error(`${field} may not contain a carriage return or line feed`);
+	}
+	return value;
+}
+
+function quoted(value: string): string {
+	return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
 function base64(bytes: Uint8Array): string {
 	let binary = "";
 	for (const byte of bytes) binary += String.fromCharCode(byte);
@@ -67,9 +78,13 @@ function part(contentType: string, content: string, extra: string[] = []) {
 }
 
 function attachmentPart(attachment: Attachment): string {
-	const name = encodeHeader(attachment.filename);
+	const name = quoted(encodeHeader(attachment.filename));
+	const mimeType = headerSafe(
+		attachment.mimeType ?? "application/octet-stream",
+		"attachment mimeType",
+	);
 	return [
-		`Content-Type: ${attachment.mimeType ?? "application/octet-stream"}; name="${name}"`,
+		`Content-Type: ${mimeType}; name="${name}"`,
 		"Content-Transfer-Encoding: base64",
 		`Content-Disposition: attachment; filename="${name}"`,
 		"",
@@ -95,23 +110,37 @@ export function readEmailFields(args: Record<string, unknown>): EmailFields {
 					throw new Error("each attachment needs a filename and content");
 				}
 				return {
-					filename,
+					filename: headerSafe(filename, "attachment filename"),
 					content,
-					...(entry.mimeType ? { mimeType: String(entry.mimeType) } : {}),
+					...(entry.mimeType
+						? {
+								mimeType: headerSafe(
+									String(entry.mimeType),
+									"attachment mimeType",
+								),
+							}
+						: {}),
 				};
 			})
 		: [];
 
+	const recipients = (value: unknown, field: string) =>
+		stringList(value, field).map((entry) => headerSafe(entry, field));
+
 	return {
-		to: stringList(args.to, "to"),
-		cc: stringList(args.cc, "cc"),
-		bcc: stringList(args.bcc, "bcc"),
-		subject: String(args.subject ?? ""),
+		to: recipients(args.to, "to"),
+		cc: recipients(args.cc, "cc"),
+		bcc: recipients(args.bcc, "bcc"),
+		subject: headerSafe(String(args.subject ?? ""), "subject"),
 		body: String(args.body ?? ""),
 		...(args.htmlBody ? { htmlBody: String(args.htmlBody) } : {}),
 		attachments,
-		...(args.inReplyTo ? { inReplyTo: String(args.inReplyTo) } : {}),
-		...(args.references ? { references: String(args.references) } : {}),
+		...(args.inReplyTo
+			? { inReplyTo: headerSafe(String(args.inReplyTo), "inReplyTo") }
+			: {}),
+		...(args.references
+			? { references: headerSafe(String(args.references), "references") }
+			: {}),
 		...(args.threadId ? { threadId: String(args.threadId) } : {}),
 	};
 }

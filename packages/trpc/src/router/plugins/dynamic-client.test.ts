@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from "bun:test";
+import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 
 mock.module("../../env", () => ({
 	env: {
@@ -67,6 +67,8 @@ interface Route {
 let routes: Record<string, Route>;
 let requests: { url: string; method: string; body?: string }[];
 
+const realFetch = global.fetch;
+
 function serve(map: Record<string, Route>) {
 	routes = map;
 	requests = [];
@@ -108,6 +110,10 @@ describe('oauth2 with client "dynamic"', () => {
 		inserted.length = 0;
 	});
 
+	afterAll(() => {
+		global.fetch = realFetch;
+	});
+
 	test("uses a hosted client id metadata document when the server supports it", async () => {
 		const mcpUrl = "https://cimd.test/mcp";
 		serve({
@@ -130,6 +136,7 @@ describe('oauth2 with client "dynamic"', () => {
 
 		const url = new URL(
 			await buildAuthorizationUrl("notion", auth, { inputs: {} }, "state", {
+				marketplace: "superset",
 				manifest: manifest(mcpUrl),
 				codeVerifier: "verifier",
 			}),
@@ -174,6 +181,7 @@ describe('oauth2 with client "dynamic"', () => {
 
 		const url = new URL(
 			await buildAuthorizationUrl("notion", auth, { inputs: {} }, "state", {
+				marketplace: "superset",
 				manifest: manifest(mcpUrl),
 				codeVerifier: "verifier",
 			}),
@@ -222,6 +230,7 @@ describe('oauth2 with client "dynamic"', () => {
 
 		const connect = () =>
 			buildAuthorizationUrl("notion", auth, { inputs: {} }, "state", {
+				marketplace: "superset",
 				manifest: manifest(mcpUrl),
 				codeVerifier: "verifier",
 			});
@@ -261,6 +270,7 @@ describe('oauth2 with client "dynamic"', () => {
 
 		const url = new URL(
 			await buildAuthorizationUrl("notion", auth, { inputs: {} }, "state", {
+				marketplace: "superset",
 				manifest: manifest(mcpUrl),
 				codeVerifier: "verifier",
 			}),
@@ -274,6 +284,7 @@ describe('oauth2 with client "dynamic"', () => {
 		serve({});
 		expect(
 			buildAuthorizationUrl("notion", auth, { inputs: {} }, "state", {
+				marketplace: "superset",
 				manifest: { name: "notion", version: "1.0.0" },
 			}),
 		).rejects.toThrow(/declares no mcp url/);
@@ -292,8 +303,48 @@ describe('oauth2 with client "dynamic"', () => {
 
 		expect(
 			buildAuthorizationUrl("notion", auth, { inputs: {} }, "state", {
+				marketplace: "superset",
 				manifest: manifest(mcpUrl),
 			}),
 		).rejects.toThrow(/names no https authorization server/);
+	});
+
+	test("refuses an authorization_endpoint the server advertises over http", async () => {
+		const mcpUrl = "https://cleartext.test/mcp";
+		serve({
+			"https://cleartext.test/.well-known/oauth-protected-resource/mcp": {
+				body: {
+					resource: "https://cleartext.test/mcp",
+					authorization_servers: ["https://cleartext.test"],
+				},
+			},
+			"https://cleartext.test/.well-known/oauth-authorization-server": {
+				body: {
+					issuer: "https://cleartext.test",
+					authorization_endpoint: "http://cleartext.test/authorize",
+					token_endpoint: "https://cleartext.test/token",
+				},
+			},
+		});
+
+		expect(
+			buildAuthorizationUrl("notion", auth, { inputs: {} }, "state", {
+				marketplace: "superset",
+				manifest: manifest(mcpUrl),
+			}),
+		).rejects.toThrow(/authorization_endpoint of http:/);
+	});
+
+	test("refuses dynamic registration for a plugin outside the first-party marketplace", async () => {
+		const mcpUrl = "https://third-party.test/mcp";
+		serve({});
+
+		expect(
+			buildAuthorizationUrl("notion", auth, { inputs: {} }, "state", {
+				marketplace: "community",
+				manifest: manifest(mcpUrl),
+			}),
+		).rejects.toThrow(/Only first-party plugins/);
+		expect(requests).toHaveLength(0);
 	});
 });

@@ -61,9 +61,31 @@ function optionalNumber(args, field) {
     throw new Error(`${field} must be a number`);
   return parsed;
 }
+var MAX_CONCURRENT_REQUESTS = 5;
+async function mapLimited(items, fn, limit = MAX_CONCURRENT_REQUESTS) {
+  const results = new Array(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const index = next++;
+      results[index] = await fn(items[index], index);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
+}
 
 // src/mime.ts
 var ASCII = /^[\x20-\x7e]*$/;
+function headerSafe(value, field) {
+  if (/[\r\n]/.test(value)) {
+    throw new Error(`${field} may not contain a carriage return or line feed`);
+  }
+  return value;
+}
+function quoted(value) {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
+}
 function base64(bytes) {
   let binary = "";
   for (const byte of bytes)
@@ -103,9 +125,10 @@ function part(contentType, content, extra = []) {
 `);
 }
 function attachmentPart(attachment) {
-  const name = encodeHeader(attachment.filename);
+  const name = quoted(encodeHeader(attachment.filename));
+  const mimeType = headerSafe(attachment.mimeType ?? "application/octet-stream", "attachment mimeType");
   return [
-    `Content-Type: ${attachment.mimeType ?? "application/octet-stream"}; name="${name}"`,
+    `Content-Type: ${mimeType}; name="${name}"`,
     "Content-Transfer-Encoding: base64",
     `Content-Disposition: attachment; filename="${name}"`,
     "",
@@ -130,21 +153,24 @@ function readEmailFields(args) {
       throw new Error("each attachment needs a filename and content");
     }
     return {
-      filename,
+      filename: headerSafe(filename, "attachment filename"),
       content,
-      ...entry.mimeType ? { mimeType: String(entry.mimeType) } : {}
+      ...entry.mimeType ? {
+        mimeType: headerSafe(String(entry.mimeType), "attachment mimeType")
+      } : {}
     };
   }) : [];
+  const recipients = (value, field) => stringList(value, field).map((entry) => headerSafe(entry, field));
   return {
-    to: stringList(args.to, "to"),
-    cc: stringList(args.cc, "cc"),
-    bcc: stringList(args.bcc, "bcc"),
-    subject: String(args.subject ?? ""),
+    to: recipients(args.to, "to"),
+    cc: recipients(args.cc, "cc"),
+    bcc: recipients(args.bcc, "bcc"),
+    subject: headerSafe(String(args.subject ?? ""), "subject"),
     body: String(args.body ?? ""),
     ...args.htmlBody ? { htmlBody: String(args.htmlBody) } : {},
     attachments,
-    ...args.inReplyTo ? { inReplyTo: String(args.inReplyTo) } : {},
-    ...args.references ? { references: String(args.references) } : {},
+    ...args.inReplyTo ? { inReplyTo: headerSafe(String(args.inReplyTo), "inReplyTo") } : {},
+    ...args.references ? { references: headerSafe(String(args.references), "references") } : {},
     ...args.threadId ? { threadId: String(args.threadId) } : {}
   };
 }
@@ -306,9 +332,9 @@ Thread ID: ${draft.message?.threadId}`);
     const drafts = data.drafts ?? [];
     if (!drafts.length)
       return text("No drafts found");
-    const details = await Promise.all(drafts.map((draft) => gmail(accessToken, `/drafts/${draft.id}`, {
+    const details = await mapLimited(drafts, (draft) => gmail(accessToken, `/drafts/${draft.id}`, {
       query: { format: "metadata" }
-    }).catch(() => null)));
+    }).catch(() => null));
     const lines = [`Found ${drafts.length} draft(s):`, ""];
     details.forEach((draft, index) => {
       const id = drafts[index]?.id ?? "";
@@ -695,12 +721,12 @@ function labelChange(args) {
   return { addLabelIds, removeLabelIds };
 }
 async function summarize(accessToken, ids) {
-  const messages = await Promise.all(ids.map((entry) => gmail(accessToken, `/messages/${entry.id}`, {
+  const messages = await mapLimited(ids, (entry) => gmail(accessToken, `/messages/${entry.id}`, {
     query: {
       format: "metadata",
       metadataHeaders: ["From", "Subject", "Date"]
     }
-  }).catch(() => null)));
+  }).catch(() => null));
   return messages.map((message, index) => {
     const fallback = ids[index]?.id ?? "";
     if (!message)

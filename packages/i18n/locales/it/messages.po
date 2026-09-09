@@ -797,6 +797,12 @@ msgstr "{pending} controlli su {total} in esecuzione"
 msgid "{planLabel} · Joined {joined}"
 msgstr "{planLabel} · Iscritto il {joined}"
 
+msgid "{plugin} has no OAuth client configured on this deployment yet."
+msgstr "{plugin} non ha ancora un client OAuth configurato su questo deployment."
+
+msgid "{plugin} is no longer installed."
+msgstr "{plugin} non è più installato."
+
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel} reimpostato ai valori predefiniti"
 
@@ -3578,6 +3584,9 @@ msgstr "Collegato"
 msgid "connected {0}"
 msgstr "collegato {0}"
 
+msgid "Connected {connected}"
+msgstr "{connected} connesso"
+
 msgid "Connected as"
 msgstr "Collegato come"
 
@@ -3914,6 +3923,9 @@ msgstr "Impossibile chiudere la sessione"
 
 msgid "Could not close the session"
 msgstr "Impossibile chiudere la sessione"
+
+msgid "Could not connect {plugin}. Try again."
+msgstr "Impossibile connettere {plugin}. Riprova."
 
 msgid "Could not copy the link"
 msgstr "Impossibile copiare il link"
@@ -13943,6 +13955,9 @@ msgstr "Textarea"
 msgid "Thanks for reaching out"
 msgstr "Grazie per averci scritto"
 
+msgid "That {plugin} sign-in link expired. Try connecting again."
+msgstr "Quel link di accesso a {plugin} è scaduto. Prova a connetterti di nuovo."
+
 msgid "That handle is taken."
 msgstr "Questo handle è già in uso."
 
@@ -15908,6 +15923,9 @@ msgstr "Non sei classificato finché {0} giorni non registrano attività. Il pun
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Non puoi annullare questa azione. I pannelli del terminale mostreranno \"Processo terminato\" e potranno essere riavviati."
+
+msgid "You declined the {plugin} authorization request."
+msgstr "Hai rifiutato la richiesta di autorizzazione di {plugin}."
 
 msgid "You don't have access to this host"
 msgstr "Non hai accesso a questo host"

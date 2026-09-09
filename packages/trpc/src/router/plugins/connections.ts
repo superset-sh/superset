@@ -139,7 +139,7 @@ export async function upsertConnection(
 }
 
 export async function updateConnectionTokens(
-	connectionId: string,
+	connection: SelectPluginConnection,
 	tokens: {
 		accessToken: string;
 		refreshToken: string | null;
@@ -151,16 +151,37 @@ export async function updateConnectionTokens(
 		.update(pluginConnections)
 		.set({
 			accessToken: await encryptSecret(tokens.accessToken),
-			...(tokens.refreshToken
-				? { refreshToken: await encryptSecret(tokens.refreshToken) }
-				: {}),
-			...(tokens.expiresAt ? { tokenExpiresAt: tokens.expiresAt } : {}),
+			refreshToken: tokens.refreshToken
+				? await encryptSecret(tokens.refreshToken)
+				: connection.refreshToken,
+			tokenExpiresAt: tokens.expiresAt,
 			...(tokens.scopes ? { scopes: tokens.scopes } : {}),
 		})
-		.where(eq(pluginConnections.id, connectionId))
+		.where(
+			and(
+				eq(pluginConnections.id, connection.id),
+				connection.refreshToken
+					? eq(pluginConnections.refreshToken, connection.refreshToken)
+					: isNull(pluginConnections.refreshToken),
+			),
+		)
 		.returning();
 
-	if (!row) throw new Error("Failed to persist refreshed connection");
+	if (row) return row;
+
+	const current = await connectionById(connection.id);
+	if (!current) throw new Error("Failed to persist refreshed connection");
+	return current;
+}
+
+export async function connectionById(
+	connectionId: string,
+): Promise<SelectPluginConnection | undefined> {
+	const [row] = await db
+		.select()
+		.from(pluginConnections)
+		.where(eq(pluginConnections.id, connectionId))
+		.limit(1);
 	return row;
 }
 

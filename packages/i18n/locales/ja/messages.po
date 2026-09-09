@@ -797,6 +797,12 @@ msgstr "{total}件中{pending}件のチェックが実行中"
 msgid "{planLabel} · Joined {joined}"
 msgstr "{planLabel} · {joined}に参加"
 
+msgid "{plugin} has no OAuth client configured on this deployment yet."
+msgstr "{plugin} の OAuth クライアントはこのデプロイにまだ設定されていません。"
+
+msgid "{plugin} is no longer installed."
+msgstr "{plugin} はインストールされていません。"
+
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel}をデフォルトに戻しました"
 
@@ -3578,6 +3584,9 @@ msgstr "接続済み"
 msgid "connected {0}"
 msgstr "{0} に接続"
 
+msgid "Connected {connected}"
+msgstr "{connected} に接続しました"
+
 msgid "Connected as"
 msgstr "接続アカウント"
 
@@ -3914,6 +3923,9 @@ msgstr "セッションを終了できませんでした"
 
 msgid "Could not close the session"
 msgstr "セッションを閉じられませんでした"
+
+msgid "Could not connect {plugin}. Try again."
+msgstr "{plugin} に接続できませんでした。もう一度お試しください。"
 
 msgid "Could not copy the link"
 msgstr "リンクをコピーできませんでした"
@@ -13943,6 +13955,9 @@ msgstr "Textarea"
 msgid "Thanks for reaching out"
 msgstr "お問い合わせありがとうございます"
 
+msgid "That {plugin} sign-in link expired. Try connecting again."
+msgstr "{plugin} のサインインリンクの有効期限が切れました。もう一度接続してください。"
+
 msgid "That handle is taken."
 msgstr "そのハンドルは使用済みです。"
 
@@ -15908,6 +15923,9 @@ msgstr "{0}日分の使用実績がそろうまではランク外です。全体
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "この操作は元に戻せません。ターミナルペインに「Process exited」と表示され、再起動できます。"
+
+msgid "You declined the {plugin} authorization request."
+msgstr "{plugin} の認可リクエストを拒否しました。"
 
 msgid "You don't have access to this host"
 msgstr "このホストへのアクセス権がありません"

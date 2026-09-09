@@ -5,10 +5,20 @@ import {
 	buildAuthorizationUrl,
 	createCodeVerifier,
 	encryptSecret,
-	installedManifest,
+	installedPlugin,
+	MissingClientError,
 	manifestAuth,
 } from "@superset/trpc/integrations/plugins";
+import { env } from "@/env";
 import { createSignedState } from "@/lib/oauth-state";
+
+function settingsRedirect(plugin: string, params: Record<string, string>) {
+	const url = new URL(`${env.NEXT_PUBLIC_WEB_URL}/plugins/${plugin}`);
+	for (const [key, value] of Object.entries(params)) {
+		url.searchParams.set(key, value);
+	}
+	return Response.redirect(url.toString());
+}
 
 /**
  * Starts an OAuth2 connection by redirecting to the provider.
@@ -31,21 +41,19 @@ export async function GET(
 	const { plugin } = await params;
 	const url = new URL(request.url);
 
-	let manifest: Awaited<ReturnType<typeof installedManifest>>;
+	let install: Awaited<ReturnType<typeof installedPlugin>>;
 	try {
-		manifest = await installedManifest(session.user.id, plugin);
+		install = await installedPlugin(session.user.id, plugin);
 	} catch (error) {
 		if (error instanceof AmbiguousPluginError) {
 			return Response.json({ error: error.message }, { status: 409 });
 		}
 		throw error;
 	}
-	if (!manifest) {
-		return Response.json(
-			{ error: `Plugin "${plugin}" is not installed` },
-			{ status: 404 },
-		);
+	if (!install) {
+		return settingsRedirect(plugin, { error: "not_installed" });
 	}
+	const manifest = install.manifest;
 
 	const requested = url.searchParams.get("method") ?? undefined;
 	const authSpec = authMethod(manifestAuth(manifest), requested);
@@ -112,12 +120,15 @@ export async function GET(
 			await buildAuthorizationUrl(plugin, authSpec, { inputs }, state, {
 				manifest,
 				codeVerifier,
+				marketplace: install.marketplace,
 			}),
 		);
 	} catch (error) {
-		return Response.json(
-			{ error: error instanceof Error ? error.message : String(error) },
-			{ status: 500 },
-		);
+		return settingsRedirect(plugin, {
+			error:
+				error instanceof MissingClientError
+					? "client_unconfigured"
+					: "connect_failed",
+		});
 	}
 }

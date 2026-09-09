@@ -210,6 +210,8 @@ export function readPath(source: unknown, path: string): unknown {
 	return current;
 }
 
+const CREDENTIAL_FETCH_TIMEOUT_MS = 10_000;
+
 export async function credentialFetch(
 	url: string,
 	init: RequestInit,
@@ -227,7 +229,11 @@ export async function credentialFetch(
 		);
 	}
 
-	const response = await fetch(url, { ...init, redirect: "manual" });
+	const response = await fetch(url, {
+		...init,
+		redirect: "manual",
+		signal: init.signal ?? AbortSignal.timeout(CREDENTIAL_FETCH_TIMEOUT_MS),
+	});
 	if (response.status >= 300 && response.status < 400) {
 		throw new Error(
 			`${what} URL redirected to ${response.headers.get("location") ?? "an unnamed location"}; refusing to resend the credential.`,

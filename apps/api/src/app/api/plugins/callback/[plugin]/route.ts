@@ -68,6 +68,7 @@ export async function GET(
 			code,
 			{
 				manifest: install.manifest,
+				marketplace: install.marketplace,
 				...(state.codeVerifier
 					? { codeVerifier: await decryptSecret(state.codeVerifier) }
 					: {}),

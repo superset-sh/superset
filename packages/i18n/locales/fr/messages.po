@@ -797,6 +797,12 @@ msgstr "{pending} vérifications sur {total} en cours"
 msgid "{planLabel} · Joined {joined}"
 msgstr "{planLabel} · Membre depuis {joined}"
 
+msgid "{plugin} has no OAuth client configured on this deployment yet."
+msgstr "Aucun client OAuth n'est encore configuré pour {plugin} sur ce déploiement."
+
+msgid "{plugin} is no longer installed."
+msgstr "{plugin} n'est plus installé."
+
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel} réinitialisé aux valeurs par défaut"
 
@@ -3578,6 +3584,9 @@ msgstr "Connecté"
 msgid "connected {0}"
 msgstr "connecté {0}"
 
+msgid "Connected {connected}"
+msgstr "{connected} connecté"
+
 msgid "Connected as"
 msgstr "Connecté en tant que"
 
@@ -3914,6 +3923,9 @@ msgstr "Impossible de fermer la session"
 
 msgid "Could not close the session"
 msgstr "Impossible de fermer la session"
+
+msgid "Could not connect {plugin}. Try again."
+msgstr "Impossible de connecter {plugin}. Réessayez."
 
 msgid "Could not copy the link"
 msgstr "Impossible de copier le lien"
@@ -13943,6 +13955,9 @@ msgstr "Zone de texte"
 msgid "Thanks for reaching out"
 msgstr "Merci de nous avoir écrit"
 
+msgid "That {plugin} sign-in link expired. Try connecting again."
+msgstr "Ce lien de connexion {plugin} a expiré. Réessayez de vous connecter."
+
 msgid "That handle is taken."
 msgstr "Ce pseudo est déjà pris."
 
@@ -15908,6 +15923,9 @@ msgstr "Vous n'êtes pas classé tant que {0} jours n'ont pas d'activité. Le sc
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Cette action est irréversible. Les volets de terminal afficheront « Processus terminé » et pourront être relancés."
+
+msgid "You declined the {plugin} authorization request."
+msgstr "Vous avez refusé la demande d'autorisation de {plugin}."
 
 msgid "You don't have access to this host"
 msgstr "Vous n'avez pas accès à cet hôte"
