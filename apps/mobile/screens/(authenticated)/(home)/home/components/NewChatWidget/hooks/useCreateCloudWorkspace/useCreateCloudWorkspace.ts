@@ -7,7 +7,7 @@ import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import type { CloudWorkspaceRow } from "@/hooks/useCloudWorkspaces";
 import { getCloudWorkspacesQueryKey } from "@/hooks/useCloudWorkspaces";
 import { useSession } from "@/lib/auth/client";
-import { errorCopy } from "@/lib/errors";
+import { errorCopy, transportFailureKind } from "@/lib/errors";
 import { posthog } from "@/lib/posthog";
 import { apiClient } from "@/lib/trpc/client";
 
@@ -103,6 +103,8 @@ export function useCreateCloudWorkspace() {
 				host_kind: "cloud",
 				source: "mobile_composer",
 				base_branch: branch,
+				// Stable English, never the display copy below.
+				failure_kind: transportFailureKind(error) ?? "server",
 			});
 			Alert.alert(
 				i18n._(

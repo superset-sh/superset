@@ -13351,6 +13351,9 @@ msgstr "2단계 중 {0}단계"
 msgid "Step {step}: {name}"
 msgstr "{step}단계: {name}"
 
+msgid "Still can't reach the host."
+msgstr "아직 호스트에 연결할 수 없습니다."
+
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "아직 진행 중입니다 — 큰 리포지토리는 몇 분 걸릴 수 있습니다. 나가도 되며, 준비되면 홈에 워크스페이스가 표시됩니다."
 

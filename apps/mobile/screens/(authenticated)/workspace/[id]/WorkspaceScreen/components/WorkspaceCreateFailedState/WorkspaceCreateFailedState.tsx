@@ -81,6 +81,7 @@ export function WorkspaceCreateFailedState({
 				<Button
 					variant={unproven ? "default" : "secondary"}
 					size="sm"
+					disabled={checking}
 					onPress={onDismiss}
 				>
 					<Text>

@@ -13351,6 +13351,9 @@ msgstr "Étape {0} sur 2"
 msgid "Step {step}: {name}"
 msgstr "Étape {step} : {name}"
 
+msgid "Still can't reach the host."
+msgstr "L'hôte reste injoignable."
+
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "Toujours en cours — les gros dépôts peuvent prendre quelques minutes. Vous pouvez quitter ; l'espace de travail apparaîtra sur l'accueil dès qu'il sera prêt."
 

@@ -13351,6 +13351,9 @@ msgstr "Stap {0} van 2"
 msgid "Step {step}: {name}"
 msgstr "Stap {step}: {name}"
 
+msgid "Still can't reach the host."
+msgstr "De host is nog steeds onbereikbaar."
+
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "Nog bezig — grote repo's kunnen een paar minuten duren. Je kunt weggaan; de werkruimte verschijnt op Home zodra die klaar is."
 

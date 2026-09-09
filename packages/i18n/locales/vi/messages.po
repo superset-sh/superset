@@ -13351,6 +13351,9 @@ msgstr "Bước {0} / 2"
 msgid "Step {step}: {name}"
 msgstr "Bước {step}: {name}"
 
+msgid "Still can't reach the host."
+msgstr "Vẫn không thể kết nối tới host."
+
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "Vẫn đang xử lý — repo lớn có thể mất vài phút. Bạn có thể rời đi; workspace sẽ xuất hiện ở Trang chủ khi sẵn sàng."
 

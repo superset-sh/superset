@@ -16,7 +16,9 @@ const SCAN_DIRS = [
 	"apps/mobile/components",
 	"apps/mobile/hooks",
 	"apps/mobile/lib",
+	"apps/mobile/modules",
 	"apps/mobile/screens",
+	"apps/mobile/scripts",
 	"packages/ui/src",
 ];
 

@@ -62,6 +62,10 @@ export function useCreateTerminalWorkspace() {
 			if (replace) router.replace(href);
 			else router.push(href);
 
+			// Attachments upload before the create is sent, so a failure there
+			// proves the workspace was never requested — only a failure at or
+			// after the create itself leaves the outcome unknown.
+			let createRequested = false;
 			try {
 				const client = getHostServiceClientByUrl(target.hostUrl);
 				const attachmentIds = await Promise.all(
@@ -93,6 +97,7 @@ export function useCreateTerminalWorkspace() {
 				};
 
 				try {
+					createRequested = true;
 					await client.workspaces.createEnqueued.mutate(createInput);
 				} catch (error) {
 					if (!isMissingProcedureError(error)) throw error;
@@ -130,7 +135,7 @@ export function useCreateTerminalWorkspace() {
 				// finish. Say so rather than asserting a failure.
 				const kind = transportFailureKind(error);
 				failPending(workspaceId, {
-					outcome: kind ? "unknown" : "failed",
+					outcome: kind && createRequested ? "unknown" : "failed",
 					message: errorCopy(error),
 				});
 				posthog.capture("workspace_create_failed", {

@@ -13351,6 +13351,9 @@ msgstr "第{0}步，共2步"
 msgid "Step {step}: {name}"
 msgstr "第{step}步：{name}"
 
+msgid "Still can't reach the host."
+msgstr "仍然無法連線到主機。"
+
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "仍在處理 — 大儲存庫可能需要幾分鐘。你可以離開；工作區就緒後會出現在首頁。"
 

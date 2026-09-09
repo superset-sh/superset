@@ -13351,6 +13351,9 @@ msgstr "Adım {0} / 2"
 msgid "Step {step}: {name}"
 msgstr "Adım {step}: {name}"
 
+msgid "Still can't reach the host."
+msgstr "Host'a hâlâ ulaşılamıyor."
+
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "Hâlâ çalışıyor — büyük depolar birkaç dakika sürebilir. Ayrılabilirsiniz; çalışma alanı hazır olduğunda Ana sayfada görünecek."
 

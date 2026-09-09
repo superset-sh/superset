@@ -13351,6 +13351,9 @@ msgstr "Krok {0} z 2"
 msgid "Step {step}: {name}"
 msgstr "Krok {step}: {name}"
 
+msgid "Still can't reach the host."
+msgstr "Host nadal jest nieosiągalny."
+
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "Wciąż trwa — duże repozytoria mogą zająć kilka minut. Możesz wyjść; obszar roboczy pojawi się na ekranie głównym, gdy będzie gotowy."
 

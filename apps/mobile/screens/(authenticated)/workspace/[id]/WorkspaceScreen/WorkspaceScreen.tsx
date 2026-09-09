@@ -172,6 +172,15 @@ export function WorkspaceScreen() {
 	// Latches while an unproven failure is being checked against the host, so
 	// a second tap cannot start the duplicate the check exists to prevent.
 	const [retryingCreate, setRetryingCreate] = useState(false);
+	// A back-swipe unmounts this screen without clearing the pending entry, so
+	// the check needs its own liveness signal before it acts on the answer.
+	const screenLive = useRef(true);
+	useEffect(() => {
+		screenLive.current = true;
+		return () => {
+			screenLive.current = false;
+		};
+	}, []);
 	const isCreating =
 		!!pendingCreate && !pendingCreate.failure && rows.length === 0;
 	const workspaceResolved = workspace !== null;
@@ -261,7 +270,26 @@ export function WorkspaceScreen() {
 				.workspace.list.query()
 				.catch(() => null);
 			setRetryingCreate(false);
-			if (rows?.some((row) => row.id === workspaceId)) {
+			// The screen moved on while we were asking — the user left, or the
+			// poll resolved it. Creating now would land a workspace nobody is
+			// waiting on.
+			if (
+				!screenLive.current ||
+				!usePendingWorkspaceCreatesStore.getState().pendingById[workspaceId]
+			) {
+				return;
+			}
+			if (rows === null) {
+				// The host did not answer either, so the first create is still
+				// unproven. Creating on a guess is the one thing this check
+				// exists to prevent.
+				failPendingCreate(workspaceId, {
+					outcome: "unknown",
+					message: t({ message: "Still can't reach the host." }),
+				});
+				return;
+			}
+			if (rows.some((row) => row.id === workspaceId)) {
 				// It landed after all — the poll's invalidation resolves the
 				// screen onto the real workspace.
 				clearPendingCreate(workspaceId);
@@ -277,8 +305,10 @@ export function WorkspaceScreen() {
 		pendingCreate,
 		retryingCreate,
 		clearPendingCreate,
+		failPendingCreate,
 		createWorkspace,
 		queryClient,
+		t,
 	]);
 
 	const dismissFailedCreate = useCallback(() => {

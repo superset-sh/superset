@@ -13351,6 +13351,9 @@ msgstr "Шаг {0} из 2"
 msgid "Step {step}: {name}"
 msgstr "Шаг {step}: {name}"
 
+msgid "Still can't reach the host."
+msgstr "Хост по-прежнему недоступен."
+
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "Ещё работаем — большие репозитории могут занять несколько минут. Можно выйти; рабочая область появится на главной, когда будет готова."
 

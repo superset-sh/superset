@@ -13351,6 +13351,9 @@ msgstr "Langkah {0} dari 2"
 msgid "Step {step}: {name}"
 msgstr "Langkah {step}: {name}"
 
+msgid "Still can't reach the host."
+msgstr "Host masih tidak dapat dijangkau."
+
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "Masih berjalan — repo besar bisa makan beberapa menit. Anda boleh keluar; workspace-nya akan muncul di Beranda saat siap."
 

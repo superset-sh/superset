@@ -13351,6 +13351,9 @@ msgstr "ステップ {0} / 2"
 msgid "Step {step}: {name}"
 msgstr "ステップ{step}: {name}"
 
+msgid "Still can't reach the host."
+msgstr "ホストにまだ接続できません。"
+
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "処理を続けています — 大きなリポジトリでは数分かかることがあります。画面を離れても構いません。準備ができるとホームに表示されます。"
 
