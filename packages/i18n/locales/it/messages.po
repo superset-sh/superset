@@ -4072,6 +4072,12 @@ msgstr "Impossibile registrare il workspace cloud"
 msgid "Could not reopen"
 msgstr "Impossibile riaprire"
 
+msgid "Could not reopen this comment"
+msgstr "Impossibile riaprire questo commento"
+
+msgid "Could not resolve this comment"
+msgstr "Impossibile risolvere questo commento"
+
 msgid "Could not restart the host service"
 msgstr "Impossibile riavviare il servizio host"
 

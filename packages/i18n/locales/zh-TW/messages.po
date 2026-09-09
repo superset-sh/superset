@@ -4072,6 +4072,12 @@ msgstr "無法記錄雲端工作區"
 msgid "Could not reopen"
 msgstr "無法重新開啟"
 
+msgid "Could not reopen this comment"
+msgstr "無法重新開啟此留言"
+
+msgid "Could not resolve this comment"
+msgstr "無法解決此留言"
+
 msgid "Could not restart the host service"
 msgstr "無法重新啟動主機服務"
 

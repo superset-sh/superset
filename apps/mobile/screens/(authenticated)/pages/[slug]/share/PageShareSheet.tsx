@@ -40,7 +40,6 @@ export function PageShareSheet() {
 	const versions = usePageVersionsQuery(slug);
 	const { setVisibility, setSharedVersion } = usePageSharingActions(
 		page.data?.id,
-		slug,
 	);
 
 	const owner = access.data?.owner;

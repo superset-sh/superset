@@ -23,8 +23,11 @@ export function usePagesQuery(): UseQueryResult<OrgPage[]> {
 const PULLED_PAGE_STALE_MS = 5 * 60_000;
 
 export function usePageQuery(slug: string): UseQueryResult<PulledPage> {
+	const { data: session } = useSession();
+	const organizationId = session?.session?.activeOrganizationId ?? null;
+
 	return useQuery({
-		queryKey: ["cloud", "page", "pull", slug],
+		queryKey: ["cloud", "page", "pull", organizationId, slug],
 		queryFn: () => apiClient.page.pull.query({ slug }),
 		staleTime: PULLED_PAGE_STALE_MS,
 		retry: false,

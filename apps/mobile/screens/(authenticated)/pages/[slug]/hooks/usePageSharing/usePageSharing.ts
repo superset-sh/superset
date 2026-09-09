@@ -22,17 +22,14 @@ export function usePageVersionsQuery(slug: string | undefined) {
 	});
 }
 
-export function usePageSharingActions(
-	pageId: string | undefined,
-	slug: string | undefined,
-) {
+export function usePageSharingActions(pageId: string | undefined) {
 	const queryClient = useQueryClient();
 	const invalidate = useCallback(() => {
 		void queryClient.invalidateQueries({
-			queryKey: ["cloud", "page", "pull", slug],
+			queryKey: ["cloud", "page", "pull"],
 		});
 		void queryClient.invalidateQueries({ queryKey: ["cloud", "page", "list"] });
-	}, [queryClient, slug]);
+	}, [queryClient]);
 
 	const setVisibility = useMutation({
 		mutationFn: (visibility: PageVisibility) =>

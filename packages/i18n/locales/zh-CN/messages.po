@@ -4072,6 +4072,12 @@ msgstr "无法记录云端工作区"
 msgid "Could not reopen"
 msgstr "无法重新打开"
 
+msgid "Could not reopen this comment"
+msgstr "无法重新打开此评论"
+
+msgid "Could not resolve this comment"
+msgstr "无法解决此评论"
+
 msgid "Could not restart the host service"
 msgstr "无法重启主机服务"
 

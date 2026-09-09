@@ -78,7 +78,8 @@ export const PageFrame = forwardRef<PageFrameHandle, PageFrameProps>(
 				onShouldStartLoadWithRequest={(request) => {
 					if (!request.isTopFrame) return true;
 					if (sameOrigin(request.url, src)) return true;
-					if (request.navigationType === "click") openLink(request.url);
+					if (request.navigationType !== "click") return true;
+					openLink(request.url);
 					return false;
 				}}
 				allowsInlineMediaPlayback

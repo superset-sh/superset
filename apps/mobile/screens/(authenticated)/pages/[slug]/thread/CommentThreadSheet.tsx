@@ -1,8 +1,9 @@
 import { useLingui } from "@lingui/react/macro";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useRef, useState } from "react";
-import { ScrollView, View } from "react-native";
+import { Alert, ScrollView, View } from "react-native";
 import { Text } from "@/components/ui/text";
+import { errorCopy } from "@/lib/errors";
 import { usePageQuery } from "../../hooks/usePages";
 import { CommentComposer } from "../components/CommentComposer";
 import { CommentRow } from "../components/CommentRow";
@@ -51,12 +52,19 @@ export function CommentThreadSheet() {
 						onPress={async () => {
 							if (resolving) return;
 							setResolving(true);
-							await setResolved
-								.mutateAsync({
+							try {
+								await setResolved.mutateAsync({
 									threadId: thread.id,
 									resolved: !thread.resolved,
-								})
-								.catch(() => {});
+								});
+							} catch (error) {
+								Alert.alert(
+									thread.resolved
+										? t({ message: "Could not reopen this comment" })
+										: t({ message: "Could not resolve this comment" }),
+									errorCopy(error),
+								);
+							}
 							setResolving(false);
 						}}
 					/>
