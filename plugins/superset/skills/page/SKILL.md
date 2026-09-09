@@ -93,7 +93,7 @@ they need is already in the file.
    raw size. A few small SVGs or PNGs are fine; a photo gallery is not.
 4. **Full-bleed frame.** There is no chrome around the document: what you
    write is the whole surface, edge to edge. The injected theme paints the
-   background (see below), so inherit it or set your own — never leave it to
+   background (see below), so inherit it or set your own, never leaving it to
    the browser default.
 
 Check before publishing: no `<script src>` or `<link rel="stylesheet">` pointing
@@ -106,7 +106,7 @@ not inlining them.
 ## Structure and theme
 
 Every page is served with a stylesheet of ours inlined at the top of `<head>`.
-You never write it — the origin injects it into the document on the way out, so
+You never write it. The origin injects it into the document on the way out, so
 it reaches pages published before it existed too. It gives bare HTML a readable
 default: type scale, links, lists, tables, code blocks, `box-sizing`,
 responsive images. **Don't inline a CSS reset, a normalize, or a webfont.**
@@ -115,7 +115,7 @@ Write semantic HTML and most pages need no `<style>` block at all.
 What it deliberately does *not* set, because it reaches pages written before it
 existed and those pages never agreed to it: padding on `body`, a width cap on
 your text, or a height on your `<iframe>`s. The frame stays full-bleed and the
-measure is yours to choose — see `--sp-measure` below.
+measure is yours to choose (see `--sp-measure` below).
 
 Start from this skeleton:
 
@@ -138,8 +138,8 @@ Start from this skeleton:
 ```
 
 Every rule in the theme is wrapped in `:where()`, which carries no
-specificity. Any selector you write beats it — `body { background: #0b0b0b }`
-in your own `<style>` wins outright — and a class of your own is never touched
+specificity. Any selector you write beats it: `body { background: #0b0b0b }`
+in your own `<style>` wins outright, and a class of your own is never touched
 by it. So the theme is a floor, not a cage: lean on it for the ordinary parts
 and style the parts that make this page itself.
 
@@ -155,13 +155,13 @@ background, text, borders, code blocks and native controls together:
 ```
 
 It does **not** follow the reader's system setting on its own, and that is
-deliberate. A page that set a background but no text colour — or set one on
-`<html>` rather than `<body>` — would take the other half of the pair from a
+deliberate. A page that set a background but no text colour, or set one on
+`<html>` rather than `<body>`, would take the other half of the pair from a
 palette that inverted underneath it, and end up dark text on a dark ground.
 Opting in keeps that decision with the page that can actually see its own
 colours.
 
-So: add `class="dark"` when the page's visuals assume it — a chart with
+So: add `class="dark"` when the page's visuals assume it: a chart with
 baked-in colours, a screenshot with a dark background, a diagram with hardcoded
 strokes. To follow the reader's system setting, ask for that too:
 
@@ -170,7 +170,7 @@ strokes. To follow the reader's system setting, ask for that too:
 ```
 
 `auto` is the right choice for text and tables, where nothing is pinned to one
-scheme. Use it whenever the page has no baked-in colours of its own — but reach
+scheme. Use it whenever the page has no baked-in colours of its own, but reach
 for it deliberately, and if you hardcode any colour anywhere on the page, set
 its partner as well so the pair can never come from two different themes.
 
@@ -193,7 +193,7 @@ it. Build on them rather than hardcoding colours and both themes keep working:
 | `--sp-measure` | Reading measure for prose blocks |
 | `--sp-font-sans` / `--sp-font-mono` | Font stacks |
 
-The accent is a near-neutral, the way the app's is — it carries emphasis
+The accent is a near-neutral, the way the app's is. It carries emphasis
 through weight and underline rather than hue. Reach for `--sp-chart-*` when you
 need colours that separate from one another, and don't paint a chart in five
 shades of the accent.
@@ -207,7 +207,7 @@ Redefine any of them on `:root` to re-skin the whole page in one place:
 }
 ```
 
-Define overrides on `:root`, not on `body` — the theme's own values live on
+Define overrides on `:root`, not on `body`. The theme's own values live on
 `:root`, and a value set closer to the content would win in only one of the two
 colour schemes.
 
@@ -218,7 +218,7 @@ purple-to-blue gradients, everything centered, uniform pill-rounded corners on
 every element, Inter (or system-sans) for every line, and emoji as section
 icons. Those read as "generated" at a glance.
 
-Instead: hold to one palette — the tokens above, or a real one of your own —
+Instead: hold to one palette (the tokens above, or a real one of your own)
 set a typographic scale with actual contrast between heading and body, and let
 the layout follow the content: a data-dense table wants a wide flush-left page,
 a narrative report wants the default measure. Use whitespace for grouping
