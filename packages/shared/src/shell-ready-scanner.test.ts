@@ -42,4 +42,35 @@ describe("shell-ready scanner (bytes)", () => {
 		combined.set(b.output, a.output.length);
 		expect(dec.decode(combined)).toBe("🙂");
 	});
+
+	it("strips the marker terminated by ST (ESC \\) in a single chunk", () => {
+		const state = createScanState();
+		const r = scanForShellReady(
+			state,
+			enc.encode("hello\x1b]133;A\x1b\\$ "),
+		);
+		expect(r.matched).toBe(true);
+		expect(dec.decode(r.output)).toBe("hello$ ");
+	});
+
+	it("matches ST spanning two chunks (ESC in first, \\ in second)", () => {
+		const state = createScanState();
+		const a = scanForShellReady(state, enc.encode("\x1b]133;A\x1b"));
+		expect(a.matched).toBe(false);
+		expect(a.output.length).toBe(0);
+		const b = scanForShellReady(state, enc.encode("\\trailing"));
+		expect(b.matched).toBe(true);
+		expect(dec.decode(b.output)).toBe("trailing");
+	});
+
+	it("does not false-match ESC followed by a non-backslash byte as ST", () => {
+		const state = createScanState();
+		// ESC [ after the prefix is not ST — bytes stay held, no match yet.
+		const a = scanForShellReady(state, enc.encode("\x1b]133;A\x1b["));
+		expect(a.matched).toBe(false);
+		// The actual terminator arrives later.
+		const b = scanForShellReady(state, enc.encode("\x07done"));
+		expect(b.matched).toBe(true);
+		expect(dec.decode(b.output)).toBe("done");
+	});
 });
