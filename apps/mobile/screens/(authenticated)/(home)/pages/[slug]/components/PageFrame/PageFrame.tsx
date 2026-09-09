@@ -28,16 +28,23 @@ true;`;
 
 export interface PageFrameHandle {
 	send: (message: HostMessageBody) => void;
+	reload: () => void;
 }
 
 interface PageFrameProps {
 	src: string;
 	onMessage: (message: FrameMessage) => void;
 	onLoadEnd: () => void;
+	onError: () => void;
+}
+
+/** Everything before the fragment: two URLs that differ only by `#…` are one document. */
+function documentUrl(url: string): string {
+	return url.split("#")[0];
 }
 
 export const PageFrame = forwardRef<PageFrameHandle, PageFrameProps>(
-	function PageFrame({ src, onMessage, onLoadEnd }, ref) {
+	function PageFrame({ src, onMessage, onLoadEnd, onError }, ref) {
 		const webViewRef = useRef<WebView>(null);
 
 		useImperativeHandle(ref, () => ({
@@ -47,6 +54,7 @@ export const PageFrame = forwardRef<PageFrameHandle, PageFrameProps>(
 					`window.postMessage(${payload}, "*"); true;`,
 				);
 			},
+			reload: () => webViewRef.current?.reload(),
 		}));
 
 		const handleMessage = (event: WebViewMessageEvent) => {
@@ -68,8 +76,14 @@ export const PageFrame = forwardRef<PageFrameHandle, PageFrameProps>(
 				injectedJavaScript={BRIDGE}
 				onMessage={handleMessage}
 				onLoadEnd={onLoadEnd}
+				onError={onError}
+				onHttpError={onError}
 				onShouldStartLoadWithRequest={(request) => {
-					if (request.url === src) return true;
+					// Subframes and in-page jump links are the page loading itself; only
+					// a click that leaves the document belongs in the browser — and the
+					// signed ticket travels with the document URL, so it must not.
+					if (!request.isTopFrame) return true;
+					if (documentUrl(request.url) === documentUrl(src)) return true;
 					if (request.navigationType === "click") openUrl(request.url);
 					return false;
 				}}

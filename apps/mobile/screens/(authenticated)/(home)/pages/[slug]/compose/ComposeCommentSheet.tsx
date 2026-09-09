@@ -1,8 +1,9 @@
 import { useLingui } from "@lingui/react/macro";
 import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
-import { ScrollView, TextInput, View } from "react-native";
+import { Alert, ScrollView, TextInput, View } from "react-native";
 import { Text } from "@/components/ui/text";
+import { errorCopy } from "@/lib/errors";
 import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
 import { usePageCommentActions } from "../hooks/usePageComments";
 import { usePageCommentStore } from "../stores/pageCommentStore";
@@ -18,9 +19,17 @@ export function ComposeCommentSheet() {
 	const { createThread } = usePageCommentActions(pageId ?? undefined);
 	const trimmed = body.trim();
 
+	// The draft stays in the box on failure, so the alert is the only thing
+	// telling the difference between "not posted" and "not submitted".
 	const submit = async () => {
-		if (trimmed.length === 0 || !version || !anchor) return;
-		await createThread.mutateAsync({ version, anchor, body: trimmed });
+		if (trimmed.length === 0 || !version || !anchor || createThread.isPending)
+			return;
+		try {
+			await createThread.mutateAsync({ version, anchor, body: trimmed });
+		} catch (error) {
+			Alert.alert(t({ message: "Comment not posted" }), errorCopy(error));
+			return;
+		}
 		clear();
 		router.back();
 	};

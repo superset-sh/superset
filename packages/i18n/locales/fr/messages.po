@@ -2910,6 +2910,9 @@ msgstr "Vérifiez votre accès dans Paramètres > Sécurité sur cet appareil."
 msgid "Check your connection and try again"
 msgstr "Vérifiez votre connexion et réessayez"
 
+msgid "Check your connection, or try opening it again."
+msgstr "Vérifiez votre connexion ou essayez de l'ouvrir à nouveau."
+
 msgid "Check your inbox"
 msgstr "Consultez votre boîte de réception"
 
@@ -3422,6 +3425,9 @@ msgstr "Un commentaire mentionne un utilisateur"
 
 msgid "Comment not found"
 msgstr "Commentaire introuvable"
+
+msgid "Comment not posted"
+msgstr "Commentaire non publié"
 
 msgid "Comment on this page"
 msgstr "Commenter cette page"
@@ -4107,6 +4113,9 @@ msgstr "Impossible de mettre à jour la compétence"
 
 msgid "Could not update the branch"
 msgstr "Impossible de mettre à jour la branche"
+
+msgid "Could not update this comment"
+msgstr "Impossible de mettre à jour ce commentaire"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
@@ -11547,6 +11556,9 @@ msgstr "1 fichier remplacé dans {where}"
 
 msgid "Reply"
 msgstr "Répondre"
+
+msgid "Reply not posted"
+msgstr "Réponse non publiée"
 
 msgid "Reply to thread…"
 msgstr "Répondre au fil…"

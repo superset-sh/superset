@@ -1,25 +1,37 @@
+import { useLingui } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import { Pressable, ScrollView, View } from "react-native";
+import { Alert, Pressable, ScrollView, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
+import { errorCopy } from "@/lib/errors";
+import { cn } from "@/lib/utils";
 import { QUICK_PRESETS } from "../components/SelectionToolbar";
 import { usePageCommentActions } from "../hooks/usePageComments";
 import { usePageCommentStore } from "../stores/pageCommentStore";
 
 export function QuickFeedbackSheet() {
+	const { t } = useLingui();
 	const router = useRouter();
 	const { pageId, version, anchor } = usePageCommentStore();
 	const clear = usePageCommentStore((state) => state.clear);
 	const { createThread } = usePageCommentActions(pageId ?? undefined);
 
+	// The sheet closes on success only. Dismissing first would leave a failed
+	// post with nowhere to report itself, and a second tap during the dismiss
+	// animation would file the same feedback twice.
 	const pick = async (body: string) => {
-		if (!version || !anchor) return;
+		if (!version || !anchor || createThread.isPending) return;
 		void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-		router.back();
-		await createThread.mutateAsync({ version, anchor, body });
+		try {
+			await createThread.mutateAsync({ version, anchor, body });
+		} catch (error) {
+			Alert.alert(t({ message: "Comment not posted" }), errorCopy(error));
+			return;
+		}
 		clear();
+		router.back();
 	};
 
 	return (
@@ -34,8 +46,12 @@ export function QuickFeedbackSheet() {
 						<Pressable
 							key={preset.id}
 							accessibilityRole="button"
+							disabled={createThread.isPending}
 							onPress={() => void pick(label)}
-							className="min-h-11 flex-row items-center gap-3 rounded-xl px-2 py-3 active:opacity-60"
+							className={cn(
+								"min-h-11 flex-row items-center gap-3 rounded-xl px-2 py-3 active:opacity-60",
+								createThread.isPending && "opacity-50",
+							)}
 						>
 							<Icon
 								as={preset.icon}

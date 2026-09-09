@@ -14,8 +14,9 @@ interface CommentPinProps {
 }
 
 /**
- * The tail sits at bottom-left, so the pin hangs above-right of its anchor
- * point and the tail rests on the words it marks — matching desktop.
+ * Centred on its anchor point, like desktop's CommentBubble — `pinPointOf`
+ * insets that point by half a pin so a centred pin stays inside the element
+ * it belongs to, an invariant any other anchoring breaks.
  */
 export function CommentPin({
 	point,
@@ -29,10 +30,11 @@ export function CommentPin({
 		<Pressable
 			accessibilityRole="button"
 			style={{
-				left: point.x + stackIndex * STACK_OFFSET,
-				top: point.y - PIN_SIZE,
+				left: point.x - PIN_SIZE / 2 + stackIndex * STACK_OFFSET,
+				top: point.y - PIN_SIZE / 2,
 				width: PIN_SIZE,
 				height: PIN_SIZE,
+				zIndex: stackIndex,
 			}}
 			onPress={() => {
 				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

@@ -2910,6 +2910,9 @@ msgstr "Periksa akses Anda di Pengaturan > Keamanan pada perangkat tersebut."
 msgid "Check your connection and try again"
 msgstr "Periksa koneksi Anda dan coba lagi"
 
+msgid "Check your connection, or try opening it again."
+msgstr "Periksa koneksi Anda atau coba buka lagi."
+
 msgid "Check your inbox"
 msgstr "Periksa kotak masuk Anda"
 
@@ -3422,6 +3425,9 @@ msgstr "Komentar menyebut pengguna"
 
 msgid "Comment not found"
 msgstr "Komentar tidak ditemukan"
+
+msgid "Comment not posted"
+msgstr "Komentar tidak terkirim"
 
 msgid "Comment on this page"
 msgstr "Komentari halaman ini"
@@ -4107,6 +4113,9 @@ msgstr "Tidak bisa memperbarui skill"
 
 msgid "Could not update the branch"
 msgstr "Tidak bisa memperbarui branch"
+
+msgid "Could not update this comment"
+msgstr "Tidak bisa memperbarui komentar ini"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
@@ -11547,6 +11556,9 @@ msgstr "Mengganti 1 file di {where}"
 
 msgid "Reply"
 msgstr "Balas"
+
+msgid "Reply not posted"
+msgstr "Balasan tidak terkirim"
 
 msgid "Reply to thread…"
 msgstr "Balas thread…"

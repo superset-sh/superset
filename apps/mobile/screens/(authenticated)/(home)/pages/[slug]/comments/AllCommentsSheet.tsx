@@ -1,6 +1,7 @@
 import { Plural, useLingui } from "@lingui/react/macro";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Pressable, ScrollView, View } from "react-native";
+import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { usePageQuery } from "../../hooks/usePages";
@@ -23,6 +24,9 @@ export function AllCommentsSheet() {
 	const page = usePageQuery(slug);
 	const comments = usePageCommentsQuery(page.data?.id);
 	const threads = comments.data ?? [];
+	// A cold mount has no threads yet either — "no comments" is only true once
+	// both queries have answered.
+	const loading = page.isLoading || comments.isLoading;
 
 	return (
 		<>
@@ -39,7 +43,13 @@ export function AllCommentsSheet() {
 				contentContainerClassName="pb-10 pt-2"
 				contentInsetAdjustmentBehavior="automatic"
 			>
-				{threads.length === 0 ? (
+				{loading ? (
+					<View className="items-center justify-center py-20">
+						<Spinner className="size-5" />
+					</View>
+				) : null}
+
+				{!loading && threads.length === 0 ? (
 					<View className="items-center justify-center px-8 py-20">
 						<Text className="text-muted-foreground text-center">
 							{t({ message: "No comments on this page yet" })}

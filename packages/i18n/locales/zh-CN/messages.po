@@ -2910,6 +2910,9 @@ msgstr "请在该设备的“设置 > 安全”中检查你的访问权限。"
 msgid "Check your connection and try again"
 msgstr "请检查网络连接后重试"
 
+msgid "Check your connection, or try opening it again."
+msgstr "请检查网络连接，或重新打开一次。"
+
 msgid "Check your inbox"
 msgstr "查收你的邮箱"
 
@@ -3422,6 +3425,9 @@ msgstr "评论提及用户"
 
 msgid "Comment not found"
 msgstr "未找到评论"
+
+msgid "Comment not posted"
+msgstr "评论未发布"
 
 msgid "Comment on this page"
 msgstr "评论这个页面"
@@ -4107,6 +4113,9 @@ msgstr "无法更新技能"
 
 msgid "Could not update the branch"
 msgstr "无法更新分支"
+
+msgid "Could not update this comment"
+msgstr "无法更新此评论"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
@@ -11547,6 +11556,9 @@ msgstr "已替换{where}中的1个文件"
 
 msgid "Reply"
 msgstr "回复"
+
+msgid "Reply not posted"
+msgstr "回复未发布"
 
 msgid "Reply to thread…"
 msgstr "回复讨论串…"

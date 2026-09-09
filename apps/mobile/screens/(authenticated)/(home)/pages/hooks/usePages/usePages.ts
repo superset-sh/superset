@@ -21,13 +21,17 @@ export function usePagesQuery(): UseQueryResult<OrgPage[]> {
 	});
 }
 
-// The signed ticket in `viewUrl` turns on an hourly boundary, so a cached URL
-// outlives the screen but not the day. Refetching on mount keeps a page opened
-// from a cold list from loading a URL whose ticket has since rolled.
+// `page.pull` mints a version-bound ticket on a 24h window, so a cached
+// `viewUrl` stays loadable far longer than a session — what a refetch is
+// actually for is picking up a version published while the page sat in cache.
+// The sheets read this same query, so refetching on every mount would spend a
+// pull per sheet open on a URL that cannot have changed.
+const PULLED_PAGE_STALE_MS = 5 * 60_000;
+
 export function usePageQuery(slug: string): UseQueryResult<PulledPage> {
 	return useQuery({
 		queryKey: ["cloud", "page", "pull", slug],
 		queryFn: () => apiClient.page.pull.query({ slug }),
-		refetchOnMount: "always",
+		staleTime: PULLED_PAGE_STALE_MS,
 	});
 }

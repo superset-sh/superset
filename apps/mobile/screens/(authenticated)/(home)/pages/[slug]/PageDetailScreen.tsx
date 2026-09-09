@@ -15,9 +15,11 @@ import {
 	useRouter,
 } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { type LayoutChangeEvent, View } from "react-native";
+import { Alert, type LayoutChangeEvent, View } from "react-native";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
+import { errorCopy } from "@/lib/errors";
+import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
 import { usePageQuery } from "../hooks/usePages";
 import { CommentPin } from "./components/CommentPin";
 import { PageFrame, type PageFrameHandle } from "./components/PageFrame";
@@ -35,13 +37,41 @@ interface Selection {
 	rect: FrameRect;
 }
 
+/**
+ * The runtime re-posts every tracked rect once per animation frame while the
+ * page scrolls, so a fresh object each time would re-render this screen — and
+ * the frame under it — at 60fps for anchors that never moved.
+ */
+function sameRects(
+	a: Record<string, FrameRect>,
+	b: Record<string, FrameRect>,
+): boolean {
+	const keys = Object.keys(a);
+	if (keys.length !== Object.keys(b).length) return false;
+	return keys.every((key) => {
+		const left = a[key];
+		const right = b[key];
+		return (
+			right !== undefined &&
+			left.top === right.top &&
+			left.left === right.left &&
+			left.width === right.width &&
+			left.height === right.height
+		);
+	});
+}
+
 export function PageDetailScreen() {
 	const { t } = useLingui();
 	const router = useRouter();
 	const { slug } = useLocalSearchParams<{ slug: string }>();
 	const frameRef = useRef<PageFrameHandle>(null);
 
-	const [loaded, setLoaded] = useState(false);
+	// Tracked per URL, not as a flag: a ticket that rolls over swaps `viewUrl`
+	// for one that has not loaded yet, and a stale `true` would show the frame
+	// blank with no spinner.
+	const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
+	const [failedSrc, setFailedSrc] = useState<string | null>(null);
 	// Bumped whenever the runtime announces itself, and whenever this screen is
 	// focused again. The runtime emits rects from a requestAnimationFrame, which
 	// iOS throttles while a sheet covers the WebView — anything sent under a
@@ -55,6 +85,9 @@ export function PageDetailScreen() {
 	const page = usePageQuery(slug);
 	const pageId = page.data?.id;
 	const version = page.data?.version;
+	const viewUrl = page.data?.viewUrl;
+	const loaded = viewUrl !== undefined && loadedSrc === viewUrl;
+	const frameFailed = viewUrl !== undefined && failedSrc === viewUrl;
 	const comments = usePageCommentsQuery(pageId);
 	const { createThread } = usePageCommentActions(pageId);
 	const setPick = usePageCommentStore((state) => state.setPick);
@@ -105,7 +138,7 @@ export function PageDetailScreen() {
 			for (const entry of message.entries) {
 				if (entry.rect) next[entry.id] = entry.rect;
 			}
-			setRects(next);
+			setRects((previous) => (sameRects(previous, next) ? previous : next));
 		}
 		if (message.type === "pointer-down") setSelection(null);
 		if (message.type === "pick") {
@@ -140,11 +173,12 @@ export function PageDetailScreen() {
 					anchor: selection.anchor,
 					body: i18n._(body),
 				});
-			} catch {
+			} catch (error) {
 				setSelection(selection);
+				Alert.alert(t({ message: "Comment not posted" }), errorCopy(error));
 			}
 		},
-		[createThread, pageId, selection, version],
+		[createThread, pageId, selection, t, version],
 	);
 
 	const openSheet = useCallback(
@@ -163,6 +197,15 @@ export function PageDetailScreen() {
 		[pageId, router, selection, setPick, slug, version],
 	);
 
+	// An expired ticket is the likely failure, and only a fresh pull can mint
+	// one — reloading the same URL would fail the same way.
+	const retryFrame = useCallback(async () => {
+		setFailedSrc(null);
+		setLoadedSrc(null);
+		const next = await page.refetch();
+		if (next.data?.viewUrl === viewUrl) frameRef.current?.reload();
+	}, [page, viewUrl]);
+
 	const onLayout = useCallback((event: LayoutChangeEvent) => {
 		const { width, height } = event.nativeEvent.layout;
 		setContainer((previous) =>
@@ -171,8 +214,6 @@ export function PageDetailScreen() {
 				: { width, height },
 		);
 	}, []);
-
-	const viewUrl = page.data?.viewUrl;
 
 	return (
 		<View className="bg-background flex-1" onLayout={onLayout}>
@@ -222,18 +263,27 @@ export function PageDetailScreen() {
 			) : null}
 
 			{viewUrl ? (
-				<View className="flex-1" style={{ opacity: loaded ? 1 : 0 }}>
+				<View
+					className="flex-1"
+					style={{ opacity: loaded && !frameFailed ? 1 : 0 }}
+				>
 					<PageFrame
 						ref={frameRef}
 						src={viewUrl}
 						onMessage={onFrameMessage}
 						onLoadEnd={() => {
-							setLoaded(true);
+							setLoadedSrc(viewUrl);
 							setFrameEpoch((epoch) => epoch + 1);
 						}}
+						onError={() => setFailedSrc(viewUrl)}
 					/>
 
-					<View className="absolute inset-0" pointerEvents="box-none">
+					{/* Clipped, or a pin on an element scrolled out of view draws over
+					    the navigation bar and stays tappable there. */}
+					<View
+						className="absolute inset-0 overflow-hidden"
+						pointerEvents="box-none"
+					>
 						{threads.map((thread) => {
 							const point = pinPoints.get(thread.id);
 							if (!point) return null;
@@ -295,7 +345,28 @@ export function PageDetailScreen() {
 				</View>
 			) : null}
 
-			{page.error || loaded ? null : (
+			{frameFailed ? (
+				<View className="absolute inset-0 items-center justify-center px-8">
+					<Text className="text-center font-medium">
+						{t({ message: "This page could not be loaded" })}
+					</Text>
+					<Text className="text-muted-foreground mt-1 text-center text-sm">
+						{t({
+							message: "Check your connection, or try opening it again.",
+						})}
+					</Text>
+					<PressableScale
+						className="bg-primary mt-4 items-center rounded-xl px-5 py-2.5"
+						onPress={() => void retryFrame()}
+					>
+						<Text className="text-primary-foreground font-semibold text-[15px]">
+							{t({ message: "Try again" })}
+						</Text>
+					</PressableScale>
+				</View>
+			) : null}
+
+			{page.error || frameFailed || loaded ? null : (
 				<View className="absolute inset-0 items-center justify-center">
 					<Spinner className="size-5" />
 				</View>

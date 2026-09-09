@@ -2910,6 +2910,9 @@ msgstr "Sprawdź swój dostęp w Ustawienia > Bezpieczeństwo na tym urządzeniu
 msgid "Check your connection and try again"
 msgstr "Sprawdź połączenie i spróbuj ponownie"
 
+msgid "Check your connection, or try opening it again."
+msgstr "Sprawdź połączenie lub spróbuj otworzyć ponownie."
+
 msgid "Check your inbox"
 msgstr "Sprawdź skrzynkę"
 
@@ -3422,6 +3425,9 @@ msgstr "Komentarz wspomina użytkownika"
 
 msgid "Comment not found"
 msgstr "Nie znaleziono komentarza"
+
+msgid "Comment not posted"
+msgstr "Komentarz nie został opublikowany"
 
 msgid "Comment on this page"
 msgstr "Skomentuj tę stronę"
@@ -4107,6 +4113,9 @@ msgstr "Nie udało się zaktualizować umiejętności"
 
 msgid "Could not update the branch"
 msgstr "Nie udało się zaktualizować gałęzi"
+
+msgid "Could not update this comment"
+msgstr "Nie udało się zaktualizować komentarza"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
@@ -11547,6 +11556,9 @@ msgstr "Zastąpiono 1 plik w {where}"
 
 msgid "Reply"
 msgstr "Odpowiedz"
+
+msgid "Reply not posted"
+msgstr "Odpowiedź nie została opublikowana"
 
 msgid "Reply to thread…"
 msgstr "Odpowiedz w wątku…"

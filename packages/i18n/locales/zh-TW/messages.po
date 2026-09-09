@@ -2910,6 +2910,9 @@ msgstr "請在該裝置的「設定 > 安全性」中檢查你的存取權限。
 msgid "Check your connection and try again"
 msgstr "請檢查網路連線後重試"
 
+msgid "Check your connection, or try opening it again."
+msgstr "請檢查網路連線，或重新開啟一次。"
+
 msgid "Check your inbox"
 msgstr "查收你的信箱"
 
@@ -3422,6 +3425,9 @@ msgstr "評論提及使用者"
 
 msgid "Comment not found"
 msgstr "未找到評論"
+
+msgid "Comment not posted"
+msgstr "評論未發布"
 
 msgid "Comment on this page"
 msgstr "評論這個頁面"
@@ -4107,6 +4113,9 @@ msgstr "無法更新技能"
 
 msgid "Could not update the branch"
 msgstr "無法更新分支"
+
+msgid "Could not update this comment"
+msgstr "無法更新此評論"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
@@ -11547,6 +11556,9 @@ msgstr "已替換{where}中的1個檔案"
 
 msgid "Reply"
 msgstr "回覆"
+
+msgid "Reply not posted"
+msgstr "回覆未發布"
 
 msgid "Reply to thread…"
 msgstr "回覆討論串…"

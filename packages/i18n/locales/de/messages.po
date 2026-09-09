@@ -2910,6 +2910,9 @@ msgstr "Prüfe deinen Zugriff auf dem Gerät unter Einstellungen > Sicherheit."
 msgid "Check your connection and try again"
 msgstr "Prüfe deine Verbindung und versuche es erneut"
 
+msgid "Check your connection, or try opening it again."
+msgstr "Prüfe deine Verbindung oder versuche erneut, sie zu öffnen."
+
 msgid "Check your inbox"
 msgstr "Sieh in dein Postfach"
 
@@ -3422,6 +3425,9 @@ msgstr "Kommentar erwähnt Nutzer"
 
 msgid "Comment not found"
 msgstr "Kommentar nicht gefunden"
+
+msgid "Comment not posted"
+msgstr "Kommentar nicht veröffentlicht"
 
 msgid "Comment on this page"
 msgstr "Diese Seite kommentieren"
@@ -4107,6 +4113,9 @@ msgstr "Skill konnte nicht aktualisiert werden"
 
 msgid "Could not update the branch"
 msgstr "Branch konnte nicht aktualisiert werden"
+
+msgid "Could not update this comment"
+msgstr "Kommentar konnte nicht aktualisiert werden"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
@@ -11547,6 +11556,9 @@ msgstr "1 Datei in {where} ersetzt"
 
 msgid "Reply"
 msgstr "Antworten"
+
+msgid "Reply not posted"
+msgstr "Antwort nicht veröffentlicht"
 
 msgid "Reply to thread…"
 msgstr "Auf den Thread antworten…"

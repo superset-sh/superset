@@ -2910,6 +2910,9 @@ msgstr "Zkontrolujte svůj přístup v Nastavení > Zabezpečení na daném zař
 msgid "Check your connection and try again"
 msgstr "Zkontrolujte připojení a zkuste to znovu"
 
+msgid "Check your connection, or try opening it again."
+msgstr "Zkontrolujte připojení nebo to zkuste otevřít znovu."
+
 msgid "Check your inbox"
 msgstr "Zkontrolujte schránku"
 
@@ -3422,6 +3425,9 @@ msgstr "Komentář zmiňuje uživatele"
 
 msgid "Comment not found"
 msgstr "Komentář nenalezen"
+
+msgid "Comment not posted"
+msgstr "Komentář se nepodařilo odeslat"
 
 msgid "Comment on this page"
 msgstr "Okomentovat tuto stránku"
@@ -4107,6 +4113,9 @@ msgstr "Skill se nepodařilo aktualizovat"
 
 msgid "Could not update the branch"
 msgstr "Nepodařilo se aktualizovat větev"
+
+msgid "Could not update this comment"
+msgstr "Tento komentář se nepodařilo aktualizovat"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
@@ -11547,6 +11556,9 @@ msgstr "Nahrazen 1 soubor v {where}"
 
 msgid "Reply"
 msgstr "Odpovědět"
+
+msgid "Reply not posted"
+msgstr "Odpověď se nepodařilo odeslat"
 
 msgid "Reply to thread…"
 msgstr "Odpovědět do vlákna…"

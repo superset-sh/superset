@@ -1,8 +1,10 @@
 import { useLingui } from "@lingui/react/macro";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useRef, useState } from "react";
-import { ScrollView, TextInput, View } from "react-native";
+import { Alert, ScrollView, TextInput, View } from "react-native";
+import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
+import { errorCopy } from "@/lib/errors";
 import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
 import { usePageQuery } from "../../hooks/usePages";
 import { CommentRow } from "../components/CommentRow";
@@ -36,6 +38,33 @@ export function CommentThreadSheet() {
 		[comments.data, threadId],
 	);
 	const trimmed = body.trim();
+	const loading = page.isLoading || comments.isLoading;
+
+	const toggleResolved = async () => {
+		if (!thread) return;
+		try {
+			await setResolved.mutateAsync({
+				threadId: thread.id,
+				resolved: !thread.resolved,
+			});
+		} catch (error) {
+			Alert.alert(
+				t({ message: "Could not update this comment" }),
+				errorCopy(error),
+			);
+		}
+	};
+
+	const postReply = async () => {
+		if (!thread || trimmed.length === 0 || reply.isPending) return;
+		try {
+			await reply.mutateAsync({ threadId: thread.id, body: trimmed });
+		} catch (error) {
+			Alert.alert(t({ message: "Reply not posted" }), errorCopy(error));
+			return;
+		}
+		setBody("");
+	};
 
 	return (
 		<>
@@ -55,12 +84,7 @@ export function CommentThreadSheet() {
 								: t({ message: "Resolve" })
 						}
 						icon={thread.resolved ? "arrow.uturn.backward" : "checkmark"}
-						onPress={() =>
-							void setResolved.mutateAsync({
-								threadId: thread.id,
-								resolved: !thread.resolved,
-							})
-						}
+						onPress={() => void toggleResolved()}
 					/>
 				</Stack.Toolbar>
 			) : null}
@@ -110,20 +134,17 @@ export function CommentThreadSheet() {
 									: "bg-primary/40 mx-3 mt-3 items-center rounded-xl py-3"
 							}
 							disabled={trimmed.length === 0 || reply.isPending}
-							onPress={async () => {
-								if (trimmed.length === 0) return;
-								await reply.mutateAsync({
-									threadId: thread.id,
-									body: trimmed,
-								});
-								setBody("");
-							}}
+							onPress={() => void postReply()}
 						>
 							<Text className="text-primary-foreground font-semibold text-[15px]">
 								{t({ message: "Reply" })}
 							</Text>
 						</PressableScale>
 					</>
+				) : loading ? (
+					<View className="items-center justify-center py-20">
+						<Spinner className="size-5" />
+					</View>
 				) : (
 					<View className="items-center justify-center py-20">
 						<Text className="text-muted-foreground">

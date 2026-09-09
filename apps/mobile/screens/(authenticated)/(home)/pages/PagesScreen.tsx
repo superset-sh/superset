@@ -23,7 +23,10 @@ export function PagesScreen() {
 		[],
 	);
 
-	if (pages.isPending) {
+	// Not `isPending`: the query is disabled until the session resolves an
+	// organization, and a disabled query stays pending forever — that spinner
+	// would never come down.
+	if (pages.isLoading) {
 		return (
 			<View className="bg-background flex-1 items-center justify-center">
 				<Spinner className="size-5" />

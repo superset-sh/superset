@@ -2910,6 +2910,9 @@ msgstr "O cihazda Ayarlar > Güvenlik bölümünden erişiminizi kontrol edin."
 msgid "Check your connection and try again"
 msgstr "Bağlantınızı kontrol edip yeniden deneyin"
 
+msgid "Check your connection, or try opening it again."
+msgstr "Bağlantınızı kontrol edin veya yeniden açmayı deneyin."
+
 msgid "Check your inbox"
 msgstr "Gelen kutunuzu kontrol edin"
 
@@ -3422,6 +3425,9 @@ msgstr "Yorumda kullanıcıdan bahsedildi"
 
 msgid "Comment not found"
 msgstr "Yorum bulunamadı"
+
+msgid "Comment not posted"
+msgstr "Yorum gönderilmedi"
 
 msgid "Comment on this page"
 msgstr "Bu sayfaya yorum yap"
@@ -4107,6 +4113,9 @@ msgstr "Beceri güncellenemedi"
 
 msgid "Could not update the branch"
 msgstr "Dal güncellenemedi"
+
+msgid "Could not update this comment"
+msgstr "Bu yorum güncellenemedi"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
@@ -11547,6 +11556,9 @@ msgstr "{where} konumunda 1 dosya değiştirildi"
 
 msgid "Reply"
 msgstr "Yanıtla"
+
+msgid "Reply not posted"
+msgstr "Yanıt gönderilmedi"
 
 msgid "Reply to thread…"
 msgstr "Konuya yanıt verin…"

@@ -84,10 +84,32 @@ export function usePageCommentActions(pageId: string | undefined) {
 		onSuccess: invalidate,
 	});
 
+	// Resolving is a toggle the reader is looking at: the icon has to flip on
+	// the tap and flip back only if the server refuses, never sit on the old
+	// server value for a round-trip.
 	const setResolved = useMutation({
 		mutationFn: (input: { threadId: string; resolved: boolean }) =>
 			apiClient.pageComment.resolve.mutate(input),
-		onSuccess: invalidate,
+		onMutate: async (input) => {
+			if (!pageId) return;
+			const key = pageCommentsKey(pageId);
+			await queryClient.cancelQueries({ queryKey: key });
+			const previous = queryClient.getQueryData<ServerThread[]>(key);
+			queryClient.setQueryData<ServerThread[]>(key, (rows) =>
+				rows?.map((row) =>
+					row.id === input.threadId
+						? { ...row, resolved: input.resolved }
+						: row,
+				),
+			);
+			return { previous };
+		},
+		onError: (_error, _input, context) => {
+			if (pageId && context?.previous) {
+				queryClient.setQueryData(pageCommentsKey(pageId), context.previous);
+			}
+		},
+		onSettled: invalidate,
 	});
 
 	return { createThread, reply, setResolved };

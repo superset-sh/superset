@@ -2910,6 +2910,9 @@ msgstr "Kiểm tra quyền truy cập của bạn trong Cài đặt > Bảo mậ
 msgid "Check your connection and try again"
 msgstr "Kiểm tra kết nối và thử lại"
 
+msgid "Check your connection, or try opening it again."
+msgstr "Kiểm tra kết nối hoặc thử mở lại."
+
 msgid "Check your inbox"
 msgstr "Kiểm tra hộp thư"
 
@@ -3422,6 +3425,9 @@ msgstr "Bình luận nhắc đến người dùng"
 
 msgid "Comment not found"
 msgstr "Không tìm thấy bình luận"
+
+msgid "Comment not posted"
+msgstr "Chưa đăng được bình luận"
 
 msgid "Comment on this page"
 msgstr "Bình luận về trang này"
@@ -4107,6 +4113,9 @@ msgstr "Không thể cập nhật skill"
 
 msgid "Could not update the branch"
 msgstr "Không thể cập nhật nhánh"
+
+msgid "Could not update this comment"
+msgstr "Không thể cập nhật bình luận này"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
@@ -11547,6 +11556,9 @@ msgstr "Đã thay thế 1 tệp trong {where}"
 
 msgid "Reply"
 msgstr "Trả lời"
+
+msgid "Reply not posted"
+msgstr "Chưa đăng được trả lời"
 
 msgid "Reply to thread…"
 msgstr "Trả lời luồng…"

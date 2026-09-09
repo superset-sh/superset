@@ -2910,6 +2910,9 @@ msgstr "そのデバイスの「設定」>「セキュリティ」でアクセ�
 msgid "Check your connection and try again"
 msgstr "接続を確認してもう一度お試しください"
 
+msgid "Check your connection, or try opening it again."
+msgstr "接続を確認するか、もう一度開いてみてください。"
+
 msgid "Check your inbox"
 msgstr "受信トレイを確認してください"
 
@@ -3422,6 +3425,9 @@ msgstr "コメントでユーザーをメンション"
 
 msgid "Comment not found"
 msgstr "コメントが見つかりません"
+
+msgid "Comment not posted"
+msgstr "コメントを投稿できませんでした"
 
 msgid "Comment on this page"
 msgstr "このページにコメント"
@@ -4107,6 +4113,9 @@ msgstr "スキルを更新できませんでした"
 
 msgid "Could not update the branch"
 msgstr "ブランチを更新できませんでした"
+
+msgid "Could not update this comment"
+msgstr "このコメントを更新できませんでした"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
@@ -11547,6 +11556,9 @@ msgstr "1件のファイルを{where}で置き換えました"
 
 msgid "Reply"
 msgstr "返信"
+
+msgid "Reply not posted"
+msgstr "返信を投稿できませんでした"
 
 msgid "Reply to thread…"
 msgstr "スレッドに返信…"

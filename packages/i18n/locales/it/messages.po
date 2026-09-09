@@ -2910,6 +2910,9 @@ msgstr "Controlla il tuo accesso in Impostazioni > Sicurezza su quel dispositivo
 msgid "Check your connection and try again"
 msgstr "Controlla la connessione e riprova"
 
+msgid "Check your connection, or try opening it again."
+msgstr "Controlla la connessione o prova ad aprirla di nuovo."
+
 msgid "Check your inbox"
 msgstr "Controlla la tua casella di posta"
 
@@ -3422,6 +3425,9 @@ msgstr "Il commento menziona un utente"
 
 msgid "Comment not found"
 msgstr "Commento non trovato"
+
+msgid "Comment not posted"
+msgstr "Commento non pubblicato"
 
 msgid "Comment on this page"
 msgstr "Commenta questa pagina"
@@ -4107,6 +4113,9 @@ msgstr "Impossibile aggiornare la skill"
 
 msgid "Could not update the branch"
 msgstr "Impossibile aggiornare il branch"
+
+msgid "Could not update this comment"
+msgstr "Impossibile aggiornare questo commento"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
@@ -11547,6 +11556,9 @@ msgstr "Sostituito 1 file in {where}"
 
 msgid "Reply"
 msgstr "Rispondi"
+
+msgid "Reply not posted"
+msgstr "Risposta non pubblicata"
 
 msgid "Reply to thread…"
 msgstr "Rispondi al thread…"

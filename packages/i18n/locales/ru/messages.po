@@ -2910,6 +2910,9 @@ msgstr "Проверьте свой доступ в разделе «Настр�
 msgid "Check your connection and try again"
 msgstr "Проверьте соединение и повторите"
 
+msgid "Check your connection, or try opening it again."
+msgstr "Проверьте соединение или попробуйте открыть снова."
+
 msgid "Check your inbox"
 msgstr "Проверьте почту"
 
@@ -3422,6 +3425,9 @@ msgstr "В комментарии упомянут пользователь"
 
 msgid "Comment not found"
 msgstr "Комментарий не найден"
+
+msgid "Comment not posted"
+msgstr "Комментарий не отправлен"
 
 msgid "Comment on this page"
 msgstr "Комментировать эту страницу"
@@ -4107,6 +4113,9 @@ msgstr "Не удалось обновить навык"
 
 msgid "Could not update the branch"
 msgstr "Не удалось обновить ветку"
+
+msgid "Could not update this comment"
+msgstr "Не удалось обновить комментарий"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
@@ -11547,6 +11556,9 @@ msgstr "В {where} заменён 1 файл"
 
 msgid "Reply"
 msgstr "Ответить"
+
+msgid "Reply not posted"
+msgstr "Ответ не отправлен"
 
 msgid "Reply to thread…"
 msgstr "Ответить в ветке…"

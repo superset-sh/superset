@@ -2910,6 +2910,9 @@ msgstr "Controleer je toegang onder Instellingen > Beveiliging op dat apparaat."
 msgid "Check your connection and try again"
 msgstr "Controleer je verbinding en probeer het opnieuw"
 
+msgid "Check your connection, or try opening it again."
+msgstr "Controleer je verbinding of probeer de pagina opnieuw te openen."
+
 msgid "Check your inbox"
 msgstr "Check je inbox"
 
@@ -3422,6 +3425,9 @@ msgstr "Opmerking vermeldt gebruiker"
 
 msgid "Comment not found"
 msgstr "Opmerking niet gevonden"
+
+msgid "Comment not posted"
+msgstr "Opmerking niet geplaatst"
 
 msgid "Comment on this page"
 msgstr "Reageren op deze pagina"
@@ -4107,6 +4113,9 @@ msgstr "Kan skill niet bijwerken"
 
 msgid "Could not update the branch"
 msgstr "Kan de branch niet bijwerken"
+
+msgid "Could not update this comment"
+msgstr "Kan deze opmerking niet bijwerken"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
@@ -11547,6 +11556,9 @@ msgstr "1 bestand vervangen in {where}"
 
 msgid "Reply"
 msgstr "Antwoorden"
+
+msgid "Reply not posted"
+msgstr "Antwoord niet geplaatst"
 
 msgid "Reply to thread…"
 msgstr "Reageren op thread…"

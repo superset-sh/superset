@@ -2910,6 +2910,9 @@ msgstr "Check your access under Settings > Security on that device."
 msgid "Check your connection and try again"
 msgstr "Check your connection and try again"
 
+msgid "Check your connection, or try opening it again."
+msgstr "Check your connection, or try opening it again."
+
 msgid "Check your inbox"
 msgstr "Check your inbox"
 
@@ -3422,6 +3425,9 @@ msgstr "Comment mentions user"
 
 msgid "Comment not found"
 msgstr "Comment not found"
+
+msgid "Comment not posted"
+msgstr "Comment not posted"
 
 msgid "Comment on this page"
 msgstr "Comment on this page"
@@ -4107,6 +4113,9 @@ msgstr "Could not update skill"
 
 msgid "Could not update the branch"
 msgstr "Could not update the branch"
+
+msgid "Could not update this comment"
+msgstr "Could not update this comment"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
@@ -11547,6 +11556,9 @@ msgstr "Replaced 1 file in {where}"
 
 msgid "Reply"
 msgstr "Reply"
+
+msgid "Reply not posted"
+msgstr "Reply not posted"
 
 msgid "Reply to thread…"
 msgstr "Reply to thread…"
