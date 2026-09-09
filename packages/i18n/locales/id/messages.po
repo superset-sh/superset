@@ -2994,9 +2994,6 @@ msgstr "Pilih kapan Superset memberi tahu Anda."
 msgid "Choose which agent watches this page for comments"
 msgstr "Pilih agen yang memantau komentar di halaman ini"
 
-msgid "churned"
-msgstr "berhenti"
-
 msgid "CI failed"
 msgstr "CI gagal"
 
@@ -8651,9 +8648,6 @@ msgstr "Jaringan Berubah"
 msgid "Never"
 msgstr "Tidak pernah"
 
-msgid "new"
-msgstr "baru"
-
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "Agen {providerLabel} yang baru akan memakai {accountLabel}."
 
@@ -10165,8 +10159,8 @@ msgstr "Organisasi: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Organisasi"
 
-msgid "Organizations on a paid Pro plan at each week's end (Neon), with the ones gained and lost that week. Enterprise has its own tile; the current week is still filling."
-msgstr "Organisasi dengan paket Pro berbayar di akhir setiap minggu (Neon), beserta yang bertambah dan hilang pada minggu itu. Enterprise punya kartu sendiri; minggu ini masih bertambah."
+msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are teams; the line is how many of every 1,000 organizations are one. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
+msgstr "Organisasi yang mendapat anggota kedua, dibandingkan dengan akun satu anggota yang dimiliki semua orang di awal (Neon). Batang adalah tim; garis menunjukkan berapa dari setiap 1.000 organisasi yang merupakan tim. Menghapus anggota juga menghapus barisnya, jadi tim yang menyusut kembali menjadi satu orang tidak muncul di minggu-minggu sebelumnya."
 
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Atur pekerjaan Anda ke dalam tim. Tugas dan integrasi bisa disinkronkan per tim."
@@ -10811,9 +10805,6 @@ msgstr "Fitur Pro"
 
 msgid "Pro is $20 per user/month billed monthly, or $15 per user/month billed yearly (a 25% discount). You're billed per active seat on your team."
 msgstr "Pro seharga $20 per pengguna/bulan jika ditagih bulanan, atau $15 per pengguna/bulan jika ditagih tahunan (diskon 25%). Anda ditagih per kursi aktif di tim Anda."
-
-msgid "Pro organizations"
-msgstr "Organisasi Pro"
 
 msgid "Process"
 msgstr "Proses"
@@ -13935,8 +13926,17 @@ msgstr "Tim tidak ditemukan di organisasi ini"
 msgid "Team settings"
 msgstr "Pengaturan tim"
 
+msgid "teams"
+msgstr "tim"
+
 msgid "Teams"
 msgstr "Tim"
+
+msgid "teams per 1,000 organizations"
+msgstr "tim per 1.000 organisasi"
+
+msgid "Teams vs individual accounts"
+msgstr "Tim vs akun individu"
 
 msgid "Teardown"
 msgstr "Teardown"

@@ -2994,9 +2994,6 @@ msgstr "选择Superset在什么时候通知你。"
 msgid "Choose which agent watches this page for comments"
 msgstr "选择由哪个智能体关注此页面的评论"
 
-msgid "churned"
-msgstr "流失"
-
 msgid "CI failed"
 msgstr "CI失败"
 
@@ -8651,9 +8648,6 @@ msgstr "网络已变更"
 msgid "Never"
 msgstr "从未"
 
-msgid "new"
-msgstr "新增"
-
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "新的{providerLabel}智能体将使用{accountLabel}。"
 
@@ -10165,8 +10159,8 @@ msgstr "组织：<0>{0}</0>"
 msgid "Organizations"
 msgstr "组织"
 
-msgid "Organizations on a paid Pro plan at each week's end (Neon), with the ones gained and lost that week. Enterprise has its own tile; the current week is still filling."
-msgstr "每周结束时使用付费专业版的组织（Neon），以及当周新增和流失的数量。企业版有单独的图块；本周仍在累积。"
+msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are teams; the line is how many of every 1,000 organizations are one. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
+msgstr "已加入第二位成员的组织，与每个人最初拥有的单人账户的对比（Neon）。柱状为团队数，折线为每 1,000 个组织中的团队数。移除成员会直接删除记录，因此缩回到一人的团队不会出现在过去的周次中。"
 
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "把工作组织到团队中。任务和集成可以按团队同步。"
@@ -10811,9 +10805,6 @@ msgstr "Pro功能"
 
 msgid "Pro is $20 per user/month billed monthly, or $15 per user/month billed yearly (a 25% discount). You're billed per active seat on your team."
 msgstr "Pro按月付费为每用户每月$20，按年付费为每用户每月$15（优惠25%）。按团队中的活跃席位计费。"
-
-msgid "Pro organizations"
-msgstr "专业版组织"
 
 msgid "Process"
 msgstr "进程"
@@ -13935,8 +13926,17 @@ msgstr "在此组织中未找到该团队"
 msgid "Team settings"
 msgstr "团队设置"
 
+msgid "teams"
+msgstr "团队"
+
 msgid "Teams"
 msgstr "团队"
+
+msgid "teams per 1,000 organizations"
+msgstr "每 1,000 个组织中的团队数"
+
+msgid "Teams vs individual accounts"
+msgstr "团队与个人账户"
 
 msgid "Teardown"
 msgstr "清理"

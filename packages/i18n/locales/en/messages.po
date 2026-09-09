@@ -2994,9 +2994,6 @@ msgstr "Choose when Superset pings you."
 msgid "Choose which agent watches this page for comments"
 msgstr "Choose which agent watches this page for comments"
 
-msgid "churned"
-msgstr "churned"
-
 msgid "CI failed"
 msgstr "CI failed"
 
@@ -8651,9 +8648,6 @@ msgstr "Network Changed"
 msgid "Never"
 msgstr "Never"
 
-msgid "new"
-msgstr "new"
-
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "New {providerLabel} agents will use {accountLabel}."
 
@@ -10165,8 +10159,8 @@ msgstr "Organization: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Organizations"
 
-msgid "Organizations on a paid Pro plan at each week's end (Neon), with the ones gained and lost that week. Enterprise has its own tile; the current week is still filling."
-msgstr "Organizations on a paid Pro plan at each week's end (Neon), with the ones gained and lost that week. Enterprise has its own tile; the current week is still filling."
+msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are teams; the line is how many of every 1,000 organizations are one. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
+msgstr "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are teams; the line is how many of every 1,000 organizations are one. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
 
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Organize your work into teams. Tasks and integrations can sync per-team."
@@ -10811,9 +10805,6 @@ msgstr "Pro Features"
 
 msgid "Pro is $20 per user/month billed monthly, or $15 per user/month billed yearly (a 25% discount). You're billed per active seat on your team."
 msgstr "Pro is $20 per user/month billed monthly, or $15 per user/month billed yearly (a 25% discount). You're billed per active seat on your team."
-
-msgid "Pro organizations"
-msgstr "Pro organizations"
 
 msgid "Process"
 msgstr "Process"
@@ -13935,8 +13926,17 @@ msgstr "Team not found in this organization"
 msgid "Team settings"
 msgstr "Team settings"
 
+msgid "teams"
+msgstr "teams"
+
 msgid "Teams"
 msgstr "Teams"
+
+msgid "teams per 1,000 organizations"
+msgstr "teams per 1,000 organizations"
+
+msgid "Teams vs individual accounts"
+msgstr "Teams vs individual accounts"
 
 msgid "Teardown"
 msgstr "Teardown"

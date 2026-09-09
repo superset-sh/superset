@@ -2994,9 +2994,6 @@ msgstr "Supersetから通知するタイミングを選びます。"
 msgid "Choose which agent watches this page for comments"
 msgstr "このページのコメントを監視するエージェントを選択"
 
-msgid "churned"
-msgstr "解約"
-
 msgid "CI failed"
 msgstr "CIが失敗しました"
 
@@ -8651,9 +8648,6 @@ msgstr "ネットワークが変更されました"
 msgid "Never"
 msgstr "未使用"
 
-msgid "new"
-msgstr "新規"
-
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "新規の{providerLabel}エージェントは{accountLabel}を使用します。"
 
@@ -10165,8 +10159,8 @@ msgstr "組織: <0>{0}</0>"
 msgid "Organizations"
 msgstr "組織"
 
-msgid "Organizations on a paid Pro plan at each week's end (Neon), with the ones gained and lost that week. Enterprise has its own tile; the current week is still filling."
-msgstr "各週末時点で有料Proプランに加入している組織（Neon）と、その週に増えた数・減った数。Enterpriseは別のタイルにあります。今週はまだ集計中です。"
+msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are teams; the line is how many of every 1,000 organizations are one. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
+msgstr "2人目のメンバーが加わった組織と、誰もが最初に持つ1人だけのアカウントの比較（Neon）。棒はチーム数、折れ線は1,000組織あたりのチーム数です。メンバーを削除すると行ごと消えるため、1人に戻ったチームは過去の週に含まれません。"
 
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "作業をチームに整理します。タスクと連携はチームごとに同期できます。"
@@ -10811,9 +10805,6 @@ msgstr "Pro機能"
 
 msgid "Pro is $20 per user/month billed monthly, or $15 per user/month billed yearly (a 25% discount). You're billed per active seat on your team."
 msgstr "Proは月払いで1ユーザーあたり月$20、年払いなら1ユーザーあたり月$15(25%割引)です。チームのアクティブなシート数に応じて課金されます。"
-
-msgid "Pro organizations"
-msgstr "Proプランの組織"
 
 msgid "Process"
 msgstr "プロセス"
@@ -13935,8 +13926,17 @@ msgstr "この組織にチームが見つかりません"
 msgid "Team settings"
 msgstr "チーム設定"
 
+msgid "teams"
+msgstr "チーム"
+
 msgid "Teams"
 msgstr "チーム"
+
+msgid "teams per 1,000 organizations"
+msgstr "1,000組織あたりのチーム数"
+
+msgid "Teams vs individual accounts"
+msgstr "チームと個人アカウント"
 
 msgid "Teardown"
 msgstr "ティアダウン"

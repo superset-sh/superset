@@ -2994,9 +2994,6 @@ msgstr "Superset'in sizi ne zaman uyaracağını seçin."
 msgid "Choose which agent watches this page for comments"
 msgstr "Bu sayfanın yorumlarını hangi ajanın izleyeceğini seç"
 
-msgid "churned"
-msgstr "kaybedilen"
-
 msgid "CI failed"
 msgstr "CI başarısız"
 
@@ -8651,9 +8648,6 @@ msgstr "Ağ değişti"
 msgid "Never"
 msgstr "Hiç"
 
-msgid "new"
-msgstr "yeni"
-
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "Yeni {providerLabel} ajanları {accountLabel} hesabını kullanacak."
 
@@ -10165,8 +10159,8 @@ msgstr "Kuruluş: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Kuruluşlar"
 
-msgid "Organizations on a paid Pro plan at each week's end (Neon), with the ones gained and lost that week. Enterprise has its own tile; the current week is still filling."
-msgstr "Her haftanın sonunda ücretli Pro planındaki kuruluşlar (Neon) ve o hafta kazanılanlar ile kaybedilenler. Enterprise'ın kendi kartı var; bu hafta hâlâ dolmakta."
+msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are teams; the line is how many of every 1,000 organizations are one. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
+msgstr "İkinci üyesini kazanan kuruluşlar ile herkesin başladığı tek üyeli hesapların karşılaştırması (Neon). Çubuklar ekipleri, çizgi ise her 1.000 kuruluştan kaçının ekip olduğunu gösterir. Üye kaldırmak satırı sildiği için tekrar tek kişiye düşen bir ekip geçmiş haftalarda görünmez."
 
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "İşinizi takımlar hâlinde düzenleyin. Görevler ve entegrasyonlar takım bazında eşitlenebilir."
@@ -10811,9 +10805,6 @@ msgstr "Pro özellikler"
 
 msgid "Pro is $20 per user/month billed monthly, or $15 per user/month billed yearly (a 25% discount). You're billed per active seat on your team."
 msgstr "Pro, aylık faturalandırmada kullanıcı başına ayda 20 $, yıllık faturalandırmada kullanıcı başına ayda 15 $ (%25 indirim). Takımınızdaki etkin koltuk başına faturalandırılırsınız."
-
-msgid "Pro organizations"
-msgstr "Pro kuruluşlar"
 
 msgid "Process"
 msgstr "Süreç"
@@ -13935,8 +13926,17 @@ msgstr "Bu kuruluşta takım bulunamadı"
 msgid "Team settings"
 msgstr "Takım ayarları"
 
+msgid "teams"
+msgstr "ekipler"
+
 msgid "Teams"
 msgstr "Takımlar"
+
+msgid "teams per 1,000 organizations"
+msgstr "1.000 kuruluş başına ekip"
+
+msgid "Teams vs individual accounts"
+msgstr "Ekipler ve bireysel hesaplar"
 
 msgid "Teardown"
 msgstr "Kapatma"

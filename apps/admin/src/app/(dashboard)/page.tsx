@@ -10,10 +10,10 @@ import { EnterpriseArrTile } from "./components/EnterpriseArrTile";
 import { HogQLLineTile } from "./components/HogQLLineTile";
 import { MrrTile } from "./components/MrrTile";
 import { NetBurnTile } from "./components/NetBurnTile";
+import { OrgAdoptionTile } from "./components/OrgAdoptionTile";
 import { PaywallFunnelTile } from "./components/PaywallFunnelTile";
 import { PaywallFunnelTrendTile } from "./components/PaywallFunnelTrendTile";
 import { PostHogFunnelTile } from "./components/PostHogFunnelTile";
-import { ProOrgsTile } from "./components/ProOrgsTile";
 import { RetentionGridTile } from "./components/RetentionGridTile";
 import { RunwayTile } from "./components/RunwayTile";
 import { StarHistoryTile } from "./components/StarHistoryTile";
@@ -116,7 +116,6 @@ export default function DashboardPage() {
 						<RunwayTile />
 						<MrrTile />
 						<EnterpriseArrTile />
-						<ProOrgsTile />
 						<TrendSeriesTile {...WAU_PROPS} />
 						<TrendSeriesTile {...DAU_PROPS} />
 						<div className="xl:col-span-2">
@@ -133,6 +132,7 @@ export default function DashboardPage() {
 						<TrendSeriesTile {...DAU_PROPS} />
 						<TrendSeriesTile {...WAU_PROPS} />
 						<HogQLLineTile {...ACTIVATED_RATE_PROPS} />
+						<OrgAdoptionTile />
 						<HogQLLineTile
 							insight="workspacePercentiles"
 							description={t({

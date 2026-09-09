@@ -2994,9 +2994,6 @@ msgstr "Chọn khi nào Superset báo cho bạn."
 msgid "Choose which agent watches this page for comments"
 msgstr "Chọn agent theo dõi bình luận của trang này"
 
-msgid "churned"
-msgstr "rời bỏ"
-
 msgid "CI failed"
 msgstr "CI thất bại"
 
@@ -8651,9 +8648,6 @@ msgstr "Mạng đã thay đổi"
 msgid "Never"
 msgstr "Chưa bao giờ"
 
-msgid "new"
-msgstr "mới"
-
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "Các agent {providerLabel} mới sẽ dùng {accountLabel}."
 
@@ -10165,8 +10159,8 @@ msgstr "Tổ chức: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Tổ chức"
 
-msgid "Organizations on a paid Pro plan at each week's end (Neon), with the ones gained and lost that week. Enterprise has its own tile; the current week is still filling."
-msgstr "Các tổ chức dùng gói Pro trả phí vào cuối mỗi tuần (Neon), cùng số tăng thêm và mất đi trong tuần đó. Enterprise có thẻ riêng; tuần hiện tại vẫn đang tăng."
+msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are teams; the line is how many of every 1,000 organizations are one. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
+msgstr "Các tổ chức đã có thành viên thứ hai, so với tài khoản một thành viên mà ai cũng bắt đầu (Neon). Cột là số nhóm; đường biểu thị trong mỗi 1.000 tổ chức có bao nhiêu là nhóm. Xóa một thành viên sẽ xóa luôn bản ghi, nên nhóm thu lại còn một người không xuất hiện ở các tuần trước."
 
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Sắp xếp công việc theo nhóm. Tác vụ và tích hợp có thể đồng bộ riêng cho từng nhóm."
@@ -10811,9 +10805,6 @@ msgstr "Tính năng Pro"
 
 msgid "Pro is $20 per user/month billed monthly, or $15 per user/month billed yearly (a 25% discount). You're billed per active seat on your team."
 msgstr "Pro có giá 20 USD/người/tháng khi trả theo tháng, hoặc 15 USD/người/tháng khi trả theo năm (giảm 25%). Bạn được tính phí theo số ghế đang hoạt động trong nhóm."
-
-msgid "Pro organizations"
-msgstr "Tổ chức Pro"
 
 msgid "Process"
 msgstr "Tiến trình"
@@ -13935,8 +13926,17 @@ msgstr "Không tìm thấy nhóm trong tổ chức này"
 msgid "Team settings"
 msgstr "Cài đặt nhóm"
 
+msgid "teams"
+msgstr "nhóm"
+
 msgid "Teams"
 msgstr "Nhóm"
+
+msgid "teams per 1,000 organizations"
+msgstr "nhóm trên 1.000 tổ chức"
+
+msgid "Teams vs individual accounts"
+msgstr "Nhóm và tài khoản cá nhân"
 
 msgid "Teardown"
 msgstr "Dọn dẹp"

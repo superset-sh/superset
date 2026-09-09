@@ -2994,9 +2994,6 @@ msgstr "Elige cuándo te avisa Superset."
 msgid "Choose which agent watches this page for comments"
 msgstr "Elige qué agente observa los comentarios de esta página"
 
-msgid "churned"
-msgstr "canceladas"
-
 msgid "CI failed"
 msgstr "CI falló"
 
@@ -8651,9 +8648,6 @@ msgstr "La red cambió"
 msgid "Never"
 msgstr "Nunca"
 
-msgid "new"
-msgstr "nuevas"
-
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "Los agentes nuevos de {providerLabel} usarán {accountLabel}."
 
@@ -10165,8 +10159,8 @@ msgstr "Organización: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Organizaciones"
 
-msgid "Organizations on a paid Pro plan at each week's end (Neon), with the ones gained and lost that week. Enterprise has its own tile; the current week is still filling."
-msgstr "Organizaciones con un plan Pro de pago al final de cada semana (Neon), y las ganadas y perdidas esa semana. Enterprise tiene su propio panel; la semana actual aún se está completando."
+msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are teams; the line is how many of every 1,000 organizations are one. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
+msgstr "Organizaciones que sumaron un segundo miembro, frente a las cuentas de un solo miembro con las que todos empiezan (Neon). Las barras son equipos; la línea indica cuántas de cada 1.000 organizaciones lo son. Quitar a un miembro borra la fila, así que un equipo que volvió a ser de una persona no aparece en las semanas anteriores."
 
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Organiza tu trabajo en equipos. Las tareas y las integraciones se pueden sincronizar por equipo."
@@ -10811,9 +10805,6 @@ msgstr "Funciones Pro"
 
 msgid "Pro is $20 per user/month billed monthly, or $15 per user/month billed yearly (a 25% discount). You're billed per active seat on your team."
 msgstr "Pro cuesta 20 $ por usuario/mes con facturación mensual, o 15 $ por usuario/mes con facturación anual (un 25% de descuento). Se factura por cada puesto activo de tu equipo."
-
-msgid "Pro organizations"
-msgstr "Organizaciones Pro"
 
 msgid "Process"
 msgstr "Proceso"
@@ -13935,8 +13926,17 @@ msgstr "No se encontró el equipo en esta organización"
 msgid "Team settings"
 msgstr "Configuración del equipo"
 
+msgid "teams"
+msgstr "equipos"
+
 msgid "Teams"
 msgstr "Equipos"
+
+msgid "teams per 1,000 organizations"
+msgstr "equipos por cada 1.000 organizaciones"
+
+msgid "Teams vs individual accounts"
+msgstr "Equipos frente a cuentas individuales"
 
 msgid "Teardown"
 msgstr "Teardown"

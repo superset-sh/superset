@@ -2994,9 +2994,6 @@ msgstr "Wybierz, kiedy Superset ma Cię powiadamiać."
 msgid "Choose which agent watches this page for comments"
 msgstr "Wybierz, który agent obserwuje komentarze na tej stronie"
 
-msgid "churned"
-msgstr "utracone"
-
 msgid "CI failed"
 msgstr "CI nie przeszło"
 
@@ -8651,9 +8648,6 @@ msgstr "Sieć się zmieniła"
 msgid "Never"
 msgstr "Nigdy"
 
-msgid "new"
-msgstr "nowe"
-
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "Nowi agenci {providerLabel} będą korzystać z {accountLabel}."
 
@@ -10165,8 +10159,8 @@ msgstr "Organizacja: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Organizacje"
 
-msgid "Organizations on a paid Pro plan at each week's end (Neon), with the ones gained and lost that week. Enterprise has its own tile; the current week is still filling."
-msgstr "Organizacje na płatnym planie Pro na koniec każdego tygodnia (Neon) oraz te pozyskane i utracone w danym tygodniu. Enterprise ma własny kafelek; bieżący tydzień jeszcze się zapełnia."
+msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are teams; the line is how many of every 1,000 organizations are one. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
+msgstr "Organizacje, które zyskały drugiego członka, w zestawieniu z jednoosobowymi kontami, od których wszyscy zaczynają (Neon). Słupki to zespoły, linia pokazuje, ile na każde 1000 organizacji nim jest. Usunięcie członka kasuje wiersz, więc zespół, który wrócił do jednej osoby, nie pojawia się w minionych tygodniach."
 
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Organizuj pracę w zespoły. Zadania i integracje mogą synchronizować się per zespół."
@@ -10811,9 +10805,6 @@ msgstr "Funkcje Pro"
 
 msgid "Pro is $20 per user/month billed monthly, or $15 per user/month billed yearly (a 25% discount). You're billed per active seat on your team."
 msgstr "Pro kosztuje 20 USD za użytkownika miesięcznie przy płatności miesięcznej lub 15 USD za użytkownika miesięcznie przy płatności rocznej (25% taniej). Rozliczamy aktywne miejsca w zespole."
-
-msgid "Pro organizations"
-msgstr "Organizacje Pro"
 
 msgid "Process"
 msgstr "Proces"
@@ -13935,8 +13926,17 @@ msgstr "Nie znaleziono zespołu w tej organizacji"
 msgid "Team settings"
 msgstr "Ustawienia zespołu"
 
+msgid "teams"
+msgstr "zespoły"
+
 msgid "Teams"
 msgstr "Zespoły"
+
+msgid "teams per 1,000 organizations"
+msgstr "zespoły na 1000 organizacji"
+
+msgid "Teams vs individual accounts"
+msgstr "Zespoły a konta indywidualne"
 
 msgid "Teardown"
 msgstr "Sprzątanie"

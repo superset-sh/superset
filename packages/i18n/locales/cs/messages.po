@@ -2994,9 +2994,6 @@ msgstr "Zvolte, kdy vás Superset upozorní."
 msgid "Choose which agent watches this page for comments"
 msgstr "Vyberte, který agent sleduje komentáře na této stránce"
 
-msgid "churned"
-msgstr "odešlé"
-
 msgid "CI failed"
 msgstr "CI selhalo"
 
@@ -8651,9 +8648,6 @@ msgstr "Síť se změnila"
 msgid "Never"
 msgstr "Nikdy"
 
-msgid "new"
-msgstr "nové"
-
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "Noví agenti {providerLabel} použijí {accountLabel}."
 
@@ -10165,8 +10159,8 @@ msgstr "Organizace: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Organizace"
 
-msgid "Organizations on a paid Pro plan at each week's end (Neon), with the ones gained and lost that week. Enterprise has its own tile; the current week is still filling."
-msgstr "Organizace s placeným plánem Pro na konci každého týdne (Neon) a ty, které v daném týdnu přibyly a odešly. Enterprise má vlastní dlaždici; aktuální týden se ještě plní."
+msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are teams; the line is how many of every 1,000 organizations are one. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
+msgstr "Organizace, které získaly druhého člena, oproti jednočlenným účtům, s nimiž všichni začínají (Neon). Sloupce jsou týmy, křivka ukazuje, kolik z každých 1 000 organizací jím je. Odebrání člena smaže řádek, takže tým, který se vrátil k jedné osobě, v minulých týdnech chybí."
 
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Rozdělte práci do týmů. Úkoly a integrace se mohou synchronizovat po týmech."
@@ -10811,9 +10805,6 @@ msgstr "Funkce Pro"
 
 msgid "Pro is $20 per user/month billed monthly, or $15 per user/month billed yearly (a 25% discount). You're billed per active seat on your team."
 msgstr "Pro stojí 20 $ na uživatele a měsíc při měsíční platbě, nebo 15 $ na uživatele a měsíc při roční platbě (sleva 25 %). Účtujeme podle aktivních míst ve vašem týmu."
-
-msgid "Pro organizations"
-msgstr "Organizace Pro"
 
 msgid "Process"
 msgstr "Proces"
@@ -13935,8 +13926,17 @@ msgstr "Tým v této organizaci nenalezen"
 msgid "Team settings"
 msgstr "Nastavení týmu"
 
+msgid "teams"
+msgstr "týmy"
+
 msgid "Teams"
 msgstr "Týmy"
+
+msgid "teams per 1,000 organizations"
+msgstr "týmy na 1 000 organizací"
+
+msgid "Teams vs individual accounts"
+msgstr "Týmy vs. individuální účty"
 
 msgid "Teardown"
 msgstr "Teardown"

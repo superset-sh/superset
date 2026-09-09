@@ -1,1 +1,0 @@
-export { ProOrgsTile } from "./ProOrgsTile";

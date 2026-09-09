@@ -1,4 +1,5 @@
 import { db } from "@superset/db/client";
+import { members } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
@@ -667,60 +668,50 @@ export const businessRouter = {
 			return result.rows;
 		}),
 
-	// Paying organizations over time, from Neon. Deliberately not an activity
-	// metric: paying is the signal, and the cloud database stopped recording
-	// workspaces on 2026-08-12, so it cannot answer "was this org active"
-	// anyway. Enterprise is excluded — it has its own tile and is not all
-	// modelled as Stripe subscriptions.
+	// Organization adoption: how much of the base is a team rather than one
+	// person. Every account gets a personal organization on signup, so an
+	// organization with a second member is the moment an account became a team
+	// — the same definition the growth page's `teams` series uses.
 	//
-	// A week counts an organization live if a non-`incomplete` Pro subscription
-	// covered that week's END, which is what makes the series a level rather
-	// than a flow. `incomplete` is an abandoned checkout, not a customer.
-	// New and churned are derived from the level, comparing each week against
-	// the one before, so pro_orgs[w] = pro_orgs[w-1] + new - churned exactly.
-	getProOrgs: adminProcedure
+	// The ratio is the point: team count alone rises with any growth, while
+	// teams per 1,000 organizations only rises when teams outpace signups.
+	//
+	// Membership is reconstructed from `created_at` because removing a member
+	// deletes the row, so a team that shrank back to one person is not counted
+	// in the weeks it was a team. That biases history down, never up.
+	getOrgAdoption: adminProcedure
 		.input(z.object({ weeks: z.number().min(4).max(26).default(12) }))
 		.query(async ({ input }) => {
 			const result = await db.execute<{
 				week: string;
-				pro_orgs: number;
-				new_pro_orgs: number;
-				churned_pro_orgs: number;
+				teams: number;
+				individual_accounts: number;
+				teams_per_1000: number;
 			}>(sql`
 				WITH weeks AS (
-					-- One extra week: the oldest is only a baseline for the first
-					-- week's new/churned comparison and is dropped below.
 					SELECT generate_series(
-						date_trunc('week', now()) - make_interval(weeks => ${input.weeks}),
+						date_trunc('week', now()) - make_interval(weeks => ${input.weeks - 1}),
 						date_trunc('week', now()),
 						interval '1 week'
 					) AS wk
 				),
-				live AS (
-					SELECT w.wk, s.reference_id AS org
+				sized AS (
+					SELECT w.wk, m.organization_id AS org, count(*) AS members
 					FROM weeks w
-					JOIN subscriptions s
-						ON s.plan = 'pro'
-						AND s.status <> 'incomplete'
-						AND s.created_at < w.wk + interval '1 week'
-						AND (s.ended_at IS NULL OR s.ended_at >= w.wk + interval '1 week')
-					GROUP BY w.wk, s.reference_id
+					JOIN ${members} m ON m.created_at < w.wk + interval '1 week'
+					GROUP BY w.wk, m.organization_id
 				)
 				SELECT
-					to_char(w.wk, 'YYYY-MM-DD') AS week,
-					(SELECT count(*) FROM live l WHERE l.wk = w.wk)::int AS pro_orgs,
-					(SELECT count(*) FROM live l
-						WHERE l.wk = w.wk AND NOT EXISTS (
-							SELECT 1 FROM live p
-							WHERE p.wk = w.wk - interval '1 week' AND p.org = l.org
-						))::int AS new_pro_orgs,
-					(SELECT count(*) FROM live p
-						WHERE p.wk = w.wk - interval '1 week' AND NOT EXISTS (
-							SELECT 1 FROM live l WHERE l.wk = w.wk AND l.org = p.org
-						))::int AS churned_pro_orgs
-				FROM weeks w
-				WHERE w.wk > (SELECT min(wk) FROM weeks)
-				ORDER BY w.wk
+					to_char(wk, 'YYYY-MM-DD') AS week,
+					count(*) FILTER (WHERE members >= 2)::int AS teams,
+					count(*) FILTER (WHERE members = 1)::int AS individual_accounts,
+					round(
+						1000.0 * count(*) FILTER (WHERE members >= 2) / nullif(count(*), 0),
+						2
+					)::float AS teams_per_1000
+				FROM sized
+				GROUP BY wk
+				ORDER BY wk
 			`);
 			return result.rows;
 		}),
