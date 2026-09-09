@@ -22,7 +22,8 @@ export interface FunnelStep {
 
 interface FunnelChartProps {
 	title: string;
-	description?: string;
+	// See InsightTileFrame: interpolated copy has to arrive as <Trans> JSX.
+	description?: ReactNode;
 	steps: FunnelStep[] | null | undefined;
 	isLoading?: boolean;
 	error?: { message: string } | null;

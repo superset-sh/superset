@@ -1,6 +1,6 @@
 "use client";
 
-import { useLingui } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import { formatStarCount } from "@superset/shared/github-stars";
 import {
@@ -37,15 +37,18 @@ export function StarHistoryTile() {
 	const stars = formatStarCount(data?.totalStars ?? 0);
 	const perDay = pace.current ? Math.round(pace.current.perDay) : 0;
 	const peakPerDay = pace.peak ? Math.round(pace.peak.perDay) : 0;
-	const headline = t({
-		message: `${stars} stars · ${perDay}/day this week · ${peakPerDay}/day at peak`,
-	});
 
 	return (
 		<InsightTileFrame
 			title={t({ message: "GitHub stars" })}
 			// Zeros until the walk lands would read as a real answer.
-			description={data ? headline : undefined}
+			description={
+				data ? (
+					<Trans>
+						{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak
+					</Trans>
+				) : undefined
+			}
 			lastRefresh={data?.fetchedAt}
 			isLoading={query.isLoading}
 			error={query.error}

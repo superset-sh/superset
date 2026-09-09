@@ -10406,8 +10406,8 @@ msgstr "Peak pace"
 msgid "Pending Invitations"
 msgstr "Pending Invitations"
 
-msgid "People whose first paywall view was in the last {weeks} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
-msgstr "People whose first paywall view was in the last {weeks} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
+msgid "People whose first paywall view was in the last {PAYWALL_FUNNEL_WEEKS} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
+msgstr "People whose first paywall view was in the last {PAYWALL_FUNNEL_WEEKS} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
 
 msgid "People with access"
 msgstr "People with access"

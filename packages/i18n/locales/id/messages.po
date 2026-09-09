@@ -10406,8 +10406,8 @@ msgstr "Laju puncak"
 msgid "Pending Invitations"
 msgstr "Undangan Tertunda"
 
-msgid "People whose first paywall view was in the last {weeks} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
-msgstr "Orang yang pertama kali melihat paywall dalam {weeks} minggu terakhir, dan sejauh mana mereka melangkah. Sebuah tahap menghitung siapa pun yang mencapainya setelah tampilan itu, jadi kohort terbaru masih terus bertambah."
+msgid "People whose first paywall view was in the last {PAYWALL_FUNNEL_WEEKS} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
+msgstr "Orang yang pertama kali melihat paywall dalam {PAYWALL_FUNNEL_WEEKS} minggu terakhir, dan sejauh mana mereka melangkah. Sebuah tahap menghitung siapa pun yang mencapainya setelah tampilan itu, jadi kohort terbaru masih terus bertambah."
 
 msgid "People with access"
 msgstr "Orang yang punya akses"

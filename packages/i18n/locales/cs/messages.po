@@ -10406,8 +10406,8 @@ msgstr "Nejvyšší tempo"
 msgid "Pending Invitations"
 msgstr "Čekající pozvánky"
 
-msgid "People whose first paywall view was in the last {weeks} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
-msgstr "Lidé, kteří paywall poprvé viděli za posledních {weeks} týdnů, a jak daleko došli. Fáze počítá každého, kdo se do ní dostal po tomto zobrazení, takže nedávné kohorty ještě dozrávají."
+msgid "People whose first paywall view was in the last {PAYWALL_FUNNEL_WEEKS} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
+msgstr "Lidé, kteří paywall poprvé viděli za posledních {PAYWALL_FUNNEL_WEEKS} týdnů, a jak daleko došli. Fáze počítá každého, kdo se do ní dostal po tomto zobrazení, takže nedávné kohorty ještě dozrávají."
 
 msgid "People with access"
 msgstr "Lidé s přístupem"

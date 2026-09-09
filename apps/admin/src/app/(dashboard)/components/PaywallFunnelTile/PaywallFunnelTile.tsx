@@ -2,7 +2,7 @@
 
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
-import { useLingui } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 
 import {
 	PAYWALL_FUNNEL_WEEKS,
@@ -44,21 +44,25 @@ export function PaywallFunnelTile() {
 		.map((stage) => stage.event)
 		.join(", ");
 
-	// Named local, not the constant inline: the macro takes the identifier as
-	// the message's placeholder name, and `{weeks}` is what a translator wants
-	// to see.
-	const weeks = PAYWALL_FUNNEL_WEEKS;
-	const description = t({
-		message: `People whose first paywall view was in the last ${weeks} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing.`,
-	});
-	const gapNote = t({
-		message: `No ${gaps} events in this window yet.`,
-	});
-
 	return (
 		<FunnelChart
 			title={t({ message: "Paywall → paid" })}
-			description={gaps ? `${description} ${gapNote}` : description}
+			description={
+				<>
+					<Trans>
+						People whose first paywall view was in the last{" "}
+						{PAYWALL_FUNNEL_WEEKS} weeks, and how far they got. A stage counts
+						anyone who reached it after that view, so recent cohorts are still
+						maturing.
+					</Trans>
+					{gaps ? (
+						<>
+							{" "}
+							<Trans>No {gaps} events in this window yet.</Trans>
+						</>
+					) : null}
+				</>
+			}
 			steps={steps}
 			isLoading={query.isLoading}
 			error={query.error}

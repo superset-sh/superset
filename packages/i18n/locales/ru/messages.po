@@ -10406,8 +10406,8 @@ msgstr "Пиковый темп"
 msgid "Pending Invitations"
 msgstr "Ожидающие приглашения"
 
-msgid "People whose first paywall view was in the last {weeks} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
-msgstr "Люди, впервые увидевшие пейволл за последние {weeks} недель, и то, как далеко они прошли. Этап учитывает всех, кто достиг его после этого показа, поэтому недавние когорты ещё не дозрели."
+msgid "People whose first paywall view was in the last {PAYWALL_FUNNEL_WEEKS} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
+msgstr "Люди, впервые увидевшие пейволл за последние {PAYWALL_FUNNEL_WEEKS} недель, и то, как далеко они прошли. Этап учитывает всех, кто достиг его после этого показа, поэтому недавние когорты ещё не дозрели."
 
 msgid "People with access"
 msgstr "У кого есть доступ"

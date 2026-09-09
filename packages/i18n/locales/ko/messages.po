@@ -10406,8 +10406,8 @@ msgstr "최고 속도"
 msgid "Pending Invitations"
 msgstr "대기 중인 초대"
 
-msgid "People whose first paywall view was in the last {weeks} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
-msgstr "최근 {weeks}주 안에 페이월을 처음 본 사람과 어디까지 진행했는지. 각 단계는 그 조회 이후 도달한 사람을 세므로 최근 코호트는 아직 채워지는 중입니다."
+msgid "People whose first paywall view was in the last {PAYWALL_FUNNEL_WEEKS} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
+msgstr "최근 {PAYWALL_FUNNEL_WEEKS}주 안에 페이월을 처음 본 사람과 어디까지 진행했는지. 각 단계는 그 조회 이후 도달한 사람을 세므로 최근 코호트는 아직 채워지는 중입니다."
 
 msgid "People with access"
 msgstr "접근 권한이 있는 사람"

@@ -10406,8 +10406,8 @@ msgstr "Höchstes Tempo"
 msgid "Pending Invitations"
 msgstr "Offene Einladungen"
 
-msgid "People whose first paywall view was in the last {weeks} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
-msgstr "Personen, deren erste Paywall-Ansicht in den letzten {weeks} Wochen lag, und wie weit sie gekommen sind. Eine Stufe zählt jede Person, die sie nach dieser Ansicht erreicht hat, daher sind aktuelle Kohorten noch nicht ausgereift."
+msgid "People whose first paywall view was in the last {PAYWALL_FUNNEL_WEEKS} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
+msgstr "Personen, deren erste Paywall-Ansicht in den letzten {PAYWALL_FUNNEL_WEEKS} Wochen lag, und wie weit sie gekommen sind. Eine Stufe zählt jede Person, die sie nach dieser Ansicht erreicht hat, daher sind aktuelle Kohorten noch nicht ausgereift."
 
 msgid "People with access"
 msgstr "Personen mit Zugriff"

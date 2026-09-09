@@ -10406,8 +10406,8 @@ msgstr "Tốc độ đỉnh"
 msgid "Pending Invitations"
 msgstr "Lời mời đang chờ"
 
-msgid "People whose first paywall view was in the last {weeks} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
-msgstr "Những người lần đầu thấy paywall trong {weeks} tuần gần nhất, và họ đi được đến đâu. Mỗi bước tính tất cả những ai đạt tới nó sau lần xem đó, nên các nhóm gần đây vẫn đang hoàn thiện."
+msgid "People whose first paywall view was in the last {PAYWALL_FUNNEL_WEEKS} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
+msgstr "Những người lần đầu thấy paywall trong {PAYWALL_FUNNEL_WEEKS} tuần gần nhất, và họ đi được đến đâu. Mỗi bước tính tất cả những ai đạt tới nó sau lần xem đó, nên các nhóm gần đây vẫn đang hoàn thiện."
 
 msgid "People with access"
 msgstr "Những người có quyền truy cập"

@@ -10406,8 +10406,8 @@ msgstr "峰值速度"
 msgid "Pending Invitations"
 msgstr "待處理邀請"
 
-msgid "People whose first paywall view was in the last {weeks} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
-msgstr "首次看到付費牆在最近 {weeks} 週內的使用者，以及他們走到哪一步。每個階段統計在該次瀏覽之後到達的人，因此近期同期群仍在累積。"
+msgid "People whose first paywall view was in the last {PAYWALL_FUNNEL_WEEKS} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
+msgstr "首次看到付費牆在最近 {PAYWALL_FUNNEL_WEEKS} 週內的使用者，以及他們走到哪一步。每個階段統計在該次瀏覽之後到達的人，因此近期同期群仍在累積。"
 
 msgid "People with access"
 msgstr "有存取權限的人"
