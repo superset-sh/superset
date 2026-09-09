@@ -8139,8 +8139,15 @@ msgstr "MCPサーバーアクセスやClaude Desktop・Claude Codeなどの外�
 msgid "Manage members"
 msgstr "メンバーを管理"
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "Manage on {0}"
+msgstr "{0}で管理"
+
 msgid "Manage Plan"
 msgstr "プランを管理"
+
+msgid "Manage plan on the web"
+msgstr "プランはWebで管理"
 
 msgid "Manage plugins"
 msgstr "プラグインを管理"
@@ -9525,9 +9532,6 @@ msgstr "オフライン"
 msgid "Offline / local-first mode"
 msgstr "オフライン/ローカルファーストモード"
 
-msgid "OK"
-msgstr "OK"
-
 msgid "Older"
 msgstr "それ以前"
 
@@ -10512,9 +10516,6 @@ msgstr "計画"
 msgctxt "billing"
 msgid "Plan"
 msgstr "プラン"
-
-msgid "Plan is managed on the web"
-msgstr "プランはWebで管理されています"
 
 msgid "Plan restored"
 msgstr "プランを復元しました"
@@ -16023,6 +16024,10 @@ msgstr "他にメンバーがいる組織の唯一のオーナーです。先に
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "{0}日分の使用実績がそろうまではランク外です。全体像が見えるようになってからスコアリングが始まります。"
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."
+msgstr "このサブスクリプションはアプリでは変更できません。組織のプランは{0}でオーナーが管理しています。"
+
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "この操作は元に戻せません。ターミナルペインに「Process exited」と表示され、再起動できます。"
 
@@ -16105,10 +16110,6 @@ msgstr "あなたの名前"
 
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "お名前 <0>(プロンプトを採用した場合、changelogでクレジットします)</0>"
-
-#. placeholder {0}: COMPANY.DOMAIN
-msgid "Your organization's plan is managed by its owner at {0}."
-msgstr "組織のプランは{0}でオーナーが管理しています。"
 
 msgid "Your rank"
 msgstr "あなたのランク"

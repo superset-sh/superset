@@ -8139,8 +8139,15 @@ msgstr "MCP 서버 접근과 Claude Desktop, Claude Code 같은 외부 연동에
 msgid "Manage members"
 msgstr "멤버 관리"
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "Manage on {0}"
+msgstr "{0}에서 관리"
+
 msgid "Manage Plan"
 msgstr "플랜 관리"
+
+msgid "Manage plan on the web"
+msgstr "웹에서 플랜 관리"
 
 msgid "Manage plugins"
 msgstr "플러그인 관리"
@@ -9525,9 +9532,6 @@ msgstr "오프라인"
 msgid "Offline / local-first mode"
 msgstr "오프라인 / 로컬 우선 모드"
 
-msgid "OK"
-msgstr "확인"
-
 msgid "Older"
 msgstr "이전"
 
@@ -10512,9 +10516,6 @@ msgstr "계획"
 msgctxt "billing"
 msgid "Plan"
 msgstr "플랜"
-
-msgid "Plan is managed on the web"
-msgstr "플랜은 웹에서 관리합니다"
 
 msgid "Plan restored"
 msgstr "플랜이 복원되었습니다"
@@ -16023,6 +16024,10 @@ msgstr "다른 멤버가 있는 조직의 유일한 소유자입니다. 먼저 �
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "{0}일치 사용 기록이 쌓이기 전까지는 순위가 없습니다. 전체 그림이 보이면 점수 산정이 시작됩니다."
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."
+msgstr "이 구독은 앱에서 변경할 수 없습니다. 조직의 플랜은 소유자가 {0}에서 관리합니다."
+
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "이 작업은 되돌릴 수 없습니다. 터미널 패널에 \"Process exited\"가 표시되며 다시 시작할 수 있습니다."
 
@@ -16105,10 +16110,6 @@ msgstr "이름"
 
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "이름 <0>(프롬프트를 채택하면 변경 로그에 이름을 남겨 드립니다)</0>"
-
-#. placeholder {0}: COMPANY.DOMAIN
-msgid "Your organization's plan is managed by its owner at {0}."
-msgstr "조직의 플랜은 소유자가 {0}에서 관리합니다."
 
 msgid "Your rank"
 msgstr "내 순위"

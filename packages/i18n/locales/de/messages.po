@@ -8139,8 +8139,15 @@ msgstr "Verwalte Schlüssel für den MCP-Server-Zugriff und externe Integratione
 msgid "Manage members"
 msgstr "Mitglieder verwalten"
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "Manage on {0}"
+msgstr "Auf {0} verwalten"
+
 msgid "Manage Plan"
 msgstr "Tarif verwalten"
+
+msgid "Manage plan on the web"
+msgstr "Tarif im Web verwalten"
 
 msgid "Manage plugins"
 msgstr "Plugins verwalten"
@@ -9525,9 +9532,6 @@ msgstr "Offline"
 msgid "Offline / local-first mode"
 msgstr "Offline- / Local-First-Modus"
 
-msgid "OK"
-msgstr "OK"
-
 msgid "Older"
 msgstr "Älter"
 
@@ -10512,9 +10516,6 @@ msgstr "Plan"
 msgctxt "billing"
 msgid "Plan"
 msgstr "Tarif"
-
-msgid "Plan is managed on the web"
-msgstr "Tarif wird im Web verwaltet"
 
 msgid "Plan restored"
 msgstr "Tarif wiederhergestellt"
@@ -16023,6 +16024,10 @@ msgstr "Du bist die einzige Inhaberin einer Organisation, die weitere Mitglieder
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "Du bist ohne Rang, bis {0} Tage Nutzung aufweisen. Die Bewertung beginnt, sobald das Gesamtbild sichtbar ist."
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."
+msgstr "Dieses Abo lässt sich nicht in der App ändern. Der Tarif deiner Organisation wird von der Inhaberin oder dem Inhaber unter {0} verwaltet."
+
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Das lässt sich nicht rückgängig machen. Terminal-Bereiche zeigen dann \"Process exited\" und können neu gestartet werden."
 
@@ -16105,10 +16110,6 @@ msgstr "Dein Name"
 
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "Dein Name <0>(wenn wir deinen Prompt verwenden, nennen wir dich im Changelog)</0>"
-
-#. placeholder {0}: COMPANY.DOMAIN
-msgid "Your organization's plan is managed by its owner at {0}."
-msgstr "Der Tarif deiner Organisation wird von der Inhaberin oder dem Inhaber unter {0} verwaltet."
 
 msgid "Your rank"
 msgstr "Dein Rang"

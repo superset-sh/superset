@@ -8139,8 +8139,15 @@ msgstr "管理用於MCP伺服器存取以及Claude Desktop、Claude Code等外�
 msgid "Manage members"
 msgstr "管理成員"
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "Manage on {0}"
+msgstr "在{0}管理"
+
 msgid "Manage Plan"
 msgstr "管理方案"
+
+msgid "Manage plan on the web"
+msgstr "在網頁端管理方案"
 
 msgid "Manage plugins"
 msgstr "管理外掛"
@@ -9525,9 +9532,6 @@ msgstr "離線"
 msgid "Offline / local-first mode"
 msgstr "離線/本地優先模式"
 
-msgid "OK"
-msgstr "確定"
-
 msgid "Older"
 msgstr "更早"
 
@@ -10512,9 +10516,6 @@ msgstr "計劃"
 msgctxt "billing"
 msgid "Plan"
 msgstr "方案"
-
-msgid "Plan is managed on the web"
-msgstr "方案在網頁端管理"
 
 msgid "Plan restored"
 msgstr "方案已恢復"
@@ -16023,6 +16024,10 @@ msgstr "你是某個仍有其他成員的組織的唯一擁有者。請先轉移
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "在累計 {0} 天使用紀錄之前你不參與排名。等看板掌握完整情況後才會開始計分。"
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."
+msgstr "無法在應用程式內變更此訂閱。你所在組織的方案由擁有者在{0}管理。"
+
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "此操作無法復原。終端窗格會顯示「處理程序已退出」，之後可以重新啟動。"
 
@@ -16105,10 +16110,6 @@ msgstr "你的姓名"
 
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "你的名字 <0>（若我們採用你的提示詞，會在更新日誌中署名致謝）</0>"
-
-#. placeholder {0}: COMPANY.DOMAIN
-msgid "Your organization's plan is managed by its owner at {0}."
-msgstr "你所在組織的方案由擁有者在{0}管理。"
 
 msgid "Your rank"
 msgstr "你的排名"

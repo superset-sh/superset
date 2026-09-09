@@ -8139,8 +8139,15 @@ msgstr "MCP sunucusu erişimi ve Claude Desktop veya Claude Code gibi harici ent
 msgid "Manage members"
 msgstr "Üyeleri yönet"
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "Manage on {0}"
+msgstr "{0} adresinde yönet"
+
 msgid "Manage Plan"
 msgstr "Planı yönet"
+
+msgid "Manage plan on the web"
+msgstr "Planı web'den yönet"
 
 msgid "Manage plugins"
 msgstr "Eklentileri yönet"
@@ -9525,9 +9532,6 @@ msgstr "Çevrimdışı"
 msgid "Offline / local-first mode"
 msgstr "Çevrimdışı / yerel öncelikli mod"
 
-msgid "OK"
-msgstr "Tamam"
-
 msgid "Older"
 msgstr "Daha eski"
 
@@ -10512,9 +10516,6 @@ msgstr "Plan"
 msgctxt "billing"
 msgid "Plan"
 msgstr "Plan"
-
-msgid "Plan is managed on the web"
-msgstr "Plan web'den yönetiliyor"
 
 msgid "Plan restored"
 msgstr "Plan geri yüklendi"
@@ -16023,6 +16024,10 @@ msgstr "Başka üyeleri olan bir kuruluşun tek sahibisiniz. Önce sahipliği de
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "{0} gün kullanım birikene kadar sıralama dışısın. Tablo bütün resmi gördüğünde puanlama başlar."
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."
+msgstr "Bu aboneliği uygulamada değiştiremezsiniz. Kuruluşunuzun planı, {0} adresinde sahibi tarafından yönetiliyor."
+
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Bu işlemi geri alamazsınız. Terminal bölmelerinde \"Process exited\" görünür ve yeniden başlatılabilirler."
 
@@ -16105,10 +16110,6 @@ msgstr "Adınız"
 
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "Adınız <0>(isteminizi kullanırsak değişiklik günlüğünde size teşekkür ederiz)</0>"
-
-#. placeholder {0}: COMPANY.DOMAIN
-msgid "Your organization's plan is managed by its owner at {0}."
-msgstr "Kuruluşunuzun planı, {0} adresinde sahibi tarafından yönetiliyor."
 
 msgid "Your rank"
 msgstr "Sıralamanız"

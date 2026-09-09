@@ -8139,8 +8139,15 @@ msgstr "Gestisci le chiavi per l'accesso ai server MCP e per le integrazioni est
 msgid "Manage members"
 msgstr "Gestisci i membri"
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "Manage on {0}"
+msgstr "Gestisci su {0}"
+
 msgid "Manage Plan"
 msgstr "Gestisci il piano"
+
+msgid "Manage plan on the web"
+msgstr "Gestisci il piano sul web"
 
 msgid "Manage plugins"
 msgstr "Gestisci i plugin"
@@ -9525,9 +9532,6 @@ msgstr "Offline"
 msgid "Offline / local-first mode"
 msgstr "Modalità offline / local-first"
 
-msgid "OK"
-msgstr "OK"
-
 msgid "Older"
 msgstr "Più vecchi"
 
@@ -10512,9 +10516,6 @@ msgstr "Piano"
 msgctxt "billing"
 msgid "Plan"
 msgstr "Piano"
-
-msgid "Plan is managed on the web"
-msgstr "Il piano si gestisce sul web"
 
 msgid "Plan restored"
 msgstr "Piano ripristinato"
@@ -16023,6 +16024,10 @@ msgstr "Sei l'unico proprietario di un'organizzazione che ha altri membri. Trasf
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "Non sei classificato finché {0} giorni non registrano attività. Il punteggio parte quando il quadro è completo."
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."
+msgstr "Non puoi modificare questo abbonamento nell'app. Il piano della tua organizzazione è gestito dal proprietario su {0}."
+
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Non puoi annullare questa azione. I pannelli del terminale mostreranno \"Processo terminato\" e potranno essere riavviati."
 
@@ -16105,10 +16110,6 @@ msgstr "Il tuo nome"
 
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "Il tuo nome <0>(se usiamo il tuo prompt, ti citeremo nel changelog)</0>"
-
-#. placeholder {0}: COMPANY.DOMAIN
-msgid "Your organization's plan is managed by its owner at {0}."
-msgstr "Il piano della tua organizzazione è gestito dal proprietario su {0}."
 
 msgid "Your rank"
 msgstr "La tua posizione"

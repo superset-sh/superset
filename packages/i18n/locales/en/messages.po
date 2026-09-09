@@ -8139,8 +8139,15 @@ msgstr "Manage keys for MCP server access and external integrations like Claude 
 msgid "Manage members"
 msgstr "Manage members"
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "Manage on {0}"
+msgstr "Manage on {0}"
+
 msgid "Manage Plan"
 msgstr "Manage Plan"
+
+msgid "Manage plan on the web"
+msgstr "Manage plan on the web"
 
 msgid "Manage plugins"
 msgstr "Manage plugins"
@@ -9525,9 +9532,6 @@ msgstr "Offline"
 msgid "Offline / local-first mode"
 msgstr "Offline / local-first mode"
 
-msgid "OK"
-msgstr "OK"
-
 msgid "Older"
 msgstr "Older"
 
@@ -10512,9 +10516,6 @@ msgstr "Plan"
 msgctxt "billing"
 msgid "Plan"
 msgstr "Plan"
-
-msgid "Plan is managed on the web"
-msgstr "Plan is managed on the web"
 
 msgid "Plan restored"
 msgstr "Plan restored"
@@ -16023,6 +16024,10 @@ msgstr "You are the only owner of an organization that has other members. Transf
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."
+msgstr "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."
+
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 
@@ -16105,10 +16110,6 @@ msgstr "Your name"
 
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
-
-#. placeholder {0}: COMPANY.DOMAIN
-msgid "Your organization's plan is managed by its owner at {0}."
-msgstr "Your organization's plan is managed by its owner at {0}."
 
 msgid "Your rank"
 msgstr "Your rank"

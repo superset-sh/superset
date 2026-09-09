@@ -8139,8 +8139,15 @@ msgstr "Spravujte klíče pro přístup k MCP serveru a externí integrace, jako
 msgid "Manage members"
 msgstr "Spravovat členy"
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "Manage on {0}"
+msgstr "Spravovat na {0}"
+
 msgid "Manage Plan"
 msgstr "Spravovat tarif"
+
+msgid "Manage plan on the web"
+msgstr "Správa tarifu na webu"
 
 msgid "Manage plugins"
 msgstr "Spravovat pluginy"
@@ -9525,9 +9532,6 @@ msgstr "Offline"
 msgid "Offline / local-first mode"
 msgstr "Offline / local-first režim"
 
-msgid "OK"
-msgstr "OK"
-
 msgid "Older"
 msgstr "Starší"
 
@@ -10512,9 +10516,6 @@ msgstr "Tarif"
 msgctxt "billing"
 msgid "Plan"
 msgstr "Tarif"
-
-msgid "Plan is managed on the web"
-msgstr "Tarif se spravuje na webu"
 
 msgid "Plan restored"
 msgstr "Tarif obnoven"
@@ -16023,6 +16024,10 @@ msgstr "Jste jediný vlastník organizace, která má další členy. Nejprve p�
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "Nemáš pořadí, dokud nebude dní s aktivitou: {0}. Bodování začne, až bude vidět celý obrázek."
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."
+msgstr "Toto předplatné nelze změnit v aplikaci. Tarif vaší organizace spravuje její vlastník na {0}."
+
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Tuto akci nelze vrátit zpět. Panely terminálu zobrazí „Proces skončil“ a půjde je spustit znovu."
 
@@ -16105,10 +16110,6 @@ msgstr "Vaše jméno"
 
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "Vaše jméno <0>(pokud váš prompt použijeme, uvedeme vás v changelogu)</0>"
-
-#. placeholder {0}: COMPANY.DOMAIN
-msgid "Your organization's plan is managed by its owner at {0}."
-msgstr "Tarif vaší organizace spravuje její vlastník na {0}."
 
 msgid "Your rank"
 msgstr "Vaše pozice"

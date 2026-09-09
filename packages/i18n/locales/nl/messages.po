@@ -8139,8 +8139,15 @@ msgstr "Beheer sleutels voor toegang tot MCP-servers en externe integraties zoal
 msgid "Manage members"
 msgstr "Leden beheren"
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "Manage on {0}"
+msgstr "Beheren op {0}"
+
 msgid "Manage Plan"
 msgstr "Plan beheren"
+
+msgid "Manage plan on the web"
+msgstr "Plan beheren op het web"
 
 msgid "Manage plugins"
 msgstr "Plugins beheren"
@@ -9525,9 +9532,6 @@ msgstr "Offline"
 msgid "Offline / local-first mode"
 msgstr "Offline / local-first modus"
 
-msgid "OK"
-msgstr "OK"
-
 msgid "Older"
 msgstr "Ouder"
 
@@ -10512,9 +10516,6 @@ msgstr "Plan"
 msgctxt "billing"
 msgid "Plan"
 msgstr "Plan"
-
-msgid "Plan is managed on the web"
-msgstr "Plan wordt op het web beheerd"
 
 msgid "Plan restored"
 msgstr "Plan hersteld"
@@ -16023,6 +16024,10 @@ msgstr "Je bent de enige eigenaar van een organisatie met andere leden. Draag he
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "Je hebt geen positie tot {0} dagen gebruik tonen. De score start zodra het volledige beeld zichtbaar is."
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."
+msgstr "Je kunt dit abonnement niet in de app wijzigen. Het plan van je organisatie wordt beheerd door de eigenaar op {0}."
+
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Dit kun je niet ongedaan maken. Terminalpanelen tonen \"Process exited\" en zijn opnieuw te starten."
 
@@ -16105,10 +16110,6 @@ msgstr "Je naam"
 
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "Je naam <0>(als we je prompt gebruiken, vermelden we je in de changelog)</0>"
-
-#. placeholder {0}: COMPANY.DOMAIN
-msgid "Your organization's plan is managed by its owner at {0}."
-msgstr "Het plan van je organisatie wordt beheerd door de eigenaar op {0}."
 
 msgid "Your rank"
 msgstr "Je positie"

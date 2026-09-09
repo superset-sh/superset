@@ -8139,8 +8139,15 @@ msgstr "Zarządzaj kluczami dostępu do serwerów MCP i zewnętrznych integracji
 msgid "Manage members"
 msgstr "Zarządzaj członkami"
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "Manage on {0}"
+msgstr "Zarządzaj na {0}"
+
 msgid "Manage Plan"
 msgstr "Zarządzaj planem"
+
+msgid "Manage plan on the web"
+msgstr "Zarządzanie planem w przeglądarce"
 
 msgid "Manage plugins"
 msgstr "Zarządzaj wtyczkami"
@@ -9525,9 +9532,6 @@ msgstr "Offline"
 msgid "Offline / local-first mode"
 msgstr "Tryb offline / local-first"
 
-msgid "OK"
-msgstr "OK"
-
 msgid "Older"
 msgstr "Starsze"
 
@@ -10512,9 +10516,6 @@ msgstr "Plan"
 msgctxt "billing"
 msgid "Plan"
 msgstr "Plan"
-
-msgid "Plan is managed on the web"
-msgstr "Planem zarządza się w przeglądarce"
 
 msgid "Plan restored"
 msgstr "Plan przywrócony"
@@ -16023,6 +16024,10 @@ msgstr "Jesteś jedynym właścicielem organizacji, która ma innych członków.
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "Nie masz rangi, dopóki nie uzbiera się dni z aktywnością: {0}. Punktacja rusza, gdy widać pełny obraz."
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."
+msgstr "Tej subskrypcji nie zmienisz w aplikacji. Planem Twojej organizacji zarządza jej właściciel na {0}."
+
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Tej operacji nie można cofnąć. Panele terminala pokażą „Proces zakończony” i będzie można je uruchomić ponownie."
 
@@ -16105,10 +16110,6 @@ msgstr "Twoje imię"
 
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "Twoje imię <0>(jeśli użyjemy Twojego promptu, wymienimy Cię w changelogu)</0>"
-
-#. placeholder {0}: COMPANY.DOMAIN
-msgid "Your organization's plan is managed by its owner at {0}."
-msgstr "Planem Twojej organizacji zarządza jej właściciel na {0}."
 
 msgid "Your rank"
 msgstr "Twoja pozycja"

@@ -8139,8 +8139,15 @@ msgstr "Gestiona las claves de acceso a servidores MCP y a integraciones externa
 msgid "Manage members"
 msgstr "Gestionar miembros"
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "Manage on {0}"
+msgstr "Gestionar en {0}"
+
 msgid "Manage Plan"
 msgstr "Gestionar el plan"
+
+msgid "Manage plan on the web"
+msgstr "Gestionar el plan en la web"
 
 msgid "Manage plugins"
 msgstr "Gestionar plugins"
@@ -9525,9 +9532,6 @@ msgstr "Sin conexión"
 msgid "Offline / local-first mode"
 msgstr "Modo sin conexión / local primero"
 
-msgid "OK"
-msgstr "OK"
-
 msgid "Older"
 msgstr "Más antiguo"
 
@@ -10512,9 +10516,6 @@ msgstr "Plan"
 msgctxt "billing"
 msgid "Plan"
 msgstr "Plan"
-
-msgid "Plan is managed on the web"
-msgstr "El plan se gestiona en la web"
 
 msgid "Plan restored"
 msgstr "Plan restaurado"
@@ -16023,6 +16024,10 @@ msgstr "Eres el único propietario de una organización que tiene otros miembros
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "No estás clasificado hasta que haya {0} días con actividad. La puntuación empieza cuando se ve el panorama completo."
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."
+msgstr "No puedes cambiar esta suscripción en la app. El plan de tu organización lo gestiona su propietario en {0}."
+
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Esta acción no se puede deshacer. Los paneles de terminal mostrarán \"Process exited\" y se pueden reiniciar."
 
@@ -16105,10 +16110,6 @@ msgstr "Tu nombre"
 
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "Tu nombre <0>(si usamos tu prompt, te acreditaremos en el registro de cambios)</0>"
-
-#. placeholder {0}: COMPANY.DOMAIN
-msgid "Your organization's plan is managed by its owner at {0}."
-msgstr "El plan de tu organización lo gestiona su propietario en {0}."
 
 msgid "Your rank"
 msgstr "Tu puesto"

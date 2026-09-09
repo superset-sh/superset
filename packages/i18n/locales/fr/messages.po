@@ -8139,8 +8139,15 @@ msgstr "Gérez les clés d'accès aux serveurs MCP et aux intégrations externes
 msgid "Manage members"
 msgstr "Gérer les membres"
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "Manage on {0}"
+msgstr "Gérer sur {0}"
+
 msgid "Manage Plan"
 msgstr "Gérer le forfait"
+
+msgid "Manage plan on the web"
+msgstr "Gérer le forfait sur le web"
 
 msgid "Manage plugins"
 msgstr "Gérer les plugins"
@@ -9525,9 +9532,6 @@ msgstr "Hors ligne"
 msgid "Offline / local-first mode"
 msgstr "Mode hors ligne / local d'abord"
 
-msgid "OK"
-msgstr "OK"
-
 msgid "Older"
 msgstr "Plus ancien"
 
@@ -10512,9 +10516,6 @@ msgstr "Forfait"
 msgctxt "billing"
 msgid "Plan"
 msgstr "Forfait"
-
-msgid "Plan is managed on the web"
-msgstr "Le forfait est géré sur le web"
 
 msgid "Plan restored"
 msgstr "Forfait rétabli"
@@ -16023,6 +16024,10 @@ msgstr "Vous êtes le seul propriétaire d'une organisation qui compte d'autres 
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "Vous n'êtes pas classé tant que {0} jours n'ont pas d'activité. Le score démarre une fois la vue d'ensemble disponible."
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."
+msgstr "Vous ne pouvez pas modifier cet abonnement dans l'application. Le forfait de votre organisation est géré par son propriétaire sur {0}."
+
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Cette action est irréversible. Les volets de terminal afficheront « Processus terminé » et pourront être relancés."
 
@@ -16105,10 +16110,6 @@ msgstr "Votre nom"
 
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "Votre nom <0>(si nous utilisons votre prompt, nous vous créditerons dans le changelog)</0>"
-
-#. placeholder {0}: COMPANY.DOMAIN
-msgid "Your organization's plan is managed by its owner at {0}."
-msgstr "Le forfait de votre organisation est géré par son propriétaire sur {0}."
 
 msgid "Your rank"
 msgstr "Votre rang"

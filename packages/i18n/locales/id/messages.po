@@ -8139,8 +8139,15 @@ msgstr "Kelola kunci untuk akses server MCP dan integrasi eksternal seperti Clau
 msgid "Manage members"
 msgstr "Kelola anggota"
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "Manage on {0}"
+msgstr "Kelola di {0}"
+
 msgid "Manage Plan"
 msgstr "Kelola Paket"
+
+msgid "Manage plan on the web"
+msgstr "Kelola paket lewat web"
 
 msgid "Manage plugins"
 msgstr "Kelola plugin"
@@ -9525,9 +9532,6 @@ msgstr "Offline"
 msgid "Offline / local-first mode"
 msgstr "Mode offline / local-first"
 
-msgid "OK"
-msgstr "OK"
-
 msgid "Older"
 msgstr "Lebih lama"
 
@@ -10512,9 +10516,6 @@ msgstr "Paket"
 msgctxt "billing"
 msgid "Plan"
 msgstr "Paket"
-
-msgid "Plan is managed on the web"
-msgstr "Paket dikelola lewat web"
 
 msgid "Plan restored"
 msgstr "Paket dipulihkan"
@@ -16023,6 +16024,10 @@ msgstr "Anda satu-satunya pemilik organisasi yang punya anggota lain. Alihkan ke
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "Anda tanpa peringkat sampai ada {0} hari dengan penggunaan. Penilaian dimulai setelah gambaran utuh terlihat."
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."
+msgstr "Anda tidak bisa mengubah langganan ini di aplikasi. Paket organisasi Anda dikelola oleh pemiliknya di {0}."
+
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Tindakan ini tidak bisa dibatalkan. Panel terminal akan menampilkan \"Process exited\" dan bisa dijalankan ulang."
 
@@ -16105,10 +16110,6 @@ msgstr "Nama Anda"
 
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "Nama Anda <0>(kalau prompt Anda kami pakai, kami akan mencantumkan Anda di changelog)</0>"
-
-#. placeholder {0}: COMPANY.DOMAIN
-msgid "Your organization's plan is managed by its owner at {0}."
-msgstr "Paket organisasi Anda dikelola oleh pemiliknya di {0}."
 
 msgid "Your rank"
 msgstr "Peringkat Anda"
