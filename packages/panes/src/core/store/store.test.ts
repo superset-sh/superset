@@ -110,6 +110,33 @@ describe("pane operations", () => {
 		expect(store.getState().tabs[0]?.activePaneId).toBe("p2");
 	});
 
+	it("bails out of setActivePane when the pane is already active", () => {
+		const store = makeStore();
+		store.getState().addTab({
+			id: "t1",
+			panes: [tp("p1"), tp("p2")],
+			activePaneId: "p1",
+		});
+
+		const before = store.getState().tabs;
+		store.getState().setActivePane({ tabId: "t1", paneId: "p1" });
+		expect(store.getState().tabs).toBe(before);
+	});
+
+	it("still activates the tab when its already-active pane is focused from another tab", () => {
+		const store = makeStore();
+		store.getState().addTab({
+			id: "t1",
+			panes: [tp("p1")],
+			activePaneId: "p1",
+		});
+		store.getState().addTab({ id: "t2", panes: [tp("p2")] });
+		expect(store.getState().activeTabId).toBe("t2");
+
+		store.getState().setActivePane({ tabId: "t1", paneId: "p1" });
+		expect(store.getState().activeTabId).toBe("t1");
+	});
+
 	it("gets pane by ID across tabs", () => {
 		const store = makeStore();
 		store.getState().addTab({ id: "t1", panes: [tp("p1")] });

@@ -43,10 +43,20 @@ export function DefaultHeaderContent({
 					</>
 				)}
 			</div>
-			{/* biome-ignore lint/a11y/noStaticElementInteractions: stop drag from starting on action buttons */}
+			{/* The header is a native drag source: canceling dragstart here keeps a
+			    press that moves a few pixels on these controls a click instead of a
+			    pane drag, and stopped clicks keep them from also firing the
+			    header's click-to-pin. */}
+			{/* biome-ignore lint/a11y/useKeyWithClickEvents lint/a11y/noStaticElementInteractions: propagation shield around header controls, not an interactive control */}
 			<div
 				className="flex shrink-0 items-center gap-0.5"
+				draggable
+				onDragStart={(e) => {
+					e.preventDefault();
+					e.stopPropagation();
+				}}
 				onMouseDown={(e) => e.stopPropagation()}
+				onClick={(e) => e.stopPropagation()}
 			>
 				{headerExtras}
 				{actionsContent}

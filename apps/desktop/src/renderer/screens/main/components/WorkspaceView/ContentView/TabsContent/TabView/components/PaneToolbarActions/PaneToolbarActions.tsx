@@ -25,13 +25,26 @@ export function PaneToolbarActions({
 		);
 
 	return (
-		<div className="flex items-center gap-0.5">
+		// The mosaic toolbar is a native drag source, so a press that moves a few
+		// pixels starts a pane drag and the click never fires: making this
+		// wrapper the nearest draggable and canceling its dragstart keeps such a
+		// press a click.
+		// biome-ignore lint/a11y/noStaticElementInteractions: propagation shield around the action buttons, not an interactive control
+		<div
+			className="flex items-center gap-0.5"
+			draggable
+			onDragStart={(e) => {
+				e.preventDefault();
+				e.stopPropagation();
+			}}
+		>
 			{leadingActions}
 			<Tooltip delayDuration={1000}>
 				<TooltipTrigger asChild>
 					<button
 						type="button"
 						onClick={onSplitPane}
+						onMouseDown={(e) => e.preventDefault()}
 						className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
 					>
 						{splitIcon}
@@ -44,6 +57,7 @@ export function PaneToolbarActions({
 			<button
 				type="button"
 				onClick={onClosePane}
+				onMouseDown={(e) => e.preventDefault()}
 				className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
 			>
 				<HiMiniXMark className="size-3.5" />
