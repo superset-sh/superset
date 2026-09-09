@@ -22,6 +22,8 @@ export interface ToolDefinition {
 
 const REQUEST_ID = 1;
 
+const MCP_TIMEOUT_MS = 120_000;
+
 export class PluginDispatchError extends Error {
 	constructor(
 		message: string,
@@ -48,6 +50,7 @@ async function post(
 			body: JSON.stringify(body),
 		},
 		"mcp",
+		MCP_TIMEOUT_MS,
 	);
 }
 

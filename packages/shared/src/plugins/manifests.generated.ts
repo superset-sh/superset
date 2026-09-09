@@ -261,7 +261,7 @@ export const FIRST_PARTY_MANIFESTS = {
 	"slack": {
 		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
 		"name": "slack",
-		"version": "1.2.1",
+		"version": "1.2.2",
 		"description": "Search, read, and post across your Slack workspace: channels, DMs, and threads.",
 		"author": {
 			"name": "Superset",
@@ -290,7 +290,7 @@ export const FIRST_PARTY_MANIFESTS = {
 						"label": "OAuth 2.0",
 						"provider": "slack",
 						"pkce": true,
-						"authorization_url": "https://slack.com/oauth/v2_user/authorize",
+						"authorization_url": "https://slack.com/oauth/v2/authorize",
 						"token_url": "https://slack.com/api/oauth.v2.user.access",
 						"scopes": [
 							"channels:history",
@@ -339,7 +339,7 @@ export const FIRST_PARTY_MANIFESTS = {
 				"server": {
 					"path": "plugins/slack/server/index.mjs",
 					"integrity": "sha256-v6jbpX7Wl57RBS2IU1mk2s4qrnnYIf68AUF3GtV3gxw=",
-					"ref": "slack@1.2.1"
+					"ref": "slack@1.2.2"
 				}
 			}
 		},
@@ -348,7 +348,7 @@ export const FIRST_PARTY_MANIFESTS = {
 	"gmail": {
 		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
 		"name": "gmail",
-		"version": "1.1.2",
+		"version": "1.1.3",
 		"description": "Read, search, send, and organize mail in your Gmail account.",
 		"author": {
 			"name": "Superset",
@@ -413,8 +413,8 @@ export const FIRST_PARTY_MANIFESTS = {
 				],
 				"server": {
 					"path": "plugins/gmail/server/index.mjs",
-					"integrity": "sha256-WkKzAdttt2gTA9FGY4SS0xZmd22YEGKC8COn4tL1Vb4=",
-					"ref": "gmail@1.1.2"
+					"integrity": "sha256-2I1psLjmQZzge22gz2Ff8aj9AY5UhLPE5Vs/DyM/cCQ=",
+					"ref": "gmail@1.1.3"
 				}
 			}
 		},

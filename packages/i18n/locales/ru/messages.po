@@ -3584,8 +3584,8 @@ msgstr "Подключено"
 msgid "connected {0}"
 msgstr "подключено {0}"
 
-msgid "Connected {connected}"
-msgstr "{connected} подключено"
+msgid "Connected {label}"
+msgstr "{label} подключено"
 
 msgid "Connected as"
 msgstr "Подключено как"

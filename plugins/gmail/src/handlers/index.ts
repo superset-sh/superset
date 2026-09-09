@@ -21,7 +21,7 @@ export async function callTool(
 ): Promise<ToolResult> {
 	if (!accessToken) return failure("Not connected; connect the plugin first.");
 
-	const handler = HANDLERS[name];
+	const handler = Object.hasOwn(HANDLERS, name) ? HANDLERS[name] : undefined;
 	if (!handler) return failure(`Unknown tool: ${name}`);
 
 	try {

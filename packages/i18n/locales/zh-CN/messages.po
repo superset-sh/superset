@@ -3584,8 +3584,8 @@ msgstr "已连接"
 msgid "connected {0}"
 msgstr "连接于 {0}"
 
-msgid "Connected {connected}"
-msgstr "已连接 {connected}"
+msgid "Connected {label}"
+msgstr "已连接 {label}"
 
 msgid "Connected as"
 msgstr "已连接为"

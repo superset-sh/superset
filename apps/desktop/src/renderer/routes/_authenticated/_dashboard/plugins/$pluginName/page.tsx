@@ -31,10 +31,11 @@ function useConnectOutcome(plugin: string) {
 	const { connected, error } = Route.useSearch();
 
 	useEffect(() => {
-		if (!connected && !error) return;
+		if (connected === undefined && !error) return;
 
-		if (connected) {
-			toast.success(t({ message: `Connected ${connected}` }));
+		if (connected !== undefined) {
+			const label = connected || plugin;
+			toast.success(t({ message: `Connected ${label}` }));
 		} else if (error === "oauth_denied") {
 			toast.error(
 				t({ message: `You declined the ${plugin} authorization request.` }),

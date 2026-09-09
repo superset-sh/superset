@@ -1,7 +1,7 @@
 {
 	"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
 	"name": "slack",
-	"version": "1.2.1",
+	"version": "1.2.2",
 	"description": "Search, read, and post across your Slack workspace: channels, DMs, and threads.",
 	"author": {
 		"name": "Superset",
@@ -24,7 +24,7 @@
 					"label": "OAuth 2.0",
 					"provider": "slack",
 					"pkce": true,
-					"authorization_url": "https://slack.com/oauth/v2_user/authorize",
+					"authorization_url": "https://slack.com/oauth/v2/authorize",
 					"token_url": "https://slack.com/api/oauth.v2.user.access",
 					"scopes": [
 						"channels:history",

@@ -3584,8 +3584,8 @@ msgstr "Terhubung"
 msgid "connected {0}"
 msgstr "terhubung {0}"
 
-msgid "Connected {connected}"
-msgstr "{connected} terhubung"
+msgid "Connected {label}"
+msgstr "{label} terhubung"
 
 msgid "Connected as"
 msgstr "Terhubung sebagai"

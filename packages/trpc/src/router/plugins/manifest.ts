@@ -216,6 +216,7 @@ export async function credentialFetch(
 	url: string,
 	init: RequestInit,
 	what: string,
+	timeoutMs: number = CREDENTIAL_FETCH_TIMEOUT_MS,
 ): Promise<Response> {
 	let parsed: URL;
 	try {
@@ -232,7 +233,7 @@ export async function credentialFetch(
 	const response = await fetch(url, {
 		...init,
 		redirect: "manual",
-		signal: init.signal ?? AbortSignal.timeout(CREDENTIAL_FETCH_TIMEOUT_MS),
+		signal: init.signal ?? AbortSignal.timeout(timeoutMs),
 	});
 	if (response.status >= 300 && response.status < 400) {
 		throw new Error(

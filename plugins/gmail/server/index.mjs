@@ -1,7 +1,15 @@
 // src/api.ts
 var BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
+function safePath(path) {
+  return path.split("/").map((segment) => {
+    if (segment === "." || segment === "..") {
+      throw new Error(`invalid Gmail path segment "${segment}"`);
+    }
+    return encodeURIComponent(segment);
+  }).join("/");
+}
 async function gmail(accessToken, path, request = {}) {
-  const url = new URL(`${BASE}${path}`);
+  const url = new URL(`${BASE}${safePath(path)}`);
   for (const [key, value] of Object.entries(request.query ?? {})) {
     if (value === undefined || value === null || value === "")
       continue;
@@ -619,14 +627,15 @@ function resolveColor(input) {
   if (input === undefined || input === null || input === "")
     return;
   if (typeof input === "string") {
-    const preset = PRESETS[input.trim().toLowerCase()];
+    const key = input.trim().toLowerCase();
+    const preset = Object.hasOwn(PRESETS, key) ? PRESETS[key] : undefined;
     if (!preset) {
       throw new Error(`Unknown color preset "${input}". Valid presets: ${Object.keys(PRESETS).join(", ")}. Or pass {textColor, backgroundColor}.`);
     }
     return preset;
   }
   const pair = input;
-  if (!pair.textColor || !pair.backgroundColor) {
+  if (typeof pair.textColor !== "string" || typeof pair.backgroundColor !== "string") {
     throw new Error("color needs both textColor and backgroundColor");
   }
   return {
@@ -950,7 +959,7 @@ var HANDLERS = {
 async function callTool(name, args, accessToken) {
   if (!accessToken)
     return failure("Not connected; connect the plugin first.");
-  const handler = HANDLERS[name];
+  const handler = Object.hasOwn(HANDLERS, name) ? HANDLERS[name] : undefined;
   if (!handler)
     return failure(`Unknown tool: ${name}`);
   try {

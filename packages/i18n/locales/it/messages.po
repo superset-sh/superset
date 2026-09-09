@@ -3584,8 +3584,8 @@ msgstr "Collegato"
 msgid "connected {0}"
 msgstr "collegato {0}"
 
-msgid "Connected {connected}"
-msgstr "{connected} connesso"
+msgid "Connected {label}"
+msgstr "{label} connesso"
 
 msgid "Connected as"
 msgstr "Collegato come"

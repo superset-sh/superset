@@ -3584,8 +3584,8 @@ msgstr "接続済み"
 msgid "connected {0}"
 msgstr "{0} に接続"
 
-msgid "Connected {connected}"
-msgstr "{connected} に接続しました"
+msgid "Connected {label}"
+msgstr "{label} に接続しました"
 
 msgid "Connected as"
 msgstr "接続アカウント"

@@ -3584,8 +3584,8 @@ msgstr "Bağlı"
 msgid "connected {0}"
 msgstr "bağlandı {0}"
 
-msgid "Connected {connected}"
-msgstr "{connected} bağlandı"
+msgid "Connected {label}"
+msgstr "{label} bağlandı"
 
 msgid "Connected as"
 msgstr "Şu hesapla bağlı"

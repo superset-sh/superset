@@ -3584,8 +3584,8 @@ msgstr "Đã kết nối"
 msgid "connected {0}"
 msgstr "đã kết nối {0}"
 
-msgid "Connected {connected}"
-msgstr "Đã kết nối {connected}"
+msgid "Connected {label}"
+msgstr "Đã kết nối {label}"
 
 msgid "Connected as"
 msgstr "Đã kết nối với tư cách"

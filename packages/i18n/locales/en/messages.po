@@ -3584,8 +3584,8 @@ msgstr "Connected"
 msgid "connected {0}"
 msgstr "connected {0}"
 
-msgid "Connected {connected}"
-msgstr "Connected {connected}"
+msgid "Connected {label}"
+msgstr "Connected {label}"
 
 msgid "Connected as"
 msgstr "Connected as"

@@ -3584,8 +3584,8 @@ msgstr "연결됨"
 msgid "connected {0}"
 msgstr "{0}에 연결됨"
 
-msgid "Connected {connected}"
-msgstr "{connected} 연결됨"
+msgid "Connected {label}"
+msgstr "{label} 연결됨"
 
 msgid "Connected as"
 msgstr "연결 계정"

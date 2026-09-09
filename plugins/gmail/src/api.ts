@@ -8,12 +8,24 @@ export interface GmailRequest {
 	body?: unknown;
 }
 
+function safePath(path: string): string {
+	return path
+		.split("/")
+		.map((segment) => {
+			if (segment === "." || segment === "..") {
+				throw new Error(`invalid Gmail path segment "${segment}"`);
+			}
+			return encodeURIComponent(segment);
+		})
+		.join("/");
+}
+
 export async function gmail<T = Record<string, unknown>>(
 	accessToken: string,
 	path: string,
 	request: GmailRequest = {},
 ): Promise<T> {
-	const url = new URL(`${BASE}${path}`);
+	const url = new URL(`${BASE}${safePath(path)}`);
 	for (const [key, value] of Object.entries(request.query ?? {})) {
 		if (value === undefined || value === null || value === "") continue;
 		if (Array.isArray(value)) {

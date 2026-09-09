@@ -127,7 +127,8 @@ export function resolveColor(input: unknown): LabelColor | undefined {
 	if (input === undefined || input === null || input === "") return undefined;
 
 	if (typeof input === "string") {
-		const preset = PRESETS[input.trim().toLowerCase()];
+		const key = input.trim().toLowerCase();
+		const preset = Object.hasOwn(PRESETS, key) ? PRESETS[key] : undefined;
 		if (!preset) {
 			throw new Error(
 				`Unknown color preset "${input}". Valid presets: ${Object.keys(PRESETS).join(", ")}. Or pass {textColor, backgroundColor}.`,
@@ -137,7 +138,10 @@ export function resolveColor(input: unknown): LabelColor | undefined {
 	}
 
 	const pair = input as Partial<LabelColor>;
-	if (!pair.textColor || !pair.backgroundColor) {
+	if (
+		typeof pair.textColor !== "string" ||
+		typeof pair.backgroundColor !== "string"
+	) {
 		throw new Error("color needs both textColor and backgroundColor");
 	}
 	return {

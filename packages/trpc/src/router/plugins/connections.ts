@@ -180,7 +180,12 @@ export async function connectionById(
 	const [row] = await db
 		.select()
 		.from(pluginConnections)
-		.where(eq(pluginConnections.id, connectionId))
+		.where(
+			and(
+				eq(pluginConnections.id, connectionId),
+				isNull(pluginConnections.disconnectedAt),
+			),
+		)
 		.limit(1);
 	return row;
 }
