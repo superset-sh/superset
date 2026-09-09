@@ -2063,6 +2063,15 @@ msgstr "pièce jointe"
 msgid "Attachment"
 msgstr "Pièce jointe"
 
+msgid "Attachment is no longer available"
+msgstr "La pièce jointe n'est plus disponible"
+
+msgid "Attachment is too large"
+msgstr "La pièce jointe est trop volumineuse"
+
+msgid "Attachment not found"
+msgstr "Pièce jointe introuvable"
+
 msgid "attachment preview"
 msgstr "aperçu de la pièce jointe"
 
@@ -2074,6 +2083,13 @@ msgstr "Échec de l'envoi de la pièce jointe ({0}) : {1}"
 #. placeholder {0}: first.message
 msgid "Attachment upload failed: {0}"
 msgstr "Échec de l'envoi de la pièce jointe : {0}"
+
+msgid "Attachment was not uploaded — send the bytes first"
+msgstr "La pièce jointe n'a pas été téléversée — envoyez d'abord les données"
+
+#. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
+msgid "Attachments are at most {0} MB."
+msgstr "Les pièces jointes font au maximum {0} Mo."
 
 msgid "Attachments are not wired yet"
 msgstr "Les pièces jointes ne sont pas encore prises en charge"
@@ -14977,6 +14993,9 @@ msgstr "Mettre à jour les instructions de nommage pour {0}"
 msgid "Update Required"
 msgstr "Mise à jour requise"
 
+msgid "Update Superset on this machine to attach files"
+msgstr "Mettez à jour Superset sur cette machine pour joindre des fichiers"
+
 msgid "update the branch prefix"
 msgstr "mettre à jour le préfixe de branche"
 
@@ -15762,6 +15781,9 @@ msgstr "Vous êtes le seul propriétaire d'une organisation qui compte d'autres 
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "Vous n'êtes pas classé tant que {0} jours n'ont pas d'activité. Le score démarre une fois la vue d'ensemble disponible."
+
+msgid "You can attach up to {MAX_ATTACHMENTS} files"
+msgstr "Vous pouvez joindre jusqu'à {MAX_ATTACHMENTS} fichiers"
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Cette action est irréversible. Les volets de terminal afficheront « Processus terminé » et pourront être relancés."

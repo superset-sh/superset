@@ -2063,6 +2063,15 @@ msgstr "attachment"
 msgid "Attachment"
 msgstr "Attachment"
 
+msgid "Attachment is no longer available"
+msgstr "Attachment is no longer available"
+
+msgid "Attachment is too large"
+msgstr "Attachment is too large"
+
+msgid "Attachment not found"
+msgstr "Attachment not found"
+
 msgid "attachment preview"
 msgstr "attachment preview"
 
@@ -2074,6 +2083,13 @@ msgstr "Attachment upload failed ({0}): {1}"
 #. placeholder {0}: first.message
 msgid "Attachment upload failed: {0}"
 msgstr "Attachment upload failed: {0}"
+
+msgid "Attachment was not uploaded — send the bytes first"
+msgstr "Attachment was not uploaded — send the bytes first"
+
+#. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
+msgid "Attachments are at most {0} MB."
+msgstr "Attachments are at most {0} MB."
 
 msgid "Attachments are not wired yet"
 msgstr "Attachments are not wired yet"
@@ -14977,6 +14993,9 @@ msgstr "Update naming instructions for {0}"
 msgid "Update Required"
 msgstr "Update Required"
 
+msgid "Update Superset on this machine to attach files"
+msgstr "Update Superset on this machine to attach files"
+
 msgid "update the branch prefix"
 msgstr "update the branch prefix"
 
@@ -15762,6 +15781,9 @@ msgstr "You are the only owner of an organization that has other members. Transf
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
+
+msgid "You can attach up to {MAX_ATTACHMENTS} files"
+msgstr "You can attach up to {MAX_ATTACHMENTS} files"
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."

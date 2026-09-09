@@ -2063,6 +2063,15 @@ msgstr "附件"
 msgid "Attachment"
 msgstr "附件"
 
+msgid "Attachment is no longer available"
+msgstr "附件已不可用"
+
+msgid "Attachment is too large"
+msgstr "附件过大"
+
+msgid "Attachment not found"
+msgstr "未找到附件"
+
 msgid "attachment preview"
 msgstr "附件预览"
 
@@ -2074,6 +2083,13 @@ msgstr "附件上传失败（{0}）：{1}"
 #. placeholder {0}: first.message
 msgid "Attachment upload failed: {0}"
 msgstr "附件上传失败：{0}"
+
+msgid "Attachment was not uploaded — send the bytes first"
+msgstr "附件尚未上传 — 请先发送数据"
+
+#. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
+msgid "Attachments are at most {0} MB."
+msgstr "附件最大为{0} MB。"
 
 msgid "Attachments are not wired yet"
 msgstr "附件功能尚未接入"
@@ -14977,6 +14993,9 @@ msgstr "更新{0}的命名规则"
 msgid "Update Required"
 msgstr "需要更新"
 
+msgid "Update Superset on this machine to attach files"
+msgstr "请在这台机器上更新Superset以附加文件"
+
 msgid "update the branch prefix"
 msgstr "更新分支前缀"
 
@@ -15762,6 +15781,9 @@ msgstr "你是某个仍有其他成员的组织的唯一所有者。请先转移
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "在累计 {0} 天使用记录之前你不参与排名。等看板掌握完整情况后才会开始计分。"
+
+msgid "You can attach up to {MAX_ATTACHMENTS} files"
+msgstr "最多可附加{MAX_ATTACHMENTS}个文件"
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "此操作无法撤销。终端窗格会显示“进程已退出”，之后可以重新启动。"

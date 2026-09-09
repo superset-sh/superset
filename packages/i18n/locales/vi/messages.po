@@ -2063,6 +2063,15 @@ msgstr "tệp đính kèm"
 msgid "Attachment"
 msgstr "Tệp đính kèm"
 
+msgid "Attachment is no longer available"
+msgstr "Tệp đính kèm không còn khả dụng"
+
+msgid "Attachment is too large"
+msgstr "Tệp đính kèm quá lớn"
+
+msgid "Attachment not found"
+msgstr "Không tìm thấy tệp đính kèm"
+
 msgid "attachment preview"
 msgstr "xem trước tệp đính kèm"
 
@@ -2074,6 +2083,13 @@ msgstr "Tải tệp đính kèm lên thất bại ({0}): {1}"
 #. placeholder {0}: first.message
 msgid "Attachment upload failed: {0}"
 msgstr "Tải tệp đính kèm lên thất bại: {0}"
+
+msgid "Attachment was not uploaded — send the bytes first"
+msgstr "Tệp đính kèm chưa được tải lên — hãy gửi dữ liệu trước"
+
+#. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
+msgid "Attachments are at most {0} MB."
+msgstr "Tệp đính kèm tối đa {0} MB."
 
 msgid "Attachments are not wired yet"
 msgstr "Tệp đính kèm chưa được hỗ trợ"
@@ -14977,6 +14993,9 @@ msgstr "Cập nhật quy tắc đặt tên cho {0}"
 msgid "Update Required"
 msgstr "Cần cập nhật"
 
+msgid "Update Superset on this machine to attach files"
+msgstr "Hãy cập nhật Superset trên máy này để đính kèm tệp"
+
 msgid "update the branch prefix"
 msgstr "cập nhật tiền tố nhánh"
 
@@ -15762,6 +15781,9 @@ msgstr "Bạn là chủ sở hữu duy nhất của một tổ chức còn thàn
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "Bạn chưa được xếp hạng cho đến khi có {0} ngày hoạt động. Việc tính điểm bắt đầu khi thấy được bức tranh đầy đủ."
+
+msgid "You can attach up to {MAX_ATTACHMENTS} files"
+msgstr "Bạn có thể đính kèm tối đa {MAX_ATTACHMENTS} tệp"
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Không thể hoàn tác thao tác này. Các khung terminal sẽ hiện \"Process exited\" và có thể khởi động lại."

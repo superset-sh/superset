@@ -4,7 +4,7 @@ import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 /**
  * Everything needed to re-run a create verbatim from the failed screen, plus
  * the labels the interstitials display (`projectName · branchLabel`, the
- * agent being started). Attachments re-upload from their local URIs.
+ * agent being started).
  */
 export interface PendingWorkspaceCreateInput {
 	target: {
@@ -27,6 +27,13 @@ export interface PendingWorkspaceCreateInput {
 	model: string | null;
 	effort: string | null;
 	message: PromptInputMessage;
+	/**
+	 * The message's attachments, already in cloud storage. Resolved before the
+	 * create is recorded so a retry replays the same ids: the bytes went up
+	 * once, when the files were attached, and the local URIs they came from
+	 * are gone with the draft by the time the failed screen offers a retry.
+	 */
+	attachmentFileIds: string[];
 }
 
 export interface PendingWorkspaceCreate {

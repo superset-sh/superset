@@ -1,10 +1,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { TRPCClientError } from "@trpc/client";
 import { randomUUID } from "expo-crypto";
-import { File } from "expo-file-system";
 import { useRouter } from "expo-router";
 import { getHostWorkspacesQueryKey } from "@/hooks/useHostWorkspaces";
+import { asAttachmentError } from "@/lib/attachments/errors";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
+import { isMissingProcedureError } from "@/lib/host-service/errors";
 import { posthog } from "@/lib/posthog";
 import { getHostTerminalsQueryKey } from "@/screens/(authenticated)/(home)/home/hooks/useHostTerminals";
 import {
@@ -12,25 +12,37 @@ import {
 	usePendingWorkspaceCreatesStore,
 } from "@/screens/(authenticated)/stores/pendingWorkspaceCreatesStore";
 
-const FALLBACK_MEDIA_TYPE = "application/octet-stream";
-
-/** Older hosts don't have `workspaces.createEnqueued` yet. */
-function isMissingProcedureError(error: unknown): boolean {
-	return (
-		error instanceof TRPCClientError &&
-		/no procedure found on path/i.test(error.message)
-	);
-}
-
 type CreateTerminalWorkspaceArgs = PendingWorkspaceCreateInput & {
 	/** Retry from the failed state replaces instead of pushing. */
 	replace?: boolean;
 };
 
 /**
+ * Pulls the already-uploaded attachments onto the host. The bytes skip the
+ * relay entirely — they went device → cloud storage when the files were
+ * attached — because a relay request body is buffered whole in a Cloudflare
+ * Worker and refused by its edge above 100 MB.
+ */
+async function importAttachments(
+	client: ReturnType<typeof getHostServiceClientByUrl>,
+	fileIds: string[],
+): Promise<string[]> {
+	if (fileIds.length === 0) return [];
+	try {
+		const imported = await client.attachments.importFromCloud.mutate({
+			fileIds,
+		});
+		return imported.map((entry) => entry.attachmentId);
+	} catch (error) {
+		throw asAttachmentError(error);
+	}
+}
+
+/**
  * Creates a workspace on the target host with the claude agent sugar — the
  * host launches the terminal agent and delivers the first prompt itself.
- * Attachments upload to the same host first (they're host-local).
+ * Attachments reach that host through cloud storage first, since the agent
+ * needs them on disk before it launches.
  *
  * Navigation is optimistic: the id is minted client-side and the workspace
  * screen is pushed before the host is asked, because the full create
@@ -63,16 +75,9 @@ export function useCreateTerminalWorkspace() {
 
 			try {
 				const client = getHostServiceClientByUrl(target.hostUrl);
-				const attachmentIds = await Promise.all(
-					message.attachments.map(async (attachment) => {
-						const base64 = await new File(attachment.uri).base64();
-						const uploaded = await client.attachments.upload.mutate({
-							data: { kind: "base64", data: base64 },
-							mediaType: attachment.mediaType ?? FALLBACK_MEDIA_TYPE,
-							originalFilename: attachment.name,
-						});
-						return uploaded.attachmentId;
-					}),
+				const attachmentIds = await importAttachments(
+					client,
+					input.attachmentFileIds,
 				);
 
 				const createInput = {

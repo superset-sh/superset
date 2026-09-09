@@ -77,6 +77,15 @@ struct ComposerCarousel: View {
           fileCard(attachment)
         }
       }
+      // Before the clip, so the scrim takes the thumbnail's rounded corners
+      // rather than sitting as a square over them.
+      .overlay {
+        if attachment.failed {
+          uploadFailed()
+        } else if let progress = attachment.progress {
+          uploadRing(progress)
+        }
+      }
       .clipShape(.rect(cornerRadius: ComposerMetrics.thumbnailRadius, style: .continuous))
       .thumbnailEdge(radius: ComposerMetrics.thumbnailRadius)
       .contentShape(.rect)
@@ -101,6 +110,65 @@ struct ComposerCarousel: View {
       )
       .accessibilityLabel("Remove attachment")
     }
+  }
+
+  /// An upload that did not finish. The same scrim as the ring it replaces,
+  /// so a tray of mixed states reads as one row rather than two treatments.
+  ///
+  /// Marked rather than removed: the attachment is still in the draft, and
+  /// sending the message retries it.
+  private func uploadFailed() -> some View {
+    ZStack {
+      Color.black.opacity(0.45)
+      Image(systemName: "exclamationmark.triangle.fill")
+        .font(.system(size: ComposerMetrics.uploadRingSize * 0.62, weight: .semibold))
+        .foregroundStyle(Color(red: 0.88, green: 0.31, blue: 0.31))  // destructive, dark
+        .thumbnailShadow()
+    }
+    .allowsHitTesting(false)
+    .accessibilityLabel("Upload failed")
+  }
+
+  /// How far along an attachment's upload is, over a scrim so the ring stays
+  /// legible on a bright photo as well as a dark file card.
+  ///
+  /// It reads as an arc rather than a spinner because the size of these files
+  /// is the point: a 200 MB bundle takes long enough that "working" is not
+  /// useful and "how much is left" is.
+  private func uploadRing(_ progress: Double) -> some View {
+    ZStack {
+      Color.black.opacity(0.45)
+      ZStack {
+        Circle()
+          .stroke(
+            .white.opacity(0.3),
+            lineWidth: ComposerMetrics.uploadRingWidth
+          )
+        Circle()
+          // A hair of arc from the start, so a transfer that has not reported
+          // yet still reads as begun rather than as an empty track.
+          .trim(from: 0, to: max(progress, 0.02))
+          .stroke(
+            .white,
+            style: StrokeStyle(
+              lineWidth: ComposerMetrics.uploadRingWidth,
+              lineCap: .round
+            )
+          )
+          // From twelve o'clock; `trim` starts at three.
+          .rotationEffect(.degrees(-90))
+          .animation(.easeOut(duration: 0.2), value: progress)
+      }
+      .frame(
+        width: ComposerMetrics.uploadRingSize,
+        height: ComposerMetrics.uploadRingSize
+      )
+    }
+    .allowsHitTesting(false)
+    .accessibilityLabel("Uploading")
+    .accessibilityValue(
+      Text(progress.formatted(.percent.precision(.fractionLength(0))))
+    )
   }
 
   @ViewBuilder

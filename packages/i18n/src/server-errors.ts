@@ -19,6 +19,18 @@ export const serverErrorMessages: Record<
 				message: "Active organization required to create an API key",
 			}),
 		),
+	"serverError.attachment.notFound": () =>
+		i18n._(
+			msg({
+				message: "Attachment not found",
+			}),
+		),
+	"serverError.attachment.notUploaded": () =>
+		i18n._(
+			msg({
+				message: "Attachment was not uploaded — send the bytes first",
+			}),
+		),
 	"serverError.automation.aRunForThisAutomation": () =>
 		i18n._(
 			msg({

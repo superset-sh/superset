@@ -1,5 +1,6 @@
 import { useLingui } from "@lingui/react/macro";
 import { Composer, type ComposerHandle } from "@superset/composer";
+import { errorMessage } from "@superset/i18n/errors";
 import { isCloudAgentId } from "@superset/shared/cloud-agent-launch";
 import { getPresetById } from "@superset/shared/host-agent-presets";
 import { useQuery } from "@tanstack/react-query";
@@ -10,6 +11,7 @@ import { Alert } from "react-native";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import { useCloudEnvironments } from "@/hooks/useCloudEnvironments";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
+import { awaitAttachmentUploads } from "@/lib/attachments/upload";
 import { useSession } from "@/lib/auth/client";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
 import { posthog } from "@/lib/posthog";
@@ -20,6 +22,7 @@ import {
 	useAgentLaunchPreferences,
 } from "@/screens/(authenticated)/hooks/useAgentLaunchPreferences";
 import { useAttachmentsSheet } from "@/screens/(authenticated)/hooks/useAttachmentsSheet";
+import { useAttachmentUploads } from "@/screens/(authenticated)/hooks/useAttachmentUploads";
 import { useComposerDraft } from "@/screens/(authenticated)/hooks/useComposerDraft";
 import { useCreateTerminalWorkspace } from "@/screens/(authenticated)/hooks/useCreateTerminalWorkspace";
 import { useHostAgentConfigs } from "@/screens/(authenticated)/hooks/useHostAgentConfigs";
@@ -61,6 +64,7 @@ export function NewChatWidget({
 	const draft = useComposerDraft(HOME_DRAFT_KEY);
 	const openAttachmentsSheet = useAttachmentsSheet(HOME_DRAFT_KEY);
 	const addPasted = usePasteAttachments(HOME_DRAFT_KEY);
+	const uploads = useAttachmentUploads(HOME_DRAFT_KEY);
 
 	// What was typed here last time, pinned at mount: a starting value handed to
 	// the composer as it is set up, never a binding.
@@ -184,7 +188,7 @@ export function NewChatWidget({
 		draft.clear();
 	};
 
-	const submit = (message: PromptInputMessage) => {
+	const submit = async (message: PromptInputMessage) => {
 		posthog.capture("chat_message_sent", {
 			has_attachments: message.attachments.length > 0,
 			attachment_count: message.attachments.length,
@@ -220,6 +224,24 @@ export function NewChatWidget({
 				.catch(() => {});
 			return;
 		}
+		// Before the create is recorded, so the failed screen's retry replays
+		// ids rather than URIs the cleared draft no longer has. Usually
+		// instant: the upload started when the file was attached, and the ring
+		// on the thumbnail is what shows the rare case where it has not
+		// finished.
+		let attachmentFileIds: string[];
+		try {
+			attachmentFileIds = await awaitAttachmentUploads(
+				HOME_DRAFT_KEY,
+				message.attachments,
+			);
+		} catch (error) {
+			Alert.alert(
+				t({ message: "Could not attach files" }),
+				errorMessage(error),
+			);
+			return;
+		}
 		createTerminalWorkspace
 			.mutateAsync({
 				target: selectedTarget,
@@ -230,6 +252,7 @@ export function NewChatWidget({
 				model,
 				effort,
 				message,
+				attachmentFileIds,
 			})
 			.then(() => {
 				setBaseBranch(null);
@@ -290,6 +313,12 @@ export function NewChatWidget({
 				uri: item.uri ?? "",
 				kind: item.type === "image" ? ("image" as const) : ("file" as const),
 				name: item.name,
+				// Dropped the moment the id lands, so a settled tray draws no
+				// rings — only what is still in flight is marked.
+				progress: uploads[item.id]?.fileId
+					? undefined
+					: uploads[item.id]?.progress,
+				failed: uploads[item.id]?.error !== undefined,
 			}))}
 			headerChips={headerChips}
 			selectedModel={selectedModel}
@@ -305,7 +334,7 @@ export function NewChatWidget({
 					},
 				});
 			}}
-			onSubmit={(text) => submit({ text, attachments: draft.attachments })}
+			onSubmit={(text) => void submit({ text, attachments: draft.attachments })}
 			onDraftChange={draft.setText}
 			onRemoveAttachment={(id) => draft.remove(id)}
 			onExpandedChange={(expanded) => {

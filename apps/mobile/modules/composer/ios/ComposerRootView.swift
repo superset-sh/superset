@@ -157,6 +157,11 @@ enum ComposerMetrics {
   static let fileGlyphRadius: CGFloat = 8
   static let fileChipInset: CGFloat = 7
   static let fileLabelSize: CGFloat = 12
+  /// The upload ring, sized against the 80pt thumbnail: large enough to read
+  /// an arc at a glance, small enough that the image behind it is still
+  /// recognizable as the thing being sent.
+  static let uploadRingSize: CGFloat = 28
+  static let uploadRingWidth: CGFloat = 3
   static let removeBadgeSize: CGFloat = 17
   static let removeBadgeInset: CGFloat = 6
   /// Transparent padding around the badge, because 17pt is less than half

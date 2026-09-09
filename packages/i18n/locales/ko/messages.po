@@ -2063,6 +2063,15 @@ msgstr "첨부 파일"
 msgid "Attachment"
 msgstr "첨부 파일"
 
+msgid "Attachment is no longer available"
+msgstr "첨부 파일을 더 이상 사용할 수 없습니다"
+
+msgid "Attachment is too large"
+msgstr "첨부 파일이 너무 큽니다"
+
+msgid "Attachment not found"
+msgstr "첨부 파일을 찾을 수 없습니다"
+
 msgid "attachment preview"
 msgstr "첨부 파일 미리보기"
 
@@ -2074,6 +2083,13 @@ msgstr "첨부 파일 업로드 실패 ({0}): {1}"
 #. placeholder {0}: first.message
 msgid "Attachment upload failed: {0}"
 msgstr "첨부 파일 업로드 실패: {0}"
+
+msgid "Attachment was not uploaded — send the bytes first"
+msgstr "첨부 파일이 업로드되지 않았습니다 — 먼저 데이터를 전송하세요"
+
+#. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
+msgid "Attachments are at most {0} MB."
+msgstr "첨부 파일은 최대 {0} MB입니다."
 
 msgid "Attachments are not wired yet"
 msgstr "첨부 파일은 아직 연결되지 않았습니다"
@@ -14977,6 +14993,9 @@ msgstr "{0}의 이름 지정 지침 업데이트"
 msgid "Update Required"
 msgstr "업데이트 필요"
 
+msgid "Update Superset on this machine to attach files"
+msgstr "파일을 첨부하려면 이 컴퓨터에서 Superset을 업데이트하세요"
+
 msgid "update the branch prefix"
 msgstr "브랜치 접두사를 업데이트할"
 
@@ -15762,6 +15781,9 @@ msgstr "다른 멤버가 있는 조직의 유일한 소유자입니다. 먼저 �
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "{0}일치 사용 기록이 쌓이기 전까지는 순위가 없습니다. 전체 그림이 보이면 점수 산정이 시작됩니다."
+
+msgid "You can attach up to {MAX_ATTACHMENTS} files"
+msgstr "파일은 최대 {MAX_ATTACHMENTS}개까지 첨부할 수 있습니다"
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "이 작업은 되돌릴 수 없습니다. 터미널 패널에 \"Process exited\"가 표시되며 다시 시작할 수 있습니다."

@@ -1,5 +1,11 @@
 import { useLingui } from "@lingui/react/macro";
+import { formatNumber } from "@superset/i18n/format";
+import {
+	MAX_ATTACHMENT_BYTES,
+	MAX_ATTACHMENTS,
+} from "@superset/shared/attachment-limits";
 import * as DocumentPicker from "expo-document-picker";
+import { File } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import { useCallback } from "react";
 import { Alert } from "react-native";
@@ -9,6 +15,10 @@ import {
 	imageAssetToAttachment,
 	type PromptInputAttachmentInput,
 } from "@/components/ai-elements/prompt-input";
+import {
+	cancelAttachmentUpload,
+	startAttachmentUploads,
+} from "@/lib/attachments/upload";
 import { posthog } from "@/lib/posthog";
 import {
 	EMPTY_DRAFT,
@@ -20,6 +30,16 @@ export type AttachmentSource = "camera" | "photos" | "files" | "paste";
 
 const composerName = (key: string) =>
 	key === HOME_DRAFT_KEY ? "home" : "workspace";
+
+/**
+ * The picker's own figure where it gave one, the file on disk otherwise —
+ * the camera, the native sheet and paste all hand over a uri and nothing
+ * else. `size` is 0 for anything unreadable, which passes here and is caught
+ * at upload, where the failure can name the file.
+ */
+function sizeOf(item: PromptInputAttachmentInput): number {
+	return item.size ?? new File(item.uri).size;
+}
 
 /**
  * One composer surface's draft — its text and its attachment tray.
@@ -63,31 +83,77 @@ export function useComposerDraft(key: string) {
 		[key],
 	);
 
+	// Enforced here rather than at send: this is the one funnel every source
+	// goes through (both pickers, the camera, the native sheet, paste), and a
+	// file the composer cannot send is better refused while the user is still
+	// looking at the picker than after they have written a message around it.
 	const add = useCallback(
 		(items: PromptInputAttachmentInput[], source: AttachmentSource) => {
 			if (items.length === 0) return;
-			addForKey(
-				key,
-				items.map((item) => ({ ...item, id: createAttachmentId() })),
+
+			const sized = items.filter(
+				(item) => sizeOf(item) <= MAX_ATTACHMENT_BYTES,
 			);
+			const capacity = Math.max(0, MAX_ATTACHMENTS - attachments.length);
+			const accepted = sized.slice(0, capacity);
+
+			// One reason, size first: it names a specific file the user chose,
+			// where the count is about the tray as a whole. Two alerts in a row
+			// would only bury the more useful one.
+			if (sized.length < items.length) {
+				Alert.alert(
+					t({
+						message: "Attachment is too large",
+					}),
+					t({
+						message: `Attachments are at most ${formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)} MB.`,
+					}),
+				);
+			} else if (accepted.length < sized.length) {
+				Alert.alert(
+					t({
+						message: `You can attach up to ${MAX_ATTACHMENTS} files`,
+					}),
+				);
+			}
+			if (accepted.length === 0) return;
+
+			const withIds = accepted.map((item) => ({
+				...item,
+				id: createAttachmentId(),
+			}));
+			addForKey(key, withIds);
+			// Started here rather than at send: the upload then runs while the
+			// message is still being written, which on a large file is the
+			// whole difference in how the send feels.
+			startAttachmentUploads(key, withIds);
 			posthog.capture("attachment_added", {
 				source,
-				count: items.length,
+				count: accepted.length,
 				composer: composerName(key),
 			});
 		},
-		[key, addForKey],
+		[key, addForKey, attachments.length, t],
 	);
 
 	const remove = useCallback(
 		(id: string) => {
+			cancelAttachmentUpload(id);
 			removeForKey(key, id);
 			posthog.capture("attachment_removed", { composer: composerName(key) });
 		},
 		[key, removeForKey],
 	);
 
-	const clear = useCallback(() => clearForKey(key), [key, clearForKey]);
+	// Whatever is still in flight belongs to a draft that no longer exists.
+	// After a send they have all finished and there is nothing to abort.
+	const clear = useCallback(() => {
+		for (const item of useComposerDraftsStore.getState().draftsByKey[key]
+			?.attachments ?? []) {
+			cancelAttachmentUpload(item.id);
+		}
+		clearForKey(key);
+	}, [key, clearForKey]);
 
 	const openImagePicker = useCallback(async () => {
 		try {

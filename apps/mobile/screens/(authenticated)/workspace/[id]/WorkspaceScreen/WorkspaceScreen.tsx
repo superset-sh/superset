@@ -46,6 +46,7 @@ import { useAgentIconUris } from "@/screens/(authenticated)/hooks/useAgentIconUr
 import { useAppReviewPrompt } from "@/screens/(authenticated)/hooks/useAppReviewPrompt";
 import { useCreateTerminalWorkspace } from "@/screens/(authenticated)/hooks/useCreateTerminalWorkspace";
 import { useSlashCommands } from "@/screens/(authenticated)/hooks/useSlashCommands";
+import { workspaceDraftKey } from "@/screens/(authenticated)/stores/composerDraftsStore";
 import { usePendingWorkspaceCreatesStore } from "@/screens/(authenticated)/stores/pendingWorkspaceCreatesStore";
 import { useTerminalSeenStore } from "@/screens/(authenticated)/stores/terminalSeenStore";
 import { useTerminalTabOrderStore } from "@/screens/(authenticated)/stores/terminalTabOrderStore";
@@ -554,10 +555,12 @@ export function WorkspaceScreen() {
 		host !== null &&
 		!hostCompatibility.incompatible;
 
+	// The host resolves its own worktree; a path here is only the signal that
+	// there is one to write into yet.
 	const attachmentTarget = useMemo(
 		() =>
 			id && hostUrl && workspace?.worktreePath
-				? { workspaceId: id, hostUrl, worktreePath: workspace.worktreePath }
+				? { workspaceId: id, hostUrl, draftKey: workspaceDraftKey(id) }
 				: null,
 		[id, hostUrl, workspace],
 	);

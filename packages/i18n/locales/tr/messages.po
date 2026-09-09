@@ -2063,6 +2063,15 @@ msgstr "ek"
 msgid "Attachment"
 msgstr "Ek"
 
+msgid "Attachment is no longer available"
+msgstr "Ek artık kullanılamıyor"
+
+msgid "Attachment is too large"
+msgstr "Ek çok büyük"
+
+msgid "Attachment not found"
+msgstr "Ek bulunamadı"
+
 msgid "attachment preview"
 msgstr "ek önizlemesi"
 
@@ -2074,6 +2083,13 @@ msgstr "Ek yüklenemedi ({0}): {1}"
 #. placeholder {0}: first.message
 msgid "Attachment upload failed: {0}"
 msgstr "Ek yüklenemedi: {0}"
+
+msgid "Attachment was not uploaded — send the bytes first"
+msgstr "Ek yüklenmedi — önce verileri gönderin"
+
+#. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
+msgid "Attachments are at most {0} MB."
+msgstr "Ekler en fazla {0} MB olabilir."
 
 msgid "Attachments are not wired yet"
 msgstr "Ekler henüz bağlanmadı"
@@ -14977,6 +14993,9 @@ msgstr "{0} için adlandırma yönergelerini güncelle"
 msgid "Update Required"
 msgstr "Güncelleme gerekli"
 
+msgid "Update Superset on this machine to attach files"
+msgstr "Dosya eklemek için bu makinede Superset'i güncelleyin"
+
 msgid "update the branch prefix"
 msgstr "dal ön ekini güncelleme"
 
@@ -15762,6 +15781,9 @@ msgstr "Başka üyeleri olan bir kuruluşun tek sahibisiniz. Önce sahipliği de
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "{0} gün kullanım birikene kadar sıralama dışısın. Tablo bütün resmi gördüğünde puanlama başlar."
+
+msgid "You can attach up to {MAX_ATTACHMENTS} files"
+msgstr "En fazla {MAX_ATTACHMENTS} dosya ekleyebilirsiniz"
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Bu işlemi geri alamazsınız. Terminal bölmelerinde \"Process exited\" görünür ve yeniden başlatılabilirler."

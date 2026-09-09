@@ -2063,6 +2063,15 @@ msgstr "anexo"
 msgid "Attachment"
 msgstr "Anexo"
 
+msgid "Attachment is no longer available"
+msgstr "O anexo não está mais disponível"
+
+msgid "Attachment is too large"
+msgstr "O anexo é muito grande"
+
+msgid "Attachment not found"
+msgstr "Anexo não encontrado"
+
 msgid "attachment preview"
 msgstr "prévia do anexo"
 
@@ -2074,6 +2083,13 @@ msgstr "Falha no envio do anexo ({0}): {1}"
 #. placeholder {0}: first.message
 msgid "Attachment upload failed: {0}"
 msgstr "Falha no envio do anexo: {0}"
+
+msgid "Attachment was not uploaded — send the bytes first"
+msgstr "O anexo não foi enviado — envie os dados primeiro"
+
+#. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
+msgid "Attachments are at most {0} MB."
+msgstr "Os anexos têm no máximo {0} MB."
 
 msgid "Attachments are not wired yet"
 msgstr "Os anexos ainda não estão habilitados"
@@ -14977,6 +14993,9 @@ msgstr "Atualizar as instruções de nomenclatura de {0}"
 msgid "Update Required"
 msgstr "Atualização necessária"
 
+msgid "Update Superset on this machine to attach files"
+msgstr "Atualize o Superset nesta máquina para anexar arquivos"
+
 msgid "update the branch prefix"
 msgstr "atualizar o prefixo da branch"
 
@@ -15762,6 +15781,9 @@ msgstr "Você é o único proprietário de uma organização que tem outros memb
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "Você fica sem classificação até que {0} dias tenham atividade. A pontuação começa quando o quadro enxerga o quadro completo."
+
+msgid "You can attach up to {MAX_ATTACHMENTS} files"
+msgstr "Você pode anexar até {MAX_ATTACHMENTS} arquivos"
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Não dá para desfazer. Os painéis de terminal vão mostrar \"Processo encerrado\" e podem ser reiniciados."

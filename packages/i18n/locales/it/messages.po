@@ -2063,6 +2063,15 @@ msgstr "allegato"
 msgid "Attachment"
 msgstr "Allegato"
 
+msgid "Attachment is no longer available"
+msgstr "L'allegato non è più disponibile"
+
+msgid "Attachment is too large"
+msgstr "L'allegato è troppo grande"
+
+msgid "Attachment not found"
+msgstr "Allegato non trovato"
+
 msgid "attachment preview"
 msgstr "anteprima dell'allegato"
 
@@ -2074,6 +2083,13 @@ msgstr "Caricamento dell'allegato non riuscito ({0}): {1}"
 #. placeholder {0}: first.message
 msgid "Attachment upload failed: {0}"
 msgstr "Caricamento dell'allegato non riuscito: {0}"
+
+msgid "Attachment was not uploaded — send the bytes first"
+msgstr "L'allegato non è stato caricato — invia prima i dati"
+
+#. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
+msgid "Attachments are at most {0} MB."
+msgstr "Gli allegati possono essere al massimo {0} MB."
 
 msgid "Attachments are not wired yet"
 msgstr "Gli allegati non sono ancora collegati"
@@ -14977,6 +14993,9 @@ msgstr "Aggiorna le istruzioni di denominazione per {0}"
 msgid "Update Required"
 msgstr "Aggiornamento richiesto"
 
+msgid "Update Superset on this machine to attach files"
+msgstr "Aggiorna Superset su questa macchina per allegare file"
+
 msgid "update the branch prefix"
 msgstr "aggiornare il prefisso dei branch"
 
@@ -15762,6 +15781,9 @@ msgstr "Sei l'unico proprietario di un'organizzazione che ha altri membri. Trasf
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "Non sei classificato finché {0} giorni non registrano attività. Il punteggio parte quando il quadro è completo."
+
+msgid "You can attach up to {MAX_ATTACHMENTS} files"
+msgstr "Puoi allegare fino a {MAX_ATTACHMENTS} file"
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Non puoi annullare questa azione. I pannelli del terminale mostreranno \"Processo terminato\" e potranno essere riavviati."

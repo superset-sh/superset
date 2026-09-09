@@ -2063,6 +2063,15 @@ msgstr "bijlage"
 msgid "Attachment"
 msgstr "Bijlage"
 
+msgid "Attachment is no longer available"
+msgstr "Bijlage is niet meer beschikbaar"
+
+msgid "Attachment is too large"
+msgstr "Bijlage is te groot"
+
+msgid "Attachment not found"
+msgstr "Bijlage niet gevonden"
+
 msgid "attachment preview"
 msgstr "voorbeeld van bijlage"
 
@@ -2074,6 +2083,13 @@ msgstr "Uploaden van bijlage mislukt ({0}): {1}"
 #. placeholder {0}: first.message
 msgid "Attachment upload failed: {0}"
 msgstr "Uploaden van bijlage mislukt: {0}"
+
+msgid "Attachment was not uploaded — send the bytes first"
+msgstr "Bijlage is niet geüpload — verstuur eerst de gegevens"
+
+#. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
+msgid "Attachments are at most {0} MB."
+msgstr "Bijlagen zijn maximaal {0} MB."
 
 msgid "Attachments are not wired yet"
 msgstr "Bijlagen zijn nog niet aangesloten"
@@ -14977,6 +14993,9 @@ msgstr "Naamgevingsinstructies bijwerken voor {0}"
 msgid "Update Required"
 msgstr "Update vereist"
 
+msgid "Update Superset on this machine to attach files"
+msgstr "Werk Superset op deze machine bij om bestanden toe te voegen"
+
 msgid "update the branch prefix"
 msgstr "de branchprefix bijwerken"
 
@@ -15762,6 +15781,9 @@ msgstr "Je bent de enige eigenaar van een organisatie met andere leden. Draag he
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "Je hebt geen positie tot {0} dagen gebruik tonen. De score start zodra het volledige beeld zichtbaar is."
+
+msgid "You can attach up to {MAX_ATTACHMENTS} files"
+msgstr "Je kunt maximaal {MAX_ATTACHMENTS} bestanden toevoegen"
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Dit kun je niet ongedaan maken. Terminalpanelen tonen \"Process exited\" en zijn opnieuw te starten."

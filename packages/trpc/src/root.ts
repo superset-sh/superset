@@ -5,6 +5,7 @@ import { analyticsRouter } from "./router/analytics";
 import { businessRouter } from "./router/analytics/business";
 import { growthRouter } from "./router/analytics/growth";
 import { apiKeyRouter } from "./router/api-key";
+import { attachmentRouter } from "./router/attachment";
 import { automationRouter } from "./router/automation";
 import { billingRouter } from "./router/billing";
 import { chatRouter } from "./router/chat";
@@ -30,6 +31,7 @@ export const appRouter = createTRPCRouter({
 	admin: adminRouter,
 	apiKey: apiKeyRouter,
 	analytics: analyticsRouter,
+	attachment: attachmentRouter,
 	automation: automationRouter,
 	business: businessRouter,
 	billing: billingRouter,

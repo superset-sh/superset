@@ -28,6 +28,10 @@
 			"types": "./src/cloud-agent-launch.ts",
 			"default": "./src/cloud-agent-launch.ts"
 		},
+		"./attachment-limits": {
+			"types": "./src/attachment-limits.ts",
+			"default": "./src/attachment-limits.ts"
+		},
 		"./constants": {
 			"types": "./src/constants.ts",
 			"default": "./src/constants.ts"

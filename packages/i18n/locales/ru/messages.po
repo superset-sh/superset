@@ -2063,6 +2063,15 @@ msgstr "вложение"
 msgid "Attachment"
 msgstr "Вложение"
 
+msgid "Attachment is no longer available"
+msgstr "Вложение больше недоступно"
+
+msgid "Attachment is too large"
+msgstr "Вложение слишком большое"
+
+msgid "Attachment not found"
+msgstr "Вложение не найдено"
+
 msgid "attachment preview"
 msgstr "предпросмотр вложения"
 
@@ -2074,6 +2083,13 @@ msgstr "Не удалось загрузить вложение ({0}): {1}"
 #. placeholder {0}: first.message
 msgid "Attachment upload failed: {0}"
 msgstr "Не удалось загрузить вложение: {0}"
+
+msgid "Attachment was not uploaded — send the bytes first"
+msgstr "Вложение не было загружено — сначала отправьте данные"
+
+#. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
+msgid "Attachments are at most {0} MB."
+msgstr "Размер вложения — не более {0} МБ."
 
 msgid "Attachments are not wired yet"
 msgstr "Вложения ещё не подключены"
@@ -14977,6 +14993,9 @@ msgstr "Обновить правила именования для {0}"
 msgid "Update Required"
 msgstr "Требуется обновление"
 
+msgid "Update Superset on this machine to attach files"
+msgstr "Обновите Superset на этой машине, чтобы прикреплять файлы"
+
 msgid "update the branch prefix"
 msgstr "обновить префикс ветки"
 
@@ -15762,6 +15781,9 @@ msgstr "Вы единственный владелец организации, �
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "Вы вне рейтинга, пока не наберётся дней с активностью: {0}. Подсчёт очков начнётся, когда картина станет полной."
+
+msgid "You can attach up to {MAX_ATTACHMENTS} files"
+msgstr "Можно прикрепить не более {MAX_ATTACHMENTS} файлов"
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Это действие нельзя отменить. В панелях терминала появится «Process exited», их можно перезапустить."

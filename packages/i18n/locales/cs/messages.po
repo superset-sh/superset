@@ -2063,6 +2063,15 @@ msgstr "příloha"
 msgid "Attachment"
 msgstr "Příloha"
 
+msgid "Attachment is no longer available"
+msgstr "Příloha už není dostupná"
+
+msgid "Attachment is too large"
+msgstr "Příloha je příliš velká"
+
+msgid "Attachment not found"
+msgstr "Příloha nenalezena"
+
 msgid "attachment preview"
 msgstr "náhled přílohy"
 
@@ -2074,6 +2083,13 @@ msgstr "Nahrání přílohy selhalo ({0}): {1}"
 #. placeholder {0}: first.message
 msgid "Attachment upload failed: {0}"
 msgstr "Nahrání přílohy selhalo: {0}"
+
+msgid "Attachment was not uploaded — send the bytes first"
+msgstr "Příloha nebyla nahrána — nejdřív odešlete data"
+
+#. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
+msgid "Attachments are at most {0} MB."
+msgstr "Přílohy mohou mít nejvýše {0} MB."
 
 msgid "Attachments are not wired yet"
 msgstr "Přílohy zatím nejsou propojené"
@@ -14977,6 +14993,9 @@ msgstr "Upravit pravidla pojmenování pro {0}"
 msgid "Update Required"
 msgstr "Vyžadována aktualizace"
 
+msgid "Update Superset on this machine to attach files"
+msgstr "Aktualizujte na tomto počítači Superset, abyste mohli přikládat soubory"
+
 msgid "update the branch prefix"
 msgstr "aktualizovat prefix větve"
 
@@ -15762,6 +15781,9 @@ msgstr "Jste jediný vlastník organizace, která má další členy. Nejprve p�
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "Nemáš pořadí, dokud nebude dní s aktivitou: {0}. Bodování začne, až bude vidět celý obrázek."
+
+msgid "You can attach up to {MAX_ATTACHMENTS} files"
+msgstr "Můžete přiložit nejvýše {MAX_ATTACHMENTS} souborů"
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Tuto akci nelze vrátit zpět. Panely terminálu zobrazí „Proces skončil“ a půjde je spustit znovu."

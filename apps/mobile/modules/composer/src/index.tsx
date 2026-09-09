@@ -99,6 +99,17 @@ export interface ComposerAttachment {
 	 * draw the same glyph. Ignored for images, which show themselves.
 	 */
 	name?: string;
+	/**
+	 * 0–1 while the file is still on its way to cloud storage, drawn as a ring
+	 * over the thumbnail. Omitted once it has landed, or when nothing is
+	 * uploading — a tray of settled attachments draws no rings.
+	 */
+	progress?: number;
+	/**
+	 * The upload failed. Marks the thumbnail instead of the ring; the
+	 * attachment stays in the tray because sending the message retries it.
+	 */
+	failed?: boolean;
 }
 
 /**

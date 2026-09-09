@@ -13,6 +13,7 @@ import { Alert, View } from "react-native";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import { posthog } from "@/lib/posthog";
 import { useAttachmentsSheet } from "@/screens/(authenticated)/hooks/useAttachmentsSheet";
+import { useAttachmentUploads } from "@/screens/(authenticated)/hooks/useAttachmentUploads";
 import { useComposerDraft } from "@/screens/(authenticated)/hooks/useComposerDraft";
 import { usePasteAttachments } from "@/screens/(authenticated)/hooks/usePasteAttachments";
 import { workspaceDraftKey } from "@/screens/(authenticated)/stores/composerDraftsStore";
@@ -136,6 +137,7 @@ export const TerminalComposer = forwardRef<
 	const draft = useComposerDraft(draftKey);
 	const openAttachmentsSheet = useAttachmentsSheet(draftKey);
 	const addPasted = usePasteAttachments(draftKey);
+	const uploads = useAttachmentUploads(draftKey);
 
 	// What was typed here last time, pinned at mount: a starting value handed to
 	// the composer as it is set up, never a binding.
@@ -282,6 +284,10 @@ export const TerminalComposer = forwardRef<
 										? ("image" as const)
 										: ("file" as const),
 								name: item.name,
+								progress: uploads[item.id]?.fileId
+									? undefined
+									: uploads[item.id]?.progress,
+								failed: uploads[item.id]?.error !== undefined,
 							}))
 						: []
 				}
