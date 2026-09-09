@@ -856,6 +856,9 @@ msgstr "{skipped, plural, one {# пропущено} few {# пропущено} 
 msgid "{starCount} stars and counting"
 msgstr "{starCount} звёзд и продолжаем"
 
+msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
+msgstr "{stars} звёзд · {perDay}/день на этой неделе · {peakPerDay}/день на пике"
+
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, one {# субагент выполняется} few {# субагента выполняются} many {# субагентов выполняются} other {# субагента выполняются}}"
 
@@ -3111,6 +3114,9 @@ msgstr "Кликните по двум коммитам, чтобы задать
 msgid "Click-through rate"
 msgstr "Кликабельность"
 
+msgid "Clicked upgrade"
+msgstr "Нажал апгрейд"
+
 msgid "Clicks"
 msgstr "Клики"
 
@@ -3313,6 +3319,9 @@ msgstr "Когорта"
 
 msgid "Cohort retention"
 msgstr "Удержание по когортам"
+
+msgid "cohort size"
+msgstr "размер когорты"
 
 msgid "Collapse"
 msgstr "Свернуть"
@@ -6647,6 +6656,9 @@ msgstr "GitHub отклонил учётные данные этого комп�
 msgid "GitHub sign-in needed"
 msgstr "Требуется вход в GitHub"
 
+msgid "GitHub stars"
+msgstr "Звёзды GitHub"
+
 msgid "GitHub unreachable"
 msgstr "GitHub недоступен"
 
@@ -8812,6 +8824,9 @@ msgstr "Отлично, открой PR, когда будет готово."
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "На этом хосте нет входов {0} — войдите, и данные появятся здесь."
 
+msgid "No {gaps} events in this window yet."
+msgstr "В этом периоде пока нет событий {gaps}."
+
 msgid "No access to this host"
 msgstr "Нет доступа к этому хосту"
 
@@ -10271,6 +10286,9 @@ msgstr "постраничная навигация"
 msgid "Pagination"
 msgstr "Постраничная навигация"
 
+msgid "Paid"
+msgstr "Оплатил"
+
 msgid "Paid churn — cohort survival"
 msgstr "Отток платных — выживаемость когорт"
 
@@ -10373,6 +10391,12 @@ msgstr "Способ оплаты"
 msgid "Payment Successful"
 msgstr "Платёж прошёл"
 
+msgid "Paywall → paid"
+msgstr "Пейволл → оплата"
+
+msgid "Paywall conversion over time"
+msgstr "Конверсия пейволла со временем"
+
 msgid "PDF"
 msgstr "PDF"
 
@@ -10381,6 +10405,9 @@ msgstr "Пиковый темп"
 
 msgid "Pending Invitations"
 msgstr "Ожидающие приглашения"
+
+msgid "People whose first paywall view was in the last {weeks} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
+msgstr "Люди, впервые увидевшие пейволл за последние {weeks} недель, и то, как далеко они прошли. Этап учитывает всех, кто достиг его после этого показа, поэтому недавние когорты ещё не дозрели."
 
 msgid "People with access"
 msgstr "У кого есть доступ"
@@ -12099,6 +12126,9 @@ msgstr "Сохранение..."
 msgid "Saving…"
 msgstr "Сохранение…"
 
+msgid "Saw the paywall"
+msgstr "Увидел пейволл"
+
 msgid "Scale from two agents to 100+"
 msgstr "От двух агентов до 100+"
 
@@ -13340,6 +13370,9 @@ msgstr "Запустить рабочую область"
 
 msgid "Started"
 msgstr "Начато"
+
+msgid "Started checkout"
+msgstr "Начал оформление оплаты"
 
 msgid "starting"
 msgstr "запускается"
@@ -15399,6 +15432,12 @@ msgstr "Смотреть {count} пул-реквестов"
 msgid "View {name}"
 msgstr "Посмотреть {name}"
 
+msgid "view → paid"
+msgstr "показ → оплата"
+
+msgid "view → upgrade click"
+msgstr "показ → нажатие апгрейда"
+
 msgid "View all"
 msgstr "Смотреть все"
 
@@ -15606,6 +15645,9 @@ msgstr "Еженедельно"
 
 msgid "Weekly at {time}"
 msgstr "Еженедельно в {time}"
+
+msgid "Weekly cohorts by first paywall view. Bars are cohort size; the current week is still filling."
+msgstr "Недельные когорты по первому показу пейволла. Столбцы — размер когорты; текущая неделя ещё заполняется."
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "Недельные когорты по первой реальной рабочей области; % вернувшихся с ещё одной рабочей областью каждую неделю"

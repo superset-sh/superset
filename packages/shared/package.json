@@ -44,6 +44,10 @@
 			"types": "./src/git-hook-tolerance.ts",
 			"default": "./src/git-hook-tolerance.ts"
 		},
+		"./github-stars": {
+			"types": "./src/github-stars.ts",
+			"default": "./src/github-stars.ts"
+		},
 		"./integrations": {
 			"types": "./src/integrations.ts",
 			"default": "./src/integrations.ts"

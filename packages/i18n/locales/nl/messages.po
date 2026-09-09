@@ -856,6 +856,9 @@ msgstr "{skipped, plural, one {# overgeslagen} other {# overgeslagen}}"
 msgid "{starCount} stars and counting"
 msgstr "{starCount} sterren en het worden er meer"
 
+msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
+msgstr "{stars} sterren · {perDay}/dag deze week · {peakPerDay}/dag op de piek"
+
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, one {# subagent actief} other {# subagents actief}}"
 
@@ -3111,6 +3114,9 @@ msgstr "Klik op twee commits om het bereik te bepalen."
 msgid "Click-through rate"
 msgstr "Doorklikratio"
 
+msgid "Clicked upgrade"
+msgstr "Klikte op upgraden"
+
 msgid "Clicks"
 msgstr "Klikken"
 
@@ -3313,6 +3319,9 @@ msgstr "Cohort"
 
 msgid "Cohort retention"
 msgstr "Cohortretentie"
+
+msgid "cohort size"
+msgstr "cohortgrootte"
 
 msgid "Collapse"
 msgstr "Inklappen"
@@ -6647,6 +6656,9 @@ msgstr "GitHub heeft de inloggegevens van deze machine geweigerd, dus pull reque
 msgid "GitHub sign-in needed"
 msgstr "Aanmelden bij GitHub vereist"
 
+msgid "GitHub stars"
+msgstr "GitHub-sterren"
+
 msgid "GitHub unreachable"
 msgstr "GitHub onbereikbaar"
 
@@ -8812,6 +8824,9 @@ msgstr "Mooi, open een PR als het klaar is."
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "Geen {0}-logins op deze host — log in en het gebruik verschijnt hier."
 
+msgid "No {gaps} events in this window yet."
+msgstr "Nog geen {gaps}-events in deze periode."
+
 msgid "No access to this host"
 msgstr "Geen toegang tot deze host"
 
@@ -10271,6 +10286,9 @@ msgstr "paginering"
 msgid "Pagination"
 msgstr "Paginering"
 
+msgid "Paid"
+msgstr "Betaald"
+
 msgid "Paid churn — cohort survival"
 msgstr "Betaalde churn — cohortoverleving"
 
@@ -10373,6 +10391,12 @@ msgstr "Betaalmethode"
 msgid "Payment Successful"
 msgstr "Betaling geslaagd"
 
+msgid "Paywall → paid"
+msgstr "Paywall → betaald"
+
+msgid "Paywall conversion over time"
+msgstr "Paywall-conversie in de tijd"
+
 msgid "PDF"
 msgstr "PDF"
 
@@ -10381,6 +10405,9 @@ msgstr "Piektempo"
 
 msgid "Pending Invitations"
 msgstr "Openstaande uitnodigingen"
+
+msgid "People whose first paywall view was in the last {weeks} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
+msgstr "Personen die de paywall voor het eerst zagen in de afgelopen {weeks} weken, en hoe ver ze kwamen. Een stap telt iedereen die deze na die weergave bereikte, dus recente cohorten zijn nog niet volgroeid."
 
 msgid "People with access"
 msgstr "Personen met toegang"
@@ -12099,6 +12126,9 @@ msgstr "Opslaan..."
 msgid "Saving…"
 msgstr "Opslaan…"
 
+msgid "Saw the paywall"
+msgstr "Zag de paywall"
+
 msgid "Scale from two agents to 100+"
 msgstr "Schaal van twee agents naar 100+"
 
@@ -13340,6 +13370,9 @@ msgstr "Werkruimte starten"
 
 msgid "Started"
 msgstr "Gestart"
+
+msgid "Started checkout"
+msgstr "Startte het afrekenen"
 
 msgid "starting"
 msgstr "starten"
@@ -15399,6 +15432,12 @@ msgstr "{count} pull requests bekijken"
 msgid "View {name}"
 msgstr "{name} bekijken"
 
+msgid "view → paid"
+msgstr "weergave → betaald"
+
+msgid "view → upgrade click"
+msgstr "weergave → upgradeklik"
+
 msgid "View all"
 msgstr "Alles bekijken"
 
@@ -15606,6 +15645,9 @@ msgstr "Wekelijks"
 
 msgid "Weekly at {time}"
 msgstr "Wekelijks om {time}"
+
+msgid "Weekly cohorts by first paywall view. Bars are cohort size; the current week is still filling."
+msgstr "Wekelijkse cohorten op basis van de eerste paywall-weergave. Balken zijn de cohortgrootte; de huidige week vult zich nog."
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "Wekelijkse cohorten op basis van eerste echte werkruimte; % dat elke week terugkeert met nog een werkruimte"

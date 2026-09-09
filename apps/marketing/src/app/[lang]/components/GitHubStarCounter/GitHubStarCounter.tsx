@@ -1,7 +1,7 @@
 import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
-import { formatStarCount, getGitHubRepoSlug } from "@/lib/github";
+import { formatStarCount, githubRepoSlug } from "@superset/shared/github-stars";
 
 interface GitHubRepoResponse {
 	stargazers_count: number;
@@ -10,7 +10,7 @@ interface GitHubRepoResponse {
 async function getGitHubStars(): Promise<number | null> {
 	try {
 		const response = await fetch(
-			`https://api.github.com/repos/${getGitHubRepoSlug()}`,
+			`https://api.github.com/repos/${githubRepoSlug()}`,
 			{
 				headers: {
 					Accept: "application/vnd.github.v3+json",

@@ -3,14 +3,14 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
-import { Button } from "@superset/ui/button";
-import { Calendar } from "@superset/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { CalendarIcon } from "lucide-react";
 import type { DateRange } from "react-day-picker";
-import { formatRangeLabel } from "@/app/[lang]/utils/formatRangeLabel";
+import { formatRangeLabel } from "../../../../lib/format-range-label";
+import { Button } from "../../../ui/button";
+import { Calendar } from "../../../ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "../../../ui/popover";
 
-interface DateRangePickerProps {
+interface StarRangePickerProps {
 	range: DateRange | undefined;
 	onRangeChange: (range: DateRange | undefined) => void;
 	fromDate: Date;
@@ -52,12 +52,12 @@ const PRESETS: Array<{
 	},
 ];
 
-export function DateRangePicker({
+export function StarRangePicker({
 	range,
 	onRangeChange,
 	fromDate,
 	toDate,
-}: DateRangePickerProps) {
+}: StarRangePickerProps) {
 	const { t } = useLingui();
 	// With no selection, defaultMonth + the next month are both shown
 	// (numberOfMonths={2}) — anchoring on toDate would put a fully-disabled

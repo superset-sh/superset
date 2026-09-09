@@ -856,6 +856,9 @@ msgstr "{skipped, plural, one {# přeskočeno} few {# přeskočeno} many {# pře
 msgid "{starCount} stars and counting"
 msgstr "{starCount} hvězd a přibývá"
 
+msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
+msgstr "{stars} hvězd · {perDay}/den tento týden · {peakPerDay}/den ve špičce"
+
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, one {# subagent běží} few {# subagenti běží} many {# subagenta běží} other {# subagentů běží}}"
 
@@ -3111,6 +3114,9 @@ msgstr "Kliknutím na dva commity určíte rozsah."
 msgid "Click-through rate"
 msgstr "Míra prokliku"
 
+msgid "Clicked upgrade"
+msgstr "Klikl na přechod výš"
+
 msgid "Clicks"
 msgstr "Kliknutí"
 
@@ -3313,6 +3319,9 @@ msgstr "Kohorta"
 
 msgid "Cohort retention"
 msgstr "Retence kohort"
+
+msgid "cohort size"
+msgstr "velikost kohorty"
 
 msgid "Collapse"
 msgstr "Sbalit"
@@ -6647,6 +6656,9 @@ msgstr "GitHub odmítl přihlašovací údaje tohoto počítače, takže pull re
 msgid "GitHub sign-in needed"
 msgstr "Je vyžadováno přihlášení ke GitHubu"
 
+msgid "GitHub stars"
+msgstr "Hvězdy na GitHubu"
+
 msgid "GitHub unreachable"
 msgstr "GitHub je nedostupný"
 
@@ -8812,6 +8824,9 @@ msgstr "Super, až budeš mít hotovo, otevři PR."
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "Na tomto hostu nejsou žádná přihlášení {0} — přihlaste se a využití se objeví tady."
 
+msgid "No {gaps} events in this window yet."
+msgstr "V tomto období zatím nejsou žádné události {gaps}."
+
 msgid "No access to this host"
 msgstr "K tomuto hostu nemáte přístup"
 
@@ -10271,6 +10286,9 @@ msgstr "stránkování"
 msgid "Pagination"
 msgstr "Stránkování"
 
+msgid "Paid"
+msgstr "Zaplatil"
+
 msgid "Paid churn — cohort survival"
 msgstr "Churn plateb — přežití kohort"
 
@@ -10373,6 +10391,12 @@ msgstr "Způsob platby"
 msgid "Payment Successful"
 msgstr "Platba proběhla"
 
+msgid "Paywall → paid"
+msgstr "Paywall → platba"
+
+msgid "Paywall conversion over time"
+msgstr "Konverze paywallu v čase"
+
 msgid "PDF"
 msgstr "PDF"
 
@@ -10381,6 +10405,9 @@ msgstr "Nejvyšší tempo"
 
 msgid "Pending Invitations"
 msgstr "Čekající pozvánky"
+
+msgid "People whose first paywall view was in the last {weeks} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
+msgstr "Lidé, kteří paywall poprvé viděli za posledních {weeks} týdnů, a jak daleko došli. Fáze počítá každého, kdo se do ní dostal po tomto zobrazení, takže nedávné kohorty ještě dozrávají."
 
 msgid "People with access"
 msgstr "Lidé s přístupem"
@@ -12099,6 +12126,9 @@ msgstr "Ukládání…"
 msgid "Saving…"
 msgstr "Ukládám…"
 
+msgid "Saw the paywall"
+msgstr "Viděl paywall"
+
 msgid "Scale from two agents to 100+"
 msgstr "Od dvou agentů ke stovkám"
 
@@ -13340,6 +13370,9 @@ msgstr "Spustit pracovní prostor"
 
 msgid "Started"
 msgstr "Zahájeno"
+
+msgid "Started checkout"
+msgstr "Začal platbu"
 
 msgid "starting"
 msgstr "spouští se"
@@ -15399,6 +15432,12 @@ msgstr "Zobrazit {count} pull requestů"
 msgid "View {name}"
 msgstr "Zobrazit {name}"
 
+msgid "view → paid"
+msgstr "zobrazení → platba"
+
+msgid "view → upgrade click"
+msgstr "zobrazení → klik na přechod výš"
+
 msgid "View all"
 msgstr "Zobrazit vše"
 
@@ -15606,6 +15645,9 @@ msgstr "Týdně"
 
 msgid "Weekly at {time}"
 msgstr "Týdně v {time}"
+
+msgid "Weekly cohorts by first paywall view. Bars are cohort size; the current week is still filling."
+msgstr "Týdenní kohorty podle prvního zobrazení paywallu. Sloupce jsou velikost kohorty; aktuální týden se ještě plní."
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "Týdenní kohorty podle prvního skutečného pracovního prostoru; % těch, kdo se každý týden vrátí s dalším prostorem"

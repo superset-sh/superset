@@ -68,6 +68,10 @@
 			"types": "./src/router/automation/webhookSecret.ts",
 			"default": "./src/router/automation/webhookSecret.ts"
 		},
+		"./star-history": {
+			"types": "./src/lib/growth/star-history.ts",
+			"default": "./src/lib/growth/star-history.ts"
+		},
 		"./insight-registry": {
 			"types": "./src/router/analytics/insight-registry.ts",
 			"default": "./src/router/analytics/insight-registry.ts"

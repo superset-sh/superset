@@ -1,10 +1,13 @@
 "use client";
 
 import { Trans } from "@lingui/react/macro";
-import { ToggleGroup, ToggleGroupItem } from "@superset/ui/toggle-group";
+import type { StarHistoryPoint } from "@superset/shared/github-stars";
 import { useMemo, useState } from "react";
 import type { DateRange } from "react-day-picker";
-import type { StarHistoryPoint } from "../../utils/getStarHistory";
+import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
+import { StarHistoryChart } from "./components/StarHistoryChart";
+import { StarPaceChart } from "./components/StarPaceChart";
+import { StarRangePicker } from "./components/StarRangePicker";
 import {
 	aggregateToWeekly,
 	computePeriodDeltas,
@@ -12,16 +15,16 @@ import {
 	parseLocalDate,
 	toLocalDateString,
 	WEEK_MS,
-} from "../../utils/starPace";
-import { DateRangePicker } from "../DateRangePicker";
-import { StarHistoryChart } from "../StarHistoryChart";
-import { StarPaceChart } from "../StarPaceChart";
+} from "./utils/starPace";
 
-interface StarChartSectionProps {
+interface StarChartProps {
 	points: StarHistoryPoint[];
 }
 
-export function StarChartSection({ points }: StarChartSectionProps) {
+// The cumulative star curve plus its per-period pace, with a granularity
+// toggle and a date-range filter. Shared by the public /starchart page and the
+// admin dashboard so both read the same numbers from the same code.
+export function StarChart({ points }: StarChartProps) {
 	const [range, setRange] = useState<DateRange | undefined>(undefined);
 	const [granularity, setGranularity] = useState<"day" | "week">("week");
 
@@ -79,7 +82,7 @@ export function StarChartSection({ points }: StarChartSectionProps) {
 						<Trans>Week</Trans>
 					</ToggleGroupItem>
 				</ToggleGroup>
-				<DateRangePicker
+				<StarRangePicker
 					range={range}
 					onRangeChange={setRange}
 					fromDate={bounds.from}

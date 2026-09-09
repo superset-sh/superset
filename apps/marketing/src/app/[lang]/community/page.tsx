@@ -2,11 +2,11 @@ import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
+import { githubRepoSlug } from "@superset/shared/github-stars";
 import { ArrowUpRight } from "lucide-react";
 import type { Metadata } from "next";
 import { localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
-import { getGitHubRepoSlug } from "@/lib/github";
 
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
@@ -33,7 +33,7 @@ interface GitHubRepoResponse {
 async function getGitHubStars(): Promise<number | null> {
 	try {
 		const response = await fetch(
-			`https://api.github.com/repos/${getGitHubRepoSlug()}`,
+			`https://api.github.com/repos/${githubRepoSlug()}`,
 			{
 				headers: { Accept: "application/vnd.github.v3+json" },
 				next: { revalidate: 3600 },

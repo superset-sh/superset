@@ -856,6 +856,9 @@ msgstr "{skipped, plural, one {# ignoré} other {# ignorés}}"
 msgid "{starCount} stars and counting"
 msgstr "{starCount} étoiles, et ça continue"
 
+msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
+msgstr "{stars} étoiles · {perDay}/jour cette semaine · {peakPerDay}/jour au pic"
+
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, one {# sous-agent en cours} other {# sous-agents en cours}}"
 
@@ -3111,6 +3114,9 @@ msgstr "Cliquez sur deux commits pour définir la plage."
 msgid "Click-through rate"
 msgstr "Taux de clics"
 
+msgid "Clicked upgrade"
+msgstr "A cliqué sur mise à niveau"
+
 msgid "Clicks"
 msgstr "Clics"
 
@@ -3313,6 +3319,9 @@ msgstr "Cohorte"
 
 msgid "Cohort retention"
 msgstr "Rétention par cohorte"
+
+msgid "cohort size"
+msgstr "taille de la cohorte"
 
 msgid "Collapse"
 msgstr "Réduire"
@@ -6647,6 +6656,9 @@ msgstr "GitHub a rejeté les identifiants de cette machine, les pull requests ne
 msgid "GitHub sign-in needed"
 msgstr "Connexion à GitHub requise"
 
+msgid "GitHub stars"
+msgstr "Étoiles GitHub"
+
 msgid "GitHub unreachable"
 msgstr "GitHub inaccessible"
 
@@ -8812,6 +8824,9 @@ msgstr "Parfait, ouvre une pull request quand c'est prêt."
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "Aucune connexion {0} sur cet hôte — connectez-vous et l'utilisation apparaîtra ici."
 
+msgid "No {gaps} events in this window yet."
+msgstr "Aucun événement {gaps} sur cette période pour l'instant."
+
 msgid "No access to this host"
 msgstr "Aucun accès à cet hôte"
 
@@ -10271,6 +10286,9 @@ msgstr "pagination"
 msgid "Pagination"
 msgstr "Pagination"
 
+msgid "Paid"
+msgstr "A payé"
+
 msgid "Paid churn — cohort survival"
 msgstr "Churn payant — survie des cohortes"
 
@@ -10373,6 +10391,12 @@ msgstr "Moyen de paiement"
 msgid "Payment Successful"
 msgstr "Paiement réussi"
 
+msgid "Paywall → paid"
+msgstr "Paywall → payant"
+
+msgid "Paywall conversion over time"
+msgstr "Conversion du paywall dans le temps"
+
 msgid "PDF"
 msgstr "PDF"
 
@@ -10381,6 +10405,9 @@ msgstr "Rythme maximal"
 
 msgid "Pending Invitations"
 msgstr "Invitations en attente"
+
+msgid "People whose first paywall view was in the last {weeks} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
+msgstr "Personnes dont la première vue du paywall date des {weeks} dernières semaines, et jusqu'où elles sont allées. Une étape compte toute personne qui l'a atteinte après cette vue, donc les cohortes récentes ne sont pas encore mûres."
 
 msgid "People with access"
 msgstr "Personnes ayant accès"
@@ -12099,6 +12126,9 @@ msgstr "Enregistrement..."
 msgid "Saving…"
 msgstr "Enregistrement…"
 
+msgid "Saw the paywall"
+msgstr "A vu le paywall"
+
 msgid "Scale from two agents to 100+"
 msgstr "Passez de deux agents à plus de 100"
 
@@ -13340,6 +13370,9 @@ msgstr "Démarrer l'espace de travail"
 
 msgid "Started"
 msgstr "Démarrée"
+
+msgid "Started checkout"
+msgstr "A commencé le paiement"
 
 msgid "starting"
 msgstr "démarrage"
@@ -15399,6 +15432,12 @@ msgstr "Voir {count} pull requests"
 msgid "View {name}"
 msgstr "Voir {name}"
 
+msgid "view → paid"
+msgstr "vue → payant"
+
+msgid "view → upgrade click"
+msgstr "vue → clic sur mise à niveau"
+
 msgid "View all"
 msgstr "Tout afficher"
 
@@ -15606,6 +15645,9 @@ msgstr "Hebdomadaire"
 
 msgid "Weekly at {time}"
 msgstr "Hebdomadaire à {time}"
+
+msgid "Weekly cohorts by first paywall view. Bars are cohort size; the current week is still filling."
+msgstr "Cohortes hebdomadaires selon la première vue du paywall. Les barres indiquent la taille de la cohorte ; la semaine en cours se remplit encore."
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "Cohortes hebdomadaires par premier espace de travail réel ; % revenant avec un autre espace de travail chaque semaine"

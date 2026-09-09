@@ -1,14 +1,14 @@
 "use client";
 
 import { useLingui } from "@lingui/react/macro";
+import { formatStarCount } from "@superset/shared/github-stars";
+import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from "recharts";
 import {
 	type ChartConfig,
 	ChartContainer,
 	ChartTooltip,
 	ChartTooltipContent,
-} from "@superset/ui/chart";
-import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from "recharts";
-import { formatStarCount } from "@/lib/github";
+} from "../../../ui/chart";
 import type { PeriodDelta } from "../../utils/starPace";
 import { formatUTCDate } from "../../utils/starPace";
 

@@ -856,6 +856,9 @@ msgstr "{skipped, plural, one {# bỏ qua} other {# bỏ qua}}"
 msgid "{starCount} stars and counting"
 msgstr "{starCount} star và còn tăng"
 
+msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
+msgstr "{stars} star · {perDay}/ngày tuần này · {peakPerDay}/ngày lúc cao nhất"
+
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, other {# agent con đang chạy}}"
 
@@ -3111,6 +3114,9 @@ msgstr "Nhấp vào hai commit để xác định khoảng."
 msgid "Click-through rate"
 msgstr "Tỷ lệ nhấp"
 
+msgid "Clicked upgrade"
+msgstr "Đã bấm nâng cấp"
+
 msgid "Clicks"
 msgstr "Lượt nhấp"
 
@@ -3313,6 +3319,9 @@ msgstr "Nhóm"
 
 msgid "Cohort retention"
 msgstr "Giữ chân theo nhóm"
+
+msgid "cohort size"
+msgstr "quy mô nhóm"
 
 msgid "Collapse"
 msgstr "Thu gọn"
@@ -6647,6 +6656,9 @@ msgstr "GitHub đã từ chối thông tin xác thực của máy này nên khô
 msgid "GitHub sign-in needed"
 msgstr "Cần đăng nhập GitHub"
 
+msgid "GitHub stars"
+msgstr "Star GitHub"
+
 msgid "GitHub unreachable"
 msgstr "Không thể kết nối GitHub"
 
@@ -8812,6 +8824,9 @@ msgstr "Tốt, mở PR khi sẵn sàng nhé."
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "Chưa có lần đăng nhập {0} nào trên host này — hãy đăng nhập và mức sử dụng sẽ hiện ở đây."
 
+msgid "No {gaps} events in this window yet."
+msgstr "Chưa có sự kiện {gaps} trong khoảng thời gian này."
+
 msgid "No access to this host"
 msgstr "Không có quyền truy cập host này"
 
@@ -10271,6 +10286,9 @@ msgstr "phân trang"
 msgid "Pagination"
 msgstr "Pagination"
 
+msgid "Paid"
+msgstr "Đã trả tiền"
+
 msgid "Paid churn — cohort survival"
 msgstr "Churn trả phí — tỷ lệ trụ lại theo nhóm"
 
@@ -10373,6 +10391,12 @@ msgstr "Phương thức thanh toán"
 msgid "Payment Successful"
 msgstr "Thanh toán thành công"
 
+msgid "Paywall → paid"
+msgstr "Paywall → trả tiền"
+
+msgid "Paywall conversion over time"
+msgstr "Chuyển đổi paywall theo thời gian"
+
 msgid "PDF"
 msgstr "PDF"
 
@@ -10381,6 +10405,9 @@ msgstr "Tốc độ đỉnh"
 
 msgid "Pending Invitations"
 msgstr "Lời mời đang chờ"
+
+msgid "People whose first paywall view was in the last {weeks} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
+msgstr "Những người lần đầu thấy paywall trong {weeks} tuần gần nhất, và họ đi được đến đâu. Mỗi bước tính tất cả những ai đạt tới nó sau lần xem đó, nên các nhóm gần đây vẫn đang hoàn thiện."
 
 msgid "People with access"
 msgstr "Những người có quyền truy cập"
@@ -12099,6 +12126,9 @@ msgstr "Đang lưu..."
 msgid "Saving…"
 msgstr "Đang lưu…"
 
+msgid "Saw the paywall"
+msgstr "Đã thấy paywall"
+
 msgid "Scale from two agents to 100+"
 msgstr "Mở rộng từ hai agent lên hơn 100"
 
@@ -13340,6 +13370,9 @@ msgstr "Bắt đầu workspace"
 
 msgid "Started"
 msgstr "Bắt đầu"
+
+msgid "Started checkout"
+msgstr "Bắt đầu thanh toán"
 
 msgid "starting"
 msgstr "đang khởi động"
@@ -15399,6 +15432,12 @@ msgstr "Xem {count} pull request"
 msgid "View {name}"
 msgstr "Xem {name}"
 
+msgid "view → paid"
+msgstr "lượt xem → trả tiền"
+
+msgid "view → upgrade click"
+msgstr "lượt xem → bấm nâng cấp"
+
 msgid "View all"
 msgstr "Xem tất cả"
 
@@ -15606,6 +15645,9 @@ msgstr "Hằng tuần"
 
 msgid "Weekly at {time}"
 msgstr "Hằng tuần lúc {time}"
+
+msgid "Weekly cohorts by first paywall view. Bars are cohort size; the current week is still filling."
+msgstr "Nhóm theo tuần dựa trên lần đầu thấy paywall. Cột là quy mô nhóm; tuần hiện tại vẫn đang tăng."
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "Nhóm theo tuần dựa trên workspace thực đầu tiên; % quay lại tạo workspace khác mỗi tuần"

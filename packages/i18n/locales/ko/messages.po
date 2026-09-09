@@ -856,6 +856,9 @@ msgstr "{skipped, plural, one {#개 건너뜀} other {#개 건너뜀}}"
 msgid "{starCount} stars and counting"
 msgstr "스타 {starCount}개, 계속 늘어나는 중"
 
+msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
+msgstr "스타 {stars}개 · 이번 주 {perDay}/일 · 최고 {peakPerDay}/일"
+
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, other {서브 에이전트 #개 실행 중}}"
 
@@ -3111,6 +3114,9 @@ msgstr "커밋 두 개를 클릭해 범위를 지정하세요."
 msgid "Click-through rate"
 msgstr "클릭률"
 
+msgid "Clicked upgrade"
+msgstr "업그레이드 클릭"
+
 msgid "Clicks"
 msgstr "클릭"
 
@@ -3313,6 +3319,9 @@ msgstr "코호트"
 
 msgid "Cohort retention"
 msgstr "코호트 리텐션"
+
+msgid "cohort size"
+msgstr "코호트 규모"
 
 msgid "Collapse"
 msgstr "접기"
@@ -6647,6 +6656,9 @@ msgstr "GitHub가 이 컴퓨터의 자격 증명을 거부하여 풀 리퀘스�
 msgid "GitHub sign-in needed"
 msgstr "GitHub 로그인이 필요합니다"
 
+msgid "GitHub stars"
+msgstr "GitHub 스타"
+
 msgid "GitHub unreachable"
 msgstr "GitHub에 연결할 수 없습니다"
 
@@ -8812,6 +8824,9 @@ msgstr "좋아요, 준비되면 PR을 올려 주세요."
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "이 호스트에 {0} 로그인이 없습니다 — 로그인하면 사용량이 여기에 표시됩니다."
 
+msgid "No {gaps} events in this window yet."
+msgstr "이 기간에는 아직 {gaps} 이벤트가 없습니다."
+
 msgid "No access to this host"
 msgstr "이 호스트에 접근할 수 없습니다"
 
@@ -10271,6 +10286,9 @@ msgstr "페이지 매김"
 msgid "Pagination"
 msgstr "페이지네이션"
 
+msgid "Paid"
+msgstr "결제 완료"
+
 msgid "Paid churn — cohort survival"
 msgstr "유료 이탈 — 코호트 생존율"
 
@@ -10373,6 +10391,12 @@ msgstr "결제 수단"
 msgid "Payment Successful"
 msgstr "결제 완료"
 
+msgid "Paywall → paid"
+msgstr "페이월 → 결제"
+
+msgid "Paywall conversion over time"
+msgstr "기간별 페이월 전환율"
+
 msgid "PDF"
 msgstr "PDF"
 
@@ -10381,6 +10405,9 @@ msgstr "최고 속도"
 
 msgid "Pending Invitations"
 msgstr "대기 중인 초대"
+
+msgid "People whose first paywall view was in the last {weeks} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
+msgstr "최근 {weeks}주 안에 페이월을 처음 본 사람과 어디까지 진행했는지. 각 단계는 그 조회 이후 도달한 사람을 세므로 최근 코호트는 아직 채워지는 중입니다."
 
 msgid "People with access"
 msgstr "접근 권한이 있는 사람"
@@ -12099,6 +12126,9 @@ msgstr "저장 중..."
 msgid "Saving…"
 msgstr "저장하는 중…"
 
+msgid "Saw the paywall"
+msgstr "페이월 조회"
+
 msgid "Scale from two agents to 100+"
 msgstr "에이전트 2개에서 100개 이상까지"
 
@@ -13340,6 +13370,9 @@ msgstr "워크스페이스 시작"
 
 msgid "Started"
 msgstr "시작"
+
+msgid "Started checkout"
+msgstr "결제 시작"
 
 msgid "starting"
 msgstr "시작 중"
@@ -15399,6 +15432,12 @@ msgstr "풀 리퀘스트 {count}개 보기"
 msgid "View {name}"
 msgstr "{name} 보기"
 
+msgid "view → paid"
+msgstr "조회 → 결제"
+
+msgid "view → upgrade click"
+msgstr "조회 → 업그레이드 클릭"
+
 msgid "View all"
 msgstr "전체 보기"
 
@@ -15606,6 +15645,9 @@ msgstr "매주"
 
 msgid "Weekly at {time}"
 msgstr "매주 {time}"
+
+msgid "Weekly cohorts by first paywall view. Bars are cohort size; the current week is still filling."
+msgstr "페이월을 처음 본 주 기준 코호트. 막대는 코호트 규모이며 이번 주는 아직 채워지는 중입니다."
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "첫 실제 워크스페이스 기준 주간 코호트. 매주 다른 워크스페이스로 돌아온 비율"

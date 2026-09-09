@@ -1,4 +1,4 @@
-import type { StarHistoryPoint } from "../getStarHistory";
+import type { StarHistoryPoint } from "@superset/shared/github-stars";
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 export const WEEK_MS = 7 * DAY_MS;
@@ -127,6 +127,13 @@ export function toLocalDateString(date: Date): string {
 // this, toLocaleDateString renders in local time, so anyone west of UTC
 // (e.g. the Americas) sees every axis tick, tooltip, and "week of" caption
 // one calendar day earlier than the actual bucketed date.
+//
+// Deliberately pinned to en-US rather than going through
+// `@superset/i18n/format`: /starchart renders these dates from a server
+// component that awaits GitHub before formatting, and the shared i18n instance
+// is process-wide, so a locale-aware formatter there would read whatever locale
+// a concurrent request activated in the meantime. Revisit once server locale is
+// bound per request (see plans/20260826-i18n-strategy.md).
 export function formatUTCDate(
 	timestamp: number,
 	options: Intl.DateTimeFormatOptions,

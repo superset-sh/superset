@@ -856,6 +856,9 @@ msgstr "{skipped, plural, one {#項已跳過} other {#項已跳過}}"
 msgid "{starCount} stars and counting"
 msgstr "{starCount}個星標，還在成長"
 
+msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
+msgstr "{stars}個星標 · 本週{perDay}/天 · 尖峰{peakPerDay}/天"
+
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, other {# 個子代理程式執行中}}"
 
@@ -3111,6 +3114,9 @@ msgstr "點選兩個提交以確定範圍。"
 msgid "Click-through rate"
 msgstr "點閱率"
 
+msgid "Clicked upgrade"
+msgstr "點擊升級"
+
 msgid "Clicks"
 msgstr "點擊"
 
@@ -3313,6 +3319,9 @@ msgstr "同期群"
 
 msgid "Cohort retention"
 msgstr "同期群留存"
+
+msgid "cohort size"
+msgstr "同期群人數"
 
 msgid "Collapse"
 msgstr "摺疊"
@@ -6647,6 +6656,9 @@ msgstr "GitHub 拒絕了此電腦的憑證，因此無法偵測提取請求。�
 msgid "GitHub sign-in needed"
 msgstr "需要登入 GitHub"
 
+msgid "GitHub stars"
+msgstr "GitHub 星標"
+
 msgid "GitHub unreachable"
 msgstr "無法連線至 GitHub"
 
@@ -8812,6 +8824,9 @@ msgstr "不錯，準備好就開個PR。"
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "此主機上沒有{0}登入——登入後用量會顯示在這裡。"
 
+msgid "No {gaps} events in this window yet."
+msgstr "此時間範圍內尚無 {gaps} 事件。"
+
 msgid "No access to this host"
 msgstr "沒有此主機的存取權限"
 
@@ -10271,6 +10286,9 @@ msgstr "分頁"
 msgid "Pagination"
 msgstr "分頁"
 
+msgid "Paid"
+msgstr "已付費"
+
 msgid "Paid churn — cohort survival"
 msgstr "付費流失 — 同期群留存"
 
@@ -10373,6 +10391,12 @@ msgstr "支付方式"
 msgid "Payment Successful"
 msgstr "支付成功"
 
+msgid "Paywall → paid"
+msgstr "付費牆 → 付費"
+
+msgid "Paywall conversion over time"
+msgstr "付費牆轉化率趨勢"
+
 msgid "PDF"
 msgstr "PDF"
 
@@ -10381,6 +10405,9 @@ msgstr "峰值速度"
 
 msgid "Pending Invitations"
 msgstr "待處理邀請"
+
+msgid "People whose first paywall view was in the last {weeks} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
+msgstr "首次看到付費牆在最近 {weeks} 週內的使用者，以及他們走到哪一步。每個階段統計在該次瀏覽之後到達的人，因此近期同期群仍在累積。"
 
 msgid "People with access"
 msgstr "有存取權限的人"
@@ -12099,6 +12126,9 @@ msgstr "正在儲存..."
 msgid "Saving…"
 msgstr "正在儲存…"
 
+msgid "Saw the paywall"
+msgstr "看到付費牆"
+
 msgid "Scale from two agents to 100+"
 msgstr "從兩個代理程式擴到100多個"
 
@@ -13340,6 +13370,9 @@ msgstr "啟動工作區"
 
 msgid "Started"
 msgstr "開始時間"
+
+msgid "Started checkout"
+msgstr "開始結帳"
 
 msgid "starting"
 msgstr "啟動中"
@@ -15399,6 +15432,12 @@ msgstr "檢視{count}個拉取請求"
 msgid "View {name}"
 msgstr "檢視{name}"
 
+msgid "view → paid"
+msgstr "瀏覽 → 付費"
+
+msgid "view → upgrade click"
+msgstr "瀏覽 → 點擊升級"
+
 msgid "View all"
 msgstr "檢視全部"
 
@@ -15606,6 +15645,9 @@ msgstr "每週"
 
 msgid "Weekly at {time}"
 msgstr "每週{time}"
+
+msgid "Weekly cohorts by first paywall view. Bars are cohort size; the current week is still filling."
+msgstr "依首次看到付費牆的週劃分的同期群。柱狀為同期群人數；本週仍在累積。"
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "按首個真實工作區劃分的週同期群；每週再次建立工作區的回訪比例"

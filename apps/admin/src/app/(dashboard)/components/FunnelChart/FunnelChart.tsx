@@ -124,7 +124,14 @@ export function FunnelChart({
 									previous && previous.count > 0
 										? (step.count / previous.count) * 100
 										: null;
-								const dropped = previous ? previous.count - step.count : null;
+								// A stage can exceed the one before it when a step's
+								// event is not emitted by every client yet, so a
+								// "drop-off" is only real when it is positive.
+								const droppedRaw = previous
+									? previous.count - step.count
+									: null;
+								const dropped =
+									droppedRaw !== null && droppedRaw > 0 ? droppedRaw : null;
 								const droppedPctOfStart =
 									dropped !== null && firstCount > 0
 										? (dropped / firstCount) * 100
@@ -159,7 +166,7 @@ export function FunnelChart({
 																value={dropped.toLocaleString()}
 															/>
 														) : null}
-														{pctOfPrevious !== null ? (
+														{dropped !== null && pctOfPrevious !== null ? (
 															<TooltipRow
 																label={t({
 																	message: "Drop-off from previous",

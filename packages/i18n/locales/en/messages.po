@@ -856,6 +856,9 @@ msgstr "{skipped, plural, one {# skipped} other {# skipped}}"
 msgid "{starCount} stars and counting"
 msgstr "{starCount} stars and counting"
 
+msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
+msgstr "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
+
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 
@@ -3111,6 +3114,9 @@ msgstr "Click two commits to define the range."
 msgid "Click-through rate"
 msgstr "Click-through rate"
 
+msgid "Clicked upgrade"
+msgstr "Clicked upgrade"
+
 msgid "Clicks"
 msgstr "Clicks"
 
@@ -3313,6 +3319,9 @@ msgstr "Cohort"
 
 msgid "Cohort retention"
 msgstr "Cohort retention"
+
+msgid "cohort size"
+msgstr "cohort size"
 
 msgid "Collapse"
 msgstr "Collapse"
@@ -6647,6 +6656,9 @@ msgstr "GitHub rejected this machine's credentials, so pull requests cannot be d
 msgid "GitHub sign-in needed"
 msgstr "GitHub sign-in needed"
 
+msgid "GitHub stars"
+msgstr "GitHub stars"
+
 msgid "GitHub unreachable"
 msgstr "GitHub unreachable"
 
@@ -8812,6 +8824,9 @@ msgstr "Nice, open a PR when ready."
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "No {0} logins on this host — sign in and usage appears here."
 
+msgid "No {gaps} events in this window yet."
+msgstr "No {gaps} events in this window yet."
+
 msgid "No access to this host"
 msgstr "No access to this host"
 
@@ -10271,6 +10286,9 @@ msgstr "pagination"
 msgid "Pagination"
 msgstr "Pagination"
 
+msgid "Paid"
+msgstr "Paid"
+
 msgid "Paid churn — cohort survival"
 msgstr "Paid churn — cohort survival"
 
@@ -10373,6 +10391,12 @@ msgstr "Payment method"
 msgid "Payment Successful"
 msgstr "Payment Successful"
 
+msgid "Paywall → paid"
+msgstr "Paywall → paid"
+
+msgid "Paywall conversion over time"
+msgstr "Paywall conversion over time"
+
 msgid "PDF"
 msgstr "PDF"
 
@@ -10381,6 +10405,9 @@ msgstr "Peak pace"
 
 msgid "Pending Invitations"
 msgstr "Pending Invitations"
+
+msgid "People whose first paywall view was in the last {weeks} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
+msgstr "People whose first paywall view was in the last {weeks} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
 
 msgid "People with access"
 msgstr "People with access"
@@ -12099,6 +12126,9 @@ msgstr "Saving..."
 msgid "Saving…"
 msgstr "Saving…"
 
+msgid "Saw the paywall"
+msgstr "Saw the paywall"
+
 msgid "Scale from two agents to 100+"
 msgstr "Scale from two agents to 100+"
 
@@ -13340,6 +13370,9 @@ msgstr "Start Workspace"
 
 msgid "Started"
 msgstr "Started"
+
+msgid "Started checkout"
+msgstr "Started checkout"
 
 msgid "starting"
 msgstr "starting"
@@ -15399,6 +15432,12 @@ msgstr "View {count} pull requests"
 msgid "View {name}"
 msgstr "View {name}"
 
+msgid "view → paid"
+msgstr "view → paid"
+
+msgid "view → upgrade click"
+msgstr "view → upgrade click"
+
 msgid "View all"
 msgstr "View all"
 
@@ -15606,6 +15645,9 @@ msgstr "Weekly"
 
 msgid "Weekly at {time}"
 msgstr "Weekly at {time}"
+
+msgid "Weekly cohorts by first paywall view. Bars are cohort size; the current week is still filling."
+msgstr "Weekly cohorts by first paywall view. Bars are cohort size; the current week is still filling."
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "Weekly cohorts by first real workspace; % returning with another workspace each week"

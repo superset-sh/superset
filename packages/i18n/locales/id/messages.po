@@ -856,6 +856,9 @@ msgstr "{skipped, plural, one {# dilewati} other {# dilewati}}"
 msgid "{starCount} stars and counting"
 msgstr "{starCount} star dan terus bertambah"
 
+msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
+msgstr "{stars} star · {perDay}/hari minggu ini · {peakPerDay}/hari saat puncak"
+
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, other {# subagen berjalan}}"
 
@@ -3111,6 +3114,9 @@ msgstr "Klik dua commit untuk menentukan rentangnya."
 msgid "Click-through rate"
 msgstr "Rasio klik-tayang"
 
+msgid "Clicked upgrade"
+msgstr "Mengeklik upgrade"
+
 msgid "Clicks"
 msgstr "Klik"
 
@@ -3313,6 +3319,9 @@ msgstr "Kohor"
 
 msgid "Cohort retention"
 msgstr "Retensi kohor"
+
+msgid "cohort size"
+msgstr "ukuran kohort"
 
 msgid "Collapse"
 msgstr "Ciutkan"
@@ -6647,6 +6656,9 @@ msgstr "GitHub menolak kredensial mesin ini, sehingga pull request tidak dapat d
 msgid "GitHub sign-in needed"
 msgstr "Perlu masuk ke GitHub"
 
+msgid "GitHub stars"
+msgstr "Star GitHub"
+
 msgid "GitHub unreachable"
 msgstr "GitHub tidak dapat dijangkau"
 
@@ -8812,6 +8824,9 @@ msgstr "Bagus, buka PR kalau sudah siap."
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "Tidak ada login {0} di host ini — masuk dan penggunaannya akan muncul di sini."
 
+msgid "No {gaps} events in this window yet."
+msgstr "Belum ada event {gaps} dalam periode ini."
+
 msgid "No access to this host"
 msgstr "Tidak ada akses ke host ini"
 
@@ -10271,6 +10286,9 @@ msgstr "paginasi"
 msgid "Pagination"
 msgstr "Paginasi"
 
+msgid "Paid"
+msgstr "Membayar"
+
 msgid "Paid churn — cohort survival"
 msgstr "Churn berbayar — ketahanan kohor"
 
@@ -10373,6 +10391,12 @@ msgstr "Metode pembayaran"
 msgid "Payment Successful"
 msgstr "Pembayaran Berhasil"
 
+msgid "Paywall → paid"
+msgstr "Paywall → berbayar"
+
+msgid "Paywall conversion over time"
+msgstr "Konversi paywall dari waktu ke waktu"
+
 msgid "PDF"
 msgstr "PDF"
 
@@ -10381,6 +10405,9 @@ msgstr "Laju puncak"
 
 msgid "Pending Invitations"
 msgstr "Undangan Tertunda"
+
+msgid "People whose first paywall view was in the last {weeks} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
+msgstr "Orang yang pertama kali melihat paywall dalam {weeks} minggu terakhir, dan sejauh mana mereka melangkah. Sebuah tahap menghitung siapa pun yang mencapainya setelah tampilan itu, jadi kohort terbaru masih terus bertambah."
 
 msgid "People with access"
 msgstr "Orang yang punya akses"
@@ -12099,6 +12126,9 @@ msgstr "Menyimpan..."
 msgid "Saving…"
 msgstr "Menyimpan…"
 
+msgid "Saw the paywall"
+msgstr "Melihat paywall"
+
 msgid "Scale from two agents to 100+"
 msgstr "Naik dari dua agen ke 100+"
 
@@ -13340,6 +13370,9 @@ msgstr "Mulai Workspace"
 
 msgid "Started"
 msgstr "Dimulai"
+
+msgid "Started checkout"
+msgstr "Memulai pembayaran"
 
 msgid "starting"
 msgstr "memulai"
@@ -15399,6 +15432,12 @@ msgstr "Lihat {count} pull request"
 msgid "View {name}"
 msgstr "Lihat {name}"
 
+msgid "view → paid"
+msgstr "tampilan → berbayar"
+
+msgid "view → upgrade click"
+msgstr "tampilan → klik upgrade"
+
 msgid "View all"
 msgstr "Lihat semua"
 
@@ -15606,6 +15645,9 @@ msgstr "Mingguan"
 
 msgid "Weekly at {time}"
 msgstr "Mingguan pukul {time}"
+
+msgid "Weekly cohorts by first paywall view. Bars are cohort size; the current week is still filling."
+msgstr "Kohort mingguan berdasarkan tampilan paywall pertama. Batang menunjukkan ukuran kohort; minggu ini masih bertambah."
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "Kohor mingguan berdasarkan workspace nyata pertama; % yang kembali dengan workspace lain tiap minggu"

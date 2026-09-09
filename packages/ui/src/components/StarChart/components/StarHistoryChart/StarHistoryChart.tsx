@@ -2,14 +2,16 @@
 
 import { useLingui } from "@lingui/react/macro";
 import {
+	formatStarCount,
+	type StarHistoryPoint,
+} from "@superset/shared/github-stars";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import {
 	type ChartConfig,
 	ChartContainer,
 	ChartTooltip,
 	ChartTooltipContent,
-} from "@superset/ui/chart";
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import { formatStarCount } from "@/lib/github";
-import type { StarHistoryPoint } from "../../utils/getStarHistory";
+} from "../../../ui/chart";
 import { formatUTCDate } from "../../utils/starPace";
 
 interface StarHistoryChartProps {

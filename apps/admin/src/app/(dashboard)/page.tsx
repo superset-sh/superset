@@ -10,9 +10,12 @@ import { EnterpriseArrTile } from "./components/EnterpriseArrTile";
 import { HogQLLineTile } from "./components/HogQLLineTile";
 import { MrrTile } from "./components/MrrTile";
 import { NetBurnTile } from "./components/NetBurnTile";
+import { PaywallFunnelTile } from "./components/PaywallFunnelTile";
+import { PaywallFunnelTrendTile } from "./components/PaywallFunnelTrendTile";
 import { PostHogFunnelTile } from "./components/PostHogFunnelTile";
 import { RetentionGridTile } from "./components/RetentionGridTile";
 import { RunwayTile } from "./components/RunwayTile";
+import { StarHistoryTile } from "./components/StarHistoryTile";
 import { TrendSeriesTile } from "./components/TrendSeriesTile";
 
 // Mirror of PostHog dashboard 1884562 (plan D-7), organized by audience:
@@ -127,6 +130,11 @@ export default function DashboardPage() {
 				</TabsList>
 
 				<TabsContent value="company" className="mt-4 space-y-6">
+					{/* Star growth and the paywall funnel lead: the two company
+					    metrics we watch week to week that no other tile covers. */}
+					<StarHistoryTile />
+					<PaywallFunnelTile />
+					<PaywallFunnelTrendTile />
 					<CashBalanceTile />
 					<div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
 						<NetBurnTile />

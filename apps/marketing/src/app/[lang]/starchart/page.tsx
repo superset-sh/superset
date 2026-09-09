@@ -2,20 +2,20 @@ import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
+import { formatStarCount, githubRepoSlug } from "@superset/shared/github-stars";
 import { Button } from "@superset/ui/button";
-import type { Metadata } from "next";
-import { GridCross } from "@/app/[lang]/blog/components/GridCross";
-import { localeUrl, localizedAlternates } from "@/app/[lang]/metadata";
-import { initServerI18n } from "@/app/i18n-server";
-import { formatStarCount, getGitHubRepoSlug } from "@/lib/github";
-import { StarChartSection } from "./components/StarChartSection";
-import { getStarHistory } from "./utils/getStarHistory";
 import {
 	aggregateToWeekly,
 	computePaceStats,
 	computePeriodDeltas,
 	formatUTCDate,
-} from "./utils/starPace";
+	StarChart,
+} from "@superset/ui/star-chart";
+import type { Metadata } from "next";
+import { GridCross } from "@/app/[lang]/blog/components/GridCross";
+import { localeUrl, localizedAlternates } from "@/app/[lang]/metadata";
+import { initServerI18n } from "@/app/i18n-server";
+import { getStarHistory } from "./utils/getStarHistory";
 
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
@@ -67,7 +67,7 @@ export default async function StarChartPage() {
 	// the chart below is currently showing.
 	const deltas = computePeriodDeltas(aggregateToWeekly(points));
 	const pace = computePaceStats(deltas);
-	const repoSlug = getGitHubRepoSlug();
+	const repoSlug = githubRepoSlug();
 	const starCount = totalStars !== null ? formatStarCount(totalStars) : "";
 
 	const weekOf = (date: string) => {
@@ -174,7 +174,7 @@ export default async function StarChartPage() {
 			{/* Content */}
 			<div className="relative max-w-5xl mx-auto px-6 py-12 md:py-16">
 				{points.length > 1 ? (
-					<StarChartSection points={points} />
+					<StarChart points={points} />
 				) : (
 					<div className="rounded-lg border border-dashed border-border p-12 text-center text-muted-foreground">
 						<Trans>
