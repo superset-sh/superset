@@ -47,9 +47,9 @@ export function DashboardSidebarCloudSection({
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
 	// The same flag that offers Cloud in the device picker, and the same
 	// audience the API allows (`assertInternal`). Undefined means the flags
-	// haven't resolved, which is not a yes.
-	const isCloudEnabled =
-		useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_WORKSPACES) === true;
+	// haven't resolved, which is neither a yes nor a no.
+	const cloudFlag = useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_WORKSPACES);
+	const isCloudEnabled = cloudFlag === true;
 	const openNewWorkspaceModalForHost = useOpenNewWorkspaceModalForHost();
 	const isSectionCollapsed = useSidebarSectionsCollapseStore(
 		(s) => s.collapsed.cloud,
@@ -190,10 +190,16 @@ export function DashboardSidebarCloudSection({
 		localStateRows,
 	]);
 
+	// A definite no takes the rows with it. The list query is gated on the same
+	// flag, but react-query keeps what it already fetched when a query is
+	// disabled, so a flag that flips off mid-session would otherwise leave the
+	// section it gates on screen.
+	if (cloudFlag === false) return null;
 	// The header carries the only way to create a cloud workspace, so it stays
 	// at zero rows like the Sessions header does — a user with no cloud
-	// workspaces is exactly who needs the "+". The collapsed rail has no
-	// headers, so there it is still rows or nothing.
+	// workspaces is exactly who needs the "+". Only on a definite yes, so
+	// unresolved flags don't leave an empty Cloud section behind; the
+	// collapsed rail has no headers, so there it is still rows or nothing.
 	if (rows.length === 0 && (isCollapsed || !isCloudEnabled)) return null;
 
 	if (isCollapsed) {

@@ -8620,7 +8620,7 @@ msgid "New chat"
 msgstr "Nieuwe chat"
 
 msgid "New cloud workspace"
-msgstr "Nieuwe cloud-werkruimte"
+msgstr "Nieuwe cloudwerkruimte"
 
 msgid "New environment"
 msgstr "Nieuwe omgeving"
