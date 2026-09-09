@@ -1,10 +1,19 @@
-import { afterEach, describe, expect, mock, test } from "bun:test";
+import { afterEach, describe, expect, mock, spyOn, test } from "bun:test";
 import {
 	DEFAULT_TERMINAL_FONT_FAMILY,
 	NERD_FONT_FALLBACK_FAMILIES,
 	resolveTerminalAppearance,
 	sanitizeTerminalFontFamily,
 } from "./index";
+
+/**
+ * IME 오버레이 기본 스택 — 터미널 기본 스택에서 Nerd Font Mono 폴백만 뺀 값.
+ * Mono 변형은 DOM 텍스트에서 전각 CJK 에 반각 폭을 줘 조합 글자를 자른다.
+ */
+const DEFAULT_IME_FONT_FAMILY = DEFAULT_TERMINAL_FONT_FAMILY.replace(
+	'"Symbols Nerd Font Mono", ',
+	"",
+);
 
 /** Quoted nerd-font fallback tail, minus families already in the stack. */
 function nerdTail(...present: string[]): string {
@@ -215,6 +224,7 @@ describe("resolveTerminalAppearance", () => {
 			theme,
 			background: "#111111",
 			fontFamily: DEFAULT_TERMINAL_FONT_FAMILY,
+			imeFontFamily: DEFAULT_IME_FONT_FAMILY,
 			fontSize: 14,
 			lineHeight: 1,
 			letterSpacing: 0,
@@ -251,5 +261,70 @@ describe("resolveTerminalAppearance", () => {
 			cursorStyle: "underline",
 			cursorBlink: false,
 		});
+	});
+
+	test("keeps Mono variants in the terminal stack but drops them from the IME stack", () => {
+		const appearance = resolveTerminalAppearance(
+			{ background: "#000000" },
+			{},
+			["D2CodingLigature Nerd Font Mono", "D2CodingLigature Nerd Font"],
+		);
+
+		// 본문(WebGL 셀 렌더러)은 아이콘이 한 셀에 맞도록 Mono 를 앞세운다 —
+		// 기존 동작 그대로여야 한다.
+		const monoAt = appearance.fontFamily.indexOf(
+			'"D2CodingLigature Nerd Font Mono"',
+		);
+		const nonMonoAt = appearance.fontFamily.indexOf(
+			'"D2CodingLigature Nerd Font"',
+		);
+		expect(monoAt).toBeGreaterThanOrEqual(0);
+		expect(monoAt).toBeLessThan(nonMonoAt);
+
+		// IME 오버레이는 DOM 폭으로 잘리므로 Mono 변형을 전부 뺀다.
+		expect(appearance.imeFontFamily).toContain('"D2CodingLigature Nerd Font"');
+		expect(appearance.imeFontFamily).not.toContain("Nerd Font Mono");
+		// 나머지 스택(주 폰트·기본 폴백·generic 꼬리)은 그대로 유지된다.
+		expect(appearance.imeFontFamily).toContain('"JetBrains Mono"');
+		expect(appearance.imeFontFamily).toContain('"Menlo"');
+		expect(appearance.imeFontFamily.endsWith(", monospace")).toBe(true);
+	});
+
+	test("validates once per resolve, so a poisoned setting warns exactly once", () => {
+		// 본문·IME 두 스택을 각각 검증하면 같은 경고가 두 번 찍힌다.
+		const restore = stubCanvas(() => proportionalWidths);
+		const warn = spyOn(console, "warn").mockImplementation(() => {});
+		try {
+			const appearance = resolveTerminalAppearance(
+				{ background: "#000000" },
+				// 모듈 레벨 monospace 캐시에 걸리지 않도록 고유한 이름을 쓴다.
+				{ terminalFontFamily: "PoisonedProportional-XYZ" },
+			);
+			expect(warn).toHaveBeenCalledTimes(1);
+			expect(appearance.fontFamily).toBe(DEFAULT_TERMINAL_FONT_FAMILY);
+			expect(appearance.imeFontFamily).toBe(DEFAULT_IME_FONT_FAMILY);
+		} finally {
+			warn.mockRestore();
+			restore();
+		}
+	});
+
+	test("never drops a user-chosen Mono variant from the IME stack", () => {
+		const restore = stubCanvas(() => equalWidths);
+		try {
+			const appearance = resolveTerminalAppearance(
+				{ background: "#000000" },
+				{ terminalFontFamily: "Hack Nerd Font Mono" },
+			);
+			// 사용자가 고른 주 폰트는 Mono 변형이라도 유지한다(폴백만 걸러낸다).
+			expect(
+				appearance.imeFontFamily.startsWith('"Hack Nerd Font Mono", '),
+			).toBe(true);
+			expect(appearance.imeFontFamily).not.toContain(
+				'"Symbols Nerd Font Mono"',
+			);
+		} finally {
+			restore();
+		}
 	});
 });

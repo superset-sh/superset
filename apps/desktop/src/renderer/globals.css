@@ -209,6 +209,25 @@
 		font-family: var(--superset-terminal-font-family, ui-monospace, monospace);
 	}
 
+	/*
+	 * IME 조합 중인 글자("글" 등)는 WebGL 셀이 아니라 `.composition-view` DOM
+	 * 오버레이에 그려지고, 그 박스는 일반 DOM 텍스트 폭으로 재서 잘린다.
+	 * Nerd Font Mono 변형은 전각 CJK 글리프에도 반각 advance 를 주므로
+	 * (14px 기준 "글" 7px, 비-Mono 는 14px) 오버레이가 한 셀보다 좁아져 글자가
+	 * 잘린다. WebGL 셀 렌더러는 셀 단위로 그려서 영향이 없다.
+	 * xterm.js 가 이 오버레이의 font-family 를 인라인으로 써넣기 때문에
+	 * `!important` 가 필요하다. 업스트림 xterm.js PR#6162(open)이 반영되면
+	 * 이 재정의는 불필요해진다.
+	 * var() 폴백을 일부러 두지 않았다: 변수가 없으면 이 선언이
+	 * invalid-at-computed-value-time → `unset` 이 되어 위 `.xterm` 의
+	 * `--superset-terminal-font-family` 스택을 그대로 상속한다. 즉 사용자 폰트를
+	 * 잃지 않고 변경 이전 동작으로 degrade 된다.
+	 */
+	.superset-terminal-runtime .xterm .composition-view {
+		/* biome-ignore lint/complexity/noImportantStyles: xterm 이 이 오버레이의 font-family 를 인라인으로 써넣으므로 !important 없이는 덮어쓸 수 없다 */
+		font-family: var(--superset-terminal-ime-font-family) !important;
+	}
+
 	.xterm .xterm-rows a {
 		color: inherit;
 		cursor: pointer;

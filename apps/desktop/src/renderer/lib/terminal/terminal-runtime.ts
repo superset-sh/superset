@@ -8,6 +8,7 @@ import { Terminal as XTerm } from "@xterm/xterm";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 import {
 	applyTerminalFontFamilyCssVariable,
+	applyTerminalImeFontFamilyCssVariable,
 	type TerminalAppearance,
 } from "./appearance";
 import { scheduleFontSettleRefit } from "./font-settle";
@@ -317,6 +318,10 @@ export function createRuntime(
 	wrapper.style.width = "100%";
 	wrapper.style.height = "100%";
 	applyTerminalFontFamilyCssVariable(wrapper, appearance.fontFamily);
+	// IME 조합 오버레이 폰트 재정의(globals.css)를 이 런타임에만 걸기 위한 표식.
+	// v1 터미널 경로(TabsContent/Terminal)는 이 클래스가 없어 영향받지 않는다.
+	wrapper.classList.add("superset-terminal-runtime");
+	applyTerminalImeFontFamilyCssVariable(wrapper, appearance.imeFontFamily);
 	terminal.open(wrapper);
 
 	installTerminalKeyEventHandler(terminal);
@@ -438,6 +443,14 @@ export function updateRuntimeAppearance(
 ) {
 	const { terminal } = runtime;
 	terminal.options.theme = appearance.theme;
+
+	// `terminalMeasurementsChanged` 는 `terminal.options` 만 비교하는데 거기에는
+	// IME 스택이 없다. 그 게이트 안에 넣으면 판정 근거가 없는 값이 되므로 밖에서
+	// 쓴다. CSS 변수 쓰기는 비용이 없고 멱등이라 매번 호출해도 무해하다.
+	applyTerminalImeFontFamilyCssVariable(
+		runtime.wrapper,
+		appearance.imeFontFamily,
+	);
 
 	const measurementsChanged = terminalMeasurementsChanged(runtime, appearance);
 	runtime._setLigaturesEnabled?.(appearance.ligatures);
