@@ -760,8 +760,8 @@ msgstr "{name} yerleşiktir ve değiştirilemez"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} eklenmedi"
 
-msgid "{needing} needs you · {total} agents"
-msgstr "{needing} seni bekliyor · {total} ajan"
+msgid "{needing, plural, one {# needs you} other {# need you}}"
+msgstr "{needing, plural, one {# seni bekliyor} other {# seni bekliyor}}"
 
 msgid "{nonBrandPct} of clicks"
 msgstr "tıklamaların {nonBrandPct}"
@@ -877,11 +877,14 @@ msgstr "{threshold, plural, one {# ajan PR'ı birleştirildi} other {# ajan PR'�
 msgid "{toolName} interrupted"
 msgstr "{toolName} kesildi"
 
+msgid "{total, plural, one {# agent working} other {# agents working}}"
+msgstr "{total, plural, one {# ajan çalışıyor} other {# ajan çalışıyor}}"
+
+msgid "{total, plural, one {# agent} other {# agents}}"
+msgstr "{total, plural, one {# ajan} other {# ajan}}"
+
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {# kontrolün tümü geçti} other {# kontrolün tümü geçti}}"
-
-msgid "{total} agents working"
-msgstr "{total} ajan çalışıyor"
 
 msgid "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 msgstr "{totalCount, plural, one {GitHub issue} other {GitHub issue}}"

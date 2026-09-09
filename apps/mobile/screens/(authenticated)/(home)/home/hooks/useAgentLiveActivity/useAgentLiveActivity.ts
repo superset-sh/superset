@@ -1,3 +1,4 @@
+import { plural } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 import LiveActivity, {
 	type AgentRow,
@@ -54,6 +55,9 @@ export function useAgentLiveActivity({
 	const { t } = useLingui();
 	const activityId = useRef<string | null>(null);
 	const lastPayload = useRef<string | null>(null);
+	// Bumped on every run so a slow icon download cannot post a snapshot the
+	// hook has already moved past — or resurrect one after unmount.
+	const runId = useRef(0);
 	// Icons are cached once per project per launch: the file already on disk
 	// is reused, so this only ever pays for projects newly on the card.
 	const cachedIcons = useRef<Map<string, string>>(new Map());
@@ -98,7 +102,8 @@ export function useAgentLiveActivity({
 		}
 
 		if (all.length === 0) {
-			if (activityId.current) {
+			runId.current += 1;
+			if (activityId.current || LiveActivity.activeIds().length > 0) {
 				void LiveActivity.endAll();
 				activityId.current = null;
 				lastPayload.current = null;
@@ -113,9 +118,17 @@ export function useAgentLiveActivity({
 		const needing = all.filter((row) => row.state === "permission").length;
 
 		const snapshot: AgentSnapshot = {
+			// The card renders these verbatim — no pluralisation layer sits below
+			// a pre-formatted string, so "1 agents working" would ship as-is.
 			headline: needing
-				? t`${needing} needs you · ${total} agents`
-				: t`${total} agents working`,
+				? `${plural(needing, { one: "# needs you", other: "# need you" })} · ${plural(
+						total,
+						{ one: "# agent", other: "# agents" },
+					)}`
+				: plural(total, {
+						one: "# agent working",
+						other: "# agents working",
+					}),
 			rows: shown,
 			topState: shown[0]?.state ?? "working",
 			machineName: "",
@@ -133,6 +146,8 @@ export function useAgentLiveActivity({
 		if (payload === lastPayload.current) return;
 		lastPayload.current = payload;
 
+		runId.current += 1;
+		const generation = runId.current;
 		void (async () => {
 			for (const row of shown) {
 				const project = workspaceById.get(row.workspaceId)?.projectId;
@@ -160,21 +175,34 @@ export function useAgentLiveActivity({
 					return file ? { ...row, iconFile: file } : row;
 				}),
 			};
+			if (generation !== runId.current) return;
 			try {
-				if (activityId.current) {
-					await LiveActivity.update(activityId.current, withIcons);
+				// ActivityKit is the source of truth, not our ref: an activity can
+				// outlive the JS context (relaunch) or be dismissed by the user,
+				// and either way a stale ref would silently no-op every update or
+				// start a second card.
+				const live = LiveActivity.activeIds();
+				const existing =
+					activityId.current && live.includes(activityId.current)
+						? activityId.current
+						: (live[0] ?? null);
+				if (existing) {
+					activityId.current = existing;
+					await LiveActivity.update(existing, withIcons);
 				} else {
 					activityId.current = await LiveActivity.start(withIcons);
 				}
 			} catch {
 				// Denied, or the device is at its concurrent-activity limit.
 				activityId.current = null;
+				lastPayload.current = null;
 			}
 		})();
 	}, [terminalsByWorkspace, workspaces, projects, enabled, t]);
 
 	useEffect(() => {
 		return () => {
+			runId.current += 1;
 			if (activityId.current) void LiveActivity.endAll();
 		};
 	}, []);

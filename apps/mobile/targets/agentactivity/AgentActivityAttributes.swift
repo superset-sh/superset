@@ -49,7 +49,10 @@ struct AgentActivityAttributes: ActivityAttributes {
 		var more: String?
 		/// Most urgent state in the fleet — tints the Dynamic Island.
 		var topState: String
-		var isStale: Bool
+		/// Shown instead of the headline once ActivityKit marks the activity
+		/// stale. The flag itself is ActivityKit's (`context.isStale`), driven
+		/// by the staleDate we pass on every update — a field of our own could
+		/// never be set, because by definition nothing is updating us.
 		var staleDetail: String
 	}
 

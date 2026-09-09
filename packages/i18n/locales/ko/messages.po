@@ -760,8 +760,8 @@ msgstr "{name}은(는) 기본 제공이라 교체할 수 없습니다"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name}이(가) 추가되지 않았습니다"
 
-msgid "{needing} needs you · {total} agents"
-msgstr "{needing}개 확인 필요 · 에이전트 {total}개"
+msgid "{needing, plural, one {# needs you} other {# need you}}"
+msgstr "{needing, plural, other {#개 확인 필요}}"
 
 msgid "{nonBrandPct} of clicks"
 msgstr "클릭의 {nonBrandPct}"
@@ -877,11 +877,14 @@ msgstr "{threshold, plural, other {에이전트 PR # 건 머지}}"
 msgid "{toolName} interrupted"
 msgstr "{toolName} 중단됨"
 
+msgid "{total, plural, one {# agent working} other {# agents working}}"
+msgstr "{total, plural, other {에이전트 #개 작업 중}}"
+
+msgid "{total, plural, one {# agent} other {# agents}}"
+msgstr "{total, plural, other {에이전트 #개}}"
+
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {#개 검사를 모두 통과했습니다} other {#개 검사를 모두 통과했습니다}}"
-
-msgid "{total} agents working"
-msgstr "에이전트 {total}개 작업 중"
 
 msgid "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 msgstr "{totalCount, plural, one {GitHub 이슈} other {GitHub 이슈}}"

@@ -760,8 +760,8 @@ msgstr "{name} 是內建的，無法取代"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} 尚未新增"
 
-msgid "{needing} needs you · {total} agents"
-msgstr "{needing} 個需要你 · 共 {total} 個代理程式"
+msgid "{needing, plural, one {# needs you} other {# need you}}"
+msgstr "{needing, plural, other {# 個需要你}}"
 
 msgid "{nonBrandPct} of clicks"
 msgstr "佔點擊的 {nonBrandPct}"
@@ -877,11 +877,14 @@ msgstr "{threshold, plural, other {已合併 # 個智慧代理 PR}}"
 msgid "{toolName} interrupted"
 msgstr "{toolName}已中斷"
 
+msgid "{total, plural, one {# agent working} other {# agents working}}"
+msgstr "{total, plural, other {# 個代理程式執行中}}"
+
+msgid "{total, plural, one {# agent} other {# agents}}"
+msgstr "{total, plural, other {# 個代理程式}}"
+
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {#項檢查全部通過} other {#項檢查全部通過}}"
-
-msgid "{total} agents working"
-msgstr "{total} 個代理程式執行中"
 
 msgid "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 msgstr "{totalCount, plural, one {GitHub議題} other {GitHub議題}}"

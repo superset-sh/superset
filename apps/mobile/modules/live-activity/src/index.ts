@@ -26,7 +26,6 @@ export interface AgentSnapshot {
 	rows: AgentRow[];
 	more?: string;
 	topState: AgentRow["state"];
-	isStale?: boolean;
 	staleDetail?: string;
 	machineName: string;
 	staleAfterSeconds?: number;

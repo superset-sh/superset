@@ -20,7 +20,6 @@ struct AgentSnapshotRecord: Record {
   @Field var rows: [AgentRowRecord] = []
   @Field var more: String? = nil
   @Field var topState: String = "working"
-  @Field var isStale: Bool = false
   @Field var staleDetail: String = ""
   @Field var machineName: String = ""
   /// Seconds until the card should call itself out of date. 0 = never.
@@ -39,7 +38,6 @@ private func contentState(
     },
     more: snapshot.more,
     topState: snapshot.topState,
-    isStale: snapshot.isStale,
     staleDetail: snapshot.staleDetail
   )
 }
@@ -73,7 +71,14 @@ public final class LiveActivityModule: Module {
     /// no network of its own, and a 54pt PNG is 35-76% of the entire 4KB
     /// ContentState budget, so it cannot travel in the payload either.
     AsyncFunction("cacheIcon") { (key: String, url: String) -> String in
-      let file = "\(key).png"
+      // The key is a project id, but it arrives from JS: a separator or a
+      // traversal component would write outside the icons directory.
+      let safe = key.replacingOccurrences(
+        of: "[^A-Za-z0-9._-]", with: "_", options: .regularExpression)
+      guard !safe.isEmpty, safe != ".", safe != ".." else {
+        throw Exception(name: "ERR_BAD_KEY", description: key)
+      }
+      let file = "\(safe).png"
       let target = try iconsDirectory().appendingPathComponent(file)
       if FileManager.default.fileExists(atPath: target.path) { return file }
       guard let source = URL(string: url) else {

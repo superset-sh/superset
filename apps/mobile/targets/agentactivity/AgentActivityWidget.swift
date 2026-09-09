@@ -118,10 +118,10 @@ private struct CardBody: View {
 
 	var body: some View {
 		VStack(alignment: .leading, spacing: 0) {
-			Text(context.state.isStale ? context.state.staleDetail : context.state.headline)
+			Text(context.isStale ? context.state.staleDetail : context.state.headline)
 				.font(.system(size: Metrics.headSize))
 				.foregroundStyle(
-					context.state.isStale
+					context.isStale
 						? AnyShapeStyle(.secondary) : AnyShapeStyle(stateColor(context.state.topState))
 				)
 				.lineLimit(1)
@@ -142,7 +142,7 @@ private struct CardBody: View {
 					.foregroundStyle(.tertiary)
 			}
 		}
-		.opacity(context.state.isStale ? 0.55 : 1)
+		.opacity(context.isStale ? 0.55 : 1)
 	}
 }
 

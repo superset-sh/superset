@@ -760,8 +760,8 @@ msgstr "{name} is built in and cannot be replaced"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} is not added"
 
-msgid "{needing} needs you · {total} agents"
-msgstr "{needing} needs you · {total} agents"
+msgid "{needing, plural, one {# needs you} other {# need you}}"
+msgstr "{needing, plural, one {# needs you} other {# need you}}"
 
 msgid "{nonBrandPct} of clicks"
 msgstr "{nonBrandPct} of clicks"
@@ -877,11 +877,14 @@ msgstr "{threshold, plural, one {# agent PR merged} other {# agent PRs merged}}"
 msgid "{toolName} interrupted"
 msgstr "{toolName} interrupted"
 
+msgid "{total, plural, one {# agent working} other {# agents working}}"
+msgstr "{total, plural, one {# agent working} other {# agents working}}"
+
+msgid "{total, plural, one {# agent} other {# agents}}"
+msgstr "{total, plural, one {# agent} other {# agents}}"
+
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {The check passed} other {All # checks passed}}"
-
-msgid "{total} agents working"
-msgstr "{total} agents working"
 
 msgid "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 msgstr "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"

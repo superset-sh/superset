@@ -760,8 +760,8 @@ msgstr "{name} là tích hợp sẵn nên không thể thay thế"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} chưa được thêm"
 
-msgid "{needing} needs you · {total} agents"
-msgstr "{needing} cần bạn · {total} agent"
+msgid "{needing, plural, one {# needs you} other {# need you}}"
+msgstr "{needing, plural, other {# cần bạn}}"
 
 msgid "{nonBrandPct} of clicks"
 msgstr "{nonBrandPct} số lượt nhấp"
@@ -877,11 +877,14 @@ msgstr "{threshold, plural, other {đã hợp nhất # PR của tác nhân}}"
 msgid "{toolName} interrupted"
 msgstr "{toolName} bị gián đoạn"
 
+msgid "{total, plural, one {# agent working} other {# agents working}}"
+msgstr "{total, plural, other {# agent đang chạy}}"
+
+msgid "{total, plural, one {# agent} other {# agents}}"
+msgstr "{total, plural, other {# agent}}"
+
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {Cả # check đều đạt} other {Cả # check đều đạt}}"
-
-msgid "{total} agents working"
-msgstr "{total} agent đang chạy"
 
 msgid "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 msgstr "{totalCount, plural, one {issue GitHub} other {issue GitHub}}"

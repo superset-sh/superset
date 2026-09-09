@@ -760,8 +760,8 @@ msgstr "{name} bawaan dan tidak dapat diganti"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} belum ditambahkan"
 
-msgid "{needing} needs you · {total} agents"
-msgstr "{needing} butuh Anda · {total} agen"
+msgid "{needing, plural, one {# needs you} other {# need you}}"
+msgstr "{needing, plural, other {# butuh Anda}}"
 
 msgid "{nonBrandPct} of clicks"
 msgstr "{nonBrandPct} dari klik"
@@ -877,11 +877,14 @@ msgstr "{threshold, plural, other {# PR agen digabungkan}}"
 msgid "{toolName} interrupted"
 msgstr "{toolName} dihentikan"
 
+msgid "{total, plural, one {# agent working} other {# agents working}}"
+msgstr "{total, plural, other {# agen bekerja}}"
+
+msgid "{total, plural, one {# agent} other {# agents}}"
+msgstr "{total, plural, other {# agen}}"
+
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {Semua # check lulus} other {Semua # check lulus}}"
-
-msgid "{total} agents working"
-msgstr "{total} agen bekerja"
 
 msgid "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 msgstr "{totalCount, plural, one {issue GitHub} other {issue GitHub}}"

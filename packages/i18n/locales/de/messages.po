@@ -760,8 +760,8 @@ msgstr "{name} ist integriert und kann nicht ersetzt werden"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} ist nicht hinzugefügt"
 
-msgid "{needing} needs you · {total} agents"
-msgstr "{needing} wartet auf dich · {total} Agenten"
+msgid "{needing, plural, one {# needs you} other {# need you}}"
+msgstr "{needing, plural, one {# wartet auf dich} other {# warten auf dich}}"
 
 msgid "{nonBrandPct} of clicks"
 msgstr "{nonBrandPct} der Klicks"
@@ -877,11 +877,14 @@ msgstr "{threshold, plural, one {# Agenten-PR gemergt} other {# Agenten-PRs geme
 msgid "{toolName} interrupted"
 msgstr "{toolName} unterbrochen"
 
+msgid "{total, plural, one {# agent working} other {# agents working}}"
+msgstr "{total, plural, one {# Agent arbeitet} other {# Agenten arbeiten}}"
+
+msgid "{total, plural, one {# agent} other {# agents}}"
+msgstr "{total, plural, one {# Agent} other {# Agenten}}"
+
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {Die Prüfung wurde bestanden} other {Alle # Prüfungen bestanden}}"
-
-msgid "{total} agents working"
-msgstr "{total} Agenten arbeiten"
 
 msgid "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 msgstr "{totalCount, plural, one {GitHub-Issue} other {GitHub-Issues}}"
