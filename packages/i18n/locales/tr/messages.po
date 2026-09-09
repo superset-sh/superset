@@ -14323,6 +14323,13 @@ msgstr "Bu uygulama şunları yapabilecek:"
 msgid "This application will have access to data in the selected organization."
 msgstr "Bu uygulama, seçili kuruluştaki verilere erişebilecek."
 
+#. placeholder {0}: params?.organizationName
+msgid "This automation belongs to {0}. Switch to that organization to open it."
+msgstr "Bu otomasyon {0} kuruluşuna ait. Açmak için o kuruluşa geçin."
+
+msgid "This automation is in another organization"
+msgstr "Bu otomasyon başka bir kuruluşta"
+
 msgid "This cannot be undone."
 msgstr "Bu geri alınamaz."
 

@@ -14323,6 +14323,13 @@ msgstr "Diese Anwendung wird Folgendes können:"
 msgid "This application will have access to data in the selected organization."
 msgstr "Diese Anwendung erhält Zugriff auf die Daten der gewählten Organisation."
 
+#. placeholder {0}: params?.organizationName
+msgid "This automation belongs to {0}. Switch to that organization to open it."
+msgstr "Diese Automatisierung gehört zu {0}. Wechseln Sie zu dieser Organisation, um sie zu öffnen."
+
+msgid "This automation is in another organization"
+msgstr "Diese Automatisierung befindet sich in einer anderen Organisation"
+
 msgid "This cannot be undone."
 msgstr "Das lässt sich nicht rückgängig machen."
 

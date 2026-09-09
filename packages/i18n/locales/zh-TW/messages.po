@@ -14323,6 +14323,13 @@ msgstr "該應用程式將能夠："
 msgid "This application will have access to data in the selected organization."
 msgstr "該應用程式將可以存取所選組織中的資料。"
 
+#. placeholder {0}: params?.organizationName
+msgid "This automation belongs to {0}. Switch to that organization to open it."
+msgstr "此自動化屬於 {0}。請切換到該組織後開啟。"
+
+msgid "This automation is in another organization"
+msgstr "此自動化位於其他組織"
+
 msgid "This cannot be undone."
 msgstr "此操作無法復原。"
 
