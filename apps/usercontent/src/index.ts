@@ -57,6 +57,43 @@ function documentCacheKey(storageKey: string): Request {
 
 const CACHED_DOCUMENT_TTL_SECONDS = 24 * 60 * 60;
 
+/**
+ * A short, stable name for the rendering policy a response carries. The ETag
+ * has to change when the policy does: a `304` sends no body and no fresh
+ * headers, so naming the version alone would leave readers on the old
+ * `Content-Security-Policy` until the page happened to publish again.
+ */
+function policyRevision(policy: string): string {
+	let hash = 0x811c9dc5;
+	for (let index = 0; index < policy.length; index++) {
+		hash ^= policy.charCodeAt(index);
+		hash = Math.imul(hash, 0x01000193);
+	}
+	return (hash >>> 0).toString(36);
+}
+
+function weakTag(value: string): string {
+	return value.startsWith("W/") ? value.slice(2) : value;
+}
+
+/**
+ * RFC 9110: `If-None-Match` is a comma-separated list, `*` matches any current
+ * representation, and the comparison is weak. Browsers echo back the exact tag
+ * they were given, so this mostly serves hand-written clients and proxies.
+ */
+function ifNoneMatchSatisfied(
+	header: string | undefined,
+	etag: string,
+): boolean {
+	if (!header) return false;
+	const value = header.trim();
+	if (value === "*") return true;
+	const target = weakTag(etag);
+	return value
+		.split(",")
+		.some((candidate) => weakTag(candidate.trim()) === target);
+}
+
 function baseHost(c: Context<AppContext>): string {
 	return new URL(c.env.USERCONTENT_URL).host;
 }
@@ -158,9 +195,13 @@ async function servePage(c: Context<AppContext>): Promise<Response> {
 			: pinned
 				? `private, max-age=${ticketSeconds(auth)}, immutable`
 				: "private, no-cache";
-	// What a page serves at a version never changes, so the version names it.
-	const etag = `W/"${version}"`;
-	if (c.req.header("if-none-match") === etag) {
+	const policy = pageContentSecurityPolicy(
+		c.env.FRAME_ANCESTORS.split(/\s+/).filter(Boolean),
+	);
+	// What a page serves at a version never changes, so the version names it —
+	// together with the policy, which a `304` has no other way to refresh.
+	const etag = `W/"${version}.${policyRevision(policy)}"`;
+	if (ifNoneMatchSatisfied(c.req.header("if-none-match"), etag)) {
 		return new Response(null, {
 			status: 304,
 			headers: { ETag: etag, "Cache-Control": cacheControl },
@@ -177,9 +218,7 @@ async function servePage(c: Context<AppContext>): Promise<Response> {
 			// propagates.
 			"Origin-Agent-Cluster": "?1",
 			"Superset-Storage-Key": entry.key,
-			"Content-Security-Policy": pageContentSecurityPolicy(
-				c.env.FRAME_ANCESTORS.split(/\s+/).filter(Boolean),
-			),
+			"Content-Security-Policy": policy,
 			"X-Content-Type-Options": "nosniff",
 			"Referrer-Policy": "no-referrer",
 			"X-Robots-Tag": "noindex, nofollow",
@@ -187,11 +226,20 @@ async function servePage(c: Context<AppContext>): Promise<Response> {
 			"Cache-Control": cacheControl,
 		});
 
-	// Only ever holds the rendered HTML, so a hit is one by construction. It is
-	// read after authorization, against a manifest loaded this request, so it
-	// widens nothing: a page that lost its manifest 404s before reaching here.
+	// Only the rendered HTML is ever written here, so anything else would miss
+	// on every request; the manifest already names the type, so skip the lookup
+	// rather than pay it. The read happens after authorization, against a
+	// manifest loaded this request, so it widens nothing: a page that lost its
+	// manifest 404s before reaching here.
 	const cacheKey = documentCacheKey(entry.key);
-	const cached = await caches.default.match(cacheKey);
+	const cached = entry.contentType.startsWith("text/html")
+		? // The cache is an optimization, never a dependency: if the colo cannot
+			// answer, fall through to R2 rather than failing the page.
+			await caches.default.match(cacheKey).catch((error: unknown) => {
+				Sentry.captureException(error);
+				return undefined;
+			})
+		: undefined;
 	if (cached) {
 		return new Response(cached.body, { headers: headersFor("text/html") });
 	}
@@ -209,15 +257,19 @@ async function servePage(c: Context<AppContext>): Promise<Response> {
 		PAGE_THEME_CSS,
 	);
 	c.executionCtx.waitUntil(
-		caches.default.put(
-			cacheKey,
-			new Response(html, {
-				headers: {
-					"Content-Type": "text/html; charset=utf-8",
-					"Cache-Control": `public, max-age=${CACHED_DOCUMENT_TTL_SECONDS}`,
-				},
+		caches.default
+			.put(
+				cacheKey,
+				new Response(html, {
+					headers: {
+						"Content-Type": "text/html; charset=utf-8",
+						"Cache-Control": `public, max-age=${CACHED_DOCUMENT_TTL_SECONDS}`,
+					},
+				}),
+			)
+			.catch((error: unknown) => {
+				Sentry.captureException(error);
 			}),
-		),
 	);
 	return new Response(html, { headers: headersFor(contentType) });
 }
