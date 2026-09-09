@@ -202,6 +202,11 @@ type TerminalClientMessage =
 	// clients constrain the PTY size. A client that never sends this counts as
 	// visible, so builds predating the message keep their existing sizing.
 	| { type: "visible"; visible: boolean }
+	// Answer to the host's `ping`. A client that has answered once and then
+	// goes silent is dropped, which is the only way a half-open socket (a phone
+	// suspended in a pocket, a Wi-Fi drop the relay never sees) stops
+	// constraining the PTY size. Clients that never answer are never dropped.
+	| { type: "pong" }
 	| { type: "dispose" };
 
 // PTY output bytes travel as binary WebSocket frames — the renderer pipes
@@ -238,7 +243,10 @@ type TerminalServerMessage =
 	//               content bytes are sent — the client's screen is presumed
 	//               better than anything we could synthesize (see #6290) — and
 	//               a repaint nudge asks the running program to redraw itself.
-	| { type: "synced"; epoch: string; seq: number; mode: SyncedMode };
+	| { type: "synced"; epoch: string; seq: number; mode: SyncedMode }
+	// Liveness probe; the client answers with `pong`. Sent once on attach and
+	// then every CLIENT_PING_INTERVAL_MS while the socket is attached.
+	| { type: "ping" };
 
 type SyncedMode = "exact" | "tail" | "reanchor";
 
@@ -310,6 +318,17 @@ const SESSION_RESTORED_NOTICE = new TextEncoder().encode(
 // PTY is never paused, so a stalled renderer can't wedge the shell. Matches the
 // daemon's own 8 MB outbound socket cap.
 const WS_SEND_BUFFER_CAP_BYTES = 8 * 1024 * 1024;
+// A client attached through the relay can vanish without the host ever
+// seeing a close: the relay pairs the phone's stream with a local socket
+// here and tears one down when the other closes, but a phone suspended
+// mid-session or dropped off Wi-Fi sends no FIN, so Cloudflare keeps its
+// end open and the local socket stays attached — still holding its dims in
+// the size minimum, which pins every other client at phone width. TCP
+// keepalive would take hours. So the host pings each client at the
+// application level and drops one that answered before but has now missed
+// CLIENT_PONG_MISS_LIMIT pings in a row (30–45s of silence).
+const CLIENT_PING_INTERVAL_MS = 15_000;
+const CLIENT_PONG_MISS_LIMIT = 2;
 const SOCKET_OPEN = 1;
 const SOCKET_CLOSING = 2;
 const SOCKET_CLOSED = 3;
@@ -320,13 +339,28 @@ const MIN_TERMINAL_ROWS = 5;
 
 // `<ArrayBuffer>` narrowing matches hono/ws's WSContext.send signature.
 // `raw` is the underlying `ws` WebSocket (present for node-ws); we read
-// `bufferedAmount` off it to bound a slow renderer's send queue.
+// `bufferedAmount` off it to bound a slow renderer's send queue and call
+// `terminate` to drop a half-open peer that would never finish a close
+// handshake.
 type TerminalSocket = {
 	send: (data: string | Uint8Array<ArrayBuffer>) => void;
 	close: (code?: number, reason?: string) => void;
 	readyState: number;
-	raw?: { readonly bufferedAmount?: number };
+	raw?: { readonly bufferedAmount?: number; terminate?: () => void };
 };
+
+/**
+ * Per-socket ping bookkeeping. `answered` marks a client that speaks pong;
+ * only those are ever dropped for silence, so builds predating the message
+ * keep the old (never reaped) behaviour. Keyed weakly: a socket that leaves
+ * by any path takes its entry with it.
+ */
+const socketLiveness = new WeakMap<
+	TerminalSocket,
+	{ answered: boolean; unansweredPings: number }
+>();
+let clientPingIntervalMs = CLIENT_PING_INTERVAL_MS;
+let clientLivenessSweep: ReturnType<typeof setInterval> | null = null;
 
 // ---------------------------------------------------------------------------
 // OSC 133 shell readiness detection (FinalTerm semantic prompt standard).
@@ -758,7 +792,7 @@ function pruneAndCountOpenSockets(session: TerminalSession): number {
 			socket.readyState === SOCKET_CLOSING ||
 			socket.readyState === SOCKET_CLOSED
 		) {
-			session.sockets.delete(socket);
+			detachSocket(session, socket);
 		}
 	}
 	return openSockets;
@@ -1301,7 +1335,7 @@ function broadcastMessage(
 				socket.readyState === SOCKET_CLOSING ||
 				socket.readyState === SOCKET_CLOSED
 			) {
-				session.sockets.delete(socket);
+				detachSocket(session, socket);
 			}
 			continue;
 		}
@@ -1536,6 +1570,80 @@ function releaseSocketDims(session: TerminalSession, ws: TerminalSocket) {
 }
 
 /**
+ * Forget a socket entirely: it stops receiving output, hands focus-out to the
+ * program if it was the last focused client, and releases its size
+ * constraint. Idempotent, so the socket's own close event can follow a
+ * liveness drop without double-applying anything.
+ *
+ * The only way out of `session.sockets`, so a socket can never leave the
+ * broadcast set while still holding the PTY size down.
+ */
+function detachSocket(session: TerminalSession, ws: TerminalSocket) {
+	session.sockets.delete(ws);
+	if (session.focusedSockets.delete(ws)) syncPtyFocus(session);
+	releaseSocketDims(session, ws);
+}
+
+function pingSocket(ws: TerminalSocket) {
+	const liveness = socketLiveness.get(ws);
+	if (!liveness) return;
+	liveness.unansweredPings += 1;
+	sendMessage(ws, { type: "ping" });
+}
+
+/**
+ * Drop every attached client that answered a ping before and has now missed
+ * CLIENT_PONG_MISS_LIMIT in a row, then ping the rest. Detaching first means
+ * the PTY grows back immediately; the socket is destroyed rather than closed
+ * because a half-open peer never completes the close handshake.
+ */
+function sweepClientLiveness() {
+	for (const session of sessions.values()) {
+		for (const ws of session.sockets) {
+			if (ws.readyState !== SOCKET_OPEN) continue;
+			const liveness = socketLiveness.get(ws);
+			if (!liveness) continue;
+			if (
+				liveness.answered &&
+				liveness.unansweredPings >= CLIENT_PONG_MISS_LIMIT
+			) {
+				console.warn(
+					`[terminal] dropping unresponsive client on ${session.terminalId}: ${liveness.unansweredPings} pings unanswered`,
+				);
+				detachSocket(session, ws);
+				socketLiveness.delete(ws);
+				try {
+					if (ws.raw?.terminate) ws.raw.terminate();
+					else ws.close(1001, "No pong from client");
+				} catch {
+					// best-effort; the peer may already be gone
+				}
+				continue;
+			}
+			pingSocket(ws);
+		}
+	}
+}
+
+function ensureClientLivenessSweep() {
+	if (clientLivenessSweep) return;
+	clientLivenessSweep = setInterval(sweepClientLiveness, clientPingIntervalMs);
+	clientLivenessSweep.unref();
+}
+
+/**
+ * Shrink the ping cadence so a test can watch a silent client get dropped
+ * without waiting the production 30–45s. NEVER call from production paths.
+ */
+export function __setClientPingIntervalForTesting(ms: number): void {
+	clientPingIntervalMs = ms;
+	if (clientLivenessSweep) {
+		clearInterval(clientLivenessSweep);
+		clientLivenessSweep = null;
+	}
+}
+
+/**
  * Arm the nudge after a reanchor attach. Wait for the client's own resize
  * first: if its dims differ from the PTY's, that resize already delivers a
  * natural SIGWINCH and the nudge is unnecessary; if they match, nudge. The
@@ -1589,7 +1697,7 @@ function broadcastBytes(session: TerminalSession, bytes: Uint8Array): number {
 				socket.readyState === SOCKET_CLOSING ||
 				socket.readyState === SOCKET_CLOSED
 			) {
-				session.sockets.delete(socket);
+				detachSocket(session, socket);
 			}
 			continue;
 		}
@@ -1598,7 +1706,10 @@ function broadcastBytes(session: TerminalSession, bytes: Uint8Array): number {
 		// replays the tail. Returning this chunk as "not sent" routes it to the
 		// bounded replay buffer via the caller's broadcast-or-buffer check.
 		if (socketBufferedAmount(socket) > WS_SEND_BUFFER_CAP_BYTES) {
-			session.sockets.delete(socket);
+			// Detach rather than just drop from the broadcast set: a renderer
+			// that stopped draining is exactly the one whose close handshake
+			// may never complete, and its dims would hold the PTY hostage.
+			detachSocket(session, socket);
 			try {
 				socket.close(1013, "terminal output back-pressure");
 			} catch {
@@ -3175,6 +3286,12 @@ export function registerWorkspaceTerminalRoute({
 				if (session.sockets.has(ws)) return false;
 				session.sockets.add(ws);
 				sendMessage(ws, { type: "attached", terminalId });
+				// Ping straight away so a client that speaks pong declares itself
+				// within a round trip, not after the first sweep interval — a
+				// phone can go half-open inside that window.
+				socketLiveness.set(ws, { answered: false, unansweredPings: 0 });
+				pingSocket(ws);
+				ensureClientLivenessSweep();
 
 				db.update(terminalSessions)
 					.set({ lastAttachedAt: Date.now() })
@@ -3383,6 +3500,15 @@ export function registerWorkspaceTerminalRoute({
 					const session = sessions.get(terminalId ?? "");
 					if (!session || !session.sockets.has(ws)) return;
 
+					// Anything inbound proves the client is alive; only a pong
+					// proves it speaks the protocol and can be held to it.
+					const liveness = socketLiveness.get(ws);
+					if (liveness) liveness.unansweredPings = 0;
+					if (message.type === "pong") {
+						if (liveness) liveness.answered = true;
+						return;
+					}
+
 					if (message.type === "dispose") {
 						disposeSession(terminalId ?? "", db);
 						return;
@@ -3449,19 +3575,13 @@ export function registerWorkspaceTerminalRoute({
 				onClose: (_event, ws) => {
 					const session = sessions.get(terminalId ?? "");
 					if (!session) return;
-					session.sockets.delete(ws);
-					// A departing focused client may hand focus-out to the program
-					// (unless another attached client still holds focus).
-					if (session.focusedSockets.delete(ws)) syncPtyFocus(session);
-					releaseSocketDims(session, ws);
+					detachSocket(session, ws);
 				},
 
 				onError: (_event, ws) => {
 					const session = sessions.get(terminalId ?? "");
 					if (!session) return;
-					session.sockets.delete(ws);
-					if (session.focusedSockets.delete(ws)) syncPtyFocus(session);
-					releaseSocketDims(session, ws);
+					detachSocket(session, ws);
 				},
 			};
 		}),

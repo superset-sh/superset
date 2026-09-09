@@ -48,6 +48,7 @@ import { initTerminalBaseEnv } from "./env.ts";
 import { HeadlessTerminal } from "./headless-xterm.ts";
 import {
 	__resetSessionsForTesting,
+	__setClientPingIntervalForTesting,
 	createTerminalSessionInternal,
 	disposeSessionAndWait,
 	registerWorkspaceTerminalRoute,
@@ -246,10 +247,23 @@ class SeqRenderer {
 	private counting = false;
 	private ws: WebSocket | null = null;
 	private writeChain: Promise<void> = Promise.resolve();
+	/**
+	 * Whether to answer the host's liveness pings. Flip to false mid-session
+	 * to play a phone that went half-open: the socket stays up, nothing comes
+	 * back. `never` plays a build predating the message, which the host must
+	 * keep attached indefinitely.
+	 */
+	answerPings: boolean | "never" = true;
+	/** Fires when the host closes our socket (rather than us closing it). */
+	droppedByHost: Promise<void>;
+	private resolveDropped: () => void = () => {};
 
 	constructor(
 		dims: { cols: number; rows: number } = { cols: COLS, rows: ROWS },
 	) {
+		this.droppedByHost = new Promise((resolve) => {
+			this.resolveDropped = resolve;
+		});
 		this.term = new HeadlessTerminal({
 			cols: dims.cols,
 			rows: dims.rows,
@@ -302,6 +316,12 @@ class SeqRenderer {
 				const message = JSON.parse(String(data)) as
 					| SyncedMessage
 					| { type: string };
+				if (message.type === "ping") {
+					if (this.answerPings === true) {
+						ws.send(JSON.stringify({ type: "pong" }));
+					}
+					return;
+				}
 				if (message.type === "attached") {
 					if (options.autoResize !== false) {
 						this.sendResize(this.term.cols, this.term.rows);
@@ -320,6 +340,11 @@ class SeqRenderer {
 			ws.addEventListener("error", () => {
 				clearTimeout(timer);
 				reject(new Error("ws error during connect"));
+			});
+			// disconnect() nulls `ws` before closing, so a close that still finds
+			// it set came from the host.
+			ws.addEventListener("close", () => {
+				if (this.ws === ws) this.resolveDropped();
 			});
 		});
 	}
@@ -1095,6 +1120,96 @@ test(
 		} finally {
 			await phone.disconnect().catch(() => {});
 			phone.dispose();
+			await desktop.disconnect().catch(() => {});
+			desktop.dispose();
+			await disposeSessionAndWait(terminalId, db).catch(() => {});
+		}
+	},
+);
+
+test(
+	"a client that stops answering pings is dropped and its size constraint released",
+	{ timeout: 90_000 },
+	async () => {
+		const terminalId = `seq-zombie-${randomUUID().slice(0, 8)}`;
+		const session = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+			cols: COLS,
+			rows: ROWS,
+			initialCommand: `exec bash '${path.join(TEST_HOME, "size.sh")}'`,
+		});
+		if ("error" in session) assert.fail(session.error);
+		__setClientPingIntervalForTesting(150);
+
+		const desktop = new SeqRenderer({ cols: 120, rows: 30 });
+		// A build predating pong: the host never hears one, so it must never
+		// drop the socket — its dims keep constraining the size as before.
+		const legacyPhone = new SeqRenderer({ cols: 45, rows: 20 });
+		legacyPhone.answerPings = "never";
+		// A current build that goes half-open mid-session: the socket stays up
+		// from the host's point of view, but nothing ever comes back on it.
+		const phone = new SeqRenderer({ cols: 45, rows: 20 });
+		let probes = 0;
+		const probeSize = async (): Promise<string> => {
+			probes += 1;
+			const marker = `SIZE ${String(probes).padStart(3, "0")} `;
+			desktop.sendInput("size\n");
+			await desktop.waitVisible(marker);
+			await desktop.drain();
+			const line = visibleText(desktop.term)
+				.split("\n")
+				.find((text) => text.includes(marker));
+			assert.ok(line, `no size report for probe ${probes}`);
+			return line.slice(line.indexOf(marker) + marker.length).trim();
+		};
+
+		try {
+			await desktop.connect(terminalId);
+			await desktop.waitVisible("READY-SIZE");
+			assert.equal(await probeSize(), "30x120");
+
+			await legacyPhone.connect(terminalId);
+			await legacyPhone.waitSynced();
+			assert.equal(await probeSize(), "20x45");
+			// Several sweeps' worth of silence, well past the miss limit.
+			await sleep(1_000);
+			assert.equal(
+				await probeSize(),
+				"20x45",
+				"a client that never speaks pong is never dropped",
+			);
+			await legacyPhone.disconnect();
+			await sleep(400);
+			assert.equal(await probeSize(), "30x120");
+
+			await phone.connect(terminalId);
+			await phone.waitSynced();
+			assert.equal(await probeSize(), "20x45");
+
+			// Before this fix the host waited on a close event that a half-open
+			// peer never sends, and the desktop stayed at phone width until the
+			// host-service restarted.
+			phone.answerPings = false;
+			await Promise.race([
+				phone.droppedByHost,
+				sleep(5_000).then(() => {
+					throw new Error("host never dropped the silent client");
+				}),
+			]);
+			assert.equal(
+				await probeSize(),
+				"30x120",
+				"dropping the silent client hands the desktop its width back",
+			);
+		} finally {
+			__setClientPingIntervalForTesting(15_000);
+			await phone.disconnect().catch(() => {});
+			phone.dispose();
+			await legacyPhone.disconnect().catch(() => {});
+			legacyPhone.dispose();
 			await desktop.disconnect().catch(() => {});
 			desktop.dispose();
 			await disposeSessionAndWait(terminalId, db).catch(() => {});
