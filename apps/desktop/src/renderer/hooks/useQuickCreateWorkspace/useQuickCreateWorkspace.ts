@@ -9,11 +9,12 @@ import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 
 /**
- * Creates a v2 workspace immediately, skipping the new-workspace modal.
+ * Creates a v2 workspace immediately, skipping the create surface.
  * `projectIdHint` is the caller's best guess at "current project" (e.g. the
  * open v2 workspace route); when absent it falls back to the last-used
  * project, then the first known project. With no project to infer at all,
- * falls back to opening the modal so the user can add or pick one.
+ * it opens the create surface — the `/new-workspace` route on v2, the dialog
+ * on v1 — so the user can add or pick one.
  */
 export function useQuickCreateWorkspace() {
 	const { t } = useLingui();
