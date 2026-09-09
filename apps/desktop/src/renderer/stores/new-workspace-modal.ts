@@ -13,9 +13,15 @@ interface NewWorkspaceModalState {
 	preSelectedProjectId: string | null;
 	/** Open with "No project" (session) preselected. */
 	preSelectedSession: boolean;
+	/**
+	 * Open targeting this host instead of the last-used one. Null leaves the
+	 * remembered target alone, which is what every other open does.
+	 */
+	preSelectedHostId: string | null;
 	pendingWorkspace: PendingWorkspace | null;
 	openModal: (projectId?: string) => void;
 	openSessionModal: () => void;
+	openHostModal: (hostId: string) => void;
 	closeModal: () => void;
 	setPendingWorkspace: (workspace: PendingWorkspace | null) => void;
 	clearPendingWorkspace: (id: string) => void;
@@ -31,6 +37,7 @@ export const useNewWorkspaceModalStore = create<NewWorkspaceModalState>()(
 			isOpen: false,
 			preSelectedProjectId: null,
 			preSelectedSession: false,
+			preSelectedHostId: null,
 			pendingWorkspace: null,
 
 			openModal: (projectId?: string) => {
@@ -38,6 +45,7 @@ export const useNewWorkspaceModalStore = create<NewWorkspaceModalState>()(
 					isOpen: true,
 					preSelectedProjectId: projectId ?? null,
 					preSelectedSession: false,
+					preSelectedHostId: null,
 				});
 			},
 
@@ -46,6 +54,21 @@ export const useNewWorkspaceModalStore = create<NewWorkspaceModalState>()(
 					isOpen: true,
 					preSelectedProjectId: null,
 					preSelectedSession: true,
+					preSelectedHostId: null,
+				});
+			},
+
+			/**
+			 * Open aimed at one host — the Cloud section's "+", whose whole point
+			 * is the target. Project selection is left to the usual default so
+			 * this stays a host preference, not a second create surface.
+			 */
+			openHostModal: (hostId: string) => {
+				set({
+					isOpen: true,
+					preSelectedProjectId: null,
+					preSelectedSession: false,
+					preSelectedHostId: hostId,
 				});
 			},
 
@@ -54,6 +77,7 @@ export const useNewWorkspaceModalStore = create<NewWorkspaceModalState>()(
 					isOpen: false,
 					preSelectedProjectId: null,
 					preSelectedSession: false,
+					preSelectedHostId: null,
 				});
 			},
 
@@ -85,10 +109,6 @@ export const useNewWorkspaceModalOpen = () =>
 	useNewWorkspaceModalStore((state) => state.isOpen);
 export const useOpenNewWorkspaceModal = () =>
 	useNewWorkspaceModalStore((state) => state.openModal);
-export const useOpenNewSessionModal = () =>
-	useNewWorkspaceModalStore((state) => state.openSessionModal);
-export const usePreSelectedSession = () =>
-	useNewWorkspaceModalStore((state) => state.preSelectedSession);
 export const useCloseNewWorkspaceModal = () =>
 	useNewWorkspaceModalStore((state) => state.closeModal);
 export const usePreSelectedProjectId = () =>

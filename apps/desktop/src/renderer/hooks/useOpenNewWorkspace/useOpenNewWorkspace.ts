@@ -40,3 +40,23 @@ export function useOpenNewSession() {
 		void navigate({ to: "/new-workspace", search: { session: true } });
 	}, [isV2CloudEnabled, navigate]);
 }
+
+/**
+ * Same, aimed at one host rather than the remembered one — the Cloud
+ * section's "+", whose whole point is the target.
+ */
+export function useOpenNewWorkspaceForHost() {
+	const navigate = useNavigate();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
+
+	return useCallback(
+		(hostId: string) => {
+			if (!isV2CloudEnabled) {
+				useNewWorkspaceModalStore.getState().openHostModal(hostId);
+				return;
+			}
+			void navigate({ to: "/new-workspace", search: { host: hostId } });
+		},
+		[isV2CloudEnabled, navigate],
+	);
+}

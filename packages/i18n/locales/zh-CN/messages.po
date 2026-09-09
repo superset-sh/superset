@@ -8628,6 +8628,9 @@ msgstr "换对手"
 msgid "New chat"
 msgstr "新建聊天"
 
+msgid "New cloud workspace"
+msgstr "新建云端工作区"
+
 msgid "New environment"
 msgstr "新建环境"
 

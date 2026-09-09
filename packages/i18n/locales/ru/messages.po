@@ -8628,6 +8628,9 @@ msgstr "другие соперники"
 msgid "New chat"
 msgstr "Новый чат"
 
+msgid "New cloud workspace"
+msgstr "Новая облачная рабочая область"
+
 msgid "New environment"
 msgstr "Новое окружение"
 

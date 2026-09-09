@@ -8628,6 +8628,9 @@ msgstr "yeni rakipler"
 msgid "New chat"
 msgstr "Yeni sohbet"
 
+msgid "New cloud workspace"
+msgstr "Yeni bulut çalışma alanı"
+
 msgid "New environment"
 msgstr "Yeni ortam"
 

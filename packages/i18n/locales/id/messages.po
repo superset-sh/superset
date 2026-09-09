@@ -8628,6 +8628,9 @@ msgstr "penantang baru"
 msgid "New chat"
 msgstr "Chat baru"
 
+msgid "New cloud workspace"
+msgstr "Workspace cloud baru"
+
 msgid "New environment"
 msgstr "Environment baru"
 

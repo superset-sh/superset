@@ -8628,6 +8628,9 @@ msgstr "nieuwe uitdagers"
 msgid "New chat"
 msgstr "Nieuwe chat"
 
+msgid "New cloud workspace"
+msgstr "Nieuwe cloudwerkruimte"
+
 msgid "New environment"
 msgstr "Nieuwe omgeving"
 

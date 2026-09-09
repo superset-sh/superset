@@ -8628,6 +8628,9 @@ msgstr "別の対戦相手"
 msgid "New chat"
 msgstr "新しいチャット"
 
+msgid "New cloud workspace"
+msgstr "新規クラウドワークスペース"
+
 msgid "New environment"
 msgstr "新しい環境"
 
