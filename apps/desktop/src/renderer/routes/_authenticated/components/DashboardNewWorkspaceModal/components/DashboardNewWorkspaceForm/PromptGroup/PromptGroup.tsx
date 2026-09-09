@@ -360,14 +360,15 @@ export function PromptGroup({
 	// fall into a toast.
 	const { otherHosts } = useWorkspaceHostOptions();
 	const submitBlocker = useMemo<string | null>(() => {
+		const selectedHostId = draft.hostId ?? machineId;
+		// A cloud workspace is provisioned by the API from the one cloud repo:
+		// no host whose readiness could block it, and no project either — the
+		// picker is hidden for cloud, so requiring one is unanswerable.
+		if (selectedHostId === CLOUD_HOST_ID) return null;
 		if (!projectId && !draft.isSession)
 			return t({
 				message: "Select a project",
 			});
-		const selectedHostId = draft.hostId ?? machineId;
-		// A cloud workspace is provisioned on submit, so there is no host whose
-		// readiness could block it.
-		if (selectedHostId === CLOUD_HOST_ID) return null;
 		if (!selectedHostId)
 			return t({
 				message: "No active host",

@@ -8619,6 +8619,9 @@ msgstr "noví vyzyvatelé"
 msgid "New chat"
 msgstr "Nový chat"
 
+msgid "New cloud workspace"
+msgstr "Nový cloudový pracovní prostor"
+
 msgid "New environment"
 msgstr "Nové prostředí"
 

@@ -8619,6 +8619,9 @@ msgstr "đối thủ mới"
 msgid "New chat"
 msgstr "Chat mới"
 
+msgid "New cloud workspace"
+msgstr "Workspace cloud mới"
+
 msgid "New environment"
 msgstr "Environment mới"
 

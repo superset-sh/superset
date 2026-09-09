@@ -11,6 +11,8 @@ interface DashboardNewWorkspaceModalContentProps {
 	preSelectedProjectId: string | null;
 	/** Open with "No project" (session) preselected. */
 	preSelectedSession?: boolean;
+	/** Open targeting this host instead of the remembered one. */
+	preSelectedHostId?: string | null;
 }
 
 /**
@@ -24,6 +26,7 @@ export function DashboardNewWorkspaceModalContent({
 	isOpen,
 	preSelectedProjectId,
 	preSelectedSession = false,
+	preSelectedHostId = null,
 }: DashboardNewWorkspaceModalContentProps) {
 	const { draft, updateDraft, selectProject, selectSession } =
 		useDashboardNewWorkspaceDraft();
@@ -63,12 +66,15 @@ export function DashboardNewWorkspaceModalContent({
 		}
 		if (appliedHostIdRef.current) return;
 		appliedHostIdRef.current = true;
-		const persistedHostId =
+		// An opener that named a host (the sidebar's Cloud "+") outranks the
+		// remembered one — the target is the whole point of that button.
+		const hostId =
+			preSelectedHostId ??
 			useV2WorkspaceCreateDefaultsStore.getState().lastHostId;
-		if (typeof persistedHostId === "string") {
-			updateDraft({ hostId: persistedHostId });
+		if (typeof hostId === "string") {
+			updateDraft({ hostId });
 		}
-	}, [isOpen, updateDraft]);
+	}, [isOpen, preSelectedHostId, updateDraft]);
 
 	useEffect(() => {
 		if (!isOpen) return;

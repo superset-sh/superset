@@ -8619,6 +8619,9 @@ msgstr "neue Herausforderer"
 msgid "New chat"
 msgstr "Neuer Chat"
 
+msgid "New cloud workspace"
+msgstr "Neuer Cloud-Arbeitsbereich"
+
 msgid "New environment"
 msgstr "Neue Umgebung"
 
