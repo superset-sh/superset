@@ -299,7 +299,9 @@ function renderMessage(parsed) {
   if (parsed.cc)
     lines.push(`Cc: ${parsed.cc}`);
   lines.push(`Date: ${parsed.date}`);
-  lines.push(`Message ID: ${parsed.id}   Thread ID: ${parsed.threadId}`);
+  lines.push(`Gmail ID: ${parsed.id}   Thread ID: ${parsed.threadId}`);
+  if (parsed.messageId)
+    lines.push(`Message-ID: ${parsed.messageId}`);
   if (parsed.labelIds.length)
     lines.push(`Labels: ${parsed.labelIds.join(", ")}`);
   if (parsed.attachments.length) {

@@ -18,7 +18,11 @@ async function refreshConnection(
 	if (!auth || auth.type !== "oauth2") return connection;
 
 	const secrets = await connectionSecrets(connection);
-	if (!secrets.refreshToken) return connection;
+	if (!secrets.refreshToken) {
+		throw new Error(
+			`The ${connection.pluginName} connection expired and holds no refresh token; reconnect the plugin.`,
+		);
+	}
 
 	const refreshed = await refreshToken(
 		connection.pluginName,

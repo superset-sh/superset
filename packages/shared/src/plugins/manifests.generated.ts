@@ -348,7 +348,7 @@ export const FIRST_PARTY_MANIFESTS = {
 	"gmail": {
 		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
 		"name": "gmail",
-		"version": "1.1.3",
+		"version": "1.1.4",
 		"description": "Read, search, send, and organize mail in your Gmail account.",
 		"author": {
 			"name": "Superset",
@@ -413,8 +413,8 @@ export const FIRST_PARTY_MANIFESTS = {
 				],
 				"server": {
 					"path": "plugins/gmail/server/index.mjs",
-					"integrity": "sha256-2I1psLjmQZzge22gz2Ff8aj9AY5UhLPE5Vs/DyM/cCQ=",
-					"ref": "gmail@1.1.3"
+					"integrity": "sha256-j3X7Hn0q6evz96JrEycg5e1BkbUVxZGJ2/IjwyDlkxc=",
+					"ref": "gmail@1.1.4"
 				}
 			}
 		},
