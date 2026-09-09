@@ -46,13 +46,9 @@ function ticketSeconds(claims: PageTicketClaims): number {
 }
 
 /**
- * The colo cache holding a version's rendered document. The storage key names
- * one page at one version and a publish writes a new version under a new key,
- * so the stored bytes never change — but what this Worker injects into them
- * does, on any deploy that moves the runtime or retunes the theme. The render
- * revision is what keeps a hit needing no revalidation while still expiring
- * the day-old copies a theme change would otherwise strand.
- * Internal: nothing routes to this host.
+ * The colo cache holding a version's rendered document. Keyed by storage key
+ * and render revision: the stored bytes never change, but what gets injected
+ * into them does. Internal: nothing routes to this host.
  */
 function documentCacheKey(storageKey: string): Request {
 	return new Request(
@@ -62,13 +58,7 @@ function documentCacheKey(storageKey: string): Request {
 
 const CACHED_DOCUMENT_TTL_SECONDS = 24 * 60 * 60;
 
-/**
- * A short, stable name for a string that a cached answer was built with, so
- * changing it expires what it produced. Two callers: the ETag, because a `304`
- * sends no body and no fresh headers and would otherwise leave readers on the
- * old `Content-Security-Policy`; and the document cache key, because the theme
- * and runtime tag are injected into the bytes it holds.
- */
+/** Expires anything built from `input` when `input` changes. */
 function revisionOf(input: string): string {
 	let hash = 0x811c9dc5;
 	for (let index = 0; index < input.length; index++) {
@@ -82,11 +72,7 @@ function weakTag(value: string): string {
 	return value.startsWith("W/") ? value.slice(2) : value;
 }
 
-/**
- * RFC 9110: `If-None-Match` is a comma-separated list, `*` matches any current
- * representation, and the comparison is weak. Browsers echo back the exact tag
- * they were given, so this mostly serves hand-written clients and proxies.
- */
+/** RFC 9110: `*`, comma-separated lists, weak comparison. */
 function ifNoneMatchSatisfied(
 	header: string | undefined,
 	etag: string,
@@ -100,10 +86,7 @@ function ifNoneMatchSatisfied(
 		.some((candidate) => weakTag(candidate.trim()) === target);
 }
 
-/**
- * What this Worker injects into a stored document. A deploy that changes either
- * has to miss the cache rather than serve last week's theme for a day.
- */
+/** A deploy that moves either has to miss the cache, not serve stale styling. */
 const RENDER_REVISION = revisionOf(
 	`${RUNTIME_SCRIPT_PATH}\u0000${PAGE_THEME_CSS}`,
 );
@@ -212,8 +195,7 @@ async function servePage(c: Context<AppContext>): Promise<Response> {
 	const policy = pageContentSecurityPolicy(
 		c.env.FRAME_ANCESTORS.split(/\s+/).filter(Boolean),
 	);
-	// What a page serves at a version never changes, so the version names it —
-	// together with the policy, which a `304` has no other way to refresh.
+	// The policy is in the tag because a 304 has no other way to refresh it.
 	const etag = `W/"${version}.${revisionOf(policy)}"`;
 	if (ifNoneMatchSatisfied(c.req.header("if-none-match"), etag)) {
 		return new Response(null, {
@@ -240,15 +222,11 @@ async function servePage(c: Context<AppContext>): Promise<Response> {
 			"Cache-Control": cacheControl,
 		});
 
-	// Only the rendered HTML is ever written here, so anything else would miss
-	// on every request; the manifest already names the type, so skip the lookup
-	// rather than pay it. The read happens after authorization, against a
-	// manifest loaded this request, so it widens nothing: a page that lost its
-	// manifest 404s before reaching here.
+	// Read after authorization against a manifest loaded this request, so it
+	// widens nothing: a page that lost its manifest 404s before reaching here.
 	const cacheKey = documentCacheKey(entry.key);
 	const cached = entry.contentType.startsWith("text/html")
-		? // The cache is an optimization, never a dependency: if the colo cannot
-			// answer, fall through to R2 rather than failing the page.
+		? // An optimization, never a dependency: fall through to R2 on failure.
 			await caches.default.match(cacheKey).catch((error: unknown) => {
 				Sentry.captureException(error);
 				return undefined;
