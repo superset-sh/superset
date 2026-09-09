@@ -13,6 +13,7 @@ interface CommentComposerProps {
 	onSubmit: (body: string) => void | Promise<void>;
 	onFocus?: () => void;
 	autoFocus?: boolean;
+	initialValue?: string;
 	ref?: Ref<HTMLTextAreaElement>;
 	className?: string;
 }
@@ -22,11 +23,12 @@ export function CommentComposer({
 	onSubmit,
 	onFocus,
 	autoFocus,
+	initialValue,
 	ref,
 	className,
 }: CommentComposerProps) {
 	const { t } = useLingui();
-	const [value, setValue] = useState("");
+	const [value, setValue] = useState(initialValue ?? "");
 	const [focused, setFocused] = useState(false);
 	const open = focused || value.trim().length > 0;
 

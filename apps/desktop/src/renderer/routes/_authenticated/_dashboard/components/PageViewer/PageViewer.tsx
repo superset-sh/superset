@@ -113,6 +113,7 @@ export function PageViewer({
 			enabled={commentsEnabled}
 			onEnabledChange={onCommentsEnabledChange}
 			user={user}
+			pageOwnerId={pull.data?.createdByUserId}
 		>
 			<div className="relative flex h-full w-full">
 				<div className="min-h-0 min-w-0 flex-1">

@@ -13,12 +13,22 @@ export function injectScriptTag(html: string, src: string): string {
 }
 
 /**
- * A `<head>` written inside a comment or a raw-text element is text, not a
- * tag: injecting there would park the stylesheet somewhere the browser never
- * reads. Walk the document skipping those spans, and take the first real one.
+ * A `<head>` written inside a comment, a raw-text element, or a quoted
+ * attribute value is text, not a tag. Walk the document skipping those spans
+ * — including any whole tag that is not itself the `<head>` — and take the
+ * first real one.
  */
 const HEAD_OR_SKIP =
-	/<!--|<(script|style|textarea|title)(?=[\s/>])|<head(?=[\s>])(?:[^>"']|"[^"]*"|'[^']*')*>/gi;
+	/<!--|<(script|style|textarea|title)(?=[\s/>])|<head(?=[\s>])(?:[^>"']|"[^"]*"|'[^']*')*>|<[a-zA-Z](?:[^>"']|"[^"]*"|'[^']*')*>/gi;
+
+const IS_HEAD = /^<head[\s>]/i;
+
+const RAW_TEXT_CLOSE: Record<string, RegExp> = {
+	script: /<\/script\s*>/gi,
+	style: /<\/style\s*>/gi,
+	textarea: /<\/textarea\s*>/gi,
+	title: /<\/title\s*>/gi,
+};
 
 function findHeadTag(html: string): { index: number; length: number } | null {
 	HEAD_OR_SKIP.lastIndex = 0;
@@ -29,12 +39,13 @@ function findHeadTag(html: string): { index: number; length: number } | null {
 			if (end === -1) return null;
 			HEAD_OR_SKIP.lastIndex = end + 3;
 		} else if (match[1]) {
-			const close = new RegExp(`</${match[1]}\\s*>`, "i").exec(
-				html.slice(match.index),
-			);
+			const close = RAW_TEXT_CLOSE[match[1].toLowerCase()];
 			if (!close) return null;
-			HEAD_OR_SKIP.lastIndex = match.index + close.index + close[0].length;
-		} else {
+			close.lastIndex = match.index;
+			const end = close.exec(html);
+			if (!end) return null;
+			HEAD_OR_SKIP.lastIndex = end.index + end[0].length;
+		} else if (IS_HEAD.test(match[0])) {
 			return { index: match.index, length: match[0].length };
 		}
 		match = HEAD_OR_SKIP.exec(html);
@@ -42,8 +53,20 @@ function findHeadTag(html: string): { index: number; length: number } | null {
 	return null;
 }
 
+/**
+ * Inlined rather than linked: the CSS is a build-time constant that never
+ * varies per page, so a `<link>` would cost a round trip before first paint on
+ * a document that is already `no-store`.
+ */
+export function injectStyleTag(html: string, css: string): string {
+	return injectIntoHead(html, `<style>${css}</style>`);
+}
+
 export function injectStylesheetLink(html: string, href: string): string {
-	const tag = `<link rel="stylesheet" href="${href}">`;
+	return injectIntoHead(html, `<link rel="stylesheet" href="${href}">`);
+}
+
+function injectIntoHead(html: string, tag: string): string {
 	const head = findHeadTag(html);
 	if (head) {
 		const at = head.index + head.length;

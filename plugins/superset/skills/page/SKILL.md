@@ -105,17 +105,17 @@ not inlining them.
 
 ## Structure and theme
 
-Every page is served with a stylesheet of ours linked at the top of `<head>`:
+Every page is served with a stylesheet of ours inlined at the top of `<head>`.
+You never write it — the origin injects it into the document on the way out, so
+it reaches pages published before it existed too. It gives bare HTML a readable
+default: type scale, links, lists, tables, code blocks, `box-sizing`,
+responsive images. **Don't inline a CSS reset, a normalize, or a webfont.**
+Write semantic HTML and most pages need no `<style>` block at all.
 
-```html
-<link rel="stylesheet" href="/_superset/theme.css">
-```
-
-You never write that tag — the origin injects it into the document on the way
-out, so it reaches pages published before it existed too. It gives bare HTML a
-readable default: type scale, measure, links, lists, tables, code blocks,
-`box-sizing`, responsive images. **Don't inline a CSS reset, a normalize, or a
-webfont.** Write semantic HTML and most pages need no `<style>` block at all.
+What it deliberately does *not* set, because it reaches pages written before it
+existed and those pages never agreed to it: padding on `body`, a width cap on
+your text, or a height on your `<iframe>`s. The frame stays full-bleed and the
+measure is yours to choose — see `--sp-measure` below.
 
 Start from this skeleton:
 
@@ -145,20 +145,34 @@ and style the parts that make this page itself.
 
 ### Light and dark
 
-The page follows the reader's system setting by default. Pin it by putting a
-class on `<body>`, which flips background, text, borders, code blocks and
-native controls together:
+The theme is light unless you ask for dark, with a class on `<body>` that flips
+background, text, borders, code blocks and native controls together:
 
 ```html
 <body class="dark">
-  <!-- or class="light" -->
+  <!-- or class="light", which is the default -->
 </body>
 ```
 
-Pin it when the page's own visuals assume one — a chart with baked-in colours,
-a screenshot with a dark background, a diagram with hardcoded strokes. Leave it
-off when the content is text and tables, so the page matches whatever the
-reader is already in.
+It does **not** follow the reader's system setting on its own, and that is
+deliberate. A page that set a background but no text colour — or set one on
+`<html>` rather than `<body>` — would take the other half of the pair from a
+palette that inverted underneath it, and end up dark text on a dark ground.
+Opting in keeps that decision with the page that can actually see its own
+colours.
+
+So: add `class="dark"` when the page's visuals assume it — a chart with
+baked-in colours, a screenshot with a dark background, a diagram with hardcoded
+strokes. To follow the reader's system setting, ask for that too:
+
+```html
+<body class="auto">
+```
+
+`auto` is the right choice for text and tables, where nothing is pinned to one
+scheme. Use it whenever the page has no baked-in colours of its own — but reach
+for it deliberately, and if you hardcode any colour anywhere on the page, set
+its partner as well so the pair can never come from two different themes.
 
 ### Tokens
 

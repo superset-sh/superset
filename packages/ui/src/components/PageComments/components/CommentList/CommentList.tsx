@@ -1,6 +1,7 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
+import { getInitials } from "@superset/shared/names";
 import { Bot, Check, Loader2, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { cn } from "../../../../lib/utils";
@@ -13,7 +14,6 @@ import {
 	useComments,
 } from "../../providers/CommentProvider";
 import { commentAuthor } from "../../utils/commentAuthor";
-import { initialsOf } from "../../utils/initialsOf";
 import { relativeTime } from "../../utils/relativeTime";
 import { Quote } from "./components/Quote";
 
@@ -37,7 +37,8 @@ export function CommentList({
 	className,
 }: CommentListProps) {
 	const { t } = useLingui();
-	const { submitting, busyThreadId } = useComments();
+	const { submitting, busyThreadId, canEdit, canDeleteThread } = useComments();
+	const deletable = canDeleteThread(thread);
 	const threadBusy = busyThreadId === thread.id;
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const [editValue, setEditValue] = useState("");
@@ -69,7 +70,7 @@ export function CommentList({
 								{author.isAgent ? (
 									<Bot className="size-3.5" />
 								) : (
-									initialsOf(author.name)
+									getInitials(author.name) || "?"
 								)}
 							</AvatarFallback>
 						</Avatar>
@@ -85,7 +86,7 @@ export function CommentList({
 									</span>
 								</div>
 								<div className="ml-auto flex items-center gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover/comment:opacity-100">
-									{onEdit ? (
+									{onEdit && canEdit(comment) ? (
 										<IconButton
 											label={t({ message: "Edit comment" })}
 											onClick={() => {
@@ -113,7 +114,7 @@ export function CommentList({
 											)}
 										</IconButton>
 									) : null}
-									{onDelete ? (
+									{onDelete && deletable ? (
 										<IconButton
 											label={t({ message: "Delete thread" })}
 											onClick={onDelete}

@@ -1,8 +1,13 @@
 import { errorMessage } from "@superset/i18n/errors";
 import type { RouterOutputs } from "@superset/trpc";
-import type { CommentStore, PageCommentUser } from "@superset/ui/page-comments";
+import {
+	type CommentStore,
+	optimisticId,
+	type PageCommentUser,
+} from "@superset/ui/page-comments";
 import { toast } from "@superset/ui/sonner";
-import { useCallback, useMemo, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useMemo } from "react";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { toThreads } from "renderer/routes/_authenticated/_dashboard/utils/toThreads";
 
@@ -16,9 +21,10 @@ function optimisticComment({
 	user: PageCommentUser;
 }): ServerThread["comments"][number] {
 	return {
-		id: `optimistic-${crypto.randomUUID()}`,
+		id: optimisticId(),
 		body,
 		authorKind: "human",
+		authorUserId: user.id,
 		authorName: user.name,
 		authorImage: user.image,
 		createdAt: new Date(),
@@ -44,13 +50,14 @@ function optimisticThread({
 	version: number;
 }): ServerThread {
 	return {
-		id: `optimistic-${crypto.randomUUID()}`,
+		id: optimisticId(),
 		anchorKind: "element",
 		anchor: input.anchor ?? null,
 		anchorText: input.anchorText ?? null,
 		resolved: false,
 		createdAt: new Date(),
 		version,
+		createdByUserId: user.id,
 		comments: [optimisticComment({ body: input.body, user })],
 	};
 }
@@ -70,35 +77,30 @@ export function usePageCommentStore({
 		{ enabled: version > 0 },
 	);
 
-	const invalidate = useCallback(
-		() => utils.pageComment.list.invalidate({ pageId }),
-		[utils, pageId],
-	);
+	const queryClient = useQueryClient();
 
-	const sending = useRef(0);
+	const settle = useCallback(() => {
+		const inFlight = queryClient.isMutating({
+			predicate: (mutation) =>
+				mutation.options.meta?.pageCommentsFor === pageId,
+		});
+		if (inFlight === 1) utils.pageComment.list.invalidate({ pageId });
+	}, [queryClient, utils, pageId]);
 
-	const beginSend = useCallback(() => {
-		sending.current += 1;
-	}, []);
-
-	const endSend = useCallback(() => {
-		sending.current = Math.max(0, sending.current - 1);
-		if (sending.current === 0) invalidate();
-	}, [invalidate]);
+	const meta = useMemo(() => ({ pageCommentsFor: pageId }), [pageId]);
 
 	const handlers = useMemo(
 		() => ({
-			onMutate: beginSend,
+			meta,
 			onError: (error: { message: string }) => toast.error(errorMessage(error)),
-			onSettled: endSend,
+			onSettled: settle,
 		}),
-		[beginSend, endSend],
+		[meta, settle],
 	);
 
 	const optimistic = useMemo(
 		() => ({
 			onMutate: async (write: (rows: ServerThread[]) => ServerThread[]) => {
-				beginSend();
 				await utils.pageComment.list.cancel({ pageId });
 				const previous = utils.pageComment.list.getData({ pageId });
 				utils.pageComment.list.setData({ pageId }, write(previous ?? []));
@@ -108,15 +110,20 @@ export function usePageCommentStore({
 				error: { message: string },
 				context: { previous: ServerThread[] | undefined } | undefined,
 			) => {
-				utils.pageComment.list.setData({ pageId }, context?.previous);
+				if (context?.previous) {
+					utils.pageComment.list.setData({ pageId }, context.previous);
+				} else {
+					utils.pageComment.list.reset({ pageId });
+				}
 				toast.error(errorMessage(error));
 			},
-			onSettled: endSend,
+			onSettled: settle,
 		}),
-		[utils, pageId, beginSend, endSend],
+		[utils, pageId, settle],
 	);
 
 	const create = cloudTrpc.pageComment.create.useMutation({
+		meta,
 		onMutate: (input) =>
 			optimistic.onMutate((rows) => [
 				...rows,
@@ -126,6 +133,7 @@ export function usePageCommentStore({
 		onSettled: optimistic.onSettled,
 	});
 	const reply = cloudTrpc.pageComment.reply.useMutation({
+		meta,
 		onMutate: (input) =>
 			optimistic.onMutate((rows) =>
 				rows.map((row) =>

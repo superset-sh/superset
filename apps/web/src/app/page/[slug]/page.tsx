@@ -77,6 +77,7 @@ export default async function PublishedPage({ params }: PageProps) {
 		<PageCommentsShell
 			pageId={page.id}
 			version={page.version}
+			pageOwnerId={page.createdByUserId}
 			user={{
 				id: session?.user.id ?? "",
 				name: session?.user.name ?? i18n._(msg({ message: "You" })),

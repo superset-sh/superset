@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "../../../../../../lib/utils";
 import { Button } from "../../../../../ui/button";
 import type { CommentThread } from "../../../../providers/CommentProvider";
+import { isOptimisticId } from "../../../../utils/optimisticId";
 import { CommentComposer } from "../../../CommentComposer";
 import { CommentList } from "../../../CommentList";
 
@@ -80,12 +81,14 @@ export function PanelThread({
 				</p>
 			) : null}
 
-			<CommentComposer
-				isReply
-				onSubmit={onReply}
-				onFocus={onSelect}
-				className="border-t"
-			/>
+			{isOptimisticId(thread.id) ? null : (
+				<CommentComposer
+					isReply
+					onSubmit={onReply}
+					onFocus={onSelect}
+					className="border-t"
+				/>
+			)}
 		</div>
 	);
 }

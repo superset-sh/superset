@@ -1,6 +1,7 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
+import { getInitials } from "@superset/shared/names";
 import { Building2, Check, Link2, Lock } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "../../../../../ui/avatar";
@@ -30,15 +31,6 @@ import type {
 } from "../../types";
 
 const LATEST = "latest";
-
-function initialsOf(name: string): string {
-	const parts = name.trim().split(/\s+/).filter(Boolean);
-	if (parts.length === 0) return "?";
-	return parts
-		.slice(0, 2)
-		.map((part) => part[0]?.toUpperCase() ?? "")
-		.join("");
-}
 
 interface PageSharePopoverProps {
 	page: PageHeaderPage;
@@ -161,7 +153,7 @@ export function PageSharePopover({
 							<Avatar className="size-6">
 								{owner.image ? <AvatarImage src={owner.image} /> : null}
 								<AvatarFallback className="text-[10px]">
-									{initialsOf(owner.name)}
+									{getInitials(owner.name) || "?"}
 								</AvatarFallback>
 							</Avatar>
 							<div className="min-w-0 flex-1">

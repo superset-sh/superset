@@ -1,6 +1,7 @@
-import { formatDistanceToNowStrict } from "date-fns";
+import { formatRelativeTime } from "@superset/i18n/format";
 
 export function relativeTime(value: Date | number | string): string {
-	if (Number.isNaN(new Date(value).getTime())) return "";
-	return formatDistanceToNowStrict(value, { addSuffix: true });
+	const date = new Date(value);
+	if (Number.isNaN(date.getTime())) return "";
+	return formatRelativeTime(date);
 }

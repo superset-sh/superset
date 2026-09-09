@@ -55,7 +55,6 @@ export function ContributionGraph({
 	const [active, setActive] = useState<CalendarCell | null>(null);
 	const scroller = useRef<HTMLDivElement>(null);
 	const calendar = buildCalendar(daily, endDay);
-	const _weekCount = calendar.weeks.length;
 
 	useEffect(() => {
 		const element = scroller.current;

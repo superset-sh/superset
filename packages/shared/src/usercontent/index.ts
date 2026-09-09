@@ -8,6 +8,7 @@ export {
 export {
 	injectScriptTag,
 	injectStylesheetLink,
+	injectStyleTag,
 	RUNTIME_SCRIPT_PATH,
 } from "./inject";
 export {

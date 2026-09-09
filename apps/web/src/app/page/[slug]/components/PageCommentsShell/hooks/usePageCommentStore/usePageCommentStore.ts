@@ -2,14 +2,15 @@
 
 import { errorMessage } from "@superset/i18n/errors";
 import type { RouterOutputs } from "@superset/trpc";
-import type {
-	CommentStore,
-	CommentThread,
-	PageCommentUser,
+import {
+	type CommentStore,
+	type CommentThread,
+	optimisticId,
+	type PageCommentUser,
 } from "@superset/ui/page-comments";
 import { toast } from "@superset/ui/sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo } from "react";
 import { useTRPC } from "@/trpc/react";
 
 type ServerThread = RouterOutputs["pageComment"]["list"][number];
@@ -29,12 +30,14 @@ function toThreads(rows: ServerThread[]): CommentThread[] {
 						},
 						resolved: row.resolved,
 						version: row.version,
+						createdByUserId: row.createdByUserId,
 						comments: row.comments.map((comment) => ({
 							id: comment.id,
 							body: comment.body,
 							authorName: comment.authorName,
 							authorImage: comment.authorImage,
 							authorKind: comment.authorKind,
+							authorUserId: comment.authorUserId,
 							createdAt: comment.createdAt.getTime(),
 						})),
 					},
@@ -51,9 +54,10 @@ function optimisticComment({
 	user: PageCommentUser;
 }): ServerThread["comments"][number] {
 	return {
-		id: `optimistic-${crypto.randomUUID()}`,
+		id: optimisticId(),
 		body,
 		authorKind: "human",
+		authorUserId: user.id,
 		authorName: user.name,
 		authorImage: user.image,
 		createdAt: new Date(),
@@ -79,13 +83,14 @@ function optimisticThread({
 	version: number;
 }): ServerThread {
 	return {
-		id: `optimistic-${crypto.randomUUID()}`,
+		id: optimisticId(),
 		anchorKind: "element",
 		anchor: input.anchor ?? null,
 		anchorText: input.anchorText ?? null,
 		resolved: false,
 		createdAt: new Date(),
 		version,
+		createdByUserId: user.id,
 		comments: [optimisticComment({ body: input.body, user })],
 	};
 }
@@ -104,35 +109,30 @@ export function usePageCommentStore({
 	const listOptions = trpc.pageComment.list.queryOptions({ pageId });
 	const list = useQuery(listOptions);
 
-	const invalidate = useCallback(
-		() => queryClient.invalidateQueries({ queryKey: listOptions.queryKey }),
-		[queryClient, listOptions.queryKey],
-	);
+	const settle = useCallback(() => {
+		const inFlight = queryClient.isMutating({
+			predicate: (mutation) =>
+				mutation.options.meta?.pageCommentsFor === pageId,
+		});
+		if (inFlight === 1) {
+			queryClient.invalidateQueries({ queryKey: listOptions.queryKey });
+		}
+	}, [queryClient, listOptions.queryKey, pageId]);
 
-	const sending = useRef(0);
-
-	const beginSend = useCallback(() => {
-		sending.current += 1;
-	}, []);
-
-	const endSend = useCallback(() => {
-		sending.current = Math.max(0, sending.current - 1);
-		if (sending.current === 0) invalidate();
-	}, [invalidate]);
+	const meta = useMemo(() => ({ pageCommentsFor: pageId }), [pageId]);
 
 	const handlers = useMemo(
 		() => ({
-			onMutate: beginSend,
+			meta,
 			onError: (error: { message: string }) => toast.error(errorMessage(error)),
-			onSettled: endSend,
+			onSettled: settle,
 		}),
-		[beginSend, endSend],
+		[meta, settle],
 	);
 
 	const optimistic = useMemo(
 		() => ({
 			onMutate: async (write: (rows: ServerThread[]) => ServerThread[]) => {
-				beginSend();
 				await queryClient.cancelQueries({ queryKey: listOptions.queryKey });
 				const previous = queryClient.getQueryData(listOptions.queryKey);
 				queryClient.setQueryData(listOptions.queryKey, write(previous ?? []));
@@ -142,16 +142,21 @@ export function usePageCommentStore({
 				error: { message: string },
 				context: { previous: ServerThread[] | undefined } | undefined,
 			) => {
-				queryClient.setQueryData(listOptions.queryKey, context?.previous);
+				if (context?.previous) {
+					queryClient.setQueryData(listOptions.queryKey, context.previous);
+				} else {
+					queryClient.resetQueries({ queryKey: listOptions.queryKey });
+				}
 				toast.error(errorMessage(error));
 			},
-			onSettled: endSend,
+			onSettled: settle,
 		}),
-		[queryClient, listOptions.queryKey, beginSend, endSend],
+		[queryClient, listOptions.queryKey, settle],
 	);
 
 	const create = useMutation(
 		trpc.pageComment.create.mutationOptions({
+			meta,
 			onMutate: (input) =>
 				optimistic.onMutate((rows) => [
 					...rows,
@@ -163,6 +168,7 @@ export function usePageCommentStore({
 	);
 	const reply = useMutation(
 		trpc.pageComment.reply.mutationOptions({
+			meta,
 			onMutate: (input) =>
 				optimistic.onMutate((rows) =>
 					rows.map((row) =>

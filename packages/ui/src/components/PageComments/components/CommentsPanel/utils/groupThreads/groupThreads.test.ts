@@ -11,6 +11,7 @@ function thread(over: Partial<CommentThread> = {}): CommentThread {
 		anchor: { path: "div > p", tag: "p", text: "axis" },
 		resolved: over.resolved ?? false,
 		version: over.version ?? 1,
+		createdByUserId: over.createdByUserId ?? "u1",
 		comments: over.comments ?? [],
 	};
 }
@@ -105,6 +106,7 @@ describe("newestActivity", () => {
 					authorName: "Sarah",
 					authorImage: null,
 					authorKind: "human",
+					authorUserId: "u1",
 					createdAt: 100,
 				},
 				{
@@ -113,6 +115,7 @@ describe("newestActivity", () => {
 					authorName: "claude",
 					authorImage: null,
 					authorKind: "agent",
+					authorUserId: "u1",
 					createdAt: 300,
 				},
 			],
@@ -136,6 +139,7 @@ describe("groupByDay", () => {
 					authorName: "Sarah",
 					authorImage: null,
 					authorKind: "human",
+					authorUserId: "u1",
 					createdAt,
 				},
 			],
@@ -172,6 +176,7 @@ describe("groupByDay", () => {
 					authorName: "Sarah",
 					authorImage: null,
 					authorKind: "human",
+					authorUserId: "u1",
 					createdAt: yesterday,
 				},
 				{
@@ -180,11 +185,22 @@ describe("groupByDay", () => {
 					authorName: "Sarah",
 					authorImage: null,
 					authorKind: "human",
+					authorUserId: "u1",
 					createdAt: noon,
 				},
 			],
 		});
 
 		expect(groupByDay([stale, at("today", evening)])).toHaveLength(1);
+	});
+
+	it("drops a thread whose comments were all deleted", () => {
+		expect(groupByDay([thread({ id: "emptied" })])).toEqual([]);
+	});
+
+	it("keeps the other threads when one has no comments", () => {
+		const groups = groupByDay([thread({ id: "emptied" }), at("today", noon)]);
+		expect(groups).toHaveLength(1);
+		expect(groups[0]?.threads.map((t) => t.id)).toEqual(["today"]);
 	});
 });

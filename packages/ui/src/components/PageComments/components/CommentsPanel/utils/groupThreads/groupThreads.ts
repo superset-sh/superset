@@ -49,6 +49,7 @@ export interface DayGroup {
 export function groupByDay(threads: CommentThread[]): DayGroup[] {
 	const byDay = new Map<number, CommentThread[]>();
 	for (const thread of threads) {
+		if (thread.comments.length === 0) continue;
 		const day = startOfDay(newestActivity(thread)).getTime();
 		const group = byDay.get(day);
 		if (group) group.push(thread);

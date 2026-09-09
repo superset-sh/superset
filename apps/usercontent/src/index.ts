@@ -5,7 +5,7 @@ import {
 	fileOriginalKey,
 	fileResponsePolicy,
 	injectScriptTag,
-	injectStylesheetLink,
+	injectStyleTag,
 	PAGE_THEME_CSS,
 	type PageManifest,
 	type PageTicketClaims,
@@ -148,9 +148,9 @@ async function servePage(c: Context<AppContext>): Promise<Response> {
 	});
 
 	if (!isHtml) return new Response(object.body, { headers });
-	const document = injectStylesheetLink(
+	const document = injectStyleTag(
 		injectScriptTag(await object.text(), RUNTIME_SCRIPT_PATH),
-		THEME_STYLESHEET_PATH,
+		PAGE_THEME_CSS,
 	);
 	return new Response(document, { headers });
 }

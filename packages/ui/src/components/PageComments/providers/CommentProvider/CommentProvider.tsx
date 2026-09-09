@@ -13,6 +13,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { isOptimisticId } from "../../utils/optimisticId";
 
 export interface PageCommentUser {
 	id: string;
@@ -25,6 +26,7 @@ export interface PageComment {
 	authorName: string;
 	authorImage: string | null;
 	authorKind: "human" | "agent";
+	authorUserId: string | null;
 	body: string;
 	createdAt: number;
 }
@@ -35,11 +37,13 @@ export interface CommentThread {
 	comments: PageComment[];
 	resolved: boolean;
 	version: number;
+	createdByUserId: string | null;
 }
 
 export interface CommentDraft {
 	anchor: CommentAnchor;
 	rect: FrameRect;
+	body?: string;
 }
 
 export interface CommentStore {
@@ -62,6 +66,8 @@ export interface CommentStore {
 
 interface CommentContextValue extends CommentStore {
 	user: PageCommentUser;
+	canEdit: (comment: PageComment) => boolean;
+	canDeleteThread: (thread: CommentThread) => boolean;
 	submitting: boolean;
 	busyThreadId: string | null;
 	framePointerDownAt: number;
@@ -114,12 +120,14 @@ function sameRect(
 export function CommentProvider({
 	user,
 	store,
+	pageOwnerId,
 	enabled: controlledEnabled,
 	onEnabledChange,
 	children,
 }: {
 	user: PageCommentUser;
 	store: CommentStore;
+	pageOwnerId?: string | null;
 	enabled?: boolean;
 	onEnabledChange?: (enabled: boolean) => void;
 	children: ReactNode;
@@ -214,7 +222,7 @@ export function CommentProvider({
 			try {
 				await store.createThread(input);
 			} catch (error) {
-				if (composing) setDraft(composing);
+				if (composing) setDraft({ ...composing, body: input.body });
 				throw error;
 			}
 		},
@@ -222,7 +230,10 @@ export function CommentProvider({
 	);
 
 	const addReply = useCallback<CommentStore["addReply"]>(
-		(threadId, body) => store.addReply(threadId, body),
+		async (threadId, body) => {
+			if (isOptimisticId(threadId)) return;
+			await store.addReply(threadId, body);
+		},
 		[store],
 	);
 
@@ -258,9 +269,26 @@ export function CommentProvider({
 		[runThreadAction, store],
 	);
 
+	const canEdit = useCallback(
+		(comment: PageComment) =>
+			comment.authorUserId !== null && comment.authorUserId === user.id,
+		[user.id],
+	);
+
+	const canDeleteThread = useCallback(
+		(thread: CommentThread) =>
+			thread.createdByUserId === user.id ||
+			(pageOwnerId !== null && pageOwnerId !== undefined
+				? pageOwnerId === user.id
+				: false),
+		[user.id, pageOwnerId],
+	);
+
 	const value = useMemo<CommentContextValue>(
 		() => ({
 			user,
+			canEdit,
+			canDeleteThread,
 			threads: store.threads,
 			isLoading: store.isLoading,
 			addReply,
@@ -289,6 +317,8 @@ export function CommentProvider({
 		}),
 		[
 			user,
+			canEdit,
+			canDeleteThread,
 			store.threads,
 			store.isLoading,
 			addReply,

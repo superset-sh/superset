@@ -6,6 +6,7 @@ import {
 	type CommentThread,
 	useComments,
 } from "../../../../providers/CommentProvider";
+import { isOptimisticId } from "../../../../utils/optimisticId";
 import { CommentComposer } from "../../../CommentComposer";
 import { CommentList } from "../../../CommentList";
 import type { PinPoint } from "../../utils/pinLayout";
@@ -23,6 +24,7 @@ interface CommentPopoverProps {
 	point: PinPoint;
 	container: { width: number; height: number };
 	thread: CommentThread | null;
+	initialValue?: string;
 	onSubmit: (body: string) => void | Promise<void>;
 	onEdit?: (commentId: string, body: string) => void | Promise<void>;
 	onToggleResolved?: () => void;
@@ -34,6 +36,7 @@ export function CommentPopover({
 	point,
 	container,
 	thread,
+	initialValue,
 	onSubmit,
 	onEdit,
 	onToggleResolved,
@@ -88,12 +91,15 @@ export function CommentPopover({
 				/>
 			) : null}
 
-			<CommentComposer
-				isReply={thread !== null}
-				autoFocus={thread === null}
-				onSubmit={onSubmit}
-				className={cn(thread && "border-t")}
-			/>
+			{thread && isOptimisticId(thread.id) ? null : (
+				<CommentComposer
+					isReply={thread !== null}
+					autoFocus={thread === null}
+					initialValue={initialValue}
+					onSubmit={onSubmit}
+					className={cn(thread && "border-t")}
+				/>
+			)}
 		</div>
 	);
 }

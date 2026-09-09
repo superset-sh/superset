@@ -35,3 +35,8 @@ export {
 	type CommentAuthor,
 	commentAuthor,
 } from "./utils/commentAuthor";
+export {
+	isOptimisticId,
+	OPTIMISTIC_ID_PREFIX,
+	optimisticId,
+} from "./utils/optimisticId";

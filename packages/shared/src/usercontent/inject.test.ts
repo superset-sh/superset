@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { injectScriptTag, injectStylesheetLink } from "./inject";
+import {
+	injectScriptTag,
+	injectStylesheetLink,
+	injectStyleTag,
+} from "./inject";
 
 const HREF = "/_superset/theme.css";
 const LINK = `<link rel="stylesheet" href="${HREF}">`;
@@ -76,6 +80,51 @@ describe("injectStylesheetLink", () => {
 		const html = "<!DOCTYPE html><!-- <head> --><p>hi</p>";
 		expect(injectStylesheetLink(html, HREF)).toBe(
 			`<!DOCTYPE html>${LINK}<!-- <head> --><p>hi</p>`,
+		);
+	});
+
+	test("skips a head written inside another element's attribute", () => {
+		const html =
+			'<div data-hint="write your styles in <head>"></div><head>x</head>';
+		expect(injectStylesheetLink(html, HREF)).toBe(
+			`<div data-hint="write your styles in <head>"></div><head>${LINK}x</head>`,
+		);
+	});
+
+	test("falls back when the only head is inside an attribute", () => {
+		const html = '<!DOCTYPE html><div title="a <head> tag">hi</div>';
+		expect(injectStylesheetLink(html, HREF)).toBe(
+			`<!DOCTYPE html>${LINK}<div title="a <head> tag">hi</div>`,
+		);
+	});
+
+	test("does not mistake header for head", () => {
+		const html = "<header>top</header><head>x</head>";
+		expect(injectStylesheetLink(html, HREF)).toBe(
+			`<header>top</header><head>${LINK}x</head>`,
+		);
+	});
+
+	test("scans a document with many script blocks and no head", () => {
+		const html = `<!DOCTYPE html>${"<script>var a = 1;</script>".repeat(2000)}<p>hi</p>`;
+		expect(injectStylesheetLink(html, HREF)).toBe(
+			`<!DOCTYPE html>${LINK}${"<script>var a = 1;</script>".repeat(2000)}<p>hi</p>`,
+		);
+	});
+});
+
+describe("injectStyleTag", () => {
+	test("inlines the css at the top of the head", () => {
+		const html = "<!DOCTYPE html><head><title>hi</title></head>";
+		expect(injectStyleTag(html, "body{color:red}")).toBe(
+			"<!DOCTYPE html><head><style>body{color:red}</style><title>hi</title></head>",
+		);
+	});
+
+	test("skips a head that is only text", () => {
+		const html = '<!DOCTYPE html><div title="<head>">hi</div>';
+		expect(injectStyleTag(html, "a{}")).toBe(
+			'<!DOCTYPE html><style>a{}</style><div title="<head>">hi</div>',
 		);
 	});
 });

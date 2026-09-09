@@ -11,6 +11,7 @@ interface PageCommentsShellProps {
 	pageId: string;
 	version: number;
 	user: PageCommentUser;
+	pageOwnerId?: string | null;
 	children: ReactNode;
 }
 
@@ -18,11 +19,12 @@ export function PageCommentsShell({
 	pageId,
 	version,
 	user,
+	pageOwnerId,
 	children,
 }: PageCommentsShellProps) {
 	const store = usePageCommentStore({ pageId, version, user });
 	return (
-		<CommentProvider user={user} store={store}>
+		<CommentProvider user={user} store={store} pageOwnerId={pageOwnerId}>
 			{children}
 		</CommentProvider>
 	);

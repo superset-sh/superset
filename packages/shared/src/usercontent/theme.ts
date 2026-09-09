@@ -1,7 +1,6 @@
 export const THEME_STYLESHEET_PATH = "/_superset/theme.css";
 
-export const PAGE_THEME_CSS = `:where(:root) {
-	color-scheme: light;
+const LIGHT_TOKENS = `color-scheme: light;
 	--sp-bg: oklch(1 0 0);
 	--sp-surface: oklch(0.97 0 0);
 	--sp-text: oklch(0.145 0 0);
@@ -14,36 +13,9 @@ export const PAGE_THEME_CSS = `:where(:root) {
 	--sp-chart-2: oklch(0.6 0.118 184.704);
 	--sp-chart-3: oklch(0.398 0.07 227.392);
 	--sp-chart-4: oklch(0.828 0.189 84.429);
-	--sp-chart-5: oklch(0.769 0.188 70.08);
-	--sp-radius: 0.625rem;
-	--sp-measure: 72ch;
-	--sp-font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-		"Helvetica Neue", Arial, sans-serif;
-	--sp-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
-		"Liberation Mono", monospace;
-}
+	--sp-chart-5: oklch(0.769 0.188 70.08);`;
 
-@media (prefers-color-scheme: dark) {
-	:where(:root:not(:has(> body.light))) {
-		color-scheme: dark;
-		--sp-bg: oklch(0.178 0 0);
-		--sp-surface: oklch(0.205 0 0);
-		--sp-text: oklch(0.985 0 0);
-		--sp-muted: oklch(0.708 0 0);
-		--sp-border: oklch(1 0 0 / 12%);
-		--sp-accent: oklch(0.922 0 0);
-		--sp-accent-text: oklch(0.205 0 0);
-		--sp-code-bg: oklch(0.269 0 0);
-		--sp-chart-1: oklch(0.488 0.243 264.376);
-		--sp-chart-2: oklch(0.696 0.17 162.48);
-		--sp-chart-3: oklch(0.769 0.188 70.08);
-		--sp-chart-4: oklch(0.627 0.265 303.9);
-		--sp-chart-5: oklch(0.645 0.246 16.439);
-	}
-}
-
-:where(:root:has(> body.dark)) {
-	color-scheme: dark;
+const DARK_TOKENS = `color-scheme: dark;
 	--sp-bg: oklch(0.178 0 0);
 	--sp-surface: oklch(0.205 0 0);
 	--sp-text: oklch(0.985 0 0);
@@ -56,35 +28,40 @@ export const PAGE_THEME_CSS = `:where(:root) {
 	--sp-chart-2: oklch(0.696 0.17 162.48);
 	--sp-chart-3: oklch(0.769 0.188 70.08);
 	--sp-chart-4: oklch(0.627 0.265 303.9);
-	--sp-chart-5: oklch(0.645 0.246 16.439);
+	--sp-chart-5: oklch(0.645 0.246 16.439);`;
+
+export const PAGE_THEME_CSS = `:where(:root),
+:where(:root:has(> body.light)) {
+	${LIGHT_TOKENS}
+	--sp-radius: 0.625rem;
+	--sp-measure: 72ch;
+	--sp-font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+		"Helvetica Neue", Arial, sans-serif;
+	--sp-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+		"Liberation Mono", monospace;
 }
 
-:where(:root:has(> body.light)) {
-	color-scheme: light;
-	--sp-bg: oklch(1 0 0);
-	--sp-surface: oklch(0.97 0 0);
-	--sp-text: oklch(0.145 0 0);
-	--sp-muted: oklch(0.556 0 0);
-	--sp-border: oklch(0.922 0 0);
-	--sp-accent: oklch(0.205 0 0);
-	--sp-accent-text: oklch(0.985 0 0);
-	--sp-code-bg: oklch(0.97 0 0);
-	--sp-chart-1: oklch(0.646 0.222 41.116);
-	--sp-chart-2: oklch(0.6 0.118 184.704);
-	--sp-chart-3: oklch(0.398 0.07 227.392);
-	--sp-chart-4: oklch(0.828 0.189 84.429);
-	--sp-chart-5: oklch(0.769 0.188 70.08);
+:where(:root:has(> body.dark)) {
+	${DARK_TOKENS}
+}
+
+@media (prefers-color-scheme: dark) {
+	:where(:root:has(> body.auto)) {
+		${DARK_TOKENS}
+	}
 }
 
 :where(*, *::before, *::after) {
 	box-sizing: border-box;
 }
 
-:where(body) {
-	margin: 0;
-	padding: 2.5rem 1.5rem 4rem;
+:where(html) {
 	background: var(--sp-bg);
 	color: var(--sp-text);
+}
+
+:where(body) {
+	margin: 0;
 	font-family: var(--sp-font-sans);
 	font-size: 16px;
 	line-height: 1.6;
@@ -117,7 +94,6 @@ export const PAGE_THEME_CSS = `:where(:root) {
 
 :where(p, ul, ol, dl, blockquote) {
 	margin: 0 0 1em;
-	max-width: var(--sp-measure);
 }
 
 :where(ul, ol) {
@@ -215,6 +191,9 @@ export const PAGE_THEME_CSS = `:where(:root) {
 
 :where(img, svg, video, canvas, iframe) {
 	max-width: 100%;
+}
+
+:where(img, video) {
 	height: auto;
 }
 

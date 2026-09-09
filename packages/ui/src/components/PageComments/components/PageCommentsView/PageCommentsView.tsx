@@ -1,5 +1,6 @@
 "use client";
 
+import { getInitials } from "@superset/shared/names";
 import {
 	FRAME_CHANNEL,
 	type FrameMessage,
@@ -8,7 +9,6 @@ import {
 } from "@superset/shared/page-comments-runtime";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useComments } from "../../providers/CommentProvider";
-import { initialsOf } from "../../utils/initialsOf";
 import { CommentBubble, pinClassName } from "./components/CommentBubble";
 import { CommentPopover } from "./components/CommentPopover";
 import { PageFrame } from "./components/PageFrame";
@@ -61,6 +61,7 @@ export function PageCommentsView({
 		activeThreadId,
 		setActiveThreadId,
 		panelOpen,
+		setPanelOpen,
 		hoverRect,
 		setHoverRect,
 		rects,
@@ -77,7 +78,7 @@ export function PageCommentsView({
 
 	/**
 	 * Escape peels one layer at a time: the draft you are composing, then an
-	 * open thread, then comment mode itself.
+	 * open thread, then the panel, then comment mode itself.
 	 */
 	const dismiss = useCallback(() => {
 		if (submitting) return;
@@ -89,13 +90,19 @@ export function PageCommentsView({
 			setActiveThreadId(null);
 			return;
 		}
+		if (panelOpen) {
+			setPanelOpen(false);
+			return;
+		}
 		if (enabled) toggleEnabled();
 	}, [
 		activeThreadId,
 		discardDraft,
 		draft,
 		enabled,
+		panelOpen,
 		setActiveThreadId,
+		setPanelOpen,
 		submitting,
 		toggleEnabled,
 	]);
@@ -255,7 +262,7 @@ export function PageCommentsView({
 						}}
 						className={pinClassName({ resolved: false, active: false })}
 					>
-						{initialsOf(user.name)}
+						{getInitials(user.name) || "?"}
 					</div>
 				) : null}
 
@@ -268,7 +275,7 @@ export function PageCommentsView({
 							key={thread.id}
 							point={point}
 							stackIndex={stackIndex[thread.id] ?? 0}
-							initials={initialsOf(first?.authorName ?? "?")}
+							initials={getInitials(first?.authorName) || "?"}
 							count={thread.comments.length}
 							resolved={thread.resolved}
 							active={thread.id === activeThreadId}
@@ -289,6 +296,7 @@ export function PageCommentsView({
 						point={draftPoint}
 						container={container}
 						thread={null}
+						initialValue={draft.body}
 						onDismiss={discardDraft}
 						onSubmit={(body) =>
 							createThread({
